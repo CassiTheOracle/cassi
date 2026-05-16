@@ -372,3 +372,184 @@ export const SIGNAL_TYPE_PHRASES: PhrasePrototypeSet = {
   },
   labels: ['concern', 'anomaly', 'insight', 'decision'],
 }
+
+export const MEMORY_WORTHINESS_PHRASES: PhrasePrototypeSet = {
+  phrases: {
+    worth_remembering: [
+      // --- USER: Decisions and preferences ---
+      'the user made a decision about which approach to take',
+      'the user expressed a preference for how something should be done',
+      'the user chose one option over another',
+      'the user rejected a suggestion and explained why',
+      'the user specified a requirement or constraint they care about',
+
+      // --- USER: Corrections and lessons ---
+      'the user corrected a misunderstanding about how things work',
+      'the user pointed out a mistake in my reasoning',
+      'the user explained why the system is actually different from what I assumed',
+      'the user clarified something I got wrong',
+      'the user corrected my terminology or framing',
+
+      // --- USER: Architecture and design ---
+      'the user described how the system architecture works',
+      'the user explained the design rationale behind a component',
+      'the user shared technical constraints that affect implementation choices',
+      'the user provided context about how the project is structured',
+      'the user drew a comparison between two technical approaches',
+
+      // --- USER: Setup and environment ---
+      'the user revealed a configuration detail about their environment',
+      'the user shared what tools they use and how they work',
+      'the user described their development workflow',
+      'the user specified which services or dependencies they rely on',
+      'the user shared their directory structure or project layout',
+
+      // --- USER: Discoveries and insights ---
+      'a non-obvious root cause was identified for a problem',
+      'an important discovery was made about how something actually works',
+      'a bug or issue was diagnosed and the fix was non-trivial',
+      'a pattern or relationship was uncovered that explains prior confusion',
+
+      // --- USER: Goals and intent ---
+      'the user stated what they want to achieve in this project',
+      'the user described the larger goal that this work serves',
+      'the user prioritized one task or requirement over another',
+      'the user specified acceptance criteria or quality standards',
+
+      // --- USER: Feedback and evaluation ---
+      'the user evaluated a proposed approach as good or bad',
+      'the user shared their opinion on the quality of work produced',
+      'the user indicated what they value in the implementation',
+      'the user expressed satisfaction or dissatisfaction with a result',
+
+      // --- USER: Personal context ---
+      'the user mentioned their role or relationship to the project',
+      'the user shared something about their background or expertise',
+      'the user explained their naming conventions or coding style',
+      'the user described how they think about organizing the code',
+
+      // --- USER: Important caveats ---
+      'the user warned about a common pitfall or footgun',
+      'the user flagged something as dangerous or destructive',
+      'the user recommended against a particular approach',
+      'the user shared tribal knowledge that is not documented anywhere',
+
+      // --- ASSISTANT: Synthesis and discovery (what was found) ---
+      'a clear picture emerged of how the architecture fits together',
+      'the investigation revealed how the component is actually wired',
+      'the analysis produced a structured summary of the system internals',
+      'the search uncovered the relevant code and its loading pattern',
+      'the evidence shows that the system works differently than expected',
+      'tracing the execution path revealed the full data flow',
+      'the comparison between approaches showed clear tradeoffs',
+      'a comprehensive synthesis of findings was produced',
+
+      // --- ASSISTANT: Analysis and evaluation (what it means) ---
+      'the key insight is how the components relate to each other',
+      'this approach has a fundamental problem because of how it works',
+      'the core issue is caused by an architectural constraint',
+      'the recommended approach is better because it avoids a known pitfall',
+      'the reasoning shows why one design is preferable over alternatives',
+      'the evaluation identified strengths and weaknesses of each option',
+      'the analysis connects previously separate concepts in a useful way',
+      'a non-obvious consequence was discovered from the design choice',
+
+      // --- ASSISTANT: Recommendations and decisions ---
+      'a specific course of action was recommended with supporting rationale',
+      'one option was eliminated based on evidence from the investigation',
+      'the proposed solution addresses all the constraints the user specified',
+      'the recommended change would affect these specific components',
+      'a design decision was made and the tradeoffs were documented',
+      'an implementation plan was outlined with concrete steps',
+
+      // --- ASSISTANT: Self-correction and learning ---
+      'the assistant realized it was wrong about a previous assumption',
+      'the assistant revised its understanding based on new evidence',
+      'the assistant acknowledged a mistake and corrected the record',
+      'earlier conclusions were updated in light of contradictory findings',
+
+      // --- ASSISTANT: Technical explanation ---
+      'the architecture of the component was explained with its role',
+      'the data flow through the system was traced end to end',
+      'the relationship between modules was described in detail',
+      'how the protocol or API works was explained step by step',
+      'the configuration options and their effects were documented',
+      'the build or deployment process was explained with important details',
+
+      // --- ASSISTANT: Patterns and principles ---
+      'a reusable pattern was identified that applies to similar situations',
+      'a general principle was extracted from the specific case',
+      'the approach generalizes to other parts of the system',
+      'a convention or standard practice was established for future work',
+
+      // --- ASSISTANT: Thinking and reasoning (valuable cognitive content) ---
+      'careful consideration of the tradeoffs led to a clear recommendation',
+      'working through the problem step by step revealed the right approach',
+      'reconsidering the initial assumption changed the direction entirely',
+      'connecting the dots between separate findings produced a coherent picture',
+      'the reasoning process identified a flaw that was not obvious at first',
+      'examining the evidence from multiple angles confirmed the hypothesis',
+      'the thinking shows a progression from confusion to clear understanding',
+      'weighing the pros and cons systematically eliminated weaker options',
+    ],
+
+    noise: [
+      // --- Tool results (belt and suspenders with role filter) ---
+      'this is the output of a shell command that was just run',
+      'here are the contents of a file that was read from disk',
+      'this is the result of a search query across files',
+      'this is a list of files in a directory',
+
+      // --- User: Trivial responses ---
+      'a simple acknowledgement like okay sure or got it',
+      'a brief greeting or farewell',
+      'an affirmative one-word response',
+      'a generic thank you exchange',
+      'a single word or short phrase with no substantive content',
+
+      // --- User: Status updates with no lasting value ---
+      'the build completed successfully or failed',
+      'the tests are running or have finished',
+      'a process started or stopped',
+      'an installation completed',
+
+      // --- Assistant: Planning what to do next (not analysis) ---
+      'let me search for something in the codebase to find the answer',
+      'let me read a file to understand how it is implemented',
+      'let me check what the config says about a setting',
+      'i need to locate where this feature is defined in the code',
+      'let me explore different directories until I find the right file',
+      'let me look at this specific function or method',
+      'let me run a command to verify the results',
+
+      // --- Assistant: Transitional framing ---
+      'good question let me look into this and find the answer',
+      'found the relevant code let me explain what it does',
+      'now let me examine this other file to understand the flow',
+      'let me dig deeper into this specific component',
+      'let me check the results of what was just discovered',
+      'let me verify this by checking the actual implementation',
+      'let me trace through the code step by step',
+
+      // --- Assistant: Tool-operation framing ---
+      'let me search more specifically using different terms',
+      'let me broaden the search to find more results',
+      'let me check another location for the relevant files',
+      'let me look at the broader directory structure',
+      'now let me check this other part of the codebase',
+      'let me now check the actual value in the code',
+
+      // --- Assistant: Near-empty or pure-tool responses ---
+      'a response that is empty or contains only tool call output',
+      'a message that only delegates to external tools with no synthesis',
+
+      // --- Assistant: Thinking about what to search next ---
+      'i should look at the relevant source files to understand the code',
+      'let me find where this particular feature is implemented',
+      'i need to trace through the execution path to find the bug',
+      'let me check the test files for examples of correct usage',
+      'i should read the documentation to understand the API',
+    ],
+  },
+  labels: ['worth_remembering', 'noise'],
+}
