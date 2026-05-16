@@ -14,17 +14,34 @@ export class FacetManager {
     private mnemicField: MnemicField | null = null,
   ) {}
 
+  /** Build metadata object for a facet engram — single source of truth. */
+  private buildMetadata(facet: Facet): Record<string, unknown> {
+    return {
+      pinealId: facet.id,
+      domain: facet.domain,
+      category: facet.category,
+      conviction: facet.conviction,
+      salience: facet.salience,
+      pinned: facet.pinned,
+      scope: facet.scope,
+      version: facet.version,
+      provenance: facet.provenance,
+      active: facet.active,
+      createdAt: facet.createdAt,
+      lastReinforced: facet.lastReinforced,
+      reinforcements: facet.reinforcements,
+    }
+  }
+
   /** Find the MnemicField engram for a facet. */
   private findEngram(facetId: string): Engram | null {
     if (!this.mnemicField) return null
-    // Check cache first
     const cached = this.pinealEngramMap.get(facetId)
     if (cached) {
       const engram = this.mnemicField.get(cached)
       if (engram) return engram
       this.pinealEngramMap.delete(facetId)
     }
-    // Search by provenance
     const matches = this.mnemicField.searchByProvenance(`pineal:${facetId}`)
     if (matches.length > 0) {
       this.pinealEngramMap.set(facetId, matches[0].id)
@@ -39,28 +56,12 @@ export class FacetManager {
 
     const existing = this.findEngram(facet.id)
     if (existing) {
-      // Update existing
       this.mnemicField.update(existing.id, {
         content: facet.content,
-        metadata: {
-          pinealId: facet.id,
-          domain: facet.domain,
-          category: facet.category,
-          conviction: facet.conviction,
-          salience: facet.salience,
-          pinned: facet.pinned,
-          scope: facet.scope,
-          version: facet.version,
-          provenance: facet.provenance,
-          active: facet.active,
-          createdAt: facet.createdAt,
-          lastReinforced: facet.lastReinforced,
-          reinforcements: facet.reinforcements,
-        },
-        tags: ['pineal', facet.domain, facet.category, ...(facet.tags ?? [])],
+        metadata: { ...existing.metadata, ...this.buildMetadata(facet) },
+        tags: [...new Set(['pineal', facet.domain, facet.category, ...(facet.tags ?? []), ...(existing.tags ?? [])])],
       })
     } else {
-      // Create new at origin
       const engram = this.mnemicField.store({
         content: facet.content,
         nodeType: 'pineal_facet' as import('../mnemic-field/types.js').EngramType,
@@ -68,21 +69,7 @@ export class FacetManager {
         y: 0,
         provenance: `pineal:${facet.id}`,
         tags: ['pineal', facet.domain, facet.category, ...(facet.tags ?? [])],
-        metadata: {
-          pinealId: facet.id,
-          domain: facet.domain,
-          category: facet.category,
-          conviction: facet.conviction,
-          salience: facet.salience,
-          pinned: facet.pinned,
-          scope: facet.scope,
-          version: facet.version,
-          provenance: facet.provenance,
-          active: facet.active,
-          createdAt: facet.createdAt,
-          lastReinforced: facet.lastReinforced,
-          reinforcements: facet.reinforcements,
-        },
+        metadata: this.buildMetadata(facet),
       })
       this.pinealEngramMap.set(facet.id, engram.id)
     }
@@ -171,8 +158,8 @@ export class FacetManager {
       const oldEngram = this.findEngram(id)
       if (oldEngram && this.mnemicField) {
         this.mnemicField.update(oldEngram.id, {
-          metadata: { active: false },
-          tags: ['pineal', 'retired'],
+          metadata: { ...oldEngram.metadata, active: false },
+          tags: [...new Set([...(oldEngram.tags ?? []), 'retired'])],
         })
         this.pinealEngramMap.delete(id)
       }
@@ -187,8 +174,8 @@ export class FacetManager {
       const engram = this.findEngram(id)
       if (engram && this.mnemicField) {
         this.mnemicField.update(engram.id, {
-          metadata: { active: false },
-          tags: ['pineal', 'retired'],
+          metadata: { ...engram.metadata, active: false },
+          tags: [...new Set([...(engram.tags ?? []), 'retired'])],
         })
         this.pinealEngramMap.delete(id)
       }

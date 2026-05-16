@@ -189,13 +189,22 @@ export class PinealModule extends BaseCognitiveModule {
     if (!this.mnemicField) return 0
 
     const facets = this.store.list({ active: true })
-    let created = 0
+    if (facets.length === 0) return 0
 
+    // Batch-check which facets already exist in the field
+    const existingProvenances = new Set<string>()
+    const allEngrams = this.mnemicField.list(10000)
+    for (const e of allEngrams) {
+      const prov = e.provenance ?? ''
+      if (prov.startsWith('pineal:')) {
+        existingProvenances.add(prov)
+      }
+    }
+
+    let created = 0
     for (const facet of facets) {
-      // Check for existing engram by provenance
       const provenance = `pineal:${facet.id}`
-      const existing = this.mnemicField.searchByProvenance(provenance)
-      if (existing.length > 0) continue
+      if (existingProvenances.has(provenance)) continue
 
       this.mnemicField.store({
         content: facet.content,
@@ -217,6 +226,7 @@ export class PinealModule extends BaseCognitiveModule {
           createdAt: facet.createdAt,
         },
       })
+      existingProvenances.add(provenance)
       created++
     }
 
