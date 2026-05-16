@@ -71,6 +71,10 @@ export interface EngramCreate {
   nodeType: EngramType
   x?: number
   y?: number
+  /** Radial distance from origin (0-1). Computes x/y if both r and theta provided. */
+  r?: number
+  /** Angular position in radians (0-2π). Computes x/y if both r and theta provided. */
+  theta?: number
   t?: number
   initialPotentiation?: number
   embedding?: Float32Array | number[] | null
@@ -85,6 +89,8 @@ export interface EngramUpdate {
   nodeType?: EngramType
   x?: number
   y?: number
+  r?: number
+  theta?: number
   t?: number
   potentiation?: number
   clusterId?: string | null

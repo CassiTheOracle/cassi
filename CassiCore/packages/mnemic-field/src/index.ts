@@ -417,8 +417,13 @@ export class MnemicField {
     let x = input.x
     let y = input.y
 
+    // Resolve position: x/y explicit → polar → UMAP → periphery fallback
     if (input.x === undefined && input.y === undefined) {
-      if (input.embedding) {
+      if (input.r !== undefined && input.theta !== undefined) {
+        // Polar coordinates provided → convert to Cartesian
+        x = input.r * Math.cos(input.theta)
+        y = input.r * Math.sin(input.theta)
+      } else if (input.embedding) {
         // Has embedding → project into field topology via UMAP
         const vec = input.embedding instanceof Float32Array
           ? Array.from(input.embedding)
@@ -491,6 +496,15 @@ export class MnemicField {
   }
 
   update(id: string, update: EngramUpdate): Engram | null {
+    // Convert polar to Cartesian when r/theta provided without x/y
+    if (update.x === undefined && update.y === undefined
+        && update.r !== undefined && update.theta !== undefined) {
+      update = {
+        ...update,
+        x: update.r * Math.cos(update.theta),
+        y: update.r * Math.sin(update.theta),
+      }
+    }
     return this.cortex.updateEngram(id, update)
   }
 
@@ -1486,17 +1500,22 @@ export class MnemicField {
         const epiShift = classifyWithPhrases(batch[i].content, EPISTEMIC_SHIFT_PHRASES, cache2, embedding, cosineSimilarity, 0.15)
         const workType = classifyWithPhrases(batch[i].content, WORK_UNIT_ANNOTATION_PHRASES, cache3, embedding, cosineSimilarity, 0.15)
 
-        const labels: Record<string, unknown> = { classifiedAt: new Date().toISOString() }
+        const labels: Record<string, unknown> = {}
         if (sigType.label) labels.semanticType = sigType.label
         if (epiShift.label) labels.epistemicShift = epiShift.label
         if (workType.label) labels.workType = workType.label
 
-        // Merge with existing metadata (already in memory from getAllEngrams)
-        const eg = batch[i]
-        this.cortex.updateEngram(eg.id, {
-          metadata: { ...(eg.metadata ?? {}), ...labels },
-        })
-        classified++
+        // Only persist if at least one label matched. Otherwise the engram
+        // stays in the unclassified pool for future runs with improved models.
+        if (Object.keys(labels).length > 0) {
+          labels.classifiedAt = new Date().toISOString()
+          // Merge with existing metadata (already in memory from getAllEngrams)
+          const eg = batch[i]
+          this.cortex.updateEngram(eg.id, {
+            metadata: { ...(eg.metadata ?? {}), ...labels },
+          })
+          classified++
+        }
       }
 
       await new Promise<void>(resolve => setImmediate(resolve))
