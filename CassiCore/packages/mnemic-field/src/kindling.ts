@@ -252,14 +252,16 @@ export class KindlingEngine {
 
     // Apply radial attention boost when attractor is wired
     if (this.attractor) {
-      for (const [engramId, charge] of seedMap) {
-        const engram = this.cortex.getEngram(engramId)
-        if (!engram) continue
+      const ids = [...seedMap.keys()]
+      const engrams = this.cortex.getEngrams(ids)
+      for (const engram of engrams) {
+        const charge = seedMap.get(engram.id)
+        if (charge === undefined) continue
         const r = (engram.metadata as any)?.r as number | undefined
         const theta = (engram.metadata as any)?.theta as number | undefined
         if (r !== undefined && theta !== undefined) {
           const boost = this.attractor.radialBoost(r, theta)
-          seedMap.set(engramId, charge * (1.0 + boost))
+          seedMap.set(engram.id, charge * (1.0 + boost))
         }
       }
     }
@@ -613,8 +615,12 @@ export class KindlingEngine {
   ): ChargedEngram[] {
     const candidates: ChargedEngram[] = []
 
+    // Batch-fetch all engrams (1 query instead of N)
+    const engramIds = [...chargeMap.keys()]
+    const engramMap = this.cortex.getEngrams(engramIds)
+
     for (const [engramId, charge] of chargeMap) {
-      const engram = this.cortex.getEngram(engramId)
+      const engram = engramMap.get(engramId)
       if (!engram) continue
 
       let effectiveSparkPoint = globalSparkPoint -
