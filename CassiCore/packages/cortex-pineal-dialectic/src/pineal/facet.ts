@@ -4,6 +4,7 @@ import { REINFORCEMENT_RATE } from './types.js'
 import type { ILogger } from '../../../types/interfaces.js'
 import type { MnemicField } from '../mnemic-field/index.js'
 import type { Engram } from '../mnemic-field/types.js'
+import { buildPinealMetadata } from './index.js'
 
 export class FacetManager {
   private pinealEngramMap = new Map<string, string>()  // facetId → engramId
@@ -13,25 +14,6 @@ export class FacetManager {
     private logger: ILogger,
     private mnemicField: MnemicField | null = null,
   ) {}
-
-  /** Build metadata object for a facet engram — single source of truth. */
-  private buildMetadata(facet: Facet): Record<string, unknown> {
-    return {
-      pinealId: facet.id,
-      domain: facet.domain,
-      category: facet.category,
-      conviction: facet.conviction,
-      salience: facet.salience,
-      pinned: facet.pinned,
-      scope: facet.scope,
-      version: facet.version,
-      provenance: facet.provenance,
-      active: facet.active,
-      createdAt: facet.createdAt,
-      lastReinforced: facet.lastReinforced,
-      reinforcements: facet.reinforcements,
-    }
-  }
 
   /** Find the MnemicField engram for a facet. */
   private findEngram(facetId: string): Engram | null {
@@ -58,7 +40,7 @@ export class FacetManager {
     if (existing) {
       this.mnemicField.update(existing.id, {
         content: facet.content,
-        metadata: { ...existing.metadata, ...this.buildMetadata(facet) },
+        metadata: { ...existing.metadata, ...buildPinealMetadata(facet) },
         tags: [...new Set(['pineal', facet.domain, facet.category, ...(facet.tags ?? []), ...(existing.tags ?? [])])],
       })
     } else {
@@ -69,7 +51,7 @@ export class FacetManager {
         y: 0,
         provenance: `pineal:${facet.id}`,
         tags: ['pineal', facet.domain, facet.category, ...(facet.tags ?? [])],
-        metadata: this.buildMetadata(facet),
+        metadata: buildPinealMetadata(facet),
       })
       this.pinealEngramMap.set(facet.id, engram.id)
     }

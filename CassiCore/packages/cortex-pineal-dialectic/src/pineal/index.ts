@@ -9,6 +9,25 @@ import type { ILogger } from '../../../types/interfaces.js'
 import type { Facet, FacetInput, FacetUpdate, FacetQuery, Domain, DomainStats, PinealSnapshot, SkillSummary } from './types.js'
 import type { MnemicField } from '../mnemic-field/index.js'
 
+/** Build metadata for a Pineal facet engram — shared between seeding and CRUD sync. */
+export function buildPinealMetadata(facet: Facet): Record<string, unknown> {
+  return {
+    pinealId: facet.id,
+    domain: facet.domain,
+    category: facet.category,
+    conviction: facet.conviction,
+    salience: facet.salience,
+    pinned: facet.pinned,
+    scope: facet.scope,
+    version: facet.version,
+    provenance: facet.provenance,
+    active: facet.active,
+    createdAt: facet.createdAt,
+    lastReinforced: facet.lastReinforced,
+    reinforcements: facet.reinforcements,
+  }
+}
+
 export class PinealModule extends BaseCognitiveModule {
   readonly name = 'pineal'
   readonly priority = 90
@@ -213,18 +232,7 @@ export class PinealModule extends BaseCognitiveModule {
         y: 0,
         provenance,
         tags: ['pineal', facet.domain, facet.category, ...(facet.tags ?? [])],
-        metadata: {
-          pinealId: facet.id,
-          domain: facet.domain,
-          category: facet.category,
-          conviction: facet.conviction,
-          salience: facet.salience,
-          pinned: facet.pinned,
-          scope: facet.scope,
-          version: facet.version,
-          provenance: facet.provenance,
-          createdAt: facet.createdAt,
-        },
+        metadata: buildPinealMetadata(facet),
       })
       existingProvenances.add(provenance)
       created++
