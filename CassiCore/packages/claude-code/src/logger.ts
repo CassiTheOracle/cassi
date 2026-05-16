@@ -4,6 +4,16 @@ import { join } from "node:path";
 
 type LogLevel = "debug" | "info" | "warn" | "error";
 
+const LEVEL_PRIORITY: Record<LogLevel, number> = {
+  debug: 0,
+  info: 1,
+  warn: 2,
+  error: 3,
+};
+
+const MIN_LEVEL: LogLevel =
+  (process.env.CASSICORE_LOG_LEVEL as LogLevel) ?? "info";
+
 interface IntegrationLogger {
   debug(message: string, meta?: Record<string, unknown>): void;
   info(message: string, meta?: Record<string, unknown>): void;
@@ -36,6 +46,7 @@ class CassiCoreFileLogger implements IntegrationLogger {
   }
 
   private write(level: LogLevel, message: string, meta?: Record<string, unknown>): void {
+    if (LEVEL_PRIORITY[level] < LEVEL_PRIORITY[MIN_LEVEL]) return;
     void (async () => {
       const dir = join(homedir(), ".cassicore");
       await mkdir(dir, { recursive: true });

@@ -59,9 +59,10 @@ export interface ResolvedRoute {
 
 
 const DEFAULT_ROUTES: RouteRule[] = [
-  { pattern: "claude-*", providerId: "anthropic", priority: 10 },
-  { pattern: "glm-*",    providerId: "z.ai",      priority: 10 },
-  { pattern: "*",        providerId: "z.ai",       priority: 100 },
+  { pattern: "claude-*",    providerId: "anthropic", priority: 10 },
+  { pattern: "deepseek-*",  providerId: "deepseek",  priority: 10 },
+  { pattern: "glm-*",       providerId: "z.ai",      priority: 10 },
+  { pattern: "*",           providerId: "z.ai",       priority: 100 },
 ];
 
 let routes: RouteRule[] = [...DEFAULT_ROUTES];

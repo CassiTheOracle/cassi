@@ -110,6 +110,22 @@ export function initFromEnv(): void {
     logger.info(`Provider anthropic registered (pass-through mode, no static key) → ${anthropicUrl}`);
   }
 
+  const deepseekKey = process.env.DEEPSEEK_API_KEY ?? "";
+  const deepseekUrl = process.env.DEEPSEEK_BASE_URL ?? "https://api.deepseek.com/anthropic";
+
+  if (deepseekKey) {
+    registerProvider({
+      id: "deepseek",
+      baseUrl: deepseekUrl,
+      apiKey: deepseekKey,
+      apiKeyHeader: "x-api-key",
+      anthropicVersion: "2023-06-01",
+      label: "DeepSeek V4 (Flash/Pro)",
+      enabled: true,
+    });
+    logger.info(`Provider deepseek registered (${maskKey(deepseekKey)}) → ${deepseekUrl}`);
+  }
+
   // If neither provider is configured but CASSICORE_PROXY_UPSTREAM is set,
   // register it as an "upstream" provider for backward compatibility.
   if (providers.size === 0) {

@@ -521,7 +521,7 @@ function sanitizeThinkingSignatures(messages: any[]): void {
  * tool_use to prevent 400 errors.
  */
 function enforceToolPairAdjacency(messages: any[]): void {
-  logger.info("enforceToolPairAdjacency running", { messageCount: messages.length });
+  logger.debug("enforceToolPairAdjacency running", { messageCount: messages.length });
   for (let i = 0; i < messages.length - 1; i++) {
     const msg = messages[i];
     if (msg?.role !== 'assistant' || !Array.isArray(msg.content)) continue;
@@ -657,11 +657,36 @@ async function proxyRequest(
         injectIntoSystemPrompt(body, cognitive);
       }
 
-      // DMN — pull the cached observers digest from the daemon and inject as
-      // a separate <observers> block. Empty when no signal is cached or DMN
-      // is disabled. Already-formatted as `<observers>...</observers>` on the
-      // daemon side, so we strip the wrapping tags before re-injecting under
-      // the existing tag-wrapping path.
+      // DMN — push current activity snapshot so the daemon's AGOP observer
+      // can track this CC proxy session, then pull the cached observers
+      // digest and inject as a separate <observers> block.
+      {
+        const messages = body.messages as any[] | undefined
+        const historyLength = Array.isArray(messages) ? messages.length : 0
+        const extractText = (m: any) => {
+          const c = m?.content
+          if (typeof c === 'string') return c.slice(0, 2000)
+          if (Array.isArray(c)) {
+            return c
+              .map((b: any) => {
+                if (b.type === 'tool_use') return `[Tool call: ${b.name ?? 'unknown'}]`
+                if (b.type === 'tool_result') return `[Tool result${b.isError ? ' ERROR' : ''}]`
+                return (b.text ?? '').slice(0, 500)
+              })
+              .filter(Boolean)
+              .join('\n')
+              .slice(0, 2000)
+          }
+          return ''
+        }
+        const lastUser = messages ? [...messages].reverse().find(m => m?.role === 'user') : undefined
+        const lastAssistant = messages ? [...messages].reverse().find(m => m?.role === 'assistant') : undefined
+        void bridge.pushDmnActivity(state.ccSessionId, {
+          historyLength,
+          lastUserMessage: lastUser ? extractText(lastUser) : undefined,
+          lastAssistantText: lastAssistant ? extractText(lastAssistant) : undefined,
+        })
+      }
       try {
         const observersBlock = await bridge.dmnDigest(state.ccSessionId);
         if (observersBlock && observersBlock.length > 0) {
@@ -686,7 +711,7 @@ async function proxyRequest(
           return null;
         }).filter(Boolean);
         if (originalThinkingSigs.length > 0) {
-          logger.info("Original thinking signatures from Claude Code", { sessionId: state.ccSessionId, signatures: originalThinkingSigs });
+          logger.debug("Original thinking signatures from Claude Code", { sessionId: state.ccSessionId, signatures: originalThinkingSigs });
         }
         
         let nextMessages = body.messages;
@@ -750,7 +775,7 @@ async function proxyRequest(
         }
       }
 
-      // DEBUG: Log request headers for Anthropic
+        // DEBUG: Log request headers for Anthropic
       if (route?.provider.id === "anthropic") {
         const relevantHeaders: Record<string, unknown> = {};
         for (const [key, value] of Object.entries(req.headers)) {
@@ -758,7 +783,7 @@ async function proxyRequest(
             relevantHeaders[key] = value;
           }
         }
-        logger.info("Anthropic request headers", { sessionId: state.ccSessionId, headers: relevantHeaders });
+        logger.debug("Anthropic request headers", { sessionId: state.ccSessionId, headers: relevantHeaders });
       }
 
       // DEBUG: Log exact message structure being sent to API
@@ -767,7 +792,7 @@ async function proxyRequest(
         role: m.role,
         blocks: Array.isArray(m.content) ? m.content.map((b: any) => ({ type: b?.type, id: b?.id, tool_use_id: b?.tool_use_id })) : [{ type: 'string' }],
       }));
-      logger.info("API request messages", { sessionId: state.ccSessionId, messageCount: body.messages.length, messages: apiDebugInfo });
+      logger.debug("API request messages", { sessionId: state.ccSessionId, messageCount: body.messages.length, messages: apiDebugInfo });
       
       // DEBUG: Log full JSON of first 5 messages for detailed inspection
       const firstFive = body.messages.slice(0, 5).map((m: any, i: number) => ({
@@ -775,7 +800,7 @@ async function proxyRequest(
         role: m.role,
         content: m.content,
       }));
-      logger.info("API request first 5 messages FULL", { sessionId: state.ccSessionId, messages: firstFive });
+      logger.debug("API request first 5 messages FULL", { sessionId: state.ccSessionId, messages: firstFive });
       
       bodyToSend = Buffer.from(JSON.stringify(body), "utf-8");
       
@@ -784,7 +809,7 @@ async function proxyRequest(
         const dumpPath = `/tmp/anthropic-request-${state.requestCount}-${Date.now()}.json`;
         try {
           fs.writeFileSync(dumpPath, JSON.stringify(body, null, 2));
-          logger.info("Dumped Anthropic request body", { dumpPath, bodyBytes: bodyToSend.length, requestCount: state.requestCount });
+          logger.debug("Dumped Anthropic request body", { dumpPath, bodyBytes: bodyToSend.length, requestCount: state.requestCount });
         } catch (e) {
           logger.error("Failed to dump request body", { error: String(e) });
         }

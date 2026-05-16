@@ -214,7 +214,7 @@ export function kvSet(key: string, value: unknown): void {
 // MnemicField (graph-native memory) methods
 
 export async function mnemicRetrieve(query: string, limit = 10, opts?: { sessionId?: string; nodeType?: string }): Promise<any[]> {
-  const res = await send("POST", "/memory/mnemic/retrieve", {
+  const res = await send("POST", "/memory/retrieve", {
     query,
     limit,
     sessionId: opts?.sessionId,
@@ -226,18 +226,18 @@ export async function mnemicRetrieve(query: string, limit = 10, opts?: { session
 export async function mnemicSearch(query: string, limit = 10, nodeType?: string): Promise<any[]> {
   const params = new URLSearchParams({ q: query, limit: String(limit) });
   if (nodeType) params.set('node_type', nodeType);
-  const res = await send("GET", `/memory/mnemic/search?${params.toString()}`);
+  const res = await send("GET", `/memory/search?${params.toString()}`);
   return res?.hits ?? [];
 }
 
 export async function mnemicUniversalSearch(query: string, limit = 10): Promise<any[]> {
   const params = new URLSearchParams({ q: query, limit: String(limit) });
-  const res = await send("GET", `/memory/mnemic/universal-search?${params.toString()}`);
+  const res = await send("GET", `/memory/universal-search?${params.toString()}`);
   return res?.hits ?? [];
 }
 
 export async function mnemicGetEngram(id: string): Promise<any> {
-  return send("GET", `/memory/mnemic/engram/${encodeURIComponent(id)}`);
+  return send("GET", `/memory/engram/${encodeURIComponent(id)}`);
 }
 
 export async function mnemicGetSynapses(engramId: string, opts?: { edgeType?: string; direction?: string; limit?: number }): Promise<any[]> {
@@ -246,12 +246,12 @@ export async function mnemicGetSynapses(engramId: string, opts?: { edgeType?: st
   if (opts?.direction) params.set('direction', opts.direction);
   if (opts?.limit) params.set('limit', String(opts.limit));
   const qs = params.toString();
-  const res = await send("GET", `/memory/mnemic/engram/${encodeURIComponent(engramId)}/synapses${qs ? '?' + qs : ''}`);
+  const res = await send("GET", `/memory/engram/${encodeURIComponent(engramId)}/synapses${qs ? '?' + qs : ''}`);
   return res?.synapses ?? [];
 }
 
 export async function mnemicGraphSearch(startId: string, opts?: { maxDepth?: number; edgeTypes?: string[] }): Promise<any> {
-  return send("POST", "/memory/mnemic/graph-search", {
+  return send("POST", "/memory/graph-search", {
     startId,
     maxDepth: opts?.maxDepth ?? 3,
     edgeTypes: opts?.edgeTypes,
@@ -259,7 +259,7 @@ export async function mnemicGraphSearch(startId: string, opts?: { maxDepth?: num
 }
 
 export async function mnemicStats(): Promise<any> {
-  return send("GET", "/memory/mnemic/stats");
+  return send("GET", "/memory/stats");
 }
 
 export async function mnemicStore(content: string, nodeType = 'fact', tags?: string[]): Promise<string> {
