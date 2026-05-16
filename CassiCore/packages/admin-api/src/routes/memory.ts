@@ -780,6 +780,25 @@ export async function handleMemoryRoutes(
     }
   }
 
+  // GET /memory/harmony — shadow observation + harmony metric (Phase 0-4)
+  if (parts[1] === 'harmony' && method === 'GET') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      const harmony = field.getHarmony()
+      const shadowCtx = field.buildShadowContext()
+      sendJSON(res, 200, {
+        ok: true,
+        harmony,
+        harmonyLabel: harmony < 0.3 ? 'Yang-dominated' : harmony > 0.7 ? 'Yin-dominated' : 'balanced',
+        shadowContext: shadowCtx,
+      })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
   // POST /memory/mnemic/kindle
   if (parts[1] === 'mnemic' && parts[2] === 'kindle' && method === 'POST') {
     try {
