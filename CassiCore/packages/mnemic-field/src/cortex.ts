@@ -39,6 +39,12 @@ function getPqCodec(dim: number, bits: number = EMBEDDING_QUANT_BITS): PolarQuan
 
 const PQ_HEADER_LEN = 12  // magic(4) + version(1) + bits(1) + dimension(2) + norm(4)
 
+/**
+ * @dep flows: WriteFileHandler → ToFloatArray (6/6)
+ * @dep module: Unknown
+ * @dep risk: LOW | 0 callers, 1 flow, 1 module
+ */
+
 export function toFloatArray(buf: Buffer | null): Float32Array | null {
   if (!buf || buf.length === 0) return null
   // PolarQuant blobs start with the 4-byte magic "PLQT" (1 in 2^32 false
@@ -72,6 +78,12 @@ export function compressEmbedding(arr: Float32Array | number[] | null | undefine
   }
   return getPqCodec(f32.length).encode(f32)
 }
+
+/**
+ * @dep flows: WriteFileHandler → ParseJsonSafe (6/6)
+ * @dep module: Unknown
+ * @dep risk: LOW | 0 callers, 1 flow, 1 module
+ */
 
 export function parseJsonSafe<T>(raw: string | null | undefined, fallback: T): T {
   if (!raw) return fallback
@@ -110,6 +122,12 @@ export function cosineSimilarity(a: ArrayLike<number>, b: ArrayLike<number>): nu
   const denom = Math.sqrt(normA) * Math.sqrt(normB)
   return denom > 0 ? dot / denom : 0
 }
+
+/**
+ * @dep flows: WriteFileHandler → ToFloatArray (5/6), WriteFileHandler → ParseJsonSafe (5/6)
+ * @dep module: Unknown
+ * @dep risk: LOW | 0 callers, 2 flows, 1 module
+ */
 
 function rowToEngram(row: Record<string, unknown>): Engram {
   return {
@@ -556,6 +574,34 @@ export class Cortex {
     ).all(...ids) as Array<{ engram_id: string; count: number }>
     for (const row of rows) {
       result.set(row.engram_id, row.count)
+    }
+    return result
+  }
+
+  /**
+   * Batch fetch spike outcome counts for many engrams in a single query.
+   * Returns a Map keyed by engram_id with success/failure/unknown counts.
+   * Used by contrastive retrieval feedback to compute utility scores.
+   */
+  getAllSpikeOutcomesForEngrams(ids: string[]): Map<string, { success: number; failure: number; unknown: number }> {
+    const result = new Map<string, { success: number; failure: number; unknown: number }>()
+    if (ids.length === 0) return result
+    const placeholders = ids.map(() => '?').join(',')
+    const rows = this.db.prepare(
+      `SELECT engram_id, outcome, COUNT(*) as count
+       FROM activation_spikes
+       WHERE engram_id IN (${placeholders}) AND outcome IS NOT NULL
+       GROUP BY engram_id, outcome`
+    ).all(...ids) as Array<{ engram_id: string; outcome: string; count: number }>
+    for (const row of rows) {
+      let entry = result.get(row.engram_id)
+      if (!entry) {
+        entry = { success: 0, failure: 0, unknown: 0 }
+        result.set(row.engram_id, entry)
+      }
+      if (row.outcome === 'success') entry.success = row.count
+      else if (row.outcome === 'failure') entry.failure = row.count
+      else entry.unknown = row.count
     }
     return result
   }
