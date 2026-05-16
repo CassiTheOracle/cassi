@@ -436,72 +436,71 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
             const { homedir } = await import('node:os')
             const modelsDir = join(homedir(), '.cassicore', 'models')
             if (existsSync(modelsDir)) {
-              const vindexes = readdirSync(modelsDir)
-                .filter(n => n.endsWith('.vindex'))
-                .map(n => {
-                  const p = join(modelsDir, n)
-                  // Heuristic: browse-only vindexes (no weights files) load in
-                  // seconds; weights-bearing ones can take 60+s or hang. Prefer
-                  // browse-only so boot completes fast.
-                  const hasWeights = existsSync(join(p, 'down_weights.bin')) ||
-                    existsSync(join(p, 'attn_weights_q4k.bin'))
-                  return { name: n, path: p, mtime: statSync(p).mtimeMs, hasWeights }
-                })
-                .sort((a, b) => {
-                  if (a.hasWeights !== b.hasWeights) return a.hasWeights ? 1 : -1
-                  return b.mtime - a.mtime
-                })
-              if (vindexes.length > 0) {
+              // Check config for preferred vindex (skips auto-discovery)
+              const preferredVindex = config?.get?.('intelligence.aurora.vindex') as string | undefined
+              const VINDEX_LOAD_TIMEOUT_MS = 10_000  // browse-only loads in <5s
+              
+              const tryLoad = async (candidatePath: string, candidateName: string): Promise<{ provider: any; name: string; path: string } | null> => {
+                const provider = new LarqlKnowledgeProvider(logger)
+                const timedOut = Symbol('timedOut')
+                try {
+                  const result = await Promise.race([
+                    provider.load(candidatePath),
+                    new Promise<symbol>(resolve =>
+                      setTimeout(() => resolve(timedOut), VINDEX_LOAD_TIMEOUT_MS),
+                    ),
+                  ])
+                  const loaded = result === timedOut ? null : Boolean(result)
+                  if (loaded) return { provider, name: candidateName, path: candidatePath }
+                } catch { /* fall through */ }
+                return null
+              }
+              
+              // 1. Try preferred vindex first if configured
+              let chosen: { name: string; path: string } | null = null
+              if (preferredVindex) {
+                const preferredPath = join(modelsDir, preferredVindex)
+                if (existsSync(preferredPath)) {
+                  const result = await tryLoad(preferredPath, preferredVindex)
+                  if (result) {
+                    modelProvider = result.provider
+                    chosen = { name: result.name, path: result.path }
+                    logger.info('LarqlKnowledgeProvider loaded (preferred)', { vindex: preferredVindex })
+                  } else {
+                    logger.warn('Preferred vindex failed to load, falling back to auto-discovery', { vindex: preferredVindex })
+                  }
+                } else {
+                  logger.warn('Preferred vindex not found', { vindex: preferredVindex, modelsDir })
+                }
+              }
+              
+              // 2. Auto-discovery fallback
+              if (!chosen) {
+                const vindexes = readdirSync(modelsDir)
+                  .filter(n => n.endsWith('.vindex'))
+                  .map(n => {
+                    const p = join(modelsDir, n)
+                    const hasWeights = existsSync(join(p, 'down_weights.bin')) ||
+                      existsSync(join(p, 'attn_weights_q4k.bin'))
+                    return { name: n, path: p, mtime: statSync(p).mtimeMs, hasWeights }
+                  })
+                  .sort((a, b) => {
+                    if (a.hasWeights !== b.hasWeights) return a.hasWeights ? 1 : -1
+                    return b.mtime - a.mtime
+                  })
                 const attempted: Array<{ name: string; reason: string }> = []
-                let chosen: { name: string; path: string } | null = null
-                // Each vindex gets a time budget so a slow/frozen load
-                // (e.g. Q4K, dense weights) doesn't block the daemon boot.
-                const VINDEX_LOAD_TIMEOUT_MS = 25_000
                 for (const candidate of vindexes) {
-                  const provider = new LarqlKnowledgeProvider(logger)
-                  let loaded: boolean | null = null
-                  try {
-                    const timedOut = Symbol('timedOut')
-                    const result = await Promise.race([
-                      provider.load(candidate.path),
-                      new Promise<symbol>(resolve =>
-                        setTimeout(() => resolve(timedOut), VINDEX_LOAD_TIMEOUT_MS),
-                      ),
-                    ])
-                    loaded = result === timedOut ? null : Boolean(result)
-                  } catch (err) {
-                    attempted.push({ name: candidate.name, reason: `threw: ${String(err)}` })
-                    continue
-                  }
-                  if (loaded === null) {
-                    attempted.push({ name: candidate.name, reason: `timed out after ${VINDEX_LOAD_TIMEOUT_MS}ms` })
-                    continue
-                  }
-                  if (!loaded) {
-                    attempted.push({ name: candidate.name, reason: 'load returned false (likely unsupported architecture for browse-only mode)' })
-                    continue
-                  }
-                  if (loaded) {
-                    modelProvider = provider
-                    chosen = { name: candidate.name, path: candidate.path }
+                  const result = await tryLoad(candidate.path, candidate.name)
+                  if (result) {
+                    modelProvider = result.provider
+                    chosen = { name: result.name, path: result.path }
                     logger.info('LarqlKnowledgeProvider loaded', {
                       vindex: candidate.name,
                       attemptedBefore: attempted.length,
                     })
-                    try {
-                      const { ClaustrumRecorder } = await import('../intelligence/aurora/claustrum-recorder.js')
-                      const recorder = new ClaustrumRecorder(logger, candidate.path)
-                      provider.setRecorder(recorder)
-                      logger.info('ClaustrumRecorder attached — gate-KNN provenance will be logged for snapshotting', {
-                        source: candidate.name,
-                      })
-                    } catch (err) {
-                      logger.warn('Failed to attach ClaustrumRecorder — Aurora will run without provenance logging', {
-                        error: String(err),
-                      })
-                    }
                     break
                   }
+                  attempted.push({ name: candidate.name, reason: `failed to load within ${VINDEX_LOAD_TIMEOUT_MS}ms` })
                 }
                 if (!chosen) {
                   logger.warn('No vindex could be loaded — Aurora will run without model knowledge', {
@@ -514,7 +513,22 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
                   })
                 }
               }
-            }
+              
+              // Wire ClaustrumRecorder for gate-KNN provenance logging
+              if (chosen && modelProvider) {
+                try {
+                  const { ClaustrumRecorder } = await import('../intelligence/aurora/claustrum-recorder.js')
+                  const recorder = new ClaustrumRecorder(logger, chosen.path)
+                  modelProvider.setRecorder(recorder)
+                  logger.info('ClaustrumRecorder attached — gate-KNN provenance will be logged for snapshotting', {
+                    source: chosen.name,
+                  })
+                } catch (err) {
+                  logger.warn('Failed to attach ClaustrumRecorder — Aurora will run without provenance logging', {
+                    error: String(err),
+                  })
+                }
+              }
           } catch (err) {
             logger.warn('Failed to load LarqlKnowledgeProvider — Aurora will run without model knowledge', { error: String(err) })
           }

@@ -17,7 +17,7 @@ export async function ensureLaunchPrerequisites(): Promise<void> {
   }
 }
 
-export async function waitForDaemonReady(timeoutMs = 30_000): Promise<void> {
+export async function waitForDaemonReady(timeoutMs = 60_000): Promise<void> {
   const deadline = Date.now() + timeoutMs
 
   while (Date.now() < deadline) {
