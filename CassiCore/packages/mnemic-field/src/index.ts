@@ -1096,23 +1096,30 @@ export class MnemicField {
     const secSize = (2 * Math.PI) / sectorCount
     const highPotThreshold = 0.3
 
-    // Query all engrams with valid theta and potentiation > highPotThreshold
+    // Query engrams with potentiation > threshold AND a known position
+    // (either explicit theta in metadata, or x/y coords we can derive theta from).
     const rows = this.db.prepare(`
-      SELECT json_extract(metadata, '$.theta') AS theta
+      SELECT
+        x, y,
+        json_extract(metadata, '$.theta') AS metaTheta
       FROM mnemic_engrams
       WHERE potentiation > ?
-        AND json_extract(metadata, '$.theta') IS NOT NULL
-    `).all(highPotThreshold) as Array<{ theta: number }>
+        AND (
+          json_extract(metadata, '$.theta') IS NOT NULL
+          OR (x IS NOT NULL AND x != 0 AND y IS NOT NULL AND y != 0)
+        )
+    `).all(highPotThreshold) as Array<{ x: number | null; y: number | null; metaTheta: number | null }>
 
     for (const row of rows) {
-      const sector = Math.floor(normalizeTheta(row.theta) / secSize) % sectorCount
+      const theta = row.metaTheta ?? Math.atan2(row.y ?? 0, row.x ?? 0)
+      const sector = Math.floor(normalizeTheta(theta) / secSize) % sectorCount
       density.set(sector, (density.get(sector) ?? 0) + 1)
     }
 
     this.sectorDensityCache = density
     this.validPositionCount = rows.length
     const maxVal = density.size > 0 ? Math.max(...density.values()) : 0
-    this.logger.debug('Sector density recomputed', {
+    this.logger.info('Sector density recomputed', {
       sectorCount,
       totalEngrams: rows.length,
       maxDensity: maxVal,
