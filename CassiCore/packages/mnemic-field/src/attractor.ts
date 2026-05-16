@@ -16,7 +16,7 @@ export interface AttractorState {
 
 const TONIC_HALF_LIFE_MS = 5 * 60 * 1000  // 5 minutes
 const MAX_POSITION_HISTORY = 100          // ring buffer size
-const DEFAULT_SECTOR_COUNT = 12           // 30° each
+export const DEFAULT_SECTOR_COUNT = 12    // 30° each
 
 export class AttractorManager {
   state: AttractorState = {
@@ -52,14 +52,10 @@ export class AttractorManager {
   /** Compute which angular sectors have been visited. 12 sectors at 30° each. */
   getSectorCoverage(sectorCount: number = DEFAULT_SECTOR_COUNT): Set<number> {
     const visited = new Set<number>()
-    const sectorSize = (2 * Math.PI) / sectorCount
+    const secSize = (2 * Math.PI) / sectorCount
     for (const pos of this.positionHistory) {
-      let theta = pos.theta
-      // Normalize to [0, 2π)
-      while (theta < 0) theta += 2 * Math.PI
-      while (theta >= 2 * Math.PI) theta -= 2 * Math.PI
-      const sector = Math.floor(theta / sectorSize)
-      visited.add(sector % sectorCount)
+      const sector = Math.floor(normalizeTheta(pos.theta) / secSize) % sectorCount
+      visited.add(sector)
     }
     return visited
   }
@@ -67,12 +63,9 @@ export class AttractorManager {
   /** How many visits to a specific sector index? */
   getSectorVisitCount(sectorCount: number = DEFAULT_SECTOR_COUNT): Map<number, number> {
     const counts = new Map<number, number>()
-    const sectorSize = (2 * Math.PI) / sectorCount
+    const secSize = (2 * Math.PI) / sectorCount
     for (const pos of this.positionHistory) {
-      let theta = pos.theta
-      while (theta < 0) theta += 2 * Math.PI
-      while (theta >= 2 * Math.PI) theta -= 2 * Math.PI
-      const sector = Math.floor(theta / sectorSize) % sectorCount
+      const sector = Math.floor(normalizeTheta(pos.theta) / secSize) % sectorCount
       counts.set(sector, (counts.get(sector) ?? 0) + 1)
     }
     return counts
@@ -113,14 +106,14 @@ export class AttractorManager {
     if (minVisits > 10) return -1  // all sectors well-visited, nothing to nudge
 
     // Nudge phasic attractor theta toward the neglected sector's center
-    const sectorSize = (2 * Math.PI) / sectorCount
-    const targetTheta = (leastVisited + 0.5) * sectorSize
-    const nudgeRate = 0.05  // weak force — acknowledment, not compulsion
+    const targetTheta = normalizeTheta((leastVisited + 0.5) * SECTOR_SIZE)
+    const nudgeRate = 0.05  // weak force — acknowledgment, not compulsion
     this.state.phasic.theta += nudgeRate * angularDelta(this.state.phasic.theta, targetTheta)
 
     // Also nudge r slightly outward to broaden attention scope
     this.state.phasic.r = Math.min(1.0, this.state.phasic.r + 0.01)
 
+    // Update timestamp so decay doesn't immediately undo the nudge
     this.lastUpdateMs = Date.now()
     return leastVisited
   }
@@ -208,9 +201,20 @@ function polarDistance(r1: number, t1: number, r2: number, t2: number): number {
 }
 
 /** Shortest angular difference in radians, wrapped to [-π, π]. */
-function angularDelta(a: number, b: number): number {
+export function angularDelta(a: number, b: number): number {
   let d = b - a
   while (d > Math.PI) d -= 2 * Math.PI
   while (d < -Math.PI) d += 2 * Math.PI
   return d
 }
+
+/** Normalize an angle to [0, 2π). */
+export function normalizeTheta(theta: number): number {
+  let t = theta
+  while (t < 0) t += 2 * Math.PI
+  while (t >= 2 * Math.PI) t -= 2 * Math.PI
+  return t
+}
+
+/** 30° in radians (one 12-sector slice). */
+export const SECTOR_SIZE = (2 * Math.PI) / DEFAULT_SECTOR_COUNT

@@ -13,7 +13,7 @@ import { ConsolidationEngine } from './consolidation.js'
 import { GradientEngine } from './backpropagation.js'
 import { MigrationJobStore, type MigrationJobRecord, type MigrationJobSpec } from './migration-jobs.js'
 import { migrateChunk, migrateMemoryAndArchives, migrateMemoryOnly } from './migrate-memory.js'
-import { AttractorManager } from './attractor.js'
+import { AttractorManager, normalizeTheta, SECTOR_SIZE, DEFAULT_SECTOR_COUNT } from './attractor.js'
 import { VQSectorPrototypes } from './vq-prototypes.js'
 import type { ConsolidationResult, ConsolidationOptions } from './consolidation.js'
 import { projectTo2D, projectTo2DAsync, projectTo2DFromSAB, projectSingle, buildProjectionState, type ProjectionState } from './umap.js'
@@ -1091,9 +1091,9 @@ export class MnemicField {
    * Fast DB scan counting high-potentiation engrams in each 30° sector.
    * Called periodically during consolidation. Results cached in sectorDensityCache.
    */
-  computeSectorDensity(sectorCount: number = 12): Map<number, number> {
+  computeSectorDensity(sectorCount: number = DEFAULT_SECTOR_COUNT): Map<number, number> {
     const density = new Map<number, number>()
-    const sectorSize = (2 * Math.PI) / sectorCount
+    const secSize = (2 * Math.PI) / sectorCount
     const highPotThreshold = 0.3
 
     // Query all engrams with valid theta and potentiation > highPotThreshold
@@ -1105,19 +1105,17 @@ export class MnemicField {
     `).all(highPotThreshold) as Array<{ theta: number }>
 
     for (const row of rows) {
-      let theta = row.theta
-      while (theta < 0) theta += 2 * Math.PI
-      while (theta >= 2 * Math.PI) theta -= 2 * Math.PI
-      const sector = Math.floor(theta / sectorSize) % sectorCount
+      const sector = Math.floor(normalizeTheta(row.theta) / secSize) % sectorCount
       density.set(sector, (density.get(sector) ?? 0) + 1)
     }
 
     this.sectorDensityCache = density
     this.validPositionCount = rows.length
+    const maxVal = density.size > 0 ? Math.max(...density.values()) : 0
     this.logger.debug('Sector density recomputed', {
       sectorCount,
       totalEngrams: rows.length,
-      maxDensity: Math.max(...density.values(), 0),
+      maxDensity: maxVal,
     })
     return density
   }
@@ -1171,23 +1169,23 @@ export class MnemicField {
    * Returns null if no shadow observations to report.
    */
   buildShadowContext(): string | null {
-    const sectorCount = 12
+    const sectorCount = DEFAULT_SECTOR_COUNT
     const visitedSectors = this.attractor.getSectorCoverage(sectorCount)
     const density = this.sectorDensityCache.size > 0
       ? this.sectorDensityCache
       : this.computeSectorDensity(sectorCount)
-    const harmony = this.computeHarmony()
+    // Harmony was already computed during retrieve — use cached value
+    const harmony = this.lastHarmony
 
     // Find sectors with engrams but no visits (blind spots)
     const blindSpots: Array<{ sector: number; thetaStart: number; thetaEnd: number; count: number }> = []
-    const sectorSize = (2 * Math.PI) / sectorCount
 
     for (const [sector, count] of density) {
       if (!visitedSectors.has(sector)) {
         blindSpots.push({
           sector,
-          thetaStart: sector * sectorSize,
-          thetaEnd: (sector + 1) * sectorSize,
+          thetaStart: sector * SECTOR_SIZE,
+          thetaEnd: (sector + 1) * SECTOR_SIZE,
           count,
         })
       }
