@@ -11,7 +11,6 @@
  */
 
 import type { ILogger } from '../../../types/interfaces.js'
-import { getInferenceStackLauncher, MANAGED_RERANKER } from './inference-stack-launcher.js'
 
 const RERANKER_SERVER_URL = process.env.RERANKER_SERVER_URL || 'http://127.0.0.1:18821'
 // zerank-2 with GGUF on GPU: typically <50ms/doc; 30s covers worst-case batches.
@@ -55,16 +54,6 @@ export class RerankerService {
   async rerank(query: string, documents: string[], topN?: number): Promise<RerankResult[]> {
     if (!documents.length || !query.trim()) return []
 
-    // Demand-load: restart the server if it was idle-unloaded
-    const launcher = getInferenceStackLauncher()
-    if (launcher) {
-      const restarted = await launcher.ensureRunning(MANAGED_RERANKER)
-      if (restarted) {
-        this.cb = { failures: 0, openUntil: 0, trippedLogged: false }
-        this.isVllm = null // Re-probe backend on restart
-      }
-    }
-
     // Circuit breaker check
     if (this.cb.openUntil > Date.now()) {
       this.logger.debug('RerankerService: circuit breaker open, skipping', {
@@ -88,7 +77,6 @@ export class RerankerService {
         // Reset circuit breaker on success
         this.cb.failures = 0
         this.cb.trippedLogged = false
-        if (launcher) launcher.notifyActivity(MANAGED_RERANKER)
       }
 
       // Sort by relevance (highest first) and apply topN
@@ -134,26 +122,21 @@ export class RerankerService {
     }
   }
 
-  /** Use zerank-server /v1/rerank endpoint. */
+  /** Use zerank-server /v1/rerank endpoint — cross-encoder (no Qwen3 templates needed). */
   private async rerankZerank(query: string, documents: string[], topN?: number): Promise<RerankResult[]> {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), this.timeoutMs)
 
-    // Qwen3-Reranker prompt formatting for zerank-server
-    const prefix = '<|im_start|>system\nJudge whether the Document meets the requirements based on the Query and the Instruct provided. Note that the answer can only be "yes" or "no".<|im_end|>\n<|im_start|>user\n'
-    const suffix = '<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n'
-    const instruction = 'Given a search query, retrieve relevant passages that answer the query'
-
-    const formattedQuery = `${prefix}<Instruct>: ${instruction}\n<Query>: ${query.trim()}\n`
-    const formattedDocs = documents.map(doc => `<Document>: ${doc.trim()}${suffix}`)
-
+    // Cross-encoder takes raw (query, doc) pairs — no LLM prompt formatting.
+    // Our BGE bridge strips Qwen3 templates anyway, so sending raw text
+    // avoids the instruction noise that dilutes cross-encoder signal.
     try {
       const res = await fetch(`${this.serverUrl}/v1/rerank`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          query: formattedQuery,
-          documents: formattedDocs,
+          query: query.trim(),
+          documents: documents.map(d => d.trim()),
           top_n: topN ?? documents.length,
         }),
         signal: controller.signal,

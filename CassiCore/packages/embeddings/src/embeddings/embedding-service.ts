@@ -1,6 +1,6 @@
 /**
- * Shared embedding service — wraps llama.cpp /v1/embeddings with caching,
- * circuit breaker, batching, and zembed-1 prompt formatting.
+ * Shared embedding service — wraps vLLM /v1/embeddings with caching,
+ * circuit breaker, and batching.
  *
  * Singleton: import { getEmbeddingService } from './embedding-service.js'
  */
@@ -10,10 +10,9 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs'
 import { join, dirname } from 'path'
 
 import type { ILogger } from '../../../types/interfaces.js'
-import { getInferenceStackLauncher, MANAGED_EMBEDDING } from './inference-stack-launcher.js'
 
-const EMBEDDING_SERVER_URL = process.env.EMBEDDING_SERVER_URL || 'http://127.0.0.1:18820'
-const EMBEDDING_MODEL_TAG = process.env.EMBEDDING_MODEL_TAG || 'qwen3-embedding-0.6b'
+const EMBEDDING_SERVER_URL = process.env.EMBEDDING_SERVER_URL || 'http://127.0.0.1:8000'
+const EMBEDDING_MODEL_TAG = process.env.EMBEDDING_MODEL_TAG || 'Qwen/Qwen3-Embedding-0.6B'
 const EMB_TIMEOUT_MS = Number(process.env.EMBEDDING_TIMEOUT_MS || '5000')
 const EMB_BATCH_SIZE = Number(process.env.EMBEDDING_BATCH_SIZE || '512')
 
@@ -235,12 +234,6 @@ export class EmbeddingService {
    *  Distributes batches across multiple server instances via round-robin. */
   private async fetchBatch(texts: string[], mode: EmbeddingMode): Promise<Array<number[] | null>> {
     // Demand-load: restart the server if it was idle-unloaded
-    const launcher = getInferenceStackLauncher()
-    if (launcher) {
-      const restarted = await launcher.ensureRunning(MANAGED_EMBEDDING)
-      if (restarted) this.cbs = this.serverUrls.map(() => ({ failures: 0, openUntil: 0, trippedLogged: false }))
-    }
-
     const picked = this.pickServer()
     if (!picked) {
       this.logger.debug('EmbeddingService: all circuit breakers open, skipping')
@@ -276,7 +269,6 @@ export class EmbeddingService {
       if (res.ok) {
         this.cbs[urlIdx].failures = 0
         this.cbs[urlIdx].trippedLogged = false
-        if (launcher) launcher.notifyActivity(MANAGED_EMBEDDING)
         const data = await res.json() as any
         if (Array.isArray(data?.data)) {
           const sorted = [...data.data].sort((a: any, b: any) => (a.index ?? 0) - (b.index ?? 0))
@@ -319,7 +311,6 @@ export class EmbeddingService {
           clearTimeout(timer)
           if (res.ok) {
             this.cbs[i].failures = 0
-            if (launcher) launcher.notifyActivity(MANAGED_EMBEDDING)
             const data = await res.json() as any
             if (Array.isArray(data?.data) && data.data.length > 0) {
               out.push(Array.isArray(data.data[0]?.embedding) ? data.data[0].embedding : null)
