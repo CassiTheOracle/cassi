@@ -139,8 +139,11 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
       })
 
       const HISTORY_WINDOW = 24
-      const mnemicField = (intelligence as any).__mnemicField as
-        { getCortex(): { getEngramsBySessionId(sessionId: string, limit?: number): any[] } } | undefined
+      const mnemicField = (intelligence as any).__mnemicField as {
+        getCortex(): { getEngramsBySessionId(sessionId: string, limit?: number): any[] }
+        buildShadowContext(): string | null
+        getHarmony(): number
+      } | undefined
 
       const fetchSessionEngrams = (sessionId: string): any[] => {
         if (!mnemicField) return []
@@ -259,6 +262,17 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
               parts.push(`\nTool calls tracked: ${ext.toolCallCount}`)
             }
             observationPrompt = parts.join('\n') || null
+          }
+
+          // Inject shadow context (Phase 0: Yin/Yang Harmony)
+          // Builds awareness of blind spots and field balance for the DMN observer
+          if (observationPrompt && mnemicField) {
+            try {
+              const shadowCtx = mnemicField.buildShadowContext()
+              if (shadowCtx) {
+                observationPrompt += '\n\n' + shadowCtx
+              }
+            } catch { /* never block observer fire for shadow context failures */ }
           }
 
           if (!observationPrompt) return null
