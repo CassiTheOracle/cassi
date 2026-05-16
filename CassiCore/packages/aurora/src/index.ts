@@ -489,45 +489,7 @@ export class Aurora {
     // Self-model: Vindex→Mnemic bridge
     // Uses modelProvider (LarqlKnowledgeProvider), not knowledgeField (KnowledgeField)
     if (phase4Config.selfModelKnowledgeEnabled && this.modelProvider) {
-      // Extract band config from the vindex for accurate band classification
-      const mph = (this.modelProvider as any).vindexHandle
-      const numLayers = mph?.config?.numLayers ?? 30
-      const phaseTransition = mph?.config?.phaseTransitionLayers
-      const knowledgeBand = phaseTransition
-        ? { start: phaseTransition[0] ?? 14, end: phaseTransition[1] ?? 27 }
-        : { start: 14, end: 27 }
-      const outputBand = { start: (phaseTransition?.[1] ?? 28), end: numLayers - 1 }
-      const vindexName = mph?.path?.split('/').pop()?.replace('.vindex', '') ?? 'unknown'
-
-      this.selfModelKnowledge = new SelfModelKnowledgeProvider(
-        this.modelProvider as any,
-        logger,
-        { knowledgeBand, outputBand, vindexName },
-      )
-
-      // Wire inference trace provider for bridge enrichment
-      if (phase4Config.selfModelKnowledgeEnabled) {
-        // Access vindex path and config from the LarqlKnowledgeProvider
-        const mph = (this.modelProvider as any).vindexHandle
-        if (mph) {
-          this.inferenceTrace = new InferenceTraceProvider({
-            logger,
-            vindexPath: mph.path,
-            numLayers: mph.config.numLayers,
-          })
-          // Wire N-API backend for fast multi-token gate KNN
-          const lqp = this.modelProvider as any
-          if (lqp.larql && typeof lqp.larql.traceForward === 'function') {
-            this.inferenceTrace.setNapiBackend({
-              handle: mph,
-              tokenize: (text: string) => lqp.larql.vindexTokenize(mph, text),
-              traceForward: (tokens, start, end, k) =>
-                lqp.larql.traceForward(mph, tokens, start, end, k),
-            })
-          }
-          this.selfModelKnowledge!.setInferenceTraceProvider(this.inferenceTrace)
-        }
-      }
+      this.setupSelfModelBridge(phase4Config.selfModelKnowledgeEnabled)
     }
 
     this.logger.info('Aurora initialized', {
@@ -541,6 +503,69 @@ export class Aurora {
       reverieSamplingRate: this.reverieSamplingRate,
       reverieMinTextLength: this.reverieMinTextLength,
     })
+  }
+
+  /**
+   * Wire a model provider after construction. Call when the vindex
+   * finishes loading asynchronously (e.g. from deferred startup).
+   * Safe to call multiple times — subsequent calls are no-ops if
+   * the provider is already set.
+   */
+  setModelProvider(provider: ModelKnowledgeProvider): void {
+    if (this.modelProvider) return  // already wired
+    this.modelProvider = provider
+
+    // Re-run self-model bridge setup now that provider is available
+    if (!this.selfModelKnowledge) {
+      this.setupSelfModelBridge(true)
+    }
+
+    this.logger.info('Model provider wired post-construction')
+  }
+
+  /**
+   * Set up the SelfModelKnowledge bridge from the current modelProvider.
+   * Extracted from constructor so it can be called lazily when the
+   * vindex finishes loading after admin API is already available.
+   */
+  private setupSelfModelBridge(enabled: boolean): void {
+    if (!this.modelProvider) return
+    const mph = (this.modelProvider as any).vindexHandle
+    const numLayers = mph?.config?.numLayers ?? 30
+    const phaseTransition = mph?.config?.phaseTransitionLayers
+    const knowledgeBand = phaseTransition
+      ? { start: phaseTransition[0] ?? 14, end: phaseTransition[1] ?? 27 }
+      : { start: 14, end: 27 }
+    const outputBand = { start: (phaseTransition?.[1] ?? 28), end: numLayers - 1 }
+    const vindexName = mph?.path?.split('/').pop()?.replace('.vindex', '') ?? 'unknown'
+
+    this.selfModelKnowledge = new SelfModelKnowledgeProvider(
+      this.modelProvider as any,
+      this.logger,
+      { knowledgeBand, outputBand, vindexName },
+    )
+
+    // Wire inference trace provider for bridge enrichment
+    if (enabled) {
+      const mph2 = (this.modelProvider as any).vindexHandle
+      if (mph2) {
+        this.inferenceTrace = new InferenceTraceProvider({
+          logger: this.logger,
+          vindexPath: mph2.path,
+          numLayers: mph2.config.numLayers,
+        })
+        const lqp = this.modelProvider as any
+        if (lqp.larql && typeof lqp.larql.traceForward === 'function') {
+          this.inferenceTrace.setNapiBackend({
+            handle: mph2,
+            tokenize: (text: string) => lqp.larql.vindexTokenize(mph2, text),
+            traceForward: (tokens: number[], start: number, end: number, k: number) =>
+              lqp.larql.traceForward(mph2, tokens, start, end, k),
+          })
+        }
+        this.selfModelKnowledge!.setInferenceTraceProvider(this.inferenceTrace)
+      }
+    }
   }
 
   /** Wire a Reverie inference provider for the slow path. */
