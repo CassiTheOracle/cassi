@@ -302,6 +302,7 @@ export class MnemicField {
     this.vqPrototypes = new VQSectorPrototypes(1024)  // matches Qwen3-Embedding-0.6B dim
     this.kindlingEngine = new KindlingEngine(this.cortex, logger)
     this.kindlingEngine.setAttractor(this.attractor)
+    this.kindlingEngine.setHarmonyProvider(() => this.getHarmony())
     this.gradientEngine = new GradientEngine(this.cortex, logger)
     this.consolidationEngine = new ConsolidationEngine(this.cortex, logger, this.gradientEngine, null)
     this.migrationJobs = new MigrationJobStore(db)

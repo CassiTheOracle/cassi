@@ -38,6 +38,8 @@ export class KindlingEngine {
   private engramAnnIndex: ANNIndex | null = null
   private annInitialized = false
   private attractor: AttractorManager | null = null
+  /** Optional: provides the current harmony metric for spark point modulation. */
+  private harmonyProvider: (() => number) | null = null
 
   constructor(
     private cortex: Cortex,
@@ -53,8 +55,13 @@ export class KindlingEngine {
   }
 
   /** Wire the attractor for radial attention bias. */
-  setAttractor(a: AttractorManager): void {
-    this.attractor = a
+  setAttractor(attractor: AttractorManager | null): void {
+    this.attractor = attractor
+  }
+
+  /** Set a provider for the harmony metric (Yin/Yang balance, Phase 0-1). */
+  setHarmonyProvider(provider: (() => number) | null): void {
+    this.harmonyProvider = provider
   }
 
   /** Initialize ANN index (async, should be called once) */
@@ -740,7 +747,22 @@ export class KindlingEngine {
 
   private computeGlobalSparkPoint(complexity: TaskComplexity): number {
     const modifier = SPARK_POINT_DEFAULTS.taskModifiers[complexity]
-    return SPARK_POINT_DEFAULTS.baseThreshold * modifier
+    let sparkPoint = SPARK_POINT_DEFAULTS.baseThreshold * modifier
+
+    // Harmony modulation (Phase 1: Yin/Yang homeostatic balance)
+    // When harmony < 0.3 (Yang-dominated): raise spark point, fewer engrams ignite.
+    // When harmony > 0.7 (Yin-dominated): lower spark point, more engrams ignite.
+    // Target zone 0.3–0.7: no correction. Damping factor 0.3 prevents oscillation.
+    if (this.harmonyProvider) {
+      const harmony = this.harmonyProvider()
+      if (harmony < 0.3) {
+        sparkPoint *= 1.0 + (0.3 - harmony) * 0.3  // max 1.09x at harmony=0
+      } else if (harmony > 0.7) {
+        sparkPoint *= 1.0 - (harmony - 0.7) * 0.3  // min 0.91x at harmony=1
+      }
+    }
+
+    return sparkPoint
   }
 
   private emptyLuminalSet(complexity: TaskComplexity, durationMs: number): LuminalSet {
