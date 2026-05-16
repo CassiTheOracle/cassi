@@ -1,6 +1,6 @@
-import { appendFileSync, closeSync, existsSync, fstatSync, mkdirSync, openSync, renameSync, unlinkSync, writeSync } from 'node:fs';
+import { appendFileSync, closeSync, existsSync, fstatSync, mkdirSync, openSync, readdirSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync, writeSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 import type { LogLevel } from "../types/events.js";
 import type { ILogger } from "../types/interfaces.js";
@@ -64,6 +64,10 @@ export interface FileTransportConfig {
   maxFiles: number;
   /** Log file path. Default: ~/.cassicore/daemon.log. */
   filePath: string;
+  /** Current build version for version-based rotation. If provided and
+   *  different from the last version, the existing log is archived as
+   *  daemon-<oldVersion>.log before a new daemon.log is started. */
+  version?: string;
 }
 
 /**
@@ -218,6 +222,105 @@ class FileTransport {
 let fileTransport: FileTransport | null = null;
 
 /**
+ * Maximum number of versioned log files to retain.
+ */
+const MAX_VERSIONED_LOGS = 5;
+
+/**
+ * Rotate the daemon log based on build version.
+ *
+ * When the running version differs from the last version that wrote to
+ * daemon.log, the existing daemon.log is renamed to
+ * daemon-<oldVersion>.log (replacing any existing file with that name).
+ * Old versioned logs beyond MAX_VERSIONED_LOGS are deleted.
+ *
+ * The current version is written to daemon.log.version alongside the log.
+ *
+ * @param logFilePath - Path to daemon.log
+ * @param version - Current build version (git ref + version, or package version)
+ * @dep callers: initFileTransport (core/logger.ts), Supervisor.spawnDaemon (core/entry/supervisor.ts)
+ * @dep calls: cleanupOldVersionedLogs
+ * @dep module: Daemon
+ * @dep risk: MEDIUM | 2 callers, 0 flows, 1 module
+ */
+export function rotateLogByVersion(logFilePath: string, version: string): void {
+  if (!version || version === 'unknown') return;
+
+  const logDir = dirname(logFilePath);
+  const versionFile = join(logDir, 'daemon.log.version');
+
+  let previousVersion: string | undefined;
+  try {
+    if (existsSync(versionFile)) {
+      previousVersion = readFileSync(versionFile, 'utf8').trim();
+    }
+  } catch {
+    // Best-effort — if we can't read the version file, rotate anyway
+  }
+
+  // Same version — nothing to rotate
+  if (previousVersion === version) return;
+
+  // Different version (or no previous version): rotate current log if it exists
+  if (previousVersion && existsSync(logFilePath)) {
+    const archivedPath = join(logDir, `daemon-${previousVersion}.log`);
+    try {
+      // Replace any existing archive for this version
+      if (existsSync(archivedPath)) {
+        unlinkSync(archivedPath);
+      }
+      renameSync(logFilePath, archivedPath);
+    } catch {
+      // Rotation failed — continue with fresh daemon.log
+    }
+  }
+
+  // Write current version marker
+  try {
+    writeFileSync(versionFile, `${version}\n`, 'utf8');
+  } catch {
+    // Best-effort
+  }
+
+  // Prune old versioned logs
+  cleanupOldVersionedLogs(logDir, MAX_VERSIONED_LOGS);
+}
+
+/**
+ * Delete versioned log files beyond the given limit, keeping the newest.
+ *
+ * @dep callers: rotateLogByVersion (core/logger.ts)
+ * @dep module: Daemon
+ * @dep risk: LOW | 1 caller, 0 flows, 1 module
+ */
+function cleanupOldVersionedLogs(logDir: string, maxKeep: number): void {
+  try {
+    const prefix = 'daemon-';
+    const suffix = '.log';
+
+    // Find all versioned log files: daemon-<hash>.log
+    const versioned = readdirSync(logDir)
+      .filter(f => f.startsWith(prefix) && f.endsWith(suffix) && f !== 'daemon.log')
+      .map(f => ({
+        name: f,
+        mtime: statSync(join(logDir, f)).mtimeMs,
+      }))
+      .sort((a, b) => b.mtime - a.mtime); // newest first
+
+    // Delete files beyond the limit
+    for (const entry of versioned.slice(maxKeep)) {
+      try {
+        unlinkSync(join(logDir, entry.name));
+      } catch {
+        // Best-effort cleanup
+      }
+    }
+  } catch {
+    // Directory listing failed — skip cleanup
+  }
+}
+
+/**
  * Initialize the file transport for log rotation.
  * Should be called once during daemon startup.
  * @dep callers: bootConfiguration (core/daemon/boot-configuration.ts), logger-rotation.test.ts (tests/logger-rotation.test.ts)
@@ -228,10 +331,18 @@ export function initFileTransport(config?: Partial<FileTransportConfig>): void {
   if (fileTransport) {
     fileTransport.close();
   }
+
+  const filePath = config?.filePath ?? DEFAULT_LOG_FILE;
+
+  // Version-based rotation: archive daemon.log if the version changed
+  if (config?.version) {
+    rotateLogByVersion(filePath, config.version);
+  }
+
   fileTransport = new FileTransport({
     maxFileSize: config?.maxFileSize ?? 10 * 1024 * 1024, // 10MB default
     maxFiles: config?.maxFiles ?? 5,
-    filePath: config?.filePath ?? DEFAULT_LOG_FILE,
+    filePath,
   });
 }
 
