@@ -1102,7 +1102,7 @@ export class MnemicField {
       SELECT
         x, y,
         json_extract(metadata, '$.theta') AS metaTheta
-      FROM mnemic_engrams
+      FROM engrams
       WHERE potentiation > ?
         AND (
           json_extract(metadata, '$.theta') IS NOT NULL
