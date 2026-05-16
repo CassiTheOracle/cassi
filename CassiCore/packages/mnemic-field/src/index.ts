@@ -216,6 +216,17 @@ export class MnemicField {
    *  to annotate newly created engrams with their retrieval trigger chain. */
   private lastLuminalIds: string[] = []
 
+  /** Harmony metric: 0=Yang-dominated (all lit), 1=Yin-dominated (all shadow).
+   *  Computed during each kindling cycle and read by consolidation, DMN, and spark modulation. */
+  private lastHarmony: number = 0.5
+
+  /** Cached sector density: sector index → count of high-pot engrams.
+   *  Precomputed during consolidation (see computeSectorDensity), read by computeHarmony. */
+  private sectorDensityCache: Map<number, number> = new Map()
+
+  /** Cached total count of engrams with theta metadata (valid field positions). */
+  private validPositionCount: number = 0
+
   /** Enable the LLM reranker. Call during daemon startup after providers are wired. */
   setRerankerProvider(provider: IProvider, model?: string, enabled?: boolean): void {
     this.rerankerModel = model ?? this.rerankerModel
@@ -907,6 +918,12 @@ export class MnemicField {
     // linking them to the engrams that triggered their creation.
     this.lastLuminalIds = luminal.engrams.map(e => e.engram.id)
 
+    // Compute harmony metric after each kindling cycle
+    // (feeds into spark point modulation, consolidation, and DMN observation)
+    try {
+      this.computeHarmony()
+    } catch { /* never block retrieval for harmony failures */ }
+
     let lightningRanked: Array<{ engramId: string; score: number }> | null = null
 
     if (luminal.engrams.length === 0) {
@@ -1048,6 +1065,133 @@ export class MnemicField {
       this.retrieveCache.delete(oldest)
     }
     return contentHits
+  }
+
+  /**
+   * Precompute engram density per angular sector.
+   * Fast DB scan counting high-potentiation engrams in each 30° sector.
+   * Called periodically during consolidation. Results cached in sectorDensityCache.
+   */
+  computeSectorDensity(sectorCount: number = 12): Map<number, number> {
+    const density = new Map<number, number>()
+    const sectorSize = (2 * Math.PI) / sectorCount
+    const highPotThreshold = 0.3
+
+    // Query all engrams with valid theta and potentiation > highPotThreshold
+    const rows = this.db.prepare(`
+      SELECT json_extract(metadata, '$.theta') AS theta
+      FROM mnemic_engrams
+      WHERE potentiation > ?
+        AND json_extract(metadata, '$.theta') IS NOT NULL
+    `).all(highPotThreshold) as Array<{ theta: number }>
+
+    for (const row of rows) {
+      let theta = row.theta
+      while (theta < 0) theta += 2 * Math.PI
+      while (theta >= 2 * Math.PI) theta -= 2 * Math.PI
+      const sector = Math.floor(theta / sectorSize) % sectorCount
+      density.set(sector, (density.get(sector) ?? 0) + 1)
+    }
+
+    this.sectorDensityCache = density
+    this.validPositionCount = rows.length
+    this.logger.debug('Sector density recomputed', {
+      sectorCount,
+      totalEngrams: rows.length,
+      maxDensity: Math.max(...density.values(), 0),
+    })
+    return density
+  }
+
+  /**
+   * Compute the harmony metric: 0=Yang-dominated (all lit), 1=Yin-dominated (all shadow).
+   *
+   * Two components:
+   *   yinRatio  — what fraction of high-pot engrams are NOT in recent luminal sets?
+   *   coverageRatio — what fraction of sectors-with-engrams have been visited?
+   *
+   * Weighted blend: 0.4 * yinRatio + 0.6 * coverageRatio (emphasizes structural).
+   * Called during each kindling cycle via computeGlobalSparkPoint().
+   */
+  computeHarmony(): number {
+    const sectorCount = 12
+
+    // Ensure density is computed (does full scan only on first call)
+    if (this.sectorDensityCache.size === 0) {
+      this.computeSectorDensity(sectorCount)
+    }
+
+    // Use cached position count as proxy for high-pot count
+    const highPotCount = Math.max(1, this.validPositionCount)
+
+    // Yin ratio: what fraction of positioned engrams are NOT in the luminal set?
+    const recentAvgLuminalSize = this.lastLuminalIds.length
+    const yinRatio = 1 - (recentAvgLuminalSize / highPotCount)
+
+    // Coverage ratio: what fraction of sectors-with-engrams have been visited?
+    const visitedSectors = this.attractor.getSectorCoverage(sectorCount)
+    const sectorsWithEngrams = this.sectorDensityCache.size
+    const coverageRatio = visitedSectors.size / Math.max(1, sectorsWithEngrams)
+
+    // Weighted blend: 0.6 weight on coverage (structural Yin) over recency (dynamic Yin)
+    const harmony = 0.4 * yinRatio + 0.6 * coverageRatio
+
+    this.lastHarmony = Math.max(0, Math.min(1, harmony))
+    return this.lastHarmony
+  }
+
+  /** Return the last computed harmony value (doesn't recompute). */
+  getHarmony(): number {
+    return this.lastHarmony
+  }
+
+  /**
+   * Build shadow context string for the DMN observer.
+   * Identifies blind spots — sectors with high-pot engrams that the attractor
+   * hasn't visited — and includes the current harmony metric.
+   * Returns null if no shadow observations to report.
+   */
+  buildShadowContext(): string | null {
+    const sectorCount = 12
+    const visitedSectors = this.attractor.getSectorCoverage(sectorCount)
+    const density = this.sectorDensityCache.size > 0
+      ? this.sectorDensityCache
+      : this.computeSectorDensity(sectorCount)
+    const harmony = this.computeHarmony()
+
+    // Find sectors with engrams but no visits (blind spots)
+    const blindSpots: Array<{ sector: number; thetaStart: number; thetaEnd: number; count: number }> = []
+    const sectorSize = (2 * Math.PI) / sectorCount
+
+    for (const [sector, count] of density) {
+      if (!visitedSectors.has(sector)) {
+        blindSpots.push({
+          sector,
+          thetaStart: sector * sectorSize,
+          thetaEnd: (sector + 1) * sectorSize,
+          count,
+        })
+      }
+    }
+
+    if (blindSpots.length === 0 && harmony >= 0.3 && harmony <= 0.7) {
+      return null // Everything is balanced, nothing to report
+    }
+
+    const parts: string[] = ['<shadow>']
+
+    if (blindSpots.length > 0) {
+      const topBlind = blindSpots.sort((a, b) => b.count - a.count).slice(0, 3)
+      const sectorDesc = topBlind
+        .map(b => `θ=${(b.thetaStart * 180 / Math.PI).toFixed(0)}°–${(b.thetaEnd * 180 / Math.PI).toFixed(0)}° (${b.count} engrams)`)
+        .join(', ')
+      parts.push(`Blind spots — sectors with high-pot engrams never visited: ${sectorDesc}`)
+    }
+
+    parts.push(`Harmony: ${harmony.toFixed(2)} (${harmony < 0.3 ? 'Yang-dominated' : harmony > 0.7 ? 'Yin-dominated' : 'balanced'})`)
+    parts.push('</shadow>')
+
+    return parts.join('\n')
   }
 
   createMigrationJob(spec: MigrationJobSpec): MigrationJobRecord {

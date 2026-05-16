@@ -15,6 +15,8 @@ export interface AttractorState {
 }
 
 const TONIC_HALF_LIFE_MS = 5 * 60 * 1000  // 5 minutes
+const MAX_POSITION_HISTORY = 100          // ring buffer size
+const DEFAULT_SECTOR_COUNT = 12           // 30° each
 
 export class AttractorManager {
   state: AttractorState = {
@@ -25,6 +27,56 @@ export class AttractorManager {
   }
 
   private lastUpdateMs = Date.now()
+
+  // Position history ring buffer — tracks recent phasic attractor positions
+  // for shadow observation (which sectors has the system been visiting?).
+  private positionHistory: Array<{ r: number; theta: number; ts: number }> = []
+
+  /** Record the current phasic position as a visit. Called after each retrieval. */
+  recordVisit(r?: number, theta?: number): void {
+    this.positionHistory.push({
+      r: r ?? this.state.phasic.r,
+      theta: theta ?? this.state.phasic.theta,
+      ts: Date.now(),
+    })
+    if (this.positionHistory.length > MAX_POSITION_HISTORY) {
+      this.positionHistory = this.positionHistory.slice(-MAX_POSITION_HISTORY)
+    }
+  }
+
+  /** Return recent position history (newest last). */
+  getPositionHistory(): Array<{ r: number; theta: number; ts: number }> {
+    return this.positionHistory
+  }
+
+  /** Compute which angular sectors have been visited. 12 sectors at 30° each. */
+  getSectorCoverage(sectorCount: number = DEFAULT_SECTOR_COUNT): Set<number> {
+    const visited = new Set<number>()
+    const sectorSize = (2 * Math.PI) / sectorCount
+    for (const pos of this.positionHistory) {
+      let theta = pos.theta
+      // Normalize to [0, 2π)
+      while (theta < 0) theta += 2 * Math.PI
+      while (theta >= 2 * Math.PI) theta -= 2 * Math.PI
+      const sector = Math.floor(theta / sectorSize)
+      visited.add(sector % sectorCount)
+    }
+    return visited
+  }
+
+  /** How many visits to a specific sector index? */
+  getSectorVisitCount(sectorCount: number = DEFAULT_SECTOR_COUNT): Map<number, number> {
+    const counts = new Map<number, number>()
+    const sectorSize = (2 * Math.PI) / sectorCount
+    for (const pos of this.positionHistory) {
+      let theta = pos.theta
+      while (theta < 0) theta += 2 * Math.PI
+      while (theta >= 2 * Math.PI) theta -= 2 * Math.PI
+      const sector = Math.floor(theta / sectorSize) % sectorCount
+      counts.set(sector, (counts.get(sector) ?? 0) + 1)
+    }
+    return counts
+  }
 
   /** Weighted distance from an engram to the combined attractor. */
   effectiveDistance(engramR: number, engramTheta: number): number {
@@ -78,6 +130,9 @@ export class AttractorManager {
     this.state.alpha = Math.max(0.3, 1.0 - dPhasic * 0.8)
 
     this.lastUpdateMs = Date.now()
+
+    // Record this attractor position for shadow observation (Phase 0: Yin/Yang)
+    this.recordVisit(this.state.phasic.r, this.state.phasic.theta)
   }
 
   /** Decay phasic attractor toward tonic center over time. */
