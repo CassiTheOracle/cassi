@@ -108,7 +108,18 @@ export class MnemicSteeringBridge {
       const layer = bandToLayer(band, 18)
 
       // Alpha = baseAlpha × potentiation (stronger concepts steer harder)
-      const alpha = c.baseAlpha * Math.min(1.0, engram.potentiation)
+      let alpha = c.baseAlpha * Math.min(1.0, engram.potentiation)
+
+      // Phase 8: Geometry-aware steering — weight by proximity to attractor
+      if (this.mnemicField?.attractor) {
+        const r = (engram.metadata?.r as number) ?? 
+          (engram.x !== undefined && engram.y !== undefined 
+            ? Math.sqrt(engram.x * engram.x + engram.y * engram.y) 
+            : 0.5)
+        const theta = (engram.metadata?.theta as number) ?? 0
+        const boost = this.mnemicField.attractor.radialBoost(r, theta)
+        alpha *= (0.5 + 0.5 * boost)  // Attenuate: far engrams steer less
+      }
 
       steers.push({ layer, alpha, vectorBytes: vec })
 
@@ -167,7 +178,14 @@ export class MnemicSteeringBridge {
   private queryCandidates(
     domain: string,
     minPotentiation: number,
-  ): Array<{ label: string; potentiation: number; metadata?: Record<string, unknown> }> {
+  ): Array<{
+    label: string;
+    potentiation: number;
+    /** Phase 8.2: Cartesian position for attractor distance computation. */
+    x?: number;
+    y?: number;
+    metadata?: Record<string, unknown>;
+  }> {
     try {
       // Search for engrams tagged with the domain and source:vindex-self-model
       const query = `domain:${domain} source:vindex-self-model`
@@ -182,6 +200,8 @@ export class MnemicSteeringBridge {
         .map((e: any) => ({
           label: e.label as string,
           potentiation: e.potentiation as number,
+          x: e.x as number | undefined,
+          y: e.y as number | undefined,
           metadata: e.metadata as Record<string, unknown> | undefined,
         }))
     } catch (err) {
