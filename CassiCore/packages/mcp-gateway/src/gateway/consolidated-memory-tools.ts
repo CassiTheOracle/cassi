@@ -17,7 +17,7 @@ import type { ILogger } from '../../types/interfaces.js';
  */
 export const MEMORY_CONSOLIDATED_TOOL = {
   name: 'memory',
-  description: 'Memory operations — store, search, KV operations, archive access, and universal search. Use action parameter to select operation.\n\nUse this tool when you need to persist facts, preferences, or insights across sessions (store), retrieve stored knowledge (search), or access the conversation archive. For turn-start context retrieval, prefer cassi_enrich instead — it searches memory, archive, AND session history in one call.\n\nCommon actions: store (save a fact/preference), search (find stored memories by query), universal_search (search both memory and archive at once), kv_set/kv_get (fast key-value cache for structured data).',
+  description: 'Memory operations — store, search, KV operations, archive access, and universal search. Use action parameter to select operation.\n\nUse this tool when you need to persist facts, preferences, or insights across sessions (store), retrieve stored knowledge (search), or access the conversation archive. For turn-start context retrieval, prefer cassi_enrich instead — it searches memory, archive, AND session history in one call.\n\nCommon actions: store (save a fact/preference), search (find stored memories and archive entries), universal_search (same as search — merges memory + archive), kv_set/kv_get (fast key-value cache for structured data).',
   inputSchema: {
     type: 'object',
     properties: {
@@ -25,6 +25,7 @@ export const MEMORY_CONSOLIDATED_TOOL = {
         type: 'string',
         enum: [
           'store', 'search', 'recent', 'delete',
+          'retrieve',
           'kv_get', 'kv_set', 'kv_del', 'stats',
           'archive_search', 'archive_get', 'archive_related', 'archive_recent',
           'browse', 'universal_search',
@@ -112,7 +113,8 @@ export const MEMORY_CONSOLIDATED_TOOL_NAME = 'memory';
  */
 const ACTION_TO_TOOL_NAME: Record<string, string> = {
   store: 'memory_store',
-  search: 'memory_search',
+  search: 'universal_search', // FTS5 text search — fast, reliable, high recall
+  retrieve: 'memory_retrieve', // full pipeline: embedding → kindling → reranker (experimental)
   recent: 'memory_recent',
   delete: 'memory_delete',
   kv_get: 'memory_kv_get',

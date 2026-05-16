@@ -29,9 +29,12 @@ import {
   ProgressNotificationSchema,
   LoggingMessageNotificationSchema,
 } from '@modelcontextprotocol/sdk/types.js';
+import { spawn, type ChildProcess } from 'node:child_process';
 import http from 'http';
 import fs from 'node:fs';
+import { homedir } from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import {
   GATEWAY_VERSION,
@@ -93,6 +96,120 @@ import { resolveToolAlias, unknownToolError } from './gateway/tool-aliases.js';
 const CASSICORE_URL = process.env.CASSICORE_URL || 'http://localhost:7433';
 
 const logger = createLogger();
+
+// The gateway auto-starts the daemon if it isn't already running,
+// so Hermes can manage CassiCore's entire lifetime as a single unit.
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const REPO_ROOT = path.resolve(__dirname, '..');
+const DAEMON_ENTRY = path.join(REPO_ROOT, 'core', 'entry', 'daemon-main.ts');
+const CASSICORE_PID_FILE = path.join(homedir(), '.cassicore', 'daemon.pid');
+const DAEMON_BOOT_TIMEOUT_MS = 60_000;
+const DAEMON_HEALTH_POLL_MS = 1_000;
+
+let daemonChild: ChildProcess | null = null;
+
+async function isDaemonRunning(): Promise<boolean> {
+  try {
+    const resp = await fetchWithTimeout(`${CASSICORE_URL}/health`, { timeoutMs: 2_000 });
+    return resp.ok;
+  } catch {
+    return false;
+  }
+}
+
+function isProcessAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function waitForDaemon(): Promise<void> {
+  const start = Date.now();
+  while (Date.now() - start < DAEMON_BOOT_TIMEOUT_MS) {
+    if (await isDaemonRunning()) {
+      logger.info('CassiCore daemon connection verified', {
+        bootMs: Date.now() - start,
+      });
+      return;
+    }
+    await new Promise(resolve => setTimeout(resolve, DAEMON_HEALTH_POLL_MS));
+  }
+  throw new Error(
+    `CassiCore daemon failed to start within ${DAEMON_BOOT_TIMEOUT_MS / 1000}s`,
+  );
+}
+
+async function ensureDaemonRunning(): Promise<void> {
+  // 1. Quick check — daemon already healthy?
+  if (await isDaemonRunning()) {
+    logger.info('CassiCore daemon already running');
+    return;
+  }
+
+  // 2. Check PID file — maybe daemon is still booting from another launcher
+  try {
+    if (fs.existsSync(CASSICORE_PID_FILE)) {
+      const pidContent = fs.readFileSync(CASSICORE_PID_FILE, 'utf-8').trim();
+      const pid = parseInt(pidContent, 10);
+      if (!isNaN(pid) && pid > 0 && isProcessAlive(pid)) {
+        logger.info('CassiCore daemon PID found (live process, still booting)', { pid });
+        await waitForDaemon();
+        return;
+      }
+      // Stale PID file — clean it up so the daemon doesn't refuse to start
+      fs.unlinkSync(CASSICORE_PID_FILE);
+      logger.info('Cleaned up stale daemon PID file');
+    }
+  } catch {
+    // Best-effort — if we can't read the PID file, just spawn fresh
+  }
+
+  // 3. Spawn the daemon as a child process
+  logger.info('Starting CassiCore daemon…');
+  daemonChild = spawn('npx', ['tsx', DAEMON_ENTRY], {
+    cwd: REPO_ROOT,
+    stdio: 'ignore',
+    detached: false,
+  });
+
+  daemonChild.on('error', (err) => {
+    logger.error('CassiCore daemon spawn error', { error: String(err) });
+    daemonChild = null;
+  });
+
+  daemonChild.on('exit', (code, signal) => {
+    logger.info('CassiCore daemon child exited', {
+      pid: daemonChild?.pid,
+      code,
+      signal,
+    });
+    daemonChild = null;
+  });
+
+  // 4. Wait for the daemon to become healthy
+  await waitForDaemon();
+}
+
+function cleanupDaemon(): void {
+  if (!daemonChild) return;
+  logger.info('Terminating CassiCore daemon child process', {
+    pid: daemonChild.pid,
+  });
+  daemonChild.kill('SIGTERM');
+  // Force-kill after a grace period
+  const child = daemonChild;
+  setTimeout(() => {
+    if (child && !child.killed) {
+      child.kill('SIGKILL');
+    }
+  }, 5_000);
+}
+
 
 // WHY: Prevent silent crashes from unhandled rejections or uncaught exceptions.
 // In Node 25+ these terminate the process by default — log and continue
@@ -1084,21 +1201,28 @@ async function main() {
   const portArg = args.find(arg => arg.startsWith('--port='));
   const port = portArg ? parseInt(portArg.split('=')[1], 10) : 3000;
 
-  // HOW: The startup health check uses a longer timeout to give the daemon
-  // time to boot if the gateway starts before or alongside it.
+  // Ensure the CassiCore daemon is running.  If it isn't, spawn it as a
+  // child process and wait for it to become healthy.  On failure the
+  // gateway continues anyway — tool calls will surface connection errors.
   try {
-    const healthCheck = await fetchWithTimeout(`${CASSICORE_URL}/health`, { timeoutMs: 10_000 });
-    if (!healthCheck.ok) {
-      throw new Error(`CassiCore health check returned ${healthCheck.status}`);
-    }
-    logger.info('CassiCore daemon connection verified');
+    await ensureDaemonRunning();
   } catch (error: any) {
-    logger.error('Failed to connect to CassiCore daemon', {
-      url: CASSICORE_URL,
+    logger.error('Failed to start CassiCore daemon', {
       error: String(error),
     });
     logger.warn('Gateway will start anyway — tool calls will retry when the daemon becomes available');
   }
+
+  // Clean up the daemon child process when the gateway exits
+  process.on('exit', cleanupDaemon);
+  process.on('SIGTERM', () => {
+    cleanupDaemon();
+    process.exit(0);
+  });
+  process.on('SIGINT', () => {
+    cleanupDaemon();
+    process.exit(0);
+  });
 
   if (httpMode) {
     await startHttp(port);

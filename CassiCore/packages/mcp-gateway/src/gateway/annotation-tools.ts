@@ -21,12 +21,24 @@ export const ANNOTATION_TOOLS = [{
   description:
     'Iteratively annotate Self-Model engrams (modules, capabilities, patterns, weaknesses) ' +
     'with LLM-generated semantic summaries. Each call finds the next unannotated engram ' +
-    'from the Self-Model Field.\n\n' +
+    'from the Self-Model Field and enriches it with relational and metric context.\n\n' +
     'Workflow:\n' +
     '- First call (no params) returns the first unannotated engram needing a summary\n' +
     '- Call with { engramId, summary } to store your annotation and receive the next\n' +
     '- Call with { engramId, skip: true } to skip this engram without annotating\n' +
+    '- Call with { target: "ModuleName" } to find an unannotated engram by name substring\n' +
+    '- Call with { engramId, summary, force: true } to overwrite an existing annotation\n' +
     '- When complete, returns status: "complete"\n\n' +
+    'Each response includes:\n' +
+    '- engram.id, name, nodeType, currentDescription, rawContent\n' +
+    '- executionFlows[] — execution flows passing through this module\n' +
+    '- metrics { symbolCount, cohesion, complexityScore, maturity }\n' +
+    '- domain, provenance, createdAt, lastSyncedAt, potentiation\n' +
+    '- connectivityHint (isolated / leaf / hub / critical / bridge / foundation)\n' +
+    '- dependencies[], dependedBy[], enables[], allRelationships[]\n' +
+    '- domainSiblings[] — other modules in the same domain\n' +
+    '- relatedCapabilities[] — capabilities using this module\n' +
+    '- annotatedNeighbors[] — annotation examples from nearby engrams\n\n' +
     'Your summaries are stored in metadata.llm_summary for improved semantic retrieval.',
   inputSchema: {
     type: 'object',
@@ -42,6 +54,14 @@ export const ANNOTATION_TOOLS = [{
       skip: {
         type: 'boolean',
         description: 'Set true to skip this engram without annotating (marks as reviewed)',
+      },
+      target: {
+        type: 'string',
+        description: 'Optional: find an unannotated engram matching this name pattern (e.g., "Thalamus", "Cortex"). Uses case-insensitive substring match. Ignored if engramId is provided.',
+      },
+      force: {
+        type: 'boolean',
+        description: 'Set true to overwrite existing annotation on an already-annotated engram. Use with engramId + summary.',
       },
     },
   },

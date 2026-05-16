@@ -1,6 +1,6 @@
 /**
  * Helix Tools Module
- * Inverted-pyramid analysis tools — 1 worker (Unity), 2 reviewers (Yang/Yin)
+ * Three-posture collaborative analysis — Unity, Yang, and Yin as equally capable agents
  */
 
 import { fetchWithTimeout, watchViaSSE } from './helpers.js'
@@ -18,7 +18,7 @@ const SIGNIFICANT_HELIX_EVENTS = new Set([
 export const HELIX_TOOLS = [
   {
     name: 'helix_project',
-    description: 'Start a Helix session with one worker (Unity) and two concurrent reviewers (Yang=assertive, Yin=cautious). Unity implements while reviewers observe, debate, and send nudges. Non-blocking: returns immediately with jobId and sessionId. Use helix_watch(sessionId) to block until completion.',
+    description: 'Start a Helix session with three equally capable agents (Unity, Yang, Yin) that collaborate. All postures implement, review, and deliberate. Non-blocking: returns immediately with jobId and sessionId. Use helix_watch(sessionId) to block until completion.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -93,7 +93,7 @@ export const HELIX_TOOLS = [
   },
   {
     name: 'helix_progress',
-    description: 'Get live progress report for a running Helix session. Shows per-role status (Unity/Yang/Yin), work unit count, nudge activity, dialectic stats (Yang↔Yin findings/challenges/concessions), and convergence points.',
+    description: 'Get live progress report for a running Helix session. Shows per-posture status (Unity/Yang/Yin), work unit count, nudge activity, dialectic stats (Yang↔Yin findings/challenges/concessions), and convergence points.',
     inputSchema: {
       type: 'object',
       properties: {

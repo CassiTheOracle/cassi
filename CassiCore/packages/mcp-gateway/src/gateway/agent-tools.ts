@@ -5,7 +5,7 @@
  * Merges ALL multi-agent tools into a single cassi_agent tool with type+action parameters.
  *
  * Types:
- *   - helix: Inverted-pyramid review (Unity/Yang/Yin)
+ *   - helix: Three-posture collaboration (Unity/Yang/Yin)
  *   - flux: Team orchestration (multi-cell teams)
  *   - constellation: Multi-Helix tree with Corpus organizer
  *
@@ -36,14 +36,14 @@ import {
  */
 export const AGENT_TOOL = {
   name: 'agent',
-  description: 'Multi-agent orchestration — Helix (review), Flux (teams), Constellation (multi-Helix tree with Corpus). Use type+action to select operation.\n\nUse this tool when you need to delegate work to multi-agent systems. For most multi-step coding or research tasks, use type=constellation with action=project — it spawns and coordinates a tree of Helix sessions via a Corpus organizer. Use type=helix for single-session worker+reviewer tasks, and type=flux for team orchestration.\n\nCommon patterns: constellation/project (start coordinated multi-agent work), constellation/watch (block until done), constellation/steer (redirect in-progress work), helix/project (single Helix session), flux/run (autonomous team with checkpoints).',
+  description: 'Multi-agent orchestration — Helix (three-posture collaboration), Flux (teams), Constellation (multi-Helix tree with Corpus). Use type+action to select operation.\n\nUse this tool when you need to delegate work to multi-agent systems. For most multi-step coding or research tasks, use type=constellation with action=project — it spawns and coordinates a tree of Helix sessions via a Corpus organizer. Use type=helix for single-session collaborative tasks, and type=flux for team orchestration.\n\nCommon patterns: constellation/project (start coordinated multi-agent work), constellation/watch (block until done), constellation/steer (redirect in-progress work), helix/project (single Helix session), flux/run (autonomous team with checkpoints).',
   inputSchema: {
     type: 'object',
     properties: {
       type: {
         type: 'string',
         enum: ['helix', 'flux', 'constellation'],
-        description: 'Agent system type: helix (inverted-pyramid review), flux (team orchestration), constellation (multi-Helix tree with Corpus organizer)',
+        description: 'Agent system type: helix (three-posture collaboration), flux (team orchestration), constellation (multi-Helix tree with Corpus organizer)',
       },
       action: {
         type: 'string',

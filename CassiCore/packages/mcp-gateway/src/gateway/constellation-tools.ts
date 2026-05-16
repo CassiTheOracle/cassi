@@ -154,7 +154,7 @@ export const CONSTELLATION_TOOLS = [
     name: 'constellation_analyze',
     description: 'Deep post-mortem analysis of a completed (or failed) Constellation session. ' +
       'Queries helix.db and constellation.db to produce a structured report covering Corpus health, ' +
-      'branch timing, phase detection, idle gaps, reviewer nudges, and known failure pattern detection. ' +
+      'branch timing, phase detection, idle gaps, posture nudges, and known failure pattern detection. ' +
       'Use this after a run to understand why it was slow, what Corpus did, or to diagnose provider issues.',
     inputSchema: {
       type: 'object',

@@ -209,6 +209,18 @@ export const MEMORY_TOOLS = [
       required: ['query'],
     },
   },
+  {
+    name: 'memory_retrieve',
+    description: 'Full retrieval pipeline: embedding → neural kindling → cross-encoder reranker. Returns the highest-quality results by scoring candidates through the entire retrieval stack.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Search query' },
+        limit: { type: 'number', description: 'Max results (default 10)' },
+      },
+      required: ['query'],
+    },
+  },
 ];
 
 /**
@@ -338,6 +350,16 @@ export async function executeMemoryTool(
         body: JSON.stringify({ query: args.query, includeMemories: args.includeMemories, includeArchives: args.includeArchives, limit: args.limit }),
       });
       if (!res.ok) throw new Error(`Universal search failed: ${await res.text()}`);
+      return await res.json();
+    }
+
+    case 'memory_retrieve': {
+      const res = await fetchWithTimeout(`${baseUrl}/memory/retrieve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: args.query, limit: args.limit }),
+      });
+      if (!res.ok) throw new Error(`Memory retrieve failed: ${await res.text()}`);
       return await res.json();
     }
 
