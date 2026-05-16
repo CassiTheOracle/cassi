@@ -69,7 +69,6 @@ export const SELF_MODEL_KINDLING_DEFAULTS: Partial<KindlingOptions> = {
   maxIterations: 4,
   maxLuminalSize: 20,
   maxSeeds: 15,
-  enableFilaments: true,
 }
 
 export interface BridgeConfig {

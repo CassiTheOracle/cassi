@@ -123,48 +123,6 @@ export function initMnemicFieldSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_changesets_committed ON changesets(committed_at DESC);
     CREATE INDEX IF NOT EXISTS idx_changeset_files_engram ON changeset_files(engram_id);
 
-    CREATE TABLE IF NOT EXISTS filaments (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      engram_id TEXT NOT NULL REFERENCES engrams(id) ON DELETE CASCADE,
-      span_start INTEGER NOT NULL,
-      span_end INTEGER NOT NULL,
-      content TEXT NOT NULL,
-      embedding BLOB,
-      created_at TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS filament_synapses (
-      source_id INTEGER NOT NULL REFERENCES filaments(id) ON DELETE CASCADE,
-      target_id INTEGER NOT NULL REFERENCES filaments(id) ON DELETE CASCADE,
-      edge_type TEXT NOT NULL,
-      weight REAL NOT NULL DEFAULT 0.5,
-      confidence REAL NOT NULL DEFAULT 1.0,
-      provenance TEXT NOT NULL,
-      created_at TEXT NOT NULL,
-      metadata TEXT,
-      PRIMARY KEY (source_id, target_id, edge_type)
-    );
-
-    CREATE TABLE IF NOT EXISTS filament_entities (
-      filament_id INTEGER NOT NULL REFERENCES filaments(id) ON DELETE CASCADE,
-      entity TEXT NOT NULL,
-      entity_type TEXT NOT NULL,
-      PRIMARY KEY (filament_id, entity)
-    );
-
-    CREATE TABLE IF NOT EXISTS filament_analysis_log (
-      source_id INTEGER NOT NULL REFERENCES filaments(id) ON DELETE CASCADE,
-      target_id INTEGER NOT NULL REFERENCES filaments(id) ON DELETE CASCADE,
-      analyzed_at TEXT NOT NULL,
-      PRIMARY KEY (source_id, target_id)
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_filaments_engram ON filaments(engram_id);
-    CREATE INDEX IF NOT EXISTS idx_filament_syn_source ON filament_synapses(source_id, edge_type);
-    CREATE INDEX IF NOT EXISTS idx_filament_syn_target ON filament_synapses(target_id, edge_type);
-    CREATE INDEX IF NOT EXISTS idx_filament_syn_edge ON filament_synapses(edge_type, weight);
-    CREATE INDEX IF NOT EXISTS idx_fent_entity ON filament_entities(entity);
-
     CREATE VIEW IF NOT EXISTS replay_part_of_edges AS
       SELECT source_id AS child_id, target_id AS parent_id, weight, created_at, metadata
       FROM mnemic_synapses
@@ -537,6 +495,7 @@ function migrateSchema(db: Database.Database): void {
   remediateMigrationTimestamps(db)
   migrateSessionIdColumn(db)
   migrateExpertIndexes(db)
+  migrateFileTrackingColumns(db)
 }
 
 function migrateSessionIdColumn(db: Database.Database): void {
@@ -576,6 +535,46 @@ function migrateExpertIndexes(db: Database.Database): void {
       ON engrams(json_extract(metadata, '$.expertId'))
       WHERE json_extract(metadata, '$.expertId') IS NOT NULL;
   `)
+}
+
+function migrateFileTrackingColumns(db: Database.Database): void {
+  const cols = db.prepare(`PRAGMA table_info(engrams)`).all() as Array<{ name: string }>
+  const names = new Set(cols.map(c => c.name))
+
+  // Add file_path column for fast file-path lookups without json_extract
+  if (!names.has('file_path')) {
+    db.exec(`ALTER TABLE engrams ADD COLUMN file_path TEXT`)
+  }
+
+  // Add content_hash column for dedup and diff computation
+  if (!names.has('content_hash')) {
+    db.exec(`ALTER TABLE engrams ADD COLUMN content_hash TEXT`)
+  }
+
+  // Index on file_path — partial so only file engrams are indexed
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_engrams_file_path
+      ON engrams(file_path)
+      WHERE file_path IS NOT NULL
+  `)
+
+  // Backfill file_path from metadata.filePath for existing file engrams
+  db.prepare(`
+    UPDATE engrams
+    SET file_path = json_extract(metadata, '$.filePath')
+    WHERE node_type = 'file'
+      AND file_path IS NULL
+      AND json_extract(metadata, '$.filePath') IS NOT NULL
+  `).run()
+
+  // Backfill content_hash for file_version engrams — independent of file_path backfill
+  db.prepare(`
+    UPDATE engrams
+    SET content_hash = json_extract(metadata, '$.checksum')
+    WHERE node_type = 'file_version'
+      AND content_hash IS NULL
+      AND json_extract(metadata, '$.checksum') IS NOT NULL
+  `).run()
 }
 
 function remediateMigrationTimestamps(db: Database.Database): void {

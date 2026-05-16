@@ -267,7 +267,6 @@ export class LLMReranker {
         provenance: g.engram.provenance,
         tags: g.engram.tags,
         metadata: g.engram.metadata,
-        filamentExcerpt: g.excerpts.join(' … '),
       })
     }
     return out
