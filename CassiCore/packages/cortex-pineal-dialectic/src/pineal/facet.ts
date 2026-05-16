@@ -32,28 +32,34 @@ export class FacetManager {
     return null
   }
 
-  /** Sync a facet to its MnemicField engram (create or update). */
+  /** Sync a facet to its MnemicField engram (create or update). Best-effort — never throws. */
   private syncToField(facet: Facet): void {
     if (!this.mnemicField) return
-
-    const existing = this.findEngram(facet.id)
-    if (existing) {
-      this.mnemicField.update(existing.id, {
-        content: facet.content,
-        metadata: { ...existing.metadata, ...buildPinealMetadata(facet) },
-        tags: [...new Set(['pineal', facet.domain, facet.category, ...(facet.tags ?? []), ...(existing.tags ?? [])])],
+    try {
+      const existing = this.findEngram(facet.id)
+      if (existing) {
+        this.mnemicField.update(existing.id, {
+          content: facet.content,
+          metadata: { ...existing.metadata, ...buildPinealMetadata(facet) },
+          tags: [...new Set(['pineal', facet.domain, facet.category, ...(facet.tags ?? []), ...(existing.tags ?? [])])],
+        })
+      } else {
+        const engram = this.mnemicField.store({
+          content: facet.content,
+          nodeType: 'pineal_facet' as import('../mnemic-field/types.js').EngramType,
+          x: 0,
+          y: 0,
+          provenance: `pineal:${facet.id}`,
+          tags: ['pineal', facet.domain, facet.category, ...(facet.tags ?? [])],
+          metadata: buildPinealMetadata(facet),
+        })
+        this.pinealEngramMap.set(facet.id, engram.id)
+      }
+    } catch (err) {
+      this.logger.warn('[pineal] Failed to sync facet to MnemicField', {
+        facetId: facet.id,
+        error: String(err),
       })
-    } else {
-      const engram = this.mnemicField.store({
-        content: facet.content,
-        nodeType: 'pineal_facet' as import('../mnemic-field/types.js').EngramType,
-        x: 0,
-        y: 0,
-        provenance: `pineal:${facet.id}`,
-        tags: ['pineal', facet.domain, facet.category, ...(facet.tags ?? [])],
-        metadata: buildPinealMetadata(facet),
-      })
-      this.pinealEngramMap.set(facet.id, engram.id)
     }
   }
 
