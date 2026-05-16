@@ -2173,16 +2173,17 @@ export class MnemicField {
   storeForSession(input: EngramCreate & { sessionId?: string }): Engram {
     const sessionId = input.sessionId
     // Auto-assign radial position from nodeType when no position specified
+    let resolved = input
     if (input.x === undefined && input.y === undefined
         && input.r === undefined && input.theta === undefined) {
       const r = MnemicField.getDefaultRadial(input.nodeType)
       if (r !== undefined) {
-        input = { ...input, r }
+        resolved = { ...input, r }
       }
     }
     if (sessionId) {
-      const metadata = { ...(input.metadata ?? {}), sessionId }
-      const { sessionId: _sid, ...rest } = input
+      const metadata = { ...(resolved.metadata ?? {}), sessionId }
+      const { sessionId: _sid, ...rest } = resolved
       const result = this.store({ ...rest, metadata })
       try {
         this.cortex.setEngramSessionId(result.id, sessionId)
@@ -2191,7 +2192,7 @@ export class MnemicField {
       }
       return result
     }
-    return this.store(input)
+    return this.store(resolved)
   }
 
   findExpertEngrams(query: import('./types.js').ExpertQuery = {}): Engram[] {
