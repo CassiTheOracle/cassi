@@ -101,7 +101,7 @@ export class SelfModelIngestor {
 
     const processMap = this.buildProcessMap(processes)
 
-    const { created: modulesCreated, updated: modulesUpdated } = this.ingestModules(
+    const { created: modulesCreated, updated: modulesUpdated } = await this.ingestModules(
       communities, symbolsByCommunity, processMap, updateExisting,
     )
     const capabilitiesCreated = this.ingestCapabilities(processes)
@@ -139,12 +139,12 @@ export class SelfModelIngestor {
    * and the execution flows that pass through it — making the FTS5 index
    * rich enough for conceptual queries like "what handles task delegation?".
    */
-  private ingestModules(
+  private async ingestModules(
     communities: CommunityRow[],
     symbolsByCommunity: Map<string, string[]>,
     processMap: Map<string, string[]>,
     updateExisting: boolean,
-  ): { created: number; updated: number } {
+  ): Promise<{ created: number; updated: number }> {
     let created = 0
     let updated = 0
 
@@ -167,7 +167,7 @@ export class SelfModelIngestor {
 
       if (existing) {
         if (updateExisting) {
-          this.smf.update(existing.id, { content: `${comm.label} — ${richDescription}` })
+          await this.smf.update(existing.id, { content: `${comm.label} — ${richDescription}` })
           updated++
         }
         continue

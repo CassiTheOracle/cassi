@@ -151,8 +151,27 @@ export class SelfModelField {
     return this.field.get(id)
   }
 
-  update(id: string, patch: EngramUpdate): Engram | null {
-    return this.field.update(id, patch)
+  async update(id: string, patch: EngramUpdate): Promise<Engram | null> {
+    const result = this.field.update(id, patch)
+    if (!result) return null
+
+    // Re-embed when content or metadata changes
+    if (patch.content !== undefined || patch.metadata !== undefined) {
+      try {
+        const { getEmbeddingService } = await import('../../embeddings/embedding-service.js')
+        const embSvc = getEmbeddingService(this.logger)
+        if (embSvc.available) {
+          const text = result.content
+          const embedding = await embSvc.embed(text, 'document')
+          if (embedding && embedding.length > 0) {
+            this.field.update(id, { embedding: new Float32Array(embedding) })
+          }
+        }
+      } catch (err) {
+        this.logger.debug('Re-embed failed (non-fatal)', { id, error: String(err) })
+      }
+    }
+    return result
   }
 
   delete(id: string): boolean {
