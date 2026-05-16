@@ -488,6 +488,7 @@ export class Aurora {
 
     // Self-model: Vindex→Mnemic bridge
     // Uses modelProvider (LarqlKnowledgeProvider), not knowledgeField (KnowledgeField)
+    this._selfModelKnowledgeEnabled = phase4Config.selfModelKnowledgeEnabled
     if (phase4Config.selfModelKnowledgeEnabled && this.modelProvider) {
       this.setupSelfModelBridge(phase4Config.selfModelKnowledgeEnabled)
     }
@@ -515,13 +516,17 @@ export class Aurora {
     if (this.modelProvider) return  // already wired
     this.modelProvider = provider
 
-    // Re-run self-model bridge setup now that provider is available
-    if (!this.selfModelKnowledge) {
-      this.setupSelfModelBridge(true)
+    // Re-run self-model bridge setup now that provider is available.
+    // Respect the original config — use the stored enabled flag rather than
+    // hardcoding true (deferred wiring shouldn't bypass config).
+    if (!this.selfModelKnowledge && this._selfModelKnowledgeEnabled) {
+      this.setupSelfModelBridge(this._selfModelKnowledgeEnabled)
     }
 
     this.logger.info('Model provider wired post-construction')
   }
+
+  private _selfModelKnowledgeEnabled = false
 
   /**
    * Set up the SelfModelKnowledge bridge from the current modelProvider.
