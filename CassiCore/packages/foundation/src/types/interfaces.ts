@@ -205,4 +205,11 @@ export interface IntelligenceModule {
 
   /** Stop background processing and release resources. */
   stop?(): void;
+
+  /** Wire Global Workspace for GWT-based attention broadcasting. */
+  setGlobalWorkspace?(workspace: unknown): void
+  /** Wire CorticalField for self-organizing working memory. */
+  setCortex?(cortex: unknown): void
+  /** Wire ModelDirective for runtime model routing overrides. */
+  setModelDirective?(directive: unknown): void
 }

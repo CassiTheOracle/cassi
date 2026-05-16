@@ -37,9 +37,9 @@ export interface AgentTraits {
  * Used for read-only and research tasks.
  */
 export interface GenomeLumenConfig {
-  /** Directive for Yang posture (assertive/exploratory) */
+  /** Directive for Yang posture */
   yangDirective: string
-  /** Directive for Yin posture (cautious/evaluative) */
+  /** Directive for Yin posture */
   yinDirective: string
   /** Directive for Executive posture (synthesis/decision) */
   executiveDirective: string

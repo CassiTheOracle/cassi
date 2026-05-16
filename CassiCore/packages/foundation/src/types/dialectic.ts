@@ -282,6 +282,8 @@ export interface DialecticResult {
   totalCostUsd: number;
   /** Provider request ID for end-to-end tracing in `cassicore llm stream` */
   requestId?: string;
+  /** Raw LLM response text. Useful for extracting structured blocks (e.g. <observation>). */
+  rawResponse?: string;
 }
 
 export interface IDialecticSystem {
@@ -430,7 +432,7 @@ export interface MemoryRetrievalConfig {
   useEmbeddingRerank: boolean;
   /**
    * LLM-powered query extraction — uses the local generative model
-   * (Qwen3.5-0.8B via llama.cpp) to generate focused search queries
+   * (via vLLM) to generate focused search queries
    * instead of using the raw user message.
    */
   llmQueryExtraction: {

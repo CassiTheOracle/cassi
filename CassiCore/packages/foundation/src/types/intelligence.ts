@@ -82,7 +82,7 @@ export interface SmartRecallOpts {
   conversationContext?: Array<{ role: string; content: string }>;
   /**
    * Use the local LLM to generate focused search queries.
-   * Requires the local generative model (llama.cpp) to be running.
+   * Requires a generative model endpoint to be available.
    * Default: false
    */
   useLLMQueryExtraction?: boolean;
