@@ -39,6 +39,9 @@ import { createSessionBridge } from './session-bridge.js'
 import { createSessionManager } from './session-manager.js'
 import { SessionStore } from './session-store.js'
 import { MnemicField, CodeStore } from './intelligence/mnemic-field/index.js'
+import type { SelfModelField } from './intelligence/mnemic-field/self-model/self-model-field.js'
+import type { InterFieldBridge } from './intelligence/mnemic-field/self-model/inter-field-bridge.js'
+import type { KnowledgeField } from './intelligence/mnemic-field/knowledge/knowledge-field.js'
 import { createSubagentTracker, type SubagentTracker } from './subagent-tracker.js'
 import { ToolExecutor } from './tools/executor.js'
 import { registerCoreTools } from './tools/implementations/index.js'
@@ -229,9 +232,15 @@ export class Daemon {
   /** IntelligentContextWindow instance — available after daemon start(). */
   public contextWindow?: IntelligentContextWindow
   /** Global Blackboard Registry — shared singleton for daemon-scoped modules. */
-  // REMOVED: globalBlackboardRegistry — GlobalBlackboardRegistry deprecated
+  /** REMOVED: globalBlackboardRegistry — GlobalBlackboardRegistry deprecated */
   // expose orchestration bus for external use
   public orchestration?: ReturnType<typeof createOrchestrationBus>
+  private __codeStore?: CodeStore
+  private __mnemicFieldForCode?: MnemicField
+  private __selfModelField?: SelfModelField
+  private __interFieldBridge?: InterFieldBridge
+  private __knowledgeField?: KnowledgeField
+  private toolRegistry?: ToolRegistry
   private bootSequence = 0
   private latestBootSnapshot: DaemonBootSnapshot | null = null
   private bootHistory: DaemonBootSnapshot[] = []
@@ -1364,8 +1373,8 @@ export class Daemon {
       })
       
       codeStore = new CodeStore(field, this.logger)
-      ;(this as any).__codeStore = codeStore
-      ;(this as any).__mnemicFieldForCode = field
+      this.__codeStore = codeStore
+      this.__mnemicFieldForCode = field
       this.logger.info('CodeStore initialized for codebase-in-database')
       if (this.intelligence?.cortex) {
         try {
@@ -1512,8 +1521,8 @@ export class Daemon {
         const interFieldBridge = new InterFieldBridge(field, selfModelField, this.logger)
         interFieldBridge.rebuildFromPersisted()
 
-        ;(this as any).__selfModelField = selfModelField
-        ;(this as any).__interFieldBridge = interFieldBridge
+        this.__selfModelField = selfModelField
+        this.__interFieldBridge = interFieldBridge
         ;(this.intelligence as any).__selfModelField = selfModelField
         ;(this.intelligence as any).__interFieldBridge = interFieldBridge
 
@@ -1569,7 +1578,7 @@ export class Daemon {
         const { KnowledgeField } = await import('./intelligence/mnemic-field/knowledge/knowledge-field.js')
         const knowledgeField = new KnowledgeField(this.logger)
 
-        ;(this as any).__knowledgeField = knowledgeField
+        this.__knowledgeField = knowledgeField
         ;(this.intelligence as any).__knowledgeField = knowledgeField
 
         this.logger.info('Knowledge Field initialized')
@@ -1638,7 +1647,7 @@ export class Daemon {
 
     // Build tool registry + executor
     const toolRegistry = new ToolRegistry()
-    ;(this as any).toolRegistry = toolRegistry
+    this.toolRegistry = toolRegistry
 
     // Initialize workflow system
     let workflowStore: WorkflowStore | undefined
@@ -3326,7 +3335,7 @@ export class Daemon {
 
     // Close mnemic field code store and file vault databases
     try {
-      const mnemicField = (this as any).__mnemicFieldForCode as { close(): void } | undefined
+      const mnemicField = this.__mnemicFieldForCode as { close(): void } | undefined
       mnemicField?.close()
     } catch { /* ignore */ }
     // Close prompt log store
