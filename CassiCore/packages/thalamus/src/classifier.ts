@@ -407,6 +407,29 @@ export function isShellTool(toolName: string): boolean {
   return /^(bash|terminal|execute_code|process|cassi_bash|shell)$/i.test(toolName)
 }
 
+/** Whether a tool name is a search/grep/find operation. */
+export function isSearchTool(toolName: string): boolean {
+  return /^(grep|search_files|web_search|web_extract|search|find|glob|duckduckgo_search|duckduckgo_fetch_content|google_search|cassi_search|serena_search_for_pattern|serena_find_symbol|serena_find_file|serena_find_referencing_symbols)$/i.test(toolName)
+}
+
+/** Extract the command string from a shell tool's input for classification. */
+export function extractCommand(input: Record<string, unknown>): string {
+  const cmd = input.command ?? input.cmd ?? input.args ?? input.script ?? ''
+  if (typeof cmd === 'string') return cmd
+  if (Array.isArray(cmd)) return (cmd as unknown[]).map(String).join(' ')
+  return String(cmd)
+}
+
+/** Whether a shell command invokes a test runner (cargo test, pytest, jest, etc.). */
+export function isTestCommand(command: string): boolean {
+  return /\b(test|pytest|jest|vitest|mocha|ava|tap|go\s+test|cargo\s+test|npm\s+test|yarn\s+test|pnpm\s+test|make\s+test|npx\s+(jest|vitest|mocha|ava|playwright\s+test|cypress|tap|uvu))\b/i.test(command)
+}
+
+/** Whether a shell command invokes a build/compile tool. */
+export function isBuildCommand(command: string): boolean {
+  return /\b(build|compile|gcc|g\+\+|clang|rustc|cargo\s+build|npm\s+run\s+build|make\b|cmake|tsc|npx\s+tsc|webpack|vite\s+build|esbuild|ncc|rollup|swc|bun\s+build)\b/i.test(command)
+}
+
 /**
  * Extract the primary file path from a tool input object.
  * Tries common parameter names across tool schemas.

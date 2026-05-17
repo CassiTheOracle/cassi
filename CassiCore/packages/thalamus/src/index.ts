@@ -5,7 +5,7 @@ import { ToolResultCompressor } from './compressor.js'
 import { ToolResultDistiller } from './distiller.js'
 import { TemporalRegistry } from './temporal.js'
 import { createSlots } from './slots/index.js'
-import { classifyMessage, isWriteTool, isReadTool, isShellTool, extractFilePath, extractSearchTarget, shortenPath, classifyTool, extractToolUses, extractToolResults, detectLanguage } from './classifier.js'
+import { classifyMessage, isWriteTool, isReadTool, isShellTool, isSearchTool, extractFilePath, extractSearchTarget, extractCommand, isTestCommand, isBuildCommand, shortenPath, classifyTool, extractToolUses, extractToolResults, detectLanguage } from './classifier.js'
 import type { ThalamusStore } from './thalamus-store.js'
 import type { ILogger } from '../../../types/interfaces.js'
 import type { CorticalField } from '../cortex/index.js'
@@ -673,12 +673,15 @@ this.aurora?.setReverieInferenceProvider(provider)
         const filePath = extractFilePath(pending.input) || null
         const searchTarget = extractSearchTarget(pending.input) || null
 
+        // Determine the appropriate engram type for this tool invocation
+        const nodeType = this.classifyToolResultType(toolName, toolClass, tr.isError, pending.input)
+
         // Build the tool_invocation engram
         const input: EngramCreate & { sessionId: string } = {
           sessionId,
           content: tr.isError ? `[ERROR] ${tr.content}` : tr.content,
-          nodeType: 'tool_invocation' as import('../mnemic-field/types.js').EngramType,
-          tags: ['tool_invocation', `tool:${toolName}`, `class:${toolClass}`, `session:${sessionId}`],
+          nodeType: nodeType as import('../mnemic-field/types.js').EngramType,
+          tags: [nodeType, `tool:${toolName}`, `class:${toolClass}`, `session:${sessionId}`],
           provenance: 'thalamus',
           metadata: {
             toolName,
@@ -745,6 +748,36 @@ this.aurora?.setReverieInferenceProvider(provider)
       this._engramIdByIndex.set(sessionId, sessionMap2)
     }
     sessionMap2.set(index, engram.id)
+  }
+
+  /**
+   * Classify a tool_result into a specific engram type based on tool metadata
+   * and result status. Priority: isError → search → shell(test/build) → write → default.
+   */
+  private classifyToolResultType(
+    toolName: string,
+    toolClass: string,
+    isError: boolean,
+    input: Record<string, unknown>,
+  ): string {
+    // 1. Errors always get error_report
+    if (isError) return 'error_report'
+
+    // 2. Search tools get search_finding
+    if (toolClass === 'web' || isSearchTool(toolName)) return 'search_finding'
+
+    // 3. Shell tools: distinguish test vs build from the command string
+    if (toolClass === 'shell' || isShellTool(toolName)) {
+      const command = extractCommand(input)
+      if (isTestCommand(command)) return 'test_result'
+      if (isBuildCommand(command)) return 'build_output'
+    }
+
+    // 4. Write/edit tools get code_change
+    if (isWriteTool(toolName)) return 'code_change'
+
+    // 5. Default: generic tool_invocation
+    return 'tool_invocation'
   }
 
   /**
@@ -4772,7 +4805,9 @@ this.aurora?.setReverieInferenceProvider(provider)
         limit: limit * 3,
         sessionId,
       })
-    } catch { /* best-effort */ }
+    } catch (err) {
+      this.logger.debug('injectForMemory: kindling failed, trying FTS5', { error: String(err) })
+    }
 
     // Fallback: FTS5 text search
     if (rawHits.length === 0) {
@@ -4789,7 +4824,9 @@ this.aurora?.setReverieInferenceProvider(provider)
           tags: r.engram.tags ?? [],
           metadata: r.engram.metadata ?? {},
         }))
-      } catch { /* best-effort */ }
+      } catch (err) {
+        this.logger.debug('injectForMemory: FTS5 fallback failed', { error: String(err) })
+      }
     }
 
     if (rawHits.length === 0) return { context: '', hits: 0 }
@@ -4803,12 +4840,12 @@ this.aurora?.setReverieInferenceProvider(provider)
       return true
     })
 
-    // Dedup by content fingerprint (first 100 chars)
+    // Dedup by content fingerprint (first 100 chars, cleaned)
     const seenFps = new Set<string>()
     const unique: MnemicRetrievalHit[] = []
     for (const h of filtered) {
-      const fp = h.content.slice(0, 100)
-      if (seenFps.has(fp)) continue
+      const fp = cleanEngramContent(h.content).slice(0, 100)
+      if (!fp || seenFps.has(fp)) continue
       seenFps.add(fp)
       unique.push(h)
     }
