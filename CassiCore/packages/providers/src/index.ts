@@ -4,6 +4,7 @@ import {
   AlibabaCodingProvider,
   DeepSeekProvider,
   KimiCodingProvider,
+  OpenCodeGoProvider,
   OpenRouterProvider,
   QwenProvider,
   ZaiProvider,
@@ -122,6 +123,20 @@ export function createProviders(
       logger.info('Provider loaded: alibaba-coding')
     } catch (err) {
       logger.warn(`failed to load alibaba-coding provider: ${String(err)}`)
+    }
+  }
+
+  const opencodeKey =
+    config.get<string>('providers.opencodeGo.apiKey', '') ||
+    process.env.OPENCODE_API_KEY ||
+    ''
+  if (opencodeKey) {
+    try {
+      const opencodeProv = new OpenCodeGoProvider(opencodeKey)
+      rawProviders.set('opencode-go', opencodeProv)
+      logger.info(`Provider loaded: opencode-go (${opencodeProv.models.length} models)`)
+    } catch (err) {
+      logger.warn(`failed to load opencode-go provider: ${String(err)}`)
     }
   }
 
