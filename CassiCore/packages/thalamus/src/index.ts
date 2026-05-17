@@ -604,7 +604,11 @@ this.aurora?.setReverieInferenceProvider(provider)
     if (!this.mnemicField) return
 
     const session = this.getSession(sessionId)
-    const now = new Date().toISOString()
+    // Use the original message timestamp when available, falling back to now
+    // during back-imports where msg.timestamp may be absent.
+    const msgCreatedAt = msg?.timestamp
+      ? new Date(msg.timestamp).toISOString()
+      : new Date().toISOString()
 
     // Buffer tool_use blocks and store them as `tool` engrams.
     // Text content in the same message is stored as `message` engrams.
@@ -619,7 +623,7 @@ this.aurora?.setReverieInferenceProvider(provider)
               toolClass: classifyTool(block.name),
               input: block.input ?? {},
               messageIndex: index,
-              timestamp: now,
+              timestamp: msgCreatedAt,
             })
             session.toolUseMap.set(block.id, block.name)
 
@@ -630,12 +634,13 @@ this.aurora?.setReverieInferenceProvider(provider)
               nodeType: 'tool' as import('../mnemic-field/types.js').EngramType,
               tags: ['tool', `session:${sessionId}`, `tool_name:${block.name}`],
               provenance: 'thalamus',
+              createdAt: msgCreatedAt,
               metadata: {
                 toolName: block.name,
                 toolClass: classifyTool(block.name),
                 input: block.input ?? {},
                 messageIndex: index,
-                createdAt: now,
+                createdAt: msgCreatedAt,
               },
             }
             this.mnemicField.storeForSession(toolInput)
@@ -652,7 +657,7 @@ this.aurora?.setReverieInferenceProvider(provider)
                 messageIndex: index,
                 role: 'assistant',
                 slotType: 'assistant',
-                createdAt: now,
+                createdAt: msgCreatedAt,
               },
             }
             this.mnemicField.storeForSession(textInput)
@@ -694,7 +699,7 @@ this.aurora?.setReverieInferenceProvider(provider)
             messageIndex: pending.messageIndex,
             filePath,
             searchTarget,
-            createdAt: now,
+            createdAt: msgCreatedAt,
           } satisfies Record<string, unknown>,
         }
         this.mnemicField.storeForSession(input)
@@ -711,7 +716,7 @@ this.aurora?.setReverieInferenceProvider(provider)
         if (filePath && !tr.isError && (toolClass === 'fs' || isReadTool(toolName) || isWriteTool(toolName))) {
           const resultContent = tr.isError ? '' : tr.content
           const tiId = input.id ?? ''
-          this.writeFileEngramsForTool(sessionId, toolName, toolClass, filePath, resultContent, now, tiId)
+          this.writeFileEngramsForTool(sessionId, toolName, toolClass, filePath, resultContent, msgCreatedAt, tiId)
         }
 
         session.pendingToolCalls.delete(tr.toolUseId)
@@ -736,7 +741,7 @@ this.aurora?.setReverieInferenceProvider(provider)
         intentSpanId: options?.intentSpanId,
         expertId: options?.expertId,
         thoughtCommands: options?.thoughtCommands,
-        createdAt: now,
+        createdAt: msgCreatedAt,
       },
     }
     const engram = this.mnemicField.storeForSession(input)
