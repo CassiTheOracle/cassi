@@ -884,7 +884,11 @@ export class Cortex {
    */
   getEngramsWithoutEmbedding(limit: number): Array<{ id: string; content: string }> {
     return this.db.prepare(
-      `SELECT id, content FROM engrams WHERE embedding IS NULL LIMIT ?`
+      `SELECT id, content FROM engrams
+       WHERE embedding IS NULL
+       AND LENGTH(content) > 10
+       ORDER BY LENGTH(content) DESC
+       LIMIT ?`
     ).all(limit) as Array<{ id: string; content: string }>
   }
 
@@ -912,7 +916,9 @@ export class Cortex {
    * Count engrams missing embeddings without loading them into memory.
    */
   countMissingEmbeddings(): number {
-    return (this.db.prepare(`SELECT COUNT(*) as c FROM engrams WHERE embedding IS NULL`).get() as { c: number }).c
+    return (this.db.prepare(
+      `SELECT COUNT(*) as c FROM engrams WHERE embedding IS NULL AND LENGTH(content) > 10`
+    ).get() as { c: number }).c
   }
 
   /**
