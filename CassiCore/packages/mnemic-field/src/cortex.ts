@@ -888,7 +888,7 @@ export class Cortex {
        WHERE embedding IS NULL
        AND LENGTH(content) > 10
        AND LENGTH(content) < 100000
-       ORDER BY LENGTH(content) DESC
+       ORDER BY LENGTH(content) ASC
        LIMIT ?`
     ).all(limit) as Array<{ id: string; content: string }>
   }
