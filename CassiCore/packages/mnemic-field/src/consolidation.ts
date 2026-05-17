@@ -89,6 +89,13 @@ export class ConsolidationEngine {
     reversal: 0.85,      // high — corrections are crucial for accuracy
     concern: 0.5,        // moderate — risks fade if not revisited
     anomaly: 0.35,       // low — one-off surprises don't need long life
+    // tool-result types (matched via nodeType when semanticType absent)
+    error_report: 0.35,    // one-off, fast decay (same tier as anomaly)
+    search_finding: 0.75,  // reusable knowledge, moderate-high retention
+    code_change: 0.65,     // structural, moderate retention
+    test_result: 0.6,      // diagnostic, useful for patterns
+    build_output: 0.45,    // voluminous, lower retention
+    // tool_invocation gets default 0.7 (not listed)
   }
 
   constructor(
@@ -336,9 +343,11 @@ export class ConsolidationEngine {
       }
       // Type-specific decay: durable facts (decision, insight) retain
       // more potentiation; ephemeral signals (anomaly, concern) decay faster.
+      // Falls back to nodeType when semanticType isn't set (tool engrams).
       const semanticType = engrams[i].metadata?.semanticType as string | undefined
-      if (semanticType) {
-        const multiplier = ConsolidationEngine.TYPE_POTENTIATION[semanticType] ?? 0.7
+      const typeKey = semanticType ?? engrams[i].nodeType
+      if (typeKey) {
+        const multiplier = ConsolidationEngine.TYPE_POTENTIATION[typeKey] ?? 0.7
         norm *= multiplier
       }
       return norm

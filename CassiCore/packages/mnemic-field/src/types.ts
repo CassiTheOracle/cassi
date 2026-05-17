@@ -22,6 +22,11 @@ export const ENGRAM_TYPES = [
   'tool_invocation',
   'message',
   'pineal_facet',
+  'error_report',
+  'search_finding',
+  'code_change',
+  'test_result',
+  'build_output',
 ] as const
 
 export type EngramType = typeof ENGRAM_TYPES[number]
