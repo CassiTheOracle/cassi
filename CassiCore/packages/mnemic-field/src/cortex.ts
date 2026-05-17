@@ -541,21 +541,26 @@ export class Cortex {
   getAllSpikesForEngrams(ids: string[], limit: number): Map<string, Array<{ timestamp: number; magnitude: number; taskContext: string | null }>> {
     const result = new Map<string, Array<{ timestamp: number; magnitude: number; taskContext: string | null }>>()
     if (ids.length === 0) return result
-    const placeholders = ids.map(() => '?').join(',')
-    const rows = this.db.prepare(
-      `SELECT engram_id, timestamp, magnitude, task_context FROM (
-         SELECT engram_id, timestamp, magnitude, task_context,
-                ROW_NUMBER() OVER (PARTITION BY engram_id ORDER BY timestamp DESC) AS rn
-         FROM activation_spikes WHERE engram_id IN (${placeholders})
-       ) WHERE rn <= ?`
-    ).all(...ids, limit) as Array<{ engram_id: string; timestamp: number; magnitude: number; task_context: string | null }>
-    for (const row of rows) {
-      const list = result.get(row.engram_id)
-      const entry = { timestamp: row.timestamp, magnitude: row.magnitude, taskContext: row.task_context ?? null }
-      if (list) {
-        list.push(entry)
-      } else {
-        result.set(row.engram_id, [entry])
+    // Batch to avoid exceeding SQLite's variable limit (~32K)
+    const BATCH = 500
+    for (let i = 0; i < ids.length; i += BATCH) {
+      const batch = ids.slice(i, i + BATCH)
+      const placeholders = batch.map(() => '?').join(',')
+      const rows = this.db.prepare(
+        `SELECT engram_id, timestamp, magnitude, task_context FROM (
+           SELECT engram_id, timestamp, magnitude, task_context,
+                  ROW_NUMBER() OVER (PARTITION BY engram_id ORDER BY timestamp DESC) AS rn
+           FROM activation_spikes WHERE engram_id IN (${placeholders})
+         ) WHERE rn <= ?`
+      ).all(...batch, limit) as Array<{ engram_id: string; timestamp: number; magnitude: number; task_context: string | null }>
+      for (const row of rows) {
+        const list = result.get(row.engram_id)
+        const entry = { timestamp: row.timestamp, magnitude: row.magnitude, taskContext: row.task_context ?? null }
+        if (list) {
+          list.push(entry)
+        } else {
+          result.set(row.engram_id, [entry])
+        }
       }
     }
     return result
@@ -568,12 +573,16 @@ export class Cortex {
   getAllSpikeCountsForEngrams(ids: string[]): Map<string, number> {
     const result = new Map<string, number>()
     if (ids.length === 0) return result
-    const placeholders = ids.map(() => '?').join(',')
-    const rows = this.db.prepare(
-      `SELECT engram_id, COUNT(*) as count FROM activation_spikes WHERE engram_id IN (${placeholders}) GROUP BY engram_id`
-    ).all(...ids) as Array<{ engram_id: string; count: number }>
-    for (const row of rows) {
-      result.set(row.engram_id, row.count)
+    const BATCH = 500
+    for (let i = 0; i < ids.length; i += BATCH) {
+      const batch = ids.slice(i, i + BATCH)
+      const placeholders = batch.map(() => '?').join(',')
+      const rows = this.db.prepare(
+        `SELECT engram_id, COUNT(*) as count FROM activation_spikes WHERE engram_id IN (${placeholders}) GROUP BY engram_id`
+      ).all(...batch) as Array<{ engram_id: string; count: number }>
+      for (const row of rows) {
+        result.set(row.engram_id, row.count)
+      }
     }
     return result
   }
@@ -586,26 +595,30 @@ export class Cortex {
   getAllSpikeOutcomesForEngrams(ids: string[]): Map<string, { success: number; failure: number; unknown: number }> {
     const result = new Map<string, { success: number; failure: number; unknown: number }>()
     if (ids.length === 0) return result
-    const placeholders = ids.map(() => '?').join(',')
-    const rows = this.db.prepare(
-      `SELECT engram_id, outcome, COUNT(*) as count
-       FROM activation_spikes
-       WHERE engram_id IN (${placeholders}) AND outcome IS NOT NULL
-       GROUP BY engram_id, outcome`
-    ).all(...ids) as Array<{ engram_id: string; outcome: string; count: number }>
-    for (const row of rows) {
-      let entry = result.get(row.engram_id)
-      if (!entry) {
-        entry = { success: 0, failure: 0, unknown: 0 }
-        result.set(row.engram_id, entry)
+    const BATCH = 500
+    for (let i = 0; i < ids.length; i += BATCH) {
+      const batch = ids.slice(i, i + BATCH)
+      const placeholders = batch.map(() => '?').join(',')
+      const rows = this.db.prepare(
+        `SELECT engram_id, outcome, COUNT(*) as count
+         FROM activation_spikes
+         WHERE engram_id IN (${placeholders}) AND outcome IS NOT NULL
+         GROUP BY engram_id, outcome`
+      ).all(...batch) as Array<{ engram_id: string; outcome: string; count: number }>
+      for (const row of rows) {
+        let entry = result.get(row.engram_id)
+        if (!entry) {
+          entry = { success: 0, failure: 0, unknown: 0 }
+          result.set(row.engram_id, entry)
+        }
+        const oc = (row.outcome ?? 'unknown') as 'success' | 'failure' | 'unknown'
+        if (oc === 'success' || oc === 'failure' || oc === 'unknown') {
+          entry[oc] = row.count
+        }
       }
-      if (row.outcome === 'success') entry.success = row.count
-      else if (row.outcome === 'failure') entry.failure = row.count
-      else entry.unknown = row.count
     }
     return result
   }
-
   pruneSpikes(engramId: string, keepCount = 100): number {
     const result = this.stmts.pruneSpikes.run(engramId, engramId, keepCount)
     return result.changes
