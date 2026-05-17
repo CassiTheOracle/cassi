@@ -38,7 +38,8 @@ export type KnownProvider =
 	| "huggingface"
 	| "opencode"
 	| "kimi-coding"
-	| "alibaba-coding";
+	| "alibaba-coding"
+	| "opencode-go";
 export type Provider = KnownProvider | string;
 
 export type ThinkingLevel = "minimal" | "low" | "medium" | "high" | "xhigh";

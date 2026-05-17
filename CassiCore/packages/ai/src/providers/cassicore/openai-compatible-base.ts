@@ -74,6 +74,25 @@ export abstract class OpenAICompatibleBase {
   }
 
   /**
+   * Fetch available models from the provider's /v1/models endpoint.
+   * Override getBaseUrl() and getHeaders() to provide the endpoint.
+   * Returns model ID strings. Providers should call this during initialization
+   * if they want to dynamically discover models rather than hardcode them.
+   */
+  protected async fetchModels(): Promise<string[]> {
+    try {
+      const url = `${this.getBaseUrl()}/models`;
+      const headers = this.getHeaders();
+      const res = await fetch(url, { headers, signal: AbortSignal.timeout(15000) });
+      if (!res.ok) return [];
+      const data = await res.json() as { data?: Array<{ id: string }> };
+      return (data.data || []).map((m) => m.id);
+    } catch {
+      return [];
+    }
+  }
+
+  /**
    * Whether to inject reasoning_content on assistant messages
    * Override to return true for providers like Kimi that require this
    */
