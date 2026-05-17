@@ -422,13 +422,76 @@ export function extractCommand(input: Record<string, unknown>): string {
 
 /** Whether a shell command invokes a test runner (cargo test, pytest, jest, etc.). */
 export function isTestCommand(command: string): boolean {
-  return /\b(test|pytest|jest|vitest|mocha|ava|tap|go\s+test|cargo\s+test|npm\s+test|yarn\s+test|pnpm\s+test|make\s+test|npx\s+(jest|vitest|mocha|ava|playwright\s+test|cypress|tap|uvu))\b/i.test(command)
+  return TEST_COMMAND_RE.test(command) || TEST_COMMAND_PATTERNS.some(r => r.test(command))
 }
+
+const TEST_COMMAND_RE = /\b(?:test|pytest|tox|nox|unittest|jest|vitest|mocha|ava|uvu|jasmine|karma|busted|rspec|minitest|ctest|phpunit)\b/i
+
+const TEST_COMMAND_PATTERNS: RegExp[] = [
+  // Python
+  /\bnose2?\b/i, /\bcoverage\s+run\b/i, /\bpython\s+(?:-m\s+)?(?:pytest|unittest|nose)\b/i,
+  /\bpoetry\s+run\s+pytest\b/i, /\bpipenv\s+run\s+pytest\b/i, /\bhatch\s+test\b/i,
+  // JS/TS
+  /\bweb-test-runner\b/i, /\bnpx\s+(?:jest|vitest|mocha|ava|playwright|cypress|tap|uvu|jasmine|karma|web-test-runner)\b/i,
+  /\bnpm\s+test\b/i, /\byarn\s+test\b/i, /\bpnpm\s+test\b/i, /\bbun\s+test\b/i, /\bdeno\s+test\b/i,
+  // Go / Rust / Elixir / Haskell / .NET / Scala / Java / Dart / Swift / Zig / PHP / Ruby / C
+  /\bgo\s+test\b/i, /\bcargo\s+(?:test|nextest)\b/i, /\bmix\s+test\b/i,
+  /\bstack\s+test\b/i, /\bcabal\s+test\b/i, /\bdotnet\s+test\b/i, /\bsbt\s+test\b/i,
+  /\bmvn\s+test\b/i, /\bgradle\w*\s+test\b/i, /\bant\s+test\b/i,
+  /\bflutter\s+test\b/i, /\bdart\s+test\b/i,
+  /\bswift\s+test\b/i, /\bxcodebuild\s+test\b/i, /\bzig\s+build\s+test\b/i,
+  /\bcomposer\s+test\b/i, /\bvendor\/bin\/phpunit\b/i,
+  /\brake\s+test\b/i, /\brails\s+test\b/i,
+  /\bmeson\s+test\b/i, /\bbazel\s+test\b/i,
+  // Make / shell scripts
+  /\bmake\s+test\b/i, /\bmake\s+check\b/i,
+  /\.\/test\.sh\b/i, /\.\/run_tests?\.sh\b/i,
+  // The bare word (cheap enough to always run, catches most)
+  /\btest\b/i,
+]
 
 /** Whether a shell command invokes a build/compile tool. */
 export function isBuildCommand(command: string): boolean {
-  return /\b(build|compile|gcc|g\+\+|clang|rustc|cargo\s+build|npm\s+run\s+build|make\b|cmake|tsc|npx\s+tsc|webpack|vite\s+build|esbuild|ncc|rollup|swc|bun\s+build)\b/i.test(command)
+  return BUILD_COMMAND_RE.test(command) || BUILD_COMMAND_PATTERNS.some(r => r.test(command))
 }
+
+const BUILD_COMMAND_RE = /\b(?:build|compile|gcc|g\+\+|clang|clang\+\+|rustc|make|cmake|tsc|webpack|esbuild|ncc|rollup|swc|ninja|javac|protoc)\b/i
+
+const BUILD_COMMAND_PATTERNS: RegExp[] = [
+  // C/C++
+  /\bxcodebuild\b/i, /\bmsbuild\b/i, /\bmeson\b/i, /\bbazel\s+build\b/i, /\b\.\/configure\b/i,
+  // Go
+  /\bgo\s+build\b/i, /\bgo\s+install\b/i,
+  // Rust
+  /\bcargo\s+build\b/i, /\bwasm-pack\s+build\b/i,
+  // JS/TS
+  /\bnpm\s+run\s+build\b/i, /\byarn\s+build\b/i, /\bpnpm\s+build\b/i, /\bbun\s+build\b/i,
+  /\bnpx\s+(?:tsc|webpack|esbuild|rollup|swc|ncc|parcel|rspack)\b/i,
+  /\bvite\s+build\b/i, /\bdeno\s+compile\b/i, /\bturbo\s+run\s+build\b/i,
+  /\bnx\s+build\b/i, /\blerna\s+run\s+build\b/i, /\bparcel\s+build\b/i, /\brspack\b/i,
+  // Java / Scala
+  /\bmvn\s+(?:compile|package|install|build)\b/i, /\bgradle\w*\s+build\b/i, /\bant\s+(?:compile|build)\b/i,
+  /\bsbt\s+(?:compile|assembly|package)\b/i,
+  // Python
+  /\bpoetry\s+build\b/i, /\bpip\s+install\b/i, /\bpip3\s+install\b/i,
+  /\bmaturin\s+build\b/i, /\bhatch\s+build\b/i, /\bpdm\s+build\b/i,
+  /\bpython\s+(?:setup\.py|-\s*m\s+build)\b/i,
+  // Ruby
+  /\bgem\s+build\b/i, /\brake\s+build\b/i, /\bbundle\s+exec\s+rake\b/i,
+  // Elixir / Haskell / Zig / .NET / Swift / Dart
+  /\bmix\s+compile\b/i, /\bstack\s+build\b/i, /\bcabal\s+build\b/i, /\bzig\s+build\b/i,
+  /\bdotnet\s+(?:build|publish)\b/i, /\bswift\s+build\b/i, /\bdart\s+compile\b/i,
+  // Docker / containers
+  /\bdocker\s+build\b/i, /\bpodman\s+build\b/i, /\bdocker-compose\s+build\b/i,
+  // Protobuf / gRPC
+  /\bbuf\s+generate\b/i,
+  // Generic
+  /\bnpm\s+install\b/i, /\byarn\s+install\b/i, /\bpnpm\s+install\b/i, /\bbun\s+install\b/i,
+  /\bcargo\s+install\b/i, /\bgo\s+get\b/i,
+  /\bmeson\s+setup\b/i, /\bcmake\b/i,
+  // The bare word
+  /\bbuild\b/i, /\bcompile\b/i, /\bmake\b/i,
+]
 
 /**
  * Extract the primary file path from a tool input object.
