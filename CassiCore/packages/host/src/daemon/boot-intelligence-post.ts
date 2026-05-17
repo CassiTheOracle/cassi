@@ -866,5 +866,22 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
   // REMOVED: TriadTeam wiring — deprecated system deleted.
   // REMOVED: drone tools registration — DroneSwarm removed.
 
+  // Deferred Thalamus wiring — the MnemicField may not have been
+  // initialized when the main wiring block ran (race between Phase 5
+  // Pipeline creation and this post-boot hook). Re-check and wire if missed.
+  try {
+    const thalamus = intelligence.registry.get('thalamus') as any
+    const mnemicField = (intelligence as any).__mnemicField
+    if (thalamus && mnemicField && typeof thalamus.setMnemicField === 'function') {
+      // Only wire if not already wired (avoid double-wire)
+      // The setMnemicField is idempotent — safe to call multiple times
+      thalamus.setMnemicField(mnemicField)
+      logger.info('Thalamus MnemicField deferred-wired (post-boot catch-up)')
+    }
+  } catch (err) {
+    // Non-fatal — Thalamus will skip engram storage until next restart
+    logger.warn('Deferred Thalamus MnemicField wiring failed', { error: String(err) })
+  }
+
   return autonomousLoop
 }
