@@ -1207,20 +1207,20 @@ export class Daemon {
         const defaultRouting = directive
           ? directive.resolve()
           : {
-              provider: this.config.get<string>('intelligence.helix.provider', 'alibaba-coding'),
-              model: this.config.get<string>('intelligence.helix.model', 'kimi-k2.5'),
+              provider: this.config.get<string>('intelligence.helix.provider', 'opencode-go'),
+              model: this.config.get<string>('intelligence.helix.model', 'deepseek-v4-pro'),
             }
         const helixBlockedProviders = this.config.get<string[]>('intelligence.helix.blockedProviders', ['github-copilot-lb'])
         const helixAllowedModels = this.config.get<Record<string, string[]>>('intelligence.helix.allowedModels', {
           'github-copilot': ['gpt-4o', 'gpt-4.1', 'gpt-5-mini'],
         })
 
-        const kimiConfig = directive ? directive.resolveTier('kimi')    : { provider: 'alibaba-coding', model: 'kimi-k2.5' }
-        const glmConfig  = directive ? directive.resolveTier('glm')     : { provider: 'alibaba-coding', model: 'glm-5' }
-        const qwenMaxCfg = directive ? directive.resolveTier('qwenMax') : { provider: 'alibaba-coding', model: 'qwen3-max-2026-01-23' }
-        const qwenPlusCfg= directive ? directive.resolveTier('qwenPlus'): { provider: 'alibaba-coding', model: 'qwen3.6-plus' }
-        const bgConfig   = directive ? directive.resolveTier('background'): { provider: 'github-copilot', model: 'gpt-5-mini' }
-        const claudeHaikuCfg  = directive ? directive.resolveTier('background') : { provider: 'claude-code', model: 'claude-haiku-4-5' }
+        const kimiConfig = directive ? directive.resolveTier('kimi')    : { provider: 'opencode-go', model: 'kimi-k2.5' }
+        const glmConfig  = directive ? directive.resolveTier('glm')     : { provider: 'opencode-go', model: 'glm-5.1' }
+        const qwenMaxCfg = directive ? directive.resolveTier('qwenMax') : { provider: 'opencode-go', model: 'deepseek-v4-pro' }
+        const qwenPlusCfg= directive ? directive.resolveTier('qwenPlus'): { provider: 'opencode-go', model: 'deepseek-v4-flash' }
+        const bgConfig   = directive ? directive.resolveTier('background'): { provider: 'opencode-go', model: 'deepseek-v4-flash' }
+        const claudeHaikuCfg  = directive ? directive.resolveTier('background') : { provider: 'opencode-go', model: 'deepseek-v4-flash' }
 
 
         const makeHelixChain = (slot: string, tierCfg: { provider: string; model: string }) => ({
@@ -1243,7 +1243,7 @@ export class Daemon {
         const miniHelixCorpusChain = {
           slotName: 'mini-helix:corpus',
           chain: [
-            { role: 'mini-helix:corpus', provider: qwenPlusCfg.provider, model: qwenPlusCfg.model, priority: 10 },
+            { role: 'mini-helix:corpus', provider: 'opencode-go', model: 'deepseek-v4-pro', priority: 10 },
             { role: 'mini-helix:corpus', provider: bgConfig.provider, model: bgConfig.model, priority: 5 },
           ],
           triggers: ['rate_limit' as const, 'timeout' as const, 'model_unavailable' as const, 'error' as const],
@@ -1262,11 +1262,11 @@ export class Daemon {
           logger: this.logger.child('helix-pool'),
           eventBus: this.bus,
           fallbackChains: [
-            makeHelixChain('yang', qwenPlusCfg),
-            makeHelixChain('yin', qwenPlusCfg),
-            makeHelixChain('apex', qwenPlusCfg),
-            makeHelixChain('unity', qwenPlusCfg),
-            makeHelixChain('helix', qwenPlusCfg),
+            makeHelixChain('yang', { provider: 'opencode-go', model: 'deepseek-v4-pro' }),
+            makeHelixChain('yin', { provider: 'opencode-go', model: 'deepseek-v4-pro' }),
+            makeHelixChain('apex', { provider: 'opencode-go', model: 'deepseek-v4-pro' }),
+            makeHelixChain('unity', { provider: 'opencode-go', model: 'deepseek-v4-pro' }),
+            makeHelixChain('helix', { provider: 'opencode-go', model: 'deepseek-v4-pro' }),
             {
               slotName: 'dmn-observer',
               chain: [
