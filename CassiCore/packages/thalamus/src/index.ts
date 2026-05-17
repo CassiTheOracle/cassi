@@ -2109,7 +2109,8 @@ this.aurora?.setReverieInferenceProvider(provider)
     //   2. Temporal registry timestamp recording
     //   3. Slot-based augmentation (scoring, _thalamus annotations)
     //   4. writeMessageEngram() → MnemicField storage (Gate 1 filters tool msgs)
-    const annotated = this.processAll(sessionId, messages)
+    const provenance = metadata?.source ? `${metadata.source}-import` : 'thalamus'
+    const annotated = this.processAll(sessionId, messages, provenance)
 
     // Track how many were tool messages (skipped by Gate 1 in writeMessageEngram)
     let skippedToolMessages = 0
