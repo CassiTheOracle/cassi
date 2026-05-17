@@ -13,7 +13,7 @@ import type { ILogger } from '../../../types/interfaces.js'
 
 const EMBEDDING_SERVER_URL = process.env.EMBEDDING_SERVER_URL || 'http://127.0.0.1:8000'
 const EMBEDDING_MODEL_TAG = process.env.EMBEDDING_MODEL_TAG || 'Qwen/Qwen3-Embedding-0.6B'
-const EMB_TIMEOUT_MS = Number(process.env.EMBEDDING_TIMEOUT_MS || '5000')
+const EMB_TIMEOUT_MS = Number(process.env.EMBEDDING_TIMEOUT_MS || '120000')
 const EMB_BATCH_SIZE = Number(process.env.EMBEDDING_BATCH_SIZE || '512')
 
 // Truncate embeddings to this dimension (Qwen3-Embedding-0.6B supports 32–1024 via MRL)
