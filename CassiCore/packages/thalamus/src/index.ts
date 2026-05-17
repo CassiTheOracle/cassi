@@ -599,7 +599,7 @@ this.aurora?.setReverieInferenceProvider(provider)
     msg: any,
     index: number,
     slotType: string,
-    options?: { expertId?: string; intentSpanId?: string; thoughtCommands?: any[] },
+    options?: { expertId?: string; intentSpanId?: string; thoughtCommands?: any[]; provenance?: string },
   ): void {
     if (!this.mnemicField) return
 
@@ -609,6 +609,9 @@ this.aurora?.setReverieInferenceProvider(provider)
     const msgCreatedAt = msg?.timestamp
       ? new Date(msg.timestamp).toISOString()
       : new Date().toISOString()
+
+    // Use the caller-supplied provenance, falling back to 'thalamus'.
+    const provenance = options?.provenance ?? 'thalamus'
 
     // Buffer tool_use blocks and store them as `tool` engrams.
     // Text content in the same message is stored as `message` engrams.
@@ -633,7 +636,7 @@ this.aurora?.setReverieInferenceProvider(provider)
               content: JSON.stringify(block.input ?? {}),
               nodeType: 'tool' as import('../mnemic-field/types.js').EngramType,
               tags: ['tool', `session:${sessionId}`, `tool_name:${block.name}`],
-              provenance: 'thalamus',
+              provenance,
               createdAt: msgCreatedAt,
               metadata: {
                 toolName: block.name,
@@ -651,7 +654,7 @@ this.aurora?.setReverieInferenceProvider(provider)
               content: cleanEngramContent(block.text),
               nodeType: 'message' as import('../mnemic-field/types.js').EngramType,
               tags: ['assistant', `session:${sessionId}`],
-              provenance: 'thalamus',
+              provenance,
               metadata: {
                 sessionId,
                 messageIndex: index,
@@ -687,7 +690,7 @@ this.aurora?.setReverieInferenceProvider(provider)
           content: tr.isError ? `[ERROR] ${tr.content}` : tr.content,
           nodeType: nodeType as import('../mnemic-field/types.js').EngramType,
           tags: [nodeType, `tool:${toolName}`, `class:${toolClass}`, `session:${sessionId}`],
-          provenance: 'thalamus',
+          provenance,
           metadata: {
             toolName,
             toolClass,
@@ -716,7 +719,7 @@ this.aurora?.setReverieInferenceProvider(provider)
         if (filePath && !tr.isError && (toolClass === 'fs' || isReadTool(toolName) || isWriteTool(toolName))) {
           const resultContent = tr.isError ? '' : tr.content
           const tiId = input.id ?? ''
-          this.writeFileEngramsForTool(sessionId, toolName, toolClass, filePath, resultContent, msgCreatedAt, tiId)
+          this.writeFileEngramsForTool(sessionId, toolName, toolClass, filePath, resultContent, msgCreatedAt, provenance, tiId)
         }
 
         session.pendingToolCalls.delete(tr.toolUseId)
@@ -732,7 +735,7 @@ this.aurora?.setReverieInferenceProvider(provider)
       content: cleanEngramContent(typeof content === 'string' ? content : JSON.stringify(content)),
       nodeType: 'message' as import('../mnemic-field/types.js').EngramType,
       tags: [slotType, `session:${sessionId}`],
-      provenance: 'thalamus',
+      provenance,
       metadata: {
         sessionId,
         messageIndex: index,
@@ -796,6 +799,7 @@ this.aurora?.setReverieInferenceProvider(provider)
     filePath: string,
     content: string,
     now: string,
+    provenance: string,
     toolInvocationId: string,
   ): void {
     if (!filePath) return
@@ -807,7 +811,7 @@ this.aurora?.setReverieInferenceProvider(provider)
 
       if (isReadTool(toolName) || toolName === 'read' || toolName === 'cassi_read') {
         // Read: create file_read engram, create/update file engram
-        const fileEngram = this.findOrCreateFileEngram(sessionId, filePath, content, language, checksum, now)
+        const fileEngram = this.findOrCreateFileEngram(sessionId, filePath, content, language, checksum, now, provenance)
         const existingMeta = (fileEngram.metadata ?? {}) as Record<string, unknown>
         const readCount = ((existingMeta.readCount as number) ?? 0) + 1
         mf.update(fileEngram.id, {
@@ -826,7 +830,7 @@ this.aurora?.setReverieInferenceProvider(provider)
           content: '',
           nodeType: 'file_read' as import('../mnemic-field/types.js').EngramType,
           tags: ['file_read', `session:${sessionId}`, `file:${filePath}`],
-          provenance: 'thalamus',
+          provenance,
           metadata: {
             filePath,
             sessionId,
@@ -843,7 +847,7 @@ this.aurora?.setReverieInferenceProvider(provider)
           safeConnect(mf, toolInvocationId, fileEngram.id, 'operated_on')
         }
       } else if (isWriteTool(toolName) || toolName === 'write' || toolName === 'edit' || toolName === 'cassi_write' || toolName === 'cassi_edit') {
-        const fileEngram = this.findOrCreateFileEngram(sessionId, filePath, content, language, checksum, now)
+        const fileEngram = this.findOrCreateFileEngram(sessionId, filePath, content, language, checksum, now, provenance)
         const existingMeta = (fileEngram.metadata ?? {}) as Record<string, unknown>
         const existingChecksum = existingMeta.currentChecksum as string | undefined
         const versionCount = ((existingMeta.versionCount as number) ?? 0)
@@ -904,7 +908,7 @@ this.aurora?.setReverieInferenceProvider(provider)
             content: versionContent,
             nodeType: 'file_version' as import('../mnemic-field/types.js').EngramType,
             tags: ['file_version', `file:${filePath}`, `session:${sessionId}`],
-            provenance: 'thalamus',
+            provenance,
             metadata: {
               filePath,
               checksum,
@@ -977,6 +981,7 @@ this.aurora?.setReverieInferenceProvider(provider)
     language: string,
     checksum: string,
     now: string,
+    provenance: string,
   ): import('../mnemic-field/types.js').Engram {
     if (!this.mnemicField) {
       // Best-effort — file engrams are an optimization, never a critical path.
@@ -1008,7 +1013,7 @@ this.aurora?.setReverieInferenceProvider(provider)
       content: content.slice(0, 500),
       nodeType: 'file' as import('../mnemic-field/types.js').EngramType,
       tags: ['file', `file:${filePath}`, language, ...pathSegments.slice(0, -1)],
-      provenance: 'thalamus',
+      provenance,
       metadata: {
         filePath,
         language,
@@ -1229,6 +1234,7 @@ this.aurora?.setReverieInferenceProvider(provider)
     msg: any,
     index: number,
     toolMetrics?: Map<string, { durationMs: number; outputBytes: number }>,
+    provenance?: string,
   ): any {
     const temporal = this.getTemporalRegistry(sessionId)
     const existingTs = temporal.getTimestamp(index)
@@ -1270,7 +1276,7 @@ this.aurora?.setReverieInferenceProvider(provider)
 
     // Write message to Mnemic Field
     if (this.mnemicField) {
-      this.writeMessageEngram(sessionId, msg, index, slotType)
+      this.writeMessageEngram(sessionId, msg, index, slotType, { provenance })
     }
 
     return augmented
@@ -1280,10 +1286,10 @@ this.aurora?.setReverieInferenceProvider(provider)
    * Process an array of messages that don't yet have _thalamus annotations.
    * Used when curate() receives un-processed messages (backward compatibility).
    */
-  processAll(sessionId: string, messages: any[]): any[] {
+  processAll(sessionId: string, messages: any[], provenance?: string): any[] {
     const processed = messages.map((msg, i) => {
       if (msg?._thalamus) return msg // already processed
-      return this.process(sessionId, msg, i)
+      return this.process(sessionId, msg, i, undefined, provenance)
     })
 
     // Detect intent spans and pin the most recent ones.
