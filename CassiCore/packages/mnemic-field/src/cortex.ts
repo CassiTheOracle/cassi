@@ -887,7 +887,7 @@ export class Cortex {
       `SELECT id, content FROM engrams
        WHERE embedding IS NULL
        AND LENGTH(content) > 10
-       AND LENGTH(content) < 100000
+       AND LENGTH(content) < 50000
        ORDER BY LENGTH(content) ASC
        LIMIT ?`
     ).all(limit) as Array<{ id: string; content: string }>
@@ -918,7 +918,7 @@ export class Cortex {
    */
   countMissingEmbeddings(): number {
     return (this.db.prepare(
-      `SELECT COUNT(*) as c FROM engrams WHERE embedding IS NULL AND LENGTH(content) > 10 AND LENGTH(content) < 100000`
+      `SELECT COUNT(*) as c FROM engrams WHERE embedding IS NULL AND LENGTH(content) > 10 AND LENGTH(content) < 50000`
     ).get() as { c: number }).c
   }
 
