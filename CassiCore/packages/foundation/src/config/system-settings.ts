@@ -26,38 +26,38 @@
 export const MODEL_DEFAULTS = {
   /** Main agent — the user-facing conversational model */
   main: {
-    provider: getEnvString('CASSICORE_MODEL_MAIN_PROVIDER', 'z-ai'),
-    model: getEnvString('CASSICORE_MODEL_MAIN', 'glm-5.1'),
+    provider: getEnvString('CASSICORE_MODEL_MAIN_PROVIDER', 'opencode-go'),
+    model: getEnvString('CASSICORE_MODEL_MAIN', 'deepseek-v4-pro'),
   },
 
   /** Background reasoning — intelligence modules (thinker, dialectic, memory, subconscious) */
   reasoning: {
-    provider: getEnvString('CASSICORE_MODEL_REASONING_PROVIDER', 'z-ai'),
-    model: getEnvString('CASSICORE_MODEL_REASONING', 'glm-5.1'),
+    provider: getEnvString('CASSICORE_MODEL_REASONING_PROVIDER', 'opencode-go'),
+    model: getEnvString('CASSICORE_MODEL_REASONING', 'deepseek-v4-pro'),
   },
 
   /** Spawned agents — team members, sub-agents, coordinators */
   agent: {
-    provider: getEnvString('CASSICORE_MODEL_AGENT_PROVIDER', 'z-ai'),
-    model: getEnvString('CASSICORE_MODEL_AGENT', 'glm-5.1'),
+    provider: getEnvString('CASSICORE_MODEL_AGENT_PROVIDER', 'opencode-go'),
+    model: getEnvString('CASSICORE_MODEL_AGENT', 'deepseek-v4-pro'),
   },
 
   /** Fast — quick intent parsing, low-latency operations */
   fast: {
-    provider: getEnvString('CASSICORE_MODEL_FAST_PROVIDER', 'z-ai'),
-    model: getEnvString('CASSICORE_MODEL_FAST', 'glm-5.1'),
+    provider: getEnvString('CASSICORE_MODEL_FAST_PROVIDER', 'opencode-go'),
+    model: getEnvString('CASSICORE_MODEL_FAST', 'deepseek-v4-flash'),
   },
 
   /** Fallback — used when provider resolution fails entirely */
   fallback: {
-    provider: getEnvString('CASSICORE_MODEL_FALLBACK_PROVIDER', 'z-ai'),
-    model: getEnvString('CASSICORE_MODEL_FALLBACK', 'glm-5.1'),
+    provider: getEnvString('CASSICORE_MODEL_FALLBACK_PROVIDER', 'opencode-go'),
+    model: getEnvString('CASSICORE_MODEL_FALLBACK', 'deepseek-v4-flash'),
   },
 
   /** Background — cheap/free model for drones, scouts, and low-priority work */
   background: {
-    provider: getEnvString('CASSICORE_MODEL_BACKGROUND_PROVIDER', 'z-ai'),
-    model: getEnvString('CASSICORE_MODEL_BACKGROUND', 'glm-5.1'),
+    provider: getEnvString('CASSICORE_MODEL_BACKGROUND_PROVIDER', 'opencode-go'),
+    model: getEnvString('CASSICORE_MODEL_BACKGROUND', 'deepseek-v4-flash'),
   },
 } as const
 
@@ -67,15 +67,15 @@ export const MODEL_DEFAULTS = {
  * via config at intelligence.modelDirective.tiers.*
  */
 export const MODEL_DIRECTIVE_TIER_DEFAULTS = {
-  minimax:    { provider: 'z-ai', model: 'glm-5.1' },
-  qwenPlus:   { provider: 'z-ai', model: 'glm-5.1' },
-  glm:        { provider: 'z-ai', model: 'glm-5.1' },
-  kimi:       { provider: 'z-ai', model: 'glm-5.1' },
-  qwenMax:    { provider: 'z-ai', model: 'glm-5.1' },
-  sonnet:     { provider: 'z-ai', model: 'glm-5.1' },
-  opus:       { provider: 'z-ai', model: 'glm-5.1' },
-  zAi:        { provider: 'z-ai', model: 'glm-5.1' },
-  background: { provider: 'z-ai', model: 'glm-5.1' },
+  minimax:    { provider: 'opencode-go', model: 'minimax-m2.5' },
+  qwenPlus:   { provider: 'opencode-go', model: 'deepseek-v4-flash' },
+  glm:        { provider: 'opencode-go', model: 'glm-5.1' },
+  kimi:       { provider: 'opencode-go', model: 'kimi-k2.5' },
+  qwenMax:    { provider: 'opencode-go', model: 'deepseek-v4-pro' },
+  sonnet:     { provider: 'opencode-go', model: 'deepseek-v4-pro' },
+  opus:       { provider: 'opencode-go', model: 'deepseek-v4-pro' },
+  zAi:        { provider: 'opencode-go', model: 'deepseek-v4-pro' },
+  background: { provider: 'opencode-go', model: 'deepseek-v4-flash' },
 } as const
 
 /**
