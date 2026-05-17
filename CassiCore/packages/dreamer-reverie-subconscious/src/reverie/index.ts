@@ -455,7 +455,8 @@ Assistant: ${ex.lastAssistant ?? '(n/a)'}`
       if (!Array.isArray(tr.results)) continue
       for (const r of tr.results) {
         if (r.isError) {
-          const key = `${tr.toolCalls.find(tc => tc.id === r.toolCallId)?.name ?? 'unknown'}:${r.contentPreview.slice(0, 60)}`
+          const toolCalls = Array.isArray(tr.toolCalls) ? tr.toolCalls : []
+          const key = `${toolCalls.find(tc => tc.id === r.toolCallId)?.name ?? 'unknown'}:${r.contentPreview.slice(0, 60)}`
           errorCounts.set(key, (errorCounts.get(key) ?? 0) + 1)
         }
       }
@@ -468,7 +469,8 @@ Assistant: ${ex.lastAssistant ?? '(n/a)'}`
     const fileOps: Array<{ file: string; op: 'read' | 'write' }> = []
     for (const tr of log) {
       const results = Array.isArray(tr.results) ? tr.results : []
-      for (const tc of tr.toolCalls) {
+      const toolCalls = Array.isArray(tr.toolCalls) ? tr.toolCalls : []
+      for (const tc of toolCalls) {
         if (tc.name === 'read' || tc.name === 'cassi_read') {
           const m = results.find(r => r.toolCallId === tc.id)?.contentPreview.match(/path["']?\s*:\s*["']([^"']+)/)
           if (m) fileOps.push({ file: m[1], op: 'read' })
