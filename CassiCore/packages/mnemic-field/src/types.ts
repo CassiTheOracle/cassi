@@ -59,6 +59,7 @@ export interface Engram {
   nodeType: EngramType
   x: number
   y: number
+  z: number
   t: number
   potentiation: number
   clusterId: string | null
@@ -76,6 +77,7 @@ export interface EngramCreate {
   nodeType: EngramType
   x?: number
   y?: number
+  z?: number
   /** Radial distance from origin (0-1). Computes x/y if both r and theta provided. */
   r?: number
   /** Angular position in radians (0-2π). Computes x/y if both r and theta provided. */
@@ -94,6 +96,7 @@ export interface EngramUpdate {
   nodeType?: EngramType
   x?: number
   y?: number
+  z?: number
   r?: number
   theta?: number
   t?: number
@@ -143,6 +146,7 @@ export interface Nucleus {
   label: string
   centroidX: number
   centroidY: number
+  centroidZ: number
   memberCount: number
   avgPotentiation: number
   abstractionId: string | null
@@ -157,6 +161,7 @@ export interface NucleusCreate {
   label: string
   centroidX: number
   centroidY: number
+  centroidZ?: number
   abstractionId?: string
   parentNucleusId?: string | null
   depth?: number
