@@ -2058,6 +2058,21 @@ this.aurora?.setReverieInferenceProvider(provider)
       return { ...msg, content: newContent }
     })
 
+    // Reorder: if the first message is system, move it after the first user.
+    // Helix posture runners push system as first message; some providers
+    // (DeepSeek) require the first message to be a user message.
+    if (finalMessages.length > 1 && finalMessages[0]?.role === 'system') {
+      for (let i = 1; i < finalMessages.length; i++) {
+        if (finalMessages[i]?.role === 'user') {
+          const systemMsg = finalMessages[0]!
+          finalMessages = [...finalMessages.slice(1)]
+          finalMessages.splice(i, 0, systemMsg)
+          this.logger.debug('Reordered system message after first user', { sessionId })
+          break
+        }
+      }
+    }
+
     // Validate before returning. Fatal errors trigger fallback to protected window.
     const validation = validateMessages(finalMessages)
     if (validation.fatal) {
