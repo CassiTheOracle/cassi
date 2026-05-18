@@ -1088,6 +1088,17 @@ export class MnemicField {
     // Filter bridge engrams from results — they're structural, not content.
     const contentHits = hits.filter(h => h.nodeType !== 'bridge')
 
+    // Global Workspace Broadcast (Phase 1): signal the field about what's in
+    // the luminal set. Fire-and-forget — must never block the return path.
+    // Uses the pre-filter hits (includes bridge engrams for spatial signal)
+    // since the luminal set was computed from the full kindling output.
+    try {
+      this.broadcastGlobalWorkspace(hits.map(h => h.id))
+    } catch (err) {
+      // Broadcast failures must never block retrieval
+      this.logger.debug('Global workspace broadcast failed', { error: String(err) })
+    }
+
     // Cache result. Evict oldest if over capacity (Map iteration order is insertion order).
     this.retrieveCache.set(cacheKey, { hits: contentHits, ts: now })
     while (this.retrieveCache.size > MnemicField.RETRIEVE_CACHE_MAX) {
