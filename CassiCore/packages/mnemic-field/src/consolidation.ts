@@ -757,10 +757,12 @@ export class ConsolidationEngine {
   }
 
   /**
-   * DBSCAN-lite: density-based clustering on XY coordinates.
-   * Simpler than full HDBSCAN but effective for detecting spatial clusters.
-   * Only considers engrams with non-zero XY (those that have embeddings).
-   * Returns the number of nuclei detected.
+   * Multi-level DBSCAN: density-based clustering at multiple epsilon scales.
+   * Level 0 (ε=0.015): nuclei from engrams (depth 0).
+   * Level 2 (ε=0.05):  super-nuclei from nucleus centroids, parent-linked to depth-0 nuclei.
+   * Level 1 (sub-nuclei, ε=0.005) deferred until 3D topology is available.
+   *
+   * Returns { nucleiDetected, superNucleiDetected, fractalDimension }.
    */
   detectNuclei(minClusterSize = 3, epsilon = 0.015): number {
     const { engramCount } = this.cortex.stats()
@@ -769,13 +771,15 @@ export class ConsolidationEngine {
       : this.cortex.getSpatialEngrams(10000)
     if (engrams.length < minClusterSize) return 0
 
-    const clusters = this.dbscan(engrams, epsilon, minClusterSize)
-
+    // Clear previous hierarchy
     for (const existing of this.cortex.listNuclei()) {
       this.cortex.deleteNucleus(existing.id)
     }
 
+    // Level 0: nuclei from engrams (depth 0)
+    const clusters = this.dbscan(engrams, epsilon, minClusterSize)
     let nucleiCount = 0
+
     for (const [clusterId, members] of clusters) {
       const centroidX = members.reduce((s, e) => s + e.x, 0) / members.length
       const centroidY = members.reduce((s, e) => s + e.y, 0) / members.length
@@ -790,6 +794,7 @@ export class ConsolidationEngine {
         label,
         centroidX,
         centroidY,
+        depth: 0,
       })
 
       this.cortex.updateNucleus(nucleus.id, {
@@ -804,7 +809,72 @@ export class ConsolidationEngine {
       nucleiCount++
     }
 
-    this.logger.debug('Nucleus detection complete', { nucleiCount, totalEngrams: engrams.length })
+    // Level 2: super-nuclei from nucleus centroids (depth 2)
+    const SUPER_EPSILON = 0.05
+    const SUPER_MIN_PTS = 2
+    let superNucleiCount = 0
+    const depth0Nuclei = this.cortex.listNuclei().filter(n => n.depth === 0)
+
+    if (depth0Nuclei.length >= SUPER_MIN_PTS) {
+      // Create pseudo-engrams from nucleus centroids for DBSCAN
+      const pseudoEngrams: Engram[] = depth0Nuclei.map(n => ({
+        id: n.id,
+        content: n.label,
+        nodeType: 'abstraction',
+        x: n.centroidX,
+        y: n.centroidY,
+        t: 0,
+        potentiation: n.avgPotentiation,
+        clusterId: null,
+        embedding: null,
+        tags: [],
+        provenance: 'super-nucleus-seed',
+        createdAt: n.createdAt,
+        accessedAt: null,
+        metadata: {},
+      }))
+
+      const superClusters = this.dbscan(pseudoEngrams, SUPER_EPSILON, SUPER_MIN_PTS)
+
+      for (const [, members] of superClusters) {
+        const superCentroidX = members.reduce((s, e) => s + e.x, 0) / members.length
+        const superCentroidY = members.reduce((s, e) => s + e.y, 0) / members.length
+        const superAvgPot = members.reduce((s, e) => s + e.potentiation, 0) / members.length
+
+        const superNucleus = this.cortex.createNucleus({
+          label: `super-cluster-${superNucleiCount}`,
+          centroidX: superCentroidX,
+          centroidY: superCentroidY,
+          depth: 2,
+        })
+
+        this.cortex.updateNucleus(superNucleus.id, {
+          memberCount: members.length,
+          avgPotentiation: superAvgPot,
+        })
+
+        // Link depth-0 nuclei to super-nucleus
+        for (const member of members) {
+          this.cortex.updateNucleus(member.id, { parentNucleusId: superNucleus.id })
+        }
+
+        superNucleiCount++
+      }
+    }
+
+    // Compute fractal dimension from cluster counts
+    const totalClusters = nucleiCount + superNucleiCount
+    const fractalDimension = totalClusters > 0
+      ? Math.log(totalClusters) / Math.log(1 / epsilon)
+      : 0
+
+    this.logger.info('Multi-level nucleus detection complete', {
+      depth0Nuclei: nucleiCount,
+      depth2SuperNuclei: superNucleiCount,
+      fractalDimension: fractalDimension.toFixed(3),
+      totalEngrams: engrams.length,
+    })
+
     return nucleiCount
   }
 

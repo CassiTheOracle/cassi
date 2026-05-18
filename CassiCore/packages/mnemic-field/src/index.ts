@@ -1353,6 +1353,16 @@ export class MnemicField {
       .map(p => ({ nucleusId: p.nucleusId, resonance: p.resonance, expiresAt: p.expiresAt }))
   }
 
+  /** Compute the fractal dimension of the field's cluster hierarchy. */
+  getFractalDimension(): number {
+    const nuclei = this.cortex.listNuclei()
+    const depth0 = nuclei.filter(n => n.depth === 0).length
+    const depth2 = nuclei.filter(n => n.depth === 2).length
+    const totalClusters = depth0 + depth2
+    if (totalClusters === 0) return 0
+    return Math.log(totalClusters) / Math.log(1 / 0.015)
+  }
+
   /**
    * Split text into sentences — simple, deterministic, no NLP deps.
    * Splits on sentence-final punctuation followed by whitespace.
