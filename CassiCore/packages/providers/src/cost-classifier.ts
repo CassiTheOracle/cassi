@@ -37,8 +37,32 @@ export interface CostRule {
  * First match wins. Override via runtime config 'providers.costRules'.
  */
 export const DEFAULT_COST_RULES: CostRule[] = [
-  // Hermes bridge — all calls go through Hermes's provider stack
-  { pattern: 'hermes/*', cost: 'metered' },
+  // Free models on metered providers (unlimited — no premium request cost)
+  { pattern: 'github-copilot/gpt-5-mini',  cost: 'free' },
+  { pattern: 'github-copilot/gpt-4o',      cost: 'free' },
+  { pattern: 'github-copilot/gpt-4.1',     cost: 'free' },
+  { pattern: 'github-copilot/gpt-4.1-mini', cost: 'free' },
+
+  // Copilot SDK — metered but tool loops count as single premium request
+  { pattern: 'copilot-sdk/gpt-5-mini',     cost: 'free' },
+  { pattern: 'copilot-sdk/gpt-4o',         cost: 'free' },
+  { pattern: 'copilot-sdk/gpt-4.1',        cost: 'free' },
+  { pattern: 'copilot-sdk/gpt-4.1-mini',   cost: 'free' },
+  { pattern: 'copilot-sdk/*',              cost: 'metered' },
+
+  // Local providers — no network cost
+  { pattern: 'lmstudio/*',  cost: 'local' },
+
+  // Metered providers — everything else on these costs money/quota
+  { pattern: 'github-copilot/*', cost: 'metered' },
+  { pattern: 'kimi-coding/*',    cost: 'metered' },
+  { pattern: 'openrouter/*',     cost: 'metered' },
+  { pattern: 'qwen/*',           cost: 'metered' },
+  { pattern: 'qwen-coder/*',     cost: 'metered' },
+  { pattern: 'google-antigravity/*', cost: 'metered' },
+  { pattern: 'claude-code/*',    cost: 'metered' },
+  { pattern: 'deepseek/*',       cost: 'metered' },
+  { pattern: 'z-ai/*',           cost: 'metered' },
 
   // Catch-all: unknown providers are assumed metered
   { pattern: '*/*', cost: 'metered' },
