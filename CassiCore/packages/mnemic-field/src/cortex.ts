@@ -806,16 +806,21 @@ export class Cortex {
     }
   }
 
-  bulkUpdatePositions(updates: Array<{ id: string; x: number; y: number }>): void {
+  bulkUpdatePositions(updates: Array<{ id: string; x: number; y: number; z?: number }>): void {
     const updateStmt = this.db.prepare(`UPDATE engrams SET x = ?, y = ? WHERE id = ?`)
+    const updateStmtZ = this.db.prepare(`UPDATE engrams SET x = ?, y = ?, z = ? WHERE id = ?`)
     const updateRtreeStmt = this.db.prepare(`
       UPDATE engram_rtree SET x_min = @x, x_max = @x, y_min = @y, y_max = @y
       WHERE id = (SELECT rowid FROM engrams WHERE id = @id)
     `)
 
     const tx = this.db.transaction((items: typeof updates) => {
-      for (const { id, x, y } of items) {
-        updateStmt.run(x, y, id)
+      for (const { id, x, y, z } of items) {
+        if (z !== undefined) {
+          updateStmtZ.run(x, y, z, id)
+        } else {
+          updateStmt.run(x, y, id)
+        }
         updateRtreeStmt.run({ x, y, id })
       }
     })
@@ -827,7 +832,7 @@ export class Cortex {
    * Batched version that yields between batches.
    */
   async bulkUpdatePositionsBatched(
-    updates: Array<{ id: string; x: number; y: number }>,
+    updates: Array<{ id: string; x: number; y: number; z?: number }>,
     batchSize = 1000,
   ): Promise<void> {
     for (let i = 0; i < updates.length; i += batchSize) {
