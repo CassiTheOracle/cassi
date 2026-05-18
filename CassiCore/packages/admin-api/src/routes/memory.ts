@@ -853,7 +853,7 @@ export async function handleMemoryRoutes(
           nucleusId: p.nucleusId,
           label: nucleus?.label ?? 'unknown',
           resonance: p.resonance,
-          expiresInMs: p.expiresAt - Date.now(),
+          remainingRetrievals: p.remainingRetrievals,
         }
       })
 
