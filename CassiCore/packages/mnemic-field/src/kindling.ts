@@ -40,6 +40,8 @@ export class KindlingEngine {
   private attractor: AttractorManager | null = null
   /** Optional: provides the current harmony metric for spark point modulation. */
   private harmonyProvider: (() => number) | null = null
+  /** Optional: provides broadcast spark modulation for an engram. */
+  private broadcastModProvider: ((engramId: string) => number) | null = null
 
   constructor(
     private cortex: Cortex,
@@ -62,6 +64,11 @@ export class KindlingEngine {
   /** Set a provider for the harmony metric (Yin/Yang balance, Phase 0-1). */
   setHarmonyProvider(provider: (() => number) | null): void {
     this.harmonyProvider = provider
+  }
+
+  /** Set a provider for broadcast spark modulation (global workspace priming). */
+  setBroadcastModProvider(provider: ((engramId: string) => number) | null): void {
+    this.broadcastModProvider = provider
   }
 
   /** Initialize ANN index (async, should be called once) */

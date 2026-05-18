@@ -314,6 +314,8 @@ export class MnemicField {
     this.kindlingEngine = new KindlingEngine(this.cortex, logger)
     this.kindlingEngine.setAttractor(this.attractor)
     this.kindlingEngine.setHarmonyProvider(() => this.getHarmony())
+    this.kindlingEngine.setBroadcastModProvider((engramId: string) =>
+      this.getBroadcastSparkModulation(engramId))
     this.gradientEngine = new GradientEngine(this.cortex, logger)
     this.consolidationEngine = new ConsolidationEngine(this.cortex, logger, this.gradientEngine, null)
     this.consolidationEngine.setHarmonyProvider(() => this.getHarmony())
