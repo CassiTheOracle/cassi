@@ -740,7 +740,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
           )
         )
 
-        this.pushMessage({ role: 'assistant', content: result.contentBlocks })
+        this.pushMessage({ role: 'assistant', content: result.contentBlocks, ...(result.reasoningContent ? { reasoning_content: result.reasoningContent } : {}) })
         this.pushMessage({ role: 'user', content: enrichedResults })
       }
 
@@ -1050,7 +1050,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
           this.injectDialecticIntoResults(toolResults)
         )
 
-        this.pushMessage({ role: 'assistant', content: result.contentBlocks })
+        this.pushMessage({ role: 'assistant', content: result.contentBlocks, ...(result.reasoningContent ? { reasoning_content: result.reasoningContent } : {}) })
         this.pushMessage({ role: 'user', content: enrichedResults })
       }
 
