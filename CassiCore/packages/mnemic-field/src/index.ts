@@ -1353,6 +1353,220 @@ export class MnemicField {
       .map(p => ({ nucleusId: p.nucleusId, resonance: p.resonance, expiresAt: p.expiresAt }))
   }
 
+  /**
+   * Split text into sentences — simple, deterministic, no NLP deps.
+   * Splits on sentence-final punctuation followed by whitespace.
+   */
+  private _splitSentences(text: string, maxLen = 500): string[] {
+    if (!text) return []
+    const blocks = text.split(/\n\s*\n+|\n\s*[-*]\s+/g).map(b => b.trim()).filter(Boolean)
+    const out: string[] = []
+    for (const block of blocks) {
+      const parts = block.split(/(?<=[.!?])\s+(?=[A-Z"'])/g).map(s => s.trim()).filter(Boolean)
+      for (const p of parts) {
+        if (p.length <= maxLen) {
+          out.push(p)
+        } else {
+          // Long sentence/run-on — chunk it
+          for (let i = 0; i < p.length; i += maxLen) {
+            out.push(p.slice(i, i + maxLen))
+          }
+        }
+      }
+    }
+    return out
+  }
+
+  /**
+   * Contrastive Extraction (Phase 2): For engrams within the same angular sector
+   * or nucleus, cancels out shared text and surfaces what's unique.
+   *
+   * Groups engrams by nucleus (clusterId) and by angular sector (theta).
+   * For each group, splits content into sentences, embeds them, and compares
+   * cosine similarity. Shared sentences (sim >= 0.75 across engrams) are
+   * removed; unique sentences form the distinctiveContent.
+   *
+   * Stores distinctiveness score and distinctive content on each engram's
+   * metadata. Runs per angular sector so all positioned engrams get scored,
+   * even those not yet assigned to a nucleus.
+   *
+   * Called during consolidation, after nucleus detection.
+   *
+   * @param maxEngramsPerGroup cap on group size to bound embedding cost (default 50)
+   * @returns summary of engrams scored and groups processed
+   */
+  async extractDistinctiveness(maxEngramsPerGroup = 50): Promise<{
+    engramsScored: number
+    groupsProcessed: number
+    durationMs: number
+  }> {
+    const start = Date.now()
+    let engramsScored = 0
+    let groupsProcessed = 0
+
+    try {
+      // Lean query: only fetch fields needed for grouping + content.
+      // Avoids pulling large embedding BLOBs into memory.
+      const rows = this.db.prepare(`
+        SELECT id, content, cluster_id, x, y, metadata
+        FROM engrams
+        WHERE content IS NOT NULL AND length(content) > 20
+      `).all() as Array<{
+        id: string; content: string; cluster_id: string | null
+        x: number; y: number; metadata: string | null
+      }>
+
+      // Group engrams by nucleus (clusterId) and angular sector
+      const nucleusGroups = new Map<string, Array<{ id: string; content: string }>>()
+      const sectorGroups = new Map<number, Array<{ id: string; content: string }>>()
+
+      for (const row of rows) {
+        // Nucleus grouping
+        if (row.cluster_id) {
+          let g = nucleusGroups.get(row.cluster_id)
+          if (!g) { g = []; nucleusGroups.set(row.cluster_id, g) }
+          if (g.length < maxEngramsPerGroup) g.push({ id: row.id, content: row.content })
+        }
+
+        // Sector grouping: derive theta from metadata or x/y
+        let theta: number | null = null
+        if (row.metadata) {
+          try {
+            const meta = JSON.parse(row.metadata)
+            if (typeof meta.theta === 'number') theta = meta.theta
+          } catch { /* malformed metadata, ignore */ }
+        }
+        if (theta === null && row.x !== undefined && row.y !== undefined && (row.x !== 0 || row.y !== 0)) {
+          theta = Math.atan2(row.y, row.x)
+        }
+        if (theta !== null) {
+          const sector = Math.floor(normalizeTheta(theta) / SECTOR_SIZE) % DEFAULT_SECTOR_COUNT
+          let g = sectorGroups.get(sector)
+          if (!g) { g = []; sectorGroups.set(sector, g) }
+          if (g.length < maxEngramsPerGroup) g.push({ id: row.id, content: row.content })
+        }
+      }
+
+      this.logger.info('Contrastive extraction: groups built', {
+        nucleusGroups: nucleusGroups.size,
+        sectorGroups: sectorGroups.size,
+        totalEngrams: rows.length,
+      })
+
+      const embSvc = getEmbeddingService(this.logger)
+
+      // Helper: score one group
+      const scoreGroup = async (
+        members: Array<{ id: string; content: string }>,
+        groupKey: string,
+      ): Promise<number> => {
+        if (members.length < 2) return 0
+
+        // Split each member into sentences
+        const perEngram: Array<{ id: string; sentences: string[] }> = []
+        const allSentences: string[] = []
+        for (const eng of members) {
+          const sentences = this._splitSentences(eng.content, 500)
+            .filter(s => s.length > 10)
+          if (sentences.length === 0) continue
+          perEngram.push({ id: eng.id, sentences })
+          for (const s of sentences) allSentences.push(s)
+        }
+
+        if (allSentences.length < 2 || perEngram.length < 2) return 0
+
+        // Batch embed all sentences
+        const embeddings = await embSvc.embedBatch(allSentences, 'document')
+
+        // Build index → embedding
+        const sentEmb = new Map<number, number[]>()
+        for (let i = 0; i < embeddings.length; i++) {
+          if (embeddings[i]) sentEmb.set(i, embeddings[i]!)
+        }
+
+        const SIM_THRESHOLD = 0.75
+        let offset = 0
+        let scored = 0
+
+        for (const eng of perEngram) {
+          const n = eng.sentences.length
+          const uniqueIndices: number[] = []
+
+          for (let i = 0; i < n; i++) {
+            const myIdx = offset + i
+            const myEmb = sentEmb.get(myIdx)
+            if (!myEmb) { uniqueIndices.push(i); continue }
+
+            let isShared = false
+            // Compare against all OTHER engrams' sentences
+            for (const [otherIdx, otherEmb] of sentEmb) {
+              if (otherIdx >= offset && otherIdx < offset + n) continue
+              const sim = cosineSimilarity(myEmb, otherEmb)
+              if (sim >= SIM_THRESHOLD) { isShared = true; break }
+            }
+
+            if (!isShared) uniqueIndices.push(i)
+          }
+
+          const score = n > 0 ? uniqueIndices.length / n : 0
+          const distinctiveContent = uniqueIndices.map(i => eng.sentences[i]).join(' ')
+
+          // Merge into existing metadata to avoid blowing away other keys
+          try {
+            const existing = this.cortex.getEngram(eng.id)
+            const baseMeta: Record<string, unknown> = existing?.metadata
+              ? { ...existing.metadata as Record<string, unknown> }
+              : {}
+            baseMeta.distinctiveness = {
+              score,
+              distinctiveContent,
+              totalSentences: n,
+              uniqueSentences: uniqueIndices.length,
+              groupKey,
+            } satisfies import('./types.js').DistinctivenessResult
+            this.cortex.updateEngram(eng.id, { metadata: baseMeta })
+            scored++
+          } catch (err) {
+            this.logger.warn('Failed to update engram distinctiveness', {
+              engramId: eng.id, error: String(err),
+            })
+          }
+
+          offset += n
+        }
+
+        return scored
+      }
+
+      // Process nucleus groups
+      for (const [nucleusId, members] of nucleusGroups) {
+        if (members.length < 2) continue
+        const scored = await scoreGroup(members, nucleusId)
+        engramsScored += scored
+        groupsProcessed++
+        // Yield to event loop between groups
+        await new Promise(resolve => setImmediate(resolve))
+      }
+
+      // Process sector groups
+      for (const [sectorIdx, members] of sectorGroups) {
+        if (members.length < 2) continue
+        const scored = await scoreGroup(members, `sector-${sectorIdx}`)
+        engramsScored += scored
+        groupsProcessed++
+        await new Promise(resolve => setImmediate(resolve))
+      }
+    } catch (err) {
+      this.logger.error('Contrastive extraction failed', { error: String(err) })
+    }
+
+    const durationMs = Date.now() - start
+    this.logger.info('Contrastive extraction complete', {
+      engramsScored, groupsProcessed, durationMs,
+    })
+    return { engramsScored, groupsProcessed, durationMs }
+  }
+
   createMigrationJob(spec: MigrationJobSpec): MigrationJobRecord {
     return this.migrationJobs.create(spec)
   }
