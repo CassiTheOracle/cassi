@@ -965,10 +965,12 @@ export class MnemicField {
     this.lastLuminalIds = luminal.engrams.map(e => e.engram.id)
 
     // Compute harmony metric after each kindling cycle
-    // (feeds into spark point modulation, consolidation, and DMN observation)
-    try {
-      this.computeHarmony()
-    } catch { /* never block retrieval for harmony failures */ }
+    // (feeds into spark point modulation, consolidation, and DMN observation).
+    // Fire-and-forget on next tick — harmony is a full-table scan (O(n) engrams)
+    // and should never block the retrieval hot path.
+    setImmediate(() => {
+      try { this.computeHarmony() } catch { /* non-blocking */ }
+    })
 
     // Periodic Yin phase: acknowledge neglected sectors
     try {
@@ -1447,14 +1449,84 @@ export class MnemicField {
       }))
   }
 
-  /** Compute the fractal dimension of the field's cluster hierarchy. */
+  /** 
+   * Compute the fractal dimension of the field using box-counting.
+   * Grids the 3D space (x, y, z) at multiple resolutions and fits
+   * log(count) vs log(1/boxSize) — the slope is the fractal dimension.
+   * 
+   * Samples up to 5000 engrams for efficiency. A healthy field should
+   * have dimension between 1.2 and 1.8.
+   */
   getFractalDimension(): number {
-    const nuclei = this.cortex.listNuclei()
-    const depth0 = nuclei.filter(n => n.depth === 0).length
-    const depth2 = nuclei.filter(n => n.depth === 2).length
-    const totalClusters = depth0 + depth2
-    if (totalClusters === 0) return 0
-    return Math.log(totalClusters) / Math.log(1 / 0.015)
+    const sampleSize = 5000
+    const engrams = this.cortex.listEngrams(sampleSize)
+    if (engrams.length < 10) return 0
+
+    // Extract 3D positions
+    const points = engrams.map(e => ({
+      x: e.x ?? 0,
+      y: e.y ?? 0,
+      z: e.z ?? 0,
+    }))
+
+    // Compute bounding box
+    let minX = Infinity, maxX = -Infinity
+    let minY = Infinity, maxY = -Infinity
+    let minZ = Infinity, maxZ = -Infinity
+    for (const p of points) {
+      if (p.x < minX) minX = p.x
+      if (p.x > maxX) maxX = p.x
+      if (p.y < minY) minY = p.y
+      if (p.y > maxY) maxY = p.y
+      if (p.z < minZ) minZ = p.z
+      if (p.z > maxZ) maxZ = p.z
+    }
+
+    const spanX = maxX - minX || 1
+    const spanY = maxY - minY || 1
+    const spanZ = maxZ - minZ || 1
+    const maxSpan = Math.max(spanX, spanY, spanZ)
+
+    // Box sizes: powers of 2 from maxSpan down to maxSpan/128
+    const boxes: number[] = []
+    for (let size = maxSpan; size > maxSpan / 128; size /= 2) {
+      boxes.push(size)
+    }
+    if (boxes.length < 3) return 0
+
+    // Count occupied boxes at each resolution
+    const logCounts: number[] = []
+    const logInvSizes: number[] = []
+
+    for (const boxSize of boxes) {
+      const occupied = new Set<string>()
+      for (const p of points) {
+        const bx = Math.floor((p.x - minX) / boxSize)
+        const by = Math.floor((p.y - minY) / boxSize)
+        const bz = Math.floor((p.z - minZ) / boxSize)
+        occupied.add(`${bx},${by},${bz}`)
+      }
+      const count = occupied.size
+      if (count > 0) {
+        logCounts.push(Math.log(count))
+        logInvSizes.push(Math.log(1 / boxSize))
+      }
+    }
+
+    if (logCounts.length < 3) return 0
+
+    // Linear regression: slope = fractal dimension
+    const n = logCounts.length
+    let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0
+    for (let i = 0; i < n; i++) {
+      sumX += logInvSizes[i]
+      sumY += logCounts[i]
+      sumXY += logInvSizes[i] * logCounts[i]
+      sumX2 += logInvSizes[i] * logInvSizes[i]
+    }
+    const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX)
+
+    return Math.max(0, Math.min(3, slope))
   }
 
   /**
@@ -2804,6 +2876,9 @@ export class MnemicField {
         this.logger.warn('Distinctiveness extraction failed', { error: String(err) })
       }
     }
+
+    // Positions may have shifted — invalidate photon ANN cache
+    this.kindlingEngine.invalidatePhotonCache()
 
     return result
   }

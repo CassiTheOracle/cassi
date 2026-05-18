@@ -43,6 +43,10 @@ export class KindlingEngine {
   /** Optional: provides broadcast spark modulation for an engram, keyed by clusterId. */
   private broadcastModProvider: ((clusterId: string | null) => number) | null = null
 
+  /** Photon ANN neighbor cache: engramId → neighbors (avoids per-emitter HNSW queries). */
+  private photonCache = new Map<string, Array<{ id: string; distance: number }>>()
+  private static readonly PHOTON_CACHE_MAX = 5000
+
   constructor(
     private cortex: Cortex,
     logger: ILogger,
@@ -69,6 +73,11 @@ export class KindlingEngine {
   /** Set a provider for broadcast spark modulation (global workspace priming). */
   setBroadcastModProvider(provider: ((clusterId: string | null) => number) | null): void {
     this.broadcastModProvider = provider
+  }
+
+  /** Invalidate the photon ANN cache — call after consolidation (positions change). */
+  invalidatePhotonCache(): void {
+    this.photonCache.clear()
   }
 
   /** Initialize ANN index (async, should be called once) */
@@ -472,10 +481,16 @@ export class KindlingEngine {
         * KindlingEngine.LUMINOSITY_SCALE
       const emitterCharge = chargeMap.get(emitterId)!
 
-      const neighbors = this.searchEngramAnn(
+      const cachedNeighbors = this.photonCache.get(emitterId)
+      const neighbors = cachedNeighbors ?? this.searchEngramAnn(
         Array.from(emitter.embedding),
         KindlingEngine.MAX_PHOTON_NEIGHBORS + 1,
       )
+
+      // Cache miss — store result if under capacity
+      if (!cachedNeighbors && this.photonCache.size < KindlingEngine.PHOTON_CACHE_MAX) {
+        this.photonCache.set(emitterId, neighbors)
+      }
 
       for (const neighbor of neighbors) {
         if (neighbor.id === emitterId) continue
