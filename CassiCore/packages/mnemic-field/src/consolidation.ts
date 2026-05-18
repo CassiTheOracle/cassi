@@ -789,6 +789,7 @@ export class ConsolidationEngine {
     for (const [clusterId, members] of clusters) {
       const centroidX = members.reduce((s, e) => s + e.x, 0) / members.length
       const centroidY = members.reduce((s, e) => s + e.y, 0) / members.length
+      const centroidZ = members.reduce((s, e) => s + (e.z ?? 0), 0) / members.length
       const avgPot = members.reduce((s, e) => s + e.potentiation, 0) / members.length
 
       const dominantType = this.findDominantType(members)
@@ -800,6 +801,7 @@ export class ConsolidationEngine {
         label,
         centroidX,
         centroidY,
+        centroidZ,
         depth: 0,
       })
 
@@ -846,12 +848,14 @@ export class ConsolidationEngine {
       for (const [, members] of superClusters) {
         const superCentroidX = members.reduce((s, e) => s + e.x, 0) / members.length
         const superCentroidY = members.reduce((s, e) => s + e.y, 0) / members.length
+        const superCentroidZ = members.reduce((s, e) => s + (e.z ?? 0), 0) / members.length
         const superAvgPot = members.reduce((s, e) => s + e.potentiation, 0) / members.length
 
         const superNucleus = this.cortex.createNucleus({
           label: `super-cluster-${superNucleiCount}`,
           centroidX: superCentroidX,
           centroidY: superCentroidY,
+          centroidZ: superCentroidZ,
           depth: 2,
         })
 
