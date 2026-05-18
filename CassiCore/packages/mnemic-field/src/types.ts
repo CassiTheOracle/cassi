@@ -839,3 +839,20 @@ export interface BroadcastResult {
   /** Duration of the broadcast computation in ms. */
   durationMs: number
 }
+
+/**
+ * Per-engram result of contrastive extraction (Phase 2).
+ * Stored on engram.metadata.distinctiveness.
+ */
+export interface DistinctivenessResult {
+  /** Fraction of content that is unique within its group (0-1). */
+  score: number
+  /** Unique sentences not shared with other engrams in the same nucleus/sector. */
+  distinctiveContent: string
+  /** Total sentences in the engram. */
+  totalSentences: number
+  /** Number of unique sentences. */
+  uniqueSentences: number
+  /** Grouping key used (nucleus ID or sector index). */
+  groupKey: string
+}

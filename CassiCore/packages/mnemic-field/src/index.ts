@@ -165,6 +165,7 @@ export type {
   ExpertKind, ExpertDomain, ExpertProvenance, ExpertMetadata,
   ExpertLifecycleState, ExpertQuery, TraceOptions, TraceEvent,
   PrimedNucleus, BroadcastResult,
+  DistinctivenessResult,
 } from './types.js'
 export {
   ENGRAM_TYPES, SYNAPSE_TYPES, SYNAPSE_PROPAGATION,
