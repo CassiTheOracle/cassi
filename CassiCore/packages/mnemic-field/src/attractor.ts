@@ -1,16 +1,23 @@
 /**
  * AttractorManager — tracks the field's attentional focus in polar coordinates.
  *
- * Tonic center: fixed at (0,0) — the Pineal's identity facets.
- * Phasic attractor: shifts based on recent retrieval patterns.
- * Alpha: blend ratio (1.0 = pure tonic, 0.0 = pure phasic).
+ * Three-pole attention model (Phase 7):
+ *   Tonic: fixed at origin (0,0) — the Pineal's identity facets.
+ *   Phasic: shifts based on recent retrieval patterns (session context).
+ *   Broadcast: centroid of recent global workspace broadcasts (field-level focus).
+ *
+ * Alpha blend: α_tonic + α_phasic + α_broadcast = 1.0.
  * Sigma: attentional spread (small = tight focus, large = broad).
+ * Harmony modulation: Yang → stronger tonic pull; Yin → stronger broadcast pull.
  */
 
 export interface AttractorState {
   tonic: { r: number; theta: number }
   phasic: { r: number; theta: number }
-  alpha: number
+  broadcast: { r: number; theta: number }
+  alphaTonic: number
+  alphaPhasic: number
+  alphaBroadcast: number
   sigma: number
 }
 
@@ -22,7 +29,10 @@ export class AttractorManager {
   state: AttractorState = {
     tonic: { r: 0, theta: 0 },
     phasic: { r: 0, theta: 0 },
-    alpha: 0.85,
+    broadcast: { r: 0, theta: 0 },
+    alphaTonic: 0.6,
+    alphaPhasic: 0.3,
+    alphaBroadcast: 0.1,
     sigma: 0.3,
   }
 
@@ -122,7 +132,10 @@ export class AttractorManager {
   effectiveDistance(engramR: number, engramTheta: number): number {
     const dTonic = polarDistance(engramR, engramTheta, this.state.tonic.r, this.state.tonic.theta)
     const dPhasic = polarDistance(engramR, engramTheta, this.state.phasic.r, this.state.phasic.theta)
-    return this.state.alpha * dTonic + (1 - this.state.alpha) * dPhasic
+    const dBroadcast = polarDistance(engramR, engramTheta, this.state.broadcast.r, this.state.broadcast.theta)
+    return this.state.alphaTonic * dTonic
+      + this.state.alphaPhasic * dPhasic
+      + this.state.alphaBroadcast * dBroadcast
   }
 
   /** Radial boost factor: higher for engrams near the attractor. */
@@ -162,12 +175,15 @@ export class AttractorManager {
     this.state.phasic.r += nudgeRate * (centroidR - this.state.phasic.r)
     this.state.phasic.theta += nudgeRate * angularDelta(this.state.phasic.theta, centroidTheta)
 
-    // Lower alpha when phasic is far from tonic (system is focused on something specific)
+    // Blend alphas based on distance from tonic
+    // When phasic is far from tonic: system is focused → more phasic, less tonic
     const dPhasic = polarDistance(
       this.state.phasic.r, this.state.phasic.theta,
       this.state.tonic.r, this.state.tonic.theta,
     )
-    this.state.alpha = Math.max(0.3, 1.0 - dPhasic * 0.8)
+    this.state.alphaTonic = Math.max(0.3, 0.7 - dPhasic * 0.4)
+    this.state.alphaPhasic = Math.min(0.5, dPhasic * 0.4)
+    this.state.alphaBroadcast = Math.max(0.05, 1.0 - this.state.alphaTonic - this.state.alphaPhasic)
 
     this.lastUpdateMs = Date.now()
 
@@ -186,10 +202,59 @@ export class AttractorManager {
     this.state.phasic.r *= (1 - decayRate)
     // Angular decay toward tonic theta (0)
     this.state.phasic.theta = this.state.phasic.theta * (1 - decayRate) + 0 * decayRate
-    // Alpha returns toward 1.0 (pure tonic)
-    this.state.alpha = Math.min(1.0, this.state.alpha + decayRate * 0.1)
+    // Broadcast also decays toward origin (field-level focus fades)
+    this.state.broadcast.r *= (1 - decayRate * 0.5)
+    // Alpha returns toward defaults (stronger tonic, weaker phasic)
+    this.state.alphaTonic = Math.min(0.7, this.state.alphaTonic + decayRate * 0.05)
+    this.state.alphaPhasic = Math.max(0.1, this.state.alphaPhasic - decayRate * 0.03)
+    this.state.alphaBroadcast = Math.max(0.05, 1.0 - this.state.alphaTonic - this.state.alphaPhasic)
 
     this.lastUpdateMs = nowMs
+  }
+
+  /**
+   * Shift the broadcast pole toward a workspace centroid.
+   * Called from the global workspace broadcast to pull attention toward
+   * where the field's conscious activity is concentrated.
+   */
+  shiftToward(x: number, y: number, strength: number = 0.2): void {
+    const targetR = Math.sqrt(x * x + y * y)
+    const targetTheta = Math.atan2(y, x)
+
+    this.state.broadcast.r += strength * (targetR - this.state.broadcast.r)
+    this.state.broadcast.theta += strength * angularDelta(this.state.broadcast.theta, targetTheta)
+
+    this.lastUpdateMs = Date.now()
+  }
+
+  /**
+   * Modulate alpha weights based on the harmony metric.
+   * Yang-dominated (harmony < 0.3): boost tonic to broaden focus.
+   * Yin-dominated (harmony > 0.7): boost broadcast to pull toward active clusters.
+   * Balanced (0.3–0.7): no correction.
+   */
+  applyHarmonyModulation(harmony: number): void {
+    const HARMONY_DAMPING = 0.3
+
+    if (harmony < 0.3) {
+      // Yang: too narrow — shift weight from phasic to tonic
+      const shift = (0.3 - harmony) * HARMONY_DAMPING
+      this.state.alphaTonic = Math.min(0.8, this.state.alphaTonic + shift)
+      this.state.alphaPhasic = Math.max(0.1, this.state.alphaPhasic - shift)
+    } else if (harmony > 0.7) {
+      // Yin: too diffuse — shift weight from tonic to broadcast
+      const shift = (harmony - 0.7) * HARMONY_DAMPING
+      this.state.alphaTonic = Math.max(0.3, this.state.alphaTonic - shift)
+      this.state.alphaBroadcast = Math.min(0.4, this.state.alphaBroadcast + shift)
+    }
+
+    // Re-normalize so weights sum to 1.0
+    const sum = this.state.alphaTonic + this.state.alphaPhasic + this.state.alphaBroadcast
+    if (sum > 0) {
+      this.state.alphaTonic /= sum
+      this.state.alphaPhasic /= sum
+      this.state.alphaBroadcast /= sum
+    }
   }
 }
 

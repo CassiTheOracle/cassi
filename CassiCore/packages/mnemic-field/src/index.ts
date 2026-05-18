@@ -1208,6 +1208,10 @@ export class MnemicField {
     const harmony = 0.4 * yinRatio + 0.6 * coverageRatio
 
     this.lastHarmony = Math.max(0, Math.min(1, harmony))
+
+    // Modulate attractor alpha weights based on harmony
+    this.attractor.applyHarmonyModulation(this.lastHarmony)
+
     return this.lastHarmony
   }
 
@@ -1292,6 +1296,9 @@ export class MnemicField {
     // Compute broadcast centroid (mean x, mean y)
     const broadcastX = positioned.reduce((s, e) => s + e.x, 0) / positioned.length
     const broadcastY = positioned.reduce((s, e) => s + e.y, 0) / positioned.length
+
+    // Shift attractor's broadcast pole toward the workspace centroid
+    this.attractor.shiftToward(broadcastX, broadcastY)
 
     // Expire any primed nuclei whose time has passed
     const now = Date.now()
