@@ -36,6 +36,8 @@ export interface InferenceResult {
   contentBlocks: ContentBlock[]
   tokensUsed: number
   hasToolUse: boolean
+  /** Reasoning/thinking content accumulated during streaming — required by DeepSeek and other thinking-mode providers */
+  reasoningContent?: string
   /** Detailed token breakdown — available when the provider reports it */
   tokenBreakdown?: {
     input: number
