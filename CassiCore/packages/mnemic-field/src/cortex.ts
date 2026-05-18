@@ -136,6 +136,7 @@ function rowToEngram(row: Record<string, unknown>): Engram {
     nodeType: row.node_type as Engram['nodeType'],
     x: row.x as number,
     y: row.y as number,
+    z: (row.z as number) ?? 0,
     t: row.t as number,
     potentiation: row.potentiation as number,
     clusterId: (row.cluster_id as string) || null,
@@ -176,6 +177,7 @@ function rowToNucleus(row: Record<string, unknown>): Nucleus {
     label: (row.label as string) || '',
     centroidX: row.centroid_x as number,
     centroidY: row.centroid_y as number,
+    centroidZ: (row.centroid_z as number) ?? 0,
     memberCount: row.member_count as number,
     avgPotentiation: row.avg_potentiation as number,
     abstractionId: (row.abstraction_id as string) || null,
@@ -203,8 +205,8 @@ export class Cortex {
   private prepareStatements() {
     return {
       insertEngram: this.db.prepare(`
-        INSERT INTO engrams (id, content, node_type, x, y, t, potentiation, cluster_id, embedding, tags, provenance, created_at, accessed_at, metadata, file_path, content_hash)
-        VALUES (@id, @content, @node_type, @x, @y, @t, @potentiation, NULL, @embedding, @tags, @provenance, @created_at, NULL, @metadata, @file_path, @content_hash)
+        INSERT INTO engrams (id, content, node_type, x, y, z, t, potentiation, cluster_id, embedding, tags, provenance, created_at, accessed_at, metadata, file_path, content_hash)
+        VALUES (@id, @content, @node_type, @x, @y, @z, @t, @potentiation, NULL, @embedding, @tags, @provenance, @created_at, NULL, @metadata, @file_path, @content_hash)
       `),
       getEngram: this.db.prepare(`SELECT * FROM engrams WHERE id = ?`),
       deleteEngram: this.db.prepare(`DELETE FROM engrams WHERE id = ?`),
@@ -289,8 +291,8 @@ export class Cortex {
       countSpikes: this.db.prepare(`SELECT COUNT(*) as count FROM activation_spikes`),
 
       insertNucleus: this.db.prepare(`
-        INSERT INTO nuclei (id, label, centroid_x, centroid_y, member_count, avg_potentiation, abstraction_id, parent_nucleus_id, depth, created_at, updated_at)
-        VALUES (@id, @label, @centroid_x, @centroid_y, 0, 0, @abstraction_id, @parent_nucleus_id, @depth, @created_at, @updated_at)
+        INSERT INTO nuclei (id, label, centroid_x, centroid_y, centroid_z, member_count, avg_potentiation, abstraction_id, parent_nucleus_id, depth, created_at, updated_at)
+        VALUES (@id, @label, @centroid_x, @centroid_y, @centroid_z, 0, 0, @abstraction_id, @parent_nucleus_id, @depth, @created_at, @updated_at)
       `),
       getNucleus: this.db.prepare(`SELECT * FROM nuclei WHERE id = ?`),
       deleteNucleus: this.db.prepare(`DELETE FROM nuclei WHERE id = ?`),
@@ -356,6 +358,7 @@ export class Cortex {
     const id = input.id ?? randomUUID()
     const x = input.x ?? 0
     const y = input.y ?? 0
+    const z = input.z ?? 0
     const t = input.t ?? Date.now()
     const potentiation = input.initialPotentiation ?? 0
 
@@ -363,7 +366,7 @@ export class Cortex {
       id,
       content: input.content,
       node_type: input.nodeType,
-      x, y, t,
+      x, y, z, t,
       potentiation,
       embedding: compressEmbedding(input.embedding ?? null),
       tags: JSON.stringify(input.tags ?? []),
@@ -634,6 +637,7 @@ export class Cortex {
       label: input.label,
       centroid_x: input.centroidX,
       centroid_y: input.centroidY,
+      centroid_z: input.centroidZ ?? 0,
       abstraction_id: input.abstractionId ?? null,
       parent_nucleus_id: input.parentNucleusId ?? null,
       depth: input.depth ?? 0,
