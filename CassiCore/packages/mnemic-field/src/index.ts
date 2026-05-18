@@ -46,6 +46,9 @@ const REPROJECTION = {
   maxFailures: 2,                 // block after this many consecutive failures
 } as const
 
+/** Floor on broadcast spark point modulation — prevents zero ignition. */
+const MIN_SPARK_MODULATION = 0.1
+
 /** Strip conversation preamble from engram content so the reranker sees actual text.
  *  26% of embedded engrams start with "USER: (context)\\n\\nASSISTANT:" — their first
  *  500 chars are metadata, not content. This extracts from the first ASSISTANT: line. */
@@ -314,8 +317,8 @@ export class MnemicField {
     this.kindlingEngine = new KindlingEngine(this.cortex, logger)
     this.kindlingEngine.setAttractor(this.attractor)
     this.kindlingEngine.setHarmonyProvider(() => this.getHarmony())
-    this.kindlingEngine.setBroadcastModProvider((engramId: string) =>
-      this.getBroadcastSparkModulation(engramId))
+    this.kindlingEngine.setBroadcastModProvider((clusterId: string | null) =>
+      this.getBroadcastSparkModulation(clusterId))
     this.gradientEngine = new GradientEngine(this.cortex, logger)
     this.consolidationEngine = new ConsolidationEngine(this.cortex, logger, this.gradientEngine, null)
     this.consolidationEngine.setHarmonyProvider(() => this.getHarmony())
@@ -1330,16 +1333,14 @@ export class MnemicField {
    *
    * Called from KindlingEngine during ignite.
    */
-  getBroadcastSparkModulation(engramId: string): number {
-    const engram = this.cortex.getEngram(engramId)
-    if (!engram || !engram.clusterId) return 1.0
+  getBroadcastSparkModulation(clusterId: string | null): number {
+    if (!clusterId) return 1.0
 
-    const prime = this.primedNuclei.get(engram.clusterId)
+    const prime = this.primedNuclei.get(clusterId)
     if (!prime || Date.now() >= prime.expiresAt) return 1.0
 
     // Modulation: 1.0 (no change) -> MIN_SPARK_MODULATION (max lowering)
     // Higher resonance = stronger lowering
-    const MIN_SPARK_MODULATION = 0.1
     return 1.0 - (1.0 - MIN_SPARK_MODULATION) * prime.resonance
   }
 

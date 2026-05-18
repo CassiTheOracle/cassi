@@ -40,8 +40,8 @@ export class KindlingEngine {
   private attractor: AttractorManager | null = null
   /** Optional: provides the current harmony metric for spark point modulation. */
   private harmonyProvider: (() => number) | null = null
-  /** Optional: provides broadcast spark modulation for an engram. */
-  private broadcastModProvider: ((engramId: string) => number) | null = null
+  /** Optional: provides broadcast spark modulation for an engram, keyed by clusterId. */
+  private broadcastModProvider: ((clusterId: string | null) => number) | null = null
 
   constructor(
     private cortex: Cortex,
@@ -67,7 +67,7 @@ export class KindlingEngine {
   }
 
   /** Set a provider for broadcast spark modulation (global workspace priming). */
-  setBroadcastModProvider(provider: ((engramId: string) => number) | null): void {
+  setBroadcastModProvider(provider: ((clusterId: string | null) => number) | null): void {
     this.broadcastModProvider = provider
   }
 
@@ -659,7 +659,7 @@ export class KindlingEngine {
 
       // Broadcast modulation: primed nuclei lower the spark point further
       if (this.broadcastModProvider) {
-        effectiveSparkPoint *= this.broadcastModProvider(engramId)
+        effectiveSparkPoint *= this.broadcastModProvider(engram.clusterId)
       }
 
       if (charge >= Math.max(0.01, effectiveSparkPoint)) {
