@@ -799,6 +799,35 @@ export async function handleMemoryRoutes(
     }
   }
 
+  // GET /memory/broadcast — global workspace broadcast state
+  if (parts[1] === 'broadcast' && method === 'GET') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      const primed = field.getPrimedNuclei()
+      const allNuclei = field.listNuclei()
+      const primedDetails = primed.map(p => {
+        const nucleus = allNuclei.find(n => n.id === p.nucleusId)
+        return {
+          nucleusId: p.nucleusId,
+          label: nucleus?.label ?? 'unknown',
+          resonance: p.resonance,
+          expiresInMs: p.expiresAt - Date.now(),
+        }
+      })
+
+      sendJSON(res, 200, {
+        ok: true,
+        primedNuclei: primedDetails,
+        primedCount: primedDetails.length,
+        totalNuclei: allNuclei.length,
+      })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
   // POST /memory/mnemic/kindle
   if (parts[1] === 'mnemic' && parts[2] === 'kindle' && method === 'POST') {
     try {
