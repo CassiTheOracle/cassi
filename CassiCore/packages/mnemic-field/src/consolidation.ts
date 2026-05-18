@@ -429,7 +429,7 @@ export class ConsolidationEngine {
     if (coActivationCounts.size === 0) return 0
 
     const engramMap = new Map(engrams.map(e => [e.id, e]))
-    const pullVectors = new Map<string, { dx: number; dy: number; totalWeight: number }>()
+    const pullVectors = new Map<string, { dx: number; dy: number; dz: number; totalWeight: number }>()
 
     for (const [pairKey, count] of coActivationCounts) {
       const [idA, idB] = pairKey.split('|')
@@ -445,28 +445,31 @@ export class ConsolidationEngine {
       const bType = (b.metadata?.semanticType as string) ?? null
       const affinity = (aType && aType === bType) ? 1.25 : 1.0
 
-      const pullA = pullVectors.get(idA) ?? { dx: 0, dy: 0, totalWeight: 0 }
+      const pullA = pullVectors.get(idA) ?? { dx: 0, dy: 0, dz: 0, totalWeight: 0 }
       pullA.dx += rate * affinity * (b.x - a.x)
       pullA.dy += rate * affinity * (b.y - a.y)
+      pullA.dz += rate * affinity * (b.z - a.z)
       pullA.totalWeight += rate * affinity
       pullVectors.set(idA, pullA)
 
-      const pullB = pullVectors.get(idB) ?? { dx: 0, dy: 0, totalWeight: 0 }
+      const pullB = pullVectors.get(idB) ?? { dx: 0, dy: 0, dz: 0, totalWeight: 0 }
       pullB.dx += rate * affinity * (a.x - b.x)
       pullB.dy += rate * affinity * (a.y - b.y)
+      pullB.dz += rate * affinity * (a.z - b.z)
       pullB.totalWeight += rate * affinity
       pullVectors.set(idB, pullB)
     }
 
-    const updates: Array<{ id: string; x: number; y: number }> = []
+    const updates: Array<{ id: string; x: number; y: number; z: number }> = []
     for (const [id, pull] of pullVectors) {
       const e = engramMap.get(id)
       if (!e || pull.totalWeight === 0) continue
 
       const newX = e.x + pull.dx
       const newY = e.y + pull.dy
-      if (Math.abs(newX - e.x) > 0.0001 || Math.abs(newY - e.y) > 0.0001) {
-        updates.push({ id, x: newX, y: newY })
+      const newZ = e.z + pull.dz
+      if (Math.abs(newX - e.x) > 0.0001 || Math.abs(newY - e.y) > 0.0001 || Math.abs(newZ - e.z) > 0.0001) {
+        updates.push({ id, x: newX, y: newY, z: newZ })
       }
     }
 
