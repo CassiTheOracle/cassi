@@ -1661,6 +1661,14 @@ export class MnemicField {
     return this.cortex.listNuclei()
   }
 
+  getNucleus(id: string): Nucleus | null {
+    return this.cortex.getNucleus(id)
+  }
+
+  getEngramsByCluster(clusterId: string): Engram[] {
+    return this.cortex.getEngramsByCluster(clusterId)
+  }
+
   listAbstractions(limit = 50): Engram[] {
     return this.cortex.listEngrams(limit, 'abstraction')
   }
