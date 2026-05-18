@@ -1329,6 +1329,49 @@ export class MnemicField {
       }
     }
 
+    // Hub cascade: hub engrams in the luminal set re-broadcast to their
+    // bridged nuclei at reduced strength (50%). One-hop only — cascaded
+    // nuclei do not cascade further. Uses ANN neighbor nucleus diversity.
+    const HUB_CASCADE_FACTOR = 0.5
+    let hubCascadeCount = 0
+    const annReady = this.kindlingEngine.isAnnReady()
+
+    for (const [engramId, engram] of luminalEngrams) {
+      const hubScore = (engram.metadata as Record<string, unknown>)?.hubScore as number | undefined
+      if (!hubScore || hubScore < 0.3 || !engram.embedding || !annReady) continue
+
+      // Find bridged nuclei via ANN neighbors
+      const neighbors = this.kindlingEngine.searchEngramAnn(
+        Array.from(engram.embedding), 50,
+      )
+      const bridgedNuclei = new Set<string>()
+      for (const n of neighbors) {
+        if (n.id === engramId) continue
+        const neighborEngram = this.cortex.getEngram(n.id)
+        if (neighborEngram?.clusterId) {
+          bridgedNuclei.add(neighborEngram.clusterId)
+        }
+      }
+
+      // Calculate hub's effective resonance (based on its spatial position)
+      const hubR = Math.sqrt(engram.x * engram.x + engram.y * engram.y)
+      const hubResonance = 1 / (1 + hubR)
+
+      // Cascade to each bridged nucleus at reduced strength
+      for (const nucleusId of bridgedNuclei) {
+        const cascadeResonance = hubResonance * HUB_CASCADE_FACTOR
+        const existing = this.primedNuclei.get(nucleusId)
+        if (!existing || cascadeResonance > existing.resonance) {
+          this.primedNuclei.set(nucleusId, {
+            nucleusId,
+            resonance: cascadeResonance,
+            expiresAt: now + 30_000,
+          })
+          hubCascadeCount++
+        }
+      }
+    }
+
     const durationMs = Date.now() - start
 
     this.logger.info('Global workspace broadcast complete', {
@@ -1338,6 +1381,7 @@ export class MnemicField {
       broadcastY: Number(broadcastY.toFixed(4)),
       nucleiPrimed,
       nucleiIgnored,
+      hubCascadeCount,
       totalNuclei: allNuclei.length,
       durationMs,
     })
