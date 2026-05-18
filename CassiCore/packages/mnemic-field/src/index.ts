@@ -1133,6 +1133,15 @@ export class MnemicField {
       this.logger.debug('Global workspace broadcast failed', { error: String(err) })
     }
 
+    // Record activation spikes for engrams in the luminal set.
+    // This feeds potentiation accumulation during consolidation.
+    // Fire-and-forget — must never block the return path.
+    try {
+      this.recordActivation(luminal)
+    } catch (err) {
+      this.logger.debug('Activation recording failed', { error: String(err) })
+    }
+
     // Cache result. Evict oldest if over capacity (Map iteration order is insertion order).
     this.retrieveCache.set(cacheKey, { hits: contentHits, ts: now })
     while (this.retrieveCache.size > MnemicField.RETRIEVE_CACHE_MAX) {
