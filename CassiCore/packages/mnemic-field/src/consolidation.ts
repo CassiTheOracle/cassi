@@ -553,7 +553,7 @@ export class ConsolidationEngine {
 
     await yieldToEventLoop()
 
-    const updates: Array<{ id: string; x: number; y: number }> = []
+    const updates: Array<{ id: string; x: number; y: number; z: number }> = []
 
     for (const engram of engrams) {
       // Do not drift pineal_facet engrams — they are the anchors
@@ -584,9 +584,13 @@ export class ConsolidationEngine {
 
       const newX = newR * Math.cos(theta)
       const newY = newR * Math.sin(theta)
+      // Scale z proportionally to radial drift: engrams pulled inward
+      // also move closer to the semantic plane (z → 0).
+      const zScale = r > 0.001 ? newR / r : 1.0
+      const newZ = engram.z * zScale
 
-      if (Math.abs(newX - engram.x) > 0.0001 || Math.abs(newY - engram.y) > 0.0001) {
-        updates.push({ id: engram.id, x: newX, y: newY })
+      if (Math.abs(newX - engram.x) > 0.0001 || Math.abs(newY - engram.y) > 0.0001 || Math.abs(newZ - engram.z) > 0.0001) {
+        updates.push({ id: engram.id, x: newX, y: newY, z: newZ })
       }
     }
 
