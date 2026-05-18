@@ -2942,11 +2942,17 @@ export class MnemicField {
         if (batch) batch.push(o.id)
         else byNucleus.set(nearest, [o.id])
       }
-
-      for (const [nucleusId, ids] of byNucleus) {
-        this.cortex.assignToNucleus(ids, nucleusId)
-        totalAssigned += ids.length
-      }
+      // Assign each batch directly — avoids N×M SQL queries from assignToNucleus
+      const tx = (this.cortex as any).db.transaction(() => {
+        for (const [nucleusId, ids] of byNucleus) {
+          const placeholders = ids.map(() => '?').join(',')
+          ;(this.cortex as any).db.prepare(
+            `UPDATE engrams SET cluster_id = ? WHERE id IN (${placeholders})`
+          ).run(nucleusId, ...ids)
+          totalAssigned += ids.length
+        }
+      })
+      tx()
       offset += CHUNK
     }
 
