@@ -817,3 +817,25 @@ export interface TraceEvent {
   edges: MnemicSynapse[]
   expertInjections?: string[]
 }
+
+/** Primed nucleus — temporary spark point reduction from a global workspace broadcast. */
+export interface PrimedNucleus {
+  nucleusId: string
+  /** Resonance score at time of priming (0-1). Higher = stronger prime. */
+  resonance: number
+  /** When this prime expires (epoch ms). After this, spark modulation returns to 1.0. */
+  expiresAt: number
+}
+
+/** Result of a global workspace broadcast. */
+export interface BroadcastResult {
+  /** Number of nuclei that received priming (resonance >= threshold). */
+  nucleiPrimed: number
+  /** Number of nuclei that were below the resonance threshold (shadow accumulated). */
+  nucleiIgnored: number
+  /** The broadcast centroid position (mean of luminal engram positions). */
+  broadcastX: number
+  broadcastY: number
+  /** Duration of the broadcast computation in ms. */
+  durationMs: number
+}

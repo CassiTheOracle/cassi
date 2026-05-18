@@ -161,6 +161,7 @@ export type {
   BackpropConfig, BackpropResult, TraceGradientResult, SynapseOptimizerState,
   ExpertKind, ExpertDomain, ExpertProvenance, ExpertMetadata,
   ExpertLifecycleState, ExpertQuery, TraceOptions, TraceEvent,
+  PrimedNucleus, BroadcastResult,
 } from './types.js'
 export {
   ENGRAM_TYPES, SYNAPSE_TYPES, SYNAPSE_PROPAGATION,
