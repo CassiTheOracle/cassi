@@ -43,6 +43,8 @@ export interface ConsolidationOptions {
   skipContrastiveFeedback?: boolean
   /** Phase 2: contrastive extraction — cancels shared sentences to surface what's unique. */
   skipDistinctiveness?: boolean
+  /** Skip nearest-neighbor orphan assignment after DBSCAN clustering. */
+  skipOrphanAssignment?: boolean
   pruneKeepCount?: number
   /** Matches NeuralKindlingConfig.maxTraceAge default (1 hour). Traces older than this are garbage — their gradient feedback will never arrive. */
   forwardTracePruneAgeMs?: number

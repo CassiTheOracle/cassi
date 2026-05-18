@@ -2873,6 +2873,18 @@ export class MnemicField {
 
     const result = await this.consolidationEngine.consolidate(options)
 
+    // Assign orphaned engrams to their nearest nucleus by 3D distance.
+    // DBSCAN clustering is tight (ε=0.015) and leaves ~96% of engrams
+    // unassigned. Nearest-neighbor assignment fills the gaps.
+    if (!options?.skipOrphanAssignment) {
+      try {
+        const count = this.assignOrphansToNearestNucleus()
+        this.logger.info('Orphan engrams assigned to nuclei', { assigned: count })
+      } catch (err) {
+        this.logger.warn('Orphan assignment failed', { error: String(err) })
+      }
+    }
+
     // Phase 2: Contrastive Extraction — after nuclei and drift settle,
     // cancel shared sentences within each group to surface what's unique.
     if (!options?.skipDistinctiveness) {
@@ -2890,6 +2902,56 @@ export class MnemicField {
     this.kindlingEngine.invalidatePhotonCache()
 
     return result
+  }
+
+  /**
+   * Assign every orphaned engram (no cluster_id) to its nearest nucleus
+   * by 3D Euclidean distance. Processes in chunks of 5000 to stay
+   * memory-friendly. After assignment, recomputes all nucleus centroids
+   * from their new member sets.
+   */
+  private assignOrphansToNearestNucleus(): number {
+    const nuclei = this.cortex.listNuclei()
+    if (nuclei.length === 0) return 0
+
+    const centroids = nuclei.map(n => ({
+      id: n.id,
+      x: n.centroidX,
+      y: n.centroidY,
+      z: n.centroidZ ?? 0,
+    }))
+
+    const CHUNK = 5000
+    let offset = 0
+    let totalAssigned = 0
+
+    while (true) {
+      const orphans = this.cortex.listOrphanedPositions(CHUNK, offset)
+      if (orphans.length === 0) break
+
+      const byNucleus = new Map<string, string[]>()
+      for (const o of orphans) {
+        let minDist = Infinity
+        let nearest = centroids[0].id
+        for (const c of centroids) {
+          const dx = o.x - c.x, dy = o.y - c.y, dz = (o.z ?? 0) - c.z
+          const d = dx * dx + dy * dy + dz * dz
+          if (d < minDist) { minDist = d; nearest = c.id }
+        }
+        const batch = byNucleus.get(nearest)
+        if (batch) batch.push(o.id)
+        else byNucleus.set(nearest, [o.id])
+      }
+
+      for (const [nucleusId, ids] of byNucleus) {
+        this.cortex.assignToNucleus(ids, nucleusId)
+        totalAssigned += ids.length
+      }
+      offset += CHUNK
+    }
+
+    this.cortex.recomputeNucleusCentroids()
+    return totalAssigned
   }
 
   /**

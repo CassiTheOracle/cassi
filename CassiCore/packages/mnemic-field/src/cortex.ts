@@ -1178,6 +1178,45 @@ export class Cortex {
   }
 
   /**
+   * Fetch a chunk of orphaned engrams with their 3D positions.
+   * Used for nearest-neighbor nucleus assignment during consolidation.
+   */
+  listOrphanedPositions(limit: number, offset: number): Array<{ id: string; x: number; y: number; z: number }> {
+    return this.db.prepare(
+      `SELECT id, x, y, z FROM engrams
+       WHERE cluster_id IS NULL AND x != 0 AND y != 0
+       ORDER BY id LIMIT ? OFFSET ?`
+    ).all(limit, offset) as Array<{ id: string; x: number; y: number; z: number }>
+  }
+
+  /**
+   * Recompute all nucleus centroids from their current member engrams.
+   * Called after bulk engram reassignment to keep centroids accurate.
+   */
+  recomputeNucleusCentroids(): number {
+    const nuclei = this.listNuclei()
+    let updated = 0
+    const updateStmt = this.db.prepare(
+      `UPDATE nuclei SET centroid_x = ?, centroid_y = ?, centroid_z = ?, member_count = ? WHERE id = ?`
+    )
+    const tx = this.db.transaction(() => {
+      for (const n of nuclei) {
+        const members = this.db.prepare(
+          `SELECT x, y, z FROM engrams WHERE cluster_id = ?`
+        ).all(n.id) as Array<{ x: number; y: number; z: number }>
+        if (members.length === 0) continue
+        const cx = members.reduce((s, m) => s + m.x, 0) / members.length
+        const cy = members.reduce((s, m) => s + m.y, 0) / members.length
+        const cz = members.reduce((s, m) => s + (m.z ?? 0), 0) / members.length
+        updateStmt.run(cx, cy, cz, members.length, n.id)
+        updated++
+      }
+    })
+    tx()
+    return updated
+  }
+
+  /**
    * Tag frequency distribution across orphan engrams.
    * Parses the JSON tag arrays and aggregates counts to show
    * which topics dominate the unorganized memory.
