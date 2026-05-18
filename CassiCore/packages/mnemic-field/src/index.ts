@@ -1120,8 +1120,17 @@ export class MnemicField {
       this.logger.debug('Failed to persist retrieval event', { error: String(err) })
     }
 
-    // Filter bridge engrams from results — they're structural, not content.
-    const contentHits = hits.filter(h => h.nodeType !== 'bridge')
+    // Filter structural engrams from user-facing results.
+    // These types are infrastructure — they carry file snapshots, session metadata,
+    // tool invocation records, and other operational state. Exposing them in
+    // retrieval results pollutes the output with stale file versions and
+    // administrative noise.
+    const STRUCTURAL_TYPES = new Set([
+      'bridge', 'session', 'file', 'source_file', 'file_version', 'file_read',
+      'changeset', 'message', 'tool_invocation', 'thought_command',
+      'replay_segment', 'expert_summary',
+    ])
+    const contentHits = hits.filter(h => !STRUCTURAL_TYPES.has(h.nodeType))
 
     // Global Workspace Broadcast (Phase 1): signal the field about what's in
     // the luminal set. Fire-and-forget — must never block the return path.
