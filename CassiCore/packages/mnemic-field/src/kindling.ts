@@ -187,6 +187,10 @@ export class KindlingEngine {
       const delta = neural
         ? this.spreadOnceNeural(chargeMap, iter + 1, shouldRecordTrace ? traceRecords : undefined)
         : this.spreadOnce(chargeMap)
+      // Photon spread: first iteration only, wireless discovery of latent connections
+      if (iter === 0 && embedding) {
+        this.photonSpread(chargeMap, embedding)
+      }
       if (recording) {
         trace.push({ iteration: iterations, charges: Object.fromEntries(chargeMap) })
       }
@@ -429,6 +433,71 @@ export class KindlingEngine {
       const oldCharge = chargeMap.get(id) ?? 0
       const newCharge = oldCharge + dampened
       chargeMap.set(id, newCharge)
+      totalDelta += Math.abs(dampened)
+    }
+
+    return totalDelta
+  }
+
+  // Photon layer constants
+  private static readonly PHOTON_EMISSION_THRESHOLD = 0.1
+  private static readonly PHOTON_DECAY = 8.0
+  private static readonly PHOTON_DAMPENING = 0.1
+  private static readonly MAX_PHOTON_NEIGHBORS = 20
+  private static readonly LUMINOSITY_SCALE = 2.0
+
+  /**
+   * Photon spread: wireless activation via embedding-space proximity.
+   * Active engrams (charge >= threshold) emit "photons" that gently
+   * pre-activate nearby engrams in embedding space, even without synapses.
+   */
+  private photonSpread(
+    chargeMap: Map<string, number>,
+    queryEmbedding: number[] | null,
+  ): number {
+    if (!queryEmbedding || !this.isAnnReady()) return 0
+
+    const emitterIds = [...chargeMap.entries()]
+      .filter(([_, charge]) => charge >= KindlingEngine.PHOTON_EMISSION_THRESHOLD)
+      .map(([id]) => id)
+
+    if (emitterIds.length === 0) return 0
+
+    const emitterEngrams = this.cortex.getEngrams(emitterIds)
+    const contributions = new Map<string, number>()
+
+    for (const emitterId of emitterIds) {
+      const emitter = emitterEngrams.get(emitterId)
+      if (!emitter || !emitter.embedding) continue
+
+      const distinctiveness = (emitter.metadata?.distinctiveness as number) ?? 0.5
+      const luminosity = emitter.potentiation * distinctiveness
+        * KindlingEngine.LUMINOSITY_SCALE
+      const emitterCharge = chargeMap.get(emitterId)!
+
+      const neighbors = this.searchEngramAnn(
+        Array.from(emitter.embedding),
+        KindlingEngine.MAX_PHOTON_NEIGHBORS + 1,
+      )
+
+      for (const neighbor of neighbors) {
+        if (neighbor.id === emitterId) continue
+        if (chargeMap.has(neighbor.id)) continue
+
+        const d = neighbor.distance
+        const photonicContribution = emitterCharge * luminosity
+          / (1 + KindlingEngine.PHOTON_DECAY * d * d)
+
+        const existing = contributions.get(neighbor.id) ?? 0
+        contributions.set(neighbor.id, existing + photonicContribution)
+      }
+    }
+
+    let totalDelta = 0
+    for (const [id, contrib] of contributions) {
+      const dampened = contrib * KindlingEngine.PHOTON_DAMPENING
+      const oldCharge = chargeMap.get(id) ?? 0
+      chargeMap.set(id, oldCharge + dampened)
       totalDelta += Math.abs(dampened)
     }
 
