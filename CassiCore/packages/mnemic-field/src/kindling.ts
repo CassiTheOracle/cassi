@@ -188,8 +188,8 @@ export class KindlingEngine {
         ? this.spreadOnceNeural(chargeMap, iter + 1, shouldRecordTrace ? traceRecords : undefined)
         : this.spreadOnce(chargeMap)
       // Photon spread: first iteration only, wireless discovery of latent connections
-      if (iter === 0 && embedding) {
-        this.photonSpread(chargeMap, embedding)
+      if (iter === 0) {
+        this.photonSpread(chargeMap)
       }
       if (recording) {
         trace.push({ iteration: iterations, charges: Object.fromEntries(chargeMap) })
@@ -451,11 +451,8 @@ export class KindlingEngine {
    * Active engrams (charge >= threshold) emit "photons" that gently
    * pre-activate nearby engrams in embedding space, even without synapses.
    */
-  private photonSpread(
-    chargeMap: Map<string, number>,
-    queryEmbedding: number[] | null,
-  ): number {
-    if (!queryEmbedding || !this.isAnnReady()) return 0
+  private photonSpread(chargeMap: Map<string, number>): number {
+    if (!this.isAnnReady()) return 0
 
     const emitterIds = [...chargeMap.entries()]
       .filter(([_, charge]) => charge >= KindlingEngine.PHOTON_EMISSION_THRESHOLD)

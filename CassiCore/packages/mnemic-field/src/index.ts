@@ -38,6 +38,7 @@ import type {
   BackpropConfig,
   ReplayTraversal, ReplayTraversalOptions,
   ReplayEvent, ReplayEventKind, SessionReplaySummary,
+  PrimedNucleus, BroadcastResult,
 } from './types.js'
 import { SPARK_POINT_DEFAULTS, POTENTIATION_DEFAULTS } from './types.js'
 
@@ -48,6 +49,9 @@ const REPROJECTION = {
 
 /** Floor on broadcast spark point modulation — prevents zero ignition. */
 const MIN_SPARK_MODULATION = 0.1
+
+/** Default resonance threshold for nucleus priming during broadcast. */
+const BRADCAST_RESONANCE_THRESHOLD = 0.3
 
 /** Strip conversation preamble from engram content so the reranker sees actual text.
  *  26% of embedded engrams start with "USER: (context)\\n\\nASSISTANT:" — their first
@@ -211,9 +215,9 @@ export class MnemicField {
 
   // Global Workspace Broadcast state (Phase 1)
   /** Nuclei currently primed by broadcast. In-memory only — lost on restart. */
-  private primedNuclei: Map<string, import('./types.js').PrimedNucleus> = new Map()
+  private primedNuclei: Map<string, PrimedNucleus> = new Map()
   /** Resonance threshold for nucleus priming. */
-  private broadcastResonanceThreshold = 0.3
+  private broadcastResonanceThreshold = BRADCAST_RESONANCE_THRESHOLD
 
   // Retrieval result cache. Kindling does 5 iterations of spreading activation
   // across ~800k filaments and takes 10-30s. Repeated identical queries (very
@@ -1280,7 +1284,7 @@ export class MnemicField {
    * @param luminalIds IDs of engrams in the luminal set (post-rerank, post-filter)
    * @returns BroadcastResult or null if the luminal set is empty
    */
-  private broadcastGlobalWorkspace(luminalIds: string[]): import('./types.js').BroadcastResult | null {
+  private broadcastGlobalWorkspace(luminalIds: string[]): BroadcastResult | null {
     const start = Date.now()
 
     // No luminal engrams -> nothing to broadcast
@@ -1351,17 +1355,21 @@ export class MnemicField {
       const neighbors = this.kindlingEngine.searchEngramAnn(
         Array.from(engram.embedding), 50,
       )
+      // Batch-fetch neighbor engrams (1 query instead of N)
+      const neighborIds = neighbors
+        .filter(n => n.id !== engramId)
+        .map(n => n.id)
+      const neighborEngrams = this.cortex.getEngrams(neighborIds)
       const bridgedNuclei = new Set<string>()
-      for (const n of neighbors) {
-        if (n.id === engramId) continue
-        const neighborEngram = this.cortex.getEngram(n.id)
+      for (const nId of neighborIds) {
+        const neighborEngram = neighborEngrams.get(nId)
         if (neighborEngram?.clusterId) {
           bridgedNuclei.add(neighborEngram.clusterId)
         }
       }
 
-      // Calculate hub's effective resonance (based on its spatial position)
-      const hubR = Math.sqrt(engram.x * engram.x + engram.y * engram.y)
+      // Calculate hub's effective resonance (based on its spatial position, including z)
+      const hubR = Math.sqrt(engram.x * engram.x + engram.y * engram.y + (engram.z ?? 0) * (engram.z ?? 0))
       const hubResonance = 1 / (1 + hubR)
 
       // Cascade to each bridged nucleus at reduced strength
@@ -2625,23 +2633,19 @@ export class MnemicField {
    * Return engrams previously identified as hubs (from metadata).
    */
   getHubs(limit = 20): Array<{ engramId: string; hubScore: number; content: string }> {
-    const all = this.cortex.listEngrams(50000)
-    return all
-      .filter(e => {
-        const score = (e.metadata as Record<string, unknown>)?.hubScore as number | undefined
-        return score !== undefined && score >= 0.3
-      })
-      .sort((a, b) => {
-        const aScore = ((a.metadata as Record<string, unknown>)?.hubScore as number) ?? 0
-        const bScore = ((b.metadata as Record<string, unknown>)?.hubScore as number) ?? 0
-        return bScore - aScore
-      })
-      .slice(0, limit)
-      .map(e => ({
-        engramId: e.id,
-        hubScore: ((e.metadata as Record<string, unknown>)?.hubScore as number) ?? 0,
-        content: e.content.slice(0, 200),
-      }))
+    // SQL filter avoids loading all engrams into memory
+    const rows = this.db.prepare(`
+      SELECT id, content, json_extract(metadata, '$.hubScore') as hubScore
+      FROM engrams
+      WHERE json_extract(metadata, '$.hubScore') > 0.3
+      ORDER BY json_extract(metadata, '$.hubScore') DESC
+      LIMIT ?
+    `).all(limit) as Array<{ id: string; content: string; hubScore: number }>
+    return rows.map(r => ({
+      engramId: r.id,
+      hubScore: r.hubScore,
+      content: r.content.slice(0, 200),
+    }))
   }
 
   /**

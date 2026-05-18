@@ -185,6 +185,12 @@ export class AttractorManager {
     this.state.alphaPhasic = Math.min(0.5, dPhasic * 0.4)
     this.state.alphaBroadcast = Math.max(0.05, 1.0 - this.state.alphaTonic - this.state.alphaPhasic)
 
+    // Gently nudge broadcast pole toward luminal centroid too
+    // (weaker than phasic: broadcast tracks field-level focus, not session-level)
+    const broadcastNudge = 0.1
+    this.state.broadcast.r += broadcastNudge * (centroidR - this.state.broadcast.r)
+    this.state.broadcast.theta += broadcastNudge * angularDelta(this.state.broadcast.theta, centroidTheta)
+
     this.lastUpdateMs = Date.now()
 
     // Record this attractor position for shadow observation (Phase 0: Yin/Yang)
