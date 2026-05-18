@@ -832,8 +832,8 @@ export interface PrimedNucleus {
   nucleusId: string
   /** Resonance score at time of priming (0-1). Higher = stronger prime. */
   resonance: number
-  /** When this prime expires (epoch ms). After this, spark modulation returns to 1.0. */
-  expiresAt: number
+  /** Retrieval counter value when this prime was created. Expires after PRIME_RETRIEVAL_LIFETIME retrievals. */
+  retrievalStamp: number
 }
 
 /** Result of a global workspace broadcast. */

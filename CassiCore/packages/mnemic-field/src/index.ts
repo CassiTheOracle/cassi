@@ -246,6 +246,11 @@ export class MnemicField {
   private yinPhaseCounter: number = 0
   private static readonly YIN_PHASE_INTERVAL = 10
 
+  /** Global retrieval counter — incremented on every retrieve(). Used as an
+   *  activity-based clock for prime decay instead of wall time. */
+  private retrievalCounter: number = 0
+  private static readonly PRIME_RETRIEVAL_LIFETIME = 10
+
   /** Enable the LLM reranker. Call during daemon startup after providers are wired. */
   setRerankerProvider(provider: IProvider, model?: string, enabled?: boolean): void {
     this.rerankerModel = model ?? this.rerankerModel
@@ -1121,6 +1126,7 @@ export class MnemicField {
     // Uses the pre-filter hits (includes bridge engrams for spatial signal)
     // since the luminal set was computed from the full kindling output.
     try {
+      this.retrievalCounter++
       this.broadcastGlobalWorkspace(hits.map(h => h.id))
     } catch (err) {
       // Broadcast failures must never block retrieval
@@ -1304,10 +1310,10 @@ export class MnemicField {
     // Shift attractor's broadcast pole toward the workspace centroid
     this.attractor.shiftToward(broadcastX, broadcastY)
 
-    // Expire any primed nuclei whose time has passed
-    const now = Date.now()
+    // Expire primed nuclei past their retrieval lifetime
+    const stamp = this.retrievalCounter
     for (const [id, prime] of this.primedNuclei) {
-      if (now >= prime.expiresAt) {
+      if (stamp - prime.retrievalStamp >= MnemicField.PRIME_RETRIEVAL_LIFETIME) {
         this.primedNuclei.delete(id)
       }
     }
@@ -1332,7 +1338,7 @@ export class MnemicField {
         this.primedNuclei.set(nucleus.id, {
           nucleusId: nucleus.id,
           resonance,
-          expiresAt: now + 30_000, // 30s half-life
+          retrievalStamp: stamp,
         })
         nucleiPrimed++
       } else {
@@ -1380,7 +1386,7 @@ export class MnemicField {
           this.primedNuclei.set(nucleusId, {
             nucleusId,
             resonance: cascadeResonance,
-            expiresAt: now + 30_000,
+            retrievalStamp: stamp,
           })
           hubCascadeCount++
         }
@@ -1415,7 +1421,7 @@ export class MnemicField {
     if (!clusterId) return 1.0
 
     const prime = this.primedNuclei.get(clusterId)
-    if (!prime || Date.now() >= prime.expiresAt) return 1.0
+    if (!prime || this.retrievalCounter - prime.retrievalStamp >= MnemicField.PRIME_RETRIEVAL_LIFETIME) return 1.0
 
     // Modulation: 1.0 (no change) -> MIN_SPARK_MODULATION (max lowering)
     // Higher resonance = stronger lowering
@@ -1423,11 +1429,13 @@ export class MnemicField {
   }
 
   /** Return currently primed nuclei (for admin API observability). */
-  getPrimedNuclei(): Array<{ nucleusId: string; resonance: number; expiresAt: number }> {
-    const now = Date.now()
+  getPrimedNuclei(): Array<{ nucleusId: string; resonance: number; remainingRetrievals: number }> {
     return [...this.primedNuclei.values()]
-      .filter(p => now < p.expiresAt)
-      .map(p => ({ nucleusId: p.nucleusId, resonance: p.resonance, expiresAt: p.expiresAt }))
+      .filter(p => this.retrievalCounter - p.retrievalStamp < MnemicField.PRIME_RETRIEVAL_LIFETIME)
+      .map(p => ({
+        nucleusId: p.nucleusId, resonance: p.resonance,
+        remainingRetrievals: MnemicField.PRIME_RETRIEVAL_LIFETIME - (this.retrievalCounter - p.retrievalStamp),
+      }))
   }
 
   /** Compute the fractal dimension of the field's cluster hierarchy. */
