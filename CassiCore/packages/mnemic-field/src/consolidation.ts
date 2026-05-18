@@ -23,6 +23,10 @@ export interface ConsolidationResult {
   gradientResult?: BackpropResult
   dreamResult?: DreamResult
   durationMs: number
+  /** Phase 2 contrastive extraction results (set by MnemicField.consolidate, not the engine). */
+  distinctivenessEngramsScored?: number
+  distinctivenessGroupsProcessed?: number
+  distinctivenessDurationMs?: number
 }
 
 export interface ConsolidationOptions {
@@ -37,6 +41,8 @@ export interface ConsolidationOptions {
   skipGradients?: boolean
   skipDreaming?: boolean
   skipContrastiveFeedback?: boolean
+  /** Phase 2: contrastive extraction — cancels shared sentences to surface what's unique. */
+  skipDistinctiveness?: boolean
   pruneKeepCount?: number
   /** Matches NeuralKindlingConfig.maxTraceAge default (1 hour). Traces older than this are garbage — their gradient feedback will never arrive. */
   forwardTracePruneAgeMs?: number

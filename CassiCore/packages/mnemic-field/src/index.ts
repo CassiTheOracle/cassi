@@ -2596,7 +2596,22 @@ export class MnemicField {
       this.computeSectorDensity()
     } catch { /* never block consolidation for density scan failures */ }
 
-    return this.consolidationEngine.consolidate(options)
+    const result = await this.consolidationEngine.consolidate(options)
+
+    // Phase 2: Contrastive Extraction — after nuclei and drift settle,
+    // cancel shared sentences within each group to surface what's unique.
+    if (!options?.skipDistinctiveness) {
+      try {
+        const de = await this.extractDistinctiveness()
+        result.distinctivenessEngramsScored = de.engramsScored
+        result.distinctivenessGroupsProcessed = de.groupsProcessed
+        result.distinctivenessDurationMs = de.durationMs
+      } catch (err) {
+        this.logger.warn('Distinctiveness extraction failed', { error: String(err) })
+      }
+    }
+
+    return result
   }
 
   /**
