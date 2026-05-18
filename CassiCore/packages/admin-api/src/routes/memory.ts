@@ -196,6 +196,34 @@ export async function handleMemoryRoutes(
     }
   }
 
+  // GET /memory/nucleus/:id/distinctiveness — per-member contrastive extraction results
+  if (parts[1] === 'nucleus' && parts[3] === 'distinctiveness' && method === 'GET') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      const nucleusId = parts[2]
+      const nucleus = field.getNucleus(nucleusId)
+      if (!nucleus) {
+        sendJSON(res, 404, { error: 'Nucleus not found' })
+        return true
+      }
+      const members = field.getEngramsByCluster(nucleusId)
+      const membersOut = members.map(m => ({
+        id: m.id,
+        content: m.content?.slice(0, 200),
+        distinctiveness: (m.metadata as Record<string, unknown> | undefined)?.distinctiveness ?? null,
+      }))
+      sendJSON(res, 200, {
+        ok: true,
+        nucleus,
+        members: membersOut,
+      })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
   // GET /memory/abstractions — list abstractions
   if (parts[1] === 'abstractions' && method === 'GET') {
     try {
