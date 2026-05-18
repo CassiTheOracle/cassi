@@ -628,7 +628,7 @@ export class ConsolidationEngine {
 
     await yieldToEventLoop()
 
-    const updates: Array<{ id: string; x: number; y: number }> = []
+    const updates: Array<{ id: string; x: number; y: number; z: number }> = []
 
     for (const engram of engrams) {
       // Do not drift pineal_facet engrams — they anchor their sectors
@@ -675,8 +675,21 @@ export class ConsolidationEngine {
       const newX = r * Math.cos(newTheta)
       const newY = r * Math.sin(newTheta)
 
-      if (Math.abs(newX - engram.x) > 0.0001 || Math.abs(newY - engram.y) > 0.0001) {
-        updates.push({ id: engram.id, x: newX, y: newY })
+      // Lerp z toward weighted average neighbor z
+      let sumZ = 0
+      let totalZW = 0
+      for (const { neighborId, weight } of neighbors) {
+        const neighbor = engramMap.get(neighborId)
+        if (!neighbor) continue
+        sumZ += neighbor.z * weight
+        totalZW += weight
+      }
+      const newZ = totalZW > 0
+        ? engram.z + lerpRate * (sumZ / totalZW - engram.z)
+        : engram.z
+
+      if (Math.abs(newX - engram.x) > 0.0001 || Math.abs(newY - engram.y) > 0.0001 || Math.abs(newZ - engram.z) > 0.0001) {
+        updates.push({ id: engram.id, x: newX, y: newY, z: newZ })
       }
     }
 
