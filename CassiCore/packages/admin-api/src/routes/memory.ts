@@ -828,6 +828,27 @@ export async function handleMemoryRoutes(
     }
   }
 
+  // GET /memory/fractal — fractal dimension of cluster hierarchy
+  if (parts[1] === 'fractal' && method === 'GET') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      const nuclei = field.listNuclei()
+      const depth0 = nuclei.filter(n => n.depth === 0).length
+      const depth2 = nuclei.filter(n => n.depth === 2).length
+      sendJSON(res, 200, {
+        ok: true,
+        fractalDimension: field.getFractalDimension(),
+        depth0Nuclei: depth0,
+        depth2SuperNuclei: depth2,
+        totalNuclei: nuclei.length,
+      })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
   // POST /memory/mnemic/kindle
   if (parts[1] === 'mnemic' && parts[2] === 'kindle' && method === 'POST') {
     try {
