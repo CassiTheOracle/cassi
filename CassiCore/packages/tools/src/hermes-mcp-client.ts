@@ -14,6 +14,7 @@
 import { spawn, type ChildProcess } from 'node:child_process'
 import { resolve } from 'node:path'
 import { rootLogger } from '../logger.js'
+import { CASSICORE_VERSION } from '../version.js'
 import type { ToolDefinition } from './types.js'
 import type { ILogger } from '../../types/interfaces.js'
 
@@ -179,7 +180,7 @@ export class HermesMcpClient {
     const initResult = await this.sendRequest('initialize', {
       protocolVersion: '2024-11-05',
       capabilities: { tools: {} },
-      clientInfo: { name: 'cassicore', version: '0.4.0' },
+      clientInfo: { name: 'cassicore', version: CASSICORE_VERSION },
     })
 
     this.serverCapabilities = (initResult?.capabilities as Record<string, unknown>) ?? {}
