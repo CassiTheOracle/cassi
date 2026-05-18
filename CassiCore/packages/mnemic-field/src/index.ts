@@ -205,6 +205,12 @@ export class MnemicField {
   private rerankerEnabled: boolean = false
   private foreshadow: { observe: (args: { query: string; sessionId?: string; wasCacheHit: boolean }) => Promise<void> } | null = null
 
+  // Global Workspace Broadcast state (Phase 1)
+  /** Nuclei currently primed by broadcast. In-memory only — lost on restart. */
+  private primedNuclei: Map<string, import('./types.js').PrimedNucleus> = new Map()
+  /** Resonance threshold for nucleus priming. */
+  private broadcastResonanceThreshold = 0.3
+
   // Retrieval result cache. Kindling does 5 iterations of spreading activation
   // across ~800k filaments and takes 10-30s. Repeated identical queries (very
   // common during a single conversation turn — agent often calls enrich with
@@ -1222,6 +1228,114 @@ export class MnemicField {
     parts.push('</shadow>')
 
     return parts.join('\n')
+  }
+
+  /**
+   * Global Workspace Broadcast (Phase 1): signal the entire field about what
+   * the luminal set is holding. Computes the spatial centroid of luminal
+   * engrams and primes nuclei that are spatially close to it.
+   *
+   * Fire-and-forget — never blocks the retrieve return path.
+   * Priming is in-memory only, exponential decay with 30s half-life.
+   *
+   * @param luminalIds IDs of engrams in the luminal set (post-rerank, post-filter)
+   * @returns BroadcastResult or null if the luminal set is empty
+   */
+  private broadcastGlobalWorkspace(luminalIds: string[]): import('./types.js').BroadcastResult | null {
+    const start = Date.now()
+
+    // No luminal engrams -> nothing to broadcast
+    if (luminalIds.length === 0) return null
+
+    // Get luminal engram positions
+    const luminalEngrams = this.cortex.getEngrams(luminalIds)
+    const positioned = Array.from(luminalEngrams.values())
+      .filter(e => e.x !== 0 || e.y !== 0)
+
+    if (positioned.length === 0) return null
+
+    // Compute broadcast centroid (mean x, mean y)
+    const broadcastX = positioned.reduce((s, e) => s + e.x, 0) / positioned.length
+    const broadcastY = positioned.reduce((s, e) => s + e.y, 0) / positioned.length
+
+    // Expire any primed nuclei whose time has passed
+    const now = Date.now()
+    for (const [id, prime] of this.primedNuclei) {
+      if (now >= prime.expiresAt) {
+        this.primedNuclei.delete(id)
+      }
+    }
+
+    // Compute resonance for every nucleus
+    const allNuclei = this.cortex.listNuclei()
+    let nucleiPrimed = 0
+    let nucleiIgnored = 0
+
+    for (const nucleus of allNuclei) {
+      // Spatial distance from broadcast centroid to nucleus centroid
+      const dx = broadcastX - nucleus.centroidX
+      const dy = broadcastY - nucleus.centroidY
+      const distance = Math.sqrt(dx * dx + dy * dy)
+
+      // Resonance: inverse distance, clamped to [0, 1]
+      // Nuclei at distance 0 get resonance 1.0; at distance 1.0 get 0.5
+      const resonance = 1 / (1 + distance)
+
+      if (resonance >= this.broadcastResonanceThreshold) {
+        // Prime this nucleus
+        this.primedNuclei.set(nucleus.id, {
+          nucleusId: nucleus.id,
+          resonance,
+          expiresAt: now + 30_000, // 30s half-life
+        })
+        nucleiPrimed++
+      } else {
+        nucleiIgnored++
+      }
+    }
+
+    const durationMs = Date.now() - start
+
+    this.logger.info('Global workspace broadcast complete', {
+      luminalSize: luminalIds.length,
+      positioned: positioned.length,
+      broadcastX: Number(broadcastX.toFixed(4)),
+      broadcastY: Number(broadcastY.toFixed(4)),
+      nucleiPrimed,
+      nucleiIgnored,
+      totalNuclei: allNuclei.length,
+      durationMs,
+    })
+
+    return { nucleiPrimed, nucleiIgnored, broadcastX, broadcastY, durationMs }
+  }
+
+  /**
+   * Get the current spark point modulation for an engram.
+   * If the engram belongs to a primed nucleus, its spark point is lowered
+   * (making it easier to ignite). Returns 1.0 (no modulation) if not primed.
+   *
+   * Called from KindlingEngine during ignite.
+   */
+  getBroadcastSparkModulation(engramId: string): number {
+    const engram = this.cortex.getEngram(engramId)
+    if (!engram || !engram.clusterId) return 1.0
+
+    const prime = this.primedNuclei.get(engram.clusterId)
+    if (!prime || Date.now() >= prime.expiresAt) return 1.0
+
+    // Modulation: 1.0 (no change) -> MIN_SPARK_MODULATION (max lowering)
+    // Higher resonance = stronger lowering
+    const MIN_SPARK_MODULATION = 0.1
+    return 1.0 - (1.0 - MIN_SPARK_MODULATION) * prime.resonance
+  }
+
+  /** Return currently primed nuclei (for admin API observability). */
+  getPrimedNuclei(): Array<{ nucleusId: string; resonance: number; expiresAt: number }> {
+    const now = Date.now()
+    return [...this.primedNuclei.values()]
+      .filter(p => now < p.expiresAt)
+      .map(p => ({ nucleusId: p.nucleusId, resonance: p.resonance, expiresAt: p.expiresAt }))
   }
 
   createMigrationJob(spec: MigrationJobSpec): MigrationJobRecord {
