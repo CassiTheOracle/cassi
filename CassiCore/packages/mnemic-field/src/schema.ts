@@ -450,6 +450,12 @@ function createFtsIfNeeded(db: Database.Database): void {
 }
 
 function createFilamentsFtsIfNeeded(db: Database.Database): void {
+  // filaments table was removed — skip FTS setup if the source table is gone
+  const filamentsExists = db.prepare(
+    `SELECT 1 FROM sqlite_master WHERE type='table' AND name='filaments'`
+  ).get()
+  if (!filamentsExists) return
+
   const ftsExists = db.prepare(
     `SELECT 1 FROM sqlite_master WHERE type='table' AND name='filaments_fts'`
   ).get()
