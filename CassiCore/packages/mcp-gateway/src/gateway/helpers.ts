@@ -5,9 +5,12 @@
  */
 
 import type { ILogger } from '../../types/interfaces.js';
+import { GATEWAY_VERSION } from '../../core/version.js';
+
+// Re-export for consumers that already import from here
+export { GATEWAY_VERSION };
 
 // Configuration
-export const GATEWAY_VERSION = '1.0.0';
 export const DEFAULT_FETCH_TIMEOUT_MS = 30_000; // 30s default timeout for all fetch calls
 
 // WHY: Exponential backoff with 5 retries covers ~8s total wait — enough for
