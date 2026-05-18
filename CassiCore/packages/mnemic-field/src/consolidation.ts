@@ -829,6 +829,7 @@ export class ConsolidationEngine {
         nodeType: 'abstraction',
         x: n.centroidX,
         y: n.centroidY,
+        z: n.centroidZ ?? 0,
         t: 0,
         potentiation: n.avgPotentiation,
         clusterId: null,
@@ -898,11 +899,13 @@ export class ConsolidationEngine {
       const neighbors: number[] = []
       const ex = engrams[idx].x
       const ey = engrams[idx].y
+      const ez = engrams[idx].z ?? 0
       for (let j = 0; j < n; j++) {
         if (j === idx) continue
         const dx = ex - engrams[j].x
         const dy = ey - engrams[j].y
-        if (dx * dx + dy * dy <= epsSq) neighbors.push(j)
+        const dz = ez - (engrams[j].z ?? 0)
+        if (dx * dx + dy * dy + dz * dz <= epsSq) neighbors.push(j)
       }
       return neighbors
     }
