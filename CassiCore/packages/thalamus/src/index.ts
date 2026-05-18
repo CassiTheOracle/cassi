@@ -2073,7 +2073,20 @@ this.aurora?.setReverieInferenceProvider(provider)
         validationErrors: validation.errors,
       }
       const sanitizedFallback = sanitizeToolPairs(stripThalamusAnnotations(protectedWindow))
-      return { messages: sanitizedFallback, meta: fallbackMeta }
+      // Ensure the fallback starts with a user message. The curation may have
+      // dropped the original first user message; the protected window walk-back
+      // (extractProtectedWindow) tries to find one, but can fail if the very
+      // first message in the conversation is a system prompt (e.g. Helix unity).
+      // Strip leading non-user messages; if none remain, inject a placeholder.
+      let fallbackMessages = sanitizedFallback
+      while (fallbackMessages.length > 0 && fallbackMessages[0]?.role !== 'user') {
+        fallbackMessages = fallbackMessages.slice(1)
+      }
+      if (fallbackMessages.length === 0) {
+        fallbackMessages = [{ role: 'user', content: 'Continue.' }]
+        this.logger.warn('Fallback had no user messages, injected placeholder', { sessionId })
+      }
+      return { messages: fallbackMessages, meta: fallbackMeta }
     }
     if (!validation.valid) {
       this.logger.warn('Curation has warnings', { sessionId, errors: validation.errors })
