@@ -657,6 +657,11 @@ export class KindlingEngine {
         }
       }
 
+      // Broadcast modulation: primed nuclei lower the spark point further
+      if (this.broadcastModProvider) {
+        effectiveSparkPoint *= this.broadcastModProvider(engramId)
+      }
+
       if (charge >= Math.max(0.01, effectiveSparkPoint)) {
         candidates.push({ engram, charge })
       }
