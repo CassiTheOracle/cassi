@@ -603,6 +603,7 @@ export async function handleMemoryRoutes(
         skipNuclei: !!body?.skipNuclei,
         skipAbstractions: !!body?.skipAbstractions,
         skipPruning: !!body?.skipPruning,
+        skipDistinctiveness: !!body?.skipDistinctiveness,
         pruneKeepCount: typeof body?.pruneKeepCount === 'number' ? body.pruneKeepCount : undefined,
         nucleiMinClusterSize: typeof body?.nucleiMinClusterSize === 'number' ? body.nucleiMinClusterSize : undefined,
         nucleiEpsilon: typeof body?.nucleiEpsilon === 'number' ? body.nucleiEpsilon : undefined,
