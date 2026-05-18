@@ -179,6 +179,8 @@ function rowToNucleus(row: Record<string, unknown>): Nucleus {
     memberCount: row.member_count as number,
     avgPotentiation: row.avg_potentiation as number,
     abstractionId: (row.abstraction_id as string) || null,
+    parentNucleusId: (row.parent_nucleus_id as string) || null,
+    depth: (row.depth as number) ?? 0,
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,
   }
@@ -287,8 +289,8 @@ export class Cortex {
       countSpikes: this.db.prepare(`SELECT COUNT(*) as count FROM activation_spikes`),
 
       insertNucleus: this.db.prepare(`
-        INSERT INTO nuclei (id, label, centroid_x, centroid_y, member_count, avg_potentiation, abstraction_id, created_at, updated_at)
-        VALUES (@id, @label, @centroid_x, @centroid_y, 0, 0, @abstraction_id, @created_at, @updated_at)
+        INSERT INTO nuclei (id, label, centroid_x, centroid_y, member_count, avg_potentiation, abstraction_id, parent_nucleus_id, depth, created_at, updated_at)
+        VALUES (@id, @label, @centroid_x, @centroid_y, 0, 0, @abstraction_id, @parent_nucleus_id, @depth, @created_at, @updated_at)
       `),
       getNucleus: this.db.prepare(`SELECT * FROM nuclei WHERE id = ?`),
       deleteNucleus: this.db.prepare(`DELETE FROM nuclei WHERE id = ?`),
@@ -633,10 +635,12 @@ export class Cortex {
       centroid_x: input.centroidX,
       centroid_y: input.centroidY,
       abstraction_id: input.abstractionId ?? null,
+      parent_nucleus_id: input.parentNucleusId ?? null,
+      depth: input.depth ?? 0,
       created_at: now,
       updated_at: now,
     })
-    this.logger.debug('Nucleus created', { id, label: input.label })
+    this.logger.debug('Nucleus created', { id, label: input.label, depth: input.depth ?? 0 })
     return this.getNucleus(id)!
   }
 
@@ -658,6 +662,8 @@ export class Cortex {
     if (update.memberCount !== undefined) { setClauses.push('member_count = @mc'); params.mc = update.memberCount }
     if (update.avgPotentiation !== undefined) { setClauses.push('avg_potentiation = @ap'); params.ap = update.avgPotentiation }
     if (update.abstractionId !== undefined) { setClauses.push('abstraction_id = @aid'); params.aid = update.abstractionId }
+    if (update.parentNucleusId !== undefined) { setClauses.push('parent_nucleus_id = @pnid'); params.pnid = update.parentNucleusId }
+    if (update.depth !== undefined) { setClauses.push('depth = @depth'); params.depth = update.depth }
     setClauses.push('updated_at = @updated_at'); params.updated_at = new Date().toISOString()
 
     if (setClauses.length <= 1) return existing

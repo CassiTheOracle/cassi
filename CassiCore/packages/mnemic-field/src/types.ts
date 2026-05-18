@@ -146,6 +146,8 @@ export interface Nucleus {
   memberCount: number
   avgPotentiation: number
   abstractionId: string | null
+  parentNucleusId: string | null
+  depth: number
   createdAt: string
   updatedAt: string
 }
@@ -156,6 +158,8 @@ export interface NucleusCreate {
   centroidX: number
   centroidY: number
   abstractionId?: string
+  parentNucleusId?: string | null
+  depth?: number
 }
 
 export interface SpatialQuery {
