@@ -461,6 +461,7 @@ export class MnemicField {
     if (this.retrieveCache.size > 0) this.retrieveCache.clear()
     let x = input.x
     let y = input.y
+    let z = input.z
     let r = input.r
     let theta = input.theta
 
@@ -488,6 +489,21 @@ export class MnemicField {
         r = 0.15 + distance * 0.7
         x = r * Math.cos(theta)
         y = r * Math.sin(theta)
+        // Derive z from embedding residual: mean difference from assigned VQ prototype.
+        // Positive z = engram is "above" its prototype (novel variation);
+        // negative z = "below" (simpler than the prototype).
+        if (z === undefined) {
+          const prototype = this.vqPrototypes.codebook[assignedIdx]
+          if (prototype) {
+            let sumResidual = 0
+            for (let i = 0; i < emb.length; i++) {
+              sumResidual += emb[i] - prototype[i]
+            }
+            z = sumResidual / emb.length
+          } else {
+            z = 0
+          }
+        }
       } else {
         // No embedding → place at periphery with random angle.
         theta = Math.random() * 2 * Math.PI
@@ -502,8 +518,10 @@ export class MnemicField {
       if (theta === undefined) theta = Math.atan2(y!, x!)
     }
 
+    if (z === undefined) z = 0
+
     const affect = attune(input.content)
-    let metadata: Record<string, unknown> = { ...input.metadata ?? {}, affect, r, theta }
+    let metadata: Record<string, unknown> = { ...input.metadata ?? {}, affect, r, theta, z }
 
     // Contrastive retrieval feedback: link new engrams to the luminal
     // engrams that triggered their creation via the most recent retrieval.
@@ -512,7 +530,7 @@ export class MnemicField {
       this.lastLuminalIds = []
     }
 
-    const engram = this.cortex.createEngram({ ...input, x, y, metadata })
+    const engram = this.cortex.createEngram({ ...input, x, y, z, metadata })
     return engram
   }
 
