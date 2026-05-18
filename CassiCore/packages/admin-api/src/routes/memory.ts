@@ -588,6 +588,19 @@ export async function handleMemoryRoutes(
     }
   }
 
+  // POST /memory/mnemic/detect-hubs
+  if (parts[1] === 'mnemic' && parts[2] === 'detect-hubs' && method === 'POST') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      const hubs = field.detectHubs()
+      sendJSON(res, 200, { ok: true, hubCount: hubs.length, hubs: hubs.slice(0, 20) })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
   // POST /memory/mnemic/ann/rebuild
   if (parts[1] === 'mnemic' && parts[2] === 'ann' && parts[3] === 'rebuild' && method === 'POST') {
     try {
