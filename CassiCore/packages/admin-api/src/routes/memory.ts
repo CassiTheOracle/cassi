@@ -878,6 +878,19 @@ export async function handleMemoryRoutes(
     }
   }
 
+  // GET /memory/hubs — field-level hub engrams
+  if (parts[1] === 'hubs' && method === 'GET') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      const limit = parseInt(url.searchParams.get('limit') ?? '20', 10)
+      sendJSON(res, 200, { ok: true, hubs: field.getHubs(limit) })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
   // POST /memory/mnemic/kindle
   if (parts[1] === 'mnemic' && parts[2] === 'kindle' && method === 'POST') {
     try {
