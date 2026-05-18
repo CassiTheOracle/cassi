@@ -2480,6 +2480,102 @@ export class MnemicField {
   }
 
   /**
+   * Detect hub engrams: engrams whose embedding-space neighbors span
+   * many distinct nuclei. Hubs are field-level concepts — their content
+   * is relevant across unrelated domains.
+   *
+   * Samples up to 5000 embedded engrams. Stores hubScore on metadata.
+   * Returns hubs with score above threshold (0.3 = spans 30%+ of sampled
+   * nuclei within neighbor radius).
+   */
+  detectHubs(options?: { sampleLimit?: number; neighborK?: number; hubThreshold?: number }): Array<{ engramId: string; hubScore: number; distinctNuclei: number }> {
+    const sampleLimit = options?.sampleLimit ?? 5000
+    const neighborK = options?.neighborK ?? 50
+    const hubThreshold = options?.hubThreshold ?? 0.3
+
+    if (!this.kindlingEngine.isAnnReady()) {
+      this.logger.debug('Hub detection skipped — ANN not ready')
+      return []
+    }
+
+    // Get sample of engrams with embeddings
+    const vectors = this.cortex.getEmbeddingVectors(sampleLimit)
+    if (vectors.length === 0) return []
+
+    const allNuclei = this.cortex.listNuclei()
+    const nucleusSet = new Set(allNuclei.map(n => n.id))
+    const hubs: Array<{ engramId: string; hubScore: number; distinctNuclei: number }> = []
+
+    for (const { id, embedding } of vectors) {
+      const neighbors = this.kindlingEngine.searchEngramAnn(
+        Array.from(embedding),
+        neighborK + 1,
+      )
+
+      // Count distinct nuclei among neighbors
+      const nucleiSeen = new Set<string>()
+      for (const n of neighbors) {
+        if (n.id === id) continue
+        const neighborEngram = this.cortex.getEngram(n.id)
+        if (neighborEngram?.clusterId && nucleusSet.has(neighborEngram.clusterId)) {
+          nucleiSeen.add(neighborEngram.clusterId)
+        }
+      }
+
+      const distinctNuclei = nucleiSeen.size
+      const hubScore = nucleusSet.size > 0
+        ? distinctNuclei / Math.min(neighborK, nucleusSet.size)
+        : 0
+
+      // Store on metadata for retrieval-time use
+      if (hubScore > 0) {
+        const engram = this.cortex.getEngram(id)
+        if (engram) {
+          const existingMeta = (engram.metadata ?? {}) as Record<string, unknown>
+          this.cortex.updateEngram(id, {
+            metadata: { ...existingMeta, hubScore, distinctNuclei, computedAt: Date.now() }
+          })
+        }
+
+        if (hubScore >= hubThreshold) {
+          hubs.push({ engramId: id, hubScore, distinctNuclei })
+        }
+      }
+    }
+
+    this.logger.info('Hub detection complete', {
+      sampled: vectors.length,
+      hubsFound: hubs.length,
+      topScore: hubs[0]?.hubScore?.toFixed(3) ?? 0,
+    })
+
+    return hubs.sort((a, b) => b.hubScore - a.hubScore)
+  }
+
+  /**
+   * Return engrams previously identified as hubs (from metadata).
+   */
+  getHubs(limit = 20): Array<{ engramId: string; hubScore: number; content: string }> {
+    const all = this.cortex.listEngrams(50000)
+    return all
+      .filter(e => {
+        const score = (e.metadata as Record<string, unknown>)?.hubScore as number | undefined
+        return score !== undefined && score >= 0.3
+      })
+      .sort((a, b) => {
+        const aScore = ((a.metadata as Record<string, unknown>)?.hubScore as number) ?? 0
+        const bScore = ((b.metadata as Record<string, unknown>)?.hubScore as number) ?? 0
+        return bScore - aScore
+      })
+      .slice(0, limit)
+      .map(e => ({
+        engramId: e.id,
+        hubScore: ((e.metadata as Record<string, unknown>)?.hubScore as number) ?? 0,
+        content: e.content.slice(0, 200),
+      }))
+  }
+
+  /**
    * Store a gradient request linking enrichment feedback to the last forward trace.
    * Called from the feedback handler to accumulate learning signals for consolidation.
    */
