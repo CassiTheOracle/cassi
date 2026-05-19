@@ -311,8 +311,8 @@ export class KindlingEngine {
    * Uses ANN index if available (O(log n)), otherwise brute-force (O(n)).
    */
   private findSeedsByEmbedding(queryEmb: number[], limit: number): SeedResult[] {
-    // Try ANN index first if available
-    if (this.isAnnReady()) {
+    // Try ANN index first if available and dimension matches
+    if (this.isAnnReady() && queryEmb.length === (this.engramAnnIndex?.getDimension() ?? 0)) {
       const annResults = this.engramAnnIndex!.search(queryEmb, limit * 2)
       
       if (annResults.length > 0) {
@@ -475,6 +475,9 @@ export class KindlingEngine {
     for (const emitterId of emitterIds) {
       const emitter = emitterEngrams.get(emitterId)
       if (!emitter || !emitter.embedding) continue
+      // Skip emitters whose embedding dimension doesn't match the ANN index
+      // (e.g., old Qwen3 1024-dim embeddings vs. current 1536-dim gate vectors).
+      if (emitter.embedding.length !== this.engramAnnIndex?.getDimension()) continue
 
       const distinctiveness = (emitter.metadata?.distinctiveness as number) ?? 0.5
       const luminosity = emitter.potentiation * distinctiveness

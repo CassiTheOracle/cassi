@@ -471,7 +471,7 @@ export class MnemicField {
     this.db = db  // Store for persistence
     this.cortex = new Cortex(db, logger)
     this.attractor = new AttractorManager()
-    this.vqPrototypes = new VQSectorPrototypes(1024)  // matches Qwen3-Embedding-0.6B dim
+    this.vqPrototypes = new VQSectorPrototypes(1536)  // gate-vector dim (was 1024 Qwen3)
     this.kindlingEngine = new KindlingEngine(this.cortex, logger)
     this.kindlingEngine.setAttractor(this.attractor)
     this.kindlingEngine.setHarmonyProvider(() => this.getHarmony())
@@ -617,6 +617,16 @@ export class MnemicField {
   store(input: EngramCreate): Engram {
     // New engram → invalidate retrieve cache (results may now be stale).
     if (this.retrieveCache.size > 0) this.retrieveCache.clear()
+
+    // Auto-embed with vindex gate vectors when backend is active and no explicit
+    // embedding was provided. This closes the loop: every new engram enters the
+    // model's native representation space without separate vLLM embedding pass.
+    let resolvedEmbedding = input.embedding
+    if (!resolvedEmbedding && this.embeddingBackend === 'vindex' && this.vindexEmbedder) {
+      const vec = this.vindexEmbedder(input.content, { minScore: 0.05 })
+      if (vec) resolvedEmbedding = vec
+    }
+
     let x = input.x
     let y = input.y
     let z = input.z
@@ -688,7 +698,7 @@ export class MnemicField {
       this.lastLuminalIds = []
     }
 
-    const engram = this.cortex.createEngram({ ...input, x, y, z, metadata })
+    const engram = this.cortex.createEngram({ ...input, x, y, z, metadata, embedding: resolvedEmbedding })
     return engram
   }
 

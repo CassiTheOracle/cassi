@@ -103,10 +103,19 @@ export class VQSectorPrototypes {
    * Find the nearest prototype by cosine distance.
    * If the codebook is empty, lazy-initializes with a single prototype
    * copied from the input embedding and labeled "domain-1".
+   * If the embedding dimension doesn't match, returns a fallback.
    */
   assign(embedding: Float32Array): AssignResult {
     if (this.codebook.length === 0) {
+      // Adapt to the first embedding's dimension
+      if (embedding.length !== this.dim) {
+        (this as any).dim = embedding.length
+      }
       this._lazyInit(embedding)
+    }
+
+    if (embedding.length !== this.dim) {
+      return { prototypeIdx: 0, distance: 1 }
     }
 
     let bestIdx = 0
@@ -137,8 +146,15 @@ export class VQSectorPrototypes {
     threshold: number = DEFAULT_CREATE_THRESHOLD,
   ): number {
     if (this.codebook.length === 0) {
+      if (embedding.length !== this.dim) {
+        (this as any).dim = embedding.length
+      }
       this._lazyInit(embedding)
       return 0
+    }
+
+    if (embedding.length !== this.dim) {
+      return 0 // fallback: can't assign to mismatched-dim codebook
     }
 
     // Check distance to all existing prototypes
@@ -179,6 +195,7 @@ export class VQSectorPrototypes {
     alpha: number = DEFAULT_EMA_ALPHA,
   ): void {
     if (idx < 0 || idx >= this.codebook.length) return
+    if (embedding.length !== this.dim) return // skip dimension mismatch
     const proto = this.codebook[idx]
     for (let i = 0; i < this.dim; i++) {
       proto[i] = (1 - alpha) * proto[i] + alpha * embedding[i]

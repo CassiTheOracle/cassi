@@ -708,7 +708,7 @@ export interface LightningIndexerConfig {
 }
 
 export const LIGHTNING_INDEXER_DEFAULTS: LightningIndexerConfig = {
-  dEmb: 1024,
+  dEmb: 1536,
   dC: 128,
   nH: 8,
   dIdx: 32,
