@@ -47,12 +47,14 @@ import type {
 
 /**
  * Minimal type for a vindex-based embedding provider.
- * Satisfied by LarqlKnowledgeProvider.gateEmbed().
+ * Satisfied by LarqlKnowledgeProvider.gateEmbed() and embedWithPatch().
  */
 export type VindexEmbedder = (text: string, options?: {
   layers?: number[]
   featuresPerLayer?: number
   minScore?: number
+  /** Feature patches for causal retrieval — boost/dampen specific features. */
+  patches?: Array<{ layer: number; featureIndex: number; boost: number }>
 }) => Float32Array | null
 import { SPARK_POINT_DEFAULTS, POTENTIATION_DEFAULTS } from './types.js'
 
@@ -1390,6 +1392,88 @@ export class MnemicField {
       this.retrieveCache.delete(oldest)
     }
     return contentHits
+  }
+
+  /**
+   * Causal retrieval: embed with feature patching to shift the result set.
+   *
+   * This is the architectural proof: the model's representation space IS
+   * the retrieval space, and you can intervene on it causally. Boosting a
+   * feature shifts the embedding toward that feature's concept direction,
+   * producing observably different retrieval results without changing the
+   * query text.
+   *
+   * @example
+   *   // Get features for "attention mechanism"
+   *   const hits = gateKnn("attention mechanism", 16, 10)
+   *   // Patch the top feature 3× — should shift results toward attention concepts
+   *   const patched = await field.retrieveWithPatch("attention mechanism",
+   *     [{ layer: 16, featureIndex: hits[0].featureIndex, boost: 3.0 }])
+   */
+  async retrieveWithPatch(
+    query: string,
+    patches: Array<{ layer: number; featureIndex: number; boost: number }>,
+    options?: KindlingOptions & { limit?: number; sessionId?: string },
+  ): Promise<MnemicRetrievalHit[]> {
+    if (this.embeddingBackend !== 'vindex' || !this.vindexEmbedder) {
+      // Fall back to normal retrieval without patches
+      return this.retrieve(query, options)
+    }
+
+    // Generate patched embedding by passing patches to the embedder
+    const vec = this.vindexEmbedder(query, {
+      minScore: 0.05,
+      patches,
+    })
+    const patchedEmbedding = vec ? Array.from(vec) : null
+
+    // Use the patched embedding directly in kindling — skip the normal
+    // query embedding path so we compare patched vs unpatched.
+    const limit = options?.limit ?? 8
+
+    const luminal = this.kindle(patchedEmbedding, query, {
+      maxLuminalSize: limit * 3,
+      maxIterations: 2,
+      maxSeeds: Math.max(options?.maxSeeds ?? 20, limit * 4),
+      includeText: true,
+      currentAffect: options?.currentAffect ?? this.affectRegister.getAffect(),
+    })
+
+    // Track luminal IDs for retrieval chain continuity
+    this.lastLuminalIds = luminal.engrams.map(e => e.engram.id)
+
+    if (luminal.engrams.length === 0) {
+      return this.searchText(query, limit).map(r => ({
+        id: r.engram.id,
+        content: r.engram.content,
+        nodeType: r.engram.nodeType,
+        score: r.score,
+        charge: 0,
+        potentiation: r.engram.potentiation,
+        provenance: r.engram.provenance,
+        tags: r.engram.tags,
+        metadata: r.engram.metadata,
+      }))
+    }
+
+    // Use kindling charges directly (local reranker mode path)
+    const hits = luminal.engrams
+      .map(hit => ({
+        id: hit.engram.id,
+        content: hit.engram.content,
+        nodeType: hit.engram.nodeType,
+        score: hit.charge,
+        charge: hit.charge,
+        potentiation: hit.engram.potentiation,
+        provenance: hit.engram.provenance,
+        tags: hit.engram.tags,
+        metadata: hit.engram.metadata,
+      }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, limit)
+
+    // Filter structural types
+    return hits.filter(h => !STRUCTURAL_TYPES.has(h.nodeType))
   }
 
   /**
