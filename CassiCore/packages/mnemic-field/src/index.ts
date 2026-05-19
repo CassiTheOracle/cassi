@@ -2447,7 +2447,7 @@ export class MnemicField {
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
-      const missing = this.cortex.getEngramsWithoutEmbedding(BATCH_SIZE)
+      const missing = this.cortex.getEngramsNeedingBackfill(BATCH_SIZE)
       if (missing.length === 0) break
 
       const texts = missing.map(e => e.content)
@@ -3840,7 +3840,7 @@ export class MnemicField {
     // Process engrams in batches until done
     // eslint-disable-next-line no-constant-condition
     while (true) {
-      const missing = this.cortex.getEngramsWithoutEmbedding(
+      const missing = this.cortex.getEngramsNeedingBackfill(
         options?.limit ? Math.min(batchSize * workerCount, options.limit - totalEmbedded) : batchSize * workerCount,
       )
       if (missing.length === 0) break
