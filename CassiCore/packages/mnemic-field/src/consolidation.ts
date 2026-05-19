@@ -77,6 +77,49 @@ function yieldToEventLoop(): Promise<void> {
 }
 
 /**
+ * Match old items (nuclei) to new DBSCAN clusters by Jaccard overlap
+ * of their member IDs. Old items sorted largest-first get first claim.
+ * Returns the mapping from cluster number → old item ID, and the set
+ * of old item IDs that survived (found a match above threshold).
+ */
+function reconcileClusters(
+  oldMemberSets: Map<string, Set<string>>,
+  clusters: Map<number, Array<{ id: string }>>,
+  threshold = 0.3,
+): { clusterToOldId: Map<number, string>; survivedOldIds: Set<string> } {
+  const sorted = [...oldMemberSets.entries()]
+    .sort((a, b) => b[1].size - a[1].size)
+
+  const claimed = new Set<number>()
+  const clusterToOldId = new Map<number, string>()
+
+  for (const [oldId, oldIds] of sorted) {
+    let bestJaccard = 0
+    let bestCluster = -1
+
+    for (const [clusterNum, members] of clusters) {
+      if (claimed.has(clusterNum)) continue
+      const newIds = new Set(members.map(m => m.id))
+      let intersection = 0
+      for (const id of oldIds) { if (newIds.has(id)) intersection++ }
+      const union = oldIds.size + newIds.size - intersection
+      const jaccard = union > 0 ? intersection / union : 0
+      if (jaccard > bestJaccard) { bestJaccard = jaccard; bestCluster = clusterNum }
+    }
+
+    if (bestJaccard >= threshold && bestCluster >= 0) {
+      claimed.add(bestCluster)
+      clusterToOldId.set(bestCluster, oldId)
+    }
+  }
+
+  return {
+    clusterToOldId,
+    survivedOldIds: new Set(clusterToOldId.values()),
+  }
+}
+
+/**
  * The Consolidation Engine: periodic recomputation of potentiation,
  * XY drift from co-activation, nucleus detection, and spike pruning.
  */
@@ -831,38 +874,11 @@ export class ConsolidationEngine {
     const clusters = this.dbscan(engrams, epsilon, minClusterSize)
 
     // Reconcile: match old nuclei → new clusters by Jaccard overlap.
-    // Sort old nuclei largest-first so bigger clusters get first claim.
-    const sortedOld = oldNuclei
-      .filter(n => oldMemberSets.has(n.id))
-      .sort((a, b) => (oldMemberSets.get(b.id)?.size ?? 0) - (oldMemberSets.get(a.id)?.size ?? 0))
-
-    const claimedClusters = new Set<number>()
-    const clusterToOldId = new Map<number, string>()  // clusterNum → old nucleus ID
-
-    for (const old of sortedOld) {
-      const oldIds = oldMemberSets.get(old.id)!
-      let bestJaccard = 0
-      let bestCluster = -1
-
-      for (const [clusterNum, members] of clusters) {
-        if (claimedClusters.has(clusterNum)) continue
-        const newIds = new Set(members.map(e => e.id))
-        let intersection = 0
-        for (const id of oldIds) { if (newIds.has(id)) intersection++ }
-        const union = oldIds.size + newIds.size - intersection
-        const jaccard = union > 0 ? intersection / union : 0
-        if (jaccard > bestJaccard) { bestJaccard = jaccard; bestCluster = clusterNum }
-      }
-
-      if (bestJaccard >= 0.3 && bestCluster >= 0) {
-        claimedClusters.add(bestCluster)
-        clusterToOldId.set(bestCluster, old.id)
-      }
-    }
+    const { clusterToOldId, survivedOldIds } = reconcileClusters(oldMemberSets, clusters)
 
     // Create or update nuclei from each cluster, preserving identity where possible
     let nucleiCount = 0
-    const survivedOldIds = new Set(clusterToOldId.values())
+    let newNucleiCount = 0
 
     for (const [clusterNum, members] of clusters) {
       const centroidX = members.reduce((s, e) => s + e.x, 0) / members.length
@@ -886,7 +902,8 @@ export class ConsolidationEngine {
         const dominantType = this.findDominantType(members)
         const dominantEmotion = this.computeClusterAffect(members)
         const emotionPrefix = dominantEmotion ? `${dominantEmotion}-` : ''
-        const label = `${emotionPrefix}${dominantType}-cluster-${nucleiCount}`
+        const label = `${emotionPrefix}${dominantType}-cluster-${newNucleiCount}`
+        newNucleiCount++
 
         const nucleus = this.cortex.createNucleus({
           label, centroidX, centroidY, centroidZ, depth: 0,

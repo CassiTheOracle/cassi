@@ -43,6 +43,16 @@ import type {
   ReplayEvent, ReplayEventKind, SessionReplaySummary,
   PrimedNucleus, BroadcastResult,
 } from './types.js'
+
+/**
+ * Minimal type for a vindex-based embedding provider.
+ * Satisfied by LarqlKnowledgeProvider.gateEmbed().
+ */
+export type VindexEmbedder = (text: string, options?: {
+  layers?: number[]
+  featuresPerLayer?: number
+  minScore?: number
+}) => Float32Array | null
 import { SPARK_POINT_DEFAULTS, POTENTIATION_DEFAULTS } from './types.js'
 
 const REPROJECTION = {
@@ -55,6 +65,13 @@ const MIN_SPARK_MODULATION = 0.1
 
 /** Default resonance threshold for nucleus priming during broadcast. */
 const BRADCAST_RESONANCE_THRESHOLD = 0.3
+
+/** Structural engram types excluded from user-facing retrieval results. */
+const STRUCTURAL_TYPES = new Set([
+  'bridge', 'session', 'file', 'source_file', 'file_version', 'file_read',
+  'changeset', 'message', 'tool_invocation', 'thought_command',
+  'replay_segment', 'expert_summary',
+])
 
 /** Strip conversation preamble from engram content so the reranker sees actual text.
  *  26% of embedded engrams start with "USER: (context)\\n\\nASSISTANT:" — their first
@@ -203,6 +220,7 @@ export class MnemicField {
   readonly vqPrototypes: VQSectorPrototypes
   private migrationJobs: MigrationJobStore
   private logger: ILogger
+  private closed = false
   private projectionState: ProjectionState | null = null
   private reprojectionInFlight: Promise<number> | null = null
   private reprojectionFailures = 0
@@ -217,6 +235,11 @@ export class MnemicField {
   private indexerTrainer: IndexerTrainer | null = null
   private indexerTrainingConfig: IndexerTrainingConfig = INDEXER_TRAINING_DEFAULTS
   private lightningMode: 'shadow' | 'sparsify' | 'off' = 'off'
+
+  /** Backend for computing text embeddings. 'vllm' = external vLLM (legacy), 'vindex' = gate-vector embedding. */
+  private embeddingBackend: 'vllm' | 'vindex' = 'vllm'
+  /** Vindex-based embedder function. Set via setVindexEmbedder(). */
+  private vindexEmbedder: VindexEmbedder | null = null
   // Cached after each retrieve() so recordEnrichFeedback can convert
   // helpful/unhelpful into Lightning Indexer training triples without a
   // round-trip to lightning_retrieval_events.
@@ -296,6 +319,31 @@ export class MnemicField {
       this.rerankerEnabled = false
     }
     this.logger.info('MnemicField reranker mode set', { mode, llmAvailable: !!this.reranker })
+  }
+
+  /**
+   * Set a vindex-based embedding provider for computing gate-vector embeddings.
+   * The function should implement the VindexEmbedder signature.
+   * When this is set and embeddingBackend is 'vindex', retrieve() and store()
+   * use gate-vector embeddings instead of the external vLLM embedding service.
+   */
+  setVindexEmbedder(embedder: VindexEmbedder | null): void {
+    this.vindexEmbedder = embedder
+    this.logger.info('MnemicField vindex embedder set', { enabled: !!embedder })
+  }
+
+  /**
+   * Set the embedding backend. 'vllm' (default) uses the external vLLM service.
+   * 'vindex' uses the vindex's gate-vector embedding. Requires setVindexEmbedder()
+   * to be called first — falls back to 'vllm' if no embedder is registered.
+   */
+  setEmbeddingBackend(backend: 'vllm' | 'vindex'): void {
+    if (backend === 'vindex' && !this.vindexEmbedder) {
+      this.logger.warn('Cannot switch to vindex backend — no embedder registered. Staying on vllm.')
+      return
+    }
+    this.embeddingBackend = backend
+    this.logger.info('MnemicField embedding backend set', { backend })
   }
 
   setForeshadow(fs: { observe: (args: { query: string; sessionId?: string; wasCacheHit: boolean }) => Promise<void> } | null): void {
@@ -1040,8 +1088,16 @@ export class MnemicField {
     const sessionId = options?.sessionId
 
     // Generate embedding for query.
-    const embSvc = getEmbeddingService(this.logger)
-    const queryEmbedding = embSvc.available ? await embSvc.embed(query, 'query') : null
+    // Uses vindex gate-vector embedding when configured, otherwise falls back
+    // to the external vLLM embedding service.
+    let queryEmbedding: number[] | null = null
+    if (this.embeddingBackend === 'vindex' && this.vindexEmbedder) {
+      const vec = this.vindexEmbedder(query, { minScore: 0.05 })
+      queryEmbedding = vec ? Array.from(vec) : null
+    } else {
+      const embSvc = getEmbeddingService(this.logger)
+      queryEmbedding = embSvc.available ? await embSvc.embed(query, 'query') : null
+    }
 
     let hits: MnemicRetrievalHit[] = []
 
@@ -1066,6 +1122,7 @@ export class MnemicField {
     // Fire-and-forget on next tick — harmony is a full-table scan (O(n) engrams)
     // and should never block the retrieval hot path.
     setImmediate(() => {
+      if (this.closed) return
       try { this.computeHarmony() } catch { /* non-blocking */ }
     })
 
@@ -1239,14 +1296,7 @@ export class MnemicField {
 
     // Filter structural engrams from user-facing results.
     // These types are infrastructure — they carry file snapshots, session metadata,
-    // tool invocation records, and other operational state. Exposing them in
-    // retrieval results pollutes the output with stale file versions and
-    // administrative noise.
-    const STRUCTURAL_TYPES = new Set([
-      'bridge', 'session', 'file', 'source_file', 'file_version', 'file_read',
-      'changeset', 'message', 'tool_invocation', 'thought_command',
-      'replay_segment', 'expert_summary',
-    ])
+    // tool invocation records, and other operational state.
     const contentHits = hits.filter(h => !STRUCTURAL_TYPES.has(h.nodeType))
 
     // Global Workspace Broadcast (Phase 1): signal the field about what's in
@@ -3600,6 +3650,7 @@ export class MnemicField {
   }
 
   close(): void {
+    this.closed = true
     this.cortex.close()
     this.logger.info('Mnemic Field closed')
   }
