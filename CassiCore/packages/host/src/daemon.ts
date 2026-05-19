@@ -1501,10 +1501,14 @@ export class Daemon {
         this.logger.info(`MnemicField reranker mode: ${rerankerMode}`)
       }
 
-      const lightningShadow = this.config.get<boolean>('intelligence.mnemic.lightningShadow', false)
-      if (lightningShadow) {
-        field.setLightningShadowMode(true)
-        this.logger.info('MnemicField Lightning Indexer shadow mode enabled')
+      const lightningMode = this.config.get<string>('intelligence.mnemic.lightningMode', 'off')
+      if (lightningMode === 'shadow' || lightningMode === 'sparsify') {
+        field.setLightningMode(lightningMode)
+        this.logger.info(`MnemicField Lightning Indexer mode: ${lightningMode}`)
+      } else if (this.config.get<boolean>('intelligence.mnemic.lightningShadow', false)) {
+        // Legacy boolean flag
+        field.setLightningMode('shadow')
+        this.logger.info('MnemicField Lightning Indexer shadow mode enabled (legacy flag)')
       }
 
       const foreshadowEnabled = this.config.get<boolean>('intelligence.foreshadow.enabled', false)
