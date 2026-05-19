@@ -1001,6 +1001,98 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
   }
 
   /**
+   * Embed text into the vindex's hidden-state representation space.
+   *
+   * Tokenizes the text, runs gate KNN across the specified layers,
+   * collects gate vectors (hidden-dim row for each activated feature),
+   * computes a score-weighted sum, and returns the L2-normalized result
+   * as a Float32Array.
+   *
+   * This replaces the external vLLM/Qwen3 embedding service with an
+   * embedding that IS the model's own internal representation. Two
+   * texts that share a concept activate the same features — their
+   * gate-vector embeddings are cosine-close.
+   *
+   * Returns null when the vindex isn't loaded, the text is empty, or
+   * no features meet the score threshold.
+   */
+  gateEmbed(text: string, options?: {
+    /** Layers to scan. Default: L14-L27 (knowledge band for 35-layer model). */
+    layers?: number[]
+    /** Top-K features per layer. Default: 10. */
+    featuresPerLayer?: number
+    /** Minimum gate score to include a feature. Default: 0.05. */
+    minScore?: number
+  }): Float32Array | null {
+    if (!this.loaded || !this.handle || !this.larql) return null
+    if (!text) return null
+
+    const hiddenDim = this.handle.config.hiddenDim
+    if (!hiddenDim || hiddenDim <= 0) return null
+
+    const layers = options?.layers ?? [14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]
+    const featuresPerLayer = options?.featuresPerLayer ?? 10
+    const minScore = options?.minScore ?? 0.05
+
+    const tokens = this.larql.vindexTokenize(this.handle, text)
+    if (tokens.length === 0) return null
+
+    // Use the last token — carries most semantic weight in autoregressive models.
+    const queryToken = tokens[tokens.length - 1]
+
+    // Accumulate vectors and scores across all layers.
+    const vectors: Float32Array[] = []
+    const scores: number[] = []
+
+    for (const layer of layers) {
+      const hits = this.larql.vindexGateKnn(
+        this.handle, layer, queryToken, featuresPerLayer,
+      )
+      for (const hit of hits) {
+        if (hit.score < minScore) continue
+        const vec = this.gateVector(layer, hit.featureIndex)
+        if (!vec) continue
+        vectors.push(vec)
+        scores.push(hit.score)
+      }
+    }
+
+    if (vectors.length === 0) {
+      // Fall back to uppercase/lowercase variant — same heuristic as describe().
+      const lower = text.toLowerCase()
+      if (lower !== text) return this.gateEmbed(lower, options)
+      return null
+    }
+
+    // Score-weighted sum: embedding = sum(vec_i * score_i) / sum(scores)
+    const totalScore = scores.reduce((a, b) => a + b, 0)
+    if (totalScore <= 0) return null
+
+    const embedding = new Float32Array(hiddenDim)
+    for (let i = 0; i < vectors.length; i++) {
+      const weight = scores[i] / totalScore
+      const vec = vectors[i]
+      for (let j = 0; j < hiddenDim; j++) {
+        embedding[j] += vec[j] * weight
+      }
+    }
+
+    // L2-normalize so cosine similarity is a simple dot product.
+    let norm = 0
+    for (let j = 0; j < hiddenDim; j++) {
+      norm += embedding[j] * embedding[j]
+    }
+    norm = Math.sqrt(norm)
+    if (norm > 0) {
+      for (let j = 0; j < hiddenDim; j++) {
+        embedding[j] /= norm
+      }
+    }
+
+    return embedding
+  }
+
+  /**
    * A2 calibration: measure typical residual L2 norm at the requested
    * layers via one forward pass over `promptText`. Returns a Map<layer,
    * norm> for the caller to cache and use as a `BaselineNormSource`.
