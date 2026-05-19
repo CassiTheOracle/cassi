@@ -92,39 +92,6 @@ export async function handleThalamusRoutes(
     return true
   }
 
-  // GET /context/map?sessionId=X[&since=N&limit=K] — Per-message visibility roster
-  if (method === 'GET' && pathname === '/context/map') {
-    const sessionId = url.searchParams.get('sessionId')
-    if (!sessionId) {
-      deps.sendJSON(res, 400, { error: 'sessionId query param required' })
-      return true
-    }
-    const sinceRaw = url.searchParams.get('since')
-    const limitRaw = url.searchParams.get('limit')
-    const since = sinceRaw === null ? undefined : parseInt(sinceRaw, 10)
-    const limit = limitRaw === null ? undefined : parseInt(limitRaw, 10)
-    const snapshot = thalamus.getContextMap(sessionId, {
-      since: typeof since === 'number' && !isNaN(since) ? since : undefined,
-      limit: typeof limit === 'number' && !isNaN(limit) && limit > 0 ? limit : undefined,
-    })
-    if (!snapshot) {
-      deps.sendJSON(res, 404, { error: 'No curated state for that session yet' })
-      return true
-    }
-    const rows = snapshot.rows
-    deps.sendJSON(res, 200, {
-      sessionId,
-      pass: snapshot.pass,
-      curatedAt: snapshot.curatedAt,
-      charBudget: snapshot.charBudget,
-      charsUsed: snapshot.charsUsed,
-      annotatedCount: snapshot.annotatedCount,
-      visibleCount: snapshot.visibleCount,
-      rows,
-    })
-    return true
-  }
-
   // POST /context/pin — Pin a message pattern
   if (method === 'POST' && pathname === '/context/pin') {
     const body = await deps.parseBody(req)

@@ -2097,6 +2097,39 @@ export async function handleMemoryRoutes(
     }
   }
 
+  // GET /memory/lightning/status — Lightning Indexer mode, training stats, promotion readiness
+  if (parts[1] === 'lightning' && parts[2] === 'status' && method === 'GET') {
+    const field = getMnemicField(logger, daemon)
+    sendJSON(res, 200, field.getLightningStatus())
+    return true
+  }
+
+  // POST /memory/lightning/mode — Set Lightning Indexer mode
+  if (parts[1] === 'lightning' && parts[2] === 'mode' && method === 'POST') {
+    const body = await parseBody(req).catch(() => ({}))
+    const mode = body?.mode as string | undefined
+    if (mode !== 'shadow' && mode !== 'sparsify' && mode !== 'off') {
+      sendJSON(res, 400, { error: 'mode must be shadow, sparsify, or off' })
+      return true
+    }
+    const field = getMnemicField(logger, daemon)
+    field.setLightningMode(mode as 'shadow' | 'sparsify' | 'off')
+    sendJSON(res, 200, field.getLightningStatus())
+    return true
+  }
+
+  // POST /memory/lightning/train — Force one training step
+  if (parts[1] === 'lightning' && parts[2] === 'train' && method === 'POST') {
+    const field = getMnemicField(logger, daemon)
+    const result = await field.trainLightningIndexer()
+    if (!result) {
+      sendJSON(res, 503, { error: 'Lightning Indexer not initialized' })
+      return true
+    }
+    sendJSON(res, 200, result)
+    return true
+  }
+
 
   // POST /memory/archives/search
   if (parts[1] === 'archives' && parts[2] === 'search' && method === 'POST') {
