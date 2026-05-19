@@ -42,6 +42,8 @@ export class KindlingEngine {
   private harmonyProvider: (() => number) | null = null
   /** Optional: provides broadcast spark modulation for an engram, keyed by clusterId. */
   private broadcastModProvider: ((clusterId: string | null) => number) | null = null
+  /** FeatureIndex for vindex-native seed finding (replaces ANN when available). */
+  private featureIndex: { lookup: (text: string, opts?: any) => Array<{ engramId: string; sharedFeatureCount: number }>; isReady: () => boolean } | null = null
 
   /** Photon ANN neighbor cache: engramId → neighbors (avoids per-emitter HNSW queries). */
   private photonCache = new Map<string, Array<{ id: string; distance: number }>>()
@@ -68,6 +70,11 @@ export class KindlingEngine {
   /** Set a provider for the harmony metric (Yin/Yang balance, Phase 0-1). */
   setHarmonyProvider(provider: (() => number) | null): void {
     this.harmonyProvider = provider
+  }
+
+  /** Wire the FeatureIndex for vindex-native seed finding. */
+  setFeatureIndex(fi: { lookup: (text: string, opts?: any) => Array<{ engramId: string; sharedFeatureCount: number }>; isReady: () => boolean } | null): void {
+    this.featureIndex = fi
   }
 
   /** Set a provider for broadcast spark modulation (global workspace priming). */
@@ -271,7 +278,13 @@ export class KindlingEngine {
     const includeText = options.includeText ?? true
     const seedMap = new Map<string, number>()
 
-    if (embedding && embedding.length > 0) {
+    // Vindex-native path: FeatureIndex lookup replaces ANN cosine scan.
+    // The model's gateKnn activation pattern IS the retrieval index —
+    // no embedding needed, no dimension mismatch, causal-ready.
+    if (textQuery && this.featureIndex?.isReady()) {
+      mergeSeeds(seedMap, this.findSeedsByFeatureIndex(textQuery, maxSeeds))
+    } else if (embedding && embedding.length > 0) {
+      // Fallback: ANN cosine search (legacy path, kept for migration).
       mergeSeeds(seedMap, this.findSeedsByEmbedding(embedding, maxSeeds))
     }
 
@@ -360,6 +373,43 @@ export class KindlingEngine {
       engramId: r.engram.id,
       charge: r.score,
     }))
+  }
+
+  /**
+   * Find seeds by vindex feature overlap — direct FeatureIndex lookup.
+   *
+   * Runs gateKnn on the query text, looks up engrams that share those model
+   * features, and ranks by shared feature count. No embedding, no cosine scan,
+   * no dimension mismatch. The model's internal activation pattern IS the index.
+   *
+   * Charge is normalized: sharedFeatureCount / maxSharedFeatureCount.
+   */
+  private findSeedsByFeatureIndex(
+    textQuery: string,
+    limit: number,
+    options?: { layers?: number[]; featuresPerLayer?: number; minScore?: number },
+  ): SeedResult[] {
+    if (!this.featureIndex?.isReady()) return []
+
+    const hits = this.featureIndex.lookup(textQuery, {
+      layers: options?.layers,
+      featuresPerLayer: options?.featuresPerLayer ?? 10,
+      minScore: options?.minScore ?? 0.05,
+      limit: limit * 2,
+    })
+
+    if (hits.length === 0) return []
+
+    const maxOverlap = hits[0].sharedFeatureCount
+    if (maxOverlap <= 0) return []
+
+    return hits
+      .map(h => ({
+        engramId: h.engramId,
+        charge: h.sharedFeatureCount / maxOverlap,
+      }))
+      .filter(s => s.charge > 0.1)
+      .slice(0, limit)
   }
 
   /**

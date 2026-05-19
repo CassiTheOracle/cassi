@@ -490,6 +490,8 @@ export class MnemicField {
     this.migrationJobs = new MigrationJobStore(db)
     this.affectRegister = new AffectRegister()
     this.featureIndex = new FeatureIndex(db, logger)
+    // Wire FeatureIndex into kindling so seed finding uses vindex features.
+    this.kindlingEngine.setFeatureIndex(this.featureIndex)
 
     // Initialize projection state from existing positions in DB (if available)
     this.projectionState = this._restoreProjectionState()
