@@ -990,9 +990,13 @@ export class ConsolidationEngine {
         superNucleiCount++
       }
 
-      // Delete dissolved super-nuclei
+      // Delete dissolved super-nuclei — null child references first
       for (const oldSn of oldSuperNuclei) {
         if (!survivedSuperIds.has(oldSn.id)) {
+          const children = this.cortex.getChildNucleusIds(oldSn.id)
+          for (const childId of children) {
+            this.cortex.updateNucleus(childId, { parentNucleusId: null })
+          }
           this.cortex.deleteNucleus(oldSn.id)
         }
       }
