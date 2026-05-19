@@ -717,6 +717,11 @@ export class MnemicField {
           limit: 10,
         })
         for (const corr of correlated) {
+          // Weight: sharedFeatureCount / 10, capped at 1.0.
+          // With featuresPerLayer=10 and 14 knowledge layers, theoretical max
+          // overlap is 140. In practice, 2-5 features overlap → weight 0.2-0.5,
+          // giving vindex_correlation edges moderate influence relative to
+          // similar_to (0.5) and weaker than expert_summary (0.9).
           const weight = Math.min(1.0, corr.sharedFeatureCount / 10)
           try {
             this.cortex.createSynapse({
@@ -1145,22 +1150,36 @@ export class MnemicField {
       queryEmbedding = embSvc.available ? await embSvc.embed(query, 'query') : null
     }
 
+    return this._retrieveWithEmbedding(queryEmbedding, query, retrievalId, cacheKey, now, options, limit)
+  }
+
+  /**
+   * Shared retrieval pipeline — kindling → FeatureIndex → reranking → structural
+   * filter → broadcast → activation → cache. Both retrieve() and retrieveWithPatch()
+   * call this; the only difference is how the query embedding is generated.
+   */
+  private async _retrieveWithEmbedding(
+    queryEmbedding: number[] | null,
+    query: string,
+    retrievalId: string,
+    cacheKey: string,
+    now: number,
+    options: (KindlingOptions & { limit?: number; sessionId?: string }) | undefined,
+    limit: number,
+  ): Promise<MnemicRetrievalHit[]> {
     let hits: MnemicRetrievalHit[] = []
 
     // Step 1: Kindling generates candidate engrams via engram ANN + synapse spread.
-    // This is the "candidate generation" phase — no filaments involved.
     const luminal = this.kindle(queryEmbedding, query, {
       ...options,
-      maxLuminalSize: limit * 3,  // grab more candidates, then trim after ranking
-      maxIterations: 2,            // spread activation — now batch-optimized (2-3 queries/iter)
+      maxLuminalSize: limit * 3,
+      maxIterations: 2,
       maxSeeds: Math.max(options?.maxSeeds ?? 20, limit * 4),
       includeText: true,
       currentAffect: options?.currentAffect ?? this.affectRegister.getAffect(),
     })
 
     // FeatureIndex: direct feature-indexed retrieval — complements the ANN path.
-    // The model's gate KNN activation pattern IS the query. Feature matches that
-    // the ANN missed get added with a charge derived from overlap count.
     if (this.featureIndex?.isReady()) {
       try {
         const fiHits = this.featureIndex.lookup(query, {
@@ -1178,7 +1197,7 @@ export class MnemicField {
               const engram = novelEngrams.get(hit.engramId)
               if (engram && engram.nodeType !== 'bridge') {
                 const charge = maxOverlap > 0
-                  ? (hit.sharedFeatureCount / maxOverlap) * 0.6 // scale to [0, 0.6]
+                  ? (hit.sharedFeatureCount / maxOverlap) * 0.6
                   : 0
                 if (charge > 0.1) {
                   luminal.engrams.push({ engram, charge })
@@ -1198,14 +1217,9 @@ export class MnemicField {
     }
 
     // Track luminal engram IDs for retrieval chain continuity.
-    // New engrams created this turn will carry triggeredBy metadata
-    // linking them to the engrams that triggered their creation.
     this.lastLuminalIds = luminal.engrams.map(e => e.engram.id)
 
-    // Compute harmony metric after each kindling cycle
-    // (feeds into spark point modulation, consolidation, and DMN observation).
-    // Fire-and-forget on next tick — harmony is a full-table scan (O(n) engrams)
-    // and should never block the retrieval hot path.
+    // Compute harmony metric after each kindling cycle (fire-and-forget).
     setImmediate(() => {
       if (this.closed) return
       try { this.computeHarmony() } catch { /* non-blocking */ }
@@ -1246,8 +1260,7 @@ export class MnemicField {
     } else {
       let candidates = luminal.engrams.map(hit => hit.engram)
 
-      // Lightning Indexer: score candidates. In shadow mode, log overlap.
-      // In sparsify mode, filter candidates to top-k + recency window before reranking.
+      // Lightning Indexer: score candidates.
       if (this.lightningIndexer && queryEmbedding && this.lightningMode !== 'off') {
         try {
           const idxCandidates = candidates
@@ -1257,7 +1270,6 @@ export class MnemicField {
             const qEmb = new Float32Array(queryEmbedding)
 
             if (this.lightningMode === 'sparsify') {
-              // DeepSeek V4-style sparsification: top-k indexer-scored + recency window
               const { sparsifyTopK, recencyWindow } = this.indexerTrainingConfig
               const { keptIds, ranked } = this.lightningIndexer.sparsify(qEmb, idxCandidates, sparsifyTopK, recencyWindow)
               const keptSet = new Set(keptIds)
@@ -1283,15 +1295,7 @@ export class MnemicField {
       }
 
       // Step 2: Rerank candidates using the configured reranker mode.
-      // - 'local': cross-encoder available for tool-result distillation, but for
-      //   engram retrieval we use kindling charges directly — the BGE cross-encoder
-      //   penalizes investigative/conversational framing common in session transcripts
-      //   (cosine similarity 0.65 drops to 0.09 for "let me look at the file...").
-      // - 'llm': cloud LLM picks relevant sentences, ~1-2s, produces excerpts
-      // - 'off': use kindling charge-based ranking directly
       if (this.rerankerMode === 'local') {
-        // Use kindling charges directly — the ANN cosine similarity is a better
-        // relevance signal for conversational engrams than the cross-encoder.
         hits = luminal.engrams
           .map(hit => kindlingHit(hit))
           .sort((a, b) => b.score - a.score)
@@ -1321,20 +1325,17 @@ export class MnemicField {
         let overlap = 0
         for (const id of lightningTopK) if (finalTopK.has(id)) overlap++
         this.logger.info('Lightning shadow overlap', {
-          k,
-          overlap,
-          overlapRatio: overlap / k,
+          k, overlap, overlapRatio: overlap / k,
           lightningTopScore: lightningRanked[0]?.score ?? 0,
           candidateCount: lightningRanked.length,
         })
       }
     }
 
-    // Persist a retrieval event so Reverie can later label it from the
-    // primary's downstream tool-round behavior. Best-effort — failures must
-    // never block the retrieve path.
+    // Persist retrieval event for Reverie labeling (best-effort).
     try {
       const candidateIds = hits.map(h => h.id)
+      const sessionId = options?.sessionId
       const indexerScoresArr = lightningRanked
         ? new Float32Array(candidateIds.map(id => {
             const entry = lightningRanked!.find(r => r.engramId === id)
@@ -1360,8 +1361,7 @@ export class MnemicField {
       this.lastRetrievalRerankerScores = rerankerScoresArr ?? null
 
       this.cortex.recordLightningRetrievalEvent({
-        retrievalId,
-        sessionId,
+        retrievalId, sessionId,
         queryText: query,
         queryEmbedding: queryEmbedding ? new Float32Array(queryEmbedding) : undefined,
         candidateIds,
@@ -1380,32 +1380,22 @@ export class MnemicField {
     }
 
     // Filter structural engrams from user-facing results.
-    // These types are infrastructure — they carry file snapshots, session metadata,
-    // tool invocation records, and other operational state.
     const contentHits = hits.filter(h => !STRUCTURAL_TYPES.has(h.nodeType))
 
-    // Global Workspace Broadcast (Phase 1): signal the field about what's in
-    // the luminal set. Fire-and-forget — must never block the return path.
-    // Uses the pre-filter hits (includes bridge engrams for spatial signal)
-    // since the luminal set was computed from the full kindling output.
+    // Global Workspace Broadcast + activation recording (fire-and-forget).
     try {
       this.retrievalCounter++
       this.broadcastGlobalWorkspace(hits.map(h => h.id))
     } catch (err) {
-      // Broadcast failures must never block retrieval
       this.logger.debug('Global workspace broadcast failed', { error: String(err) })
     }
-
-    // Record activation spikes for engrams in the luminal set.
-    // This feeds potentiation accumulation during consolidation.
-    // Fire-and-forget — must never block the return path.
     try {
       this.recordActivation(luminal)
     } catch (err) {
       this.logger.debug('Activation recording failed', { error: String(err) })
     }
 
-    // Cache result. Evict oldest if over capacity (Map iteration order is insertion order).
+    // Cache result.
     this.retrieveCache.set(cacheKey, { hits: contentHits, ts: now })
     while (this.retrieveCache.size > MnemicField.RETRIEVE_CACHE_MAX) {
       const oldest = this.retrieveCache.keys().next().value
@@ -1437,64 +1427,21 @@ export class MnemicField {
     options?: KindlingOptions & { limit?: number; sessionId?: string },
   ): Promise<MnemicRetrievalHit[]> {
     if (this.embeddingBackend !== 'vindex' || !this.vindexEmbedder) {
-      // Fall back to normal retrieval without patches
       return this.retrieve(query, options)
     }
 
-    // Generate patched embedding by passing patches to the embedder
-    const vec = this.vindexEmbedder(query, {
-      minScore: 0.05,
-      patches,
-    })
+    // Generate patched embedding.
+    const vec = this.vindexEmbedder(query, { minScore: 0.05, patches })
     const patchedEmbedding = vec ? Array.from(vec) : null
 
-    // Use the patched embedding directly in kindling — skip the normal
-    // query embedding path so we compare patched vs unpatched.
+    // Use a unique cache key — patched queries are inherently varied (different
+    // patches produce different embeddings), so caching offers little benefit.
     const limit = options?.limit ?? 8
+    const retrievalId = randomUUID()
+    const now = Date.now()
+    const cacheKey = `patch:${retrievalId}`
 
-    const luminal = this.kindle(patchedEmbedding, query, {
-      maxLuminalSize: limit * 3,
-      maxIterations: 2,
-      maxSeeds: Math.max(options?.maxSeeds ?? 20, limit * 4),
-      includeText: true,
-      currentAffect: options?.currentAffect ?? this.affectRegister.getAffect(),
-    })
-
-    // Track luminal IDs for retrieval chain continuity
-    this.lastLuminalIds = luminal.engrams.map(e => e.engram.id)
-
-    if (luminal.engrams.length === 0) {
-      return this.searchText(query, limit).map(r => ({
-        id: r.engram.id,
-        content: r.engram.content,
-        nodeType: r.engram.nodeType,
-        score: r.score,
-        charge: 0,
-        potentiation: r.engram.potentiation,
-        provenance: r.engram.provenance,
-        tags: r.engram.tags,
-        metadata: r.engram.metadata,
-      }))
-    }
-
-    // Use kindling charges directly (local reranker mode path)
-    const hits = luminal.engrams
-      .map(hit => ({
-        id: hit.engram.id,
-        content: hit.engram.content,
-        nodeType: hit.engram.nodeType,
-        score: hit.charge,
-        charge: hit.charge,
-        potentiation: hit.engram.potentiation,
-        provenance: hit.engram.provenance,
-        tags: hit.engram.tags,
-        metadata: hit.engram.metadata,
-      }))
-      .sort((a, b) => b.score - a.score)
-      .slice(0, limit)
-
-    // Filter structural types
-    return hits.filter(h => !STRUCTURAL_TYPES.has(h.nodeType))
+    return this._retrieveWithEmbedding(patchedEmbedding, query, retrievalId, cacheKey, now, options, limit)
   }
 
   /**
@@ -2438,7 +2385,7 @@ export class MnemicField {
       if (useVindex) {
         vec = this.vindexEmbedder!(content, { minScore: 0.05 })
       } else {
-        vec = await embSvc.embed(content, 'document')
+        vec = await embSvc!.embed(content, 'document')
       }
       if (!vec) continue
       this.cortex.updateEngram(id, { embedding: vec })

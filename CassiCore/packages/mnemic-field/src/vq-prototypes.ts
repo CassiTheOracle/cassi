@@ -2,8 +2,10 @@
  * VQ Sector Prototypes — Vector Quantization codebook for automatic domain
  * discovery beyond the 4 Pineal domains.
  *
- * Maintains K learnable prototype vectors (1024-dim). New engrams get θ from
+ * Maintains K learnable prototype vectors. New engrams get θ from
  * their nearest prototype. Consolidation updates prototypes via EMA.
+ * Dimension adapts to the first embedding seen if it differs from the
+ * constructor value (supports both 1024-dim Qwen3 and 1536-dim gate vectors).
  */
 
 /**
@@ -61,8 +63,8 @@ export class VQSectorPrototypes {
   /** Incrementing counter for auto-labeling new domains. */
   private nextDomainId = 1
 
-  /** Embedding dimension (typically 1024). */
-  readonly dim: number
+  /** Embedding dimension. Set by constructor; adapts to first embedding if it differs. */
+  dim: number
 
   /**
    * Whether initFromAnchors has been called. assign() will lazy-init
@@ -109,7 +111,7 @@ export class VQSectorPrototypes {
     if (this.codebook.length === 0) {
       // Adapt to the first embedding's dimension
       if (embedding.length !== this.dim) {
-        (this as any).dim = embedding.length
+        this.dim = embedding.length
       }
       this._lazyInit(embedding)
     }
@@ -147,7 +149,7 @@ export class VQSectorPrototypes {
   ): number {
     if (this.codebook.length === 0) {
       if (embedding.length !== this.dim) {
-        (this as any).dim = embedding.length
+        this.dim = embedding.length
       }
       this._lazyInit(embedding)
       return 0

@@ -64,8 +64,8 @@ export class FeatureIndex {
    * Index an engram from its content. Gate-KNNs the content and stores
    * the activated feature→engramId mapping.
    *
-   * Call during storeForSession when vindex is available. Idempotent
-   * for the same (engramId, content) pair.
+   * Call during storeForSession when vindex is available. Re-indexing
+   * the same engramId with different content cleans up old mappings first.
    */
   indexEngram(
     engramId: string,
@@ -78,6 +78,9 @@ export class FeatureIndex {
   ): void {
     if (!this.ready || !this.gateKnn) return
     if (!content || content.length < 20) return
+
+    // Clean up old feature mappings before re-indexing (content may have changed).
+    this.removeEngram(engramId)
 
     try {
       const features = this.gateKnn(content, {
