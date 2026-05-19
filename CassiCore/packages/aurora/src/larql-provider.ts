@@ -1028,7 +1028,8 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
     if (!text) return null
 
     // Use native gate_embed when available (reads raw f16 from mmap,
-    // no intermediate allocations, ~10× faster than the JS path).
+    // ~10× faster than the JS path). Length >= 6 indicates the Rust
+    // function accepts the patches parameter (added for causal retrieval).
     if (typeof (this.larql as any).gateEmbed === 'function') {
       try {
         const buf: Buffer = (this.larql as any).gateEmbed(
