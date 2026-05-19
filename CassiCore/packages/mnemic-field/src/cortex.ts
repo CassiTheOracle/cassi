@@ -1041,6 +1041,22 @@ export class Cortex {
     return rows.map(rowToEngram)
   }
 
+  /** Returns just engram IDs for a nucleus — used during Jaccard reconciliation. */
+  getEngramIdsByCluster(clusterId: string): string[] {
+    const rows = this.db.prepare(
+      `SELECT id FROM engrams WHERE cluster_id = ?`
+    ).all(clusterId) as Array<{ id: string }>
+    return rows.map(r => r.id)
+  }
+
+  /** Returns depth-0 nucleus IDs parented to a super-nucleus. */
+  getChildNucleusIds(parentNucleusId: string): string[] {
+    const rows = this.db.prepare(
+      `SELECT id FROM nuclei WHERE parent_nucleus_id = ? AND depth = 0`
+    ).all(parentNucleusId) as Array<{ id: string }>
+    return rows.map(r => r.id)
+  }
+
   getEngramsByIdPrefix(
     prefix: string,
     opts: { limit?: number; offset?: number; order?: 'asc' | 'desc' } = {},
@@ -1524,6 +1540,52 @@ export class Cortex {
 
   lightningKeysCount(): number {
     return (this.db.prepare(`SELECT COUNT(*) as c FROM lightning_index_keys`).get() as { c: number }).c
+  }
+
+  /** Return the IDs of the N most recently stored engrams (by created_at). Used for recency window in sparsification. */
+  getMostRecentEngramIds(n: number): string[] {
+    const rows = this.db.prepare(
+      `SELECT id FROM engrams WHERE embedding IS NOT NULL ORDER BY created_at DESC LIMIT ?`
+    ).all(n) as Array<{ id: string }>
+    return rows.map(r => r.id)
+  }
+
+  /** Fetch embeddings for a batch of engram IDs. Returns Map<id, Float32Array>. */
+  getEngramEmbeddings(ids: string[]): Map<string, Float32Array> {
+    const out = new Map<string, Float32Array>()
+    if (ids.length === 0) return out
+    const placeholders = ids.map(() => '?').join(',')
+    const rows = this.db.prepare(
+      `SELECT id, embedding FROM engrams WHERE id IN (${placeholders}) AND embedding IS NOT NULL`
+    ).all(...ids) as Array<{ id: string; embedding: Buffer }>
+    for (const row of rows) {
+      const f32 = toFloatArray(row.embedding)
+      if (f32) out.set(row.id, f32)
+    }
+    return out
+  }
+
+  /**
+   * Batch-fetch engram summaries AND embeddings in a single query.
+   * Used by the retrieval labeler to avoid two DB round-trips.
+   */
+  getEngramSummariesWithEmbeddings(ids: string[]): Map<string, { id: string; content: string; tags: string[]; embedding?: Float32Array }> {
+    const out = new Map<string, { id: string; content: string; tags: string[]; embedding?: Float32Array }>()
+    if (ids.length === 0) return out
+    const placeholders = ids.map(() => '?').join(',')
+    const rows = this.db.prepare(
+      `SELECT id, content, tags, embedding FROM engrams WHERE id IN (${placeholders})`
+    ).all(...ids) as Array<{ id: string; content: string; tags: string; embedding: Buffer | null }>
+    for (const row of rows) {
+      const emb = toFloatArray(row.embedding)
+      out.set(row.id, {
+        id: row.id,
+        content: row.content,
+        tags: parseJsonSafe<string[]>(row.tags, []),
+        embedding: emb ?? undefined,
+      })
+    }
+    return out
   }
 
   recordLightningRetrievalEvent(ev: LightningRetrievalEvent): void {

@@ -18,12 +18,15 @@ import { VQSectorPrototypes } from './vq-prototypes.js'
 import type { ConsolidationResult, ConsolidationOptions } from './consolidation.js'
 import { projectTo2D, projectTo2DAsync, projectTo2DFromSAB, projectSingle, buildProjectionState, type ProjectionState } from './umap.js'
 import { attune, AffectRegister, affectSimilarity } from './affect.js'
-import type { AffectState, LightningRetrievalMode, RerankerMode } from './types.js'
+import type { AffectState, LightningRetrievalMode, LightningRetrievalEvent, RerankerMode, IndexerTrainingConfig } from './types.js'
+import { INDEXER_TRAINING_DEFAULTS } from './types.js'
 import type { RetrievalLabelTriple } from '../reverie/retrieval-labeler-types.js'
+import type { LabelerInputCandidate } from '../reverie/retrieval-labeler-types.js'
 import type { CorticalField } from '../cortex/index.js'
 import type { IProvider } from '../../../types/runtime.js'
 import { LLMReranker, type LLMRerankerConfig } from './llm-reranker.js'
 import { LightningIndexer } from './lightning-indexer.js'
+import { IndexerTrainer, type RunOnceResult } from './training/indexer-trainer.js'
 import { RELATIONAL_PHRASE_EDGE_TYPES, classifyEdge, RELATIONAL_PHRASES, classifyWithPhrases, type PhrasePrototypeSet, type ClassificationResult, EDGE_RELATORS_PHRASE_SET } from './edge-relators.js'
 import { SIGNAL_TYPE_PHRASES, EPISTEMIC_SHIFT_PHRASES, WORK_UNIT_ANNOTATION_PHRASES } from '../phrase-prototypes.js'
 import type {
@@ -170,7 +173,16 @@ export type {
   ExpertLifecycleState, ExpertQuery, TraceOptions, TraceEvent,
   PrimedNucleus, BroadcastResult,
   DistinctivenessResult,
+  LightningIndexerConfig, LightningIndexerGlobal, LightningCandidate, LightningRanked,
+  LightningRetrievalMode, LightningRetrievalEvent,
+  IndexerTrainingConfig,
 } from './types.js'
+export {
+  LIGHTNING_INDEXER_DEFAULTS, LIGHTNING_INDEXER_VERSION,
+  INDEXER_TRAINING_DEFAULTS,
+} from './types.js'
+export { LightningIndexer } from './lightning-indexer.js'
+export { IndexerTrainer, type RunOnceResult } from './training/indexer-trainer.js'
 export {
   ENGRAM_TYPES, SYNAPSE_TYPES, SYNAPSE_PROPAGATION,
   POTENTIATION_DEFAULTS, SPARK_POINT_DEFAULTS, KINDLING_DEFAULTS,
@@ -202,6 +214,9 @@ export class MnemicField {
   private rerankerModel: string = 'github-copilot/gpt-5-mini'
   private rerankerMode: RerankerMode = 'local'
   private lightningIndexer: LightningIndexer | null = null
+  private indexerTrainer: IndexerTrainer | null = null
+  private indexerTrainingConfig: IndexerTrainingConfig = INDEXER_TRAINING_DEFAULTS
+  private lightningMode: 'shadow' | 'sparsify' | 'off' = 'off'
   // Cached after each retrieve() so recordEnrichFeedback can convert
   // helpful/unhelpful into Lightning Indexer training triples without a
   // round-trip to lightning_retrieval_events.
@@ -209,7 +224,6 @@ export class MnemicField {
   private lastRetrievalCandidates: string[] = []
   private lastRetrievalIndexerScores: Float32Array | null = null
   private lastRetrievalRerankerScores: Float32Array | null = null
-  private lightningShadowEnabled: boolean = false
   private rerankerEnabled: boolean = false
   private foreshadow: { observe: (args: { query: string; sessionId?: string; wasCacheHit: boolean }) => Promise<void> } | null = null
 
@@ -288,12 +302,95 @@ export class MnemicField {
     this.foreshadow = fs
   }
 
-  setLightningShadowMode(enabled: boolean): void {
-    this.lightningShadowEnabled = enabled
-    if (enabled && !this.lightningIndexer) {
-      this.lightningIndexer = new LightningIndexer(this.cortex, this.logger)
+  /**
+   * Configure the Lightning Indexer operating mode.
+   * - 'off': Indexer not loaded (default)
+   * - 'shadow': Indexer scores candidates, logs overlap — does not affect retrieval
+   * - 'sparsify': Indexer sparsifies candidates before kindling (top-k + recency window)
+   */
+  setLightningMode(mode: 'shadow' | 'sparsify' | 'off', trainConfig?: Partial<IndexerTrainingConfig>): void {
+    if (trainConfig) {
+      this.indexerTrainingConfig = { ...this.indexerTrainingConfig, ...trainConfig }
     }
-    this.logger.info('Lightning shadow mode', { enabled })
+    this.lightningMode = mode
+    if (mode === 'off') {
+      this.lightningIndexer = null
+      this.indexerTrainer = null
+    } else {
+      if (!this.lightningIndexer) {
+        this.lightningIndexer = new LightningIndexer(this.cortex, this.logger)
+      }
+      if (!this.indexerTrainer) {
+        this.indexerTrainer = new IndexerTrainer(
+          this.cortex,
+          this.lightningIndexer,
+          this.logger,
+          this.indexerTrainingConfig,
+        )
+      }
+    }
+    this.logger.info('Lightning Indexer mode set', { mode })
+  }
+
+  /** Compatibility: enable/disable shadow mode (delegates to setLightningMode). */
+  setLightningShadowMode(enabled: boolean): void {
+    this.setLightningMode(enabled ? 'shadow' : 'off')
+  }
+
+  /**
+   * Run one training step for the Lightning Indexer.
+   * Returns null if the indexer isn't initialized or no triples available.
+   */
+  async trainLightningIndexer(): Promise<RunOnceResult | null> {
+    if (!this.indexerTrainer || !this.lightningIndexer) return null
+    return this.indexerTrainer.runOnce()
+  }
+
+  /** Whether the indexer has enough training to leave shadow mode. */
+  get indexerReadyForPromotion(): boolean {
+    return this.indexerTrainer?.readyForPromotion ?? false
+  }
+
+  /** Public status for admin API — avoids (field as any) casts. */
+  getLightningStatus(): {
+    mode: 'shadow' | 'sparsify' | 'off'
+    readyForPromotion: boolean
+    trainingSteps: number
+    totalTriples: number
+    dims: ReturnType<LightningIndexer['stats']> | null
+  } {
+    return {
+      mode: this.lightningMode,
+      readyForPromotion: this.indexerReadyForPromotion,
+      trainingSteps: this.indexerTrainer?.steps ?? 0,
+      totalTriples: this.indexerTrainer?.totalProcessed ?? 0,
+      dims: this.lightningIndexer?.stats() ?? null,
+    }
+  }
+
+  /**
+   * Query recent lightning retrieval events. Exposed for Reverie's heuristic labeler
+   * so it doesn't need to reach into cortex internals.
+   */
+  queryLightningRetrievalEvents(opts: {
+    sessionId?: string
+    since?: string
+    limit?: number
+  }): LightningRetrievalEvent[] {
+    return this.cortex.queryLightningRetrievalEvents(opts)
+  }
+
+  /**
+   * Batch-fetch engram content, tags, and embeddings for labeling.
+   * Uses a single DB query to avoid two round-trips.
+   */
+  getEngramDataForLabeling(ids: string[]): Map<string, LabelerInputCandidate> {
+    const rows = this.cortex.getEngramSummariesWithEmbeddings(ids)
+    const out = new Map<string, LabelerInputCandidate>()
+    for (const [id, row] of rows) {
+      out.set(id, { id: row.id, content: row.content, tags: row.tags, embedding: row.embedding })
+    }
+    return out
   }
 
   private corticalField?: CorticalField
@@ -1005,23 +1102,41 @@ export class MnemicField {
         metadata: r.engram.metadata,
       }))
     } else {
-      const candidates = luminal.engrams.map(hit => hit.engram)
+      let candidates = luminal.engrams.map(hit => hit.engram)
 
-      // Lightning shadow mode: score candidates with the learned indexer,
-      // log overlap with the final ranking. Does not affect retrieval output.
-      if (this.lightningShadowEnabled && this.lightningIndexer && queryEmbedding) {
+      // Lightning Indexer: score candidates. In shadow mode, log overlap.
+      // In sparsify mode, filter candidates to top-k + recency window before reranking.
+      if (this.lightningIndexer && queryEmbedding && this.lightningMode !== 'off') {
         try {
           const idxCandidates = candidates
             .filter(e => e.embedding && e.embedding.length > 0)
             .map(e => ({ engramId: e.id, embedding: e.embedding as Float32Array }))
           if (idxCandidates.length > 0) {
-            lightningRanked = this.lightningIndexer.score(
-              new Float32Array(queryEmbedding),
-              idxCandidates,
-            )
+            const qEmb = new Float32Array(queryEmbedding)
+
+            if (this.lightningMode === 'sparsify') {
+              // DeepSeek V4-style sparsification: top-k indexer-scored + recency window
+              const { sparsifyTopK, recencyWindow } = this.indexerTrainingConfig
+              const { keptIds, ranked } = this.lightningIndexer.sparsify(qEmb, idxCandidates, sparsifyTopK, recencyWindow)
+              const keptSet = new Set(keptIds)
+              const filtered = luminal.engrams.filter(h => keptSet.has(h.engram.id))
+              if (filtered.length > 0) {
+                (luminal as { engrams: typeof luminal.engrams }).engrams = filtered
+                candidates = filtered.map(hit => hit.engram)
+                this.logger.debug('Indexer sparsified candidates', {
+                  before: idxCandidates.length,
+                  after: keptIds.length,
+                  topK: sparsifyTopK,
+                  recency: recencyWindow,
+                })
+              }
+              lightningRanked = ranked
+            } else {
+              lightningRanked = this.lightningIndexer.score(qEmb, idxCandidates)
+            }
           }
         } catch (err) {
-          this.logger.debug('Lightning shadow score failed', { error: String(err) })
+          this.logger.debug('Lightning indexer failed', { error: String(err) })
         }
       }
 
@@ -1091,9 +1206,11 @@ export class MnemicField {
           ? new Float32Array(hits.map((_, i) => 1 - (i / hits.length)))
           : undefined
 
-      const mode: LightningRetrievalMode = this.rerankerMode === 'local'
-        ? (lightningRanked ? 'shadow' : 'kindle-only')
-        : lightningRanked ? 'shadow' : (this.rerankerMode === 'llm' ? 'shadow' : 'kindle-only')
+      const mode: LightningRetrievalMode =
+        this.lightningMode === 'sparsify' ? 'live' :
+        this.rerankerMode === 'local'
+          ? (lightningRanked ? 'shadow' : 'kindle-only')
+          : lightningRanked ? 'shadow' : (this.rerankerMode === 'llm' ? 'shadow' : 'kindle-only')
 
       this.lastRetrievalId = retrievalId
       this.lastRetrievalCandidates = candidateIds
@@ -2900,6 +3017,31 @@ export class MnemicField {
 
     // Positions may have shifted — invalidate photon ANN cache
     this.kindlingEngine.invalidatePhotonCache()
+
+    // Lightning Indexer training: run if triples are available
+    if (this.lightningIndexer && this.indexerTrainer && this.lightningMode !== 'off') {
+      try {
+        const trainResult = await this.trainLightningIndexer()
+        if (trainResult && !trainResult.skipped) {
+          this.logger.info('Lightning Indexer trained during consolidation', {
+            retrievals: trainResult.retrievalsTrained,
+            lossBefore: trainResult.initialLoss?.toFixed(4),
+            lossAfter: trainResult.finalLoss?.toFixed(4),
+          })
+
+          // Auto-promotion: switch from shadow to sparsify when ready
+          if (this.lightningMode === 'shadow' && this.indexerReadyForPromotion) {
+            this.setLightningMode('sparsify')
+            this.logger.info('Lightning Indexer auto-promoted to sparsify mode', {
+              triples: this.indexerTrainer.totalProcessed,
+              steps: this.indexerTrainer.steps,
+            })
+          }
+        }
+      } catch (err) {
+        this.logger.warn('Lightning Indexer training failed', { error: String(err) })
+      }
+    }
 
     return result
   }

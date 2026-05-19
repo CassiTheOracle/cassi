@@ -19,6 +19,9 @@ export class LightningIndexer {
   private readonly logger: ILogger
   private readonly config: LightningIndexerConfig
   private global: LightningIndexerGlobal | null = null
+  /** Cached recency window IDs with short TTL to avoid per-retrieval DB queries. */
+  private recencyCache: { ids: string[]; ts: number } | null = null
+  private static readonly RECENCY_CACHE_TTL_MS = 30_000  // 30 seconds
 
   constructor(cortex: Cortex, logger: ILogger, config?: Partial<LightningIndexerConfig>) {
     this.cortex = cortex
@@ -115,6 +118,66 @@ export class LightningIndexer {
 
   topK(queryEmbedding: Float32Array, candidates: LightningCandidate[], k: number): LightningRanked[] {
     return this.score(queryEmbedding, candidates).slice(0, k)
+  }
+
+  /**
+   * Sparsification gate: score all candidates, keep top-k by indexer score
+   * plus a recency window of the most recently stored engrams (by engram creation
+   * order in the Cortex). Returns the filtered candidate IDs and the full ranked
+   * results (so the caller doesn't need to re-score for logging).
+   *
+   * This is the DeepSeek V4-style sparse selection: top-k blocks + sliding window.
+   */
+  sparsify(
+    queryEmbedding: Float32Array,
+    candidates: LightningCandidate[],
+    topK: number,
+    recencyWindow: number,
+  ): { keptIds: string[]; ranked: LightningRanked[] } {
+    if (candidates.length === 0) return { keptIds: [], ranked: [] }
+
+    const ranked = this.score(queryEmbedding, candidates)
+
+    // Top-k by indexer score
+    const topIds = new Set(ranked.slice(0, Math.min(topK, ranked.length)).map(r => r.engramId))
+
+    // Always include the most recent N engrams (recency window), cached with short TTL
+    if (recencyWindow > 0) {
+      const now = Date.now()
+      if (!this.recencyCache || (now - this.recencyCache.ts) > LightningIndexer.RECENCY_CACHE_TTL_MS) {
+        this.recencyCache = { ids: this.cortex.getMostRecentEngramIds(recencyWindow), ts: now }
+      }
+      for (const id of this.recencyCache.ids) {
+        topIds.add(id)
+      }
+    }
+
+    // Preserve original order from candidates (only keep those selected)
+    const keptIds = candidates
+      .filter(c => topIds.has(c.engramId))
+      .map(c => c.engramId)
+
+    return { keptIds, ranked }
+  }
+
+  /**
+   * Replace the in-memory weights with externally trained values.
+   * Called by IndexerTrainer after a training step.
+   */
+  updateWeights(wDq: Float32Array, wIuq: Float32Array, wI: Float32Array, newVersion: number): void {
+    const g = this.ensureInit()
+    if (wDq.length !== g.wDq.length || wIuq.length !== g.wIuq.length || wI.length !== g.wI.length) {
+      this.logger.warn('updateWeights: dimension mismatch, skipping', {
+        expected: { wDq: g.wDq.length, wIuq: g.wIuq.length, wI: g.wI.length },
+        got: { wDq: wDq.length, wIuq: wIuq.length, wI: wI.length },
+      })
+      return
+    }
+    g.wDq.set(wDq)
+    g.wIuq.set(wIuq)
+    g.wI.set(wI)
+    g.version = newVersion
+    g.updatedAt = new Date().toISOString()
   }
 
   stats(): { globalReady: boolean; keysCount: number; version: number; dims: { dEmb: number; dC: number; nH: number; dIdx: number } } {

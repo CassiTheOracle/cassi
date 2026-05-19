@@ -745,6 +745,52 @@ export type LightningRetrievalMode =
   | 'kindle-only'   // No reranker, kindling charges drove ordering
   | 'fts-fallback'  // Empty kindling, FTS searchText() fallback
 
+/** Lightning Indexer training configuration. */
+export interface IndexerTrainingConfig {
+  /** Learning rate for Muon optimizer (matrix params wDq, wIuq). */
+  muonLR: number
+  /** Momentum coefficient for Muon. */
+  muonBeta: number
+  /** Weight decay for Muon. */
+  muonWeightDecay: number
+  /** Learning rate for AdamW optimizer (vector param wI). */
+  adamwLR: number
+  /** AdamW beta1. */
+  adamwBeta1: number
+  /** AdamW beta2. */
+  adamwBeta2: number
+  /** AdamW epsilon. */
+  adamwEps: number
+  /** AdamW weight decay. */
+  adamwWeightDecay: number
+  /** Maximum triples to process per training call. */
+  batchSize: number
+  /** Minimum training triples required before leaving shadow mode. */
+  minTriplesForPromotion: number
+  /** Minimum training steps before leaving shadow mode. */
+  minStepsForPromotion: number
+  /** Top-K candidates to keep in sparsification mode (before recency window). */
+  sparsifyTopK: number
+  /** Number of most recent engrams always preserved in sparsification. */
+  recencyWindow: number
+}
+
+export const INDEXER_TRAINING_DEFAULTS: IndexerTrainingConfig = {
+  muonLR: 0.02,
+  muonBeta: 0.95,
+  muonWeightDecay: 0.01,
+  adamwLR: 3e-4,
+  adamwBeta1: 0.9,
+  adamwBeta2: 0.999,
+  adamwEps: 1e-8,
+  adamwWeightDecay: 0.01,
+  batchSize: 200,
+  minTriplesForPromotion: 500,
+  minStepsForPromotion: 5,
+  sparsifyTopK: 128,
+  recencyWindow: 16,
+}
+
 export interface LightningRetrievalEvent {
   retrievalId: string
   sessionId?: string

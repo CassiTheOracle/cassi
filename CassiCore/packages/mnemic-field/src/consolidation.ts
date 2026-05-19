@@ -99,11 +99,23 @@ export class ConsolidationEngine {
     anomaly: 0.35,       // low — one-off surprises don't need long life
     // tool-result types (matched via nodeType when semanticType absent)
     error_report: 0.35,    // one-off, fast decay (same tier as anomaly)
-    search_finding: 0.75,  // reusable knowledge, moderate-high retention
+    search_finding: 0.3,   // search result caches — transient but reusable
     code_change: 0.65,     // structural, moderate retention
     test_result: 0.6,      // diagnostic, useful for patterns
     build_output: 0.45,    // voluminous, lower retention
-    // tool_invocation gets default 0.7 (not listed)
+    // Structural/administrative types — high volume, low recall value
+    tool: 0.05,            // raw tool input JSON — never useful for recall
+    tool_invocation: 0.05, // tool call records — administrative scaffolding
+    file: 0.05,            // file tracking metadata — structural
+    file_read: 0.05,       // read events — high volume, low signal
+    file_version: 0.05,    // file version diffs — technical artifact
+    message: 0.05,         // raw conversation fragments — ephemeral
+    bridge: 0.05,          // structural connector — already capped at 0.3 by override below
+    session: 0.05,         // session boundary markers
+    changeset: 0.05,       // code change tracking — structural
+    thought_command: 0.05, // internal cognitive signals — ephemeral
+    replay_segment: 0.05,  // internal processing artifacts
+    expert_summary: 0.4,   // expert summaries — keep some signal
   }
 
   constructor(
@@ -799,113 +811,200 @@ export class ConsolidationEngine {
       : this.cortex.getSpatialEngrams(10000)
     if (engrams.length < minClusterSize) return 0
 
-    // Clear previous hierarchy
-    for (const existing of this.cortex.listNuclei()) {
-      this.cortex.deleteNucleus(existing.id)
+    // Snapshot old nuclei with their member IDs for Jaccard reconciliation
+    const oldNuclei = this.cortex.listNuclei().filter(n => n.depth === 0)
+    const oldMemberSets = new Map<string, Set<string>>()
+    for (const n of oldNuclei) {
+      const ids = this.cortex.getEngramIdsByCluster(n.id)
+      if (ids.length > 0) oldMemberSets.set(n.id, new Set(ids))
+    }
+    // Also snapshot old super-nuclei (depth 2)
+    const oldSuperNuclei = this.cortex.listNuclei().filter(n => n.depth === 2)
+    const oldSuperMemberSets = new Map<string, Set<string>>()
+    for (const sn of oldSuperNuclei) {
+      const childIds = this.cortex.getChildNucleusIds(sn.id)
+      if (childIds.length > 0) oldSuperMemberSets.set(sn.id, new Set(childIds))
     }
 
+    // DBSCAN clustering: engrams → depth-0 nuclei
     // Level 0: nuclei from engrams (depth 0)
     const clusters = this.dbscan(engrams, epsilon, minClusterSize)
-    let nucleiCount = 0
 
-    for (const [clusterId, members] of clusters) {
+    // Reconcile: match old nuclei → new clusters by Jaccard overlap.
+    // Sort old nuclei largest-first so bigger clusters get first claim.
+    const sortedOld = oldNuclei
+      .filter(n => oldMemberSets.has(n.id))
+      .sort((a, b) => (oldMemberSets.get(b.id)?.size ?? 0) - (oldMemberSets.get(a.id)?.size ?? 0))
+
+    const claimedClusters = new Set<number>()
+    const clusterToOldId = new Map<number, string>()  // clusterNum → old nucleus ID
+
+    for (const old of sortedOld) {
+      const oldIds = oldMemberSets.get(old.id)!
+      let bestJaccard = 0
+      let bestCluster = -1
+
+      for (const [clusterNum, members] of clusters) {
+        if (claimedClusters.has(clusterNum)) continue
+        const newIds = new Set(members.map(e => e.id))
+        let intersection = 0
+        for (const id of oldIds) { if (newIds.has(id)) intersection++ }
+        const union = oldIds.size + newIds.size - intersection
+        const jaccard = union > 0 ? intersection / union : 0
+        if (jaccard > bestJaccard) { bestJaccard = jaccard; bestCluster = clusterNum }
+      }
+
+      if (bestJaccard >= 0.5 && bestCluster >= 0) {
+        claimedClusters.add(bestCluster)
+        clusterToOldId.set(bestCluster, old.id)
+      }
+    }
+
+    // Create or update nuclei from each cluster, preserving identity where possible
+    let nucleiCount = 0
+    const survivedOldIds = new Set(clusterToOldId.values())
+
+    for (const [clusterNum, members] of clusters) {
       const centroidX = members.reduce((s, e) => s + e.x, 0) / members.length
       const centroidY = members.reduce((s, e) => s + e.y, 0) / members.length
       const centroidZ = members.reduce((s, e) => s + (e.z ?? 0), 0) / members.length
       const avgPot = members.reduce((s, e) => s + e.potentiation, 0) / members.length
 
-      const dominantType = this.findDominantType(members)
-      const dominantEmotion = this.computeClusterAffect(members)
-      const emotionPrefix = dominantEmotion ? `${dominantEmotion}-` : ''
-      const label = `${emotionPrefix}${dominantType}-cluster-${nucleiCount}`
+      const oldId = clusterToOldId.get(clusterNum)
+      if (oldId) {
+        // Surviving nucleus — update centroid + member count, keep label
+        this.cortex.updateNucleus(oldId, {
+          centroidX, centroidY, centroidZ,
+          memberCount: members.length,
+          avgPotentiation: avgPot,
+        })
+        for (const member of members) {
+          this.cortex.updateEngram(member.id, { clusterId: oldId })
+        }
+      } else {
+        // New nucleus — create with auto-label
+        const dominantType = this.findDominantType(members)
+        const dominantEmotion = this.computeClusterAffect(members)
+        const emotionPrefix = dominantEmotion ? `${dominantEmotion}-` : ''
+        const label = `${emotionPrefix}${dominantType}-cluster-${nucleiCount}`
 
-      const nucleus = this.cortex.createNucleus({
-        label,
-        centroidX,
-        centroidY,
-        centroidZ,
-        depth: 0,
-      })
-
-      this.cortex.updateNucleus(nucleus.id, {
-        memberCount: members.length,
-        avgPotentiation: avgPot,
-      })
-
-      for (const member of members) {
-        this.cortex.updateEngram(member.id, { clusterId: nucleus.id })
+        const nucleus = this.cortex.createNucleus({
+          label, centroidX, centroidY, centroidZ, depth: 0,
+        })
+        this.cortex.updateNucleus(nucleus.id, {
+          memberCount: members.length,
+          avgPotentiation: avgPot,
+        })
+        for (const member of members) {
+          this.cortex.updateEngram(member.id, { clusterId: nucleus.id })
+        }
       }
-
       nucleiCount++
     }
 
-    // Level 2: super-nuclei from nucleus centroids (depth 2)
+    // Delete old nuclei that dissolved (no matching cluster above Jaccard threshold)
+    for (const old of oldNuclei) {
+      if (!survivedOldIds.has(old.id)) {
+        this.cortex.deleteNucleus(old.id)
+      }
+    }
+
+    // Level 2: super-nuclei from depth-0 nucleus centroids (with reconciliation)
     const SUPER_EPSILON = 0.05
     const SUPER_MIN_PTS = 2
     let superNucleiCount = 0
     const depth0Nuclei = this.cortex.listNuclei().filter(n => n.depth === 0)
 
     if (depth0Nuclei.length >= SUPER_MIN_PTS) {
-      // Create pseudo-engrams from nucleus centroids for DBSCAN
       const pseudoEngrams: Engram[] = depth0Nuclei.map(n => ({
         id: n.id,
         content: n.label,
         nodeType: 'abstraction',
-        x: n.centroidX,
-        y: n.centroidY,
-        z: n.centroidZ ?? 0,
-        t: 0,
-        potentiation: n.avgPotentiation,
-        clusterId: null,
-        embedding: null,
-        tags: [],
-        provenance: 'super-nucleus-seed',
-        createdAt: n.createdAt,
-        accessedAt: null,
-        metadata: {},
+        x: n.centroidX, y: n.centroidY, z: n.centroidZ ?? 0,
+        t: 0, potentiation: n.avgPotentiation, clusterId: null,
+        embedding: null, tags: [], provenance: 'super-nucleus-seed',
+        createdAt: n.createdAt, accessedAt: null, metadata: {},
       }))
 
       const superClusters = this.dbscan(pseudoEngrams, SUPER_EPSILON, SUPER_MIN_PTS)
 
-      for (const [, members] of superClusters) {
+      // Reconcile super-nuclei the same way
+      const sortedOldSuper = oldSuperNuclei
+        .filter(sn => oldSuperMemberSets.has(sn.id))
+        .sort((a, b) => (oldSuperMemberSets.get(b.id)?.size ?? 0) - (oldSuperMemberSets.get(a.id)?.size ?? 0))
+
+      const claimedSuper = new Set<number>()
+      const superClusterToOldId = new Map<number, string>()
+
+      for (const oldSn of sortedOldSuper) {
+        const oldChildIds = oldSuperMemberSets.get(oldSn.id)!
+        let bestJaccard = 0
+        let bestCluster = -1
+
+        for (const [clusterNum, members] of superClusters) {
+          if (claimedSuper.has(clusterNum)) continue
+          const newChildIds = new Set(members.map(m => m.id))
+          let intersection = 0
+          for (const id of oldChildIds) { if (newChildIds.has(id)) intersection++ }
+          const union = oldChildIds.size + newChildIds.size - intersection
+          const jaccard = union > 0 ? intersection / union : 0
+          if (jaccard > bestJaccard) { bestJaccard = jaccard; bestCluster = clusterNum }
+        }
+
+        if (bestJaccard >= 0.5 && bestCluster >= 0) {
+          claimedSuper.add(bestCluster)
+          superClusterToOldId.set(bestCluster, oldSn.id)
+        }
+      }
+
+      const survivedSuperIds = new Set(superClusterToOldId.values())
+
+      for (const [clusterNum, members] of superClusters) {
         const superCentroidX = members.reduce((s, e) => s + e.x, 0) / members.length
         const superCentroidY = members.reduce((s, e) => s + e.y, 0) / members.length
         const superCentroidZ = members.reduce((s, e) => s + (e.z ?? 0), 0) / members.length
         const superAvgPot = members.reduce((s, e) => s + e.potentiation, 0) / members.length
 
-        const superNucleus = this.cortex.createNucleus({
-          label: `super-cluster-${superNucleiCount}`,
-          centroidX: superCentroidX,
-          centroidY: superCentroidY,
-          centroidZ: superCentroidZ,
-          depth: 2,
-        })
-
-        this.cortex.updateNucleus(superNucleus.id, {
-          memberCount: members.length,
-          avgPotentiation: superAvgPot,
-        })
-
-        // Link depth-0 nuclei to super-nucleus
-        for (const member of members) {
-          this.cortex.updateNucleus(member.id, { parentNucleusId: superNucleus.id })
+        const oldSnId = superClusterToOldId.get(clusterNum)
+        if (oldSnId) {
+          this.cortex.updateNucleus(oldSnId, {
+            centroidX: superCentroidX, centroidY: superCentroidY, centroidZ: superCentroidZ,
+            memberCount: members.length, avgPotentiation: superAvgPot,
+          })
+          for (const member of members) {
+            this.cortex.updateNucleus(member.id, { parentNucleusId: oldSnId })
+          }
+        } else {
+          const superNucleus = this.cortex.createNucleus({
+            label: `super-cluster-${superNucleiCount}`,
+            centroidX: superCentroidX, centroidY: superCentroidY, centroidZ: superCentroidZ,
+            depth: 2,
+          })
+          this.cortex.updateNucleus(superNucleus.id, {
+            memberCount: members.length, avgPotentiation: superAvgPot,
+          })
+          for (const member of members) {
+            this.cortex.updateNucleus(member.id, { parentNucleusId: superNucleus.id })
+          }
         }
-
         superNucleiCount++
       }
-    }
 
-    // Compute fractal dimension from cluster counts
-    const totalClusters = nucleiCount + superNucleiCount
-    const fractalDimension = totalClusters > 0
-      ? Math.log(totalClusters) / Math.log(1 / epsilon)
-      : 0
+      // Delete dissolved super-nuclei
+      for (const oldSn of oldSuperNuclei) {
+        if (!survivedSuperIds.has(oldSn.id)) {
+          this.cortex.deleteNucleus(oldSn.id)
+        }
+      }
+    }
 
     this.logger.info('Multi-level nucleus detection complete', {
       depth0Nuclei: nucleiCount,
       depth2SuperNuclei: superNucleiCount,
-      fractalDimension: fractalDimension.toFixed(3),
       totalEngrams: engrams.length,
+      survivedDepth0: survivedOldIds.size,
+      dissolvedDepth0: oldNuclei.length - survivedOldIds.size,
+      newDepth0: nucleiCount - survivedOldIds.size,
     })
 
     return nucleiCount
