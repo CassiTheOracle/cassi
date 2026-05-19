@@ -3,16 +3,17 @@
  *
  * When an engram is stored, its content is run through gate KNN to find
  * the model features it activates. Those feature keys (e.g. "L16:F4521")
- * are stored in a Set<engramId> per feature. At retrieval time, the query's
- * gate KNN result directly points to engrams that activated the same
- * features — no ANN cosine scan needed for exact feature matches.
+ * are stored in the `feature_index` SQLite table. At retrieval time, the
+ * query's gate KNN result directly points to engrams that activated the
+ * same features — no ANN cosine scan needed for exact feature matches.
  *
  * This is the key that makes the vindex a substrate, not a bridge:
  * the model's internal activation pattern IS the retrieval index.
  *
- * Phase 8 integration: Built lazily from existing engrams and updated
- * during storeForSession when the vindex provider is available.
+ * SQLite-backed as of May 2026 — scales to 228K+ engrams without the
+ * ~700MB memory pressure of in-memory Maps.
  */
+import type Database from 'better-sqlite3'
 import type { ILogger } from '../../../types/interfaces.js'
 import type { Cortex } from './cortex.js'
 
@@ -34,18 +35,43 @@ export interface FeatureIndexEntry {
 }
 
 export class FeatureIndex {
-  /** feature key → Set of engram IDs that activated this feature */
-  private featureToEngrams = new Map<string, Set<string>>()
-
-  /** engram ID → feature keys (for removal on engram update) */
-  private engramToFeatures = new Map<string, string[]>()
-
+  private db: Database.Database
   private logger: ILogger
   private gateKnn: VindexGateKnnFn | null = null
   private ready = false
 
-  constructor(logger: ILogger) {
+  /** Small read-cache for engram→features (used by removeEngram + findCorrelated). */
+  private engramFeatureCache = new Map<string, string[]>()
+
+  // Prepared statements
+  private stmtInsert: Database.Statement | null = null
+  private stmtDeleteEngram: Database.Statement | null = null
+  private stmtCountByEngram: Database.Statement | null = null
+  private stmtFeatureKeys: Database.Statement | null = null
+
+  constructor(db: Database.Database, logger: ILogger) {
+    this.db = db
     this.logger = logger.child ? logger.child('feature-index') : logger
+  }
+
+  /**
+   * Prepare statements on first use (deferred — DB may not be fully migrated
+   * when FeatureIndex is constructed).
+   */
+  private ensureStatements(): void {
+    if (this.stmtInsert) return
+    this.stmtInsert = this.db.prepare(
+      `INSERT OR IGNORE INTO feature_index (feature_key, engram_id) VALUES (?, ?)`
+    )
+    this.stmtDeleteEngram = this.db.prepare(
+      `DELETE FROM feature_index WHERE engram_id = ?`
+    )
+    this.stmtCountByEngram = this.db.prepare(
+      `SELECT COUNT(*) as cnt FROM feature_index WHERE engram_id = ?`
+    )
+    this.stmtFeatureKeys = this.db.prepare(
+      `SELECT feature_key FROM feature_index WHERE engram_id = ?`
+    )
   }
 
   /** Wire the gate-KNN function. Required before index(). */
@@ -61,8 +87,8 @@ export class FeatureIndex {
   }
 
   /**
-   * Index an engram from its content. Gate-KNNs the content and stores
-   * the activated feature→engramId mapping.
+   * Index an engram from its content. Gate-KNNs the content and inserts
+   * feature→engramId mappings into the SQLite table.
    *
    * Call during storeForSession when vindex is available. Re-indexing
    * the same engramId with different content cleans up old mappings first.
@@ -79,7 +105,7 @@ export class FeatureIndex {
     if (!this.ready || !this.gateKnn) return
     if (!content || content.length < 20) return
 
-    // Clean up old feature mappings before re-indexing (content may have changed).
+    // Clean up old feature mappings before re-indexing.
     this.removeEngram(engramId)
 
     try {
@@ -93,18 +119,17 @@ export class FeatureIndex {
 
       const keys = features.map(f => featureKey(f.layer, f.featureIndex))
 
-      // Store forward mapping: feature → engrams
-      for (const key of keys) {
-        let set = this.featureToEngrams.get(key)
-        if (!set) {
-          set = new Set()
-          this.featureToEngrams.set(key, set)
+      // Batch insert within a transaction.
+      this.ensureStatements()
+      const tx = this.db.transaction(() => {
+        for (const key of keys) {
+          this.stmtInsert!.run(key, engramId)
         }
-        set.add(engramId)
-      }
+      })
+      tx()
 
-      // Store reverse mapping: engram → features
-      this.engramToFeatures.set(engramId, keys)
+      // Update cache.
+      this.engramFeatureCache.set(engramId, keys)
     } catch (err) {
       this.logger.debug?.('FeatureIndex.indexEngram failed', {
         engramId: engramId.slice(0, 12),
@@ -118,23 +143,24 @@ export class FeatureIndex {
    * or the engram is deleted.
    */
   removeEngram(engramId: string): void {
-    const keys = this.engramToFeatures.get(engramId)
-    if (!keys) return
-
-    for (const key of keys) {
-      const set = this.featureToEngrams.get(key)
-      if (set) {
-        set.delete(engramId)
-        if (set.size === 0) this.featureToEngrams.delete(key)
-      }
+    // Fetch keys from cache or DB before deleting.
+    let keys = this.engramFeatureCache.get(engramId)
+    if (!keys) {
+      this.ensureStatements()
+      const rows = this.stmtFeatureKeys!.all(engramId) as Array<{ feature_key: string }>
+      keys = rows.map(r => r.feature_key)
     }
-    this.engramToFeatures.delete(engramId)
+
+    this.ensureStatements()
+    this.stmtDeleteEngram!.run(engramId)
+    this.engramFeatureCache.delete(engramId)
   }
 
   /**
    * Find engrams that share features with the given text.
-   * Returns engrams ranked by number of shared features (descending).
+   * Runs gateKnn on the text, looks up matching engrams via SQL.
    *
+   * Returns engrams ranked by number of shared features (descending).
    * This is the direct feature-indexed retrieval path — the model's
    * gate KNN activation pattern IS the query. No cosine scan needed.
    */
@@ -159,22 +185,28 @@ export class FeatureIndex {
 
       if (features.length === 0) return []
 
+      const keys = features.map(f => featureKey(f.layer, f.featureIndex))
       const limit = options?.limit ?? 20
-      const overlapCount = new Map<string, number>()
 
-      for (const f of features) {
-        const key = featureKey(f.layer, f.featureIndex)
-        const engramIds = this.featureToEngrams.get(key)
-        if (!engramIds) continue
-        for (const id of engramIds) {
-          overlapCount.set(id, (overlapCount.get(id) ?? 0) + 1)
-        }
-      }
+      // Build IN clause with parameterized query.
+      const placeholders = keys.map(() => '?').join(',')
+      const sql = `
+        SELECT engram_id, COUNT(*) as cnt
+        FROM feature_index
+        WHERE feature_key IN (${placeholders})
+        GROUP BY engram_id
+        ORDER BY cnt DESC
+        LIMIT ?
+      `
+      const rows = this.db.prepare(sql).all(...keys, limit) as Array<{
+        engram_id: string
+        cnt: number
+      }>
 
-      return [...overlapCount.entries()]
-        .map(([engramId, count]) => ({ engramId, sharedFeatureCount: count }))
-        .sort((a, b) => b.sharedFeatureCount - a.sharedFeatureCount)
-        .slice(0, limit)
+      return rows.map(r => ({
+        engramId: r.engram_id,
+        sharedFeatureCount: r.cnt,
+      }))
     } catch (err) {
       this.logger.debug?.('FeatureIndex.lookup failed', { error: String(err) })
       return []
@@ -183,9 +215,13 @@ export class FeatureIndex {
 
   /**
    * Build the index from existing engrams in the Cortex.
-   * Iterates engrams with content, runs gate KNN, populates the index.
+   * Iterates engrams with content, runs gate KNN, populates the table.
    *
    * Best-effort and throttled — yields to event loop every 50 engrams.
+   * For bulk backfill of 228K engrams, use the separate backfill script
+   * (core/intelligence/mnemic-field/feature-backfill.ts) which loads the
+   * vindex via the native addon directly for 20× faster indexing.
+   *
    * Returns the number of engrams indexed.
    */
   async buildFromCortex(
@@ -216,10 +252,11 @@ export class FeatureIndex {
       }
     }
 
+    const stats = this.stats()
     this.logger.info('FeatureIndex built from cortex', {
       scanned: engrams.length,
       indexed,
-      featureKeys: this.featureToEngrams.size,
+      featureKeys: stats.featureKeys,
     })
 
     return indexed
@@ -227,17 +264,27 @@ export class FeatureIndex {
 
   /** Statistics about the index. */
   stats(): { engrams: number; featureKeys: number; ready: boolean } {
-    return {
-      engrams: this.engramToFeatures.size,
-      featureKeys: this.featureToEngrams.size,
-      ready: this.ready,
+    try {
+      const row = this.db.prepare(`
+        SELECT 
+          COUNT(DISTINCT engram_id) as engrams,
+          COUNT(DISTINCT feature_key) as feature_keys
+        FROM feature_index
+      `).get() as { engrams: number; feature_keys: number } | undefined
+      return {
+        engrams: row?.engrams ?? 0,
+        featureKeys: row?.feature_keys ?? 0,
+        ready: this.ready,
+      }
+    } catch {
+      return { engrams: 0, featureKeys: 0, ready: this.ready }
     }
   }
 
   /**
    * Find engrams that share vindex features with the given engram.
    *
-   * Uses the stored feature→engram mapping to find engrams whose gate
+   * Uses a self-join on feature_index to find engrams whose gate
    * activation patterns overlap. Returns engrams ranked by number of
    * shared features (descending). Excludes self.
    *
@@ -248,26 +295,32 @@ export class FeatureIndex {
     engramId: string,
     options?: { minOverlap?: number; limit?: number },
   ): Array<{ engramId: string; sharedFeatureCount: number }> {
-    const keys = this.engramToFeatures.get(engramId)
-    if (!keys || keys.length === 0) return []
-
-    const minOverlap = options?.minOverlap ?? 1
+    const minOverlap = options?.minOverlap ?? 2
     const limit = options?.limit ?? 20
-    const overlapCount = new Map<string, number>()
 
-    for (const key of keys) {
-      const engramIds = this.featureToEngrams.get(key)
-      if (!engramIds) continue
-      for (const id of engramIds) {
-        if (id === engramId) continue
-        overlapCount.set(id, (overlapCount.get(id) ?? 0) + 1)
-      }
+    try {
+      const rows = this.db.prepare(`
+        SELECT fi2.engram_id, COUNT(*) as cnt
+        FROM feature_index fi1
+        JOIN feature_index fi2 ON fi1.feature_key = fi2.feature_key
+        WHERE fi1.engram_id = ?
+          AND fi2.engram_id != ?
+        GROUP BY fi2.engram_id
+        HAVING cnt >= ?
+        ORDER BY cnt DESC
+        LIMIT ?
+      `).all(engramId, engramId, minOverlap, limit) as Array<{
+        engram_id: string
+        cnt: number
+      }>
+
+      return rows.map(r => ({
+        engramId: r.engram_id,
+        sharedFeatureCount: r.cnt,
+      }))
+    } catch (err) {
+      this.logger.debug?.('FeatureIndex.findCorrelated failed', { error: String(err) })
+      return []
     }
-
-    return [...overlapCount.entries()]
-      .filter(([_, count]) => count >= minOverlap)
-      .map(([id, count]) => ({ engramId: id, sharedFeatureCount: count }))
-      .sort((a, b) => b.sharedFeatureCount - a.sharedFeatureCount)
-      .slice(0, limit)
   }
 }

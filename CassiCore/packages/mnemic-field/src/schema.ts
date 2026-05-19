@@ -127,6 +127,15 @@ export function initMnemicFieldSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_changesets_committed ON changesets(committed_at DESC);
     CREATE INDEX IF NOT EXISTS idx_changeset_files_engram ON changeset_files(engram_id);
 
+    -- V-index FeatureIndex: model-feature → engram mapping.
+    -- Composite PK (WITHOUT ROWID) for fast feature-key → engram lookup.
+    CREATE TABLE IF NOT EXISTS feature_index (
+      feature_key TEXT NOT NULL,
+      engram_id TEXT NOT NULL,
+      PRIMARY KEY (feature_key, engram_id)
+    ) WITHOUT ROWID;
+    CREATE INDEX IF NOT EXISTS idx_feature_index_engram ON feature_index(engram_id);
+
     CREATE VIEW IF NOT EXISTS replay_part_of_edges AS
       SELECT source_id AS child_id, target_id AS parent_id, weight, created_at, metadata
       FROM mnemic_synapses

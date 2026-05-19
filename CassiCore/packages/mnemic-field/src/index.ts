@@ -489,7 +489,7 @@ export class MnemicField {
     this.consolidationEngine.setHarmonyProvider(() => this.getHarmony())
     this.migrationJobs = new MigrationJobStore(db)
     this.affectRegister = new AffectRegister()
-    this.featureIndex = new FeatureIndex(logger)
+    this.featureIndex = new FeatureIndex(db, logger)
 
     // Initialize projection state from existing positions in DB (if available)
     this.projectionState = this._restoreProjectionState()
