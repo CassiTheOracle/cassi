@@ -3911,7 +3911,7 @@ class BackfillWorkerPool {
 
   async initialize(): Promise<void> {
     const workerPath = fileURLToPath(
-      new URL('./backfill-worker.js', import.meta.url),
+      new URL('./backfill-worker.ts', import.meta.url),
     )
 
     const readyPromises: Promise<void>[] = []
