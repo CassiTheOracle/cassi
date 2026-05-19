@@ -1027,6 +1027,24 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
     if (!this.loaded || !this.handle || !this.larql) return null
     if (!text) return null
 
+    // Use native gate_embed when available (reads raw f16 from mmap,
+    // no intermediate allocations, ~10× faster than the JS path).
+    if (typeof (this.larql as any).gateEmbed === 'function') {
+      try {
+        const buf: Buffer = (this.larql as any).gateEmbed(
+          this.handle, text,
+          options?.layers ?? null,
+          options?.featuresPerLayer ?? null,
+          options?.minScore ?? null,
+        )
+        if (!buf || buf.byteLength === 0) return null
+        return new Float32Array(buf.buffer, buf.byteOffset, buf.byteLength / 4)
+      } catch {
+        // Fall through to JS path below
+      }
+    }
+
+    // Fallback JS path (when native gate_embed is not available).
     const hiddenDim = this.handle.config.hiddenDim
     if (!hiddenDim || hiddenDim <= 0) return null
 
@@ -1037,10 +1055,8 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
     const tokens = this.larql.vindexTokenize(this.handle, text)
     if (tokens.length === 0) return null
 
-    // Use the last token — carries most semantic weight in autoregressive models.
     const queryToken = tokens[tokens.length - 1]
 
-    // Accumulate vectors and scores across all layers.
     const vectors: Float32Array[] = []
     const scores: number[] = []
 
@@ -1058,13 +1074,11 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
     }
 
     if (vectors.length === 0) {
-      // Fall back to uppercase/lowercase variant — same heuristic as describe().
       const lower = text.toLowerCase()
       if (lower !== text) return this.gateEmbed(lower, options)
       return null
     }
 
-    // Score-weighted sum: embedding = sum(vec_i * score_i) / sum(scores)
     const totalScore = scores.reduce((a, b) => a + b, 0)
     if (totalScore <= 0) return null
 
@@ -1077,7 +1091,6 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
       }
     }
 
-    // L2-normalize so cosine similarity is a simple dot product.
     let norm = 0
     for (let j = 0; j < hiddenDim; j++) {
       norm += embedding[j] * embedding[j]
