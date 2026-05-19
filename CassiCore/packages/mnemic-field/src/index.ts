@@ -1675,12 +1675,12 @@ export class MnemicField {
     const logInvSizes: number[] = []
 
     for (const boxSize of boxes) {
-      const occupied = new Set<string>()
+      const occupied = new Set<number>()
       for (const p of points) {
         const bx = Math.floor((p.x - minX) / boxSize)
         const by = Math.floor((p.y - minY) / boxSize)
         const bz = Math.floor((p.z - minZ) / boxSize)
-        occupied.add(`${bx},${by},${bz}`)
+        occupied.add((bx & 0x3FF) | ((by & 0x3FF) << 10) | ((bz & 0x3FF) << 20))
       }
       const count = occupied.size
       if (count > 0) {

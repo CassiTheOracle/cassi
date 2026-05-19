@@ -945,36 +945,9 @@ export class ConsolidationEngine {
 
       const superClusters = this.dbscan(pseudoEngrams, SUPER_EPSILON, SUPER_MIN_PTS)
 
-      // Reconcile super-nuclei the same way
-      const sortedOldSuper = oldSuperNuclei
-        .filter(sn => oldSuperMemberSets.has(sn.id))
-        .sort((a, b) => (oldSuperMemberSets.get(b.id)?.size ?? 0) - (oldSuperMemberSets.get(a.id)?.size ?? 0))
-
-      const claimedSuper = new Set<number>()
-      const superClusterToOldId = new Map<number, string>()
-
-      for (const oldSn of sortedOldSuper) {
-        const oldChildIds = oldSuperMemberSets.get(oldSn.id)!
-        let bestJaccard = 0
-        let bestCluster = -1
-
-        for (const [clusterNum, members] of superClusters) {
-          if (claimedSuper.has(clusterNum)) continue
-          const newChildIds = new Set(members.map(m => m.id))
-          let intersection = 0
-          for (const id of oldChildIds) { if (newChildIds.has(id)) intersection++ }
-          const union = oldChildIds.size + newChildIds.size - intersection
-          const jaccard = union > 0 ? intersection / union : 0
-          if (jaccard > bestJaccard) { bestJaccard = jaccard; bestCluster = clusterNum }
-        }
-
-        if (bestJaccard >= 0.3 && bestCluster >= 0) {
-          claimedSuper.add(bestCluster)
-          superClusterToOldId.set(bestCluster, oldSn.id)
-        }
-      }
-
-      const survivedSuperIds = new Set(superClusterToOldId.values())
+      // Reconcile super-nuclei via the same generic function
+      const { clusterToOldId: superClusterToOldId, survivedOldIds: survivedSuperIds } =
+        reconcileClusters(oldSuperMemberSets, superClusters)
 
       for (const [clusterNum, members] of superClusters) {
         const superCentroidX = members.reduce((s, e) => s + e.x, 0) / members.length
