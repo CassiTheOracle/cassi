@@ -854,7 +854,7 @@ export class ConsolidationEngine {
         if (jaccard > bestJaccard) { bestJaccard = jaccard; bestCluster = clusterNum }
       }
 
-      if (bestJaccard >= 0.5 && bestCluster >= 0) {
+      if (bestJaccard >= 0.3 && bestCluster >= 0) {
         claimedClusters.add(bestCluster)
         clusterToOldId.set(bestCluster, old.id)
       }
@@ -951,7 +951,7 @@ export class ConsolidationEngine {
           if (jaccard > bestJaccard) { bestJaccard = jaccard; bestCluster = clusterNum }
         }
 
-        if (bestJaccard >= 0.5 && bestCluster >= 0) {
+        if (bestJaccard >= 0.3 && bestCluster >= 0) {
           claimedSuper.add(bestCluster)
           superClusterToOldId.set(bestCluster, oldSn.id)
         }
