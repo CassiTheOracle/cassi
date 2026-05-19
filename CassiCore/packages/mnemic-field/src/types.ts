@@ -47,6 +47,7 @@ export const SYNAPSE_TYPES = [
   'created_in',
   'produces',
   'operated_on',
+  'vindex_correlation',
 ] as const
 
 export type SynapseType = typeof SYNAPSE_TYPES[number]
@@ -328,6 +329,7 @@ export const SYNAPSE_PROPAGATION: Record<SynapseType, number> = {
   created_in: 0.5,
   produces: 0.85,
   operated_on: 0.8,
+  vindex_correlation: 0.4,  // model-feature overlap — weaker than similar_to (0.5)
 }
 
 export const POTENTIATION_DEFAULTS = {

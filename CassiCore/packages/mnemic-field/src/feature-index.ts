@@ -230,4 +230,41 @@ export class FeatureIndex {
       ready: this.ready,
     }
   }
+
+  /**
+   * Find engrams that share vindex features with the given engram.
+   *
+   * Uses the stored feature→engram mapping to find engrams whose gate
+   * activation patterns overlap. Returns engrams ranked by number of
+   * shared features (descending). Excludes self.
+   *
+   * These correlations become `vindex_correlation` synapses — the bridge
+   * between continuous ANN space and discrete model-feature space.
+   */
+  findCorrelated(
+    engramId: string,
+    options?: { minOverlap?: number; limit?: number },
+  ): Array<{ engramId: string; sharedFeatureCount: number }> {
+    const keys = this.engramToFeatures.get(engramId)
+    if (!keys || keys.length === 0) return []
+
+    const minOverlap = options?.minOverlap ?? 1
+    const limit = options?.limit ?? 20
+    const overlapCount = new Map<string, number>()
+
+    for (const key of keys) {
+      const engramIds = this.featureToEngrams.get(key)
+      if (!engramIds) continue
+      for (const id of engramIds) {
+        if (id === engramId) continue
+        overlapCount.set(id, (overlapCount.get(id) ?? 0) + 1)
+      }
+    }
+
+    return [...overlapCount.entries()]
+      .filter(([_, count]) => count >= minOverlap)
+      .map(([id, count]) => ({ engramId: id, sharedFeatureCount: count }))
+      .sort((a, b) => b.sharedFeatureCount - a.sharedFeatureCount)
+      .slice(0, limit)
+  }
 }

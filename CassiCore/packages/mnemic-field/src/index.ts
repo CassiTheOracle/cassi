@@ -702,11 +702,32 @@ export class MnemicField {
 
     const engram = this.cortex.createEngram({ ...input, x, y, z, metadata, embedding: resolvedEmbedding })
 
-    // Index in FeatureIndex for direct feature-indexed retrieval.
+    // Index in FeatureIndex for direct feature-indexed retrieval,
+    // then find correlated engrams and create vindex_correlation synapses.
     // Fire-and-forget — gate KNN call can take ~5ms on CPU.
     if (this.featureIndex?.isReady()) {
       try {
         this.featureIndex.indexEngram(engram.id, input.content)
+
+        // Find engrams that share vindex features with this new engram.
+        // Create vindex_correlation synapses so kindling can spread
+        // activation through model-internal association pathways.
+        const correlated = this.featureIndex.findCorrelated(engram.id, {
+          minOverlap: 2,  // require at least 2 shared features
+          limit: 10,
+        })
+        for (const corr of correlated) {
+          const weight = Math.min(1.0, corr.sharedFeatureCount / 10)
+          try {
+            this.cortex.createSynapse({
+              sourceId: engram.id,
+              targetId: corr.engramId,
+              edgeType: 'vindex_correlation',
+              weight,
+              metadata: { sharedFeatures: corr.sharedFeatureCount },
+            })
+          } catch { /* duplicate synapse — silently skip */ }
+        }
       } catch { /* best-effort */ }
     }
 
