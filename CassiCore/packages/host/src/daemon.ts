@@ -317,6 +317,17 @@ export class Daemon {
         if (result && this.intelligence?.aurora) {
           this.intelligence.aurora.setModelProvider(result.provider)
           this.logger.info('Vindex loaded and wired to Aurora post-boot', { vindex: result.name })
+
+          // Wire vindex gate-vector embedder into the MnemicField.
+          const mnemicField = (this.intelligence as any).__mnemicField
+          if (mnemicField && typeof mnemicField.setVindexEmbedder === 'function' && result.provider.gateEmbed) {
+            mnemicField.setVindexEmbedder(result.provider.gateEmbed.bind(result.provider))
+            // Enable vindex embedding backend when configured.
+            if (this.config.get('intelligence.mnemicField.embeddingBackend', 'vllm') === 'vindex') {
+              mnemicField.setEmbeddingBackend('vindex')
+            }
+            this.logger.info('MnemicField vindex embedder wired post-boot', { vindex: result.name })
+          }
         } else if (result) {
           this.logger.info('Vindex loaded but Aurora not available', { vindex: result.name })
         } else {
