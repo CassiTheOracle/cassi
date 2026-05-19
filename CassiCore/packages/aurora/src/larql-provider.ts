@@ -1106,6 +1106,86 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
   }
 
   /**
+   * Embed text with explicit feature patching — the causal retrieval primitive.
+   *
+   * Each patch boosts or dampens a specific gate feature, shifting the
+   * resulting embedding toward (or away from) that feature's concept direction.
+   * This proves the thesis: the model's representation space IS the retrieval
+   * space, and you can intervene on it causally.
+   *
+   * @example
+   *   // Find features via gateKnn first
+   *   const hits = larql.vindexGateKnn(handle, 16, queryToken, 10)
+   *   // Boost a specific feature 3×
+   *   const vec = provider.embedWithPatch("attention", {
+   *     patches: [{ layer: 16, featureIndex: hits[0].featureIndex, boost: 3.0 }]
+   *   })
+   */
+  embedWithPatch(
+    text: string,
+    options?: {
+      layers?: number[]
+      featuresPerLayer?: number
+      minScore?: number
+      patches?: Array<{ layer: number; featureIndex: number; boost: number }>
+    },
+  ): Float32Array | null {
+    if (!this.loaded || !this.handle || !this.larql) return null
+    if (!text) return null
+
+    const patches = options?.patches ?? []
+
+    // Use native gate_embed with patches parameter when available.
+    if (typeof (this.larql as any).gateEmbed === 'function') {
+      try {
+        const buf: Buffer = (this.larql as any).gateEmbed(
+          this.handle, text,
+          options?.layers ?? null,
+          options?.featuresPerLayer ?? null,
+          options?.minScore ?? null,
+          patches.length > 0 ? patches : null,
+        )
+        if (!buf || buf.byteLength === 0) return null
+        return new Float32Array(buf.buffer, buf.byteOffset, buf.byteLength / 4)
+      } catch {
+        // Fall through to JS path below
+      }
+    }
+
+    // Fallback JS path: compute base embedding, then apply patches manually.
+    const base = this.gateEmbed(text, {
+      layers: options?.layers,
+      featuresPerLayer: options?.featuresPerLayer,
+      minScore: options?.minScore,
+    })
+    if (!base && patches.length === 0) return null
+
+    const hiddenDim = this.handle.config.hiddenDim
+    if (!hiddenDim || hiddenDim <= 0) return null
+
+    const embedding = base ? new Float32Array(base) : new Float32Array(hiddenDim)
+
+    // Apply each patch: add the patched feature's gate vector × boost.
+    for (const patch of patches) {
+      const vec = this.gateVector(patch.layer, patch.featureIndex)
+      if (!vec) continue
+      for (let j = 0; j < hiddenDim; j++) {
+        embedding[j] += vec[j] * patch.boost
+      }
+    }
+
+    // Re-normalize after patching
+    let norm = 0
+    for (let j = 0; j < hiddenDim; j++) norm += embedding[j] * embedding[j]
+    norm = Math.sqrt(norm)
+    if (norm > 0) {
+      for (let j = 0; j < hiddenDim; j++) embedding[j] /= norm
+    }
+
+    return embedding
+  }
+
+  /**
    * A2 calibration: measure typical residual L2 norm at the requested
    * layers via one forward pass over `promptText`. Returns a Map<layer,
    * norm> for the caller to cache and use as a `BaselineNormSource`.
