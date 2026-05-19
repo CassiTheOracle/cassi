@@ -1150,6 +1150,7 @@ export class MnemicField {
     if (this.embeddingBackend === 'vindex' && this.vindexEmbedder) {
       const vec = this.vindexEmbedder(query, { minScore: 0.05 })
       queryEmbedding = vec ? Array.from(vec) : null
+      this.logger.info('vindex embedder result', { hasEmbedding: queryEmbedding !== null, dim: queryEmbedding?.length ?? 0, queryLen: query.length })
     } else {
       const embSvc = getEmbeddingService(this.logger)
       queryEmbedding = embSvc.available ? await embSvc.embed(query, 'query') : null

@@ -887,7 +887,7 @@ export class Cortex {
   getEmbeddingVectors(maxCount?: number): Array<{ id: string; embedding: Float32Array }> {
     const limit = maxCount ?? 999999
     const rows = this.db.prepare(
-      `SELECT id, embedding FROM engrams WHERE embedding IS NOT NULL AND LENGTH(embedding) > 0 LIMIT ?`
+      `SELECT id, embedding FROM engrams WHERE embedding IS NOT NULL AND LENGTH(embedding) > 0 ORDER BY potentiation DESC LIMIT ?`
     ).all(limit) as Array<{ id: string; embedding: Buffer }>
     return rows
       .map(r => ({ id: r.id, embedding: toFloatArray(r.embedding)! }))

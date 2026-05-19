@@ -161,6 +161,7 @@ export class KindlingEngine {
     const shouldRecordTrace = neural && this.neuralConfig.traceRecording
 
     const seeds = this.findSeeds(embedding, textQuery, options)
+    this.logger.info('kindling seeds found', { seedCount: seeds.length, hasEmbedding: !!embedding, embeddingDim: embedding?.length ?? 0, hasText: !!textQuery })
     if (seeds.length === 0) {
       return this.emptyLuminalSet(complexity, Date.now() - start)
     }
@@ -212,6 +213,7 @@ export class KindlingEngine {
       sparkPoint *= (1 - arousalShift)
     }
     const luminal = this.ignite(chargeMap, sparkPoint, maxLuminal)
+    this.logger.info('kindling ignition', { luminalSize: luminal.length, sparkPoint: sparkPoint.toFixed(3), chargeMapSize: chargeMap.size })
 
     if (shouldRecordTrace && seedCharges) {
       const traceId = `trace_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
@@ -314,6 +316,7 @@ export class KindlingEngine {
     // Try ANN index first if available and dimension matches
     if (this.isAnnReady() && queryEmb.length === (this.engramAnnIndex?.getDimension() ?? 0)) {
       const annResults = this.engramAnnIndex!.search(queryEmb, limit * 2)
+      this.logger.info('ANN seed results', { candidates: annResults.length, topDist: annResults[0]?.distance?.toFixed(4), annReady: this.isAnnReady() })
       
       if (annResults.length > 0) {
         const seeds = annResults.map(r => ({
