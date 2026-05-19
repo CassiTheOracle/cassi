@@ -2302,9 +2302,15 @@ export class MnemicField {
    * avoiding expensive full reprojection.
    */
   async backfillEmbeddings(limit = 1000): Promise<{ embedded: number; reprojected: number; filamentEmbeddings: number }> {
-    const embSvc = getEmbeddingService(this.logger)
-    if (!embSvc.available) {
-      throw new Error('Embedding service not available')
+    // Use vindex gate-vector embedding when configured, otherwise fall back
+    // to the external vLLM embedding service.
+    const useVindex = this.embeddingBackend === 'vindex' && this.vindexEmbedder
+    let embSvc: ReturnType<typeof getEmbeddingService> | null = null
+    if (!useVindex) {
+      embSvc = getEmbeddingService(this.logger)
+      if (!embSvc.available) {
+        throw new Error('Embedding service not available')
+      }
     }
 
     const missing = this.cortex.getEngramsWithoutEmbedding(limit)
@@ -2323,13 +2329,18 @@ export class MnemicField {
     const positionUpdates: Array<{ id: string; x: number; y: number }> = []
 
     for (const { id, content } of missing) {
-      const vec = await embSvc.embed(content, 'document')
+      let vec: Float32Array | number[] | null = null
+      if (useVindex) {
+        vec = this.vindexEmbedder!(content, { minScore: 0.05 })
+      } else {
+        vec = await embSvc.embed(content, 'document')
+      }
       if (!vec) continue
       this.cortex.updateEngram(id, { embedding: vec })
 
       // Incremental projection: place via k-NN if we have state
       if (this.projectionState) {
-        const pos = projectSingle(vec, this.projectionState)
+        const pos = projectSingle(Array.from(vec), this.projectionState)
         positionUpdates.push({ id, x: pos.x, y: pos.y })
       }
       embedded++
