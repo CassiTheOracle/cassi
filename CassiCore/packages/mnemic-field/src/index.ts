@@ -1389,6 +1389,7 @@ export class MnemicField {
 
     // Filter structural engrams from user-facing results.
     const contentHits = hits.filter(h => !STRUCTURAL_TYPES.has(h.nodeType))
+    this.logger.info('retrieve structural filter', { before: hits.length, after: contentHits.length, types: [...new Set(hits.map(h => h.nodeType))].join(',') })
 
     // Global Workspace Broadcast + activation recording (fire-and-forget).
     try {

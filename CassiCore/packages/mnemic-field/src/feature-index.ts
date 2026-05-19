@@ -189,12 +189,17 @@ export class FeatureIndex {
       const limit = options?.limit ?? 20
 
       // Build IN clause with parameterized query.
+      // Join against engrams to exclude structural types at query time.
       const placeholders = keys.map(() => '?').join(',')
       const sql = `
-        SELECT engram_id, COUNT(*) as cnt
-        FROM feature_index
-        WHERE feature_key IN (${placeholders})
-        GROUP BY engram_id
+        SELECT fi.engram_id, COUNT(*) as cnt
+        FROM feature_index fi
+        JOIN engrams e ON e.id = fi.engram_id
+        WHERE fi.feature_key IN (${placeholders})
+          AND e.node_type NOT IN ('message','tool_invocation','tool','thought_command',
+                                  'replay_segment','expert_summary','bridge','session',
+                                  'file','file_version','file_read','source_file','changeset')
+        GROUP BY fi.engram_id
         ORDER BY cnt DESC
         LIMIT ?
       `
