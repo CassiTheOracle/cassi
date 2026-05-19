@@ -20,6 +20,7 @@ export type RetrievalLabelSignal =
   | 'mnemic_promote_contradiction'
   | 'recall_counterfactual'
   | 'enrich_feedback'
+  | 'cosine_similarity'
 
 export interface RetrievalLabelEvidence {
   signal: RetrievalLabelSignal
@@ -52,6 +53,8 @@ export interface LabelerInputCandidate {
   id: string
   content: string
   tags: string[]
+  /** Optional: stored embedding for cosine similarity signal. */
+  embedding?: Float32Array
 }
 
 export interface LabelerInputToolRound {

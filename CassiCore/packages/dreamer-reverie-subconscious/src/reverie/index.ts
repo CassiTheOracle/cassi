@@ -35,6 +35,9 @@ import type { MnemicField } from '../mnemic-field/index.js'
 import type { Engram } from '../mnemic-field/types.js'
 import type { AuditStore } from '../../runtime/audit/index.js'
 import { withStep } from '../../runtime/audit/index.js'
+import { labelRetrievals, tokenize, bigrams, jaccard } from './retrieval-labeler.js'
+import type { LabelerInputs, LabelerInputRetrieval, LabelerInputCandidate, LabelerInputToolRound, RetrievalLabelTriple } from './retrieval-labeler-types.js'
+import { cosineSimilarity } from '../mnemic-field/cortex.js'
 
 let counter = 0
 function rid(): string {
@@ -82,6 +85,10 @@ export class ReverieModule extends BaseCognitiveModule {
   private pendingNotes = new Map<string, Array<{ message: string; at: number }>>()
   /** Cap on buffered notes per session — drop oldest beyond this. */
   private readonly maxPendingNotes = 20
+  /** Engram IDs promoted by Reverie during this session — fed to the labeler. */
+  private promotedEngramIds = new Set<string>()
+  /** Timestamp of the last retrieval labeling run, so we don't re-label old events. */
+  private lastLabelingAt = 0
   /**
    * Trigger for Thalamus's background distillation queue. Set by the daemon
    * so Reverie owns the WHEN (turn-end) while Thalamus owns the HOW (queue +
@@ -153,6 +160,18 @@ export class ReverieModule extends BaseCognitiveModule {
         this.logger.debug('[reverie] distillation trigger threw', { error: String(err) })
       }
     }
+
+    // Run heuristic retrieval labeling — uses tool rounds accumulated this turn
+    // to auto-label which retrieved engrams were actually useful. Pure computation,
+    // no LLM, runs before the LLM-based runOnce so labels are stored early.
+    if (this.mnemic) {
+      try {
+        this.runRetrievalLabeling(sessionId)
+      } catch (err) {
+        this.logger.debug('[reverie] retrieval labeling failed', { error: String(err) })
+      }
+    }
+
     // Schedule a step credit for the primary's turn-end so Reverie can fire.
     const trig = this.trigger.recordStep(sessionId, 'primary')
     if (trig) await this.runOnce(sessionId, trig)
@@ -379,6 +398,100 @@ Assistant: ${ex.lastAssistant ?? '(n/a)'}`
     return record
   }
 
+  /** Called from onTurnEnd — invoked before the LLM-based runOnce so labels are stored early. */
+  private runRetrievalLabeling(sessionId: string): void {
+    if (!this.mnemic) return
+
+    // Query retrieval events recorded since our last labeling pass
+    const since = this.lastLabelingAt > 0 ? new Date(this.lastLabelingAt).toISOString() : undefined
+    const events = this.mnemic.queryLightningRetrievalEvents({
+      sessionId,
+      since,
+      limit: 16,
+    })
+
+    if (events.length === 0) return
+
+    // Collect all candidate IDs across events
+    const allCandidateIds = new Set<string>()
+    for (const ev of events) {
+      for (const id of ev.candidateIds) allCandidateIds.add(id)
+    }
+
+    // Batch-fetch candidate content + tags + embeddings (single DB query)
+    const candidateMap = this.mnemic.getEngramDataForLabeling([...allCandidateIds])
+
+    // Build tool rounds from the sliding window
+    const toolRounds = this.toolRoundLog.get(sessionId) ?? []
+    const labelerToolRounds: LabelerInputToolRound[] = toolRounds.map(tr => ({
+      round: tr.round,
+      toolCalls: tr.toolCalls.map(tc => ({ name: tc.name, id: tc.id })),
+      results: tr.results.map(r => ({
+        toolCallId: r.toolCallId,
+        isError: r.isError,
+        contentPreview: r.contentPreview,
+      })),
+      at: tr.at,
+    }))
+
+    // Build labeler inputs
+    const labelerRetrievals: LabelerInputRetrieval[] = events.map(ev => ({
+      retrievalId: ev.retrievalId,
+      sessionId: ev.sessionId,
+      queryText: ev.queryText,
+      queryEmbedding: ev.queryEmbedding,
+      candidateIds: ev.candidateIds,
+      indexerScores: ev.indexerScores ? Array.from(ev.indexerScores) : undefined,
+      rerankerScores: ev.rerankerScores ? Array.from(ev.rerankerScores) : undefined,
+      createdAt: ev.createdAt,
+    }))
+
+    const inputs: LabelerInputs = {
+      retrievals: labelerRetrievals,
+      candidates: candidateMap,
+      toolRounds: labelerToolRounds,
+      promotedEngramIds: this.promotedEngramIds,
+    }
+
+    // Run the heuristic labeler
+    const triples = labelRetrievals(inputs)
+
+    // Enhance with cosine similarity evidence where embeddings are available
+    for (const triple of triples) {
+      const ev = events.find(e => e.retrievalId === triple.retrievalId)
+      if (!ev?.queryEmbedding) continue
+      const candEmb = candidateMap.get(triple.candidateId)?.embedding
+      if (!candEmb) continue
+
+      const sim = cosineSimilarity(ev.queryEmbedding, candEmb)
+      triple.evidence.push({
+        signal: 'cosine_similarity',
+        observedAt: new Date().toISOString(),
+        details: { similarity: Math.round(sim * 1000) / 1000 },
+      })
+      // Boost weight for high-similarity used candidates
+      if (triple.label === 'used' && sim > 0.7) {
+        triple.weight = Math.min(1.0, triple.weight + 0.15)
+      }
+    }
+
+    if (triples.length === 0) return
+
+    // Persist
+    const persisted = this.mnemic.recordIndexerTrainingRequests(triples)
+    this.logger.debug('[reverie] retrieval labeling complete', {
+      events: events.length,
+      triples: triples.length,
+      persisted,
+      sessionId,
+    })
+
+    // Only advance the cursor when we actually produced triples.
+    // If events exist but produced no labels (no Jaccard/co-occurrence match),
+    // we'll revisit them next turn when more tool rounds have accumulated.
+    this.lastLabelingAt = Date.now()
+  }
+
   private applyEdits(sessionId: string, edits: ReverieEdit[]): void {
     if (!this.lamina) return
     for (const edit of edits) {
@@ -429,6 +542,8 @@ Assistant: ${ex.lastAssistant ?? '(n/a)'}`
               { kind: 'session', sessionId })
           }
         } else if (edit.action === 'mnemic.promote') {
+          // Track promoted engrams for retrieval labeling
+          if (edit.engramId) this.promotedEngramIds.add(edit.engramId)
           // Best-effort: emit an event the memory module can subscribe to
           this.eventBus?.emit({
             type: 'reverie:promote' as any,
