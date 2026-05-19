@@ -3910,8 +3910,11 @@ class BackfillWorkerPool {
   }
 
   async initialize(): Promise<void> {
-    const workerPath = fileURLToPath(
-      new URL('./backfill-worker.ts', import.meta.url),
+    // Resolve worker path relative to repo root (cwd is always cassicore/).
+    // import.meta.url is unreliable under tsx — resolves to eval temp files.
+    const workerPath = path.resolve(
+      process.cwd(),
+      'core/intelligence/mnemic-field/backfill-worker.ts',
     )
 
     const readyPromises: Promise<void>[] = []
