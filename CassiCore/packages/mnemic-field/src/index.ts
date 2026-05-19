@@ -20,6 +20,7 @@ import { projectTo2D, projectTo2DAsync, projectTo2DFromSAB, projectSingle, build
 import { attune, AffectRegister, affectSimilarity } from './affect.js'
 import type { AffectState, LightningRetrievalMode, LightningRetrievalEvent, RerankerMode, IndexerTrainingConfig } from './types.js'
 import { INDEXER_TRAINING_DEFAULTS } from './types.js'
+import { FeatureIndex, type VindexGateKnnFn } from './feature-index.js'
 import type { RetrievalLabelTriple } from '../reverie/retrieval-labeler-types.js'
 import type { LabelerInputCandidate } from '../reverie/retrieval-labeler-types.js'
 import type { CorticalField } from '../cortex/index.js'
@@ -240,6 +241,8 @@ export class MnemicField {
   private embeddingBackend: 'vllm' | 'vindex' = 'vllm'
   /** Vindex-based embedder function. Set via setVindexEmbedder(). */
   private vindexEmbedder: VindexEmbedder | null = null
+  /** Feature-indexed retrieval — maps vindex features → engram IDs. */
+  readonly featureIndex: FeatureIndex
   // Cached after each retrieve() so recordEnrichFeedback can convert
   // helpful/unhelpful into Lightning Indexer training triples without a
   // round-trip to lightning_retrieval_events.
@@ -479,6 +482,7 @@ export class MnemicField {
     this.consolidationEngine.setHarmonyProvider(() => this.getHarmony())
     this.migrationJobs = new MigrationJobStore(db)
     this.affectRegister = new AffectRegister()
+    this.featureIndex = new FeatureIndex(logger)
 
     // Initialize projection state from existing positions in DB (if available)
     this.projectionState = this._restoreProjectionState()
