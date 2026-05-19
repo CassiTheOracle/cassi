@@ -1,19 +1,16 @@
 /**
  * Backfill worker — embeds engram batches using vindex gate vectors.
  *
- * Each worker loads its own vindex handle (mmap shared via OS page cache).
- * Receives batches via parentPort messages, transfers Float32Array embeddings
- * back via zero-copy ArrayBuffer transfer.
+ * Uses require() for the native N-API addon to avoid ESM import
+ * resolution issues in worker threads under tsx.
  *
  * Spawned by BackfillWorkerPool in index.ts.
  */
 import { parentPort, workerData } from 'node:worker_threads'
-import { LarqlKnowledgeProvider } from '../aurora/larql-provider.js'
-import type { ILogger } from '../../../types/interfaces.js'
+import { createRequire } from 'node:module'
 
-const noopLogger: ILogger = {
-  info() {}, warn() {}, error() {}, debug() {}, child() { return this },
-}
+const require = createRequire(import.meta.url)
+const native = require('cassi-larql')
 
 interface BatchMessage {
   type: 'batch'
@@ -24,12 +21,13 @@ interface BatchMessage {
 async function main() {
   const { vindexPath } = workerData as { vindexPath: string }
 
-  const provider = new LarqlKnowledgeProvider(noopLogger)
-  await provider.load(vindexPath)
+  // Load the vindex via native N-API (same as LarqlKnowledgeProvider.load)
+  const handle = native.loadVindexOnly(vindexPath)
+  const config = native.getVindexConfig(handle)
 
   parentPort?.postMessage({ type: 'ready' })
 
-  parentPort?.on('message', async (msg: BatchMessage) => {
+  parentPort?.on('message', (msg: BatchMessage) => {
     if (msg.type !== 'batch') return
 
     const { batchId, batch } = msg
@@ -37,19 +35,79 @@ async function main() {
     const buffers: ArrayBuffer[] = []
 
     for (const { id, content } of batch) {
-      const emb = provider.gateEmbed(content)
-      if (emb) {
-        ids.push(id)
-        // Detach the ArrayBuffer for zero-copy transfer.
-        // After transfer, emb is neutered — don't use it again.
-        buffers.push(emb.buffer as ArrayBuffer)
+      try {
+        // Use native gate_embed for speed. Falls back to JS path if
+        // native function is unavailable (older binary).
+        let emb: Float32Array | null = null
+
+        if (typeof native.gateEmbed === 'function') {
+          const buf: Buffer = native.gateEmbed(
+            handle, content,
+            null, // layers (default L14-L27)
+            null, // top_k (default 10)
+            null, // min_score (default 0.05)
+            null, // patches (none)
+          )
+          if (buf && buf.byteLength > 0) {
+            emb = new Float32Array(buf.buffer, buf.byteOffset, buf.byteLength / 4)
+          }
+        } else {
+          // Fallback JS path
+          const tokens = native.vindexTokenize(handle, content)
+          if (tokens.length === 0) continue
+          const lastToken = tokens[tokens.length - 1]
+          const hiddenDim = config.hiddenDim
+          const embedding = new Float32Array(hiddenDim)
+          const weights: number[] = []
+          let totalWeight = 0
+
+          for (let layer = 14; layer <= 27; layer++) {
+            const hits = native.vindexGateKnn(handle, layer, lastToken, 10)
+            for (const hit of hits) {
+              if (hit.score < 0.05) continue
+              const vecBuf = native.gateVector(handle, layer, hit.featureIndex)
+              if (!vecBuf) continue
+              const vec = new Float32Array(vecBuf.buffer, vecBuf.byteOffset, vecBuf.byteLength / 4)
+              for (let j = 0; j < hiddenDim; j++) {
+                embedding[j] += vec[j] * hit.score
+              }
+              totalWeight += hit.score
+            }
+          }
+
+          if (totalWeight > 0) {
+            let norm = 0
+            for (let j = 0; j < hiddenDim; j++) {
+              embedding[j] /= totalWeight
+              norm += embedding[j] * embedding[j]
+            }
+            norm = Math.sqrt(norm)
+            if (norm > 0) {
+              for (let j = 0; j < hiddenDim; j++) embedding[j] /= norm
+            }
+          }
+          emb = embedding
+        }
+
+        if (emb) {
+          ids.push(id)
+          buffers.push(emb.buffer as ArrayBuffer)
+        }
+      } catch {
+        // Skip engrams that fail embedding (e.g., empty tokenization)
       }
     }
 
-    parentPort?.postMessage(
-      { type: 'result', batchId, ids, buffers },
-      buffers, // transfer list — these ArrayBuffers are moved, not copied
-    )
+    if (ids.length > 0) {
+      parentPort?.postMessage(
+        { type: 'result', batchId, ids, buffers },
+        buffers,
+      )
+    } else {
+      parentPort?.postMessage(
+        { type: 'result', batchId, ids: [], buffers: [] },
+      )
+    }
   })
 }
 
