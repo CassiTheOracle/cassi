@@ -328,6 +328,30 @@ export class Daemon {
             }
             this.logger.info('MnemicField vindex embedder wired post-boot', { vindex: result.name })
           }
+
+          // Wire FeatureIndex gate-KNN for direct feature-indexed retrieval.
+          if (mnemicField?.featureIndex && result.provider.gateKnn) {
+            const featureGateKnn = (text: string, opts?: any) => {
+              const tokens = result.provider.tokenize(text)
+              if (tokens.length === 0) return []
+              const token = tokens[tokens.length - 1]
+              const layers = opts?.layers ?? [14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]
+              const featuresPerLayer = opts?.featuresPerLayer ?? 10
+              const minScore = opts?.minScore ?? 0.05
+              const results: Array<{ layer: number; featureIndex: number; score: number }> = []
+              for (const layer of layers) {
+                const hits = result.provider.gateKnn(layer, token, featuresPerLayer)
+                for (const h of hits) {
+                  if (h.score >= minScore) results.push({ layer, featureIndex: h.featureIndex, score: h.score })
+                }
+              }
+              return results
+            }
+            mnemicField.featureIndex.setGateKnn(featureGateKnn)
+            // Build index from existing engrams in the background.
+            mnemicField.featureIndex.buildFromCortex(mnemicField.getCortex(), { limit: 5000 }).catch(() => {})
+            this.logger.info('MnemicField FeatureIndex wired post-boot', { vindex: result.name })
+          }
         } else if (result) {
           this.logger.info('Vindex loaded but Aurora not available', { vindex: result.name })
         } else {
