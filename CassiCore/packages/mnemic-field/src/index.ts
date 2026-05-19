@@ -699,6 +699,15 @@ export class MnemicField {
     }
 
     const engram = this.cortex.createEngram({ ...input, x, y, z, metadata, embedding: resolvedEmbedding })
+
+    // Index in FeatureIndex for direct feature-indexed retrieval.
+    // Fire-and-forget — gate KNN call can take ~5ms on CPU.
+    if (this.featureIndex?.isReady()) {
+      try {
+        this.featureIndex.indexEngram(engram.id, input.content)
+      } catch { /* best-effort */ }
+    }
+
     return engram
   }
 
@@ -1125,6 +1134,45 @@ export class MnemicField {
       includeText: true,
       currentAffect: options?.currentAffect ?? this.affectRegister.getAffect(),
     })
+
+    // FeatureIndex: direct feature-indexed retrieval — complements the ANN path.
+    // The model's gate KNN activation pattern IS the query. Feature matches that
+    // the ANN missed get added with a charge derived from overlap count.
+    if (this.featureIndex?.isReady()) {
+      try {
+        const fiHits = this.featureIndex.lookup(query, {
+          featuresPerLayer: 10,
+          minScore: 0.05,
+          limit: limit * 2,
+        })
+        if (fiHits.length > 0) {
+          const existingIds = new Set(luminal.engrams.map(e => e.engram.id))
+          const novelHits = fiHits.filter(h => !existingIds.has(h.engramId))
+          if (novelHits.length > 0) {
+            const maxOverlap = Math.max(...novelHits.map(h => h.sharedFeatureCount))
+            const novelEngrams = this.cortex.getEngrams(novelHits.map(h => h.engramId))
+            for (const hit of novelHits) {
+              const engram = novelEngrams.get(hit.engramId)
+              if (engram && engram.nodeType !== 'bridge') {
+                const charge = maxOverlap > 0
+                  ? (hit.sharedFeatureCount / maxOverlap) * 0.6 // scale to [0, 0.6]
+                  : 0
+                if (charge > 0.1) {
+                  luminal.engrams.push({ engram, charge })
+                }
+              }
+            }
+            this.logger.debug('FeatureIndex added candidates', {
+              novel: novelHits.length,
+              maxOverlap,
+              luminalSize: luminal.engrams.length,
+            })
+          }
+        }
+      } catch (err) {
+        this.logger.debug('FeatureIndex lookup failed', { error: String(err) })
+      }
+    }
 
     // Track luminal engram IDs for retrieval chain continuity.
     // New engrams created this turn will carry triggeredBy metadata
