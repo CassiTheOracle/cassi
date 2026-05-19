@@ -2,6 +2,8 @@ import Database from 'better-sqlite3'
 import fs from 'node:fs'
 import path from 'node:path'
 import { randomUUID } from 'node:crypto'
+import { Worker } from 'node:worker_threads'
+import { fileURLToPath } from 'node:url'
 import type { DreamEngine } from '../memory-bridge/dream-engine.js'
 import type { ILogger } from '../../../types/interfaces.js'
 import { getEmbeddingService } from '../embeddings/embedding-service.js'
@@ -245,6 +247,9 @@ export class MnemicField {
   private vindexEmbedder: VindexEmbedder | null = null
   /** Feature-indexed retrieval — maps vindex features → engram IDs. */
   readonly featureIndex: FeatureIndex
+
+  /** Pool of backfill worker threads (lazily initialized). */
+  private backfillPool: BackfillWorkerPool | null = null
   // Cached after each retrieve() so recordEnrichFeedback can convert
   // helpful/unhelpful into Lightning Indexer training triples without a
   // round-trip to lightning_retrieval_events.
@@ -3778,5 +3783,215 @@ export class MnemicField {
     this.closed = true
     this.cortex.close()
     this.logger.info('Mnemic Field closed')
+  }
+
+  /**
+   * Parallel backfill using worker threads.
+   *
+   * Spawns `workerCount` workers, each loading its own vindex handle
+   * (mmap shared via OS page cache). Divides engrams into batches and
+   * distributes across workers. Workers embed engrams in parallel and
+   * transfer Float32Arrays back via zero-copy ArrayBuffer transfer.
+   *
+   * Bulk-writes embeddings to DB after each batch completes.
+   * Returns total embedded count and elapsed time.
+   */
+  async backfillEmbeddingsParallel(
+    options?: {
+      /** Number of worker threads (default 4). */
+      workerCount?: number
+      /** Maximum engrams to backfill (default: all). */
+      limit?: number
+      /** Batch size per worker message (default 200). */
+      batchSize?: number
+      /** Vindex path for workers to load. */
+      vindexPath?: string
+    },
+  ): Promise<{ embedded: number; durationMs: number }> {
+    if (this.embeddingBackend !== 'vindex' && !this.vindexEmbedder) {
+      // Fall back to serial backfill if vindex isn't configured
+      return this.backfillEmbeddings(options?.limit ?? 1000).then(r => ({
+        embedded: r.embedded,
+        durationMs: Date.now() - startMs,
+      }))
+    }
+
+    const workerCount = options?.workerCount ?? 4
+    const batchSize = options?.batchSize ?? 200
+    const vindexPath = options?.vindexPath ??
+      (this.vindexEmbedder as any)?.handle?.path
+    if (!vindexPath) {
+      throw new Error('vindexPath required for parallel backfill')
+    }
+
+    const startMs = Date.now()
+
+    // Initialize pool lazily
+    if (!this.backfillPool) {
+      this.backfillPool = new BackfillWorkerPool(
+        this.logger, vindexPath, workerCount,
+      )
+      await this.backfillPool.initialize()
+    }
+
+    const pool = this.backfillPool
+    let totalEmbedded = 0
+
+    // Process engrams in batches until done
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const missing = this.cortex.getEngramsWithoutEmbedding(
+        options?.limit ? Math.min(batchSize * workerCount, options.limit - totalEmbedded) : batchSize * workerCount,
+      )
+      if (missing.length === 0) break
+
+      // Divide into per-worker chunks
+      const chunks: Array<Array<{ id: string; content: string }>> = []
+      const chunkSize = Math.ceil(missing.length / workerCount)
+      for (let i = 0; i < workerCount; i++) {
+        const chunk = missing.slice(i * chunkSize, (i + 1) * chunkSize)
+        if (chunk.length > 0) chunks.push(chunk)
+      }
+
+      // Dispatch to workers and collect results
+      const results = await pool.processBatch(chunks)
+
+      // Bulk write embeddings to DB
+      let batchEmbedded = 0
+      for (const { id, buffer } of results) {
+        const embedding = new Float32Array(buffer)
+        this.cortex.updateEngram(id, { embedding })
+        batchEmbedded++
+      }
+      totalEmbedded += batchEmbedded
+
+      this.logger.info('Parallel backfill batch complete', {
+        batchSize: missing.length,
+        embedded: batchEmbedded,
+        totalSoFar: totalEmbedded,
+        remaining: this.cortex.countMissingEmbeddings(),
+      })
+
+      // Yield to event loop between batches
+      await new Promise<void>(resolve => setImmediate(resolve))
+    }
+
+    const durationMs = Date.now() - startMs
+    this.logger.info('Parallel backfill complete', {
+      embedded: totalEmbedded,
+      durationMs,
+    })
+
+    return { embedded: totalEmbedded, durationMs }
+  }
+}
+
+// BackfillWorkerPool — manages persistent worker threads for parallel
+// gate-vector embedding. Workers load the vindex once and process
+// multiple batches.
+
+interface BackfillBatchResult {
+  id: string
+  buffer: ArrayBuffer
+}
+
+class BackfillWorkerPool {
+  private workers: Worker[] = []
+  private ready = new Set<number>()
+  private logger: ILogger
+  private vindexPath: string
+  private workerCount: number
+  private nextBatchId = 0
+
+  constructor(logger: ILogger, vindexPath: string, workerCount: number) {
+    this.logger = logger.child?.('backfill-pool') ?? logger
+    this.vindexPath = vindexPath
+    this.workerCount = workerCount
+  }
+
+  async initialize(): Promise<void> {
+    const workerPath = fileURLToPath(
+      new URL('./backfill-worker.js', import.meta.url),
+    )
+
+    const readyPromises: Promise<void>[] = []
+
+    for (let i = 0; i < this.workerCount; i++) {
+      // Pass tsx/esm loader so the worker can import TypeScript modules.
+      // The worker inherits the parent's tsx runtime if available.
+      const worker = new Worker(workerPath, {
+        workerData: { vindexPath: this.vindexPath },
+        execArgv: ['--import', 'tsx/esm'],
+      })
+
+      const ready = new Promise<void>((resolve) => {
+        worker.on('message', (msg: { type: string }) => {
+          if (msg.type === 'ready') {
+            this.ready.add(i)
+            resolve()
+          }
+        })
+      })
+
+      worker.on('error', (err) => {
+        this.logger.error('Backfill worker error', { worker: i, error: String(err) })
+      })
+
+      this.workers.push(worker)
+      readyPromises.push(ready)
+    }
+
+    await Promise.all(readyPromises)
+    this.logger.info('Backfill worker pool ready', { workers: this.ready.size })
+  }
+
+  /**
+   * Process engram chunks across all workers in parallel.
+   * Returns flattened results from all workers.
+   */
+  async processBatch(
+    chunks: Array<Array<{ id: string; content: string }>>,
+  ): Promise<BackfillBatchResult[]> {
+    const batchPromises: Promise<BackfillBatchResult[]>[] = []
+
+    for (let i = 0; i < chunks.length; i++) {
+      const worker = this.workers[i]
+      if (!worker) continue
+
+      const batchId = this.nextBatchId++
+      const chunk = chunks[i]
+
+      const promise = new Promise<BackfillBatchResult[]>((resolve, reject) => {
+        const handler = (msg: { type: string; batchId: number; ids?: string[]; buffers?: ArrayBuffer[]; message?: string }) => {
+          if (msg.type === 'result' && msg.batchId === batchId) {
+            worker.removeListener('message', handler)
+            const results: BackfillBatchResult[] = []
+            for (let j = 0; j < (msg.ids?.length ?? 0); j++) {
+              results.push({ id: msg.ids![j], buffer: msg.buffers![j] })
+            }
+            resolve(results)
+          } else if (msg.type === 'error') {
+            worker.removeListener('message', handler)
+            reject(new Error(msg.message))
+          }
+        }
+        worker.on('message', handler)
+        worker.postMessage({ type: 'batch', batchId, batch: chunk })
+      })
+
+      batchPromises.push(promise)
+    }
+
+    const results = await Promise.all(batchPromises)
+    return results.flat()
+  }
+
+  /** Terminate all workers. */
+  async shutdown(): Promise<void> {
+    for (const w of this.workers) {
+      await w.terminate()
+    }
+    this.workers = []
+    this.ready.clear()
   }
 }

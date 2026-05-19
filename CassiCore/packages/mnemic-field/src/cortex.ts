@@ -909,6 +909,24 @@ export class Cortex {
   }
 
   /**
+   * Return (id, content) for engrams needing gate-vector backfill:
+   * NULL embeddings OR compressed 1024-dim Qwen3 embeddings.
+   * Skips engrams that already have 1536-dim raw gate vectors.
+   */
+  getEngramsNeedingBackfill(limit: number): Array<{ id: string; content: string }> {
+    return this.db.prepare(
+      `SELECT id, content FROM engrams
+       WHERE (embedding IS NULL
+              OR (LENGTH(embedding) > 0 AND LENGTH(embedding) < 500)
+              OR LENGTH(embedding) = 4096)
+       AND LENGTH(content) > 10
+       AND LENGTH(content) < 50000
+       ORDER BY LENGTH(content) ASC
+       LIMIT ?`
+    ).all(limit) as Array<{ id: string; content: string }>
+  }
+
+  /**
    * Return conversation engrams missing semanticType classification.
    * Filters to engrams with conversation-relevant provenance (thalamus, hermes)
    * and short text content (not code blobs). Maximizes embedding ROI.
