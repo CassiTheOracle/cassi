@@ -553,3 +553,28 @@ export const MEMORY_WORTHINESS_PHRASES: PhrasePrototypeSet = {
   },
   labels: ['worth_remembering', 'noise'],
 }
+
+/** Prototypes for what makes a retrieved engram actively useful in a task. */
+export const RETRIEVAL_RELEVANCE_PHRASES: PhrasePrototypeSet = {
+  phrases: {
+    directly_applied: [
+      'the retrieved information was directly used in the next action',
+      'the primary acted on this memory to make a decision',
+      'the content was copied or referenced in a tool call argument',
+      'the engram provided a fact that changed what happened next',
+    ],
+    contextually_relevant: [
+      'the retrieved information provided useful background context',
+      'the engram confirmed or reinforced the correct approach',
+      'the memory reminded the assistant of a constraint or preference',
+      'the content helped narrow the search space or eliminate options',
+    ],
+    not_useful: [
+      'the retrieved information was not relevant to the current task',
+      'the engram described a different problem or domain entirely',
+      'the content was factually wrong or misleading',
+      'the memory was about a resolved issue that no longer applies',
+    ],
+  },
+  labels: ['directly_applied', 'contextually_relevant', 'not_useful'],
+}
