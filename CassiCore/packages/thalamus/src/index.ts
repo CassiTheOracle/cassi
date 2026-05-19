@@ -36,8 +36,6 @@ import type {
   DropRecord,
   PinnedPattern,
   ThoughtCommand,
-  ContextMapRow,
-  ContextMapSnapshot,
   IntentSpan,
 } from './types.js'
 import { DEFAULT_CURATION_CONFIG, SIGNAL_TYPE_WEIGHTS, REGION_WEIGHTS, DEFAULT_SLOT_BUDGETS, parseThoughtCommands } from './types.js'
@@ -343,94 +341,6 @@ function formatGapDuration(ms: number): string {
 /** Escape `<`, `>`, and `&` so structured archive content can't break the wrapping XML block. */
 function escapeXml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-}
-
-const INLINE_MARKER_RE = /^\[#\d+ \d{2}:\d{2}:\d{2}[^\]]*\]\n/
-
-function formatBytes(n: number): string {
-  if (n < 1000) return `${n}`
-  if (n < 10000) return `${(n / 1000).toFixed(1)}k`
-  return `${Math.round(n / 1000)}k`
-}
-
-function formatTimeOfDay(iso: string | undefined): string {
-  if (!iso) return '?'
-  const d = new Date(iso)
-  if (isNaN(d.getTime())) return '?'
-  return d.toISOString().slice(11, 19)
-}
-
-function shortReason(reason: string | undefined, max = 20): string {
-  if (!reason) return ''
-  let s = reason
-  if (s.includes('/')) {
-    const base = s.split('/').pop() ?? s
-    if (base.length <= max) return base
-    s = base
-  }
-  if (s.length <= max) return s
-  return s.slice(0, max - 1) + '…'
-}
-
-function buildInlineMarker(msg: any, index: number): string | null {
-  const ann = msg?._thalamus
-  if (!ann) return null
-  const t = formatTimeOfDay(ann.ts)
-  const chars = formatBytes(ann.chars ?? 0)
-  let tag = ''
-  if (ann.protectedBy === 'pin') {
-    const priorityTag = ann.pinPriority === 'critical' ? '!' : ann.pinPriority === 'high' ? '+' : ''
-    tag = ` pin${priorityTag}:${shortReason(ann.protectedReason ?? ann.pinReason, 15)}`
-  }
-  else if (ann.protectedBy === 'recent-window') tag = ' recent'
-  else if (ann.protectedBy === 'live-read') tag = ` live:${shortReason(ann.protectedReason, 20)}`
-  else if (ann.protectedBy === 'system') tag = ' system'
-  else if (ann.protectedBy === 'slot-budget') tag = ' slot'
-  return `[#${index} ${t}${tag} ${chars}]`
-}
-
-/**
- * Prepend a compact metadata marker to each message's first text block so Cassi
- * can see protection state, timestamp, and char count in the message stream itself.
- * Format: `[#idx HH:MM:SS [tag] chars]\n` — stable across turns for cache stability.
- */
-function attachInlineMarkers(messages: any[]): any[] {
-  return messages.map((msg, i) => {
-    // Assistant messages carry thinking signatures bound to block structure.
-    // Mutating their content blocks invalidates signatures → Anthropic 400.
-    if (msg?.role === 'assistant') return msg
-    const ann = msg?._thalamus
-    const stableIdx = (ann && typeof ann.index === 'number') ? ann.index : i
-    const marker = buildInlineMarker(msg, stableIdx)
-    if (!marker) return msg
-    if (typeof msg.content === 'string') {
-      const stripped = msg.content.replace(INLINE_MARKER_RE, '')
-      return { ...msg, content: `${marker}\n${stripped}` }
-    }
-    if (Array.isArray(msg.content)) {
-      const newContent = msg.content.slice()
-      const idx = newContent.findIndex((b: any) => b?.type === 'text' && typeof b.text === 'string')
-      if (idx >= 0) {
-        const existing = newContent[idx].text as string
-        const stripped = existing.replace(INLINE_MARKER_RE, '')
-        newContent[idx] = { ...newContent[idx], text: `${marker}\n${stripped}` }
-      } else {
-        // Insert after any thinking/redacted_thinking blocks — Anthropic
-        // requires thinking blocks to precede all other content types.
-        let insertAt = 0
-        for (let k = 0; k < newContent.length; k++) {
-          if (newContent[k]?.type === 'thinking' || newContent[k]?.type === 'redacted_thinking') {
-            insertAt = k + 1
-          } else {
-            break
-          }
-        }
-        newContent.splice(insertAt, 0, { type: 'text', text: marker })
-      }
-      return { ...msg, content: newContent }
-    }
-    return msg
-  })
 }
 
 /**
@@ -1872,8 +1782,6 @@ this.aurora?.setReverieInferenceProvider(provider)
     // Extract topic summaries for cross-session sharing
     const topicSummaries = this.extractTopicSummaries(session, scored)
 
-    const contextMap = this.buildContextMap(assembled.messages)
-
     const meta = {
       originalCount: messages.length,
       curatedCount: assembled.messages.length,
@@ -1885,7 +1793,6 @@ this.aurora?.setReverieInferenceProvider(provider)
       gapNotes: assembled.gapNotes,
       receipt,
       repetitionWarning,
-      contextMap,
       durationMs: Date.now() - start,
       topicSummaries,
       distilled,
@@ -1906,51 +1813,6 @@ this.aurora?.setReverieInferenceProvider(provider)
 
     session.lastScored = scored
     session.lastThreshold = cfg.ignitionThreshold
-
-    const scoredByIdx = new Map<number, typeof scored[number]>()
-    for (const sm of scored) scoredByIdx.set(sm.messageIndex, sm)
-    const includedSorted = [...assembled.includedIndices].sort((a, b) => a - b)
-    const mapRows: ContextMapRow[] = []
-    for (const idx of includedSorted) {
-      const msg = compressed[idx]
-      const annotation: ThalamusAnnotation | undefined = msg?._thalamus
-      if (!annotation) continue
-      const content = extractMessageContent(msg)
-      const chars = content.length
-      const originalChars =
-        typeof msg?._originalChars === 'number' && msg._originalChars > 0
-          ? msg._originalChars
-          : chars
-      const sm = scoredByIdx.get(idx)
-      mapRows.push({
-        msgIndex: idx,
-        role: msg?.role ?? 'unknown',
-        slot: annotation.slot,
-        ts: annotation.ts,
-        chars,
-        originalChars,
-        compressed: originalChars > chars * 1.05,
-        tool: annotation.tool ? {
-          name: annotation.tool.name,
-          class: annotation.tool.class,
-          isError: annotation.tool.isError,
-          durationMs: annotation.tool.durationMs,
-        } : undefined,
-        protectedBy: annotation.protectedBy,
-        protectedReason: annotation.protectedReason,
-        composite: annotation.protectedBy ? undefined : sm?.luminance.composite,
-        preview: content.slice(0, 80),
-      })
-    }
-    session.lastMap = {
-      pass: session.totalCurations,
-      curatedAt: new Date().toISOString(),
-      charBudget: cfg.charBudget,
-      charsUsed: curatedChars,
-      annotatedCount: cloned.length,
-      visibleCount: mapRows.length,
-      rows: mapRows,
-    }
 
     // Append drop records (capped at MAX_DROP_HISTORY)
     if (receipt) {
@@ -2036,12 +1898,8 @@ this.aurora?.setReverieInferenceProvider(provider)
       }
     }
     
-    logThinkingSigs('before markers', assembled.messages)
-    const afterMarkers = attachInlineMarkers(assembled.messages)
-    logThinkingSigs('after markers', afterMarkers)
-    const afterStrip = stripThalamusAnnotations(afterMarkers)
-    logThinkingSigs('after strip', afterStrip)
-    let finalMessages = sanitizeToolPairs(afterStrip)
+    logThinkingSigs('before strip', assembled.messages)
+    let finalMessages = sanitizeToolPairs(stripThalamusAnnotations(assembled.messages))
     logThinkingSigs('after sanitize', finalMessages)
 
     // Sanitize thinking blocks with empty/missing signatures.
@@ -2412,17 +2270,6 @@ this.aurora?.setReverieInferenceProvider(provider)
       }
     }
     return null
-  }
-
-  getContextMap(sessionId: string, opts?: { since?: number; limit?: number }): ContextMapSnapshot | null {
-    const session = this.sessions.get(sessionId)
-    if (!session || !session.lastMap) return null
-    const snap = session.lastMap
-    let rows = snap.rows
-    if (typeof opts?.since === 'number') rows = rows.filter(r => r.msgIndex >= opts.since!)
-    if (typeof opts?.limit === 'number' && rows.length > opts.limit) rows = rows.slice(-opts.limit)
-    if (rows === snap.rows) return snap
-    return { ...snap, rows, visibleCount: rows.length }
   }
 
   recall(sessionId: string, query: string, limit: number = 5): Array<{
@@ -4760,25 +4607,6 @@ this.aurora?.setReverieInferenceProvider(provider)
     return message
   }
 
-  private buildContextMap(messages: any[]): string {
-    return messages.map((msg, i) => {
-      const ann = msg?._thalamus
-      const idx = ann?.index ?? i
-      const t = formatTimeOfDay(ann?.ts)
-      const chars = formatBytes(ann?.chars ?? 0)
-      const role = msg?.role ?? '?'
-      const blocks = Array.isArray(msg?.content)
-        ? msg.content.map((b: any) => b?.type).filter(Boolean).join('+')
-        : 'text'
-      let tag = ''
-      if (ann?.protectedBy === 'pin') tag = ' pin'
-      else if (ann?.protectedBy === 'live-read') tag = ' live'
-      else if (ann?.protectedBy === 'recent-window') tag = ' recent'
-      else if (ann?.protectedBy === 'system') tag = ' sys'
-      return `[#${idx} ${t} ${role} ${blocks} ${chars}${tag}]`
-    }).join(' ')
-  }
-
   private getRecentUserPrompt(messages: any[]): string {
     for (let i = messages.length - 1; i >= 0; i--) {
       const msg = messages[i]
@@ -4872,11 +4700,13 @@ this.aurora?.setReverieInferenceProvider(provider)
     if (rawHits.length === 0) return { context: '', hits: 0 }
 
     // Filter
+    const MIN_POTENTIATION = 0.01
     const filtered = rawHits.filter(h => {
       if (ThalamusModule.INJECT_SKIP_TYPES.has(h.nodeType)) return false
       if (ThalamusModule.INJECT_SKIP_PROVENANCE.has(h.provenance)) return false
       if (h.metadata?.sessionId === sessionId) return false
       if (!h.content || h.content.length < 10) return false
+      if ((h.potentiation ?? 0) < MIN_POTENTIATION) return false
       return true
     })
 
@@ -4937,8 +4767,8 @@ this.aurora?.setReverieInferenceProvider(provider)
 
   private static readonly INJECT_SKIP_TYPES = new Set([
     'bridge', 'session', 'file', 'source_file', 'file_version', 'file_read',
-    'changeset', 'message', 'tool_invocation', 'thought_command',
-    'replay_segment', 'expert_summary',
+    'changeset', 'message', 'tool', 'tool_invocation', 'thought_command',
+    'replay_segment', 'expert_summary', 'search_finding', 'test_result',
   ])
 
   private static readonly INJECT_SKIP_PROVENANCE = new Set([

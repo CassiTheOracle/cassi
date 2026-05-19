@@ -425,23 +425,16 @@ export interface CurationSession {
     signature: string
     clusters: TopicCluster[]
   }
-  /**
-   * Snapshot of the most recent curate()'s assembled output, captured for the
-   * cassi_context.map action. Updated atomically at the end of every curate().
-   * Holds rows for all currently-visible messages, not historical drops —
-   * dropHistory covers the latter.
-   */
-  lastMap?: ContextMapSnapshot
+  rerankerCache: RerankerCompressionCache
   /**
    * Cassi-issued directives consumed by curate(). Indices are stable
-   * original-session indices, the same `#N` shown in inline markers.
+   * original-session indices.
    * dropDirectives: messages to force-exclude (treated as dropped, never assembled).
    * collapseDirectives: messages whose content is replaced by `[collapsed: summary]`
    *   so the position remains but the bulk shrinks.
    */
   dropDirectives: Set<number>
   collapseDirectives: Map<number, string>
-  rerankerCache: RerankerCompressionCache
 }
 
 export interface RerankerChunk {
@@ -470,53 +463,6 @@ export interface RerankerCompressionCache {
 }
 
 /**
- * Per-message row produced by the most recent curate(). Lightweight projection
- * of the assembled output so cassi_context.map can render without re-curating.
- */
-export interface ContextMapRow {
-  /** 0-indexed position in the assembled message array */
-  msgIndex: number
-  /** Message role (user, assistant, tool, system) */
-  role: string
-  /** Slot classification from the annotation */
-  slot: MessageSlotType
-  /** ISO 8601 UTC timestamp from the annotation */
-  ts: string
-  /** Current char count (after compression if any) */
-  chars: number
-  /** Original char count when the message was processed; equals chars for non-compressed */
-  originalChars: number
-  /** True when chars < originalChars by more than a trivial margin */
-  compressed: boolean
-  /** Tool metadata when slot is tool_call or tool_result */
-  tool?: { name: string; class: string; isError: boolean; durationMs: number }
-  /** Why this row survived assembly, when force-included */
-  protectedBy?: ProtectionSource
-  /** Reason string for the protection — file path, pin pattern, source tag */
-  protectedReason?: string
-  /** Composite luminance score when not protected; undefined for protected rows */
-  composite?: number
-  /** First ~80 chars of content for orientation */
-  preview: string
-}
-
-export interface ContextMapSnapshot {
-  /** Curation pass number when this snapshot was taken */
-  pass: number
-  /** ISO 8601 UTC of the curate() call */
-  curatedAt: string
-  /** Char budget configured for this pass */
-  charBudget: number
-  /** Chars actually used by the assembled output */
-  charsUsed: number
-  /** Number of messages annotated in the pre-assembly array (visible + dropped) */
-  annotatedCount: number
-  /** Number of rows in this snapshot (matches rows.length, included for header rendering) */
-  visibleCount: number
-  /** Per-message rows for visible messages only */
-  rows: ContextMapRow[]
-}
-
 
 /**
  * A cortical signal with pre-computed weight and extracted terms
