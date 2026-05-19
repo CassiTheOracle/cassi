@@ -1,16 +1,22 @@
 /**
  * Backfill worker — embeds engram batches using vindex gate vectors.
  *
- * Uses require() for the native N-API addon to avoid ESM import
- * resolution issues in worker threads under tsx.
+ * Uses an absolute require path for the native N-API addon to avoid
+ * module resolution issues: under tsx, import.meta.url points to a
+ * temp directory that lacks node_modules/cassi-larql.
  *
  * Spawned by BackfillWorkerPool in index.ts.
  */
 import { parentPort, workerData } from 'node:worker_threads'
 import { createRequire } from 'node:module'
+import path from 'node:path'
 
+// Resolve cassi-larql relative to the CASSICORE_ROOT env var (set by
+// the daemon and backfill-runner) or fall back to process.cwd().
+const root = process.env.CASSICORE_ROOT || process.cwd()
+const nativePath = path.resolve(root, 'node_modules/cassi-larql')
 const require = createRequire(import.meta.url)
-const native = require('cassi-larql')
+const native = require(nativePath)
 
 interface BatchMessage {
   type: 'batch'
