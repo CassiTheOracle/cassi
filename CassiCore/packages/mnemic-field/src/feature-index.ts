@@ -90,6 +90,9 @@ export class FeatureIndex {
   /** Merge threshold — same as LMDB version. */
   private static readonly MERGE_OVERLAP_THRESHOLD = 0.95
 
+  /** Minimum feature-count ratio (newcomer/ anchor) to reverse the merge. */
+  private static readonly ANCHOR_REVERSAL_RATIO = 1.5
+
   /**
    * Index an engram from its content. Gate-KNNs the content and inserts
    * feature→engramId mappings into the SQLite table.
@@ -110,8 +113,6 @@ export class FeatureIndex {
     if (!this.ready || !this.gateKnn) return { action: 'indexed' }
     if (!content || content.length < 20) return { action: 'indexed' }
 
-    this.removeEngram(engramId)
-
     try {
       const features = this.gateKnn(content, {
         layers: options?.layers,
@@ -129,22 +130,24 @@ export class FeatureIndex {
         const top = overlapping[0]
         const overlapRatio = top.sharedFeatureCount / keys.length
         if (overlapRatio >= FeatureIndex.MERGE_OVERLAP_THRESHOLD) {
-          // Merge: union the feature sets into the anchor engram.
+          const anchorKeys = this.getFeatureKeys(top.engramId)
+          const anchorFeatureCount = anchorKeys.length
+
+          if (keys.length > anchorFeatureCount * FeatureIndex.ANCHOR_REVERSAL_RATIO) {
+            this.removeEngram(top.engramId)
+            const allKeys = [...new Set([...keys, ...anchorKeys])]
+            this.insertFeatures(engramId, allKeys)
+            return { action: 'indexed' }
+          }
+
           this.mergeFeatures(top.engramId, keys)
-          return { action: 'merged', mergedInto: top.engramId, overlapRatio }
+          return { action: 'merged', mergedInto: top.engramId, overlapRatio, featureCount: anchorFeatureCount }
         }
       }
 
       // No merge — store as new.
-      this.ensureStatements()
-      const tx = this.db.transaction(() => {
-        for (const key of keys) {
-          this.stmtInsert!.run(key, engramId)
-        }
-      })
-      tx()
-
-      this.engramFeatureCache.set(engramId, keys)
+      this.removeEngram(engramId)
+      this.insertFeatures(engramId, keys)
       return { action: 'indexed' }
     } catch (err) {
       this.logger.debug?.('FeatureIndex.indexEngram failed', {
@@ -352,6 +355,31 @@ export class FeatureIndex {
   }
 
   /**
+   * Get all feature keys for an engram. Returns empty array if not indexed.
+   */
+  private getFeatureKeys(engramId: string): string[] {
+    const cached = this.engramFeatureCache.get(engramId)
+    if (cached) return cached
+    this.ensureStatements()
+    const rows = this.stmtFeatureKeys!.all(engramId) as Array<{ feature_key: string }>
+    return rows.map(r => r.feature_key)
+  }
+
+  /**
+   * Insert feature keys for an engram within a transaction.
+   */
+  private insertFeatures(engramId: string, keys: string[]): void {
+    this.ensureStatements()
+    const tx = this.db.transaction(() => {
+      for (const key of keys) {
+        this.stmtInsert!.run(key, engramId)
+      }
+    })
+    tx()
+    this.engramFeatureCache.set(engramId, keys)
+  }
+
+  /**
    * Find engrams that share the given feature keys.
    * Uses the SQLite feature_index table (always up-to-date).
    */
@@ -382,20 +410,11 @@ export class FeatureIndex {
    * Only adds keys not already present for the engram.
    */
   private mergeFeatures(engramId: string, newKeys: string[]): void {
-    // Fetch existing keys from cache or DB.
-    const existing = this.engramFeatureCache.get(engramId)
-      ?? this.stmtFeatureKeys!.all(engramId).map((r: any) => r.feature_key) as string[]
+    const existing = this.getFeatureKeys(engramId)
     const existingSet = new Set(existing)
     const toAdd = newKeys.filter(k => !existingSet.has(k))
     if (toAdd.length === 0) return
 
-    this.ensureStatements()
-    const tx = this.db.transaction(() => {
-      for (const key of toAdd) {
-        this.stmtInsert!.run(key, engramId)
-      }
-    })
-    tx()
-    this.engramFeatureCache.set(engramId, [...existing, ...toAdd])
+    this.insertFeatures(engramId, [...existing, ...toAdd])
   }
 }

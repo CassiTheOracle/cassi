@@ -34,6 +34,10 @@ export interface IndexResult {
 /** Feature overlap ratio ≥ this → merge instead of indexing. */
 const MERGE_OVERLAP_THRESHOLD = 0.95
 
+/** Minimum feature-count ratio (newcomer/ anchor) to reverse the merge.
+ *  If the newcomer has ≥1.5× the anchor's features, it's the richer engram. */
+const ANCHOR_REVERSAL_RATIO = 1.5
+
 export class LmdbFeatureIndex {
   private env: any              // lmdb RootDatabase
   private featureToEngrams: any // lmdb Database (dupSort)
@@ -100,8 +104,6 @@ export class LmdbFeatureIndex {
     if (!this.ready || !this.gateKnn) return { action: 'indexed' }
     if (!content || content.length < 20) return { action: 'indexed' }
 
-    this.removeEngram(engramId)
-
     try {
       const features = this.gateKnn(content, {
         layers: options?.layers,
@@ -125,19 +127,12 @@ export class LmdbFeatureIndex {
           // Anchor quality check: if the newcomer has significantly more
           // features (1.5×), it's the richer engram — reverse the merge.
           // The old anchor is removed from the index; the newcomer absorbs it.
-          if (featureKeys.length > anchorFeatureCount * 1.5) {
+          if (featureKeys.length > anchorFeatureCount * ANCHOR_REVERSAL_RATIO) {
             this.removeEngram(top.engramId)
-            // Union: newcomer's features + any anchor features it doesn't have.
-            const anchorSet = new Set(anchorKeys)
-            const union = featureKeys.filter(k => !anchorSet.has(k)).length > 0
-              ? [...new Set([...featureKeys, ...anchorKeys])]
-              : featureKeys
-            this.env.transactionSync(() => {
-              for (const key of union) {
-                this.featureToEngrams.putSync(key, engramId)
-                this.engramToFeatures.putSync(engramId, key)
-              }
-            })
+            // Union the feature sets — always merge, since the anchor may have
+            // features the newcomer doesn't (even with the 1.5× ratio check).
+            const allKeys = [...new Set([...featureKeys, ...anchorKeys])]
+            this.insertFeatures(engramId, allKeys)
             this.logger.debug?.('FeatureIndex reversed merge', {
               engramId: engramId.slice(0, 12),
               absorbed: top.engramId.slice(0, 12),
@@ -161,13 +156,8 @@ export class LmdbFeatureIndex {
       }
 
       // No merge — store as new.
-      this.env.transactionSync(() => {
-        for (const key of featureKeys) {
-          this.featureToEngrams.putSync(key, engramId)
-          this.engramToFeatures.putSync(engramId, key)
-        }
-      })
-
+      this.removeEngram(engramId)
+      this.insertFeatures(engramId, featureKeys)
       return { action: 'indexed' }
     } catch (err) {
       this.logger.debug?.('LmdbFeatureIndex.indexEngram failed', {
@@ -363,8 +353,15 @@ export class LmdbFeatureIndex {
     const toAdd = newFeatureKeys.filter(k => !existingSet.has(k))
     if (toAdd.length === 0) return
 
+    this.insertFeatures(engramId, toAdd)
+  }
+
+  /**
+   * Insert feature keys for an engram within a transaction.
+   */
+  private insertFeatures(engramId: string, featureKeys: string[]): void {
     this.env.transactionSync(() => {
-      for (const key of toAdd) {
+      for (const key of featureKeys) {
         this.featureToEngrams.putSync(key, engramId)
         this.engramToFeatures.putSync(engramId, key)
       }
