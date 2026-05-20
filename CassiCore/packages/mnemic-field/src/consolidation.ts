@@ -220,6 +220,36 @@ export class ConsolidationEngine {
     this.qualityScorer = qs
   }
 
+  /** Cached tonic (pineal) gate embedding for geodesic distance computation. */
+  private _tonicEmbedding: Float32Array | null = null
+
+  /** Compute and cache the tonic reference embedding from pineal facet engrams. */
+  private getTonicEmbedding(): Float32Array | null {
+    if (this._tonicEmbedding) return this._tonicEmbedding
+    const pinealFacets = this.cortex.listEngrams(500).filter(e => e.nodeType === 'pineal_facet')
+    if (pinealFacets.length === 0) return null
+    const pinealIds = pinealFacets.map(e => e.id)
+    const embeddings = this.cortex.getEngramEmbeddings(pinealIds)
+    if (embeddings.size === 0) return null
+
+    // Average the pineal facet embeddings (they're L2-normalized, so simple mean works)
+    const dim = embeddings.values().next().value!.length
+    const avg = new Float32Array(dim)
+    let count = 0
+    for (const emb of embeddings.values()) {
+      for (let i = 0; i < dim; i++) avg[i] += emb[i]
+      count++
+    }
+    for (let i = 0; i < dim; i++) avg[i] /= count
+    // Re-normalize to keep on the sphere
+    let norm = 0
+    for (let i = 0; i < dim; i++) norm += avg[i] * avg[i]
+    norm = Math.sqrt(norm)
+    if (norm > 0.0001) for (let i = 0; i < dim; i++) avg[i] /= norm
+    this._tonicEmbedding = avg
+    return avg
+  }
+
   /**
    * Run a full consolidation cycle.
    *
@@ -772,6 +802,34 @@ export class ConsolidationEngine {
 
     if (updates.length > 0) {
       await this.cortex.bulkUpdatePositionsBatched(updates)
+    }
+
+    // Post-drift: update metadata.r to actual geodesic distance from
+    // the tonic center using gate embeddings (the model's own metric).
+    const tonic = this.getTonicEmbedding()
+    if (tonic) {
+      const driftedIds = updates.map(u => u.id)
+      const driftedEmbs = this.cortex.getEngramEmbeddings(driftedIds)
+      let corrected = 0
+      for (const update of updates) {
+        const emb = driftedEmbs.get(update.id)
+        if (!emb || emb.length === 0) continue
+        let dot = 0
+        for (let j = 0; j < emb.length; j++) dot += emb[j] * tonic[j]
+        dot = Math.max(-1, Math.min(1, dot))
+        // Normalize geodesic distance [0,π] to r ∈ [0,1]
+        const geodesicR = Math.acos(dot) / Math.PI
+        // Merge into existing metadata, preserving affect/r/theta
+        const eng = this.cortex.getEngram(update.id)
+        if (eng) {
+          const meta = { ...(eng.metadata ?? {}), r: geodesicR }
+          this.cortex.updateEngram(update.id, { metadata: meta })
+          corrected++
+        }
+      }
+      if (corrected > 0) {
+        this.logger.debug('Geodesic r correction applied', { corrected, tonicUsed: true })
+      }
     }
 
     this.logger.debug('Centripetal drift applied', { drifted: updates.length })
@@ -1460,9 +1518,9 @@ export class ConsolidationEngine {
         if (result.action === 'merged' && result.mergedInto) {
           // Boost anchor potentiation
           const anchor = this.cortex.getEngram(result.mergedInto)
+          const featureCount = result.featureCount ?? 10
+          const boost = 0.02 * Math.min(1.0, featureCount / 40)
           if (anchor) {
-            const featureCount = result.featureCount ?? 10
-            const boost = 0.02 * Math.min(1.0, featureCount / 40)
             this.cortex.updateEngram(result.mergedInto, {
               potentiation: Math.min(1.0, anchor.potentiation + boost),
             })
@@ -1472,6 +1530,17 @@ export class ConsolidationEngine {
             potentiation: 0.001,
             metadata: { mergedInto: result.mergedInto, mergeReason: 'feature-overlap-consolidation' },
           })
+
+          // Slerp the gate embeddings of anchor and merged engram
+          try {
+            const anchorEmb = this.cortex.getEngramEmbeddings([result.mergedInto]).get(result.mergedInto)
+            const mergedEmb = this.cortex.getEngramEmbeddings([e.id]).get(e.id)
+            if (anchorEmb && mergedEmb && anchorEmb.length === mergedEmb.length) {
+              const t = Math.min(0.7, boost * 20)
+              const slerped = this.slerpGateEmbeddings(anchorEmb, mergedEmb, t)
+              this.cortex.bulkUpdateEmbeddings([{ id: result.mergedInto, embedding: slerped }])
+            }
+          } catch { /* best-effort */ }
           merges++
         } else if (result.action === 'indexed') {
           // Anchor quality reversal: the old anchor was removed from index.
@@ -1720,5 +1789,21 @@ export class ConsolidationEngine {
     }
 
     return nucleiCreated
+  }
+
+  /** Spherical interpolation between two unit-norm gate embeddings. */
+  private slerpGateEmbeddings(a: Float32Array, b: Float32Array, t: number): Float32Array {
+    const n = a.length
+    let dot = 0
+    for (let i = 0; i < n; i++) dot += a[i] * b[i]
+    dot = Math.max(-1, Math.min(1, dot))
+    const omega = Math.acos(dot)
+    if (omega < 0.0001) return new Float32Array(a)
+    const sinOmega = Math.sin(omega)
+    const wA = Math.sin((1 - t) * omega) / sinOmega
+    const wB = Math.sin(t * omega) / sinOmega
+    const result = new Float32Array(n)
+    for (let i = 0; i < n; i++) result[i] = wA * a[i] + wB * b[i]
+    return result
   }
 }

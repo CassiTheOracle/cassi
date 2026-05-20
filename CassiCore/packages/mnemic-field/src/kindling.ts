@@ -373,6 +373,11 @@ export class KindlingEngine {
     // Phase 3: batch-fetch all neighbor engrams (1 query)
     const neighborEngrams = this.cortex.getEngrams([...neighborIdSet])
 
+    // Phase 3.5: batch-fetch gate embeddings for spherical distance metric.
+    // All source + neighbor IDs, single query. Unavailable IDs → null.
+    const allDistanceIds = [...new Set([...sourceIds, ...neighborIdSet])]
+    const embeddingMap = this.cortex.getEngramEmbeddings(allDistanceIds)
+
     // Phase 4: compute contributions (no DB calls) — linear spreadOnce
     for (const { sourceId, neighborId, edgeType, weight } of allSynapses) {
       const sourceEngram = sourceEngrams.get(sourceId)
@@ -385,7 +390,10 @@ export class KindlingEngine {
       const signedPropagation = edgeType === 'contradicts'
         ? -Math.abs(propagation)
         : propagation
-      const xyDist = euclideanDistance(sourceEngram, neighborEngram)
+      const xyDist = sphericalOrEuclideanDistance(
+        sourceEngram, neighborEngram,
+        embeddingMap.get(sourceId), embeddingMap.get(neighborId),
+      )
       const distDecay = 1 / (1 + KINDLING_DEFAULTS.distanceDecayRate * xyDist)
 
       const tDist = Math.abs(sourceEngram.t - neighborEngram.t)
@@ -563,6 +571,10 @@ export class KindlingEngine {
     // Phase 3: batch-fetch all neighbor engrams (1 query)
     const neighborEngrams = this.cortex.getEngrams([...neighborIdSet])
 
+    // Phase 3.5: batch-fetch gate embeddings for spherical distance metric
+    const allDistanceIds = [...new Set([...sourceIds, ...neighborIdSet])]
+    const embeddingMap = this.cortex.getEngramEmbeddings(allDistanceIds)
+
     // Phase 4: compute raw contributions (no DB calls)
     for (const { sourceId, neighborId, edgeType, weight, propagation } of allSynapses) {
       const sourceEngram = sourceEngrams.get(sourceId)
@@ -574,7 +586,10 @@ export class KindlingEngine {
       const signedPropagation = edgeType === 'contradicts'
         ? -Math.abs(propagation)
         : propagation
-      const xyDist = euclideanDistance(sourceEngram, neighborEngram)
+      const xyDist = sphericalOrEuclideanDistance(
+        sourceEngram, neighborEngram,
+        embeddingMap.get(sourceId), embeddingMap.get(neighborId),
+      )
       const distDecay = 1 / (1 + KINDLING_DEFAULTS.distanceDecayRate * xyDist)
 
       const tDist = Math.abs(sourceEngram.t - neighborEngram.t)
@@ -884,6 +899,32 @@ function mergeSeeds(
   }
 }
 
+/**
+ * Distance on the spherical manifold of gate embeddings, falling back
+ * to Euclidean XY when embeddings are unavailable.
+ *
+ * Gate embeddings are L2-normalized 1536-dim vectors on S¹⁵³⁵.
+ * Geodesic distance is arccos(dot(a,b)) — the intrinsic metric.
+ * This is the model's own representation space metric, replacing
+ * the distorted UMAP-projected Cartesian distance.
+ *
+ * Falls back to Euclidean XY for engrams without gate embeddings
+ * (~35% of the field: structural types like bridge, file, etc.).
+ */
+function sphericalOrEuclideanDistance(
+  a: Engram, b: Engram,
+  embA?: Float32Array | null, embB?: Float32Array | null,
+): number {
+  if (embA && embB && embA.length === embB.length && embA.length > 0) {
+    let dot = 0
+    for (let i = 0; i < embA.length; i++) dot += embA[i] * embB[i]
+    dot = Math.max(-1, Math.min(1, dot))
+    return Math.acos(dot)  // geodesic distance in [0, π]
+  }
+  return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2)
+}
+
+// Kept for backward compat — unused, superseded by sphericalOrEuclideanDistance
 function euclideanDistance(a: Engram, b: Engram): number {
   return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2)
 }

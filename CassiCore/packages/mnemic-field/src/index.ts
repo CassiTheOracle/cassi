@@ -760,6 +760,19 @@ export class MnemicField {
             this.cortex.updateEngram(result.mergedInto, {
               potentiation: Math.min(1.0, anchor.potentiation + boost),
             })
+
+            // Slerp the gate embeddings: the merged engram should reflect
+            // both the anchor and the newcomer on the unit hypersphere.
+            try {
+              const anchorEmb = this.cortex.getEngramEmbeddings([result.mergedInto]).get(result.mergedInto)
+              // The newcomer's embedding is in the store input, not in DB yet
+              const newEmb = (input as any).embedding as Float32Array | undefined
+              if (newEmb && anchorEmb && newEmb.length === anchorEmb.length) {
+                const t = Math.min(0.7, boost * 20) // interpolation weight from boost
+                const slerped = slerpEmbedding(anchorEmb, newEmb, t)
+                this.cortex.bulkUpdateEmbeddings([{ id: result.mergedInto, embedding: slerped }])
+              }
+            } catch { /* best-effort — embedding slerp is non-critical */ }
             this.logger.debug('FeatureIndex merge boosted potentiation', {
               mergedId: engram.id.slice(0, 12),
               anchorId: result.mergedInto.slice(0, 12),
@@ -4027,4 +4040,39 @@ class BackfillWorkerPool {
     this.workers = []
     this.ready.clear()
   }
+}
+
+/**
+ * Spherical linear interpolation (slerp) between two unit-norm gate embeddings.
+ *
+ * Both vectors live on the unit hypersphere S^{d-1}. Euclidean interpolation
+ * (lerp) would move off the sphere; slerp stays on the geodesic. When two
+ * engrams merge, we slerp their embeddings so the resulting engram's position
+ * reflects both contributions.
+ *
+ * t ∈ [0,1]: 0 = pure a, 1 = pure b, 0.5 = midpoint.
+ * Uses the blog post's formula: sin((1-t)·ω)/sin(ω) · a + sin(t·ω)/sin(ω) · b
+ * where ω = arccos(a·b) is the geodesic angle between them.
+ */
+export function slerpEmbedding(a: Float32Array, b: Float32Array, t: number): Float32Array {
+  if (a.length !== b.length) throw new Error('slerpEmbedding: dimension mismatch')
+  const n = a.length
+
+  // Compute dot product and clamp for numerical safety
+  let dot = 0
+  for (let i = 0; i < n; i++) dot += a[i] * b[i]
+  dot = Math.max(-1, Math.min(1, dot))
+
+  const omega = Math.acos(dot) // geodesic angle
+  if (omega < 0.0001) return new Float32Array(a) // nearly identical — just copy
+
+  const sinOmega = Math.sin(omega)
+  const wA = Math.sin((1 - t) * omega) / sinOmega
+  const wB = Math.sin(t * omega) / sinOmega
+
+  const result = new Float32Array(n)
+  for (let i = 0; i < n; i++) {
+    result[i] = wA * a[i] + wB * b[i]
+  }
+  return result
 }
