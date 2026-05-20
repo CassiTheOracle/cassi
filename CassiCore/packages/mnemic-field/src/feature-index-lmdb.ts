@@ -267,7 +267,7 @@ export class LmdbFeatureIndex {
       } else {
         indexed++
       }
-      if ((indexed + merged) % 10 === 0) {
+      if ((indexed + merged) % 3 === 0) {
         await new Promise(resolve => setImmediate(resolve))
       }
     }
