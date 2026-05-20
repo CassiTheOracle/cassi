@@ -195,10 +195,16 @@ export class LmdbFeatureIndex {
     )
 
     let indexed = 0
+    let skipped = 0
     for (let i = 0; i < engrams.length; i++) {
+      // Skip already-indexed engrams (persistent across boots).
+      if (this.engramToFeatures.get(engrams[i].id) !== undefined) {
+        skipped++
+        continue
+      }
       this.indexEngram(engrams[i].id, engrams[i].content, options)
       indexed++
-      if (indexed % 50 === 0) {
+      if (indexed % 10 === 0) {
         await new Promise(resolve => setImmediate(resolve))
       }
     }
@@ -207,6 +213,7 @@ export class LmdbFeatureIndex {
     this.logger.info('LmdbFeatureIndex built from cortex', {
       scanned: engrams.length,
       indexed,
+      skipped,
       featureKeys: stats.featureKeys,
     })
 
