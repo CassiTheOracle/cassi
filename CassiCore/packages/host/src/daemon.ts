@@ -329,6 +329,13 @@ export class Daemon {
             this.logger.info('MnemicField vindex embedder wired post-boot', { vindex: result.name })
           }
 
+          // Wire forward provider for attention-based quality scoring.
+          if (mnemicField && typeof mnemicField.setForwardProvider === 'function' &&
+              result.provider.forward && result.provider.tokenize) {
+            mnemicField.setForwardProvider(result.provider)
+            this.logger.info('MnemicField forward provider wired post-boot', { vindex: result.name })
+          }
+
           // Wire FeatureIndex gate-KNN for direct feature-indexed retrieval.
           if (mnemicField?.featureIndex && result.provider.gateKnn) {
             const featureGateKnn = (text: string, opts?: any) => {
