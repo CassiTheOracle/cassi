@@ -1,9 +1,6 @@
 import type { ILogger } from '../../../types/interfaces.js'
-import { cosineSimilarity } from './cortex.js'
 import type { Cortex } from './cortex.js'
 import { affectSimilarity } from './affect.js'
-import { ANNIndex } from './ann-index.js'
-import { ANNIndexConfig, ANN_DEFAULTS } from './ann-index.js'
 import type { AttractorManager } from './attractor.js'
 import type {
   Engram, MnemicSynapse, ChargedEngram, LuminalSet,
@@ -35,8 +32,6 @@ export class KindlingEngine {
   private currentAffect: { valence: number; arousal: number } | null = null
   private neuralConfig: NeuralKindlingConfig
   private lastTrace: ForwardTrace | null = null
-  private engramAnnIndex: ANNIndex | null = null
-  private annInitialized = false
   private attractor: AttractorManager | null = null
   /** Optional: provides the current harmony metric for spark point modulation. */
   private harmonyProvider: (() => number) | null = null
@@ -57,13 +52,9 @@ export class KindlingEngine {
     private cortex: Cortex,
     logger: ILogger,
     neuralConfig?: Partial<NeuralKindlingConfig>,
-    annConfig?: Partial<ANNIndexConfig>,
   ) {
     this.logger = logger.child ? logger.child('kindling') : logger
     this.neuralConfig = { ...NEURAL_KINDLING_DEFAULTS, ...neuralConfig }
-
-    // Create ANN index (will be initialized lazily)
-    this.engramAnnIndex = new ANNIndex(cortex, logger, { ...ANN_DEFAULTS, ...annConfig })
   }
 
   /** Wire the attractor for radial attention bias. */
@@ -90,49 +81,9 @@ export class KindlingEngine {
     this.broadcastModProvider = provider
   }
 
-  /** Invalidate the photon ANN cache — call after consolidation (positions change). */
+  /** Invalidate the photon feature-overlap cache. */
   invalidatePhotonCache(): void {
     this.photonCache.clear()
-  }
-
-  /** Initialize ANN index (async, should be called once) */
-  async initializeAnn(): Promise<void> {
-    if (this.annInitialized) return
-
-    this.logger.info('Initializing ANN index...')
-    const start = Date.now()
-
-    await this.engramAnnIndex?.initialize()
-
-    this.annInitialized = true
-    this.logger.info('ANN index initialized', {
-      engramCount: this.engramAnnIndex?.getVectorCount() ?? 0,
-      durationMs: Date.now() - start,
-    })
-  }
-
-  /** Check if ANN is ready for use */
-  isAnnReady(): boolean {
-    return this.annInitialized && this.engramAnnIndex?.isReady() === true
-  }
-
-  /** Search the engram ANN index by embedding. Returns (id, distance) pairs. */
-  searchEngramAnn(embedding: number[], limit: number): Array<{ id: string; distance: number }> {
-    if (!this.isAnnReady()) return []
-    return this.engramAnnIndex!.search(embedding, limit)
-  }
-
-  /** Get ANN statistics */
-  getAnnStats(): { engram: ReturnType<ANNIndex['stats']> } {
-    return {
-      engram: this.engramAnnIndex?.stats() ?? null,
-    }
-  }
-
-  /** Force rebuild ANN index */
-  async rebuildAnn(): Promise<void> {
-    this.logger.info('Force rebuilding ANN index')
-    await this.engramAnnIndex?.forceRebuild()
   }
 
   getLastTrace(): ForwardTrace | null {
@@ -291,9 +242,6 @@ export class KindlingEngine {
     // no embedding needed, no dimension mismatch, causal-ready.
     if (textQuery && this.featureIndex?.isReady()) {
       mergeSeeds(seedMap, this.findSeedsByFeatureIndex(textQuery, maxSeeds))
-    } else if (embedding && embedding.length > 0) {
-      // Fallback: ANN cosine search (legacy path, kept for migration).
-      mergeSeeds(seedMap, this.findSeedsByEmbedding(embedding, maxSeeds))
     }
 
     if (textQuery && includeText) {
@@ -327,49 +275,6 @@ export class KindlingEngine {
       .map(([engramId, charge]) => ({ engramId, charge }))
       .sort((a, b) => b.charge - a.charge)
       .slice(0, maxSeeds)
-  }
-
-  /**
-   * Find seeds by embedding cosine similarity against engrams with embeddings.
-   * Uses ANN index if available (O(log n)), otherwise brute-force (O(n)).
-   */
-  private findSeedsByEmbedding(queryEmb: number[], limit: number): SeedResult[] {
-    // Try ANN index first if available and dimension matches
-    if (this.isAnnReady() && queryEmb.length === (this.engramAnnIndex?.getDimension() ?? 0)) {
-      const annResults = this.engramAnnIndex!.search(queryEmb, limit * 2)
-      this.logger.info('ANN seed results', { candidates: annResults.length, topDist: annResults[0]?.distance?.toFixed(4), annReady: this.isAnnReady() })
-      
-      if (annResults.length > 0) {
-        const seeds = annResults.map(r => ({
-          engramId: r.id,
-          // Convert cosine distance to similarity: similarity = 1 - distance
-          charge: Math.max(0, 1 - r.distance),
-        }))
-        
-        this.logger.debug('ANN seed search', {
-          candidates: annResults.length,
-          topCharge: seeds[0]?.charge.toFixed(3),
-        })
-        
-        return seeds.filter(s => s.charge > 0.1).slice(0, limit)
-      }
-    }
-
-    // Fallback: brute-force with reduced limit
-    this.logger.debug('Using brute-force seed search (ANN not ready)')
-    const embData = this.cortex.getEmbeddingVectors(5000)
-
-    if (embData.length === 0) return []
-
-    const scored = embData.map(e => ({
-      engramId: e.id,
-      charge: cosineSimilarity(queryEmb, Array.from(e.embedding)),
-    }))
-
-    return scored
-      .filter(s => s.charge > 0.1)
-      .sort((a, b) => b.charge - a.charge)
-      .slice(0, limit)
   }
 
   /**

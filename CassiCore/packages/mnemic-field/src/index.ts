@@ -1680,19 +1680,18 @@ export class MnemicField {
 
     // Hub cascade: hub engrams in the luminal set re-broadcast to their
     // bridged nuclei at reduced strength (50%). One-hop only — cascaded
-    // nuclei do not cascade further. Uses ANN neighbor nucleus diversity.
+    // nuclei do not cascade further. Uses FeatureIndex neighbor nucleus diversity.
     const HUB_CASCADE_FACTOR = 0.5
     let hubCascadeCount = 0
-    const annReady = this.kindlingEngine.isAnnReady()
+    const fiReady = this.featureIndex.isReady()
 
     for (const [engramId, engram] of luminalEngrams) {
       const hubScore = (engram.metadata as Record<string, unknown>)?.hubScore as number | undefined
-      if (!hubScore || hubScore < 0.3 || !engram.embedding || !annReady) continue
+      if (!hubScore || hubScore < 0.3 || !fiReady) continue
 
-      // Find bridged nuclei via ANN neighbors
-      const neighbors = this.kindlingEngine.searchEngramAnn(
-        Array.from(engram.embedding), 50,
-      )
+      // Find bridged nuclei via FeatureIndex neighbors
+      const correlated = this.featureIndex.findCorrelated(engramId, { limit: 50, minOverlap: 1 })
+      const neighbors = correlated.map(c => ({ id: c.engramId, distance: 1 - c.sharedFeatureCount / (c.sharedFeatureCount + 10) }))
       // Batch-fetch neighbor engrams (1 query instead of N)
       const neighborIds = neighbors
         .filter(n => n.id !== engramId)
@@ -2957,26 +2956,6 @@ export class MnemicField {
     return this.kindlingEngine.getNeuralConfig().enabled
   }
 
-  /** Initialize ANN indexes (async, should be called after startup) */
-  async initializeAnn(): Promise<void> {
-    await this.kindlingEngine.initializeAnn()
-  }
-
-  /** Check if ANN indexes are ready */
-  isAnnReady(): boolean {
-    return this.kindlingEngine.isAnnReady()
-  }
-
-  /** Get ANN index statistics */
-  getAnnStats(): { engram: { vectorCount: number; needsRebuild: boolean; maxElements: number; dimension: number } | null } {
-    return this.kindlingEngine.getAnnStats()
-  }
-
-  /** Force rebuild ANN indexes */
-  async rebuildAnn(): Promise<void> {
-    await this.kindlingEngine.rebuildAnn()
-  }
-
   /**
    * Detect hub engrams: engrams whose embedding-space neighbors span
    * many distinct nuclei. Hubs are field-level concepts — their content
@@ -2991,8 +2970,8 @@ export class MnemicField {
     const neighborK = options?.neighborK ?? 50
     const hubThreshold = options?.hubThreshold ?? 0.3
 
-    if (!this.kindlingEngine.isAnnReady()) {
-      this.logger.debug('Hub detection skipped — ANN not ready')
+    if (!this.featureIndex?.isReady()) {
+      this.logger.debug('Hub detection skipped — FeatureIndex not ready')
       return []
     }
 
@@ -3005,10 +2984,8 @@ export class MnemicField {
     const hubs: Array<{ engramId: string; hubScore: number; distinctNuclei: number }> = []
 
     for (const { id, embedding } of vectors) {
-      const neighbors = this.kindlingEngine.searchEngramAnn(
-        Array.from(embedding),
-        neighborK + 1,
-      )
+      const correlated = this.featureIndex.findCorrelated(id, { limit: neighborK + 1, minOverlap: 1 })
+      const neighbors = correlated.map(c => ({ id: c.engramId, distance: 1 - c.sharedFeatureCount / (c.sharedFeatureCount + 10) }))
 
       // Count distinct nuclei among neighbors
       const nucleiSeen = new Set<string>()
@@ -3221,7 +3198,7 @@ export class MnemicField {
       }
     }
 
-    // Positions may have shifted — invalidate photon ANN cache
+    // Invalidate photon feature-overlap cache after consolidation
     this.kindlingEngine.invalidatePhotonCache()
 
     // Lightning Indexer training: run if triples are available
