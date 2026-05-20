@@ -27,6 +27,8 @@ export interface IndexResult {
   mergedInto?: string
   /** Feature overlap ratio that triggered the merge. */
   overlapRatio?: number
+  /** Number of features in the anchor engram (for weighted boost). */
+  featureCount?: number
 }
 
 /** Feature overlap ratio ≥ this → merge instead of indexing. */
@@ -117,15 +119,44 @@ export class LmdbFeatureIndex {
         const top = overlapping[0]
         const overlapRatio = top.sharedFeatureCount / featureKeys.length
         if (overlapRatio >= MERGE_OVERLAP_THRESHOLD) {
-          // Merge: union the feature sets into the anchor engram.
-          // The new engram might have a few features the anchor doesn't.
+          const anchorKeys = this.getFeatureKeys(top.engramId)
+          const anchorFeatureCount = anchorKeys.length
+
+          // Anchor quality check: if the newcomer has significantly more
+          // features (1.5×), it's the richer engram — reverse the merge.
+          // The old anchor is removed from the index; the newcomer absorbs it.
+          if (featureKeys.length > anchorFeatureCount * 1.5) {
+            this.removeEngram(top.engramId)
+            // Union: newcomer's features + any anchor features it doesn't have.
+            const anchorSet = new Set(anchorKeys)
+            const union = featureKeys.filter(k => !anchorSet.has(k)).length > 0
+              ? [...new Set([...featureKeys, ...anchorKeys])]
+              : featureKeys
+            this.env.transactionSync(() => {
+              for (const key of union) {
+                this.featureToEngrams.putSync(key, engramId)
+                this.engramToFeatures.putSync(engramId, key)
+              }
+            })
+            this.logger.debug?.('FeatureIndex reversed merge', {
+              engramId: engramId.slice(0, 12),
+              absorbed: top.engramId.slice(0, 12),
+              newFeatures: featureKeys.length,
+              anchorFeatures: anchorFeatureCount,
+              ratio: (featureKeys.length / anchorFeatureCount).toFixed(2),
+            })
+            // Reversed: caller stores this engram normally; old anchor gone from index.
+            return { action: 'indexed' }
+          }
+
+          // Normal merge: union the feature sets into the anchor engram.
           this.mergeFeatures(top.engramId, featureKeys)
           this.logger.debug?.('FeatureIndex merged engram', {
             engramId: engramId.slice(0, 12),
             into: top.engramId.slice(0, 12),
             overlapRatio: overlapRatio.toFixed(3),
           })
-          return { action: 'merged', mergedInto: top.engramId, overlapRatio }
+          return { action: 'merged', mergedInto: top.engramId, overlapRatio, featureCount: anchorFeatureCount }
         }
       }
 
@@ -285,6 +316,14 @@ export class LmdbFeatureIndex {
   }
 
   /**
+   * Get all feature keys for an engram. Returns empty array if not indexed.
+   */
+  private getFeatureKeys(engramId: string): string[] {
+    const features = this.engramToFeatures.getValues(engramId)
+    return features ? Array.from(features) as string[] : []
+  }
+
+  /**
    * Find engrams that share the given feature keys.
    * Core overlap primitive used by lookup, findCorrelated, and merge check.
    */
@@ -318,8 +357,8 @@ export class LmdbFeatureIndex {
    * Only adds features the anchor engram doesn't already have.
    */
   private mergeFeatures(engramId: string, newFeatureKeys: string[]): void {
-    const existing = this.engramToFeatures.getValues(engramId)
-    const existingSet = new Set(existing ? Array.from(existing) as string[] : [])
+    const existing = this.getFeatureKeys(engramId)
+    const existingSet = new Set(existing)
 
     const toAdd = newFeatureKeys.filter(k => !existingSet.has(k))
     if (toAdd.length === 0) return

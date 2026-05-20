@@ -728,16 +728,21 @@ export class MnemicField {
         const result = this.featureIndex.indexEngram(engram.id, input.content)
 
         if (result.action === 'merged' && result.mergedInto) {
-          // Boost the anchor engram's potentiation — recurrence is a signal.
+          // Boost the anchor engram's potentiation, scaled by feature richness.
+          // Low-feature stubs (e.g., 5 features) get +0.0025 per merge;
+          // rich engrams (40+ features) get the full +0.02.
           const anchor = this.cortex.getEngram(result.mergedInto)
           if (anchor) {
-            const boost = 0.05
+            const featureCount = result.featureCount ?? 10
+            const boost = 0.02 * Math.min(1.0, featureCount / 40)
             this.cortex.updateEngram(result.mergedInto, {
               potentiation: Math.min(1.0, anchor.potentiation + boost),
             })
             this.logger.debug('FeatureIndex merge boosted potentiation', {
               mergedId: engram.id.slice(0, 12),
               anchorId: result.mergedInto.slice(0, 12),
+              featureCount,
+              boost: boost.toFixed(4),
               oldPot: anchor.potentiation.toFixed(3),
               newPot: Math.min(1.0, anchor.potentiation + boost).toFixed(3),
             })
