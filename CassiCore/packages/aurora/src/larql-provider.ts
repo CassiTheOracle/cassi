@@ -280,6 +280,12 @@ interface CassiLarqlModule {
     layersScanned: number
     durationMs: number
   }
+  /** Full forward pass — returns per-layer last-token residuals + optional attention. */
+  vindexForward(handle: VindexHandle, promptTokens: number[], captureLayers: number[], captureAttention: boolean): {
+    residuals: Array<{ layer: number; values: Buffer }>
+    attention: Array<{ layer: number; heads: number[][] }>
+    durationMs: number
+  }
   /** A2 Slice 2: raw f32 bytes of one gate vector at (layer, feature_index). */
   gateVector(handle: VindexHandle, layer: number, featureIndex: number): Uint8Array
   /** A2 Slice 1: steered autoregressive generation via upstream's SteerHook. */
@@ -1001,6 +1007,42 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
     if (!this.loaded || !this.handle || !this.larql) return []
     const result = this.larql.traceForward(this.handle, tokens, layerStart, layerEnd, topK)
     return result?.features ?? []
+  }
+
+  /**
+   * Full forward pass through the vindex model.
+   *
+   * Runs attention + MLP across all layers up to the max requested,
+   * capturing the last token's residual at each requested layer.
+   * Optionally captures per-head attention weights.
+   *
+   * Returns per-layer Float32Array residuals (1536-dim each) and
+   * attention patterns (heads × seq_len).
+   *
+   * ~1s for 10 tokens × 14 layers on GPU. First call loads inference
+   * weights (~2s warmup).
+   */
+  forward(
+    tokens: number[],
+    captureLayers: number[],
+    captureAttention: boolean = false,
+  ): {
+    residuals: Array<{ layer: number; values: Float32Array }>
+    attention: Array<{ layer: number; heads: number[][] }>
+    durationMs: number
+  } {
+    if (!this.loaded || !this.handle || !this.larql) {
+      return { residuals: [], attention: [], durationMs: 0 }
+    }
+    const raw = this.larql.vindexForward(this.handle, tokens, captureLayers, captureAttention)
+    return {
+      residuals: raw.residuals.map((r: any) => ({
+        layer: r.layer,
+        values: new Float32Array(r.values.buffer, r.values.byteOffset, r.values.byteLength / 4),
+      })),
+      attention: raw.attention,
+      durationMs: raw.durationMs,
+    }
   }
 
   /**
