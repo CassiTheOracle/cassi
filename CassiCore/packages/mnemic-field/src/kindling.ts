@@ -373,11 +373,6 @@ export class KindlingEngine {
     // Phase 3: batch-fetch all neighbor engrams (1 query)
     const neighborEngrams = this.cortex.getEngrams([...neighborIdSet])
 
-    // Phase 3.5: batch-fetch gate embeddings for spherical distance metric.
-    // All source + neighbor IDs, single query. Unavailable IDs → null.
-    const allDistanceIds = [...new Set([...sourceIds, ...neighborIdSet])]
-    const embeddingMap = this.cortex.getEngramEmbeddings(allDistanceIds)
-
     // Phase 4: compute contributions (no DB calls) — linear spreadOnce
     for (const { sourceId, neighborId, edgeType, weight } of allSynapses) {
       const sourceEngram = sourceEngrams.get(sourceId)
@@ -392,7 +387,7 @@ export class KindlingEngine {
         : propagation
       const xyDist = sphericalOrEuclideanDistance(
         sourceEngram, neighborEngram,
-        embeddingMap.get(sourceId), embeddingMap.get(neighborId),
+        sourceEngram.embedding, neighborEngram.embedding,
       )
       const distDecay = 1 / (1 + KINDLING_DEFAULTS.distanceDecayRate * xyDist)
 
@@ -571,10 +566,6 @@ export class KindlingEngine {
     // Phase 3: batch-fetch all neighbor engrams (1 query)
     const neighborEngrams = this.cortex.getEngrams([...neighborIdSet])
 
-    // Phase 3.5: batch-fetch gate embeddings for spherical distance metric
-    const allDistanceIds = [...new Set([...sourceIds, ...neighborIdSet])]
-    const embeddingMap = this.cortex.getEngramEmbeddings(allDistanceIds)
-
     // Phase 4: compute raw contributions (no DB calls)
     for (const { sourceId, neighborId, edgeType, weight, propagation } of allSynapses) {
       const sourceEngram = sourceEngrams.get(sourceId)
@@ -588,7 +579,7 @@ export class KindlingEngine {
         : propagation
       const xyDist = sphericalOrEuclideanDistance(
         sourceEngram, neighborEngram,
-        embeddingMap.get(sourceId), embeddingMap.get(neighborId),
+        sourceEngram.embedding, neighborEngram.embedding,
       )
       const distDecay = 1 / (1 + KINDLING_DEFAULTS.distanceDecayRate * xyDist)
 
