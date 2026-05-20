@@ -561,31 +561,16 @@ export async function handleMemoryRoutes(
     }
   }
 
-  // GET /memory/mnemic/ann/status
+  // GET /memory/mnemic/ann/status (deprecated — ANN replaced by FeatureIndex)
   if (parts[1] === 'mnemic' && parts[2] === 'ann' && parts[3] === 'status' && method === 'GET') {
-    try {
-      const field = getMnemicField(logger, daemon)
-      const stats = field.getAnnStats()
-      sendJSON(res, 200, { ok: true, ready: field.isAnnReady(), stats })
-      return true
-    } catch (err) {
-      sendJSON(res, 500, { error: String(err) })
-      return true
-    }
+    sendJSON(res, 200, { ok: true, ready: false, deprecated: true, message: 'ANN removed — using FeatureIndex' })
+    return true
   }
 
-  // POST /memory/mnemic/ann/initialize
+  // POST /memory/mnemic/ann/initialize (deprecated — ANN replaced by FeatureIndex)
   if (parts[1] === 'mnemic' && parts[2] === 'ann' && parts[3] === 'initialize' && method === 'POST') {
-    try {
-      const field = getMnemicField(logger, daemon)
-      await field.initializeAnn()
-      const stats = field.getAnnStats()
-      sendJSON(res, 200, { ok: true, ready: field.isAnnReady(), stats })
-      return true
-    } catch (err) {
-      sendJSON(res, 500, { error: String(err) })
-      return true
-    }
+    sendJSON(res, 200, { ok: true, ready: false, deprecated: true, message: 'ANN removed — using FeatureIndex' })
+    return true
   }
 
   // POST /memory/mnemic/detect-hubs
@@ -601,18 +586,10 @@ export async function handleMemoryRoutes(
     }
   }
 
-  // POST /memory/mnemic/ann/rebuild
+  // POST /memory/mnemic/ann/rebuild (deprecated — ANN replaced by FeatureIndex)
   if (parts[1] === 'mnemic' && parts[2] === 'ann' && parts[3] === 'rebuild' && method === 'POST') {
-    try {
-      const field = getMnemicField(logger, daemon)
-      await field.rebuildAnn()
-      const stats = field.getAnnStats()
-      sendJSON(res, 200, { ok: true, ready: field.isAnnReady(), stats })
-      return true
-    } catch (err) {
-      sendJSON(res, 500, { error: String(err) })
-      return true
-    }
+    sendJSON(res, 200, { ok: true, ready: false, deprecated: true, message: 'ANN removed — using FeatureIndex' })
+    return true
   }
 
   // POST /memory/mnemic/reset
