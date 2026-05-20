@@ -43,31 +43,6 @@ const MERGE_OVERLAP_THRESHOLD = 0.95
  *  If the newcomer has ≥1.5× the anchor's features, it's the richer engram. */
 const ANCHOR_REVERSAL_RATIO = 1.5
 
-/**
- * Spherical linear interpolation between two unit-norm gate embeddings.
- *
- * Both vectors live on the unit hypersphere S^{d-1}. The formula
- * sin((1-t)·ω)/sin(ω) · a + sin(t·ω)/sin(ω) · b keeps the result
- * on the sphere, preserving both concepts during merge.
- *
- * t ∈ [0,1]: 0 = pure a, 1 = pure b.
- * ω = arccos(a·b) is the geodesic angle between them.
- */
-function slerpGateVectors(a: Float32Array, b: Float32Array, t: number): Float32Array {
-  const n = a.length
-  let dot = 0
-  for (let i = 0; i < n; i++) dot += a[i] * b[i]
-  dot = Math.max(-1, Math.min(1, dot))
-  const omega = Math.acos(dot)
-  if (omega < 0.0001) return new Float32Array(a)
-  const sinOmega = Math.sin(omega)
-  const wA = Math.sin((1 - t) * omega) / sinOmega
-  const wB = Math.sin(t * omega) / sinOmega
-  const result = new Float32Array(n)
-  for (let i = 0; i < n; i++) result[i] = wA * a[i] + wB * b[i]
-  return result
-}
-
 export class LmdbFeatureIndex {
   private env: any              // lmdb RootDatabase
   private featureToEngrams: any // lmdb Database (dupSort)
