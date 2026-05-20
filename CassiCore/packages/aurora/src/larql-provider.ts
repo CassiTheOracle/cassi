@@ -33,6 +33,9 @@ import type { OverlayLayer, OverlayFeatureHit } from './overlay-layer.js'
 import type { Affect, AffectLabel } from '../mnemic-field/types.js'
 import { affectSimilarity, resolveLabel } from '../mnemic-field/affect.js'
 import { composeVectorProjection } from './projection/vector-projection.js'
+import { createRequire } from 'module'
+
+const require = createRequire(import.meta.url)
 
 interface VindexHandle {
   readonly id: number
@@ -444,7 +447,7 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
   async load(vindexPath: string): Promise<boolean> {
     try {
       // @ts-ignore — cassi-larql is a native module without type declarations
-      this.larql = await import('cassi-larql') as CassiLarqlModule
+      this.larql = require('cassi-larql') as CassiLarqlModule
     } catch (err) {
       this.logger.warn('cassi-larql bindings not available', { error: String(err) })
       return false
