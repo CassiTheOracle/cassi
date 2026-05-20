@@ -23,6 +23,7 @@ import { attune, AffectRegister, affectSimilarity } from './affect.js'
 import type { AffectState, LightningRetrievalMode, LightningRetrievalEvent, RerankerMode, IndexerTrainingConfig } from './types.js'
 import { INDEXER_TRAINING_DEFAULTS } from './types.js'
 import { FeatureIndex, type VindexGateKnnFn } from './feature-index.js'
+import { LmdbFeatureIndex } from './feature-index-lmdb.js'
 import type { RetrievalLabelTriple } from '../reverie/retrieval-labeler-types.js'
 import type { LabelerInputCandidate } from '../reverie/retrieval-labeler-types.js'
 import type { CorticalField } from '../cortex/index.js'
@@ -489,7 +490,16 @@ export class MnemicField {
     this.consolidationEngine.setHarmonyProvider(() => this.getHarmony())
     this.migrationJobs = new MigrationJobStore(db)
     this.affectRegister = new AffectRegister()
-    this.featureIndex = new FeatureIndex(db, logger)
+    // Use LMDB-backed FeatureIndex (mmap-native, no WAL/checkpoint blocking).
+    // Falls back to SQLite if LMDB path is unavailable or explicitly configured.
+    const lmdbPath = path.join(path.dirname(db.name), 'feature-index.lmdb')
+    try {
+      this.featureIndex = new LmdbFeatureIndex(lmdbPath, logger) as unknown as FeatureIndex
+      this.logger.info('Using LMDB-backed FeatureIndex', { path: lmdbPath })
+    } catch (err) {
+      this.logger.warn('LMDB FeatureIndex unavailable, falling back to SQLite', { error: String(err) })
+      this.featureIndex = new FeatureIndex(db, logger)
+    }
     // Wire FeatureIndex into kindling so seed finding uses vindex features.
     this.kindlingEngine.setFeatureIndex(this.featureIndex)
 
