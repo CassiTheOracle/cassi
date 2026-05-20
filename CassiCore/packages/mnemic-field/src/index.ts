@@ -503,6 +503,13 @@ export class MnemicField {
     this.gradientEngine = new GradientEngine(this.cortex, logger)
     this.consolidationEngine = new ConsolidationEngine(this.cortex, logger, this.gradientEngine, null)
     this.consolidationEngine.setHarmonyProvider(() => this.getHarmony())
+    // Phase 0/1: wire vindex FeatureIndex and quality scorer for active field organization
+    if (this.featureIndex && this.featureIndex.isReady()) {
+      this.consolidationEngine.setFeatureIndex(this.featureIndex as any)
+    }
+    if (this.qualityScorer && this.qualityScorer.isReady()) {
+      this.consolidationEngine.setQualityScorer(this.qualityScorer)
+    }
     this.migrationJobs = new MigrationJobStore(db)
     this.affectRegister = new AffectRegister()
     // Use LMDB-backed FeatureIndex (mmap-native, no WAL/checkpoint blocking).

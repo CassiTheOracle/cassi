@@ -169,6 +169,86 @@ export class LmdbFeatureIndex {
   }
 
   /**
+   * Check if an already-indexed engram should be merged into another engram.
+   *
+   * Uses the STORED features from LMDB — no gateKnn recomputation needed.
+   * Returns null if the engram isn't indexed or has no feature overlap above
+   * the threshold. When a merge is triggered, union of the feature sets are
+   * merged into the anchor engram and the merged engram is removed from the
+   * index. Anchor quality reversal still applies.
+   *
+   * This is the continuous merge-on-overlap primitive — called periodically
+   * during consolidation to catch engrams that should have been merged but
+   * weren't (because they were stored before their near-duplicate).
+   */
+  checkMergeFor(
+    engramId: string,
+    opts?: { minOverlapRatio?: number },
+  ): IndexResult | null {
+    const features = this.engramToFeatures.getValues(engramId)
+    if (!features) return null
+
+    const featureList = Array.from(features) as string[]
+    if (featureList.length === 0) return null
+
+    const threshold = opts?.minOverlapRatio ?? MERGE_OVERLAP_THRESHOLD
+
+    const overlapping = this.findOverlappingByKeys(featureList, {
+      excludeId: engramId,
+      limit: 1,
+      minOverlap: 0,
+    })
+
+    if (overlapping.length === 0) return null
+
+    const top = overlapping[0]
+    const overlapRatio = top.sharedFeatureCount / featureList.length
+
+    if (overlapRatio < threshold) return null
+
+    const anchorKeys = this.getFeatureKeys(top.engramId)
+    const anchorFeatureCount = anchorKeys.length
+
+    // Anchor quality reversal: if the checked engram has ≥1.5× more
+    // features than the anchor, the old anchor is removed and this
+    // engram absorbs it.
+    if (featureList.length > anchorFeatureCount * ANCHOR_REVERSAL_RATIO) {
+      this.removeEngram(top.engramId)
+      const allKeys = [...new Set([...featureList, ...anchorKeys])]
+      // Re-index the richer engram with the union of both feature sets
+      this.removeEngram(engramId)
+      this.insertFeatures(engramId, allKeys)
+      this.logger.debug?.('FeatureIndex reversed merge (consolidation)', {
+        engramId: engramId.slice(0, 12),
+        absorbed: top.engramId.slice(0, 12),
+        newFeatures: featureList.length,
+        anchorFeatures: anchorFeatureCount,
+        ratio: (featureList.length / anchorFeatureCount).toFixed(2),
+      })
+      // Return 'indexed' — caller should NOT delete this engram;
+      // the old anchor should be retired instead.
+      return { action: 'indexed', featureCount: featureList.length }
+    }
+
+    // Normal merge: union the feature sets into the anchor engram.
+    this.mergeFeatures(top.engramId, featureList)
+    this.removeEngram(engramId)
+
+    this.logger.debug?.('FeatureIndex merged engram (consolidation)', {
+      engramId: engramId.slice(0, 12),
+      into: top.engramId.slice(0, 12),
+      overlapRatio: overlapRatio.toFixed(3),
+    })
+
+    return {
+      action: 'merged',
+      mergedInto: top.engramId,
+      overlapRatio,
+      featureCount: anchorFeatureCount,
+    }
+  }
+
+  /**
    * Remove an engram from the index.
    */
   removeEngram(engramId: string): void {
