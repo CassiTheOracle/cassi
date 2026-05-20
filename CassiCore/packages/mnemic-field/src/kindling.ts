@@ -568,17 +568,29 @@ export class KindlingEngine {
         const photonicContribution = emitterCharge * luminosity
           / (1 + KindlingEngine.PHOTON_DECAY * d * d)
 
+        if (!isFinite(photonicContribution)) continue
+
         const existing = contributions.get(neighbor.engramId) ?? 0
         contributions.set(neighbor.engramId, existing + photonicContribution)
       }
     }
 
     let totalDelta = 0
+    let contributedCount = 0
     for (const [id, contrib] of contributions) {
       const dampened = contrib * KindlingEngine.PHOTON_DAMPENING
       const oldCharge = chargeMap.get(id) ?? 0
       chargeMap.set(id, oldCharge + dampened)
       totalDelta += Math.abs(dampened)
+      contributedCount++
+    }
+
+    if (contributedCount > 0) {
+      this.logger.info('Photon spread (FeatureIndex)', {
+        emitters: emitterIds.length,
+        contributed: contributedCount,
+        totalDelta: totalDelta.toFixed(4),
+      })
     }
 
     return totalDelta
