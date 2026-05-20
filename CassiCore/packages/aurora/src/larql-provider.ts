@@ -1046,6 +1046,30 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
   }
 
   /**
+   * Generate text steered through the vindex model.
+   *
+   * Runs autoregressive generation with optional steering vectors
+   * that boost or suppress specific features during the forward pass.
+   */
+  generate(
+    promptTokens: number[],
+    options?: {
+      maxTokens?: number
+      steers?: Array<{ layer: number; alpha: number; featureIndex: number }>
+    },
+  ): { text: string; tokens: number[]; durationMs: number } {
+    if (!this.loaded || !this.handle || !this.larql) {
+      return { text: '', tokens: [], durationMs: 0 }
+    }
+    const maxTokens = options?.maxTokens ?? 50
+    const steerVectors = (options?.steers ?? []).map(s => {
+      const gv = this.larql.gateVector(this.handle!, s.layer, s.featureIndex)
+      return { layer: s.layer, alpha: s.alpha, vectorBytes: Buffer.from(gv.buffer, gv.byteOffset, gv.byteLength) }
+    })
+    return this.larql.generateWithSteering(this.handle, promptTokens, steerVectors, maxTokens)
+  }
+
+  /**
    * A2 Slice 2: fetch one gate vector at (layer, featureIndex) as a Float32Array.
    *
    * Returns `null` when the vindex isn't loaded or the (layer, featureIndex)
