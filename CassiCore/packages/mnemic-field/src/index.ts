@@ -75,7 +75,7 @@ const BRADCAST_RESONANCE_THRESHOLD = 0.3
 /** Structural engram types excluded from user-facing retrieval results. */
 const STRUCTURAL_TYPES = new Set([
   'bridge', 'session', 'file', 'source_file', 'file_version', 'file_read',
-  'changeset', 'message', 'tool_invocation', 'thought_command',
+  'changeset', 'tool_invocation', 'thought_command',
   'replay_segment', 'expert_summary',
 ])
 

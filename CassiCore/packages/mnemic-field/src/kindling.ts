@@ -406,10 +406,20 @@ export class KindlingEngine {
       limit: limit * 2,
     })
 
-    if (hits.length === 0) return []
+    if (hits.length === 0) {
+      this.logger.debug('findSeedsByFeatureIndex: no hits', { query: textQuery.slice(0, 60) })
+      return []
+    }
 
     const maxOverlap = hits[0].sharedFeatureCount
     if (maxOverlap <= 0) return []
+
+    this.logger.info('findSeedsByFeatureIndex', {
+      query: textQuery.slice(0, 80),
+      hits: hits.length,
+      maxOverlap,
+      topId: hits[0]?.engramId?.slice(0, 12),
+    })
 
     return hits
       .map(h => ({
