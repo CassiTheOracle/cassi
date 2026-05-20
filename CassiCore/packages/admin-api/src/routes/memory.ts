@@ -2550,6 +2550,66 @@ export async function handleMemoryRoutes(
     return true
   }
 
+  function getVindexProvider(): any | null {
+    return (daemon?.intelligence as any)?.aurora?.provider ?? null
+  }
+
+  // POST /memory/vindex/forward — full forward pass, returns residuals + attention
+  if (parts[1] === 'vindex' && parts[2] === 'forward' && method === 'POST') {
+    try {
+      const body = await parseBody(req).catch(() => ({}))
+      const provider = getVindexProvider()
+      if (!provider || !provider.forward) {
+        sendJSON(res, 503, { error: 'vindex forward not available' }); return true
+      }
+      const text = typeof body?.text === 'string' ? body.text : ''
+      const layers: number[] = Array.isArray(body?.layers) ? body.layers : [14, 20, 27]
+      const captureAttention = body?.captureAttention === true
+      if (!text) { sendJSON(res, 400, { error: 'text required' }); return true }
+      const tokens = provider.tokenize(text)
+      const result = provider.forward(tokens, layers, captureAttention)
+      const residuals = result.residuals.map((r: any) => {
+        const arr = new Float32Array(r.values.buffer, r.values.byteOffset, r.values.length)
+        return { layer: r.layer, dims: arr.length, l2: Math.sqrt(arr.reduce((s: number, v: number) => s + v*v, 0)).toFixed(1) }
+      })
+      sendJSON(res, 200, { ok: true, tokens: tokens.length, residuals, attention: result.attention, durationMs: result.durationMs })
+      return true
+    } catch (err) { sendJSON(res, 500, { error: String(err) }); return true }
+  }
+
+  // POST /memory/vindex/generate — steered generation through the vindex model
+  if (parts[1] === 'vindex' && parts[2] === 'generate' && method === 'POST') {
+    try {
+      const body = await parseBody(req).catch(() => ({}))
+      const provider = getVindexProvider()
+      if (!provider || !provider.generate) {
+        sendJSON(res, 503, { error: 'vindex generation not available' }); return true
+      }
+      const prompt = typeof body?.prompt === 'string' ? body.prompt : ''
+      const maxTokens = typeof body?.maxTokens === 'number' ? body.maxTokens : 50
+      const steers = Array.isArray(body?.steers) ? body.steers : []
+      if (!prompt) { sendJSON(res, 400, { error: 'prompt required' }); return true }
+      const tokens = provider.tokenize(prompt)
+      const gen = provider.generate(tokens, { maxTokens, steers })
+      sendJSON(res, 200, { ok: true, text: gen.text, tokensGenerated: gen.tokens?.length ?? 0, durationMs: gen.durationMs })
+      return true
+    } catch (err) { sendJSON(res, 500, { error: String(err) }); return true }
+  }
+
+  // GET /memory/vindex/quality?text=... — score content quality via attention Gini
+  if (parts[1] === 'vindex' && parts[2] === 'quality' && method === 'GET') {
+    try {
+      const text = url.searchParams.get('text')
+      const field = getMnemicField(logger, daemon)
+      const scorer = (field as any).qualityScorer
+      if (!text) { sendJSON(res, 400, { error: 'text query param required' }); return true }
+      if (!scorer?.isReady()) { sendJSON(res, 503, { error: 'quality scorer not available' }); return true }
+      const score = scorer.scoreContent(text)
+      sendJSON(res, 200, { ok: true, ...score })
+      return true
+    } catch (err) { sendJSON(res, 500, { error: String(err) }); return true }
+  }
+
   return false
 }
 
