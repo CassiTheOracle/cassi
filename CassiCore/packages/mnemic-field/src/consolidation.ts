@@ -1512,7 +1512,12 @@ export class ConsolidationEngine {
     for (let i = 0; i < engrams.length; i++) {
       const e = engrams[i]
       try {
-        const result = this.featureIndex!.checkMergeFor(e.id, { minOverlapRatio: 0.95 })
+        // Fetch the merged engram's embedding for slerp-on-merge
+        const mergedEmb = this.cortex.getEngramEmbeddings([e.id]).get(e.id)
+        const result = this.featureIndex!.checkMergeFor(e.id, {
+          minOverlapRatio: 0.95,
+          embedding: mergedEmb ?? undefined,
+        })
         if (!result) continue
 
         if (result.action === 'merged' && result.mergedInto) {
@@ -1531,16 +1536,11 @@ export class ConsolidationEngine {
             metadata: { mergedInto: result.mergedInto, mergeReason: 'feature-overlap-consolidation' },
           })
 
-          // Slerp the gate embeddings of anchor and merged engram
-          try {
-            const anchorEmb = this.cortex.getEngramEmbeddings([result.mergedInto]).get(result.mergedInto)
-            const mergedEmb = this.cortex.getEngramEmbeddings([e.id]).get(e.id)
-            if (anchorEmb && mergedEmb && anchorEmb.length === mergedEmb.length) {
-              const t = Math.min(0.7, boost * 20)
-              const slerped = this.slerpGateEmbeddings(anchorEmb, mergedEmb, t)
-              this.cortex.bulkUpdateEmbeddings([{ id: result.mergedInto, embedding: slerped }])
-            }
-          } catch { /* best-effort */ }
+          // Slerp the gate embeddings of anchor and merged engram.
+          // FeatureIndex returns the slerped embedding when both are available.
+          if (result.slerpedEmbedding) {
+            this.cortex.bulkUpdateEmbeddings([{ id: result.mergedInto, embedding: result.slerpedEmbedding }])
+          }
           merges++
         } else if (result.action === 'indexed') {
           // Anchor quality reversal: the old anchor was removed from index.
@@ -1791,19 +1791,4 @@ export class ConsolidationEngine {
     return nucleiCreated
   }
 
-  /** Spherical interpolation between two unit-norm gate embeddings. */
-  private slerpGateEmbeddings(a: Float32Array, b: Float32Array, t: number): Float32Array {
-    const n = a.length
-    let dot = 0
-    for (let i = 0; i < n; i++) dot += a[i] * b[i]
-    dot = Math.max(-1, Math.min(1, dot))
-    const omega = Math.acos(dot)
-    if (omega < 0.0001) return new Float32Array(a)
-    const sinOmega = Math.sin(omega)
-    const wA = Math.sin((1 - t) * omega) / sinOmega
-    const wB = Math.sin(t * omega) / sinOmega
-    const result = new Float32Array(n)
-    for (let i = 0; i < n; i++) result[i] = wA * a[i] + wB * b[i]
-    return result
-  }
 }

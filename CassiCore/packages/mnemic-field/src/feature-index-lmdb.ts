@@ -29,6 +29,11 @@ export interface IndexResult {
   overlapRatio?: number
   /** Number of features in the anchor engram (for weighted boost). */
   featureCount?: number
+  /** Slerped gate embedding: spherical interpolation of anchor + newcomer
+   *  embeddings when both are available and a merge occurred. Null if
+   *  embeddings unavailable or no merge. The caller should persist this
+   *  as the anchor's new embedding via Cortex.bulkUpdateEmbeddings(). */
+  slerpedEmbedding?: Float32Array | null
 }
 
 /** Feature overlap ratio ≥ this → merge instead of indexing. */
@@ -38,6 +43,31 @@ const MERGE_OVERLAP_THRESHOLD = 0.95
  *  If the newcomer has ≥1.5× the anchor's features, it's the richer engram. */
 const ANCHOR_REVERSAL_RATIO = 1.5
 
+/**
+ * Spherical linear interpolation between two unit-norm gate embeddings.
+ *
+ * Both vectors live on the unit hypersphere S^{d-1}. The formula
+ * sin((1-t)·ω)/sin(ω) · a + sin(t·ω)/sin(ω) · b keeps the result
+ * on the sphere, preserving both concepts during merge.
+ *
+ * t ∈ [0,1]: 0 = pure a, 1 = pure b.
+ * ω = arccos(a·b) is the geodesic angle between them.
+ */
+function slerpGateVectors(a: Float32Array, b: Float32Array, t: number): Float32Array {
+  const n = a.length
+  let dot = 0
+  for (let i = 0; i < n; i++) dot += a[i] * b[i]
+  dot = Math.max(-1, Math.min(1, dot))
+  const omega = Math.acos(dot)
+  if (omega < 0.0001) return new Float32Array(a)
+  const sinOmega = Math.sin(omega)
+  const wA = Math.sin((1 - t) * omega) / sinOmega
+  const wB = Math.sin(t * omega) / sinOmega
+  const result = new Float32Array(n)
+  for (let i = 0; i < n; i++) result[i] = wA * a[i] + wB * b[i]
+  return result
+}
+
 export class LmdbFeatureIndex {
   private env: any              // lmdb RootDatabase
   private featureToEngrams: any // lmdb Database (dupSort)
@@ -45,6 +75,8 @@ export class LmdbFeatureIndex {
   private logger: ILogger
   private gateKnn: VindexGateKnnFn | null = null
   private ready = false
+  /** Provider for gate embeddings, used by merge-on-overlap slerp. */
+  private embeddingProvider: ((id: string) => Float32Array | null) | null = null
 
   constructor(envPath: string, logger: ILogger) {
     this.logger = logger.child?.('feature-index') ?? logger
@@ -76,9 +108,34 @@ export class LmdbFeatureIndex {
     this.logger.info('FeatureIndex gateKnn set', { ready: this.ready })
   }
 
+  /** Wire the embedding provider for slerp computation during merges. */
+  setEmbeddingProvider(fn: ((id: string) => Float32Array | null) | null): void {
+    this.embeddingProvider = fn
+  }
+
   /** Whether the index is ready for queries. */
   isReady(): boolean {
     return this.ready
+  }
+
+  /**
+   * Spherical linear interpolation between two unit-norm gate embeddings.
+   * Both vectors live on S^{d-1}; slerp stays on the geodesic.
+   * t ∈ [0,1]: 0 = pure a, 1 = pure b.
+   */
+  private slerpEmbeddings(a: Float32Array, b: Float32Array, t: number): Float32Array {
+    const n = a.length
+    let dot = 0
+    for (let i = 0; i < n; i++) dot += a[i] * b[i]
+    dot = Math.max(-1, Math.min(1, dot))
+    const omega = Math.acos(dot)
+    if (omega < 0.0001) return new Float32Array(a)
+    const sinOmega = Math.sin(omega)
+    const wA = Math.sin((1 - t) * omega) / sinOmega
+    const wB = Math.sin(t * omega) / sinOmega
+    const result = new Float32Array(n)
+    for (let i = 0; i < n; i++) result[i] = wA * a[i] + wB * b[i]
+    return result
   }
 
   /**
@@ -99,6 +156,8 @@ export class LmdbFeatureIndex {
       layers?: number[]
       featuresPerLayer?: number
       minScore?: number
+      /** New engram's gate embedding for slerp computation on merge. */
+      embedding?: Float32Array
     },
   ): IndexResult {
     if (!this.ready || !this.gateKnn) return { action: 'indexed' }
@@ -146,12 +205,24 @@ export class LmdbFeatureIndex {
 
           // Normal merge: union the feature sets into the anchor engram.
           this.mergeFeatures(top.engramId, featureKeys)
+
+          // Slerp gate embeddings: the anchor should reflect both engrams on the sphere.
+          let slerpedEmbedding: Float32Array | undefined
+          if (options?.embedding && this.embeddingProvider) {
+            const anchorEmb = this.embeddingProvider(top.engramId)
+            if (anchorEmb && anchorEmb.length === options.embedding.length) {
+              const t = 0.3 + 0.4 * anchorFeatureCount / Math.max(anchorFeatureCount, featureKeys.length)
+              slerpedEmbedding = this.slerpEmbeddings(anchorEmb, options.embedding, t)
+            }
+          }
+
           this.logger.debug?.('FeatureIndex merged engram', {
             engramId: engramId.slice(0, 12),
             into: top.engramId.slice(0, 12),
             overlapRatio: overlapRatio.toFixed(3),
+            slerped: !!slerpedEmbedding,
           })
-          return { action: 'merged', mergedInto: top.engramId, overlapRatio, featureCount: anchorFeatureCount }
+          return { action: 'merged', mergedInto: top.engramId, overlapRatio, featureCount: anchorFeatureCount, slerpedEmbedding }
         }
       }
 
@@ -183,7 +254,7 @@ export class LmdbFeatureIndex {
    */
   checkMergeFor(
     engramId: string,
-    opts?: { minOverlapRatio?: number },
+    opts?: { minOverlapRatio?: number; embedding?: Float32Array },
   ): IndexResult | null {
     const features = this.engramToFeatures.getValues(engramId)
     if (!features) return null
@@ -234,10 +305,22 @@ export class LmdbFeatureIndex {
     this.mergeFeatures(top.engramId, featureList)
     this.removeEngram(engramId)
 
+    // Slerp gate embeddings: caller passes the merged engram's embedding;
+    // we fetch the anchor's embedding via the getter.
+    let slerpedEmbedding: Float32Array | undefined
+    if (opts?.embedding && this.embeddingProvider) {
+      const anchorEmb = this.embeddingProvider(top.engramId)
+      if (anchorEmb && anchorEmb.length === opts.embedding.length) {
+        const t = 0.3 + 0.4 * anchorFeatureCount / Math.max(anchorFeatureCount, featureList.length)
+        slerpedEmbedding = this.slerpEmbeddings(anchorEmb, opts.embedding, t)
+      }
+    }
+
     this.logger.debug?.('FeatureIndex merged engram (consolidation)', {
       engramId: engramId.slice(0, 12),
       into: top.engramId.slice(0, 12),
       overlapRatio: overlapRatio.toFixed(3),
+      slerped: !!slerpedEmbedding,
     })
 
     return {
@@ -245,6 +328,7 @@ export class LmdbFeatureIndex {
       mergedInto: top.engramId,
       overlapRatio,
       featureCount: anchorFeatureCount,
+      slerpedEmbedding,
     }
   }
 

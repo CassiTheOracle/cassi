@@ -525,6 +525,13 @@ export class MnemicField {
     // Wire FeatureIndex into kindling so seed finding uses vindex features.
     this.kindlingEngine.setFeatureIndex(this.featureIndex)
 
+    // Wire embedding provider for slerp-on-merge: FeatureIndex can fetch gate
+    // embeddings from the cortex when two engrams merge on feature overlap.
+    if (this.featureIndex && typeof (this.featureIndex as any).setEmbeddingProvider === 'function') {
+      (this.featureIndex as any).setEmbeddingProvider((id: string) =>
+        this.cortex.getEngramEmbeddings([id]).get(id) ?? null)
+    }
+
     // Initialize projection state from existing positions in DB (if available)
     this.projectionState = this._restoreProjectionState()
 
@@ -747,12 +754,12 @@ export class MnemicField {
     // potentiation and skip synapse creation.
     if (this.featureIndex?.isReady()) {
       try {
-        const result = this.featureIndex.indexEngram(engram.id, input.content)
+        const result = this.featureIndex.indexEngram(engram.id, input.content, {
+          embedding: resolvedEmbedding ?? undefined,
+        })
 
         if (result.action === 'merged' && result.mergedInto) {
           // Boost the anchor engram's potentiation, scaled by feature richness.
-          // Low-feature stubs (e.g., 5 features) get +0.0025 per merge;
-          // rich engrams (40+ features) get the full +0.02.
           const anchor = this.cortex.getEngram(result.mergedInto)
           if (anchor) {
             const featureCount = result.featureCount ?? 10
@@ -761,26 +768,10 @@ export class MnemicField {
               potentiation: Math.min(1.0, anchor.potentiation + boost),
             })
 
-            // Slerp the gate embeddings: the merged engram should reflect
-            // both the anchor and the newcomer on the unit hypersphere.
-            try {
-              const anchorEmb = this.cortex.getEngramEmbeddings([result.mergedInto]).get(result.mergedInto)
-              // The newcomer's embedding is in the store input, not in DB yet
-              const newEmb = (input as any).embedding as Float32Array | undefined
-              if (newEmb && anchorEmb && newEmb.length === anchorEmb.length) {
-                const t = Math.min(0.7, boost * 20) // interpolation weight from boost
-                const slerped = slerpEmbedding(anchorEmb, newEmb, t)
-                this.cortex.bulkUpdateEmbeddings([{ id: result.mergedInto, embedding: slerped }])
-              }
-            } catch { /* best-effort — embedding slerp is non-critical */ }
-            this.logger.debug('FeatureIndex merge boosted potentiation', {
-              mergedId: engram.id.slice(0, 12),
-              anchorId: result.mergedInto.slice(0, 12),
-              featureCount,
-              boost: boost.toFixed(4),
-              oldPot: anchor.potentiation.toFixed(3),
-              newPot: Math.min(1.0, anchor.potentiation + boost).toFixed(3),
-            })
+            // Persist slerped embedding computed by the FeatureIndex merge
+            if (result.slerpedEmbedding) {
+              this.cortex.bulkUpdateEmbeddings([{ id: result.mergedInto, embedding: result.slerpedEmbedding }])
+            }
           }
           // Skip synapse creation — the new engram was merged, not indexed.
         } else {
