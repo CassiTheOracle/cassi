@@ -16,6 +16,7 @@
 import type Database from 'better-sqlite3'
 import type { ILogger } from '../../../types/interfaces.js'
 import type { Cortex } from './cortex.js'
+import type { IndexResult } from './feature-index-lmdb.js'
 
 /** Feature key format: "L{layer}:F{featureIndex}" */
 function featureKey(layer: number, featureIndex: number): string {
@@ -86,12 +87,16 @@ export class FeatureIndex {
     return this.ready
   }
 
+  /** Merge threshold — same as LMDB version. */
+  private static readonly MERGE_OVERLAP_THRESHOLD = 0.95
+
   /**
    * Index an engram from its content. Gate-KNNs the content and inserts
    * feature→engramId mappings into the SQLite table.
    *
-   * Call during storeForSession when vindex is available. Re-indexing
-   * the same engramId with different content cleans up old mappings first.
+   * Before inserting, checks for near-complete feature overlap (≥95%)
+   * with an existing engram. If found, merges the feature sets and
+   * returns `{ action: 'merged' }`.
    */
   indexEngram(
     engramId: string,
@@ -101,11 +106,10 @@ export class FeatureIndex {
       featuresPerLayer?: number
       minScore?: number
     },
-  ): void {
-    if (!this.ready || !this.gateKnn) return
-    if (!content || content.length < 20) return
+  ): IndexResult {
+    if (!this.ready || !this.gateKnn) return { action: 'indexed' }
+    if (!content || content.length < 20) return { action: 'indexed' }
 
-    // Clean up old feature mappings before re-indexing.
     this.removeEngram(engramId)
 
     try {
@@ -115,11 +119,23 @@ export class FeatureIndex {
         minScore: options?.minScore ?? 0.05,
       })
 
-      if (features.length === 0) return
+      if (features.length === 0) return { action: 'indexed' }
 
       const keys = features.map(f => featureKey(f.layer, f.featureIndex))
 
-      // Batch insert within a transaction.
+      // Check for near-complete overlap with an existing engram.
+      const overlapping = this.findOverlappingByKeys(keys, { limit: 1 })
+      if (overlapping.length > 0) {
+        const top = overlapping[0]
+        const overlapRatio = top.sharedFeatureCount / keys.length
+        if (overlapRatio >= FeatureIndex.MERGE_OVERLAP_THRESHOLD) {
+          // Merge: union the feature sets into the anchor engram.
+          this.mergeFeatures(top.engramId, keys)
+          return { action: 'merged', mergedInto: top.engramId, overlapRatio }
+        }
+      }
+
+      // No merge — store as new.
       this.ensureStatements()
       const tx = this.db.transaction(() => {
         for (const key of keys) {
@@ -128,13 +144,14 @@ export class FeatureIndex {
       })
       tx()
 
-      // Update cache.
       this.engramFeatureCache.set(engramId, keys)
+      return { action: 'indexed' }
     } catch (err) {
       this.logger.debug?.('FeatureIndex.indexEngram failed', {
         engramId: engramId.slice(0, 12),
         error: String(err),
       })
+      return { action: 'indexed' }
     }
   }
 
@@ -246,13 +263,17 @@ export class FeatureIndex {
     )
 
     let indexed = 0
+    let merged = 0
     for (let i = 0; i < engrams.length; i++) {
       const e = engrams[i]
-      this.indexEngram(e.id, e.content, options)
-      indexed++
+      const result = this.indexEngram(e.id, e.content, options)
+      if (result.action === 'merged') {
+        merged++
+      } else {
+        indexed++
+      }
 
-      // Yield to event loop every 50 engrams
-      if (indexed % 50 === 0) {
+      if ((indexed + merged) % 10 === 0) {
         await new Promise(resolve => setImmediate(resolve))
       }
     }
@@ -261,6 +282,7 @@ export class FeatureIndex {
     this.logger.info('FeatureIndex built from cortex', {
       scanned: engrams.length,
       indexed,
+      merged,
       featureKeys: stats.featureKeys,
     })
 
@@ -327,5 +349,53 @@ export class FeatureIndex {
       this.logger.debug?.('FeatureIndex.findCorrelated failed', { error: String(err) })
       return []
     }
+  }
+
+  /**
+   * Find engrams that share the given feature keys.
+   * Uses the SQLite feature_index table (always up-to-date).
+   */
+  private findOverlappingByKeys(
+    keys: string[],
+    opts?: { limit?: number },
+  ): Array<{ engramId: string; sharedFeatureCount: number }> {
+    if (keys.length === 0) return []
+    const limit = opts?.limit ?? 1
+    const placeholders = keys.map(() => '?').join(',')
+    const sql = `
+      SELECT engram_id, COUNT(*) as cnt
+      FROM feature_index
+      WHERE feature_key IN (${placeholders})
+      GROUP BY engram_id
+      ORDER BY cnt DESC
+      LIMIT ?
+    `
+    this.ensureStatements()
+    const rows = this.db.prepare(sql).all(...keys, limit) as Array<{
+      engram_id: string; cnt: number
+    }>
+    return rows.map(r => ({ engramId: r.engram_id, sharedFeatureCount: r.cnt }))
+  }
+
+  /**
+   * Merge feature keys into an existing engram — union the feature sets.
+   * Only adds keys not already present for the engram.
+   */
+  private mergeFeatures(engramId: string, newKeys: string[]): void {
+    // Fetch existing keys from cache or DB.
+    const existing = this.engramFeatureCache.get(engramId)
+      ?? this.stmtFeatureKeys!.all(engramId).map((r: any) => r.feature_key) as string[]
+    const existingSet = new Set(existing)
+    const toAdd = newKeys.filter(k => !existingSet.has(k))
+    if (toAdd.length === 0) return
+
+    this.ensureStatements()
+    const tx = this.db.transaction(() => {
+      for (const key of toAdd) {
+        this.stmtInsert!.run(key, engramId)
+      }
+    })
+    tx()
+    this.engramFeatureCache.set(engramId, [...existing, ...toAdd])
   }
 }

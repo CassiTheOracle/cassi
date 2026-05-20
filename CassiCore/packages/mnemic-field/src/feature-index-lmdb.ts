@@ -9,13 +9,28 @@
  *   feature_to_engrams  (dupSort):  feature_key → engram_id  (sorted)
  *   engram_to_features  (dupSort):  engram_id   → feature_key (sorted)
  *
- * This is Phase A of the V-Field substrate migration. Phase B moves the
- * engram data into the vindex binary format itself.
+ * Merge-on-overlap: when a new engram's gateKnn features overlap ≥95% with
+ * an existing engram, the new engram is merged into the existing one rather
+ * than indexed separately. Merges union the feature sets and the caller
+ * boosts the anchor engram's potentiation.
  */
+
 import type { ILogger } from '../../../types/interfaces.js'
 import type { Cortex } from './cortex.js'
 import type { VindexGateKnnFn, FeatureIndexEntry } from './feature-index.js'
 import { open as lmdbOpen } from 'lmdb'
+
+/** Return type for indexEngram — tells the caller whether to store or merge. */
+export interface IndexResult {
+  action: 'indexed' | 'merged'
+  /** When merged: the engramId of the existing engram that absorbed this one. */
+  mergedInto?: string
+  /** Feature overlap ratio that triggered the merge. */
+  overlapRatio?: number
+}
+
+/** Feature overlap ratio ≥ this → merge instead of indexing. */
+const MERGE_OVERLAP_THRESHOLD = 0.95
 
 export class LmdbFeatureIndex {
   private env: any              // lmdb RootDatabase
@@ -64,6 +79,11 @@ export class LmdbFeatureIndex {
    * Index an engram from its content. Gate-KNNs the content and stores
    * feature→engramId mappings in LMDB.
    *
+   * Before inserting, checks for near-complete feature overlap (≥95%)
+   * with an existing engram. If found, merges the feature sets and
+   * returns `{ action: 'merged' }` — the caller should boost the
+   * anchor engram's potentiation instead of storing a new engram.
+   *
    * Re-indexing the same engramId cleans up old mappings first.
    */
   indexEngram(
@@ -74,9 +94,9 @@ export class LmdbFeatureIndex {
       featuresPerLayer?: number
       minScore?: number
     },
-  ): void {
-    if (!this.ready || !this.gateKnn) return
-    if (!content || content.length < 20) return
+  ): IndexResult {
+    if (!this.ready || !this.gateKnn) return { action: 'indexed' }
+    if (!content || content.length < 20) return { action: 'indexed' }
 
     this.removeEngram(engramId)
 
@@ -87,20 +107,43 @@ export class LmdbFeatureIndex {
         minScore: options?.minScore ?? 0.05,
       })
 
-      if (features.length === 0) return
+      if (features.length === 0) return { action: 'indexed' }
 
+      const featureKeys = features.map(f => `L${f.layer}:F${f.featureIndex}`)
+
+      // Check for near-complete overlap with an existing engram.
+      const overlapping = this.findOverlappingByKeys(featureKeys, { limit: 1 })
+      if (overlapping.length > 0) {
+        const top = overlapping[0]
+        const overlapRatio = top.sharedFeatureCount / featureKeys.length
+        if (overlapRatio >= MERGE_OVERLAP_THRESHOLD) {
+          // Merge: union the feature sets into the anchor engram.
+          // The new engram might have a few features the anchor doesn't.
+          this.mergeFeatures(top.engramId, featureKeys)
+          this.logger.debug?.('FeatureIndex merged engram', {
+            engramId: engramId.slice(0, 12),
+            into: top.engramId.slice(0, 12),
+            overlapRatio: overlapRatio.toFixed(3),
+          })
+          return { action: 'merged', mergedInto: top.engramId, overlapRatio }
+        }
+      }
+
+      // No merge — store as new.
       this.env.transactionSync(() => {
-        for (const f of features) {
-          const key = `L${f.layer}:F${f.featureIndex}`
+        for (const key of featureKeys) {
           this.featureToEngrams.putSync(key, engramId)
           this.engramToFeatures.putSync(engramId, key)
         }
       })
+
+      return { action: 'indexed' }
     } catch (err) {
       this.logger.debug?.('LmdbFeatureIndex.indexEngram failed', {
         engramId: engramId.slice(0, 12),
         error: String(err),
       })
+      return { action: 'indexed' }
     }
   }
 
@@ -149,25 +192,8 @@ export class LmdbFeatureIndex {
 
       if (features.length === 0) return []
 
-      const limit = options?.limit ?? 20
-      const overlapCount = new Map<string, number>()
-
-      // For each query feature, iterate its engram set.
-      for (const f of features) {
-        const key = `L${f.layer}:F${f.featureIndex}`
-        const engrams = this.featureToEngrams.getValues(key)
-        if (!engrams) continue
-        for (const id of engrams) {
-          overlapCount.set(id, (overlapCount.get(id) ?? 0) + 1)
-        }
-      }
-
-      if (overlapCount.size === 0) return []
-
-      return [...overlapCount.entries()]
-        .map(([engramId, count]) => ({ engramId, sharedFeatureCount: count }))
-        .sort((a, b) => b.sharedFeatureCount - a.sharedFeatureCount)
-        .slice(0, limit)
+      const featureKeys = features.map(f => `L${f.layer}:F${f.featureIndex}`)
+      return this.findOverlappingByKeys(featureKeys, { limit: options?.limit ?? 20 })
     } catch (err) {
       this.logger.debug?.('LmdbFeatureIndex.lookup failed', { error: String(err) })
       return []
@@ -176,7 +202,8 @@ export class LmdbFeatureIndex {
 
   /**
    * Build the index from existing engrams in the Cortex.
-   * Best-effort and throttled — yields every 50 engrams.
+   * Best-effort and throttled — yields every 10 newly-indexed engrams.
+   * Merges count as skipped (the anchor engram already exists).
    */
   async buildFromCortex(
     cortex: Cortex,
@@ -196,15 +223,20 @@ export class LmdbFeatureIndex {
 
     let indexed = 0
     let skipped = 0
+    let merged = 0
     for (let i = 0; i < engrams.length; i++) {
       // Skip already-indexed engrams (persistent across boots).
       if (this.engramToFeatures.get(engrams[i].id) !== undefined) {
         skipped++
         continue
       }
-      this.indexEngram(engrams[i].id, engrams[i].content, options)
-      indexed++
-      if (indexed % 10 === 0) {
+      const result = this.indexEngram(engrams[i].id, engrams[i].content, options)
+      if (result.action === 'merged') {
+        merged++
+      } else {
+        indexed++
+      }
+      if ((indexed + merged) % 10 === 0) {
         await new Promise(resolve => setImmediate(resolve))
       }
     }
@@ -213,6 +245,7 @@ export class LmdbFeatureIndex {
     this.logger.info('LmdbFeatureIndex built from cortex', {
       scanned: engrams.length,
       indexed,
+      merged,
       skipped,
       featureKeys: stats.featureKeys,
     })
@@ -244,14 +277,31 @@ export class LmdbFeatureIndex {
     if (featureList.length === 0) return []
 
     const minOverlap = options?.minOverlap ?? 2
-    const limit = options?.limit ?? 20
+    return this.findOverlappingByKeys(featureList, {
+      excludeId: engramId,
+      minOverlap,
+      limit: options?.limit ?? 20,
+    })
+  }
+
+  /**
+   * Find engrams that share the given feature keys.
+   * Core overlap primitive used by lookup, findCorrelated, and merge check.
+   */
+  private findOverlappingByKeys(
+    featureKeys: string[],
+    opts?: { excludeId?: string; minOverlap?: number; limit?: number },
+  ): Array<{ engramId: string; sharedFeatureCount: number }> {
+    const excludeId = opts?.excludeId
+    const minOverlap = opts?.minOverlap ?? 0
+    const limit = opts?.limit ?? 20
     const overlapCount = new Map<string, number>()
 
-    for (const key of featureList) {
+    for (const key of featureKeys) {
       const engrams = this.featureToEngrams.getValues(key)
       if (!engrams) continue
       for (const id of engrams) {
-        if (id === engramId) continue
+        if (id === excludeId) continue
         overlapCount.set(id, (overlapCount.get(id) ?? 0) + 1)
       }
     }
@@ -261,5 +311,24 @@ export class LmdbFeatureIndex {
       .map(([id, count]) => ({ engramId: id, sharedFeatureCount: count }))
       .sort((a, b) => b.sharedFeatureCount - a.sharedFeatureCount)
       .slice(0, limit)
+  }
+
+  /**
+   * Merge feature keys into an existing engram — union the feature sets.
+   * Only adds features the anchor engram doesn't already have.
+   */
+  private mergeFeatures(engramId: string, newFeatureKeys: string[]): void {
+    const existing = this.engramToFeatures.getValues(engramId)
+    const existingSet = new Set(existing ? Array.from(existing) as string[] : [])
+
+    const toAdd = newFeatureKeys.filter(k => !existingSet.has(k))
+    if (toAdd.length === 0) return
+
+    this.env.transactionSync(() => {
+      for (const key of toAdd) {
+        this.featureToEngrams.putSync(key, engramId)
+        this.engramToFeatures.putSync(engramId, key)
+      }
+    })
   }
 }

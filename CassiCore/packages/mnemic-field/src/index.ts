@@ -23,7 +23,7 @@ import { attune, AffectRegister, affectSimilarity } from './affect.js'
 import type { AffectState, LightningRetrievalMode, LightningRetrievalEvent, RerankerMode, IndexerTrainingConfig } from './types.js'
 import { INDEXER_TRAINING_DEFAULTS } from './types.js'
 import { FeatureIndex, type VindexGateKnnFn } from './feature-index.js'
-import { LmdbFeatureIndex } from './feature-index-lmdb.js'
+import { LmdbFeatureIndex, type IndexResult } from './feature-index-lmdb.js'
 import type { RetrievalLabelTriple } from '../reverie/retrieval-labeler-types.js'
 import type { LabelerInputCandidate } from '../reverie/retrieval-labeler-types.js'
 import type { CorticalField } from '../cortex/index.js'
@@ -719,36 +719,48 @@ export class MnemicField {
 
     const engram = this.cortex.createEngram({ ...input, x, y, z, metadata, embedding: resolvedEmbedding })
 
-    // Index in FeatureIndex for direct feature-indexed retrieval,
-    // then find correlated engrams and create vindex_correlation synapses.
-    // Fire-and-forget — gate KNN call can take ~5ms on CPU.
+    // Index in FeatureIndex for direct feature-indexed retrieval.
+    // If gateKnn finds a near-complete feature overlap (≥95%) with an
+    // existing engram, the index merges them — we boost the anchor's
+    // potentiation and skip synapse creation.
     if (this.featureIndex?.isReady()) {
       try {
-        this.featureIndex.indexEngram(engram.id, input.content)
+        const result = this.featureIndex.indexEngram(engram.id, input.content)
 
-        // Find engrams that share vindex features with this new engram.
-        // Create vindex_correlation synapses so kindling can spread
-        // activation through model-internal association pathways.
-        const correlated = this.featureIndex.findCorrelated(engram.id, {
-          minOverlap: 2,  // require at least 2 shared features
-          limit: 10,
-        })
-        for (const corr of correlated) {
-          // Weight: sharedFeatureCount / 10, capped at 1.0.
-          // With featuresPerLayer=10 and 14 knowledge layers, theoretical max
-          // overlap is 140. In practice, 2-5 features overlap → weight 0.2-0.5,
-          // giving vindex_correlation edges moderate influence relative to
-          // similar_to (0.5) and weaker than expert_summary (0.9).
-          const weight = Math.min(1.0, corr.sharedFeatureCount / 10)
-          try {
-            this.cortex.createSynapse({
-              sourceId: engram.id,
-              targetId: corr.engramId,
-              edgeType: 'vindex_correlation',
-              weight,
-              metadata: { sharedFeatures: corr.sharedFeatureCount },
+        if (result.action === 'merged' && result.mergedInto) {
+          // Boost the anchor engram's potentiation — recurrence is a signal.
+          const anchor = this.cortex.getEngram(result.mergedInto)
+          if (anchor) {
+            const boost = 0.05
+            this.cortex.updateEngram(result.mergedInto, {
+              potentiation: Math.min(1.0, anchor.potentiation + boost),
             })
-          } catch { /* duplicate synapse — silently skip */ }
+            this.logger.debug('FeatureIndex merge boosted potentiation', {
+              mergedId: engram.id.slice(0, 12),
+              anchorId: result.mergedInto.slice(0, 12),
+              oldPot: anchor.potentiation.toFixed(3),
+              newPot: Math.min(1.0, anchor.potentiation + boost).toFixed(3),
+            })
+          }
+          // Skip synapse creation — the new engram was merged, not indexed.
+        } else {
+          // Indexed normally — create vindex_correlation synapses.
+          const correlated = this.featureIndex.findCorrelated(engram.id, {
+            minOverlap: 2,
+            limit: 10,
+          })
+          for (const corr of correlated) {
+            const weight = Math.min(1.0, corr.sharedFeatureCount / 10)
+            try {
+              this.cortex.createSynapse({
+                sourceId: engram.id,
+                targetId: corr.engramId,
+                edgeType: 'vindex_correlation',
+                weight,
+                metadata: { sharedFeatures: corr.sharedFeatureCount },
+              })
+            } catch { /* duplicate synapse — silently skip */ }
+          }
         }
       } catch { /* best-effort */ }
     }
