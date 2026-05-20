@@ -2551,7 +2551,7 @@ export async function handleMemoryRoutes(
   }
 
   function getVindexProvider(): any | null {
-    return (daemon?.intelligence as any)?.aurora?.provider ?? null
+    return (daemon?.intelligence as any)?.aurora?.modelProvider ?? null
   }
 
   // POST /memory/vindex/forward — full forward pass, returns residuals + attention
