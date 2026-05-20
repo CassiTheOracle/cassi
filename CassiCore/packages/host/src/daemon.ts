@@ -1427,10 +1427,6 @@ export class Daemon {
         this.logger.info('AuditStore MnemicField replay bridge wired')
       }
       
-      // Initialize ANN indexes asynchronously (non-blocking)
-      field.initializeAnn().catch(err => {
-        this.logger.warn('ANN initialization failed, will use brute-force fallback', { error: String(err) })
-      })
       
       codeStore = new CodeStore(field, this.logger)
       this.__codeStore = codeStore
