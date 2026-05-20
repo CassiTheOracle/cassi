@@ -618,10 +618,24 @@ export async function handleMemoryRoutes(
       const result = await field.consolidate({
         skipRadiance: !!body?.skipRadiance,
         skipDrift: !!body?.skipDrift,
+        skipCentripetalDrift: !!body?.skipCentripetalDrift,
+        skipAngularDrift: !!body?.skipAngularDrift,
+        skipContrastiveFeedback: !!body?.skipContrastiveFeedback,
         skipNuclei: !!body?.skipNuclei,
         skipAbstractions: !!body?.skipAbstractions,
         skipPruning: !!body?.skipPruning,
+        skipGradients: !!body?.skipGradients,
+        skipForwardTracePrune: !!body?.skipForwardTracePrune,
         skipDistinctiveness: !!body?.skipDistinctiveness,
+        skipOrphanAssignment: !!body?.skipOrphanAssignment,
+        skipDreaming: !!body?.skipDreaming,
+        // V-field active organization (Phases 0-2)
+        skipMergeOnOverlap: !!body?.skipMergeOnOverlap,
+        mergeOnOverlapMinPotentiation: typeof body?.mergeOnOverlapMinPotentiation === 'number' ? body.mergeOnOverlapMinPotentiation : undefined,
+        skipQualityBasedPruning: !!body?.skipQualityBasedPruning,
+        qualityPruningMinScore: typeof body?.qualityPruningMinScore === 'number' ? body.qualityPruningMinScore : undefined,
+        skipFeatureOverlapNuclei: !!body?.skipFeatureOverlapNuclei,
+        featureOverlapNucleiMinMembers: typeof body?.featureOverlapNucleiMinMembers === 'number' ? body.featureOverlapNucleiMinMembers : undefined,
         pruneKeepCount: typeof body?.pruneKeepCount === 'number' ? body.pruneKeepCount : undefined,
         nucleiMinClusterSize: typeof body?.nucleiMinClusterSize === 'number' ? body.nucleiMinClusterSize : undefined,
         nucleiEpsilon: typeof body?.nucleiEpsilon === 'number' ? body.nucleiEpsilon : undefined,
@@ -2606,6 +2620,37 @@ export async function handleMemoryRoutes(
       if (!scorer?.isReady()) { sendJSON(res, 503, { error: 'quality scorer not available' }); return true }
       const score = scorer.scoreContent(text)
       sendJSON(res, 200, { ok: true, ...score })
+      return true
+    } catch (err) { sendJSON(res, 500, { error: String(err) }); return true }
+  }
+
+  // POST /memory/vindex/quality-batch — batch quality scoring via attention Gini
+  if (parts[1] === 'vindex' && parts[2] === 'quality-batch' && method === 'POST') {
+    try {
+      const body = await parseBody(req).catch(() => ({}))
+      const texts: string[] = Array.isArray(body?.texts) ? body.texts : []
+      const field = getMnemicField(logger, daemon)
+      const scorer = (field as any).qualityScorer
+      if (texts.length === 0) { sendJSON(res, 400, { error: 'texts array required' }); return true }
+      if (texts.length > 50) { sendJSON(res, 400, { error: 'max 50 texts per batch' }); return true }
+      if (!scorer?.isReady()) { sendJSON(res, 503, { error: 'quality scorer not available' }); return true }
+
+      const results: Array<{ index: number; score: any; error?: string }> = []
+      for (let i = 0; i < texts.length; i++) {
+        try {
+          const score = scorer.scoreContent(texts[i])
+          results.push({ index: i, score })
+        } catch (err) {
+          results.push({ index: i, score: null, error: String(err) })
+        }
+      }
+
+      const valid = results.filter(r => r.score).length
+      const avgScore = valid > 0
+        ? results.filter(r => r.score).reduce((s: number, r: any) => s + r.score.score, 0) / valid
+        : 0
+
+      sendJSON(res, 200, { ok: true, count: texts.length, scored: valid, avgScore, results })
       return true
     } catch (err) { sendJSON(res, 500, { error: String(err) }); return true }
   }
