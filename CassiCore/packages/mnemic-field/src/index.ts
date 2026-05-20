@@ -24,6 +24,7 @@ import type { AffectState, LightningRetrievalMode, LightningRetrievalEvent, Rera
 import { INDEXER_TRAINING_DEFAULTS } from './types.js'
 import { FeatureIndex, type VindexGateKnnFn } from './feature-index.js'
 import { LmdbFeatureIndex, type IndexResult } from './feature-index-lmdb.js'
+import { EngramQualityScorer, type ForwardProvider } from './engram-quality-scorer.js'
 import type { RetrievalLabelTriple } from '../reverie/retrieval-labeler-types.js'
 import type { LabelerInputCandidate } from '../reverie/retrieval-labeler-types.js'
 import type { CorticalField } from '../cortex/index.js'
@@ -248,6 +249,8 @@ export class MnemicField {
   private vindexEmbedder: VindexEmbedder | null = null
   /** Feature-indexed retrieval — maps vindex features → engram IDs. */
   readonly featureIndex: FeatureIndex
+  /** Attention-based engram quality scorer (uses forward pass). */
+  private qualityScorer: EngramQualityScorer | null = null
 
   /** Pool of backfill worker threads (lazily initialized). */
   private backfillPool: BackfillWorkerPool | null = null
@@ -341,6 +344,18 @@ export class MnemicField {
   setVindexEmbedder(embedder: VindexEmbedder | null): void {
     this.vindexEmbedder = embedder
     this.logger.info('MnemicField vindex embedder set', { enabled: !!embedder })
+  }
+
+  /**
+   * Wire a forward-capable provider for attention-based quality scoring.
+   * Creates the EngramQualityScorer lazily on first call.
+   */
+  setForwardProvider(provider: ForwardProvider | null): void {
+    if (provider && !this.qualityScorer) {
+      this.qualityScorer = new EngramQualityScorer(this.logger)
+    }
+    this.qualityScorer?.setProvider(provider)
+    this.logger.info('MnemicField forward provider set', { enabled: !!provider })
   }
 
   /**
