@@ -272,6 +272,14 @@ interface CassiLarqlModule {
   getVindexConfig(handle: VindexHandle): VindexHandle['config']
   vindexTokenize(handle: VindexHandle, text: string): number[]
   vindexGateKnn(handle: VindexHandle, layer: number, tokenId: number, topK: number): FeatureHit[]
+  gateEmbed(handle: VindexHandle, text: string): Float32Array
+  /** Multi-token gate KNN — aggregates across all tokens via max-pool. */
+  traceForward(handle: VindexHandle, promptTokens: number[], layerStart: number, layerEnd: number, topK: number): {
+    features: Array<{ layer: number; featureIndex: number; score: number; label?: string }>
+    tokensProcessed: number
+    layersScanned: number
+    durationMs: number
+  }
   /** A2 Slice 2: raw f32 bytes of one gate vector at (layer, feature_index). */
   gateVector(handle: VindexHandle, layer: number, featureIndex: number): Uint8Array
   /** A2 Slice 1: steered autoregressive generation via upstream's SteerHook. */
@@ -974,6 +982,25 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
   tokenize(text: string): number[] {
     if (!this.loaded || !this.handle || !this.larql) return []
     return this.larql.vindexTokenize(this.handle, text)
+  }
+
+  /**
+   * Multi-token gate KNN trace — runs gateKnn across ALL tokens in the prompt
+   * and aggregates results via max-pool scoring. Returns features sorted by
+   * score descending.
+   *
+   * Much faster than per-token gateKnn calls (one N-API round-trip instead of
+   * tokens × layers calls). ~50ms for 3 tokens × 14 layers on GPU.
+   */
+  traceForward(
+    tokens: number[],
+    layerStart: number,
+    layerEnd: number,
+    topK: number,
+  ): Array<{ layer: number; featureIndex: number; score: number; label?: string }> {
+    if (!this.loaded || !this.handle || !this.larql) return []
+    const result = this.larql.traceForward(this.handle, tokens, layerStart, layerEnd, topK)
+    return result?.features ?? []
   }
 
   /**
