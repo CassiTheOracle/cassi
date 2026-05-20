@@ -42,11 +42,15 @@ export class KindlingEngine {
   private harmonyProvider: (() => number) | null = null
   /** Optional: provides broadcast spark modulation for an engram, keyed by clusterId. */
   private broadcastModProvider: ((clusterId: string | null) => number) | null = null
-  /** FeatureIndex for vindex-native seed finding (replaces ANN when available). */
-  private featureIndex: { lookup: (text: string, opts?: any) => Array<{ engramId: string; sharedFeatureCount: number }>; isReady: () => boolean } | null = null
+  /** FeatureIndex for vindex-native seed finding and photon spread (replaces ANN). */
+  private featureIndex: {
+    lookup: (text: string, opts?: any) => Array<{ engramId: string; sharedFeatureCount: number }>
+    findCorrelated: (engramId: string, opts?: any) => Array<{ engramId: string; sharedFeatureCount: number }>
+    isReady: () => boolean
+  } | null = null
 
-  /** Photon ANN neighbor cache: engramId → neighbors (avoids per-emitter HNSW queries). */
-  private photonCache = new Map<string, Array<{ id: string; distance: number }>>()
+  /** Photon feature-overlap cache: emitterId → correlated engrams (avoids repeat FeatureIndex queries). */
+  private photonCache = new Map<string, Array<{ engramId: string; sharedFeatureCount: number }>>()
   private static readonly PHOTON_CACHE_MAX = 5000
 
   constructor(
@@ -72,8 +76,12 @@ export class KindlingEngine {
     this.harmonyProvider = provider
   }
 
-  /** Wire the FeatureIndex for vindex-native seed finding. */
-  setFeatureIndex(fi: { lookup: (text: string, opts?: any) => Array<{ engramId: string; sharedFeatureCount: number }>; isReady: () => boolean } | null): void {
+  /** Wire the FeatureIndex for vindex-native seed finding and photon spread. */
+  setFeatureIndex(fi: {
+    lookup: (text: string, opts?: any) => Array<{ engramId: string; sharedFeatureCount: number }>
+    findCorrelated: (engramId: string, opts?: any) => Array<{ engramId: string; sharedFeatureCount: number }>
+    isReady: () => boolean
+  } | null): void {
     this.featureIndex = fi
   }
 
@@ -509,12 +517,16 @@ export class KindlingEngine {
   private static readonly LUMINOSITY_SCALE = 2.0
 
   /**
-   * Photon spread: wireless activation via embedding-space proximity.
+   * Photon spread: wireless activation via vindex feature overlap.
    * Active engrams (charge >= threshold) emit "photons" that gently
-   * pre-activate nearby engrams in embedding space, even without synapses.
+   * pre-activate engrams sharing model features, even without synapses.
+   *
+   * Replaces the ANN embedding-space search with FeatureIndex findCorrelated().
+   * The model's internal gate-KNN activation pattern IS the proximity metric —
+   * feature overlap replaces cosine distance.
    */
   private photonSpread(chargeMap: Map<string, number>): number {
-    if (!this.isAnnReady()) return 0
+    if (!this.featureIndex?.isReady()) return 0
 
     const emitterIds = [...chargeMap.entries()]
       .filter(([_, charge]) => charge >= KindlingEngine.PHOTON_EMISSION_THRESHOLD)
@@ -527,37 +539,37 @@ export class KindlingEngine {
 
     for (const emitterId of emitterIds) {
       const emitter = emitterEngrams.get(emitterId)
-      if (!emitter || !emitter.embedding) continue
-      // Skip emitters whose embedding dimension doesn't match the ANN index
-      // (e.g., old Qwen3 1024-dim embeddings vs. current 1536-dim gate vectors).
-      if (emitter.embedding.length !== this.engramAnnIndex?.getDimension()) continue
+      if (!emitter) continue
 
       const distinctiveness = (emitter.metadata?.distinctiveness as number) ?? 0.5
       const luminosity = emitter.potentiation * distinctiveness
         * KindlingEngine.LUMINOSITY_SCALE
       const emitterCharge = chargeMap.get(emitterId)!
 
-      const cachedNeighbors = this.photonCache.get(emitterId)
-      const neighbors = cachedNeighbors ?? this.searchEngramAnn(
-        Array.from(emitter.embedding),
-        KindlingEngine.MAX_PHOTON_NEIGHBORS + 1,
+      // FeatureIndex cache: emitterId → correlated engrams
+      const cachedCorrelated = this.photonCache.get(emitterId)
+      const correlated = cachedCorrelated ?? this.featureIndex.findCorrelated(
+        emitterId,
+        { minOverlap: 1, limit: KindlingEngine.MAX_PHOTON_NEIGHBORS },
       )
 
-      // Cache miss — store result if under capacity
-      if (!cachedNeighbors && this.photonCache.size < KindlingEngine.PHOTON_CACHE_MAX) {
-        this.photonCache.set(emitterId, neighbors)
+      if (!cachedCorrelated && this.photonCache.size < KindlingEngine.PHOTON_CACHE_MAX) {
+        this.photonCache.set(emitterId, correlated)
       }
 
-      for (const neighbor of neighbors) {
-        if (neighbor.id === emitterId) continue
-        if (chargeMap.has(neighbor.id)) continue
+      for (const neighbor of correlated) {
+        if (neighbor.engramId === emitterId) continue
+        if (chargeMap.has(neighbor.engramId)) continue
 
-        const d = neighbor.distance
+        // Feature-space distance: 1 − overlap ratio.
+        // sharedCount ≥ 1: overlap = sharedCount/(sharedCount+2) ∈ [0.33, 1.0)
+        const overlap = neighbor.sharedFeatureCount / (neighbor.sharedFeatureCount + 2)
+        const d = 1 - overlap
         const photonicContribution = emitterCharge * luminosity
           / (1 + KindlingEngine.PHOTON_DECAY * d * d)
 
-        const existing = contributions.get(neighbor.id) ?? 0
-        contributions.set(neighbor.id, existing + photonicContribution)
+        const existing = contributions.get(neighbor.engramId) ?? 0
+        contributions.set(neighbor.engramId, existing + photonicContribution)
       }
     }
 
