@@ -441,7 +441,7 @@ export async function handleMemoryRoutes(
         complexity: body?.complexity,
         sessionId: typeof body?.sessionId === 'string' ? body.sessionId : undefined,
       })
-      sendJSON(res, 200, { ok: true, hits: hits.map(h => ({ id: h.id, score: h.score, nodeType: h.nodeType, content: (h.content || '').slice(0, 180) })) })
+      sendJSON(res, 200, { ok: true, hits: hits.map(h => ({ id: h.id, score: h.score, nodeType: h.nodeType, content: h.content || '' })) })
       return true
     } catch (err) {
       sendJSON(res, 500, { error: String(err) })
@@ -827,7 +827,7 @@ export async function handleMemoryRoutes(
         sessionId: typeof body?.sessionId === 'string' ? body.sessionId : undefined,
         shadow: body?.shadow === true,
       })
-      sendJSON(res, 200, { ok: true, hits: hits.map(h => ({ id: h.id, score: h.score, nodeType: h.nodeType, content: (h.content || '').slice(0, 180) })) })
+      sendJSON(res, 200, { ok: true, hits: hits.map(h => ({ id: h.id, score: h.score, nodeType: h.nodeType, content: h.content || '' })) })
       return true
     } catch (err) {
       sendJSON(res, 500, { error: String(err) })
