@@ -18,15 +18,16 @@ import type { ILogger } from '../../../types/interfaces.js'
 import type { Cortex } from './cortex.js'
 import type { IndexResult } from './feature-index-lmdb.js'
 
-/** Feature key format: "L{layer}:F{featureIndex}" */
-function featureKey(layer: number, featureIndex: number): string {
-  return `L${layer}:F${featureIndex}`
+/** Feature key format: "L{layer}:F{featureIndex}" (or "{source}:L{layer}:F{featureIndex}" for multi-vindex). */
+function featureKey(layer: number, featureIndex: number, source?: string): string {
+  const key = `L${layer}:F${featureIndex}`
+  return source ? `${source}:${key}` : key
 }
 
 /** A vindex gate-KNN call: (text) => Array<{layer, featureIndex, score}> */
 export type VindexGateKnnFn = (
   text: string,
-  options?: { layers?: number[]; featuresPerLayer?: number; minScore?: number },
+  options?: { layers?: number[]; featuresPerLayer?: number; minScore?: number; source?: string },
 ) => Array<{ layer: number; featureIndex: number; score: number }>
 
 export interface FeatureIndexEntry {
