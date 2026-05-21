@@ -52,7 +52,7 @@ const DEFAULT_TIMEOUT_MS = 8000
  * (don't pull in NLP libs). Splits on sentence-final punctuation followed by
  * whitespace + capital letter, plus hard newlines.
  */
-function splitSentences(text: string, maxLen: number): string[] {
+export function splitSentences(text: string, maxLen: number): string[] {
   if (!text) return []
   // First split on hard breaks (paragraphs, list items)
   const blocks = text.split(/\n\s*\n+|\n\s*[-*]\s+/g).map(b => b.trim()).filter(Boolean)
