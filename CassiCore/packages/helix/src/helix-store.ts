@@ -26,7 +26,7 @@ import type { BlackboardState, Report } from '../../../types/flux-team.js'
 import { getDataDir } from '../../utils/paths.js'
 
 
-const SCHEMA_VERSION = 2
+const SCHEMA_VERSION = 7
 const DEFAULT_MAX_AGE_DAYS = 7
 
 export type HelixRole = 'unity' | 'yang' | 'yin' | 'mentor'
@@ -70,6 +70,7 @@ const SCHEMA_SQL = `
     error                 TEXT,
     model                 TEXT,
     provider              TEXT,
+    attention_embedding   BLOB,
     created_at            INTEGER NOT NULL,
     completed_at          INTEGER
   );
@@ -240,6 +241,18 @@ export class HelixStore {
         `)
         this.logger.info('Migrated helix.db schema v1 → v2 (added helix_test_locks)')
       }
+      // v2 → v3: Add attention_embedding BLOB for Helix session attention field
+      // NOTE: even if current > 3 (e.g., 6 from Constellation subsystem bumps),
+      // we must check column existence, not just schema_version order.
+      if (current < 7) {
+        const col = this.db.prepare(
+          "SELECT name FROM pragma_table_info('helix_sessions') WHERE name = 'attention_embedding'"
+        ).get() as { name: string } | undefined
+        if (!col) {
+          this.db.exec(`ALTER TABLE helix_sessions ADD COLUMN attention_embedding BLOB`)
+          this.logger.info('Migrated helix.db → v7 (added attention_embedding column)')
+        }
+      }
       this.db.prepare('UPDATE schema_version SET version = ?').run(SCHEMA_VERSION)
     }
   }
@@ -283,7 +296,8 @@ export class HelixStore {
             blackboard_snapshot = @blackboard_snapshot,
             duration_ms = @duration_ms,
             error = @error,
-            completed_at = @completed_at
+            completed_at = @completed_at,
+            attention_embedding = @attention_embedding
           WHERE id = @id
         `),
         failSession: this.db.prepare(`
@@ -614,6 +628,18 @@ export class HelixStore {
     return this.stmts.pruneOld.run(cutoff).changes
   }
 
+  /**
+   * Persist the attention embedding for a Helix session.
+   * Uses the raw Float32Array.buffer (ArrayBuffer) as a BLOB.
+   * Called once per Helix turn from the posture runner.
+   */
+  saveAttentionEmbedding(sessionId: string, embedding: Float32Array): void {
+    const buf = Buffer.from(embedding.buffer, embedding.byteOffset, embedding.byteLength)
+    this.db.prepare(
+      'UPDATE helix_sessions SET attention_embedding = ? WHERE id = ?'
+    ).run(buf, sessionId)
+  }
+
   // WHY: On daemon restart, helix sessions left in 'running' state are orphans
   // whose processes no longer exist. Without cleanup they stay in 'running'
   // forever, confusing status queries and preventing accurate post-mortem.
@@ -663,6 +689,9 @@ export class HelixStore {
       durationMs: row.duration_ms ?? undefined, error: row.error ?? undefined,
       model: row.model ?? undefined, provider: row.provider ?? undefined,
       createdAt: row.created_at, completedAt: row.completed_at ?? undefined,
+      attentionEmbedding: row.attention_embedding ? new Float32Array(row.attention_embedding.buffer.slice(
+        row.attention_embedding.byteOffset, row.attention_embedding.byteOffset + row.attention_embedding.byteLength
+      )) : undefined,
     }
   }
 }
@@ -710,6 +739,8 @@ export interface HelixSessionRow {
   report?: Report; blackboard?: BlackboardState
   filesModified: unknown[]; durationMs?: number; error?: string
   model?: string; provider?: string; createdAt: number; completedAt?: number
+  /** Session attention embedding (1536-dim Float32Array from gate embedding). */
+  attentionEmbedding?: Float32Array
 }
 
 export interface WorkStreamMessageRow {
@@ -756,6 +787,7 @@ interface RawHelixSessionRow {
   report_json: string | null; blackboard_snapshot: string | null
   files_modified: string; duration_ms: number | null; error: string | null
   model: string | null; provider: string | null
+  attention_embedding: Buffer | null
   created_at: number; completed_at: number | null
 }
 

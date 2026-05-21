@@ -63,6 +63,47 @@ export interface TraitVector {
   focused: number        // Focus: 0=scattered, 1=focused
 }
 
+/**
+ * Attention state for a Helix session — a point on S¹⁵³⁵ tracking what
+ * the session is currently focused on. Updated per turn via slerp toward
+ * the context embedding, with exponential decay for forgetting.
+ *
+ * Lives on the same unit hypersphere as engram gate embeddings.
+ */
+export interface AttentionState {
+  /** Current attention vector on the unit hypersphere (1536-dim, L2-normalized). */
+  embedding: Float32Array
+  /** Timestamp of last update (epoch ms). */
+  updatedAt: number
+  /** Half-life in turns for exponential decay (shorter = faster forgetting). */
+  halfLifeTurns: number
+  /** Momentum: slerp interpolation weight per update. Small (0.05) = sticky. */
+  momentum: number
+}
+
+/**
+ * Derive attention parameters from a TraitVector.
+ *
+ * Maps the 8-dim trait space to attention configuration:
+ *   focused → attentionRadius   (narrow/focused vs broad/scattered)
+ *   adaptive → momentum          (sticky/rigid vs fluid/flexible)
+ *   generative → capacity        (conservative vs broad)
+ *   focused → halfLifeTurns      (short vs long retention)
+ */
+export function traitToAttentionParams(traits: TraitVector): {
+  attentionRadius: number     // cosSim threshold for "attended" engrams
+  momentum: number            // slerp interpolation weight per update
+  halfLifeTurns: number       // turns before attention decays by 50%
+  capacity: number            // max engrams in attended set
+} {
+  return {
+    attentionRadius: 0.55 + traits.focused * 0.35,   // [0.55 .. 0.90]
+    momentum: 0.02 + (1 - traits.adaptive) * 0.10,   // [0.02 .. 0.12]
+    halfLifeTurns: 5 + traits.focused * 15,           // [5 .. 20] turns
+    capacity: 20 + traits.generative * 80,            // [20 .. 100]
+  }
+}
+
 
 /**
  * Array of trait axis names for iteration (C-POLY-1).
