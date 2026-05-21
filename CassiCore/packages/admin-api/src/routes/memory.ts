@@ -2723,14 +2723,18 @@ export async function handleMemoryRoutes(
   // GET /memory/vindex/vram — GPU VRAM usage telemetry
   if (parts[1] === 'vindex' && parts[2] === 'vram' && method === 'GET') {
     try {
-      const fs = await import('node:fs')
+      const fs = await import('node:fs/promises')
       const gpus: Array<{ id: number; vramTotalBytes: number; vramUsedBytes: number; vramFreeBytes: number }> = []
       for (let i = 0; i < 8; i++) {
         const totalPath = `/sys/class/drm/card${i}/device/mem_info_vram_total`
         const usedPath = `/sys/class/drm/card${i}/device/mem_info_vram_used`
         try {
-          const total = parseInt(fs.readFileSync(totalPath, 'utf-8').trim(), 10)
-          const used = parseInt(fs.readFileSync(usedPath, 'utf-8').trim(), 10)
+          const [totalRaw, usedRaw] = await Promise.all([
+            fs.readFile(totalPath, 'utf-8'),
+            fs.readFile(usedPath, 'utf-8'),
+          ])
+          const total = parseInt(totalRaw.trim(), 10)
+          const used = parseInt(usedRaw.trim(), 10)
           if (!isNaN(total) && total > 0) {
             gpus.push({ id: i, vramTotalBytes: total, vramUsedBytes: used, vramFreeBytes: total - used })
           }
