@@ -492,6 +492,14 @@ export class Cortex {
     return rows.map(rowToSynapse)
   }
 
+  /** Get all synapses of a given edge type. */
+  getSynapsesByType(edgeType: string, limit = 100): MnemicSynapse[] {
+    const rows = this.db.prepare(
+      `SELECT * FROM mnemic_synapses WHERE edge_type = ? ORDER BY weight DESC LIMIT ?`,
+    ).all(edgeType, limit) as Record<string, unknown>[]
+    return rows.map(rowToSynapse)
+  }
+
   getNeighborEngrams(engramId: string): Engram[] {
     const synapses = this.getNeighborSynapses(engramId)
     const neighborIds = new Set<string>()
