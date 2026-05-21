@@ -2677,6 +2677,30 @@ export async function handleMemoryRoutes(
     } catch (err) { sendJSON(res, 500, { error: String(err) }); return true }
   }
 
+  // GET /memory/vindex/sources — list loaded vindex sources
+  if (parts[1] === 'vindex' && parts[2] === 'sources' && method === 'GET') {
+    try {
+      const aurora = (daemon as any).intelligence?.aurora
+      const provider = aurora?.modelProvider
+      if (!provider?.getLoadedSources) {
+        sendJSON(res, 503, { error: 'vindex provider not available' })
+        return true
+      }
+      const sources = provider.getLoadedSources()
+      const defaultSource = provider.getDefaultSource()
+      const details = sources.map((s: string) => {
+        const binding = provider.getBinding(s)
+        return {
+          source: s,
+          config: binding?.config ?? null,
+          isDefault: s === defaultSource,
+        }
+      })
+      sendJSON(res, 200, { ok: true, sources: details, total: sources.length })
+      return true
+    } catch (err) { sendJSON(res, 500, { error: String(err) }); return true }
+  }
+
   // GET /memory/vindex/quality?text=... — score content quality via attention Gini
   if (parts[1] === 'vindex' && parts[2] === 'quality' && method === 'GET') {
     try {
