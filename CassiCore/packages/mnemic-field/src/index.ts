@@ -27,6 +27,12 @@ import { LmdbFeatureIndex, type IndexResult } from './feature-index-lmdb.js'
 import { EngramQualityScorer, type ForwardProvider } from './engram-quality-scorer.js'
 import type { EngramDecomposer } from './engram-decomposer.js'
 import { scoreSentencesByOverlap } from './engram-decomposer.js'
+import {
+  tokenizePosition,
+  positionToFieldCoords,
+  generateSpatialGrid,
+  type SpatialPositionWithToken,
+} from './spatial-tokenizer.js'
 import type { RetrievalLabelTriple } from '../reverie/retrieval-labeler-types.js'
 import type { LabelerInputCandidate } from '../reverie/retrieval-labeler-types.js'
 import type { CorticalField } from '../cortex/index.js'
@@ -3945,6 +3951,139 @@ export class MnemicField {
     this.closed = true
     this.cortex.close()
     this.logger.info('Mnemic Field closed')
+  }
+
+  /**
+   * Ingest a single spatial position as an engram in the mnemic field.
+   *
+   * Pipeline: tokenize position → gateKnn via TRELLIS.2 vindex → gateEmbed → store.
+   * The engram gets (r, θ, z) field coordinates derived from the 3D position,
+   * with z stored in metadata for 3D-aware kindling.
+   */
+  async ingestSpatialPosition(
+    x: number,
+    y: number,
+    z: number,
+    options?: {
+      /** Tags to attach to the engram. */
+      tags?: string[]
+      /** Source vindex to use (default: 'trellis2-4b'). */
+      source?: string
+    },
+  ): Promise<{ engramId: string; tokenId: number; fieldCoords: { r: number; theta: number; z: number } } | null> {
+    if (!this.vindexEmbedder) {
+      this.logger.warn('Cannot ingest spatial position: no vindex embedder configured')
+      return null
+    }
+
+    const source = options?.source ?? 'trellis2-4b'
+    const pos = tokenizePosition(x, y, z)
+    const fieldCoords = positionToFieldCoords({ x, y, z })
+
+    // Create a synthetic content string for the spatial position.
+    // The gateKnn pipeline will tokenize this and use the spatial tokenizer.
+    const content = `spatial_position_${pos.tokenId}`
+
+    // Gate-embed via the vindex (uses the TRELLIS.2 tokenizer internally).
+    const embedding = this.vindexEmbedder(content, { source })
+    if (!embedding || embedding.length === 0) {
+      this.logger.debug?.('Spatial position produced no embedding', { x, y, z, tokenId: pos.tokenId })
+      return null
+    }
+
+    // Store as a spatial_feature engram with 3D metadata.
+    const result = await this.store({
+      content,
+      nodeType: 'spatial_feature',
+      tags: options?.tags ?? ['spatial', '3d'],
+      metadata: {
+        spatialPosition: { x, y, z },
+        tokenId: pos.tokenId,
+        normalizedPosition: pos.normalized,
+        fieldCoords,
+        vindexSource: source,
+      },
+    })
+
+    if (!result) return null
+
+    this.logger.debug?.('Spatial position ingested', {
+      x, y, z,
+      tokenId: pos.tokenId,
+      engramId: result.id.slice(0, 12),
+      r: fieldCoords.r.toFixed(3),
+      theta: fieldCoords.theta.toFixed(3),
+      fieldZ: fieldCoords.z.toFixed(3),
+    })
+
+    return {
+      engramId: result.id,
+      tokenId: pos.tokenId,
+      fieldCoords,
+    }
+  }
+
+  /**
+   * Ingest a grid of spatial positions as engrams.
+   *
+   * Generates positions within the unit sphere using the 32³ grid,
+   * then ingests each one. Useful for seeding the field with 3D content
+   * before real 3D assets arrive.
+   *
+   * @param density — Grid sampling density (1=every position, 2=every other, etc.)
+   * @param options — Ingestion options
+   * @returns Summary of ingested positions
+   */
+  async ingestSpatialGrid(
+    density: number = 2,
+    options?: {
+      tags?: string[]
+      source?: string
+      /** Maximum positions to ingest (default: all generated). */
+      limit?: number
+    },
+  ): Promise<{ generated: number; ingested: number; failed: number; durationMs: number }> {
+    const start = Date.now()
+    const positions = generateSpatialGrid(density)
+    const limit = options?.limit ?? positions.length
+    const toIngest = positions.slice(0, limit)
+
+    this.logger.info('Ingesting spatial grid', {
+      density,
+      generated: positions.length,
+      toIngest: toIngest.length,
+    })
+
+    let ingested = 0
+    let failed = 0
+
+    for (const pos of toIngest) {
+      try {
+        const result = await this.ingestSpatialPosition(pos.x, pos.y, pos.z, options)
+        if (result) {
+          ingested++
+        } else {
+          failed++
+        }
+      } catch {
+        failed++
+      }
+
+      // Yield every 10 positions to keep the event loop responsive
+      if ((ingested + failed) % 10 === 0) {
+        await new Promise(resolve => setImmediate(resolve))
+      }
+    }
+
+    const durationMs = Date.now() - start
+    this.logger.info('Spatial grid ingestion complete', {
+      generated: positions.length,
+      ingested,
+      failed,
+      durationMs,
+    })
+
+    return { generated: positions.length, ingested, failed, durationMs }
   }
 
   /**

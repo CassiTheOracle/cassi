@@ -27,6 +27,7 @@ export const ENGRAM_TYPES = [
   'code_change',
   'test_result',
   'build_output',
+  'spatial_feature',
 ] as const
 
 export type EngramType = typeof ENGRAM_TYPES[number]
