@@ -672,6 +672,51 @@ export async function handleMemoryRoutes(
     }
   }
 
+  // GET /memory/mnemic/spatial-attention — sector attention weights
+  if (parts[1] === 'mnemic' && parts[2] === 'spatial-attention' && method === 'GET') {
+    const field = getMnemicField(logger, daemon)
+    const engine = (field as any).consolidationEngine as { getSectorAttention?: () => (number[] | null); getGlobalAttention?: () => Float32Array | null } | undefined
+    const sectors = engine?.getSectorAttention?.() ?? null
+    const globalAttention = engine?.getGlobalAttention?.() ?? null
+
+    const sectorLabels = [
+      { index: 0, label: 'N', range: '0°–30°' },
+      { index: 1, label: 'NNE', range: '30°–60°' },
+      { index: 2, label: 'ENE', range: '60°–90°' },
+      { index: 3, label: 'E', range: '90°–120°' },
+      { index: 4, label: 'ESE', range: '120°–150°' },
+      { index: 5, label: 'SSE', range: '150°–180°' },
+      { index: 6, label: 'S', range: '180°–210°' },
+      { index: 7, label: 'SSW', range: '210°–240°' },
+      { index: 8, label: 'WSW', range: '240°–270°' },
+      { index: 9, label: 'W', range: '270°–300°' },
+      { index: 10, label: 'WNW', range: '300°–330°' },
+      { index: 11, label: 'NNW', range: '330°–360°' },
+    ]
+
+    const response: Record<string, unknown> = {
+      available: sectors !== null || globalAttention !== null,
+      mode: sectors ? 'sector' : 'global',
+    }
+
+    if (sectors) {
+      response.sectors = sectorLabels.map((sl, i) => ({
+        ...sl,
+        weight: sectors[i] ?? 0,
+      }))
+    }
+
+    if (globalAttention) {
+      response.globalAttentionNorm = Math.sqrt(
+        [...globalAttention].reduce((s, v) => s + v * v, 0),
+      ).toFixed(4)
+    }
+
+    sendJSON(res, 200, response)
+    return true
+  }
+
+
   // POST /memory/mnemic/backfill
   if (parts[1] === 'mnemic' && parts[2] === 'backfill' && method === 'POST') {
     try {
