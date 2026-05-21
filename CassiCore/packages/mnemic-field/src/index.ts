@@ -3539,6 +3539,11 @@ export class MnemicField {
     return this.cortex
   }
 
+  /** Get the consolidation engine (for sector attention, global attention, etc.). */
+  getConsolidationEngine(): ConsolidationEngine {
+    return this.consolidationEngine
+  }
+
   getAffect(): AffectState {
     return this.affectRegister.getState()
   }
