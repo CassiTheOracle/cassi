@@ -654,9 +654,15 @@ export async function handleMemoryRoutes(
   if (parts[1] === 'mnemic' && parts[2] === 'attention' && method === 'POST') {
     try {
       const body = await parseBody(req).catch(() => ({}))
+      const raw = body?.sessionEmbeddings
+      if (!Array.isArray(raw)) {
+        sendJSON(res, 400, { error: 'sessionEmbeddings must be an array of number arrays' })
+        return true
+      }
       const field = getMnemicField(logger, daemon)
-      const sessionEmbeddings = (body?.sessionEmbeddings as number[][] ?? [])
-        .map(arr => new Float32Array(arr))
+      const sessionEmbeddings = raw
+        .filter((arr: unknown) => Array.isArray(arr) && arr.every((n: unknown) => typeof n === 'number'))
+        .map((arr: number[]) => new Float32Array(arr))
       field.updateActiveAttentionEmbeddings(sessionEmbeddings)
       sendJSON(res, 200, { ok: true, sessionCount: sessionEmbeddings.length })
       return true
