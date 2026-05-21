@@ -666,12 +666,16 @@ export class MnemicField {
     // New engram → invalidate retrieve cache (results may now be stale).
     if (this.retrieveCache.size > 0) this.retrieveCache.clear()
 
+    // Strip conversation preamble before embedding — 26% of engrams start with
+    // "USER: (context)\n\nASSISTANT:" which dilutes embeddings and fingerprints.
+    const cleanedContent = stripConversationPreamble(input.content)
+
     // Auto-embed with vindex gate vectors when backend is active and no explicit
     // embedding was provided. This closes the loop: every new engram enters the
     // model's native representation space without separate vLLM embedding pass.
     let resolvedEmbedding = input.embedding
     if (!resolvedEmbedding && this.embeddingBackend === 'vindex' && this.vindexEmbedder) {
-      const vec = this.vindexEmbedder(input.content, { minScore: 0.05 })
+      const vec = this.vindexEmbedder(cleanedContent, { minScore: 0.05 })
       if (vec) resolvedEmbedding = vec
     }
 
@@ -736,7 +740,7 @@ export class MnemicField {
 
     if (z === undefined) z = 0
 
-    const affect = attune(input.content)
+    const affect = attune(cleanedContent)
     let metadata: Record<string, unknown> = { ...input.metadata ?? {}, affect, r, theta, z }
 
     // Contrastive retrieval feedback: link new engrams to the luminal
@@ -746,7 +750,7 @@ export class MnemicField {
       this.lastLuminalIds = []
     }
 
-    const engram = this.cortex.createEngram({ ...input, x, y, z, metadata, embedding: resolvedEmbedding })
+    const engram = this.cortex.createEngram({ ...input, content: cleanedContent, x, y, z, metadata, embedding: resolvedEmbedding })
 
     // Index in FeatureIndex for direct feature-indexed retrieval.
     // If gateKnn finds a near-complete feature overlap (≥95%) with an
@@ -754,7 +758,7 @@ export class MnemicField {
     // potentiation and skip synapse creation.
     if (this.featureIndex?.isReady()) {
       try {
-        const result = this.featureIndex.indexEngram(engram.id, input.content, {
+        const result = this.featureIndex.indexEngram(engram.id, cleanedContent, {
           embedding: resolvedEmbedding ?? undefined,
         })
 
