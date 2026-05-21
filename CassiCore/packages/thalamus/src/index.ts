@@ -12,6 +12,8 @@ import type { CorticalField } from '../cortex/index.js'
 import type { MnemicField } from '../mnemic-field/index.js'
 import type { EngramCreate, ExpertKind, MnemicRetrievalHit } from '../mnemic-field/types.js'
 import { cosineSimilarity } from '../mnemic-field/cortex.js'
+import { scoreSentencesByOverlap } from '../mnemic-field/engram-decomposer.js'
+import type { SentenceFeature } from '../mnemic-field/engram-decomposer.js'
 import { SIGNAL_TYPE_PHRASES, EPISTEMIC_SHIFT_PHRASES, WORK_UNIT_ANNOTATION_PHRASES } from '../phrase-prototypes.js'
 import type { SelfModelField } from '../mnemic-field/self-model/self-model-field.js'
 import type { LocusBridge } from '../locus-bridge/index.js'
@@ -4725,11 +4727,25 @@ this.aurora?.setReverieInferenceProvider(provider)
       (b.score * (1 + b.potentiation * 0.3)) - (a.score * (1 + a.potentiation * 0.3))
     )
 
-    // Format
+    // Format — use structural layers (sentence features) when available,
+    // falling back to blind truncation for undecomposed engrams.
+    const queryFeatures = this.mnemicField?.getQueryFeatures(kindlingQuery) ?? new Set<string>()
+    const useStructuralLayers = queryFeatures.size > 0
+
     const lines: string[] = []
     for (const h of unique.slice(0, limit)) {
-      let content = cleanEngramContent(h.content)
-      if (content.length > 200) content = content.slice(0, 197) + '...'
+      const sentences = h.metadata?.sentences as { entries?: SentenceFeature[] } | undefined
+      let content: string
+
+      if (useStructuralLayers && sentences?.entries?.length) {
+        // Select top 2 sentences by feature overlap with query.
+        const scored = scoreSentencesByOverlap(sentences.entries, queryFeatures)
+        content = scored.slice(0, 2).map(s => s.text).join(' ')
+      } else {
+        content = cleanEngramContent(h.content)
+        if (content.length > 200) content = content.slice(0, 197) + '...'
+      }
+
       if (!content) continue
       const prefix = h.nodeType ? `[${h.nodeType.replace(/_/g, ' ')}] ` : ''
       lines.push(`- ${prefix}${content}`)
