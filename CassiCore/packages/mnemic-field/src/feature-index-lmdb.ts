@@ -434,9 +434,28 @@ export class LmdbFeatureIndex {
     }
   }
 
+  /** Strip a source prefix from a feature key. "gemma:L20:F6478" → "L20:F6478". */
+  private stripSourcePrefix(key: string): string {
+    const idx = key.indexOf(':L')
+    return idx >= 0 ? key.slice(idx + 1) : key
+  }
+
+  /** Extract source prefix from a feature key. "gemma:L20:F6478" → "gemma". */
+  private extractSource(key: string): string | null {
+    const idx = key.indexOf(':L')
+    return idx >= 0 ? key.slice(0, idx) : null
+  }
+
   /**
    * Find engrams that share vindex features with the given engram.
    * Used for vindex_correlation synapse creation during store().
+   *
+   * sameSourceOnly=true (default): only matches within the same vindex source.
+   *   Keys are queried as-is (prefixed), so cross-source false matches are impossible.
+   * sameSourceOnly=false: for each prefixed key, queries both the prefixed key
+   *   (same source) AND the bare key (any source). This discovers engrams from
+   *   different vindexes that happen to share the same layer/feature indices.
+   *   Use for cross-modal DreamEngine connections.
    */
   findCorrelated(
     engramId: string,
@@ -449,7 +468,16 @@ export class LmdbFeatureIndex {
     if (featureList.length === 0) return []
 
     const minOverlap = options?.minOverlap ?? 2
-    return this.findOverlappingByKeys(featureList, {
+    const sameSourceOnly = options?.sameSourceOnly ?? true
+
+    // For cross-source matching, query both prefixed AND bare keys so we
+    // find engrams from other sources that share the same layer/feature.
+    // For same-source matching, use prefixed keys as-is.
+    const queryKeys = sameSourceOnly
+      ? featureList
+      : [...featureList, ...featureList.map(k => this.stripSourcePrefix(k))]
+
+    return this.findOverlappingByKeys(queryKeys, {
       excludeId: engramId,
       minOverlap,
       limit: options?.limit ?? 20,
