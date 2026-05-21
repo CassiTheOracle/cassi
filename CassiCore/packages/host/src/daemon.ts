@@ -348,7 +348,7 @@ export class Daemon {
               const featureMap = new Map<string, { layer: number; featureIndex: number; score: number }>()
               for (const layer of layers) {
                 for (const token of tailTokens) {
-                  const hits = result.provider.gateKnn(layer, token, featuresPerLayer)
+                  const hits = result.provider.gateKnn(layer, token, featuresPerLayer, undefined, opts?.source)
                   for (const h of hits) {
                     if (h.score < minScore) continue
                     const key = `${layer}:${h.featureIndex}`
