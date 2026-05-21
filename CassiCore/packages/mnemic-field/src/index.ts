@@ -177,6 +177,8 @@ export {
 export { GraphAttnPropagator } from './graph-attn-propagator.js'
 export type { PropagatedEngram, PropagationPath, PropagationHop, GraphAttnPropagatorOpts } from './graph-attn-propagator.js'
 export { VQSectorPrototypes, cosineSimilarity, cosineDistance } from './vq-prototypes.js'
+export { EngramDecomposer, contentDensity, scoreSentencesByOverlap, featuresToKeySet } from './engram-decomposer.js'
+export type { SentenceFeature, DensityMetrics, DecomposedContent } from './engram-decomposer.js'
 export type { AssignResult } from './vq-prototypes.js'
 export type { IngestOptions, IngestResult } from './code-ingestor.js'
 export type { ConsolidationResult, ConsolidationOptions } from './consolidation.js'
