@@ -339,11 +339,8 @@ export class Daemon {
           // Wire FeatureIndex gate-KNN for direct feature-indexed retrieval.
           if (mnemicField?.featureIndex && result.provider.gateKnn) {
             const featureGateKnn = (text: string, opts?: any) => {
-              const tokens = result.provider.tokenize(text)
+              const tokens = result.provider.tokenize(text, opts?.source)
               if (tokens.length === 0) return []
-              // Query the last 5 tokens (max-pool across tokens per feature).
-              // Single-token misses semantic matches when query/en gram
-              // last tokens differ even though content is related.
               const tailTokens = tokens.slice(-5)
               const layers = opts?.layers ?? [14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]
               const featuresPerLayer = opts?.featuresPerLayer ?? 10
