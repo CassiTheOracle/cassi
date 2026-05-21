@@ -19,7 +19,7 @@ import type { Cortex } from './cortex.js'
 import type { IndexResult } from './feature-index-lmdb.js'
 
 /** Feature key format: "L{layer}:F{featureIndex}" (or "{source}:L{layer}:F{featureIndex}" for multi-vindex). */
-function featureKey(layer: number, featureIndex: number, source?: string): string {
+export function featureKey(layer: number, featureIndex: number, source?: string): string {
   const key = `L${layer}:F${featureIndex}`
   return source ? `${source}:${key}` : key
 }

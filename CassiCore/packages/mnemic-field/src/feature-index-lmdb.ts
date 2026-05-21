@@ -18,6 +18,7 @@
 import type { ILogger } from '../../../types/interfaces.js'
 import type { Cortex } from './cortex.js'
 import type { VindexGateKnnFn, FeatureIndexEntry } from './feature-index.js'
+import { featureKey } from './feature-index.js'
 import { open as lmdbOpen } from 'lmdb'
 
 /** Return type for indexEngram — tells the caller whether to store or merge. */
@@ -149,10 +150,7 @@ export class LmdbFeatureIndex {
 
       if (features.length === 0) return { action: 'indexed' }
 
-      const featureKeys = features.map(f => {
-        const key = `L${f.layer}:F${f.featureIndex}`
-        return options?.source ? `${options.source}:${key}` : key
-      })
+      const featureKeys = features.map(f => featureKey(f.layer, f.featureIndex, options?.source))
 
       // Check for near-complete overlap with an existing engram.
       const overlapping = this.findOverlappingByKeys(featureKeys, { limit: 1 })
@@ -359,10 +357,7 @@ export class LmdbFeatureIndex {
 
       if (features.length === 0) return []
 
-      const featureKeys = features.map(f => {
-        const key = `L${f.layer}:F${f.featureIndex}`
-        return options?.source ? `${options.source}:${key}` : key
-      })
+      const featureKeys = features.map(f => featureKey(f.layer, f.featureIndex, options?.source))
       return this.findOverlappingByKeys(featureKeys, { limit: options?.limit ?? 20 })
     } catch (err) {
       this.logger.debug?.('LmdbFeatureIndex.lookup failed', { error: String(err) })
