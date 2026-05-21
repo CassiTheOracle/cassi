@@ -221,6 +221,9 @@ export class ConsolidationEngine {
 
   setFeatureIndex(fi: typeof this.featureIndex): void {
     this.featureIndex = fi
+    if (this.dreamEngine && 'setFeatureIndex' in this.dreamEngine) {
+      (this.dreamEngine as any).setFeatureIndex(fi)
+    }
   }
 
   setQualityScorer(qs: typeof this.qualityScorer): void {
@@ -558,6 +561,15 @@ export class ConsolidationEngine {
       // Dreaming: discover hidden connections via vindex feature overlap
       if (!options.skipDreaming && this.dreamEngine) {
         dreamResult = await this.dreamEngine.dream()
+        await yieldToEventLoop()
+      }
+
+      // Cross-modal discovery: find text↔3D connections via FeatureIndex
+      if (!options.skipDreaming && this.dreamEngine && 'discoverCrossModalConnections' in this.dreamEngine) {
+        const crossModal = await (this.dreamEngine as any).discoverCrossModalConnections()
+        if (crossModal.synapsesCreated > 0) {
+          this.logger.info('Cross-modal synapses created', crossModal)
+        }
         await yieldToEventLoop()
       }
 
