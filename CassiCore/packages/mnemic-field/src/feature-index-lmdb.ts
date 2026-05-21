@@ -133,6 +133,8 @@ export class LmdbFeatureIndex {
       minScore?: number
       /** New engram's gate embedding for slerp computation on merge. */
       embedding?: Float32Array
+      /** Vindex source name — prefixed to feature keys for multi-vindex isolation. */
+      source?: string
     },
   ): IndexResult {
     if (!this.ready || !this.gateKnn) return { action: 'indexed' }
@@ -147,7 +149,10 @@ export class LmdbFeatureIndex {
 
       if (features.length === 0) return { action: 'indexed' }
 
-      const featureKeys = features.map(f => `L${f.layer}:F${f.featureIndex}`)
+      const featureKeys = features.map(f => {
+        const key = `L${f.layer}:F${f.featureIndex}`
+        return options?.source ? `${options.source}:${key}` : key
+      })
 
       // Check for near-complete overlap with an existing engram.
       const overlapping = this.findOverlappingByKeys(featureKeys, { limit: 1 })
@@ -338,6 +343,8 @@ export class LmdbFeatureIndex {
       featuresPerLayer?: number
       minScore?: number
       limit?: number
+      /** Vindex source — prefixed to query keys for multi-vindex isolation. */
+      source?: string
     },
   ): FeatureIndexEntry[] {
     if (!this.ready || !this.gateKnn) return []
@@ -352,7 +359,10 @@ export class LmdbFeatureIndex {
 
       if (features.length === 0) return []
 
-      const featureKeys = features.map(f => `L${f.layer}:F${f.featureIndex}`)
+      const featureKeys = features.map(f => {
+        const key = `L${f.layer}:F${f.featureIndex}`
+        return options?.source ? `${options.source}:${key}` : key
+      })
       return this.findOverlappingByKeys(featureKeys, { limit: options?.limit ?? 20 })
     } catch (err) {
       this.logger.debug?.('LmdbFeatureIndex.lookup failed', { error: String(err) })
