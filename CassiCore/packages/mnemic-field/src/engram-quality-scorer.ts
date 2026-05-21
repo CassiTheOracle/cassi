@@ -24,6 +24,18 @@ export interface QualityScore {
   durationMs: number
 }
 
+/** Raw attention weights extracted for spatial mapping. */
+export interface FeatureActivationResult {
+  /** Per-head attention weights (raw, per-token values). */
+  attention: number[][]
+  /** Number of attention heads. */
+  heads: number
+  /** Layer used for capture. */
+  layer: number
+  /** Forward pass duration in ms. */
+  durationMs: number
+}
+
 /** Provider interface — the subset of LarqlKnowledgeProvider we need. */
 export interface ForwardProvider {
   tokenize(text: string): number[]
@@ -101,6 +113,44 @@ export class EngramQualityScorer {
       }
     } catch (err) {
       this.logger.debug?.('EngramQualityScorer.scoreContent failed', {
+        error: String(err),
+      })
+      return null
+    }
+  }
+
+  /**
+   * Extract per-feature attention activations for spatial mapping.
+   * Runs the same forward pass as scoreContent but returns raw attention
+   * weights instead of computing Gini. Used by SpatialAttentionMapper
+   * for sector-based attention computation.
+   *
+   * Returns null if the provider isn't ready or content is too short.
+   */
+  extractFeatureActivations(content: string): FeatureActivationResult | null {
+    if (!this.ready || !this.provider) return null
+    if (!content || content.length < 30) return null
+
+    const start = performance.now()
+
+    try {
+      const tokens = this.provider.tokenize(content.substring(0, 4000))
+      if (tokens.length < 5) return null
+
+      const fwd = this.provider.forward(tokens, [this.SCORE_LAYER], true)
+
+      if (!fwd.attention || fwd.attention.length === 0) return null
+
+      const layerAttn = fwd.attention[0]
+
+      return {
+        attention: layerAttn.heads,
+        heads: layerAttn.heads.length,
+        layer: this.SCORE_LAYER,
+        durationMs: performance.now() - start,
+      }
+    } catch (err) {
+      this.logger.debug?.('EngramQualityScorer.extractFeatureActivations failed', {
         error: String(err),
       })
       return null
