@@ -11,6 +11,7 @@ import type { Affect } from './types.js'
 import type { DreamEngine, DreamResult } from '../memory-bridge/dream-engine.js'
 import type { IndexResult } from './feature-index-lmdb.js'
 import type { QualityScore } from './engram-quality-scorer.js'
+import { SpatialAttentionMapper } from './spatial-attention.js'
 
 export interface ConsolidationResult {
   potentiationUpdates: number
@@ -264,6 +265,9 @@ export class ConsolidationEngine {
   /** Cached global attention — spherical centroid of active session vectors. */
   private _globalAttention: Float32Array | null = null
 
+  /** Cached sector attention — 12-element array [0,1] per angular sector. */
+  private _sectorAttention: number[] | null = null
+
   /**
    * Set the active session attention embeddings for global attention computation.
    * Called from MnemicField when the Constellation orchestrator pushes session updates.
@@ -301,13 +305,96 @@ export class ConsolidationEngine {
   }
 
   /** Compute the global attention consensus — prefer session centroid, fall back to tonic. */
-  private getGlobalAttention(): Float32Array | null {
+  getGlobalAttention(): Float32Array | null {
     return this._globalAttention ?? this.getTonicEmbedding()
   }
 
-  /** Invalidate cached global attention after consolidation tick. */
-  private invalidateGlobalAttention(): void {
+  /** Get the current sector attention array, or null if not computed. */
+  getSectorAttention(): number[] | null {
+    return this._sectorAttention
+  }
+
+  /**
+   * Compute per-sector attention weights from active session embeddings.
+   *
+   * Uses the SpatialAttentionMapper to project session embeddings onto
+   * synthetic sector reference vectors in S¹⁵³⁵, accumulating per-sector
+   * attention intensity. The result is a 12-element array cached in
+   * _sectorAttention until the next consolidation tick.
+   *
+   * This is a lightweight fallback — full per-head attention mapping
+   * requires a vindexForward pass (expensive) and is deferred to a
+   * future optimization.
+   */
+  async computeSectorAttention(
+    sessionEmbeddings: Float32Array[],
+  ): Promise<number[]> {
+    if (sessionEmbeddings.length === 0) {
+      this._sectorAttention = null
+      const fallback = new Array(12).fill(0.5)
+      this._sectorAttention = fallback
+      return fallback
+    }
+
+    try {
+      const mapper = new SpatialAttentionMapper(this.logger)
+      const dim = sessionEmbeddings[0].length
+      const buckets = new Array(12).fill(0)
+      // Angular centers for each of 12 sectors (0°, 30°, ..., 330°)
+      const sectorAngles = Array.from({ length: 12 }, (_, i) =>
+        (i * 2 * Math.PI / 12) + (Math.PI / 12),
+      )
+
+      for (const emb of sessionEmbeddings) {
+        if (emb.length !== dim) continue
+
+        for (let s = 0; s < 12; s++) {
+          // Compute a synthetic sector reference vector on S¹⁵³⁵
+          // using sinusoidal encoding in a 2D subspace per dimension pair
+          const sectorVec = new Float32Array(dim)
+          const angle = sectorAngles[s]
+          for (let i = 0; i < dim; i += 2) {
+            const freq = (i / 2 + 1) * 0.01
+            sectorVec[i] = Math.sin(freq * angle * Math.PI)
+            if (i + 1 < dim) {
+              sectorVec[i + 1] = Math.cos(freq * angle * Math.PI)
+            }
+          }
+          // L2-normalize
+          let norm = 0
+          for (let i = 0; i < dim; i++) norm += sectorVec[i] * sectorVec[i]
+          norm = Math.sqrt(norm)
+          if (norm > 0.0001) for (let i = 0; i < dim; i++) sectorVec[i] /= norm
+
+          // Project embedding onto sector direction
+          let dot = 0
+          for (let i = 0; i < dim; i++) dot += emb[i] * sectorVec[i]
+          buckets[s] += Math.max(0, dot)
+        }
+      }
+
+      // Normalize to [0, 1]
+      const maxBucket = Math.max(...buckets, 0.001)
+      const sectors = buckets.map(b => parseFloat((b / maxBucket).toFixed(4)))
+
+      this._sectorAttention = sectors
+      this.logger.info('Sector attention computed', {
+        sectors: sectors.map(s => s.toFixed(3)),
+        sessionCount: sessionEmbeddings.length,
+      })
+
+      return sectors
+    } catch (err) {
+      this.logger.warn('Sector attention computation failed', { error: String(err) })
+      this._sectorAttention = null
+      return new Array(12).fill(0.5)
+    }
+  }
+
+  /** Invalidate cached global attention and sector attention after consolidation tick. */
+  invalidateGlobalAttention(): void {
     this._globalAttention = null
+    this._sectorAttention = null
   }
 
   /**
