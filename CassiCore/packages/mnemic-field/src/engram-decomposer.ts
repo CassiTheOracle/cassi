@@ -140,10 +140,12 @@ export function contentDensity(content: string): number {
  */
 export function featuresToKeySet(
   features: Array<{ layer: number; featureIndex: number }>,
+  source?: string,
 ): Set<string> {
   const keys = new Set<string>()
   for (const f of features) {
-    keys.add(`L${f.layer}:F${f.featureIndex}`)
+    const key = `L${f.layer}:F${f.featureIndex}`
+    keys.add(source ? `${source}:${key}` : key)
   }
   return keys
 }
