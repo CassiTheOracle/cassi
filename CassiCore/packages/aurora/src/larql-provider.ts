@@ -50,6 +50,13 @@ interface VindexHandle {
   }
 }
 
+/** A loaded vindex identified by source name. */
+export interface VindexBinding {
+  handle: VindexHandle
+  source: string
+  config: { numLayers: number; hiddenDim: number; vocabSize: number }
+}
+
 export interface FeatureHit {
   featureIndex: number
   score: number
@@ -355,6 +362,17 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
   private config: LarqlProviderConfig
   private logger: ILogger
   private handle: VindexHandle | null = null
+
+  /** Multi-vindex support: source → binding. First loaded becomes default. */
+  private bindings = new Map<string, VindexBinding>()
+  private defaultSource: string | null = null
+
+  /** Get all loaded vindex sources. */
+  getLoadedSources(): string[] { return [...this.bindings.keys()] }
+  /** Get the default (first-loaded) source name. */
+  getDefaultSource(): string | null { return this.defaultSource }
+  /** Get a specific binding by source name. */
+  getBinding(source: string): VindexBinding | undefined { return this.bindings.get(source) }
 
   /** Expose vindex handle for introspection (used by InferenceTraceProvider). */
   get vindexHandle(): VindexHandle | null { return this.handle }
