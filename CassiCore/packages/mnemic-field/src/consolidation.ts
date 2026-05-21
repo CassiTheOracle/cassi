@@ -11,7 +11,6 @@ import type { Affect } from './types.js'
 import type { DreamEngine, DreamResult } from '../memory-bridge/dream-engine.js'
 import type { IndexResult } from './feature-index-lmdb.js'
 import type { QualityScore } from './engram-quality-scorer.js'
-import { SpatialAttentionMapper } from './spatial-attention.js'
 
 export interface ConsolidationResult {
   potentiationUpdates: number
@@ -317,58 +316,66 @@ export class ConsolidationEngine {
   /**
    * Compute per-sector attention weights from active session embeddings.
    *
-   * Uses the SpatialAttentionMapper to project session embeddings onto
-   * synthetic sector reference vectors in S¹⁵³⁵, accumulating per-sector
+   * Uses sinusoidal projection to map session embeddings onto synthetic
+   * sector reference vectors in S¹⁵³⁵, accumulating per-sector
    * attention intensity. The result is a 12-element array cached in
    * _sectorAttention until the next consolidation tick.
    *
-   * This is a lightweight fallback — full per-head attention mapping
-   * requires a vindexForward pass (expensive) and is deferred to a
-   * future optimization.
+   * Sector reference vectors are cached per dimension (they only depend
+   * on hidden_dim, which is constant for a given model).
    */
+  private static _sectorVectorCache = new Map<number, Float32Array[]>()
+  private static SECTOR_COUNT = 12
+
+  private static getSectorVectors(dim: number): Float32Array[] {
+    const cached = ConsolidationEngine._sectorVectorCache.get(dim)
+    if (cached) return cached
+
+    const sectorAngles = Array.from(
+      { length: ConsolidationEngine.SECTOR_COUNT },
+      (_, i) => (i * 2 * Math.PI / ConsolidationEngine.SECTOR_COUNT) + (Math.PI / ConsolidationEngine.SECTOR_COUNT),
+    )
+
+    const vectors = sectorAngles.map(angle => {
+      const vec = new Float32Array(dim)
+      for (let i = 0; i < dim; i += 2) {
+        const freq = (i / 2 + 1) * 0.01
+        vec[i] = Math.sin(freq * angle * Math.PI)
+        if (i + 1 < dim) vec[i + 1] = Math.cos(freq * angle * Math.PI)
+      }
+      // L2-normalize
+      let norm = 0
+      for (let i = 0; i < dim; i++) norm += vec[i] * vec[i]
+      norm = Math.sqrt(norm)
+      if (norm > 0.0001) for (let i = 0; i < dim; i++) vec[i] /= norm
+      return vec
+    })
+
+    ConsolidationEngine._sectorVectorCache.set(dim, vectors)
+    return vectors
+  }
+
   async computeSectorAttention(
     sessionEmbeddings: Float32Array[],
   ): Promise<number[]> {
+    const SC = ConsolidationEngine.SECTOR_COUNT
     if (sessionEmbeddings.length === 0) {
-      this._sectorAttention = null
-      const fallback = new Array(12).fill(0.5)
-      this._sectorAttention = fallback
-      return fallback
+      this._sectorAttention = new Array(SC).fill(0.5)
+      return this._sectorAttention
     }
 
     try {
-      const mapper = new SpatialAttentionMapper(this.logger)
       const dim = sessionEmbeddings[0].length
-      const buckets = new Array(12).fill(0)
-      // Angular centers for each of 12 sectors (0°, 30°, ..., 330°)
-      const sectorAngles = Array.from({ length: 12 }, (_, i) =>
-        (i * 2 * Math.PI / 12) + (Math.PI / 12),
-      )
+      const sectorVectors = ConsolidationEngine.getSectorVectors(dim)
+      const buckets = new Array(SC).fill(0)
 
       for (const emb of sessionEmbeddings) {
         if (emb.length !== dim) continue
 
-        for (let s = 0; s < 12; s++) {
-          // Compute a synthetic sector reference vector on S¹⁵³⁵
-          // using sinusoidal encoding in a 2D subspace per dimension pair
-          const sectorVec = new Float32Array(dim)
-          const angle = sectorAngles[s]
-          for (let i = 0; i < dim; i += 2) {
-            const freq = (i / 2 + 1) * 0.01
-            sectorVec[i] = Math.sin(freq * angle * Math.PI)
-            if (i + 1 < dim) {
-              sectorVec[i + 1] = Math.cos(freq * angle * Math.PI)
-            }
-          }
-          // L2-normalize
-          let norm = 0
-          for (let i = 0; i < dim; i++) norm += sectorVec[i] * sectorVec[i]
-          norm = Math.sqrt(norm)
-          if (norm > 0.0001) for (let i = 0; i < dim; i++) sectorVec[i] /= norm
-
-          // Project embedding onto sector direction
+        for (let s = 0; s < SC; s++) {
           let dot = 0
-          for (let i = 0; i < dim; i++) dot += emb[i] * sectorVec[i]
+          const sv = sectorVectors[s]
+          for (let i = 0; i < dim; i++) dot += emb[i] * sv[i]
           buckets[s] += Math.max(0, dot)
         }
       }
@@ -386,8 +393,8 @@ export class ConsolidationEngine {
       return sectors
     } catch (err) {
       this.logger.warn('Sector attention computation failed', { error: String(err) })
-      this._sectorAttention = null
-      return new Array(12).fill(0.5)
+      this._sectorAttention = new Array(SC).fill(0.5)
+      return this._sectorAttention
     }
   }
 

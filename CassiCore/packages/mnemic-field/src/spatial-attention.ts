@@ -64,27 +64,32 @@ export class SpatialAttentionMapper {
     let featuresMapped = 0
     let engramsLookedUp = 0
 
+    // Pre-collect unique engram positions to avoid repeated map lookups
+    // in the inner loop. Only include engrams that have positions.
+    const positionedEngrams: Array<{ eid: string; sector: number }> = []
+    for (const [, engramIds] of featureToEngrams) {
+      for (const eid of engramIds) {
+        const pos = engramPositions.get(eid)
+        if (pos) {
+          positionedEngrams.push({ eid, sector: SpatialAttentionMapper.thetaToSector(pos.theta) })
+        }
+      }
+    }
+
     // For each attention head, weight feature activations by attention
-    // and accumulate into sector buckets via engram positions.
+    // and accumulate into sector buckets via pre-computed engram sectors.
     for (const headAttn of attention) {
       const headSum = headAttn.reduce((s, v) => s + v, 0)
       if (headSum === 0) continue
 
-      // For each token's attention, accumulate sector contributions
       for (const tokenWeight of headAttn) {
         const normalizedWeight = tokenWeight / headSum
         if (normalizedWeight < 0.01) continue
 
         featuresMapped++
-
-        for (const [, engramIds] of featureToEngrams) {
-          for (const eid of engramIds) {
-            const pos = engramPositions.get(eid)
-            if (!pos) continue
-            engramsLookedUp++
-            const sector = this.thetaToSector(pos.theta)
-            buckets[sector] += normalizedWeight
-          }
+        for (const { sector } of positionedEngrams) {
+          engramsLookedUp++
+          buckets[sector] += normalizedWeight
         }
       }
     }
@@ -113,12 +118,12 @@ export class SpatialAttentionMapper {
     }
   }
 
-  /** Map theta in radians to sector index 0-11. */
-  thetaToSector(theta: number): number {
+  /** Map theta in radians to sector index 0-11. Static for use without instantiation. */
+  static thetaToSector(theta: number, sectorCount: number = DEFAULT_SECTOR_COUNT): number {
     let normalized = theta % (2 * Math.PI)
     if (normalized < 0) normalized += 2 * Math.PI
-    const sectorSize = (2 * Math.PI) / DEFAULT_SECTOR_COUNT
-    return Math.min(DEFAULT_SECTOR_COUNT - 1, Math.floor(normalized / sectorSize))
+    const sectorSize = (2 * Math.PI) / sectorCount
+    return Math.min(sectorCount - 1, Math.floor(normalized / sectorSize))
   }
 
   /**
@@ -141,7 +146,7 @@ export class SpatialAttentionMapper {
       for (const eid of engramIds) {
         const pos = engramPositions.get(eid)
         if (!pos) continue
-        const sector = this.thetaToSector(pos.theta)
+        const sector = SpatialAttentionMapper.thetaToSector(pos.theta)
         buckets[sector] += activationCount
       }
     }

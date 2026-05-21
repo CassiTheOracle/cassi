@@ -1,6 +1,7 @@
 import type { ILogger } from '../../../types/interfaces.js'
 import type { Cortex } from './cortex.js'
 import { affectSimilarity } from './affect.js'
+import { SpatialAttentionMapper } from './spatial-attention.js'
 import type { AttractorManager } from './attractor.js'
 import type {
   Engram, MnemicSynapse, ChargedEngram, LuminalSet,
@@ -982,9 +983,7 @@ function warpDistanceForAttention(
 ): number {
   // Sector-aware path (preferred)
   if (sectorAttention && theta !== undefined) {
-    const sector = Math.floor(
-      ((theta % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI)) / (2 * Math.PI / 12)
-    ) % 12
+    const sector = SpatialAttentionMapper.thetaToSector(theta)
     const weight = sectorAttention[sector] ?? 0
     const warped = xyDist * (1 - weight * 0.5)
     return warped < xyDist ? warped : xyDist
