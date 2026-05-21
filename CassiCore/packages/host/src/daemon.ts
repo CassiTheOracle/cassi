@@ -369,6 +369,21 @@ export class Daemon {
             mnemicField.featureIndex.buildFromCortex(mnemicField.getCortex(), { limit: 5000 }).catch(() => {})
             this.logger.info('MnemicField FeatureIndex wired post-boot', { vindex: result.name })
           }
+
+          // Load secondary vindexes (e.g. TRELLIS.2 for 3D spatial features).
+          const secondaryVindexes = this.config.get<Record<string, string>>('intelligence.mnemicField.secondaryVindexes', {})
+          for (const [source, vindexPath] of Object.entries(secondaryVindexes)) {
+            try {
+              const loaded = await result.provider.loadVindexSource(vindexPath, source)
+              if (loaded) {
+                this.logger.info('Secondary vindex loaded', { source, path: vindexPath })
+              } else {
+                this.logger.warn('Secondary vindex failed to load', { source, path: vindexPath })
+              }
+            } catch (err) {
+              this.logger.warn('Secondary vindex load error', { source, path: vindexPath, error: String(err) })
+            }
+          }
         } else if (result) {
           this.logger.info('Vindex loaded but Aurora not available', { vindex: result.name })
         } else {
