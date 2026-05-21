@@ -19,6 +19,8 @@ export interface AttractorState {
   alphaPhasic: number
   alphaBroadcast: number
   sigma: number
+  /** 1536-dim tonic reference on S¹⁵³⁵ — same as pineal facet centroid. */
+  tonicEmbedding: Float32Array | null
 }
 
 const TONIC_HALF_LIFE_MS = 5 * 60 * 1000  // 5 minutes
@@ -34,9 +36,15 @@ export class AttractorManager {
     alphaPhasic: 0.3,
     alphaBroadcast: 0.1,
     sigma: 0.3,
+    tonicEmbedding: null,
   }
 
   private lastUpdateMs = Date.now()
+
+  /** Update the 1536D tonic reference from the consolidation engine. */
+  setTonicEmbedding(emb: Float32Array | null): void {
+    this.state.tonicEmbedding = emb
+  }
 
   // Position history ring buffer — tracks recent phasic attractor positions
   // for shadow observation (which sectors has the system been visiting?).
