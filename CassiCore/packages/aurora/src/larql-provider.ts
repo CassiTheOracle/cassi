@@ -518,6 +518,19 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
   }
 
   /**
+   * Get the vindex config (dimensions, layer count, vocab size).
+   * Used by EngramDecomposer for version stamping.
+   */
+  getConfig(): { numLayers: number; hiddenDim: number; vocabSize: number } | null {
+    if (!this.handle) return null
+    return {
+      numLayers: this.handle.config.numLayers,
+      hiddenDim: this.handle.config.hiddenDim,
+      vocabSize: this.handle.config.vocabSize,
+    }
+  }
+
+  /**
    * Options for describe() queries.
    *
    * applyOverlay: when true and an overlay layer is attached, merges overlay
