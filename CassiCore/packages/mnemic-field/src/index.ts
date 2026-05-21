@@ -185,6 +185,12 @@ export { GraphAttnPropagator } from './graph-attn-propagator.js'
 export type { PropagatedEngram, PropagationPath, PropagationHop, GraphAttnPropagatorOpts } from './graph-attn-propagator.js'
 export { SpatialAttentionMapper } from './spatial-attention.js'
 export type { SectorAttentionResult } from './spatial-attention.js'
+export {
+  tokenizePosition, positionToFieldCoords, generateSpatialGrid,
+  positionToTokenId, tokenIdToPosition, normalizePosition, denormalizePosition,
+  GRID_SIZE, GRID_SIZE_SQ, GRID_VOLUME,
+} from './spatial-tokenizer.js'
+export type { SpatialPosition, SpatialPositionWithToken } from './spatial-tokenizer.js'
 export { VQSectorPrototypes, cosineSimilarity, cosineDistance } from './vq-prototypes.js'
 export { EngramDecomposer, contentDensity, scoreSentencesByOverlap, featuresToKeySet } from './engram-decomposer.js'
 export type { SentenceFeature, DensityMetrics, DecomposedContent } from './engram-decomposer.js'
