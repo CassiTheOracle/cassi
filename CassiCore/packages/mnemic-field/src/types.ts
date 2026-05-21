@@ -398,6 +398,11 @@ export interface KindlingOptions {
   /** Shadow mode (Phase 2: Yin/Yang): invert radial seed bias to surface
    *  engrams in neglected sectors far from the attractor. */
   shadow?: boolean
+  /** Optional: attention embedding for this retrieval session.
+   *  Seeds close to this vector on S¹⁵³⁵ get gentle pre-charge boost,
+   *  and the distance warp favors engrams near the attention during spread.
+   *  Provided by Helix sessions once attention infrastructure is wired. */
+  attentionEmbedding?: Float32Array
 }
 
 export const KINDLING_DEFAULTS = {

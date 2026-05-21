@@ -147,6 +147,25 @@ export class KindlingEngine {
       chargeMap.set(seed.engramId, charge)
     }
 
+    // Pre-kindling: attention boost — seeds close to attention get gentle charge.
+    // Warms up attended engrams so they're more likely to survive ignition.
+    const attentionVector = options.attentionEmbedding
+    if (attentionVector) {
+      const seedIds = seeds.map(s => s.engramId)
+      const seedEmbs = this.cortex.getEngramEmbeddings(seedIds)
+      for (const seedId of seedIds) {
+        const emb = seedEmbs.get(seedId)
+        if (!emb || emb.length !== attentionVector.length) continue
+        let dot = 0
+        for (let i = 0; i < emb.length; i++) dot += emb[i] * attentionVector[i]
+        // cosSim ∈ [-1, 1] — only boost positive alignment
+        if (dot > 0.5) {
+          const current = chargeMap.get(seedId) ?? 0
+          chargeMap.set(seedId, current + 0.05 * dot)
+        }
+      }
+    }
+
     const trace: KindlingTrace[] = []
     const recording = options.recordTrace === true
     const traceRecords: ForwardRecord[] = shouldRecordTrace ? [] : []
@@ -161,8 +180,8 @@ export class KindlingEngine {
     for (let iter = 0; iter < maxIter; iter++) {
       iterations++
       const delta = neural
-        ? this.spreadOnceNeural(chargeMap, iter + 1, shouldRecordTrace ? traceRecords : undefined)
-        : this.spreadOnce(chargeMap)
+        ? this.spreadOnceNeural(chargeMap, iter + 1, attentionVector, shouldRecordTrace ? traceRecords : undefined)
+        : this.spreadOnce(chargeMap, attentionVector)
       // Photon spread: first iteration only, wireless discovery of latent connections
       if (iter === 0) {
         this.photonSpread(chargeMap)
@@ -342,7 +361,7 @@ export class KindlingEngine {
    * Optimized: batch-fetches all source and neighbor engrams in 2 queries
    * instead of 2 per synapse (was 4N queries, now 2 + 1 per source).
    */
-  private spreadOnce(chargeMap: Map<string, number>): number {
+  private spreadOnce(chargeMap: Map<string, number>, attentionVector?: Float32Array): number {
     const updates = new Map<string, number>()
 
     // Phase 1: batch-fetch all source engrams (1 query)
@@ -385,10 +404,17 @@ export class KindlingEngine {
       const signedPropagation = edgeType === 'contradicts'
         ? -Math.abs(propagation)
         : propagation
-      const xyDist = sphericalOrEuclideanDistance(
+      let xyDist = sphericalOrEuclideanDistance(
         sourceEngram, neighborEngram,
         sourceEngram.embedding, neighborEngram.embedding,
       )
+      // Attention warp: engrams close to attention get reduced effective distance.
+      // Additive only — never increases distance (warp can only amplify, not suppress).
+      if (attentionVector && neighborEngram.embedding) {
+        const attnDot = dotProductFloat32(neighborEngram.embedding, attentionVector)
+        const warped = xyDist / (1 + attnDot)  // attnDot ∈ [-1,1] → divisor ∈ [0,2]
+        if (warped < xyDist) xyDist = warped
+      }
       const distDecay = 1 / (1 + KINDLING_DEFAULTS.distanceDecayRate * xyDist)
 
       const tDist = Math.abs(sourceEngram.t - neighborEngram.t)
@@ -528,6 +554,7 @@ export class KindlingEngine {
   private spreadOnceNeural(
     chargeMap: Map<string, number>,
     iteration: number,
+    attentionVector?: Float32Array,
     trace?: ForwardRecord[],
   ): number {
     const aggregated = new Map<string, number>()
@@ -577,10 +604,16 @@ export class KindlingEngine {
       const signedPropagation = edgeType === 'contradicts'
         ? -Math.abs(propagation)
         : propagation
-      const xyDist = sphericalOrEuclideanDistance(
+      let xyDist = sphericalOrEuclideanDistance(
         sourceEngram, neighborEngram,
         sourceEngram.embedding, neighborEngram.embedding,
       )
+      // Attention warp: same logic as spreadOnce — reduce distance for attended engrams.
+      if (attentionVector && neighborEngram.embedding) {
+        const attnDot = dotProductFloat32(neighborEngram.embedding, attentionVector)
+        const warped = xyDist / (1 + attnDot)
+        if (warped < xyDist) xyDist = warped
+      }
       const distDecay = 1 / (1 + KINDLING_DEFAULTS.distanceDecayRate * xyDist)
 
       const tDist = Math.abs(sourceEngram.t - neighborEngram.t)
@@ -918,4 +951,12 @@ function sphericalOrEuclideanDistance(
 // Kept for backward compat — unused, superseded by sphericalOrEuclideanDistance
 function euclideanDistance(a: Engram, b: Engram): number {
   return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2)
+}
+
+/** Fast dot product for two Float32Array gate embeddings, clamped to [-1, 1]. */
+function dotProductFloat32(a: Float32Array, b: Float32Array): number {
+  const n = Math.min(a.length, b.length)
+  let dot = 0
+  for (let i = 0; i < n; i++) dot += a[i] * b[i]
+  return Math.max(-1, Math.min(1, dot))
 }
