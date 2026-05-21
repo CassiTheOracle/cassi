@@ -177,6 +177,8 @@ export {
 } from './self-model/index.js'
 export { GraphAttnPropagator } from './graph-attn-propagator.js'
 export type { PropagatedEngram, PropagationPath, PropagationHop, GraphAttnPropagatorOpts } from './graph-attn-propagator.js'
+export { SpatialAttentionMapper } from './spatial-attention.js'
+export type { SectorAttentionResult } from './spatial-attention.js'
 export { VQSectorPrototypes, cosineSimilarity, cosineDistance } from './vq-prototypes.js'
 export { EngramDecomposer, contentDensity, scoreSentencesByOverlap, featuresToKeySet } from './engram-decomposer.js'
 export type { SentenceFeature, DensityMetrics, DecomposedContent } from './engram-decomposer.js'
@@ -251,6 +253,8 @@ export class MnemicField {
   private embeddingBackend: 'vllm' | 'vindex' = 'vllm'
   /** Vindex-based embedder function. Set via setVindexEmbedder(). */
   private vindexEmbedder: VindexEmbedder | null = null
+  /** Source name of the active vindex (e.g. "default", "trellis2-4b"). */
+  private vindexSource: string = 'default'
   /** Feature-indexed retrieval — maps vindex features → engram IDs. */
   readonly featureIndex: FeatureIndex
   /** Attention-based engram quality scorer (uses forward pass). */
