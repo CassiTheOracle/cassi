@@ -25,6 +25,7 @@ import { INDEXER_TRAINING_DEFAULTS } from './types.js'
 import { FeatureIndex, type VindexGateKnnFn } from './feature-index.js'
 import { LmdbFeatureIndex, type IndexResult } from './feature-index-lmdb.js'
 import { EngramQualityScorer, type ForwardProvider } from './engram-quality-scorer.js'
+import type { EngramDecomposer } from './engram-decomposer.js'
 import type { RetrievalLabelTriple } from '../reverie/retrieval-labeler-types.js'
 import type { LabelerInputCandidate } from '../reverie/retrieval-labeler-types.js'
 import type { CorticalField } from '../cortex/index.js'
@@ -251,6 +252,7 @@ export class MnemicField {
   readonly featureIndex: FeatureIndex
   /** Attention-based engram quality scorer (uses forward pass). */
   private qualityScorer: EngramQualityScorer | null = null
+  private decomposer: EngramDecomposer | null = null
 
   /** Pool of backfill worker threads (lazily initialized). */
   private backfillPool: BackfillWorkerPool | null = null
@@ -344,6 +346,15 @@ export class MnemicField {
   setVindexEmbedder(embedder: VindexEmbedder | null): void {
     this.vindexEmbedder = embedder
     this.logger.info('MnemicField vindex embedder set', { enabled: !!embedder })
+  }
+
+  /**
+   * Wire the engram content decomposer for write-time structural decomposition.
+   * When set, new engrams get sentence-level feature fingerprints in metadata.
+   */
+  setDecomposer(decomposer: EngramDecomposer | null): void {
+    this.decomposer = decomposer
+    this.logger.info('MnemicField decomposer set', { enabled: !!decomposer })
   }
 
   /**
@@ -798,6 +809,35 @@ export class MnemicField {
           }
         }
       } catch { /* best-effort */ }
+    }
+
+    // Fire-and-forget: decompose content into structural layers.
+    // Adds sentence-level feature fingerprints to metadata for read-time
+    // selection. Don't block the store — use setImmediate.
+    if (this.decomposer?.isReady()) {
+      const engramId = engram.id
+      const content = cleanedContent
+      const existingMeta = engram.metadata
+      setImmediate(() => {
+        try {
+          const result = this.decomposer!.decompose(content)
+          if (result && result.entries.length > 0) {
+            const sentencesMeta = {
+              vindexVersion: result.vindexVersion,
+              entries: result.entries,
+            }
+            this.cortex.updateEngram(engramId, {
+              metadata: { ...existingMeta, sentences: sentencesMeta },
+            })
+          }
+          // Always store density metrics even if no sentence features
+          if (result?.density) {
+            this.cortex.updateEngram(engramId, {
+              metadata: { ...this.cortex.getEngram(engramId)?.metadata, density: result.density },
+            })
+          }
+        } catch { /* best-effort */ }
+      })
     }
 
     return engram
