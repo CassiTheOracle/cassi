@@ -2701,6 +2701,43 @@ export async function handleMemoryRoutes(
     } catch (err) { sendJSON(res, 500, { error: String(err) }); return true }
   }
 
+  // GET /memory/vindex/vram — GPU VRAM usage telemetry
+  if (parts[1] === 'vindex' && parts[2] === 'vram' && method === 'GET') {
+    try {
+      const fs = await import('node:fs')
+      const gpus: Array<{ id: number; vramTotalBytes: number; vramUsedBytes: number; vramFreeBytes: number }> = []
+      for (let i = 0; i < 8; i++) {
+        const totalPath = `/sys/class/drm/card${i}/device/mem_info_vram_total`
+        const usedPath = `/sys/class/drm/card${i}/device/mem_info_vram_used`
+        try {
+          const total = parseInt(fs.readFileSync(totalPath, 'utf-8').trim(), 10)
+          const used = parseInt(fs.readFileSync(usedPath, 'utf-8').trim(), 10)
+          if (!isNaN(total) && total > 0) {
+            gpus.push({ id: i, vramTotalBytes: total, vramUsedBytes: used, vramFreeBytes: total - used })
+          }
+        } catch { break }
+      }
+
+      const aurora = (daemon as any).intelligence?.aurora
+      const provider = aurora?.modelProvider
+      const sources = provider?.getLoadedSources?.() ?? []
+
+      sendJSON(res, 200, {
+        ok: true,
+        gpus: gpus.map(g => ({
+          id: g.id,
+          vramTotalMB: Math.round(g.vramTotalBytes / 1024 / 1024),
+          vramUsedMB: Math.round(g.vramUsedBytes / 1024 / 1024),
+          vramFreeMB: Math.round(g.vramFreeBytes / 1024 / 1024),
+          usedPct: g.vramTotalBytes > 0 ? parseFloat(((g.vramUsedBytes / g.vramTotalBytes) * 100).toFixed(1)) : 0,
+        })),
+        loadedSources: sources,
+        note: 'Per-vindex VRAM breakdown requires Rust backend telemetry (future)',
+      })
+      return true
+    } catch (err) { sendJSON(res, 500, { error: String(err) }); return true }
+  }
+
   // GET /memory/vindex/quality?text=... — score content quality via attention Gini
   if (parts[1] === 'vindex' && parts[2] === 'quality' && method === 'GET') {
     try {
