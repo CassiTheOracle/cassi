@@ -650,6 +650,22 @@ export async function handleMemoryRoutes(
     }
   }
 
+  // POST /memory/mnemic/attention — update global attention from active sessions
+  if (parts[1] === 'mnemic' && parts[2] === 'attention' && method === 'POST') {
+    try {
+      const body = await parseBody(req).catch(() => ({}))
+      const field = getMnemicField(logger, daemon)
+      const sessionEmbeddings = (body?.sessionEmbeddings as number[][] ?? [])
+        .map(arr => new Float32Array(arr))
+      field.updateActiveAttentionEmbeddings(sessionEmbeddings)
+      sendJSON(res, 200, { ok: true, sessionCount: sessionEmbeddings.length })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
   // POST /memory/mnemic/backfill
   if (parts[1] === 'mnemic' && parts[2] === 'backfill' && method === 'POST') {
     try {
