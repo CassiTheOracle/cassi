@@ -3188,6 +3188,17 @@ export class MnemicField {
   }
 
   /**
+   * Update the global attention consensus from active Helix session embeddings.
+   * The consolidation engine computes a spherical centroid and uses it
+   * as the geodesic drift attractor during centripetal drift.
+   *
+   * Call from the Constellation orchestrator after each Helix session turn.
+   */
+  updateActiveAttentionEmbeddings(sessionEmbeddings: Float32Array[]): void {
+    this.consolidationEngine.setActiveSessionEmbeddings(sessionEmbeddings)
+  }
+
+  /**
    * Run a full consolidation cycle: radiance (potentiation recomputation),
    * co-activation drift, nucleus detection, spike history pruning,
    * and gradient-based synapse weight learning from enrichment feedback.

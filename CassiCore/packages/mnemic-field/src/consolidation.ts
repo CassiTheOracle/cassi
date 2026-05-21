@@ -250,6 +250,81 @@ export class ConsolidationEngine {
     return avg
   }
 
+  /** Cached global attention — spherical centroid of active session vectors. */
+  private _globalAttention: Float32Array | null = null
+
+  /**
+   * Set the active session attention embeddings for global attention computation.
+   * Called from MnemicField when the Constellation orchestrator pushes session updates.
+   * The global attention is computed as the spherical centroid (mean + renormalize)
+   * of the provided session embeddings, cached until the next consolidation tick.
+   */
+  setActiveSessionEmbeddings(sessionEmbeddings: Float32Array[]): void {
+    if (sessionEmbeddings.length === 0) {
+      this._globalAttention = null
+      return
+    }
+    const dim = sessionEmbeddings[0].length
+    const avg = new Float32Array(dim)
+    for (const emb of sessionEmbeddings) {
+      for (let i = 0; i < dim; i++) avg[i] += emb[i]
+    }
+    for (let i = 0; i < dim; i++) avg[i] /= sessionEmbeddings.length
+    let norm = 0
+    for (let i = 0; i < dim; i++) norm += avg[i] * avg[i]
+    norm = Math.sqrt(norm)
+    if (norm > 0.0001) for (let i = 0; i < dim; i++) avg[i] /= norm
+    this._globalAttention = avg
+    this.logger.info('Global attention updated', { sessionCount: sessionEmbeddings.length })
+  }
+
+  /** Compute the global attention consensus — prefer session centroid, fall back to tonic. */
+  private getGlobalAttention(): Float32Array | null {
+    return this._globalAttention ?? this.getTonicEmbedding()
+  }
+
+  /** Invalidate cached global attention after consolidation tick. */
+  private invalidateGlobalAttention(): void {
+    this._globalAttention = null
+  }
+
+  /**
+   * Apply attention decay: slerp each session's attention toward the global
+   * consensus by a small amount per consolidation tick. This creates gentle
+   * convergence without collapsing individuality.
+   *
+   * Uses the exported slerpEmbedding from the mnemic field index.
+   */
+  applyAttentionDecay(sessionEmbeddings: Map<string, Float32Array>): Map<string, Float32Array> {
+    const global = this.getGlobalAttention()
+    if (!global) return sessionEmbeddings
+
+    const decayed = new Map<string, Float32Array>()
+    const t = 0.01  // 1% toward global per tick
+    for (const [sessionId, emb] of sessionEmbeddings) {
+      if (emb.length !== global.length) {
+        decayed.set(sessionId, emb)
+        continue
+      }
+      // Inline slerp to avoid circular import of slerpEmbedding
+      let dot = 0
+      for (let i = 0; i < emb.length; i++) dot += emb[i] * global[i]
+      dot = Math.max(-1, Math.min(1, dot))
+      const omega = Math.acos(dot)
+      if (omega < 0.0001) {
+        decayed.set(sessionId, emb)
+        continue
+      }
+      const sinOmega = Math.sin(omega)
+      const wA = Math.sin((1 - t) * omega) / sinOmega
+      const wB = Math.sin(t * omega) / sinOmega
+      const result = new Float32Array(emb.length)
+      for (let i = 0; i < emb.length; i++) result[i] = wA * emb[i] + wB * global[i]
+      decayed.set(sessionId, result)
+    }
+    return decayed
+  }
+
   /**
    * Run a full consolidation cycle.
    *
@@ -433,6 +508,8 @@ export class ConsolidationEngine {
         } : undefined,
         durationMs,
       })
+
+      this.invalidateGlobalAttention()
 
       return buildResult()
     } catch (err) {
@@ -805,9 +882,9 @@ export class ConsolidationEngine {
     }
 
     // Post-drift: update metadata.r to actual geodesic distance from
-    // the tonic center using gate embeddings (the model's own metric).
-    const tonic = this.getTonicEmbedding()
-    if (tonic) {
+    // the global attention center (or tonic fallback) using gate embeddings.
+    const attentionRef = this.getGlobalAttention()
+    if (attentionRef) {
       const driftedIds = updates.map(u => u.id)
       const driftedEmbs = this.cortex.getEngramEmbeddings(driftedIds)
       let corrected = 0
@@ -815,7 +892,7 @@ export class ConsolidationEngine {
         const emb = driftedEmbs.get(update.id)
         if (!emb || emb.length === 0) continue
         let dot = 0
-        for (let j = 0; j < emb.length; j++) dot += emb[j] * tonic[j]
+        for (let j = 0; j < emb.length; j++) dot += emb[j] * attentionRef[j]
         dot = Math.max(-1, Math.min(1, dot))
         // Normalize geodesic distance [0,π] to r ∈ [0,1]
         const geodesicR = Math.acos(dot) / Math.PI
@@ -828,7 +905,7 @@ export class ConsolidationEngine {
         }
       }
       if (corrected > 0) {
-        this.logger.debug('Geodesic r correction applied', { corrected, tonicUsed: true })
+        this.logger.debug('Geodesic r correction applied', { corrected, globalAttention: !!this._globalAttention })
       }
     }
 
