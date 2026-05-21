@@ -487,30 +487,57 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
    * Returns true if loading succeeded.
    */
   async load(vindexPath: string): Promise<boolean> {
+    return this.loadVindexSource(vindexPath, 'default')
+  }
+
+  /**
+   * Load an additional vindex identified by source name.
+   * First loaded source becomes the default (backward compat).
+   * Returns true if loading succeeded.
+   */
+  async loadVindexSource(vindexPath: string, source: string): Promise<boolean> {
     try {
       // @ts-ignore — cassi-larql is a native module without type declarations
-      this.larql = require('cassi-larql') as CassiLarqlModule
+      if (!this.larql) this.larql = require('cassi-larql') as CassiLarqlModule
     } catch (err) {
       this.logger.warn('cassi-larql bindings not available', { error: String(err) })
       return false
     }
 
     try {
-      this.handle = await this.larql.loadVindexOnly(vindexPath)
-      this.loaded = true
+      const handle = await this.larql.loadVindexOnly(vindexPath)
 
-      const config = this.larql.getVindexConfig(this.handle)
+      // First loaded source becomes the default (backward compat).
+      if (!this.handle) {
+        this.handle = handle
+        this.loaded = true
+      }
+
+      const config = this.larql.getVindexConfig(handle)
+      this.bindings.set(source, {
+        handle,
+        source,
+        config: {
+          numLayers: config.numLayers,
+          hiddenDim: config.hiddenDim,
+          vocabSize: config.vocabSize,
+        },
+      })
+      if (!this.defaultSource) this.defaultSource = source
+
       this.logger.info('LARQL knowledge provider loaded', {
+        source,
         path: vindexPath,
         numLayers: config.numLayers,
         hiddenDim: config.hiddenDim,
         vocabSize: config.vocabSize,
         knowledgeLayers: `L${this.config.knowledgeLayers[0]}-L${this.config.knowledgeLayers[this.config.knowledgeLayers.length - 1]}`,
+        totalSources: this.bindings.size,
       })
 
       return true
     } catch (err) {
-      this.logger.error('Failed to load vindex', { path: vindexPath, error: String(err) })
+      this.logger.error('Failed to load vindex', { source, path: vindexPath, error: String(err) })
       return false
     }
   }
@@ -519,8 +546,15 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
    * Unload the vindex and free resources.
    */
   unload(): void {
+    if (this.larql) {
+      for (const binding of this.bindings.values()) {
+        this.larql.unloadVindexOnly(binding.handle)
+      }
+    }
+    this.bindings.clear()
+    this.defaultSource = null
     if (this.handle && this.larql) {
-      this.larql.unloadVindexOnly(this.handle)
+      // Legacy: also unload the default handle (same object as bindings default)
       this.handle = null
       this.loaded = false
       this.cache.clear()
@@ -539,7 +573,11 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
    * Get the vindex config (dimensions, layer count, vocab size).
    * Used by EngramDecomposer for version stamping.
    */
-  getConfig(): { numLayers: number; hiddenDim: number; vocabSize: number } | null {
+  getConfig(source?: string): { numLayers: number; hiddenDim: number; vocabSize: number } | null {
+    if (source) {
+      const binding = this.bindings.get(source)
+      return binding?.config ?? null
+    }
     if (!this.handle) return null
     return {
       numLayers: this.handle.config.numLayers,
