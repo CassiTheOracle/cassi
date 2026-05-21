@@ -408,7 +408,10 @@ export class KindlingEngine {
         sourceEngram.embedding, neighborEngram.embedding,
       )
       if (attentionVector && neighborEngram.embedding) {
-        xyDist = warpDistanceForAttention(xyDist, neighborEngram.embedding, attentionVector)
+        xyDist = warpDistanceForAttention(
+          xyDist, undefined, null,
+          neighborEngram.embedding, attentionVector,
+        )
       }
       const distDecay = 1 / (1 + KINDLING_DEFAULTS.distanceDecayRate * xyDist)
 
@@ -604,7 +607,10 @@ export class KindlingEngine {
         sourceEngram.embedding, neighborEngram.embedding,
       )
       if (attentionVector && neighborEngram.embedding) {
-        xyDist = warpDistanceForAttention(xyDist, neighborEngram.embedding, attentionVector)
+        xyDist = warpDistanceForAttention(
+          xyDist, undefined, null,
+          neighborEngram.embedding, attentionVector,
+        )
       }
       const distDecay = 1 / (1 + KINDLING_DEFAULTS.distanceDecayRate * xyDist)
 
@@ -953,17 +959,43 @@ function dotProductFloat32(a: Float32Array, b: Float32Array): number {
 }
 
 /**
- * Warp a geodesic distance by attention proximity.
- * Engrams close to the attention vector get reduced effective distance.
- * Additive only — never increases distance (warp can only amplify signal).
+ * Warp a geodesic distance by spatial attention focus.
  *
- * @param xyDist - Original geodesic distance from sphericalOrEuclideanDistance
- * @param neighborEmb - Neighbor engram's gate embedding (must be non-null)
- * @param attentionVec - Current attention vector on S¹⁵³⁵
+ * V2: Sector-aware warp. Uses 12-element sectorAttention array when
+ * available — each engram's theta maps to a sector; attended sectors
+ * get up to 50% distance reduction. Falls back to legacy single-vector
+ * warp when sectorAttention is null.
+ *
+ * @param xyDist — Original geodesic distance
+ * @param theta — Enram's angular position (radians)
+ * @param sectorAttention — 12-element array [0,1] or null
+ * @param neighborEmb — Neighbor engram's gate embedding (fallback only)
+ * @param attentionVec — Single attention vector on S¹⁵³⁵ (fallback only)
  * @returns Warped distance (≤ xyDist)
  */
-function warpDistanceForAttention(xyDist: number, neighborEmb: Float32Array, attentionVec: Float32Array): number {
-  const attnDot = dotProductFloat32(neighborEmb, attentionVec)
-  const warped = xyDist / (1 + attnDot)  // attnDot ∈ [-1,1] → divisor ∈ [0,2]
-  return warped < xyDist ? warped : xyDist
+function warpDistanceForAttention(
+  xyDist: number,
+  theta: number | undefined,
+  sectorAttention: number[] | null,
+  neighborEmb?: Float32Array,
+  attentionVec?: Float32Array,
+): number {
+  // Sector-aware path (preferred)
+  if (sectorAttention && theta !== undefined) {
+    const sector = Math.floor(
+      ((theta % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI)) / (2 * Math.PI / 12)
+    ) % 12
+    const weight = sectorAttention[sector] ?? 0
+    const warped = xyDist * (1 - weight * 0.5)
+    return warped < xyDist ? warped : xyDist
+  }
+
+  // Legacy: single-vector warp (fallback)
+  if (neighborEmb && attentionVec) {
+    const attnDot = dotProductFloat32(neighborEmb, attentionVec)
+    const warped = xyDist / (1 + attnDot)
+    return warped < xyDist ? warped : xyDist
+  }
+
+  return xyDist
 }
