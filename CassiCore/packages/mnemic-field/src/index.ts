@@ -4076,9 +4076,11 @@ export class MnemicField {
           ingested++
         } else {
           failed++
+          this.logger.debug?.('Spatial position returned null', { x: pos.x, y: pos.y, z: pos.z })
         }
-      } catch {
+      } catch (err) {
         failed++
+        this.logger.debug?.('Spatial position ingestion error', { x: pos.x, y: pos.y, z: pos.z, error: String(err) })
       }
 
       // Yield every 10 positions to keep the event loop responsive
