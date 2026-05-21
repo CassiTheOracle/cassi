@@ -265,17 +265,28 @@ export class ConsolidationEngine {
       return
     }
     const dim = sessionEmbeddings[0].length
+    // Filter out embeddings with mismatched dimensions (multi-model safety)
+    const valid = sessionEmbeddings.filter(e => e.length === dim && e.length > 0)
+    if (valid.length === 0) {
+      this._globalAttention = null
+      return
+    }
     const avg = new Float32Array(dim)
-    for (const emb of sessionEmbeddings) {
+    for (const emb of valid) {
       for (let i = 0; i < dim; i++) avg[i] += emb[i]
     }
-    for (let i = 0; i < dim; i++) avg[i] /= sessionEmbeddings.length
+    for (let i = 0; i < dim; i++) avg[i] /= valid.length
     let norm = 0
     for (let i = 0; i < dim; i++) norm += avg[i] * avg[i]
     norm = Math.sqrt(norm)
     if (norm > 0.0001) for (let i = 0; i < dim; i++) avg[i] /= norm
     this._globalAttention = avg
-    this.logger.info('Global attention updated', { sessionCount: sessionEmbeddings.length })
+    if (valid.length < sessionEmbeddings.length) {
+      this.logger.warn('Global attention: filtered mismatched embeddings', {
+        total: sessionEmbeddings.length, valid: valid.length, expectedDim: dim,
+      })
+    }
+    this.logger.info('Global attention updated', { sessionCount: valid.length })
   }
 
   /** Compute the global attention consensus — prefer session centroid, fall back to tonic. */
