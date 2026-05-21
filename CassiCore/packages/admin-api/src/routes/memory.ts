@@ -736,6 +736,44 @@ export async function handleMemoryRoutes(
     }
   }
 
+  // GET /memory/mnemic/cross-modal-synapses — list cross-modal text↔3D connections
+  if (parts[1] === 'mnemic' && parts[2] === 'cross-modal-synapses' && method === 'GET') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      const cortex = field.getCortex()
+      const limitParam = new URL(req.url ?? '/', 'http://localhost').searchParams.get('limit')
+      const limit = limitParam ? parseInt(limitParam, 10) : 50
+
+      const synapses = cortex.getSynapsesByType('cross_modal', limit)
+
+      const enriched = synapses.map(s => {
+        const sourceEngram = cortex.getEngram(s.sourceId)
+        const targetEngram = cortex.getEngram(s.targetId)
+        return {
+          sourceId: s.sourceId.slice(0, 12),
+          targetId: s.targetId.slice(0, 12),
+          weight: s.weight,
+          sharedFeatures: (s.metadata as Record<string, unknown>)?.sharedFeatures ?? 0,
+          sourceContent: sourceEngram?.content?.slice(0, 60) ?? '(unknown)',
+          targetNodeType: targetEngram?.nodeType ?? '(unknown)',
+          sourceVindex: (s.metadata as Record<string, unknown>)?.sourceVindex ?? 'default',
+          targetVindex: (s.metadata as Record<string, unknown>)?.targetVindex ?? 'unknown',
+        }
+      })
+
+      sendJSON(res, 200, {
+        ok: true,
+        total: synapses.length,
+        synapses: enriched,
+        stats: field.stats(),
+      })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
   // POST /memory/mnemic/backfill
   if (parts[1] === 'mnemic' && parts[2] === 'backfill' && method === 'POST') {
     try {
