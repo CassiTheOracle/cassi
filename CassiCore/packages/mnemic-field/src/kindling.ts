@@ -910,6 +910,184 @@ export class KindlingEngine {
     }
   }
 
+  /**
+   * Kindle within a spatial region — seed from engrams near (r, θ, z).
+   *
+   * Queries engrams with spatial metadata, filters to those within
+   * `radius` of the target point (in normalized coordinates), and uses
+   * them as kindling seeds. The spread phase then propagates charge
+   * through the normal synapse graph from these spatial seeds.
+   *
+   * @param r — Radial coordinate [0, 1]
+   * @param theta — Angular coordinate in radians [0, 2π)
+   * @param z — Height coordinate [0, 1]
+   * @param radius — Maximum distance from target point (Euclidean in (r, θ, z) space)
+   * @param options — Standard kindling options
+   */
+  kindleByRegion(
+    r: number,
+    theta: number,
+    z: number,
+    radius: number,
+    options: KindlingOptions = {},
+  ): LuminalSet {
+    const start = Date.now()
+    const complexity = options.complexity ?? 'normal'
+    const maxSeeds = options.maxSeeds ?? KINDLING_DEFAULTS.maxSeeds
+
+    const spatialEngrams = this.findEngramsInRegion(r, theta, z, radius)
+
+    if (spatialEngrams.length === 0) {
+      this.logger.debug('kindleByRegion: no spatial engrams in region', { r, theta, z, radius })
+      return this.emptyLuminalSet(complexity, Date.now() - start)
+    }
+
+    const seeds: SeedResult[] = spatialEngrams.slice(0, maxSeeds).map(e => ({
+      engramId: e.engramId,
+      charge: e.charge,
+    }))
+
+    this.logger.info('kindleByRegion seeds', { r: r.toFixed(3), theta: theta.toFixed(3), z: z.toFixed(3), radius, seedCount: seeds.length })
+
+    const chargeMap = new Map<string, number>()
+    for (const seed of seeds) {
+      chargeMap.set(seed.engramId, seed.charge)
+    }
+
+    // Run spread iterations
+    const maxIter = options.maxIterations ?? KINDLING_DEFAULTS.maxIterations
+    const tol = options.convergenceTolerance ?? KINDLING_DEFAULTS.convergenceTolerance
+    let iterations = 0
+    for (let iter = 0; iter < maxIter; iter++) {
+      iterations++
+      const delta = this.spreadOnce(chargeMap, options.attentionEmbedding)
+      if (iter === 0) this.photonSpread(chargeMap)
+      if (delta < tol) break
+    }
+
+    const sparkPoint = this.computeGlobalSparkPoint(complexity)
+    const maxLuminal = options.maxLuminalSize ?? KINDLING_DEFAULTS.maxLuminalSize
+    const luminal = this.ignite(chargeMap, sparkPoint, maxLuminal)
+    const contentEngrams = luminal.filter(e => !this.isBridge(e.engram))
+
+    const durationMs = Date.now() - start
+    this.logger.info('kindleByRegion complete', {
+      r, theta, z, radius,
+      seeds: seeds.length,
+      iterations,
+      luminalSize: contentEngrams.length,
+      durationMs,
+    })
+
+    return {
+      engrams: contentEngrams,
+      totalCharge: contentEngrams.reduce((s, e) => s + e.charge, 0),
+      seedCount: seeds.length,
+      iterationsUsed: iterations,
+      sparkPoint,
+      taskComplexity: complexity,
+      durationMs,
+    }
+  }
+
+  /**
+   * Find engrams adjacent to a given engram in 3D spatial space.
+   *
+   * Uses the engram's (r, θ, z) metadata to compute Euclidean distance
+   * to all other spatial engrams. Returns sorted by distance ascending.
+   *
+   * @param engramId — Source engram
+   * @param maxDistance — Maximum distance threshold
+   * @param limit — Max results (default 20)
+   * @returns Array of { engramId, distance, charge } sorted by distance
+   */
+  findAdjacent3D(
+    engramId: string,
+    maxDistance: number,
+    limit = 20,
+  ): Array<{ engramId: string; distance: number; charge: number }> {
+    const source = this.cortex.getEngram(engramId)
+    if (!source) return []
+
+    const sourceR = source.metadata?.r as number | undefined
+    const sourceTheta = source.metadata?.theta as number | undefined
+    const sourceZ = source.metadata?.z as number | undefined
+
+    if (sourceR === undefined || sourceTheta === undefined || sourceZ === undefined) {
+      this.logger.debug('findAdjacent3D: source engram has no spatial metadata', { engramId })
+      return []
+    }
+
+    const allEngrams = this.cortex.listEngrams(5000)
+    const results: Array<{ engramId: string; distance: number; charge: number }> = []
+
+    for (const other of allEngrams) {
+      if (other.id === engramId) continue
+      if (other.nodeType === 'spatial_feature' && !other.metadata?.r) continue
+
+      const otherR = other.metadata?.r as number | undefined
+      const otherTheta = other.metadata?.theta as number | undefined
+      const otherZ = other.metadata?.z as number | undefined
+
+      if (otherR === undefined || otherTheta === undefined || otherZ === undefined) continue
+
+      // Euclidean distance in cylindrical (r, θ, z) → convert θ to arc length
+      const dTheta = Math.abs(sourceTheta - otherTheta)
+      const minDTheta = Math.min(dTheta, 2 * Math.PI - dTheta) // wrap around
+      const arcDist = (sourceR + otherR) * 0.5 * minDTheta // approximate arc length
+
+      const dr = sourceR - otherR
+      const dz = sourceZ - otherZ
+      const distance = Math.sqrt(dr * dr + arcDist * arcDist + dz * dz)
+
+      if (distance <= maxDistance) {
+        const charge = 1.0 / (1.0 + distance * 3) // distance decay
+        results.push({ engramId: other.id, distance, charge })
+      }
+    }
+
+    results.sort((a, b) => a.distance - b.distance)
+    return results.slice(0, limit)
+  }
+
+  /**
+   * Find engrams within a spatial region. Returns { engramId, distance, charge }.
+   * Uses cylindrical coordinates (r, θ, z) with Euclidean distance.
+   */
+  private findEngramsInRegion(
+    targetR: number,
+    targetTheta: number,
+    targetZ: number,
+    radius: number,
+  ): Array<{ engramId: string; distance: number; charge: number }> {
+    const allEngrams = this.cortex.listEngrams(5000)
+    const results: Array<{ engramId: string; distance: number; charge: number }> = []
+
+    for (const engram of allEngrams) {
+      const r = engram.metadata?.r as number | undefined
+      const theta = engram.metadata?.theta as number | undefined
+      const z = engram.metadata?.z as number | undefined
+
+      if (r === undefined || theta === undefined || z === undefined) continue
+
+      const dTheta = Math.abs(targetTheta - theta)
+      const minDTheta = Math.min(dTheta, 2 * Math.PI - dTheta)
+      const arcDist = (targetR + r) * 0.5 * minDTheta
+
+      const dr = targetR - r
+      const dz = targetZ - z
+      const distance = Math.sqrt(dr * dr + arcDist * arcDist + dz * dz)
+
+      if (distance <= radius) {
+        const charge = 1.0 / (1.0 + distance * 3) // distance decay
+        results.push({ engramId: engram.id, distance, charge })
+      }
+    }
+
+    results.sort((a, b) => a.distance - b.distance)
+    return results
+  }
+
 }
 
 function mergeSeeds(
