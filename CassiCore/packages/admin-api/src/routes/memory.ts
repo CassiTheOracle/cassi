@@ -774,6 +774,49 @@ export async function handleMemoryRoutes(
     }
   }
 
+  // GET /memory/mnemic/spatial?r=&theta=&z=&radius= — query spatial engrams by region
+  if (parts[1] === 'mnemic' && parts[2] === 'spatial' && method === 'GET') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      const cortex = field.getCortex()
+      const sp = new URL(req.url ?? '/', 'http://localhost').searchParams
+      const r = parseFloat(sp.get('r') ?? '0.5')
+      const theta = parseFloat(sp.get('theta') ?? '0')
+      const z = parseFloat(sp.get('z') ?? '0')
+      const radius = parseFloat(sp.get('radius') ?? '0.3')
+      const limit = parseInt(sp.get('limit') ?? '50', 10)
+
+      const allEngrams = cortex.listEngrams(5000)
+      const spatialEngrams = allEngrams.filter(e => {
+        if (e.nodeType !== 'spatial_feature') return false
+        const fc = e.metadata?.fieldCoords as { r: number; theta: number; z: number } | undefined
+        if (!fc) return false
+        const dr = fc.r - r
+        const dt = fc.theta - theta
+        const dz = fc.z - z
+        const dist = Math.sqrt(dr * dr + dt * dt + dz * dz)
+        return dist <= radius
+      }).slice(0, limit)
+
+      sendJSON(res, 200, {
+        ok: true,
+        query: { r, theta, z, radius },
+        total: spatialEngrams.length,
+        engrams: spatialEngrams.map(e => ({
+          id: e.id.slice(0, 12),
+          fieldCoords: e.metadata?.fieldCoords,
+          tokenId: e.metadata?.tokenId,
+          content: e.content.slice(0, 100),
+          potentiation: e.potentiation,
+        })),
+      })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
   // POST /memory/mnemic/backfill
   if (parts[1] === 'mnemic' && parts[2] === 'backfill' && method === 'POST') {
     try {
