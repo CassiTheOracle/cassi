@@ -933,9 +933,7 @@ function sphericalOrEuclideanDistance(
   embA?: Float32Array | null, embB?: Float32Array | null,
 ): number {
   if (embA && embB && embA.length === embB.length && embA.length > 0) {
-    let dot = 0
-    for (let i = 0; i < embA.length; i++) dot += embA[i] * embB[i]
-    dot = Math.max(-1, Math.min(1, dot))
+    const dot = dotProductFloat32(embA, embB)
     return Math.acos(dot)  // geodesic distance in [0, π]
   }
   return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2)
