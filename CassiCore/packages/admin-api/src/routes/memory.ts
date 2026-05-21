@@ -717,6 +717,25 @@ export async function handleMemoryRoutes(
   }
 
 
+  // POST /memory/mnemic/ingest/spatial-grid — ingest 3D spatial positions as engrams
+  if (parts[1] === 'mnemic' && parts[2] === 'ingest' && parts[3] === 'spatial-grid' && method === 'POST') {
+    try {
+      const body = await parseBody(req).catch(() => ({}))
+      const field = getMnemicField(logger, daemon)
+      const density = typeof body?.density === 'number' ? body.density : 2
+      const limit = typeof body?.limit === 'number' ? body.limit : undefined
+      const source = typeof body?.source === 'string' ? body.source : 'trellis2-4b'
+      const tags = Array.isArray(body?.tags) ? body.tags : undefined
+
+      const result = await field.ingestSpatialGrid(density, { source, limit, tags })
+      sendJSON(res, 200, { ok: true, ...result, stats: field.stats() })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
   // POST /memory/mnemic/backfill
   if (parts[1] === 'mnemic' && parts[2] === 'backfill' && method === 'POST') {
     try {
