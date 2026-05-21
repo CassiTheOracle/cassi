@@ -34,7 +34,7 @@ import type { WorkUnit, FileChange, ToolCallSummary, ToolResultSummary } from '.
 import type { Posture as LumenPostureType } from './dialectic-channel.js'
 import type { InferenceResult, ParsedToolCall } from '../../../types/cassi-agent.js'
 import type { HelixRole, HelixPosture, HelixPostureResult, TraitVector } from './types.js'
-import { TRAIT_AXES, UNITY_PRESET, YANG_PRESET, YIN_PRESET } from './types.js'
+import { TRAIT_AXES, UNITY_PRESET, YANG_PRESET, YIN_PRESET, traitToAttentionParams } from './types.js'
 import type { HelixBrainstem } from './brainstem.js'
 import type { PostureModule, PostureSignalOpts } from './posture-module.js'
 import type { SignalType } from '../workspace/index.js'
@@ -304,6 +304,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   private readonly unityStatusThresholds?: UnityStatusThresholds
   private readonly brainstem?: HelixBrainstem
   private readonly traitVector?: TraitVector
+  private readonly attentionParams: { attentionRadius: number; momentum: number; halfLifeTurns: number; capacity: number }
   private readonly helixSynapse?: HelixSynapse
   private readonly lamina?: import('../lamina/index.js').LaminaField
   private readonly contextChunkIndex?: import('./context-chunk-index.js').ContextChunkIndex
@@ -389,6 +390,9 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     this.unityStatusThresholds = opts.unityStatusThresholds
     this.brainstem = opts.brainstem
     this.traitVector = opts.traitVector
+    this.attentionParams = this.traitVector
+      ? traitToAttentionParams(this.traitVector)
+      : { attentionRadius: 0.7, momentum: 0.05, halfLifeTurns: 10, capacity: 50 }
     this.helixSynapse = opts.helixSynapse
     this.lamina = opts.lamina
     this.contextChunkIndex = opts.contextChunkIndex
