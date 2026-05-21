@@ -675,7 +675,7 @@ export async function handleMemoryRoutes(
   // GET /memory/mnemic/spatial-attention — sector attention weights
   if (parts[1] === 'mnemic' && parts[2] === 'spatial-attention' && method === 'GET') {
     const field = getMnemicField(logger, daemon)
-    const engine = (field as any).consolidationEngine as { getSectorAttention?: () => (number[] | null); getGlobalAttention?: () => Float32Array | null } | undefined
+    const engine = field.getConsolidationEngine()
     const sectors = engine?.getSectorAttention?.() ?? null
     const globalAttention = engine?.getGlobalAttention?.() ?? null
 
