@@ -3415,20 +3415,64 @@ export class MnemicField {
     return []
   }
 
+  /**
+   * Get query feature keys for read-time sentence selection.
+   * Delegates to the decomposer's gate-vector extraction.
+   * Returns empty set if decomposer is not available.
+   */
+  getQueryFeatures(query: string): Set<string> {
+    if (!this.decomposer?.isReady()) return new Set()
+    return this.decomposer.getQueryFeatures(query)
+  }
+
   renderContext(
     query: string,
     options: KindlingOptions & { tokenBudget?: number },
   ): { entries: Array<{ engramId: string; zoom: string; rendered: string; tokenEstimate: number }>; totalTokens: number } {
     const luminal = this.kindle(null, query, options)
-    return {
-      entries: luminal.engrams.map((e) => ({
+    const budget = options.tokenBudget ?? 2000
+
+    // Pre-compute query features once for all engrams.
+    const queryFeatures = this.getQueryFeatures(query)
+    const useStructuralLayers = queryFeatures.size > 0
+
+    let totalTokens = 0
+    const entries = luminal.engrams.map((e) => {
+      const sentences = e.engram.metadata?.sentences as { entries?: Array<{ text: string; features: string[]; tokenCount: number }> } | undefined
+
+      let rendered: string
+      let tokenEstimate: number
+
+      if (useStructuralLayers && sentences?.entries?.length) {
+        // Feature-overlap selection: score sentences by overlap with query,
+        // greedy select until per-engram budget (budget / numEngrams).
+        const perEngramBudget = Math.max(200, Math.floor(budget / luminal.engrams.length))
+        const scored = scoreSentencesByOverlap(sentences.entries, queryFeatures)
+        const selected: string[] = []
+        let tokens = 0
+        for (const s of scored) {
+          if (tokens + s.tokenCount > perEngramBudget) break
+          selected.push(s.text)
+          tokens += s.tokenCount
+        }
+        rendered = selected.join('\n')
+        tokenEstimate = tokens
+      } else {
+        // Fallback: full content, truncated to 500 chars.
+        rendered = e.engram.content.slice(0, 500)
+        tokenEstimate = Math.ceil(e.engram.content.length / 4)
+      }
+
+      totalTokens += tokenEstimate
+      return {
         engramId: e.engram.id,
         zoom: 'full' as const,
-        tokenEstimate: Math.ceil(e.engram.content.length / 4),
-        rendered: e.engram.content.slice(0, 500),
-      })),
-      totalTokens: luminal.engrams.reduce((s, e) => s + Math.ceil(e.engram.content.length / 4), 0),
-    }
+        tokenEstimate,
+        rendered,
+      }
+    })
+
+    return { entries, totalTokens }
   }
 
   buildDelegationContext(
@@ -3436,8 +3480,21 @@ export class MnemicField {
     options: KindlingOptions,
   ): { renderedText: string } {
     const luminal = this.kindle(null, query, options)
-    const renderedText = luminal.engrams.map(e => e.engram.content).join('\n\n')
-    return { renderedText }
+    const queryFeatures = this.getQueryFeatures(query)
+    const useStructuralLayers = queryFeatures.size > 0
+
+    const parts = luminal.engrams.map(e => {
+      const sentences = e.engram.metadata?.sentences as { entries?: Array<{ text: string; features: string[]; tokenCount: number }> } | undefined
+
+      if (useStructuralLayers && sentences?.entries?.length) {
+        // Delegation context is tight — take top 3 sentences per engram.
+        const scored = scoreSentencesByOverlap(sentences.entries, queryFeatures)
+        return scored.slice(0, 3).map(s => s.text).join('\n')
+      }
+      return e.engram.content
+    })
+
+    return { renderedText: parts.join('\n\n') }
   }
 
   setLlmProvider(_provider: IProvider): void {
