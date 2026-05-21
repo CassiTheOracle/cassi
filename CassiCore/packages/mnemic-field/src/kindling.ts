@@ -156,8 +156,7 @@ export class KindlingEngine {
       for (const seedId of seedIds) {
         const emb = seedEmbs.get(seedId)
         if (!emb || emb.length !== attentionVector.length) continue
-        let dot = 0
-        for (let i = 0; i < emb.length; i++) dot += emb[i] * attentionVector[i]
+        const dot = dotProductFloat32(emb, attentionVector)
         // cosSim ∈ [-1, 1] — only boost positive alignment
         if (dot > 0.5) {
           const current = chargeMap.get(seedId) ?? 0
@@ -408,12 +407,8 @@ export class KindlingEngine {
         sourceEngram, neighborEngram,
         sourceEngram.embedding, neighborEngram.embedding,
       )
-      // Attention warp: engrams close to attention get reduced effective distance.
-      // Additive only — never increases distance (warp can only amplify, not suppress).
       if (attentionVector && neighborEngram.embedding) {
-        const attnDot = dotProductFloat32(neighborEngram.embedding, attentionVector)
-        const warped = xyDist / (1 + attnDot)  // attnDot ∈ [-1,1] → divisor ∈ [0,2]
-        if (warped < xyDist) xyDist = warped
+        xyDist = warpDistanceForAttention(xyDist, neighborEngram.embedding, attentionVector)
       }
       const distDecay = 1 / (1 + KINDLING_DEFAULTS.distanceDecayRate * xyDist)
 
@@ -608,11 +603,8 @@ export class KindlingEngine {
         sourceEngram, neighborEngram,
         sourceEngram.embedding, neighborEngram.embedding,
       )
-      // Attention warp: same logic as spreadOnce — reduce distance for attended engrams.
       if (attentionVector && neighborEngram.embedding) {
-        const attnDot = dotProductFloat32(neighborEngram.embedding, attentionVector)
-        const warped = xyDist / (1 + attnDot)
-        if (warped < xyDist) xyDist = warped
+        xyDist = warpDistanceForAttention(xyDist, neighborEngram.embedding, attentionVector)
       }
       const distDecay = 1 / (1 + KINDLING_DEFAULTS.distanceDecayRate * xyDist)
 
@@ -910,6 +902,7 @@ export class KindlingEngine {
       durationMs,
     }
   }
+
 }
 
 function mergeSeeds(
@@ -959,4 +952,20 @@ function dotProductFloat32(a: Float32Array, b: Float32Array): number {
   let dot = 0
   for (let i = 0; i < n; i++) dot += a[i] * b[i]
   return Math.max(-1, Math.min(1, dot))
+}
+
+/**
+ * Warp a geodesic distance by attention proximity.
+ * Engrams close to the attention vector get reduced effective distance.
+ * Additive only — never increases distance (warp can only amplify signal).
+ *
+ * @param xyDist - Original geodesic distance from sphericalOrEuclideanDistance
+ * @param neighborEmb - Neighbor engram's gate embedding (must be non-null)
+ * @param attentionVec - Current attention vector on S¹⁵³⁵
+ * @returns Warped distance (≤ xyDist)
+ */
+function warpDistanceForAttention(xyDist: number, neighborEmb: Float32Array, attentionVec: Float32Array): number {
+  const attnDot = dotProductFloat32(neighborEmb, attentionVec)
+  const warped = xyDist / (1 + attnDot)  // attnDot ∈ [-1,1] → divisor ∈ [0,2]
+  return warped < xyDist ? warped : xyDist
 }
