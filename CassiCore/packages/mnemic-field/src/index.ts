@@ -3466,13 +3466,13 @@ export class MnemicField {
     let totalTokens = 0
     const entries = luminal.engrams.map((e) => {
       const sentences = e.engram.metadata?.sentences as { entries?: Array<{ text: string; features: string[]; tokenCount: number }> } | undefined
+      const fieldCoords = e.engram.metadata?.fieldCoords as { r: number; theta: number; z: number } | undefined
+      const isSpatial = e.engram.nodeType === 'spatial_feature'
 
       let rendered: string
       let tokenEstimate: number
 
       if (useStructuralLayers && sentences?.entries?.length) {
-        // Feature-overlap selection: score sentences by overlap with query,
-        // greedy select until per-engram budget (budget / numEngrams).
         const perEngramBudget = Math.max(200, Math.floor(budget / luminal.engrams.length))
         const scored = scoreSentencesByOverlap(sentences.entries, queryFeatures)
         const selected: string[] = []
@@ -3485,9 +3485,14 @@ export class MnemicField {
         rendered = selected.join('\n')
         tokenEstimate = tokens
       } else {
-        // Fallback: full content, truncated to 500 chars.
         rendered = e.engram.content.slice(0, 500)
         tokenEstimate = Math.ceil(e.engram.content.length / 4)
+      }
+
+      if (isSpatial && fieldCoords) {
+        const descriptor = `[3D: r=${fieldCoords.r.toFixed(2)} θ=${fieldCoords.theta.toFixed(2)} z=${fieldCoords.z.toFixed(2)}]`
+        rendered = `${descriptor} ${rendered}`
+        tokenEstimate += 12
       }
 
       totalTokens += tokenEstimate
@@ -3496,6 +3501,7 @@ export class MnemicField {
         zoom: 'full' as const,
         tokenEstimate,
         rendered,
+        ...(isSpatial && fieldCoords ? { spatialCoords: fieldCoords } : {}),
       }
     })
 
