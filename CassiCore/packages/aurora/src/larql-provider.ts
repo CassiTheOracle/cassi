@@ -543,7 +543,7 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
   }
 
   /**
-   * Unload the vindex and free resources.
+   * Unload all vindexes and free resources.
    */
   unload(): void {
     if (this.larql) {
@@ -553,13 +553,10 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
     }
     this.bindings.clear()
     this.defaultSource = null
-    if (this.handle && this.larql) {
-      // Legacy: also unload the default handle (same object as bindings default)
-      this.handle = null
-      this.loaded = false
-      this.cache.clear()
-      this.logger.info('LARQL knowledge provider unloaded')
-    }
+    this.handle = null
+    this.loaded = false
+    this.cache.clear()
+    this.logger.info('LARQL knowledge provider unloaded')
   }
 
   /**
@@ -931,9 +928,11 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
     tokenId: number,
     topK: number,
     affectBias?: AffectBias,
+    source?: string,
   ): FeatureHit[] {
-    if (!this.loaded || !this.handle || !this.larql) return []
-    const baseHits = this.larql.vindexGateKnn(this.handle, layer, tokenId, topK)
+    const h = this.resolveHandle(source)
+    if (!h || !this.larql) return []
+    const baseHits = this.larql.vindexGateKnn(h, layer, tokenId, topK)
     if (!affectBias) return baseHits
     return this.applyAffectBias(baseHits, layer, affectBias)
   }
