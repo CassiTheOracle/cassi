@@ -350,9 +350,10 @@ export class MnemicField {
    * When this is set and embeddingBackend is 'vindex', retrieve() and store()
    * use gate-vector embeddings instead of the external vLLM embedding service.
    */
-  setVindexEmbedder(embedder: VindexEmbedder | null): void {
+  setVindexEmbedder(embedder: VindexEmbedder | null, source?: string): void {
     this.vindexEmbedder = embedder
-    this.logger.info('MnemicField vindex embedder set', { enabled: !!embedder })
+    if (source) this.vindexSource = source
+    this.logger.info('MnemicField vindex embedder set', { enabled: !!embedder, source: this.vindexSource })
   }
 
   /**
@@ -763,6 +764,11 @@ export class MnemicField {
 
     const affect = attune(cleanedContent)
     let metadata: Record<string, unknown> = { ...input.metadata ?? {}, affect, r, theta, z }
+
+    // Tag engram with the vindex source that produced its embedding.
+    if (this.embeddingBackend === 'vindex' && this.vindexEmbedder) {
+      metadata = { ...metadata, vindexSource: this.vindexSource }
+    }
 
     // Contrastive retrieval feedback: link new engrams to the luminal
     // engrams that triggered their creation via the most recent retrieval.
