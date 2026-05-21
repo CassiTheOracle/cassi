@@ -212,12 +212,23 @@ export class ConsolidationEngine {
   /** Vindex quality scorer for attention-Gini-based pruning. */
   private qualityScorer: { scoreContent: (content: string) => (QualityScore | null); isReady?: () => boolean } | null = null
 
+  /** Engram decomposer for structural-layer backfill during consolidation. */
+  private decomposer: {
+    decompose: (content: string) => (import('./engram-decomposer.js').DecomposedContent | null)
+    isReady: () => boolean
+    getVindexVersion: () => string
+  } | null = null
+
   setFeatureIndex(fi: typeof this.featureIndex): void {
     this.featureIndex = fi
   }
 
   setQualityScorer(qs: typeof this.qualityScorer): void {
     this.qualityScorer = qs
+  }
+
+  setDecomposer(d: typeof this.decomposer): void {
+    this.decomposer = d
   }
 
   /** Cached tonic (pineal) gate embedding for geodesic distance computation. */
@@ -368,6 +379,8 @@ export class ConsolidationEngine {
     let qualityDuration = 0
     let featureOverlapNucleiCount = 0
     let featureNucleiDuration = 0
+    let decompositionBackfilled = 0
+    let decompositionDuration = 0
 
     try {
       // Load the full dataset once — computeRadiance, applyCoActivationDrift,
@@ -451,6 +464,18 @@ export class ConsolidationEngine {
       // Dreaming: discover hidden connections via vindex feature overlap
       if (!options.skipDreaming && this.dreamEngine) {
         dreamResult = await this.dreamEngine.dream()
+        await yieldToEventLoop()
+      }
+
+      // Decomposition backfill: decompose engrams that are missing structural
+      // layers (metadata.sentences) or have stale vindex version stamps.
+      if (this.decomposer?.isReady()) {
+        const backfillStart = Date.now()
+        decompositionBackfilled = await this.applyDecompositionBackfill(50)
+        decompositionDuration = Date.now() - backfillStart
+        if (decompositionBackfilled > 0) {
+          this.logger.info('Decomposition backfill complete', { backfilled: decompositionBackfilled, durationMs: decompositionDuration })
+        }
         await yieldToEventLoop()
       }
 
@@ -1740,6 +1765,55 @@ export class ConsolidationEngine {
     }
 
     return { scored, pruned, boosted }
+  }
+
+  /**
+   * Decomposition backfill: decompose engrams missing structural layers
+   * or with stale vindex version stamps. Runs during consolidation.
+   */
+  private async applyDecompositionBackfill(batchSize: number): Promise<number> {
+    if (!this.decomposer?.isReady()) return 0
+
+    const currentVersion = this.decomposer.getVindexVersion?.() ?? ''
+    let backfilled = 0
+
+    // Target engrams with content > 300 chars that are missing sentences
+    // or have a stale vindex version.
+    const candidates = this.cortex.listEngrams(batchSize * 5)
+      .filter(e => e.content && e.content.length > 300)
+      .filter(e => {
+        const sentences = e.metadata?.sentences as { vindexVersion?: string } | undefined
+        if (!sentences) return true // missing entirely
+        if (currentVersion && sentences.vindexVersion !== currentVersion) return true // stale
+        return false
+      })
+      .slice(0, batchSize)
+
+    for (const e of candidates) {
+      try {
+        const result = this.decomposer!.decompose(e.content)
+        if (result && result.entries.length > 0) {
+          const sentencesMeta = {
+            vindexVersion: result.vindexVersion,
+            entries: result.entries,
+          }
+          this.cortex.updateEngram(e.id, {
+            metadata: { ...e.metadata, sentences: sentencesMeta, density: result.density },
+          })
+          backfilled++
+        }
+      } catch (err) {
+        this.logger.debug?.('Decomposition backfill failed', {
+          engramId: e.id.slice(0, 12),
+          error: String(err),
+        })
+      }
+
+      // Yield every 5 (each decompose call does traceForwardPerToken ~67ms)
+      if ((backfilled + 1) % 5 === 0) await yieldToEventLoop()
+    }
+
+    return backfilled
   }
 
   /**

@@ -26,6 +26,7 @@ import { FeatureIndex, type VindexGateKnnFn } from './feature-index.js'
 import { LmdbFeatureIndex, type IndexResult } from './feature-index-lmdb.js'
 import { EngramQualityScorer, type ForwardProvider } from './engram-quality-scorer.js'
 import type { EngramDecomposer } from './engram-decomposer.js'
+import { scoreSentencesByOverlap } from './engram-decomposer.js'
 import type { RetrievalLabelTriple } from '../reverie/retrieval-labeler-types.js'
 import type { LabelerInputCandidate } from '../reverie/retrieval-labeler-types.js'
 import type { CorticalField } from '../cortex/index.js'
@@ -356,6 +357,9 @@ export class MnemicField {
    */
   setDecomposer(decomposer: EngramDecomposer | null): void {
     this.decomposer = decomposer
+    if (decomposer) {
+      this.consolidationEngine.setDecomposer(decomposer)
+    }
     this.logger.info('MnemicField decomposer set', { enabled: !!decomposer })
   }
 
