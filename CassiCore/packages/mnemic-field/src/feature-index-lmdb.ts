@@ -382,6 +382,8 @@ export class LmdbFeatureIndex {
       layers?: number[]
       featuresPerLayer?: number
       minScore?: number
+      /** Vindex source name — prefixed to all indexed feature keys. */
+      source?: string
     },
   ): Promise<number> {
     if (!this.ready || !this.gateKnn) return 0
@@ -438,7 +440,7 @@ export class LmdbFeatureIndex {
    */
   findCorrelated(
     engramId: string,
-    options?: { minOverlap?: number; limit?: number },
+    options?: { minOverlap?: number; limit?: number; sameSourceOnly?: boolean },
   ): Array<{ engramId: string; sharedFeatureCount: number }> {
     const features = this.engramToFeatures.getValues(engramId)
     if (!features) return []
