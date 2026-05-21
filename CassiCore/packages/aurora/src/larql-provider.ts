@@ -1061,12 +1061,19 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
     return rescored
   }
 
+  /** Resolve a VindexHandle from source name. Falls back to default. */
+  private resolveHandle(source?: string): VindexHandle | null {
+    if (!source || source === this.defaultSource) return this.handle
+    return this.bindings.get(source)?.handle ?? null
+  }
+
   /**
    * Tokenize text using the vindex's bundled tokenizer.
    */
-  tokenize(text: string): number[] {
-    if (!this.loaded || !this.handle || !this.larql) return []
-    return this.larql.vindexTokenize(this.handle, text)
+  tokenize(text: string, source?: string): number[] {
+    const h = this.resolveHandle(source)
+    if (!h || !this.larql) return []
+    return this.larql.vindexTokenize(h, text)
   }
 
   /**
@@ -1082,9 +1089,11 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
     layerStart: number,
     layerEnd: number,
     topK: number,
+    source?: string,
   ): Array<{ layer: number; featureIndex: number; score: number; label?: string; topContributingToken?: string }> {
-    if (!this.loaded || !this.handle || !this.larql) return []
-    const result = this.larql.traceForward(this.handle, tokens, layerStart, layerEnd, topK)
+    const h = this.resolveHandle(source)
+    if (!h || !this.larql) return []
+    const result = this.larql.traceForward(h, tokens, layerStart, layerEnd, topK)
     return result?.features ?? []
   }
 
@@ -1098,6 +1107,7 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
     layerStart: number,
     layerEnd: number,
     topK: number,
+    source?: string,
   ): {
     tokens: Array<{ tokenIndex: number; tokenId: number; features: Array<{ layer: number; featureIndex: number; score: number; label?: string }>; featureCount: number }>
     totalUniqueFeatures: number
@@ -1107,8 +1117,9 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
     layersScanned: number
     durationMs: number
   } | null {
-    if (!this.loaded || !this.handle || !this.larql) return null
-    return this.larql.traceForwardPerToken(this.handle, tokens, layerStart, layerEnd, topK)
+    const h = this.resolveHandle(source)
+    if (!h || !this.larql) return null
+    return this.larql.traceForwardPerToken(h, tokens, layerStart, layerEnd, topK)
   }
 
   /**
@@ -1221,8 +1232,11 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
     featuresPerLayer?: number
     /** Minimum gate score to include a feature. Default: 0.05. */
     minScore?: number
+    /** Vindex source to use. Default: first-loaded (backward compat). */
+    source?: string
   }): Float32Array | null {
-    if (!this.loaded || !this.handle || !this.larql) return null
+    const h = this.resolveHandle(options?.source)
+    if (!h || !this.larql) return null
     if (!text) return null
 
     // Use native gate_embed when available (reads raw f16 from mmap,
@@ -1231,7 +1245,7 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
     if (typeof (this.larql as any).gateEmbed === 'function') {
       try {
         const buf: Buffer = (this.larql as any).gateEmbed(
-          this.handle, text,
+          h, text,
           options?.layers ?? null,
           options?.featuresPerLayer ?? null,
           options?.minScore ?? null,
@@ -1244,14 +1258,14 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
     }
 
     // Fallback JS path (when native gate_embed is not available).
-    const hiddenDim = this.handle.config.hiddenDim
+    const hiddenDim = h.config.hiddenDim
     if (!hiddenDim || hiddenDim <= 0) return null
 
     const layers = options?.layers ?? [14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]
     const featuresPerLayer = options?.featuresPerLayer ?? 10
     const minScore = options?.minScore ?? 0.05
 
-    const tokens = this.larql.vindexTokenize(this.handle, text)
+    const tokens = this.larql.vindexTokenize(h, text)
     if (tokens.length === 0) return null
 
     const queryToken = tokens[tokens.length - 1]
@@ -1261,7 +1275,7 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
 
     for (const layer of layers) {
       const hits = this.larql.vindexGateKnn(
-        this.handle, layer, queryToken, featuresPerLayer,
+        h, layer, queryToken, featuresPerLayer,
       )
       for (const hit of hits) {
         if (hit.score < minScore) continue
