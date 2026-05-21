@@ -275,7 +275,17 @@ interface CassiLarqlModule {
   gateEmbed(handle: VindexHandle, text: string): Float32Array
   /** Multi-token gate KNN — aggregates across all tokens via max-pool. */
   traceForward(handle: VindexHandle, promptTokens: number[], layerStart: number, layerEnd: number, topK: number): {
-    features: Array<{ layer: number; featureIndex: number; score: number; label?: string }>
+    features: Array<{ layer: number; featureIndex: number; score: number; label?: string; topContributingToken?: string }>
+    tokensProcessed: number
+    layersScanned: number
+    durationMs: number
+  }
+  /** Multi-token gate KNN — returns per-token feature activations + density metrics. */
+  traceForwardPerToken(handle: VindexHandle, promptTokens: number[], layerStart: number, layerEnd: number, topK: number): {
+    tokens: Array<{ tokenIndex: number; tokenId: number; features: Array<{ layer: number; featureIndex: number; score: number; label?: string }>; featureCount: number }>
+    totalUniqueFeatures: number
+    tokensPerFeature: number
+    featuresPerToken: number
     tokensProcessed: number
     layersScanned: number
     durationMs: number
@@ -1003,10 +1013,33 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
     layerStart: number,
     layerEnd: number,
     topK: number,
-  ): Array<{ layer: number; featureIndex: number; score: number; label?: string }> {
+  ): Array<{ layer: number; featureIndex: number; score: number; label?: string; topContributingToken?: string }> {
     if (!this.loaded || !this.handle || !this.larql) return []
     const result = this.larql.traceForward(this.handle, tokens, layerStart, layerEnd, topK)
     return result?.features ?? []
+  }
+
+  /**
+   * Per-token gate KNN trace — returns feature activations for each token
+   * individually, plus aggregate density metrics (tokensPerFeature,
+   * featuresPerToken). Use for content density scoring.
+   */
+  traceForwardPerToken(
+    tokens: number[],
+    layerStart: number,
+    layerEnd: number,
+    topK: number,
+  ): {
+    tokens: Array<{ tokenIndex: number; tokenId: number; features: Array<{ layer: number; featureIndex: number; score: number; label?: string }>; featureCount: number }>
+    totalUniqueFeatures: number
+    tokensPerFeature: number
+    featuresPerToken: number
+    tokensProcessed: number
+    layersScanned: number
+    durationMs: number
+  } | null {
+    if (!this.loaded || !this.handle || !this.larql) return null
+    return this.larql.traceForwardPerToken(this.handle, tokens, layerStart, layerEnd, topK)
   }
 
   /**
