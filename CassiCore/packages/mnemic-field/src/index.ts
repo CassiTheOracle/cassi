@@ -31,7 +31,6 @@ import {
   tokenizePosition,
   positionToFieldCoords,
   generateSpatialGrid,
-  type SpatialPositionWithToken,
 } from './spatial-tokenizer.js'
 import type { RetrievalLabelTriple } from '../reverie/retrieval-labeler-types.js'
 import type { LabelerInputCandidate } from '../reverie/retrieval-labeler-types.js'
@@ -67,6 +66,8 @@ export type VindexEmbedder = (text: string, options?: {
   minScore?: number
   /** Feature patches for causal retrieval — boost/dampen specific features. */
   patches?: Array<{ layer: number; featureIndex: number; boost: number }>
+  /** Vindex source to use for multi-vindex setups. */
+  source?: string
 }) => Float32Array | null
 import { SPARK_POINT_DEFAULTS, POTENTIATION_DEFAULTS } from './types.js'
 
