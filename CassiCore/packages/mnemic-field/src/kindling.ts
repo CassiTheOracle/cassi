@@ -1060,23 +1060,17 @@ export class KindlingEngine {
     targetZ: number,
     radius: number,
   ): Array<{ engramId: string; distance: number; charge: number }> {
-    const allEngrams = this.cortex.listEngrams(5000)
+    const allEngrams = this.cortex.listEngrams(MAX_SPATIAL_ENGRAMS)
     const results: Array<{ engramId: string; distance: number; charge: number }> = []
 
     for (const engram of allEngrams) {
-      const r = engram.metadata?.r as number | undefined
-      const theta = engram.metadata?.theta as number | undefined
-      const z = engram.metadata?.z as number | undefined
+      const fc = engram.metadata?.fieldCoords as { r: number; theta: number; z: number } | undefined
+      if (!fc) continue
 
-      if (r === undefined || theta === undefined || z === undefined) continue
-
-      const dTheta = Math.abs(targetTheta - theta)
-      const minDTheta = Math.min(dTheta, 2 * Math.PI - dTheta)
-      const arcDist = (targetR + r) * 0.5 * minDTheta
-
-      const dr = targetR - r
-      const dz = targetZ - z
-      const distance = Math.sqrt(dr * dr + arcDist * arcDist + dz * dz)
+      const distance = cylindricalDistance(
+        targetR, targetTheta, targetZ,
+        fc.r, fc.theta, fc.z,
+      )
 
       if (distance <= radius) {
         const charge = 1.0 / (1.0 + distance * 3) // distance decay
