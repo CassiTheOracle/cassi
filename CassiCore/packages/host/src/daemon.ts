@@ -342,13 +342,27 @@ export class Daemon {
               const tokens = result.provider.tokenize(text, opts?.source)
               if (tokens.length === 0) return []
               const tailTokens = tokens.slice(-5)
-              const layers = opts?.layers ?? [14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]
-              const featuresPerLayer = opts?.featuresPerLayer ?? 10
+              const topK = opts?.featuresPerLayer ?? 10
               const minScore = opts?.minScore ?? 0.05
+
+              // Use traceForward (single N-API call for all layers * tokens)
+              // instead of per-token-per-layer gateKnn (70 N-API calls per engram).
+              // traceForward does dedup + max-pool scoring on the Rust side.
+              // Falls back to per-token gateKnn loop if traceForward unavailable.
+              if (typeof result.provider.traceForward === 'function') {
+                const features = result.provider.traceForward(tailTokens, 14, 27, topK, opts?.source)
+                if (!features?.length) return []
+                return features
+                  .filter((f: any) => f.score >= minScore)
+                  .map((f: any) => ({ layer: f.layer, featureIndex: f.featureIndex, score: f.score }))
+              }
+
+              // Fallback: per-token-per-layer gateKnn (kept for providers without traceForward)
+              const layers = opts?.layers ?? [14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]
               const featureMap = new Map<string, { layer: number; featureIndex: number; score: number }>()
               for (const layer of layers) {
                 for (const token of tailTokens) {
-                  const hits = result.provider.gateKnn(layer, token, featuresPerLayer, undefined, opts?.source)
+                  const hits = result.provider.gateKnn(layer, token, topK, undefined, opts?.source)
                   for (const h of hits) {
                     if (h.score < minScore) continue
                     const key = `${layer}:${h.featureIndex}`
