@@ -2,6 +2,7 @@ import type { ILogger } from '../../../types/interfaces.js'
 import type { Cortex } from './cortex.js'
 import { affectSimilarity } from './affect.js'
 import { SpatialAttentionMapper } from './spatial-attention.js'
+import { cylindricalDistance, MAX_SPATIAL_ENGRAMS } from './spatial-index.js'
 import type { AttractorManager } from './attractor.js'
 import type {
   Engram, MnemicSynapse, ChargedEngram, LuminalSet,

@@ -39,6 +39,7 @@ import type { IProvider } from '../../../types/runtime.js'
 import { LLMReranker, type LLMRerankerConfig } from './llm-reranker.js'
 import { LightningIndexer } from './lightning-indexer.js'
 import { IndexerTrainer, type RunOnceResult } from './training/indexer-trainer.js'
+import { SpatialIndex } from './spatial-index.js'
 import { RELATIONAL_PHRASE_EDGE_TYPES, classifyEdge, RELATIONAL_PHRASES, classifyWithPhrases, type PhrasePrototypeSet, type ClassificationResult, EDGE_RELATORS_PHRASE_SET } from './edge-relators.js'
 import { SIGNAL_TYPE_PHRASES, EPISTEMIC_SHIFT_PHRASES, WORK_UNIT_ANNOTATION_PHRASES } from '../phrase-prototypes.js'
 import type {
@@ -270,6 +271,8 @@ export class MnemicField {
   private vindexSource: string = 'default'
   /** Feature-indexed retrieval — maps vindex features → engram IDs. */
   readonly featureIndex: FeatureIndex
+  /** HEALPix spatial index — maps engram positions to cells for region queries. */
+  readonly spatialIndex: SpatialIndex
   /** Attention-based engram quality scorer (uses forward pass). */
   private qualityScorer: EngramQualityScorer | null = null
   private decomposer: EngramDecomposer | null = null
@@ -578,6 +581,16 @@ export class MnemicField {
     }
     // Wire FeatureIndex into kindling so seed finding uses vindex features.
     this.kindlingEngine.setFeatureIndex(this.featureIndex)
+
+    // Initialize HEALPix spatial index for position-based queries.
+    // Uses the same LMDB environment as the feature index when available.
+    this.spatialIndex = new SpatialIndex()
+    if ((this.featureIndex as any).env) {
+      this.spatialIndex.setEnv((this.featureIndex as any).env)
+      this.logger.info('HEALPix SpatialIndex wired to LMDB environment')
+    } else {
+      this.logger.info('HEALPix SpatialIndex running in-memory (no LMDB env)')
+    }
 
     // Wire embedding provider for slerp-on-merge: FeatureIndex can fetch gate
     // embeddings from the cortex when two engrams merge on feature overlap.
