@@ -224,9 +224,18 @@ export interface CurationMeta {
   dropped: number
   gapNotes: number
   durationMs: number
+  /** Total messages distilled during this curation pass */
+  distilled: number
   skipped?: boolean
   reason?: string
   receipt?: import('./drop-receipt.js').DropReceipt | null
+  /**
+   * Whether this curation invalidated the LLM prompt cache.
+   * Set true when messages were dropped or structurally changed.
+   * Content-only changes (tool result compression, distillation) set false.
+   * Callers use this to decide whether to rebuild the system prompt.
+   */
+  cacheInvalidated: boolean
   /**
    * Tool repetition warning — set when the same (tool, target) pair appears
    * 3+ times in the conversation. The proxy injects this as a system block

@@ -1784,6 +1784,10 @@ this.aurora?.setReverieInferenceProvider(provider)
     // Extract topic summaries for cross-session sharing
     const topicSummaries = this.extractTopicSummaries(session, scored)
 
+    // Cache invalidation: only true when messages were dropped or structurally changed.
+    // Content-only changes (compression, distillation) preserve the prompt cache.
+    const cacheInvalidated = dropped > 0 || assembled.messages.length !== messages.length
+
     const meta = {
       originalCount: messages.length,
       curatedCount: assembled.messages.length,
@@ -1798,6 +1802,7 @@ this.aurora?.setReverieInferenceProvider(provider)
       durationMs: Date.now() - start,
       topicSummaries,
       distilled,
+      cacheInvalidated,
     }
 
     this.logger.info('Thalamus curated', {
@@ -3341,10 +3346,12 @@ this.aurora?.setReverieInferenceProvider(provider)
         compressed: 0,
         deduped: 0,
         dropped: 0,
+        distilled: 0,
         gapNotes: 0,
         durationMs,
         skipped: true,
         reason,
+        cacheInvalidated: false,
       },
     }
   }
