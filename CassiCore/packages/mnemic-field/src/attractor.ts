@@ -214,8 +214,8 @@ export class AttractorManager {
 
     // Radial decay toward 0
     this.state.phasic.r *= (1 - decayRate)
-    // Angular decay toward tonic theta (0)
-    this.state.phasic.theta = this.state.phasic.theta * (1 - decayRate) + 0 * decayRate
+    // Angular decay toward tonic theta (not hardcoded 0)
+    this.state.phasic.theta += decayRate * angularDelta(this.state.phasic.theta, this.state.tonic.theta);
     // Broadcast also decays toward origin (field-level focus fades)
     this.state.broadcast.r *= (1 - decayRate * 0.5)
     // Alpha returns toward defaults (stronger tonic, weaker phasic)

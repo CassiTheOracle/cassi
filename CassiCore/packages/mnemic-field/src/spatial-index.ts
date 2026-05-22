@@ -104,7 +104,7 @@ export class SpatialIndex {
     const phiMin = Math.max(0, phi - thetaWidth);
     const phiMax = Math.min(Math.PI, phi + thetaWidth);
 
-    const results: EngramPosition[] = [];
+    const results: Array<EngramPosition & { _dist: number }> = [];
     const seen = new Set<string>();
 
     for (let shell = shellMin; shell <= shellMax; shell++) {
@@ -117,19 +117,15 @@ export class SpatialIndex {
           const dist = cylindricalDistance(r, theta, z, e.r, e.theta, e.z);
           if (dist <= radius) {
             seen.add(e.engramId);
-            results.push(e);
+            results.push({ ...e, _dist: dist });
           }
         }
       }
     }
 
-    results.sort((a, b) => {
-      const da = cylindricalDistance(r, theta, z, a.r, a.theta, a.z);
-      const db_ = cylindricalDistance(r, theta, z, b.r, b.theta, b.z);
-      return da - db_;
-    });
+    results.sort((a, b) => a._dist - b._dist);
 
-    return results.slice(0, maxResults);
+    return results.slice(0, maxResults).map(({ _dist, ...e }) => e);
   }
 
   /** List engrams in a specific HEALPix cell. */

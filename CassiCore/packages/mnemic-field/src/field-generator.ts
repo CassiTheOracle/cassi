@@ -22,6 +22,7 @@
 import type { MnemicField } from './index.js';
 import type { MnemicRetrievalHit, EngramCreate } from './types.js';
 import type { AttractorExtractor } from './attractor-extractor.js';
+import { cosineSimilarity } from './math-utils.js';
 
 export interface FieldGeneratorConfig {
   /** Max number of engrams retrieved from the field. */
@@ -84,12 +85,6 @@ export class FieldGenerator {
 
   /**
    * Generate text through the field.
-   *
-   * 1. Retrieve relevant engrams from the mnemic field.
-   * 2. Build an augmented prompt with memory context.
-   * 3. Generate via the LLM provider.
-   * 4. Reflect: gateEmbed the generated text, find activated engrams.
-   * 5. Store the generation as an engram with synaptic links.
    */
   async generate(prompt: string): Promise<GenerateResult> {
     const field = this.field;
@@ -97,41 +92,8 @@ export class FieldGenerator {
       | ((text: string, opts?: any) => Float32Array | null)
       | undefined;
 
-    // 1. RETRIEVE ──
-    let activationBoost: Map<string, number> | undefined;
-
-    if (this.config.useAttractorRouting) {
-      const extractor = (field as any).__attractorExtractor as AttractorExtractor | undefined;
-      if (extractor && embedder) {
-        try {
-          const queryPos = embedder(prompt, { minScore: 0.05 });
-          if (queryPos) {
-            const attractors = extractor.getAttractors();
-            for (const attr of attractors) {
-              // Simple centroid similarity check (use first 3 members as proxy)
-              let sim = 0;
-              let count = 0;
-              for (const m of attr.members.slice(0, 3)) {
-                const mPos = embedder(m.concept, { minScore: 0.05 });
-                if (mPos) {
-                  sim += cosineSimilarity(queryPos, mPos);
-                  count++;
-                }
-              }
-              if (count > 0 && sim / count > 0.65) {
-                // Boost: give member engrams +0.05 score via activationBoost map
-                activationBoost = new Map();
-                const basinIds = extractor.getBasinEngramIds(attr.id);
-                for (const id of basinIds) {
-                  activationBoost.set(id, 0.05);
-                }
-                break; // only use the best-matching basin
-              }
-            }
-          }
-        } catch { /* attractor routing is best-effort */ }
-      }
-    }
+    // 1. RETRIEVE — check attractor basins for coarse routing
+    const { activationBoost, attractorBasinId } = this.tryAttractorBoost(prompt, embedder, field);
 
     const hits = await field.retrieve(prompt, {
       limit: this.config.retrievalLimit,
@@ -146,13 +108,13 @@ export class FieldGenerator {
       }).sort((a, b) => b.score - a.score);
     }
 
-    // 2. ASSEMBLE CONTEXT ──
+    // 2. ASSEMBLE CONTEXT
     const augmentedPrompt = buildAugmentedPrompt(prompt, retrievalHits, this.config.memoryCardChars);
 
-    // 3. GENERATE ──
+    // 3. GENERATE
     const generated = await this.provider.generate(augmentedPrompt);
 
-    // 4. REFLECT ──
+    // 4. REFLECT
     let fieldPosition: number[] = [];
     const activatedHits: MnemicRetrievalHit[] = [];
 
@@ -162,13 +124,12 @@ export class FieldGenerator {
         if (genPos) {
           fieldPosition = Array.from(genPos);
 
-          // Find activated engrams: cosine similarity with each hit
           for (const hit of retrievalHits) {
             const hitPos = embedder(hit.content.slice(0, 500), { minScore: 0.05 });
             if (hitPos) {
               const sim = cosineSimilarity(genPos, hitPos);
               if (sim >= this.config.activationThreshold) {
-                activatedHits.push({ ...hit, charge: sim }); // repurpose charge for similarity
+                activatedHits.push({ ...hit, charge: sim });
               }
             }
           }
@@ -176,7 +137,7 @@ export class FieldGenerator {
       } catch { /* reflection is best-effort */ }
     }
 
-    // 5. STORE ──
+    // 5. STORE
     let generationEngramId = '';
 
     if (this.config.storeGeneration && generated.trim().length > 0) {
@@ -202,7 +163,7 @@ export class FieldGenerator {
 
         generationEngramId = engram.id;
 
-        // Create 'activated_by' synapses to each activated engram
+        // Create 'activated_by' synapses
         const cortex = field.getCortex();
         for (const hit of activatedHits) {
           try {
@@ -218,11 +179,14 @@ export class FieldGenerator {
         // Boost potentiation of activated engrams
         if (activatedHits.length > 0) {
           try {
-            cortex.bulkUpdatePotentiation(activatedHits.map(h => ({ id: h.id, potentiation: Math.min(1, (h.potentiation ?? 0.5) + this.config.activationBoost) })));
+            const updates = activatedHits.map(h => ({
+              id: h.id,
+              potentiation: Math.min(1, (h.potentiation ?? 0.5) + this.config.activationBoost),
+            }));
+            cortex.bulkUpdatePotentiation(updates);
           } catch { /* best-effort boost */ }
         }
       } catch (err) {
-        // Storage failure shouldn't block returning the result
         (field as any).logger?.warn?.('FieldGenerator: store failed', { error: String(err) });
       }
     }
@@ -233,8 +197,43 @@ export class FieldGenerator {
       activatedHits,
       generationEngramId,
       fieldPosition,
-      attractorBasinId: null, // populated if attractor routing found a match
+      attractorBasinId,
     };
+  }
+
+  /**
+   * Try to match the query to an attractor basin and return boost weights.
+   */
+  private tryAttractorBoost(
+    prompt: string,
+    embedder: ((text: string, opts?: any) => Float32Array | null) | undefined,
+    field: MnemicField,
+  ): { activationBoost?: Map<string, number>; attractorBasinId: string | null } {
+    if (!this.config.useAttractorRouting) return { attractorBasinId: null };
+    const extractor = (field as any).__attractorExtractor as AttractorExtractor | undefined;
+    if (!extractor || !embedder) return { attractorBasinId: null };
+
+    try {
+      const queryPos = embedder(prompt, { minScore: 0.05 });
+      if (!queryPos) return { attractorBasinId: null };
+
+      const attractors = extractor.getAttractors();
+      for (const attr of attractors) {
+        let sim = 0;
+        let count = 0;
+        for (const m of attr.members.slice(0, 3)) {
+          const mPos = embedder(m.concept, { minScore: 0.05 });
+          if (mPos) { sim += cosineSimilarity(queryPos, mPos); count++; }
+        }
+        if (count > 0 && sim / count > 0.65) {
+          const boost = new Map<string, number>();
+          const basinIds = extractor.getBasinEngramIds(attr.id);
+          for (const id of basinIds) boost.set(id, 0.05);
+          return { activationBoost: boost, attractorBasinId: attr.id };
+        }
+      }
+    } catch { /* best-effort */ }
+    return { attractorBasinId: null };
   }
 }
 
@@ -269,19 +268,4 @@ export function buildAugmentedPrompt(
     '[USER PROMPT]',
     prompt,
   ].join('\n');
-}
-
-/**
- * Compute cosine similarity between two Float32Arrays.
- */
-function cosineSimilarity(a: Float32Array, b: Float32Array): number {
-  const dim = Math.min(a.length, b.length);
-  let dot = 0, magA = 0, magB = 0;
-  for (let i = 0; i < dim; i++) {
-    dot += a[i] * b[i];
-    magA += a[i] * a[i];
-    magB += b[i] * b[i];
-  }
-  const denom = Math.sqrt(magA) * Math.sqrt(magB);
-  return denom < 1e-8 ? 0 : dot / denom;
 }
