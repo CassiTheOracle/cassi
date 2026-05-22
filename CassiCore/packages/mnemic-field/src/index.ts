@@ -830,9 +830,12 @@ export class MnemicField {
     // Runs best-effort — index failures don't block engram creation.
     if (this.spatialIndex?.ready) {
       try {
-        this.spatialIndex.indexEngram(engram.id, r, theta, z, {
+        this.spatialIndex.indexEngram({
+          engramId: engram.id,
+          r, theta, z,
           potentiation: engram.potentiation,
-          nodeType: engram.nodeType,
+          nodeType: engram.nodeType ?? 'unknown',
+          contentPreview: (cleanedContent ?? '').slice(0, 100),
         })
       } catch (err) {
         this.logger.debug('spatialIndex.indexEngram skipped', { engramId: engram.id, error: String(err) })
