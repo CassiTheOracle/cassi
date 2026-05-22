@@ -8,6 +8,22 @@ import type {
   KindlingOptions, KindlingTrace, TaskComplexity, SpikeOutcome,
   NeuralKindlingConfig, ForwardRecord, ForwardTrace,
 } from './types.js'
+
+/** Max engrams to scan in spatial queries. Keeps listEngrams() bounded. */
+const MAX_SPATIAL_ENGRAMS = 5000
+
+/** Cylindrical distance between two points in field coordinates. */
+function cylindricalDistance(
+  r1: number, theta1: number, z1: number,
+  r2: number, theta2: number, z2: number,
+): number {
+  const dr = r1 - r2
+  const dTheta = Math.abs(theta1 - theta2)
+  const minDTheta = Math.min(dTheta, 2 * Math.PI - dTheta)
+  const arcDist = (r1 + r2) * 0.5 * minDTheta
+  const dz = z1 - z2
+  return Math.sqrt(dr * dr + arcDist * arcDist + dz * dz)
+}
 import {
   SPARK_POINT_DEFAULTS, KINDLING_DEFAULTS, AFFECT_DEFAULTS,
   SYNAPSE_PROPAGATION,

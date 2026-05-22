@@ -864,7 +864,8 @@ export class MnemicField {
     if (this.featureIndex?.isReady()) {
       const normZ = Math.max(-1, Math.min(1, Math.tanh(z! * 5)))
       const phi = Math.acos(normZ)
-      this.featureIndex.writePosition(engram.id, r!, theta!, phi, resolvedEmbedding ?? undefined)
+      const emb = resolvedEmbedding instanceof Float32Array ? resolvedEmbedding : undefined
+      this.featureIndex.writePosition(engram.id, r!, theta!, phi, emb)
     }
 
     // Fire-and-forget: decompose content into structural layers.
