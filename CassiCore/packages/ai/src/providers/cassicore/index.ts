@@ -1,10 +1,13 @@
 /**
  * CassiCore-specific provider extensions
  *
- * All provider management has been moved to Hermes's provider stack.
- * This barrel is kept for backward compatibility with type exports.
+ * Direct API providers (not Hermes-bridged).
+ * These are loaded from process.env API keys at daemon boot.
  */
-
-// No CassiCore-specific provider classes remain.
-// All LLM calls route through the HermesBridgeProvider in core/providers/hermes-bridge.ts.
-export {}
+export { OpenCodeGoProvider } from "./opencode-go.js";
+export { AlibabaCodingProvider } from "./alibaba-coding.js";
+export { DeepSeekProvider } from "./deepseek.js";
+export { KimiCodingProvider } from "./kimi-coding.js";
+export { OpenRouterProvider } from "./openrouter.js";
+export { QwenProvider } from "./qwen.js";
+export { ZaiProvider } from "./zai.js";

@@ -30,9 +30,8 @@ import { streamSimpleOpenAICompletions } from './providers/openai-completions.js
 import { streamSimpleAnthropic } from './providers/anthropic.js';
 import { streamSimpleGoogleGeminiCli } from './providers/google-gemini-cli.js';
 
-import { kimiModels, getKimiModel } from './providers/cassicore/kimi-coding.js';
-import { qwenModels, getQwenModel, QwenLoadBalancer } from './providers/cassicore/qwen.js';
-import { openrouterModels, getOpenRouterModel } from './providers/cassicore/openrouter.js';
+// Legacy provider imports removed — replaced by HermesBridgeProvider
+// kimi-coding, qwen, openrouter provider files were deleted (May 2026)
 
 type StreamFunction = (model: Model<Api>, context: Context, opts?: SimpleStreamOptions) =>
   AsyncIterable<AssistantMessageEvent>;
@@ -357,68 +356,9 @@ function mapThinkingLevel(level?: CassiCoreThinkingLevel): ThinkingLevel | undef
  * Auto-register providers from environment variables
  */
 function registerEnvProviders(providers: Map<string, IProvider>, logger: ILogger): void {
-  // Kimi
-  const kimiKey = process.env.KIMI_API_KEY;
-  if (kimiKey) {
-    for (const model of kimiModels) {
-      const streamFn: StreamFunction = async function*(m, ctx, opts) {
-        // Use kimi-specific stream with auth
-        const optsWithAuth = {
-          ...opts,
-          headers: {
-            ...opts?.headers,
-            'Authorization': `Bearer ${kimiKey}`
-          }
-        };
-        yield* streamSimpleOpenAICompletions(m as Model<'openai-completions'>, ctx, optsWithAuth);
-      };
-      const adapter = new CassiCoreProviderAdapter(model, 'kimi-coding', streamFn);
-      providers.set(`kimi-coding/${model.id}`, adapter);
-    }
-    logger.info(`[ai] Auto-registered kimi-coding with ${kimiModels.length} models`);
-  }
-  
-  // Qwen
-  const qwenKey = process.env.QWEN_API_KEY || process.env.DASHSCOPE_API_KEY;
-  if (qwenKey) {
-    for (const model of qwenModels) {
-      const streamFn: StreamFunction = async function*(m, ctx, opts) {
-        const optsWithAuth = {
-          ...opts,
-          headers: {
-            ...opts?.headers,
-            'Authorization': `Bearer ${qwenKey}`
-          }
-        };
-        yield* streamSimpleOpenAICompletions(m as Model<'openai-completions'>, ctx, optsWithAuth);
-      };
-      const adapter = new CassiCoreProviderAdapter(model, 'qwen', streamFn);
-      providers.set(`qwen/${model.id}`, adapter);
-    }
-    logger.info(`[ai] Auto-registered qwen with ${qwenModels.length} models`);
-  }
-  
-  // OpenRouter
-  const openrouterKey = process.env.OPENROUTER_API_KEY;
-  if (openrouterKey) {
-    for (const model of openrouterModels) {
-      const streamFn: StreamFunction = async function*(m, ctx, opts) {
-        const optsWithAuth = {
-          ...opts,
-          headers: {
-            ...opts?.headers,
-            'Authorization': `Bearer ${openrouterKey}`,
-            'HTTP-Referer': 'https://cassicore.local',
-            'X-Title': 'CassiCore'
-          }
-        };
-        yield* streamSimpleOpenAICompletions(m as Model<'openai-completions'>, ctx, optsWithAuth);
-      };
-      const adapter = new CassiCoreProviderAdapter(model, 'openrouter', streamFn);
-      providers.set(`openrouter/${model.id}`, adapter);
-    }
-    logger.info(`[ai] Auto-registered openrouter with ${openrouterModels.length} models`);
-  }
+  // All provider management moved to core/providers/index.ts + Hermes providers.
+  // Auto-registration from env is handled in createProviders() in core/providers/index.ts.
+  // This function is a no-op stub kept for API compatibility.
 }
 
 export { CassiCoreProviderAdapter };
