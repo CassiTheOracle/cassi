@@ -817,6 +817,119 @@ export async function handleMemoryRoutes(
     }
   }
 
+  // GET /memory/mnemic/position/:engramId — spherical position + embedding (V1)
+  if (parts[1] === 'mnemic' && parts[2] === 'position' && parts[3] && method === 'GET') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      const pos = field.featureIndex?.getPosition(parts[3])
+      if (!pos) {
+        sendJSON(res, 404, { error: 'position not found', engramId: parts[3].slice(0, 12) })
+        return true
+      }
+      sendJSON(res, 200, {
+        ok: true, engramId: parts[3],
+        r: pos.r.toFixed(4), theta: pos.theta.toFixed(4), phi: pos.phi.toFixed(4),
+        hasEmbedding: !!pos.embedding, embeddingDim: pos.embedding?.length ?? 0,
+      })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /memory/mnemic/sector?thetaMin=&thetaMax=&phiMin=&phiMax=&shell= (V1)
+  if (parts[1] === 'mnemic' && parts[2] === 'sector' && method === 'GET') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      const sp = new URL(req.url ?? '/', 'http://localhost').searchParams
+      const thetaMin = parseFloat(sp.get('thetaMin') ?? '0')
+      const thetaMax = parseFloat(sp.get('thetaMax') ?? '6.283')
+      const phiMin = parseFloat(sp.get('phiMin') ?? '0')
+      const phiMax = parseFloat(sp.get('phiMax') ?? '3.141')
+      const shell = parseInt(sp.get('shell') ?? '0', 10)
+      const limit = parseInt(sp.get('limit') ?? '50', 10)
+
+      const nside = [1, 2, 4, 8][Math.max(0, Math.min(3, shell))]!
+      const nRing = 4 * nside
+      const ringMin = Math.max(0, Math.floor(phiMin / Math.PI * nRing))
+      const ringMax = Math.min(nRing - 1, Math.floor(phiMax / Math.PI * nRing))
+
+      const cellKeys: string[] = []
+      for (let ring = ringMin; ring <= ringMax; ring++) {
+        const midR = nRing >> 1
+        const cellsInRing = ring <= midR
+          ? Math.max(4, 4 * (ring + 1))
+          : Math.max(4, 4 * (nRing - ring))
+        const cellMin = Math.floor(thetaMin / (2 * Math.PI) * cellsInRing)
+        const cellMax = Math.min(cellsInRing - 1, Math.floor(thetaMax / (2 * Math.PI) * cellsInRing))
+        let baseCell = 0
+        for (let r = 0; r < ring; r++) {
+          baseCell += r <= midR ? Math.max(4, 4 * (r + 1)) : Math.max(4, 4 * (nRing - r))
+        }
+        for (let ci = cellMin; ci <= cellMax; ci++) {
+          const cell = baseCell + (ci % cellsInRing)
+          cellKeys.push(String.fromCharCode(shell) +
+            String.fromCharCode((cell >> 24) & 0xFF) +
+            String.fromCharCode((cell >> 16) & 0xFF) +
+            String.fromCharCode((cell >> 8) & 0xFF) +
+            String.fromCharCode(cell & 0xFF))
+        }
+      }
+
+      const ids = field.featureIndex?.engramsInCells(cellKeys) ?? []
+      const cortex = field.getCortex()
+      sendJSON(res, 200, {
+        ok: true,
+        query: { thetaMin, thetaMax, phiMin, phiMax, shell },
+        cellCount: cellKeys.length, total: ids.length,
+        engrams: ids.slice(0, limit).map(id => {
+          const e = cortex.getEngram(id)
+          return e ? {
+            id: e.id.slice(0, 12), nodeType: e.nodeType,
+            r: e.metadata?.r, theta: e.metadata?.theta, phi: e.metadata?.phi ?? null,
+            content: e.content.slice(0, 100), potentiation: e.potentiation,
+          } : { id: id.slice(0, 12), error: 'not_found' }
+        }),
+      })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /memory/mnemic/nearest?r=&theta=&phi=&radius=&limit= (V1)
+  if (parts[1] === 'mnemic' && parts[2] === 'nearest' && method === 'GET') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      const sp = new URL(req.url ?? '/', 'http://localhost').searchParams
+      const r = parseFloat(sp.get('r') ?? '0.5')
+      const theta = parseFloat(sp.get('theta') ?? '0')
+      const phi = parseFloat(sp.get('phi') ?? '1.57')
+      const radius = parseFloat(sp.get('radius') ?? '0.3')
+      const limit = parseInt(sp.get('limit') ?? '20', 10)
+
+      const results = field.featureIndex?.nearestByPosition(r, theta, phi, limit, radius) ?? []
+      const cortex = field.getCortex()
+      sendJSON(res, 200, {
+        ok: true, query: { r, theta, phi, radius }, total: results.length,
+        engrams: results.map(h => {
+          const e = cortex.getEngram(h.engramId)
+          return e ? {
+            id: e.id.slice(0, 12), nodeType: e.nodeType,
+            distance: h.distance.toFixed(4),
+            content: e.content.slice(0, 100), potentiation: e.potentiation,
+          } : { id: h.engramId.slice(0, 12), distance: h.distance.toFixed(4), error: 'not_found' }
+        }),
+      })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
   // POST /memory/mnemic/backfill
   if (parts[1] === 'mnemic' && parts[2] === 'backfill' && method === 'POST') {
     try {
