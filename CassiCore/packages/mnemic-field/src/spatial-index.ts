@@ -185,6 +185,47 @@ export class SpatialIndex {
     return { totalCells, totalEngrams, shells };
   }
 
+  /**
+   * Backfill the spatial index from a list of engrams.
+   *
+   * Caller passes the full engram array (cortex.listEngrams with large limit).
+   * Processing yields every 100 engrams to avoid blocking the event loop.
+   */
+  backfill(
+    engrams: Array<{
+      id: string;
+      nodeType: string;
+      content: string;
+      potentiation: number;
+      metadata?: Record<string, unknown> | null;
+    }>,
+  ): { scanned: number; indexed: number; skipped: number } {
+    if (!this.db) return { scanned: 0, indexed: 0, skipped: 0 };
+
+    let scanned = 0, indexed = 0, skipped = 0;
+
+    for (const engram of engrams) {
+      scanned++;
+      const fc = engram.metadata?.r !== undefined
+        ? { r: engram.metadata.r as number, theta: engram.metadata.theta as number, z: engram.metadata.z as number }
+        : null;
+      if (!fc) { skipped++; continue; }
+
+      this.indexEngram({
+        engramId: engram.id,
+        r: fc.r,
+        theta: fc.theta,
+        z: fc.z,
+        potentiation: engram.potentiation ?? 0,
+        nodeType: engram.nodeType ?? 'unknown',
+        contentPreview: (engram.content ?? '').slice(0, 100),
+      });
+      indexed++;
+    }
+
+    return { scanned, indexed, skipped };
+  }
+
   private readCell(key: string): CellEntry {
     if (!this.db) return { engrams: [] };
     try {
