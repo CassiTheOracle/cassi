@@ -25,6 +25,7 @@ import type { ILogger } from '../../../types/interfaces.js'
 import type { Cortex } from './cortex.js'
 import type { VindexGateKnnFn, FeatureIndexEntry } from './feature-index.js'
 import { featureKey } from './feature-index.js'
+import { assignCell, globalCellKey } from './healpix.js'
 import { open as lmdbOpen } from 'lmdb'
 
 /** Return type for indexEngram — tells the caller whether to store or merge. */
@@ -677,31 +678,16 @@ export class LmdbFeatureIndex {
     phi: number,
     embedding?: Float32Array | null,
   ): void {
-    const shell = r < 0.1 ? 0 : r < 0.3 ? 1 : r < 0.6 ? 2 : 3
-    const nside = [1, 2, 4, 8][shell]!
-    const nRing = 4 * nside
-    const ring = Math.max(0, Math.min(nRing - 1,
-      Math.floor(phi / Math.PI * (nRing - 1) + 0.5)))
-    const midRing = nRing >> 1
-    const cellsInRing = ring <= midRing
-      ? Math.max(4, 4 * (ring + 1))
-      : Math.max(4, 4 * (nRing - ring))
-    const cellInRing = Math.floor(theta / (2 * Math.PI) * cellsInRing) % cellsInRing
-
-    let globalCell = 0
-    for (let ri = 0; ri < ring; ri++) {
-      const count = ri <= midRing
-        ? Math.max(4, 4 * (ri + 1))
-        : Math.max(4, 4 * (nRing - ri))
-      globalCell += count
+    // Remove old cell mapping if this engram already had a position.
+    const oldPos = this.getPosition(engramId)
+    if (oldPos && (Math.abs(oldPos.r - r) > 0.01 || Math.abs(oldPos.theta - theta) > 0.01 || Math.abs(oldPos.phi - phi) > 0.01)) {
+      const oldCell = assignCell(oldPos.r, oldPos.theta, oldPos.phi)
+      const oldKey = globalCellKey(oldCell.shell, oldCell.cell)
+      this.engramsByCell.remove(oldKey, engramId)
     }
-    globalCell += cellInRing
 
-    const cellKey = String.fromCharCode(shell) +
-      String.fromCharCode((globalCell >> 24) & 0xFF) +
-      String.fromCharCode((globalCell >> 16) & 0xFF) +
-      String.fromCharCode((globalCell >> 8) & 0xFF) +
-      String.fromCharCode(globalCell & 0xFF)
+    const cell = assignCell(r, theta, phi)
+    const cellKey = globalCellKey(cell.shell, cell.cell)
     this.engramsByCell.put(cellKey, engramId)
 
     const hasEmb = embedding && embedding.length > 0 ? 1 : 0
@@ -728,13 +714,27 @@ export class LmdbFeatureIndex {
     const phi = blob.readFloatLE(8)
     const hasEmb = blob.length > 12 ? blob.readUInt8(12) : 0
     let embedding: Float32Array | undefined
-    if (hasEmb && blob.length >= 13 + 1536 * 4) {
-      embedding = new Float32Array(1536)
-      for (let i = 0; i < 1536; i++) {
-        embedding[i] = blob.readFloatLE(13 + i * 4)
+    if (hasEmb && blob.length >= 13) {
+      const dim = (blob.length - 13) / 4
+      if (dim > 0 && Number.isInteger(dim)) {
+        embedding = new Float32Array(dim)
+        for (let i = 0; i < dim; i++) {
+          embedding[i] = blob.readFloatLE(13 + i * 4)
+        }
       }
     }
     return { r, theta, phi, embedding }
+  }
+
+  /** Fast path: read only spherical coordinates, skip embedding parse. */
+  private getPositionCoords(engramId: string): { r: number; theta: number; phi: number } | null {
+    const blob = this.engramsByPosition.get(engramId) as Buffer | undefined
+    if (!blob || blob.length < 12) return null
+    return {
+      r: blob.readFloatLE(0),
+      theta: blob.readFloatLE(4),
+      phi: blob.readFloatLE(8),
+    }
   }
 
   /** Get engram IDs in a cell. */
@@ -806,7 +806,7 @@ export class LmdbFeatureIndex {
     const results: Array<{ engramId: string; distance: number }> = []
     for (const ck of candidateIds) {
       for (const id of this.engramsByCell.getValues(ck) ?? []) {
-        const pos = this.getPosition(id as string)
+        const pos = this.getPositionCoords(id as string)
         if (!pos) continue
         const dr = r - pos.r
         const dTheta = Math.abs(theta - pos.theta)

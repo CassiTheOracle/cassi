@@ -14,40 +14,6 @@
  * Discretization and Fast Analysis of Data Distributed on the Sphere"
  */
 
-/** Number of cells: 12 × nside² */
-export function nCells(nside: number): number {
-  return 12 * nside * nside
-}
-
-/**
- * Convert spherical coordinates to a ring-indexed cell.
- *
- * Ring ordering: cells numbered north-to-south by latitude rings.
- * Within each ring, cells are numbered eastward from phi=0.
- *
- * @param theta Azimuthal angle [0, 2π]
- * @param phi   Polar angle [0, π] (0 = north pole)
- * @param nside Resolution parameter
- * @returns Cell index in [0, 12×nside² - 1]
- */
-export function ringCell(theta: number, phi: number, nside: number): number {
-  theta = ((theta % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI)
-  phi = Math.max(0, Math.min(Math.PI, phi))
-
-  const nRing = 4 * nside
-  const ringFloat = phi / Math.PI * (nRing - 1)
-  const ring = Math.max(0, Math.min(nRing - 1, Math.floor(ringFloat + 0.5)))
-
-  const cellsInRing = ringCellsPerRing(ring, nside)
-  const cellInRing = Math.floor(theta / (2 * Math.PI) * cellsInRing) % cellsInRing
-
-  let globalCell = 0
-  for (let r = 0; r < ring; r++) {
-    globalCell += ringCellsPerRing(r, nside)
-  }
-  return globalCell + cellInRing
-}
-
 /**
  * Number of cells in a ring. Matches HEALPix's latitude-dependent
  * cell counts: polar rings have fewer cells, equatorial rings max out.
