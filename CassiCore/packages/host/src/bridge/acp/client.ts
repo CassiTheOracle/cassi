@@ -3,7 +3,7 @@ import { URL } from 'node:url'
 
 import type { ChatStreamEvent } from './types.js'
 
-const ACP_DEFAULT_MODEL = 'claude-code/claude-opus-4-7'
+const ACP_DEFAULT_MODEL = 'deepseek-v4-pro'
 
 export interface DaemonClientOptions {
   baseUrl?: string

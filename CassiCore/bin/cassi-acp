@@ -1,5 +1,16 @@
-#!/usr/bin/env node
-import('../dist/core/bridge/acp/bin.js').catch((err) => {
-  process.stderr.write(`[cassi-acp] failed to load: ${err}\n`)
-  process.exit(1)
-})
+#!/usr/bin/env bash
+# CassiCore ACP Server — stdio-based ACP agent for AionUi
+#
+# Usage: cassi-acp
+#
+# Environment:
+#   CASSICORE_ADMIN_URL   — daemon admin API URL (default: http://127.0.0.1:7433)
+#   CASSI_ACP_LOG         — log file path (default: ~/.cassicore/cassi-acp.log)
+#   CASSICORE_ADMIN_TOKEN — admin API bearer token (optional)
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+CASSICORE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+exec npx tsx "$CASSICORE_ROOT/core/bridge/acp/bin.ts" "$@"
