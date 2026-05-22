@@ -47,6 +47,14 @@ export class KindlingEngine {
     isReady: () => boolean
   } | null = null
 
+  /** HEALPix SpatialIndex for O(log cells) region queries (falls back to O(n) scan). */
+  private spatialIndex: {
+    queryRegion: (r: number, theta: number, z: number, radius: number, opts?: any) => Array<{
+      engramId: string; r: number; theta: number; z: number; potentiation: number;
+    }>
+    ready: boolean
+  } | null = null
+
   /** Photon feature-overlap cache: emitterId → correlated engrams (avoids repeat FeatureIndex queries). */
   private photonCache = new Map<string, Array<{ engramId: string; sharedFeatureCount: number }>>()
   private static readonly PHOTON_CACHE_MAX = 5000
@@ -77,6 +85,16 @@ export class KindlingEngine {
     isReady: () => boolean
   } | null): void {
     this.featureIndex = fi
+  }
+
+  /** Wire the SpatialIndex for O(log cells) region queries (HEALPix). */
+  setSpatialIndex(si: {
+    queryRegion: (r: number, theta: number, z: number, radius: number, opts?: any) => Array<{
+      engramId: string; r: number; theta: number; z: number; potentiation: number;
+    }>
+    ready: boolean
+  } | null): void {
+    this.spatialIndex = si
   }
 
   /** Set a provider for broadcast spark modulation (global workspace priming). */
@@ -1062,6 +1080,23 @@ export class KindlingEngine {
     targetZ: number,
     radius: number,
   ): Array<{ engramId: string; distance: number; charge: number }> {
+    // Use HEALPix SpatialIndex for O(log cells) lookup when available.
+    if (this.spatialIndex?.ready) {
+      const hits = this.spatialIndex.queryRegion(targetR, targetTheta, targetZ, radius, {
+        maxResults: MAX_SPATIAL_ENGRAMS,
+        minPotentiation: 0,
+      })
+      return hits.map(h => {
+        const dist = cylindricalDistance(targetR, targetTheta, targetZ, h.r, h.theta, h.z)
+        return {
+          engramId: h.engramId,
+          distance: dist,
+          charge: 1.0 / (1.0 + dist * 3),
+        }
+      })
+    }
+
+    // Fallback: O(n) linear scan through cortex engrams.
     const allEngrams = this.cortex.listEngrams(MAX_SPATIAL_ENGRAMS)
     const results: Array<{ engramId: string; distance: number; charge: number }> = []
 

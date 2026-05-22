@@ -591,6 +591,8 @@ export class MnemicField {
     } else {
       this.logger.info('HEALPix SpatialIndex running in-memory (no LMDB env)')
     }
+    // Wire spatial index into kindling so kindleByRegion uses O(log cells).
+    this.kindlingEngine.setSpatialIndex(this.spatialIndex)
 
     // Wire embedding provider for slerp-on-merge: FeatureIndex can fetch gate
     // embeddings from the cortex when two engrams merge on feature overlap.
@@ -823,6 +825,19 @@ export class MnemicField {
     }
 
     const engram = this.cortex.createEngram({ ...input, content: cleanedContent, x, y, z, metadata, embedding: resolvedEmbedding })
+
+    // Index in HEALPix SpatialIndex for O(log cells) region queries.
+    // Runs best-effort — index failures don't block engram creation.
+    if (this.spatialIndex?.ready) {
+      try {
+        this.spatialIndex.indexEngram(engram.id, r, theta, z, {
+          potentiation: engram.potentiation,
+          nodeType: engram.nodeType,
+        })
+      } catch (err) {
+        this.logger.debug('spatialIndex.indexEngram skipped', { engramId: engram.id, error: String(err) })
+      }
+    }
 
     // Index in FeatureIndex for direct feature-indexed retrieval.
     // If gateKnn finds a near-complete feature overlap (≥95%) with an
@@ -1579,6 +1594,25 @@ export class MnemicField {
       this.retrieveCache.delete(oldest)
     }
     return contentHits
+  }
+
+  /**
+   * Kindling retrieval anchored at a spatial point.
+   *
+   * Finds engrams within `radius` of the spherical-coordinate target
+   * using the HEALPix spatial index (O(log cells)), then runs the full
+   * kindling pipeline (seed → spread → photon → ignite) on them as
+   * privileged seeds. Falls back to O(n) linear scan if the spatial
+   * index isn't available.
+   */
+  retrieveByRegion(
+    r: number,
+    theta: number,
+    z: number,
+    radius: number,
+    options?: KindlingOptions,
+  ) {
+    return this.kindlingEngine.kindleByRegion(r, theta, z, radius, options ?? {})
   }
 
   /**
