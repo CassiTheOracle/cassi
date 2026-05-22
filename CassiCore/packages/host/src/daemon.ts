@@ -327,6 +327,39 @@ export class Daemon {
               mnemicField.setEmbeddingBackend('vindex')
             }
             this.logger.info('MnemicField vindex embedder wired post-boot', { vindex: result.name })
+
+            // V-Field V3.0: wire AttractorExtractor for periodic basin extraction
+            try {
+              const { AttractorExtractor } = await import('./intelligence/mnemic-field/attractor-extractor.js')
+              const extractor = new AttractorExtractor(mnemicField, {
+                maxParticles: 30,
+                steps: 200,
+                rotStrength: 0.8,
+              });
+              (this.intelligence as any).__attractorExtractor = extractor
+
+              // Run initial extraction, then periodic every 30 minutes
+              const runExtraction = async () => {
+                try {
+                  const attrs = await extractor.extract()
+                  if (attrs.length > 0) {
+                    this.logger.info('Attractors extracted', {
+                      basins: attrs.length,
+                      largest: attrs[0].basinSize,
+                      stability: attrs[0].stabilityScore.toFixed(3),
+                    })
+                  }
+                } catch (err) {
+                  this.logger.debug('Attractor extraction skipped', { reason: String(err) })
+                }
+              }
+              setTimeout(() => runExtraction(), 60_000) // 1 min after boot
+              setInterval(() => runExtraction(), 30 * 60 * 1000) // every 30 min
+              this.logger.info('AttractorExtractor scheduled (30-min periodic)')
+            } catch (err) {
+              this.logger.debug('AttractorExtractor unavailable', { error: String(err) })
+            }
+
           }
 
           // Wire forward provider for attention-based quality scoring.
