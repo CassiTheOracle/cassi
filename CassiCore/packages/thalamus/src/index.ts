@@ -1201,6 +1201,9 @@ this.aurora?.setReverieInferenceProvider(provider)
   processAll(sessionId: string, messages: any[], provenance?: string): any[] {
     const processed = messages.map((msg, i) => {
       if (msg?._thalamus) return msg // already processed
+      // Cache-aware: system messages are never annotated — they anchor
+      // the prompt prefix cache and must remain byte-identical.
+      if (msg?.role === 'system') return msg
       return this.process(sessionId, msg, i, undefined, provenance)
     })
 
@@ -1495,8 +1498,22 @@ this.aurora?.setReverieInferenceProvider(provider)
     session.totalCurations++
     session.lastCuratedAt = Date.now()
 
+    // Cache-aware: separate system messages from the curation pipeline.
+    // System messages anchor the prompt prefix cache — they must be
+    // returned byte-identical to the input. Extract them here and
+    // re-insert them at output.
+    const systemMessages: { msg: any; index: number }[] = []
+    const nonSystemMessages: any[] = []
+    for (let i = 0; i < messages.length; i++) {
+      if (messages[i]?.role === 'system') {
+        systemMessages.push({ msg: messages[i], index: i })
+      } else {
+        nonSystemMessages.push(messages[i])
+      }
+    }
+
     // Ensure all messages have _thalamus annotations (backward compatibility)
-    const annotated = this.processAll(sessionId, messages)
+    const annotated = this.processAll(sessionId, nonSystemMessages)
 
     // Multi-dimensional label classification (MemRouter-inspired write-side routing).
     // Runs after processAll so engram IDs are tracked. Stores semanticType,
@@ -1784,9 +1801,10 @@ this.aurora?.setReverieInferenceProvider(provider)
     // Extract topic summaries for cross-session sharing
     const topicSummaries = this.extractTopicSummaries(session, scored)
 
-    // Cache invalidation: only true when messages were dropped or structurally changed.
-    // Content-only changes (compression, distillation) preserve the prompt cache.
-    const cacheInvalidated = dropped > 0 || assembled.messages.length !== messages.length
+    // Cache invalidation: only true when non-system messages were dropped
+    // or structurally changed. System messages are cache-protected — they
+    // pass through byte-identical and are re-inserted at output.
+    const cacheInvalidated = dropped > 0 || assembled.messages.length !== nonSystemMessages.length
 
     const meta = {
       originalCount: messages.length,
@@ -1966,13 +1984,15 @@ this.aurora?.setReverieInferenceProvider(provider)
         fallbackMessages = [{ role: 'user', content: 'Continue.' }]
         this.logger.warn('Fallback had no user messages, injected placeholder', { sessionId })
       }
-      return { messages: fallbackMessages, meta: fallbackMeta }
+      return { messages: [...systemMessages.map(s => s.msg), ...fallbackMessages], meta: fallbackMeta }
     }
     if (!validation.valid) {
       this.logger.warn('Curation has warnings', { sessionId, errors: validation.errors })
     }
 
-    return { messages: finalMessages, meta }
+    // Re-insert cache-protected system messages at the start of the output.
+    // These were extracted before processing and are byte-identical to input.
+    return { messages: [...systemMessages.map(s => s.msg), ...finalMessages], meta }
   }
 
   /**
