@@ -29,7 +29,7 @@ import { open as lmdbOpen } from 'lmdb'
 
 /** Return type for indexEngram — tells the caller whether to store or merge. */
 export interface IndexResult {
-  action: 'indexed' | 'merged'
+  action: 'indexed' | 'merged' | 'skipped'
   /** When merged: the engramId of the existing engram that absorbed this one. */
   mergedInto?: string
   /** Feature overlap ratio that triggered the merge. */
@@ -41,6 +41,8 @@ export interface IndexResult {
    *  embeddings unavailable or no merge. The caller should persist this
    *  as the anchor's new embedding via Cortex.bulkUpdateEmbeddings(). */
   slerpedEmbedding?: Float32Array | null
+  /** Reason for skip — e.g. 'not_ready', 'content_too_short', 'gateknn_error'. */
+  skipReason?: string
 }
 
 /** Feature overlap ratio ≥ this → merge instead of indexing. */
@@ -137,6 +139,78 @@ export class LmdbFeatureIndex {
   }
 
   /**
+   * Core merge execution — shared by indexEngram and checkMergeFor.
+   *
+   * Handles anchor quality reversal, feature-set union, tombstone write,
+   * and slerp computation. Callers provide the newcomer's feature keys and
+   * the anchor engram's ID + feature count.
+   */
+  private executeMerge(
+    newcomerId: string,
+    newcomerFeatureKeys: string[],
+    anchorId: string,
+    anchorFeatureCount: number,
+    opts: {
+      /** If true, also removes the anchor from the index (reversal case). */
+      reverseAnchor?: boolean
+      /** If true, removes the newcomer from the index (consolidation case). */
+      removeNewcomer?: boolean
+      /** Gate embedding for slerp. */
+      embedding?: Float32Array
+      /** Label for debug log context. */
+      debugLabel?: string
+    } = {},
+  ): IndexResult {
+    const anchorKeys = this.getFeatureKeys(anchorId)
+
+    if (opts.reverseAnchor) {
+      // Anchor quality reversal: newcomer has ≥1.5× the features.
+      // The old anchor is removed; the newcomer absorbs its features.
+      this.removeEngram(anchorId)
+      const allKeys = [...new Set([...newcomerFeatureKeys, ...anchorKeys])]
+      if (opts.removeNewcomer) this.removeEngram(newcomerId)
+      this.insertFeatures(newcomerId, allKeys)
+      this.setMergeTombstone(anchorId, newcomerId)
+      this.logger.debug?.(`FeatureIndex reversed merge${opts.debugLabel ? ` (${opts.debugLabel})` : ''}`, {
+        engramId: newcomerId.slice(0, 12),
+        absorbed: anchorId.slice(0, 12),
+        newFeatures: newcomerFeatureKeys.length,
+        anchorFeatures: anchorFeatureCount,
+        ratio: (newcomerFeatureKeys.length / anchorFeatureCount).toFixed(2),
+      })
+      return { action: 'indexed' }
+    }
+
+    // Normal merge: union the feature sets into the anchor engram.
+    this.mergeFeatures(anchorId, newcomerFeatureKeys)
+    if (opts.removeNewcomer) this.removeEngram(newcomerId)
+    this.setMergeTombstone(newcomerId, anchorId)
+
+    // Slerp gate embeddings: the anchor should reflect both engrams on the sphere.
+    let slerpedEmbedding: Float32Array | undefined
+    if (opts.embedding && this.embeddingProvider) {
+      const anchorEmb = this.embeddingProvider(anchorId)
+      if (anchorEmb && anchorEmb.length === opts.embedding.length) {
+        const t = 0.3 + 0.4 * anchorFeatureCount / Math.max(anchorFeatureCount, newcomerFeatureKeys.length)
+        slerpedEmbedding = this.slerpEmbeddings(anchorEmb, opts.embedding, t)
+      }
+    }
+
+    this.logger.debug?.(`FeatureIndex merged engram${opts.debugLabel ? ` (${opts.debugLabel})` : ''}`, {
+      engramId: newcomerId.slice(0, 12),
+      into: anchorId.slice(0, 12),
+      slerped: !!slerpedEmbedding,
+    })
+
+    return {
+      action: 'merged',
+      mergedInto: anchorId,
+      featureCount: anchorFeatureCount,
+      slerpedEmbedding,
+    }
+  }
+
+  /**
    * Spherical linear interpolation between two unit-norm gate embeddings.
    * Both vectors live on S^{d-1}; slerp stays on the geodesic.
    * t ∈ [0,1]: 0 = pure a, 1 = pure b.
@@ -180,8 +254,8 @@ export class LmdbFeatureIndex {
       source?: string
     },
   ): IndexResult {
-    if (!this.ready || !this.gateKnn) return { action: 'indexed' }
-    if (!content || content.length < 20) return { action: 'indexed' }
+    if (!this.ready || !this.gateKnn) return { action: 'skipped', skipReason: 'not_ready' }
+    if (!content || content.length < 20) return { action: 'skipped', skipReason: 'content_too_short' }
 
     // Check merge tombstone first — if this engram was already merged into
     // another, skip the expensive gateKnn call entirely. This tombstone
@@ -197,7 +271,7 @@ export class LmdbFeatureIndex {
         minScore: options?.minScore ?? 0.05,
       })
 
-      if (features.length === 0) return { action: 'indexed' }
+      if (features.length === 0) return { action: 'skipped', skipReason: 'no_features' }
 
       const featureKeys = features.map(f => featureKey(f.layer, f.featureIndex, options?.source))
 
@@ -215,48 +289,12 @@ export class LmdbFeatureIndex {
 
           // Anchor quality check: if the newcomer has significantly more
           // features (1.5×), it's the richer engram — reverse the merge.
-          // The old anchor is removed from the index; the newcomer absorbs it.
-          if (featureKeys.length > anchorFeatureCount * ANCHOR_REVERSAL_RATIO) {
-            this.removeEngram(top.engramId)
-            // Union the feature sets — always merge, since the anchor may have
-            // features the newcomer doesn't (even with the 1.5× ratio check).
-            const allKeys = [...new Set([...featureKeys, ...anchorKeys])]
-            this.insertFeatures(engramId, allKeys)
-            // Move the tombstone: the old anchor is now merged into the newcomer.
-            this.setMergeTombstone(top.engramId, engramId)
-            this.logger.debug?.('FeatureIndex reversed merge', {
-              engramId: engramId.slice(0, 12),
-              absorbed: top.engramId.slice(0, 12),
-              newFeatures: featureKeys.length,
-              anchorFeatures: anchorFeatureCount,
-              ratio: (featureKeys.length / anchorFeatureCount).toFixed(2),
-            })
-            // Reversed: caller stores this engram normally; old anchor gone from index.
-            return { action: 'indexed' }
-          }
+          const reverseAnchor = featureKeys.length > anchorFeatureCount * ANCHOR_REVERSAL_RATIO
 
-          // Normal merge: union the feature sets into the anchor engram.
-          this.mergeFeatures(top.engramId, featureKeys)
-          // Record tombstone so this engram is skipped on future boots.
-          this.setMergeTombstone(engramId, top.engramId)
-
-          // Slerp gate embeddings: the anchor should reflect both engrams on the sphere.
-          let slerpedEmbedding: Float32Array | undefined
-          if (options?.embedding && this.embeddingProvider) {
-            const anchorEmb = this.embeddingProvider(top.engramId)
-            if (anchorEmb && anchorEmb.length === options.embedding.length) {
-              const t = 0.3 + 0.4 * anchorFeatureCount / Math.max(anchorFeatureCount, featureKeys.length)
-              slerpedEmbedding = this.slerpEmbeddings(anchorEmb, options.embedding, t)
-            }
-          }
-
-          this.logger.debug?.('FeatureIndex merged engram', {
-            engramId: engramId.slice(0, 12),
-            into: top.engramId.slice(0, 12),
-            overlapRatio: overlapRatio.toFixed(3),
-            slerped: !!slerpedEmbedding,
+          return this.executeMerge(engramId, featureKeys, top.engramId, anchorFeatureCount, {
+            reverseAnchor,
+            embedding: options?.embedding,
           })
-          return { action: 'merged', mergedInto: top.engramId, overlapRatio, featureCount: anchorFeatureCount, slerpedEmbedding }
         }
       }
 
@@ -269,7 +307,7 @@ export class LmdbFeatureIndex {
         engramId: engramId.slice(0, 12),
         error: String(err),
       })
-      return { action: 'indexed' }
+      return { action: 'skipped', skipReason: 'gateknn_error' }
     }
   }
 
@@ -317,55 +355,14 @@ export class LmdbFeatureIndex {
     // Anchor quality reversal: if the checked engram has ≥1.5× more
     // features than the anchor, the old anchor is removed and this
     // engram absorbs it.
-    if (featureList.length > anchorFeatureCount * ANCHOR_REVERSAL_RATIO) {
-      this.removeEngram(top.engramId)
-      const allKeys = [...new Set([...featureList, ...anchorKeys])]
-      // Re-index the richer engram with the union of both feature sets
-      this.removeEngram(engramId)
-      this.insertFeatures(engramId, allKeys)
-      this.setMergeTombstone(top.engramId, engramId)
-      this.logger.debug?.('FeatureIndex reversed merge (consolidation)', {
-        engramId: engramId.slice(0, 12),
-        absorbed: top.engramId.slice(0, 12),
-        newFeatures: featureList.length,
-        anchorFeatures: anchorFeatureCount,
-        ratio: (featureList.length / anchorFeatureCount).toFixed(2),
-      })
-      // Return 'indexed' — caller should NOT delete this engram;
-      // the old anchor should be retired instead.
-      return { action: 'indexed', featureCount: featureList.length }
-    }
+    const reverseAnchor = featureList.length > anchorFeatureCount * ANCHOR_REVERSAL_RATIO
 
-    // Normal merge: union the feature sets into the anchor engram.
-    this.mergeFeatures(top.engramId, featureList)
-    this.removeEngram(engramId)
-    this.setMergeTombstone(engramId, top.engramId)
-
-    // Slerp gate embeddings: caller passes the merged engram's embedding;
-    // we fetch the anchor's embedding via the getter.
-    let slerpedEmbedding: Float32Array | undefined
-    if (opts?.embedding && this.embeddingProvider) {
-      const anchorEmb = this.embeddingProvider(top.engramId)
-      if (anchorEmb && anchorEmb.length === opts.embedding.length) {
-        const t = 0.3 + 0.4 * anchorFeatureCount / Math.max(anchorFeatureCount, featureList.length)
-        slerpedEmbedding = this.slerpEmbeddings(anchorEmb, opts.embedding, t)
-      }
-    }
-
-    this.logger.debug?.('FeatureIndex merged engram (consolidation)', {
-      engramId: engramId.slice(0, 12),
-      into: top.engramId.slice(0, 12),
-      overlapRatio: overlapRatio.toFixed(3),
-      slerped: !!slerpedEmbedding,
+    return this.executeMerge(engramId, featureList, top.engramId, anchorFeatureCount, {
+      reverseAnchor,
+      removeNewcomer: true,
+      embedding: opts?.embedding,
+      debugLabel: 'consolidation',
     })
-
-    return {
-      action: 'merged',
-      mergedInto: top.engramId,
-      overlapRatio,
-      featureCount: anchorFeatureCount,
-      slerpedEmbedding,
-    }
   }
 
   /**
@@ -426,8 +423,8 @@ export class LmdbFeatureIndex {
   /**
    * Build the index from existing engrams in the Cortex.
    * Yields the event loop after every engram to keep the daemon responsive.
-   * Logs progress periodically. Uses batched LMDB transactions for writes.
-   * Skips engrams that are already indexed OR have a merge tombstone.
+   * Logs progress periodically. Skips engrams that are already indexed OR
+   * have a merge tombstone.
    */
   async buildFromCortex(
     cortex: Cortex,
@@ -451,6 +448,7 @@ export class LmdbFeatureIndex {
     let skipped = 0
     let merged = 0
     let tombstoneSkipped = 0
+    let errorSkipped = 0
 
     const total = engrams.length
     for (let i = 0; i < total; i++) {
@@ -469,6 +467,8 @@ export class LmdbFeatureIndex {
       const result = this.indexEngram(engrams[i].id, engrams[i].content, options)
       if (result.action === 'merged') {
         merged++
+      } else if (result.action === 'skipped') {
+        errorSkipped++
       } else {
         indexed++
       }
@@ -487,6 +487,7 @@ export class LmdbFeatureIndex {
           merged,
           skipped,
           tombstoneSkipped,
+          errorSkipped,
         })
       }
     }
@@ -498,6 +499,7 @@ export class LmdbFeatureIndex {
       merged,
       skipped,
       tombstoneSkipped,
+      errorSkipped,
       featureKeys: stats.featureKeys,
     })
 
@@ -517,12 +519,6 @@ export class LmdbFeatureIndex {
   private stripSourcePrefix(key: string): string {
     const idx = key.indexOf(':L')
     return idx >= 0 ? key.slice(idx + 1) : key
-  }
-
-  /** Extract source prefix from a feature key. "gemma:L20:F6478" → "gemma". */
-  private extractSource(key: string): string | null {
-    const idx = key.indexOf(':L')
-    return idx >= 0 ? key.slice(0, idx) : null
   }
 
   /**
@@ -575,10 +571,11 @@ export class LmdbFeatureIndex {
    * Find engrams that share the given feature keys.
    * Core overlap primitive used by lookup, findCorrelated, and merge check.
    *
-   * Uses progressive early-exit: when minOverlapRatio is set (>0), tracks the
-   * best overlap seen so far and short-circuits if the maximum possible overlap
-   * for any engram can no longer reach the threshold. This avoids scanning all
-   * feature keys when a merge is impossible — the common case for unique engrams.
+   * Progressive early-exit: when minOverlapRatio is set (>0), tracks the
+   * best overlap seen so far and short-circuits if the maximum possible
+   * overlap for any engram can no longer reach the threshold. Additionally,
+   * when limit=1 and a qualifying engram is already found, exits early
+   * since the caller only needs one merge candidate.
    */
   private findOverlappingByKeys(
     featureKeys: string[],
@@ -609,23 +606,17 @@ export class LmdbFeatureIndex {
         if (count > bestSeen) bestSeen = count
       }
 
-      // Progressive early-exit: if minOverlapRatio is set, check whether
-      // any engram can still reach the threshold.  The maximum possible
-      // overlap for ANY engram is bestSeen + (remaining feature keys).
-      // If even that can't reach minOverlapRatio × total → no merge possible.
+      // Progressive early-exit when a merge threshold is configured.
       if (minOverlapRatio > 0) {
         const remaining = featureKeys.length - ki - 1
         const maxPossibleRatio = (bestSeen + remaining) / featureKeys.length
-        if (maxPossibleRatio < minOverlapRatio) {
-          // Even the best engram can't reach the threshold — return early.
-          // We already have the best candidates; filter/sort/slice what we have.
-          if (minOverlap > 0 || limit < Infinity) {
-            break
-          }
-          // If no minOverlap and no limit, we need all results — can't exit early.
-          if (minOverlap === 0) continue
-          break
-        }
+
+        // Short-circuit: even the best engram can't reach the threshold.
+        if (maxPossibleRatio < minOverlapRatio) break
+
+        // Short-circuit: caller only needs one result, and we already have
+        // a qualifying engram (≥ threshold). No need to find a better one.
+        if (limit === 1 && bestSeen / featureKeys.length >= minOverlapRatio) break
       }
     }
 
