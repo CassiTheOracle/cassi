@@ -141,6 +141,72 @@ export async function handleMemoryRoutes(
     }
   }
 
+  // GET /memory/attractors — V-Field V3.0 attractor basin listing
+  if (parts[1] === 'attractors' && method === 'GET') {
+    try {
+      const extractor = (daemon?.intelligence as any)?.__attractorExtractor as
+        import('../intelligence/mnemic-field/attractor-extractor.js').AttractorExtractor | undefined
+      if (!extractor) { sendJSON(res, 503, { error: 'AttractorExtractor not available' }); return true }
+
+      const attractors = extractor.getAttractors()
+      const summary = attractors.map(a => ({
+        id: a.id,
+        basinSize: a.basinSize,
+        stabilityScore: a.stabilityScore,
+        meanRe: a.meanRe,
+        memberCount: a.members.length,
+        topConcepts: a.members.slice(0, 5).map(m => m.concept),
+      }))
+      sendJSON(res, 200, {
+        ok: true,
+        count: attractors.length,
+        attractors: summary,
+        lastExtractionSec: extractor.timeSinceLastExtraction < Infinity
+          ? Math.round(extractor.timeSinceLastExtraction / 1000) : null,
+      })
+      return true
+    } catch (err) { sendJSON(res, 500, { error: String(err) }); return true }
+  }
+
+  // GET /memory/attractors/:id — single attractor detail
+  if (parts[1] === 'attractors' && parts[2] && method === 'GET') {
+    try {
+      const extractor = (daemon?.intelligence as any)?.__attractorExtractor as
+        import('../intelligence/mnemic-field/attractor-extractor.js').AttractorExtractor | undefined
+      if (!extractor) { sendJSON(res, 503, { error: 'AttractorExtractor not available' }); return true }
+
+      const attr = extractor.getAttractor(parts[2])
+      if (!attr) { sendJSON(res, 404, { error: 'attractor not found' }); return true }
+
+      sendJSON(res, 200, {
+        ok: true,
+        id: attr.id,
+        basinSize: attr.basinSize,
+        stabilityScore: attr.stabilityScore,
+        meanRe: attr.meanRe,
+        members: attr.members.map(m => ({
+          concept: m.concept,
+          engramId: m.engramId,
+        })),
+      })
+      return true
+    } catch (err) { sendJSON(res, 500, { error: String(err) }); return true }
+  }
+
+  // GET /memory/attractors/:id/basin — engram IDs in attractor basin
+  if (parts[1] === 'attractors' && parts[2] && parts[3] === 'basin' && method === 'GET') {
+    try {
+      const extractor = (daemon?.intelligence as any)?.__attractorExtractor as
+        import('../intelligence/mnemic-field/attractor-extractor.js').AttractorExtractor | undefined
+      if (!extractor) { sendJSON(res, 503, { error: 'AttractorExtractor not available' }); return true }
+
+      const ids = extractor.getBasinEngramIds(parts[2])
+      if (ids.length === 0) { sendJSON(res, 404, { error: 'attractor not found or empty basin' }); return true }
+      sendJSON(res, 200, { ok: true, attractorId: parts[2], engramIds: ids, count: ids.length })
+      return true
+    } catch (err) { sendJSON(res, 500, { error: String(err) }); return true }
+  }
+
   // GET /memory/by-type/:nodeType — list engrams by node type
   if (parts[1] === 'by-type' && parts[2] && method === 'GET') {
     try {
