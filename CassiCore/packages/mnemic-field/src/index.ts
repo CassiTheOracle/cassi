@@ -518,6 +518,25 @@ export class MnemicField {
       const dbPath = dbOrPath ?? path.join(getDataDir(), 'mnemic-field.db')
       const dir = path.dirname(dbPath)
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+
+      // Crash-recovery WAL checkpoint: after an OOM crash or SIGKILL,
+      // the WAL can hold 100 MB+ of un-checkpointed pages.  SQLite replays
+      // the WAL synchronously on the first connection, blocking the Node.js
+      // event loop (D-state) and making the daemon unresponsive.
+      //
+      // Open a temporary read-only connection, checkpoint + truncate the
+      // WAL, then close.  On clean boots the WAL is already empty so the
+      // pragma is a ~1 ms no-op.
+      try {
+        const recovery = new Database(dbPath, { readonly: true })
+        recovery.pragma('wal_checkpoint(TRUNCATE)')
+        recovery.close()
+      } catch {
+        // WHY: DB may not exist yet (first boot) — that's fine.
+        // Other errors (permissions, corruption) surface on the real
+        // open below.
+      }
+
       db = new Database(dbPath)
       db.pragma('journal_mode = WAL')
       db.pragma('busy_timeout = 5000')

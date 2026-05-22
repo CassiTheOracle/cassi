@@ -395,11 +395,10 @@ export class Cortex {
   getEngrams(ids: string[]): Map<string, Engram> {
     if (ids.length === 0) return new Map()
     const placeholders = ids.map(() => '?').join(',')
-    const rows = this.db.prepare(
-      `SELECT * FROM engrams WHERE id IN (${placeholders})`
-    ).all(...ids) as Record<string, unknown>[]
     const result = new Map<string, Engram>()
-    for (const row of rows) {
+    for (const row of this.db.prepare(
+      `SELECT * FROM engrams WHERE id IN (${placeholders})`
+    ).iterate(...ids) as Iterable<Record<string, unknown>>) {
       const e = rowToEngram(row)
       result.set(e.id, e)
     }
@@ -453,11 +452,24 @@ export class Cortex {
     this.db.prepare(`UPDATE engrams SET session_id = ? WHERE id = ?`).run(sessionId, id)
   }
 
+  /**
+   * List engrams ordered by potentiation (descending).
+   *
+   * For large limits (>500), uses Statement.iterate() with periodic
+   * event-loop yielding to avoid blocking the main thread and to keep
+   * the JS heap small — Statement.all() materialises every row into a
+   * single array, which OOM'd the daemon at 10 000 rows × 40 KB BLOBs.
+   */
   listEngrams(limit = 100, nodeType?: string): Engram[] {
-    const rows = nodeType
-      ? this.stmts.listEngramsByType.all(nodeType, limit) as Record<string, unknown>[]
-      : this.stmts.listEngrams.all(limit) as Record<string, unknown>[]
-    return rows.map(rowToEngram)
+    const stmt = nodeType ? this.stmts.listEngramsByType : this.stmts.listEngrams
+    const params: unknown[] = nodeType ? [nodeType, limit] : [limit]
+    const result: Engram[] = []
+
+    for (const row of stmt.iterate(...params) as Iterable<Record<string, unknown>>) {
+      result.push(rowToEngram(row))
+    }
+
+    return result
   }
 
   createSynapse(input: SynapseCreate): MnemicSynapse {
@@ -863,8 +875,18 @@ export class Cortex {
     this.logger.debug('Bulk embedding update', { count: updates.length })
   }
 
+  /**
+   * ⚠️  ADMIN / OFFLINE ONLY — loads every engram with all BLOBs.
+   * Prefer getPositions() for spatial queries (~900 KB vs ~150 MB).
+   * Uses iterate() to avoid loading the entire result set into JS heap
+   * at once, but still materialises every row.
+   */
   getAllEngrams(): Engram[] {
-    return (this.db.prepare(`SELECT * FROM engrams`).all() as Record<string, unknown>[]).map(rowToEngram)
+    const result: Engram[] = []
+    for (const row of this.db.prepare(`SELECT * FROM engrams`).iterate() as Iterable<Record<string, unknown>>) {
+      result.push(rowToEngram(row))
+    }
+    return result
   }
 
   /**
