@@ -859,6 +859,14 @@ export class MnemicField {
       } catch { /* best-effort */ }
     }
 
+    // Write spherical position to the position-index (V1).
+    // φ derived from z residual: tanh-normalized → arccos → [0, π].
+    if (this.featureIndex?.isReady()) {
+      const normZ = Math.max(-1, Math.min(1, Math.tanh(z! * 5)))
+      const phi = Math.acos(normZ)
+      this.featureIndex.writePosition(engram.id, r!, theta!, phi, resolvedEmbedding ?? undefined)
+    }
+
     // Fire-and-forget: decompose content into structural layers.
     // Adds sentence-level feature fingerprints to metadata for read-time
     // selection. Don't block the store — use setImmediate.

@@ -63,6 +63,8 @@ export class LmdbFeatureIndex {
   private featureToEngrams: any // lmdb Database (dupSort)
   private engramToFeatures: any // lmdb Database (dupSort)
   private mergeTombstones: any  // lmdb Database (merged_engram_id → anchor_engram_id)
+  private engramsByCell: any    // lmdb Database (dupSort): cell_key → engram_id
+  private engramsByPosition: any // lmdb Database: engram_id → position BLOB
   private logger: ILogger
   private gateKnn: VindexGateKnnFn | null = null
   private ready = false
@@ -92,6 +94,18 @@ export class LmdbFeatureIndex {
     this.mergeTombstones = this.env.openDB('merge_tombstones', {
       keyEncoding: 'ordered-binary',
       encoding: 'string',
+    })
+
+    // Position-index databases for spherical spatial queries (V1).
+    this.engramsByCell = this.env.openDB('engrams_by_cell', {
+      dupSort: true,
+      keyEncoding: 'ordered-binary',
+      encoding: 'string',
+    })
+
+    this.engramsByPosition = this.env.openDB('engrams_by_position', {
+      keyEncoding: 'ordered-binary',
+      encoding: 'binary',
     })
 
     this.logger.info('LmdbFeatureIndex opened', { envPath })
@@ -651,5 +665,173 @@ export class LmdbFeatureIndex {
         this.engramToFeatures.putSync(engramId, key)
       }
     })
+  }
+
+  // Position-index (V1: Spherical Coordinate System)
+
+  /** Write an engram's spherical position and cell membership. */
+  writePosition(
+    engramId: string,
+    r: number,
+    theta: number,
+    phi: number,
+    embedding?: Float32Array | null,
+  ): void {
+    const shell = r < 0.1 ? 0 : r < 0.3 ? 1 : r < 0.6 ? 2 : 3
+    const nside = [1, 2, 4, 8][shell]!
+    const nRing = 4 * nside
+    const ring = Math.max(0, Math.min(nRing - 1,
+      Math.floor(phi / Math.PI * (nRing - 1) + 0.5)))
+    const midRing = nRing >> 1
+    const cellsInRing = ring <= midRing
+      ? Math.max(4, 4 * (ring + 1))
+      : Math.max(4, 4 * (nRing - ring))
+    const cellInRing = Math.floor(theta / (2 * Math.PI) * cellsInRing) % cellsInRing
+
+    let globalCell = 0
+    for (let ri = 0; ri < ring; ri++) {
+      const count = ri <= midRing
+        ? Math.max(4, 4 * (ri + 1))
+        : Math.max(4, 4 * (nRing - ri))
+      globalCell += count
+    }
+    globalCell += cellInRing
+
+    const cellKey = String.fromCharCode(shell) +
+      String.fromCharCode((globalCell >> 24) & 0xFF) +
+      String.fromCharCode((globalCell >> 16) & 0xFF) +
+      String.fromCharCode((globalCell >> 8) & 0xFF) +
+      String.fromCharCode(globalCell & 0xFF)
+    this.engramsByCell.put(cellKey, engramId)
+
+    const hasEmb = embedding && embedding.length > 0 ? 1 : 0
+    const blobSize = 12 + 1 + (hasEmb ? embedding!.length * 4 : 0)
+    const blob = Buffer.alloc(blobSize)
+    blob.writeFloatLE(r, 0)
+    blob.writeFloatLE(theta, 4)
+    blob.writeFloatLE(phi, 8)
+    blob.writeUInt8(hasEmb, 12)
+    if (hasEmb && embedding) {
+      for (let i = 0; i < embedding.length; i++) {
+        blob.writeFloatLE(embedding[i]!, 13 + i * 4)
+      }
+    }
+    this.engramsByPosition.put(engramId, blob)
+  }
+
+  /** Read an engram's spherical position. */
+  getPosition(engramId: string): { r: number; theta: number; phi: number; embedding?: Float32Array } | null {
+    const blob = this.engramsByPosition.get(engramId) as Buffer | undefined
+    if (!blob || blob.length < 12) return null
+    const r = blob.readFloatLE(0)
+    const theta = blob.readFloatLE(4)
+    const phi = blob.readFloatLE(8)
+    const hasEmb = blob.length > 12 ? blob.readUInt8(12) : 0
+    let embedding: Float32Array | undefined
+    if (hasEmb && blob.length >= 13 + 1536 * 4) {
+      embedding = new Float32Array(1536)
+      for (let i = 0; i < 1536; i++) {
+        embedding[i] = blob.readFloatLE(13 + i * 4)
+      }
+    }
+    return { r, theta, phi, embedding }
+  }
+
+  /** Get engram IDs in a cell. */
+  engramsInCell(shell: number, cell: number): string[] {
+    const cellKey = String.fromCharCode(shell) +
+      String.fromCharCode((cell >> 24) & 0xFF) +
+      String.fromCharCode((cell >> 16) & 0xFF) +
+      String.fromCharCode((cell >> 8) & 0xFF) +
+      String.fromCharCode(cell & 0xFF)
+    const ids: string[] = []
+    for (const id of this.engramsByCell.getValues(cellKey) ?? []) {
+      ids.push(id as string)
+    }
+    return ids
+  }
+
+  /** Batch lookup: engrams in multiple cells. */
+  engramsInCells(cellKeys: string[]): string[] {
+    const ids: string[] = []
+    for (const key of cellKeys) {
+      for (const id of this.engramsByCell.getValues(key) ?? []) {
+        ids.push(id as string)
+      }
+    }
+    return ids
+  }
+
+  /** Nearest engrams by spherical position using cell-based bucketing. */
+  nearestByPosition(
+    r: number, theta: number, phi: number,
+    maxResults: number = 20, radius: number = 0.3,
+  ): Array<{ engramId: string; distance: number }> {
+    const shell = r < 0.1 ? 0 : r < 0.3 ? 1 : r < 0.6 ? 2 : 3
+    const nside = [1, 2, 4, 8][shell]!
+    const candidateIds = new Set<string>()
+    for (const ds of [-1, 0, 1]) {
+      const s = shell + ds
+      if (s < 0 || s > 3) continue
+      const ns = [1, 2, 4, 8][s]!
+      const dPhi = (radius * Math.PI) / ns
+      const dTheta = (radius * 2 * Math.PI) / ns
+      const ringMin = Math.max(0, Math.floor((phi - dPhi) / Math.PI * 4 * ns))
+      const ringMax = Math.min(4 * ns - 1, Math.ceil((phi + dPhi) / Math.PI * 4 * ns))
+      for (let ri = ringMin; ri <= ringMax; ri++) {
+        const midR = (4 * ns) >> 1
+        const cellsInRing = ri <= midR
+          ? Math.max(4, 4 * (ri + 1))
+          : Math.max(4, 4 * (4 * ns - ri))
+        const cellMin = Math.floor(((theta - dTheta) % (2 * Math.PI) + 2 * Math.PI) / (2 * Math.PI) * cellsInRing)
+        const cellMax = Math.ceil(((theta + dTheta) % (2 * Math.PI) + 2 * Math.PI) / (2 * Math.PI) * cellsInRing)
+        let baseCell = 0
+        for (let rj = 0; rj < ri; rj++) {
+          const count = rj <= midR
+            ? Math.max(4, 4 * (rj + 1))
+            : Math.max(4, 4 * (4 * ns - rj))
+          baseCell += count
+        }
+        for (let ci = cellMin; ci <= cellMax; ci++) {
+          const ck = String.fromCharCode(s) +
+            String.fromCharCode((baseCell + (ci % cellsInRing) >> 24) & 0xFF) +
+            String.fromCharCode((baseCell + (ci % cellsInRing) >> 16) & 0xFF) +
+            String.fromCharCode((baseCell + (ci % cellsInRing) >> 8) & 0xFF) +
+            String.fromCharCode((baseCell + (ci % cellsInRing)) & 0xFF)
+          candidateIds.add(ck)
+        }
+      }
+    }
+
+    const results: Array<{ engramId: string; distance: number }> = []
+    for (const ck of candidateIds) {
+      for (const id of this.engramsByCell.getValues(ck) ?? []) {
+        const pos = this.getPosition(id as string)
+        if (!pos) continue
+        const dr = r - pos.r
+        const dTheta = Math.abs(theta - pos.theta)
+        const minDTheta = Math.min(dTheta, 2 * Math.PI - dTheta)
+        const arcDist = (r + pos.r) * 0.5 * minDTheta
+        const dPhi = phi - pos.phi
+        const dz = (r + pos.r) * 0.5 * dPhi
+        const distance = Math.sqrt(dr * dr + arcDist * arcDist + dz * dz)
+        if (distance <= radius) results.push({ engramId: id as string, distance })
+      }
+    }
+    results.sort((a, b) => a.distance - b.distance)
+    return results.slice(0, maxResults)
+  }
+
+  /** Remove position data for an engram. */
+  removePosition(engramId: string): void {
+    this.engramsByPosition.remove(engramId)
+  }
+
+  /** Position-index stats. */
+  positionStats(): { cellCount: number; positionCount: number } {
+    let cellCount = 0, positionCount = 0
+    for (const _ of this.engramsByCell.getKeys() ?? []) cellCount++
+    for (const _ of this.engramsByPosition.getKeys() ?? []) positionCount++
+    return { cellCount, positionCount }
   }
 }

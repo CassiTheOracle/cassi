@@ -418,4 +418,21 @@ export class FeatureIndex {
 
     this.insertFeatures(engramId, [...existing, ...toAdd])
   }
+
+  // Position-index stubs (V1) — no-op on SQLite backend
+
+  /** No-op on SQLite backend. Position writes go through LmdbFeatureIndex. */
+  writePosition(_engramId: string, _r: number, _theta: number, _phi: number, _embedding?: Float32Array | null): void {}
+  /** No-op on SQLite backend. */
+  getPosition(_engramId: string): { r: number; theta: number; phi: number; embedding?: Float32Array } | null { return null }
+  /** No-op on SQLite backend. */
+  engramsInCell(_shell: number, _cell: number): string[] { return [] }
+  /** No-op on SQLite backend. */
+  engramsInCells(_cellKeys: string[]): string[] { return [] }
+  /** No-op on SQLite backend. */
+  nearestByPosition(_r: number, _theta: number, _phi: number, _maxResults?: number, _radius?: number): Array<{ engramId: string; distance: number }> { return [] }
+  /** No-op on SQLite backend. */
+  removePosition(_engramId: string): void {}
+  /** No-op on SQLite backend. */
+  positionStats(): { cellCount: number; positionCount: number } { return { cellCount: 0, positionCount: 0 } }
 }
