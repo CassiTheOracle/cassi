@@ -1502,13 +1502,13 @@ this.aurora?.setReverieInferenceProvider(provider)
     // System messages anchor the prompt prefix cache — they must be
     // returned byte-identical to the input. Extract them here and
     // re-insert them at output.
-    const systemMessages: { msg: any; index: number }[] = []
+    const systemMessages: any[] = []
     const nonSystemMessages: any[] = []
-    for (let i = 0; i < messages.length; i++) {
-      if (messages[i]?.role === 'system') {
-        systemMessages.push({ msg: messages[i], index: i })
+    for (const msg of messages) {
+      if (msg?.role === 'system') {
+        systemMessages.push(msg)
       } else {
-        nonSystemMessages.push(messages[i])
+        nonSystemMessages.push(msg)
       }
     }
 
@@ -1806,11 +1806,16 @@ this.aurora?.setReverieInferenceProvider(provider)
     // pass through byte-identical and are re-inserted at output.
     const cacheInvalidated = dropped > 0 || assembled.messages.length !== nonSystemMessages.length
 
+    // System message chars for accurate curated counts
+    const systemChars = systemMessages.reduce(
+      (sum: number, m: any) => sum + extractMessageContent(m).length, 0
+    )
+
     const meta = {
       originalCount: messages.length,
-      curatedCount: assembled.messages.length,
+      curatedCount: assembled.messages.length + systemMessages.length,
       originalChars,
-      curatedChars,
+      curatedChars: curatedChars + systemChars,
       compressed: compressedCount,
       deduped: dedupedCount,
       dropped,
@@ -1984,7 +1989,7 @@ this.aurora?.setReverieInferenceProvider(provider)
         fallbackMessages = [{ role: 'user', content: 'Continue.' }]
         this.logger.warn('Fallback had no user messages, injected placeholder', { sessionId })
       }
-      return { messages: [...systemMessages.map(s => s.msg), ...fallbackMessages], meta: fallbackMeta }
+      return { messages: [...systemMessages, ...fallbackMessages], meta: fallbackMeta }
     }
     if (!validation.valid) {
       this.logger.warn('Curation has warnings', { sessionId, errors: validation.errors })
@@ -1992,7 +1997,7 @@ this.aurora?.setReverieInferenceProvider(provider)
 
     // Re-insert cache-protected system messages at the start of the output.
     // These were extracted before processing and are byte-identical to input.
-    return { messages: [...systemMessages.map(s => s.msg), ...finalMessages], meta }
+    return { messages: [...systemMessages, ...finalMessages], meta }
   }
 
   /**
