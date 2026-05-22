@@ -29,6 +29,7 @@ export const ENGRAM_TYPES = [
   'build_output',
   'spatial_feature',
   'attractor',
+  'generation',
 ] as const
 
 export type EngramType = typeof ENGRAM_TYPES[number]
@@ -51,6 +52,7 @@ export const SYNAPSE_TYPES = [
   'operated_on',
   'vindex_correlation',
   'cross_modal',
+  'activated_by',
 ] as const
 
 export type SynapseType = typeof SYNAPSE_TYPES[number]
@@ -334,6 +336,7 @@ export const SYNAPSE_PROPAGATION: Record<SynapseType, number> = {
   operated_on: 0.8,
   vindex_correlation: 0.4,
   cross_modal: 0.45,  // text↔3D feature overlap — stronger than vindex_correlation, weaker than similar_to
+  activated_by: 0.7,  // generation→engram — the model "thought about" this memory
 }
 
 export const POTENTIATION_DEFAULTS = {
