@@ -8,7 +8,7 @@ import {
   OpenRouterProvider,
   QwenProvider,
   ZaiProvider,
-} from '@cassicore/ai'
+} from '../../ai/dist/providers/cassicore/index.js'
 
 import { getCassiCoreHome } from '../utils/paths.js'
 import { CentralizedProvider, wrapProvidersWithCentralized } from './centralized.js'
@@ -28,7 +28,7 @@ export { CentralizedProvider, wrapProvidersWithCentralized }
 export { QwenLoadBalancer, createQwenLoadBalancer }
 export type { QwenAccount }
 
-export { AlibabaCodingProvider, DeepSeekProvider, KimiCodingProvider, OpenRouterProvider, QwenProvider, ZaiProvider } from '@cassicore/ai'
+export { AlibabaCodingProvider, DeepSeekProvider, KimiCodingProvider, OpenRouterProvider, QwenProvider, ZaiProvider } from '../../ai/dist/providers/cassicore/index.js'
 
 export { CostClassifier, getCostClassifier, DEFAULT_COST_RULES } from './cost-classifier.js'
 export type { RequestCost, CostRule } from './cost-classifier.js'
@@ -128,6 +128,7 @@ export function createProviders(
 
   const opencodeKey =
     config.get<string>('providers.opencodeGo.apiKey', '') ||
+    process.env.OPENCODE_GO_API_KEY ||
     process.env.OPENCODE_API_KEY ||
     ''
   if (opencodeKey) {
