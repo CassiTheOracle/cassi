@@ -282,7 +282,69 @@ export async function handleMemoryRoutes(
       return true
     } catch (err) { sendJSON(res, 500, { error: String(err) }); return true }
   }
-  if (parts[1] === 'by-type' && parts[2] && method === 'GET') {
+
+  // POST /memory/visual/ingest — V5a: ingest image into the field
+  if (parts[1] === 'visual' && parts[2] === 'ingest' && method === 'POST') {
+    try {
+      const visual = (daemon?.intelligence as any)?.__visualIngestor as
+        import('../intelligence/mnemic-field/visual-ingestor.js').VisualIngestor | undefined
+      if (!visual) { sendJSON(res, 503, { error: 'VisualIngestor not available' }); return true }
+
+      const body = await parseBody(req).catch(() => ({}))
+      const imagePath = body?.imagePath || body?.image_path || body?.path
+      const caption = body?.caption
+
+      if (!imagePath || typeof imagePath !== 'string') {
+        sendJSON(res, 400, { error: 'imagePath required (string)' }); return true
+      }
+
+      let result: any
+      if (caption && typeof caption === 'string') {
+        result = await visual.ingestWithCaption(imagePath, caption, body?.metadata)
+      } else {
+        result = await visual.ingest(imagePath, body?.metadata)
+      }
+
+      sendJSON(res, 200, {
+        ok: true,
+        engramId: result.engramId,
+        caption: result.caption,
+        fieldPositionDim: result.fieldPosition.length,
+        linkedEngramCount: result.linkedEngramIds.length,
+      })
+      return true
+    } catch (err) { sendJSON(res, 500, { error: String(err) }); return true }
+  }
+
+  // GET /memory/visual — list visual memories
+  if (parts[1] === 'visual' && !parts[2] && method === 'GET') {
+    try {
+      const visual = (daemon?.intelligence as any)?.__visualIngestor as
+        import('../intelligence/mnemic-field/visual-ingestor.js').VisualIngestor | undefined
+      if (!visual) { sendJSON(res, 503, { error: 'VisualIngestor not available' }); return true }
+
+      const limit = parseInt(url.searchParams.get('limit') ?? '20', 10)
+      const memories = visual.listVisualMemories(limit)
+      sendJSON(res, 200, { ok: true, count: memories.length, visualMemories: memories })
+      return true
+    } catch (err) { sendJSON(res, 500, { error: String(err) }); return true }
+  }
+
+  // GET /memory/visual/:id — single visual memory detail
+  if (parts[1] === 'visual' && parts[2] && method === 'GET') {
+    try {
+      const visual = (daemon?.intelligence as any)?.__visualIngestor as
+        import('../intelligence/mnemic-field/visual-ingestor.js').VisualIngestor | undefined
+      if (!visual) { sendJSON(res, 503, { error: 'VisualIngestor not available' }); return true }
+
+      const memory = visual.getVisualMemory(parts[2])
+      if (!memory) { sendJSON(res, 404, { error: 'visual memory not found' }); return true }
+      sendJSON(res, 200, { ok: true, ...memory })
+      return true
+    } catch (err) { sendJSON(res, 500, { error: String(err) }); return true }
+  }
+
+  // GET /memory/by-type/:nodeType — list engrams by node type
     try {
       const field = getMnemicField(logger, daemon)
       const limit = parseInt(url.searchParams.get('limit') ?? '50', 10)
