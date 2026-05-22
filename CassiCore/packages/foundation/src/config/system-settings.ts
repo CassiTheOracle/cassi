@@ -26,37 +26,37 @@
 export const MODEL_DEFAULTS = {
   /** Main agent — the user-facing conversational model */
   main: {
-    provider: getEnvString('CASSICORE_MODEL_MAIN_PROVIDER', 'hermes'),
+    provider: getEnvString('CASSICORE_MODEL_MAIN_PROVIDER', 'opencode-go'),
     model: getEnvString('CASSICORE_MODEL_MAIN', 'deepseek-v4-pro'),
   },
 
   /** Background reasoning — intelligence modules (thinker, dialectic, memory, subconscious) */
   reasoning: {
-    provider: getEnvString('CASSICORE_MODEL_REASONING_PROVIDER', 'hermes'),
+    provider: getEnvString('CASSICORE_MODEL_REASONING_PROVIDER', 'opencode-go'),
     model: getEnvString('CASSICORE_MODEL_REASONING', 'deepseek-v4-pro'),
   },
 
   /** Spawned agents — team members, sub-agents, coordinators */
   agent: {
-    provider: getEnvString('CASSICORE_MODEL_AGENT_PROVIDER', 'hermes'),
+    provider: getEnvString('CASSICORE_MODEL_AGENT_PROVIDER', 'opencode-go'),
     model: getEnvString('CASSICORE_MODEL_AGENT', 'deepseek-v4-pro'),
   },
 
   /** Fast — quick intent parsing, low-latency operations */
   fast: {
-    provider: getEnvString('CASSICORE_MODEL_FAST_PROVIDER', 'hermes'),
+    provider: getEnvString('CASSICORE_MODEL_FAST_PROVIDER', 'opencode-go'),
     model: getEnvString('CASSICORE_MODEL_FAST', 'deepseek-v4-flash'),
   },
 
   /** Fallback — used when provider resolution fails entirely */
   fallback: {
-    provider: getEnvString('CASSICORE_MODEL_FALLBACK_PROVIDER', 'hermes'),
+    provider: getEnvString('CASSICORE_MODEL_FALLBACK_PROVIDER', 'opencode-go'),
     model: getEnvString('CASSICORE_MODEL_FALLBACK', 'deepseek-v4-flash'),
   },
 
   /** Background — cheap/free model for drones, scouts, and low-priority work */
   background: {
-    provider: getEnvString('CASSICORE_MODEL_BACKGROUND_PROVIDER', 'hermes'),
+    provider: getEnvString('CASSICORE_MODEL_BACKGROUND_PROVIDER', 'opencode-go'),
     model: getEnvString('CASSICORE_MODEL_BACKGROUND', 'deepseek-v4-flash'),
   },
 } as const
