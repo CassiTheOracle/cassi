@@ -344,6 +344,56 @@ export async function handleMemoryRoutes(
     } catch (err) { sendJSON(res, 500, { error: String(err) }); return true }
   }
 
+  // GET /memory/spatial — V1: spatial region query
+  // ?r=0.5&theta=1.2&z=0.3&radius=0.2&limit=20
+  if (parts[1] === 'spatial' && !parts[2] && method === 'GET') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      if (!field.spatialIndex?.ready) {
+        sendJSON(res, 503, { error: 'SpatialIndex not available' }); return true
+      }
+      const r = parseFloat(url.searchParams.get('r') ?? '0.5')
+      const theta = parseFloat(url.searchParams.get('theta') ?? '0')
+      const z = parseFloat(url.searchParams.get('z') ?? '0')
+      const radius = parseFloat(url.searchParams.get('radius') ?? '0.3')
+      const limit = parseInt(url.searchParams.get('limit') ?? '20', 10)
+
+      const results = field.spatialIndex.queryRegion(r, theta, z, radius, {
+        maxResults: limit,
+        minPotentiation: 0,
+      })
+      sendJSON(res, 200, { ok: true, count: results.length, results })
+      return true
+    } catch (err) { sendJSON(res, 500, { error: String(err) }); return true }
+  }
+
+  // GET /memory/spatial/cell/:shell/:cell — V1: cell contents
+  if (parts[1] === 'spatial' && parts[2] === 'cell' && parts[3] && parts[4] && method === 'GET') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      if (!field.spatialIndex?.ready) {
+        sendJSON(res, 503, { error: 'SpatialIndex not available' }); return true
+      }
+      const shell = parseInt(parts[3], 10)
+      const cell = parseInt(parts[4], 10)
+      const results = field.spatialIndex.queryCell(shell, cell)
+      sendJSON(res, 200, { ok: true, shell, cell, count: results.length, results })
+      return true
+    } catch (err) { sendJSON(res, 500, { error: String(err) }); return true }
+  }
+
+  // GET /memory/spatial/stats — V1: spatial index statistics
+  if (parts[1] === 'spatial' && parts[2] === 'stats' && method === 'GET') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      if (!field.spatialIndex?.ready) {
+        sendJSON(res, 503, { error: 'SpatialIndex not available' }); return true
+      }
+      sendJSON(res, 200, { ok: true, ...field.spatialIndex.stats() })
+      return true
+    } catch (err) { sendJSON(res, 500, { error: String(err) }); return true }
+  }
+
   // GET /memory/by-type/:nodeType — list engrams by node type
     try {
       const field = getMnemicField(logger, daemon)
