@@ -3,6 +3,7 @@ import { MnemicField } from '../intelligence/mnemic-field/index.js'
 import { migrateMemoryAndArchives, migrateMemoryOnly } from '../intelligence/mnemic-field/migrate-memory.js'
 import { getEmbeddingService } from '../intelligence/embeddings/embedding-service.js'
 import { getDataDir } from '../utils/paths.js'
+import { cellsInSector } from '../intelligence/mnemic-field/healpix.js'
 import type { SelfModelField } from '../intelligence/mnemic-field/self-model/self-model-field.js'
 import type { InterFieldBridge } from '../intelligence/mnemic-field/self-model/inter-field-bridge.js'
 import {
@@ -850,32 +851,7 @@ export async function handleMemoryRoutes(
       const shell = parseInt(sp.get('shell') ?? '0', 10)
       const limit = parseInt(sp.get('limit') ?? '50', 10)
 
-      const nside = [1, 2, 4, 8][Math.max(0, Math.min(3, shell))]!
-      const nRing = 4 * nside
-      const ringMin = Math.max(0, Math.floor(phiMin / Math.PI * nRing))
-      const ringMax = Math.min(nRing - 1, Math.floor(phiMax / Math.PI * nRing))
-
-      const cellKeys: string[] = []
-      for (let ring = ringMin; ring <= ringMax; ring++) {
-        const midR = nRing >> 1
-        const cellsInRing = ring <= midR
-          ? Math.max(4, 4 * (ring + 1))
-          : Math.max(4, 4 * (nRing - ring))
-        const cellMin = Math.floor(thetaMin / (2 * Math.PI) * cellsInRing)
-        const cellMax = Math.min(cellsInRing - 1, Math.floor(thetaMax / (2 * Math.PI) * cellsInRing))
-        let baseCell = 0
-        for (let r = 0; r < ring; r++) {
-          baseCell += r <= midR ? Math.max(4, 4 * (r + 1)) : Math.max(4, 4 * (nRing - r))
-        }
-        for (let ci = cellMin; ci <= cellMax; ci++) {
-          const cell = baseCell + (ci % cellsInRing)
-          cellKeys.push(String.fromCharCode(shell) +
-            String.fromCharCode((cell >> 24) & 0xFF) +
-            String.fromCharCode((cell >> 16) & 0xFF) +
-            String.fromCharCode((cell >> 8) & 0xFF) +
-            String.fromCharCode(cell & 0xFF))
-        }
-      }
+      const cellKeys = cellsInSector(shell, thetaMin, thetaMax, phiMin, phiMax)
 
       const ids = field.featureIndex?.engramsInCells(cellKeys) ?? []
       const cortex = field.getCortex()
