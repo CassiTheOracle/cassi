@@ -384,6 +384,19 @@ export class Daemon {
               this.logger.debug('FieldGenerator unavailable', { error: String(err) })
             }
 
+            // V-Field V5a: wire VisualIngestor for multimodal ingestion
+            try {
+              const { VisualIngestor } = await import('./intelligence/mnemic-field/visual-ingestor.js')
+              const visual = new VisualIngestor(mnemicField, undefined, {
+                autoCaption: false, // disable until vision provider is configured
+                autoLink: true,
+              })
+              ;(this.intelligence as any).__visualIngestor = visual
+              this.logger.info('VisualIngestor wired (V5a: Multimodal Ingestion)')
+            } catch (err) {
+              this.logger.debug('VisualIngestor unavailable', { error: String(err) })
+            }
+
           }
 
           // Wire forward provider for attention-based quality scoring.
