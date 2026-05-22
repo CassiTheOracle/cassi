@@ -394,6 +394,22 @@ export async function handleMemoryRoutes(
     } catch (err) { sendJSON(res, 500, { error: String(err) }); return true }
   }
 
+  // POST /memory/spatial/backfill — V1: backfill spatial index from cortex
+  if (parts[1] === 'spatial' && parts[2] === 'backfill' && method === 'POST') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      if (!field.spatialIndex?.ready) {
+        sendJSON(res, 503, { error: 'SpatialIndex not available' }); return true
+      }
+
+      const engrams = (field.getCortex() as any).listEngrams(200000)
+      const result = field.spatialIndex.backfill(engrams)
+      logger?.info?.('spatial backfill complete', result)
+      sendJSON(res, 200, { ok: true, ...result })
+      return true
+    } catch (err) { sendJSON(res, 500, { error: String(err) }); return true }
+  }
+
   // GET /memory/by-type/:nodeType — list engrams by node type
   if (parts[1] === 'by-type' && parts[2] && method === 'GET') {
     try {
