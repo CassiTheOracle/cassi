@@ -360,6 +360,30 @@ export class Daemon {
               this.logger.debug('AttractorExtractor unavailable', { error: String(err) })
             }
 
+            // V-Field V4: wire FieldGenerator for generation through the field
+            try {
+              const { FieldGenerator } = await import('./intelligence/mnemic-field/field-generator.js')
+              // Use a simple provider adapter — wraps any provider with a generate() call
+              const llmProvider: { generate(prompt: string): Promise<string> } = {
+                generate: async (p) => {
+                  const result = await result.provider.generate(p, {
+                    max_tokens: 2048,
+                    temperature: 0.7,
+                  })
+                  return typeof result === 'string' ? result : (result as any)?.text ?? (result as any)?.content ?? String(result)
+                },
+              }
+              const fieldGen = new FieldGenerator(mnemicField, llmProvider, {
+                retrievalLimit: 10,
+                storeGeneration: true,
+                useAttractorRouting: true,
+              })
+              ;(this.intelligence as any).__fieldGenerator = fieldGen
+              this.logger.info('FieldGenerator wired (V4: Generation Through the Field)')
+            } catch (err) {
+              this.logger.debug('FieldGenerator unavailable', { error: String(err) })
+            }
+
           }
 
           // Wire forward provider for attention-based quality scoring.
