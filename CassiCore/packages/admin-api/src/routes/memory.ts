@@ -395,6 +395,7 @@ export async function handleMemoryRoutes(
   }
 
   // GET /memory/by-type/:nodeType — list engrams by node type
+  if (parts[1] === 'by-type' && parts[2] && method === 'GET') {
     try {
       const field = getMnemicField(logger, daemon)
       const limit = parseInt(url.searchParams.get('limit') ?? '50', 10)
