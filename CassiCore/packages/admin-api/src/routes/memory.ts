@@ -207,7 +207,81 @@ export async function handleMemoryRoutes(
     } catch (err) { sendJSON(res, 500, { error: String(err) }); return true }
   }
 
-  // GET /memory/by-type/:nodeType — list engrams by node type
+  // POST /memory/generate — V4: generate through the field
+  if (parts[1] === 'generate' && method === 'POST') {
+    try {
+      const gen = (daemon?.intelligence as any)?.__fieldGenerator as
+        import('../intelligence/mnemic-field/field-generator.js').FieldGenerator | undefined
+      if (!gen) { sendJSON(res, 503, { error: 'FieldGenerator not available' }); return true }
+
+      const body = await parseBody(req).catch(() => ({}))
+      const prompt = body?.prompt || body?.query
+      if (!prompt || typeof prompt !== 'string') {
+        sendJSON(res, 400, { error: 'prompt required (string)' }); return true
+      }
+
+      const result = await gen.generate(prompt)
+      sendJSON(res, 200, {
+        ok: true,
+        generated: result.generated,
+        generationEngramId: result.generationEngramId,
+        retrievalHitCount: result.retrievalHits.length,
+        activatedCount: result.activatedHits.length,
+        activatedHits: result.activatedHits.map(h => ({
+          id: h.id,
+          nodeType: h.nodeType,
+          content: (h.content || '').slice(0, 200),
+          score: h.score,
+        })),
+        fieldPositionDim: result.fieldPosition.length,
+        attractorBasinId: result.attractorBasinId,
+      })
+      return true
+    } catch (err) { sendJSON(res, 500, { error: String(err) }); return true }
+  }
+
+  // GET /memory/generations — recent generation engrams (last 50)
+  if (parts[1] === 'generations' && !parts[2] && method === 'GET') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      const cortex = field.getCortex()
+      const limit = parseInt(url.searchParams.get('limit') ?? '20', 10)
+      const engrams = cortex.listEngrams(limit, 'generation')
+      sendJSON(res, 200, {
+        ok: true,
+        generations: engrams.map(e => ({
+          id: e.id,
+          content: (e.content || '').slice(0, 300),
+          tags: e.tags,
+          potentiation: e.potentiation,
+          createdAt: e.createdAt,
+        })),
+      })
+      return true
+    } catch (err) { sendJSON(res, 500, { error: String(err) }); return true }
+  }
+
+  // GET /memory/generations/:id — single generation detail
+  if (parts[1] === 'generations' && parts[2] && method === 'GET') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      const cortex = field.getCortex()
+      const engram = cortex.getEngram(parts[2])
+      if (!engram) { sendJSON(res, 404, { error: 'generation not found' }); return true }
+
+      sendJSON(res, 200, {
+        ok: true,
+        id: engram.id,
+        content: engram.content,
+        nodeType: engram.nodeType,
+        tags: engram.tags,
+        potentiation: engram.potentiation,
+        metadata: engram.metadata,
+        createdAt: engram.createdAt,
+      })
+      return true
+    } catch (err) { sendJSON(res, 500, { error: String(err) }); return true }
+  }
   if (parts[1] === 'by-type' && parts[2] && method === 'GET') {
     try {
       const field = getMnemicField(logger, daemon)
