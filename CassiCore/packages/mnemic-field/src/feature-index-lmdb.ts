@@ -8,11 +8,17 @@
  * Data layout:
  *   feature_to_engrams  (dupSort):  feature_key → engram_id  (sorted)
  *   engram_to_features  (dupSort):  engram_id   → feature_key (sorted)
+ *   merge_tombstones    :           merged_engram_id → anchor_engram_id
  *
  * Merge-on-overlap: when a new engram's gateKnn features overlap ≥95% with
  * an existing engram, the new engram is merged into the existing one rather
  * than indexed separately. Merges union the feature sets and the caller
  * boosts the anchor engram's potentiation.
+ *
+ * Merge tombstones: after merging B into A, a tombstone `B → A` is written.
+ * On subsequent boots, tombstones are checked BEFORE calling gateKnn, so
+ * already-merged engrams are skipped instantly. This eliminates redundant
+ * gateKnn calls that previously repeated every boot.
  */
 
 import type { ILogger } from '../../../types/interfaces.js'
@@ -44,10 +50,17 @@ const MERGE_OVERLAP_THRESHOLD = 0.95
  *  If the newcomer has ≥1.5× the anchor's features, it's the richer engram. */
 const ANCHOR_REVERSAL_RATIO = 1.5
 
+/** How often to yield the event loop during buildFromCortex (every N engrams). */
+const BUILD_YIELD_INTERVAL = 1
+
+/** How often to log progress during buildFromCortex (every N engrams). */
+const BUILD_PROGRESS_INTERVAL = 100
+
 export class LmdbFeatureIndex {
   private env: any              // lmdb RootDatabase
   private featureToEngrams: any // lmdb Database (dupSort)
   private engramToFeatures: any // lmdb Database (dupSort)
+  private mergeTombstones: any  // lmdb Database (merged_engram_id → anchor_engram_id)
   private logger: ILogger
   private gateKnn: VindexGateKnnFn | null = null
   private ready = false
@@ -74,6 +87,11 @@ export class LmdbFeatureIndex {
       encoding: 'string',
     })
 
+    this.mergeTombstones = this.env.openDB('merge_tombstones', {
+      keyEncoding: 'ordered-binary',
+      encoding: 'string',
+    })
+
     this.logger.info('LmdbFeatureIndex opened', { envPath })
   }
 
@@ -92,6 +110,30 @@ export class LmdbFeatureIndex {
   /** Whether the index is ready for queries. */
   isReady(): boolean {
     return this.ready
+  }
+
+  /**
+   * Check if an engram was already merged into another engram.
+   * Returns the anchor engramId if a tombstone exists, null otherwise.
+   */
+  private getMergeTombstone(engramId: string): string | null {
+    try {
+      return this.mergeTombstones.get(engramId) ?? null
+    } catch {
+      return null
+    }
+  }
+
+  /**
+   * Record that an engram was merged into an anchor engram.
+   * This tombstone prevents redundant gateKnn calls on subsequent boots.
+   */
+  private setMergeTombstone(mergedId: string, anchorId: string): void {
+    try {
+      this.mergeTombstones.putSync(mergedId, anchorId)
+    } catch {
+      // best-effort
+    }
   }
 
   /**
@@ -118,10 +160,10 @@ export class LmdbFeatureIndex {
    * Index an engram from its content. Gate-KNNs the content and stores
    * feature→engramId mappings in LMDB.
    *
-   * Before inserting, checks for near-complete feature overlap (≥95%)
-   * with an existing engram. If found, merges the feature sets and
-   * returns `{ action: 'merged' }` — the caller should boost the
-   * anchor engram's potentiation instead of storing a new engram.
+   * Before inserting, checks for a merge tombstone (already merged → skip)
+   * and for near-complete feature overlap (≥95%) with an existing engram.
+   * If overlap found, merges the feature sets and writes a tombstone so
+   * future boots skip the gateKnn call entirely.
    *
    * Re-indexing the same engramId cleans up old mappings first.
    */
@@ -141,6 +183,13 @@ export class LmdbFeatureIndex {
     if (!this.ready || !this.gateKnn) return { action: 'indexed' }
     if (!content || content.length < 20) return { action: 'indexed' }
 
+    // Check merge tombstone first — if this engram was already merged into
+    // another, skip the expensive gateKnn call entirely. This tombstone
+    // persists across boots, eliminating redundant warmup work.
+    if (this.getMergeTombstone(engramId) !== null) {
+      return { action: 'merged' }
+    }
+
     try {
       const features = this.gateKnn(content, {
         layers: options?.layers,
@@ -153,7 +202,10 @@ export class LmdbFeatureIndex {
       const featureKeys = features.map(f => featureKey(f.layer, f.featureIndex, options?.source))
 
       // Check for near-complete overlap with an existing engram.
-      const overlapping = this.findOverlappingByKeys(featureKeys, { limit: 1 })
+      const overlapping = this.findOverlappingByKeys(featureKeys, {
+        limit: 1,
+        minOverlapRatio: MERGE_OVERLAP_THRESHOLD,
+      })
       if (overlapping.length > 0) {
         const top = overlapping[0]
         const overlapRatio = top.sharedFeatureCount / featureKeys.length
@@ -170,6 +222,8 @@ export class LmdbFeatureIndex {
             // features the newcomer doesn't (even with the 1.5× ratio check).
             const allKeys = [...new Set([...featureKeys, ...anchorKeys])]
             this.insertFeatures(engramId, allKeys)
+            // Move the tombstone: the old anchor is now merged into the newcomer.
+            this.setMergeTombstone(top.engramId, engramId)
             this.logger.debug?.('FeatureIndex reversed merge', {
               engramId: engramId.slice(0, 12),
               absorbed: top.engramId.slice(0, 12),
@@ -183,6 +237,8 @@ export class LmdbFeatureIndex {
 
           // Normal merge: union the feature sets into the anchor engram.
           this.mergeFeatures(top.engramId, featureKeys)
+          // Record tombstone so this engram is skipped on future boots.
+          this.setMergeTombstone(engramId, top.engramId)
 
           // Slerp gate embeddings: the anchor should reflect both engrams on the sphere.
           let slerpedEmbedding: Float32Array | undefined
@@ -223,8 +279,8 @@ export class LmdbFeatureIndex {
    * Uses the STORED features from LMDB — no gateKnn recomputation needed.
    * Returns null if the engram isn't indexed or has no feature overlap above
    * the threshold. When a merge is triggered, union of the feature sets are
-   * merged into the anchor engram and the merged engram is removed from the
-   * index. Anchor quality reversal still applies.
+   * merged into the anchor engram, the merged engram is removed from the
+   * index, and a tombstone is written. Anchor quality reversal still applies.
    *
    * This is the continuous merge-on-overlap primitive — called periodically
    * during consolidation to catch engrams that should have been merged but
@@ -245,7 +301,7 @@ export class LmdbFeatureIndex {
     const overlapping = this.findOverlappingByKeys(featureList, {
       excludeId: engramId,
       limit: 1,
-      minOverlap: 0,
+      minOverlapRatio: threshold,
     })
 
     if (overlapping.length === 0) return null
@@ -267,6 +323,7 @@ export class LmdbFeatureIndex {
       // Re-index the richer engram with the union of both feature sets
       this.removeEngram(engramId)
       this.insertFeatures(engramId, allKeys)
+      this.setMergeTombstone(top.engramId, engramId)
       this.logger.debug?.('FeatureIndex reversed merge (consolidation)', {
         engramId: engramId.slice(0, 12),
         absorbed: top.engramId.slice(0, 12),
@@ -282,6 +339,7 @@ export class LmdbFeatureIndex {
     // Normal merge: union the feature sets into the anchor engram.
     this.mergeFeatures(top.engramId, featureList)
     this.removeEngram(engramId)
+    this.setMergeTombstone(engramId, top.engramId)
 
     // Slerp gate embeddings: caller passes the merged engram's embedding;
     // we fetch the anchor's embedding via the getter.
@@ -367,8 +425,9 @@ export class LmdbFeatureIndex {
 
   /**
    * Build the index from existing engrams in the Cortex.
-   * Best-effort and throttled — yields every 10 newly-indexed engrams.
-   * Merges count as skipped (the anchor engram already exists).
+   * Yields the event loop after every engram to keep the daemon responsive.
+   * Logs progress periodically. Uses batched LMDB transactions for writes.
+   * Skips engrams that are already indexed OR have a merge tombstone.
    */
   async buildFromCortex(
     cortex: Cortex,
@@ -391,29 +450,54 @@ export class LmdbFeatureIndex {
     let indexed = 0
     let skipped = 0
     let merged = 0
-    for (let i = 0; i < engrams.length; i++) {
-      // Skip already-indexed engrams (persistent across boots).
+    let tombstoneSkipped = 0
+
+    const total = engrams.length
+    for (let i = 0; i < total; i++) {
+      // Skip already-indexed engrams (persistent across boots via LMDB).
       if (this.engramToFeatures.get(engrams[i].id) !== undefined) {
         skipped++
         continue
       }
+
+      // Skip engrams that were already merged into another (merge tombstone).
+      if (this.getMergeTombstone(engrams[i].id) !== null) {
+        tombstoneSkipped++
+        continue
+      }
+
       const result = this.indexEngram(engrams[i].id, engrams[i].content, options)
       if (result.action === 'merged') {
         merged++
       } else {
         indexed++
       }
-      if ((indexed + merged) % 3 === 0) {
-        await new Promise(resolve => setImmediate(resolve))
+
+      // Yield event loop after every engram for responsiveness
+      if ((indexed + merged) % BUILD_YIELD_INTERVAL === 0) {
+        await new Promise(resolve => setTimeout(resolve, 0))
+      }
+
+      // Progress logging
+      if ((i + 1) % BUILD_PROGRESS_INTERVAL === 0 || i === total - 1) {
+        this.logger.info('FeatureIndex warmup progress', {
+          progress: `${i + 1}/${total}`,
+          pct: Math.round((i + 1) / total * 100),
+          indexed,
+          merged,
+          skipped,
+          tombstoneSkipped,
+        })
       }
     }
 
     const stats = this.stats()
     this.logger.info('LmdbFeatureIndex built from cortex', {
-      scanned: engrams.length,
+      scanned: total,
       indexed,
       merged,
       skipped,
+      tombstoneSkipped,
       featureKeys: stats.featureKeys,
     })
 
@@ -490,22 +574,58 @@ export class LmdbFeatureIndex {
   /**
    * Find engrams that share the given feature keys.
    * Core overlap primitive used by lookup, findCorrelated, and merge check.
+   *
+   * Uses progressive early-exit: when minOverlapRatio is set (>0), tracks the
+   * best overlap seen so far and short-circuits if the maximum possible overlap
+   * for any engram can no longer reach the threshold. This avoids scanning all
+   * feature keys when a merge is impossible — the common case for unique engrams.
    */
   private findOverlappingByKeys(
     featureKeys: string[],
-    opts?: { excludeId?: string; minOverlap?: number; limit?: number },
+    opts?: {
+      excludeId?: string
+      minOverlap?: number
+      limit?: number
+      /** If set, enables progressive early-exit with this ratio threshold. */
+      minOverlapRatio?: number
+    },
   ): Array<{ engramId: string; sharedFeatureCount: number }> {
     const excludeId = opts?.excludeId
     const minOverlap = opts?.minOverlap ?? 0
     const limit = opts?.limit ?? 20
-    const overlapCount = new Map<string, number>()
+    const minOverlapRatio = opts?.minOverlapRatio ?? 0
 
-    for (const key of featureKeys) {
+    const overlapCount = new Map<string, number>()
+    let bestSeen = 0
+
+    for (let ki = 0; ki < featureKeys.length; ki++) {
+      const key = featureKeys[ki]
       const engrams = this.featureToEngrams.getValues(key)
       if (!engrams) continue
       for (const id of engrams) {
         if (id === excludeId) continue
-        overlapCount.set(id, (overlapCount.get(id) ?? 0) + 1)
+        const count = (overlapCount.get(id) ?? 0) + 1
+        overlapCount.set(id, count)
+        if (count > bestSeen) bestSeen = count
+      }
+
+      // Progressive early-exit: if minOverlapRatio is set, check whether
+      // any engram can still reach the threshold.  The maximum possible
+      // overlap for ANY engram is bestSeen + (remaining feature keys).
+      // If even that can't reach minOverlapRatio × total → no merge possible.
+      if (minOverlapRatio > 0) {
+        const remaining = featureKeys.length - ki - 1
+        const maxPossibleRatio = (bestSeen + remaining) / featureKeys.length
+        if (maxPossibleRatio < minOverlapRatio) {
+          // Even the best engram can't reach the threshold — return early.
+          // We already have the best candidates; filter/sort/slice what we have.
+          if (minOverlap > 0 || limit < Infinity) {
+            break
+          }
+          // If no minOverlap and no limit, we need all results — can't exit early.
+          if (minOverlap === 0) continue
+          break
+        }
       }
     }
 
