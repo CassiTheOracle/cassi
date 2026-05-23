@@ -402,10 +402,30 @@ export async function handleMemoryRoutes(
         sendJSON(res, 503, { error: 'SpatialIndex not available' }); return true
       }
 
-      const engrams = (field.getCortex() as any).listEngrams(200000)
-      const result = field.spatialIndex.backfill(engrams)
-      logger?.info?.('spatial backfill complete', result)
-      sendJSON(res, 200, { ok: true, ...result })
+      const cortex = field.getCortex() as any
+      let scanned = 0, indexed = 0, skipped = 0
+      const BATCH = 1000
+
+      const total = cortex.forEachEngram((engram: any) => {
+        scanned++
+        const fc = engram.metadata?.r !== undefined
+          ? { r: engram.metadata.r as number, theta: engram.metadata.theta as number, z: engram.metadata.z as number }
+          : null
+        if (!fc) { skipped++; return }
+        field.spatialIndex.indexEngram({
+          engramId: engram.id,
+          r: fc.r,
+          theta: fc.theta,
+          z: fc.z,
+          potentiation: engram.potentiation ?? 0,
+          nodeType: engram.nodeType ?? 'unknown',
+          contentPreview: (engram.content ?? '').slice(0, 100),
+        })
+        indexed++
+      }, BATCH)
+
+      logger?.info?.('spatial backfill complete', { scanned, indexed, skipped, total })
+      sendJSON(res, 200, { ok: true, scanned, indexed, skipped, total })
       return true
     } catch (err) { sendJSON(res, 500, { error: String(err) }); return true }
   }
