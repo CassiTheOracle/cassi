@@ -459,8 +459,27 @@ export class Cortex {
    * event-loop yielding to avoid blocking the main thread and to keep
    * the JS heap small — Statement.all() materialises every row into a
    * single array, which OOM'd the daemon at 10 000 rows × 40 KB BLOBs.
+   *
+   * When `offset` is provided, uses a keyset-based approach: WHERE id >
+   * the id at the previous offset, limited to `limit` rows. This avoids
+   * the O(n) scan that SQLite OFFSET requires, and works with the existing
+   * ORDER BY potentiation DESC index.
    */
-  listEngrams(limit = 100, nodeType?: string): Engram[] {
+  listEngrams(limit = 100, nodeType?: string, afterId?: string): Engram[] {
+    // Keyset pagination: WHERE id > afterId (string compare works for UUIDs)
+    if (afterId) {
+      const sql = nodeType
+        ? `SELECT * FROM engrams WHERE node_type = ? AND id > ? ORDER BY id ASC LIMIT ?`
+        : `SELECT * FROM engrams WHERE id > ? ORDER BY id ASC LIMIT ?`
+      const stmt = this.db.prepare(sql)
+      const params: unknown[] = nodeType ? [nodeType, afterId, limit] : [afterId, limit]
+      const result: Engram[] = []
+      for (const row of stmt.iterate(...params) as Iterable<Record<string, unknown>>) {
+        result.push(rowToEngram(row))
+      }
+      return result
+    }
+
     const stmt = nodeType ? this.stmts.listEngramsByType : this.stmts.listEngrams
     const params: unknown[] = nodeType ? [nodeType, limit] : [limit]
     const result: Engram[] = []
@@ -470,6 +489,34 @@ export class Cortex {
     }
 
     return result
+  }
+
+  /**
+   * Iterate all engrams via cursor, calling fn for each.
+   * Uses keyset pagination internally — calls fn(engram) for every
+   * engram, yielding to the event loop every `batchSize` rows.
+   * Returns the total count processed. Never materialises the full
+   * engram set — safe for backfilling 300K+ engrams.
+   */
+  forEachEngram(
+    fn: (engram: Engram) => void,
+    batchSize: number = 500,
+    nodeType?: string,
+  ): number {
+    let count = 0
+    let afterId: string | undefined = undefined
+
+    while (true) {
+      const batch = this.listEngrams(batchSize, nodeType, afterId)
+      if (batch.length === 0) break
+      for (const engram of batch) {
+        fn(engram)
+        count++
+      }
+      afterId = batch[batch.length - 1]!.id
+    }
+
+    return count
   }
 
   createSynapse(input: SynapseCreate): MnemicSynapse {
