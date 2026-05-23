@@ -1,5 +1,6 @@
 import type { ILogger } from '../../types/interfaces.js'
 import { MnemicField } from '../intelligence/mnemic-field/index.js'
+import { assignCell, globalCellKey } from '../intelligence/mnemic-field/healpix.js'
 import { migrateMemoryAndArchives, migrateMemoryOnly } from '../intelligence/mnemic-field/migrate-memory.js'
 import { getEmbeddingService } from '../intelligence/embeddings/embedding-service.js'
 import { getDataDir } from '../utils/paths.js'
@@ -403,8 +404,13 @@ export async function handleMemoryRoutes(
       }
 
       const cortex = field.getCortex() as any
-      let scanned = 0, indexed = 0, skipped = 0
-      const BATCH = 1000
+      let scanned = 0, skipped = 0
+
+      // Phase 1: Scan all engrams, group by cell key
+      const cellBuckets = new Map<string, Array<{
+        engramId: string; r: number; theta: number; z: number;
+        potentiation: number; nodeType: string; contentPreview: string;
+      }>>()
 
       const total = cortex.forEachEngram((engram: any) => {
         scanned++
@@ -412,20 +418,34 @@ export async function handleMemoryRoutes(
           ? { r: engram.metadata.r as number, theta: engram.metadata.theta as number, z: engram.metadata.z as number }
           : null
         if (!fc) { skipped++; return }
-        field.spatialIndex.indexEngram({
+
+        // Compute cell key using HEALPix assignment
+        const phi = Math.acos(Math.max(-1, Math.min(1, Math.tanh(fc.z * 5))))
+        const cell = assignCell(fc.r, fc.theta, phi)
+        const key = globalCellKey(cell.shell, cell.cell)
+
+        let bucket = cellBuckets.get(key)
+        if (!bucket) { bucket = []; cellBuckets.set(key, bucket) }
+
+        bucket.push({
           engramId: engram.id,
-          r: fc.r,
-          theta: fc.theta,
-          z: fc.z,
+          r: fc.r, theta: fc.theta, z: fc.z,
           potentiation: engram.potentiation ?? 0,
           nodeType: engram.nodeType ?? 'unknown',
           contentPreview: (engram.content ?? '').slice(0, 100),
         })
-        indexed++
-      }, BATCH)
+      }, 1000)
 
-      logger?.info?.('spatial backfill complete', { scanned, indexed, skipped, total })
-      sendJSON(res, 200, { ok: true, scanned, indexed, skipped, total })
+      // Phase 2: Write each cell once with all its engrams — one LMDB write per cell
+      let cellsWritten = 0, totalIndexed = 0
+      for (const [key, bucket] of cellBuckets) {
+        field.spatialIndex.batchIndex(key, bucket)
+        totalIndexed += bucket.length
+        cellsWritten++
+      }
+
+      logger?.info?.('spatial backfill complete', { scanned, skipped, cellsWritten, totalIndexed, total })
+      sendJSON(res, 200, { ok: true, scanned, skipped, cellsWritten, totalIndexed, total })
       return true
     } catch (err) { sendJSON(res, 500, { error: String(err) }); return true }
   }
