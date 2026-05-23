@@ -522,7 +522,7 @@ export async function handleSessionsRoutes(
         senderId: s.senderId,
         createdAt: s.createdAt,
         lastActiveAt: s.lastActiveAt,
-        historyLength: s.history.length,
+        historyLength: s.history?.length ?? 0,
         tokenCount: s.tokenCount,
         projectPath: (s.config as any)?.projectPath ?? null,
         title: (s.config as any)?.title ?? null,

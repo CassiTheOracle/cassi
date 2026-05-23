@@ -583,7 +583,8 @@ export function createAdminApi(daemon: any, logger: ILogger) {
   function getFirstUserMessage(history: any[]): string {
     for (const msg of history) {
       if (msg.role === 'user') {
-        const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)
+        const raw = msg.content
+        const content = typeof raw === 'string' ? raw : (raw == null ? '' : JSON.stringify(raw))
         return content.slice(0, 200) || '(empty message)'
       }
     }
@@ -594,7 +595,8 @@ export function createAdminApi(daemon: any, logger: ILogger) {
     let lastMessage = '(no messages)'
     for (const msg of history) {
       if (msg.role === 'user') {
-        const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)
+        const raw = msg.content
+        const content = typeof raw === 'string' ? raw : (raw == null ? '' : JSON.stringify(raw))
         lastMessage = content.slice(0, 200) || '(empty message)'
       }
     }
