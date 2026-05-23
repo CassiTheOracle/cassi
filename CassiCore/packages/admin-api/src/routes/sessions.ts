@@ -569,7 +569,8 @@ export async function handleSessionsRoutes(
         sessionId,
         channelId,
         senderId,
-        { ...configOverrides, title: name, permanent } as any
+        { ...configOverrides, title: name, permanent } as any,
+        { skipSenderLookup: true }
       )
 
       // Store the title in session config for later retrieval
