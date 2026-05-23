@@ -27,18 +27,18 @@ import { classifyTool } from './classifier.js'
 import { buildToolUseMapFromMessages } from '../../pipeline/turn/overflow.js'
 import { getRerankerService } from '../embeddings/reranker-service.js'
 
-interface ContentChunk {
+export interface ContentChunk {
   text: string
   startLine: number
   endLine: number
   summary: string
 }
 
-function hashContent(content: string): string {
+export function hashContent(content: string): string {
   return createHash('sha256').update(content, 'utf8').digest('hex').slice(0, 12)
 }
 
-function chunkByCodeBlocks(content: string, chunkSize: number): ContentChunk[] {
+export function chunkByCodeBlocks(content: string, chunkSize: number): ContentChunk[] {
   const lines = content.split('\n')
   const chunks: ContentChunk[] = []
   let start = 0
@@ -67,7 +67,7 @@ function chunkByCodeBlocks(content: string, chunkSize: number): ContentChunk[] {
   return chunks
 }
 
-function chunkByParagraphs(content: string, chunkSize: number): ContentChunk[] {
+export function chunkByParagraphs(content: string, chunkSize: number): ContentChunk[] {
   const blocks = content.split(/\n\s*\n+/)
   const chunks: ContentChunk[] = []
   let lineOffset = 0
@@ -102,7 +102,7 @@ function chunkByParagraphs(content: string, chunkSize: number): ContentChunk[] {
   return chunks
 }
 
-function chunkByMatches(content: string): ContentChunk[] {
+export function chunkByMatches(content: string): ContentChunk[] {
   return content.split('\n').filter(l => l.trim()).map((line, i) => ({
     text: line,
     startLine: i,
@@ -111,7 +111,7 @@ function chunkByMatches(content: string): ContentChunk[] {
   }))
 }
 
-function addContextLines(
+export function addContextLines(
   selectedChunks: ContentChunk[],
   allLines: string[],
   contextLines: number,
@@ -135,6 +135,26 @@ function addContextLines(
     prev = line
   }
   return result
+}
+
+export function selectChunks(
+  ranked: Array<{ index: number; relevanceScore: number }>,
+  chunks: ContentChunk[],
+  maxChars: number,
+): ContentChunk[] {
+  const selected: ContentChunk[] = []
+  let used = 0
+  const overhead = 30
+
+  for (const r of ranked) {
+    const chunk = chunks[r.index]
+    if (!chunk) continue
+    if (used + chunk.text.length + overhead > maxChars) continue
+    selected.push(chunk)
+    used += chunk.text.length + overhead
+  }
+
+  return selected.sort((a, b) => a.startLine - b.startLine)
 }
 
 export class ToolResultDistiller {
@@ -309,7 +329,7 @@ export class ToolResultDistiller {
     const ranked = await reranker.rerank(query, docTexts, docTexts.length)
     if (!ranked.length) return null
 
-    const selected = this.selectChunks(ranked, chunks, config.distillationTargetChars)
+    const selected = selectChunks(ranked, chunks, config.distillationTargetChars)
     if (selected.length === 0) return null
 
     const allLines = content.split('\n')
@@ -352,26 +372,6 @@ export class ToolResultDistiller {
       compressedChars: compressedContent.length,
       timestamp: Date.now(),
     }
-  }
-
-  private selectChunks(
-    ranked: Array<{ index: number; relevanceScore: number }>,
-    chunks: ContentChunk[],
-    maxChars: number,
-  ): ContentChunk[] {
-    const selected: ContentChunk[] = []
-    let used = 0
-    const overhead = 30
-
-    for (const r of ranked) {
-      const chunk = chunks[r.index]
-      if (!chunk) continue
-      if (used + chunk.text.length + overhead > maxChars) continue
-      selected.push(chunk)
-      used += chunk.text.length + overhead
-    }
-
-    return selected.sort((a, b) => a.startLine - b.startLine)
   }
 
   private buildQuery(

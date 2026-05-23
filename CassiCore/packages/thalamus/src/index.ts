@@ -1606,7 +1606,7 @@ this.aurora?.setReverieInferenceProvider(provider)
     const compressionBoundary = Math.max(0, cloned.length - cfg.recentWindowSize)
     const liveReadMap = this.computeLiveReadIndices(sessionId, cloned, cfg.recentWindowSize)
     const { messages: compressed, compressed: compressedCount } =
-      this.compressor.compress(cloned, compressionBoundary, { toolResultMaxChars: cfg.toolResultMaxChars }, new Set(liveReadMap.keys()))
+      await this.compressor.compress(cloned, compressionBoundary, { toolResultMaxChars: cfg.toolResultMaxChars }, new Set(liveReadMap.keys()))
 
     // Phase 2: Enrich with temporal context for scoring
     const temporal = this.getTemporalRegistry(sessionId)
