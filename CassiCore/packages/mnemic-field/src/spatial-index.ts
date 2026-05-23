@@ -36,13 +36,13 @@ export class SpatialIndex {
   constructor(env?: any, dbName: string = 'spatial_index') {
     if (env) {
       this.env = env;
-      this.db = env.openDB?.(dbName) ?? null;
+      this.db = env.openDB?.(dbName, { encoding: 'binary' }) ?? null;
     }
   }
 
   setEnv(env: any): void {
     this.env = env;
-    this.db = env.openDB?.('spatial_index') ?? null;
+    this.db = env.openDB?.('spatial_index', { encoding: 'binary' }) ?? null;
   }
 
   get ready(): boolean {
@@ -229,19 +229,19 @@ export class SpatialIndex {
   private readCell(key: string): CellEntry {
     if (!this.db) return { engrams: [] };
     try {
-      const raw = (this.db as any).get?.(key) as Buffer | null;
+      const raw = (this.db as any).get(key) as Buffer | null;
       if (raw && raw.length > 0) {
         return JSON.parse(raw.toString('utf-8'));
       }
-    } catch { /* ignore corrupt entry */ }
+    } catch (err) {
+      // Corrupt entry or JSON parse failure — return empty
+    }
     return { engrams: [] };
   }
 
   private writeCell(key: string, entry: CellEntry): void {
     if (!this.db) return;
-    try {
-      (this.db as any).put?.(key, Buffer.from(JSON.stringify(entry), 'utf-8'));
-    } catch { /* best-effort */ }
+    (this.db as any).put(key, Buffer.from(JSON.stringify(entry), 'utf-8'));
   }
 }
 
