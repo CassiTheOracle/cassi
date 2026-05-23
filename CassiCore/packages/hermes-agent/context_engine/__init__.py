@@ -24,9 +24,10 @@ from agent.context_engine import ContextEngine
 logger = logging.getLogger("hermes.context_engine.cassicore")
 
 CASSICORE_URL = os.environ.get("CASSICORE_URL", "http://localhost:7433")
-_SESSION_ID: str | None = None
 _MAX_RETRIES = 2
 _RETRY_DELAY = 0.5
+_HEALTH_CHECK_TIMEOUT = 2.0
+_HEALTH_CHECK_MAX_AGE = 5.0  # seconds before re-checking daemon health
 
 
 def _api(method: str, path: str, body: dict | None = None, timeout: float = 10.0) -> Any | None:
@@ -58,6 +59,28 @@ def _api(method: str, path: str, body: dict | None = None, timeout: float = 10.0
     return None
 
 
+def _check_daemon_health(parsed: urllib.parse.ParseResult) -> bool:
+    """Quick connectivity check — returns True if daemon is reachable."""
+    host = parsed.hostname
+    if not host:
+        return False
+    conn: HTTPConnection | None = None
+    try:
+        conn = HTTPConnection(
+            host, parsed.port or 7433,
+            timeout=_HEALTH_CHECK_TIMEOUT,
+        )
+        conn.request("GET", "/health")
+        resp = conn.getresponse()
+        # Any response (even non-200) means the daemon is listening
+        return resp.status is not None
+    except Exception:
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
 class CassiCoreContextEngine(ContextEngine):
     """Context engine that delegates compression to CassiCore's Thalamus."""
 
@@ -74,6 +97,26 @@ class CassiCoreContextEngine(ContextEngine):
         self.threshold_tokens = 0
         self.context_length = 0
         self.compression_count = 0
+        # Per-instance session tracking (no global mutable state)
+        self._active_session_id: str | None = None
+        # Daemon health cache to avoid repeated checks during rapid compressions
+        self._last_health_check: float = 0.0
+        self._last_health_ok: bool = False
+
+    def _daemon_reachable(self) -> bool:
+        """Check daemon health with caching to avoid hammering during rapid compressions."""
+        now = time.time()
+        if now - self._last_health_check < _HEALTH_CHECK_MAX_AGE:
+            return self._last_health_ok
+        parsed = urllib.parse.urlparse(CASSICORE_URL)
+        if parsed.scheme != "http":
+            return False
+        ok = _check_daemon_health(parsed)
+        self._last_health_check = now
+        self._last_health_ok = ok
+        if not ok:
+            logger.debug("CassiCore daemon unreachable — skipping Thalamus curation")
+        return ok
 
     def update_from_response(self, usage: dict[str, Any]) -> None:
         self.last_prompt_tokens = usage.get("prompt_tokens", 0)
@@ -101,7 +144,13 @@ class CassiCoreContextEngine(ContextEngine):
         if not messages:
             return messages
 
-        session_id = _SESSION_ID or f"hermes-auto-{int(time.time())}"
+        # Health check: skip curation if daemon is unreachable (e.g. restarting).
+        # This avoids the 30s timeout blocking the agent loop during daemon restarts.
+        if not self._daemon_reachable():
+            logger.debug("Skipping Thalamus curation — daemon unreachable")
+            return messages
+
+        session_id = self._active_session_id or f"hermes-auto-{int(time.time())}"
         body: dict[str, Any] = {"sessionId": session_id, "messages": messages}
         if focus_topic:
             body["config"] = {"focusTopic": focus_topic}
@@ -124,12 +173,15 @@ class CassiCoreContextEngine(ContextEngine):
         return messages
 
     def on_session_start(self, session_id: str, **kwargs: Any) -> None:
-        global _SESSION_ID
-        _SESSION_ID = f"hermes:{session_id}"
+        """Store session ID on the instance — no global mutable state."""
+        self._active_session_id = f"hermes:{session_id}"
+        logger.info(
+            "CassiCore context engine activated for session %s",
+            self._active_session_id,
+        )
 
     def on_session_end(self, session_id: str, messages: list[dict[str, Any]] | None = None) -> None:
-        global _SESSION_ID
-        _SESSION_ID = None
+        self._active_session_id = None
 
 
 def register(collector: Any) -> None:
