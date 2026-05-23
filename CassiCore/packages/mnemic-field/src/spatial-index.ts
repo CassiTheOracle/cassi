@@ -66,6 +66,23 @@ export class SpatialIndex {
     this.writeCell(key, entry);
   }
 
+  /** Batch-index multiple engrams into the same cell with one read+write. */
+  batchIndex(key: string, positions: EngramPosition[]): void {
+    if (!this.db || positions.length === 0) return;
+    const entry = this.readCell(key);
+    const existingIds = new Set(entry.engrams.map(e => e.engramId));
+    for (const pos of positions) {
+      if (existingIds.has(pos.engramId)) {
+        const idx = entry.engrams.findIndex(e => e.engramId === pos.engramId);
+        if (idx >= 0) entry.engrams[idx] = pos;
+      } else {
+        entry.engrams.push(pos);
+        existingIds.add(pos.engramId);
+      }
+    }
+    this.writeCell(key, entry);
+  }
+
   /** Remove an engram from the spatial index. */
   removeEngram(engramId: string, r: number, theta: number, z: number): void {
     if (!this.db) return;
