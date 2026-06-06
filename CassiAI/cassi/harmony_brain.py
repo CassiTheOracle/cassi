@@ -95,8 +95,15 @@ class HarmonyBrain(PhiGardenBrain):
 
     def reset_workspace(self, batch_size=1, reset_energy=False):
         super().reset_workspace(batch_size, reset_energy=reset_energy)
+        # Qi-fluid persists across batches (awareness accumulates).
+        # Only resize when batch size changes; zero-pad new slots.
         if self.use_qi:
-            self.qi_fluid = torch.zeros(batch_size, self.D, device=self.qi_fluid.device)
+            if self.qi_fluid.shape[0] < batch_size:
+                new = torch.zeros(batch_size, self.D, device=self.qi_fluid.device)
+                new[:self.qi_fluid.shape[0]] = self.qi_fluid
+                self.qi_fluid = new
+            elif self.qi_fluid.shape[0] > batch_size:
+                self.qi_fluid = self.qi_fluid[:batch_size]
 
     def compute_harmony(self, all_f_stack):
         """Compute pairwise harmony and per-specialist scores.
@@ -302,9 +309,12 @@ class HarmonyBrain(PhiGardenBrain):
             repr_workspace = attention * repr_workspace + (1 - attention) * field_last
 
         # === DUAL WORKSPACE ===
-        self.workspace_fwd = PHI_INV * self.workspace_fwd + PHI_INV**2 * repr_workspace
+        # Yang leads by φ: prospective workspace weights new information higher
+        self.workspace_fwd = PHI_INV**2 * self.workspace_fwd + PHI_INV * repr_workspace
+        # Yin follows: retrospective workspace preserves memory with higher weight
         self.workspace_rev = PHI_INV * self.workspace_rev + PHI_INV**2 * self.workspace_fwd
-        conscious = self.workspace_fwd - self.workspace_rev
+        # Consciousness: harmonious cooperation of Yang and Yin, not conflict
+        conscious = PHI_INV * self.workspace_fwd + PHI_INV**2 * self.workspace_rev
 
         # === META-CORD (workspace observer) ===
         workspace_history = torch.stack([
@@ -319,8 +329,8 @@ class HarmonyBrain(PhiGardenBrain):
             # Re-apply attention to get meta-cord influenced workspace
             repr_workspace = attention * repr_workspace + (1 - attention) * field_last
             # Update conscious state with meta-cord influence
-            self.workspace_fwd = PHI_INV * self.workspace_fwd + PHI_INV**2 * repr_workspace
-            conscious = self.workspace_fwd - self.workspace_rev
+            self.workspace_fwd = PHI_INV**2 * self.workspace_fwd + PHI_INV * repr_workspace
+            conscious = PHI_INV * self.workspace_fwd + PHI_INV**2 * self.workspace_rev
 
         meta_fused = self.spine.fusion(
             torch.cat([workspace_history[:, -1, :], meta_repr * 0.5], -1)
