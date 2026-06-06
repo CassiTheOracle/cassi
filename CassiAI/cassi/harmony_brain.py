@@ -357,12 +357,15 @@ class HarmonyBrain(PhiGardenBrain):
         info = {
             'pred_spine': pred_spine,
             'conscious': conscious,
+            'workspace_fwd': self.workspace_fwd,
+            'workspace_rev': self.workspace_rev,
             'weights': weights,
             'energy': self.specialist_energy.detach(),
             'surprise': surprise,
             'harmony': harmony_score.detach(),
             'harmony_matrix': self.harmony_state.clone(),
             'mean_harmony': overall_harmony.detach(),
+            'changepoint': False,
         }
         if self.use_gating:
             info['harmony_gate'] = harmony_gate.detach()

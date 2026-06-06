@@ -29,6 +29,7 @@ from cassi.multimodal_loader import MultimodalDataLoader
 from cassi.adaptive_trainer import AdaptiveTrainer
 from cassi.streaming_text_sampler import MixedPrecisionTrainer
 from cassi.audio_encoder import AudioFieldEncoder
+from cassi.observability import CassiMetrics
 
 DEV = 'cuda'
 SPINE_PHYSICS = 'checkpoints/spine_physics.pt'
@@ -58,7 +59,7 @@ def save_checkpoint(path, model, val_mae, epoch, phase):
     }, path)
 
 
-def train_epoch(model, loader, opt, mp_trainer, args, adaptive=None, audio_encoder=None):
+def train_epoch(model, loader, opt, mp_trainer, args, adaptive=None, audio_encoder=None, metrics=None):
     model.train()
     epoch_loss = epoch_pred = epoch_coherence = 0.0
     n_batches = 0
@@ -99,6 +100,15 @@ def train_epoch(model, loader, opt, mp_trainer, args, adaptive=None, audio_encod
             byte_mode=byte_mode,
             store_experience=store_exp
         )
+
+        if metrics is not None:
+            metrics.record_batch(
+                info=info,
+                loss=loss.item() if torch.isfinite(loss) else None,
+                pred=pred,
+                target=y,
+                model=model,
+            )
 
         # Loss depends on modality
         if is_physics:
@@ -284,6 +294,7 @@ def main():
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=WD)
     mp_trainer = MixedPrecisionTrainer(model, opt, enabled=args.mixed_precision)
     adaptive = AdaptiveTrainer(model, opt, lr_base=args.lr) if args.adaptive else None
+    metrics = CassiMetrics(log_dir='logs/metrics')
 
     best_val = float('inf')
     best_path = args.save + '.best'
@@ -317,7 +328,7 @@ def main():
     for ep in range(start_ep, args.epochs):
         args.epoch = ep
         train_loss, train_pred, train_coherence, mod_counts = \
-            train_epoch(model, loader, opt, mp_trainer, args, adaptive, audio_encoder)
+            train_epoch(model, loader, opt, mp_trainer, args, adaptive, audio_encoder, metrics=metrics)
 
         mod_str = ' '.join(f"{k}={v}" for k, v in mod_counts.items())
 
@@ -333,6 +344,7 @@ def main():
             else:
                 no_improve += 1
 
+            metrics.flush_epoch(epoch=ep, val_metrics=v)
             elapsed = time.perf_counter() - t_start
             log_print(
                 f"  ep {ep+1:4d}  train={train_pred:.4f}  val_mae={v['mae']:.4f}  "
@@ -340,16 +352,20 @@ def main():
                 f"harmony={v['harmony']:.2f}  [{int(elapsed//60)}m{int(elapsed%60):02d}s]  "
                 f"mods={mod_str}"
             )
+            log_print(metrics.summary_table(epoch=-1).replace('\n', ' | '))
 
             if (ep + 1) % args.save_every == 0:
                 save_checkpoint(args.save, model, v['mae'], ep, args.phase)
+                metrics.plot_dashboard(save_path=f'logs/dashboard_epoch_{ep+1:03d}.png')
 
             if no_improve >= args.patience:
                 log_print(f"  Early stop at epoch {ep+1}")
                 break
         else:
+            metrics.flush_epoch(epoch=ep)
             elapsed = time.perf_counter() - t_start
             log_print(f"  ep {ep+1:4d}  train={train_pred:.4f}  [{int(elapsed//60)}m{int(elapsed%60):02d}s]")
+            log_print(metrics.summary_table(epoch=-1).replace('\n', ' | '))
 
         torch.cuda.empty_cache()
 
