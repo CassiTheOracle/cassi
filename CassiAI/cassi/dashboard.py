@@ -77,25 +77,25 @@ def plot_epoch_dashboard(records: List[Dict], save_path: str = 'dashboard.png'):
     subplot(5, 'Specialist Top-1 Mass', 'Fraction',
             ['specialist_top1_mass_mean'], ['tab:orange'])
     subplot(6, 'Harmony Effective Rank', 'Count',
-            ['harmony_effective_rank_mean'], ['tab:pink'])
+            ['harmony_effective_rank_mean'], ['pink'])
 
     # Row 3: Training & memory
     subplot(7, 'Surprise', 'Magnitude',
-            ['surprise_mean'], ['tab:olive'])
+            ['surprise_mean'], ['olive'])
     subplot(8, 'Prediction Error', 'MSE',
-            ['pred_error_mean_mean'], ['tab:brown'])
+            ['pred_error_mean_mean'], ['brown'])
     subplot(9, 'Berry Hit Rate', 'Fraction',
-            ['berry_hit_rate_mean'], ['tab:gray'])
+            ['berry_hit_rate_mean'], ['gray'])
 
     # Row 4: Spectral & Qi
     subplot(10, 'Spectral Slope', 'Slope',
-            ['spectral_slope_mean'], ['tab:cadetblue'],
+            ['spectral_slope_mean'], ['teal'],
             hlines=[(-1.667, '-5/3 target')])
     subplot(11, 'Qi Yang/Yin', 'Ratio',
-            ['qi_yang_yin_ratio_mean'], ['tab:crimson'],
+            ['qi_yang_yin_ratio_mean'], ['crimson'],
             hlines=[(1.618, 'φ'), (1.0, 'balance')])
     subplot(12, 'Changepoint Frequency', 'Rate',
-            ['changepoint_triggered_mean'], ['tab:gold'])
+            ['changepoint_triggered_mean'], ['gold'])
 
     plt.tight_layout(rect=[0, 0, 1, 0.96])
     plt.savefig(save_path, dpi=150)

@@ -101,15 +101,6 @@ def train_epoch(model, loader, opt, mp_trainer, args, adaptive=None, audio_encod
             store_experience=store_exp
         )
 
-        if metrics is not None:
-            metrics.record_batch(
-                info=info,
-                loss=loss.item() if torch.isfinite(loss) else None,
-                pred=pred,
-                target=y,
-                model=model,
-            )
-
         # Loss depends on modality
         if is_physics:
             loss_pred = F.mse_loss(pred, y)
@@ -127,6 +118,15 @@ def train_epoch(model, loader, opt, mp_trainer, args, adaptive=None, audio_encod
 
         coherence = info['conscious'].pow(2).mean()
         loss = loss_pred + COHERENCE_WEIGHT * coherence
+
+        if metrics is not None:
+            metrics.record_batch(
+                info=info,
+                loss=loss.item() if torch.isfinite(loss) else None,
+                pred=pred,
+                target=y,
+                model=model,
+            )
 
         if not torch.isfinite(loss):
             continue
