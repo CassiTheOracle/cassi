@@ -195,13 +195,20 @@ class MixedPrecisionTrainer:
         if self.enabled:
             self.scaler.unscale_(self.optimizer)
 
-    def step_optimizer(self, clip_grad=1.0):
-        """Optimizer step with gradient clipping."""
+    def step_optimizer(self, clip_grad=1.0, neuro_modulation=None):
+        """Optimizer step with gradient clipping.
+
+        When neuro_modulation is provided and mixed precision is enabled,
+        we bypass scaler.step() (which cannot pass extra args) and call
+        optimizer.step() directly after the already-performed unscale().
+        """
         torch.nn.utils.clip_grad_norm_(self.model.parameters(), clip_grad)
-        if self.enabled:
+        if self.enabled and neuro_modulation is None:
             self.scaler.step(self.optimizer)
         else:
-            self.optimizer.step()
+            # scaler.unscale_() already called in optimizer_step();
+            # call optimizer directly so neuro_modulation reaches it.
+            self.optimizer.step(neuro_modulation=neuro_modulation)
 
     def update_scaler(self):
         """Update gradient scaler (no-op if disabled)."""
@@ -212,9 +219,9 @@ class MixedPrecisionTrainer:
         """Zero gradients."""
         self.optimizer.zero_grad()
 
-    def optimizer_step(self, clip_grad=1.0):
+    def optimizer_step(self, clip_grad=1.0, neuro_modulation=None):
         """Convenience: full step with unscale, clip, step, update, zero_grad."""
         self.unscale()
-        self.step_optimizer(clip_grad)
+        self.step_optimizer(clip_grad, neuro_modulation=neuro_modulation)
         self.update_scaler()
         self.zero_grad()

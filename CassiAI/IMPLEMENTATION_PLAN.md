@@ -101,6 +101,108 @@ Keep the detach-at-forward-entry to prevent gradient bleeding across optimizer s
 
 ---
 
+## P0.4 — Training Results & Critical Issues
+
+### Why `reset_workspace()` Is Called Every Batch
+
+**Rationale:** The physics training data consists of independent windows. Each batch item is a random `[4, 1024]` window sampled without replacement from 194,541 training windows. These windows come from unrelated spatial locations and time steps. If `workspace_fwd`/`workspace_rev` persisted across batches, the internal state from sample A (e.g., a vortex) would leak into sample B (e.g., a shock wave), creating cross-contamination that makes learning impossible.
+
+**What gets reset vs. what persists:**
+
+| Buffer | Reset? | Reason |
+|--------|--------|--------|
+| `workspace_fwd` | **Yes** | Per-sample processing state. Must start fresh for independent windows. |
+| `workspace_rev` | **Yes** | Per-sample memory state. Same rationale. |
+| `field_history` | **Yes** | Per-sample trajectory buffer. |
+| `qi_fluid` | **No** (P0.3) | Accumulated awareness/attention balance. Persists like a learned bias. |
+| `specialist_energy` | **No** | Specialist fatigue levels are slow accumulators (episodic state). |
+| `soul_vector` | **No** | Slow EMA of conscious states (spiritual state). |
+
+**The trade-off:** Resetting is correct for independent samples, but it means `workspace_rev` starts at zero every forward pass. Since `workspace_fwd` receives **three** Yang-dominant updates per forward (post-qi, post-meta-cord, post-meta-fused) while `workspace_rev` receives only **one**, the natural ratio within a single forward pass is ~4.6, not φ ≈ 1.618. The ratio cannot reach φ without either (a) sequential data where workspace persists, or (b) architectural changes that give `workspace_rev` more updates.
+
+### Observed Metrics (Pre- vs. Post-P0)
+
+| Metric | Pre-P0 (mean of E1–E5) | Post-P0 (mean of E6–E10) | Target | Assessment |
+|--------|------------------------|--------------------------|--------|------------|
+| `yang_yin_ratio` | 9.55 | 5.82 | **1.618** | ↓ Improved but still 3.6× too high |
+| `specialist_entropy` | 1.00 | **0.6931** | > 1.2 | ↓ Collapsed to ln(2) — exactly 2 specialists active |
+| `specialist_top1_mass` | 0.368 | **0.500** | < 0.35 | ↑ Winner-take-all locked at 50% |
+| `spectral_slope` | -0.147 | -0.146 | **-1.667** | ✗ No change — spine limitation |
+| `berry_hit_rate` | 1.000 | 1.000 | < 0.9 | ✗ Saturated — no headroom |
+| `changepoint_triggered` | 0.000 | 0.000 | > 0.01 | ✗ Never fires |
+| `conscious_sparsity` | 0.0017 | 0.0015 | > 0.05 | ✗ Too dense — no structure |
+
+### Critical Issue 1: Yang/Yin Ratio Stalled at ~5.5
+
+**Root cause:** Within a single forward pass, `workspace_fwd` is updated three times (lines 313, 332, 338 in `harmony_brain.py`) while `workspace_rev` is updated once (line 315). The mathematical equilibrium is:
+
+```
+fwd ≈ (PHI_INV + PHI_INV³ + PHI_INV³) * repr ≈ 1.09 * repr
+rev ≈ PHI_INV³ * repr ≈ 0.236 * repr
+ratio ≈ 4.6 → observed ~5.5 due to varying repr magnitudes
+```
+
+**Proposed fixes:**
+1. **Add a second `workspace_rev` update** after meta-cord (line 332) so Yin accumulates alongside Yang:
+   ```python
+   self.workspace_rev = PHI_INV * self.workspace_rev + PHI_INV**2 * self.workspace_fwd
+   ```
+2. **Reduce `workspace_fwd` updates** from 3 to 2 by merging the meta-cord update into the qi-fluid update.
+3. **Defer to sequential data:** Accept that φ equilibrium requires sequential episodes (text/audio) where workspace persists across time steps. Physics windows may never reach φ.
+
+**Recommended:** Implement fix #1 (second rev update). It is the minimal change that directly addresses the imbalance.
+
+### Critical Issue 2: Specialist Entropy Collapsed to ln(2)
+
+**Root cause:** After P0, the energy dynamics (`specialist_energy`) combined with the new Yang-dominant workspace created a positive feedback loop where 2 specialists quickly dominate. Entropy = ln(2) ≈ 0.693 means exactly 2 specialists have equal probability and the other 11 are effectively zero.
+
+**Proposed fixes:**
+1. **Entropy regularization:** Add `-λ * entropy(specialist_weights)` to the loss with λ = 0.01. This directly penalizes low-entropy distributions.
+2. **Energy decay floor:** Clamp `specialist_energy` minimum to 0.3 (currently goes to ~0.1), preventing specialists from being permanently shut out.
+3. **Harmony temperature annealing:** `harmony_temp_scale` is learned but may have collapsed. Add a schedule that keeps temperature above 0.5 for the first 5 epochs post-P0.
+
+**Recommended:** Implement fix #1 (entropy regularization) + fix #2 (energy floor). Both are training-level changes with no architectural risk.
+
+### Critical Issue 3: Spectral Slope Stuck at -0.147
+
+**Root cause:** The spine is frozen and was not trained with spectral objectives. The residual readout (`readout` + `workspace`) operates in the spatial domain and cannot inject the correct frequency-domain structure. No loss term enforces `-5/3` slope.
+
+**Proposed fixes:**
+1. **Consciousness-conditioned spectral loss** (P2.2 in original plan): Compute FFT of prediction vs. target, fit log-log slope, penalize deviation from `-5/3`. Weight by conscious certainty.
+2. **Unfreeze spine with spectral warmup:** Gradually unfreeze spine layers 8–12 (highest frequency chakras) and add spectral loss for 3 epochs before refreezing.
+3. **Spectral readout head:** Add a small MLP that takes FFT(spine_output) → predicts FFT(target), then IFFT back. Train only this head.
+
+**Recommended:** Implement fix #1 first (no new parameters). If slope is still > -0.5 after 5 epochs, try fix #3.
+
+### Critical Issue 4: Berry Memory Saturated
+
+**Root cause:** 1024 slots with 959 filled = 93.7% occupancy. Hit rate = 1.0 means every query finds a match, so new experiences immediately overwrite old ones via EMA. The memory is not forgetting — it is a fully packed cache with no room for novelty.
+
+**Proposed fixes:**
+1. **Expand to 4096 slots** (resize buffer, zero-pad existing keys/values). Zero risk.
+2. **Age-weighted eviction:** Track write age per slot. During `write()`, if no empty slot exists, evict the oldest rather than closest-match EMA. This preserves long-term memory.
+3. **Reduce write frequency:** Currently writes every 10 steps (`step % 10 == 0`). Reduce to every 50 steps or gate on `surprise > threshold`.
+
+**Recommended:** Implement fix #1 (expand to 4096) immediately. It is stateless and requires no logic changes.
+
+### Critical Issue 5: Changepoint Detector Never Fires
+
+**Root cause:** The changepoint threshold is likely based on `surprise_ema` absolute value, but surprise is now ~22–30 (post-P0) vs. ~6–7 (pre-P0). The threshold was calibrated for the old dynamics. Additionally, the conscious state is too smooth (`conscious_sparsity` = 0.15%) to produce sharp transitions.
+
+**Proposed fixes:**
+1. **Adaptive threshold:** Set threshold to `surprise_ema_mean + 2 * surprise_ema_std` computed per-epoch, not hardcoded.
+2. **Sparsify consciousness:** Add a top-k hard gate to conscious state (keep only top 10% of dimensions). Sharp transitions in top-k indices = changepoint.
+
+**Recommended:** Implement fix #1 first. It is a one-line change.
+
+### Critical Issue 6: val_mae Degraded Post-P0
+
+**Root cause:** Expected transient. The readout was trained under Yin-dominant workspace dynamics (old equilibrium). P0 changed the workspace to Yang-dominant, shifting the input distribution to the readout. The readout needs 2–5 epochs to re-adapt.
+
+**Proposed fix:** None — continue training. Monitor for recovery. If not recovered by E10, check readout learning rate (may need temporary boost).
+
+---
+
 ## P1 — Self-Reference & Dynamic Balance
 
 ### P1.1 Meta-Cord Self-Referential Loop

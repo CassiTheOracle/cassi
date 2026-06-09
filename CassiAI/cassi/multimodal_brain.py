@@ -16,39 +16,68 @@ from cassi.berry_brain import BerryMemory, compute_berry_phases
 
 
 class ChangepointDetector(nn.Module):
-    """Detects sudden shifts in model state and triggers workspace reset."""
+    """Detects sudden shifts in model state and triggers workspace reset.
 
-    def __init__(self, threshold=0.5, window_size=5):
+    Uses an adaptive threshold based on running mean/std of cosine similarity
+    to avoid hardcoded thresholds that fail when dynamics shift."""
+
+    def __init__(self, threshold=0.5, window_size=5, dim=1040):
         super().__init__()
         self.threshold = threshold
         self.window_size = window_size
-        self.register_buffer('_history', torch.zeros(window_size, 1040))
+        self.dim = dim
+        self.register_buffer('_history', torch.zeros(window_size, dim))
         self.register_buffer('_idx', torch.zeros(1, dtype=torch.long))
         self.register_buffer('_triggered', torch.zeros(1, dtype=torch.bool))
+        # Running statistics for adaptive thresholding
+        self.register_buffer('_sim_ema_mean', torch.zeros(1))
+        self.register_buffer('_sim_ema_var', torch.ones(1))
+        self.register_buffer('_sim_count', torch.zeros(1, dtype=torch.long))
 
     def update(self, state):
         """state: [B, D] conscious/workspace state."""
         # Use mean across batch as summary
         summary = state.mean(dim=0)  # [D]
-        idx = self._idx.item() % self.window_size
+        # Use a monotonic counter for total updates, modulo only for ring buffer
+        total = self._idx.item()
+        idx = total % self.window_size
         self._history[idx] = summary.detach()
-        self._idx[0] = idx + 1
+        self._idx[0] = total + 1
 
-        if self._idx.item() < self.window_size + 1:
+        if total < self.window_size:
             return False
 
         # Compare recent to historical average
         recent = self._history[idx]
         historical = self._history.mean(dim=0)
         sim = F.cosine_similarity(recent.unsqueeze(0), historical.unsqueeze(0), dim=-1)
-        triggered = sim < self.threshold
+
+        # Update running statistics for adaptive threshold
+        n = self._sim_count.item()
+        if n == 0:
+            self._sim_ema_mean[0] = sim.item()
+            self._sim_ema_var[0] = 0.01
+        else:
+            delta = sim.item() - self._sim_ema_mean.item()
+            self._sim_ema_mean += delta / (n + 1)
+            self._sim_ema_var += (delta * (sim.item() - self._sim_ema_mean.item()) - self._sim_ema_var.item()) / (n + 1)
+        self._sim_count[0] = n + 1
+
+        # Adaptive threshold: mean - 2*std, bounded by hard threshold
+        std = torch.sqrt(self._sim_ema_var.clamp(min=1e-6))
+        adaptive_threshold = max(self._sim_ema_mean.item() - 2.0 * std.item(), self.threshold)
+
+        triggered = sim < adaptive_threshold
         self._triggered[0] = triggered
         return triggered.item()
 
     def reset(self):
-        self._history.zero_()
+        self._history = torch.zeros(self.window_size, self.dim, device=self._history.device)
         self._idx.zero_()
         self._triggered.zero_()
+        self._sim_ema_mean.zero_()
+        self._sim_ema_var.fill_(1.0)
+        self._sim_count.zero_()
 
 
 class SoulVector(nn.Module):
@@ -87,7 +116,7 @@ class MultimodalBrain(HarmonyBrain):
                  memory_value_dim=26, readout_hidden=520,
                  byte_mode=False, mode='qi', min_k=1,
                  use_berry=True, use_changepoint=True, use_soul=True,
-                 berry_slots=1024, changepoint_threshold=0.5,
+                 berry_slots=4096, changepoint_threshold=0.5,
                  soul_ema=0.99):
         super().__init__(
             D=D, n_specialists=n_specialists, n_slots=n_slots,
@@ -100,9 +129,9 @@ class MultimodalBrain(HarmonyBrain):
         self.use_soul = use_soul
 
         if use_berry:
-            # Use same key_dim as parent (39 = 26 berry + 13 boundary)
+            # P1.3: 52-dim key = 26 berry + 13 boundary + 13 conscious
             self.berry_memory = BerryMemory(
-                D=D, n_slots=berry_slots, key_dim=39,
+                D=D, n_slots=berry_slots, key_dim=52,
                 value_dim=memory_value_dim, similarity_threshold=0.85
             )
             self.berry_value_encoder = nn.Linear(D, memory_value_dim)
@@ -155,7 +184,9 @@ class MultimodalBrain(HarmonyBrain):
             info['berry_fp'] = berry_fp
 
             if use_memory and self.berry_memory.n_filled.item() > 0:
-                retrieved, attn = self.berry_memory.query(berry_fp, temperature=0.1)
+                with torch.no_grad():
+                    retrieved, attn = self.berry_memory.query(berry_fp, temperature=0.1)
+                    retrieved = retrieved.detach()
                 info['memory_retrieved'] = retrieved
                 info['memory_attn'] = attn
 
@@ -181,7 +212,7 @@ class MultimodalBrain(HarmonyBrain):
         """Approximate Berry phases from conscious state.
 
         state: [B, D]
-        Returns: [B, 39] berry fingerprint (26 phases + 13 boundary residuals)
+        Returns: [B, 52] berry fingerprint (26 phases + 13 boundary + 13 conscious)
         """
         B, D = state.shape
         chunk_size = max(1, D // 13)
@@ -227,7 +258,10 @@ class MultimodalBrain(HarmonyBrain):
             boundary.append(ch.var(dim=1, keepdim=True))  # [B, 1]
         boundary = torch.cat(boundary, dim=1)  # [B, 13]
 
-        fp = torch.cat([berry, boundary], dim=1)  # [B, 39]
+        # P1.3: include conscious summary in the key
+        C = self.spine.C
+        conscious_summary = state.view(B, C, -1).mean(dim=-1)  # [B, 13]
+        fp = torch.cat([berry, boundary, conscious_summary], dim=1)  # [B, 52]
         return fp
 
     def reset_all(self):

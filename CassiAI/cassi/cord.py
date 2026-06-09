@@ -73,6 +73,39 @@ class CordPhysics(nn.Module):
         self.fusion = nn.Linear(D * 2, D, bias=False)
         self.decoder = nn.Linear(D, 1024)
 
+        # Precompute chakra offsets for fast slicing
+        self._offsets = []
+        offset = 0
+        for w in self.widths:
+            self._offsets.append((offset, offset + w))
+            offset += w
+
+        # ── Persistent resonant field state (Phase 1) ──
+        # IIR state
+        self.register_buffer('h1', torch.zeros(1, D))
+        self.register_buffer('h2', torch.zeros(1, D))
+        self.register_buffer('x1', torch.zeros(1, D))
+        # Dual workspace
+        self.register_buffer('yang', torch.zeros(1, D))
+        self.register_buffer('yin', torch.zeros(1, D))
+        self.register_buffer('field_state', torch.zeros(1, D))
+        # Energy & Qi
+        self.register_buffer('field_energy', torch.zeros(1, self.C))
+        self.register_buffer('qi_fluid', torch.zeros(1, D))
+        # Fast weights (Phase 2 — disabled in Phase 1)
+        self.register_buffer('theta_fast_fwd', torch.zeros(self.C))
+        self.register_buffer('theta_fast_rev', torch.zeros(self.C))
+        self.register_buffer('gain_fast', torch.zeros(self.C))
+        # Internal error/activity filter state (Phase 2)
+        self.register_buffer('err_h1', torch.zeros(self.C))
+        self.register_buffer('err_h2', torch.zeros(self.C))
+        self.register_buffer('act_h1', torch.zeros(self.C))
+        self.register_buffer('act_h2', torch.zeros(self.C))
+
+        # Rolling frame buffer for reverse IIR (4 frames)
+        self.register_buffer('_frame_buffer', torch.zeros(1, 4, D))
+        self._frame_idx = 0
+
         self._init_theta()
 
     def _init_theta(self):
@@ -308,6 +341,40 @@ class CordPhysics(nn.Module):
             return repr_vec, trajectories
         return repr_vec
 
+    def compute_all_f_stack(self, psi):
+        """Compute per-specialist IIR outputs as stacked tensor.
+
+        psi: [B, 4, D]
+        Returns: [C, B, D] — each specialist's output padded to D
+        """
+        psi_c = self._split_chakras(psi)
+        outs = []
+        for c in range(self.C):
+            ch = psi_c[c]
+            theta = torch.sigmoid(self.fwd_theta[c]) * math.pi
+            a1 = 2.0 * PHI_INV * torch.cos(theta)
+            a2 = -(PHI_INV) ** 2
+            b0 = torch.sigmoid(self.fwd_b0[c])
+            b1 = torch.sigmoid(self.fwd_b1[c])
+            sf = b0 + b1 + 1e-8
+            b0, b1 = b0 / sf, b1 / sf
+            h_fwd = self._iir(ch, a1, a2, b0, b1)
+            theta_r = torch.sigmoid(self.rev_theta[c]) * math.pi
+            a1r = 2.0 * PHI_INV * torch.cos(theta_r)
+            a2r = -(PHI_INV) ** 2
+            b0r = torch.sigmoid(self.rev_b0[c])
+            b1r = torch.sigmoid(self.rev_b1[c])
+            sr = b0r + b1r + 1e-8
+            b0r, b1r = b0r / sr, b1r / sr
+            h_rev = self._iir(torch.flip(ch, [1]), a1r, a2r, b0r, b1r)
+            out = h_fwd - h_rev  # [B, w_c]
+            # Pad to D
+            if out.shape[-1] < self.D:
+                pad = torch.zeros(out.shape[0], self.D - out.shape[-1], device=out.device, dtype=out.dtype)
+                out = torch.cat([out, pad], dim=-1)
+            outs.append(out)
+        return torch.stack(outs, dim=0)  # [C, B, D]
+
     def compute_all_f(self, psi):
         """Compute only the IIR outputs (all_f) without fusion.
 
@@ -477,6 +544,190 @@ class CordPhysics(nn.Module):
         all_f = torch.cat(outs, -1)
         repr_vec = self.fusion(torch.cat([psi[:, -1, :], all_f * 0.5], -1)) + psi[:, -1, :]
         return field[:, -1, :] + self.decoder(repr_vec)
+
+    # ------------------------------------------------------------------
+    # Stateful resonant field (Phase 1)
+    # ------------------------------------------------------------------
+
+    def reset_state(self, batch_size):
+        """Reset all persistent field buffers for a new batch/sequence.
+
+        Call this at the start of each training batch or inference sequence.
+        """
+        device = self.h1.device
+        self.h1 = torch.zeros(batch_size, self.D, device=device)
+        self.h2 = torch.zeros(batch_size, self.D, device=device)
+        self.x1 = torch.zeros(batch_size, self.D, device=device)
+        self.yang = torch.zeros(batch_size, self.D, device=device)
+        self.yin = torch.zeros(batch_size, self.D, device=device)
+        self.field_state = torch.zeros(batch_size, self.D, device=device)
+        self.field_energy = torch.zeros(batch_size, self.C, device=device)
+        self.qi_fluid = torch.zeros(batch_size, self.D, device=device)
+        self.theta_fast_fwd.zero_()
+        self.theta_fast_rev.zero_()
+        self.gain_fast.zero_()
+        self.err_h1.zero_()
+        self.err_h2.zero_()
+        self.act_h1.zero_()
+        self.act_h2.zero_()
+        self._frame_buffer = torch.zeros(batch_size, 4, self.D, device=device)
+        self._frame_idx = 0
+
+    def step(self, x_new, theta_shift=0.0, damp_scale=1.0,
+             yang_gain=1.0, yin_gain=1.0, brainstem_gate=False):
+        """Single IIR step with persistent state.
+
+        x_new: [B, D] — one frame already projected to D-space
+        theta_shift: frequency offset from brainstem attention
+        damp_scale: damping modifier from brainstem homeostasis
+        yang_gain, yin_gain: workspace gain modifiers
+        brainstem_gate: if True, allows fast weight update (Phase 2)
+
+        Returns: field_state [B, D]
+        """
+        B = x_new.shape[0]
+
+        # ── 1. Per-chakra forward IIR with fast weights ──
+        h_new_parts = []
+        for c in range(self.C):
+            start, end = self._offsets[c]
+            w = end - start
+            x_c = x_new[:, start:end]  # [B, w]
+
+            # Active frequency = slow weight + fast weight
+            theta = torch.sigmoid(self.fwd_theta[c] + self.theta_fast_fwd[c]) * math.pi
+            a1 = 2.0 * PHI_INV * damp_scale * torch.cos(theta + theta_shift)
+            a2 = -(PHI_INV * damp_scale) ** 2
+            b0 = torch.sigmoid(self.fwd_b0[c])
+            b1 = torch.sigmoid(self.fwd_b1[c])
+            sf = b0 + b1 + 1e-8
+            b0, b1 = b0 / sf, b1 / sf
+
+            # Clone to avoid in-place modification corrupting autograd graph
+            # when step() is called multiple times within a single forward()
+            h1_c = self.h1[:, start:end].clone()
+            h2_c = self.h2[:, start:end].clone()
+            x1_c = self.x1[:, start:end].clone()
+
+            h_new_c = b0 * x_c + b1 * x1_c + a1 * h1_c + a2 * h2_c
+            h_new_c = h_new_c * (1.0 + self.gain_fast[c])
+
+            # Update IIR state (reconstruct full tensor to avoid in-place)
+            new_h1 = self.h1.clone()
+            new_h2 = self.h2.clone()
+            new_x1 = self.x1.clone()
+            new_h2[:, start:end] = h1_c
+            new_h1[:, start:end] = h_new_c
+            new_x1[:, start:end] = x_c
+            self.h2 = new_h2
+            self.h1 = new_h1
+            self.x1 = new_x1
+
+            h_new_parts.append(h_new_c)
+
+        # Update per-chakra energy (out-of-place to avoid autograd corruption)
+        new_field_energy = self.field_energy.clone()
+        for c in range(self.C):
+            new_field_energy[:, c] = h_new_parts[c].pow(2).mean(dim=-1)
+        self.field_energy = new_field_energy
+
+        h_new = torch.cat(h_new_parts, dim=-1)  # [B, D]
+
+        # ── 1b. Rolling buffer for reverse IIR ──
+        self._frame_buffer[:, self._frame_idx % 4, :] = x_new.detach()
+        self._frame_idx += 1
+        if self._frame_idx >= 4:
+            # Reverse IIR over full buffer (flipped)
+            h_rev_parts = []
+            for c in range(self.C):
+                start, end = self._offsets[c]
+                buf_c = self._frame_buffer[:, :, start:end]  # [B, 4, w]
+                theta_r = torch.sigmoid(self.rev_theta[c]) * math.pi
+                a1r = 2.0 * PHI_INV * torch.cos(theta_r)
+                a2r = -(PHI_INV) ** 2
+                b0r = torch.sigmoid(self.rev_b0[c])
+                b1r = torch.sigmoid(self.rev_b1[c])
+                sr = b0r + b1r + 1e-8
+                b0r, b1r = b0r / sr, b1r / sr
+                h_rev_c = self._iir(torch.flip(buf_c, [1]), a1r, a2r, b0r, b1r)
+                h_rev_parts.append(h_rev_c)
+            h_new = h_new - torch.cat(h_rev_parts, dim=-1)
+
+        # ── 2. Fusion (same formula as _compute_repr) ──
+        field_state = self.fusion(torch.cat([x_new, h_new * 0.5], dim=-1)) + x_new
+
+        # ── 3. Dual workspace evolution ──
+        self.yang = PHI_INV ** 2 * self.yang + PHI_INV * yang_gain * field_state
+        self.yin = PHI_INV * self.yin + PHI_INV ** 2 * yin_gain * self.yang
+
+        # ── 4. Qi-fluid = overlap + resonance ──
+        qi_overlap = self.yang * self.yin
+        self.qi_fluid = PHI_INV * self.qi_fluid + PHI_INV ** 2 * qi_overlap
+
+        # ── 5. Conscious field state = harmonious cooperation ──
+        self.field_state = PHI_INV * self.yang + PHI_INV ** 2 * self.yin
+
+        # ── 6. Fast weight update (Phase 2: online learning) ──
+        if brainstem_gate:
+            self._update_fast_weights(h_new, self.field_state)
+
+        return self.field_state
+
+    def _update_fast_weights(self, h_new, field_state):
+        """Update fast weights via local gradient descent on prediction error.
+
+        Updates theta_fast and gain_fast in no_grad context.
+        Called internally by step() when brainstem_gate=True.
+        """
+        with torch.no_grad():
+            # Self-supervised error: prediction vs actual next frame
+            pred = self.decoder(field_state)
+            # We don't have the actual next frame here, so we use
+            # the field state's own consistency as a proxy
+            # (lower energy = more consistent = better prediction)
+            error_signal = -self.field_energy.mean(dim=0)  # [C]
+
+            for c in range(self.C):
+                # IIR-smooth error and activity
+                self.err_h1[c] = PHI_INV * self.err_h1[c] + (1 - PHI_INV) * error_signal[c]
+                self.act_h1[c] = PHI_INV * self.act_h1[c] + (1 - PHI_INV) * h_new[:, self._offsets[c][0]:self._offsets[c][1]].abs().mean()
+
+                # Local gradient: shift theta toward frequencies that reduce error
+                theta = torch.sigmoid(self.fwd_theta[c]) * math.pi
+                dh_dtheta = -2 * PHI_INV * math.sin(theta) * self.h1[:, self._offsets[c][0]:self._offsets[c][1]]
+                # Approximate gradient: correlation between error and sensitivity
+                grad_theta = (error_signal[c] * dh_dtheta).mean()
+
+                # Update fast weights
+                self.theta_fast_fwd[c] = PHI_INV * self.theta_fast_fwd[c] - 0.01 * grad_theta
+                self.gain_fast[c] = PHI_INV * self.gain_fast[c] + 0.01 * (-self.err_h1[c]) * self.act_h1[c]
+
+            # Normalize across chakras (prevent domination)
+            self.theta_fast_fwd = self.theta_fast_fwd / (self.theta_fast_fwd.norm() + 1e-8) * 0.5
+            self.theta_fast_rev = self.theta_fast_rev / (self.theta_fast_rev.norm() + 1e-8) * 0.5
+            self.gain_fast = self.gain_fast / (self.gain_fast.norm() + 1e-8) * 1.0
+
+    def step_sequence(self, psi, theta_shift=0.0, damp_scale=1.0,
+                      yang_gain=1.0, yin_gain=1.0, brainstem_gate=False):
+        """Process a sequence of D-space frames via repeated step() calls.
+
+        psi: [B, T, D] — T frames of D-dimensional field state
+        Returns: list of T field_state tensors [B, D]
+        """
+        B, T, D = psi.shape
+        assert D == self.D
+        states = []
+        for t in range(T):
+            state = self.step(
+                psi[:, t, :],
+                theta_shift=theta_shift,
+                damp_scale=damp_scale,
+                yang_gain=yang_gain,
+                yin_gain=yin_gain,
+                brainstem_gate=brainstem_gate,
+            )
+            states.append(state)
+        return states
 
     def filter_info(self):
         """Report per-chakra filter characteristics."""

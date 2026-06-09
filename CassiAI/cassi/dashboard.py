@@ -21,7 +21,10 @@ def load_epoch_records(path: str) -> List[Dict]:
         for line in f:
             line = line.strip()
             if line:
-                records.append(json.loads(line))
+                try:
+                    records.append(json.loads(line))
+                except json.JSONDecodeError:
+                    continue
     return records
 
 
@@ -91,23 +94,16 @@ def plot_epoch_dashboard(records: List[Dict], save_path: str = 'dashboard.png'):
     subplot(10, 'Spectral Slope', 'Slope',
             ['spectral_slope_mean'], ['teal'],
             hlines=[(-1.667, '-5/3 target')])
-    subplot(11, 'Qi Yang/Yin', 'Ratio',
-            ['qi_yang_yin_ratio_mean'], ['crimson'],
-            hlines=[(1.618, 'φ'), (1.0, 'balance')])
-    subplot(12, 'Changepoint Frequency', 'Rate',
-            ['changepoint_triggered_mean'], ['gold'])
+    subplot(11, 'Qi Energy & Beat', 'Value',
+            ['qi_energy_mean', 'beat_mean'], ['crimson', 'purple'],
+            hlines=[(0.0, 'harmony')])
+    subplot(12, 'Breath Frequencies', 'Hz',
+            ['breath_yang_mean', 'breath_yin_mean'], ['red', 'blue'])
 
     plt.tight_layout(rect=[0, 0, 1, 0.96])
     plt.savefig(save_path, dpi=150)
     plt.close()
     print(f"Dashboard saved to {save_path}")
-
-
-def plot_batch_window(log_dir: str = 'logs/metrics', save_path: str = 'dashboard_live.png', window: int = 100):
-    """Plot the most recent batch-level metrics from ring buffers.
-    Requires importing CassiMetrics with its buffer state (only useful in-process)."""
-    print("Batch-level live plotting requires running inside the training process.")
-    print("Use CassiMetrics.plot_dashboard() from train_multimodal.py instead.")
 
 
 def print_summary_table(records: List[Dict], last_n: int = 5):
@@ -126,7 +122,13 @@ def print_summary_table(records: List[Dict], last_n: int = 5):
             'surprise_mean',
             'specialist_entropy_mean',
             'harmony_effective_rank_mean',
-            'qi_yang_yin_ratio_mean',
+            'qi_energy_mean',
+            'qi_ratio_mean',
+            'breath_yang_mean',
+            'breath_yin_mean',
+            'beat_mean',
+            'freq_ratio_mean',
+            'pulse_active_mean',
             'berry_hit_rate_mean',
             'spectral_slope_mean',
             'changepoint_triggered_mean',

@@ -75,7 +75,7 @@ class BerryMemory(nn.Module):
       - age: timesteps since last access
     """
 
-    def __init__(self, D=1040, n_slots=1024, key_dim=26, value_dim=1040,
+    def __init__(self, D=1040, n_slots=4096, key_dim=26, value_dim=1040,
                  ema_decay=0.9, similarity_threshold=0.85):
         super().__init__()
         self.D = D
@@ -92,21 +92,22 @@ class BerryMemory(nn.Module):
         self.register_buffer('ages', torch.zeros(n_slots, dtype=torch.long))
         self.register_buffer('mask', torch.zeros(n_slots, dtype=torch.bool))  # which slots are occupied
         self.register_buffer('n_filled', torch.zeros(1, dtype=torch.long))
+        self._n_filled = 0  # Python mirror to avoid GPU→CPU sync on hot path
 
-    def query(self, berry_fp, temperature=0.1):
-        """Retrieve from memory via soft attention on Berry keys.
+    def query(self, berry_fp, temperature=0.1, topk=64):
+        """Retrieve from memory via sparse top-k attention on Berry keys.
 
-        berry_fp: [B, 26]
+        berry_fp: [B, key_dim]
+        topk: number of memory slots to attend to (sparse, like specialist attention)
         Returns: [B, value_dim] retrieved values, [B, n_slots] attention weights
         """
         B = berry_fp.shape[0]
-        if self.n_filled.item() == 0:
+        if self._n_filled == 0:
             return torch.zeros(B, self.value_dim, device=berry_fp.device), \
                    torch.zeros(B, self.n_slots, device=berry_fp.device)
 
-        # Normalize (clone keys to prevent in-place write conflicts during training)
-        q = F.normalize(berry_fp, dim=-1)  # [B, 26]
-        k = F.normalize(self.keys.clone(), dim=-1)  # [n_slots, 26]
+        q = F.normalize(berry_fp, dim=-1)  # [B, key_dim]
+        k = F.normalize(self.keys, dim=-1)  # [n_slots, key_dim]
 
         # Cosine similarity
         sim = q @ k.T  # [B, n_slots]
@@ -114,12 +115,23 @@ class BerryMemory(nn.Module):
         # Mask empty slots with dtype-safe minimum (float16 can't represent -1e9)
         sim = sim.masked_fill(~self.mask.unsqueeze(0), torch.finfo(sim.dtype).min)
 
-        # Soft attention
-        attn = F.softmax(sim / temperature, dim=-1)  # [B, n_slots]
+        # Sparse top-k attention: only compute softmax over top-k slots.
+        # This mirrors the specialist sparse attention in HarmonyBrain.
+        k_sparse = min(topk, self._n_filled)
+        topk_sim, topk_idx = sim.topk(k_sparse, dim=-1)  # [B, k_sparse]
+        attn_sparse = F.softmax(topk_sim / temperature, dim=-1)  # [B, k_sparse]
 
-        # Retrieve: clone values to prevent in-place write conflicts during training
-        # (write() does indexed assignment on self.values which would break graph)
-        retrieved = attn @ self.values.clone()  # [B, value_dim]
+        # Retrieve via batched matrix multiply: [B, 1, k] @ [B, k, value_dim]
+        values_snapshot = self.values.clone()
+        retrieved = torch.bmm(
+            attn_sparse.unsqueeze(1),
+            values_snapshot[topk_idx]
+        ).squeeze(1)  # [B, value_dim]
+
+        # Reconstruct full attention for logging/debugging (zero-padded)
+        attn = torch.zeros(B, self.n_slots, device=berry_fp.device)
+        attn.scatter_(1, topk_idx, attn_sparse)
+
         return retrieved, attn
 
     def write(self, berry_fp, values, mode='ema'):
@@ -133,7 +145,8 @@ class BerryMemory(nn.Module):
         """
         B = berry_fp.shape[0]
         if B == 0:
-            self.ages[self.mask] += 1
+            with torch.no_grad():
+                self.ages[self.mask] += 1
             return
 
         device = berry_fp.device
@@ -143,11 +156,16 @@ class BerryMemory(nn.Module):
         q = F.normalize(berry_fp, dim=-1)
 
         # Batched similarity: [B, n_slots]
-        if self.n_filled.item() > 0:
+        if self._n_filled > 0:
             k = F.normalize(self.keys, dim=-1)
             sims = q @ k.T
-            sims = sims.masked_fill(~self.mask.unsqueeze(0), -1.0)
+            sims = sims.masked_fill(~self.mask.unsqueeze(0), torch.finfo(sims.dtype).min)
+            # Guard against NaN from corrupted keys
+            if torch.isnan(sims).any():
+                sims = torch.nan_to_num(sims, nan=torch.finfo(sims.dtype).min)
             best_sims, best_idx = sims.max(dim=-1)
+            # Clamp indices to valid range
+            best_idx = best_idx.clamp(0, self.n_slots - 1)
         else:
             best_sims = torch.full((B,), -1.0, device=device)
             best_idx = torch.zeros(B, dtype=torch.long, device=device)
@@ -155,82 +173,83 @@ class BerryMemory(nn.Module):
         match_mask = best_sims > self.similarity_threshold
         new_mask = ~match_mask
 
-        # --- Update existing slots (vectorized) ---
-        if match_mask.any():
-            match_idx = best_idx[match_mask]
-            match_fp = q[match_mask]
-            match_val = values[match_mask]
+        # All mutations happen in no_grad to save memory and avoid autograd issues
+        with torch.no_grad():
+            # --- Update existing slots (vectorized) ---
+            if match_mask.any():
+                match_idx = best_idx[match_mask]
+                match_fp = q[match_mask]
+                match_val = values[match_mask]
 
-            unique_idx, inverse = torch.unique(match_idx, return_inverse=True)
-            n_unique = len(unique_idx)
+                # Sanitize indices before unique to prevent overflow crash
+                match_idx = match_idx.clamp(0, self.n_slots - 1)
+                unique_idx, inverse = torch.unique(match_idx, return_inverse=True)
 
-            # Count per slot
-            group_counts = torch.zeros(n_unique, device=device)
-            group_counts.scatter_add_(0, inverse, torch.ones(len(inverse), device=device))
+                # Count per slot
+                group_counts = torch.zeros(len(unique_idx), device=device)
+                group_counts.scatter_add_(0, inverse, torch.ones(len(inverse), device=device))
 
-            # Sum keys and values per slot
-            new_key_sums = torch.zeros(n_unique, self.key_dim, device=device)
-            new_key_sums.scatter_add_(0, inverse.unsqueeze(-1).expand(-1, self.key_dim), match_fp)
-            new_val_sums = torch.zeros(n_unique, self.value_dim, device=device)
-            new_val_sums.scatter_add_(0, inverse.unsqueeze(-1).expand(-1, self.value_dim), match_val)
+                # Sum keys and values per slot
+                new_key_sums = torch.zeros(len(unique_idx), self.key_dim, device=device)
+                new_key_sums.scatter_add_(0, inverse.unsqueeze(-1).expand(-1, self.key_dim), match_fp)
+                new_val_sums = torch.zeros(len(unique_idx), self.value_dim, device=device)
+                new_val_sums.scatter_add_(0, inverse.unsqueeze(-1).expand(-1, self.value_dim), match_val)
 
-            # Average per group
-            avg_keys = new_key_sums / group_counts.unsqueeze(-1).clamp(min=1)
-            avg_vals = new_val_sums / group_counts.unsqueeze(-1).clamp(min=1)
+                # Average per group
+                avg_keys = new_key_sums / group_counts.unsqueeze(-1).clamp(min=1)
+                avg_vals = new_val_sums / group_counts.unsqueeze(-1).clamp(min=1)
 
-            if mode == 'ema':
-                old_counts = self.counts[unique_idx]
-                alpha = 1.0 / (old_counts + 1.0)
-                self.keys[unique_idx] = (1 - alpha.unsqueeze(-1)) * self.keys[unique_idx] + alpha.unsqueeze(-1) * avg_keys
-                self.values[unique_idx] = (1 - alpha.unsqueeze(-1)) * self.values[unique_idx] + alpha.unsqueeze(-1) * avg_vals
-            elif mode == 'replace':
-                self.keys[unique_idx] = avg_keys
-                self.values[unique_idx] = avg_vals
-            else:  # cumulative
-                self.keys[unique_idx] = self.keys[unique_idx] + avg_keys
-                self.values[unique_idx] = self.values[unique_idx] + avg_vals
+                if mode == 'ema':
+                    old_counts = self.counts[unique_idx]
+                    alpha = 1.0 / (old_counts + 1.0)
+                    self.keys[unique_idx] = (1 - alpha.unsqueeze(-1)) * self.keys[unique_idx] + alpha.unsqueeze(-1) * avg_keys
+                    self.values[unique_idx] = (1 - alpha.unsqueeze(-1)) * self.values[unique_idx] + alpha.unsqueeze(-1) * avg_vals
+                elif mode == 'replace':
+                    self.keys[unique_idx] = avg_keys
+                    self.values[unique_idx] = avg_vals
+                else:  # cumulative
+                    self.keys[unique_idx] = self.keys[unique_idx] + avg_keys
+                    self.values[unique_idx] = self.values[unique_idx] + avg_vals
 
-            self.counts[unique_idx] += 1
-            self.ages[unique_idx] = 0
+                self.counts[unique_idx] += 1
+                self.ages[unique_idx] = 0
 
-        # --- Write new slots ---
-        if new_mask.any():
-            new_fp = q[new_mask]
-            new_val = values[new_mask]
-            N_new = new_fp.shape[0]
+            # --- Write new slots ---
+            if new_mask.any():
+                new_fp = q[new_mask]
+                new_val = values[new_mask]
+                N_new = new_fp.shape[0]
 
-            n_empty = self.n_slots - self.n_filled.item()
-            if n_empty >= N_new:
-                idx_start = self.n_filled.item()
-                assigned = torch.arange(idx_start, idx_start + N_new, device=device, dtype=torch.long)
-                self.n_filled += N_new
-            else:
+                # Discover empty slots dynamically; never use n_filled as a contiguous pointer
                 empty = torch.where(~self.mask)[0]
-                if len(empty) > 0:
-                    assigned_empty = empty[:min(len(empty), N_new)]
+                n_empty = empty.shape[0]
+                if n_empty >= N_new:
+                    assigned = empty[:N_new]
                 else:
-                    assigned_empty = torch.empty(0, dtype=torch.long, device=device)
+                    assigned_empty = empty[:N_new]  # PyTorch slice past end is safe
+                    n_evict = N_new - assigned_empty.shape[0]
+                    if n_evict > 0 and self._n_filled > 0:
+                        n_evict = min(n_evict, self._n_filled)
+                        filled_ages = self.ages.clone()
+                        filled_ages[~self.mask] = -1
+                        _, evict_idx = torch.topk(filled_ages, n_evict)
+                        assigned = torch.cat([assigned_empty, evict_idx])
+                    else:
+                        assigned = assigned_empty
 
-                n_evict = N_new - len(assigned_empty)
-                n_filled_actual = self.mask.sum().item()
-                if n_evict > 0 and n_filled_actual > 0:
-                    n_evict = min(n_evict, n_filled_actual)
-                    filled_ages = self.ages.clone()
-                    filled_ages[~self.mask] = -1
-                    _, evict_idx = torch.topk(filled_ages, n_evict)
-                    assigned = torch.cat([assigned_empty, evict_idx])
-                else:
-                    assigned = assigned_empty
+                n_assign = len(assigned)
+                self.keys[assigned] = new_fp[:n_assign]
+                self.values[assigned] = new_val[:n_assign]
+                self.counts[assigned] = 1
+                self.ages[assigned] = 0
+                self.mask[assigned] = True
 
-            n_assign = len(assigned)
-            self.keys[assigned] = new_fp[:n_assign]
-            self.values[assigned] = new_val[:n_assign]
-            self.counts[assigned] = 1
-            self.ages[assigned] = 0
-            self.mask[assigned] = True
+            # Sync Python mirror after writes
+            self._n_filled = int(self.mask.sum().item())
+            self.n_filled[0] = self._n_filled
 
-        # Increment ages for all occupied slots
-        self.ages[self.mask] += 1
+            # Increment ages for all occupied slots
+            self.ages[self.mask] += 1
 
     def prune(self, min_count=2):
         """Remove slots with count < min_count."""
@@ -238,7 +257,8 @@ class BerryMemory(nn.Module):
         self.mask &= keep
         self.counts[~keep] = 0
         self.ages[~keep] = 0
-        self.n_filled[0] = self.mask.sum().item()
+        self._n_filled = int(self.mask.sum().item())
+        self.n_filled[0] = self._n_filled
 
     def get_stats(self):
         """Return memory statistics."""
@@ -262,7 +282,7 @@ class BerryMemoryBrain(nn.Module):
       4. Small MLP fuses (spine_repr, memory_value) → prediction residual
     """
 
-    def __init__(self, D=1040, n_slots=1024, memory_value_dim=1040,
+    def __init__(self, D=1040, n_slots=4096, memory_value_dim=1040,
                  enhancer_hidden=256, temperature=0.1):
         super().__init__()
         self.D = D

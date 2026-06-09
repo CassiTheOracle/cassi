@@ -269,31 +269,30 @@ class MultimodalDataLoader:
         return x, y, 'audio'
 
     def _sample_mixed(self, batch_size, device, physics_ratio=0.5, audio_ratio=0.0):
-        """Sample a mixed batch from multiple modalities."""
+        """Sample a mixed batch from multiple modalities.
+
+        Physics inputs are 3D [B, 4, D] while text/audio are 2D [B, seq];
+        they cannot be concatenated. We sample one modality per batch call
+        using the ratios as multinomial probabilities, which preserves the
+        intended curriculum distribution across the epoch.
+        """
         n_physics = int(batch_size * physics_ratio)
         n_audio = int(batch_size * audio_ratio)
         n_text = batch_size - n_physics - n_audio
 
-        batches = []
-        if n_physics > 0:
-            batches.append(self._sample_physics(n_physics, device))
-        if n_text > 0:
-            batches.append(self._sample_text(n_text, device))
-        if n_audio > 0:
-            batches.append(self._sample_audio(n_audio, device))
+        total = n_physics + n_text + n_audio
+        if total <= 0:
+            return self._sample_physics(batch_size, device)
 
-        # Concatenate
-        x = torch.cat([b[0] for b in batches], dim=0)
-        y = torch.cat([b[1] for b in batches], dim=0)
-        tags = [tag for b in batches for tag in [b[2]] * b[0].shape[0]]
-
-        # Shuffle to mix modalities within batch
-        perm = self.rng.permutation(batch_size)
-        x = x[perm]
-        y = y[perm]
-        tags = [tags[i] for i in perm]
-
-        return x, y, tags
+        # Weighted random choice per batch call
+        probs = [n_physics / total, n_text / total, n_audio / total]
+        choice = self.rng.choice(3, p=probs)
+        if choice == 0:
+            return self._sample_physics(batch_size, device)
+        elif choice == 1:
+            return self._sample_text(batch_size, device)
+        else:
+            return self._sample_audio(batch_size, device)
 
     def sample_val_batch(self, batch_size, device='cuda'):
         """Sample validation batch respecting curriculum phase."""

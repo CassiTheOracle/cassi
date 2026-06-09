@@ -122,7 +122,7 @@ class PhiGardenBrain(nn.Module):
     """
 
     def __init__(self, D=1040, n_specialists=5, n_slots=512,
-                 memory_value_dim=26, readout_hidden=520, byte_mode=False):
+                 memory_value_dim=39, readout_hidden=520, byte_mode=False):
         super().__init__()
         self.D = D
         self.n_specialists = n_specialists
@@ -153,7 +153,7 @@ class PhiGardenBrain(nn.Module):
 
         # Berry memory: 39-dim key (26 Berry + 13 boundary residual)
         self.berry_memory = BerryMemory(
-            D=D, n_slots=n_slots, key_dim=39, value_dim=memory_value_dim,
+            D=D, n_slots=n_slots, key_dim=52, value_dim=memory_value_dim,
         )
 
         # Memory decompressor: 26 → 128 → D
@@ -339,15 +339,16 @@ class PhiGardenBrain(nn.Module):
             offset += w
         return torch.stack(residuals, dim=1)  # [B, 13]
 
-    def compute_berry_key(self, trajectories, boundary_residual):
-        """Compute 39-dim Berry key for memory.
+    def compute_berry_key(self, trajectories, boundary_residual, conscious=None):
+        """Compute 52-dim Berry key for memory (P1.3: consciousness-augmented).
 
         trajectories: dict with 'fwd' and 'rev', each list of 13 tensors [4, B, w]
         boundary_residual: [B, 13]
-        Returns: [B, 39]
+        conscious: [B, D] or None — if provided, includes awareness state in key
+        Returns: [B, 52]
         """
+        B = boundary_residual.shape[0]
         # Berry phases from trajectories
-        # Each trajectory element is [4, B, w] from the spine
         berry_phases = []
         for hemisphere in ['fwd', 'rev']:
             traj_list = trajectories[hemisphere]  # list of 13
@@ -367,7 +368,11 @@ class PhiGardenBrain(nn.Module):
                 berry_phases.append(area)
 
         berry_fp = torch.stack(berry_phases, dim=1)  # [B, 26]
-        return torch.cat([berry_fp, boundary_residual], dim=1)  # [B, 39]
+        if conscious is not None:
+            conscious_summary = conscious.view(B, self.spine.C, -1).mean(dim=-1)  # [B, 13]
+        else:
+            conscious_summary = torch.zeros(B, self.spine.C, device=berry_fp.device)
+        return torch.cat([berry_fp, boundary_residual, conscious_summary], dim=1)  # [B, 52]
 
     def forward(self, x, use_memory=True, return_workspace=False, byte_mode=None):
         """Process physics input through the conscious workspace.
@@ -416,16 +421,19 @@ class PhiGardenBrain(nn.Module):
             repr_external = trajectories['repr']  # [B, D]
 
         # --- Berry memory retrieval ---
-        if use_memory and self.berry_memory.n_filled.item() > 0:
-            # Compute boundary residual from external prediction
-            # (single specialist view = spine itself as baseline)
+        # NOTE: boundary residual uses spine-only view here (N=1) because
+        # all_f_stack is computed later. For full specialist disagreement,
+        # move all_f_stack computation before this block.
+        if use_memory and self.berry_memory._n_filled > 0:
             all_f_spine = self.spine.compute_all_f(trajectories['psi'])
             boundary_res = self.compute_boundary_residual(
                 all_f_spine.unsqueeze(0)  # [1, B, D]
             )
             berry_key = self.compute_berry_key(trajectories, boundary_res)
 
-            retrieved, attn = self.berry_memory.query(berry_key, temperature=0.1)
+            with torch.no_grad():
+                retrieved, attn = self.berry_memory.query(berry_key, temperature=0.1)
+                retrieved = retrieved.detach()
             workspace_bias = self.memory_decompressor(retrieved)  # [B, D]
         else:
             workspace_bias = torch.zeros(B, self.D, device=device)
@@ -497,18 +505,18 @@ class PhiGardenBrain(nn.Module):
         pred_enhanced = pred_spine + residual
 
         # --- Memory encoding (when calm = low surprise) ---
-        surprise = conscious.norm(dim=-1).mean().item()
-        # Adaptive threshold: encode when surprise is below running average
-        if not hasattr(self, '_surprise_ema'):
-            self._surprise_ema = surprise
-        self._surprise_ema = 0.95 * self._surprise_ema + 0.05 * surprise
-        if use_memory and surprise < self._surprise_ema * 1.3 and self.training:
+        surprise = conscious.norm(dim=-1).mean()
+        if not hasattr(self, '_surprise_ema_buf'):
+            self.register_buffer('_surprise_ema_buf', torch.tensor(0.0, device=conscious.device))
+        self._surprise_ema_buf = 0.95 * self._surprise_ema_buf + 0.05 * surprise
+        if use_memory and surprise < self._surprise_ema_buf * 1.3 and self.training:
             with torch.no_grad():
                 # Recompute boundary residual with all specialists
                 boundary_res = self.compute_boundary_residual(all_f_stack)
-                berry_key = self.compute_berry_key(trajectories, boundary_res)
+                berry_key = self.compute_berry_key(trajectories, boundary_res, conscious=conscious)
                 workspace_summary = self.workspace_fwd.view(B, self.spine.C, -1).mean(dim=-1)  # [B, 13]
-                value = torch.cat([workspace_summary, boundary_res], dim=1)  # [B, 26]
+                conscious_summary = conscious.view(B, self.spine.C, -1).mean(dim=-1)  # [B, 13]
+                value = torch.cat([workspace_summary, boundary_res, conscious_summary], dim=1)  # [B, 39]
                 self.berry_memory.write(berry_key.detach(), value.detach(), mode='ema')
 
         if return_workspace:
