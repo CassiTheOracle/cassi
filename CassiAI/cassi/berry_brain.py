@@ -94,6 +94,15 @@ class BerryMemory(nn.Module):
         self.register_buffer('n_filled', torch.zeros(1, dtype=torch.long))
         self._n_filled = 0  # Python mirror to avoid GPU→CPU sync on hot path
 
+    def _load_from_state_dict(self, state_dict, prefix, local_metadata, strict, missing_keys, unexpected_keys, error_msgs):
+        """Re-sync Python mirror after checkpoint load."""
+        super()._load_from_state_dict(state_dict, prefix, local_metadata, strict, missing_keys, unexpected_keys, error_msgs)
+        # _n_filled is not a buffer, so it resets to 0 on load. Recompute from mask.
+        mask = self.mask
+        if mask is not None:
+            self._n_filled = int(mask.sum().item())
+            self.n_filled[0] = self._n_filled
+
     def query(self, berry_fp, temperature=0.1, topk=64):
         """Retrieve from memory via sparse top-k attention on Berry keys.
 
