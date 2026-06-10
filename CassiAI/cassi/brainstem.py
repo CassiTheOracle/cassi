@@ -69,44 +69,151 @@ class QiStateMachine:
     }
 
     def __init__(self, energy_low=0.2, energy_high=0.8, bias_thresh=0.5,
-                 harmony_thresh=0.3, balance_width=0.15):
+                 harmony_thresh=0.3, balance_width=0.15,
+                 adapt_thresholds=True, history_window=50):
         self.energy_low = energy_low
         self.energy_high = energy_high
         self.bias_thresh = bias_thresh
         self.harmony_thresh = harmony_thresh
         self.balance_width = balance_width
-        self._state_ema = None  # EMA of recent state indices for hysteresis
+        self.adapt_thresholds = adapt_thresholds
+        self.history_window = history_window
 
-    def compute(self, yang_norm, yin_norm, qi_energy, breath):
+        # Historical ring buffers for percentile-based adaptive thresholds
+        from collections import deque
+        self._energy_history = deque(maxlen=history_window)
+        self._state_counts = {'water': 0, 'wood': 0, 'fire': 0, 'earth': 0, 'metal': 0}
+        self._total_diagnoses = 0
+
+        # EMA-smoothed diagnosis inputs for stability
+        self._smooth_energy = None
+        self._smooth_bias = None
+
+        # Seasonal nudge: after N consecutive same-state diagnoses, force rotation
+        # to prevent getting permanently stuck in one phase (especially Earth).
+        self._consecutive_count = 0
+        self._last_state = None
+        self._seasonal_limit = 15  # force transition after 15 consecutive same states
+        self._locked_state = None
+        self._locked_count = 0
+        self._lock_duration = 5  # stay in rotated state for 5 steps
+
+    def _median(self, data):
+        if not data:
+            return 0.0
+        s = sorted(data)
+        n = len(s)
+        return s[n // 2] if n % 2 else (s[n // 2 - 1] + s[n // 2]) / 2.0
+
+    def compute(self, yang_norm, yin_norm, qi_energy, breath,
+                update_history=True):
         """Diagnose current Qi state.
 
-        Args:
-            yang_norm: scalar, norm of Yang workspace
-            yin_norm:  scalar, norm of Yin workspace
-            qi_energy: scalar, total Qi energy (sum of qi_fluid)
-            breath:    dict from Breath.step()
+        Five-way split based on log-scale energy (scale-invariant) and bias
+        (yin-biased vs yang-biased). Earth is the balanced center.
 
-        Returns:
-            state_name: one of 'water', 'wood', 'fire', 'earth', 'metal'
+        Args:
+            update_history: if False, skip updating the energy history.
+                Use this when calling compute multiple times per forward pass
+                (e.g., once per frame) to avoid history pollution.
         """
         energy = (yang_norm + yin_norm) / 2.0
         total = yang_norm + yin_norm + 1e-8
         bias = yang_norm / total
-        harmony = torch.tanh(qi_energy)
+        # Harmony = balance between Yang and Yin (1.0 = perfect balance, 0.0 = extreme)
+        harmony = 1.0 - abs(bias - 0.5) * 2.0
 
-        # Earth = harmonized center (override regardless of energy)
-        if harmony > self.harmony_thresh and abs(bias - 0.5) < self.balance_width:
-            return 'earth'
+        # Scalar values
+        energy_f = energy.item() if isinstance(energy, torch.Tensor) else float(energy)
+        bias_f = bias.item() if isinstance(bias, torch.Tensor) else float(bias)
+        harmony_f = harmony.item() if isinstance(harmony, torch.Tensor) else float(harmony)
 
-        # Energy-based quadrants
-        if energy < self.energy_low:
-            return 'water' if bias < self.bias_thresh else 'wood'
-        elif energy > self.energy_high:
-            return 'fire' if bias > self.bias_thresh else 'metal'
+        import math
+        log_energy = math.log1p(energy_f)
 
-        # Breath-driven transitions
-        flow = breath.get('flow', 1.0)
-        return 'wood' if flow > 0 else 'metal'
+        # EMA smoothing for stable diagnosis (filters batch-to-batch noise)
+        if self._smooth_energy is None:
+            self._smooth_energy = log_energy
+            self._smooth_bias = bias_f
+        else:
+            self._smooth_energy = 0.7 * self._smooth_energy + 0.3 * log_energy
+            self._smooth_bias = 0.7 * self._smooth_bias + 0.3 * bias_f
+
+        # Use smoothed values for diagnosis
+        diag_energy = self._smooth_energy
+        diag_bias = self._smooth_bias
+
+        # Update history with log-energy for percentile tracking
+        if update_history:
+            self._energy_history.append(log_energy)
+
+        # Compute adaptive thresholds on log-scale
+        if self.adapt_thresholds and len(self._energy_history) >= 10:
+            med = self._median(self._energy_history)
+            low = med * 0.85
+            high = med * 1.15
+            if high - low < 0.05:
+                high = low + 0.05
+        else:
+            low = math.log1p(self.energy_low)
+            high = math.log1p(self.energy_high)
+
+        # Earth = balanced center
+        if harmony_f > self.harmony_thresh and abs(diag_bias - 0.5) < self.balance_width:
+            state = 'earth'
+        elif diag_energy < low:
+            state = 'water' if diag_bias < self.bias_thresh else 'wood'
+        elif diag_energy > high:
+            state = 'fire' if diag_bias > self.bias_thresh else 'metal'
+        else:
+            # Mid-energy: breath-driven or bias-driven
+            flow = breath.get('flow', 1.0) if isinstance(breath, dict) else 1.0
+            if abs(diag_bias - 0.5) < 0.06:
+                state = 'earth'
+            elif diag_bias > self.bias_thresh:
+                state = 'wood' if flow > 0 else 'fire'
+            else:
+                state = 'water' if flow > 0 else 'metal'
+
+        # State diversity: after warmup, nudge away from overrepresented states
+        if update_history and self._total_diagnoses >= 20:
+            frac = self._state_counts.get(state, 0) / max(1, self._total_diagnoses)
+            if frac > 0.50:
+                least = min(self._state_counts, key=self._state_counts.get)
+                if least != state:
+                    margin = min(abs(diag_energy - low), abs(diag_energy - high))
+                    if margin < 0.1:
+                        state = least
+
+        # Seasonal nudge: force rotation after prolonged same-state
+        if update_history:
+            # If locked into a rotated state, decrement lock and keep state
+            if self._locked_state is not None and self._locked_count > 0:
+                state = self._locked_state
+                self._locked_count -= 1
+                if self._locked_count <= 0:
+                    self._locked_state = None
+            else:
+                if state == self._last_state:
+                    self._consecutive_count += 1
+                else:
+                    self._consecutive_count = 1
+                    self._last_state = state
+
+                if self._consecutive_count >= self._seasonal_limit:
+                    cycle = ['water', 'wood', 'fire', 'earth', 'metal']
+                    idx = cycle.index(state) if state in cycle else 3
+                    next_state = cycle[(idx + 1) % len(cycle)]
+                    state = next_state
+                    self._last_state = state
+                    self._consecutive_count = 0
+                    # Lock into the new state so diagnosis doesn't immediately flip back
+                    self._locked_state = next_state
+                    self._locked_count = self._lock_duration
+
+            self._state_counts[state] = self._state_counts.get(state, 0) + 1
+            self._total_diagnoses += 1
+        return state
 
     def get_profile(self, state_name):
         return self.PROFILES[state_name]
@@ -161,9 +268,10 @@ class Brainstem(nn.Module):
             nn.Linear(D // 4, 1),
         )
 
-        # Compression: spine field + qi_fluid → bottleneck
+        # Compression: spine field + qi_fluid + yang + yin + field_energy → bottleneck
+        # The brain field receives ALL core dynamics signals, not just the final state.
         self.compress = nn.Sequential(
-            nn.Linear(D * 2, self.D_stem),
+            nn.Linear(D * 4 + n_specialists, self.D_stem),
             nn.LayerNorm(self.D_stem),
         )
         # Small init so brainstem starts near zero
@@ -198,11 +306,16 @@ class Brainstem(nn.Module):
         rigidity = recent.std()
         return rigidity < 0.01
 
-    def step(self, spine):
+    def step(self, spine, qi_state=None, update_qi_history=True):
         """One brainstem step: read spine, diagnose, modulate, compress.
 
         Args:
             spine: CordPhysics instance with persistent state populated
+            qi_state: str or None. If provided, use this Qi state instead of
+                      self-diagnosing. Passed from QiCycle conductor.
+            update_qi_history: if False, skip updating the QiStateMachine's
+                               energy history. Use when calling step() multiple
+                               times per forward pass (e.g., once per frame).
 
         Returns:
             dict with keys:
@@ -223,14 +336,19 @@ class Brainstem(nn.Module):
         breath = self.breath.step()
 
         # ── 2. Diagnose Qi state ──
-        yang_norm = spine.yang.norm(dim=-1).mean()
-        yin_norm = spine.yin.norm(dim=-1).mean()
-        qi_energy = spine.qi_fluid.sum(dim=-1).mean()
-        state_name = self.qi.compute(yang_norm, yin_norm, qi_energy, breath)
-
-        # Pulse override: stagnation → force Fire
-        if self._detect_pulse():
-            state_name = 'fire'
+        if qi_state is None:
+            yang_norm = spine.yang.norm(dim=-1).mean()
+            yin_norm = spine.yin.norm(dim=-1).mean()
+            qi_energy = spine.qi_fluid.sum(dim=-1).mean()
+            state_name = self.qi.compute(
+                yang_norm, yin_norm, qi_energy, breath,
+                update_history=update_qi_history
+            )
+            # Pulse override: stagnation → force Fire
+            if self._detect_pulse():
+                state_name = 'fire'
+        else:
+            state_name = qi_state
 
         profile = self.qi.get_profile(state_name)
 
@@ -273,6 +391,12 @@ class Brainstem(nn.Module):
         theta_shift = torch.tanh(self.theta_mod(self.focus)).mean().item() * 0.3
         damp_scale = 1.0 + 0.2 * torch.tanh(self.damp_mod(self.regulation)).mean().item()
 
+        # Qi-derived phi_fast_scale for spine IIR damping
+        baseline_phi = self.qi.PROFILES['earth']['phi_fast']
+        phi_fast = profile.get('phi_fast', baseline_phi)
+        phi_fast_scale = phi_fast / baseline_phi
+        phi_fast_scale = max(0.5, min(2.0, phi_fast_scale))
+
         # Arousal from Qi energy + breath beat
         arousal = torch.tanh(qi_energy / 10.0) + 0.1 * breath['beat']
         self.arousal = PHI_INV * self.arousal + PHI_INV ** 2 * arousal
@@ -287,8 +411,15 @@ class Brainstem(nn.Module):
         # We return the signals so the caller can pass them to spine.step() next iteration
 
         # ── 7. Compress for brain ──
+        # Feed the brain field the full dynamics: state, energy, yang, yin, chakra energy
         compressed = self.compress(
-            torch.cat([spine.field_state, spine.qi_fluid], dim=-1)
+            torch.cat([
+                spine.field_state,
+                spine.qi_fluid,
+                spine.yang,
+                spine.yin,
+                spine.field_energy,
+            ], dim=-1)
         )  # [B, D_stem]
 
         return {
@@ -300,6 +431,7 @@ class Brainstem(nn.Module):
             'damp_scale': damp_scale,
             'yang_gain': yang_gain,
             'yin_gain': yin_gain,
+            'phi_fast_scale': phi_fast_scale,
             'chakra_attention': chakra_attention.detach(),
             'breath': breath,
         }

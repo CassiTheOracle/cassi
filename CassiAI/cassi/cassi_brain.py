@@ -723,8 +723,31 @@ class CassiBrain(nn.Module):
         info['disappointment'] = disappointment
         info['mean_harmony'] = torch.tensor(stem_info['arousal'], device=device)
         info['qi_arousal'] = stem_info['arousal']
-        info['phi_balance_loss'] = torch.tensor(0.0, device=device)
+        # ── φ-balance regularisation (prevents Yang/Yin drift) ──
+        # Workspace balance: forward ≈ retrospective (ratio → 1.0)
+        w_fwd_norm = w_fwd.norm(dim=-1).mean()
+        w_rev_norm = w_rev.norm(dim=-1).mean()
+        workspace_balance_loss = 0.005 * ((w_fwd_norm / (w_rev_norm + 1e-8) - 1.0) ** 2)
+
+        # Conscious balance: Yang-component / Yin-component → φ
+        yang_comp_norm = (PHI_INV * w_fwd).norm(dim=-1).mean()
+        yin_comp_norm = (PHI_INV ** 2 * w_rev).norm(dim=-1).mean()
+        conscious_balance_loss = 0.005 * ((yang_comp_norm / (yin_comp_norm + 1e-8) - PHI) ** 2)
+
+        phi_balance_loss = workspace_balance_loss + conscious_balance_loss
+        info['phi_balance_loss'] = phi_balance_loss
         info['qi_energy_bonus'] = torch.tensor(0.0, device=device)
+
+        # ── Sparsity regularisation ──
+        l1_sparsity = 0.001 * conscious.abs().mean()
+        info['sparsity_loss'] = l1_sparsity
+
+        # ── Chakra entropy (specialist diversity for observability) ──
+        field_energy = self.spine.field_energy  # [B, C]
+        energy_probs = F.softmax(field_energy, dim=-1)
+        chakra_entropy = -(energy_probs * torch.log(energy_probs + 1e-8)).sum(dim=-1).mean()
+        info['chakra_entropy'] = chakra_entropy
+
         info['weights'] = stem_info['chakra_attention']
 
         # Observability keys for CassiMetrics

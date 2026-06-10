@@ -27,6 +27,8 @@ import argparse
 from cassi.multimodal_brain import MultimodalBrain
 from cassi.honeybee_brain import HoneybeeBrain
 from cassi.cassi_brain import CassiBrain
+from cassi.dual_cassi import DualCassi
+from cassi.cord import PHI
 from cassi.multimodal_loader import MultimodalDataLoader
 from cassi.adaptive_trainer import AdaptiveTrainer
 from cassi.streaming_text_sampler import MixedPrecisionTrainer
@@ -44,32 +46,72 @@ WD = 0.01
 COHERENCE_WEIGHT = 0.01
 
 
-def spectral_slope_loss(pred, target, eps=1e-8):
+def build_phi_spaced_groups(model, base_lr):
+    """Split parameters into φ-spaced LR groups (P2.1).
+
+    Yang (fast):    lr * φ      — readout, brain_field, brainstem
+    Balance:        lr         — memory projections, unified_readout, corpus, arbitration
+    Yin (slow):     lr / φ     — meta_cord, soul, changepoint
+    """
+    yang_names = {'readout', 'brain_field', 'brainstem', 'readout_scale'}
+    yin_names = {'meta_cord', 'soul', 'changepoint', 'observer', 'dynamics'}
+
+    yang_params, balance_params, yin_params = [], [], []
+
+    for name, param in model.named_parameters():
+        if not param.requires_grad:
+            continue
+        # Check if any yin keyword is in the parameter path
+        is_yin = any(kw in name for kw in yin_names)
+        is_yang = any(kw in name for kw in yang_names)
+
+        if is_yin:
+            yin_params.append(param)
+        elif is_yang:
+            yang_params.append(param)
+        else:
+            balance_params.append(param)
+
+    groups = []
+    if yang_params:
+        groups.append({'params': yang_params, 'lr': base_lr * PHI, 'weight_decay': WD})
+    if balance_params:
+        groups.append({'params': balance_params, 'lr': base_lr, 'weight_decay': WD})
+    if yin_params:
+        groups.append({'params': yin_params, 'lr': base_lr / PHI, 'weight_decay': WD})
+
+    if not groups:
+        # Fallback: all parameters
+        groups = [{'params': [p for p in model.parameters() if p.requires_grad], 'lr': base_lr, 'weight_decay': WD}]
+
+    return groups
+
+
+def spectral_slope_loss(pred, target, conscious_certainty=None, eps=1e-8):
     """Penalize deviation from Kolmogorov -5/3 spectral slope.
 
     Computes radially averaged power spectrum of pred and target,
     fits log-log slope, and returns MSE against target slope -5/3.
+
+    Args:
+        pred: [B, D] predicted field
+        target: [B, D] target field
+        conscious_certainty: [B, 1] or scalar. High certainty → stricter spectral match.
     """
-    # pred, target: [B, D] spatial fields (1D for now)
     B, D = pred.shape
-    # FFT along spatial dimension
-    pred_fft = torch.fft.rfft(pred, dim=-1)  # [B, D//2+1]
+    pred_fft = torch.fft.rfft(pred, dim=-1)
     target_fft = torch.fft.rfft(target, dim=-1)
-    pred_power = pred_fft.abs().pow(2).mean(dim=0)  # [D//2+1]
+    pred_power = pred_fft.abs().pow(2).mean(dim=0)
     target_power = target_fft.abs().pow(2).mean(dim=0)
 
-    # Wavenumbers
     k = torch.arange(1, pred_power.shape[0], device=pred.device).float()
-    # Skip DC (k=0) to avoid log(0)
     pred_power = pred_power[1:]
     target_power = target_power[1:]
 
-    # Log-log linear fit for slope
     log_k = torch.log(k + eps)
     log_pred = torch.log(pred_power + eps)
     log_target = torch.log(target_power + eps)
 
-    # Simple least-squares slope: cov(log_k, log_p) / var(log_k)
     log_k_mean = log_k.mean()
     var_log_k = ((log_k - log_k_mean) ** 2).mean()
     if var_log_k < eps:
@@ -78,9 +120,14 @@ def spectral_slope_loss(pred, target, eps=1e-8):
     pred_slope = ((log_k - log_k_mean) * (log_pred - log_pred.mean())).mean() / var_log_k
     target_slope = ((log_k - log_k_mean) * (log_target - log_target.mean())).mean() / var_log_k
 
-    # Target is Kolmogorov -5/3 ≈ -1.667
     KOLMOGOROV_SLOPE = -5.0 / 3.0
     loss = (pred_slope - KOLMOGOROV_SLOPE).pow(2) + 0.1 * (target_slope - KOLMOGOROV_SLOPE).pow(2)
+
+    # P2.2: Weight by conscious certainty
+    if conscious_certainty is not None:
+        weight = torch.sigmoid(conscious_certainty - conscious_certainty.mean())
+        loss = loss * weight.mean()
+
     return loss
 
 
@@ -104,6 +151,7 @@ def save_checkpoint(path, model, val_mae, epoch, phase, optimizer=None, scaler=N
     }
     if optimizer is not None:
         ckpt['optimizer'] = optimizer.state_dict()
+        ckpt['optimizer_type'] = optimizer.__class__.__name__
     if scaler is not None:
         ckpt['scaler'] = scaler.state_dict()
     torch.save(ckpt, tmp)
@@ -155,7 +203,11 @@ def train_epoch(model, loader, opt, mp_trainer, args, adaptive=None, audio_encod
 
         # Loss depends on modality
         if is_physics:
-            loss_pred = F.mse_loss(pred, y)
+            if pred.dim() == 3 and y.dim() == 3:
+                # Multi-horizon: [B, H, 1024]
+                loss_pred = F.mse_loss(pred, y)
+            else:
+                loss_pred = F.mse_loss(pred, y)
         elif is_audio and audio_encoder is not None:
             # Target is also audio waveform → encode to field
             y_field = audio_encoder.encode_window(y)
@@ -180,28 +232,85 @@ def train_epoch(model, loader, opt, mp_trainer, args, adaptive=None, audio_encod
             entropy_loss = -0.01 * entropy  # maximize entropy → minimize negative entropy
 
         # Spectral loss for physics: encourage Kolmogorov -5/3 slope
+        # P2.2: Weight by conscious certainty (high consciousness → strict spectral match)
         spectral_loss = 0.0
         if is_physics and pred.shape[-1] >= 64:
-            spectral_loss = 0.01 * spectral_slope_loss(pred, y)
+            conscious = info.get('conscious')
+            if conscious is not None:
+                conscious_certainty = conscious.norm(dim=-1, keepdim=True)  # [B, 1]
+            else:
+                conscious_certainty = None
+            if pred.dim() == 3:
+                spectral_loss = 0.01 * spectral_slope_loss(pred[:, 0], y[:, 0], conscious_certainty)
+            else:
+                spectral_loss = 0.01 * spectral_slope_loss(pred, y, conscious_certainty)
 
         # φ-balance regularization and Qi energy bonus (HarmonyBrain only)
         dev = pred.device
         phi_balance_loss = info.get('phi_balance_loss', torch.tensor(0.0, device=dev))
         qi_energy_bonus = info.get('qi_energy_bonus', torch.tensor(0.0, device=dev))
 
-        # HoneybeeBrain: workspace sparsity regularization + meta-cord loss
+        # Workspace sparsity regularization + meta-cord loss
         sparsity_loss = 0.0
         meta_loss = 0.0
-        if args.brain_type == 'honeybee':
-            if 'workspace' in info:
-                workspace = info['workspace']
-                sparsity_target = 0.10
-                actual_sparsity = (workspace.abs() > 1e-6).float().mean()
-                sparsity_loss = 0.1 * (actual_sparsity - sparsity_target).pow(2)
-            if 'meta_loss' in info:
-                meta_loss = 0.01 * info['meta_loss']
+        if 'sparsity_loss' in info and info['sparsity_loss'] is not None:
+            sparsity_loss = info['sparsity_loss']
+        elif 'workspace' in info:
+            workspace = info['workspace']
+            sparsity_target = 0.10
+            actual_sparsity = (workspace.abs() > 1e-6).float().mean()
+            sparsity_loss = 0.1 * (actual_sparsity - sparsity_target).pow(2)
+        if 'meta_loss' in info:
+            meta_loss = 0.01 * info['meta_loss']
 
-        loss = loss_pred + COHERENCE_WEIGHT * coherence + entropy_loss + spectral_loss + phi_balance_loss + qi_energy_bonus + sparsity_loss + meta_loss
+        # ── Internal Observer self-predictive loss (autoencoder) ──
+        observer_loss = torch.tensor(0.0, device=pred.device)
+        if 'observer_embedding' in info and 'observer_predicted_emb' in info:
+            emb = info['observer_embedding']
+            pred_emb = info['observer_predicted_emb']
+            observer_loss = 0.01 * F.mse_loss(pred_emb, emb)
+
+        # ── Conscious Dynamics temporal prediction loss ──
+        # Predicted next conscious from the PREVIOUS batch, when read out,
+        # should match the ACTUAL prediction made by the model in THIS batch.
+        # This trains the imagination engine to genuinely simulate the future.
+        dynamics_loss = torch.tensor(0.0, device=pred.device)
+        if info.get('prev_predicted_next_conscious') is not None:
+            pred_next_prev = info['prev_predicted_next_conscious']
+            # Only compute if batch sizes match (last batch may be smaller)
+            if pred_next_prev.shape[0] == pred.shape[0]:
+                if hasattr(model, 'yang') and hasattr(model.yang.brain, 'readout'):
+                    pred_from_dynamics, _ = model.yang.brain.readout(pred_next_prev)
+                    dynamics_loss = 0.001 * F.mse_loss(pred_from_dynamics, pred.detach())
+                elif hasattr(model, 'readout'):
+                    pred_from_dynamics, _ = model.readout(pred_next_prev)
+                    dynamics_loss = 0.001 * F.mse_loss(pred_from_dynamics, pred.detach())
+
+        loss = (loss_pred + COHERENCE_WEIGHT * coherence + entropy_loss + spectral_loss +
+                phi_balance_loss + qi_energy_bonus + sparsity_loss + meta_loss +
+                observer_loss + dynamics_loss)
+
+        # Temporal resonance regularization: keep learned band spacing near φ
+        temporal_reg = 0.0
+        if hasattr(model, 'temporal_regularization_loss'):
+            temporal_reg = model.temporal_regularization_loss()
+            if torch.isfinite(temporal_reg):
+                loss = loss + temporal_reg
+
+        # DualCassi: disagreement regularization — encourage hemispheres to specialize
+        # We want them to disagree on HOW to predict, not on WHAT to predict
+        # So we penalize small disagreements (encourage them to find different strategies)
+        # but only after they've learned the basics
+        disagreement_loss = 0.0
+        if args.brain_type == 'dual' and 'disagreement' in info:
+            disagreement = info['disagreement']
+            # Target: moderate disagreement (not zero, not huge)
+            # Too little = hemispheres collapsed to same solution
+            # Too much = they disagree on basic facts
+            disagreement_target = 15.0  # empirical: ~28 at init, want >10
+            if disagreement < disagreement_target:
+                disagreement_loss = 0.01 * (disagreement_target - disagreement)
+            loss = loss + disagreement_loss
 
         if metrics is not None:
             metrics.record_batch(
@@ -233,7 +342,14 @@ def train_epoch(model, loader, opt, mp_trainer, args, adaptive=None, audio_encod
                 mp_trainer.optimizer_step(clip_grad=1.0)
         else:
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+            total_grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            if total_grad_norm > 0.9:
+                if step % 50 == 0:
+                    print(f"  [step {step}] grad_norm={total_grad_norm:.2f} near clip threshold")
+            if not torch.isfinite(total_grad_norm):
+                print(f"  [step {step}] WARNING: non-finite grad_norm={total_grad_norm}, skipping step")
+                opt.zero_grad()
+                continue
             if neuro_mod is not None:
                 opt.step(neuro_modulation=neuro_mod)
             else:
@@ -287,8 +403,13 @@ def validate(model, loader, args, audio_encoder=None):
 
             batch_mae = batch_mse = None
             if is_physics:
-                batch_mae = F.l1_loss(pred, y)
-                batch_mse = F.mse_loss(pred, y)
+                if pred.dim() == 3 and y.dim() == 3:
+                    # Multi-horizon: report MAE averaged over all horizons
+                    batch_mae = F.l1_loss(pred, y)
+                    batch_mse = F.mse_loss(pred, y)
+                else:
+                    batch_mae = F.l1_loss(pred, y)
+                    batch_mse = F.mse_loss(pred, y)
             elif is_audio and audio_encoder is not None:
                 y_field = audio_encoder.encode_window(y)
                 batch_mae = F.l1_loss(pred, y_field)
@@ -336,9 +457,9 @@ def main():
     parser.add_argument('--steps-per-epoch', type=int, default=1000)
     parser.add_argument('--lr', type=float, default=2e-4)
     parser.add_argument('--save', default=SAVE_PATH)
-    parser.add_argument('--resume', action='store_true')
+    parser.add_argument('--no-resume', action='store_true', help='Start fresh instead of auto-resuming from checkpoint')
     parser.add_argument('--save-every', type=int, default=5)
-    parser.add_argument('--patience', type=int, default=10)
+    parser.add_argument('--patience', type=int, default=50)
 
     # Brain features (default True; use --no-* to disable)
     parser.add_argument('--use-berry', action='store_true', default=True, dest='use_berry')
@@ -354,7 +475,7 @@ def main():
     parser.add_argument('--adaptive', action='store_true')
     parser.add_argument('--unfreeze-spine', action='store_true',
                         help='Unfreeze spine parameters with reduced LR')
-    parser.add_argument('--optimizer', type=str, default='adamw',
+    parser.add_argument('--optimizer', type=str, default='wave',
                         choices=['adamw', 'iir', 'wave'],
                         help='Optimizer: adamw, iir (resonant IIR), or wave (Cassi-native IIR+chakra+Muon)')
     parser.add_argument('--iir-theta', type=float, default=None,
@@ -378,12 +499,14 @@ def main():
     parser.add_argument('--wave-no-resonant', action='store_true',
                         help='Disable resonant NS (use fixed max steps for all bands)')
     parser.add_argument('--brain-type', type=str, default='multimodal',
-                        choices=['multimodal', 'honeybee', 'cassi'],
-                        help='Brain architecture: multimodal (HarmonyBrain) or honeybee (sparse workspace)')
+                        choices=['multimodal', 'honeybee', 'cassi', 'dual'],
+                        help='Brain architecture: multimodal, honeybee, cassi, or dual (two hemispheres)')
     parser.add_argument('--D', type=int, default=None,
                         help='Conscious dimension (default: 1040 for multimodal, 16384 for honeybee)')
     parser.add_argument('--W', type=int, default=256,
                         help='Workspace dimension (honeybee only, default 256)')
+    parser.add_argument('--horizons', type=int, nargs='+', default=[1],
+                        help='Multi-horizon prediction targets for physics (default: [1])')
 
     # DreamBank
     parser.add_argument('--use-dream', action='store_true', default=True, dest='use_dream')
@@ -402,11 +525,16 @@ def main():
     log_print(f"Phase: {args.phase}  Epochs: {args.epochs}")
     log_print(f"Berry: {args.use_berry}  Changepoint: {args.use_changepoint}  Soul: {args.use_soul}")
     log_print(f"DreamBank: {args.use_dream}  capacity={args.dream_capacity}  replay={args.dream_replay}")
+    log_print(f"Horizons: {args.horizons}")
     log_print(f"{'='*60}")
 
     # Data loader
-    loader = MultimodalDataLoader(phase=args.phase)
+    physics_cache = 'datasets/physics_cache_v10.pt'
+    if len(args.horizons) > 1 or max(args.horizons) > 1:
+        physics_cache = 'datasets/physics_cache_multihz_v1.pt'
+    loader = MultimodalDataLoader(phase=args.phase, physics_cache=physics_cache)
     log_print(f"Phase: {loader.get_phase_name()}")
+    log_print(f"Physics cache: {physics_cache}")
     log_print(f"Physics train: {loader.nt:,}  val: {loader.nv:,}")
     log_print(f"Text bytes: {loader.text_total:,}")
     log_print(f"Audio transcripts: {len(loader.audio_transcripts):,}")
@@ -422,15 +550,31 @@ def main():
             byte_mode=True, sparsity=0.10,
         ).to(DEV)
     elif args.brain_type == 'cassi':
+        # Scaled-up architecture: D_stem=D for 2:1 compression, D_brain=2*D*φ for 2x capacity
         model = CassiBrain(
-            D=D,
+            D=D, D_stem=D, D_brain=int(D * PHI * 2),
             use_changepoint=args.use_changepoint,
             use_soul=args.use_soul,
             use_memory=args.use_berry,
             K=2,
             byte_mode=True,
+            horizons=tuple(args.horizons),
         ).to(DEV)
         log_print(f"CassiBrain: D={D}, D_stem={model.D_stem}, D_brain={model.D_brain}")
+    elif args.brain_type == 'dual':
+        # Dual-hemisphere: two Cassi instances with corpus callosum + arbitration
+        model = DualCassi(
+            D=D, D_stem=D, D_brain=int(D * PHI * 2),
+            use_changepoint=args.use_changepoint,
+            use_soul=args.use_soul,
+            use_memory=args.use_berry,
+            byte_mode=True,
+            horizons=tuple(args.horizons),
+        ).to(DEV)
+        summary = model.summary()
+        log_print(f"DualCassi: Yang={summary['yang_params']:,} + Yin={summary['yin_params']:,} "
+                  f"+ Corpus={summary['corpus_callosum_params']:,} + Arb={summary['arbitration_params']:,} "
+                  f"= Total={summary['total_trainable']:,}")
     else:
         model = MultimodalBrain(
             D=D, n_specialists=13, n_slots=512,
@@ -517,19 +661,26 @@ def main():
                 {'params': spine_params, 'lr': spine_lr, 'weight_decay': WD},
             ])
     else:
+        # P2.1: φ-spaced parameter groups for CassiBrain / DualCassi
+        use_phi_groups = args.brain_type in ('cassi', 'dual')
+        if use_phi_groups:
+            param_groups = build_phi_spaced_groups(model, args.lr)
+        else:
+            param_groups = [{'params': [p for p in model.parameters() if p.requires_grad], 'lr': args.lr, 'weight_decay': WD}]
+
         if args.optimizer == 'iir':
             from cassi.iir_optimizer import ResonantIIR
-            opt = ResonantIIR(model.parameters(), **wave_kwargs)
+            opt = ResonantIIR(param_groups, **wave_kwargs)
             if args.iir_coupled and hasattr(model, 'spine') and hasattr(model.spine, 'fwd_theta'):
                 opt.load_spine_coeffs(model.spine)
         elif args.optimizer == 'wave':
             from cassi.wave_gradient_filter import WaveGradientFilter
-            opt = WaveGradientFilter(model.parameters(), spine=model.spine, **wave_kwargs)
+            opt = WaveGradientFilter(param_groups, spine=model.spine, **wave_kwargs)
             opt.bind_spine(model.spine)
             if args.iir_coupled and hasattr(model, 'spine') and hasattr(model.spine, 'fwd_theta'):
                 opt.load_spine_coeffs(model.spine)
         else:
-            opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=WD)
+            opt = torch.optim.AdamW(param_groups)
 
     n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     log_print(f"Trainable params: {n_params:,}")
@@ -546,13 +697,16 @@ def main():
             capacity=args.dream_capacity,
             replay_batch_size=args.dream_batch,
         )
+        qi_cycle = getattr(model, 'qi_cycle', None)
+        if qi_cycle is not None:
+            qi_cycle.subscribe(dream_bank)
 
     best_val = float('inf')
     best_path = args.save + '.best'
     start_ep = 0
     no_improve = 0
 
-    if args.resume and os.path.exists(args.save):
+    if not args.no_resume and os.path.exists(args.save):
         ck = torch.load(args.save, map_location=DEV, weights_only=False)
         state = ck['model']
         model_state = model.state_dict()
@@ -583,12 +737,21 @@ def main():
             best_val = ck.get('val_mae', float('inf'))
             log_print(f"Resumed phase {args.phase} epoch {start_ep} val_mae={best_val:.4f}")
         # Restore optimizer and scaler state for continuity
+        # Only restore if optimizer type matches (Wave/ResonantIIR have incompatible
+        # param_groups with AdamW, so loading AdamW state into Wave crashes on step)
+        ck_opt_type = ck.get('optimizer_type')
+        current_opt_type = opt.__class__.__name__ if opt is not None else None
         if 'optimizer' in ck and opt is not None:
-            try:
-                opt.load_state_dict(ck['optimizer'])
-                log_print("Optimizer state restored")
-            except Exception as e:
-                log_print(f"Optimizer state load failed (param mismatch expected if architecture changed): {e}")
+            if ck_opt_type is not None and ck_opt_type != current_opt_type:
+                log_print(f"Optimizer type mismatch: checkpoint {ck_opt_type} vs current {current_opt_type}, starting fresh optimizer state")
+            elif args.optimizer in ('wave', 'iir') and ck_opt_type is None:
+                log_print(f"Checkpoint lacks optimizer type; skipping state restore for {args.optimizer} optimizer safety")
+            else:
+                try:
+                    opt.load_state_dict(ck['optimizer'])
+                    log_print("Optimizer state restored")
+                except Exception as e:
+                    log_print(f"Optimizer state load failed (param mismatch expected if architecture changed): {e}")
         if 'scaler' in ck and mp_trainer.scaler is not None:
             try:
                 mp_trainer.scaler.load_state_dict(ck['scaler'])
@@ -624,11 +787,23 @@ def main():
 
             metrics.flush_epoch(epoch=ep, val_metrics=v)
             elapsed = time.perf_counter() - t_start
+            # Optional: log learned temporal resonance α
+            alpha_val = None
+            try:
+                if hasattr(model, 'readout') and hasattr(model.readout, 'log_alpha'):
+                    alpha_val = model.readout.log_alpha.detach().exp().item()
+                elif hasattr(model, 'yang') and hasattr(model.yang, 'brain') and \
+                        hasattr(model.yang.brain, 'readout') and \
+                        hasattr(model.yang.brain.readout, 'log_alpha'):
+                    alpha_val = model.yang.brain.readout.log_alpha.detach().exp().item()
+            except Exception:
+                alpha_val = None
+            alpha_str = f" α={alpha_val:.3f}" if alpha_val is not None else ""
             log_print(
                 f"  ep {ep+1:4d}  train={train_pred:.4f}  val_mae={v['mae']:.4f}  "
                 f"best={best_val:.4f}  surprise={v['surprise']:.2f}  "
-                f"harmony={v['harmony']:.2f}  [{int(elapsed//60)}m{int(elapsed%60):02d}s]  "
-                f"mods={mod_str}"
+                f"harmony={v['harmony']:.2f}{alpha_str}  "
+                f"[{int(elapsed//60)}m{int(elapsed%60):02d}s]  mods={mod_str}"
             )
             log_print(metrics.summary_table(epoch=-1).replace('\n', ' | '))
 
@@ -646,17 +821,33 @@ def main():
             log_print(metrics.summary_table(epoch=-1).replace('\n', ' | '))
 
         # DreamBank replay: consolidate salient moments
-        if dream_bank is not None and len(dream_bank.experiences) > 0:
-            replay_losses = []
+        if dream_bank is not None and sum(len(b) for b in dream_bank.banks.values()) > 0:
+            replay_results = []
             for _ in range(args.dream_replay):
                 mode = dream_bank.choose_mode()
-                result = dream_bank.replay_step(model, opt, mode=mode)
-                if result['n_samples'] > 0:
-                    replay_losses.append(result['loss'])
-            if replay_losses:
-                log_print(f"  DreamBank replay: {len(replay_losses)} steps, "
-                          f"loss={sum(replay_losses)/len(replay_losses):.4f}  "
-                          f"{dream_bank.summary()}")
+                samples, replay_state = dream_bank.sample_for_replay(mode)
+                if samples is None:
+                    continue
+                loss, state = dream_bank.replay_forward(model, samples, replay_state)
+                dream_bank.apply_replay_step(opt, loss, state, mp_trainer=mp_trainer)
+                for exp in samples:
+                    exp._replay_losses.append(loss.item())
+                replay_results.append({'loss': loss.item(), 'state': state})
+            if replay_results:
+                losses = [r['loss'] for r in replay_results]
+                states = {}
+                for r in replay_results:
+                    states[r['state']] = states.get(r['state'], 0) + 1
+                state_str = ' '.join(f"{k}={v}" for k, v in states.items())
+                log_print(f"  DreamBank replay: {len(losses)} steps, "
+                          f"loss={sum(losses)/len(losses):.4f}  "
+                          f"states=[{state_str}]  {dream_bank.summary()}")
+
+            # Migration and rebalancing (in Metal state or every 5 epochs)
+            qi_cycle = getattr(model, 'qi_cycle', None)
+            if (qi_cycle is not None and qi_cycle.state == 'metal') or ep % 5 == 0:
+                dream_bank.run_migration()
+                dream_bank.rebalance_capacity()
 
     # Load best and save final
     if os.path.exists(best_path):

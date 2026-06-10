@@ -65,6 +65,12 @@ class CassiMetrics:
             'berry_hit_rate': deque(maxlen=window_size),
             'changepoint_triggered': deque(maxlen=window_size),
             'soul_injection_strength': deque(maxlen=window_size),
+            'qi_state': deque(maxlen=window_size),
+            'phi_fast_scale': deque(maxlen=window_size),
+            'soul_strength': deque(maxlen=window_size),
+            'brainfield_k': deque(maxlen=window_size),
+            'purified': deque(maxlen=window_size),
+            'conscious_norm_raw': deque(maxlen=window_size),
         }
 
         # Per-epoch aggregates (written to disk)
@@ -117,13 +123,17 @@ class CassiMetrics:
             weights = info.get('weights')
             energy = info.get('energy')
             harmony_matrix = info.get('harmony_matrix')
+            chakra_entropy = info.get('chakra_entropy')
             if weights is not None:
                 # Entropy of specialist weights per sample, averaged over batch
                 p = weights.clamp(min=1e-8)
-                p = p / p.sum(dim=0, keepdim=True)
-                entropy = -(p * p.log()).sum(dim=0)
+                p = p / p.sum(dim=-1, keepdim=True)  # normalize across chakras per sample
+                entropy = -(p * p.log()).sum(dim=-1)
                 record['specialist_entropy'] = entropy.mean().item()
-                record['specialist_top1_mass'] = p.max(dim=0).values.mean().item()
+                record['specialist_top1_mass'] = p.max(dim=-1).values.mean().item()
+            elif chakra_entropy is not None:
+                # CassiBrain / DualCassi use chakra entropy instead of specialist entropy
+                record['specialist_entropy'] = chakra_entropy.item() if isinstance(chakra_entropy, torch.Tensor) else float(chakra_entropy)
 
             if energy is not None:
                 record['energy_mean'] = energy.mean().item()
@@ -177,27 +187,54 @@ class CassiMetrics:
 
             # --- BERRY MEMORY ---
             memory_attn = info.get('memory_attn')
-            if memory_attn is not None and hasattr(model, 'berry_memory'):
-                mask = model.berry_memory.mask.float()
-                filled_mass = (memory_attn * mask.unsqueeze(0)).sum(dim=-1).mean()
-                record['berry_hit_rate'] = filled_mass.item()
-                record['berry_n_filled'] = model.berry_memory._n_filled
+            # Resolve berry_memory location (CassiBrain or DualCassi)
+            berry_mem = None
+            if hasattr(model, 'berry_memory'):
+                berry_mem = model.berry_memory
+            elif hasattr(model, 'yang') and hasattr(model.yang, 'brain') and hasattr(model.yang.brain, 'berry_memory'):
+                berry_mem = model.yang.brain.berry_memory
+
+            if memory_attn is not None and berry_mem is not None:
+                # memory_attn may be a scalar (from .item()) or a tensor
+                if isinstance(memory_attn, torch.Tensor):
+                    mask = berry_mem.mask.float()
+                    filled_mass = (memory_attn * mask.unsqueeze(0)).sum(dim=-1).mean()
+                    record['berry_hit_rate'] = filled_mass.item()
+                else:
+                    # Scalar: approximate hit rate as the scalar itself
+                    record['berry_hit_rate'] = float(memory_attn)
+                record['berry_n_filled'] = berry_mem._n_filled
 
             # --- CHANGepoint ---
             record['changepoint_triggered'] = 1.0 if info.get('changepoint') else 0.0
+
+            # --- QI STATE & MODULATION ---
+            qi_state = info.get('qi_state', 'earth')
+            QI_ENCODE = {'water': 0, 'wood': 1, 'fire': 2, 'earth': 3, 'metal': 4}
+            record['qi_state'] = QI_ENCODE.get(qi_state, 3)
+            record['phi_fast_scale'] = info.get('phi_fast_scale', 1.0)
+            record['purified'] = 1.0 if info.get('purified') else 0.0
+            record['conscious_norm_raw'] = info.get('conscious_norm_raw', 0.0)
+
+            if model is not None and hasattr(model, 'brain_field'):
+                record['brainfield_k'] = model.brain_field.K
 
             # --- SOUL ---
             if model is not None and hasattr(model, 'soul') and model.soul is not None:
                 if hasattr(model.soul, 'vector'):
                     record['soul_norm'] = model.soul.vector.norm().item()
                     record['soul_count'] = model.soul.count.item()
+                    record['soul_strength'] = getattr(model.soul, 'injection_scale', 1.0)
                 elif hasattr(model.soul, 'norm'):
                     record['soul_norm'] = model.soul.norm().item()
                     record['soul_count'] = 0
+                    record['soul_strength'] = 1.0
 
             # --- SPECTRAL (physics only) ---
             if info.get('is_physics') and pred is not None:
-                spec = torch.fft.rfft(pred, dim=-1).abs()
+                # For multi-horizon, use horizon 1 (first horizon)
+                pred_for_spec = pred[:, 0] if pred.dim() == 3 else pred
+                spec = torch.fft.rfft(pred_for_spec, dim=-1).abs()
                 freqs = torch.arange(1, spec.shape[-1] // 4 + 1, device=spec.device)
                 spec_slice = spec[:, 1:spec.shape[-1] // 4 + 1].mean(dim=0)
                 log_f = torch.log(freqs.float())
@@ -259,7 +296,7 @@ class CassiMetrics:
         except ImportError:
             return
 
-        fig, axes = plt.subplots(3, 3, figsize=(15, 12))
+        fig, axes = plt.subplots(3, 6, figsize=(24, 12))
         fig.suptitle('Cassi φ-Dashboard', fontsize=14)
 
         panels = [
@@ -278,6 +315,11 @@ class CassiMetrics:
             ('surprise', 'Surprise', 'tab:gray'),
             ('disappointment', 'Disappointment', 'tab:cyan'),
             ('freq_ratio', 'Freq Ratio', 'tab:green'),
+            ('phi_fast_scale', 'Phi Fast Scale', 'tab:orange'),
+            ('soul_strength', 'Soul Strength', 'tab:pink'),
+            ('brainfield_k', 'BrainField K', 'tab:cyan'),
+            ('qi_state', 'Qi State (0=W,1=Wd,2=F,3=E,4=M)', 'tab:purple'),
+            ('conscious_norm_raw', 'Conscious Norm (pre-clamp)', 'tab:red'),
         ]
 
         for ax, (key, title, color) in zip(axes.flat, panels):
@@ -329,6 +371,23 @@ class CassiMetrics:
             f"Berry hit rate:       {rec.get('berry_hit_rate_mean', 0):.3f}",
             f"Spectral slope:       {rec.get('spectral_slope_mean', 0):.3f}",
             f"Changepoint freq:     {rec.get('changepoint_triggered_mean', 0):.3f}",
+            f"Phi fast scale:       {rec.get('phi_fast_scale_mean', 1.0):.3f}",
+            f"Soul strength:        {rec.get('soul_strength_mean', 1.0):.3f}",
+            f"BrainField K:         {rec.get('brainfield_k_mean', 2):.1f}",
+            f"Purified count:       {rec.get('purified_mean', 0) * rec.get('n_batches', 0):.0f}",
+            f"Conscious norm (raw): {rec.get('conscious_norm_raw_mean', 0):.3f}",
+            f"Qi state:             {rec.get('qi_state_mean', 3):.1f} (0=W,1=Wd,2=F,3=E,4=M)",
             "-" * 40,
         ]
         return '\n'.join(lines)
+
+    @property
+    def qi_distribution(self):
+        """Fraction of time spent in each Qi state over the current epoch."""
+        if not self.current_epoch_batches:
+            return {}
+        from collections import Counter
+        states = [b.get('qi_state', 'earth') for b in self.current_epoch_batches]
+        total = len(states)
+        counts = Counter(states)
+        return {s: counts[s] / total for s in counts} if total > 0 else {}
