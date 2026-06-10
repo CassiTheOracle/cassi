@@ -139,8 +139,8 @@ def log_print(msg):
         f.flush()
 
 
-def save_checkpoint(path, model, val_mae, epoch, phase, optimizer=None, scaler=None):
-    """Atomic checkpoint save with optimizer and scaler state."""
+def save_checkpoint(path, model, val_mae, epoch, phase, optimizer=None, scaler=None, settings=None):
+    """Atomic checkpoint save with optimizer, scaler, and training settings."""
     tmp = path + '.tmp'
     ckpt = {
         'model': model.state_dict(),
@@ -149,6 +149,8 @@ def save_checkpoint(path, model, val_mae, epoch, phase, optimizer=None, scaler=N
         'phase': phase,
         'rng': torch.get_rng_state(),
     }
+    if settings is not None:
+        ckpt['settings'] = settings
     if optimizer is not None:
         ckpt['optimizer'] = optimizer.state_dict()
         ckpt['optimizer_type'] = optimizer.__class__.__name__
@@ -452,8 +454,10 @@ def main():
     parser = argparse.ArgumentParser(description='Multimodal Cassi Trainer')
     parser.add_argument('--phase', type=int, default=0, choices=range(6),
                         help='Curriculum phase (0=physics, 3=speech, 5=all)')
-    parser.add_argument('--epochs', type=int, default=10)
-    parser.add_argument('--bs', type=int, default=512)
+    parser.add_argument('--epochs', type=int, default=60,
+                        help='Total training epochs (default: 60)')
+    parser.add_argument('--bs', type=int, default=32,
+                        help='Batch size (default: 32)')
     parser.add_argument('--steps-per-epoch', type=int, default=1000)
     parser.add_argument('--lr', type=float, default=2e-4)
     parser.add_argument('--save', default=SAVE_PATH)
@@ -498,15 +502,15 @@ def main():
                         help='Skip NS for chakra bands wider than this (default 4096)')
     parser.add_argument('--wave-no-resonant', action='store_true',
                         help='Disable resonant NS (use fixed max steps for all bands)')
-    parser.add_argument('--brain-type', type=str, default='multimodal',
+    parser.add_argument('--brain-type', type=str, default='dual',
                         choices=['multimodal', 'honeybee', 'cassi', 'dual'],
                         help='Brain architecture: multimodal, honeybee, cassi, or dual (two hemispheres)')
     parser.add_argument('--D', type=int, default=None,
                         help='Conscious dimension (default: 1040 for multimodal, 16384 for honeybee)')
     parser.add_argument('--W', type=int, default=256,
                         help='Workspace dimension (honeybee only, default 256)')
-    parser.add_argument('--horizons', type=int, nargs='+', default=[1],
-                        help='Multi-horizon prediction targets for physics (default: [1])')
+    parser.add_argument('--horizons', type=int, nargs='+', default=[1, 4, 16],
+                        help='Multi-horizon prediction targets for physics (default: [1, 4, 16])')
 
     # DreamBank
     parser.add_argument('--use-dream', action='store_true', default=True, dest='use_dream')
@@ -706,6 +710,21 @@ def main():
     start_ep = 0
     no_improve = 0
 
+    # Build serialisable settings dict for checkpoint metadata
+    settings = {
+        'brain_type': args.brain_type,
+        'bs': args.bs,
+        'epochs': args.epochs,
+        'lr': args.lr,
+        'optimizer': args.optimizer,
+        'horizons': args.horizons,
+        'use_berry': args.use_berry,
+        'use_changepoint': args.use_changepoint,
+        'use_soul': args.use_soul,
+        'use_dream': args.use_dream,
+        'phase': args.phase,
+    }
+
     if not args.no_resume and os.path.exists(args.save):
         ck = torch.load(args.save, map_location=DEV, weights_only=False)
         state = ck['model']
@@ -723,6 +742,22 @@ def main():
         model.load_state_dict(filtered, strict=False)
         if skipped:
             log_print(f"Resume skipped mismatched keys: {skipped}")
+
+        # Validate settings from checkpoint
+        ck_settings = ck.get('settings')
+        if ck_settings is not None:
+            mismatches = []
+            for key, val in ck_settings.items():
+                current = getattr(args, key, None)
+                if current is not None and current != val:
+                    mismatches.append(f"{key}: {val} → {current}")
+            if mismatches:
+                log_print(f"Settings mismatch vs checkpoint: {', '.join(mismatches)}")
+            else:
+                log_print("Settings validated against checkpoint")
+        else:
+            log_print("Checkpoint lacks settings metadata (legacy checkpoint)")
+
         ck_phase = ck.get('phase', args.phase)
         ck_epoch = ck.get('epoch', 0)
         if ck_phase != args.phase:
@@ -765,8 +800,10 @@ def main():
             torch.set_rng_state(rng_state)
 
     t_start = time.perf_counter()
+    last_epoch = start_ep
 
     for ep in range(start_ep, args.epochs):
+        last_epoch = ep
         args.epoch = ep
         train_loss, train_pred, train_coherence, mod_counts = \
             train_epoch(model, loader, opt, mp_trainer, args, adaptive, audio_encoder, metrics=metrics, dream_bank=dream_bank)
@@ -780,7 +817,7 @@ def main():
             improved = v['mae'] < best_val
             if improved:
                 best_val = v['mae']
-                save_checkpoint(best_path, model, best_val, ep, args.phase, opt, mp_trainer.scaler if mp_trainer else None)
+                save_checkpoint(best_path, model, best_val, ep, args.phase, opt, mp_trainer.scaler if mp_trainer else None, settings=settings)
                 no_improve = 0
             else:
                 no_improve += 1
@@ -808,7 +845,7 @@ def main():
             log_print(metrics.summary_table(epoch=-1).replace('\n', ' | '))
 
             if (ep + 1) % args.save_every == 0:
-                save_checkpoint(args.save, model, v['mae'], ep, args.phase, opt, mp_trainer.scaler if mp_trainer else None)
+                save_checkpoint(args.save, model, v['mae'], ep, args.phase, opt, mp_trainer.scaler if mp_trainer else None, settings=settings)
                 metrics.plot_dashboard(save_path=f'logs/dashboard_epoch_{ep+1:03d}.png')
 
             if no_improve >= args.patience:
@@ -870,7 +907,7 @@ def main():
     model.eval()
 
     # Save final
-    torch.save({'model': model.state_dict(), 'val_mae': best_val, 'epoch': args.epochs, 'phase': args.phase}, args.save)
+    save_checkpoint(args.save, model, best_val, last_epoch, args.phase, opt, mp_trainer.scaler if mp_trainer else None, settings=settings)
     log_print(f"\nSaved {args.save}  phase={args.phase}  val_mae={best_val:.4f}")
 
 
