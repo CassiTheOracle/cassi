@@ -313,6 +313,13 @@ class CassiBrain(nn.Module):
         # Previous-batch dynamics output for true temporal prediction loss
         self._prev_predicted_next_conscious = None
 
+        # ── Process trajectory buffer (rolling) ──
+        # Stores the last N internal states for dynamical-context memory.
+        # Not a register_buffer so it persists across batches but is not
+        # part of the checkpoint (reconstructed from continued operation).
+        self._trajectory_capacity = 16
+        self._process_trajectory = []  # list of dicts
+
         # ── Surprise & Disappointment tracking ──
         # EMA buffers for computing prediction-error-style surprise from
         # internal dynamics (field energy, qi fluid, yang/yin balance).
@@ -674,6 +681,22 @@ class CassiBrain(nn.Module):
         # Spine contributes fully to horizon 1 (the immediate next frame).
         pred[:, 0] = pred[:, 0] + pred_spine
 
+        # ── Process trajectory recording ──
+        # Capture this step's internal state for dynamical-context memory.
+        with torch.no_grad():
+            traj_step = {
+                'conscious': conscious.detach().clone(),
+                'workspace_fwd': w_fwd.detach().clone(),
+                'workspace_rev': w_rev.detach().clone(),
+                'qi_fluid': self.spine.qi_fluid.detach().clone(),
+                'field_energy': self.spine.field_energy.detach().clone(),
+                'surprise': surprise.item() if isinstance(surprise, torch.Tensor) else float(surprise),
+                'disappointment': disappointment.item() if isinstance(disappointment, torch.Tensor) else float(disappointment),
+            }
+            self._process_trajectory.append(traj_step)
+            if len(self._process_trajectory) > self._trajectory_capacity:
+                self._process_trajectory.pop(0)
+
         # ── Memory read ──
         if self.use_memory:
             breath = stem_info['breath']
@@ -764,6 +787,12 @@ class CassiBrain(nn.Module):
         breath = stem_info.get('breath', {})
         for k in ['breath_yang', 'breath_yin', 'beat', 'flow', 'phase_diff', 'freq_ratio', 'pulse_active']:
             info[k] = breath.get(k, 0.0)
+
+        # Process trajectory summary (for observability and future trajectory losses)
+        info['trajectory_length'] = len(self._process_trajectory)
+        if self._process_trajectory:
+            info['trajectory_surprise'] = self._process_trajectory[-1].get('surprise', 0.0)
+            info['trajectory_disappointment'] = self._process_trajectory[-1].get('disappointment', 0.0)
 
         # Store dynamics prediction for next batch's temporal loss
         with torch.no_grad():

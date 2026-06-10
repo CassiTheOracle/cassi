@@ -139,6 +139,20 @@ def log_print(msg):
         f.flush()
 
 
+def scheduled_weight(full_weight, epoch, warmup_epochs):
+    """Linear ramp from 0 to full_weight over warmup_epochs.
+
+    Returns full_weight for epoch >= warmup_epochs, 0.0 for epoch < 0,
+    and a linear fraction in between.
+    """
+    if warmup_epochs <= 0:
+        return full_weight
+    if epoch < 0:
+        return 0.0
+    frac = min(1.0, (epoch + 1) / warmup_epochs)
+    return full_weight * frac
+
+
 def save_checkpoint(path, model, val_mae, epoch, phase, optimizer=None, scaler=None, settings=None):
     """Atomic checkpoint save with optimizer, scaler, and training settings."""
     tmp = path + '.tmp'
@@ -270,7 +284,7 @@ def train_epoch(model, loader, opt, mp_trainer, args, adaptive=None, audio_encod
         if 'observer_embedding' in info and 'observer_predicted_emb' in info:
             emb = info['observer_embedding']
             pred_emb = info['observer_predicted_emb']
-            observer_loss = 0.01 * F.mse_loss(pred_emb, emb)
+            observer_loss = args.observer_loss_weight * F.mse_loss(pred_emb, emb)
 
         # ── Conscious Dynamics temporal prediction loss ──
         # Predicted next conscious from the PREVIOUS batch, when read out,
@@ -283,10 +297,17 @@ def train_epoch(model, loader, opt, mp_trainer, args, adaptive=None, audio_encod
             if pred_next_prev.shape[0] == pred.shape[0]:
                 if hasattr(model, 'yang') and hasattr(model.yang.brain, 'readout'):
                     pred_from_dynamics, _ = model.yang.brain.readout(pred_next_prev)
-                    dynamics_loss = 0.001 * F.mse_loss(pred_from_dynamics, pred.detach())
+                    dynamics_loss = args.dynamics_loss_weight * F.mse_loss(pred_from_dynamics, pred.detach())
                 elif hasattr(model, 'readout'):
                     pred_from_dynamics, _ = model.readout(pred_next_prev)
-                    dynamics_loss = 0.001 * F.mse_loss(pred_from_dynamics, pred.detach())
+                    dynamics_loss = args.dynamics_loss_weight * F.mse_loss(pred_from_dynamics, pred.detach())
+
+        # Scheduled weights: internal losses ramp up over warmup epochs
+        current_epoch = getattr(args, 'epoch', 0)
+        phi_balance_loss = scheduled_weight(args.phi_balance_weight, current_epoch, args.loss_warmup_epochs) * phi_balance_loss
+        sparsity_loss = scheduled_weight(args.sparsity_weight, current_epoch, args.loss_warmup_epochs) * sparsity_loss
+        observer_loss = scheduled_weight(1.0, current_epoch, args.loss_warmup_epochs) * observer_loss
+        dynamics_loss = scheduled_weight(1.0, current_epoch, args.loss_warmup_epochs) * dynamics_loss
 
         loss = (loss_pred + COHERENCE_WEIGHT * coherence + entropy_loss + spectral_loss +
                 phi_balance_loss + qi_energy_bonus + sparsity_loss + meta_loss +
@@ -519,6 +540,18 @@ def main():
     parser.add_argument('--dream-replay', type=int, default=50,
                         help='Number of replay steps per epoch')
     parser.add_argument('--dream-batch', type=int, default=32)
+
+    # Loss scheduling: internal losses ramp up over first N epochs for stability
+    parser.add_argument('--loss-warmup-epochs', type=int, default=10,
+                        help='Epochs over which to ramp internal losses from 0 to full (default: 10)')
+    parser.add_argument('--observer-loss-weight', type=float, default=0.01,
+                        help='Full-strength observer autoencoder loss weight (default: 0.01)')
+    parser.add_argument('--dynamics-loss-weight', type=float, default=0.001,
+                        help='Full-strength conscious dynamics loss weight (default: 0.001)')
+    parser.add_argument('--phi-balance-weight', type=float, default=1.0,
+                        help='Multiplier on phi_balance_loss from the model (default: 1.0)')
+    parser.add_argument('--sparsity-weight', type=float, default=1.0,
+                        help='Multiplier on sparsity_loss from the model (default: 1.0)')
 
     args = parser.parse_args()
     args.epoch = 0
@@ -805,6 +838,14 @@ def main():
     for ep in range(start_ep, args.epochs):
         last_epoch = ep
         args.epoch = ep
+        # Log scheduled internal-loss weights at the start of each epoch
+        if ep == start_ep or (ep + 1) % 5 == 0:
+            sched_phi = scheduled_weight(args.phi_balance_weight, ep, args.loss_warmup_epochs)
+            sched_sparse = scheduled_weight(args.sparsity_weight, ep, args.loss_warmup_epochs)
+            sched_obs = scheduled_weight(1.0, ep, args.loss_warmup_epochs)
+            sched_dyn = scheduled_weight(1.0, ep, args.loss_warmup_epochs)
+            log_print(f"  [scheduling] phi={sched_phi:.3f} sparse={sched_sparse:.3f} obs={sched_obs:.3f} dyn={sched_dyn:.3f}")
+
         train_loss, train_pred, train_coherence, mod_counts = \
             train_epoch(model, loader, opt, mp_trainer, args, adaptive, audio_encoder, metrics=metrics, dream_bank=dream_bank)
 

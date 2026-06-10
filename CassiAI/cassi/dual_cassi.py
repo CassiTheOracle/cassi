@@ -329,6 +329,9 @@ class DualCassi(nn.Module):
                 'phi_balance_loss': yang_info.get('phi_balance_loss'),
                 'sparsity_loss': yang_info.get('sparsity_loss'),
                 'qi_energy_bonus': yang_info.get('qi_energy_bonus'),
+                'trajectory_length': yang_info.get('trajectory_length', 0),
+                'trajectory_surprise': yang_info.get('trajectory_surprise', 0.0),
+                'trajectory_disappointment': yang_info.get('trajectory_disappointment', 0.0),
                 # Dual-specific keys
                 'yang': yang_info,
                 'yin': yin_info,
