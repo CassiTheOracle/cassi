@@ -129,7 +129,7 @@ class QiStateMachine:
         harmony_f = harmony.item() if isinstance(harmony, torch.Tensor) else float(harmony)
 
         import math
-        log_energy = math.log1p(energy_f)
+        log_energy = math.log1p(max(-0.999, energy_f))
 
         # EMA smoothing for stable diagnosis (filters batch-to-batch noise)
         if self._smooth_energy is None:
@@ -290,9 +290,9 @@ class Brainstem(nn.Module):
     def reset_state(self, batch_size):
         """Reset all persistent brainstem buffers."""
         device = self.focus.device
-        self.focus = torch.zeros(batch_size, self.D, device=device)
-        self.regulation = torch.zeros(batch_size, self.D, device=device)
-        self.arousal = torch.zeros(batch_size, device=device)
+        self.register_buffer('focus', torch.zeros(batch_size, self.D, device=device, dtype=self.focus.dtype))
+        self.register_buffer('regulation', torch.zeros(batch_size, self.D, device=device, dtype=self.regulation.dtype))
+        self.register_buffer('arousal', torch.zeros(batch_size, device=device, dtype=self.arousal.dtype))
         # focus_history and _focus_idx are batch-independent
         self.focus_history.zero_()
         self._focus_idx.zero_()
@@ -337,9 +337,9 @@ class Brainstem(nn.Module):
 
         # ── 2. Diagnose Qi state ──
         if qi_state is None:
-            yang_norm = spine.yang.norm(dim=-1).mean()
-            yin_norm = spine.yin.norm(dim=-1).mean()
-            qi_energy = spine.qi_fluid.sum(dim=-1).mean()
+            yang_norm = spine.yang.detach().norm(dim=-1).mean()
+            yin_norm = spine.yin.detach().norm(dim=-1).mean()
+            qi_energy = spine.qi_fluid.detach().sum(dim=-1).mean()
             state_name = self.qi.compute(
                 yang_norm, yin_norm, qi_energy, breath,
                 update_history=update_qi_history
@@ -353,9 +353,9 @@ class Brainstem(nn.Module):
         profile = self.qi.get_profile(state_name)
 
         # ── 3. Update EMAs ──
-        field_flat = spine.field_state.view(B, -1)
-        self.focus = PHI_INV * self.focus + PHI_INV ** 2 * field_flat
-        self.regulation = PHI_INV * self.regulation + PHI_INV ** 2 * field_flat.abs()
+        field_flat = spine.field_state.detach().view(B, -1)
+        self.focus.copy_((PHI_INV * self.focus + PHI_INV ** 2 * field_flat).clamp(-10.0, 10.0))
+        self.regulation.copy_((PHI_INV * self.regulation + PHI_INV ** 2 * field_flat.abs()).clamp(-10.0, 10.0))
 
         # Update focus history for pulse detection
         focus_scalar = field_flat.norm(dim=-1).mean()
@@ -365,13 +365,16 @@ class Brainstem(nn.Module):
 
         # ── 4. Chakra attention + homeostasis ──
         # Attention: which chakras are salient?
+        # Detach: spine state is updated in-place by step() each frame,
+        # so it can't be in the autograd graph across frames.
+        field_energy = spine.field_energy.detach()
         chakra_attention = torch.softmax(
-            self.chakra_attn(spine.field_energy), dim=-1
+            self.chakra_attn(field_energy), dim=-1
         )  # [B, C]
 
         # Homeostasis: suppress overactive, boost underactive
-        energy_target = spine.field_energy.mean(dim=0, keepdim=True)  # [1, C]
-        energy_dev = spine.field_energy - energy_target  # [B, C]
+        energy_target = field_energy.mean(dim=0, keepdim=True)  # [1, C]
+        energy_dev = field_energy - energy_target  # [B, C]
         homeo_gain = torch.sigmoid(-energy_dev * self.homeo_scale)  # [B, C]
 
         # Apply per-chakra modulation to spine workspaces
@@ -399,7 +402,7 @@ class Brainstem(nn.Module):
 
         # Arousal from Qi energy + breath beat
         arousal = torch.tanh(qi_energy / 10.0) + 0.1 * breath['beat']
-        self.arousal = PHI_INV * self.arousal + PHI_INV ** 2 * arousal
+        self.arousal.copy_((PHI_INV * self.arousal + PHI_INV ** 2 * arousal).clamp(-10.0, 10.0))
 
         # Breath-modulated gains
         yang_gain = profile['yang_gain'] * (1.0 + 0.1 * breath['yang'].item())
@@ -412,16 +415,17 @@ class Brainstem(nn.Module):
 
         # ── 7. Compress for brain ──
         # Feed the brain field the full dynamics: state, energy, yang, yin, chakra energy
+        # Detach: spine state updated in-place each frame, can't be in autograd graph
         compressed = self.compress(
             torch.cat([
-                spine.field_state,
-                spine.qi_fluid,
-                spine.yang,
-                spine.yin,
-                spine.field_energy,
+                spine.field_state.detach(),
+                spine.qi_fluid.detach(),
+                spine.yang.detach(),
+                spine.yin.detach(),
+                spine.field_energy.detach(),
             ], dim=-1)
         )  # [B, D_stem]
-
+        compressed = compressed.clamp(-10.0, 10.0)  # prevent MLP explosion
         return {
             'compressed': compressed,
             'state': state_name,

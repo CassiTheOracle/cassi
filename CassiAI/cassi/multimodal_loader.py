@@ -64,12 +64,26 @@ class MultimodalDataLoader:
         self.descriptions = []
         self._load_descriptions(active_dir)
 
+        # ── Phase 8 curiosity-driven curriculum ──
+        # Optional external weights override phase-based ratios.
+        self.curiosity_weights = None
+
     def _load_physics(self):
         if self._physics_loaded:
             return
         cache = torch.load(self.physics_cache, map_location='cpu', weights_only=False)
-        self.wins = torch.stack(cache['windows'])
+        wins = cache['windows']
+        if isinstance(wins, list):
+            wins = torch.stack(wins)
+        # Filter out any windows with NaN, Inf, or extreme outliers as a safety measure.
+        valid_mask = torch.isfinite(wins).all(dim=(1, 2)) & (wins.abs().amax(dim=(1, 2)) <= 100.0)
+        if not valid_mask.all():
+            wins = wins[valid_mask]
+        self.wins = wins
         self.n = len(self.wins)
+        # Multi-horizon support
+        self.physics_input_frames = cache.get('input_frames', 4)
+        self.physics_horizons = cache.get('horizons', [1])
         perm = self.rng.permutation(self.n)
         split = int(self.n * (1 - self.val_frac))
         self.physics_train_idx = perm[:split]
@@ -188,30 +202,67 @@ class MultimodalDataLoader:
             self.phase += 1
         return self.get_phase_name()
 
-    def sample_train_batch(self, batch_size, device='cuda'):
+    def set_curiosity_weights(self, weights):
+        """Set Phase 8 curiosity-driven sampling weights.
+
+        weights: dict {'physics': float, 'text': float, 'audio': float}
+                 or None to disable.
+        """
+        self.curiosity_weights = weights
+
+    def sample_train_batch(self, batch_size, device='cuda', return_indices=False):
         """Sample a batch according to current curriculum phase.
 
-        Returns: (x, y, modality_tag)
+        Returns: (x, y, modality_tag) by default.
+        If return_indices=True, returns (x, y, indices, modality_tag).
+        indices are window indices for physics, None otherwise.
         """
         phase_name = self.get_phase_name()
 
         if phase_name == 'physics_only':
-            return self._sample_physics(batch_size, device)
-        elif phase_name == 'physics_descriptions':
-            return self._sample_mixed(batch_size, device, physics_ratio=0.5)
+            return self._sample_physics(batch_size, device, return_indices=return_indices)
+
+        # Phase 8: curiosity-driven weights override phase-based ratios
+        if self.curiosity_weights is not None:
+            physics_w = self.curiosity_weights.get('physics', 1.0 / 3)
+            audio_w = self.curiosity_weights.get('audio', 1.0 / 3)
+            text_w = self.curiosity_weights.get('text', 1.0 / 3)
+            total = physics_w + audio_w + text_w
+            return self._sample_mixed(
+                batch_size, device,
+                physics_ratio=physics_w / total,
+                audio_ratio=audio_w / total,
+                return_indices=return_indices,
+            )
+
+        if phase_name == 'physics_descriptions':
+            return self._sample_mixed(batch_size, device, physics_ratio=0.5,
+                                      return_indices=return_indices)
         elif phase_name == 'speech_audio':
-            return self._sample_mixed(batch_size, device, audio_ratio=0.5)
+            return self._sample_mixed(batch_size, device, audio_ratio=0.5,
+                                      return_indices=return_indices)
         elif phase_name == 'all_modalities':
-            return self._sample_mixed(batch_size, device, physics_ratio=0.25, audio_ratio=0.25)
+            return self._sample_mixed(batch_size, device, physics_ratio=0.25,
+                                      audio_ratio=0.25,
+                                      return_indices=return_indices)
         else:
             # Default: physics + text mix
-            return self._sample_mixed(batch_size, device, physics_ratio=0.5)
+            return self._sample_mixed(batch_size, device, physics_ratio=0.5,
+                                      return_indices=return_indices)
 
-    def _sample_physics(self, batch_size, device):
+    def _sample_physics(self, batch_size, device, return_indices=False):
         self._load_physics()
         idx = self.rng.choice(self.physics_train_idx, size=batch_size, replace=False)
-        x = self.wins[idx][:, :4].to(device)
-        y = self.wins[idx][:, 4].to(device)
+        n_in = self.physics_input_frames
+        x = self.wins[idx][:, :n_in].to(device)
+        if len(self.physics_horizons) > 1:
+            # Multi-horizon: gather target frames
+            target_indices = [n_in + h - 1 for h in self.physics_horizons]
+            y = self.wins[idx][:, target_indices].to(device)  # [B, H, 1024]
+        else:
+            y = self.wins[idx][:, n_in:n_in+1].to(device)  # [B, 1, 1024]
+        if return_indices:
+            return x, y, idx, 'physics'
         return x, y, 'physics'
 
     def _sample_text(self, batch_size, device):
@@ -259,7 +310,7 @@ class MultimodalDataLoader:
                 text = row.get('text', '')
                 b = text.encode('utf-8') if text else b'\x00' * 1280
                 if len(b) < 1280:
-                    b = b + b'\x00' * (1280 - len(b))
+                    b = b + b'\\x00' * (1280 - len(b))
                 b = b[:1280]
                 x_list.append(torch.tensor(list(b[:1024]), dtype=torch.uint8).float())
                 y_list.append(torch.tensor(list(b[256:1280]), dtype=torch.uint8).float())
@@ -267,49 +318,71 @@ class MultimodalDataLoader:
         x = torch.stack(x_list).to(device)
         y = torch.stack(y_list).to(device)
         return x, y, 'audio'
-
-    def _sample_mixed(self, batch_size, device, physics_ratio=0.5, audio_ratio=0.0):
+    def _sample_mixed(self, batch_size, device, physics_ratio=0.5, audio_ratio=0.0,
+                      return_indices=False):
         """Sample a mixed batch from multiple modalities.
 
-        Physics inputs are 3D [B, 4, D] while text/audio are 2D [B, seq];
-        they cannot be concatenated. We sample one modality per batch call
-        using the ratios as multinomial probabilities, which preserves the
-        intended curriculum distribution across the epoch.
+        If return_indices=True, returns (x, y, indices, tag); otherwise
+        the default (x, y, tag) tuple is returned.
         """
         n_physics = int(batch_size * physics_ratio)
         n_audio = int(batch_size * audio_ratio)
         n_text = batch_size - n_physics - n_audio
 
-        total = n_physics + n_text + n_audio
-        if total <= 0:
-            return self._sample_physics(batch_size, device)
+        parts = []
+        if n_physics > 0:
+            parts.append(('physics', n_physics))
+        if n_text > 0:
+            parts.append(('text', n_text))
+        if n_audio > 0:
+            parts.append(('audio', n_audio))
 
-        # Weighted random choice per batch call
-        probs = [n_physics / total, n_text / total, n_audio / total]
-        choice = self.rng.choice(3, p=probs)
-        if choice == 0:
-            return self._sample_physics(batch_size, device)
-        elif choice == 1:
-            return self._sample_text(batch_size, device)
+        if not parts:
+            parts = [('text', batch_size)]
+
+        tag, n = self.rng.choice(parts)
+        if tag == 'physics':
+            return self._sample_physics(n, device, return_indices=return_indices)
+        elif tag == 'text':
+            out = self._sample_text(n, device)
+            if return_indices:
+                x, y, t = out
+                return x, y, None, t
+            return out
         else:
-            return self._sample_audio(batch_size, device)
+            out = self._sample_audio(n, device)
+            if return_indices:
+                x, y, t = out
+                return x, y, None, t
+            return out
 
-    def sample_val_batch(self, batch_size, device='cuda'):
+
+    def sample_val_batch(self, batch_size, device='cuda', return_indices=False):
         """Sample validation batch respecting curriculum phase."""
         self._load_physics()
+        n_in = self.physics_input_frames
+        if len(self.physics_horizons) > 1:
+            target_indices = [n_in + h - 1 for h in self.physics_horizons]
+        else:
+            target_indices = [n_in]
+
         if self.phase == 0:
             idx = self.val_rng.choice(self.physics_val_idx, size=min(batch_size, self.physics_nv), replace=False)
-            x = self.wins[idx][:, :4].to(device)
-            y = self.wins[idx][:, 4].to(device)
+            x = self.wins[idx][:, :n_in].to(device)
+            y = self.wins[idx][:, target_indices].to(device)  # [B, n_horizons, 1024]
+            if return_indices:
+                return x, y, idx, 'physics'
             return x, y, 'physics'
         elif self.phase in (2, 3, 5):
             # Mixed validation: sample from all active modalities
-            return self.sample_train_batch(batch_size, self.val_rng, device=device)
+            return self.sample_train_batch(batch_size, self.val_rng, device=device, return_indices=return_indices)
         else:
             # Default to physics
             idx = self.val_rng.choice(self.physics_val_idx, size=min(batch_size, self.physics_nv), replace=False)
-            x = self.wins[idx][:, :4].to(device)
-            y = self.wins[idx][:, 4].to(device)
+            x = self.wins[idx][:, :n_in].to(device)
+            y = self.wins[idx][:, target_indices].to(device)  # [B, n_horizons, 1024]
+            if return_indices:
+                return x, y, idx, 'physics'
             return x, y, 'physics'
 
     def val_steps(self, batch_size):

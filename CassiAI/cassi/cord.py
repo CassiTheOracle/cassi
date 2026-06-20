@@ -33,14 +33,19 @@ class CordPhysics(nn.Module):
     """
     T_IN = 4
 
-    def __init__(self, D=1040, byte_mode=False):
+    def __init__(self, D=1040, byte_mode=False, multi_scale_bytes=False):
         super().__init__()
         self.D = D
         self.byte_mode = byte_mode
+        self.multi_scale_bytes = multi_scale_bytes
 
         # Optional byte encoder for raw byte input
         if byte_mode:
-            self.byte_encoder = ByteEncoder(window_bytes=1024, dim_field=1024, T=4)
+            if multi_scale_bytes:
+                from cassi.multi_scale_byte import MultiScaleByteEncoder
+                self.byte_encoder = MultiScaleByteEncoder(dim_field=1024, T=4)
+            else:
+                self.byte_encoder = ByteEncoder(window_bytes=1024, dim_field=1024, T=4)
 
         # 13 φ-scaled chakra widths (normalized so sum = D)
         raw = [PHI ** c for c in range(13)]
@@ -268,12 +273,12 @@ class CordPhysics(nn.Module):
                 mag = h_fwd.abs() + h_rev.abs() + 1e-8
                 qi_parts.append(1.0 - diff / mag)
 
-        all_f = torch.cat(outs, -1)  # [B, D]
+        all_f = torch.cat(outs, -1).clamp(-10.0, 10.0)  # [B, D]
         qi = torch.cat(qi_parts, -1) if return_qi else None  # [B, D]
 
         # Fusion
         repr_vec = self.fusion(torch.cat([psi[:, -1, :], all_f * 0.5], -1)) + psi[:, -1, :]
-
+        repr_vec = repr_vec.clamp(-10.0, 10.0)
         trajectories = None
         if return_trajectories:
             trajectories = {
@@ -548,6 +553,17 @@ class CordPhysics(nn.Module):
     # ------------------------------------------------------------------
     # Stateful resonant field (Phase 1)
     # ------------------------------------------------------------------
+    def _ensure_buffer(self, name, new_tensor):
+        """Re-register or copy into an existing buffer.
+
+        If the existing buffer has the same shape, copies data in-place.
+        Otherwise, re-registers the buffer (handles batch size changes).
+        """
+        old = getattr(self, name)
+        if old.shape == new_tensor.shape:
+            old.copy_(new_tensor)
+        else:
+            self.register_buffer(name, new_tensor)
 
     def reset_state(self, batch_size):
         """Reset all persistent field buffers for a new batch/sequence.
@@ -555,14 +571,15 @@ class CordPhysics(nn.Module):
         Call this at the start of each training batch or inference sequence.
         """
         device = self.h1.device
-        self.h1 = torch.zeros(batch_size, self.D, device=device)
-        self.h2 = torch.zeros(batch_size, self.D, device=device)
-        self.x1 = torch.zeros(batch_size, self.D, device=device)
-        self.yang = torch.zeros(batch_size, self.D, device=device)
-        self.yin = torch.zeros(batch_size, self.D, device=device)
-        self.field_state = torch.zeros(batch_size, self.D, device=device)
-        self.field_energy = torch.zeros(batch_size, self.C, device=device)
-        self.qi_fluid = torch.zeros(batch_size, self.D, device=device)
+        dtype = self.h1.dtype
+        self._ensure_buffer('h1', torch.zeros(batch_size, self.D, device=device, dtype=dtype))
+        self._ensure_buffer('h2', torch.zeros(batch_size, self.D, device=device, dtype=dtype))
+        self._ensure_buffer('x1', torch.zeros(batch_size, self.D, device=device, dtype=dtype))
+        self._ensure_buffer('yang', torch.zeros(batch_size, self.D, device=device, dtype=dtype))
+        self._ensure_buffer('yin', torch.zeros(batch_size, self.D, device=device, dtype=dtype))
+        self._ensure_buffer('field_state', torch.zeros(batch_size, self.D, device=device, dtype=dtype))
+        self._ensure_buffer('field_energy', torch.zeros(batch_size, self.C, device=device, dtype=dtype))
+        self._ensure_buffer('qi_fluid', torch.zeros(batch_size, self.D, device=device, dtype=dtype))
         self.theta_fast_fwd.zero_()
         self.theta_fast_rev.zero_()
         self.gain_fast.zero_()
@@ -570,11 +587,12 @@ class CordPhysics(nn.Module):
         self.err_h2.zero_()
         self.act_h1.zero_()
         self.act_h2.zero_()
-        self._frame_buffer = torch.zeros(batch_size, 4, self.D, device=device)
+        self._ensure_buffer('_frame_buffer', torch.zeros(batch_size, 4, self.D, device=device, dtype=dtype))
         self._frame_idx = 0
 
     def step(self, x_new, theta_shift=0.0, damp_scale=1.0,
-             yang_gain=1.0, yin_gain=1.0, brainstem_gate=False):
+             yang_gain=1.0, yin_gain=1.0, brainstem_gate=False,
+             phi_fast_scale=1.0):
         """Single IIR step with persistent state.
 
         x_new: [B, D] — one frame already projected to D-space
@@ -596,8 +614,10 @@ class CordPhysics(nn.Module):
 
             # Active frequency = slow weight + fast weight
             theta = torch.sigmoid(self.fwd_theta[c] + self.theta_fast_fwd[c]) * math.pi
-            a1 = 2.0 * PHI_INV * damp_scale * torch.cos(theta + theta_shift)
-            a2 = -(PHI_INV * damp_scale) ** 2
+            effective_damp = PHI_INV * damp_scale * phi_fast_scale
+            effective_damp = max(0.1, min(0.90, effective_damp))
+            a1 = 2.0 * effective_damp * torch.cos(theta + theta_shift)
+            a2 = -(effective_damp) ** 2
             b0 = torch.sigmoid(self.fwd_b0[c])
             b1 = torch.sigmoid(self.fwd_b1[c])
             sf = b0 + b1 + 1e-8
@@ -611,30 +631,22 @@ class CordPhysics(nn.Module):
 
             h_new_c = b0 * x_c + b1 * x1_c + a1 * h1_c + a2 * h2_c
             h_new_c = h_new_c * (1.0 + self.gain_fast[c])
+            h_new_c = h_new_c.clamp(-10.0, 10.0)  # prevent persistent-state explosion
 
-            # Update IIR state (reconstruct full tensor to avoid in-place)
-            new_h1 = self.h1.clone()
-            new_h2 = self.h2.clone()
-            new_x1 = self.x1.clone()
-            new_h2[:, start:end] = h1_c
-            new_h1[:, start:end] = h_new_c
-            new_x1[:, start:end] = x_c
-            self.h2 = new_h2
-            self.h1 = new_h1
-            self.x1 = new_x1
+            # Update IIR state in-place (buffers, safe for registered buffers)
+            self.h2[:, start:end] = h1_c
+            self.h1[:, start:end] = h_new_c
+            self.x1[:, start:end] = x_c
 
             h_new_parts.append(h_new_c)
 
-        # Update per-chakra energy (out-of-place to avoid autograd corruption)
-        new_field_energy = self.field_energy.clone()
+        # Update per-chakra energy in-place
         for c in range(self.C):
-            new_field_energy[:, c] = h_new_parts[c].pow(2).mean(dim=-1)
-        self.field_energy = new_field_energy
-
+            self.field_energy[:, c] = h_new_parts[c].pow(2).mean(dim=-1)
         h_new = torch.cat(h_new_parts, dim=-1)  # [B, D]
 
         # ── 1b. Rolling buffer for reverse IIR ──
-        self._frame_buffer[:, self._frame_idx % 4, :] = x_new.detach()
+        self._frame_buffer[:, self._frame_idx % 4, :] = x_new
         self._frame_idx += 1
         if self._frame_idx >= 4:
             # Reverse IIR over full buffer (flipped)
@@ -652,20 +664,21 @@ class CordPhysics(nn.Module):
                 h_rev_c = self._iir(torch.flip(buf_c, [1]), a1r, a2r, b0r, b1r)
                 h_rev_parts.append(h_rev_c)
             h_new = h_new - torch.cat(h_rev_parts, dim=-1)
+        h_new = h_new.clamp(-10.0, 10.0)  # prevent explosion entering fusion
 
         # ── 2. Fusion (same formula as _compute_repr) ──
         field_state = self.fusion(torch.cat([x_new, h_new * 0.5], dim=-1)) + x_new
 
         # ── 3. Dual workspace evolution ──
-        self.yang = PHI_INV ** 2 * self.yang + PHI_INV * yang_gain * field_state
-        self.yin = PHI_INV * self.yin + PHI_INV ** 2 * yin_gain * self.yang
+        self.yang.copy_(PHI_INV ** 2 * self.yang + PHI_INV * yang_gain * field_state)
+        self.yin.copy_(PHI_INV * self.yin + PHI_INV ** 2 * yin_gain * self.yang)
 
         # ── 4. Qi-fluid = overlap + resonance ──
         qi_overlap = self.yang * self.yin
-        self.qi_fluid = PHI_INV * self.qi_fluid + PHI_INV ** 2 * qi_overlap
+        self.qi_fluid.copy_(PHI_INV * self.qi_fluid + PHI_INV ** 2 * qi_overlap)
 
         # ── 5. Conscious field state = harmonious cooperation ──
-        self.field_state = PHI_INV * self.yang + PHI_INV ** 2 * self.yin
+        self.field_state.copy_(PHI_INV * self.yang + PHI_INV ** 2 * self.yin)
 
         # ── 6. Fast weight update (Phase 2: online learning) ──
         if brainstem_gate:
@@ -703,9 +716,9 @@ class CordPhysics(nn.Module):
                 self.gain_fast[c] = PHI_INV * self.gain_fast[c] + 0.01 * (-self.err_h1[c]) * self.act_h1[c]
 
             # Normalize across chakras (prevent domination)
-            self.theta_fast_fwd = self.theta_fast_fwd / (self.theta_fast_fwd.norm() + 1e-8) * 0.5
-            self.theta_fast_rev = self.theta_fast_rev / (self.theta_fast_rev.norm() + 1e-8) * 0.5
-            self.gain_fast = self.gain_fast / (self.gain_fast.norm() + 1e-8) * 1.0
+            self.theta_fast_fwd.copy_(self.theta_fast_fwd / (self.theta_fast_fwd.norm() + 1e-8) * 0.5)
+            self.theta_fast_rev.copy_(self.theta_fast_rev / (self.theta_fast_rev.norm() + 1e-8) * 0.5)
+            self.gain_fast.copy_(self.gain_fast / (self.gain_fast.norm() + 1e-8) * 1.0)
 
     def step_sequence(self, psi, theta_shift=0.0, damp_scale=1.0,
                       yang_gain=1.0, yin_gain=1.0, brainstem_gate=False):

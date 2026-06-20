@@ -10,6 +10,7 @@ Design principles:
 """
 
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 import json
 import os
@@ -19,6 +20,68 @@ from typing import Dict, List, Optional
 import numpy as np
 
 from cassi.cord import PHI, PHI_INV
+
+
+class ObserverHead(nn.Module):
+    """Predicts model confidence / prediction error from conscious hidden state.
+
+    Can be attached to any Cassi brain model to provide a self-awareness signal
+    that drives curriculum learning, adaptive LR, and speculative decoding gates.
+    """
+
+    def __init__(self, d_model: int, predict_error: bool = True):
+        super().__init__()
+        self.predict_error = predict_error
+        self.confidence = nn.Sequential(
+            nn.Linear(d_model, d_model // 4),
+            nn.LayerNorm(d_model // 4),
+            nn.GELU(),
+            nn.Dropout(0.1),
+            nn.Linear(d_model // 4, 1),
+            nn.Sigmoid(),
+        )
+        if predict_error:
+            self.error_head = nn.Sequential(
+                nn.Linear(d_model, d_model // 4),
+                nn.LayerNorm(d_model // 4),
+                nn.GELU(),
+                nn.Dropout(0.1),
+                nn.Linear(d_model // 4, 1),
+                nn.Softplus(),
+            )
+
+    def forward(self, hidden: torch.Tensor):
+        """hidden: [..., d_model] -> conf: [...], err: [...] (optional)"""
+        conf = self.confidence(hidden).squeeze(-1)
+        if self.predict_error:
+            err = self.error_head(hidden).squeeze(-1)
+            return conf, err
+        return conf
+
+
+def phi_decay_weights(horizon: int, device: str = "cpu") -> torch.Tensor:
+    """Return φ-decay weights for multi-horizon prediction losses.
+
+    Earlier positions (near-term) are weighted more heavily because errors
+    compound: w_k = PHI_INV^k, normalized to sum to 1.
+    """
+    weights = torch.tensor([PHI_INV ** k for k in range(horizon)], device=device)
+    return weights / weights.sum()
+
+
+def phi_decay_mse_loss(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+    """MSE loss with φ-decay weighting across horizon dimension.
+
+    pred / target: [B, H, D] or [B, D].  If 2D, falls back to standard MSE.
+    """
+    if pred.dim() == 2:
+        return F.mse_loss(pred, target)
+    if pred.dim() != 3 or target.dim() != 3:
+        raise ValueError(f"phi_decay_mse_loss expects 2D or 3D tensors, got {pred.shape}, {target.shape}")
+    H = pred.shape[1]
+    weights = phi_decay_weights(H, device=pred.device)
+    losses = torch.stack([F.mse_loss(pred[:, h], target[:, h]) for h in range(H)])
+    return (weights * losses).sum()
 
 
 class CassiMetrics:
@@ -71,6 +134,11 @@ class CassiMetrics:
             'brainfield_k': deque(maxlen=window_size),
             'purified': deque(maxlen=window_size),
             'conscious_norm_raw': deque(maxlen=window_size),
+            'curiosity': deque(maxlen=window_size),
+            'confusion': deque(maxlen=window_size),
+            'metacognitive_confidence': deque(maxlen=window_size),
+            'observer_conf': deque(maxlen=window_size),
+            'observer_loss': deque(maxlen=window_size),
         }
 
         # Per-epoch aggregates (written to disk)
@@ -174,6 +242,18 @@ class CassiMetrics:
                         record[key] = val.item() if val.numel() == 1 else val.mean().item()
                     else:
                         record[key] = float(val)
+
+            # Phase 3 metacognitive monitor signals
+            for key in ['curiosity', 'confusion', 'metacognitive_confidence']:
+                val = info.get(key)
+                if val is not None:
+                    record[key] = float(val) if not isinstance(val, torch.Tensor) else val.item()
+
+            # Observer self-awareness signals
+            for key in ['observer_conf', 'observer_loss']:
+                val = info.get(key)
+                if val is not None:
+                    record[key] = float(val)
 
             # --- META-CORD ---
             if model is not None and hasattr(model, 'meta_history'):
@@ -373,10 +453,15 @@ class CassiMetrics:
             f"Changepoint freq:     {rec.get('changepoint_triggered_mean', 0):.3f}",
             f"Phi fast scale:       {rec.get('phi_fast_scale_mean', 1.0):.3f}",
             f"Soul strength:        {rec.get('soul_strength_mean', 1.0):.3f}",
+            f"Curiosity:            {rec.get('curiosity_mean', 0):.3f}",
+            f"Confusion:            {rec.get('confusion_mean', 0):.3f}",
+            f"Meta confidence:      {rec.get('metacognitive_confidence_mean', 0):.3f}",
             f"BrainField K:         {rec.get('brainfield_k_mean', 2):.1f}",
             f"Purified count:       {rec.get('purified_mean', 0) * rec.get('n_batches', 0):.0f}",
             f"Conscious norm (raw): {rec.get('conscious_norm_raw_mean', 0):.3f}",
             f"Qi state:             {rec.get('qi_state_mean', 3):.1f} (0=W,1=Wd,2=F,3=E,4=M)",
+            f"Observer conf:        {rec.get('observer_conf_mean', 0):.3f}",
+            f"Observer loss:        {rec.get('observer_loss_mean', 0):.4f}",
             "-" * 40,
         ]
         return '\n'.join(lines)

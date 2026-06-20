@@ -92,10 +92,11 @@ class BrainField(nn.Module):
     def reset_state(self, batch_size):
         """Reset all persistent brain field buffers."""
         device = self.h1.device
-        self.h1 = torch.zeros(batch_size, self.D_brain, device=device)
-        self.h2 = torch.zeros(batch_size, self.D_brain, device=device)
-        self.x1 = torch.zeros(batch_size, self.D_brain, device=device)
-        self.field_state = torch.zeros(batch_size, self.D_brain, device=device)
+        dtype = self.h1.dtype
+        self.register_buffer('h1', torch.zeros(batch_size, self.D_brain, device=device, dtype=dtype))
+        self.register_buffer('h2', torch.zeros(batch_size, self.D_brain, device=device, dtype=dtype))
+        self.register_buffer('x1', torch.zeros(batch_size, self.D_brain, device=device, dtype=dtype))
+        self.register_buffer('field_state', torch.zeros(batch_size, self.D_brain, device=device, dtype=dtype))
         self._step_counter = 0
 
     def step(self, compressed):
@@ -137,14 +138,14 @@ class BrainField(nn.Module):
             new_h2[:, start:end] = h1_c
             new_h1[:, start:end] = h_new_c
             new_x1[:, start:end] = x_c
-            self.h2 = new_h2
-            self.h1 = new_h1
-            self.x1 = new_x1
+            self.h2.copy_(new_h2.clamp(-10.0, 10.0))
+            self.h1.copy_(new_h1.clamp(-10.0, 10.0))
+            self.x1.copy_(new_x1.clamp(-10.0, 10.0))
 
             h_new_parts.append(h_new_c)
 
         h_new = torch.cat(h_new_parts, dim=-1)
-        self.field_state = self.fusion(torch.cat([x_new, h_new * 0.5], dim=-1)) + x_new
+        self.field_state.copy_((self.fusion(torch.cat([x_new, h_new * 0.5], dim=-1)) + x_new).clamp(-10.0, 10.0))
 
         return self.field_state
 

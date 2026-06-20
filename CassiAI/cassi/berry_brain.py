@@ -94,6 +94,12 @@ class BerryMemory(nn.Module):
         self.register_buffer('n_filled', torch.zeros(1, dtype=torch.long))
         self._n_filled = 0  # Python mirror to avoid GPU→CPU sync on hot path
 
+        # Parallel trajectory store: slot index → list of trajectory milestones
+        # Stores sparse dynamical context (conscious, workspace, qi, etc.) alongside
+        # the compressed value vector. Not saved in state_dict by default.
+        self.trajectory_store = {}
+        self._max_traj_per_slot = 4  # keep last N milestones per memory slot
+
     def _load_from_state_dict(self, state_dict, prefix, local_metadata, strict, missing_keys, unexpected_keys, error_msgs):
         """Re-sync Python mirror after checkpoint load."""
         super()._load_from_state_dict(state_dict, prefix, local_metadata, strict, missing_keys, unexpected_keys, error_msgs)
@@ -103,17 +109,24 @@ class BerryMemory(nn.Module):
             self._n_filled = int(mask.sum().item())
             self.n_filled[0] = self._n_filled
 
-    def query(self, berry_fp, temperature=0.1, topk=64):
+    def query(self, berry_fp, temperature=0.1, topk=64, return_trajectories=False):
         """Retrieve from memory via sparse top-k attention on Berry keys.
 
         berry_fp: [B, key_dim]
         topk: number of memory slots to attend to (sparse, like specialist attention)
-        Returns: [B, value_dim] retrieved values, [B, n_slots] attention weights
+        return_trajectories: if True, also return trajectory milestones for top-k slots
+        Returns:
+          retrieved: [B, value_dim]
+          attn: [B, n_slots]
+          trajectories: list of list of dicts (only if return_trajectories=True)
         """
         B = berry_fp.shape[0]
         if self._n_filled == 0:
-            return torch.zeros(B, self.value_dim, device=berry_fp.device), \
-                   torch.zeros(B, self.n_slots, device=berry_fp.device)
+            empty_ret = torch.zeros(B, self.value_dim, device=berry_fp.device), \
+                        torch.zeros(B, self.n_slots, device=berry_fp.device)
+            if return_trajectories:
+                return empty_ret[0], empty_ret[1], [[] for _ in range(B)]
+            return empty_ret
 
         q = F.normalize(berry_fp, dim=-1)  # [B, key_dim]
         k = F.normalize(self.keys, dim=-1)  # [n_slots, key_dim]
@@ -141,14 +154,24 @@ class BerryMemory(nn.Module):
         attn = torch.zeros(B, self.n_slots, device=berry_fp.device)
         attn.scatter_(1, topk_idx, attn_sparse)
 
+        if return_trajectories:
+            trajectories = []
+            for b in range(B):
+                batch_trajs = []
+                for slot in topk_idx[b].cpu().tolist():
+                    batch_trajs.extend(self.trajectory_store.get(slot, []))
+                trajectories.append(batch_trajs)
+            return retrieved, attn, trajectories
+
         return retrieved, attn
 
-    def write(self, berry_fp, values, mode='ema'):
+    def write(self, berry_fp, values, mode='ema', trajectories=None):
         """Write to memory. If similar key exists, EMA-update; else, new slot.
 
         berry_fp: [B, key_dim]
         values: [B, value_dim]
         mode: 'ema' | 'replace' | 'cumulative'
+        trajectories: optional list of B trajectory milestone dicts
 
         Fully batched GPU implementation for speed.
         """
@@ -256,6 +279,33 @@ class BerryMemory(nn.Module):
             # Sync Python mirror after writes
             self._n_filled = int(self.mask.sum().item())
             self.n_filled[0] = self._n_filled
+
+            # --- Store process trajectories (sparse milestones) ---
+            if trajectories is not None:
+                # Build per-batch-item slot assignment
+                slot_per_item = torch.zeros(B, dtype=torch.long, device=device)
+                slot_per_item[match_mask] = best_idx[match_mask]
+                if new_mask.any():
+                    slot_per_item[new_mask] = assigned
+
+                # Clear trajectory_store entries for evicted slots
+                evicted = set()
+                if new_mask.any() and n_empty < N_new:
+                    for ev in evict_idx.cpu().tolist():
+                        evicted.add(ev)
+                        self.trajectory_store.pop(ev, None)
+
+                # Store trajectories, keeping only most recent max_traj_per_slot
+                for b in range(B):
+                    slot = int(slot_per_item[b].item())
+                    traj = trajectories[b]
+                    if traj is None:
+                        continue
+                    if slot not in self.trajectory_store:
+                        self.trajectory_store[slot] = []
+                    self.trajectory_store[slot].append(traj)
+                    if len(self.trajectory_store[slot]) > self._max_traj_per_slot:
+                        self.trajectory_store[slot].pop(0)
 
             # Increment ages for all occupied slots
             self.ages[self.mask] += 1

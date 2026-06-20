@@ -1,11 +1,12 @@
 """Breath — Dual-heart oscillator for Yin-Yang workspaces.
 
 Two coupled oscillators create natural frequencies:
-  Yang heart (fast, prospective)  → workspace_fwd breathes
-  Yin heart  (slow, retrospective) → workspace_rev breathes
+  Yang heart (fast, active, outward)   → ω = φ   ≈ 1.618
+  Yin heart  (slow, receptive, inward) → ω = φ⁻¹ ≈ 0.618
 
-Their beat frequency creates the Qi resonance — the felt rhythm of consciousness.
-Gender is the phase relationship: continuous, not binary.
+The frequency ratio φ:φ⁻¹ = φ²:1 is the fundamental breath ratio — Yang beats
+φ² times for every Yin cycle. Their beat frequency creates the Qi resonance.
+
 """
 
 import torch
@@ -16,22 +17,18 @@ from cassi.cord import PHI, PHI_INV
 
 
 class Breath(nn.Module):
-    """Dual-heart oscillator.
+    """Dual-heart oscillator with φ-scaled frequencies.
 
-    Attributes:
-        omega_yang: Yang heart frequency (learnable, init ~1.0)
-        omega_yin:  Yin heart frequency  (learnable, init ~PHI_INV)
-        t_yang:     Yang phase buffer (persistent)
-        t_yin:      Yin phase buffer  (persistent)
+    Yang beats at φ ≈ 1.618 rad/tick (active, projective).
+    Yin beats at 1.0 rad/tick (receptive, grounding).
+    No sigmoid — the raw angular step is the frequency.
     """
 
     def __init__(self):
         super().__init__()
-        # Frequencies: Yang faster, Yin slower by φ
-        self.omega_yang = nn.Parameter(torch.ones(1) * 1.0)
-        self.omega_yin  = nn.Parameter(torch.ones(1) * PHI_INV)
+        self.register_buffer('omega_yang', torch.tensor(PHI))     # φ ≈ 1.618
+        self.register_buffer('omega_yin',  torch.tensor(PHI_INV)) # φ⁻¹ ≈ 0.618
 
-        # Persistent phases
         self.register_buffer('t_yang', torch.zeros(1))
         self.register_buffer('t_yin',  torch.zeros(1))
 
@@ -40,39 +37,28 @@ class Breath(nn.Module):
 
         Returns:
             {
-                'yang':      Yang breath amplitude  [-1, 1],
-                'yin':       Yin breath amplitude   [-1, 1],
-                'beat':      Slow beat (interference) [-1, 1],
+                'yang':      Yang breath amplitude  sin(t_yang) ∈ [-1, 1],
+                'yin':       Yin breath amplitude   sin(t_yin)  ∈ [-1, 1],
+                'beat':      Interference beat      sin(yang - yin) ∈ [-1, 1],
                 'flow':      +1 = outward (Yang), -1 = inward (Yin),
                 'phase_diff': Yang - Yin phase diff  [0, 2π),
-                'freq_ratio': ω_yang / ω_yin,
             }
         """
         device = self.t_yang.device
 
-        # Advance phases
-        # Clamp sigmoid to prevent vanishing gradients and runaway ratios
-        w_y = torch.sigmoid(self.omega_yang).clamp(0.01, 0.99)
-        w_i = torch.sigmoid(self.omega_yin).clamp(0.01, 0.99)
-        # Explicitly detach old phases to prevent graph accumulation across batches
-        self.t_yang = (self.t_yang.detach() + w_y) % (2 * math.pi)
-        self.t_yin  = (self.t_yin.detach()  + w_i) % (2 * math.pi)
+        # Raw angular step — no sigmoid. φ-scaled ratio is the design.
+        w_y = self.omega_yang
+        w_i = self.omega_yin
 
-        # Breath = sine of phase
+        # Advance phases (detach to prevent graph accumulation)
+        self.t_yang.copy_(((self.t_yang.detach() + w_y) % (2 * math.pi)).detach())
+        self.t_yin.copy_(((self.t_yin.detach() + w_i) % (2 * math.pi)).detach())
+
         breath_yang = torch.sin(self.t_yang)
         breath_yin  = torch.sin(self.t_yin)
-
-        # Beat = slow modulation from phase interference
         beat = torch.sin(self.t_yang - self.t_yin)
-
-        # Flow direction: derivative of Yang breath = cos(phase)
         flow = torch.sign(torch.cos(self.t_yang))
-
-        # Phase diff for gender observation
         phase_diff = (self.t_yang - self.t_yin) % (2 * math.pi)
-
-        # Frequency ratio (bounded by clamp: 0.01/0.99 ≈ 0.01 to 0.99/0.01 = 99)
-        freq_ratio = w_y / (w_i + 1e-8)
 
         return {
             'yang': breath_yang,
@@ -80,16 +66,8 @@ class Breath(nn.Module):
             'beat': beat,
             'flow': flow,
             'phase_diff': phase_diff,
-            'freq_ratio': freq_ratio,
-            'w_yang': w_y,
-            'w_yin': w_i,
         }
 
     def reset(self):
-        """Reset both phases — used by neuroplasticizer pulse.
-
-        Use assignment (not in-place) to avoid corrupting the autograd graph
-        when reset is called during a forward pass.
-        """
-        self.t_yang = torch.zeros_like(self.t_yang)
-        self.t_yin = torch.zeros_like(self.t_yin)
+        self.t_yang.copy_(torch.zeros_like(self.t_yang))
+        self.t_yin.copy_(torch.zeros_like(self.t_yin))

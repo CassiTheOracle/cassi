@@ -18,38 +18,60 @@ from cassi.berry_brain import BerryMemory, compute_berry_phases
 class ChangepointDetector(nn.Module):
     """Detects sudden shifts in model state and triggers workspace reset.
 
-    Uses an adaptive threshold based on running mean/std of cosine similarity
-    to avoid hardcoded thresholds that fail when dynamics shift."""
+    Uses an adaptive threshold based on running mean/std of cosine similarity.
+    Qi-sensitive: threshold and window size vary by Qi state."""
+
+    QI_SENSITIVITY = {
+        'fire': (0.8, 10), 'wood': (0.6, 6), 'earth': (0.5, 5),
+        'metal': (0.3, 3), 'water': (0.7, 8),
+    }
+    MAX_WINDOW = 10  # fixed max to avoid reallocations
 
     def __init__(self, threshold=0.5, window_size=5, dim=1040):
         super().__init__()
-        self.threshold = threshold
-        self.window_size = window_size
+        self.base_threshold = threshold
+        self.base_window = window_size
         self.dim = dim
-        self.register_buffer('_history', torch.zeros(window_size, dim))
+        # Fixed-size buffer: use MAX_WINDOW to avoid reallocations on Qi state changes
+        self.register_buffer('_history', torch.zeros(self.MAX_WINDOW, dim))
         self.register_buffer('_idx', torch.zeros(1, dtype=torch.long))
         self.register_buffer('_triggered', torch.zeros(1, dtype=torch.bool))
+        self._active_window = window_size  # logical window size
         # Running statistics for adaptive thresholding
         self.register_buffer('_sim_ema_mean', torch.zeros(1))
         self.register_buffer('_sim_ema_var', torch.ones(1))
         self.register_buffer('_sim_count', torch.zeros(1, dtype=torch.long))
 
-    def update(self, state):
-        """state: [B, D] conscious/workspace state."""
+    def update(self, state, qi_state='earth'):
+        """state: [B, D] conscious/workspace state.
+
+        Args:
+            state: [B, D] workspace state
+            qi_state: current Qi state (affects sensitivity)
+
+        Returns:
+            (triggered: bool, confidence: float)
+        """
+        # Lookup Qi-sensitive parameters
+        thresh, win = self.QI_SENSITIVITY.get(qi_state, (self.base_threshold, self.base_window))
+        win = min(win, self.MAX_WINDOW)
+        self._active_window = win  # just update logical size, no reallocation
+
         # Use mean across batch as summary
         summary = state.mean(dim=0)  # [D]
-        # Use a monotonic counter for total updates, modulo only for ring buffer
         total = self._idx.item()
-        idx = total % self.window_size
+        idx = total % win
         self._history[idx] = summary.detach()
         self._idx[0] = total + 1
 
-        if total < self.window_size:
-            return False
+        if total < win:
+            return False, 0.0
 
-        # Compare recent to historical average
+        # Compare recent to historical average over active window
         recent = self._history[idx]
-        historical = self._history.mean(dim=0)
+        # Only average over the active window slots that have been filled
+        active_history = self._history[:win]
+        historical = active_history.mean(dim=0)
         sim = F.cosine_similarity(recent.unsqueeze(0), historical.unsqueeze(0), dim=-1)
 
         # Update running statistics for adaptive threshold
@@ -63,50 +85,73 @@ class ChangepointDetector(nn.Module):
             self._sim_ema_var += (delta * (sim.item() - self._sim_ema_mean.item()) - self._sim_ema_var.item()) / (n + 1)
         self._sim_count[0] = n + 1
 
-        # Adaptive threshold: mean - 2*std, bounded by hard threshold
+        # Adaptive threshold: mean - 2*std, bounded by Qi-sensitive threshold
         std = torch.sqrt(self._sim_ema_var.clamp(min=1e-6))
-        adaptive_threshold = max(self._sim_ema_mean.item() - 2.0 * std.item(), self.threshold)
+        adaptive_threshold = max(self._sim_ema_mean.item() - 2.0 * std.item(), thresh)
 
         triggered = sim < adaptive_threshold
         self._triggered[0] = triggered
-        return triggered.item()
+        confidence = min(1.0, (adaptive_threshold - sim.item()) / max(adaptive_threshold, 1e-8))
+        return triggered.item(), confidence
 
     def reset(self):
-        self._history = torch.zeros(self.window_size, self.dim, device=self._history.device)
+        self._history.zero_()
         self._idx.zero_()
         self._triggered.zero_()
         self._sim_ema_mean.zero_()
         self._sim_ema_var.fill_(1.0)
         self._sim_count.zero_()
+        self._active_window = self.base_window
 
 
 class SoulVector(nn.Module):
-    """Persistent EMA of geometric experience across batches."""
+    """Persistent EMA of geometric experience across batches.
+    Qi-adaptive: update rate and injection strength vary by Qi state.
+    """
+
+    SOUL_DYNAMICS = {
+        'fire': (0.90, 0.3), 'wood': (0.95, 0.5), 'earth': (0.99, 1.0),
+        'metal': (0.995, 1.5), 'water': (1.00, 0.1),
+    }
 
     def __init__(self, dim=1040, ema_decay=0.99):
         super().__init__()
         self.dim = dim
-        self.ema_decay = ema_decay
+        self.base_decay = ema_decay
+        self.decay = ema_decay
+        self.injection_scale = 1.0
         self.register_buffer('vector', torch.zeros(dim))
         self.register_buffer('count', torch.zeros(1))
 
+    def set_qi_profile(self, profile):
+        """Adapt soul dynamics to Qi state."""
+        state = profile.get('state', 'earth')
+        decay, scale = self.SOUL_DYNAMICS.get(state, (self.base_decay, 1.0))
+        self.decay = decay
+        self.injection_scale = scale
+
     def update(self, state):
         """state: [B, D] — update soul with batch mean."""
+        if self.decay >= 1.0:
+            # Water state: frozen, do not update
+            return
         if state.shape[0] > 0:
             with torch.no_grad():
                 mean_state = state.mean(dim=0)
-                self.vector.copy_(self.ema_decay * self.vector + (1 - self.ema_decay) * mean_state)
+                self.vector.copy_(self.decay * self.vector + (1 - self.decay) * mean_state)
             self.count += 1
 
     def inject(self, target):
-        """Add soul influence to target tensor."""
-        if self.count.item() > 10:
-            return target + 0.1 * self.vector.unsqueeze(0)
+        """Add soul influence to target tensor with Qi-adaptive strength."""
+        if self.count.item() > 10 and self.injection_scale > 0:
+            return target + self.injection_scale * 0.1 * self.vector.unsqueeze(0)
         return target
 
     def reset(self):
         self.vector.zero_()
         self.count.zero_()
+        self.decay = self.base_decay
+        self.injection_scale = 1.0
 
 
 class MultimodalBrain(HarmonyBrain):

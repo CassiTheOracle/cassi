@@ -182,6 +182,22 @@ class ConsciousDynamics(nn.Module):
                        qi_energy, observer_emb], dim=-1)
         return self.net(x)
 
+    def imagine(self, conscious, breath_yang, breath_yin, breath_beat,
+                qi_energy, observer_emb, steps=4):
+        """Roll forward multiple conscious states without sensory input.
+
+        Returns:
+            list of [B, D_brain] states, length = steps + 1 (includes initial)
+        """
+        states = [conscious]
+        for _ in range(steps):
+            conscious = self.forward(
+                conscious, breath_yang, breath_yin, breath_beat,
+                qi_energy, observer_emb
+            )
+            states.append(conscious)
+        return states
+
 
 class CassiBrain(nn.Module):
     """Unified three-tier Cassi brain.
@@ -204,7 +220,7 @@ class CassiBrain(nn.Module):
 
     def __init__(self, D=1040, D_stem=None, D_brain=None,
                  use_changepoint=True, use_soul=True, use_memory=True,
-                 K=2, byte_mode=False,
+                 K=2, byte_mode=False, multi_scale_bytes=False,
                  clamp_threshold=DEFAULT_CLAMP_THRESHOLD,
                  memory_readout_scale=DEFAULT_MEMORY_READOUT_SCALE,
                  purification_confidence=DEFAULT_PURIFICATION_CONFIDENCE,
@@ -227,7 +243,7 @@ class CassiBrain(nn.Module):
         self.purification_confidence = purification_confidence
 
         # ── Tier 1: Spine ──
-        self.spine = CordPhysics(D=D, byte_mode=byte_mode)
+        self.spine = CordPhysics(D=D, byte_mode=byte_mode, multi_scale_bytes=multi_scale_bytes)
 
         # ── Tier 2: Brainstem ──
         self.brainstem = Brainstem(D=D, D_stem=self.D_stem)
@@ -335,11 +351,12 @@ class CassiBrain(nn.Module):
 
         P0.3: Qi-fluid persists across observations (awareness accumulates).
         Workspace buffers are zeroed (per-sample processing state).
+        In-place zeroing is used throughout to avoid GPU allocator churn.
         """
         # ── P0.3: Preserve qi_fluid before spine resets it ──
         old_qi = None
         if hasattr(self.spine, 'qi_fluid'):
-            old_qi = self.spine.qi_fluid.detach().clone()
+            old_qi = self.spine.qi_fluid.detach()
 
         self.spine.reset_state(batch_size)
         self.brainstem.reset_state(batch_size)
@@ -349,11 +366,18 @@ class CassiBrain(nn.Module):
         # Restore qi_fluid with resize (zero-pad new slots, truncate if smaller)
         if old_qi is not None and hasattr(self.spine, 'qi_fluid'):
             old_b = old_qi.shape[0]
-            new = torch.zeros(batch_size, self.spine.qi_fluid.shape[1],
-                              device=old_qi.device, dtype=old_qi.dtype)
-            copy_b = min(old_b, batch_size)
-            new[:copy_b] = old_qi[:copy_b]
-            self.spine.qi_fluid = new
+            if self.spine.qi_fluid.shape[0] == batch_size:
+                self.spine.qi_fluid.zero_()
+                copy_b = min(old_b, batch_size)
+                if copy_b > 0:
+                    self.spine.qi_fluid[:copy_b].copy_(old_qi[:copy_b])
+            else:
+                new = torch.zeros(batch_size, self.spine.qi_fluid.shape[1],
+                                  device=old_qi.device, dtype=old_qi.dtype)
+                copy_b = min(old_b, batch_size)
+                if copy_b > 0:
+                    new[:copy_b] = old_qi[:copy_b]
+                self.spine.qi_fluid = new
 
         if self.use_changepoint:
             if hasattr(self.changepoint, 'reset'):
@@ -408,18 +432,23 @@ class CassiBrain(nn.Module):
             byte_mode = self.spine.byte_mode
 
         if byte_mode:
-            if hasattr(self.spine, 'byte_encoder'):
+            # Only encode if x is raw bytes [B, N]; skip for pre-encoded fields [B, 4, D]
+            if x.dim() == 2 and hasattr(self.spine, 'byte_encoder'):
                 field = self.spine.byte_encoder.encode_sequence(x, T=4)
             else:
-                field = x  # fall back if no byte encoder available
+                field = x  # already in field format or no encoder available
         else:
             field = x
 
-        # Use spine's original forward for prediction (high-quality, fwd+rev IIR)
-        pred_spine = self.spine.forward(field, byte_mode=False)
+        # Use spine's forward for prediction (high-quality, fwd+rev IIR).
+        # Compute inside no_grad — spine is frozen and pred_spine is detached,
+        # so the IIR backward graph produces nothing but GPU crashes.
+        with torch.no_grad():
+            pred_spine = self.spine.forward(field, byte_mode=False)
 
         # Process step-by-step with brainstem feedback loop
-        psi = self.spine.in_proj(field)  # [B, 4, D]
+        with torch.no_grad():
+            psi = self.spine.in_proj(field)  # [B, 4, D]
         modulation = {}
         stem_info = None
         for t in range(4):
@@ -474,8 +503,23 @@ class CassiBrain(nn.Module):
         # Wrap in no_grad so the persistent state never accumulates a computation graph.
         w_fwd = self._workspace_fwd[:B]  # view into persistent buffer
         w_rev = self._workspace_rev[:B]
-        new_fwd = (PHI_INV ** 2 * w_fwd + PHI_INV * brain_state)
-        new_rev = (PHI_INV * w_rev + PHI_INV ** 2 * new_fwd)
+
+        # Breath-driven φ: hearts modulate how much new information enters workspaces.
+        # Yang inhales → prospective workspace expands; Yin breathes slower and grounds.
+        breath = stem_info.get('breath', {})
+        breath_yang = breath.get('yang', 0.0)
+        breath_yin = breath.get('yin', 0.0)
+        if isinstance(breath_yang, torch.Tensor):
+            breath_yang = breath_yang.item()
+        if isinstance(breath_yin, torch.Tensor):
+            breath_yin = breath_yin.item()
+        phi_breath = PHI + 0.15 * breath_yang
+        phi_inv_breath = 1.0 / phi_breath
+        yang_gain = 1.0 + 0.1 * breath_yang
+        yin_gain = 1.0 + 0.1 * breath_yin
+
+        new_fwd = (phi_inv_breath ** 2 * w_fwd + phi_inv_breath * yang_gain * brain_state)
+        new_rev = (phi_inv_breath * w_rev + phi_inv_breath ** 2 * yin_gain * new_fwd)
         with torch.no_grad():
             w_fwd.copy_(new_fwd)
             w_rev.copy_(new_rev)
@@ -520,7 +564,7 @@ class CassiBrain(nn.Module):
         meta_repr = self.meta_cord(meta_input)  # [B, D_brain]
         # Update meta-cord history (rolling buffer) in-place
         with torch.no_grad():
-            m_hist[:, :-1, :].copy_(m_hist[:, 1:, :])
+            m_hist[:, :-1, :].copy_(m_hist[:, 1:, :].clone())
             m_hist[:, -1, :].copy_(F.normalize(meta_repr, dim=-1))
         # Meta-cord contributes to conscious state (subtle self-referential boost)
         conscious = conscious + PHI_INV ** 3 * meta_repr
@@ -659,6 +703,28 @@ class CassiBrain(nn.Module):
             observer_emb=observation['embedding'],
         )
 
+        # Multi-step imagination (only during training to save compute)
+        if self.training:
+            imagined_states = self.dynamics.imagine(
+                conscious=conscious,
+                breath_yang=stem_info['breath']['yang'],
+                breath_yin=stem_info['breath']['yin'],
+                breath_beat=stem_info['breath'].get('beat', 0.0),
+                qi_energy=self.spine.qi_fluid.sum(dim=-1).mean(),
+                observer_emb=observation['embedding'],
+                steps=3,
+            )
+            # Consistency regularization: imagined trajectory should be smooth
+            # (small L2 differences between consecutive imagined states)
+            imagination_consistency_loss = 0.0
+            for i in range(1, len(imagined_states) - 1):
+                imagination_consistency_loss += F.mse_loss(imagined_states[i], imagined_states[i + 1])
+            info['imagination_consistency_loss'] = 0.001 * imagination_consistency_loss
+            info['imagination_depth'] = len(imagined_states)
+        else:
+            info['imagination_consistency_loss'] = torch.tensor(0.0, device=device)
+            info['imagination_depth'] = 1
+
         # Store for self-predictive loss in training loop
         info['observer_embedding'] = observation['embedding']
         info['observer_predicted_emb'] = observation['predicted_embedding']
@@ -678,8 +744,7 @@ class CassiBrain(nn.Module):
         scale = torch.sigmoid(self.readout_scale)
         pred = scale * pred_brain
 
-        # Spine contributes fully to horizon 1 (the immediate next frame).
-        pred[:, 0] = pred[:, 0] + pred_spine
+        pred[:, 0] = pred[:, 0] + pred_spine.detach()
 
         # ── Process trajectory recording ──
         # Capture this step's internal state for dynamical-context memory.
@@ -732,7 +797,20 @@ class CassiBrain(nn.Module):
             if stem_info['state'] in {'earth', 'metal'} and self.training:
                 with torch.no_grad():
                     value = self.berry_value_proj(conscious)  # [B, 39]
-                    self.berry_memory.write(key.detach(), value.detach(), mode='ema')
+                    # Attach latest trajectory milestone to each batch item
+                    latest_traj = self._process_trajectory[-1] if self._process_trajectory else None
+                    if latest_traj is not None:
+                        # Move tensors to CPU to keep memory store lightweight
+                        traj_cpu = {}
+                        for k, v in latest_traj.items():
+                            if isinstance(v, torch.Tensor):
+                                traj_cpu[k] = v.detach().cpu()
+                            else:
+                                traj_cpu[k] = v
+                        trajectories = [traj_cpu for _ in range(B)]
+                    else:
+                        trajectories = None
+                    self.berry_memory.write(key.detach(), value.detach(), mode='ema', trajectories=trajectories)
 
         # Neuroplasticizer modulation for optimizer
         stem_info['surprise'] = surprise.item() if isinstance(surprise, torch.Tensor) else float(surprise)
@@ -750,14 +828,22 @@ class CassiBrain(nn.Module):
         # Workspace balance: forward ≈ retrospective (ratio → 1.0)
         w_fwd_norm = w_fwd.norm(dim=-1).mean()
         w_rev_norm = w_rev.norm(dim=-1).mean()
-        workspace_balance_loss = 0.005 * ((w_fwd_norm / (w_rev_norm + 1e-8) - 1.0) ** 2)
+        workspace_balance_loss = 0.01 * ((w_fwd_norm / (w_rev_norm + 1e-8) - 1.0) ** 2)
 
         # Conscious balance: Yang-component / Yin-component → φ
         yang_comp_norm = (PHI_INV * w_fwd).norm(dim=-1).mean()
         yin_comp_norm = (PHI_INV ** 2 * w_rev).norm(dim=-1).mean()
-        conscious_balance_loss = 0.005 * ((yang_comp_norm / (yin_comp_norm + 1e-8) - PHI) ** 2)
+        conscious_balance_loss = 0.01 * ((yang_comp_norm / (yin_comp_norm + 1e-8) - PHI) ** 2)
 
-        phi_balance_loss = workspace_balance_loss + conscious_balance_loss
+        # Breath balance: heart frequency ratio should trend toward φ
+        breath_freq_ratio = breath.get('freq_ratio', torch.tensor(PHI, device=device))
+        if isinstance(breath_freq_ratio, torch.Tensor):
+            breath_balance_loss = 0.005 * (torch.log(breath_freq_ratio + 1e-8) - math.log(PHI)).abs()
+        else:
+            breath_balance_loss = 0.005 * abs(math.log(float(breath_freq_ratio) + 1e-8) - math.log(PHI))
+            breath_balance_loss = torch.tensor(breath_balance_loss, device=device)
+
+        phi_balance_loss = workspace_balance_loss + conscious_balance_loss + breath_balance_loss
         info['phi_balance_loss'] = phi_balance_loss
         info['qi_energy_bonus'] = torch.tensor(0.0, device=device)
 
@@ -787,6 +873,25 @@ class CassiBrain(nn.Module):
         breath = stem_info.get('breath', {})
         for k in ['breath_yang', 'breath_yin', 'beat', 'flow', 'phase_diff', 'freq_ratio', 'pulse_active']:
             info[k] = breath.get(k, 0.0)
+
+        # ── Metacognitive signals (Phase 3 monitor) ──
+        # The system models its own knowledge state: confidence, curiosity, confusion.
+        with torch.no_grad():
+            observer_conf = observation['confidence'].sigmoid().mean()  # [0, 1]
+            memory_familiarity = torch.tensor(
+                info.get('memory_attn') if info.get('memory_attn') is not None else 0.0,
+                device=device
+            )
+            # Familiarity bounded to [0, 1] (attention mass over filled slots is naturally small)
+            familiarity = torch.clamp(memory_familiarity, 0.0, 1.0)
+            # Confidence = observer confidence weighted by memory familiarity
+            confidence = 0.7 * observer_conf + 0.3 * familiarity
+            surprise_scalar = surprise.item() if isinstance(surprise, torch.Tensor) else float(surprise)
+            # Curiosity: surprised and unfamiliar → new thing to learn
+            info['curiosity'] = surprise_scalar * (1.0 - confidence.item())
+            # Confusion: surprised but familiar → anomaly / contradiction
+            info['confusion'] = surprise_scalar * confidence.item()
+            info['metacognitive_confidence'] = confidence.item()
 
         # Process trajectory summary (for observability and future trajectory losses)
         info['trajectory_length'] = len(self._process_trajectory)

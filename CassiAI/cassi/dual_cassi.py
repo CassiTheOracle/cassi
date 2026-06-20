@@ -141,7 +141,7 @@ class CassiHemisphere(nn.Module):
     def __init__(self, D=1040, D_stem=None, D_brain=None,
                  specialization='yang',
                  use_changepoint=True, use_soul=True, use_memory=True,
-                 byte_mode=True, horizons=(1,)):
+                 byte_mode=True, multi_scale_bytes=False, horizons=(1,)):
         super().__init__()
         self.specialization = specialization
         self.spec = self.SPECIALIZATIONS[specialization]
@@ -155,8 +155,8 @@ class CassiHemisphere(nn.Module):
             use_changepoint=use_changepoint,
             use_soul=use_soul,
             use_memory=use_memory,
-            K=self.spec['brain_field_k'],
             byte_mode=byte_mode,
+            multi_scale_bytes=multi_scale_bytes,
             memory_readout_scale=self.spec['memory_readout_scale'],
             hysteresis=self.spec['hysteresis'],
             horizons=horizons,
@@ -187,8 +187,8 @@ class DualCassi(nn.Module):
 
     def __init__(self, D=1040, D_stem=None, D_brain=None,
                  use_changepoint=True, use_soul=True, use_memory=True,
-                 byte_mode=True,
-                 corpus_bottleneck=None,
+                 byte_mode=True, multi_scale_bytes=False,
+                 corpus_bottleneck=None, use_two_fluid=False,
                  horizons=(1,)):
         super().__init__()
         self.D = D
@@ -198,6 +198,7 @@ class DualCassi(nn.Module):
         self.n_horizons = len(self.horizons)
 
         # Two hemispheres
+        # Two hemispheres
         self.yang = CassiHemisphere(
             D=D, D_stem=D_stem, D_brain=D_brain,
             specialization='yang',
@@ -205,6 +206,7 @@ class DualCassi(nn.Module):
             use_soul=use_soul,
             use_memory=use_memory,
             byte_mode=byte_mode,
+            multi_scale_bytes=multi_scale_bytes,
             horizons=horizons,
         )
         self.yin = CassiHemisphere(
@@ -214,6 +216,7 @@ class DualCassi(nn.Module):
             use_soul=use_soul,
             use_memory=use_memory,
             byte_mode=byte_mode,
+            multi_scale_bytes=multi_scale_bytes,
             horizons=horizons,
         )
 
