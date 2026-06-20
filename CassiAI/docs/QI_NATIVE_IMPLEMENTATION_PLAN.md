@@ -3,6 +3,35 @@
 > Revised after critical review. Reduced from 9 phases to 7. Cut overcomplicated features.
 > Added stability guards, inter-bank migration, and observability.
 
+## Implementation Status
+
+| Phase | Status | Date | Notes |
+|-------|--------|------|-------|
+| Phase 0: Stability Guard | ✅ COMPLETE | — | In `CassiBrain`: conscious clamp, sigmoid readout_scale, grad norm monitoring |
+| Phase 1: QiCycle Conductor | ✅ COMPLETE | — | `QiCycle` class with hysteresis + broadcast |
+| Phase 2: Qi-Aware Brainstem | ✅ COMPLETE | — | `Brainstem` with Qi state machine + neuroplasticizer |
+| Phase 3: Five Sub-Banks | ✅ COMPLETE | — | `DreamBank` with Water/Wood/Fire/Earth/Metal sub-banks |
+| Phase 4: Qi-Matched Replay | ✅ COMPLETE | — | `apply_replay_step` with Qi-state filtering |
+| Phase 5: Berry Memory Qi-Keying | ✅ COMPLETE | 2026-06-07 | `qi_embed` + Qi state in Berry key. **But**: key is dynamic huge dim (~3384), not the planned 52. Value is `D_brain` (~3365), not 39. |
+| Phase 6: Qi-Aware Subsystems | ✅ COMPLETE | 2026-06-07 | Changepoint, SoulVector, Breath all Qi-aware |
+| Phase 7: Observability & Integration | ✅ COMPLETE | 2026-06-07 | `CassiMetrics` + `dashboard.py` integrated into training loop |
+
+### Critical Gap: Architecture Branch Split
+
+**All phases are implemented in `CassiBrain`/`DualCassi` (the active training architecture).** However, the φ-alignment features from `IMPLEMENTATION_PLAN.md` (P0–P2) were implemented in `HarmonyBrain`/`PhiGardenBrain` (legacy) and **never ported** to `CassiBrain`.
+
+| Feature | HarmonyBrain (legacy) | CassiBrain (active) |
+|---------|:---------------------:|:-------------------:|
+| P0.1 Yang-dominant workspace | ✅ | ❌ |
+| P0.2 Consciousness as cooperation | ✅ | ❌ |
+| P0.3 Qi-fluid persistence | ✅ | N/A |
+| P1.1 Meta-cord self-loop | ✅ | ❌ |
+| P1.3 Conscious Berry keys | ✅ | ❌ |
+| P2.1 φ-spaced LR groups | ❌ | ❌ |
+| P2.2 Conscious spectral loss | ❌ | ❌ |
+
+**Next priority:** Port P0–P2 into `CassiBrain` so the actively trained architecture is φ-aligned.
+
 ---
 
 ## Phase 0: Stability Guard

@@ -2,7 +2,49 @@
 
 > *"Yang leads by φ, creating the asymmetry that drives time forward while Yin provides the tension that holds structure together."*
 >
-> Status: Draft — aligned with the Cassi Principle (docs/cassi-principle.md)
+> Status: **Partially Implemented — Audit Required** (see table below)
+
+---
+
+## Implementation Status (2026-06-09)
+
+**Critical finding:** Most P0–P2 features were implemented in `HarmonyBrain`/`PhiGardenBrain` (legacy, `--brain-type multimodal`) but **never ported** to `CassiBrain`/`DualCassi` (active, `--brain-type dual`).
+
+### Architecture Map
+
+| Architecture | File | Training Flag | Status |
+|-------------|------|---------------|--------|
+| **CassiBrain / DualCassi** | `cassi/cassi_brain.py`, `cassi/dual_cassi.py` | `--brain-type dual` | **Active — missing most P0–P2** |
+| HarmonyBrain | `cassi/harmony_brain.py` | `--brain-type multimodal` | Legacy — has P0.1, P0.2, P0.3, P1.1, P1.3 |
+| PhiGardenBrain | `cassi/phi_garden.py` | (base class) | Legacy — has old Yin-dominant workspace |
+
+### Feature Audit
+
+| Item | HarmonyBrain | CassiBrain | DualCassi | Train Script |
+|------|:----------:|:----------:|:---------:|:------------:|
+| **P0.1** Yang-dominant workspace | ✅ | ❌ (uses `spine.yang/yin` aliases) | ❌ | — |
+| **P0.2** Consciousness as cooperation | ✅ | ❌ (passes `brain_state` directly) | ❌ | — |
+| **P0.3** Qi-fluid persistence | ✅ | N/A (no qi_fluid buffer) | N/A | — |
+| **P1.1** Meta-cord self-loop | ✅ | ❌ (no meta-cord at all) | ❌ | — |
+| **P1.2** Qi-fluid as Yang/Yin ratio | ❌ | ❌ | ❌ | — |
+| **P1.3** Conscious Berry keys (52/39) | ✅ | ❌ (dynamic `13+D_stem+D_brain+2+4`) | ❌ | — |
+| **P2.1** φ-spaced LR groups | — | — | — | ❌ (flat LR) |
+| **P2.2** Consciousness spectral loss | — | — | — | ❌ (flat 0.01 weight) |
+| **O** Observability + dashboard | — | — | — | ✅ |
+| **M4** BerryMemory batch write | ✅ (full batch) | ❌ (loop over samples) | ❌ (loop) | — |
+| **M5** DreamBank replay MP path | ✅ (via `mp_trainer`) | — | — | ✅ |
+
+### What This Means
+
+The current training runs (`--brain-type dual`) use `CassiBrain`, which:
+- Has **no explicit workspace** (`workspace_fwd`/`workspace_rev` are just aliases to `spine.yang`/`spine.yin`)
+- Has **no meta-cord** self-referential loop
+- Has **no qi_fluid buffer** in the brain (only in the spine)
+- Computes `conscious = brain_state` (raw brain field output, not a φ-weighted union)
+- Uses **flat learning rate** for all parameters
+- Applies spectral loss with a **fixed 0.01 scalar** weight
+
+The `HarmonyBrain` branch has these features but is **not trained** in the current pipeline. Porting P0–P2 into `CassiBrain` is the next engineering priority.
 
 ---
 
@@ -120,7 +162,9 @@ Keep the detach-at-forward-entry to prevent gradient bleeding across optimizer s
 
 **The trade-off:** Resetting is correct for independent samples, but it means `workspace_rev` starts at zero every forward pass. Since `workspace_fwd` receives **three** Yang-dominant updates per forward (post-qi, post-meta-cord, post-meta-fused) while `workspace_rev` receives only **one**, the natural ratio within a single forward pass is ~4.6, not φ ≈ 1.618. The ratio cannot reach φ without either (a) sequential data where workspace persists, or (b) architectural changes that give `workspace_rev` more updates.
 
-### Observed Metrics (Pre- vs. Post-P0)
+### Observed Metrics (Pre- vs. Post-P0) — HarmonyBrain Only
+
+> ⚠️ These metrics are from `HarmonyBrain` (`--brain-type multimodal`). `CassiBrain` (`--brain-type dual`) does not have `workspace_fwd`/`workspace_rev` buffers, so these metrics are computed from `spine.yang`/`spine.yin` aliases and do not reflect the same dynamics.
 
 | Metric | Pre-P0 (mean of E1–E5) | Post-P0 (mean of E6–E10) | Target | Assessment |
 |--------|------------------------|--------------------------|--------|------------|
@@ -472,43 +516,50 @@ Two views:
 
 ---
 
-## Execution Order
+## Execution Order (Revised for CassiBrain Port)
 
-| Phase | Change | New Parameters | Risk |
-|---|---|---|---|
-| **O** | Observability module + dashboard | 0 | None — instrumentation only |
-| **P0.1** | Swap workspace weights | 0 | Medium — changes dynamics fundamentally |
-| **P0.2** | Redefine conscious | 0 | Low — readout adapts quickly |
-| **P0.3** | Qi-fluid persist | 0 | Low — state only |
-| **P1.1** | Meta-cord self-loop | 0 (buffer only) | Low — additive feedback |
-| **P1.2** | Qi-fluid as Yang/Yin ratio | `2*D` for qi buffers + `2*D*D/4 + D` for gate | Medium — new loss surface |
-| **P1.3** | Consciousness Berry keys | 0 (resize buffers) | Low — memory key change |
-| **P2.1** | φ-spaced LR groups | 0 | Low — training only |
-| **P2.2** | Consciousness spectral loss | 0 | Medium — new loss term |
+**The original plan targeted `HarmonyBrain`. The new priority is porting these features into `CassiBrain`/`DualCassi`, which is the actively trained architecture.**
 
-**Recommended first step:** Implement **O** (observability). Train for one epoch with the **current** architecture and examine:
-- `yang_yin_ratio_mean` — is it near φ already? (It won't be — Yin currently dominates.)
-- `specialist_entropy_mean` — are all 13 specialists active or is it a winner-take-all oligarchy?
-- `conscious_sparsity_mean` — is the conscious state structured or Gaussian noise?
+| Phase | Change | Target File | New Parameters | Risk |
+|---|---|---|---|---|
+| **O** | Observability module + dashboard | `cassi/observability.py` | 0 | ✅ Done |
+| **P0.1** | Yang-dominant workspace in CassiBrain | `cassi/cassi_brain.py` | `workspace_fwd`, `workspace_rev` [B,D] | High — new buffers in active arch |
+| **P0.2** | Consciousness as cooperation | `cassi/cassi_brain.py` | 0 | Medium — changes readout input |
+| **P0.3** | Qi-fluid persistence | `cassi/cassi_brain.py` | `qi_fluid` [B,D] | Low — state only |
+| **P1.1** | Meta-cord self-loop | `cassi/cassi_brain.py` | `meta_history` [1,4,D] | Medium — new module |
+| **P1.2** | Qi-fluid as Yang/Yin ratio | `cassi/cassi_brain.py` | `qi_yang`, `qi_yin` [B,D] | Medium — new loss surface |
+| **P1.3** | Consciousness Berry keys (52/39) | `cassi/cassi_brain.py` | 0 | Low — resize buffers |
+| **P2.1** | φ-spaced LR groups | `train_multimodal.py` | 0 | Low — training only |
+| **P2.2** | Consciousness spectral loss | `train_multimodal.py` | 0 | Low — training only |
+| **M4** | BerryMemory batch write | `cassi/cassi_brain.py` | 0 | Low — one-line fix |
 
-These baselines will tell you whether the current architecture is healthy before you perform surgery.
+**Recommended first step for CassiBrain:**
 
-Then implement **P0.1 + P0.2 + P0.3** and compare the metrics epoch-over-epoch.
+1. **P0.1 + P0.2** — Add `workspace_fwd`/`workspace_rev` buffers to `CassiBrain` (or use `BrainField` state as the workspace). Compute `conscious = PHI_INV * workspace_fwd + PHI_INV**2 * workspace_rev` instead of `conscious = brain_state`.
+2. **P1.3** — Resize Berry key from dynamic `13+D_stem+D_brain+2+4` (~3384 dims!) to 52, and value from `D_brain` (~3365) to 39. The current key is enormous and likely hurts memory quality.
+3. **M4** — Replace the per-sample Berry write loop with a single batch write.
+4. **P2.1 + P2.2** — Add φ-spaced LR groups and consciousness-conditioned spectral loss to `train_multimodal.py`.
 
-Both should trend toward φ ≈ 1.618. If they do not, the readout layer may need φ-aware initialization.
+**Why port instead of switching back to HarmonyBrain?**
+- `CassiBrain` has the three-tier separation (Spine → Brainstem → BrainField) which is cleaner
+- `DualCassi` is built on `CassiBrain` and already training successfully (val_mae≈0.58)
+- `TemporalResonanceReadout` is already integrated into `CassiBrain`
+- The Qi-native subsystems (QiCycle, DreamBank, Changepoint, Soul) are already wired into `CassiBrain`
 
 ---
 
-## Files Expected to Change
+## Files Expected to Change (Revised)
 
 | File | Changes |
 |---|---|
-| `cassi/observability.py` | **NEW** — Batch/epoch metrics collection, JSONL logging, dashboard generation |
-| `cassi/dashboard.py` | **NEW** — Offline epoch-level dashboard from JSONL logs |
-| `cassi/phi_garden.py` | `reset_workspace`: qi-fluid persistence; `meta_history` buffer registration |
-| `cassi/harmony_brain.py` | Workspace weight swap; conscious redefinition; qi_yang/qi_yin split; meta-cord self-loop; Berry key/value resize; validation guard; info dict extended |
-| `cassi/berry_brain.py` | `key_dim=52`, `value_dim=39` |
-| `train_multimodal.py` | φ-spaced AdamW groups; consciousness-conditioned spectral loss; `store_experience=False` in validate; CassiMetrics integration; dashboard generation |
+| `cassi/observability.py` | ✅ **DONE** — Batch/epoch metrics, JSONL logging, dashboard |
+| `cassi/dashboard.py` | ✅ **DONE** — Offline epoch-level dashboard |
+| `cassi/cassi_brain.py` | **PORT REQUIRED** — Add workspace_fwd/rev, conscious cooperation, qi_fluid persist, meta-cord self-loop, Berry 52/39, batch write |
+| `cassi/dual_cassi.py` | **PORT REQUIRED** — Forward workspace/conscious changes from CassiBrain |
+| `cassi/harmony_brain.py` | ✅ Has P0.1, P0.2, P0.3, P1.1, P1.3 — reference implementation |
+| `cassi/phi_garden.py` | ❌ OLD — Yin-dominant workspace, no qi_fluid persist. Not the reference. |
+| `train_multimodal.py` | **TODO** — φ-spaced AdamW groups; consciousness-conditioned spectral loss; CassiMetrics integration |
+| `cassi/berry_brain.py` | ✅ Defaults already support key_dim=52, value_dim=39 |
 
 ---
 
