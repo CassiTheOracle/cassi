@@ -25,3 +25,23 @@ experiments/*.png
 # OS
 .DS_Store
 Thumbs.db
+
+# Build artifacts and backups
+*.bak
+*.pid
+*.pyc
+
+# Tool configs (not project code)
+.claude/
+.omp/
+.serena/
+CLAUDE.md
+
+# Model cache
+qwen_models/
+
+# Debug and throwaway scripts
+debug_*.py
+
+# Generated experiment results
+experiments/*.json
