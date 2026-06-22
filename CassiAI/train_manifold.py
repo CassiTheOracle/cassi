@@ -450,10 +450,11 @@ def main():
             else:
                 # Only reached if no break (all windows clean)
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 10.0)
-                opt.step(model=model)
+                if args.optimizer == 'qi_gated':
+                    opt.step(model=model)
+                else:
+                    opt.step()
             model.reset_iir_state()
-
-            # Collect diagnostics
             for k in list(loss_info.keys()):
                 if isinstance(loss_info[k], torch.Tensor) and loss_info[k].numel() == 1:
                     loss_info[k] = loss_info[k].item()
