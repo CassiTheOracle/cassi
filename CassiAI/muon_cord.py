@@ -1236,9 +1236,12 @@ class MuonCord(nn.Module):
             all_diag['chakra_loss'] = chakra_loss.item()
             loss = loss + self.lambda_chakra * chakra_loss
 
-            ar_loss = self._field_state_ar_loss(psi_real, psi_imag)
-            all_diag['field_ar_loss'] = ar_loss.item()
-            loss = loss + self.lambda_field_ar * ar_loss
+            if self.qi_quality_ema.item() < 0.9:
+                ar_loss = self._field_state_ar_loss(psi_real, psi_imag)
+                all_diag['field_ar_loss'] = ar_loss.item()
+                loss = loss + self.lambda_field_ar * ar_loss
+            else:
+                all_diag['field_ar_loss'] = 0.0
 
         # ── DreamBank episodic store (training only) ──
         if self.training:
