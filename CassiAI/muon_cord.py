@@ -39,6 +39,7 @@ from cassi.heartbeat import Heartbeat
 from cassi.conscious_workspace import ConsciousWorkspace
 from cassi.dream_bank_muon import DreamBankMuon
 from cassi.berry_phase_memory import BerryPhaseMemory
+from cassi.corpus_callosum import CorpusCallosum, Arbitration
 
 from cassi.field_condenser import FieldCondenser, ChakraCondenser
 
@@ -209,6 +210,14 @@ class MuonCord(nn.Module):
         self.lambda_backward = lambda_backward
         self.lambda_word = lambda_word
         self.lambda_consistency = lambda_consistency
+
+        # ── Dual-stream hemisphere architecture ──
+        if self.bidirectional:
+            self.corpus_callosum = CorpusCallosum(d=d)
+            self.arbitration = Arbitration(d=d, V=V)
+        else:
+            self.corpus_callosum = None
+            self.arbitration = None
 
         # Fibonacci-scaled chakra widths (root→crown expanding)
         widths = fibonacci_chakra_widths(d, C)
@@ -1263,20 +1272,20 @@ class MuonCord(nn.Module):
             self.berry_memory.write(berry_key, berry_val)
 
         # ── Bidirectional losses ──
+        # ── Bidirectional / Dual-stream losses ──
         if self.training and self.bidirectional and not self.continuous_mode and mask_ratio == 0:
-            # Backward pass: reversed sequence
-            x_rev = torch.flip(x, dims=[1])
-            psi_bwd_re, psi_bwd_im = self.embed(x_rev)
-
-            # Psi_rev already was processed through embed above.  We need
-            # to run a separate K_train loop for the backward direction.
-            # To avoid corrupting the forward state, save and restore.
+            # Save forward state
             h1_save, h2_save = self.h1[:B].clone(), self.h2[:B].clone()
             h1i_save, h2i_save = self.h1_im[:B].clone(), self.h2_im[:B].clone()
             Q_ema_save = self.Q_ema.clone()
             qi_pool_save = self.qi_pool.clone()
             qi_pool_peak_save = self.qi_pool_peak.clone()
             qi_quality_ema_save = self.qi_quality_ema.clone()
+
+            # ── Yin stream: K_train steps on reversed sequence ──
+            x_rev = torch.flip(x, dims=[1])
+            psi_yi_re, psi_yi_im = self.embed(x_rev)
+            psi_yg_re, psi_yg_im = psi_real.clone(), psi_imag.clone()
 
             self._current_delta_rho = None
             self._current_delta_theta = None
@@ -1287,40 +1296,54 @@ class MuonCord(nn.Module):
                 h2_sl = self.h2[:B].detach().clone()
                 h1i_sl = self.h1_im[:B].detach().clone()
                 h2i_sl = self.h2_im[:B].detach().clone()
-                (psi_bwd_re, psi_bwd_im, h1n, h2n, h1in, h2in,
+                (psi_yi_re, psi_yi_im, h1n, h2n, h1in, h2in,
                  _, _) = self._unified_step(
-                    psi_bwd_re, psi_bwd_im,
+                    psi_yi_re, psi_yi_im,
                     h1_sl, h2_sl, h1i_sl, h2i_sl,
                     self.Q_ema.detach(), write_memory=False)
                 self.h1[:B].copy_(h1n.detach())
                 self.h2[:B].copy_(h2n.detach())
                 self.h1_im[:B].copy_(h1in.detach())
                 self.h2_im[:B].copy_(h2in.detach())
-                psi_bwd_re, psi_bwd_im = self._clamp_iir_state(B, psi_bwd_re, psi_bwd_im, clamp_field=False)
+                psi_yi_re, psi_yi_im = self._clamp_iir_state(B, psi_yi_re, psi_yi_im, clamp_field=False)
 
-            # Backward readout
-            logits_bwd = self.readout_backward(psi_bwd_re, psi_bwd_im)
-            # Predict reversed prefix
-            target_rev_prefix = torch.flip(x[:, :context_len], dims=[1])
-            target_bwd = target_rev_prefix[:, :self.span_len] if self.span_len < N else target_rev_prefix[:, :N // 2]
-            ce_bwd = F.cross_entropy(
-                logits_bwd[:, context_len:, :].reshape(-1, self.V),
-                target_bwd.reshape(-1))
+                # Corpus callosum: streams exchange compressed perspectives
+                if self.corpus_callosum is not None:
+                    cc_yg, cc_yi = self.corpus_callosum.exchange(psi_yg_re, psi_yi_re)
+                    psi_yg_re = psi_yg_re + PHI_INV * cc_yg
+                    psi_yi_re = psi_yi_re + PHI_INV * cc_yi
 
-            # Consistency between forward and backward field representations
-            psi_bwd_unflip_re = torch.flip(psi_bwd_re, dims=[1])
-            psi_bwd_unflip_im = torch.flip(psi_bwd_im, dims=[1])
-            consistency = ((psi_real - psi_bwd_unflip_re) ** 2
-                           + (psi_imag - psi_bwd_unflip_im) ** 2).mean()
+            # ── Readout both streams ──
+            logits_yg = self.readout_positions(psi_yg_re, psi_yg_im)
+            logits_yi = self.readout_positions(psi_yi_re, psi_yi_im)
 
-            # Breath-gated loss: yang (forward, φ rate) gates ce_fwd,
-            # yin (backward, φ⁻¹ rate) gates ce_bwd.
-            breath_yang = torch.sin(self.breath_t_yang)
-            breath_yin = torch.sin(self.breath_t_yin)
-            yang_gate = torch.sigmoid((breath_yang - 0.3) / 0.1)
-            yin_gate = torch.sigmoid((-breath_yin - 0.3) / 0.1)
-            loss = (yang_gate * loss + yin_gate * self.lambda_backward * ce_bwd
-                    + self.lambda_consistency * consistency)
+            # ── Arbitration merges per-vocab-dim trust weights ──
+            if self.arbitration is not None:
+                yang_weight = self.arbitration(psi_yg_re, psi_yi_re)  # [B, V]
+                yg_w = yang_weight.unsqueeze(1)  # [B, 1, V]
+                logits_dual = yg_w * logits_yg + (1.0 - yg_w) * logits_yi
+
+                target_rev_prefix = torch.flip(x[:, :context_len], dims=[1])
+                target_bwd = target_rev_prefix[:, :self.span_len] if self.span_len < self.N else target_rev_prefix[:, :self.N // 2]
+                ce_dual = F.cross_entropy(
+                    logits_dual[:, context_len:, :].reshape(-1, self.V),
+                    target_bwd.reshape(-1))
+
+                breath_yang = torch.sin(self.breath_t_yang)
+                breath_yin = torch.sin(self.breath_t_yin)
+                yang_gate = torch.sigmoid((breath_yang - 0.3) / 0.1)
+                yin_gate = torch.sigmoid((-breath_yin - 0.3) / 0.1)
+                loss = yang_gate * loss + yin_gate * self.lambda_backward * ce_dual
+
+                psi_yi_unflip_re = torch.flip(psi_yi_re, dims=[1])
+                psi_yi_unflip_im = torch.flip(psi_yi_im, dims=[1])
+                consistency = ((psi_yg_re - psi_yi_unflip_re) ** 2
+                               + (psi_yg_im - psi_yi_unflip_im) ** 2).mean()
+                loss = loss + self.lambda_consistency * consistency
+
+                all_diag['ce_dual'] = ce_dual.detach().item()
+                all_diag['yang_weight_mean'] = yang_weight.mean().detach().item()
+                all_diag['consistency'] = consistency.detach().item()
 
             # Restore forward state
             self.h1[:B].copy_(h1_save)
@@ -1331,9 +1354,6 @@ class MuonCord(nn.Module):
             self.qi_pool.copy_(qi_pool_save)
             self.qi_pool_peak.copy_(qi_pool_peak_save)
             self.qi_quality_ema.copy_(qi_quality_ema_save)
-
-            all_diag['ce_bwd'] = ce_bwd.detach().item()
-            all_diag['consistency'] = consistency.detach().item()
 
         all_diag['ce_loss'] = ce_fwd.item()
         all_diag['loss'] = loss.item()
