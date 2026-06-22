@@ -12,8 +12,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import math
-
 from cassi.text_codec import ByteEncoder
+from cassi._chakra_utils import phi_chakra_widths
 
 PHI = (1 + 5 ** 0.5) / 2
 PHI_INV = 1 / PHI
@@ -22,12 +22,13 @@ PHI_INV = 1 / PHI
 class CordPhysics(nn.Module):
     """Physics cord with per-chakra φ-damped IIRs.
 
+    φ-scaled chakra widths via fibonacci_chakra_widths().
     Input modes:
       - forward(x):     x is [B, 4, 1024] → pred [B, 1024]
       - forward_field(h): h is [B, 4, D]   → repr [B, D]
 
     Each chakra c has:
-      - spatial width  ∝ PHI^c
+      - spatial width  via fibonacci_chakra_widths (φ-approximating sequence)
       - temporal freq  ∝ PHI^{-c}  (via learned theta, phi-spaced init)
       - damping        ρ = 1/PHI   (fixed, prevents mode-locking)
     """
@@ -47,11 +48,8 @@ class CordPhysics(nn.Module):
             else:
                 self.byte_encoder = ByteEncoder(window_bytes=1024, dim_field=1024, T=4)
 
-        # 13 φ-scaled chakra widths (normalized so sum = D)
-        raw = [PHI ** c for c in range(13)]
-        total_raw = sum(raw)
-        self.widths = [max(1, round(D * r / total_raw)) for r in raw]
-        self.widths[-1] += D - sum(self.widths)
+        # 13 φ-scaled chakra widths (canonical: _chakra_utils.phi_chakra_widths)
+        self.widths = phi_chakra_widths(D, 13)
         self.C = len(self.widths)
 
         # Input projection

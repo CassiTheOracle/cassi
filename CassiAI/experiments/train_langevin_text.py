@@ -20,7 +20,7 @@ import torch
 import torch.nn.functional as F
 import numpy as np
 
-# Force CPU if CUDA not available, and patch train.py's hardcoded DEV
+# Force CPU if CUDA not available, and patch experiments/train.py's hardcoded DEV
 _USE_CUDA = torch.cuda.is_available()
 if not _USE_CUDA:
     os.environ.setdefault('CUDA_VISIBLE_DEVICES', '')

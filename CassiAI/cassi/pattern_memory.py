@@ -8,9 +8,13 @@ and std-logits participate in backpropagation.
 
 from typing import Any, Dict, Tuple
 import torch
+import math
 import torch.nn as nn
 import torch.nn.functional as F
 
+
+_PHI = (1 + math.sqrt(5)) / 2
+_PHI_INV = 1 / _PHI
 
 class QiPatternMemory(nn.Module):
     """Adaptive pattern-neuron bank with complex-valued read/write.
@@ -68,6 +72,17 @@ class QiPatternMemory(nn.Module):
                 nn.init.normal_(m.weight, std=0.02)
                 nn.init.zeros_(m.bias)
                 m.bias.data.fill_(2.0)
+
+    @staticmethod
+    def get_checkpoint_buffer_names() -> Tuple[str, ...]:
+        """Names of all persistent buffers that participate in checkpointing.
+
+        These are the buffers that should be saved/loaded across training
+        runs. Transient buffers (e.g. qi_ema which is per-sequence) are
+        NOT included here — they are reset on load.
+        """
+        return ('usage', 'age', 'born', 'key_ema', 'birth_step',
+                'qi_mean', 'qi_std', 'sim_mean', 'sim_std')
 
     def _ensure_qi_ema(self, N: int, device: torch.device, dtype: torch.dtype) -> None:
         """Lazily resize the per-sequence Qi EMA buffer."""
@@ -180,7 +195,7 @@ class QiPatternMemory(nn.Module):
         Returns:
             Number of new neurons created.
         """
-        if current_step < 50:
+        if current_step < 50 and self.born.any():
             # Burn-in: let running statistics stabilize.
             with torch.no_grad():
                 self.age[self.born] += 1
@@ -205,7 +220,18 @@ class QiPatternMemory(nn.Module):
             qi_ema = qi_ema.expand(B, N)
 
             # Candidate positions with elevated, sustained Qi.
-            candidate_mask = qi_ema > grow_threshold
+            # Cold-start bypass: when no neurons born yet, accept any position with
+            # non-negative Qi (or just take top-k by qi_ema). This breaks the chicken-
+            # and-egg problem where the z-score gate fails when qi_std ≈ 0.
+            if not self.born.any():
+                # Take top 27 positions by qi_ema (arbitrary but reasonable initial count)
+                n_cold_start = min(27, B * N)
+                flat_idx = torch.topk(qi_ema.reshape(-1), n_cold_start).indices
+                candidate_mask = torch.zeros(B * N, dtype=torch.bool, device=device)
+                candidate_mask[flat_idx] = True
+                candidate_mask = candidate_mask.view(B, N)
+            else:
+                candidate_mask = qi_ema > grow_threshold
             if not candidate_mask.any():
                 self.age[self.born] += 1
                 return 0
@@ -234,14 +260,15 @@ class QiPatternMemory(nn.Module):
             self.sim_mean.data.copy_(0.99 * self.sim_mean + 0.01 * sim_mean)
             self.sim_std.data.copy_(0.99 * self.sim_std + 0.01 * sim_std)
 
-            # Filter to novel positions.
-            novelty_threshold = self.sim_mean - F.softplus(self.novelty_std_logit) * self.sim_std
-            # Keep the gate in a sensible, positive regime.  If running std is
-            # large, the learned threshold can drop below zero and reject every
-            # query; floor it relative to the mean similarity.
-            novelty_floor = (0.5 * self.sim_mean).clamp(min=0.05)
-            novelty_threshold = torch.maximum(novelty_threshold, novelty_floor)
-            candidate_mask = candidate_mask & (max_sim < novelty_threshold)
+            # Filter to novel positions (skip during cold start when no neurons born).
+            if self.born.any():
+                novelty_threshold = self.sim_mean - F.softplus(self.novelty_std_logit) * self.sim_std
+                # Keep the gate in a sensible, positive regime.  If running std is
+                # large, the learned threshold can drop below zero and reject every
+                # query; floor it relative to the mean similarity.
+                novelty_floor = (0.5 * self.sim_mean).clamp(min=0.05)
+                novelty_threshold = torch.maximum(novelty_threshold, novelty_floor)
+                candidate_mask = candidate_mask & (max_sim < novelty_threshold)
             if not candidate_mask.any():
                 self.age[self.born] += 1
                 return 0
@@ -300,7 +327,7 @@ class QiPatternMemory(nn.Module):
                          else torch.cat(slot_chunks))
 
                 # Batched writes to all selected slots.
-                q_new = q_proj[chosen_flat[:slots.numel()]]
+                q_new = q_proj[chosen_flat[:slots.numel()]].to(self.keys.dtype)
                 self.keys.data[slots] = q_new
                 self.values_real.data[slots] = 0.0
                 self.values_imag.data[slots] = 0.0
@@ -348,3 +375,95 @@ class QiPatternMemory(nn.Module):
             self.age.data[victims] = 0
             self.birth_step.data[victims] = -1
             return int(victims.numel())
+
+    @torch.no_grad()
+    def hebbian_write(self, psi_real: torch.Tensor, psi_imag: torch.Tensor,
+                      Q: torch.Tensor) -> int:
+        """Hebbian plasticity — high-Qi field patterns shape memory keys.
+
+        For each position where Qi exceeds the batch-wise 85th percentile,
+        all born memory keys receive an update weighted by their cosine
+        similarity to the field pattern.  Keys that already resonate are
+        pulled closer; keys that don't match receive a negligible nudge.
+
+        This is \"fire together, wire together\" — the associative memory
+        becomes part of the field dynamics rather than a static lookup table.
+
+        Args:
+            psi_real, psi_imag: [B, N, d] current complex field state.
+            Q:                  [B, N] Qi density per position.
+
+        Returns:
+            Number of high-Qi positions that triggered a write.
+        """
+        if not self.born.any():
+            return 0
+
+        B, N, d = psi_real.shape
+        device = psi_real.device
+
+        # ── 1. Select high-surprise positions ──
+        # Q may be [B, N] or [B, N, d]; reduce to per-position scalar
+        if Q.dim() == 3:
+            Q_pos = Q.mean(dim=-1)   # [B, N]
+        else:
+            Q_pos = Q
+        Q_flat = Q_pos.view(-1)
+        if Q_flat.numel() == 0:
+            return 0
+        threshold = Q_flat.quantile(0.85)
+        mask = Q_pos > threshold  # [B, N]
+
+        # ── 2. Field patterns at selected positions ──
+        # Flatten batch+position for proper boolean indexing
+        psi_real_flat = psi_real.view(B * N, d)
+        psi_imag_flat = psi_imag.view(B * N, d)
+        mask_flat = mask.view(B * N)
+        pat_real = psi_real_flat[mask_flat]  # [K, d]
+        pat_imag = psi_imag_flat[mask_flat]  # [K, d]
+        # Normalize to unit max-norm for stable similarity
+        p_norm = (pat_real.pow(2) + pat_imag.pow(2) + 1e-8).sqrt()
+        p_scale = p_norm.max(dim=-1, keepdim=True).values.clamp_min(1e-8)
+        pat_real = pat_real / p_scale
+        pat_imag = pat_imag / p_scale
+
+        # ── 3. Cosine similarity to all born keys: [K, A] ──
+        active_idx = torch.nonzero(self.born, as_tuple=False).view(-1)
+        A = active_idx.numel()
+        if A == 0:
+            return int(mask.sum().item())
+        keys = self.keys[active_idx]  # [A, d]
+        keys = keys / (keys.norm(dim=-1, keepdim=True).clamp_min(1e-8))
+        # Keys are real-valued — dot product with real part of pattern
+        sim = torch.mm(pat_real.float(), keys.float().T)  # [K, A]
+        sim = sim.clamp(-1e3, 1e3)
+
+        # ── 4. Softmax gate — only best-matching keys get significant nudge ──
+        # Temperature 0.2 → sharp selection (top ~3 keys dominate)
+        weights = F.softmax((sim + 1.0) / 0.2, dim=-1)  # [K, A]; shift to [0, 2]
+
+        # ── 5. Weighted average pattern per key ──
+        weight_sum = weights.sum(dim=0)  # [A]
+        valid = weight_sum > 0.05       # only update keys with significant weight
+        if not valid.any():
+            return mask.sum().item()
+
+        # For each valid key, compute the weighted average of patterns that hit it
+        valid_idx = active_idx[valid]   # [A']
+        ws = weight_sum[valid].view(-1, 1, 1).to(dtype=psi_real.dtype)  # [A', 1, 1]
+        # Weighted patterns — use matmul to avoid [A', K, d] intermediate
+        w_2d = weights[:, valid].T.to(dtype=psi_real.dtype)  # [A', K]
+        avg_real = w_2d.matmul(pat_real) / ws.squeeze(-1)     # [A', d]
+        avg_imag = w_2d.matmul(pat_imag) / ws.squeeze(-1)
+
+        # ── 6. Hebbian update — nudge key toward pattern ──
+        lr = 0.01 * (_PHI_INV ** 3)  # ~0.002 — very small structural step
+        scale = ws.squeeze(-1).clamp(max=1.0)  # cap so single hot-pattern doesn't jump
+
+        key_delta = scale * (avg_real - self.keys[valid_idx])
+        self.keys.data[valid_idx] += lr * key_delta
+        self.values_real.data[valid_idx] += lr * scale * (avg_real - self.values_real[valid_idx])
+        self.values_imag.data[valid_idx] += lr * scale * (avg_imag - self.values_imag[valid_idx])
+        self.usage.data[valid_idx] += scale.squeeze(-1).round().long()
+
+        return mask.sum().item()

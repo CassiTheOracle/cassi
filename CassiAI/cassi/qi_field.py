@@ -1,7 +1,7 @@
 """QiField — Complex self-predicting Qi wave field.
 
 The field ψ ∈ ℂ^(B×N×d) is stored as real/imag pairs.  Yang = Re(ψ),
-Yin = Im(ψ), and Qi Q = |ψ|²·|ε|² emerges from the prediction gap.
+Yin = Im(ψ), and Qi evolves via the continuity equation (recurrent source-sink dynamics with saturating source, super-linear sink, and pressure-gradient advection) in QiDynamics.  Formally: Q_{t+1} = ρ·Q_t + φ⁻²·tanh(ε²/ε₀²)·ψ² − γ·Q_t − ∇·(Q·v_Q).  Diagnostics track Q_mean and Q_max.
 
 Key design choices:
 - Complex ψ-field, persistent Qi-field, φ-damped IIR spine.
@@ -29,30 +29,20 @@ from cassi.transceiver_neuron import ComplexTransceiverNeuron
 from cassi.glial_homeostasis import GlialHomeostasis
 from cassi.pattern_memory import QiPatternMemory
 from cassi.multi_scale_byte import MultiScaleByteEmbedder
-
-
-
-class ChakraResidual(nn.Module):
-    """Tiny learned residual predictor per chakra."""
-
-    def __init__(self, d_c: int):
-        super().__init__()
-        hidden = max(16, 4 * d_c)
-        self.net = nn.Sequential(
-            nn.Linear(d_c, hidden),
-            nn.GELU(),
-            nn.Linear(hidden, d_c),
-        )
-
-    def forward(self, psi_c: torch.Tensor) -> torch.Tensor:
-        return self.net(psi_c)
+from cassi._chakra_utils import phi_chakra_widths, chakra_offsets, chakra_id_tensor
+from cassi._chakra_iir import ChakraIIRBank
+from cassi._field_state import FieldState
+from cassi._field_modules import PredictionOperator, QiDynamics, ControllerModulation
 
 
 class QiField(nn.Module):
-    """Complex QiField with transceiver prediction and persistent Qi dynamics."""
+    """Complex QiField with transceiver prediction and persistent Qi dynamics.
 
+    The model uses a φ-damped IIR field per chakra (via the transceivers)
+    with cross-chakra mixing. No classical MLP is present in the architecture.
+    """
     def __init__(self, N: int = 128, d: int = 128, C: int = 13, V: int = 256,
-                 K_train: int = 10, K_gen: int = 50, M: int = 2048,
+                 K_train: int = 5, K_gen: int = 50, M: int = 2048,
                  self_aware: bool = True,
                  ctrl_hidden_dim: int = 64,
                  ctrl_loss_weight: float = 0.01,
@@ -79,8 +69,10 @@ class QiField(nn.Module):
                  multi_scale_scales: Tuple[int, ...] = (1, 2, 3, 5, 8, 13),
                  multi_scale_byte_embed_dim: int = 64,
                  state_bank_size: int = 0,
-                 max_batch_size: int = 256):
+                 max_batch_size: int = 256,
+    ):
         super().__init__()
+
         self.N = N
         self.d = d
         self.max_batch_size = max_batch_size
@@ -93,9 +85,10 @@ class QiField(nn.Module):
         self.lambda_homeo = lambda_homeo
         self.ctrl_hidden_dim = ctrl_hidden_dim
         self.ctrl_loss_weight = ctrl_loss_weight
-        self.qi_rho = qi_rho
+        self.qi_rho = qi_rho   # stored for reference; actual Parameter lives on qi_dynamics
         self.sink_gamma = sink_gamma
-        self.qi_eps0_log = nn.Parameter(torch.zeros(1))
+        self.initial_qi_rho = qi_rho   # saved for QiDynamics post-init
+        self.initial_sink_gamma = sink_gamma
         self.use_fused_kernels = use_fused_kernels
         self.use_checkpoint = use_checkpoint
         self.span_len = span_len
@@ -106,15 +99,8 @@ class QiField(nn.Module):
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.continuous_mode = continuous_mode
-
-        # φ-scaled chakra widths
-        raw = [PHI ** c for c in range(C)]
-        total_raw = sum(raw)
-        widths = [max(1, round(d * r / total_raw)) for r in raw]
-        while sum(widths) > d:
-            widths[max(range(C), key=lambda i: widths[i])] -= 1
-        while sum(widths) < d:
-            widths[max(range(C), key=lambda i: widths[i])] += 1
+        # φ-scaled chakra widths (canonical: _chakra_utils.phi_chakra_widths)
+        widths = phi_chakra_widths(d, C)
         self.chakra_widths = widths
 
         # Embedding: split into real/imag parts
@@ -162,48 +148,56 @@ class QiField(nn.Module):
         # cross-sample contamination.
         self.register_buffer('h1', torch.zeros(max_batch_size, N, d))
         self.register_buffer('h2', torch.zeros(max_batch_size, N, d))
+        # Separate IIR state for the imaginary part — the real and imaginary
+        # components of the complex field have independent temporal memory
+        # (per the formalism's complex field representation).
+        self.register_buffer('h1_im', torch.zeros(max_batch_size, N, d))
+        self.register_buffer('h2_im', torch.zeros(max_batch_size, N, d))
 
         # Optional keyed per-sample IIR state bank.
         self.state_bank_size = state_bank_size
         if state_bank_size > 0:
             self.register_buffer('h1_bank', torch.zeros(state_bank_size, N, d))
             self.register_buffer('h2_bank', torch.zeros(state_bank_size, N, d))
+            self.register_buffer('h1_im_bank', torch.zeros(state_bank_size, N, d))
+            self.register_buffer('h2_im_bank', torch.zeros(state_bank_size, N, d))
 
-        offsets = [0]
-        for c in range(C):
-            offsets.append(offsets[-1] + self.chakra_widths[c])
-        self.register_buffer('chakra_offsets', torch.tensor(offsets, dtype=torch.int32))
-        self.register_buffer('chakra_id',
-                             torch.repeat_interleave(torch.arange(C), torch.tensor(widths)))
+        offsets_list = chakra_offsets(self.chakra_widths)
+        self.register_buffer('chakra_offsets', offsets_list, persistent=False)
+        # IIR bank (owns per-chakra theta, chakra_id mapping)
+        self.iir_bank = ChakraIIRBank(d=d, C=C, widths=self.chakra_widths)
+        # Prediction operator (owns transceivers, cross_chakra)
+        self.prediction = PredictionOperator(
+            d=d, C=C, widths=self.chakra_widths, N=N,
+        )
+        # (No self.residuals alias — the residual MLP has been removed.)
+        self.transceivers = self.prediction.transceivers
+        self.cross_chakra = self.prediction.cross_chakra
 
-        # Learnable IIR frequencies
-        theta_init = torch.zeros(C)
-        for c in range(C):
-            ratio = max(0.001, min(0.999, PHI_INV ** c))
-            theta_init[c] = math.log(ratio / (1.0 - ratio))
-        self.theta = nn.Parameter(theta_init)
+        # Qi dynamics (owns qi_eps0_log, sink_gamma, qi_rho)
+        self.qi_dynamics = QiDynamics(d=d, qi_rho=self.initial_qi_rho, sink_gamma=self.initial_sink_gamma)
+        self.qi_eps0_log = self.qi_dynamics.qi_eps0_log      # alias for backward compat
+        self.sink_gamma = self.qi_dynamics.sink_gamma          # alias for backward compat
+        self.qi_rho = self.qi_dynamics.qi_rho                  # alias for backward compat
 
-        # Transceiver prediction bank (one per chakra)
-        self.transceivers = nn.ModuleList([
-            ComplexTransceiverNeuron(width=self.chakra_widths[c],
-                                     theta_init=0.1 * (PHI ** (c % 8)))
-            for c in range(C)
-        ])
-        self.residuals = nn.ModuleList([
-            ChakraResidual(self.chakra_widths[c]) for c in range(C)
-        ])
-
-        # Glial homeostasis and breath
-        self.glial = GlialHomeostasis(target_energy=PHI ** 2, gain=homeo_gain)
+        # Controller modulation (owns glial, field_scale)
+        self.ctrl_mod = ControllerModulation(d=d, has_glial=(homeo_gain > 0), glial_gain=homeo_gain)
+        self.glial = self.ctrl_mod.glial if hasattr(self.ctrl_mod, 'glial') else None
+        self.field_scale = self.ctrl_mod.field_scale
         self.breath = Breath()
 
-        self.field_scale = nn.Parameter(torch.tensor(1.0))
 
         # Controller
         if self_aware:
             self.controller = SelfAwarenessController(C=C, hidden_dim=ctrl_hidden_dim)
         else:
             self.controller = None
+        # Backward-compat: external code (e.g., train_mind_brain.py) iterates
+        # `model.residuals[c].parameters()`. The residual MLP has been removed
+        # (classical ML is not allowed in the model architecture), so this
+        # property returns an empty list of empty modules. Callers that try
+        # to read .parameters() get nothing — the loop is a no-op.
+        self._residuals_placeholder = nn.ModuleList()
 
         # Pattern-memory neuron bank
         self.max_neurons = max_neurons
@@ -241,24 +235,81 @@ class QiField(nn.Module):
         self.register_buffer('pattern_step', torch.zeros(1, dtype=torch.long))
         self.register_buffer('Q_bar_pos', torch.zeros(1, N))
 
-    def _normalize_state_dict(self, state_dict, initialized_keys=None):
+    def _normalize_state_dict(self, state_dict, initialized_keys=None, verbose: bool = False):
         """Convert old checkpoints to the current architecture.
 
         Handles:
         - controller.prev_outputs buffer size change (30 -> 2*C+2)
         - removed controller.head_beta_legacy / head_delta_legacy weights
         - missing qi_eps0_log (new learnable source scale)
-        - transceiver persistent buffers whose batch dim changed (old checkpoints
-          often have batch_size=32 because the model was reset before saving)
+        - transceiver persistent buffers whose batch dim changed
+        - pattern memory long-term buffers (usage, age, born, key_ema, etc.)
+          whose max_neurons dim may have changed
+        - pattern memory transient buffers (qi_ema) whose shape depends on N
+        - dropped stale prediction.cord.*, cord.*, cord_pos_scale, cord_history
+          keys from old checkpoints (cord path removed)
         """
-        # Resize transceiver persistent buffers to the current shape.
+        def _log(msg):
+            if verbose:
+                print(f'  [normalize] {msg}')
+
+        # Remove stale alias keys that shadow submodule paths
+        # (e.g., 'transceivers.X.Y' is an alias for 'prediction.transceivers.X.Y').
+        alias_prefixes = {
+            'transceivers': 'prediction.transceivers',
+            'cross_chakra': 'prediction.cross_chakra',
+        }
+        for alias, target in alias_prefixes.items():
+            for key in list(state_dict.keys()):
+                if key.startswith(alias + '.') or key == alias:
+                    target_key = key.replace(alias, target, 1)
+                    if target_key in state_dict:
+                        del state_dict[key]
+                        if verbose:
+                            print(f'  [normalize] removed stale alias {key} (shadowed by {target_key})')
+        # Migrate root-level qi_eps0_log → qi_dynamics.qi_eps0_log
+        # (parameter moved into submodule during refactoring)
+        if 'qi_eps0_log' in state_dict and 'qi_dynamics.qi_eps0_log' not in state_dict:
+            state_dict['qi_dynamics.qi_eps0_log'] = state_dict.pop('qi_eps0_log')
+            _log('migrated qi_eps0_log → qi_dynamics.qi_eps0_log')
+        # Drop stale 'residuals.*' keys from old checkpoints — the residual
+        # MLP has been removed (classical ML is not allowed). The keys are
+        # not aliased anywhere in the current model.
         for key in list(state_dict.keys()):
-            if key.startswith('transceivers.') and key.split('.')[-1] in (
+            if key.startswith('residuals.') or key == 'residuals':
+                del state_dict[key]
+                if verbose:
+                    print(f'  [normalize] dropped stale residuals key {key} (MLP removed)')
+        # Drop stale 'prediction.cord.*', 'cord.*', 'cord_pos_scale', 'cord_history'
+        # keys from old checkpoints — the cord path has been removed from
+        # PredictionOperator. The keys are not aliased anywhere in the current model.
+        n_cord_dropped = 0
+        for key in list(state_dict.keys()):
+            if key.startswith('prediction.cord.') or key == 'prediction.cord':
+                del state_dict[key]
+                n_cord_dropped += 1
+            elif key.startswith('cord.') or key == 'cord':
+                del state_dict[key]
+                n_cord_dropped += 1
+            elif key == 'cord_pos_scale' or key.startswith('cord_pos_scale.'):
+                del state_dict[key]
+                n_cord_dropped += 1
+            elif key == 'cord_history' or key.startswith('cord_history.'):
+                del state_dict[key]
+                n_cord_dropped += 1
+        if n_cord_dropped:
+            _log(f'dropped {n_cord_dropped} stale cord key(s) (cord path removed)')
+        # Resize transceiver persistent buffers to the current shape.
+        # Handles both 'transceivers.' and 'prediction.transceivers.' prefixes.
+        n_tx_resized = 0
+        for key in list(state_dict.keys()):
+            parts = key.split('.')
+            if len(parts) >= 2 and parts[-1] in (
                 'h_real', 'h_imag', 'h_prev_real', 'h_prev_imag', 'x_prev_real', 'x_prev_imag'
-            ):
+            ) and 'transceivers' in parts:
                 old = state_dict[key]
                 param = self
-                for part in key.split('.'):
+                for part in parts:
                     param = getattr(param, part)
                 target_shape = tuple(param.shape)
                 if old.shape != target_shape:
@@ -267,13 +318,16 @@ class QiField(nn.Module):
                     min_w = min(old.shape[1], target_shape[1])
                     new[:min_b, :min_w] = old[:min_b, :min_w]
                     state_dict[key] = new
+                    n_tx_resized += 1
+        if n_tx_resized:
+            _log(f'resized {n_tx_resized} transceiver buffer(s)')
 
-        # Resize per-sample IIR buffers from old [1, N, d] or [B, N, d] to
-        # current [max_batch_size, N, d], preserving as much history as fits.
+        # Resize per-sample IIR buffers h1/h2.
         for key in ('h1', 'h2'):
             if key in state_dict:
                 if not hasattr(self, key):
                     del state_dict[key]
+                    _log(f'dropped stale buffer {key} (not in current model)')
                     continue
                 old = state_dict[key]
                 target = getattr(self, key)
@@ -284,12 +338,14 @@ class QiField(nn.Module):
                     min_d = min(old.shape[2], target.shape[2])
                     new[:min_b, :min_n, :min_d] = old[:min_b, :min_n, :min_d]
                     state_dict[key] = new
+                    _log(f'resized {key} from {tuple(old.shape)} to {tuple(target.shape)}')
 
-        # Resize keyed IIR state banks from old [bank_size, N, d] to current.
+        # Resize keyed IIR state banks h1_bank/h2_bank.
         for key in ('h1_bank', 'h2_bank'):
             if key in state_dict:
                 if not hasattr(self, key):
                     del state_dict[key]
+                    _log(f'dropped stale buffer {key} (no state bank in current model)')
                     continue
                 old = state_dict[key]
                 target = getattr(self, key)
@@ -300,6 +356,9 @@ class QiField(nn.Module):
                     min_d = min(old.shape[2], target.shape[2])
                     new[:min_b, :min_n, :min_d] = old[:min_b, :min_n, :min_d]
                     state_dict[key] = new
+                    _log(f'resized {key} from {tuple(old.shape)} to {tuple(target.shape)}')
+
+        # Resize controller.prev_outputs if shape changed.
         new_shape = 2 * self.C + 2
         if 'controller.prev_outputs' in state_dict:
             old = state_dict['controller.prev_outputs']
@@ -308,38 +367,107 @@ class QiField(nn.Module):
                 n = min(old.numel(), new.numel())
                 new[:n] = old[:n]
                 state_dict['controller.prev_outputs'] = new
+                _log(f'resized controller.prev_outputs from {tuple(old.shape)} to ({new_shape},)')
 
         # Remove legacy controller heads that no longer exist.
+        legacy_removed = 0
         for key in list(state_dict.keys()):
             if 'controller.head_beta_legacy' in key or 'controller.head_delta_legacy' in key:
                 del state_dict[key]
+                legacy_removed += 1
+        if legacy_removed:
+            _log(f'dropped {legacy_removed} legacy controller head(s)')
 
-        # Drop transient buffers whose shape depends on runtime dimensions (e.g. N)
-        # so strict loading falls back to the freshly initialized buffer.
+        # Pattern memory: resize long-term buffers, drop transient ones.
+        from cassi.pattern_memory import QiPatternMemory
+        pm_buffer_names = QiPatternMemory.get_checkpoint_buffer_names()
+        n_pm_resized = 0
+        for buf_name in pm_buffer_names:
+            key = f'pattern_memory.{buf_name}'
+            if key not in state_dict:
+                continue
+            if not hasattr(self.pattern_memory, buf_name):
+                del state_dict[key]
+                _log(f'dropped stale PM buffer {key}')
+                continue
+            old = state_dict[key]
+            target = getattr(self.pattern_memory, buf_name)
+            if tuple(old.shape) != tuple(target.shape):
+                new = target.data.clone()
+                n_dim = len(old.shape)
+                if n_dim == 1:
+                    n = min(old.shape[0], target.shape[0])
+                    new[:n] = old[:n]
+                elif n_dim == 2:
+                    n0 = min(old.shape[0], target.shape[0])
+                    n1 = min(old.shape[1], target.shape[1])
+                    new[:n0, :n1] = old[:n0, :n1]
+                state_dict[key] = new
+                n_pm_resized += 1
+        if n_pm_resized:
+            _log(f'resized {n_pm_resized} pattern memory buffer(s)')
+
+        # Resize pattern memory parameters (keys, values_real, values_imag)
+        # whose shape depends on max_neurons.
+        n_pm_params_resized = 0
+        for pm_param_name in ('keys', 'values_real', 'values_imag'):
+            key = f'pattern_memory.{pm_param_name}'
+            if key not in state_dict:
+                continue
+            if not hasattr(self.pattern_memory, pm_param_name):
+                del state_dict[key]
+                _log(f'dropped stale PM param {key}')
+                continue
+            old = state_dict[key]
+            target = getattr(self.pattern_memory, pm_param_name)
+            if tuple(old.shape) != tuple(target.shape):
+                new = target.data.clone()
+                n_dim = len(old.shape)
+                if n_dim == 1:
+                    n = min(old.shape[0], target.shape[0])
+                    new[:n] = old[:n]
+                elif n_dim == 2:
+                    n0 = min(old.shape[0], target.shape[0])
+                    n1 = min(old.shape[1], target.shape[1])
+                    new[:n0, :n1] = old[:n0, :n1]
+                state_dict[key] = new
+                n_pm_params_resized += 1
+        if n_pm_params_resized:
+            _log(f'resized {n_pm_params_resized} pattern memory parameter(s)')
+
+        # Drop transient per-sequence PM buffers.
         for key in list(state_dict.keys()):
-            if key in ('pattern_memory.qi_ema',):
+            if key == 'pattern_memory.qi_ema':
                 param = self
                 for part in key.split('.'):
                     param = getattr(param, part)
                 if tuple(state_dict[key].shape) != tuple(param.shape):
                     del state_dict[key]
+                    _log(f'dropped transient PM buffer {key} (shape mismatch)')
+
         # Initialize missing new parameters/buffers from defaults.
         if initialized_keys is None:
             initialized_keys = set()
+        n_missing_params = 0
+        n_missing_buffers = 0
         for name, param in self.named_parameters():
             if name not in state_dict:
                 state_dict[name] = param.data.clone()
                 initialized_keys.add(name)
+                n_missing_params += 1
         for name, buf in self.named_buffers():
             if name not in state_dict:
                 state_dict[name] = buf.data.clone()
                 initialized_keys.add(name)
+                n_missing_buffers += 1
+        if n_missing_params or n_missing_buffers:
+            _log(f'initialized {n_missing_params} missing param(s) and {n_missing_buffers} missing buffer(s) from defaults')
 
         return state_dict
 
     def load_state_dict(self, state_dict, strict=False, assign=False):
         initialized = set()
-        state_dict = self._normalize_state_dict(state_dict, initialized_keys=initialized)
+        state_dict = self._normalize_state_dict(state_dict, initialized_keys=initialized, verbose=True)
         missing, unexpected = super().load_state_dict(state_dict, strict=strict, assign=assign)
         if initialized:
             print(f'Initialized {len(initialized)} missing tensors from defaults (new buffers/parameters)')
@@ -391,102 +519,67 @@ class QiField(nn.Module):
 
     # ═══════════════════ Prediction operator ═══════════════════
 
-    def predict(self, psi_real, psi_imag):
-        re_parts, im_parts = self._decompose_chakras(psi_real, psi_imag)
-        pred_re, pred_im = [], []
-
-        for c in range(self.C):
-            psi_c_re = re_parts[c]
-            psi_c_im = im_parts[c]
-            B, N, dc = psi_c_re.shape
-
-            mean_re = psi_c_re.mean(dim=1, keepdim=True)
-            mean_im = psi_c_im.mean(dim=1, keepdim=True)
-
-            tx_re, tx_im = self.transceivers[c](mean_re.squeeze(1), mean_im.squeeze(1))
-            tx_re = tx_re.unsqueeze(1).expand(-1, N, -1)
-            tx_im = tx_im.unsqueeze(1).expand(-1, N, -1)
-
-            pred_re.append(psi_c_re + tx_re + self.residuals[c](psi_c_re))
-            pred_im.append(psi_c_im + tx_im + self.residuals[c](psi_c_im))
-
-        P_re, P_im = self._compose_chakras(pred_re, pred_im)
-        eps2 = self._complex_norm2(psi_real - P_re, psi_imag - P_im)
+    def predict(self, psi_real, psi_imag, use_residual: bool = True):
+        """Delegate to self.prediction. Returns (P_re, P_im, eps2)."""
+        P_re, P_im, eps2, _ = self.prediction(
+            psi_real, psi_imag,
+            use_residual=use_residual,
+        )
         return P_re, P_im, eps2
 
-    # ═══════════════════ Qi dynamics ═══════════════════
-
-    def _advect(self, Q_transport, p):
-        """Pressure-gradient advection on the spatial Qi field.
-
-        Uses the forward-difference pressure gradient and an upwind flux
-        consistent with the continuity equation ∂Q/∂t + ∇·(Q·v_Q) = ... .
-        Returns the *advective increment* v_Q * upwind so the caller can
-        subtract it directly.
-        """
-        grad_p = torch.roll(p, shifts=-1, dims=1) - p
-        v_Q = -PHI_INV * grad_p
-        v_Q = v_Q.clamp(-1.0, 1.0)
-        Q_spatial = Q_transport.mean(dim=-1, keepdim=True)
-        v_Q = v_Q.unsqueeze(-1)
-        Q_left = torch.roll(Q_spatial, shifts=1, dims=1)
-        Q_right = torch.roll(Q_spatial, shifts=-1, dims=1)
-        upwind = torch.where(v_Q > 0, Q_spatial - Q_left, Q_right - Q_spatial)
-        advection = v_Q * upwind
-        return advection, v_Q.squeeze(-1)
-
     def qi_step(self, psi_real, psi_imag, P_re, P_im, Q_transport):
+        """Delegate to self.qi_dynamics. Returns (Q_new, p_mean)."""
         eps2 = self._complex_norm2(psi_real - P_re, psi_imag - P_im)
-        psi2 = self._complex_norm2(psi_real, psi_imag)
-        eps0_sq = F.softplus(self.qi_eps0_log) + 1e-6
-        source = (PHI_INV ** 2) * torch.tanh(eps2 / eps0_sq) * psi2
-        sink = self.sink_gamma * Q_transport
-
-        p = eps2.mean(dim=-1, keepdim=True).squeeze(-1)
-        advection, v_Q = self._advect(Q_transport, p)
-        Q_new = self.qi_rho * Q_transport + source - sink - advection
-        return Q_new.clamp(min=0.0), p
-
-    # ═══════════════════ Structural self-regulation ═══════════════════
+        Q_new, p_mean, _ = self.qi_dynamics(
+            psi_real, psi_imag, Q_transport, P_re, P_im, eps2=eps2,
+        )
+        return Q_new, p_mean
 
     def structural_self_reg(self, Q_mean, m_self, breath):
-        q_norm = Q_mean / PHI_INV
-        excess = F.relu(q_norm - PHI_INV)
-        calm = PHI_INV / (PHI_INV + excess)
-        deficit = F.relu(PHI_INV - q_norm)
-        arousal = (1.0 + 2.0 * deficit / PHI_INV).clamp(1.0, 3.0)
-        self_reg = calm * arousal
+        """Delegate to self.ctrl_mod.structural_self_reg."""
         yin = breath['yin']
-        calm_breath = 1.0 + 0.15 * (yin - PHI_INV)
-        self_reg = (self_reg * calm_breath).clamp(PHI_INV ** 2, 3.0)
         m = m_self.mean() if m_self.numel() > 1 else m_self
-        return self_reg * m.clamp(0.5, 2.0)
+        return self.ctrl_mod.structural_self_reg(Q_mean, m, breath_yin=yin)
 
-    def _field_step_pre_ctrl(self, h1, h2, psi_real, psi_imag, Q_field, breath):
+    def _field_step_pre_ctrl(self, h1, h2, h1_im, h2_im,
+                             psi_real, psi_imag, Q_field, breath,
+                             use_residual: bool = True):
         """IIR, pattern-memory read, prediction, and Qi update.
+
+        The IIR is POSITION-FORM per the formalism section 2.1:
+          psi[t+1] = a1 * psi[t] + a2 * psi[t-1] + S[t]
+        The IIR REPLACES psi (does not add to it). The real and imaginary
+        components have independent IIR state (h1/h2 for real, h1_im/h2_im
+        for imaginary).
 
         Called from field_step; may be wrapped in gradient checkpointing.
         Does NOT mutate persistent buffers.
         """
         B = psi_real.shape[0]
 
-        # φ-damped IIR (out-of-place, vectorized over d)
-        h1_seq = h1[:B]
-        h2_seq = h2[:B]
-        theta_sig_full = torch.sigmoid(self.theta)[self.chakra_id]
-        a1_full = 2.0 * PHI_INV * torch.cos(theta_sig_full)
-        a2_full = -(PHI_INV ** 2)
-        # Per-sample input mean so each sequence's IIR tracks its own history.
-        inp_re = psi_real.mean(dim=1, keepdim=True)
-        inp_im = psi_imag.mean(dim=1, keepdim=True)
-        h1_new = a1_full * h1_seq + a2_full * h2_seq + inp_re
-        h1_new_im = a1_full * h1_seq + a2_full * h2_seq + inp_im
-        psi_real = psi_real + h1_new
-        psi_imag = psi_imag + h1_new_im
-        h1_next = h1_new
-        h2_next = h1_seq
+        # phi-damped IIR — position-form (formalism section 2.1).
+        # compute_coefficients broadcasts a1/a2 to [B, N, d] so each position
+        # gets its own per-chakra coefficient (the ChakraIIRBank owns per-chakra theta).
+        a1_full, a2_full = self.iir_bank.compute_coefficients(
+            batch_shape=torch.Size([B, psi_real.shape[1]]),
+            device=psi_real.device,
+        )
+        # External source: spatial mean of current field
+        S_re = psi_real.mean(dim=1, keepdim=True)   # [B, 1, d]
+        S_im = psi_imag.mean(dim=1, keepdim=True)   # [B, 1, d]
+        # Position-form: IIR replaces psi, doesn't add to it
+        h1_re_in = h1[:B]     # psi[t-1] for real part
+        h1_im_in = h1_im[:B]  # psi[t-1] for imaginary part (independent)
+        new_psi_re = a1_full * psi_real + a2_full * h1_re_in + S_re
+        new_psi_im = a1_full * psi_imag + a2_full * h1_im_in + S_im
+        # State update: h1 = psi[t], h2 = psi[t-1] (for next step)
+        h1_re_next = psi_real
+        h2_re_next = h1_re_in
+        h1_im_next = psi_imag
+        h2_im_next = h1_im_in
+        psi_real, psi_imag = new_psi_re, new_psi_im
 
-        # Pattern-memory read (before prediction so residuals shape ψ)
+        # Pattern-memory read (before prediction so residuals shape psi)
         query = F.layer_norm(psi_real, psi_real.shape[-1:])
         Q_for_pm = Q_field.mean(dim=-1)  # [B, N]
         pm_real, pm_imag, pm_diag = self.pattern_memory(query, Q_for_pm)
@@ -494,12 +587,14 @@ class QiField(nn.Module):
         psi_imag = psi_imag + pm_imag
 
         # Prediction operator
-        P_re, P_im, eps2 = self.predict(psi_real, psi_imag)
+        P_re, P_im, eps2 = self.predict(psi_real, psi_imag, use_residual=use_residual)
 
         # Update Qi field
         Q_field, p = self.qi_step(psi_real, psi_imag, P_re, P_im, Q_field)
 
-        return psi_real, psi_imag, Q_field, P_re, P_im, h1_next, h2_next, p.mean(), pm_diag
+        return (psi_real, psi_imag, Q_field, P_re, P_im,
+                h1_re_next, h2_re_next, h1_im_next, h2_im_next,
+                p.mean(), pm_diag)
 
     def _field_step_transform(self, psi_real, psi_imag, Q_field, P_re, P_im, breath, ctrl):
         """Controller-driven transformations and normalization.
@@ -553,11 +648,45 @@ class QiField(nn.Module):
 
         return psi_real, psi_imag, Q_field, q_mean, self_reg_factor
 
+    def _field_step_with_ctrl(self, psi_real, psi_imag, Q_field, P_re, P_im,
+                              breath, q_per_chakra, q_trend, yz_ratio, field_energy,
+                              ctrl_passed=None, prev_hidden=None):
+        """Controller call + transform, combined for gradient checkpointing.
+
+        Does NOT mutate self.controller.h_ctrl. The caller must call
+        self.controller._update_h_ctrl(ctrl.h_next) after the checkpoint
+        boundary to persist the new hidden state.
+
+        When ctrl_passed is provided (from an external caller like the K_train
+        loop), the controller is NOT recomputed — ctrl_passed is used directly.
+        """
+        B = psi_real.shape[0]
+        device = psi_real.device
+        if ctrl_passed is not None:
+            ctrl = ctrl_passed
+        elif self.controller is not None and q_per_chakra is not None:
+            ctrl = self.controller(q_per_chakra,
+                                   q_trend=q_trend,
+                                   y_over_z_ratio=yz_ratio,
+                                   field_energy=field_energy,
+                                   breath=breath,
+                                   prev_hidden=prev_hidden)
+        else:
+            ctrl = None
+        if ctrl is not None:
+            perturb_ctrl = ctrl.perturb.view(B, 1, 1).clamp(0.0, 0.1)
+        else:
+            perturb_ctrl = torch.zeros(B, 1, 1, device=device)
+        psi_real, psi_imag, Q_field, q_mean, self_reg_factor = self._field_step_transform(
+            psi_real, psi_imag, Q_field, P_re, P_im, breath, ctrl)
+        return psi_real, psi_imag, Q_field, q_mean, self_reg_factor, ctrl, perturb_ctrl
+
     # ═══════════════════ Field step ═══════════════════
 
     def field_step(self, psi_real, psi_imag, Q_field, breath,
                    ctrl: Optional[CtrlOutputs] = None,
-                   state_indices: Optional[torch.Tensor] = None):
+                   state_indices: Optional[torch.Tensor] = None,
+                   use_residual: bool = True):
         B = psi_real.shape[0]
         device = psi_real.device
         if state_indices is not None:
@@ -572,22 +701,32 @@ class QiField(nn.Module):
                 raise ValueError("state_indices provided but state_bank_size is 0")
             h1_in = self.h1_bank[state_indices].detach().clone()
             h2_in = self.h2_bank[state_indices].detach().clone()
+            h1_im_in = self.h1_im_bank[state_indices].detach().clone()
+            h2_im_in = self.h2_im_bank[state_indices].detach().clone()
         else:
             h1_in = self.h1[:B].detach().clone()
             h2_in = self.h2[:B].detach().clone()
+            h1_im_in = self.h1_im[:B].detach().clone()
+            h2_im_in = self.h2_im[:B].detach().clone()
         (psi_real, psi_imag, Q_field, P_re, P_im,
-         h1_next, h2_next, p_mean, pm_diag) = self._field_step_pre_ctrl(
-            h1_in, h2_in, psi_real, psi_imag, Q_field, breath)
+         h1_re_next, h2_re_next, h1_im_next, h2_im_next,
+         p_mean, pm_diag) = self._field_step_pre_ctrl(
+            h1_in, h2_in, h1_im_in, h2_im_in,
+            psi_real, psi_imag, Q_field, breath,
+            use_residual=use_residual)
 
-        # Update IIR persistent state.  h2 must be copied before h1.
+        # Update IIR persistent state. h2 must be copied before h1.
         if state_indices is not None:
             if self.training:
-                self.h2_bank.index_copy_(0, state_indices, h2_next.detach())
-                self.h1_bank.index_copy_(0, state_indices, h1_next.detach())
+                self.h2_bank.index_copy_(0, state_indices, h2_re_next.detach())
+                self.h1_bank.index_copy_(0, state_indices, h1_re_next.detach())
+                self.h2_im_bank.index_copy_(0, state_indices, h2_im_next.detach())
+                self.h1_im_bank.index_copy_(0, state_indices, h1_im_next.detach())
         else:
-            self.h2[:B].copy_(h2_next.detach())
-            self.h1[:B].copy_(h1_next.detach())
-
+            self.h2[:B].copy_(h2_re_next.detach())
+            self.h1[:B].copy_(h1_re_next.detach())
+            self.h2_im[:B].copy_(h2_im_next.detach())
+            self.h1_im[:B].copy_(h1_im_next.detach())
         # Running per-position Qi average for pattern growth.
         self.Q_bar_pos.copy_(0.99 * self.Q_bar_pos + 0.01 * Q_field.mean(dim=(0, 2)))
 
@@ -605,34 +744,55 @@ class QiField(nn.Module):
         pm_diag['pm_new_neurons'] = n_new
         pm_diag['pm_dissolved'] = n_dissolved
 
-        # Controller: kept outside the checkpointed region because its forward
-        # mutates the persistent recurrent buffer self.controller.h_ctrl.
+        # Core computation #2: controller-driven transformations.
         if ctrl is None and self.controller is not None:
+            # Compute controller inside the checkpoint (no buffer mutation).
             q_per_chakra = self._qi_per_chakra(Q_field)
             q_trend = self.Q_trend.to(device).expand(B)
             yz_ratio = self._yang_yin_ratio(psi_real, psi_imag)
             field_energy = self._complex_norm2(psi_real, psi_imag).mean(dim=(1, 2))
-            ctrl = self.controller(q_per_chakra,
-                                   q_trend=q_trend,
-                                   y_over_z_ratio=yz_ratio,
-                                   field_energy=field_energy,
-                                   breath=breath)
+            # Snapshot h_ctrl before the checkpoint so the controller forward
+            # reads a frozen copy, not the mutable buffer (which would be
+            # updated after the checkpoint and cause gradient corruption during
+            # backward recomputation).
+            h_ctrl_snapshot = self.controller.h_ctrl.detach().clone().unsqueeze(0).expand(B, -1)
 
-        if ctrl is not None:
-            perturb_ctrl = ctrl.perturb.view(B, 1, 1).clamp(0.0, 0.1)
-        else:
-            perturb_ctrl = torch.zeros(B, 1, 1, device=device)
+            if self.use_checkpoint and self.training:
+                psi_real, psi_imag, Q_field, q_mean, self_reg_factor, ctrl, perturb_ctrl = \
+                    torch.utils.checkpoint.checkpoint(
+                        self._field_step_with_ctrl,
+                        psi_real, psi_imag, Q_field, P_re, P_im, breath,
+                        q_per_chakra, q_trend, yz_ratio, field_energy,
+                        None, h_ctrl_snapshot,
+                        use_reentrant=False,
+                    )
+            else:
+                psi_real, psi_imag, Q_field, q_mean, self_reg_factor, ctrl, perturb_ctrl = \
+                    self._field_step_with_ctrl(
+                        psi_real, psi_imag, Q_field, P_re, P_im, breath,
+                        q_per_chakra, q_trend, yz_ratio, field_energy,
+                        None, h_ctrl_snapshot)
 
-        # Core computation #2: controller-driven transformations.
-        if self.use_checkpoint and self.training:
-            psi_real, psi_imag, Q_field, q_mean, self_reg_factor = torch.utils.checkpoint.checkpoint(
-                self._field_step_transform,
-                psi_real, psi_imag, Q_field, P_re, P_im, breath, ctrl,
-                use_reentrant=False,
-            )
+            # Persist h_ctrl OUTSIDE the checkpoint (buffer mutation breaks grad flow)
+            if ctrl is not None and ctrl.h_next is not None:
+                self.controller._update_h_ctrl(ctrl.h_next)
         else:
-            psi_real, psi_imag, Q_field, q_mean, self_reg_factor = self._field_step_transform(
-                psi_real, psi_imag, Q_field, P_re, P_im, breath, ctrl)
+            # Use pre-computed ctrl (from K_train loop) or run with no controller.
+            if ctrl is not None:
+                perturb_ctrl = ctrl.perturb.view(B, 1, 1).clamp(0.0, 0.1)
+            else:
+                perturb_ctrl = torch.zeros(B, 1, 1, device=device)
+            if self.use_checkpoint and self.training:
+                psi_real, psi_imag, Q_field, q_mean, self_reg_factor = \
+                    torch.utils.checkpoint.checkpoint(
+                        self._field_step_transform,
+                        psi_real, psi_imag, Q_field, P_re, P_im, breath, ctrl,
+                        use_reentrant=False,
+                    )
+            else:
+                psi_real, psi_imag, Q_field, q_mean, self_reg_factor = \
+                    self._field_step_transform(
+                        psi_real, psi_imag, Q_field, P_re, P_im, breath, ctrl)
 
         # Low-Q arousal perturbation (kept outside checkpoint so the same
         # random noise is not regenerated during the backward recomputation).
@@ -663,25 +823,53 @@ class QiField(nn.Module):
         # Average over positions N to match the original mean(dim=(1, 2)).
         return per_c.transpose(0, 1).view(B, N, self.C).mean(dim=1)
 
+    @staticmethod
+    def _resize_transceiver_buffers(transceiver, new_B: int) -> None:
+        """Resize a transceiver's persistent IIR buffers to new_B rows.
+
+        Copies existing rows and zero-fills new rows. Never broadcasts
+        (the old expand().clone() pattern gave all new rows the same
+        state as row 0, which is a bug for independent batch samples).
+        """
+        for buf_name in ('h_real', 'h_imag', 'h_prev_real', 'h_prev_imag',
+                         'x_prev_real', 'x_prev_imag'):
+            old = getattr(transceiver, buf_name)
+            old_B = old.shape[0]
+            if old_B == new_B:
+                continue
+            new = torch.zeros(new_B, *old.shape[1:], dtype=old.dtype, device=old.device)
+            n_copy = min(old_B, new_B)
+            new[:n_copy] = old[:n_copy]
+            setattr(transceiver, buf_name, new)
+
     def _yang_yin_ratio(self, psi_real, psi_imag):
         y = psi_real.pow(2).mean(dim=(1, 2))
         z = psi_imag.pow(2).mean(dim=(1, 2)).clamp_min(1e-12)
         return y / z
-
     # ═══════════════════ Public API ═══════════════════
+
+    @property
+    def residuals(self):
+        """Backward-compat property. Returns the (now-empty) residuals list.
+
+        The ChakraResidual MLPs have been removed (classical ML is not
+        allowed in the model architecture). External code that iterates
+        `model.residuals[c].parameters()` will get no parameters back —
+        the loop is a no-op. Set .grad to None gracefully.
+        """
+        return self._residuals_placeholder
 
     def reset_state(self):
         """Clear all persistent field state."""
-        self.psi_real = torch.zeros_like(self.psi_real)
-        self.psi_imag = torch.zeros_like(self.psi_imag)
-        self.Q_field = torch.zeros_like(self.Q_field)
-        self.h1 = torch.zeros_like(self.h1)
-        self.h2 = torch.zeros_like(self.h2)
+        state = FieldState.from_buffers(self)
+        state.zero_()
+        self.h1_im.zero_()
+        self.h2_im.zero_()
         if self.state_bank_size > 0:
             self.h1_bank.zero_()
             self.h2_bank.zero_()
-        self.Q_ema = torch.zeros_like(self.Q_ema)
-        self.Q_trend = torch.zeros_like(self.Q_trend)
+            self.h1_im_bank.zero_()
+            self.h2_im_bank.zero_()
         if self.controller is not None:
             self.controller.reset_state()
         self.breath.reset()
@@ -735,12 +923,7 @@ class QiField(nn.Module):
         else:
             for t in self.transceivers:
                 if t.h_real.shape[0] != B:
-                    t.h_real = t.h_real[:1].expand(B, -1).clone()
-                    t.h_imag = t.h_imag[:1].expand(B, -1).clone()
-                    t.h_prev_real = t.h_prev_real[:1].expand(B, -1).clone()
-                    t.h_prev_imag = t.h_prev_imag[:1].expand(B, -1).clone()
-                    t.x_prev_real = t.x_prev_real[:1].expand(B, -1).clone()
-                    t.x_prev_imag = t.x_prev_imag[:1].expand(B, -1).clone()
+                    self._resize_transceiver_buffers(t, B)
 
         psi_real, psi_imag = self.embed(x)
         Q_field = self.Q_field.expand(B, -1, -1).clone()
@@ -769,6 +952,7 @@ class QiField(nn.Module):
                 all_diag[key] = val.item()
 
         logits = self.readout(psi_real, psi_imag)
+        return logits
     def training_loss(self, x, y=None,
                       state_indices: Optional[torch.Tensor] = None,
                       no_reset: bool = False):
@@ -793,13 +977,7 @@ class QiField(nn.Module):
             # but preserve existing state values where possible.
             for t in self.transceivers:
                 if t.h_real.shape[0] != B:
-                    dev = t.h_real.device
-                    t.h_real = t.h_real[:1].expand(B, -1).clone()
-                    t.h_imag = t.h_imag[:1].expand(B, -1).clone()
-                    t.h_prev_real = t.h_prev_real[:1].expand(B, -1).clone()
-                    t.h_prev_imag = t.h_prev_imag[:1].expand(B, -1).clone()
-                    t.x_prev_real = t.x_prev_real[:1].expand(B, -1).clone()
-                    t.x_prev_imag = t.x_prev_imag[:1].expand(B, -1).clone()
+                    self._resize_transceiver_buffers(t, B)
 
         context_len = max(1, N - self.span_len)
         if self.span_len >= N:
@@ -807,10 +985,12 @@ class QiField(nn.Module):
         context = x[:, :context_len]
         target = x[:, context_len:]
 
-        # Pad context to length N so embeddings align with position encodings.
+        # Pad context to length N by repeating the last context token.
+        # Zero-fill provides no signal; the last token gives the field a
+        # meaningful "carry-forward" boundary condition.
         if context.shape[1] < N:
-            pad = torch.zeros(B, N - context_len, dtype=torch.long, device=device)
-            context = torch.cat([context, pad], dim=1)
+            last_token = context[:, -1:].expand(B, N - context_len)
+            context = torch.cat([context, last_token], dim=1)
 
         psi_real, psi_imag = self.embed(context)
         Q_field = self.Q_field.expand(B, -1, -1).clone()
@@ -914,12 +1094,7 @@ class QiField(nn.Module):
         else:
             for t in self.transceivers:
                 if t.h_real.shape[0] != B:
-                    t.h_real = t.h_real[:1].expand(B, -1).clone()
-                    t.h_imag = t.h_imag[:1].expand(B, -1).clone()
-                    t.h_prev_real = t.h_prev_real[:1].expand(B, -1).clone()
-                    t.h_prev_imag = t.h_prev_imag[:1].expand(B, -1).clone()
-                    t.x_prev_real = t.x_prev_real[:1].expand(B, -1).clone()
-                    t.x_prev_imag = t.x_prev_imag[:1].expand(B, -1).clone()
+                    self._resize_transceiver_buffers(t, B)
 
         psi_real, psi_imag = self.embed(x)
         Q_field = self.Q_field.expand(B, -1, -1).clone()
@@ -1223,7 +1398,6 @@ class QiField(nn.Module):
 
 
 # Backward-compatible alias
-QiFieldV2 = QiField
 if __name__ == '__main__':
     import os, sys
     sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))

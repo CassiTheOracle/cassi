@@ -187,7 +187,7 @@ class TransceiverBrain(nn.Module):
         offsets = [0]
         for w in spine_widths[:-1]:
             offsets.append(offsets[-1] + w)
-        self.register_buffer('ch_offsets', torch.tensor(offsets, dtype=torch.long))
+        self.register_buffer('ch_offsets', torch.tensor(offsets, dtype=torch.long), persistent=False)
 
         # Assign neurons to chakras with φ-spaced frequencies
         self.neuron_chakra = []

@@ -1,16 +1,13 @@
 """Self-awareness controller for QiField.
 
 A shallow, breath-carrier-modulated homeostatic regulator that reads Qi,
-breath, and field-state signals and outputs actuators to keep Qi circulating
-healthily.  This version supports the rebuilt QiField actuator set
-(alpha/gamma/rho/perturb/m_self) while preserving backward-compatible imports
-and a legacy call path for older QiField variants.
-"""
+breath, and field-state signals and outputs actuators (alpha/gamma/rho/
+perturb/m_self) to keep Qi circulating healthily.
+ """
 
 from dataclasses import dataclass
 from typing import Any, ClassVar, Dict, Optional
 
-import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -24,8 +21,8 @@ class CtrlOutputs:
 
     New actuator set for the rebuilt QiField.  Old field names passed as
     keyword arguments to the constructor are silently ignored, and legacy
-    attributes (beta, delta_mem, mu_c, zeta_c) are available through
-    __getattr__ with harmless defaults.
+    attributes (mu_c, zeta_c) are available through __getattr__ with
+    harmless defaults.
     """
     alpha: torch.Tensor          # [B], range [0.5, 2.0], centered 1.0
     gamma: torch.Tensor          # [B], range [0.5, 2.0], centered 1.0
@@ -41,6 +38,7 @@ class CtrlOutputs:
                  perturb: Optional[torch.Tensor] = None,
                  m_self: Optional[torch.Tensor] = None,
                  diagnostics: Optional[Dict[str, Any]] = None,
+                 h_next: Optional[torch.Tensor] = None,
                  **legacy_kwargs):
         """Construct CtrlOutputs, ignoring legacy kwargs (beta, mu_c, etc.)."""
         self.alpha = alpha
@@ -49,13 +47,10 @@ class CtrlOutputs:
         self.perturb = perturb if perturb is not None else torch.zeros_like(alpha)
         self.m_self = m_self if m_self is not None else torch.ones_like(alpha)
         self.diagnostics = diagnostics if diagnostics is not None else {}
+        self.h_next = h_next
 
     def __getattr__(self, name: str) -> Any:
         """Provide harmless defaults for legacy fields."""
-        if name == 'beta':
-            return torch.zeros_like(self.alpha)
-        if name == 'delta_mem':
-            return torch.zeros_like(self.alpha)
         if name == 'mu_c':
             return torch.zeros(self.C, device=self.alpha.device, dtype=self.alpha.dtype)
         if name == 'zeta_c':
@@ -106,56 +101,42 @@ class SelfAwarenessController(nn.Module):
         self.head_rho     = nn.Linear(hidden_dim, 1)
         self.head_perturb = nn.Linear(hidden_dim, 1)
         self.head_m_self  = nn.Linear(hidden_dim, 1)
-
-        # ── Legacy actuator heads (old QiField variants) ──
-        # Kept for backward-compatible call path.
-        legacy_input_dim = 3 * C + 5 + 6 + 3 + 1 + 1 + hidden_dim
-        self.legacy_input_proj = nn.Sequential(
-            nn.Linear(legacy_input_dim, hidden_dim),
-            nn.LayerNorm(hidden_dim),
-            nn.GELU(),
-        )
-        self.legacy_hidden_proj = nn.Sequential(
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.LayerNorm(hidden_dim),
-            nn.GELU(),
-        )
-        self.head_alpha_legacy = nn.Linear(hidden_dim, 1)
-        self.head_mu_legacy    = nn.Linear(hidden_dim, C)
-        self.head_zeta_legacy  = nn.Linear(hidden_dim, C)
-        self.head_gamma_legacy = nn.Linear(hidden_dim, 1)
-
         # Persistent controller state.
         self.register_buffer('h_ctrl', torch.zeros(hidden_dim))
-        self.register_buffer('qi_ema_c', torch.zeros(C))
-        self.register_buffer('prev_outputs', torch.zeros(2 * C + 2))
 
         self._init_weights()
 
     def _init_weights(self):
-        """Zero-initialize all actuator heads so the controller starts as a no-op.
+        """Initialize weights for healthy gradient flow.
 
-        Projection layers use small Xavier for healthy gradient flow.
+        Actuator heads are initialized with small Xavier weights (gain=0.1)
+        so the controller starts near the no-op center but the heads can
+        actually receive gradient signal from the very first step. Pure
+        zero-init makes the heads gradient-dead (the no-op is an exact
+        fixed point of the balance_loss). With small nonzero init, the
+        balance_loss anchor is a soft pull, not a hard floor.
+
+        Projection layers use small Xavier; LayerNorm uses PyTorch defaults
+        (weight=1, bias=0) — a zero LayerNorm weight would force the
+        output to zero regardless of input, so it must NOT be zero-initialized.
         """
-        for module in [self.input_proj, self.hidden_proj,
-                       self.legacy_input_proj, self.legacy_hidden_proj]:
+        for module in [self.input_proj, self.hidden_proj]:
             for p in module.parameters():
                 if p.dim() >= 2:
                     nn.init.xavier_uniform_(p, gain=0.5)
-                else:
-                    nn.init.zeros_(p)
 
         for head in [self.head_alpha, self.head_gamma, self.head_rho,
-                     self.head_perturb, self.head_m_self]:
-            nn.init.zeros_(head.weight)
+                     self.head_m_self]:
+            # Small Xavier init → outputs are near zero, in the linear
+            # regime of tanh, so (1+tanh(...))*0.75 ≈ 1.0 + small_jitter.
+            # The balance_loss pulls the small jitter back toward zero.
+            nn.init.xavier_uniform_(head.weight, gain=0.1)
             nn.init.zeros_(head.bias)
+        # Perturb head: bias = 0.0 (no perturbation at init).
+        nn.init.xavier_uniform_(self.head_perturb.weight, gain=0.1)
+        nn.init.zeros_(self.head_perturb.bias)
 
-        for head in [self.head_alpha_legacy, self.head_mu_legacy,
-                     self.head_zeta_legacy, self.head_gamma_legacy]:
-            nn.init.zeros_(head.weight)
-            nn.init.zeros_(head.bias)
-
-    # ═══════════════════ Public forward (dispatch) ═══════════════════
+    # ═══════════════════ Public forward ═══════════════════
 
     def forward(self,
                 qi_per_chakra: torch.Tensor,
@@ -169,47 +150,25 @@ class SelfAwarenessController(nn.Module):
                 **kwargs) -> CtrlOutputs:
         """Compute actuator values from Qi/breath/state signals.
 
-        Supports two call conventions:
-          * New: controller(qi_per_chakra, q_trend, y_over_z_ratio,
-                           field_energy, breath, ...)
-          * Legacy: controller(qi_per_chakra, breath, Q_mean, Q_max, ...)
-        """
-        legacy_keys = {
-            'Q_mean', 'Q_max', 'Q_var', 'Q_high_frac', 'Q_low_frac', 'Q_sat_frac',
-            'Q_transport_mean', 'Q_transport_max', 'Q_transport_clip',
-            'harmony_weights', 'psi_sat_frac', 'field_ratio',
-        }
-        is_legacy_kwargs = bool(kwargs.keys() & legacy_keys)
+        New-style call:
+            controller(qi_per_chakra, q_trend=..., y_over_z_ratio=...,
+                       field_energy=..., breath=..., ...)
 
-        # Start from any explicitly provided keyword values.
+        Legacy keyword arguments are silently ignored.
+        """
+        # New-style positional: (q_trend, y_over_z_ratio, field_energy, breath)
         new_q_trend = q_trend
         new_yz = y_over_z_ratio
         new_energy = field_energy
         new_breath = breath
-
-        def _call_legacy():
-            if 'breath' not in kwargs and breath is not None:
-                kwargs['breath'] = breath
-            if 'reset' not in kwargs:
-                kwargs['reset'] = reset
-            return self._forward_legacy(qi_per_chakra, *args, **kwargs)
-
-        if not is_legacy_kwargs and args:
-            if (len(args) >= 4 and isinstance(args[0], torch.Tensor)
-                    and isinstance(args[3], dict)):
-                # New-style positional: (q_trend, y_over_z_ratio, field_energy, breath)
-                new_q_trend, new_yz, new_energy, new_breath = args[0], args[1], args[2], args[3]
-            elif len(args) == 1 and isinstance(args[0], dict):
-                d = args[0]
-                if set(d.keys()) == {'yang', 'yin'}:
-                    new_breath = d
-                else:
-                    return _call_legacy()
-            else:
-                return _call_legacy()
-
-        if is_legacy_kwargs:
-            return _call_legacy()
+        if not args:
+            pass
+        elif len(args) >= 4 and isinstance(args[0], torch.Tensor):
+            new_q_trend, new_yz, new_energy, new_breath = args[0], args[1], args[2], args[3]
+        elif len(args) == 1 and isinstance(args[0], dict):
+            d = args[0]
+            if set(d.keys()) == {'yang', 'yin'}:
+                new_breath = d
 
         return self._forward_new(
             qi_per_chakra,
@@ -283,18 +242,14 @@ class SelfAwarenessController(nn.Module):
             h_ctrl,
         ], dim=-1)
 
-        # Forward pass with residual recurrent connection.
         h = self.input_proj(x)
         h = self.hidden_proj(h) + h_ctrl
-
-        # Update shared recurrent state when using the internal buffer.
-        if prev_hidden is None:
-            with torch.no_grad():
-                h_next = h.detach().mean(dim=0)
-                self.h_ctrl.copy_(
-                    self.ctrl_ema_decay * self.h_ctrl.to(device) +
-                    (1.0 - self.ctrl_ema_decay) * h_next
-                )
+        # Forward pass with residual recurrent connection.
+        # Note: h_ctrl buffer update is deferred to the caller (must happen
+        # outside any gradient-checkpointed region). The caller calls
+        # self._compute_h_next(h) to get the new value, then
+        # self._update_h_ctrl(h_next) after the checkpoint boundary.
+        h_next = self._compute_h_next(h, base=prev_hidden)
 
         # Actuator heads: raw tanh -> scale -> bias -> clamp.
         raw_alpha   = torch.tanh(self.head_alpha(h))   * 0.75   # [-0.75, 0.75]
@@ -325,125 +280,38 @@ class SelfAwarenessController(nn.Module):
             perturb=perturb_val,
             m_self=m_self_val,
             diagnostics=diagnostics,
+            h_next=h_next,
         )
 
-    # ═══════════════════ Legacy forward (old QiField variants) ═══════════════════
+    def _compute_h_next(self, h: torch.Tensor,
+                         base: Optional[torch.Tensor] = None) -> torch.Tensor:
+        """Compute the EMA-updated hidden state without mutating the buffer.
 
-    def _forward_legacy(self,
-                        qi_per_chakra: torch.Tensor,      # [C]
-                        breath: Dict[str, torch.Tensor],
-                        Q_mean: torch.Tensor,              # scalar
-                        Q_max: torch.Tensor,               # scalar
-                        Q_var: torch.Tensor,               # scalar
-                        Q_high_frac: torch.Tensor,         # scalar
-                        Q_low_frac: torch.Tensor,          # scalar
-                        Q_sat_frac: torch.Tensor,          # scalar
-                        Q_transport_mean: torch.Tensor,    # scalar
-                        Q_transport_max: torch.Tensor,     # scalar
-                        Q_transport_clip: torch.Tensor,    # scalar
-                        harmony_weights: torch.Tensor,     # [C]
-                        psi_sat_frac: torch.Tensor,        # scalar
-                        field_ratio: torch.Tensor,         # scalar
-                        reset: bool = False,
-                        ) -> CtrlOutputs:
-        """Original controller interface kept for backward compatibility."""
-        if reset:
-            self.reset_state()
+        Returns the new h_ctrl value. The caller is responsible for the
+        in-place copy_ to self.h_ctrl (which must happen outside any
+        gradient-checkpointed region).
 
-        device = qi_per_chakra.device
+        Args:
+            h: the new MLP output (per-sample, [B, hidden_dim])
+            base: the hidden state to EMA from. If None, uses self.h_ctrl.
+                Pass the snapshot when calling inside a gradient-checkpointed
+                region so the EMA uses a frozen copy, not the mutable buffer.
+                If base has a batch dimension, it is reduced to [hidden_dim]
+                by taking the mean — the EMA is always per-hidden-dim.
+        """
+        h_next = h.detach().mean(dim=0)
+        if base is None:
+            base = self.h_ctrl.to(h_next.device)
+        elif base.dim() == 2:
+            base = base.mean(dim=0)
+        return self.ctrl_ema_decay * base + (1.0 - self.ctrl_ema_decay) * h_next
 
-        h_ctrl = self.h_ctrl.to(device)
-        qi_ema_c = self.qi_ema_c.to(device)
+    def _update_h_ctrl(self, h_next: torch.Tensor) -> None:
+        """In-place update of self.h_ctrl. Must be called OUTSIDE gradient
+        checkpointing (the buffer mutation breaks gradient flow through
+        the checkpoint boundary)."""
+        self.h_ctrl.copy_(h_next.to(self.h_ctrl.device))
 
-        qi_trend = qi_per_chakra - qi_ema_c
-
-        breath_vec = torch.stack([
-            breath['yang'].flatten(),
-            breath['yin'].flatten(),
-            breath['beat'].flatten(),
-            breath['flow'].flatten(),
-            breath['phase_diff'].flatten() / (2.0 * math.pi),
-        ]).view(-1).to(device)
-
-        Q_global = torch.stack([
-            Q_mean, Q_max, Q_var,
-            Q_high_frac, Q_low_frac, Q_sat_frac,
-        ]).to(device)
-
-        Q_transport = torch.stack([
-            Q_transport_mean, Q_transport_max, Q_transport_clip,
-        ]).to(device)
-
-        x = torch.cat([
-            qi_per_chakra,
-            qi_trend,
-            breath_vec,
-            Q_global,
-            Q_transport,
-            harmony_weights,
-            psi_sat_frac.unsqueeze(0),
-            field_ratio.unsqueeze(0),
-            h_ctrl,
-        ], dim=0)
-
-        h = self.legacy_input_proj(x)
-        h = self.legacy_hidden_proj(h) + h_ctrl
-
-        intero = 0.005 * torch.tanh((field_ratio - PHI_INV**2) / PHI_INV)
-        h = h + intero.detach()
-
-        with torch.no_grad():
-            self.h_ctrl.copy_(
-                self.ctrl_ema_decay * h_ctrl +
-                (1.0 - self.ctrl_ema_decay) * h.detach()
-            )
-
-        yang = breath['yang'].flatten()[0]
-        carrier = 1.0 + 0.5 * yang
-
-        raw_alpha = torch.tanh(self.head_alpha_legacy(h)) * 0.6
-        raw_mu    = torch.tanh(self.head_mu_legacy(h))
-        raw_zeta  = torch.tanh(self.head_zeta_legacy(h)) * 0.75
-        raw_gamma = torch.tanh(self.head_gamma_legacy(h)) * 0.99
-
-        alpha_val = 1.0 + raw_alpha * carrier
-        mu_c      = raw_mu * carrier
-        zeta_c    = 1.0 + raw_zeta * carrier
-        gamma_val = 1.0 + raw_gamma * carrier
-
-        alpha_val = alpha_val.clamp(0.15, 2.5).squeeze(0)
-        mu_c      = mu_c.clamp(-1.0, 1.0)
-        zeta_c    = zeta_c.clamp(0.5, 2.0)
-        gamma_val = gamma_val.clamp(0.8, 1.2).squeeze(0)
-
-        with torch.no_grad():
-            self.qi_ema_c.copy_(0.9 * qi_ema_c + 0.1 * qi_per_chakra)
-            self.prev_outputs.copy_(torch.cat([
-                alpha_val.detach().flatten(),
-                mu_c.detach(),
-                zeta_c.detach(),
-                gamma_val.detach().flatten(),
-            ]))
-
-        diagnostics = {
-            'ctrl_alpha': alpha_val.item(),
-            'ctrl_mu_mean': mu_c.mean().item(),
-            'ctrl_mu_std': mu_c.std().item(),
-            'ctrl_zeta_mean': zeta_c.mean().item(),
-            'ctrl_gamma': gamma_val.item(),
-            'ctrl_carrier': carrier.item(),
-            'ctrl_h_norm': h.norm().item(),
-        }
-
-        # Return new CtrlOutputs; legacy fields are available as properties.
-        return CtrlOutputs(
-            alpha=alpha_val,
-            gamma=gamma_val,
-            rho=torch.ones_like(alpha_val),
-            perturb=torch.zeros_like(alpha_val),
-            m_self=torch.ones_like(alpha_val),
-            diagnostics=diagnostics,
-        )
 
     # ═══════════════════ Homeostasis regularizer ═══════════════════
 
@@ -465,76 +333,40 @@ class SelfAwarenessController(nn.Module):
         high_violation = F.relu(q_mean - high)
         loss = (low_violation.pow(2) + high_violation.pow(2)).mean()
         return weight * loss
+    def compute_balance_loss(self,
+                             ctrl_outputs: 'CtrlOutputs',
+                             weight: float = 0.01) -> torch.Tensor:
+        """Balance regularizer: keep controller actuators near their natural centers.
 
-    # ═══════════════════ Legacy loss helpers ═══════════════════
+        Per convention (chakra balance), "chakra balance is the ideal". This loss anchors
+        alpha/gamma/rho/m_self to 1.0 (the value that means "no modulation")
+        and perturb to 0, preventing the controller from learning to suppress
+        any single actuator. The most common failure mode is alpha->0
+        (silencing the brain->mind modulation), which collapses brain energy
+        and breaks the 13-chakra balance.
 
-    def _homeostasis_loss(self, Q_mean: torch.Tensor) -> torch.Tensor:
-        """Prevent Qi from vanishing (< qi_target_low) or exploding (> qi_target_high)."""
-        low_violation = F.relu(self.qi_target_low - Q_mean)
-        high_violation = F.relu(Q_mean - self.qi_target_high)
-        return low_violation.pow(2) + high_violation.pow(2)
-
-    def _chakra_balance_loss(self, qi_per_chakra: torch.Tensor) -> torch.Tensor:
-        """Prevent any single chakra from dominating Qi."""
-        q = qi_per_chakra + 1e-8
-        q_norm = q / q.sum()
-        target = 1.0 / self.C
-        return (q_norm - target).pow(2).mean()
-
-    def _step_smoothness(self, ctrl: CtrlOutputs, prev_ctrl: CtrlOutputs) -> torch.Tensor:
-        """Per-step smoothness loss — keep as tensor for gradient flow."""
-        return (
-            (ctrl.alpha - prev_ctrl.alpha).pow(2) +
-            (ctrl.gamma - prev_ctrl.gamma).pow(2) +
-            (ctrl.rho - prev_ctrl.rho).pow(2) +
-            (ctrl.m_self - prev_ctrl.m_self).pow(2) +
-            (ctrl.perturb - prev_ctrl.perturb).pow(2)
+        Args:
+            ctrl_outputs: CtrlOutputs from the controller's forward pass.
+                Must be the non-detached output so the gradient flows back
+                to the controller's head_* parameters.
+            weight: multiplier; default 0.01. When weight == 0.0, returns 0.
+        """
+        if weight == 0.0:
+            return torch.tensor(0.0, device=ctrl_outputs.alpha.device)
+        # .sum() (not .mean()) so the weight is batch-size-independent.
+        # Gradient per element: weight * (1/5) * 2*(actuator - 1.0),
+        # regardless of batch size. .mean() would scale the gradient as 1/B.
+        loss = (
+            (ctrl_outputs.alpha - 1.0).pow(2).sum() +
+            (ctrl_outputs.gamma - 1.0).pow(2).sum() +
+            (ctrl_outputs.rho - 1.0).pow(2).sum() +
+            (ctrl_outputs.m_self - 1.0).pow(2).sum() +
+            ctrl_outputs.perturb.pow(2).sum()
         ) / 5.0
+        return weight * loss
 
-    def _breath_gating_loss(self, ctrl: CtrlOutputs, yang: torch.Tensor) -> torch.Tensor:
-        """Penalize global actuators when they deviate from center while breath is neutral."""
-        breath_weight = 1.0 - yang.abs()  # [B] or scalar
-        return (
-            (ctrl.alpha - 1.0).pow(2).mean() * breath_weight.mean() +
-            (ctrl.gamma - 1.0).pow(2).mean() * breath_weight.mean() +
-            (ctrl.m_self - 1.0).pow(2).mean() * breath_weight.mean()
-        ) / 3.0
-
-    def _center_loss(self, ctrl: CtrlOutputs) -> torch.Tensor:
-        """Very weak L2 anchor: actuators should stay near natural centers."""
-        return (
-            (ctrl.alpha - 1.0).pow(2).mean() +
-            (ctrl.gamma - 1.0).pow(2).mean() +
-            (ctrl.rho - 1.0).pow(2).mean() +
-            (ctrl.m_self - 1.0).pow(2).mean() +
-            ctrl.perturb.pow(2).mean()
-        ) / 5.0
-
-    def aux_loss(self,
-                 Q_mean: torch.Tensor,
-                 qi_per_chakra: torch.Tensor,
-                 smoothness_acc: torch.Tensor = 0.0,
-                 yang_mag: torch.Tensor = 0.0,
-                 latest_ctrl: CtrlOutputs = None,
-                 weights: Dict[str, float] = None) -> torch.Tensor:
-        """Combined auxiliary loss with configurable weights."""
-        if weights is None:
-            weights = {}
-        device = Q_mean.device
-        smoothness_acc_t = torch.as_tensor(smoothness_acc, device=device)
-        L = torch.tensor(0.0, device=device)
-        L = L + weights.get('homeo', 0.0) * self._homeostasis_loss(Q_mean)
-        L = L + weights.get('balance', 0.0) * self._chakra_balance_loss(qi_per_chakra)
-        L = L + weights.get('smooth', 0.0) * smoothness_acc_t
-        if latest_ctrl is not None:
-            yang_t = torch.as_tensor(yang_mag, device=device)
-            L = L + weights.get('breath_gating', 0.0) * self._breath_gating_loss(latest_ctrl, yang_t)
-            L = L + weights.get('center', 0.0) * self._center_loss(latest_ctrl)
-        return L
 
     def reset_state(self):
         """Clear all persistent controller state."""
         with torch.no_grad():
             self.h_ctrl.zero_()
-            self.qi_ema_c.zero_()
-            self.prev_outputs.zero_()

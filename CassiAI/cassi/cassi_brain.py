@@ -255,7 +255,7 @@ class CassiBrain(nn.Module):
         self.brain_field = BrainField(D_stem=self.D_stem, D_brain=self.D_brain, K=K)
         # Note: we do NOT subscribe brain_field/soul to qi_cycle here.
         # Forward() explicitly calls set_qi_profile() to avoid double propagation.
-        # DreamBank (if used) is subscribed externally in train_multimodal.py.
+        # DreamBank (if used) is subscribed externally by the trainer.
 
         # Cognitive modules operate on brain_field_state
         if self.use_changepoint:

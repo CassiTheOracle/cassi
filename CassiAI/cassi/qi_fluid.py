@@ -2,16 +2,30 @@
 QiFluid — Self-predicting resonant field with 13-chakra φ-damped dynamics.
 
 Extends CordPhysics' IIR spine with per-chakra self-prediction. The gap
-between prediction and outcome creates a Qi density field that drives
-information routing through breath-modulated coupling.
+between prediction and outcome, together with field intensity, creates a
+Qi density field that drives information routing through breath-modulated
+coupling and a φ-scaled temporal reservoir.
 
 This is the core module — the architecture is built around it.
+
+Qi Formalism:
+  M  = |ψ_real + i·ψ_imag|²         — field intensity (raw energy magnitude)
+  q  = M / (M + φ⁻² + ε²)           — coherence quality ∈ (0, 1]
+                                       1 = frictionless, 0 = blocked
+  qi = M · q                         — coherent energy (what traditions call Qi)
+  pool = φ⁻¹·pool + q̄                — temporal reservoir, φ-scaled leaky integrator
+
+  The old definition Q = |ψ|²·|ε|² conflated intensity with error and
+  could not perceive calm power (high M, low ε, high qi). The split
+  distinguishes four regimes: calm power, turbulence, dormant clarity,
+  and depletion.
 
 Architecture:
   Byte → Embedding(D) → split 13 chakras (padded to max width)
   → vectorized IIR bank (all chakras in one tensor op)
   → per-chakra self-prediction (low-rank: W→R→W, R=min(W,64))
-  → Qi = |ψ|²·|ε|² → breath coupling → fusion
+  → Qi (M, q, qi) → constraint forces (gated on quality EMA)
+  → chakral qi circulation (yang↑, yin↓) → breath coupling → fusion
   → Linear readout → logits over vocabulary
 """
 
@@ -30,7 +44,12 @@ class QiFluid(CordPhysics):
     """13-chakra IIR spine with self-prediction and Qi-driven dynamics.
 
     Inherits CordPhysics' chakra decomposition, IIR parameters, and fusion.
-    Adds per-chakra self-predictors, Qi density, and Breath-driven coupling.
+    Adds per-chakra self-predictors, a φ-scaled Qi reservoir (pool), chakral
+    qi circulation (yang↑ / yin↓), and Breath-driven coupling.
+
+    Qi = M · q  where  M = |ψ|² (magnitude) and q = M/(M+φ⁻²+ε²) (quality).
+    The pool integrates qi over time via leaky accumulation and gates
+    constraint forces, learning rate modulation, and generation depth.
 
     Two forward modes:
       - forward(input_ids): token-by-token [B, T] → [B, T, V] logits
@@ -270,8 +289,10 @@ class QiFluid(CordPhysics):
         # All 13 chakras in 3 fused ops instead of 13 Python iterations.
         # mask zeros out padded positions beyond each chakra's width.
         eps = h_padded - h_hat                                          # [B, C, max_W]
-        qi_field = ((h_padded.pow(2) * self._pred_mask).sum(-1) *
-                    (eps.pow(2) * self._pred_mask).sum(-1))             # [B, C]
+        psi2 = (h_padded.pow(2) * self._pred_mask).sum(-1)  # M: [B, C]
+        eps2 = (eps.pow(2) * self._pred_mask).sum(-1)        # ε²: [B, C]
+        qi_quality = psi2 / (psi2 + PHI_INV**2 + eps2)       # q: [B, C]
+        qi_field = psi2 * qi_quality                          # qi: [B, C]
         # Beat modulation: constructive interference amplifies Qi
         beat = float(breath['beat'])                                    # [-1, 1]
         qi_field = qi_field * (1.0 + 0.5 * beat)                       # [0.5×, 1.5×]
@@ -310,14 +331,14 @@ class QiFluid(CordPhysics):
 
         # 6. Readout
         logits = self.readout(fused)  # [B, V]
-
         # ── Diagnostics ──
         qi_info = {
-            'Q_mean': qi_field.mean().item(),
-            'Q_max': qi_field.max().item(),
+            'qi_mean': qi_field.mean().item(),      # primary diagnostic
+            'qi_max': qi_field.max().item(),
+            'Q_mean': qi_field.mean().item(),       # backward compat alias
             'harmony': harmony_w.detach().cpu().tolist(),
-            '_qi_field': qi_field,              # [B, C] differentiable
-            '_qi_per_chakra': qi_field.mean(dim=0),  # [C] differentiable
+            '_qi_field': qi_field,                  # [B, C] differentiable
+            '_qi_per_chakra': qi_field.mean(dim=0), # [C] differentiable
         }
 
         return logits, qi_info
@@ -337,6 +358,8 @@ class QiFluid(CordPhysics):
         """
         B, T = input_ids.shape
         all_logits = []
+        total_qi_mean = 0.0
+        total_qi_max = 0.0
         total_Q_mean = 0.0
         total_Q_max = 0.0
         last_qi_field = None
@@ -345,16 +368,19 @@ class QiFluid(CordPhysics):
         for t in range(T):
             logits, qi_info = self.forward_step(input_ids[:, t])
             all_logits.append(logits)
+            total_qi_mean += qi_info['qi_mean']
+            total_qi_max = max(total_qi_max, qi_info['qi_max'])
             total_Q_mean += qi_info['Q_mean']
-            total_Q_max = max(total_Q_max, qi_info['Q_max'])
+            total_Q_max = max(total_Q_max, qi_info.get('Q_max', 0.0))
             if return_qi_field and t == T - 1:
                 last_qi_field = qi_info.get('_qi_field', None)
                 last_qi_per_chakra = qi_info.get('_qi_per_chakra', None)
 
         logits_seq = torch.stack(all_logits, dim=1)  # [B, T, V]
-
         info = {
-            'Q_mean': total_Q_mean / max(T, 1),
+            'qi_mean': total_qi_mean / max(T, 1),   # primary diagnostic
+            'qi_max': total_qi_max,
+            'Q_mean': total_Q_mean / max(T, 1),     # backward compat
             'Q_max': total_Q_max,
             'harmony': qi_info['harmony'],
         }

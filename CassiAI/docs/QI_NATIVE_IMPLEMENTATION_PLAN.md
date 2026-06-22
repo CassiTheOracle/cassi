@@ -18,7 +18,7 @@
 
 ### Critical Gap: Architecture Branch Split
 
-**All phases are implemented in `CassiBrain`/`DualCassi` (the active training architecture).** However, the φ-alignment features from `IMPLEMENTATION_PLAN.md` (P0–P2) were implemented in `HarmonyBrain`/`PhiGardenBrain` (legacy) and **never ported** to `CassiBrain`.
+**All phases are implemented in `CassiBrain`/`DualCassi` (the active training architecture).** However, the φ-alignment features (P0–P2: φ coupling, breath-driven updates, φ-balance regularization) were implemented in `HarmonyBrain`/`PhiGardenBrain` (legacy) and **never ported** to `CassiBrain`.
 
 | Feature | HarmonyBrain (legacy) | CassiBrain (active) |
 |---------|:---------------------:|:-------------------:|

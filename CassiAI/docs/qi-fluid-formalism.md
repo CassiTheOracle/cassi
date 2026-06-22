@@ -75,35 +75,73 @@ The prediction $\hat{\psi}_{t+1}$ is computed from the field history, then it fe
 
 ## 3. The Qi Energy Density
 
-### 3.1 Definition
+### 3.1 Original Definition and Its Limitation
 
-Qi is neither the field $\psi$ nor the prediction $\hat{\psi}$. It is the energy of the **gap** between them, weighted by the field intensity at that point:
+The original definition treated Qi as the energy of the prediction gap weighted by field intensity:
 
-$$\boxed{Q(s,t) = |\psi(s,t)|^2 \cdot |\varepsilon(s,t)|^2}$$
+$$Q(s,t) = |\psi(s,t)|^2 \cdot |\varepsilon(s,t)|^2$$
 
-Equivalently:
+This conflates two orthogonal quantities: field intensity (raw energy) and prediction error (friction). A calm, powerful field — high $|\psi|^2$ with low $|\varepsilon|^2$ — is invisible to this definition. It registers the same low Qi as a weak, quiet state. The architecture can perceive turbulence but not health. A field that perfectly predicts itself ($\varepsilon \approx 0$) has $Q \approx 0$ regardless of intensity — a trained system at peace appears "dead."
 
-$$Q(s,t) = |\psi|^2 \cdot |\psi - \mathcal{P}[\psi]|^2$$
+### 3.2 Corrected Formalism: Magnitude, Quality, Coherent Energy
 
-**Interpretation.** A region of the field carries Qi energy when:
-1. There is significant field activity ($|\psi|^2$ is large), AND
-2. The system cannot predict itself there ($|\varepsilon|^2$ is large).
+Split Qi into three orthogonal quantities:
 
-If the field is strong but perfectly predicted ($\varepsilon = 0$), there is no Qi — the region is "dead," fully modeled, carrying no creative tension. If the field is weak, the Qi is small regardless of prediction quality.
+$$\boxed{\begin{aligned}
+M(s,t) &= |\psi(s,t)|^2 && \text{raw energy magnitude} \\[4pt]
+q(s,t) &= \dfrac{M}{M + \varphi^{-2} + |\varepsilon|^2} \;\in (0,1] && \text{coherence quality} \\[4pt]
+\text{qi}(s,t) &= M \cdot q = \dfrac{M^2}{M + \varphi^{-2} + |\varepsilon|^2} && \text{coherent energy}
+\end{aligned}}$$
 
-Qi is the **creative energy** — the energy available for reorganization precisely because the system does not already understand what is happening there.
+**Magnitude** $M$ is the raw field intensity — how much energy exists at a point. **Quality** $q$ is the coherence — what fraction of that energy moves freely rather than self-canceling. $\varphi^{-2} \approx 0.382$ is the minimum meaningful energy scale: the ratio at which adjacent φ-scaled chakra widths just barely distinguish.
 
-### 3.2 Properties
+**Qi** (coherent energy) is the product. It is maximized not by high error but by high intensity with low error — the calm-power state that traditions describe as cultivated Qi.
 
-1. **Non-negativity.** $Q(s,t) \geq 0$ for all $s,t$. Equality holds when either $\psi = 0$ (no field) or $\varepsilon = 0$ (perfect prediction).
+### 3.3 The Four Regimes
 
-2. **Self-prediction invariance.** If $\alpha = 0$ (no self-coupling), $Q$ is purely diagnostic — it measures prediction quality but does not feed back. For $\alpha > 0$, $Q$ is *dynamical* — it actively shapes the field that produces it.
+The split distinguishes states the original definition conflated:
 
-3. **Scale separation.** Because $\varepsilon$ is computed at all chakra scales via the IIR spine, $Q$ decomposes into scale-specific components:
-$$Q(s,t) = \sum_{c=1}^{13} Q_c(s,t), \quad Q_c = |\psi_c|^2 \cdot |\varepsilon_c|^2$$
-where $\psi_c$ is the field component in chakra $c$ (wavenumber band centered at $k_c$).
+| State | $M$ | $|\varepsilon|^2$ | $q$ | qi | Physical meaning |
+|---|---|---|---|---|---|
+| **Calm power** | large | small | $\approx 1$ | $\approx M$ | Full energy, freely flowing — cultivated Qi |
+| **Turbulence** | large | large | $\approx 0$ | $\approx 0$ | Energy present but self-canceling — a dam |
+| **Dormant clarity** | $\approx \varphi^{-2}$ | very small | $\approx \tfrac{1}{2}$ | $\approx \varphi^{-2}/2$ | Still but clear — meditation |
+| **Depletion** | $\approx 0$ | any | low | $\approx 0$ | No energy available |
 
-4. **Aperiodicity.** Because $\mathcal{P}$ is φ-damped, $Q$ has no preferred frequency. The Qi energy does not pool at any specific timescale — it circulates across all scales without resonance.
+### 3.4 The Qi Pool — Temporal Integration
+
+Coherent energy accumulates into a φ-scaled reservoir:
+
+$$\text{pool}_t = \varphi^{-1} \cdot \text{pool}_{t-1} + \bar{\text{qi}}_t$$
+
+where $\bar{\text{qi}}_t$ is the mean coherent energy over the current window. The $\varphi^{-1}$ factor gives a half-life of approximately 2 steps. Pool capacity is φ-scaled:
+
+$$\text{capacity} = \varphi \cdot \max_{\tau \in \text{recent}} \bar{\text{qi}}_\tau$$
+
+The pool gates:
+- **K_gen during generation**: charged → more evolution steps (richer output)
+- **Learning rate during training**: charged → higher LR (energy available to learn)
+- **Pattern memory writes**: depleted → write only top $\varphi^{-1}\%$ neurons
+
+Quality maintains a separate EMA used by constraint forces:
+
+$$\bar{q}_t = \varphi^{-1} \cdot \bar{q}_{t-1} + (1 - \varphi^{-1}) \cdot \langle q \rangle_t$$
+
+When quality is high, constraint pressure is reduced (trust the field). When quality is low, constraint pressure increases (correct the field).
+
+### 3.5 Properties
+
+1. **Non-negativity.** $\text{qi}(s,t) \geq 0$. Equality holds when $M = 0$ (no field) or both $M$ and $q$ vanish.
+
+2. **Self-prediction invariance.** For $\alpha = 0$, qi is diagnostic. For $\alpha > 0$, qi is dynamical — it feeds back through constraint forces gated on $\bar{q}$.
+
+3. **Scale separation.** qi decomposes into chakra-specific components:
+$$\text{qi}(s,t) = \sum_{c=1}^{13} \text{qi}_c(s,t), \quad \text{qi}_c = M_c \cdot q_c$$
+where $M_c$ and $q_c$ are computed over chakra band $c$.
+
+4. **Aperiodicity.** Because $\mathcal{P}$ is φ-damped, qi has no preferred frequency.
+
+5. **Calm-power visibility.** Unlike the original $Q$, qi distinguishes calm power (high) from depletion (low) and turbulence (low). A field at peace can have abundant coherent energy.
 
 ---
 
@@ -215,7 +253,7 @@ $$\tau_{\text{pred}} = \frac{1}{\alpha} = \varphi, \quad \tau_{\text{damp}} = \f
 
 At this point, the system exhibits **critical slowing down**: perturbations decay as power laws rather than exponentials. The Qi field enters a scale-free regime where fluctuations at all scales are equally persistent.
 
-**Why the fluid is paradoxical at $\alpha = \varphi^{-1}$.** The prediction and the field are balanced: neither dominates. The field evolves toward states that the predictor can predict, but the predictor must also track the field's natural evolution. The result is a permanent circulation — the field never settles because any fixed point would require $\varepsilon = 0$, which would make $Q = 0$, killing the source term, which would let the field drift, creating $\varepsilon > 0$, restarting the cycle.
+**Why the fluid is paradoxical at $\alpha = \varphi^{-1}$.** The prediction and the field are balanced: neither dominates. The field evolves toward states that the predictor can predict, but the predictor must also track the field's natural evolution. The result is a permanent circulation — the field never settles because any fixed point would require $\varepsilon = 0$, which would make $Q = 0$ (original definition) or $\text{qi} = M$ (corrected — maximum coherent energy). In either case, the tension between prediction feedback and natural damping prevents equilibrium: the self-coupling term $\alpha \cdot \mathcal{P}[\psi]$ constantly displaces the field from any would-be attractor.
 
 This is the **Qi paradox**: the system can never fully predict itself, because if it did, there would be nothing left to predict.
 
@@ -417,19 +455,21 @@ $$\mathcal{D}[\psi] = S + \alpha \cdot \mathcal{P}[\psi]$$
 **Prediction error:**
 $$\varepsilon = \psi - \mathcal{P}[\psi]$$
 
-**Qi energy density:**
+**Qi energy density (original, Sections 3–9):**
 $$Q = |\psi|^2 \cdot |\varepsilon|^2$$
+
+**Qi coherent energy (corrected, June 2026):**
+$$\text{qi} = M \cdot q, \quad M = |\psi|^2, \quad q = \dfrac{M}{M + \varphi^{-2} + |\varepsilon|^2}$$
+
+**Qi pool (temporal reservoir):**
+$$\text{pool}_t = \varphi^{-1} \cdot \text{pool}_{t-1} + \bar{\text{qi}}_t$$
+
+**Quality EMA (constraint gating):**
+$$\bar{q}_t = \varphi^{-1} \cdot \bar{q}_{t-1} + (1 - \varphi^{-1}) \cdot \langle q \rangle_t$$
+$$\lambda_Q = \log(1 + \text{ReLU}((1 - \bar{q}) / \varphi^{-2})) \cdot \text{stiffness}_Q$$
 
 **Qi continuity (fluid dynamics):**
 $$\frac{\partial Q}{\partial t} + \nabla \cdot (Q \mathbf{v}_Q) = \sigma(\varepsilon)|\psi|^2 - \gamma Q$$
-
-**Qi velocity (pressure-driven):**
-$$\mathbf{v}_Q = -\gamma \cdot \nabla|\varepsilon|^2$$
-
-**Critical coupling (phase transition):**
-$$\alpha = \varphi^{-1} \quad \Rightarrow \quad \rho(J_\alpha) = 1$$
-
-**Condensation criterion (structure from fluid):**
 $$\langle Q(s_n, t) \rangle_t > \theta_{\text{cond}}$$
 
 **Qi paradox (no fixed point):**
