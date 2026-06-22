@@ -159,6 +159,7 @@ class MuonCord(nn.Module):
                  V: int = 256,
                  K_train: int = 5,
                  K_gen: int = 3,
+                 K_ar: int = 3,
                  brain_shells: int = 7,
                  brain_D: int = 588,
                  stiffness_Q: float = 1.0,
@@ -193,6 +194,7 @@ class MuonCord(nn.Module):
         self.V = V
         self.K_train = K_train
         self.K_gen = K_gen
+        self.K_ar = K_ar
         self.max_batch_size = max_batch_size
         self.use_checkpoint = use_checkpoint
         self.span_len = span_len
@@ -677,8 +679,7 @@ class MuonCord(nn.Module):
         self._current_delta_theta = None
         self._current_delta_gamma = None
 
-        # Evolution steps (write_memory=False prevents pattern memory pollution)
-        for _ in range(self.K_gen):
+        for _ in range(self.K_ar):
             h1_sl = self.h1[:B].detach().clone()
             h2_sl = self.h2[:B].detach().clone()
             h1i_sl = self.h1_im[:B].detach().clone()

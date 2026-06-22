@@ -228,6 +228,8 @@ def main():
                         choices=['qifluid', 'adamw'])
     parser.add_argument('--K-train', type=int, default=3)
     parser.add_argument('--K-gen', type=int, default=50)
+    parser.add_argument('--K-ar', type=int, default=3,
+                        help='field AR loss evolution steps (training only)')
     # Brain
     parser.add_argument('--brain-shells', type=int, default=7)
     parser.add_argument('--brain-D', type=int, default=588)
@@ -302,7 +304,7 @@ def main():
     # ── Build model ──
     model = ManifoldCord(
         N=args.N, d=args.d, C=13, V=256,
-        K_train=args.K_train, K_gen=args.K_gen,
+        K_train=args.K_train, K_gen=args.K_gen, K_ar=args.K_ar,
         brain_shells=args.brain_shells, brain_D=args.brain_D,
         stiffness_Q=args.stiffness_Q, stiffness_E=args.stiffness_E,
         stiffness_B=args.stiffness_B, noise_scale=args.noise_scale,
@@ -413,7 +415,6 @@ def main():
 
             opt.zero_grad()
             mask_ratio = args.mask_ratio if torch.rand(1).item() < args.mask_prob else 0.0
-            total_loss = 0.0
             loss_info = {}
 
             for window_idx in range(args.num_windows):
@@ -423,7 +424,9 @@ def main():
 
                 loss, info = model.training_loss(x_window, no_reset=no_reset,
                                                  mask_ratio=mask_ratio)
-                total_loss += loss
+                # Backward per-window: frees computation graph immediately,
+                # avoids holding 4 windows' graphs in memory simultaneously.
+                (loss / args.num_windows).backward()
 
                 # Collect diagnostics from all windows
                 for k in ('ce_loss', 'loss', 'Q_mean', 'lambda_Q',
@@ -434,18 +437,17 @@ def main():
                     if k in info:
                         loss_info[k] = loss_info.get(k, 0.0) + info.get(k, 0.0)
 
-            total_loss = total_loss / args.num_windows
+                # NaN guard per-window
+                if torch.isnan(loss) or torch.isinf(loss):
+                    print(f'  !! NaN in window {window_idx} at step {step} — skipping batch')
+                    opt.zero_grad()
+                    model.reset_iir_state()
+                    break
 
-            if torch.isnan(total_loss) or torch.isinf(total_loss):
-                print(f'  !! NaN at step {step} — skipping')
-                model.reset_iir_state()
-                continue
-
-            total_loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 10.0)
-            opt.step()
-
-            # Reset state between training examples
+            else:
+                # Only reached if no break (all windows clean)
+                torch.nn.utils.clip_grad_norm_(model.parameters(), 10.0)
+                opt.step()
             model.reset_iir_state()
 
             # Collect diagnostics
