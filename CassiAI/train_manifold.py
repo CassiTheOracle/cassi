@@ -287,6 +287,8 @@ def main():
                         help='disable bidirectional training')
     parser.add_argument('--strict-ckpt', action='store_true',
                         help='strict checkpoint loading (fail on key mismatch)')
+    parser.add_argument('--no-resume', action='store_true',
+                        help='force training from scratch, ignore checkpoint')
     args = parser.parse_args()
 
     if args.save_dir is None:
@@ -343,10 +345,11 @@ def main():
     start_ep = 0
     best_val_loss = float('inf')
     patience_counter = 0
-
     ckpt_path = args.checkpoint or ckpt_latest
     loaded_ok = False
-    if os.path.exists(ckpt_path):
+    if args.no_resume:
+        print('--no-resume: training from scratch')
+    elif os.path.exists(ckpt_path):
         ckpt = torch.load(ckpt_path, map_location=DEV, weights_only=True)
         ckpt_model = ckpt.get('model', ckpt)
         if args.strict_ckpt:
