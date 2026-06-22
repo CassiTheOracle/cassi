@@ -72,6 +72,19 @@ class ResonantField(nn.Module):
         self.register_buffer('a1_unmod', a1_vec)
         self.register_buffer('a2_unmod', a2_vec)
 
+        # Per-dimension chakra index for fused modulated path
+        dim_to_chakra = torch.zeros(d, dtype=torch.long)
+        rho_dim = torch.zeros(d)
+        theta_dim = torch.zeros(d)
+        for c in range(C):
+            sl = slice(self.offsets[c], self.offsets[c] + self.widths[c])
+            dim_to_chakra[sl] = c
+            rho_dim[sl] = self.rho_base[c]
+            theta_dim[sl] = self.theta_base[c]
+        self.register_buffer('_dim_to_chakra', dim_to_chakra)
+        self.register_buffer('rho_per_dim', rho_dim)
+        self.register_buffer('theta_per_dim', theta_dim)
+
         # Persistent IIR buffers: 6 × [max_bs, N, d]
         for name in ('h_real', 'h_imag', 'h_prev_real', 'h_prev_imag',
                      'x_prev_real', 'x_prev_imag'):
@@ -130,17 +143,16 @@ class ResonantField(nn.Module):
         eps2 = (psi_real - P_re) ** 2 + (psi_imag - P_im) ** 2
         return P_re, P_im, eps2
 
-    # ── Per-element IIR ──
-
     def _chakra_iir(self, psi_real: torch.Tensor, psi_imag: torch.Tensor,
                     b0: torch.Tensor, b1: torch.Tensor, B: int,
                     delta_rho: Optional[torch.Tensor] = None,
                     delta_theta: Optional[torch.Tensor] = None
                     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Per-element IIR prediction.
+        """Per-element IIR — index-select fuses 13→1 kernel launch.
 
-        When BrainTuner modulation is inactive (delta_rho is None), uses
-        a fused batched path — one kernel launch vs 13 loop iterations.
+        Unmodulated path (generation/eval): uses precomputed a1_unmod/a2_unmod.
+        Modulated path (training): uses _dim_to_chakra + delta to build
+        per-dimension coefficients in one shot.
         """
         h_re = self.h_real[:B].detach().clone()
         h_im = self.h_imag[:B].detach().clone()
@@ -148,44 +160,21 @@ class ResonantField(nn.Module):
         h_pi = self.h_prev_imag[:B].detach().clone()
         x_pr = self.x_prev_real[:B].detach().clone()
         x_pi = self.x_prev_imag[:B].detach().clone()
-
-        # ── Fused unmodulated path (generation/eval) ──
-        # One batched operation instead of 13 per-chakra kernel launches.
         if delta_rho is None:
-            P_re = (self.a1_unmod * h_re + self.a2_unmod * h_pr
-                    + b0 * psi_real + b1 * x_pr)
-            P_im = (self.a1_unmod * h_im + self.a2_unmod * h_pi
-                    + b0 * psi_imag + b1 * x_pi)
-            return P_re, P_im
+            a1 = self.a1_unmod  # [d] broadcasts → [1,1,d] → [B,N,d]
+            a2 = self.a2_unmod
+        else:
+            # Index-select chakra modulation → [B, d]
+            c_idx = self._dim_to_chakra  # [d] long
+            rho_eff = self.rho_per_dim * (1.0 + torch.tanh(delta_rho[:, c_idx]))  # [B, d]
+            theta_eff = self.theta_per_dim + delta_theta[:, c_idx]  # [B, d]
+            a1 = (2.0 * rho_eff * torch.cos(theta_eff)).unsqueeze(1)  # [B, 1, d]
+            a2 = (-(rho_eff ** 2)).unsqueeze(1)  # [B, 1, d]
 
-        # ── Modulated path (per-chakra loop, during training) ──
-        P_re = torch.zeros_like(psi_real)
-        P_im = torch.zeros_like(psi_imag)
-
-        for c in range(self.C):
-            off = self.offsets[c]
-            dc = self.widths[c]
-            sl = slice(off, off + dc)
-
-            rho_c = self.rho_base[c] * (1.0 + torch.tanh(delta_rho[:, c]))
-            theta_c = self.theta_base[c] + delta_theta[:, c]
-
-            # IIR coefficients — batch-broadcast
-            cos_t = torch.cos(theta_c if theta_c.dim() > 0
-                              else torch.tensor(theta_c, device=psi_real.device))
-            a1 = (2.0 * rho_c * cos_t).view(B, 1, 1)
-            a2 = (-(rho_c ** 2)).view(B, 1, 1)
-
-            P_re[:, :, sl] = (a1 * h_re[:, :, sl]
-                              + a2 * h_pr[:, :, sl]
-                              + b0[sl] * psi_real[:, :, sl]
-                              + b1[sl] * x_pr[:, :, sl])
-            P_im[:, :, sl] = (a1 * h_im[:, :, sl]
-                              + a2 * h_pi[:, :, sl]
-                              + b0[sl] * psi_imag[:, :, sl]
-                              + b1[sl] * x_pi[:, :, sl])
-
+        P_re = a1 * h_re + a2 * h_pr + b0 * psi_real + b1 * x_pr
+        P_im = a1 * h_im + a2 * h_pi + b0 * psi_imag + b1 * x_pi
         return P_re, P_im
+
 
     # ── Cross-chakra diffusion ──
 
