@@ -36,6 +36,9 @@ from cassi.qi_flow import QiFlow
 from cassi.tonic_phasic import TonicPhasic
 from cassi.brain_tuner import BrainTuner
 from cassi.heartbeat import Heartbeat
+from cassi.conscious_workspace import ConsciousWorkspace
+from cassi.dream_bank_muon import DreamBankMuon
+from cassi.berry_phase_memory import BerryPhaseMemory
 
 from cassi.field_condenser import FieldCondenser, ChakraCondenser
 
@@ -220,6 +223,11 @@ class MuonCord(nn.Module):
         self.lambda_chakra = nn.Parameter(torch.tensor(0.1))
         self.lambda_field_ar = nn.Parameter(torch.tensor(0.1))
 
+        # ── Berry phase memory (topological associative recall) ──
+        self.berry_memory = BerryPhaseMemory(
+            n_slots=512, C=C, d_shared=self.d_chakra_shared,
+            chakra_widths=widths, chakra_offsets=chakra_offsets(widths).clone())
+
         # ── Constraint force parameters (scalars) ──
         self.stiffness_Q = nn.Parameter(torch.tensor(stiffness_Q))
         self.stiffness_E = nn.Parameter(torch.tensor(stiffness_E))
@@ -287,6 +295,9 @@ class MuonCord(nn.Module):
         # ── Pattern memory ──
         self.pattern_memory = QiPatternMemory(d=d, max_neurons=max_neurons)
 
+        # ── Conscious workspace (sparse competitive broadcast) ──
+        self.conscious_workspace = ConsciousWorkspace(d=d)
+
         # ── Heartbeat (unsuppressible pulse generator) ──
         self.heartbeat = Heartbeat(omega=PHI)
 
@@ -344,6 +355,9 @@ class MuonCord(nn.Module):
         self.register_buffer('qi_pool_peak', torch.zeros(1))
         self.register_buffer('qi_quality_ema', torch.ones(1))  # starts at 1 (trust)
         self._last_qi = None  # cached for self-supervised losses
+
+        # ── DreamBank (episodic replay for Qi-state balance) ──
+        self.dream_bank = DreamBankMuon(N=N)
 
         # ── Pattern step counter ──
         self.register_buffer('pattern_step', torch.zeros(1, dtype=torch.long))
@@ -743,6 +757,21 @@ class MuonCord(nn.Module):
         h2_im_next = h1_im_in
         psi_real, psi_imag = new_psi_re, new_psi_im
 
+        # ── 2b. Berry phase memory read (topological recall) ──
+        yang_phases = BerryPhaseMemory.compute_phases(
+            h1_next, h2_next, self.chakra_widths, self.chakra_offsets, self.C)
+        yin_phases = BerryPhaseMemory.compute_phases(
+            h1_im_next, h2_im_next, self.chakra_widths, self.chakra_offsets, self.C)
+        berry_phases = F.normalize(torch.cat([yang_phases, yin_phases], dim=-1), dim=-1)
+        berry_val = self.berry_memory.read(berry_phases)  # [B, C, d_shared]
+        # Expand per-chakra values back to field space via chakra_proj weights
+        for c in range(self.C):
+            w = self.chakra_widths[c]
+            start = int(self.chakra_offsets[c].item())
+            boost = berry_val[:, c, :] @ self.chakra_proj[c].weight  # [B, w]
+            psi_real[:, :, start:start + w] += PHI_INV * boost.unsqueeze(1)
+            psi_imag[:, :, start:start + w] += PHI_INV * boost.unsqueeze(1)
+
         # ── 3. Pattern-memory read ──
         query = F.layer_norm(psi_real, psi_real.shape[-1:])
         psi2_approx = self._complex_norm2(psi_real, psi_imag)
@@ -834,6 +863,7 @@ class MuonCord(nn.Module):
         # ── 12. Resonant attention (qi-gated) ──
         h_combined_re = psi_real + cord_re
         h_combined_im = psi_imag + cord_im
+
         attn_re, attn_im = self.resonant_attention(
             psi_real, psi_imag, h_combined_re, h_combined_im)
         # Qi gate: amplify attention at positions with above-average coherent energy
@@ -849,6 +879,11 @@ class MuonCord(nn.Module):
         qi_boost = torch.sigmoid(qi_deviation / (self.Q_bar_pos[:B] + 1e-8))  # [B, N]
         psi_real = psi_real * (1.0 + 0.1 * qi_boost.unsqueeze(-1))
         psi_imag = psi_imag * (1.0 + 0.1 * qi_boost.unsqueeze(-1))
+
+        # ── 12c. Conscious workspace (sparse competitive broadcast) ──
+        cw_re, cw_im = self.conscious_workspace(psi_real, psi_imag, qi_contrast.detach())
+        psi_real = psi_real + PHI_INV * cw_re
+        psi_imag = psi_imag + PHI_INV * cw_im
         # ── 13. Tonic/phasic ──
         psi_real, psi_imag = self.tonic_phasic(psi_real, psi_imag, qi, B)
 
@@ -1188,6 +1223,45 @@ class MuonCord(nn.Module):
             all_diag['field_ar_loss'] = ar_loss.item()
             loss = loss + self.lambda_field_ar * ar_loss
 
+        # ── DreamBank episodic store (training only) ──
+        if self.training:
+            qi_mean_val = all_diag.get('qi_mean', 0.0)
+            qi_quality_val = all_diag.get('qi_quality_mean', 0.5)
+            self.dream_bank.store(x[0], qi_mean_val, qi_quality_val, ce_fwd.item())
+
+            # Periodic replay from under-represented Qi state
+            if self.dream_bank.should_replay():
+                if replay_x is not None and replay_elem is not None:
+                    # Replay forward pass in eval mode to skip bidirectional + self-supervised
+                    was_training = self.training
+                    self.eval()
+                    with torch.no_grad():
+                        r_loss, r_info = self.training_loss(
+                            replay_x, mask_ratio=0.0)
+                    if was_training:
+                        self.train()
+                    loss = loss + self.dream_bank.replay_weight * r_loss
+                    all_diag['replay_loss'] = r_loss.item()
+                    all_diag['replay_element'] = replay_elem
+
+        # ── Berry phase memory write (training only) ──
+        if self.training:
+            # Compute Berry phases from final IIR state and store
+            yang_phases = BerryPhaseMemory.compute_phases(
+                self.h1[:B], self.h2[:B], self.chakra_widths, self.chakra_offsets, self.C)
+            yin_phases = BerryPhaseMemory.compute_phases(
+                self.h1_im[:B], self.h2_im[:B], self.chakra_widths, self.chakra_offsets, self.C)
+            berry_key = F.normalize(torch.cat([yang_phases, yin_phases], dim=-1).mean(dim=0), dim=-1)
+            # Compress current field into per-chakra representation
+            berry_val = torch.zeros(self.C, self.d_chakra_shared, device=psi_real.device)
+            for c in range(self.C):
+                start = int(self.chakra_offsets[c].item())
+                w = self.chakra_widths[c]
+                band = psi_real[:, :, start:start + w].mean(dim=(0, 1))  # [w]
+                berry_val[c] = band[:self.d_chakra_shared] if w >= self.d_chakra_shared else \
+                    F.pad(band, (0, self.d_chakra_shared - w))
+            self.berry_memory.write(berry_key, berry_val)
+
         # ── Bidirectional losses ──
         if self.training and self.bidirectional and not self.continuous_mode and mask_ratio == 0:
             # Backward pass: reversed sequence
@@ -1412,12 +1486,18 @@ class MuonCord(nn.Module):
         # to 3 (matching K_train); override via --k-gen.
 
         max_val = 10.0 * F.softplus(self.field_scale)
-        for _ in range(K_init):
+        for step in range(K_init):
             (psi_real, psi_imag,
              h1_sl, h2_sl, h1i_sl, h2i_sl,
              Q_mean, _) = self._unified_step(
                 psi_real, psi_imag,
                 h1_sl, h2_sl, h1i_sl, h2i_sl, q_ema)
+            # Ripple: structured exploration after half the settling steps
+            if step >= K_init // 2 and self.qi_quality_ema.item() < 0.8:
+                rip_re, rip_im = self._compute_ripple(
+                    psi_real, psi_imag, probe_scale=0.01)
+                psi_real = psi_real + 0.062 * rip_re
+                psi_imag = psi_imag + 0.062 * rip_im
             q_ema = PHI_INV * Q_mean + (1.0 - PHI_INV) * q_ema
             # NaN/Inf safety: detect and reset if IIR state goes non-finite
             if not torch.isfinite(Q_mean) or not torch.isfinite(h1_sl).all() \
@@ -1609,6 +1689,45 @@ class MuonCord(nn.Module):
         self.h2_im[:1].copy_(h2in)
         return self._clamp_iir_state(1, psi_real, psi_imag,
                                      clamp_field=clamp_field)
+
+    @torch.no_grad()
+    def _compute_ripple(self, psi_real: torch.Tensor, psi_imag: torch.Tensor,
+                        probe_scale: float = 0.01) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Compute the Cord's resonant sensitivity direction.
+
+        Runs _unified_step on the field and on a slightly-noised copy.
+        The difference is the "ripple" — directions the Cord is actually
+        sensitive to. Concentrates exploration where the model has structure.
+
+        Args:
+            psi_real, psi_imag: [1, N, d] field state.
+            probe_scale: std of the probe noise.
+
+        Returns:
+            ripple_re, ripple_im: [1, N, d] normalized sensitivity direction.
+        """
+        h1_sl = self.h1[:1].detach().clone()
+        h2_sl = self.h2[:1].detach().clone()
+        h1i_sl = self.h1_im[:1].detach().clone()
+        h2i_sl = self.h2_im[:1].detach().clone()
+
+        # Clean pass
+        pr_c, pi_c, _, _, _, _, _, _ = self._unified_step(
+            psi_real, psi_imag, h1_sl, h2_sl, h1i_sl, h2i_sl,
+            self.Q_ema.detach(), write_memory=False)
+
+        # Noised pass
+        noise = torch.randn_like(psi_real) * probe_scale
+        pr_n, pi_n, _, _, _, _, _, _ = self._unified_step(
+            psi_real + noise, psi_imag + noise,
+            h1_sl, h2_sl, h1i_sl, h2i_sl,
+            self.Q_ema.detach(), write_memory=False)
+
+        # Ripple = difference in response, normalized
+        ripple_re = pr_n - pr_c
+        ripple_im = pi_n - pi_c
+        norm = (ripple_re.pow(2) + ripple_im.pow(2)).sum(dim=-1, keepdim=True).sqrt().clamp_min(1e-8)
+        return ripple_re / norm, ripple_im / norm
 
     @torch.no_grad()
     def _sample_with_penalties(self, logits: torch.Tensor,

@@ -169,7 +169,8 @@ class ManifoldCord(MuonCord):
                                  repetition_penalty: float = 1.2,
                                  rep_window: int = 8,
                                  top_k: Optional[int] = None,
-                                 ngram_block_size: int = 0) -> torch.Tensor:
+                                 ngram_block_size: int = 0,
+                                 ripple_scale: float = 0.062) -> torch.Tensor:
         """Generate bytes in parallel blocks from a seed of any length.
 
         Processes the seed through streaming windows (accumulating IIR state),
@@ -247,9 +248,16 @@ class ManifoldCord(MuonCord):
             def _evolve_block(window_tokens):
                 batch = torch.tensor(window_tokens, dtype=torch.long, device=device).unsqueeze(0)
                 psi_real, psi_imag = self.embed(batch)
-                for _ in range(K_init):
+                for step in range(K_init):
                     psi_real, psi_imag = self._evolve_one_step(
                         psi_real, psi_imag, q_ema, clamp_field=True)
+                    # After half the settling steps, add ripple for structured exploration
+                    if (step >= K_init // 2 and ripple_scale > 0
+                            and self.qi_quality_ema.item() < 0.8):
+                        rip_re, rip_im = self._compute_ripple(
+                            psi_real, psi_imag, probe_scale=0.01)
+                        psi_real = psi_real + ripple_scale * rip_re
+                        psi_imag = psi_imag + ripple_scale * rip_im
                 return psi_real, psi_imag
 
             # ── Evolve K_init steps (carries IIR state forward) ──
