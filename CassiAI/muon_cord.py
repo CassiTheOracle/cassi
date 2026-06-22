@@ -32,9 +32,9 @@ from cassi.resonant_field import ResonantField
 from cassi.multi_scale_cord import MultiScaleCord
 from cassi.spatial_coupling import SpatialCoupling
 from cassi.resonant_attention import ResonantAttention
+from cassi.brain_tuner import BrainTuner
 from cassi.qi_flow import QiFlow
 from cassi.tonic_phasic import TonicPhasic
-from cassi.brain_tuner import BrainTuner
 from cassi.heartbeat import Heartbeat
 from cassi.conscious_workspace import ConsciousWorkspace
 from cassi.dream_bank_muon import DreamBankMuon
@@ -242,6 +242,7 @@ class MuonCord(nn.Module):
         ])
         self.lambda_chakra = nn.Parameter(torch.tensor(0.1))
         self.lambda_field_ar = nn.Parameter(torch.tensor(0.1))
+        self.register_buffer('_field_ar_step', torch.tensor(0, dtype=torch.long))
 
         # ── Berry phase memory (topological associative recall) ──
         self.berry_memory = BerryPhaseMemory(
@@ -377,7 +378,7 @@ class MuonCord(nn.Module):
         self._last_qi = None  # cached for self-supervised losses
 
         # ── DreamBank (episodic replay for Qi-state balance) ──
-        self.dream_bank = DreamBankMuon(N=N)
+        self.dream_bank = DreamBankMuon(N=N, replay_every=20)
 
         # ── Pattern step counter ──
         self.register_buffer('pattern_step', torch.zeros(1, dtype=torch.long))
@@ -1199,6 +1200,7 @@ class MuonCord(nn.Module):
                 if self.pattern_step % 100 == 0:
                     self.pattern_memory.dissolve(current_step=self.pattern_step.item())
                 self.pattern_step.add_(1)
+                self._field_ar_step.add_(1)
                 diag['pm_new_neurons'] = diag.get('pm_new_neurons', 0) + n_new
 
             for key, val in diag.items():
@@ -1235,8 +1237,7 @@ class MuonCord(nn.Module):
             chakra_loss = self._cross_chakra_alignment_loss(psi_real, psi_imag)
             all_diag['chakra_loss'] = chakra_loss.item()
             loss = loss + self.lambda_chakra * chakra_loss
-
-            if self.qi_quality_ema.item() < 0.9:
+            if self._field_ar_step % 5 == 0:
                 ar_loss = self._field_state_ar_loss(psi_real, psi_imag)
                 all_diag['field_ar_loss'] = ar_loss.item()
                 loss = loss + self.lambda_field_ar * ar_loss
@@ -1296,19 +1297,21 @@ class MuonCord(nn.Module):
             qi_pool_peak_save = self.qi_pool_peak.clone()
             qi_quality_ema_save = self.qi_quality_ema.clone()
 
-            # ── Yin stream: K_train steps on reversed sequence ──
+            # ── Yin stream: single step on reversed sequence ──
+            # The Yang stream already has K_train steps of context.
+            # One Yin step + corpus callosum exchange is sufficient
+            # for backward readout; K_train steps adds ~3x cost for <1% gain.
             x_rev = torch.flip(x, dims=[1])
             psi_yi_re, psi_yi_im = self.embed(x_rev)
 
             # Yang stream: reuse forward psi directly (no redundant evolution).
-            # The forward pass already ran K_train steps — one more adds little.
             psi_yg_re, psi_yg_im = psi_real.clone(), psi_imag.clone()
 
             self._current_delta_rho = None
             self._current_delta_theta = None
             self._current_delta_gamma = None
 
-            for _ in range(self.K_train):
+            for _ in range(1):
                 h1_sl = self.h1[:B].detach().clone()
                 h2_sl = self.h2[:B].detach().clone()
                 h1i_sl = self.h1_im[:B].detach().clone()
