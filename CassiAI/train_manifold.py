@@ -33,6 +33,7 @@ sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
 from manifold_cord import ManifoldCord
 from cassi.qi_fluid_optimizer import QiFluidOptimizer
+from cassi.qi_gated_sgd import QiGatedSGD
 from cassi.streaming_text_sampler import StreamingTextSampler
 from experiments.train_langevin_text import (
     sample_train_batch, sample_val_batch,
@@ -224,8 +225,8 @@ def main():
     parser.add_argument('--bs', type=int, default=32)
     parser.add_argument('--steps-per-epoch', type=int, default=200)
     parser.add_argument('--lr', type=float, default=3e-4)
-    parser.add_argument('--optimizer', type=str, default='qifluid',
-                        choices=['qifluid', 'adamw'])
+    parser.add_argument('--optimizer', type=str, default='qi_gated',
+                        choices=['qi_gated', 'qifluid', 'adamw'])
     parser.add_argument('--K-train', type=int, default=3)
     parser.add_argument('--K-gen', type=int, default=50)
     parser.add_argument('--K-ar', type=int, default=3,
@@ -327,7 +328,9 @@ def main():
           f'{args.num_windows * args.N} tokens/example')
 
     # ── Optimizer ──
-    if args.optimizer == 'qifluid':
+    if args.optimizer == 'qi_gated':
+        opt = QiGatedSGD(model.parameters(), lr=args.lr)
+    elif args.optimizer == 'qifluid':
         opt = QiFluidOptimizer(model.parameters(), lr=args.lr)
     else:
         opt = torch.optim.AdamW(model.parameters(), lr=args.lr)
@@ -447,7 +450,7 @@ def main():
             else:
                 # Only reached if no break (all windows clean)
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 10.0)
-                opt.step()
+                opt.step(model=model)
             model.reset_iir_state()
 
             # Collect diagnostics
