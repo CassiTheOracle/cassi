@@ -161,7 +161,7 @@ class MuonCord(nn.Module):
                  stiffness_E: float = 1.0,
                  stiffness_B: float = 0.1,
                  noise_scale: float = 0.01,
-                 bidirectional: bool = False,
+                 bidirectional: bool = True,
                  lambda_backward: float = 0.5,
                  lambda_consistency: float = 0.1,
                  use_checkpoint: bool = False,
@@ -173,10 +173,10 @@ class MuonCord(nn.Module):
                  input_dim: int = 256,
                  output_dim: int = 256,
                  continuous_mode: bool = False,
-                 multi_scale_bytes: bool = False,
+                 multi_scale_bytes: bool = True,
                  multi_scale_scales: Tuple[int, ...] = (1, 2, 3, 5, 8, 13),
                  multi_scale_byte_embed_dim: int = 64,
-                 lambda_word: float = 0.1,
+                 lambda_word: float = 0.0,
                  state_bank_size: int = 0,
                  max_batch_size: int = 256,
                  condenser_type: str = 'chakra'):
@@ -289,11 +289,6 @@ class MuonCord(nn.Module):
 
         # ── Heartbeat (unsuppressible pulse generator) ──
         self.heartbeat = Heartbeat(omega=PHI)
-        # ── Word formation head (auxiliary language objectives) ──
-        if self.lambda_word > 0:
-            self.word_head = WordFormationHead(d=d)
-        else:
-            self.word_head = None
 
 
         # ── Field Condenser — phase-transition state→weights ──
@@ -1182,15 +1177,6 @@ class MuonCord(nn.Module):
 
         loss = ce_fwd
 
-        # ── Word formation auxiliary loss ──
-        word_loss = 0.0
-        if self.word_head is not None:
-            word_out = self.word_head(psi_real + psi_imag, x)
-            word_loss = self.lambda_word * (word_out['word_bnd'] + word_out['word_smooth'])
-            loss = loss + word_loss
-            all_diag['word_bnd'] = word_out['word_bnd'].detach().item()
-            all_diag['word_smooth'] = word_out['word_smooth'].detach().item()
-            all_diag['word_bnd_acc'] = word_out['word_bnd_acc'].detach().item()
 
         # ── Self-supervised losses (training only) ──
         if self.training:
@@ -1203,7 +1189,7 @@ class MuonCord(nn.Module):
             loss = loss + self.lambda_field_ar * ar_loss
 
         # ── Bidirectional losses ──
-        if self.bidirectional and not self.continuous_mode and mask_ratio == 0:
+        if self.training and self.bidirectional and not self.continuous_mode and mask_ratio == 0:
             # Backward pass: reversed sequence
             x_rev = torch.flip(x, dims=[1])
             psi_bwd_re, psi_bwd_im = self.embed(x_rev)

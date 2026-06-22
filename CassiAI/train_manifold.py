@@ -242,8 +242,6 @@ def main():
     parser.add_argument('--lambda-pattern-div', type=float, default=0.001)
     parser.add_argument('--lambda-pattern-commit', type=float, default=0.001)
     parser.add_argument('--lambda-pattern-util', type=float, default=0.01)
-    # Word formation
-    parser.add_argument('--word-loss-scale', type=float, default=0.0)
     # Streaming
     parser.add_argument('--num-windows', type=int, default=4,
                         help='streaming windows per training example')
@@ -278,8 +276,10 @@ def main():
     parser.add_argument('--logdir', type=str, default=None)
     parser.add_argument('--save-dir', type=str, default=None)
     parser.add_argument('--checkpoint', type=str, default=None)
-    parser.add_argument('--strict-ckpt', action='store_true')
-    parser.add_argument('--multi-scale-bytes', action='store_true')
+    parser.add_argument('--no-multi-scale-bytes', action='store_true',
+                        help='disable multi-scale byte embedding')
+    parser.add_argument('--no-bidirectional', action='store_true',
+                        help='disable bidirectional training')
     args = parser.parse_args()
 
     if args.save_dir is None:
@@ -308,7 +308,9 @@ def main():
         lambda_pattern_div=args.lambda_pattern_div,
         lambda_pattern_commit=args.lambda_pattern_commit,
         lambda_pattern_util=args.lambda_pattern_util,
-        lambda_word=args.word_loss_scale,
+        bidirectional=not args.no_bidirectional,
+        multi_scale_bytes=not args.no_multi_scale_bytes,
+        lambda_word=0.0,
         max_batch_size=args.bs,
     ).to(DEV)
 
