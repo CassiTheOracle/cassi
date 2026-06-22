@@ -193,36 +193,36 @@ class ResonantField(nn.Module):
                           gamma: torch.Tensor, B: int,
                           delta_gamma: Optional[torch.Tensor] = None
                           ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Cross-chakra γ-diffusion: gradient-descent on inter-chakra energy.
-        When δ_γ is provided, modulates γ per chakra.
-        """
-        if delta_gamma is not None:
-            gamma_expanded = gamma * torch.sigmoid(delta_gamma)  # [B, C]
-        else:
-            gamma_expanded = gamma.expand(B, self.C)
+        """φ-scaled cross-chakra diffusion (scalar-per-chakra means)."""
+        gamma = (gamma * (1.0 + torch.tanh(delta_gamma.mean()))
+                 if delta_gamma is not None else gamma)
 
-        for c in range(self.C - 1):
-            off_c = self.offsets[c]
-            off_n = self.offsets[c + 1]
-            dc_c = self.widths[c]
-            dc_n = self.widths[c + 1]
+        chakra_mean_re = []
+        chakra_mean_im = []
+        for c in range(self.C):
+            off = self.offsets[c]
+            dc = self.widths[c]
+            chakra_mean_re.append(P_re[:, :, off:off + dc].mean(dim=(1, 2)))
+            chakra_mean_im.append(P_im[:, :, off:off + dc].mean(dim=(1, 2)))
 
-            # Mean energy in each chakra band
-            E_c = (P_re[:, :, off_c:off_c + dc_c].pow(2)
-                   + P_im[:, :, off_c:off_c + dc_c].pow(2)).mean(dim=-1, keepdim=True)  # [B, N, 1]
-            E_n = (P_re[:, :, off_n:off_n + dc_n].pow(2)
-                   + P_im[:, :, off_n:off_n + dc_n].pow(2)).mean(dim=-1, keepdim=True)  # [B, N, 1]
+        for c in range(self.C):
+            off = self.offsets[c]
+            dc = self.widths[c]
+            sl = slice(off, off + dc)
+            delta_re = 0.0
+            delta_im = 0.0
+            denom = 0.0
 
-            energy_diff = E_c - E_n  # [B, N, 1]
-            gamma_c = gamma_expanded[:, c:c + 1].unsqueeze(1)  # [B, 1, 1]
-            # Saturation: scale energy flow, prevent blowup
-            delta_re = gamma_c * energy_diff * torch.ones_like(P_re[:, :, off_c:off_c + dc_c])
-            delta_im = gamma_c * energy_diff * torch.ones_like(P_im[:, :, off_c:off_c + dc_c])
-            sat = 1.0 + delta_re.abs().mean(dim=-1, keepdim=True)
-            scale = gamma_c / (sat + 1e-8)
-            P_re[:, :, off_c:off_c + dc_c] -= scale * delta_re
-            P_im[:, :, off_c:off_c + dc_c] -= scale * delta_im
-            P_re[:, :, off_n:off_n + dc_n] += scale * delta_re[:, :, :dc_n]
-            P_im[:, :, off_n:off_n + dc_n] += scale * delta_im[:, :, :dc_n]
+            for c2 in range(max(0, c - 2), min(self.C, c + 3)):
+                if c2 == c:
+                    continue
+                w = PHI ** (-abs(c - c2))
+                denom += w
+                delta_re = delta_re + w * (chakra_mean_re[c2] - chakra_mean_re[c])
+                delta_im = delta_im + w * (chakra_mean_im[c2] - chakra_mean_im[c])
+
+            scale = gamma / (denom + 1e-8)
+            P_re[:, :, sl] += (scale * delta_re).unsqueeze(1).unsqueeze(-1)
+            P_im[:, :, sl] += (scale * delta_im).unsqueeze(1).unsqueeze(-1)
 
         return P_re, P_im

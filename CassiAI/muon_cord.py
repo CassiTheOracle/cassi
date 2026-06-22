@@ -230,6 +230,11 @@ class MuonCord(nn.Module):
         self.chakra_widths = widths
         # ── Chakra alignment projections ──
         self.register_buffer('chakra_offsets', chakra_offsets(widths).clone())
+        # Pre-computed Python int lists for zero-sync chakra slicing
+        self._chakra_start_end = [
+            (int(self.chakra_offsets[c].item()), int(self.chakra_offsets[c].item()) + w)
+            for c, w in enumerate(self.chakra_widths)
+        ]
         self.d_chakra_shared = 16
         self.chakra_proj = nn.ModuleList([
             nn.Linear(widths[c], self.d_chakra_shared, bias=False)
@@ -1291,23 +1296,10 @@ class MuonCord(nn.Module):
             # ── Yin stream: K_train steps on reversed sequence ──
             x_rev = torch.flip(x, dims=[1])
             psi_yi_re, psi_yi_im = self.embed(x_rev)
-            psi_yg_re, psi_yg_im = psi_real.clone(), psi_imag.clone()
 
-            # ── Yang stream: 1 evolution step on forward field ──
-            h1_sl = self.h1[:B].detach().clone()
-            h2_sl = self.h2[:B].detach().clone()
-            h1i_sl = self.h1_im[:B].detach().clone()
-            h2i_sl = self.h2_im[:B].detach().clone()
-            (psi_yg_re, psi_yg_im, h1n_yg, h2n_yg, h1in_yg, h2in_yg,
-             _, _) = self._unified_step(
-                psi_yg_re, psi_yg_im,
-                h1_sl, h2_sl, h1i_sl, h2i_sl,
-                self.Q_ema.detach(), write_memory=False)
-            self.h1[:B].copy_(h1n_yg.detach())
-            self.h2[:B].copy_(h2n_yg.detach())
-            self.h1_im[:B].copy_(h1in_yg.detach())
-            self.h2_im[:B].copy_(h2in_yg.detach())
-            psi_yg_re, psi_yg_im = self._clamp_iir_state(B, psi_yg_re, psi_yg_im, clamp_field=False)
+            # Yang stream: reuse forward psi directly (no redundant evolution).
+            # The forward pass already ran K_train steps — one more adds little.
+            psi_yg_re, psi_yg_im = psi_real.clone(), psi_imag.clone()
 
             self._current_delta_rho = None
             self._current_delta_theta = None
