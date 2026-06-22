@@ -786,10 +786,10 @@ class MuonCord(nn.Module):
         # Expand per-chakra values back to field space via chakra_proj weights
         for c in range(self.C):
             w = self.chakra_widths[c]
-            start = int(self.chakra_offsets[c].item())
+            start, end = self._chakra_start_end[c]
             boost = berry_val[:, c, :] @ self.chakra_proj[c].weight  # [B, w]
-            psi_real[:, :, start:start + w] += PHI_INV * boost.unsqueeze(1)
-            psi_imag[:, :, start:start + w] += PHI_INV * boost.unsqueeze(1)
+            psi_real[:, :, start:end] += PHI_INV * boost.unsqueeze(1)
+            psi_imag[:, :, start:end] += PHI_INV * boost.unsqueeze(1)
 
         # ── 3. Pattern-memory read ──
         query = F.layer_norm(psi_real, psi_real.shape[-1:])
