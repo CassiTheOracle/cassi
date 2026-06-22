@@ -1236,10 +1236,13 @@ class MuonCord(nn.Module):
         if self.training:
             qi_mean_val = all_diag.get('qi_mean', 0.0)
             qi_quality_val = all_diag.get('qi_quality_mean', 0.5)
-            self.dream_bank.store(x[0], qi_mean_val, qi_quality_val, ce_fwd.item())
+            # Store a random batch element (not just element 0)
+            batch_idx = torch.randint(0, B, (1,)).item() if B > 0 else 0
+            self.dream_bank.store(x[batch_idx], qi_mean_val, qi_quality_val, ce_fwd.item())
 
             # Periodic replay from under-represented Qi state
             if self.dream_bank.should_replay():
+                replay_x, replay_elem = self.dream_bank.sample_replay()
                 if replay_x is not None and replay_elem is not None:
                     # Replay forward pass in eval mode to skip bidirectional + self-supervised
                     was_training = self.training
@@ -1286,6 +1289,22 @@ class MuonCord(nn.Module):
             x_rev = torch.flip(x, dims=[1])
             psi_yi_re, psi_yi_im = self.embed(x_rev)
             psi_yg_re, psi_yg_im = psi_real.clone(), psi_imag.clone()
+
+            # ── Yang stream: 1 evolution step on forward field ──
+            h1_sl = self.h1[:B].detach().clone()
+            h2_sl = self.h2[:B].detach().clone()
+            h1i_sl = self.h1_im[:B].detach().clone()
+            h2i_sl = self.h2_im[:B].detach().clone()
+            (psi_yg_re, psi_yg_im, h1n_yg, h2n_yg, h1in_yg, h2in_yg,
+             _, _) = self._unified_step(
+                psi_yg_re, psi_yg_im,
+                h1_sl, h2_sl, h1i_sl, h2i_sl,
+                self.Q_ema.detach(), write_memory=False)
+            self.h1[:B].copy_(h1n_yg.detach())
+            self.h2[:B].copy_(h2n_yg.detach())
+            self.h1_im[:B].copy_(h1in_yg.detach())
+            self.h2_im[:B].copy_(h2in_yg.detach())
+            psi_yg_re, psi_yg_im = self._clamp_iir_state(B, psi_yg_re, psi_yg_im, clamp_field=False)
 
             self._current_delta_rho = None
             self._current_delta_theta = None
@@ -1730,6 +1749,10 @@ class MuonCord(nn.Module):
         h2_sl = self.h2[:1].detach().clone()
         h1i_sl = self.h1_im[:1].detach().clone()
         h2i_sl = self.h2_im[:1].detach().clone()
+        # Save qi pool state (ripple probes mutate persistent qi buffers)
+        qi_pool_save = self.qi_pool.clone()
+        qi_peak_save = self.qi_pool_peak.clone()
+        qi_qual_save = self.qi_quality_ema.clone()
 
         # Clean pass
         pr_c, pi_c, _, _, _, _, _, _ = self._unified_step(
@@ -1742,6 +1765,11 @@ class MuonCord(nn.Module):
             psi_real + noise, psi_imag + noise,
             h1_sl, h2_sl, h1i_sl, h2i_sl,
             self.Q_ema.detach(), write_memory=False)
+
+        # Restore qi pool state
+        self.qi_pool.copy_(qi_pool_save)
+        self.qi_pool_peak.copy_(qi_peak_save)
+        self.qi_quality_ema.copy_(qi_qual_save)
 
         # Ripple = difference in response, normalized
         ripple_re = pr_n - pr_c

@@ -11,7 +11,6 @@ bottleneck: field → compressed workspace → broadcast.
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 from cassi.cord import PHI_INV
 
@@ -55,14 +54,11 @@ class ConsciousWorkspace(nn.Module):
         mag = (psi_real.pow(2) + psi_imag.pow(2)).sqrt()  # [B, N, d]
         w = self.compress(mag)  # [B, N, W]
 
-        # k-WTA competition: only top-k_active * N slots fire per batch
-        w_flat = w.reshape(B, N * self.W)  # [B, N*W]
-        k_total = self.k_active * N
-        _, topk_idx = w_flat.topk(k_total, dim=-1)
-        mask = torch.zeros_like(w_flat)
+        # k-WTA competition per-position: only top-k_active dims fire per position
+        _, topk_idx = w.topk(self.k_active, dim=-1)  # [B, N, k_active]
+        mask = torch.zeros_like(w)
         mask.scatter_(-1, topk_idx, 1.0)
-        w_sparse = w * mask.reshape(B, N, self.W)
-
+        w_sparse = w * mask
         # Gate winners by qi contrast: high-qi positions compete harder
         qi_gate = qi_contrast.unsqueeze(-1).clamp(min=0.5, max=2.0)  # [B, N, 1]
         w_sparse = w_sparse * qi_gate

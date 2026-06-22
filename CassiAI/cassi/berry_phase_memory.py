@@ -39,14 +39,12 @@ class BerryPhaseMemory(nn.Module):
         self.chakra_widths = chakra_widths or [1] * C
         self.chakra_offsets = chakra_offsets
 
-        # Keys: normalized phase fingerprints
-        self.keys = nn.Parameter(
-            F.normalize(torch.randn(n_slots, key_dim), dim=-1))
+        # Keys: normalized phase fingerprints (stored, not learned)
+        self.register_buffer('keys', F.normalize(torch.randn(n_slots, key_dim), dim=-1))
         # Values: compressed per-chakra field representations
-        self.values = nn.Parameter(
-            torch.zeros(n_slots, C, d_shared))
-        # Usage tracking (for LRU eviction)
-        self.register_buffer('usage', torch.zeros(n_slots))
+        self.register_buffer('values', torch.zeros(n_slots, C, d_shared))
+        # Round-robin write pointer (avoids float32 precision issues in LRU)
+        self.register_buffer('write_ptr', torch.zeros(1, dtype=torch.long))
 
     @staticmethod
     def compute_phases(h_curr: torch.Tensor, h_next: torch.Tensor,
@@ -126,14 +124,14 @@ class BerryPhaseMemory(nn.Module):
 
     @torch.no_grad()
     def write(self, phases: torch.Tensor, values: torch.Tensor, batch_idx: int = 0):
-        """Store a phase→value pair, evicting the least-used slot.
+        """Store a phase→value pair, round-robin eviction.
 
         Args:
             phases: [key_dim] normalized phase fingerprint.
             values: [C, d_shared] compressed field representation.
-            batch_idx: Which slot to write (0 = single write per call).
+            batch_idx: Ignored (round-robin write pointer).
         """
-        slot = self.usage.argmin().item()  # LRU eviction
+        slot = int(self.write_ptr.item()) % self.n_slots
+        self.write_ptr.add_(1)
         self.keys.data[slot] = phases
         self.values.data[slot] = values
-        self.usage[slot] = self.usage.max() + 1  # mark as recently used

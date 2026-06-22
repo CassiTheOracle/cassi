@@ -11,54 +11,8 @@ Stores raw byte sequences rather than full field state — cheap and sufficient.
 import torch
 import torch.nn as nn
 
-from cassi.cord import PHI, PHI_INV
+from cassi.cord import PHI
 
-
-class QiSubBankMuon:
-    """Specialized bank for one Qi element state.
-
-    Stores: raw byte sequence, qi_mean, loss. Sorted by element-specific key
-    so the highest-priority experiences are kept when capacity is reached.
-    """
-
-    SORT_KEYS = {
-        'water': lambda e: 1.0 - e['quality'],     # lowest quality first (depletion)
-        'wood':  lambda e: e['quality'],            # highest quality first (dormant clarity)
-        'fire':  lambda e: e['qi_mean'],            # highest energy first (turbulence)
-        'earth': lambda e: e['qi_mean'] * e['quality'],  # highest coherent power
-        'metal': lambda e: abs(e['qi_mean'] - PHI), # closest to φ baseline (ideal)
-    }
-
-    def __init__(self, state_name: str, capacity: int = 100):
-        self.state_name = state_name
-        self.capacity = capacity
-        self.experiences: list = []  # list of dicts
-
-    def insert(self, exp: dict):
-        """Insert an experience, keeping highest-priority ones at capacity."""
-        key_fn = self.SORT_KEYS[self.state_name]
-        priority = key_fn(exp)
-        # Insert in descending priority order
-        for i, existing in enumerate(self.experiences):
-            if key_fn(existing) < priority:
-                self.experiences.insert(i, exp)
-                break
-        else:
-            self.experiences.append(exp)
-        # Trim to capacity
-        if len(self.experiences) > self.capacity:
-            self.experiences = self.experiences[:self.capacity]
-
-    def sample(self, n: int = 1) -> list:
-        """Sample n experiences uniformly."""
-        if not self.experiences:
-            return []
-        n = min(n, len(self.experiences))
-        idx = torch.randperm(len(self.experiences))[:n]
-        return [self.experiences[i] for i in idx.tolist()]
-
-    def __len__(self):
-        return len(self.experiences)
 
 
 class DreamBankMuon(nn.Module):
@@ -131,7 +85,7 @@ class DreamBankMuon(nn.Module):
         count = getattr(self, f'count_{element}')
 
         slot = int(count.item()) % self._capacity(element)
-        getattr(self, f'keys_{element}')[slot] = x[:self.N].cpu()
+        getattr(self, f'keys_{element}')[slot] = x[:self.N].detach()
         getattr(self, f'qi_mean_{element}')[slot] = qi_mean
         getattr(self, f'quality_{element}')[slot] = qi_quality_mean
         count.add_(1)

@@ -280,6 +280,8 @@ def main():
                         help='disable multi-scale byte embedding')
     parser.add_argument('--no-bidirectional', action='store_true',
                         help='disable bidirectional training')
+    parser.add_argument('--strict-ckpt', action='store_true',
+                        help='strict checkpoint loading (fail on key mismatch)')
     args = parser.parse_args()
 
     if args.save_dir is None:
