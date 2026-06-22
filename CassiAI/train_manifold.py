@@ -233,6 +233,8 @@ def main():
                         help='field AR loss evolution steps (training only)')
     # Brain
     parser.add_argument('--brain-shells', type=int, default=7)
+    parser.add_argument('--no-attention', action='store_true',
+                        help='disable ResonantAttention (IIR-only contextual mixing)')
     parser.add_argument('--brain-D', type=int, default=588)
     # Constraint forces
     parser.add_argument('--stiffness-Q', type=float, default=1.0)
@@ -307,7 +309,7 @@ def main():
         N=args.N, d=args.d, C=13, V=256,
         K_train=args.K_train, K_gen=args.K_gen, K_ar=args.K_ar,
         brain_shells=args.brain_shells, brain_D=args.brain_D,
-        stiffness_Q=args.stiffness_Q, stiffness_E=args.stiffness_E,
+        use_attention=not args.no_attention,
         stiffness_B=args.stiffness_B, noise_scale=args.noise_scale,
         max_neurons=args.max_neurons, span_len=args.span_len,
         lambda_pattern_div=args.lambda_pattern_div,

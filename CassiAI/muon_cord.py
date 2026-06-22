@@ -167,6 +167,8 @@ class MuonCord(nn.Module):
                  stiffness_B: float = 0.1,
                  noise_scale: float = 0.01,
                  bidirectional: bool = True,
+                 use_attention: bool = True,
+                 attention_skip_threshold: float = 0.85,
                  lambda_backward: float = 0.5,
                  lambda_consistency: float = 0.1,
                  use_checkpoint: bool = False,
@@ -209,6 +211,8 @@ class MuonCord(nn.Module):
         self.multi_scale_byte_embed_dim = multi_scale_byte_embed_dim
         self.state_bank_size = state_bank_size
         self.bidirectional = bidirectional
+        self.use_attention = use_attention
+        self.attention_skip_threshold = attention_skip_threshold
         self.lambda_backward = lambda_backward
         self.lambda_word = lambda_word
         self.lambda_consistency = lambda_consistency
@@ -866,30 +870,28 @@ class MuonCord(nn.Module):
             noise_std = self.noise_scale / (1.0 + qi_mean.detach())
             psi_real = psi_real + noise_std * torch.randn_like(psi_real)
             psi_imag = psi_imag + noise_std * torch.randn_like(psi_imag)
-
-        # ── 11. Qi pressure forces ──
-        psi_real, psi_imag = self.qi_flow(qi, psi_real, psi_imag, P_re, P_im)
-
         # ── 12. Resonant attention (qi-gated) ──
         h_combined_re = psi_real + cord_re
         h_combined_im = psi_imag + cord_im
 
-        attn_re, attn_im = self.resonant_attention(
-            psi_real, psi_imag, h_combined_re, h_combined_im)
-        # Qi gate: amplify attention at positions with above-average coherent energy
+        # Compute qi_contrast for attention gate and workspace (unconditional)
         qi_contrast = qi.mean(dim=-1) / (qi_mean + 1e-8)  # [B, N]
-        qi_gate = 1.0 + PHI_INV * (qi_contrast - 1.0).clamp(min=0.0)
-        attn_re = attn_re * qi_gate.unsqueeze(-1)
-        attn_im = attn_im * qi_gate.unsqueeze(-1)
-        psi_real = psi_real + PHI_INV * attn_re
-        psi_imag = psi_imag + PHI_INV * attn_im
+
+        if self.use_attention:
+            attn_re, attn_im = self.resonant_attention(
+                psi_real, psi_imag, h_combined_re, h_combined_im)
+            qi_gate = 1.0 + PHI_INV * (qi_contrast - 1.0).clamp(min=0.0)
+            attn_re = attn_re * qi_gate.unsqueeze(-1)
+            attn_im = attn_im * qi_gate.unsqueeze(-1)
+            psi_real = psi_real + PHI_INV * attn_re
+            psi_imag = psi_imag + PHI_INV * attn_im
+        else:
+            diag['attn_skipped'] = True
         # ── 12b. Qi-gated representation boost ──
-        # Boost field at positions where BOTH magnitude and quality are high
-        qi_deviation = qi.mean(dim=-1) - self.Q_bar_pos[:B]  # [B, N] — per-position deviation
-        qi_boost = torch.sigmoid(qi_deviation / (self.Q_bar_pos[:B] + 1e-8))  # [B, N]
+        qi_deviation = qi.mean(dim=-1) - self.Q_bar_pos[:B]
+        qi_boost = torch.sigmoid(qi_deviation / (self.Q_bar_pos[:B] + 1e-8))
         psi_real = psi_real * (1.0 + 0.1 * qi_boost.unsqueeze(-1))
         psi_imag = psi_imag * (1.0 + 0.1 * qi_boost.unsqueeze(-1))
-
         # ── 12c. Conscious workspace (sparse competitive broadcast) ──
         cw_re, cw_im = self.conscious_workspace(psi_real, psi_imag, qi_contrast.detach())
         psi_real = psi_real + PHI_INV * cw_re

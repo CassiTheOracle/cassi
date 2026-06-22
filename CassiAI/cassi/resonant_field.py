@@ -3,29 +3,45 @@
 ResonantField — per-element IIR resonator bank (replaces PredictionOperator).
 
 Every one of the d field dimensions is its own resonator with chakra-structured
-damping ρ_c and frequency θ_c.  Self-prediction P[ψ] emerges from the field's
-natural resonant dynamics — no separate "prediction operator".
+damping (ρ, θ, γ).  13 chakras partition the d dimensions; each chakra has its
+own resonant frequency spacing.
 
-BrainTuner modulations (delta_rho, delta_theta, delta_gamma) flow through
-forward() as tensors, preserving the gradient path.
+Precomputed unmodulated coefficients (a1_unmod, a2_unmod) enable a fused
+batched path when BrainTuner modulation is inactive (generation/eval).
 """
 
 import math
-from typing import List, Optional, Tuple
+from typing import Optional, Tuple
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from cassi._chakra_utils import PHI, PHI_INV, phi_chakra_widths
+
+PHI = (1 + 5 ** 0.5) / 2
+PHI_INV = 1 / PHI
+
+
+def phi_chakra_widths(d: int, C: int = 13) -> list:
+    """Fibonacci-based chakra partition of d dimensions."""
+    fib = [1, 2]
+    while len(fib) < C:
+        fib.append(fib[-1] + fib[-2])
+    fib = fib[:C]
+    total = sum(fib)
+    widths = [max(1, int(d * f / total)) for f in fib]
+    # Ensure sum equals d
+    diff = d - sum(widths)
+    for i in range(abs(diff)):
+        widths[i % C] += 1 if diff > 0 else -1
+    return widths
 
 
 class ResonantField(nn.Module):
-    """Per-element IIR resonator bank with chakra-structured coefficients."""
+    """Per-element φ-damped IIR prediction field."""
 
     def __init__(self, d: int, C: int = 13, N: int = 128,
-                 widths: Optional[List[int]] = None,
-                 max_batch_size: int = 256):
+                 widths: list = None, max_batch_size: int = 64):
         super().__init__()
         self.d, self.C, self.N = d, C, N
         self.widths = widths if widths is not None else phi_chakra_widths(d, C)
@@ -42,6 +58,19 @@ class ResonantField(nn.Module):
 
         # Cross-chakra diffusion rate
         self.gamma_logit = nn.Parameter(torch.tensor(0.1))
+
+        # Precompute unmodulated IIR coefficients as [d] vectors
+        # Used for fast fused path when BrainTuner modulation is inactive
+        a1_vec = torch.zeros(d)
+        a2_vec = torch.zeros(d)
+        for c in range(C):
+            sl = slice(self.offsets[c], self.offsets[c] + self.widths[c])
+            rho = self.rho_base[c]
+            theta = self.theta_base[c]
+            a1_vec[sl] = 2.0 * rho * math.cos(theta)
+            a2_vec[sl] = -(rho ** 2)
+        self.register_buffer('a1_unmod', a1_vec)
+        self.register_buffer('a2_unmod', a2_vec)
 
         # Persistent IIR buffers: 6 × [max_bs, N, d]
         for name in ('h_real', 'h_imag', 'h_prev_real', 'h_prev_imag',
@@ -108,10 +137,10 @@ class ResonantField(nn.Module):
                     delta_rho: Optional[torch.Tensor] = None,
                     delta_theta: Optional[torch.Tensor] = None
                     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Per-element IIR.  When modulation tensors are provided, applies
-        ρ_c_eff = ρ_c·(1+tanh(δ_ρ)), θ_c_eff = θ_c + δ_θ.
+        """Per-element IIR prediction.
 
-        All `a1`/`a2` tensors are broadcast to [B, N, dc] via unsqueeze.
+        When BrainTuner modulation is inactive (delta_rho is None), uses
+        a fused batched path — one kernel launch vs 13 loop iterations.
         """
         h_re = self.h_real[:B].detach().clone()
         h_im = self.h_imag[:B].detach().clone()
@@ -120,6 +149,16 @@ class ResonantField(nn.Module):
         x_pr = self.x_prev_real[:B].detach().clone()
         x_pi = self.x_prev_imag[:B].detach().clone()
 
+        # ── Fused unmodulated path (generation/eval) ──
+        # One batched operation instead of 13 per-chakra kernel launches.
+        if delta_rho is None:
+            P_re = (self.a1_unmod * h_re + self.a2_unmod * h_pr
+                    + b0 * psi_real + b1 * x_pr)
+            P_im = (self.a1_unmod * h_im + self.a2_unmod * h_pi
+                    + b0 * psi_imag + b1 * x_pi)
+            return P_re, P_im
+
+        # ── Modulated path (per-chakra loop, during training) ──
         P_re = torch.zeros_like(psi_real)
         P_im = torch.zeros_like(psi_imag)
 
@@ -128,28 +167,14 @@ class ResonantField(nn.Module):
             dc = self.widths[c]
             sl = slice(off, off + dc)
 
-            # Compute effective ρ, θ (modulated tensors or base scalars)
-            if delta_rho is not None:
-                rho_c = self.rho_base[c] * (1.0 + torch.tanh(delta_rho[:, c]))
-            else:
-                rho_c = self.rho_base[c]
+            rho_c = self.rho_base[c] * (1.0 + torch.tanh(delta_rho[:, c]))
+            theta_c = self.theta_base[c] + delta_theta[:, c]
 
-            if delta_theta is not None:
-                theta_c = self.theta_base[c] + delta_theta[:, c]
-            else:
-                theta_c = self.theta_base[c]
-
-            # IIR coefficients
-            if isinstance(rho_c, torch.Tensor):
-                # [B] → [B, 1, 1] to broadcast with [B, N, dc]
-                cos_t = torch.cos(theta_c if isinstance(theta_c, torch.Tensor)
-                                  else torch.tensor(theta_c, device=psi_real.device))
-                a1 = (2.0 * rho_c * cos_t).view(B, 1, 1)
-                a2 = (-(rho_c ** 2)).view(B, 1, 1)
-            else:
-                cos_t = math.cos(theta_c)
-                a1 = 2.0 * rho_c * cos_t
-                a2 = -(rho_c ** 2)
+            # IIR coefficients — batch-broadcast
+            cos_t = torch.cos(theta_c if theta_c.dim() > 0
+                              else torch.tensor(theta_c, device=psi_real.device))
+            a1 = (2.0 * rho_c * cos_t).view(B, 1, 1)
+            a2 = (-(rho_c ** 2)).view(B, 1, 1)
 
             P_re[:, :, sl] = (a1 * h_re[:, :, sl]
                               + a2 * h_pr[:, :, sl]
@@ -165,38 +190,39 @@ class ResonantField(nn.Module):
     # ── Cross-chakra diffusion ──
 
     def _chakra_diffusion(self, P_re: torch.Tensor, P_im: torch.Tensor,
-                          gamma_base: torch.Tensor, B: int,
+                          gamma: torch.Tensor, B: int,
                           delta_gamma: Optional[torch.Tensor] = None
                           ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """φ-scaled cross-chakra diffusion (replaces Linear(13,13))."""
-        gamma = (gamma_base * (1.0 + torch.tanh(delta_gamma.mean()))
-                 if delta_gamma is not None else gamma_base)
+        """Cross-chakra γ-diffusion: gradient-descent on inter-chakra energy.
+        When δ_γ is provided, modulates γ per chakra.
+        """
+        if delta_gamma is not None:
+            gamma_expanded = gamma * torch.sigmoid(delta_gamma)  # [B, C]
+        else:
+            gamma_expanded = gamma.expand(B, self.C)
 
-        chakra_mean_re = []
-        chakra_mean_im = []
-        for c in range(self.C):
-            off = self.offsets[c]
-            dc = self.widths[c]
-            chakra_mean_re.append(P_re[:, :, off:off + dc].mean(dim=(1, 2)))
-            chakra_mean_im.append(P_im[:, :, off:off + dc].mean(dim=(1, 2)))
+        for c in range(self.C - 1):
+            off_c = self.offsets[c]
+            off_n = self.offsets[c + 1]
+            dc_c = self.widths[c]
+            dc_n = self.widths[c + 1]
 
-        for c in range(self.C):
-            off = self.offsets[c]
-            dc = self.widths[c]
-            sl = slice(off, off + dc)
-            delta_re, delta_im = 0.0, 0.0
-            denom = 0.0
+            # Mean energy in each chakra band
+            E_c = (P_re[:, :, off_c:off_c + dc_c].pow(2)
+                   + P_im[:, :, off_c:off_c + dc_c].pow(2)).mean(dim=-1, keepdim=True)  # [B, N, 1]
+            E_n = (P_re[:, :, off_n:off_n + dc_n].pow(2)
+                   + P_im[:, :, off_n:off_n + dc_n].pow(2)).mean(dim=-1, keepdim=True)  # [B, N, 1]
 
-            for c2 in range(max(0, c - 2), min(self.C, c + 3)):
-                if c2 == c:
-                    continue
-                w = PHI ** (-abs(c - c2))
-                denom += w
-                delta_re = delta_re + w * (chakra_mean_re[c2] - chakra_mean_re[c]) if isinstance(delta_re, torch.Tensor) else w * (chakra_mean_re[c2] - chakra_mean_re[c])
-                delta_im = delta_im + w * (chakra_mean_im[c2] - chakra_mean_im[c]) if isinstance(delta_im, torch.Tensor) else w * (chakra_mean_im[c2] - chakra_mean_im[c])
-
-            scale = gamma / (denom + 1e-8)
-            P_re[:, :, sl] += (scale * delta_re).unsqueeze(1).unsqueeze(-1)
-            P_im[:, :, sl] += (scale * delta_im).unsqueeze(1).unsqueeze(-1)
+            energy_diff = E_c - E_n  # [B, N, 1]
+            gamma_c = gamma_expanded[:, c:c + 1].unsqueeze(1)  # [B, 1, 1]
+            # Saturation: scale energy flow, prevent blowup
+            delta_re = gamma_c * energy_diff * torch.ones_like(P_re[:, :, off_c:off_c + dc_c])
+            delta_im = gamma_c * energy_diff * torch.ones_like(P_im[:, :, off_c:off_c + dc_c])
+            sat = 1.0 + delta_re.abs().mean(dim=-1, keepdim=True)
+            scale = gamma_c / (sat + 1e-8)
+            P_re[:, :, off_c:off_c + dc_c] -= scale * delta_re
+            P_im[:, :, off_c:off_c + dc_c] -= scale * delta_im
+            P_re[:, :, off_n:off_n + dc_n] += scale * delta_re[:, :, :dc_n]
+            P_im[:, :, off_n:off_n + dc_n] += scale * delta_im[:, :, :dc_n]
 
         return P_re, P_im
