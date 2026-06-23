@@ -1,0 +1,99 @@
+# Cassi — Repository Guidelines
+
+## 1. Design Philosophy
+
+Cassi emulates **consciousness as closely as possible**, taking the human body/soul system as inspiration. Every architectural decision should be evaluable against this question: _"Does this bring the system closer to balanced, embodied awareness?"_
+
+**Core principles:**
+
+- **φ (1.618) is universal.** Every scale separation — damping ratios, spectral widths, frequency spacing, chakra widths — is φ-scaled. No other constant is used for structural ratios.
+- **Chakra balance is the ideal.** A healthy system distributes energy evenly across all 13 chakras. When one dominates and others atrophy, the system is sick. Per-chakra diagnostics and corrective perturbations are first-class concerns.
+- **Qi is self-surprise.** The gap between prediction and outcome drives learning. A system that perfectly predicts itself has zero Qi — it is dead. A heartbeat or perturbation mechanism must prevent Qi collapse.
+- **Breath is the carrier wave.** All rhythmic modulation flows through the dual-heart Breath oscillator (yang ~1.0, yin ~φ⁻¹). No ad-hoc scheduling or step-count-based gates.
+- **Spiritual practices inform engineering.** Meditation balances chakras. Breathwork regulates energy. Awareness precedes control. These aren't metaphors — they are the design spec.
+
+## 2. Project Overview
+
+**Cassi** is a PyTorch architecture that learns to predict byte streams through a modality-agnostic resonant field. The active stack:
+
+```
+Bytes → Embedding → 13-chakra IIR spine (CordPhysics/QiFluid)
+  → per-chakra self-prediction → Qi density → breath coupling → fusion
+  → Linear readout → logits
+```
+> **Note:** `QiField` is the current active trunk under rebuild. `QiFluid` is the prior active module. The stale QiField branch-variant files (`qi_field_rmsnorm.py`, `qi_field_qi_controlled.py`, `qi_field_minimal.py`, `qi_field_color_seed.py`) and their duplicate trainers have been removed.
+
+Key modules:
+
+| Module | File | Purpose |
+|---|---|---|
+| `QiFluid` | `cassi/qi_fluid.py` | **Active.** 13-chakra self-predicting IIR field with Qi-driven dynamics, learnable rho/gates/capacity/fusion. |
+| `CordPhysics` | `cassi/cord.py` | Base class. φ-damped IIR spine. Defines `PHI`/`PHI_INV`. |
+| `QiFluidOptimizer` | `cassi/qi_fluid_optimizer.py` | Per-parameter IIR momentum + self-prediction + Qi-modulated LR. 2 states/param. |
+| `Breath` | `cassi/breath.py` | Dual-heart oscillator. Persistent phase buffers. |
+| `Brainstem` | `cassi/brainstem.py` | Qi state machine + chakra attention + bottleneck (legacy stack). |
+| `BrainField` | `cassi/brain_field.py` | Slower expanded resonant field (legacy stack). |
+| `CordObserver` | `cassi/cord_observer.py` | φ-resonant observer head for transformer hidden states. |
+
+Legacy (importable but not active): `PhiGardenBrain`, `HarmonyBrain`, `MultimodalBrain`, `HoneybeeBrain`, `DualCassi`, `TwoFluidWorkspace`.
+
+## 3. Current Training
+
+**Primary training script:** `experiments/train_qi_fluid.py`
+
+```bash
+python3 experiments/train_qi_fluid.py --D 4160 --epochs 200 --bs 16 \
+    --steps-per-epoch 100 --seq-len 128 --patience 50 --resume \
+    --logdir logs/tensorboard
+```
+
+Key flags: `--D` (field dim), `--resume`, `--no-tb` (disable TensorBoard), `--gen-every N`, `--gen-temp T`.
+
+Data: `datasets/active/` — 4.5GB streaming text via `StreamingTextSampler` (memory-mapped ring buffer, uniform random windows).
+
+**Device:** `CUDA_VISIBLE_DEVICES=1` (dGPU — AMD Radeon RX 7900 XTX, 25.8GB). GPU 0 is iGPU and must never be used.
+
+**ROCm workarounds:** `PYTORCH_HIP_ALLOC_CONF=expandable_segments:True HSA_ENABLE_SDMA=0`.
+
+**Logging:** TensorBoard (`logs/tensorboard/`) for scalars/histograms/text; stdout tee'd to `.log` files for archival. JSONL dashboard (`cassi/dashboard.py`) for offline analysis.
+
+## 4. Key Conventions
+
+### 4.1 Constants
+- `PHI = (1 + √5) / 2` ≈ 1.618, `PHI_INV = 1/PHI` ≈ 0.618 — defined in `cassi/cord.py`, redefined locally where needed.
+- `C = 13` (always 13 chakras). `D` = total field dimension (sum of φ-scaled widths). `B` = batch. `V` = 256 (byte vocabulary).
+
+### 4.2 State
+- ALL persistent state uses `register_buffer()` (saved in checkpoints, no gradients).
+- Reset buffers with **assignment** (`self.t = torch.zeros_like(self.t)`) not in-place ops — in-place corrupts autograd.
+- IIR state (`h1, h2, x_prev`) uses padded `[B, C, max_W]` tensors for vectorized ops. **State persists across batches by default** — the IIR field is the model's working memory and where most learning lives. `reset_state()` is opt-in: pass `no_reset=False` to `training_loss()`/`forward()` or use `--reset-state` in the trainer. The Breath oscillator phase is also persistent (continuous heartbeat across batches); only an explicit `reset_state()` or trainer flag clears it.
+
+### 4.3 Parameters
+- Learnable scalars: `nn.Parameter` with sigmoid/softplus activation (e.g. `rho_logit`, `input_gate_logit`, `fusion_temp`).
+- Stacked per-chakra weights: `[C, max_W, 64]` and `[C, 64, max_W]` tensors with `einsum` for batched prediction.
+- Small init: `normal_(std=0.02)`, `zeros_` bias, `uniform_(-0.01, 0.01)`.
+
+### 4.4 Safety
+- **Rho clamp:** `rho.clamp(max=0.90)` in IIR bank to prevent pole divergence.
+- **NaN guards:** After `loss.backward()` and `opt.step()`, check for NaN/inf in grads and params. Skip step or restore from rolling checkpoint.
+- **Anomaly detection:** `torch.autograd.set_detect_anomaly(True)` for first 3 epochs only (expensive).
+- **Checkpoints:** D-specific subdirectory (`checkpoints/D{N}/`). Rolling save every epoch. Best save on val improvement.
+
+### 4.5 Code Style
+- Separator comments: `# ── Section ──` and `# ═══════════════════`.
+- Shape annotations inline: `# x: [B, C, max_W]`.
+- `torch.load(..., weights_only=True)` for all checkpoint loading.
+- No build step. Scripts run directly: `python3 script.py`.
+
+## 5. No Test Suite
+
+There is no formal test framework. Smoke-test changes with a few forward passes checking for NaN:
+
+```python
+model = QiFluid(D=1040).to('cuda:0')
+x = torch.randint(0, 256, (4, 128)).to('cuda:0')
+loss, info = model.training_loss(x)
+assert not torch.isnan(loss)
+```
+
+Ad-hoc test scripts exist at the repo root (`test_*.py`, `debug_*.py`).

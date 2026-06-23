@@ -1,0 +1,99 @@
+#!/usr/bin/env python3
+"""SpectralMemory — Galerkin projection memory replacing PatternMemory.
+
+Projects the field ψ onto chakra modes via learnable key/value projections.
+Stores persistent coefficients updated with φ-weighted EMA.
+Read injects stored patterns back into the field as a boost term.
+"""
+
+import torch
+import torch.nn as nn
+
+from cassi._chakra_utils import PHI, PHI_INV, bell_chakra_widths, chakra_offsets
+
+
+class SpectralMemory(nn.Module):
+    """Persistent memory via spectral Galerkin projection onto chakra modes.
+
+    Args:
+        d: Field dimension per position.
+        C: Number of chakras (always 13).
+        N: Number of spatial positions.
+        num_modes: Number of modes stored per chakra.
+        max_batch_size: Maximum batch size for persistent buffers.
+    """
+
+    def __init__(self, d: int, C: int = 13, N: int = 128,
+                 num_modes: int = 32, max_batch_size: int = 64):
+        super().__init__()
+        self.d = d
+        self.C = C
+        self.N = N
+        self.num_modes = num_modes
+        self.max_batch_size = max_batch_size
+
+        # ── φ-scaled chakra widths ──
+        widths = bell_chakra_widths(d, C)
+        offsets = chakra_offsets(widths)
+        self.register_buffer("chakra_offsets", offsets.clone())
+        self._chakra_start_end = [
+            (int(offsets[c].item()), int(offsets[c].item()) + widths[c])
+            for c in range(C)
+        ]
+
+        # ── Learnable projection matrices ──
+        self.W_key = nn.Parameter(torch.randn(C, d, num_modes) * 0.02)
+        self.W_val = nn.Parameter(torch.randn(C, d, num_modes) * 0.02)
+
+        # ── Stored coefficients (persistent, no gradient) ──
+        self.register_buffer("coeffs", torch.zeros(C, num_modes))
+        self.register_buffer("ages", torch.zeros(C, num_modes))
+
+    def reset_state(self):
+        """Clear stored memory."""
+        self.coeffs.zero_()
+        self.ages.zero_()
+
+    @torch.no_grad()
+    def write(self, psi: torch.Tensor):
+        """Project field onto chakra modes, update stored coefficients.
+
+        Uses φ-weighted EMA: coeff ← φ⁻¹·old + (1-φ⁻¹)·new.
+        The φ-damping prevents resonance while preserving information.
+
+        No gradients — memory updates are Hebbian, not gradient-based.
+
+        Args:
+            psi: Complex field [B, N, d].
+        """
+        energy = psi.abs() ** 2  # [B, N, d] (no detach needed under no_grad)
+        for c in range(self.C):
+            start, end = self._chakra_start_end[c]
+            psi_c = energy[:, :, start:end].mean(dim=(0, 1))  # [width_c]
+            width_c = end - start
+            W_k = self.W_key[c, start:end, :]  # [width_c, num_modes]
+            new_coeffs = psi_c @ W_k  # [num_modes]
+            self.coeffs[c] = (
+                PHI_INV * self.coeffs[c] + (1.0 - PHI_INV) * new_coeffs
+            )
+            self.ages[c] += 1.0
+
+    def read(self, psi: torch.Tensor) -> torch.Tensor:
+        """Retrieve stored patterns and inject into field.
+
+        Args:
+            psi: Complex field [B, N, d] (for shape reference).
+
+        Returns:
+            boost: Complex tensor [B, N, d] — memory injection.
+        """
+        B = psi.shape[0]
+        device = psi.device
+        boost = torch.zeros(B, self.N, self.d, dtype=torch.cfloat, device=device)
+        for c in range(self.C):
+            start, end = self._chakra_start_end[c]
+            # Expand coefficients back to field dimension
+            W_v = self.W_val[c, start:end, :]  # [width_c, num_modes]
+            mode_injection = self.coeffs[c].clone().detach() @ W_v.T  # [width_c]
+            boost[:, :, start:end] = mode_injection.unsqueeze(0).unsqueeze(0)
+        return boost
