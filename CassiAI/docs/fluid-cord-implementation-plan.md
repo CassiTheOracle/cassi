@@ -128,29 +128,28 @@ def integrate(self, source, T=1.0, dt=0.2, breath_phase=0.0):
         # Quantum potential
         rho = psi.abs() ** 2
         qp = self._quantum_potential(rho, hbar, mass)
-        # Condensation
+        # Advection: -φ⁻¹ (ψ·∇)ψ (nonlinear, real-space)
+        advection = self._advection(psi)
+        # Condensation + breath + source
         nonlinear = g * rho * psi
-        # Breath forcing
         breath = self._breath_force(step, n_steps, breath_phase)
-        # Source
-        psi = psi + 0.5 * dt * (qp + nonlinear + breath + source)
+        psi = psi + 0.5 * dt * (advection + qp + nonlinear + breath + source)
         
         # ── Full-step: linear terms (Fourier space) ──
         psi_k = torch.fft.rfft(psi, dim=1)  # [B, N//2+1, d]
-        # Advection: -φ⁻¹ (ψ·∇)ψ → handled via chirality in spectral domain
-        # Diffusion: ν∇²ψ → -ν k² ψ_k
-        # Combined propagator: exp(dt × (-φ⁻¹ i k χ - ν k²))
+        # Diffusion: ν∇²ψ → -ν k² ψ_k  (linear, diagonal in Fourier space)
+        # Chirality: χ ∂_s ψ → i χ k ψ_k  (linear, also diagonal)
         k = self.k_pos.unsqueeze(-1)  # [N//2+1, 1]
-        propagator = torch.exp(dt * (-PHI_INV * 1j * k * chi - nu * self.laplacian_eigvals))
+        propagator = torch.exp(dt * (-nu * self.laplacian_eigvals + 1j * chi * k))
         psi_k = psi_k * propagator
         psi = torch.fft.irfft(psi_k, n=N, dim=1)
         
         # ── Half-step: nonlinear terms again ──
         rho = psi.abs() ** 2
         qp = self._quantum_potential(rho, hbar, mass)
+        advection = self._advection(psi)
         nonlinear = g * rho * psi
-        psi = psi + 0.5 * dt * (qp + nonlinear + breath + source)
-        
+        psi = psi + 0.5 * dt * (advection + qp + nonlinear + breath + source)
         # Normalization (prevents blowup, preserves relative amplitudes)
         psi = psi / psi.abs().max(dim=-1, keepdim=True).values.clamp_min(1e-8)
     
@@ -301,17 +300,16 @@ The advection term $(\psi\cdot\nabla)\psi$ is nonlinear — it doesn't diagonali
 
 ```python
 def _advection(self, psi):
-    """Nonlinear advection: -φ⁻¹ (ψ·∇)ψ in real space.
+    """Nonlinear advection: -φ⁻¹ (ψ·∇)ψ via complex multiplication.
     
-    (ψ·∇)ψ ≈ ψ_conj * gradient(ψ) — the field transports itself along its own gradient.
-    This IS contextual mixing: neighboring positions influence each other through
-    the field gradient, analogous to ResonantAttention's cosine similarity.
+    For complex ψ = u + iv, ψ * ∂_s ψ = (u·∂_s u − v·∂_s v) + i(u·∂_s v + v·∂_s u).
+    The real part: Yang self-advection + Yin contraction.
+    The imaginary part: Yang-Yin cross-coupling (Simeonov mutual diffusion).
+    Both fluids are preserved; no .real projection, no conjugation.
     """
-    # Gradient in position dimension via spectral derivative
     psi_k = torch.fft.rfft(psi, dim=1)
     grad_psi = torch.fft.irfft(1j * self.k_pos.unsqueeze(-1) * psi_k, n=self.N, dim=1)
-    # (ψ·∇)ψ
-    advection = (psi.conj() * grad_psi).real * psi  # project back onto field direction
+    advection = psi * grad_psi  # (ψ·∇)ψ = plain complex multiplication
     return -PHI_INV * advection
 ```
 
