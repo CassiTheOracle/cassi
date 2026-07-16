@@ -1,21 +1,7 @@
 extends Node3D
-## Cassi Qi-enhanced N-body simulation — O(N) gravity via Yang halo field.
-## Replaces O(N^2) pairwise gravity with a single field evaluation per particle.
-##
-## The Yang halo is modelled analytically: pi/rho rises from phi-equilibrium
-## at the core to a Yang plateau in the outer halo, creating flat rotation curves
-## without any pairwise force computation.
-##
-## Key Cassi parameters:
-##   xi       = Qi coupling constant (18.0 — calibrated to MW rotation curve)
-##   qi_beta  = coherence saturation sharpness (3.0)
-##   pi_max   = asymptotic Yang fraction in the halo (0.5-0.7 depends on chi)
-##   halo_r   = radius where the Yang halo begins to dominate
-##   halo_w   = transition width from equilibrium to Yang plateau
-##
-## Performance: O(N) instead of O(N^2). N=2000 → ~100x faster than pairwise.
-## The Cassi N-body proof: force depends only on local field values (pi, q, gradPhi),
-## not on pairwise particle sums.
+## Cassi Qi-enhanced N-body — O(N) gravity via Yang halo field.
+## The compute shader now evaluates the Yang halo profile analytically
+## instead of computing N(N-1)/2 pairwise forces. ~100x faster at N=2000.
 
 @export var N: int = 2000
 @export var G: float = 1.0
@@ -42,6 +28,8 @@ var _pos_staging: PackedFloat32Array
 
 var _mmi: MultiMeshInstance3D; var _mm: MultiMesh
 var _step_count: int = 0; var _step_timer: float = 0.0
+
+const PHI_INV3: float = (1.618033988749895 - 1.0) / (1.618033988749895 + 1.0)
 
 
 func _ready() -> void:
@@ -79,19 +67,19 @@ func _setup_compute() -> void:
 	_rd = RenderingServer.create_local_rendering_device()
 	if _rd == null:
 		return
-	var sf = load("res://compute/nbody_cassi_gravity.glsl")
+	var sf = load("res://compute/nbody_gravity.glsl")
 	if sf == null:
-		push_error("[CassiNBody] Shader file not found")
+		push_error("[NBodySim] Shader file not found")
 		return
 	var spirv = sf.get_spirv()
 	if spirv == null:
-		push_error("[CassiNBody] SPIR-V compile failed")
+		push_error("[NBodySim] SPIR-V compile failed")
 		return
 
 	_shader = _rd.shader_create_from_spirv(spirv)
 	_pipeline = _rd.compute_pipeline_create(_shader)
 	_compute_ready = true
-	print("[CassiNBody] Cassi Qi gravity compute pipeline ready (xi=%.1f)" % xi)
+	print("[NBodySim] Cassi Qi gravity pipeline ready (xi=%.1f, pi_max=%.2f)" % [xi, pi_max])
 
 
 func _create_buffers() -> void:
@@ -130,13 +118,15 @@ func _init_bodies() -> void:
 		pos[i * 4]     = r * sin(th) * cos(ph)
 		pos[i * 4 + 1] = r * sin(th) * sin(ph)
 		pos[i * 4 + 2] = r * cos(th)
-		pos[i * 4 + 3] = 1.0  # uniform mass = 1
+		pos[i * 4 + 3] = 1.0
 
-		# Initial velocity: virialised for Newtonian, or slightly perturbed
 		var vs = sqrt(2.0 * G * N / sqrt(r * r + softening * softening)) * 0.65
-		vel[i * 4]     = rng.randf_range(-1.0, 1.0) * vs
-		vel[i * 4 + 1] = rng.randf_range(-1.0, 1.0) * vs
-		vel[i * 4 + 2] = rng.randf_range(-1.0, 1.0) * vs
+		var vx = rng.randf_range(-1.0, 1.0) * vs
+		var vy = rng.randf_range(-1.0, 1.0) * vs
+		var vz = rng.randf_range(-1.0, 1.0) * vs
+		vel[i * 4]     = vx
+		vel[i * 4 + 1] = vy
+		vel[i * 4 + 2] = vz
 		vel[i * 4 + 3] = 0.0
 
 	_rd.buffer_update(_pos_buf, 0, pos.size() * 4, pos.to_byte_array())
@@ -149,38 +139,42 @@ func _init_static_cluster() -> void:
 	var rng = RandomNumberGenerator.new()
 	for i in range(N):
 		var r = cluster_radius * sqrt(rng.randf())
-		var th = rng.randf() * PI * 2.0; var y = rng.randf_range(-1.0, 1.0) * 0.5
-		pos[i * 4] = r * cos(th); pos[i * 4 + 1] = y
-		pos[i * 4 + 2] = r * sin(th); pos[i * 4 + 3] = 1.0
+		var th = rng.randf() * PI * 2.0
+		var y = rng.randf_range(-1.0, 1.0) * 0.5
+		pos[i * 4]     = r * cos(th)
+		pos[i * 4 + 1] = y
+		pos[i * 4 + 2] = r * sin(th)
+		pos[i * 4 + 3] = 1.0
 	_pos_staging = pos
-	print("[CassiNBody] Static cluster — compute not available")
+	print("[NBodySim] Static cluster — compute not available")
 
 
 # ── Simulation step ─────────────────────────────────────────────────
 
 func _dispatch() -> void:
-	# Push constants: 16 floats = N, G, eps2, xi, qi_beta, halo_radius, halo_width,
-	#                  pi_max, cluster_a, M_total, 7x padding
+	# Push constants match the shader's PC struct exactly:
+	#   N_f, G, eps2, xi, qi_beta, phi_inv3, halo_radius, halo_width,
+	#   pi_max, cluster_a, M_total, _pad
 	var pc = PackedFloat32Array([
-		float(N),           # N_f
-		G,                  # G
-		softening * softening, # eps2
-		xi,                 # xi (Qi coupling)
-		qi_beta,            # qi_beta
-		halo_radius,        # halo_radius
-		halo_width,         # halo_width
-		pi_max,             # pi_max
-		cluster_radius,     # cluster_a (Plummer scale)
-		float(N),           # M_total (N * 1.0 mass per particle)
-		0.0, 0.0,           # pad
-		0.0, 0.0, 0.0, 0.0, # pad
+		float(N),               # N_f
+		G,                      # G
+		softening * softening,  # eps2
+		xi,                     # xi (Qi coupling)
+		qi_beta,                # qi_beta
+		PHI_INV3,               # phi_inv3
+		halo_radius,            # halo_radius
+		halo_width,             # halo_width
+		pi_max,                 # pi_max
+		cluster_radius,         # cluster_a
+		float(N),               # M_total
+		0.0,                    # _pad
 	])
 
 	var wg = ceili(float(N) / 256.0)
 	var cl = _rd.compute_list_begin()
 	_rd.compute_list_bind_compute_pipeline(cl, _pipeline)
 	_rd.compute_list_bind_uniform_set(cl, _uniform_set, 0)
-	_rd.compute_list_set_push_constant(cl, pc.to_byte_array(), 16 * 4)
+	_rd.compute_list_set_push_constant(cl, pc.to_byte_array(), 12 * 4)
 	_rd.compute_list_dispatch(cl, int(wg), 1, 1)
 	_rd.compute_list_end()
 	_rd.submit()
@@ -242,8 +236,7 @@ func _update_render() -> void:
 		var p = Vector3(_pos_staging[i4], _pos_staging[i4 + 1], _pos_staging[i4 + 2])
 		_mm.set_instance_transform(i, Transform3D(Basis.IDENTITY, p))
 		var t = clamp(p.length() * imr, 0.0, 1.0)
-		# Color by radius: inner (hot/red) → outer (cool/blue) — particles that
-		# migrate outward into the Yang halo will turn blue
+		# Color: warm inner → cool outer. Yang halo particles turn deep blue.
 		_mm.set_instance_color(i,
 			Color(lerp(1.0, 0.2, t), lerp(0.8, 0.3, t), lerp(0.3, 1.0, t), 0.85))
 	_mm.visible_instance_count = N
