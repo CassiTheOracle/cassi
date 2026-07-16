@@ -1,13 +1,13 @@
 extends Node3D
 ## Cassi Qi-enhanced N-body — O(N) gravity via Yang halo field.
-## The compute shader now evaluates the Yang halo profile analytically
-## instead of computing N(N-1)/2 pairwise forces. ~100x faster at N=2000.
+## The compute shader evaluates the Yang halo analytically
+## instead of computing N(N-1)/2 pairwise forces.
 
 @export var N: int = 2000
 @export var G: float = 1.0
 @export var softening: float = 0.4
 @export var dt: float = 0.001
-@export var playing: bool = false
+@export var playing: bool = true
 @export var particle_size: float = 0.06
 @export var cluster_radius: float = 5.0
 
@@ -42,14 +42,17 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	if not _compute_ready and _retry_frames < 120:
+	if not _compute_ready:
 		_retry_frames += 1
-		if _retry_frames in [10, 60]:
+		if _retry_frames % 5 == 0:
 			_setup_compute()
 			if _compute_ready:
+				print("[NBodySim] Retry %d OK" % _retry_frames)
 				_init_bodies()
+		_update_render()
+		return
 
-	if not playing or not _compute_ready:
+	if not playing:
 		_update_render()
 		return
 
@@ -66,6 +69,7 @@ func _process(delta: float) -> void:
 func _setup_compute() -> void:
 	_rd = RenderingServer.create_local_rendering_device()
 	if _rd == null:
+		push_error("[NBodySim] RenderingDevice creation failed")
 		return
 	var sf = load("res://compute/nbody_gravity.glsl")
 	if sf == null:
@@ -73,13 +77,13 @@ func _setup_compute() -> void:
 		return
 	var spirv = sf.get_spirv()
 	if spirv == null:
-		push_error("[NBodySim] SPIR-V compile failed")
+		push_error("[NBodySim] SPIR-V compile FAILED — check shader syntax")
 		return
 
 	_shader = _rd.shader_create_from_spirv(spirv)
 	_pipeline = _rd.compute_pipeline_create(_shader)
 	_compute_ready = true
-	print("[NBodySim] Cassi Qi gravity pipeline ready (xi=%.1f, pi_max=%.2f)" % [xi, pi_max])
+	print("[NBodySim] Cassi Qi pipeline ready (xi=%.1f)" % xi)
 
 
 func _create_buffers() -> void:
@@ -121,12 +125,9 @@ func _init_bodies() -> void:
 		pos[i * 4 + 3] = 1.0
 
 		var vs = sqrt(2.0 * G * N / sqrt(r * r + softening * softening)) * 0.65
-		var vx = rng.randf_range(-1.0, 1.0) * vs
-		var vy = rng.randf_range(-1.0, 1.0) * vs
-		var vz = rng.randf_range(-1.0, 1.0) * vs
-		vel[i * 4]     = vx
-		vel[i * 4 + 1] = vy
-		vel[i * 4 + 2] = vz
+		vel[i * 4]     = rng.randf_range(-1.0, 1.0) * vs
+		vel[i * 4 + 1] = rng.randf_range(-1.0, 1.0) * vs
+		vel[i * 4 + 2] = rng.randf_range(-1.0, 1.0) * vs
 		vel[i * 4 + 3] = 0.0
 
 	_rd.buffer_update(_pos_buf, 0, pos.size() * 4, pos.to_byte_array())
@@ -146,20 +147,17 @@ func _init_static_cluster() -> void:
 		pos[i * 4 + 2] = r * sin(th)
 		pos[i * 4 + 3] = 1.0
 	_pos_staging = pos
-	print("[NBodySim] Static cluster — compute not available")
+	print("[NBodySim] Static cluster — compute unavailable")
 
 
 # ── Simulation step ─────────────────────────────────────────────────
 
 func _dispatch() -> void:
-	# Push constants match the shader's PC struct exactly:
-	#   N_f, G, eps2, xi, qi_beta, phi_inv3, halo_radius, halo_width,
-	#   pi_max, cluster_a, M_total, _pad
 	var pc = PackedFloat32Array([
 		float(N),               # N_f
 		G,                      # G
 		softening * softening,  # eps2
-		xi,                     # xi (Qi coupling)
+		xi,                     # xi
 		qi_beta,                # qi_beta
 		PHI_INV3,               # phi_inv3
 		halo_radius,            # halo_radius
@@ -236,7 +234,6 @@ func _update_render() -> void:
 		var p = Vector3(_pos_staging[i4], _pos_staging[i4 + 1], _pos_staging[i4 + 2])
 		_mm.set_instance_transform(i, Transform3D(Basis.IDENTITY, p))
 		var t = clamp(p.length() * imr, 0.0, 1.0)
-		# Color: warm inner → cool outer. Yang halo particles turn deep blue.
 		_mm.set_instance_color(i,
 			Color(lerp(1.0, 0.2, t), lerp(0.8, 0.3, t), lerp(0.3, 1.0, t), 0.85))
 	_mm.visible_instance_count = N
