@@ -454,6 +454,11 @@ func _render_particles() -> void:
 	var pos = pos_data.to_float32_array()
 	var n_visible = min(pos.size() / 4, N_particles)
 
+	# Debug: log first particle's position every 3 seconds to check for movement
+	if _step_count % 3000 == 0 and n_visible > 0:
+		print("[CassiSim] p[0] = (%.3f, %.3f, %.3f)  steps=%d" % [
+			pos[0], pos[1], pos[2], _step_count])
+
 	var max_r2 = 0.0
 	for i in range(n_visible):
 		var i4 = i * 4
