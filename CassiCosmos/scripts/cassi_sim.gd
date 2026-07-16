@@ -8,7 +8,7 @@ extends Node3D
 
 # ═══════════════════════════════════════════════════════════════════════
 # Exports
-# ═══════════════════════════════════════════════════════════════════════
+@export var playing: bool = true              # simulation running
 
 @export var grid_N: int = 32              # field grid resolution (per dim)
 @export var N_particles: int = 20000      # N-body particle count
