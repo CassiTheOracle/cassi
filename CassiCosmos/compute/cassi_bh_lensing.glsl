@@ -53,6 +53,34 @@ float smooth_ring(float x, float center, float width) {
     return 1.0 - smoothstep(0.0, half_w, abs(x - center));
 }
 
+
+// ── Procedural starfield (for when source image is empty) ─────────────
+float hash12(vec2 p) {
+    p = fract(p * vec2(543.21, 987.65));
+    p += dot(p, p + 42.42);
+    return fract(p.x * p.y);
+}
+
+vec3 starfield(vec2 pixel_pos) {
+    // Grid-based pseudo-random starfield
+    vec2 cell = floor(pixel_pos * 0.03);
+    vec3 stars = vec3(0.0);
+    for (int dy = -1; dy <= 1; dy++) {
+        for (int dx = -1; dx <= 1; dx++) {
+            vec2 n = cell + vec2(float(dx), float(dy));
+            float h = hash12(n);
+            if (h > 0.97) {
+                vec2 star_uv = fract(n * 0.03) - 0.5;
+                float d = length(star_uv);
+                float bright = 1.0 - smoothstep(0.0, 0.08, d);
+                float temp = hash12(n + vec2(100.0));
+                vec3 col = mix(vec3(0.7, 0.8, 1.0), vec3(1.0, 0.95, 0.7), temp);
+                stars += col * bright * h * 2.0;
+            }
+        }
+    }
+    return stars;
+}
 // ── Main kernel ────────────────────────────────────────────────────────
 void main() {
     ivec2 pix = ivec2(gl_GlobalInvocationID.xy);
@@ -103,7 +131,6 @@ void main() {
 
     // ── Gravitational deflection ───────────────────────────────────────
     // Cassi-enhanced deflection angle:
-    //   alpha = 2 * r_s / b_phys * (1 + xi * G_eff_ext)
     // where b_phys is the physical impact parameter (in natural units)
     float b_phys = b;  // already in units of M
     float deflection = 2.0 * r_s_phys / b_phys * (1.0 + xi_val * G_eff);
@@ -127,13 +154,13 @@ void main() {
     float redshift = 1.0;
     if (r_phys > r_s_phys * 0.5 + 0.01) {
         redshift = sqrt(max(1.0 - r_s_phys / r_phys, 0.0));
+	}
+    // ── Starfield background (when source image is black) ──────────────
+    vec4 bg = source_color;
+    if (bg.r + bg.g + bg.b < 0.01) {
+        bg = vec4(starfield(source_uv + vec2(float(dims.x) * 0.1)), 0.0);
     }
-
-    // Apply redshift to the sampled color (dimmer = more redshifted)
-    vec4 lensed_color = source_color * redshift;
-
-    // ── Accretion disk emission ────────────────────────────────────────
-    // Cassi ISCO: ~3*G_eff*M (10x GR which is 6M for non-spinning,
+    vec4 lensed_color = bg * redshift;
     // Cassi reduces it; spec says ~10x GR result, so ISCO ~ 3M in units
     // where GR ISCO = 6M, meaning Cassi ISCO = 60M... but spec says
     // "ISCO ~ 10x GR" matching ~3*G*M for the Cassi model).

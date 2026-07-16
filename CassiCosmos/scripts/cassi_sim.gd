@@ -61,6 +61,12 @@ var _scale_factor: float = 1.0
 const PHI: float = 1.618033988749895
 const PHI_INV3: float = (PHI - 1.0) / (PHI + 1.0)
 
+
+# — Display textures for visualization modes —
+var field_display_texture: Texture2D = null
+signal field_texture_updated(tex: Texture2D)
+var bh_display_texture: Texture2D = null
+signal bh_texture_updated(tex: Texture2D)
 # ═══════════════════════════════════════════════════════════════════════
 # Lifecycle
 # ═══════════════════════════════════════════════════════════════════════
@@ -470,7 +476,6 @@ func _render_particles() -> void:
 
 
 func _render_field_slice() -> void:
-	# Dispatch field render compute shader → writes to _field_render_tex
 	if not _field_render_shader.is_valid(): return
 	if not _field_render_tex.is_valid():
 		_make_render_textures()
@@ -480,15 +485,19 @@ func _render_field_slice() -> void:
 		softening * softening, float(N_particles), float(mode),
 		source_strength, 0.0,
 	])
-
 	var wg = Vector3i(ceili(_rt_size.x / 8.0), ceili(_rt_size.y / 8.0), 1)
 
 	_dispatch_compute(_field_render_shader, _field_render_pipe,
 		[_get_set2_image_uniform(_field_render_shader, 0, _field_render_tex)],
 		pc, wg)
 
-	# The texture can be read via RenderingServer for display on a texture rect
-	# or captured to a Viewport. For now we just write the GPU texture.
+	# Readback for UI display
+	var fdata = _rd.texture_get_data(_field_render_tex, 0)
+	if fdata.size() > 100:
+		var img = Image.create_from_data(_rt_size.x, _rt_size.y, false, Image.FORMAT_RGBAF, fdata)
+		if img:
+			field_display_texture = ImageTexture.create_from_image(img)
+			field_texture_updated.emit(field_display_texture)
 
 
 func _render_bh_lensing() -> void:
@@ -502,7 +511,7 @@ func _render_bh_lensing() -> void:
 		source_strength, 0.0,
 	])
 
-	# Write BH params: position center of screen, mass=2, spin=0, G_eff=1.0
+	# Write BH params: center screen, mass=2, spin=0, G_eff=1.0
 	var bh = PackedFloat32Array([_rt_size.x*0.5, _rt_size.y*0.5, 0.0, 0.0,
 		2.0, 0.0, 1.0, 0.0,
 		0.0, 0.0, 0.0, 0.0,
@@ -518,6 +527,13 @@ func _render_bh_lensing() -> void:
 		],
 		pc, wg)
 
+	# Readback for UI display
+	var bdata = _rd.texture_get_data(_bh_lensing_tex, 0)
+	if bdata.size() > 100:
+		var img = Image.create_from_data(_rt_size.x, _rt_size.y, false, Image.FORMAT_RGBAF, bdata)
+		if img:
+			bh_display_texture = ImageTexture.create_from_image(img)
+			bh_texture_updated.emit(bh_display_texture)
 
 # ═══════════════════════════════════════════════════════════════════════
 # Public API (for UI to call)

@@ -29,6 +29,8 @@ var _fps_accum: float = 0.0
 var _fps_count: int = 0
 var _fps_display: float = 0.0
 
+var _viz_texture_rect: TextureRect
+
 const MODE_NAMES: Array[String] = ["Particles", "Field", "Black Hole", "Cosmology"]
 
 
@@ -60,6 +62,25 @@ func _make_label(text: String, color: Color = Color(0.8, 0.9, 1.0), font_size: i
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	# ── Full-viewport visualization texture (behind UI panels) ──
+	_viz_texture_rect = TextureRect.new()
+	_viz_texture_rect.name = "VizTexture"
+	_viz_texture_rect.set_anchors_preset(PRESET_FULL_RECT)
+	_viz_texture_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_viz_texture_rect.expand_mode = TextureRect.EXPAND_KEEP_SIZE
+	_viz_texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_viz_texture_rect.visible = false
+	add_child(_viz_texture_rect)
+	move_child(_viz_texture_rect, 0)  # Behind the UI panels
+
+	# Connect to CassiSim texture signals
+	var sim = _get_sim()
+	if sim:
+		if sim.has_signal("field_texture_updated"):
+			sim.field_texture_updated.connect(_on_field_texture_updated)
+		if sim.has_signal("bh_texture_updated"):
+			sim.bh_texture_updated.connect(_on_field_texture_updated)
 
 	# ── Top-left info panel ──────────────────────────────────────
 	var info_panel = PanelContainer.new()
@@ -241,6 +262,17 @@ func _build_slider_row(parent: HBoxContainer, label_text: String,
 	return slider
 
 
+func _on_field_texture_updated(tex: Texture2D) -> void:
+	_viz_texture_rect.texture = tex
+
+
+func _set_mode_highlight(active: int) -> void:
+	for i in range(_mode_btns.size()):
+		_mode_btns[i].button_pressed = (i == active)
+	# Show viz texture only in Field (1) or BH (2) mode
+	_viz_texture_rect.visible = (active == 1 or active == 2)
+
+
 # ═══════════════════════════════════════════════════════════════════════
 # Process & input
 # ═══════════════════════════════════════════════════════════════════════
@@ -323,11 +355,6 @@ func _on_reinit() -> void:
 
 func _update_play_btn(is_playing: bool) -> void:
 	_play_btn.text = "⏸ Pause" if is_playing else "▶ Play"
-
-
-func _set_mode_highlight(idx: int) -> void:
-	for i in range(_mode_btns.size()):
-		_mode_btns[i].button_pressed = (i == idx)
 
 
 func _update_info() -> void:
