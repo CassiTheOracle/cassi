@@ -1,5 +1,5 @@
 extends Node3D
-## Cassi Qi O(1) N-body — GPU-side KDK, one readback per frame.
+## Cassi Qi O(1) N-body — FULLY GPU-side. Single compute list per frame.
 
 @export var N: int = 2000
 @export var G: float = 1.0
@@ -17,12 +17,11 @@ extends Node3D
 
 var _compute_ready: bool = false
 var _retry_frames: int = 0
-var _needs_readback: bool = false
 
 var _rd: RenderingDevice = null
-var _shader: RID; var _pipeline: RID; var _uniform_set: RID
-var _pos_buf: RID; var _vel_buf: RID; var _acc_buf: RID
-var _pos_staging: PackedFloat32Array
+var _gravity_shader: RID; var _gravity_pipeline: RID; var _gravity_set: RID
+var _render_shader: RID;  var _render_pipeline: RID;  var _render_set: RID
+var _pos_buf: RID; var _vel_buf: RID; var _acc_buf: RID; var _mm_buf: RID
 
 var _mmi: MultiMeshInstance3D; var _mm: MultiMesh
 var _step_count: int = 0; var _step_timer: float = 0.0
@@ -46,58 +45,106 @@ func _process(delta: float) -> void:
 			_setup_compute()
 			if _compute_ready:
 				_init_bodies()
-		_update_render()
 		return
 
 	if not playing:
-		_update_render()
+		_render_and_readback()
 		return
 
 	_step_timer += delta
+	var n_steps := 0
 	while _step_timer >= dt:
 		_step_timer -= dt
-		_step()
+		n_steps += 1
 		_step_count += 1
-		_needs_readback = true
 
-	if _needs_readback:
-		_rd.sync()
-		var pos = _rd.buffer_get_data(_pos_buf, 0, N * 16).to_float32_array()
-		_pos_staging = pos
-		_needs_readback = false
+	if n_steps == 0:
+		return
 
-	_update_render()
+	# Single compute list: gravity × N + render → one submit
+	var cl = _rd.compute_list_begin()
+
+	# Gravity dispatches
+	var pc_g = PackedFloat32Array([
+		float(N), G, softening * softening, xi,
+		qi_beta, PHI_INV3, halo_radius, halo_width,
+		pi_max, cluster_radius, float(N), dt,
+		1.0, 0.0,
+	])
+	var wg_g = ceili(float(N) / 256.0)
+	for _s in range(n_steps):
+		_rd.compute_list_bind_compute_pipeline(cl, _gravity_pipeline)
+		_rd.compute_list_bind_uniform_set(cl, _gravity_set, 0)
+		_rd.compute_list_set_push_constant(cl, pc_g.to_byte_array(), 14 * 4)
+		_rd.compute_list_dispatch(cl, int(wg_g), 1, 1)
+
+	# Render dispatch
+	var pc_r = PackedFloat32Array([float(N), particle_size, 0.0, 0.0])
+	var wg_r = ceili(float(N) / 256.0)
+	_rd.compute_list_bind_compute_pipeline(cl, _render_pipeline)
+	_rd.compute_list_bind_uniform_set(cl, _render_set, 0)
+	_rd.compute_list_set_push_constant(cl, pc_r.to_byte_array(), 4 * 4)
+	_rd.compute_list_dispatch(cl, int(wg_r), 1, 1)
+
+	_rd.compute_list_end()
+	_rd.submit()
+	_rd.sync()
+
+	var data = _rd.buffer_get_data(_mm_buf, 0, N * 64).to_float32_array()
+	_mm.set_buffer(data)
 
 
-# ── RenderingDevice compute pipeline ──────────────────────────────
+func _render_and_readback() -> void:
+	var cl = _rd.compute_list_begin()
+	var pc_r = PackedFloat32Array([float(N), particle_size, 0.0, 0.0])
+	var wg = ceili(float(N) / 256.0)
+	_rd.compute_list_bind_compute_pipeline(cl, _render_pipeline)
+	_rd.compute_list_bind_uniform_set(cl, _render_set, 0)
+	_rd.compute_list_set_push_constant(cl, pc_r.to_byte_array(), 4 * 4)
+	_rd.compute_list_dispatch(cl, int(wg), 1, 1)
+	_rd.compute_list_end()
+	_rd.submit()
+	_rd.sync()
+	var data = _rd.buffer_get_data(_mm_buf, 0, N * 64).to_float32_array()
+	_mm.set_buffer(data)
+
+
+# ── Compute pipeline setup ────────────────────────────────────────
 
 func _setup_compute() -> void:
 	_rd = RenderingServer.create_local_rendering_device()
 	if _rd == null:
-		push_error("[NBodySim] RenderingDevice creation failed")
-		return
-	var sf = load("res://compute/nbody_gravity.glsl")
-	if sf == null:
-		push_error("[NBodySim] Shader file not found")
-		return
-	var spirv = sf.get_spirv()
-	if spirv == null:
-		push_error("[NBodySim] SPIR-V compile FAILED")
+		push_error("[NBody] RenderingDevice failed")
 		return
 
-	_shader = _rd.shader_create_from_spirv(spirv)
-	_pipeline = _rd.compute_pipeline_create(_shader)
+	var sf_g = load("res://compute/nbody_gravity.glsl")
+	if sf_g == null: push_error("[NBody] gravity.glsl not found"); return
+	var spv_g = sf_g.get_spirv()
+	if spv_g == null: push_error("[NBody] gravity SPIR-V FAILED"); return
+	_gravity_shader = _rd.shader_create_from_spirv(spv_g)
+	_gravity_pipeline = _rd.compute_pipeline_create(_gravity_shader)
+
+	var sf_r = load("res://compute/nbody_render.glsl")
+	if sf_r == null: push_error("[NBody] render.glsl not found"); return
+	var spv_r = sf_r.get_spirv()
+	if spv_r == null: push_error("[NBody] render SPIR-V FAILED"); return
+	_render_shader = _rd.shader_create_from_spirv(spv_r)
+	_render_pipeline = _rd.compute_pipeline_create(_render_shader)
+
 	_compute_ready = true
-	print("[NBodySim] GPU KDK pipeline ready (xi=%.1f, %.0f particles)" % [xi, N])
+	print("[NBody] Full GPU pipeline ready (%.0f particles)" % N)
 
 
 func _create_buffers() -> void:
-	for rid in [_pos_buf, _vel_buf, _acc_buf]:
+	for rid in [_pos_buf, _vel_buf, _acc_buf, _mm_buf]:
 		if rid.is_valid(): _rd.free_rid(rid)
-	var sz = N * 4 * 4
-	_pos_buf = _rd.storage_buffer_create(sz)
-	_vel_buf = _rd.storage_buffer_create(sz)
-	_acc_buf = _rd.storage_buffer_create(sz)
+
+	var sz_part = N * 4 * 4
+	_pos_buf = _rd.storage_buffer_create(sz_part)
+	_vel_buf = _rd.storage_buffer_create(sz_part)
+	_acc_buf = _rd.storage_buffer_create(sz_part)
+	_mm_buf  = _rd.storage_buffer_create(N * 16 * 4)
+	_mm.visible_instance_count = N
 
 	var u0 = RDUniform.new(); u0.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	u0.binding = 0; u0.add_id(_pos_buf)
@@ -105,9 +152,15 @@ func _create_buffers() -> void:
 	u1.binding = 1; u1.add_id(_vel_buf)
 	var u2 = RDUniform.new(); u2.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	u2.binding = 2; u2.add_id(_acc_buf)
+	if _gravity_set.is_valid(): _rd.free_rid(_gravity_set)
+	_gravity_set = _rd.uniform_set_create([u0, u1, u2], _gravity_shader, 0)
 
-	if _uniform_set.is_valid(): _rd.free_rid(_uniform_set)
-	_uniform_set = _rd.uniform_set_create([u0, u1, u2], _shader, 0)
+	var r0 = RDUniform.new(); r0.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	r0.binding = 0; r0.add_id(_pos_buf)
+	var r1 = RDUniform.new(); r1.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	r1.binding = 1; r1.add_id(_mm_buf)
+	if _render_set.is_valid(): _rd.free_rid(_render_set)
+	_render_set = _rd.uniform_set_create([r0, r1], _render_shader, 0)
 
 
 # ── Initial conditions ─────────────────────────────────────────────
@@ -136,59 +189,26 @@ func _init_bodies() -> void:
 
 	_rd.buffer_update(_pos_buf, 0, pos.size() * 4, pos.to_byte_array())
 	_rd.buffer_update(_vel_buf, 0, vel.size() * 4, vel.to_byte_array())
-	_pos_staging = pos
+	_render_and_readback()
 
 
 func _init_static_cluster() -> void:
+	_create_buffers()
 	var pos = PackedFloat32Array(); pos.resize(N * 4)
 	var rng = RandomNumberGenerator.new()
 	for i in range(N):
 		var r = cluster_radius * sqrt(rng.randf())
 		var th = rng.randf() * PI * 2.0
-		var y = rng.randf_range(-1.0, 1.0) * 0.5
 		pos[i * 4]     = r * cos(th)
-		pos[i * 4 + 1] = y
+		pos[i * 4 + 1] = rng.randf_range(-1.0, 1.0) * 0.5
 		pos[i * 4 + 2] = r * sin(th)
 		pos[i * 4 + 3] = 1.0
-	_pos_staging = pos
-	print("[NBodySim] Static cluster")
+	_rd.buffer_update(_pos_buf, 0, pos.size() * 4, pos.to_byte_array())
+	_render_and_readback()
+	print("[NBody] Static cluster")
 
 
-# ── Simulation step (dispatch only, no readback) ──────────────────
-
-func _dispatch() -> void:
-	var pc = PackedFloat32Array([
-		float(N),               # N_f
-		G,                      # G
-		softening * softening,  # eps2
-		xi,                     # xi
-		qi_beta,                # qi_beta
-		PHI_INV3,               # phi_inv3
-		halo_radius,            # halo_radius
-		halo_width,             # halo_width
-		pi_max,                 # pi_max
-		cluster_radius,         # cluster_a
-		float(N),               # M_total
-		dt,                     # dt
-		1.0,                    # n_substeps_f
-		0.0,                    # pad
-	])
-
-	var wg = ceili(float(N) / 256.0)
-	var cl = _rd.compute_list_begin()
-	_rd.compute_list_bind_compute_pipeline(cl, _pipeline)
-	_rd.compute_list_bind_uniform_set(cl, _uniform_set, 0)
-	_rd.compute_list_set_push_constant(cl, pc.to_byte_array(), 14 * 4)
-	_rd.compute_list_dispatch(cl, int(wg), 1, 1)
-	_rd.compute_list_end()
-	_rd.submit()
-
-
-func _step() -> void:
-	_dispatch()
-
-
-# ── MultiMesh rendering ────────────────────────────────────────────
+# ── MultiMesh setup ───────────────────────────────────────────────
 
 func _setup_multimesh() -> void:
 	var qm = QuadMesh.new(); qm.size = Vector2(particle_size, particle_size)
@@ -202,23 +222,3 @@ func _setup_multimesh() -> void:
 	mat.shader = load("res://shaders/particle_billboard.gdshader")
 	mat.render_priority = 1
 	_mmi.material_override = mat
-
-
-func _update_render() -> void:
-	if _pos_staging.is_empty(): return
-	var mr = 0.0
-	for i in range(N):
-		var i4 = i * 4
-		var r2 = _pos_staging[i4] * _pos_staging[i4] + \
-		         _pos_staging[i4 + 1] * _pos_staging[i4 + 1] + \
-		         _pos_staging[i4 + 2] * _pos_staging[i4 + 2]
-		if r2 > mr: mr = r2
-	var imr = 1.0 / sqrt(max(mr, 0.0001))
-	for i in range(N):
-		var i4 = i * 4
-		var p = Vector3(_pos_staging[i4], _pos_staging[i4 + 1], _pos_staging[i4 + 2])
-		_mm.set_instance_transform(i, Transform3D(Basis.IDENTITY, p))
-		var t = clamp(p.length() * imr, 0.0, 1.0)
-		_mm.set_instance_color(i,
-			Color(lerp(1.0, 0.2, t), lerp(0.8, 0.3, t), lerp(0.3, 1.0, t), 0.85))
-	_mm.visible_instance_count = N
