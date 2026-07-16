@@ -31,15 +31,12 @@ var _rd: RenderingDevice = null
 # — field grid buffers (SET 0) —
 var _field_ey: RID; var _field_ei: RID
 var _field_q: RID;  var _field_vel: RID
-var _field_uni: RID  # uniform set for field shaders
 
 # — particle buffers (SET 1) —
 var _pos_buf: RID; var _vel_buf: RID; var _acc_buf: RID
-var _particle_uni: RID  # uniform set for particle shaders
 
 # — auxiliary buffers (SET 2) —
 var _bh_buf: RID
-var _aux_uni: RID
 
 # — shaders and pipelines —
 var _two_fluid_shader: RID;  var _two_fluid_pipe: RID
@@ -137,25 +134,11 @@ func _setup_buffers() -> void:
 	_field_ei  = _rd.storage_buffer_create(nf)
 	_field_q   = _rd.storage_buffer_create(nf)
 	_field_vel = _rd.storage_buffer_create(nc * 16)
-
-	_field_uni = _rd.uniform_set_create([
-		_uniform_storage(0, _field_ey),
-		_uniform_storage(1, _field_ei),
-		_uniform_storage(2, _field_q),
-		_uniform_storage(3, _field_vel),
-	], null, 0)
-
 	# SET 1 — Particles
 	var ps = N_particles * 16
 	_pos_buf = _rd.storage_buffer_create(ps)
 	_vel_buf = _rd.storage_buffer_create(ps)
 	_acc_buf = _rd.storage_buffer_create(ps)
-
-	_particle_uni = _rd.uniform_set_create([
-		_uniform_storage(0, _pos_buf),
-		_uniform_storage(1, _vel_buf),
-		_uniform_storage(2, _acc_buf),
-	], null, 1)
 
 	# SET 2 — BH data + sim globals
 	_bh_buf = _rd.storage_buffer_create(4 * 16)
@@ -167,10 +150,6 @@ func _setup_buffers() -> void:
 	])
 	_rd.buffer_update(_bh_buf, 0, bh_init.size() * 4, bh_init.to_byte_array())
 
-	_aux_uni = _rd.uniform_set_create([
-		_uniform_storage(0, _bh_buf),
-	], null, 2)
-
 	# Render textures for field/BH output
 	_make_render_textures()
 
@@ -180,9 +159,6 @@ func _free_buffers() -> void:
 	for rid in [_field_ey, _field_ei, _field_q, _field_vel,
 				_pos_buf, _vel_buf, _acc_buf, _bh_buf]:
 		if rid.is_valid(): _rd.free_rid(rid)
-	if _field_uni.is_valid(): _rd.free_rid(_field_uni)
-	if _particle_uni.is_valid(): _rd.free_rid(_particle_uni)
-	if _aux_uni.is_valid(): _rd.free_rid(_aux_uni)
 
 
 func _free_shaders() -> void:
