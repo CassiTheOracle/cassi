@@ -133,9 +133,8 @@ func _ready() -> void:
 	var sep1 = VSeparator.new()
 	sep1.custom_minimum_size = Vector2(4, 0)
 	row1.add_child(sep1)
-		_update_play_btn(true)
 	_play_btn = Button.new()
-	_play_btn.text = "▶ Play"
+	_play_btn.text = "⏸ Pause"
 	_play_btn.custom_minimum_size = Vector2(90, 30)
 	_play_btn.pressed.connect(_on_play_toggled)
 	row1.add_child(_play_btn)
