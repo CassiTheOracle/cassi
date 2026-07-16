@@ -41,10 +41,13 @@ func _ready() -> void:
 	var control_panel = PanelContainer.new()
 	control_panel.name = "ControlPanel"
 	control_panel.add_theme_stylebox_override("panel", _make_panel_style())
-	control_panel.custom_minimum_size = Vector2(0, 55)
-	control_panel.set_anchors_preset(PRESET_BOTTOM_WIDE)
+	control_panel.layout_mode = Control.LAYOUT_MODE_ANCHORS
+	control_panel.set_anchor(SIDE_TOP, 1.0)
+	control_panel.set_anchor(SIDE_BOTTOM, 1.0)
+	control_panel.set_anchor(SIDE_LEFT, 0.0)
+	control_panel.set_anchor(SIDE_RIGHT, 1.0)
+	control_panel.offset_top = -60
 	control_panel.offset_left = 10; control_panel.offset_right = -10
-	control_panel.offset_top = -70
 	add_child(control_panel)
 
 	var hbox = HBoxContainer.new()
