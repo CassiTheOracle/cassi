@@ -38,7 +38,7 @@ light_energy = 0.3; shadow_enabled = false
 
 [node name="NBodySim" type="Node3D" parent="."]
 script = ExtResource("2_sim")
-N = 2000; particle_size = 0.06; xi = 18.0; pi_max = 0.55
+N = 50000; particle_size = 0.06; xi = 18.0; pi_max = 0.55
 
 [node name="UILayer" type="CanvasLayer" parent="."]
 

@@ -71,7 +71,8 @@ func _ready() -> void:
 	_play_btn = Button.new(); _play_btn.text = "⏸ Pause"
 	_play_btn.pressed.connect(_on_play_toggled)
 	hbox.add_child(_play_btn)
-
+	_n_spin.min_value = 100; _n_spin.max_value = 2000000
+	_n_spin.step = 10000
 	# xi slider
 	var xi_box = VBoxContainer.new()
 	xi_box.custom_minimum_size = Vector2(180, 40)
