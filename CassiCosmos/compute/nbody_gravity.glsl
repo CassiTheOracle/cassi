@@ -1,8 +1,7 @@
 #[compute]
 #version 450
-// Cassi O(1) N-body — combined force + KDK integration on GPU.
-// Eliminates per-step buffer readback. Positions read once per frame
-// for rendering only.
+// Cassi O(1) N-body — GPU-side KDK with sub-stepping.
+// One dispatch per step, positions read once per frame.
 
 layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
@@ -23,8 +22,8 @@ layout(push_constant, std430) uniform PC {
     float cluster_a;
     float M_total;
     float dt;
-    int   n_substeps;
-    float _pad2;
+    float n_substeps_f;
+    float _pad;
 } pc;
 
 float enclosed_mass(float r, float r2) {
@@ -36,6 +35,7 @@ float enclosed_mass(float r, float r2) {
 
 void main() {
     int N = int(pc.N_f);
+    int n_sub = int(pc.n_substeps_f);
     int i = int(gl_GlobalInvocationID.x);
     if (i >= N) return;
 
@@ -46,10 +46,9 @@ void main() {
     float vy = v[i*4 + 1];
     float vz = v[i*4 + 2];
 
-    // Sub-step KDK loop on GPU
     float hdt = pc.dt * 0.5;
 
-    for (int s = 0; s < pc.n_substeps; s++) {
+    for (int s = 0; s < n_sub; s++) {
         float r2 = px*px + py*py + pz*pz;
         float r  = sqrt(r2 + pc.eps2);
 
@@ -62,7 +61,6 @@ void main() {
         float ay = -f_mag * py * inv_r;
         float az = -f_mag * pz * inv_r;
 
-        // KDK
         vx += ax * hdt;
         vy += ay * hdt;
         vz += az * hdt;
@@ -82,7 +80,7 @@ void main() {
     v[i*4 + 1] = vy;
     v[i*4 + 2] = vz;
     v[i*4 + 3] = 0.0;
-    a[i*4]     = 0.0;  // unused
+    a[i*4]     = 0.0;
     a[i*4 + 1] = 0.0;
     a[i*4 + 2] = 0.0;
     a[i*4 + 3] = 0.0;

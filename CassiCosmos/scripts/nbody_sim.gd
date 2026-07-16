@@ -1,6 +1,5 @@
 extends Node3D
-## Cassi Qi O(1) N-body — GPU-side KDK integration.
-## One dispatch per frame. No CPU-side particle loop.
+## Cassi Qi O(1) N-body — GPU-side KDK, one readback per frame.
 
 @export var N: int = 2000
 @export var G: float = 1.0
@@ -10,7 +9,6 @@ extends Node3D
 @export var particle_size: float = 0.06
 @export var cluster_radius: float = 5.0
 
-# Cassi Qi parameters
 @export_range(0.0, 100.0) var xi: float = 18.0
 @export_range(0.5, 10.0) var qi_beta: float = 3.0
 @export_range(0.3, 0.99) var pi_max: float = 0.55
@@ -19,6 +17,7 @@ extends Node3D
 
 var _compute_ready: bool = false
 var _retry_frames: int = 0
+var _needs_readback: bool = false
 
 var _rd: RenderingDevice = null
 var _shader: RID; var _pipeline: RID; var _uniform_set: RID
@@ -59,6 +58,14 @@ func _process(delta: float) -> void:
 		_step_timer -= dt
 		_step()
 		_step_count += 1
+		_needs_readback = true
+
+	if _needs_readback:
+		_rd.sync()
+		var pos = _rd.buffer_get_data(_pos_buf, 0, N * 16).to_float32_array()
+		_pos_staging = pos
+		_needs_readback = false
+
 	_update_render()
 
 
@@ -81,7 +88,7 @@ func _setup_compute() -> void:
 	_shader = _rd.shader_create_from_spirv(spirv)
 	_pipeline = _rd.compute_pipeline_create(_shader)
 	_compute_ready = true
-	print("[NBodySim] GPU-side KDK pipeline ready (xi=%.1f)" % xi)
+	print("[NBodySim] GPU KDK pipeline ready (xi=%.1f, %.0f particles)" % [xi, N])
 
 
 func _create_buffers() -> void:
@@ -92,16 +99,11 @@ func _create_buffers() -> void:
 	_vel_buf = _rd.storage_buffer_create(sz)
 	_acc_buf = _rd.storage_buffer_create(sz)
 
-	var u0 = RDUniform.new()
-	u0.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	var u0 = RDUniform.new(); u0.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	u0.binding = 0; u0.add_id(_pos_buf)
-
-	var u1 = RDUniform.new()
-	u1.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	var u1 = RDUniform.new(); u1.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	u1.binding = 1; u1.add_id(_vel_buf)
-
-	var u2 = RDUniform.new()
-	u2.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	var u2 = RDUniform.new(); u2.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	u2.binding = 2; u2.add_id(_acc_buf)
 
 	if _uniform_set.is_valid(): _rd.free_rid(_uniform_set)
@@ -152,7 +154,7 @@ func _init_static_cluster() -> void:
 	print("[NBodySim] Static cluster")
 
 
-# ── Simulation step (GPU-side KDK, one readback) ──────────────────
+# ── Simulation step (dispatch only, no readback) ──────────────────
 
 func _dispatch() -> void:
 	var pc = PackedFloat32Array([
@@ -168,7 +170,7 @@ func _dispatch() -> void:
 		cluster_radius,         # cluster_a
 		float(N),               # M_total
 		dt,                     # dt
-		1.0,                    # n_substeps
+		1.0,                    # n_substeps_f
 		0.0,                    # pad
 	])
 
@@ -180,14 +182,10 @@ func _dispatch() -> void:
 	_rd.compute_list_dispatch(cl, int(wg), 1, 1)
 	_rd.compute_list_end()
 	_rd.submit()
-	_rd.sync()
 
 
 func _step() -> void:
 	_dispatch()
-	# Only read back positions for rendering — KDK done on GPU
-	var pos = _rd.buffer_get_data(_pos_buf, 0, N * 16).to_float32_array()
-	_pos_staging = pos
 
 
 # ── MultiMesh rendering ────────────────────────────────────────────
