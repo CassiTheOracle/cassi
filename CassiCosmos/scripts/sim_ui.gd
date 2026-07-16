@@ -216,7 +216,7 @@ func _ready() -> void:
 	srv_hbox.add_child(_server_port_edit)
 
 	# Init from sim if available
-	var sim = _get_sim()
+	sim = _get_sim()
 	if sim:
 		_xi_slider.value = sim.xi
 		_src_slider.value = sim.source_strength
