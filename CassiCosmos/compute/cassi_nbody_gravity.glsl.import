@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://d1pxf8qf5sxc7"
+path="res://.godot/imported/cassi_nbody_gravity.glsl-b9eba2fe53e3f8b0d2125939d87c31bf.res"
+
+[deps]
+
+source_file="res://compute/cassi_nbody_gravity.glsl"
+dest_files=["res://.godot/imported/cassi_nbody_gravity.glsl-b9eba2fe53e3f8b0d2125939d87c31bf.res"]
+
+[params]
+

@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://br7wo3e2l6kqc"
+path="res://.godot/imported/cassi_field_render.glsl-5c9e2b7f3a1d4e8c0b6f2a7d9e3c1f5b.res"
+
+[deps]
+
+source_file="res://compute/cassi_field_render.glsl"
+dest_files=["res://.godot/imported/cassi_field_render.glsl-5c9e2b7f3a1d4e8c0b6f2a7d9e3c1f5b.res"]
+
+[params]
+
