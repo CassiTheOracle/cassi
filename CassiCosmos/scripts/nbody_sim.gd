@@ -109,6 +109,12 @@ func _render_and_readback() -> void:
 	_mm.set_buffer(data)
 
 
+func reinit() -> void:
+	_rd.sync()
+	_init_bodies()
+	print("[NBody] Reinit N=%d xi=%.1f pi_max=%.2f" % [N, xi, pi_max])
+
+
 # ── Compute pipeline setup ────────────────────────────────────────
 
 func _setup_compute() -> void:
