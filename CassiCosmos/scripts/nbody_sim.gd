@@ -1,7 +1,6 @@
 extends Node3D
-## Cassi Qi-enhanced N-body — O(N) gravity via Yang halo field.
-## The compute shader evaluates the Yang halo analytically
-## instead of computing N(N-1)/2 pairwise forces.
+## Cassi Qi O(1) N-body — GPU-side KDK integration.
+## One dispatch per frame. No CPU-side particle loop.
 
 @export var N: int = 2000
 @export var G: float = 1.0
@@ -47,7 +46,6 @@ func _process(delta: float) -> void:
 		if _retry_frames % 5 == 0:
 			_setup_compute()
 			if _compute_ready:
-				print("[NBodySim] Retry %d OK" % _retry_frames)
 				_init_bodies()
 		_update_render()
 		return
@@ -77,13 +75,13 @@ func _setup_compute() -> void:
 		return
 	var spirv = sf.get_spirv()
 	if spirv == null:
-		push_error("[NBodySim] SPIR-V compile FAILED — check shader syntax")
+		push_error("[NBodySim] SPIR-V compile FAILED")
 		return
 
 	_shader = _rd.shader_create_from_spirv(spirv)
 	_pipeline = _rd.compute_pipeline_create(_shader)
 	_compute_ready = true
-	print("[NBodySim] Cassi Qi pipeline ready (xi=%.1f)" % xi)
+	print("[NBodySim] GPU-side KDK pipeline ready (xi=%.1f)" % xi)
 
 
 func _create_buffers() -> void:
@@ -100,10 +98,14 @@ func _create_buffers() -> void:
 
 	var u1 = RDUniform.new()
 	u1.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
-	u1.binding = 1; u1.add_id(_acc_buf)
+	u1.binding = 1; u1.add_id(_vel_buf)
+
+	var u2 = RDUniform.new()
+	u2.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	u2.binding = 2; u2.add_id(_acc_buf)
 
 	if _uniform_set.is_valid(): _rd.free_rid(_uniform_set)
-	_uniform_set = _rd.uniform_set_create([u0, u1], _shader, 0)
+	_uniform_set = _rd.uniform_set_create([u0, u1, u2], _shader, 0)
 
 
 # ── Initial conditions ─────────────────────────────────────────────
@@ -147,10 +149,10 @@ func _init_static_cluster() -> void:
 		pos[i * 4 + 2] = r * sin(th)
 		pos[i * 4 + 3] = 1.0
 	_pos_staging = pos
-	print("[NBodySim] Static cluster — compute unavailable")
+	print("[NBodySim] Static cluster")
 
 
-# ── Simulation step ─────────────────────────────────────────────────
+# ── Simulation step (GPU-side KDK, one readback) ──────────────────
 
 func _dispatch() -> void:
 	var pc = PackedFloat32Array([
@@ -165,14 +167,16 @@ func _dispatch() -> void:
 		pi_max,                 # pi_max
 		cluster_radius,         # cluster_a
 		float(N),               # M_total
-		0.0,                    # _pad
+		dt,                     # dt
+		1.0,                    # n_substeps
+		0.0,                    # pad
 	])
 
 	var wg = ceili(float(N) / 256.0)
 	var cl = _rd.compute_list_begin()
 	_rd.compute_list_bind_compute_pipeline(cl, _pipeline)
 	_rd.compute_list_bind_uniform_set(cl, _uniform_set, 0)
-	_rd.compute_list_set_push_constant(cl, pc.to_byte_array(), 12 * 4)
+	_rd.compute_list_set_push_constant(cl, pc.to_byte_array(), 14 * 4)
 	_rd.compute_list_dispatch(cl, int(wg), 1, 1)
 	_rd.compute_list_end()
 	_rd.submit()
@@ -181,25 +185,8 @@ func _dispatch() -> void:
 
 func _step() -> void:
 	_dispatch()
-	var acc = _rd.buffer_get_data(_acc_buf, 0, N * 16).to_float32_array()
+	# Only read back positions for rendering — KDK done on GPU
 	var pos = _rd.buffer_get_data(_pos_buf, 0, N * 16).to_float32_array()
-	var vel = _rd.buffer_get_data(_vel_buf, 0, N * 16).to_float32_array()
-
-	var hdt = dt * 0.5
-	for i in range(N):
-		var i4 = i * 4
-		vel[i4]     += acc[i4]     * hdt
-		vel[i4 + 1] += acc[i4 + 1] * hdt
-		vel[i4 + 2] += acc[i4 + 2] * hdt
-		pos[i4]     += vel[i4]     * dt
-		pos[i4 + 1] += vel[i4 + 1] * dt
-		pos[i4 + 2] += vel[i4 + 2] * dt
-		vel[i4]     += acc[i4]     * hdt
-		vel[i4 + 1] += acc[i4 + 1] * hdt
-		vel[i4 + 2] += acc[i4 + 2] * hdt
-
-	_rd.buffer_update(_pos_buf, 0, pos.size() * 4, pos.to_byte_array())
-	_rd.buffer_update(_vel_buf, 0, vel.size() * 4, vel.to_byte_array())
 	_pos_staging = pos
 
 
