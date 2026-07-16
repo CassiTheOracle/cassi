@@ -41,7 +41,7 @@ func _ready() -> void:
 	var control_panel = PanelContainer.new()
 	control_panel.name = "ControlPanel"
 	control_panel.add_theme_stylebox_override("panel", _make_panel_style())
-	control_panel.layout_mode = Control.LAYOUT_MODE_ANCHORS
+	control_panel.layout_mode = 1  # Control.LAYOUT_MODE_ANCHORS
 	control_panel.set_anchor(SIDE_TOP, 1.0)
 	control_panel.set_anchor(SIDE_BOTTOM, 1.0)
 	control_panel.set_anchor(SIDE_LEFT, 0.0)
