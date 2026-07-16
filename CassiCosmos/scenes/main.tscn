@@ -1,0 +1,76 @@
+[gd_scene load_steps=10 format=3 uid="uid://dmain00000000000001"]
+
+[ext_resource type="Script" path="res://scripts/free_camera.gd" id="1_cam"]
+[ext_resource type="Script" path="res://scripts/nbody_sim.gd" id="2_sim"]
+[ext_resource type="Script" path="res://scripts/sim_ui.gd" id="3_ui"]
+
+[sub_resource type="ProceduralSkyMaterial" id="sky_mat"]
+sky_top_color = Color(0.01, 0.01, 0.02, 1)
+sky_horizon_color = Color(0.02, 0.02, 0.04, 1)
+ground_horizon_color = Color(0.01, 0.01, 0.02, 1)
+ground_bottom_color = Color(0.005, 0.005, 0.01, 1)
+
+[sub_resource type="Sky" id="sky"]
+sky_material = SubResource("sky_mat")
+
+[sub_resource type="Environment" id="env"]
+background_mode = 2
+sky = SubResource("sky")
+ambient_light_color = Color(0.05, 0.05, 0.08, 1)
+tonemap_mode = 2
+glow_enabled = true
+glow_levels/0 = true; glow_levels/1 = true
+glow_intensity = 0.8; glow_strength = 0.6; glow_bloom = 0.15; glow_mix = 0.3
+
+[sub_resource type="StyleBoxFlat" id="panel_style"]
+bg_color = Color(0, 0, 0, 0.6)
+border_width_left = 1; border_width_right = 1
+border_width_top = 1; border_width_bottom = 1
+border_color = Color(0.3, 0.4, 0.6, 0.3)
+corner_radius_top_left = 4; corner_radius_top_right = 4
+corner_radius_bottom_left = 4; corner_radius_bottom_right = 4
+
+[sub_resource type="LabelSettings" id="label_settings"]
+font_size = 14
+font_color = Color(0.8, 0.85, 1.0, 0.9)
+
+[node name="Main" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("env")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5, 15)
+fov = 70.0; near = 0.05; far = 500.0
+script = ExtResource("1_cam")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866, -0.25, 0.433, 0, 0.866, 0.5, -0.5, -0.433, 0.75, 0, 0, 0)
+light_energy = 0.3; shadow_enabled = false
+
+[node name="NBodySim" type="Node3D" parent="."]
+script = ExtResource("2_sim")
+N = 2000; particle_size = 0.06; xi = 18.0; pi_max = 0.55
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="InfoPanel" type="Panel" parent="UI"]
+offset_left = 12; offset_top = 12; offset_right = 280; offset_bottom = 160
+theme_override_styles/panel = SubResource("panel_style")
+
+[node name="InfoLabel" type="Label" parent="UI/InfoPanel"]
+offset_left = 8; offset_top = 8; offset_right = 272; offset_bottom = 152
+label_settings = SubResource("label_settings"); text = "Waiting..."
+
+[node name="HelpPanel" type="Panel" parent="UI"]
+offset_left = 12; offset_top = 500; offset_right = 350; offset_bottom = 708
+theme_override_styles/panel = SubResource("panel_style")
+
+[node name="HelpLabel" type="Label" parent="UI/HelpPanel"]
+offset_left = 8; offset_top = 8; offset_right = 342; offset_bottom = 200
+label_settings = SubResource("label_settings"); text = "Help loading..."
+
+[node name="SimUI" type="Control" parent="UI"]
+layout_mode = 0; anchor_right = 1.0; anchor_bottom = 1.0
+mouse_filter = 2
+script = ExtResource("3_ui")
