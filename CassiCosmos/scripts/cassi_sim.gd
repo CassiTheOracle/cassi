@@ -13,7 +13,6 @@ extends Node3D
 @export var grid_N: int = 32              # field grid resolution (per dim)
 @export var N_particles: int = 20000      # N-body particle count
 @export var dt: float = 0.001             # simulation timestep
-@export var playing: bool = false         # simulation running
 @export var xi: float = 18.0              # Cassi Qi coupling
 @export var softening: float = 0.1        # gravity softening length
 @export var particle_size: float = 0.08   # rendered particle size
