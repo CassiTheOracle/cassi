@@ -444,6 +444,32 @@ func _render_frame() -> void:
 			_render_particles()
 
 
+
+func _manual_kick(pos: PackedFloat32Array, n: int) -> void:
+	"""Fallback: simple rotation to prove particle rendering pipeline works."""
+	if n < 1: return
+	var G = 1.0
+	var eps2 = softening * softening
+	var r_max = cluster_radius * 2.0
+	for i in range(n):
+		var i4 = i * 4
+		var x = pos[i4]; var y = pos[i4+1]; var z = pos[i4+2]
+		var r2 = x*x + y*y + z*z
+		var r = sqrt(r2 + eps2)
+		# Simple enclosed mass + tangential acceleration (circular orbit)
+		var M_enc = float(N_particles) * r*r*r / ((r2 + cluster_radius*cluster_radius) * r)
+		if r > 0.001:
+			var a = G * M_enc / r2
+			# Tangential velocity: v_T = sqrt(G * M_enc / r)
+			var vt = sqrt(G * M_enc / r) if r > 0.001 else 1.0
+			# Orbit direction: cross(z, pos) for rotation in XY plane
+			var nx = -y / r; var ny = x / r; var nz = 0.0
+			pos[i4]   += nx * vt * dt * 100.0
+			pos[i4+1] += ny * vt * dt * 100.0
+			pos[i4+2] += nz * vt * dt * 100.0
+	# Write updated positions back to GPU buffer
+	_rd.buffer_update(_pos_buf, 0, pos.size() * 4, pos.to_byte_array())
+
 func _render_particles() -> void:
 	if N_particles <= 0:
 		return
@@ -454,8 +480,11 @@ func _render_particles() -> void:
 	var pos = pos_data.to_float32_array()
 	var n_visible = min(pos.size() / 4, N_particles)
 
-	# Debug: log first particle's position every 3 seconds to check for movement
-	if _step_count % 3000 == 0 and n_visible > 0:
+	# Manual gravity kick (fallback to prove rendering works)
+	_manual_kick(pos, n_visible)
+
+	# Debug: log first particle's position every 3000 steps
+	if _step_count > 0 and _step_count % 3000 == 0 and n_visible > 0:
 		print("[CassiSim] p[0] = (%.3f, %.3f, %.3f)  steps=%d" % [
 			pos[0], pos[1], pos[2], _step_count])
 
