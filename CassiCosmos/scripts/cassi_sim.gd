@@ -366,33 +366,74 @@ func _physics_step() -> void:
 		source_strength,        # source_strength
 		0.0,                    # _pad
 	])
+	var pc_bytes = pc.to_byte_array()
+	var pc_size = pc.size() * 4
 
 	var wg = ceili(float(grid_N) / 4.0)
+	var pg = ceili(float(N_particles) / 256.0) if N_particles > 0 else 1
 
-	# Step 1: Evolve two-fluid field
-	_dispatch_compute(_two_fluid_shader, _two_fluid_pipe,
-		[_get_set2_buffer_uniform(_two_fluid_shader, 0, _bh_buf)],
-		pc, Vector3i(wg, wg, wg))
+	# Batch BOTH dispatches into a single compute list → one submit + sync
+	var cl = _rd.compute_list_begin()
 
-	# Note: GPU gravity shader disabled — using CPU fallback.
-	# The compute shader `cassi_nbody_gravity.glsl` creates valid pipeline
-	# but does not update positions. Debug needed on SPIR-V output.
-	# Step 2 (disabled): Compute N-body gravity
-	# if N_particles > 0:
-	#     _dispatch_compute(_nbody_shader, _nbody_pipe, [...], pc, Vector3i(pg, 1, 1))
+	# Build uniform sets for each shader (they share the same buffers)
+	# Two-fluid PDE
+	if _two_fluid_shader.is_valid():
+		var us0 = _rd.uniform_set_create([
+			_uniform_storage(0, _field_ey),
+			_uniform_storage(1, _field_ei),
+			_uniform_storage(2, _field_q),
+			_uniform_storage(3, _field_vel),
+		], _two_fluid_shader, 0)
+		var us1p = _rd.uniform_set_create([
+			_uniform_storage(0, _pos_buf),
+			_uniform_storage(1, _vel_buf),
+			_uniform_storage(2, _acc_buf),
+		], _two_fluid_shader, 1)
+		var us2t = _rd.uniform_set_create([
+			_uniform_storage(0, _bh_buf),
+		], _two_fluid_shader, 2)
+		_rd.compute_list_bind_compute_pipeline(cl, _two_fluid_pipe)
+		_rd.compute_list_bind_uniform_set(cl, us0, 0)
+		_rd.compute_list_bind_uniform_set(cl, us1p, 1)
+		_rd.compute_list_bind_uniform_set(cl, us2t, 2)
+		_rd.compute_list_set_push_constant(cl, pc_bytes, pc_size)
+		_rd.compute_list_dispatch(cl, wg, wg, wg)
 
-	# Read diagnostics
-	var q_data = _rd.buffer_get_data(_field_q, 0, grid_N * grid_N * grid_N * 4)
-	if q_data.size() > 0:
-		var qf = q_data.to_float32_array()
-		var q_sum = 0.0
-		for v in qf: q_sum += v
-		_q_mean = q_sum / max(qf.size(), 1)
+	# N-body gravity
+	if _nbody_shader.is_valid() and N_particles > 0:
+		var us0g = _rd.uniform_set_create([
+			_uniform_storage(0, _field_ey),
+			_uniform_storage(1, _field_ei),
+			_uniform_storage(2, _field_q),
+			_uniform_storage(3, _field_vel),
+		], _nbody_shader, 0)
+		var us1g = _rd.uniform_set_create([
+			_uniform_storage(0, _pos_buf),
+			_uniform_storage(1, _vel_buf),
+			_uniform_storage(2, _acc_buf),
+		], _nbody_shader, 1)
+		var us2g = _rd.uniform_set_create([
+			_uniform_storage(0, _bh_buf),
+		], _nbody_shader, 2)
+		_rd.compute_list_bind_compute_pipeline(cl, _nbody_pipe)
+		_rd.compute_list_bind_uniform_set(cl, us0g, 0)
+		_rd.compute_list_bind_uniform_set(cl, us1g, 1)
+		_rd.compute_list_bind_uniform_set(cl, us2g, 2)
+		_rd.compute_list_set_push_constant(cl, pc_bytes, pc_size)
+		_rd.compute_list_dispatch(cl, pg, 1, 1)
 
-	var vel_data = _rd.buffer_get_data(_field_vel, 0, 16)
-	if vel_data.size() >= 16:
-		var vf = vel_data.to_float32_array()
-		_eps_mean = vf[3]
+	_rd.compute_list_end()
+	_rd.submit()
+	_rd.sync()
+
+	# Read diagnostics (skip every frame to reduce sync overhead)
+	if _step_count % 60 == 0:
+		var q_data = _rd.buffer_get_data(_field_q, 0, grid_N * grid_N * grid_N * 4)
+		if q_data.size() > 0:
+			var qf = q_data.to_float32_array()
+			var q_sum = 0.0
+			for v in qf: q_sum += v
+			_q_mean = q_sum / max(qf.size(), 1)
 
 
 func _make_render_textures() -> void:
@@ -445,55 +486,6 @@ func _render_frame() -> void:
 
 
 
-func _manual_kick(pos: PackedFloat32Array, n: int) -> void:
-	"""Enclosed-mass Plummer gravity in GDScript (GPU shader fallback)."""
-	if n < 1: return
-	var G = 1.0
-	var eps2 = softening * softening
-	var a2 = cluster_radius * cluster_radius
-	var M_total = float(N_particles)
-	var hdt = dt * 0.5
-
-	# Read velocities from GPU for leapfrog integration
-	var vel_data = _rd.buffer_get_data(_vel_buf, 0, n * 16)
-	if vel_data.size() < 16: return
-	var vel = vel_data.to_float32_array()
-
-	for i in range(n):
-		var i4 = i * 4
-		var x = pos[i4]; var y = pos[i4+1]; var z = pos[i4+2]
-		var vx = vel[i4]; var vy = vel[i4+1]; var vz = vel[i4+2]
-		var r2 = x*x + y*y + z*z
-		var r = sqrt(r2 + eps2)
-
-		# Plummer enclosed mass: M_enc = M_total * r³ / (r² + a²)^(3/2)
-		var r2a = r2 + a2
-		var M_enc = M_total * (r2 * r) / (r2a * sqrt(r2a))
-
-		if r2 > 1e-10:
-			var acc = -G * M_enc / (r2 + eps2) / r  # / r gives acc per unit pos
-			# KDK leapfrog
-			vx += acc * x * hdt
-			vy += acc * y * hdt
-			vz += acc * z * hdt
-			pos[i4]   += vx * dt
-			pos[i4+1] += vy * dt
-			pos[i4+2] += vz * dt
-			# Re-evaluate at new position for second kick
-			var r2n = pos[i4]*pos[i4] + pos[i4+1]*pos[i4+1] + pos[i4+2]*pos[i4+2]
-			var rn = sqrt(r2n + eps2)
-			var r2an = r2n + a2
-			var M_enc_n = M_total * (r2n * rn) / (r2an * sqrt(r2an))
-			var acc_n = -G * M_enc_n / (r2n + eps2) / rn
-			vx += acc_n * pos[i4] * hdt
-			vy += acc_n * pos[i4+1] * hdt
-			vz += acc_n * pos[i4+2] * hdt
-
-		vel[i4] = vx; vel[i4+1] = vy; vel[i4+2] = vz
-
-	# Write positions AND velocities back to GPU
-	_rd.buffer_update(_pos_buf, 0, pos.size() * 4, pos.to_byte_array())
-	_rd.buffer_update(_vel_buf, 0, vel.size() * 4, vel.to_byte_array())
 
 func _render_particles() -> void:
 	if N_particles <= 0:
@@ -504,9 +496,6 @@ func _render_particles() -> void:
 
 	var pos = pos_data.to_float32_array()
 	var n_visible = min(pos.size() / 4, N_particles)
-
-	# Manual gravity kick (fallback to prove rendering works)
-	_manual_kick(pos, n_visible)
 
 	# Debug: log first particle's position every 3000 steps
 	if _step_count > 0 and _step_count % 3000 == 0 and n_visible > 0:

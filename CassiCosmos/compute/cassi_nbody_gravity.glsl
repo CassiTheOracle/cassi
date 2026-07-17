@@ -14,22 +14,14 @@
 layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
 // ── SET 0: Field grid ──────────────────────────────────────────────────
-layout(set = 0, binding = 0, std430) restrict buffer FieldEY  { float ey[];  };
-layout(set = 0, binding = 1, std430) restrict buffer FieldEI  { float ei[];  };
-layout(set = 0, binding = 2, std430) restrict buffer FieldQ   { float qv[];  };
-layout(set = 0, binding = 3, std430) restrict buffer FieldVel { vec4  fvel[]; };
-
-// ── SET 1: Particles ───────────────────────────────────────────────────
-layout(set = 1, binding = 0, std430) restrict buffer Positions  { vec4 pos[]; };
-layout(set = 1, binding = 1, std430) restrict buffer Velocities { vec4 vel[]; };
-layout(set = 1, binding = 2, std430) restrict buffer Accels     { vec4 acc[]; };
-
-// ── SET 2: Auxiliary / BH ──────────────────────────────────────────────
-// vec4[0]: BH position xyz + M_total (w)
-// vec4[1]: spin xyz + G_N (w)
-// vec4[2]: cluster_a (x), grid_extent (y), unused (z, w)
-// vec4[3]: reserved
-layout(set = 2, binding = 0, std430) restrict buffer BHData { vec4 bh[4]; };
+layout(set = 0, binding = 0, std430) buffer FieldEY  { float ey[];  };
+layout(set = 0, binding = 1, std430) buffer FieldEI  { float ei[];  };
+layout(set = 0, binding = 2, std430) buffer FieldQ   { float qv[];  };
+layout(set = 0, binding = 3, std430) buffer FieldVel { vec4  fvel[]; };
+layout(set = 1, binding = 0, std430) buffer Positions  { vec4 pos[]; };
+layout(set = 1, binding = 1, std430) buffer Velocities { vec4 vel[]; };
+layout(set = 1, binding = 2, std430) buffer Accels     { vec4 acc[]; };
+layout(set = 2, binding = 0, std430) buffer BHData { vec4 bh[4]; };
 
 // ── Push constants (matches cassi_two_fluid.glsl exactly) ──────────────
 layout(push_constant, std430) uniform PC {
