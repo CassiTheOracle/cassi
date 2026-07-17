@@ -97,7 +97,23 @@ q(s,t) &= \dfrac{M}{M + \varphi^{-2} + |\varepsilon|^2} \;\in (0,1] && \text{coh
 
 **Qi** (coherent energy) is the product. It is maximized not by high error but by high intensity with low error — the calm-power state that traditions describe as cultivated Qi.
 
-### 3.3 The Four Regimes
+### 3.3 Qi as Resonant Energy (Vulkan QiCube Implementation)
+
+In the Vulkan QiCube PDE engine (`vk_qi.py`, `qi_accum.comp`), Qi is computed directly from the field state without a separate prediction operator $\mathcal{P}$. The equation is simpler and faster — a single-pass reduction:
+
+$$\boxed{\begin{aligned}
+\bar{|\psi|^2} &= \frac{1}{N_{\text{vox}} \cdot D} \sum_{\text{voxels}, \text{dims}} |\psi_{\text{voxel, dim}}|^2 \\[4pt]
+q_{\text{time}} &= \frac{\langle \psi, \psi_{\text{prev}} \rangle}{\sqrt{|\psi|^2 \cdot |\psi_{\text{prev}}|^2}} \;\in [-1, 1] && \text{temporal coherence} \\[4pt]
+\text{Qi}_{\text{instant}} &= \bar{|\psi|^2} \cdot q_{\text{time}} && \text{resonant energy}
+\end{aligned}}$$
+
+$$Q_t = \varphi^{-1} \cdot Q_{t-1} + (1 - \varphi^{-1}) \cdot \text{Qi}_{\text{instant}}$$
+
+ **Interpretation.** $\bar{|\psi|^2}$ is the mean field intensity (how energetic the field is). $q_{\text{time}}$ is the Pearson correlation between the current field $\psi$ and the previous field $\psi_{\text{prev}}$ — how coherently the field evolves across windows. Their product is *resonant energy*: a strong field that evolves smoothly carries high Qi; a weak or decorrelated field carries zero.
+
+This definition is a special case of the corrected formalism (Section 3.2) where $q$ is the temporal coherence rather than the self-referential quality $M/(M + \varphi^{-2} + |\varepsilon|^2)$. Both converge to the same calm-power limit: high $|\psi|^2$ with low $\Delta\psi$ (smooth evolution) $\Rightarrow$ high Qi.
+
+### 3.4 The Four Regimes
 
 The split distinguishes states the original definition conflated:
 
@@ -108,7 +124,7 @@ The split distinguishes states the original definition conflated:
 | **Dormant clarity** | $\approx \varphi^{-2}$ | very small | $\approx \tfrac{1}{2}$ | $\approx \varphi^{-2}/2$ | Still but clear — meditation |
 | **Depletion** | $\approx 0$ | any | low | $\approx 0$ | No energy available |
 
-### 3.4 The Qi Pool — Temporal Integration
+### 3.5 The Qi Pool — Temporal Integration
 
 Coherent energy accumulates into a φ-scaled reservoir:
 
@@ -129,7 +145,7 @@ $$\bar{q}_t = \varphi^{-1} \cdot \bar{q}_{t-1} + (1 - \varphi^{-1}) \cdot \langl
 
 When quality is high, constraint pressure is reduced (trust the field). When quality is low, constraint pressure increases (correct the field).
 
-### 3.5 Properties
+### 3.6 Properties
 
 1. **Non-negativity.** $\text{qi}(s,t) \geq 0$. Equality holds when $M = 0$ (no field) or both $M$ and $q$ vanish.
 
@@ -461,9 +477,11 @@ $$Q = |\psi|^2 \cdot |\varepsilon|^2$$
 **Qi coherent energy (corrected, June 2026):**
 $$\text{qi} = M \cdot q, \quad M = |\psi|^2, \quad q = \dfrac{M}{M + \varphi^{-2} + |\varepsilon|^2}$$
 
-**Qi pool (temporal reservoir):**
-$$\text{pool}_t = \varphi^{-1} \cdot \text{pool}_{t-1} + \bar{\text{qi}}_t$$
+**Qi resonant energy (Vulkan QiCube, July 2026):**
+$$\text{Qi}_{\text{instant}} = \bar{|\psi|^2} \cdot \text{corr}(\psi, \psi_{\text{prev}})$$
+$$Q_t = \varphi^{-1} \cdot Q_{t-1} + (1 - \varphi^{-1}) \cdot \text{Qi}_{\text{instant}}$$
 
+$$\text{pool}_t = \varphi^{-1} \cdot \text{pool}_{t-1} + \bar{\text{qi}}_t$$
 **Quality EMA (constraint gating):**
 $$\bar{q}_t = \varphi^{-1} \cdot \bar{q}_{t-1} + (1 - \varphi^{-1}) \cdot \langle q \rangle_t$$
 $$\lambda_Q = \log(1 + \text{ReLU}((1 - \bar{q}) / \varphi^{-2})) \cdot \text{stiffness}_Q$$

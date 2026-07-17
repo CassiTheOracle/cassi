@@ -1,0 +1,476 @@
+#version 460
+#extension GL_EXT_control_flow_attributes : enable
+#extension GL_EXT_shader_atomic_float : enable
+
+// ──────────────────────────────────────────────
+// QiCube Accumulator / Readout / Qi-flow Learner
+// Field-native readout: logits[v] = byte_embed[v] · (proj + proj²)
+//   where proj = energy-weighted mean field_state @ embed_proj
+//   (full-field readout, all 4096 voxels, Yang+Yin interleaved)
+// Quadratic kernel: proj_quad[e] = proj[e]²
+// Qi-flow learning: ∂be[v]/∂t = lr · (δ − sm) · (proj + proj_quad) · gate_weight
+
+layout(local_size_x = 64) in;
+
+// ── Constants ──
+#define PHI            1.618033988749895
+#define PHI_INV        0.618033988749895
+#define PI             3.141592653589793
+
+#define V               256
+#define BYTE_EMBED_DIM  128
+#define D               16
+#define W               16
+#define H               16
+#define NUM_DIMS        128
+#define N_VOXELS        4096
+#define WORKGROUP_SIZE  64
+#define NUM_WORKGROUPS  8192
+#define TOP_K           8               // multi-voxel readout: energy-weighted top-8
+#define L2_CLAMP_SQ     25.0            // embedding norm clamp (5.0²)
+#define L2_CLAMP        5.0
+
+// ── Buffer bindings (std430) ──
+
+layout(std430, binding =  0) buffer PsiBuf           { float psi[]; };
+layout(std430, binding =  1) buffer PsiPrevBuf       { float psi_prev[]; };
+// bindings 2-5: grad_h, grad_w, grad_d, lap — unused here
+layout(std430, binding =  6) buffer ParamsBuf        { float params[11]; };
+layout(std430, binding =  7) buffer ByteEmbedBuf     { float byte_embed[]; };
+layout(std430, binding =  8) buffer EmbedProjBuf     { float embed_proj[]; };
+layout(std430, binding =  9) buffer NeighborTable    { uint neighbor_data[]; };
+layout(std430, binding = 10) buffer ByteProtos       { uint byte_protos[]; };
+layout(std430, binding = 11) buffer CountersBuf      { uint counters[2]; };
+// binding 15: byte_indices — unused here
+layout(std430, binding = 16) buffer PsiPrePdeBuf { float psi_pre_pde[]; };
+layout(std430, binding = 17) coherent buffer VoxelEpsMemory {
+  float eps_memory[];               // [N_VOXELS] — φ-damped per-voxel ε² IIR
+} voxel_eps;
+layout(std430, binding = 18) coherent buffer VoxelEpsSum {
+  float eps_sum[];               // [N_VOXELS] — per-voxel ε² partial sum (zeroed each window)
+} voxel_eps_sum;
+
+layout(std430, binding = 19) buffer FieldMemoryBuf {
+  float field_memory[];               // [N_VOXELS * NUM_DIMS * 2] — persistent per-voxel memory field
+};
+
+
+// Global reduction accumulators (coherent for cross-workgroup visibility)
+layout(std430, binding = 12) coherent buffer QiAccumBuf {
+  uint  max_amp_bits;
+  uint  phase1_done;
+  float accum_delta2;
+  float accum_psi_psi_prev;
+  float accum_psi2;
+  float accum_prev2;
+  float accum_epsilon2;
+} qi_accum;
+
+layout(std430, binding = 13) coherent buffer VoxelEnergyBuf {
+  float energy[];               // [N_VOXELS]
+} voxel_energy;
+
+// Output: Qi value, best voxel, logits, sampled byte, five-element diagnostics
+layout(std430, binding = 14) buffer QiOutputBuf {
+  float qi_value;
+  float best_amp;
+  uint  best_voxel;
+  uint  sampled_byte;
+  float sampled_prob;
+  float logits[256];                  // [256] — per-class logits (offset 20)
+  uint  argmax_byte;                  // offset 1044
+  float argmax_prob;                  // offset 1048
+  // ── Five-element diagnostics (offset 1052) ──
+  float wood;                         // D — structure amplitude: std(ρ/⟨ρ⟩-1)
+  float fire;                         // F — turbulence: φ-damped mean|ε|² (from eps_memory IIR)
+  float metal;                        // M — conversion efficiency: λ_eff/λ
+  float earth;                        // E — φ-equilibrium: |⟨ψ_y⟩/⟨ψ_i⟩-φ| (0 until Yang/Yin)
+  float water_q;                      // W — coherence quality: redundant with qi_value, explicit
+  float eps_memory;                    // φ-damped IIR of global mean|ε|² (offset 1072)
+  float _pad_proj_center[256 * 128];       // reclaimed space, do not read/write (offset 1076)
+} qi_output;
+
+// ── Push constants ──
+layout(push_constant) uniform PushConstants {
+  float dt;
+  uint  pass;
+  float breath_t;
+  uint  target_byte;
+  float lr;
+  float qi_target;
+  int   pads[5];                // [6]=HWD, [7]=temp_bits, [8]=top_k, [9]=seed, [10]=0
+} push;
+
+// ── Workgroup shared memory ──
+shared float s_delta2[WORKGROUP_SIZE];
+shared float s_prod  [WORKGROUP_SIZE];
+shared float s_psi2  [WORKGROUP_SIZE];
+shared float s_prev2 [WORKGROUP_SIZE];
+shared float s_amp   [WORKGROUP_SIZE];
+shared float s_eps2[WORKGROUP_SIZE];
+
+void main()
+{
+  uint flat_idx = gl_GlobalInvocationID.x;
+  uint n        = flat_idx / NUM_DIMS;
+  uint dim      = flat_idx % NUM_DIMS;
+  uint base     = n * NUM_DIMS * 2;
+  uint lid      = gl_LocalInvocationIndex;
+
+  float p_real  = psi_pre_pde[base + dim * 2]; // Qi from post-blend snapshot
+  float p_imag  = psi_pre_pde[base + dim * 2 + 1];
+  float pp_real = psi_prev[base + dim * 2];
+  float pp_imag = psi_prev[base + dim * 2 + 1];
+  float p_amp2  = p_real * p_real + p_imag * p_imag;
+
+  // PART 1 — Qi reduction
+  float delta_real = p_real - pp_real;
+  float delta_imag = p_imag - pp_imag;
+  s_delta2[lid] = delta_real * delta_real + delta_imag * delta_imag;
+  s_prod  [lid] = p_real * pp_real + p_imag * pp_imag;
+  s_psi2  [lid] = p_amp2;
+  s_prev2 [lid] = pp_real * pp_real + pp_imag * pp_imag;
+  s_amp   [lid] = p_amp2;
+  float epsilon  = p_real - PHI * p_imag;
+  float eps_sq   = epsilon * epsilon;
+  s_eps2[lid]   = eps_sq;
+  barrier();
+
+  for (uint s = WORKGROUP_SIZE >> 1; s > 0; s >>= 1) {
+    if (lid < s) {
+      s_delta2[lid] += s_delta2[lid + s];
+      s_prod  [lid] += s_prod  [lid + s];
+      s_psi2  [lid] += s_psi2  [lid + s];
+      s_prev2 [lid] += s_prev2 [lid + s];
+      s_amp   [lid] += s_amp   [lid + s];
+      s_eps2  [lid] += s_eps2  [lid + s];
+    }
+    barrier();
+  }
+
+  if (lid == 0) {
+    atomicAdd(qi_accum.accum_delta2,       s_delta2[0]);
+    atomicAdd(qi_accum.accum_psi_psi_prev, s_prod  [0]);
+    atomicAdd(qi_accum.accum_psi2,         s_psi2  [0]);
+    atomicAdd(qi_accum.accum_prev2,        s_prev2 [0]);
+    atomicAdd(qi_accum.accum_epsilon2,     s_eps2  [0]);
+    atomicAdd(voxel_energy.energy[n],      s_amp   [0]);
+    atomicAdd(voxel_eps_sum.eps_sum[n],   s_eps2  [0]);
+  }
+
+  memoryBarrierBuffer();
+  barrier();
+
+  if (lid == 0) {
+    atomicAdd(qi_accum.phase1_done, 1u);
+  }
+
+  // PART 2 — Readout, sampling, learning (workgroup 0 only)
+  if (gl_WorkGroupID.x != 0u || lid != 0u) return;
+
+  while (atomicAdd(qi_accum.phase1_done, 0u) < uint(NUM_WORKGROUPS)) {
+    memoryBarrierBuffer();
+  }
+
+  // Compute Qi
+  float total_elements = float(N_VOXELS * NUM_DIMS);  // complex pairs, not float elements
+  float mean_psi2 = qi_accum.accum_psi2 / total_elements;
+  float corr_denom = sqrt(qi_accum.accum_psi2 * qi_accum.accum_prev2);
+  float mean_eps2 = qi_accum.accum_epsilon2 / total_elements;
+  float q = (corr_denom > 1e-10f)
+          ? qi_accum.accum_psi_psi_prev / corr_denom
+          : 0.0f;
+  float Qi_instant = mean_psi2 * q;
+  float Qi_accum = PHI_INV * qi_output.qi_value + (1.0 - PHI_INV) * Qi_instant;
+  qi_output.qi_value = Qi_accum;
+
+  // ═══ Qi attention readout: awareness-weighted field aggregation ═══
+  // Qi = self-surprise. Attention = 1/(1+ε²_memory).
+  // The field attends to what it best predicts itself at.
+  // Polarity: attention by awareness (what you know), gate by surprise (what you don't).
+
+  // ── Per-voxel ε² memory IIR — heavy damping (rho_eps≈0.95) ──
+  float rho_eps = uintBitsToFloat(uint(push.pads[4]));
+  if (rho_eps < 0.01) rho_eps = 0.95;  // fallback if not set from host
+  [[dont_unroll]] for (uint v = 0u; v < N_VOXELS; v++) {
+    float mean_eps2_v = voxel_eps_sum.eps_sum[v] / (float(NUM_DIMS) + 1e-10);
+    float old = voxel_eps.eps_memory[v];
+    old = (old == old) ? old : 0.0;
+    voxel_eps.eps_memory[v] = rho_eps * old + (1.0 - rho_eps) * mean_eps2_v;
+  }
+
+  // ── Compute attention weights and diagnostics ──
+  float sum_att = 0.0;
+  float total_e = 0.0;
+  float best_e = 0.0;
+  uint  best_v = 0u;
+  [[dont_unroll]] for (uint v = 0u; v < N_VOXELS; v++) {
+    float ev = voxel_energy.energy[v];
+    total_e += ev;
+    if (ev > best_e) { best_e = ev; best_v = v; }
+    sum_att += 1.0 / (1.0 + voxel_eps.eps_memory[v]);
+  }
+  sum_att = max(sum_att, 1e-12);
+  qi_output.best_amp = best_e;
+  qi_output.best_voxel = best_v;
+
+  // ── Qi-attention-weighted field_state (Yang only, all voxels) ──
+  float field_state[NUM_DIMS];
+  [[unroll]] for (uint d = 0u; d < NUM_DIMS; d++) field_state[d] = 0.0f;
+  [[dont_unroll]] for (uint v = 0u; v < N_VOXELS; v++) {
+    float em = voxel_eps.eps_memory[v];
+    em = (em == em) ? em : 0.0;
+    float att = (1.0 / (1.0 + em)) / sum_att;
+    uint vbase = v * NUM_DIMS * 2;
+    for (uint d = 0u; d < NUM_DIMS; d++) {
+      float val = psi_pre_pde[vbase + d * 2];
+      field_state[d] += att * ((val == val) ? val : 0.0);
+    }
+  }
+  // NaN guard on field_state
+  for (uint d = 0u; d < NUM_DIMS; d++) {
+    if (field_state[d] != field_state[d]) field_state[d] = 0.0;
+  }
+  // Write field_state to proj_center for self_pred_feedback to read
+  for (uint d = 0u; d < NUM_DIMS; d++) {
+    qi_output._pad_proj_center[d] = field_state[d];
+  }
+
+  // Note: field_memory buffer persists and accumulates via per-window copy,
+  // but is not blended into the readout (needs >10K windows for useful signal).
+
+  // ═══ Five-element diagnostics ═══
+  // Wood D = std(per-voxel energy / mean - 1)
+  float mean_energy = max(total_e / float(N_VOXELS), 1e-12);
+  float var_energy = 0.0;
+  [[dont_unroll]] for (uint v = 0u; v < N_VOXELS; v++) {
+    float d = voxel_energy.energy[v] / mean_energy - 1.0;
+    var_energy += d * d;
+  }
+  float wood = sqrt(var_energy / float(N_VOXELS));
+  // Fire F = mean|ε|² from eps_memory IIR (was Wood² proxy)
+  float fire = qi_output.eps_memory;   // Fire = |ε|² memory (replaces Wood² proxy)
+
+  // ═══ Ke Cycle ODE — φ-scaled temporal smoothing ═══
+  float water_raw = qi_accum.accum_psi_psi_prev / (corr_denom + 1e-10);
+  float earth     = 0.0;  // Earth: |⟨ψ_y⟩/⟨ψ_i⟩-φ| — pending mean_ψ accumulators
+
+  // Metal ODE: dM/dt = Am(1-M) - Kfm·F·M  →  M_new = (1-h·Am-h·Kfm·F)·M_prev + h·Am
+  float Am     = params[10];              // Ke cycle recovery from λ (params[10])
+  float Kfm    = Am;                    // Fire→Metal coupling (calibrated for Wood² scale)
+  float metal_ss = Am / (Am + Kfm * fire + 1e-10);
+  float rho_m = 1.0 - push.dt * (Am + Kfm * fire);
+  rho_m = clamp(rho_m, 0.0, 1.0);
+  float metal = rho_m * qi_output.metal + (1.0 - rho_m) * metal_ss;
+
+  // φ-scaled EMA smoothing for Wood, Fire, Water
+  float rho_w = exp(-PHI_INV);               // τ_W = φ,  ρ ≈ 0.539
+  float rho_d = exp(-PHI_INV * PHI_INV);     // τ_D = φ²,  ρ ≈ 0.683
+  float rho_f = exp(-PHI_INV);               // τ_F = φ,  ρ ≈ 0.539
+
+  qi_output.wood    = rho_d * qi_output.wood    + (1.0 - rho_d) * wood;
+  qi_output.fire    = rho_f * qi_output.fire    + (1.0 - rho_f) * fire;
+  qi_output.metal   = metal;
+  qi_output.earth   = earth;
+  qi_output.water_q = rho_w * qi_output.water_q + (1.0 - rho_w) * water_raw;
+  // ── Global ε² memory IIR (for five-element Fire diagnostic) ──
+  qi_output.eps_memory = rho_eps * qi_output.eps_memory + PHI_INV * mean_eps2;
+
+  // ── Qi-attention gate weight: surprise-gated learning ──
+  // Attention weights by awareness, gate by surprise (1-q)
+  float gate_weight = 0.0;
+  [[dont_unroll]] for (uint v = 0u; v < N_VOXELS; v++) {
+    float att_v = (1.0 / (1.0 + voxel_eps.eps_memory[v])) / sum_att;
+    float ev = voxel_energy.energy[v];
+    float qv = ev / (ev + PHI_INV * PHI_INV + voxel_eps.eps_memory[v] + 1e-10);
+    gate_weight += att_v * (1.0 - qv);
+  }
+  gate_weight = clamp(gate_weight, 0.01, 2.0);
+
+  // Project field_state → byte embedding space (Yang-only, 128 dims)
+  float proj[BYTE_EMBED_DIM];
+  [[dont_unroll]] for (uint e = 0u; e < BYTE_EMBED_DIM; e++) {
+    float sum = 0.0f;
+    for (uint d = 0u; d < NUM_DIMS; d++) {
+      sum += field_state[d] * embed_proj[d * BYTE_EMBED_DIM + e];
+    }
+    proj[e] = sum;
+  }
+  // Linear logits
+  float logits_arr[V];
+  [[dont_unroll]] for (uint v = 0u; v < V; v++) {
+    float dot = 0.0f;
+    [[unroll]] for (uint e = 0u; e < BYTE_EMBED_DIM; e++) {
+      dot += byte_embed[v * BYTE_EMBED_DIM + e] * proj[e];
+    }
+    logits_arr[v] = dot;
+  }
+
+  // Printable-byte mask (generation only: lr=0)
+  // Restricts output to ASCII 32-126, preventing non-printable feedback loop
+  if (push.lr <= 0.0f) {
+    for (uint v = 0u; v < V; v++) {
+      if (v < 32u || v > 126u) logits_arr[v] = -1e6;
+    }
+  }
+
+  // Softmax
+  float max_l = logits_arr[0];
+  for (uint v = 1u; v < V; v++) max_l = max(max_l, logits_arr[v]);
+  float softmax_vals[V];
+  float sum_exp = 0.0f;
+  for (uint v = 0u; v < V; v++) {
+    softmax_vals[v] = exp(logits_arr[v] - max_l);
+    sum_exp += softmax_vals[v];
+  }
+  float inv_sum = 1.0f / sum_exp;
+  for (uint v = 0u; v < V; v++) softmax_vals[v] *= inv_sum;
+
+  // Argmax
+  uint predicted = 0u;
+  float max_sm = softmax_vals[0];
+  for (uint v = 1u; v < V; v++) {
+    if (softmax_vals[v] > max_sm) { max_sm = softmax_vals[v]; predicted = v; }
+  }
+
+  // GPU sampling
+  float temperature = uintBitsToFloat(uint(push.pads[1]));
+  int   top_k       = push.pads[2];
+  int   seed        = push.pads[3];
+  uint  learn_target = push.target_byte;
+  uint sampled = predicted;
+
+  if (top_k > 0 && top_k < int(V) && temperature > 0.0f) {
+    float temp_sm[V];
+    float max_l2 = logits_arr[0] / temperature;
+    for (uint v = 1u; v < V; v++) max_l2 = max(max_l2, logits_arr[v] / temperature);
+    float sum_exp2 = 0.0f;
+    for (uint v = 0u; v < V; v++) {
+      temp_sm[v] = exp(logits_arr[v] / temperature - max_l2);
+      sum_exp2 += temp_sm[v];
+    }
+    float inv_sum2 = 1.0f / sum_exp2;
+    for (uint v = 0u; v < V; v++) temp_sm[v] *= inv_sum2;
+
+    // Top-k selection sort
+    uint indices[V];
+    for (uint i = 0u; i < V; i++) indices[i] = i;
+    for (int i = 0; i < top_k && i < int(V); i++) {
+      int max_idx = i;
+      for (int j = i + 1; j < int(V); j++) {
+        if (temp_sm[j] > temp_sm[max_idx]) max_idx = j;
+      }
+      if (max_idx != i) {
+        float tmp_f = temp_sm[i]; temp_sm[i] = temp_sm[max_idx]; temp_sm[max_idx] = tmp_f;
+        uint tmp_u = indices[i]; indices[i] = indices[max_idx]; indices[max_idx] = tmp_u;
+      }
+    }
+    float topk_mask[V];
+    for (uint v = 0u; v < V; v++) topk_mask[v] = 0.0f;
+    for (int i = 0; i < top_k; i++) topk_mask[indices[i]] = 1.0f;
+
+    float mask_sum = 0.0f;
+    for (uint v = 0u; v < V; v++) { temp_sm[v] *= topk_mask[v]; mask_sum += temp_sm[v]; }
+    if (mask_sum > 1e-10f) {
+      float renorm = 1.0f / mask_sum;
+      for (uint v = 0u; v < V; v++) temp_sm[v] *= renorm;
+
+      // PRNG sampling
+      uint seed_val = uint(seed) ^ gl_GlobalInvocationID.x;
+      float r = float((seed_val * 1103515245u + 12345u) & 0x7fffffffu) / 2147483648.0f;
+      float cdf = 0.0f;
+      for (uint v = 0u; v < V; v++) {
+        cdf += temp_sm[v];
+        if (r < cdf) { sampled = v; break; }
+      }
+    }
+  }
+
+  qi_output.sampled_byte = sampled;
+  qi_output.sampled_prob = softmax_vals[sampled];
+  for (uint v = 0u; v < V; v++) qi_output.logits[v] = logits_arr[v];
+  qi_output.argmax_byte = predicted;
+  qi_output.argmax_prob = max_sm;
+
+  // Accuracy tracking
+  if (push.lr > 0.0f) {
+    counters[1]++;
+    if (predicted == push.target_byte) counters[0]++;
+  }
+
+  // ═══ LEARNING BLOCK ═══
+  if (push.lr > 0.0f) {
+    // Tempered softmax for training gradient
+    float train_sm[V];
+    if (temperature > 0.0f) {
+      float max_lt = logits_arr[0] / temperature;
+      for (uint v = 1u; v < V; v++) max_lt = max(max_lt, logits_arr[v] / temperature);
+      float sum_expt = 0.0f;
+      for (uint v = 0u; v < V; v++) { train_sm[v] = exp(logits_arr[v] / temperature - max_lt); sum_expt += train_sm[v]; }
+      float inv_sumt = 1.0f / sum_expt;
+      for (uint v = 0u; v < V; v++) train_sm[v] *= inv_sumt;
+    } else {
+      for (uint v = 0u; v < V; v++) train_sm[v] = softmax_vals[v];
+    }
+
+    // Use current proj as the gradient direction (standard CE gradient)
+    // proj already normalized before logits; gradient is linear-only.
+
+
+    float lr_qiflow = push.lr * 0.5;
+    float lr_proto  = push.lr * 0.02;
+
+    // Update byte_embed
+    [[dont_unroll]] for (uint v = 0u; v < V; v++) {
+      float delta = (v == learn_target ? 1.0f : 0.0f) - train_sm[v];
+      float scale = lr_qiflow * delta * gate_weight;
+
+      float proto_scale = 0.0f;
+      uint my_proto = byte_protos[v];
+      if (my_proto != v) {
+        proto_scale = lr_proto * (1.0f - train_sm[v]) * (1.0f - train_sm[my_proto]);
+      }
+
+      float emb_norm_sq = 0.0f;
+
+      [[unroll]] for (uint e = 0u; e < BYTE_EMBED_DIM; e++) {
+        uint idx = v * BYTE_EMBED_DIM + e;
+        byte_embed[idx] += scale * proj[e];  // linear-only gradient
+        if (proto_scale > 0.0f) {
+          byte_embed[idx] += proto_scale * (byte_embed[my_proto * BYTE_EMBED_DIM + e] - byte_embed[idx]);
+        }
+        float be = byte_embed[idx];
+        emb_norm_sq += be * be;
+      }
+
+      // L2 clamp — raised to 5.0 for 67% more discriminative capacity
+      if (emb_norm_sq > L2_CLAMP_SQ) {
+        float inv_norm = L2_CLAMP / sqrt(emb_norm_sq);
+        [[unroll]] for (uint e = 0u; e < BYTE_EMBED_DIM; e++) {
+          byte_embed[v * BYTE_EMBED_DIM + e] *= inv_norm;
+        }
+      }
+    }
+
+    // Update embed_proj (co-adapt with byte_embed for learned field encoding)
+    float lr_ep = push.lr * 0.02;
+
+    // Compute qwei[e] = Σ_v delta[v] * byte_embed[v, e]
+    float qwei[BYTE_EMBED_DIM];
+    [[unroll]] for (uint e = 0u; e < BYTE_EMBED_DIM; e++) qwei[e] = 0.0;
+    [[dont_unroll]] for (uint v = 0u; v < V; v++) {
+      float delta = (v == learn_target ? 1.0f : 0.0f) - train_sm[v];
+      [[unroll]] for (uint e = 0u; e < BYTE_EMBED_DIM; e++) {
+        qwei[e] += delta * byte_embed[v * BYTE_EMBED_DIM + e];
+      }
+    }
+
+    // embed_proj[d, e] += lr_ep * field_state[d] * qwei[e]
+    [[dont_unroll]] for (uint d = 0u; d < NUM_DIMS; d++) {
+      float signal = field_state[d];
+      [[unroll]] for (uint e = 0u; e < BYTE_EMBED_DIM; e++) {
+        embed_proj[d * BYTE_EMBED_DIM + e] += lr_ep * signal * qwei[e];
+      }
+    }
+  }
+}

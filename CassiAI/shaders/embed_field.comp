@@ -1,0 +1,56 @@
+#version 460
+
+// ─── QiCube — Byte-indexed field embedder ─────────────────────────────────
+// Replaces CPU-side _byte_pattern lookup. Projects byte_embed through
+// embed_proj^T to produce the initial field state. Since byte_embed is
+// learned via Qi-flow, the field representation co-evolves with the readout.
+//
+// psi[voxel, dim, real] = byte_embed[byte] · embed_proj_y[dim, :]     (Yang)
+// psi[voxel, dim, imag] = byte_embed[byte] · embed_proj_i[dim, :]     (Yin)
+// embed_proj buffer is 2× size: first half = Yang, second half = Yin
+
+// ─── Constants (must match vk_qi.py) ─────────────────────────────────────
+#define FIELD_DIM     128
+#define BYTE_EMBED_DIM 128
+#define N_VOXELS      4096
+
+// ─── Buffer bindings (std430) ────────────────────────────────────────────
+layout(std430, binding = 0)  buffer Psi          { float psi[]; };
+layout(std430, binding = 7)  buffer ByteEmbed    { float byte_embed[]; };
+layout(std430, binding = 8)  buffer EmbedProj    { float embed_proj[]; };
+layout(std430, binding = 15) buffer ByteIndices  { uint  byte_indices[]; };
+
+// ─── Workgroup ───────────────────────────────────────────────────────────
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+void main()
+{
+    uint idx = gl_GlobalInvocationID.x;  // [0, N_VOXELS * FIELD_DIM)
+    if (idx >= N_VOXELS * FIELD_DIM)
+        return;
+
+    uint voxel = idx / FIELD_DIM;
+    uint dim   = idx % FIELD_DIM;
+
+    uint byte_val = byte_indices[voxel];
+
+    // Project byte_embed[byte_val] through embed_proj[dim, :]
+    // Yang channel (psi_real): byte_embed → embed_proj_y projection (offset 0)
+    float real_part = 0.0;
+    for (uint e = 0u; e < BYTE_EMBED_DIM; e++) {
+        real_part += byte_embed[byte_val * BYTE_EMBED_DIM + e]
+                   * embed_proj[dim * BYTE_EMBED_DIM + e];
+    }
+
+    // Yin channel (psi_imag): byte_embed → embed_proj_i projection (offset DIM*BED)
+    float imag_part = 0.0;
+    uint proj_i_offset = FIELD_DIM * BYTE_EMBED_DIM;
+    for (uint e = 0u; e < BYTE_EMBED_DIM; e++) {
+        imag_part += byte_embed[byte_val * BYTE_EMBED_DIM + e]
+                   * embed_proj[proj_i_offset + dim * BYTE_EMBED_DIM + e];
+    }
+
+    uint base = voxel * FIELD_DIM * 2;
+    psi[base + dim * 2]     = real_part;
+    psi[base + dim * 2 + 1] = imag_part;
+}

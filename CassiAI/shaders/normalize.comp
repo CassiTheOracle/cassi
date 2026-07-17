@@ -1,0 +1,123 @@
+#version 460
+
+// ──────────────────────────────────────────────
+// normalize.comp — Global field normalization
+// QiCube PDE pipeline, Vulkan 1.4, AMD 7900 XTX
+// ──────────────────────────────────────────────
+//
+// Two-pass design:
+//   Pass 1 (pc.pass == 0): compute per-voxel max amplitude,
+//     reduce within workgroup (shared memory), then publish
+//     the global max via atomicMax on uint bits (binding 12).
+//   Pass 2 (pc.pass == 1): divide each complex component
+//     by the global max amplitude (in-place).
+
+// Dispatch contract (two dispatches, host-managed barrier):
+//   vkCmdDispatch(64, 1, 1)  -- pass=0  -- compute global max amplitude
+//   vkCmdDispatch(64, 1, 1)  -- pass=1  -- normalize psi in-place
+//
+// Host MUST zero-initialize global_max_bits before dispatching pass 1,
+// and issue a vkCmdPipelineBarrier between the two dispatches.
+
+// ── Constants ──
+#define PHI           1.618033988749895
+#define PHI_INV       0.618033988749895
+#define PI            3.141592653589793
+#define V             256
+#define BYTE_EMBED_DIM 128
+#define D             16
+#define W             16
+#define H             16
+#define N_VOXELS      4096
+#define d             128
+#define STRIDE_W      D
+#define STRIDE_H      (D * W)
+
+// ── Buffer definitions (std430) ──
+// Bindings 0-11 follow the cross-shader convention; binding 12 is
+// the global-max atomics counter used exclusively by this shader.
+
+layout(std430, binding =  0) buffer Psi         { float psi[]; };
+layout(std430, binding =  1) buffer PsiPrev     { float psi_prev[]; };
+layout(std430, binding =  2) buffer GradH       { float grad_h[]; };
+layout(std430, binding =  3) buffer GradW       { float grad_w[]; };
+layout(std430, binding =  4) buffer GradD       { float grad_d[]; };
+layout(std430, binding =  5) buffer Lap         { float lap[]; };
+layout(std430, binding =  6) buffer Params      { float params[]; };
+layout(std430, binding =  7) buffer ByteEmbed   { float byte_embed[]; };
+layout(std430, binding =  8) buffer EmbedProj   { float embed_proj[]; };
+layout(std430, binding =  9) buffer NeighborTable { uint neighbor_data[]; };
+layout(std430, binding = 10) buffer ByteProtos { uint byte_protos[]; };
+layout(std430, binding = 11) buffer Counters    { uint counters[]; };
+
+// Global max amplitude, stored as uint bits so pass 1 can use atomicMax.
+// IEEE 754: for non-negative floats, larger magnitude -> larger uint,
+// so atomicMax on the bit representation is order-preserving.
+// Host MUST zero-initialize before pass 1 dispatch.
+layout(std430, binding = 12) buffer GlobalMaxBits {
+    uint global_max_bits;
+};
+
+// ── Push constants ──
+layout(push_constant) uniform PushConstants {
+    float dt;
+    uint  pass;      // 0 = compute max, 1 = normalize
+    float breath_t;
+    uint  target_byte;
+    float lr;
+    float qi_target;
+} pc;
+
+// ── Workgroup ──
+layout(local_size_x = 64) in;
+
+// ── Shared memory for workgroup reduction ──
+shared float sdata[64];
+
+void main() {
+    uint gid = gl_GlobalInvocationID.x;
+    if (gid >= N_VOXELS) {
+        return;
+    }
+
+    uint base = gid * d * 2;
+
+    // ── Per-voxel: find the maximum amplitude across all d/2 complex pairs ──
+    float max_sq = 0.0;
+    for (uint dim = 0; dim < d; dim++) {
+        float re = psi[base + dim * 2];
+        float im = psi[base + dim * 2 + 1];
+        max_sq = max(max_sq, re * re + im * im);
+    }
+
+    if (pc.pass == 0) {
+        // ── Pass 1: no-op (kept for dispatch compatibility) ──
+        // Per-voxel soft cap doesn't need a global reduction pass
+    } else if (pc.pass == 1) {
+        // ── Pass 2: soft amplitude cap + floor (per-voxel, preserves density) ──
+        // Instead of normalizing by global max (crushes density), apply a soft cap
+        // that only affects voxels exceeding the threshold. Density ratios preserved.
+        const float AMP_CAP = 2.0;    // soft cap threshold
+        const float FLOOR_AMP = 1e-3;
+        float vox_amp = sqrt(max_sq);  // this voxel's max amplitude (from pre-pass)
+        if (vox_amp > AMP_CAP) {
+            float inv = AMP_CAP / vox_amp;
+            for (uint dim = 0; dim < d; dim++) {
+                psi[base + dim * 2]       *= inv;
+                psi[base + dim * 2 + 1]   *= inv;
+            }
+        }
+        // ── Amplitude floor ──
+        float vox_energy = 0.0;
+        for (uint dim = 0; dim < d; dim++) {
+            float r = psi[base + dim * 2];
+            float i = psi[base + dim * 2 + 1];
+            float amp2 = r * r + i * i;
+            if (amp2 < FLOOR_AMP * FLOOR_AMP && amp2 > 0.0) {
+                float scale = FLOOR_AMP / sqrt(amp2);
+                psi[base + dim * 2]     = r * scale;
+                psi[base + dim * 2 + 1] = i * scale;
+            }
+        }
+    }
+}

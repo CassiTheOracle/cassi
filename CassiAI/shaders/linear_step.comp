@@ -1,0 +1,122 @@
+#version 460
+
+// ──────────────────────────────────────────────
+// linear_step.comp — Diffusion + Dispersion step
+// QiCube PDE pipeline, Vulkan 1.4, AMD 7900 XTX
+// ──────────────────────────────────────────────
+
+// ── Constants ──
+#define PHI           1.618033988749895
+#define PHI_INV       0.618033988749895
+#define PI            3.141592653589793
+#define V             256
+#define BYTE_EMBED_DIM 128
+#define D             16
+#define W             16
+#define H             16
+#define N_VOXELS      4096
+#define d             128
+#define STRIDE_W      D
+#define STRIDE_H      (D * W)
+
+// ── Buffer definitions (std430) ──
+// All 12 bindings defined for cross-shader consistency.
+
+layout(std430, binding =  0) buffer Psi         { float psi[]; };
+layout(std430, binding =  1) buffer PsiPrev     { float psi_prev[]; };
+layout(std430, binding =  2) buffer GradH       { float grad_h[]; };
+layout(std430, binding =  3) buffer GradW       { float grad_w[]; };
+layout(std430, binding =  4) buffer GradD       { float grad_d[]; };
+layout(std430, binding =  5) buffer Lap         { float lap[]; };
+layout(std430, binding =  6) buffer Params      { float params[]; };
+layout(std430, binding =  7) buffer ByteEmbed   { float byte_embed[]; };
+layout(std430, binding =  8) buffer EmbedProj   { float embed_proj[]; };
+layout(std430, binding =  9) buffer NeighborTable { uint neighbor_data[]; };
+layout(std430, binding = 10) buffer ByteProtos { uint byte_protos[]; };
+layout(std430, binding = 11) buffer Counters    { uint counters[]; };
+
+// ── Push constants ──
+layout(push_constant) uniform PushConstants {
+    float dt;
+    uint  pass;
+    float breath_t;
+    uint  target_byte;
+    float lr;
+    float qi_target;
+} push;
+
+// ── Workgroup ──
+layout(local_size_x = 64) in;
+
+void main() {
+    uint idx = gl_GlobalInvocationID.x;
+    uint n_voxels = N_VOXELS;
+    uint dims = d;
+
+    // Guard: one invocation per (voxel, dim) pair
+    if (idx >= n_voxels * dims) {
+        return;
+    }
+
+    uint n    = idx / dims;          // voxel index  [0, 4095]
+    uint dim  = idx % dims;          // field dim    [0, 127]
+    uint base = n * dims * 2;         // per-voxel base offset
+
+    uint idx_real = base + dim * 2;
+    uint idx_imag = base + dim * 2 + 1;
+
+    // ── Load psi at (voxel, dim) ──
+    float p_real = psi[idx_real];
+    float p_imag = psi[idx_imag];
+
+    // ── Load laplacian at (voxel, dim) ──
+    float lap_real = lap[idx_real];
+    float lap_imag = lap[idx_imag];
+
+    // ── Parameters ──
+    float nu  = params[0];            // diffusion  coefficient
+    float chi = params[4];            // dispersion coefficient (Schrödinger-like at 0.1-0.3)
+    float dt_val = push.dt;
+    float hyper_nu  = params[8];         // hyper-viscosity coefficient (was gamma)
+    float alpha_disp = params[9];        // scale-dependent dispersion exponent (was kappa)
+    // ── φ-scaled dimension bands ──
+    // Low dims (0..78): slower dynamics — structure, long-timescale patterns
+    // High dims (79..127): faster dynamics — detail, short-timescale patterns
+    float dim_frac = (float(dim) + 1.0) / float(d);
+    float band_scale = 1.0;  // dimension bands disabled — caused NaN via chemotactic gate at low dims
+    float nu_d = nu * band_scale;
+    // band_scale multiplied into chi_d below (see Step 2)
+
+    // ── Chemotactic diffusion gate: suppress diffusion in high-contrast regions ──
+    float amp_y = abs(p_real);
+    float amp_i = abs(p_imag);
+    float contrast = (amp_y > amp_i) ? (amp_y - amp_i) : (amp_i - amp_y);
+    float sum_amp  = amp_y + amp_i + PHI_INV * PHI_INV + 1e-10;
+    float chem_gate = contrast / sum_amp;
+    float nu_eff    = nu_d * (1.0 - chem_gate);
+
+    // ── Step 1: Diffusion (reaction–diffusion) ──
+    //   ∂ψ/∂t = ν ∇² ψ
+    float diff_real = p_real + nu_eff * dt_val * lap_real;
+    float diff_imag = p_imag + nu_eff * dt_val * lap_imag;
+
+    // ── Step 2: Scale-dependent dispersion (symplectic Euler in 3D) ──
+    //   dim_frac ∈ (0, 1] maps dimension index to effective wavenumber scale.
+    //   alpha_disp = 1: uniform dispersion (all dims equal)
+    //   alpha_disp > 1: low dims propagate faster (long waves)
+    //   alpha_disp < 1: high dims propagate faster (short waves)
+    dim_frac = (float(dim) + 1.0) / float(d);
+    float chi_scale = (alpha_disp > 0.0) ? pow(dim_frac, alpha_disp - 1.0) : 1.0;
+    float chi_d = chi * chi_scale * band_scale;
+    float new_real = diff_real - chi_d * dt_val * lap_imag;
+    float new_imag = diff_imag + chi_d * dt_val * lap_real;
+    // ── Step 3: Additional diffusion (hyper-viscosity proxy) ──
+    //   Acts as extra k² diffusion coefficient (k⁴ bilaplacian would need a second dispatch).
+    //   hyper_nu = 0 → no effect (default, backward-compatible).
+    new_real -= hyper_nu * dt_val * lap_real;
+    new_imag -= hyper_nu * dt_val * lap_imag;
+
+    // ── Write back in-place ──
+    psi[idx_real] = new_real;
+    psi[idx_imag] = new_imag;
+}

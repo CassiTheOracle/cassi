@@ -1,0 +1,117 @@
+#version 460
+
+// ── Compute shader: nonlinear half-step of the QiCube PDE ──
+// Applies advection + nonlinear coupling + breath force to the field,
+// performing a half-step Strang-split integration: psi += 0.5 * dt * dpsi.
+// QP (quantum potential) is omitted — test without it first.
+// Reads psi in-place (binding 0), grad_h/w/d (bindings 2-4), params (6).
+
+// ── Constants ──
+#define PHI       1.618033988749895
+#define PHI_INV   0.618033988749895
+#define PI        3.141592653589793
+#define H         16
+#define W         16
+#define D         16
+#define DIM       128
+#define N_VOXELS  (H * W * D)
+#define PER_VOXEL (DIM * 2)
+
+// ── Push constants ──
+layout(push_constant) uniform PushConstants {
+    float dt;           // offset 0 — nonlinear_step, linear_step
+    uint  pass;         // offset 4 — normalize
+    float breath_t;     // offset 8 — nonlinear_step
+    uint  target_byte;  // offset 12 — qi_accum
+    float lr;           // offset 16 — qi_accum
+    float qi_target;    // offset 20 — qi_accum
+} pc;
+
+// ── Buffer bindings (all std430) ──
+layout(std430, binding = 0) buffer PsiBuf     { float psi[]; };
+layout(std430, binding = 2) buffer GradHBuf   { float grad_h[]; };
+layout(std430, binding = 3) buffer GradWBuf   { float grad_w[]; };
+layout(std430, binding = 4) buffer GradDBuf   { float grad_d[]; };
+layout(std430, binding = 6) buffer ParamsBuf  { float params[]; };
+layout(std430, binding = 17) buffer VoxelEpsMemory { float eps_memory[]; };
+// ── Workgroup: one invocation per (voxel, dim) = 524,288 / 64 = 8,192 groups ──
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+void main() {
+    uint idx = gl_GlobalInvocationID.x;
+    uint n   = idx / DIM;   // voxel index [0, N_VOXELS-1]
+    uint dim = idx % DIM;   // field dimension [0, DIM-1]
+
+    uint base = n * PER_VOXEL;
+    uint off  = base + dim * 2;
+
+    // ── Load field ──
+    vec2 p = vec2(psi[off], psi[off + 1]);
+
+    // ── Load gradients along each spatial axis ──
+    vec2 gh = vec2(grad_h[off], grad_h[off + 1]);
+    vec2 gw = vec2(grad_w[off], grad_w[off + 1]);
+    vec2 gd = vec2(grad_d[off], grad_d[off + 1]);
+
+    // ── Load PDE coefficients ──
+    //   params[0] = nu (diffusion, unused here)
+    //   params[1] = hbar (quantum scale, unused here)
+    //   params[2] = mass (unused here)
+    //   params[3] = g (nonlinear coupling)
+    //   params[4] = chi (dispersion, unused here)
+    //   params[5] = A_B (breath amplitude)
+    //   params[6] = adv_strength (advection magnitude)
+    //   params[7] = alpha (unused here)
+    //   params[8] = gamma (unused here)
+    //   params[9] = kappa (unused here)
+    float g_param       = params[3];
+    float A_B           = params[5];
+    float adv_strength  = params[6];
+    float lambda_a     = params[10];
+    // ── φ-scaled dimension bands for g ──
+    float dim_frac = (float(dim) + 1.0) / float(DIM);
+    float band_scale = 1.0;  // dimension bands disabled — caused NaN via chemotactic gate
+    float g_d = g_param * band_scale;
+
+    // ── Advection: -PHI_INV * adv_strength * sum_axes complex_mul(p, ∇p) ──
+    // Each axis: (p.re * g.re - p.im * g.im, p.re * g.im + p.im * g.re)
+    vec2 adv_h = vec2(p.x * gh.x - p.y * gh.y,
+                      p.x * gh.y + p.y * gh.x);
+    vec2 adv_w = vec2(p.x * gw.x - p.y * gw.y,
+                      p.x * gw.y + p.y * gw.x);
+    vec2 adv_d = vec2(p.x * gd.x - p.y * gd.y,
+                      p.x * gd.y + p.y * gd.x);
+    vec2 adv = -PHI_INV * adv_strength * (adv_h + adv_w + adv_d);
+
+    // ── Yang/Yin asymmetric self-focusing + epsilon recovery ──
+    // Epsilon: deviation from φ-equilibrium ε = ψ_y - φ·ψ_i
+    float epsilon = p.x - PHI * p.y;
+
+    // Yang self-focusing minus φ-weighted Yin damping
+    float amp2_y = p.x * p.x;
+    float amp2_i = p.y * p.y;
+    float nl_y_yy = g_d * amp2_y * p.x;           // Yang → Yang amplification
+    float nl_y_yi = g_d * PHI * amp2_i * p.x;     // Yin → Yang damping
+    float nl_i_ii = g_d * amp2_i * p.y;           // Yin → Yin amplification
+    float nl_i_iy = g_d * PHI_INV * amp2_y * p.y; // Yang → Yin damping
+
+    vec2 nl = vec2(nl_y_yy - nl_y_yi - lambda_a * epsilon,
+                   nl_i_ii - nl_i_iy + lambda_a * epsilon);
+
+    // ── Breath force: A_B * breath_t * p ──
+    vec2 bf = A_B * pc.breath_t * p;
+
+    // ── Total nonlinear tendency ──
+    vec2 dpsi = adv + nl + bf;
+    // ── Half-step Strang-split update ──
+    vec2 p_new = p + 0.5 * pc.dt * dpsi;
+    // ── Field-amplitude saturation: prevent blowup ──
+    float amp2_sat = p_new.x * p_new.x + p_new.y * p_new.y;
+    float sigma_sq = 0.0;                            // 0=disabled; set to PHI to enable
+    float sf = (sigma_sq > 1e-10) ? sigma_sq / (amp2_sat + sigma_sq + 1e-10) : 1.0;
+    p_new = sf * p_new;
+
+    // ── Write back ──
+    psi[off]     = p_new.x;
+    psi[off + 1] = p_new.y;
+}
