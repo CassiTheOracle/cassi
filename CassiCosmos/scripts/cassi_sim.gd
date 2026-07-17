@@ -42,6 +42,9 @@ var _two_fluid_shader: RID;  var _two_fluid_pipe: RID
 var _nbody_shader: RID;      var _nbody_pipe: RID
 var _field_render_shader: RID; var _field_render_pipe: RID
 var _bh_lensing_shader: RID;  var _bh_lensing_pipe: RID
+# — Cached uniform sets —
+var _us_two_0: RID; var _us_two_1: RID; var _us_two_2: RID
+var _us_nbody_0: RID; var _us_nbody_1: RID; var _us_nbody_2: RID
 
 # — MultiMesh rendering —
 var _mmi: MultiMeshInstance3D; var _mm: MultiMesh
@@ -203,6 +206,32 @@ func _setup_shaders() -> void:
 	if _bh_lensing_shader.is_valid():
 		_bh_lensing_pipe = _rd.compute_pipeline_create(_bh_lensing_shader)
 		print("[CassiSim] BH lensing pipeline ready")
+	_cache_uniform_sets()
+
+func _cache_uniform_sets() -> void:
+	_us_two_0 = _rd.uniform_set_create([
+		_uniform_storage(0, _field_ey), _uniform_storage(1, _field_ei),
+		_uniform_storage(2, _field_q), _uniform_storage(3, _field_vel),
+	], _two_fluid_shader, 0)
+	_us_two_1 = _rd.uniform_set_create([
+		_uniform_storage(0, _pos_buf), _uniform_storage(1, _vel_buf),
+		_uniform_storage(2, _acc_buf),
+	], _two_fluid_shader, 1)
+	_us_two_2 = _rd.uniform_set_create([
+		_uniform_storage(0, _bh_buf),
+	], _two_fluid_shader, 2)
+
+	_us_nbody_0 = _rd.uniform_set_create([
+		_uniform_storage(0, _field_ey), _uniform_storage(1, _field_ei),
+		_uniform_storage(2, _field_q), _uniform_storage(3, _field_vel),
+	], _nbody_shader, 0)
+	_us_nbody_1 = _rd.uniform_set_create([
+		_uniform_storage(0, _pos_buf), _uniform_storage(1, _vel_buf),
+		_uniform_storage(2, _acc_buf),
+	], _nbody_shader, 1)
+	_us_nbody_2 = _rd.uniform_set_create([
+		_uniform_storage(0, _bh_buf),
+	], _nbody_shader, 2)
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -381,68 +410,27 @@ func _physics_step() -> void:
 	var wg = ceili(float(grid_N) / 4.0)
 	var pg = ceili(float(N_particles) / 256.0) if N_particles > 0 else 1
 
-	# Batch BOTH dispatches into a single compute list → one submit + sync
 	var cl = _rd.compute_list_begin()
 
-	# Build uniform sets for each shader (they share the same buffers)
-	# Two-fluid PDE
 	if _two_fluid_shader.is_valid():
-		var us0 = _rd.uniform_set_create([
-			_uniform_storage(0, _field_ey),
-			_uniform_storage(1, _field_ei),
-			_uniform_storage(2, _field_q),
-			_uniform_storage(3, _field_vel),
-		], _two_fluid_shader, 0)
-		var us1p = _rd.uniform_set_create([
-			_uniform_storage(0, _pos_buf),
-			_uniform_storage(1, _vel_buf),
-			_uniform_storage(2, _acc_buf),
-		], _two_fluid_shader, 1)
-		var us2t = _rd.uniform_set_create([
-			_uniform_storage(0, _bh_buf),
-		], _two_fluid_shader, 2)
 		_rd.compute_list_bind_compute_pipeline(cl, _two_fluid_pipe)
-		_rd.compute_list_bind_uniform_set(cl, us0, 0)
-		_rd.compute_list_bind_uniform_set(cl, us1p, 1)
-		_rd.compute_list_bind_uniform_set(cl, us2t, 2)
+		_rd.compute_list_bind_uniform_set(cl, _us_two_0, 0)
+		_rd.compute_list_bind_uniform_set(cl, _us_two_1, 1)
+		_rd.compute_list_bind_uniform_set(cl, _us_two_2, 2)
 		_rd.compute_list_set_push_constant(cl, pc_bytes, pc_size)
 		_rd.compute_list_dispatch(cl, wg, wg, wg)
 
-	# N-body gravity
 	if _nbody_shader.is_valid() and N_particles > 0:
-		var us0g = _rd.uniform_set_create([
-			_uniform_storage(0, _field_ey),
-			_uniform_storage(1, _field_ei),
-			_uniform_storage(2, _field_q),
-			_uniform_storage(3, _field_vel),
-		], _nbody_shader, 0)
-		var us1g = _rd.uniform_set_create([
-			_uniform_storage(0, _pos_buf),
-			_uniform_storage(1, _vel_buf),
-			_uniform_storage(2, _acc_buf),
-		], _nbody_shader, 1)
-		var us2g = _rd.uniform_set_create([
-			_uniform_storage(0, _bh_buf),
-		], _nbody_shader, 2)
 		_rd.compute_list_bind_compute_pipeline(cl, _nbody_pipe)
-		_rd.compute_list_bind_uniform_set(cl, us0g, 0)
-		_rd.compute_list_bind_uniform_set(cl, us1g, 1)
-		_rd.compute_list_bind_uniform_set(cl, us2g, 2)
+		_rd.compute_list_bind_uniform_set(cl, _us_nbody_0, 0)
+		_rd.compute_list_bind_uniform_set(cl, _us_nbody_1, 1)
+		_rd.compute_list_bind_uniform_set(cl, _us_nbody_2, 2)
 		_rd.compute_list_set_push_constant(cl, pc_bytes, pc_size)
 		_rd.compute_list_dispatch(cl, pg, 1, 1)
 
 	_rd.compute_list_end()
 	_rd.submit()
-	_rd.sync()
-
-	# Read diagnostics (skip every frame to reduce sync overhead)
-	if _step_count % 60 == 0:
-		var q_data = _rd.buffer_get_data(_field_q, 0, grid_N * grid_N * grid_N * 4)
-		if q_data.size() > 0:
-			var qf = q_data.to_float32_array()
-			var q_sum = 0.0
-			for v in qf: q_sum += v
-			_q_mean = q_sum / max(qf.size(), 1)
+	# NO SYNC — let GPU pipeline up
 
 
 func _make_render_textures() -> void:
@@ -480,6 +468,18 @@ func _setup_multimesh() -> void:
 
 
 func _render_frame() -> void:
+	# Sync GPU before reading buffers for rendering
+	_rd.sync()
+
+	# Throttled diagnostics readback
+	if _step_count % 60 == 0:
+		var q_data = _rd.buffer_get_data(_field_q, 0, grid_N * grid_N * grid_N * 4)
+		if q_data.size() > 0:
+			var qf = q_data.to_float32_array()
+			var q_sum = 0.0
+			for v in qf: q_sum += v
+			_q_mean = q_sum / max(qf.size(), 1)
+
 	var realtime_mode = int(mode)
 
 	match realtime_mode:
