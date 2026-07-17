@@ -37,6 +37,7 @@ light_energy = 0.3
 
 [node name="CassiSim" type="Node3D" parent="." unique_id=822736192]
 script = ExtResource("2_sim")
+N_particles = 2000
 
 [node name="UILayer" type="CanvasLayer" parent="." unique_id=1258460337]
 
