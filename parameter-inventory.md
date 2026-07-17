@@ -56,11 +56,9 @@ All dimensionless coupling constants in the Cassi framework are $\varphi$-powers
 | $n_s$ (spectral index) | — | $0.967$ | **D** | From inflation in Cassi framework |
 | $r$ (tensor-to-scalar) | — | $0.003$ | **D** | From inflation in Cassi framework |
 | $K_{fw}$ (Wu Xing coeff) | $\varphi^{-1}$ | $0.618$ | **D** | Water damps Fire |
-| $K_{md}$ (Wu Xing coeff) | $3\varphi^2$ | $7.85$ | **D** | Metal cuts Wood |
 
----
 
-## 3. PDE Solver Parameters (Calibrated / Numerical)
+## 3. PDE Solver Parameters (Numerical Conventions)
 
 These four parameters control the PDE solver's numerical behavior. They are
 **not fundamental physical constants** — they are dimensionless simulation
@@ -68,7 +66,6 @@ parameters set by grid resolution, timestep stability, and the natural energy
 density scale of the system under study. Their universal values across all
 simulations reflect consistent solver conventions, not a hidden $\varphi$
 derivation for each individually.
-
 | # | Parameter | Value | Role | Status |
 |---|-----------|-------|------|--------|
 | 1 | $\lambda$ (conversion) | $0.1$ | $\varphi$-attractor strength | **Derivable** from Higgs mass (see §3.1) |
@@ -216,10 +213,10 @@ or to the Higgs VEV, which is itself empirical.
 $$v_0 \approx 246\ \text{GeV},\quad
 M_{\text{Pl}} \approx 1.22\times10^{19}\ \text{GeV}$$
 
-$$\frac{v_0}{M_{\text{Pl}}} \approx 2.0\times10^{-17} \approx \varphi^{-82}$$
+$$\frac{v_0}{M_{\text{Pl}}} \approx 2.0\times10^{-17} \approx \varphi^{-80}$$
 
-$\varphi^{82} = 1.618^{82} \approx 5.4\times10^{16}$, giving
-$v_0/M_{\text{Pl}} \approx 1/5.4\times10^{16} \approx 1.9\times10^{-17}$.
+$\varphi^{80} = 1.618^{80} \approx 5.2\times10^{16}$, giving
+$v_0/M_{\text{Pl}} \approx 1/5.2\times10^{16} \approx 1.9\times10^{-17}$.
 This is within $5\%$ of the observed $2.0\times10^{-17}$ — a notable
 numerical coincidence, but not a derivation.
 
@@ -317,7 +314,6 @@ Still $4\times$ smaller than $0.118$. The convergence requires $b_s \approx
 Kaluza-Klein modes or string states.
 
 **Status:** $\alpha_s(M_Z)$ cannot be derived from $\varphi$ alone. The
-running depends on the full particle content between $M_{\text{GUT}}$ and
 $M_Z$, which $\varphi$ does not determine.
 
 ### 4.5 What IS Derivable from $\varphi$
@@ -328,7 +324,7 @@ RATIOS involving these constants are $\varphi$-powers:
 | Ratio | $\varphi$ Expression | Value | Error |
 |-------|---------------------|-------|-------|
 | $G_{\text{eff}}/G$ (at fixed point) | $\varphi^{-3}$ | $0.236$ | Exact |
-| $v_0/M_{\text{Pl}}$ | $\varphi^{-82}$ | $1.9\times10^{-17}$ | $<5\%$ (numerical) |
+| $v_0/M_{\text{Pl}}$ | $\varphi^{-80}$ | $1.9\times10^{-17}$ | $5.3\%$ (closest integer power) |
 | $\alpha_{\text{GUT}}$ | $\varphi^{-3}/(4\pi)$ | $1/53.2$ | Exact (definition) |
 | $\alpha^{-1}(\text{GUT})$ | $4\pi/\varphi^{-3}$ | $53.2$ | Exact (definition) |
 | $m_{\nu_e}/m_e$ (seesaw) | $\varphi^{-11}$ | $0.013$ | Consistent |
