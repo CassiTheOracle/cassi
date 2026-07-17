@@ -355,6 +355,15 @@ func _physics_step() -> void:
 	_time += dt
 
 	var pc = PackedFloat32Array([
+
+	# Ensure BH buffer has correct physics params (modes may overwrite it)
+	var bh_init = PackedFloat32Array([
+		0.0, 0.0, 0.0, float(N_particles),           # pos + M_total
+		0.0, 0.0, 0.0, 1.0,                           # spin + G_N
+		cluster_radius, cluster_radius * 1.5, 0.0, 0.0, # cluster_a, grid_extent
+		0.0, 0.0, 0.0, 0.0,
+	])
+	_rd.buffer_update(_bh_buf, 0, bh_init.size() * 4, bh_init.to_byte_array())
 		float(grid_N),          # N_f
 		dt,                     # dt
 		_time,                  # t
