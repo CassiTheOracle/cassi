@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://dtufpuhg6tm7q"]
 
 [ext_resource type="Script" uid="uid://ctd74qvas4ily" path="res://scripts/free_camera.gd" id="1_cam"]
-[ext_resource type="Script" path="res://scripts/cassi_sim.gd" id="2_sim"]
+[ext_resource type="Script" uid="uid://bp5bjas7jlx46" path="res://scripts/cassi_sim.gd" id="2_sim"]
 [ext_resource type="Script" uid="uid://c3iwrspepbm45" path="res://scripts/sim_ui.gd" id="3_ui"]
 
 [sub_resource type="ProceduralSkyMaterial" id="sky_mat"]
@@ -37,15 +37,6 @@ light_energy = 0.3
 
 [node name="CassiSim" type="Node3D" parent="." unique_id=822736192]
 script = ExtResource("2_sim")
-grid_N = 32
-N_particles = 20000
-xi = 18.0
-softening = 0.1
-particle_size = 0.08
-cluster_radius = 5.0
-source_strength = 0.5
-mode = 0
-playing = false
 
 [node name="UILayer" type="CanvasLayer" parent="." unique_id=1258460337]
 
