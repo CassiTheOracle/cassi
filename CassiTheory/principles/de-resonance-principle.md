@@ -62,15 +62,7 @@ quantity's natural scale is. Strongly-attractor quantities (couplings set at
 the $\varphi$-equilibrium) have small corrections ($\sim 2{-}5\%$). Weakly-attractor
 quantities (masses that require mixing to set their scale) have larger
 corrections ($\sim 20{-}30\%$). Non-attractor quantities (those determined by
-particle content rather than the $\varphi$-attractor) have large deviations
-($\times 10$).
-
----
-
-## 4. Physical Origin of Each Correction
-
-### 4.1 $\sin^2\theta_W$ ($2\%$ correction) — **Computed**
-
+| $v_0/M_{\rm Pl}$ | $\varphi^{-80} = 1.91\times10^{-17}$ | $2.02\times10^{-17}$ | $+5.6\%$ | **Unidentified** — see `v0-hierarchy-problem.md` (v₀ is λ-independent at equilibrium; mechanism may be threshold corrections, exact φ-attractor value, or RGE) | **Hypothesized** |
 The $\varphi$-attractor gives $\sin^2\theta_W = \varphi^{-3}$ at the scale
 where the two-fluid gauge structure is set (the GUT scale). The MSSM
 $\beta$-function from $M_{\rm GUT}$ to $m_Z$ shifts this by $-1.7\%$.
@@ -79,17 +71,21 @@ GUT-scale threshold corrections of $\sim 2\%$ close the remaining gap.
 **Mechanism:** running of the gauge couplings between the matching scale
 and the $Z$-pole, plus heavy-particle thresholds at the matching scale.
 
-### 4.2 $v_0/M_{\rm Pl}$ ($5.3\%$ correction) — **Hypothesized**
+### 4.2 $v_0/M_{\rm Pl}$ ($5.3\%$ correction) — **Hypothesized, mechanism unidentified**
 
-The Higgs potential $V = (g/4)|\Psi|^4 + (\lambda/2)(\Psi_0^2 - \varphi\Psi_1^2)^2$
-has two modes at the minimum: the "Higgs direction" and the "$\varphi$-restoring
-direction." The VEV $v_0$ is set by the gradient along the Higgs direction,
-which is a $g$-$\lambda$ combination. The exact $\varphi$-power $\varphi^{-80}$
-assumes $\lambda \ll g$ (pure $\varphi$-attractor limit); the actual $g/\lambda$
-ratio gives the $5.3\%$ correction.
+The equilibrium $v_0$ from the Cassi potential is **independent of $\lambda$** at
+the $\varphi$-fixed point ($v_0^2 = -\mu^2/g$). The original hypothesis that
+the $5.3\%$ correction came from $g/\lambda$ mixing is therefore **wrong**.
+The actual mechanism remains unidentified; plausible candidates are:
 
-**Mechanism:** mixing of the $\varphi$-attractor and the $\varphi^4$ self-coupling
-in determining $v_0$.
+- **Threshold corrections at the matching scale** (heavy-particle finite shifts)
+- **The exact $\varphi$-attractor value** vs. the nearest integer power
+  $\varphi^{-80}$ (true exponent is $79.89$, introducing $\sim 0.5\%$ baseline)
+- **RGE running of $v_0$** in the Cassi SU(2) framework (sign analysis needed)
+
+See `v0-hierarchy-problem.md` for the full analysis. None of the candidates
+has been computed in the Cassi framework; this is the framework hierarchy
+problem in disguise.
 
 ### 4.3 $m_e$ ($20{-}25\%$ correction) — **Speculative**
 
