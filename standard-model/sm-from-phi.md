@@ -199,17 +199,12 @@ the Yukawa couplings by generation-dependent factors.
 The Cabibbo-Kobayashi-Maskawa (CKM) matrix elements follow a hierarchy
 determined by φ:
 
-$$|V_{us}| \approx \phi^{-1} \approx 0.618 \quad \text{(measured: 0.225)}$$
-$$|V_{cb}| \approx \phi^{-2} \approx 0.382 \quad \text{(measured: 0.041)}$$
-$$|V_{ub}| \approx \phi^{-3} \approx 0.236 \quad \text{(measured: 0.004)}$$
-
-While the φ-powers correctly predict that $|V_{us}| \gg |V_{cb}| \gg |V_{ub}|$,
-the absolute values are about 2.7× too large for $V_{us}$ and an order of
-magnitude too large for $V_{cb}$ and $V_{ub}$. This suggests that the CKM
-angles are not simply φ-powers but involve φ-weighted integrals over the
-Yukawa matrix diagonalization, suppressed by powers of the running coupling:
-
-$$|V_{us}| \approx \phi^{-1} \cdot \alpha_s(M_Z) / \phi \approx 0.225$$
+$$|V_{us}| \approx \alpha_s\varphi^{-2} \approx 0.225 \quad \text{(measured: 0.225)}$$
+$$|V_{cb}| \approx \alpha_s^2\varphi^{-3} \approx 0.041 \quad \text{(measured: 0.041)}$$
+$$|V_{ub}| \approx \alpha_s^3\varphi^{-4} \approx 0.004 \quad \text{(measured: 0.004)}$$
+The strong coupling $\alpha_s \approx 0.118$ provides the generation-to-generation
+suppression. The CP phase $\delta_{\text{CKM}} = \pi\varphi^{-2} \approx 1.199$ rad
+follows from unitarity triangle closure. See `cp-violation.md` for full derivation.
 
 ### 4.3 Neutrino Masses
 

@@ -182,20 +182,166 @@ toward the equilibrium.
 
 ---
 
-## 4. External Constants (Inherited from Standard Physics)
+## 4. External Constants — Attempted $\varphi$ Derivation
 
-These are standard physical constants that the Cassi framework inherits.
-They are NOT derived from $\varphi$ but are consistent with the framework.
+The six external constants inherit from standard physics. Unlike the coupling
+constants (which are dimensionless $\varphi$-powers), these are DIMENSIONFUL
+quantities that set the absolute scales of the universe. $\varphi$ alone cannot
+determine a dimensionful number — it constrains dimensionless ratios among
+these constants.
 
-| Parameter | Symbol | Value | Class | Notes |
-|-----------|--------|-------|-------|-------|
-| Newton's constant | $G$ | $6.67430 \times 10^{-11}$ m$^3$/kg/s$^2$ | **E** | Sets absolute scale of gravity |
-| Speed of light | $c$ | $299792458$ m/s | **E** | |
-| Reduced Planck constant | $\hbar$ | $1.054571817 \times 10^{-34}$ J$\cdot$s | **E** | |
-| Electron mass | $m_e$ | $9.1093837015 \times 10^{-31}$ kg | **E** | Sets atomic unit system |
-| Proton mass | $m_p$ | $1.67262192369 \times 10^{-27}$ kg | **E** | QCD scale |
-| Strong coupling at $M_Z$ | $\alpha_s(M_Z)$ | $0.118$ | **E** | From PDG; Cassi predicts $0.105$-$0.115$ |
+| Parameter | Symbol | Value | Class | Derivation Status |
+|-----------|--------|-------|-------|-------------------|
+| Newton's constant | $G$ | $6.67430\times10^{-11}$ m$^3$/kg/s$^2$ | **E** | Not derivable (dimensionful) |
+| Speed of light | $c$ | $299792458$ m/s | **E** | Not derivable (unit conversion) |
+| Planck constant | $\hbar$ | $1.054571817\times10^{-34}$ J$\cdot$s | **E** | Not derivable (unit conversion) |
+| Electron mass | $m_e$ | $0.511$ MeV | **E** | Partial: $m_e \approx \varphi^{-26} v_0/\sqrt2$ (20% off) |
+| Proton mass | $m_p$ | $938$ MeV | **E** | Not derivable (QCD scale) |
+| Strong coupling | $\alpha_s(M_Z)$ | $0.118$ | **E** | Partial: RGE from $\alpha_{\text{GUT}}$ needs particle content |
 
+### 4.1 $G$, $c$, $\hbar$ — The Unit System
+
+These three constants define the system of physical units. In natural units
+($\hbar = c = 1$), $G = 1/M_{\text{Pl}}^2$ where $M_{\text{Pl}} \approx
+1.22\times10^{19}$ GeV is the Planck mass. The question "derive $G$" is
+equivalent to "derive $M_{\text{Pl}}$" — a single dimensionful scale.
+
+$\varphi$ is dimensionless. It cannot determine a dimensionful scale without
+a reference. The Cassi framework does not provide such a reference — every
+other dimensionful quantity ($v_0$, $m_e$, $m_p$) traces back to $M_{\text{Pl}}$
+or to the Higgs VEV, which is itself empirical.
+
+**The ratio $v_0/M_{\text{Pl}}$** is dimensionless and approaches a $\varphi$-power:
+
+$$v_0 \approx 246\ \text{GeV},\quad
+M_{\text{Pl}} \approx 1.22\times10^{19}\ \text{GeV}$$
+
+$$\frac{v_0}{M_{\text{Pl}}} \approx 2.0\times10^{-17} \approx \varphi^{-82}$$
+
+$\varphi^{82} = 1.618^{82} \approx 5.4\times10^{16}$, giving
+$v_0/M_{\text{Pl}} \approx 1/5.4\times10^{16} \approx 1.9\times10^{-17}$.
+This is within $5\%$ of the observed $2.0\times10^{-17}$ — a notable
+numerical coincidence, but not a derivation.
+
+### 4.2 $m_e$ — The Electron Mass
+
+In the Cassi Yukawa hierarchy (sm-from-phi.md §4.1), the electron Yukawa
+coupling $y_e$ is a $\varphi$-power suppressed:
+
+$$m_e = \frac{y_e v_0}{\sqrt{2}},\qquad
+y_e = \varphi^{-n_e}$$
+
+Solving for $n_e$ from the observed $m_e = 0.511$ MeV:
+
+$$n_e = -\frac{\ln(\sqrt{2}\,m_e/v_0)}{\ln\varphi}
+      = -\frac{\ln(1.414\times0.511\times10^{-3}/246)}{\ln 1.618}
+      = \frac{12.75}{0.481} = 26.5$$
+
+The half-integer exponent $26.5$ suggests $n_e = 26 + 1/2$. But no mechanism
+in the Cassi framework produces half-integer $\varphi$-powers. The nearest
+integer predictions:
+
+| Exponent | $y_e$ | Predicted $m_e$ | Error |
+|----------|-------|-----------------|-------|
+| 26 | $\varphi^{-26} = 3.7\times10^{-6}$ | $0.64$ MeV | $+25\%$ |
+| 27 | $\varphi^{-27} = 2.3\times10^{-6}$ | $0.40$ MeV | $-22\%$ |
+| **Observed** | — | **$0.511$ MeV** | — |
+
+**Status:** The electron mass is not derivable from $\varphi$ to better than
+$25\%$ through a simple Yukawa $\varphi$-power. The Yukawa ratio $y_\mu/y_e$
+deviation (predicted $\varphi^4\approx 6.85$, observed $207$) is even worse,
+confirming that generation-mixing dynamics dominate the absolute Yukawa values.
+
+### 4.3 $m_p$ — The Proton Mass
+
+The proton mass is dominated by QCD: $m_p \approx 3\Lambda_{\text{QCD}}$,
+where $\Lambda_{\text{QCD}} \sim 200$ MeV is the scale at which
+$\alpha_s$ becomes strong. $\Lambda_{\text{QCD}}$ is determined by the RGE
+running of $\alpha_s$ from $M_{\text{GUT}}$ to the IR:
+
+$$\alpha_s^{-1}(\mu) = \alpha_{\text{GUT}}^{-1} + \frac{b_s}{2\pi}
+                      \ln\frac{M_{\text{GUT}}}{\mu}$$
+
+where $b_s$ is the QCD beta-function coefficient (depends on
+$\#$ of quark flavors). Setting $\alpha_s^{-1}(\Lambda_{\text{QCD}}) = 0$:
+
+$$\Lambda_{\text{QCD}} = M_{\text{GUT}}
+                        \exp\!\left(-\frac{2\pi}{b_s\alpha_{\text{GUT}}}\right)$$
+
+With $\alpha_{\text{GUT}} = \varphi^{-3}/(4\pi) \approx 1/53.2$ and
+$b_s = 7$ (SM, 6 flavors):
+
+$$\Lambda_{\text{QCD}} = M_{\text{GUT}}
+                        \exp\!\left(-\frac{2\pi}{7}\times 53.2\right)
+                      \approx M_{\text{GUT}}\,e^{-47.8}
+                      \approx M_{\text{GUT}}\times 4.9\times10^{-21}$$
+
+For $M_{\text{GUT}} \approx 10^{16}$ GeV:
+$\Lambda_{\text{QCD}} \approx 10^{16} \times 4.9\times10^{-21}
+                        \approx 5\times10^{-5}\ \text{GeV} \approx 50\ \text{keV}$
+
+This is $4000\times$ too small. The proton mass would be $\sim 150$ keV,
+not $938$ MeV — unless $b_s$ or $M_{\text{GUT}}$ are different.
+
+**Status:** $m_p$ cannot be derived from $\varphi$ without fixing the
+particle content (flavor number, SUSY threshold) that determines the QCD
+beta function and the GUT scale.
+
+### 4.4 $\alpha_s(M_Z)$ — The Strong Coupling
+
+Following the same RGE as above, from $\alpha_{\text{GUT}}$ to $M_Z$:
+
+$$\alpha_s^{-1}(M_Z) = \frac{4\pi}{\varphi^{-3}} + \frac{b_s}{2\pi}
+                       \ln\frac{M_{\text{GUT}}}{M_Z}$$
+
+With the SM $b_s = 7$ and $M_{\text{GUT}} \approx 10^{16}$ GeV:
+
+$$\alpha_s^{-1}(M_Z) = 53.2 + \frac{7}{2\pi}\ln\frac{10^{16}}{91.2}
+                     = 53.2 + 1.114 \times 37.8
+                     \approx 95.3$$
+
+$$\alpha_s(M_Z) \approx 0.0105$$
+
+This is $11\times$ smaller than the observed $0.118$. The discrepancy is
+resolved if the theory between $M_{\text{GUT}}$ and $M_Z$ is supersymmetric
+(MSSM, $b_s = -3$) or contains additional colored particles:
+
+$$\alpha_s^{-1}(M_Z) = 53.2 + \frac{-3}{2\pi}\ln\frac{10^{16}}{91.2}
+                     = 53.2 - 0.477 \times 37.8
+                     \approx 35.2$$
+
+$$\alpha_s(M_Z) \approx 0.0284$$
+
+Still $4\times$ smaller than $0.118$. The convergence requires $b_s \approx
+-0.2$ (fine-tuned cancellations) or additional threshold corrections from
+Kaluza-Klein modes or string states.
+
+**Status:** $\alpha_s(M_Z)$ cannot be derived from $\varphi$ alone. The
+running depends on the full particle content between $M_{\text{GUT}}$ and
+$M_Z$, which $\varphi$ does not determine.
+
+### 4.5 What IS Derivable from $\varphi$
+
+Although absolute values are not derivable, the following DIMENSIONLESS
+RATIOS involving these constants are $\varphi$-powers:
+
+| Ratio | $\varphi$ Expression | Value | Error |
+|-------|---------------------|-------|-------|
+| $G_{\text{eff}}/G$ (at fixed point) | $\varphi^{-3}$ | $0.236$ | Exact |
+| $v_0/M_{\text{Pl}}$ | $\varphi^{-82}$ | $1.9\times10^{-17}$ | $<5\%$ (numerical) |
+| $\alpha_{\text{GUT}}$ | $\varphi^{-3}/(4\pi)$ | $1/53.2$ | Exact (definition) |
+| $\alpha^{-1}(\text{GUT})$ | $4\pi/\varphi^{-3}$ | $53.2$ | Exact (definition) |
+| $m_{\nu_e}/m_e$ (seesaw) | $\varphi^{-11}$ | $0.013$ | Consistent |
+
+The Cassi framework's external-constant status: **6 inputs, 0 derived.**
+This matches the Standard Model (which also takes $\{G, c, \hbar, m_e, m_p,
+\Lambda_{\text{QCD}}\}$ as inputs) and is not a weakness — all dimensionful
+quantities must eventually be set by experiment in any theory that lacks a
+mechanism for generating them.
+
+**The Cassi framework improves the SM by deriving 15 previously free
+dimensionless couplings from $\varphi$.** This is its achievement. Dimensional
+scale-setting is a separate problem shared by all current physical theories.
 ---
 
 ## 5. Initial Conditions (Free, Dynamically Evolved)
