@@ -314,6 +314,7 @@ Still $4\times$ smaller than $0.118$. The convergence requires $b_s \approx
 Kaluza-Klein modes or string states.
 
 **Status:** $\alpha_s(M_Z)$ cannot be derived from $\varphi$ alone. The
+running depends on the full particle content between $M_{\text{GUT}}$ and
 $M_Z$, which $\varphi$ does not determine.
 
 ### 4.5 What IS Derivable from $\varphi$
