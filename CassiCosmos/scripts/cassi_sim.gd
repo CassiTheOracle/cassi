@@ -354,8 +354,6 @@ func _dispatch_compute(shader: RID, pipeline: RID,
 func _physics_step() -> void:
 	_time += dt
 
-	var pc = PackedFloat32Array([
-
 	# Ensure BH buffer has correct physics params (modes may overwrite it)
 	var bh_init = PackedFloat32Array([
 		0.0, 0.0, 0.0, float(N_particles),           # pos + M_total
@@ -364,6 +362,8 @@ func _physics_step() -> void:
 		0.0, 0.0, 0.0, 0.0,
 	])
 	_rd.buffer_update(_bh_buf, 0, bh_init.size() * 4, bh_init.to_byte_array())
+
+	var pc = PackedFloat32Array([
 		float(grid_N),          # N_f
 		dt,                     # dt
 		_time,                  # t
