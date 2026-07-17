@@ -113,60 +113,8 @@ void main() {
     int N = int(pc.particle_N);
     if (i >= N) return;
 
-    // Read particle state
-    vec4 p = pos[i];
-    vec4 v = vel[i];
-    vec3 pxyz = p.xyz;
-    vec3 vxyz = v.xyz;
-
-    float dt_val = pc.dt;
-    float hdt = dt_val * 0.5;
-    float G_N = bh[1].w;
-    float xi_val = pc.xi;
-
-    // ── Single-step KDK leapfrog ───────────────────────────────────────
-    // (The GD script dispatches once per physics tick; sub-stepping, if
-    //  desired, is handled by calling dispatch multiple times.)
-
-    // 1. Sample Q field at particle position for spatially-varying G
-    float q_sample = sample_q(pxyz);
-    float G_eff = G_N * (1.0 + xi_val * q_sample);
-
-    // 2. Compute radial distance with softening
-    float r2 = dot(pxyz, pxyz);
-    float r = sqrt(r2 + pc.eps2);
-
-    // 3. Enclosed mass (Plummer model)
-    float M_enc = enclosed_mass(r, r2);
-
-    // 4. Gravitational acceleration magnitude
-    float inv_r = 1.0 / max(r, 1e-5);
-    float f_mag = G_eff * M_enc / max(r2 + pc.eps2, 1e-5);
-
-    vec3 grav_acc = -f_mag * pxyz * inv_r;
-
-    // 5. KDK: half-kick (velocity update)
-    vec3 v_half = vxyz + grav_acc * hdt;
-
-    // 6. Drift (position update)
-    vec3 p_new = pxyz + v_half * dt_val;
-
-    // 7. Re-evaluate G_eff at new position for second half-kick
-    float q_sample2 = sample_q(p_new);
-    float G_eff2 = G_N * (1.0 + xi_val * q_sample2);
-
-    float r2_new = dot(p_new, p_new);
-    float r_new = sqrt(r2_new + pc.eps2);
-    float M_enc2 = enclosed_mass(r_new, r2_new);
-    float inv_r2 = 1.0 / max(r_new, 1e-5);
-    float f_mag2 = G_eff2 * M_enc2 / max(r2_new + pc.eps2, 1e-5);
-    vec3 grav_acc2 = -f_mag2 * p_new * inv_r2;
-
-    // 8. Second half-kick
-    vec3 v_new = v_half + grav_acc2 * hdt;
-
-    // ── Write back ─────────────────────────────────────────────────────
-    pos[i] = vec4(p_new, 1.0);
-    vel[i] = vec4(v_new, 0.0);
-    acc[i] = vec4(grav_acc, 0.0);
+    // TEST: write constant position to prove write pipeline works
+    pos[i] = vec4(1.0, 2.0, 3.0, 1.0);
+    vel[i] = vec4(0.0, 0.0, 0.0, 0.0);
+    acc[i] = vec4(0.0, 0.0, 0.0, 0.0);
 }
