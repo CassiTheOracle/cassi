@@ -99,6 +99,10 @@ but the formula as written is off by $10^6$.
 | Cosmology | $w_a = -0.47$ | $<1\sigma$ |
 | Cosmology | $n_s = 0.967$ | $0.5\sigma$ |
 | Cosmology | $r = 0.003$ | Within bound |
+| Cosmology | $H_0 \approx 69.8$ km/s/Mpc | Resolves tension ($<1\sigma$ both sides) |
+| Atomic | He ground state (LDA, N=64) | $0.9\%$ |
+| Gravity | $v_C/v_B$ (MW rotation) | Within $2.5$-$3.0$ range |
+| Gravity | Dwarf spheroidal M/L | 5/8 pass (beats MOND) |
 ### ❌ Document Errors (now fixed)
 
 | Doc | Error | Fix Applied |
