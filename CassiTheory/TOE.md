@@ -74,26 +74,12 @@ We implemented Cassi-based Density Functional Theory using the CassiBridgeV2 sol
 |---|---------|---------------|---------------|-------|
 | 1 | H | −0.500 | −0.500 | 0.0% |
 | 2 | He | −2.928 | −2.903 | 0.9% |
-| 3 | Li | −7.478 | −7.478 | 0.0% |
-| 4 | Be | −14.667 | −14.667 | 0.0% |
-| 5 | B | −24.654 | −24.654 | 0.0% |
-| 6 | C | −37.845 | −37.845 | 0.0% |
-| 7 | N | −54.589 | −54.589 | 0.0% |
-| 8 | O | −75.067 | −75.067 | 0.0% |
-| 9 | F | −99.733 | −99.733 | 0.0% |
-| 10 | Ne | −128.938 | −128.938 | 0.0% |
+| 3–10 | Li–Ne | — | (−7.4)–(−128.9) | — |
 
 **Key results:**
 - He LDA at N=64: 0.8% error (chemical accuracy)
-- He PBE at N=96: 1.4% error (converging correctly)
-- For Z ≥ 3, uniform Cartesian grid is insufficient for compact 1s orbitals (requires pseudopotentials or adaptive grids)
-
-### 2.3 Relativistic DFT: Dirac-Kohn-Sham
-
-The DiracBridge extends CassiBridgeV2 with 4-spinor wavefunctions and the Foldy-Wouthuysen positive-definite kinetic propagator for variational imaginary-time relaxation.
-
-**Validation:**
-- He Dirac-DFT: E_binding = −2.996 E_h (vs −2.903 E_h non-relativistic exact), 3.2% error
+- For Z ≥ 3, uniform Cartesian grid at N ≤ 64 undersamples compact 1s orbitals
+- Dirac-Kohn-Sham validated for He: −2.996 E_h binding energy, 3.2% error
 - No variational collapse to negative-energy states
 - Correct electron density: ⟨r⟩ = 0.94 a₀ for He 1s
 
