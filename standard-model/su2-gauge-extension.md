@@ -144,7 +144,7 @@ where $b_2$ and $b_Y$ are the SU(2) and U(1)$_Y$ beta-function coefficients.
 - In typical SUSY GUTs, GUT-scale threshold corrections shift $\sin^2\theta_W$ by $1\text{--}3\%$
 - A $\sim 2\%$ threshold correction puts the Cassi prediction in exact agreement with the Z-pole measurement
 
-**Conclusion:** $\sin^2\theta_W = \varphi^{-3} = 0.236$ at $M_{\text{GUT}}$ is consistent with the measured $0.231$ at $m_Z$ given one-loop RG running and GUT-scale threshold corrections. The Cassi framework does not need a new free parameter — the running is the Standard Model running.
+**Conclusion:** $\sin^2\theta_W = \varphi^{-3} = 0.236$ at $M_{\text{GUT}}$ runs via MSSM to $\sim 0.235$ at $m_Z$ ($1.7\%$ above the measured $0.231$). GUT-scale threshold corrections of $\sim 2\%$ can close the gap. The Cassi framework does not need a new free parameter — the running is the Standard Model running, and the threshold shift is consistent with typical SUSY GUTs.
 
 ---
 
@@ -343,7 +343,7 @@ The top quark mass (173 GeV) $\approx \varphi^{-1} \cdot v_0 \approx 0.618 \time
 |-----------|---------|-----------------|-----------|-------------------|
 | $m_W/m_Z$ | 0.881 | **0.874** | $-0.86\%$ | $>100\sigma$ |
 | $m_W$ | 80.377 GeV | **79.7 GeV** | $-0.86\%$ | 0.5 MeV |
-| $\sin^2\theta_W$ at $m_Z$ | 0.23122 | **0.231 (RG running from 0.236)** | $<0.1\%$ | $3\times10^{-5}$ |
+| $\sin^2\theta_W$ at $m_Z$ | 0.23122 | **0.235 (MSSM RGE from $\varphi^{-3}$)** | $1.7\%$ (w/o thresholds); $\lesssim 1\%$ with GUT corr. | $3\times10^{-5}$ |
 
 ### GUT Scale (Proton decay testable)
 

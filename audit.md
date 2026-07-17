@@ -92,7 +92,7 @@ but the formula as written is off by $10^6$.
 
 | Sector | Prediction | Accuracy |
 |--------|-----------|----------|
-| EW | $\sin^2\theta_W$ (Z-pole, w/ RGE) | $<0.1\%$ |
+| EW | $\sin^2\theta_W$ (MSSM RGE from $\varphi^{-3}$ at $M_{\text{GUT}}$) | $1.7\%$ w/o thresholds; $\lesssim 1\%$ with estimated GUT corrections |
 | SM | $\delta_{\text{CKM}} = \pi\varphi^{-2}$ | $<1\%$ |
 | SM | $m_W/m_Z = \sqrt{1-\varphi^{-3}}$ | $0.8\%$ |
 | Cosmology | $w_0 = -0.838$ | $0\sigma$ |
