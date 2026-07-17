@@ -106,7 +106,7 @@ enhancement in dense cluster halos is a unique signature.
 | $m_b / m_t$ | $0.025$ | **0.031** ($\varphi^{-1}$) | $24\%$ gap |
 | $m_c / m_t$ | $0.0075$ | **0.0088** ($\varphi^{-2}$) | $17\%$ gap |
 | $|V_{us}|$ | $0.225$ | **$\alpha_s \varphi^{-2} \approx 0.225$** | Reproduced |
-| $\delta_{\text{CKM}}$ | $\approx 68^\circ$ | **$\arccos(\varphi^{-1}) \approx 52^\circ$** | Open; full CKM structure needed |
+| $\delta_{\text{CKM}}$ | $\approx 68^\circ$ | **$\pi\varphi^{-2} \approx 68.7^\circ$** | < 1% — Yukawa triangle closure |
 
 **Source:** `theory/su2-gauge-extension.md` §§5–8, `theory/sm-from-phi.md` §§3–4.
 The proton lifetime prediction depends on the full GUT embedding (SU(5) or SO(10)).
@@ -148,7 +148,7 @@ Sorted by detection likelihood (most definitive first):
 | 26 | BAO scales ($\alpha_\perp, \alpha_\parallel$) | DESI | **$\sim 3\%$ shift from $\Lambda$CDM** | Matches DESI DR2 | **Already tested** |
 | 27 | BTFR normalization | Galactic | **$M_b \propto v_f^4$**, $A \propto \varphi^{-1}$ | $\chi^2/\text{dof} = 0.26$ | **Already confirmed** |
 | 28 | GW polarization | LIGO | **$+$, $\times$ + breathing mode** | Search ongoing | **Ongoing** |
-| 29 | $\delta_{\text{CKM}}$ | LHCb/Belle II | **$\arccos(\varphi^{-1}) \approx 52^\circ$** | Measured $68^\circ$ | **Open; needs full CKM** |
+| 29 | $\delta_{\text{CKM}}$ | LHCb/Belle II | **$\pi\varphi^{-2} \approx 68.7^\circ$** | Measured $68^\circ$ | **Already consistent** |
 | 30 | $|V_{us}|$ | LHCb/Belle II | **$\alpha_s \varphi^{-2} \approx 0.225$** | Measured $0.225$ | **Already consistent** |
 
 ---

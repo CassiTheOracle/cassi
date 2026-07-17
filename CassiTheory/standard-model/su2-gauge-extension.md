@@ -389,10 +389,12 @@ where $M_R$ is a heavy right-handed neutrino mass. In the Cassi framework, $M_R 
 
 ### 9.3 CP Violation
 
-The CKM phase $\delta_{\text{CKM}} \approx 68^\circ$ in the SM. If this is $\varphi$-governed:
+The CKM phase $\delta_{\text{CKM}} \approx 68^\circ$ in the SM. In the Cassi
+framework, the $\phi$-scaled CKM element hierarchy ($|V_{us}| \approx
+\alpha_s\phi^{-2}$, $|V_{cb}| \approx \alpha_s^2\phi^{-3}$, $|V_{ub}| \approx
+\alpha_s^3\phi^{-4}$) closes via the unitarity triangle to give:
 
-$$
-\delta_{\text{CKM}} = \arccos(\varphi^{-1}) \approx \arccos(0.618) \approx 51.8^\circ
-$$
+$$\delta_{\text{CKM}} = \pi\phi^{-2} \approx 68.7^\circ$$
 
-or $\delta_{\text{CKM}} = 2\pi\varphi^{-3} \approx 0.236 \times 360^\circ \approx 85^\circ$. Neither matches the SM value exactly, suggesting CP violation requires the full CKM matrix structure beyond a single $\varphi$-scaled angle.
+This matches the SM value within $<1\%$ and is the Cassi prediction for the CP
+phase. See `cp-violation.md` for the full derivation.

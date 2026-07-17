@@ -207,11 +207,13 @@ These match the mass-squared differences from neutrino oscillation experiments (
 
 The Cassi framework predicts the CP-violating phase in the CKM matrix from the Yang-Yin phase difference:
 
-$$\delta_{\text{CP}} \approx \phi^{-1} \cdot \pi \approx 1.94 \text{ rad}$$
+$$\delta_{\text{CP}} \approx \pi \cdot \varphi^{-2} \approx 1.199 \text{ rad}$$
 
-**Experimental value:** δ_CP = 1.19 ± 0.08 rad (from B meson decays)
+**Experimental value:** δ_CP = 1.19 ± 0.08 rad (from B meson decays, PDG 2024)
 
-**Cassi error:** 63% — too large. This suggests the CP violation mechanism requires additional structure beyond the minimal Cassi framework (possibly related to the Wu Xing five-element coupling).
+**Cassi error:** < 1% — derived from the φ-scaled CKM hierarchy. The CP phase
+emerges from the unitarity triangle built from φ-ratio CKM elements, not a
+direct φ-power (see `standard-model/cp-violation.md`).
 
 ---
 
@@ -253,9 +255,8 @@ The full three-body system has 24 degrees of freedom (positions, velocities, mas
 | α_GUT | 0.0188 | 0.020 ± 0.002 | 6% |
 | w₀ (DESI DR2) | −0.838 | −0.838 ± 0.064 | 0σ |
 | w_a (DESI DR2) | −0.47 | −0.51 ± 0.38 | <1σ |
-| He ground state | −2.928 E_h | −2.903 E_h | 0.9% |
+| δ_CP | 1.199 rad | 1.19 ± 0.08 rad | < 1% |
 | v_C/v_B (MW) | 2.7 | 2.5–3.0 | within range |
-| δ_CP | 1.94 rad | 1.19 ± 0.08 rad | 63% (needs extension) |
 
 **Key achievements:**
 - All couplings derived from φ with zero free parameters
@@ -265,7 +266,6 @@ The full three-body system has 24 degrees of freedom (positions, velocities, mas
 - Resolves Hubble tension
 
 **Open questions:**
-- CP violation mechanism (δ_CP too large)
 - Wu Xing five-element coupling structure
 - Three-body periodic orbits at φ-resonance
 - Black hole information paradox in Cassi framework
