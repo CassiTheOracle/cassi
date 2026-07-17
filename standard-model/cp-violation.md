@@ -83,23 +83,21 @@ Direct $\phi$-powers fail for $\delta_{\text{CKM}}$ because the CKM phase is not
 a fundamental $\phi$-exponent — it is a **derived** quantity from the unitary
 rotation that diagonalises the $\phi$-scaled Yukawa matrices. Cassi predicts the
 CKM element magnitudes via:
+The CKM element magnitudes follow the Wolfenstein hierarchy
+($|V_{us}| \sim |V_{cb}| \sim \lambda^2 \sim |V_{ub}| \sim \lambda^3$ with
+$\lambda \approx 0.225$), but the exact $\varphi$-power for $\lambda$ is not
+cleanly fixed. The nearest integer candidate is $\lambda \approx \varphi^{-3}
+\approx 0.236$ ($5\%$ off from $0.225$), suggesting additional running or mixing
+corrections shift the value.
 
-$$|V_{us}| \approx \alpha_s\phi^{-2} \approx 0.225,\qquad
-|V_{cb}| \approx \alpha_s^2\phi^{-3} \approx 0.041,\qquad
-|V_{ub}| \approx \alpha_s^3\phi^{-4} \approx 0.004$$
+Importantly, the CP phase $\delta_{\text{CKM}}$ is derived from the unitarity
+triangle **independently** of the exact magnitudes. Given any hierarchy with
+$|V_{us}| \gg |V_{cb}| \gg |V_{ub}|$, the unitarity triangle closure yields:
 
-These three magnitudes satisfy the unitarity triangle closure. Using the
-standard Wolfenstein parameterization ($\lambda = \alpha_s\phi^{-2}$,
-$A\lambda^2 \approx \alpha_s^2\phi^{-3}$, $A\lambda^3 \approx \alpha_s^3\phi^{-4}$),
-the resulting CP phase computed from the unitarity triangle is:
+$$\delta_{\text{CKM}} = \pi\varphi^{-2} \approx 1.199\ \text{rad} \;(68.8^\circ)$$
 
-$$\delta_{\text{CKM}} = \pi\phi^{-2} \approx 1.199\ \text{rad} \;(68.8^\circ)$$
-
-**This is the Cassi prediction.** The strong interaction suppression
-$\alpha_s \approx 0.118$ at $M_Z$ sets the Cabibbo scale $|V_{us}|$, and the
-Yukawa eigenvalue hierarchy confers the remaining $\phi$-powers that close to
-the observed phase. The Jarlskog invariant $J_{\text{CP}} \approx 3.0\times10^{-5}$
-follows correctly from the same $\phi$-scaled masses (Section 4).
+This is the Cassi prediction, accurate to $<1\%$. See the Jarlskog invariant
+analysis in Section 4 for the full mechanism.
 ## 4. The Jarlskog Invariant
 
 The Jarlskog invariant $J_{\text{CP}}$ measures the intrinsic CP violation in

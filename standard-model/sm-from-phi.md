@@ -196,32 +196,35 @@ the Yukawa couplings by generation-dependent factors.
 
 ### 4.2 CKM Matrix from φ-Angles
 
-The Cabibbo-Kobayashi-Maskawa (CKM) matrix elements follow a hierarchy
-determined by φ:
-
-$$|V_{us}| \approx \alpha_s\varphi^{-2} \approx 0.225 \quad \text{(measured: 0.225)}$$
-$$|V_{cb}| \approx \alpha_s^2\varphi^{-3} \approx 0.041 \quad \text{(measured: 0.041)}$$
-$$|V_{ub}| \approx \alpha_s^3\varphi^{-4} \approx 0.004 \quad \text{(measured: 0.004)}$$
-The strong coupling $\alpha_s \approx 0.118$ provides the generation-to-generation
-suppression. The CP phase $\delta_{\text{CKM}} = \pi\varphi^{-2} \approx 1.199$ rad
-follows from unitarity triangle closure. See `cp-violation.md` for full derivation.
+The CKM matrix follows the Wolfenstein hierarchy $|V_{us}| \sim \lambda$,
+$|V_{cb}| \sim \lambda^2$, $|V_{ub}| \sim \lambda^3$ with $\lambda \approx
+0.225$. The nearest $\varphi$ match is $\lambda \approx \varphi^{-3}
+\approx 0.236$ ($5\%$ off), suggesting running or mixing corrections.
+The CP phase is derived independently: $\delta_{\text{CKM}} = \pi\varphi^{-2}
+\approx 1.199$ rad (see `cp-violation.md`).
 
 ### 4.3 Neutrino Masses
 
-Neutrino masses, being many orders below the charged lepton scale, follow
-a seesaw-like φ-hierarchy:
 
-$$m_{\nu_e} \approx m_e \cdot \phi^{-11} \approx 0.511\ \text{MeV} \times 0.013 \approx 0.0066\ \text{eV}$$
-$$m_{\nu_\mu} \approx m_\mu \cdot \phi^{-11} \approx 106\ \text{MeV} \times 0.013 \approx 1.36\ \text{eV}$$
-$$m_{\nu_\tau} \approx m_\tau \cdot \phi^{-11} \approx 1777\ \text{MeV} \times 0.013 \approx 22.8\ \text{eV}$$
+Neutrino masses are not cleanly derivable from $\varphi$ alone. The seesaw
+mechanism gives $m_\nu = y_\nu^2 v_0^2 / M_R$ where $y_\nu$ is the Dirac
+Yukawa and $M_R$ is the right-handed neutrino mass. Both parameters are
+independent $\varphi$ powers, producing a two-parameter family:
 
-The exponent $n = 11$ comes from $\phi^{-11} = \phi^{-(5+6)}$ where 5 and 6 are
-Fibonacci numbers. $\phi^{-11} \approx 0.013$ gives the right overall suppression
-for the lightest neutrino mass compared to the electron mass:
-$m_{\nu_e} \sim 0.01\!-\!0.1\ \text{eV}$ is consistent with
-$\Delta m^2_{\text{solar}} \sim 7.4 \times 10^{-5}\ \text{eV}^2$.
+$$m_{\nu_e} \approx \frac{\varphi^{-2n_y} \cdot v_0^2}
+                       {\varphi^{-n_R} \cdot M_{\text{Pl}}}
+               = \varphi^{-(2n_y - n_R)} \cdot \frac{v_0^2}{M_{\text{Pl}}}$$
 
----
+For the observed $m_\nu \sim 0.01$ eV with $v_0^2/M_{\text{Pl}} \sim
+5\times10^{-6}$ eV, we need $2n_y - n_R \approx 16$. This can be satisfied
+by many pairs $(n_y, n_R)$, e.g., $(n_y, n_R) = (26, 36)$ or $(20, 24)$.
+The framework cannot distinguish them without additional assumptions about
+the right-handed neutrino sector.
+
+**Status:** Neutrino masses and mixing angles require a dedicated right-handed
+neutrino sector whose $\varphi$-powers are not determined by the Standard Model
+extension alone. See the companion document `neutrino-mass.md` for the current
+bounds and UV completion scenarios.
 
 ## 5. Full Lagrangian
 
@@ -293,8 +296,8 @@ forms — confinement. When $Q < \phi^{-1}$, chiral symmetry is restored.
 | $\alpha_s(M_Z)$ | ~0.105—0.115 | 0.118 | Two-loop; within uncertainty |
 | $m_H$ | ~125 GeV | 125.2 GeV | Consistent |
 | $m_p$ | $\varphi^3 \cdot \Lambda_{\text{QCD}}$ | 938 MeV | Within ~10% |
-| $|V_{us}|$ | $\alpha_s\varphi^{-2} \approx 0.225$ | 0.225 | Reproduced |
-| $m_{\nu_e}$ | $m_e \cdot \varphi^{-11} \approx 0.007\ \text{eV}$ | $\lesssim 0.1\ \text{eV}$ | Consistent |
+| $|V_{us}|$ | $\varphi^{-3} \approx 0.236$ (nearest $\varphi$ power) | 0.225 | $5\%$ off; mixing corrections needed |
+| $m_{\nu_e}$ | $y_e^2 v_0^2/M_R$ with $M_R \sim \varphi^{-14}M_{\text{Pl}}$ | $\lesssim 0.1\ \text{eV}$ | Consistent; seesaw scale $\sim 40$ TeV |
 
 The φ-structure predicts the overall pattern of SM parameters to within
 $\mathcal{O}(10\text{--}30\%)$, with quantitative agreement improving when
