@@ -233,10 +233,12 @@ func _ready() -> void:
 # ═══════════════════════════════════════════════════════════════════════
 
 func _build_mode_buttons(parent: HBoxContainer) -> void:
+	var group = ButtonGroup.new()
 	for i in range(4):
 		var btn = Button.new()
 		btn.text = MODE_NAMES[i]
 		btn.toggle_mode = true
+		btn.button_group = group
 		btn.button_pressed = (i == 0)
 		btn.custom_minimum_size = Vector2(100, 30)
 		btn.pressed.connect(_on_mode_pressed.bind(i))
@@ -361,8 +363,17 @@ func _update_info() -> void:
 	if sim:
 		var mode_name = MODE_NAMES[sim.mode] if sim.mode >= 0 and sim.mode < MODE_NAMES.size() else "?"
 		_info_label.text = "FPS: %.0f  |  Mode: %s" % [_fps_display, mode_name]
-		_diag_label.text = "q_mean: %.4f  ε²: %.6f\na: %.3f  H: %.4f  steps: %d" % [
-			sim._q_mean, sim._eps_mean, sim._scale_factor, sim._hubble, sim._step_count]
+		# Convert particle count to readable format
+		var p_str = str(sim.N_particles)
+		if sim.N_particles >= 1000000:
+			p_str = "%.1fM" % (sim.N_particles / 1e6)
+		elif sim.N_particles >= 1000:
+			p_str = "%.0fk" % (sim.N_particles / 1e3)
+		_diag_label.text = \
+			"q_mean: %.4f  ε²: %.6f\n" % [sim._q_mean, sim._eps_mean] + \
+			"xi: %.1f  src: %.2f  soften: %.2f\n" % [sim.xi, sim.source_strength, sim.softening] + \
+			"a: %.3f  H: %.4f  steps: %d\n" % [sim._scale_factor, sim._hubble, sim._step_count] + \
+			"N: %s | grid: %d³ | dt: %.4f" % [p_str, sim.grid_N, sim.dt]
 		_conn_label.text = "Connection: Local"
 	else:
 		_info_label.text = "FPS: %.0f  |  Mode: --" % _fps_display
