@@ -56,8 +56,8 @@ var _mm_buf: RID = RID()
 var _us_inst_0: RID = RID()
 
 # — MultiMesh rendering —
-const RB_SKIP: int = 5                     # readback every 6th frame
-var _zero_mass_buf: PackedByteArray        # pre-allocated mass density zero buffer
+const RB_SKIP: int = 20                    # readback every 21st frame (~3/sec at 60fps)
+var _mm_data_f32: PackedFloat32Array       # pre-allocated for MultiMesh (avoid GC)
 var _rb_counter: int = 0
 var _mmi: MultiMeshInstance3D; var _mm: MultiMesh
 
@@ -622,15 +622,15 @@ func _render_frame() -> void:
 	if _mm_buf.is_valid() and N_particles > 0 and _rb_counter % (RB_SKIP + 1) == 0:
 		var inst_data = _rd.buffer_get_data(_mm_buf, 0, N_particles * 64)
 		if inst_data.size() > 0:
-			var farr = inst_data.to_float32_array()
-			_mm.buffer = farr
+			_mm_data_f32 = inst_data.to_float32_array()  # member var, avoids local temp
+			_mm.buffer = _mm_data_f32
 			# Diagnostic: log first 3 instances to verify format
-			if _step_count == 1 and farr.size() >= 48:
+			if _step_count == 1 and _mm_data_f32.size() >= 48:
 				for inst_idx in range(min(3, N_particles)):
 					var b = inst_idx * 16
 					print("[CassiSim] inst[%d] origin=(%.2f,%.2f,%.2f) color=(%.2f,%.2f,%.2f,%.2f)" % [
-						inst_idx, farr[b+3], farr[b+7], farr[b+11],
-						farr[b+12], farr[b+13], farr[b+14], farr[b+15]])
+						inst_idx, _mm_data_f32[b+3], _mm_data_f32[b+7], _mm_data_f32[b+11],
+						_mm_data_f32[b+12], _mm_data_f32[b+13], _mm_data_f32[b+14], _mm_data_f32[b+15]])
 
 	# Throttled diagnostics readback (every 60 steps)
 	var q_guard = (_step_count % 60 == 0)
