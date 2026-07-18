@@ -180,6 +180,7 @@ func _free_shaders() -> void:
 				_bh_lensing_shader, _bh_lensing_pipe,
 				_instancer_shader, _instancer_pipe,
 				_mass_deposit_shader, _mass_deposit_pipe]:
+		if rid.is_valid(): _rd.free_rid(rid)
 
 func _setup_shaders() -> void:
 	# Two-fluid PDE solver
