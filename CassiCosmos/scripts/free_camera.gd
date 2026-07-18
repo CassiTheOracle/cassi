@@ -24,7 +24,7 @@ extends Camera3D
 # State
 # ---------------------------------------------------------------------------
 
-var _flight_mode: bool = false          # true = look-direction, false = world-axis
+var _flight_mode: bool = true           # default: look-direction flight (W goes forward)
 var _dragging: bool = false
 var _prev_mouse_pos: Vector2 = Vector2.ZERO
 
