@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://d1fvkmx0c2g75"
+path="res://.godot/imported/cassi_instancer.glsl-3a7b1c5d9e2f4a6c0b8d1e3f5a7c2b4d.res"
+
+[deps]
+
+source_file="res://compute/cassi_instancer.glsl"
+dest_files=["res://.godot/imported/cassi_instancer.glsl-3a7b1c5d9e2f4a6c0b8d1e3f5a7c2b4d.res"]
+
+[params]
+

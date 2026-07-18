@@ -45,6 +45,10 @@ var _bh_lensing_shader: RID;  var _bh_lensing_pipe: RID
 # — Cached uniform sets —
 var _us_two_0: RID; var _us_two_1: RID; var _us_two_2: RID
 var _us_nbody_0: RID; var _us_nbody_1: RID; var _us_nbody_2: RID
+# — Instancer pipeline —
+var _instancer_shader: RID; var _instancer_pipe: RID
+var _mm_buf: RID = RID()
+var _us_inst_0: RID = RID()
 
 # — MultiMesh rendering —
 var _mmi: MultiMeshInstance3D; var _mm: MultiMesh
@@ -157,26 +161,24 @@ func _setup_buffers() -> void:
 		0.0, 0.0, 0.0, 0.0,
 	])
 	_rd.buffer_update(_bh_buf, 0, bh_init.size() * 4, bh_init.to_byte_array())
-
-	# Render textures for field/BH output
+	# MultiMesh instance buffer (GPU-only, 80 bytes per particle for TRANSFORM_3D+color)
+	_mm_buf = _rd.storage_buffer_create(N_particles * 80)
 	_make_render_textures()
-
 
 func _free_buffers() -> void:
 	if not _rd: return
 	for rid in [_field_ey, _field_ei, _field_q, _field_vel,
-				_pos_buf, _vel_buf, _acc_buf, _bh_buf]:
+				_pos_buf, _vel_buf, _acc_buf, _bh_buf, _mm_buf]:
 		if rid.is_valid(): _rd.free_rid(rid)
-
 
 func _free_shaders() -> void:
 	if not _rd: return
 	for rid in [_two_fluid_shader, _two_fluid_pipe,
 				_nbody_shader, _nbody_pipe,
 				_field_render_shader, _field_render_pipe,
-				_bh_lensing_shader, _bh_lensing_pipe]:
+				_bh_lensing_shader, _bh_lensing_pipe,
+				_instancer_shader, _instancer_pipe]:
 		if rid.is_valid(): _rd.free_rid(rid)
-
 
 # ═══════════════════════════════════════════════════════════════════════
 # Shader loading
@@ -206,10 +208,17 @@ func _setup_shaders() -> void:
 	if _bh_lensing_shader.is_valid():
 		_bh_lensing_pipe = _rd.compute_pipeline_create(_bh_lensing_shader)
 		print("[CassiSim] BH lensing pipeline ready")
+
+	# Particle instancer
+	_instancer_shader = _shader_from_file("res://compute/cassi_instancer.glsl")
+	if _instancer_shader.is_valid():
+		_instancer_pipe = _rd.compute_pipeline_create(_instancer_shader)
+		print("[CassiSim] Instancer pipeline ready")
 	_cache_uniform_sets()
 
 func _cache_uniform_sets() -> void:
 	_us_two_0 = _rd.uniform_set_create([
+
 		_uniform_storage(0, _field_ey), _uniform_storage(1, _field_ei),
 		_uniform_storage(2, _field_q), _uniform_storage(3, _field_vel),
 	], _two_fluid_shader, 0)
@@ -233,6 +242,12 @@ func _cache_uniform_sets() -> void:
 		_uniform_storage(0, _bh_buf),
 	], _nbody_shader, 2)
 
+	# Instancer
+	_us_inst_0 = _rd.uniform_set_create([
+		_uniform_storage(0, _pos_buf),
+		_uniform_storage(1, _mm_buf),
+	], _instancer_shader, 0)
+	print("[CassiSim] Instancer uniform set cached")
 
 # ═══════════════════════════════════════════════════════════════════════
 # Initial conditions
@@ -428,6 +443,13 @@ func _physics_step() -> void:
 		_rd.compute_list_set_push_constant(cl, pc_bytes, pc_size)
 		_rd.compute_list_dispatch(cl, pg, 1, 1)
 
+	# Instancer: copy positions to MultiMesh instance buffer (GPU-only)
+	if _instancer_shader.is_valid() and N_particles > 0:
+		_rd.compute_list_bind_compute_pipeline(cl, _instancer_pipe)
+		_rd.compute_list_bind_uniform_set(cl, _us_inst_0, 0)
+		_rd.compute_list_set_push_constant(cl, pc_bytes, pc_size)
+		_rd.compute_list_dispatch(cl, pg, 1, 1)
+
 	_rd.compute_list_end()
 	_rd.submit()
 	# NO SYNC — let GPU pipeline up
@@ -454,8 +476,9 @@ func _setup_multimesh() -> void:
 	_mm = MultiMesh.new()
 	_mm.transform_format = MultiMesh.TRANSFORM_3D
 	_mm.use_colors = true
-	_mm.instance_count = max(N_particles, 1)
 	_mm.mesh = qm
+	_mm.instance_count = max(N_particles, 1)
+	_mm.buffer = _mm_buf   # GPU buffer — no CPU readback needed
 
 	_mmi = MultiMeshInstance3D.new()
 	_mmi.multimesh = _mm
@@ -500,35 +523,15 @@ func _render_particles() -> void:
 	if N_particles <= 0:
 		return
 
-	var pos_data = _rd.buffer_get_data(_pos_buf, 0, min(N_particles, 200000) * 16)
-	if pos_data.size() < 16: return
+	# MultiMesh reads from GPU buffer directly — no CPU transform updates needed.
+	# Just log the first particle position for diagnostics.
+	if _step_count > 0 and _step_count % 3000 == 0:
+		var pos_data = _rd.buffer_get_data(_pos_buf, 0, 16)
+		if pos_data.size() >= 16:
+			var pos = pos_data.to_float32_array()
+			print("[CassiSim] p[0] = (%.3f, %.3f, %.3f)  steps=%d" % [
+				pos[0], pos[1], pos[2], _step_count])
 
-	var pos = pos_data.to_float32_array()
-	var n_visible = min(pos.size() / 4, N_particles)
-
-	# Debug: log first particle's position every 3000 steps
-	if _step_count > 0 and _step_count % 3000 == 0 and n_visible > 0:
-		print("[CassiSim] p[0] = (%.3f, %.3f, %.3f)  steps=%d" % [
-			pos[0], pos[1], pos[2], _step_count])
-
-	var max_r2 = 0.0
-	for i in range(n_visible):
-		var i4 = i * 4
-		var r2 = pos[i4]*pos[i4] + pos[i4+1]*pos[i4+1] + pos[i4+2]*pos[i4+2]
-		if r2 > max_r2: max_r2 = r2
-
-	var imr = 1.0 / sqrt(max(max_r2, 0.0001))
-
-	for i in range(n_visible):
-		var i4 = i * 4
-		var p = Vector3(pos[i4], pos[i4+1], pos[i4+2])
-		_mm.set_instance_transform(i, Transform3D(Basis.IDENTITY, p))
-		var t = clamp(p.length() * imr, 0.0, 1.0)
-		var r = lerp(1.0, 0.15, t)
-		var g = lerp(0.8, 0.25, t)
-		var b = lerp(0.3, 1.0, t)
-		_mm.set_instance_color(i, Color(r, g, b, 0.85))
-	_mm.visible_instance_count = n_visible
 
 
 func _render_field_slice() -> void:
