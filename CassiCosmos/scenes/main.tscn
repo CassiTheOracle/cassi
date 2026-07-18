@@ -4,30 +4,19 @@
 [ext_resource type="Script" uid="uid://bp5bjas7jlx46" path="res://scripts/cassi_sim.gd" id="2_sim"]
 [ext_resource type="Script" uid="uid://c3iwrspepbm45" path="res://scripts/sim_ui.gd" id="3_ui"]
 
-[sub_resource type="ProceduralSkyMaterial" id="sky_mat"]
-sky_top_color = Color(0.01, 0.01, 0.02, 1)
-sky_horizon_color = Color(0.02, 0.02, 0.04, 1)
-ground_bottom_color = Color(0.005, 0.005, 0.01, 1)
-ground_horizon_color = Color(0.01, 0.01, 0.02, 1)
-
-[sub_resource type="Sky" id="sky"]
-sky_material = SubResource("sky_mat")
-
 [sub_resource type="Environment" id="env"]
-background_mode = 2
-sky = SubResource("sky")
-ambient_light_color = Color(0.05, 0.05, 0.08, 1)
+background_mode = 1
+background_color = Color(0, 0, 0, 1)
 tonemap_mode = 2
 glow_enabled = true
 glow_intensity = 0.8
-
 [node name="Main" type="Node3D" unique_id=2078421686]
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1910698047]
 environment = SubResource("env")
 
 [node name="Camera3D" type="Camera3D" parent="." unique_id=1501670894]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5, 15)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 300, 500)
 fov = 70.0
 script = ExtResource("1_cam")
 
@@ -35,8 +24,9 @@ script = ExtResource("1_cam")
 [node name="CassiSim" type="Node3D" parent="." unique_id=822736192]
 script = ExtResource("2_sim")
 N_particles = 1000000
-xi = 50.0
-cluster_radius = 20.0
+xi = 100.0
+particle_size = 0.3
+cluster_radius = 200.0
 
 [node name="UILayer" type="CanvasLayer" parent="." unique_id=1258460337]
 
