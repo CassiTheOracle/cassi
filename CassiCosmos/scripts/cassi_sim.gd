@@ -35,14 +35,16 @@ var _pos_buf: RID; var _vel_buf: RID; var _acc_buf: RID
 
 # — auxiliary buffers (SET 2) —
 var _bh_buf: RID
+var _mass_density_buf: RID
 
 # — shaders and pipelines —
 var _two_fluid_shader: RID;  var _two_fluid_pipe: RID
 var _nbody_shader: RID;      var _nbody_pipe: RID
 var _field_render_shader: RID; var _field_render_pipe: RID
 var _bh_lensing_shader: RID;  var _bh_lensing_pipe: RID
-# — Cached uniform sets —
+var _mass_deposit_shader: RID; var _mass_deposit_pipe: RID
 var _us_two_0: RID; var _us_two_1: RID; var _us_two_2: RID
+var _us_mass_dep_0: RID
 var _us_nbody_0: RID; var _us_nbody_1: RID; var _us_nbody_2: RID
 # — Instancer pipeline —
 var _instancer_shader: RID; var _instancer_pipe: RID
@@ -160,28 +162,24 @@ func _setup_buffers() -> void:
 		cluster_radius, cluster_radius * 1.5, 0.0, 0.0, # cluster_a, grid_extent
 		0.0, 0.0, 0.0, 0.0,
 	])
+	# Mass density grid (one uint per cell, stores float as bits)
+	_mass_density_buf = _rd.storage_buffer_create(nc * 4)
 	_rd.buffer_update(_bh_buf, 0, bh_init.size() * 4, bh_init.to_byte_array())
 	_mm_buf = _rd.storage_buffer_create(N_particles * 64)
 	_make_render_textures()
 
 func _free_buffers() -> void:
-	if not _rd: return
 	for rid in [_field_ey, _field_ei, _field_q, _field_vel,
-				_pos_buf, _vel_buf, _acc_buf, _bh_buf, _mm_buf]:
+				_pos_buf, _vel_buf, _acc_buf, _bh_buf, _mm_buf, _mass_density_buf]:
 		if rid.is_valid(): _rd.free_rid(rid)
 
 func _free_shaders() -> void:
-	if not _rd: return
 	for rid in [_two_fluid_shader, _two_fluid_pipe,
 				_nbody_shader, _nbody_pipe,
 				_field_render_shader, _field_render_pipe,
 				_bh_lensing_shader, _bh_lensing_pipe,
-				_instancer_shader, _instancer_pipe]:
-		if rid.is_valid(): _rd.free_rid(rid)
-
-# ═══════════════════════════════════════════════════════════════════════
-# Shader loading
-# ═══════════════════════════════════════════════════════════════════════
+				_instancer_shader, _instancer_pipe,
+				_mass_deposit_shader, _mass_deposit_pipe]:
 
 func _setup_shaders() -> void:
 	# Two-fluid PDE solver
@@ -213,13 +211,18 @@ func _setup_shaders() -> void:
 	if _instancer_shader.is_valid():
 		_instancer_pipe = _rd.compute_pipeline_create(_instancer_shader)
 		print("[CassiSim] Instancer pipeline ready")
+
+	# Mass deposit (PIC) — scatters particle masses into field grid
+	_mass_deposit_shader = _shader_from_file("res://compute/cassi_mass_deposit.glsl")
+	if _mass_deposit_shader.is_valid():
+		_mass_deposit_pipe = _rd.compute_pipeline_create(_mass_deposit_shader)
+		print("[CassiSim] Mass deposit pipeline ready")
 	_cache_uniform_sets()
 
-func _cache_uniform_sets() -> void:
 	_us_two_0 = _rd.uniform_set_create([
-
 		_uniform_storage(0, _field_ey), _uniform_storage(1, _field_ei),
 		_uniform_storage(2, _field_q), _uniform_storage(3, _field_vel),
+		_uniform_storage(4, _mass_density_buf),
 	], _two_fluid_shader, 0)
 	_us_two_1 = _rd.uniform_set_create([
 		_uniform_storage(0, _pos_buf), _uniform_storage(1, _vel_buf),
@@ -247,6 +250,13 @@ func _cache_uniform_sets() -> void:
 		_uniform_storage(1, _mm_buf),
 	], _instancer_shader, 0)
 	print("[CassiSim] Instancer uniform set cached")
+
+	# Mass deposit
+	_us_mass_dep_0 = _rd.uniform_set_create([
+		_uniform_storage(0, _pos_buf),
+		_uniform_storage(1, _mass_density_buf),
+	], _mass_deposit_shader, 0)
+	print("[CassiSim] Mass deposit uniform set cached")
 
 # ═══════════════════════════════════════════════════════════════════════
 # Initial conditions
@@ -300,6 +310,11 @@ func _init_particles() -> void:
 	var eps2 = softening * softening
 
 	for i in range(N_particles):
+		# Salpeter IMF: dN/dM ∝ M^(-2.35), range [0.3, 30.0] M☉
+		var alpha = 2.35; var exp = 1.0 - alpha  # -1.35
+		var A = pow(0.3, exp); var B = pow(30.0, exp)
+		var m = pow(A - rng.randf() * (A - B), 1.0 / exp)
+		pos[i4 + 3] = m
 		var u = rng.randf_range(0.001, 0.999)
 		var r = cluster_radius / sqrt(pow(u, -2.0 / 3.0) - 1.0)
 		var th = acos(2.0 * rng.randf() - 1.0)
@@ -308,7 +323,6 @@ func _init_particles() -> void:
 		pos[i4]     = r * sin(th) * cos(ph)
 		pos[i4 + 1] = r * sin(th) * sin(ph)
 		pos[i4 + 2] = r * cos(th)
-		pos[i4 + 3] = 1.0  # mass
 		# Plummer enclosed mass at this radius
 		var a2 = cluster_radius * cluster_radius
 		var r2p = r * r + eps2
@@ -441,6 +455,7 @@ func _physics_step() -> void:
 	])
 	_rd.buffer_update(_bh_buf, 0, bh_init.size() * 4, bh_init.to_byte_array())
 
+	# Push constants (shared by two-fluid, nbody, instancer)
 	var pc = PackedFloat32Array([
 		float(grid_N),          # N_f
 		dt,                     # dt
@@ -456,11 +471,29 @@ func _physics_step() -> void:
 	var pc_bytes = pc.to_byte_array()
 	var pc_size = pc.size() * 4
 
+	# Push constants (mass deposit — different layout)
+	var md_pc = PackedFloat32Array([
+		float(grid_N), float(N_particles), cluster_radius * 1.5, 0.0
+	])
+	var md_pc_bytes = md_pc.to_byte_array()
+
 	var wg = ceili(float(grid_N) / 4.0)
 	var pg = ceili(float(N_particles) / 256.0) if N_particles > 0 else 1
 
 	var cl = _rd.compute_list_begin()
 
+	# ── 1. Mass deposit: scatter particle masses → field grid (PIC) ──
+	if _mass_deposit_shader.is_valid() and N_particles > 0:
+		# Zero out mass density from previous step
+		var zero_count = grid_N * grid_N * grid_N
+		var zdata = PackedByteArray(); zdata.resize(zero_count * 4)
+		_rd.buffer_update(_mass_density_buf, 0, zdata.size(), zdata)
+		_rd.compute_list_bind_compute_pipeline(cl, _mass_deposit_pipe)
+		_rd.compute_list_bind_uniform_set(cl, _us_mass_dep_0, 0)
+		_rd.compute_list_set_push_constant(cl, md_pc_bytes, md_pc.size() * 4)
+		_rd.compute_list_dispatch(cl, pg, 1, 1)
+
+	# ── 2. Two-fluid PDE ─────────────────────────────────────────────
 	if _two_fluid_shader.is_valid():
 		_rd.compute_list_bind_compute_pipeline(cl, _two_fluid_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_two_0, 0)
@@ -469,6 +502,7 @@ func _physics_step() -> void:
 		_rd.compute_list_set_push_constant(cl, pc_bytes, pc_size)
 		_rd.compute_list_dispatch(cl, wg, wg, wg)
 
+	# ── 3. N-body gravity ────────────────────────────────────────────
 	if _nbody_shader.is_valid() and N_particles > 0:
 		_rd.compute_list_bind_compute_pipeline(cl, _nbody_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_nbody_0, 0)
@@ -477,7 +511,7 @@ func _physics_step() -> void:
 		_rd.compute_list_set_push_constant(cl, pc_bytes, pc_size)
 		_rd.compute_list_dispatch(cl, pg, 1, 1)
 
-	# Instancer: copy positions to MultiMesh instance buffer (GPU-only)
+	# ── 4. Instancer: GPU-only MultiMesh update ──────────────────────
 	if _instancer_shader.is_valid() and N_particles > 0:
 		_rd.compute_list_bind_compute_pipeline(cl, _instancer_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_inst_0, 0)
@@ -486,7 +520,7 @@ func _physics_step() -> void:
 
 	_rd.compute_list_end()
 	_rd.submit()
-	# NO SYNC — let GPU pipeline up
+	# NO SYNC — let GPU pipeline queue up
 
 
 func _make_render_textures() -> void:

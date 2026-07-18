@@ -16,6 +16,7 @@ layout(local_size_x = 4, local_size_y = 4, local_size_z = 4) in;
 layout(set = 0, binding = 0, std430) restrict buffer FieldEY { float ey[]; };
 layout(set = 0, binding = 1, std430) restrict buffer FieldEI { float ei[]; };
 layout(set = 0, binding = 2, std430) buffer FieldQ { float q[]; };
+layout(set = 0, binding = 4, std430) coherent readonly buffer MassDensity { uint rho[]; };
 layout(set = 0, binding = 3, std430) buffer FieldVel { vec4 vel[]; };
 
 // ── Push constants ────────────────────────────────────────────────────
@@ -61,8 +62,9 @@ float source_ey(int i, int j, int k) {
     float dy = (float(j) - half) / half;
     float dz = (float(k) - half) / half;
     float r2 = dx*dx + dy*dy + dz*dz;
-    float s = pc.source_strength;
-    return s * exp(-r2 * 4.0);
+	float s = pc.source_strength;
+	float mr = uintBitsToFloat(rho[idx3(i, j, k)]);
+	return s * exp(-r2 * 4.0) + mr * 0.001;
 }
 
 float source_ei(int i, int j, int k) {
@@ -73,8 +75,9 @@ float source_ei(int i, int j, int k) {
     float dy = (float(j) - half * 0.8) / half;
     float dz = (float(k) - half * 0.6) / half;
     float r2 = dx*dx + dy*dy + dz*dz;
-    float s = pc.source_strength * 0.707; // 1/sqrt(2) for EI
-    return s * exp(-r2 * 4.0);
+	float s = pc.source_strength * 0.707; // 1/sqrt(2) for EI
+	float mr = uintBitsToFloat(rho[idx3(i, j, k)]) * 0.707;
+	return s * exp(-r2 * 4.0) + mr * 0.001;
 }
 
 // ── Main kernel ───────────────────────────────────────────────────────
