@@ -33,7 +33,8 @@ void main() {
     vec4 p = pos[i];
     int base = i * 4;
 
-    // Identity basis packed: col0=(1,0,0), col1=(0,1,0), col2=(0,0,1)
+    // Identity basis: col0=(1,0,0), col1=(0,1,0), col2=(0,0,1)
+    // Packed into 4 vec4:
     inst[base]     = vec4(1.0, 0.0, 0.0, 0.0);  // col0.xyz | col1.x
     inst[base + 1] = vec4(1.0, 0.0, 0.0, 0.0);  // col1.yz | col2.xy
     inst[base + 2] = vec4(1.0, p.x, p.y, p.z);  // col2.z | origin.xyz

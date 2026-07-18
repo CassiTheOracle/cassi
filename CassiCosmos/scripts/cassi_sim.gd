@@ -530,7 +530,15 @@ func _render_frame() -> void:
 	if _mm_buf.is_valid() and N_particles > 0:
 		var inst_data = _rd.buffer_get_data(_mm_buf, 0, N_particles * 64)
 		if inst_data.size() > 0:
-			_mm.buffer = inst_data.to_float32_array()
+			var farr = inst_data.to_float32_array()
+			_mm.buffer = farr
+			# Diagnostic: log first 3 instances to verify format
+			if _step_count == 1 and farr.size() >= 48:
+				for inst_idx in range(min(3, N_particles)):
+					var b = inst_idx * 16
+					print("[CassiSim] inst[%d] origin=(%.2f,%.2f,%.2f) color=(%.2f,%.2f,%.2f,%.2f)" % [
+						inst_idx, farr[b+9], farr[b+10], farr[b+11],
+						farr[b+12], farr[b+13], farr[b+14], farr[b+15]])
 
 	# Throttled diagnostics readback (every 60 steps)
 	var q_guard = (_step_count % 60 == 0)
