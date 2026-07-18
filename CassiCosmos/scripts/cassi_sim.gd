@@ -478,7 +478,7 @@ func _setup_multimesh() -> void:
 	_mm.use_colors = true
 	_mm.mesh = qm
 	_mm.instance_count = max(N_particles, 1)
-	_mm.buffer = _mm_buf   # GPU buffer — no CPU readback needed
+	# _mm.buffer set via PackedFloat32Array readback in _render_frame
 
 	_mmi = MultiMeshInstance3D.new()
 	_mmi.multimesh = _mm
@@ -494,8 +494,15 @@ func _render_frame() -> void:
 	# Sync GPU before reading buffers for rendering
 	_rd.sync()
 
-	# Throttled diagnostics readback
-	if _step_count % 60 == 0:
+	# Read instance buffer from GPU to PackedFloat32Array for MultiMesh
+	if _mm_buf.is_valid() and N_particles > 0:
+		var inst_data = _rd.buffer_get_data(_mm_buf, 0, N_particles * 80)
+		if inst_data.size() > 0:
+			_mm.buffer = inst_data.to_float32_array()
+
+	# Throttled diagnostics readback (every 60 steps)
+	var q_guard = (_step_count % 60 == 0)
+	if q_guard and _field_q.is_valid():
 		var q_data = _rd.buffer_get_data(_field_q, 0, grid_N * grid_N * grid_N * 4)
 		if q_data.size() > 0:
 			var qf = q_data.to_float32_array()
