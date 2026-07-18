@@ -310,13 +310,47 @@ func _init_particles() -> void:
 		pos[i4 + 1] = r * sin(th) * sin(ph)
 		pos[i4 + 2] = r * cos(th)
 		pos[i4 + 3] = 1.0  # mass
-
-		var vs = sqrt(2.0 * G * N_particles / sqrt(r * r + eps2)) * 0.65
-		vel[i4]     = rng.randf_range(-1.0, 1.0) * vs
-		vel[i4 + 1] = rng.randf_range(-1.0, 1.0) * vs
-		vel[i4 + 2] = rng.randf_range(-1.0, 1.0) * vs
+		# Plummer enclosed mass at this radius
+		var a2 = cluster_radius * cluster_radius
+		var r2p = r * r + eps2
+		var M_enc = float(N_particles) * (r2p * r) / ((r2p + a2) * sqrt(r2p + a2))
+		# Circular orbital velocity
+		var v_circ = sqrt(G * M_enc / max(r, 0.01)) * 0.85
+		# Tangential direction (perpendicular to radial vector)
+		var nx = -pos[i4 + 1]; var ny = pos[i4]; var nz = 0.0
+		var nl = sqrt(nx*nx + ny*ny + nz*nz)
+		if nl > 0.001:
+			nx /= nl; ny /= nl; nz /= nl
+		else:
+			nx = 1.0; ny = 0.0; nz = 0.0
+		# Add small random perturbation
+		var pert = 0.05
+		vel[i4]     = (nx + rng.randf_range(-pert, pert)) * v_circ
+		vel[i4 + 1] = (ny + rng.randf_range(-pert, pert)) * v_circ
+		vel[i4 + 2] = (nz + rng.randf_range(-pert, pert)) * v_circ
 		vel[i4 + 3] = 0.0
 
+
+	# Initialize MultiMesh instance buffer with initial positions
+	var init_inst = PackedFloat32Array()
+	init_inst.resize(N_particles * 20)  # 20 floats per instance
+	for i in range(N_particles):
+		var i4 = i * 4
+		var b = i * 20
+		var x = pos[i4]; var y = pos[i4+1]; var z = pos[i4+2]
+		var rt = sqrt(x*x + y*y + z*z + eps2)
+		var t_c = 1.0 / (1.0 + 0.1 * rt)
+		init_inst[b]   = 1.0; init_inst[b+1] = 0.0; init_inst[b+2] = 0.0; init_inst[b+3] = 0.0
+		init_inst[b+4] = 0.0; init_inst[b+5] = 1.0; init_inst[b+6] = 0.0; init_inst[b+7] = 0.0
+		init_inst[b+8] = 0.0; init_inst[b+9] = 0.0; init_inst[b+10]= 1.0; init_inst[b+11]= 0.0
+		init_inst[b+12]= x; init_inst[b+13]= y; init_inst[b+14]= z; init_inst[b+15]= 1.0
+		var cr = lerp(1.0, 0.15, 1.0-t_c)
+		var cg = lerp(0.8, 0.25, 1.0-t_c)
+		var cb = lerp(0.3, 1.0, 1.0-t_c)
+		init_inst[b+16]= cr; init_inst[b+17]= cg; init_inst[b+18]= cb; init_inst[b+19]= 0.85
+	_rd.buffer_update(_mm_buf, 0, init_inst.size() * 4, init_inst.to_byte_array())
+	# Also set it on the MultiMesh for frame 0
+	_mm.buffer = init_inst
 	_rd.buffer_update(_pos_buf, 0, pos.size() * 4, pos.to_byte_array())
 	_rd.buffer_update(_vel_buf, 0, vel.size() * 4, vel.to_byte_array())
 	_rd.buffer_update(_acc_buf, 0, acc.size() * 4, acc.to_byte_array())
@@ -478,7 +512,7 @@ func _setup_multimesh() -> void:
 	_mm.use_colors = true
 	_mm.mesh = qm
 	_mm.instance_count = max(N_particles, 1)
-	# _mm.buffer set via PackedFloat32Array readback in _render_frame
+	_mm.custom_aabb = AABB(Vector3(-5000, -5000, -5000), Vector3(10000, 10000, 10000))
 
 	_mmi = MultiMeshInstance3D.new()
 	_mmi.multimesh = _mm
