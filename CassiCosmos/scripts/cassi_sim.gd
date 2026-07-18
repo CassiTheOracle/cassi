@@ -617,14 +617,12 @@ func _render_bh_lensing() -> void:
 		source_strength, 0.0,
 	])
 
-	# Write BH params: center screen, mass=2, spin=0, G_eff=1.0
+	# Write BH params: center screen, M=0.2, spin=0, G_eff=1.0
+	# (M=2.0 produced b_crit=1011px with Cassi correction — larger than 512px screen)
 	var bh = PackedFloat32Array([_rt_size.x*0.5, _rt_size.y*0.5, 0.0, 0.0,
-		2.0, 0.0, 1.0, 0.0,
+		0.2, 0.0, 1.0, 0.0,
 		0.0, 0.0, 0.0, 0.0,
 		0.0, 0.0, 0.0, 0.0])
-	_rd.buffer_update(_bh_buf, 0, bh.size() * 4, bh.to_byte_array())
-
-	var wg = Vector3i(ceili(_rt_size.x / 8.0), ceili(_rt_size.y / 8.0), 1)
 
 	_dispatch_compute(_bh_lensing_shader, _bh_lensing_pipe,
 		[
