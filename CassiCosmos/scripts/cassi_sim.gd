@@ -338,11 +338,11 @@ func _init_particles() -> void:
 		var x = pos[i4]; var y = pos[i4+1]; var z = pos[i4+2]
 		var rt = sqrt(x*x + y*y + z*z + eps2)
 		var t_c = 1.0 / (1.0 + 0.1 * rt)
-		# Transform: identity basis + origin
-		init_inst[b+0] = 1.0; init_inst[b+1] = 0.0; init_inst[b+2] = 0.0  # basis col0
-		init_inst[b+3] = 0.0; init_inst[b+4] = 1.0; init_inst[b+5] = 0.0  # basis col1
-		init_inst[b+6] = 0.0; init_inst[b+7] = 0.0; init_inst[b+8] = 1.0  # basis col2
-		init_inst[b+9] = x;  init_inst[b+10] = y;  init_inst[b+11] = z     # origin
+		# Transform: 3x4 row-major (each row = [basis, origin_component])
+		# Row 0 = X-axis + origin.x, Row 1 = Y-axis + origin.y, Row 2 = Z-axis + origin.z
+		init_inst[b+0] = 1.0; init_inst[b+1] = 0.0; init_inst[b+2] = 0.0; init_inst[b+3] = x
+		init_inst[b+4] = 0.0; init_inst[b+5] = 1.0; init_inst[b+6] = 0.0; init_inst[b+7] = y
+		init_inst[b+8] = 0.0; init_inst[b+9] = 0.0; init_inst[b+10] = 1.0; init_inst[b+11] = z
 		# Color: Cassi gradient
 		var cr = lerp(1.0, 0.15, 1.0-t_c)
 		var cg = lerp(0.8, 0.25, 1.0-t_c)
@@ -537,7 +537,7 @@ func _render_frame() -> void:
 				for inst_idx in range(min(3, N_particles)):
 					var b = inst_idx * 16
 					print("[CassiSim] inst[%d] origin=(%.2f,%.2f,%.2f) color=(%.2f,%.2f,%.2f,%.2f)" % [
-						inst_idx, farr[b+9], farr[b+10], farr[b+11],
+						inst_idx, farr[b+3], farr[b+7], farr[b+11],
 						farr[b+12], farr[b+13], farr[b+14], farr[b+15]])
 
 	# Throttled diagnostics readback (every 60 steps)
