@@ -56,6 +56,8 @@ var _mm_buf: RID = RID()
 var _us_inst_0: RID = RID()
 
 # — MultiMesh rendering —
+const RB_SKIP: int = 2                     # readback every 3rd frame
+var _rb_counter: int = 0
 var _mmi: MultiMeshInstance3D; var _mm: MultiMesh
 
 # — timing —
@@ -338,7 +340,7 @@ func _init_particles() -> void:
 			cz = sep * cos(phi)
 		centers.append(Vector3(cx, cy, cz))
 		var bv = Vector3(-cx, -cy, -cz).normalized() * ms + \
-		          Vector3(-cz, 0.0, cx).normalized() * ms * 0.3
+				  Vector3(-cz, 0.0, cx).normalized() * ms * 0.3
 		bulk_vels.append(bv)
 
 	# Upload cluster centers to GPU buffer
@@ -612,9 +614,10 @@ func _setup_multimesh() -> void:
 func _render_frame() -> void:
 	# Sync GPU before reading buffers for rendering
 	_rd.sync()
+	_rb_counter += 1
 
 	# Read instance buffer from GPU to PackedFloat32Array for MultiMesh
-	if _mm_buf.is_valid() and N_particles > 0:
+	if _mm_buf.is_valid() and N_particles > 0 and _rb_counter % (RB_SKIP + 1) == 0:
 		var inst_data = _rd.buffer_get_data(_mm_buf, 0, N_particles * 64)
 		if inst_data.size() > 0:
 			var farr = inst_data.to_float32_array()
