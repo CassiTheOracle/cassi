@@ -623,6 +623,7 @@ func _render_bh_lensing() -> void:
 		0.2, 0.0, 1.0, 0.0,
 		0.0, 0.0, 0.0, 0.0,
 		0.0, 0.0, 0.0, 0.0])
+	var wg = Vector3i(ceili(_rt_size.x / 8.0), ceili(_rt_size.y / 8.0), 1)
 
 	_dispatch_compute(_bh_lensing_shader, _bh_lensing_pipe,
 		[
