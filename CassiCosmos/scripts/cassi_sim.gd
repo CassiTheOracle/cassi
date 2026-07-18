@@ -350,6 +350,11 @@ func _init_particles() -> void:
 	# Initialize MultiMesh instance buffer with initial positions
 	var init_inst = PackedFloat32Array()
 	init_inst.resize(N_particles * 16)  # 16 floats per instance
+	# Debug: show mass distribution of first few particles
+	var mass_sample = ""
+	for mi in range(min(8, N_particles)):
+		mass_sample += "%.1f " % pos[mi * 4 + 3]
+	print("[CassiSim] Salpeter masses (first 8): %s" % mass_sample)
 	for i in range(N_particles):
 		var i4 = i * 4
 		var b = i * 16

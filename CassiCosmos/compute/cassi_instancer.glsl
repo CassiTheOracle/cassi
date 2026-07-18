@@ -28,18 +28,18 @@ void main() {
     vec4 p = pos[i];
     int base = i * 4;
 
-    // Row-major 3x4: each vec4 = (basis_row, origin_component)
-    // Row 0: basis X-axis (1,0,0) + origin.x
-    inst[base]     = vec4(1.0, 0.0, 0.0, p.x);
-    // Row 1: basis Y-axis (0,1,0) + origin.y
-    inst[base + 1] = vec4(0.0, 1.0, 0.0, p.y);
-    // Row 2: basis Z-axis (0,0,1) + origin.z
-    inst[base + 2] = vec4(0.0, 0.0, 1.0, p.z);
-    // Row 3: color
-    float r = length(p.xyz);
-    float t_c = 1.0 / (1.0 + 0.1 * r);
-    float cr = mix(0.15, 1.0, t_c);
-    float cg = mix(0.25, 0.8, t_c);
-    float cb = mix(1.0, 0.3, t_c);
-    inst[base + 3] = vec4(cr, cg, cb, 0.85);
+    // Mass-based visual scale: m=0.3→0.6x, m=1.0→0.8x, m=30→4x
+    float m = p.w;
+    float s = clamp(0.5 + m * 0.12, 0.4, 5.0);
+
+    // Row-major 3x4: scale basis by mass-derived size
+    inst[base]     = vec4(s, 0.0, 0.0, p.x);
+    inst[base + 1] = vec4(0.0, s, 0.0, p.y);
+    inst[base + 2] = vec4(0.0, 0.0, s, p.z);
+
+    // Mass-based color temperature (Salpeter IMF: many blue dwarfs, few red giants)
+    float log_m = clamp((log2(m) + 2.0) * 0.25, 0.0, 1.0);  // 0→0.3M☉, 1→30M☉
+    float cr = mix(0.15, 1.0,  log_m * log_m);                 // blue dwarf→red giant
+    float cg = mix(0.25, 0.6,  log_m);
+    float cb = mix(1.0,  0.15, log_m);
 }
