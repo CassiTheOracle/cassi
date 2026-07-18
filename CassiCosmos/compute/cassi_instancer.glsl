@@ -41,4 +41,5 @@ void main() {
     float cr = mix(0.15, 1.0,  log_m * log_m);                 // blue dwarf→red giant
     float cg = mix(0.25, 0.6,  log_m);
     float cb = mix(1.0,  0.15, log_m);
+    inst[base + 3] = vec4(cr, cg, cb, 1.0);
 }

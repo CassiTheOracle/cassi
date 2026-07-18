@@ -56,7 +56,7 @@ var _mm_buf: RID = RID()
 var _us_inst_0: RID = RID()
 
 # — MultiMesh rendering —
-const RB_SKIP: int = 20                    # readback every 21st frame (~3/sec at 60fps)
+const RB_SKIP: int = 3                     # readback every 4th frame (15/sec at 60fps)
 var _mm_data_f32: PackedFloat32Array       # pre-allocated for MultiMesh (avoid GC)
 var _zero_mass_buf: PackedByteArray        # pre-allocated mass density zero buffer
 var _rb_counter: int = 0
