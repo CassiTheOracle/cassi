@@ -8,7 +8,7 @@ layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 layout(set = 0, binding = 0, std430) readonly buffer FieldEY { float ey[]; };
 layout(set = 0, binding = 1, std430) readonly buffer FieldEI { float ei[]; };
 layout(set = 0, binding = 2, std430) readonly buffer FieldQ  { float qv[]; };
-layout(set = 0, binding = 3, std430) readonly buffer FieldVel { vec4 vel[]; };
+layout(set = 0, binding = 3, std430) readonly buffer FieldVel { vec4 fvel[]; };
 
 layout(set = 1, binding = 0, std430) buffer Positions { vec4 pos[]; };
 layout(set = 1, binding = 1, std430) restrict buffer Velocities { vec4 vel[]; };

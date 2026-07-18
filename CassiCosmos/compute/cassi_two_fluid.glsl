@@ -16,8 +16,8 @@ layout(local_size_x = 4, local_size_y = 4, local_size_z = 4) in;
 layout(set = 0, binding = 0, std430) restrict buffer FieldEY { float ey[]; };
 layout(set = 0, binding = 1, std430) restrict buffer FieldEI { float ei[]; };
 layout(set = 0, binding = 2, std430) buffer FieldQ { float q[]; };
-layout(set = 0, binding = 4, std430) coherent readonly buffer MassDensity { uint rho[]; };
 layout(set = 0, binding = 3, std430) buffer FieldVel { vec4 vel[]; };
+layout(set = 0, binding = 4, std430) coherent readonly buffer MassDensity { uint rho[]; };
 layout(push_constant, std430) uniform PC {
     float N_f; float dt; float t; float phi;
     float xi; float eps2; float particle_N;

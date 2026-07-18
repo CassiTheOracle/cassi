@@ -18,7 +18,7 @@ layout(push_constant, std430) uniform PC {
     float N_f; float dt; float t; float phi;
     float xi; float eps2; float particle_N;
     float mode; float source_strength; float num_clusters;
-
+} pc;
 void main() {
     int i = int(gl_GlobalInvocationID.x);
     int N = int(pc.particle_N);
