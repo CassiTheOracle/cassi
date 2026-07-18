@@ -220,6 +220,8 @@ func _setup_shaders() -> void:
 		print("[CassiSim] Mass deposit pipeline ready")
 	_cache_uniform_sets()
 
+
+func _cache_uniform_sets() -> void:
 	_us_two_0 = _rd.uniform_set_create([
 		_uniform_storage(0, _field_ey), _uniform_storage(1, _field_ei),
 		_uniform_storage(2, _field_q), _uniform_storage(3, _field_vel),
@@ -311,6 +313,7 @@ func _init_particles() -> void:
 	var eps2 = softening * softening
 
 	for i in range(N_particles):
+		var i4 = i * 4
 		# Salpeter IMF: dN/dM ∝ M^(-2.35), range [0.3, 30.0] M☉
 		var alpha = 2.35; var exp = 1.0 - alpha  # -1.35
 		var A = pow(0.3, exp); var B = pow(30.0, exp)
@@ -320,9 +323,8 @@ func _init_particles() -> void:
 		var r = cluster_radius / sqrt(pow(u, -2.0 / 3.0) - 1.0)
 		var th = acos(2.0 * rng.randf() - 1.0)
 		var ph = rng.randf() * PI * 2.0
-		var i4 = i * 4
-		pos[i4]     = r * sin(th) * cos(ph)
 		pos[i4 + 1] = r * sin(th) * sin(ph)
+		pos[i4]     = r * sin(th) * cos(ph)
 		pos[i4 + 2] = r * cos(th)
 		# Plummer enclosed mass at this radius
 		var a2 = cluster_radius * cluster_radius
