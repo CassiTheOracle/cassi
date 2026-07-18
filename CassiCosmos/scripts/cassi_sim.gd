@@ -56,7 +56,8 @@ var _mm_buf: RID = RID()
 var _us_inst_0: RID = RID()
 
 # — MultiMesh rendering —
-const RB_SKIP: int = 2                     # readback every 3rd frame
+const RB_SKIP: int = 5                     # readback every 6th frame
+var _zero_mass_buf: PackedByteArray        # pre-allocated mass density zero buffer
 var _rb_counter: int = 0
 var _mmi: MultiMeshInstance3D; var _mm: MultiMesh
 
@@ -174,6 +175,8 @@ func _setup_buffers() -> void:
 	# Mass density grid (one uint per cell, stores float as bits)
 	_mass_density_buf = _rd.storage_buffer_create(nc * 4)
 	_mm_buf = _rd.storage_buffer_create(N_particles * 64)
+	# Pre-allocate zero buffer for mass density clear (reused every step)
+	_zero_mass_buf = PackedByteArray(); _zero_mass_buf.resize(grid_N * grid_N * grid_N * 4)
 	_make_render_textures()
 
 func _free_buffers() -> void:
@@ -253,7 +256,6 @@ func _cache_uniform_sets() -> void:
 	], _nbody_shader, 1)
 	_us_nbody_2 = _rd.uniform_set_create([
 		_uniform_storage(0, _bh_buf),
-		_uniform_storage(1, _cluster_buf),
 	], _nbody_shader, 2)
 
 	# Instancer
@@ -539,9 +541,9 @@ func _physics_step() -> void:
 	# ── 1. Mass deposit: scatter particle masses → field grid (PIC) ──
 	if _mass_deposit_shader.is_valid() and N_particles > 0:
 		# Zero out mass density from previous step
-		var zero_count = grid_N * grid_N * grid_N
-		var zdata = PackedByteArray(); zdata.resize(zero_count * 4)
-		_rd.buffer_update(_mass_density_buf, 0, zdata.size(), zdata)
+		var zc = grid_N * grid_N * grid_N
+		if _zero_mass_buf.size() != zc * 4: _zero_mass_buf.resize(zc * 4)
+		_rd.buffer_update(_mass_density_buf, 0, _zero_mass_buf.size(), _zero_mass_buf)
 		_rd.compute_list_bind_compute_pipeline(cl, _mass_deposit_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_mass_dep_0, 0)
 		_rd.compute_list_set_push_constant(cl, md_pc_bytes, md_pc.size() * 4)

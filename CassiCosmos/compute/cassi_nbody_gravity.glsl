@@ -1,7 +1,8 @@
 #[compute]
 #version 450
-// Cassi N-body Gravity — KDK leapfrog with Cassi G_eff and multi-center Plummer
-// Uses enclosed-mass Plummer model connected to two-fluid Qi field
+// Cassi N-body Gravity — pure field-driven (no Plummer model)
+// Gravity emerges from the gradient of the Qi field: F = -G_N · ∇q
+// G_eff still modulates via pi/rho density screening.
 
 layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
@@ -15,9 +16,6 @@ layout(set = 1, binding = 1, std430) restrict buffer Velocities { vec4 vel[]; };
 layout(set = 1, binding = 2, std430) restrict buffer Accelerations { vec4 acc[]; };
 
 layout(set = 2, binding = 0, std430) buffer BHData { vec4 bh[4]; };
-layout(set = 2, binding = 1, std430) restrict readonly buffer ClusterCenters {
-    vec4 clusters[];  // .xyz = position, .w = M_total
-};
 
 layout(push_constant, std430) uniform PC {
     float N_f;
@@ -38,8 +36,8 @@ int idx3(int i, int j, int k) {
     return i + N * (j + N * k);
 }
 
-// ── Trilinear sample of Qi field ───────────────────────────────────────
-float sample_q(vec3 wp) {
+// ── Qi field sample + gradient (same 8 corners, no extra reads) ───────
+void sample_q_field(vec3 wp, out float q_val, out vec3 q_grad) {
     int N = int(pc.N_f);
     float hn = float(N) * 0.5;
     float extent = bh[2].y;
@@ -66,32 +64,23 @@ float sample_q(vec3 wp) {
     float q011 = qv[idx3(i0, j1, k1)];
     float q111 = qv[idx3(i1, j1, k1)];
 
+    // Qi value (standard trilinear)
     float q0 = mix(mix(q000, q100, fx), mix(q010, q110, fx), fy);
     float q1 = mix(mix(q001, q101, fx), mix(q011, q111, fx), fy);
-    return mix(q0, q1, fz);
+    q_val = mix(q0, q1, fz);
+
+    // Qi gradient (finite difference from same 8 corners)
+    float dx = extent / hn;  // grid spacing
+    float qx_l = mix(mix(q000, q001, fz), mix(q010, q011, fz), fy);
+    float qx_r = mix(mix(q100, q101, fz), mix(q110, q111, fz), fy);
+    float qy_l = mix(mix(q000, q001, fz), mix(q100, q101, fz), fx);
+    float qy_r = mix(mix(q010, q011, fz), mix(q110, q111, fz), fx);
+    float qz_l = mix(mix(q000, q100, fx), mix(q010, q110, fx), fy);
+    float qz_r = mix(mix(q001, q101, fx), mix(q011, q111, fx), fy);
+    q_grad = vec3((qx_r - qx_l), (qy_r - qy_l), (qz_r - qz_l)) / dx;
 }
 
-// ── Multi-center Plummer gravity ──────────────────────────────────────
-vec3 compute_grav(vec3 p, float G_eff, float eps2) {
-    vec3 grav = vec3(0.0);
-    int nc = int(pc.num_clusters);
-    float a = bh[2].x;
-    float a2 = a * a;
-    for (int c = 0; c < nc; c++) {
-        vec3 dc = p - clusters[c].xyz;
-        float dist2 = dot(dc, dc) + eps2;
-        float dist = sqrt(dist2);
-        float Mc = clusters[c].w;
-        float r2a = dist2 + a2;
-        float denom = r2a * sqrt(r2a);
-        float M_enc = Mc * (dist2 * dist) / max(denom, 1e-5);
-        float f_mag = G_eff * M_enc / max(dist2, 1e-5);
-        grav -= f_mag * dc / max(dist, 1e-5);
-    }
-    return grav;
-}
-
-// ── KDK leapfrog main kernel ──────────────────────────────────────────
+// ── KDK leapfrog with pure Cassi field gravity ────────────────────────
 void main() {
     int i = int(gl_GlobalInvocationID.x);
     int N = int(pc.particle_N);
@@ -103,24 +92,23 @@ void main() {
     float xi_val = pc.xi;
     float dt_val = pc.dt;
     float hdt = dt_val * 0.5;
-    float eps2 = pc.eps2;
 
     // ── Half-step kick ─────────────────────────────────────────────────
-    float q_s = sample_q(pxyz);
+    float q_s; vec3 grad_q;
+    sample_q_field(pxyz, q_s, grad_q);
     float pi_over_rho = ((pc.phi - 1.0) / (pc.phi + 1.0)) + q_s * 0.7;
     pi_over_rho = clamp(pi_over_rho, 0.0, 0.72);
-    float G_eff = G_N * pi_over_rho * (1.0 + xi_val * q_s);
-    vec3 grav_acc = compute_grav(pxyz, G_eff, eps2);
+    vec3 grav_acc = -G_N * pi_over_rho * (1.0 + xi_val * q_s) * grad_q;
 
     vec3 v_half = vxyz + grav_acc * hdt;
     vec3 p_new = pxyz + v_half * dt_val;
 
     // ── Full-step kick ─────────────────────────────────────────────────
-    float q_s2 = sample_q(p_new);
+    float q_s2; vec3 grad_q2;
+    sample_q_field(p_new, q_s2, grad_q2);
     float pi_over_rho2 = ((pc.phi - 1.0) / (pc.phi + 1.0)) + q_s2 * 0.7;
     pi_over_rho2 = clamp(pi_over_rho2, 0.0, 0.72);
-    float G_eff2 = G_N * pi_over_rho2 * (1.0 + xi_val * q_s2);
-    vec3 grav_acc2 = compute_grav(p_new, G_eff2, eps2);
+    vec3 grav_acc2 = -G_N * pi_over_rho2 * (1.0 + xi_val * q_s2) * grad_q2;
 
     vec3 v_new = v_half + grav_acc2 * hdt;
 
