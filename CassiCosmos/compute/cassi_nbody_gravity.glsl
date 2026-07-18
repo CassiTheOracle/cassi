@@ -92,11 +92,12 @@ void main() {
     float hdt = dt_val * 0.5;
     float eps2 = pc.eps2;
 
-    float q_s = sample_q(pxyz);
-    float G_eff = G_N * (1.0 + xi_val * q_s);
-
-    float r2 = dot(pxyz, pxyz);
-    float r = sqrt(r2 + eps2);
+	float q_s = sample_q(pxyz);
+	float pi_over_rho = ((pc.phi - 1.0) / (pc.phi + 1.0)) + q_s * 0.7;
+	pi_over_rho = clamp(pi_over_rho, 0.0, 0.72);
+	float G_eff = G_N * pi_over_rho * (1.0 + xi_val * q_s);
+	float r2 = dot(pxyz, pxyz);
+	float r = sqrt(r2 + eps2);
     float M_enc = enclosed_mass(r, r2);
     float inv_r = 1.0 / max(r, 1e-5);
     float f_mag = G_eff * M_enc / max(r2 + eps2, 1e-5);
@@ -107,10 +108,12 @@ void main() {
 
     float r2n = dot(p_new, p_new);
     float rn = sqrt(r2n + eps2);
-    float q_s2 = sample_q(p_new);
-    float G_eff2 = G_N * (1.0 + xi_val * q_s2);
-    float M_enc2 = enclosed_mass(rn, r2n);
-    float inv_r2 = 1.0 / max(rn, 1e-5);
+	float q_s2 = sample_q(p_new);
+	float pi_over_rho2 = ((pc.phi - 1.0) / (pc.phi + 1.0)) + q_s2 * 0.7;
+	pi_over_rho2 = clamp(pi_over_rho2, 0.0, 0.72);
+	float G_eff2 = G_N * pi_over_rho2 * (1.0 + xi_val * q_s2);
+	float M_enc2 = enclosed_mass(rn, r2n);
+	float inv_r2 = 1.0 / max(rn, 1e-5);
     float f_mag2 = G_eff2 * M_enc2 / max(r2n + eps2, 1e-5);
     vec3 grav_acc2 = -f_mag2 * p_new * inv_r2;
 
