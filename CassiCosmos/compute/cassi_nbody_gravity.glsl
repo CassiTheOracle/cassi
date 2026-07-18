@@ -10,6 +10,7 @@ layout(set = 0, binding = 0, std430) readonly buffer FieldEY { float ey[]; };
 layout(set = 0, binding = 1, std430) readonly buffer FieldEI { float ei[]; };
 layout(set = 0, binding = 2, std430) readonly buffer FieldQ  { float qv[]; };
 layout(set = 0, binding = 3, std430) readonly buffer FieldVel { vec4 fvel[]; };
+layout(set = 0, binding = 4, std430) readonly buffer MassDensity { uint rho[]; };
 
 layout(set = 1, binding = 0, std430) buffer Positions { vec4 pos[]; };
 layout(set = 1, binding = 1, std430) restrict buffer Velocities { vec4 vel[]; };
@@ -54,15 +55,25 @@ void sample_q_field(vec3 wp, out float q_val, out vec3 q_grad) {
 
     i0 = ((i0 % N) + N) % N;  j0 = ((j0 % N) + N) % N;  k0 = ((k0 % N) + N) % N;
     int i1 = (i0 + 1) % N;    int j1 = (j0 + 1) % N;    int k1 = (k0 + 1) % N;
+    // Blend mass density into q — bypasses slow PDE source pathway
+    float M2Q = 0.1;  // tuning factor: mass density → q contribution
+    float r000 = uintBitsToFloat(rho[idx3(i0, j0, k0)]);
+    float r100 = uintBitsToFloat(rho[idx3(i1, j0, k0)]);
+    float r010 = uintBitsToFloat(rho[idx3(i0, j1, k0)]);
+    float r110 = uintBitsToFloat(rho[idx3(i1, j1, k0)]);
+    float r001 = uintBitsToFloat(rho[idx3(i0, j0, k1)]);
+    float r101 = uintBitsToFloat(rho[idx3(i1, j0, k1)]);
+    float r011 = uintBitsToFloat(rho[idx3(i0, j1, k1)]);
+    float r111 = uintBitsToFloat(rho[idx3(i1, j1, k1)]);
 
-    float q000 = qv[idx3(i0, j0, k0)];
-    float q100 = qv[idx3(i1, j0, k0)];
-    float q010 = qv[idx3(i0, j1, k0)];
-    float q110 = qv[idx3(i1, j1, k0)];
-    float q001 = qv[idx3(i0, j0, k1)];
-    float q101 = qv[idx3(i1, j0, k1)];
-    float q011 = qv[idx3(i0, j1, k1)];
-    float q111 = qv[idx3(i1, j1, k1)];
+    float q000 = qv[idx3(i0, j0, k0)] + r000 * M2Q;
+    float q100 = qv[idx3(i1, j0, k0)] + r100 * M2Q;
+    float q010 = qv[idx3(i0, j1, k0)] + r010 * M2Q;
+    float q110 = qv[idx3(i1, j1, k0)] + r110 * M2Q;
+    float q001 = qv[idx3(i0, j0, k1)] + r001 * M2Q;
+    float q101 = qv[idx3(i1, j0, k1)] + r101 * M2Q;
+    float q011 = qv[idx3(i0, j1, k1)] + r011 * M2Q;
+    float q111 = qv[idx3(i1, j1, k1)] + r111 * M2Q;
 
     // Qi value (standard trilinear)
     float q0 = mix(mix(q000, q100, fx), mix(q010, q110, fx), fy);
@@ -73,8 +84,8 @@ void sample_q_field(vec3 wp, out float q_val, out vec3 q_grad) {
     float dx = extent / hn;  // grid spacing
     float qx_l = mix(mix(q000, q001, fz), mix(q010, q011, fz), fy);
     float qx_r = mix(mix(q100, q101, fz), mix(q110, q111, fz), fy);
-	float qy_l = mix(mix(q000, q100, fx), mix(q001, q101, fx), fz);
-	float qy_r = mix(mix(q010, q110, fx), mix(q011, q111, fx), fz);
+    float qy_l = mix(mix(q000, q100, fx), mix(q001, q101, fx), fz);
+    float qy_r = mix(mix(q010, q110, fx), mix(q011, q111, fx), fz);
     float qz_l = mix(mix(q000, q100, fx), mix(q010, q110, fx), fy);
     float qz_r = mix(mix(q001, q101, fx), mix(q011, q111, fx), fy);
     q_grad = vec3((qx_r - qx_l), (qy_r - qy_l), (qz_r - qz_l)) / dx;

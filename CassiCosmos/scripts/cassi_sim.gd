@@ -249,6 +249,7 @@ func _cache_uniform_sets() -> void:
 	_us_nbody_0 = _rd.uniform_set_create([
 		_uniform_storage(0, _field_ey), _uniform_storage(1, _field_ei),
 		_uniform_storage(2, _field_q), _uniform_storage(3, _field_vel),
+		_uniform_storage(4, _mass_density_buf),
 	], _nbody_shader, 0)
 	_us_nbody_1 = _rd.uniform_set_create([
 		_uniform_storage(0, _pos_buf), _uniform_storage(1, _vel_buf),
@@ -296,10 +297,9 @@ func _init_field() -> void:
 				var dz = (float(k) - half) / half
 				var r2 = dx*dx + dy*dy + dz*dz
 
-				# Gaussian perturbation at center
-				var amp = 0.1
-				ey[id] = amp * exp(-r2 * 2.0) + rng.randf_range(-0.01, 0.01)
-				ei[id] = amp * 0.707 * exp(-r2 * 1.5) + rng.randf_range(-0.01, 0.01)
+				# Flat noise — no pre-existing structure (pure Cassi)
+				ey[id] = rng.randf_range(-0.01, 0.01)
+				ei[id] = rng.randf_range(-0.01, 0.01)
 				q[id] = ey[id]*ey[id] + ei[id]*ei[id]
 				vel[id * 4]     = 0.0
 				vel[id * 4 + 1] = 0.0
