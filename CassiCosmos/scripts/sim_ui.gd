@@ -116,7 +116,7 @@ func _ready() -> void:
 	control_panel.set_anchor(SIDE_BOTTOM, 1.0)
 	control_panel.set_anchor(SIDE_LEFT, 0.0)
 	control_panel.set_anchor(SIDE_RIGHT, 1.0)
-	control_panel.offset_top = -100
+	control_panel.offset_top = -180  # accommodate 3 rows of controls
 	control_panel.offset_left = 10; control_panel.offset_right = -10
 	add_child(control_panel)
 
@@ -260,6 +260,14 @@ func _ready() -> void:
 	_particle_spin.value_changed.connect(_on_particles_changed)
 	_nclusters_spin.value_changed.connect(_on_clusters_changed)
 	_sep_spin.value_changed.connect(_on_separation_changed)
+
+	# Prevent controls from stealing WASD camera input
+	_grid_spin.focus_mode = Control.FOCUS_NONE
+	_particle_spin.focus_mode = Control.FOCUS_NONE
+	_nclusters_spin.focus_mode = Control.FOCUS_NONE
+	_sep_spin.focus_mode = Control.FOCUS_NONE
+	_xi_slider.focus_mode = Control.FOCUS_NONE
+	_src_slider.focus_mode = Control.FOCUS_NONE
 
 # ═══════════════════════════════════════════════════════════════════════
 # UI building helpers
