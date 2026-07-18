@@ -19,7 +19,7 @@ extends Node3D
 @export var num_clusters: int = 1           # number of galaxy clusters
 @export var cluster_separation: float = 60.0 # separation between cluster centers
 @export var merger_speed: float = 2.0       # bulk velocity toward merger point
-@export var source_strength: float = 0.5  # field perturbation amplitude
+@export var source_strength: float = 0.0  # PIC mass deposit drives field (set >0 for extra injection)
 
 @export_enum("Particles", "Field", "Black Hole", "Cosmology") var mode: int = 0
 

@@ -73,8 +73,8 @@ void sample_q_field(vec3 wp, out float q_val, out vec3 q_grad) {
     float dx = extent / hn;  // grid spacing
     float qx_l = mix(mix(q000, q001, fz), mix(q010, q011, fz), fy);
     float qx_r = mix(mix(q100, q101, fz), mix(q110, q111, fz), fy);
-    float qy_l = mix(mix(q000, q001, fz), mix(q100, q101, fz), fx);
-    float qy_r = mix(mix(q010, q011, fz), mix(q110, q111, fz), fx);
+	float qy_l = mix(mix(q000, q100, fx), mix(q001, q101, fx), fz);
+	float qy_r = mix(mix(q010, q110, fx), mix(q011, q111, fx), fz);
     float qz_l = mix(mix(q000, q100, fx), mix(q010, q110, fx), fy);
     float qz_r = mix(mix(q001, q101, fx), mix(q011, q111, fx), fy);
     q_grad = vec3((qx_r - qx_l), (qy_r - qy_l), (qz_r - qz_l)) / dx;
