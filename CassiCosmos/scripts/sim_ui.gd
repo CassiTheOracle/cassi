@@ -21,6 +21,7 @@ var _xi_slider: HSlider;  var _xi_label: Label
 var _src_slider: HSlider; var _src_label: Label
 var _grid_spin: SpinBox
 var _particle_spin: SpinBox
+var _nclusters_spin: SpinBox; var _sep_spin: SpinBox
 
 var _server_ip_edit: LineEdit
 var _server_port_edit: LineEdit
@@ -188,7 +189,35 @@ func _ready() -> void:
 	_particle_spin.min_value = 100; _particle_spin.max_value = 200000
 	_particle_spin.step = 1000; _particle_spin.value = 20000
 	_particle_spin.custom_minimum_size = Vector2(0, 22)
-	part_box.add_child(_particle_spin)
+
+	# Row 3: cluster controls
+	var row3 = HBoxContainer.new()
+	row3.add_theme_constant_override("separation", 12)
+	root_vbox.add_child(row3)
+
+	# Cluster count spinbox
+	var nclust_box = VBoxContainer.new()
+	nclust_box.custom_minimum_size = Vector2(150, 40)
+	row3.add_child(nclust_box)
+	var nclust_lbl = _make_label("Clusters:", Color(0.8, 0.6, 0.4), 12)
+	nclust_box.add_child(nclust_lbl)
+	_nclusters_spin = SpinBox.new()
+	_nclusters_spin.min_value = 1; _nclusters_spin.max_value = 20
+	_nclusters_spin.step = 1; _nclusters_spin.value = 1
+	_nclusters_spin.custom_minimum_size = Vector2(0, 22)
+	nclust_box.add_child(_nclusters_spin)
+
+	# Cluster separation spinbox
+	var sep_box = VBoxContainer.new()
+	sep_box.custom_minimum_size = Vector2(150, 40)
+	row3.add_child(sep_box)
+	var sep_lbl = _make_label("Separation:", Color(0.4, 0.7, 0.8), 12)
+	sep_box.add_child(sep_lbl)
+	_sep_spin = SpinBox.new()
+	_sep_spin.min_value = 10; _sep_spin.max_value = 500
+	_sep_spin.step = 10; _sep_spin.value = 60
+	_sep_spin.custom_minimum_size = Vector2(0, 22)
+	sep_box.add_child(_sep_spin)
 
 	# Server (future) fields
 	var srv_box = VBoxContainer.new()
@@ -217,6 +246,8 @@ func _ready() -> void:
 	# Init from sim if available
 	sim = _get_sim()
 	if sim:
+		_nclusters_spin.value = sim.num_clusters
+		_sep_spin.value = sim.cluster_separation
 		_xi_slider.value = sim.xi
 		_src_slider.value = sim.source_strength
 		_grid_spin.value = sim.grid_N
@@ -227,6 +258,8 @@ func _ready() -> void:
 	# Connect value_changed AFTER init to avoid spurious reinit() on startup
 	_grid_spin.value_changed.connect(_on_grid_changed)
 	_particle_spin.value_changed.connect(_on_particles_changed)
+	_nclusters_spin.value_changed.connect(_on_clusters_changed)
+	_sep_spin.value_changed.connect(_on_separation_changed)
 
 # ═══════════════════════════════════════════════════════════════════════
 # UI building helpers
@@ -334,6 +367,20 @@ func _on_particles_changed(value: float) -> void:
 	var sim = _get_sim()
 	if sim == null: return
 	sim.N_particles = int(value)
+
+
+func _on_clusters_changed(value: float) -> void:
+	var sim = _get_sim()
+	if sim == null: return
+	sim.num_clusters = int(value)
+	sim._step_count = 0  # trigger diagnostic on next frame
+
+
+func _on_separation_changed(value: float) -> void:
+	var sim = _get_sim()
+	if sim == null: return
+	sim.cluster_separation = value
+	sim._step_count = 0
 	sim.reinit()
 
 

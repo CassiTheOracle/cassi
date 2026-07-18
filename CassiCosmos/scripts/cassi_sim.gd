@@ -16,6 +16,9 @@ extends Node3D
 @export var softening: float = 0.1        # gravity softening length
 @export var particle_size: float = 0.1   # rendered particle size
 @export var cluster_radius: float = 50.0   # initial cluster size
+@export var num_clusters: int = 1           # number of galaxy clusters
+@export var cluster_separation: float = 60.0 # separation between cluster centers
+@export var merger_speed: float = 2.0       # bulk velocity toward merger point
 @export var source_strength: float = 0.5  # field perturbation amplitude
 
 @export_enum("Particles", "Field", "Black Hole", "Cosmology") var mode: int = 0
@@ -34,6 +37,7 @@ var _field_q: RID;  var _field_vel: RID
 var _pos_buf: RID; var _vel_buf: RID; var _acc_buf: RID
 
 # — auxiliary buffers (SET 2) —
+var _cluster_buf: RID
 var _bh_buf: RID
 var _mass_density_buf: RID
 
@@ -157,22 +161,24 @@ func _setup_buffers() -> void:
 	# SET 2 — BH data + sim globals
 	_bh_buf = _rd.storage_buffer_create(4 * 16)
 	var bh_init = PackedFloat32Array([
-		0.0, 0.0, 0.0, float(N_particles),           # pos + M_total
-		0.0, 0.0, 0.0, 1.0,                           # spin + G_N
-		cluster_radius, cluster_radius * 1.5, 0.0, 0.0, # cluster_a, grid_extent
+		0.0, 0.0, 0.0, float(N_particles),
+		0.0, 0.0, 0.0, 1.0,
+		cluster_radius, cluster_radius * 1.5, 0.0, 0.0,
 		0.0, 0.0, 0.0, 0.0,
 	])
+	_rd.buffer_update(_bh_buf, 0, bh_init.size() * 4, bh_init.to_byte_array())
+	# Cluster center positions + masses (for multi-cluster gravity)
+	_cluster_buf = _rd.storage_buffer_create(20 * 4 * 4)
 	# Mass density grid (one uint per cell, stores float as bits)
 	_mass_density_buf = _rd.storage_buffer_create(nc * 4)
-	_rd.buffer_update(_bh_buf, 0, bh_init.size() * 4, bh_init.to_byte_array())
 	_mm_buf = _rd.storage_buffer_create(N_particles * 64)
 	_make_render_textures()
 
 func _free_buffers() -> void:
 	for rid in [_field_ey, _field_ei, _field_q, _field_vel,
-				_pos_buf, _vel_buf, _acc_buf, _bh_buf, _mm_buf, _mass_density_buf]:
+				_pos_buf, _vel_buf, _acc_buf, _bh_buf, _mm_buf,
+				_mass_density_buf, _cluster_buf]:
 		if rid.is_valid(): _rd.free_rid(rid)
-
 func _free_shaders() -> void:
 	for rid in [_two_fluid_shader, _two_fluid_pipe,
 				_nbody_shader, _nbody_pipe,
@@ -245,6 +251,7 @@ func _cache_uniform_sets() -> void:
 	], _nbody_shader, 1)
 	_us_nbody_2 = _rd.uniform_set_create([
 		_uniform_storage(0, _bh_buf),
+		_uniform_storage(1, _cluster_buf),
 	], _nbody_shader, 2)
 
 	# Instancer
@@ -312,38 +319,75 @@ func _init_particles() -> void:
 	var G = 1.0
 	var eps2 = softening * softening
 
+	# Pre-compute cluster centers and bulk velocities
+	var centers = []
+	var sep = cluster_separation
+	var ms = merger_speed
+	var nc = max(1, num_clusters)
+	var bulk_vels = []
+	var per_cluster = N_particles / nc
+	for c in range(nc):
+		var angle = float(c) * PI * 2.0 / float(nc)
+		var cx = sep * cos(angle); var cy = 0.0; var cz = sep * sin(angle)
+		if nc > 8:
+			# Fibonacci sphere distribution for many clusters
+			var phi = acos(1.0 - 2.0 * (float(c) + 0.5) / float(nc))
+			var th = PI * (1.0 + sqrt(5.0)) * float(c)
+			cx = sep * sin(phi) * cos(th)
+			cy = sep * sin(phi) * sin(th)
+			cz = sep * cos(phi)
+		centers.append(Vector3(cx, cy, cz))
+		var bv = Vector3(-cx, -cy, -cz).normalized() * ms + \
+		          Vector3(-cz, 0.0, cx).normalized() * ms * 0.3
+		bulk_vels.append(bv)
+
+	# Upload cluster centers to GPU buffer
+	var cluster_data = PackedFloat32Array()
+	for c in range(nc):
+		var cen = centers[c]
+		cluster_data.append(cen.x); cluster_data.append(cen.y)
+		cluster_data.append(cen.z); cluster_data.append(float(per_cluster))
+	_rd.buffer_update(_cluster_buf, 0, cluster_data.size() * 4, cluster_data.to_byte_array())
+
 	for i in range(N_particles):
 		var i4 = i * 4
+		var cidx = min(int(i / per_cluster), nc - 1)
+		var center = centers[cidx]
+		var bv = bulk_vels[cidx]
+
 		# Salpeter IMF: dN/dM ∝ M^(-2.35), range [0.3, 30.0] M☉
-		var alpha = 2.35; var exp = 1.0 - alpha  # -1.35
+		var alpha = 2.35; var exp = 1.0 - alpha
 		var A = pow(0.3, exp); var B = pow(30.0, exp)
 		var m = pow(A - rng.randf() * (A - B), 1.0 / exp)
 		pos[i4 + 3] = m
+
+		# Plummer distribution around cluster center
 		var u = rng.randf_range(0.001, 0.999)
 		var r = cluster_radius / sqrt(pow(u, -2.0 / 3.0) - 1.0)
 		var th = acos(2.0 * rng.randf() - 1.0)
 		var ph = rng.randf() * PI * 2.0
-		pos[i4 + 1] = r * sin(th) * sin(ph)
-		pos[i4]     = r * sin(th) * cos(ph)
-		pos[i4 + 2] = r * cos(th)
-		# Plummer enclosed mass at this radius
+		var lx = r * sin(th) * cos(ph)
+		var ly = r * sin(th) * sin(ph)
+		var lz = r * cos(th)
+		pos[i4]     = lx + center.x
+		pos[i4 + 1] = ly + center.y
+		pos[i4 + 2] = lz + center.z
+
+		# Circular velocity around cluster center + bulk
 		var a2 = cluster_radius * cluster_radius
 		var r2p = r * r + eps2
-		var M_enc = float(N_particles) * (r2p * r) / ((r2p + a2) * sqrt(r2p + a2))
-		# Circular orbital velocity
-		var v_circ = sqrt(G * M_enc / max(r, 0.01)) * 0.85
-		# Tangential direction (perpendicular to radial vector)
-		var nx = -pos[i4 + 1]; var ny = pos[i4]; var nz = 0.0
+		var M_enc_sub = float(per_cluster) * (r2p * r) / ((r2p + a2) * sqrt(r2p + a2))
+		var v_circ = sqrt(G * M_enc_sub / max(r, 0.01)) * 0.85
+		var nx = -ly; var ny = lx; var nz = 0.0
 		var nl = sqrt(nx*nx + ny*ny + nz*nz)
 		if nl > 0.001:
 			nx /= nl; ny /= nl; nz /= nl
 		else:
 			nx = 1.0; ny = 0.0; nz = 0.0
-		# Add small random perturbation
 		var pert = 0.05
-		vel[i4]     = (nx + rng.randf_range(-pert, pert)) * v_circ
-		vel[i4 + 1] = (ny + rng.randf_range(-pert, pert)) * v_circ
-		vel[i4 + 2] = (nz + rng.randf_range(-pert, pert)) * v_circ
+		vel[i4]     = (nx + rng.randf_range(-pert, pert)) * v_circ + bv.x
+		vel[i4 + 1] = (ny + rng.randf_range(-pert, pert)) * v_circ + bv.y
+		vel[i4 + 2] = (nz + rng.randf_range(-pert, pert)) * v_circ + bv.z
 		vel[i4 + 3] = 0.0
 
 
@@ -474,7 +518,7 @@ func _physics_step() -> void:
 		float(N_particles),     # particle_N
 		float(mode),            # mode
 		source_strength,        # source_strength
-		0.0,                    # _pad
+		float(num_clusters),    # num_clusters
 	])
 	var pc_bytes = pc.to_byte_array()
 	var pc_size = pc.size() * 4

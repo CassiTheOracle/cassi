@@ -18,19 +18,10 @@ layout(set = 0, binding = 1, std430) restrict buffer FieldEI { float ei[]; };
 layout(set = 0, binding = 2, std430) buffer FieldQ { float q[]; };
 layout(set = 0, binding = 4, std430) coherent readonly buffer MassDensity { uint rho[]; };
 layout(set = 0, binding = 3, std430) buffer FieldVel { vec4 vel[]; };
-
-// ── Push constants ────────────────────────────────────────────────────
 layout(push_constant, std430) uniform PC {
-    float N_f;          // grid resolution per dimension
-    float dt;           // simulation timestep
-    float t;            // current elapsed time
-    float phi;          // golden ratio (1.6180339)
-    float xi;           // Cassi Qi coupling
-    float eps2;         // not used here
-    float particle_N;   // not used here
-    float mode;         // visualization mode
-    float source_strength; // perturbation source strength
-    float _pad;
+    float N_f; float dt; float t; float phi;
+    float xi; float eps2; float particle_N;
+    float mode; float source_strength; float num_clusters;
 } pc;
 
 // ── Index helpers ─────────────────────────────────────────────────────

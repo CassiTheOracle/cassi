@@ -17,8 +17,7 @@ layout(set = 0, binding = 1, std430) restrict buffer Instances {
 layout(push_constant, std430) uniform PC {
     float N_f; float dt; float t; float phi;
     float xi; float eps2; float particle_N;
-    float mode; float source_strength; float _pad;
-} pc;
+    float mode; float source_strength; float num_clusters;
 
 void main() {
     int i = int(gl_GlobalInvocationID.x);
