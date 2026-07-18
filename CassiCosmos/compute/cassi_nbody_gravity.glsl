@@ -56,7 +56,7 @@ void sample_q_field(vec3 wp, out float q_val, out vec3 q_grad) {
     i0 = ((i0 % N) + N) % N;  j0 = ((j0 % N) + N) % N;  k0 = ((k0 % N) + N) % N;
     int i1 = (i0 + 1) % N;    int j1 = (j0 + 1) % N;    int k1 = (k0 + 1) % N;
     // Blend mass density into q — bypasses slow PDE source pathway
-    float M2Q = 0.1;  // tuning factor: mass density → q contribution
+    float M2Q = 0.01;  // tuning factor: mass density → q contribution
     float r000 = uintBitsToFloat(rho[idx3(i0, j0, k0)]);
     float r100 = uintBitsToFloat(rho[idx3(i1, j0, k0)]);
     float r010 = uintBitsToFloat(rho[idx3(i0, j1, k0)]);
@@ -109,7 +109,7 @@ void main() {
     sample_q_field(pxyz, q_s, grad_q);
     float pi_over_rho = ((pc.phi - 1.0) / (pc.phi + 1.0)) + q_s * 0.7;
     pi_over_rho = clamp(pi_over_rho, 0.0, 0.72);
-    vec3 grav_acc = G_N * pi_over_rho * (1.0 + xi_val * q_s) * grad_q;
+    vec3 grav_acc = G_N * pi_over_rho * grad_q;
 
     vec3 v_half = vxyz + grav_acc * hdt;
     vec3 p_new = pxyz + v_half * dt_val;
@@ -119,7 +119,7 @@ void main() {
     sample_q_field(p_new, q_s2, grad_q2);
     float pi_over_rho2 = ((pc.phi - 1.0) / (pc.phi + 1.0)) + q_s2 * 0.7;
     pi_over_rho2 = clamp(pi_over_rho2, 0.0, 0.72);
-    vec3 grav_acc2 = G_N * pi_over_rho2 * (1.0 + xi_val * q_s2) * grad_q2;
+    vec3 grav_acc2 = G_N * pi_over_rho2 * grad_q2;
 
     vec3 v_new = v_half + grav_acc2 * hdt;
 
