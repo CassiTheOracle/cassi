@@ -497,7 +497,6 @@ func _make_render_textures() -> void:
 	print("[CassiSim] Render textures: %dx%d" % [_rt_size.x, _rt_size.y])
 
 
-		var inst_data = _rd.buffer_get_data(_mm_buf, 0, N_particles * 64)
 # Rendering
 # ═══════════════════════════════════════════════════════════════════════
 
