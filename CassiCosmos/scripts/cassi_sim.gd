@@ -10,12 +10,12 @@ extends Node3D
 @export var playing: bool = true              # simulation running
 
 @export var grid_N: int = 32              # field grid resolution (per dim)
-@export var N_particles: int = 20000      # N-body particle count
+@export var N_particles: int = 200000      # N-body particle count
 @export var dt: float = 0.001             # simulation timestep
-@export var xi: float = 18.0              # Cassi Qi coupling
+@export var xi: float = 17.94427191  # φ⁶ — Cassi Qi coupling (exact: φ⁶ = φ⁵ + φ⁴)
 @export var softening: float = 0.1        # gravity softening length
-@export var particle_size: float = 1.5   # rendered particle size
-@export var cluster_radius: float = 5.0   # initial cluster size
+@export var particle_size: float = 0.1   # rendered particle size
+@export var cluster_radius: float = 50.0   # initial cluster size
 @export var source_strength: float = 0.5  # field perturbation amplitude
 
 @export_enum("Particles", "Field", "Black Hole", "Cosmology") var mode: int = 0
@@ -65,6 +65,7 @@ var _scale_factor: float = 1.0
 
 const PHI: float = 1.618033988749895
 const PHI_INV3: float = (PHI - 1.0) / (PHI + 1.0)
+const PHI_6: float = PHI * PHI * PHI * PHI * PHI * PHI  # φ⁶ ≈ 17.94427191
 
 
 # — Display textures for visualization modes —
@@ -83,7 +84,7 @@ func _ready() -> void:
 	_setup_multimesh()
 	_init_field()
 	_init_particles()
-	print("[CassiSim] Universe ready — grid=%d³ particles=%d xi=%.1f" % [grid_N, N_particles, xi])
+	print("[CassiSim] Universe ready — grid=%d³ particles=%d xi=%.5f (φ⁶=%.5f)" % [grid_N, N_particles, xi, PHI_6])
 
 
 func _process(delta: float) -> void:
