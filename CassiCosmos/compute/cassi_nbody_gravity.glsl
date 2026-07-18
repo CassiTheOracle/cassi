@@ -98,7 +98,7 @@ void main() {
     sample_q_field(pxyz, q_s, grad_q);
     float pi_over_rho = ((pc.phi - 1.0) / (pc.phi + 1.0)) + q_s * 0.7;
     pi_over_rho = clamp(pi_over_rho, 0.0, 0.72);
-    vec3 grav_acc = -G_N * pi_over_rho * (1.0 + xi_val * q_s) * grad_q;
+    vec3 grav_acc = G_N * pi_over_rho * (1.0 + xi_val * q_s) * grad_q;
 
     vec3 v_half = vxyz + grav_acc * hdt;
     vec3 p_new = pxyz + v_half * dt_val;
@@ -108,7 +108,7 @@ void main() {
     sample_q_field(p_new, q_s2, grad_q2);
     float pi_over_rho2 = ((pc.phi - 1.0) / (pc.phi + 1.0)) + q_s2 * 0.7;
     pi_over_rho2 = clamp(pi_over_rho2, 0.0, 0.72);
-    vec3 grav_acc2 = -G_N * pi_over_rho2 * (1.0 + xi_val * q_s2) * grad_q2;
+    vec3 grav_acc2 = G_N * pi_over_rho2 * (1.0 + xi_val * q_s2) * grad_q2;
 
     vec3 v_new = v_half + grav_acc2 * hdt;
 
