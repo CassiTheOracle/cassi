@@ -4,7 +4,6 @@ extends Node3D
 ## Manages the two-fluid PDE field grid, N-body particles, black hole
 ## lensing, and visualization — all running in Godot compute shaders.
 ##
-## No Python backend needed. All physics is GPU-native GLSL.
 
 # ═══════════════════════════════════════════════════════════════════════
 # Exports
@@ -15,7 +14,7 @@ extends Node3D
 @export var dt: float = 0.001             # simulation timestep
 @export var xi: float = 18.0              # Cassi Qi coupling
 @export var softening: float = 0.1        # gravity softening length
-@export var particle_size: float = 0.08   # rendered particle size
+@export var particle_size: float = 1.5   # rendered particle size
 @export var cluster_radius: float = 5.0   # initial cluster size
 @export var source_strength: float = 0.5  # field perturbation amplitude
 
@@ -161,8 +160,7 @@ func _setup_buffers() -> void:
 		0.0, 0.0, 0.0, 0.0,
 	])
 	_rd.buffer_update(_bh_buf, 0, bh_init.size() * 4, bh_init.to_byte_array())
-	# MultiMesh instance buffer (GPU-only, 80 bytes per particle for TRANSFORM_3D+color)
-	_mm_buf = _rd.storage_buffer_create(N_particles * 80)
+	_mm_buf = _rd.storage_buffer_create(N_particles * 64)
 	_make_render_textures()
 
 func _free_buffers() -> void:
@@ -333,23 +331,24 @@ func _init_particles() -> void:
 
 	# Initialize MultiMesh instance buffer with initial positions
 	var init_inst = PackedFloat32Array()
-	init_inst.resize(N_particles * 20)  # 20 floats per instance
+	init_inst.resize(N_particles * 16)  # 16 floats per instance
 	for i in range(N_particles):
 		var i4 = i * 4
-		var b = i * 20
+		var b = i * 16
 		var x = pos[i4]; var y = pos[i4+1]; var z = pos[i4+2]
 		var rt = sqrt(x*x + y*y + z*z + eps2)
 		var t_c = 1.0 / (1.0 + 0.1 * rt)
-		init_inst[b]   = 1.0; init_inst[b+1] = 0.0; init_inst[b+2] = 0.0; init_inst[b+3] = 0.0
-		init_inst[b+4] = 0.0; init_inst[b+5] = 1.0; init_inst[b+6] = 0.0; init_inst[b+7] = 0.0
-		init_inst[b+8] = 0.0; init_inst[b+9] = 0.0; init_inst[b+10]= 1.0; init_inst[b+11]= 0.0
-		init_inst[b+12]= x; init_inst[b+13]= y; init_inst[b+14]= z; init_inst[b+15]= 1.0
+		# Transform: identity basis + origin
+		init_inst[b+0] = 1.0; init_inst[b+1] = 0.0; init_inst[b+2] = 0.0  # basis col0
+		init_inst[b+3] = 0.0; init_inst[b+4] = 1.0; init_inst[b+5] = 0.0  # basis col1
+		init_inst[b+6] = 0.0; init_inst[b+7] = 0.0; init_inst[b+8] = 1.0  # basis col2
+		init_inst[b+9] = x;  init_inst[b+10] = y;  init_inst[b+11] = z     # origin
+		# Color: Cassi gradient
 		var cr = lerp(1.0, 0.15, 1.0-t_c)
 		var cg = lerp(0.8, 0.25, 1.0-t_c)
 		var cb = lerp(0.3, 1.0, 1.0-t_c)
-		init_inst[b+16]= cr; init_inst[b+17]= cg; init_inst[b+18]= cb; init_inst[b+19]= 0.85
+		init_inst[b+12] = cr; init_inst[b+13] = cg; init_inst[b+14] = cb; init_inst[b+15] = 0.85
 	_rd.buffer_update(_mm_buf, 0, init_inst.size() * 4, init_inst.to_byte_array())
-	# Also set it on the MultiMesh for frame 0
 	_mm.buffer = init_inst
 	_rd.buffer_update(_pos_buf, 0, pos.size() * 4, pos.to_byte_array())
 	_rd.buffer_update(_vel_buf, 0, vel.size() * 4, vel.to_byte_array())
@@ -498,7 +497,7 @@ func _make_render_textures() -> void:
 	print("[CassiSim] Render textures: %dx%d" % [_rt_size.x, _rt_size.y])
 
 
-# ═══════════════════════════════════════════════════════════════════════
+		var inst_data = _rd.buffer_get_data(_mm_buf, 0, N_particles * 64)
 # Rendering
 # ═══════════════════════════════════════════════════════════════════════
 
@@ -530,7 +529,7 @@ func _render_frame() -> void:
 
 	# Read instance buffer from GPU to PackedFloat32Array for MultiMesh
 	if _mm_buf.is_valid() and N_particles > 0:
-		var inst_data = _rd.buffer_get_data(_mm_buf, 0, N_particles * 80)
+		var inst_data = _rd.buffer_get_data(_mm_buf, 0, N_particles * 64)
 		if inst_data.size() > 0:
 			_mm.buffer = inst_data.to_float32_array()
 
