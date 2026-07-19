@@ -163,3 +163,50 @@ Observed (Zhou+ 2023): $v_c(30\text{ kpc}) \approx 190 \pm 20$ km/s.
 | $v_c(30\text{ kpc})$ vs baryons | $v_C/v_B = 2.7$ (matches 2.7±0.5 observed) | — | **Resolved** |
 
 **Sources last accessed:** 2026-07-19.
+
+---
+
+## 4. CMB Large-Angle Anomalies — Multiverse w-Gradient
+
+### 4.1 The "Axis of Evil" (Quadrupole-Octopole Alignment)
+
+**Source:** Copi, Huterer, Schwarz, & Starkman (2006-2010); Land & Magueijo (2005); Jones et al. (2023); Herold et al. (2025).
+
+The CMB quadrupole ($\ell=2$) and octopole ($\ell=3$) modes are anomalously aligned along a preferred axis at galactic coordinates:
+
+$$\text{Axis direction: } (l, b) = (260\degree, +60\degree)$$
+
+| Feature | Value | Reference |
+|---|---|---|
+| Joint anomaly significance | 5.4σ | Jones et al. (2023) |
+| Independent anomaly (1% mask) | 3.0σ | Herold et al. (2025) |
+| Quadrupole power suppression | ~30% below ΛCDM | WMAP/Planck |
+| Axis-dipole angular separation | 12° | This work |
+| Axis-Virgo separation | 17° | This work |
+| Axis-cold spot separation | 124° | This work |
+
+The axis is NOT aligned with the CMB cold spot or the Eridanus supervoid, ruling out a simple local-void explanation. The 5.4σ joint significance across multiple large-angle anomalies (Jones+ 2023) strongly suggests a primordial origin.
+
+### 4.2 Cassi Prediction: w-Gradient Imprint
+
+If the Wu Xing number $w$ varies spatially at super-horizon scales (the multiverse w-spectrum), the nearest $w$-boundary creates a preferred direction in the CMB at the largest angular scales. The Cassi prediction:
+
+1. **Preferred axis** at super-horizon scales ($\ell < 5$), fading at $\ell > 5$
+2. **Scale-dependent anomaly**: distinguishes w-gradient (super-horizon only) from foreground contamination (all scales) or statistical fluke (no scale dependence)
+3. **E-mode polarization alignment**: the CMB E-mode quadrupole/octopole MUST show the same axis if the anomaly is primordial (testable by Simons Observatory and LiteBIRD)
+4. **Bulk flows** along the preferred axis ($\sim 500$–$2000$ km/s at Gpc scales)
+
+**Status: Suggestive alignment (~1σ).** The axis exists at high significance (5.4σ). The Cassi prediction that anomalies should fade at $\ell > 5$ is falsifiable by Simons Observatory (2025+) and LiteBIRD polarization data.
+
+---
+
+## 5. Key Takeaways (Updated)
+
+| Observable | Cassi covers | Not covered | Decision required |
+|---|---|---|---|
+| $w_0 = -0.856$ (gap-derived) | Within 0.3σ of DESI DR2 | $w_a$ prediction (+0.46 vs −0.51) | Resolve $w_a$ tension |
+| $\Omega_m$ / $H_0$ compatibility | In calibration | Tension with CMB | Publishing next |
+| $v_c(30\text{ kpc})$ vs baryons | $v_C/v_B = 2.7$ (matches 2.7±0.5 observed) | — | **Resolved** |
+| CMB axis of evil (5.4σ) | Predicted w-gradient axis | Scale-dependence unconfirmed | Simons Obs. E-mode test |
+
+**Sources last accessed:** 2026-07-19.

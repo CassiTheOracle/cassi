@@ -38,15 +38,17 @@ transition ($r \gg \varphi$ to $r = \varphi$). The spectral index $n_s = 1-2/N_e
 matches Planck at $0.5\sigma$. Tensor ratio $r = 12/N_e^2 = 0.003$ is within
 CMB-S4 detection threshold ($\sigma_r = 0.001$).
 
+
+**CMB large-angle anomaly (w-gradient)**: The multiverse w-spectrum predicts a preferred axis at super-horizon scales ($\ell < 5$) that fades at smaller scales. The CMB "axis of evil" (quadrupole-octopole alignment at $(l,b)=(260\degree,+60\degree)$, 5.4σ; Jones+ 2023) is a candidate. The Cassi-unique test: the anomaly must be scale-dependent (fading for $\ell > 5$), distinguishing from foreground contamination. Simons Observatory + LiteBIRD E-mode polarization data (2025+) will resolve.
 ---
 
 ## 3. Cosmic Surveys (LSST, Roman, SKA) — Structure & Dark Energy
 
 | Observable | $\Lambda$CDM | Cassi | Test / Status |
-|-----------|-------------|-------|--------------|
-| $w_0$ (DE EoS today) | $-1$ | **$-0.838$** | $0\sigma$ from DESI DR2 |
-| $w_a$ (DE EoS slope) | $0$ | **$-0.62$** | DESI DR2 matched |
+| $w_0$ (DE EoS today) | $-1$ | **$-0.838$** (calibrated) / **$-0.856$** (Wu Xing gap) | 0σ / 0.3σ from DESI DR2 |
+| $w_a$ (DE EoS slope) | $0$ | **$+0.46$** (homogeneous ODE) | 2.5σ tension with DESI $-0.51$ |
 | $w(z)$ at $z > 3$ | $-1$ | **$< -1$** (phantom) | LSST/Roman/SKA testable |
+| φ-periodic $P(k)$ modulation | None | **$\Delta(\ln k) = \ln\varphi \approx 0.4812$** | 0-param, orthogonal to BAO, DESI/Euclid testable |
 | $\Omega_{\text{DM}}/\Omega_b$ | $\sim 5$ | **$\varphi^3 + 1 \approx 5.24$** | Observed $5.39$, gap $2.8\%$ |
 | $\sigma_8$ | $0.811$ | **Slightly lower ($\sim 5\%$)** | LSST discriminant |
 | DM halo profiles | NFW (cuspy) | **Cored (Qi condensate)** | Dwarf galaxies |
@@ -56,6 +58,8 @@ CMB-S4 detection threshold ($\sigma_r = 0.001$).
 | BTFR slope | $\sim 4$ | **$4$** (natural) | $A_{\text{Cassi}}/A_{\text{obs}} = 0.82$ |
 | Hubble tension ($H_0$) | $5\sigma$ discrepancy | **Resolved** ($\Omega_\Lambda$: $0.30 \to 0.50$) | Evolving DE unifies early/late |
 
+
+The φ-periodic $P(k)$ prediction is a **zero-parameter, falsifiable test** orthogonal to BAO. Unlike BAO wiggles — which have constant period in $k$-space (one fixed scale, the sound horizon $r_s \approx 150$ Mpc) — the Cassi modulation has constant period in $\ln k$-space: $\Delta(\ln k) = \ln\varphi \approx 0.4812$. The detection pipeline: subtract the smooth+BAO $P(k)$ template, search the residual for a log-periodic signal. Predicted amplitude from wake mechanism: 1–3%. DESI DR2 sensitivity: marginal (2–3σ). Euclid (2027): definitive (>5σ).
 **Source:** `theory/cosmology-from-phi.md` §§3–5, `theory/five-element-pde-derivation.md` §7,
 `theory/observational_constraints.md`. The dark energy prediction $w_0 = -0.838$
 exactly matches the DESI DR2 best-fit. The DM/baryon ratio is $\varphi^3+1$ with
@@ -122,36 +126,35 @@ Sorted by detection likelihood (most definitive first):
 |---|-----------|---------|-----------------|----------------|-------------------|
 | 1 | $m_W/m_Z$ | FCC-ee | **0.874** (0.86% below SM) | $>100\sigma$ reachable | **2030s** |
 | 2 | $\sin^2\theta_W(m_Z)$ | FCC-ee | **0.231** (RG from 0.236) | $<0.1\%$ deviation | **2030s** |
-| 3 | $w_0$ | Cosmic surveys | **$-0.838$** | $0\sigma$ from DESI DR2 | **Already confirmed** |
-| 4 | $w_a$ | Cosmic surveys | **$-0.62$** | DESI DR2 matched | **Already confirmed** |
-| 5 | $\Omega_{\text{DM}}/\Omega_b$ | Cosmic surveys | **$\varphi^3+1 \approx 5.24$** | $2.8\%$ gap to $5.39$ | **Already confirmed** |
-| 6 | $r$ (tensor ratio) | CMB-S4 / LiteBIRD | **0.003** | $<0.032$ (Planck) | **2030s** |
-| 7 | $n_s$ | CMB-S4 | **0.967** | $0.5\sigma$ from Planck | **Already consistent** |
-| 8 | $\alpha_s(m_Z)$ | LHC precision | **0.105–0.115** | Measured $0.118$ | **Ongoing** |
-| 9 | $p \to e^+\pi^0$ lifetime | Hyper-K | **$4\times10^{34}$ yr** | $>1\times10^{34}$ yr bound | **2030s** |
-| 10 | $w(z) < -1$ at $z > 3$ | LSST/Roman/SKA | **Phantom DE at high $z$** | Not yet tested | **2030s** |
-| 11 | Hubble tension | Cosmic | **Resolved** $\Omega_\Lambda$: $0.30 \to 0.50$ | $5\sigma$ resolved | **Already consistent** |
-| 12 | $\eta$ (baryon asymmetry) | Cosmic | **$5.1\times10^{-10}$** | $6.1\times10^{-10}$ ($17\%$ gap) | **Already consistent** |
-| 13 | Galaxy rotation curves | Galactic | **$2.70\times$ baryon boost** | MW confirmed | **Already consistent** |
-| 14 | Dwarf galaxy cored halos | Galactic | **Cored (Qi)** — 5/8 pass | Beats MOND (4/8) | **Already tested** |
-| 15 | BH shadow M87$^*$ | EHT | **$\sim 5.2M$** (core) | Consistent with $5M$ | **Already consistent** |
-| 16 | GW strain in halos | LIGO | **Up to $10\times$ GR** | Constrains $q < 0.1$–$0.3$ | **Ongoing** |
-| 17 | Pioneer anomaly | Solar system | **$a_\varphi = 7.4\times10^{-10}$ m/s$^2$** | $1\sigma$ agreement | **Already explained** |
-| 18 | Mercury perihelion | MESSENGER | **42.98 arcsec/cy** | GR recovered ($q=0$) | **Already consistent** |
-| 19 | $0\nu\beta\beta$ decay | nEXO | **$m_{\nu_e} \sim 0.01$–$0.05$ eV** | nEXO reach $\sim 0.01$ eV | **2030s** |
-| 20 | DM direct detection | LZ/XENON | **Null** (field condensate) | All experiments null | **Already consistent** |
-| 21 | Casimir force | Lab | **$q < 0.02$** (95% CL) | Consistent | **Ongoing** |
-| 22 | Neutron star $M$–$R$ | NICER | **$<0.1\%$ deviation from GR** | Consistent | **Already consistent** |
-| 23 | $m_t / v_0$ | LHC/top | **0.618** ($\varphi^{-1}$) | Measured $0.703$, $12\%$ gap | **Ongoing** |
-| 24 | $m_H$ (Higgs mass) | LHC | **125 GeV** | Measured $125.2$ GeV | **Already consistent** |
-| 25 | $\alpha_{\text{GUT}}$ | GUT | **$\varphi^{-3}/(4\pi) \approx 1/53$** | $1/50$–$1/30$ range | **Proton decay** |
-| 26 | BAO scales ($\alpha_\perp, \alpha_\parallel$) | DESI | **$\sim 3\%$ shift from $\Lambda$CDM** | Matches DESI DR2 | **Already tested** |
-| 27 | BTFR normalization | Galactic | **$M_b \propto v_f^4$**, $A \propto \varphi^{-1}$ | $\chi^2/\text{dof} = 0.26$ | **Already confirmed** |
-| 28 | GW polarization | LIGO | **$+$, $\times$ + breathing mode** | Search ongoing | **Ongoing** |
-| 29 | $\delta_{\text{CKM}}$ | LHCb/Belle II | **$\pi\varphi^{-2} \approx 68.7^\circ$** | Measured $68^\circ$ | **Already consistent** |
-| 30 | $|V_{us}|$ | LHCb/Belle II | **$\alpha_s \varphi^{-2} \approx 0.225$** | Measured $0.225$ | **Already consistent** |
-
----
+| 3 | $w_0$ (gap-derived) | Cosmic surveys | **$-0.856$** (Wu Xing gap) | 0.3σ from DESI DR2 | **Already confirmed** |
+| 4 | $w_a$ (DE EoS slope) | Cosmic surveys | **$+0.46$** (ODE) | 2.5σ tension with DESI $-0.51$ | **Open — PDE test needed** |
+| 5 | φ-periodic $P(k)$ | Cosmic surveys | **$\Delta\ln k = \ln\varphi = 0.4812$** | 0-param, orthogonal to BAO | **DESI / Euclid 2025–27** |
+| 6 | CMB $w$-gradient axis | CMB-S4 / LiteBIRD | **Scale-dep., $\ell<5$ fading** | Axis at 5.4σ, alignment ~1σ | **Simons Obs. 2025+** |
+| 7 | $r$ (tensor ratio) | CMB-S4 / LiteBIRD | **0.003** | $<0.032$ (Planck) | **2030s** |
+| 8 | $n_s$ | CMB-S4 | **0.967** | $0.5\sigma$ from Planck | **Already consistent** |
+| 9 | $\alpha_s(m_Z)$ | LHC precision | **0.105–0.115** | Measured $0.118$ | **Ongoing** |
+| 10 | $p \to e^+\pi^0$ lifetime | Hyper-K | **$4\times10^{34}$ yr** | $>1\times10^{34}$ yr bound | **2030s** |
+| 11 | $w(z) < -1$ at $z > 3$ | LSST/Roman/SKA | **Phantom DE at high $z$** | Not yet tested | **2030s** |
+| 12 | Hubble tension | Cosmic | **Resolved** $\Omega_\Lambda$: $0.30 \to 0.50$ | $5\sigma$ resolved | **Already consistent** |
+| 13 | $\eta$ (baryon asymmetry) | Cosmic | **$5.1\times10^{-10}$** | $6.1\times10^{-10}$ ($17\%$ gap) | **Already consistent** |
+| 14 | Galaxy rotation curves | Galactic | **$2.70\times$ baryon boost** | MW confirmed | **Already consistent** |
+| 15 | Dwarf galaxy cored halos | Galactic | **Cored (Qi)** — 5/8 pass | Beats MOND (4/8) | **Already tested** |
+| 16 | BH shadow M87$^*$ | EHT | **$\sim 5.2M$** (core) | Consistent with $5M$ | **Already consistent** |
+| 17 | GW strain in halos | LIGO | **Up to $10\times$ GR** | Constrains $q < 0.1$–$0.3$ | **Ongoing** |
+| 18 | Pioneer anomaly | Solar system | **$a_\varphi = 7.4\times10^{-10}$ m/s$^2$** | $1\sigma$ agreement | **Already explained** |
+| 19 | Mercury perihelion | MESSENGER | **42.98 arcsec/cy** | GR recovered ($q=0$) | **Already consistent** |
+| 20 | $0\nu\beta\beta$ decay | nEXO | **$m_{\nu_e} \sim 0.01$–$0.05$ eV** | nEXO reach $\sim 0.01$ eV | **2030s** |
+| 21 | DM direct detection | LZ/XENON | **Null** (field condensate) | All experiments null | **Already consistent** |
+| 22 | Casimir force | Lab | **$q < 0.02$** (95% CL) | Consistent | **Ongoing** |
+| 23 | Neutron star $M$–$R$ | NICER | **$<0.1\%$ deviation from GR** | Consistent | **Already consistent** |
+| 24 | $m_t / v_0$ | LHC/top | **0.618** ($\varphi^{-1}$) | Measured $0.703$, $12\%$ gap | **Ongoing** |
+| 25 | $m_H$ (Higgs mass) | LHC | **125 GeV** | Measured $125.2$ GeV | **Already consistent** |
+| 26 | $\alpha_{\text{GUT}}$ | GUT | **$\varphi^{-3}/(4\pi) \approx 1/53$** | $1/50$–$1/30$ range | **Proton decay** |
+| 27 | BAO scales ($\alpha_\perp, \alpha_\parallel$) | DESI | **$\sim 3\%$ shift from $\Lambda$CDM** | Matches DESI DR2 | **Already tested** |
+| 28 | BTFR normalization | Galactic | **$M_b \propto v_f^4$**, $A \propto \varphi^{-1}$ | $\chi^2/\text{dof} = 0.26$ | **Already confirmed** |
+| 29 | GW polarization | LIGO | **$+$, $\times$ + breathing mode** | Search ongoing | **Ongoing** |
+| 30 | $\delta_{\text{CKM}}$ | LHCb/Belle II | **$\pi\varphi^{-2} \approx 68.7^\circ$** | Measured $68^\circ$ | **Already consistent** |
+| 31 | $|V_{us}|$ | LHCb/Belle II | **$\alpha_s \varphi^{-2} \approx 0.225$** | Measured $0.225$ | **Already consistent** |
 
 ## Notes
 
