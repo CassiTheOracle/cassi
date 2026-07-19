@@ -568,9 +568,12 @@ func _physics_step() -> void:
 	var md_pc_bytes = md_pc.to_byte_array()
 
 	var wg = ceili(float(grid_N) / 4.0)
-	var pg = ceili(float(N_particles) / 256.0) if N_particles > 0 else 1
+	# Zero mass density buffer (BEFORE compute list — buffer_update forbidden during compute list)
+	var zc = grid_N * grid_N * grid_N
+	if _zero_mass_buf.size() != zc * 4: _zero_mass_buf.resize(zc * 4)
+	_rd.buffer_update(_mass_density_buf, 0, _zero_mass_buf.size(), _zero_mass_buf)
 
-	# Reset BH counter before compute list (buffer_update forbidden during compute list)
+	# Reset BH counter before compute list
 	_cond_step_counter += 1
 	if _cond_step_counter >= 100 and _cond_shader.is_valid():
 		_cond_step_counter = 0
@@ -581,10 +584,6 @@ func _physics_step() -> void:
 
 	# ── 1. Mass deposit: scatter particle masses → field grid (PIC) ──
 	if _mass_deposit_shader.is_valid() and N_particles > 0:
-		# Zero out mass density from previous step
-		var zc = grid_N * grid_N * grid_N
-		if _zero_mass_buf.size() != zc * 4: _zero_mass_buf.resize(zc * 4)
-		_rd.buffer_update(_mass_density_buf, 0, _zero_mass_buf.size(), _zero_mass_buf)
 		_rd.compute_list_bind_compute_pipeline(cl, _mass_deposit_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_mass_dep_0, 0)
 		_rd.compute_list_set_push_constant(cl, md_pc_bytes, md_pc.size() * 4)
@@ -641,8 +640,7 @@ func _physics_step() -> void:
 
 	_rd.compute_list_end()
 	_rd.submit()
-	# NO SYNC — let GPU pipeline queue up
-
+	_rd.sync()  # MUST sync on local RD before next submit
 
 func _make_render_textures() -> void:
 	_rt_size = Vector2i(512, 512)
