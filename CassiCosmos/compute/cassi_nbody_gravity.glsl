@@ -94,16 +94,16 @@ void sample_q_field(vec3 wp, out float q_val, out vec3 q_grad) {
 // ── BH point-source gravity ────────────────────────────────────────────
 // Softened Newtonian: a = G_N * M / (r² + eps²)^(3/2) * r_vec
 vec3 bh_point_gravity(vec3 particle_pos, float eps2) {
-    uint count = bh[0].x;
     float G_N = bh[1].w;
     vec3 acc = vec3(0.0);
-    for (uint b = 0u; b < count && b < 16u; b++) {
-        int base = 4 + int(b) * 2;
-        vec4 rec = bh[base];
-        vec3 delta = rec.xyz - particle_pos;
+    for (int b = 0; b < 15; b++) {
+        int base = 4 + b * 2;
+        float mass = bh[base].w;
+        if (mass <= 0.0) continue;  // empty slot
+        vec3 delta = bh[base].xyz - particle_pos;
         float r2 = dot(delta, delta) + eps2;
         float inv_r3 = 1.0 / (r2 * sqrt(r2));
-        acc += G_N * rec.w * inv_r3 * delta;
+        acc += G_N * mass * inv_r3 * delta;
     }
     return acc;
 }

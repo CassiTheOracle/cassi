@@ -678,8 +678,6 @@ func _setup_multimesh() -> void:
 
 
 func _render_frame() -> void:
-	# Sync GPU before reading buffers for rendering
-	_rd.sync()
 	_rb_counter += 1
 
 	# Read instance buffer from GPU to PackedFloat32Array for MultiMesh
