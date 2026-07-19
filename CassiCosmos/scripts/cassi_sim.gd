@@ -568,6 +568,7 @@ func _physics_step() -> void:
 	var md_pc_bytes = md_pc.to_byte_array()
 
 	var wg = ceili(float(grid_N) / 4.0)
+	var pg = ceili(float(N_particles) / 256.0) if N_particles > 0 else 1
 	# Zero mass density buffer (BEFORE compute list — buffer_update forbidden during compute list)
 	var zc = grid_N * grid_N * grid_N
 	if _zero_mass_buf.size() != zc * 4: _zero_mass_buf.resize(zc * 4)
