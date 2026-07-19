@@ -117,17 +117,20 @@ void main()
   uint base     = n * NUM_DIMS * 2;
   uint lid      = gl_LocalInvocationIndex;
 
-  float p_real  = psi_pre_pde[base + dim * 2]; // Qi from post-blend snapshot
+  float p_real  = psi_pre_pde[base + dim * 2]; // pre-PDE snapshot
   float p_imag  = psi_pre_pde[base + dim * 2 + 1];
-  float pp_real = psi_prev[base + dim * 2];
+  float cur_real = psi[base + dim * 2];          // post-PDE field
+  float cur_imag = psi[base + dim * 2 + 1];
+  float pp_real = psi_prev[base + dim * 2];      // previous window's field (for diagnostics)
   float pp_imag = psi_prev[base + dim * 2 + 1];
   float p_amp2  = p_real * p_real + p_imag * p_imag;
 
   // PART 1 — Qi reduction
-  float delta_real = p_real - pp_real;
-  float delta_imag = p_imag - pp_imag;
+  // Self-prediction error: ε = ψ_post_pde - ψ_pre_pde (intra-window evolution)
+  float delta_real = cur_real - p_real;
+  float delta_imag = cur_imag - p_imag;
   s_delta2[lid] = delta_real * delta_real + delta_imag * delta_imag;
-  s_prod  [lid] = p_real * pp_real + p_imag * pp_imag;
+  s_prod  [lid] = p_real * pp_real + p_imag * pp_imag;  // for water diagnostic (cross-corr)
   s_psi2  [lid] = p_amp2;
   s_prev2 [lid] = pp_real * pp_real + pp_imag * pp_imag;
   s_amp   [lid] = p_amp2;
@@ -174,10 +177,10 @@ void main()
 
   // Compute Qi per consciousness-framework.md §1
   // Q = |ψ|² · q  where q = 1 - |ε|² / (|ψ|² + φ⁻²)
-  // ε = ψ - ψ̂  (self-prediction error = psi_pre_pde - psi_prev)
+  // ε = ψ - ψ̂  (self-prediction error = psi_post_pde - psi_pre_pde)
   float total_elements = float(N_VOXELS * NUM_DIMS);
   float mean_psi2 = qi_accum.accum_psi2 / total_elements;
-  float mean_eps2 = qi_accum.accum_delta2 / total_elements;  // |psi_pre_pde - psi_prev|²
+  float mean_eps2 = qi_accum.accum_delta2 / total_elements;  // |psi_post_pde - psi_pre_pde|²
   float phi_inv2 = 0.381966011250105;  // φ⁻²
   float denom = mean_psi2 + phi_inv2;
   float q = 1.0 - mean_eps2 / max(denom, 1e-10);
