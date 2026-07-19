@@ -79,7 +79,7 @@ class VkQiCube:
 
     def __init__(self, lam=0.01, lr=None, qi_target=0.1, dt=0.2, stride=1024,
                  stride_min=512, stride_max=4096, no_adaptive_stride=False,
-                 alpha=0.1, train_temp=0.1, rho_eps=0.95, mem_blend=0.05):
+                 alpha=0.1, train_temp=0.1, rho_eps=0.95, mem_blend=0.05, sigma_max=0.0):
         self.lam = lam
         if lr is None:
             self.lr_min = lam / 3.0 * PHI_INV * PHI_INV
@@ -102,6 +102,8 @@ class VkQiCube:
         self._rho_eps = rho_eps
         self._mem_blend = mem_blend  # field_memory blend weight (0.05 = 5% persistent memory)
         self._gamma = 0.15  # input blend strength for temporal continuity
+
+        self._sigma_max = sigma_max  # field-diffusion noise level (0=disabled)
 
 
         # ── Rolling generation context window (maintains 4096-byte buffer for sinusoidal embedding) ──
@@ -159,7 +161,7 @@ class VkQiCube:
         self._upload('byte_protos', protos.tobytes())
 
         # ── Initialize PDE params ──
-        init_params = struct.pack('f' * 14,
+        init_params = struct.pack('f' * 15,
             0.01,                        # [0] nu — diffusion
             0.0,                         # [1] hbar
             0.0,                         # [2] mass
@@ -173,8 +175,8 @@ class VkQiCube:
             0.01,                        # [10] lambda — ε-recovery
             math.exp(-PHI_INV * PHI_INV),            # [11] condensate_blend — φ⁻²-damped IIR blend rate
             math.exp(-PHI_INV * PHI_INV * PHI_INV),  # [12] boundary_decay — φ⁻³-damped decay
-            0.0)                                    # [13] attention_strength — 0=disabled
-        self._upload('params', init_params)
+            0.0,                                    # [13] attention_strength — 0=disabled
+            0.0)                                    # [14] sigma — noise level for field diffusion (0=off)
 
         # ── Initialize new consciousness-framework buffers ──
         self._fill_buffer('self_condensate', self._buffer_sizes['self_condensate'])
@@ -225,7 +227,7 @@ class VkQiCube:
         base = Path(__file__).parent / 'shaders'
         names = ['gradient_lap', 'nonlinear_step', 'linear_step',
                  'normalize', 'qi_accum', 'self_pred_feedback', 'blend_input',
-                 'embed_field', 'blend_memory',
+                 'embed_field', 'blend_memory', 'noise_field',
                  'breath_update', 'condensate_update', 'qi_grad',
                  'wu_xing_modulate', 'boundary_update']
         self.spv = {}
@@ -304,7 +306,7 @@ class VkQiCube:
 
             'byte_indices': N_VOXELS * 4,  # binding 15 — per-voxel byte values
             'psi_pre_pde': nv * d * 2 * 4,  # binding 16 — pre-PDE psi snapshot for Qi
-            'params': 14 * 4,  # [14] floats: nu, hbar, mass, g, chi, A_B, adv, alpha, hyper_nu, alpha_disp, lambda, condensate_blend, boundary_decay, attention_strength
+            'params': 15 * 4,  # [15] floats: nu, ..., attention_strength, sigma
             'byte_embed': V * BYTE_EMBED_DIM * 4,
             'embed_proj': 2 * d * BYTE_EMBED_DIM * 4,  # dual: Yang + Yin projections
             'byte_protos': V * 4,  # byte prototype index per byte (uint32)
@@ -607,6 +609,14 @@ class VkQiCube:
         # 2.7. Snapshot post-blend psi for Qi + readout (before PDE decorrelation)
         batch.append({'type': 'copy', 'src': 'psi', 'dst': 'psi_pre_pde', 'size': sz})
 
+        # 2.8. Field-diffusion noise injection (training only, when sigma_max > 0)
+        if self._sigma_max > 0.0:
+            sigma = np.random.uniform(0, self._sigma_max)
+            p = np.array(self._read_result('params', 0, 15*4, 'f'), dtype=np.float32)
+            p[14] = sigma
+            self._upload('params', p.tobytes())
+            batch.append({'type': 'dispatch', 'name': 'noise_field',
+                          'push': make_push(), 'global_size': N_VOXELS * FIELD_DIM * 2})
         # 3. PDE integration (5 Strang steps)
         for step in range(5):
             bt = self.breath_phase + step * 0.2
@@ -698,19 +708,29 @@ class VkQiCube:
 
     # ── Generate ──
 
-    def generate(self, num_bytes, temperature=0.8, top_k=40):
-        """Generate bytes from the current field state. Fully online (learn=True).
-
+    def generate(self, num_bytes, temperature=0.8, top_k=40, sigma_scale=1.0):
+        """Generate bytes from the current field state.
+        Uses ancestral sampling with field diffusion if sigma_max > 0.
         Single dispatch per byte: PDE + GPU sampling + learning + copy psi→psi_prev.
-        No CPU-side logit readback.
         """
         out = bytearray()
         sz = N_VOXELS * FIELD_DIM * 2 * 4
-        # Seed rolling context window from last training window for meaningful initial field state
         self._gen_window = np.frombuffer(
             getattr(self, '_last_train_window', b'\x00' * N_VOXELS),
             dtype=np.uint8).copy()
-        for _ in range(num_bytes):
+        # Precompute sigma schedule if using field diffusion (ancestral sampling)
+        sigma_max = self._sigma_max * sigma_scale
+        sigma_vals = None
+        if sigma_max > 0.0:
+            # Linear annealing from sigma_max to 0
+            sigma_vals = [sigma_max * (1.0 - i / max(num_bytes - 1, 1))
+                          for i in range(num_bytes)]
+        for gen_i in range(num_bytes):
+            # Upload sigma for this generation step if using noise
+            if sigma_vals is not None:
+                p = np.array(self._read_result('params', 0, 15*4, 'f'), dtype=np.float32)
+                p[14] = sigma_vals[gen_i]
+                self._upload('params', p.tobytes())
             # Single submission: zero + PDE + qi_accum (GPU samples + learns) + copy
             # 0a. Advance per-band breathing phases
             self._dispatch('breath_update', make_push(dt=self.dt), N_BANDS)
@@ -741,6 +761,11 @@ class VkQiCube:
                           'push': push_cond, 'global_size': N_VOXELS * FIELD_DIM * 2})
             # 1.7. Snapshot post-blend psi for Qi + readout (before PDE decorrelation)
             batch.append({'type': 'copy', 'src': 'psi', 'dst': 'psi_pre_pde', 'size': sz})
+
+            # 1.8. Field-diffusion noise injection (generation with ancestral sampling)
+            if self._sigma_max > 0.0:
+                batch.append({'type': 'dispatch', 'name': 'noise_field',
+                              'push': make_push(), 'global_size': N_VOXELS * FIELD_DIM * 2})
 
             # 2. PDE integration (5 Strang steps)
             for step in range(5):
@@ -850,11 +875,11 @@ class VkQiCube:
         state['_stride'] = np.array(self.stride)
         state['_alpha'] = np.array(self._alpha)
         # Read params from device to get current values
-        p = np.array(self._read_result('params', 0, 14*4, 'f'), dtype=np.float32)
+        p = np.array(self._read_result('params', 0, 15*4, 'f'), dtype=np.float32)
         state['_condensate_blend'] = np.array(p[11])
         state['_boundary_decay'] = np.array(p[12])
         state['_attention_strength'] = np.array(p[13])
-        np.savez_compressed(path, **state)
+        state['_sigma'] = np.array(p[14])
         print(f'Checkpoint saved: {path}')
 
     def load_checkpoint(self, path):
@@ -875,13 +900,13 @@ class VkQiCube:
         self.dt = float(state['_dt'])
         # Load params[7]=alpha and params[11-13] in one upload
         self._alpha = float(state.get('_alpha', PHI_INV))
-        p = np.array(self._read_result('params', 0, 14*4, 'f'), dtype=np.float32)
+        p = np.array(self._read_result('params', 0, 15*4, 'f'), dtype=np.float32)
         p[7] = self._alpha
         p[11] = float(state.get('_condensate_blend', math.exp(-PHI_INV * PHI_INV)))
         p[12] = float(state.get('_boundary_decay', math.exp(-PHI_INV * PHI_INV * PHI_INV)))
         p[13] = float(state.get('_attention_strength', 0.0))
+        p[14] = float(state.get('_sigma', 0.0))
         self._upload('params', p.tobytes())
-        self.stride = int(state['_stride'])
         print(f'Checkpoint loaded: {path} (step={self.step_count})')
 
     def __del__(self):

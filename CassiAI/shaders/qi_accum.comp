@@ -35,7 +35,7 @@ layout(local_size_x = 64) in;
 layout(std430, binding =  0) buffer PsiBuf           { float psi[]; };
 layout(std430, binding =  1) buffer PsiPrevBuf       { float psi_prev[]; };
 // bindings 2-5: grad_h, grad_w, grad_d, lap — unused here
-layout(std430, binding =  6) buffer ParamsBuf        { float params[14]; };
+layout(std430, binding =  6) buffer ParamsBuf        { float params[15]; };
 layout(std430, binding =  7) buffer ByteEmbedBuf     { float byte_embed[]; };
 layout(std430, binding =  8) buffer EmbedProjBuf     { float embed_proj[]; };
 layout(std430, binding =  9) buffer NeighborTable    { uint neighbor_data[]; };
@@ -228,7 +228,7 @@ void main()
     float att = (1.0 / (1.0 + em)) / sum_att;
     uint vbase = v * NUM_DIMS * 2;
     for (uint d = 0u; d < NUM_DIMS; d++) {
-      float val = psi_pre_pde[vbase + d * 2];
+      float val = psi[vbase + d * 2];  // denoised field (post-PDE)
       field_state[d] += att * ((val == val) ? val : 0.0);
     }
   }

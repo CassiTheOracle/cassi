@@ -33,7 +33,7 @@ layout(local_size_x = 64) in;
 layout(std430, binding =  0) buffer PsiBuf           { float psi[]; };
 layout(std430, binding =  1) buffer PsiPrevBuf       { float psi_prev[]; };
 // bindings 2-5: grad_h, grad_w, grad_d, lap — unused here
-layout(std430, binding =  6) buffer ParamsBuf        { float params[14]; };
+layout(std430, binding =  6) buffer ParamsBuf        { float params[15]; };
 layout(std430, binding =  7) buffer ByteEmbedBuf     { float byte_embed[]; };
 layout(std430, binding =  8) buffer EmbedProjBuf     { float embed_proj[]; };
 // bindings 9-13: readout_weight, readout_bias, counters, accum, voxel_energy — unused here
