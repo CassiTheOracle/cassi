@@ -9,17 +9,20 @@ extends Node3D
 # Exports
 @export var playing: bool = true              # simulation running
 
-@export var grid_N: int = 32              # field grid resolution (per dim)
-@export var N_particles: int = 200000      # N-body particle count
+@export var grid_N: int = 64              # field grid resolution (per dim)
+@export var N_particles: int = 2500000      # N-body particle count
 @export var dt: float = 0.001             # simulation timestep
 @export var xi: float = 17.94427191  # φ⁶ — Cassi Qi coupling (exact: φ⁶ = φ⁵ + φ⁴)
 @export var softening: float = 0.1        # gravity softening length
-@export var particle_size: float = 0.1   # rendered particle size
+@export var particle_size: float = 0.3   # rendered particle size
 @export var cluster_radius: float = 50.0   # initial cluster size
 @export var num_clusters: int = 1           # number of galaxy clusters
 @export var cluster_separation: float = 60.0 # separation between cluster centers
 @export var merger_speed: float = 2.0       # bulk velocity toward merger point
 @export var source_strength: float = 0.0  # PIC mass deposit drives field (set >0 for extra injection)
+@export var qi_condensation_threshold: float = 0.5  # Qi density above this → BH nucleation
+@export var bh_acc_rate: float = 0.01                # mass growth per step from field
+@export var bh_max_age: float = 0.0                  # 0 = immortal
 
 @export_enum("Particles", "Field", "Black Hole", "Cosmology") var mode: int = 0
 
@@ -52,6 +55,9 @@ var _us_mass_dep_0: RID
 var _us_nbody_0: RID; var _us_nbody_1: RID; var _us_nbody_2: RID
 # — Instancer pipeline —
 var _instancer_shader: RID; var _instancer_pipe: RID
+var _cond_shader: RID; var _cond_pipe: RID; var _us_cond_0: RID
+var _bh_int_shader: RID; var _bh_int_pipe: RID; var _us_bh_int_0: RID
+var _cond_step_counter: int = 0
 var _mm_buf: RID = RID()
 var _us_inst_0: RID = RID()
 
@@ -163,7 +169,7 @@ func _setup_buffers() -> void:
 	_acc_buf = _rd.storage_buffer_create(ps)
 
 	# SET 2 — BH data + sim globals
-	_bh_buf = _rd.storage_buffer_create(4 * 16)
+	_bh_buf = _rd.storage_buffer_create(512)  # 34 vec4s: counter + G_N/extent + 16 BH records (×2 vec4s)
 	var bh_init = PackedFloat32Array([
 		0.0, 0.0, 0.0, float(N_particles),
 		0.0, 0.0, 0.0, 1.0,
@@ -191,7 +197,9 @@ func _free_shaders() -> void:
 				_field_render_shader, _field_render_pipe,
 				_bh_lensing_shader, _bh_lensing_pipe,
 				_instancer_shader, _instancer_pipe,
-				_mass_deposit_shader, _mass_deposit_pipe]:
+				_mass_deposit_shader, _mass_deposit_pipe,
+				_cond_shader, _cond_pipe,
+				_bh_int_shader, _bh_int_pipe]:
 		if rid.is_valid(): _rd.free_rid(rid)
 
 func _setup_shaders() -> void:
@@ -230,6 +238,19 @@ func _setup_shaders() -> void:
 	if _mass_deposit_shader.is_valid():
 		_mass_deposit_pipe = _rd.compute_pipeline_create(_mass_deposit_shader)
 		print("[CassiSim] Mass deposit pipeline ready")
+
+	# Condensation scanner (Qi peak → BH nucleation)
+	_cond_shader = _shader_from_file("res://compute/cassi_condensation.glsl")
+	if _cond_shader.is_valid():
+		_cond_pipe = _rd.compute_pipeline_create(_cond_shader)
+		print("[CassiSim] Condensation scanner pipeline ready")
+
+	# BH integration (position + mass update each step)
+	_bh_int_shader = _shader_from_file("res://compute/cassi_bh_integrate.glsl")
+	if _bh_int_shader.is_valid():
+		_bh_int_pipe = _rd.compute_pipeline_create(_bh_int_shader)
+		print("[CassiSim] BH integration pipeline ready")
+
 	_cache_uniform_sets()
 
 
@@ -256,6 +277,18 @@ func _cache_uniform_sets() -> void:
 		_uniform_storage(0, _pos_buf), _uniform_storage(1, _vel_buf),
 		_uniform_storage(2, _acc_buf),
 	], _nbody_shader, 1)
+	# Condensation scanner (set 0: field_q, set 1: BHData write)
+	if _cond_shader.is_valid():
+		_us_cond_0 = _rd.uniform_set_create([
+			_uniform_storage(0, _field_q),
+		], _cond_shader, 0)
+		# set 1 created inline at dispatch (BHData write)
+	# BH integration (set 0: field_q, set 1: BHData write)
+	if _bh_int_shader.is_valid():
+		_us_bh_int_0 = _rd.uniform_set_create([
+			_uniform_storage(0, _field_q),
+		], _bh_int_shader, 0)
+		# set 1 created inline at dispatch (BHData write)
 	_us_nbody_2 = _rd.uniform_set_create([
 		_uniform_storage(0, _bh_buf),
 	], _nbody_shader, 2)
@@ -537,6 +570,13 @@ func _physics_step() -> void:
 	var wg = ceili(float(grid_N) / 4.0)
 	var pg = ceili(float(N_particles) / 256.0) if N_particles > 0 else 1
 
+	# Reset BH counter before compute list (buffer_update forbidden during compute list)
+	_cond_step_counter += 1
+	if _cond_step_counter >= 100 and _cond_shader.is_valid():
+		_cond_step_counter = 0
+		var zero4 = PackedByteArray(); zero4.resize(16)
+		_rd.buffer_update(_bh_buf, 0, 16, zero4)
+
 	var cl = _rd.compute_list_begin()
 
 	# ── 1. Mass deposit: scatter particle masses → field grid (PIC) ──
@@ -557,6 +597,30 @@ func _physics_step() -> void:
 		_rd.compute_list_bind_uniform_set(cl, _us_two_1, 1)
 		_rd.compute_list_bind_uniform_set(cl, _us_two_2, 2)
 		_rd.compute_list_set_push_constant(cl, pc_bytes, pc_size)
+		_rd.compute_list_dispatch(cl, wg, wg, wg)
+
+	# ── 2.5. Condensation scan (every 100 steps) ───────────────────
+	if _cond_step_counter == 0 and _cond_shader.is_valid():
+		var cond_pc = PackedFloat32Array([float(grid_N), qi_condensation_threshold, 0.0, 0.0])
+		var cond_us1 = _rd.uniform_set_create([
+			_uniform_storage(0, _bh_buf),
+		], _cond_shader, 1)
+		_rd.compute_list_bind_compute_pipeline(cl, _cond_pipe)
+		_rd.compute_list_bind_uniform_set(cl, _us_cond_0, 0)
+		_rd.compute_list_bind_uniform_set(cl, cond_us1, 1)
+		_rd.compute_list_set_push_constant(cl, cond_pc.to_byte_array(), 16)
+		_rd.compute_list_dispatch(cl, wg, wg, wg)
+
+	# ── 2.6. BH integration (every step) ──────────────────────────
+	if _bh_int_shader.is_valid():
+		var bh_int_pc = PackedFloat32Array([float(grid_N), dt, bh_acc_rate, bh_max_age])
+		var bh_int_us1 = _rd.uniform_set_create([
+			_uniform_storage(0, _bh_buf),
+		], _bh_int_shader, 1)
+		_rd.compute_list_bind_compute_pipeline(cl, _bh_int_pipe)
+		_rd.compute_list_bind_uniform_set(cl, _us_bh_int_0, 0)
+		_rd.compute_list_bind_uniform_set(cl, bh_int_us1, 1)
+		_rd.compute_list_set_push_constant(cl, bh_int_pc.to_byte_array(), 16)
 		_rd.compute_list_dispatch(cl, wg, wg, wg)
 
 	# ── 3. N-body gravity ────────────────────────────────────────────

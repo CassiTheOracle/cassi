@@ -1,8 +1,8 @@
 #[compute]
 #version 450
-// Cassi N-body Gravity — pure field-driven (no Plummer model)
-// Gravity emerges from the gradient of the Qi field: F = -G_N · ∇q
-// G_eff still modulates via pi/rho density screening.
+// Cassi N-body Gravity — field-driven + BH point-source gravity
+// Gravity emerges from the Qi field gradient: F = -G_N · pi/rho · ∇q
+// Plus Newtonian attraction from tracked black holes in BHData.
 
 layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
@@ -16,7 +16,9 @@ layout(set = 1, binding = 0, std430) buffer Positions { vec4 pos[]; };
 layout(set = 1, binding = 1, std430) restrict buffer Velocities { vec4 vel[]; };
 layout(set = 1, binding = 2, std430) restrict buffer Accelerations { vec4 acc[]; };
 
-layout(set = 2, binding = 0, std430) buffer BHData { vec4 bh[4]; };
+// Extended BHData: bh[0].x=count, bh[1].w=G_N, bh[2].y=extent,
+// bh[4..33] = BH records (vec4[pos.xyz, mass] + vec4[vel.xyz, 0])
+layout(set = 2, binding = 0, std430) buffer BHData { vec4 bh[34]; };
 
 layout(push_constant, std430) uniform PC {
     float N_f;
@@ -37,7 +39,7 @@ int idx3(int i, int j, int k) {
     return i + N * (j + N * k);
 }
 
-// ── Qi field sample + gradient (same 8 corners, no extra reads) ───────
+// ── Qi field sample + gradient ─────────────────────────────────────────
 void sample_q_field(vec3 wp, out float q_val, out vec3 q_grad) {
     int N = int(pc.N_f);
     float hn = float(N) * 0.5;
@@ -55,8 +57,8 @@ void sample_q_field(vec3 wp, out float q_val, out vec3 q_grad) {
 
     i0 = ((i0 % N) + N) % N;  j0 = ((j0 % N) + N) % N;  k0 = ((k0 % N) + N) % N;
     int i1 = (i0 + 1) % N;    int j1 = (j0 + 1) % N;    int k1 = (k0 + 1) % N;
-    // Blend mass density into q — bypasses slow PDE source pathway
-    float M2Q = 0.01;  // tuning factor: mass density → q contribution
+
+    float M2Q = 0.01;
     float r000 = uintBitsToFloat(rho[idx3(i0, j0, k0)]);
     float r100 = uintBitsToFloat(rho[idx3(i1, j0, k0)]);
     float r010 = uintBitsToFloat(rho[idx3(i0, j1, k0)]);
@@ -75,13 +77,11 @@ void sample_q_field(vec3 wp, out float q_val, out vec3 q_grad) {
     float q011 = qv[idx3(i0, j1, k1)] + r011 * M2Q;
     float q111 = qv[idx3(i1, j1, k1)] + r111 * M2Q;
 
-    // Qi value (standard trilinear)
     float q0 = mix(mix(q000, q100, fx), mix(q010, q110, fx), fy);
     float q1 = mix(mix(q001, q101, fx), mix(q011, q111, fx), fy);
     q_val = mix(q0, q1, fz);
 
-    // Qi gradient (finite difference from same 8 corners)
-    float dx = extent / hn;  // grid spacing
+    float dx = extent / hn;
     float qx_l = mix(mix(q000, q001, fz), mix(q010, q011, fz), fy);
     float qx_r = mix(mix(q100, q101, fz), mix(q110, q111, fz), fy);
     float qy_l = mix(mix(q000, q100, fx), mix(q001, q101, fx), fz);
@@ -91,7 +91,24 @@ void sample_q_field(vec3 wp, out float q_val, out vec3 q_grad) {
     q_grad = vec3((qx_r - qx_l), (qy_r - qy_l), (qz_r - qz_l)) / dx;
 }
 
-// ── KDK leapfrog with pure Cassi field gravity ────────────────────────
+// ── BH point-source gravity ────────────────────────────────────────────
+// Softened Newtonian: a = G_N * M / (r² + eps²)^(3/2) * r_vec
+vec3 bh_point_gravity(vec3 particle_pos, float eps2) {
+    uint count = bh[0].x;
+    float G_N = bh[1].w;
+    vec3 acc = vec3(0.0);
+    for (uint b = 0u; b < count && b < 16u; b++) {
+        int base = 4 + int(b) * 2;
+        vec4 rec = bh[base];
+        vec3 delta = rec.xyz - particle_pos;
+        float r2 = dot(delta, delta) + eps2;
+        float inv_r3 = 1.0 / (r2 * sqrt(r2));
+        acc += G_N * rec.w * inv_r3 * delta;
+    }
+    return acc;
+}
+
+// ── KDK leapfrog with field gravity + BH point-source gravity ─────────
 void main() {
     int i = int(gl_GlobalInvocationID.x);
     int N = int(pc.particle_N);
@@ -104,22 +121,26 @@ void main() {
     float dt_val = pc.dt;
     float hdt = dt_val * 0.5;
 
-    // ── Half-step kick ─────────────────────────────────────────────────
+    // ── Half-step kick (field + BH) ────────────────────────────────────
     float q_s; vec3 grad_q;
     sample_q_field(pxyz, q_s, grad_q);
     float pi_over_rho = ((pc.phi - 1.0) / (pc.phi + 1.0)) + q_s * 0.7;
     pi_over_rho = clamp(pi_over_rho, 0.0, 0.72);
-    vec3 grav_acc = G_N * pi_over_rho * grad_q;
+    vec3 field_acc = G_N * pi_over_rho * grad_q;
+    vec3 bh_acc = bh_point_gravity(pxyz, pc.eps2);
+    vec3 grav_acc = field_acc + bh_acc;
 
     vec3 v_half = vxyz + grav_acc * hdt;
     vec3 p_new = pxyz + v_half * dt_val;
 
-    // ── Full-step kick ─────────────────────────────────────────────────
+    // ── Full-step kick (field + BH at updated position) ────────────────
     float q_s2; vec3 grad_q2;
     sample_q_field(p_new, q_s2, grad_q2);
     float pi_over_rho2 = ((pc.phi - 1.0) / (pc.phi + 1.0)) + q_s2 * 0.7;
     pi_over_rho2 = clamp(pi_over_rho2, 0.0, 0.72);
-    vec3 grav_acc2 = G_N * pi_over_rho2 * grad_q2;
+    vec3 field_acc2 = G_N * pi_over_rho2 * grad_q2;
+    vec3 bh_acc2 = bh_point_gravity(p_new, pc.eps2);
+    vec3 grav_acc2 = field_acc2 + bh_acc2;
 
     vec3 v_new = v_half + grav_acc2 * hdt;
 
