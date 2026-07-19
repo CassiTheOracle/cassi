@@ -5,10 +5,10 @@
 | Label | Meaning | Count |
 |-------|---------|-------|
 | **F** | **Fundamental axiom** — the single postulate from which everything follows | 1 |
-| **D** | **Derived** — mathematical consequence of φ and the PDE structure, zero freedom | 15 |
+| **D** | **Derived** — mathematical consequence of φ and the PDE structure, zero freedom | 16 |
 | **C** | **Calibrated** — single universal value fit to experiment, fixed across all domains | 4 |
 | **E** | **External** — standard physics constants inherited by the framework, not Cassi-derived | 6 |
-| **I** | **Initial condition** — free initial values that evolve dynamically, not fixed by theory | 7 |
+| **I** | **Initial condition** — free initial values that evolve dynamically, not fixed by theory | 6 |
 | **N** | **Numerical** — computational parameters with no physical significance | 7 |
 | | **Total** | **40** |
 
@@ -348,7 +348,7 @@ any Cassi simulation. They are not fixed by the theory.
 
 | Parameter | Typical Value | Class | Physical Meaning |
 |-----------|--------------|-------|-----------------|
-| $r_0 = E_{Y,0}/E_{I,0}$ | $23$ (cosmology), $\varphi$ (atoms) | **I** | Initial Yang/Yin ratio |
+| $r_0 = E_{Y,0}/E_{I,0}$ | $21.2$ (cosmology), $\varphi$ (atoms) | **D** | Initial Yang/Yin ratio; derived from Wu Xing gap $g = 1-\varphi^{-5}$ ($w_0 = -0.856$, 0.3σ from DESI) |
 | $a_0$ | $0.01$-$1.0$ | **I** | Initial scale factor (expanding universe) |
 | $H_0$ | $0.05$-$1.0$ | **I** | Initial Hubble parameter |
 | $N_{\text{blobs}}$ | $2$-$3$ | **I** | Number of density peaks |
@@ -378,10 +378,10 @@ any Cassi simulation. They are not fixed by the theory.
 | Category | Label | Count | Description |
 |----------|-------|-------|-------------|
 | Fundamental axiom | **F** | 1 | $\varphi$ itself |
-| $\varphi$-derived | **D** | 15 | All coupling constants, all from $\varphi$ |
+| $\varphi$-derived | **D** | 16 | All coupling constants, all from $\varphi$ |
 | PDE solver parameter | **C** | 4 | $\lambda$, $\chi$, $c_s^2$, $\nu$ — consistent across simulations |
 | External constant | **E** | 6 | $G$, $c$, $\hbar$, $m_e$, $m_p$, $\alpha_s(M_Z)$ |
-| Initial condition | **I** | 7 | Ratios, positions, velocities, masses |
+| Initial condition | **I** | 6 | Ratios, positions, velocities, masses |
 | Numerical | **N** | 7 | Grid, timestep, softening |
 | **Total** | | **40** | |
 
