@@ -781,12 +781,18 @@ func _render_bh_lensing() -> void:
 		0.0, 0.0, 0.0, 0.0])
 	var wg = Vector3i(ceili(_rt_size.x / 8.0), ceili(_rt_size.y / 8.0), 1)
 
-	_dispatch_compute(_bh_lensing_shader, _bh_lensing_pipe,
-		[
-			_get_set2_image_uniform(_bh_lensing_shader, 0, _bh_lensing_tex),
-			_get_set2_buffer_uniform(_bh_lensing_shader, 1, _bh_buf),
-		],
-		pc, wg)
+	var cl = _rd.compute_list_begin()
+	_rd.compute_list_bind_compute_pipeline(cl, _bh_lensing_pipe)
+	# Set 2 only — lensing shader doesn't use sets 0 or 1
+	_rd.compute_list_bind_uniform_set(cl, _rd.uniform_set_create([
+		_get_set2_image_uniform(_bh_lensing_shader, 0, _bh_lensing_tex),
+		_get_set2_buffer_uniform(_bh_lensing_shader, 1, _bh_buf),
+	], _bh_lensing_shader, 2), 2)
+	_rd.compute_list_set_push_constant(cl, pc.to_byte_array(), pc.size() * 4)
+	_rd.compute_list_dispatch(cl, wg.x, wg.y, wg.z)
+	_rd.compute_list_end()
+	_rd.submit()
+	_rd.sync()
 
 	# Readback for UI display
 	var bdata = _rd.texture_get_data(_bh_lensing_tex, 0)
