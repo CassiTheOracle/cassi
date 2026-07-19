@@ -1,0 +1,53 @@
+#version 460
+
+// ──────────────────────────────────────────────────────────────
+// condensate_update.comp — Self-condensate IIR update
+//
+// Maintains a thresholded, time-averaged field pattern that
+// serves as the long-lived "self" attractor. Only field amplitudes
+// above a φ⁻² threshold blend into the condensate; below threshold
+// the condensate decays at the same φ-damped rate.
+//
+// ψ_cond ← mix(ψ_cond, ψ, ρ) if |ψ|² > φ⁻²
+// ψ_cond ← (1-ρ) · ψ_cond      if |ψ|² ≤ φ⁻²
+// ──────────────────────────────────────────────────────────────
+
+layout(local_size_x = 64) in;
+
+layout(std430, binding = 0)  buffer PsiBuf          { float psi[]; };
+layout(std430, binding = 6)  buffer ParamsBuf       { float params[]; };
+layout(std430, binding = 20) buffer SelfCondensate  { float condensate[]; };
+
+#define DIM 128
+#define N_VOXELS 4096
+#define VOXEL_STRIDE (DIM * 2)
+#define PHI_INV 0.618033988749895
+
+void main() {
+    uint idx = gl_GlobalInvocationID.x;  // one per (voxel, dim) pair
+    if (idx >= N_VOXELS * DIM) return;
+
+    uint n   = idx / DIM;
+    uint dim = idx % DIM;
+    uint base = n * VOXEL_STRIDE;
+
+    uint off_r = base + dim * 2;
+    uint off_i = off_r + 1;
+
+    float re = psi[off_r];
+    float im = psi[off_i];
+    float amp2 = re * re + im * im;
+
+    float threshold = PHI_INV * PHI_INV;  // φ⁻²
+    float rho = params[11];               // condensate_blend from param index 11
+
+    if (amp2 > threshold) {
+        // Blend current field into condensate
+        condensate[off_r] = mix(condensate[off_r], re, rho);
+        condensate[off_i] = mix(condensate[off_i], im, rho);
+    } else {
+        // Decay condensate below threshold
+        condensate[off_r] *= (1.0 - rho);
+        condensate[off_i] *= (1.0 - rho);
+    }
+}

@@ -1,10 +1,11 @@
 #version 460
 
-// ─── QiCube — Blend field_memory into psi ────────────────────────────────
-// psi = (1 - w) * psi + w * field_memory
-// w passed via breath_t push constant.
-// Provides long-timescale feedback: the PDE sees its own history.
-// ──────────────────────────────────────────────────────────────────────────
+ // ─── QiCube — Blend memory buffers into psi ──────────────────────────────
+ // psi = (1 - w) * psi + w * src
+ // w passed via breath_t push constant.
+ // If pass == 0: src = field_memory (binding 19, persistent per-window copy)
+ // If pass == 1: src = self_condensate (binding 20, slow IIR attractor)
+ // Provides long-timescale feedback: the PDE sees its own history.
 
 // ─── Constants (must match vk_qi.py) ─────────────────────────────────────
 #define D_DIM       128           // per-voxel field dimension
@@ -14,6 +15,7 @@
 // ─── Buffer bindings (std430) ────────────────────────────────────────────
 layout(std430, binding = 0)  buffer Psi           { float psi[]; };
 layout(std430, binding = 19) buffer FieldMemory   { float field_memory[]; };
+layout(std430, binding = 20) buffer SelfCondensate { float condensate[]; };
 
 layout(push_constant) uniform PushConstants {
     float dt;
@@ -35,7 +37,12 @@ void main()
 
     // w passed via breath_t push constant
     float w = pc.breath_t;
-    float fm = field_memory[idx];
-    fm = (fm == fm) ? fm : 0.0;  // NaN guard
-    psi[idx] = mix(psi[idx], fm, w);
+    float src;
+    if (pc.pass == 0u) {
+        src = field_memory[idx];
+    } else {
+        src = condensate[idx];
+    }
+    src = (src == src) ? src : 0.0;  // NaN guard
+    psi[idx] = mix(psi[idx], src, w);
 }

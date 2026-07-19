@@ -33,7 +33,7 @@ layout(local_size_x = 64) in;
 layout(std430, binding =  0) buffer PsiBuf           { float psi[]; };
 layout(std430, binding =  1) buffer PsiPrevBuf       { float psi_prev[]; };
 // bindings 2-5: grad_h, grad_w, grad_d, lap — unused here
-layout(std430, binding =  6) buffer ParamsBuf        { float params[11]; };
+layout(std430, binding =  6) buffer ParamsBuf        { float params[14]; };
 layout(std430, binding =  7) buffer ByteEmbedBuf     { float byte_embed[]; };
 layout(std430, binding =  8) buffer EmbedProjBuf     { float embed_proj[]; };
 // bindings 9-13: readout_weight, readout_bias, counters, accum, voxel_energy — unused here
@@ -82,15 +82,29 @@ void main()
     uint dim   = idx % NUM_DIMS;                   // field dimension [0, 127]
     uint base  = n * NUM_DIMS * 2;                 // base offset for this voxel
 
-    uint learn_target = qi_output.argmax_byte;
+    // ── Full softmax over all 256 classes ──
+    float max_l = qi_output.logits[0];
+    [[unroll]] for (uint v = 1u; v < V; v++) max_l = max(max_l, qi_output.logits[v]);
+    float sum_exp = 0.0;
+    float sm[256];
+    [[unroll]] for (uint v = 0u; v < V; v++) {
+        sm[v] = exp(qi_output.logits[v] - max_l);
+        sum_exp += sm[v];
+    }
+    float inv_sum = 1.0 / max(sum_exp, 1e-30);
+    [[unroll]] for (uint v = 0u; v < V; v++) sm[v] *= inv_sum;
 
-    // ── Compute predicted field value for this dimension ──
-    // pf = sum_e byte_embed[learn_target * BYTE_EMBED_DIM + e]
-    //        * embed_proj[dim * BYTE_EMBED_DIM + e]
-    float pf = 0.0f;
-    [[dont_unroll]] for (uint e = 0u; e < BYTE_EMBED_DIM; e++) {
-        pf += byte_embed[learn_target * BYTE_EMBED_DIM + e]
-            * embed_proj[dim * BYTE_EMBED_DIM + e];
+    // ── Full-softmax-weighted predicted field value ──
+    // pf = Σ_v softmax(v) · Σ_e byte_embed[v][e] · embed_proj[dim][e]
+    float pf = 0.0;
+    [[unroll]] for (uint v = 0u; v < V; v++) {
+        float weight = sm[v];
+        float dot = 0.0;
+        [[dont_unroll]] for (uint e = 0u; e < BYTE_EMBED_DIM; e++) {
+            dot += byte_embed[v * BYTE_EMBED_DIM + e]
+                 * embed_proj[dim * BYTE_EMBED_DIM + e];
+        }
+        pf += weight * dot;
     }
 
     // ── Load attention-weighted field_state[dim] from qi_accum ──

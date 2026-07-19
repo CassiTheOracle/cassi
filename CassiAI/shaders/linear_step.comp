@@ -34,6 +34,10 @@ layout(std430, binding =  8) buffer EmbedProj   { float embed_proj[]; };
 layout(std430, binding =  9) buffer NeighborTable { uint neighbor_data[]; };
 layout(std430, binding = 10) buffer ByteProtos { uint byte_protos[]; };
 layout(std430, binding = 11) buffer Counters    { uint counters[]; };
+layout(std430, binding = 22) buffer ChakraParams { float chakra_params[]; };
+layout(std430, binding = 23) buffer BandPhase    { float band_phase[]; };
+layout(std430, binding = 24) buffer QiGrad       { float qi_grad[]; };
+
 
 // ── Push constants ──
 layout(push_constant) uniform PushConstants {
@@ -60,6 +64,16 @@ void main() {
 
     uint n    = idx / dims;          // voxel index  [0, 4095]
     uint dim  = idx % dims;          // field dim    [0, 127]
+
+    // ── Band lookup ──
+    const int BAND_START[13] = int[](0,2,4,8,14,24,40,66,87,100,113,121,126);
+    int band = 0;
+    for (int b = 0; b < 12; b++) {
+        if (dim >= BAND_START[b] && dim < BAND_START[b+1]) { band = b; break; }
+    }
+    if (dim >= BAND_START[12]) band = 12;
+    float nu_scale   = chakra_params[band * 5 + 0];  // nu_scale
+    float chi_scale  = chakra_params[band * 5 + 2];  // chi_scale
     uint base = n * dims * 2;         // per-voxel base offset
 
     uint idx_real = base + dim * 2;
@@ -75,17 +89,13 @@ void main() {
 
     // ── Parameters ──
     float nu  = params[0];            // diffusion  coefficient
-    float chi = params[4];            // dispersion coefficient (Schrödinger-like at 0.1-0.3)
+    float chi = params[4];            // dispersion coefficient
     float dt_val = push.dt;
-    float hyper_nu  = params[8];         // hyper-viscosity coefficient (was gamma)
-    float alpha_disp = params[9];        // scale-dependent dispersion exponent (was kappa)
-    // ── φ-scaled dimension bands ──
-    // Low dims (0..78): slower dynamics — structure, long-timescale patterns
-    // High dims (79..127): faster dynamics — detail, short-timescale patterns
-    float dim_frac = (float(dim) + 1.0) / float(d);
-    float band_scale = 1.0;  // dimension bands disabled — caused NaN via chemotactic gate at low dims
-    float nu_d = nu * band_scale;
-    // band_scale multiplied into chi_d below (see Step 2)
+    float hyper_nu  = params[8];
+    float alpha_disp = params[9];
+
+    // ── Per-band scaled diffusion ──
+    float nu_d = nu * nu_scale;
 
     // ── Chemotactic diffusion gate: suppress diffusion in high-contrast regions ──
     float amp_y = abs(p_real);
@@ -96,27 +106,21 @@ void main() {
     float nu_eff    = nu_d * (1.0 - chem_gate);
 
     // ── Step 1: Diffusion (reaction–diffusion) ──
-    //   ∂ψ/∂t = ν ∇² ψ
     float diff_real = p_real + nu_eff * dt_val * lap_real;
     float diff_imag = p_imag + nu_eff * dt_val * lap_imag;
 
-    // ── Step 2: Scale-dependent dispersion (symplectic Euler in 3D) ──
-    //   dim_frac ∈ (0, 1] maps dimension index to effective wavenumber scale.
-    //   alpha_disp = 1: uniform dispersion (all dims equal)
-    //   alpha_disp > 1: low dims propagate faster (long waves)
-    //   alpha_disp < 1: high dims propagate faster (short waves)
-    dim_frac = (float(dim) + 1.0) / float(d);
-    float chi_scale = (alpha_disp > 0.0) ? pow(dim_frac, alpha_disp - 1.0) : 1.0;
-    float chi_d = chi * chi_scale * band_scale;
+    // ── Step 2: Scale-dependent dispersion ──
+    float dim_frac = (float(dim) + 1.0) / float(d);
+    float chi_sd = (alpha_disp > 0.0) ? pow(dim_frac, alpha_disp - 1.0) : 1.0;
+    float chi_d = chi * chi_sd * chi_scale;
     float new_real = diff_real - chi_d * dt_val * lap_imag;
     float new_imag = diff_imag + chi_d * dt_val * lap_real;
-    // ── Step 3: Additional diffusion (hyper-viscosity proxy) ──
-    //   Acts as extra k² diffusion coefficient (k⁴ bilaplacian would need a second dispatch).
-    //   hyper_nu = 0 → no effect (default, backward-compatible).
+
+    // ── Step 3: Hyper-viscosity ──
     new_real -= hyper_nu * dt_val * lap_real;
     new_imag -= hyper_nu * dt_val * lap_imag;
 
-    // ── Write back in-place ──
+    // ── Write back ──
     psi[idx_real] = new_real;
     psi[idx_imag] = new_imag;
 }

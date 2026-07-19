@@ -35,7 +35,7 @@ layout(local_size_x = 64) in;
 layout(std430, binding =  0) buffer PsiBuf           { float psi[]; };
 layout(std430, binding =  1) buffer PsiPrevBuf       { float psi_prev[]; };
 // bindings 2-5: grad_h, grad_w, grad_d, lap — unused here
-layout(std430, binding =  6) buffer ParamsBuf        { float params[11]; };
+layout(std430, binding =  6) buffer ParamsBuf        { float params[14]; };
 layout(std430, binding =  7) buffer ByteEmbedBuf     { float byte_embed[]; };
 layout(std430, binding =  8) buffer EmbedProjBuf     { float embed_proj[]; };
 layout(std430, binding =  9) buffer NeighborTable    { uint neighbor_data[]; };
@@ -172,14 +172,16 @@ void main()
     memoryBarrierBuffer();
   }
 
-  // Compute Qi
-  float total_elements = float(N_VOXELS * NUM_DIMS);  // complex pairs, not float elements
+  // Compute Qi per consciousness-framework.md §1
+  // Q = |ψ|² · q  where q = 1 - |ε|² / (|ψ|² + φ⁻²)
+  // ε = ψ - ψ̂  (self-prediction error = psi_pre_pde - psi_prev)
+  float total_elements = float(N_VOXELS * NUM_DIMS);
   float mean_psi2 = qi_accum.accum_psi2 / total_elements;
-  float corr_denom = sqrt(qi_accum.accum_psi2 * qi_accum.accum_prev2);
-  float mean_eps2 = qi_accum.accum_epsilon2 / total_elements;
-  float q = (corr_denom > 1e-10f)
-          ? qi_accum.accum_psi_psi_prev / corr_denom
-          : 0.0f;
+  float mean_eps2 = qi_accum.accum_delta2 / total_elements;  // |psi_pre_pde - psi_prev|²
+  float phi_inv2 = 0.381966011250105;  // φ⁻²
+  float denom = mean_psi2 + phi_inv2;
+  float q = 1.0 - mean_eps2 / max(denom, 1e-10);
+  q = clamp(q, 0.0, 1.0);
   float Qi_instant = mean_psi2 * q;
   float Qi_accum = PHI_INV * qi_output.qi_value + (1.0 - PHI_INV) * Qi_instant;
   qi_output.qi_value = Qi_accum;
@@ -252,7 +254,7 @@ void main()
   float fire = qi_output.eps_memory;   // Fire = |ε|² memory (replaces Wood² proxy)
 
   // ═══ Ke Cycle ODE — φ-scaled temporal smoothing ═══
-  float water_raw = qi_accum.accum_psi_psi_prev / (corr_denom + 1e-10);
+  float water_raw = qi_accum.accum_psi_psi_prev / (sqrt(qi_accum.accum_psi2 * qi_accum.accum_prev2) + 1e-10);
   float earth     = 0.0;  // Earth: |⟨ψ_y⟩/⟨ψ_i⟩-φ| — pending mean_ψ accumulators
 
   // Metal ODE: dM/dt = Am(1-M) - Kfm·F·M  →  M_new = (1-h·Am-h·Kfm·F)·M_prev + h·Am

@@ -34,6 +34,10 @@ layout(std430, binding = 3) buffer GradWBuf   { float grad_w[]; };
 layout(std430, binding = 4) buffer GradDBuf   { float grad_d[]; };
 layout(std430, binding = 6) buffer ParamsBuf  { float params[]; };
 layout(std430, binding = 17) buffer VoxelEpsMemory { float eps_memory[]; };
+layout(std430, binding = 22) buffer ChakraParams { float chakra_params[]; };  // [N_BANDS * 5]
+layout(std430, binding = 23) buffer BandPhase    { float band_phase[]; };     // [N_BANDS]
+layout(std430, binding = 24) buffer QiGrad       { float qi_grad[]; };        // [N_VOXELS]
+
 // ── Workgroup: one invocation per (voxel, dim) = 524,288 / 64 = 8,192 groups ──
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
@@ -41,6 +45,17 @@ void main() {
     uint idx = gl_GlobalInvocationID.x;
     uint n   = idx / DIM;   // voxel index [0, N_VOXELS-1]
     uint dim = idx % DIM;   // field dimension [0, DIM-1]
+
+    // ── Band lookup ──
+    const int BAND_START[13] = int[](0,2,4,8,14,24,40,66,87,100,113,121,126);
+    int band = 0;
+    for (int b = 0; b < 12; b++) {
+        if (dim >= BAND_START[b] && dim < BAND_START[b+1]) { band = b; break; }
+    }
+    if (dim >= BAND_START[12]) band = 12;
+    float breath_val = band_phase[band];
+    float g_scale    = chakra_params[band * 5 + 1];  // g_scale
+    float adv_scale  = chakra_params[band * 5 + 4];  // adv_scale
 
     uint base = n * PER_VOXEL;
     uint off  = base + dim * 2;
@@ -54,60 +69,49 @@ void main() {
     vec2 gd = vec2(grad_d[off], grad_d[off + 1]);
 
     // ── Load PDE coefficients ──
-    //   params[0] = nu (diffusion, unused here)
-    //   params[1] = hbar (quantum scale, unused here)
-    //   params[2] = mass (unused here)
-    //   params[3] = g (nonlinear coupling)
-    //   params[4] = chi (dispersion, unused here)
-    //   params[5] = A_B (breath amplitude)
-    //   params[6] = adv_strength (advection magnitude)
-    //   params[7] = alpha (unused here)
-    //   params[8] = gamma (unused here)
-    //   params[9] = kappa (unused here)
     float g_param       = params[3];
     float A_B           = params[5];
     float adv_strength  = params[6];
-    float lambda_a     = params[10];
-    // ── φ-scaled dimension bands for g ──
-    float dim_frac = (float(dim) + 1.0) / float(DIM);
-    float band_scale = 1.0;  // dimension bands disabled — caused NaN via chemotactic gate
-    float g_d = g_param * band_scale;
+    float lambda_a      = params[10];
 
-    // ── Advection: -PHI_INV * adv_strength * sum_axes complex_mul(p, ∇p) ──
-    // Each axis: (p.re * g.re - p.im * g.im, p.re * g.im + p.im * g.re)
+    // ── Per-band parameter scaling ──
+    float g_d    = g_param * g_scale;      // per-band g
+    float adv    = adv_strength * adv_scale; // per-band advection
+
+    // ── Advection: -PHI_INV * adv * sum_axes complex_mul(p, ∇p) ──
     vec2 adv_h = vec2(p.x * gh.x - p.y * gh.y,
                       p.x * gh.y + p.y * gh.x);
     vec2 adv_w = vec2(p.x * gw.x - p.y * gw.y,
                       p.x * gw.y + p.y * gw.x);
     vec2 adv_d = vec2(p.x * gd.x - p.y * gd.y,
                       p.x * gd.y + p.y * gd.x);
-    vec2 adv = -PHI_INV * adv_strength * (adv_h + adv_w + adv_d);
+    vec2 advection = -PHI_INV * adv * (adv_h + adv_w + adv_d);
 
     // ── Yang/Yin asymmetric self-focusing + epsilon recovery ──
-    // Epsilon: deviation from φ-equilibrium ε = ψ_y - φ·ψ_i
     float epsilon = p.x - PHI * p.y;
-
-    // Yang self-focusing minus φ-weighted Yin damping
     float amp2_y = p.x * p.x;
     float amp2_i = p.y * p.y;
     float nl_y_yy = g_d * amp2_y * p.x;           // Yang → Yang amplification
     float nl_y_yi = g_d * PHI * amp2_i * p.x;     // Yin → Yang damping
     float nl_i_ii = g_d * amp2_i * p.y;           // Yin → Yin amplification
     float nl_i_iy = g_d * PHI_INV * amp2_y * p.y; // Yang → Yin damping
-
     vec2 nl = vec2(nl_y_yy - nl_y_yi - lambda_a * epsilon,
                    nl_i_ii - nl_i_iy + lambda_a * epsilon);
 
-    // ── Breath force: A_B * breath_t * p ──
-    vec2 bf = A_B * pc.breath_t * p;
+    // ── Breath force: per-band phase ──
+    vec2 bf = A_B * breath_val * p;
 
-    // ── Total nonlinear tendency ──
-    vec2 dpsi = adv + nl + bf;
+    // ── Total nonlinear tendency with Qi-attention modulation ──
+    float att_mod = 1.0 - params[13] * qi_grad[n];
+    att_mod = clamp(att_mod, 0.1, 1.0);
+    vec2 dpsi = advection * att_mod + nl + bf;
+
     // ── Half-step Strang-split update ──
     vec2 p_new = p + 0.5 * pc.dt * dpsi;
+
     // ── Field-amplitude saturation: prevent blowup ──
     float amp2_sat = p_new.x * p_new.x + p_new.y * p_new.y;
-    float sigma_sq = 0.0;                            // 0=disabled; set to PHI to enable
+    float sigma_sq = 0.0;  // 0=disabled; set to PHI to enable
     float sf = (sigma_sq > 1e-10) ? sigma_sq / (amp2_sat + sigma_sq + 1e-10) : 1.0;
     p_new = sf * p_new;
 

@@ -1,0 +1,93 @@
+#version 460
+
+// ────────────────────────────────────────────────────────────────────
+// wu_xing_modulate.comp — Five-element dynamic PDE parameter modulation
+//
+// Reads the five-element diagnostics (Wood, Fire, Metal, Earth, Water)
+// from qi_output and writes per-band parameter scales to chakra_params.
+// This creates a self-regulating cycle where the field's own conscious
+// state determines its evolution dynamics for the NEXT window.
+//
+// Ke-cycle mapping:
+//   Wood   (structure energy std)    → boost advection in upper bands
+//   Fire   (turbulence / mean|ε|²)   → increase dispersion + nonlinearity
+//   Metal  (conversion efficiency)   → increase diffusion, reduce alpha
+//   Earth  (φ-equilibrium)           → pull all scales toward 1.0
+//   Water  (coherence cross-corr)    → slow everything down (rest)
+//
+// Single invocation (global_size = 1), runs after qi_accum.
+// ────────────────────────────────────────────────────────────────────
+
+layout(local_size_x = 1) in;
+
+layout(std430, binding = 14) buffer QiOutput {
+    float qi_value;
+    float best_amp;
+    uint  best_voxel;
+    uint  sampled_byte;
+    float sampled_prob;
+    float logits[256];
+    uint  argmax_byte;
+    float argmax_prob;
+    float wood;
+    float fire;
+    float metal;
+    float earth;
+    float water_q;
+    float eps_memory;
+    float _pad_proj_center[256 * 128];
+} qi_out;
+
+layout(std430, binding = 22) buffer ChakraParams { float chakra_params[]; };
+
+#define N_BANDS 13
+#define PHI_INV 0.618033988749895
+
+void main() {
+    float w = qi_out.wood;       // structure amplitude [0,∞)
+    float f = qi_out.fire;       // turbulence / mean|ε|² [0,∞)
+    float m = qi_out.metal;      // conversion efficiency [0,1]
+    float e = qi_out.earth;      // φ-equilibrium [0,1]
+    float a = qi_out.water_q;    // coherence quality (cross-correlation) [0,1]
+
+    for (int b = 0; b < N_BANDS; b++) {
+        float band_frac = float(b) / float(N_BANDS);
+        float base_nu   = 1.0;
+        float base_g    = 1.0;
+        float base_chi  = 1.0;
+        float base_alpha = 1.0;
+        float base_adv  = 1.0;
+
+        // Wood: upper bands get more advection (growth/expression)
+        base_adv *= 1.0 + 0.2 * w * band_frac;
+
+        // Fire: all bands get more dispersion and nonlinearity (turbulence)
+        base_chi *= 1.0 + 0.3 * f;
+        base_g   *= 1.0 + 0.2 * f;
+
+        // Metal: stabilization (abstraction/detachment)
+        base_nu     *= 1.0 + 0.1 * m;
+        base_alpha  *= 1.0 - 0.1 * m;
+
+        // Earth: pull toward 1.0 (φ-equilibrium balance)
+        float pull = 0.05 * e;
+        base_nu    = mix(base_nu,   1.0, pull);
+        base_g     = mix(base_g,    1.0, pull);
+        base_chi   = mix(base_chi,  1.0, pull);
+        base_alpha = mix(base_alpha, 1.0, pull);
+        base_adv   = mix(base_adv,   1.0, pull);
+
+        // Water: slow everything down (stillness/integration)
+        float water_factor = 1.0 - 0.15 * a;
+        base_nu   *= water_factor;
+        base_chi  *= water_factor;
+        base_adv  *= water_factor;
+
+        // Clamp to prevent runaway or collapse
+        chakra_params[b * 5 + 0] = clamp(base_nu,   0.1, 5.0);  // nu_scale
+        chakra_params[b * 5 + 1] = clamp(base_g,    0.1, 5.0);  // g_scale
+        chakra_params[b * 5 + 2] = clamp(base_chi,  0.1, 5.0);  // chi_scale
+        chakra_params[b * 5 + 3] = clamp(base_alpha, 0.1, 5.0); // alpha_scale
+        chakra_params[b * 5 + 4] = clamp(base_adv,  0.1, 5.0);  // adv_scale
+    }
+}

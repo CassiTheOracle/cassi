@@ -19,6 +19,7 @@ layout(std430, binding = 0)  buffer Psi          { float psi[]; };
 layout(std430, binding = 7)  buffer ByteEmbed    { float byte_embed[]; };
 layout(std430, binding = 8)  buffer EmbedProj    { float embed_proj[]; };
 layout(std430, binding = 15) buffer ByteIndices  { uint  byte_indices[]; };
+layout(std430, binding = 22) buffer ChakraParams { float chakra_params[]; };
 
 // ─── Workgroup ───────────────────────────────────────────────────────────
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
@@ -33,6 +34,15 @@ void main()
     uint dim   = idx % FIELD_DIM;
 
     uint byte_val = byte_indices[voxel];
+
+    // ── Band lookup ──
+    const int BAND_START[13] = int[](0,2,4,8,14,24,40,66,87,100,113,121,126);
+    int band = 0;
+    for (int b = 0; b < 12; b++) {
+        if (dim >= BAND_START[b] && dim < BAND_START[b+1]) { band = b; break; }
+    }
+    if (dim >= BAND_START[12]) band = 12;
+    float band_amp = chakra_params[band * 5 + 1];  // g_scale as band amplitude multiplier
 
     // Project byte_embed[byte_val] through embed_proj[dim, :]
     // Yang channel (psi_real): byte_embed → embed_proj_y projection (offset 0)
@@ -51,6 +61,6 @@ void main()
     }
 
     uint base = voxel * FIELD_DIM * 2;
-    psi[base + dim * 2]     = real_part;
-    psi[base + dim * 2 + 1] = imag_part;
+    psi[base + dim * 2]     = real_part * band_amp;
+    psi[base + dim * 2 + 1] = imag_part * band_amp;
 }

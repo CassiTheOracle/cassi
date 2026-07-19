@@ -34,6 +34,9 @@ BYTE_EMBED_DIM = 128
 VOXEL_STRIDE = FIELD_DIM * 2  # 256
 STRIDE_W = D  # 16
 STRIDE_H = D * W  # 256
+N_BANDS = 13  # 7 primary + 6 sub-chakra harmonics
+BAND_START = [0, 2, 4, 8, 14, 24, 40, 66, 87, 100, 113, 121, 126]
+
 
 PHI = (1 + math.sqrt(5)) / 2
 PHI_INV = 1.0 / PHI
@@ -107,6 +110,7 @@ class VkQiCube:
         self._init_vulkan()
         self._load_shaders()
         self._create_pipelines()
+        self.buffers = {}
         self._allocate_buffers()
 
         # ── Load spherical neighbor table ──
@@ -117,10 +121,8 @@ class VkQiCube:
                 self._upload('neighbor_table', f.read())
         else:
             print("WARNING: neighbor_table.bin not found — spherical topology disabled")
-
         # ── Initialize embed_proj with Hadamard matrix (deterministic, orthogonal) ──
         def hadamard(n):
-            """Construct n×n Hadamard matrix (n must be power of 2)."""
             if n == 1:
                 return np.array([[1.0]], dtype=np.float32)
             h = hadamard(n // 2)
@@ -133,11 +135,13 @@ class VkQiCube:
 
         # ── Initialize byte_embed (small random for non-trivial generation embeddings) ──
         be = np.random.randn(V, BYTE_EMBED_DIM).astype(np.float32) * 0.1
+
         self._upload('byte_embed', be.tobytes())
 
         # ── Byte prototype table — clustering groups ──
-        # Each byte pulled toward its class prototype (e.g., all lowercase → 'e')
         protos = np.zeros(V, dtype=np.uint32)
+
+        # Each byte pulled toward its class prototype (e.g., all lowercase → 'e')
         protos[97:123]  = 101   # a-z → 'e'
         protos[65:91]   = 69    # A-Z → 'E'
         protos[48:58]   = 48    # 0-9 → '0'
@@ -155,7 +159,7 @@ class VkQiCube:
         self._upload('byte_protos', protos.tobytes())
 
         # ── Initialize PDE params ──
-        init_params = struct.pack('f' * 11,
+        init_params = struct.pack('f' * 14,
             0.01,                        # [0] nu — diffusion
             0.0,                         # [1] hbar
             0.0,                         # [2] mass
@@ -166,8 +170,24 @@ class VkQiCube:
             self._alpha,                 # [7] alpha — self-prediction coupling (0.1)
             0.0,                         # [8] hyper_nu — hyper-viscosity (0=off)
             0.0,                         # [9] alpha_disp — scale-dependent dispersion (0=uniform)
-            0.01)                        # [10] lambda — ε-recovery
+            0.01,                        # [10] lambda — ε-recovery
+            math.exp(-PHI_INV * PHI_INV),            # [11] condensate_blend — φ⁻²-damped IIR blend rate
+            math.exp(-PHI_INV * PHI_INV * PHI_INV),  # [12] boundary_decay — φ⁻³-damped decay
+            0.0)                                    # [13] attention_strength — 0=disabled
         self._upload('params', init_params)
+
+        # ── Initialize new consciousness-framework buffers ──
+        self._fill_buffer('self_condensate', self._buffer_sizes['self_condensate'])
+        self._fill_buffer('boundary_residuals', self._buffer_sizes['boundary_residuals'])
+        self._fill_buffer('qi_grad', self._buffer_sizes['qi_grad'])
+
+        # chakra_params: identity scale (1.0 for all 13 bands × 5 params)
+        cp = np.ones(N_BANDS * 5, dtype=np.float32)
+        self._upload('chakra_params', cp.tobytes())
+
+        # band_phase: φ-spaced initial phases [0, 2π/φ, 4π/φ, ..., 24π/φ] mod 2π
+        bp = np.array([(2.0 * math.pi * c / PHI) % (2.0 * math.pi) for c in range(N_BANDS)], dtype=np.float32)
+        self._upload('band_phase', bp.tobytes())
 
 
     # ── Vulkan init ──
@@ -205,7 +225,9 @@ class VkQiCube:
         base = Path(__file__).parent / 'shaders'
         names = ['gradient_lap', 'nonlinear_step', 'linear_step',
                  'normalize', 'qi_accum', 'self_pred_feedback', 'blend_input',
-                 'embed_field', 'blend_memory']
+                 'embed_field', 'blend_memory',
+                 'breath_update', 'condensate_update', 'qi_grad',
+                 'wu_xing_modulate', 'boundary_update']
         self.spv = {}
         for name in names:
             path = base / f'{name}.spv'
@@ -217,10 +239,9 @@ class VkQiCube:
         pc_range = vk.VkPushConstantRange(
             stageFlags=vk.VK_SHADER_STAGE_COMPUTE_BIT,
             offset=0, size=PUSH_SIZE)
-
-        # Descriptor set layout — one SSBO per binding 0-19 (0-18 existing, 19=field_memory)
+        # Descriptor set layout — one SSBO per binding 0-24
         bindings = []
-        for b in range(20):
+        for b in range(25):
             bindings.append(vk.VkDescriptorSetLayoutBinding(
                 binding=b,
                 descriptorType=vk.VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
@@ -234,10 +255,9 @@ class VkQiCube:
             pPushConstantRanges=[pc_range],
             pSetLayouts=[self.ds_layout])
         self.pipeline_layout = vk.vkCreatePipelineLayout(self.dev, pli, None)
-
         # Create descriptor set
         pool_sizes = [vk.VkDescriptorPoolSize(
-            type=vk.VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, descriptorCount=20)]
+            type=vk.VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, descriptorCount=25)]
         pool = vk.vkCreateDescriptorPool(self.dev,
             vk.VkDescriptorPoolCreateInfo(
                 maxSets=1, pPoolSizes=pool_sizes), None)
@@ -284,7 +304,7 @@ class VkQiCube:
 
             'byte_indices': N_VOXELS * 4,  # binding 15 — per-voxel byte values
             'psi_pre_pde': nv * d * 2 * 4,  # binding 16 — pre-PDE psi snapshot for Qi
-            'params': 11 * 4,  # [11] floats: nu, hbar, mass, g, chi, A_B, adv, alpha, hyper_nu, alpha_disp, lambda
+            'params': 14 * 4,  # [14] floats: nu, hbar, mass, g, chi, A_B, adv, alpha, hyper_nu, alpha_disp, lambda, condensate_blend, boundary_decay, attention_strength
             'byte_embed': V * BYTE_EMBED_DIM * 4,
             'embed_proj': 2 * d * BYTE_EMBED_DIM * 4,  # dual: Yang + Yin projections
             'byte_protos': V * 4,  # byte prototype index per byte (uint32)
@@ -295,6 +315,11 @@ class VkQiCube:
             'voxel_eps_sum': nv * 4,
             'qi_output': (20 + V + V * BYTE_EMBED_DIM) * 4,  # + _pad_proj_center[V*BYTE_EMBED_DIM]
             'field_memory': nv * d * 2 * 4,  # binding 19 — persistent per-voxel memory field
+            'self_condensate': nv * d * 2 * 4,  # binding 20 — thresholded time-averaged field
+            'boundary_residuals': 6 * W * D * d * 2 * 4,  # binding 21 — 6 face buffers
+            'chakra_params': N_BANDS * 5 * 4,  # binding 22 — 13 bands × 5 params
+            'band_phase': N_BANDS * 4,  # binding 23 — per-band breathing phase
+            'qi_grad': N_VOXELS * 4,  # binding 24 — per-voxel Qi gradient magnitude
         }
         self._buffer_sizes = sizes
 
@@ -312,23 +337,24 @@ class VkQiCube:
             required=vk.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                     vk.VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
         self.staging_mem = vk.vkAllocateMemory(self.dev,
-            vk.VkMemoryAllocateInfo(allocationSize=4 * 1024 * 1024,
+            vk.VkMemoryAllocateInfo(allocationSize=8 * 1024 * 1024,
                 memoryTypeIndex=staging_type), None)
         self.staging = vk.vkCreateBuffer(self.dev,
             vk.VkBufferCreateInfo(
-                size=4 * 1024 * 1024,
+                size=8 * 1024 * 1024,
                 usage=vk.VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
                       vk.VK_BUFFER_USAGE_TRANSFER_DST_BIT), None)
         vk.vkBindBufferMemory(self.dev, self.staging, self.staging_mem, 0)
 
-        # Create all SSBOs
         offset = 0
-        self.buffers = {}
+
         for name in ['psi', 'psi_prev', 'grad_h', 'grad_w', 'grad_d', 'lap',
                       'params', 'byte_embed', 'embed_proj', 'neighbor_table',
                       'byte_protos', 'norm_constants', 'accum', 'voxel_energy',
                       'qi_output', 'byte_indices', 'psi_pre_pde', 'voxel_eps_memory',
-                      'voxel_eps_sum', 'field_memory']:
+                      'voxel_eps_sum', 'field_memory',
+                      'self_condensate', 'boundary_residuals', 'chakra_params',
+                      'band_phase', 'qi_grad']:
             sz = sizes[name]
             buf = vk.vkCreateBuffer(self.dev,
                 vk.VkBufferCreateInfo(size=sz,
@@ -343,7 +369,9 @@ class VkQiCube:
                     'params', 'byte_embed', 'embed_proj', 'neighbor_table',
                     'byte_protos', 'norm_constants', 'accum', 'voxel_energy',
                     'qi_output', 'byte_indices', 'psi_pre_pde', 'voxel_eps_memory',
-                    'voxel_eps_sum', 'field_memory']
+                    'voxel_eps_sum', 'field_memory',
+                    'self_condensate', 'boundary_residuals', 'chakra_params',
+                    'band_phase', 'qi_grad']
         writes = []
         for b, name in enumerate(buf_list):
             writes.append(vk.VkWriteDescriptorSet(
@@ -537,11 +565,16 @@ class VkQiCube:
     def ingest_window(self, data, offset, learn=True):
         """Process one 3D window of bytes via Vulkan compute pipeline."""
         window = data[offset:offset + N_VOXELS]
-        # Convert numpy memmap slices to bytes for embedder
+        # 0. Advance per-band breathing phases (before any field ops)
+        self._dispatch('breath_update', make_push(dt=self.dt), N_BANDS)
+
         # 1. Upload byte indices and dispatch embed_field to write psi on GPU
         self._upload('byte_indices', np.frombuffer(window, dtype=np.uint8).astype(np.uint32).tobytes())
         self._dispatch('embed_field', make_push(), N_VOXELS * FIELD_DIM)
 
+        # 1.5. Inject boundary residuals from previous window into psi face voxels
+        self._dispatch('boundary_update', make_push(pass_val=0),
+                       6 * 16 * 16 * FIELD_DIM)
 
         # 2-6. Zero accumulators + PDE + qi_accum + copy psi→psi_prev
         next_b = data[offset + N_VOXELS] if offset + N_VOXELS < len(data) else 0
@@ -567,6 +600,10 @@ class VkQiCube:
             push_mem = make_push(breath_t=self._mem_blend)
             batch.append({'type': 'dispatch', 'name': 'blend_memory',
                           'push': push_mem, 'global_size': N_VOXELS * FIELD_DIM * 2})
+        # 2.6b. Blend self_condensate into psi (slower attractor, pass=1)
+        push_cond = make_push(breath_t=0.03, pass_val=1)
+        batch.append({'type': 'dispatch', 'name': 'blend_memory',
+                      'push': push_cond, 'global_size': N_VOXELS * FIELD_DIM * 2})
         # 2.7. Snapshot post-blend psi for Qi + readout (before PDE decorrelation)
         batch.append({'type': 'copy', 'src': 'psi', 'dst': 'psi_pre_pde', 'size': sz})
 
@@ -597,11 +634,29 @@ class VkQiCube:
         batch.append({'type': 'dispatch', 'name': 'qi_accum',
                       'push': push_qi, 'global_size': N_VOXELS * FIELD_DIM})
 
+        # 4.5. Compute per-voxel Qi gradient for attention modulation
+        batch.append({'type': 'dispatch', 'name': 'qi_grad',
+                      'push': make_push(), 'global_size': N_VOXELS})
+
+
         # 5. Self-predictive feedback: ψ ← ψ + α·P[ψ]
         if self._alpha > 0.0:
             batch.append({'type': 'dispatch', 'name': 'self_pred_feedback',
                           'push': make_push(),
                           'global_size': N_VOXELS * FIELD_DIM})
+
+        # 5.5. Wu Xing dynamic modulation: write chakra_params for next window
+        batch.append({'type': 'dispatch', 'name': 'wu_xing_modulate',
+                      'push': make_push(), 'global_size': 1})
+
+        # 5.6. Accumulate boundary residuals from psi face voxels (pass=1)
+        batch.append({'type': 'dispatch', 'name': 'boundary_update',
+                      'push': make_push(pass_val=1),
+                      'global_size': 6 * 16 * 16 * FIELD_DIM})
+
+        # 5.7. Update self-condensate: IIR-blend psi into thresholded attractor
+        batch.append({'type': 'dispatch', 'name': 'condensate_update',
+                      'push': make_push(), 'global_size': N_VOXELS * FIELD_DIM})
 
 
         # 6.0. Copy psi → field_memory (persistent memory field)
@@ -657,6 +712,13 @@ class VkQiCube:
             dtype=np.uint8).copy()
         for _ in range(num_bytes):
             # Single submission: zero + PDE + qi_accum (GPU samples + learns) + copy
+            # 0a. Advance per-band breathing phases
+            self._dispatch('breath_update', make_push(dt=self.dt), N_BANDS)
+
+            # 0b. Inject boundary residuals from previous iteration into psi face voxels
+            self._dispatch('boundary_update', make_push(pass_val=0),
+                           6 * 16 * 16 * FIELD_DIM)
+
             batch = []
             # 1. Zero accumulators
             batch.append({'type': 'fill', 'buf': 'accum', 'size': 28, 'value': 0})
@@ -673,6 +735,10 @@ class VkQiCube:
                 push_mem = make_push(breath_t=self._mem_blend)
                 batch.append({'type': 'dispatch', 'name': 'blend_memory',
                               'push': push_mem, 'global_size': N_VOXELS * FIELD_DIM * 2})
+            # 1.6b. Blend self_condensate into psi (slower attractor, pass=1)
+            push_cond = make_push(breath_t=0.03, pass_val=1)
+            batch.append({'type': 'dispatch', 'name': 'blend_memory',
+                          'push': push_cond, 'global_size': N_VOXELS * FIELD_DIM * 2})
             # 1.7. Snapshot post-blend psi for Qi + readout (before PDE decorrelation)
             batch.append({'type': 'copy', 'src': 'psi', 'dst': 'psi_pre_pde', 'size': sz})
 
@@ -705,6 +771,10 @@ class VkQiCube:
             batch.append({'type': 'dispatch', 'name': 'qi_accum',
                           'push': push_qi, 'global_size': N_VOXELS * FIELD_DIM})
 
+            # 3.5. Compute per-voxel Qi gradient for attention modulation
+            batch.append({'type': 'dispatch', 'name': 'qi_grad',
+                          'push': make_push(), 'global_size': N_VOXELS})
+
             # 4a. Self-predictive feedback: ψ ← ψ + α·P[ψ]
             if self._alpha > 0.0:
                 batch.append({'type': 'dispatch', 'name': 'self_pred_feedback',
@@ -714,6 +784,19 @@ class VkQiCube:
 
             # 3.5. Copy psi → field_memory (persistent memory field)
             batch.append({'type': 'copy', 'src': 'psi', 'dst': 'field_memory', 'size': sz})
+
+            # 5.5. Wu Xing dynamic modulation: write chakra_params for next window
+            batch.append({'type': 'dispatch', 'name': 'wu_xing_modulate',
+                          'push': make_push(), 'global_size': 1})
+
+            # 5.6. Accumulate boundary residuals from psi face voxels (pass=1)
+            batch.append({'type': 'dispatch', 'name': 'boundary_update',
+                          'push': make_push(pass_val=1),
+                          'global_size': 6 * 16 * 16 * FIELD_DIM})
+
+            # 5.7. Update self-condensate: IIR-blend psi into thresholded attractor
+            batch.append({'type': 'dispatch', 'name': 'condensate_update',
+                          'push': make_push(), 'global_size': N_VOXELS * FIELD_DIM})
 
             # 4. Copy psi → psi_prev for next window
             batch.append({'type': 'copy', 'src': 'psi', 'dst': 'psi_prev', 'size': sz})
@@ -750,7 +833,9 @@ class VkQiCube:
         """Save all persistent state to a .npz file."""
         state = {}
         for name in ['psi', 'psi_prev', 'byte_embed', 'embed_proj',
-                     'params', 'voxel_eps_memory', 'field_memory']:
+                     'params', 'voxel_eps_memory', 'field_memory',
+                     'self_condensate', 'band_phase', 'chakra_params',
+                     'boundary_residuals']:
             state[name] = np.array(
                 self._read_result(name, 0, self._buffer_sizes[name], 'f'),
                 dtype=np.float32
@@ -764,6 +849,11 @@ class VkQiCube:
         state['_dt'] = np.array(self.dt)
         state['_stride'] = np.array(self.stride)
         state['_alpha'] = np.array(self._alpha)
+        # Read params from device to get current values
+        p = np.array(self._read_result('params', 0, 14*4, 'f'), dtype=np.float32)
+        state['_condensate_blend'] = np.array(p[11])
+        state['_boundary_decay'] = np.array(p[12])
+        state['_attention_strength'] = np.array(p[13])
         np.savez_compressed(path, **state)
         print(f'Checkpoint saved: {path}')
 
@@ -771,7 +861,9 @@ class VkQiCube:
         """Load persistent state from a .npz file."""
         state = np.load(path)
         for name in ['psi', 'psi_prev', 'byte_embed', 'embed_proj',
-                     'params', 'voxel_eps_memory', 'field_memory']:
+                     'params', 'voxel_eps_memory', 'field_memory',
+                     'self_condensate', 'band_phase', 'chakra_params',
+                     'boundary_residuals']:
             if name in state:
                 self._upload(name, state[name].tobytes())
         self.step_count = int(state['_step_count'])
@@ -781,10 +873,13 @@ class VkQiCube:
         self.qi_target = float(state['_qi_target'])
         self.lr = float(state['_lr'])
         self.dt = float(state['_dt'])
+        # Load params[7]=alpha and params[11-13] in one upload
         self._alpha = float(state.get('_alpha', PHI_INV))
-        # Sync params[7] with self._alpha in case a loaded checkpoint has different alpha
-        p = np.array(self._read_result('params', 0, 44, 'f'), dtype=np.float32)
+        p = np.array(self._read_result('params', 0, 14*4, 'f'), dtype=np.float32)
         p[7] = self._alpha
+        p[11] = float(state.get('_condensate_blend', math.exp(-PHI_INV * PHI_INV)))
+        p[12] = float(state.get('_boundary_decay', math.exp(-PHI_INV * PHI_INV * PHI_INV)))
+        p[13] = float(state.get('_attention_strength', 0.0))
         self._upload('params', p.tobytes())
         self.stride = int(state['_stride'])
         print(f'Checkpoint loaded: {path} (step={self.step_count})')
