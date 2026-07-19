@@ -641,7 +641,7 @@ func _physics_step() -> void:
 
 	_rd.compute_list_end()
 	_rd.submit()
-	_rd.sync()  # MUST sync on local RD before next submit
+	# NO SYNC — sync only before readbacks in _render_frame()
 
 func _make_render_textures() -> void:
 	_rt_size = Vector2i(512, 512)
@@ -682,11 +682,11 @@ func _render_frame() -> void:
 
 	# Read instance buffer from GPU to PackedFloat32Array for MultiMesh
 	if _mm_buf.is_valid() and N_particles > 0 and _rb_counter % (RB_SKIP + 1) == 0:
+		_rd.sync()  # sync only when we actually read back
 		var inst_data = _rd.buffer_get_data(_mm_buf, 0, N_particles * 64)
 		if inst_data.size() > 0:
-			_mm_data_f32 = inst_data.to_float32_array()  # member var, avoids local temp
+			_mm_data_f32 = inst_data.to_float32_array()
 			_mm.buffer = _mm_data_f32
-			# Diagnostic: log first 3 instances to verify format
 			if _step_count == 1 and _mm_data_f32.size() >= 48:
 				for inst_idx in range(min(3, N_particles)):
 					var b = inst_idx * 16
@@ -697,6 +697,7 @@ func _render_frame() -> void:
 	# Throttled diagnostics readback (every 60 steps)
 	var q_guard = (_step_count % 60 == 0)
 	if q_guard and _field_q.is_valid():
+		_rd.sync()
 		var q_data = _rd.buffer_get_data(_field_q, 0, grid_N * grid_N * grid_N * 4)
 		if q_data.size() > 0:
 			var qf = q_data.to_float32_array()
@@ -711,9 +712,10 @@ func _render_frame() -> void:
 			_render_particles()
 		1:  # Field mode
 			_render_field_slice()
-		2:  # Black hole mode
+		2:  # Black hole mode — particles + BH formation, lensing only when BHs exist
 			_render_particles()
-			_render_bh_lensing()
+			if _q_mean > 0.0:
+				_render_bh_lensing()
 		3:  # Cosmology mode (particles + expanding field)
 			_render_particles()
 
