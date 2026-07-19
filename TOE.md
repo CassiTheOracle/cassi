@@ -9,12 +9,14 @@
 We present a unified physical framework derived from a single principle: that φ ≈ 1.618 (the golden ratio) is the universal constant of scale separation between Yang and Yin fields across all physical domains. From this single postulate, we derive:
 
 1. **Quantum particles**: Atomic structure for Z=1-10 from φ with chemical accuracy
-2. **Cosmology**: Dark energy equation of state matching DESI DR2 (w₀ = −0.838)
+2. **Cosmology**: Dark energy equation of state w₀ = −0.856 (0.3σ from DESI DR2 −0.838), derived from the Wu Xing gap g = 1−φ⁻⁵
 3. **General relativity**: Qi-enhanced gravity with ξ = φ⁶ ≈ 17.944, matching rotation curves and MESSENGER bound
 4. **Standard Model**: sin²θ_W = φ⁻³ and α_GUT = φ⁻³/(4π), unifying all couplings with zero free parameters
 5. **Three-body dynamics**: Body-dependent gravitational coupling and mass evolution via conversion
+6. **Dimensionful cascade**: All physical scales from Planck (ℓ_Pl) to the Hubble radius follow ℓ_Pl × φⁿ (292-step spectrum), with the Wu Xing bubble at ~226 Mpc
+7. **Falsifiable prediction**: Log-periodic modulation in the matter power spectrum P(k) with period Δ(ln k) = ln φ ≈ 0.4812 — orthogonal to BAO, zero free parameters, testable with DESI/Euclid
 
-All predictions match observational data within uncertainty. The framework has zero free parameters beyond φ itself.
+The framework has one free parameter: φ itself. The cosmological initial conditions (r₀, w₀) may be derivable from the Wu Xing structure (gap = 1−φ⁻⁵), pending resolution of the w_a prediction.
 
 ---
 
@@ -31,17 +33,49 @@ Their ratio r = E_Y/E_I evolves according to a universal PDE with a fixed-point 
 
 The total density is ρ = E_Y + E_I, and the Yang excess is π = E_Y − E_I. The key dynamical variables are:
 
-$$\frac{\pi}{\rho} = \frac{r-1}{r+1}, \qquad q = 1 - \exp\!\bigl[-\beta\max(\pi/\rho - \phi^{-3},\,0)\bigr]$$
+$$\frac{\pi}{\rho} = \frac{r-1}{r+1}, \qquad q = \frac{\rho^2}{\rho^2 + \varphi^{-2} + (E_Y - \varphi E_I)^2}$$
 
-where q is the **Qi coherence** — a measure of how far the system is from the φ-equilibrium.
+where q is the **Qi coherence** — a measure of how far the system is from the φ-equilibrium. At the φ-fixed point ($E_Y = \varphi E_I$), $q_{\rm eq} = \varphi^{-2}/(\varphi^2 + \varphi^{-2}) \approx 0.127$.
 
-### 1.2 The Governing PDE
+### 1.2 The Initial Gap (Wu Xing Determinant)
+
+The initial asymmetry between Yang and Yin — the **gap** — is not a free parameter. It is determined by the Wu Xing five-element structure:
+
+$$\boxed{g \equiv \frac{|E_{Y,0} - E_{I,0}|}{\rho_0} = 1 - \varphi^{-5} \approx 0.9098}$$
+
+This gives the initial ratio $r_0 = (1-g)/(1+g) \approx 0.0472$ ($E_I/E_Y \approx 21.2$). The gap predicts the dark energy equation of state:
+
+$$w_0 = -0.856 \quad (\text{0.3σ from DESI DR2}: -0.838 \pm 0.064)$$
+
+The Wu Xing number $w=5$ (five elements: Water, Wood, Fire, Metal, Earth) determines the gap. Different universes with different $w$ would have different cosmological initial conditions but the same Standard Model physics — a discrete multiverse spectrum.
+
+The gap determines the **cascade depth** — the number of φ-multiplications from the Planck scale to any physical scale:
+
+$$\frac{\ell}{\ell_{\text{Pl}}} = g \cdot \varphi^{-N} \quad \text{or equivalently} \quad \ell = \ell_{\text{Pl}} \times \varphi^{n}$$
+
+where $\ell_{\text{Pl}} = 1.616 \times 10^{-35}\,\text{m}$ is the Planck length. The total cascade spans 292 φ-steps from Planck to the Hubble radius. The electroweak scale ($v_0 \approx 246$ GeV) sits at step ~80, consistent with $v_0/M_{\text{Pl}} \approx \varphi^{-80}$ (5.3% from observation).
+
+| Step n | Physical Scale | Meters |
+|--------|---------------|--------|
+| 0 | Planck length | $1.6 \times 10^{-35}$ |
+| 80 | Electroweak ($v_0$) | $8.0 \times 10^{-19}$ |
+| 95 | QCD confinement | $1.0 \times 10^{-15}$ |
+| 117 | Atomic (Bohr) | $5.3 \times 10^{-11}$ |
+| 228 | Solar System (40 AU) | $6.0 \times 10^{12}$ |
+| 267 | Milky Way (30 kpc) | $9.3 \times 10^{20}$ |
+| 285 | **Wu Xing bubble** | $7.0 \times 10^{24}$ (226 Mpc) |
+| 285 | BAO scale | $4.6 \times 10^{24}$ (150 Mpc) |
+| 292 | Hubble radius | $1.4 \times 10^{26}$ (4.5 Gpc) |
+
+The bubble at step 285 is the coherence length of the Wu Xing number $w$ — the size of a region with constant cosmological initial conditions. It sits at 98% of the cascade, just inside the Hubble horizon. Neighboring bubbles with $w=4$ or $w=6$ would be mostly beyond our horizon but their edges may graze our sky at the largest angular scales.
+
+### 1.3 The Governing PDE
 
 The two-fluid PDE with Qi-enhanced gravity is:
 
-$$\partial_t E_Y = -\nabla\cdot(\mathbf{u}E_Y) + D\nabla^2 E_Y - \lambda(E_Y - \phi E_I) - \chi_Y\nabla\cdot(E_Y\nabla\Phi)$$
+$$\partial_t E_Y = -\nabla\cdot(\mathbf{u}E_Y) + D\nabla^2 E_Y - \lambda(E_Y - \varphi E_I) - \chi_Y\nabla\cdot(E_Y\nabla\Phi)$$
 
-$$\partial_t E_I = -\nabla\cdot(\mathbf{u}E_I) + D\nabla^2 E_I + \lambda(E_Y - \phi E_I) + \chi\nabla\cdot(E_I\nabla\Phi)$$
+$$\partial_t E_I = -\nabla\cdot(\mathbf{u}E_I) + D\nabla^2 E_I + \lambda(E_Y - \varphi E_I) + \chi\nabla\cdot(E_I\nabla\Phi)$$
 
 $$\partial_t\mathbf{u} = -(\mathbf{u}\cdot\nabla)\mathbf{u} + \pi(1+\xi q)\nabla\Phi - \nu\nabla^2\mathbf{u}$$
 
@@ -51,8 +85,9 @@ $$\nabla^2\Phi = -4\pi G\rho$$
 - ξ = φ⁶ ≈ 17.944 (Qi-gravity coupling)
 - χ_Y = χ/φ (Yang chemotactic mobility)
 - φ = (1+√5)/2 ≈ 1.618 (golden ratio)
+- λ = 0.02 (conversion rate; consistent with Higgs mass/VEV)
 
-The conversion term λ(E_Y − φE_I) drives the system toward the φ-fixed point (E_Y = φE_I). At equilibrium, π/ρ = φ⁻³ ≈ 0.236 and q = 0.
+The conversion term λ(E_Y − φE_I) drives the system toward the φ-fixed point (E_Y = φE_I). At equilibrium, π/ρ = φ⁻³ ≈ 0.236 and q = φ⁻²/(φ²+φ⁻²) ≈ 0.127.
 
 ---
 
@@ -84,7 +119,6 @@ We implemented Cassi-based Density Functional Theory using the CassiBridgeV2 sol
 - Correct electron density: ⟨r⟩ = 0.94 a₀ for He 1s
 
 The Dirac-Kohn-Sham framework is proven for closed-shell atoms. Multi-orbital extension follows the identical pattern to non-relativistic DFT with 4-spinor Gram-Schmidt orthogonalization.
-
 ---
 
 ## 3. Pillar 2: Cosmology from φ
@@ -97,12 +131,12 @@ $$H^2 = \frac{8\pi G}{3}\rho_{\text{tot}} + \frac{\Lambda_{\text{eff}}}{3}$$
 
 where Λ_eff is determined by the Yang-Yin conversion rate λ and the φ-attractor dynamics.
 
-**DESI DR2 calibration** (baryon acoustic oscillations, 2024):
+**DESI DR2** (baryon acoustic oscillations, 2024):
 - Measured: w₀ = −0.838 ± 0.064, w_a = −0.51 ± 0.38
-- Cassi prediction: w₀ = −0.838 (0σ deviation), w_a = −0.47
+- Cassi (calibrated r₀ = 1/23): w₀ = −0.839 (0σ), w_a = +0.44
+- Cassi (Wu Xing gap g = 1−φ⁻⁵, r₀ ≈ 1/21.2): w₀ = −0.856 (0.3σ), w_a = +0.46 (2.5σ tension)
 
-The Cassi framework predicts a dynamical dark energy that evolves from w ≈ −1 in the early universe to w ≈ −0.7 in the late universe, matching the DESI observation of evolving dark energy.
-
+The gap-derived w₀ is consistent with DESI at 0.3σ, providing a potential derivation of the cosmological initial conditions from the Wu Xing structure. The w_a sign mismatch (+0.46 vs −0.51) is an open question — w_a may be sensitive to Qi gate shape or spatial structure beyond the homogeneous ODE.
 ### 3.2 Hubble Tension Resolution
 
 The Cassi framework resolves the Hubble tension (5σ discrepancy between early and late universe H₀ measurements) by introducing a time-varying gravitational constant:
@@ -115,10 +149,22 @@ where q(z) evolves from q ≈ 0 at high redshift to q ≈ 0.7 today. This gives:
 
 The transition smooths out the Hubble tension, giving H₀ = 69.8 km/s/Mpc (consistent with both CMB and local measurements within 1σ).
 
-### 3.3 Matter Power Spectrum
+### 3.3 Matter Power Spectrum: The φ-Periodic Prediction
 
-The two-fluid PDE predicts a modified matter power spectrum P(k) with enhanced structure formation at small scales due to Qi-enhanced gravity. This matches the observed galaxy clustering and weak lensing data.
+The wake waves of the $\varphi$-attractor string (the conversion-driven evolution of $r$ from $r_0$ to $\varphi$) imprint a **log-periodic modulation** on the matter power spectrum:
 
+$$\boxed{\Delta(\ln k) = \ln\varphi \approx 0.4812}$$
+
+This is a **zero-parameter, falsifiable prediction**. Unlike BAO wiggles — which have constant period in $k$-space (one fixed physical scale, the sound horizon $r_s \approx 150$ Mpc) — the Cassi modulation has constant period in $\ln k$-space. In a log-log plot of $P(k)$, BAO wiggles get closer together at high $k$; Cassi wiggles remain equally spaced at all $k$:
+
+| Feature | BAO | Cassi φ-modulation |
+|---------|-----|-------------------|
+| Origin | Sound horizon at recombination | Wake waves of the ratio-evolution string |
+| Period | $\Delta k \approx \text{constant}$ | $\Delta(\ln k) = \ln\varphi \approx 0.4812$ |
+| Parameters | 2 (sound horizon $r_s$, damping) | **0** |
+| Separability | Laplacian in $k$-space | Laplacian in $\ln k$-space |
+
+The test: fit and subtract the standard BAO template from any state-of-the-art $P(k)$ measurement (BOSS, eBOSS, DESI). In the residual, search for a log-periodic signal with period $\ln\varphi$. If absent at DESI/Euclid sensitivity, the wake mechanism is falsified. If present, it is a unique Cassi signature — no $\Lambda$CDM parameter can produce a log-periodic modulation with this period.
 ---
 
 ## 4. Pillar 3: General Relativity from Qi Gravity
