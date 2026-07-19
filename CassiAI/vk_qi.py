@@ -564,6 +564,53 @@ class VkQiCube:
         vk.vkQueueWaitIdle(self.queue)
         vk.vkFreeCommandBuffers(self.dev, self.cpool, 1, [cmd])
 
+
+    def run_pde(self, k_steps=5, sigma=0.0, dt=None):
+        """Run the PDE pipeline for k Strang steps with optional noise.
+
+        External scripts call this to use the PDE as a physics-informed
+        denoising/generative kernel without byte ingestion.
+
+        Args:
+            k_steps: number of Strang-split PDE steps (default 5).
+            sigma: noise level for field-diffusion. 0 = no noise.
+            dt: timestep override (None = use self.dt).
+        """
+        if dt is None:
+            dt = self.dt
+        batch = []
+        # ── Noise injection ──
+        if sigma > 0.0:
+            p = np.array(self._read_result('params', 0, 15*4, 'f'), dtype=np.float32)
+            p[14] = sigma
+            self._upload('params', p.tobytes())
+            batch.append({'type': 'dispatch', 'name': 'noise_field',
+                          'push': make_push(), 'global_size': N_VOXELS * FIELD_DIM * 2})
+        # ── PDE integration (k Strang steps) ──
+        for step in range(k_steps):
+            bt = self.breath_phase + step * 0.2
+            push_pde = make_push(dt=dt, breath_t=bt)
+            batch.append({'type': 'dispatch', 'name': 'gradient_lap',
+                          'push': push_pde, 'global_size': N_VOXELS * FIELD_DIM})
+            batch.append({'type': 'dispatch', 'name': 'nonlinear_step',
+                          'push': push_pde, 'global_size': N_VOXELS * FIELD_DIM})
+            batch.append({'type': 'dispatch', 'name': 'gradient_lap',
+                          'push': push_pde, 'global_size': N_VOXELS * FIELD_DIM})
+            batch.append({'type': 'dispatch', 'name': 'linear_step',
+                          'push': push_pde, 'global_size': N_VOXELS * FIELD_DIM})
+            batch.append({'type': 'dispatch', 'name': 'gradient_lap',
+                          'push': push_pde, 'global_size': N_VOXELS * FIELD_DIM})
+            batch.append({'type': 'dispatch', 'name': 'nonlinear_step',
+                          'push': push_pde, 'global_size': N_VOXELS * FIELD_DIM})
+            push_norm = make_push(pass_val=0)
+            batch.append({'type': 'dispatch', 'name': 'normalize',
+                          'push': push_norm, 'global_size': N_VOXELS})
+            push_norm2 = make_push(pass_val=1)
+            batch.append({'type': 'dispatch', 'name': 'normalize',
+                          'push': push_norm2, 'global_size': N_VOXELS})
+        self._submit_batch(batch)
+        self.breath_phase = (self.breath_phase + k_steps * 0.2) % (2 * math.pi)
+
     def ingest_window(self, data, offset, learn=True):
         """Process one 3D window of bytes via Vulkan compute pipeline."""
         window = data[offset:offset + N_VOXELS]

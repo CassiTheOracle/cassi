@@ -228,7 +228,7 @@ void main()
     float att = (1.0 / (1.0 + em)) / sum_att;
     uint vbase = v * NUM_DIMS * 2;
     for (uint d = 0u; d < NUM_DIMS; d++) {
-      float val = psi[vbase + d * 2];  // denoised field (post-PDE)
+      float val = (params[14] > 0.0) ? psi[vbase + d * 2] : psi_pre_pde[vbase + d * 2];
       field_state[d] += att * ((val == val) ? val : 0.0);
     }
   }
