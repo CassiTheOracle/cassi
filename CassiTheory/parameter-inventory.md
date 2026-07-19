@@ -369,6 +369,7 @@ any Cassi simulation. They are not fixed by the theory.
 | $\text{grav\_sigma}$ | $0.2$ | **N** | $|\nabla\Phi|$ saturation for N-body |
 | $h_{\text{smooth}}$ | $0.1$ | **N** | Hubble parameter EMA smoothing |
 | $D$ (diffusion) | $0.001$ | **N** | Can be set to zero (energy-conserving) |
+| $\tau_{\text{qi}}$ (IIR memory) | $\varphi^{-1} \approx 0.618$ | **N** | Qi memory EMA timescale (reduced in slow regimes) |
 
 ---
 
