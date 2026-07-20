@@ -259,7 +259,7 @@ matching observed mass-squared differences.
 | $\alpha_{\text{GUT}}$ | $\varphi^{-3}/(4\pi)$ | Yang fraction / $4\pi$ | GUT coupling |
 | $w_0$ | $-0.838$ | From $\lambda$ and $\varphi$ | DESI DR2 |
 | $\delta_{\text{CP}}$ | $\pi \cdot \varphi^{-2} \approx 1.199$ | CKM hierarchy via Yukawa diagonalisation | CP phase (CKM) |
-| $\lambda$ | $0.1$ | PDE conversion rate | Universal (calibrated) |
+| $\lambda$ | $3\varphi^2 H_0$ | PDE conversion rate; cancels from $r(a)$ dynamics | Derived |
 
 ---
 
