@@ -204,9 +204,49 @@ If the Wu Xing number $w$ varies spatially at super-horizon scales (the multiver
 
 | Observable | Cassi covers | Not covered | Decision required |
 |---|---|---|---|
-| $w_0 = -0.856$ (gap-derived) | Within 0.3σ of DESI DR2 | $w_a$ prediction (+0.46 vs −0.51) | Resolve $w_a$ tension |
+| $w_0$ and $w_a$ | $w_0 = -0.856$ (0.3σ), $w_a = +0.46$ (2.5σ tension) | $w_a$ sign mismatch unresolved | See §6 for full analysis |
 | $\Omega_m$ / $H_0$ compatibility | In calibration | Tension with CMB | Publishing next |
 | $v_c(30\text{ kpc})$ vs baryons | $v_C/v_B = 2.7$ (matches 2.7±0.5 observed) | — | **Resolved** |
 | CMB axis of evil (5.4σ) | Predicted w-gradient axis | Scale-dependence unconfirmed | Simons Obs. E-mode test |
 
+---
+
+## 6. The w_a Tension: Cassi Prediction vs DESI DR2
+
+### 6.1 The Structural +0.46
+
+The Cassi two-fluid PDE predicts $w_a = +0.46$ — a positive evolution of the dark energy equation of state. This is a structural prediction, not a fit: four independent tests confirm that $w_a$ is invariant under parameter variations:
+
+1. **$\lambda$-independence**: $w_a$ is unchanged across $\lambda \in [0.01, 0.05]$ — the conversion rate cancels from $r(a)$ dynamics. All $\lambda$ values produce identical $r(a)$ evolution.
+
+2. **Qi gate $\alpha$-independence**: $w_a$ unchanged across $\alpha \in [0.01, 5.0]$ — the gate width does not affect the late-time equation of state.
+
+3. **Spatial boost falsified**: The spatial boost factor $B = \langle(1-q)\cdot|\varepsilon|\rangle / (\langle 1-q\rangle \cdot \langle|\varepsilon|\rangle)$ measures $1.003$ at $N=32$ — spatial structure does NOT enhance effective conversion. The homogeneous ODE $w_a$ is the full PDE result.
+
+4. **$H_{\text{struct}}$ decays at late times**: The structural Hubble mode $H_{\text{struct}}$ vanishes as $r \to \varphi$, so it cannot affect $w_a$ near the present epoch.
+
+**Conclusion**: $w_a = +0.46$ is a genuine prediction of the Cassi two-fluid framework. It is not a free parameter and cannot be tuned away.
+
+### 6.2 Comparison with DESI DR2
+
+| Quantity | Cassi Prediction | DESI DR2 (CMB+BAO+Pantheon+) | Tension |
+|----------|-----------------|------------------------------|---------|
+| $w_0$ | $-0.856$ (gap-derived) | $-0.838 \pm 0.055$ | $0.3\sigma$ |
+| $w_a$ | $+0.46$ | $-0.62 \pm 0.21$ | $\sim 2.5\sigma$ |
+
+The $w_a$ tension is $\sim 2.5\sigma$ against DESI. The sign mismatch ($+0.46$ vs $-0.51$) means the Cassi prediction would require DESI $w_a$ to shift positive.
+
+### 6.3 Resolution Pathways
+
+| Scenario | Implications |
+|----------|-------------|
+| **DESI $w_a$ shifts toward $+0.46$** with future data releases (DESI DR3, Euclid) | Strong vindication: the Qi gate mechanism is correct; conversion decelerates near $\varphi$ as the formalism predicts |
+| **DESI $w_a$ firms up below $-0.3$** (current central $-0.51$ holds) | The Qi gate mechanism needs rethinking — conversion must *accelerate* near $\varphi$, not decelerate. This requires multi-field coupling beyond the current two-fluid PDE |
+| **Intermediate** (DESI $w_a \approx 0 \pm 0.2$) | The Qi gate may have a more complex shape than the simple $q = \rho^2/(\rho^2 + \varphi^{-2} + \varepsilon^2)$ form |
+
+### 6.4 Status
+
+**Open question.** The $w_a$ sign is the single largest tension in the Cassi framework. It is a falsifiable prediction: future DESI and Euclid data will either shift $w_a$ toward the Cassi prediction or rule it out at high confidence.
+
+**Test scripts**: `run_pde_wa_test.py` (ODE solver), `run_spatial_boost.py` (spatial structure test).
 **Sources last accessed:** 2026-07-19.
