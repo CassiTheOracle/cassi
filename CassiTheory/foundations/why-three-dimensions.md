@@ -100,20 +100,33 @@ $\varphi$-scaled spacing, reflect, and feed back on their source. Because the
 two fluids are perpendicular axes of the doublet, their wake systems form **two
 mutually perpendicular interference patterns** filling the bubble.
 
-### 3.2 The bounded envelope is an oblate spheroid
+### 3.2 The bounded envelope is a triaxial spheroid
 
 A bubble occupies the interval between two adjacent cascade steps. Wake energy
 emitted while the string traverses that interval propagates a finite distance
 before the bubble's initial conditions freeze (the Qi gate engages at
-$r = \varphi^{-1}$, $a \approx 0.051$). The reachable region — extended along
-the doublet plane, bounded above and below along the string by the step
-separation — is an **oblate spheroid**: flattened along the cascade axis,
-extended across the two fluid axes. The universe is not a sphere on the string;
-it is a lens.
+$r = \varphi^{-1}$, $a \approx 0.051$). The reachable region is bounded along
+three independent axes:
+
+- **Yang axis**: extended — Yang is the dominant, expansive fluid component,
+  and the bubble extends furthest in this direction.
+- **Yin axis**: contracted — Yin is subdominant and contractive; the bubble's
+  reach in the Yin direction is shorter than in the Yang direction by the
+  factor set by their local density ratio at freeze-out.
+- **String axis**: bounded — the cascade-step separation provides a hard cap.
+
+The result is a **triaxial spheroid**: three unequal axes, each with a distinct
+physical origin. In the Yang-Yin plane the cross-section is elliptical with the
+Yang axis longer than the Yin axis. Combined with the short string axis, the
+bubble is flattened — but the flattening is not a single midplane: it is the
+asymmetric extension in the doublet plane (Yang-dominated) against the cascade
+confinement (string). The universe on the string is a lens whose two diameters
+are unequal, with the longer one marked by Yang.
 
 The Wu Xing bubble (step 285, $\sim 191$ Mpc comoving, 98% of the observable
-volume) thereby acquires a *shape* for the first time, and with it a
-**preferred geometric axis**: the short axis is the string direction.
+volume) thereby acquires a *shape* for the first time: three axes, and with them
+**two preferred geometric directions**: the short axis (string) and the long
+in-plane axis (Yang).
 
 ### 3.3 Flattened in-universe structure
 
@@ -128,6 +141,54 @@ threshold $\theta_{\text{cond}}$ is crossed there first (catalytic template
 mechanism). Matter therefore forms preferentially on a **plane**, not
 uniformly through the spheroid: flattened in-universe structure is the
 interference pattern of the two fluids, frozen in by condensation.
+
+> **Forward reference.** §4 establishes that the two-fluid conversion coupling
+> is **anti-phase** (confirmed by PDE structure and W1 experiment). Under
+> anti-phase coupling the midplane is a *node* (destructive interference),
+> with the first antinodes displaced symmetrically to either side as paired
+> sheets. The flattened-structure argument transfers to those antinodal planes;
+> the paired-sheet morphology (§4.2, §4.4) is the anti-phase analogue of the
+> structure described here.
+
+### 3.4 Yang dominance as the flattening mechanism
+
+A complementary mechanism operates at the level of the doublet axes themselves,
+independent of wake interference. The two fluids are not symmetric: Yang is the
+expansive, driving component. In the PDE's velocity equation the force is
+$\pi \nabla \Phi$ where $\pi = E_Y - E_I$ — the *Yang excess* drives the flow.
+Throughout most of cosmic history conversion feeds Yang (while $r < \varphi$),
+and at freeze-out ($r \to \varphi$, post-pinch) the bubble's doublet-plane
+cross-section is Yang-dominated.
+
+If the two axes carry different energies — $E_Y > E_I$ — the field extends
+further along the stronger axis. The bubble's cross-section in the doublet
+plane is elliptical, not circular, with the Yang axis longer than the Yin
+axis by the factor set by their local ratio at freeze-out ($r \approx \varphi$).
+Combined with the string-axis bound (§3.2), the bubble is a triaxial spheroid
+flattened by Yang dominance: the Yin axis is contracted, the string axis is
+bounded, and the Yang axis carries the longest extent.
+
+This makes a **parameter-free prediction**: the Yang/Yin axis ratio in the
+bubble's doublet-plane cross-section should track $r$ at freeze-out. With
+$r \to \varphi$ as the cosmological attractor, the ellipticity is set by the
+same constant that governs every other scale in the framework. The predicted
+anisotropy amplitude feeds directly into the W2 large-scale structure
+measurement (§5).
+
+**Relation to §6.1.** The Yang-dominance mechanism advances the open
+"internal→physical axis map" derivation: it specifies that the SO(2) doublet's
+rotational symmetry in field space is broken by Yang's energy dominance, which
+distinguishes the Yang axis as the long physical axis of the bubble. Combined
+with the string axis (§3.2), all three axes acquire distinct physical
+identities: string = bounded, Yang = extended, Yin = contracted. The
+degeneracy-breaking is not assumed — it follows from $E_Y > E_I$ as a
+dynamical fact of the post-pinch attractor.
+
+The Yang-dominance mechanism and the interference mechanism (§3.3, §4) are
+complementary: Yang dominance sets the **global triaxial shape** of the bubble;
+anti-phase conversion sets the **internal paired-sheet morphology** of
+structure within it. The bubble is flat — not by cancellation at a midplane,
+but because one fluid wins.
 
 ---
 
