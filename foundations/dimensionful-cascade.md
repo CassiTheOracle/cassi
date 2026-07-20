@@ -155,7 +155,7 @@ The known $\varphi$-exponents in the Cassi framework correspond to specific acti
 The bubble at step 285 is the coherence length of the Wu Xing number $w$ — the scale over which the cosmological initial conditions remain constant. It is set by the comoving horizon at the epoch when the Qi gate first engages ($r = \varphi^{-1}$, $a \approx 0.051$, $z \approx 19$).
 
 **Bubble properties:**
-- Diameter: $\sim 191$ Mpc (comoving) — corrected from earlier 226 Mpc estimate using exact $\varphi$-power computation
+- Diameter: $\sim 191$ Mpc (comoving)
 - Position in cascade: step 285 of 292 (98%)
 - Contains: $\sim 10^6$ Milky-Way-sized galaxies
 - Neighboring bubbles: $w=4$ or $w=6$, separated by $\varphi$-scaled voids
