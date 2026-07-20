@@ -41,7 +41,11 @@ The sixth power of $\varphi$ encodes the **degrees of freedom** through which th
 Qi field couples to spacetime curvature:
 
 - **2 field components**: the EY (Yang) and EI (Yin) aspects of the Qi field
-- **3 spatial dimensions**: the three directions in which curvature propagates
+- **3 spatial dimensions**: the three directions in which curvature propagates —
+  currently an **input**, not a derivation. A candidate derivation
+  ($3 = 2$ SO(2) doublet axes $+ 1$ cascade/string axis) is proposed in
+  `foundations/why-three-dimensions.md`; pending its validation, this is the
+  framework's last imported integer.
 - **Total**: $2 \times 3 = 6$ degrees of freedom, each contributing a factor of $\varphi$
 
 The Fibonacci decomposition $\varphi^6 = \varphi^5 + \varphi^4$ carries additional meaning:
