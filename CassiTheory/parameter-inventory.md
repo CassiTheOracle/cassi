@@ -286,36 +286,40 @@ beta function and the GUT scale.
 
 ### 4.4 $\alpha_s(M_Z)$ — The Strong Coupling
 
-Following the same RGE as above, from $\alpha_{\text{GUT}}$ to $M_Z$:
+The Cassi GUT coupling is $\alpha_{\text{GUT}}^{-1} = 4\pi/\varphi^{-3} \approx 53.2$.
+The RGE running from $M_{\text{GUT}}$ down to $M_Z$:
 
-$$\alpha_s^{-1}(M_Z) = \frac{4\pi}{\varphi^{-3}} + \frac{b_s}{2\pi}
-                       \ln\frac{M_{\text{GUT}}}{M_Z}$$
+$$\alpha_s^{-1}(M_Z) = \alpha_{\text{GUT}}^{-1} - \frac{b_s}{2\pi} \ln\frac{M_{\text{GUT}}}{M_Z}$$
 
-With the SM $b_s = 7$ and $M_{\text{GUT}} \approx 10^{16}$ GeV:
+with $\ln(M_{\text{GUT}}/M_Z) = \ln(10^{16}/91.2) \approx 32.3$.
 
-$$\alpha_s^{-1}(M_Z) = 53.2 + \frac{7}{2\pi}\ln\frac{10^{16}}{91.2}
-                     = 53.2 + 1.114 \times 37.8
-                     \approx 95.3$$
+With the SM $b_s = 7$ ($n_f = 6$):
 
-$$\alpha_s(M_Z) \approx 0.0105$$
+$$\alpha_s^{-1}(M_Z) = 53.2 - \frac{7}{2\pi} \times 32.3 = 53.2 - 36.0 = 17.2$$
 
-This is $11\times$ smaller than the observed $0.118$. The discrepancy is
-resolved if the theory between $M_{\text{GUT}}$ and $M_Z$ is supersymmetric
-(MSSM, $b_s = -3$) or contains additional colored particles:
+$$\alpha_s^{\text{SM}}(M_Z) = \frac{1}{17.2} \approx \mathbf{0.058}$$
 
-$$\alpha_s^{-1}(M_Z) = 53.2 + \frac{-3}{2\pi}\ln\frac{10^{16}}{91.2}
-                     = 53.2 - 0.477 \times 37.8
-                     \approx 35.2$$
+This is $2.0\times$ smaller than the observed $0.118$ (not $11\times$ as
+previously stated — the earlier version used the wrong RGE sign and an
+incorrect $\ln$ factor of 37.8). The required effective beta function for
+matching is:
 
-$$\alpha_s(M_Z) \approx 0.0284$$
+$$b_{\text{eff}} = \frac{(53.2 - 8.47) \times 2\pi}{32.3} = \mathbf{8.70}$$
 
-Still $4\times$ smaller than $0.118$. The convergence requires $b_s \approx
--0.2$ (fine-tuned cancellations) or additional threshold corrections from
-Kaluza-Klein modes or string states.
+The shift from the SM: $\Delta b = b_{\text{eff}} - b_{\text{SM}} = 1.70$.
 
-**Status:** $\alpha_s(M_Z)$ cannot be derived from $\varphi$ alone. The
-running depends on the full particle content between $M_{\text{GUT}}$ and
-$M_Z$, which $\varphi$ does not determine.
+This modest shift requires approximately **1 vector-like colored fermion
+pair** ($\Delta b = +4/3$) plus **2 colored scalars** ($\Delta b = +1/3$),
+or **3 KK levels** of SM fields. The particle content between $M_Z$ and
+$M_{\text{GUT}}$ is not determined by $\varphi$ alone — it is an additional
+specification of the theory.
+
+**Status:** $\alpha_s(M_Z)$ is $2.0\times$ too small given SM particle content.
+The gap is narrowed from the previously claimed $11\times$ (which used a sign
+error in the RGE). Closing the remaining $2.0\times$ gap requires $\Delta b =
+1.70$ from new physics thresholds between $M_Z$ and $M_{\text{GUT}}$. The
+specific particle content is not derivable from $\varphi$ alone. See
+`foundations/deriving-remaining-gaps.md` §1 for the full analysis.
 
 ### 4.5 What IS Derivable from $\varphi$
 

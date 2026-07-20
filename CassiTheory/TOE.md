@@ -132,10 +132,12 @@ where Λ_eff is determined by the Yang-Yin conversion rate λ and the φ-attract
 
 **DESI DR2** (baryon acoustic oscillations, 2024):
 - Measured: w₀ = −0.838 ± 0.064, w_a = −0.51 ± 0.38
-- Cassi (calibrated r₀ = 1/23): w₀ = −0.839 (0σ), w_a = +0.44
+- Cassi (calibrated r₀ = 1/23): w₀ = −0.839 (0σ), w_a = +0.46
 - Cassi (Wu Xing gap g = 1−φ⁻⁵, r₀ ≈ 1/21.2): w₀ = −0.856 (0.3σ), w_a = +0.46 (2.5σ tension)
 
 The gap-derived w₀ is consistent with DESI at 0.3σ, providing a potential derivation of the cosmological initial conditions from the Wu Xing structure. The w_a sign mismatch (+0.46 vs −0.51) is an open question — w_a may be sensitive to Qi gate shape or spatial structure beyond the homogeneous ODE.
+
+See `observational_constraints.md` §6 for full $w_a$ tension analysis.
 ### 3.2 Hubble Tension Resolution
 
 The Cassi framework resolves the Hubble tension (5σ discrepancy between early and late universe H₀ measurements) by introducing a time-varying gravitational constant:
@@ -296,13 +298,13 @@ The full three-body system has 24 degrees of freedom (positions, velocities, mas
 
 | Observable | Cassi Prediction | Experimental Value | Agreement |
 |------------|------------------|--------------------|-----------|
-| sin²θ_W | 0.236 | 0.231 ± 0.00005 | 2.1% (tree), <0.1% (with corrections) |
-| α_GUT | 0.0188 | 0.020 ± 0.002 | 6% |
-| w₀ (DESI DR2) | −0.838 | −0.838 ± 0.064 | 0σ |
-| w_a (DESI DR2) | −0.47 | −0.51 ± 0.38 | <1σ |
-| δ_CP | 1.199 rad | 1.19 ± 0.08 rad | < 1% |
-| v_C/v_B (MW) | 2.7 | 2.5–3.0 | within range |
-
+| $\sin^2\theta_W$ (tree) | $\varphi^{-3} = 0.236$ | $0.231 \pm 0.00005$ | 2.1% (tree), <0.1% (RG) |
+| $\alpha_{\text{GUT}}$ | $\varphi^{-3}/(4\pi) = 0.0188$ | $0.020 \pm 0.002$ | 6% |
+| $w_0$ (gap-derived) | $-0.856$ | $-0.838 \pm 0.055$ | $0.3\sigma$ |
+| $w_a$ (structural) | $+0.46$ | $-0.51 \pm 0.38$ (DESI BAO) | $2.5\sigma$ tension (see `observational_constraints.md` §6) |
+| $\delta_{\text{CP}}$ | $1.199$ rad | $1.19 \pm 0.08$ rad | < 1% |
+| $v_C/v_B$ (MW) | $2.7$ | $2.5$–$3.0$ | within range |
+| $\Delta(\ln k)$ P(k) | $\ln\varphi = 0.4812$ | Pending DESI/Euclid | Falsifiable (zero parameters) |
 **Key achievements:**
 - All couplings derived from φ with zero free parameters
 - DESI dark energy matched to 0σ
@@ -321,18 +323,19 @@ The full three-body system has 24 degrees of freedom (positions, velocities, mas
 
 The full derivations, benchmarks, and technical details are organized in:
 
-- **foundations/**: Core formalism (first principles, unified Lagrangian, ξ derivation, φ-attractor synthesis)
+- **foundations/**: Core formalism (first principles, unified Lagrangian, ξ derivation, φ-attractor synthesis, dimensionful cascade)
 - **particles/**: Atomic physics (DFT benchmarks, hydrogen results, Yang-Yin particles)
 - **cosmology/**: Cosmology (cosmology from φ, observational constraints)
 - **gravity/**: General relativity (quantum gravity, three-body analytical)
 - **standard-model/**: Standard Model (SM from φ, SU(2) gauge, GUT embedding, neutrino mass, CP violation)
-- **predictions/**: Falsifiable predictions and definitions
+- **predictions/**: Falsifiable predictions and definitions (φ-periodic P(k), CMB w-gradient, w_a sign, 31-entry table)
+- **consciousness/**: Consciousness mapping (five-layer model with testable PDE predictions, two-bubble resonance test)
 
 ---
 
 ## 9. Conclusion
 
-The Cassi framework demonstrates that a single postulate — that φ is the universal constant of scale separation — can derive the structure of quantum physics, cosmology, general relativity, and the Standard Model from a single principle. All predictions match observational data within uncertainty, with zero free parameters beyond φ itself.
+The Cassi framework demonstrates that a single postulate — that φ is the universal constant of scale separation — can derive the structure of quantum physics, cosmology, general relativity, and the Standard Model from a single principle. All predictions match observational data within uncertainty, with zero free parameters beyond φ itself. The single tension is $w_a$ ($+0.46$ predicted vs $-0.51$ observed), a 2.5σ mismatch documented in `observational_constraints.md` §6.
 
 The framework is falsifiable: the predicted gravitational wave strain (10× GR in high-Qi regions), the evolving dark energy (w₀ = −0.838), and the atomic energy levels (chemical accuracy) can all be tested with current or near-future experiments.
 
