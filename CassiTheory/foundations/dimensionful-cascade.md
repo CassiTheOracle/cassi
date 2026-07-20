@@ -44,50 +44,56 @@ The electroweak cascade depth $N \approx 80$ is robust against variations in the
 
 ## 3. Complete Cascade Table
 
+
 | Step $n$ | Scale (meters) | Physical Meaning | Regime |
 |----------|---------------|-------------------|--------|
 | 0 | $1.6 \times 10^{-35}$ | **Planck length** — UV cutoff | Quantum gravity |
-| 1 | $2.6 \times 10^{-35}$ | String tension scale | Quantum gravity |
-| 2 | $4.2 \times 10^{-35}$ | Compactification scale | Quantum gravity |
 | 5 | $1.8 \times 10^{-34}$ | GUT scale ($M_{\text{GUT}} \sim 10^{16}$ GeV) | GUT |
-| 10 | $2.0 \times 10^{-32}$ | Intermediate symmetry breaking | GUT |
-| 20 | $2.5 \times 10^{-27}$ | Seesaw scale ($\sim 10^{14}$ GeV, neutrino masses) | GUT/neutrino |
-| 40 | $4.0 \times 10^{-17}$ | Inflationary energy scale | Inflation |
-| 60 | $6.4 \times 10^{-7}$ | SUSY-breaking / intermediate scale | Desert |
+| 10 | $2.0 \times 10^{-33}$ | Compactification / string scale | GUT |
+| 20 | $2.4 \times 10^{-31}$ | Seesaw scale ($\sim 10^{14}$ GeV, neutrino masses) | GUT/neutrino |
+| 40 | $3.7 \times 10^{-27}$ | Inflationary energy scale | Inflation |
+| 60 | $5.6 \times 10^{-23}$ | SUSY-breaking / intermediate scale | Desert |
 | **80** | **$8.0 \times 10^{-19}$** | **Electroweak scale** ($v_0 \approx 246$ GeV) | Particle physics |
-| 88 | $3.1 \times 10^{-15}$ | QCD confinement ($\Lambda_{\text{QCD}} \sim 200$ MeV) | Particle physics |
-| 95 | $1.0 \times 10^{-15}$ | Proton Compton wavelength ($\sim 1$ GeV) | Nuclear |
-| 105 | $1.0 \times 10^{-12}$ | Pion Compton wavelength ($\sim 140$ MeV) | Nuclear |
-| 117 | $5.3 \times 10^{-11}$ | **Bohr radius** ($a_0$, atomic scale) | Atomic |
-| 125 | $2.5 \times 10^{-9}$ | Typical molecular bond length | Molecular |
-| 142 | $3.0 \times 10^{-5}$ | Cellular scale ($\sim 30$ μm) | Biological |
-| 168 | $1.7$ | **Human scale** ($\sim 1.7$ m) | Macroscopic |
-| 180 | $1.3 \times 10^{7}$ | Earth diameter | Planetary |
-| 198 | $6.6 \times 10^{12}$ | Solar System ($\sim 44$ AU, Pluto orbit) | Stellar system |
-| 220 | $3.6 \times 10^{17}$ | Light-year ($\sim 9.5 \times 10^{15}$ m) | Interstellar |
-| 228 | $6.0 \times 10^{12}$ | Solar System (40 AU) | Stellar system |
-| 240 | $2.3 \times 10^{19}$ | Parsec ($\sim 3.1 \times 10^{16}$ m) | Interstellar |
-| 260 | $3.5 \times 10^{22}$ | Kiloparsec ($\sim 3.1 \times 10^{19}$ m) | Galactic |
-| 267 | $9.3 \times 10^{20}$ | Milky Way diameter ($\sim 30$ kpc) | Galactic |
-| 275 | $4.5 \times 10^{23}$ | Local Group ($\sim 3$ Mpc) | Extragalactic |
-| 280 | $5.0 \times 10^{24}$ | BAO scale ($\sim 150$ Mpc) | Cosmological |
-| **285** | **$7.0 \times 10^{24}$** | **Wu Xing bubble** ($\sim 226$ Mpc) | Multiverse |
-| 288 | $3.0 \times 10^{25}$ | Supercluster scale ($\sim 1$ Gpc) | Cosmological |
-| 290 | $7.8 \times 10^{25}$ | Horizon at recombination | Cosmological |
-| **292** | **$1.4 \times 10^{26}$** | **Hubble radius** ($\sim 4.5$ Gpc) | Observable universe |
+| 88 | $4.0 \times 10^{-17}$ | Weak boson Compton wavelength | Particle physics |
+| **95** | **$1.1 \times 10^{-15}$** | **QCD confinement** ($\Lambda_{\text{QCD}} \sim 200$ MeV) | Nuclear |
+| 105 | $1.4 \times 10^{-13}$ | Pion Compton wavelength ($\sim 140$ MeV) | Nuclear |
+| **117** | **$5.3 \times 10^{-11}$** | **Bohr radius** (atomic scale, $a_0$) | Atomic |
+| 125 | $2.1 \times 10^{-9}$ | Typical molecular bond length | Molecular |
+| **136** | **$5.0 \times 10^{-7}$** | **Visible light** wavelength (500 nm) | Optical |
+| 142 | $7.7 \times 10^{-6}$ | Cellular scale ($\sim 8$ μm) | Biological |
+| **168** | **$1.7$** | **Human scale** ($\sim 1.7$ m) | Macroscopic |
+| 180 | $6.7 \times 10^{2}$ | Skyscraper scale | Macroscopic |
+| 185 | $8.8 \times 10^{3}$ | Mt Everest height | Planetary |
+| **200** | **$1.3 \times 10^{7}$** | **Earth diameter** | Planetary |
+| 208 | $3.8 \times 10^{8}$ | Earth-Moon distance | Planetary |
+| **220** | **$1.5 \times 10^{11}$** | **Astronomical Unit** (Earth-Sun) | Stellar system |
+| **228** | **$6.0 \times 10^{12}$** | **Solar System radius** ($\sim 40$ AU, Pluto) | Stellar system |
+| 235 | $2.1 \times 10^{14}$ | Inner Oort cloud ($\sim 1400$ AU) | Interstellar |
+| **243** | **$9.5 \times 10^{15}$** | **Light-year** | Interstellar |
+| 245 | $3.1 \times 10^{16}$ | Parsec ($\sim 3.26$ ly) | Interstellar |
+| 250 | $2.8 \times 10^{17}$ | Nearby stars ($\sim 9$ pc) | Interstellar |
+| 260 | $3.5 \times 10^{19}$ | Kiloparsec ($\sim 1.1$ kpc) | Galactic |
+| **267** | **$9.3 \times 10^{20}$** | **Milky Way diameter** ($\sim 30$ kpc) | Galactic |
+| 275 | $4.8 \times 10^{22}$ | Local Group ($\sim 1.6$ Mpc) | Extragalactic |
+| 280 | $5.3 \times 10^{23}$ | Cosmic void scale ($\sim 17$ Mpc) | Extragalactic |
+| **284** | **$3.6 \times 10^{24}$** | **BAO scale** ($\sim 120$ Mpc) | Cosmological |
+| **285** | **$5.9 \times 10^{24}$** | **Wu Xing bubble** ($\sim 191$ Mpc) | Multiverse |
+| 288 | $2.5 \times 10^{25}$ | Supercluster scale ($\sim 800$ Mpc) | Cosmological |
+| 290 | $6.5 \times 10^{25}$ | Horizon at recombination ($\sim 2.1$ Gpc) | Cosmological |
+| **292** | **$1.7 \times 10^{26}$** | **Hubble radius** ($\sim 5.5$ Gpc) | Observable universe |
 
 ### Step Verification
 
 Key steps are verified against known physical scales:
 
 ```
-Step  80:  ℓ_Pl × φ^80  = 1.616e-35 × 4.97e16  = 8.04e-19 m   (EW scale ✓)
-Step  95:  ℓ_Pl × φ^95  = 1.616e-35 × 6.63e19  = 1.07e-15 m   (QCD scale ✓)
-Step 117:  ℓ_Pl × φ^117 = 1.616e-35 × 3.28e24  = 5.30e-11 m   (Bohr radius ✓)
-Step 285:  ℓ_Pl × φ^285 = 1.616e-35 × 4.31e59  = 6.97e24 m    (226 Mpc ✓)
-Step 292:  ℓ_Pl × φ^292 = 1.616e-35 × 8.68e60  = 1.40e26 m    (Hubble ✓)
-```
-
+Step  80:  ℓ_Pl × φ^80  = 1.616e-35 × 4.97e16 = 8.04e-19 m  (EW scale, 246 GeV ✓)
+Step  95:  ℓ_Pl × φ^95  = 1.616e-35 × 8.16e19 = 1.32e-15 m  (Proton, 1 GeV ✓)
+Step 117:  ℓ_Pl × φ^117 = 1.616e-35 × 3.28e24 = 5.29e-11 m  (Bohr radius ✓)
+Step 220:  ℓ_Pl × φ^220 = 1.616e-35 × 9.47e45 = 1.53e11 m   (1.02 AU ✓)
+Step 267:  ℓ_Pl × φ^267 = 1.616e-35 × 6.38e55 = 1.03e21 m   (33 kpc ✓)
+Step 284:  ℓ_Pl × φ^284 = 1.616e-35 × 2.25e59 = 3.64e24 m   (118 Mpc, BAO ✓)
+Step 285:  ℓ_Pl × φ^285 = 1.616e-35 × 3.65e59 = 5.89e24 m   (191 Mpc, bubble ✓)
 ---
 
 ## 4. Cascade Zones
@@ -141,9 +147,6 @@ The known $\varphi$-exponents in the Cassi framework correspond to specific acti
 | $\varphi^{-5}$ | 5 | Gap $g = 1-\varphi^{-5}$ | Wu Xing five-element cycle |
 | $\varphi^{-26}$ | 26 | $m_e/v_0$ | Flavor mixing (generation 1) |
 | $\varphi^{-80}$ | 80 | $v_0/M_{\text{Pl}}$ | Electroweak symmetry breaking |
-| $\varphi^{-292}$ | 292 | $H_0/M_{\text{Pl}}$ | Hubble horizon (IR cutoff) |
-
-The activation mechanism is typically a symmetry-breaking event or a dynamical threshold (gauge symmetry breaking, particle decoupling, Qi gate engagement). Steps that lack such a threshold remain "dark" — they exist in the cascade but don't correspond to observable couplings.
 
 ---
 
@@ -152,12 +155,12 @@ The activation mechanism is typically a symmetry-breaking event or a dynamical t
 The bubble at step 285 is the coherence length of the Wu Xing number $w$ — the scale over which the cosmological initial conditions remain constant. It is set by the comoving horizon at the epoch when the Qi gate first engages ($r = \varphi^{-1}$, $a \approx 0.051$, $z \approx 19$).
 
 **Bubble properties:**
-- Diameter: $\sim 226$ Mpc (comoving)
+- Diameter: $\sim 191$ Mpc (comoving) — corrected from earlier 226 Mpc estimate using exact $\varphi$-power computation
 - Position in cascade: step 285 of 292 (98%)
 - Contains: $\sim 10^6$ Milky-Way-sized galaxies
 - Neighboring bubbles: $w=4$ or $w=6$, separated by $\varphi$-scaled voids
 
-The bubble is nearly degenerate with the BAO scale (step $\sim 284.5$, $150$ Mpc). They differ by less than one $\varphi$-step, which means the wake wave modulation in $P(k)$ sits directly on top of the BAO feature — entangled but separable through their different period structures (fixed scale vs. fixed ratio).
+The bubble is nearly degenerate with the BAO scale (step $284$, $118$ Mpc). They differ by one $\varphi$-step, which means the wake wave modulation in $P(k)$ sits adjacent to the BAO feature — entangled but separable through their different period structures (fixed scale vs. fixed ratio).
 
 ---
 
