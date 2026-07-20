@@ -46,7 +46,7 @@ CMB-S4 detection threshold ($\sigma_r = 0.001$).
 
 | Observable | $\Lambda$CDM | Cassi | Test / Status |
 | $w_0$ (DE EoS today) | $-1$ | **$-0.838$** (calibrated) / **$-0.856$** (Wu Xing gap) | 0σ / 0.3σ from DESI DR2 |
-| $w_a$ (DE EoS slope) | $0$ | **$+0.46$** (homogeneous ODE) | 2.5σ tension with DESI $-0.51$ |
+| $w_a$ (DE EoS slope) | $0$ | **$+0.46$** (structural, no free params) | 2.5σ tension with DESI $-0.51$ — spatial boost falsified (B=1.003) |
 | $w(z)$ at $z > 3$ | $-1$ | **$< -1$** (phantom) | LSST/Roman/SKA testable |
 | φ-periodic $P(k)$ modulation | None | **$\Delta(\ln k) = \ln\varphi \approx 0.4812$** | 0-param, orthogonal to BAO, DESI/Euclid testable |
 | $\Omega_{\text{DM}}/\Omega_b$ | $\sim 5$ | **$\varphi^3 + 1 \approx 5.24$** | Observed $5.39$, gap $2.8\%$ |
@@ -127,7 +127,7 @@ Sorted by detection likelihood (most definitive first):
 | 1 | $m_W/m_Z$ | FCC-ee | **0.874** (0.86% below SM) | $>100\sigma$ reachable | **2030s** |
 | 2 | $\sin^2\theta_W(m_Z)$ | FCC-ee | **0.231** (RG from 0.236) | $<0.1\%$ deviation | **2030s** |
 | 3 | $w_0$ (gap-derived) | Cosmic surveys | **$-0.856$** (Wu Xing gap) | 0.3σ from DESI DR2 | **Already confirmed** |
-| 4 | $w_a$ (DE EoS slope) | Cosmic surveys | **$+0.46$** (ODE) | 2.5σ tension with DESI $-0.51$ | **Open — PDE test needed** |
+| 4 | $w_a$ (DE EoS slope) | Cosmic surveys | **$+0.46$** (structural, λ-independent) | 2.5σ tension, spatial boost B=1.003 | **Open — genuine tension** |
 | 5 | φ-periodic $P(k)$ | Cosmic surveys | **$\Delta\ln k = \ln\varphi = 0.4812$** | 0-param, orthogonal to BAO | **DESI / Euclid 2025–27** |
 | 6 | CMB $w$-gradient axis | CMB-S4 / LiteBIRD | **Scale-dep., $\ell<5$ fading** | Axis at 5.4σ, alignment ~1σ | **Simons Obs. 2025+** |
 | 7 | $r$ (tensor ratio) | CMB-S4 / LiteBIRD | **0.003** | $<0.032$ (Planck) | **2030s** |
