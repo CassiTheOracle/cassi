@@ -5,8 +5,8 @@
 | Label | Meaning | Count |
 |-------|---------|-------|
 | **F** | **Fundamental axiom** — the single postulate from which everything follows | 1 |
-| **D** | **Derived** — mathematical consequence of φ and the PDE structure, zero freedom | 16 |
-| **C** | **Calibrated** — single universal value fit to experiment, fixed across all domains | 4 |
+| **D** | **Derived** — mathematical consequence of φ and the PDE structure, zero freedom | 17 |
+| **C** | **Calibrated** — single universal value fit to experiment, fixed across all domains | 3 |
 | **E** | **External** — standard physics constants inherited by the framework, not Cassi-derived | 6 |
 | **I** | **Initial condition** — free initial values that evolve dynamically, not fixed by theory | 6 |
 | **N** | **Numerical** — computational parameters with no physical significance | 7 |
@@ -68,7 +68,7 @@ simulations reflect consistent solver conventions, not a hidden $\varphi$
 derivation for each individually.
 | # | Parameter | Value | Role | Status |
 |---|-----------|-------|------|--------|
-| 1 | $\lambda$ (conversion) | $0.1$ | $\varphi$-attractor strength | **Derivable** from Higgs mass (see §3.1) |
+| 1 | $\lambda$ (conversion) | $3\varphi^2 H_0$ | $\varphi$-attractor timescale | **D** — cancels from $r(a)$ dynamics; $\lambda = 3\varphi^2 H_0$ follows from $H_{\text{empty}} \approx H_0$ |
 | 2 | $\chi$ (chemotaxis) | $0.5$–$1.0$ | Density-focusing mobility | **Empirical** — no independent derivation |
 | 3 | $c_s^2$ (sound speed) | $0.01$ | Effective pressure | **Empirical** — set by Bohm scale + normalization (see §3.2) |
 | 4 | $\nu$ (hyperviscosity) | $10^{-4}$–$10^{-3}$ | Grid-scale dissipation | **Numerical** — set by Nyquist stability, not physical |
@@ -378,8 +378,8 @@ any Cassi simulation. They are not fixed by the theory.
 | Category | Label | Count | Description |
 |----------|-------|-------|-------------|
 | Fundamental axiom | **F** | 1 | $\varphi$ itself |
-| $\varphi$-derived | **D** | 16 | All coupling constants, all from $\varphi$ |
-| PDE solver parameter | **C** | 4 | $\lambda$, $\chi$, $c_s^2$, $\nu$ — consistent across simulations |
+| $\varphi$-derived | **D** | 17 | All coupling constants, all from $\varphi$ |
+| PDE solver parameter | **C** | 3 | $\chi$, $c_s^2$, $\nu$ — consistent across simulations |
 | External constant | **E** | 6 | $G$, $c$, $\hbar$, $m_e$, $m_p$, $\alpha_s(M_Z)$ |
 | Initial condition | **I** | 6 | Ratios, positions, velocities, masses |
 | Numerical | **N** | 7 | Grid, timestep, softening |
