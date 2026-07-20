@@ -13,7 +13,7 @@ We present a unified physical framework derived from a single principle: that φ
 3. **General relativity**: Qi-enhanced gravity with ξ = φ⁶ ≈ 17.944, matching rotation curves and MESSENGER bound
 4. **Standard Model**: sin²θ_W = φ⁻³ and α_GUT = φ⁻³/(4π), unifying all couplings with zero free parameters
 5. **Three-body dynamics**: Body-dependent gravitational coupling and mass evolution via conversion
-6. **Dimensionful cascade**: All physical scales from Planck (ℓ_Pl) to the Hubble radius follow ℓ_Pl × φⁿ (292-step spectrum), with the Wu Xing bubble at ~226 Mpc
+6. **Dimensionful cascade**: All physical scales from Planck (ℓ_Pl) to the Hubble radius follow ℓ_Pl × φⁿ (292-step spectrum), with the Wu Xing bubble at ~191 Mpc
 7. **Falsifiable prediction**: Log-periodic modulation in the matter power spectrum P(k) with period Δ(ln k) = ln φ ≈ 0.4812 — orthogonal to BAO, zero free parameters, testable with DESI/Euclid
 
 The framework has one free parameter: φ itself. The cosmological initial conditions (r₀, w₀) may be derivable from the Wu Xing structure (gap = 1−φ⁻⁵), pending resolution of the w_a prediction.
@@ -63,10 +63,9 @@ where $\ell_{\text{Pl}} = 1.616 \times 10^{-35}\,\text{m}$ is the Planck length.
 | 117 | Atomic (Bohr) | $5.3 \times 10^{-11}$ |
 | 228 | Solar System (40 AU) | $6.0 \times 10^{12}$ |
 | 267 | Milky Way (30 kpc) | $9.3 \times 10^{20}$ |
-| 285 | **Wu Xing bubble** | $7.0 \times 10^{24}$ (226 Mpc) |
-| 285 | BAO scale | $4.6 \times 10^{24}$ (150 Mpc) |
-| 292 | Hubble radius | $1.4 \times 10^{26}$ (4.5 Gpc) |
-
+| 284 | BAO scale | $3.6 \times 10^{24}$ (118 Mpc) |
+| 285 | **Wu Xing bubble** | $5.9 \times 10^{24}$ (191 Mpc) |
+| 292 | Hubble radius | $1.7 \times 10^{26}$ (5.5 Gpc) |
 The bubble at step 285 is the coherence length of the Wu Xing number $w$ — the size of a region with constant cosmological initial conditions. It sits at 98% of the cascade, just inside the Hubble horizon. Neighboring bubbles with $w=4$ or $w=6$ would be mostly beyond our horizon but their edges may graze our sky at the largest angular scales.
 
 ### 1.3 The Governing PDE
