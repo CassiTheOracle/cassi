@@ -344,7 +344,7 @@ The φ-RG formalization provides the missing field-theoretic foundation for the 
 - `principles/de-resonance-principle.md` — empirical pattern of φ-power corrections
 - `xi-derivation.md` — derivation of $\xi = \varphi^6$ from dimensional reduction
 - `standard-model/sm-from-phi.md` — Standard Model parameters from φ
-- `cassi-first-principles.md` — self-predictive wave equation and critical coupling
+- `foundations/cassi-first-principles.md` — self-predictive wave equation and critical coupling
 - `(external — see archive/theory/qi-fluid-formalism.md in physics repo)` — no-fixed-point theorem ($\alpha \geq \varphi^{-1}$, $S \neq 0$)
 - `parameter-inventory.md` — honest accounting of derived vs. external parameters
 - `turbulence/kolmogorov-from-phi.md` — φ-RG applied to turbulence (φ-break scale)
