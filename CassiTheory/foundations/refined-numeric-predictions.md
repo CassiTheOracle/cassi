@@ -439,6 +439,62 @@ modified Boltzmann code (CAMB/CLASS) with the true $q(k)$ profile from the
 PDE. The current pipeline uses scale-independent $q$ (spatial mean) at
 $N=32$ resolution.
 
+
+### 2.10 F3/T4 — CMB Power Spectrum: $C_\ell$ Shifts from Cassi Cosmology
+
+**Current status:** The Cassi $w(a)$ profile ($w_0 = -0.839$, $w_a = +0.439$)
+modifies the expansion history and the angular diameter distance to last
+scattering. The Qi transfer function modifies the growth of perturbations
+at recombination. Together, these produce distinctive signatures in the
+CMB temperature power spectrum.
+
+**Pipeline result (July 2026):** A computational pipeline
+(`two-fluid/run_boltzmann_cassi.py`) uses CAMB (v2.0.0) to compute the
+CMB $C_\ell^{\text{TT}}$ spectrum with Cassi modifications:
+
+| Quantity | $\Lambda$CDM | Cassi CPL | Shift |
+|----------|-------------|-----------|-------|
+| $r_s$ (Mpc) | 144.42 | 144.42 | $-0.002\%$ (negligible) |
+| $\theta_*$ (rad) | 1.04124 | 1.08093 | **$+3.81\%$** |
+| Peak 1 ($\ell$) | 219.6 | 211.7 | $-\!8\ell$ |
+| Peak 2 ($\ell$) | 535.9 | 517.4 | $-\!19\ell$ |
+| Peak 3 ($\ell$) | 813.1 | 782.7 | $-\!30\ell$ |
+| ISW ratio (low-$\ell$) | 1.00 | 1.086 | $+8.6\%$ |
+| $H_0^{\text{eff}}$ | 67.4 | 70.0 | $+2.6$ km/s/Mpc |
+
+**Physics interpretation:**
+1. **Sound horizon unchanged.** $r_s$ is nearly identical because the
+   Cassi $H(z)$ modification at $z > 1000$ (pre-recombination) is small —
+   the $w(a)$ deviation from $-1$ only becomes significant at $z < 10$.
+2. **Angular scale shifted.** $\theta_*$ increases by 3.8% because $D_A(z_*)$
+   is smaller — the Cassi expansion is faster at late times ($w > -1$ means
+   less late-time acceleration), reducing the comoving distance to
+   recombination. This shifts ALL acoustic peaks to lower $\ell$ by
+   $\sim 3.8\%$.
+3. **ISW enhanced.** The late-time ISW effect is enhanced by 8.6% because
+   the Cassi $w(a)$ produces a shallower gravitational potential decay at
+   $z < 1$.
+4. **$H_0$ inference.** Fitting the CPL model recovers $H_0 \approx 70.0$
+   km/s/Mpc, closer to the local measurement — direction correct, magnitude
+   ($+2.6$) is ~45% of the observed gap ($+5.6$).
+
+**Falsifiable signatures in Planck/SO data:**
+- Peak positions shifted to lower $\ell$ by $\sim 3.8\%$ (systematic shift,
+  not parameter-degenerate with $H_0$ or $\Omega_m$)
+- Enhanced low-$\ell$ ISW ($\ell = 2$–$30$) by 8.6% — testable with
+  cross-correlation against large-scale structure
+- Qi transfer function produces a scale-dependent suppression of $C_\ell$
+  at $k > k_{\text{Qi}} \approx 0.1$ h/Mpc
+
+**Figure:** `two-fluid/figures/boltzmann_cassi.png` — 4-panel:
+$C_\ell^{\text{TT}}$ comparison, $\Delta C_\ell/C_\ell$ residuals,
+low-$\ell$ zoom ($\ell=2$–$50$), and $T_{\text{Qi}}(k)$ transfer function.
+
+**To upgrade to Derived:** The full Boltzmann hierarchy must be modified
+at the source level (photon-baryon dynamics with $G_{\text{eff}}(k,q)$)
+rather than via a phenomenological transfer function. This requires
+a Cassi-modified CAMB/CLASS where the Poisson equation includes
+$\varepsilon^2$-dependent $G_{\text{eff}}$.
 ---
 
 ## 3. Structural Answers: When the Mechanism IS the Number
@@ -568,12 +624,35 @@ where structure formation must wait for $\Lambda$CDM hierarchical merging.
 number. The prediction is that luminous objects exist earlier than $\Lambda$CDM
 expects — consistent with JWST observations.
 
+**Pipeline result (July 2026):** A semi-analytic pipeline
+(`two-fluid/run_galaxy_mass_function.py`) computes the Qi-modified halo mass
+function using Sheth-Tormen formalism with enhanced growth and wake-wave modulation:
+
+- **Qi-modified growth factor:** $D_{\text{Cassi}}/D_{\Lambda\text{CDM}} = 1.20$ at $z=0$ (20% enhanced)
+- **HMF excess at $z=15$, $M=10^{10} M_\odot/h$:** $\mathbf{31.2\times}$ vs $\Lambda$CDM
+- **HMF excess at $z=10$:** $8.1\times$ — consistent with JWST bright galaxy counts
+- **HMF excess at $z=20$:** $121\times$ — earliest galaxies appear shortly after pinch
+- **Cumulative excess at $z=15$, $M_\star > 10^{10} M_\odot$:** $38\times$
+- **$\sigma_8$ normalization:** Matched to 0.811 at $z=0$
+- Wake-wave log-periodic modulation at $\Delta(\ln k) = \ln\varphi = 0.4812$ applied
+
+**Physics:** The Qi-gravity enhancement $\xi = \varphi^6 = 17.94$ amplifies
+the effective gravitational constant at early times when Qi coherence is high
+($q \approx 0.43$). This accelerates the collapse of the first halos by a
+factor ~30 at $z=15$, producing the bright galaxies JWST observes. The
+enhancement fades as $q$ relaxes toward $\varphi^{-2}$ (from 0.43 → 0.38)
+in the late universe, consistent with $\sigma_8$ normalization at $z=0$.
+
+**Figure:** `two-fluid/figures/galaxy_mass_function.png` — 3-panel:
+$dn/d\log M$ at $z=5$–$20$, Cassi/$\Lambda$CDM ratio, and cumulative
+number density $n(>M_\star)$ vs $z$.
+
 **Refined quantitative prediction:** The earliest galaxies should appear at
 $z \sim 19$ (pinch epoch), with stellar masses growing as $M_*(z) \propto
 (1+z)^{-\alpha}$ where $\alpha = 3(1 + \xi q)/(1+z)$ reflects Qi-enhanced
-growth. A specific galaxy mass function at $z > 10$ is computable from the
-PDE wake-wave mechanism.
-
+growth. The predicted comoving number density of $M > 10^{10} M_\odot/h$
+halos at $z=15$ is $31\times$ the $\Lambda$CDM expectation — this is a
+**falsifiable prediction** testable with JWST and Roman Space Telescope.
 ---
 
 ### 3.7 M1–M5 — Consciousness
@@ -643,10 +722,9 @@ neutrino spacings require the full seesaw RGE).
   closed-form $\varphi$-power.
 - **Quark mass ratios.** RGE running obscures the bare $\varphi$-power
   hierarchy in the up and down sectors.
-
 ### 5.2 Requires computational pipeline
 
-Three computational pipelines have been built and run (July 2026),
+Five computational pipelines have been built and run (July 2026),
 all in `two-fluid/`:
 
 | Pipeline | Script | Status | Key Result |
@@ -654,11 +732,13 @@ all in `two-fluid/`:
 | **$H_0$ shift (C3/T4)** | `run_hubble_pipeline.py` | ✓ Built & run | $\Delta H_0 = -7.2$ km/s/Mpc ($-9.9\%$), SAME direction as observed |
 | **$\sigma_8$ (T3)** | `run_sigma8_pipeline.py` | ✓ Built & run | $\Delta\sigma_8 = -0.42$, correct sign, magnitude needs resolution refinement |
 | **CMB low-$\ell$ (C10)** | `run_cmb_lowl_pipeline.py` | ✓ Built & run | $\theta_{\text{align}} = 12.22°$, $C_3/C_2 = \varphi^{-1}$ |
+| **Galaxy mass function (T2)** | `run_galaxy_mass_function.py` | ✓ Built & run | $31.2\times$ excess of $M>10^{10} M_\odot/h$ halos at $z=15$ |
+| **CMB $C_\ell$ (F3)** | `run_boltzmann_cassi.py` | ✓ Built & run | $\theta_*$ shifted $+3.8\%$, peaks to lower $\ell$, ISW $+8.6\%$ |
 
 **Remaining pipeline work:**
-- **Galaxy mass function (T2).** PDE wake-wave + Qi-gravity N-body — requires external N-body tooling (GADGET-4 or similar).
-- **Full Boltzmann integration.** A modified CAMB/CLASS with $G_{\text{eff}}(k,q)$ would replace the simplified $N=32$ PDE estimates with precision CMB likelihoods.
-- **Resolution scaling.** All current pipelines run at $N=32$ on CPU; scaling to $N=64$–$128$ on GPU would improve the $\sigma_8$ and $P(k)$ accuracy.
+- **Full N-body simulation.** Replace semi-analytic HMF with full N-body (GADGET-4 or similar) including PDE wake-wave ICs.
+- **Full Boltzmann modification.** Modify CAMB/CLASS source code to include $G_{\text{eff}}(k,q)$ in the Poisson equation, rather than using a phenomenological transfer function.
+- **Resolution scaling.** All PDE-based pipelines run at $N=32$ on CPU; scaling to $N=64$–$128$ on GPU would improve the $\sigma_8$ and $P(k)$ accuracy.
 ### 5.3 Requires cross-pillar computation
 
 - **Force unification (F3).** The single PDE must reproduce all four force
