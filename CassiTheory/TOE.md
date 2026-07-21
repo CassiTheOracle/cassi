@@ -330,6 +330,7 @@ The full derivations, benchmarks, and technical details are organized in:
 - **standard-model/**: Standard Model (SM from φ, SU(2) gauge, GUT embedding, neutrino mass, CP violation)
 - **predictions/**: Falsifiable predictions and definitions (φ-periodic P(k), CMB w-gradient, w_a sign, 31-entry table)
 - **consciousness/**: Consciousness mapping (five-layer model with testable PDE predictions, two-bubble resonance test)
+- **open-questions-cassi-answers.md**: Comprehensive catalog — all ~27 major open physics questions mapped to Cassi resolutions, organized by sector with epistemic tiering
 
 ---
 
