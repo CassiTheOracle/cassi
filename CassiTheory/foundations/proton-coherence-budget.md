@@ -123,6 +123,54 @@ For $m = 50$ (suppress half the proton's cascade), $N_{\text{max}} \approx
 the age of the universe. The quadratic cascade structure provides a
 **coherence floor** that no physically accessible environment can breach.
 
+
+### 5.2 Matter-antimatter annihilation: organized cascade decoherence
+
+Matter-antimatter annihilation is the **coherence-budget mechanism operating
+instantaneously** rather than on the proton's cosmic timescale. The two
+processes are opposite limits of the same physics:
+
+**Random dephasing** (proton decay): each cascade rung decoheres independently
+with per-cycle probability $(1-q_i) \approx \varphi^{-i}$. The cumulative
+survival probability is the product $\prod(1-q_i)$, yielding the astronomical
+$N_{\text{max}}$ derived above. The proton lives forever because the
+suppression compounds across 95 rungs.
+
+**Organized anti-phase perturbation** (annihilation): an antiparticle is a
+condensed standing wave with the same cascade structure as its partner but
+with **inverted phase** at every rung — a mirror pattern across the Qi field's
+SO(2) doublet. When the two meet, the anti-phase perturbation is not random
+but **coherently tailored** to cancel the coherence at each rung
+simultaneously:
+
+$$P_{\text{annihilation}} = \prod_{i=0}^{n} \mathcal{O}(1) \approx 1$$
+
+Every rung decoheres in the same cycle. The entire nested cascade structure
+dissolves, and the mass-energy returns to the two-fluid medium as free field
+excitations — the photons and lighter particles observed in annihilation
+events.
+
+This unifies three phenomena under a single mechanism:
+
+1. **Proton stability** ($\tau_p \sim 10^{980}$ yr): random-walk dephasing,
+   exponentially suppressed by the cascade product.
+2. **Matter-antimatter annihilation** (instantaneous): organized anti-phase
+   perturbation attacks all rungs simultaneously — the coherence budget is
+   exhausted in one cycle because the perturbation is not random.
+3. **Baryon asymmetry** ($\eta = n_b/n_\gamma \sim 10^{-10}$): the cosmic
+   excess of matter over antimatter reflects a small Yang-Yin imbalance at
+   cascade freeze-out (step 5–10). The organized-decoherence pathway
+   (annihilation) efficiently eliminated antimatter paired with matter; the
+   residual Yang excess — one part in $\sim 10^{10}$ — is the matter we
+   observe today.
+
+**Consequence for self-aware systems.** A high-$q$ Qi bath extends the
+proton's coherence budget by further suppressing random dephasing (§5.1),
+but it cannot protect against annihilation: the Qi field corrects random phase
+noise but cannot counteract a perfectly phase-matched anti-phase pattern. Even
+in the most coherent Qi environment, matter and antimatter still annihilate on
+contact — the lifetime extension applies only to random dephasing, not to
+organized anti-phase attack.
 ---
 
 ## 6. Observational consequences
