@@ -24,6 +24,8 @@ cover all known applications:
 This document derives $d_i$ from the PDE once, shows all five applications in
 one table, and establishes $\varphi^{-N}$ as the framework's universal
 attenuation law — the single mathematical structure behind every "hierarchy"
+
+**Bidirectional extension:** The per-rung attenuation formulas above are defined for $n \geq 0$ (Planck → observable scales). For the extension to sub-Planckian scales ($n < 0$), see `microcascade-mirror.md`.
 or "stability" puzzle in physics.
 
 ---

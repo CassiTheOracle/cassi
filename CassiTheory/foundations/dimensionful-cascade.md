@@ -8,6 +8,8 @@ $$\boxed{\ell_n = \ell_{\text{Pl}} \times \varphi^{\,n}}$$
 
 where $\varphi = (1+\sqrt{5})/2 \approx 1.618$ and the integer exponent $n$ is determined by the dynamics of the $\varphi$-attractor — specifically, by where in the cascade a given physical process freezes out. The total cascade spans $n = 0$ (Planck) to $n \approx 292$ (Hubble radius), a range of 292 $\varphi$-multiplications. This document catalogues the complete spectrum.
 
+**Extension:** The cascade does not truncate at either boundary. Above $n \approx 292$ lies the **megacascade** (multiverse, bubble boundaries). Below $n = 0$ lies the **microcascade** (sub-Planckian infinite ladder). See `microcascade-mirror.md` for the bidirectional extension.
+
 ---
 
 ## 1. The Fundamental Scale
