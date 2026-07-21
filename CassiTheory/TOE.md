@@ -323,7 +323,7 @@ The full three-body system has 24 degrees of freedom (positions, velocities, mas
 
 The full derivations, benchmarks, and technical details are organized in:
 
-- **foundations/**: Core formalism (first principles, unified Lagrangian, ξ derivation, φ-attractor synthesis, dimensionful cascade, why three dimensions, proton coherence budget, quantum measurement, spin Fibonacci spiral)
+- **foundations/**: Core formalism (first principles, unified Lagrangian, ξ derivation, φ-attractor synthesis, dimensionful cascade, why three dimensions, proton coherence budget, quantum measurement, spin Fibonacci spiral, strong CP)
 - **particles/**: Atomic physics (DFT benchmarks, hydrogen results, Yang-Yin particles)
 - **cosmology/**: Cosmology (cosmology from φ, observational constraints)
 - **gravity/**: General relativity (quantum gravity, three-body analytical)
