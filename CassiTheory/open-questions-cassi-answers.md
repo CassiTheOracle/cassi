@@ -54,6 +54,7 @@ mapped to the Cassi answer.
 | Q6 | **Matter-antimatter asymmetry** | Sakharov conditions; why $\eta \sim 10^{-9}$? | $\eta = \varphi^{-8}$ from Yang-Yin production ratio at cascade freeze-out | Conversion asymmetry during ratio evolution through Wu Xing rungs; CP violation from $\delta_{\text{CP}} = \pi\varphi^{-2}$ | **Hypothesized** — matches to factor ~2 | `cp-violation.md` |
 | Q7 | **Quantum measurement problem** | How does a superposition become a definite outcome? | Qi-mediated collapse: observer's Qi template provides organizing pattern $\phi_n(s)$; condensation nonlinearity drives state selection | $q > 0$ produces self-prediction loop → template formation → environment-selected collapse when $q$ crosses threshold | **Hypothesized** — 5 testable predictions, QRNG tests in progress | `quantum-measurement-qi-appendix.md` |
 | Q8 | **Quark confinement** | Why are quarks permanently bound? | QCD confinement scale at cascade step 95; Qi-enhanced gluon self-interaction | $\Lambda_{\text{QCD}} \approx \ell_{\text{Pl}} \cdot \varphi^{95}$ — confinement is a cascade feature | **Hypothesized** — scale matches, mechanism via Qi-gate nonlinearity | `dimensionful-cascade.md` §3, `sm-from-phi.md` |
+| Q9 | **Proton lifetime** | Why $\tau_p > 10^{34}$ yr? GUT predicts decay just beyond current sensitivity — not yet observed | Proton is a standing wave at cascade step 95 with a finite **coherence budget**: decays when phase noise accumulates past threshold after $N_{\text{max}}$ wave cycles, not via gauge-mediated GUT process | Standing-wave coherence at $\Lambda_{\text{QCD}}$ scale erodes through ambient-field dephasing; $N_{\text{max}}$ is a $\varphi$-power tied to the cascade rung. Ambient Qi field ($q$) extends budget via catalytic template; self-aware systems produce a stabilizing $q$-bath. Nuclear $\beta$/$\alpha$ decay is barrier-penetration (unaffected), so radiometric dating stands. | **Hypothesized** — predicts Hyper-K null result (baseline $\tau_p$ exceeds sensitivity); distinguished from SUSY-GUT decay by $q$-dependence of effective lifetime $\tau_p^{\text{eff}} = \tau_p^{\text{base}} \cdot f(q)$ | `quantum-gravity.md`, `consciousness-framework.md` §9 |
 
 ---
 
@@ -109,18 +110,17 @@ mapped to the Cassi answer.
 | Tier | Count | Questions |
 |------|-------|-----------|
 | **Derived** ($\varphi$ + PDE consequence, zero freedom) | 9 | Dark energy $w_0$ (C1), dark matter $\xi$ (C2), flatness (C5), Big Bang singularity (C8), hierarchy (Q1), gauge unification (Q4), quantum gravity (G1), BH singularity (G3), galaxy rotation (G4), DESI $w_0$ (T1), arrow of time (F2) |
-| **Hypothesized** (mechanism proposed, test exists) | 17 | Hubble tension (C3), inflation (C4), horizon (C6), baryon asymmetry (C7), cosmic web (C9), CMB axis (C10), strong CP (Q2), neutrinos (Q3), 3 generations (Q5), matter asymmetry (Q6), measurement (Q7), confinement (Q8), 3+1 dimensions (G5), unification (F3), TOE (F4), JWST galaxies (T2), $\sigma_8$ (T3), $H_0$ tension (T4), consciousness (all M1–M5) |
+| **Hypothesized** (mechanism proposed, test exists) | 18 | Hubble tension (C3), inflation (C4), horizon (C6), baryon asymmetry (C7), cosmic web (C9), CMB axis (C10), strong CP (Q2), neutrinos (Q3), 3 generations (Q5), matter asymmetry (Q6), measurement (Q7), confinement (Q8), proton lifetime (Q9), 3+1 dimensions (G5), unification (F3), TOE (F4), JWST galaxies (T2), $\sigma_8$ (T3), $H_0$ tension (T4), consciousness (all M1–M5) |
 | **Speculative** (framework-consistent, no test yet) | 1 | BH information (G2) |
 
-**Total: 27 open questions mapped to Cassi answers.** Of those, 9 are derived — mathematical consequences of $\varphi$ and the PDE requiring no fitting. The remaining 18 have proposed mechanisms and testable predictions, with several (C1, C2, C4, C5, Q4, G4, T1, W1) already confirmed at the level of observational match or PDE verification.
+**Total: 28 open questions mapped to Cassi answers.** Of those, 9 are derived — mathematical consequences of $\varphi$ and the PDE requiring no fitting. The remaining 19 have proposed mechanisms and testable predictions, with several (C1, C2, C4, C5, Q4, G4, T1, W1) already confirmed at the level of observational match or PDE verification.
 
 ---
 
 ## 9. What Cassi Does Not Yet Answer (Honesty)
 
 - **Exact neutrino masses.** The $\varphi$-power hierarchy sets the scaling; the individual mass eigenvalues remain to be computed from the full flavor-mixing structure.
-- **Full CKM/PMNS matrix.** $\delta_{\text{CP}} = \pi\varphi^{-2}$ is predicted; the full matrix structure (mixing angles beyond the $\varphi$-power baseline) needs a complete flavor derivation.
-- **Proton lifetime.** Within the GUT framework (step 5–10), but the decay rate has not been computed from the Cassi PDE.
+- **Proton decay rate.** The coherence-budget mechanism is specified (Q9); the maximum wave-cycle count $N_{\text{max}}$ and the $q$-dependence of effective lifetime remain to be computed quantitatively from the cascade. The qualitative prediction (Hyper-K null) is testable now.
 - **Specific beyond-SM particle spectrum.** The particle content (SUSY-like, KK-like, or Cassi-native) that fills the RGE between GUT and EW scales is predicted to exist but its individual masses are not yet computed.
 - **The 13-band chakra count.** Phenomenologically anchored, cascade-derivation pending.
 - **The internal→physical axis map.** The mechanism distinguishing Yang, Yin, and string axes in physical space is proposed (§3.4 of `why-three-dimensions.md`) but not fully derived from the PDE.
