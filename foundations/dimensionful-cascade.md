@@ -16,7 +16,7 @@ The Planck length is the sole dimensionful constant:
 
 $$\ell_{\text{Pl}} = \sqrt{\frac{\hbar G}{c^3}} = 1.616255 \times 10^{-35}\,\text{m}$$
 
-The Planck mass is $M_{\text{Pl}} = \sqrt{\hbar c / G} = 1.22 \times 10^{19}\,\text{GeV}/c^2$. In the Cassi framework, $\ell_{\text{Pl}}$ emerges as the natural UV cutoff from the $\sigma$-regularization of the two-fluid PDE (see `quantum-gravity.md`). No other fundamental length exists — all scales are $\varphi$-powers of $\ell_{\text{Pl}}$.
+The Planck mass is $M_{\text{Pl}} = \sqrt{\hbar c / G} = 1.22 \times 10^{19}\,\text{GeV}/c^2$. In the Cassi framework, $\ell_{\text{Pl}}$ emerges as the natural UV cutoff from the $\sigma$-regularization of the two-fluid PDE (see `gravity/quantum-gravity.md`). No other fundamental length exists — all scales are $\varphi$-powers of $\ell_{\text{Pl}}$.
 
 ---
 
@@ -172,7 +172,7 @@ The wake waves imprint a log-periodic signal on the matter power spectrum:
 
 $$\Delta(\ln k) = \ln\varphi \approx 0.4812$$
 
-This is a **zero-parameter, falsifiable prediction** — see `falsifiable-predictions.md` §5 and TOE.md §3.3. Orthogonal to BAO (which has constant period in $k$-space), the Cassi modulation has constant period in $\ln k$-space. Subtract the BAO template; search the residual for $\ln\varphi$ periodicity. DESI DR2: marginal (2–3σ). Euclid (2027): definitive (>5σ).
+This is a **zero-parameter, falsifiable prediction** — see `predictions/falsifiable-predictions.md` §5 and TOE.md §3.3. Orthogonal to BAO (which has constant period in $k$-space), the Cassi modulation has constant period in $\ln k$-space. Subtract the BAO template; search the residual for $\ln\varphi$ periodicity. DESI DR2: marginal (2–3σ). Euclid (2027): definitive (>5σ).
 
 ### 7.2 Void and Structure Scale Ratios
 
@@ -180,7 +180,7 @@ Structures formed by the wake mechanism should show $\varphi$-scaled separations
 
 ### 7.3 Multiverse $w$-Gradient
 
-The Wu Xing bubble at step 285 implies neighboring bubbles at $w=4$ and $w=6$ beyond our horizon. Their boundaries would create a preferred axis in the CMB at $\ell < 5$ that fades at smaller scales — a scale-dependent signature unique to the super-horizon $w$-gradient explanation (see `observational_constraints.md` §4).
+The Wu Xing bubble at step 285 implies neighboring bubbles at $w=4$ and $w=6$ beyond our horizon. Their boundaries would create a preferred axis in the CMB at $\ell < 5$ that fades at smaller scales — a scale-dependent signature unique to the super-horizon $w$-gradient explanation (see `cosmology/observational_constraints.md` §4).
 
 ---
 
@@ -202,6 +202,6 @@ The Wu Xing bubble at step 285 implies neighboring bubbles at $w=4$ and $w=6$ be
 - TOE.md §1.3: Governing PDE with Qi gate formula
 - TOE.md §3.3: $\varphi$-periodic $P(k)$ prediction
 - `parameter-inventory.md`: Complete parameter classification (D:16, C:4, E:6, I:6)
-- `observational_constraints.md` §2.6: Rotation curve prediction ($\xi=\varphi^6$)
-- `observational_constraints.md` §4: CMB $w$-gradient analysis
-- `falsifiable-predictions.md`: Full prediction catalogue (31 entries)
+- `cosmology/observational_constraints.md` §2.6: Rotation curve prediction ($\xi=\varphi^6$)
+- `cosmology/observational_constraints.md` §4: CMB $w$-gradient analysis
+- `predictions/falsifiable-predictions.md`: Full prediction catalogue (31 entries)

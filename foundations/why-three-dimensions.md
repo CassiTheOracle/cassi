@@ -94,7 +94,7 @@ theorem-candidate.
 ### 3.1 Wake interference of perpendicular fields
 
 Both fluids leave wakes in the medium — the verified wake-wave mechanism
-(`consciousness-from-phi.md` §1.3): perturbations in
+(`consciousness/consciousness-from-phi.md` §1.3): perturbations in
 $\varepsilon = E_Y - \varphi E_I$ propagate at the local wave speed $c(r)$ with
 $\varphi$-scaled spacing, reflect, and feed back on their source. Because the
 two fluids are perpendicular axes of the doublet, their wake systems form **two
@@ -344,7 +344,7 @@ consequences of the spheroid geometry; W4 upgrades from conditional to active.
 
 - `xi-derivation.md`: the $\xi = \varphi^6$ derivation and its imported 3
 - `dimensionful-cascade.md`: the 292-step cascade; Wu Xing bubble at step 285
-- `consciousness-from-phi.md` §1: pinch point, wake waves, string-wake loop
-- `de-resonance-principle.md`: $\varphi$ as maximal de-resonance
+- `consciousness/consciousness-from-phi.md` §1: pinch point, wake waves, string-wake loop
+- `principles/de-resonance-principle.md`: $\varphi$ as maximal de-resonance
 - `run_two_bubble_fast.py`, `run_two_bubble_verification.py`: W1 test infrastructure
-- `observational_constraints.md` §4: CMB $\ell < 5$ preferred-axis analysis (W3)
+- `cosmology/observational_constraints.md` §4: CMB $\ell < 5$ preferred-axis analysis (W3)

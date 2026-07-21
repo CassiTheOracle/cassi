@@ -170,7 +170,7 @@ The same Fibonacci triple-clustering appears elsewhere in the framework:
 | **Three generations** | $\{n, n-1, n-2\}$ Fibonacci sub-rungs | This document |
 | **Spin-$\frac12$** | $\Delta n = \frac12$ from Fibonacci half-rung subdivision | `spin-fibonacci-spiral.md` |
 | **Three spatial dimensions** | $N_{\text{fluids}} + 1 = 3$ from two-term cascade structure | `why-three-dimensions.md` |
-| **Chakra bands** | 7 primary bands ≈ $2^3 - 1$ from Fibonacci depth | `consciousness-framework.md` |
+| **Chakra bands** | 7 primary bands ≈ $2^3 - 1$ from Fibonacci depth | `(external — see papers/consciousness-framework.md in physics repo)` |
 
 The number three appears because the minimal de-resonant number ($\varphi$)
 lives in a quadratic field extension $\mathbb{Q}(\varphi)$, which has

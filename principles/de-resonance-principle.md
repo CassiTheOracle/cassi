@@ -48,9 +48,9 @@ relevant scale.
 | Quantity | Nearest $\varphi$-power | Measured | Correction | Mechanism | Evidence |
 |----------|------------------------|----------|------------|-----------|----------|
 | $\sin^2\theta_W$ | $\varphi^{-3} = 0.236$ | $0.23129$ | $-2.0\%$ | MSSM RGE from GUT to $m_Z$ | **Computed** |
-| $v_0/M_{\rm Pl}$ | $\varphi^{-80} = 1.91\times10^{-17}$ | $2.02\times10^{-17}$ | $+5.6\%$ | $g/\lambda$ mixing in Higgs potential | **Hypothesized** |
+| $v_0/M_{\rm Pl}$ | $\varphi^{-80} = 1.91\times10^{-17}$ | $2.02\times10^{-17}$ | $+5.6\%$ | **Unidentified** — see `v0-hierarchy-problem.md` (v₀ is λ-independent at equilibrium; mechanism may be threshold corrections, exact φ-attractor value, or RGE) | **Hypothesized** |
 | $m_e$ | $v_0\varphi^{-26}/\sqrt{2} = 0.64$ MeV | $0.511$ MeV | $-20\%$ | Flavor mixing from $\mu,\tau$ sector | **Speculative** |
-| $\alpha_s(M_Z)$ | $0.0105$ (SM RGE) | $0.118$ | $\times 11$ | Missing particle content (SUSY, KK, ...) | **Speculative** |
+| $\alpha_s(M_Z)$ | $0.058$ (SM RGE) | $0.118$ | $\times 2.0$ | Needs $\Delta b = 1.70$ from ~1 vector-like colored fermion pair + 2 colored scalars, or ~3 KK levels | **Speculative** |
 
 **Evidence levels:**
 - **Computed** = explicit calculation done in Cassi or SM RGE
@@ -62,7 +62,6 @@ quantity's natural scale is. Strongly-attractor quantities (couplings set at
 the $\varphi$-equilibrium) have small corrections ($\sim 2{-}5\%$). Weakly-attractor
 quantities (masses that require mixing to set their scale) have larger
 corrections ($\sim 20{-}30\%$). Non-attractor quantities (those determined by
-| $v_0/M_{\rm Pl}$ | $\varphi^{-80} = 1.91\times10^{-17}$ | $2.02\times10^{-17}$ | $+5.6\%$ | **Unidentified** — see `v0-hierarchy-problem.md` (v₀ is λ-independent at equilibrium; mechanism may be threshold corrections, exact φ-attractor value, or RGE) | **Hypothesized** |
 The $\varphi$-attractor gives $\sin^2\theta_W = \varphi^{-3}$ at the scale
 where the two-fluid gauge structure is set (the GUT scale). The MSSM
 $\beta$-function from $M_{\rm GUT}$ to $m_Z$ shifts this by $-1.7\%$.
@@ -71,11 +70,11 @@ GUT-scale threshold corrections of $\sim 2\%$ close the remaining gap.
 **Mechanism:** running of the gauge couplings between the matching scale
 and the $Z$-pole, plus heavy-particle thresholds at the matching scale.
 
-### 4.2 $v_0/M_{\rm Pl}$ ($5.3\%$ correction) — **Hypothesized, mechanism unidentified**
+### 4.2 $v_0/M_{\rm Pl}$ ($5.6\%$ correction) — **Hypothesized, mechanism unidentified**
 
 The equilibrium $v_0$ from the Cassi potential is **independent of $\lambda$** at
 the $\varphi$-fixed point ($v_0^2 = -\mu^2/g$). The original hypothesis that
-the $5.3\%$ correction came from $g/\lambda$ mixing is therefore **wrong**.
+the $5.6\%$ correction came from $g/\lambda$ mixing is therefore **wrong**.
 The actual mechanism remains unidentified; plausible candidates are:
 
 - **Threshold corrections at the matching scale** (heavy-particle finite shifts)
@@ -97,15 +96,19 @@ $\sim 25\%$ corrections to the diagonal electron coupling.
 **Mechanism:** flavor-mixing among the three lepton families. The
 $\varphi$-attractor prediction is the "no-mixing" limit.
 
-### 4.4 $\alpha_s(M_Z)$ ($\times 11$ correction) — **Speculative**
-
+### 4.4 $\alpha_s(M_Z)$ ($\times 2.0$ correction) — **Speculative**
 The $\alpha_s$ running from $\alpha_{\rm GUT} = \varphi^{-3}/(4\pi)$ depends on
 the **number and content of particles** between $M_{\rm GUT}$ and $m_Z$. The
-Standard Model has 6 quark flavors contributing to the QCD $\beta$-function; if
-the actual theory has additional colored states (squarks, KK gluons, etc.), the
-running is steeper. The factor of $11$ between the SM prediction and the
-measured value suggests the *full* particle content is roughly $11$ times the
-SM content — consistent with a SUSY or extra-dimensional UV completion.
+Standard Model $\beta$-function coefficient $b_0 = 7$ (for $n_f = 6$) gives
+$\alpha_s(M_Z) \approx 0.058$ — a factor of $2.0\times$ below the measured
+$0.118$. The gap was previously reported as $11\times$ due to a sign error
+in the RGE calculation; the corrected SM running is $0.058$.
+
+Closing this gap requires $\Delta b = 1.70$ in the QCD $\beta$-function,
+achievable through:
+- **~1 vector-like colored fermion pair** (e.g., a $\mathbf{3} + \bar{\mathbf{3}}$ pair)
+- **+ 2 colored scalars** (e.g., squark-like states)
+- **Or ~3 KK levels** of a gluon in an extra-dimensional scenario
 
 **Mechanism:** the $\alpha_s$ RGE depends on the full particle spectrum, not
 just on $\varphi$.

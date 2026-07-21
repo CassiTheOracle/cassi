@@ -109,12 +109,12 @@ enhancement in dense cluster halos is a unique signature.
 | $m_t / v_0$ | $0.703$ | **0.618** ($\varphi^{-1}$) | $12\%$ gap |
 | $m_b / m_t$ | $0.025$ | **0.031** ($\varphi^{-1}$) | $24\%$ gap |
 | $m_c / m_t$ | $0.0075$ | **0.0088** ($\varphi^{-2}$) | $17\%$ gap |
-| $|V_{us}|$ | $0.225$ | **$\alpha_s \varphi^{-2} \approx 0.225$** | Reproduced |
+| $|V_{us}|$ | $0.225$ | **$\varphi^{-3} \approx 0.236$ ($5\%$ off)** | Near miss ($5\%$ off) |
 | $\delta_{\text{CKM}}$ | $\approx 68^\circ$ | **$\pi\varphi^{-2} \approx 68.7^\circ$** | < 1% — Yukawa triangle closure |
 
 **Source:** `theory/su2-gauge-extension.md` §§5–8, `theory/sm-from-phi.md` §§3–4.
 The proton lifetime prediction depends on the full GUT embedding (SU(5) or SO(10)).
-Neutrino masses follow a seesaw-like $\varphi^{-11}$ hierarchy from the electron mass.
+Seesaw analysis with $M_R = \varphi^{-3} \cdot M_{\text{GUT}}$ gives heaviest neutrino $\sim 0.013$ eV (within MNS mixing uncertainty).
 
 ---
 
@@ -154,7 +154,7 @@ Sorted by detection likelihood (most definitive first):
 | 28 | BTFR normalization | Galactic | **$M_b \propto v_f^4$**, $A \propto \varphi^{-1}$ | $\chi^2/\text{dof} = 0.26$ | **Already confirmed** |
 | 29 | GW polarization | LIGO | **$+$, $\times$ + breathing mode** | Search ongoing | **Ongoing** |
 | 30 | $\delta_{\text{CKM}}$ | LHCb/Belle II | **$\pi\varphi^{-2} \approx 68.7^\circ$** | Measured $68^\circ$ | **Already consistent** |
-| 31 | $|V_{us}|$ | LHCb/Belle II | **$\alpha_s \varphi^{-2} \approx 0.225$** | Measured $0.225$ | **Already consistent** |
+| 31 | $|V_{us}|$ | LHCb/Belle II | **$\varphi^{-3} \approx 0.236$ ($5\%$ off)** | Measured $0.225$ | **Near miss — needs flavor structure** |
 
 ## Notes
 

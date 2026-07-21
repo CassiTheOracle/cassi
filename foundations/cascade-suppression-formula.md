@@ -175,4 +175,4 @@ Together they constitute the complete scaling laws of the framework.
 - `proton-coherence-budget.md` — coherence maintenance, quadratic exponent
 - `strong-cp-derivation.md` — signal propagation, $\bar{\theta} = \varphi^{-87}$
 - `xi-derivation.md` — $\xi = \varphi^6$ as a cascade suppression factor
-- `de-resonance-principle.md` — why $\varphi^{-1}$ is the per-rung damping
+- `principles/de-resonance-principle.md` — why $\varphi^{-1}$ is the per-rung damping

@@ -70,6 +70,7 @@ These point to papers in the parent repository's `papers/` directory (siblings o
 | `foundations/quantum-measurement-derivation.md` | `../../quantum-measurement-qi-appendix.md` |
 | `open-questions-cassi-answers.md` | `../../consciousness-framework.md` |
 | `open-questions-cassi-answers.md` | `../../quantum-measurement-qi-appendix.md` |
+| `predictions/cassi_definitions.md` | `../../consciousness-framework.md` |
 
 ## References that should resolve within the TOE (incorrect paths)
 

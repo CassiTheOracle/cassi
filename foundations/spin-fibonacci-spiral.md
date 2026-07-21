@@ -211,7 +211,7 @@ contributions from deeper cascade rungs.
 | Pion form factor $F_\pi(q^2)$ | Period breaks at $q \sim \Lambda_{\text{QCD}}$ (pion's cascade depth is shallower) | JLab 12 GeV data |
 | $\Delta(1232)$ transition FF | Amplitude enhanced — spin-3/2 resonance has additional orbital winding | CLAS/MAID analysis |
 
-The prediction mirrors the cosmological $P(k)$ prediction (`falsifiable-predictions.md`
+The prediction mirrors the cosmological $P(k)$ prediction (`predictions/falsifiable-predictions.md`
 §5) — same period, same $\varphi$, same underlying mechanism, different probe.
 If detected, it is a unique Cassi signature orthogonal to perturbative QCD.
 

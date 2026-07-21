@@ -465,8 +465,8 @@ The action decomposes into five independently derivable subsector actions, each 
 |--------|--------|----------|
 | Two-fluid core | $S_{\text{TF}} = \int\mathcal{L}_{\text{TF}}$ | `cassi-first-principles.md` |
 | Dirac matter | $S_{\text{D}} = \int\mathcal{L}_{\text{D}}$ | `cassi_dirac_bridge.py`, `particles/cassi-yang-yin-particles.md` |
-| Gravity | $S_{\text{GR}} = \int\mathcal{L}_{\text{GR}}$ | `xi-derivation.md`, `qi-fluid-formalism.md` |
-| SM gauge | $S_{\text{SM}} = \int\mathcal{L}_{\text{SM}}$ | `su2-gauge-extension.md`, `sm-from-phi.md` |
+| Gravity | $S_{\text{GR}} = \int\mathcal{L}_{\text{GR}}$ | `xi-derivation.md`, `(external — see archive/theory/qi-fluid-formalism.md in physics repo)` |
+| SM gauge | $S_{\text{SM}} = \int\mathcal{L}_{\text{SM}}$ | `standard-model/su2-gauge-extension.md`, `standard-model/sm-from-phi.md` |
 | Mixing | $S_{\text{mix}} = \int\mathcal{L}_{\text{mix}}$ | This document |
 
 ---

@@ -299,10 +299,10 @@ Any single prediction failing excludes the framework.
 | `unified-lagrangian.md` | Full Lagrangian density with all terms |
 | `xi-derivation.md` | Derivation of $\xi = \varphi^6$ |
 | `phi_attractor_synthesis.md` | $\varphi$-attractor dynamics |
-| `sm-from-phi.md` | Standard Model couplings |
-| `cosmology-from-phi.md` | DESI calibration and cosmology |
-| `quantum-gravity.md` | UV-finite quantum gravity |
-| `three-body-analytical.md` | Three-body problem in Cassi framework |
+| `standard-model/sm-from-phi.md` | Standard Model couplings |
+| `cosmology/cosmology-from-phi.md` | DESI calibration and cosmology |
+| `gravity/quantum-gravity.md` | UV-finite quantum gravity |
+| `gravity/three-body-analytical.md` | Three-body problem in Cassi framework |
 | `predictions/falsifiable-predictions.md` | Full prediction catalog |
 
 ---
