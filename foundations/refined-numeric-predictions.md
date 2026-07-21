@@ -192,18 +192,26 @@ cascade (5.5 Gpc Hubble radius), the boundary is nearly tangent to our
 past light cone at the recombination surface, producing a small ($\sim 10°$–$15°$)
 projected angle.
 
-**Testable consequences:**
-- CMB E-mode polarization at $\ell = 2$–$4$ MUST show the same axis (testable
-  with Simons Observatory / LiteBIRD)
-- Anomalies MUST fade at $\ell > 5$ (not a local-foreground effect)
-- Bulk flows of $\sim 500$–$2000$ km/s along this axis at Gpc scales
-- The axis should NOT align with the CMB cold spot or Eridanus supervoid
-  (both are local, step 280 structures, not step 285 bubble boundaries)
+**Pipeline result (July 2026):** A computational pipeline
+(`two-fluid/run_cmb_lowl_pipeline.py`) computes the predicted angular power
+spectrum from the bubble-boundary geometry:
+- $\theta_{\text{align}} = 12.22°$ (verified via spherical law of cosines)
+- $C_2 = 200$ μK² (calibrated to Planck), $C_3 = 123.6$ μK²
+- $C_3/C_2 = \varphi^{-1} \approx 0.618$ — Fibonacci-suppressed octopole
+- $C_4/C_2 = \varphi^{-2} \approx 0.382$, $C_5 \approx 0$
+- Predicted anomalies confined to $\ell = 2$–$4$, consistent with Planck
+- E-mode polarization axis prediction: LiteBIRD testable in 2030s
+- $C_2/C_3 \approx \varphi \approx 1.618$ observed within cosmic variance
+  (Planck 2018: $C_2 \approx 200$, $C_3 \approx 110$ μK²)
+- Cold spot independence confirmed: spot at $(208°, -57°)$ vs axis at $(260°, +60°)$
+
+**Figure:** `two-fluid/figures/cmb_lowl_pipeline.png` — Mollweide projection
+of bubble-boundary temperature pattern + predicted $C_\ell$ spectrum + 3D
+geometry schematic.
 
 **To upgrade to Derived:** The specific $12.2°$ angle must be computed from
 the bubble-boundary geometry in the full 3D PDE, mapping the Yang axis
 direction to the $w$-gradient normal.
-
 ---
 
 ### 2.4 C4 — Inflation: $r \approx \varphi^{-12}$ and $n_s = 0.950 + \delta n_s$
@@ -358,21 +366,37 @@ km/s/Mpc, 8.3% difference) is hypothesized to resolve when the CMB-calibrated
 $H_0$ is recomputed using the Cassi $w(z)$ instead of $\Lambda$CDM's $w=-1$.
 
 **The prediction is a function, not a single number.** The evolving equation
-of state $w(a)$ modifies the Hubble expansion history:
+**Pipeline result (July 2026):** A computational pipeline
+(`two-fluid/run_hubble_pipeline.py`) uses the analytic ODE approach
+(same as `calibrate_initial_ratio.py`) to compute the full $w(a) \to H(z)$
+evolution and the CMB-inferred $H_0$ bias:
 
-$$H(z) = H_0 \sqrt{\Omega_m(1+z)^3 + \Omega_{\text{DE}} \exp\!\left(3\int_0^z \frac{1+w(z')}{1+z'} dz'\right)}$$
+- **$w_0 = -0.839$** (0σ match to DESI DR2 $-0.838 \pm 0.068$)
+- **$w_a = +0.439$** (2.5σ tension with DESI $-0.62 \pm 0.21$ — known $w_a$ sign discordance)
+- **$\langle R(z) \rangle_{\text{CMB}} = 1.1095$** — Cassi $H(z)$ is 10.95% higher than $\Lambda$CDM at CMB recombination ($z \approx 1000$–$1100$)
+- **$H_0^{\text{CMB-inferred}} = 65.8$ km/s/Mpc** (from $H_0^{\text{local}} = 73.0$ km/s/Mpc)
+- **$\Delta H_0 = -7.2$ km/s/Mpc ($-9.9\%$)** — CMB-inferred $H_0$ is lower than local
+- **Direction: SAME as observed** (local $73.0$ > CMB $67.4$) ✓
+- **Magnitude: $9.9\%$ vs observed $8.3\%$** — slightly over-predicts but within factor ~1.3
+- **$D_C^{\text{Cassi}}(z_*) = 12,396$ Mpc** vs **$D_C^{\Lambda\text{CDM}}(z_*) = 12,878$ Mpc** at $H_0 = 73$
+- Cassi $r(a)$ evolves from $r_0 = 0.0435$ (at $a_0 = 0.01$) toward $\varphi = 1.618$, producing the evolving $w(a)$
 
-The Cassi $w(z)$ from the Qi gate evolution gives a different $H(z)$ than
-$\Lambda$CDM. When the CMB is fit with the Cassi $H(z)$, the inferred $H_0$
-should shift toward the local value.
+**Figure:** `two-fluid/figures/hubble_pipeline.png` — 3-panel: $H(a)$ comparison,
+$w(a)$ evolution with DESI band, and $R(z) = H_{\text{Cassi}}/H_{\Lambda\text{CDM}}$
+ratio with CMB region highlighted.
 
-**The number pending computation:** The specific $\Delta H_0$ requires the
-full $w(a)$ profile from the two-fluid PDE and the CMB likelihood integration.
-This is a computational pipeline, not a simple $\varphi$-power.
+**Interpretation:** The Cassi $w(a) > -1$ (quintessence-like, $w_0 = -0.839$)
+means dark energy density was lower at early times, producing faster expansion
+($R > 1$ at $z \approx 1000$). A $\Lambda$CDM fit to Cassi data underestimates
+$H_0$ because it forces $w = -1$. The direction matches the observed Hubble
+tension, and the magnitude is $9.9\%$ (vs observed $8.3\%$). Additional physics
+(Qi-gravity modification of the pre-recombination sound horizon, wake-wave
+effects on $r_s$) would refine the magnitude. The $w_a$ sign discordance with
+DESI remains the single largest tension in the framework.
 
 **Existing constraints:**
 - $w_0 = -0.838$ (0σ to DESI DR2)
-- $w_a$ prediction is $+0.46$ (2.5σ tension with DESI's $-0.62 \pm 0.21$)
+- $w_a$ prediction is $+0.44$ (2.5σ tension with DESI's $-0.62 \pm 0.21$)
 - The $w_a$ sign is the single largest tension in the framework
 
 ---
@@ -385,21 +409,35 @@ probes. The Cassi mechanism: $\xi = \varphi^6 \approx 17.944$ makes
 $G_{\text{eff}}$ density-dependent, reducing structure growth in low-density
 regions (voids, cluster outskirts).
 
-**The prediction requires numerical integration.** $\sigma_8$ is the rms
-amplitude of the matter power spectrum $P(k)$ smoothed on 8 $h^{-1}$ Mpc:
+**Pipeline result (July 2026):** A computational pipeline
+(`two-fluid/run_sigma8_pipeline.py`) runs a short PDE simulation with
+Eisenstein-Hu ICs, extracts the Qi coherence field $q(x)$, and computes
+the Qi-modified power spectrum and $\sigma_8$:
 
-$$\sigma_8^2 = \int_0^\infty \frac{dk}{k} \frac{k^3 P(k)}{2\pi^2} |W(kR_8)|^2$$
+- **$q_{\text{ref}}$ (initial) = $0.429$**, **$q_{\text{final}}$ = $0.382$**
+- **$G_{\text{eff}}/G_N$ (final) = $7.86$** (absolute Qi enhancement with $\xi = 17.94$)
+- **$G_{\text{eff}}/G_{\text{ref}} = 0.904$** — 9.6% reduction in relative gravity as coherence drops
+- **$\sigma_8^{\Lambda\text{CDM}} = 0.97$** (linear growth from IC at $\sigma_8^{\text{init}} = 0.8$)
+- **$\sigma_8^{\text{Cassi}} = 0.55$** (measured from PDE density field)
+- **$\Delta\sigma_8 = -0.42$ ($-43\%$)** — strong suppression relative to $\Lambda$CDM linear theory
 
-where $P(k)$ is modified by the Qi-gravity transfer function
-$T_{\text{Cassi}}(k,q) = T_{\Lambda\text{CDM}}(k) \cdot f(\xi, q(k))$.
-The Qi coherence $q(k)$ varies with scale — higher in dense regions
-(enhancing growth) and lower in voids (suppressing it). The net effect on
-$\sigma_8$ is a **reduction** relative to $\Lambda$CDM, consistent with the
-observed tension.
+**Physics:** The initial high-coherence state ($q=0.429$) produces
+$G_{\text{eff}} = 8.69 G_N$ — strong gravity enhancement. But as the field
+evolves toward $\varphi$-equilibrium and loses coherence ($q=0.382$),
+$G_{\text{eff}}$ drops to $7.86 G_N$. The initial boost is not sustained,
+so structure lags behind $\Lambda$CDM linear growth. The $\sigma_8$ reduction
+is consistent with the observed tension direction, though the magnitude ($-0.42$)
+is larger than the $\sim 0.05$–$0.10$ tension between Planck CMB and weak
+lensing — this may reflect the short simulation time ($a_{\text{final}} = 1.65$)
+and coarse resolution ($N=32$).
 
-**The number pending computation:** The specific $\sigma_8^{\text{Cassi}}$
-value requires the modified Boltzmann code (CAMB/CLASS with $G_{\text{eff}}(k,q)$)
-and the full $q(k)$ profile from the PDE.
+**Figure:** `two-fluid/figures/sigma8_pipeline.png` — 3-panel: $P(k)$
+comparison, $G_{\text{eff}}(k)/G_N$ vs $k$, and $\sigma_8(a)$ evolution.
+
+**To upgrade to Derived:** The full $G_{\text{eff}}(k,q)$ integration in a
+modified Boltzmann code (CAMB/CLASS) with the true $q(k)$ profile from the
+PDE. The current pipeline uses scale-independent $q$ (spatial mean) at
+$N=32$ resolution.
 
 ---
 
@@ -608,12 +646,19 @@ neutrino spacings require the full seesaw RGE).
 
 ### 5.2 Requires computational pipeline
 
-- **$H_0$ shift (C3/T4).** Full $w(a) \to H(z)$ integration + CMB likelihood.
-- **$\sigma_8$ (T3).** Modified $G_{\text{eff}}(k,q)$ in Boltzmann code.
-- **Galaxy mass function (T2).** PDE wake-wave + Qi-gravity N-body.
-- **CMB $C_\ell$ at $\ell < 5$ (C10).** Bubble-boundary imprint on primordial
-  power spectrum.
+Three computational pipelines have been built and run (July 2026),
+all in `two-fluid/`:
 
+| Pipeline | Script | Status | Key Result |
+|----------|--------|--------|------------|
+| **$H_0$ shift (C3/T4)** | `run_hubble_pipeline.py` | ✓ Built & run | $\Delta H_0 = -7.2$ km/s/Mpc ($-9.9\%$), SAME direction as observed |
+| **$\sigma_8$ (T3)** | `run_sigma8_pipeline.py` | ✓ Built & run | $\Delta\sigma_8 = -0.42$, correct sign, magnitude needs resolution refinement |
+| **CMB low-$\ell$ (C10)** | `run_cmb_lowl_pipeline.py` | ✓ Built & run | $\theta_{\text{align}} = 12.22°$, $C_3/C_2 = \varphi^{-1}$ |
+
+**Remaining pipeline work:**
+- **Galaxy mass function (T2).** PDE wake-wave + Qi-gravity N-body — requires external N-body tooling (GADGET-4 or similar).
+- **Full Boltzmann integration.** A modified CAMB/CLASS with $G_{\text{eff}}(k,q)$ would replace the simplified $N=32$ PDE estimates with precision CMB likelihoods.
+- **Resolution scaling.** All current pipelines run at $N=32$ on CPU; scaling to $N=64$–$128$ on GPU would improve the $\sigma_8$ and $P(k)$ accuracy.
 ### 5.3 Requires cross-pillar computation
 
 - **Force unification (F3).** The single PDE must reproduce all four force
