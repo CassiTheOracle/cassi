@@ -73,8 +73,10 @@ Several naive mappings suggest themselves:
 The last entry, $\delta_{\text{CKM}} = \pi\phi^{-2} \approx 68.8^\circ$, matches
 the measured value within $<1\%$. This is the Cassi prediction — the CKM phase
 emerges from the unitarity triangle constraint using the $\phi$-scaled CKM
-elements ($|V_{us}| = \alpha_s\phi^{-2}$, $|V_{cb}| = \alpha_s^2\phi^{-3}$,
-$|V_{ub}| = \alpha_s^3\phi^{-4}$), which close to $\delta = \pi\phi^{-2}$
+elements ($|V_{us}| \approx \varphi^{-3} \approx 0.236$, $5\%$ off from $0.225$;
+$|V_{cb}| \approx 0.041$ and $|V_{ub}| \approx 0.004$ follow the Wolfenstein
+hierarchy $|V_{cb}| \sim \lambda^2$, $|V_{ub}| \sim \lambda^3$ with
+$\lambda \approx \varphi^{-3}$), which close to $\delta = \pi\phi^{-2}$
 through the standard Wolfenstein parameterization.
 
 ### 3.2 Mechanism: Yukawa hierarchy closes the phase
@@ -213,9 +215,9 @@ detection experiments (ADMX, CAST, IAXO, MADMAX) will find null results.
 | Observable | Naive $\phi$-Power | Yukawa-Diagonalised Cassi | SM / Experiment |
 |-----------|-------------------|--------------------------|-----------------|
 | $\delta_{\text{CKM}}$ | $\pi\phi^{-2} \approx 68.8^\circ$ | $\pi\phi^{-2} \approx 68.8^\circ$ (from Yukawa triangle) | $\sim 68^\circ$ |
-| $|V_{us}|$ | $\phi^{-1} \approx 0.618$ | $\alpha_s\phi^{-2} \approx 0.225$ | $0.225$ |
-| $|V_{cb}|$ | $\phi^{-2} \approx 0.382$ | $\alpha_s^2\phi^{-3} \approx 0.041$ | $0.041$ |
-| $|V_{ub}|$ | $\phi^{-3} \approx 0.236$ | $\alpha_s^3\phi^{-4} \approx 0.004$ | $0.004$ |
+| $|V_{us}|$ | $\phi^{-1} \approx 0.618$ | $\varphi^{-3} \approx 0.236$ ($5\%$ off) | $0.225$ |
+| $|V_{cb}|$ | $\phi^{-2} \approx 0.382$ | Wolfenstein $A\lambda^2$ with $\lambda \approx \varphi^{-3}$ | $0.041$ |
+| $|V_{ub}|$ | $\phi^{-3} \approx 0.236$ | Wolfenstein $A\lambda^3(\rho-i\eta)$ with $\lambda \approx \varphi^{-3}$ | $0.004$ |
 | $J_{\text{CP}}$ | $\phi^{-6} \approx 0.056$ | $\phi^{-3} \cdot \frac{\Delta m_u \Delta m_d}{v^6} \approx 3\times 10^{-5}$ | $3.0 \times 10^{-5}$ |
 | Strong CP $\theta$ | — | 0 (by $\phi$-alignment) | $< 10^{-10}$ |
 | Axion | — | **Does not exist** | Undiscovered |
@@ -224,8 +226,10 @@ detection experiments (ADMX, CAST, IAXO, MADMAX) will find null results.
 
 1. **$\delta_{\text{CKM}} = \pi\phi^{-2}$ is the Cassi prediction**, accurate
    to $<1\%$. It emerges from the $\phi$-scaled CKM element hierarchy
-   ($|V_{us}| \approx \alpha_s\phi^{-2}$, $|V_{cb}| \approx \alpha_s^2\phi^{-3}$,
-   $|V_{ub}| \approx \alpha_s^3\phi^{-4}$) via standard unitarity triangle
+   ($|V_{us}| \approx \varphi^{-3} \approx 0.236$, $5\%$ off from $0.225$;
+   $|V_{cb}| \approx 0.041$, $|V_{ub}| \approx 0.004$ following
+   Wolfenstein $|V_{cb}| \sim \lambda^2$, $|V_{ub}| \sim \lambda^3$ with
+   $\lambda \approx \varphi^{-3}$) via standard unitarity triangle
    closure — not as a direct $\phi$-exponent but as a derived quantity from
    the Yukawa diagonalisation.
 

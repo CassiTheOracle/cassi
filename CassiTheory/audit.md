@@ -56,7 +56,7 @@ but the formula as written is off by $10^6$.
 | Quantity | Cassi Value | Experimental | Deviation | Status |
 |----------|-------------|--------------|-----------|--------|
 | $w_0$ (DESI DR2) | $-0.838$ | $-0.838 \pm 0.064$ | $0\sigma$ | ✅ **Within MoE** |
-| $w_a$ (DESI DR2) | $-0.47$ | $-0.51 \pm 0.38$ | $<1\sigma$ | ✅ **Within MoE** |
+| $w_a$ (DESI DR2) | $+0.46$ | $-0.51 \pm 0.38$ | $2.5\sigma$ | ⚠️ **Open tension** |
 | $n_s$ (Planck 2018) | $0.967$ | $0.9649 \pm 0.0042$ | $0.5\sigma$ | ✅ **Within MoE** |
 | $r$ (tensor-to-scalar) | $0.003$ | $< 0.03$ (Planck+BICEP) | — | ✅ **Within bound** |
 | $H_0$ (Hubble tension) | $\approx 69.8$ km/s/Mpc | Planck $67.4\pm0.5$, SH0ES $73.0\pm1.0$ | — | ✅ **Resolves tension** |
@@ -96,7 +96,7 @@ but the formula as written is off by $10^6$.
 | SM | $\delta_{\text{CKM}} = \pi\varphi^{-2}$ | $<1\%$ |
 | SM | $m_W/m_Z = \sqrt{1-\varphi^{-3}}$ | $0.8\%$ |
 | Cosmology | $w_0 = -0.838$ | $0\sigma$ |
-| Cosmology | $w_a = -0.47$ | $<1\sigma$ |
+| Cosmology | $w_a = +0.46$ | $2.5\sigma$ |
 | Cosmology | $n_s = 0.967$ | $0.5\sigma$ |
 | Cosmology | $r = 0.003$ | Within bound |
 | Cosmology | $H_0 \approx 69.8$ km/s/Mpc | Resolves tension ($<1\sigma$ both sides) |
@@ -122,3 +122,11 @@ not determine.
 | $v_0/M_{\text{Pl}}$ | $\varphi^{-80}$ | $5.3\%$ | Correction factor (RGE ratio?) |
 | $m_e$ | $v_0\varphi^{-26}/\sqrt{2} \approx 0.64$ MeV | $25\%$ | New mixing physics |
 | $\alpha_s(M_Z)$ | RGE from $\alpha_{\text{GUT}}$ | $11\times$ | Particle content |
+
+### ⚠️ Open — Genuine Tension
+
+These predictions are derived from $\varphi$ but disagree with experiment at >2σ.
+
+| Quantity | Cassi Value | Experimental | Deviation | Status |
+|----------|-------------|--------------|-----------|--------|
+| $w_a$ (DESI DR2) | $+0.46$ | $-0.51 \pm 0.38$ | $2.5\sigma$ | ❌ Sign tension — predicted positive, observed negative |

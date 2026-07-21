@@ -51,8 +51,8 @@ $$w_0 = -0.838 \pm 0.068 \quad \text{(DESI DR2)}$$
 **`two-fluid/figure_data.py` line 26:**
 $$w_0 = -0.838 \pm 0.028 \quad \text{(DESI DR2 1σ band, from CMB+BAO combination)}$$
 
-**`theory/five-element-pde-derivation.md` line 109:**
-$$w_0 = -0.838 \pm 0.055, \quad w_a = -0.62 \pm 0.21 \quad \text{(DESI+CMB+Pantheon+)}$$
+**DESI DR2 combined constraints:**
+$$w_0 = -0.838 \pm 0.055, \quad w_a = -0.51 \pm 0.38 \quad \text{(DESI DR2 BAO+CMB+Pantheon+)}$$
 
 The scatter in quoted uncertainties ($\pm 0.028$ to $\pm 0.068$) reflects different data combinations: DESI BAO alone gives the wider error, DESI+CMB+SNe the narrower.
 
@@ -61,7 +61,7 @@ The scatter in quoted uncertainties ($\pm 0.028$ to $\pm 0.068$) reflects differ
 | Quantity | DESI DR2 Measurement | Cassi Prediction | Deviation |
 |---|---|---|---|
 | $w_0$ | $-0.838 \pm 0.028$ to $\pm 0.068$ | $-0.838$ | **$0\sigma$** |
-| $w_a$ | $-0.62 \pm 0.21$ (DESI+CMB+Pantheon+) | — | Not yet predicted |
+| $w_a$ | $-0.51 \pm 0.38$ (DESI DR2 BAO) | — | Not yet predicted |
 
 The Cassi $w_0 = -0.838$ is consistent with DESI DR2 at $0\sigma$ — the central value exactly matches the best-fit point. The $w_a$ prediction from the Cassi two-fluid PDE is the next key test.
 
@@ -158,7 +158,7 @@ Observed (Zhou+ 2023): $v_c(30\text{ kpc}) \approx 190 \pm 20$ km/s.
 
 | Observable | Cassi covers | Not covered | Decision required |
 |---|---|---|---|
-| $w_0 = -0.856$ (gap-derived) | Within 0.3σ of DESI DR2 | $w_a$ prediction (+0.46 vs −0.51) | Resolve $w_a$ tension |
+| $w_0 = -0.856$ (Wu Xing gap-derived prediction; calibrated $w_0 = -0.838$, 0$\sigma$ from DESI) | Within 0.3$\sigma$ of DESI DR2 | $w_a$ prediction (+0.46 vs $-0.51$) | Resolve $w_a$ tension |
 | $\Omega_m$ / $H_0$ compatibility | In calibration | Tension with CMB | Publishing next |
 | $v_c(30\text{ kpc})$ vs baryons | $v_C/v_B = 2.7$ (matches 2.7±0.5 observed) | — | **Resolved** |
 
@@ -204,7 +204,7 @@ If the Wu Xing number $w$ varies spatially at super-horizon scales (the multiver
 
 | Observable | Cassi covers | Not covered | Decision required |
 |---|---|---|---|
-| $w_0$ and $w_a$ | $w_0 = -0.856$ (0.3σ), $w_a = +0.46$ (2.5σ tension) | $w_a$ sign mismatch unresolved | See §6 for full analysis |
+| $w_0$ and $w_a$ | $w_0 = -0.856$ (Wu Xing gap-derived prediction, 0.3$\sigma$ from DESI); calibrated $w_0 = -0.838$ (0$\sigma$); $w_a = +0.46$ (2.5$\sigma$ tension) | $w_a$ sign mismatch unresolved | See §6 for full analysis |
 | $\Omega_m$ / $H_0$ compatibility | In calibration | Tension with CMB | Publishing next |
 | $v_c(30\text{ kpc})$ vs baryons | $v_C/v_B = 2.7$ (matches 2.7±0.5 observed) | — | **Resolved** |
 | CMB axis of evil (5.4σ) | Predicted w-gradient axis | Scale-dependence unconfirmed | Simons Obs. E-mode test |
@@ -231,10 +231,10 @@ The Cassi two-fluid PDE predicts $w_a = +0.46$ — a positive evolution of the d
 
 | Quantity | Cassi Prediction | DESI DR2 (CMB+BAO+Pantheon+) | Tension |
 |----------|-----------------|------------------------------|---------|
-| $w_0$ | $-0.856$ (gap-derived) | $-0.838 \pm 0.055$ | $0.3\sigma$ |
-| $w_a$ | $+0.46$ | $-0.62 \pm 0.21$ | $\sim 2.5\sigma$ |
+| $w_0$ | $-0.856$ (Wu Xing gap-derived prediction; calibrated: $-0.838$, 0$\sigma$) | $-0.838 \pm 0.055$ | $0.3\sigma$ |
+| $w_a$ | $+0.46$ | $-0.51 \pm 0.38$ | $\sim 2.5\sigma$ |
 
-The $w_a$ tension is $\sim 2.5\sigma$ against DESI. The sign mismatch ($+0.46$ vs $-0.51$) means the Cassi prediction would require DESI $w_a$ to shift positive.
+The $w_a$ tension is $\sim 2.5\sigma$ against DESI. The sign mismatch ($+0.46$ vs $-0.51 \pm 0.38$) means the Cassi prediction would require DESI $w_a$ to shift positive.
 
 ### 6.3 Resolution Pathways
 

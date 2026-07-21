@@ -258,7 +258,7 @@ late-universe physics we inhabit.
 
 - `dimensionful-cascade.md`: cascade table, $\Lambda_{\text{QCD}}$ at step 95
 - `foundations/unified-lagrangian.md` §3: $\sigma$-regularized PDE core
-- `foundations/de-resonance-principle.md`: $q_i$ scaling from de-resonance
+- `principles/de-resonance-principle.md`: $q_i$ scaling from de-resonance
 - `open-questions-cassi-answers.md`: Q9 (proton lifetime entry)
-- `consciousness-framework.md` §9: catalytic template and coherence extension
-- `quantum-gravity.md`: $\sigma = \ell_{\text{Pl}}/\varphi^3$ derivation
+- `(external — see papers/consciousness-framework.md in physics repo)` §9: catalytic template and coherence extension
+- `gravity/quantum-gravity.md`: $\sigma = \ell_{\text{Pl}}/\varphi^3$ derivation

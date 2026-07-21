@@ -167,7 +167,7 @@ in charged leptons ($\Delta_1 = 11$, $\Delta_2 = 6$ over 72 rungs).
 
 **Current status:** The CMB quadrupole ($\ell=2$) and octopole ($\ell=3$) are
 anomalously aligned along $(l, b) = (260°, +60°)$ at 5.4σ significance. The
-Cassi prediction (`observational_constraints.md` §4) is that the $w$-gradient
+Cassi prediction (`cosmology/observational_constraints.md` §4) is that the $w$-gradient
 between neighboring Wu Xing bubbles ($w=4$, $w=6$) imprints a preferred axis
 at super-horizon scales ($\ell < 5$).
 
@@ -758,9 +758,9 @@ all in `two-fluid/`:
 - `neutrino-masses.md` — seesaw + Fibonacci partitioning
 - `three-generations.md` — $N_{\text{gen}} = 3$ derivation
 - `spin-fibonacci-spiral.md` — spin as SO(2) winding
-- `inflation-from-cascade.md` — $N_e = 40$, $n_s$, $r$
+- `cosmology/inflation-from-cascade.md` — $N_e = 40$, $n_s$, $r$
 - `why-three-dimensions.md` — $3 = 2+1$ dimension count
 - `unified-lagrangian.md` — unified action
-- `observational_constraints.md` — CMB axis, $\sigma_8$, DESI
-- `falsifiable-predictions.md` — 31-entry prediction catalog
+- `cosmology/observational_constraints.md` — CMB axis, $\sigma_8$, DESI
+- `predictions/falsifiable-predictions.md` — 31-entry prediction catalog
 - `open-questions-cassi-answers.md` — master catalog

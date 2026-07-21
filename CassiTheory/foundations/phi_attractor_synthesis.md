@@ -11,7 +11,7 @@ The classical three-body problem has no general closed-form solution (Poincare, 
 Cassi modifies standard Newtonian gravity in three ways:
 1. **Gaussian force softening** with length scale $\sigma$, regularizing the $1/r^2$ singularity.
 2. **$\varphi$-attractor damping**: velocities are updated as $\mathbf{v} \leftarrow d \cdot \mathbf{v} + \mathbf{a} \cdot dt$, where $d = \varphi^{-1} \approx 0.618$ is the canonical damping rate.
-3. **Qi-coherence-enhanced gravity**: $G_{\text{eff}}/G_N = 1 + (\varphi - 1) \cdot q(\rho)$, where $q \in [0,1]$ measures local coherence.
+3. **Qi-coherence-enhanced gravity**: $G_{\text{eff}}/G = (\pi/\rho)\,(1 + \xi \cdot q)$, where $\xi = \varphi^6 \approx 17.944$ and $q \in [0,1]$ measures local coherence.
 
 These modifications break the scale-free structure of Newtonian gravity, potentially introducing new integrals of motion or modifying the chaotic phase space. We systematically explore the analytical consequences.
 
@@ -58,9 +58,17 @@ where $\rho_{\text{ref}}$ is a reference density scale. Limits:
 
 The effective gravitational constant in the two-fluid model is:
 
-$$\frac{G_{\text{eff}}}{G_N} = 1 + (\varphi - 1) \cdot q$$
+$$\frac{G_{\text{eff}}}{G} = \frac{\pi}{\rho}\left(1 + \xi \cdot q\right), \qquad \xi = \varphi^6 \approx 17.944$$
 
-Maximum enhancement: $G_{\text{eff}}/G_N \to \varphi \approx 1.618$ as $q \to 1$ (low-density limit). This is the mechanism tested in Paths 8--9 for galactic dynamics.
+where $\pi/\rho$ is the geometric dilution factor from the two-fluid projection, $\xi = \varphi^6$ is the derived coupling constant arising from the six-dimensional phase-space structure, and $q$ is the Qi coherence factor (Section 2.3).
+
+Maximum enhancement at the $\varphi$-fixed point ($\pi/\rho = \varphi^{-3} \approx 0.236$, $q \approx 0.7$):
+
+$$\frac{G_{\text{eff}}}{G} \approx 0.236 \times (1 + 17.944 \times 0.7) \approx 3.2\times$$
+
+**Note on earlier derivation:** Earlier sections of this work (Paths 8--9) used $G_{\text{eff}}/G_N = 1 + (\varphi-1)\cdot q$ with max boost $\varphi \approx 1.618$, which underestimated the enhancement by approximately a factor of 2. The correct $\xi = \varphi^6$ coupling follows from the full two-fluid derivation. The paths below should be re-evaluated with the corrected formula.
+
+This is the mechanism tested in Paths 8--9 for galactic dynamics.
 
 ## 3. Path 1: Asymptotic $R_\infty(d)$
 
@@ -278,11 +286,13 @@ A single scale-independent $\sigma$ **cannot** simultaneously explain flat galac
 
 ### The Mechanism
 
-Unlike softened gravity (which only reduces forces), $\varphi$-enhanced gravity **increases** $G_{\text{eff}}$ at low densities:
+Unlike softened gravity (which only reduces forces), $\varphi$-enhanced gravity **increases** $G_{\text{eff}}$ at low densities through the two-fluid coupling:
 
-$$\frac{G_{\text{eff}}}{G_N} = 1 + (\varphi - 1) \cdot q(\rho), \qquad q = \frac{1}{1 + (\rho/\rho_{\text{ref}})^2}$$
+$$\frac{G_{\text{eff}}}{G} = \frac{\pi}{\rho}\bigl(1 + \xi \cdot q(\rho)\bigr), \qquad \xi = \varphi^6 \approx 17.944, \qquad q = \frac{1}{1 + (\rho/\rho_{\text{ref}})^2}$$
 
-In the low-density outskirts of a galaxy ($\rho \ll \rho_{\text{ref}}$), $q \to 1$ and $G_{\text{eff}} \to \varphi \cdot G_N$.
+In the low-density outskirts of a galaxy ($\rho \ll \rho_{\text{ref}}$), $q \to 1$ and the enhancement approaches $G_{\text{eff}}/G \approx (\pi/\rho)\,(1 + \xi)$.
+
+> **Note on formula:** The numerical results below (velocity boost, DM reduction) were computed with the earlier approximate formula $G_{\text{eff}}/G_N = 1 + (\varphi-1)\cdot q$, which gave a maximum boost factor $\varphi \approx 1.618$ and $v_{\text{max}}/v_{\text{Newt}} \leq \sqrt{\varphi} \approx 1.27$. The correct $\xi = \varphi^6$ derivation (Section 2.4) yields a significantly larger enhancement. These paths should be re-run with the corrected formula.
 
 ### Results
 
@@ -304,6 +314,8 @@ The $\sqrt{\varphi} \approx 1.27\times$ maximum boost is fundamentally bounded b
 ### Setup
 
 We compare the Cassi $\varphi$-enhanced model to MOND using the radial acceleration relation (RAR, McGaugh et al. 2016). MOND uses the simple interpolating function $\mu(x) = x/\sqrt{1+x^2}$ with $a_0 = 1.2 \times 10^{-10}$ m/s$^2$.
+
+> **Note:** The Cassi boost values in this section were computed with the earlier $G_{\text{eff}}/G_N = 1 + (\varphi-1)\cdot q$ formula (see annotation in Path 8). With the corrected $\xi = \varphi^6$ coupling, the Cassi boost is significantly larger, and the comparison with MOND should be re-evaluated.
 
 ### The Decisive Distinction
 
@@ -351,9 +363,9 @@ graph TD
     E --> G["Lagrange points<br/>merge at sigma/a ~ 0.35"]
     E --> H["L4/L5 stability<br/>universal for sigma/a >= 0.44"]
     A --> I["Qi coherence<br/>q(rho)"]
-    I --> J["G_eff enhancement<br/>max = phi = 1.618"]
+    I --> J["G_eff enhancement<br/>max ~ 3.2x (xi = phi^6)"]
     J --> K["Rotation curves<br/>78% DM reduction"]
-    J --> L["vs MOND<br/>saturates at phi"]
+    J --> L["vs MOND<br/>saturates (needs re-eval)"]
     F --> M["sigma < 370 km<br/>from pulsars"]
     M --> N["14 orders of magnitude<br/>gap to galactic sigma"]
 ```
@@ -362,7 +374,7 @@ graph TD
 
 The following testable predictions emerge from this work:
 
-1. **Rotation curve ceiling:** In the low-acceleration tail (dwarf galaxies), Cassi predicts $v_{\text{obs}}/v_{\text{Newt}} \leq \sqrt{\varphi} \approx 1.27$. If observations show $v_{\text{obs}}/v_{\text{Newt}} > 1.27$ with $\sqrt{a_0/a}$ scaling, MOND is correct and Cassi is falsified.
+1. **Rotation curve ceiling:** In the low-acceleration tail (dwarf galaxies), Cassi predicts $v_{\text{obs}}/v_{\text{Newt}} \leq \sqrt{\varphi} \approx 1.27$ (based on the earlier $G_{\text{eff}}$ formula; with $\xi = \varphi^6$ the ceiling is higher and should be recalculated). If observations show $v_{\text{obs}}/v_{\text{Newt}} > 1.27$ with $\sqrt{a_0/a}$ scaling, the earlier Cassi bound is falsified --- but the corrected $\xi = \varphi^6$ formula must first be evaluated to establish the new prediction.
 
 2. **Precession direction:** Cassi softened gravity predicts **retrograde** pericenter precession ($\Delta\phi < 0$), opposite to the **prograde** GR precession. In systems where softening is significant ($\sigma/a$ not negligibly small), the precession direction is a direct test. For binary pulsars, Cassi precession is negligible ($\sigma < 370$ km), but for wider systems with larger $\sigma/a$, the retrograde signature could be detectable.
 
@@ -372,7 +384,7 @@ The following testable predictions emerge from this work:
 
 4. **No universal acceleration scale:** Unlike MOND's $a_0$, Cassi has a **density** scale $\rho_{\text{ref}}$, not an acceleration scale. Different galaxies should show the enhancement turning on at different $a_{\text{baryon}}$, depending on their density profiles. If a truly universal $a_0$ is confirmed across all galaxy types, Cassi is disfavored relative to MOND.
 
-5. **Saturation vs growth:** The most decisive test: measure the boost factor $a_{\text{obs}}/a_{\text{baryon}}$ at progressively lower accelerations. MOND predicts continued growth ($\propto 1/\sqrt{a}$); Cassi predicts saturation at $\varphi \approx 1.618$. Ultra-faint dwarf galaxies and galaxy cluster outskirts provide the testing ground.
+5. **Saturation vs growth:** The most decisive test: measure the boost factor $a_{\text{obs}}/a_{\text{baryon}}$ at progressively lower accelerations. MOND predicts continued growth ($\propto 1/\sqrt{a}$); Cassi predicts saturation --- at what value depends on the correct $G_{\text{eff}}$ formula (the old $\varphi \approx 1.618$ saturation is superseded by $\xi = \varphi^6$; see Section 2.4). Ultra-faint dwarf galaxies and galaxy cluster outskirts provide the testing ground.
 
 ## 14. Open Questions
 
@@ -401,8 +413,10 @@ Combining softened gravity (small $\sigma$ for solar-system/pulsar consistency) 
 | 4b | Analytical precession $\Delta\phi = -\sqrt{2\pi}(\sigma/a)^3(1+e^2/4)/(1-e^2)^3$ | Confirmed |
 | 5 | L1/L2 merge at $\sigma/a \approx 0.35$; $\sigma < 370$ km from pulsars | Confirmed |
 | 6 | L4/L5 universally stable for $\sigma/a \geq 0.44$ | Confirmed |
-| 8 | $\varphi$-enhanced gravity reduces DM by $\sim 78\%$ | Confirmed |
-| 9 | Cassi saturates at $\varphi \approx 1.62$; MOND grows without bound | Confirmed |
+ | 8 | $\varphi$-enhanced gravity reduces DM by $\sim 78\%$ (old formula) | Confirmed* |
+ | 9 | Cassi saturates at $\varphi \approx 1.62$; MOND grows without bound (old formula) | Confirmed* |
+
+\* Confirmed under the earlier $G_{\text{eff}}/G_N = 1 + (\varphi-1)\cdot q$ formula. The results require re-evaluation with the corrected $\xi = \varphi^6$ coupling (see Section 2.4).
 
 ### Disproven Hypotheses
 

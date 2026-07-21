@@ -52,7 +52,7 @@ All dimensionless coupling constants in the Cassi framework are $\varphi$-powers
 | $\beta$ (Bohm QP exponent) | $\varphi^{-1}/2$ | $0.309$ | **D** | Quantum potential scaling exponent |
 | $\chi_Y$ (Yang chemotaxis) | $\chi/\varphi$ | $\chi \cdot 0.618$ | **D** | Ratio fixed, absolute value calibrated ($\chi$) |
 | $w_0$ (DE equation of state) | — | $-0.838$ | **D** | From $\lambda$ and $\varphi$ via DESI matching |
-| $w_a$ (DE running) | — | $-0.47$ | **D** | From $\lambda$ and $\varphi$ via DESI matching |
+| $w_a$ (DE running) | — | $+0.46$ | **D** | From $\lambda$ and $\varphi$ via DESI matching (2.5σ tension with DESI $-0.51$) |
 | $n_s$ (spectral index) | — | $0.967$ | **D** | From inflation in Cassi framework |
 | $r$ (tensor-to-scalar) | — | $0.003$ | **D** | From inflation in Cassi framework |
 | $K_{fw}$ (Wu Xing coeff) | $\varphi^{-1}$ | $0.618$ | **D** | Water damps Fire |

@@ -172,7 +172,7 @@ mechanism that eliminates the paired fraction.
   coherence budget)
 - Yang-Yin imbalance at freeze-out from Wu Xing gap $g = 1 - \varphi^{-5}$
 - CP violation from $\delta_{\text{CP}} = \pi\varphi^{-2}$ (derived in
-  `cp-violation.md`)
+  `standard-model/cp-violation.md`)
 - Sakharov conditions satisfied without additional physics
 
 ### Hypothesized (testable)

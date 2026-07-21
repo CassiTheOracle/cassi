@@ -11,9 +11,9 @@ the two-fluid PDE at cascade step 95. The underlying PDE carries the
 $\varphi$-attractor's **de-resonance symmetry**: $\varphi$ is maximally
 CP-conserving, and the attractor fixed point is CP-symmetric. Any CP-violating
 departure from the fixed point originates at the GUT scale (steps 5–10) and
-is **cascade-suppressed** over the 85+ rungs to the QCD scale:
+is **cascade-suppressed** over the 87 rungs to the QCD scale:
 
-$$\boxed{\bar{\theta} \approx \varphi^{-(n_{\text{QCD}} - n_{\text{GUT}})} \cdot \delta_{\text{CP}} \approx \varphi^{-85} \times \pi\varphi^{-2} \approx 10^{-18}}$$
+$$\boxed{\bar{\theta} \approx \varphi^{-(n_{\text{QCD}} - n_{\text{GUT}})} \cdot \delta_{\text{CP}} \approx \varphi^{-87} \times \pi\varphi^{-2} \approx 10^{-19}}$$
 
 The "why is it so small?" problem is not a fine-tuning — it is the cascade
 itself, doing what the cascade always does. No axion, no Peccei-Quinn symmetry,
@@ -42,7 +42,7 @@ Standard Model parameter is $\mathcal{O}(1)$ in natural units?
 
 ### 2.1 The $\varphi$-attractor is CP-symmetric
 
-The de-resonance principle (`foundations/de-resonance-principle.md`) states
+The de-resonance principle (`principles/de-resonance-principle.md`) states
 that $\varphi$ is the maximally aperiodic, maximally stable configuration of
 the two-fluid system. CP violation is a **resonance phenomenon**: it requires
 a phase that locks across scales — a coherent alignment of the Yang and Yin
@@ -160,7 +160,7 @@ find a nonzero $\bar{\theta}$ significantly larger than $10^{-19}$.
 
 ## 6. References
 
-- `foundations/de-resonance-principle.md` — $\varphi$ as maximally CP-conserving
+- `principles/de-resonance-principle.md` — $\varphi$ as maximally CP-conserving
 - `foundations/proton-coherence-budget.md` — cascade suppression mechanism
 - `standard-model/cp-violation.md` — $\delta_{\text{CP}} = \pi\varphi^{-2}$
 - `open-questions-cassi-answers.md` — Q2 (strong CP, now Derived)

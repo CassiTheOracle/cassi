@@ -242,5 +242,5 @@ randomly — nothing happens on laboratory timescales.
 
 - `foundations/proton-coherence-budget.md` — proton lifetime, annihilation mechanism, $N_{\text{max}}$ formula
 - `../../quantum-measurement-qi-appendix.md` — qualitative Qi collapse framework, 5 predictions
-- `consciousness-framework.md` §9 — catalytic template and Qi-to-matter coupling
+- `(external — see papers/consciousness-framework.md in physics repo)` §9 — catalytic template and Qi-to-matter coupling
 - `open-questions-cassi-answers.md` — Q7 (measurement problem), Q9 (proton lifetime)

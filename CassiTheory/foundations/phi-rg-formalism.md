@@ -139,7 +139,7 @@ $\square$
 
 ### 3.3 The No-Fixed-Point Theorem Connection
 
-The no-fixed-point theorem in `qi-fluid-formalism.md` states that for $\alpha \geq \varphi^{-1}$ and $S \neq 0$, the map $F(\psi) = \mathcal{D}^{-1}[S + \alpha \cdot \mathcal{P}[\psi]]$ has no stable fixed point in field space. The φ-RG provides the complementary perspective: $\alpha$ itself flows to the fixed point $\varphi^{-1}$ in coupling space, but at that fixed point, the field dynamics are permanently non-stationary (the Qi fluid circulates forever).
+The no-fixed-point theorem in `(external — see archive/theory/qi-fluid-formalism.md in physics repo)` states that for $\alpha \geq \varphi^{-1}$ and $S \neq 0$, the map $F(\psi) = \mathcal{D}^{-1}[S + \alpha \cdot \mathcal{P}[\psi]]$ has no stable fixed point in field space. The φ-RG provides the complementary perspective: $\alpha$ itself flows to the fixed point $\varphi^{-1}$ in coupling space, but at that fixed point, the field dynamics are permanently non-stationary (the Qi fluid circulates forever).
 
 ---
 
@@ -341,10 +341,10 @@ The φ-RG formalization provides the missing field-theoretic foundation for the 
 
 ## References
 
-- `de-resonance-principle.md` — empirical pattern of φ-power corrections
+- `principles/de-resonance-principle.md` — empirical pattern of φ-power corrections
 - `xi-derivation.md` — derivation of $\xi = \varphi^6$ from dimensional reduction
-- `sm-from-phi.md` — Standard Model parameters from φ
+- `standard-model/sm-from-phi.md` — Standard Model parameters from φ
 - `cassi-first-principles.md` — self-predictive wave equation and critical coupling
-- `qi-fluid-formalism.md` — no-fixed-point theorem ($\alpha \geq \varphi^{-1}$, $S \neq 0$)
+- `(external — see archive/theory/qi-fluid-formalism.md in physics repo)` — no-fixed-point theorem ($\alpha \geq \varphi^{-1}$, $S \neq 0$)
 - `parameter-inventory.md` — honest accounting of derived vs. external parameters
-- `kolmogorov-from-phi.md` — φ-RG applied to turbulence (φ-break scale)
+- `turbulence/kolmogorov-from-phi.md` — φ-RG applied to turbulence (φ-break scale)

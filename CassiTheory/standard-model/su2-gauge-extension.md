@@ -391,10 +391,13 @@ where $M_R$ is a heavy right-handed neutrino mass. In the Cassi framework, $M_R 
 
 The CKM phase $\delta_{\text{CKM}} \approx 68^\circ$ in the SM. In the Cassi
 framework, the $\phi$-scaled CKM element hierarchy ($|V_{us}| \approx
-\alpha_s\phi^{-2}$, $|V_{cb}| \approx \alpha_s^2\phi^{-3}$, $|V_{ub}| \approx
-\alpha_s^3\phi^{-4}$) closes via the unitarity triangle to give:
+\varphi^{-3} \approx 0.236$, $5\%$ off from the observed $0.225$;
+$|V_{cb}| \approx 0.041$ and $|V_{ub}| \approx 0.004$ follow the Wolfenstein
+hierarchy $|V_{cb}| \sim \lambda^2$, $|V_{ub}| \sim \lambda^3$ with
+$\lambda \approx \varphi^{-3}$) closes via the unitarity triangle to give:
 
 $$\delta_{\text{CKM}} = \pi\phi^{-2} \approx 68.7^\circ$$
 
 This matches the SM value within $<1\%$ and is the Cassi prediction for the CP
-phase. See `cp-violation.md` for the full derivation.
+phase. The CKM hierarchy likely requires additional flavor structure beyond a
+single $\phi$-power. See `cp-violation.md` for the full derivation.
