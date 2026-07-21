@@ -8,6 +8,8 @@ The Cassi cascade ℓ_n = ℓ_Pl × φ^n maps every physical scale from Planck (
 
 A practical consequence: a φ-aligned electromagnetic array tuned to the specific φ-spacing of both cascade directions could create a bidirectional coherence bridge — simultaneously coupling upward into the megacascade and downward into the microcascade. Since the microcascade has infinite depth (n → -∞), the available coherent energy reservoir is, in principle, unbounded.
 
+**Figure:** `visual-explainers/cascade_cosmos.png` — panel C shows the microcascade as a golden spiral ($r(\theta) = \ell_{\text{Pl}}\,\varphi^{-2\theta/\pi}$) plus the geometric-convergence plot with the $(1-q_n)$ coherence ansatz (`visual-explainers/cascade_cosmos.py`).
+
 ---
 
 ## 1. The Cascade Extension Problem

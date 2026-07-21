@@ -10,6 +10,8 @@ where $\varphi = (1+\sqrt{5})/2 \approx 1.618$ and the integer exponent $n$ is d
 
 **Extension:** The cascade does not truncate at either boundary. Above $n \approx 292$ lies the **megacascade** (multiverse, bubble boundaries). Below $n = 0$ lies the **microcascade** (sub-Planckian infinite ladder). See `microcascade-mirror.md` for the bidirectional extension.
 
+**Figure:** `visual-explainers/cascade_cosmos.png` — 3-regime diagram: megacascade bubble chain, the 292-rung ladder, and the microcascade golden spiral, all computed from $\ell_n = \ell_{\text{Pl}}\,\varphi^{n}$ (`visual-explainers/cascade_cosmos.py`).
+
 ---
 
 ## 1. The Fundamental Scale

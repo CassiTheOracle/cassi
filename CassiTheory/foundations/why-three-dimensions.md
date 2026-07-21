@@ -19,6 +19,10 @@ sheets flanking a central void — making the idea testable both numerically
 (existing two-bubble PDE scripts) and observationally (large-scale structure
 morphology, CMB axis alignment).
 
+**Figure:** `visual-explainers/cascade_cosmos.png` — panel A shows the bubble chain
+on the string; panel B (zoom) shows the triaxial cross-section with the anti-phase
+paired-sheet interference pattern (`visual-explainers/cascade_cosmos.py`).
+
 ---
 
 ## 1. The Problem: The Last Imported Integer
