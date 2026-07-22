@@ -227,21 +227,21 @@ def run_bubble_spiral(args):
         ei_hat = torch.fft.fftn(ei)
 
         # Log headers
-        with open(logfile, 'w') as f:
+        with open(logfile, 'w', encoding='utf-8') as f:
             f.write(f'# N={args.N} lam={args.lam} gate=two_pole steps={args.steps}\n')
             f.write(f'# bubble: rx={args.brx:.4f} ry={args.bry:.4f} rz={args.brz:.4f} amp={args.bamp}\n')
             f.write(f'# {"step":>6s} {"a":>10s} {"H":>10s} {"r":>8s} {"q":>8s}\n')
 
-        with open(modes_file, 'w') as f:
+        with open(modes_file, 'w', encoding='utf-8') as f:
             f.write(f'# N={args.N} gate=two_pole — static angular mode powers\n')
             header = f'# {"step":>6s} {"dom_N":>5s} {"%N":>6s} {"dom_S":>5s} {"%S":>6s}'
             for fib in FIB_MODES:
                 header += f' {"m="+str(fib):>8s}'
             f.write(header + '\n')
 
-        with open(phases_file, 'w') as f:
+        with open(phases_file, 'w', encoding='utf-8') as f:
             f.write(f'# N={args.N} gate=two_pole — angular phases (radians) for rotation detection\n')
-            f.write(f'# Rotation rate dθ/dt ≈ lambda = {args.lam} rad/step expected if spiral active\n')
+            f.write(f'# Rotation rate dtheta/dt ~ lambda = {args.lam} rad/step expected if spiral active\n')
             header = '# step'
             for pole in ['N', 'S']:
                 for m in [5, 8, 13]:
@@ -269,11 +269,11 @@ def run_bubble_spiral(args):
 
             if np.isnan(a) or np.isnan(r):
                 print(f'  [NaN] step={step} — aborting')
-                with open(logfile, 'a') as f:
+                with open(logfile, 'a', encoding='utf-8') as f:
                     f.write(f'NaN at step {step}\n')
                 break
 
-            with open(logfile, 'a') as f:
+            with open(logfile, 'a', encoding='utf-8') as f:
                 f.write(f'{step:7d} {a:10.6e} {H:10.6e} {r:8.4f} {qm:8.4f}\n')
 
         # Mode analysis + phase tracking
@@ -290,7 +290,7 @@ def run_bubble_spiral(args):
                 ps = modes_s.get(fib, 0) * 100
                 fib_powers.append(f'{pn+ps:8.2f}')
 
-            with open(modes_file, 'a') as f:
+            with open(modes_file, 'a', encoding='utf-8') as f:
                 f.write(f'{step:7d} {dom_n:5d} {frac_n:6.1f} {dom_s:5d} {frac_s:6.1f}'
                         + ''.join(fib_powers) + '\n')
 
@@ -298,7 +298,7 @@ def run_bubble_spiral(args):
             ph_n = pole_angular_phases(ey, pole_sign=1, track_modes=track_modes)
             ph_s = pole_angular_phases(ey, pole_sign=-1, track_modes=track_modes)
 
-            with open(phases_file, 'a') as f:
+            with open(phases_file, 'a', encoding='utf-8') as f:
                 parts = [f'{step:7d}']
                 for ph in [ph_n, ph_s]:
                     for m in track_modes:
