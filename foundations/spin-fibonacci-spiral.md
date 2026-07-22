@@ -50,6 +50,30 @@ The logarithmic spiral is the **Fibonacci spiral**: each full turn multiplies
 the radius by $\varphi$, and the spiral's growth follows the Fibonacci sequence
 $r_{k+1}/r_k \to \varphi$ as $k \to \infty$.
 
+**Crucial distinction — internal vs spatial spiral.** The spiral $\Theta(r)$
+traces the doublet arrow's rotation in the **internal** $(E_Y, E_I)$ plane —
+the abstract 2D space of field amplitudes, not physical 3D space. The doublet
+angle $\Theta = \text{atan2}(E_I, E_Y)$ is defined at each spatial point
+independently; the spiral parameter $r$ is the radial coordinate *in a
+conceptual space* (cascade rung index mapped to length scale), not a spatial
+radial coordinate. This means:
+
+- **In the internal space:** the doublet traces a perfect Fibonacci spiral
+  (derived, §1).
+- **In physical 3D space:** the spiral does NOT manifest as a visible spiral
+  pattern in $E_Y$ or $E_I$ individually. The two-pole bubble PDE test (July
+  2026, `run_pde_bubble_spiral.py`) confirmed this: the spatial angular power
+  spectrum at the bubble poles shows $m=2$ (ellipsoid cross-section) dominance
+  with no $m=5$ Fibonacci mode emergence, and angular phase tracking showed no
+  detectable spiral rotation ($d\phi/dt \sim 1.5\times 10^{-4}$ rad/step vs
+  $\lambda = 0.02$ rad/step expected).
+- **The Fibonacci spiral on the $\varphi$-ellipsoid** (5-arm emergence at poles,
+  `visual-explainers/fibonacci_bubble_spiral.py`) is a **geometric** property
+  of geodesics on the triaxial surface — it follows from the golden angle
+  phyllotaxis $2\pi/\varphi^2$ on the $\varphi$-ellipsoid and does not require
+  PDE dynamics to "produce" it. The PDE's role is to maintain the ellipsoid
+  geometry; the pentagon follows from the geometry, not the dynamics.
+
 ---
 
 ## 2. Quantization from boundary conditions
@@ -233,17 +257,18 @@ it lives, its quarks carry spin-$1/2$ because the internal SO(2) doublet winds
 by $\pi$ from the QCD core to the proton boundary. Same cascade, same $\varphi$,
 three different aspects of one field.
 
----
-
 ## 7. Epistemic boundaries
 
 ### Derived (from $\varphi$ + PDE + cascade)
 
-- Logarithmic spiral trajectory of $(E_Y, E_I)$: follows from the conversion
-  term's continuous SO(2) rotation and the $\varphi$-scaling of the cascade
+- Logarithmic spiral trajectory of $(E_Y, E_I)$ in **internal** SO(2) doublet
+  space: follows from the conversion term's continuous rotation and the
+  $\varphi$-scaling of the cascade
 - Spin quantization to integer/half-integer from single-valued boundary
   conditions
 - Spin-statistics from exchange-phase parity: $(-1)^{2s}$
+- The spiral is in internal doublet space, not a spatial pattern in $E_Y$
+  alone (confirmed by two-pole bubble PDE test, July 2026)
 
 ### Hypothesized (mechanism specified, testable)
 
@@ -252,6 +277,9 @@ three different aspects of one field.
 - No fundamental spin-$3/2$ from Fibonacci non-closure of $\frac{3}{4}$-rung
   steps
 - Form factor log-periodicity at $\Delta(\ln q) = \ln\varphi$
+- Fibonacci spiral arm emergence at $\varphi$-ellipsoid poles (5 arms):
+  **geometric** — follows from golden angle phyllotaxis on the triaxial
+  surface, not from PDE dynamics (see `visual-explainers/fibonacci_bubble_spiral.py`)
 
 ### Speculative (consistent, no test design yet)
 
@@ -270,3 +298,5 @@ three different aspects of one field.
 - `foundations/dimensionful-cascade.md` — cascade table, $\Delta n$ spacings
 - `predictions/falsifiable-predictions.md` §5 — $\ln\varphi$-periodic $P(k)$
 - `open-questions-cassi-answers.md` — Q7 (measurement), Q9 (proton)
+- `visual-explainers/fibonacci_bubble_spiral.py` — Fibonacci spiral on $\varphi$-ellipsoid
+- `run_pde_bubble_spiral.py` — two-pole bubble PDE test (July 2026)
