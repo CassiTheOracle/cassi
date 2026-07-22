@@ -92,10 +92,10 @@ All Qi-gravity phenomenology follows from this single derivation:
 - Solar-system bounds from planetary ephemerides
 - Terminal attractor convergence in structure formation
 
-## 5. Now Zero Free Parameters
+## 5. Zero Free Dimensionless Parameters
 
-With $\xi = \varphi^6$ derived, the Cassi Theory of Everything has **zero free
-parameters**:
+With $\xi = \varphi^6$ derived, the Cassi framework has **zero free dimensionless
+parameters** among its coupling constants:
 
 | Constant | Value | Status |
 |----------|-------|--------|
@@ -107,6 +107,8 @@ parameters**:
 
 The Standard Model gauge couplings, the weak mixing angle, and the Qi-gravity coupling
 all reduce to $\varphi$ and its powers.
+
+The PDE conversion rate $\lambda = 0.1$ and the three dimensionful constants ($c$, $\hbar$, $G$) remain external to the framework. See `foundations/dimensionful-constants-status.md` for the complete accounting.
 
 ## 6. Alternative Expressions
 
