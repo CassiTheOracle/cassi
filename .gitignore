@@ -19,3 +19,8 @@ Thumbs.db
 # Generated figure output (from visual-explainers)
 *.png
 *.mp4
+
+# PDE test runs (checkpoints, logs, output dirs)
+runs/
+*.pt
+solver_patches.patch
