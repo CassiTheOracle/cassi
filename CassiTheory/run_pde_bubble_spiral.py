@@ -310,6 +310,8 @@ if __name__ == '__main__':
                    help='Bubble amplitude relative to mean (default: 0.3)')
     p.add_argument('--brx', type=float, default=0.7,
                    help='Bubble x-radius (default: 0.7; L=2*brx/phi^2~0.53)')
+    p.add_argument('--bry', type=float, default=None,
+                   help='Bubble y-radius (default: brx/phi)')
     p.add_argument('--brz', type=float, default=None,
                    help='Bubble z-radius (default: brx/phi^2)')
     p.add_argument('--mode_int', type=int, default=200,
