@@ -106,14 +106,12 @@ def pole_angular_modes(field_3d, pole_sign=1, n_slices=4):
     # Accumulate angular Fourier coefficients across z-slices
     n_angular = min(64, n_mask // 4)
     accum_power = torch.zeros(n_angular // 2, dtype=torch.float64)
-    total_var = 0.0
 
     for z_idx in range(z_start, z_end):
         f_slice = field_3d[z_idx, :, :].double()
         values = f_slice[mask]
         # Subtract mean on this slice (remove DC for mode analysis)
         values = values - values.mean()
-        total_var += (values**2).sum().item()
 
         # Fourier decomposition: a_m = Σ f(θ)·e^{-imθ}
         for m in range(n_angular // 2):
@@ -122,13 +120,11 @@ def pole_angular_modes(field_3d, pole_sign=1, n_slices=4):
             a_real = (values * cos_m).sum()
             a_imag = -(values * sin_m).sum()
             accum_power[m] += (a_real**2 + a_imag**2).item()
-
-    total_var = total_var + 1e-30
-    # DC mode (m=0) — we track but exclude from dominant search
+    # Normalize by sum of all mode powers (Parseval-consistent)
+    total_mode_power = accum_power.sum().item() + 1e-30
     mode_powers = {}
     for m in range(1, n_angular // 2):
-        # Normalize by total variance across all slices
-        mode_powers[m] = accum_power[m].item() / total_var
+        mode_powers[m] = accum_power[m].item() / total_mode_power
 
     if not mode_powers:
         return {}, 0, 0.0
@@ -310,12 +306,10 @@ if __name__ == '__main__':
                    help='Initial perturbation amplitude (default: 0.01)')
     p.add_argument('--seed', type=int, default=42,
                    help='Random seed (default: 42)')
-    p.add_argument('--bamp', type=float, default=0.8,
-                   help='Bubble amplitude relative to mean (default: 0.8)')
-    p.add_argument('--brx', type=float, default=0.85,
-                   help='Bubble x-radius (default: 0.85; L=2*brx/phi^2~0.65)')
-    p.add_argument('--bry', type=float, default=None,
-                   help='Bubble y-radius (default: brx/phi)')
+    p.add_argument('--bamp', type=float, default=0.3,
+                   help='Bubble amplitude relative to mean (default: 0.3)')
+    p.add_argument('--brx', type=float, default=0.7,
+                   help='Bubble x-radius (default: 0.7; L=2*brx/phi^2~0.53)')
     p.add_argument('--brz', type=float, default=None,
                    help='Bubble z-radius (default: brx/phi^2)')
     p.add_argument('--mode_int', type=int, default=200,
