@@ -643,11 +643,11 @@ flowchart TD
 **Visual:** Seventeen of the Standard Model's 40 parameters are direct φ-powers — the de-resonance attractor eliminates tuning, like a 292-rung ladder that needs no guesswork.
 
 
-The parameters of the Standard Model and cosmology seem exquisitely tuned — tiny deviations in dozens of numbers would produce a universe unable to support life or even exist for more than an instant. Cassi's answer: there is no fine-tuning because every coupling flows to a $\varphi$-power at the de-resonance attractor (see Primer). Of the Standard Model's 40 free parameters, 17 are direct $\varphi$-powers with no tunable freedom. The single calibrated constant $\lambda$ is fixed by the measured Hubble constant $H_0$. Because $\varphi$ is the most irrational number, it is the maximally stable configuration — couplings naturally flow toward it, eliminating the need for cancellation or anthropic selection.
+The parameters of the Standard Model and cosmology seem exquisitely tuned — tiny deviations in dozens of numbers would produce a universe unable to support life or even exist for more than an instant. Cassi's answer: there is no fine-tuning because every coupling flows to a $\varphi$-power at the de-resonance attractor (see Primer). Of the Standard Model's 40 free parameters, 17 are direct $\varphi$-powers with no tunable freedom. The PDE conversion rate $\lambda = 0.1$ is an empirically calibrated constant — the single dimensionless free parameter in the framework (see `foundations/dimensionful-constants-status.md`). Because $\varphi$ is the most irrational number, it is the maximally stable configuration — couplings naturally flow toward it, eliminating the need for cancellation or anthropic selection.
 
 | **Cassi Answer** | All couplings are $\varphi$-powers; single attractor eliminates tuning |
 | **Mechanism** | De-resonance principle: $\varphi$ is the maximally stable configuration; all couplings flow to it |
-| **Epistemic** | **Derived** — 17 of 40 parameters are $\varphi$-powers; calibrated $\lambda$ is the only non-$\varphi$ physical constant (and is fixed by $H_0$) |
+| **Epistemic** | **Derived** — 17 of 40 parameters are $\varphi$-powers; $\lambda = 0.1$ is the sole dimensionless free parameter (see `foundations/dimensionful-constants-status.md`) |
 | **Reference** | `parameter-inventory.md`, `principles/de-resonance-principle.md` |
 
 ### F2: Arrow of time
@@ -712,6 +712,15 @@ The ultimate goal of theoretical physics is a single, coherent framework that ex
 | **Epistemic** | **Hypothesized** — all pillars active; full cross-pillar computation in progress |
 | **Reference** | `TOE.md`, all foundations/ docs |
 
+
+### F5: Dimensionful constants ($c$, $\hbar$, $G$) and $\lambda$
+
+The Cassi framework derives all dimensionless couplings as $\varphi$-powers, but three dimensionful constants — the speed of light $c$, Planck's constant $\hbar$, and Newton's constant $G$ — remain external. The PDE conversion rate $\lambda = 0.1$ is the sole dimensionless free parameter (empirically calibrated, not derived from $\varphi$). This is not a failure of the framework — a dimensionless constant mathematically cannot fix a dimensionful scale — but it means the "zero free parameters" claim in some documents must be qualified. See `foundations/dimensionful-constants-status.md` for the complete accounting and proposed derivation pathways.
+
+| **Cassi Answer** | $c$, $\hbar$, $G$ are external dimensionful constants; $\lambda = 0.1$ is empirical; all dimensionless couplings are $\varphi$-powers |
+| **Mechanism** | $\varphi$ is dimensionless and cannot determine a dimensionful scale without a reference; $\ell_{\text{Pl}}$ is the cascade's sole dimensionful anchor |
+| **Epistemic** | **Hypothesized** — pathways proposed for $c$ (via cascade coherence speed), $G$ (via the 292-step bridge), and $\lambda$ (via de-resonance rate); none yet derived |
+| **Reference** | `foundations/dimensionful-constants-status.md`, `parameter-inventory.md` §4 |
 ---
 ## 6. Recent Observational Tensions
 
@@ -906,10 +915,10 @@ People sometimes report feeling what others feel — not through observation or 
 |------|-------|-----------|
 | **Derived** ($\varphi$ + PDE consequence, zero freedom) | 16 | Dark energy $w_0$ (C1), dark matter $\xi$ (C2), flatness (C5), Big Bang singularity (C8), strong CP (Q2), hierarchy (Q1), gauge unification (Q4), proton lifetime (Q9), quark confinement (Q8), quantum gravity (G1), BH singularity (G3), galaxy rotation (G4), gravity weakness (G6), fine-tuning (F1), arrow of time (F2), DESI $w_0$ (T1) |
 | **Hypothesized** (mechanism + pinned $\varphi$-power) | 7 | Inflation $r$=$\varphi^{-12}$ (C4), baryon asymmetry $\eta$=$\varphi^{-44}$ (C7, Q6), CMB axis $12.2°$ (C10), neutrino scale $m_\nu \approx v_0\varphi^{-12}$ (Q3), spin form factor $\Delta(\ln q)$=$\ln\varphi$ (Q10), 3 generations $N_{\text{gen}}$=3 (Q5), measurement Born rule (Q7) |
-| **Hypothesized** (mechanism, needs computation) | 15 | Hubble tension (C3), inflation $n_s$ (C4), horizon (C6), cosmic web (C9), neutrino spacings (Q3), 3+1 dimensions (G5), unification (F3), TOE (F4), JWST galaxies (T2), $\sigma_8$ (T3), $H_0$ tension (T4), consciousness (all M1–M5) |
+| **Hypothesized** (mechanism, needs computation) | 16 | Hubble tension (C3), inflation $n_s$ (C4), horizon (C6), cosmic web (C9), neutrino spacings (Q3), 3+1 dimensions (G5), unification (F3), TOE (F4), dimensionful constants (F5), JWST galaxies (T2), $\sigma_8$ (T3), $H_0$ tension (T4), consciousness (all M1–M5) |
 | **Speculative** (framework-consistent, no test yet) | 1 | BH information (G2) |
 
-**Total: 39 open questions mapped to Cassi answers.** Of those, 16 Derived, 7 Hypothesized with pinned $\varphi$-powers, 15 Hypothesized needing computational pipelines, 1 Speculative. The 7 pinned-$\varphi$ questions have specific numeric predictions refined in `foundations/refined-numeric-predictions.md`; 6 of 7 are within observational bounds. The remaining 15 require computational pipelines ($w(a) \to H(z)$ integration, modified Boltzmann code, PDE N-body) for full quantitative closure.
+**Total: 40 open questions mapped to Cassi answers.** Of those, 16 Derived, 7 Hypothesized with pinned $\varphi$-powers, 16 Hypothesized needing computational pipelines, 1 Speculative. The 7 pinned-$\varphi$ questions have specific numeric predictions refined in `foundations/refined-numeric-predictions.md`; 6 of 7 are within observational bounds. The remaining 16 require computational pipelines ($w(a) \to H(z)$ integration, modified Boltzmann code, PDE N-body) for full quantitative closure.
 
 
 ## 9. What Cassi Does Not Yet Answer (Honesty)

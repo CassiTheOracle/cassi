@@ -240,6 +240,6 @@ $$
 \underbrace{\sigma\text{-Regularization}}_{\text{Quantum Gravity}}
 $$
 
-All four pillars emerge from the same $\varphi$-governed two-fluid PDE, with zero free parameters. The quantum gravity pillar adds no new constants — $\sigma = 1/M_{\text{Pl}}$ is already determined by the Planck scale, which itself is a derived quantity in the Cassi framework.
+All four pillars emerge from the same $\varphi$-governed two-fluid PDE. The quantum gravity pillar adds no new dimensionless constants — $\sigma = 1/M_{\text{Pl}}$ is the cascade's dimensionful anchor (see `foundations/dimensionful-constants-status.md`). One dimensionless parameter ($\lambda$) and three dimensionful constants ($c$, $\hbar$, $G$) remain external.
 
-The **Theory of Everything is complete**.
+The **theory is structurally complete**; the remaining gaps are catalogued in `foundations/dimensionful-constants-status.md`.

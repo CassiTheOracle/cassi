@@ -11,12 +11,12 @@ We present a unified physical framework derived from a single principle: that φ
 1. **Quantum particles**: Atomic structure for Z=1-10 from φ with chemical accuracy
 2. **Cosmology**: Dark energy equation of state w₀ = −0.856 (0.3σ from DESI DR2 −0.838), derived from the Wu Xing gap g = 1−φ⁻⁵
 3. **General relativity**: Qi-enhanced gravity with ξ = φ⁶ ≈ 17.944, matching rotation curves and MESSENGER bound
-4. **Standard Model**: sin²θ_W = φ⁻³ and α_GUT = φ⁻³/(4π), unifying all couplings with zero free parameters
+4. **Standard Model**: sin²θ_W = φ⁻³ and α_GUT = φ⁻³/(4π), unifying all dimensionless couplings with zero free parameters
 5. **Three-body dynamics**: Body-dependent gravitational coupling and mass evolution via conversion
 6. **Dimensionful cascade**: All physical scales from Planck (ℓ_Pl) to the Hubble radius follow ℓ_Pl × φⁿ (292-step spectrum), with the Wu Xing bubble at ~191 Mpc
 7. **Falsifiable prediction**: Log-periodic modulation in the matter power spectrum P(k) with period Δ(ln k) = ln φ ≈ 0.4812 — orthogonal to BAO, zero free parameters, testable with DESI/Euclid
 
-The framework has one free parameter: φ itself. The cosmological initial conditions (r₀, w₀) may be derivable from the Wu Xing structure (gap = 1−φ⁻⁵), pending resolution of the w_a prediction.
+The framework's dimensionless couplings are fixed by φ alone. One dimensionless parameter (the PDE conversion rate λ = 0.1) and three dimensionful constants (c, ℏ, G) remain external — see `foundations/dimensionful-constants-status.md`. The cosmological initial conditions (r₀, w₀) may be derivable from the Wu Xing structure (gap = 1−φ⁻⁵), pending resolution of the w_a prediction.
 
 ---
 
@@ -306,7 +306,7 @@ The full three-body system has 24 degrees of freedom (positions, velocities, mas
 | $v_C/v_B$ (MW) | $2.7$ | $2.5$–$3.0$ | within range |
 | $\Delta(\ln k)$ P(k) | $\ln\varphi = 0.4812$ | Pending DESI/Euclid | Falsifiable (zero parameters) |
 **Key achievements:**
-- All couplings derived from φ with zero free parameters
+- All dimensionless couplings derived from φ
 - DESI dark energy matched to 0σ
 - Atomic physics at chemical accuracy
 - Galaxy rotation curves and dwarf spheroidals (5/8 pass, beats MOND)
@@ -336,7 +336,7 @@ The full derivations, benchmarks, and technical details are organized in:
 
 ## 9. Conclusion
 
-The Cassi framework demonstrates that a single postulate — that φ is the universal constant of scale separation — can derive the structure of quantum physics, cosmology, general relativity, and the Standard Model from a single principle. All predictions match observational data within uncertainty, with zero free parameters beyond φ itself. The single tension is $w_a$ ($+0.46$ predicted vs $-0.51$ observed), a 2.5σ mismatch documented in `observational_constraints.md` §6.
+The Cassi framework demonstrates that a single postulate — that φ is the universal constant of scale separation — can derive the structure of quantum physics, cosmology, general relativity, and the Standard Model from a single principle. All predictions match observational data within uncertainty. The framework's dimensionless couplings are fixed by φ; one free parameter (λ) and three dimensionful constants (c, ℏ, G) remain external (`foundations/dimensionful-constants-status.md`). The single tension is $w_a$ ($+0.46$ predicted vs $-0.51$ observed), a 2.5σ mismatch documented in `observational_constraints.md` §6.
 
 The framework is falsifiable: the predicted gravitational wave strain (10× GR in high-Qi regions), the evolving dark energy (w₀ = −0.838), and the atomic energy levels (chemical accuracy) can all be tested with current or near-future experiments.
 
@@ -346,4 +346,4 @@ The Cassi TOE is not a "theory of everything" in the sense of deriving all of ph
 
 **Status:** ✅ COMPLETE (2026-07-17)
 
-**All 4 pillars validated. All 5 implementation phases closed. Zero free parameters.**
+**All 4 pillars validated. All 5 implementation phases closed. Dimensionless couplings: zero free parameters. External: λ, c, ℏ, G — see `foundations/dimensionful-constants-status.md`.**

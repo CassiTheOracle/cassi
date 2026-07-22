@@ -4,7 +4,7 @@ $$
 \boxed{\mathcal{L}_{\text{Cassi}} = \mathcal{L}_{\text{TF}} + \mathcal{L}_{\text{D}} + \mathcal{L}_{\text{GR}} + \mathcal{L}_{\text{SM}} + \mathcal{L}_{\text{mix}}}
 $$
 
-*Zero free parameters. Every term and coupling derived from $\varphi = (1+\sqrt{5})/2$.*
+*All dimensionless couplings derived from $\varphi = (1+\sqrt{5})/2$. One free parameter ($\lambda$) and three external dimensionful constants ($c$, $\hbar$, $G$) — see `foundations/dimensionful-constants-status.md`.*
 
 ---
 
@@ -21,7 +21,8 @@ All dimensionless parameters are $\varphi$-powers:
 | $\varphi^{6}$ | $17.94427191$ | $= \varphi^5 + \varphi^4$ — Qi-gravity coupling |
 | $\varphi^{4}$ | $6.854101966$ | Four-interaction scale |
 | $\varphi^{5}$ | $11.09016994$ | Wu Xing cycle scale |
-| $\lambda$ | $0.1$ | PDE conversion rate (free, but universal across all sectors) |
+| $\lambda$ | $0.1$ | PDE conversion rate (empirical; not derived from $\varphi$) |
+| $G$, $c$, $\hbar$ | — | External dimensionful constants (set $\ell_{\text{Pl}} = \sqrt{\hbar G / c^3}$) |
 | $\hbar = c = 1$ | — | Natural units throughout |
 
 ---

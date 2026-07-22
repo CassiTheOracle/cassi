@@ -1,11 +1,11 @@
-# Refined Numeric Predictions for the 22 Hypothesized Questions
+# Refined Numeric Predictions for the 23 Hypothesized Questions
 
 ## Status: Active derivation — July 2026
 
 ## Abstract
 
-The open-questions catalog (`open-questions-cassi-answers.md`) classifies 39
-physics questions: 16 Derived, 22 Hypothesized, 1 Speculative. Each of the 22
+The open-questions catalog (`open-questions-cassi-answers.md`) classifies 40
+physics questions: 16 Derived, 23 Hypothesized, 1 Speculative. Each of the 23
 Hypothesized questions has a proposed Cassi mechanism and a testable prediction.
 This document refines the **specific numeric predictions** for every question
 that admits a cascade-span derivation ($\varphi^{-N}$), and tightens the
@@ -27,9 +27,9 @@ further verification looks like.
 
 ## 1. Classification: Cascade-Span vs Structural
 
-Of the 22 Hypothesized questions, 13 admit a cascade-span numeric refinement
+Of the 23 Hypothesized questions, 13 admit a cascade-span numeric refinement
 (either a specific $\varphi$-power or a number already present in the
-derivation), and 9 are structural answers where the mechanism is the
+derivation), and 10 are structural answers where the mechanism is the
 deliverable:
 
 | # | Question | Type | Existing Number | Refinement |
@@ -48,6 +48,7 @@ deliverable:
 | G5 | 3+1 dimensions | **Structural** | $3=2+1$ | SO(2) doublet + cascade axis |
 | F3 | Force unification | **Structural** | — | All forces from PDE at different rungs |
 | F4 | Theory of Everything | **Structural** | — | One equation, one constant |
+| F5 | Dimensionful constants | **Structural** | — | $c$, $\hbar$, $G$ external; $\lambda=0.1$ empirical; pathways proposed |
 | T2 | JWST galaxies | **Structural** | — | Wake-wave formation timeline |
 | T3 | $\sigma_8$ tension | Cascade-span (needs $G_{\text{eff}}$ pipeline) | $\xi=\varphi^6$ | $G_{\text{eff}}(k,q)$ integration |
 | T4 | $H_0$ tension | Same as C3 | — | Same refinement as C3 |
