@@ -155,7 +155,9 @@ $c$ enters the framework through the kinetic term $\frac{1}{2}(\partial_\mu\Psi)
 
 **If** the two-fluid PDE, in its dimensionless form (as solved in the parent repo's code), has a *natural* ratio of spatial to temporal discretization steps that is set by the $\varphi$-attractor dynamics (not by numerical convenience), then restoring physical units would give $c$ in terms of $\varphi$ and the conversion rate $\lambda$. This is testable with the relativistic PDE solver — it cannot be tested with the parabolic reaction-diffusion solvers in `visual-explainers/`.
 
-**Status: Speculative.** No derivation exists; the metric is currently an input.
+**Spiral-dynamics perspective** (`foundations/spiral-dynamics.md` §4): $c$ may emerge as the scale-invariant product $c \sim \lambda_{\text{eff}} \cdot \ell_n = \lambda \cdot \ell_{\text{Pl}}$, where the $\varphi^n$ factors cancel between the cascade-suppressed conversion rate and the cascade-expanded coherence length. This is a dimensional consistency check (both $\lambda$ and $\ell_{\text{Pl}}$ remain empirical inputs) but provides a geometric mechanism for why $c$ is constant across scales — it is the invariant speed of the Fibonacci spiral.
+
+**Status: Hypothesized.** The spiral-dynamics mechanism is specified and PDE-testable; a full derivation still requires calibrating $\lambda$'s PDE units against physical time.
 
 ### 4.2 Path for $\hbar$
 
