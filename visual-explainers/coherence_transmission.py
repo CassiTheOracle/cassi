@@ -237,7 +237,7 @@ axB.annotate(r"$(1-q_n) \to 1$ as $n \to -\infty$" + "\n(perfect transmission at
              arrowprops=dict(arrowstyle="->", color=GREEN_SAFE, lw=1.5))
 
 # Arrow showing cascade decay
-axB.annotate(r"$(1-q_n) \to 0$ as $n \to \infty$" + "\n(Qi saturation closes gate)",
+axB.annotate(r"$(1-q_n) \to \varphi^{-3} \approx 0.24$ as $n \to \infty$" + "\n(irreducible gate floor — never fully closes)",
              xy=(200, gate_full[N_MICRO + 200]), xytext=(150, 0.30),
              fontsize=8, color=RED_DANGER, ha="center",
              arrowprops=dict(arrowstyle="->", color=RED_DANGER, lw=1.5))
@@ -332,7 +332,7 @@ findings_text = [
     ("", TEXT_SUB, 8, "normal"),
     (r"CASCADE ($n \geq 0$) — Derived from cascade-suppression formula", YANG_BRIGHT, 10, "bold"),
     (r"  $(1-q_n) = \varphi^{-n-3}$ decays as $n$ grows", TEXT_MAIN, 9, "normal"),
-    (r"  Qi saturates ($q \to 1$) at large scales → coherence gate closes", TEXT_MAIN, 9, "normal"),
+    (r"  Qi approaches irreducible floor ($q \to 1-\varphi^{-3} \approx 0.76$)", TEXT_MAIN, 9, "normal"),
     (r"  Single-rung signal from EW ($n{=}80$) to Planck: $\varphi^{-80} \approx 10^{-17}$", YELLOW_CAUTION, 9, "normal"),
     (r"  Full coherence from Planck to EW: $\varphi^{-80\cdot81/2} \approx 10^{-675}$ — impossible", RED_DANGER, 9, "normal"),
     ("", TEXT_SUB, 8, "normal"),
