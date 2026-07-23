@@ -136,12 +136,14 @@ With $N = 292$, $\varphi^{-2N} = \varphi^{-584} \approx 10^{-122.1}$, matching t
 
 ### 3.4 The path to a derivation
 
-Deriving $N$ from $\varphi$ requires a termination condition that does not reintroduce the circularity $N = \log_\varphi(R_H/\ell_{\text{Pl}})$ where $\ell_{\text{Pl}} = \sqrt{\hbar G / c^3}$. The following candidate paths skirt the circularity by fixing $N$ from the PDE dynamics or the Wu Xing structure alone:
-
 - **Qi-gate closure condition**: the cascade ends when $(1-q_n)$ falls below a threshold where coherent structure can no longer form. This would give $N$ from the Qi profile $q_n = 1 - \varphi^{-n-\delta}$ — but the threshold itself would need to be derived.
 - **De-resonance bandwidth**: the cascade spans the frequency range over which φ-spacing is stable against resonance. If the total bandwidth (ratio of highest to lowest stable frequency) is fixed by the de-resonance principle, it may equal $\varphi^N$.
 
 Both are **Hypothesized** — reasoned from the framework but not yet derived. The circularity $G \leftrightarrow N$ remains the fundamental blocker: $\ell_{\text{Pl}}$ is both the cascade's anchor ($\ell_0$) and a function of $G$. Until an independent determination of either $\ell_{\text{Pl}}$ or $N$ exists within the framework, $G$ will remain external.
+
+**Update (July 2026 session):** The two-pole pentagon gate analysis (`run_pde_bubble_spiral.py`) eliminated the Qi-gate closure condition: the gate's $(1-q)$ dynamic range is narrow (~20% variation), with an irreducible floor $(1-q)_{\text{min}} \approx 0.23$ that is a single-rung property — not a cascade-depth selector. The gate modulates **spatial pattern** (5-channel angular structure at bubble poles), not convergence rate. The de-resonance bandwidth candidate remains untested.
+
+The correct path is spatial, not temporal: $N = \log_\varphi(R_H/\ell_{\text{Pl}})$ follows from the PDE's Hubble dynamics (`foundations/spiral-dynamics.md` §2), which gives $H(r)$ verified to R² = 1.000. The cascade depth $N$ is the number of $\varphi$-scalings that fit between the Planck and Hubble boundaries; it grows with cosmic age. The remaining unknown for a closed derivation is the primordial Yang-Yin ratio $r_{\text{Planck}}$ — the initial imbalance that seeded the cascade, for which the user's chord self-intersection picture is the active research direction.
 
 ---
 
@@ -240,4 +242,5 @@ When this document's findings are accepted:
 - `foundations/cassi-first-principles.md` — Retracted $\lambda = 3\varphi^2 H_0$ derivation
 - `foundations/dimensionful-cascade.md` — 292-step cascade table with empirical $N$
 - `open-questions-cassi-answers.md` — Epistemic registry (Q1–Q10, C1–C10, G1–G6, M1–M5, F1–F5, T1–T4)
+- `foundations/spiral-dynamics.md` — Hubble, gravity, and c from spiral geometry (July 2026)
 - `cosmology/observational_constraints.md` §4 — $\lambda$-independence of $w_a$
