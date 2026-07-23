@@ -6,6 +6,9 @@ __pycache__/
 dist/
 build/
 
+# Temporary PDE test logs
+data_*_log.txt
+
 # OS
 .DS_Store
 Thumbs.db
