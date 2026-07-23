@@ -934,6 +934,7 @@ With the refined numeric predictions (`foundations/refined-numeric-predictions.m
 - **The internal$\to$physical axis map.** The mechanism distinguishing Yang, Yin, and string axes in physical space is proposed but not fully derived from the PDE.
 - **Neighboring $w$-bubble values.** $w=4$ and $w=6$ are the natural Wu Xing neighbors but not confirmed.
 - **Pipelines needed:** $H_0$ shift (C3/T4) requires $w(a) \to H(z)$ integration; $\sigma_8$ (T3) requires modified $G_{\text{eff}}(k,q)$ in Boltzmann code; galaxy mass function (T2) requires PDE wake-wave + Qi-gravity N-body.
+- **Primordial Yang-Yin ratio $r_{\text{Planck}}$.** The cascade depth $N=292$ follows from $H(r)$ dynamics + cosmic age (`foundations/spiral-dynamics.md` §2). The remaining unknown for a closed derivation is the initial imbalance $r_{\text{Planck}}$ that seeded the cascade. The two-pole gate analysis (July 2026) eliminated gate closure as a candidate: the gate modulates spatial pattern, not convergence rate. $r_{\text{Planck}}$ is the last free parameter; the chord self-intersection picture is the proposed mechanism. See `run_pde_bubble_spiral.py` docstring for session summary.
 
 See `foundations/refined-numeric-predictions.md` §5 for the complete open-questions breakdown.
 

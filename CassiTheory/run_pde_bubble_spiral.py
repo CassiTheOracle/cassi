@@ -21,6 +21,19 @@ Usage:
     python run_pde_bubble_spiral.py                # N=48, 8000 steps
     python run_pde_bubble_spiral.py --N 64 --steps 12000
     python run_pde_bubble_spiral.py --resume runs/20260722_HHMMSS_bubble_spiral
+Results (July 2026):
+- Static modes: m=2 (ellipsoid cross-section) dominates at both poles.
+  No m=5 Fibonacci mode emergence — the pentagon is geometric, not dynamic.
+- Angular rotation: phase drift dphi/dt ~ 1.5e-4 rad/step vs expected
+  0.1 rad/step for m=5 at lambda=0.02. The spiral lives in internal SO(2)
+  doublet space, not in the spatial EY pattern.
+- Gate analysis: the two-pole gate modulates spatial pattern (5-channel
+  structure at poles), not convergence rate. Irreducible (1-q)_min ~ 0.24.
+  Gate never saturates — N=292 is not determined by gate closure.
+- Key finding: the pentagon/spiral is a geometric property of the
+  phi-ellipsoid (golden angle phyllotaxis), not a PDE emergent phenomenon.
+  The cascade depth N follows from Hubble dynamics, with r_Planck as the
+  last free parameter for a closed derivation.
 """
 
 import torch, numpy as np, sys, os, argparse, glob, re
