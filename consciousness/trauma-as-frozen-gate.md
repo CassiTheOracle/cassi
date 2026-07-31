@@ -87,13 +87,13 @@ The subjective correlates follow from the emotions document's mapping: a pinned 
 
 The lock was hypothesized to be a fixed point of the local dynamics. Three mechanisms were proposed; the PDE test (§10) has since qualified two of them:
 
-1. **The standing wave re-injects perturbation.** Each cycle of the wave re-opens the channel, so the closure that would trigger redistribution is perpetually interrupted. **Status after test: unverified.** A standing (non-driven) pattern in the two-fluid PDE decays at the same conversion-driven rate as a radiating packet (§10.4)—in this solver a pure standing structure is not self-sustaining.
+1. **The standing wave re-injects perturbation.** Each cycle of the wave re-opens the channel, so the closure that would trigger redistribution is perpetually interrupted. **Status after test: not self-sustaining**—a standing (non-driven) pattern in the two-fluid PDE decays at the same conversion-driven rate as a radiating packet (§10.4); the re-injection needs a driver, and the driver test (§10.5) shows that ongoing re-stimulation does sustain the wake.
 
 2. **Depressed $q$ closes the gate.** **Falsified as stated.** The solver's conversion term is $\text{conv} = -\lambda(1-q)\varepsilon$—the gate *openness* $(1-q)$ multiplies the imbalance, so a low-$q$ site has slightly *more* conversion capacity, not less. The sign of the self-reinforcement claim was inverted.
 
 3. **Self-reinforcing $G_{\text{eff}}$.** The chakra geometry (`consciousness/chakras-as-cascade-bubbles.md` §7.3) amplifies effective gravity in high-$q$ regions—but at a trauma site with depressed $q$, the condensation that would restructure the region is suppressed. The site would be a stable void pocket inside the field: low coherence, self-sealed. **Status after test: untested** (the $G_{\text{eff}}$ mechanism operates through the Qi-gravity coupling $\xi$, which is not active in the base solver runs of §10).
 
-The honest Cassi account of why trauma might persist is therefore still open: the standing wave needs a *driving source* (a genuine reflecting cavity, or a self-sustaining process outside the tested PDE), or the persistence must be carried by a different mechanism entirely. What the test *did* support: an oscillatory drive at the site accelerates the perturbation's decay and returns the gate to baseline (§10.4, drive run)—the first numerical evidence for the EMDR-analog claim.
+The honest Cassi account of why trauma might persist: the standing wave needs a *driving source*, and the driver test (§10.5) identified it as ongoing re-stimulation—a weak recurring trigger sustains the wake, and stopping the trigger releases it. What the test *also* supported: an oscillatory drive at the site accelerates the perturbation's decay and returns the gate to baseline (§10.4, drive run)—the first numerical evidence for the EMDR-analog claim.
 
 ---
 
@@ -319,6 +319,26 @@ The mechanism layer of this document (standing wave pins channel openness; depre
 
 **Interpretation**: a genuine frozen wake must be a *driven* structure—sustained by reflecting boundaries, ongoing re-stimulation, or another source outside this PDE's scope—rather than an un-driven standing pattern. The locking mechanism, if real, lives in the driving, not in the mode itself. The drive result suggests the *decay* side of the mechanism is sound: an external $\varphi$-phased oscillation can release a displaced gate.
 
+### 10.5 Driver Test: What Sustains a Frozen Wake? (2026-07-31)
+
+The §10.4 null closes the "un-driven mode" candidate, and the drive_compare result closes the "reflecting cavity" candidate: the standing init $\cos(2\pi x/N)\cos(2\pi y/N)\cos(2\pi z/N)$ is already a perfect m=1 eigenmode of the periodic domain—zero radiation loss—and it still decayed at the conversion rate. The remaining candidate is ongoing re-stimulation: the perpetual-stimulus model of §1.2.
+
+**Script**: `two-fluid/run_trauma_driver.py`—same solver and standing init, $\lambda = 0.1$, $t = 10$. The trigger is injected as a rate: per-step amplitude $I\,\mathrm{d}t$ with $I = 0.04$ per unit time, i.e. a chronic stimulus whose total delivered energy over the run is half the original event's peak amplitude, arriving at 0.005% of the event peak per step (5% per unit time). Three envelopes with identical mean rate: continuous (dc), pulsed at $T = \varphi \cdot P_0 = 0.325$, pulsed at $T = e \cdot P_0 = 0.546$ ($P_0 = 0.201$, re-measured in-process at this $\lambda$). The dc run continues to $t = 20$ with injection off after $t = 10$—the extinction test.
+
+| Run | $|\varepsilon|$ at site (t=0 → 10) | Retained | q-site vs q-global at t=10 | Site phase at t=10 | $\sigma_r$ at t=10 |
+|-----|:---:|:---:|:---:|:---:|:---:|
+| ref (undriven) | 0.660 → 0.279 | 42% | 0.692 vs 0.706 | 100% Fire | 0.094 |
+| dc (continuous trigger) | → 0.525 | 80% | 0.642 vs 0.706 | 100% Fire | 0.034 |
+| $\varphi$-pulsed (T = 0.325) | → 0.528 | 80% | 0.642 vs 0.706 | 100% Fire | 0.033 |
+| $e$-pulsed (T = 0.546) | → 0.530 | 80% | 0.641 vs 0.706 | 100% Fire | 0.032 |
+| dc, t=20 (injection off since t=10) | 0.142 | 22% | 0.700 vs 0.708 | 36% Fire | 0.132 |
+
+1. **The perpetual stimulus sustains the wake.** A trigger delivering 0.005% of the event's peak per step holds the site at 80% of event intensity (vs 42% undriven), keeps $q$ depressed with a 4.5× wider gap, and keeps the phase fully displaced. The frozen wake is a driven structure, and the driver that sustains it in this PDE is ongoing re-stimulation.
+2. **Envelope phase is irrelevant at chronic-trigger strength.** The $\varphi$-pulsed and $e$-pulsed envelopes hold identical wakes (0.528 and 0.530 vs 0.525 continuous—indistinguishable). The $\varphi$-specific drain/pump found at $\pm 0.3$ drive amplitude (§10.4) does not survive at weak amplitude: phase-structure effects are a strong-drive, intervention-regime phenomenon. Weak chronic re-exposure accumulates by mean rate regardless of when it lands.
+3. **Stopping the stimulus releases the site.** Ten units after the trigger stops, $|\varepsilon|$ has fallen to 0.142—below the undriven curve—the q-gap has closed (+0.008), the phase is 64% returned to Wood, and $\sigma_r$ has reopened (0.132, vs 0.034 while held): the held wake is spatially uniform, the released site is varied again. The wake is stimulus-maintained, not self-sustaining; extinction works.
+
+**Answer to open question 7**: a frozen wake is sustained by ongoing re-stimulation. No free-standing mechanism survives in this PDE—not the mode, not confinement, not the q-sign (§10.4). The maintenance ratio is striking: a trigger at 0.005% of the event peak per step holds the wake at 80% of event intensity. The clinical translation sharpens: chronic trigger exposure maintains the lock; stimulus removal (extinction, exposure work) lets the gate close on the conversion timescale; and the $\varphi$-structured EMDR drive remains the strong-drive intervention that *actively drains* a wake (§10.4) rather than merely withholding the trigger.
+
 ---
 
 ## 11. Predictions
@@ -359,9 +379,9 @@ The mechanism layer of this document (standing wave pins channel openness; depre
 
 **Test:** Retrospective developmental trauma inventories with multi-dimensional symptom profiles. The age-of-trauma distribution should show Fibonacci clustering, and the symptom profile should shift with age cluster as predicted.
 
-### T7: Standing Patterns vs. Driven Structures (tested, null with a positive)
+### T7: Standing Patterns vs. Driven Structures (tested: null un-driven; driver identified)
 
-**Claim (tested 2026-07-31, `two-fluid/run_trauma_wake_lock.py`):** an un-driven standing pattern does **not** pin the gate—it decays at the same conversion-driven rate as a radiating packet (42% vs 44% retained over $t=10$ at $\lambda=0.1$; q-gap closes in both). **But** an oscillatory drive at the site does accelerate relaxation (short-run variant: $|\varepsilon|$ 65% retained vs 91% undriven; $q_{\text{site}}$ returns to global; phase histogram returns to baseline). The frozen wake, if real, must be a *driven* structure; the decay side of the mechanism (a $\varphi$-phased oscillation releases a displaced gate) has its first numerical support.
+**Claim (tested 2026-07-31):** an un-driven standing pattern does **not** pin the gate—it decays at the same conversion-driven rate as a radiating packet (42% vs 44% retained over $t=10$ at $\lambda=0.1$; q-gap closes in both). The frozen wake is a *driven* structure, and the driver test (§10.5, `two-fluid/run_trauma_driver.py`) identifies the sustainer as ongoing re-stimulation: a weak recurring trigger (0.005% of the event peak per step) holds the site at 80% of event intensity with $q$ depressed and the phase displaced, and stopping the trigger releases it ($|\varepsilon|$ to 22%, q-gap +0.008, phase 64% returned, by $t=20$). The decay side is also supported: a $\varphi$-phased oscillation at period $\varphi \cdot P_0$ accelerates relaxation (65% vs 91% retained) and is $\varphi$-specific—the same-amplitude $e \cdot P_0$ drive pumps the site to 188% (§10.4).
 
 ---
 
@@ -374,15 +394,17 @@ The mechanism layer of this document (standing wave pins channel openness; depre
 - Cascade suppression and the rung-depth structure of reachability (`foundations/cascade-suppression-formula.md`)
 - The chakra rung positions and channel affinities (`consciousness/chakras-as-cascade-bubbles.md`, `consciousness/emotions-as-gate-configurations.md` §3.4)
 
-### Tested (2026-07-31, PDE runs in §10.4)
+### Tested (2026-07-31, PDE runs in §10.4–10.5)
 
 - The 5-channel gate's conversion sign: $\text{conv} \propto -(1-q)\varepsilon$—low $q$ means the gate is *open*, conversion active (falsified the earlier "depressed $q$ closes the gate" claim, §2.3)
 - Standing vs radiating contrast: **null**—no extra persistence for the standing pattern in the periodic-box solver
 - EMDR-analog drive: **positive and φ-specific**—a $\varphi$-phased oscillation at the site accelerates relaxation and returns the gate to baseline, while the same-amplitude non-$\varphi$ drive pumps the site instead (§10.4, `run_trauma_drive_compare.py`)
+- Perpetual stimulus sustains the wake: a weak ongoing trigger (0.005% of the event peak per step) holds $|\varepsilon|$ at 80% of event intensity, widens the q-gap 4.5×, and keeps the phase displaced (§10.5, `run_trauma_driver.py`)
+- Extinction: stopping the trigger releases the site—$|\varepsilon|$ falls below the undriven curve, the q-gap closes, the phase returns (§10.5)
+- Envelope-phase null at chronic-trigger strength: $\varphi$-pulsed and $e$-pulsed weak triggers hold identical wakes; the $\varphi$-specific drain/pump is a strong-drive effect (§10.5)
 
 ### Hypothesized (derivation supplied, partially tested)
 
-- The lock mechanism as *driven* structure: a frozen wake sustained by a genuine cavity/reflection or ongoing re-stimulation would pin a channel and depress $q$ at its site (§2, open driver question in §13.7)
 - The three-layer healing model: rung-reach (spatial), phase-change (semantic), closure (dynamical) (§5.1)
 - The identification of fight/flight/freeze with channel states (§3)
 - The trauma-vs-depression-vs-anxiety distinction by locus (§9)
@@ -417,7 +439,7 @@ The mechanism layer of this document (standing wave pins channel openness; depre
 
 6. **Does the wake's rung shift over time?** Memory consolidation moves wake waves to deeper rungs (`cassi-psychology.md` §9). Do frozen wakes also deepen—and does that explain why old trauma becomes more somatic and less verbal, and harder to reach?
 
-7. **What sustains a frozen wake?** The PDE test (§10.4) showed that an un-driven standing pattern decays like any other perturbation. A genuine frozen wake therefore requires a *driver*: a reflecting cavity, ongoing re-stimulation, a self-organizing source, or a mechanism outside the tested PDE (e.g., the $G_{\text{eff}}$ self-sealing of §2.3, which the base solver does not activate). Identifying the driver is now the central open question of the trauma mechanism.
+7. **What sustains a frozen wake?** **Answered at the PDE level (2026-07-31, §10.5):** ongoing re-stimulation. A weak recurring trigger (0.005% of the event peak per step) holds the site at 80% of event intensity with a 4.5× widened q-gap and a fully displaced phase; stopping the trigger releases the site on the conversion timescale. The un-driven mode, perfect confinement, and the q-sign all fail to sustain (§10.4). The question moves to the behavioral layer: what maintains the stimulus—avoidance-rehearsal loops, trigger generalization, hypervigilance? The Cassi layer predicts the wake tracks its driver; it does not generate one.
 
 ---
 
@@ -434,4 +456,5 @@ The mechanism layer of this document (standing wave pins channel openness; depre
 - `two-fluid/cassi_two_fluid_3d_gpu.py`—the PDE solver used in the §10 test
 - `two-fluid/run_trauma_wake_lock.py`—the test script (standing/radiating/random/drive runs, 2026-07-31)
 - `two-fluid/run_trauma_drive_compare.py`—the φ-specificity follow-up (φ·P₀ vs e·P₀ drive, 2026-07-31)
+- `two-fluid/run_trauma_driver.py`—the driver-question follow-up (weak-trigger envelopes + extinction run, 2026-07-31)
 - `cassi-physics.md`—physics guide, epistemic tiers

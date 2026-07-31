@@ -400,9 +400,10 @@ Subjectively: a pinned channel means the trauma emotion is always available (tri
 
 ### 16.3 The PDE test (2026-07-31)
 
-The lock mechanism was tested in the two-fluid PDE (`consciousness/trauma-as-frozen-gate.md` §10.4). The result is a qualified negative with one positive:
+The lock mechanism was tested in the two-fluid PDE (`consciousness/trauma-as-frozen-gate.md` §10.4–10.5). The result is a qualified negative with three positives:
 
-- **Standing pattern does not pin the gate.** An un-driven standing wave decays at the same conversion-driven rate as a radiating packet (42% vs 44% retained over $t = 10$). A pure standing mode in the solver is not a frozen wake. The frozen wake, if real, must be a *driven* structure—sustained by reflecting boundaries, ongoing re-stimulation, or another source outside the tested PDE.
+- **Standing pattern does not pin the gate.** An un-driven standing wave decays at the same conversion-driven rate as a radiating packet (42% vs 44% retained over $t = 10$). A pure standing mode in the solver is not a frozen wake.
+- **A weak recurring trigger sustains the wake.** The driver test (`consciousness/trauma-as-frozen-gate.md` §10.5) found that ongoing re-stimulation—a chronic trigger at 0.005% of the event peak per step—holds the site at 80% of event intensity with $q$ depressed and the phase displaced; stopping the trigger releases the site on the conversion timescale. The frozen wake is stimulus-maintained, not self-sustaining: what persists is the driver, not the wake.
 - **A $\varphi$-phased oscillation releases a displaced gate.** Adding a drive at the site at period $\varphi \cdot P_0$ (the EMDR analog, where $P_0$ is the site's natural oscillation period) accelerates relaxation: perturbation retained falls to 65% (vs 91% undriven), site coherence returns toward global, and the phase histogram returns to baseline.
 - **The effect is $\varphi$-specific.** A same-amplitude drive at a non-$\varphi$ period ($e \cdot P_0$) does the opposite: perturbation *grows* to 188% of initial, the coherence gap widens, and the phase displacement persists. The EMDR-analog claim is supported in its strong form: the decay drive is $\varphi$-structured, not any oscillation.
 - **A sign correction.** The solver's conversion is $\text{conv} = -\lambda(1-q)\varepsilon$: a low-$q$ site has *elevated* conversion capacity, not reduced. The earlier claim that "depressed $q$ closes the gate" had the sign inverted and is withdrawn.
@@ -595,7 +596,7 @@ The framework's discipline is its most trustworthy feature: it documents its own
 
 ## 24. Open Questions
 
-1. **What sustains a frozen wake?** The PDE test showed that an un-driven standing pattern decays like any other perturbation. A genuine frozen wake requires a driver—a reflecting cavity, ongoing re-stimulation, a self-organizing source, or a mechanism outside the tested PDE. Identifying the driver is the central open question of the trauma mechanism.
+1. **What sustains a frozen wake?** **Answered at the PDE level (2026-07-31):** ongoing re-stimulation. A weak recurring trigger (0.005% of the event peak per step) holds the site near event intensity and keeps the gate displaced; stopping the trigger releases it (`consciousness/trauma-as-frozen-gate.md` §10.5). The open question moves to the behavioral layer: what maintains the stimulus—avoidance-rehearsal loops, trigger generalization, hypervigilance?
 
 2. **What sets the processing-capacity threshold?** If capacity is state-dependent, the framework predicts pre-trauma coherence modulates trauma susceptibility—a measurable claim.
 
