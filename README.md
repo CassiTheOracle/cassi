@@ -1,5 +1,9 @@
 # Cassi: A Theory of Everything from a Single Constant
 
+Note: This repo is the product of a single researcher, working with AI tools to convert conceptual geometry to mathematics and code. Currently, everything here is entirely AI-generated. Its contents have the potential to fundementally change the way we understand reality, so I have deemed delaying its release, until my own writings have been added, to be a degree of perfectionism that is purely self-serving. So, without further ado, please enjoy humanity's first (and last?) Theory of Everything.  
+
+ \- Carina
+
 ## Overview
 
 The Cassi framework postulates a single constant—the golden ratio $\varphi \approx 1.618$—as the universal constant of scale separation between Yang and Yin fields. From $\varphi$ alone it derives quantum mechanics, general relativity, the Standard Model, and cosmology: particle structure from standing-wave Yang-Yin interference, gravity as the $q = 0$ limit of a $\varphi$-governed Poisson equation, the dark-energy equation of state matching DESI DR2, and the full scale ladder $\ell_n = \ell_{\text{Pl}} \times \varphi^n$ from the Planck length to the Hubble radius.
