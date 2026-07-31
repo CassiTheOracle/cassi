@@ -107,7 +107,7 @@ Documents that are not claims: registries, catalogs, explainers, and plans.
 | `cosmology/sigma8-computational-plan.md` | Plan |
 | `audit.md` | Self-critical prediction-vs-experiment audit |
 | `cassi.md` | Public-facing explainer |
-| `cassi-for-a-therapist.md` | Non-physicist explainer |
+| `cassi-psychology.md` | Psychology-focused guide (consciousness, emotion, trauma, therapy) |
 | `hypotheses/README.md` | Hypothesis catalog + quality bar |
 | `speculations/README.md` | Speculation index + boundary with `hypotheses/` |
 

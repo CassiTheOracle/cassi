@@ -338,7 +338,7 @@ Every claim in the framework carries one of three labels:
 
 - **Derived:** follows mathematically from the two-fluid PDE, the cascade, and $\varphi$. Examples: the cascade table, the condensation field's functional form, the edge anisotropy ratio, the cascade suppression formula, scale covariance of the lattice, the de-resonance principle.
 
-- **Hypothesized:** structurally consistent with Derived machinery, testable predictions supplied, but not yet experimentally confirmed or PDE-verified at the relevant scale. Examples: the chakra count and spacing, the neural hierarchy as a lattice instantiation, the pinch-point model of self-awareness, the trauma lock mechanism (standing wave pins channel openness), the $\varphi$-break in the EEG spectrum.
+- **Hypothesized:** structurally consistent with Derived machinery, testable predictions supplied, but not yet experimentally confirmed or PDE-verified at the relevant scale. Examples: the chakra count and spacing, the neural hierarchy as a lattice instantiation, the pinch-point model of self-awareness, the trauma gate-lock model (PDE-tested 2026-07-31: pinning null as implemented, $\varphi$-phased drive effect supported and $\varphi$-specific), the $\varphi$-break in the EEG spectrum.
 
 - **Speculative:** framework-consistent, no current test design. Examples: the microcascade mirror's energy extraction, the gigacascade spiral, the specific mapping of individual anatomical structures to cascade rungs, the clinical layer of the trauma model (channel-to-trauma-type mapping, developmental clustering).
 
@@ -365,7 +365,7 @@ The framework documents its own errors openly (`audit.md`). Claims are never upg
 | A self-critical audit of predictions vs. data | `audit.md` |
 | Run a visual explainer figure | `visual-explainers/cascade_cosmos.py` |
 
-For a non-physicist introduction that leads with consciousness and felt experience: `cassi-for-a-therapist.md`.
+For a psychology-focused guide that develops the mind in full — emotion, trauma, development, therapy — from the same geometry: `cassi-psychology.md`.
 
 ---
 

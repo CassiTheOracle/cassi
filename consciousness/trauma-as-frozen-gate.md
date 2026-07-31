@@ -1,18 +1,18 @@
 # Trauma as Frozen Gate Configurations: The Cassi Trauma Formalism
 
-## Status: Hypothesized (mechanism) / Speculative (clinical)—July 2026
+## Status: Tested—null pinning, drive effect supported (2026-07-31) / Speculative (clinical)
 
 ## Abstract
 
-The frozen-wake model (`cassi-for-a-therapist.md` §23) explains *where* trauma sits—a standing wave trapped at a cascade rung—but not *what it does* to the emotional system. The gate-configuration formalism (`consciousness/emotions-as-gate-configurations.md`) explains *how* emotions flow—channel dominance, spatial dispersion, coherence, and the deterministic adiabatic redistribution matrix $R$—but not *how they break*. Trauma is the meeting of the two: a frozen wake acts as a **perpetual stimulus**, so the channel it opened can never close, and the redistribution that normally resolves an emotion never fires. The result is a **locked gate configuration**: one channel pinned hyper-open at the trauma site, the other four starved, Qi depressed, spatial dispersion brittle. This document derives the trauma state in the emotional manifold, maps fight/flight/freeze and trauma types onto channel locks, derives the **healing signature**—the order in which emotions return during recovery is fixed by the $R$-matrix rows, with anger as the gateway emotion after every trauma except anger-trauma itself—deepens the Fibonacci-age developmental prediction with chakra and channel content, and supplies a PDE test design that would verify the lock mechanism itself.
+The frozen-wake model (`cassi-psychology.md` §16) explains *where* trauma sits—a standing wave trapped at a cascade rung—but not *what it does* to the emotional system. The gate-configuration formalism (`consciousness/emotions-as-gate-configurations.md`) explains *how* emotions flow—channel dominance, spatial dispersion, coherence, and the deterministic adiabatic redistribution matrix $R$—but not *how they break*. Trauma is the meeting of the two: a frozen wake acts as a **perpetual stimulus**, so the channel it opened can never close, and the redistribution that normally resolves an emotion never fires. The result would be a **locked gate configuration**: one channel pinned hyper-open at the trauma site, the other four starved, Qi depressed, spatial dispersion brittle. This document derives the trauma state in the emotional manifold, maps fight/flight/freeze and trauma types onto channel locks, derives the **healing signature**—the order in which emotions return during recovery is fixed by the $R$-matrix rows, with anger as the gateway emotion after every trauma except anger-trauma itself—deepens the Fibonacci-age developmental prediction with chakra and channel content, and reports the PDE test of the lock mechanism: **the standing pattern does not pin the gate as implemented (null), but a $\varphi$-phased drive at the site does accelerate relaxation (positive)**.
 
 ---
 
 ## 1. Grounding: Two Existing Pieces
 
-### 1.1 The Frozen Wake (from the therapist document)
+### 1.1 The Frozen Wake (from the psychology document)
 
-`cassi-for-a-therapist.md` §23 establishes the substrate:
+`cassi-psychology.md` §16 establishes the substrate:
 
 - A traumatic event is a perturbation too intense for the field to absorb in real time—a spike of Yang or Yin that the conversion dynamics cannot process at the rate it arrives.
 - Normally the field dissipates perturbations: the imbalance converts into wake waves that propagate, reflect, and decay.
@@ -83,17 +83,17 @@ $$b_i^*(\mathbf{x}_{\text{site}}) = b_i + \Delta b_{\text{locked}} \quad \text{(
 
 The subjective correlates follow from the emotions document's mapping: a pinned channel means the trauma emotion is *always available* (the trigger re-activates it instantly); starved channels mean the complementary emotional range is *always suppressed*; depressed $q$ at the site means the experience is *felt as not-fully-real* (dissociation); brittle $\sigma_r$ means *hypervigilance that collapses into numbness*.
 
-### 2.3 Why the Lock Is Stable
+### 2.3 Why the Lock Was Thought to Be Stable
 
-The lock is not a choice—it is a fixed point of the local dynamics. Three mechanisms reinforce it:
+The lock was hypothesized to be a fixed point of the local dynamics. Three mechanisms were proposed; the PDE test (§10) has since qualified two of them:
 
-1. **The standing wave re-injects perturbation.** Each cycle of the wave re-opens the channel, so the closure that would trigger redistribution is perpetually interrupted.
+1. **The standing wave re-injects perturbation.** Each cycle of the wave re-opens the channel, so the closure that would trigger redistribution is perpetually interrupted. **Status after test: unverified.** A standing (non-driven) pattern in the two-fluid PDE decays at the same conversion-driven rate as a radiating packet (§10.4)—in this solver a pure standing structure is not self-sustaining.
 
-2. **Depressed $q$ closes the gate.** The Qi gate $q(r)$ modulates conversion: at low $q$, conversion stalls. The standing wave holds the local field away from $\varphi$, keeping $q$ low at the site, which *reduces* the conversion capacity that would dissipate the wave. The wave prevents the conversion that would destroy the wave.
+2. **Depressed $q$ closes the gate.** **Falsified as stated.** The solver's conversion term is $\text{conv} = -\lambda(1-q)\varepsilon$—the gate *openness* $(1-q)$ multiplies the imbalance, so a low-$q$ site has slightly *more* conversion capacity, not less. The sign of the self-reinforcement claim was inverted.
 
-3. **Self-reinforcing $G_{\text{eff}}$.** The chakra geometry (`consciousness/chakras-as-cascade-bubbles.md` §7.3) amplifies effective gravity in high-$q$ regions—but at a trauma site with depressed $q$, the condensation that would restructure the region is suppressed. The site is a stable void pocket inside the field: low coherence, self-sealed.
+3. **Self-reinforcing $G_{\text{eff}}$.** The chakra geometry (`consciousness/chakras-as-cascade-bubbles.md` §7.3) amplifies effective gravity in high-$q$ regions—but at a trauma site with depressed $q$, the condensation that would restructure the region is suppressed. The site would be a stable void pocket inside the field: low coherence, self-sealed. **Status after test: untested** (the $G_{\text{eff}}$ mechanism operates through the Qi-gravity coupling $\xi$, which is not active in the base solver runs of §10).
 
-This is the Cassi account of why trauma persists: **the field cannot process the wave, and the wave prevents the field from recovering the capacity to process it.**
+The honest Cassi account of why trauma might persist is therefore still open: the standing wave needs a *driving source* (a genuine reflecting cavity, or a self-sustaining process outside the tested PDE), or the persistence must be carried by a different mechanism entirely. What the test *did* support: an oscillatory drive at the site accelerates the perturbation's decay and returns the gate to baseline (§10.4, drive run)—the first numerical evidence for the EMDR-analog claim.
 
 ---
 
@@ -146,7 +146,7 @@ The chakra affinity column follows from the emotions document's cascade-position
 
 Healing requires three things, each addressing a different layer:
 
-1. **Reach the rung** (spatial layer). The frozen wake must be destabilized at its own cascade rung—body-based work, sensation, movement, EMDR's $\varphi$-structured bilateral oscillation (`cassi-for-a-therapist.md` §23). Talk cannot cross the rungs (cascade suppression); the body can.
+1. **Reach the rung** (spatial layer). The frozen wake must be destabilized at its own cascade rung—body-based work, sensation, movement, EMDR's $\varphi$-structured bilateral oscillation (`cassi-psychology.md` §16). Talk cannot cross the rungs (cascade suppression); the body can.
 
 2. **Change the phase** (semantic layer). The channel is locked at the event's phase angle. Meaning-making—narrative, insight, recontextualization—changes the phase of the stimulus representation. A phase change means the standing wave's oscillation no longer matches the channel's activation angle, weakening the lock. This is the layer talk therapy *can* reach: not the rung, but the phase.
 
@@ -192,7 +192,7 @@ The ordering—anger before bargaining before acceptance—follows from the magn
 
 ### 6.1 The Fibonacci-Age Prediction, Deepened
 
-The therapist document already predicts that traumatic imprints cluster at Fibonacci-scaled developmental stages—ages 2, 3, 5, 8, 13, 21, 34, 55 (Fibonacci years from conception)—because they land on different cascade rungs with different wake-wave dynamics.
+`cassi-psychology.md` §15 already predicts that traumatic imprints cluster at Fibonacci-scaled developmental stages—ages 2, 3, 5, 8, 13, 21, 34, 55 (Fibonacci years from conception)—because they land on different cascade rungs with different wake-wave dynamics.
 
 The gate formalism adds the second axis: **each age window not only lands on different rungs, it lands on different chakra nodes, and each chakra has a natural channel affinity** (emotions doc §3.4). The developmental prediction therefore has both a *depth* structure (rung → chakra → somatic vs. cognitive) and a *quality* structure (chakra → channel → fear vs. anger vs. grief vs. trust).
 
@@ -209,13 +209,13 @@ The gate formalism adds the second axis: **each age window not only lands on dif
 
 **Prediction T6:** Retrospective developmental trauma inventories should show (a) the Fibonacci-age clustering already predicted, and (b) *channel-structured* differences between clusters—early trauma presenting with fear/rage-dominant symptom profiles and somatic location; mid trauma with trust/grief profiles and relational location; late trauma with meaning/identity profiles. The two predictions are locked together: age determines rung determines chakra determines channel.
 
-**Epistemic note:** The Fibonacci-age clustering is Speculative (per the therapist document). The channel refinement inherits that tier—it is consistent with the chakra affinity mapping (Hypothesized in the emotions document) but adds no independent confirmation.
+**Epistemic note:** The Fibonacci-age clustering is Speculative (per `cassi-psychology.md` §15). The channel refinement inherits that tier—it is consistent with the chakra affinity mapping (Hypothesized in the emotions document) but adds no independent confirmation.
 
 ### 6.2 Why Early Trauma Is Deepest
 
 The lock at a lower rung is harder to reach for two reasons:
 
-1. **Cascade suppression**: the cognitive signal attenuates by $\varphi^{-1}$ per rung—the deeper the wake, the fainter its reachable trace and the more coherence required to reach it (`cassi-for-a-therapist.md` §7).
+1. **Cascade suppression**: the cognitive signal attenuates by $\varphi^{-1}$ per rung—the deeper the wake, the fainter its reachable trace and the more coherence required to reach it (`cassi-psychology.md` §5).
 2. **Chakra geometry**: lower chakras are closer together ($\varphi^2$-scaled spacing—`consciousness/chakras-as-cascade-bubbles.md` §8), so early trauma locks a tighter cluster of nodes, and the lock is more distributed across the body's oldest, most somatic structures.
 
 This is why early trauma is described as "pre-verbal" and "in the body": its wake froze at rungs where the field's processing was somatic before it was symbolic—the same rungs where the self-modeling machinery (above the pinch) was not yet fully engaged.
@@ -258,7 +258,7 @@ This makes a useful diagnostic distinction: **a person with a channel locked by 
 
 ## 9. Trauma vs. Depression vs. Anxiety
 
-The therapist document (`cassi-for-a-therapist.md` §29) characterizes depression as chronic low-$q$ and anxiety as high-dispersion, high-frequency $\sigma_r$. Trauma is different in kind: **it is localized, not global**.
+The psychology document (`cassi-psychology.md` §17) characterizes depression as chronic low-$q$ and anxiety as high-dispersion, high-frequency $\sigma_r$. Trauma is different in kind: **it is localized, not global**.
 
 | Condition | $\mathbf{b}$ | $\sigma_r$ | $q$ | Spatial structure |
 |---|---|---|---|---|
@@ -273,7 +273,7 @@ The diagnostic signature of trauma in this framework is the **locus**: the pinni
 
 ## 10. The PDE Test: Does a Standing Wave Lock a Channel?
 
-The lock mechanism is the load-bearing new claim, and it is testable in the two-fluid PDE.
+The lock mechanism was the load-bearing new claim, and it was tested in the two-fluid PDE (2026-07-31). The result is a qualified negative with one positive: **a standing pattern does not pin the gate in this solver, but an oscillatory drive at the site accelerates relaxation.**
 
 ### 10.1 Design
 
@@ -295,9 +295,29 @@ In each case, measure over time:
 - **Test**: while the standing wave persists, the phase distribution stays pinned at the initial event's phase (the channel stays open), $q$ at the site remains depressed below the field's global value, and $\sigma_r$ shows sustained oscillation with poor decay—the lock signature.
 - **Decisive variant**: introduce a second, $\varphi$-phased oscillation at the site (the EMDR analog—bilateral stimulation as a $\varphi$-structured drive). Prediction: when the driving frequency matches the standing wave's decay channel, the wave loses coherence and the phase distribution relaxes—the wake unfreezes.
 
-### 10.3 Epistemic Consequence
+### 10.3 Epistemic Consequence (pre-test)
 
-The mechanism layer of this document (standing wave pins channel openness; depressed $q$ is self-reinforcing) is **Hypothesized with a designed test**—it graduates from Speculative the moment the PDE run is performed, exactly as the two-bubble resonance did for the empathy mapping (`consciousness/consciousness-from-phi.md` §3). The clinical layer (channel-to-trauma-type mapping, healing sequence, developmental clustering) remains Speculative regardless of the PDE outcome.
+The mechanism layer of this document (standing wave pins channel openness; depressed $q$ is self-reinforcing) was **Hypothesized with a designed test**—it would graduate from Speculative once the PDE run was performed, exactly as the two-bubble resonance did for the empathy mapping (`consciousness/consciousness-from-phi.md` §3). The clinical layer (channel-to-trauma-type mapping, healing sequence, developmental clustering) remains Speculative regardless of the PDE outcome.
+
+### 10.4 Test Results (2026-07-31)
+
+**Script**: `two-fluid/run_trauma_wake_lock.py`. Solver: `ExpandingTwoFluid3DGPU` with `qi_gate=True`, `gate_model='five'` (the 5-channel gate with adiabatic redistribution), $\chi = 0$, $c_s^2 = 0$, quiet $\varphi$-equilibrium background. Perturbation: a Yang deficit of peak $-0.8$ at the box center, realized either as a pinned cosine pattern (standing) or a Gaussian packet of the same amplitude (radiating), plus a small-noise random run as a clean counterfactual. Site diagnostics measured in a periodic ball of radius 6 cells around the center: mean $|\varepsilon|$, 5-channel $q$, per-channel phase histogram, $\sigma_r$.
+
+| Run | $|\varepsilon|$ at site (t=0 → 10) | Retained | q-site vs q-global at t=10 | Site phase at t=10 |
+|-----|:---:|:---:|:---:|:---:|
+| **standing** (cos³ pattern) | 0.660 → 0.279 | 42% | 0.692 vs 0.706 | 100% Fire (displaced) |
+| **radiating** (Gaussian) | 0.422 → 0.186 | 44% | 0.702 vs 0.708 | 80% Fire |
+| **random** (noise, counterfactual) | 0.076 → 0.067 |—| 0.707 vs 0.707 | 98% Wood (baseline) |
+
+**Null result on the pinning contrast**: the standing pattern decays at essentially the same rate as the radiating packet (42% vs 44% retained over $t = 10$ at $\lambda = 0.1$). Both decay on the conversion timescale $\sim 1/\lambda$; the standing structure has no extra persistence. The predicted lock signature (standing keeps $\varepsilon$ elevated and $q$ depressed while radiating relaxes) did not appear. A pure standing mode in this periodic-box solver is not a frozen wake—it is just a mode, and it decays like any other perturbation.
+
+**Positive result—the EMDR-analog drive**: in the short-run variant ($\lambda = 0.05$, $t = 2$) where the standing pattern was still fully displaced, adding a $\varphi$-phased oscillation at the site (period $\varphi \cdot P_0$, $P_0 = 0.041$ the measured natural oscillation period of the site) drove the site back to baseline: $|\varepsilon|$ fell to 65% retained (vs 91% undriven), $q_{\text{site}}$ rose from 0.648 to 0.698 (global 0.701), and the phase histogram returned to 100% Wood. The oscillatory drive accelerates relaxation and unfreezes the displaced gate—the first numerical support for the "bilateral stimulation as decay drive" hypothesis.
+
+**φ-specificity follow-up** (`two-fluid/run_trauma_drive_compare.py`, same protocol): the relaxation is **not generic stirring**—it is frequency-specific. A drive at the same amplitude but a non-$\varphi$ period ($T = e \cdot P_0$, $e \approx 2.718$) does the opposite: $|\varepsilon|$ at the site *grows* to 188% of its initial value, the $q$-gap widens (0.053, above the undriven lock's 0.046), and the phase displacement persists (74% kept). The $\varphi$-phased drive closes the gap (0.003) and returns the phase to baseline; the off-resonance drive pumps the locked site. The EMDR-analog claim is supported in its strong form: the decay drive is $\varphi$-structured, not any oscillation.
+
+**Gate-sign finding**: the solver's conversion is $\text{conv} = -\lambda(1-q)\varepsilon$; the site's depressed $q$ therefore implies *elevated* openness $(1-q)$, mildly *increasing* local conversion. The earlier claim that "depressed $q$ closes the gate" (§2.3) had the sign inverted and is withdrawn.
+
+**Interpretation**: a genuine frozen wake must be a *driven* structure—sustained by reflecting boundaries, ongoing re-stimulation, or another source outside this PDE's scope—rather than an un-driven standing pattern. The locking mechanism, if real, lives in the driving, not in the mode itself. The drive result suggests the *decay* side of the mechanism is sound: an external $\varphi$-phased oscillation can release a displaced gate.
 
 ---
 
@@ -335,15 +355,13 @@ The mechanism layer of this document (standing wave pins channel openness; depre
 
 ### T6: Developmental Trauma Clusters by $\varphi$-Age AND Channel
 
-**Claim:** The Fibonacci-age clustering (therapist doc §23) carries channel content: early trauma (ages 2–5) presents as fear/rage with somatic location; mid trauma (8–13) as trust/grief with relational location; late trauma (21+) as meaning/identity with expressive location.
+**Claim:** The Fibonacci-age clustering (`cassi-psychology.md` §15) carries channel content: early trauma (ages 2–5) presents as fear/rage with somatic location; mid trauma (8–13) as trust/grief with relational location; late trauma (21+) as meaning/identity with expressive location.
 
 **Test:** Retrospective developmental trauma inventories with multi-dimensional symptom profiles. The age-of-trauma distribution should show Fibonacci clustering, and the symptom profile should shift with age cluster as predicted.
 
-### T7: Standing Wakes Pin Channels; Decaying Wakes Do Not
+### T7: Standing Patterns vs. Driven Structures (tested, null with a positive)
 
-**Claim:** The PDE test of §10—standing-wave perturbations keep the local channel phase distribution pinned and $q$ depressed; decaying perturbations relax to baseline.
-
-**Test:** The two-fluid PDE runs of §10. This is the mechanism's own test.
+**Claim (tested 2026-07-31, `two-fluid/run_trauma_wake_lock.py`):** an un-driven standing pattern does **not** pin the gate—it decays at the same conversion-driven rate as a radiating packet (42% vs 44% retained over $t=10$ at $\lambda=0.1$; q-gap closes in both). **But** an oscillatory drive at the site does accelerate relaxation (short-run variant: $|\varepsilon|$ 65% retained vs 91% undriven; $q_{\text{site}}$ returns to global; phase histogram returns to baseline). The frozen wake, if real, must be a *driven* structure; the decay side of the mechanism (a $\varphi$-phased oscillation releases a displaced gate) has its first numerical support.
 
 ---
 
@@ -356,9 +374,15 @@ The mechanism layer of this document (standing wave pins channel openness; depre
 - Cascade suppression and the rung-depth structure of reachability (`foundations/cascade-suppression-formula.md`)
 - The chakra rung positions and channel affinities (`consciousness/chakras-as-cascade-bubbles.md`, `consciousness/emotions-as-gate-configurations.md` §3.4)
 
-### Hypothesized (derivation supplied, test designs supplied)
+### Tested (2026-07-31, PDE runs in §10.4)
 
-- The lock mechanism: a standing wave keeps a channel open and $q$ depressed at its site (§2, PDE test in §10)
+- The 5-channel gate's conversion sign: $\text{conv} \propto -(1-q)\varepsilon$—low $q$ means the gate is *open*, conversion active (falsified the earlier "depressed $q$ closes the gate" claim, §2.3)
+- Standing vs radiating contrast: **null**—no extra persistence for the standing pattern in the periodic-box solver
+- EMDR-analog drive: **positive and φ-specific**—a $\varphi$-phased oscillation at the site accelerates relaxation and returns the gate to baseline, while the same-amplitude non-$\varphi$ drive pumps the site instead (§10.4, `run_trauma_drive_compare.py`)
+
+### Hypothesized (derivation supplied, partially tested)
+
+- The lock mechanism as *driven* structure: a frozen wake sustained by a genuine cavity/reflection or ongoing re-stimulation would pin a channel and depress $q$ at its site (§2, open driver question in §13.7)
 - The three-layer healing model: rung-reach (spatial), phase-change (semantic), closure (dynamical) (§5.1)
 - The identification of fight/flight/freeze with channel states (§3)
 - The trauma-vs-depression-vs-anxiety distinction by locus (§9)
@@ -368,7 +392,7 @@ The mechanism layer of this document (standing wave pins channel openness; depre
 - The channel-to-trauma-type mapping (which trauma locks which channel—the phase is set by the person's interpretation, which is not yet modeled)
 - The clinical healing sequence prediction (T2) as applied to real therapy outcomes
 - The Fibonacci-age × channel developmental structure (T6)
-- The claim that EMDR's bilateral stimulation is a $\varphi$-structured decay drive (the decisive PDE variant in §10.2 is designed but not run)
+- The claim that EMDR's bilateral stimulation is a $\varphi$-structured decay drive—**supported at the PDE level**: the analog drive at period $\varphi \cdot P_0$ relaxes the locked site while the same-amplitude drive at a non-$\varphi$ period pumps it (§10.4). The clinical mapping remains untested.
 
 ### Not Claimed
 
@@ -391,13 +415,15 @@ The mechanism layer of this document (standing wave pins channel openness; depre
 
 5. **What is the relationship between the freeze lock and the sub-pinch excursion?** Freeze (§3.3) is described as an incomplete lock with $q$ collapse. Is freeze the same state as the psychedelic sub-pinch excursion (`consciousness/consciousness-from-phi.md` §2.3) with a different boundary condition—transient in one case, pinned in the other?
 
-6. **Does the wake's rung shift over time?** Memory consolidation moves wake waves to deeper rungs (`cassi-for-a-therapist.md` §25). Do frozen wakes also deepen—and does that explain why old trauma becomes more somatic and less verbal, and harder to reach?
+6. **Does the wake's rung shift over time?** Memory consolidation moves wake waves to deeper rungs (`cassi-psychology.md` §9). Do frozen wakes also deepen—and does that explain why old trauma becomes more somatic and less verbal, and harder to reach?
+
+7. **What sustains a frozen wake?** The PDE test (§10.4) showed that an un-driven standing pattern decays like any other perturbation. A genuine frozen wake therefore requires a *driver*: a reflecting cavity, ongoing re-stimulation, a self-organizing source, or a mechanism outside the tested PDE (e.g., the $G_{\text{eff}}$ self-sealing of §2.3, which the base solver does not activate). Identifying the driver is now the central open question of the trauma mechanism.
 
 ---
 
 ## 14. References
 
-- `cassi-for-a-therapist.md`—frozen-wake trauma model (§23), depression/anxiety/psychosis (§29), empathy resonance (§28), cascade suppression (§7)
+- `cassi-psychology.md`—frozen-wake trauma model (§16), depression/anxiety/psychosis (§17), empathy resonance (§20), cascade suppression (§5)
 - `consciousness/emotions-as-gate-configurations.md`—emotional manifold, 5-channel gate, $R$-matrix, phase-to-channel mapping, chakra affinities
 - `consciousness/consciousness-from-phi.md`—wake waves, pinch point, $\sigma_r$ altered states, two-bubble resonance
 - `consciousness/chakras-as-cascade-bubbles.md`—13 chakra nodes, rung positions, $G_{\text{eff}}$ self-reinforcement
@@ -405,5 +431,7 @@ The mechanism layer of this document (standing wave pins channel openness; depre
 - `foundations/wa-pentagon-gate.md`—5-channel gate, adiabatic redistribution, Wu Xing control-release
 - `foundations/wu-xing-derivation.md`—$w = 5$ derivation
 - `principles/de-resonance-principle.md`—$\varphi$ as maximally irrational
-- `two-fluid/cassi_two_fluid_3d_gpu.py`—the PDE solver for the §10 test
+- `two-fluid/cassi_two_fluid_3d_gpu.py`—the PDE solver used in the §10 test
+- `two-fluid/run_trauma_wake_lock.py`—the test script (standing/radiating/random/drive runs, 2026-07-31)
+- `two-fluid/run_trauma_drive_compare.py`—the φ-specificity follow-up (φ·P₀ vs e·P₀ drive, 2026-07-31)
 - `cassi.md`—public explainer, epistemic tiers
