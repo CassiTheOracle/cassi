@@ -2,14 +2,15 @@
 
 ## Status: Four derivations, three resolved, one narrowed
 
-This document derives the remaining underived quantities in the Cassi two-fluid
+The remaining underived quantities in the Cassi two-fluid framework are
+cataloged, classified, and bounded below. The goal is not to claim that every
 framework, closing the parameter inventory gaps documented in `parameter-inventory.md`.
 Each derivation is assessed for whether it fully resolves the gap, partially
 narrows it, or identifies an irreducible barrier.
 
 ---
 
-## 1. $\alpha_s(M_Z)$ — The Strong Coupling at the Z Pole
+## 1. $\alpha_s(M_Z)$—The Strong Coupling at the Z Pole
 
 ### 1.1 Current Status
 
@@ -26,8 +27,8 @@ $M_Z$ and $M_{\text{GUT}}$.
 
 ### 1.2 Correction: The 11× Claim
 
-The parameter-inventory states $\alpha_s(M_Z)$ is $11\times$ too small. This
-used an incorrect RGE sign. The correct calculation:
+The parameter-inventory states $\alpha_s(M_Z)$ is $11\times$ too small due to
+an incorrect RGE sign. The correct calculation:
 
 For SM SU(3) with $n_f = 6$ flavors: $b_{\text{SM}} = 11 - \frac{2}{3}n_f = 7$.
 
@@ -64,10 +65,10 @@ of the SM fields.
 
 | Aspect | Status |
 |--------|--------|
-| $\alpha_{\text{GUT}}$ from $\varphi$ | **Derived** — $\varphi^{-3}/(4\pi)$ |
-| $b_{\text{eff}}$ from $\varphi$ | **Not derivable** — requires particle content between EW and GUT scales |
-| $\Delta b = 1.70$ | **Narrowed** — gap reduced from $11\times$ to $2.0\times$; the $1.70$ shift is modest, consistent with SUSY/KK thresholds |
-| Full derivation | **Partial** — the coupling at $M_Z$ follows from $\varphi$ **given** the particle content. $\varphi$ does not determine the particle content; this is a separate specification. |
+| $\alpha_{\text{GUT}}$ from $\varphi$ | **Derived**—$\varphi^{-3}/(4\pi)$ |
+| $b_{\text{eff}}$ from $\varphi$ | **Not derivable**—requires particle content between EW and GUT scales |
+| $\Delta b = 1.70$ | **Narrowed**—gap reduced from $11\times$ to $2.0\times$; the $1.70$ shift is modest, consistent with SUSY/KK thresholds |
+| Full derivation | **Partial**—the coupling at $M_Z$ follows from $\varphi$ **given** the particle content. $\varphi$ does not determine the particle content; this is a separate specification. |
 
 **Conclusion**: $\alpha_s(M_Z)$ is NOT derivable from $\varphi$ alone. The gap
 is a factor of 2.0, consistent with threshold corrections from new physics
@@ -76,7 +77,7 @@ the gap ($\Delta b = 1.70$) is modest and plausible but not uniquely determined.
 
 ---
 
-## 2. $m_e/v_0$ — The Electron-to-Electroweak Mass Ratio
+## 2. $m_e/v_0$—The Electron-to-Electroweak Mass Ratio
 
 ### 2.1 Current Status
 
@@ -90,13 +91,13 @@ The nearest integer exponents:
 |-------|-------------|-------|
 | 26 | 0.641 | $+25\%$ |
 | 27 | 0.396 | $-22\%$ |
-| **Observed** | **0.511** | — |
+| **Observed** | **0.511** |—|
 
 The half-integer $n_e = 26.5$ gives $m_e = 0.504$ MeV ($-1.4\%$).
 
 ### 2.2 The Half-Step Mechanism
 
-The exponent $26.5$ is not arbitrary — it is the **geometric mean** of adjacent
+The exponent $26.5$ is not arbitrary—it is the **geometric mean** of adjacent
 cascade steps:
 
 $$y_e = \sqrt{\varphi^{-26} \cdot \varphi^{-27}} = \varphi^{-26.5}$$
@@ -139,20 +140,20 @@ its cascade scale) is consistent with the electron being the **boundary state**
 
 | Aspect | Status |
 |--------|--------|
-| $m_\tau$, $m_\mu$ from $\varphi$ | **Derived** — integer exponents 18, 22 |
-| $m_e$ from $\varphi^{-26}$ alone | **Not derivable** — 25% gap |
-| $m_e$ from $\varphi^{-26.5}$ (half-step) | **Derived** — 1.4% residual, cascade truncation at lightest lepton |
-| $q_e = 0.5$ (Qi gate boundary) | **Plausible** — consistent with boundary-state phenomenology, awaits formal PDE derivation |
+| $m_\tau$, $m_\mu$ from $\varphi$ | **Derived**—integer exponents 18, 22 |
+| $m_e$ from $\varphi^{-26}$ alone | **Not derivable**—25% gap |
+| $m_e$ from $\varphi^{-26.5}$ (half-step) | **Derived**—1.4% residual, cascade truncation at lightest lepton |
+| $q_e = 0.5$ (Qi gate boundary) | **Plausible**—consistent with boundary-state phenomenology, awaits formal PDE derivation |
 
 **Conclusion**: The electron mass is derivable as $\varphi^{-26.5} v_0/\sqrt{2}$
-with a 1.4% residual. The half-integer exponent is not a fudge — it is the
+with a 1.4% residual. The half-integer exponent is not a fudge—it is the
 geometric mean of adjacent cascade steps, enforced by the cascade truncation
 at the lightest charged lepton. The formal derivation requires solving the
 Qi gate boundary condition at the base of the lepton hierarchy.
 
 ---
 
-## 3. $v_0/M_{\text{Pl}}$ — The Electroweak-to-Planck Ratio
+## 3. $v_0/M_{\text{Pl}}$—The Electroweak-to-Planck Ratio
 
 ### 3.1 Current Status
 
@@ -179,7 +180,7 @@ $$n_{\text{EW}} = \frac{\ln(E_{\text{Pl}} / v_0)}{\ln\varphi} = \frac{38.44}{0.4
 The residual $\delta n = 80 - 79.89 = 0.11$ steps corresponds to a factor
 of $\varphi^{0.11} = 1.053$, exactly matching the 5.3% gap.
 
-**This is not a failure of the $\varphi$-cascade — it is a direct consequence
+**This is not a failure of the $\varphi$-cascade—it is a direct consequence
 of the cascade being a continuous spectrum with $\varphi$-spacing.** The
 electroweak scale sits at $n = 79.89$, not exactly at the integer $n = 80$.
 The cascade does not force integer $n$; it forces $\varphi$-spacing. Any
@@ -201,13 +202,13 @@ the transition) while the electron is a "hard" boundary (the spectrum terminates
 
 | Aspect | Status |
 |--------|--------|
-| $v_0/M_{\text{Pl}} \approx \varphi^{-80}$ | **Derived** — 5.3% residual, closest integer power |
-| $\delta n = 0.11$ offset | **Identified** — cascade discretization residual |
-| Physical mechanism for $\delta n = 0.11$ | **Plausible** — EW-scale boundary between cascade regimes |
-| Exact derivation of $\delta n$ | **Not derivable** — would require full cascade boundary dynamics |
+| $v_0/M_{\text{Pl}} \approx \varphi^{-80}$ | **Derived**—5.3% residual, closest integer power |
+| $\delta n = 0.11$ offset | **Identified**—cascade discretization residual |
+| Physical mechanism for $\delta n = 0.11$ | **Plausible**—EW-scale boundary between cascade regimes |
+| Exact derivation of $\delta n$ | **Not derivable**—would require full cascade boundary dynamics |
 
 **Conclusion**: The $v_0/M_{\text{Pl}}$ ratio is consistent with $\varphi^{-80}$
-at 5.3% — a small residual from the cascade discretization. The exact offset
+at 5.3%—a small residual from the cascade discretization. The exact offset
 $\delta n = 0.11$ is understood as the EW scale sitting between integer cascade
 nodes, but the specific value awaits formal cascade boundary dynamics.
 
@@ -218,7 +219,7 @@ nodes, but the specific value awaits formal cascade boundary dynamics.
 ### 4.1 What "Activated" Means
 
 In the dimensionful cascade, each step $n$ corresponds to a physical scale
-$\ell_n = \ell_{\text{Pl}} \times \varphi^n$. Most steps are **dark** — they
+$\ell_n = \ell_{\text{Pl}} \times \varphi^n$. Most steps are **dark**—they
 exist mathematically but do not correspond to independently observable
 phenomena. "Activated" steps are those where the $\varphi$-power exponent
 appears in a **verified physical quantity**.
@@ -238,7 +239,7 @@ appears in a **verified physical quantity**.
 ### 4.3 Why These and Not Others?
 
 The set $\{1, 2, 3, 5, 6, 26, 80\}$ is **not derivable from $\varphi$**.
-It is an **empirical catalog** — the subset of $\varphi$-powers that happen to
+It is an **empirical catalog**—the subset of $\varphi$-powers that happen to
 correspond to observable quantities in our universe.
 
 Steps $\{4, 7, 8, \ldots, 25, 27, \ldots, 79, 81, \ldots, 292\}$ are **dark** —
@@ -253,7 +254,7 @@ measured physical couplings or scale ratios. They may correspond to:
 
 The first four activated steps $\{1, 2, 3, 5\}$ are the first four Fibonacci
 numbers. Step 6 is the product of Fibonacci primes $2 \times 3$. The larger
-steps (26, 80) are not Fibonacci-related in any obvious way — they emerge
+steps (26, 80) are not Fibonacci-related in any obvious way—they emerge
 from the cascade depth rather than number-theoretic properties.
 
 The Fibonacci pattern at low $n$ is likely coincidental: $\varphi^n$ for
@@ -265,10 +266,10 @@ mathematical identity, not a physical selection mechanism.
 
 | Aspect | Status |
 |--------|--------|
-| Which steps are activated | **Empirical** — observed from verified $\varphi$-power predictions |
-| Why $\{1, 2, 3, 5\}$ and not $\{4, 7, 8\}$ | **Not derivable** — these are the exponents that happen to map to observable couplings in our universe |
-| Fibonacci coincidence at low $n$ | **Mathematical identity** — $\varphi^n \approx F_{n+1}/F_n$, not a physical selection |
-| Dark steps (4, 7, 8-25, 27-79, 81+) | **Prediction** — these correspond to unobserved scales/couplings; their darkness is a testable feature |
+| Which steps are activated | **Empirical**—observed from verified $\varphi$-power predictions |
+| Why $\{1, 2, 3, 5\}$ and not $\{4, 7, 8\}$ | **Not derivable**—these are the exponents that happen to map to observable couplings in our universe |
+| Fibonacci coincidence at low $n$ | **Mathematical identity**—$\varphi^n \approx F_{n+1}/F_n$, not a physical selection |
+| Dark steps (4, 7, 8-25, 27-79, 81+) | **Prediction**—these correspond to unobserved scales/couplings; their darkness is a testable feature |
 
 **Conclusion**: The activated step set is an empirical catalog, not a
 $\varphi$-derivation. It tells us which $\varphi$-powers correspond to
@@ -296,12 +297,12 @@ With these derivations, the parameter inventory classification shifts:
 | $\alpha_s(M_Z)$ | **E** | **C** | Requires particle content specification (one calibrated input: $\Delta b = 1.70$) |
 | $m_e/v_0$ | **E** | **D** | $\varphi^{-26.5}$ with cascade truncation mechanism (1.4% residual) |
 | $v_0/M_{\text{Pl}}$ | **E** | **D** | $\varphi^{-80}$ with 5.3% cascade discretization residual |
-| Activated steps | — | **E** | Empirical catalog (6 observables that happen to be $\varphi$-powers) |
+| Activated steps |—| **E** | Empirical catalog (6 observables that happen to be $\varphi$-powers) |
 
 The updated legend: **F**=1, **D**=20, **C**=3, **E**=7, **I**=6, **N**=7, **Total**=44.
 
 The net effect: three of six "External" constants have been partially derived,
 with residual gaps explained by cascade boundary effects and particle content
 specification. The remaining three external constants ($G$, $c$, $\hbar$) are
-dimensionful and cannot be derived from a dimensionless constant — this is
+dimensionful and cannot be derived from a dimensionless constant—this is
 a feature of any theory, not a bug.

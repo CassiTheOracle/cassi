@@ -1,16 +1,16 @@
 # The Golden Ratio as a Renormalization Group Fixed Point
 
-**Status:** Formal derivation — the φ-hierarchy as a discrete Wilsonian RG.
+## Status: Hypothesized—July 2026
 
 ---
 
 ## Abstract
 
-The Cassi framework organizes physical scales as a φ-spaced hierarchy: $\omega_i = \omega_0 \cdot \varphi^i$, $\rho_i = \rho_0 \cdot \varphi^{-i}$, and empirically all dimensionless couplings lie near φ-powers. We formalize this as a **discrete Wilsonian renormalization group** with scale factor $b = \varphi$. The single-step RG transformation is:
+The Cassi framework organizes physical scales as a φ-spaced hierarchy: $\omega_i = \omega_0 \cdot \varphi^i$, $\rho_i = \rho_0 \cdot \varphi^{-i}$, and empirically all dimensionless couplings lie near φ-powers. This is formalized as a **discrete Wilsonian renormalization group** with scale factor $b = \varphi$. The single-step RG transformation is:
 
 $$\mathcal{R}_\varphi[\mathcal{L}_k] = \mathcal{L}_{k/\varphi}$$
 
-We derive the beta function for the effective coupling $g(k)$, prove that $\alpha_c = \varphi^{-1}$ is the unique stable fixed point of the φ-RG flow, and show that all SM φ-power predictions ($\sin^2\theta_W$, $\alpha_{\text{GUT}}$, $\xi = \varphi^6$, etc.) are IR values of the RG trajectory from this fixed point. The de-resonance principle obtains a rigorous field-theoretic foundation: φ is the maximally irrational scale factor, ensuring the RG flow never hits a rational resonance.
+The derivation of the beta function for the effective coupling $g(k)$ shows that $\alpha_c = \varphi^{-1}$ is the unique stable fixed point of the φ-RG flow, and all SM φ-power predictions ($\sin^2\theta_W$, $\alpha_{\text{GUT}}$, $\xi = \varphi^6$, etc.) are IR values of the RG trajectory from this fixed point. The de-resonance principle obtains a rigorous field-theoretic foundation: φ is the maximally irrational scale factor, ensuring the RG flow never hits a rational resonance.
 
 ---
 
@@ -24,7 +24,7 @@ The two-fluid PDE exhibits natural scale separation governed by φ. In the solve
 - Density scales: $\rho_j = \rho_0 \cdot \varphi^{-j}$
 - The φ-damped EMA: $x_{t} = \varphi^{-1} x_{t-1} + (1-\varphi^{-1}) x_t^{\text{new}}$
 
-This is an operational hierarchy — it works empirically but lacks a field-theoretic justification. We now provide one.
+This is an operational hierarchy—it works empirically but lacks a field-theoretic justification. A derivation now follows.
 
 ### 1.2 The Discrete RG Transformation
 
@@ -32,7 +32,7 @@ Consider a quantum field theory defined at a UV cutoff $\Lambda$. The standard W
 
 $$\mathcal{R}_b[\mathcal{L}_\Lambda] = \mathcal{L}_{\Lambda/b}$$
 
-In Cassi, the natural scale factor is $b = \varphi$. This is not an arbitrary choice — it is the **maximally de-resonant** scale factor (see §5). A single φ-RG step is:
+In Cassi, the natural scale factor is $b = \varphi$. This is not an arbitrary choice—it is the **maximally de-resonant** scale factor (see §5). A single φ-RG step is:
 
 $$\boxed{\mathcal{R}_\varphi[\mathcal{L}_k] = \mathcal{L}_{k/\varphi}}$$
 
@@ -68,7 +68,7 @@ A φ-RG fixed point $g_*$ satisfies:
 
 $$\beta_\varphi(g_*) = 0 \quad\Longleftrightarrow\quad g(k/\varphi) = g(k) = g_*$$
 
-The coupling is **scale-invariant under φ-rescaling** — it has the same value at every level of the φ-hierarchy.
+The coupling is **scale-invariant under φ-rescaling**—it has the same value at every level of the φ-hierarchy.
 
 ### 2.3 Linearized Flow Near a Fixed Point
 
@@ -115,7 +115,7 @@ At the critical scale $k_c$ where the feedback is just able to balance damping:
 
 $$\boxed{\alpha_c = \varphi^{-1}}$$
 
-This is the **critical coupling** — below it the system is overdamped (returns to equilibrium), above it the system is underdamped (self-amplifies). At exactly $\alpha_c$, the system is **marginally stable** — the Qi fluid circulates without growing or decaying.
+This is the **critical coupling**—below it the system is overdamped (returns to equilibrium), above it the system is underdamped (self-amplifies). At exactly $\alpha_c$, the system is **marginally stable**—the Qi fluid circulates without growing or decaying.
 
 ### 3.2 Proof that $\varphi^{-1}$ is the Unique Stable Fixed Point
 
@@ -139,7 +139,7 @@ $\square$
 
 ### 3.3 The No-Fixed-Point Theorem Connection
 
-The no-fixed-point theorem in `(external — see archive/theory/qi-fluid-formalism.md in physics repo)` states that for $\alpha \geq \varphi^{-1}$ and $S \neq 0$, the map $F(\psi) = \mathcal{D}^{-1}[S + \alpha \cdot \mathcal{P}[\psi]]$ has no stable fixed point in field space. The φ-RG provides the complementary perspective: $\alpha$ itself flows to the fixed point $\varphi^{-1}$ in coupling space, but at that fixed point, the field dynamics are permanently non-stationary (the Qi fluid circulates forever).
+The no-fixed-point theorem in `(external—see archive/theory/qi-fluid-formalism.md in physics repo)` states that for $\alpha \geq \varphi^{-1}$ and $S \neq 0$, the map $F(\psi) = \mathcal{D}^{-1}[S + \alpha \cdot \mathcal{P}[\psi]]$ has no stable fixed point in field space. The φ-RG provides the complementary perspective: $\alpha$ itself flows to the fixed point $\varphi^{-1}$ in coupling space, but at that fixed point, the field dynamics are permanently non-stationary (the Qi fluid circulates forever).
 
 ---
 
@@ -209,8 +209,8 @@ Any dimensionless SM coupling $g$ at scale $\mu$ satisfies:
 $$g(\mu) = \varphi^{n_g} \cdot (1 + \delta_g)$$
 
 where:
-- $n_g$ is the **φ-RG charge** — the number of φ-steps × the scaling dimension
-- $\delta_g$ is the **dynamical correction** — from threshold effects, RGE running, and flavor mixing
+- $n_g$ is the **φ-RG charge**—the number of φ-steps × the scaling dimension
+- $\delta_g$ is the **dynamical correction**—from threshold effects, RGE running, and flavor mixing
 
 The φ-RG charge $n_g$ is topological (it counts φ-steps), while $\delta_g$ is dynamical. This explains the de-resonance principle's empirical pattern: quantities with large $n_g$ (many φ-steps) have smaller relative corrections because the fixed-point attraction accumulates over many steps.
 
@@ -220,7 +220,7 @@ The φ-RG charge $n_g$ is topological (it counts φ-steps), while $\delta_g$ is 
 
 ### 5.1 Why φ is the Scale Factor
 
-The standard RG uses an infinitesimal scale factor $b = e^{\delta\ell}$ with $\delta\ell \to 0$. The choice of $b$ is arbitrary — any $b > 1$ defines a valid RG. Why $\varphi$?
+The standard RG uses an infinitesimal scale factor $b = e^{\delta\ell}$ with $\delta\ell \to 0$. The choice of $b$ is arbitrary—any $b > 1$ defines a valid RG. Why $\varphi$?
 
 **Answer:** $\varphi$ is the maximally irrational number, ensuring that no two φ-steps ever produce a rational frequency ratio. If the scale factor were rational (e.g., $b=2$), then after $m$ steps the scale ratio is $2^m$, and couplings at scales separated by rational factors can resonate. The φ-RG eliminates this possibility:
 
@@ -230,7 +230,7 @@ This is the field-theoretic formulation of the de-resonance principle: **the RG 
 
 ### 5.2 The Spectral Gap as RG-Regulator
 
-The φ-damped wave equation produces a spectral gap $\Delta = \varphi^{-2}$. In the φ-RG, this gap is the **minimum spacing between RG steps** — couplings cannot change appreciably on scales smaller than the gap. This provides a natural UV regulator:
+The φ-damped wave equation produces a spectral gap $\Delta = \varphi^{-2}$. In the φ-RG, this gap is the **minimum spacing between RG steps**—couplings cannot change appreciably on scales smaller than the gap. This provides a natural UV regulator:
 
 $$\Lambda_{\text{eff}} = \Lambda \cdot (1 - \Delta) = \Lambda \cdot \varphi^{-1}$$
 
@@ -267,7 +267,7 @@ $$\beta_\varphi(g) \approx \frac{\Delta_g - 1}{\ln\varphi} \cdot g_* \cdot \delt
 
 ### 6.3 The Running of $v_0$
 
-The electroweak VEV $v_0$ is not dimensionless — it has mass dimension 1. Under φ-RG:
+The electroweak VEV $v_0$ is not dimensionless—it has mass dimension 1. Under φ-RG:
 
 $$v_0(k/\varphi) = v_0(k) \cdot \varphi^{\gamma_v}$$
 
@@ -341,10 +341,10 @@ The φ-RG formalization provides the missing field-theoretic foundation for the 
 
 ## References
 
-- `principles/de-resonance-principle.md` — empirical pattern of φ-power corrections
-- `xi-derivation.md` — derivation of $\xi = \varphi^6$ from dimensional reduction
-- `standard-model/sm-from-phi.md` — Standard Model parameters from φ
-- `foundations/cassi-first-principles.md` — self-predictive wave equation and critical coupling
-- `(external — see archive/theory/qi-fluid-formalism.md in physics repo)` — no-fixed-point theorem ($\alpha \geq \varphi^{-1}$, $S \neq 0$)
-- `parameter-inventory.md` — honest accounting of derived vs. external parameters
-- `turbulence/kolmogorov-from-phi.md` — φ-RG applied to turbulence (φ-break scale)
+- `principles/de-resonance-principle.md`—empirical pattern of φ-power corrections
+- `xi-derivation.md`—derivation of $\xi = \varphi^6$ from dimensional reduction
+- `standard-model/sm-from-phi.md`—Standard Model parameters from φ
+- `foundations/cassi-first-principles.md`—self-predictive wave equation and critical coupling
+- `(external—see archive/theory/qi-fluid-formalism.md in physics repo)`—no-fixed-point theorem ($\alpha \geq \varphi^{-1}$, $S \neq 0$)
+- `parameter-inventory.md`—honest accounting of derived vs. external parameters
+- `turbulence/kolmogorov-from-phi.md`—φ-RG applied to turbulence (φ-break scale)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-The Shape of the Universe — and Beyond
+The Shape of the Universe—and Beyond
 ======================================
 
 Three panels, one per cascade regime, every shape produced by an equation
@@ -32,7 +32,7 @@ from matplotlib.colors import LinearSegmentedColormap, to_rgb
 # Framework constants
 # ─────────────────────────────────────────────────────────────────────────────
 PHI = (1 + np.sqrt(5)) / 2          # 1.6180339887…
-L_PL = 1.616255e-35                 # Planck length (m) — the sole dimensionful scale
+L_PL = 1.616255e-35                 # Planck length (m)—the sole dimensionful scale
 N_HUBBLE = 292                      # cascade steps Planck → Hubble radius
 DELTA = 3                           # Qi-profile offset δ (microcascade-mirror.md §3)
 
@@ -89,7 +89,7 @@ axBi = fig.add_subplot(gs[1, 3])      # bubble interior (zoom)
 axC1 = fig.add_subplot(gs[2, 0:2])    # golden spiral
 axC2 = fig.add_subplot(gs[2, 2:4])    # geometric convergence
 
-fig.suptitle("THE SHAPE OF THE UNIVERSE — AND BEYOND",
+fig.suptitle("THE SHAPE OF THE UNIVERSE—AND BEYOND",
              fontsize=23, fontweight="bold", color=YANG_PEAK, y=0.972)
 fig.text(0.5, 0.938,
          "one equation, three regimes:   $\\ell_n = \\ell_{\\rm Pl}\\,\\varphi^{n}$, "
@@ -102,7 +102,7 @@ def panel_title(ax, text):
                  color=YANG_BRIGHT, pad=8)
 
 # ═════════════════════════════════════════════════════════════════════════════
-# PANEL A — THE MEGACASCADE: a chain of bubble-universes on the string
+# PANEL A—THE MEGACASCADE: a chain of bubble-universes on the string
 #
 # Geometry from the framework:
 #   · bubbles bounded between adjacent cascade steps (ours: 284 ↔ 288)
@@ -122,7 +122,7 @@ axA.set_yticks([])
 for s in ("top", "right", "left"):
     axA.spines[s].set_visible(False)
 axA.tick_params(axis="x", labelsize=8.5)
-axA.set_xlabel("cascade step  $n$  along the string — the direction in which universes are spaced",
+axA.set_xlabel("cascade step  $n$  along the string—the direction in which universes are spaced",
                fontsize=10, color=TEXT_SUB)
 
 # The string: gentle modulation at the bubble-train period, Yin → Yang gradient
@@ -144,7 +144,7 @@ SHEET_FRAC = 0.34                     # antinode at ±λ/2 (anti-phase, W1)
 for k in range(-4, 5):
     cx = N_CENTER + CHAIN_PERIOD * k
     ours = (k == 0)
-    w_num = 5 if ours else (4 if k % 2 else 6)
+    w_num = 5  # all bubbles share the same derived w=5
     fade = max(0.30, 1.0 - 0.16 * abs(k))
     if ours:
         face, edge, ea, lw = YANG_DARK, YANG_BRIGHT, 0.55, 2.6
@@ -164,7 +164,7 @@ for k in range(-4, 5):
              zorder=5, alpha=0.9 if ours else 0.5 * fade)
     # labels
     if ours:
-        axA.text(cx, BUB_H + 0.42, "OUR UNIVERSE — Wu Xing bubble, $w{=}5$",
+        axA.text(cx, BUB_H + 0.42, "OUR UNIVERSE—Wu Xing bubble, $w{=}5$",
                  ha="center", fontsize=11, fontweight="bold", color=YANG_PEAK)
         axA.text(cx, BUB_H + 0.14, "step 285 · Ø ≈ 191 Mpc · 98% of the observable volume",
                  ha="center", fontsize=8, color=TEXT_MAIN)
@@ -177,29 +177,29 @@ for k in range(-4, 5):
         axA.text(cx, -1.05, f"$w={w_num}$", ha="center", fontsize=9,
                  color=lerp(TEXT_SUB, BG, 1 - fade), fontweight="bold", zorder=7)
 
-# Axis identity on our bubble (3 = 2 + 1: Yang extended, string bounded, Yin into page)
+# Axis identity on our bubble (from the spiral's Frenet-Serret frame: tangent=string axis, normal=Yang extended, binormal=Yin into page)
 axA.annotate("", xy=(N_CENTER, BUB_H), xytext=(N_CENTER, 0),
              arrowprops=dict(arrowstyle="-|>", color=TEXT_MAIN, lw=1.3))
 axA.text(N_CENTER + 0.25, BUB_H * 0.60, "Yang axis —\nextended", fontsize=7.5, color=TEXT_MAIN)
 axA.annotate("", xy=(N_CENTER + 2.0, -BUB_H - 0.28), xytext=(N_CENTER - 2.0, -BUB_H - 0.28),
              arrowprops=dict(arrowstyle="<|-|>", color=TEXT_SUB, lw=1.1))
-axA.text(N_CENTER, -BUB_H - 0.38, "string axis — bounded", fontsize=7.5,
+axA.text(N_CENTER, -BUB_H - 0.38, "string axis—bounded", fontsize=7.5,
          color=TEXT_SUB, ha="center", va="top")
 axA.plot([AX0 + 1.6], [2.35], marker="o", ms=6, mfc="none", mec=TEXT_SUB, mew=1.2)
 axA.plot([AX0 + 1.6], [2.35], marker="x", ms=4, mec=TEXT_SUB, mew=1.2)
-axA.text(AX0 + 2.1, 2.35, "Yin axis — contracted ($\\times\\varphi^{-1}$), into page",
+axA.text(AX0 + 2.1, 2.35, "Yin axis—contracted ($\\times\\varphi^{-1}$), into page",
          fontsize=7.5, color=TEXT_SUB, va="center")
 
-# Hubble horizon: the next bubble begins inside our horizon — mostly beyond it
+# Hubble horizon: the next bubble begins inside the horizon—mostly beyond it
 axA.vlines(N_HUBBLE, -BUB_H - 0.30, BUB_H + 0.25, color=YANG_MID, lw=1.6,
            ls=(0, (6, 3)), zorder=5)
 axA.text(N_HUBBLE + 2.0, BUB_H + 0.90,
-         "Hubble radius ($n=292$) — the next bubble\nbegins inside our horizon, mostly beyond it",
+         "Hubble radius ($n=292$)—the next bubble\nbegins inside the horizon, mostly beyond it",
          fontsize=7.5, color=YANG_MID, ha="center")
 
 # Generating equations for this panel
 axA.text(AX0 + 1.0, -2.15,
-         "$\\ell_{n+1} = \\varphi\\,\\ell_n$  — one rung per wake crest\n"
+         "$\\ell_{n+1} = \\varphi\\,\\ell_n$ —one rung per wake crest\n"
          "bubble chain:  $n_k = 286 + 7k$  $\\Rightarrow$  sizes scale as  "
          "$\\ell_{n+7} = \\varphi^{7}\\ell_n$\n"
          "self-similar: the chain maps onto itself under  $\\ell \\to \\varphi^{7}\\ell$",
@@ -209,10 +209,10 @@ axA.text(AX1 - 0.5, -2.15,
          "  ($\\Delta\\phi=\\pi$, W1)\nneighbor $w$-labels schematic; voids $\\varphi$-scaled\n"
          "boundary gradients of neighbors imprint the CMB at $\\ell<5$",
          fontsize=7.5, color=TEXT_SUB, va="top", ha="right", linespacing=1.5)
-panel_title(axA, "A · THE MEGACASCADE ($n>292$) — a chain of bubble-universes on the string")
+panel_title(axA, "A · THE MEGACASCADE ($n>292$)—a chain of bubble-universes on the string")
 
 # ═════════════════════════════════════════════════════════════════════════════
-# PANEL B — THE CASCADE: our universe, rung by rung (0 ≤ n ≤ 292)
+# PANEL B—THE CASCADE: our universe, rung by rung (0 ≤ n ≤ 292)
 # ═════════════════════════════════════════════════════════════════════════════
 BN0, BN1 = -11, 303
 axB.set_xlim(BN0, BN1)
@@ -221,7 +221,7 @@ axB.set_yticks([])
 for s in ("top", "right", "left"):
     axB.spines[s].set_visible(False)
 axB.tick_params(axis="x", labelsize=8.5)
-axB.set_xlabel("cascade step  $n$   (equal spacing — one rung per factor of $\\varphi$)",
+axB.set_xlabel("cascade step  $n$   (equal spacing—one rung per factor of $\\varphi$)",
                fontsize=10, color=TEXT_SUB)
 
 BASE = 0.5
@@ -273,7 +273,7 @@ axB.text(284.5, 0.71, "BAO (284) · Wu Xing bubble (285)\n$\\varphi$-adjacent: 1
          ha="center", va="bottom", fontsize=8.0, color=YANG_PEAK, linespacing=1.25)
 
 # Membranes and connectors to the other two regimes
-axB.annotate("Planck membrane — σ-softened crossover, not a wall",
+axB.annotate("Planck membrane—σ-softened crossover, not a wall",
              xy=(1, BASE + 0.11), xytext=(17, 0.07), fontsize=8.0, color=TEXT_SUB,
              arrowprops=dict(arrowstyle="->", color=TEXT_SUB, lw=0.8))
 axB.annotate("bubble membrane (steps 285–292)",
@@ -287,7 +287,7 @@ axB.text(146, 0.97,
          "$\\ell_n = \\ell_{\\rm Pl}\\,\\varphi^{n}$      $n = \\log_\\varphi(\\ell/\\ell_{\\rm Pl})$"
          "      every rung an integer",
          ha="center", va="top", fontsize=9.5, color=TEXT_MAIN)
-panel_title(axB, "B · THE CASCADE ($0 \\leq n \\leq 292$) — our universe, rung by rung")
+panel_title(axB, "B · THE CASCADE ($0 \\leq n \\leq 292$)—our universe, rung by rung")
 
 # ── Panel B zoom: inside the Wu Xing bubble (triaxial cross-section) ──────────
 A_YANG, B_YIN = PHI, 1.0     # axis ratio = freeze-out ratio r → φ (§3.4)
@@ -327,11 +327,11 @@ axBi.text(0, -1.70, "faint contour: condensation threshold $\\theta_{\\rm cond}$
           fontsize=7.0, color=TEXT_SUB, ha="center")
 axBi.annotate("", xy=(A_YANG + 0.22, -1.26), xytext=(-A_YANG - 0.22, -1.26),
               arrowprops=dict(arrowstyle="<|-|>", color=TEXT_MAIN, lw=1.2))
-axBi.text(0, -1.42, "Yang axis — extended ($\\times\\varphi$)", ha="center",
+axBi.text(0, -1.42, "Yang axis—extended ($\\times\\varphi$)", ha="center",
           fontsize=8.0, color=TEXT_MAIN)
 axBi.annotate("", xy=(0, B_YIN + 0.16), xytext=(0, -B_YIN - 0.16),
               arrowprops=dict(arrowstyle="<|-|>", color=TEXT_SUB, lw=1.1))
-axBi.text(0.09, B_YIN + 0.24, "Yin axis — contracted ($\\times 1$)", fontsize=8.0,
+axBi.text(0.09, B_YIN + 0.24, "Yin axis—contracted ($\\times 1$)", fontsize=8.0,
           color=TEXT_SUB)
 axBi.plot([-1.72], [1.24], marker="o", ms=7, mfc="none", mec=TEXT_SUB, mew=1.3)
 axBi.plot([-1.72], [1.24], marker="x", ms=4.5, mec=TEXT_SUB, mew=1.2)
@@ -343,10 +343,10 @@ axBi.text(0, 1.50,
 panel_title(axBi, "B (zoom) · INSIDE THE BUBBLE")
 
 # ═════════════════════════════════════════════════════════════════════════════
-# PANEL C — THE MICROCASCADE (n < 0)
+# PANEL C—THE MICROCASCADE (n < 0)
 # ═════════════════════════════════════════════════════════════════════════════
 
-# ── C1: the golden spiral down — r(θ) = ℓ_Pl · φ^(−2θ/π) ─────────────────────
+# ── C1: the golden spiral down—r(θ) = ℓ_Pl · φ^(−2θ/π) ─────────────────────
 axC1.set_xlim(-1.12, 1.12)
 axC1.set_ylim(-1.12, 1.12)
 axC1.set_aspect("equal")
@@ -379,20 +379,20 @@ for n in range(-1, -15, -1):
 
 # Entry (Planck) and the unreachable center
 axC1.plot([1], [0], marker="o", ms=7, mfc=BG, mec=YANG_PEAK, mew=1.8, zorder=5)
-axC1.annotate("n = 0 · Planck membrane — entry\n(σ-softened crossover, not a wall)",
+axC1.annotate("n = 0 · Planck membrane—entry\n(σ-softened crossover, not a wall)",
               xy=(1, 0), xytext=(0.42, 0.68), fontsize=8.0, color=YANG_PEAK,
               arrowprops=dict(arrowstyle="->", color=YANG_PEAK, lw=0.9))
 axC1.plot([0], [0], marker="o", ms=5, color=YIN_LIGHT, zorder=5)
-axC1.annotate("$\\ell \\to 0$ — never reached:\ninfinitely many turns inside  ($n \\to -\\infty$)",
+axC1.annotate("$\\ell \\to 0$—never reached:\ninfinitely many turns inside  ($n \\to -\\infty$)",
               xy=(0, 0), xytext=(-1.08, -0.55), fontsize=8.0, color=YIN_LIGHT,
               arrowprops=dict(arrowstyle="->", color=YIN_LIGHT, lw=0.9))
 axC1.text(0, -1.08,
           "$r(\\theta) = \\ell_{\\rm Pl}\\,\\varphi^{-2\\theta/\\pi}$"
-          "  — contracts by $\\varphi$ every quarter-turn",
+          " —contracts by $\\varphi$ every quarter-turn",
           ha="center", fontsize=9.0, color=TEXT_MAIN)
-panel_title(axC1, "C · THE MICROCASCADE ($n<0$) — the golden spiral")
+panel_title(axC1, "C · THE MICROCASCADE ($n<0$)—the golden spiral")
 
-# ── C2: geometric convergence — no floor ──────────────────────────────────────
+# ── C2: geometric convergence—no floor ──────────────────────────────────────
 depth = np.arange(0, 41)
 ratio = PHI ** (-depth.astype(float))
 axC2.semilogy(depth, ratio, color=YANG_PEAK, lw=2.2, zorder=3,
@@ -430,9 +430,9 @@ axC2.text(1.2, 1.25,
 axC2.text(10.2, 1.3e-2, "$8×10^{-3}$", fontsize=7.5, color=TEXT_MAIN)
 axC2.text(20.2, 1.1e-4, "$6.6×10^{-5}$", fontsize=7.5, color=TEXT_MAIN)
 axC2.text(0.5, 4.5e-9,
-          "$E_{\\rm micro} = \\sum_{n}(1-q_n) \\to \\infty$  — the infinite reservoir"
+          "$E_{\\rm micro} = \\sum_{n}(1-q_n) \\to \\infty$ —the infinite reservoir"
           " (formal divergence, §3.3)\nmirror of the megacascade: expansion "
-          "$\\ell\\to\\infty$  ↔  contraction $\\ell\\to 0$ — one symmetry, $\\ell\\to\\varphi\\ell$",
+          "$\\ell\\to\\infty$  ↔  contraction $\\ell\\to 0$—one symmetry, $\\ell\\to\\varphi\\ell$",
           fontsize=7.8, color=TEXT_SUB, va="bottom", linespacing=1.5)
 
 # Combined legend
@@ -440,7 +440,7 @@ h1, l1 = axC2.get_legend_handles_labels()
 h2, l2 = axC2b.get_legend_handles_labels()
 axC2.legend(h1 + h2, l1 + l2, loc="upper right", fontsize=8, frameon=False,
             labelcolor=TEXT_MAIN)
-panel_title(axC2, "C · GEOMETRIC CONVERGENCE — no floor")
+panel_title(axC2, "C · GEOMETRIC CONVERGENCE—no floor")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Footer

@@ -1,5 +1,7 @@
 # v₀/M_Pl: The Hierarchy Problem in φ-Clothing
 
+## Status: Hypothesized—July 2026
+
 ## The Physical Interactions at Play
 
 ---
@@ -8,10 +10,9 @@
 
 The Cassi framework claims $v_0/M_{\rm Pl} \approx \varphi^{-80}$ to within
 $5.3\%$. **Why?** The "$\varphi^{-80}$" is an empirical match, not a derivation.
-The framework does not currently compute the $5.3\%$ correction.
+The framework does not compute the $5.3\%$ correction.
 
-This document asks: what physics is at play, and what would we need to compute
-the correction from first principles?
+What physics is at play, and what is needed to compute the correction from first principles?
 
 ---
 
@@ -36,8 +37,8 @@ $$\frac{\partial V}{\partial u} = \frac{\mu^2}{2} + \frac{g}{2}(u+v) = 0
 term contributes to fluctuations around equilibrium, not to the VEV itself.
 
 This means: $v_0$ is set by $\mu^2$ and $g$, both of which are SM parameters
-not determined by $\varphi$. The Cassi framework doesn't tell us why
-$v_0 = 246.22$ GeV — it just notes that $v_0/M_{\rm Pl}$ is *close to*
+not determined by $\varphi$. The Cassi framework does not explain why
+$v_0 = 246.22$ GeV—it just notes that $v_0/M_{\rm Pl}$ is *close to*
 $\varphi^{-80}$.
 
 ---
@@ -61,22 +62,22 @@ $y_t \approx 1$, $g \approx 0.65$, so the bracket is $\approx -6 + 1.9 = -4.1$.
 The sign is **negative**: $v_0^2$ *decreases* with energy.
 
 But this means $v_0$ at low energy is *larger* than $v_0$ at high energy by
-the running. The SM Higgs RGE *increases* $v_0$ as we go from the GUT scale
-to the EW scale. This is the *opposite* sign from the $5.3\%$ correction
-we observe (which says $v_0$ is larger than the $\varphi^{-80}$ baseline).
+the running. The SM Higgs RGE *increases* $v_0$ from the GUT scale
+to the EW scale. This is the *opposite* sign from the observed $5.3\%$
+correction (which says $v_0$ is larger than the $\varphi^{-80}$ baseline).
 
-Wait, let me re-examine. The "$\varphi^{-80}$ baseline" is $v_0/M_{\rm Pl} = 1.91 \times 10^{-17}$.
+The "$\varphi^{-80}$ baseline" is $v_0/M_{\rm Pl} = 1.91 \times 10^{-17}$.
 The observed is $v_0/M_{\rm Pl} = 2.02 \times 10^{-17}$. So $v_0$ is *larger* than
 the baseline by $5.6\%$.
 
 The SM RGE would give $v_0(M_{\rm GUT}) > v_0(m_t)$ (since $v_0$ increases as
 energy decreases). So if $\varphi^{-80}$ is supposed to be the *GUT-scale*
-value, then the SM RGE would shift it *down* as we go to low energy, making
+value, then the SM RGE would shift it *down* going to low energy, making
 the low-energy value *smaller* than $\varphi^{-80}$. This is the wrong sign
 for the $5.6\%$ correction.
 
 Either the $\varphi^{-80}$ baseline is the *low-energy* value, or the RGE shift
-has the wrong sign for the Cassi framework. This needs careful investigation.
+has the wrong sign for the Cassi framework.
 
 ### 3.2 Threshold corrections at the matching scale
 
@@ -88,12 +89,12 @@ $$v_0(m_t) = v_0(M_{\rm match}) \cdot \left(1 + \sum_i c_i \frac{M_i^2}{M_{\rm m
 
 For $M_i \sim M_{\rm match}$ (typical GUT-scale particles), the corrections
 are $\mathcal{O}(1)$ and shift $v_0$ by a few percent. **This is the
-plausible source of the $5.3\%$ correction** — but it has not been computed
+plausible source of the $5.3\%$ correction**—but it has not been computed
 in the Cassi framework.
 
 ### 3.3 The $\varphi^{-80}$ value is approximate
 
-The actual exponent giving $v_0/M_{\rm Pl}$ exactly is $79.89$ — not an
+The actual exponent giving $v_0/M_{\rm Pl}$ exactly is $79.89$—not an
 integer. The "$\varphi^{-80}$" is the *nearest integer power*. If the
 $\varphi$-attractor is exact (no $\lambda$ correction), the framework would
 predict $v_0/M_{\rm Pl} = \varphi^{-80}$ to within $0.13\%$. The $5.3\%$
@@ -102,7 +103,7 @@ is the *deviation* from this nearest power, set by the underlying dynamics.
 The "underlying dynamics" might include:
 - A $\varphi$-power from a different counting (e.g., $\varphi^{-79} \cdot 1.07$)
 - A product of $\varphi$-powers and SM coupling ratios
-- Some other effect we haven't identified
+- Some other effect not yet identified
 
 ### 3.4 The Bohm quantum potential contributes
 
@@ -117,9 +118,9 @@ Negligible. So the Bohm potential doesn't give a $5\%$ correction.
 
 ---
 
-## 4. What Would We Need to Compute the Correction
+## 4. Computing the Correction: What Is Required
 
-To compute the $5.3\%$ correction from first principles, we would need:
+Computing the $5.3\%$ correction from first principles requires:
 
 1. **A derivation of the $\varphi$-power.** Why is the *nearest integer*
    power $\varphi^{-80}$, and not $\varphi^{-79}$ or $\varphi^{-81}$?
@@ -135,14 +136,14 @@ To compute the $5.3\%$ correction from first principles, we would need:
 3. **Threshold corrections at the matching scale.** The matching between
    the Cassi $\varphi$-attractor and the SM at $M_{\rm match}$ generates
    finite shifts. These depend on the heavy particle content at the
-   matching scale, which is not currently specified.
+   matching scale, which is not specified.
 
 4. **The exact $\varphi$-attractor value, not the integer approximation.**
    The framework's $\varphi$-attractor gives a specific value $v_0/M_{\rm Pl}$
    in the absence of corrections; this should be computed, not approximated
    by the nearest $\varphi$-power.
 
-None of these is currently computed in the Cassi framework.
+None of these is computed in the Cassi framework.
 
 ---
 
@@ -153,8 +154,8 @@ in disguise.** The Cassi framework does not derive the electroweak scale from
 $\varphi$. It observes an empirical match ($\varphi^{-80}$) and acknowledges a
 $5.3\%$ correction that it cannot compute.
 
-This is **not a framework failure** — it's an honest assessment of the
-framework's current capabilities. The de-resonance principle (§3 in
+This is **not a framework failure**—it's an honest assessment of the
+framework's capabilities. The de-resonance principle (§3 in
 `de-resonance-principle.md`) explicitly labels the $v_0/M_{\rm Pl}$ correction
 as **Hypothesized**: a plausible mechanism ($g/\lambda$ mixing) is identified,
 but the calculation has not been done.
@@ -173,12 +174,12 @@ the **honest** claim.
 
 ## 6. What Could Change This
 
-The $5.3\%$ correction would become *computed* if we:
+The $5.3\%$ correction would become *computed* by:
 
-1. Derived the exact $\varphi$-attractor value of $v_0/M_{\rm Pl}$ (currently
-   approximated by the nearest integer $\varphi$-power).
-2. Computed the RGE for $v_0$ in the Cassi SU(2) framework.
-3. Calculated the threshold corrections at the matching scale.
+1. Deriving the exact $\varphi$-attractor value of $v_0/M_{\rm Pl}$ (approximated
+   by the nearest integer $\varphi$-power).
+2. Computing the RGE for $v_0$ in the Cassi SU(2) framework.
+3. Calculating the threshold corrections at the matching scale.
 
 Any one of these would convert the $v_0/M_{\rm Pl}$ prediction from
 **Hypothesized** to **Computed** in the evidence-level framework. Until then,

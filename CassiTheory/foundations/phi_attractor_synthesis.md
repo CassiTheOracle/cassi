@@ -1,8 +1,10 @@
 # phi-Attractor Steady States and the Analytical Three-Body Problem in Cassi Gravity
 
+## Status: Derived—July 2026
+
 ## Abstract
 
-We investigate whether the Cassi N-body solver --- a gravitational $N$-body integrator modified by Gaussian force softening, $\varphi$-damped velocity updates, and a Qi-coherence-enhanced gravitational constant --- admits partial analytical solutions to the three-body problem. Starting from the original question of whether steady-state attractors exist for the damped system, we develop nine interconnected analytical paths. We find: (1) the asymptotic half-mass radius follows $R_\infty(d) = R_{\min} + \Delta R \cdot \exp(-\gamma_0 \cdot d/(1-d) \cdot T)$ with $R^2 = 0.945$; (2) Qi-hydrostatic equilibrium is **disproven** for damped systems; (3) cold-collapse virial ratio decays as $Q(t) \sim \exp(-t/\tau_Q)$ with $\tau_Q = dt/(2|\ln d|)$, confirming the system is cold after $\sim 1$ timestep; (4) a two-phase model (hot $\sim 1$ step, cold analytical ODE) and an analytical precession formula $\Delta\phi = -\sqrt{2\pi}(\sigma/a)^3(1+e^2/4)/(1-e^2)^3$ are derived; (5--6) Lagrange points merge at $\sigma/a \approx 0.35$ and L4/L5 become universally stable for $\sigma/a \geq 0.44$; (7) softened gravity alone **cannot** explain dark matter (14 orders of magnitude gap); (8) $\varphi$-enhanced gravity reduces the dark matter requirement by $\sim 78\%$ but cannot eliminate it; (9) Cassi saturates at boost factor $\varphi \approx 1.62$, while MOND grows without bound --- a decisive falsifiable distinction.
+An investigation of whether the Cassi N-body solver --- a gravitational $N$-body integrator modified by Gaussian force softening, $\varphi$-damped velocity updates, and a Qi-coherence-enhanced gravitational constant --- admits partial analytical solutions to the three-body problem. Starting from the question of whether steady-state attractors exist for the damped system, nine interconnected analytical paths are developed. The analysis finds: (1) the asymptotic half-mass radius follows $R_\infty(d) = R_{\min} + \Delta R \cdot \exp(-\gamma_0 \cdot d/(1-d) \cdot T)$ with $R^2 = 0.945$; (2) Qi-hydrostatic equilibrium is **disproven** for damped systems; (3) cold-collapse virial ratio decays as $Q(t) \sim \exp(-t/\tau_Q)$ with $\tau_Q = dt/(2|\ln d|)…
 
 ## 1. Introduction
 
@@ -13,7 +15,7 @@ Cassi modifies standard Newtonian gravity in three ways:
 2. **$\varphi$-attractor damping**: velocities are updated as $\mathbf{v} \leftarrow d \cdot \mathbf{v} + \mathbf{a} \cdot dt$, where $d = \varphi^{-1} \approx 0.618$ is the canonical damping rate.
 3. **Qi-coherence-enhanced gravity**: $G_{\text{eff}}/G = (\pi/\rho)\,(1 + \xi \cdot q)$, where $\xi = \varphi^6 \approx 17.944$ and $q \in [0,1]$ measures local coherence.
 
-These modifications break the scale-free structure of Newtonian gravity, potentially introducing new integrals of motion or modifying the chaotic phase space. We systematically explore the analytical consequences.
+These modifications break the scale-free structure of Newtonian gravity, potentially introducing new integrals of motion or modifying the chaotic phase space. The analytical consequences are explored systematically below.
 
 ## 2. Theoretical Framework
 
@@ -66,7 +68,7 @@ Maximum enhancement at the $\varphi$-fixed point ($\pi/\rho = \varphi^{-3} \appr
 
 $$\frac{G_{\text{eff}}}{G} \approx 0.236 \times (1 + 17.944 \times 0.7) \approx 3.2\times$$
 
-**Note on earlier derivation:** Earlier sections of this work (Paths 8--9) used $G_{\text{eff}}/G_N = 1 + (\varphi-1)\cdot q$ with max boost $\varphi \approx 1.618$, which underestimated the enhancement by approximately a factor of 2. The correct $\xi = \varphi^6$ coupling follows from the full two-fluid derivation. The paths below should be re-evaluated with the corrected formula.
+**Note on the $G_{\text{eff}}$ formula:** The numerical results in Paths 8--9 use the approximate coupling $G_{\text{eff}}/G_N = 1 + (\varphi-1)\cdot q$ with max boost $\varphi \approx 1.618$, which underestimates the enhancement by approximately a factor of 2 compared to the full $\xi = \varphi^6$ coupling from the two-fluid derivation (Section 2.4). The paths below require re-evaluation with $\xi = \varphi^6$.
 
 This is the mechanism tested in Paths 8--9 for galactic dynamics.
 
@@ -76,7 +78,7 @@ This is the mechanism tested in Paths 8--9 for galactic dynamics.
 
 ### Setup
 
-We run $\varphi$-damped $N$-body simulations ($N = 200$ Plummer sphere, $\sigma = 0.4$, $dt = 0.002$, 2000 steps) for a sweep of damping values $d \in [0.1, 0.9]$ including $d = \varphi^{-1}$, measuring the asymptotic half-mass radius $R_\infty$.
+$\varphi$-damped $N$-body simulations ($N = 200$ Plummer sphere, $\sigma = 0.4$, $dt = 0.002$, 2000 steps) sweep damping values $d \in [0.1, 0.9]$ including $d = \varphi^{-1}$, measuring the asymptotic half-mass radius $R_\infty$.
 
 ### Model
 
@@ -101,7 +103,7 @@ The exponential form arises naturally: higher damping $\to$ faster energy extrac
 
 ### The Model
 
-We hypothesized that the $\varphi$-damped system relaxes to a Qi-hydrostatic equilibrium satisfying:
+The hypothesis was that the $\varphi$-damped system relaxes to a Qi-hydrostatic equilibrium satisfying:
 
 $$\frac{dP}{dr} = -\rho \cdot \frac{d\Phi}{dr}, \qquad \nabla^2\Phi = 4\pi G\,\rho_{\text{soft}}$$
 
@@ -159,7 +161,7 @@ The collapse proceeds in two distinct phases:
 
 2. **Cold phase** ($t \gg \tau_Q$): $Q \approx 0$, the system is overdense, and contraction follows $R_{\text{half}} \propto t^\alpha$ governed by the cold-phase damping rate $\gamma_{\text{cold}}$.
 
-The two-phase model for $R_\infty(d)$ involves 4 parameters: $R_{\min}$, $R_0$, $\gamma_0$ (hot-phase coefficient), and $\gamma_{\text{cold}}$ (cold-phase coefficient). For $T \gg \tau_Q$ (which holds for all $d$ in our data), the model simplifies and the hot phase contributes negligibly to the total contraction.
+The two-phase model for $R_\infty(d)$ involves 4 parameters: $R_{\min}$, $R_0$, $\gamma_0$ (hot-phase coefficient), and $\gamma_{\text{cold}}$ (cold-phase coefficient). For $T \gg \tau_Q$ (which holds for all $d$ in the data), the model simplifies and the hot phase contributes negligibly to the total contraction.
 
 **Key insight:** The cold-phase physics produces a $d/(1-d)$ scaling identical in form to the hot-phase Path 1 model. This explains why the simple exponential model of Path 1 fits well ($R^2 = 0.945$) despite being derived from the wrong physical picture --- both phases contribute the same functional dependence on $d/(1-d)$.
 
@@ -167,7 +169,7 @@ The two-phase model for $R_\infty(d)$ involves 4 parameters: $R_{\min}$, $R_0$, 
 
 **Script:** `experiments/path4_softened_two_body.py`
 
-Using the Gauss planetary equation with the perturbing acceleration from the weak-softening expansion $R(r) \approx (2GM/(3\sqrt{2\pi}))\sigma^3/r^5$, we derive:
+Using the Gauss planetary equation with the perturbing acceleration from the weak-softening expansion $R(r) \approx (2GM/(3\sqrt{2\pi}))\sigma^3/r^5$, the derivation gives:
 
 $$\boxed{\Delta\phi_{\text{Cassi}} = -\sqrt{2\pi}\left(\frac{\sigma}{a}\right)^3 \frac{1 + e^2/4}{(1 - e^2)^3} \quad \text{[rad/orbit]}}$$
 
@@ -292,7 +294,7 @@ $$\frac{G_{\text{eff}}}{G} = \frac{\pi}{\rho}\bigl(1 + \xi \cdot q(\rho)\bigr), 
 
 In the low-density outskirts of a galaxy ($\rho \ll \rho_{\text{ref}}$), $q \to 1$ and the enhancement approaches $G_{\text{eff}}/G \approx (\pi/\rho)\,(1 + \xi)$.
 
-> **Note on formula:** The numerical results below (velocity boost, DM reduction) were computed with the earlier approximate formula $G_{\text{eff}}/G_N = 1 + (\varphi-1)\cdot q$, which gave a maximum boost factor $\varphi \approx 1.618$ and $v_{\text{max}}/v_{\text{Newt}} \leq \sqrt{\varphi} \approx 1.27$. The correct $\xi = \varphi^6$ derivation (Section 2.4) yields a significantly larger enhancement. These paths should be re-run with the corrected formula.
+> **Note on the $G_{\text{eff}}$ formula:** The numerical results below (velocity boost, DM reduction) use the approximate $G_{\text{eff}}/G_N = 1 + (\varphi-1)\cdot q$, which gives a maximum boost factor $\varphi \approx 1.618$ and $v_{\text{max}}/v_{\text{Newt}} \leq \sqrt{\varphi} \approx 1.27$. The full $\xi = \varphi^6$ coupling (Section 2.4) yields a significantly larger enhancement. The paths below require re-evaluation with $\xi = \varphi^6$.
 
 ### Results
 
@@ -313,9 +315,9 @@ The $\sqrt{\varphi} \approx 1.27\times$ maximum boost is fundamentally bounded b
 
 ### Setup
 
-We compare the Cassi $\varphi$-enhanced model to MOND using the radial acceleration relation (RAR, McGaugh et al. 2016). MOND uses the simple interpolating function $\mu(x) = x/\sqrt{1+x^2}$ with $a_0 = 1.2 \times 10^{-10}$ m/s$^2$.
+The comparison between the Cassi $\varphi$-enhanced model and MOND uses the radial acceleration relation (RAR, McGaugh et al. 2016). MOND uses the simple interpolating function $\mu(x) = x/\sqrt{1+x^2}$ with $a_0 = 1.2 \times 10^{-10}$ m/s$^2$.
 
-> **Note:** The Cassi boost values in this section were computed with the earlier $G_{\text{eff}}/G_N = 1 + (\varphi-1)\cdot q$ formula (see annotation in Path 8). With the corrected $\xi = \varphi^6$ coupling, the Cassi boost is significantly larger, and the comparison with MOND should be re-evaluated.
+> **Note on the $G_{\text{eff}}$ formula:** The Cassi boost values in this section use the approximate $G_{\text{eff}}/G_N = 1 + (\varphi-1)\cdot q$ (see annotation in Path 8). With the full $\xi = \varphi^6$ coupling, the Cassi boost is significantly larger, and the comparison with MOND requires re-evaluation.
 
 ### The Decisive Distinction
 
@@ -374,7 +376,7 @@ graph TD
 
 The following testable predictions emerge from this work:
 
-1. **Rotation curve ceiling:** In the low-acceleration tail (dwarf galaxies), Cassi predicts $v_{\text{obs}}/v_{\text{Newt}} \leq \sqrt{\varphi} \approx 1.27$ (based on the earlier $G_{\text{eff}}$ formula; with $\xi = \varphi^6$ the ceiling is higher and should be recalculated). If observations show $v_{\text{obs}}/v_{\text{Newt}} > 1.27$ with $\sqrt{a_0/a}$ scaling, the earlier Cassi bound is falsified --- but the corrected $\xi = \varphi^6$ formula must first be evaluated to establish the new prediction.
+1. **Rotation curve ceiling:** In the low-acceleration tail (dwarf galaxies), Cassi predicts $v_{\text{obs}}/v_{\text{Newt}} \leq \sqrt{\varphi} \approx 1.27$ (using the approximate $G_{\text{eff}}/G_N = 1 + (\varphi-1)\cdot q$ formula; with $\xi = \varphi^6$ the ceiling is higher and requires recalculation). If observations show $v_{\text{obs}}/v_{\text{Newt}} > 1.27$ with $\sqrt{a_0/a}$ scaling, the Cassi bound from the $1 + (\varphi-1)\cdot q$ formula is falsified --- but the $\xi = \varphi^6$ formula must first be evaluated to establish the new prediction.
 
 2. **Precession direction:** Cassi softened gravity predicts **retrograde** pericenter precession ($\Delta\phi < 0$), opposite to the **prograde** GR precession. In systems where softening is significant ($\sigma/a$ not negligibly small), the precession direction is a direct test. For binary pulsars, Cassi precession is negligible ($\sigma < 370$ km), but for wider systems with larger $\sigma/a$, the retrograde signature could be detectable.
 
@@ -384,7 +386,7 @@ The following testable predictions emerge from this work:
 
 4. **No universal acceleration scale:** Unlike MOND's $a_0$, Cassi has a **density** scale $\rho_{\text{ref}}$, not an acceleration scale. Different galaxies should show the enhancement turning on at different $a_{\text{baryon}}$, depending on their density profiles. If a truly universal $a_0$ is confirmed across all galaxy types, Cassi is disfavored relative to MOND.
 
-5. **Saturation vs growth:** The most decisive test: measure the boost factor $a_{\text{obs}}/a_{\text{baryon}}$ at progressively lower accelerations. MOND predicts continued growth ($\propto 1/\sqrt{a}$); Cassi predicts saturation --- at what value depends on the correct $G_{\text{eff}}$ formula (the old $\varphi \approx 1.618$ saturation is superseded by $\xi = \varphi^6$; see Section 2.4). Ultra-faint dwarf galaxies and galaxy cluster outskirts provide the testing ground.
+5. **Saturation vs growth:** The most decisive test: measure the boost factor $a_{\text{obs}}/a_{\text{baryon}}$ at progressively lower accelerations. MOND predicts continued growth ($\propto 1/\sqrt{a}$); Cassi predicts saturation --- at what value depends on the correct $G_{\text{eff}}$ formula (the $\varphi \approx 1.618$ saturation from $G_{\text{eff}}/G_N = 1 + (\varphi-1)\cdot q$ differs from $\xi = \varphi^6$; see Section 2.4). Ultra-faint dwarf galaxies and galaxy cluster outskirts provide the testing ground.
 
 ## 14. Open Questions
 
@@ -413,10 +415,10 @@ Combining softened gravity (small $\sigma$ for solar-system/pulsar consistency) 
 | 4b | Analytical precession $\Delta\phi = -\sqrt{2\pi}(\sigma/a)^3(1+e^2/4)/(1-e^2)^3$ | Confirmed |
 | 5 | L1/L2 merge at $\sigma/a \approx 0.35$; $\sigma < 370$ km from pulsars | Confirmed |
 | 6 | L4/L5 universally stable for $\sigma/a \geq 0.44$ | Confirmed |
- | 8 | $\varphi$-enhanced gravity reduces DM by $\sim 78\%$ (old formula) | Confirmed* |
- | 9 | Cassi saturates at $\varphi \approx 1.62$; MOND grows without bound (old formula) | Confirmed* |
+ | 8 | $\varphi$-enhanced gravity reduces DM by $\sim 78\%$ (approximate $G_{\text{eff}}/G_N = 1 + (\varphi-1)\cdot q$) | Confirmed* |
+ | 9 | Cassi saturates at $\varphi \approx 1.62$; MOND grows without bound (approximate $G_{\text{eff}}/G_N = 1 + (\varphi-1)\cdot q$) | Confirmed* |
 
-\* Confirmed under the earlier $G_{\text{eff}}/G_N = 1 + (\varphi-1)\cdot q$ formula. The results require re-evaluation with the corrected $\xi = \varphi^6$ coupling (see Section 2.4).
+\* Confirmed for the approximate $G_{\text{eff}}/G_N = 1 + (\varphi-1)\cdot q$ formula. The results require re-evaluation with $\xi = \varphi^6$ (see Section 2.4).
 
 ### Disproven Hypotheses
 

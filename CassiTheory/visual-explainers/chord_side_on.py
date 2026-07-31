@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-The Chord, side-on — bubbles threaded on strings
+The Chord, side-on—bubbles threaded on strings
 ================================================
 
 The user's picture, derived: the megacascade in the (string × Yin) slice.
@@ -16,13 +16,13 @@ Why waisted and not ovals
 The membrane envelope of a bubble is a convex triaxial oval (level set of the
 wake-interference product). But the CONDENSATE inside cannot fill the oval:
 the W1 experiment confirmed anti-phase conversion (corr(E_Y,E_I) = −1), which
-puts a NODE on the bubble midplane — the central void of the paired-sheet
+puts a NODE on the bubble midplane—the central void of the paired-sheet
 morphology (why-three-three-dimensions.md §4). Including the node, the
 condensate field of one bubble centered at (z₀, y_s) is
 
     B(z, y) = cos(2π(z−z₀)/P_∥) · [1 − cos(π(y−y_s)/d)]
 
-      · zero ON the string (the midplane node — the string threads the void)
+      · zero ON the string (the midplane node—the string threads the void)
       · twin lobes at y = y_s ± d  (the paired sheets seen edge-on)
       · superlevel sets {B ≥ θ} are waisted lobe-pairs:  {  }
 
@@ -34,7 +34,7 @@ What is derived vs open
 -----------------------
 Derived (structural): the stagger; the node on the string; the twin-lobe
 shape; φ-ratios between wake-generated periods in the doublet plane.
-Open (not yet derived): the absolute scales, P_∥/s, and θ_cond — candidates:
+Open (not yet derived): the absolute scales, P_∥/s, and θ_cond—candidates:
 the wake spacing c(r)·τ(r) of dimensionful-cascade.md §5.1.
 Spacing ratio P_∥/s in this plot is illustrative.
 
@@ -110,7 +110,7 @@ for i, ys in enumerate(ROWS):
     for m in range(m0, m1 + 1):
         z0 = offset + m * P_PAR
         sites.append((z0, ys, i))
-        # each bubble owns its lattice cell — window kills spurious far-period lobes
+        # each bubble owns its lattice cell—window kills spurious far-period lobes
         cell = (np.abs(XX - z0) <= P_PAR / 2) & (np.abs(YY - ys) <= S_ROW / 2)
         B_site = np.where(cell,
                           np.cos(ALPHA * (XX - z0)) * (1 - np.cos(BETA * (YY - ys))),
@@ -147,15 +147,15 @@ ax.contour(XX, YY, np.where(mask, B, np.nan), levels=[THETA],
 ax.add_patch(Ellipse((0, 0), 2 * ENV_Z, 2 * ENV_Y, fill=False,
                      edgecolor=TEXT_SUB, lw=1.3, ls=(0, (5, 4)), alpha=0.9, zorder=5))
 
-ax.annotate("OUR BUBBLE — waisted condensate + membrane\n"
+ax.annotate("OUR BUBBLE—waisted condensate + membrane\n"
             "envelope (dashed): the string threads the void",
             xy=(0.45, -0.70), xytext=(2.75, -2.05), fontsize=8.5, color=YANG_PEAK,
             fontweight="bold",
             bbox=dict(facecolor=BG, edgecolor="none", alpha=0.85, pad=2),
             arrowprops=dict(arrowstyle="->", color=YANG_PEAK, lw=1.0))
-ax.text(1.5 * P_PAR, S_ROW + 1.25, "$w{=}4$", fontsize=8, color=TEXT_SUB,
+ax.text(1.5 * P_PAR, S_ROW + 1.25, "$w{=}5$", fontsize=8, color=TEXT_SUB,
         ha="center", bbox=dict(facecolor=BG, edgecolor="none", alpha=0.7, pad=1.5))
-ax.text(-1.5 * P_PAR, -S_ROW - 1.25, "$w{=}6$", fontsize=8, color=TEXT_SUB,
+ax.text(-1.5 * P_PAR, -S_ROW - 1.25, "$w{=}5$", fontsize=8, color=TEXT_SUB,
         ha="center", bbox=dict(facecolor=BG, edgecolor="none", alpha=0.7, pad=1.5))
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -164,7 +164,7 @@ ax.text(-1.5 * P_PAR, -S_ROW - 1.25, "$w{=}6$", fontsize=8, color=TEXT_SUB,
 # P_∥: along-string period, drawn in the clear stretch of string 0's node channel
 ax.annotate("", xy=(P_PAR - 0.45, 0.0), xytext=(0.45, 0.0),
             arrowprops=dict(arrowstyle="<|-|>", color=TEXT_MAIN, lw=1.1))
-ax.text(P_PAR / 2, -0.22, "$P_\\parallel$ — bubble period along the string",
+ax.text(P_PAR / 2, -0.22, "$P_\\parallel$—bubble period along the string",
         fontsize=7.5, color=TEXT_MAIN, ha="center", va="top",
         bbox=dict(facecolor=BG, edgecolor="none", alpha=0.8, pad=1.5))
 # s: string spacing
@@ -184,7 +184,7 @@ ax.text(P_PAR / 4, S_ROW + 0.30, "stagger $P_\\parallel/2$ (anti-phase)",
 # ─────────────────────────────────────────────────────────────────────────────
 # Titles + generating math (clean margins)
 # ─────────────────────────────────────────────────────────────────────────────
-fig.suptitle("THE CHORD, SIDE-ON — bubbles threaded on strings",
+fig.suptitle("THE CHORD, SIDE-ON—bubbles threaded on strings",
              fontsize=17, fontweight="bold", color=YANG_PEAK, y=0.968)
 fig.text(0.5, 0.920,
          "the (string × Yin) slice of the megacascade  ·  "
@@ -197,7 +197,7 @@ fig.text(0.5, 0.128,
          ha="center", fontsize=10, color=TEXT_MAIN)
 fig.text(0.5, 0.092,
          "lattice: sites $z = mP_\\parallel$ (even strings), $z = (m{+}\\frac{1}{2})P_\\parallel$"
-         " (odd strings) — stagger derived from the anti-phase checkerboard (chord_lattice.py)",
+         " (odd strings)—stagger derived from the anti-phase checkerboard (chord_lattice.py)",
          ha="center", fontsize=9, color=TEXT_SUB)
 fig.text(0.5, 0.050,
          "derived: the stagger, the node on the string, the twin-lobe shape   ·   "

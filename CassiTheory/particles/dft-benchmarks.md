@@ -1,5 +1,7 @@
 # DFT Benchmarks: CassiBridgeV2 Real-Space Performance
 
+## Status: Derived—July 2026
+
 ## Summary
 
 | Z | Element | XC | Grid | L (a₀) | ε | E (E_h) | E_exact | Error | SCF | Wall |
@@ -19,33 +21,33 @@
 | 10 | Ne | PBE* | 64³ | 15 | 0.05 | -135.189 | -128.938 | **4.8%** | 3.1s | 6 |
 | 10 | Ne | PBE† | 64³ | 15 | 0.05 | -67.574 | -128.938 | 47.6% | 4.0s | 6 |
 
-**PBE* = pseudopotential (core-valence splitting) — PBE† = all-electron (unresolved 1s core)**
+**PBE* = pseudopotential (core-valence splitting)—PBE† = all-electron (unresolved 1s core)**
 
 ## Key Findings
 
 ### 1. LDA Works Well for Light Atoms
 
-- **He at N=64**: 0.8% error — excellent, within chemical accuracy
-- **H at N=64**: 7.9% error — acceptable for a single electron (no correlation)
-- **Li at N=64**: 6.5% error — good for 3-electron open-shell system
+- **He at N=64**: 0.8% error—excellent, within chemical accuracy
+- **H at N=64**: 7.9% error—acceptable for a single electron (no correlation)
+- **Li at N=64**: 6.5% error—good for 3-electron open-shell system
 
 ### 2. Grid Resolution Bottleneck for Z ≥ 4
 
 Atoms with Z ≥ 4 have compact 1s cores that are not fully resolved at N=64, L=10:
 - Δx = 10/64 ≈ 0.156 a₀
-- The Ne 1s orbital has <r> ≈ 0.06 a₀ — only ~0.4 grid points across
+- The Ne 1s orbital has <r> ≈ 0.06 a₀—only ~0.4 grid points across
 - This is the primary source of the increasing error for heavier atoms
 
 **Convergence needed:** N=96+ for Z ≥ 4, or N=128 for full periodic table accuracy.
 ### 3. PBE: Convergence Verified with Grid Refinement
 
-- **PBE He at N=64**: 3.2% error — good for medium grid
-- **PBE He at N=96**: 1.4% error — excellent, approaching chemical accuracy
+- **PBE He at N=64**: 3.2% error—good for medium grid
+- **PBE He at N=96**: 1.4% error—excellent, approaching chemical accuracy
 
 The PBE functional implementation is correct. Errors drop systematically with grid refinement (3.2% → 1.4% from N=64 → N=96).
 
-- **PBE Ne (pseudopotential)**: 4.8% at N=64 — pseudopotential removes core resolution issue
-- **PBE Ne (all-electron)**: 47.6% error — 1s core unresolved at N=64
+- **PBE Ne (pseudopotential)**: 4.8% at N=64—pseudopotential removes core resolution issue
+- **PBE Ne (all-electron)**: 47.6% error—1s core unresolved at N=64
 
 The PBE functional implementation is correct. The errors are grid-limited, not functional-limited.
 
@@ -55,7 +57,7 @@ For Z > 2, pseudopotentials remove the 1s² core and dramatically reduce grid re
 - Ne PP: 4.8% vs 47.6% all-electron at N=64
 - The core energy approximation (−93.9075 E_h for Ne 1s²) needs calibration
 
-### 5. Convergence Study (C, Z=6) — Uniform Grid Limit
+### 5. Convergence Study (C, Z=6)—Uniform Grid Limit
 
 Carbon tests the uniform grid's ability to resolve the compact 1s orbital (<r> ≈ 0.15 a₀):
 
@@ -65,11 +67,11 @@ Carbon tests the uniform grid's ability to resolve the compact 1s orbital (<r> �
 | 96 | AE | −25.827 | 31.8% | 6.4s |
 | 64 | PP | −40.588 | 7.2% | 5.5s |
 
-**Key observation:** The all-electron C error increases with N, not decreases — the 1s orbital at <r> ≈ 0.15 a₀ has only 1 grid point across even at N=96 (Δx = 12/96 = 0.125 a₀). The pseudopotential removes this bottleneck and achieves 7.2% at N=64.
+**Key observation:** The all-electron C error increases with N, not decreases—the 1s orbital at <r> ≈ 0.15 a₀ has only 1 grid point across even at N=96 (Δx = 12/96 = 0.125 a₀). The pseudopotential removes this bottleneck and achieves 7.2% at N=64.
 
-**The fundamental limit:** A uniform Cartesian grid on a cubic domain cannot efficiently represent compact core orbitals (Z > 3) within feasible N. Getting C to <1% would require N ≥ 256 (≈ 17 million grid points, ~30 minutes per SCF cycle) — not practical.
+**The fundamental limit:** A uniform Cartesian grid on a cubic domain cannot efficiently represent compact core orbitals (Z > 3) within feasible N. Getting C to <1% would require N ≥ 256 (≈ 17 million grid points, ~30 minutes per SCF cycle)—not practical.
 
-This is why commercial DFT codes use atom-centered basis sets (Gaussians) or logarithmic radial grids. The Cassi framework's uniform grid is designed for PDE evolution (cosmology, turbulence), not quantum chemistry — the DFT capability demonstrates functional equivalence but is not competitive with specialized quantum chemistry codes.
+This is why commercial DFT codes use atom-centered basis sets (Gaussians) or logarithmic radial grids. The Cassi framework's uniform grid is designed for PDE evolution (cosmology, turbulence), not quantum chemistry—the DFT capability demonstrates functional equivalence but is not competitive with specialized quantum chemistry codes.
 
 **Practical recommendation for chemical accuracy:** Use the Cassi DFT for molecules where the gradient terms (PBE gradient correction) and the two-fluid coupling are the physics of interest, not for standalone atomic benchmarks. The He result (0.8%) proves the LDA/PBE implementation is correct within the uniform-grid approximation.
 
@@ -82,7 +84,7 @@ This is why commercial DFT codes use atom-centered basis sets (Gaussians) or log
 3. **PBE functional implementation is correct.** PBE He at 3.2% error is within expectation for a grid-limited calculation. The PBE gradient correction shifts energies in the right direction relative to LDA.
 
 4. **Recommended grid for production:** N=96 + pseudopotentials for Z > 2. This gives <5% total energy error for the full first row (Z=1-10).
-## 6. Dirac-Kohn-Sham: Relativistic DFT — ✅ VALIDATED
+## 6. Dirac-Kohn-Sham: Relativistic DFT—✅ VALIDATED
 
 The DiracBridge (`two-fluid/cassi_dirac_bridge.py`) extends CassiBridgeV2 with
 Dirac 4-spinor wavefunctions and the Foldy-Wouthuysen positive-definite
@@ -91,7 +93,7 @@ kinetic propagator for variational imaginary-time relaxation.
 | Z | Element | Grid | E_binding (E_h) | E_exact NR | Error | Notes |
 |---|---------|------|-----------------|------------|-------|-------|
 | 2 | He | 48³ | −2.996 | −2.903 | 3.2% | Single 4-spinor, LDA, L=10 |
-| 10 | Ne | 64³ | −40.324 | −128.938 | — | 1s² core only; multi-orbital DKS needed for complete Ne |
+| 10 | Ne | 64³ | −40.324 | −128.938 |—| 1s² core only; multi-orbital DKS needed for complete Ne |
 
 **Key results:**
 - He Dirac-DFT converges stably with Foldy-Wouthuysen propagator (no variational

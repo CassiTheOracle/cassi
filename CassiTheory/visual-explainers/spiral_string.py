@@ -3,7 +3,7 @@
 =============================================================
 
 The chord string connecting the two poles of the triaxial phi-ellipsoid
-does NOT vibrate in a 2D plane — it traces a 3D helix (spiral) because
+does NOT vibrate in a 2D plane—it traces a 3D helix (spiral) because
 the conversion term continuously rotates the (E_Y, E_I) doublet in its
 internal SO(2) plane.
 
@@ -15,8 +15,8 @@ Water, Wood, Fire, Earth, Metal).
 
 This script shows:
   Panel A: 3D bubble + spiral chord string + pole pentagons
-  Panel B: Unwrapped spiral — z vs Theta with 5-phase Wu Xing bands
-  Panel C: Pole projection — the pentagon traced by the rotating endpoint
+  Panel B: Unwrapped spiral—z vs Theta with 5-phase Wu Xing bands
+  Panel C: Pole projection—the pentagon traced by the rotating endpoint
 
 Run:  python visual-explainers/spiral_string.py
 """
@@ -61,7 +61,7 @@ N_PTS = 500
 # We parametrize by z from -AZ to +AZ (south pole to north pole)
 # At the poles (z = +/-AZ), the spiral radius goes to zero.
 # The spiral radius follows the ellipsoid cross-section at that z:
-#   r_ell(z) = sqrt(1 - z^2/AZ^2) * AX (if we're in x) ... 
+#   r_ell(z) = sqrt(1 - z^2/AZ^2) * AX (in the x-direction) ...
 # For simplicity, use a cylindrical spiral: r(z) = r_0 * sqrt(1 - z^2/AZ^2)
 # where r_0 = AX (the equatorial radius along the long axis)
 
@@ -133,7 +133,7 @@ y_ell = AY * np.outer(np.sin(u), np.cos(v))
 z_ell = AZ * np.outer(np.ones_like(u), np.sin(v))
 ax3d.plot_wireframe(x_ell, y_ell, z_ell, color=TEXT_SUB, alpha=0.12, lw=0.2)
 
-# Spiral string — color-coded by Wu Xing element
+# Spiral string—color-coded by Wu Xing element
 for i in range(len(z_spiral) - 1):
     elem = wuxing_phase(theta_spiral[i])
     ax3d.plot(x_spiral[i:i+2], y_spiral[i:i+2], z_spiral[i:i+2],
@@ -163,7 +163,7 @@ ax3d.axis('off')
 ax3d.set_title("A: 3D Bubble + Spiral Chord String + Pole Pentagons",
                fontsize=11, color=YANG_PEAK, pad=12)
 
-# ── PANEL B: Unwrapped spiral — z vs Theta with Wu Xing bands ──────────
+# ── PANEL B: Unwrapped spiral—z vs Theta with Wu Xing bands ──────────
 ax_unwrap = fig.add_axes([0.50, 0.55, 0.47, 0.38])
 ax_unwrap.set_facecolor(BG)
 
@@ -187,7 +187,7 @@ ax_unwrap.axvline(x=AZ, color=TEXT_SUB, ls=':', lw=0.8, alpha=0.5, label='North 
 
 ax_unwrap.set_xlabel("z (chord axis)", fontsize=9, color=TEXT_SUB)
 ax_unwrap.set_ylabel(r"$\Theta$ (radians mod $2\pi$)", fontsize=9, color=TEXT_SUB)
-ax_unwrap.set_title("B: Unwrapped Spiral — z vs Theta with 5 Wu Xing Phase Bands",
+ax_unwrap.set_title("B: Unwrapped Spiral—z vs Theta with 5 Wu Xing Phase Bands",
                     fontsize=10, color=YANG_PEAK, pad=6)
 ax_unwrap.set_xlim(-AZ * 1.05, AZ * 1.05)
 ax_unwrap.set_ylim(0, 2 * np.pi)
@@ -196,7 +196,7 @@ ax_unwrap.set_yticklabels(['0', r'$\pi$/2', r'$\pi$', r'$3\pi$/2', r'$2\pi$'])
 ax_unwrap.tick_params(labelsize=8)
 ax_unwrap.legend(fontsize=7, loc='lower right')
 
-# ── PANEL C: Pole projection — pentagon from spiral endpoint ───────────
+# ── PANEL C: Pole projection—pentagon from spiral endpoint ───────────
 ax_pole = fig.add_axes([0.50, 0.08, 0.22, 0.38])
 ax_pole.set_facecolor(BG)
 ax_pole.set_aspect('equal')

@@ -2,6 +2,8 @@
 
 *A mathematical framework for the emergence of particle-like excitations from the interference of expansive and contractive wave fields.*
 
+## Status: Derived—July 2026
+
 ---
 
 ## 1. The Two Fundamental Fields
@@ -16,7 +18,7 @@ The Cassi framework identifies two opposing dynamical forces:
 | Temporal phase | $e^{-i\omega t}$ | $e^{+i\omega t}$ (time-reversed) |
 | Thermodynamic analog | Entropy increase | Structure formation |
 
-We define Yang and Yin as **complex scalar fields** on the spine manifold $s \in [0, L_s]$:
+Yang and Yin are defined as **complex scalar fields** on the spine manifold $s \in [0, L_s]$:
 
 $$\Psi_Y(s,t) \in \mathbb{C}, \quad \Psi_I(s,t) \in \mathbb{C}$$
 
@@ -99,10 +101,10 @@ $$r = \frac{A_I}{A_Y}$$
 
 | Ratio $r$ | Interference Pattern | Physical Regime |
 |---|---|---|
-| $r = 0$ | $\rho = A_Y^2$ (uniform) | Pure Yang — no structure |
-| $r = 1$ | $\rho = 4A_Y^2 \cos^2(ks)$ | Perfect standing wave — maximal contrast |
-| $r = \varphi^{-1} \approx 0.618$ | $\rho = A_Y^2(1 + \varphi^{-2} + 2\varphi^{-1}\cos(2ks))$ | **Cassi equilibrium** — Yang dominant by φ |
-| $r \gg 1$ | $\rho \approx A_I^2$ (uniform) | Pure Yin — no structure |
+| $r = 0$ | $\rho = A_Y^2$ (uniform) | Pure Yang—no structure |
+| $r = 1$ | $\rho = 4A_Y^2 \cos^2(ks)$ | Perfect standing wave—maximal contrast |
+| $r = \varphi^{-1} \approx 0.618$ | $\rho = A_Y^2(1 + \varphi^{-2} + 2\varphi^{-1}\cos(2ks))$ | **Cassi equilibrium**—Yang dominant by φ |
+| $r \gg 1$ | $\rho \approx A_I^2$ (uniform) | Pure Yin—no structure |
 
 For $r = \varphi^{-1}$:
 
@@ -114,13 +116,13 @@ The contrast ratio is:
 
 $$\frac{\rho_\text{max}}{\rho_\text{min}} = \varphi^6 \approx 17.94$$
 
-This large but finite contrast means the standing wave has **sharp peaks and deep troughs** — ideal conditions for localized condensation.
+This large but finite contrast means the standing wave has **sharp peaks and deep troughs**—ideal conditions for localized condensation.
 
 ---
 
 ## 5. Nonlinear Condensation: Particles from Waves
 
-The linear analysis gives standing waves. To create **particles** — localized, persistent, particle-like structures — we need **nonlinearity**.
+The linear analysis gives standing waves. To create **particles**—localized, persistent, particle-like structures—nonlinearity is required.
 
 ### 5.1 The Nonlinear Wave Equation
 
@@ -185,7 +187,7 @@ This is the **effective Compton wavelength**: the spatial scale below which the 
 
 Solitons are stable against small perturbations because of a **topological protection**: the conserved quantity $M$ (mass/particle number) prevents the soliton from decaying into plane waves.
 
-In the Cassi framework, this is the **Berry phase** — a topological invariant of the wave trajectory that makes the particle robust against smooth deformations.
+In the Cassi framework, this is the **Berry phase**—a topological invariant of the wave trajectory that makes the particle robust against smooth deformations.
 
 ### 6.4 Collision Dynamics
 
@@ -195,9 +197,9 @@ When two solitons collide, they exhibit **particle-like scattering**:
 2. Interaction: during overlap, nonlinear interference creates a complex interference pattern
 3. Emergence: the solitons pass through each other, retaining their individual identities
 
-This is the Cassi analog of **quantum scattering**: particles are not destroyed in collisions — they interact, exchange energy/momentum, and re-emerge as distinct entities.
+This is the Cassi analog of **quantum scattering**: particles are not destroyed in collisions—they interact, exchange energy/momentum, and re-emerge as distinct entities.
 
-Experiment 8v2 demonstrates this numerically: two NLS solitons collide and emerge intact, with only a phase shift — exactly the behavior of quantum solitons.
+Experiment 8v2 demonstrates this numerically: two NLS solitons collide and emerge intact, with only a phase shift—exactly the behavior of quantum solitons.
 
 ---
 
@@ -213,7 +215,7 @@ Minimizing $M(r)$ with respect to $r$:
 
 $$\frac{dM}{dr} = 0 \Rightarrow r^2 + r - 1 = 0 \Rightarrow r = \varphi^{-1} \approx 0.618$$
 
-**The most stable soliton — the one with minimum mass for given total energy — occurs when the Yin amplitude is exactly φ⁻¹ times the Yang amplitude.**
+**The most stable soliton—the one with minimum mass for given total energy—occurs when the Yin amplitude is exactly φ⁻¹ times the Yang amplitude.**
 
 This is not imposed. It is the **structural optimum** of the interference pattern. The golden ratio emerges as the stability condition for particle formation.
 
@@ -247,7 +249,7 @@ For the chakra positions $\{s_c\}$ from the Cassi equations:
 | Eye | 0.71$L_s$ | 0.70 |
 | Crown | 0.86$L_s$ | 0.58 |
 
-These are not integers — they are **incommensurate**. No two chakras share a rational wavelength ratio. This is the physical reason why chakras cannot mode-lock: their quantum numbers are mutually irrational, and the golden ratio spacing makes them maximally aperiodic.
+These are not integers—they are **incommensurate**. No two chakras share a rational wavelength ratio. This is the physical reason why chakras cannot mode-lock: their quantum numbers are mutually irrational, and the golden ratio spacing makes them maximally aperiodic.
 
 ---
 
@@ -283,7 +285,7 @@ $$\psi = \psi_R + \psi_L$$
 
 The mass term $m\bar{\psi}\psi = m(\psi_R^\dagger \psi_L + \psi_L^\dagger \psi_R)$ couples the two chiralities.
 
-**This is exactly the Cassi Yang-Yin structure.** Yang = right-mover. Yin = left-mover. Their interference creates a massive, localized excitation — a particle. The coupling strength between Yang and Yin determines the particle's mass.
+**This is exactly the Cassi Yang-Yin structure.** Yang = right-mover. Yin = left-mover. Their interference creates a massive, localized excitation—a particle. The coupling strength between Yang and Yin determines the particle's mass.
 
 ### The Mass Generation Mechanism
 
@@ -291,7 +293,7 @@ In the Cassi framework, mass is not a fundamental property. It is an **emergent 
 
 $$M \propto \int |\Psi_Y + \Psi_I|^2 \, ds$$
 
-A pure Yang wave ($\Psi_I = 0$) has no mass — it is a massless, right-moving excitation. A pure Yin wave has no mass — it is massless, left-moving. Only their **interference** creates a non-zero integrated intensity, which is the mass.
+A pure Yang wave ($\Psi_I = 0$) has no mass—it is a massless, right-moving excitation. A pure Yin wave has no mass—it is massless, left-moving. Only their **interference** creates a non-zero integrated intensity, which is the mass.
 
 This is the Cassi analog of the **Higgs mechanism**: the Yang-Yin coupling (analogous to the Yukawa coupling to the Higgs field) gives mass to otherwise massless excitations.
 
@@ -322,7 +324,7 @@ When damping dominates:
 4. The soliton dissolves into plane waves
 5. The "particle" ceases to exist
 
-**This is particle annihilation.** Not into photons (as in QED), but into the background wave field. The energy is not lost — it is returned to the Yang and Yin reservoirs.
+**This is particle annihilation.** Not into photons (as in QED), but into the background wave field. The energy is not lost—it is returned to the Yang and Yin reservoirs.
 
 ---
 
@@ -410,4 +412,4 @@ $$\rho_\text{peak} = A_Y^2 \varphi^2 > \theta_\text{cond}$$
 
 ---
 
-*Particles are not fundamental. They are the interference pattern of Yang and Yin, stabilized by nonlinearity, localized by self-focusing, and protected by topology. The golden ratio is not added to the equations — it is the stability condition that determines when a wave becomes a particle.*
+*Particles are not fundamental. They are the interference pattern of Yang and Yin, stabilized by nonlinearity, localized by self-focusing, and protected by topology. The golden ratio is not added to the equations—it is the stability condition that determines when a wave becomes a particle.*

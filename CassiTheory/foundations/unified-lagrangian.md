@@ -1,10 +1,12 @@
 # The Cassi Unified Lagrangian
 
+## Status: Derived—July 2026
+
 $$
 \boxed{\mathcal{L}_{\text{Cassi}} = \mathcal{L}_{\text{TF}} + \mathcal{L}_{\text{D}} + \mathcal{L}_{\text{GR}} + \mathcal{L}_{\text{SM}} + \mathcal{L}_{\text{mix}}}
 $$
 
-*All dimensionless couplings derived from $\varphi = (1+\sqrt{5})/2$. One free parameter ($\lambda$) and three external dimensionful constants ($c$, $\hbar$, $G$) — see `foundations/dimensionful-constants-status.md`.*
+*All dimensionless couplings derived from $\varphi = (1+\sqrt{5})/2$. One free parameter ($\lambda$) and three external dimensionful constants ($c$, $\hbar$, $G$)—see `foundations/dimensionful-constants-status.md`.*
 
 ---
 
@@ -17,13 +19,13 @@ All dimensionless parameters are $\varphi$-powers:
 | $\varphi = (1+\sqrt{5})/2$ | $1.618033989$ | Golden ratio (mathematical constant) |
 | $\varphi^{-1}$ | $0.618033989$ | $= \varphi - 1$ |
 | $\varphi^{-2}$ | $0.381966011$ | $= 1 - \varphi^{-1}$ |
-| $\varphi^{-3}$ | $0.236067978$ | $= (\varphi-1)/(\varphi+1)$ — VEV asymmetry |
-| $\varphi^{6}$ | $17.94427191$ | $= \varphi^5 + \varphi^4$ — Qi-gravity coupling |
+| $\varphi^{-3}$ | $0.236067978$ | $= (\varphi-1)/(\varphi+1)$—VEV asymmetry |
+| $\varphi^{6}$ | $17.94427191$ | $= \varphi^5 + \varphi^4$—Qi-gravity coupling |
 | $\varphi^{4}$ | $6.854101966$ | Four-interaction scale |
 | $\varphi^{5}$ | $11.09016994$ | Wu Xing cycle scale |
 | $\lambda$ | $0.1$ | PDE conversion rate (empirical; not derived from $\varphi$) |
-| $G$, $c$, $\hbar$ | — | External dimensionful constants (set $\ell_{\text{Pl}} = \sqrt{\hbar G / c^3}$) |
-| $\hbar = c = 1$ | — | Natural units throughout |
+| $G$, $c$, $\hbar$ |—| External dimensionful constants (set $\ell_{\text{Pl}} = \sqrt{\hbar G / c^3}$) |
+| $\hbar = c = 1$ |—| Natural units throughout |
 
 ---
 
@@ -50,7 +52,7 @@ $$
 \mathcal{L}_{\text{nl}} = -\frac{g}{4}|\Psi|^4 - \frac{\lambda}{2}(\Psi_0^2 - \varphi\Psi_1^2)^2
 $$
 
-The first term is the standard $\phi^4$ self-interaction. The second is the **$\varphi$-attractor** — it drives $|\Psi_0|^2 : |\Psi_1|^2 \to \varphi : 1$ at equilibrium.
+The first term is the standard $\phi^4$ self-interaction. The second is the **$\varphi$-attractor**—it drives $|\Psi_0|^2 : |\Psi_1|^2 \to \varphi : 1$ at equilibrium.
 
 ### 1.3 Quantum Potential (Bohm)
 
@@ -78,7 +80,7 @@ E = \frac{M^2}{M + \varphi^{-2}}, \quad
 J = \Psi_0 \nabla\Psi_1 - \Psi_1 \nabla\Psi_0
 $$
 
-These are not added to the Lagrangian as separate fields — they are **derived diagnostics** of the two-fluid state. They couple to other sectors through $\mathcal{L}_{\text{mix}}$.
+These are not added to the Lagrangian as separate fields—they are **derived diagnostics** of the two-fluid state. They couple to other sectors through $\mathcal{L}_{\text{mix}}$.
 
 ### 1.6 Full Two-Fluid Lagrangian
 
@@ -152,7 +154,7 @@ $$
 + \bar\psi\left(\hat{P}_Y\Psi_0^2 + \hat{P}_I\Psi_1^2\right)\psi}
 $$
 
-The last term ensures that the Dirac field sources the two-fluid — the spinor's chiral density feeds directly into the Yang/Yin fields.
+The last term ensures that the Dirac field sources the two-fluid—the spinor's chiral density feeds directly into the Yang/Yin fields.
 
 ---
 
@@ -241,9 +243,9 @@ $$
 $$
 
 where:
-- $G_{\mu\nu}^A$ — 8 SU(3) gluon field strengths ($A=1,\dots,8$)
-- $W_{\mu\nu}^a$ — 3 SU(2) weak field strengths ($a=1,2,3$)
-- $B_{\mu\nu}$ — 1 U(1)$_Y$ hypercharge field strength
+- $G_{\mu\nu}^A$—8 SU(3) gluon field strengths ($A=1,\dots,8$)
+- $W_{\mu\nu}^a$—3 SU(2) weak field strengths ($a=1,2,3$)
+- $B_{\mu\nu}$—1 U(1)$_Y$ hypercharge field strength
 
 ### 4.2 φ-Scaled Couplings
 
@@ -413,7 +415,7 @@ The five-element coupling coefficients (derived in the PDE formalism) connect th
 | $K_{fw} = \varphi^{-1}$ | $0.618$ | Water damps Fire (coherence suppresses turbulence) |
 | $K_{fm} = \lambda\varphi^2$ | $0.262$ | Fire melts Metal (turbulence reduces conversion) |
 | $K_{md} = 3\varphi^2$ | $7.85$ | Metal cuts Wood (conversion suppresses structure) |
-| $H_{\text{empty}} = \lambda\varphi^{-2}/3$ | — | Irreducible cosmological baseline |
+| $H_{\text{empty}} = \lambda\varphi^{-2}/3$ |—| Irreducible cosmological baseline |
 
 These act within $\mathcal{L}_{\text{TF}}$ through the PDE source terms.
 
@@ -466,7 +468,7 @@ The action decomposes into five independently derivable subsector actions, each 
 |--------|--------|----------|
 | Two-fluid core | $S_{\text{TF}} = \int\mathcal{L}_{\text{TF}}$ | `foundations/cassi-first-principles.md` |
 | Dirac matter | $S_{\text{D}} = \int\mathcal{L}_{\text{D}}$ | `cassi_dirac_bridge.py`, `particles/cassi-yang-yin-particles.md` |
-| Gravity | $S_{\text{GR}} = \int\mathcal{L}_{\text{GR}}$ | `xi-derivation.md`, `(external — see archive/theory/qi-fluid-formalism.md in physics repo)` |
+| Gravity | $S_{\text{GR}} = \int\mathcal{L}_{\text{GR}}$ | `xi-derivation.md`, `(external—see archive/theory/qi-fluid-formalism.md in physics repo)` |
 | SM gauge | $S_{\text{SM}} = \int\mathcal{L}_{\text{SM}}$ | `standard-model/su2-gauge-extension.md`, `standard-model/sm-from-phi.md` |
 | Mixing | $S_{\text{mix}} = \int\mathcal{L}_{\text{mix}}$ | This document |
 
@@ -523,10 +525,10 @@ where the currents come from the fermion and Higgs covariant derivatives.
 | $\sin^2\theta_W$ | $\varphi^{-3}$ | $0.236$ (GUT) → $0.231$ (Z-pole) | **Derived** (was free) |
 | $\alpha_{\text{GUT}}$ | $\varphi^{-3}/(4\pi)$ | $1/53$ | **Derived** |
 | $m_W/m_Z$ | $\sqrt{1-\varphi^{-3}}$ | $0.874$ | **Prediction** |
-| $H_{\text{empty}}$ | $\lambda\varphi^{-2}/3$ | — | **Derived** (CC) |
+| $H_{\text{empty}}$ | $\lambda\varphi^{-2}/3$ |—| **Derived** (CC) |
 | $K_{fw}$ | $\varphi^{-1}$ | $0.618$ | **Derived** |
 | $K_{md}$ | $3\varphi^2$ | $7.85$ | **Derived** |
-| $G_{\text{eff}}$ | $G\cdot(\pi/\rho)\cdot(1+\varphi^6 q)$ | — | **Derived** |
+| $G_{\text{eff}}$ | $G\cdot(\pi/\rho)\cdot(1+\varphi^6 q)$ |—| **Derived** |
 
 **Every constant is a $\varphi$-power or zero.**
 
@@ -553,15 +555,15 @@ This is not numerology. The $\varphi$-powers arise from the continued fraction $
 
 ## 10. Summary
 
-The Cassi Unified Lagrangian unifies all known physics — quantum matter, spacetime curvature, gauge interactions, and the emergent two-fluid dynamics — into a single action with **zero free parameters**. Every coupling is a power of $\varphi$, determined by the $\varphi$-scale invariance of the Yang/Yin principle.
+The Cassi Unified Lagrangian unifies all known physics—quantum matter, spacetime curvature, gauge interactions, and the emergent two-fluid dynamics—into a single action with **zero free parameters**. Every coupling is a power of $\varphi$, determined by the $\varphi$-scale invariance of the Yang/Yin principle.
 
 The falsifiable predictions are:
 
 | Observable | Cassi | SM | Detectable at |
 |-----------|-------|-----|---------------|
 | $m_W/m_Z$ | $0.874$ | $0.881$ | FCC-ee ($>100\sigma$) |
-| $\sin^2\theta_W$ at $M_{\text{GUT}}$ | $0.236$ | — | Proton decay, GUT scale |
+| $\sin^2\theta_W$ at $M_{\text{GUT}}$ | $0.236$ |—| Proton decay, GUT scale |
 | $\alpha_s(m_Z)$ | $0.105$–$0.115$ | $0.118$ | LHC precision |
-| $M_{\text{GUT}}$ | $10^{16}$–$10^{17}$ GeV | — | Proton lifetime |
+| $M_{\text{GUT}}$ | $10^{16}$–$10^{17}$ GeV |—| Proton lifetime |
 | $m_W$ | $79.7$ GeV | $80.377$ GeV | FCC-ee (0.5 MeV) |
 | $G_{\text{eff}}$ boost | $(1+\varphi^6 q)\times$ | $1\times$ | Galaxy rotation |

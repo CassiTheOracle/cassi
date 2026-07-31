@@ -3,6 +3,8 @@
 *A rigorous derivation of electroweak symmetry breaking, gauge structure, and
 fermion masses from the Cassi golden ratio φ = (1+√5)/2.*
 
+## Status: Derived—July 2026
+
 ---
 
 ## 1. The Breaking Chain
@@ -23,7 +25,7 @@ $$\phi = 1 + \frac{1}{1 + \frac{1}{1 + \frac{1}{1 + \ddots}}} = [1; 1, 1, 1, \ld
 
 Truncating at successive depths gives the generator counts:
 
-- **SU(4):** $N_{\text{gen}} = 4^2 - 1 = 15$ — the parent group has
+- **SU(4):** $N_{\text{gen}} = 4^2 - 1 = 15$—the parent group has
   $\phi^4 \approx 6.854$ dimensions, rounded to the nearest integer giving
   7 Lie algebra rank, but the full group has 15 generators ($= 4^2 - 1$).
   The φ-structure suggests $15 = \phi^3 + \phi^{-3} = 4.236 + 0.236 \approx 4.5$
@@ -118,7 +120,7 @@ $$Q < \phi^{-1} \quad \Longrightarrow \quad \text{Asymptotic freedom (deconfinem
 $$Q > \phi^{-1} \quad \Longrightarrow \quad \text{Confinement}$$
 
 At high energies ($\mu \gg \Lambda_{\text{QCD}}$), the prediction error
-$\varepsilon$ is small, so $Q$ falls below $\phi^{-1}$ — the coupling runs
+$\varepsilon$ is small, so $Q$ falls below $\phi^{-1}$—the coupling runs
 weak. At low energies, field fluctuations are large, $Q$ rises above
 $\phi^{-1}$, and confinement sets in.
 
@@ -138,7 +140,7 @@ Running to $M_Z \approx 91.2\ \text{GeV}$ with $M_{\text{GUT}} \approx 10^{15}\ 
 
 $$\alpha_s(M_Z) = \frac{\alpha_{\text{GUT}}}{1 + \frac{b_0}{2\pi}\alpha_{\text{GUT}}\ln(M_{\text{GUT}}/M_Z)} \approx 0.097$$
 
-This is about 18% below the measured $\alpha_s(M_Z) = 0.118$ — remarkably close
+This is about 18% below the measured $\alpha_s(M_Z) = 0.118$—remarkably close
 given the one-loop approximation and the absence of threshold effects.
 
 ### 3.3 Proton Mass Prediction
@@ -216,7 +218,7 @@ $$m_{\nu_e} \approx \frac{\varphi^{-2n_y} \cdot v_0^2}
                = \varphi^{-(2n_y - n_R)} \cdot \frac{v_0^2}{M_{\text{Pl}}}$$
 
 For the observed $m_\nu \sim 0.01$ eV with $v_0^2/M_{\text{Pl}} \sim
-5\times10^{-6}$ eV, we need $2n_y - n_R \approx 16$. This can be satisfied
+5\times10^{-6}$ eV, the constraint $2n_y - n_R \approx 16$ emerges. This can be satisfied
 by many pairs $(n_y, n_R)$, e.g., $(n_y, n_R) = (26, 36)$ or $(20, 24)$.
 The framework cannot distinguish them without additional assumptions about
 the right-handed neutrino sector.
@@ -281,7 +283,7 @@ $$\mathcal{L}_{\text{Qi}} = \frac{1}{2} (\partial_\mu Q)^2
   - \frac{1}{\phi^{-1}} (Q - \phi^{-1}) \bar{\Psi}\Psi$$
 
 When $Q > \phi^{-1}$, the fermion condensate $\langle\bar{\Psi}\Psi\rangle$
-forms — confinement. When $Q < \phi^{-1}$, chiral symmetry is restored.
+forms—confinement. When $Q < \phi^{-1}$, chiral symmetry is restored.
 
 ---
 

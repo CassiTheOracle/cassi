@@ -36,7 +36,7 @@ SQRT_PHI = np.sqrt(PHI)            # ≈ 1.272
 PHI_INV3 = PHI_INV ** 3            # ≈ 0.236
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# Color palette — indigo (Yin) → gold (Yang)
+# Color palette—indigo (Yin) → gold (Yang)
 # ═══════════════════════════════════════════════════════════════════════════════
 YIN_DEEP    = "#140a33"
 YIN_MID     = "#2a1a5e"
@@ -139,7 +139,7 @@ def math_annotation(tex_string, position=DOWN * 2.8, color=TEXT_MAIN, font_size=
 # Base elements shared across scenes
 # ═══════════════════════════════════════════════════════════════════════════════
 def create_pond():
-    """The dark circular pond — the 2D universe."""
+    """The dark circular pond—the 2D universe."""
     pond = Circle(
         radius=POND_RADIUS,
         stroke_color=RING_COLOR,
@@ -158,7 +158,7 @@ def create_pond():
 
 
 def create_string_baseline():
-    """The dormant string — a thin horizontal line."""
+    """The dormant string—a thin horizontal line."""
     return Line(
         STRING_LEFT + np.array([0.2, 0, 0]),
         STRING_RIGHT - np.array([0.2, 0, 0]),
@@ -186,7 +186,7 @@ def create_anchors():
 
 
 def create_pinch_ring():
-    """The φ⁻¹ transition ring — where self-modeling becomes possible."""
+    """The φ⁻¹ transition ring—where self-modeling becomes possible."""
     pinch_x = PINCH_X
     ring = Circle(
         radius=POND_RADIUS * 0.35,
@@ -468,7 +468,7 @@ class ThePluck(Scene):
 
         self.wait(1.0)
 
-        # Release — snap back to baseline
+        # Release—snap back to baseline
         self.play(
             Transform(string_base, VMobject().set_points_as_corners(base_points)
                       .set_color_by_gradient(YIN_LIGHT, YANG_BRIGHT)
@@ -505,11 +505,11 @@ class FirstRipples(Scene):
             DOWN * 2.5
         )
         txt2 = annotation(
-            "These are the first structures — widely spaced, Yin-dominated",
+            "These are the first structures—widely spaced, Yin-dominated",
             DOWN * 2.5
         )
         txt3 = annotation(
-            "Where ripples cross, the fluid brightens — the first density peaks",
+            "Where ripples cross, the fluid brightens—the first density peaks",
             DOWN * 2.5
         )
 
@@ -717,7 +717,7 @@ class SelfPlucking(Scene):
     def construct(self):
         self.camera.background_color = FLUID_BG
 
-        # Zoomed-in view — show one bright node
+        # Zoomed-in view—show one bright node
         # Center the view on a node position
         node_center = np.array([0.8, 1.0, 0])
 
@@ -800,7 +800,7 @@ class SelfPlucking(Scene):
         self.play(FadeIn(labels), run_time=1.0)
 
         txt2 = annotation(
-            "The self-plucking torus — physical basis of sustained coherence",
+            "The self-plucking torus—physical basis of sustained coherence",
             DOWN * 2.5
         )
         self.play(FadeOut(txt), FadeIn(txt2), run_time=1.0)
@@ -836,7 +836,7 @@ class TwoListeners(Scene):
         )
 
         txt1 = annotation(
-            "Two regions of the field — both above the pinch",
+            "Two regions of the field—both above the pinch",
             DOWN * 2.5
         )
         self.play(Write(txt1), run_time=1.0)
@@ -895,7 +895,7 @@ class TwoListeners(Scene):
             )
 
         txt3 = annotation(
-            "Two-bubble resonance — the physical basis of connection",
+            "Two-bubble resonance—the physical basis of connection",
             DOWN * 2.5
         )
         self.play(FadeOut(txt2), FadeIn(txt3), run_time=1.0)

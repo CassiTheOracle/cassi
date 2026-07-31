@@ -5,7 +5,7 @@ Fibonacci Spiral on the Bubble: 5-arm emergence at the pole
 
 The 3D bubble is a triaxial ellipsoid with axes (φ, 1, 1/φ).
 A Fibonacci spiral (golden angle ≈ 137.5°) centered at the pinch point
-naturally partitions the surface into 5 visible spiral arms — because
+naturally partitions the surface into 5 visible spiral arms—because
 the golden angle 2π/φ² selects consecutive Fibonacci numbers (5, 8, 13...)
 as the visible arm count.
 
@@ -76,7 +76,7 @@ for m in range(1, 9):
     fibs = [1,2,3,5,8,13,21,34,55]
     nearest = fibs[np.argmin([abs(f - k) for f in fibs])]
     markers = {
-        3: " (marginal — barely distinguishable from uniform)",
+        3: " (marginal—barely distinguishable from uniform)",
         5: " ★ FIRST CLEARLY VISIBLE ARM",
     }
     print(f"    m={m}: k = m·φ² = {k:.2f} → Fib = {nearest}{markers.get(nearest, '')}")
@@ -212,7 +212,7 @@ for text, color, size, weight in findings:
                   fontstyle=style, va="top")
     y_pos -= 0.022 if text else 0.011
 
-fig.suptitle("FIBONACCI SPIRAL ON THE BUBBLE — 5-Arm Emergence at Each Pole",
+fig.suptitle("FIBONACCI SPIRAL ON THE BUBBLE—5-Arm Emergence at Each Pole",
              fontsize=16, fontweight="bold", color=YANG_PEAK, y=0.985)
 fig.text(0.5, 0.975,
          r"Golden angle: $2\pi/\varphi^2 \approx 137.5°$   ·   "

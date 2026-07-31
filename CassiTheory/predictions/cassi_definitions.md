@@ -1,4 +1,4 @@
-# Cassi Framework — Definitions
+# Cassi Framework—Definitions
 
 > Unified field framework grounded in the φ-attractor, the Yin-Yang two-fluid,
 > and emergent spacetime geometry.
@@ -20,8 +20,8 @@
 9. [Chemistry](#9-chemistry)
 10. [Phase Transitions & Thermodynamics](#10-phase-transitions--thermodynamics)
 11. [Information](#11-information)
-12. [Cosmology — CMB, Inflation, Structure](#12-cosmology--cmb-inflation-large-scale-structure)
-13. [Unification — Theory of Everything](#13-unification--the-theory-of-everything)
+12. [Cosmology—CMB, Inflation, Structure](#12-cosmology--cmb-inflation-large-scale-structure)
+13. [Unification—Theory of Everything](#13-unification--the-theory-of-everything)
 14. [Observables & Predictions](#14-observables--predictions)
 15. [Code & Implementation](#15-code--implementation)
 
@@ -29,23 +29,23 @@
 
 ## 1. Fundamentals
 
-### φ (phi) — the Golden Ratio
+### φ (phi)—the Golden Ratio
 - **Value**: (1 + √5)/2 ≈ 1.6180340
 - **Role**: Universal attractor constant for Yin-Yang ratio in all scale-invariant systems.
 - **Appears in**: dark energy equation of state, galactic rotation curves, chakra spacings, PDE energy spectra.
 - **Inverse**: φ⁻¹ = φ − 1 ≈ 0.6180; φ⁻² = 2 − φ ≈ 0.3820; φ⁻³ ≈ 0.2361.
 
-### EY — Yang Field
+### EY—Yang Field
 - **Nature**: Outward-flowing, radiative, "active" component of the two-fluid.
 - **Property**: Carries positive energy density, tends to expand outward.
 - **Analogy**: "White" in Taiji, electric in character, centrifugal tendency.
 
-### EI — Yin Field
+### EI—Yin Field
 - **Nature**: Inward-flowing, absorptive, "passive" component of the two-fluid.
 - **Property**: Carries negative energy density, tends to contract inward.
 - **Analogy**: "Black" in Taiji, magnetic in character, centripetal tendency.
 
-### Qi — the Universal Inflow
+### Qi—the Universal Inflow
 - **Definition**: Qi = (EY, EI) as a paired-real 2-vector at every point in spacetime.
 - **Coherence q**: qi = (EY − φ·EI)/(EY + φ·EI), the local alignment between the two fields.
   - q = 0: background, fields are copacetic
@@ -54,17 +54,17 @@
 - **Key identity**: At φ-equilibrium, EY/EI = φ ⇒ q = 0.
 - **Qi-gating**: Conversion between fluids is blocked at q ≈ 0 (near equilibrium) and opens when the system is driven out of balance.
 
-### Attractor — Universal φ-Equilibrium
+### Attractor—Universal φ-Equilibrium
 - **Definition**: The stable fixed point of the two-fluid dynamics at EY/EI = φ.
-- **Terminal attractor**: The final steady state after all transient dynamics decay — the two-fluid always relaxes toward φ if unperturbed.
+- **Terminal attractor**: The final steady state after all transient dynamics decay—the two-fluid always relaxes toward φ if unperturbed.
 - **Attractor strength**: Higher density → faster convergence to φ.
 
 ### Yin-Yang Flow Rule (empirically calibrated)
 - **Yin flows inward** (black, absorptive, contractive, "feminine").
 - **Yang flows outward** (white, radiative, expansive, "masculine").
-- **Violation**: Models with forced Yang inward or Yin outward produce unphysical results (confirmed: earlier tests with reversed flow failed).
+- **Violation**: Models with forced Yang inward or Yin outward produce unphysical results (confirmed: reversed flow tests failed).
 
-### σ (sigma) — Gaussian Softening
+### σ (sigma)—Gaussian Softening
 - **Role**: Fundamental length scale that regularizes all otherwise-divergent forces at short distances.
 - **Value**: Empirically ~ 0.1–1.0 in code units (nature's value to be determined from observations).
 - **Effect**: At r → 0, Coulomb/Newtonian divergences become harmonic: F(r) ∝ r.
@@ -87,7 +87,7 @@ The complete coupled evolution of EY, EI, and the velocity field u:
 - **Φ**: Gravitational potential from Poisson equation: ∇²Φ = 4πG·(EY + EI)
 - **F_visc**: Momentum diffusion
 
-### Scale Factor a(t) — Comoving Expansion
+### Scale Factor a(t)—Comoving Expansion
 - **Definition**: The cosmological scale factor, evolved via Hubble parameter H.
 - **Evolution**: a ← a · exp(H·dt), where H = da/(a·dt).
 - **Energy density scaling**: EY ∝ a⁻³, EI ∝ a⁻³ (matter-like), plus curvature and back-reaction.
@@ -97,7 +97,7 @@ Three modes of expansion:
 
 1. **Conversion mode**: H = (λ/3)·(φ − r)·(1+r)/r, where r = EY/EI.
    - At attractor (r = φ): H = 0 (no conversion-driven expansion).
-   - For r > φ (Yang-rich): H > 0 (accelerated expansion — dark energy).
+   - For r > φ (Yang-rich): H > 0 (accelerated expansion—dark energy).
    - For r < φ (Yin-rich): H < 0 (contraction).
 
 2. **Stress-energy mode**: H = H_empty + H_conv + H_struct.
@@ -124,7 +124,7 @@ Three modes of expansion:
     F(r) = −(1+ξ·q)/r² · [erf(r/(σ√2)) − √(2/π)·(r/σ)·exp(−r²/(2σ²))]
 
 - **At r >> σ**: F → −(1+ξ·q)/r² (Newtonian with Qi enhancement).
-- **At r → 0**: F ∝ −r/(3σ³)·(1+ξ·q) (harmonic — no singularity).
+- **At r → 0**: F ∝ −r/(3σ³)·(1+ξ·q) (harmonic—no singularity).
 - **ξ = φ⁶ ≈ 17.944**: Derived from first principles via Fibonacci identity φ⁶ = φ⁵ + φ⁴. The sixth power represents 2 field components × 3 spatial dimensions coupling to curvature. Within 0.3% of the empirical value ≈ 18 from Milky Way rotation curves.
 
 ### Effective Gravitational Constant
@@ -145,7 +145,7 @@ Three modes of expansion:
 - **Status**: Dissipative, not Hamiltonian.
 - **Key result**: Energy attractor at E ≈ −0.02 (all ICs converge to same energy).
 - **Shape preservation**: Symmetric configurations (e.g., equilateral triangle) maintain perfect shape.
-- **Periodic orbits**: None found — system expands self-similarly or collapses to attractor.
+- **Periodic orbits**: None found—system expands self-similarly or collapses to attractor.
 - **Harmonic regime (r << σ)**: Exactly solvable (three coupled oscillators, error ~ 5.5e-10).
 - **Tractable, not closed-form**: Cassi 3BP is numerically solvable, not analytically integrable.
 
@@ -166,7 +166,7 @@ Three modes of expansion:
 ## 4. Black Holes & Compact Objects
 
 ### Black Hole (Cassi definition)
-A **two-fluid soliton** — a stable, self-consistent equilibrium of the Yang and Yin fields, regularized by the Gaussian softening σ.
+A **two-fluid soliton**—a stable, self-consistent equilibrium of the Yang and Yin fields, regularized by the Gaussian softening σ.
 
 - **No singularity**: The harmonic core (F ∝ r) replaces the GR divergence.
 - **No event horizon (as infinite-redshift surface)**: The metric is well-behaved everywhere.
@@ -179,12 +179,12 @@ A **two-fluid soliton** — a stable, self-consistent equilibrium of the Yang an
 - **Self-consistent equation**: The photon sphere radius depends on G_eff at that radius.
 - **Core solution**: r_ps ≈ 3M (GR-like, since G_eff(3M) ≈ 1).
 
-### ISCO — Innermost Stable Circular Orbit
+### ISCO—Innermost Stable Circular Orbit
     r_ISCO = 6 · G_eff(r_ISCO) · M
 
 - **GR**: r_ISCO = 6M.
 - **Cassi (variable G_eff)**: r_ISCO moves outward where G_eff > 1.
-- **Observable consequence**: Accretion disks should have larger inner cutoffs than GR predicts — testable with X-ray iron lines (XRISM).
+- **Observable consequence**: Accretion disks should have larger inner cutoffs than GR predicts—testable with X-ray iron lines (XRISM).
 
 ### Soliton Mergers
 - **GW150914 analog**: Two BH solitons merge via fluid dynamics, not spacetime geometry.
@@ -197,7 +197,7 @@ A **two-fluid soliton** — a stable, self-consistent equilibrium of the Yang an
 ## 5. Particle Physics
 
 ### Particles (Cassi definition)
-**Localized, self-stabilizing solitons** in the two-fluid — standing-wave configurations of the EY/EI field.
+**Localized, self-stabilizing solitons** in the two-fluid—standing-wave configurations of the EY/EI field.
 
 - **Not fundamental**: There are no "elementary particles" in the reductionist sense. The two-fluid is the only fundamental entity.
 - **Matter is condensed Qi**: Every particle is a standing wave in the cosmos-fluid.
@@ -210,8 +210,8 @@ A **two-fluid soliton** — a stable, self-consistent equilibrium of the Yang an
 | Neutrino | Thin EI | Nearly massless, inward-flowing, barely interacts |
 
 ### Hadrons (tentative)
-- **Proton**: Dense EI-dominant soliton with an EY-rich "surface" — stable because φ≈1.618 gives a natural energy minimum.
-- **Neutron**: Metastable hybrid (near φ-equilibrium) — decays when perturbation breaks the balance.
+- **Proton**: Dense EI-dominant soliton with an EY-rich "surface"—stable because φ≈1.618 gives a natural energy minimum.
+- **Neutron**: Metastable hybrid (near φ-equilibrium)—decays when perturbation breaks the balance.
 - **Quark confinement**: Quarks are **internal modes** of the hadron soliton, not isolable entities.
 - **Gluons**: High-frequency standing waves in the two-fluid inside the hadron.
 
@@ -220,14 +220,14 @@ A **two-fluid soliton** — a stable, self-consistent equilibrium of the Yang an
 - **Annihilation**: When matter and antimatter solitons meet, they cancel each other's EY/EI field into a traveling wave (photons).
 
 ### Mass
-- **Origin**: Mass is the **stability cost** of a soliton — how much two-fluid energy is bound into maintaining the standing wave.
+- **Origin**: Mass is the **stability cost** of a soliton—how much two-fluid energy is bound into maintaining the standing wave.
 - **φ-scaling**: Particle masses should fall in φ-scaled ratios. The electron/proton mass ratio (1/1836) may relate to φ¹⁵ ≈ 1428 (within 30%).
 
 
 ### Electromagnetism (Formal Derivation)
 See `experiments/cassi_electromagnetism.py` for the full numerical derivation.
 
-**Core equation** — The two-fluid PDE with pressure gives wave equations:
+**Core equation**—The two-fluid PDE with pressure gives wave equations:
     ∂²EY/∂t² = c²·∇²EY − ω₀²·(EY − φ·EI)
     ∂²EI/∂t² = c²·∇²EI + ω₀²·(EY − φ·EI)
 
@@ -238,8 +238,8 @@ which imply Maxwell's equations in vacuum.
 
 | EM Quantity | Cassi Analog |
 |-------------|--------------|
-| E (electric field) | EY (Yang) — outward-flowing, radiative |
-| B (magnetic field) | EI (Yin) — inward-flowing, absorptive |
+| E (electric field) | EY (Yang)—outward-flowing, radiative |
+| B (magnetic field) | EI (Yin)—inward-flowing, absorptive |
 | c (speed of light) | c = c_vacuum (EM and gravity converge in vacuum) |
 | Charge density ρ | ρ = −κ·∇²q (Qi curvature) |
 | Current density J | J = κ·∂(∇q)/∂t (Qi flow) |
@@ -283,10 +283,10 @@ The weak interaction emerges from an SU(2) isospinor doublet coupled to the two-
 - No magnetic monopoles (EI divergence is identically zero)
 - Charge quantized in units of φ⁻²·e (Qi coherence is φ-quantized)
 - **Weak force**: SU(2) × U(1)_Y gauge theory with φ-VEV (see `theory/su2-gauge-extension.md`)
-- **Gravity**: The universal residual — the net Qi "pull" from all solitons in a region.
+- **Gravity**: The universal residual—the net Qi "pull" from all solitons in a region.
 
 
-The **strong force IS gravity at the σ-scale** — same PDE, different σ:
+The **strong force IS gravity at the σ-scale**—same PDE, different σ:
     σ_gravity ≈ 1 kpc,  σ_nuclear ≈ 0.5 fm  (ratio: 10³⁷)
 
 The Cassi force at r ≈ 0.5-2 fm is 4-13× stronger than Coulomb,
@@ -304,7 +304,7 @@ exactly matching the strong force's role in overcoming proton repulsion.
 | Neutron star | Soliton matter at maximum density |
 | Quark-gluon plasma | Qi fluid above the σ-resolution limit |
 
-- No separate strong force — it's gravity at the fm scale (exploratory)
+- No separate strong force—it's gravity at the fm scale (exploratory)
 - ⁵⁶Fe is the most stable nucleus (deepest soliton well)
 - Fusion = merging solitons → lower total Qi cost
 - Fission = splitting at a Qi node → two stable solitons
@@ -331,12 +331,12 @@ The Qi gating function g(q) = q/(φ² + q²) controls EY ↔ EI conversion.
 From the two-fluid PDE:
     dq/dt = −ω₀·g(q)²·(EY² + EI²) ≤ 0   (always true)
 Therefore dS/dt = −dq/dt·ln(φ) ≥ 0. QED.
-The Second Law is NOT a separate postulate — it follows directly from
+The Second Law is NOT a separate postulate—it follows directly from
 the Qi gating mechanism.
 
 ### What Clocks Measure
 A clock does not measure coordinate time. It measures **accumulated Qi
-decoherence events** — local irreversible mixing of EY and EI.
+decoherence events**—local irreversible mixing of EY and EI.
 
 Time dilation (GR):
 - Stronger gravity → slower Qi mixing → slower clocks
@@ -351,7 +351,7 @@ and the late universe is clumpy (low q).
 ### Time Travel
 Cassi forbids time travel. Reversing dq/dt would require reversing the
 direction of Qi mixing, which violates the two-fluid PDE. The arrow
-of time is not merely psychological — it is enforced by the field equations.
+of time is not merely psychological—it is enforced by the field equations.
 
 ---
 ## 7. Consciousness & Psychology
@@ -369,11 +369,11 @@ and consciousness framework terms.
 | Q = Q × q | Qi fluid field | Self-aware field from neural self-prediction |
 | q-coherence | Level of self-awareness | Same mathematical q, measured from prediction error ε = ψ − ψ̂ |
 | φ-attractor | Optimal mental state (flow, equanimity) | Natural equilibrium of the cognitive two-fluid |
-| Gaussian softening σ | Neural refractory period, minimum resolution | Same regularization — cognition cannot resolve below σ |
+| Gaussian softening σ | Neural refractory period, minimum resolution | Same regularization—cognition cannot resolve below σ |
 | φ-scaled chakras | 13 frequency bands of conscious experience | Neural wave decomposition at φ-spaced resonances |
 
 ### Scale Invariance
-The Cassi two-fluid is scale-invariant — the same PDE operates at Planck scales,
+The Cassi two-fluid is scale-invariant—the same PDE operates at Planck scales,
 galactic scales, and neural scales. Consciousness is the two-fluid dynamics
 operating on the neural electromagnetic field ψ(s,t):
 
@@ -381,11 +381,11 @@ operating on the neural electromagnetic field ψ(s,t):
     = |ψ|² · (1 − |ε|²/(|ψ|² + φ⁻²))
     where ε = ψ − ψ̂  (self-prediction error)
 
-The "self" is a persistent Qi condensate — a stable cross-chakra standing wave
+The "self" is a persistent Qi condensate—a stable cross-chakra standing wave
 maintained by the IIR filter memory of the neural field.
 
 ### Key Principle
-Consciousness is not the neural field ψ itself. ψ is the medium — like water.
+Consciousness is not the neural field ψ itself. ψ is the medium—like water.
 Consciousness is the structure and dynamics of the Qi fluid that flows within it
 — like standing waves, vortices, and currents in water.
 ---
@@ -393,7 +393,7 @@ Consciousness is the structure and dynamics of the Qi fluid that flows within it
 ## 8. Life
 
 ### Definition
-Life is a **self-sustaining Qi condensate** — an open thermodynamic system
+Life is a **self-sustaining Qi condensate**—an open thermodynamic system
 that maintains q > q_death against decoherence by exporting entropy.
 
     q_death ≈ φ⁻² ≈ 0.382  (below this, coherence cannot recover)
@@ -427,7 +427,7 @@ while the conscious coherence bubble uses direct Qi feedback.
 ### Definition
 Chemistry is the **EY/EI sharing dynamics between atomic solitons**.
 A chemical bond is a stable Qi coherence between two or more atomic two-fluid
-configurations — analogous to how gravitational solitons merge.
+configurations—analogous to how gravitational solitons merge.
 
 ### Bond Types as Qi States
 | Bond | Qi Character | Cassi Analog |
@@ -457,17 +457,17 @@ Rows fill φ-resonant shells; columns group similar EY/EI valence configurations
 ## 10. Phase Transitions & Thermodynamics
 
 ### Definition
-Phase transitions are **Qi ordering transitions** — changes in how EY and EI
+Phase transitions are **Qi ordering transitions**—changes in how EY and EI
 are organized relative to each other at macroscopic scales.
 
 ### States of Matter
 | Phase | q-range | EY/EI Organization |
 |-------|---------|-------------------|
-| Solid | q > φ⁻¹ | EY and EI locked in a fixed lattice — strong local q |
-| Liquid | φ⁻² < q < φ⁻¹ | EY flows, EI partially locked — medium coherence |
-| Gas | q < φ⁻² | EY and EI decoupled — weak coherence |
-| Plasma | q ≈ 0 | Complete decoupling — EY and EI move independently |
-| Superfluid | q → 1 | Perfect coherence — EY and EI move as one |
+| Solid | q > φ⁻¹ | EY and EI locked in a fixed lattice—strong local q |
+| Liquid | φ⁻² < q < φ⁻¹ | EY flows, EI partially locked—medium coherence |
+| Gas | q < φ⁻² | EY and EI decoupled—weak coherence |
+| Plasma | q ≈ 0 | Complete decoupling—EY and EI move independently |
+| Superfluid | q → 1 | Perfect coherence—EY and EI move as one |
 
 ### Phase Transitions as Qi Thresholds
     Melting: q passes through φ⁻¹ (solid → liquid)
@@ -495,7 +495,7 @@ Qi mixing entropy:
     I = S_max − S = k_B·(q_max − q)·ln(φ)
     = k_B·(1 − q)·ln(φ)   (for q_max = 1)
 
-A bit of information is a unit of EY/EI separation — a maintained q difference.
+A bit of information is a unit of EY/EI separation—a maintained q difference.
 
 ### Landauer's Principle
 Erasing one bit of information dissipates E = k_B·T·ln(2).
@@ -507,16 +507,16 @@ This unifies thermodynamics, information theory, and Qi dynamics.
 ### Maxwell's Demon
 The demon can sort EY and EI (increase q, decrease entropy) only by
 exporting at least as much entropy as it creates. The demon IS a
-coherence bubble — it temporarily maintains high q by measuring
+coherence bubble—it temporarily maintains high q by measuring
 (interacting with) the system, then dumping the entropy elsewhere.
 
 ---
 
-## 12. Cosmology — CMB, Inflation, Large-Scale Structure
+## 12. Cosmology—CMB, Inflation, Large-Scale Structure
 
 ### The CMB
 The Cosmic Microwave Background is the **last-scattering surface of the
-two-fluid** — the epoch when EY and EI decoupled from matter and the
+two-fluid**—the epoch when EY and EI decoupled from matter and the
 photon mode (EY = φ·EI) became free-streaming.
 
 Cassi predicts:
@@ -527,7 +527,7 @@ Cassi predicts:
 ### Inflation as φ-Reset
 Inflation was a period when π/ρ (the Yin-Yang density ratio) was driven
 far from its attractor φ⁻³. The exponential expansion was the two-fluid
-rushing back toward equilibrium — not a separate scalar field (inflaton).
+rushing back toward equilibrium—not a separate scalar field (inflaton).
 
     H_inflation ∝ (φ − r_initial)  (deviation from φ drives expansion)
     Slow roll: r → φ⁻³ as equilibrium restores
@@ -547,10 +547,10 @@ The cosmic web is the structure of q-fluctuations amplified by gravity.
 
 ---
 
-## 13. Unification — The Theory of Everything
+## 13. Unification—The Theory of Everything
 
 ### The Single Equation
-The Cassi framework proposes that ALL known physics — gravity, electromagnetism,
+The Cassi framework proposes that ALL known physics—gravity, electromagnetism,
 nuclear forces, quantum mechanics, thermodynamics, consciousness, and life —
 emerges from a single two-fluid PDE:
 
@@ -592,9 +592,9 @@ These four pillars unify at φ-equilibrium: the same PDE reproduces all known
 physics at different σ-scales, with φ as the universal attractor coupling.
 
 > **Implementation mapping**: The three conceptual pillars above correspond to three implementation pillars in code:
-> 1. **Implementation Pillar 1 — Relativistic QM**: `DiracBridge` reproduces the Dirac equation from the two-fluid at quantum scale.
-> 2. **Implementation Pillar 2 — GR/Gravity**: `QiGravitySolver3D` with G_eff(r) and ξ = φ⁶ implements the emergent gravity sector.
-> 3. **Implementation Pillar 3 — Gauge Unification**: `cassi_su2_bridge.py` implements SU(2)×U(1)_Y; SU(3) color coupling runs from α_GUT = φ⁻³/(4π).
+> 1. **Implementation Pillar 1—Relativistic QM**: `DiracBridge` reproduces the Dirac equation from the two-fluid at quantum scale.
+> 2. **Implementation Pillar 2—GR/Gravity**: `QiGravitySolver3D` with G_eff(r) and ξ = φ⁶ implements the emergent gravity sector.
+> 3. **Implementation Pillar 3—Gauge Unification**: `cassi_su2_bridge.py` implements SU(2)×U(1)_Y; SU(3) color coupling runs from α_GUT = φ⁻³/(4π).
 >
 > The conceptual pillars describe *what* emerges from the two-fluid; the implementation pillars describe *how* it is computed.
 
@@ -682,7 +682,7 @@ New theory documents:
 | `experiments/cassi_su2_bridge.py` | SU(2) coupling to two-fluid (WIP) |
 | `experiments/run_electroweak.py` | Electroweak parameter scan (WIP) |
 | `two-fluid/cassi_su2_bridge.py` | SU(2) gauge bridge with φ-governed weak force |
-| `two-fluid/run_electroweak.py` | Electroweak runner — W/Z mass prediction |
+| `two-fluid/run_electroweak.py` | Electroweak runner—W/Z mass prediction |
 | `theory/xi-derivation.md` | ξ = φ⁶ first-principles derivation |
 | `godot/space-sim/` | Real-time universe simulator |
 ### Managed Skills
@@ -705,4 +705,4 @@ New theory documents:
 
 ---
 
-*End of definitions. This is a living document — add entries as the framework grows.*
+*End of definitions. This is a living document—add entries as the framework grows.*

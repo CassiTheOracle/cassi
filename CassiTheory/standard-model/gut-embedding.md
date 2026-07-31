@@ -3,6 +3,8 @@
 *A Cassi theory document exploring grand unification of the Standard Model gauge
 groups at the φ-fixed point.*
 
+## Status: Hypothesized—July 2026
+
 ---
 
 ## 1. Why a GUT?
@@ -12,11 +14,11 @@ SU(3)$_C$, SU(2)$_L$, and U(1)$_Y$ are introduced separately, each with its
 own coupling. A grand unified theory (GUT) embeds them into a single simple
 group $G_{\text{GUT}}$, providing three profound consequences:
 
-1. **Charge quantization** — the U(1)$_Y$ hypercharge assignment ceases to be
+1. **Charge quantization**—the U(1)$_Y$ hypercharge assignment ceases to be
    arbitrary and follows from the representation theory of $G_{\text{GUT}}$.
-2. **Proton decay** — baryon number is violated by the same gauge bosons that
+2. **Proton decay**—baryon number is violated by the same gauge bosons that
    unify the interactions, giving a definite (and testable) lifetime.
-3. **GUT-scale Higgs sector** — the symmetry-breaking sector that reduces
+3. **GUT-scale Higgs sector**—the symmetry-breaking sector that reduces
    $G_{\text{GUT}} \to \text{SM}$ is inexorably linked to the Cassi
    φ-fixed-point dynamics of the isospinor field.
 
@@ -49,7 +51,7 @@ $$\mathbf{\bar{5}} = (\mathbf{\bar{3}}, \mathbf{1})_{1/3} \oplus (\mathbf{1}, \m
 
 $$\mathbf{10} = (\mathbf{3}, \mathbf{2})_{1/6} \oplus (\mathbf{\bar{3}}, \mathbf{1})_{-2/3} \oplus (\mathbf{1}, \mathbf{1})_{1}$$
 
-The right-handed neutrino is absent — it would require an SU(5) singlet, which
+The right-handed neutrino is absent—it would require an SU(5) singlet, which
 SO(10) naturally provides.
 
 ### 2.1 The GUT Scale from φ
@@ -142,7 +144,7 @@ consistent with the hierarchy $v_{24} \gg v_5 \approx 246\ \text{GeV}$.
 
 ## 3. Proton Decay in SU(5)
 
-Baryon-number violation is mediated by the $X$ and $Y$ gauge bosons — the
+Baryon-number violation is mediated by the $X$ and $Y$ gauge bosons—the
 components of the SU(5) adjoint not in the SM subgroup. These acquire mass
 $M_X = M_Y = M_{\text{GUT}}$ from the **24** Higgs.
 
@@ -211,7 +213,7 @@ on the flavour structure of the GUT-scale Yukawas. In SUSY SU(5), $p \to
 | **Cassi SU(5) prediction** | $\mathbf{4 \times 10^{34}}$ **years** | **Within Hyper-K reach** |
 
 The Cassi prediction of $4 \times 10^{34}$ years sits **directly between** the
-current Super-K bound and the future Hyper-K sensitivity — a hallmark of a
+current Super-K bound and the future Hyper-K sensitivity—a hallmark of a
 testable theory.
 
 ---
@@ -256,10 +258,10 @@ giving $M_{24} \sim 10^{16}\ \text{GeV}$ for $M_{\text{GUT}} \sim 2 \times
 
 The Higgs representations needed:
 
-- **45** (adjoint) — breaks SO(10) $\to$ SU(5) $\times$ U(1)$_\chi$
-- **126** — breaks SU(5) $\times$ U(1)$_\chi$ $\to$ SM; gives Majorana mass
+- **45** (adjoint)—breaks SO(10) $\to$ SU(5) $\times$ U(1)$_\chi$
+- **126**—breaks SU(5) $\times$ U(1)$_\chi$ $\to$ SM; gives Majorana mass
   to $\nu_R$
-- **10** — electroweak Higgs doublet
+- **10**—electroweak Higgs doublet
 
 The **126** VEV at the φ-point determines the right-handed neutrino mass scale:
 

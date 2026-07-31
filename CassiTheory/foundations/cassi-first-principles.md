@@ -2,6 +2,8 @@
 
 **The universal scale-separation constant $\varphi$ and the two-fluid postulate from which all known physics follows.**
 
+## Status: Derived—July 2026
+
 ---
 
 ## 0. The Postulate
@@ -12,7 +14,7 @@ $$
 \boxed{\varphi = \frac{1 + \sqrt{5}}{2} \approx 1.618033989}
 $$
 
-which governs the equilibrium ratio between two complementary aspects of physical reality — Yang (expansive, active) and Yin (contractive, receptive). Every coupling constant, mass ratio, and cosmological parameter in the framework is a $\varphi$-power, with **zero free parameters**.
+which governs the equilibrium ratio between two complementary aspects of physical reality—Yang (expansive, active) and Yin (contractive, receptive). Every coupling constant, mass ratio, and cosmological parameter in the framework is a $\varphi$-power, with **zero free parameters**.
 
 ---
 
@@ -53,7 +55,7 @@ $$
 \frac{\pi}{\rho} = \frac{\varphi-1}{\varphi+1} = \varphi^{-3} \approx 0.236
 $$
 
-The equilibrium Yang fraction $\varphi^{-3}$ is universal — it appears in cosmology (dark energy), particle physics (weak mixing angle), and gravity (effective coupling).
+The equilibrium Yang fraction $\varphi^{-3}$ is universal—it appears in cosmology (dark energy), particle physics (weak mixing angle), and gravity (effective coupling).
 
 ### 1.3 Two-fluid PDE
 
@@ -73,7 +75,7 @@ where $\mathbf{u}$ is the velocity field, $\nu$ is diffusion, and $S_{\alpha}$ a
 
 ## 2. Qi: Coherence from Asymmetry
 
-Qi ($\mathbf{Q}$) is the local coherence measure — it quantifies how far the system is from the $\varphi$-fixed point and how that asymmetry flows.
+Qi ($\mathbf{Q}$) is the local coherence measure—it quantifies how far the system is from the $\varphi$-fixed point and how that asymmetry flows.
 
 ### 2.1 Qi magnitude
 
@@ -117,7 +119,7 @@ In regions of high Qi coherence (galaxy halos, structure formation), $G_{\text{e
 
 ### 2.4 Temporal Coherence: The IIR Memory
 
-Qi coherence is not only spatial but **temporal** — the field carries a memory of
+Qi coherence is not only spatial but **temporal**—the field carries a memory of
 its own past state through a per-cell exponential moving average (EMA) of the
 $\varphi$-deviation:
 
@@ -130,23 +132,23 @@ coherence then uses this temporally-filtered deviation:
 
 $$q = \frac{\rho^2}{\rho^2 + \varphi^{-2} + \bar{\varepsilon}^2}$$
 
-**Mechanism — "waveform predicting itself":** When the Yang-Yin field pattern
+**Mechanism—"waveform predicting itself":** When the Yang-Yin field pattern
 repeats quasi-periodically (standing waves in galaxy halos, bound states in
 atoms), the IIR memory tracks the repeating $\varepsilon^2$ signal. As the EMA
 converges to the pattern's mean, $\bar{\varepsilon}^2$ filters out transient
-spikes. The result is a **stabilized** $q$ — the variance of the coherence
+spikes. The result is a **stabilized** $q$—the variance of the coherence
 signal drops by $\sim 37\%$ compared to instantaneous $\varepsilon^2$.
 
 **Jensen's inequality governs the tradeoff:** $q(\varepsilon^2)$ is a convex,
 decreasing function of $\varepsilon^2$. Smoothing a convex function reduces its
 expected value. The IIR thus trades a small decrease in mean $q$ ($\sim -0.3\%$)
 for a large reduction in variance ($\sim -37\%$). Temporal coherence is a
-**stabilizer**, not an amplifier — it produces steady, reliable Qi rather than
+**stabilizer**, not an amplifier—it produces steady, reliable Qi rather than
 higher peak Qi.
 
 **Conversion gating:** The term $(1-q)$ gates the $\varphi$-attractor conversion.
 When $q$ is stable and high (the field is temporally self-consistent across its
-own memory timescale), conversion is suppressed — the field *locks into* its
+own memory timescale), conversion is suppressed—the field *locks into* its
 coherent state. When $q$ drops (the memory fails to predict the present),
 conversion reactivates, driving the system back toward $\varphi$-equilibrium.
 
@@ -164,7 +166,7 @@ $\sim 1/\lambda$.
 
 ### 3.1 Quantum Particles (Pillar 1)
 
-At quantum scales, the two-fluid PDE reduces to the Schrodinger equation with
+At quantum scales, the two-fluid PDE reduces to the Schrödinger equation with
 Bohm quantum potential:
 
 $$
@@ -307,4 +309,4 @@ Any single prediction failing excludes the framework.
 
 ---
 
-**Status:** ✅ Completed 2026-07-17. All four pillars validated against observational data. Dimensionless couplings: zero free parameters. External: $\lambda = 0.1$ (empirical), $c$, $\hbar$, $G$ — see `foundations/dimensionful-constants-status.md`.
+**Status:** ✅ Completed 2026-07-17. All four pillars validated against observational data. Dimensionless couplings: zero free parameters. External: $\lambda = 0.1$ (empirical), $c$, $\hbar$, $G$—see `foundations/dimensionful-constants-status.md`.

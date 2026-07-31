@@ -1,11 +1,11 @@
 # Strong CP: Why $\bar{\theta} \approx 0$ from Cascade De-Resonance
 
-## Status: Derivation — July 2026
+## Status: Derivation—July 2026
 
 ## Abstract
 
-The strong CP problem — why the QCD vacuum angle $\bar{\theta}$ is consistent
-with zero at $< 10^{-10}$ — vanishes in the Cassi framework. The $\theta$-term
+The strong CP problem—why the QCD vacuum angle $\bar{\theta}$ is consistent
+with zero at $< 10^{-10}$—vanishes in the Cassi framework. The $\theta$-term
 arises as an effective parameter in the SU(3) gauge theory that emerges from
 the two-fluid PDE at cascade step 95. The underlying PDE carries the
 $\varphi$-attractor's **de-resonance symmetry**: $\varphi$ is maximally
@@ -15,7 +15,7 @@ is **cascade-suppressed** over the 87 rungs to the QCD scale:
 
 $$\boxed{\bar{\theta} \approx \varphi^{-(n_{\text{QCD}} - n_{\text{GUT}})} \cdot \delta_{\text{CP}} \approx \varphi^{-87} \times \pi\varphi^{-2} \approx 10^{-19}}$$
 
-The "why is it so small?" problem is not a fine-tuning — it is the cascade
+The "why is it so small?" problem is not a fine-tuning—it is the cascade
 itself, doing what the cascade always does. No axion, no Peccei-Quinn symmetry,
 no new particles. One constant, one de-resonance principle, one cascade.
 
@@ -31,7 +31,7 @@ where $\theta = \bar{\theta} + \arg\det M_q$ combines the bare vacuum angle
 $\bar{\theta}$ with the phase of the quark mass matrix $M_q$. Measurements of
 the neutron electric dipole moment constrain $\bar{\theta} < 10^{-10}$.
 Standard solutions invoke a new global symmetry (Peccei-Quinn) broken by the
-axion — a particle not yet observed.
+axion—a particle not yet observed.
 
 The puzzle: why is this one parameter so precisely zero when every other
 Standard Model parameter is $\mathcal{O}(1)$ in natural units?
@@ -45,7 +45,7 @@ Standard Model parameter is $\mathcal{O}(1)$ in natural units?
 The de-resonance principle (`principles/de-resonance-principle.md`) states
 that $\varphi$ is the maximally aperiodic, maximally stable configuration of
 the two-fluid system. CP violation is a **resonance phenomenon**: it requires
-a phase that locks across scales — a coherent alignment of the Yang and Yin
+a phase that locks across scales—a coherent alignment of the Yang and Yin
 subsystems at a specific ratio that breaks the CP symmetry.
 
 At the $\varphi$-attractor ($E_Y = \varphi E_I$, $q = \varphi^{-2}/(\varphi^2 +
@@ -58,7 +58,7 @@ PDE at its attractor carries no CP-violating term.
 
 QCD emerges as an effective field theory at cascade step 95 ($\Lambda_{\text{QCD}}
 \approx \ell_{\text{Pl}} \cdot \varphi^{95}$). The SU(3) gauge description is
-not fundamental — it is the low-energy effective description of the two-fluid
+not fundamental—it is the low-energy effective description of the two-fluid
 PDE in the confined regime. When the effective theory is parameterized in the
 standard gauge-theory language, a $\theta$-term appears. But its value is
 **not a free parameter**: it is determined by the cascade boundary conditions
@@ -98,7 +98,7 @@ suppression in proton decay. A CP-violating phase at rung $n_{\text{GUT}}$
 represents a **phase perturbation** that must survive propagation through
 $n_{\text{QCD}} - n_{\text{GUT}}$ intermediate rungs to reach the QCD scale.
 At each intermediate rung, the perturbation experiences the Qi gate's
-de-resonance — the $\varphi$-attractor actively damps phase perturbations
+de-resonance—the $\varphi$-attractor actively damps phase perturbations
 because they represent departures from the fixed point. The per-rung
 survival probability is $\varphi^{-1}$, and the cumulative suppression is
 the product:
@@ -107,7 +107,7 @@ $$P_{\text{survival}} = \prod_{i=n_{\text{GUT}}}^{n_{\text{QCD}}} \varphi^{-1} =
 
 Applied to the CP-violating seed: $\bar{\theta} = \delta_{\text{CP}} \cdot
 P_{\text{survival}}$. The cascade protection works the same way for CP as it
-does for proton decay — just with a different seed (CKM phase vs. random
+does for proton decay—just with a different seed (CKM phase vs. random
 ambient noise) and a different cascade span (87 rungs vs. 95 rungs).
 
 ---
@@ -119,7 +119,7 @@ U(1) symmetry and a new particle (the axion) to dynamically relax $\bar{\theta}$
 to zero. In Cassi, $\bar{\theta}$ is **already zero** at the $\varphi$-attractor,
 and the residual CP-violating contribution from CKM mixing is cascade-suppressed
 to $10^{-19}$. No new symmetry, no new particle, no new energy scale. The
-cascade does what the axion was invented to do — and does it with zero
+cascade does what the axion was invented to do—and does it with zero
 additional parameters.
 
 ---
@@ -136,18 +136,18 @@ additional parameters.
 All four are the same cascade architecture: a seed at an upper rung propagates
 through $N$ intermediate rungs of the $\varphi$-attractor and emerges at a
 lower rung suppressed by $\varphi^{-N}$. The observed values are not
-coincidences — they are cascade-step counts.
+coincidences—they are cascade-step counts.
 
 ---
 
 ## 5. How this closes the strong CP problem
 
 The strong CP problem exists because the Standard Model treats $\bar{\theta}$
-as a free parameter — an angle that could have any value between $0$ and $2\pi$,
+as a free parameter—an angle that could have any value between $0$ and $2\pi$,
 yet is observed to be $< 10^{-10}$. The Cassi framework treats $\bar{\theta}$
 as a **derived** quantity: its value is fixed by the cascade position of the
 CP-violating source (GUT scale) and the cascade depth to the QCD scale. The
-angle is not free — it is as determined as the proton's mass or the weak
+angle is not free—it is as determined as the proton's mass or the weak
 scale, and its smallness is the same $\varphi^{-N}$ scaling that explains all
 other hierarchy problems in the framework.
 
@@ -160,7 +160,7 @@ find a nonzero $\bar{\theta}$ significantly larger than $10^{-19}$.
 
 ## 6. References
 
-- `principles/de-resonance-principle.md` — $\varphi$ as maximally CP-conserving
-- `foundations/proton-coherence-budget.md` — cascade suppression mechanism
-- `standard-model/cp-violation.md` — $\delta_{\text{CP}} = \pi\varphi^{-2}$
-- `open-questions-cassi-answers.md` — Q2 (strong CP, now Derived)
+- `principles/de-resonance-principle.md`—$\varphi$ as maximally CP-conserving
+- `foundations/proton-coherence-budget.md`—cascade suppression mechanism
+- `standard-model/cp-violation.md`—$\delta_{\text{CP}} = \pi\varphi^{-2}$
+- `open-questions-cassi-answers.md`—Q2 (strong CP, now Derived)
