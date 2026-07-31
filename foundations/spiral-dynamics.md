@@ -1,12 +1,12 @@
 # Spiral Dynamics: Hubble, Gravity, and $c$ from Fibonacci Spiral Geometry
 
-## Status: Hypothesized — July 2026
+## Status: Hypothesized—July 2026
 
 ## Abstract
 
 The Fibonacci spiral traced by the $(E_Y, E_I)$ doublet in its internal SO(2)
 plane (derived in `spin-fibonacci-spiral.md`) is not only the geometric origin
-of spin — it is the **universal structure** from which cosmic expansion,
+of spin—it is the **universal structure** from which cosmic expansion,
 gravitational attraction, and the speed of light emerge as three projections
 of a single geometry. Each cascade rung corresponds to one full spiral turn;
 the Hubble expansion is the spiral's unwinding rate; gravity is gradient
@@ -30,7 +30,7 @@ $$\boxed{\Theta(n) = \Theta_0 + \frac{2\pi}{\ln\varphi} \cdot n}$$
 
 One full rotation ($2\pi$) per cascade rung ($\Delta n = 1$). The pitch is
 $2\pi/\ln\varphi \approx 13.06$ rad per e-fold in scale. This is the **Fibonacci
-spiral** — see `spin-fibonacci-spiral.md` for the full derivation.
+spiral**—see `spin-fibonacci-spiral.md` for the full derivation.
 
 Crucially, this spiral lives in the **internal** $(E_Y, E_I)$ plane, not
 physical 3D space. The doublet angle $\Theta = \text{atan2}(E_I, E_Y)$ is
@@ -43,11 +43,11 @@ Every physical process in the Cassi framework involves movement along this
 spiral:
 
 - **Advancing outward** (increasing $n$): the field expands through cascade
-  rungs — this IS cosmic expansion (§2).
+  rungs—this IS cosmic expansion (§2).
 - **Falling inward** (decreasing $n$): the field descends toward higher
-  coherence — this IS gravity (§3).
+  coherence—this IS gravity (§3).
 - **Propagating across**: a signal traverses one coherence wavelength per
-  conversion cycle — this sets $c$ (§4).
+  conversion cycle—this sets $c$ (§4).
 
 ---
 
@@ -76,7 +76,7 @@ strength $\lambda$, modulated by the Qi coherence $q$:
 
 $$\frac{dn}{dt} \approx \frac{\lambda}{2\pi} \cdot (1-q)$$
 
-where $(1-q)$ is the unresolved imbalance fraction — only the portion of the
+where $(1-q)$ is the unresolved imbalance fraction—only the portion of the
 field NOT at $\varphi$-equilibrium drives rung advancement. This gives
 
 $$\boxed{H \approx \frac{\lambda \cdot \ln\varphi}{2\pi} \cdot (1-q)}$$
@@ -130,7 +130,7 @@ as a function of distance from the coherence center. The total density $\rho =
 E_Y + E_I$ peaks at the center and falls off radially, while the imbalance $\Pi
 = E_Y - E_I$ oscillates with the spiral period.
 
-The gradient $\nabla\Phi$ naturally points **inward** — toward higher $\rho$,
+The gradient $\nabla\Phi$ naturally points **inward**—toward higher $\rho$,
 toward the coherent center of the spiral. This is why gravity is always
 attractive: the spiral only winds one way. There is no "reverse spiral" to
 create repulsive gravity.
@@ -143,7 +143,7 @@ because the imbalance $\Pi \propto \varphi^{-n}$ (each rung attenuates the
 deviation from equilibrium by $\varphi^{-1}$). The $1/r^2$ distance dependence
 is a property of 3D space (Gauss's law applied to $\nabla^2\Phi = \rho$ with
 spherical symmetry), not of the cascade. What the cascade explains is the
-**coupling strength** — why the gravitational coupling constant $\alpha_G$ is
+**coupling strength**—why the gravitational coupling constant $\alpha_G$ is
 $\varphi^{-2n}$ at cascade rung $n$. The distance law is geometry; the weakness
 is cascade depth.
 
@@ -157,7 +157,7 @@ $$\boxed{\alpha_G(n) \sim \varphi^{-2n}}$$
 For a proton ($n \approx 91.5$, Compton wavelength $\hbar/(m_p c) \approx
 2.10 \times 10^{-16}$ m relative to $\ell_{\text{Pl}}$), the prediction is
 $\varphi^{-183} \approx 5.9 \times 10^{-39}$. The observed value is $\alpha_G =
-G m_p^2 / (\hbar c) \approx 5.91 \times 10^{-39}$ — **a match to 0.1%**.
+G m_p^2 / (\hbar c) \approx 5.91 \times 10^{-39}$—**a match to 0.1%**.
 The ratio of gravitational to electromagnetic force between two protons follows
 as $\alpha_G / \alpha \approx 8.1 \times 10^{-37}$ (where $\alpha \approx
 1/137$). The "hierarchy problem" is not a problem; it is the cascade doing what
@@ -171,7 +171,7 @@ cascades do.
 
 A signal in the Cassi field propagates by conversion between $E_Y$ and $E_I$.
 At each conversion cycle (timescale $\sim 1/\lambda$), the signal advances by
-one **coherence length** — the distance over which the field maintains phase
+one **coherence length**—the distance over which the field maintains phase
 coherence across adjacent cascade rungs.
 
 At cascade rung $n$, the coherence length is $\ell_n = \ell_{\text{Pl}}
@@ -183,12 +183,12 @@ The information propagation speed is the product:
 
 $$c \sim \lambda_{\text{eff}}(n) \cdot \ell_n = (\lambda \cdot \varphi^{-n}) \cdot (\ell_{\text{Pl}} \cdot \varphi^n) = \lambda \cdot \ell_{\text{Pl}}$$
 
-The $\varphi^n$ factors cancel. **The speed of light is scale-invariant** — a
+The $\varphi^n$ factors cancel. **The speed of light is scale-invariant**—a
 signal at the Planck scale propagates one Planck length per conversion cycle;
 a signal at the cosmic scale propagates one cosmic coherence length per
 (proportionally slower) conversion cycle. Both give the same $c$.
 
-This is a dimensional consistency check, not a derivation — both $\lambda = 0.1$
+This is a dimensional consistency check, not a derivation—both $\lambda = 0.1$
 (empirical) and $\ell_{\text{Pl}}$ (external dimensionful anchor) are inputs.
 The framework predicts that their product should be scale-invariant, and that
 this invariant product IS the speed of light. Testing this requires calibrating
@@ -199,7 +199,7 @@ $\lambda$'s PDE inverse-time units against physical seconds (see
 
 $\ell_{\text{Pl}} = \sqrt{\hbar G / c^3} \approx 1.616 \times 10^{-35}$ m.
 The conversion rate $\lambda = 0.1$ is in PDE inverse-time units; to convert
-to physical units we need the timescale calibration. The PDE timescale is set
+to physical units requires the timescale calibration. The PDE timescale is set
 by the Hubble time at the current cascade rung:
 
 $$t_{\text{PDE}} \sim \frac{1}{H_0} \sim 4.4 \times 10^{17} \text{ s}$$
@@ -213,7 +213,7 @@ $$c \sim \lambda_{\text{eff}} \cdot \ell_{292} \sim (0.1 \cdot \varphi^{-292}) \
 The $\varphi^{-292}$ factor compensates the enormous coherence length, and
 the product should recover $c \approx 3 \times 10^8$ m/s. The exact
 numerical agreement depends on the PDE-to-physical-unit calibration, which
-is not yet pinned — but the structure of the cancellation is exact.
+is not yet pinned—but the structure of the cancellation is exact.
 
 ### 4.3 Photons as traveling spiral waves
 
@@ -272,7 +272,7 @@ spiral-linearized form $H \approx (\lambda\cdot\ln\varphi/2\pi)\cdot(1-q)$
 is the equilibrium limit; at early times the $(1+r)/r$ enhancement dominates.
 Both share the same mechanism: $H$ is driven by deviation from
 $\varphi$-equilibrium. The predicted correlation between $H$ and $(1-q)$ is
-strong ($R^2 > 0.99$), confirming the spiral mechanism — the exact
+strong ($R^2 > 0.99$), confirming the spiral mechanism—the exact
 proportionality constant depends on the dynamical regime.
 
 ### 6.2 Gravitational coupling from cascade depth
@@ -281,7 +281,7 @@ The prediction $\alpha_G \propto \varphi^{-2n}$ is verified analytically:
 for a proton ($n \approx 91.5$), $\varphi^{-183} \approx 5.9 \times 10^{-39}$
 matches the observed $\alpha_G = G m_p^2/(\hbar c) \approx 5.91 \times
 10^{-39}$ to within 0.1% (tested July 2026). This is a parameter-free
-prediction — only $\varphi$ and the cascade rung count $n$ are needed.
+prediction—only $\varphi$ and the cascade rung count $n$ are needed.
 The same formula should hold for any particle: the gravitational coupling
 at cascade rung $n$ is $\varphi^{-2n}$.
 
@@ -297,7 +297,7 @@ value of $c$ requires calibrating $\lambda$'s PDE units against physical time.
 If photons propagate one coherence length per conversion cycle, then the
 photon wavelength $\lambda_\gamma = c/\nu$ should equal the coherence length
 at the emission rung. This predicts a relationship between photon energy and
-the cascade rung of its source — testable by comparing emission spectra
+the cascade rung of its source—testable by comparing emission spectra
 across different cascade depths (atomic, nuclear, particle).
 
 ---
@@ -334,13 +334,13 @@ across different cascade depths (atomic, nuclear, particle).
 
 ## 8. References
 
-- `foundations/spin-fibonacci-spiral.md` — Fibonacci spiral derivation, internal vs spatial distinction
-- `cosmology/cosmology-from-phi.md` — Hubble from Yang-Yin ratio
-- `foundations/dimensionful-cascade.md` — cascade table, $\ell_n = \ell_{\text{Pl}}\varphi^n$
-- `foundations/cascade-suppression-formula.md` — per-rung attenuation $\varphi^{-1}$
-- `foundations/dimensionful-constants-status.md` — status of $c$, $\hbar$, $G$
-- `foundations/unified-lagrangian.md` — PDE coupling constants
-- `predictions/cassi_definitions.md` — framework glossary
-- `two-fluid/cassi_two_fluid_3d_gpu.py` — PDE solver with all three mechanisms
-- `run_pde_bubble_spiral.py` — bubble PDE test (July 2026)
-- `visual-explainers/spiral_string.py` — spiral chord string visualizer
+- `foundations/spin-fibonacci-spiral.md`—Fibonacci spiral derivation, internal vs spatial distinction
+- `cosmology/cosmology-from-phi.md`—Hubble from Yang-Yin ratio
+- `foundations/dimensionful-cascade.md`—cascade table, $\ell_n = \ell_{\text{Pl}}\varphi^n$
+- `foundations/cascade-suppression-formula.md`—per-rung attenuation $\varphi^{-1}$
+- `foundations/dimensionful-constants-status.md`—status of $c$, $\hbar$, $G$
+- `foundations/unified-lagrangian.md`—PDE coupling constants
+- `predictions/cassi_definitions.md`—framework glossary
+- `two-fluid/cassi_two_fluid_3d_gpu.py`—PDE solver with all three mechanisms
+- `two-fluid/run_pde_bubble_spiral.py`—bubble PDE test (July 2026)
+- `visual-explainers/spiral_string.py`—spiral chord string visualizer

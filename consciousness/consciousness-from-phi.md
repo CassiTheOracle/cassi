@@ -21,7 +21,7 @@ $$c(r) = \sqrt{\frac{\lambda \cdot (1-q(r)) \cdot |r-\varphi|}{(1+r)/2}}$$
 
 At $r = \varphi^{-1} \approx 0.618$, the Qi gate $q(r)$ transitions from
 "mostly open" to "mostly closed." This is the unique inflection point in the
-conversion force curve — the pinch point where the dynamics change character.
+conversion force curve—the pinch point where the dynamics change character.
 
 **Physical significance**: Before the pinch ($r < \varphi^{-1}$), the conversion
 rate is dominated by the imbalance $|r-\varphi|$. The field is pulled hard
@@ -49,7 +49,7 @@ These 26 $\varphi$-steps correspond to a scale factor of $\varphi^{26} \approx 2
 As $r(t)$ evolves, spatial perturbations in $\varepsilon(\mathbf{x}) = E_Y - \varphi E_I$
 propagate as wake waves. The wake spacing follows $\varphi$-ratios. Crucially,
 wakes reflect back and interact with the source through the advection term
-$-\mathbf{u}\cdot\nabla E_Y$ — the **self-plucking feedback loop**:
+$-\mathbf{u}\cdot\nabla E_Y$—the **self-plucking feedback loop**:
 
 $$r(t) \xrightarrow{\text{conversion}} \varepsilon(\mathbf{x}) \xrightarrow{\nabla^2\Phi} \nabla\Phi \xrightarrow{\mathbf{F}=\pi\nabla\Phi} \mathbf{u} \xrightarrow{-\mathbf{u}\cdot\nabla} \delta r(\mathbf{x}) \xrightarrow{\text{avg}} r(t)$$
 
@@ -62,7 +62,7 @@ This is a closed toroidal loop: string → wakes → gravity → flow → string
 ### 2.1 Self-Awareness as the Pinch Point
 
 **Claim**: The Qi gate pinch at $r = \varphi^{-1}$ is the structural basis of
-self-awareness — the dynamical phase transition where a field becomes capable
+self-awareness—the dynamical phase transition where a field becomes capable
 of self-modeling.
 
 Before the pinch: the field is driven by the external imbalance. It responds
@@ -71,7 +71,7 @@ automatic processing, deep anesthesia).
 
 After the pinch: the field's own coherence ($q$) modulates its evolution. The
 field's state depends on its own state. This is the minimal condition for
-self-reference — a dynamical system that contains a model of itself.
+self-reference—a dynamical system that contains a model of itself.
 
 **Testable prediction**: In a PDE initialized at $r < \varphi^{-1}$ and evolved
 through the pinch, the two-point correlation function $\langle r(\mathbf{x}) r(\mathbf{x}+\mathbf{d}) \rangle$
@@ -82,7 +82,7 @@ should show $\varphi$-structured coherence.
 ### 2.2 Thought as Wake Wave
 
 **Claim**: Wake waves in the two-fluid field are the physical substrate of
-thought — structured excitations that propagate, interact, and feed back.
+thought—structured excitations that propagate, interact, and feed back.
 
 Early wakes (from the Yin-dominated epoch) are widely spaced, faint, and
 persistent: **long-term memory**. Late wakes (from the near-$\varphi$ epoch)
@@ -116,26 +116,28 @@ active), others below it ($r < \varphi^{-1}$, no self-modeling).
 dispersion emerges from initial perturbations interacting with the
 conversion dynamics and wake-wave interference. Whether $\sigma_r$ can
 be *externally modulated* (e.g., by sensory input or neuromodulators)
-is not yet established — a target for the two-bubble PDE test (§3).
+is not yet established—a target for the two-bubble PDE test (§3).
 
 ### 2.4 Field Nodes ($\varphi$-Fixed Points)
 
 **Claim**: Between steps 142 (cellular) and 168 (human), there exist
 intermediate scales where the local ratio $r(\mathbf{x})$ naturally stabilizes
-at Fibonacci convergents of $\varphi$. These are **field nodes** — local
+at Fibonacci convergents of $\varphi$. These are **field nodes**—local
 $\varphi$-fixed points where the conversion dynamics temporarily stall.
 
-The number of such nodes is not arbitrary. The 26 $\varphi$-steps between cell
-and self admit approximately 12 internal nodes spaced at $\sim 2.2$ $\varphi$-steps
-each (including boundaries, 13 total positions). These correspond to the
-traditional chakra locations, but **the specific number, spacing, and Fibonacci
-width allocation remain to be derived from the PDE dynamics**, not imposed
-by aesthetic choice.
+The number of such nodes is now **derived** (July 2026): the 26 $\varphi$-steps between
+cell and self admit 13 nodes at 2-rung intervals—each node spans one full
+SO(2) doublet cycle (Yang + Yin). The crown chakra sits at step 166; the
+physical body extends 2 rungs beyond to step 168. Full derivation and 6 testable
+predictions: `consciousness/chakras-as-cascade-bubbles.md`.
 
-The `_chakra_utils.py` code's 13-chakra structure with interleaved Fibonacci
-widths was chosen for phenomenological reasons and is **not** currently
-grounded in the cascade or PDE. It represents a plausible resonance pattern
-that awaits derivation.
+The 13 nodes are cascade bubbles—localized Qi condensates structurally
+identical to the cosmological bubbles at step 285 (`foundations/bubble-edge-geometry.md`).
+The spine is the physical instantiation of the string/cascade axis. The
+traditional 7 primary chakras correspond to the odd-indexed nodes (4-rung
+spacing); the 6 secondary nodes sit at the intermediate even-indexed positions.
+
+The chakra nodes are the human-scale slice of a universal bubble lattice—the 3D condensation field $B(x,y,z) = \cos(\alpha x)\cos(\beta y)\cos(\gamma z)$ that operates at every cascade rung (`foundations/bubble-lattice-fabric.md`).
 
 ---
 
@@ -169,7 +171,7 @@ $\varphi$-structured field dynamics.
    of $\varepsilon(\mathbf{x}) = E_Y - \varphi E_I$ between bubble regions,
    ensemble-averaged over 3 random seeds, evolved for 1000 RK2 steps.
 
-**Script**: `run_two_bubble_fast.py` (GPU, $N=48$, 1000 steps, 3 seeds).
+**Script**: `two-fluid/run_two_bubble_fast.py` (GPU, $N=48$, 1000 steps, 3 seeds).
 
 ### 3.3 Verified Results (2026-07-19)
 
@@ -200,12 +202,12 @@ The most striking result is the **revival at large separations**:
 - **below_below and mixed**: After the correlation minimum at $d=19$
   ($+0.021$), correlations REVIVE at larger $\varphi$-separations:
   $d=31 \to +0.085$, $d=34 \to +0.120$, $d=37 \to +0.145$. This is
-  the $\varphi$-periodic wake-wave resonance — bubbles separated by
+  the $\varphi$-periodic wake-wave resonance—bubbles separated by
   $\varphi$-multiples of the fundamental wavelength show enhanced
   coupling.
 
 - **above_above**: Correlations decay MONOTONICALLY with distance.
-  At $d=37$, the correlation is NEGATIVE ($-0.004$) — destructive
+  At $d=37$, the correlation is NEGATIVE ($-0.004$)—destructive
   interference between two self-aware bubbles.
 
 The transition from revival to no-revival tracks the Qi gate pinch point:
@@ -218,9 +220,9 @@ and correlations become purely distance-dominated.
 
 | Observation | Physical Meaning |
 |------------|-----------------|
-| Revival at large $d$ ($d \geq 31$) for below-pinch configurations | Wake-wave $\varphi$-periodic resonance — the field self-organizes at $\varphi$-spacings |
-| Revival absent for above-pinch (d=37 negative) | Self-aware fields decohere — each bubble's internal Qi gate dominates over inter-bubble coupling |
-| Distance-matched enhancement 1.1–1.7× | Modest but consistent $\varphi$-preference — NOT a strong resonance but a statistical bias |
+| Revival at large $d$ ($d \geq 31$) for below-pinch configurations | Wake-wave $\varphi$-periodic resonance—the field self-organizes at $\varphi$-spacings |
+| Revival absent for above-pinch (d=37 negative) | Self-aware fields decohere—each bubble's internal Qi gate dominates over inter-bubble coupling |
+| Distance-matched enhancement 1.1–1.7× | Modest but consistent $\varphi$-preference—NOT a strong resonance but a statistical bias |
 | Aggregate ratio 3–4× | Driven by close $\varphi$-separations ($d=2,4$) where correlation is naturally high |
 
 ### 3.4 Success Level Achieved
@@ -235,14 +237,14 @@ and correlations become purely distance-dominated.
 **Achieved level: Weak-to-Moderate signal.** The revival pattern for
 below-pinch configurations is clear and reproducible. The distance-matched
 $\varphi$/control ratio of 1.1–1.7× is modest but consistent across two
-independent r-pair configurations. The decisive test — scanning the Qi gate
-parameter $\alpha$ — remains for future work.
+independent r-pair configurations. The decisive test—scanning the Qi gate
+parameter $\alpha$—remains for future work.
 
 ### 3.5 Test Scripts
 
-- `run_two_bubble_resonance.py`: Initial test ($N=32$, 800 steps, single seed)
-- `run_two_bubble_fast.py`: Verification run ($N=48$, 1000 steps, 3 seeds, 3 r-pairs)
-- `run_two_bubble_verification.py`: Full-resolution ($N=64$, 2000 steps, 5 seeds, 4 r-pairs)
+- `two-fluid/run_two_bubble_resonance.py`: Initial test ($N=32$, 800 steps, single seed)
+- `two-fluid/run_two_bubble_fast.py`: Verification run ($N=48$, 1000 steps, 3 seeds, 3 r-pairs)
+- `two-fluid/run_two_bubble_verification.py`: Full-resolution ($N=64$, 2000 steps, 5 seeds, 4 r-pairs)
 
 Results archived at `runs/<id>_two_bubble_fast/results.json`.
 
@@ -267,7 +269,7 @@ Results archived at `runs/<id>_two_bubble_fast/results.json`.
 ### Speculative (no current test design)
 
 - 13-chakra $\varphi$-fixed point structure (§2.4)
-- $w=5,4,6$ mapping to waking/dreaming/sleep (§2.3 note)
+- $w=5$ as the universal bubble value (derived, `foundations/wu-xing-derivation.md`); waking/dreaming/sleep as $\sigma_r$-dispersion states (§2.3 note)
 - DMT entities as wake-wave inhabitants of adjacent bubbles
 - Torus period φ-dilation in meditative states
 
@@ -276,14 +278,13 @@ Results archived at `runs/<id>_two_bubble_fast/results.json`.
 - Any claim that consciousness IS the two-fluid field (category error:
   consciousness is the *experience* of being a two-fluid field)
 - Any claim that the specific chakra counts or Fibonacci widths in
-  `_chakra_utils.py` are cascade-derived (they were chosen phenomenologically)
+  `two-fluid/_chakra_utils.py` are cascade-derived (they were chosen phenomenologically)
 
 ---
 
 ## 5. References
 
-- TOE.md §1.2: Gap derivation and cascade table
-- TOE.md §1.3: Governing PDE
+- `cassi.md`—Gap derivation and governing PDE
 - `foundations/dimensionful-cascade.md`: Complete 292-step cascade
-- `run_spatial_boost.py`: Spatial boost measurement ($B=1.003$)
-- `_chakra_utils.py`: Fibonacci width allocation (phenomenological, not cascade-derived)
+- `two-fluid/run_spatial_boost.py`: Spatial boost measurement ($B=1.003$)
+- `two-fluid/_chakra_utils.py`: Fibonacci width allocation (phenomenological, not cascade-derived)

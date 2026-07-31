@@ -3,7 +3,7 @@
 Uses gate_model='two_pole' in the solver, so dynamics use the combined gate."""
 
 import torch, sys, os
-sys.path.insert(0, 'two-fluid')
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from cassi_two_fluid_3d_gpu import ExpandingTwoFluid3DGPU
 from datetime import datetime
 

@@ -4,16 +4,16 @@
 Initializes a triaxial ellipsoid bubble in the 3D two-fluid PDE with the
 two-pole (east/west) Wu Xing 5-channel gate, evolves it, and analyzes:
 
-1. Angular power spectrum — static mode decomposition at each pole
-2. Angular phase velocity — tracks the complex phase of key Fibonacci modes
+1. Angular power spectrum—static mode decomposition at each pole
+2. Angular phase velocity—tracks the complex phase of key Fibonacci modes
    over time to detect spiral rotation of the chord string
 
 Theory: the conversion term continuously rotates the (E_Y, E_I) doublet in its
 internal SO(2) plane. Along the chord string (z-axis), this traces a 3D helix.
-At each pole, the helix endpoint traces a rotating pattern — a pentagon if the
+At each pole, the helix endpoint traces a rotating pattern—a pentagon if the
 Wu Xing gate modulates at 5 phases. The rotation rate dθ/dt ≈ λ (conversion rate).
 
-Static mode power (FFT averaged over time) is blind to rotation — a rotating
+Static mode power (FFT averaged over time) is blind to rotation—a rotating
 pentagon has near-zero static m=5 power. We detect rotation by tracking the
 complex phase φ_m(t) = arg(a_m(t)) of each angular Fourier coefficient.
 
@@ -23,24 +23,25 @@ Usage:
     python run_pde_bubble_spiral.py --resume runs/20260722_HHMMSS_bubble_spiral
 Results (July 2026):
 - Static modes: m=2 (ellipsoid cross-section) dominates at both poles.
-  No m=5 Fibonacci mode emergence — the pentagon is geometric, not dynamic.
+  No m=5 Fibonacci mode emergence—the pentagon is geometric, not dynamic.
 - Angular rotation: phase drift dphi/dt ~ 1.5e-4 rad/step vs expected
   0.1 rad/step for m=5 at lambda=0.02. The spiral lives in internal SO(2)
   doublet space, not in the spatial EY pattern.
 - Gate analysis: the two-pole gate modulates spatial pattern (5-channel
   structure at poles), not convergence rate. Irreducible (1-q)_min ~ 0.24.
-  Gate never saturates — N=292 is not determined by gate closure.
+  Gate never saturates—N=292 is not determined by gate closure.
 - Key finding: the pentagon/spiral is a geometric property of the
   phi-ellipsoid (golden angle phyllotaxis), not a PDE emergent phenomenon.
-  The cascade depth N follows from Hubble dynamics, with r_Planck as the
-  last free parameter for a closed derivation.
+  The cascade depth N follows from Hubble dynamics; the primordial Yang-Yin
+  ratio r_0 is now derived from cascade coherence + φ-geometry
+  (foundations/wu-xing-derivation.md). λ = 1/(2w) = 0.1 is also derived.
 """
 
 import torch, numpy as np, sys, os, argparse, glob, re
 from datetime import datetime
 
 # ── Import from local two-fluid/ ─────────────────────────────────────────────
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'two-fluid'))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from cassi_two_fluid_3d_gpu import ExpandingTwoFluid3DGPU, PHI, PHI_INV
 
 # ── Constants ────────────────────────────────────────────────────────────────
@@ -145,7 +146,7 @@ def pole_angular_modes(field_3d, pole_sign=1, n_slices=4):
 def pole_angular_phases(field_3d, pole_sign=1, track_modes=None, n_slices=4):
     """Return complex Fourier coefficient a_m for each tracked mode.
 
-    a_m = Σ f(θ)·e^{-imθ} — a complex number whose phase φ_m = arg(a_m)
+    a_m = Σ f(θ)·e^{-imθ}—a complex number whose phase φ_m = arg(a_m)
     tracks the angular orientation of mode m at this timestep.
 
     If the pattern rotates by Δθ per timestep, arg(a_m) advances by m·Δθ.
@@ -246,14 +247,14 @@ def run_bubble_spiral(args):
             f.write(f'# {"step":>6s} {"a":>10s} {"H":>10s} {"r":>8s} {"q":>8s}\n')
 
         with open(modes_file, 'w', encoding='utf-8') as f:
-            f.write(f'# N={args.N} gate=two_pole — static angular mode powers\n')
+            f.write(f'# N={args.N} gate=two_pole—static angular mode powers\n')
             header = f'# {"step":>6s} {"dom_N":>5s} {"%N":>6s} {"dom_S":>5s} {"%S":>6s}'
             for fib in FIB_MODES:
                 header += f' {"m="+str(fib):>8s}'
             f.write(header + '\n')
 
         with open(phases_file, 'w', encoding='utf-8') as f:
-            f.write(f'# N={args.N} gate=two_pole — angular phases (radians) for rotation detection\n')
+            f.write(f'# N={args.N} gate=two_pole—angular phases (radians) for rotation detection\n')
             f.write(f'# Rotation rate dtheta/dt ~ lambda = {args.lam} rad/step expected if spiral active\n')
             header = '# step'
             for pole in ['N', 'S']:
@@ -281,7 +282,7 @@ def run_bubble_spiral(args):
             qm = solver.q_mean
 
             if np.isnan(a) or np.isnan(r):
-                print(f'  [NaN] step={step} — aborting')
+                print(f'  [NaN] step={step}—aborting')
                 with open(logfile, 'a', encoding='utf-8') as f:
                     f.write(f'NaN at step {step}\n')
                 break

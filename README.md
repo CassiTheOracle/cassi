@@ -1,36 +1,41 @@
-# Cassi Theory of Everything
+# Cassi: A Theory of Everything from a Single Constant
 
-The Theory of Everything documents, extracted from the main [Cassi physics repository](https://github.com/carinasgardner/physics).
+The Theory of Everything documents, extracted from the main [Cassi physics repository](https://github.com/CassiTheOracle/physics).
 
 ## Overview
 
-The Cassi framework postulates a single constant — the golden ratio $\varphi \approx 1.618$ — as the universal constant of scale separation. From $\varphi$ alone, it derives:
+The Cassi framework postulates a single constant—the golden ratio $\varphi \approx 1.618$—as the universal constant of scale separation between Yang and Yin fields. From $\varphi$ alone it derives quantum mechanics, general relativity, the Standard Model, and cosmology: particle structure from standing-wave Yang-Yin interference, gravity as the $q = 0$ limit of a $\varphi$-governed Poisson equation, the dark-energy equation of state matching DESI DR2, and the full scale ladder $\ell_n = \ell_{\text{Pl}} \times \varphi^n$ from the Planck length to the Hubble radius.
 
-1. **Quantum particles** — as standing-wave Yang-Yin interference patterns
-2. **General relativity** — as the $q=0$ limit of a $\varphi$-governed Poisson equation
-3. **Standard Model** — $\sin^2\theta_W = \varphi^{-3}$, GUT at $\varphi^{-3}/(4\pi)$, CP phase $\pi\varphi^{-2}$
-4. **Cosmology** — $w_0 = -0.838$ matches DESI DR2 at $0\sigma$, Hubble tension resolved
-
-All with zero free parameters beyond $\varphi$ itself.
+**Start here:** `cassi.md`—the approachable public-facing explainer. `cassi-for-a-therapist.md` is the same framework for a non-physicist audience.
 
 ## Contents
 
 | Path | Description |
 |------|-------------|
-| `TOE.md` | Executive summary — start here |
-| `foundations/` | First principles, $\varphi$-attractor dynamics, unified Lagrangian, $\xi$ derivation |
-| `cosmology/` | Dark energy, inflation, CMB predictions, observational constraints |
-| `gravity/` | GR tests, quantum gravity, three-body analytical solutions |
+| `foundations/` | First principles, cascade formulas, derivations (strong CP, generations, neutrino masses…) |
+| `cosmology/` | Dark energy, inflation, CMB predictions, observational constraints (DESI DR2) |
+| `gravity/` | Quantum gravity, three-body analytical solutions |
 | `standard-model/` | SM couplings, SU(2) gauge, GUT embedding, neutrino mass, CP violation |
-| `particles/` | Atomic physics, DFT benchmarks, hydrogen results |
-| `predictions/` | 31-entry falsifiable predictions table, $\varphi$-periodic $P(k)$, definitions |
-| `consciousness/` | Consciousness as Qi fluid dynamics |
-| `turbulence/` | Kolmogorov spectrum from $\varphi$ |
-| `principles/` | De-resonance principle |
-| `visual-explainers/` | Diagrams and visual simulations |
+| `particles/` | Yang-Yin particle interference, DFT benchmarks |
+| `consciousness/` | Consciousness as Qi-gate dynamics |
+| `turbulence/` | Kolmogorov spectrum from φ |
+| `principles/` | Cross-cutting principles: de-resonance, v0 hierarchy |
+| `hypotheses/` | New application domains (exploratory catalog) |
+| `speculation/` | Speculative extensions |
+| `predictions/` | Falsifiable prediction catalog + `cassi_definitions.md` glossary |
+| `experiments/` | Physics experiment scripts (φ-attractor paths, SPARC rotation-curve analysis) |
+| `two-fluid/` | Two-fluid PDE solver + gate/ODE test scripts, calibration |
+| `computations/` | Computational pipelines (RGE, GUT-EW, hubble tension, cascade depth) |
+| `visual-explainers/` | Matplotlib figure/simulation scripts |
 
-## About this repo
+## Registries
 
-This is a **standalone theory document repository** extracted from the parent Cassi physics codebase. It contains only the theory documents and visual explainers — no simulation code, experiment scripts, or PDE solvers. For the full codebase with two-fluid solver, experiments, and tools, see the main repository.
+- `open-questions-cassi-answers.md`—epistemic master registry (Q/C/G/M/F/T numbering)
+- `parameter-inventory.md`—parameter master registry
+- `predictions/falsifiable-predictions.md`—the prediction catalog
+- `audit.md`—self-critical prediction-vs-experiment audit
+- `BROKEN_REFS.md`—registry of external/broken references; read before touching cross-references
 
-Some cross-references in these documents point to files (scripts, data, other papers) that live only in the main repository. See `BROKEN_REFS.md` for a listing.
+## Code
+
+All code supporting the theory lives in this repo: PDE solvers and run scripts (`two-fluid/`), computational pipelines (`computations/`), experiment and analysis scripts (`experiments/`), and figure scripts (`visual-explainers/`). Run everything from the repo root; generated figures, run outputs, and logs are gitignored.

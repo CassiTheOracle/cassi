@@ -1,0 +1,133 @@
+#!/usr/bin/env python3
+"""
+w_a with Qi-Gravity: Full modified ODE pipeline
+================================================
+
+Compute w(a) and w_a from the two-fluid ODE with and without
+the Qi-gravity coupling xi = phi^6 that modifies H_eff.
+
+H_eff = H_bare * sqrt(1 + xi * q(r))
+w(a) = -1 - (2/3) * d ln H_eff / d ln a
+
+Run: python wa_qi_gravity_test.py
+"""
+
+import numpy as np
+import math
+
+PHI = (1 + math.sqrt(5)) / 2
+LAM = 0.1
+XI = PHI**6  # ≈ 17.944
+P2 = PHI**(-2)
+
+def q_gate(r):
+    """Qi gate: q = 1 / (1 + phi^-2 + (r-phi)^2/(1+r)^2)"""
+    eps_sq = (r - PHI)**2 / (1 + r)**2
+    return 1.0 / (1.0 + P2 + eps_sq)
+
+def one_minus_q(r):
+    return 1.0 - q_gate(r)
+
+def H_bare(r):
+    """Homogeneous Hubble from two-fluid ODE."""
+    H_empty = (LAM / 3.0) * P2
+    H_c = (LAM / 3.0) * (PHI - r) * (1.0 + r) / r
+    return H_c + H_empty
+
+def H_eff(r):
+    """Hubble with Qi-gravity enhancement."""
+    return H_bare(r) * math.sqrt(1.0 + XI * q_gate(r))
+
+def dr_dt(r):
+    """dr/dt = -lambda * (1-q) * (phi - r) * (1 + r) for r < phi."""
+    return -LAM * one_minus_q(r) * (PHI - r) * (1.0 + r)
+
+def compute_w_a(n_pts=10000, xi_val=XI):
+    """Integrate ODE and compute w_0, w_a."""
+    
+    # Start at a_i where r is near attractor
+    # Use a_i = 0.01 (z=99) with a tiny offset from phi
+    a_i = 0.01
+    r_i = PHI - 1e-6  # very close to phi at z=99
+    
+    # Integration grid in ln(a)
+    ln_a = np.linspace(math.log(a_i), math.log(1.0), n_pts)
+    a_grid = np.exp(ln_a)
+    da = a_grid[1:] - a_grid[:-1]
+    
+    r = np.zeros(n_pts)
+    r[0] = r_i
+    
+    # Integrate dr/da
+    for i in range(n_pts - 1):
+        a_mid = 0.5 * (a_grid[i] + a_grid[i+1])
+        r_cur = r[i]
+        
+        # Modified H for this run
+        H_val = H_bare(r_cur) * math.sqrt(1.0 + xi_val * q_gate(r_cur))
+        
+        drda = dr_dt(r_cur) / (H_val * a_mid)
+        r[i+1] = r_cur + drda * da[i]
+        # Clamp: r must stay below phi
+        if r[i+1] > PHI - 1e-15:
+            r[i+1] = PHI - 1e-15
+    
+    # Compute H(a) and w(a)
+    H_vals = np.array([H_bare(rr) * math.sqrt(1.0 + xi_val * q_gate(rr)) for rr in r])
+    
+    # d ln H / d ln a via central differences
+    dlnH_dlna = np.zeros(n_pts)
+    for i in range(1, n_pts - 1):
+        dH = (H_vals[i+1] - H_vals[i-1]) / (a_grid[i+1] - a_grid[i-1])
+        dlnH_dlna[i] = (a_grid[i] / H_vals[i]) * dH
+    
+    # Endpoints: one-sided
+    dH_0 = (H_vals[1] - H_vals[0]) / (a_grid[1] - a_grid[0])
+    dlnH_dlna[0] = (a_grid[0] / H_vals[0]) * dH_0
+    dH_n = (H_vals[-1] - H_vals[-2]) / (a_grid[-1] - a_grid[-2])
+    dlnH_dlna[-1] = (a_grid[-1] / H_vals[-1]) * dH_n
+    
+    w_vals = -1.0 - (2.0/3.0) * dlnH_dlna
+    
+    # Fit w(a) = w_0 + w_a*(1-a) over a ∈ [0.33, 1.0] (z ∈ [0, 2])
+    mask = a_grid >= 0.33
+    a_fit = a_grid[mask]
+    w_fit = w_vals[mask]
+    
+    # Linear regression: w = w_0 + w_a*(1-a)
+    X = np.column_stack([np.ones_like(a_fit), 1.0 - a_fit])
+    coeffs = np.linalg.lstsq(X, w_fit, rcond=None)[0]
+    w0_fit, wa_fit = coeffs[0], coeffs[1]
+    
+    return a_grid, w_vals, w0_fit, wa_fit, r
+
+# ── Run with and without Qi-gravity ────────────────────────────────────────
+print("=== w_a: Effect of Qi-Gravity Coupling xi = phi^6 ===")
+print()
+
+# Bare (xi=0)
+a_bare, w_bare, w0_bare, wa_bare, r_bare = compute_w_a(xi_val=0.0)
+print(f"Bare (xi=0):     w_0 = {w0_bare:.4f},  w_a = {wa_bare:+.4f}")
+
+# With Qi-gravity (xi=phi^6)
+a_xi, w_xi, w0_xi, wa_xi, r_xi = compute_w_a(xi_val=XI)
+print(f"Qi-gravity (xi): w_0 = {w0_xi:.4f},  w_a = {wa_xi:+.4f}")
+
+# DESI
+print(f"DESI DR2:        w_0 = -0.838,  w_a = -0.51  (+/- 0.064, 0.20)")
+print()
+
+# Shifts
+dw0 = w0_xi - w0_bare
+dwa = wa_xi - wa_bare
+print(f"Shift from Qi-gravity:")
+print(f"  Δw_0 = {dw0:+.4f}")
+print(f"  Δw_a = {dwa:+.4f}")
+
+# Check w at several redshifts
+print()
+print("w(a) at key redshifts:")
+for z_label, a_val in [("z=0", 1.0), ("z=0.5", 1/1.5), ("z=1", 0.5), ("z=2", 1/3)]:
+    idx = np.searchsorted(a_bare, a_val)
+    idx = min(idx, len(w_bare)-1)
+    print(f"  {z_label:>6s} (a={a_val:.3f}): w_bare={w_bare[idx]:.4f}, w_xi={w_xi[idx]:.4f}")

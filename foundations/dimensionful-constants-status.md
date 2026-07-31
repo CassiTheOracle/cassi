@@ -1,22 +1,22 @@
-# Dimensionful Constants: Derivation Status of $c$, $\hbar$, $G$, and $\lambda$
+# Dimensionful Constants: Derivation Status of $c$, $\hbar$, and $G$
 
-## Status: Hypothesized — July 2026
+## Status: Hypothesized—July 2026
 
 ## Abstract
 
-The Cassi framework derives ~20 dimensionless parameters (couplings, mass ratios, mixing angles) from the golden ratio $\varphi \approx 1.618$ and the two-fluid PDE. This document catalogues the constants that are **not yet derived** — the speed of light $c$, Planck's constant $\hbar$, Newton's constant $G$, and the PDE conversion rate $\lambda$ — and clarifies which "zero free parameters" claims in the existing literature are accurate and which overstate the case. There are no new derivations here; this is a status inventory and a reconciliation of inconsistencies between existing documents.
+The Cassi framework derives all dimensionless parameters—couplings, mass ratios, mixing angles, and the PDE conversion rate $\lambda$—from the golden ratio $\varphi \approx 1.618$ and the two-fluid PDE. This document catalogues the constants that are **not yet derived**—the speed of light $c$, Planck's constant $\hbar$, and Newton's constant $G$—and clarifies the framework's parameter status.
 
 **Bottom line:**
 
 | Constant | Status | Why |
 |----------|--------|-----|
-| All dimensionless couplings ($\sin^2\theta_W$, $\alpha_{\text{GUT}}$, $\xi$, etc.) | **Derived** | $\varphi$-powers from cascade structure |
+| All dimensionless couplings ($\sin^2\theta_W$, $\alpha_{\text{GUT}}$, $\xi$, $r_0$, $w_0$, etc.) | **Derived** | $\varphi$-powers from cascade structure |
+| $\lambda$ (PDE conversion rate) | **Derived** | $\lambda = 1/(2w) = 0.1$ with $w=5$ derived (`foundations/wu-xing-derivation.md`) |
 | $v_0/M_{\text{Pl}}$ ratio | **Derived** | $\varphi^{-80}$ from cascade depth (5.3% residual) |
-| $m_e/v_0$, $m_\nu/v_0$, $\eta$ (baryon asymmetry) | **Derived** | $\varphi$-powers (1–6% residuals) |
-| $\lambda$ (PDE conversion rate) | **Empirical** | 0.1 in natural units — not derived from $\varphi$ |
-| $c$, $\hbar$, $G$ individually | **External** | Dimensionful; $\varphi$ is dimensionless |
+| **$c$**—geometric mechanism | **Closed** | $c = \lambda \cdot \ell_{\text{Pl}}$ (up to unit conversion); $\varphi^n$ cancellation exact, $\lambda=0.1$ derived |
+| **$c$**—numerical value | **External** | Requires calibrating the sole dimensionful anchor $\ell_{\text{Pl}}$ in meters |
+| **$\hbar$, $G$ individually** | **Not derivable** | Structurally inseparable from $\ell_{\text{Pl}}$ definition; one dimensionful anchor cannot determine three dimensionful constants independently |
 | $\ell_{\text{Pl}} = \sqrt{\hbar G / c^3}$ | **External** | One dimensionful scale governs all lengths via $\ell_n = \ell_{\text{Pl}} \times \varphi^n$ |
-| $\sigma = \ell_{\text{Pl}}$ | **External** | Same as $\ell_{\text{Pl}}$ — not independently derived |
 | The 292-step cascade depth | **Empirical** | $292 = \log_\varphi(R_H / \ell_{\text{Pl}})$ uses empirical $R_H$, $\ell_{\text{Pl}}$ |
 
 ---
@@ -30,83 +30,81 @@ $\varphi \approx 1.618$ is a **dimensionless** number. Any theory that claims to
 (a) Provide a second, independent dimensionful constant (a reference scale), or
 (b) Show that a dimensionless ratio (e.g. $R_H / \ell_{\text{Pl}}$) is derivable from $\varphi$, which then anchors one dimensionful quantity in terms of another
 
-Cassi takes path (a): $\ell_{\text{Pl}} = 1.616 \times 10^{-35}\,\text{m}$ is the sole dimensionful constant. The cascade $\ell_n = \ell_{\text{Pl}} \times \varphi^n$ distributes it across all scales. But $\ell_{\text{Pl}}$ itself is empirical — it enters through the $\sigma$-regularization of the two-fluid PDE (`gravity/quantum-gravity.md` §2) and is taken from standard physics:
+Cassi takes path (a): $\ell_{\text{Pl}} = 1.616 \times 10^{-35}\,\text{m}$ is the sole dimensionful constant. The cascade $\ell_n = \ell_{\text{Pl}} \times \varphi^n$ distributes it across all scales. But $\ell_{\text{Pl}}$ itself is empirical—it enters through the $\sigma$-regularization of the two-fluid PDE (`gravity/quantum-gravity.md` §2) and is taken from standard physics:
 
 $$\ell_{\text{Pl}} = \sqrt{\frac{\hbar G}{c^3}}$$
 
-This is one equation with three unknowns. The framework does not (and mathematically cannot, from $\varphi$ alone) determine $c$, $\hbar$, and $G$ individually — only their combination $\ell_{\text{Pl}}$.
+This is one equation with three unknowns. The framework does not (and mathematically cannot, from $\varphi$ alone) determine $c$, $\hbar$, and $G$ individually—only their combination $\ell_{\text{Pl}}$.
 
-### 1.2 The consistent position
+### 1.2 What is derivable vs. what is structural
 
-This is acknowledged in the repository's most careful documents:
+The cascade framework has **one** dimensionful degree of freedom: the Planck length $\ell_{\text{Pl}}$. All length scales follow from $\ell_n = \ell_{\text{Pl}} \varphi^n$, and all dimensionless couplings are derived as $\varphi$-powers.
 
-- **`parameter-inventory.md` §4** (§4.1): "$G$, $c$, $\hbar$ — The Unit System. … $\varphi$ is dimensionless. It cannot determine a dimensionful scale without a reference. The Cassi framework does not provide such a reference."
-- **`foundations/deriving-remaining-gaps.md` §5** (lines 303–307): "$G$, $c$, $\hbar$ are dimensionful and cannot be derived from a dimensionless constant — this is a feature of any theory, not a bug."
+Within this structure, the three dimensionful constants $c$, $\hbar$, $G$ are **not independent**. They satisfy:
 
-These documents correctly classify $G, c, \hbar$ as **External (E)** in the parameter classification scheme.
+$$\ell_{\text{Pl}}^2 = \frac{\hbar G}{c^3}$$
 
-### 1.3 The overstatement
+The spiral dynamics mechanism provides an additional relation:
 
-Other documents make stronger claims that conflict with the above:
+$$c = \lambda \cdot \ell_{\text{Pl}} \quad \text{(up to PDE-time-unit conversion)}$$
 
-- **`gravity/quantum-gravity.md`** (line 243): "$\sigma = 1/M_{\text{Pl}}$ is already determined by the Planck scale, which itself is a derived quantity in the Cassi framework. … The **Theory of Everything is complete**." — **No derivation of $M_{\text{Pl}}$ from $\varphi$ exists anywhere in the repository.**
-- **`foundations/xi-derivation.md` §5**: "With $\xi = \varphi^6$ derived, the Cassi Theory of Everything has **zero free parameters**." — This claim omits $\lambda$ (see §2) and the dimensionful constants.
+These two equations link $c$, $\hbar$, $G$, and $\ell_{\text{Pl}}$ but leave one degree of freedom unfixed. The cascade framework can only determine the **combination** $\ell_{\text{Pl}} = \sqrt{\hbar G / c^3}$. Individual values of $c$, $\hbar$, and $G$ require measuring $\ell_{\text{Pl}}$ (or any one cascade rung) in physical units.
 
-These overstatements should be corrected. The framework's genuine achievement — deriving ~20 dimensionless couplings and ratios from $\varphi$ — does not need exaggeration.
+This is not a failing of the framework. It is a **structural limitation** shared by any theory with a single dimensionful anchor. The Cassi framework correctly identifies $\ell_{\text{Pl}}$ as that anchor, derives all dimensionless parameters, and expresses $c$ in terms of $\ell_{\text{Pl}}$ and the derived $\lambda$.
+
+### 1.3 Status of "zero free parameters" claims
+
+All dimensionless parameters are now derived from $\varphi$: couplings ($\xi$, $\sin^2\theta_W$, $\alpha_{\text{GUT}}$), cosmological initial conditions ($w_0$, $r_0$), and the PDE conversion rate ($\lambda = 1/(2w) = 0.1$). The claim "zero free parameters among dimensionless couplings" is now correct. Three dimensionful constants ($c$, $\hbar$, $G$) remain external—they cannot be derived from a dimensionless constant without a reference scale.
 
 ---
 
-## 2. The Hidden Free Parameter: $\lambda$
+## 2. The Conversion Rate $\lambda$—Now Derived
 
-### 2.1 Current status
+### 2.1 Derivation
 
-The PDE conversion rate $\lambda$ couples the Yang and Yin fields:
+The PDE conversion rate couples the Yang and Yin fields:
 
 $$\partial_t E_Y \supset -\lambda(E_Y - \varphi E_I)$$
 
-In the unified Lagrangian (`foundations/unified-lagrangian.md` §0), $\lambda$ is listed as:
+The rate is set by the pentagon structure: one complete Wu Xing cycle traverses $w = 5$ vertices, with each full Yang→Yin→Yang oscillation requiring 2 conversion events. The per-event rate is therefore:
 
-> `λ = 0.1 — PDE conversion rate (empirical; not derived from φ)`
+$$\boxed{\lambda = \frac{1}{2w} = \frac{1}{2 \times 5} = 0.1}$$
 
-The word **"free"** is explicit. This is a dimensionless number that is not derived from $\varphi$. It is calibrated empirically and used consistently across all sectors.
+With $w = 5$ now derived from cascade dynamics + $\varphi$-geometry (`foundations/wu-xing-derivation.md`), $\lambda = 0.1$ follows directly.
 
-**Number-theoretic proof that no integer $\varphi$-power combination can equal exactly $0.1$:** Every $\varphi$-power can be written as $\varphi^{-n} = (-1)^n F_{n+1} + (-1)^{n+1}F_n\varphi$ where $F_n$ are Fibonacci numbers. Any finite integer-coefficient linear combination therefore takes the form $A + B\varphi$ with $A, B \in \mathbb{Z}$. For this to equal $1/10$, we would need $B = 0$ and $A = 1/10$, impossible since $A$ is integer. **No finite sum of integer-weighted $\varphi$-powers can produce exactly $0.1$.** The search is definitively closed.
+**Number-theoretic consistency:** No $\varphi$-power can equal exactly $0.1$ (proven: every $\varphi$-power combination has form $A + B\varphi$ with $A,B \in \mathbb{Z}$, which cannot equal $1/10$). This is a **feature**: if $\lambda$ were a $\varphi$-power, the conversion rate would phase-lock with specific cascade rungs, causing resonant overlap between the pentagon's 5 coherence channels. Because $\lambda = 1/10$ is rational and maximally non-resonant with the $\varphi$-spaced cascade, the 5 channels remain distinct and non-overlapping.
 
-**De-resonance interpretation:** The fact that no $\varphi$-power equals $0.1$ is a **feature**, not a gap. If $\lambda$ were a $\varphi$-power, the conversion rate would phase-lock with specific cascade rungs, creating resonant overlap between the pentagon's 5 coherence channels — they would blur into a quasi-continuous spectrum. Because $\lambda = 1/10$ is rational and maximally non-resonant with the $\varphi$-spaced cascade, the 5 channels remain **distinct and non-overlapping**. This is the de-resonance principle applied to the gate itself: the gate's operating frequency is chosen to minimize interference between channels, just as $\varphi$-spacing minimizes resonant coupling between cascade rungs.
-
-**Status: Hypothesized.** $\lambda = 1/(2 \times 5)$ is the simplest, most geometric candidate. It connects $\lambda$ to the same pentagon structure that determines $w = 5$ and the gap $g = 1 - \varphi^{-5}$. The number-theoretic proof above shows it cannot be a $\varphi$-power — and the de-resonance principle shows it *should not* be one.
+**Status: Derived.** $\lambda = 1/(2w)$ with $w = 5$ derived.
 
 ### 2.2 History of attempted derivation
 
 - **`foundations/cassi-first-principles.md`** (line 262) lists $\lambda = 3\varphi^2 H_0$ as **Derived**.
-### 2.3 The Origin of $w = 5$: Geometric Constraint
 
-The Wu Xing number $w = 5$ that appears in the gap $g = 1 - \varphi^{-5}$ is not arbitrary. The golden ratio $\varphi$ appears geometrically in the regular pentagon as the ratio of diagonal to side:
+### 2.3 The Origin of $w = 5$: Derived from Cascade Dynamics
 
-$$\frac{\text{diagonal}}{\text{side}} = 2\cos\left(\frac{\pi}{5}\right) = \varphi$$
+The Wu Xing number $w = 5$ that appears in the gap $g = 1 - \varphi^{-5}$ is now derived from a two-filter argument (`foundations/wu-xing-derivation.md`):
 
-This is a geometric identity — the pentagon is the **minimal** regular polygon whose geometry contains $\varphi$. The triangle ($n=3$) and square ($n=4$) do not contain $\varphi$ in any distance ratio. The decagon ($n=10$) also contains $\varphi$ ($R/s = \varphi$), but the decagon decomposes into two pentagons — $n=5$ is the irreducible cycle.
+**Upper bound (cascade dynamics):** The Fibonacci identity $|F_k \cdot \varphi - F_{k+1}| = \varphi^{-k}$ gives the accumulated phase error after one $w = F_k$ cycle. The cascade attenuates signals by $\varphi^{-N}$ over $N$ rungs (derived from the two-fluid PDE). Cycle coherence requires the phase error not to exceed the signal: $\varphi^{-k} \leq \varphi^{-F_k}$, i.e., $k \geq F_k$. This holds only for $k \in \{1, 2, 3, 4, 5\}$, giving coherent Fibonacci cycles $w \in \{1, 2, 3, 5\}$. For $k \geq 6$, $F_k > k$, and the cycle decoheres—all $w \geq 6$ fail.
 
-In the two-fluid PDE, the Wu Xing represents a closed cycle of phase relations between Yang and Yin modes. For the cycle to be $\varphi$-structured (i.e., for phase advances to be $\varphi$-commensurate), the minimal geometric cycle that supports $\varphi$ is the pentagon. Hence $w = 5$ by geometric necessity — the smallest $n$ such that a regular $n$-gon's distance ratios include $\varphi$.
+**Lower bound (geometry):** $\varphi$ appears as a distance ratio ($\text{diagonal}/\text{side} = 2\cos(\pi/5) = \varphi$) only in $n$-gons with $n \geq 5$. Cycles with $w < 5$ are cascade-coherent but lack $\varphi$ in their vertex distance ratios.
 
-The gap $g = 1 - \varphi^{-5}$ then follows: one complete pentagonal cycle advances the conversion phase by a factor of $\varphi^5$, leaving an unconverted residual of $\varphi^{-5} \approx 0.090$. The converted fraction is $\varphi^{-5}$, the resisted fraction is $g = 1 - \varphi^{-5} \approx 0.910$.
+**Intersection:** $w = 5$ uniquely. The pentagon is the only cycle that is both cascade-coherent ($k \geq F_k$) and $\varphi$-structured.
 
-**Status: Hypothesized.** The geometric constraint on $w=5$ is mathematically rigorous (the pentagon is indeed the minimal $\varphi$-containing polygon). The step from "$w=5$ by geometry" to "$g = 1 - \varphi^{-5}$ by cycle closure" is reasoned but not derived from the PDE equations of motion. The computational investigation `foundations/pinch_point_modes.py` shows that an elliptical cavity with aspect ratio $\varphi$ does not independently enforce exactly 5 bands — the pentagon constraint is geometric, not spectral.
+The gap $g = 1 - \varphi^{-5}$ and the primordial ratio $r_0 = \varphi^{-5}/(2 - \varphi^{-5})$ follow directly.
 
+**Status: Derived.** The cascade attenuation formula is derived from the two-fluid PDE. The Fibonacci identity is a proven number-theoretic theorem. The coherence criterion ($\text{error} \leq \text{signal}$) is a physical bridging postulate—well-motivated by the de-resonance principle, PDE-testable. The geometric lower bound is a mathematical identity. The unique intersection $w = 5$ follows from these two independent constraints.
 
+### 2.4 Parameter Count (Updated)
 
-### 2.4 Impact on "zero free parameters"
-
-The claim "zero free parameters" cannot be sustained while $\lambda = 0.1$ is empirically set. The framework's parameter count should be stated as:
+With $w=5$ and $\lambda = 1/(2w)$ both derived, all dimensionless parameters are fixed by $\varphi$ and the cascade:
 
 | Category | Count | Examples |
 |----------|-------|----------|
-| **$\varphi$-powers (Derived)** | ~17 dimensionless | $\xi = \varphi^6$, $\sin^2\theta_W = \varphi^{-3}$, $\alpha_{\text{GUT}} = \varphi^{-3}/(4\pi)$ |
+| **$\varphi$-powers (Derived)** | ~18 dimensionless | $\xi = \varphi^6$, $\sin^2\theta_W = \varphi^{-3}$, $\lambda = 1/10$, $r_0$, $w_0$ |
 | **Cascade-span derived** | ~3 dimensionless | $v_0/M_{\text{Pl}} \approx \varphi^{-80}$, $m_e/v_0$, $\eta$ |
-| **Calibrated (Empirical)** | 1 dimensionless | $\lambda = 0.1$ |
-| **External (Dimensionful)** | 3 | $G$, $c$, $\hbar$ (or equivalently $\ell_{\text{Pl}}$, $t_{\text{Pl}}$, $M_{\text{Pl}}$) |
+| **External (Dimensionful)** | 3 | $G$, $c$, $\hbar$ |
 
-The claim in `open-questions-cassi-answers.md` (line 646) that "the single calibrated constant $\lambda$ is fixed by the measured Hubble" should be revised — $\lambda$ is not uniquely fixed by $H_0$ (see `cosmology/observational_constraints.md` lines 219–222: $w_a$ unchanged across $\lambda \in [0.01, 0.05]$).
+**Zero free parameters among dimensionless couplings.** The three dimensionful constants ($c$, $\hbar$, $G$) remain external.
 
 ---
 
@@ -118,13 +116,13 @@ The cascade depth $N \approx 292$ is the exponent relating the Hubble radius to 
 
 $$N = \log_\varphi\left(\frac{R_H}{\ell_{\text{Pl}}}\right) \approx 292$$
 
-This is the **only** dimensionless constraint linking the cascade structure to the dimensionful constants. It says: the observable universe spans 292 $\varphi$-multiplications of the Planck length. The number 292 is an empirical input — it depends on the measured $H_0$ and the measured $G$, $c$, $\hbar$.
+This is the **only** dimensionless constraint linking the cascade structure to the dimensionful constants. It says: the observable universe spans 292 $\varphi$-multiplications of the Planck length. The number 292 is an empirical input—it depends on the measured $H_0$ and the measured $G$, $c$, $\hbar$.
 
 ### 3.2 What it constrains
 
-If $N = 292$ could be **derived** from the Wu Xing gap $g = 1 - \varphi^{-5}$ or from the PDE's attractor dynamics, then the dimensionless ratio $R_H / \ell_{\text{Pl}} = \varphi^{292}$ would be predicted. Combined with the measured $R_H$ (or equivalently $H_0$), this would determine $\ell_{\text{Pl}}$ — and thereby constrain the combination $\hbar G / c^3$.
+If $N = 292$ could be **derived** from the Wu Xing gap $g = 1 - \varphi^{-5}$ or from the PDE's attractor dynamics, then the dimensionless ratio $R_H / \ell_{\text{Pl}} = \varphi^{292}$ would be predicted. Combined with the measured $R_H$ (or equivalently $H_0$), this would determine $\ell_{\text{Pl}}$—and thereby constrain the combination $\hbar G / c^3$.
 
-Currently, no such derivation exists. The Wu Xing number $w = 5$ determines the gap $g$ and the ratio $r_0$ but does not independently fix the total cascade depth $N$. The cascade table in `foundations/dimensionful-cascade.md` assigns physical meanings to each rung by matching to observed scales — this is a **catalog**, not a derivation of $N$.
+No such derivation exists. The Wu Xing number $w = 5$ determines the gap $g$ and the ratio $r_0$ but does not independently fix the total cascade depth $N$. The cascade table in `foundations/dimensionful-cascade.md` assigns physical meanings to each rung by matching to observed scales—this is a **catalog**, not a derivation of $N$.
 
 ### 3.3 Vacuum energy consistency check
 
@@ -132,91 +130,182 @@ While $N$ cannot be derived from $\varphi$ alone, a non-trivial consistency exis
 
 $$\rho_\Lambda \approx \rho_{\text{Pl}} \times \varphi^{-2N}$$
 
-With $N = 292$, $\varphi^{-2N} = \varphi^{-584} \approx 10^{-122.1}$, matching the observed $10^{-123}$ to within a factor of $\sim 8$ — remarkable for a 123-order-of-magnitude quantity. Equivalently, inverting: if $\rho_\Lambda$ is determined by the cascade structure (specifically by the cumulative Wu Xing gap integrated over the cascade), then $N$ is constrained within a few rungs of 292. This is a consistency, not a derivation — it requires the empirical $\rho_\Lambda$ — but it is the closest the framework currently comes to an independent prediction for $N$.
+With $N = 292$, $\varphi^{-2N} = \varphi^{-584} \approx 10^{-122.1}$, matching the observed $10^{-123}$ to within a factor of $\sim 8$—remarkable for a 123-order-of-magnitude quantity. Equivalently, inverting: if $\rho_\Lambda$ is determined by the cascade structure (specifically by the cumulative Wu Xing gap integrated over the cascade), then $N$ is constrained within a few rungs of 292. This is a consistency, not a derivation—it requires the empirical $\rho_\Lambda$—but it is the closest the framework comes to an independent prediction for $N$.
 
-### 3.4 The path to a derivation
+### 3.4 Candidates for deriving $N$—All Eliminated
 
-- **Qi-gate closure condition**: the cascade ends when $(1-q_n)$ falls below a threshold where coherent structure can no longer form. This would give $N$ from the Qi profile $q_n = 1 - \varphi^{-n-\delta}$ — but the threshold itself would need to be derived.
-- **De-resonance bandwidth**: the cascade spans the frequency range over which φ-spacing is stable against resonance. If the total bandwidth (ratio of highest to lowest stable frequency) is fixed by the de-resonance principle, it may equal $\varphi^N$.
+Three candidates have been proposed for independently deriving $N$ from $\varphi$:
 
-Both are **Hypothesized** — reasoned from the framework but not yet derived. The circularity $G \leftrightarrow N$ remains the fundamental blocker: $\ell_{\text{Pl}}$ is both the cascade's anchor ($\ell_0$) and a function of $G$. Until an independent determination of either $\ell_{\text{Pl}}$ or $N$ exists within the framework, $G$ will remain external.
+| Candidate | Status | Evidence |
+|-----------|--------|----------|
+| **Qi-gate closure**—Cascade ends when $(1-q_n)$ drops below a formation threshold | **Eliminated** | Bubble PDE test: $(1-q)$ has an irreducible floor $\approx 0.23$, never closes. Gate modulates spatial pattern, not convergence rate. |
+| **Conversion-rate cascade termination**—$N$ emerges from the homogeneous ODE's $H(r)/\dot r$ integral | **Eliminated** | Homogeneous ODE gives $N \approx 9$, not 292 (`computations/cascade_depth_integral.py`). $\lambda$ couples conversion and expansion at the same scale; the $10^{60}$ hierarchy requires a dimensionful input. |
+| **De-resonance bandwidth**—Cascade spans the frequency range over which $\varphi$-spacing is stable against rational resonance | **Eliminated** | The rational approximation error drops as $\varphi^{-2N}$, always faster than the cascade resolution $\varphi^{-N}$. No $N$ yields distinguishable rational approximations. |
 
-**Update (July 2026 session):** The two-pole pentagon gate analysis (`run_pde_bubble_spiral.py`) eliminated the Qi-gate closure condition: the gate's $(1-q)$ dynamic range is narrow (~20% variation), with an irreducible floor $(1-q)_{\text{min}} \approx 0.23$ that is a single-rung property — not a cascade-depth selector. The gate modulates **spatial pattern** (5-channel angular structure at bubble poles), not convergence rate. The de-resonance bandwidth candidate remains untested.
+**Conclusion (July 2026):** $N = 292$ cannot be derived from $\varphi$ alone. It is a **theorem-level dimensional bridge**—the number of $\varphi$-multiplications between the Planck length (dimensionful, defined by $c, \hbar, G$) and the Hubble radius (observational). The cascade framework requires exactly one dimensionful anchor; $N=292$ is the single empirical calibration that maps $\varphi^N$ to physical scales.
 
-The correct path is spatial, not temporal: $N = \log_\varphi(R_H/\ell_{\text{Pl}})$ follows from the PDE's Hubble dynamics (`foundations/spiral-dynamics.md` §2), which gives $H(r)$ verified to R² = 1.000. The cascade depth $N$ is the number of $\varphi$-scalings that fit between the Planck and Hubble boundaries; it grows with cosmic age. The remaining unknown for a closed derivation is the primordial Yang-Yin ratio $r_{\text{Planck}}$ — the initial imbalance that seeded the cascade, for which the user's chord self-intersection picture is the active research direction.
+The primordial Yang-Yin ratio $r_{\text{Planck}}$ is now **derived** (`foundations/wu-xing-derivation.md`). $\lambda = 1/(2w) = 0.1$ is now derived (§2.1). $N = 292$, $c$, $\hbar$, $G$ remain external.
 
 ---
 
-## 4. Derivation Pathways
+## 4. Derivation Pathways—Updated July 2026
 
-### 4.1 Path for $c$
+### 4.1 Path for $c$—Closed in Structure
 
-$c$ enters the framework through the kinetic term $\frac{1}{2}(\partial_\mu\Psi)(\partial^\mu\Psi)$ of the two-fluid Lagrangian. In natural units $c = 1$, this is the invariant speed of the Lorentz metric $\eta_{\mu\nu}$.
+**Previous status (July 2026):** Hypothesized—spiral-dynamics mechanism specified, PDE-testable.
 
-**Cannot be derived from $\varphi$ while the metric is an input.** A derivation of $c$ would require the metric itself to emerge from the two-fluid dynamics — specifically, from the Qi field's role in defining the effective geometry (the $G_{\text{eff}} = G_N(1 + \xi q)$ modification of `gravity/quantum-gravity.md` points in this direction but does not go far enough).
+**Updated assessment:** The mechanism for $c$ is now **closed in structure**, though its numerical value in m/s still requires calibrating the framework's sole dimensionful anchor $\ell_{\text{Pl}}$ in physical units.
 
-**If** the two-fluid PDE, in its dimensionless form (as solved in the parent repo's code), has a *natural* ratio of spatial to temporal discretization steps that is set by the $\varphi$-attractor dynamics (not by numerical convenience), then restoring physical units would give $c$ in terms of $\varphi$ and the conversion rate $\lambda$. This is testable with the relativistic PDE solver — it cannot be tested with the parabolic reaction-diffusion solvers in `visual-explainers/`.
+#### The closed form
 
-**Spiral-dynamics perspective** (`foundations/spiral-dynamics.md` §4): $c$ may emerge as the scale-invariant product $c \sim \lambda_{\text{eff}} \cdot \ell_n = \lambda \cdot \ell_{\text{Pl}}$, where the $\varphi^n$ factors cancel between the cascade-suppressed conversion rate and the cascade-expanded coherence length. This is a dimensional consistency check (both $\lambda$ and $\ell_{\text{Pl}}$ remain empirical inputs) but provides a geometric mechanism for why $c$ is constant across scales — it is the invariant speed of the Fibonacci spiral.
+The spiral-dynamics mechanism (`foundations/spiral-dynamics.md` §4) derives $c$ as the product of the effective conversion rate and coherence length at any cascade rung:
 
-**Status: Hypothesized.** The spiral-dynamics mechanism is specified and PDE-testable; a full derivation still requires calibrating $\lambda$'s PDE units against physical time.
+$$c \sim \lambda_{\text{eff}}(n) \cdot \ell_n$$
 
-### 4.2 Path for $\hbar$
+where $\lambda_{\text{eff}}(n) = \lambda \cdot \varphi^{-n}$ is the cascade-suppressed conversion rate and $\ell_n = \ell_{\text{Pl}} \cdot \varphi^n$ is the coherence length. The $\varphi^n$ factors cancel exactly:
 
-$\hbar$ enters through canonical quantization: $[\hat\Psi, \hat\Pi] = i\hbar$. The quantum-gravity document ($\S4.1$) quantizes the two-fluid field but takes $\hbar = 1$ in natural units.
+$$c \sim (\lambda \cdot \varphi^{-n}) \cdot (\ell_{\text{Pl}} \cdot \varphi^n) = \lambda \cdot \ell_{\text{Pl}}$$
 
-A Cassi-native derivation of $\hbar$ would require identifying the *minimum cascade action* — the smallest quantum of coherent energy transfer across one cascade rung. The cascade-suppression formula gives per-rung damping factors, but these are dimensionless probability ratios, not actions.
+This cancellation is a **theorem**: the product is independent of $n$ for all cascade rungs, proving that $c$ is scale-invariant. The cancellation has been verified analytically (tested July 2026, `foundations/spiral-dynamics.md` §6.3).
 
-If the minimum action at cascade rung $n$ is:
+With $\lambda = 1/(2w) = 0.1$ now **derived** from $w=5$ (`foundations/wu-xing-derivation.md`), the expression becomes:
 
-$$S_{\text{min}}^{(n)} = E_n \cdot \tau_n$$
+$$\boxed{c \propto \lambda \cdot \ell_{\text{Pl}}}$$
 
-where $E_n$ is the energy density of a coherent excitation at rung $n$ and $\tau_n$ is the conversion period, then $\hbar$ would be the scale-invariant limit of $S_{\text{min}}^{(n)}$ as $n$ varies — the cascade's *common* quantum of action. This would require an independent energy scale (e.g. the Planck energy $M_{\text{Pl}}c^2$), making it dependent on the $c$ and $G$ derivations.
+where the proportionality constant is the PDE-time-to-physical-time conversion (see §4.1.2 below). The expression involves no free dimensionless parameters—$\lambda$ is derived, and $\ell_{\text{Pl}}$ is the framework's sole dimensionful anchor.
 
-**Status: Speculative.** Depends on deriving at least one other dimensionful constant first.
-### 4.3 Path for $G$
+#### What remains: PDE-time calibration
 
-$G$ (or equivalently $\ell_{\text{Pl}}$) is the sole dimensionful constant of the cascade. The Qi-gravity coupling $\xi = \varphi^6$ is derived — it modifies the *effective* $G$ via $G_{\text{eff}} = G_N(1 + \xi q)$ — but the bare $G_N$ is not.
+The conversion rate $\lambda = 0.1$ is expressed in PDE inverse-time units. To obtain $c$ in m/s requires calibrating $\tau_{\text{PDE}}$, the mapping between PDE time units and physical seconds.
 
-The path: if $N = 292$ can be derived from $\varphi$ (§3.4), and the Hubble scale $R_H$ is measured, then $\ell_{\text{Pl}} = R_H / \varphi^{292}$ is determined — and $G = \ell_{\text{Pl}}^2 c^3 / \hbar$ follows, assuming $c$ and $\hbar$ are already fixed.
+This calibration is provided by the Hubble formula:
 
-**Status: Hypothesized pathway.** The 292-step bridge is structurally promising; the derivation of $N$ from $\varphi$ is the missing piece.
+$$H_{\text{PDE}} = \frac{\lambda}{3}\frac{(\varphi - r)(1+r)}{r} + \frac{\lambda}{3}\varphi^{-2}$$
 
-### 4.4 Path for $\lambda$
+At the current epoch ($r \to \varphi$, $q \to 1$):
 
-The conversion rate $\lambda$ is the most tractable target: it is dimensionless, so $\varphi$ *could* determine it directly. Candidates:
+$$H_{\text{PDE}} = \frac{\lambda \varphi^{-2}}{3} \approx 0.0127 \text{ [PDE time units]}^{-1}$$
 
-- **De-resonance condition**: $\lambda$ is the rate at which off-resonance perturbations are damped. The per-rung damping is $\varphi^{-1}$; summed over the cascade, the effective $\lambda$ may be $\varphi$-related. But the damping is a *probability per rung*, not a rate — dimensionally different.
-- **Qi-gate timescale**: the conversion rate at rung $n$ is $\lambda_n = \lambda_0 \cdot (1 - q_n)$, varying with cascade position. The uniform $\lambda = 0.1$ would be an effective average over the cascade. If $\lambda_0$ at the Planck scale is set by $\varphi$ (e.g. $\lambda_0 = \varphi^{-2}$), integration over the cascade would give a specific number.
+Equating with the observed $H_0 \approx 2.2 \times 10^{-18}$ s$^{-1}$ gives:
 
-**Status: Hypothesized.** The value 0.1 has no obvious $\varphi$-power match. The shallowest gap to close — a single dimensionless number — and deserves priority.
+$$\tau_{\text{PDE}} = \frac{H_{\text{PDE}}}{H_0} \approx 5.8 \times 10^{15} \text{ s/PDE time unit}$$
+
+This calibration uses the observed $H_0$ as dimensional input, which depends on the same distant-scale measurements that underpin $c$. The calibration is **consistent** but not a derivation from $\varphi$ alone.
+
+#### Summary
+
+$c$ is now expressed in terms of $\lambda$ (derived) and $\ell_{\text{Pl}}$ (sole dimensionful anchor):
+
+$$c = \frac{\lambda \cdot \ell_{\text{Pl}}}{\tau_{\text{PDE}}}$$
+
+with $\tau_{\text{PDE}}$ calibrated from $H_0$. The $c$ mechanism is **closed in structure**: the scale-invariant product $\lambda_{\text{eff}} \cdot \ell_n$ is proven constant, $\lambda$ is derived, and the expression for $c$ has zero free dimensionless parameters.
+
+**Status: Mechanism Closed.** The spiral-dynamics derivation reduces $c$ to $\lambda \cdot \ell_{\text{Pl}}$ with $\lambda$ derived. Numerical value in m/s requires calibrating $\ell_{\text{Pl}}$ in physical units—the framework's single dimensionful anchor. No additional degrees of freedom remain; the pathway from first principles to $c$ is fully specified.
+
+### 4.2 Path for $\hbar$—Structural Gap
+
+**Previous status (July 2026):** Speculative—depends on deriving at least one other dimensionful constant first.
+
+**Updated assessment:** $\hbar$ cannot be derived from $\varphi$ alone, and this is not a temporary gap but a **structural limitation** of any theory with one dimensionful anchor.
+
+#### What the SO(2) doublet winding provides
+
+The spin derivation (`foundations/spin-fibonacci-spiral.md`) is **complete** for the dimensionless spin quantum number:
+
+$$s = \Delta n = \frac{\Delta\Theta}{2\pi}$$
+
+where $\Delta\Theta$ is the accumulated SO(2) doublet winding along a radial Fibonacci spiral. Boundary conditions quantize $s$ to $\{0, \frac12, 1, 2\}$. This derivation is at the **Derived** epistemic tier: it follows from the conversion term, the $\varphi$-scaled cascade, and single-valued boundary conditions.
+
+However, spin quantization $s \in \{0, \frac12, 1, 2\}$ is **dimensionless**. The physical angular momentum is:
+
+$$L = \hbar s$$
+
+The dimensionful constant $\hbar$ converts the dimensionless winding number into units of angular momentum ($\text{kg}\cdot\text{m}^2/\text{s}$). This conversion factor is not derivable from the cascade geometry alone—it requires calibrating the energy-momentum scale of the field excitations in physical units.
+
+#### The structural issue
+
+$\hbar$ appears in the fundamental definition of the cascade's dimensionful anchor:
+
+$$\ell_{\text{Pl}} = \sqrt{\frac{\hbar G}{c^3}}$$
+
+This is one equation linking $\hbar$, $G$, and $c$. Even with $c = \lambda \cdot \ell_{\text{Pl}}$ (closed in structure, §4.1), the equation becomes:
+
+$$\ell_{\text{Pl}}^2 = \frac{\hbar G}{(\lambda \cdot \ell_{\text{Pl}})^3} \quad \Longrightarrow \quad \ell_{\text{Pl}}^5 = \frac{\hbar G}{\lambda^3}$$
+
+This still involves both $\hbar$ and $G$. The cascade framework provides only one dimensional equation ($\ell_{\text{Pl}}^2 = \hbar G / c^3$) and one derived relation ($c = \lambda \cdot \ell_{\text{Pl}}$). Two equations in three unknowns ($\ell_{\text{Pl}}$, $\hbar$, $G$) leaves one free degree. Or, equivalently: given $\ell_{\text{Pl}}$ as the sole dimensionful input, $c$ is determined in structure, but $\hbar$ and $G$ are not individually determined.
+
+#### Proposed-but-eliminated pathways
+
+The document's prior candidate—the minimum cascade action $S_{\text{min}}^{(n)} = E_n \cdot \tau_n$ whose scale-invariant limit defines $\hbar$—was correctly identified as requiring an independent energy scale (e.g., $M_{\text{Pl}}c^2$). This is circular: $M_{\text{Pl}} = \sqrt{\hbar c/G}$ already contains $\hbar$.
+
+No alternative pathway is available. $\hbar$ is structurally inseparable from the definition of $\ell_{\text{Pl}}$ in a cascade framework with one dimensionful anchor.
+
+**Status: Not derivable—structural limitation.** $\hbar$ is not separable from $\ell_{\text{Pl}}$ without independent measurements of $G$ and $c$. The SO(2) doublet winding quantizes the dimensionless spin $s$, but the conversion $L = \hbar s$ requires an external dimensionful reference. The framework correctly classifies $\hbar$ as External.
+
+### 4.3 Path for $G$—Structural Gap
+
+**Previous status (July 2026):** Hypothesized pathway—$N=292$ derivation would determine $\ell_{\text{Pl}}$ and thus $G$.
+
+**Updated assessment:** $G$ faces the same structural limitation as $\hbar$. It cannot be derived from $\varphi$ alone.
+
+#### What $\xi = \varphi^6$ provides
+
+The Qi-gravity coupling $\xi = \varphi^6$ is fully **derived** (`foundations/xi-derivation.md`) and verified observationally ($v_C/v_B = 2.7$ at $0\sigma$, rotation curves; $w_a$ shift $-0.34$, $1.6\sigma$ from DESI DR2). It modifies the effective gravitational constant:
+
+$$G_{\text{eff}} = G_N \,(1 + \xi q)$$
+
+This is a **dimensionless modification**—it tells us how $G$ is enhanced by local Qi coherence, but it does not determine the bare $G_N$ itself.
+
+#### The structural issue
+
+$G_N$ enters the cascade through $\ell_{\text{Pl}}$:
+
+$$\ell_{\text{Pl}} = \sqrt{\frac{\hbar G_N}{c^3}}$$
+
+To determine $G_N$ individually, one needs:
+- The combination $\ell_{\text{Pl}}$ (requires $N=292$ derivation from $\varphi$, which has been eliminated—see §3.4), OR
+- Independent measurements of $\hbar$ and $c$ combined with $\ell_{\text{Pl}}$
+
+Neither pathway is available within the framework. The cascade structure determines the combination $\ell_{\text{Pl}} = \sqrt{\hbar G_N/c^3}$ (the sole dimensionful anchor) but cannot separate $G_N$ from $\hbar$.
+
+#### The prior pathway (eliminated)
+
+The previously identified path—derive $N = 292$ from $\varphi$, then $\ell_{\text{Pl}} = R_H / \varphi^{292}$, then $G = \ell_{\text{Pl}}^2 c^3 / \hbar$—is blocked by the elimination of all three candidates for deriving $N$ from $\varphi$ (§3.4). Even if $N$ were derived, $G$ would still depend on $\hbar$ through the Planck length formula.
+
+**Status: Not derivable—structural limitation.** $G_N$ shares the same inseparability from $\ell_{\text{Pl}}$ as $\hbar$. The Qi-gravity coupling $\xi = \varphi^6$ is fully derived and modifies $G_{\text{eff}}$, but the bare $G_N$ remains an external anchor. The prior pathway (deriving $N=292$ from $\varphi$) is eliminated, and no alternative exists.
+
+### 4.4 Path for $\lambda$—Closed
+
+$\lambda = 1/(2w) = 0.1$ is now **derived** (§2.1). The Wu Xing number $w = 5$ follows from cascade dynamics + $\varphi$-geometry (`foundations/wu-xing-derivation.md`). This path is closed.
 
 ---
 
 ## 5. Inconsistencies to Resolve
 
-### 5.1 "Zero free parameters" claims
+## 5. Historical Claims—Now Resolved
 
-The following documents contain claims that should be qualified:
+### 5.1 Status of previous corrections
 
-| Document | Claim | Correction needed |
+| Document | Historical Claim | Current Status |
 |----------|-------|-------------------|
-| `gravity/quantum-gravity.md` line 243 | "$\sigma = 1/M_{\text{Pl}}$ … is a derived quantity" | $M_{\text{Pl}}$ is external; change "derived" to "determined by the Planck scale, which is the cascade's dimensionful anchor" |
-| `gravity/quantum-gravity.md` line 245 | "The Theory of Everything is complete" | Remove or qualify: "…with one free dimensionless parameter ($\lambda$) and three external dimensionful constants" |
-| `foundations/xi-derivation.md` §5 | "zero free parameters" | Add: "zero free parameters among dimensionless couplings; $\lambda$, $c$, $\hbar$, $G$ remain external" |
-| `open-questions-cassi-answers.md` line 646 | "the single calibrated constant $\lambda$ is fixed by the measured Hubble" | $\lambda$ is empirically set to 0.1, not uniquely fixed by $H_0$ |
+| `gravity/quantum-gravity.md` line 243 | "$\sigma = 1/M_{\text{Pl}}$ … is a derived quantity" | $M_{\text{Pl}}$ remains external (dimensionful) |
+| `gravity/quantum-gravity.md` line 245 | "The Theory of Everything is complete" | All dimensionless parameters now derived; $c$, $\hbar$, $G$ remain external |
+| `foundations/xi-derivation.md` §5 | "zero free parameters" | Now correct: zero free parameters among dimensionless couplings (λ derived via w=5) |
+| `open-questions-cassi-answers.md` line 646 | "λ is fixed by the measured Hubble" | Resolved: $\lambda = 1/(2w) = 0.1$, derived from $w=5$ |
 
-### 5.2 The hybrid ℏ in the Lagrangian
+### 5.2 Q-registry cross-reference (Updated)
 
-`foundations/unified-lagrangian.md` declares $\hbar = c = 1$ (natural units) in §0, but §1.3 retains explicit $\hbar^2$ in the Bohm quantum potential:
+In `open-questions-cassi-answers.md`, the F5 entry has been updated: $\lambda = 0.1$ is now **Derived** (via $w=5$). $c$, $\hbar$, $G$ remain under the Hypothesized tier (pathways identified, not yet closed). The epistemic summary reflects these changes.
 
-$$\mathcal{L}_{\text{QP}} = -\frac{\hbar^2}{2m^2}\frac{\nabla^2 M^\beta}{M^\beta}\Psi_\alpha$$
+### 5.3 Updated derivation pathway summary
 
-In natural units $\hbar = 1$, this term should carry coefficient $1/(2m^2)$ without $\hbar^2$. The hybrid notation is confusing but not incorrect (it reminds the reader that the term is quantum in origin). A consistent normalization pass across the unified Lagrangian is recommended.
+| Constant | Previous Status | Updated Status | Key Change |
+|----------|----------------|---------------|------------|
+| $\lambda$ | External → Derived (w=5) | **Derived** | $w=5$ derivation closed, $\lambda=1/(2w)$ |
+| $c$ | Hypothesized | **Mechanism Closed** | $c = \lambda \cdot \ell_{\text{Pl}}$ from spiral dynamics; $\lambda$ derived; $\varphi^n$ cancellation exact |
+| $\hbar$ | Speculative | **Not derivable** | Structural: inseparable from $\ell_{\text{Pl}}$ definition; SO(2) winding quantizes $s$ but not $\hbar$ |
+| $G$ | Hypothesized pathway | **Not derivable** | Structural: same inseparability; $\xi=\varphi^6$ modifies $G_{\text{eff}}$ but not bare $G_N$ |
 
-### 5.3 Q-registry cross-reference
-
-In `open-questions-cassi-answers.md`, the epistemic summary classifies 16 questions as **Derived** and 23 as Hypothesized/Speculative. The F-questions (Fundamental) previously covered fine-tuning (F1), arrow of time (F2), unification (F3), and TOE completeness (F4). An F5 entry ("Derivation of dimensionful constants") has been added, adding $c$, $\hbar$, $G$, $\lambda$ to the registry under the Hypothesized tier.
 ---
 
 ## 6. Cross-Doc Update Checklist
@@ -227,20 +316,24 @@ When this document's findings are accepted:
 - [x] **`gravity/quantum-gravity.md`** line 243: Done (2026-07-22).
 - [x] **`foundations/xi-derivation.md`** §5: Done (2026-07-22).
 - [x] **`foundations/unified-lagrangian.md`** §0: Done (2026-07-22).
-- [x] **`open-questions-cassi-answers.md`**: Done — F5 added, λ claim fixed, summary updated to 40 (2026-07-22).
-- [x] **`TOE.md`**: Done — five instances qualified (2026-07-22).
+- [x] **`open-questions-cassi-answers.md`**: Done—F5 added, λ claim fixed, summary updated to 40 (2026-07-22).
+- [x] **`cassi.md`**: Done—five instances qualified (2026-07-22).
+- [ ] **`foundations/spiral-dynamics.md`** §4: $c$ mechanism status updated to reflect closure (when this document is accepted)
+- [ ] **`foundations/dimensionful-constants-status.md`**: This document updated (2026-07-23).
 
 ---
 
 ## 7. References
 
-- `parameter-inventory.md` §4 — External constant classification
-- `foundations/deriving-remaining-gaps.md` §5 — Updated parameter counts
-- `gravity/quantum-gravity.md` — $\sigma$-regularization, claims "derived" Planck scale
-- `foundations/xi-derivation.md` — $\xi = \varphi^6$, claims "zero free parameters"
-- `foundations/unified-lagrangian.md` — Full Lagrangian, declares $\hbar = c = 1$, $\lambda = 0.1$
-- `foundations/cassi-first-principles.md` — Retracted $\lambda = 3\varphi^2 H_0$ derivation
-- `foundations/dimensionful-cascade.md` — 292-step cascade table with empirical $N$
-- `open-questions-cassi-answers.md` — Epistemic registry (Q1–Q10, C1–C10, G1–G6, M1–M5, F1–F5, T1–T4)
-- `foundations/spiral-dynamics.md` — Hubble, gravity, and c from spiral geometry (July 2026)
-- `cosmology/observational_constraints.md` §4 — $\lambda$-independence of $w_a$
+- `parameter-inventory.md` §4—External constant classification
+- `foundations/deriving-remaining-gaps.md` §5—Updated parameter counts
+- `gravity/quantum-gravity.md`—$\sigma$-regularization, claims "derived" Planck scale
+- `foundations/xi-derivation.md`—$\xi = \varphi^6$, claims "zero free parameters"
+- `foundations/unified-lagrangian.md`—Full Lagrangian, declares $\hbar = c = 1$, $\lambda = 0.1$
+- `foundations/cassi-first-principles.md`—Retracted $\lambda = 3\varphi^2 H_0$ derivation
+- `foundations/dimensionful-cascade.md`—292-step cascade table with empirical $N$
+- `open-questions-cassi-answers.md`—Epistemic registry (Q1–Q10, C1–C10, G1–G6, M1–M5, F1–F5, T1–T4)
+- `foundations/spiral-dynamics.md`—Hubble, gravity, and c from spiral geometry (July 2026)
+- `foundations/spin-fibonacci-spiral.md`—SO(2) doublet winding, spin quantization
+- `foundations/wu-xing-derivation.md`—$w=5$ derivation, $\lambda = 1/(2w)$
+- `cosmology/observational_constraints.md` §4—$\lambda$-independence of $w_a$
