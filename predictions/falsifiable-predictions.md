@@ -89,9 +89,9 @@ the two-fluid expansion history.
 | NS $M$–$R$ relation | GR | **$<0.1\%$ deviation** | $G_{\text{eff}}\to G_N$ in core |
 | Cored dwarf halos | CDM fails | **Cassi passes 5/8** | Beats MOND (4/8) |
 
-**Source:** `theory/xi-derivation.md`, `experiments/cassi_gravitational_waves.py`,
-`experiments/cassi_strong_field_pn.py`, `experiments/cassi_black_hole_raytracer.py`,
-`experiments/cassi_neutron_stars.py`. The Qi-gravity coupling $\xi = \varphi^6$ is
+**Source:** `theory/xi-derivation.md`, `experiments/cassi_physics/cassi_gravitational_waves.py`,
+`experiments/cassi_physics/cassi_strong_field_pn.py`, `experiments/cassi_physics/cassi_black_hole_raytracer.py`,
+`experiments/cassi_physics/cassi_neutron_stars.py`. The Qi-gravity coupling $\xi = \varphi^6$ is
 derived, not fitted. Solar system GR tests are preserved ($q=0$). The GW strain
 enhancement in dense cluster halos is a unique signature.
 

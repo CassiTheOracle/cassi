@@ -43,7 +43,7 @@ Domain papers open with "at cascade step N", then apply the universal tool. When
 | `predictions/` | Falsifiable-predictions catalog + `cassi_definitions.md` glossary |
 | `two-fluid/` | Two-fluid PDE solver (`cassi_two_fluid_3d_gpu.py`) + gate/ODE test scripts, calibration |
 | `computations/` | Computational pipelines (RGE, GUT-EW, hubble tension, cascade depth) |
-| `experiments/` | Physics experiment scripts (φ-attractor paths, SPARC rotation-curve analysis) |
+| `experiments/` | Physics experiment scripts (φ-attractor paths, SPARC rotation-curve analysis, φ-periodic P(k) survey tests) |
 | `hypotheses/` | New application domains (exploratory catalog; `README.md` is the index) |
 | `speculations/` | Speculative extensions (dark matter, computation, propulsion) |
 | `visual-explainers/` | Standalone Python figure/simulation scripts |
@@ -63,7 +63,9 @@ manim -pql visual-explainers/resonant_pond.py ResonantPond
 python two-fluid/calibrate_initial_ratio_xi.py    # w_a ODE with ξ = φ⁶
 python two-fluid/cassi_two_fluid_3d_gpu.py         # core two-fluid PDE solver
 python computations/<pipeline>.py                  # e.g. cascade_rge_pmns.py
-python experiments/sparc_qi_analysis_v4.py         # galaxy rotation-curve analysis
+python experiments/sparc_qi/sparc_qi_analysis_v4.py   # galaxy rotation-curve analysis
+python experiments/phi_attractor_paths/path2_validation.py   # N-body path validation
+python experiments/phi_periodic_pk_search/run_phi_periodic_pk_test.py   # φ-periodic P(k) pipeline
 ```
 
 ## Git & Commit Discipline

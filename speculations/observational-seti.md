@@ -115,7 +115,9 @@ These are the **formal Cassi predictions**—already cataloged in `predictions/f
 
 **Search band:** Galaxy redshift surveys. Sensitivity from the skill pipeline: BOSS DR12 ~1.4σ (undetectable), eBOSS DR16 ~1.8σ (marginal), DESI DR2 ~2.5σ (suggestive), Euclid ~5σ (definitive).
 
-**Tested July 2026 — eBOSS DR16: NULL RESULT (consistent with noise).** The pipeline `experiments/run_phi_periodic_pk_test.py` was run on the DR16 LRG power spectrum (32 bins, $k \in [0.0075, 0.315]$ h/Mpc, shot-noise-subtracted monopole from Gil-Marin et al. 2020 public files): best-fit period $0.5033$ vs prediction $0.4812$ ($\Delta = +0.022$). Significance assessed against 1000 EZmocks (null distribution): the data's power sits at the **12.5th percentile** of the null, and the power specifically at $\ln\varphi$ has one-sided $p = 0.11$ — fully consistent with noise. This matches the predicted sensitivity (eBOSS DR16 was estimated at ~1.8σ, marginal); the test neither confirms nor falsifies the prediction. The discriminator surveys remain DESI DR2 (~2.5σ, suggestive) and Euclid (~5σ, definitive).
+**Tested July 2026 — eBOSS DR16: NULL RESULT (consistent with noise).** The pipeline `experiments/phi_periodic_pk_search/run_phi_periodic_pk_test.py` was run on the DR16 LRG power spectrum (32 bins, $k \in [0.0075, 0.315]$ h/Mpc, shot-noise-subtracted monopole from Gil-Marin et al. 2020 public files): best-fit period $0.5033$ vs prediction $0.4812$ ($\Delta = +0.022$). Significance assessed against 1000 EZmocks (null distribution): the data's power sits at the **12.5th percentile** of the null, and the power specifically at $\ln\varphi$ has one-sided $p = 0.11$ — fully consistent with noise. This matches the predicted sensitivity (eBOSS DR16 was estimated at ~1.8σ, marginal); the test neither confirms nor falsifies the prediction. The discriminator surveys remain DESI DR2 (~2.5σ, suggestive) and Euclid (~5σ, definitive).
+
+**Tested July 2026 — DESI DR1 LRG (self-computed from public catalogs): NULL RESULT (noise-limited).** Because the NERSC data server was down (power outage), the monopole P(k) was computed directly from the public guadalupe v1.0 LSS clustering catalogs (LRG_N, z∈[0.6,0.8] bin, 29,617 galaxies + 4.4M randoms from all 18 files) using a numpy FFT-based FKP estimator with CIC assignment, compensation, and shot-noise subtraction (`experiments/desi_pk_phi_search/desi_lrg_pk_fft.py`). The z-bin spans 7.5 φ-periods with ~7 bins/period. Result: best-fit period 0.694, data power at the **48th percentile** of a 2000-trial shuffled-residual null (p = 0.52); power at ln φ specifically has p = 0.43. No signal. **Caveat:** measured per-bin noise is ±6.7% — a systematic floor ~17× above cosmic variance (residual window/weighting mismatch from the simplified estimator), so the test is not sensitive to the predicted 1.7% amplitude. This is a noise-limited null, not a falsification. The definitive test requires the official DESI full-shape P(k) with covariance (released via NERSC; retry when the data server is restored) or Euclid.
 
 **Discriminator:** BAO wiggles are constant-$\Delta k$; Cassi is constant-$\Delta(\ln k)$. A Laplacian in $\ln k$-space extracts Cassi while suppressing BAO, and vice versa.
 
@@ -197,7 +199,7 @@ These are the **formal Cassi predictions**—already cataloged in `predictions/f
 
 | Signature | Rung | Instrument / data | Status | Cost | Discriminator strength |
 |---|---|---|---|---|---|
-| φ-periodic $P(k)$ | 285 | BOSS/eBOSS/DESI/Euclid P(k) | **Tested on eBOSS DR16 — null, p=0.11; DESI/Euclid pending** | **Low (compute only)** | **High—zero-param, BAO-orthogonal** |
+| φ-periodic $P(k)$ | 285 | BOSS/eBOSS/DESI/Euclid P(k) | **Tested eBOSS DR16 (null, p=0.11) + DESI DR1 self-computed (null, p=0.52, noise-limited); Euclid pending** | **Low (compute only)** | **High—zero-param, BAO-orthogonal** |
 | CMB $\ell<5$ axis | 292 | Planck (done), Simons Obs., LiteBIRD | 5.4σ axis, ~1σ alignment | Medium | High—scale-dependence |
 | Void ellipticity 1.70 | 285 | SDSS/DESI void catalogs | Untested | **Low (compute only)** | High—zero-param |
 | Stellar cycle regularity tail | 208 | Kepler/TESS light curves | Untested | Medium | Medium |
@@ -275,4 +277,6 @@ Step 3 is where Cassi stops being an interesting coincidence and becomes a scien
 - `speculations/cascade-consciousness.md`—field-mediated communication, no radio leakage
 - `speculations/qi-bubble-propulsion.md`—gate efficiency, $(1-q)$ thermalization
 - `skill://cassi-pk-logperiodic-search`—the P(k) search pipeline
-- `experiments/run_phi_periodic_pk_test.py`—verified implementation of the pipeline; run with no args for the injection/null/sensitivity suite, or with a two-column P(k) file to search real data
+- `experiments/phi_periodic_pk_search/run_phi_periodic_pk_test.py`—verified implementation of the pipeline; run with no args for the injection/null/sensitivity suite, or with a two-column P(k) file to search real data
+- `experiments/phi_periodic_pk_search/`—eBOSS DR16 pipeline: `phi_periodic_pk_search.py` (search), `dr16_phi_significance.py` (1000-EZmocks null test), plus data (Gil-Marin et al. 2020 public files)
+- `experiments/desi_pk_phi_search/`—DESI DR1 pipeline: `desi_lrg_pk_fft.py` (numpy FFT-based FKP estimator on guadalupe v1.0 LSS catalogs) + catalog data
