@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-The Chord — how the strings pack
+The Chord—how the strings pack
 ================================
 
 The megacascade is not a 1D chain of bubbles: the strings themselves pack into
 a larger structure in the doublet (Yang–Yin) plane. This script derives that
 structure from the framework's own interference physics and plots ONE slice of
-it — the goal is the correct *shape*, nothing more.
+it—the goal is the correct *shape*, nothing more.
 
 Derivation
 ----------
@@ -41,8 +41,8 @@ Everything else follows, with no further assumptions:
 
        a_Yang / a_Yin = β/α = λ_Y/λ_I = φ
 
-   — the oblong φ:1 spheroid cross-section (why-three-dimensions.md §3.4)
-   falls out of the same equation. We plot the EXACT level sets (no paraxial
+  —the oblong φ:1 spheroid cross-section (why-three-dimensions.md §3.4)
+   falls out of the same equation. The plot shows the EXACT level sets (no paraxial
    approximation).
 
 3. Each site hosts a string piercing the page; along each string the bubbles
@@ -65,7 +65,7 @@ from matplotlib.colors import LinearSegmentedColormap, to_rgb
 # ─────────────────────────────────────────────────────────────────────────────
 PHI = (1 + np.sqrt(5)) / 2
 LAM_I = 2.0                    # Yin wake wavelength (display units)
-LAM_Y = PHI * LAM_I            # Yang wake wavelength — φ-scaled
+LAM_Y = PHI * LAM_I            # Yang wake wavelength—φ-scaled
 ALPHA = 2 * np.pi / LAM_Y      # Yang wavenumber
 BETA = 2 * np.pi / LAM_I       # Yin wavenumber  (β/α = φ)
 THETA_COND = 0.45              # condensation threshold on C ∈ [−1, 1]
@@ -113,7 +113,7 @@ for s in ax.spines.values():
 ax.imshow(C, extent=(X0, X1, Y0, Y1), origin="lower", cmap=CHORDMAP,
           vmin=-1, vmax=1, interpolation="bilinear", zorder=1)
 
-# Bubbles: EXACT level sets C = θ_cond — oblong ovals, ratio → φ near maxima
+# Bubbles: EXACT level sets C = θ_cond—oblong ovals, ratio → φ near maxima
 ax.contour(XX, YY, C, levels=[THETA_COND], colors=[YANG_PEAK],
            linewidths=1.5, zorder=3)
 
@@ -130,7 +130,7 @@ for m in range(-m_max, m_max + 1):
         sx, sy = m * LAM_Y / 2, n * LAM_I / 2
         if not (X0 < sx < X1 and Y0 < sy < Y1):
             continue
-        if (m + n) % 2 == 0:   # condensate site — a string pierces the page
+        if (m + n) % 2 == 0:   # condensate site—a string pierces the page
             ax.plot([sx], [sy], marker="o", ms=5.5, mfc="none",
                     mec=TEXT_MAIN, mew=0.9, zorder=5, alpha=0.85)
             ax.plot([sx], [sy], marker=".", ms=2.2, color=TEXT_MAIN,
@@ -142,23 +142,23 @@ for m in range(-m_max, m_max + 1):
 # ─────────────────────────────────────────────────────────────────────────────
 # Labels and lattice dimensions
 # ─────────────────────────────────────────────────────────────────────────────
-ax.annotate("OUR BUBBLE — one string's cross-section (Wu Xing, $w{=}5$)",
+ax.annotate("OUR BUBBLE—one string's cross-section (Wu Xing, $w{=}5$)",
             xy=(0.62, 0.30), xytext=(2.2, -2.35), fontsize=8.5, color=YANG_PEAK,
             fontweight="bold",
             bbox=dict(facecolor=BG, edgecolor="none", alpha=0.85, pad=2),
             arrowprops=dict(arrowstyle="->", color=YANG_PEAK, lw=1.0))
-ax.text(3 * LAM_Y / 2, -1.50, "$w{=}4$", fontsize=8, color=TEXT_SUB, ha="center",
+ax.text(3 * LAM_Y / 2, -1.50, "$w{=}5$", fontsize=8, color=TEXT_SUB, ha="center",
         bbox=dict(facecolor=BG, edgecolor="none", alpha=0.7, pad=1.5))
-ax.text(-3 * LAM_Y / 2, 1.50, "$w{=}6$", fontsize=8, color=TEXT_SUB, ha="center",
+ax.text(-3 * LAM_Y / 2, 1.50, "$w{=}5$", fontsize=8, color=TEXT_SUB, ha="center",
         bbox=dict(facecolor=BG, edgecolor="none", alpha=0.7, pad=1.5))
 
 # λ_Y: bubble spacing along Yang (arrow floats in the void band between rows 0 and 1)
 ax.annotate("", xy=(LAM_Y, 0.5), xytext=(0, 0.5),
             arrowprops=dict(arrowstyle="<|-|>", color=TEXT_MAIN, lw=1.1))
-ax.text(LAM_Y / 2, 0.5, "$\\lambda_Y$ — bubble\nspacing along Yang",
+ax.text(LAM_Y / 2, 0.5, "$\\lambda_Y$—bubble\nspacing along Yang",
         fontsize=7.5, color=TEXT_MAIN, ha="center", va="center",
         bbox=dict(facecolor=BG, edgecolor="none", alpha=0.85, pad=2))
-# λ_I/2: row (string) spacing along Yin — bubble row to void row
+# λ_I/2: row (string) spacing along Yin—bubble row to void row
 ax.annotate("", xy=(-LAM_Y, 1.0), xytext=(-LAM_Y, 0),
             arrowprops=dict(arrowstyle="<|-|>", color=TEXT_MAIN, lw=1.1))
 ax.text(-LAM_Y - 0.12, 0.5, "$\\lambda_I/2$\nrow\nspacing", fontsize=7.5,
@@ -174,7 +174,7 @@ ax.text(LAM_Y / 4, 1.5, "stagger $\\lambda_Y/2$\n(anti-phase)",
 # ─────────────────────────────────────────────────────────────────────────────
 # The generating math + axis legend, in the clean bottom margin
 # ─────────────────────────────────────────────────────────────────────────────
-fig.suptitle("THE CHORD — strings packed on the anti-phase interference lattice",
+fig.suptitle("THE CHORD—strings packed on the anti-phase interference lattice",
              fontsize=17, fontweight="bold", color=YANG_PEAK, y=0.968)
 fig.text(0.5, 0.135,
          "$C(x,y) = \\cos(2\\pi x/\\lambda_Y)\\;\\cos(2\\pi y/\\lambda_I)$,"
@@ -184,11 +184,11 @@ fig.text(0.5, 0.135,
          ha="center", fontsize=10, color=TEXT_MAIN)
 fig.text(0.5, 0.098,
          "sites $(m\\lambda_Y/2,\\; n\\lambda_I/2)$ with $m{+}n$ even  ·  voids $m{+}n$ odd"
-         "  —  the stagger is derived (product of perpendicular anti-phase wakes), not assumed",
+         "—the stagger is derived (product of perpendicular anti-phase wakes), not assumed",
          ha="center", fontsize=9, color=TEXT_SUB)
 fig.text(0.5, 0.055,
          "horizontal $=$ Yang axis (extended)   ·   vertical $=$ Yin axis (contracted)   ·   "
-         "⊙ $=$ string pierces the page — bubbles stack along it at the cascade-step period"
+         "⊙ $=$ string pierces the page—bubbles stack along it at the cascade-step period"
          " (chain view: cascade_cosmos panel A)",
          ha="center", fontsize=8, color=TEXT_SUB)
 fig.text(0.5, 0.912,

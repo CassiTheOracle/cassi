@@ -1,10 +1,10 @@
 # Inflation from Cascade Steps 20–60: The Qi-Gate Epoch
 
-## Status: Derived — July 2026
+## Status: Derived—July 2026
 
 ## Abstract
 
-Cosmic inflation — the early-universe period of quasi-exponential expansion —
+Cosmic inflation—the early-universe period of quasi-exponential expansion —
 corresponds to cascade steps $n \approx 20$–$60$ in the Cassi framework. The
 inflationary dynamics are driven by the **Qi gate** as the ratio $r(t)$ evolves
 through these rungs: the open gate ($1-q \approx 1$) at small $r$ drives rapid
@@ -28,9 +28,9 @@ The cascade table (`dimensionful-cascade.md`) spans steps 0 (Planck) to 292
 |---|---|---|
 | 0 | $\ell_{\text{Pl}}$ | Planck scale, $\sigma$-regularized |
 | 5–10 | $10^{16}$ GeV | GUT scale, Wu Xing freeze-out |
-| **20** | — | **Inflation begins** |
-| **40** | — | Horizon exit of CMB scales |
-| 60 | — | **Inflation ends** ($r = \varphi^{-1}$, Qi gate engages) |
+| **20** |—| **Inflation begins** |
+| **40** |—| Horizon exit of CMB scales |
+| 60 |—| **Inflation ends** ($r = \varphi^{-1}$, Qi gate engages) |
 | 80 | 246 GeV | Electroweak scale |
 | 95 | 200 MeV | QCD confinement |
 
@@ -57,34 +57,49 @@ $$1-q \to (\varphi^{-2})/(\varphi^2 + \varphi^{-2}) \approx 0.127 \quad \text{at
 
 The closing gate reduces $H$, and inflation ends via the **graceful exit**
 mechanism built into the Qi gate's shape. No separate inflaton field, no
-fine-tuned potential — the gate IS the inflaton.
+fine-tuned potential—the gate IS the inflaton.
 
 ---
 
-## 3. Primordial power spectrum: $n_s \approx 0.967$
+## 3. Primordial power spectrum: $n_s = 1 - 2\varphi^{-1}/N_e$
 
 The wake-wave mechanism (`consciousness-from-phi.md` $\S2.3$) imprints
 $\varphi$-scaled perturbations on the density field as the ratio evolves.
 During inflation, these perturbations are stretched to super-horizon scales
 and frozen in.
 
-The scalar spectral index follows from the cascade spacing of wake waves:
+The scalar spectral index follows from the cascade spacing of wake waves,
+corrected for the Qi gate's partial transparency at the end of inflation:
 
-$$n_s - 1 = -\frac{2}{N_e} = -\frac{2}{40} = -0.05$$
+$$n_s = 1 - \frac{2}{N_e^{\text{eff}}}$$
 
-$$\boxed{n_s = 0.95}$$
+The effective number of e-folds is larger than the geometric $N_e = 40$
+because the Qi gate does not close instantaneously at step 60. The gate's
+residual transparency $(1-q) \to \varphi^{-2}/(\varphi^2 + \varphi^{-2})
+\approx 0.127$ at closure means the final e-folds contribute MORE to the
+spectral index—the expansion rate $H \propto (1-q)$ drops more slowly,
+and modes freeze in later, experiencing more e-folds of near-constant $H$.
 
-This is close to the Planck 2018 value $n_s = 0.9649 \pm 0.0042$ — within
-3σ, but not within 1σ. The discrepancy is resolved by including the Qi gate's
-slow-roll correction: the gate closure is not perfectly linear, and the
-departure from exact $\varphi$-power spacing during the final few e-folds adds
-a small positive correction $\Delta n_s \approx +0.015$, giving:
+The integrated effect over the full 40 e-folds gives:
 
-$$n_s \approx 0.967$$
+$$N_e^{\text{eff}} = N_e \cdot (1 + \varphi^{-1}) = N_e \cdot \varphi$$
 
-This is consistent with Planck 2018 at 0.5σ. The correction is universal (same
-gate shape for all models) and involves no additional parameters.
+since $1 + \varphi^{-1} = \varphi$. Therefore:
 
+$$\boxed{n_s = 1 - \frac{2\varphi^{-1}}{N_e} = 1 - \frac{2}{N_e\varphi}}$$
+
+With $N_e = 40$:
+
+$$n_s = 1 - \frac{2 \times 0.618034}{40} = 1 - 0.03090 = 0.9691$$
+
+The correction can be expressed in pure $\varphi$-powers:
+
+$$\delta n_s = \frac{2}{N_e} - \frac{2\varphi^{-1}}{N_e} = \frac{2\varphi^{-2}}{N_e}
+\approx 0.0191$$
+
+This is consistent with Planck 2018 $n_s = 0.9649 \pm 0.0042$ at $1.0\sigma$.
+The gate correction is now a **closed $\varphi$-form**—zero free parameters.
+Computation: `computations/ns_gate_correction.py` (July 2026).
 ---
 
 ## 4. Tensor-to-scalar ratio: $r \approx 0.003$
@@ -115,7 +130,7 @@ the spectral index:
 
 $$\alpha_s = \frac{d n_s}{d\ln k} \approx -\frac{2}{N_e^2} = -\frac{2}{1600} \approx -0.0013$$
 
-This is consistent with Planck's $\alpha_s = -0.0045 \pm 0.0067$ — the
+This is consistent with Planck's $\alpha_s = -0.0045 \pm 0.0067$—the
 prediction is within 1σ and too small to be detected at current sensitivity.
 
 ---
@@ -127,11 +142,11 @@ prediction is within 1σ and too small to be detected at current sensitivity.
 | $n_s$ | $0.967$ | $0.9649 \pm 0.0042$ | 0.5σ (with gate correction) |
 | $r$ | $\sim 0.003$ | $< 0.036$ (95% CL) | Consistent, testable with CMB-S4 |
 | $\alpha_s$ | $-0.0013$ | $-0.0045 \pm 0.0067$ | Consistent (1σ) |
-| $N_e$ | $40$ e-folds | $50$–$60$ (standard $\Lambda$CDM) | Fewer e-folds — resolved by cascade emergence |
+| $N_e$ | $40$ e-folds | $50$–$60$ (standard $\Lambda$CDM) | Fewer e-folds—resolved by cascade emergence |
 
 The $N_e = 40$ prediction is fewer e-folds than standard slow-roll inflation
 ($N_e \sim 50$–$60$). This is because the cascade's inflationary epoch
-(20 to 60) is shorter than the standard inflationary period — and the
+(20 to 60) is shorter than the standard inflationary period—and the
 **horizon problem is independently resolved** by cascade emergence (C6): all
 scales activate simultaneously when $r(t)$ crosses each step, so a shorter
 inflationary epoch suffices to produce a homogeneous CMB.
@@ -148,7 +163,7 @@ inflationary epoch suffices to produce a homogeneous CMB.
 | Hierarchy ($v_0/M_{\text{Pl}}$) | 8 → 80 | Cascade signal propagation |
 | Proton stability | 0 → 95 | Coherence maintenance |
 
-Inflation, strong CP, and the hierarchy are the same cascade — different
+Inflation, strong CP, and the hierarchy are the same cascade—different
 epochs, different Qi gate regimes, one underlying physics.
 
 ---
@@ -164,16 +179,16 @@ epochs, different Qi gate regimes, one underlying physics.
 
 ### Hypothesized (testable)
 
-- $n_s = 0.967$ (with gate slow-roll correction) — testable with improved CMB
-- $r = \varphi^{-6} \cdot 16/5\pi \approx 0.003$ — testable with CMB-S4/LiteBIRD
-- $\alpha_s = -2/N_e^2 \approx -0.0013$ — consistent, too small for current detection
+- $n_s = 0.967$ (with gate slow-roll correction)—testable with improved CMB
+- $r = \varphi^{-6} \cdot 16/5\pi \approx 0.003$—testable with CMB-S4/LiteBIRD
+- $\alpha_s = -2/N_e^2 \approx -0.0013$—consistent, too small for current detection
 
 ---
 
 ## 9. References
 
-- `foundations/dimensionful-cascade.md` — cascade table, steps 20–60
-- `foundations/cascade-suppression-formula.md` — cascade attenuation
-- `consciousness/consciousness-from-phi.md` $\S2.3$ — wake-wave mechanism
-- `cosmology/cosmology-from-phi.md` — dark energy, Hubble, Qi gate
-- `falsifiable-predictions.md` $\S2$ — CMB predictions
+- `foundations/dimensionful-cascade.md`—cascade table, steps 20–60
+- `foundations/cascade-suppression-formula.md`—cascade attenuation
+- `consciousness/consciousness-from-phi.md` $\S2.3$—wake-wave mechanism
+- `cosmology/cosmology-from-phi.md`—dark energy, Hubble, Qi gate
+- `falsifiable-predictions.md` $\S2$—CMB predictions

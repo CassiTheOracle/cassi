@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Wave Chord — damped-wave two-fluid simulation with Qi coherence feedback.
+Wave Chord—damped-wave two-fluid simulation with Qi coherence feedback.
 
 Solves the 2D damped wave equation with φ-dependent wave speed AND a dynamic
 coherence field Qi that self-reinforces the standing wave pattern.
@@ -33,7 +33,7 @@ ALPHA = 0.20          # c² valley width
 
 # Qi coherence parameters
 ALPHA_Q = 0.02        # Qi growth rate from standing-wave coherence
-DELTA_Q = 0.002       # Qi friction decay (slow — coherence persists)
+DELTA_Q = 0.002       # Qi friction decay (slow—coherence persists)
 BETA    = 0.8         # Qi → damping reduction strength (at Q̄, damping → 20% of γ₀)
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -70,7 +70,7 @@ EY, EI, VY, VI, Qi = make_field()
 # ═══════════════════════════════════════════════════════════════════════════
 
 def c_sq(r):
-    """Wave speed squared: de-resonance TRAP — zero at r=φ, broad valley."""
+    """Wave speed squared: de-resonance TRAP—zero at r=φ, broad valley."""
     return C0**2 * np.abs(r - PHI) / (ALPHA + np.abs(r - PHI))
 
 def laplacian_var_c2(f, c2):
@@ -197,7 +197,7 @@ print(f"done: {MAX_STEP} steps in {elapsed:.1f}s  r̄={r_final.mean():.4f}  "
       f"Q̄={Qi.mean():.4f}")
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Visualization — 4 rows: E_Y, E_I, r, Qi
+# Visualization—4 rows: E_Y, E_I, r, Qi
 # ═══════════════════════════════════════════════════════════════════════════
 import matplotlib
 matplotlib.use("Agg")
@@ -282,7 +282,7 @@ axes[2, 0].text(-0.22, 0.5, "r = E_Y/E_I", transform=axes[2, 0].transAxes,
 axes[3, 0].text(-0.22, 0.5, "Qi\n(coherence)", transform=axes[3, 0].transAxes,
                  fontsize=9.5, color=QI_COLOR, ha="right", va="center")
 
-fig.suptitle("WAVE CHORD — de-resonance trapping + Qi coherence feedback",
+fig.suptitle("WAVE CHORD—de-resonance trapping + Qi coherence feedback",
              fontsize=15, fontweight="bold", color=YANG_PEAK, y=0.955)
 fig.text(0.5, 0.915,
          f"∂_t Qi = α_Q·|EY|·|EI| − δ_Q·Qi  ·  γ_eff = γ₀·(1−β·Qi/Q̄)  ·  "
@@ -290,7 +290,7 @@ fig.text(0.5, 0.915,
          f"N={N}², γ₀={GAMMA}, λ={LAM}",
          ha="center", fontsize=7.8, color=TEXT_SUB)
 fig.text(0.5, 0.02,
-         "Qi (teal, bottom row): coherence density — high where standing waves are "
+         "Qi (teal, bottom row): coherence density—high where standing waves are "
          "phase-locked  ·  feedback: high Qi → low γ_eff → waves persist → Qi sustained  ·  "
          "the checkerboard SELF-REINFORCES through Qi",
          ha="center", fontsize=7.8, color=TEXT_SUB, style="italic")
@@ -299,7 +299,7 @@ OUT = "visual-explainers/wave_chord.png"
 fig.savefig(OUT, dpi=160, facecolor=BG)
 print(f"wrote {OUT}")
 
-# High-res final frame — 4 panels
+# High-res final frame—4 panels
 fig2, (ax1, ax2, ax3, ax4) = plt.subplots(1, 4, figsize=(32, 8), dpi=200)
 plt.subplots_adjust(0, 0, 1, 1, wspace=0.02)
 ey_last = snapshots[-1][1]

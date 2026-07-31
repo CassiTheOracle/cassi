@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Qi Cascade Cosmos — the megacascade bubble lattice with Qi coherence interiors.
+Qi Cascade Cosmos—the megacascade bubble lattice with Qi coherence interiors.
 
 A large image centered on our universe bubble, surrounded by neighbors in
 the staggered checkerboard lattice. Each bubble is filled with Qi coherence
@@ -29,7 +29,7 @@ PHI = (1 + np.sqrt(5)) / 2
 N_CASCADE = 292  # φ-steps from Planck to Hubble
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Color palette — cosmic dark
+# Color palette—cosmic dark
 # ═══════════════════════════════════════════════════════════════════════════
 BG = "#030308"
 
@@ -47,7 +47,7 @@ plt.rcParams.update({
 })
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Analytical Qi texture — golden-ratio standing wave with multi-scale detail
+# Analytical Qi texture—golden-ratio standing wave with multi-scale detail
 # ═══════════════════════════════════════════════════════════════════════════
 print("Generating analytical Qi texture...")
 N_TEX = 512
@@ -75,7 +75,7 @@ qi_texture = (qi_final - qi_final.min()) / (qi_final.max() - qi_final.min())
 print(f"  Qi texture: {qi_texture.shape}")
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Bubble geometry — staggered checkerboard
+# Bubble geometry—staggered checkerboard
 # m+n even = bubble (5 sites), m+n odd = void (4 sites)
 # ═══════════════════════════════════════════════════════════════════════════
 BUBBLE_R = 0.26
@@ -203,7 +203,7 @@ for i in range(0, n_pts - seg_len, seg_len):
     ax.plot(sx[i:i+seg_len+1], sy[i:i+seg_len+1],
             color=color, alpha=alpha, linewidth=lw, solid_capstyle="round")
 
-# Fibonacci rectangles — more visible
+# Fibonacci rectangles—more visible
 fib_n = [1, 1, 2, 3, 5, 8, 13, 21, 34, 55]
 rect_scale = BUBBLE_R * 0.008
 for k, n in enumerate(fib_n):
@@ -254,7 +254,7 @@ for step in range(0, N_CASCADE + 1, 50):
                 path_effects=text_fx)
 
 # ── Labels ──
-ax.text(0, 0.93, "MEGACASCADE  —  Qi Coherence Bubble Lattice",
+ax.text(0, 0.93, "MEGACASCADE—Qi Coherence Bubble Lattice",
         ha="center", va="top", fontsize=17, color="#ffe060", fontweight="bold",
         path_effects=text_fx)
 ax.text(0, 0.885,

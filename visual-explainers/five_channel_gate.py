@@ -280,7 +280,7 @@ reduction_pct = (1 - open_late/open_early) * 100 if open_early > 0 else 0
 findings = [
     ("5-CHANNEL GATE: KEY RESULTS", YANG_PEAK, 13, "bold"),
     ("", TEXT_SUB, 7, "normal"),
-    (f"  λ = 1/(2·5) = 1/10 = {LAMBDA} — rational, de-resonant from φ-cascade", TEXT_MAIN, 9, "normal"),
+    (f"  λ = 1/(2·5) = 1/10 = {LAMBDA}—rational, de-resonant from φ-cascade", TEXT_MAIN, 9, "normal"),
     (f"  5 channels = 5 pentagon vertices, b_i = φ^(−k_i)", TEXT_MAIN, 9, "normal"),
     (f"  Single-channel: w_a = +0.46 (total reduction {100*reduction_pct:.0f}%, floor = {floor_single:.3f})", RED_DANGER, 9, "normal"),
     (f"  5-channel adiabatic: w_a → reduced toward zero (total reduction {20.6:.1f}%, floor = {floor_5ch:.3f})", GREEN_SAFE, 9, "normal"),
@@ -293,7 +293,7 @@ findings = [
     (f"  Single-channel: w_a = +0.46 (gate → fully closed, slope = {ds_single[-1]:.1f})", RED_DANGER, 9, "normal"),
     (f"  5-channel adiabatic: w_a → reduced toward zero (floor = {floor_5ch:.3f}, slope = {ds_5ch[-1]:.3f})", GREEN_SAFE, 9, "normal"),
     (f"  5-channel with pentagram resonance: w_a → negative (Speculative)", YIN_LIGHT, 9, "normal"),
-    ("  Testable via ODE solver (run_pde_wa_test.py in parent repo)", TEXT_SUB, 7.5, "normal"),
+    ("  Testable via ODE solver (run_pde_wa_test.py)", TEXT_SUB, 7.5, "normal"),
 ]
 
 y_pos = 0.97
@@ -306,7 +306,7 @@ for entry in findings:
     y_pos -= 0.022 if text else 0.011
 
 # ── Title ────────────────────────────────────────────────────────────────────
-fig.suptitle("5-CHANNEL PENTAGONAL QI GATE — Gate Shape and w_a Asymptotics",
+fig.suptitle("5-CHANNEL PENTAGONAL QI GATE—Gate Shape and w_a Asymptotics",
              fontsize=17, fontweight="bold", color=YANG_PEAK, y=0.988)
 fig.text(0.5, 0.978,
          r"$w=5$ from pentagon geometry   ·   $\lambda=1/(2\cdot5)=0.1$   ·   "

@@ -314,7 +314,7 @@ class ExpandingTwoFluid3DGPU(TwoFluid3DGPU):
         self.cs2 = cs2
         self.grav_sigma = 0.2  # N-body softening: caps |∇Φ| at this scale
         self.qi_gate = qi_gate
-        self.gate_model = 'single'  # 'single' | 'five' — 5-channel Wu Xing gate
+        self.gate_model = 'single'  # 'single' | 'five'—5-channel Wu Xing gate
         self.phi_inv2 = phi_inv2
         # 5-channel φ-powers: b_i = φ^{-k_i}, k_i = 2+i for i=0..4
         self.phi_pow_5ch = torch.tensor([PHI**(-k) for k in [3,4,5,6,7]],
@@ -389,7 +389,7 @@ class ExpandingTwoFluid3DGPU(TwoFluid3DGPU):
                     eps_sq_gated = eps_sq.mean()
                 rho_mean = ey_mean + ei_mean
                 H_struct = self.lam * eps_sq_gated / (rho_mean * rho_mean + PHI_INV**2 + 1e-30)
-                # Safety cap: H_struct ≤ |H_conv| — structure can't drive
+                # Safety cap: H_struct ≤ |H_conv|—structure can't drive
                 # faster expansion than the conversion imbalance itself
                 H_struct_capped = torch.clamp(H_struct, max=H_conv.abs())
                 H_raw = H_empty + H_conv + H_struct_capped
@@ -406,7 +406,7 @@ class ExpandingTwoFluid3DGPU(TwoFluid3DGPU):
         self.H = self._H_smooth
 
     def _diagnose_wu_xing(self, ey, ei):
-        """Five-element diagnostics — read-only extraction from PDE state.
+        """Five-element diagnostics—read-only extraction from PDE state.
 
         No feedback into conversion or Hubble. The Ke cycle is already running
         per-cell via the (1-q) gating and the conversion term. This method
@@ -426,7 +426,7 @@ class ExpandingTwoFluid3DGPU(TwoFluid3DGPU):
         
         # Metal (M) = diagnosed conversion efficiency proxy
         # The per-cell (1-q) already gates conversion natively.
-        # Here we report the global average: M_eff = <1-q>_spatial.
+        # Reports the global average: M_eff = <1-q>_spatial.
         if self.qi_gate and self.q_mean > 0:
             self._M = 1.0 - self.q_mean
         else:
@@ -438,6 +438,58 @@ class ExpandingTwoFluid3DGPU(TwoFluid3DGPU):
         self._E = torch.abs(r - PHI)
         
         return self._W, self._D, self._F, self._M, self._E
+
+    def compute_q_field(self, ey, ei, eps_sq_memory=None):
+        """Compute per-cell Qi coherence q and gate openness (1-q).
+
+        Replicates the gate computation from rhs() as a standalone diagnostic.
+        Uses the active gate_model for consistency with the PDE dynamics.
+
+        Args:
+            ey, ei: 3D tensors of Yang and Yin fields (physical space)
+            eps_sq_memory: optional IIR memory field (only used with qi_memory)
+
+        Returns:
+            (q, one_minus_q): 3D tensors, q ∈ [0,1], one_minus_q ∈ [0,1]
+        """
+        M_qi = (ey + ei) ** 2
+        eps_sq = (ey - PHI * ei) ** 2
+
+        if not self.qi_gate:
+            one_minus_q = torch.ones_like(ey)
+            q = torch.zeros_like(ey)
+            return q, one_minus_q
+
+        eps_sq_eff = eps_sq_memory if (self.qi_memory and eps_sq_memory is not None) else eps_sq
+        eps_norm = eps_sq_eff / (eps_sq_eff + M_qi + self.phi_inv2 + 1e-30)
+        w1 = (1.0 - eps_norm).clamp(0.0, 1.0)
+        w2 = (4.0 * eps_norm * (1.0 - eps_norm)).clamp(0.0, 1.0)
+        w3 = torch.ones_like(eps_norm)
+        w4 = eps_norm
+        w5 = torch.sigmoid((eps_norm - 0.3) / 0.05)
+        b = self.phi_pow_5ch.unsqueeze(-1).unsqueeze(-1).unsqueeze(-1)
+        eta = self.eta_5ch.unsqueeze(-1).unsqueeze(-1).unsqueeze(-1)
+
+        if self.gate_model == 'five':
+            w_all = torch.stack([w1, w2, w3, w4, w5], dim=0)
+            wood_closed = self.phi_pow_5ch[0] * (1.0 - w1)
+            active_open = (b[1:] * w_all[1:]).sum(dim=0, keepdim=True).clamp(min=1e-30)
+            redist = wood_closed * (b[1:] * w_all[1:]) / active_open
+            ch_open = b * w_all
+            ch_open[1:] += redist
+            one_minus_q = (eta * ch_open).sum(dim=0)
+        elif self.gate_model == 'two_pole':
+            east = torch.stack([w1, w2, w3, w4, w5], dim=0)
+            west = torch.stack([1.0 - w1, 1.0 - w2, 1.0 - w3,
+                                1.0 - w4, 1.0 - w5], dim=0)
+            one_minus_q = (eta * b * east + eta * b * PHI * west).sum(dim=0).clamp(min=0.0)
+        else:  # single
+            q = M_qi / (M_qi + self.phi_inv2 + eps_sq_eff + 1e-30)
+            one_minus_q = 1.0 - q
+
+        q = (1.0 - one_minus_q).clamp(0.0, 1.0)
+        return q, one_minus_q
+
     def initial_expanding(self, amplitude=0.2, seed=42):
         """Initial conditions with configurable Yin/Yang ratio.
 
@@ -500,7 +552,7 @@ class ExpandingTwoFluid3DGPU(TwoFluid3DGPU):
         grad_rho = self._grad(rho_hat)
         # N-body saturation: caps |F_grav| to prevent nonlinear collapse.
         # sf = |F|²/(|F|² + σ²) → 1 in linear regime, softens at σ threshold.
-        # From cassi_nbody_100.py — the "particle-free N-body" mechanism.
+        # From cassi_nbody_100.py—the "particle-free N-body" mechanism.
         f2 = sum((pi * grad_phi[d]) ** 2 for d in range(3))
         sf = f2 / (f2 + self.grav_sigma ** 2 + 1e-10)
         force = [(sf * pi * grad_phi[d] - self.cs2 * grad_rho[d]) / a for d in range(3)]
@@ -574,7 +626,7 @@ class ExpandingTwoFluid3DGPU(TwoFluid3DGPU):
 
         # Gravity is handled in the velocity equation (buoyancy force
         # at line 494) and density advects by the velocity field.
-        # No separate gravitational density flux — that was the source
+        # No separate gravitational density flux—that was the source
         # of all χ>0 instabilities.
 
         rhs_ey_hat = rhs_ey_hat * self.dealias
@@ -605,7 +657,7 @@ class ExpandingTwoFluid3DGPU(TwoFluid3DGPU):
         ei *= scale
         # Update IIR Qi memory: once per RK2 step using final clamped fields.
         # Previously this was inside rhs() and updated twice per step (k1+k2),
-        # giving effective decay (1-τ)² per step — near-total amnesia. Fixed.
+        # giving effective decay (1-τ)² per step—near-total amnesia. Fixed.
         if self.qi_memory:
             eps_sq = (ey - PHI * ei) ** 2
             self.eps_sq_memory = (1.0 - self.qi_tau) * self.eps_sq_memory + self.qi_tau * eps_sq
@@ -1372,7 +1424,7 @@ def plot_lcdm_comparison(solver, snaps, lcdm_ref, outdir, tag=''):
              if not any(np.isnan(v)
                         for v in [s['a'], s['H'], s['delta_rms']])]
     if not clean:
-        print('  [WARN] All snapshots NaN — skipping LCDM plot')
+        print('  [WARN] All snapshots NaN—skipping LCDM plot')
         return
     final = clean[-1]
     
@@ -1571,7 +1623,7 @@ def main():
         print("GPU 3D TWO-FLUID LCDM COMPARISON")
         print("=" * 70)
         # Default initial_ratio for LCDM comparison: EI/EY=0.25 means
-        # Ω_m~0.2, Ω_Λ~0.8 initially — leaves room to evolve toward φ.
+        # Ω_m~0.2, Ω_Λ~0.8 initially—leaves room to evolve toward φ.
         lcdm_ratio = args.initial_ratio if args.initial_ratio is not None else 3.0
         solver_l, snaps_l, lcdm_ref = run_lcdm_comparison(
             N=args.N, n_steps=args.n_steps,

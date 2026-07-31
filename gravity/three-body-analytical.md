@@ -1,5 +1,7 @@
 # The Three-Body Problem in Cassi Two-Fluid Gravity
 
+## Status: Derived—July 2026
+
 ## An Analytical Assessment of Integrability
 
 ---
@@ -82,7 +84,7 @@ M_j\ddot{\mathbf{X}}_j &\equiv \int \mathbf{F}_j\,dV \\
 \end{aligned}
 $$
 
-The factor $\alpha_j = \Pi_j/M_j$ extracts — this is the **local Yang fraction** of blob $j$,
+The factor $\alpha_j = \Pi_j/M_j$ extracts—this is the **local Yang fraction** of blob $j$,
 which is the average of $\pi/\rho$ over the blob.
 
 #### 2.2 Far-field gravitational potential
@@ -129,7 +131,7 @@ $$
 
 where $q_j = 1 - \exp[-\beta\max(\alpha_j - \phi^{-3},\,0)]$.
 
-**The mass and Yang fraction are DYNAMICAL variables** — they evolve via
+**The mass and Yang fraction are DYNAMICAL variables**—they evolve via
 conversion and chemotaxis, unlike Newtonian gravity where masses are constant.
 
 ---
@@ -178,7 +180,7 @@ At $\alpha_j = \phi^{-3}$, $q_j = 0$ for all $j$:
    The chemotaxis terms also vanish because $\chi\nabla\cdot(E_I\nabla\Phi)$ and
    $\chi_Y\nabla\cdot(E_Y\nabla\Phi)$ integrate to zero when the blob is compact
    and the external potential is harmonic across the blob (which holds at the
-   fixed point — the positive and negative flux cancel in the integral).
+   fixed point—the positive and negative flux cancel in the integral).
 
    > **Proof**: For a compact blob, $\nabla\Phi \approx \mathbf{r}/|\mathbf{r}|^3$
    > and $E_I \approx \text{const} \times \exp(-r^2/2\sigma^2)$. The integral
@@ -217,7 +219,7 @@ to $\alpha_j = \phi^{-3}$ on the conversion timescale $\tau_\lambda \sim 2/[\lam
   and each blob has a constant $\alpha_j \neq \phi^{-3}$, giving a **body-dependent
   effective gravitational constant** $G_{{\rm eff},j} = \alpha_j(1+\xi q_j)\,G$.
   This is now a **non-Newtonian** three-body problem with mass-dependent
-  coupling — even less likely to be integrable.
+  coupling—even less likely to be integrable.
 - If $T_{\text{orbit}} \sim \tau_\lambda$, the system has 27+ degrees of
   freedom (positions, velocities, internal states), putting integrability
   further out of reach.
@@ -256,9 +258,9 @@ $$
 \dot{M}_j = \frac{\lambda}{2}\bigl[(1+\phi)\Pi_j - \phi^{-1}M_j\bigr]
 $$
 
-When $\alpha_j > \phi^{-3}$ (Yang-rich), $\dot{M}_j > 0$ — the blob gains
+When $\alpha_j > \phi^{-3}$ (Yang-rich), $\dot{M}_j > 0$—the blob gains
 mass from the ambient field. When $\alpha_j < \phi^{-3}$ (Yin-rich),
-$\dot{M}_j < 0$ — it loses mass. Since $E_Y + E_I$ is conserved globally
+$\dot{M}_j < 0$—it loses mass. Since $E_Y + E_I$ is conserved globally
 (conversion just exchanges between them), one blob's gain is another's loss.
 
 This mass transfer provides a **dissipative mechanism** that can stabilize
@@ -268,7 +270,7 @@ certain configurations (like the Lagrange triangle) against perturbations.
 
 When $q_j > 0$, the factor $(1+\xi q_j)$ amplifies gravity by up to
 $1 + \xi \approx 18.9\times$. This is a significant effect that can drive
-behavior not seen in Newtonian gravity — such as the hierarchical M=3,2,1
+behavior not seen in Newtonian gravity—such as the hierarchical M=3,2,1
 configuration maintaining a close binary while the outer body slowly recedes.
 
 #### 5.4 Effective 2+1 body reduction for strong Qi
@@ -371,7 +373,7 @@ $$\rho(\mathbf{X}) = E_Y(\mathbf{X}) + E_I(\mathbf{X})
 $$\pi(\mathbf{X}) / \rho(\mathbf{X}) = 2\alpha - 1$$
 
 Thus $\pi/\rho = 2\alpha - 1$ for a Gaussian blob. At the $\phi$-fixed point
-$\pi/\rho = \phi^{-3} \approx 0.236$, we have:
+$\pi/\rho = \phi^{-3} \approx 0.236$, this gives:
 
 $$\alpha = \frac{1+\phi^{-3}}{2} \approx 0.618,\qquad
   \Pi_j = \alpha M_j \approx 0.618\,M_j$$
@@ -399,7 +401,7 @@ $$
                               = \phi^{-1} - \phi^{-1} = 0
 $$
 
-so $\dot{M}_j = 0$ — mass is conserved at the fixed point, as expected.
+so $\dot{M}_j = 0$—mass is conserved at the fixed point, as expected.
 
 ---
 
@@ -416,4 +418,4 @@ so $\dot{M}_j = 0$ — mass is conserved at the fixed point, as expected.
 
 The 24-D phase space is too large for standard integrability. On the
 $\phi$-fixed-point submanifold ($\Pi_j = \phi^{-3}M_j$), the dimension
-reduces to 18 — the classical Newtonian three-body phase space.
+reduces to 18—the classical Newtonian three-body phase space.

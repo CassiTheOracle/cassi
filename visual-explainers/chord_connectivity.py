@@ -72,7 +72,7 @@ n_components = np.zeros(len(theta_values))
 
 for i, theta in enumerate(theta_values):
     binary = (C >= theta).astype(np.int32)
-    # Label connected components (4-connectivity since we want actual merges)
+    # Label connected components (4-connectivity to capture actual merges)
     labeled, n_labels = ndimage.label(binary)
     n_components[i] = n_labels
 
@@ -99,7 +99,7 @@ for i, theta in enumerate(theta_values):
 # ─────────────────────────────────────────────────────────────────────────────
 # Saddle analysis between bubble (0,0) and its nearest diagonal neighbor
 # ─────────────────────────────────────────────────────────────────────────────
-# Diagonal neighbor: (λ_Y/2, λ_I/2) — m+n=0+0=0 (even), neighbor (1,1): 1+1=2 (even)
+# Diagonal neighbor: (λ_Y/2, λ_I/2)—m+n=0+0=0 (even), neighbor (1,1): 1+1=2 (even)
 # Path from (0,0) to (λ_Y/2, λ_I/2)
 # Parametric: (t * λ_Y/2, t * λ_I/2) for t ∈ [0, 1]
 t_path = np.linspace(0, 1, 500)
@@ -125,7 +125,7 @@ C_path_ax = np.cos(ALPHA * path_ax_x) * np.cos(BETA * path_ax_y)
 # Diagonal: (±1, ±1) at distance sqrt(λ_Y²/4 + λ_I²/4) = sqrt(λ_Y²+λ_I²)/2
 # Degree of the lattice: each bubble has 4 axial + 4 diagonal = 8 neighbors
 # BUT: only diagonal neighbors share a saddle path (C passes through 0)
-# Axial neighbors are separated by C=-1 void minimum — NEVER merge
+# Axial neighbors are separated by C=-1 void minimum—NEVER merge
 
 diag_dist = np.sqrt(LAM_Y**2 + LAM_I**2) / 2
 axial_yang_dist = LAM_Y
@@ -313,7 +313,7 @@ axD.set_xlim(0, 1); axD.set_ylim(0, 1)
 axD.axis("off")
 
 findings = [
-    ("LATTICE GEOMETRY — Derived (from C(x,y) = cos(αx)·cos(βy))", YANG_PEAK, 12, "bold"),
+    ("LATTICE GEOMETRY—Derived (from C(x,y) = cos(αx)·cos(βy))", YANG_PEAK, 12, "bold"),
     ("", TEXT_SUB, 7, "normal"),
     (f"  Bubble spacing (Yang axis):     λ_Y = {LAM_Y:.4f}  (φ · λ_I)", TEXT_MAIN, 9, "normal"),
     (f"  Bubble spacing (Yin axis):       λ_I = {LAM_I:.4f}", TEXT_MAIN, 9, "normal"),
@@ -321,10 +321,10 @@ findings = [
     (f"  Diagonal neighbor distance:      {diag_dist:.4f}  = √(λ_Y²+λ_I²)/2", TEXT_MAIN, 9, "normal"),
     (f"  Bubble aspect ratio:             a_Yang/a_Yin = β/α = φ = {PHI:.4f}", TEXT_MAIN, 9, "normal"),
     ("", TEXT_SUB, 7, "normal"),
-    ("CONNECTIVITY — Geometric analysis", YANG_BRIGHT, 11, "bold"),
+    ("CONNECTIVITY—Geometric analysis", YANG_BRIGHT, 11, "bold"),
     ("", TEXT_SUB, 7, "normal"),
     (f"  Lattice degree:                  8 (4 axial + 4 diagonal, geometric)", TEXT_MAIN, 9, "normal"),
-    (f"  Effective degree (connectable):  4 (diagonal only — axial blocked by C=−1 voids)", GREEN_SAFE, 9, "normal"),
+    (f"  Effective degree (connectable):  4 (diagonal only—axial blocked by C=−1 voids)", GREEN_SAFE, 9, "normal"),
     (f"  Percolation threshold:           θ_perc = 0.0 (analytical, cos·cos product)", GREEN_SAFE, 9, "normal"),
     (f"  At θ_cond = 0.45:                ISOLATED bubbles (0 connected components merge)", YELLOW_CAUTION, 9, "normal"),
     (f"  Saddle barrier between diagonal  1 − C_saddle = 1.0 (full Qi barrier)", SADDLE_COLOR, 9, "normal"),
@@ -335,7 +335,7 @@ findings = [
     ("", TEXT_SUB, 7, "normal"),
     (f"  φ = {PHI:.4f} makes lattice ANISOTROPIC: bubbles are φ:1 oblong ovals", TEXT_MAIN, 9, "normal"),
     (f"  An isotropic lattice (φ=1) would have circular bubbles, same percolation θ=0", TEXT_MAIN, 9, "normal"),
-    (f"  φ changes bubble SHAPE but not lattice TOPOLOGY — degree-4 stays degree-4", TEXT_MAIN, 9, "normal"),
+    (f"  φ changes bubble SHAPE but not lattice TOPOLOGY—degree-4 stays degree-4", TEXT_MAIN, 9, "normal"),
     (f"  The φ anisotropy means the inter-bubble saddle PATH is longer by φ in Yang", TEXT_MAIN, 9, "normal"),
     ("", TEXT_SUB, 7, "normal"),
     ("EPISTEMIC", YANG_PEAK, 11, "bold"),
@@ -353,7 +353,7 @@ for text, color, size, weight in findings:
     y_pos -= 0.022 if text else 0.013
 
 # ── Title ────────────────────────────────────────────────────────────────────
-fig.suptitle("CHORD LATTICE CONNECTIVITY — Geometric Analysis of the Bubble Network",
+fig.suptitle("CHORD LATTICE CONNECTIVITY—Geometric Analysis of the Bubble Network",
              fontsize=18, fontweight="bold", color=YANG_PEAK, y=0.985)
 fig.text(0.5, 0.975,
          r"$C(x,y) = \cos(2\pi x/\lambda_Y)\;\cos(2\pi y/\lambda_I)$"

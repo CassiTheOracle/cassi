@@ -2,7 +2,7 @@
 """
 Chord emergence: a minimal 2D two-fluid PDE simulation.
 
-Solves the governing equations from TOE.md §1.3 (diffusion + conversion +
+Solves the governing equations from `cassi.md` (diffusion + conversion +
 chemotaxis), domain-averaged for simplicity (no bulk velocity):
 
     ∂_t E_Y  =   D ∇²E_Y  −  λ (E_Y − φ E_I)  −  (χ/φ) ∇·(E_Y ∇Φ)
@@ -20,7 +20,7 @@ import numpy as np
 from numpy.fft import fft2, ifft2, fftfreq
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Framework parameters  (TOE.md §1.3 + dimensionful-cascade.md)
+# Framework parameters  (`cassi.md` + dimensionful-cascade.md)
 # ─────────────────────────────────────────────────────────────────────────────
 PHI = (1 + np.sqrt(5)) / 2
 LAM = 0.02          # conversion rate λ
@@ -183,14 +183,14 @@ axes[1, 0].text(-0.22, 0.5, "E_I\n(Yin)", transform=axes[1, 0].transAxes,
 axes[2, 0].text(-0.22, 0.5, "r = E_Y/E_I", transform=axes[2, 0].transAxes,
                  fontsize=9.5, color=TEXT_MAIN, ha="right", va="center")
 
-fig.suptitle("CHORD EMERGENCE — two-fluid PDE (diffusion + conversion + chemotaxis)",
+fig.suptitle("CHORD EMERGENCE—two-fluid PDE (diffusion + conversion + chemotaxis)",
              fontsize=15, fontweight="bold", color=YANG_PEAK, y=0.955)
 fig.text(0.5, 0.910,
          f"λ={LAM}  D={DIFF}  χ={CHI}  χ_Y=χ/φ={CHI/PHI:.3f}  N={N}²  "
          f"init: anti-phase standing waves at λ_x=φ, λ_y=1  ·  mass conserved",
          ha="center", fontsize=8, color=TEXT_SUB)
 fig.text(0.5, 0.035,
-         "r = E_Y/E_I (bottom row): gold ≈ φ (attractor), indigo ≠ φ  —  "
+         "r = E_Y/E_I (bottom row): gold ≈ φ (attractor), indigo ≠ φ—"
          "watch the PDE decide whether a checkerboard emerges",
          ha="center", fontsize=8, color=TEXT_SUB, style="italic")
 

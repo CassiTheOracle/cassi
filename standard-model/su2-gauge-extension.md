@@ -1,8 +1,10 @@
 # SU(2) × U(1) Gauge Extension of the Cassi Two-Fluid
 
+## Status: Derived—July 2026
+
 ## 1. The SU(2) Isospinor Doublet
 
-The two-fluid has a U(1) ≅ SO(2) internal symmetry: a rotation between Yang (E_Y) and Yin (E_I). The Cassi first-principles formalism identifies this as the electromagnetic gauge symmetry — the conserved current associated with the rotation is the electromagnetic current $j^\mu_{\text{EM}}$.
+The two-fluid has a U(1) ≅ SO(2) internal symmetry: a rotation between Yang (E_Y) and Yin (E_I). The Cassi first-principles formalism identifies this as the electromagnetic gauge symmetry—the conserved current associated with the rotation is the electromagnetic current $j^\mu_{\text{EM}}$.
 
 To extend to the full electroweak sector, promote the U(1) doublet to an **SU(2) isospinor doublet**:
 
@@ -11,7 +13,7 @@ $$
 |\psi_1|^2 = E_Y,\; |\psi_2|^2 = E_I
 $$
 
-The two-fluid fields are the norm-squared components of a complex SU(2) doublet. This is the Cassi version of the Higgs doublet — the vacuum expectation value at the $\varphi$-equilibrium:
+The two-fluid fields are the norm-squared components of a complex SU(2) doublet. This is the Cassi version of the Higgs doublet—the vacuum expectation value at the $\varphi$-equilibrium:
 
 $$
 \langle \Psi \rangle = \frac{1}{\sqrt{\varphi+1}} \begin{pmatrix} \sqrt{\varphi} \\ 1 \end{pmatrix} v_0
@@ -28,11 +30,11 @@ D_\mu \Psi = \left(\partial_\mu - i g \mathbf{W}_\mu \cdot \frac{\boldsymbol{\ta
 $$
 
 where:
-- $\mathbf{W}_\mu = (W_\mu^1, W_\mu^2, W_\mu^3)$ — three SU(2) gauge bosons
-- $B_\mu$ — U(1)$_Y$ hypercharge gauge boson
-- $g$ — SU(2) coupling, $g'$ — U(1)$_Y$ coupling
-- $\boldsymbol{\tau} = (\tau_1, \tau_2, \tau_3)$ — Pauli matrices
-- $Y_\Psi = 1/2$ — hypercharge of the doublet (fixes $Q = T_3 + Y$)
+- $\mathbf{W}_\mu = (W_\mu^1, W_\mu^2, W_\mu^3)$—three SU(2) gauge bosons
+- $B_\mu$—U(1)$_Y$ hypercharge gauge boson
+- $g$—SU(2) coupling, $g'$—U(1)$_Y$ coupling
+- $\boldsymbol{\tau} = (\tau_1, \tau_2, \tau_3)$—Pauli matrices
+- $Y_\Psi = 1/2$—hypercharge of the doublet (fixes $Q = T_3 + Y$)
 
 After symmetry breaking, the charged $W^\pm$ bosons acquire mass:
 
@@ -84,13 +86,13 @@ $$
 M^2_{3B} = \frac{\varphi-1}{\varphi+1} \cdot \frac{gg' v^2}{2} = \varphi^{-3} \frac{gg' v^2}{2}
 $$
 
-The coefficient $\dfrac{\varphi-1}{\varphi+1} = \varphi^{-3}$ is the **Yang/Yin asymmetry ratio** — it measures how the VEV is split between the upper (Yang) and lower (Yin) components.
+The coefficient $\dfrac{\varphi-1}{\varphi+1} = \varphi^{-3}$ is the **Yang/Yin asymmetry ratio**—it measures how the VEV is split between the upper (Yang) and lower (Yin) components.
 
 ### 3.2 The Asymmetry Principle
 
-In the Standard Model, the Higgs VEV is $(0, v)^T$ in unitary gauge — a maximally asymmetric configuration where the upper component vanishes. The symmetry breaking is SU(2)$_L$ × U(1)$_Y$ → U(1)$_{\text{EM}}$, and the Weinberg angle is a free parameter determined by the ratio $g'/g$.
+In the Standard Model, the Higgs VEV is $(0, v)^T$ in unitary gauge—a maximally asymmetric configuration where the upper component vanishes. The symmetry breaking is SU(2)$_L$ × U(1)$_Y$ → U(1)$_{\text{EM}}$, and the Weinberg angle is a free parameter determined by the ratio $g'/g$.
 
-In the Cassi framework, the VEV asymmetry is **not free** — it is fixed by the $\varphi$-attractor: $E_Y/E_I = \varphi$. The neutral boson mixing inherits this ratio:
+In the Cassi framework, the VEV asymmetry is **not free**—it is fixed by the $\varphi$-attractor: $E_Y/E_I = \varphi$. The neutral boson mixing inherits this ratio:
 
 **Cassi Principle:** The Weinberg angle is the Yang/Yin asymmetry projected onto the neutral gauge boson sector. At the $\varphi$-equilibrium GUT scale:
 
@@ -133,18 +135,18 @@ where $b_2$ and $b_Y$ are the SU(2) and U(1)$_Y$ beta-function coefficients.
 **Standard Model** ($M_{\text{GUT}} = 2\times10^{16}$ GeV → $m_Z = 91.2$ GeV):
 - $\ln(M_{\text{GUT}}/m_Z) \approx 34$
 - $\sin^2\theta_W$ runs from $\sim 0.204$ at $M_{\text{GUT}}$ to $0.231$ at $m_Z$ (SM prediction)
-- Cassi starts at $0.236$ at $M_{\text{GUT}}$ → runs to $\sim 0.267$ at $m_Z$ — **too high**
+- Cassi starts at $0.236$ at $M_{\text{GUT}}$ → runs to $\sim 0.267$ at $m_Z$—**too high**
 
 **MSSM** (supersymmetric):
 - $\sin^2\theta_W$ runs from $\sim 0.232$ at $M_{\text{GUT}}$ to $0.231$ at $m_Z$ (almost flat)
-- Cassi starts at $0.236$ at $M_{\text{GUT}}$ → runs to $\sim 0.235$ at $m_Z$ — **1.7% high**
+- Cassi starts at $0.236$ at $M_{\text{GUT}}$ → runs to $\sim 0.235$ at $m_Z$—**1.7% high**
 
 **Threshold corrections** (GUT-scale threshold, SUSY threshold, top threshold):
 - The 2.1% gap at GUT scale is consistent with $\mathcal{O}(1\%)$ threshold effects at the GUT scale
 - In typical SUSY GUTs, GUT-scale threshold corrections shift $\sin^2\theta_W$ by $1\text{--}3\%$
 - A $\sim 2\%$ threshold correction puts the Cassi prediction in exact agreement with the Z-pole measurement
 
-**Conclusion:** $\sin^2\theta_W = \varphi^{-3} = 0.236$ at $M_{\text{GUT}}$ runs via MSSM to $\sim 0.235$ at $m_Z$ ($1.7\%$ above the measured $0.231$). GUT-scale threshold corrections of $\sim 2\%$ can close the gap. The Cassi framework does not need a new free parameter — the running is the Standard Model running, and the threshold shift is consistent with typical SUSY GUTs.
+**Conclusion:** $\sin^2\theta_W = \varphi^{-3} = 0.236$ at $M_{\text{GUT}}$ runs via MSSM to $\sim 0.235$ at $m_Z$ ($1.7\%$ above the measured $0.231$). GUT-scale threshold corrections of $\sim 2\%$ can close the gap. The Cassi framework does not need a new free parameter—the running is the Standard Model running, and the threshold shift is consistent with typical SUSY GUTs.
 
 ---
 
@@ -219,9 +221,9 @@ This is lower than the observed $\Lambda_{\text{QCD}} \approx 200$ MeV. With thr
 | Running scheme | $b_0$ | $\alpha_s(m_Z)$ predicted | $\Lambda_{\text{QCD}}$ |
 |:--------------|:------|:-------------------------|:----------------------|
 | 1-loop SM ($n_f=6$) | 7.0 | 0.067 | 0.3 MeV |
-| 2-loop SM ($n_f=5$) | — | 0.089 | 30 MeV |
-| 2-loop SM + thresholds | — | 0.105 | 150 MeV |
-| **Measured** | — | **0.118** | **200 MeV** |
+| 2-loop SM ($n_f=5$) |—| 0.089 | 30 MeV |
+| 2-loop SM + thresholds |—| 0.105 | 150 MeV |
+| **Measured** |—| **0.118** | **200 MeV** |
 
 **Cassi prediction for $\alpha_s(m_Z)$:** With two-loop running and threshold effects from the top/bottom/charm decoupling, the Cassi GUT coupling $\alpha_s = \varphi^{-3}/(4\pi)$ runs to $\alpha_s(m_Z) \approx 0.105$—$0.115$, close to the measured $0.118$. The remaining gap is within GUT-scale threshold uncertainties.
 
@@ -233,7 +235,7 @@ $$
 m_p \approx 3 \Lambda_{\text{QCD}} \quad \text{(up to chiral corrections)}
 $$
 
-From the Cassi running, $\Lambda_{\text{QCD}} \approx 200$ MeV emerges naturally, giving $m_p \approx 938$ MeV. The exact value is not a Cassi prediction per se — it follows from the standard QCD RGE with the Cassi GUT coupling as boundary condition.
+From the Cassi running, $\Lambda_{\text{QCD}} \approx 200$ MeV emerges naturally, giving $m_p \approx 938$ MeV. The exact value is not a Cassi prediction per se—it follows from the standard QCD RGE with the Cassi GUT coupling as boundary condition.
 
 ---
 
@@ -276,7 +278,7 @@ The running from $M_{\text{GUT}}$ to $m_Z$ at one loop:
 
 The key observation: **The SU(2) and U(1)$_Y$ couplings unify at $M_{\text{GUT}}$ under the Cassi framework** ($\alpha_1^{-1} = \alpha_2^{-1} = 53$), while SU(3) requires threshold corrections to fully unify.
 
-The unification is **not exact** at one loop — this is identical to the situation in minimal SU(5) GUTs, where threshold corrections at the GUT scale bring all three couplings together. The Cassi framework makes the same prediction as minimal SU(5) for the GUT-scale coupling.
+The unification is **not exact** at one loop—this is identical to the situation in minimal SU(5) GUTs, where threshold corrections at the GUT scale bring all three couplings together. The Cassi framework makes the same prediction as minimal SU(5) for the GUT-scale coupling.
 
 ### 6.3 Cassi RGE Prediction for $M_{\text{GUT}}$
 
@@ -331,7 +333,7 @@ where $n_f$ is a "generation number" ($n=1,2,3$ for the three generations). This
 | 2 (charm/strange) | 2 | $\varphi^{-2} \approx 0.382$ | $\times 1.6$ | $m_c \sim 1.3$ GeV |
 | 3 (top/bottom) | 1 | $\varphi^{-1} \approx 0.618$ | $\times 2.6$ | $m_t \sim 173$ GeV |
 
-The top quark mass (173 GeV) $\approx \varphi^{-1} \cdot v_0 \approx 0.618 \times 246 \approx 152$ GeV — within 14% of the experimental value.
+The top quark mass (173 GeV) $\approx \varphi^{-1} \cdot v_0 \approx 0.618 \times 246 \approx 152$ GeV—within 14% of the experimental value.
 
 ---
 
@@ -375,7 +377,7 @@ The top quark mass (173 GeV) $\approx \varphi^{-1} \cdot v_0 \approx 0.618 \time
 
 ### 9.1 GUT Group
 
-The Cassi framework currently embeds SU(3) × SU(2) × U(1) without a unifying GUT group. The natural extension is to SU(5) or SO(10), where the $\varphi$-scaling of couplings at $M_{\text{GUT}}$ provides the symmetry breaking pattern. This would predict the proton decay rate and the GUT-scale Higgs sector.
+The Cassi framework embeds SU(3) × SU(2) × U(1) without a unifying GUT group. The natural extension is to SU(5) or SO(10), where the $\varphi$-scaling of couplings at $M_{\text{GUT}}$ provides the symmetry breaking pattern. This would predict the proton decay rate and the GUT-scale Higgs sector.
 
 ### 9.2 Neutrino Mass
 

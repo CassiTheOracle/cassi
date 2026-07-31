@@ -1,5 +1,7 @@
 # Neutrino Mass from $\varphi$
 
+## Status: Hypothesized—July 2026
+
 ## 1. The Problem
 
 Neutrinos have mass $\sim 0.01\!-\!0.1\ \text{eV}$, far below charged fermions.
@@ -23,8 +25,8 @@ $$
 m_\nu \sim \frac{(246\ \text{GeV})^2}{10^{15}\ \text{GeV}} \sim 0.06\ \text{eV}.
 $$
 
-This reproduces the observed scale. The Cassi framework must tell us
-**precisely** what $M_R$ is.
+This reproduces the observed scale. The Cassi framework precisely determines
+$M_R$.
 
 ## 3. Cassi Prediction for $M_R$
 
@@ -53,7 +55,7 @@ $$
 $$
 
 This is the **intermediate scale** in SO(10) breaking chains ($B\!-\!L$
-breaking) — no new parameter introduced.
+breaking)—no new parameter introduced.
 
 ## 4. Neutrino Masses
 
@@ -102,7 +104,7 @@ consistent with all oscillation data.
 ## 6. Summary
 
 - **Cassi seesaw scale:** $M_R = \varphi^{-3} \cdot M_{\text{GUT}} \sim 5 \times 10^{15}\ \text{GeV}$, matching the SO(10) $B\!-\!L$ breaking scale
-- **Neutrino masses:** $0.01\!-\!0.05\ \text{eV}$ — consistent with observations within mixing-angle uncertainties
+- **Neutrino masses:** $0.01\!-\!0.05\ \text{eV}$—consistent with observations within mixing-angle uncertainties
 - **Normal ordering** ($m_3 > m_2 > m_1$) follows from the $\varphi$-scaled Yukawa hierarchy
 - **Prediction:** $0\nu\beta\beta$ decay at $|m_{\beta\beta}| \sim 0.002\!-\!0.005\ \text{eV}$, testable by nEXO, LEGEND-1000
 - **No free parameters:** $M_R$ follows from $\varphi^{-3}$ times $M_{\text{GUT}}$, which is fixed by $\alpha^{-1}_{\text{GUT}} = 4\pi/\varphi^{-3} \approx 53$

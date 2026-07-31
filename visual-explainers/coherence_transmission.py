@@ -4,11 +4,11 @@ Coherence Transmission: cascade-span analysis of sustained multi-rung injection
 ==============================================================================
 
 When a φ-spaced device injects coherent perturbations spanning K cascade rungs,
-how much coherence survives as we descend through the normal cascade, across the
+how much coherence survives descending through the normal cascade, across the
 Planck barrier, and into the microcascade?
 
 This script applies the cascade-suppression formula (Derived) and the
-microcascade q_n ansatz (Speculative — see microcascade-mirror.md §3.2) to
+microcascade q_n ansatz (Speculative—see microcascade-mirror.md §3.2) to
 compute the per-rung transmission landscape and answer: is coherence easier to
 sustain at sub-Planckian scales?
 
@@ -58,7 +58,7 @@ n_full = np.arange(-N_MICRO, N_CASCADE + 1)   # -292..292
 q_pos = 1.0 - PHI ** (-n_pos.astype(float) - DELTA)
 q_pos = np.clip(q_pos, 0.0, 1.0)
 
-# Ansatz for n < 0 (microcascade-mirror.md §3.2 — SPECULATIVE)
+# Ansatz for n < 0 (microcascade-mirror.md §3.2—SPECULATIVE)
 abs_n_neg = np.abs(n_neg).astype(float)
 q_neg_ansatz = PHI ** (-abs_n_neg - DELTA) / (1.0 + PHI ** (-abs_n_neg - DELTA))
 
@@ -77,8 +77,8 @@ d_signal_pos[0] = PHI ** (-DELTA) + 1.0 / PHI   # Planck rung exact
 # For n < 0: same φ^{-1} ansatz (signal passes through microcascade similarly)
 d_signal_neg = np.full_like(n_neg, 1.0 / PHI, dtype=float)
 # But: microcascade has (1-q_n) → 1, meaning the medium is more transparent.
-# A proper treatment would use the microcascade PDE — not available.
-# We show BOTH assumptions (uniform φ^{-1} vs improved by 1-q_n) on the plot.
+# A proper treatment would use the microcascade PDE—not available.
+# Both assumptions (uniform φ^{-1} vs improved by 1-q_n) are shown on the plot.
 
 # Coherence regime: d_i^(coherence) = (1 - q_i)  (position-dependent)
 d_coherence_pos = gate_full[N_MICRO:]   # n ≥ 0
@@ -91,7 +91,7 @@ d_coherence_neg = gate_full[:N_MICRO]   # n < 0
 #   T_coherence(0→k) = ∏_{i=0}^{k} (1-q_i) = φ^{-k(k+1)/2 - δ(k+1)}
 
 # Compute cumulative transmission: from a given starting rung down through Planck
-# into microcascade. We go DOWNWARD (decreasing n).
+# into microcascade. Path goes DOWNWARD (decreasing n).
 # Path: injection rung → Planck (n=0) → microcascade target
 
 # For signal regime: per-rung = φ^{-1}, cumulative across N rungs = φ^{-N}
@@ -104,14 +104,14 @@ for k in range(1, N_CASCADE + 1):
 # Signal regime: φ^{-|n|} per step. Microcascade nodes have an effective
 # per-rung factor. With microcascade ansatz, (1-q_n) → 1, so d_n → 1
 # (no attenuation). But signal damping φ^{-1} applies if medium is same.
-# We plot BOTH assumptions.
+# Both assumptions are plotted.
 cum_signal_micro_uniform = np.ones(N_MICRO)
 for d in range(1, N_MICRO):
     cum_signal_micro_uniform[d] = cum_signal_micro_uniform[d - 1] / PHI
 
 cum_signal_micro_improved = np.ones(N_MICRO)
 for d in range(1, N_MICRO):
-    # per-rung factor = max(1-q_n, φ^{-1}) — microcascade enforces φ^{-1} floor
+    # per-rung factor = max(1-q_n, φ^{-1})—microcascade enforces φ^{-1} floor
     improved_d = max(gate_full[N_MICRO - 1 - d], 1.0 / PHI)
     cum_signal_micro_improved[d] = cum_signal_micro_improved[d - 1] * improved_d
 
@@ -152,7 +152,7 @@ axA.axvspan(N_CASCADE - 7, N_CASCADE, alpha=0.08, color=YANG_PEAK, zorder=0)
 
 # Plot q(n)
 axA.plot(n_neg, q_neg_ansatz, color=YIN_LIGHT, lw=1.5, ls="--",
-         label=r"$q_n$ (microcascade ansatz — Speculative)")
+         label=r"$q_n$ (microcascade ansatz—Speculative)")
 axA.plot(n_pos, q_pos, color=YANG_BRIGHT, lw=2.0,
          label=r"$q_n = 1 - \varphi^{-n-3}$ (Derived)")
 
@@ -212,9 +212,9 @@ axB.text(0.99, 0.35, "HARD: $(1-q_n) < 0.1$\nPlanck barrier floor", transform=ax
 
 # Plot (1-q_n)
 axB.plot(n_neg, gate_full[:N_MICRO], color=YIN_LIGHT, lw=1.8, ls="--",
-         label=r"$(1-q_n)$ — microcascade ansatz (Speculative)")
+         label=r"$(1-q_n)$—microcascade ansatz (Speculative)")
 axB.plot(n_pos, gate_full[N_MICRO:], color=YANG_BRIGHT, lw=2.0,
-         label=r"$(1-q_n) = \varphi^{-n-\delta}$ — cascade (Derived)")
+         label=r"$(1-q_n) = \varphi^{-n-\delta}$—cascade (Derived)")
 
 # Signal-propagation line for comparison
 axB.axhline(y=1.0/PHI, color=TEXT_SUB, lw=1.0, ls=":", alpha=0.6)
@@ -237,7 +237,7 @@ axB.annotate(r"$(1-q_n) \to 1$ as $n \to -\infty$" + "\n(perfect transmission at
              arrowprops=dict(arrowstyle="->", color=GREEN_SAFE, lw=1.5))
 
 # Arrow showing cascade decay
-axB.annotate(r"$(1-q_n) \to \varphi^{-3} \approx 0.24$ as $n \to \infty$" + "\n(irreducible gate floor — never fully closes)",
+axB.annotate(r"$(1-q_n) \to \varphi^{-3} \approx 0.24$ as $n \to \infty$" + "\n(irreducible gate floor—never fully closes)",
              xy=(200, gate_full[N_MICRO + 200]), xytext=(150, 0.30),
              fontsize=8, color=RED_DANGER, ha="center",
              arrowprops=dict(arrowstyle="->", color=RED_DANGER, lw=1.5))
@@ -259,7 +259,7 @@ axC.set_facecolor(BG)
 # Y-axis: cumulative transmission T(n) = product of per-rung factors down to n
 # Starting from different injection rungs.
 
-# Path: device injects at n_inj, we compute cumulative transmission
+# Path: device injects at n_inj, cumulative transmission is computed
 # down through cascade to Planck, across Planck barrier, into microcascade.
 # For the signal regime (device to Planck): φ^{-(n_inj - n)}
 # For n < 0 in microcascade: multiply by microcascade ansatz factors
@@ -330,19 +330,19 @@ axD.axis("off")
 findings_text = [
     ("KEY FINDINGS", YANG_PEAK, 14, "bold"),
     ("", TEXT_SUB, 8, "normal"),
-    (r"CASCADE ($n \geq 0$) — Derived from cascade-suppression formula", YANG_BRIGHT, 10, "bold"),
+    (r"CASCADE ($n \geq 0$)—Derived from cascade-suppression formula", YANG_BRIGHT, 10, "bold"),
     (r"  $(1-q_n) = \varphi^{-n-3}$ decays as $n$ grows", TEXT_MAIN, 9, "normal"),
     (r"  Qi approaches irreducible floor ($q \to 1-\varphi^{-3} \approx 0.76$)", TEXT_MAIN, 9, "normal"),
     (r"  Single-rung signal from EW ($n{=}80$) to Planck: $\varphi^{-80} \approx 10^{-17}$", YELLOW_CAUTION, 9, "normal"),
-    (r"  Full coherence from Planck to EW: $\varphi^{-80\cdot81/2} \approx 10^{-675}$ — impossible", RED_DANGER, 9, "normal"),
+    (r"  Full coherence from Planck to EW: $\varphi^{-80\cdot81/2} \approx 10^{-675}$—impossible", RED_DANGER, 9, "normal"),
     ("", TEXT_SUB, 8, "normal"),
-    (r"MICROCASCADE ($n < 0$) — Ansatz (Speculative, microcascade-mirror.md §3.2)", YIN_LIGHT, 10, "bold"),
-    (r"  $(1-q_n) \to 1$ as $n \to -\infty$ — per-rung transmission approaches 100%", GREEN_SAFE, 9, "normal"),
+    (r"MICROCASCADE ($n < 0$)—Ansatz (Speculative, microcascade-mirror.md §3.2)", YIN_LIGHT, 10, "bold"),
+    (r"  $(1-q_n) \to 1$ as $n \to -\infty$—per-rung transmission approaches 100%", GREEN_SAFE, 9, "normal"),
     (r"  Deep microcascade is the EASIEST regime for coherence transport", GREEN_SAFE, 9, "normal"),
-    (r"  Planck barrier $(1-q_0) = \varphi^{-3} \approx 0.236$ — 24% step loss", PLANCK_LINE, 9, "normal"),
+    (r"  Planck barrier $(1-q_0) = \varphi^{-3} \approx 0.236$—24% step loss", PLANCK_LINE, 9, "normal"),
     (r"  Microcascade energy sum diverges ($E_{\rm micro} \to \infty$ formally)", YIN_LIGHT, 9, "normal"),
     ("", TEXT_SUB, 8, "normal"),
-    (r"MULTI-RUNG INJECTION — Hypothesized mechanism", YANG_BRIGHT, 10, "bold"),
+    (r"MULTI-RUNG INJECTION—Hypothesized mechanism", YANG_BRIGHT, 10, "bold"),
     (r"  Phase-coherent φ-spaced injection across $K$ rungs sums amplitudes", TEXT_MAIN, 9, "normal"),
     (r"  Net: $T \approx K \cdot \varphi^{-n_{\rm device}} \cdot \varphi^{-3}$ (Planck) $\cdot$ (microcascade)", TEXT_MAIN, 9, "normal"),
     (r"  Signal regime (not coherence regime) applies between injection rungs", TEXT_MAIN, 9, "normal"),

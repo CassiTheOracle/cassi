@@ -1,6 +1,6 @@
 # Proton Coherence Budget: Derivation of $N_{\text{max}}$
 
-## Status: Derivation — July 2026
+## Status: Derivation—July 2026
 
 ## Abstract
 
@@ -8,7 +8,7 @@ The proton's stability follows directly from the cascade. As a condensed
 standing wave at cascade step $n = 95$, the proton's coherence is maintained
 not by a single process at the QCD scale but by the **entire cascade** from
 Planck ($n=0$) to the proton's own rung. Dephasing requires the simultaneous
-loss of coherence at all $n$ supporting rungs simultaneously — an event whose
+loss of coherence at all $n$ supporting rungs simultaneously—an event whose
 probability is the product of per-rung dephasing probabilities. The cascade
 structure makes this product exponentially suppressed, yielding a coherence
 budget of
@@ -18,7 +18,7 @@ $$\boxed{N_{\text{max}} = \prod_{i=0}^{n} \frac{1}{1-q_i} \approx \varphi^{\,n(n
 For $n = 95$, $N_{\text{max}} \approx \varphi^{4560} \approx 10^{950}$ cycles.
 The proton's effective lifetime exceeds the age of the observable universe by
 ~900 orders of magnitude. Proton decay is not observed because the universe is
-not remotely old enough — and no experiment, in any environment, will see it.
+not remotely old enough—and no experiment, in any environment, will see it.
 
 ---
 
@@ -78,7 +78,7 @@ For $\delta = 3$ (from $\sigma = \ell_{\text{Pl}}/\varphi^3$) and $n=95$ (QCD sc
 $$\boxed{N_{\text{max}} = \varphi^{\,3 \times 96 + 95\times 96/2} = \varphi^{\,288 + 4560} = \varphi^{4848} \approx 10^{1010}}$$
 
 The dominant term is quadratic in $n$: $n(n+1)/2$. The Planck-scale
-regularization ($\delta$) contributes linearly — important at small $n$,
+regularization ($\delta$) contributes linearly—important at small $n$,
 negligible at the QCD scale.
 
 ---
@@ -96,7 +96,7 @@ $$\tau_p = \frac{N_{\text{max}}}{\omega_p} \approx \frac{10^{1010}}{10^{24}} = 1
 
 In years: $\tau_p \approx 10^{978}$ years, compared to the current age of the
 universe $\sim 1.38 \times 10^{10}$ years. The proton has survived
-$N_{\text{elapsed}} \approx 6 \times 10^{41}$ cycles since the Big Bang — well
+$N_{\text{elapsed}} \approx 6 \times 10^{41}$ cycles since the Big Bang—well
 within budget.
 
 ---
@@ -119,7 +119,7 @@ $$N_{\text{max}}(m\ \text{rungs suppressed}) = \prod_{i=0}^{n-m-1} \frac{1}{1-q_
 $$= \varphi^{\,(n-m)(n-m+1)/2 + \delta(n-m+1)}$$
 
 For $m = 50$ (suppress half the proton's cascade), $N_{\text{max}} \approx
-\varphi^{45\times 46/2} = \varphi^{1035} \approx 10^{215}$ — still far exceeding
+\varphi^{45\times 46/2} = \varphi^{1035} \approx 10^{215}$—still far exceeding
 the age of the universe. The quadratic cascade structure provides a
 **coherence floor** that no physically accessible environment can breach.
 
@@ -138,7 +138,7 @@ suppression compounds across 95 rungs.
 
 **Organized anti-phase perturbation** (annihilation): an antiparticle is a
 condensed standing wave with the same cascade structure as its partner but
-with **inverted phase** at every rung — a mirror pattern across the Qi field's
+with **inverted phase** at every rung—a mirror pattern across the Qi field's
 SO(2) doublet. When the two meet, the anti-phase perturbation is not random
 but **coherently tailored** to cancel the coherence at each rung
 simultaneously:
@@ -147,7 +147,7 @@ $$P_{\text{annihilation}} = \prod_{i=0}^{n} \mathcal{O}(1) \approx 1$$
 
 Every rung decoheres in the same cycle. The entire nested cascade structure
 dissolves, and the mass-energy returns to the two-fluid medium as free field
-excitations — the photons and lighter particles observed in annihilation
+excitations—the photons and lighter particles observed in annihilation
 events.
 
 This unifies three phenomena under a single mechanism:
@@ -155,21 +155,21 @@ This unifies three phenomena under a single mechanism:
 1. **Proton stability** ($\tau_p \sim 10^{980}$ yr): random-walk dephasing,
    exponentially suppressed by the cascade product.
 2. **Matter-antimatter annihilation** (instantaneous): organized anti-phase
-   perturbation attacks all rungs simultaneously — the coherence budget is
+   perturbation attacks all rungs simultaneously—the coherence budget is
    exhausted in one cycle because the perturbation is not random.
 3. **Baryon asymmetry** ($\eta = n_b/n_\gamma \sim 10^{-10}$): the cosmic
    excess of matter over antimatter reflects a small Yang-Yin imbalance at
    cascade freeze-out (step 5–10). The organized-decoherence pathway
    (annihilation) efficiently eliminated antimatter paired with matter; the
-   residual Yang excess — one part in $\sim 10^{10}$ — is the matter we
-   observe today.
+   residual Yang excess—one part in $\sim 10^{10}$—is the matter
+   observed today.
 
 **Consequence for self-aware systems.** A high-$q$ Qi bath extends the
 proton's coherence budget by further suppressing random dephasing (§5.1),
 but it cannot protect against annihilation: the Qi field corrects random phase
 noise but cannot counteract a perfectly phase-matched anti-phase pattern. Even
 in the most coherent Qi environment, matter and antimatter still annihilate on
-contact — the lifetime extension applies only to random dephasing, not to
+contact—the lifetime extension applies only to random dephasing, not to
 organized anti-phase attack.
 ---
 
@@ -221,7 +221,7 @@ $$N_{\text{max}}(n) = \varphi^{\,n(n+1)/2 + \delta(n+1)}$$
 | $n=168$ (human body) | Body-scale Qi pattern | $\varphi^{14196} \approx 10^{2950}$ | functionally eternal |
 
 Patterns at or above the GUT scale have finite lifetimes on cosmological
-timescales — GUT-scale condensates could have decayed within the age of the
+timescales—GUT-scale condensates could have decayed within the age of the
 universe, making that epoch genuinely transitional. Patterns at or below the
 EW scale are, for all practical purposes, eternal. The cascade provides a
 natural boundary between **transient** early-universe physics and the **stable**
@@ -250,7 +250,7 @@ late-universe physics we inhabit.
 ### Speculative
 
 - Extension of the formula to self-condensates at biological scales (steps
-  142–168) — mathematically consistent, empirically unreachable
+  142–168)—mathematically consistent, empirically unreachable
 
 ---
 
@@ -260,5 +260,5 @@ late-universe physics we inhabit.
 - `foundations/unified-lagrangian.md` §3: $\sigma$-regularized PDE core
 - `principles/de-resonance-principle.md`: $q_i$ scaling from de-resonance
 - `open-questions-cassi-answers.md`: Q9 (proton lifetime entry)
-- `(external — see papers/consciousness-framework.md in physics repo)` §9: catalytic template and coherence extension
+- `(external—see papers/consciousness-framework.md in physics repo)` §9: catalytic template and coherence extension
 - `gravity/quantum-gravity.md`: $\sigma = \ell_{\text{Pl}}/\varphi^3$ derivation

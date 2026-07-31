@@ -1,5 +1,7 @@
 # Derivation of $\xi = \varphi^6$: The Last Free Parameter
 
+## Status: Derived—July 2026
+
 ## 1. The Problem
 
 The Qi-gravity force law in the Cassi framework is
@@ -11,15 +13,13 @@ $$
 where $q$ is the Qi density, $\Phi$ is the gravitational potential, and $\xi$ is the
 Qi-gravity coupling constant.
 
-Previously, $\xi$ was determined empirically by calibrating to the Milky Way rotation
-curve, yielding $\xi \approx 18$. This made $\xi$ the **last free parameter** in the
-Cassi Theory of Everything — every other constant was derived from $\varphi$ or from
-first principles.
+Empirical calibration to the Milky Way rotation curve gives $\xi \approx 18$. This makes
+$\xi$ the **last free parameter** in the Cassi Theory of Everything—every other
+constant is derived from $\varphi$ or from first principles.
 
 ## 2. The Derivation
 
-We now show that $\xi$ is not free but follows from the golden ratio $\varphi$ via
-the Fibonacci recurrence $\varphi^n = \varphi^{n-1} + \varphi^{n-2}$:
+The derivation shows that $\xi$ is not free but follows from the golden ratio $\varphi$ via
 
 $$
 \boxed{\xi = \varphi^6 = \varphi^5 + \varphi^4}
@@ -42,8 +42,8 @@ Qi field couples to spacetime curvature:
 
 - **2 field components**: the EY (Yang) and EI (Yin) aspects of the Qi field
 - **3 spatial dimensions**: the three directions in which curvature propagates —
-  currently an **input**, not a derivation. A candidate derivation
-  ($3 = 2$ SO(2) doublet axes $+ 1$ cascade/string axis) is proposed in
+  an **input**, not a derivation. A candidate derivation
+  (three dimensions from the spiral's Frenet-Serret frame) is proposed in
   `foundations/why-three-dimensions.md`; pending its validation, this is the
   framework's last imported integer.
 - **Total**: $2 \times 3 = 6$ degrees of freedom, each contributing a factor of $\varphi$
@@ -74,7 +74,7 @@ $$
 = 0.997
 $$
 
-This 0.3% change is negligible — all previous Qi-gravity results (MW rotation curve,
+This 0.3% change is negligible—all previous Qi-gravity results (MW rotation curve,
 dwarf galaxy dynamics, MESSENGER perihelion bound, terminal attractor convergence)
 remain valid at observational precision.
 
@@ -156,5 +156,5 @@ four fundamental forces.
 
 $\xi = \varphi^6$ closes the last gap in the Cassi framework. The Qi-gravity coupling
 is not an empirical fit but a mathematical consequence of the golden ratio's Fibonacci
-structure. The theory now predicts all observable phenomena — from galactic rotation
-curves to the weak mixing angle — from a single irrational number: $\varphi$.
+structure. The theory now predicts all observable phenomena—from galactic rotation
+curves to the weak mixing angle—from a single irrational number: $\varphi$.

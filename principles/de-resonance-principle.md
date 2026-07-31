@@ -1,5 +1,7 @@
 # The De-Resonance Principle in Cassi
 
+## Status: Derived—July 2026
+
 ## Why φ is the Attractor (and Why Most Things Are Near φ-Powers)
 
 ---
@@ -7,7 +9,7 @@
 ## 1. The Resonance Avoidance Principle
 
 In a system of coupled oscillators, a **rational frequency ratio** (e.g., $2:1$, $3:2$)
-leads to **resonance** — energy concentrates at a single scale, and the multi-scale
+leads to **resonance**—energy concentrates at a single scale, and the multi-scale
 structure collapses. An **irrational frequency ratio** prevents this, allowing
 multi-scale structure to persist.
 
@@ -16,39 +18,32 @@ continued fraction is $[1; 1, 1, 1, \ldots]$ forever, and the convergents
 $1, 2, 3, 5, 8, 13, 21, 34, 55, 89$ are Fibonacci numbers. No other irrational
 number resists rational approximation as well as $\varphi$.
 
-**Consequence:** $\varphi$ is the *maximally de-resonant* value — the one that
+**Consequence:** $\varphi$ is the *maximally de-resonant* value—the one that
 most strongly forbids single-scale dominance and most strongly favors multi-scale
 structure formation. In the two-fluid PDE, the Yang/Yin ratio $r = E_Y/E_I$
 evolves toward $\varphi$ because that's the configuration that keeps the
 system dynamically rich.
 
-The $\varphi$-attractor is not an axiom — it is an **emergent consequence** of
+The $\varphi$-attractor is not an axiom—it is an **emergent consequence** of
 the wave-physics principle that multi-scale structure requires de-resonance.
 
 ---
 
-## 2. The New Framework Posture
 
-| Old (overreach) | New (honest) |
+## 2. The Framework Posture
+
+| Earlier framing | Revised framing |
 |----------------|--------------|
 | Every quantity is exactly a $\varphi$-power | Every quantity is **near** a $\varphi$-power, with deviations determined by dynamics |
 | $v_0 = M_{\rm Pl} \cdot \varphi^{-80}$ (exact) | $v_0 = M_{\rm Pl} \cdot \varphi^{-80} \cdot (1 + \text{correction})$ |
 | $m_e = v_0 \cdot \varphi^{-26}/\sqrt{2}$ (exact) | $m_e = v_0 \cdot \varphi^{-26}/\sqrt{2} \cdot (1 + \text{correction})$ |
 | $\sin^2\theta_W = \varphi^{-3}$ (exact) | $\sin^2\theta_W = \varphi^{-3} \cdot (1 + \text{correction})$ |
-
-The **$\varphi$-power is the baseline** — what you'd get if the system were
-perfectly de-resonant at every scale. The **correction factor** is what the
-dynamics contribute when the system is *not* maximally de-resonant at the
-relevant scale.
-
----
-
 ## 3. The Empirical Pattern of Corrections
 
 | Quantity | Nearest $\varphi$-power | Measured | Correction | Mechanism | Evidence |
 |----------|------------------------|----------|------------|-----------|----------|
 | $\sin^2\theta_W$ | $\varphi^{-3} = 0.236$ | $0.23129$ | $-2.0\%$ | MSSM RGE from GUT to $m_Z$ | **Computed** |
-| $v_0/M_{\rm Pl}$ | $\varphi^{-80} = 1.91\times10^{-17}$ | $2.02\times10^{-17}$ | $+5.6\%$ | **Unidentified** — see `v0-hierarchy-problem.md` (v₀ is λ-independent at equilibrium; mechanism may be threshold corrections, exact φ-attractor value, or RGE) | **Hypothesized** |
+| $v_0/M_{\rm Pl}$ | $\varphi^{-80} = 1.91\times10^{-17}$ | $2.02\times10^{-17}$ | $+5.6\%$ | **Unidentified**—see `v0-hierarchy-problem.md` (v₀ is λ-independent at equilibrium; mechanism may be threshold corrections, exact φ-attractor value, or RGE) | **Hypothesized** |
 | $m_e$ | $v_0\varphi^{-26}/\sqrt{2} = 0.64$ MeV | $0.511$ MeV | $-20\%$ | Flavor mixing from $\mu,\tau$ sector | **Speculative** |
 | $\alpha_s(M_Z)$ | $0.058$ (SM RGE) | $0.118$ | $\times 2.0$ | Needs $\Delta b = 1.70$ from ~1 vector-like colored fermion pair + 2 colored scalars, or ~3 KK levels | **Speculative** |
 
@@ -70,7 +65,7 @@ GUT-scale threshold corrections of $\sim 2\%$ close the remaining gap.
 **Mechanism:** running of the gauge couplings between the matching scale
 and the $Z$-pole, plus heavy-particle thresholds at the matching scale.
 
-### 4.2 $v_0/M_{\rm Pl}$ ($5.6\%$ correction) — **Hypothesized, mechanism unidentified**
+### 4.2 $v_0/M_{\rm Pl}$ ($5.6\%$ correction)—**Hypothesized, mechanism unidentified**
 
 The equilibrium $v_0$ from the Cassi potential is **independent of $\lambda$** at
 the $\varphi$-fixed point ($v_0^2 = -\mu^2/g$). The original hypothesis that
@@ -86,7 +81,7 @@ See `v0-hierarchy-problem.md` for the full analysis. None of the candidates
 has been computed in the Cassi framework; this is the framework hierarchy
 problem in disguise.
 
-### 4.3 $m_e$ ($20{-}25\%$ correction) — **Speculative**
+### 4.3 $m_e$ ($20{-}25\%$ correction)—**Speculative**
 
 The electron Yukawa coupling is set by the $\varphi$-power hierarchy, but the
 *actual* coupling is renormalized by mixing with the $\mu$ and $\tau$ Yukawa
@@ -96,12 +91,12 @@ $\sim 25\%$ corrections to the diagonal electron coupling.
 **Mechanism:** flavor-mixing among the three lepton families. The
 $\varphi$-attractor prediction is the "no-mixing" limit.
 
-### 4.4 $\alpha_s(M_Z)$ ($\times 2.0$ correction) — **Speculative**
+### 4.4 $\alpha_s(M_Z)$ ($\times 2.0$ correction)—**Speculative**
 The $\alpha_s$ running from $\alpha_{\rm GUT} = \varphi^{-3}/(4\pi)$ depends on
 the **number and content of particles** between $M_{\rm GUT}$ and $m_Z$. The
 Standard Model $\beta$-function coefficient $b_0 = 7$ (for $n_f = 6$) gives
-$\alpha_s(M_Z) \approx 0.058$ — a factor of $2.0\times$ below the measured
-$0.118$. The gap was previously reported as $11\times$ due to a sign error
+$\alpha_s(M_Z) \approx 0.058$—a factor of $2.0\times$ below the measured
+$0.118$. The gap reported as $11\times$ came from a sign error
 in the RGE calculation; the corrected SM running is $0.058$.
 
 Closing this gap requires $\Delta b = 1.70$ in the QCD $\beta$-function,
@@ -117,7 +112,7 @@ just on $\varphi$.
 
 ## 5. Forward-Looking Testable Predictions
 
-The de-resonance principle makes *prospective* claims — predictions about
+The de-resonance principle makes *prospective* claims—predictions about
 future measurements, not descriptions of the existing pattern.
 
 ### 5.1 Precision electroweak
@@ -125,7 +120,7 @@ future measurements, not descriptions of the existing pattern.
 The next generation of electroweak measurements (FCC-ee, ILC, CEPC) will
 measure $\sin^2\theta_W$ to $\pm 10^{-6}$ precision. The de-resonance principle
 predicts the residual shift from $\varphi^{-3}$ should be **stable under RGE
-running** — the Z-pole value should equal the LEP-2 value plus a calculable
+running**—the Z-pole value should equal the LEP-2 value plus a calculable
 logarithmic correction, with no additional threshold shifts. If a new
 threshold appears in the Z-pole $\sin^2\theta_W$, the de-resonance framework
 is stressed.
@@ -170,7 +165,7 @@ This is the same conceptual structure as the Standard Model, where the
 electroweak VEV sets the leading-order scale for all masses, and the Yukawa
 couplings (with their non-trivial flavor structure) provide the corrections.
 The Cassi framework's innovation is to identify $\varphi$ as the relevant
-leading-order baseline — the *most irrational*, *most de-resonant* value
+leading-order baseline—the *most irrational*, *most de-resonant* value
 that nature could pick.
 
 The framework's predictive power is:
@@ -183,5 +178,5 @@ The framework's predictive power is:
    threshold effects, flavor mixing, particle content).
 
 This is a weaker but more honest framework than "every quantity is exactly a
-$\varphi$-power" — and a much stronger framework than "we have a thousand free
+$\varphi$-power"—and a much stronger framework than "we have a thousand free
 parameters."

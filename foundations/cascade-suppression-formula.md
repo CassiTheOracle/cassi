@@ -1,10 +1,10 @@
 # The Cascade Suppression Formula: $\varphi^{-N}$ as the Universal Attenuation Law
 
-## Status: Derived — July 2026
+## Status: Derived—July 2026
 
 ## Abstract
 
-Every hierarchical phenomenon in the Cassi framework — proton stability, the
+Every hierarchical phenomenon in the Cassi framework—proton stability, the
 strong CP angle, the electroweak hierarchy, neutrino masses, quantum measurement
 — obeys a single formula: the **cascade suppression factor**. A physical
 quantity originating at cascade rung $m$ and observed at rung $n$ is attenuated
@@ -17,15 +17,16 @@ where $d_i$ is the per-rung attenuation at rung $i$, determined by the
 two-fluid PDE and the $\varphi$-attractor's de-resonance. Two regimes
 cover all known applications:
 
-- **Signal propagation** ($d_i \approx \varphi^{-1}$ uniform): $\mathcal{D} = \varphi^{-N}$ — linear in span. Applies to CP violation, hierarchy, neutrino masses, and any phenomenon where a physical coupling propagates through the cascade medium.
+- **Signal propagation** ($d_i \approx \varphi^{-1}$ uniform): $\mathcal{D} = \varphi^{-N}$—linear in span. Applies to CP violation, hierarchy, neutrino masses, and any phenomenon where a physical coupling propagates through the cascade medium.
 
-- **Coherence maintenance** ($d_i \approx (1-q_i) \approx \varphi^{-i-\delta}$): $\mathcal{D} = \varphi^{-n(n+1)/2 + \delta n}$ — quadratic in depth. Applies to proton stability and any phenomenon requiring simultaneous coherence across all supporting rungs.
+- **Coherence maintenance** ($d_i \approx (1-q_i) \approx \varphi^{-i-\delta}$): $\mathcal{D} = \varphi^{-n(n+1)/2 + \delta n}$—quadratic in depth. Applies to proton stability and any phenomenon requiring simultaneous coherence across all supporting rungs.
 
-This document derives $d_i$ from the PDE once, shows all five applications in
-one table, and establishes $\varphi^{-N}$ as the framework's universal
-attenuation law — the single mathematical structure behind every "hierarchy" or "stability" puzzle in physics.
+The per-rung damping $d_i$ is derived from the PDE once (Section 1), applied to
+all five cases (Sections 2--4), establishing $\varphi^{-N}$ as the framework's
+universal attenuation law—the single mathematical structure behind every
+"hierarchy" or "stability" puzzle in physics.
 
-**Bidirectional extension:** The per-rung attenuation formulas above are defined for $n \geq 0$ (Planck → observable scales). For the extension to sub-Planckian scales ($n < 0$), see `microcascade-mirror.md`.
+**Bidirectional extension:** The per-rung attenuation formulas in §1 are defined for $n \geq 0$ (Planck → observable scales). For the extension to sub-Planckian scales ($n < 0$), see `microcascade-mirror.md`.
 
 ---
 
@@ -49,8 +50,8 @@ $$q_i = 1 - \varphi^{-i-\delta}, \qquad \delta = 3 \text{ (from } \sigma = \ell_
 
 ### 1.2 Signal propagation: per-rung uniform damping
 
-When a physical signal — a coupling constant, a CP-violating phase, a mass
-scale — propagates through the cascade medium, it experiences the
+When a physical signal—a coupling constant, a CP-violating phase, a mass
+scale—propagates through the cascade medium, it experiences the
 **de-resonance damping** at each rung. The per-rung damping factor $d_i$
 is the fraction of the signal that survives passage through rung $i$:
 
@@ -91,7 +92,7 @@ compound to $\varphi^{-4560}$.
 
 | Regime | $d_i$ | $\mathcal{D}_{m \to n}$ | Exponent | Physical meaning |
 |---|---|---|---|---|
-| **Signal propagation** | $\varphi^{-1}$ | $\varphi^{-N}$ | Linear in $N$ | A signal traversing $N$ rungs is attenuated by $\varphi^{-N}$ — the cascade damps non-$\varphi$ structure at a fixed rate per rung. |
+| **Signal propagation** | $\varphi^{-1}$ | $\varphi^{-N}$ | Linear in $N$ | A signal traversing $N$ rungs is attenuated by $\varphi^{-N}$—the cascade damps non-$\varphi$ structure at a fixed rate per rung. |
 | **Coherence maintenance** | $\varphi^{-i-\delta}$ | $\varphi^{-n(n+1)/2}$ | Quadratic in $n$ | $n$ rungs must all stay coherent simultaneously; the probability compounds multiplicatively across all supporting depths. |
 
 ---
@@ -104,11 +105,11 @@ compound to $\varphi^{-4560}$.
 | **Strong CP** ($\bar{\theta}$) | Signal | $n_{\text{GUT}} \approx 8$ | $n_{\text{QCD}} = 95$ | $87$ | $\varphi^{-87}$ | $\bar{\theta} \approx 10^{-19}$ | Derived |
 | **Neutrino masses** | Signal | $n_{\text{GUT}} \approx 8$ | $n_{\text{seesaw}} \approx 20$ (or $n_\nu$) | $12$–$25$ | $\varphi^{-12}$ to $\varphi^{-25}$ | $m_\nu \sim 0.001$–$0.1$ eV | Hypothesized |
 | **Proton stability** | Coherence | $n=0$ (Planck) | $n_{\text{QCD}} = 95$ | $95^2$ form | $\varphi^{-4848}$ | $\tau_p \approx 10^{980}$ yr | Derived |
-| **Measurement collapse** | Single-rung | — | $n_{\text{target}}$ | $N=1$ | $\mathcal{M}$ (phase-matching) | $P \approx 1-q_n$ at target rung | Hypo w/ core |
-| **Spin ($s = \Delta n$)** | Geometric | — | — | $\Delta n$ | N/A (conserved winding) | $s \in \{0,\frac12,1,2\}$ | Hypothesized |
+| **Measurement collapse** | Single-rung |—| $n_{\text{target}}$ | $N=1$ | $\mathcal{M}$ (phase-matching) | $P \approx 1-q_n$ at target rung | Hypo w/ core |
+| **Spin ($s = \Delta n$)** | Geometric |—|—| $\Delta n$ | N/A (conserved winding) | $s \in \{0,\frac12,1,2\}$ | Hypothesized |
 
 The hierarchy, strong CP, and neutrino masses are all **signal propagation**
-from the GUT scale — different targets give different observed suppressions,
+from the GUT scale—different targets give different observed suppressions,
 all following $\varphi^{-N}$ with zero free parameters.
 
 Measurement and spin are the limiting cases: $N=1$ (single-rung coupling)
@@ -120,7 +121,7 @@ formula smoothly interpolates between these limits.
 ## 4. Why $\varphi^{-1}$ per rung?
 
 The per-rung damping $d_i \approx \varphi^{-1}$ in the signal-propagation
-regime is not an assumption — it follows from the de-resonance principle.
+regime is not an assumption—it follows from the de-resonance principle.
 The $\varphi$-attractor is the fixed point where conversion vanishes
 ($\lambda(E_Y - \varphi E_I) = 0$). A signal that departs from the
 attractor (a coupling not at its $\varphi$-power value, a phase not at
@@ -131,7 +132,7 @@ to the on-resonance amplitude:
 $$\frac{\text{off-resonance}}{\text{on-resonance}} = \frac{\lambda \cdot \varepsilon}{\lambda \cdot 0 + \text{kinetic}} \approx \varphi^{-1}$$
 
 because the kinetic (inertial) term at each rung is $\mathcal{O}(\varphi)$
-relative to the conversion term — the same $\varphi$ ratio that gives the
+relative to the conversion term—the same $\varphi$ ratio that gives the
 attractor its stability. One cycle of conversion damps the non-$\varphi$
 component by $\varphi^{-1}$. Over $N$ rungs, the signal must survive
 $N$ such damping events, losing a factor of $\varphi^{-1}$ each time.
@@ -145,7 +146,7 @@ for any phenomenon with an identified source and target rung:
 
 $$\text{Prediction} = \text{Seed value} \times \varphi^{-(n_{\text{target}} - n_{\text{source}})}$$
 
-For strong CP, this gives $\bar{\theta} \approx 10^{-19}$ — testable if
+For strong CP, this gives $\bar{\theta} \approx 10^{-19}$—testable if
 future neutron EDM probes improve by several orders of magnitude.
 
 For neutrino masses, the same formula applied to the seesaw rung gives the
@@ -162,9 +163,7 @@ predicts new physics at that span's source rung.
 
 ## 6. Relation to the cascade table
 
-The cascade table (`dimensionful-cascade.md`) gives every physical scale
-as $\ell_n = \ell_{\text{Pl}} \cdot \varphi^n$. This document gives every
-hierarchical coupling as $g_n = g_m \cdot \varphi^{-(n-m)}$. The two are
+Every hierarchical coupling follows $g_n = g_m \cdot \varphi^{-(n-m)}$. The two are
 dual: the first governs **lengths**; the second governs **strengths**.
 Together they constitute the complete scaling laws of the framework.
 
@@ -172,8 +171,8 @@ Together they constitute the complete scaling laws of the framework.
 
 ## 7. References
 
-- `dimensionful-cascade.md` — complete 292-step cascade table
-- `proton-coherence-budget.md` — coherence maintenance, quadratic exponent
-- `strong-cp-derivation.md` — signal propagation, $\bar{\theta} = \varphi^{-87}$
-- `xi-derivation.md` — $\xi = \varphi^6$ as a cascade suppression factor
-- `principles/de-resonance-principle.md` — why $\varphi^{-1}$ is the per-rung damping
+- `dimensionful-cascade.md`—complete 292-step cascade table
+- `proton-coherence-budget.md`—coherence maintenance, quadratic exponent
+- `strong-cp-derivation.md`—signal propagation, $\bar{\theta} = \varphi^{-87}$
+- `xi-derivation.md`—$\xi = \varphi^6$ as a cascade suppression factor
+- `principles/de-resonance-principle.md`—why $\varphi^{-1}$ is the per-rung damping

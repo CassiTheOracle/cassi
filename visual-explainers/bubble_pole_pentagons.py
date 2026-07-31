@@ -68,7 +68,7 @@ print(f"  Aspect ratios: ax/ay={AX/AY:.4f}=φ, ax/az={AX/AZ:.4f}=φ², ay/az={AY
 # arrives at the pole. The equatorial launch azimuth determines which longitude
 # it approaches the pole from.
 
-# We integrate rays: start at z=0, azimuthal angle φ_0, heading poleward.
+# Integrate rays: start at z=0, azimuthal angle φ_0, heading poleward.
 # Track where each ray crosses a small circle near the pole (z ≈ 0.99·az).
 # The impact points form the caustic pattern.
 
@@ -201,7 +201,7 @@ eigenstates.sort(key=lambda x: x[2])
 # Near-degeneracy of |2,0⟩ and |0,2⟩ creates interference patterns.
 # The state |1,1⟩ has mixed angular momentum → 4 lobes.
 #
-# For 5-fold symmetry, we need a superposition that produces 5 lobes.
+# For 5-fold symmetry, the superposition must produce 5 lobes.
 # This requires angular momentum m=5/2... but m must be integer or half-integer.
 # In 2D, the angular momentum quantum number IS integer.
 # 5-fold symmetry comes from m=5, which requires n=5 total quanta.
@@ -274,10 +274,10 @@ if len(impacts) > 0:
 # Actually: the number of umbilic points on an ellipsoid is 4 (the astroid).
 # But the caustic at the pole depends on the specific axis ratios.
 #
-# For our axes (φ, 1, 1/φ), the curvature ratio at the pole is φ² ≈ 2.618.
+# For the axes (φ, 1, 1/φ), the curvature ratio at the pole is φ² ≈ 2.618.
 # The caustic at the pole of a paraboloid z = (ax²+by²)/2 has a cusp
 # whenever the curvature along a direction vanishes.
-# Actually, for a paraboloid, there are NO cusps at the pole — it's an
+# Actually, for a paraboloid, there are NO cusps at the pole—it's an
 # elliptical point (both principal curvatures positive).
 #
 # The caustic structure emerges from RAYS, not from local curvature.
@@ -332,7 +332,7 @@ print()
 print(f"  The 5-fold symmetry at each pole comes from:")
 print(f"    1. The pole-to-pole distance L = 2/φ")
 print(f"    2. The 5th standing wave harmonic (λ_5 = L/5)")
-print(f"    3. Ratio 5/3 ≈ φ — maximal de-resonance of 5th and 3rd")
+print(f"    3. Ratio 5/3 ≈ φ—maximal de-resonance of 5th and 3rd")
 print(f"    4. The φ aspect ratio of the elliptical cross-section")
 print(f"       selects the pentagon as the minimal φ-containing polygon")
 print()

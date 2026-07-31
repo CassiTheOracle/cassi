@@ -1,6 +1,8 @@
 # Cassi Cosmology: Inflation, Baryogenesis, and Dark Matter from $\varphi$
 
-*Three open problems solved by the $\varphi$-governed two-fluid — zero new parameters.*
+*Three open problems solved by the $\varphi$-governed two-fluid—zero new parameters.*
+
+## Status: Derived—July 2026
 
 ---
 
@@ -34,7 +36,7 @@ $$
 
 where $r = \langle\psi_y\rangle/\langle\psi_i\rangle$ is the Yang/Yin ratio.
 
-**Key observation:** The comoving densities $\psi_y, \psi_i$ already absorb the $a^{-3}$ dilution. The physical densities $\rho_y = \psi_y/a^3$ would have explicit Hubble friction $-3H\rho_y$ when evolved. This is the Cassi equivalent of the slow-roll equation's $3H\dot\phi$ term — it's built into the comoving formulation.
+**Key observation:** The comoving densities $\psi_y, \psi_i$ already absorb the $a^{-3}$ dilution. The physical densities $\rho_y = \psi_y/a^3$ would have explicit Hubble friction $-3H\rho_y$ when evolved. This is the Cassi equivalent of the slow-roll equation's $3H\dot\phi$ term—it's built into the comoving formulation.
 
 ---
 
@@ -58,7 +60,7 @@ The negative sign reflects that $r$ is decreasing toward $\varphi$. The expansio
 
 ### 2.2 Effective Potential and Slow-Roll
 
-We can define an effective potential for the Yang/Yin ratio $r$:
+An effective potential for the Yang/Yin ratio $r$ is defined:
 
 $$
 V_{\text{eff}}(r) = \frac{\lambda^2}{18}(r-\varphi)^2 + \mathcal{O}(\nabla r)^2
@@ -71,7 +73,7 @@ $$
 \eta = \frac{V''}{V} = \frac{2}{(r-\varphi)^2}
 $$
 
-For $r \gg \varphi$: $\varepsilon, \eta \ll 1$ — slow-roll conditions satisfied.
+For $r \gg \varphi$: $\varepsilon, \eta \ll 1$—slow-roll conditions satisfied.
 
 The number of e-foldings between an initial $r_i$ and the final $r_f = \varphi$:
 
@@ -88,7 +90,7 @@ $$
 | Running $dn_s/d\ln k$ | $-2/N_e^2 \approx -5\times10^{-4}$ | $-0.005 \pm 0.013$ |
 | E-foldings $N_e$ | $60 \pm 10$ | $50$--$60$ |
 | Perturbation amplitude $\mathcal{P}_\zeta$ | $(H_{\text{inf}}^2)/(2\pi\dot\phi)^2 \approx 2\times10^{-9}$ | $2.1\times10^{-9}$ |
-| Inflation scale $M_{\text{inf}}$ | $\sqrt{\alpha_{\text{GUT}}}\,M_{\text{Pl}} \approx 3\times10^{16}$ GeV | — |
+| Inflation scale $M_{\text{inf}}$ | $\sqrt{\alpha_{\text{GUT}}}\,M_{\text{Pl}} \approx 3\times10^{16}$ GeV |—|
 
 The spectral index $n_s = 0.967$ matches Planck at the $0.5\sigma$ level. The tensor ratio $r = 0.003$ is well below the current bound but detectable by future CMB-S4 and LiteBIRD experiments.
 
@@ -130,7 +132,7 @@ $$
 \Delta(B-L) = \frac{EY - EI}{EY + EI} = \frac{\varphi-1}{\varphi+1} = \varphi^{-3} \approx 0.236
 $$
 
-This is the **same $\varphi^{-3}$** that appears in the Weinberg angle and the VEV asymmetry — a deep unification.
+This is the **same $\varphi^{-3}$** that appears in the Weinberg angle and the VEV asymmetry—a deep unification.
 
 ### 3.2 Sphaleron Conversion
 
@@ -172,7 +174,7 @@ The Cassi mechanism satisfies all three Sakharov conditions:
 | Condition | Cassi Solution |
 |-----------|---------------|
 | **B violation** | Sphaleron processes at $T > T_{\text{sph}}$ |
-| **C/CP violation** | $\varphi$-VEV gives Yang/Yin (chiral) asymmetry — maximal CP violation |
+| **C/CP violation** | $\varphi$-VEV gives Yang/Yin (chiral) asymmetry—maximal CP violation |
 | **Out of equilibrium** | Electroweak phase transition at $T \approx T_{\text{sph}}$ freezes the asymmetry |
 
 No additional CP-violating phases beyond the Standard Model are needed. The $\varphi$-VEV provides the CP violation naturally.
@@ -189,12 +191,12 @@ No additional CP-violating phases beyond the Standard Model are needed. The $\va
 
 ### 4.1 The Mechanism
 
-The two-fluid can form stable, coherent condensates — regions where the Qi quality $q \to 1$ and the Yang/Yin ratio is at the $\varphi$-attractor. These condensates:
+The two-fluid can form stable, coherent condensates—regions where the Qi quality $q \to 1$ and the Yang/Yin ratio is at the $\varphi$-attractor. These condensates:
 
 - **Are dark**: They are pure two-fluid field, not baryonic matter. No electromagnetic interaction.
 - **Are gravitationally active**: $G_{\text{eff}} = G\cdot(1+\xi q)$ with $\xi = \varphi^6 \approx 17.944$.
 - **Are stable**: The $\varphi$-attractor maintains $r = \varphi$ and the PDE's dissipative terms damp perturbations.
-- **Are collisionless**: A field condensate passes through other matter without friction — consistent with the Bullet Cluster.
+- **Are collisionless**: A field condensate passes through other matter without friction—consistent with the Bullet Cluster.
 
 ### 4.2 Formation and Abundance
 
@@ -263,12 +265,12 @@ The Qi condensate naturally produces cored profiles (from the $\varphi$-attracto
 | Observable | Cassi Prediction | Measurement | Gap |
 |-----------|-----------------|-------------|-----|
 | $n_s$ | $1 - 2/N_e \approx 0.967$ | $0.965 \pm 0.004$ | $0.5\sigma$ |
-| $r$ | $12/N_e^2 \approx 0.003$ | $< 0.032$ | — |
+| $r$ | $12/N_e^2 \approx 0.003$ | $< 0.032$ |—|
 | $\mathcal{P}_\zeta$ | $\sim 2\times10^{-9}$ | $2.1\times10^{-9}$ | $5\%$ |
 | $\eta$ | $5.1\times10^{-10}$ | $6.1\times10^{-10}$ | $17\%$ |
 | $\Omega_{\text{DM}}/\Omega_b$ | $\varphi^3 + 1 \approx 5.24$ | $5.39$ | $2.8\%$ |
-| $T_{\text{reh}}$ | $\sim 10^{15}$ GeV | — | Consistent |
+| $T_{\text{reh}}$ | $\sim 10^{15}$ GeV |—| Consistent |
 | DM direct detection | Null | Null (all expts) | Consistent |
 | DM self-interaction | Collisionless | Bullet Cluster | Consistent |
 
-Every prediction comes from $\varphi$ and the two-fluid PDE parameters $(\lambda, \chi, D)$ — all independently fixed from the DESI dark energy calibration and the Wu Xing cycle. **Zero new free parameters** are introduced for inflation, baryogenesis, or dark matter.
+Every prediction comes from $\varphi$ and the two-fluid PDE parameters $(\lambda, \chi, D)$—all independently fixed from the DESI dark energy calibration and the Wu Xing cycle. **Zero new free parameters** are introduced for inflation, baryogenesis, or dark matter.
