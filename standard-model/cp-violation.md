@@ -4,6 +4,8 @@
 Yang/Yin asymmetry $\phi = (1+\sqrt{5})/2$, with an honest assessment of where
 $\phi$-power scaling succeeds and where it requires Yukawa structure.*
 
+## Status: Derived—July 2026
+
 ---
 
 ## 1. The Problem
@@ -51,7 +53,7 @@ Define the chiral asymmetry at the $\phi$-fixed point:
 $$\eta = \frac{E_Y - E_I}{E_Y + E_I} = \frac{\phi - 1}{\phi + 1} = \phi^{-3} \approx 0.236$$
 
 This is the same parameter that appears in the Weinberg angle
-($\sin^2\theta_W = \phi^{-3}$) — a deep connection between CP violation and
+($\sin^2\theta_W = \phi^{-3}$)—a deep connection between CP violation and
 electroweak mixing in Cassi.
 
 ---
@@ -71,7 +73,7 @@ Several naive mappings suggest themselves:
 | $2\pi \cdot \phi^{-3} \approx 360^\circ \times 0.236$ | $85^\circ$ | Close ($\sim 25\%$ off) |
 | $\pi \cdot \phi^{-2} \approx 180^\circ \times 0.382$ | $68.8^\circ$ | **Yes** |
 The last entry, $\delta_{\text{CKM}} = \pi\phi^{-2} \approx 68.8^\circ$, matches
-the measured value within $<1\%$. This is the Cassi prediction — the CKM phase
+the measured value within $<1\%$. This is the Cassi prediction—the CKM phase
 emerges from the unitarity triangle constraint using the $\phi$-scaled CKM
 elements ($|V_{us}| \approx \varphi^{-3} \approx 0.236$, $5\%$ off from $0.225$;
 $|V_{cb}| \approx 0.041$ and $|V_{ub}| \approx 0.004$ follow the Wolfenstein
@@ -82,7 +84,7 @@ through the standard Wolfenstein parameterization.
 ### 3.2 Mechanism: Yukawa hierarchy closes the phase
 
 Direct $\phi$-powers fail for $\delta_{\text{CKM}}$ because the CKM phase is not
-a fundamental $\phi$-exponent — it is a **derived** quantity from the unitary
+a fundamental $\phi$-exponent—it is a **derived** quantity from the unitary
 rotation that diagonalises the $\phi$-scaled Yukawa matrices. Cassi predicts the
 CKM element magnitudes via:
 The CKM element magnitudes follow the Wolfenstein hierarchy
@@ -196,7 +198,7 @@ making $\theta = 0$ automatically. The mechanism is:
    is CP-conserving in the gluon sector.
 
 **No axion is required.** The $\phi$-alignment replaces the Peccei-Quinn
-mechanism. The QCD vacuum angle is not a free parameter — it is determined
+mechanism. The QCD vacuum angle is not a free parameter—it is determined
 by the $\phi$-equilibrium condition.
 
 ### 5.3 Falsifiability
@@ -207,6 +209,8 @@ detection experiments (ADMX, CAST, IAXO, MADMAX) will find null results.
 - If an axion is discovered, Cassi's strong CP resolution is ruled out.
 - If no axion is found and $\theta < 10^{-10}$ is confirmed, Cassi's
   $\phi$-alignment becomes the leading candidate.
+
+The 87-rung signal propagation occurs through the bubble lattice medium—cascade suppression IS lattice attenuation (`foundations/bubble-lattice-fabric.md` §3.3).
 
 ---
 
@@ -219,8 +223,8 @@ detection experiments (ADMX, CAST, IAXO, MADMAX) will find null results.
 | $|V_{cb}|$ | $\phi^{-2} \approx 0.382$ | Wolfenstein $A\lambda^2$ with $\lambda \approx \varphi^{-3}$ | $0.041$ |
 | $|V_{ub}|$ | $\phi^{-3} \approx 0.236$ | Wolfenstein $A\lambda^3(\rho-i\eta)$ with $\lambda \approx \varphi^{-3}$ | $0.004$ |
 | $J_{\text{CP}}$ | $\phi^{-6} \approx 0.056$ | $\phi^{-3} \cdot \frac{\Delta m_u \Delta m_d}{v^6} \approx 3\times 10^{-5}$ | $3.0 \times 10^{-5}$ |
-| Strong CP $\theta$ | — | 0 (by $\phi$-alignment) | $< 10^{-10}$ |
-| Axion | — | **Does not exist** | Undiscovered |
+| Strong CP $\theta$ |—| 0 (by $\phi$-alignment) | $< 10^{-10}$ |
+| Axion |—| **Does not exist** | Undiscovered |
 
 ### Key Takeaways
 
@@ -230,7 +234,7 @@ detection experiments (ADMX, CAST, IAXO, MADMAX) will find null results.
    $|V_{cb}| \approx 0.041$, $|V_{ub}| \approx 0.004$ following
    Wolfenstein $|V_{cb}| \sim \lambda^2$, $|V_{ub}| \sim \lambda^3$ with
    $\lambda \approx \varphi^{-3}$) via standard unitarity triangle
-   closure — not as a direct $\phi$-exponent but as a derived quantity from
+   closure—not as a direct $\phi$-exponent but as a derived quantity from
    the Yukawa diagonalisation.
 
 2. **The Jarlskog invariant $J_{\text{CP}} \sim 10^{-5}$ emerges correctly**
@@ -238,7 +242,7 @@ detection experiments (ADMX, CAST, IAXO, MADMAX) will find null results.
    suppression. Cassi passes the Jarlskog test that naive $\phi$-scaling fails.
 
 3. **The strong CP problem is resolved by $\phi$-alignment** without an
-   axion — a falsifiable prediction.
+   axion—a falsifiable prediction.
 
 4. The CKM magnitudes $|V_{us}|, |V_{cb}|, |V_{ub}|$ are reproduced with
    $\alpha_s$-suppressed $\phi$-powers, confirming the pattern established in
@@ -246,5 +250,5 @@ detection experiments (ADMX, CAST, IAXO, MADMAX) will find null results.
 
 The overall picture is consistent: CP violation in the quark sector traces back
 to the Yang/Yin asymmetry $\phi$, but manifests through the **operator structure**
-of the SM — the Yukawa matrices and their diagonalisation — not through direct
+of the SM—the Yukawa matrices and their diagonalisation—not through direct
 $\phi$-power assignment to the observable phase.

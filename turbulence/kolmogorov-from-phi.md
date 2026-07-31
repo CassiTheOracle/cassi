@@ -1,6 +1,6 @@
 # The Kolmogorov −5/3 Spectrum in Cassi: Derivation and Novel Predictions
 
-**Status:** Derivation with one empirical input (the Kolmogorov constant C_K).
+## Status: Derived—July 2026
 
 ---
 
@@ -10,10 +10,10 @@
 
 **Cassi's novel contributions to turbulence are:**
 
-1. **The φ-break scale** $k_\varphi = \varphi^3\sqrt{\lambda^3/\varepsilon}$ — the wavenumber where conversion and eddy turnover timescales cross
-2. **The ε-spectrum** $E_\varepsilon(k) \propto k^{-5/3} \cdot f(k/k_\varphi)$ — the deviation from φ-equilibrium has its own inertial-range scaling with a φ-determined break
-3. **Scale-dependent gravitational enhancement** — $G_{\text{eff}}(k)$ varies by factor $\sim 19\times$ across the φ-break
-4. **The Qi-quality spectrum** $q(k)$ — a direct observable of the conversion dynamics
+1. **The φ-break scale** $k_\varphi = \varphi^3\sqrt{\lambda^3/\varepsilon}$—the wavenumber where conversion and eddy turnover timescales cross
+2. **The ε-spectrum** $E_\varepsilon(k) \propto k^{-5/3} \cdot f(k/k_\varphi)$—the deviation from φ-equilibrium has its own inertial-range scaling with a φ-determined break
+3. **Scale-dependent gravitational enhancement**—$G_{\text{eff}}(k)$ varies by factor $\sim 19\times$ across the φ-break
+4. **The Qi-quality spectrum** $q(k)$—a direct observable of the conversion dynamics
 
 ---
 
@@ -21,7 +21,7 @@
 
 ### 1.1 Governing Equations
 
-The two-fluid PDE in Cassi (TOE.md §1.2):
+The two-fluid PDE in Cassi (`cassi.md`):
 
 $$\partial_t E_Y = -\nabla\cdot(\mathbf{u}E_Y) + D\nabla^2 E_Y - \lambda(1-q)(E_Y - \varphi E_I) M - \chi_Y\nabla\cdot(E_Y\nabla\Phi)$$
 
@@ -98,7 +98,7 @@ For standard parameters ($\lambda = 0.1$, $\varepsilon_{\text{flux}} \approx 1$)
 
 $$k_\varphi \approx \sqrt{0.001 \times 17.94} \approx \sqrt{0.01794} \approx 0.134$$
 
-The box fundamental mode is $k_{\text{min}} = 2\pi/L \approx 1.0$ (for $L=2\pi$). So $k_\varphi \ll k_{\text{min}}$ — the φ-break is at scales **much larger than the simulation box**.
+The box fundamental mode is $k_{\text{min}} = 2\pi/L \approx 1.0$ (for $L=2\pi$). So $k_\varphi \ll k_{\text{min}}$—the φ-break is at scales **much larger than the simulation box**.
 
 ### 2.4 Physical Regimes
 
@@ -107,7 +107,9 @@ The box fundamental mode is $k_{\text{min}} = 2\pi/L \approx 1.0$ (for $L=2\pi$)
 | **Qi-active** | $k \ll k_\varphi$ | $\tau_{\text{eddy}} \gg \tau_{\text{conv}}$ | ε strongly damped | $q \approx 1$ | $\approx \varphi^3 G$ |
 | **Inertial** | $k \gg k_\varphi$ | $\tau_{\text{eddy}} \ll \tau_{\text{conv}}$ | ε free to grow | $q \approx 0$ | $\approx \varphi^{-3} G$ |
 
-For standard simulation parameters: **the entire resolved range is in the Inertial regime**. This is why the solver recovers Kolmogorov −5/3 without any φ-modification — the conversion term is negligible in the inertial range.
+For standard simulation parameters: **the entire resolved range is in the Inertial regime**. This is why the solver recovers Kolmogorov −5/3 without any φ-modification—the conversion term is negligible in the inertial range.
+
+The $\varphi$-break corresponds to the transition from lattice-coherent (large scales, discrete bubbles intact) to lattice-incoherent (small scales, bubbles dissolved by diffusion)—the same condensation-vs-diffusion balance that sets $\theta_{\text{cond}}$ (`foundations/bubble-lattice-fabric.md` §2.3).
 
 ---
 
@@ -119,7 +121,7 @@ When $\tau_{\text{eddy}} \ll \tau_{\text{conv}}$, the conversion term is negligi
 
 $$E_\varepsilon(k) = C_{\text{OC}} \cdot \chi_\varepsilon \cdot \varepsilon_{\text{flux}}^{-1/3} \cdot k^{-5/3}$$
 
-where $\chi_\varepsilon$ is the "scalar dissipation rate" — the rate at which ε-variance is produced by turbulent stretching. Same $-5/3$ slope as the energy spectrum.
+where $\chi_\varepsilon$ is the "scalar dissipation rate"—the rate at which ε-variance is produced by turbulent stretching. Same $-5/3$ slope as the energy spectrum.
 
 **Prediction 1:** In the inertial range, $E_\varepsilon(k) \propto E(k)$. The ratio $E_\varepsilon/E$ is a constant determined by the stirring efficiency.
 
@@ -188,11 +190,11 @@ In the inertial range ($G_{\text{eff}} = \varphi^{-3}G$), this gives the standar
 
 $$E(k) = C_K \cdot \varepsilon_{\text{flux}}^{2/3} \cdot k^{-5/3} \quad (k \gg k_\varphi)$$
 
-In the Qi-active range ($G_{\text{eff}} \approx \varphi^3 G$), the injection is enhanced. If we assume the enhanced injection leads to a modified flux $\tilde{\varepsilon} = \varphi^6 \cdot \varepsilon_{\text{flux}}$:
+In the Qi-active range ($G_{\text{eff}} \approx \varphi^3 G$), the injection is enhanced. Assuming the enhanced injection leads to a modified flux $\tilde{\varepsilon} = \varphi^6 \cdot \varepsilon_{\text{flux}}$:
 
 $$E(k) = C_K \cdot \tilde{\varepsilon}^{2/3} \cdot k^{-p} = C_K \cdot \varphi^4 \cdot \varepsilon_{\text{flux}}^{2/3} \cdot k^{-p}$$
 
-The spectral slope $p$ in this regime depends on how the enhanced gravity modifies the energy transfer. **This is the key open question** — the slope below $k_\varphi$ is not determined by dimensional analysis alone and requires a closure model.
+The spectral slope $p$ in this regime depends on how the enhanced gravity modifies the energy transfer. **This is the key open question**—the slope below $k_\varphi$ is not determined by dimensional analysis alone and requires a closure model.
 
 **Prediction 3:** The energy spectrum has a break at $k_\varphi$ where the amplitude jumps by factor $\varphi^4 \approx 6.85$. The slope below the break is steeper than −5/3 (energy piles up at large scales due to enhanced gravity).
 
@@ -243,9 +245,9 @@ $$q(k) \approx 1 - \frac{E_\varepsilon(k)}{\bar{\rho}^2} + \mathcal{O}(k^{-10/3}
 
 **The Kolmogorov −5/3 spectrum is not a φ-prediction.** It is a Navier-Stokes prediction that Cassi recovers in the inertial range where the conversion term is negligible ($k \gg k_\varphi$). Cassi's contribution is:
 
-1. **Explaining why −5/3 is recovered** — because for standard parameters, $k_\varphi \ll k_{\text{min}}$ and the entire simulation is in the inertial range
-2. **Predicting where −5/3 breaks down** — at $k \approx k_\varphi$, with a calculable transition
-3. **Providing new observables** — $E_\varepsilon(k)$, $q(k)$, $G_{\text{eff}}(k)$ — that are uniquely Cassi and falsifiable
+1. **Explaining why −5/3 is recovered**—because for standard parameters, $k_\varphi \ll k_{\text{min}}$ and the entire simulation is in the inertial range
+2. **Predicting where −5/3 breaks down**—at $k \approx k_\varphi$, with a calculable transition
+3. **Providing new observables**—$E_\varepsilon(k)$, $q(k)$, $G_{\text{eff}}(k)$—that are uniquely Cassi and falsifiable
 
 The empirical result from the solver (slope = −1.600 at $\alpha = 1.0$, within 4% of −1.667) is consistent with this framework: the Yin spectral tilt was an ad-hoc mechanism that happened to push energy in the right direction, but the true Cassi mechanism is the scale-dependent conversion/Qi-gravity, which operates at scales too large to be resolved in a 128³ box with standard parameters.
 
@@ -304,4 +306,4 @@ print(f"Above break: {int(k_max2/k_phi2)} wavenumbers")
 # Below break: 3 wavenumbers, Above break: 11 wavenumbers
 ```
 
-For N=64 with $\lambda=0.17$, $\varepsilon=0.01$: $k_\varphi \approx 3.0$, with ~2 wavenumbers below the break and ~7 above. For N=128 with $\lambda=0.2$, $\varepsilon=0.01$: $k_\varphi \approx 3.8$, with ~3 below and ~11 above — a clean inertial range on both sides of the break.
+For N=64 with $\lambda=0.17$, $\varepsilon=0.01$: $k_\varphi \approx 3.0$, with ~2 wavenumbers below the break and ~7 above. For N=128 with $\lambda=0.2$, $\varepsilon=0.01$: $k_\varphi \approx 3.8$, with ~3 below and ~11 above—a clean inertial range on both sides of the break.
