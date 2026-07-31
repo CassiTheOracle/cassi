@@ -13,7 +13,7 @@ One test separates the two tier directories:
 - `hypotheses/`—the document proposes a specific Cassi mechanism **and** pins a zero/low-parameter falsifiable prediction distinguishable from the null (full quality bar in `hypotheses/README.md`).
 - `speculations/`—framework-consistent what-ifs: mechanism sketched, prediction not yet pinned. This is the incubator.
 
-**Promotion path:** when a speculation pins its prediction, it graduates to `hypotheses/`; when a hypothesis matures into a full domain, it moves to a domain directory. Everyday tier changes never move files—they live in the Status header, the registries, and the epistemic map.
+**Promotion path:** when a speculation pins its prediction, it graduates to `hypotheses/`; when a hypothesis matures into a full domain, it moves to a domain directory. Everyday tier changes never move files—they live in the Status header, the registries, and `EPISTEMIC-MAP.md`.
 
 ## 2. Document Index
 

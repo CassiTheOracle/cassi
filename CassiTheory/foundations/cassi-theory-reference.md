@@ -1,5 +1,7 @@
 # The Cassi Framework
 
+## Status: Reference—July 2026
+
 ## 1. The Postulate
 
 $$\boxed{\varphi = \frac{1 + \sqrt{5}}{2} \approx 1.618033989}$$

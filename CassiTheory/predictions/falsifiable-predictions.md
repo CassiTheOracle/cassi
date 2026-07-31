@@ -1,5 +1,7 @@
 # Cassi Falsifiable Predictions
 
+## Status: Reference—July 2026
+
 Every prediction is derived from the golden ratio $\varphi = (1+\sqrt{5})/2$ and the
 two-fluid PDE with **zero free parameters**. No fitting, no fine-tuning, no hidden
 constants. All couplings are $\varphi$-powers; the last empirical parameter

@@ -1,5 +1,7 @@
 # Cassi Framework—Definitions
 
+## Status: Reference—July 2026
+
 > Unified field framework grounded in the φ-attractor, the Yin-Yang two-fluid,
 > and emergent spacetime geometry.
 >

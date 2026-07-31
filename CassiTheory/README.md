@@ -20,6 +20,7 @@ The Cassi framework postulates a single constant—the golden ratio $\varphi \ap
 | `principles/` | Cross-cutting principles: de-resonance, v0 hierarchy |
 | `hypotheses/` | New application domains (exploratory catalog) |
 | `speculations/` | Speculative extensions |
+| `EPISTEMIC-MAP.md` | Every document indexed by epistemic tier |
 | `predictions/` | Falsifiable prediction catalog + `cassi_definitions.md` glossary |
 | `experiments/` | Physics experiment scripts (φ-attractor paths, SPARC rotation-curve analysis) |
 | `two-fluid/` | Two-fluid PDE solver + gate/ODE test scripts, calibration |

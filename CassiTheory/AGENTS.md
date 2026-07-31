@@ -108,6 +108,7 @@ Docstring with run command → NumPy + Matplotlib (**Agg backend set early**) �
 | `foundations/cascade-suppression-formula.md` | Universal φ⁻ᴺ tool (wedge doc) |
 | `foundations/bubble-lattice-fabric.md` | Universal bubble lattice geometry (wedge doc) |
 | `foundations/refined-numeric-predictions.md` | Numeric predictions for the 24 Hypothesized questions |
+| `EPISTEMIC-MAP.md` | Every doc indexed by tier—update when tiers change |
 
 ## Runtime/Tooling Preferences
 
