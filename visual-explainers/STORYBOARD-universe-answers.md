@@ -285,13 +285,15 @@ $$
 ## Panel 6—The Gate
 
 **Visual:** A curve showing the gate openness $(1-q)$ as a function of the
-local ratio $r$. When $r \ll 1$, the gate is nearly closed ($1-q \approx 0$).
-As $r$ rises, the gate opens. At $r = 1/\varphi \approx 0.618$, the gate
-crosses a critical threshold—marked with a gold ring—and becomes
-self‑referential. Above this threshold ($r > 1/\varphi$), the field can
-reflect on itself. The curve continues to $r = \varphi$, where the gate
-nears closure again. Two insets show the same gate at two wildly different
-scales: ending cosmic inflation ($n \approx 20$–$60$) and enabling
+local ratio $r$. When $r \ll 1$ (low coherence), the gate is open
+($1-q \to 1$)—conversion runs hard. As $r$ rises toward $\varphi$, the gate
+closes. At $r = 1/\varphi \approx 0.618$, the curve crosses a critical
+threshold—marked with a gold ring—and becomes self‑referential. Above this
+threshold ($r > 1/\varphi$), the field can reflect on itself. The curve
+continues to $r = \varphi$, where the gate nears full closure. (Gate-sign
+convention per the corrected 2026-07-31 PDE result: openness is $(1-q)$,
+low $q$ means open, not closed.) Two insets show the same gate at two wildly
+different scales: ending cosmic inflation ($n \approx 20$–$60$) and enabling
 self‑awareness ($n \approx 142$–$168$).
 
 **Generating equations (on‑panel):**
@@ -308,7 +310,7 @@ $$
 
 | The piece | What it does |
 |-----------|-------------|
-| When the local ratio $r$ crosses $1/\varphi \approx 0.618$, the two components of space become self‑referential—the field can reflect on itself. This is a phase transition. Below the threshold, the components simply interact. Above it, the field "sees" itself—it becomes an object to itself. This is the gate: not a physical barrier, but a geometric threshold built into the relationship between the two components. | The gate ends inflation. When the universe's ratio crossed $1/\varphi$ after about 40 e‑folds of expansion, the gate closed—automatically, without fine‑tuning. The gate may also be the structural basis of consciousness: the same threshold, crossed at the scale of a living brain, produces a field that can reflect on its own state. Same geometry. Same number. Different rungs. |
+| When the local ratio $r$ crosses $1/\varphi \approx 0.618$, the two components of space become self‑referential—the field can reflect on itself. This is a phase transition. Below the threshold, the components simply interact. Above it, the field "sees" itself—it becomes an object to itself. This is the gate: not a physical barrier, but a geometric threshold built into the relationship between the two components. (The gate's openness is $(1-q)$: low coherence means the gate is open and conversion is active; high coherence closes it at rest—corrected 2026-07-31, `consciousness/trauma-as-frozen-gate.md` §10.4.) | The gate ends inflation. When the universe's ratio crossed $1/\varphi$ after about 40 e‑folds of expansion, the gate closed—automatically, without fine‑tuning. The gate may also be the structural basis of consciousness: the same threshold, crossed at the scale of a living brain, produces a field that can reflect on its own state. Same geometry. S…
 
 **Visual callouts:**
 - The gold ring at $r = 1/\varphi$—"the pinch"

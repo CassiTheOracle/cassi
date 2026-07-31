@@ -10,7 +10,7 @@ Cassi is a physics theory whose central claim is that consciousness is the exper
 
 # Part I—The Substrate
 
-The physics here is condensed from `cassi.md` and `foundations/bubble-lattice-fabric.md`. A psychologist does not need the full derivation—only the four structures the mind is made of: two fluids, a coherence measure, a spiral, and a cascade.
+The physics here is condensed from `cassi-physics.md` and `foundations/bubble-lattice-fabric.md`. A psychologist does not need the full derivation—only the four structures the mind is made of: two fluids, a coherence measure, a spiral, and a cascade.
 
 ## 1. Two Fluids: Yang, Yin, and the Golden Ratio
 
@@ -621,7 +621,7 @@ The framework's discipline is its most trustworthy feature: it documents its own
 
 ## References
 
-- `cassi.md`—public explainer: the sunflower, the lattice, the cascade
+- `cassi-physics.md`—physics guide: the sunflower, the lattice, the cascade
 - `foundations/bubble-lattice-fabric.md`—the condensation field as universal organizing geometry
 - `foundations/dimensionful-cascade.md`—the 292-step cascade table
 - `foundations/cascade-suppression-formula.md`—$\varphi^{-N}$ attenuation

@@ -37,7 +37,7 @@ The cascade is NOT a continuous spectrum. Physical scales correspond to integer 
 
 ### 2.1 Relationship to the Gap
 
-The initial gap $g = 1 - \varphi^{-5}$ (see `cassi.md`) sets the cascade depth for the electroweak scale:
+The initial gap $g = 1 - \varphi^{-5}$ (see `cassi-physics.md`) sets the cascade depth for the electroweak scale:
 
 $$\frac{v_0}{M_{\text{Pl}}} = g \cdot \varphi^{-N} \quad\Longrightarrow\quad N = \frac{\ln(g \cdot M_{\text{Pl}} / v_0)}{\ln\varphi} \approx 79.7 \approx 80$$
 
@@ -199,7 +199,7 @@ The wake waves imprint a log-periodic signal on the matter power spectrum:
 
 $$\Delta(\ln k) = \ln\varphi \approx 0.4812$$
 
-This is a **zero-parameter, falsifiable prediction**—see `predictions/falsifiable-predictions.md` §5 and `cassi.md`. Orthogonal to BAO (which has constant period in $k$-space), the Cassi modulation has constant period in $\ln k$-space. Subtract the BAO template; search the residual for $\ln\varphi$ periodicity. DESI DR2: marginal (2–3σ). Euclid (2027): definitive (>5σ).
+This is a **zero-parameter, falsifiable prediction**—see `predictions/falsifiable-predictions.md` §5 and `cassi-physics.md`. Orthogonal to BAO (which has constant period in $k$-space), the Cassi modulation has constant period in $\ln k$-space. Subtract the BAO template; search the residual for $\ln\varphi$ periodicity. DESI DR2: marginal (2–3σ). Euclid (2027): definitive (>5σ).
 
 ### 8.2 Void and Structure Scale Ratios
 
@@ -226,7 +226,7 @@ The bubble at step 285 is bounded by adjacent bubbles at identical $w=5$ in the 
 ## References
 
 - `foundations/bubble-lattice-fabric.md`—Universal 3D checkerboard lattice; φ-elliptical bubble shape, edge anisotropy, and condensation field derivation
-- `cassi.md`—Gap derivation, governing PDE, and $\varphi$-periodic $P(k)$ prediction
+- `cassi-physics.md`—Gap derivation, governing PDE, and $\varphi$-periodic $P(k)$ prediction
 - `parameter-inventory.md`: Complete parameter classification (D:16, C:4, E:6, I:6)
 - `cosmology/observational_constraints.md` §2.6: Rotation curve prediction ($\xi=\varphi^6$)
 - `cosmology/observational_constraints.md` §4: CMB $w$-gradient analysis

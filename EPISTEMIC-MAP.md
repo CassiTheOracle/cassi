@@ -106,7 +106,7 @@ Documents that are not claims: registries, catalogs, explainers, and plans.
 | `foundations/deriving-remaining-gaps.md` | Four derivations, three resolved, one narrowed |
 | `cosmology/sigma8-computational-plan.md` | Plan |
 | `audit.md` | Self-critical prediction-vs-experiment audit |
-| `cassi.md` | Public-facing explainer |
+| `cassi-physics.md` | Physics guide: lattice, cascade, predictions |
 | `cassi-psychology.md` | Psychology-focused guide (consciousness, emotion, trauma, therapy) |
 | `hypotheses/README.md` | Hypothesis catalog + quality bar |
 | `speculations/README.md` | Speculation index + boundary with `hypotheses/` |

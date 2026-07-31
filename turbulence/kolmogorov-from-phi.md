@@ -21,7 +21,7 @@
 
 ### 1.1 Governing Equations
 
-The two-fluid PDE in Cassi (`cassi.md`):
+The two-fluid PDE in Cassi (`cassi-physics.md`):
 
 $$\partial_t E_Y = -\nabla\cdot(\mathbf{u}E_Y) + D\nabla^2 E_Y - \lambda(1-q)(E_Y - \varphi E_I) M - \chi_Y\nabla\cdot(E_Y\nabla\Phi)$$
 

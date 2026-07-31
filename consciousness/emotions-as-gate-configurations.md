@@ -81,7 +81,7 @@ $$\boxed{\mathcal{E} = (\mathbf{b}, \sigma_r, q, \mathbf{c})}$$
 |--------|---------|-------|-------------|
 | $\mathbf{b} = (b_1,\ldots,b_5)$ | 5-channel openness vector | $b_i \geq 0$, $\sum b_i = B_{\text{total}}$ | `foundations/wa-pentagon-gate.md` §2 |
 | $\sigma_r$ | Spatial dispersion of $r(\mathbf{x})$ | $\sigma_r \geq 0$ | `consciousness/consciousness-from-phi.md` §2.3 |
-| $q$ | Qi coherence (Yang-Yin phase alignment) | $q \in [0, 1]$ | `cassi.md` gap derivation |
+| $q$ | Qi coherence (Yang-Yin phase alignment) | $q \in [0, 1]$ | `cassi-physics.md` gap derivation |
 | $\mathbf{c} = (c_1,\ldots,c_{13})$ | Chakra localization weights | $c_k \geq 0$, $\sum c_k = 1$ | `consciousness/chakras-as-cascade-bubbles.md` §6 |
 
 The manifold $\mathcal{E}$ has 18 effective degrees of freedom: 4 independent channel weights (the 5th is fixed by conservation), plus $\sigma_r$, $q$, and the 13 chakra weights (12 independent, summing to 1). In practice, emotional experience is often dominated by a single chakra node (reducing the chakra degrees to roughly 1), giving a lower-dimensional "everyday" manifold of approximately 7 dimensions. This space contains every possible emotional state within the framework.
@@ -276,7 +276,7 @@ A weaker but still informative test: experience-sampling studies where participa
 
 **Test:** During mixed-emotion induction (e.g., bittersweet film clips that evoke both joy and sadness), measure physiological $q$ proxies and collect self-reported clarity ratings. The prediction: when $q$ is high, participants rate their emotional experience as "clear" or "well-defined" even if the emotion is complex (multiple channels open). When $q$ is low, participants report confusion or ambivalence even if only one channel is dominant.
 
-**Epistemic:** Hypothesized. The Yang-Yin phase alignment as $q$ is Derived from the two-fluid PDE (`cassi.md`). The mapping to subjective emotional clarity is hypothesized.
+**Epistemic:** Hypothesized. The Yang-Yin phase alignment as $q$ is Derived from the two-fluid PDE (`cassi-physics.md`). The mapping to subjective emotional clarity is hypothesized.
 
 ---
 
@@ -371,6 +371,6 @@ The PAD model adds a third dimension (dominance) to valence and arousal. Cassi's
 - `foundations/bubble-edge-geometry.md`—bubble shape, edge steepness, $G_{\text{eff}}$ variation
 - `foundations/three-generations.md`—Fibonacci partitioning of cascade sub-channels
 - `principles/de-resonance-principle.md`—$\varphi$ as maximally irrational, de-resonance as ground state
-- `cassi.md`—gap derivation, governing PDE, Qi gate dynamics
+- `cassi-physics.md`—gap derivation, governing PDE, Qi gate dynamics
 - `consciousness/trauma-as-frozen-gate.md`—frozen wake + locked channel; what breaks the redistribution
 - `predictions/falsifiable-predictions.md`—prediction catalog

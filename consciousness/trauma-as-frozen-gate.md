@@ -434,4 +434,4 @@ The mechanism layer of this document (standing wave pins channel openness; depre
 - `two-fluid/cassi_two_fluid_3d_gpu.py`—the PDE solver used in the §10 test
 - `two-fluid/run_trauma_wake_lock.py`—the test script (standing/radiating/random/drive runs, 2026-07-31)
 - `two-fluid/run_trauma_drive_compare.py`—the φ-specificity follow-up (φ·P₀ vs e·P₀ drive, 2026-07-31)
-- `cassi.md`—public explainer, epistemic tiers
+- `cassi-physics.md`—physics guide, epistemic tiers

@@ -54,9 +54,9 @@ $q \to 0$: far from $\varphi$-equilibrium. $q \to 1$: perfect $\varphi$-equilibr
 
 ### 2.5 Qi Gate
 
-$$\partial_t E_Y \supset +\lambda \cdot g(q) \cdot (E_Y - \varphi E_I),\qquad \partial_t E_I \supset -\lambda \cdot g(q) \cdot (E_Y - \varphi E_I)/\varphi$$
+$$\partial_t E_Y \supset -\lambda(1-q)(E_Y - \varphi E_I),\qquad \partial_t E_I \supset +\lambda(1-q)(E_Y - \varphi E_I)/\varphi$$
 
-$q \to 1$: gate opens, conversion proceeds. $q \to 0$: gate closes. The gate determines $w(a)$; its shape follows from the $\varphi$-power structure.
+The gate *openness* is $(1-q)$: $q \to 0$ means the gate is **open**—conversion runs hard, the region churns; $q \to 1$ means the gate is **closed**—the system rests at $\varphi$-balance. (Sign corrected 2026-07-31 by the PDE tests in `consciousness/trauma-as-frozen-gate.md` §10.4; the earlier "depressed $q$ closes the gate" claim had the sign inverted and is withdrawn.) The gate determines $w(a)$; its shape follows from the $\varphi$-power structure.
 
 ### 2.6 Classical Limits
 

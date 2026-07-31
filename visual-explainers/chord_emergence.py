@@ -2,7 +2,7 @@
 """
 Chord emergence: a minimal 2D two-fluid PDE simulation.
 
-Solves the governing equations from `cassi.md` (diffusion + conversion +
+Solves the governing equations from `cassi-physics.md` (diffusion + conversion +
 chemotaxis), domain-averaged for simplicity (no bulk velocity):
 
     ∂_t E_Y  =   D ∇²E_Y  −  λ (E_Y − φ E_I)  −  (χ/φ) ∇·(E_Y ∇Φ)
@@ -20,7 +20,7 @@ import numpy as np
 from numpy.fft import fft2, ifft2, fftfreq
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Framework parameters  (`cassi.md` + dimensionful-cascade.md)
+# Framework parameters  (`cassi-physics.md` + dimensionful-cascade.md)
 # ─────────────────────────────────────────────────────────────────────────────
 PHI = (1 + np.sqrt(5)) / 2
 LAM = 0.02          # conversion rate λ

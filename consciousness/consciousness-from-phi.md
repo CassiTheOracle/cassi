@@ -284,7 +284,7 @@ Results archived at `runs/<id>_two_bubble_fast/results.json`.
 
 ## 5. References
 
-- `cassi.md`—Gap derivation and governing PDE
+- `cassi-physics.md`—Gap derivation and governing PDE
 - `foundations/dimensionful-cascade.md`: Complete 292-step cascade
 - `two-fluid/run_spatial_boost.py`: Spatial boost measurement ($B=1.003$)
 - `two-fluid/_chakra_utils.py`: Fibonacci width allocation (phenomenological, not cascade-derived)
