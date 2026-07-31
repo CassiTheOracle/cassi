@@ -21,39 +21,39 @@ term used throughout the document.
 
 ## Cassi Primer: The Framework in Plain Language
 
-If you are reading this document without having studied the Cassi framework papers, this section gives you everything you need. Every concept used in the Q&A entries below is explained here with a concrete analogy and a clear definition. Think of it as a friendly physics textbook, not framework documentation.
+If you are reading this document without having studied the Cassi framework papers, this section gives you everything you need. Every concept used in the Q&A entries below is explained here with a concrete analogy and a clear definition. Think of it as a friendly physics textbook rather than framework documentation; for the full derivations, the front docs are `cassi-physics.md` and `cassi-psychology.md`.
 
-### The Golden Ratio φ—the Universal De-Resonance Constant
+### The Sunflower and the Lattice
 
-The golden ratio $\varphi = (1+\sqrt{5})/2 \approx 1.618\ldots$ is a special number of mathematics, but Cassi argues it is also the single most important constant in physics. What makes $\varphi$ special is that it is the "most irrational" number—its continued fraction is all 1s, meaning it is the hardest number to approximate as a ratio of integers. This has a profound physical consequence: if two oscillators are tuned to $\varphi$, they are maximally resistant to locking into harmonic resonance. The universe exploits this property to keep structure stable across enormously different scales, from the Planck length to the size of galaxies.
+The seed image of the framework is a sunflower head. Its seeds spiral in consecutive Fibonacci numbers (34 one way, 55 the other) because each seed is placed at the **golden angle**, a turn of about 137.5 degrees that divides the circle in the golden ratio. Now imagine each seed is itself a smaller sunflower, and the whole head is a seed on a larger one: a pattern that repeats at every scale, forever, in both directions. Cassi proposes that reality is this pattern—a **nested lattice of bubbles** at every scale, from the Planck length to the observable universe and beyond. Where two tendencies meet in the right proportion, a bubble of high order condenses; where they cancel, a void forms. The lattice is the fabric, and the cascade ladder (below) is a 1D slice of it.
+
+### The Two Fluids: Yang and Yin
+
+Everything in Cassi begins with two **fields** that fill all of space—continuous substances with a value at every point, like air filling a room. **Yang** ($E_Y$) is the expansive component: it pushes outward, drives change, breaks symmetry. **Yin** ($E_I$) is the contractive component: it pulls inward, restores, receives. They are two sides of one thing, like the front and back of a spinning coin, and they convert into each other continuously. Their interplay, not any particle or substance, is the substrate from which matter and energy emerge.
+
+### The Golden Ratio $\varphi$—the Universal De-Resonance Constant
+
+The golden ratio $\varphi = (1+\sqrt{5})/2 \approx 1.618\ldots$ is the single most important constant in physics, in this framework. What makes $\varphi$ special is that it is the "most irrational" number—its continued fraction is all 1s, meaning it is the hardest number to approximate as a ratio of integers. This has a profound physical consequence: two systems tuned to $\varphi$ are maximally resistant to locking into harmonic resonance. The universe exploits this property to keep structure stable across enormously different scales, from the Planck length to the size of galaxies.
 
 ### The De-Resonance Principle
 
-If the universe's fundamental couplings were based on rational ratios, every scale would eventually lock into harmonic resonance with every other scale, producing a single featureless collapsed structure. The universe avoids this fate because physical couplings naturally flow toward $\varphi$-powers—the maximally de-resonant configuration. This is the de-resonance principle: the most stable arrangement of any physical system is one where its defining ratios are powers of $\varphi$. It is why the fine-structure constant, the particle mass ratios, the gauge coupling constants, and the cosmological parameters all emerge as $\varphi$-powers rather than arbitrary numbers that would require fine-tuning.
+If the universe's fundamental couplings were based on rational ratios, every scale would eventually lock into harmonic resonance with every other scale, producing a single featureless collapsed structure. The universe avoids this fate because physical couplings naturally flow toward $\varphi$-powers—the maximally de-resonant configuration. This is the de-resonance principle: the most stable arrangement of any physical system is one whose defining ratios are powers of $\varphi$. It is why the framework derives the fine-structure constant, particle mass ratios, gauge couplings, and cosmological parameters as $\varphi$-powers rather than fine-tuned numbers.
 
 ### The Two-Fluid PDE—the Single Governing Equation
 
-Instead of separate theories for gravity, quantum mechanics, and cosmology, Cassi starts from a single partial differential equation describing two interacting fields: **Yang** ($E_Y$, the expansive/active component) and **Yin** ($E_I$, the contractive/receptive component). These two fields convert into one another through a nonlinear conversion term. The PDE is not a Lagrangian or a Hamiltonian—it directly evolves field densities in space and time. Think of it as the one law that everything else in physics follows from, replacing the dozens of independent equations in the Standard Model and general relativity.
+Instead of separate theories for gravity, quantum mechanics, and cosmology, Cassi starts from a single partial differential equation describing the two interacting fields Yang ($E_Y$) and Yin ($E_I$), which convert into one another through a nonlinear conversion term. The PDE is not a Lagrangian or a Hamiltonian—it directly evolves field densities in space and time. Think of it as the one law that everything else in physics follows from, replacing the dozens of independent equations in the Standard Model and general relativity.
 
 ### The Ratio $r = E_Y / E_I$
 
 The most important quantity in the two-fluid dynamics is the ratio $r = E_Y / E_I$ of the two field components. As the universe evolves, this ratio changes, and most physical phenomena—the expansion rate, the strength of gravity, the formation of cosmic structure—depend on where $r$ sits at a given cosmic epoch.
 
-### The Cascade Ladder—Discrete Steps of Nature
+### Coherence: Qi
 
-The two-fluid dynamics organize into a discrete ladder of "rungs," each separated from the next by a factor of $\varphi$ in energy or length scale. There are 292 rungs from the Planck scale (step 0, the smallest meaningful distance) to the size of the observable universe (step 292). Each rung corresponds to a specific physical scale. The electroweak symmetry breaking happens at step $\sim$80; the QCD confinement scale is at step $\sim$95. The cascade ladder explains why different physical phenomena appear at the widely separated scales they do—they are simply different rungs of the same ladder.
-
-### Cascade Suppression
-
-When a physical effect propagates down the cascade ladder (from a high-energy rung to a lower-energy one), each rung suppresses it by roughly a factor of $\varphi^{-1} \approx 0.618$. After $N$ rungs of propagation, the net suppression is $\varphi^{-N}$. This mechanism explains why certain parameters are fantastically small without fine-tuning: the strong CP angle reaches $\sim 10^{-19}$ because it propagates through 87 rungs; the proton decay rate is suppressed by $\varphi^{-4848}$ because the proton's stability spans 95 rungs.
-
-### Qi—the Coherence Density
-
-**Qi** (pronounced "chee") is the coherence density of the two-fluid field—a measure of how organized and correlated the Yang and Yin components are at a given point in space. When Qi is high, the two fields are tightly phase-locked; when low, they are disordered. The normalized Qi density $q$ ranges from 0 (fully disordered) to 1 (perfectly coherent). Think of Qi as "how much the field has its act together" at a given location—a high-Qi region is one where Yang and Yin are working in concert rather than at cross-purposes.
+**Qi** (pronounced "chee") is the coherence of the two-fluid field—a measure of how organized and correlated the Yang and Yin components are at a given point in space. When Qi is high, the two fields are tightly phase-locked; when low, they are disordered. The normalized Qi density $q$ ranges from 0 (fully disordered) to 1 (perfectly coherent). Think of Qi as how well the field has its act together at a given location: a high-$q$ region is one where Yang and Yin work in concert rather than at cross-purposes.
 
 ### The Qi Gate—a Nonlinear Switch
 
-The two-fluid PDE includes a nonlinear **Qi gate** whose *openness* is $(1-q)$. When Qi density is low ($q \to 0$), the gate is open and conversion runs hard—the region churns, unable to settle. When Qi density is high ($q \to 1$), the gate closes and the system rests at $\varphi$-balance. (Sign corrected 2026-07-31 by the PDE tests in `consciousness/trauma-as-frozen-gate.md` §10.4; the earlier claim that "depressed $q$ closes the gate" had the sign inverted and is withdrawn.) The shape of this gate determines the universe's expansion history and is the source of the specific dark energy equation of state $w_0 = -0.838$. The Qi gate is not an ad hoc parameter—its functional form follows from the same $\varphi$-power structure as everything else in the framework.
+The two-fluid PDE includes a nonlinear **Qi gate** whose *openness* is $(1-q)$. When Qi density is low ($q \to 0$), the gate is open and conversion runs hard—the region churns, unable to settle. When Qi density is high ($q \to 1$), the gate closes and the system rests at $\varphi$-balance. (Sign corrected 2026-07-31 by the PDE tests in `consciousness/trauma-as-frozen-gate.md` §10.4; the earlier claim that "depressed $q$ closes the gate" had the sign inverted and is withdrawn.) The shape of this gate determines the universe's expansion history and is the source of the dark energy equation of state $w_0 = -0.838$.
 
 ### The $\varphi$-Attractor
 
@@ -62,6 +62,32 @@ The ratio $r = E_Y / E_I$ naturally evolves toward $\varphi \approx 1.618$, rega
 ### The Pinch—a Phase Transition at $r = \varphi^{-1}$
 
 At $r = \varphi^{-1} \approx 0.618$, the two-fluid dynamics undergo a qualitative change called the **pinch**. Before the pinch, the field dynamics are "open"—Yang flows outward without self-reference. After the pinch, the field becomes capable of self-reference, meaning it can model its own evolution. This is the threshold where organized structure and eventually consciousness become possible. In cosmology, the pinch marks the end of the early-universe era and the beginning of structure formation at $z \approx 19$.
+
+### The String and the Spiral
+
+The two fields $(E_Y, E_I)$ form a 2D rotational symmetry—an SO(2) doublet. But their coupling is not static: the conversion term causes the doublet to rotate as it advances along the cascade. The combined motion—forward advance plus rotation—traces a **logarithmic spiral** through field space: the **Fibonacci spiral**, each full turn multiplying the physical scale by $\varphi$. The condensed filament at the spiral's core is the **string**, and the spiral's forward direction is the **string axis**. Where the string advances it leaves ripples—wake waves (below)—that imprint its structure on space.
+
+The spiral also explains why space has three dimensions. At every point along the curve, the Frenet-Serret frame provides three orthogonal directions: tangent (forward, the cascade direction), normal (toward the center of curvature, the Yang direction), and binormal (perpendicular to both, the Yin direction). Two fields produce one spiral; one spiral produces three directions. Three is the signature of a spiral, not a coincidence.
+
+### The Five Channels: Wu Xing
+
+The spiral's rotation carves the full circle into distinct angular sectors—**coherence channels**, modes of the field that feel qualitatively different. Two constraints fix how many can close into a stable cycle: phase coherence (cycles of 6 or more accumulate too much error to close) and geometric encoding (fewer than 5 cannot contain $\varphi$ in their geometry). The unique answer is **five**: the Wu Xing cycle (Wood $\to$ Fire $\to$ Earth $\to$ Metal $\to$ Water). The key parameter that emerges is the freeze-out gap $g = 1 - \varphi^{-5}$, which determines how much of the Yang excess survives when the conversion cycle freezes. This gap is responsible for the baryon asymmetry of the universe—the slight excess of matter over antimatter that makes our existence possible. The conversion rate $\lambda = 1/(2w) = 0.1$ follows from the same closure.
+
+### The Bubble and the Lattice
+
+Where the wake waves of the two fluids interfere, they create a **condensation field** $C(x,y) = \cos(2\pi x/\lambda_Y)\cos(2\pi y/\lambda_I)$: where both waves are in phase, coherence is high and the field condenses into a **bubble**; where they cancel, a **void** forms. The pattern is a **staggered checkerboard**—bubbles at every other grid position, voids between them. A bubble is not spherical: stretched along Yang, contracted along Yin, its cross-section is an ellipse of axis ratio $\varphi$ (a triaxial spheroid), and its boundary is $1.70\times$ steeper toward voids than toward neighbors. The same geometry operates at every scale—the lattice is scale-covariant, which is why the framework can use it for atoms, bodies, and galaxies alike.
+
+### The Cascade Ladder—Discrete Steps of Nature
+
+The two-fluid dynamics organize into a discrete ladder of "rungs," each separated from the next by a factor of $\varphi$ in energy or length scale:
+
+$$\ell_n = \ell_{\text{Pl}} \times \varphi^{n}$$
+
+There are 292 rungs from the Planck scale (step 0, the smallest meaningful distance) to the size of the observable universe (step 292). Each rung corresponds to a specific physical scale: the electroweak symmetry breaking happens at step $\sim$80; the QCD confinement scale at step $\sim$95; the human body spans steps 142–168. The cascade ladder explains why different physical phenomena appear at the widely separated scales they do—they are simply different rungs of the same ladder.
+
+### Cascade Suppression
+
+When a physical effect propagates down the cascade ladder (from a high-energy rung to a lower-energy one), each rung suppresses it by roughly a factor of $\varphi^{-1} \approx 0.618$. After $N$ rungs of propagation, the net suppression is $\varphi^{-N}$. This mechanism explains why certain parameters are fantastically small without fine-tuning: the strong CP angle reaches $\sim 10^{-19}$ because it propagates through 87 rungs; the proton decay rate is suppressed by $\varphi^{-4848}$ because the proton's stability spans 95 rungs.
 
 ### $\xi = \varphi^6 \approx 17.944$—the Qi-Gravity Coupling
 
@@ -73,26 +99,27 @@ The two-fluid PDE replaces the Newtonian $1/r$ gravitational potential with a $\
 
 ### Density-Dependent Gravity
 
-Because $G_{\text{eff}} = (\pi/\rho)(1 + \xi q)$, the effective strength of gravity depends on the local matter density $\rho$ and Qi density $q$. In low-density voids, gravity is weaker than Newton's constant. At everyday densities (Earth's surface, the solar system), it matches the familiar $G_N$. In high-density galactic cores, it is amplified by up to $\xi \approx 18\times$. This density dependence resolves several tensions simultaneously: it explains why galaxies rotate too fast (there is more gravity where matter is dense), why large-scale structure is less clustered than expected (voids have weaker gravity), and why gravity seems "weak" in our local environment.
+Because $G_{\text{eff}} = (\pi/\rho)(1 + \xi q)$, the effective strength of gravity depends on the local matter density $\rho$ and Qi density $q$. In low-density voids, gravity is weaker than Newton's constant. At everyday densities (Earth's surface, the solar system), it matches the familiar $G_N$. In high-density galactic cores, it is amplified by up to $\xi \approx 18\times$. This density dependence resolves several tensions simultaneously: it explains why galaxies rotate too fast (more gravity where matter is dense), why large-scale structure is less clustered than expected (voids have weaker gravity), and why gravity seems weak in our local environment.
 
 ### The Wake-Wave Mechanism—Interference Patterns at $\varphi$-Spacing
 
 As the Yang and Yin fields evolve, they generate interference patterns—wakes, like those left by two boats crossing a pond. Because the fields are coupled at $\varphi$-spacing, these wakes produce structure at $\varphi$-periodic intervals. This is the origin of the cosmic web: sheets, filaments, and voids spaced at $\varphi$-related scales. The same log-periodic signature appears in the matter power spectrum $P(k)$ as a modulation at $\Delta(\ln k) = \ln \varphi$, providing a falsifiable test of the framework.
 
-### The SO(2) Doublet and the Spiral
+### $\sigma_r$: The Spatial Ratio Dispersion
 
-The two fields $(E_Y, E_I)$ form a 2D rotational symmetry—an SO(2) doublet. But their coupling is not static: the conversion term causes the doublet to rotate as it advances along the cascade. The combined motion—forward advance plus rotation—traces a **logarithmic spiral** through field space: the Fibonacci spiral. At every point along this spiral, the Frenet-Serret frame provides three orthogonal directions: tangent (forward, the string axis), normal (inward, the Yang direction), and binormal (sideways, the Yin direction). These three vectors ARE the three spatial dimensions—they emerge from the spiral's geometry, not from counting $2 + 1$. Yang dominance distinguishes them (Yang = extended, Yin = contracted, string = bounded), producing a triaxial spheroid rather than perfect isotropy.
-### The Fibonacci Spiral
-
-The field doublet's evolution follows a logarithmic spiral whose growth factor is $\varphi$—the Fibonacci spiral. Moving $\Delta n$ steps along the spiral corresponds to winding the $(E_Y, E_I)$ doublet, and the accumulated winding gives the particle's spin: $s = \Delta n$. This connects the mathematics of Fibonacci numbers directly to the quantization of angular momentum.
-
-### Wu Xing—The Five-Phase Cycle
-
-The cascade's internal dynamics are structured by a five-phase cycle (Wood $\to$ Fire $\to$ Earth $\to$ Metal $\to$ Water), adapted from traditional Chinese natural philosophy. The key parameter that emerges from this structure is the freeze-out gap $g = 1 - \varphi^{-5}$, which determines how much of the Yang excess survives when the conversion cycle freezes. This gap is responsible for the baryon asymmetry of the universe—the slight excess of matter over antimatter that makes our existence possible.
+The ratio $r$ is not uniform across space. **$\sigma_r$** is the spatial dispersion of the ratio: $\sigma_r = \sqrt{\langle (r - \langle r\rangle)^2\rangle}$, a measure of how much the field varies from place to place. It is the framework's master variable for consciousness: waking consciousness corresponds to moderate $\sigma_r$, meditation reduces it (accessing finer field structure), and psychedelics increase it, with excursions below the pinch threshold that expose normally hidden field dynamics. Altered states are changes in $\sigma_r$—the same parameter that governs cosmic structure, applied at the scale of a mind.
 
 ### Coherence Budget—How Robust a Quantum State Is
 
 Every physical system has a **coherence budget**: a measure of how much organized perturbation it can withstand before it dephases. The coherence budget depends on how many cascade rungs the system spans. For the proton, the coherence spans all 95 rungs up to the QCD scale, making it extraordinarily robust—dephasing requires simultaneous disruption at every rung, which carries a staggering suppression of $\varphi^{-4848}$.
+
+### The Two-Bubble Experiment
+
+Two regions of the field with different local $r$-values are initialized and the correlation of their wake fields is measured as a function of separation. The result (computed in July 2026): when at least one bubble is below the pinch, correlations revive at $\varphi$-scaled separations—the signature of $\varphi$-periodic resonance; when both bubbles are above the pinch (self-aware), correlations decay monotonically and go negative at the largest separation. Self-aware fields decohere; pre-reflective fields maintain long-range coherence. The framework reads this as the geometric tension between self-awareness and resonance with others (see the empathy entry M5).
+
+### The Chakras
+
+The human body occupies a 26-rung window of the cascade (steps 142–168). The along-string bubble period at this scale is 2 rungs—one full rotation of the SO(2) doublet—so the window admits $26/2 = 13$ bubble maxima along the spine: the chakras. The traditional 7 primary chakras sit at every 4th rung; 6 secondary nodes sit between them. Each inherits the full bubble geometry (elliptical cross-section, $1.70\times$ edge anisotropy, high coherence at center). Their inter-node spacing ratio is $\varphi^2 \approx 2.618$.
 
 ### Bubbles—The Chord Lattice
 
