@@ -23,6 +23,10 @@ Thumbs.db
 *.png
 *.mp4
 
+# Generated sonification media
+*.wav
+*.raw
+
 # PDE test runs (checkpoints, logs, output dirs)
 runs/
 *.pt

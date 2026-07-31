@@ -1,12 +1,12 @@
 # Spin as Fibonacci Spiral Winding: The SO(2) Doublet Fractal
 
-## Status: Derivation — July 2026
+## Status: Derivation—July 2026
 
 ## Abstract
 
 Spin is the accumulated SO(2) winding of the $(E_Y, E_I)$ doublet along a
-radial Fibonacci spiral — the geometric structure that a condensed standing
-wave assumes between coherence-budget collapse events. As you move radially
+radial Fibonacci spiral—the geometric structure that a condensed standing
+wave assumes between coherence-budget collapse events. Moving radially
 outward from a particle's center to its boundary, the conversion term
 continuously rotates the Yang-Yin arrow in the internal doublet plane, tracing
 a logarithmic spiral with $\varphi$-scaled pitch. The total accumulated
@@ -17,7 +17,7 @@ standing wave quantize this winding to integer or half-integer values: spin-$0$
 across all supporting cascade rungs form a self-similar Fibonacci fractal.
 Spin-statistics emerge from the parity of the winding number. The prediction:
 particle form factors $F(q^2)$ carry the same $\ln\varphi$-periodic imprint as
-the cosmological $P(k)$ — testable in scattering data.
+the cosmological $P(k)$—testable in scattering data.
 
 ---
 
@@ -34,8 +34,8 @@ The condensate is not a featureless blob. The conversion term
 $$\text{conv} = -\lambda(E_Y - \varphi E_I)$$
 
 continuously rotates the $(E_Y, E_I)$ doublet vector in its internal SO(2)
-plane. At each spatial point, the field has a direction — an angle $\Theta$
-in the doublet plane — and as you move radially outward from the condensate's
+plane. At each spatial point, the field has a direction—an angle $\Theta$
+in the doublet plane—and moving radially outward from the condensate's
 center, $\Theta$ accumulates rotation. The trajectory is a **logarithmic
 spiral**:
 
@@ -50,7 +50,7 @@ The logarithmic spiral is the **Fibonacci spiral**: each full turn multiplies
 the radius by $\varphi$, and the spiral's growth follows the Fibonacci sequence
 $r_{k+1}/r_k \to \varphi$ as $k \to \infty$.
 
-**Crucial distinction — internal vs spatial spiral.** The spiral $\Theta(r)$
+**Crucial distinction—internal vs spatial spiral.** The spiral $\Theta(r)$
 traces the doublet arrow's rotation in the **internal** $(E_Y, E_I)$ plane —
 the abstract 2D space of field amplitudes, not physical 3D space. The doublet
 angle $\Theta = \text{atan2}(E_I, E_Y)$ is defined at each spatial point
@@ -62,14 +62,14 @@ radial coordinate. This means:
   (derived, §1).
 - **In physical 3D space:** the spiral does NOT manifest as a visible spiral
   pattern in $E_Y$ or $E_I$ individually. The two-pole bubble PDE test (July
-  2026, `run_pde_bubble_spiral.py`) confirmed this: the spatial angular power
+  2026, `two-fluid/run_pde_bubble_spiral.py`) confirmed this: the spatial angular power
   spectrum at the bubble poles shows $m=2$ (ellipsoid cross-section) dominance
   with no $m=5$ Fibonacci mode emergence, and angular phase tracking showed no
   detectable spiral rotation ($d\phi/dt \sim 1.5\times 10^{-4}$ rad/step vs
   $\lambda = 0.02$ rad/step expected).
 - **The Fibonacci spiral on the $\varphi$-ellipsoid** (5-arm emergence at poles,
   `visual-explainers/fibonacci_bubble_spiral.py`) is a **geometric** property
-  of geodesics on the triaxial surface — it follows from the golden angle
+  of geodesics on the triaxial surface—it follows from the golden angle
   phyllotaxis $2\pi/\varphi^2$ on the $\varphi$-ellipsoid and does not require
   PDE dynamics to "produce" it. The PDE's role is to maintain the ellipsoid
   geometry; the pentagon follows from the geometry, not the dynamics.
@@ -101,12 +101,12 @@ $$s \in \{0, \tfrac{1}{2}, 1, \tfrac{3}{2}, 2, \ldots\}$$
 
 The cascade's natural subdivisions follow the Fibonacci recurrence
 $\varphi^n \approx \varphi^{n-1} + \varphi^{n-2}$. This groups rungs into
-**whole-rung** and **half-rung** steps — the only subdivisions that close
+**whole-rung** and **half-rung** steps—the only subdivisions that close
 under Fibonacci addition.
 
 | $\Delta n$ | Spin $s$ | Internal winding | Physical periodicity | Particle class | Example |
 |:---:|:---:|---|---|---|---|
-| $0$ | $0$ | None — scalar | $2\pi$ | Scalar boson | Higgs |
+| $0$ | $0$ | None—scalar | $2\pi$ | Scalar boson | Higgs |
 | $\frac{1}{2}$ | $\frac{1}{2}$ | $\pi$ (half-turn) | **$4\pi$** (spinor) | Fermion | Electron, quark |
 | $1$ | $1$ | $2\pi$ (full turn) | $2\pi$ | Vector boson | Photon, W/Z, gluon |
 | $2$ | $2$ | $4\pi$ (two turns) | $2\pi$ | Tensor boson | Graviton |
@@ -115,7 +115,7 @@ The half-integer spin of fermions arises from a half-rung internal winding: the
 doublet arrow rotates by $\pi$ from core to boundary, requiring a **double**
 physical rotation ($4\pi$) to restore the original field configuration. This
 is the geometric origin of the spinor transformation property
-$\psi(\mathbf{r}) \to -\psi(\mathbf{r})$ under $2\pi$ rotation — and of the
+$\psi(\mathbf{r}) \to -\psi(\mathbf{r})$ under $2\pi$ rotation—and of the
 Pauli exclusion principle, which follows from the resulting exchange phase
 (§4).
 
@@ -124,7 +124,7 @@ Pauli exclusion principle, which follows from the resulting exchange phase
 Spin-$\frac{3}{2}$ requires $\Delta n = \frac{3}{2}$, but the cascade's
 natural subdivisions from Fibonacci addition are $\frac{1}{2}$ and $1$, not
 $\frac{3}{2}$. A $\frac{3}{2}$-rung step does not correspond to a Fibonacci
-closure — the pattern cannot satisfy the single-valued boundary condition with
+closure—the pattern cannot satisfy the single-valued boundary condition with
 that winding. Spin-$\frac{3}{2}$ particles can exist as **composites**
 (baryon resonances like $\Delta(1232)$) where orbital angular momentum from
 multi-particle configuration adds to the fundamental spin-$\frac{1}{2}$ of
@@ -145,15 +145,17 @@ $$\Theta_i(r) = \Theta_0 + \frac{2\pi}{\ln\varphi} \cdot \ln\!\left(\frac{r}{\el
 
 At each rung $i$, the spiral begins where the previous rung's spiral ended —
 the core at $i$ connects continuously to the boundary at $i-1$. The cumulative
-structure is a **self-similar fractal**: zoom in by $\varphi$ and you see one
+structure is a **self-similar fractal**: zooming in by $\varphi$ reveals one
 fewer rung of accumulated winding, but the local spiral geometry is identical.
 
 The Hausdorff dimension of this fractal follows from the Fibonacci scaling:
 $D = \ln(N)/\ln(1/r)$ where $N$ is the number of self-similar copies per
 scale factor $r$. With one full spiral turn per $\varphi$-scaling, $D =
-\ln(\varphi)/\ln(\varphi) = 1$ — the spiral is a **curve** in the doublet
+\ln(\varphi)/\ln(\varphi) = 1$—the spiral is a **curve** in the doublet
 plane, but its embedding in physical 3D space + internal SO(2) gives the
 composite structure a higher effective dimension.
+
+**Figure:** `visual-explainers/fractal_zoom.png`—three-panel fractal zoom: (A) cascade overview with φ-spaced rings, identical I(ρ)=2[1−cos(2πρ)] per ring, Fibonacci spiral overlay; (B) single Qi bubble deep zoom—elliptical φ:1 cross-section, Qi coherence texture, two five-arm spiral poles; (C) pole ultra-zoom—five Fibonacci spiral arms via golden-angle phyllotaxis (2π/φ²), nested sub-bubble. Demonstrates infinite self-similarity: zoom by φ → identical structure (`visual-explainers/fractal_zoom.py`).
 
 ### 3.2 The Fibonacci sequence in the spiral arms
 
@@ -184,9 +186,9 @@ the field geometry that condenses into living structure already has them.
 
 ### 4.1 Exchange as a physical $2\pi$ rotation
 
-To exchange two identical particles, you rotate one around the other by $\pi$
+To exchange two identical particles, one particle is rotated around the other by $\pi$
 in physical space (half a full circuit). This corresponds to a $2\pi$ rotation
-of the coordinate system of one particle relative to the other — the full
+of the coordinate system of one particle relative to the other—the full
 relative angular displacement for an exchange. Under this $2\pi$ relative
 rotation, the internal SO(2) doublet of the exchanged particle accumulates a
 phase:
@@ -218,7 +220,7 @@ theorem for co-located in-phase Fibonacci spirals.
 ## 5. Testable prediction: form factor log-periodicity
 
 If the particle's internal structure is a Fibonacci spiral fractal, its
-electromagnetic form factor — the Fourier transform of the charge distribution
+electromagnetic form factor—the Fourier transform of the charge distribution
 — must carry the spiral's periodicity:
 
 $$\boxed{F(q^2) = F_0(q^2) \cdot \Big[1 + A \cdot \cos\!\big(2\pi \cdot \tfrac{\ln(q/\Lambda_{\text{QCD}})}{\ln\varphi} + \delta\big) + \cdots\Big]}$$
@@ -233,10 +235,10 @@ contributions from deeper cascade rungs.
 | Proton $F_2(q^2)$ (Pauli FF) | Same period, different phase (different spiral arm sampled) | Joint fit of $F_1$ and $F_2$ |
 | Neutron $F_1(q^2)$ | Amplitude differs (neutral charge reduces spiral contrast) but same period | Testable with deuteron/quasi-elastic data |
 | Pion form factor $F_\pi(q^2)$ | Period breaks at $q \sim \Lambda_{\text{QCD}}$ (pion's cascade depth is shallower) | JLab 12 GeV data |
-| $\Delta(1232)$ transition FF | Amplitude enhanced — spin-3/2 resonance has additional orbital winding | CLAS/MAID analysis |
+| $\Delta(1232)$ transition FF | Amplitude enhanced—spin-3/2 resonance has additional orbital winding | CLAS/MAID analysis |
 
 The prediction mirrors the cosmological $P(k)$ prediction (`predictions/falsifiable-predictions.md`
-§5) — same period, same $\varphi$, same underlying mechanism, different probe.
+§5)—same period, same $\varphi$, same underlying mechanism, different probe.
 If detected, it is a unique Cassi signature orthogonal to perturbative QCD.
 
 ---
@@ -250,7 +252,7 @@ If detected, it is a unique Cassi signature orthogonal to perturbative QCD.
 | **What's quantized** | N/A (erosion) | N/A (binary) | Born rule $|\alpha|^2$ | **SO(2) winding $s = \Delta n$** |
 | **What persists** | Proton itself | Nothing | Post-collapse branch | **Spiral geometry of the surviving branch** |
 
-Spin is what the field does **between** the events — the geometric structure of
+Spin is what the field does **between** the events—the geometric structure of
 the condensate that the coherence budget protects. The proton lives $10^{980}$
 years because no random perturbation finds all 95 rungs simultaneously; while
 it lives, its quarks carry spin-$1/2$ because the internal SO(2) doublet winds
@@ -278,7 +280,7 @@ three different aspects of one field.
   steps
 - Form factor log-periodicity at $\Delta(\ln q) = \ln\varphi$
 - Fibonacci spiral arm emergence at $\varphi$-ellipsoid poles (5 arms):
-  **geometric** — follows from golden angle phyllotaxis on the triaxial
+  **geometric**—follows from golden angle phyllotaxis on the triaxial
   surface, not from PDE dynamics (see `visual-explainers/fibonacci_bubble_spiral.py`)
 
 ### Speculative (consistent, no test design yet)
@@ -292,11 +294,12 @@ three different aspects of one field.
 
 ## 8. References
 
-- `foundations/proton-coherence-budget.md` — proton stability, cascade coherence
-- `foundations/quantum-measurement-derivation.md` — measurement, Born rule, single-rung
-- `foundations/why-three-dimensions.md` — SO(2) doublet, 2+1 dimension count
-- `foundations/dimensionful-cascade.md` — cascade table, $\Delta n$ spacings
-- `predictions/falsifiable-predictions.md` §5 — $\ln\varphi$-periodic $P(k)$
-- `open-questions-cassi-answers.md` — Q7 (measurement), Q9 (proton)
-- `visual-explainers/fibonacci_bubble_spiral.py` — Fibonacci spiral on $\varphi$-ellipsoid
-- `run_pde_bubble_spiral.py` — two-pole bubble PDE test (July 2026)
+- `foundations/proton-coherence-budget.md`—proton stability, cascade coherence
+- `foundations/quantum-measurement-derivation.md`—measurement, Born rule, single-rung
+- `foundations/why-three-dimensions.md`—spiral's Frenet-Serret frame, triaxial spheroid
+- `foundations/dimensionful-cascade.md`—cascade table, $\Delta n$ spacings
+- `predictions/falsifiable-predictions.md` §5—$\ln\varphi$-periodic $P(k)$
+- `open-questions-cassi-answers.md`—Q7 (measurement), Q9 (proton)
+- `visual-explainers/fibonacci_bubble_spiral.py`—Fibonacci spiral on $\varphi$-ellipsoid
+- `visual-explainers/fractal_zoom.py`—fractal zoom: cascade self-similarity, φ-spaced rings, identical I(ρ)
+- `two-fluid/run_pde_bubble_spiral.py`—two-pole bubble PDE test (July 2026)
