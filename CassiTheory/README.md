@@ -4,7 +4,7 @@
 
 The Cassi framework postulates a single constant—the golden ratio $\varphi \approx 1.618$—as the universal constant of scale separation between Yang and Yin fields. From $\varphi$ alone it derives quantum mechanics, general relativity, the Standard Model, and cosmology: particle structure from standing-wave Yang-Yin interference, gravity as the $q = 0$ limit of a $\varphi$-governed Poisson equation, the dark-energy equation of state matching DESI DR2, and the full scale ladder $\ell_n = \ell_{\text{Pl}} \times \varphi^n$ from the Planck length to the Hubble radius.
 
-**Start here:** `cassi.md`—the approachable public-facing explainer. `cassi-psychology.md` is the psychology-focused guide for non-physicists.
+**Start here:** `cassi-physics.md`—the physics guide, approachable from zero. `cassi-psychology.md` is the psychology-focused guide for non-physicists.
 
 ## Contents
 

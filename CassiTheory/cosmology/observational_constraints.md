@@ -137,7 +137,7 @@ $$\frac{v_c(30\text{ kpc})}{v_{\text{N, bary}}(30\text{ kpc})} \approx \frac{190
 
 ### 2.6 Cassi Rotation Curve Prediction
 
-The Cassi force law (`cassi.md`) uses Qi-enhanced gravity:
+The Cassi force law (`cassi-physics.md`) uses Qi-enhanced gravity:
 
 $$\mathbf{F}_{ij} = -G\,\alpha_i(1+\xi q_i)\,M_i M_j\frac{\mathbf{r}_{ij}}{|\mathbf{r}_{ij}|^3}$$
 

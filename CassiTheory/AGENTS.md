@@ -17,7 +17,7 @@ The repo is a **document graph with three master registries** at the root:
 - `open-questions-cassi-answers.md`—epistemic master registry: 41 open questions (`Q1–Q10`, `C1–C10`, `G1–G6`, `M1–M5`, `F1–F6`, `T1–T4`), each with a `Cassi Answer | Mechanism | Epistemic | Reference` table. Epistemic tiers: **Derived / Hypothesized / Speculative**.
 - `parameter-inventory.md`—parameter master registry: all ~40 parameters classified by type (F/D/C/E/I/N). **Must be updated** when a paper introduces, derives, or reclassifies a parameter.
 - `predictions/falsifiable-predictions.md`—prediction catalog: 38 numbered predictions grouped by experiment (FCC-ee, CMB-S4, LSST…), each with a `**Source:**` block. Cited elsewhere by number / `§`.
-- `cassi.md`—approachable public-facing explainer (start here)
+- `cassi-physics.md`—physics guide (start here)
 - `audit.md`—self-critical prediction-vs-experiment audit.
 
 **Wedge strategy (core pattern):** universal formulas are extracted once into `foundations/`, then applied as one-liners in domain papers:
@@ -98,7 +98,7 @@ Docstring with run command → NumPy + Matplotlib (**Agg backend set early**) �
 
 | File | Role |
 |------|------|
-| `cassi.md` | Public-facing explainer—read first |
+| `cassi-physics.md` | Physics guide—read first |
 | `README.md` | Repo purpose & parent-repo boundary |
 | `BROKEN_REFS.md` | Registry of external/broken refs—read before editing refs |
 | `open-questions-cassi-answers.md` | Epistemic registry (Q/C/G/M/F/T numbering) |
@@ -134,7 +134,7 @@ There is **no test suite**. Quality assurance is documentary:
 ### Consistency rules for public-readiness
 - **Terminology**: use the same symbol, the same spelling, and the same formatting for every concept across all files. φ is always `$\varphi$`, Qi is always `$q$`, cascade step is always `$n$`. Never introduce a synonym without updating every occurrence of the old term.
 - **Cross-references**: every link must resolve within this repo. If a referenced file doesn't exist, either create it, fix the path, or add it to `BROKEN_REFS.md`. Run `grep ']('` on new/edited docs and verify each target.
-- **Self-containment**: a new reader should be able to start at `README.md` or `cassi.md` and follow links to every concept. No "as shown elsewhere" without a link. No assumed knowledge of the parent repo.
+- **Self-containment**: a new reader should be able to start at `README.md` or `cassi-physics.md` and follow links to every concept. No "as shown elsewhere" without a link. No assumed knowledge of the parent repo.
 - **Approachable prose**: every section that introduces a technical result should open with one plain-English sentence saying what it means and why it matters. Equations follow, not lead. The reader should understand the claim without the math, even if they need the math to verify it.
 - **No orphaned claims**: every "derived," "predicted," or "confirmed" statement must trace back to either a foundations/ derivation or an entry in the predictions catalog. If a paper says "X is derived from φ" but no derivation exists, fix the claim to match the actual epistemic tier.
 
@@ -169,7 +169,7 @@ For each hit: fix it immediately if the fix is obvious. Flag it in the commit me
 ### Agent autonomy patterns
 - **Registry-aware editing**: when you add or change a parameter, prediction, or Q-entry in a domain paper, check whether `parameter-inventory.md`, `falsifiable-predictions.md`, or `open-questions-cassi-answers.md` need updates. Do them in the same commit.
 - **Post-edit sweep**: before yielding on a multi-file change, run `grep` for the old value of any number you changed (counts, φ-powers, cascade rungs, dates). Fix every stale reference. A sweep takes 30 seconds and prevents the most common class of doc-rot.
-- **New-paper bootstrap**: when creating a new foundations/ or domain paper, also (a) add its path to the relevant registry, (b) add a cross-reference from `cassi.md` if it's a major result, (c) add any new parameters to `parameter-inventory.md`, (d) add a Status header with the accurate epistemic tier and date.
+- **New-paper bootstrap**: when creating a new foundations/ or domain paper, also (a) add its path to the relevant registry, (b) add a cross-reference from `cassi-physics.md` if it's a major result, (c) add any new parameters to `parameter-inventory.md`, (d) add a Status header with the accurate epistemic tier and date.
 - **Read before edit**: use `grep` to find every document that references a file or claim BEFORE you change it. The registries are not the only cross-referencers—domain papers cite each other heavily. A `grep` for the filename or claim text across `foundations/`, `cosmology/`, `gravity/`, `standard-model/`, `particles/`, `predictions/` catches callers that `lsp` can't (these are markdown files).
 - **House-style enforcement**: when editing an existing paper that doesn't follow the skeleton (`# Title` → `## Status` → `## Abstract` → numbered body → `## References`), add the missing sections. When editing a paper whose Status header is missing or lacks a date, add one (use the current date and the accurate epistemic tier from the paper's content).
 - **Accuracy over elegance**: the framework's epistemic integrity is its strongest asset for public release. Never make a claim sound more certain than its tier. If a paper says "derived" but only sketches a mechanism, downgrade to "Hypothesized" and explain why in the commit message. `audit.md` is the model: it documents tensions and past errors openly.

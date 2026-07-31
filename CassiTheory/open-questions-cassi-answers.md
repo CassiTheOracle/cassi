@@ -53,7 +53,7 @@ When a physical effect propagates down the cascade ladder (from a high-energy ru
 
 ### The Qi Gate—a Nonlinear Switch
 
-The two-fluid PDE includes a nonlinear function $g(q)$ called the **Qi gate**. When Qi density is high ($q \to 1$), the gate opens, and Yang converts efficiently into Yin. When Qi density is low ($q \to 0$), the gate closes and conversion slows nearly to a halt. The shape of this gate determines the universe's expansion history and is the source of the specific dark energy equation of state $w_0 = -0.838$. The Qi gate is not an ad hoc parameter—its functional form follows from the same $\varphi$-power structure as everything else in the framework.
+The two-fluid PDE includes a nonlinear **Qi gate** whose *openness* is $(1-q)$. When Qi density is low ($q \to 0$), the gate is open and conversion runs hard—the region churns, unable to settle. When Qi density is high ($q \to 1$), the gate closes and the system rests at $\varphi$-balance. (Sign corrected 2026-07-31 by the PDE tests in `consciousness/trauma-as-frozen-gate.md` §10.4; the earlier claim that "depressed $q$ closes the gate" had the sign inverted and is withdrawn.) The shape of this gate determines the universe's expansion history and is the source of the specific dark energy equation of state $w_0 = -0.838$. The Qi gate is not an ad hoc parameter—its functional form follows from the same $\varphi$-power structure as everything else in the framework.
 
 ### The $\varphi$-Attractor
 
@@ -711,7 +711,7 @@ The ultimate goal of theoretical physics is a single, coherent framework that ex
 | **Cassi Answer** | Cassi: one equation ($\partial_t E_Y + \nabla\cdot(E_Y\mathbf{u}) = \omega_0 g(q)(E_Y-\varphi E_I) + \nu\nabla^2 E_Y$, etc.), one constant ($\varphi$) |
 | **Mechanism** | All four pillars (particles, cosmology, gravity, SM) from two-fluid PDE + $\varphi$ + cascade |
 | **Epistemic** | **Hypothesized**—all pillars active; full cross-pillar computation in progress |
-| **Reference** | `cassi.md`, all foundations/ docs |
+| **Reference** | `cassi-physics.md`, all foundations/ docs |
 
 
 ### F5: Dimensionful constants ($c$, $\hbar$, $G$) and $\lambda$
@@ -957,7 +957,7 @@ See `foundations/refined-numeric-predictions.md` §5 for the complete open-quest
 
 All Cassi theory documents are organized in the subdirectories listed above. Key cross-references:
 
-- `cassi.md`—theory of everything summary
+- `cassi-physics.md`—theory of everything summary
 - `foundations/cassi-first-principles.md`—first principles
 - `foundations/dimensionful-cascade.md`—complete 292-step cascade
 - `foundations/xi-derivation.md`—$\xi = \varphi^6$ derivation

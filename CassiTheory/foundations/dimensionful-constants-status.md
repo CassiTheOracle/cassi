@@ -317,7 +317,7 @@ When this document's findings are accepted:
 - [x] **`foundations/xi-derivation.md`** §5: Done (2026-07-22).
 - [x] **`foundations/unified-lagrangian.md`** §0: Done (2026-07-22).
 - [x] **`open-questions-cassi-answers.md`**: Done—F5 added, λ claim fixed, summary updated to 40 (2026-07-22).
-- [x] **`cassi.md`**: Done—five instances qualified (2026-07-22).
+- [x] **`cassi-physics.md`**: Done—five instances qualified (2026-07-22).
 - [ ] **`foundations/spiral-dynamics.md`** §4: $c$ mechanism status updated to reflect closure (when this document is accepted)
 - [ ] **`foundations/dimensionful-constants-status.md`**: This document updated (2026-07-23).
 

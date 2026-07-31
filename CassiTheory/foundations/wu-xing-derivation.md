@@ -176,4 +176,4 @@ Equivalently: $E_I/E_Y = 1/r_0 \approx 21.2$. Yin dominates Yang by a factor of 
 - `principles/de-resonance-principle.md`—$\varphi$ as maximally irrational
 - `parameter-inventory.md`—$r_0$ classification (updated to Derived)
 - `open-questions-cassi-answers.md`—$r_{\text{Planck}}$ entry (updated)
-- `cassi.md`—gap derivation
+- `cassi-physics.md`—gap derivation
