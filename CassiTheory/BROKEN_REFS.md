@@ -10,27 +10,27 @@ These refer to Python scripts now present in this repo's `experiments/` director
 
 | Source Document | Reference |
 |----------------|-----------|
-| `foundations/phi_attractor_synthesis.md` | `experiments/phi_attractor_asymptotic.py` |
-| `foundations/phi_attractor_synthesis.md` | `experiments/phi_attractor_path2_qi_variational.py` |
-| `foundations/phi_attractor_synthesis.md` | `experiments/path2_validation.py` |
-| `foundations/phi_attractor_synthesis.md` | `experiments/path3_cold_collapse.py` |
-| `foundations/phi_attractor_synthesis.md` | `experiments/path4_two_phase_model.py` |
-| `foundations/phi_attractor_synthesis.md` | `experiments/path4_softened_two_body.py` |
-| `foundations/phi_attractor_synthesis.md` | `experiments/tauq_investigation.py` |
-| `foundations/phi_attractor_synthesis.md` | `experiments/path5_lagrange_points.py` |
-| `foundations/phi_attractor_synthesis.md` | `experiments/path5_precession_observables.py` |
-| `foundations/phi_attractor_synthesis.md` | `experiments/path6_lagrange_stability.py` |
-| `foundations/phi_attractor_synthesis.md` | `experiments/path7_rotation_curves.py` |
-| `foundations/phi_attractor_synthesis.md` | `experiments/path8_phi_enhanced_rotation.py` |
-| `foundations/phi_attractor_synthesis.md` | `experiments/path9_cassi_vs_mond.py` |
-| `predictions/cassi_definitions.md` | `experiments/cassi_electromagnetism.py` |
-| `predictions/cassi_definitions.md` | `experiments/cassi_quantum_gravity.py` |
-| `predictions/cassi_definitions.md` | `experiments/cassi_three_body.py` |
-| `predictions/cassi_definitions.md` | `experiments/cassi_black_hole_raytracer.py` |
-| `predictions/cassi_definitions.md` | `experiments/cassi_nuclear.py` |
-| `predictions/cassi_definitions.md` | `experiments/cassi_gravitational_waves.py` |
-| `predictions/cassi_definitions.md` | `experiments/cassi_strong_field_pn.py` |
-| `predictions/cassi_definitions.md` | `experiments/cassi_neutron_stars.py` |
+| `foundations/phi_attractor_synthesis.md` | `experiments/phi_attractor_paths/phi_attractor_asymptotic.py` |
+| `foundations/phi_attractor_synthesis.md` | `experiments/phi_attractor_paths/phi_attractor_path2_qi_variational.py` |
+| `foundations/phi_attractor_synthesis.md` | `experiments/phi_attractor_paths/path2_validation.py` |
+| `foundations/phi_attractor_synthesis.md` | `experiments/phi_attractor_paths/path3_cold_collapse.py` |
+| `foundations/phi_attractor_synthesis.md` | `experiments/phi_attractor_paths/path4_two_phase_model.py` |
+| `foundations/phi_attractor_synthesis.md` | `experiments/phi_attractor_paths/path4_softened_two_body.py` |
+| `foundations/phi_attractor_synthesis.md` | `experiments/phi_attractor_paths/tauq_investigation.py` |
+| `foundations/phi_attractor_synthesis.md` | `experiments/phi_attractor_paths/path5_lagrange_points.py` |
+| `foundations/phi_attractor_synthesis.md` | `experiments/phi_attractor_paths/path5_precession_observables.py` |
+| `foundations/phi_attractor_synthesis.md` | `experiments/phi_attractor_paths/path6_lagrange_stability.py` |
+| `foundations/phi_attractor_synthesis.md` | `experiments/phi_attractor_paths/path7_rotation_curves.py` |
+| `foundations/phi_attractor_synthesis.md` | `experiments/phi_attractor_paths/path8_phi_enhanced_rotation.py` |
+| `foundations/phi_attractor_synthesis.md` | `experiments/phi_attractor_paths/path9_cassi_vs_mond.py` |
+| `predictions/cassi_definitions.md` | `experiments/cassi_physics/cassi_electromagnetism.py` |
+| `predictions/cassi_definitions.md` | `experiments/cassi_physics/cassi_quantum_gravity.py` |
+| `predictions/cassi_definitions.md` | `experiments/cassi_physics/cassi_three_body.py` |
+| `predictions/cassi_definitions.md` | `experiments/cassi_physics/cassi_black_hole_raytracer.py` |
+| `predictions/cassi_definitions.md` | `experiments/cassi_physics/cassi_nuclear.py` |
+| `predictions/cassi_definitions.md` | `experiments/cassi_physics/cassi_gravitational_waves.py` |
+| `predictions/cassi_definitions.md` | `experiments/cassi_physics/cassi_strong_field_pn.py` |
+| `predictions/cassi_definitions.md` | `experiments/cassi_physics/cassi_neutron_stars.py` |
 
 ## References to `two-fluid/` (now local)
 
@@ -73,6 +73,19 @@ These point to papers in the parent repository's `papers/` directory (siblings o
 | `open-questions-cassi-answers.md` | `../../consciousness-framework.md` |
 | `open-questions-cassi-answers.md` | `../../quantum-measurement-qi-appendix.md` |
 | `predictions/cassi_definitions.md` | `../../consciousness-framework.md` |
+
+## References to `experiments/` scripts not in this repo (main-repo-only)
+
+These scripts are referenced from the glossary's Key Scripts table but live only in the main repo and are not planned to be copied here:
+
+| Source Document | Reference |
+|----------------|-----------|
+| `predictions/cassi_definitions.md` | `experiments/cassi_quantum_measurement.py` |
+| `predictions/cassi_definitions.md` | `experiments/cassi_time.py` |
+| `predictions/cassi_definitions.md` | `experiments/cassi_coherence_bubble.py` |
+| `predictions/cassi_definitions.md` | `experiments/cassi_life.py` |
+| `predictions/cassi_definitions.md` | `experiments/cassi_spacetime_variable_geff.py` |
+| `predictions/cassi_definitions.md` | `experiments/cassi_accretion_disk.py` |
 
 ## References that should resolve within the TOE (incorrect paths)
 

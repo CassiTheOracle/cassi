@@ -74,7 +74,7 @@ This is the mechanism tested in Paths 8--9 for galactic dynamics.
 
 ## 3. Path 1: Asymptotic $R_\infty(d)$
 
-**Script:** `experiments/phi_attractor_asymptotic.py`
+**Script:** `experiments/phi_attractor_paths/phi_attractor_asymptotic.py`
 
 ### Setup
 
@@ -99,7 +99,7 @@ The exponential form arises naturally: higher damping $\to$ faster energy extrac
 
 ## 4. Path 2: Qi-Hydrostatic Equilibrium
 
-**Scripts:** `experiments/phi_attractor_path2_qi_variational.py`, `experiments/path2_validation.py`
+**Scripts:** `experiments/phi_attractor_paths/phi_attractor_path2_qi_variational.py`, `experiments/phi_attractor_paths/path2_validation.py`
 
 ### The Model
 
@@ -119,7 +119,7 @@ Validation against $N$-body simulation at $d = \varphi^{-1}$ ($N=200$, 4000 step
 
 ## 5. Path 3: Cold Collapse Dynamics
 
-**Script:** `experiments/path3_cold_collapse.py`
+**Script:** `experiments/phi_attractor_paths/path3_cold_collapse.py`
 
 ### Q(t) Exponential Decay
 
@@ -153,7 +153,7 @@ This places $\alpha$ between the homologous collapse value ($-1/3$) and free-fal
 
 ### 4a. Two-Phase Cold Collapse Model
 
-**Script:** `experiments/path4_two_phase_model.py`
+**Script:** `experiments/phi_attractor_paths/path4_two_phase_model.py`
 
 The collapse proceeds in two distinct phases:
 
@@ -167,7 +167,7 @@ The two-phase model for $R_\infty(d)$ involves 4 parameters: $R_{\min}$, $R_0$, 
 
 ### 4b. Analytical Precession Formula
 
-**Script:** `experiments/path4_softened_two_body.py`
+**Script:** `experiments/phi_attractor_paths/path4_softened_two_body.py`
 
 Using the Gauss planetary equation with the perturbing acceleration from the weak-softening expansion $R(r) \approx (2GM/(3\sqrt{2\pi}))\sigma^3/r^5$, the derivation gives:
 
@@ -183,7 +183,7 @@ Key properties:
 
 ### 5a. $\tau_Q$ Contradiction Resolved
 
-**Script:** `experiments/tauq_investigation.py`
+**Script:** `experiments/phi_attractor_paths/tauq_investigation.py`
 
 The Path 1 exponential model assumed a "hot phase" lasting many dynamical times, but Path 3 showed $\tau_Q \approx 1$ step --- the system is always cold. This creates an apparent contradiction: how can the exponential model work if its physical derivation is wrong?
 
@@ -191,7 +191,7 @@ The Path 1 exponential model assumed a "hot phase" lasting many dynamical times,
 
 ### 5b. Lagrange Point Structure
 
-**Script:** `experiments/path5_lagrange_points.py`
+**Script:** `experiments/phi_attractor_paths/path5_lagrange_points.py`
 
 In the circular restricted three-body problem (CR3BP) with softened gravity:
 
@@ -202,7 +202,7 @@ In the circular restricted three-body problem (CR3BP) with softened gravity:
 
 ### 5c. Precession Constraints from Real Systems
 
-**Script:** `experiments/path5_precession_observables.py`
+**Script:** `experiments/phi_attractor_paths/path5_precession_observables.py`
 
 Connecting the analytical precession formula to observable systems:
 
@@ -215,11 +215,11 @@ Connecting the analytical precession formula to observable systems:
 
 **Key constraint:** Binary pulsar timing (PSR B1913+16) requires $\sigma < 370$ km $= 1.2 \times 10^{-14}$ kpc to avoid detectable deviation from GR precession. This is the tightest observational bound on the softening length.
 
-**Script:** `experiments/path5_precession_observables.py` also computes $\sigma_{\text{detectable}}$ (where $|\Delta\phi_{\text{Cassi}}| = 10\times$ observational uncertainty), providing a forecast for next-generation pulsar timing arrays.
+**Script:** `experiments/phi_attractor_paths/path5_precession_observables.py` also computes $\sigma_{\text{detectable}}$ (where $|\Delta\phi_{\text{Cassi}}| = 10\times$ observational uncertainty), providing a forecast for next-generation pulsar timing arrays.
 
 ## 8. Path 6: L4/L5 Stability
 
-**Script:** `experiments/path6_lagrange_stability.py`
+**Script:** `experiments/phi_attractor_paths/path6_lagrange_stability.py`
 
 ### Hessian Eigenvalue Analysis
 
@@ -257,7 +257,7 @@ With softening, $\eta$ **increases** monotonically:
 
 ## 9. Path 7: Softened Rotation Curves (Negative Result)
 
-**Script:** `experiments/path7_rotation_curves.py`
+**Script:** `experiments/phi_attractor_paths/path7_rotation_curves.py`
 
 ### Setup
 
@@ -284,7 +284,7 @@ A single scale-independent $\sigma$ **cannot** simultaneously explain flat galac
 
 ## 10. Path 8: $\varphi$-Enhanced Rotation Curves
 
-**Script:** `experiments/path8_phi_enhanced_rotation.py`
+**Script:** `experiments/phi_attractor_paths/path8_phi_enhanced_rotation.py`
 
 ### The Mechanism
 
@@ -311,7 +311,7 @@ The $\sqrt{\varphi} \approx 1.27\times$ maximum boost is fundamentally bounded b
 
 ## 11. Path 9: Cassi vs MOND
 
-**Script:** `experiments/path9_cassi_vs_mond.py`
+**Script:** `experiments/phi_attractor_paths/path9_cassi_vs_mond.py`
 
 ### Setup
 
@@ -454,4 +454,4 @@ The Cassi modifications do not solve the three-body problem in the classical sen
 | `path8_phi_enhanced_rotation.py` | 8 | Test $\varphi$-enhanced gravity for rotation curves, fit $\rho_{\text{ref}}$ |
 | `path9_cassi_vs_mond.py` | 9 | Compare Cassi to MOND via radial acceleration relation |
 
-All scripts are in `experiments/` and produce `.png` figures with the same base name. CSV tracking data from Path 3 is stored as `path3_cold_collapse_d{value}.csv`.
+All scripts are in `experiments/phi_attractor_paths/` and produce `.png` figures with the same base name. CSV tracking data from Path 3 is stored as `path3_cold_collapse_d{value}.csv`.

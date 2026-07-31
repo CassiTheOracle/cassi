@@ -15,9 +15,12 @@ as massive particles—a simplification that needs justification.
 
 Result: Cassi shadow ~5.8x larger than GR (falsifiable with EHT).
 """
+import math
+import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from scipy.integrate import solve_ivp
 
 PHI = (1.0 + math.sqrt(5.0)) / 2.0
 M = 1.0  # black hole mass (natural units)

@@ -19,7 +19,8 @@ import sys
 import os
 import time
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+sys.path.insert(1, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "two-fluid")))
 
 import numpy as np
 import torch
@@ -36,7 +37,7 @@ from cassi_nbody import (
     PHI_INV,
 )
 
-from experiments.phi_attractor_path2_qi_variational import (
+from experiments.phi_attractor_paths.phi_attractor_path2_qi_variational import (
     solve_qi_hydrostatic,
     qi_pressure,
     PHI_INV2,

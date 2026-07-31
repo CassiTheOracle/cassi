@@ -31,3 +31,11 @@ Thumbs.db
 runs/
 *.pt
 solver_patches.patch
+
+# Large external survey data (re-downloadable; scripts that use it are tracked)
+desi_lrg_n/
+dr16_pk/
+ezmock_pk/
+*.tar.gz
+sparc_rotmod.zip
+sparc_data/

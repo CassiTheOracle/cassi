@@ -227,7 +227,7 @@ A **two-fluid soliton**—a stable, self-consistent equilibrium of the Yang and 
 
 
 ### Electromagnetism (Formal Derivation)
-See `experiments/cassi_electromagnetism.py` for the full numerical derivation.
+See `experiments/cassi_physics/cassi_electromagnetism.py` for the full numerical derivation.
 
 **Core equation**—The two-fluid PDE with pressure gives wave equations:
     ∂²EY/∂t² = c²·∇²EY − ω₀²·(EY − φ·EI)
@@ -583,7 +583,7 @@ where:
 3. **Gauge fields**: SU(3) × SU(2) × U(1) from two-fluid isospin structure
 4. **Quantum Gravity**: σ-regularized two-fluid quantization → UV-finite QG
 
-See `experiments/cassi_quantum_gravity.py` for the formal derivation.
+See `experiments/cassi_physics/cassi_quantum_gravity.py` for the formal derivation.
 
 Pillar 4 closes the TOE loop: the same PDE that describes classical gravity,
 when quantized, gives a predictive (UV-finite) quantum theory of gravity.
@@ -667,22 +667,19 @@ New theory documents:
 | `two-fluid/cassi_two_fluid_3d_gpu.py` | Core two-fluid PDE solver |
 | `two-fluid/cassi_gr_bridge.py` | GR extensions with G_eff(q) coupling |
 | `two-fluid/universal_cassi_solver.py` | Universal formation solver (PDE + N-body) |
-| `cassi_nbody.py` | Cassi N-body particle integrator |
-| `experiments/cassi_three_body.py` | Three-body problem with Qi damping |
-| `experiments/cassi_black_hole_raytracer.py` | Black hole shadow (heuristic) |
-| `experiments/cassi_nuclear.py` | Nuclear = σ-regularized gravity |
-| `experiments/cassi_quantum_gravity.py` | UV-finite QG from σ-regularization |
-| `experiments/cassi_quantum_measurement.py` | Born rule from Qi threshold |
-| `experiments/cassi_time.py` | Arrow of time from Qi irreversibility |
-| `experiments/cassi_coherence_bubble.py` | Consciousness bubble thermodynamics |
-| `experiments/cassi_life.py` | Life as self-sustaining Qi condensate |
-| `experiments/cassi_nuclear.py` | Nuclear = σ-regularized gravity |
-| `experiments/cassi_spacetime_variable_geff.py` | Spatially-varying G_eff(r) |
-| `experiments/cassi_accretion_disk.py` | Accretion disk emission |
+| `two-fluid/cassi_nbody.py` | Cassi N-body particle integrator |
+| `experiments/cassi_physics/cassi_three_body.py` | Three-body problem with Qi damping |
+| `experiments/cassi_physics/cassi_black_hole_raytracer.py` | Black hole shadow (heuristic) |
+| `experiments/cassi_physics/cassi_nuclear.py` | Nuclear = σ-regularized gravity |
+| `experiments/cassi_physics/cassi_quantum_gravity.py` | UV-finite QG from σ-regularization |
+| `experiments/cassi_quantum_measurement.py` | Born rule from Qi threshold (parent repo) |
+| `experiments/cassi_time.py` | Arrow of time from Qi irreversibility (parent repo) |
+| `experiments/cassi_coherence_bubble.py` | Consciousness bubble thermodynamics (parent repo) |
+| `experiments/cassi_life.py` | Life as self-sustaining Qi condensate (parent repo) |
+| `experiments/cassi_spacetime_variable_geff.py` | Spatially-varying G_eff(r) (parent repo) |
+| `experiments/cassi_accretion_disk.py` | Accretion disk emission (parent repo) |
 | `theory/unified-lagrangian.md` | Full Cassi Lagrangian (all sectors, zero free parameters) |
 | `theory/su2-gauge-extension.md` | SU(2) × U(1)_Y gauge derivation, φ-VEV |
-| `experiments/cassi_su2_bridge.py` | SU(2) coupling to two-fluid (WIP) |
-| `experiments/run_electroweak.py` | Electroweak parameter scan (WIP) |
 | `two-fluid/cassi_su2_bridge.py` | SU(2) gauge bridge with φ-governed weak force |
 | `two-fluid/run_electroweak.py` | Electroweak runner—W/Z mass prediction |
 | `theory/xi-derivation.md` | ξ = φ⁶ first-principles derivation |

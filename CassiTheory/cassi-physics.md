@@ -255,7 +255,7 @@ The predicted ratio of dark matter to ordinary matter follows from the same five
 
 $$\Omega_{\text{DM}}/\Omega_b = \varphi^3 + 1 \approx 5.24 \qquad \text{(observed: } \approx 5.4)$$
 
-The framework's halo model has been fitted against SPARC galaxy rotation curves (`sparc_qi_analysis_v4.py`), comparing Qi profiles against NFW and Einasto with AIC. **Epistemic status: Hypothesized** (tested against rotation curves; the predicted ratio is within observational uncertainty).
+The framework's halo model has been fitted against SPARC galaxy rotation curves (`experiments/sparc_qi/sparc_qi_analysis_v4.py`), comparing Qi profiles against NFW and Einasto with AIC. **Epistemic status: Hypothesized** (tested against rotation curves; the predicted ratio is within observational uncertainty).
 
 ## 12. Gravity and the Hierarchy Problem
 
@@ -400,7 +400,7 @@ The framework documents its own errors openly (`audit.md`): the gate-sign error 
 
 5. **The gigacascade and beyond.** Scale covariance implies the lattice extends upward without bound. The chord lattice at the megacascade is hypothesized. The gigacascade (5-arm spiral of megacascade bubbles) is a structural extrapolation with no direct observational signature beyond the CMB's $\ell < 5$ boundary imprint.
 
-6. **What sustains a frozen wake.** The 2026-07-31 PDE test showed that an un-driven standing pattern decays like any other perturbation. A genuine frozen wake requires a driver—a reflecting cavity, ongoing re-stimulation, or a mechanism outside the tested PDE. Identifying the driver is the central open question of the trauma mechanism (`cassi-psychology.md` §16).
+6. **What sustains a frozen wake.** The 2026-07-31 PDE tests showed that an un-driven standing pattern decays like any other perturbation; the driver test (`consciousness/trauma-as-frozen-gate.md` §10.5) identified the sustainer as ongoing re-stimulation—a weak recurring trigger (0.005% of the event peak per step) holds the site near event intensity, and stopping the trigger releases it. The open question moves to what maintains the stimulus behaviorally (`cassi-psychology.md` §16).
 
 7. **Can $q$ be externally modulated at human scale?** Whether coherence can be deliberately increased (meditation, biofeedback) is untested, and would be the framework's most consequential practical claim.
 
