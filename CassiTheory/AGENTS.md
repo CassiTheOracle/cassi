@@ -45,7 +45,7 @@ Domain papers open with "at cascade step N", then apply the universal tool. When
 | `computations/` | Computational pipelines (RGE, GUT-EW, hubble tension, cascade depth) |
 | `experiments/` | Physics experiment scripts (φ-attractor paths, SPARC rotation-curve analysis) |
 | `hypotheses/` | New application domains (exploratory catalog; `README.md` is the index) |
-| `speculation/` | Speculative extensions (dark matter, computation, propulsion) |
+| `speculations/` | Speculative extensions (dark matter, computation, propulsion) |
 | `visual-explainers/` | Standalone Python figure/simulation scripts |
 
 ## Development Commands
@@ -154,7 +154,7 @@ grep -rn '](../../' .                             # parent-repo refs—must be i
 # (experiments/ and two-fluid/ refs are local now—verify the file exists in this repo)
 
 # 4. Status headers: any paper missing one?
-grep -L "^## Status:" foundations/*.md cosmology/*.md gravity/*.md standard-model/*.md particles/*.md principles/*.md consciousness/*.md turbulence/*.md hypotheses/*.md speculation/*.md
+grep -L "^## Status:" foundations/*.md cosmology/*.md gravity/*.md standard-model/*.md particles/*.md principles/*.md consciousness/*.md turbulence/*.md hypotheses/*.md speculations/*.md
 
 # 5. Stale Q-numbers: any reference to a question that was renumbered or removed?
 grep -rn "Q1[0-9]\|Q2[0-9]" .               # Q-numbers beyond the current registry range

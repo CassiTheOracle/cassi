@@ -19,7 +19,7 @@ The Cassi framework postulates a single constant—the golden ratio $\varphi \ap
 | `turbulence/` | Kolmogorov spectrum from φ |
 | `principles/` | Cross-cutting principles: de-resonance, v0 hierarchy |
 | `hypotheses/` | New application domains (exploratory catalog) |
-| `speculation/` | Speculative extensions |
+| `speculations/` | Speculative extensions |
 | `predictions/` | Falsifiable prediction catalog + `cassi_definitions.md` glossary |
 | `experiments/` | Physics experiment scripts (φ-attractor paths, SPARC rotation-curve analysis) |
 | `two-fluid/` | Two-fluid PDE solver + gate/ODE test scripts, calibration |
