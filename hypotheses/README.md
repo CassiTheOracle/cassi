@@ -33,6 +33,7 @@ domain is not enough—the contribution must be what Cassi *uniquely* adds.
 | 8 | Fatigue & fracture mechanics | Speculative | $\sigma$-regularized crack tip, $\varphi$-power Paris law | `fatigue-fracture-cascade.md` |
 | 9 | Market cascade cycles | Speculative | Wake-wave in information propagation networks | `market-cascade-cycles.md` |
 | 10 | Metabolic allometry | Speculative (open problem) | $\varphi$-derived fractal dimension for resource networks | `metabolic-scaling.md` |
+| 11 | Muscle structural hierarchy | Hypothesized | Bubble-lattice ladder at biological rungs (142–168) maps the filament→belly ladder to consecutive cascade rungs | `muscle-cascade-lattice.md` |
 
 ---
 
