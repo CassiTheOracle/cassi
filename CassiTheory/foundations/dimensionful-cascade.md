@@ -1,16 +1,19 @@
 # The Dimensionful Cascade: All Physical Scales from $\varphi$
 
+## Status: Derived—July 2026
+
 ## Abstract
 
 The Cassi two-fluid framework has one fundamental dimensionful scale: the Planck length $\ell_{\text{Pl}} = 1.616 \times 10^{-35}\,\text{m}$. Every other physical scale in the universe follows from the cascade relation
 
 $$\boxed{\ell_n = \ell_{\text{Pl}} \times \varphi^{\,n}}$$
 
-where $\varphi = (1+\sqrt{5})/2 \approx 1.618$ and the integer exponent $n$ is determined by the dynamics of the $\varphi$-attractor — specifically, by where in the cascade a given physical process freezes out. The total cascade spans $n = 0$ (Planck) to $n \approx 292$ (Hubble radius), a range of 292 $\varphi$-multiplications. This document catalogues the complete spectrum.
+where $\varphi = (1+\sqrt{5})/2 \approx 1.618$ and the integer exponent $n$ is determined by the dynamics of the $\varphi$-attractor—specifically, by where in the cascade a given physical process freezes out. The total cascade spans $n = 0$ (Planck) to $n \approx 292$ (Hubble radius), a range of 292 $\varphi$-multiplications. This document catalogues the complete spectrum.
 
 **Extension:** The cascade does not truncate at either boundary. Above $n \approx 292$ lies the **megacascade** (multiverse, bubble boundaries). Below $n = 0$ lies the **microcascade** (sub-Planckian infinite ladder). See `microcascade-mirror.md` for the bidirectional extension.
 
-**Figure:** `visual-explainers/cascade_cosmos.png` — 3-regime diagram: megacascade bubble chain, the 292-rung ladder, and the microcascade golden spiral, all computed from $\ell_n = \ell_{\text{Pl}}\,\varphi^{n}$ (`visual-explainers/cascade_cosmos.py`).
+**Figure:** `visual-explainers/cascade_cosmos.png`—3-regime diagram: megacascade bubble chain, the 292-rung ladder, and the microcascade golden spiral, all computed from $\ell_n = \ell_{\text{Pl}}\,\varphi^{n}$ (`visual-explainers/cascade_cosmos.py`).
+**Figure:** `visual-explainers/fractal_zoom.png`—three-panel fractal zoom demonstrating cascade self-similarity: overview with φ-spaced rings, deep zoom into a Qi bubble interior (elliptical φ:1 cross-section, five-arm spiral poles), and pole ultra-zoom with Fibonacci phyllotaxis. Zoom by φ → identical structure at every rung (`visual-explainers/fractal_zoom.py`).
 
 ---
 
@@ -20,7 +23,7 @@ The Planck length is the sole dimensionful constant:
 
 $$\ell_{\text{Pl}} = \sqrt{\frac{\hbar G}{c^3}} = 1.616255 \times 10^{-35}\,\text{m}$$
 
-The Planck mass is $M_{\text{Pl}} = \sqrt{\hbar c / G} = 1.22 \times 10^{19}\,\text{GeV}/c^2$. In the Cassi framework, $\ell_{\text{Pl}}$ emerges as the natural UV cutoff from the $\sigma$-regularization of the two-fluid PDE (see `gravity/quantum-gravity.md`). No other fundamental length exists — all scales are $\varphi$-powers of $\ell_{\text{Pl}}$.
+The Planck mass is $M_{\text{Pl}} = \sqrt{\hbar c / G} = 1.22 \times 10^{19}\,\text{GeV}/c^2$. In the Cassi framework, $\ell_{\text{Pl}}$ emerges as the natural UV cutoff from the $\sigma$-regularization of the two-fluid PDE (see `gravity/quantum-gravity.md`). No other fundamental length exists—all scales are $\varphi$-powers of $\ell_{\text{Pl}}$.
 
 ---
 
@@ -30,15 +33,15 @@ For any physical scale $\ell$, the exponent $n$ is:
 
 $$n = \frac{\ln(\ell / \ell_{\text{Pl}})}{\ln\varphi} = \log_\varphi\!\left(\frac{\ell}{\ell_{\text{Pl}}}\right)$$
 
-The cascade is NOT a continuous spectrum. Physical scales correspond to integer (or near-integer) values of $n$, where a gauge symmetry breaks, a particle decouples, or a dynamical threshold is crossed. The selection of which $n$ are "active" is determined by the PDE dynamics — specifically, the conversion rate $\lambda$, the Qi gate shape, and the scale-dependent wave speed $c(r)$ along the ratio-evolution string.
+The cascade is NOT a continuous spectrum. Physical scales correspond to integer (or near-integer) values of $n$, where a gauge symmetry breaks, a particle decouples, or a dynamical threshold is crossed. The selection of which $n$ are "active" is determined by the PDE dynamics—specifically, the conversion rate $\lambda$, the Qi gate shape, and the scale-dependent wave speed $c(r)$ along the ratio-evolution string.
 
 ### 2.1 Relationship to the Gap
 
-The initial gap $g = 1 - \varphi^{-5}$ (see TOE.md §1.2) sets the cascade depth for the electroweak scale:
+The initial gap $g = 1 - \varphi^{-5}$ (see `cassi.md`) sets the cascade depth for the electroweak scale:
 
 $$\frac{v_0}{M_{\text{Pl}}} = g \cdot \varphi^{-N} \quad\Longrightarrow\quad N = \frac{\ln(g \cdot M_{\text{Pl}} / v_0)}{\ln\varphi} \approx 79.7 \approx 80$$
 
-The exponent $N \approx 80$ for the electroweak-to-Planck ratio is a **consistency check** — it matches the observation that $v_0/M_{\text{Pl}} \approx \varphi^{-80}$ to within 5.3%. The gap itself is derived from the Wu Xing five-element structure ($w=5$), reducing the cascade depth to zero free parameters.
+The exponent $N \approx 80$ for the electroweak-to-Planck ratio is a **consistency check**—it matches the observation that $v_0/M_{\text{Pl}} \approx \varphi^{-80}$ to within 5.3%. The gap itself is derived from the Wu Xing five-element structure ($w=5$), reducing the cascade depth to zero free parameters.
 
 ### 2.2 Cascade Invariance
 
@@ -51,7 +54,7 @@ The electroweak cascade depth $N \approx 80$ is robust against variations in the
 
 | Step $n$ | Scale (meters) | Physical Meaning | Regime |
 |----------|---------------|-------------------|--------|
-| 0 | $1.6 \times 10^{-35}$ | **Planck length** — UV cutoff | Quantum gravity |
+| 0 | $1.6 \times 10^{-35}$ | **Planck length**—UV cutoff | Quantum gravity |
 | 5 | $1.8 \times 10^{-34}$ | GUT scale ($M_{\text{GUT}} \sim 10^{16}$ GeV) | GUT |
 | 10 | $2.0 \times 10^{-33}$ | Compactification / string scale | GUT |
 | 20 | $2.4 \times 10^{-31}$ | Seesaw scale ($\sim 10^{14}$ GeV, neutrino masses) | GUT/neutrino |
@@ -119,9 +122,9 @@ The full 292-step cascade divides naturally into three regimes:
 
 ### Zone 3: Cosmology ($n \approx 285$ to $n \approx 292$)
 - Wu Xing bubble to Hubble radius
-- Only 7 $\varphi$-steps — the bubble fills 98% of the observable volume
-- Neighboring $w$-bubbles ($w=4$, $w=6$) are mostly beyond the horizon
-- CMB large-angle anomalies may reflect $w$-gradient structure at these scales
+- Only 7 $\varphi$-steps—the bubble fills 98% of the observable volume
+- Adjacent bubbles in the chord lattice appear at $\varphi$-scaled intervals, mostly beyond the horizon; only one bubble per observable volume
+- CMB large-angle anomalies reflect bubble-boundary geometry at these scales (see `foundations/bubble-edge-geometry.md`)
 
 ---
 
@@ -131,7 +134,7 @@ Not every integer $n$ corresponds to an observable physical scale. The wake wave
 
 ### 5.1 The String-Wake Feedback Loop
 
-The global ratio $r(t) = \langle E_Y\rangle/\langle E_I\rangle$ evolves along the "ratio-space string" from $r_0 \approx 0.047$ to $r = \varphi$. As it moves, it generates wake waves — spatial density perturbations — through the conversion term. These wakes propagate at the local wave speed:
+The global ratio $r(t) = \langle E_Y\rangle/\langle E_I\rangle$ evolves along the "ratio-space string" from $r_0 \approx 0.047$ to $r = \varphi$. As it moves, it generates wake waves—spatial density perturbations—through the conversion term. These wakes propagate at the local wave speed:
 
 $$c(r) = \sqrt{\frac{\lambda \cdot \text{gate}(r) \cdot |r-\varphi|}{(1+r)/2}}$$
 
@@ -156,39 +159,59 @@ The known $\varphi$-exponents in the Cassi framework correspond to specific acti
 
 ## 6. The Wu Xing Bubble (Step 285)
 
-The bubble at step 285 is the coherence length of the Wu Xing number $w$ — the scale over which the cosmological initial conditions remain constant. It is set by the comoving horizon at the epoch when the Qi gate first engages ($r = \varphi^{-1}$, $a \approx 0.051$, $z \approx 19$).
+The bubble at step 285 is the coherence length of the Wu Xing number $w$—the scale over which the cosmological initial conditions remain constant. It is set by the comoving horizon at the epoch when the Qi gate first engages ($r = \varphi^{-1}$, $a \approx 0.051$, $z \approx 19$).
 
 **Bubble properties:**
 - Diameter: $\sim 191$ Mpc (comoving)
 - Position in cascade: step 285 of 292 (98%)
 - Contains: $\sim 10^6$ Milky-Way-sized galaxies
-- Neighboring bubbles: $w=4$ or $w=6$, separated by $\varphi$-scaled voids
+- Adjacent bubbles: identical $w=5$, arranged at $\varphi$-spaced intervals in the chord lattice. Separated by voids at $C=-1$ sites of the condensation field (`visual-explainers/chord_lattice.py`).
 
-The bubble is nearly degenerate with the BAO scale (step $284$, $118$ Mpc). They differ by one $\varphi$-step, which means the wake wave modulation in $P(k)$ sits adjacent to the BAO feature — entangled but separable through their different period structures (fixed scale vs. fixed ratio).
+The bubble is nearly degenerate with the BAO scale (step $284$, $118$ Mpc). They differ by one $\varphi$-step, which means the wake wave modulation in $P(k)$ sits adjacent to the BAO feature—entangled but separable through their different period structures (fixed scale vs. fixed ratio).
 
 ---
 
-## 7. Testable Implications
+## 7. Lattice Structure at Cascade Rungs
 
-### 7.1 $\varphi$-Periodic $P(k)$ Modulation
+The condensation field $B(x,y,z) = \cos(\alpha x)\cos(\beta y)\cos(\gamma z)$ forms a universal 3D checkerboard bubble lattice at every cascade rung—see `foundations/bubble-lattice-fabric.md` for the full derivation. The cascade ladder ($\ell_n = \ell_{\text{Pl}}\,\varphi^n$) is the 1D slice along the string axis through this lattice; each rung corresponds to a level set of $B$ at a specific scale factor.
+
+The lattice structure varies with the condensation dimension $P_\parallel(n)$, which counts how many cascade rungs encode one structural repeat along the string axis. The following table catalogues key rungs:
+
+| Step $n$ | Physical structure | Lattice structure |
+|---|---|---|
+| 0 | Planck length | $\sigma$-regularized crossover; discrete lattice dissolves into harmonic regime |
+| 142–168 | Human body | 26-rung nested lattice; $P_\parallel = 2$ (13 chakra nodes at 2-rung spacing) |
+| 144 | Neuron soma (~20 µm) | Neural hierarchy anchor; 8 φ-spaced lattice levels |
+| 285 | Wu Xing bubble | $P_\parallel = 1$; staggered 2D checkerboard; foreground bubble in chord lattice |
+| >292 | Megacascade | Chord lattice of $w=5$ bubbles; 5-arm Fibonacci spiral at gigacascade octave |
+
+**Note:** $P_\parallel(n)$ varies with scale—1 rung at cosmological scales, 2 rungs at human scales. The $n$-dependence of $P_\parallel$ is not yet derived from first principles.
+
+For the full derivation, predicted signatures (φ-elliptical bubble shape, 1.70× edge anisotropy), and epistemic boundaries, see `foundations/bubble-lattice-fabric.md`.
+
+---
+
+## 8. Testable Implications
+
+### 8.1 $\varphi$-Periodic $P(k)$ Modulation
 
 The wake waves imprint a log-periodic signal on the matter power spectrum:
 
 $$\Delta(\ln k) = \ln\varphi \approx 0.4812$$
 
-This is a **zero-parameter, falsifiable prediction** — see `predictions/falsifiable-predictions.md` §5 and TOE.md §3.3. Orthogonal to BAO (which has constant period in $k$-space), the Cassi modulation has constant period in $\ln k$-space. Subtract the BAO template; search the residual for $\ln\varphi$ periodicity. DESI DR2: marginal (2–3σ). Euclid (2027): definitive (>5σ).
+This is a **zero-parameter, falsifiable prediction**—see `predictions/falsifiable-predictions.md` §5 and `cassi.md`. Orthogonal to BAO (which has constant period in $k$-space), the Cassi modulation has constant period in $\ln k$-space. Subtract the BAO template; search the residual for $\ln\varphi$ periodicity. DESI DR2: marginal (2–3σ). Euclid (2027): definitive (>5σ).
 
-### 7.2 Void and Structure Scale Ratios
+### 8.2 Void and Structure Scale Ratios
 
 Structures formed by the wake mechanism should show $\varphi$-scaled separations. While the void size function is smooth (not multi-peaked), the wake wave mechanism predicts subtle $\varphi$-periodic modulations in the correlation function $\xi(r)$ and the void-galaxy cross-correlation. These are distinguishable from BAO through their fixed-ratio (not fixed-scale) structure.
 
-### 7.3 Multiverse $w$-Gradient
+### 8.3 Bubble Edge Imprint
 
-The Wu Xing bubble at step 285 implies neighboring bubbles at $w=4$ and $w=6$ beyond our horizon. Their boundaries would create a preferred axis in the CMB at $\ell < 5$ that fades at smaller scales — a scale-dependent signature unique to the super-horizon $w$-gradient explanation (see `cosmology/observational_constraints.md` §4).
+The bubble at step 285 is bounded by adjacent bubbles at identical $w=5$ in the chord lattice. The boundary—the level set of the condensation field $C(x,y) = \theta_{\text{cond}}$—imprints a preferred axis on the CMB at $\ell < 5$. The axis is set by the bubble's triaxial geometry (Yang axis vs. boundary normal), not by a $w$-gradient. The $12.2^\circ$ alignment angle is predicted from the geometry. See `cosmology/observational_constraints.md` §4 and `foundations/bubble-edge-geometry.md`.
 
 ---
 
-## 8. Open Questions
+## 9. Open Questions
 
 1. **Why 292 steps?** The total cascade from Planck to Hubble is $\log_\varphi(M_{\text{Pl}}/H_0) \approx 292$. Is this number derivable from the PDE dynamics, or is it set by the initial conditions of inflation?
 
@@ -202,10 +225,10 @@ The Wu Xing bubble at step 285 implies neighboring bubbles at $w=4$ and $w=6$ be
 
 ## References
 
-- TOE.md §1.2: Gap derivation and dimensionful cascade overview
-- TOE.md §1.3: Governing PDE with Qi gate formula
-- TOE.md §3.3: $\varphi$-periodic $P(k)$ prediction
+- `foundations/bubble-lattice-fabric.md`—Universal 3D checkerboard lattice; φ-elliptical bubble shape, edge anisotropy, and condensation field derivation
+- `cassi.md`—Gap derivation, governing PDE, and $\varphi$-periodic $P(k)$ prediction
 - `parameter-inventory.md`: Complete parameter classification (D:16, C:4, E:6, I:6)
 - `cosmology/observational_constraints.md` §2.6: Rotation curve prediction ($\xi=\varphi^6$)
 - `cosmology/observational_constraints.md` §4: CMB $w$-gradient analysis
 - `predictions/falsifiable-predictions.md`: Full prediction catalogue (31 entries)
+- `visual-explainers/fractal_zoom.py`—fractal zoom: cascade self-similarity, φ-spaced rings

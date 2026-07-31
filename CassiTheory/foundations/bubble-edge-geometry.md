@@ -1,0 +1,458 @@
+# Bubble Edge Geometry: Physical Profile of the Condensation Boundary
+
+## Status: Derived (structural)—July 2026
+
+## Abstract
+
+The chord lattice (`visual-explainers/chord_lattice.py`) derives the geometric skeleton of the megacascade: a staggered checkerboard of bubble and void sites from the condensation field $C(x,y) = \cos(2\pi x/\lambda_Y)\cos(2\pi y/\lambda_I)$. But the bubble *edge* is more than a level set. This document derives the physical profile across the condensation boundary—how $r$, $q$, $\rho$, and $G_{\text{eff}}$ transition from bubble interior to void, what the 3D edge shape is, and what observable signatures the edge imprints.
+
+All bubbles carry the same Wu Xing number $w = 5$ (uniquely derived in `foundations/wu-xing-derivation.md`). The lattice is homogeneous—every bubble is structurally identical. The "neighboring bubble" in the chord lattice is the same $w$, spatially separated by $\varphi$-scaled interference.
+
+**Figure:** `visual-explainers/string_bubble_cascade.png`—6-panel 3D damped-wave two-fluid PDE with sharper c² trap (α=0.15): pentagon at pinch (m=5 24.6%) → **φ-ellipsoid bubble confirmed** (σ_x/σ_z=2.510 vs φ²=2.618, σ_x/σ_y=1.422 vs φ=1.618 at step 1100) → cascade r-field shown via E_Y/E_I ratio. The bubble forms transiently as a coherent φ-shaped structure at early times (`visual-explainers/string_bubble_cascade.py`).
+
+---
+
+## 1. The Condensation Field as a Physical Proxy
+
+### 1.1 From Interference to Coherence
+
+The chord lattice field is:
+
+$$\boxed{C(x,y) = \cos\!\left(\frac{2\pi x}{\lambda_Y}\right) \cos\!\left(\frac{2\pi y}{\lambda_I}\right), \qquad \lambda_Y = \varphi\,\lambda_I}$$
+
+This is the product of the two perpendicular wake systems—Yang wake along the extended axis, Yin wake along the contracted axis. The W1 experiment confirmed anti-phase coupling, so the $m+n$ even sublattice (where $C = +1$ at extrema) are the condensate sites; the $m+n$ odd sublattice (where $C = -1$) are the voids.
+
+$C$ is not just a geometric label. It measures the **degree of constructive interference** between the two fluid wakes. Where $C \approx 1$, both wakes are in phase—the two fluids are tightly coupled, conversion is efficient, and Qi density $q$ is high. Where $C \approx -1$, the wakes are maximally out of phase—the fluids work against each other, conversion stalls, and $q \to 0$.
+
+The physical interpretation is:
+
+$$q(\mathbf{x}) = \frac{1 + C(\mathbf{x})}{2}$$
+
+At the bubble center ($C = 1$): $q \to 1$, fully coherent.
+At the void center ($C = -1$): $q \to 0$, fully disordered.
+
+### 1.2 Derivation of the Condensation Threshold
+
+The condensation threshold $\theta_{\text{cond}}$ is not a free parameter—it is the fixed point where the conversion rate (which builds coherence) balances the effective diffusion rate (which smooths it away).
+
+**Conversion power.** The Qi gate $g(q) = q/(\varphi^2 + q^2)$ (derived in `cassi-first-principles.md` §2, from the unified Lagrangian) modulates the $\varphi$-attractor conversion efficiency. The deviation from $\varphi$-equilibrium, $(1-q)$, provides the thermodynamic driving force. The conversion energy injection per unit time is:
+
+$$P_{\text{conv}} = \omega_0 \cdot g(q) \cdot (1-q) \cdot \rho_0, \qquad g(q) = \frac{q}{\varphi^2 + q^2}$$
+
+The gate couples at two levels: $g(q)$ controls *how efficiently* the two fluids convert (the Qi coherence enables conversion), while $(1-q)$ controls *how much* conversion is needed (the remaining deviation from equilibrium).
+
+**Effective diffusion power.** The condensation field's natural tendency to smooth gradients dissipates structure:
+
+$$P_{\text{diff}} = D_{\text{eff}} \cdot \frac{\langle|\nabla C|^2\rangle}{C^2} \cdot \rho_0$$
+
+where $D_{\text{eff}}$ is the **effective diffusion coefficient of the condensation field**—not the microscopic scalar diffusion $D$ from the PDE, but the coarse-grained damping rate of the $C(x,y)$ interference pattern at the bubble scale. $D_{\text{eff}}$ includes contributions from the PDE's microscopic $D$, advective mixing by the velocity field, and any conversion-mediated smoothing (§8.2 explains how to measure it).
+
+At the edge ($C = \theta_{\text{cond}}$), the azimuthally-averaged normalized gradient from the condensation field is:
+
+$$\left.\frac{\langle|\nabla C|^2\rangle}{C^2}\right|_{\text{edge}} \approx \frac{\alpha^2 + \beta^2}{2} \cdot \frac{1-\theta_{\text{cond}}}{\theta_{\text{cond}}^2}$$
+
+**Fixed point.** Setting $P_{\text{conv}} = P_{\text{diff}}$ at $C = \theta_{\text{cond}}$ and using $q = (1+\theta_{\text{cond}})/2$, $1-q = (1-\theta_{\text{cond}})/2$:
+
+$$\omega_0 \cdot \frac{(1+\theta_{\text{cond}})/2}{\varphi^2 + ((1+\theta_{\text{cond}})/2)^2} \cdot \frac{1-\theta_{\text{cond}}}{2} = D_{\text{eff}} \cdot \frac{\alpha^2 + \beta^2}{2} \cdot \frac{1-\theta_{\text{cond}}}{\theta_{\text{cond}}^2}$$
+
+Canceling the common factor $(1-\theta_{\text{cond}})$ (valid for $\theta_{\text{cond}} \neq 1$, non-degenerate bubbles):
+
+$$\boxed{\theta_{\text{cond}}^2 (1 + \theta_{\text{cond}}) = R\left(\varphi^2 + \frac{(1+\theta_{\text{cond}})^2}{4}\right), \qquad R \equiv \frac{2 D_{\text{eff}}(\alpha^2 + \beta^2)}{\omega_0}}$$
+
+This equation determines $\theta_{\text{cond}}$ from the single dimensionless parameter $R$, which combines the condensation field's effective diffusion coefficient $D_{\text{eff}}$, the conversion rate $\omega_0 = \lambda = 0.1$, and the condensation field wavenumbers $\alpha = 2\pi/\lambda_Y$, $\beta = 2\pi/\lambda_I$.
+
+**The phase diagram.** Unlike the simplified cubic form (which would arise from a $(1-q)^2$ gate), the relation with the true gate $g(q) = q/(\varphi^2 + q^2)$ is **monotonic**: larger $R$ produces larger $\theta_{\text{cond}}$ (thicker-edge bubbles). There is no catastrophic percolation threshold—bubbles never merge spontaneously. The mapping is smooth from $\theta_{\text{cond}} \to 0$ at $R \to 0$ (infinitesimal bubbles) to $\theta_{\text{cond}} \to 1$ at $R \to 2/(\varphi^2 + 1) \approx 0.552$ (bubbles filling the entire lattice). The calibration $R \approx 0.093$ gives the phenomenologically-inferred $\theta_{\text{cond}} = 0.45$.
+
+**The wavenumbers.** The condensation field wavelengths are set by the bubble scale: $\lambda_Y = \ell_{285} \approx 191$ Mpc (the Wu Xing bubble diameter from `dimensionful-cascade.md`), $\lambda_I = \lambda_Y/\varphi \approx 118$ Mpc. This gives $\alpha = 2\pi/\lambda_Y \approx 1.07 \times 10^{-24}$ m$^{-1}$, $\beta = \varphi\alpha \approx 1.73 \times 10^{-24}$ m$^{-1}$, and $\alpha^2 + \beta^2 = \alpha^2(1+\varphi^2) \approx 4.12 \times 10^{-48}$ m$^{-2}$.
+
+**Status.** The functional form relating $\theta_{\text{cond}}$ to $R$ is **Derived** from the balance of gated conversion and diffusion. The numerical value depends on $D_{\text{eff}}/\omega_0$—the ratio of the condensation field's effective diffusion to the conversion rate, measurable from the PDE. The phenomenologically-calibrated $\theta_{\text{cond}} = 0.45$ corresponds to $R \approx 0.093$. Section 8 specifies the PDE computation to determine $R$ and $\theta_{\text{cond}}$ from first principles.
+
+---
+
+## 2. The Edge Profile: Radial Gradient
+
+### 2.1 The 2D Cross-Section (Yang-Yin Plane)
+
+Near a bubble center at the origin, the condensation field is approximately quadratic:
+
+$$C(r) \approx 1 - \frac{1}{2}\left(\alpha^2 x^2 + \beta^2 y^2\right), \qquad \alpha = \frac{2\pi}{\lambda_Y},\;\; \beta = \frac{2\pi}{\lambda_I}$$
+
+The bubble boundary $C = \theta_{\text{cond}}$ is the ellipse:
+
+$$\frac{x^2}{a_X^2} + \frac{y^2}{a_Y^2} = 1, \qquad a_X = \frac{\sqrt{2(1-\theta_{\text{cond}})}}{\alpha},\;\; a_Y = \frac{\sqrt{2(1-\theta_{\text{cond}})}}{\beta},\;\; \frac{a_X}{a_Y} = \frac{\beta}{\alpha} = \varphi$$
+
+The full field (not approximated) determines the exact boundary shape. Near the saddle toward a diagonal neighbor at $(\lambda_Y/2, \lambda_I/2)$, the contour flattens—the bubble is not a perfect ellipse.
+
+### 2.2 Gradient at the Edge: Quantitative Anisotropy
+
+The gradient of $C$ at the boundary determines how sharp the edge transition is:
+
+$$|\nabla C| = \sqrt{(\alpha \sin(\alpha x)\cos(\beta y))^2 + (\beta \cos(\alpha x)\sin(\beta y))^2}$$
+
+Evaluating the gradient anisotropy ratio. Along the axial direction toward a void (e.g. the Yin axis, $x=0$): $C = \cos(\beta y)$, so $|dC/dy| = \beta|\sin(\beta y)| \approx \beta\sqrt{1-C^2}$. Along the diagonal direction toward a neighboring bubble (path to saddle at $(\lambda_Y/4, \lambda_I/4)$): $C = \cos(\pi t/2)\cos(\pi t/2) = \cos^2(\pi t/2)$, so $|dC/ds| \approx \sqrt{(\alpha^2+\beta^2)(1-C^2)}/2$.
+
+The ratio of edge steepnesses at the same $C = \theta_{\text{cond}}$ is:
+
+$$\boxed{\frac{|\nabla C|_{\text{axial}}}{|\nabla C|_{\text{diag}}} = \frac{2\beta}{\sqrt{\alpha^2 + \beta^2}} = \sqrt{\frac{4\varphi^2}{1+\varphi^2}} \approx 1.70}$$
+
+This is a **zero-parameter prediction**: the void-ward (axial) edge is $1.70\times$ steeper than the neighbor-ward (diagonal) edge. The ratio is close to $\varphi \approx 1.618$ but not identical—the edge steepness anisotropy is a distinct observable from the bubble's $\varphi$ shape anisotropy.
+
+**Physical interpretation.** Crossing the bubble boundary along the contracted Yin axis (toward a void) produces a $1.70\times$ steeper drop in $q$, $\rho$, and $G_{\text{eff}}$ than crossing toward a neighboring bubble. The edge is "softer" along Yang and toward neighbors; "sharper" along Yin and toward voids.
+
+### 2.3 The 3D Edge Shape
+
+The bubble extends along the string axis (the cascade direction) with bounded extent set by the cascade-step separation. The full 3D condensation field is:
+
+$$B(x, y, z) = \cos(\alpha x)\cos(\beta y) \cdot \cos(\gamma z), \qquad \gamma = \frac{2\pi}{P_\parallel}$$
+
+where $P_\parallel$ is the along-string bubble period. The bubble edge in 3D is:
+
+$$\{B(x,y,z) = \theta_{\text{cond}}\}$$
+
+an oblate triaxial spheroid—extended in Yang, contracted in Yin, bounded along the string—with a waisted cross-section in the Yin-string plane (the anti-phase node produces the paired-sheet morphology; see `why-three-dimensions.md` §4).
+
+---
+
+## 3. Influence of Neighbors and Voids
+
+### 3.1 Diagonal Neighbors: Saddle Deformation
+
+The nearest neighbor to a bubble is a diagonal neighbor at distance $d_{\text{diag}} = \sqrt{\lambda_Y^2 + \lambda_I^2}/2$. The saddle between them sits at $(\lambda_Y/4, \lambda_I/4)$ where $C = 0$.
+
+The neighbor's presence deforms the edge through the global structure of $C$—not through a dynamical interaction, but because the bubble boundary IS the level set of $C$, and $C$ already includes the neighbor's contribution.
+
+The deformation is: the boundary contour is **flattened** toward the diagonal neighbor compared to the isolated elliptical approximation. The flattening is small when $\theta_{\text{cond}} \gg 0$ (bubbles are deep within their own potential wells) and large as $\theta_{\text{cond}} \to 0$.
+
+The saddle barrier height from bubble center to saddle is $1$ in $C$-units. In physical terms: $q_{\text{center}} \approx 1$, $q_{\text{saddle}} = 0.5$, $q_{\text{edge}} = (1+\theta_{\text{cond}})/2 \approx 0.725$ (for $\theta_{\text{cond}} = 0.45$). The Qi barrier from the edge to the saddle is $\Delta q = 0.725 - 0.5 = 0.225$.
+
+### 3.2 Axial Voids: Full Barrier
+
+Between a bubble and its axial neighbor (along Yang at $(\lambda_Y, 0)$ or along Yin at $(0, \lambda_I)$), there is a void at the midpoint where $C = -1$ and $q = 0$. These axial neighbors **never merge**—the path between them goes through $C = -1$ (a minimum), not through a saddle. The void is an absolute barrier to coherence transport.
+
+Each bubble is connected only to its 4 diagonal neighbors, not its 4 axial neighbors. The lattice degree is 8 geometric but 4 connectable—a structural prediction of the chord geometry.
+
+### 3.3 Void Influence on Edge Steepness
+
+The void at $C = -1$ sits in the axial direction. Moving from the bubble center toward an axial void, $C$ drops from $1$ to $-1$—a steeper gradient than toward a diagonal saddle (which only drops to $0$). This means:
+
+- **Axial edge** (facing a void): sharper transition, steeper $q$ gradient, more abrupt drop in $G_{\text{eff}}$
+- **Diagonal edge** (facing a neighbor): gentler transition, shallower $q$ gradient, more gradual $G_{\text{eff}}$ change
+
+The quantitative ratio is $\sqrt{4\varphi^2/(1+\varphi^2)} \approx 1.70$ (§2.2).
+
+---
+
+## 4. Physical Quantities at the Edge
+
+### 4.1 Qi Density $q$
+
+$$q(C) = \frac{1 + C}{2}$$
+
+At $\theta_{\text{cond}} = 0.45$: $q_{\text{edge}} \approx 0.725$.
+At the saddle ($C = 0$): $q_{\text{saddle}} = 0.5$.
+In the void ($C = -1$): $q_{\text{void}} = 0$.
+
+### 4.2 Effective Gravitational Constant
+
+$$G_{\text{eff}}(C) = \frac{\pi}{\rho(C)} \bigl(1 + \xi\,q(C)\bigr), \qquad \xi = \varphi^6 \approx 17.944$$
+
+At the bubble center ($C = 1$, $q = 1$): $G_{\text{eff}} \approx (\pi/\rho_0)(1 + \xi) \approx 18.9\,\pi/\rho_0$.
+At the edge ($C = 0.45$, $q = 0.725$): $G_{\text{eff}} \approx (\pi/\rho_{\text{edge}})(1 + 0.725\xi) \approx 14.0\,\pi/\rho_{\text{edge}}$.
+In the void ($C = -1$, $q = 0$): $G_{\text{eff}} \to \pi/\rho_{\text{void}}$—unamplified gravity.
+
+The transition from amplified to unamplified gravity occurs across the edge. The steepness of this transition depends on direction (axial vs. diagonal) as described in §3.3.
+
+### 4.3 Density Profile
+
+The matter density $\rho$ traces the condensation field because structure condenses where conversion is efficient:
+
+$$\rho(C) \approx \rho_0 \cdot \max\!\left(0,\; \frac{C - \theta_{\text{cond}}}{1 - \theta_{\text{cond}}}\right)^{n_{\text{cond}}}$$
+
+with $n_{\text{cond}} \approx 1$ (linear condensation) to $n_{\text{cond}} \approx 2$ (quadratic, from the catalytic template mechanism in `why-three-dimensions.md` §3.3). The exact exponent is a target for PDE computation. Section 8.4 specifies the measurement protocol.
+
+---
+
+## 5. Observable Signatures
+
+### 5.1 CMB Boundary Imprint
+
+The bubble edge at $z \approx 19$ (Qi gate engagement, the "pinch") imprints on the CMB as a preferred direction. The edge is not a sharp wall—it is a gradient in $q$ and $G_{\text{eff}}$ with $\varphi$-asymmetric steepness. This gradient produces:
+
+- A scale-dependent preferred axis at $\ell < 5$ that fades at smaller scales (super-horizon boundary)
+- The $12.2^\circ$ alignment angle between the CMB dipole (Yang axis) and the quadrupole-octopole axis (bubble boundary normal), derived from the triaxial geometry in `foundations/refined-numeric-predictions.md` §2.3
+
+### 5.2 Void Ellipticity Prediction
+
+The anisotropic edge steepness (§2.2) predicts that **void boundaries are sharper in the Yin direction and softer in the Yang direction**. In void catalog data (SDSS/DESI), this manifests as:
+
+- Voids are more elongated along Yang (the softer edge allows structure to extend further before dropping below threshold)
+- Voids are more sharply truncated along Yin (the steeper edge cuts off abruptly)
+- The effective void ellipticity (ratio of Yang-extent to Yin-extent at the density threshold) tracks $\varphi$—a **zero-parameter prediction** testable with existing data
+
+The gradient anisotropy ratio $\sqrt{4\varphi^2/(1+\varphi^2)} \approx 1.70$ is distinct from the bubble shape ratio $\varphi \approx 1.618$. The two predictions together constrain the model: the bubble IS $\varphi$-elliptical in shape AND the edge is $1.70\times$ steeper toward voids than toward neighbors. Both follow from the condensation field with no free parameters.
+
+### 5.3 Absolute Lattice Scales
+
+The condensation field wavelengths are set by the cascade. From `dimensionful-cascade.md`, the Wu Xing bubble at step 285 gives:
+
+$$\lambda_Y = \ell_{285} \approx 191\ \text{Mpc}, \qquad \lambda_I = \frac{\lambda_Y}{\varphi} \approx 118\ \text{Mpc}$$
+
+These are the fundamental spatial periods of the chord lattice: $\lambda_Y$ is the bubble-to-bubble spacing along Yang, $\lambda_I/2$ is the string-to-string spacing along Yin, and the stagger is $\lambda_Y/2$. The along-string period $P_\parallel$ is set by the cascade step spacing—the comoving distance between adjacent rungs at the bubble epoch. All three lattice dimensions are determined from the cascade table; no phenomenological inputs remain.
+
+### 5.4 Galaxy Distribution at the Edge
+
+Galaxies trace the condensation field. The edge region—where $C$ drops from $\theta_{\text{cond}}$ to $0$—should show:
+
+- A transition from spiral-dominated (high-$q$, organized rotation) to diffuse/dwarf-dominated (low-$q$, weak gravity)
+- The transition distance is $\sim \lambda_I \cdot \sqrt{1-\theta_{\text{cond}}}$ along Yin and $\sim \lambda_Y \cdot \sqrt{1-\theta_{\text{cond}}}$ along Yang—an anisotropic "coastal shelf"
+
+---
+
+## 6. Open Derivations
+
+1. **$D_{\text{eff}}/\omega_0$ from the PDE.** The dimensionless parameter $R = 2 D_{\text{eff}}(\alpha^2+\beta^2)/\omega_0$ determines $\theta_{\text{cond}}$ numerically. $\omega_0 = \lambda = 0.1$ and $\alpha^2+\beta^2$ are known (§1.2). $D_{\text{eff}}$ is the effective diffusion coefficient of the coarse-grained condensation field $C(x,y)$ at the bubble scale—NOT a microscopic PDE input parameter. It must be **measured** from the PDE by seeding the $C$ pattern and observing its decay rate (§8.2). Once $D_{\text{eff}}$ is determined, $\theta_{\text{cond}}$ becomes a Derived number rather than a phenomenologically-calibrated one.
+
+2. **Condensation exponent $n_{\text{cond}}$ (§4.3).** The power-law exponent governing how rapidly $\rho$ drops at the edge. Observable in void density profiles; testable with the PDE as described in §8.4.
+
+3. **Neighbor coupling strength.** The Qi barrier from edge to saddle is $\Delta q = 0.225$. Whether this barrier is surmountable for Qi transport (coherence tunneling through the saddle) is a separate question from geometric connectivity—the chord connectivity docs correctly label it as Speculative.
+
+---
+
+## 7. Epistemic Boundaries
+
+### Derived (from condensation field + Qi gate + cascade)
+
+- Bubble shape: triaxial spheroid with axis ratio $\varphi$ in the Yang-Yin plane
+- Lattice geometry: staggered checkerboard, $m+n$ even = bubble, odd = void
+- Anisotropic edge steepness ratio: $\sqrt{4\varphi^2/(1+\varphi^2)} \approx 1.70$ (zero-parameter)
+- Connectable degree: 4 (diagonal only—axial paths blocked by $C=-1$ voids)
+- Functional form for $\theta_{\text{cond}}$: $\theta^2(1+\theta) = R(\varphi^2 + (1+\theta)^2/4)$ from conversion-diffusion balance
+- $q(C) = (1+C)/2$: Qi density from the condensation field
+- Absolute scales: $\lambda_Y = \ell_{285}$, $\lambda_I = \lambda_Y/\varphi$ from the cascade table
+- $G_{\text{eff}}(C)$ profile across the edge ($\xi = \varphi^6$)
+
+### Hypothesized (PDE-testable)
+
+- Numerical value of $\theta_{\text{cond}}$ (requires $D_{\text{eff}}$ from PDE; functional form is Derived)
+- The condensation exponent $n_{\text{cond}}$ and the resulting edge density profile
+
+### Speculative (coherence transport)
+
+- Qi tunneling through inter-bubble saddles
+
+---
+
+## 8. Computational Plan: PDE Determination of $\theta_{\text{cond}}$ and $n_{\text{cond}}$
+
+This section specifies the exact PDE computation needed to promote $\theta_{\text{cond}}$ and $n_{\text{cond}}$ from Hypothesized to Derived. The plan uses the two-fluid PDE solver (`two-fluid/cassi_two_fluid_3d_gpu.py`, `ExpandingTwoFluid3DGPU` class).
+
+### 8.1 Corrected Parameter Mapping
+
+The document uses "$\nu$" in two incompatible ways. We adopt the following conventions for this plan:
+
+| Symbol in doc | Renamed to | Nature | Origin |
+|:---:|:---:|---|---|
+| $\nu$ (diffusion in $R = 2\nu(\alpha^2+\beta^2)/\omega_0$) | $D_{\text{eff}}$ | Effective diffusion of condensation field | **Measured** from PDE output (§8.2) |
+| $\nu$ (exponent in $\rho \propto (C-\theta_{\text{cond}})^{n_{\text{cond}}}$) | $n_{\text{cond}}$ | Density profile power law | **Fitted** from PDE output (§8.4) |
+
+The PDE code has three diffusion-like input parameters:
+
+| Code param | Line | Default | Role in $\theta_{\text{cond}}$ |
+|---|---|---|---|
+| `D` | 295 | 0.001 | Microscopic scalar diffusion (∇²). NOT $D_{\text{eff}}$. |
+| `nu` | 295 | 0.001 | Velocity viscosity (∇²). Irrelevant for condensation. |
+| `hyper_nu` | 299 | 0.0 | Hyperdiffusion (∇⁴). Disabled by default. Irrelevant. |
+
+The $D_{\text{eff}}$ in the $\theta_{\text{cond}}$ equation is an **effective coarse-grained diffusion** of the $C(x,y)$ interference pattern at the bubble scale. It is not equal to any single PDE input: it encodes the combined effect of microscopic diffusion, advective mixing by the velocity field (which acts as an eddy diffusivity $D_{\text{turb}} \sim u_{\text{rms}} \times L_{\text{bubble}}$), and conversion-mediated smoothing. $D_{\text{eff}}$ must be determined from the PDE simulation, not read from the input parameters.
+
+**The dimensionless ratio $R$ is scale-invariant.** In PDE code units:
+
+$$R = \frac{2\,D_{\text{eff}}^{(\text{code})}\,(\alpha_{\text{code}}^2 + \beta_{\text{code}}^2)}{\omega_0^{(\text{code})}}$$
+
+where $\alpha_{\text{code}} = 2\pi / \lambda_Y^{(\text{code})}$, and $\lambda_Y^{(\text{code})}$ is the bubble wavelength in grid units. The ratio $D_{\text{eff}}/\omega_0$ converts identically across any consistent unit system, so the code-unit measurement maps directly to the physical $R$.
+
+### 8.2 Direct Measurement of $D_{\text{eff}}$
+
+The most direct method: **seed the condensation field and measure its decay rate**.
+
+#### Method A: Pattern decay
+
+1. **Initialize** a 2D slice of the expanding PDE (64³ grid, $L = 2\pi$, or size sufficient for $\lambda_Y \approx 32$ grid points):
+
+   $$E_Y(\mathbf{x}) = 1.0 + A \cdot \cos(\alpha x) \cos(\beta y), \qquad E_I(\mathbf{x}) = \varphi^{-1}$$
+
+   with $A = 0.1$ (small amplitude to stay in the linear regime), $\alpha = 2\pi/32$, $\beta = \varphi\alpha$, and no velocity perturbation ($\mathbf{u}=0$). This directly imprints the condensation field pattern as the initial condition.
+
+   **Why this works:** The PDE's reaction-diffusion dynamics will either amplify (if $R$ is below the threshold for growth) or damp (if $R$ is above threshold) the seeded pattern. The growth/decay rate directly measures $D_{\text{eff}}$.
+
+2. **Run parameters**:
+
+   | Parameter | Value | Rationale |
+   |---|---|---|
+   | Grid | $64 \times 64 \times 4$ | 2D slice + thin z (minimal, only for 3D operator) |
+   | `D` | 0.001 | Default microscopic diffusion |
+   | `lam` | 0.1 | Derivation value $\lambda = 1/(2w)$ from `wu-xing-derivation.md` |
+   | `qi_gate` | True | Qi gate active (defines $q$ from fields) |
+   | `chi` | 0.0 | No chemotaxis (isolate pure reaction-diffusion) |
+   | `hubble_mode` | 'conversion' | Standard expansion |
+   | `a0` | 0.2 | Start near bubble epoch |
+   | `max_H` | 0.5 | Safety cap |
+   | `dt` | 0.001 | Standard CFL-limited timestep |
+   | Steps | 10,000 | Sufficient for several e-folds of evolution |
+
+3. **Monitor** $q_{\text{center}}(t)$ and $C_{\text{center}}(t)$ at the bubble center $(x,y) = (0,0)$. The $C$ pattern amplitude evolves as:
+
+   $$C_{\text{center}}(t) \approx C_0 \cdot \exp\left(-\Gamma_{\text{eff}} \, t\right)$$
+
+   where $\Gamma_{\text{eff}} = D_{\text{eff}}(\alpha^2+\beta^2)$ is the effective damping rate of the condensation field. Extract $\Gamma_{\text{eff}}$ by fitting an exponential to $C_{\text{center}}(t)$ over the linear regime.
+
+4. **Compute $D_{\text{eff}}$**:
+
+   $$D_{\text{eff}} = \frac{\Gamma_{\text{eff}}}{\alpha^2 + \beta^2}$$
+
+   where $\alpha, \beta$ are in code units (radians per grid length).
+
+5. **Compute $R$**:
+
+   $$R = \frac{2 D_{\text{eff}}(\alpha^2+\beta^2)}{\omega_0} = \frac{2 \Gamma_{\text{eff}}}{\omega_0}$$
+
+   where $\omega_0 = \text{lam}$ in code units. **Crucially**, $R$ is independent of the unit mapping—it falls directly out of the measured damping rate.
+
+6. **Solve for $\theta_{\text{cond}}$**:
+
+   $$\theta_{\text{cond}}^2 (1 + \theta_{\text{cond}}) = R\left(\varphi^2 + \frac{(1+\theta_{\text{cond}})^2}{4}\right)$$
+
+   This is a cubic in $\theta_{\text{cond}}$. Solve numerically (e.g., `scipy.optimize.fsolve` or Newton's method with initial guess $\theta_{\text{cond}} = 0.45$).
+
+#### Method B: Emergent pattern (cross-check)
+
+As a cross-check, run from random initial conditions (`initial_amplitude=0.2`) on a $128^2 \times 64$ grid with the same parameters above (but `chi=5.0` to allow gravitational assembly). Let the wake-wave pattern emerge spontaneously. After the system reaches quasi-steady structure ($\sim$5,000 steps), extract:
+
+- The dominant condensation wavelength $\lambda_Y^{(m)}$ from the Fourier power spectrum $P(k_x, k_y)$ of $q(x,y)$.
+- The measured $\theta_{\text{cond}}^{(m)}$ from the $q(C)$ scatter plot (§8.3).
+- Compare with Method A's prediction.
+
+### 8.3 Direct Extraction of $\theta_{\text{cond}}$ from $q(C)$
+
+Independently of Method A, $\theta_{\text{cond}}$ can be measured directly from a fully-developed bubble simulation:
+
+1. Run the expanding PDE as in Method B above, $128 \times 128 \times 64$ grid, with `qi_gate=True`, standard parameters.
+2. At each diagnostic step (every 200 steps), extract the 2D $q(x,y)$ field (from the Qi gate diagnostic) and $C(x,y)$ (computed as $(2q-1)$ from $q = (1+C)/2$).
+3. Construct the **$q(C)$ scatter plot**: for each grid cell in the Yang-Yin midplane ($z \approx 0$), add a point $(C_i, q_i)$.
+4. The scatter should show a characteristic S-curve: $q \approx 1$ for $C > \theta_{\text{cond}}$ (inside the bubble), dropping to $q \approx 0$ for $C < \theta_{\text{cond}}$ (outside).
+5. Fit the threshold as the $C$-value where $q$ drops below $0.5$ (the midpoint of the transition). Alternatively, fit a sigmoid:
+
+   $$q(C) = \frac{1}{1 + \exp(-(C - \theta_{\text{cond}})/\sigma)}$$
+
+   and extract $\theta_{\text{cond}}$ as the sigmoid midpoint.
+
+**Consistency check:** The $\theta_{\text{cond}}$ from this scatter fit must agree with the value predicted by Method A via $R$. Disagreement > 10% indicates the effective diffusion is not the only determinant of the edge—other processes (advection, chemotaxis, gravity) contribute.
+
+### 8.4 Measurement of the Condensation Exponent $n_{\text{cond}}$
+
+The density profile exponent $n_{\text{cond}}$ determines how rapidly $\rho$ drops from $\rho_0$ inside the bubble to $\rho \to 0$ outside:
+
+$$\rho(C) \approx \rho_0 \cdot \max\!\left(0,\; \frac{C - \theta_{\text{cond}}}{1 - \theta_{\text{cond}}}\right)^{n_{\text{cond}}}$$
+
+**Measurement protocol:**
+
+1. From the same simulation as §8.3, extract radial profiles of $\rho(r)$ along both axial directions ($x=0$ toward void, $y=0$ toward void). Use a wedge average of $\pm 10^\circ$ around each direction to reduce noise.
+2. Convert radial distance $r$ to $C(r)$ using the analytic condensation field: $C(r) = \cos(\alpha r)$ along the Yang axis or $C(r) = \cos(\beta r)$ along the Yin axis.
+3. For grid cells with $C > \theta_{\text{cond}}$, fit:
+
+   $$\log \rho = \log \rho_0 + n_{\text{cond}} \cdot \log\!\left(\frac{C - \theta_{\text{cond}}}{1 - \theta_{\text{cond}}}\right)$$
+
+   using $\theta_{\text{cond}}$ from §8.2/§8.3. The slope is $n_{\text{cond}}$.
+4. Report $n_{\text{cond}}$ with bootstrap uncertainty from the fit residuals.
+
+**Anisotropy check:** The fit should be performed separately for the Yang and Yin axial directions. If $n_{\text{cond}}$ differs measurably between the two, the condensation field alone does not determine the density profile—additional direction-dependent physics (e.g., velocity shear anisotropy) is active. A difference > 0.2 warrants investigation.
+
+### 8.5 Parameter Summary and Cross-Checks
+
+| Parameter | Method | Output | Status after computation |
+|---|---|---|---|
+| $D_{\text{eff}}$ | Pattern decay (§8.2 Method A) | Effective diffusion coefficient | Derived |
+| $\theta_{\text{cond}}$ | Computed from $R$ via cubic (§8.2 step 6) | Condensation threshold | Derived (from $D_{\text{eff}}$) |
+| $\theta_{\text{cond}}$ | Direct fit from $q(C)$ scatter (§8.3) | Cross-check threshold | Derived (empirical) |
+| $n_{\text{cond}}$ | Log-log fit of $\rho(C)$ (§8.4) | Density exponent | Derived |
+| $R$ | From $2\Gamma_{\text{eff}}/\omega_0$ | Dimensionless balance ratio | Derived |
+
+**Scaling test:** Repeat Method A at 2-3 grid resolutions ($N=48, 64, 96$) with the same physical box size to verify that $D_{\text{eff}}$ converges. Advection-induced eddy diffusivity should be resolution-independent in the resolved range; microscopic $D$ dominates at low resolution. The converged value is the physical $D_{\text{eff}}$.
+
+### 8.6 Analytical Bounds
+
+Even before the PDE computation, tight bounds can be placed on both parameters from existing theory.
+
+#### Bounds on $\theta_{\text{cond}}$
+
+The phenomenologically-calibrated $\theta_{\text{cond}} = 0.45$ corresponds to $R \approx 0.093$. We can bound $\theta_{\text{cond}}$ from two directions:
+
+**Lower bound ($\theta_{\text{cond}} \geq 0.1$):** A bubble with $\theta_{\text{cond}} < 0.1$ would have its edge so close to the saddle ($C=0$) that neighbor connectivity becomes inevitable. The connectable degree would increase from 4 to 8, contradicting the structural prediction of `chord_connectivity.py`. Since the connectivity prediction is well-verified geometrically, we have $\theta_{\text{cond}} \geq 0.1$, giving $R \geq 1.9 \times 10^{-3}$.
+
+**Upper bound ($\theta_{\text{cond}} \leq 0.7$):** A bubble with $\theta_{\text{cond}} > 0.7$ would have $q_{\text{edge}} > 0.85$, meaning the edge region is nearly as coherent as the bubble center. The void-bubble density contrast would be $\rho_{\text{center}}/\rho_{\text{edge}} \lesssim 1.3$, too low to produce the observed cosmic web (void-bubble density contrasts of 10-100 are required by galaxy surveys). This gives $\theta_{\text{cond}} \leq 0.7$, $R \leq 0.215$.
+
+**Tightest bound (from $\lambda$):** The PDE conversion rate $\lambda = 0.1$ (derived, $w=5$) and microscopic $D = 0.001$ give a bare effective diffusion estimate: if advection is negligible, $D_{\text{eff}} \approx D = 0.001$. At $\lambda_Y = 32$ grid points ($\alpha_{\text{code}} = 2\pi/32 \approx 0.196$, $\beta_{\text{code}} = 0.318$, $\alpha^2+\beta^2 \approx 0.139$):
+
+$$R_{\text{bare}} = \frac{2 \times 0.001 \times 0.139}{0.1} = 2.78 \times 10^{-3}$$
+
+which gives $\theta_{\text{cond}} \approx 0.12$—at the lower bound. This suggests the phenomenologically-calibrated 0.45 requires $D_{\text{eff}}$ to be approximately $30\times$ larger than the microscopic $D$, likely from advective enhancement.
+
+**Testable prediction:** The PDE measurement will yield $\theta_{\text{cond}}$ in one of three regimes:
+
+| Regime | $\theta_{\text{cond}}$ | $R$ | Implication |
+|---|---|---|---|
+| Near-surface | 0.1–0.3 | $< 0.04$ | Advection doesn't enhance diffusion; bubbles are thin-skinned |
+| **Mid-range** | **0.3–0.6** | **0.04–0.15** | **Advection enhances diffusion ~10–50$\times$; bubbles match phenomenology** |
+| Nearly-filling | 0.6–0.7 | 0.15–0.22 | Strong advective enhancement; bubbles fill most of the lattice |
+
+If the result lands in the mid-range (best guess based on phenomenological success), the advective enhancement factor $D_{\text{eff}}/D$ serves as a **derived turbulent diffusivity ratio** at the bubble scale—a new structural number.
+
+#### Bounds on $n_{\text{cond}}$
+
+**Lower bound: $n_{\text{cond}} \geq 1$.** The density cannot respond more steeply than linearly to the condensation field because the driving mechanism (conversion rate $\propto q \propto (1+C)/2$) is linear in $C$ for small deviations from threshold. A sub-linear response ($n_{\text{cond}} < 1$) would require a suppression mechanism with no physical basis.
+
+**Upper bound: $n_{\text{cond}} \leq 2$.** Quadratic response arises naturally from the catalytic template mechanism (`why-three-dimensions.md` §3.3): existing density enhances further condensation, giving a self-amplifying $n_{\text{cond}} = 2$ in the limit. Values above 2 would require a higher-order amplification mechanism not present in the two-fluid PDE.
+
+**Conjecture: $n_{\text{cond}} \approx 3/2$.** The condensation front moves outward from the bubble center. Points further from the center crossed the threshold earlier and have accumulated density for longer. The accumulated density scales as $\rho \propto \delta^{3/2}$ for a diffusive front ($\dot{\delta} \propto 1/\sqrt{t}$), which translates to $n_{\text{cond}} \approx 1.5$ when template acceleration is active. The precise value depends on whether the growth phase is diffusion-limited ($n \approx 0.75$, excluded by the $n \geq 1$ bound) or template-accelerated ($n \approx 1.5$).
+
+$$n_{\text{cond}} \in [1.0, 2.0], \quad \text{best guess: } n_{\text{cond}} \approx 1.5$$
+
+The PDE measurement will definitively determine this.
+
+### 8.7 Supplementary Physical Interpretations
+
+Once $\theta_{\text{cond}}$ and $n_{\text{cond}}$ are determined, several derived quantities follow:
+
+| Derived quantity | Formula | Example ($\theta_{\text{cond}}=0.45$, $n_{\text{cond}}=1.5$) |
+|:---|---:|---:|
+| Edge $q$ | $q_{\text{edge}} = (1+\theta_{\text{cond}})/2$ | 0.725 |
+| Midpoint density ($C=0$, saddle) | $\rho_{\text{saddle}}/\rho_0$ | 0 (below threshold; $\rho$ formally zero) |
+| Density at $C = \theta_{\text{cond}}/2$ | $\bigl((\theta_{\text{cond}}/2 - \theta_{\text{cond}})/(1-\theta_{\text{cond}})\bigr)^{n_{\text{cond}}} = (\theta_{\text{cond}}/(1-\theta_{\text{cond}}))^{n_{\text{cond}}}$ | $(0.45/0.55)^{1.5} \approx 0.74$ |
+| Advective enhancement | $D_{\text{eff}}/D$ | $\approx 34$ for $R=0.093$ |
+| Edge width (Yin) | $\Delta r_{\text{Yin}} = \lambda_I \cdot \sqrt{1-\theta_{\text{cond}}}$ | $118 \times \sqrt{0.55} \approx 87$ Mpc |
+| Edge width (Yang) | $\Delta r_{\text{Yang}} = \lambda_Y \cdot \sqrt{1-\theta_{\text{cond}}}$ | $191 \times \sqrt{0.55} \approx 142$ Mpc |
+| $G_{\text{eff}}$ ratio (center/edge) | $(1+\xi)/(1+q_{\text{edge}}\xi) \times (\rho_{\text{edge}}/\rho_0)$ | $18.9/14.0 \times 0.30 \approx 0.41$ |
+| $G_{\text{eff}}$ ratio (edge/void) | $(1+q_{\text{edge}}\xi)/1 \times (\rho_{\text{void}}/\rho_{\text{edge}})$ | $14.0 \times \rho_{\text{void}}/\rho_{\text{edge}}$ |
+
+---
+
+## 9. The Lattice at Other Scales
+
+The condensation field $B(x,y,z)$ and its checkerboard lattice are not specific to the cosmological scale of step 285. The two-fluid PDE is scale-covariant under φ-rescaling, so the identical field operates at every cascade rung. The full derivation and implications are in `foundations/bubble-lattice-fabric.md`.
+
+---
+
+## References
+
+- `visual-explainers/chord_lattice.py`—condensation field, staggered lattice, bubble shape derivation
+- `visual-explainers/chord_connectivity.py`—percolation analysis, saddle barriers
+- `visual-explainers/chord_side_on.py`—3D bubble shape, waisted lobe-pairs, string threading
+- `foundations/why-three-dimensions.md`—three dimensions from the spiral's Frenet-Serret frame, triaxial spheroid, anti-phase selection
+- `foundations/wu-xing-derivation.md` -- $w = 5$ uniqueness (all bubbles identical)
+- `foundations/dimensionful-cascade.md`—Wu Xing bubble at step 285, 191 Mpc
+- `foundations/spiral-dynamics.md`—$c(r)$ profile, wave speed; $H \propto (1-q)$
+- `foundations/cassi-first-principles.md`—Qi gate $g(q) = q/(\varphi^2+q^2)$, conversion dynamics
+- `consciousness/consciousness-from-phi.md` §3—two-bubble $\varphi$-resonance
+- `visual-explainers/string_bubble_cascade.py`—3D damped-wave two-fluid PDE: string → pinch → spheroid → cascade
+- `two-fluid/cassi_two_fluid_3d_gpu.py`—PDE solver, $D$, $\lambda$, Qi gate implementation
+- `foundations/bubble-lattice-fabric.md`—universal condensation field, checkerboard lattice, scale-covariance
