@@ -93,7 +93,7 @@ The private remote (`CassiTheOracle/cassi-toe`) is the durable record—uncommit
 Docstring with run command → NumPy + Matplotlib (**Agg backend set early**) → `PHI` constant → house palette constants → `rcParams` dark theme → panels annotated with the **generating equations on-panel** via `fig.text`/`ax.text` → `fig.savefig(OUT, dpi=…, facecolor=BG)`. House palette: dark background `#060612`, Yin-indigo → Yang-gold duotone (copy hex constants from an existing script, e.g. `cascade_cosmos.py`).
 
 ### Critical rules
-- **Commit the script, never the figure.** `*.png` / `*.mp4` are gitignored; `visual-explainers/.gitignore` also ignores `media/` (Manim output).
+- **Commit the script and the rendered figure.** `visual-explainers/*.png` are tracked (policy change 2026-08-01)—stage the PNG with its script so figures are reproducible and reviewable from git history. `visual-explainers/media/` (Manim output), `runs/` figures, and other generated imagery remain gitignored (`*.png` ignored except `visual-explainers/`).
 - **Check `BROKEN_REFS.md` before touching cross-references.** Legacy `theory/…` paths (e.g. in `falsifiable-predictions.md` Source blocks) are known-broken but tolerated—map via the BROKEN_REFS table if fixing. `experiments/…` and `two-fluid/…` refs resolve locally (scripts are in this repo). `../../…` refs point to the parent repo and will never resolve here—new theory code should be placed in this repo (e.g. `two-fluid/`, `computations/`) rather than referenced as parent-repo paths.
 - **Mark epistemic status accurately.** Derived / Hypothesized / Speculative labels and `audit.md` self-criticism are load-bearing conventions—never upgrade a claim's tier without the derivation.
 

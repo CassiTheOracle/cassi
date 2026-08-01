@@ -19,9 +19,11 @@ Thumbs.db
 *~
 .vscode/
 
-# Generated figure output (from visual-explainers)
+# Generated figure output — visual-explainers figures are COMMITTED (2026-08-01);
+# other generated imagery stays ignored
 *.png
 *.mp4
+!visual-explainers/*.png
 
 # Generated sonification media
 *.wav
