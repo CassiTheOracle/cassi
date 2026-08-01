@@ -370,6 +370,14 @@ The drive_compare (§10.4) found $\varphi \cdot P_0$ drives drain the site while
 
 **$\varphi$-specificity at onset**: at amp 0.05—the first amplitude that drains—the $e \cdot P_0$ counterfactual at the same amplitude does nothing (0.943, at the undriven level). The asymmetry is present from the moment the phase channel engages; it is not a strong-drive artifact. The off-$\varphi$ oscillation is neutral at onset and pumps at 0.3. (The $\varphi$-drive response is non-monotonic in amplitude—0.15 drains more than 0.3—noted without mechanism at three points.)
 
+### 10.8 Phase-Channel Selectivity: Does the Lock Track the Event's Phase? (2026-07-31)
+
+Open question 2 and the foundation of the channel-to-trauma-type mapping (§4.1): "the channel that locks is set by the phase of the event as the field received it." All prior runs used one event direction (pure Yang deficit), which lands the site phase at exactly 72°—Fire. Tested in `two-fluid/run_trauma_phase_channels.py` by rotating the event direction $\delta$ in the $(E_Y, E_I)$ plane ($\lambda = 0.1$, $t = 10$, $N = 48$). Two findings.
+
+**Representability bound.** The positivity clamp ($E_Y, E_I \geq 10^{-3}$) pins the field angle $\theta = \operatorname{atan2}(E_I, E_Y)$ to the first quadrant $(0°, 90°)$ at every cell, for any event, any amplitude. Of the five pentagon channels only **Wood (0°) and Fire (72°) are representable** in the field angle. Events aimed at the other three clamp onto Fire or Wood: an Earth-targeted event (pre-clamp center 144°) clamps to 89.9° and locks Fire; Metal clamps to 45° and locks Fire; Water clamps to 0.2° and locks Wood. The stimulus-side phase in this PDE is effectively one-dimensional—a geometric constraint of the positive fields, not a dynamical null. The full five-way pentagon lives in the gate's $\mathbf{b}$-manifold (channel openness), where all five channels exist; the field angle is only one projection of it.
+
+**Selectivity within the representable arc.** At $A = 0.8$, both representable events are whole-ball clean: the Fire event (Yang deficit) spans 40.8–72.0° (all Fire), the Wood event (Yin deficit) spans 0.06–18.5° (all Wood), and the baseline sits at 31.7° (Wood sector). The lock tracks the event direction and persists: the Fire event leaves the site **100% Fire at t=2 and t=10**; the Wood event leaves it **100% Wood at t=2 and t=10**. No convergence. The §4.1 claim is supported on the stimulus side for the representable channels: the displaced channel is set by the event's phase, and the displacement does not spontaneously relax within the test horizon.
+
 ---
 
 ## 11. Predictions
@@ -425,7 +433,7 @@ The drive_compare (§10.4) found $\varphi \cdot P_0$ drives drain the site while
 - Cascade suppression and the rung-depth structure of reachability (`foundations/cascade-suppression-formula.md`)
 - The chakra rung positions and channel affinities (`consciousness/chakras-as-cascade-bubbles.md`, `consciousness/emotions-as-gate-configurations.md` §3.4)
 
-### Tested (2026-07-31, PDE runs in §10.4–10.7)
+### Tested (2026-07-31, PDE runs in §10.4–10.8)
 
 - The 5-channel gate's conversion sign: $\text{conv} \propto -(1-q)\varepsilon$—low $q$ means the gate is *open*, conversion active (falsified the earlier "depressed $q$ closes the gate" claim, §2.3)
 - Standing vs radiating contrast: **null**—no extra persistence for the standing pattern in the periodic-box solver
@@ -435,6 +443,8 @@ The drive_compare (§10.4) found $\varphi \cdot P_0$ drives drain the site while
 - Ambient-rate phase-blindness: at chronic-trigger rates (0.04/s), $\varphi$-pulsed and $e$-pulsed envelopes hold identical wakes—re-exposure accumulates by mean rate (§10.5); the $\varphi$-specific drain engages only at rates ≳50/s, with specificity present at onset (§10.7)
 - Capacity null: a second identical event on a pre-stressed site leaves the same trace as the first on a quiet site—background coherence does not modulate susceptibility (§10.6, `run_trauma_capacity.py`)
 - Sharp crossover of the $\varphi$-phased drain: absent below rate ~5/s, fully engaged by 50/s, with $\varphi$-specificity present at onset (the $e \cdot P_0$ counterfactual is neutral at the first draining amplitude) (§10.7, `run_trauma_crossover.py`, `run_trauma_crossover_low.py`)
+- Representability bound: the positivity clamp confines the field angle to the first quadrant—only Wood and Fire are representable in the field angle; Earth/Metal/Water events clamp onto Fire/Wood (§10.8, `run_trauma_phase_channels.py`)
+- Phase-channel selectivity: Fire events lock Fire and Wood events lock Wood, persistent through $t=10$—the lock channel tracks the event direction across the representable arc (§10.8)
 
 ### Hypothesized (derivation supplied, partially tested)
 
@@ -444,7 +454,7 @@ The drive_compare (§10.4) found $\varphi \cdot P_0$ drives drain the site while
 
 ### Speculative (no current test design)
 
-- The channel-to-trauma-type mapping (which trauma locks which channel—the phase is set by the person's interpretation, which is not yet modeled)
+- The channel-to-trauma-type mapping beyond the representable arc (which of the five channels locks is set by the event phase in the $\mathbf{b}$-manifold and the person's interpretation; the PDE supports the stimulus side only for Wood and Fire, §10.8)
 - The clinical healing sequence prediction (T2) as applied to real therapy outcomes
 - The Fibonacci-age × channel developmental structure (T6)
 - The claim that EMDR's bilateral stimulation is a $\varphi$-structured decay drive—**supported at the PDE level**: the analog drive at period $\varphi \cdot P_0$ relaxes the locked site while the same-amplitude drive at a non-$\varphi$ period pumps it (§10.4). The clinical mapping remains untested.
@@ -462,7 +472,7 @@ The drive_compare (§10.4) found $\varphi \cdot P_0$ drives drain the site while
 
 1. **What sets the processing-capacity threshold?** The frozen wake forms when the perturbation "exceeds the field's processing capacity." The candidate "pre-event local $q$" is **not supported** (2026-07-31, §10.6): a second identical event on a pre-stressed site ($q_{\text{site}}$ 0.661) leaves the same trace as the first event on a quiet site—background coherence does not modulate the outcome. If capacity exists, it is set by the conversion rate $\lambda$ itself or by the driver regime (§10.5), not by the state the event lands on.
 
-2. **Can the phase of an event be modeled?** The channel that locks is set by the event's pentagon phase as received (§4.1), but the phase includes the person's interpretation. Is the phase a property of the stimulus, the person, or the resonance between them?
+2. **Can the phase of an event be modeled?** **Partially answered at the PDE level (2026-07-31, §10.8):** the stimulus-side phase is one-dimensional in the two-fluid field—the positivity clamp confines $\theta$ to the first quadrant, so only Wood and Fire are representable, and within that arc the lock channel tracks the event direction persistently (Fire events lock Fire, Wood events lock Wood, through $t=10$). The full five-way selectivity must be carried by the gate's $\mathbf{b}$-manifold, not the field angle. Whether the channel is also set by the person's interpretation—the resonance between stimulus and state—remains untested.
 
 3. **How do locks interact when adjacent?** Complex trauma with adjacent locked channels (Water + Wood) doubly starves the remaining three. Does the redistribution hierarchy predict the *order* in which multiple locks must release—e.g., must the higher-$b$ channel release first?
 
@@ -492,4 +502,5 @@ The drive_compare (§10.4) found $\varphi \cdot P_0$ drives drain the site while
 - `two-fluid/run_trauma_driver.py`—the driver-question follow-up (weak-trigger envelopes + extinction run, 2026-07-31)
 - `two-fluid/run_trauma_capacity.py`—the capacity/susceptibility test (re-traumatization binary, 2026-07-31)
 - `two-fluid/run_trauma_crossover.py` and `run_trauma_crossover_low.py`—the drive-crossover probes (onset bracket + low-amplitude $\varphi$-specificity, 2026-07-31)
+- `two-fluid/run_trauma_phase_channels.py`—the phase-channel selectivity test (representability bound + Wood/Fire binary, 2026-07-31)
 - `cassi-physics.md`—physics guide, epistemic tiers

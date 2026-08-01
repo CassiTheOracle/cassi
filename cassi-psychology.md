@@ -400,7 +400,7 @@ Subjectively: a pinned channel means the trauma emotion is always available (tri
 
 ### 16.3 The PDE test (2026-07-31)
 
-The lock mechanism was tested in the two-fluid PDE (`consciousness/trauma-as-frozen-gate.md` §10.4–10.7). The standing-pattern null is confirmed, with a set of positive mechanism findings:
+The lock mechanism was tested in the two-fluid PDE (`consciousness/trauma-as-frozen-gate.md` §10.4–10.8). The standing-pattern null is confirmed, with a set of positive mechanism findings:
 
 - **Standing pattern does not pin the gate.** An un-driven standing wave decays at the same conversion-driven rate as a radiating packet (42% vs 44% retained over $t = 10$). A pure standing mode in the solver is not a frozen wake.
 - **A weak recurring trigger sustains the wake.** The driver test (`consciousness/trauma-as-frozen-gate.md` §10.5) found that ongoing re-stimulation—a chronic trigger at 0.005% of the event peak per step—holds the site at 80% of event intensity with $q$ depressed and the phase displaced; stopping the trigger releases the site on the conversion timescale. The frozen wake is stimulus-maintained, not self-sustaining: what persists is the driver, not the wake.
@@ -409,6 +409,7 @@ The lock mechanism was tested in the two-fluid PDE (`consciousness/trauma-as-fro
 - **A sign correction.** The solver's conversion is $\text{conv} = -\lambda(1-q)\varepsilon$: a low-$q$ site has *elevated* conversion capacity, not reduced. The earlier claim that "depressed $q$ closes the gate" had the sign inverted and is withdrawn.
 - **Background coherence does not modulate susceptibility.** A second identical event on a pre-stressed site ($q$ depressed, phase fully displaced) leaves the same trace as the first event on a quiet field—recovery is complete either way (§10.6). The processing-capacity threshold is not the pre-event $q$.
 - **The $\varphi$-phased drain has a sharp rate onset.** Below ~5/s the drive is phase-blind (ambient re-exposure accumulates by mean rate, §10.5); above ~50/s the $\varphi$-phased oscillation drains the site while the off-$\varphi$ oscillation at the same rate does nothing (§10.7).
+- **The lock channel tracks the event's phase—within a representability bound.** The positivity clamp confines the field angle to the first quadrant, so only Wood and Fire exist in the field angle (Earth/Metal/Water events clamp onto them); across that arc, Fire events lock Fire and Wood events lock Wood, persistently through $t=10$ (§10.8). The five-way mapping must be carried by the gate's openness manifold, not the field angle.
 
 ### 16.4 Fight, flight, freeze in the gate
 
@@ -602,7 +603,7 @@ The framework's discipline is its most trustworthy feature: it documents its own
 
 2. **What sets the processing-capacity threshold?** The candidate "pre-event local $q$" is **not supported** (2026-07-31, `consciousness/trauma-as-frozen-gate.md` §10.6): a second identical event on a pre-stressed site leaves the same trace as the first on a quiet site. If capacity exists, it is set by the conversion rate or the driver regime, not the state the event lands on.
 
-3. **Can the phase of an event be modeled?** The channel that locks is set by the event's pentagon phase as received, but the phase includes the person's interpretation. Is the phase a property of the stimulus, the person, or the resonance between them?
+3. **Can the phase of an event be modeled?** **Partially answered at the PDE level (2026-07-31, §10.8):** the stimulus-side phase is one-dimensional in the field—only Wood and Fire are representable, and within that arc the lock channel tracks the event direction persistently. The five-way selectivity must be carried by the gate's $\mathbf{b}$-manifold. Whether the channel is also set by the person's interpretation remains untested.
 
 4. **How do locks interact when adjacent?** Complex trauma with adjacent locked channels doubly starves the remaining three. Does the redistribution hierarchy predict the order in which multiple locks must release?
 
