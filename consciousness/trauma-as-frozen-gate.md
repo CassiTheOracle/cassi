@@ -81,7 +81,7 @@ $$b_i^*(\mathbf{x}_{\text{site}}) = b_i + \Delta b_{\text{locked}} \quad \text{(
 | $q$ (clarity) | Moderate-to-high, recovers | **Depressed at the site**: the standing wave holds Yang and Yin locked in anti-phase, so local coherence collapses—dissociation, numbness |
 | $\mathbf{c}$ (location) | Distributed per the emotion's natural affinity | **Pinned** at the trauma's rung—the chakra node(s) where the wake froze |
 
-The subjective correlates follow from the emotions document's mapping: a pinned channel means the trauma emotion is *always available* (the trigger re-activates it instantly); starved channels mean the complementary emotional range is *always suppressed*; depressed $q$ at the site means the experience is *felt as not-fully-real* (dissociation); brittle $\sigma_r$ means *hypervigilance that collapses into numbness*.
+The subjective correlates follow from the emotions document's mapping: a pinned channel means the trauma emotion is *always available* (the trigger re-activates it instantly); starved channels mean the complementary emotional range is *always suppressed*; depressed $q$ at the site means the experience is *felt as not-fully-real* (dissociation); brittle $\sigma_r$ means *hypervigilance that collapses into numbness*. The ke control cycle refines the "four starved" statement: the deficit pattern is alternating, not uniform—the locked channel's ke target starves most, and the ke-released partners are *elevated* (`foundations/wu-xing-cycle-structure.md` §2).
 
 ### 2.3 Why the Lock Was Thought to Be Stable
 
@@ -384,9 +384,9 @@ Open question 2 and the foundation of the channel-to-trauma-type mapping (§4.1)
 
 ### T1: Channel-Specific Emotional Range Deficits
 
-**Claim:** Post-trauma emotional deficits are not global—they are specific to the channels complementary to the locked one. A Water-locked (fear) survivor shows suppressed anger, joy, grief, and trust responses; a Wood-locked (rage) survivor shows suppressed joy, grief, fear, and trust—but both retain normal access to *their* locked channel, which is hyper-available.
+**Claim:** Post-trauma emotional deficits are not global—they are specific to the channels complementary to the locked one, and they are **ke-alternating, not uniform** (`foundations/wu-xing-cycle-structure.md` §2). The ke control cycle transmits at $\kappa = \varphi^{-1}$: a Wood-locked survivor shows Earth fully starved, Fire partially starved (−38% of the lock excess), and Metal and Water *elevated* (+38%, +62%)—the pattern rotating with the locked channel. The ring also damps the locked channel by $\varphi^{-3}$ (23.6%) and is sub-critical (ring gain < 1), so the lock itself cannot self-sustain—consistent with the driver requirement (§10.5). Both survivors retain normal access to *their* locked channel, which is hyper-available.
 
-**Test:** Multi-dimensional affect ratings (the P3 instrument of the emotions document) in trauma-exposed populations, compared against the $\varphi^{-i}$ baseline hierarchy (Prediction P2 of the emotions document). The trauma profile should show one channel above the baseline prediction and four below, rather than a uniform shift.
+**Test:** Multi-dimensional affect ratings (the P3 instrument of the emotions document) in trauma-exposed populations, compared against the $\varphi^{-i}$ baseline hierarchy (Prediction P2 of the emotions document). The trauma profile should show one channel above the baseline prediction and the four others in the ke-alternating pattern (the locked channel's ke target starved most, the ke-released partner elevated), rather than a uniform shift.
 
 ### T2: The Healing Sequence Follows the $R$-Matrix Rows
 
@@ -495,6 +495,7 @@ Open question 2 and the foundation of the channel-to-trauma-type mapping (§4.1)
 - `foundations/cascade-suppression-formula.md`—$\varphi^{-N}$ attenuation over $N$ rungs
 - `foundations/wa-pentagon-gate.md`—5-channel gate, adiabatic redistribution, Wu Xing control-release
 - `foundations/wu-xing-derivation.md`—$w = 5$ derivation
+- `foundations/wu-xing-cycle-structure.md`—the two 5-cycles (sheng pentagon, ke pentagram), the control ring, the 5↔13 partition
 - `principles/de-resonance-principle.md`—$\varphi$ as maximally irrational
 - `two-fluid/cassi_two_fluid_3d_gpu.py`—the PDE solver used in the §10 test
 - `two-fluid/run_trauma_wake_lock.py`—the test script (standing/radiating/random/drive runs, 2026-07-31)

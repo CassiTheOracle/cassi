@@ -413,6 +413,7 @@ The framework documents its own errors openly (`audit.md`): the gate-sign error 
 - `foundations/bubble-lattice-fabric.md`—the condensation field as universal organizing geometry
 - `foundations/cascade-suppression-formula.md`—$\varphi^{-N}$ attenuation and the hierarchy resolutions
 - `foundations/wu-xing-derivation.md`—why $w = 5$
+- `foundations/wu-xing-cycle-structure.md`—the two 5-cycles, the control ring, the 5↔13 partition
 - `foundations/why-three-dimensions.md`—three dimensions from the spiral
 - `foundations/proton-coherence-budget.md`—proton stability
 - `foundations/three-generations.md`—three generations from the Fibonacci recurrence

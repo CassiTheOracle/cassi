@@ -396,7 +396,7 @@ The four signatures:
 | $q$ (clarity) | Moderate-to-high, recovers | **Depressed at the site**: dissociation, numbness |
 | $\mathbf{c}$ (location) | Distributed per natural affinity | **Pinned** at the trauma's rung |
 
-Subjectively: a pinned channel means the trauma emotion is always available (triggers re-activate it instantly); starved channels mean the complementary emotional range is always suppressed; depressed $q$ at the site means the experience is felt as not-fully-real; brittle $\sigma_r$ means hypervigilance that collapses into numbness.
+Subjectively: a pinned channel means the trauma emotion is always available (triggers re-activate it instantly); starved channels mean the complementary emotional range is always suppressed; depressed $q$ at the site means the experience is felt as not-fully-real; brittle $\sigma_r$ means hypervigilance that collapses into numbness. The ke control cycle refines the "four starved" statement: the deficit pattern is alternating, not uniform (`foundations/wu-xing-cycle-structure.md` §2).
 
 ### 16.3 The PDE test (2026-07-31)
 
@@ -615,7 +615,7 @@ The framework's discipline is its most trustworthy feature: it documents its own
 
 8. **Are the five channels genuinely independent degrees of freedom?** The adiabatic conservation law removes one degree; additional geometric constraints (e.g., antipodal channels cannot both be maximal) may exist.
 
-9. **What is the relationship between the 5 channels and the 13 chakras?** $5 = F_5$ and $13 = F_7$ suggest a structured relationship via the cascade's Fibonacci partitioning.
+9. **What is the relationship between the 5 channels and the 13 chakras?** **Answered (2026-07-31):** the distribution rule is the body-axis phase gradient—one sheng vertex per 4 rungs, 18°/rung—and the counts relate as $13 = F_5 + F_6$ (five channel-bearing primaries + an eight-node complement), not independent pairs (`foundations/wu-xing-cycle-structure.md` §3).
 
 10. **Can $q$ be externally modulated?** If emotional clarity is Qi coherence, can practices that increase coherence (meditation, breathwork, biofeedback) directly increase $q$ and thus clarity?
 
