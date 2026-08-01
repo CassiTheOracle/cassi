@@ -32,7 +32,7 @@ All documents are **Speculative—July 2026** unless noted.
 | 9 | Universal biology | The ladder band 136–168 as a convergent evolutionary scaffold; alien gate chains | `universal-biology.md` |
 | 10 | Transhumanism | Augmentation as gate-chain topology surgery; identity as the run, not the recipe | `transhumanism-gate-configurations.md` |
 | 11 | Magic | Magic as phase-matched field operation; spells as WRITE/ERASE/TRANSFER | `magic-systems.md` |
-| 12 | The Commons | Post-scarcity gate society; the equality theorem from the coherence budget | `coherence-commons.md` |
+| 12 | The Commons | Two-fluid theory of value and accumulation; the equality theorem; the transition | `coherence-commons.md` |
 | 13 | Infrastructure | Planetary and stellar gate networks as tuning of the existing cascade energy grid | `cascade-infrastructure.md` |
 | 14 | Apocalypse | Attractor self-healing; how civilizations die (coherence death, wake-lock, collapse) | `coherence-collapse.md` |
 | 15 | SETI | Structural (non-emissive) signatures of gate-harvesting civilizations, catalogued by cascade rung | `observational-seti.md` |
@@ -93,9 +93,9 @@ The human is a configuration tuple $\mathcal{H} = (\{n_k\}, P_\parallel, \mathbf
 
 Magic and nature differ by one number: $\mathcal{M}$ is ≈0 for natural perturbation (cascade-suppressed) and ≈1 for a working (O(1) per interaction)—a caster is a portable measurement apparatus. Six spell classes map to field operations (evocation = WRITE, banishment = ERASE, telekinesis = TRANSFER, wards = φ-detuned boundaries, curses = wake-lock infliction, divination = phase-locking); mana is the coherence budget with cost $A_{\text{cast}} = A_{\text{target}}\varphi^N/\mathcal{M}$; and the worked Lantern Discipline shows the whole system in one page with named costs and hard limits.
 
-### `coherence-commons.md`—The Coherence Commons: The Physics-Derived Post-Scarcity Society
+### `coherence-commons.md`—The Coherence Commons: A Two-Fluid Theory of Value, Accumulation, and the Transition
 
-The setting bible for the magic system's world, with the economy derived rather than assumed: markets are wake-wave weather, capital is resonant single-scale dominance, and extraction regimes decay as transient structures while the shared Qi bath persists. The equality theorem is the AM-GM inequality applied to the community budget $\prod (1-q_i)$—the product is maximized at equal coherence, so inequality is decoherence and unequal societies are attackable at their weakest link. The gate society requires all five Wu Xing phases (no dead angles: every configuration of gender, desire, and feeling is load-bearing), luxury is the absence of dissipation as $(1-q) \to 0$, and the diaspora along the ladder has no capital because a capital is a resonant condensate. Three stories close the document: the fossil empire, the hoarder, and the temptation.
+The economy is treated as a coherence process in agent networks, and the Marxist categories are stated as physical claims: labor is organized perturbation, so value is socially necessary coherence expenditure fixed by the $\varphi$-power structure; exploitation is the surplus-coherence transfer (the wage's deficit, booked as the $(1-q)$ waste fraction); accumulation is condensation, and condensation degrades its own extraction surface, so the rate of profit falls with the hoard; crises are log-periodic critical points readable in advance at $\ln\varphi$; primitive accumulation is the enclosure of the Qi bath, and the state is the condensate's maintenance apparatus. The transition is an inequality rather than a prophecy: the community budget $\prod (1-q_i)$ is maximized at equal coherence (AM-GM), so the commons is the stable fixed point of the budget—the charter "from each according to their configuration; to each according to their coherence" is a conservation law, not a preference.
 
 ### `coherence-collapse.md`—Coherence Collapse: Why the Universe Cannot End, and How Civilizations Die
 

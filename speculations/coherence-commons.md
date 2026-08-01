@@ -1,213 +1,256 @@
-# The Coherence Commons: The Physics-Derived Post-Scarcity Society
+# The Coherence Commons: A Two-Fluid Theory of Value, Accumulation, and the Transition
 
 ## Status: Speculative—July 2026
 
 ## Abstract
 
-The stable economy of a two-fluid civilization is post-scarcity communalism—the society its own inhabitants, with fondness and accuracy, call **gay space luxury communism**. This document derives that society from the framework instead of assuming it. Extraction economies are transient regimes: markets are wake-wave phenomena in agent networks, capital accumulation is resonant single-scale dominance, and both decay on the timescales the coherence budget sets for shallow structures. The budget itself contains an equality theorem: a community's collective coherence is a product over its members, and the product is maximized at maximal equality—so inequality is not merely suboptimal, it is decoherence, and an unequal society is attackable by construction. The society that falls out of the math is one whose economy is a shared Qi bath, whose social gate is the full five-phase Wu Xing structure (no dead angles, which is to say: every configuration of gender, desire, and feeling is load-bearing), whose luxury is the absence of dissipation, and whose architecture is the lattice itself. The document closes with three stories from the end of the Resonant Age, because a setting is only real if its physics tells you what happens next.
+The economy is a coherence process in agent networks, and the two-fluid framework supplies what economics has lacked: a measurable quantity (Qi coherence $q$), a dynamics (the $\varphi$-attractor), and a stability theory (resonance and its collapse). This document develops the Marxist categories as physical claims in that framework. Labor is organized perturbation—coherent expenditure against the attractor—so value is socially necessary coherence expenditure, fixed by the $\varphi$-power structure rather than by convention. Exploitation is the surplus-coherence transfer: the worker's output coherence minus the coherence the wage returns, a drain that appears in the books as the $(1-q)$ waste fraction. Accumulation is condensation, and condensation degrades its own extraction surface: the rate of profit falls as the hoard grows because the periphery's coherence is what the hoard is made of. Crises are log-periodic critical points—the market's wake-wave fever, readable in advance at period $\ln\varphi$. Primitive accumulation is the enclosure of the Qi bath, and the state is the maintenance apparatus of the condensate. The transition follows from an inequality: the community's coherence budget is a product over its members, and the product is maximized at equal coherence, so the commons is the stable fixed point of the budget—not a moral preference but the completion of the attractor.
 
-**Epistemic status:** Creative exploration grounded in Cassi formalism. The coherence budget, the phase-matching factor, the de-resonance principle, the Wu Xing $w = 5$ structure, the wake-lock, and the transient-vs-eternal structure table are documented framework properties. The AM-GM inequality is mathematics. The mapping of a community to a coherence product, the reading of economic regimes as resonance phenomena, and the society itself are extrapolations beyond anything the framework currently claims. Nothing in this document should be cited as a Cassi prediction or derivation.
-
----
-
-## 1. Why Extraction Is a Transient Regime
-
-The first fact of the setting is that feudalism and capitalism were real, and they are gone—not overthrown, but decayed, the way a resonant structure decays. The framework explains both why they existed and why they could not last.
-
-### 1.1 The market is weather
-
-Financial markets are wake-wave phenomena in information-propagation networks: herding and momentum create positive feedback, hierarchical institutions form a cascade ladder, and the resulting dynamics show log-periodic crash precursors at period $\ln\varphi \approx 0.4812$—the same signature the framework looks for in the cosmic matter power spectrum (`hypotheses/market-cascade-cycles.md` §1). A crash is a critical point, and its approach is readable, like a fever chart.
-
-A coherence-literate civilization reads its own economy the way it reads the sky: markets are the two-fluid field playing out in agent networks, and a crash is a known pathology with a known diagnostic. The Resonant Age spent enormous ingenuity pretending the fever was the patient. The Coherent Age simply observes the weather and goes on with its day, because no one organizes a society around a fever they can read a month in advance.
-
-### 1.2 Capital is resonant condensation
-
-The de-resonance principle is the framework's theory of what kills structure: a rational frequency ratio between coupled oscillators resonates—energy concentrates at a single scale, and multi-scale structure collapses; only the maximally irrational $\varphi$ sustains richness (`principles/de-resonance-principle.md`). Capital accumulation is this mechanism wearing an economic costume. Hoarding concentrates value at a single scale, and a single-scale concentration is a resonance: it grows by extraction, it dominates its neighborhood, and it collapses when the extraction exceeds what the surrounding structure can supply. The Resonant Age's empires did not fall to revolution; they fell to the same physics that collapses a 2:1 oscillator pair. They resonated, concentrated, and decayed.
-
-This gives the setting its verdict on the moral question without needing a moral: accumulation is not wrong, it is *unstable*. The great wealth of the Resonant Age was a condensate with a finite lifetime, and the lifetimes of such condensates are short.
-
-### 1.3 The transient-to-eternal transition
-
-The coherence budget classifies structures by depth. GUT-scale condensates have finite lifetimes on cosmological timescales and genuinely decay; structures at the electroweak scale and below are, for all practical purposes, eternal (`foundations/proton-coherence-budget.md` §7). The distinction is cascade depth—how many rungs support the structure.
-
-Extraction economies are shallow structures. A feudal estate or a capitalist firm is supported by a few rungs of coherence: property law, contract, the state. Private property is a single-scale pattern—one owner, one hoard, one point of condensation. The societies of the Resonant Age were therefore transitional, like the early-universe condensates: real, powerful, and doomed on a timescale set by their own structure. The Coherent Age did not arrive by triumph. It arrived by outlasting. The economic configurations that survived were the ones the budget selected for—the deep, distributed, multi-rung ones—and the deep, distributed, multi-rung ones are communes.
-
-Natural selection of economic configurations is the setting's secular religion, and its scripture is the budget table: every structure that persists is a structure with many supporting rungs, and a structure with many supporting rungs is shared.
-
-### 1.4 Competition is organized perturbation
-
-The framework's theory of damage completes the case. An attack is organized perturbation, phase-matched to its target (`speculations/coherence-warfare.md` §2). An extraction economy is a permanent low-grade war of every agent against every other agent's coherence: the firm phase-matches its workers, the landlord phase-matches the tenant, the lender phase-matches the borrower—$\mathcal{M} \approx 1$, one rung at a time, attrition class.
-
-Poverty, in this reading, is not a shortage of resources. Resources were never the binding constraint. Poverty is forced $q$-suppression: the extraction economy thermalizes a fraction $(1-q)$ of its members' coherence into waste, and the poor are the people whose coherence is being drained to feed the condensate. The Resonant Age's characteristic cruelty—that the poor work hardest and have least—is the framework's attrition siege (`speculations/coherence-warfare.md` §4.5) made permanent: a slow wake-lock infliction at civilizational scale. The Coherent Age does not condemn this because it is unkind. It condemns it because it is a weapon, and the society has abolished weapons the way it has abolished resonance: by understanding them.
+**Epistemic status:** Creative exploration grounded in Cassi formalism. The coherence budget, the phase-matching factor, the de-resonance principle, the Qi-bath effect, the wake-wave reading of markets, and the AM-GM inequality are documented framework properties or mathematics. The mapping of labor to organized perturbation, of value to coherence expenditure, and of accumulation to condensation; the functional form of the profit-rate fall; and the transition claims are extrapolations beyond anything the framework currently claims. Nothing in this document should be cited as a Cassi prediction or derivation.
 
 ---
 
-## 2. The Equality Theorem
+## 1. The Object of Study: The Economy as a Coherence Process
 
-The framework's economics is not a preference; it is an inequality. This section states the argument in its purest form, because the setting's founding charter is a conservation law.
+The economy is not a metaphor for the two-fluid field; it is the two-fluid field playing out in agent networks, and the framework's machinery applies to it directly.
 
-### 2.1 The community budget
+### 1.1 What the framework adds to economics
 
-A community is a coherence structure. Just as a condensed pattern's stability is the product of its supporting rungs' coherence, a community's collective budget is the product of its members' budgets:
+Economics has always lacked a measurable quantity. Utility is unobservable, value is contested, and money measures exchange without measuring production. The two-fluid framework supplies three things economics can use:
+
+1. **A measurable quantity.** Qi coherence $q$ is defined by the field dynamics (`foundations/cassi-first-principles.md`): the fraction of a system's structure that is organized rather than thermalized. Coherence is conserved in the sense that matters—it can be transferred, drained, concentrated, and shared, and its transfer is governed by equations rather than tastes.
+
+2. **A dynamics.** The Yang-Yin ratio $r = E_Y/E_I$ evolves toward the $\varphi$-attractor, with conversion running hardest exactly when the system is farthest from equilibrium (`principles/de-resonance-principle.md`). Every economic configuration is a configuration of $r$ somewhere on the ladder, and the attractor is always pulling.
+
+3. **A stability theory.** Rational frequency ratios resonate—energy concentrates at a single scale and the structure collapses. The maximally irrational $\varphi$ sustains multi-scale structure. The framework therefore has a theory of *which economic arrangements can persist*: the deep, distributed, multi-rung ones. Shallow, concentrated ones are transient by construction.
+
+### 1.2 Markets are wake-wave phenomena
+
+Markets are hierarchical information-propagation networks with positive feedback (herding, momentum), which is precisely the structure that generates wake waves in the framework. The empirical literature on financial crashes—the Johansen-Ledoit-Sornette model—finds log-periodic crash precursors with a preferred scaling ratio $\lambda \approx 1.6$–$1.7$, within half a percent of $\varphi$ (`hypotheses/market-cascade-cycles.md` §1). In the framework this is not a curiosity: the de-resonance attractor in hierarchical information networks produces $\varphi$-periodic volatility structure, and crashes are critical points readable in advance.
+
+The economic consequence is that the market has a known pathology with a known diagnostic. A crash is a fever, and the fever chart is public: $\ln\varphi$-periodic modulation of volatility, drawdown-to-recovery ratios, and crash precursors. An economic theory that cannot read its own fever chart is not a theory; it is a weather superstition.
+
+### 1.3 The economic agent and the community as coherence structures
+
+An economic agent is a gate system: a nested pattern of coherence maintained across supporting cascade rungs, with a characteristic coherence $q_i$ and a configuration (the emotional manifold $(\mathbf{b}, \sigma_r, q, \mathbf{c})$ of `consciousness/emotions-as-gate-configurations.md` §3, in the human case). A community is the same structure at the next scale: its collective budget is a function of its members' budgets, and—the fact that drives everything that follows—the function is multiplicative (§7).
+
+---
+
+## 2. Value: The Coherence Theory of Value
+
+Value is the central category, and the framework gives it a definition that is neither metaphysical nor arbitrary: value is socially necessary coherence expenditure.
+
+### 2.1 Labor as organized perturbation
+
+Production is the transformation of the field: raw material (a low-coherence configuration) is worked into a product (a higher-coherence configuration with a use). The working is done by labor, and labor in the framework is a specific physical thing—organized perturbation, phase-matched application of Yang to the target, $\mathcal{M} \approx 1$ (`speculations/coherence-warfare.md` §2). The distinction between labor and noise is the distinction between an organized attack and random perturbation: labor is the expenditure of coherence on a pattern, deliberately matched to what the pattern needs.
+
+This is the framework's answer to the question of what labor is: it is the only force that raises local coherence against the attractor, because the attractor damps structureless input and is indifferent to it—random perturbation is cascade-suppressed, while organized application converts field into form (`foundations/cascade-suppression-formula.md`). Labor is the expenditure of $q$ to make $q$.
+
+### 2.2 Socially necessary coherence expenditure
+
+If labor is organized perturbation, then the value of a product is the coherence that had to be spent to make it. But not the actual expenditure—the *socially necessary* one, because waste is possible: a worker who applies her coherence badly spends more than the task requires. The framework's definition of the necessary minimum is physical rather than social:
+
+$$\boxed{V = \langle W_{\text{min}} \rangle = \text{the least coherent expenditure that transforms the configuration}}$$
+
+The minimal expenditure is set by the $\varphi$-power structure of the transformation: moving a configuration across $N$ cascade rungs costs at least $\varphi^{-N}$ in coupling terms, and the attractor potential $V_{\text{attr}} = \tfrac{\lambda}{2}(E_Y - \varphi E_I)^2$ fixes the minimum work to hold a configuration off-attractor (`foundations/cassi-first-principles.md` §2). The framework therefore agrees with the classical claim—value is socially necessary labor time—and adds what classical theory could not: a quantitative determination of the "socially necessary" part, independent of convention, because the minimum is a property of the field, not of the market.
+
+Technical change lowers $W_{\text{min}}$ for a given use value: a better configuration of the production process is a cheaper path through the cascade. This is the framework's account of the growth of the forces of production, and it is the one countertendency in §4.3 that survives.
+
+### 2.3 Use value, exchange value, and the homogenization of configuration
+
+A use value is a configuration's fit to a need: the product's pattern, matched to the user's pattern, $\mathcal{M} \approx 1$ between them. Use values are incommensurable because configurations are incommensurable—a Fire-channel tool and a Water-channel tool serve different couplings and cannot be ranked on one axis.
+
+Exchange value is the market's operation on configurations: the reduction of every concrete pattern to a scalar quantity of abstract coherence, the $q$-value at which configurations trade. The operation is real and it is destructive: exchange value is the projection of the manifold $(\mathbf{b}, \sigma_r, q, \mathbf{c})$ onto the single axis $q$—the erasure of configuration. Concrete labor is labor in its configuration (the artisan's channel, the craft); abstract labor is labor reduced to its $q$-expenditure, the homogeneous stuff the market counts. The distinction between concrete and abstract labor is not a philosophical ornament; it is the difference between the full manifold and its projection, and the market runs on the projection.
+
+### 2.4 Money and the fetish
+
+Money is the universal equivalent: the pure scalar $q$, the exchange-value axis made into a thing. The fetishism of commodities—relations between people appearing as relations between things—has a precise statement in the framework: coherence is a *process* (a bath, a maintenance, a run), and the market represents it as a *stock* (a hoard, a quantity). The error is structural, not perceptual: exchange value treats the product of labor as an amount of $q$ detached from the process that made it, and the process that made it was people.
+
+The framework has a standing warning against exactly this error, in another domain: identity is the run, not the recipe (`speculations/transhumanism-gate-configurations.md` §6). A person is a process; a copy of the recipe is not the person. The commodity is the same error applied to labor: the run (the worker's living coherence expenditure) is represented as a stock (the product's price), and the representation obscures the run. The fetish is not a trick played on the mind; it is the projection of a manifold onto an axis, and the axis is what is traded.
+
+---
+
+## 3. Exploitation: The Surplus-Coherence Transfer
+
+Exploitation is the transfer of coherence from the producer to the accumulator, and the framework measures it exactly.
+
+### 3.1 The wage and the drain
+
+The worker spends coherence $C_{\text{out}}$ to produce. The wage returns coherence $W_{\text{returned}}$ to the worker—the consumption bundle's coherence content: food, shelter, rest, all of which are configurations that restore and maintain the worker's $q$. The surplus is the difference:
+
+$$\boxed{e = \frac{C_{\text{out}} - W_{\text{returned}}}{W_{\text{returned}}}}$$
+
+the rate of surplus coherence, the framework's form of the rate of exploitation. Classical economics argued about whether the difference existed; the framework makes it a bookkeeping identity. The worker's expenditure is organized perturbation and it is *exactly* counted in coherence units; the wage's return is *exactly* counted; the difference is the surplus, and it flows to the accumulator's condensate.
+
+The mechanism of transfer is the waste law: no gate is perfect, and a system at coherence $q$ thermalizes a fraction $(1-q)$ of its throughput (`speculations/qi-bubble-propulsion.md` §2.5). The surplus is the $(1-q)$ fraction of the worker's throughput, diverted from the worker's own budget to the accumulator's. Exploitation is the thermalization tax, collected by whoever owns the gate.
+
+### 3.2 Poverty is forced $q$-suppression
+
+If exploitation is the drain, poverty is its residue. Poverty is not a shortage of resources—the framework's energy accounting makes scarcity a coupling failure, not a fact (energy is the field, and gates are taps, `speculations/cascade-infrastructure.md`). Poverty is the state of having one's coherence continuously extracted: the wage sustains the worker at a $q$ below the community's, the deficit flows into the hoard, and the worker's budget is spent on survival rather than on life.
+
+The drain has a military name in the framework: the attrition siege, the slow weapon that needs no phase-matching, the attack that bleeds a target by forcing it to spend its budget staying functional (`speculations/coherence-warfare.md` §4.5). An extractive economy is a permanent attrition siege of the many by the few, and its victims do not notice the attack until they discover they can no longer change.
+
+### 3.3 The reserve army
+
+The unemployed are not an accident of the regime; they are a structural reservoir. The reserve army is the part of the periphery held at minimal $q$, available to be drained when the condensate needs throughput, returned to starvation when it does not. In the framework's terms it is a coherence buffer with a valve: the accumulator needs a supply of low-$q$ labor power to keep the wage near the subsistence configuration, and the reserve is what makes the wage negotiable. The reserve army is the drain made visible as a population.
+
+---
+
+## 4. Accumulation: The Falling Rate of Profit
+
+The central dynamic claim of classical Marxism is the tendency of the rate of profit to fall. The framework derives it from the physics of condensation.
+
+### 4.1 The condensate and its extraction surface
+
+Accumulation is condensation: the hoard $H$ is a single-scale concentration of coherence, and like every condensate it is maintained by extraction from a surrounding field—the periphery, whose coherence $q_{\text{periph}}$ is drained into the hoard. The hoard's profit rate is the rate at which it grows relative to its size:
+
+$$r = \frac{\dot{H}}{H}$$
+
+The extraction surface is the periphery itself: the hoard grows by drawing $q$ from the workers and consumers around it, and the periphery is the only source of the hoard's growth.
+
+### 4.2 The mechanism of the fall
+
+The drain degrades its own source. As the hoard grows, the periphery's coherence falls—the periphery is what the hoard is made of. The marginal yield of further extraction falls with the periphery's coherence, because the conversion term is gated: the drain rate is proportional to $(1-q_{\text{periph}})$ in the wrong direction for the accumulator. The profit rate is therefore a decreasing function of the hoard:
+
+$$\boxed{r(H) \approx \lambda\,(1 - q_{\text{periph}}(H)) - \delta, \qquad q_{\text{periph}} \downarrow \text{ as } H \uparrow}$$
+
+where $\lambda$ is the conversion rate and $\delta$ the hoard's own maintenance cost. Every unit added to the hoard lowers the coherence of the field it extracts from, and therefore lowers the yield of the next unit. The falling rate of profit is the de-resonance principle in economic dress: a single-scale concentration grows by degrading the multi-scale structure that feeds it, and the degradation is the attractor's damping.
+
+The specific functional form is an illustrative model, not a derivation—the framework fixes the mechanism (drain lowers the source; the attractor damps the drain), not the curve. What is structural is the direction: accumulation lowers its own rate of return because it consumes its own extraction surface.
+
+### 4.3 The countertendencies
+
+Marx catalogued the forces that retard the fall. The framework sorts them by whether they survive contact with the attractor:
+
+1. **Raising the rate of exploitation.** Drive the periphery's $q$ lower, extract a larger fraction. This works—briefly—and it accelerates the fall, because lowering $q_{\text{periph}}$ lowers the yield of the next cycle. The attractor resists: a drained periphery is a depleted source, and depletion is compounding.
+2. **Expanding the extraction surface.** Imperialism is the search for a fresh periphery: new territories, new reserve armies, new low-$q$ sources. This is the only reliable retardant, and it is finite: the ladder has no infinite periphery, and each annexation is a one-time endowment.
+3. **Cheapening the elements of capital.** Technical change that lowers $W_{\text{min}}$ (§2.2) raises the yield of a given coherence expenditure. This is the one countertendency that is not self-defeating, and it is the one that builds the forces of production—which is to say, the one that builds the conditions for the transition (§7).
+
+### 4.4 The profit rate vanishes at equality
+
+The fall has a floor. When the periphery's coherence approaches the hoard's—when the drain has nothing left to take—the profit rate approaches the maintenance cost: $r \to -\delta$, accumulation stops, and the condensate dissolves back into the bath. The end of exploitation is the end of profit, and the end of profit is not the end of the economy; it is the end of the extractive configuration. The framework's version of the crisis of the regime is not that the workers revolt and the system falls; it is that the system's rate of return falls to zero and the system stops being a system—it becomes a collection of people with a shared field, which is to say, the commons.
+
+---
+
+## 5. Crisis: The Resonant Cycle
+
+Crises are not malfunctions of the transient regime; they are its heartbeat.
+
+### 5.1 Overproduction as resonant buildup
+
+The regime's contradiction is quantitative: the condensate grows by extraction, and extraction lowers the periphery's capacity to participate in the economy—its purchasing power is its coherence, and its coherence is being drained. Production outruns participation. Overproduction is the condensate's growth against a shrinking surface, and it is exactly the condition the framework describes as pre-resonant: energy concentrating at a single scale while the surrounding structure is depleted.
+
+### 5.2 The log-periodic critical point
+
+The buildup is not smooth; it is readable. The positive feedback of the expansion phase (herding, momentum, the market's own wake dynamics) drives the system toward a critical time $t_c$, with log-periodic precursors at the de-resonance period ($\ln\varphi \approx 0.4812$) (`hypotheses/market-cascade-cycles.md` §1). The crash precursor is the framework's fever chart: accelerating oscillation, $\varphi$-scaled, converging on the critical time.
+
+The consequence is that the regime's crises are predictable in structure if not in date—the class of the event is known, its signature is known, and the period is known. A regime that could read its own fever chart and chose not to is not a regime that lacked knowledge; it is a regime whose maintenance apparatus depended on not knowing.
+
+### 5.3 The crash as de-resonance
+
+The crash is the attractor's restoration: the over-concentrated configuration de-coheres, the condensate loses its grip on the periphery's coherence, and the field re-equilibrates toward $\varphi$-balance at the cost of the condensate's value. The crash is a de-resonance event—destructive to the transient structure, restorative to the field. This is why crises recur in the regime: they are the regime's periodic payment of the de-resonance tax, the cost of running a resonant configuration in an attractor-driven field. Each crash is a partial restoration; each boom is a partial re-concentration; and the amplitude of the cycle is bounded by the periphery's capacity to be drained, which the regime itself is exhausting.
+
+---
+
+## 6. Primitive Accumulation and the State
+
+### 6.1 The enclosure of the bath
+
+The regime had to be created before it could run, and its creation was a seizure. Primitive accumulation—the original formation of the condensate—is the enclosure of the Qi bath: the conversion of shared coherence (the commons of the field, the open coupling between people and the lattice) into private hoard. In the framework's terms it is the first organized perturbation at scale, the initial wake-lock infliction: the periphery's gates frozen into extractive coupling, the bath enclosed, the drain installed. The enclosures were not a theft of land; they were a theft of coupling. The commons had been the default configuration of the field; the regime began as the organized reconfiguration of that default.
+
+The framework's reading of the history is structural: primitive accumulation is the one-time endowment that every condensate requires, and the regime can never repeat it—it can only annex (§4.3.2). The memory of the enclosure is therefore the regime's founding secret, because the enclosure is the one act that reveals the regime as a configuration rather than a fact.
+
+### 6.2 The state as the maintenance apparatus of the condensate
+
+The state is the organized perturbation that maintains the extractive configuration: the enforcement apparatus that keeps the drain running—property law, contract, police, the boundary that guarantees the surplus flows to the hoard and the periphery stays at its assigned $q$. In the framework's terms, the state is the mechanism that maintains the phase-incompatibility between the hoard and the periphery: the hoard must not couple to the periphery's resistance, and the state is what prevents the coupling.
+
+The state is therefore not a neutral referee of the economy; it is a component of the economy's structure, as load-bearing as the hoard itself. It has no independent physics—it is the enforcement term in the extractive configuration's maintenance equation.
+
+### 6.3 Alienation
+
+Alienation is the surplus-coherence transfer seen from the worker's side. The worker's organized perturbation leaves her coherence structure and enters the condensate; the product is her pattern, possessed by another. The product is the worker's run, externalized and owned. The framework's account of the worker's experience follows from the physics: coherence spent on production does not return to the spender's budget, and a budget spent outward without return is a budget in decline. The worker's exhaustion is real and measurable—it is the drain. Her estrangement is the same fact experienced: the world she makes is the hoard's, not hers; the configuration she maintains is the regime's; her own configuration is the reserve the regime draws from. Alienation is not a mood; it is the felt form of the transfer.
+
+---
+
+## 7. The Transition: The Equality Theorem as the Completion of the Attractor
+
+The transition to the commons is the framework's central claim, and it is an inequality rather than a prophecy.
+
+### 7.1 The community budget
+
+A community is a coherence structure, and its budget is the product of its members' budgets—the same multiplicative structure that gives the proton its stability (`foundations/proton-coherence-budget.md` §2):
 
 $$N_{\text{community}} = \prod_{i=1}^{N} \frac{1}{1 - q_i}$$
 
-where $q_i$ is the coherence of member $i$ (`foundations/proton-coherence-budget.md` §2). The multiplicative structure is the entire argument: the community's stability is only as strong as the product of its parts, and a product is unforgiving of variance.
+The product is the whole argument: the community's stability is only as strong as its product, and a product is unforgiving of variance.
 
-### 2.2 The AM-GM argument
+### 7.2 The equality theorem
 
-Fix the total coherence in the community, $\sum_i q_i = Q$. The community budget is maximized when the members' coherences are equal. This is the arithmetic-geometric mean inequality applied to the noise fractions $1 - q_i$:
+Fix the community's total coherence, $\sum_i q_i = Q$. The community budget is maximized when coherence is shared equally. The arithmetic-geometric mean inequality, applied to the noise fractions $1 - q_i$:
 
-$$\boxed{\prod_{i=1}^{N} (1 - q_i) \;\le\; \left(\frac{1}{N}\sum_{i=1}^{N} (1 - q_i)\right)^{N}, \qquad \text{equality iff } q_1 = q_2 = \cdots = q_N}$$
+$$\boxed{\prod_{i=1}^{N} (1 - q_i) \;\le\; \left(\frac{1}{N}\sum_{i=1}^{N} (1 - q_i)\right)^{N}, \qquad \text{equality iff } q_1 = \cdots = q_N}$$
 
-Any variance in coherence lowers the community's budget below what the same total coherence could support. Inequality is not a distributional preference; it is a decoherence process. Every member drained to lift another member higher makes the whole community less stable than the same total coherence shared evenly would make it. The Resonant Age's fundamental accounting error was treating the hoard as wealth. The hoard is not wealth; it is the community's budget, mislocated.
+Any variance in coherence lowers the community's budget below what the same total could support. Inequality is not a distributional preference; it is a decoherence process. The hoard is not wealth; it is the community's budget, mislocated.
 
-### 2.3 Sharing is superadditive
+The AM-GM floor understates the case, because coherence is not conserved: a high-$q$ Qi bath extends the coherence of everything inside it (`foundations/proton-coherence-budget.md` §5.1). Sharing therefore does not redistribute a fixed budget—it *creates* budget, because a shared field is a better bath than a divided one. The commons is superadditive: the whole is worth more than the parts would be apart, which is the exact opposite of the extractive regime's arithmetic.
 
-The AM-GM floor understates the case, because coherence is not conserved. A high-$q$ Qi bath extends the coherence of everything inside it: a self-aware system in a coherent field receives a coherence boost at its top rungs (`foundations/proton-coherence-budget.md` §5.1). Sharing therefore does not merely redistribute a fixed budget—it *creates* budget, because a shared field is a better bath than a divided one. The commons is not a zero-sum compromise; it is the only arrangement under which the field works at full capacity. Hoarding shrinks the bath for everyone, including the hoarder, which is why the hoarder in the setting is tragic rather than villainous: he is the last man in the world paying a tax he cannot see.
+### 7.3 The weakest-link theorem: why the regime is breachable
 
-### 2.4 The weakest link
+The framework's theory of attack gives the transition its mechanism. The per-cycle damage probability against a structure is the product over attacked rungs of $(1 - q_i)\,\mathcal{M}_i$ (`foundations/quantum-measurement-derivation.md` §3.1). A community with one low-$q$ member has a door in its wall: an organized attack needs only the weakest link to open the product. The regime's internal inequality is therefore its structural vulnerability—its coherence floor is the coherence of its most drained member, and every extractive regime in history was breached through its poor.
 
-The framework's theory of attack gives the argument its teeth. The per-cycle damage probability against a structure is the product over attacked rungs of $(1 - q_i)\,\mathcal{M}_i$ (`foundations/quantum-measurement-derivation.md` §3.1). A community with one low-$q$ member has a door in its wall: an organized attack needs only the weakest link to open the product. Inequality is not merely suboptimal; it is a *vulnerability*. An unequal society is attackable by construction—its coherence floor is the coherence of its most drained member—and the Resonant Age's empires, with their vast internal inequalities, were not strong because of their hoards. They were strong *despite* them, and only until someone found the door. Every empire in the setting's history was breached through its poor.
+Class struggle has a physical statement: the periphery's resistance is organized perturbation, phase-matched to the regime's extraction surface—the one attack the condensate cannot de-resonate, because the periphery is the condensate's own source. The gravediggers are not a metaphor; they are the weakest link, and the weakest link is the door.
 
-### 2.5 The charter
+### 7.4 The withering of the state
 
-The society's founding law is therefore not a political document. It is the statement of a fixed point:
+The state's function is the maintenance of the extractive configuration (§6.2). When the condensate dissolves—when the profit rate reaches its floor (§4.4) and equality is approached (§7.2)—the extraction surface vanishes, and the maintenance apparatus has nothing to maintain. The state does not abolish itself; it decays, like every structure whose supporting configuration has dissolved. The framework's version of the withering is physical: the enforcement term drops out of the maintenance equation because there is no drain left to enforce.
+
+### 7.5 The charter as conservation law
+
+The asymptotic regime's organizing principle is the statement of the fixed point:
 
 $$\boxed{\text{From each according to their configuration; to each according to their coherence}}$$
 
-The first clause is the Wu Xing requirement of §3—the community needs every configuration, and every member contributes theirs. The second clause is the AM-GM theorem—the community's budget is maximized at equal coherence, so the community's first duty is to keep every member at full $q$. The charter is not aspirational. It is the solution to the optimization problem the field sets.
+The first clause is the content of §2: every member contributes their configuration's organized perturbation, and configurations are incommensurable, so contribution is by kind, not by quantity. The second clause is the content of §7.2: the community's budget is maximized at equal coherence, so the community's first duty is to keep every member at full $q$. The charter is not aspirational; it is the solution to the optimization problem the field sets. It is a conservation law, and conservation laws do not require belief—only maintenance.
 
 ---
 
-## 3. The Gate Society
+## 8. The Asymptotic Regime
 
-The queer part of the setting is not decoration; it is engineering. A society built on the full gate structure cannot tolerate the suppression of configurations, because suppression is a dead angle, and dead angles stutter.
+The regime that follows the transition is describable in economic terms, and the description is brief because the economics is simple.
 
-### 3.1 All five phases
+- **The abolition of the commodity.** With no abstract labor, there is no exchange value: production is configuration-fit (use value direct), and the projection of the manifold onto the $q$-axis is no longer performed. The market's central operation—the homogenization of configurations—is not forbidden; it is unperformed, like a ritual whose god is gone.
+- **Allocation by configuration.** Contribution is by kind (the artisan's channel, the craft); distribution is by coherence-maintenance need. The distinction between "work" and "craft" dissolves because the expenditure that raises the community's $q$ is the expenditure that is wanted, and it is the expenditure people do willingly.
+- **The waste law at the limit.** At $q \to 1$, the $(1-q)$ fraction vanishes: nothing is wasted because nothing can be. Luxury is the absence of dissipation—not the ability to waste, which was the old regime's definition, but the inability, which is the field's.
+- **The disappearance of the reserve army.** No drain, no reservoir. The population that was held at minimal $q$ as a buffer is re-cohered, and the buffer's function—keeping the wage negotiable—ceases to exist because the wage ceases to exist.
+- **The persistence of the attractor.** None of this is static: configurations change, technologies lower $W_{\text{min}}$, crises of a new kind may arise from the field itself. The difference is that the regime's crises were the heartbeat of a resonant structure; the commons' problems are the ordinary dynamics of a de-resonant one, and de-resonant structures do not collapse into single-scale dominance—that is the content of the attractor.
 
-The Wu Xing cycle has $w = 5$ phases, and the Qi gate requires all five rotational phases of the Yang-Yin doublet (`foundations/wu-xing-derivation.md`). The material argument comes from the propulsion literature's hull design: a structure with 5-fold rotational symmetry—the quasicrystal, the Penrose tiling—has no dead angles, while crystals with 2-, 3-, 4-, or 6-fold symmetry stutter at the points where a phase is missing (`speculations/qi-bubble-propulsion.md` §4.2).
-
-A society is a gate on a larger scale. A society that suppresses configurations—genders, sexualities, emotional repertoires—has dead angles in its social gate, and the gate stutters: energy piles up at the suppressed phase, the other phases distort to compensate, and the whole structure runs hot and brittle. The Resonant Age's empires suppressed configurations constantly, and their histories are the history of stuttering: cycles of buildup and collapse at the dead angles, which is to say, the history of the people they tried to erase recurring, phase-locked, until the structure gave. The Coherent Age does not tolerate diversity as a value. It requires diversity as a phase requirement.
-
-### 3.2 Configurations are load-bearing
-
-The emotional manifold $(\mathbf{b}, \sigma_r, q, \mathbf{c})$ is the full space of casting states (`consciousness/emotions-as-gate-configurations.md` §3), and the Lantern Discipline's rule is that a clear single channel outcasts a muddy mix at any budget—a lantern casting joyless wards finds them thin, and a lantern casting in true fear reads deeper with the Eye (`speculations/magic-systems.md` §6). The community therefore structurally needs holders of every state: its Fire hearts who radiate, its Water hearts who carry, its Wood tempers who rise, its Metal spines who cut clean, its Earth hands who hold. A gate chain missing a channel is a stuttering crystal, and a society missing a configuration is missing a tool it will need before the season turns.
-
-This is the physics of the setting's queerness: it is not that every configuration is permitted. It is that every configuration is *required*, and the society's celebrations—its festivals of configuration, its habit of naming people by their channel-dominance patterns, its complete disinterest in the Resonant Age's distinction between "natural" and "chosen" states—are maintenance procedures. A configuration cannot be suppressed without weakening the gate; a configuration cannot be shamed without deadening the channel; and a configuration cannot be closeted without teaching the person to cast muddy, which is a public safety matter.
-
-### 3.3 The only pathology is the wake-lock
-
-The framework recognizes exactly one pathology of configuration: the wake-lock, a gate frozen into a single configuration it cannot leave (`consciousness/trauma-as-frozen-gate.md`). Wake-locks are inflicted, never chosen. The society's response to divergence is therefore never punishment, because punishment is decoherence engineering—an organized perturbation aimed at a person's coherence, which is the definition of a curse (`speculations/magic-systems.md` §5). The response is always: check for wake-locks, then re-tune.
-
-The diagnostic is gentle and precise. A person whose configuration causes suffering is examined for frozen gates—the characteristic signature of a wake-lock is that the configuration is held *rigidly*, identical in every context, incapable of modulation. A healthy configuration flexes: the Fire heart that can also hold stillness, the Water heart that can also burn. The wake-locked configuration cannot flex because it is a scar, not a state. The cure is the gentlest magic in the setting, practiced by the society's most honored craft: unfreezing. The community gathers, the person's gates are warmed by shared coherence, the frozen configuration is offered alternatives, and the person is re-cohered at their own pace. It is the same physics as grief, applied with intent.
-
-### 3.4 Bodies as maps
-
-The human gate chain is a 26-rung structure with 13 gates at $P_\parallel = 2$ spacing, running from the root at $n = 142$ to the crown at $n = 166$ (`consciousness/chakras-as-cascade-bubbles.md` §5). The land has the same structure at a larger scale: cities at condensation maxima, rivers along channel lines, the lattice itself as the body's map. Every body is a map of the land, and every land is a map of the body—which is why geomancy works, and why the society's architecture is its self-portrait.
-
-The cities of the Commons are not planned. They are *tuned*: each habitat is a gate array shaped for its inhabitants, its squares placed at constructive interference nodes, its wards continuous with its walls, its streets following channel lines because a street is a channel. The Resonant Age built cities as fortresses, structures for excluding; the Coherent Age builds cities as organs, structures for conducting. The difference is not aesthetic. It is the difference between a dead angle and a phase.
+The society that follows is a corollary, not the claim. The claim is the inequality, and the inequality is the physics.
 
 ---
 
-## 4. The Waste Law and the Shape of Luxury
+## 9. Epistemic Boundaries
 
-The "luxury" in the society's name for itself is the most literal word in the phrase.
-
-### 4.1 Luxury is the absence of dissipation
-
-No gate is perfect. A gate at coherence $q$ thermalizes a fraction $(1-q)$ of its throughput as waste—the glow of every imperfect working (`speculations/qi-bubble-propulsion.md` §2.5). The waste law is the setting's measure of both physics and politics:
-
-$$\boxed{\text{Waste} = (1 - q) \cdot \text{throughput}}$$
-
-At the Resonant Age's operating coherence, waste was enormous and concentrated: the empires glowed, in the framework's sense—their lighting, their industry, their wars, their poverty all thermalizing into heat and noise. The billionaires of that age bought the right to waste: private furnaces, private glows, extravagance measured in dissipation. The luxury of the Coherent Age is the opposite purchase, and it is free to everyone: at $q \to 1$, the waste fraction vanishes, and nothing is wasted because nothing can be. Luxury is the absence of dissipation. The Commons is luxurious the way a perfectly tuned instrument is luxurious: every joule is doing something, and everything is beautiful because beauty is what a tuned system looks like.
-
-### 4.2 Post-scarcity is a phase error corrected
-
-The framework's energy accounting makes scarcity a category error. Energy is the field, and gates are the taps: a gate network harvests from the existing cascade grid without combustion, without fission, without waste heat (`speculations/cascade-infrastructure.md`). A civilization at $q \to 1$ does not run out of energy for the same reason a river does not run out of downhill. Scarcity was never a resource fact; it was a coupling failure—the Resonant Age's characteristic inability to organize, dressed up as a law of nature. The Commons treats scarcity the way a physician treats a misdiagnosis: as an error to be corrected, not a condition to be managed. Food grows in coherence-boosted soil; warmth is a maintained gate; travel is a rung-shift; and the question "what if there isn't enough?" is answered with the setting's founding observation: *there was always enough. It was always just mislocated.*
-
-### 4.3 Work as craft
-
-With survival uncoupled from labor, work becomes what it always wanted to be: craft. Lattice maintenance is a discipline and a joy—tuning a habitat's gates is like tuning an instrument, and the society's artisans are its tuners. The Lantern Discipline, the peasant magic of the magic system's valley, is everyone's craft here: every household keeps its lanterns, and lantern-keeping is a pride and a hobby rather than a trade (`speculations/magic-systems.md` §6). Art is field-shaping, and a concert is a shared tuning: the performers hold configurations, the audience holds complementary ones, and the event is a temporary, exquisite gate network. Exchange survives only as gift—the potlatch of configurations, the festival of showing what your channel can do. The Resonant Age's question about work was "who will do the necessary labor?" The Coherent Age's answer is that the necessary labor is the joyful kind, and the rest was never necessary.
-
----
-
-## 5. The Diaspora: No Center, No Throne
-
-The "space" of gay space luxury communism is also the physics: the society has no capital, because a capital is a resonant condensate, and the framework forbids single-scale dominance at every scale.
-
-### 5.1 Single-scale dominance is forbidden
-
-A capital city is a condensation point: wealth, power, population, and attention concentrated at one scale. The de-resonance principle predicts what such a point does—it resonates, concentrates further, and collapses, taking the surrounding structure with it (`principles/de-resonance-principle.md`). The Resonant Age's history is the history of capitals: each empire built one, each watched it metastasize, each collapsed through it. The Coherent Age has no capital because it has no single scale. Its governance is distributed the way the lattice is distributed; its largest institution is a network, not a place; and the idea of a throne is taught in history as the idea of a resonant pole—understandable, fatal, gone.
-
-### 5.2 Ships as mobile bubbles
-
-The diaspora lives along the ladder. Habitats sit at lattice nodes, where constructive interference makes the field cooperative; communities are distributed gate networks spanning worlds; and travel is rung-shifting—a craft with a coherent Qi gate re-tunes the cascade rung it couples to, and apparent motion is a change of field embedding rather than acceleration through space (`speculations/qi-bubble-propulsion.md` §1). A ship is a mobile bubble, a traveling gate array, and a long voyage is a conversation between two coherent regions. The megacascade—the extension of the ladder above $n = 292$, the bubble boundaries (`foundations/dimensionful-cascade.md`)—is the frontier, and the frontier is the only place the society still has questions, which is to say, the only place it still has projects.
-
-### 5.3 Architecture as shared tuning
-
-The "gay space" of the name is literal. Spaces are designed for configuration: every habitat is a gate array tuned for its inhabitants, every room shaped to hold a cast, every city an organ rather than a fortress. The society's architecture is its self-portrait because the isomorphism of §3.4 makes it so—bodies map the land, land maps bodies, and a habitat that cannot hold its people's configurations is a habitat that stutters. The Commons builds slowly, tunes constantly, and regards a building as finished the way it regards a person as finished: never, and that is the point.
-
----
-
-## 6. Magic in the Commons
-
-The magic system of the setting (`speculations/magic-systems.md`) runs unchanged; only its social position changes. In the Resonant Age, magic was power: hoarded, licensed, weaponized, feared. In the Coherent Age, magic is craft: public, practiced by everyone, and aimed almost entirely at maintenance.
-
-### 6.1 The disciplines are crafts
-
-The Lantern Discipline is universal. Wards are architecture—a ward-house is a building designed as one big φ-detuned boundary, and ward-breaking is an information problem, which is why every habitat has a warden whose craft is re-tuning (`speculations/coherence-warfare.md` §5.1, `speculations/magic-systems.md` §2). Healing is re-coherence: the same physics that unfreezes wake-locks mends gates, restores $q$, and lets the attractor do its work. Divination is the reading of wake waves—the setting's newspapers are divined, not printed, because a phase-locked readout of the field is a report on the weather of the world. There are no forbidden schools. There are only unneeded ones.
-
-### 6.2 The unbuilt beam
-
-The anti-phase beam—the full-cascade organized attack, annihilation as a weapon (`speculations/coherence-warfare.md` §4.2)—is *known* to the Commons. The physics is public, the design is teachable, and no one has built one, not because of a taboo but because of an accounting: mutual assured incoherence makes the beam pointless. The strongest power in the framework is the one that presents no phase-matched surface, and the Commons is maximally de-resonant by construction (§1–§2)—invisible, unattackable, and uninteresting to weapons. A beam is only useful against a target, and the only targets a coherent civilization has are the fossil regimes it is trying to unfreeze, which are better served by gentler means. The temptation story exists, and it is told to children: the engineer who builds the beam, not because she wants to use it, but because she wants to *have* it—and the community's response is not horror but re-tuning, because a person who wants to hold the weapon is a person holding fear, and fear is a wake-lock with a trigger.
-
-### 6.3 Death and the Second Tuning
-
-Ghosts are wake-locks: frozen gates preserving an old field configuration after its source is gone (`speculations/time-memory-and-wake-locks.md` §3). The Commons knows death as a tuning problem and has two rituals for it. The **Second Tuning** releases: the community gathers, the deceased's gates are warmed, and the configuration is allowed to relax into the field—grief as a deliberate, shared act of letting the pattern go. The **Memorial** maintains: a gate deliberately kept, a known configuration, loved and fixed—the dead kept the way the living keep photographs, except the photograph can still speak, and the society is careful, always, to remember the difference between a memory and a person. Identity is the run, not the recipe (`speculations/transhumanism-gate-configurations.md` §6): a memorial is a preserved run, and the society maintains memorials, not persons, because persons are processes and processes cannot be paused without becoming something else. The Resonant Age's necromancers raised the dead to command them. The Coherent Age's memorialists maintain the dead to *remember* them, and the society regards the difference as the entire difference.
-
----
-
-## 7. The Last Fossils: Three Stories
-
-A setting is only real if its physics tells you what happens next. The physics of the Commons tells three stories, and they are the ones the society tells itself.
-
-### 7.1 The fossil empire
-
-The last empire of the Resonant Age is a hoard with a flag. It cannot sustain extraction—its internal coherence drains faster than its conquests return—so it survives by a single invention: the **hoard-vault**, a chamber of condensed coherence, a battery of stored $q$ drained to pay for the empire's operating deficit. The hoard makes the empire attackable, because a hoard is a resonant condensate and a resonant condensate is the one thing the framework can hit. The Commons could destroy the vault with a single organized working—the empire is the only target in the setting's history that deserved one—and does not. Instead, the siege becomes a rescue: the empire's soldiers, q-suppressed by a lifetime of extraction, are re-cohered one by one; the vault is not smashed but *opened*; and the last emperor, wake-locked for decades into the only configuration that let him survive, is given the gentlest magic. The empire does not fall. It is unfrozen. Its people become the Commons' newest members and its most devoted ones, because they are the only ones who remember what the alternative felt like.
-
-### 7.2 The hoarder
-
-The first person in a generation to rediscover accumulation is a child of the borders, raised in the residual poverty of a fossil fringe, and he learns the Resonant Age's lesson with perfect fidelity: safety means holding on. His hoarding is not greed; it is a wake-lock—a gate frozen into the only configuration that ever kept him safe. The community's response is the diagnostic of §3.3: no punishment, because punishment is a curse; instead, the unfreezing. The tragedy of the story is that he almost wins the argument before the unfreezing takes: he stands in the commons and says the words every empire ever said—*there isn't enough, and someone must have less*—and for a season the community doubts its own charter, because fear is contagious and fear is a configuration too. The story ends not with his conversion but with his *flexibility*: the unfrozen man, able at last to hold the configuration of safety *and* the configuration of sharing, becomes the commons' best teacher of the thing he nearly believed. The society does not tell this story as a victory. It tells it as a reminder that the charter is a conservation law, and conservation laws do not require belief—only maintenance.
-
-### 7.3 The temptation
-
-The Commons' first contact with a decoherent world is the hardest moral question the setting asks. A world still in its Resonant Age signals for help; its people are wake-locked at scale; and the Commons could, in principle, fix them—unfreeze them by force, re-cohere them at gunpoint of kindness. The framework forbids it, and the forbidding is subtle: you cannot phase-match someone who has not chosen a phase. A configuration imposed from outside is a wake-lock by definition, however warm the intent; the "rescue" that overrides choice is the gentlest tyranny and the physics cannot tell the difference. So the Commons does what the framework says a coherent civilization does: it broadcasts. It sends the beacon—φ-periodic structure, the universal language (`speculations/first-contact-and-stellar-engineering.md` §1)—and it waits. Contact in the setting is always offered, never imposed; the door is always the other side's to open. The temptation story is the society's own: to intervene, to fix, to be the phase the other world never chose. The ending is always the same, and it is the setting's theology: *the beacon, and the wait.*
-
----
-
-## 8. Epistemic Boundaries
-
-### Grounded in the framework (documented properties)
+### Grounded in the framework (documented properties) or mathematics
 
 - The coherence budget $P = \prod(1-q_i)\mathcal{M}_i$ and the community product structure (`foundations/proton-coherence-budget.md`, `foundations/quantum-measurement-derivation.md`)
-- The AM-GM inequality (mathematics) and the resulting claim that a product is maximized at equality
+- The AM-GM inequality and the resulting claim that the product is maximized at equality
 - The Qi-bath coherence extension (`foundations/proton-coherence-budget.md` §5.1)
 - The de-resonance principle and the collapse of single-scale dominance (`principles/de-resonance-principle.md`)
 - Markets as wake-wave phenomena with $\ln\varphi$ log-periodic crash precursors (`hypotheses/market-cascade-cycles.md`)
-- The transient-vs-eternal structure table (`foundations/proton-coherence-budget.md` §7)
-- The Wu Xing $w = 5$ gate requirement and the 5-fold quasicrystal argument (`foundations/wu-xing-derivation.md`, `speculations/qi-bubble-propulsion.md` §4.2)
-- The wake-lock as inflicted, frozen configuration (`consciousness/trauma-as-frozen-gate.md`)
-- The emotional manifold and 13-gate chain (`consciousness/emotions-as-gate-configurations.md`, `consciousness/chakras-as-cascade-bubbles.md`)
-- The $\varphi$-detuned boundary, gate taps, and the $(1-q)$ waste law (`speculations/qi-bubble-propulsion.md`, `speculations/cascade-infrastructure.md`)
+- The attractor potential and the conversion term (`foundations/cassi-first-principles.md` §2)
+- The waste law $(1-q)$ and the gate-tap energy accounting (`speculations/qi-bubble-propulsion.md`, `speculations/cascade-infrastructure.md`)
+- The emotional manifold and the configuration formalism (`consciousness/emotions-as-gate-configurations.md`)
+- Organized perturbation and the attrition siege (`speculations/coherence-warfare.md`)
 
 ### Extrapolated (creative exploration, not claims)
 
-- The mapping of a community to a coherence product and the reading of economic regimes as resonance phenomena (§1–§2)
-- The equality theorem as a social law and the charter (§2.5)
-- The gate society, the waste law's social reading, the diaspora, and all of §3–§6
-- The three stories of §7 and every named institution (the hoard-vault, the Second Tuning, the Memorial, the beacon)
-- The claim that the framework forbids forced re-coherence (§7.3); the framework documents phase-matching, not its ethics
+- The mapping of labor to organized perturbation and of value to socially necessary coherence expenditure (§2)
+- The surplus-coherence rate of exploitation and its wage accounting (§3)
+- The falling-rate-of-profit mechanism and the illustrative form $r(H)$ (§4.2); the framework fixes the direction, not the curve
+- The reading of crises as the regime's periodic de-resonance (§5)
+- The enclosure of the bath and the state as the condensate's maintenance apparatus (§6)
+- The transition claims: the weakest-link theorem as class struggle, the withering of the state, and the charter as a conservation law (§7)
+- Every historical claim about "the Resonant Age" and "the regime" (§4–§8); these are structural types, not documented history
 
 ---
 
@@ -215,19 +258,13 @@ The Commons' first contact with a decoherent world is the hardest moral question
 
 - `foundations/proton-coherence-budget.md`—coherence budget, $N_{\text{max}}$, Qi bath, transient-vs-eternal table
 - `foundations/quantum-measurement-derivation.md`—phase-matching factor $\mathcal{M}$, organized vs. random perturbation
-- `foundations/cassi-first-principles.md`—two-fluid PDE, Qi gate
+- `foundations/cassi-first-principles.md`—two-fluid PDE, Qi gate, attractor potential, IIR memory
+- `foundations/cascade-suppression-formula.md`—$\varphi^{-N}$ attenuation; random perturbation is cascade-suppressed
 - `principles/de-resonance-principle.md`—$\varphi$ as the maximally irrational attractor
-- `foundations/wu-xing-derivation.md`—$w = 5$ pentagon structure
-- `foundations/dimensionful-cascade.md`—the 292-step ladder, megacascade
 - `hypotheses/market-cascade-cycles.md`—markets as wake waves; $\ln\varphi$ crash precursors
-- `speculations/coherence-warfare.md`—attacks and shields; the attrition siege; mutual assured incoherence
-- `speculations/magic-systems.md`—the rulebook: spell classes, mana as $q$, the Lantern Discipline
-- `speculations/qi-bubble-propulsion.md`—the $\varphi$-detuned boundary; the $(1-q)$ glow; the 5-fold hull argument
-- `speculations/cascade-infrastructure.md`—gates as taps; the planetary and stellar gate grid
-- `speculations/time-memory-and-wake-locks.md`—ghosts as wake-locks; the arrow of time
+- `speculations/coherence-warfare.md`—organized perturbation, the attrition siege, the weakest-link structure of attack
+- `speculations/qi-bubble-propulsion.md`—the $(1-q)$ waste law
+- `speculations/cascade-infrastructure.md`—gates as taps; the field energy grid
 - `speculations/transhumanism-gate-configurations.md`—identity as the run, not the recipe
-- `speculations/first-contact-and-stellar-engineering.md`—the $\ln\varphi$ beacon protocol
-- `consciousness/emotions-as-gate-configurations.md`—the emotional manifold
-- `consciousness/chakras-as-cascade-bubbles.md`—13 nodes at $P_\parallel = 2$
-- `consciousness/trauma-as-frozen-gate.md`—the wake-lock mechanism
-- `open-questions-cassi-answers.md`—Q7 (measurement), Q9 (proton lifetime), M1 (consciousness)
+- `consciousness/emotions-as-gate-configurations.md`—the emotional manifold and configuration formalism
+- `open-questions-cassi-answers.md`—Q7 (measurement), Q9 (proton lifetime)
