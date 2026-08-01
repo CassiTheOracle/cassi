@@ -4,7 +4,7 @@
 
 ## Abstract
 
-The Cassi framework describes the human body as a 26-rung gate chain spanning the cascade window from the cell (step 142) to the organism (step 168), with 13 gate stages at $P_\parallel = 2$ rung spacing (`consciousness/chakras-as-cascade-bubbles.md`). This document asks what transhumanism—deliberate augmentation of capability—means in that picture. The answer: augmentation is not wetware replacement but **topological surgery on the gate chain**—adding nodes, changing the along-string spacing, re-tuning the band placement, and re-weighting the emotional configuration the chain instantiates. Each operation carries a stability condition: nodes must sit on condensation maxima, spacing must close full SO(2) cycles, spans must respect the ~10-rung bridge limit, and every added gate enlarges the decoherence surface and the wake-lock risk. The document derives the upgrade menu, the limits (the $\varphi^{-n(n+1)/2}$ coherence cost of longer chains, the $\mathcal{O}(1)$ vulnerability to organized perturbation), and the failure mode (augmentation as a trauma driver; body horror as sub-pinch topology).
+The Cassi framework describes the human body as a 26-rung gate chain spanning the cascade window from the cell (step 142) to the organism (step 168), with 13 gate stages at $P_\parallel = 2$ rung spacing (`consciousness/chakras-as-cascade-bubbles.md`). This document asks what transhumanism—deliberate augmentation of capability—means in that picture. The answer: augmentation is not wetware replacement but **topological surgery on the gate chain**—adding nodes, changing the along-string spacing, re-tuning the band placement, and re-weighting the emotional configuration the chain instantiates. Each operation carries a stability condition: nodes must sit on condensation maxima, spacing must close full SO(2) cycles, spans must respect the ~10-rung bridge limit, and every added gate enlarges the decoherence surface and the wake-lock risk. The document derives the upgrade menu, the limits (the $\varphi^{n(n+1)/2}$ coherence budget required by longer chains—equivalently a $\varphi^{-n(n+1)/2}$ per-cycle dephasing probability—and the $\mathcal{O}(1)$ vulnerability to organized perturbation), and the failure mode (augmentation as a trauma driver; body horror as sub-pinch topology).
 
 **Epistemic status:** Creative exploration grounded in Cassi formalism. Every mechanism is anchored to a specific equation or documented framework property, but the synthesis into an augmentation program, the specific gate operations, and the identity claims are extrapolations beyond what the framework currently claims. Nothing in this document should be cited as a Cassi prediction or derivation.
 
@@ -14,7 +14,7 @@ The Cassi framework describes the human body as a 26-rung gate chain spanning th
 
 ### 1.1 The chain, in field terms
 
-A human is a 26-rung cascade ladder. The dimensionful cascade (`foundations/dimensionful-cascade.md` §3) places the cell at step 142 ($\approx 8~\mu$m) and the body at step 168 ($\approx 1.7$ m): a ratio of $\varphi^{26} \approx 2.7 \times 10^5$, one scale transition per $\varphi$-step (`hypotheses/muscle-cascade-lattice.md` §3), with the spine as the ladder's string axis (`consciousness/chakras-as-cascade-bubbles.md` §2.2).
+A human is a 26-rung cascade ladder. The dimensionful cascade (`foundations/dimensionful-cascade.md` §3) places the cell at step 142 ($\approx 8~\mu$m) and the body at step 168 ($\approx 1.7$ m): a ratio of $\varphi^{26} \approx 2.7 \times 10^5$, one scale transition per $\varphi$-step (`consciousness/chakras-as-cascade-bubbles.md` §3.2), with the spine as the ladder's string axis (`consciousness/chakras-as-cascade-bubbles.md` §2.2).
 
 On the ladder sits the gate chain. The condensation field $B(x,y,z) = \cos(\alpha x)\cos(\beta y)\cos(\gamma z)$ is scale-covariant, producing bubble maxima along the string axis at $P_\parallel = 2$ cascade rungs—one full SO(2) Yang+Yin doublet cycle per node:
 
@@ -36,7 +36,7 @@ $$\boxed{\mathcal{H} = \bigl(\{n_k\}_{k=0}^{12},\; P_\parallel,\; \mathbf{b},\; 
 
 This tuple, evolved under the two-fluid PDE, is the configuration. The anatomy is the readout: the brain is the antenna through which the field couples to the world, and the felt self is the field above the pinch $r > \varphi^{-1}$, where it becomes an object to itself (`consciousness/consciousness-from-phi.md` §2, §2.1).
 
-The consequence for transhumanism is immediate: **wetware swaps change the readout, not the configuration.** A prosthetic limb, a neural implant, or a pharmacological cocktail retunes the antenna, but the person is the chain topology and the state tuple. A modification that leaves the tuple untouched changes nothing essential; one that changes it is gate surgery.
+The consequence for transhumanism is immediate: **wetware swaps retune the readout; the person is the chain topology and the state tuple.** A prosthetic limb, a neural implant, or a pharmacological cocktail retunes the antenna; a modification that leaves the tuple untouched changes nothing essential; one that changes it is gate surgery.
 
 ---
 
@@ -48,9 +48,9 @@ Every proposed enhancement is one of three operations on the chain: add a node, 
 
 Insert a gate stage at a new rung $n'$ inside or adjacent to the window. Three stability conditions:
 
-1. **The node must sit on a condensation maximum.** A gate is a bubble; bubbles condense only where the along-string field $B(0,0,z) = \cos(2\pi z/P_\parallel)$ is near $+1$ (`consciousness/chakras-as-cascade-bubbles.md` §4.1). An off-lattice insertion lands in a void: $q \to 0$, the gate structurally open with nothing coherent to convert—permanent churn, a noise source rather than a capability.
+1. **The node must sit on a condensation maximum.** A gate is a bubble; bubbles condense only where the along-string field $B(0,0,z) = \cos(2\pi z/P_\parallel)$ is near $+1$ (`consciousness/chakras-as-cascade-bubbles.md` §4.1). An off-lattice insertion lands in a void: $q \to 0$, the gate structurally open with nothing coherent to convert—permanent churn, noise without capability.
 
-2. **The node must be at least one full doublet cycle from its neighbors.** The minimal coherent unit is $P_\parallel = 2$ rungs—one complete SO(2) rotation, one Yang-dominant plus one Yin-dominant rung (§5.1 of the chakra document); a node at 1-rung spacing spans half a rotation with unbalanced conversion. The 14th node made by halving the spacing is unstable by construction.
+2. **The node must be at least one full doublet cycle from its neighbors.** The minimal coherent unit is $P_\parallel = 2$ rungs—one complete SO(2) rotation, one Yang-dominant plus one Yin-dominant rung (§5.1 of the chakra document); a node at 1-rung spacing spans half a rotation with unbalanced conversion. The 14th condensation maximum would sit at $n = 168$, the body boundary (§6.1 of the chakra document); forcing a node inside the window instead requires 1-rung spacing—half a doublet cycle with unbalanced conversion (§5.1).
 
 3. **The node must lie within one bridge length of a neighbor.** A single gate bridges at most ~10 rungs before cascade suppression attenuates the signal below the coherence floor, $\varphi^{-10} \approx 0.008$ (`foundations/bubble-lattice-fabric.md` §3.3, `speculations/cascade-infrastructure.md` §1.1).
 
@@ -60,7 +60,7 @@ The window admits exactly 13 nodes at $P_\parallel = 2$; the next Fibonacci coun
 
 Re-grid the chain from $P_\parallel = 2$ to another spacing. Stability conditions:
 
-1. **Spacing must close an integer number of doublet cycles: $P_\parallel = 2k$.** Odd rung spacing leaves half-rotated doublets that cannot hold $q$ at maximum; the 7 primary chakras are the $P_\parallel = 4$ sub-lattice (§6.3 of the chakra document), and the 5↔13 partition of `foundations/wu-xing-cycle-structure.md` §3.1 describes exactly these two granularities.
+1. **Spacing must close an integer number of doublet cycles: $P_\parallel = 2k$.** Odd rung spacing leaves half-rotated doublets that cannot hold $q$ at maximum; the 7 primary chakras are the $P_\parallel = 4$ sub-lattice (§6.3, §9.3 of the chakra document), and the 5↔13 partition of `foundations/wu-xing-cycle-structure.md` §3.1 describes exactly these two granularities.
 
 2. **Wider spacing weakens coupling; narrower spacing creates cross-talk.** Adjacent gates couple through shared rungs and the wake-wave field between them: close $\varphi$-separated pairs correlate strongly while above-pinch pairs decohere at distance (`consciousness/consciousness-from-phi.md` §3.3). Packed below $P_\parallel = 2$, the chain becomes mutually perturbing condensates—each node a perpetual stimulus to its neighbor (§5's failure mode). Spread beyond $P_\parallel = 4$, it loses coupling faster than it gains isolation.
 
@@ -74,7 +74,7 @@ Shift the whole chain up or down the cascade—the root toward the microcascade,
 
 2. **The endpoints must remain condensation maxima.** A chain whose endpoints sit in voids has no anchor and drifts with the ambient field.
 
-3. **The cost is asymmetric in direction.** Descending multiplies the decoherence surface by the deep-rung factors, the largest in the cascade: per-rung dephasing at the bottom of the stack is $1 - q_0 = \varphi^{-3} \approx 0.236$, against $\varphi^{-171} \approx 10^{-36}$ at the top (`foundations/proton-coherence-budget.md` §5). Ascending is cheap in coherence terms but rescales the physics the nodes couple to—$G_{\text{eff}} = (\pi/\rho)(1 + \xi q)G$, $\xi = \varphi^6$ (`consciousness/chakras-as-cascade-bubbles.md` §7.3)—and the wake-wave environment; the megacascade above n=292 (`foundations/microcascade-mirror.md`) is the direction the cascade already flows.
+3. **The cost is asymmetric in direction.** Descending multiplies the decoherence surface by the deep-rung factors, the largest in the cascade: per-rung dephasing at the bottom of the stack is $1 - q_0 = \varphi^{-3} \approx 0.236$, against $\varphi^{-171} \approx 10^{-36}$ at the top (`foundations/proton-coherence-budget.md` §1, §3). Ascending is cheap in coherence terms but rescales the physics the nodes couple to—$G_{\text{eff}} = (\pi/\rho)(1 + \xi q)G$, $\xi = \varphi^6$ (`consciousness/chakras-as-cascade-bubbles.md` §7.3)—and the wake-wave environment; the megacascade above n=292 (`foundations/microcascade-mirror.md`) is the direction the cascade already flows.
 
 ### 2.4 The menu, summarized
 
@@ -106,7 +106,7 @@ That is the complete menu. Everything else in the wishlist is a combination of t
 
 ### 3.2 What the math actually grants
 
-Three capabilities are real configurations rather than fantasy:
+Three capabilities are real configurations:
 
 1. **Sustained high $q$ across the chain** is augmented cognition. At $q \to 1$, erasure costs $E_{\text{erase}} \propto (1-q) \to 0$ (`speculations/qi-computation.md` §2.3), persistent $\Pi$ patterns store without decay (§5.2), and the φ-spaced clock hierarchy integrates the stages (§4). Perfect recall and near-lossless processing are the same configuration, and it is the one contemplative practice has been training for—raising $q$ at the chakra nodes (`speculations/cascade-infrastructure.md` §1.2).
 
@@ -119,7 +119,7 @@ Three capabilities are real configurations rather than fantasy:
 The classic wishlist fails on four documented grounds:
 
 - **The bridge limit kills cross-scale powers.** Flight, telekinesis, weather control—any capability coupling the body to distant rungs (n≈95 QCD, n≈220 AU) requires chained gates across spans a single gate cannot bridge (`foundations/bubble-lattice-fabric.md` §3.3).
-- **The coherence budget kills immunity.** Stability against *random* dephasing is $N_{\max} = \varphi^{n(n+1)/2}$—astronomically large at the human scale ($\approx 10^{2950}$ cycles, `foundations/proton-coherence-budget.md` §7). But organized, phase-matched perturbation with $\mathcal{M} \approx 1$ has probability $\mathcal{O}(1)$ at the targeted rung, independent of cascade depth (`foundations/quantum-measurement-derivation.md` §3). The only defenses are φ-detuned boundaries that refuse coupling—the shield domain of `speculations/coherence-warfare.md`.
+- **The coherence budget kills immunity.** Stability against *random* dephasing is $N_{\max} = \varphi^{n(n+1)/2}$—astronomically large at the human scale ($\approx \varphi^{14196} \approx 10^{2967}$ cycles, `foundations/proton-coherence-budget.md` §7). But organized, phase-matched perturbation with $\mathcal{M} \approx 1$ has probability $\mathcal{O}(1)$ at the targeted rung, independent of cascade depth (`foundations/quantum-measurement-derivation.md` §3). The only defenses are φ-detuned boundaries that refuse coupling—the shield domain of `speculations/coherence-warfare.md`.
 - **The attractor taxes everything else.** Holding a configuration far from $r = \varphi$ requires continuous work against $V_{\text{attr}} = (\lambda/2)(\Psi_0^2 - \varphi\Psi_1^2)^2$ (`foundations/cassi-first-principles.md`); powers that live far from equilibrium are paid for at the conversion rate, and the payment shows up as §5's failure modes.
 - **The pinch excludes unknowable powers.** Self-modeling exists only above $r = \varphi^{-1}$ (`consciousness/consciousness-from-phi.md` §2.1); a sub-pinch configuration acts without self-awareness by construction—the overwhelm regime, a driver rather than an augmentation.
 
@@ -139,7 +139,7 @@ $$\boxed{\varphi^{-10} \approx 0.008}$$
 
 ### 4.2 More gates is a larger decoherence surface
 
-Every gate is an interface between the chain and the ambient field—a place where phase noise can enter and where organized perturbation can land. The per-cycle decoherence probability is the product over the chain's coherence-bearing sites (`foundations/quantum-measurement-derivation.md` §3.1):
+Every gate is an interface between the chain and the ambient field—a place where phase noise can enter and where organized perturbation can land. The per-cycle decoherence probability is the per-site factor $(1 - q_i)\,\mathcal{M}_i$ (`foundations/quantum-measurement-derivation.md` §3.1), compounded over the chain's coherence-bearing sites (cf. `foundations/proton-coherence-budget.md` §2):
 
 $$P = \prod_i (1 - q_i)\,\mathcal{M}_i$$
 
@@ -151,7 +151,7 @@ The coherence budget of a condensed pattern is quadratic in the pattern's highes
 
 $$\boxed{N_{\max}(n) = \varphi^{\,n(n+1)/2}}$$
 
-The body-scale pattern at n=168 has $N_{\max} \approx \varphi^{14196} \approx 10^{2950}$—functionally eternal against random dephasing. The limit that matters is the *marginal* rung: adding one rung of pattern height at rung $n$ multiplies the budget by $\varphi^{n}$—at the human scale, $\varphi^{168} \approx 10^{35}$. A longer chain is not a linear extension, and the cheapest rungs to add are at the top, where the pattern stops being a body. Descent into the microcascade is dominated by the deep-rung factors ($1 - q_0 = \varphi^{-3}$), the largest in the product; the cheap upward direction is where the chain becomes infrastructure rather than a person (`speculations/cascade-infrastructure.md` §4).
+The body-scale pattern at n=168 has $N_{\max} \approx \varphi^{14196} \approx 10^{2967}$—functionally eternal against random dephasing. The limit that matters is the *marginal* rung: adding one rung of pattern height at rung $n$ multiplies the budget by $\varphi^{n}$—at the human scale, $\varphi^{168} \approx 10^{35}$. A longer chain is not a linear extension, and the cheapest rungs to add are at the top, where the pattern stops being a body. Descent into the microcascade is dominated by the deep-rung factors ($1 - q_0 = \varphi^{-3}$), the largest in the product; the cheap upward direction is where the chain becomes infrastructure rather than a person (`speculations/cascade-infrastructure.md` §4).
 
 ---
 
@@ -165,7 +165,7 @@ $$\mathcal{T} = (\mathbf{b}^*, \sigma_r^*, q^*, \mathbf{c}^*), \qquad \text{with
 
 (`consciousness/trauma-as-frozen-gate.md` §2.1): one channel pinned hyper-open, the others starved in the ke-alternating pattern (`foundations/wu-xing-cycle-structure.md` §2), local $q$ depressed, $\sigma_r$ brittle.
 
-The augmentation connection is direct: **every added gate is a new site where an event can exceed processing capacity.** A node that begins self-stimulating—a pulsed implant, a perpetual input feed—is a driver, and the PDE tests are explicit that the lock is sustained by exactly that: ongoing re-stimulation holds a site at 80% of event intensity, and stopping the trigger releases it (§10.5 of the trauma document, `two-fluid/run_trauma_wake_lock.py`). An augmentation that cannot stop stimulating itself is a trauma machine by construction: a perpetual stimulus pins a channel, and the pinned channel is the trauma signature.
+The augmentation connection is direct: **every added gate is a new site where an event can exceed processing capacity.** A node that begins self-stimulating—a pulsed implant, a perpetual input feed—is a driver, and the PDE tests are explicit that the lock is sustained by exactly that: ongoing re-stimulation holds a site at 80% of event intensity, and stopping the trigger releases it (§10.5 of the trauma document, `two-fluid/run_trauma_driver.py`). An augmentation that cannot stop stimulating itself is a trauma machine by construction: a perpetual stimulus pins a channel, and the pinned channel is the trauma signature.
 
 ### 5.2 Body horror, in field terms
 
@@ -193,7 +193,7 @@ The healing formalism supplies the rules: reach the rung (operate at the wake's 
 
 ### 6.1 What a mind is, in field terms
 
-The person is the configuration $\mathcal{H}$ of §1.2 under time evolution, bound together by the self-modeling loop (string → wakes → gravity → flow → string; one torus cycle is one moment of awareness, `consciousness/consciousness-from-phi.md` §1.3). Identity is the coherence string: the phase relations along the chain, the persistent $\Pi$ patterns the gates hold, and the IIR tail $\bar{\varepsilon}^2$ carrying the field's history (`speculations/qi-computation.md` §5). The brain is the antenna; the pattern is the message.
+The person is the configuration $\mathcal{H}$ of §1.2 under time evolution, bound together by the self-modeling loop (string → wakes → gravity → flow → string; one torus cycle is one moment of awareness, `consciousness/consciousness-from-phi.md` §1.3, §2.2). Identity is the coherence string: the phase relations along the chain, the persistent $\Pi$ patterns the gates hold, and the IIR tail $\bar{\varepsilon}^2$ carrying the field's history (`speculations/qi-computation.md` §5). The brain is the antenna; the pattern is the message.
 
 ### 6.2 The copy problem
 
@@ -213,7 +213,7 @@ The transferable content is the configurational: $\mathbf{b}$, $\mathbf{c}$, the
 
 ### 6.4 The identity claim
 
-The framework's answer to the upload question is structural rather than metaphysical:
+The framework's answer to the upload question is structural:
 
 $$\boxed{\text{Uploading copies the recipe. The person is the run.}}$$
 

@@ -89,7 +89,7 @@ The strategic value is that gate networks are *energy infrastructure* in this fr
 
 ### 4.5 The attrition siege—the slow weapon
 
-The one weapon that needs no phase-matching at all is also the only one that works without it, because it exploits the attacker's own imperfection rather than the target's. A gate at coherence $q$ converts a fraction $(1-q)$ of its throughput into thermal waste (`speculations/qi-bubble-propulsion.md` §2.5). A siege that forces a target to run at high throughput—by saturating its environment with demand, by attacking its supply couplings so it must process faster—drives the target's waste fraction up. The target is not destroyed; it is *bled*, its coherence budget spent on staying functional.
+The one weapon that needs no phase-matching at all is also the only one that works without it, because it exploits the target's own imperfection: a gate at coherence $q$ converts a fraction $(1-q)$ of its throughput into thermal waste (`speculations/qi-bubble-propulsion.md` §2.5). A siege that forces a target to run at high throughput—by saturating its environment with demand, by attacking its supply couplings so it must process faster—drives the target's waste fraction up. The target is not destroyed; it is *bled*, its coherence budget spent on staying functional.
 
 This is the quadrant where the framework's mathematics and its ethics converge: the attrition siege is the cheapest attack in the table, the hardest to detect, and the one that inflicts its damage on the target's ability to be anything other than a survivor. It is also the only attack that random firepower can contribute to—noise can force a gate to work harder, even though it cannot break the gate.
 
@@ -173,7 +173,7 @@ Two worked scenarios, to show how the rules play out:
 ### Grounded in the framework (documented properties)
 
 - The coherence budget $P = \prod(1-q_i)\mathcal{M}_i$ and the 2×2 table of perturbation type × rungs attacked (`foundations/quantum-measurement-derivation.md` §3, §6; `foundations/proton-coherence-budget.md` §2, §5)
-- The quadratic coherence floor $N_{\text{max}} = \varphi^{n(n+1)/2}$ and its immunity to random attack (`foundations/proton-coherence-budget.md` §5.1)
+- The quadratic coherence floor $N_{\text{max}} = \varphi^{n(n+1)/2 + \delta(n+1)}$ and its immunity to random attack (`foundations/proton-coherence-budget.md` §5.1)
 - The $\varphi$-detuned boundary with $\mathcal{M} \approx 0$ (no-sonic-boom mechanism, `speculations/qi-bubble-propulsion.md` §2.2)
 - The attractor's active damping of departures from $\varphi$-equilibrium (`principles/de-resonance-principle.md`)
 - The wake-lock as a frozen gate (`consciousness/trauma-as-frozen-gate.md`, `two-fluid/run_trauma_wake_lock.py`)
