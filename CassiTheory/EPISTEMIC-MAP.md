@@ -92,6 +92,7 @@ Tiers below are taken from each document's Status header. Compound headers are q
 | `speculations/universal-biology.md` | Speculative | Cascade ladder as convergent evolutionary scaffold |
 | `speculations/transhumanism-gate-configurations.md` | Speculative | Augmentation as gate-chain topology surgery |
 | `speculations/magic-systems.md` | Speculative | Magic as phase-matched field operation |
+| `speculations/coherence-commons.md` | Speculative | Post-scarcity gate society; equality theorem from the coherence budget |
 | `speculations/coherence-collapse.md` | Speculative | Attractor self-healing; civilization death modes |
 | `speculations/first-contact-and-stellar-engineering.md` | Speculative | $\ln\varphi$ protocol; stars as gate chains |
 | `speculations/simulation-hypothesis.md` | Speculative | Two-fluid PDE as source code; nested universes |
