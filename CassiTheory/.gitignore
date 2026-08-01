@@ -41,3 +41,6 @@ ezmock_pk/
 *.tar.gz
 sparc_rotmod.zip
 sparc_data/
+
+# Market-fold experiment sandbox (2026-08-01) — exploratory; promote to a tracked experiments/ family when it survives surrogates
+experiments/market_fold/
