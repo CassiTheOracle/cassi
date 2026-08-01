@@ -501,7 +501,14 @@ $c_s$ scatter (2.6–123 km/s) is largely degenerate with $\rho_c$. The
 integrated $\rho_c(1+\xi) \approx$ naive DM relation holds (median ratio 1.36).
 The physical picture: the condensate is a self-gravitating isothermal sphere
 whose envelope is set by its own field dynamics; baryons read it out through
-the $(1+\xi q)$ grip.
+the $(1+\xi q)$ grip. The v8 decomposition (`experiments/sparc_qi/sparc_qi_analysis_v8.py`)
+closes the $c_s$ question: for the 75/143 galaxies reaching the isothermal
+asymptote in the data, $c_s = (1.10 \pm 0.32)\, v_{DM,\text{flat}}/\sqrt{2(1+\xi)}$
+(slope $0.82 \pm 0.07$, $R^2 = 0.68$)—the condensate virializes, and the
+remaining scatter is measurement-limited ($R^2 = 0.42$ vs $n_{\rm pts}$,
+uncorrelated with baryon fraction and size). The universal constant is the
+ratio $c_s/v_{DM,\text{flat}} = 1/\sqrt{2(1+\xi)} \approx 0.163$, which follows
+from $\xi$ alone.
 
 ## 15. Conclusions
 
