@@ -360,6 +360,13 @@ NFW, fit parity with v5 (median $\Delta$AIC = 0.0 vs the uniform boost), and
 the free scale self-tunes to $a = 1.025$ (baryonic half-mass radius). The
 core-radius tension softens from $3.6\sigma$ (vs constant density) to
 $1.9\sigma$ (model $\gamma = 0.34 \pm 0.04$ vs empirical $0.41 \pm 0.02$).
+The final step (SPARC v7, `experiments/sparc_qi/sparc_qi_analysis_v7.py`)
+replaces the fitted envelope with the actual hydrostatic equilibrium of a
+self-gravitating isothermal Yang field ($P_Y = c_s^2\rho_Y$, self-gravity
+only—baryonic compression collapses the fit from ΔAIC = −6.4 to 0.0): the
+emergent core scaling $\gamma = 0.389 \pm 0.021$ ($R^2 = 0.71$) matches the
+empirical $0.41 \pm 0.02$ at $1\sigma$, and $c_s$ shows no mass trend
+($\alpha = 0.017 \pm 0.038$; median ≈ 14 km/s).
 
 ## 11. Path 9: Cassi vs MOND
 
@@ -471,14 +478,30 @@ Path 7 showed that a single $\sigma$ cannot simultaneously satisfy binary pulsar
   mechanism directly—SPARC v5 with fixed $\xi = \varphi^6$ survives at NFW
   parity (median $\Delta$AIC = −7.0, 90/143; see §10). Core diversity now has a
   mechanism: the coherence budget suppresses the boost inside the baryonic
-  scale (SPARC v6, $q(r) = r/(r+r_{\text{half}})$, free scale $a = 1.025$).
-  Remaining candidates for the residual $\gamma$ gap ($0.34$ vs $0.41$,
-  $1.9\sigma$): the two-fluid $\pi\nabla\Phi$ buoyancy force and a
-  density-dependent $\rho_{\text{ref}} \propto \rho(R)$.
+  scale (SPARC v6, $q(r) = r/(r+r_{\text{half}})$, free scale $a = 1.025$). The
+  residual $\gamma$ gap is closed by the hydrostatic solution (§14.3): the
+  self-gravitating isothermal condensate yields $\gamma = 0.389 \pm 0.021$,
+  matching the empirical $0.41 \pm 0.02$ at $1\sigma$.
 
 ### 14.3 Self-Consistent Galactic Dynamics
 
-Combining softened gravity (small $\sigma$ for solar-system/pulsar consistency) with $\varphi$-enhanced gravity (large $\rho_{\text{ref}}$ for galactic enhancement) into a single self-consistent model of galactic dynamics. The two mechanisms operate on different physical principles and could coexist, but their combined effect on rotation curves, velocity dispersion profiles, and the Tully-Fisher relation remains to be computed.
+Solved 2026-07-31 (SPARC v7, `experiments/sparc_qi/sparc_qi_analysis_v7.py`): the
+rotation-curve condensate is the hydrostatic equilibrium of a self-gravitating
+isothermal Yang field, $P_Y = c_s^2 \rho_Y$, supported against its **own**
+gravity only—not the baryonic well (baryonic compression degrades the fit
+from ΔAIC = −6.4 to 0.0 vs NFW; the field's structure is self-organized).
+Per-galaxy ($\rho_c$, $c_s$), the model matches NFW-level fits (median ΔAIC =
+−6.4, 76/143) and the emergent core scaling $\gamma = 0.389 \pm 0.021$
+($R^2 = 0.71$) reproduces the empirical $0.41 \pm 0.02$ at $1\sigma$—the
+$3.6\sigma$ tension from §14.2 is resolved. The fitted sound speed shows no
+mass trend ($\alpha = 0.017 \pm 0.038$, $R^2 = 0.00$; median $c_s \approx 14$
+km/s), but strict universality is not established: forcing one global $c_s$
+(variant B) costs ~5.6 AIC points (ΔAIC = −0.8 vs −6.4), and the per-galaxy
+$c_s$ scatter (2.6–123 km/s) is largely degenerate with $\rho_c$. The
+integrated $\rho_c(1+\xi) \approx$ naive DM relation holds (median ratio 1.36).
+The physical picture: the condensate is a self-gravitating isothermal sphere
+whose envelope is set by its own field dynamics; baryons read it out through
+the $(1+\xi q)$ grip.
 
 ## 15. Conclusions
 
