@@ -2,7 +2,7 @@
 
 - **No AI-isms.** Avoid verbal tics that mark machine-generated text: the word "honest"/"honesty" (use "accurate," "explicit," or drop the framing); X-not-Y framing; spaces around em-dashes (use "word—word", not "word—word"); "a note:" preambles; "here is the accounting" throat-clearing. The prose should sound like a physicist explaining over coffee, not a language model padding word count.
 
-This repo is being prepared for public release. The standard is **thorough, consistent, approachable, and well-organized**—rigorous but not academic. Agents MUST fix issues they find, not just note them. **Commit at the end of every task, before yielding** (see `## Git & Commit Discipline`)—the working tree accumulates quickly and there is no remote to force the issue.
+This repo is being prepared for public release. The standard is **thorough, consistent, approachable, and well-organized**—rigorous but not academic. Agents MUST fix issues they find, not just note them. **Commit at the end of every task, before yielding** (see `## Git & Commit Discipline`)—the working tree accumulates quickly if commits and pushes don't happen.
 
 # Repository Guidelines
 
@@ -70,13 +70,14 @@ python experiments/phi_periodic_pk_search/run_phi_periodic_pk_test.py   # φ-per
 
 ## Git & Commit Discipline
 
-This repo is local-only (no remote)—the working tree is the only record of in-flight work, so changes accumulate invisibly until someone commits. **Commit at the end of every task, before yielding:**
+The private remote (`CassiTheOracle/cassi-toe`) is the durable record—uncommitted work exists only in this working tree, so changes accumulate invisibly until someone commits and pushes. **Commit at the end of every task, before yielding:**
 
 - **Cadence**—one commit per coherent unit of work, as soon as it is verified. Do not let changes pile up across sessions; split large tasks into logical commits as they complete.
 - **Scope**—each commit is one logical change. Include the registry/doc updates a change requires in the same commit (see Agent autonomy patterns below). Stage explicitly with `git add <paths>` (or `git add -A`); moves are detected as renames automatically.
 - **Content**—never stage generated output: figures (`*.png`, `*.mp4`), `runs/`, `__pycache__/`, and logs are gitignored, so `git status` should only ever show real work.
 - **Messages**—conventional style: `feat:`, `fix:`, `docs:`, `refactor:`, `chore:`, one-line imperative summary; add a body note for tier changes or tensions.
 - **Before yielding**—run `git status --short`; anything listed beyond intentional work-in-progress must be committed or explicitly handed off.
+- **Push**—after committing, `git push origin master`. The remote is the backup; a committed-but-unpushed history is still one disk failure from lost.
 
 ## Code Conventions & Common Patterns
 
@@ -116,7 +117,7 @@ Docstring with run command → NumPy + Matplotlib (**Agg backend set early**) �
 
 - **Python 3** with NumPy + Matplotlib (Agg); **PyTorch** for `two-fluid/` PDE scripts; **Manim Community** for `resonant_pond.py` only. No `requirements.txt`/`pyproject.toml`—keep scripts dependency-light and standalone.
 - Windows environment (paths like `C:/Users/Carina/...`); scripts are OS-agnostic.
-- Git: `master` branch, **no remote configured**—local-only history.
+- Git: `master` branch, private remote `CassiTheOracle/cassi-toe`; **push after every commit**. Identity: `CassiTheOracle <bingapplesauce@gmail.com>`—frozen; changing it means rewriting all history and force-pushing.
 - Do not introduce build systems, package manifests, or test frameworks without being asked.
 
 ## Testing & QA
