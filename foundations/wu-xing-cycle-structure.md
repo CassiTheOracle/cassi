@@ -1,6 +1,6 @@
 # Wu Xing Cycle Structure: The Two 5-Cycles, the Control Ring, and the 5↔13 Partition
 
-## Status: Derived (cycle geometry, coupling, ring algebra) / Hypothesized (affinity gradient, alternating profile)—July 2026
+## Status: Derived (cycle geometry, coupling, ring algebra) / Tested (ke ring, PDE 2026-07-31) / Hypothesized (affinity gradient, clinical profile)—July 2026
 
 ## Abstract
 
@@ -159,15 +159,15 @@ The channel step is the span between $\varphi^3$ and its reciprocal—an exact i
 
 ### C1: The alternating trauma profile
 
-A locked channel produces the ke-alternating pattern, not uniform starvation: for a Wood lock, Earth fully starved, Fire partially starved (−38% of the excess), Metal and Water *elevated* (+38%, +62%). **Test:** the P3 multi-dimensional affect instrument of the emotions document, on trauma-exposed populations (§11 T1 of `consciousness/trauma-as-frozen-gate.md`): profile the four non-locked channels against the $\varphi^{-i}$ baseline and check the ring fractions $[-0.382, -0.618, +0.382, +0.618]$, not four equal deficits.
+A locked channel produces the ke-alternating pattern, not uniform starvation: for a Wood lock, Earth fully starved, Fire partially starved (−38% of the excess), Metal and Water *elevated* (+38%, +62%). **PDE-verified at the gate level (2026-07-31, §4 C3 result):** whenever a channel's openness exceeds its baseline, the ke term restrains its ke target and releases the ke-released partner, forming the alternating ring in channel openness. **Test (clinical):** the P3 multi-dimensional affect instrument of the emotions document, on trauma-exposed populations (§11 T1 of `consciousness/trauma-as-frozen-gate.md`): profile the four non-locked channels against the $\varphi^{-i}$ baseline and check the ring fractions $[-0.382, -0.618, +0.382, +0.618]$, not four equal deficits.
 
 ### C2: The damping signature
 
 The ring reduces the locked channel's own excess by $\kappa^3 = 23.6\%$. **Test:** the same instrument; the locked channel should sit *above* baseline by 0.764 of the event-scale excess, not the full excess—and the complementary elevations should exceed the naive conservation expectation.
 
-### C3: No driverless persistence
+### C3: No driverless persistence—**tested (2026-07-31, `two-fluid/run_trauma_ke_ring.py`)**
 
-$\kappa^3 < 1$ predicts that a lock without a stimulus decays through the gate itself (on top of the conversion timescale). **Test:** the gate-extended PDE—add the ke control term ($\kappa = \varphi^{-1}$) to `gate_model='five'` in `two-fluid/cassi_two_fluid_3d_gpu.py` and verify the alternating state forms, the lock decays with no driver, and the φ-phased drive (§10.7 of the trauma document) dissolves it faster. A *self-sustained* lock would falsify $\kappa = \varphi^{-1}$ and require $\kappa \geq 1$.
+$\kappa^3 < 1$ predicts that a lock without a stimulus decays through the gate itself (on top of the conversion timescale). **Result:** the ke-extended gate (`gate_model='five_ke'` in `two-fluid/cassi_two_fluid_3d_gpu.py`, one simultaneous ke round per evaluation) reproduces the ring algebra exactly—the one-round ke prediction against the PDE state agrees to ≤ 6×10⁻⁴. With the standing event at amp 1.6, the site's excess channels (Fire, Earth, Water) restrain their ke targets (Metal −0.027, Water −0.021) and release the ke-released partners (Wood +0.034, Fire +0.013): the alternating ring, driven by the measured excesses. The frozen-field fixed point fully starves Metal and Water while pumping Wood and Fire. Decay with no driver is unchanged (0.350 vs 0.349 retained at $t=10$—no self-sustenance, the sub-critical ring confirmed), and the $\varphi$-phased drive still dissolves the site (0.149 retained vs 0.349 undriven). The gate-level prediction is confirmed: the ke ring redistributes and damps but never creates persistence. A *self-sustained* lock would falsify $\kappa = \varphi^{-1}$ and require $\kappa \geq 1$.
 
 ### C4: Secondary-chakra blends
 
@@ -185,11 +185,14 @@ The half-channel positions predict that affect profiles anchored at the secondar
 - The ring algebra given the control-release rule: the alternating state, the ring gain $\kappa^3 = \varphi^{-3}$ (equal to the pentagram's central segment), the threshold $\Delta_c = \varphi^{-4}$, the sub-criticality (§2)
 - The Fibonacci partition $13 = 5 + 8 = F_5 + F_6$ and the $8{:}13$ convergent (§3.2), the identity $\varphi^3 - \varphi^{-3} = 4$ (§3.3)
 
+### Tested (PDE, 2026-07-31)
+
+- The control-release rule as the gate's ke coupling: `gate_model='five_ke'` reproduces the derived ring algebra to ≤ 6×10⁻⁴; excess channels restrain ke targets and release ke partners; the ring is sub-critical (no driverless self-sustenance); the φ-phased drive still dissolves the displaced site (§4 C3, `two-fluid/run_trauma_ke_ring.py`)
+
 ### Hypothesized (mechanism supplied, test designed)
 
-- The control-release rule as the gate's ke coupling (the Wu Xing logic is the input; its gate-level form is a model choice—C3 designs the PDE test)
 - The affinity phase gradient 18°/rung as the structure of the chakra-channel table (reproduces 5/7 primaries exactly; the mechanism fixing the gradient is open) (§3.1)
-- The alternating-profile predictions C1–C4
+- The alternating-profile predictions C1–C4 in affect data (the gate-level pattern is PDE-verified; the clinical instrument test remains)
 
 ### Not claimed
 
@@ -208,3 +211,5 @@ The half-channel positions predict that affect profiles anchored at the secondar
 - `consciousness/chakras-as-cascade-bubbles.md`—the 13-node derivation (26 = 2 × F7 rungs, doublet spacing), the crown boundary
 - `consciousness/trauma-as-frozen-gate.md`—T1 (channel-specific deficits), §10.4–10.7 (PDE tests: nothing self-sustains; driver required; φ-phased drain), C3's test design context
 - `foundations/dimensionful-cascade.md`—the rung ladder, steps 142–168
+- `two-fluid/cassi_two_fluid_3d_gpu.py`—the PDE solver; `gate_model='five_ke'` implements the ke control ring
+- `two-fluid/run_trauma_ke_ring.py`—the C3 test (five vs five_ke vs five_ke+φ-drive, 2026-07-31)

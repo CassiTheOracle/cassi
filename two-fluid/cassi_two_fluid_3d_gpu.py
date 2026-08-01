@@ -314,7 +314,7 @@ class ExpandingTwoFluid3DGPU(TwoFluid3DGPU):
         self.cs2 = cs2
         self.grav_sigma = 0.2  # N-body softening: caps |∇Φ| at this scale
         self.qi_gate = qi_gate
-        self.gate_model = 'single'  # 'single' | 'five'—5-channel Wu Xing gate
+        self.gate_model = 'single'  # 'single' | 'five' | 'five_ke' (5-ch Wu Xing gate, +ke ring) | 'two_pole'
         self.phi_inv2 = phi_inv2
         # 5-channel φ-powers: b_i = φ^{-k_i}, k_i = 2+i for i=0..4
         self.phi_pow_5ch = torch.tensor([PHI**(-k) for k in [3,4,5,6,7]],
@@ -478,6 +478,25 @@ class ExpandingTwoFluid3DGPU(TwoFluid3DGPU):
             ch_open = b * w_all
             ch_open[1:] += redist
             one_minus_q = (eta * ch_open).sum(dim=0)
+        elif self.gate_model == 'five_ke':
+            # 'five' + the ke control ring (`foundations/wu-xing-cycle-structure.md`
+            # §2): a channel's excess over baseline restrains its ke target
+            # (i+2) and deposits the displaced coherence at i+4, with
+            # kappa = phi^-1 = K_fw. One simultaneous round per evaluation.
+            w_all = torch.stack([w1, w2, w3, w4, w5], dim=0)
+            wood_closed = self.phi_pow_5ch[0] * (1.0 - w1)
+            active_open = (b[1:] * w_all[1:]).sum(dim=0, keepdim=True).clamp(min=1e-30)
+            redist = wood_closed * (b[1:] * w_all[1:]) / active_open
+            ch_open = b * w_all
+            ch_open[1:] += redist
+            idx = torch.arange(5, device=ch_open.device)
+            d = torch.minimum(PHI_INV * (ch_open - b).clamp(min=0.0),
+                              torch.index_select(ch_open, 0, (idx + 2) % 5))
+            ch_ke = ch_open.clone()
+            ch_ke = ch_ke - torch.index_select(d, 0, (idx - 2) % 5)
+            ch_ke = ch_ke + torch.index_select(d, 0, (idx - 4) % 5)
+            ch_open = ch_ke.clamp(min=0.0)
+            one_minus_q = (eta * ch_open).sum(dim=0)
         elif self.gate_model == 'two_pole':
             east = torch.stack([w1, w2, w3, w4, w5], dim=0)
             west = torch.stack([1.0 - w1, 1.0 - w2, 1.0 - w3,
@@ -599,6 +618,23 @@ class ExpandingTwoFluid3DGPU(TwoFluid3DGPU):
                     redist = wood_closed * (b[1:] * w_all[1:]) / active_open
                     ch_open = b * w_all
                     ch_open[1:] += redist
+                    one_minus_q = (eta * ch_open).sum(dim=0)
+                    self.q_mean = (1.0 - one_minus_q).mean()
+                elif self.gate_model == 'five_ke':
+                    # 'five' + ke control ring (see compute_q_field)
+                    w_all = torch.stack([w1, w2, w3, w4, w5], dim=0)
+                    wood_closed = self.phi_pow_5ch[0] * (1.0 - w1)
+                    active_open = (b[1:] * w_all[1:]).sum(dim=0, keepdim=True).clamp(min=1e-30)
+                    redist = wood_closed * (b[1:] * w_all[1:]) / active_open
+                    ch_open = b * w_all
+                    ch_open[1:] += redist
+                    idx = torch.arange(5, device=ch_open.device)
+                    d = torch.minimum(PHI_INV * (ch_open - b).clamp(min=0.0),
+                                      torch.index_select(ch_open, 0, (idx + 2) % 5))
+                    ch_ke = ch_open.clone()
+                    ch_ke = ch_ke - torch.index_select(d, 0, (idx - 2) % 5)
+                    ch_ke = ch_ke + torch.index_select(d, 0, (idx - 4) % 5)
+                    ch_open = ch_ke.clamp(min=0.0)
                     one_minus_q = (eta * ch_open).sum(dim=0)
                     self.q_mean = (1.0 - one_minus_q).mean()
                 elif self.gate_model == 'two_pole':
