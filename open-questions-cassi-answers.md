@@ -53,7 +53,7 @@ The most important quantity in the two-fluid dynamics is the ratio $r = E_Y / E_
 
 ### The Qi Gate—a Nonlinear Switch
 
-The two-fluid PDE includes a nonlinear **Qi gate** whose *openness* is $(1-q)$. When Qi density is low ($q \to 0$), the gate is open and conversion runs hard—the region churns, unable to settle. When Qi density is high ($q \to 1$), the gate closes and the system rests at $\varphi$-balance. (Sign corrected 2026-07-31 by the PDE tests in `consciousness/trauma-as-frozen-gate.md` §10.4; the earlier claim that "depressed $q$ closes the gate" had the sign inverted and is withdrawn.) The shape of this gate determines the universe's expansion history and is the source of the dark energy equation of state $w_0 = -0.838$.
+The two-fluid PDE includes a nonlinear **Qi gate** whose *openness* is $(1-q)$. When Qi density is low ($q \to 0$), the gate is open and conversion runs hard—the region churns, unable to settle. When Qi density is high ($q \to 1$), the gate closes and the system rests at $\varphi$-balance. (Sign corrected 2026-07-31 by the PDE tests in `consciousness/trauma-as-frozen-gate.md` §10.4; the earlier claim that "depressed $q$ closes the gate" had the sign inverted and is withdrawn.) The shape of this gate determines the universe's expansion history and is the source of the dark energy equation of state $w_0 = -0.87$ (corrected 2026-07-31).
 
 ### The $\varphi$-Attractor
 
@@ -147,18 +147,18 @@ mapped to the Cassi answer.
 flowchart TD
     A[Initial ratio r₀] --> B[φ-attractor funnel]
     B --> C[r → φ]
-    C --> D[w₀ = −0.838]
+    C --> D[w₀ = −0.87]
     D --> E[No Λ needed]
 ```
 
 **Visual:** Like a marble rolling into a funnel, the ratio r(t) is pulled inexorably toward φ, producing acceleration without any dark energy.
 
 
-Since 1998, physicists have known the universe's expansion is accelerating—something seems to be pushing galaxies apart ever faster. The standard model calls this "dark energy" and treats it as a constant energy density of empty space (the cosmological constant $\Lambda$), but quantum field theory predicts a value $10^{120}$ times too large. Cassi takes a different path: there is no dark energy at all. The acceleration comes from the two-fluid dynamics—the Yang and Yin fields (explained in the Primer) convert into one another at a rate set by their ratio $r = E_Y/E_I$, and as the universe expands, this conversion naturally approaches the $\varphi$-attractor equilibrium. The present-day equation-of-state parameter $w_0 = -0.838$ is not a free parameter; i…
+Since 1998, physicists have known the universe's expansion is accelerating—something seems to be pushing galaxies apart ever faster. The standard model calls this "dark energy" and treats it as a constant energy density of empty space (the cosmological constant $\Lambda$), but quantum field theory predicts a value $10^{120}$ times too large. Cassi takes a different path: there is no dark energy at all. The acceleration comes from the two-fluid dynamics—the Yang and Yin fields (explained in the Primer) convert into one another at a rate set by their ratio $r = E_Y/E_I$, and as the universe expands, this conversion naturally approaches the $\varphi$-attractor equilibrium. The present-day equation-of-state parameter $w_0 = -0.87$ (corrected 2026-07-31) is not a free parameter; i…
 
-| **Cassi Answer** | $w(a)$ evolves with $r(a)$; $w_0 = -0.838$ from Qi gate shape; no $\Lambda$ |
+| **Cassi Answer** | $w(a)$ evolves with $r(a)$; $w_0 = -0.87$ from Qi gate shape (corrected 2026-07-31); no $\Lambda$ |
 | **Mechanism** | Conversion term sets $H(a)$; Qi gate modulates; $\lambda = 3\varphi^2 H_0$ |
-| **Epistemic** | **Derived**—matches DESI DR2 at $0\sigma$ |
+| **Epistemic** | **Derived**—2σ from DESI $w_0 \approx -0.75 \pm 0.06$ [INFERENCE] (corrected 2026-07-31; the old "$0\sigma$ match" was circular—the $-0.838$ was the repo's own calibration target) |
 | **Reference** | `cosmology/cosmology-from-phi.md`, `calibrate_initial_ratio.py` |
 
 ### C2: Dark matter
@@ -724,7 +724,7 @@ Physics has four fundamental forces—gravity, electromagnetism, the strong nucl
 ```mermaid
 flowchart TD
     A[φ] --> B[Two-fluid PDE + cascade]
-    B --> C[Cosmology: w₀ = −0.838]
+    B --> C[Cosmology: w₀ = −0.87]
     B --> D[Particles: spin, generations]
     B --> E[Gravity: ξ = φ⁶]
     B --> F[SM: sin²θ_W = φ⁻³]
@@ -733,7 +733,7 @@ flowchart TD
 **Visual:** One equation (the two-fluid PDE), one constant (φ), and the cascade structure—one guitar string producing all the pillars of physics.
 
 
-The ultimate goal of theoretical physics is a single, coherent framework that explains all of physical reality—from particles to galaxies to consciousness. No previous attempt, whether string theory, loop quantum gravity, or any other approach, has succeeded. Cassi offers: one equation (the two-fluid PDE), one constant ($\varphi$), and the cascade structure. From these alone it produces cosmology ($w_0 = -0.838$ from the $\varphi$-attractor), particle physics (spin quantization from SO(2) winding, three generations from Fibonacci tripartition), gravity ($\xi = \varphi^6$ amplification from the Qi condensate), and Standard Model parameters ($\sin^2\theta_W = \varphi^{-3}$ from unified coupling). All four pillars of physics emerge from the same underlying dy…
+The ultimate goal of theoretical physics is a single, coherent framework that explains all of physical reality—from particles to galaxies to consciousness. No previous attempt, whether string theory, loop quantum gravity, or any other approach, has succeeded. Cassi offers: one equation (the two-fluid PDE), one constant ($\varphi$), and the cascade structure. From these alone it produces cosmology ($w_0 = -0.87$ from the $\varphi$-attractor, corrected 2026-07-31), particle physics (spin quantization from SO(2) winding, three generations from Fibonacci tripartition), gravity ($\xi = \varphi^6$ amplification from the Qi condensate), and Standard Model parameters ($\sin^2\theta_W = \varphi^{-3}$ from unified coupling). All four pillars of physics emerge from the same underlying dy…
 
 | **Cassi Answer** | Cassi: one equation ($\partial_t E_Y + \nabla\cdot(E_Y\mathbf{u}) = \omega_0 g(q)(E_Y-\varphi E_I) + \nu\nabla^2 E_Y$, etc.), one constant ($\varphi$) |
 | **Mechanism** | All four pillars (particles, cosmology, gravity, SM) from two-fluid PDE + $\varphi$ + cascade |
@@ -766,18 +766,18 @@ The along-string bubble period is 1 rung at cosmological scale (step 285) and 2 
 
 ```mermaid
 flowchart TD
-    A[DESI DR2: w₀ = −0.838 ± 0.029] --> B[Cassi: w₀ = −0.838—0σ match]
-| **Cassi Answer** | $w_0 = -0.838$ matches DESI DR2 exactly; $w_a = +0.10$ with $\xi = \varphi^6$ ($1.6\sigma$ from DESI $-0.51$); combined prediction $\approx 0.00 \pm 0.05$ |
+    A[DESI DR2: w₀ ≈ −0.75 ± 0.06] --> B[Cassi: w₀ = −0.87—2σ]
+| **Cassi Answer** | $w_0 = -0.87$ (2σ from DESI $w_0 \approx -0.75 \pm 0.06$ [INFERENCE], corrected 2026-07-31); $w_a = +0.012$ with $\xi = \varphi^6$ (corrected Yang-fraction form; 2.7σ, 2.2–3.2σ, from DESI $w_a \approx -0.73 \pm 0.28$ [INFERENCE])—tension, not resolved |
 ```
 
-**Visual:** DESI DR2 measures w₀ = −0.838 ± 0.029; Cassi predicts w₀ = −0.838 exactly—a 0σ match that no ΛCDM model can claim.
+**Visual:** DESI DR2 constrains w₀ ≈ −0.75 ± 0.06 [INFERENCE]; Cassi predicts w₀ = −0.87—a 2σ offset (corrected 2026-07-31; the old −0.838 was the repo's own calibration target—circular).
 
 
-The Dark Energy Spectroscopic Instrument (DESI) recently measured how dark energy has evolved over cosmic time and found that it does not behave like a simple cosmological constant—the deviation is at 4.2 sigma, crossing the threshold for a discovery. If confirmed, this would rule out the standard $\Lambda$CDM model. Cassi's answer: $w_0 = -0.838$ matches the DESI measurement exactly at $0\sigma$ because $w(a)$ evolves naturally with $r(a)$ in the two-fluid model (see Primer), and the present-day value is simply a snapshot of the closing Qi gate. DESI also measures $w_a = -0.51 \pm 0.38$. The bare Cassi prediction was $w_a = +0.44$ (2.5σ tension). Including the Qi-gravity coupling $\xi = \varphi^6$ (already verified in rotation curves at $0\sigma$) in $H(a…
+The Dark Energy Spectroscopic Instrument (DESI) recently measured how dark energy has evolved over cosmic time and found that it does not behave like a simple cosmological constant—the deviation is at 4.2 sigma, crossing the threshold for a discovery. If confirmed, this would rule out the standard $\Lambda$CDM model. Cassi's answer: $w_0 = -0.87$ (corrected 2026-07-31)—$2\sigma$ from the DESI anchor $w_0 \approx -0.75 \pm 0.06$ [INFERENCE]; the earlier "$0\sigma$ match" at $-0.838$ was the repo's own calibration target (circular)—because $w(a)$ evolves naturally with $r(a)$ in the two-fluid model (see Primer), and the present-day value is simply a snapshot of the closing Qi gate. DESI also constrains $w_a \approx -0.73 \pm 0.28$ [INFERENCE] (Table 9; range $-0.6$ to $-1.1$ across SNe compilations). The bare Cassi prediction was $w_a = +0.46$ ($\sim 4\sigma$ tension, corrected 2026-07-31). Including the Qi-gravity coupling $\xi = \varphi^6$ (already verified in rotation curves at $0\sigma$) in $H(a)$ in its corrected Yang-fraction-weighted form gives $w_a = +0.012$—2.7σ (2.2–3.2σ) from DESI: tension, not resolved (corrected 2026-07-31).
 
-| **Cassi Answer** | $w_0 = -0.838$ matches DESI DR2 exactly; $w_a = +0.10$ with $\xi = \varphi^6$ ($1.6\sigma$ from DESI $-0.51$); combined prediction $\approx 0.00 \pm 0.05$ |
-| **Mechanism** | $w(a)$ evolves with $r(a)$; $w_0$ is present-epoch snapshot of closing Qi gate; $\xi = \varphi^6$ in $H(a)$ shifts $w_a$ negative |
-| **Epistemic** | **Derived**—$\xi$ verified against the ODE (`two-fluid/calibrate_initial_ratio_xi.py`); combined prediction within $1.4\sigma$ of DESI |
+| **Cassi Answer** | $w_0 = -0.87$ (2σ from DESI $w_0 \approx -0.75 \pm 0.06$ [INFERENCE], corrected 2026-07-31); $w_a = +0.012$ with $\xi = \varphi^6$ (corrected Yang-fraction form; 2.7σ, 2.2–3.2σ, from DESI $w_a \approx -0.73 \pm 0.28$ [INFERENCE])—tension, not resolved |
+| **Mechanism** | $w(a)$ evolves with $r(a)$; $w_0$ is present-epoch snapshot of closing Qi gate; $\xi = \varphi^6$ in $H(a)$ shifts $w_a$ from $+0.46$ to $+0.012$ (corrected Yang-fraction form) |
+| **Epistemic** | **Derived**—$\xi = \varphi^6$ verified against the ODE (`two-fluid/calibrate_initial_ratio_xi_v2.py`); prediction at 2.7σ (2.2–3.2σ) from DESI $w_a \approx -0.73 \pm 0.28$ [INFERENCE]—tension, not resolved (corrected 2026-07-31) |
 | **Reference** | `two-fluid/calibrate_initial_ratio_xi.py`, `foundations/wa-pentagon-gate.md` §5 |
 
 ### T2: JWST "impossible" early galaxies

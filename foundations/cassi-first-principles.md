@@ -192,7 +192,9 @@ $$
 
 where $\Lambda_{\text{eff}}$ is determined by the Yang-Yin conversion
 dynamics. The dark energy equation of state evolves and is calibrated by:
-- **DESI DR2 baryon acoustic oscillations**: $w_0 = -0.838$ ($0\sigma$)
+- **DESI DR2 baryon acoustic oscillations**: $w_0 \approx -0.75 \pm 0.06$ [INFERENCE]
+  (corrected 2026-07-31: the old $-0.838$ ($0\sigma$) was the repo's own calibration
+  target—circular); the Cassi ODE predicts $w_0 = -0.87$ ($2\sigma$ from the anchor)
 - **Planck 2018 CMB**: spectral index $n_s = 0.967$ ($0.5\sigma$)
 - **Hubble tension resolved**: $H_0 = 69.8$ km/s/Mpc ($< 1\sigma$ with both
   CMB and local measurements)
@@ -259,7 +261,7 @@ matching observed mass-squared differences.
 | $\xi = \varphi^6$ | $17.94427191$ | $= \varphi^5 + \varphi^4$ | Qi-gravity coupling |
 | $\sin^2\theta_W$ | $\varphi^{-3}$ | VEV ratio | Weak mixing angle (tree) |
 | $\alpha_{\text{GUT}}$ | $\varphi^{-3}/(4\pi)$ | Yang fraction / $4\pi$ | GUT coupling |
-| $w_0$ | $-0.838$ | From $\lambda$ and $\varphi$ | DESI DR2 |
+| $w_0$ | $-0.87$ | Two-fluid ODE ($\xi$ coupling) | `two-fluid/calibrate_initial_ratio_xi_v2.py` (corrected 2026-07-31) |
 | $\delta_{\text{CP}}$ | $\pi \cdot \varphi^{-2} \approx 1.199$ | CKM hierarchy via Yukawa diagonalisation | CP phase (CKM) |
 | $\lambda$ | $0.1$ (PDE); $3\varphi^2 H_0$ (cosmological) | PDE conversion rate; dimensionless value is empirical; cosmological expression relates $\lambda$ to $H_0$ but is dimensionful (§2.1 of `dimensionful-constants-status.md`) | **Empirical** |
 

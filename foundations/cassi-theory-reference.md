@@ -315,7 +315,7 @@ From two-fluid conversion as $r(t) \to \varphi$:
 
 $$w(a) = \frac{P_{\text{DE}}}{\rho_{\text{DE}}} = \frac{\dot{r}/r - 3H(1+r^{-1})}{3H(1+r^{-1})}$$
 
-$$w_0 = -0.838 \quad\text{(including }\xi\text{ corrections)},\qquad w_a = +0.10$$
+$$w_0 = -0.87 \quad\text{(corrected 2026-07-31)},\qquad w_a = +0.012 \; (+ \xi = \varphi^6, \text{ corrected Yang-fraction form})$$
 
 ### 8.2 Inflation
 
@@ -435,8 +435,8 @@ Mind: concentrated post-pinch field dynamics. Brain: antenna for the Qi field. A
 | $\alpha_{\text{GUT}}$ | $\varphi^{-3}/(4\pi)$ | $1/53$ | Yang fraction / $4\pi$ |
 | $m_W/m_Z$ | $\sqrt{1-\varphi^{-3}}$ | $0.874$ | From $\sin^2\theta_W$ |
 | $\delta_{\text{CKM}}$ | $\pi\varphi^{-2}$ | $68.7^\circ$ | Yukawa diagonalisation |
-| $w_0$ | Wu Xing + $\xi$ | $-0.838$ | Two-fluid conversion |
-| $w_a$ | $\xi$ in $H(a)$ | $+0.10$ | Two-fluid conversion |
+| $w_0$ | Wu Xing + $\xi$ | $-0.87$ | Two-fluid conversion (corrected 2026-07-31) |
+| $w_a$ | $\xi$ in $H(a)$ | $+0.012$ | Two-fluid conversion, Yang-fraction form (corrected 2026-07-31) |
 | $g$ | $1 - \varphi^{-5}$ | $0.910$ | Wu Xing gap |
 | $r_0$ | $\varphi^{-5}/(2-\varphi^{-5})$ | $0.047$ | Primordial ratio |
 | $\lambda$ | $1/(2w)$ | $0.1$ | PDE conversion rate |

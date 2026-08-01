@@ -3,14 +3,19 @@
 Full Calibrated w_a ODE—Bare + Qi-Gravity (xi = phi^6)
 ==========================================================
 
-Reproduces the Cassi structural prediction w_a = +0.44 (bare),
-then computes w_a WITH the Qi-gravity H enhancement xi = phi^6.
+Reproduces the Cassi structural prediction w_a = +0.46 (bare),
+then computes w_a WITH the Qi-gravity H enhancement xi = phi^6
+(corrected Yang-fraction coupling form: w_a = +0.012; see
+calibrate_initial_ratio_xi_v2.py, corrected 2026-07-31).
 
 The ODE is lambda-independent: dr/da = f(r, a) where lambda cancels
 from the ratio dr/dt / H, so the result is structural.
 
-Calibrated initial condition: r_0 at a=0.01 chosen to match
-DESI w_0 = -0.838 (calibrated) or w_0 = -0.856 (gap-derived).
+Calibrated initial condition: r_0 at a=0.01 chosen to match the
+internal w_0 = -0.838 calibration target (not a measured DESI
+constraint—corrected 2026-07-31) or the gap-derived r_0
+(w_0 = -0.856; corrected 2026-07-31: w_0 = -0.87, see
+calibrate_initial_ratio_xi_v2.py).
 
 Run: python wa_full_ode.py
 """
@@ -135,7 +140,7 @@ a_xi, w_xi, w0_xi, wa_xi, r_xi, H_xi = integrate_ode(r_cal, xi=XI, n_pts=50000)
 print(f"  Qi-gravity:   w_0 = {w0_xi:.4f}, w_a = {wa_xi:+.4f}")
 
 print()
-print(f"  DESI DR2:     w_0 = -0.838 ± 0.055, w_a = -0.51 ± 0.38")
+print(f"  Internal calibration target (not DESI):  w_0 = -0.838 ± 0.055, w_a = -0.51 ± 0.38")
 print()
 
 dw0 = w0_xi - w0_cal

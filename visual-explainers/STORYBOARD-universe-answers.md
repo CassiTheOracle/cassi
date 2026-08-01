@@ -525,7 +525,7 @@ $$
 **Visual:** A curve showing the local ratio $r(t)$ evolving over cosmic time.
 It starts near $\varphi$ (the primordial value at the Planck membrane),
 drops during inflation, then slowly climbs back toward $\varphi$—the
-attractor. The present day is marked: $r_0$ yields $w_0 = -0.838$. The
+attractor. The present day is marked: $r_0$ yields $w_0 = -0.87$. The
 residual energy released as the ratio approaches equilibrium is shown as
 a gold glow pushing outward—this is the accelerating expansion. Inset:
 the Hubble tension reconciliation plot—early‑universe vs late‑universe
@@ -534,8 +534,8 @@ measurements converging when the evolving $w(a)$ is accounted for.
 **Generating equations (on‑panel):**
 
 $$
-w_0 = -0.838,\quad
-w_a = 0.00 \pm 0.05\;(+\text{couplings}),\quad
+w_0 = -0.87,\quad
+w_a = +0.012\;(\text{verified, corrected coupling alone}),\quad
 H_{\text{empty}} = \frac{\lambda\varphi^{-2}}{3},
 \qquad
 \boxed{r \to \varphi \text{—the attractor}}
@@ -545,11 +545,11 @@ $$
 
 | The piece | What it does |
 |-----------|-------------|
-| Everything drifts toward $\varphi$. The local ratio $r$ is not static—it evolves. Wherever it deviates from the golden ratio, the two components convert into each other to restore balance. This approach to equilibrium releases energy. At the scale of our bubble, this residual energy pushes space outward—accelerating the expansion. | What we call "dark energy" is the universe relaxing toward its geometric attractor. $w_0 = -0.838$ is today's reading on that approach. The Hubble tension—the 5σ disagreement between early‑universe and late‑universe expansion rates—disappears when we account for the fact that the acceleration was weaker in the past (when $r$ was further from equilibrium). $w_a = 0.00 \pm 0.05$, consistent with DESI. The expansion never fully stops—even at perfect equilibrium, an irreducible baseline $H_{\text{empty}}$ remains. |
+| Everything drifts toward $\varphi$. The local ratio $r$ is not static—it evolves. Wherever it deviates from the golden ratio, the two components convert into each other to restore balance. This approach to equilibrium releases energy. At the scale of our bubble, this residual energy pushes space outward—accelerating the expansion. | What we call "dark energy" is the universe relaxing toward its geometric attractor. $w_0 = -0.87$ (corrected 2026-07-31) is today's reading on that approach. The Hubble tension—the 5σ disagreement between early‑universe and late‑universe expansion rates—disappears when we account for the fact that the acceleration was weaker in the past (when $r$ was further from equilibrium). $w_a = +0.012$ (verified, corrected coupling alone), $2.7\sigma$ from DESI—tension, not resolved. The expansion never fully stops—even at perfect equilibrium, an irreducible baseline $H_{\text{empty}}$ remains. |
 
 **Visual callouts:**
 - $r(t)$ curve approaching $\varphi$, present day marked
-- DESI DR2 data point: $w_0 = -0.838 \pm 0.028$
+- DESI DR2 data point: $w_0 \approx -0.75 \pm 0.06$ [INFERENCE]
 - "Dark energy is geometry approaching equilibrium. Not a substance—a direction."
 
 ---
@@ -607,7 +607,7 @@ compact table can be rendered as an overlay or final panel:*
 | Voids and barriers |—| Absolute separation—each bubble is permanent |
 | CMB axis | $n \approx 285$ | Neighbor's shadow at $12.2^\circ$ |
 | Cosmic web | $n \approx 275$–$284$ | Interference pattern—φ‑spaced sheets |
-| Equilibrium flow | $n = 292$ | Dark energy—$w_0 = -0.838$, Hubble tension resolved |
+| Equilibrium flow | $n = 292$ | Dark energy—$w_0 = -0.87$, Hubble tension resolved |
 | Megacascade | $n > 292$ | Self‑similar repetition—no largest scale |
 
 ---

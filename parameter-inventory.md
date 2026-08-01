@@ -51,8 +51,8 @@ All dimensionless coupling constants in the Cassi framework are $\varphi$-powers
 | $\delta_{\text{CKM}}$ (CP phase) | $\pi\varphi^{-2}$ | $1.199$ rad $(68.7^\circ)$ | **D** | Via unitarity triangle from $\varphi$-scaled CKM elements |
 | $\beta$ (Bohm QP exponent) | $\varphi^{-1}/2$ | $0.309$ | **D** | Quantum potential scaling exponent |
 | $\chi_Y$ (Yang chemotaxis) | $\chi/\varphi$ | $\chi \cdot 0.618$ | **D** | Ratio fixed, absolute value calibrated ($\chi$) |
-| $w_0$ (DE equation of state) |—| $-0.838$ | **D** | From $\lambda$ and $\varphi$ via DESI matching |
-| $w_a$ (DE running) |—| $+0.10$ (+$\xi$) | **D** | $\xi = \varphi^6$ in $H(a)$ shifts from +0.44; verified via the ODE (`two-fluid/calibrate_initial_ratio_xi.py`); 1.6σ from DESI −0.51 |
+| $w_0$ (DE equation of state) |—| $-0.87$ (corrected 2026-07-31) | **D** | From $\lambda$ and $\varphi$; the earlier −0.838 was a calibration to the repo's own target (circular) |
+| $w_a$ (DE running) |—| $+0.012$ (+$\xi$, corrected Yang-fraction form) | **D** | $\xi = \varphi^6$ in $H(a)$ shifts from +0.46; verified via `two-fluid/calibrate_initial_ratio_xi_v2.py`; $2.7\sigma$ from DESI $\approx -0.73 \pm 0.28$ (tension) |
 | $n_s$ (spectral index) |—| $0.967$ | **D** | From inflation in Cassi framework |
 | $r$ (tensor-to-scalar) |—| $0.003$ | **D** | From inflation in Cassi framework |
 | $K_{fw}$ (Wu Xing coeff) | $\varphi^{-1}$ | $0.618$ | **D** | Water damps Fire |
@@ -353,7 +353,7 @@ Most initial-condition parameters must be specified for any Cassi simulation. Th
 
 | Parameter | Typical Value | Class | Physical Meaning |
 |-----------|--------------|-------|-----------------|
-| $r_0 = E_{Y,0}/E_{I,0}$ | $21.2$ (cosmology), $\varphi$ (atoms) | **D** | Initial Yang/Yin ratio; derived from Wu Xing gap $g = 1-\varphi^{-5}$, with $w=5$ now derived from cascade dynamics + Fibonacci identity (`foundations/wu-xing-derivation.md`). $w_0 = -0.856$, 0.3σ from DESI. |
+| $r_0 = E_{Y,0}/E_{I,0}$ | $0.0472$ (cosmology; $E_I/E_Y \approx 21$), $\varphi$ (atoms) | **D** | Initial Yang/Yin ratio; derived from Wu Xing gap $g = 1-\varphi^{-5}$, with $w=5$ now derived from cascade dynamics + Fibonacci identity (`foundations/wu-xing-derivation.md`). $w_0 = -0.87$, $2\sigma$ from DESI (corrected 2026-07-31). |
 | $a_0$ | $0.01$-$1.0$ | **I** | Initial scale factor (expanding universe) |
 | $H_0$ | $0.05$-$1.0$ | **I** | Initial Hubble parameter |
 | $N_{\text{blobs}}$ | $2$-$3$ | **I** | Number of density peaks |
@@ -416,7 +416,7 @@ work in every sector.
 
 | Sector | $\lambda$ | $\chi$ | $c_s^2$ | $\nu$ | Validated? |
 |--------|-----------|--------|---------|-------|-----------|
-| Cosmology (DESI DR2) | $0.1$ | $1.0$ | $0.01$ | $10^{-4}$ | $w_0 = -0.838$ (0$\sigma$) |
+| Cosmology (DESI DR2) | $0.1$ | $1.0$ | $0.01$ | $10^{-4}$ | $w_0 = -0.87$, $w_a = +0.012$ (corrected 2026-07-31); 2σ/2.7σ tension |
 | MW rotation curve | $0.1$ | $1.0$ | $0.01$ | $10^{-4}$ | $v_C/v_B = 2.9$–$3.1\times$ (matches $2.7\pm0.5$ within ~1.2σ; corrected 2026-07-31) |
 | Dwarf spheroidals (8) | $0.1$ | $1.0$ | $0.01$ | $10^{-4}$ | 5/8 pass, beats MOND |
 | He DFT (LDA, N=64) | $0.1$ | $1.0$ | $0.01$ | $10^{-4}$ | 0.8% error (chemical accuracy) |

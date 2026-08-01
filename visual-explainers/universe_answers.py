@@ -20,7 +20,7 @@ Panels:
  10 · VOIDS AND BARRIERS    q = 0—impenetrable, bubbles never merge
  11 · THE CMB AXIS          our neighbor's shadow at 12.2°
  12 · THE COSMIC WEB        interference made visible at large scale
- 13 · EQUILIBRIUM FLOW      r → φ is dark energy, w₀ = −0.838
+ 13 · EQUILIBRIUM FLOW      r → φ is dark energy, w₀ = −0.87
  14 · THE MEGACASCADE       n > 292—self-similar forever
 
 Run:  python visual-explainers/universe_answers.py
@@ -770,15 +770,16 @@ ax13.plot(a_arr, r_t, color=YANG_PEAK, lw=3.0, zorder=3)
 ax13.axhline(y=PHI, color=YANG_BRIGHT, lw=1.5, ls="--", alpha=0.8)
 ax13.text(0.85, PHI + 0.02, r"$r = \varphi$—attractor", fontsize=9,
           color=YANG_BRIGHT, va="bottom")
-ax13.annotate("today\n$w_0 = -0.838$", xy=(0.33, r_t[100]), xytext=(0.12, r_t[100] + 0.05),
+ax13.annotate("today\n$w_0 = -0.87$", xy=(0.33, r_t[100]), xytext=(0.12, r_t[100] + 0.05),
               fontsize=9, color=YANG_PEAK, fontweight="bold",
               arrowprops=dict(arrowstyle="->", color=YANG_PEAK, lw=1.0))
 ax13.fill_between(a_arr, r_t, PHI, alpha=0.12, color=YANG_PEAK)
 
-# DESI data point
+# DESI DR2 anchor (≈ −0.75 ± 0.06 [INFERENCE]; the old −0.838 was the
+# repo's own calibration target—circular, corrected 2026-07-31)
 ax13.errorbar([0.33], [PHI - 0.02], yerr=0.008, fmt="o", ms=8,
               color=YANG_BRIGHT, capsize=4, zorder=5)
-ax13.annotate("DESI DR2\n$w_0 = -0.838 \\pm 0.028$", xy=(0.33, PHI - 0.02),
+ax13.annotate("DESI DR2\n$w_0 \\approx -0.75 \\pm 0.06$", xy=(0.33, PHI - 0.02),
               xytext=(0.5, PHI - 0.08), fontsize=8.5, color=YANG_BRIGHT,
               arrowprops=dict(arrowstyle="->", color=YANG_BRIGHT, lw=0.8))
 
@@ -788,10 +789,10 @@ ax13.set_xlim(0, 1.05); ax13.set_ylim(0.25, PHI + 0.1)
 ax13.tick_params(labelsize=8)
 
 eq_text(ax13, 0.65, 0.92,
-        r"$w_0 = -0.838$     $w_a = 0.00 \pm 0.05$     "
+        r"$w_0 = -0.87$     $w_a = +0.012$     "
         r"$H_{\rm empty} = \lambda\varphi^{-2}/3$     "
         r"$r \to \varphi$—the attractor")
-panel_title(ax13, r"13 · EQUILIBRIUM FLOW—everything drifts toward $r = \varphi$. The residual energy pushes space outward—that's dark energy. $w_0 = -0.838$, matching DESI.")
+panel_title(ax13, r"13 · EQUILIBRIUM FLOW—everything drifts toward $r = \varphi$. The residual energy pushes space outward—that's dark energy. $w_0 = -0.87$ (corrected 2026-07-31).")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # PANEL 14—THE MEGACASCADE

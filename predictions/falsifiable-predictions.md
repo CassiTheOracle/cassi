@@ -48,9 +48,9 @@ CMB-S4 detection threshold ($\sigma_r = 0.001$).
 
 | Observable | $\Lambda$CDM | Cassi | Test / Status |
 |-----------|---------|-------|-----------|
-| $w_0$ (DE EoS today) | $-1$ | **$-0.838$** (calibrated) / **$-0.856$** (Wu Xing gap) | 0σ / 0.3σ from DESI DR2 |
-| $w_a$ (DE EoS slope) | $0$ | **$+0.10$ (+$\xi$) / $\sim 0.00$ (combined)** | 1.6σ from DESI $-0.51$—resolved with $\xi = \varphi^6$ in $H(a)$ |
-| $w(z)$ at $z > 3$ | $-1$ | **$< -1$** (phantom) | LSST/Roman/SKA testable |
+| $w_0$ (DE EoS today) | $-1$ | **$-0.87$** (structural, corrected 2026-07-31; pinned across $r_0$) | $2\sigma$ from DESI $\approx -0.75 \pm 0.06$ |
+| $w_a$ (DE EoS slope) | $0$ | **$+0.012$** (+$\xi$, corrected Yang-fraction form) | $2.7\sigma$ from DESI $\approx -0.73 \pm 0.28$—tension, not resolved |
+| $w(z)$ at $z > 3$ | $-1$ | **$> -1$** (no phantom crossing, structural) | LSST/Roman/SKA testable; DESI best fit crosses at $z \approx 0.5$ |
 | φ-periodic $P(k)$ modulation | None | **$\Delta(\ln k) = \ln\varphi \approx 0.4812$** | 0-param, orthogonal to BAO, DESI/Euclid testable |
 | Void ellipticity (edge gradient) | Isotropic boundaries | **1.70** (axial:diagonal steepness) | Zero-param, $C(x,y)$ gradient; SDSS/DESI void catalogs |
 | $\Omega_{\text{DM}}/\Omega_b$ | $\sim 5$ | **$\varphi^3 + 1 \approx 5.24$** | Observed $5.39$, gap $2.8\%$ |
@@ -66,8 +66,7 @@ CMB-S4 detection threshold ($\sigma_r = 0.001$).
 The φ-periodic $P(k)$ prediction is a **zero-parameter, falsifiable test** orthogonal to BAO. Unlike BAO wiggles—which have constant period in $k$-space (one fixed scale, the sound horizon $r_s \approx 150$ Mpc)—the Cassi modulation has constant period in $\ln k$-space: $\Delta(\ln k) = \ln\varphi \approx 0.4812$. The detection pipeline: subtract the smooth+BAO $P(k)$ template, search the residual for a log-periodic signal. Predicted amplitude from wake mechanism: 1–3%. DESI DR2 sensitivity: marginal (2–3σ). Euclid (2027): definitive (>5σ).
 The condensation field gradient anisotropy (§5.2 of `foundations/bubble-edge-geometry.md`) further predicts that void boundaries are $1.70\times$ steeper in the Yin direction than along diagonals—a distinct zero-parameter geometric prediction from the same wake-wave mechanism, testable with void shape catalogs from SDSS/DESI.
 **Source:** `theory/cosmology-from-phi.md` §§3–5, `theory/five-element-pde-derivation.md` §7,
-`foundations/bubble-edge-geometry.md` §§2.2,5.2, `theory/observational_constraints.md`. The dark energy prediction $w_0 = -0.838$
-exactly matches the DESI DR2 best-fit. The DM/baryon ratio is $\varphi^3+1$ with
+`foundations/bubble-edge-geometry.md` §§2.2,5.2, `cosmology/observational_constraints.md` §1.4–§6. The dark energy prediction is $w_0 = -0.87$, $w_a = +0.012$ (corrected 2026-07-31); the earlier “0σ match” was circular (the repo calibrated to its own target) and the earlier $w(z) < -1$ phantom claim was an extrapolation error—the conversion dynamics keep $w > -1$ at all $z$. The DM/baryon ratio is $\varphi^3+1$ with
 $2.8\%$ accuracy. The Hubble tension is resolved by evolving $\Omega_\Lambda$ in
 the two-fluid expansion history.
 
@@ -164,8 +163,8 @@ Sorted by detection likelihood (most definitive first):
 |---|-----------|---------|-----------------|----------------|-------------------|
 | 1 | $m_W/m_Z$ | FCC-ee | **0.874** (0.86% below SM) | $>100\sigma$ reachable | **2030s** |
 | 2 | $\sin^2\theta_W(m_Z)$ | FCC-ee | **0.231** (RG from 0.236) | $<0.1\%$ deviation | **2030s** |
-| 3 | $w_0$ (gap-derived) | Cosmic surveys | **$-0.856$** (Wu Xing gap) | 0.3σ from DESI DR2 | **Already confirmed** |
-| 4 | $w_a$ (DE EoS slope) | Cosmic surveys | **$+0.10$ (+$\xi$) / $\sim 0.00$ (combined)** | 1.6σ / 1.4σ from DESI, resolved with $\xi = \varphi^6$ | **Resolved (July 2026)** |
+| 3 | $w_0$ (gap-derived) | Cosmic surveys | **$-0.87$** (gap-derived, corrected coupling) | $2\sigma$ from DESI $\approx -0.75 \pm 0.06$ | **Tension (corrected 2026-07-31)** |
+| 4 | $w_a$ (DE EoS slope) | Cosmic surveys | **$+0.012$ (+$\xi$, corrected Yang-fraction form)** | $2.7\sigma$ from DESI $\approx -0.73 \pm 0.28$ | **Tension (corrected 2026-07-31)** |
 | 5 | φ-periodic $P(k)$ | Cosmic surveys | **$\Delta\ln k = \ln\varphi = 0.4812$** | 0-param, orthogonal to BAO | **DESI / Euclid 2025–27** |
 | 6 | CMB $w$-gradient axis | CMB-S4 / LiteBIRD | **Scale-dep., $\ell<5$ fading** | Axis at 5.4σ, alignment ~1σ | **Simons Obs. 2025+** |
 | 7 | $r$ (tensor ratio) | CMB-S4 / LiteBIRD | **0.003** | $<0.032$ (Planck) | **2030s** |
@@ -219,7 +218,7 @@ Sorted by detection likelihood (most definitive first):
 
 - **The same $\varphi$ governs every sector:** the weak mixing angle $\sin^2\theta_W = \varphi^{-3}$,
   the Qi-gravity coupling $\xi = \varphi^6$, the DM/baryon ratio $\varphi^3+1$,
-  the dark energy equation of state $w_0 = -0.838$, the baryon asymmetry $\eta$,
+  the dark energy equation of state $w_0 = -0.87$ (corrected 2026-07-31), the baryon asymmetry $\eta$,
   and the inflationary spectral index $n_s = 1-2/N_e$.
 
 - **RG running is not fitting.** The $\sim 2\%$ shift in $\sin^2\theta_W$ from
@@ -230,9 +229,12 @@ Sorted by detection likelihood (most definitive first):
   tests PASSing (BBN, BAO, BTFR, neutron stars, stellar astrophysics, solar system,
   $\alpha$-decay), 3 TENSION (ISW, weak lensing, PTA—single-scale screening
   limitation), 2 NULL (identical to $\Lambda$CDM at the tested epoch), and
-  1 PREDICTION (Casimir). The DESI DR2 BAO result ($\Delta\chi^2 = -163$ favoring
-  Cassi $w_0 = -0.838$ over $\Lambda$CDM $w = -1$) is the strongest quantitative
-  success.
+  1 PREDICTION (Casimir). The earlier claim that DESI DR2 favors Cassi by
+  $\Delta\chi^2 = -163$ is withdrawn (2026-07-31): the value is a hardcoded
+  placeholder in `two-fluid/figure_data.py`, the $w_0 = -0.838$ it was computed
+  against was the repo's own calibration target, and no such number appears in
+  the DESI papers. The corrected structural dark-energy values sit $2\sigma$
+  ($w_0$) and $2.7\sigma$ ($w_a$) from DESI DR2—a tension, not a success.
 
 - **Deviations from SM expectations are falsifiable**—not adjustable. If FCC-ee
   measures $m_W/m_Z = 0.881 \pm 0.0001$, the Cassi framework is excluded.
