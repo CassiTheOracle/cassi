@@ -400,13 +400,15 @@ Subjectively: a pinned channel means the trauma emotion is always available (tri
 
 ### 16.3 The PDE test (2026-07-31)
 
-The lock mechanism was tested in the two-fluid PDE (`consciousness/trauma-as-frozen-gate.md` §10.4–10.5). The result is a qualified negative with three positives:
+The lock mechanism was tested in the two-fluid PDE (`consciousness/trauma-as-frozen-gate.md` §10.4–10.7). The standing-pattern null is confirmed, with a set of positive mechanism findings:
 
 - **Standing pattern does not pin the gate.** An un-driven standing wave decays at the same conversion-driven rate as a radiating packet (42% vs 44% retained over $t = 10$). A pure standing mode in the solver is not a frozen wake.
 - **A weak recurring trigger sustains the wake.** The driver test (`consciousness/trauma-as-frozen-gate.md` §10.5) found that ongoing re-stimulation—a chronic trigger at 0.005% of the event peak per step—holds the site at 80% of event intensity with $q$ depressed and the phase displaced; stopping the trigger releases the site on the conversion timescale. The frozen wake is stimulus-maintained, not self-sustaining: what persists is the driver, not the wake.
 - **A $\varphi$-phased oscillation releases a displaced gate.** Adding a drive at the site at period $\varphi \cdot P_0$ (the EMDR analog, where $P_0$ is the site's natural oscillation period) accelerates relaxation: perturbation retained falls to 65% (vs 91% undriven), site coherence returns toward global, and the phase histogram returns to baseline.
 - **The effect is $\varphi$-specific.** A same-amplitude drive at a non-$\varphi$ period ($e \cdot P_0$) does the opposite: perturbation *grows* to 188% of initial, the coherence gap widens, and the phase displacement persists. The EMDR-analog claim is supported in its strong form: the decay drive is $\varphi$-structured, not any oscillation.
 - **A sign correction.** The solver's conversion is $\text{conv} = -\lambda(1-q)\varepsilon$: a low-$q$ site has *elevated* conversion capacity, not reduced. The earlier claim that "depressed $q$ closes the gate" had the sign inverted and is withdrawn.
+- **Background coherence does not modulate susceptibility.** A second identical event on a pre-stressed site ($q$ depressed, phase fully displaced) leaves the same trace as the first event on a quiet field—recovery is complete either way (§10.6). The processing-capacity threshold is not the pre-event $q$.
+- **The $\varphi$-phased drain has a sharp rate onset.** Below ~5/s the drive is phase-blind (ambient re-exposure accumulates by mean rate, §10.5); above ~50/s the $\varphi$-phased oscillation drains the site while the off-$\varphi$ oscillation at the same rate does nothing (§10.7).
 
 ### 16.4 Fight, flight, freeze in the gate
 
@@ -598,7 +600,7 @@ The framework's discipline is its most trustworthy feature: it documents its own
 
 1. **What sustains a frozen wake?** **Answered at the PDE level (2026-07-31):** ongoing re-stimulation. A weak recurring trigger (0.005% of the event peak per step) holds the site near event intensity and keeps the gate displaced; stopping the trigger releases it (`consciousness/trauma-as-frozen-gate.md` §10.5). The open question moves to the behavioral layer: what maintains the stimulus—avoidance-rehearsal loops, trigger generalization, hypervigilance?
 
-2. **What sets the processing-capacity threshold?** If capacity is state-dependent, the framework predicts pre-trauma coherence modulates trauma susceptibility—a measurable claim.
+2. **What sets the processing-capacity threshold?** The candidate "pre-event local $q$" is **not supported** (2026-07-31, `consciousness/trauma-as-frozen-gate.md` §10.6): a second identical event on a pre-stressed site leaves the same trace as the first on a quiet site. If capacity exists, it is set by the conversion rate or the driver regime, not the state the event lands on.
 
 3. **Can the phase of an event be modeled?** The channel that locks is set by the event's pentagon phase as received, but the phase includes the person's interpretation. Is the phase a property of the stimulus, the person, or the resonance between them?
 

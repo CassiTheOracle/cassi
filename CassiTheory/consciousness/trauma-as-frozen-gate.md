@@ -334,10 +334,41 @@ The §10.4 null closes the "un-driven mode" candidate, and the drive_compare res
 | dc, t=20 (injection off since t=10) | 0.142 | 22% | 0.700 vs 0.708 | 36% Fire | 0.132 |
 
 1. **The perpetual stimulus sustains the wake.** A trigger delivering 0.005% of the event's peak per step holds the site at 80% of event intensity (vs 42% undriven), keeps $q$ depressed with a 4.5× wider gap, and keeps the phase fully displaced. The frozen wake is a driven structure, and the driver that sustains it in this PDE is ongoing re-stimulation.
-2. **Envelope phase is irrelevant at chronic-trigger strength.** The $\varphi$-pulsed and $e$-pulsed envelopes hold identical wakes (0.528 and 0.530 vs 0.525 continuous—indistinguishable). The $\varphi$-specific drain/pump found at $\pm 0.3$ drive amplitude (§10.4) does not survive at weak amplitude: phase-structure effects are a strong-drive, intervention-regime phenomenon. Weak chronic re-exposure accumulates by mean rate regardless of when it lands.
+2. **Envelope phase is irrelevant at ambient-trigger rates.** The $\varphi$-pulsed and $e$-pulsed envelopes at rate 0.04/s hold identical wakes (0.528 and 0.530 vs 0.525 continuous—indistinguishable). Weak chronic re-exposure accumulates by mean rate regardless of when it lands. The crossover probe (§10.7) later showed this phase-blindness is an ambient-rate property, not a weak-amplitude one: the $\varphi$-channel engages only at rates ≳50/s.
 3. **Stopping the stimulus releases the site.** Ten units after the trigger stops, $|\varepsilon|$ has fallen to 0.142—below the undriven curve—the q-gap has closed (+0.008), the phase is 64% returned to Wood, and $\sigma_r$ has reopened (0.132, vs 0.034 while held): the held wake is spatially uniform, the released site is varied again. The wake is stimulus-maintained, not self-sustaining; extinction works.
 
-**Answer to open question 7**: a frozen wake is sustained by ongoing re-stimulation. No free-standing mechanism survives in this PDE—not the mode, not confinement, not the q-sign (§10.4). The maintenance ratio is striking: a trigger at 0.005% of the event peak per step holds the wake at 80% of event intensity. The clinical translation sharpens: chronic trigger exposure maintains the lock; stimulus removal (extinction, exposure work) lets the gate close on the conversion timescale; and the $\varphi$-structured EMDR drive remains the strong-drive intervention that *actively drains* a wake (§10.4) rather than merely withholding the trigger.
+**Answer to open question 7**: a frozen wake is sustained by ongoing re-stimulation. No free-standing mechanism survives in this PDE—not the mode, not confinement, not the q-sign (§10.4). The maintenance ratio is striking: a trigger at 0.005% of the event peak per step holds the wake at 80% of event intensity. The clinical translation sharpens: chronic trigger exposure maintains the lock; stimulus removal (extinction, exposure work) lets the gate close on the conversion timescale; and the $\varphi$-structured EMDR drive—a high-rate oscillation above the crossover (§10.7)—*actively drains* a wake (§10.4) rather than merely withholding the trigger.
+
+### 10.6 Capacity Test: Does Pre-Trauma Coherence Modulate Susceptibility? (2026-07-31)
+
+Open question 1 asks what sets the processing-capacity threshold. The measurable claim: pre-trauma coherence modulates trauma susceptibility. Tested as the re-traumatization binary in `two-fluid/run_trauma_capacity.py` ($\lambda = 0.1$, $N = 48$, $t = 22$): the same standing event (amp 0.8) either lands on the quiet field (first hit) or on a site already carrying a wake—a pre-stress (amp 0.8 standing, evolved for $t = 2$, $q_{\text{site}}$ depressed to 0.661, phase fully displaced) that then receives the identical event again (second hit).
+
+| State at t=22 | $\varepsilon_{\text{site}}$ | q-gap | Phase displacement | $\sigma_r$ |
+|---|---|---:|---:|---:|
+| first hit on quiet field | 0.069 | +0.001 | 0.08 | 0.150 |
+| second hit on pre-stressed site | 0.119 | +0.000 | 0.02 | 0.158 |
+| **marginal trace of second hit** | **+0.050** | ~0 | −0.06 | +0.007 |
+
+**Null result**: the second hit's marginal trace ($\varepsilon$ +0.050) is no larger than—if anything smaller than—the first hit's full trace (0.069), and the phase displacement fully returns in both cases (0.08 and 0.02, from 1.00 at event time). A pre-stressed site does not lock harder. Background coherence does not modulate the event's outcome in this PDE: any event dissolves on the conversion timescale and the gate closes, regardless of the state it lands on. The processing-capacity threshold is not the field's initial coherence; if susceptibility exists, it lives in the driver (whether the stimulus recurs, §10.5) or in the interpretation channel (the event's phase, §4.1)—not in pre-event $q$.
+
+### 10.7 Drive Crossover: Where Does the $\varphi$-Phased Drain Turn On? (2026-07-31)
+
+The drive_compare (§10.4) found $\varphi \cdot P_0$ drives drain the site while $e \cdot P_0$ drives pump it at amp 0.3; the driver test (§10.5) found weak chronic re-exposure (rate 0.04/s) phase-blind. Two questions remained: at what intensity does the phase channel engage, and is the $\varphi$-specificity present at onset? Probed in `two-fluid/run_trauma_crossover.py` and `run_trauma_crossover_low.py` ($\lambda = 0.05$, $t = 2$, standing init, $P_0 = 0.041$):
+
+| Drive | amp per step | rate | $\varepsilon$ retained at t=2 |
+|---|---|---:|---:|
+| none |—|—| 0.912 |
+| $\varphi \cdot P_0$ | 5e-4 | 0.5/s | 0.910 |
+| $\varphi \cdot P_0$ | 5e-3 | 5/s | 0.891 |
+| $\varphi \cdot P_0$ | 0.05 | 50/s | 0.693 |
+| $\varphi \cdot P_0$ | 0.15 | 150/s | 0.362 |
+| $\varphi \cdot P_0$ | 0.3 | 300/s | 0.664 |
+| $e \cdot P_0$ | 0.05 | 50/s | 0.943 |
+| $e \cdot P_0$ | 0.3 | 300/s | 1.88 (pumps) |
+
+**Sharp onset**: the $\varphi$-phased drain is essentially absent below rate ~5/s and fully engaged by 50/s—a sharp crossover between the ambient regime (phase-blind accumulation, §10.5) and the processing regime, roughly two orders of magnitude above ambient trigger rates.
+
+**$\varphi$-specificity at onset**: at amp 0.05—the first amplitude that drains—the $e \cdot P_0$ counterfactual at the same amplitude does nothing (0.943, at the undriven level). The asymmetry is present from the moment the phase channel engages; it is not a strong-drive artifact. The off-$\varphi$ oscillation is neutral at onset and pumps at 0.3. (The $\varphi$-drive response is non-monotonic in amplitude—0.15 drains more than 0.3—noted without mechanism at three points.)
 
 ---
 
@@ -394,14 +425,16 @@ The §10.4 null closes the "un-driven mode" candidate, and the drive_compare res
 - Cascade suppression and the rung-depth structure of reachability (`foundations/cascade-suppression-formula.md`)
 - The chakra rung positions and channel affinities (`consciousness/chakras-as-cascade-bubbles.md`, `consciousness/emotions-as-gate-configurations.md` §3.4)
 
-### Tested (2026-07-31, PDE runs in §10.4–10.5)
+### Tested (2026-07-31, PDE runs in §10.4–10.7)
 
 - The 5-channel gate's conversion sign: $\text{conv} \propto -(1-q)\varepsilon$—low $q$ means the gate is *open*, conversion active (falsified the earlier "depressed $q$ closes the gate" claim, §2.3)
 - Standing vs radiating contrast: **null**—no extra persistence for the standing pattern in the periodic-box solver
 - EMDR-analog drive: **positive and φ-specific**—a $\varphi$-phased oscillation at the site accelerates relaxation and returns the gate to baseline, while the same-amplitude non-$\varphi$ drive pumps the site instead (§10.4, `run_trauma_drive_compare.py`)
 - Perpetual stimulus sustains the wake: a weak ongoing trigger (0.005% of the event peak per step) holds $|\varepsilon|$ at 80% of event intensity, widens the q-gap 4.5×, and keeps the phase displaced (§10.5, `run_trauma_driver.py`)
 - Extinction: stopping the trigger releases the site—$|\varepsilon|$ falls below the undriven curve, the q-gap closes, the phase returns (§10.5)
-- Envelope-phase null at chronic-trigger strength: $\varphi$-pulsed and $e$-pulsed weak triggers hold identical wakes; the $\varphi$-specific drain/pump is a strong-drive effect (§10.5)
+- Ambient-rate phase-blindness: at chronic-trigger rates (0.04/s), $\varphi$-pulsed and $e$-pulsed envelopes hold identical wakes—re-exposure accumulates by mean rate (§10.5); the $\varphi$-specific drain engages only at rates ≳50/s, with specificity present at onset (§10.7)
+- Capacity null: a second identical event on a pre-stressed site leaves the same trace as the first on a quiet site—background coherence does not modulate susceptibility (§10.6, `run_trauma_capacity.py`)
+- Sharp crossover of the $\varphi$-phased drain: absent below rate ~5/s, fully engaged by 50/s, with $\varphi$-specificity present at onset (the $e \cdot P_0$ counterfactual is neutral at the first draining amplitude) (§10.7, `run_trauma_crossover.py`, `run_trauma_crossover_low.py`)
 
 ### Hypothesized (derivation supplied, partially tested)
 
@@ -427,7 +460,7 @@ The §10.4 null closes the "un-driven mode" candidate, and the drive_compare res
 
 ## 13. Open Questions
 
-1. **What sets the processing-capacity threshold?** The frozen wake forms when the perturbation "exceeds the field's processing capacity." What determines that capacity—the local $q$ before the event, the cascade rung, the conversion rate $\lambda$? If capacity is state-dependent, the framework predicts *pre-trauma coherence modulates trauma susceptibility*—a measurable claim.
+1. **What sets the processing-capacity threshold?** The frozen wake forms when the perturbation "exceeds the field's processing capacity." The candidate "pre-event local $q$" is **not supported** (2026-07-31, §10.6): a second identical event on a pre-stressed site ($q_{\text{site}}$ 0.661) leaves the same trace as the first event on a quiet site—background coherence does not modulate the outcome. If capacity exists, it is set by the conversion rate $\lambda$ itself or by the driver regime (§10.5), not by the state the event lands on.
 
 2. **Can the phase of an event be modeled?** The channel that locks is set by the event's pentagon phase as received (§4.1), but the phase includes the person's interpretation. Is the phase a property of the stimulus, the person, or the resonance between them?
 
@@ -457,4 +490,6 @@ The §10.4 null closes the "un-driven mode" candidate, and the drive_compare res
 - `two-fluid/run_trauma_wake_lock.py`—the test script (standing/radiating/random/drive runs, 2026-07-31)
 - `two-fluid/run_trauma_drive_compare.py`—the φ-specificity follow-up (φ·P₀ vs e·P₀ drive, 2026-07-31)
 - `two-fluid/run_trauma_driver.py`—the driver-question follow-up (weak-trigger envelopes + extinction run, 2026-07-31)
+- `two-fluid/run_trauma_capacity.py`—the capacity/susceptibility test (re-traumatization binary, 2026-07-31)
+- `two-fluid/run_trauma_crossover.py` and `run_trauma_crossover_low.py`—the drive-crossover probes (onset bracket + low-amplitude $\varphi$-specificity, 2026-07-31)
 - `cassi-physics.md`—physics guide, epistemic tiers
