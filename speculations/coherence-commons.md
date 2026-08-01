@@ -18,7 +18,7 @@ The economy is not a metaphor for the two-fluid field; it is the two-fluid field
 
 Economics has always lacked a measurable quantity. Utility is unobservable, value is contested, and money measures exchange without measuring production. The two-fluid framework supplies three things economics can use:
 
-1. **A measurable quantity.** Qi coherence $q$ is defined by the field dynamics (`foundations/cassi-first-principles.md`): the fraction of a system's structure that is organized rather than thermalized. Coherence is conserved in the sense that matters—it can be transferred, drained, concentrated, and shared, and its transfer is governed by equations rather than tastes.
+1. **A measurable quantity.** Qi coherence $q$ is defined by the field dynamics (`foundations/cassi-first-principles.md`): the fraction of a system's structure that is organized rather than thermalized. Coherence is measurable and transferable—it can be drained, concentrated, and shared, and its transfer is governed by equations rather than tastes.
 
 2. **A dynamics.** The Yang-Yin ratio $r = E_Y/E_I$ evolves toward the $\varphi$-attractor, with conversion running hardest exactly when the system is farthest from equilibrium (`principles/de-resonance-principle.md`). Every economic configuration is a configuration of $r$ somewhere on the ladder, and the attractor is always pulling.
 
@@ -26,7 +26,7 @@ Economics has always lacked a measurable quantity. Utility is unobservable, valu
 
 ### 1.2 Markets are wake-wave phenomena
 
-Markets are hierarchical information-propagation networks with positive feedback (herding, momentum), which is precisely the structure that generates wake waves in the framework. The empirical literature on financial crashes—the Johansen-Ledoit-Sornette model—finds log-periodic crash precursors with a preferred scaling ratio $\lambda \approx 1.6$–$1.7$, within half a percent of $\varphi$ (`hypotheses/market-cascade-cycles.md` §1). In the framework this is not a curiosity: the de-resonance attractor in hierarchical information networks produces $\varphi$-periodic volatility structure, and crashes are critical points readable in advance.
+Markets are hierarchical information-propagation networks with positive feedback (herding, momentum), which is precisely the structure that generates wake waves in the framework. The empirical literature on financial crashes—the Johansen-Ledoit-Sornette model—finds log-periodic crash precursors with a preferred scaling ratio $\lambda \approx 1.6$–$1.7$, within half a percent of $\varphi$ (`hypotheses/market-cascade-cycles.md` §1). The framework gives the coincidence a mechanism: the de-resonance attractor in hierarchical information networks produces $\varphi$-periodic volatility structure, and crashes are critical points readable in advance.
 
 The economic consequence is that the market has a known pathology with a known diagnostic. A crash is a fever, and the fever chart is public: $\ln\varphi$-periodic modulation of volatility, drawdown-to-recovery ratios, and crash precursors. An economic theory that cannot read its own fever chart is not a theory; it is a weather superstition.
 
@@ -64,7 +64,7 @@ Exchange value is the market's operation on configurations: the reduction of eve
 
 ### 2.4 Money and the fetish
 
-Money is the universal equivalent: the pure scalar $q$, the exchange-value axis made into a thing. The fetishism of commodities—relations between people appearing as relations between things—has a precise statement in the framework: coherence is a *process* (a bath, a maintenance, a run), and the market represents it as a *stock* (a hoard, a quantity). The error is structural, not perceptual: exchange value treats the product of labor as an amount of $q$ detached from the process that made it, and the process that made it was people.
+Money is the universal equivalent: the pure scalar $q$, the exchange-value axis made into a thing. The fetishism of commodities—relations between people appearing as relations between things—has a precise statement in the framework: coherence is a *process* (a bath, a maintenance, a run), and the market represents it as a *stock* (a hoard, a quantity). The error is structural: exchange value treats the product of labor as an amount of $q$ detached from the process that made it, and the process that made it was people.
 
 The framework has a standing warning against exactly this error, in another domain: identity is the run, not the recipe (`speculations/transhumanism-gate-configurations.md` §6). A person is a process; a copy of the recipe is not the person. The commodity is the same error applied to labor: the run (the worker's living coherence expenditure) is represented as a stock (the product's price), and the representation obscures the run. The fetish is not a trick played on the mind; it is the projection of a manifold onto an axis, and the axis is what is traded.
 
@@ -80,19 +80,19 @@ The worker spends coherence $C_{\text{out}}$ to produce. The wage returns cohere
 
 $$\boxed{e = \frac{C_{\text{out}} - W_{\text{returned}}}{W_{\text{returned}}}}$$
 
-the rate of surplus coherence, the framework's form of the rate of exploitation. Classical economics argued about whether the difference existed; the framework makes it a bookkeeping identity. The worker's expenditure is organized perturbation and it is *exactly* counted in coherence units; the wage's return is *exactly* counted; the difference is the surplus, and it flows to the accumulator's condensate.
+the rate of surplus coherence, the framework's form of the rate of exploitation. Classical political economy measured the difference; neoclassical economics argued it away; the framework makes it a bookkeeping identity. The worker's expenditure is organized perturbation and it is *exactly* counted in coherence units; the wage's return is *exactly* counted; the difference is the surplus, and it flows to the accumulator's condensate.
 
-The mechanism of transfer is the waste law: no gate is perfect, and a system at coherence $q$ thermalizes a fraction $(1-q)$ of its throughput (`speculations/qi-bubble-propulsion.md` §2.5). The surplus is the $(1-q)$ fraction of the worker's throughput, diverted from the worker's own budget to the accumulator's. Exploitation is the thermalization tax, collected by whoever owns the gate.
+The mechanism of transfer is the drain: the worker's coherence is expended on production and does not return through the wage, and the deficit lowers the worker's $q$. The lowered $q$ is visible as waste—a system at coherence $q$ thermalizes a fraction $(1-q)$ of its throughput (`speculations/qi-bubble-propulsion.md` §2.5)—so exploitation is the drain, the waste is its residue, and the tax is collected by whoever owns the gate.
 
 ### 3.2 Poverty is forced $q$-suppression
 
-If exploitation is the drain, poverty is its residue. Poverty is not a shortage of resources—the framework's energy accounting makes scarcity a coupling failure, not a fact (energy is the field, and gates are taps, `speculations/cascade-infrastructure.md`). Poverty is the state of having one's coherence continuously extracted: the wage sustains the worker at a $q$ below the community's, the deficit flows into the hoard, and the worker's budget is spent on survival rather than on life.
+If exploitation is the drain, poverty is its residue: the state of having one's coherence continuously extracted, and a shortage of nothing else. The framework's energy accounting makes scarcity a coupling failure (energy is the field, and gates are taps, `speculations/cascade-infrastructure.md`); the wage sustains the worker at a $q$ below the community's, the deficit flows into the hoard, and the worker's budget is spent on survival rather than on life.
 
 The drain has a military name in the framework: the attrition siege, the slow weapon that needs no phase-matching, the attack that bleeds a target by forcing it to spend its budget staying functional (`speculations/coherence-warfare.md` §4.5). An extractive economy is a permanent attrition siege of the many by the few, and its victims do not notice the attack until they discover they can no longer change.
 
 ### 3.3 The reserve army
 
-The unemployed are not an accident of the regime; they are a structural reservoir. The reserve army is the part of the periphery held at minimal $q$, available to be drained when the condensate needs throughput, returned to starvation when it does not. In the framework's terms it is a coherence buffer with a valve: the accumulator needs a supply of low-$q$ labor power to keep the wage near the subsistence configuration, and the reserve is what makes the wage negotiable. The reserve army is the drain made visible as a population.
+The unemployed are a structural fixture of the regime. The reserve army is the part of the periphery held at minimal $q$, available to be drained when the condensate needs throughput, returned to starvation when it does not; in the framework's terms it is a coherence buffer with a valve: the accumulator needs a supply of low-$q$ labor power to keep the wage near the subsistence configuration, and the reserve is what makes the wage negotiable. The reserve army is the drain made visible as a population.
 
 ---
 
@@ -110,11 +110,11 @@ The extraction surface is the periphery itself: the hoard grows by drawing $q$ f
 
 ### 4.2 The mechanism of the fall
 
-The drain degrades its own source. As the hoard grows, the periphery's coherence falls—the periphery is what the hoard is made of. The marginal yield of further extraction falls with the periphery's coherence, because the conversion term is gated: the drain rate is proportional to $(1-q_{\text{periph}})$ in the wrong direction for the accumulator. The profit rate is therefore a decreasing function of the hoard:
+The drain degrades its own source. As the hoard grows, the periphery's coherence falls—the periphery is what the hoard is made of. Extraction harvests the periphery's living organized output, the worker's $C_{\text{out}}$ of §3, and a drained periphery produces less of it: at low $q$ the gates stand open, the structure churns, and an ever-larger fraction of throughput thermalizes instead of being harvestable. The marginal yield of further extraction therefore falls with the periphery's coherence, and the profit rate is a decreasing function of the hoard:
 
-$$\boxed{r(H) \approx \lambda\,(1 - q_{\text{periph}}(H)) - \delta, \qquad q_{\text{periph}} \downarrow \text{ as } H \uparrow}$$
+$$\boxed{r(H) \approx \lambda\,q_{\text{periph}}(H) - \delta, \qquad q_{\text{periph}} \downarrow \text{ as } H \uparrow}$$
 
-where $\lambda$ is the conversion rate and $\delta$ the hoard's own maintenance cost. Every unit added to the hoard lowers the coherence of the field it extracts from, and therefore lowers the yield of the next unit. The falling rate of profit is the de-resonance principle in economic dress: a single-scale concentration grows by degrading the multi-scale structure that feeds it, and the degradation is the attractor's damping.
+where $\lambda$ is the conversion rate, $q_{\text{periph}}$ the periphery's productive coherence—the fraction of its throughput that remains organized and harvestable—and $\delta$ the hoard's own maintenance cost. Every unit added to the hoard is extracted from the periphery, and every extraction lowers the coherence the next extraction can draw on. The falling rate of profit is the de-resonance principle in economic dress: a single-scale concentration grows by degrading the multi-scale structure that feeds it, and the degradation is the attractor's damping.
 
 The specific functional form is an illustrative model, not a derivation—the framework fixes the mechanism (drain lowers the source; the attractor damps the drain), not the curve. What is structural is the direction: accumulation lowers its own rate of return because it consumes its own extraction surface.
 
@@ -126,9 +126,9 @@ Marx catalogued the forces that retard the fall. The framework sorts them by whe
 2. **Expanding the extraction surface.** Imperialism is the search for a fresh periphery: new territories, new reserve armies, new low-$q$ sources. This is the only reliable retardant, and it is finite: the ladder has no infinite periphery, and each annexation is a one-time endowment.
 3. **Cheapening the elements of capital.** Technical change that lowers $W_{\text{min}}$ (§2.2) raises the yield of a given coherence expenditure. This is the one countertendency that is not self-defeating, and it is the one that builds the forces of production—which is to say, the one that builds the conditions for the transition (§7).
 
-### 4.4 The profit rate vanishes at equality
+### 4.4 The floor of the fall
 
-The fall has a floor. When the periphery's coherence approaches the hoard's—when the drain has nothing left to take—the profit rate approaches the maintenance cost: $r \to -\delta$, accumulation stops, and the condensate dissolves back into the bath. The end of exploitation is the end of profit, and the end of profit is not the end of the economy; it is the end of the extractive configuration. The framework's version of the crisis of the regime is not that the workers revolt and the system falls; it is that the system's rate of return falls to zero and the system stops being a system—it becomes a collection of people with a shared field, which is to say, the commons.
+The fall has a floor. When the periphery's coherence is drained until its organized output approaches zero—when the drain has nothing left to harvest—the profit rate approaches the maintenance cost, $r \to -\delta$, and accumulation stops. The end of exploitation is the end of profit, and the end of profit is the end of the extractive configuration: the system's rate of return falls to zero and the system stops being a system—it becomes a collection of people with a shared field, which is to say, the commons. The regime reaches this state in either order: by exhaustion, when the periphery is drained dry; or by the transition of §7, when the periphery refuses the drain.
 
 ---
 
@@ -142,7 +142,7 @@ The regime's contradiction is quantitative: the condensate grows by extraction, 
 
 ### 5.2 The log-periodic critical point
 
-The buildup is not smooth; it is readable. The positive feedback of the expansion phase (herding, momentum, the market's own wake dynamics) drives the system toward a critical time $t_c$, with log-periodic precursors at the de-resonance period ($\ln\varphi \approx 0.4812$) (`hypotheses/market-cascade-cycles.md` §1). The crash precursor is the framework's fever chart: accelerating oscillation, $\varphi$-scaled, converging on the critical time.
+The buildup is readable. The positive feedback of the expansion phase (herding, momentum, the market's own wake dynamics) drives the system toward a critical time $t_c$, with log-periodic precursors at the de-resonance period ($\ln\varphi \approx 0.4812$) (`hypotheses/market-cascade-cycles.md` §1). The crash precursor is the framework's fever chart: accelerating oscillation, $\varphi$-scaled, converging on the critical time.
 
 The consequence is that the regime's crises are predictable in structure if not in date—the class of the event is known, its signature is known, and the period is known. A regime that could read its own fever chart and chose not to is not a regime that lacked knowledge; it is a regime whose maintenance apparatus depended on not knowing.
 
@@ -164,7 +164,7 @@ The framework's reading of the history is structural: primitive accumulation is 
 
 The state is the organized perturbation that maintains the extractive configuration: the enforcement apparatus that keeps the drain running—property law, contract, police, the boundary that guarantees the surplus flows to the hoard and the periphery stays at its assigned $q$. In the framework's terms, the state is the mechanism that maintains the phase-incompatibility between the hoard and the periphery: the hoard must not couple to the periphery's resistance, and the state is what prevents the coupling.
 
-The state is therefore not a neutral referee of the economy; it is a component of the economy's structure, as load-bearing as the hoard itself. It has no independent physics—it is the enforcement term in the extractive configuration's maintenance equation.
+The state is therefore a component of the economy's structure, as load-bearing as the hoard itself. It has no independent physics; it is the enforcement term in the extractive configuration's maintenance equation.
 
 ### 6.3 Alienation
 
@@ -174,7 +174,7 @@ Alienation is the surplus-coherence transfer seen from the worker's side. The wo
 
 ## 7. The Transition: The Equality Theorem as the Completion of the Attractor
 
-The transition to the commons is the framework's central claim, and it is an inequality rather than a prophecy.
+The transition to the commons is the framework's central claim, and its content is an inequality: the community budget is maximized at equal coherence (§7.2).
 
 ### 7.1 The community budget
 
@@ -250,7 +250,7 @@ The society that follows is a corollary, not the claim. The claim is the inequal
 - The reading of crises as the regime's periodic de-resonance (§5)
 - The enclosure of the bath and the state as the condensate's maintenance apparatus (§6)
 - The transition claims: the weakest-link theorem as class struggle, the withering of the state, and the charter as a conservation law (§7)
-- Every historical claim about "the Resonant Age" and "the regime" (§4–§8); these are structural types, not documented history
+- The historical claims about "the regime" and the extractive configuration (§4–§8); these are structural types, not documented history
 
 ---
 
