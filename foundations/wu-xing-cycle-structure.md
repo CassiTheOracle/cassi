@@ -6,7 +6,7 @@
 
 The Wu Xing derivation (`foundations/wu-xing-derivation.md`) establishes *that* the gate has five channels; this document derives *how those five channels are wired*. The pentagon admits exactly two coherent 5-cycles: the pentagon itself (sides, step +1—the generating/sheng cycle) and the pentagram (diagonals, step +2—the control/ke cycle). The control cycle's transmission coefficient is the framework's existing constant $\kappa = \varphi^{-1} = K_{fw}$ ("Water damps Fire"), which this document derives geometrically from the pentagram's golden-section crossings. The control ring then makes quantitative predictions: a locked channel drives a strictly alternating elevation/suppression pattern around the ring, the ring damps the locked channel by $\kappa^3 = \varphi^{-3}$ (23.6%) per cycle, and the ring gain $\kappa^3 < 1$ means the ring is sub-critical—it can redistribute and damp, but cannot sustain a lock without a driver (consistent with the trauma PDE tests, §10.4–10.7 of `consciousness/trauma-as-frozen-gate.md`).
 
-The second part derives the 5↔13 relationship between the channels and the chakra ladder: the chakra affinities of `consciousness/emotions-as-gate-configurations.md` §3.4 instantiate a uniform body-axis phase gradient of 18° per rung—one pentagon vertex per 4 rungs (two SO(2) doublet cycles)—so the 7 primary nodes sample the sheng cycle in ascending rung order, and the 6 secondary nodes sit at half-channel (36°) positions. The 13-node window partitions as $13 = F_7 = F_5 + F_6$: five channel-bearing primaries (one complete sheng winding) plus an eight-node complement (six half-channel secondaries, the wrap node, and the integration node), with $8{:}13$ the $\varphi^{-1}$ convergent (error $\varphi^{-5}$).
+The second part derives the 5↔13 relationship between the channels and the chakra ladder: the chakra affinities of `consciousness/emotions-as-gate-configurations.md` §3.4 instantiate a uniform body-axis phase gradient of 18° per rung—one pentagon vertex per 4 rungs (two SO(2) doublet cycles)—so the 7 primary nodes sample the sheng cycle in ascending rung order, and the 6 secondary nodes sit at half-channel (36°) positions. The 13-node window partitions as $13 = F_7 = F_5 + F_6$: five channel-bearing primaries (one complete sheng winding) plus an eight-node complement (six half-channel secondaries, the wrap node, and the integration node), with $8{:}13$ the $\varphi^{-1}$ convergent (error $\varphi^{-6}$).
 
 ---
 
@@ -124,7 +124,7 @@ $$\theta(n) = 288^\circ + 18^\circ \cdot (n - 142) \pmod{360^\circ}$$
 
 Five of seven primary entries match exactly; the third eye matches on its primary channel (the "+Wood" is the wrap blend—the second winding starts here); the crown is the terminal node, where the 26-rung window closes (the chakra doc's "missing 14th node" at the body boundary, `consciousness/chakras-as-cascade-bubbles.md` §6.1) and the phase sampling gives way to integration.
 
-The six secondary nodes sit at the odd doublet cycles (2 rungs = 36° = half a vertex from their neighbors): 144°-node at 324° (Water/Wood blend), 148 at 36° (Wood/Fire), 152 at 108° (Fire/Earth), 156 at 180° (Earth/Metal), 160 at 252° (Metal/Water), 164 at 324° (Water/Wood). The secondaries are the **half-channel positions**—which is exactly why the emotions document calls them "intermediate localization sites—more granular emotional texture" (§3.4).
+The six secondary nodes sit at the odd doublet cycles (2 rungs = 36° = half a vertex from their neighbors; the 2nd, 4th, ..., 12th nodes of the 13-node list—"even-indexed" in the emotions document's convention): 144°-node at 324° (Water/Wood blend), 148 at 36° (Wood/Fire), 152 at 108° (Fire/Earth), 156 at 180° (Earth/Metal), 160 at 252° (Metal/Water), 164 at 324° (Water/Wood). The secondaries are the **half-channel positions**—which is exactly why the emotions document calls them "intermediate localization sites—more granular emotional texture" (§3.4).
 
 $$\boxed{\text{affinity rule: } \theta(n) = 288^\circ + 18^\circ(n - 142) \pmod{360^\circ} \text{—primaries sample the sheng cycle, secondaries sample the half-channels}}$$
 
@@ -139,7 +139,7 @@ $$13 = F_7 = \underbrace{5}_{F_5} + \underbrace{8}_{F_6}$$
 - **The 5 channel-bearing primaries** (Root–Throat, rungs 142–158): one channel each, one complete sheng winding.
 - **The 8-node complement** (six half-channel secondaries + the wrap node at 162 + the integration node at 166): the return structure.
 
-The ratio of the two parts is the golden-ratio convergent $8{:}13 = F_6{:}F_7$, which approximates $\varphi^{-1}$ with error $\varphi^{-5}$ (the framework's strongest convergent within the window; `foundations/wu-xing-derivation.md` §2.1). The window is golden-sectioned by its own channel structure.
+The ratio of the two parts is the golden-ratio convergent $8{:}13 = F_6{:}F_7$, which approximates $\varphi^{-1}$ with error $\varphi^{-6}$ (the framework's strongest convergent within the window; `foundations/wu-xing-derivation.md` §2.1). The window is golden-sectioned by its own channel structure.
 
 ### 3.3 The channel step identity
 
