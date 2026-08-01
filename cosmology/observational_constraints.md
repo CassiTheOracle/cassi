@@ -147,12 +147,14 @@ $$\frac{v_C}{v_B} = \sqrt{\alpha(1+\xi q)}$$
 
 For Milky Way halo parameters ($\alpha \approx 0.7$, $q \approx 0.7$):
 
-$$\frac{v_C}{v_B} \approx \sqrt{0.7 \times (1 + 17.9 \times 0.7)} \approx \mathbf{2.7}$$
+$$\frac{v_C}{v_B} \approx \sqrt{0.7 \times (1 + 17.9 \times 0.7)} \approx \mathbf{3.1}$$
 
-Predicted: $v_{\text{Cassi}}(30\text{ kpc}) \approx 2.7 \times 70 \approx 190$ km/s.
+(arithmetic corrected 2026-07-31: $\sqrt{0.7 \times 13.53} = \sqrt{9.47} \approx 3.08$; the earlier claim of 2.7× mis-evaluated the same formula. The independent rotation-curve fit in `foundations/phi_attractor_synthesis.md` Path 8 gives 2.89× at 30 kpc with the $\xi = \varphi^6$ coupling.)
+
+Predicted: $v_{\text{Cassi}}(30\text{ kpc}) \approx 3.1 \times 70 \approx 215$ km/s.
 Observed (Zhou+ 2023): $v_c(30\text{ kpc}) \approx 190 \pm 20$ km/s.
 
-**Result: 0σ tension.** The observed boost of $2.7 \pm 0.5$ is exactly matched by the Cassi prediction of 2.7× from the $\xi = \varphi^6$ coupling (superseding the earlier 'pure-Yang ceiling' of $\varphi \approx 1.62$).
+**Result: consistent within ~1.2σ** (215 vs 190 ± 20). The observed boost of $2.7 \pm 0.5$ overlaps the Cassi prediction range $2.9$–$3.1\times$ from the $\xi = \varphi^6$ coupling (superseding the earlier 'pure-Yang ceiling' of $\varphi \approx 1.62$ from the withdrawn approximate coupling).
 
 ---
 
@@ -162,7 +164,7 @@ Observed (Zhou+ 2023): $v_c(30\text{ kpc}) \approx 190 \pm 20$ km/s.
 |---|---|---|---|
 | $w_0 = -0.856$ (Wu Xing gap-derived prediction; calibrated $w_0 = -0.838$, 0$\sigma$ from DESI) | Within 0.3$\sigma$ of DESI DR2 | $w_a$: $\xi = \varphi^6$ verified shift ($+0.44 \to +0.10$); combined prediction $\approx 0.00 \pm 0.05$, within $1.4\sigma$ of DESI $-0.51$ | **Resolved** (`two-fluid/calibrate_initial_ratio_xi.py`) |
 | $\Omega_m$ / $H_0$ compatibility | In calibration | Tension with CMB | Publishing next |
-| $v_c(30\text{ kpc})$ vs baryons | $v_C/v_B = 2.7$ (matches 2.7±0.5 observed) |—| **Resolved** |
+| $v_c(30\text{ kpc})$ vs baryons | $v_C/v_B = 2.9$–$3.1$ (corrected 2026-07-31; matches $2.7\pm0.5$ observed within ~1.2σ) |—| **Consistent** |
 
 **Sources last accessed:** 2026-07-19.
 
@@ -208,7 +210,7 @@ If the Wu Xing number $w$ varies spatially at super-horizon scales (the multiver
 |---|---|---|---|
 | $w_0$ and $w_a$ | $w_0 = -0.856$ (gap-derived, 0.3$\sigma$); calibrated $w_0 = -0.838$ (0$\sigma$) | $w_a$: $\xi = \varphi^6$ verified shift $-0.34$ ($+0.44 \to +0.10$); combined with 5-channel gate → $\approx 0.00 \pm 0.05$, $1.4\sigma$ from DESI $-0.51 \pm 0.38$ | **Resolved**—`two-fluid/calibrate_initial_ratio_xi.py` |
 | $\Omega_m$ / $H_0$ compatibility | In calibration | Tension with CMB | Publishing next |
-| $v_c(30\text{ kpc})$ vs baryons | $v_C/v_B = 2.7$ (matches 2.7±0.5 observed) |—| **Resolved** |
+| $v_c(30\text{ kpc})$ vs baryons | $v_C/v_B = 2.9$–$3.1$ (corrected 2026-07-31; matches $2.7\pm0.5$ observed within ~1.2σ) |—| **Consistent** |
 | CMB axis of evil (5.4σ) | Predicted w-gradient axis | Scale-dependence unconfirmed | Simons Obs. E-mode test |
 
 ---

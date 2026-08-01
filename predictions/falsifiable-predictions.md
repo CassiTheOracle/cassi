@@ -95,6 +95,15 @@ the two-fluid expansion history.
 derived, not fitted. Solar system GR tests are preserved ($q=0$). The GW strain
 enhancement in dense cluster halos is a unique signature.
 
+**Source (prediction 14, rotation curves):** `foundations/phi_attractor_synthesis.md` Path 8
+(re-evaluated 2026-07-31 with the full coupling $G_{\text{eff}}/G = \alpha(1+\xi q)$,
+$\xi = \varphi^6$, $\alpha \approx 0.7$; scripts `experiments/phi_attractor_paths/path8_phi_enhanced_rotation.py`)
+and `cosmology/observational_constraints.md` §2.6 (halo-parameter estimate
+$v_C/v_B = \sqrt{\alpha(1+\xi q)} \approx 3.1$). The 30-kpc boost $2.9$–$3.1\times$ matches the
+observed Milky Way boost $2.7 \pm 0.5$ (Zhou+ 2023) within ~1.2σ. The earlier $2.70\times$
+claim and the $\sqrt{\varphi} \approx 1.27$ ceiling came from the withdrawn approximate
+coupling $G_{\text{eff}}/G_N = 1 + (\varphi-1)\cdot q$ and were corrected 2026-07-31.
+
 ---
 
 ## 5. Particle Physics (LHC, Hyper-K, nEXO)—Collider & Decay
@@ -166,7 +175,7 @@ Sorted by detection likelihood (most definitive first):
 | 11 | $w(z) < -1$ at $z > 3$ | LSST/Roman/SKA | **Phantom DE at high $z$** | Not yet tested | **2030s** |
 | 12 | Hubble tension | Cosmic | **Resolved** $\Omega_\Lambda$: $0.30 \to 0.50$ | $5\sigma$ resolved | **Already consistent** |
 | 13 | $\eta$ (baryon asymmetry) | Cosmic | **$5.1\times10^{-10}$** | $6.1\times10^{-10}$ ($17\%$ gap) | **Already consistent** |
-| 14 | Galaxy rotation curves | Galactic | **$2.70\times$ baryon boost** | MW confirmed | **Already consistent** |
+| 14 | Galaxy rotation curves | Galactic | **$2.9$–$3.1\times$ baryon boost** (corrected 2026-07-31) | MW confirmed ($2.7\pm0.5$; ~1.2σ) | **Already consistent** |
 | 15 | Dwarf galaxy cored halos | Galactic | **Cored (Qi)**—5/8 pass | Beats MOND (4/8) | **Already tested** |
 | 16 | BH shadow M87$^*$ | EHT | **$\sim 5.2M$** (core) | Consistent with $5M$ | **Already consistent** |
 | 17 | GW strain in halos | LIGO | **Up to $10\times$ GR** | Constrains $q < 0.1$–$0.3$ | **Ongoing** |
