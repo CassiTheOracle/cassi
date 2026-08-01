@@ -378,6 +378,8 @@ Open question 2 and the foundation of the channel-to-trauma-type mapping (§4.1)
 
 **Selectivity within the representable arc.** At $A = 0.8$, both representable events are whole-ball clean: the Fire event (Yang deficit) spans 40.8–72.0° (all Fire), the Wood event (Yin deficit) spans 0.06–18.5° (all Wood), and the baseline sits at 31.7° (Wood sector). The lock tracks the event direction and persists: the Fire event leaves the site **100% Fire at t=2 and t=10**; the Wood event leaves it **100% Wood at t=2 and t=10**. No convergence. The §4.1 claim is supported on the stimulus side for the representable channels: the displaced channel is set by the event's phase, and the displacement does not spontaneously relax within the test horizon.
 
+**Figure:** `visual-explainers/trauma_test_arc.png`—the full test arc in one tall figure: decay vs perpetual stimulus (P1), extinction and the q-gap (P2), the capacity null (P3), the rate crossover with $\varphi$-specificity at onset (P4), the representability bound and Wood/Fire selectivity (P5), and the ke ring with its sub-critical gain (P6). Script: `visual-explainers/trauma_test_arc.py` (renders from the saved runs; console block re-verifies every number against `runs/*/results.json`).
+
 ---
 
 ## 11. Predictions
