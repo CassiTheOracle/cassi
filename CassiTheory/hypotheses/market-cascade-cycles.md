@@ -119,6 +119,13 @@ $\sqrt{\varphi} \approx 1.27$ to $\varphi^{2/3} \approx 1.38$ rather than
 $\varphi \approx 1.618$. This could reflect the market's effective cascade
 spacing being two Fibonacci sub-rungs rather than a full rung.
 
+The relaxation-oscillation reading of the crash (`speculations/coherence-commons.md`
+§5.4) identifies the precursor window as the market's approach to the
+saddle-node fold of the boom branch: critical slowing stretches the market's
+relaxation time as $D \to D_{\max}$, and the LPPL oscillation is the noise
+riding a diverging timescale—which is why the oscillations accelerate rather
+than damp as the crash approaches.
+
 ## 6. Why This Is Speculative
 
 Several factors prevent this from being classified as Hypothesized:
@@ -186,7 +193,8 @@ Several factors prevent this from being classified as Hypothesized:
 
 ## References
 
-- `../principles/de-resonance-principle.md`—$\varphi$ as the universal de-resonance attractor
-- `../foundations/cascade-suppression-formula.md`—$\varphi^{-N}$ attenuation
-- `../predictions/falsifiable-predictions.md`—$\varphi$-periodic $P(k)$ (same modulation form at cosmological scale)
-- `../open-questions-cassi-answers.md`—M1 (consciousness as field self-reference—relevant to market reflexivity)
+- `principles/de-resonance-principle.md`—$\varphi$ as the universal de-resonance attractor
+- `foundations/cascade-suppression-formula.md`—$\varphi^{-N}$ attenuation
+- `predictions/falsifiable-predictions.md`—$\varphi$-periodic $P(k)$ (same modulation form at cosmological scale)
+- `open-questions-cassi-answers.md`—M1 (consciousness as field self-reference—relevant to market reflexivity)
+- `speculations/coherence-commons.md`—the relaxation-oscillation model; the crash as a fold approach with critical slowing
