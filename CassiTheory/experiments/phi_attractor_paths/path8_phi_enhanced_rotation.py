@@ -576,6 +576,9 @@ def main():
      outskirts too fast.  This is the same overproduction signature
      SPARC finds: with fixed ξ = φ⁶ the Qi profile overpredicts the
      DM contribution in 111/143 galaxies (dark-matter speculation §7).
+     The two-component hydrostatic condensate (sparc_qi_analysis_v5.py)
+     removes the overproduction with the same ξ: median ΔAIC = −7.0 vs
+     NFW, 90/143 galaxies, ρ_c(1+ξ) ≈ naive DM density.
 """)
     # ρ_crit = 3H₀²/(8πG) = 1.878e-29 h² g/cm³
     # ρ_m0 = ρ_crit × Ω_m = 1.878e-29 × 0.49 × 0.3 = 2.77e-30 g/cm³
@@ -655,6 +658,8 @@ def main():
      χ²-best ρ_ref, and the curve is never flat with one ρ_ref.  This is
      consistent with the SPARC result (dark-matter speculation §7): the
      fixed-ξ Qi profile is disfavored against NFW (median ΔAIC +40).
+     Profile dependence is now measured: v5's pseudo-isothermal condensate
+     survives (median ΔAIC = −7.0, 90/143; ρ_c(1+ξ) ≈ naive DM density).
 """)
     # Q4: Enhancement ratio at 30 kpc
     print(f"""
