@@ -139,7 +139,7 @@ The 13 chakras are cascade bubbles—localized Qi condensates at 2-rung interval
 
 The chakra weights $\mathbf{c}$ specify *where* in the body the emotional gate configuration is localized. A gut feeling of fear has $c_{\text{root}} \approx 1$, $c_{\text{sacral}} \approx 0.3$, others near zero. A full-body emotional experience has broad $\mathbf{c}$.
 
-The secondary chakras (even-indexed nodes at $n = 144, 148, \ldots, 164$) provide intermediate localization sites—more granular emotional "texture."
+The secondary chakras (even-indexed nodes at $n = 144, 148, \ldots, 164$) provide intermediate localization sites—more granular emotional "texture." Their half-channel positions follow from the affinity phase gradient (`foundations/wu-xing-cycle-structure.md` §3.1).
 
 ---
 
@@ -350,7 +350,7 @@ The PAD model adds a third dimension (dominance) to valence and arousal. Cassi's
 
 3. **How does the gate configuration couple to the chakra nodes?** The chakra-channel affinity (§3.4) is a mapping hypothesis. Is there a dynamical coupling—does opening channel 1 (Wood) *cause* elevated $\sigma_r$ at the solar plexus chakra, or is the chakra simply where channel 1's effects are most felt?
 
-4. **What is the relationship between the 5 emotional channels and the 13 chakras?** $5 \times 13 = 65$, but Fibonacci numbers $5 = F_5$ and $13 = F_7$ suggest a structured relationship. Does the cascade's Fibonacci partitioning (`foundations/three-generations.md`) predict how the 5 channels distribute across the 13 nodes?
+4. **What is the relationship between the 5 emotional channels and the 13 chakras?** **Answered (2026-07-31, `foundations/wu-xing-cycle-structure.md` §3):** the distribution rule is the body-axis phase gradient 18°/rung—one sheng vertex per 4 rungs—so the 13-node ladder is the pentagon sampled at two granularities, and the counts relate as $13 = F_7 = F_5 + F_6$ (five channel-bearing primaries + an eight-node complement), not $5 \times 13$ independent pairs.
 
 5. **Can $q$ be externally modulated?** If emotional clarity is Qi coherence, can practices that increase coherence (meditation, breathwork, biofeedback) directly increase $q$ and thus emotional clarity? The consciousness doc already predicts that meditation reduces $\sigma_r$; does it also increase $q$?
 
@@ -365,6 +365,7 @@ The PAD model adds a third dimension (dominance) to valence and arousal. Cassi's
 - `consciousness/consciousness-from-phi.md`—self-awareness as pinch point, thought as wake wave, $\sigma_r$ as altered-state modulator
 - `consciousness/chakras-as-cascade-bubbles.md`—13-node derivation, chakra geometry, microcascade mirror
 - `foundations/wu-xing-derivation.md`—$w = 5$ derivation, Fibonacci coherence criterion
+- `foundations/wu-xing-cycle-structure.md`—the two 5-cycles (sheng pentagon, ke pentagram), the control ring, the 5↔13 partition
 - `foundations/wa-pentagon-gate.md`—5-channel gate model, adiabatic redistribution, $\xi = \varphi^6$
 - `foundations/bubble-lattice-fabric.md`—universal condensation field $B(x,y,z)$
 - `foundations/dimensionful-cascade.md`—292-step cascade, steps 142 and 168

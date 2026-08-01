@@ -5,12 +5,12 @@
 | Label | Meaning | Count |
 |-------|---------|-------|
 | **F** | **Fundamental axiom**—the single postulate from which everything follows | 1 |
-| **D** | **Derived**—mathematical consequence of φ and the PDE structure, zero freedom | 17 |
+| **D** | **Derived**—mathematical consequence of φ and the PDE structure, zero freedom | 18 |
 | **C** | **Calibrated**—single universal value fit to experiment, fixed across all domains | 3 |
 | **E** | **External / empirically determined**—standard physics constants inherited by the framework, plus lattice parameters not yet derived from $\varphi$ | 7 |
 | **I** | **Initial condition**—free initial values that evolve dynamically, not fixed by theory | 6 |
 | **N** | **Numerical**—computational parameters with no physical significance | 7 |
-| | **Total** | **41** |
+| | **Total** | **42** |
 
 ---
 
@@ -56,6 +56,7 @@ All dimensionless coupling constants in the Cassi framework are $\varphi$-powers
 | $n_s$ (spectral index) |—| $0.967$ | **D** | From inflation in Cassi framework |
 | $r$ (tensor-to-scalar) |—| $0.003$ | **D** | From inflation in Cassi framework |
 | $K_{fw}$ (Wu Xing coeff) | $\varphi^{-1}$ | $0.618$ | **D** | Water damps Fire |
+| $K_{ring}$ (ke ring gain) | $\varphi^{-3}$ | $0.236$ | **D** | One-cycle attenuation of the control ring (`foundations/wu-xing-cycle-structure.md` §2.3) |
 
 
 ## 3. PDE Solver Parameters (Numerical Conventions)
@@ -386,7 +387,7 @@ Most initial-condition parameters must be specified for any Cassi simulation. Th
 | PDE solver parameter | **C** | 3 | $\chi$, $c_s^2$, $\nu$—consistent across simulations |
 | External constant | **E** | 7 | $G$, $c$, $\hbar$, $m_e$, $m_p$, $\alpha_s(M_Z)$, $P_\parallel(n)$ |
 | Initial condition | **I** | 5 | $a_0$, $H_0$, positions, velocities, masses |
-| **Total** | | **41** |
+| **Total** | | **42** |
 
 ### Historical Reduction
 
