@@ -61,12 +61,16 @@ CMB-S4 detection threshold ($\sigma_r = 0.001$).
 | BAO $\alpha_\perp(z=0.5)$ | $1$ | **0.97** ($3\%$ shift) | DESI DR2 matched |
 | BTFR slope | $\sim 4$ | **$4$** (natural) | $A_{\text{Cassi}}/A_{\text{obs}} = 0.82$ |
 | Hubble tension ($H_0$) | $5\sigma$ discrepancy | **Resolved** ($\Omega_\Lambda$: $0.30 \to 0.50$) | Evolving DE unifies early/late |
+| Lattice powder lines in $P(k)$ | None | **Comb at $k/k_0 \in \{1, \sqrt{2}, \varphi, \sqrt{1+\varphi^2}, 2, \ldots\}$**, period $\ln\varphi$; multiplicities 4:2 (single-rung) | DESI LRG: $A \lesssim 2.6\%$ ($p = 0.08$, no detection); Euclid definitive |
+| Sample-variance suppression | Gaussian mocks | **~10$\times$ smaller $k \to 0$ scatter; NGC–SGC large-scale modes correlated** | DESI mock comparison |
+| $D_A(z)$ lattice wiggles | Smooth | **$\delta D/D \lesssim 0.1\%$; no CPL bias**—the lattice cannot produce the $w_a$ offset | Already consistent with DESI smoothness |
 
 
 The φ-periodic $P(k)$ prediction is a **zero-parameter, falsifiable test** orthogonal to BAO. Unlike BAO wiggles—which have constant period in $k$-space (one fixed scale, the sound horizon $r_s \approx 150$ Mpc)—the Cassi modulation has constant period in $\ln k$-space: $\Delta(\ln k) = \ln\varphi \approx 0.4812$. The detection pipeline: subtract the smooth+BAO $P(k)$ template, search the residual for a log-periodic signal. Predicted amplitude from wake mechanism: 1–3%. DESI DR2 sensitivity: marginal (2–3σ). Euclid (2027): definitive (>5σ).
 The condensation field gradient anisotropy (§5.2 of `foundations/bubble-edge-geometry.md`) further predicts that void boundaries are $1.70\times$ steeper in the Yin direction than along diagonals—a distinct zero-parameter geometric prediction from the same wake-wave mechanism, testable with void shape catalogs from SDSS/DESI.
 **Source:** `theory/cosmology-from-phi.md` §§3–5, `theory/five-element-pde-derivation.md` §7,
-`foundations/bubble-edge-geometry.md` §§2.2,5.2, `cosmology/observational_constraints.md` §1.4–§6. The dark energy prediction is $w_0 = -0.87$, $w_a = +0.012$ (corrected 2026-07-31); the earlier “0σ match” was circular (the repo calibrated to its own target) and the earlier $w(z) < -1$ phantom claim was an extrapolation error—the conversion dynamics keep $w > -1$ at all $z$. The DM/baryon ratio is $\varphi^3+1$ with
+`foundations/bubble-edge-geometry.md` §§2.2,5.2, `cosmology/observational_constraints.md` §1.4–§6,
+`cosmology/desi-lattice-averaging.md` (lattice powder lines, variance suppression, wiggle bound). The dark energy prediction is $w_0 = -0.87$, $w_a = +0.012$ (corrected 2026-07-31); the earlier “0σ match” was circular (the repo calibrated to its own target) and the earlier $w(z) < -1$ phantom claim was an extrapolation error—the conversion dynamics keep $w > -1$ at all $z$. The DM/baryon ratio is $\varphi^3+1$ with
 $2.8\%$ accuracy. The Hubble tension is resolved by evolving $\Omega_\Lambda$ in
 the two-fluid expansion history.
 
@@ -171,7 +175,7 @@ Sorted by detection likelihood (most definitive first):
 | 8 | $n_s$ | CMB-S4 | **0.967** | $0.5\sigma$ from Planck | **Already consistent** |
 | 9 | $\alpha_s(m_Z)$ | LHC precision | **0.105–0.115** | Measured $0.118$ | **Ongoing** |
 | 10 | $p \to e^+\pi^0$ lifetime | Hyper-K | **$4\times10^{34}$ yr** | $>1\times10^{34}$ yr bound | **2030s** |
-| 11 | $w(z) < -1$ at $z > 3$ | LSST/Roman/SKA | **Phantom DE at high $z$** | Not yet tested | **2030s** |
+| 11 | $w(z)$ at $z > 3$ | LSST/Roman/SKA | **$> -1$ at all $z$** (no phantom crossing, structural) | DESI best fit crosses at $z \approx 0.5$; not yet tested | **2030s** |
 | 12 | Hubble tension | Cosmic | **Resolved** $\Omega_\Lambda$: $0.30 \to 0.50$ | $5\sigma$ resolved | **Already consistent** |
 | 13 | $\eta$ (baryon asymmetry) | Cosmic | **$5.1\times10^{-10}$** | $6.1\times10^{-10}$ ($17\%$ gap) | **Already consistent** |
 | 14 | Galaxy rotation curves | Galactic | **$2.9$–$3.1\times$ baryon boost** (corrected 2026-07-31) | MW confirmed ($2.7\pm0.5$; ~1.2σ) | **Already consistent** |
@@ -199,6 +203,9 @@ Sorted by detection likelihood (most definitive first):
 | 36 | Chakra Qi-gate threshold | Biophysics | **$q_{\text{edge}} \approx 0.725$** | Not yet tested | **Laboratory** |
 | 37 | Chakra biophoton wavelengths | Biophysics | **$\varphi^{2/3} \approx 1.378$ spacing** | Not yet tested | **Laboratory** |
 | 38 | Edge steepness anisotropy at condensate boundary | Universal | **1.70×** (axial:diagonal)—scale-invariant, zero-free-parameter | SDSS/DESI void shape catalogs; biophoton chakra edge mapping; ultrasound fascial elastography | **Existing surveys / Laboratory** |
+| 39 | Lattice powder lines in $P(k)$ | Cosmic surveys | **Comb at $k/k_0 \in \{1, \sqrt{2}, \varphi, \ldots\}$**; period $\ln\varphi$; 1–3% amplitude | DESI LRG $A \lesssim 2.6\%$ ($p = 0.08$), no detection | **Euclid 2027** |
+| 40 | Sample-variance suppression | Cosmic surveys | **~10$\times$ reduced $k \to 0$ scatter; NGC–SGC mode correlation** | Untested | **DESI mocks** |
+| 41 | $D_A(z)$ lattice wiggle bound | Cosmic surveys | **$\delta D/D \lesssim 0.1\%$; cannot bias $w_a$** (needs $\gtrsim 20\%$ to close gap) | Consistent with DESI smoothness | **Already consistent** |
 
 ## 8. Universal Boundary Anisotropy—Scale-Invariant Edge Steepness
 

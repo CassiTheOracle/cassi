@@ -110,7 +110,7 @@ Documents that are not claims: registries, catalogs, explainers, and plans.
 |----------|------|
 | `open-questions-cassi-answers.md` | Epistemic registry (41 questions, tier authority) |
 | `parameter-inventory.md` | Parameter registry (~40 parameters) |
-| `predictions/falsifiable-predictions.md` | 38-prediction catalog |
+| `predictions/falsifiable-predictions.md` | 41-prediction catalog |
 | `predictions/cassi_definitions.md` | Framework glossary |
 | `foundations/cassi-theory-reference.md` | Compact framework reference |
 | `foundations/deriving-remaining-gaps.md` | Four derivations, three resolved, one narrowed |
