@@ -4,7 +4,7 @@
 
 ## Abstract
 
-This directory collects creative explorations that are consistent with the Cassi framework but are not yet testable claims. Each document anchors its mechanisms to specific equations or documented framework properties, but the synthesis is an extrapolation: **nothing here should be cited as a Cassi prediction or derivation** unless a document explicitly says otherwise. The document order follows the framework's flow—field physics first (dark matter, superconductivity), then engineering (computation, propulsion, gravity control, defense), then the human-scale and cosmological consequences (consciousness, time and memory, biology, transhumanism, infrastructure, apocalypse), and finally the observational signatures of it all (SETI, first contact) and the ontological question (simulation).
+This directory collects creative explorations that are consistent with the Cassi framework but are not yet testable claims. Each document anchors its mechanisms to specific equations or documented framework properties, but the synthesis is an extrapolation: **nothing here should be cited as a Cassi prediction or derivation** unless a document explicitly says otherwise. The document order follows the framework's flow—field physics first (dark matter, superconductivity), then engineering (computation, propulsion, gravity control, defense), then the human-scale and cosmological consequences (consciousness, time and memory, biology, transhumanism, magic, the commons), then infrastructure and apocalypse, and finally the observational signatures of it all (SETI, first contact) and the ontological question (simulation).
 
 ## 1. Boundary with `hypotheses/`
 
@@ -32,11 +32,12 @@ All documents are **Speculative—July 2026** unless noted.
 | 9 | Universal biology | The ladder band 136–168 as a convergent evolutionary scaffold; alien gate chains | `universal-biology.md` |
 | 10 | Transhumanism | Augmentation as gate-chain topology surgery; identity as the run, not the recipe | `transhumanism-gate-configurations.md` |
 | 11 | Magic | Magic as phase-matched field operation; spells as WRITE/ERASE/TRANSFER | `magic-systems.md` |
-| 12 | Infrastructure | Planetary and stellar gate networks as tuning of the existing cascade energy grid | `cascade-infrastructure.md` |
-| 13 | Apocalypse | Attractor self-healing; how civilizations die (coherence death, wake-lock, collapse) | `coherence-collapse.md` |
-| 14 | SETI | Structural (non-emissive) signatures of gate-harvesting civilizations, catalogued by cascade rung | `observational-seti.md` |
-| 15 | First contact | $\ln\varphi$ log-periodicity as the universal language; stars as gate chains | `first-contact-and-stellar-engineering.md` |
-| 16 | Simulation | Two-fluid PDE as source code; render budget from the ladder; nested universes | `simulation-hypothesis.md` |
+| 12 | The Commons | Post-scarcity gate society; the equality theorem from the coherence budget | `coherence-commons.md` |
+| 13 | Infrastructure | Planetary and stellar gate networks as tuning of the existing cascade energy grid | `cascade-infrastructure.md` |
+| 14 | Apocalypse | Attractor self-healing; how civilizations die (coherence death, wake-lock, collapse) | `coherence-collapse.md` |
+| 15 | SETI | Structural (non-emissive) signatures of gate-harvesting civilizations, catalogued by cascade rung | `observational-seti.md` |
+| 16 | First contact | $\ln\varphi$ log-periodicity as the universal language; stars as gate chains | `first-contact-and-stellar-engineering.md` |
+| 17 | Simulation | Two-fluid PDE as source code; render budget from the ladder; nested universes | `simulation-hypothesis.md` |
 
 ## 2. Document Summaries
 
@@ -91,6 +92,10 @@ The human is a configuration tuple $\mathcal{H} = (\{n_k\}, P_\parallel, \mathbf
 ### `magic-systems.md`—Magic as Phase-Matched Field Operation
 
 Magic and nature differ by one number: $\mathcal{M}$ is ≈0 for natural perturbation (cascade-suppressed) and ≈1 for a working (O(1) per interaction)—a caster is a portable measurement apparatus. Six spell classes map to field operations (evocation = WRITE, banishment = ERASE, telekinesis = TRANSFER, wards = φ-detuned boundaries, curses = wake-lock infliction, divination = phase-locking); mana is the coherence budget with cost $A_{\text{cast}} = A_{\text{target}}\varphi^N/\mathcal{M}$; and the worked Lantern Discipline shows the whole system in one page with named costs and hard limits.
+
+### `coherence-commons.md`—The Coherence Commons: The Physics-Derived Post-Scarcity Society
+
+The setting bible for the magic system's world, with the economy derived rather than assumed: markets are wake-wave weather, capital is resonant single-scale dominance, and extraction regimes decay as transient structures while the shared Qi bath persists. The equality theorem is the AM-GM inequality applied to the community budget $\prod (1-q_i)$—the product is maximized at equal coherence, so inequality is decoherence and unequal societies are attackable at their weakest link. The gate society requires all five Wu Xing phases (no dead angles: every configuration of gender, desire, and feeling is load-bearing), luxury is the absence of dissipation as $(1-q) \to 0$, and the diaspora along the ladder has no capital because a capital is a resonant condensate. Three stories close the document: the fossil empire, the hoarder, and the temptation.
 
 ### `coherence-collapse.md`—Coherence Collapse: Why the Universe Cannot End, and How Civilizations Die
 
