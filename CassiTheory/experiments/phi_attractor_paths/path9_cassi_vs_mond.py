@@ -11,9 +11,13 @@ MOND interpolating function (simple form, McGaugh 2008):
     where b = a_baryon/a₀.
 
 Cassi φ-enhanced gravity:
-    G_eff/G_N = 1 + (φ-1)·q,   φ = (1+√5)/2 ≈ 1.618
+    G_eff/G = α·(1 + ξ·q),   ξ = φ⁶ ≈ 17.944,  α ≈ 0.7 (halo Yang fraction)
     q = 1 / (1 + (ρ/ρ_ref)²)
-    a_Cassi = (G_eff/G_N) · a_baryon
+    a_Cassi = (G_eff/G) · a_baryon
+
+This is the full two-fluid coupling (cosmology/observational_constraints.md §2.6),
+superseding the earlier approximate G_eff/G_N = 1 + (φ−1)·q (max boost
+φ ≈ 1.618), which used the wrong equation and was withdrawn.
 
 The Cassi enhancement depends on LOCAL DENSITY ρ, not on acceleration.
 This is a fundamental difference from MOND, where the boost depends on
@@ -49,6 +53,8 @@ M_SUN = 1.989e30          # kg
 KPC = 3.086e19            # m
 A0 = 1.2e-10              # m/s² —MOND critical acceleration
 PHI = (1.0 + np.sqrt(5.0)) / 2.0   # golden ratio ≈ 1.618
+XI = PHI ** 6                       # Qi-gravity coupling ξ = φ⁶ ≈ 17.944
+ALPHA_HALO = 0.7                    # halo Yang fraction π/ρ (MW halo regime)
 
 # Galaxy model (Path 8 parameters)
 M_DISK = 6.0e10 * M_SUN   # kg
@@ -100,9 +106,9 @@ def cassi_q(rho, rho_ref):
 
 
 def cassi_geff_ratio(rho, rho_ref):
-    """G_eff/G_N = 1 + (φ-1)·q."""
+    """G_eff/G = α·(1 + ξ·q), with ξ = φ⁶, α = 0.7 (full two-fluid coupling)."""
     q = cassi_q(rho, rho_ref)
-    return 1.0 + (PHI - 1.0) * q
+    return ALPHA_HALO * (1.0 + XI * q)
 
 
 def cassi_a_obs(a_baryon, rho, rho_ref):
@@ -518,13 +524,13 @@ def main():
         print(f"  Deep regime (a_baryon ≈ {a_bar_deep:.2e} m/s², target {a_deep:.2e}):")
         print(f"    R ≈ {R[idx_deep]/KPC:.1f} kpc, ρ = {rho[idx_deep]:.3e} kg/m³")
         print(f"    MOND:   a_obs/a_baryon = {a_mond_deep/a_bar_deep:.1f}×")
-        print(f"    Cassi:  a_obs/a_baryon = {a_cassi_deep/a_bar_deep:.3f}×  (G_eff/G_N = {g_deep:.4f}, max φ = {PHI:.4f})")
+        print(f"    Cassi:  a_obs/a_baryon = {a_cassi_deep/a_bar_deep:.3f}×  (G_eff/G = {g_deep:.4f}, max α(1+ξ) = {ALPHA_HALO*(1.0+XI):.4f})")
         print(f"    Ratio a_Cassi/a_MOND = {a_cassi_deep/a_mond_deep:.4e}")
     else:
         print(f"  Deep regime: grid does not reach a_baryon = {a_deep:.2e} m/s²")
         print(f"    Closest grid point: a_baryon = {a_bar_deep:.2e} m/s² at R = {R[idx_deep]/KPC:.1f} kpc")
         print(f"    MOND asymptotic: a_obs/a_baryon → √(a₀/a_baryon) as a_baryon → 0")
-        print(f"    Cassi asymptotic: a_obs/a_baryon → φ = {PHI:.4f} as ρ → 0")
+        print(f"    Cassi asymptotic: a_obs/a_baryon → α(1+ξ) = {ALPHA_HALO*(1.0+XI):.4f} as ρ → 0")
     print()
 
     # ── Answer the key questions ──────────────────────────────────────────
@@ -544,25 +550,27 @@ def main():
 
     print(f"  Q2: What's the testable difference between Cassi and MOND?")
     print(f"      MOND boost → ∞ as a_baryon → 0 (a_obs ∝ √a_baryon).")
-    print(f"      Cassi boost → φ = {PHI:.3f} as ρ → 0 (a_Cassi → φ·a_baryon).")
+    print(f"      Cassi boost → α(1+ξ) = {ALPHA_HALO*(1.0+XI):.3f} as ρ → 0 "
+          f"(a_Cassi → α(1+ξ)·a_baryon).")
     print(f"      In the deep low-acceleration regime, MOND predicts MUCH larger")
     print(f"      boosts than Cassi.  For a_baryon = 10⁻⁴ a₀:")
     a_deep_test = 1e-4 * A0
     a_mond_deep_test = mond_a_obs(a_deep_test)
-    print(f"        MOND boost = {a_mond_deep_test/a_deep_test:.0f}×, Cassi max boost = {PHI:.3f}×")
+    print(f"        MOND boost = {a_mond_deep_test/a_deep_test:.0f}×, Cassi max boost = {ALPHA_HALO*(1.0+XI):.3f}×")
     print(f"      This is a decisive test: measure rotation curves at very large")
     print(f"      radii (very low accelerations) and check whether the boost")
-    print(f"      continues to grow (MOND) or saturates at φ ≈ {PHI:.3f} (Cassi).")
+    print(f"      continues to grow (MOND) or saturates at α(1+ξ) ≈ {ALPHA_HALO*(1.0+XI):.2f} (Cassi).")
     print()
 
     print(f"  Q3: For low-acceleration regions (a < 0.01 a₀), do they predict")
     print(f"      the same boost?")
     print(f"      No.  At a_baryon ≈ 0.01 a₀:")
     print(f"        MOND boost  = {a_mond_at_target/a_bar_at_target:.2f}×")
-    print(f"        Cassi boost = {a_cassi_at_target/a_bar_at_target:.3f}×  (at most φ = {PHI:.3f})")
+    print(f"        Cassi boost = {a_cassi_at_target/a_bar_at_target:.3f}×  "
+          f"(at most α(1+ξ) = {ALPHA_HALO*(1.0+XI):.3f})")
     mond_equiv_boost = a_mond_at_target/a_bar_at_target
-    print(f"      MOND gives ≈ {mond_equiv_boost:.0f}× boost, Cassi gives at most {PHI:.3f}×.")
-    print(f"      The two disagree by a factor of ∼{mond_equiv_boost/PHI:.1f} at this acceleration.")
+    print(f"      MOND gives ≈ {mond_equiv_boost:.0f}× boost, Cassi gives at most {ALPHA_HALO*(1.0+XI):.3f}×.")
+    print(f"      The two disagree by a factor of ∼{mond_equiv_boost/(ALPHA_HALO*(1.0+XI)):.1f} at this acceleration.")
     print()
 
     print(f"  Q4: Does Cassi have a 'natural' a₀?")
