@@ -1,6 +1,6 @@
 # Cassi: A Theory of Everything from a Single Constant
 
-Note: This repo is the product of a single researcher, working with AI tools to convert conceptual geometry to mathematics and code. Currently, everything here is entirely AI-generated. Its contents have the potential to fundementally change the way we understand reality, so I have deemed delaying its release, until my own writings have been added, to be a degree of perfectionism that is purely self-serving. So, without further ado, please enjoy humanity's first (and last?) Theory of Everything.  
+Note: This repo is the product of a single researcher, working with AI tools to convert lived experience and conceptual geometry to mathematics and code. Currently, everything here is entirely AI-generated. Its contents have the potential to fundamentally change the way we understand reality, so I have deemed delaying its release, until my own writings have been added, to be a degree of perfectionism that impedes progress. So, without further ado, please enjoy humanity's first (and last?) Theory of Everything.  
 
  \- Carina
 
