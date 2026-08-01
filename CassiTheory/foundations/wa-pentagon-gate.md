@@ -3,7 +3,7 @@
 
 ## Abstract
 
-The Cassi two-fluid PDE predicts $w_a = +0.44$ from the bare conversion dynamics ($H_{\text{bare}}$ only), while DESI DR2 measures $w_a = -0.51 \pm 0.38$. The Qi-gravity coupling $\xi = \varphi^6$, already verified in rotation curves ($v_C/v_B = 2.7$, $0\sigma$), must also appear in the cosmological $H(a)$. Including it shifts $w_a$ by $-0.34$, bringing the prediction to $w_a = +0.10$—**within $1.6\sigma$ of DESI**. The 5-channel gate and Wu Xing control-release provide secondary negative shifts, with the combined prediction landing near $w_a \approx 0.00 \pm 0.05$. The "$w_a$ tension" is resolved: the missing $\xi = \varphi^6$ in $H(a)$ was the dominant mechanism.
+The Cassi two-fluid PDE predicts $w_a = +0.46$ from the bare conversion dynamics ($H_{\text{bare}}$ only), while DESI DR2 constrains $w_a \approx -0.73 \pm 0.28$ [INFERENCE] (Table 9; range $-0.6$ to $-1.1$ across SNe compilations). The Qi-gravity coupling $\xi = \varphi^6$, already verified in rotation curves ($v_C/v_B = 2.7$, $0\sigma$), must also appear in the cosmological $H(a)$. In its corrected Yang-fraction-weighted form $H_{\text{eff}}^2 = H_{\text{bare}}^2[1 + \xi q \cdot r/(1+r)]$ it shifts $w_a$ by $-0.45$, bringing the prediction to $w_a = +0.012$—2.7σ (2.2–3.2σ) from DESI: tension, not resolved (corrected 2026-07-31). The 5-channel gate and Wu Xing control-release provide secondary shifts—Hypothesized, ODE pending.
 
 ---
 
@@ -17,13 +17,13 @@ is a single-channel model. As the Yang/Yin ratio $r = E_Y/E_I \to \varphi$ (the 
 
 The ODE integration (`two-fluid/calibrate_initial_ratio.py`) yields the structural prediction:
 
-$$w_a = +0.438 \quad \text{(bare, } H_{\text{bare}} \text{ only)}$$
+$$w_a = +0.457 \quad \text{(bare, } H_{\text{bare}} \text{ only; corrected 2026-07-31)}$$
 
-DESI DR2 measures $w_a = -0.51 \pm 0.38$. The bare prediction is at $2.5\sigma$ tension. With Qi-gravity $\xi = \varphi^6$ included in $H_{\text{eff}}$, $w_a$ shifts to $+0.10$—$1.6\sigma$ from DESI (see §5).
+DESI DR2 constrains $w_a \approx -0.73 \pm 0.28$ [INFERENCE] (Table 9; range $-0.6$ to $-1.1$ across SNe compilations). The bare prediction is at $\sim 4\sigma$ tension. With Qi-gravity $\xi = \varphi^6$ included in $H_{\text{eff}}$ (corrected Yang-fraction form), $w_a$ shifts to $+0.012$—$2.7\sigma$ (2.2–3.2σ) from DESI: tension, not resolved (see §5; corrected 2026-07-31).
 
 ### 1.1 What's been ruled out
 
-Four independent checks confirm $w_a = +0.44$ is not a numerical artifact:
+Four independent checks confirm $w_a = +0.46$ (bare, corrected 2026-07-31) is not a numerical artifact:
 
 1. **$\lambda$-independence**: identical $w_a$ for $\lambda \in [0.01, 0.05]$
 2. **Qi gate $\alpha$-independence**: identical $w_a$ for $\alpha \in [0.01, 5.0]$
@@ -102,9 +102,9 @@ $$\lim_{r \to \varphi} (1-q_{\text{eff}}) = 0.348 > 0$$
 
 Compare with the single-channel model: $\lim_{r \to \varphi} (1-q) = 0$.
 
-A positive asymptotic floor means $(1-q_{\text{eff}})$ does NOT vanish at late times—it stabilizes. The rate of change $d(1-q_{\text{eff}})/da$ is still negative (the floor is LOWER than the early value), so $w_a$ remains positive but is **reduced** from $+0.44$ toward zero.
+A positive asymptotic floor means $(1-q_{\text{eff}})$ does NOT vanish at late times—it stabilizes. The rate of change $d(1-q_{\text{eff}})/da$ is still negative (the floor is LOWER than the early value), so $w_a$ remains positive but is **reduced** from $+0.46$ toward zero.
 
-The magnitude of the reduction depends on the ODE integration over the full expansion history. The floor $0.348$ is a substantial fraction of the early value $0.438$, so the deceleration is significantly weakened. This pushes $w_a$ toward zero from $+0.44$.
+The magnitude of the reduction depends on the ODE integration over the full expansion history. The floor $0.348$ is a substantial fraction of the early value $0.438$, so the deceleration is significantly weakened. This pushes $w_a$ toward zero from $+0.46$.
 ---
 
 ## 3. Sign Flip Mechanisms: Exploration Results
@@ -115,7 +115,7 @@ Four mechanisms were explored computationally (2026-07-22). The pentagram resona
 
 | # | Model | Late $(1-q_{\text{eff}})$ | $\Delta$(early→late) | $w_a$ |
 |---|-------|:---:|:---:|:---:|
-| 1 | Single-channel (current) | 0.127 | −0.873 | **+0.44** (2.5σ tension, bare) |
+| 1 | Single-channel (current) | 0.127 | −0.873 | **+0.46** (bare; $\sim 4\sigma$ tension vs DESI, corrected 2026-07-31) |
 | 2 | 5-channel adiabatic redistribution | **0.348** | −0.090 | → 0⁺ (reduced) |
 | 3 | Wu Xing control-release dynamics | **0.347** | **+0.055** | → 0⁻ (potential flip) |
 | 4 | Pentagram resonance ($5/\varphi \approx \pi$) |—|—| **FAILS** |
@@ -142,7 +142,7 @@ The fundamental constraint is the baseline asymmetry: Metal's baseline ($\varphi
 
 | Tier | Prediction | Test |
 |------|-----------|------|
-| **Hypothesized** | 5-channel gate reduces $w_a$ from $+0.44$ toward zero | Re-run ODE with modified gate shape; compare $w_a$ |
+| **Hypothesized** | 5-channel gate reduces $w_a$ from $+0.46$ toward zero | Re-run ODE with modified gate shape; compare $w_a$ |
 | **Hypothesized** | Asymptotic $(1-q_{\text{eff}})$ floor at $\sim 0.35$ | Check late-time ODE behavior |
 | **Hypothesized** | Wu Xing control-release gives late-time $(1-q_{\text{eff}})$ increase ($\Delta > 0$) | Run control-release gate shape in ODE solver |
 | ~~Speculative~~ | ~~Pentagram resonance flips $w_a$ sign~~ | **Ruled out** by de-resonance principle (2026-07-22) |
@@ -161,25 +161,30 @@ $$\mathbf{F}_{ij} = -G\,\alpha_i(1+\xi q_i)\,M_i M_j\frac{\mathbf{r}_{ij}}{|\mat
 
 This gives $v_C/v_B = 2.7$ for Milky Way parameters—matching observation at $0\sigma$. The same $\xi$ must appear in the cosmological expansion rate:
 
-$$\boxed{H_{\text{eff}} = H_{\text{bare}} \,\sqrt{1 + \xi q(r)}}$$
+$$\boxed{H_{\text{eff}} = H_{\text{bare}} \,\sqrt{1 + \xi q(r)}} \quad \text{(v1 pure-Yang form)}$$
+
+Corrected 2026-07-31: the Yang-fraction-weighted form $H_{\text{eff}}^2 = H_{\text{bare}}^2[1 + \xi q \cdot r/(1+r)]$ (`two-fluid/calibrate_initial_ratio_xi_v2.py`) is the coupling consistent with the galactic sector; it gives $w_a = +0.012$ (§5.2).
 
 The $\sqrt{1+\xi q}$ factor grows from $\sim 1.7$ (early, $q \ll 1$) to $\sim 4.4$ (late, $q \approx 1$). This **38% growth** adds a positive contribution to $d\ln H / d\ln a$:
 
 $$\frac{d\ln H_{\text{eff}}}{d\ln a} = \underbrace{\frac{d\ln H_{\text{bare}}}{d\ln a}}_{\text{negative, }\to 0} + \underbrace{\frac{\xi}{2(1+\xi q)}\frac{dq}{d\ln a}}_{\text{positive}}$$
 
-As the bare term decays toward zero (conversion slows near $\varphi$), the Qi-gravity term overtakes it. This pushes $d\ln H/d\ln a$ toward zero **from above**, driving $w$ toward $-1$ from $w < -1$ (phantom side), which gives $w_a < 0$.
+As the bare term decays toward zero (conversion slows near $\varphi$), the Qi-gravity term overtakes it, pushing $d\ln H/d\ln a$ toward zero **from above** and moderating the bare positive $w_a$ drift. Corrected 2026-07-31: the phantom-side reading is withdrawn—the old "$w(z) < -1$ at $z > 3$" claim was an extrapolation error; $w(z) > -1$ at all $z$ (min $w = -0.85$ over $a \in [0.3, 1]$).
 
 ### 5.2 ODE verification (July 2026)
 
-The ODE (`two-fluid/calibrate_initial_ratio.py`) reproduces the nominal $w_0 = -0.838$, $w_a = +0.438$ using $H_{\text{bare}}$ only ($\lambda = 0.02$, $a_0 = 0.01$, $r_0$ calibrated to DESI $w_0$). Running the same ODE with $\xi = \varphi^6$ in $H_{\text{eff}}$ (`two-fluid/calibrate_initial_ratio_xi.py`) yields:
+The ODE (`two-fluid/calibrate_initial_ratio.py`) reproduced the nominal $w_0 = -0.838$, $w_a = +0.438$ using $H_{\text{bare}}$ only ($\lambda = 0.02$, $a_0 = 0.01$, $r_0$ calibrated to DESI $w_0$)—the v1 pure-Yang form; running it with $\xi = \varphi^6$ in $H_{\text{eff}}$ (`two-fluid/calibrate_initial_ratio_xi.py`) gave the v1 $\xi$ row below. Corrected 2026-07-31: the Yang-fraction-weighted coupling $H_{\text{eff}}^2 = H_{\text{bare}}^2[1 + \xi q \cdot r/(1+r)]$ (`two-fluid/calibrate_initial_ratio_xi_v2.py`) yields $w_0 = -0.87$, $w_a = +0.012$ with the gap-derived $r_0$; the $w_0 = -0.838$ rows were calibration targets hardcoded in the repo's own scripts—circular, and the earlier "0σ match to DESI" was not a measured constraint. The corrected rows follow:
 
 | Model | $w_0$ | $w_a$ | Calibrated $r_0$ |
 |-------|:---:|:---:|:---:|
-| Bare (no $\xi$) | $-0.838$ | $+0.438$ | $0.0432$ ($E_I/E_Y = 23.2$) |
-| **$+\xi = \varphi^6$** | **$-0.838$** | **$+0.097$** | $0.0227$ ($E_I/E_Y = 44.1$) |
-| Shift $\Delta$ | $0$ | **$-0.341$** |—|
+| Bare (no $\xi$), v1 pure-Yang form | $-0.838$ | $+0.438$ | $0.0432$ ($E_I/E_Y = 23.2$) |
+| **$+\xi = \varphi^6$, v1 pure-Yang form** | **$-0.838$** | **$+0.097$** | $0.0227$ ($E_I/E_Y = 44.1$) |
+| Shift $\Delta$ (v1) | $0$ | **$-0.341$** |—|
+| **Bare (no $\xi$), corrected 2026-07-31** | **$-0.856$** | **$+0.457$** | $0.0472$ (gap-derived) |
+| **$+\xi = \varphi^6$, corrected Yang-fraction form** | **$-0.87$** | **$+0.012$** | $0.0472$ (gap-derived $r_0 = \varphi^{-5}/(2-\varphi^{-5})$) |
+| Shift $\Delta$ (corrected) | $-0.01$ | **$-0.445$** |—|
 
-**The Qi-gravity coupling alone accounts for 78% of the shift** from the bare $w_a = +0.44$ toward the DESI central value $-0.51$. The residual $\Delta w_a \approx +0.10$ is within $1.6\sigma$ of DESI.
+**The corrected Yang-fraction coupling moves $w_a$ from bare $+0.46$ to $+0.012$ ($\Delta -0.45$)**—verified via the ODE (`two-fluid/calibrate_initial_ratio_xi_v2.py`). The residual sits at 2.7σ (2.2–3.2σ) from DESI $w_a \approx -0.73 \pm 0.28$ [INFERENCE]—tension, not resolved (corrected 2026-07-31).
 
 ### 5.3 Combined mechanism: three contributions to $w_a$
 
@@ -187,21 +192,21 @@ The full $w_a$ prediction combines three independent effects, all fixed by the f
 
 | # | Mechanism | Effect on $w_a$ | Parameter |
 |---|-----------|:---:|---|
-| 1 | Bare conversion dynamics | $+0.438$ (structural) | $\lambda = 0.02$, $r_0$ (both derived) |
-| 2 | 5-channel adiabatic gate | pushes toward $0^+$ from $+0.10$ residual ($\Delta \sim -0.10$) | $w=5$ (derived) |
-| 3 | **Qi-gravity $\sqrt{1+\xi q}$** | **$-0.341$ (verified)** | **$\xi = \varphi^6$ (derived, verified)** |
+| 1 | Bare conversion dynamics | $+0.457$ (structural, corrected 2026-07-31) | $\lambda = 0.02$, $r_0$ (both derived) |
+| 2 | 5-channel adiabatic gate | pushes toward $0^+$ from the $+0.012$ residual (magnitude Hypothesized—ODE pending) | $w=5$ (derived) |
+| 3 | **Qi-gravity $\sqrt{1+\xi q}$** | **$-0.445$ (verified, corrected Yang-fraction form)** | **$\xi = \varphi^6$ (derived, verified)** |
 
-With all three active, the expected $w_a$:
+With the corrected coupling alone (verified) and 5-channel/Wu-Xing shifts Hypothesized (ODE pending):
 
-$$\boxed{w_a^{\text{pred}} \approx [-0.05, +0.10]}$$
+$$\boxed{w_a^{\text{pred}} = +0.012 \quad \text{(corrected coupling alone, verified; 5-channel/Wu-Xing shifts Hypothesized, ODE pending)}}$$
 
-which brackets zero and is within $1.4\sigma$ of DESI $-0.51 \pm 0.38$.
+which is 2.7σ (2.2–3.2σ) from DESI $w_a \approx -0.73 \pm 0.28$ [INFERENCE]—tension, not resolved (corrected 2026-07-31).
 
 ### 5.4 Why this was missed
 
-The nominal $w_a = +0.44$ was computed from the ODE (`two-fluid/calibrate_initial_ratio.py`) using $H_{\text{bare}}$ only—the Qi-gravity enhancement $\sqrt{1+\xi q}$ was present in the force law (rotation curves) but not propagated to the cosmological $H(a)$. The same $\xi$ that modifies $G_{\text{eff}}$ in galaxies MUST modify $H$ in cosmology. Including it shifts $w_a$ from $+0.44$ to $+0.10$.
+The nominal $w_a = +0.44$ (v1 pure-Yang form) was computed from the ODE (`two-fluid/calibrate_initial_ratio.py`) using $H_{\text{bare}}$ only—the Qi-gravity enhancement was present in the force law (rotation curves) but not propagated to the cosmological $H(a)$. The same $\xi = \varphi^6$ that modifies $G_{\text{eff}}$ in galaxies MUST modify $H$ in cosmology. Including it in the corrected Yang-fraction-weighted form shifts $w_a$ from $+0.46$ to $+0.012$ ($\Delta -0.45$; corrected 2026-07-31).
 
-**Status: Derived.** $\xi = \varphi^6$ is derived (cascade activation at step 6). The mechanism is parameter-free, verified against the ODE, and consistent with the rotation curve prediction ($v_C/v_B = 2.7$, $0\sigma$). The 5-channel gate and Wu Xing control-release provide secondary shifts; the combined prediction lands within $1.4\sigma$ of DESI. The $w_a$ "tension" is resolved.
+**Status: Derived (corrected 2026-07-31).** $\xi = \varphi^6$ is derived (cascade activation at step 6). The corrected Yang-fraction coupling is parameter-free and verified against the ODE (`two-fluid/calibrate_initial_ratio_xi_v2.py`), giving $w_a = +0.012$; it is consistent with the rotation curve prediction ($v_C/v_B = 2.7$, $0\sigma$). The 5-channel gate and Wu Xing control-release provide secondary shifts—Hypothesized, ODE pending. The prediction sits at 2.7σ (2.2–3.2σ) from DESI $w_a \approx -0.73 \pm 0.28$ [INFERENCE]: the $w_a$ tension is not resolved.
 
 ---
 

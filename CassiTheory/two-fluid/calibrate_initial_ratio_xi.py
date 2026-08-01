@@ -5,9 +5,12 @@ Same physics as calibrate_initial_ratio.py, but with:
   H_eff = H_bare * sqrt(1 + xi * q)   where q = 1 - gate
   xi = φ⁶ ≈ 17.944
 
-The Qi-gravity coupling xi is already verified in galactic rotation
-curves (v_C/v_B = 2.7, 0σ from observation). It MUST also appear in
-the cosmological expansion rate.
+The Qi-gravity coupling xi is consistent with galactic rotation curves
+within ~1.2σ (rotation-curve boost 2.9–3.1×; SPARC v5-v8). It MUST also
+appear in the cosmological expansion rate.
+
+Corrected 2026-07-31: Yang-fraction-weighted coupling form
+(H_eff² = H_bare²[1 + ξq·r/(1+r)])—see calibrate_initial_ratio_xi_v2.py.
 """
 
 import numpy as np
@@ -19,7 +22,7 @@ LAM = 0.02
 XI = PHI**6  # ≈ 17.944
 H_EMPTY = (LAM / 3) * PHI_INV**2
 A0 = 0.01
-TARGET_W0 = -0.838
+TARGET_W0 = -0.838  # Calibration target (NOT a measured DESI constraint—see calibrate_initial_ratio_xi_v2.py; corrected 2026-07-31)
 
 
 def system(lna, y):
@@ -79,7 +82,7 @@ def compute_w0(r0):
 
 # ═══════════════════════════════════════════════════════════════════════
 print(f"Calibration WITH Qi-Gravity ξ = φ⁶ = {XI:.3f}")
-print(f"DESI w0 = {TARGET_W0}  (a0 = {A0})")
+print(f"Internal calibration target (not DESI): w0 = {TARGET_W0}  (a0 = {A0})")
 print(f"H_eff = H_bare * sqrt(1 + ξ·q)")
 print()
 print(f"{'r0':>10s}  {'w0':>8s}  {'wa':>8s}  {'r(0.3)':>8s}  {'r(1.0)':>8s}")
@@ -114,10 +117,10 @@ print()
 
 # Compare to bare
 print(f"COMPARISON:")
-print(f"  Bare (no ξ):   w0 = -0.838  wa = +0.438  (calibrate_initial_ratio.py)")
+print(f"  Bare (no ξ):   w0 = -0.838  wa = +0.438  (calibrate_initial_ratio.py; calibration output, not measured DESI)")
 print(f"  With ξ = φ⁶:   w0 = {w0:+.4f}  wa = {wa:+.4f}")
 print(f"  Δ from ξ:      Δw0 = {w0+0.838:+.4f}  Δwa = {wa-0.438:+.4f}")
 print()
-print(f"DESI DR2:        w0 = -0.838 ± 0.068,  wa = -0.06 ± 0.68  (wide)")
-print(f"DESI DR2 (new):  w0 = -0.838 ± 0.055,  wa = -0.51 ± 0.38  (tight)")
+print(f"Internal calibration target (not DESI):  w0 = -0.838 ± 0.068,  wa = -0.06 ± 0.68  (wide)")
+print(f"Internal calibration target (not DESI, tight):  w0 = -0.838 ± 0.055,  wa = -0.51 ± 0.38  (tight)")
 print(f"Prediction +ξ:   w0 = {w0:+.4f}     wa = {wa:+.4f}")

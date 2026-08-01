@@ -4,6 +4,9 @@ All values extracted from previous run_* scripts and published references.
 
 This module contains NO plotting code—just data structures for
 two-fluid/run_nature_figures.py to consume.
+
+NOTE (corrected 2026-07-31): FIG1_DE 'w0'/'w0_err' and FIG1_CMB are
+unverified hardcoded placeholder values, NOT measurements.
 """
 
 import math
@@ -22,8 +25,8 @@ PHI_INV = 1.0 / PHI
 
 # Panel (a)—Dark Energy Calibration
 FIG1_DE = {
-    'w0': -0.838,                      # Cassi prediction
-    'w0_err': 0.028,                   # DESI DR2 1σ band
+    'w0': -0.838,                      # Cassi prediction (stale placeholder—corrected 2026-07-31: w0 = −0.87, see calibrate_initial_ratio_xi_v2.py)
+    'w0_err': 0.028,                   # unverified hardcoded placeholder, NOT a measured DESI constraint (corrected 2026-07-31)
     'r0_phi': PHI,                     # initial ratio at φ attractor
     'r0_range': np.linspace(0.5, 2.5, 200),
     'w0_vs_r0': None,  # computed from G_eff(q) mapping in plotting function
@@ -57,6 +60,7 @@ FIG1_STRUCTURE = {
 }
 
 # Panel (d)—CMB Lensing χ²
+# Unverified hardcoded placeholder values, NOT measurements (corrected 2026-07-31)
 FIG1_CMB = {
     'lcdm_chi2': 258,
     'cassi_chi2': 108,
@@ -201,14 +205,16 @@ FIG3_DIRAC = [
 
 # verdict: 'PASS' (green ✓), 'PARTIAL' (yellow), 'PREDICTION' (blue)
 SCORECARD_ROWS = [
+    # STALE (corrected 2026-07-31): −0.838 ± 0.028 was the repo's own
+    # calibration target, not a measured DESI constraint—circular match.
     {
         'id': 1,
         'experiment': 'Dark Energy $w_0$',
-        'observable': r'$\varphi \to w_0 = -0.838$',
-        'prediction': r'$w_0 = -0.838$',
-        'measurement': r'$-0.838 \pm 0.028$',
-        'pct_diff': '0.0%',
-        'verdict': 'PASS',
+        'observable': r'$\varphi \to w_0 = -0.87$',
+        'prediction': r'$w_0 = -0.87$',
+        'measurement': r'$\approx -0.75 \pm 0.06$ [INF]',
+        'pct_diff': '16%',
+        'verdict': 'TENSION',
     },
     {
         'id': 2,
@@ -219,6 +225,8 @@ SCORECARD_ROWS = [
         'pct_diff': '+2%',
         'verdict': 'PASS',
     },
+    # STALE (corrected 2026-07-31): χ² values are unverified hardcoded
+    # placeholders (see FIG1_CMB), not measurements.
     {
         'id': 3,
         'experiment': 'CMB Lensing',

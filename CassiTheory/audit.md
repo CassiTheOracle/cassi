@@ -43,8 +43,8 @@ Neutrino masses are not cleanly derivable from $\varphi$ alone. The seesaw mecha
 
 | Quantity | Cassi Value | Experimental | Deviation | Status |
 |----------|-------------|--------------|-----------|--------|
-| $w_0$ (DESI DR2) | $-0.838$ | $-0.838 \pm 0.064$ | $0\sigma$ | ✅ **Within MoE** |
-| $w_a$ (DESI DR2) | $+0.10$ (+$\xi$) | $-0.51 \pm 0.38$ | $1.6\sigma$ (+$\xi$) | ✅ **Resolved**—$\xi = \varphi^6$ in $H(a)$ |
+| $w_0$ (DESI DR2) | $-0.87$ (corrected 2026-07-31) | $\approx -0.75 \pm 0.06$ (Table 9 [INF]) | $2\sigma$ | ⚠️ **Tension** |
+| $w_a$ (DESI DR2) | $+0.012$ (+$\xi$, corrected form) | $\approx -0.73 \pm 0.28$ | $2.7\sigma$ | ⚠️ **Tension**—corrected 2026-07-31 (the earlier “0σ / resolved” was circular: the DESI anchor was the repo's own calibration target) |
 | $n_s$ (Planck 2018) | $0.967$ | $0.9649 \pm 0.0042$ | $0.5\sigma$ | ✅ **Within MoE** |
 | $r$ (tensor-to-scalar) | $0.003$ | $< 0.03$ (Planck+BICEP) |—| ✅ **Within bound** |
 | $H_0$ (Hubble tension) | $\approx 69.8$ km/s/Mpc | Planck $67.4\pm0.5$, SH0ES $73.0\pm1.0$ |—| ✅ **Resolves tension** |
@@ -83,8 +83,7 @@ Neutrino masses are not cleanly derivable from $\varphi$ alone. The seesaw mecha
 | EW | $\sin^2\theta_W$ (RGE from $\varphi^{-3}$ at $M_{\text{GUT}}$) | $\lesssim 1\%$ |
 | SM | $\delta_{\text{CKM}} = \pi\varphi^{-2}$ | $<1\%$ |
 | SM | $m_W/m_Z = \sqrt{1-\varphi^{-3}}$ | $0.8\%$ |
-| Cosmology | $w_0 = -0.838$ | $0\sigma$ |
-| Cosmology | $w_a = +0.10$ (+$\xi$) | $1.6\sigma$ |
+| Cosmology | $w_0 = -0.87$, $w_a = +0.012$ (corrected 2026-07-31) | $2\sigma$ / $2.7\sigma$ tension |
 | Cosmology | $n_s = 0.967$ | $0.5\sigma$ |
 | Cosmology | $r = 0.003$ | Within bound |
 | Cosmology | $H_0 \approx 69.8$ km/s/Mpc | Resolves tension ($<1\sigma$ both sides) |

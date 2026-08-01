@@ -33,16 +33,16 @@ Tiers below are taken from each document's Status header. Compound headers are q
 | `foundations/proton-coherence-budget.md` | Derivation (result: Derived, Q9) | Proton lifetime $\sim \varphi^{4848}$ cycles; annihilation pathway |
 | `foundations/baryon-asymmetry.md` | Derived | $\eta \approx \varphi^{-44}$, within 6% of observed (C7/Q6) |
 | `foundations/bubble-edge-geometry.md` | Derived (structural) | Edge steepness $1.70\times$ anisotropy; CMB axis $12.2°$ (C10) |
-| `foundations/wa-pentagon-gate.md` | Derived (ξ = φ⁶) / Hypothesized (5-channel) | $w_a$ resolved via $\xi$; 5-channel shift $\Delta = +0.055$ |
+| `foundations/wa-pentagon-gate.md` | Derived ($\xi = \varphi^6$) / Hypothesized (5-channel) | $w_a = +0.012$ via $\xi$: $2.7\sigma$ tension vs DESI, not resolved (corrected 2026-07-31); 5-channel shift Hypothesized (ODE pending) |
 | `principles/de-resonance-principle.md` | Derived | Why $\varphi$ is the attractor (maximally irrational) |
 | `standard-model/sm-from-phi.md` | Derived | $\sin^2\theta_W = \varphi^{-3}$; $\alpha_{\text{GUT}} = \varphi^{-3}/(4\pi)$ |
 | `standard-model/su2-gauge-extension.md` | Derived | SU(2) gauge from two-fluid structure |
 | `standard-model/cp-violation.md` | Derived | CKM phase $\pi\varphi^{-2}$ |
 | `particles/cassi-yang-yin-particles.md` | Derived | Particles as standing-wave interference; atomic $Z = 1$–$10$ |
 | `particles/dft-benchmarks.md` | Derived | DFT benchmark comparisons |
-| `cosmology/cosmology-from-phi.md` | Derived | $w_0 = -0.838$; dark energy from Qi gate (C1/T1) |
+| `cosmology/cosmology-from-phi.md` | Derived | $w_0 = -0.87$ (corrected 2026-07-31); dark energy from Qi gate (C1/T1) |
 | `cosmology/inflation-from-cascade.md` | Derived | Steps 20–60 as inflation; $r = \varphi^{-12}$, $n_s$ |
-| `cosmology/observational_constraints.md` | Derived | DESI DR2 fit; $w_a$ resolved with $\xi$; rotation curves |
+| `cosmology/observational_constraints.md` | Derived | DESI DR2 fit; $w_a$ tension vs DESI ($2.7\sigma$, not resolved); rotation curves |
 | `gravity/three-body-analytical.md` | Derived | Body-dependent coupling; mass evolution via conversion |
 | `turbulence/kolmogorov-from-phi.md` | Derived | Kolmogorov spectrum from $\varphi$ |
 

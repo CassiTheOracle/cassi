@@ -231,8 +231,8 @@ appears in a **verified physical quantity**.
 | 1 | 1.618 | Fundamental ratio $r = E_Y/E_I$ | Postulate |
 | 2 | 2.618 | Qi gate normalization denominator | PDE structure |
 | 3 | 4.236 | $\sin^2\theta_W = \varphi^{-3}$, Yang fraction $\varphi^{-3}$ | 2.1% (tree) |
-| 5 | 11.09 | Wu Xing scale, gap $g = 1-\varphi^{-5}$ | $w_0 = -0.856$ (0.3σ) |
-| 6 | 17.94 | $\xi = \varphi^6$ (Qi-gravity coupling) | $v_C/v_B = 2.7$ (0σ) |
+| 5 | 11.09 | Wu Xing scale, gap $g = 1-\varphi^{-5}$ | $w_0 = -0.87$ (corrected 2026-07-31; $2\sigma$ from DESI $\approx -0.75 \pm 0.06$ [INF]) |
+| 6 | 17.94 | $\xi = \varphi^6$ (Qi-gravity coupling) | $v_C/v_B = 2.9$–$3.1$ (~1.2σ; corrected 2026-07-31) |
 | 26 | $2.7\times 10^5$ | $m_e/v_0 \approx \varphi^{-26}$ (human cascade depth) | 25% (integer), 1.4% (half-step) |
 | 80 | $5.2\times 10^{16}$ | $v_0/M_{\text{Pl}} \approx \varphi^{-80}$ | 5.3% |
 

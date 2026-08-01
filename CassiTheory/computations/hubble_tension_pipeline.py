@@ -38,7 +38,7 @@ XI = PHI**6  # ≈ 17.944
 
 # Cassi calibration
 LAMBDA = 0.02       # conversion rate (from ODE calibration)
-W0     = -0.838     # w₀ (0σ from DESI DR2)
+W0     = -0.838     # w₀: internal calibration target (NOT a measured DESI constraint—corrected 2026-07-31: 2σ from DESI ≈ −0.75 ± 0.06 [INFERENCE])
 
 # CMB recombination
 Z_STAR = 1090.0     # redshift of last scattering
@@ -64,17 +64,21 @@ print("── §1  DARK ENERGY EVOLUTION w(a) ──")
 #
 # From wa-pentagon-gate.md §5:
 #   H_eff = H_bare · √(1 + ξ·q(r))
-#   w₀ = -0.838, w_a = +0.10 (with ξ=φ⁶ included)
+#   w₀ = -0.87, w_a = +0.012 (with ξ=φ⁶ included; corrected Yang-fraction
+#   coupling form—see two-fluid/calibrate_initial_ratio_xi_v2.py, 2026-07-31)
 #
-# The full ODE integration (two-fluid/calibrate_initial_ratio_xi.py) yields:
-#   w₀ = -0.838, w_a = +0.097 (with ξ in H_eff)
+# The full ODE integration (two-fluid/calibrate_initial_ratio_xi_v2.py) yields:
+#   w₀ = -0.87, w_a = +0.012 (with ξ in H_eff; bare w_a = +0.46)
 
 # For this pipeline, we use the CPL parameterization with the Cassi values
 # and compare to ΛCDM (w₀=-1, w_a=0).
 
 # Cassi CPL parameters (best-fit from two-fluid ODE with ξ=φ⁶)
+# NOTE: internal calibration target values, NOT measured DESI constraints
+# (corrected 2026-07-31: w0 = −0.87, wa = +0.012 with the Yang-fraction
+# coupling—see two-fluid/calibrate_initial_ratio_xi_v2.py)
 W0_CASSI = -0.838
-WA_CASSI = +0.097   # with ξ=φ⁶ in H_eff
+WA_CASSI = +0.097   # with ξ=φ⁶ in H_eff (v1 pure-Yang form)
 
 # Bare (no ξ) for comparison
 WA_BARE  = +0.438   # structural prediction from single-channel gate
@@ -98,8 +102,8 @@ w_cassi_cmb   = w_a_cpl(A_STAR, W0_CASSI, WA_CASSI)
 w_cassi_z3    = w_a_cpl(1/(1+3), W0_CASSI, WA_CASSI)
 
 print(f"  CPL parameters:")
-print(f"    w₀ = {W0_CASSI:.3f}  (0σ from DESI DR2 {W0_CASSI})")
-print(f"    w_a = {WA_CASSI:+.3f}  (1.6σ from DESI -0.51 ± 0.38)")
+print(f"    w₀ = {W0_CASSI:.3f}  (internal calibration target {W0_CASSI}, not measured DESI—corrected 2026-07-31: 2σ from DESI ≈ −0.75 ± 0.06 [INFERENCE])")
+print(f"    w_a = {WA_CASSI:+.3f}  (vs internal target -0.51 ± 0.38—corrected 2026-07-31: 2.7σ tension vs DESI w_a ≈ −0.73 ± 0.28 [INFERENCE], not resolved)")
 print(f"  w(a) at key epochs:")
 print(f"    w(a=1) today:    {w_cassi_today:.3f}")
 print(f"    w(a={1/4:.3f}) z=3: {w_cassi_z3:.3f}")

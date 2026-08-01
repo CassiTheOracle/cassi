@@ -378,7 +378,7 @@ The specific sub-rung that a given chakra resonates with is determined by the Fi
 
 **Test:** Apply controlled vibratory, acoustic, or electromagnetic stimulation at a chakra site, varying the stimulus amplitude while measuring a coherence correlate (HRV, EEG phase synchrony, or subjective report). The response should show a threshold nonlinearity, not a linear dose-response curve.
 
-**Current status:** Not yet tested. This is the Qi gate signature—the same nonlinearity that produces the cosmological $w_0 = -0.838$—operating at the chakra scale.
+**Current status:** Not yet tested. This is the Qi gate signature—the same nonlinearity that produces the cosmological $w_0 = -0.87$—operating at the chakra scale.
 
 ---
 

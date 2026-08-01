@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Calibrate initial ratio r0 = <EY>/<EI> at a0=0.01 to match DESI DR2 w0.
+"""Calibrate initial ratio r0 = <EY>/<EI> at a0=0.01 to the repo's internal
+w0 calibration target (NOT a measured DESI constraint—see
+calibrate_initial_ratio_xi_v2.py; corrected 2026-07-31).
 
 Physics (matched to cassette two-fluid PDE at amplitude=0):
   - H = H_empty + H_conv  (instantaneous; PDE EMA relaxes in << 1 step)
@@ -23,7 +25,7 @@ PHI_INV = 1 / PHI
 LAM = 0.02
 H_EMPTY = (LAM / 3) * PHI_INV**2
 A0 = 0.01
-TARGET_W0 = -0.838  # DESI DR2 best-fit
+TARGET_W0 = -0.838  # Calibration target (NOT a measured DESI constraint—see calibrate_initial_ratio_xi_v2.py; corrected 2026-07-31)
 
 
 def system(lna, y):
@@ -74,7 +76,7 @@ def compute_w0(r0):
 
 
 # ── Scan ─────────────────────────────────────────────────────────────
-print(f"Calibration: DESI w0 = {TARGET_W0}  (a0 = {A0})")
+print(f"Calibration: w0 = {TARGET_W0}  (a0 = {A0})  [internal target, not measured DESI]")
 print(f"Physics:   H = H_empty + H_conv(r)  [instantaneous, matching PDE]")
 print(f"Qi gate:   (φ⁻² + ε²) / (φ² + φ⁻² + ε²)")
 print()
@@ -108,8 +110,8 @@ print(f"             r(a=0.3) = {r03:.4f}")
 print(f"             r(a=1.0) = {r1:.4f}")
 print(f"             φ = {PHI:.4f}")
 print()
-print(f"DESI DR2 constraints:  w0 = -0.838 ± 0.068,  wa = -0.06 ± 0.68")
-print(f"Model prediction:     wa = {wa:+.4f}  ({'within' if abs(wa + 0.06) < 0.68 else 'outside'} 1σ of DESI)")
+print(f"Internal calibration target (not DESI):  w0 = -0.838 ± 0.068,  wa = -0.06 ± 0.68")
+print(f"Model prediction:     wa = {wa:+.4f}  ({'within' if abs(wa + 0.06) < 0.68 else 'outside'} 1σ of internal target)")
 print()
 print(f"Next: PDE verification run at initial_ratio={1/final:.0f}")
 print(f"      (launched as background job → runs/cal_ir18.log)")

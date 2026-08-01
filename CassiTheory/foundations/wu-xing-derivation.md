@@ -142,7 +142,7 @@ Equivalently: $E_I/E_Y = 1/r_0 \approx 21.2$. Yin dominates Yang by a factor of 
 
 ### 5.3 Observable Consequences
 
-- **Dark energy equation of state:** $w_0 = -0.856$ (from PDE integration with $r_0$), matching DESI DR2 at $0.3\sigma$
+- **Dark energy equation of state:** $w_0 = -0.87$ (from PDE integration with $r_0$; corrected 2026-07-31—the earlier $-0.856$ “matching at 0.3σ” was measured against the repo's own calibration target), $2\sigma$ from DESI $\approx -0.75 \pm 0.06$ [INFERENCE]
 - **Baryon asymmetry:** The gap $g = 1 - \varphi^{-5}$ sets the Yang-Yin imbalance at GUT freeze-out, which seeds the matter-antimatter asymmetry
 - **Cascade depth:** $N \approx 292$ follows from $H(r)$ dynamics + cosmic age, with $r_0$ as the initial condition
 

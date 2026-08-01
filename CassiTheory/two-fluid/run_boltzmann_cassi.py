@@ -3,7 +3,7 @@
 
 Runs CAMB with four cosmology variants to isolate the Cassi CMB signatures:
   1. ΛCDM baseline (w = -1, standard P(k))
-  2. Cassi CPL (w₀ = -0.839, wₐ = +0.439, standard P(k))
+  2. Cassi CPL (w₀ = −0.839, wₐ = +0.439—internal v1 calibration values, NOT measured DESI constraints; corrected 2026-07-31: w₀ = −0.87, wₐ = +0.012, see two-fluid/calibrate_initial_ratio_xi_v2.py)
   3. Cassi full (CPL + Qi transfer function)
   4. Qi only (w = -1 + Qi transfer function)
 
@@ -44,6 +44,9 @@ PHI_INV2 = PHI_INV ** 2                    # ≈ 0.381966
 XI = PHI ** 6                              # ≈ 17.944—Qi-gravity coupling
 
 # Cassi w(a) calibration (CPL form)
+# NOTE: internal v1 calibration values, NOT measured DESI constraints
+# (corrected 2026-07-31: w0 = −0.87, wa = +0.012 with the Yang-fraction
+# coupling—see two-fluid/calibrate_initial_ratio_xi_v2.py)
 W0_CASSI = -0.839
 WA_CASSI = +0.439
 

@@ -34,7 +34,7 @@ deliverable:
 
 | # | Question | Type | Existing Number | Refinement |
 |---|----------|------|----------------|------------|
-| C3 | Hubble tension | Cascade-span (needs $w(a)$ pipeline) | $w_0=-0.838$ (0σ) | $\Delta H_0$ from $w(z)$ integration |
+| C3 | Hubble tension | Cascade-span (needs $w(a)$ pipeline) | $w_0=-0.87$ (2σ) | $\Delta H_0$ from $w(z)$ integration |
 | C4 | Inflation | Cascade-span (numbers present) | $n_s=0.967$, $r\approx 0.003$ | Pin $r$ to $\varphi^{-12}$, $n_s$ correction form |
 | C6 | Horizon problem | **Structural** |—| Cascade emergence mechanism |
 | C7 | Baryon asymmetry | Cascade-span | $\eta\approx\varphi^{-46}$ (fit) | Pin to $\varphi^{-44}\approx 6.4\times 10^{-10}$ |
@@ -379,7 +379,10 @@ to perturbative QCD.
 
 ### 2.8 C3/T4—Hubble Tension: $\Delta H_0$ from $w(z)$ Pipeline
 
-**Current status:** The Cassi $w_0 = -0.838$ matches DESI DR2 at 0σ. The
+**Current status:** The Cassi $w_0 = -0.87$ sits $2\sigma$ from the DESI anchor
+$w_0 \approx -0.75 \pm 0.06$ [INFERENCE] (corrected 2026-07-31: the earlier
+$-0.838$ "0σ match" was circular—the repo calibrated its own ODE to that
+hardcoded target). The
 Hubble tension ($H_0^{\text{local}} = 73.0$ vs $H_0^{\text{CMB}} = 67.4$
 km/s/Mpc, 8.3% difference) is hypothesized to resolve when the CMB-calibrated
 $H_0$ is recomputed using the Cassi $w(z)$ instead of $\Lambda$CDM's $w=-1$.
@@ -390,8 +393,8 @@ $H_0$ is recomputed using the Cassi $w(z)$ instead of $\Lambda$CDM's $w=-1$.
 (same as `calibrate_initial_ratio.py`) to compute the full $w(a) \to H(z)$
 evolution and the CMB-inferred $H_0$ bias:
 
-- **$w_0 = -0.839$** (0σ match to DESI DR2 $-0.838 \pm 0.068$)
-- **$w_a = +0.44$** (bare) / **$+0.10$ (+$\xi = \varphi^6$)**—shift verified via the ODE (`two-fluid/calibrate_initial_ratio_xi.py`), within 1.6σ of DESI $-0.62 \pm 0.21$
+- **$w_0 = -0.87$** (structurally pinned: $-0.868$ to $-0.872$ across $r_0 \in [0.001, 0.08]$; $2\sigma$ from DESI $w_0 \approx -0.75 \pm 0.06$ [INFERENCE], corrected 2026-07-31)
+- **$w_a = +0.46$** (bare) / **$+0.012$ (+$\xi = \varphi^6$, corrected Yang-fraction form, $\Delta -0.45$)**—shift verified via the ODE (`two-fluid/calibrate_initial_ratio_xi_v2.py`), at 2.7σ (2.2–3.2σ) from DESI $w_a \approx -0.73 \pm 0.28$ [INFERENCE] (range $-0.6$ to $-1.1$; corrected 2026-07-31)
 - **$\langle R(z) \rangle_{\text{CMB}} = 1.1095$**—Cassi $H(z)$ is 10.95% higher than $\Lambda$CDM at CMB recombination ($z \approx 1000$–$1100$)
 - **$H_0^{\text{CMB-inferred}} = 65.8$ km/s/Mpc** (from $H_0^{\text{local}} = 73.0$ km/s/Mpc)
 - **$\Delta H_0 = -7.2$ km/s/Mpc ($-9.9\%$)**—CMB-inferred $H_0$ is lower than local
@@ -404,18 +407,18 @@ evolution and the CMB-inferred $H_0$ bias:
 $w(a)$ evolution with DESI band, and $R(z) = H_{\text{Cassi}}/H_{\Lambda\text{CDM}}$
 ratio with CMB region highlighted.
 
-**Interpretation:** The Cassi $w(a) > -1$ (quintessence-like, $w_0 = -0.839$)
+**Interpretation:** The Cassi $w(a) > -1$ (quintessence-like, $w_0 = -0.87$, corrected 2026-07-31)
 means dark energy density was lower at early times, producing faster expansion
 ($R > 1$ at $z \approx 1000$). A $\Lambda$CDM fit to Cassi data underestimates
 $H_0$ because it forces $w = -1$. The direction matches the observed Hubble
 tension, and the magnitude is $9.9\%$ (vs observed $8.3\%$). Additional physics
 (Qi-gravity modification of the pre-recombination sound horizon, wake-wave
-effects on $r_s$) would refine the magnitude. The $w_a$ tension is resolved by including the Qi-gravity coupling $\xi = \varphi^6$ in $H(a)$, shifting $w_a$ from $+0.44$ to $+0.10$ (1.6σ from DESI).
+effects on $r_s$) would refine the magnitude. The $w_a$ tension is not resolved (corrected 2026-07-31): the corrected Yang-fraction coupling $\xi = \varphi^6$ in $H(a)$ shifts $w_a$ from $+0.46$ to $+0.012$ ($\Delta -0.45$), which is 2.7σ (2.2–3.2σ) from DESI $w_a \approx -0.73 \pm 0.28$ [INFERENCE].
 
 **Existing constraints:**
-- $w_0 = -0.838$ (0σ to DESI DR2)
-- $w_a$ with $\xi = \varphi^6$: $+0.10$ (1.6σ from DESI's $-0.62 \pm 0.21$)
-- Combined with 5-channel gate: $\sim 0.00 \pm 0.05$ (1.4σ). **Resolved (July 2026).**
+- $w_0 = -0.87$ ($2\sigma$ from DESI $w_0 \approx -0.75 \pm 0.06$ [INFERENCE], corrected 2026-07-31)
+- $w_a$ with $\xi = \varphi^6$ (corrected Yang-fraction form): $+0.012$ (2.7σ, 2.2–3.2σ, from DESI $w_a \approx -0.73 \pm 0.28$ [INFERENCE])
+- $w_a = +0.012$ verified with the corrected coupling alone; 5-channel/Wu-Xing shifts Hypothesized (ODE pending). **Tension, not resolved (corrected 2026-07-31).**
 
 ---
 
@@ -460,7 +463,7 @@ $N=32$ resolution.
 
 ### 2.10 F3/T4—CMB Power Spectrum: $C_\ell$ Shifts from Cassi Cosmology
 
-**Current status:** The Cassi $w(a)$ profile ($w_0 = -0.839$, $w_a = +0.439$)
+**Current status:** The Cassi $w(a)$ profile (corrected 2026-07-31: bare $w_0 = -0.856$, $w_a = +0.457$; with the corrected Yang-fraction coupling $w_0 = -0.87$, $w_a = +0.012$; the quoted $-0.839$/$+0.439$ is the v1 bare ODE output still hardcoded in `two-fluid/run_boltzmann_cassi.py`)
 modifies the expansion history and the angular diameter distance to last
 scattering. The Qi transfer function modifies the growth of perturbations
 at recombination. Together, these produce distinctive signatures in the

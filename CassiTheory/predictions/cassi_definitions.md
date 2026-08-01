@@ -109,8 +109,8 @@ Three modes of expansion:
    - Standard ΛCDM compatible limit when q → 0.
 
 ### DESI Calibration
-- **Result**: w₀ = −0.838 matches DESI DR2 at initial ratio r≈23.
-- **Procedure**: ODE bisection over initial EY/EI ratio.
+- **Result**: $w_0 = -0.87$ (corrected 2026-07-31; structural gap-derived $r_0 = \varphi^{-5}/(2-\varphi^{-5}) = 0.0472$), $2\sigma$ from DESI DR2's $w_0 \approx -0.75 \pm 0.06$ [INFERENCE]—the earlier $-0.838$ was the repo's own calibration target (circular).
+- **Procedure**: ODE bisection over the EY/EI ratio with the Yang-fraction-weighted coupling (`two-fluid/calibrate_initial_ratio_xi_v2.py`).
 - **Physical meaning**: Today's universe sits at EY/EI slightly above φ, giving a small residual dark energy.
 
 ---
@@ -607,7 +607,7 @@ physics at different σ-scales, with φ as the universal attractor coupling.
 ### Confirmed
 | Observation | Cassi Prediction | Status |
 |-------------|-----------------|--------|
-| Dark energy (DESI DR2) | w₀ = −0.838 | ✓ Matched via φ-attractor |
+| Dark energy (DESI DR2) | $w_0 = -0.87$ (corrected 2026-07-31) | $2\sigma$ from DESI $\approx -0.75 \pm 0.06$ [INFERENCE]—tension, not matched |
 | Galaxy rotation curves | Qi-enhanced G_eff | ✓ Beats MOND (5/8 dwarfs) |
 | Baryonic Tully-Fisher | Slope ≈ 0.96 | ✓ Consistent |
 | Mercury precession | GR limit (σ→0) | ✓ Reproduces 43″/century |
