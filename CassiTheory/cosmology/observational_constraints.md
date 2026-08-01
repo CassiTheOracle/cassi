@@ -259,4 +259,8 @@ Even taking both Hypothesized shifts at face value ($w_a \approx -0.14$) the pre
 **Test scripts**: `two-fluid/run_pde_wa_test.py` (ODE solver), `two-fluid/run_spatial_boost.py` (spatial structure test).
 **Sources last accessed:** 2026-07-19.
 
+### 6.5 The Bubble Lattice and the DESI Average (2026-07-31)
+
+DESI averages over ~20 (Gpc/h)$^3$ of the visible universe; the infinite bubble lattice (`foundations/bubble-lattice-fabric.md`) is periodic and anisotropic, so the question is which lattice structure survives the average. The full analysis is `cosmology/desi-lattice-averaging.md`; the verdict relevant to this section: **the lattice cannot bias the CPL fit into the DESI region.** A fixed-scale wiggle in $D_A(z)$ is suppressed by the line-of-sight integral and shell averaging to $\delta D/D \lesssim 0.1\%$, biasing $w_a$ by ≲ 0.01; closing the $2.7\sigma$ gap would require $\delta D/D \gtrsim 20\%$, ruled out by the smoothness of DESI's own $D_A(z)$. The lattice instead imprints a powder comb on $P(k)$ (the wake-wave prediction, now with predicted multiplicities; DESI LRG bound $A \lesssim 2.6\%$, $p = 0.08$), suppresses sample variance ~10× vs mocks, and predicts NGC–SGC mode correlation. The $w_0 = -0.87$/$w_a = +0.012$ tension verdict stands.
+
 The $1.70\times$ edge anisotropy is a universal lattice signature—see `foundations/bubble-lattice-fabric.md` §4.2.
