@@ -7,14 +7,14 @@ One standing event, five PDE questions, one control cycle. Every curve and
 marker in this figure is solver data from the 2026-07-31 trauma test arc
 (`ExpandingTwoFluid3DGPU`, gate_model='five', N=48):
 
-  P1  The frozen wake      — decay vs perpetual stimulus      (driver run)
-  P2  Extinction + q-gap   — trigger off at t=10, site releases (driver run)
-  P3  Capacity null        — a pre-stressed site does not lock harder
-  P4  Rate crossover       — the phi-channel engages 5–50/s, phi-specific
+  P1  The frozen wake     —decay vs perpetual stimulus      (driver run)
+  P2  Extinction + q-gap  —trigger off at t=10, site releases (driver run)
+  P3  Capacity null       —a pre-stressed site does not lock harder
+  P4  Rate crossover      —the phi-channel engages 5–50/s, phi-specific
                              at onset, e-drive neutral-then-pumping
-  P5  Representability     — the positivity clamp confines the field angle
+  P5  Representability    —the positivity clamp confines the field angle
                              to (0,90): only Wood and Fire are reachable
-  P6  The ke ring          — excess restrains ke target, releases ke partner;
+  P6  The ke ring         —excess restrains ke target, releases ke partner;
                              ring gain kappa^3 = phi^-3, sub-critical
 
 Sources: `consciousness/trauma-as-frozen-gate.md` §10.4–10.8,
@@ -147,27 +147,27 @@ def chip(ax, x, y, w, h, text, color=YANG_PEAK, fs=9.5, tc="#241200", bold=True)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Row 0 — banner
+# Row 0—banner
 # ═════════════════════════════════════════════════════════════════════════════
 ax0 = fig.add_subplot(gs[0, :])
 ax0.set_facecolor(BG)
 ax0.set_xlim(0, 1); ax0.set_ylim(0, 1); ax0.axis("off")
 
-ax0.text(0.5, 0.88, "THE FROZEN WAKE — A Test Arc for Trauma as a Qi-Gate Lock",
+ax0.text(0.5, 0.88, "THE FROZEN WAKE—A Test Arc for Trauma as a Qi-Gate Lock",
          transform=ax0.transAxes, ha="center", fontsize=21, fontweight="bold",
          color=YANG_PEAK)
 ax0.text(0.5, 0.74,
-         r"One standing event at the site · five PDE questions · one control cycle  —  "
+         r"One standing event at the site · five PDE questions · one control cycle — "
          r"every curve below is solver data (ExpandingTwoFluid3DGPU, $N=48$, "
          r"$\lambda=0.1$ or $0.05$, 2026-07-31)",
          transform=ax0.transAxes, ha="center", fontsize=10.5, color=TEXT_SUB)
 
 qa = [
-    ("Q1  What sustains a wake?", "Ongoing re-stimulation — 0.005% of the event peak per step holds 80% of intensity", GREEN_SAFE),
-    (r"Q2  Does the gate self-sustain?", r"No — ring gain $\kappa^3 = \varphi^{-3} = 0.236 < 1$; decay identical with and without the ke term", GREEN_SAFE),
-    ("Q3  Does pre-trauma $q$ set susceptibility?", "No — a second identical hit on a pre-stressed site leaves the same trace (null)", GREEN_SAFE),
+    ("Q1  What sustains a wake?", "Ongoing re-stimulation—0.005% of the event peak per step holds 80% of intensity", GREEN_SAFE),
+    (r"Q2  Does the gate self-sustain?", r"No—ring gain $\kappa^3 = \varphi^{-3} = 0.236 < 1$; decay identical with and without the ke term", GREEN_SAFE),
+    ("Q3  Does pre-trauma $q$ set susceptibility?", "No—a second identical hit on a pre-stressed site leaves the same trace (null)", GREEN_SAFE),
     (r"Q4  When does the $\varphi$-channel engage?", r"Rates 5–50/s; absent $\lesssim$5/s; $\varphi$-specific at onset", GREEN_SAFE),
-    (r"Q5  Which channels can an event lock?", r"Wood and Fire only — the positivity clamp pins $\theta$ to (0°, 90°)", GREEN_SAFE),
+    (r"Q5  Which channels can an event lock?", r"Wood and Fire only—the positivity clamp pins $\theta$ to (0°, 90°)", GREEN_SAFE),
     ("Q6  What does the ke ring do?", "Restrains ke targets, releases ke partners; redistributes and damps, never persists", GREEN_SAFE),
 ]
 for i, (q, a, c) in enumerate(qa):
@@ -182,10 +182,10 @@ ax0.text(0.5, 0.015,
          transform=ax0.transAxes, ha="center", fontsize=10, color=YANG_BRIGHT)
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Row 1 — P1: the frozen wake (decay vs perpetual stimulus)
+# Row 1—P1: the frozen wake (decay vs perpetual stimulus)
 # ═════════════════════════════════════════════════════════════════════════════
 ax1 = fig.add_subplot(gs[1, :])
-panel_title(ax1, "P1 · The Frozen Wake — Decay vs Perpetual Stimulus  (§10.5)")
+panel_title(ax1, "P1 · The Frozen Wake—Decay vs Perpetual Stimulus  (§10.5)")
 
 ax1.plot(t_ref, r_ref["eps_site"], color=YIN_LIGHT, lw=1.6, label="undriven (ref)")
 ax1.plot(t_dc[t_dc <= 10], r_dc["eps_site"][t_dc <= 10], color=YANG_PEAK, lw=2.6,
@@ -208,11 +208,11 @@ for tt, val, lab, dy in [(10, 0.279, "0.279  (42%)", -0.085), (10, 0.525, "0.525
                  color=YANG_PEAK if val > 0.4 else YIN_LIGHT, fontweight="bold")
 
 eq_text(ax1, 0.015, 0.97,
-        r"trigger: per-step amplitude $I\,dt$, $I = 0.04$ — 0.005% of the event peak per step, "
+        r"trigger: per-step amplitude $I\,dt$, $I = 0.04$—0.005% of the event peak per step, "
         r"total delivered $\approx$ half the event's peak over $t=10$" + "\n" +
         r"result:  the wake is a **driven** structure. An ongoing trigger holds the site at 80% of "
         r"event intensity (vs 42% undriven); $q$ stays depressed (gap 4.5$\times$); phase stays 100% Fire." + "\n" +
-        r"envelopes: $\varphi$-pulsed and $e$-pulsed coincide (0.528 / 0.530 vs 0.525 continuous) — "
+        r"envelopes: $\varphi$-pulsed and $e$-pulsed coincide (0.528 / 0.530 vs 0.525 continuous)—"
         r"phase-blind at ambient rate 0.04/s (§10.7 locates the crossover at $\gtrsim$5/s).",
         fontsize=8.6)
 ax1.set_xlim(0, 10); ax1.set_ylim(0.05, 0.72)
@@ -222,10 +222,10 @@ ax1.legend(fontsize=9, loc="upper right", framealpha=0.85, facecolor=BG, edgecol
 ax1.grid(alpha=0.15, color=RING, lw=0.5)
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Row 2 — P2: extinction + q-gap
+# Row 2—P2: extinction + q-gap
 # ═════════════════════════════════════════════════════════════════════════════
 ax2a = fig.add_subplot(gs[2, 0:2])
-panel_title(ax2a, "P2a · Extinction — Trigger Off at t=10  (§10.5)")
+panel_title(ax2a, "P2a · Extinction—Trigger Off at t=10  (§10.5)")
 
 ax2a.axvspan(10, 20, color=YIN_MID, alpha=0.16, lw=0)
 ax2a.text(15, 0.60, "injection off\n(since t=10)", ha="center", fontsize=9.5,
@@ -237,7 +237,7 @@ ax2a.annotate("0.142  (22%)", xy=(20, 0.142), xytext=(15.2, 0.10), fontsize=9.5,
               color=YANG_PEAK, fontweight="bold",
               arrowprops=dict(arrowstyle="->", color=YANG_PEAK, lw=1.2))
 eq_text(ax2a, 0.03, 0.94,
-        r"ten units after the trigger stops, $|\varepsilon|$ falls to 0.142 — below the undriven curve."
+        r"ten units after the trigger stops, $|\varepsilon|$ falls to 0.142—below the undriven curve."
         r" The wake is stimulus-maintained, not self-sustaining; extinction works." + "\n" +
         r"extinction = exposure work:  remove the trigger, the gate closes on the conversion timescale.",
         fontsize=8.4)
@@ -260,7 +260,7 @@ ax2b.annotate("+0.063  (4.5$\times$ ref)", xy=(10, 0.063), xytext=(2.2, 0.078),
               fontsize=9, color=YANG_PEAK, fontweight="bold",
               arrowprops=dict(arrowstyle="->", color=YANG_PEAK, lw=1.1))
 ax2b.plot(20, 0.008, "o", color=YIN_LIGHT, ms=6)
-ax2b.annotate("+0.008 — gap closed", xy=(20, 0.008), xytext=(11.5, -0.004),
+ax2b.annotate("+0.008—gap closed", xy=(20, 0.008), xytext=(11.5, -0.004),
               fontsize=9, color=YIN_LIGHT, fontweight="bold",
               arrowprops=dict(arrowstyle="->", color=YIN_LIGHT, lw=1.1))
 eq_text(ax2b, 0.04, 0.90, r"$q$-gap $= q_{\rm glob} - q_{\rm site}$: the coherence "
@@ -272,10 +272,10 @@ ax2b.legend(fontsize=8.5, loc="lower right", framealpha=0.85, facecolor=BG, edge
 ax2b.grid(alpha=0.15, color=RING, lw=0.5)
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Row 3 — P3: capacity null
+# Row 3—P3: capacity null
 # ═════════════════════════════════════════════════════════════════════════════
 ax3 = fig.add_subplot(gs[3, :])
-panel_title(ax3, "P3 · Capacity Null — A Pre-Stressed Site Does Not Lock Harder  (§10.6)")
+panel_title(ax3, "P3 · Capacity Null—A Pre-Stressed Site Does Not Lock Harder  (§10.6)")
 
 ax3.plot(t_c1, cap_first["eps_site"], color=YIN_LIGHT, lw=1.8,
          label="first hit on quiet field")
@@ -303,7 +303,7 @@ eq_text(ax3, 0.015, 0.97,
         r"hit's full trace (0.069); phase displacement fully returns in both (0.08 / 0.02 from 1.00 at "
         r"event time)." + "\n" +
         r"**null:** background coherence does not modulate the outcome. Susceptibility, if it exists, "
-        r"lives in the driver (does the stimulus recur?) or the interpretation (the event's phase) — not in pre-event $q$.",
+        r"lives in the driver (does the stimulus recur?) or the interpretation (the event's phase)—not in pre-event $q$.",
         fontsize=8.6)
 ax3.set_xlim(0, 15.5); ax3.set_ylim(0, 1.0)
 ax3.set_xlabel("t", fontsize=10, color=TEXT_SUB)
@@ -312,10 +312,10 @@ ax3.legend(fontsize=9, loc="upper right", framealpha=0.85, facecolor=BG, edgecol
 ax3.grid(alpha=0.15, color=RING, lw=0.5)
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Row 4 — P4: rate crossover
+# Row 4—P4: rate crossover
 # ═════════════════════════════════════════════════════════════════════════════
 ax4a = fig.add_subplot(gs[4, 0:2])
-panel_title(ax4a, "P4a · Drive Crossover — Where Does the $\\varphi$-Phased Drain Turn On?  (§10.7)")
+panel_title(ax4a, "P4a · Drive Crossover—Where Does the $\\varphi$-Phased Drain Turn On?  (§10.7)")
 
 rates_phi = [0.5, 5, 50, 150, 300]
 ret_phi = [0.910, 0.891, 0.693, 0.362, 0.664]
@@ -327,7 +327,7 @@ ax4a.axhspan(0.25, 0.80, color=YANG_DARK, alpha=0.16, lw=0)
 ax4a.axhline(0.912, color=TEXT_SUB, lw=1.2, ls="--")
 ax4a.text(0.55, 0.912, "undriven retention 0.912", fontsize=8.4, color=TEXT_SUB,
           transform=ax4a.transAxes)
-ax4a.text(0.55, 0.62, "ambient regime — phase-blind\naccumulation (§10.5)", fontsize=8.6,
+ax4a.text(0.55, 0.62, "ambient regime—phase-blind\naccumulation (§10.5)", fontsize=8.6,
           color=YIN_LIGHT, va="bottom", transform=ax4a.transAxes)
 ax4a.text(0.55, 0.26, "processing regime —\n$\\varphi$-phased drain", fontsize=8.6,
           color=YANG_MID, va="top", transform=ax4a.transAxes)
@@ -340,8 +340,8 @@ ax4a.plot(rates_e, ret_e, "-s", color=YIN_LIGHT, lw=1.8, ms=7,
 for rx, ry, lab, tx in [(50, 0.693, "0.693", (0.10, 0.44)),
                         (150, 0.362, "0.362", (0.10, 0.30)),
                         (300, 0.664, "0.664 (non-monotonic)", (0.62, 0.86)),
-                        (50, 0.943, "0.943 — neutral", (0.62, 0.70)),
-                        (300, 1.88, "1.88 — pumps", (0.62, 0.93))]:
+                        (50, 0.943, "0.943—neutral", (0.62, 0.70)),
+                        (300, 1.88, "1.88—pumps", (0.62, 0.93))]:
     ax4a.annotate(lab, xy=(rx, ry), xytext=tx, textcoords="axes fraction",
                   fontsize=8.6,
                   color=YANG_PEAK if "0.69" in lab or "0.36" in lab else YIN_LIGHT,
@@ -352,7 +352,7 @@ ax4a.annotate("sharp onset\nbetween 5/s and 50/s", xy=(15, 0.72), xytext=(7, 0.5
               fontsize=9, color=YANG_PEAK, fontweight="bold",
               arrowprops=dict(arrowstyle="->", color=YANG_PEAK, lw=1.3))
 eq_text(ax4a, 0.03, 0.98,
-        wrap(r"$\varphi$-specificity **at onset**: at 50/s — the first amplitude that drains — the "
+        wrap(r"$\varphi$-specificity **at onset**: at 50/s—the first amplitude that drains—the "
              r"$e$-drive at the same rate does nothing (0.943 $\approx$ undriven). The asymmetry is "
              r"present from the moment the phase channel engages; it is not a strong-drive artifact."
              + "\n" +
@@ -386,10 +386,10 @@ ax4b.legend(fontsize=7.8, loc="lower left", framealpha=0.85, facecolor=BG, edgec
 ax4b.grid(alpha=0.15, color=RING, lw=0.5)
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Row 5 — P5: representability bound
+# Row 5—P5: representability bound
 # ═════════════════════════════════════════════════════════════════════════════
 ax5 = fig.add_subplot(gs[5, 0:2])
-panel_title(ax5, "P5 · Representability Bound — The Positivity Clamp Pins the Field Angle  (§10.8)")
+panel_title(ax5, "P5 · Representability Bound—The Positivity Clamp Pins the Field Angle  (§10.8)")
 
 # field-angle circle: theta = atan2(E_I, E_Y), clamp E >= 1e-3 -> theta in (0, 90)
 th = np.linspace(0, 2 * np.pi, 600)
@@ -416,7 +416,7 @@ for i, name in enumerate(CHANNELS):
                  0.94 * np.sin(a) + (0.10 if np.sin(a) >= 0 else -0.18),
                  f"{name} {targets[name]:.0f}°", fontsize=8.6, color=CHANNEL_COLORS[i],
                  fontweight="bold", ha="center")
-    # aimed direction (pre-clamp) — gray tick
+    # aimed direction (pre-clamp)—gray tick
     aa = np.radians(aimed[name])
     ax5.plot([0.60 * np.cos(aa)], [0.60 * np.sin(aa)], "o", color=TEXT_SUB, ms=5, alpha=0.7)
     # arrow: aimed -> observed (only where they differ)
@@ -470,13 +470,13 @@ for name in CHANNELS:
 eq_text(ax5c, 0.04, 0.36,
         wrap(r"within the representable arc the lock **tracks the event direction and persists**: "
              r"Fire event → 100% Fire at t=2 and t=10; Wood event → 100% Wood at both. No convergence. "
-             r"The five-way pentagon is not lost — it lives in the gate's $\mathbf{b}$-manifold "
+             r"The five-way pentagon is not lost—it lives in the gate's $\mathbf{b}$-manifold "
              r"(channel openness), where all five channels exist; only the stimulus-side field angle "
              r"is 1D in this PDE. A geometric constraint of positive fields, not a dynamical null."),
         fontsize=8.1)
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Row 6 — P6: the ke ring
+# Row 6—P6: the ke ring
 # ═════════════════════════════════════════════════════════════════════════════
 ax6 = fig.add_subplot(gs[6, 0])
 panel_title(ax6, "P6 · The Ke Ring in the Gate  (C3)")
@@ -501,7 +501,7 @@ eq_text(ax6, 0.03, 0.90,
         fontsize=8.0)
 
 ax6b = fig.add_subplot(gs[6, 1])
-panel_title(ax6b, "Ring Deviation — Restrained vs Released  (C1)")
+panel_title(ax6b, "Ring Deviation—Restrained vs Released  (C1)")
 
 ax6b.bar(x, ring * 1e3, 0.55,
          color=[GREEN_SAFE if v > 0.3 else RED_DANGER for v in ring * 1e3], alpha=0.92)
@@ -516,11 +516,11 @@ ax6b.grid(alpha=0.15, color=RING, lw=0.5)
 eq_text(ax6b, 0.03, 0.27,
         r"excess restrains the ke target:  $d_i = \min(\kappa\,\Delta_i^+,\; b_{i+2})$" + "\n" +
         r"release lands on the ke-released partner (i+4):  $\Delta_{i+4} = \Delta_{i+4} + d_i$" + "\n" +
-        r"$\kappa = \varphi^{-1} = K_{\rm fw}$ — no new parameter.",
+        r"$\kappa = \varphi^{-1} = K_{\rm fw}$—no new parameter.",
         fontsize=8.2)
 
 ax6c = fig.add_subplot(gs[6, 2])
-panel_title(ax6c, "Ring Gain — Sub-Critical, No Self-Sustenance  (C3a, C3b)")
+panel_title(ax6c, "Ring Gain—Sub-Critical, No Self-Sustenance  (C3a, C3b)")
 
 ax6c.bar([0, 1, 2], [ke["c3"]["eps_rel"]["five"], ke["c3"]["eps_rel"]["five_ke"],
                      ke["c3"]["eps_rel"]["five_ke+drive"]], 0.5,
@@ -536,7 +536,7 @@ for i, v in enumerate([ke["c3"]["eps_rel"]["five"], ke["c3"]["eps_rel"]["five_ke
               fontweight="bold")
 ax6c.grid(alpha=0.15, color=RING, lw=0.5)
 eq_text(ax6c, 0.03, 0.58,
-        wrap(r"ring gain $\kappa^3 = \varphi^{-3} = 0.236$ — the pentagram's central-segment fraction. "
+        wrap(r"ring gain $\kappa^3 = \varphi^{-3} = 0.236$—the pentagram's central-segment fraction. "
              r"The ke term changes nothing about decay without a driver (0.350 vs 0.349), and the "
              r"$\varphi$-phased drive still dissolves the site (0.149). The ke ring redistributes and "
              r"damps; it never creates persistence. A self-sustained lock would require $\kappa \geq 1$ "
@@ -544,7 +544,7 @@ eq_text(ax6c, 0.03, 0.58,
         fontsize=8.1)
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Row 7 — verdict card
+# Row 7—verdict card
 # ═════════════════════════════════════════════════════════════════════════════
 ax7 = fig.add_subplot(gs[7, :])
 ax7.set_facecolor(BG)
@@ -553,18 +553,18 @@ ax7.set_xlim(0, 1); ax7.set_ylim(0, 1); ax7.axis("off")
 ax7.text(0.015, 0.94, "WHAT THE ARC ESTABLISHED", fontsize=13, color=YANG_PEAK,
          fontweight="bold", va="top")
 verdicts = [
-    ("TESTED — the sustainer", "ongoing re-stimulation. 0.005% of the event peak per step holds 80% of "
+    ("TESTED—the sustainer", "ongoing re-stimulation. 0.005% of the event peak per step holds 80% of "
      "event intensity; stopping the trigger releases the site to 22%.", GREEN_SAFE),
-    ("TESTED — no self-sustenance", "the ke ring is sub-critical by construction (κ³ = 0.236 = the "
+    ("TESTED—no self-sustenance", "the ke ring is sub-critical by construction (κ³ = 0.236 = the "
      "pentagram's central segment); decay identical with and without it; the φ-drive still dissolves "
      "(0.149 vs 0.349).", GREEN_SAFE),
-    ("TESTED — susceptibility null", "a second identical event on a pre-stressed site leaves the same "
+    ("TESTED—susceptibility null", "a second identical event on a pre-stressed site leaves the same "
      "trace (+0.050 vs 0.069); background coherence does not modulate the outcome.", GREEN_SAFE),
-    ("TESTED — the φ-channel", "engages between 5/s and 50/s (two orders above ambient trigger rates), "
+    ("TESTED—the φ-channel", "engages between 5/s and 50/s (two orders above ambient trigger rates), "
      "φ-specific at onset (0.693 vs 0.943 e-drive), non-monotonic in amplitude.", GREEN_SAFE),
-    ("TESTED — representability bound", "the positivity clamp confines θ to (0°, 90°): Wood and Fire "
+    ("TESTED—representability bound", "the positivity clamp confines θ to (0°, 90°): Wood and Fire "
      "events lock cleanly and persist; Earth, Metal, Water clamp onto Fire or Wood.", GREEN_SAFE),
-    ("TESTED — the ke ring", "excess restrains its ke target and releases the ke-released partner, to "
+    ("TESTED—the ke ring", "excess restrains its ke target and releases the ke-released partner, to "
      "≤ 6×10⁻⁴ against the PDE; the alternating pattern of T1 is the gate's natural response.",
      GREEN_SAFE),
 ]
@@ -581,9 +581,9 @@ for i, (head, body, c) in enumerate(verdicts):
              transform=ax7.transAxes, va="top", linespacing=1.35)
 
 ax7.text(0.015, 0.025,
-         "still open, needing affect data (Speculative):  T1 — the ke-alternating profile "
+         "still open, needing affect data (Speculative):  T1—the ke-alternating profile "
          "[−0.382, −0.618, +0.382, +0.618]·D of lock-excess deficits, not four equal ones  ·  "
-         "T2 — the R-matrix healing sequence (anger first after fear-work, relief after rage-work)",
+         "T2—the R-matrix healing sequence (anger first after fear-work, relief after rage-work)",
          fontsize=9.5, color=YIN_LIGHT, va="bottom")
 
 OUT = os.path.join(ROOT, "visual-explainers", "trauma_test_arc.png")
@@ -591,7 +591,7 @@ fig.savefig(OUT, dpi=120, facecolor=BG)
 print(f"wrote {OUT}")
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Console verification — every number against the docs / results.json
+# Console verification—every number against the docs / results.json
 # ─────────────────────────────────────────────────────────────────────────────
 print("\n── Trauma Test Arc: verification against runs/*/results.json ──")
 fail = []
