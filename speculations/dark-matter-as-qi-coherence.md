@@ -123,7 +123,7 @@ The complete dark matter profile follows $q(r)$:
 
 $$\rho_{\text{DM}}^{\text{eff}}(r) \propto (1 + \xi q(r)) \cdot \rho(r)$$
 
-where $\rho(r)$ is the condensation density from `bubble-edge-geometry.md` §4.3:
+where $\rho(r)$ is the condensation density from `foundations/bubble-edge-geometry.md` §4.3:
 
 $$\rho(r) \approx \rho_0 \cdot \max\!\left(0, \frac{C(r) - \theta_{\text{cond}}}{1 - \theta_{\text{cond}}}\right)^{n_{\text{cond}}}$$
 
@@ -241,7 +241,7 @@ where $\langle q \rangle(r) = (1 + \langle C \rangle(r))/2$ uses the 2D angular 
 
 ### 7.2 Results
 
-**Prediction P1 (Qi density profile fit): NOT SUPPORTED in current form.**
+**Prediction P1 (Qi density profile fit): MODEL-DEPENDENT**—the baryon-seeded oscillatory-lattice form is not supported; the hydrostatic condensate form survives (revision below).
 
 Across 143 galaxies (≥8 data points):
 
@@ -253,7 +253,9 @@ Across 143 galaxies (≥8 data points):
 
 The Qi model with fixed $\xi = \varphi^6$ **overpredicts** dark matter by a large factor in most galaxies. The coupling constant that works for the Milky Way rotation curve does not generalize as a universal radial profile in this form.
 
-**Prediction P2 (core radius scaling): METHODOLOGY-SENSITIVE.**
+**Revision (2026-07-31, v5): the overprediction is a profile-shape effect, not a coupling failure.** Replacing the baryon-seeded oscillatory-lattice condensate with the hydrostatic pseudo-isothermal form $\rho_Y(r) = \rho_c/(1 + (r/r_c)^2)$—the envelope the two-fluid equilibrium produces (`experiments/sparc_qi/sparc_qi_analysis_v5.py`)—keeping $\xi = \varphi^6$ fixed and two free parameters ($\rho_c$, $r_c$) vs NFW's two, flips the full-range verdict: median $\Delta$AIC $= -7.0$, Qi preferred in 90/143, NFW preferred in 14/143. The fitted central density satisfies $\rho_c \times (1+\xi) \approx 1.1 \times 10^7$ M$_\odot$/kpc$^3$—exactly the naive dark-matter density—so the model needs $1/(1+\xi)$ the physical DM: the boost *is* the dark matter. The v4 oscillatory-lattice model remains falsified: its shell-y $\langle C \rangle$ mask cannot match smooth rotation curves.
+
+**Prediction P2 (core radius scaling), v5 update:** the pseudo-isothermal fits give $\gamma = 0.23 \pm 0.10$ with $R^2 = 0.05$—the model-fitted $r_c$ is too degenerate with $\rho_c$ to trace mass, so this does not constrain P2. The empirical measurement below stands as the P2 constraint.
 
 The empirical core radius (measured as the radius where $v_{\text{DM}}$ reaches half its maximum) gives $\gamma = 0.41 \pm 0.02$—a $3.6\sigma$ deviation from the predicted $1/3$. However, the result is sensitive to measurement methodology: different bulge-mass scaling factors and filtering criteria produce $\gamma$ values ranging from 0.31 to 0.41, with $R^2$ between 0.32 and 0.73. The prediction is neither cleanly confirmed nor cleanly falsified by current data.
 
@@ -272,10 +274,13 @@ The existing Cassi result—that $\xi = \varphi^6$ matches the Milky Way rotatio
 
 ### 7.4 Path forward
 
-A proper test requires one of:
+Progress 2026-07-31 (v5): the radial-profile test is no longer the blocker.
+The hydrostatic two-component condensate survives SPARC at NFW parity with
+fixed $\xi$ (median $\Delta$AIC = −7.0). Remaining steps:
 - Full 3D bubble-lattice galaxy model with checkerboard geometry, not radial approximation
 - Two-fluid PDE simulation at galactic scale ($n \approx 267$) with realistic baryonic distributions
 - Scaling the effective $\xi$ from the PDE output rather than fixing it at the vacuum value
+- Explain the empirical core-radius scaling $\gamma = 0.41 \pm 0.02$ (e.g., coherence budget: cores set by baryonic activity, not mass)
 
 Until one of these is implemented, the dark-matter-as-Qi-coherence framework remains Speculative.
 ---

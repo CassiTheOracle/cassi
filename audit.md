@@ -24,7 +24,7 @@
 | $\|V_{ub}\|$ | Wolfenstein $A\lambda^3(\rho-i\eta)$ with $\lambda \approx \varphi^{-3}$ | $0.004$ | **Consistent**—magnitude set by hierarchy |
 | $\delta_{\text{CKM}}$ | $\pi\varphi^{-2} \approx 68.8^\circ$ | $\sim 68^\circ$ | ✅ **<1%**—derived from unitarity triangle closure, independent of exact CKM magnitudes |
 
-The CKM phase is nailed. Magnitudes follow the Wolfenstein hierarchy with $\lambda \approx \varphi^{-3}$; exact $\varphi$-powers for individual elements require additional Yukawa structure. See `cp-violation.md`.
+The CKM phase is nailed. Magnitudes follow the Wolfenstein hierarchy with $\lambda \approx \varphi^{-3}$; exact $\varphi$-powers for individual elements require additional Yukawa structure. See `standard-model/cp-violation.md`.
 
 ### 1.3 Neutrino Masses
 
@@ -57,7 +57,7 @@ Neutrino masses are not cleanly derivable from $\varphi$ alone. The seesaw mecha
 |-----------|-------------|--------------|--------|
 | Mercury perihelion | $42.98''$/cy (GR) | $42.98'' \pm 0.01''$/cy | ✅ **Matches GR** |
 | $G_{\text{eff}}/G$ (fixed point) | $\varphi^{-3} \approx 0.236$ |—| ✅ **Definition** |
-| $v_C/v_B$ (MW rotation) | $\approx 2.7$ | $2.5-3.0$ | ✅ **Within range** |
+| $v_C/v_B$ (MW rotation) | $2.9$–$3.1$ (revised 2026-07-31) | $2.5-3.0$ | ✅ **Within range** |
 | Dwarf spheroidal M/L | 5/8 pass | 5/8 | ✅ **Beats MOND (4/8)** |
 | MESSENGER bound $\|q\|$ | $< 1.1\times 10^{-6}$ at 0.39 AU | Satisfied | ✅ **Passes** |
 | Gravitational wave amplif. | Up to $10\times$ GR in high-Qi |—| 🔭 **Falsifiable** |

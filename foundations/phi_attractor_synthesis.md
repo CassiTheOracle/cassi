@@ -87,11 +87,14 @@ and halo Yang fraction $\alpha \approx 0.7$, consistent with
 `cosmology/observational_constraints.md` §2.6 and the point-particle reduction
 of `gravity/three-body-analytical.md`. Under this coupling the boost at 30 kpc
 is $v_{\text{enh}}/v_{\text{Newt}} \approx 2.9$—consistent with the observed
-Milky Way boost $2.7 \pm 0.5$ (Zhou+ 2023)—but the model *overproduces* at the
-χ²-best single $\rho_{\text{ref}}$ (v(30) ≈ 296 km/s vs ~190–200 observed). The
-overproduction is the same signature the SPARC fit finds with fixed
-$\xi = \varphi^6$ (111/143 galaxies prefer NFW; see
-`speculations/dark-matter-as-qi-coherence.md` §7).
+Milky Way boost $2.7 \pm 0.5$ (Zhou+ 2023)—but the single-$\rho_{\text{ref}}$
+model *overproduces* at the χ² best (v(30) ≈ 296 km/s vs ~190–200 observed),
+and its curve is U-shaped. The overproduction is a profile-shape disease, not
+a coupling failure: the SPARC fit with the baryon-seeded oscillatory lattice
+(v4) overpredicts in 111/143 galaxies, while the hydrostatic two-component
+condensate (pseudo-isothermal $\rho_Y$, v5) survives with the same fixed
+$\xi = \varphi^6$ (median $\Delta$AIC = −7.0, 90/143; see
+`speculations/dark-matter-as-qi-coherence.md` §7.2).
 
 This is the mechanism tested in Paths 8--9 for galactic dynamics.
 
@@ -341,10 +344,16 @@ $q(R)$ turns on too abruptly (0 → ~0.6 between 20 and 30 kpc at the χ²-best
 $\rho_{\text{ref}}$), suppressing the inner disk while over-boosting the
 outskirts. A flat curve requires a $\rho_{\text{ref}}$ that scales with radius
 ($\rho_{\text{ref}} \propto \rho(R)$), the two-fluid's $\pi\nabla\Phi$ buoyancy
-force, or an additional mechanism. This is the same overproduction signature
-the SPARC fit finds with fixed $\xi = \varphi^6$: the Qi profile overpredicts
-in 111/143 galaxies and is disfavored against NFW (median $\Delta$AIC +40;
-`speculations/dark-matter-as-qi-coherence.md` §7).
+force, or an additional mechanism. The profile dependence is now measured:
+the baryon-seeded oscillatory-lattice condensate (SPARC v4) overproduces in
+111/143 galaxies, but the hydrostatic pseudo-isothermal condensate (SPARC v5,
+`experiments/sparc_qi/sparc_qi_analysis_v5.py`) survives with the same fixed
+$\xi = \varphi^6$ (median $\Delta$AIC = −7.0, Qi preferred in 90/143), and its
+fitted central density satisfies $\rho_c(1+\xi) \approx$ the naive DM
+density—the boost replaces most of the dark matter. The single-$\rho_{\text{ref}}$
+failure is therefore a feature of the toy, not the framework: flatness lives
+in the condensate's hydrostatic envelope ($\rho_Y \propto r^{-2}$), not in a
+tuned turn-on.
 
 ## 11. Path 9: Cassi vs MOND
 
@@ -415,7 +424,7 @@ graph TD
     E --> H["L4/L5 stability<br/>universal for sigma/a >= 0.44"]
     A --> I["Qi coherence<br/>q(rho)"]
     I --> J["G_eff enhancement<br/>max ~ 13.3x (alpha(1+xi), xi = phi^6)"]
-    J --> K["Rotation curves<br/>overproduces v(30); U-shaped"]
+    J --> K["Rotation curves<br/>single rho_ref overproduces (U-shaped);<br/>hydrostatic condensate survives (SPARC v5)"]
     J --> L["vs MOND<br/>saturates at 13.3x (revised)"]
     F --> M["sigma < 370 km<br/>from pulsars"]
     M --> N["14 orders of magnitude<br/>gap to galactic sigma"]
@@ -450,10 +459,13 @@ Path 7 showed that a single $\sigma$ cannot simultaneously satisfy binary pulsar
 - **Different mechanism entirely:** Flat rotation curves are not produced by
   softened gravity (Path 7, disproven) nor by the single-$\rho_{\text{ref}}$
   $\varphi$-enhanced model (Path 8, revised 2026-07-31: the full $\xi = \varphi^6$
-  coupling gives the right 30-kpc boost but a U-shaped curve). Candidates
-  remain the two-fluid $\pi\nabla\Phi$ buoyancy force, or $\varphi$-enhanced
-  gravity with a density-dependent $\rho_{\text{ref}} \propto \rho(R)$; flatness is
-  still an open problem.
+  coupling gives the right 30-kpc boost but a U-shaped curve). The
+  hydrostatic two-component condensate ($\rho_Y \propto r^{-2}$ envelope, ξ
+  applied to the condensate's own mass) now provides the flat-curve
+  mechanism directly—SPARC v5 with fixed $\xi = \varphi^6$ survives at NFW
+  parity (median $\Delta$AIC = −7.0, 90/143; see §10). Remaining candidates
+  for the diversity of cores: the two-fluid $\pi\nabla\Phi$ buoyancy force and
+  a density-dependent $\rho_{\text{ref}} \propto \rho(R)$.
 
 ### 14.3 Self-Consistent Galactic Dynamics
 
@@ -470,7 +482,7 @@ Combining softened gravity (small $\sigma$ for solar-system/pulsar consistency) 
 | 4b | Analytical precession $\Delta\phi = -\sqrt{2\pi}(\sigma/a)^3(1+e^2/4)/(1-e^2)^3$ | Confirmed |
 | 5 | L1/L2 merge at $\sigma/a \approx 0.35$; $\sigma < 370$ km from pulsars | Confirmed |
 | 6 | L4/L5 universally stable for $\sigma/a \geq 0.44$ | Confirmed |
-| 8 | $\varphi$-enhanced gravity (full $\xi = \varphi^6$): boost $2.89\times$ at 30 kpc consistent with observed $2.7\pm0.5$, but curve U-shaped (overproduces v(30) = 296 km/s); revised 2026-07-31 | Confirmed* |
+| 8 | $\varphi$-enhanced gravity (full $\xi = \varphi^6$): boost $2.89\times$ at 30 kpc consistent with observed $2.7\pm0.5$; single-$\rho_{\text{ref}}$ curve U-shaped (overproduces v(30) = 296 km/s), but hydrostatic two-component condensate survives SPARC (median $\Delta$AIC = −7.0, 90/143); revised 2026-07-31 | Confirmed* |
 | 9 | Cassi saturates at $\alpha(1+\xi) \approx 13.3$; MOND grows without bound (full $\xi = \varphi^6$; revised 2026-07-31) | Confirmed* |
 
 \* Revised 2026-07-31 with the full $G_{\text{eff}}/G = \alpha(1+\xi q)$ coupling ($\xi = \varphi^6$, $\alpha = 0.7$); the earlier $\sqrt{\varphi} \approx 1.27$ ceiling and $\varphi \approx 1.62$ saturation came from the withdrawn approximate coupling $G_{\text{eff}}/G_N = 1 + (\varphi-1)\cdot q$.
