@@ -284,7 +284,7 @@ fixed $\xi$ (median $\Delta$AIC = −7.0). Remaining steps:
 - Full 3D bubble-lattice galaxy model with checkerboard geometry, not radial approximation
 - Two-fluid PDE simulation at galactic scale ($n \approx 267$) with realistic baryonic distributions
 - Scaling the effective $\xi$ from the PDE output rather than fixing it at the vacuum value
-- Residual: the per-galaxy $c_s$ scatter (2.6–123 km/s, degenerate with $\rho_c$) — a physical origin for the sound-speed dispersion remains open
+- Residual: the per-galaxy $c_s$ scatter (2.6–123 km/s, degenerate with $\rho_c$)—a physical origin for the sound-speed dispersion remains open
 
 Until one of these is implemented, the dark-matter-as-Qi-coherence framework remains Speculative.
 ---
