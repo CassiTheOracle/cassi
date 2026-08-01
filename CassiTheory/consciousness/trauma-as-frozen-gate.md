@@ -445,6 +445,7 @@ Open question 2 and the foundation of the channel-to-trauma-type mapping (§4.1)
 - Sharp crossover of the $\varphi$-phased drain: absent below rate ~5/s, fully engaged by 50/s, with $\varphi$-specificity present at onset (the $e \cdot P_0$ counterfactual is neutral at the first draining amplitude) (§10.7, `run_trauma_crossover.py`, `run_trauma_crossover_low.py`)
 - Representability bound: the positivity clamp confines the field angle to the first quadrant—only Wood and Fire are representable in the field angle; Earth/Metal/Water events clamp onto Fire/Wood (§10.8, `run_trauma_phase_channels.py`)
 - Phase-channel selectivity: Fire events lock Fire and Wood events lock Wood, persistent through $t=10$—the lock channel tracks the event direction across the representable arc (§10.8)
+- The ke control ring in the gate: `gate_model='five_ke'` reproduces the derived ring algebra exactly (≤ 6×10⁻⁴); excess channels restrain ke targets and release ke partners; decay with no driver unchanged (no self-sustenance); the $\varphi$-drive still dissolves (C3 of `foundations/wu-xing-cycle-structure.md`, `two-fluid/run_trauma_ke_ring.py`)
 
 ### Hypothesized (derivation supplied, partially tested)
 
@@ -504,4 +505,5 @@ Open question 2 and the foundation of the channel-to-trauma-type mapping (§4.1)
 - `two-fluid/run_trauma_capacity.py`—the capacity/susceptibility test (re-traumatization binary, 2026-07-31)
 - `two-fluid/run_trauma_crossover.py` and `run_trauma_crossover_low.py`—the drive-crossover probes (onset bracket + low-amplitude $\varphi$-specificity, 2026-07-31)
 - `two-fluid/run_trauma_phase_channels.py`—the phase-channel selectivity test (representability bound + Wood/Fire binary, 2026-07-31)
+- `two-fluid/run_trauma_ke_ring.py`—the ke-ring gate test (five vs five_ke vs five_ke+φ-drive, 2026-07-31)
 - `cassi-physics.md`—physics guide, epistemic tiers
