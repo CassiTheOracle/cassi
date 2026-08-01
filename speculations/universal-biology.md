@@ -16,7 +16,7 @@ The first thing the ladder does to life is give it an address: every biosphere i
 
 ### 1.1 The biological band
 
-From the cascade table (`foundations/dimensionful-cascade.md` §3):
+From the cascade table (`foundations/dimensionful-cascade.md` §3, §6):
 
 | Step $n$ | Scale (m) | Physical meaning |
 |----------|-----------|------------------|
@@ -39,11 +39,11 @@ That is 32 $\varphi$-multiplications from the light a biosphere reads to the lar
 
 **Floor three, the unit.** The cell at $n = 142$ is the smallest self-bounded structure that can host a full SO(2) Yang-Yin cycle and replicate it. Below the cellular rung sits chemistry without agency.
 
-**The ceiling, coherence.** An organism must hold its parts in phase across its own span. The coherence budget (`foundations/proton-coherence-budget.md`) gives the per-cycle decoherence of a configuration spanning $n$ rungs as
+**The ceiling, coherence.** An organism must hold its parts in phase across its own span. The coherence budget gives the per-rung dephasing $1 - q_i = \varphi^{-i-3}$ (`foundations/proton-coherence-budget.md` §2), with the phase-matching factor $\mathcal{M}_i \in [0,1]$ multiplying each rung's factor individually, $P_{\text{decohere},i} = (1-q_i)\,\mathcal{M}_i$ (`foundations/quantum-measurement-derivation.md` §3.1). For random perturbation ($\mathcal{M}_i \approx 0$ everywhere) the compounded dephasing of a configuration spanning $n$ rungs is the source's own product:
 
-$$P = \prod_i (1-q_i)\,\mathcal{M}_i \sim \varphi^{-n(n+1)/2},$$
+$$P = \prod_i (1-q_i) \approx \varphi^{-n(n+1)/2},$$
 
-with per-rung dephasing $1-q_i = \varphi^{-i-3}$ and $\mathcal{M}_i$ the phase-matching factor. A single Qi gate bridges at most ~10 rungs before cascade suppression attenuates the signal to $\varphi^{-10} \approx 0.008$—the effective nesting depth (`foundations/bubble-lattice-fabric.md` §3.3); direct cell-to-surface signaling across the human window would attenuate by $\varphi^{-26} \approx 3.7 \times 10^{-6}$, so a body needs re-amplification every few rungs (§3). Above $n \approx 168$–$180$ the ladder's organizational level stops being a body—step 180 is the skyscraper, 200 the Earth's diameter (`foundations/dimensionful-cascade.md` §3). Qi-enhanced gravity reinforces the ceiling: $G_{\text{eff}} = (\pi/\rho)(1 + \xi q)G$ with $\xi = \varphi^6 \approx 17.944$ (`foundations/xi-derivation.md`) amplifies a coherent body's self-gravity up to $\sim 19\times$ at $q \to 1$.
+A single Qi gate bridges at most ~10 rungs before cascade suppression attenuates the signal to $\varphi^{-10} \approx 0.008$—the effective nesting depth (`foundations/bubble-lattice-fabric.md` §3.3); direct cell-to-surface signaling across the human window would attenuate by $\varphi^{-26} \approx 3.7 \times 10^{-6}$, so a body needs re-amplification every few rungs (§3). Above $n \approx 168$–$180$ the ladder's organizational level stops being a body—step 180 is the skyscraper, 200 the Earth's diameter (`foundations/dimensionful-cascade.md` §3). Qi-enhanced gravity reinforces the ceiling: $G_{\text{eff}} = (\pi/\rho)(1 + \xi q)G$ with $\xi = \varphi^6 \approx 17.944$ (`foundations/xi-derivation.md`) amplifies a coherent body's self-gravity up to $\sim 19\times$ at $q \to 1$.
 
 **The clock.** Every rung carries a characteristic conversion time, so the ladder is a clock hierarchy: heart rate to respiration $\approx \varphi^3 \approx 4.24$ (`hypotheses/metabolic-scaling.md` §3), circadian to ultradian period $\approx \varphi^6 \approx 17.94$ (`hypotheses/neural-criticality.md` §4). A biosphere's pace is set by its rung, and the ratios between paces by the ladder.
 
@@ -59,7 +59,7 @@ The strongest claim of this document is that the familiar $\varphi$-patterns of 
 
 ### 2.1 Phyllotaxis: the golden angle as a requirement
 
-The doublet rotates through $2\pi$ per cascade rung, $\Theta(n) = 2\pi n/\ln\varphi$ (`foundations/spiral-dynamics.md` §1.1). The recurrence $\varphi^n = \varphi^{n-1} + \varphi^{n-2}$ partitions any cascade span into Fibonacci sub-channels (`foundations/three-generations.md`), the same partition that yields the seven sub-rungs of the visible octave (`consciousness/chakras-as-cascade-bubbles.md` §9.3).
+The doublet rotates through $2\pi/\ln\varphi \approx 13.06$ rad per cascade rung, $\Theta(n) = 2\pi n/\ln\varphi$ (`foundations/spiral-dynamics.md` §1.1)—one full rotation per $\Delta n = \ln\varphi \approx 0.481$ rungs. The recurrence $\varphi^n = \varphi^{n-1} + \varphi^{n-2}$ partitions any cascade span into Fibonacci sub-channels (`foundations/three-generations.md`), the same partition that yields the seven sub-rungs of the visible octave (`consciousness/chakras-as-cascade-bubbles.md` §9.3).
 
 A growth tip appending successive units is running a sequence of Fibonacci sub-steps of the doublet rotation, and the stagger between successive units converges on the golden angle
 
@@ -69,7 +69,7 @@ Successive Fibonacci multiples of $\gamma$ wind without ever repeating a radial 
 
 ### 2.2 Metabolic scaling: Fibonacci branching as a requirement
 
-Metabolic rate obeys Kleiber's law across 21 orders of magnitude, $B = B_0 M^{3/4}$ (`hypotheses/metabolic-scaling.md` §1). The framework's own derivation of the $3/4$ exponent does not close (§2, §4); what it does supply is the constraint on the network: resource networks branch at Fibonacci counts—2, 3, 5, 8—because only Fibonacci branching ratios preserve $\varphi$-resonance through multiple levels (§3), and the residuals of the $3/4$ law in $\ln B$ vs. $\ln M$ should modulate log-periodically with period $\ln\varphi \approx 0.4812$ (§3)—the same wake-wave signature as the cosmic $P(k)$ ($\Delta(\ln k) = \ln\varphi$, `predictions/falsifiable-predictions.md` §3). Observed arterial and bronchial branching is predominantly binary or trifurcating—the de-resonant ratios, not just the common ones. Metabolism is a cascade, so it carries the cascade's fingerprint; Fibonacci branching is the requirement, and the exponent's exact value is the open question.
+Metabolic rate obeys Kleiber's law across 21 orders of magnitude, $B = B_0 M^{3/4}$ (`hypotheses/metabolic-scaling.md` §1). The framework's own derivation of the $3/4$ exponent does not close (§2, §4); what it does supply is the constraint on the network: resource networks branch at Fibonacci counts—2, 3, 5, 8—because only Fibonacci branching ratios preserve $\varphi$-resonance through multiple levels (§3), and the residuals of the $3/4$ law in $\ln B$ vs. $\ln M$ should modulate log-periodically with period $\ln\varphi \approx 0.4812$ (§3)—the same wake-wave signature as the cosmic $P(k)$ ($\Delta(\ln k) = \ln\varphi$, `predictions/falsifiable-predictions.md` §3). Observed arterial and bronchial branching is predominantly binary or trifurcating—Fibonacci counts, which the source notes are also the most common ratios expected from any space-filling optimization, so the observation alone does not discriminate (`hypotheses/metabolic-scaling.md` §3). Metabolism is a cascade, so it carries the cascade's fingerprint; Fibonacci branching is the requirement, and the exponent's exact value is the open question.
 
 ### 2.3 Neural criticality: the only operating point
 
@@ -107,7 +107,7 @@ The chain performs the three universal field operations—WRITE (Yang injection)
 
 ### 3.3 What varies, and what cannot
 
-**What varies.** Band placement within the floors and ceiling. Node count scales with span: $N = \Delta n/2$ for any even span, so a smaller organism has fewer nodes and a chain spanning more than 26 rungs has more. Physical spacing along the string axis grows by $\varphi^2$ between successive nodes (`consciousness/chakras-as-cascade-bubbles.md` §8), so spacing always tightens toward the lower-rung end of the body. The 7/6 split between primary and secondary nodes may vary in prominence.
+**What varies.** Band placement within the floors and ceiling. Node count scales with span by the same division rule: $N = \Delta n/2$ for an even span with the same upper-boundary offset—the anchor derivation is for the human 26-rung window, and generalization to other windows is an open question (`consciousness/chakras-as-cascade-bubbles.md` §12, Q4). So a smaller organism has fewer nodes, and a chain spanning more than 26 rungs has more. Physical spacing along the string axis grows by $\varphi^2$ between successive nodes (`consciousness/chakras-as-cascade-bubbles.md` §8), so spacing always tightens toward the lower-rung end of the body. The 7/6 split between primary and secondary nodes may vary in prominence.
 
 **What cannot vary.** The 2-rung period, because a full doublet cycle is the minimal coherent unit. Fibonacci-admissible counts, because the count is the Fibonacci structure of the span, not a free parameter. The bubble geometry of every node—$\varphi$-ellipticity, 1.70 anisotropy, the $q$ profile, the along-string ordering from low $n$ to high $n$. Any organism spanning more than ~10 rungs must instantiate a chain, and the chain's local geometry is the condensation field's, everywhere in the universe (`foundations/bubble-lattice-fabric.md` §2). Alien "chakras" are convergent biology: whatever a civilization calls them, the structure is forced by coherence economics. What the ladder cannot force is which tissues anchor the nodes—nerve plexuses and endocrine glands on Earth, something else elsewhere.
 
@@ -175,7 +175,7 @@ If biology is rung-structure, the search for life changes target: a $\varphi$-li
 
 1. **Orbital architecture.** The period-ratio histogram of multi-planet systems should show an excess at $\varphi^{3/2} \approx 2.06$ and at Fibonacci-convergent resonances (2:1, 3:2, 5:3, 8:5), with non-Fibonacci resonances (4:3, 5:2) underrepresented (`hypotheses/exoplanet-phi-spacing.md` §3). This is a statistical test on existing catalogs, and it is the orbital precondition of §4 made observable.
 2. **The optical octave.** Any biosphere's photochemistry sits at rung 136, so its absorption edge—Earth's "red edge" analog—is a ladder feature, fixed by the cascade rather than by the star; the octave's one-$\varphi$-step width with seven Fibonacci sub-rungs (`consciousness/chakras-as-cascade-bubbles.md` §9.3) structures the spectral discrimination available to its eyes.
-3. **Temporal $\varphi$-ratios.** Long-timescale biosphere activity—global vegetation indices, atmospheric CO$_2$/CH$_4$ cycles—should show period ratios of $\varphi$-powers, with the circadian/ultradian ratio $\varphi^6 \approx 17.94$ invariant across worlds (`hypotheses/neural-criticality.md` §4). This is prediction #35 of `predictions/falsifiable-predictions.md`—the physiological $\ln\varphi$ spectral signature promoted from bedside to planet.
+3. **Temporal $\varphi$-ratios.** Long-timescale biosphere activity—global vegetation indices, atmospheric CO$_2$/CH$_4$ cycles—should show period ratios of $\varphi$-powers, with the circadian/ultradian ratio $\varphi^6 \approx 17.94$ (observed 16 on Earth, 0.89×) constrained by cascade geometry and expected on any world—an extrapolation, not a framework claim (`hypotheses/neural-criticality.md` §4). This is prediction #35 of `predictions/falsifiable-predictions.md`—the physiological $\ln\varphi$ spectral signature promoted from bedside to planet.
 4. **Phyllotaxis at scale.** The telescope cannot resolve alien leaves, and it does not need to: phyllotaxis is the growth-tip attractor at every rung from canopy to cell, and the ladder makes unseen rungs predictable. Detect the orbital lattice (signature 1) and the optical octave (signature 2), and the intermediate rungs are fixed—any two coincident rungs predict the rest.
 
 $$\boxed{\text{Detection} \iff \geq 2 \text{ independent } \varphi\text{-signatures at different biological rungs, consistent phase}}$$
@@ -217,7 +217,7 @@ One signature is a false positive; two independent rungs are corroboration; thre
 - `foundations/dimensionful-cascade.md`—292-step cascade table, rungs 136–168, phyllotaxis figure notes
 - `foundations/bubble-lattice-fabric.md`—condensation field, scale covariance, 10-rung nesting depth, universal signatures
 - `foundations/bubble-edge-geometry.md`—condensation field derivation, $\theta_{\text{cond}}$, checkerboard lattice
-- `foundations/spiral-dynamics.md`—Fibonacci spiral, $\Theta(n) = 2\pi n/\ln\varphi$, one rotation per rung
+- `foundations/spiral-dynamics.md`—Fibonacci spiral, $\Theta(n) = 2\pi n/\ln\varphi$, $2\pi/\ln\varphi$ rad per rung
 - `foundations/three-generations.md`—Fibonacci recurrence, sub-channel partitioning
 - `foundations/proton-coherence-budget.md`—coherence budget, organized vs random perturbation
 - `foundations/quantum-measurement-derivation.md`—phase-matching factor $\mathcal{M}$
