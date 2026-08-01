@@ -353,7 +353,13 @@ fitted central density satisfies $\rho_c(1+\xi) \approx$ the naive DM
 density—the boost replaces most of the dark matter. The single-$\rho_{\text{ref}}$
 failure is therefore a feature of the toy, not the framework: flatness lives
 in the condensate's hydrostatic envelope ($\rho_Y \propto r^{-2}$), not in a
-tuned turn-on.
+tuned turn-on. The core of that envelope is now physical too: the coherence
+budget suppresses the boost inside the baryonic scale $q(r) = r/(r+r_{\text{half}})$
+(SPARC v6, `experiments/sparc_qi/sparc_qi_analysis_v6.py`)—same parsimony as
+NFW, fit parity with v5 (median $\Delta$AIC = 0.0 vs the uniform boost), and
+the free scale self-tunes to $a = 1.025$ (baryonic half-mass radius). The
+core-radius tension softens from $3.6\sigma$ (vs constant density) to
+$1.9\sigma$ (model $\gamma = 0.34 \pm 0.04$ vs empirical $0.41 \pm 0.02$).
 
 ## 11. Path 9: Cassi vs MOND
 
@@ -463,9 +469,12 @@ Path 7 showed that a single $\sigma$ cannot simultaneously satisfy binary pulsar
   hydrostatic two-component condensate ($\rho_Y \propto r^{-2}$ envelope, ξ
   applied to the condensate's own mass) now provides the flat-curve
   mechanism directly—SPARC v5 with fixed $\xi = \varphi^6$ survives at NFW
-  parity (median $\Delta$AIC = −7.0, 90/143; see §10). Remaining candidates
-  for the diversity of cores: the two-fluid $\pi\nabla\Phi$ buoyancy force and
-  a density-dependent $\rho_{\text{ref}} \propto \rho(R)$.
+  parity (median $\Delta$AIC = −7.0, 90/143; see §10). Core diversity now has a
+  mechanism: the coherence budget suppresses the boost inside the baryonic
+  scale (SPARC v6, $q(r) = r/(r+r_{\text{half}})$, free scale $a = 1.025$).
+  Remaining candidates for the residual $\gamma$ gap ($0.34$ vs $0.41$,
+  $1.9\sigma$): the two-fluid $\pi\nabla\Phi$ buoyancy force and a
+  density-dependent $\rho_{\text{ref}} \propto \rho(R)$.
 
 ### 14.3 Self-Consistent Galactic Dynamics
 
