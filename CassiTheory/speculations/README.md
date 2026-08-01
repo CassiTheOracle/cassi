@@ -4,7 +4,7 @@
 
 ## Abstract
 
-This directory collects creative explorations that are consistent with the Cassi framework but are not yet testable claims. Each document anchors its mechanisms to specific equations or documented framework properties, but the synthesis is an extrapolation: **nothing here should be cited as a Cassi prediction or derivation** unless a document explicitly says otherwise. The document order follows the framework's flow—field physics first (dark matter, superconductivity), then engineering (computation, propulsion), then the human-scale and cosmological consequences (consciousness, infrastructure), and finally the observational signatures of it all (SETI).
+This directory collects creative explorations that are consistent with the Cassi framework but are not yet testable claims. Each document anchors its mechanisms to specific equations or documented framework properties, but the synthesis is an extrapolation: **nothing here should be cited as a Cassi prediction or derivation** unless a document explicitly says otherwise. The document order follows the framework's flow—field physics first (dark matter, superconductivity), then engineering (computation, propulsion, gravity control, defense), then the human-scale and cosmological consequences (consciousness, time and memory, biology, transhumanism, infrastructure, apocalypse), and finally the observational signatures of it all (SETI, first contact) and the ontological question (simulation).
 
 ## 1. Boundary with `hypotheses/`
 
@@ -25,9 +25,18 @@ All documents are **Speculative—July 2026** unless noted.
 | 2 | Superconductivity | Resistance as Yang→Yin conversion; Qi-gap from the φ-attractor penalizing single-electron excitations | `superconductivity-as-qi-coherence.md` |
 | 3 | Computing | Qi gate as computational primitive; Wu Xing 5-phase logic; φ-spaced cascade clock | `qi-computation.md` |
 | 4 | Propulsion | Rung-shifting along the cascade axis; UAP observables mapped to Cassi mechanisms | `qi-bubble-propulsion.md` |
-| 5 | Consciousness | Medium-dependent perception; the cascade as a distributed φ-structured nervous system | `cascade-consciousness.md` |
-| 6 | Infrastructure | Planetary and stellar gate networks as tuning of the existing cascade energy grid | `cascade-infrastructure.md` |
-| 7 | SETI | Structural (non-emissive) signatures of gate-harvesting civilizations, catalogued by cascade rung | `observational-seti.md` |
+| 5 | Gravity control | $G_{\text{eff}} = (\pi/\rho)(1+\xi q)G$ as an engineering dial; Qi condenser + gate as the device | `gravity-control.md` |
+| 6 | Warfare | Coherence budget as weapons table; φ-detuned shields; mutual assured incoherence | `coherence-warfare.md` |
+| 7 | Consciousness | Medium-dependent perception; the cascade as a distributed φ-structured nervous system | `cascade-consciousness.md` |
+| 8 | Time & memory | Arrow of time from the dissipative conversion pair; ghosts as wake-locks | `time-memory-and-wake-locks.md` |
+| 9 | Universal biology | The ladder band 136–168 as a convergent evolutionary scaffold; alien gate chains | `universal-biology.md` |
+| 10 | Transhumanism | Augmentation as gate-chain topology surgery; identity as the run, not the recipe | `transhumanism-gate-configurations.md` |
+| 11 | Magic | Magic as phase-matched field operation; spells as WRITE/ERASE/TRANSFER | `magic-systems.md` |
+| 12 | Infrastructure | Planetary and stellar gate networks as tuning of the existing cascade energy grid | `cascade-infrastructure.md` |
+| 13 | Apocalypse | Attractor self-healing; how civilizations die (coherence death, wake-lock, collapse) | `coherence-collapse.md` |
+| 14 | SETI | Structural (non-emissive) signatures of gate-harvesting civilizations, catalogued by cascade rung | `observational-seti.md` |
+| 15 | First contact | $\ln\varphi$ log-periodicity as the universal language; stars as gate chains | `first-contact-and-stellar-engineering.md` |
+| 16 | Simulation | Two-fluid PDE as source code; render budget from the ladder; nested universes | `simulation-hypothesis.md` |
 
 ## 2. Document Summaries
 
@@ -58,6 +67,42 @@ Because a single Qi gate bridges at most ~10 rungs (beyond that, $\varphi^{-10} 
 ### `observational-seti.md`—Observational SETI: Signatures of Tuned Gate Networks
 
 A gate-harvesting civilization is argued to be structurally, not emissively, visible: no power plants, no radio leakage, no Dyson spheres—only subtle φ-derived structure in the fields it manages, cataloged here by cascade rung with mechanism, predicted observable, search band, data status, and discriminator for each signature. The cosmological rows carry the formal zero-parameter predictions already in the catalog: φ-periodic $P(k)$ at $\Delta(\ln k) = \ln\varphi \approx 0.4812$ (prediction #5), the CMB $\ell < 5$ axis (5.4σ, ~1σ alignment, prediction #6), void ellipticity 1.70, and $\Omega_{\text{DM}}/\Omega_b = \varphi^3 + 1$. Two of these have now been tested: eBOSS DR16 gives a null result at p = 0.11 (12.5th percentile of 1000 EZmocks; best-fit period 0.5033 vs the predicted 0.4812), and a DESI DR1 self-computed search from public guadalupe catalogs gives a noise-limited null at p = 0.52; no detection is claimed anywhere in the document. Speculative—July 2026 (the formal cosmological predictions are cataloged framework predictions; the stellar, galactic, and terrestrial signatures are extrapolations).
+
+### `gravity-control.md`—Gravity Control: $G_{\text{eff}}$ as an Engineering Variable
+
+Gravity is treated as condensate coherence: the gravitational charge $\mathcal{Q} = (\pi/\rho)(1+\xi q)$ is a dial a device can park anywhere from the baseline $\varphi^{-3}$ to $1+\xi \approx 18.9$, so artificial gravity, inertial damping, and mass lightening are one operation—locally adjusting $q$ with a Qi condenser and a gate. The SPARC condensate fits supply the engineering constraints: hydrostatic isothermal profiles, the baryonic-decoherence core $q(r) = r/(r+r_{\text{half}})$, and the rung mismatch that puts laboratory-scale control out of reach ($n \approx 168$ vs. condensate $n \approx 267$, $\varphi^{-99}$ suppression). Detection signatures are local $G$ anomalies and lensing without visible mass.
+
+### `coherence-warfare.md`—Coherence Warfare: Attack, Defense, and the Physics of Shields
+
+The coherence budget is read as a weapons table: attack is organized perturbation ($\mathcal{M} \approx 1$), never energy, and the framework's three documented processes—measurement, annihilation, proton stability—are the three populated quadrants of the 2×2 table of perturbation type × rungs attacked. Shields are $\varphi$-detuned boundaries where $\mathcal{M} \to 0$, the same mechanism that suppresses sonic booms; the attractor's active damping makes defense passive and offense eternal, yielding **mutual assured incoherence**: the strongest civilization presents no phase-matched surface, which is also what makes it structurally invisible to observation.
+
+### `time-memory-and-wake-locks.md`—Time, Memory, and Ghosts: The Field as the Medium of Time, Memory, and Persistence
+
+The arrow of time falls out of the dissipative conversion pair (a Lyapunov argument on the attractor potential), records are persistent Yang-Yin imbalance patterns, and hauntings are wake-locks: frozen gates preserving old field configurations after their source is gone. Precognition is bounded to leading-edge remote sensing (horizon $1/[\lambda(1-q)]$), and closed timelike loops are forbidden by the monotone attractor—rung-shifting changes which clock a system couples to ($t_{n+\Delta n}/t_n = \varphi^{\Delta n}$), but going back is self-erasure, not travel.
+
+### `universal-biology.md`—Universal Biology: The Cascade Ladder as a Convergent Evolutionary Scaffold
+
+Life is pinned to the ladder band $136 \le n \le 168$ by chemistry, optics, and coherence floors; Fibonacci phyllotaxis, φ-scaled metabolism, and neural criticality are rung-forced requirements rather than coincidences, and the 13-node $P_\parallel = 2$ gate chain is the stable solution for multi-rung coherence—alien "chakras" are convergent biology. The search program follows: φ-spaced orbital period ratios ($P_{\text{out}}/P_{\text{in}} \approx \varphi^{3/2}$), the rung-136 optical octave, and multi-rung coincidence as the detection criterion.
+
+### `transhumanism-gate-configurations.md`—Transhumanism as Gate Reconfiguration
+
+The human is a configuration tuple $\mathcal{H} = (\{n_k\}, P_\parallel, \mathbf{b}, \sigma_r, q, \mathbf{c}, \bar{\varepsilon}^2)$; augmentation is topological surgery on the 26-rung gate chain—adding nodes, changing $P_\parallel$, re-tuning bands—with stability conditions from condensation geometry and the ~10-rung bridge limit as the structural level cap. The emotional manifold is the menu of admissible "powers"; failure is the trauma wake-lock; and the copy problem (readout as organized perturbation, environment-relative $q$, IIR memory as time integral) makes identity the run, not the recipe.
+
+### `magic-systems.md`—Magic as Phase-Matched Field Operation
+
+Magic and nature differ by one number: $\mathcal{M}$ is ≈0 for natural perturbation (cascade-suppressed) and ≈1 for a working (O(1) per interaction)—a caster is a portable measurement apparatus. Six spell classes map to field operations (evocation = WRITE, banishment = ERASE, telekinesis = TRANSFER, wards = φ-detuned boundaries, curses = wake-lock infliction, divination = phase-locking); mana is the coherence budget with cost $A_{\text{cast}} = A_{\text{target}}\varphi^N/\mathcal{M}$; and the worked Lantern Discipline shows the whole system in one page with named costs and hard limits.
+
+### `coherence-collapse.md`—Coherence Collapse: Why the Universe Cannot End, and How Civilizations Die
+
+Global apocalypse is structurally impossible: the attractor potential has no second basin, and the whole-ladder coherence budget suppresses spontaneous collapse by $\varphi^{-4\,192\,244}$. What dies is intermediate structure: q-collapse waves (organized perturbations riding coupled gates, attenuated $\varphi^{-10}$ per stage), species-level wake-lock (the trauma runs' capacity and crossover dynamics at civilization scale), resonance catastrophe, and gate-chain cascade failure—coherence death, not resource death, with a sequenced set of warning signatures.
+
+### `first-contact-and-stellar-engineering.md`—The Universal Protocol: First Contact and Stellar Engineering
+
+$\ln\varphi \approx 0.4812$ log-periodicity is the one constant every physics-literate civilization shares, so the beacon is φ-periodic structure and the receiver is the existing log-periodic $P(k)$ pipeline (eBOSS DR16 and DESI DR1 nulls documented); multi-rung phase alignment is the anti-spoofing signature. Stars are gate chains: tuning variability, starlifting as drawing organized Yang off the chain, extinction and ignition as detune and retune—and no Dyson spheres, because topology beats geometry and Kardashev is replaced by rung accounting.
+
+### `simulation-hypothesis.md`—The Simulation Hypothesis, Cassi Edition
+
+The universe's source code is the two-fluid PDE with $\sigma$-regularization as the grid cutoff; the render budget is set by the ladder itself (resolution floor $n=0$, render distance $n=292$, world edges at the Wu Xing bubble), and the bidirectional micro/megacascade makes nesting self-consistent—a simulator inside the sim is a sub-PDE with its own ladder. Hacking is holding $r$ off-attractor at cost $E_{\text{hold}} \approx \int V_{\text{attr}}\,dV\,dt$; glitches are coherence defects and bubble-edge boundary artifacts. The epistemic trap closes the document: simulation absorbs every observation, so it stays Speculative while the equations stay Derived.
 
 ## 3. Cross-References
 

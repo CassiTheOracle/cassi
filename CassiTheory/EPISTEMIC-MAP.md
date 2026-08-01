@@ -86,6 +86,15 @@ Tiers below are taken from each document's Status header. Compound headers are q
 | `speculations/cascade-consciousness.md` | Speculative | Medium-dependent perception; cascade nervous system |
 | `speculations/cascade-infrastructure.md` | Speculative | Planetary and stellar gate networks |
 | `speculations/observational-seti.md` | Speculative | Structural (non-emissive) SETI signatures |
+| `speculations/coherence-warfare.md` | Speculative | Coherence budget as weapons table; φ-detuned shields; mutual assured incoherence |
+| `speculations/gravity-control.md` | Speculative | $G_{\text{eff}}$ as an engineering dial; Qi condenser devices |
+| `speculations/time-memory-and-wake-locks.md` | Speculative | Arrow of time from conversion; ghosts as wake-locks |
+| `speculations/universal-biology.md` | Speculative | Cascade ladder as convergent evolutionary scaffold |
+| `speculations/transhumanism-gate-configurations.md` | Speculative | Augmentation as gate-chain topology surgery |
+| `speculations/magic-systems.md` | Speculative | Magic as phase-matched field operation |
+| `speculations/coherence-collapse.md` | Speculative | Attractor self-healing; civilization death modes |
+| `speculations/first-contact-and-stellar-engineering.md` | Speculative | $\ln\varphi$ protocol; stars as gate chains |
+| `speculations/simulation-hypothesis.md` | Speculative | Two-fluid PDE as source code; nested universes |
 | `hypotheses/periodic-table-madelung.md` | Speculative | $n$ and $l$ as cascade coordinates |
 | `hypotheses/atmospheric-climate-cascade.md` | Speculative | $\varphi$-break in the atmospheric energy spectrum |
 | `hypotheses/fatigue-fracture-cascade.md` | Speculative | $\sigma$-regularized crack tip; Paris law |

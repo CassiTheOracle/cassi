@@ -18,7 +18,7 @@ Conventional propulsion pushes against a medium (air, water, exhaust). The Cassi
 
 At every cascade rung $n$, the local field has a characteristic length scale $\ell_n = \ell_{\text{Pl}} \times \varphi^n$, an energy density, and a Yang-Yin ratio $r = E_Y/E_I$. The Qi gate modulates $r$ through the conversion term (from `foundations/cassi-first-principles.md` §2):
 
-$$\partial_t E_Y \supset +\lambda(1-q)(E_Y - \varphi E_I)$$
+$$\partial_t E_Y \supset -\lambda(1-q)(E_Y - \varphi E_I)$$
 
 A craft with an internal Qi gate can adjust its own effective $r$, changing the cascade rung at which it couples to the ambient field. From the outside, this looks like impossible acceleration. From the inside, the craft isn't moving—it's retuning its field embedding.
 

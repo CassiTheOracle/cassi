@@ -98,8 +98,8 @@ Two ingredients produce the spiral:
    forward advance, there is no cascade, no scale hierarchy, no universe.
 
 2. **Rotation.** The conversion term couples $E_Y$ and $E_I$ antisymmetrically:
-   $\partial_t E_Y \supset +\lambda(1-q)(E_Y - \varphi E_I)$ and
-   $\partial_t E_I \supset -\lambda(1-q)(E_Y - \varphi E_I)/\varphi$. This is
+   $\partial_t E_Y \supset -\lambda(1-q)(E_Y - \varphi E_I)$ and
+   $\partial_t E_I \supset +\lambda(1-q)(E_Y - \varphi E_I)/\varphi$. This is
    an SO(2) rotation generator—the two fields continuously convert into one
    another with a phase shift. Without rotation, the fields would simply
    equilibrate and stop; with rotation, they spiral.
