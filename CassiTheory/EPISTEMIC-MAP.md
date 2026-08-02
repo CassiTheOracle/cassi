@@ -104,6 +104,7 @@ Tiers below are taken from each document's Status header. Compound headers are q
 | `hypotheses/fatigue-fracture-cascade.md` | Speculative | $\sigma$-regularized crack tip; Paris law |
 | `hypotheses/market-cascade-cycles.md` | Speculative | Wake-wave in information propagation networks |
 | `hypotheses/metabolic-scaling.md` | Speculative (derivation not closed) | $\varphi$-derived fractal dimension for resource networks |
+| `hypotheses/riemann-hypothesis-de-resonance.md` | Speculative—August 2026 | RH as no-resonance in primes; ζ-zero φ-test null |
 
 ## 4. Reference & Cross-Cutting
 
