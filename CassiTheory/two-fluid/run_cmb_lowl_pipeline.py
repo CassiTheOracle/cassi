@@ -8,7 +8,7 @@ CMB low-ℓ angular power spectrum from the Cassi bubble-boundary geometry:
     --------
     The CMB quadrupole (ℓ=2) and octopole (ℓ=3) are anomalously aligned
     at (l,b) = (260°, +60°) at 5.4σ significance.  The Cassi mechanism:
-    a w-gradient between neighboring Wu Xing bubbles (w=4, w=6) at
+    a w-gradient between neighboring Cassi bubbles (w=4, w=6) at
     super-horizon scales imprints a preferred axis at ℓ < 5.
 
     Our bubble is at cascade step 285 (191 Mpc comoving diameter), embedded

@@ -169,7 +169,7 @@ Equivalently: $E_I/E_Y = 1/r_0 \approx 21.2$. Yin dominates Yang by a factor of 
 ## 7. References
 
 - `foundations/cascade-suppression-formula.md`—per-rung attenuation $\varphi^{-1}$, signal regime
-- `foundations/dimensionful-cascade.md`—cascade table, step 5 (GUT), step 285 (Wu Xing bubble)
+- `foundations/dimensionful-cascade.md`—cascade table, step 5 (GUT), step 285 (Cassi bubble)
 - `foundations/dimensionful-constants-status.md`—prior status of $w = 5$ as Hypothesized
 - `computations/pinch_point_modes.py`—Candidate 2: Fibonacci convergent hierarchy
 - `foundations/spiral-dynamics.md`—Hubble, gravity, and $c$ from spiral geometry

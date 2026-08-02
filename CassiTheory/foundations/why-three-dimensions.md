@@ -190,7 +190,7 @@ extension in the doublet plane (Yang-dominated) against the cascade confinement
 (string). The universe on the string is a lens whose two diameters are unequal,
 with the longer one marked by Yang.
 
-The Wu Xing bubble (step 285, $\sim 191$ Mpc comoving, 98% of the observable
+The Cassi bubble (step 285, $\sim 191$ Mpc comoving, 98% of the observable
 volume) thereby acquires a *shape* for the first time: three axes, and with them
 **two preferred geometric directions**: the short axis (string/tangent) and the
 long in-plane axis (Yang/normal).
@@ -378,7 +378,7 @@ consequences of the spheroid geometry; W4 upgrades from conditional to active.
 - SO(2) doublet structure of the two fluids; perpendicularity of the field
   axes (dual-real formulation)
 - Wake-wave mechanism with $\varphi$-scaled spacing; string-wake feedback loop
-- The Wu Xing bubble at step 285; neighboring $w$-bubbles beyond the horizon
+- The Cassi bubble at step 285; neighboring $w$-bubbles beyond the horizon
 - The imported status of the 3 in $\xi = \varphi^6$ (this is a gap in the
   existing text, not new physics—addressed by this document)
 - **Anti-phase conversion coupling** confirmed by PDE structure (§4.3) and
@@ -410,7 +410,7 @@ consequences of the spheroid geometry; W4 upgrades from conditional to active.
 ## References
 
 - `xi-derivation.md`: the $\xi = \varphi^6$ derivation and its imported 3
-- `dimensionful-cascade.md`: the 292-step cascade; Wu Xing bubble at step 285
+- `dimensionful-cascade.md`: the 292-step cascade; Cassi bubble at step 285
 - `consciousness/consciousness-from-phi.md` §1: pinch point, wake waves, string-wake loop
 - `principles/de-resonance-principle.md`: $\varphi$ as maximal de-resonance
 - `foundations/spin-fibonacci-spiral.md`: Fibonacci spiral geometry, SO(2) winding

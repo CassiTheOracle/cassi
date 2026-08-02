@@ -63,7 +63,7 @@ This equation determines $\theta_{\text{cond}}$ from the single dimensionless pa
 
 **The phase diagram.** Unlike the simplified cubic form (which would arise from a $(1-q)^2$ gate), the relation with the true gate $g(q) = q/(\varphi^2 + q^2)$ is **monotonic**: larger $R$ produces larger $\theta_{\text{cond}}$ (thicker-edge bubbles). There is no catastrophic percolation threshold—bubbles never merge spontaneously. The mapping is smooth from $\theta_{\text{cond}} \to 0$ at $R \to 0$ (infinitesimal bubbles) to $\theta_{\text{cond}} \to 1$ at $R \to 2/(\varphi^2 + 1) \approx 0.552$ (bubbles filling the entire lattice). The calibration $R \approx 0.093$ gives the phenomenologically-inferred $\theta_{\text{cond}} = 0.45$.
 
-**The wavenumbers.** The condensation field wavelengths are set by the bubble scale: $\lambda_Y = \ell_{285} \approx 191$ Mpc (the Wu Xing bubble diameter from `dimensionful-cascade.md`), $\lambda_I = \lambda_Y/\varphi \approx 118$ Mpc. This gives $\alpha = 2\pi/\lambda_Y \approx 1.07 \times 10^{-24}$ m$^{-1}$, $\beta = \varphi\alpha \approx 1.73 \times 10^{-24}$ m$^{-1}$, and $\alpha^2 + \beta^2 = \alpha^2(1+\varphi^2) \approx 4.12 \times 10^{-48}$ m$^{-2}$.
+**The wavenumbers.** The condensation field wavelengths are set by the bubble scale: $\lambda_Y = \ell_{285} \approx 191$ Mpc (the Cassi bubble diameter from `dimensionful-cascade.md`), $\lambda_I = \lambda_Y/\varphi \approx 118$ Mpc. This gives $\alpha = 2\pi/\lambda_Y \approx 1.07 \times 10^{-24}$ m$^{-1}$, $\beta = \varphi\alpha \approx 1.73 \times 10^{-24}$ m$^{-1}$, and $\alpha^2 + \beta^2 = \alpha^2(1+\varphi^2) \approx 4.12 \times 10^{-48}$ m$^{-2}$.
 
 **Status.** The functional form relating $\theta_{\text{cond}}$ to $R$ is **Derived** from the balance of gated conversion and diffusion. The numerical value depends on $D_{\text{eff}}/\omega_0$—the ratio of the condensation field's effective diffusion to the conversion rate, measurable from the PDE. The phenomenologically-calibrated $\theta_{\text{cond}} = 0.45$ corresponds to $R \approx 0.093$. Section 8 specifies the PDE computation to determine $R$ and $\theta_{\text{cond}}$ from first principles.
 
@@ -193,7 +193,7 @@ The gradient anisotropy ratio $\sqrt{4\varphi^2/(1+\varphi^2)} \approx 1.70$ is 
 
 ### 5.3 Absolute Lattice Scales
 
-The condensation field wavelengths are set by the cascade. From `dimensionful-cascade.md`, the Wu Xing bubble at step 285 gives:
+The condensation field wavelengths are set by the cascade. From `dimensionful-cascade.md`, the Cassi bubble at step 285 gives:
 
 $$\lambda_Y = \ell_{285} \approx 191\ \text{Mpc}, \qquad \lambda_I = \frac{\lambda_Y}{\varphi} \approx 118\ \text{Mpc}$$
 
@@ -449,7 +449,7 @@ The condensation field $B(x,y,z)$ and its checkerboard lattice are not specific 
 - `visual-explainers/chord_side_on.py`—3D bubble shape, waisted lobe-pairs, string threading
 - `foundations/why-three-dimensions.md`—three dimensions from the spiral's Frenet-Serret frame, triaxial spheroid, anti-phase selection
 - `foundations/wu-xing-derivation.md` -- $w = 5$ uniqueness (all bubbles identical)
-- `foundations/dimensionful-cascade.md`—Wu Xing bubble at step 285, 191 Mpc
+- `foundations/dimensionful-cascade.md`—Cassi bubble at step 285, 191 Mpc
 - `foundations/spiral-dynamics.md`—$c(r)$ profile, wave speed; $H \propto (1-q)$
 - `foundations/cassi-first-principles.md`—Qi gate $g(q) = q/(\varphi^2+q^2)$, conversion dynamics
 - `consciousness/consciousness-from-phi.md` §3—two-bubble $\varphi$-resonance

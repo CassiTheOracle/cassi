@@ -158,7 +158,7 @@ $$\Theta(r) = \frac{2\pi}{\ln\varphi}\ln\left(\frac{r}{\ell_n}\right)$$
 
 One full rotation per cascade rung. Expansion factor per turn: $\varphi$. The 5-fold symmetry follows from the Wu Xing cycle ($w = 5$, `foundations/wu-xing-derivation.md`), which appears at every octave boundary where the lattice self-organizes into coherent rotational phases.
 
-**Observed at:** the cosmological Wu Xing bubble (step 285, 5 spiral arms in galaxy distribution), the human chakra system ($13 = F_7$ Fibonacci nodes along the spine), the neural hierarchy (8 levels within a $\varphi^5$ span), and potentially at galaxy-cluster scales, molecular scales, and gigacascade scales.
+**Observed at:** the cosmological Cassi bubble (step 285, 5 spiral arms in galaxy distribution), the human chakra system ($13 = F_7$ Fibonacci nodes along the spine), the neural hierarchy (8 levels within a $\varphi^5$ span), and potentially at galaxy-cluster scales, molecular scales, and gigacascade scales.
 
 ---
 
@@ -186,7 +186,7 @@ The ladder metaphor is correct but incomplete—it captures the along-string per
 | 142–168 | $7.7 \times 10^{-6}$ to $1.7$ m | Human body | 26-rung nested lattice; 13 chakra nodes at $P_\parallel = 2$ |
 | ~144 | ~20 µm | Neuron soma | Neural hierarchy anchor; 8 $\varphi$-spaced levels |
 | ~267 | $9.3 \times 10^{20}$ m | Milky Way | Galaxy as a bubble condensate in the cosmic lattice |
-| 285 | $5.9 \times 10^{24}$ m | Wu Xing bubble | One full lattice period; 2D checkerboard observable in void catalogs |
+| 285 | $5.9 \times 10^{24}$ m | Cassi bubble | One full lattice period; 2D checkerboard observable in void catalogs |
 | >292 | $>$$1.7 \times 10^{26}$ m | Megacascade | Chord lattice of $w=5$ bubbles at $\varphi$-spaced intervals; 5-arm spiral at gigacascade octave |
 
 ---

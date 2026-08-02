@@ -99,7 +99,7 @@ The cascade divides into consciousness-relevant zones:
 | n=142 to n=168 | Cellular to human | The 13-chakra gate chain. Complex enough for self-aware consciousness. The first rungs where "someone is home." |
 | n=168 to n=200 | Human to planetary | Social and ecological. Gate stages at population, ecosystem, and planetary scales. A planet with a biosphere is a Qi condensate that has crossed the threshold for planetary-scale awareness. |
 | n=200 to n=267 | Planetary to galactic | Stellar gates. The galaxy as a 60+ rung chain. |
-| n=267 to n=292 | Galactic to cosmic | The Wu Xing bubble as the largest coherent structure in our observable volume. |
+| n=267 to n=292 | Galactic to cosmic | The Cassi bubble as the largest coherent structure in our observable volume. |
 | n > 292 | Megacascade | Beyond the observable horizon. |
 
 ### 4.3 The distributed neural network

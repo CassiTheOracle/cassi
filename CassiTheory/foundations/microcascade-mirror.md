@@ -27,7 +27,7 @@ $$\ell_n = \ell_{\text{Pl}} \times \varphi^n, \qquad n \in [0, 292]$$
 | 95 | 1.0×10⁻¹⁵ m | QCD confinement |
 | 117 | 5.3×10⁻¹¹ m | Atomic (Bohr) |
 | 267 | 9.3×10²⁰ m | Milky Way |
-| 285 | 5.9×10²⁴ m | Wu Xing bubble |
+| 285 | 5.9×10²⁴ m | Cassi bubble |
 | 292 | 1.7×10²⁶ m | Hubble radius |
 
 ### 1.2 The extension above: megacascade
