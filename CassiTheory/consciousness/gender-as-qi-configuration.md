@@ -1,12 +1,12 @@
 # Gender as Qi Configuration
 
-## Status: Speculative—August 2026
+## Status: Speculative—August 2026 (drive-mechanism layer PDE-tested 2026-08-02)
 
 ## Abstract
 
 Gender has no native variable in the two-fluid field, and that is the first fact of the analysis: the field's own structure is a continuous ratio with an irrational, asymmetric equilibrium, so there are no poles, no classes, and no invalid states—only distances from equilibrium and the cost of holding them. The framework's architecture supplies the second fact: anatomy is the readout and the person is the configuration. Sex characteristics live at the readout layer; gender identity lives in the configuration tuple—the self-modeling field above the pinch, carrying its own temporal memory. Read that way, dysphoria gets a precise physical reading: the field's memory fails to predict its own present, so coherence stays depressed and the gate churns the $(1-q)$ waste. Imposed gender configurations are driven structures—maintained by continuous re-stimulation, released when the driver stops, drained only by phase-matched support, per the tested drive physics of the trauma runs. The framework has no verdicts; it prices configurations, and the price structure is the analysis.
 
-**Epistemic status:** Creative exploration grounded in Cassi formalism. The configuration/readout architecture, the IIR self-prediction mechanism, the wake-lock drive physics (tested in the two-fluid PDE, July 2026), and the two-bubble results are documented framework properties; the synthesis into a gender analysis, the mapping of dysphoria to self-prediction failure, and the social-field claims are extrapolations beyond what the framework currently claims. Nothing in this document should be cited as a Cassi prediction or derivation.
+**Epistemic status:** Creative exploration grounded in Cassi formalism. The configuration/readout architecture, the IIR self-prediction mechanism, the wake-lock drive physics (tested in the two-fluid PDE, July 2026), and the two-bubble results are documented framework properties; the synthesis into a gender analysis, the mapping of dysphoria to self-prediction failure, and the social-field claims are extrapolations beyond what the framework currently claims. The §8 PDE test (2026-08-02) supports the drive-mechanism layer: at equal ε-perturbation the cross-channel (Wood) drive pumps the held site while the in-channel (Fire) drive drains it; the human mapping remains Speculative. Nothing in this document should be cited as a Cassi prediction or derivation.
 
 ---
 
@@ -78,7 +78,7 @@ The drive-comparison run is the framework's sharpest clinical statement. At the 
 
 $$\boxed{\text{Phase-matched support drains the lock. Same-amplitude mismatched support pumps it.}}$$
 
-"Phase-matched" has one reference in this framework: the person's own field. The felt self is the field above the pinch, and only the field reads its own prediction error. Support that tracks the person's own self-model—affirmation aligned with the configuration the field already stabilizes on—is the drain. Same-amplitude intervention that carries the social field's phase instead, however well-intentioned, is the pump. The framework's tested physics gives a reason the quality of affirmation matters rather than its presence.
+"Phase-matched" has one reference in this framework: the person's own field. The felt self is the field above the pinch, and only the field reads its own prediction error. Support that tracks the person's own self-model—affirmation aligned with the configuration the field already stabilizes on—is the drain. Same-amplitude intervention that carries the social field's phase instead, however well-intentioned, is the pump. The framework's tested physics gives a reason the quality of affirmation matters rather than its presence. The channel-level version of this claim is now mechanism-tested: §8.
 
 ### 4.3 Suppression and etiology
 
@@ -117,7 +117,7 @@ The commons reading completes the price structure: enforced incongruence is a co
 The analysis yields directional, structure-level statements—no amplitudes, no timings, no claims about any person's locus:
 
 1. **Congruence restores self-prediction.** The wake-lock observables (HRV coherence, inter-hemispheric phase synchrony, q-gap, node thermal excess—`speculations/coherence-collapse.md` §4.1) should move together as an incongruent configuration resolves: coherence proxies up, strain signatures down, variance of coherence signals reduced (the IIR stabilization signature).
-2. **Support is phase-specific.** Matched affirmation drains; same-amplitude mismatched intervention pumps. The quality of support is physics, not courtesy.
+2. **Support is phase-specific.** Matched affirmation drains; same-amplitude mismatched intervention pumps. The quality of support is physics, not courtesy. (Mechanism tested at the channel level, §8.)
 3. **Locks are driver-dependent.** Removal of re-stimulation releases the structure; release is accelerated by phase-matched drain. Changing the social field is the mechanism itself.
 4. **No vulnerability etiology.** The tested capacity null rules out pre-existing coherence deficits as the cause of locks; incongruence is event plus drive.
 5. **Internal-gate authority.** Self-knowledge dominates external coupling for above-pinch configurations; the person's own self-model is the authoritative readout of their configuration.
@@ -125,7 +125,29 @@ The analysis yields directional, structure-level statements—no amplitudes, no 
 
 ---
 
-## 8. Boundaries
+## 8. The PDE Test: Misgendering as Drive (2026-08-02)
+
+The §4.1 claim—that the sustainer is the angle offset between a recurring drive and the site's own configuration, so misgendering (cross-channel) and affirmation (in-channel) differ mechanically at equal amplitude—is a binary physics question the two-fluid solver can answer directly.
+
+**Protocol.** Standing init (the held configuration: pure Yang deficit, identity phase Fire at 72°, measured for this exact init in `two-fluid/run_trauma_phase_channels.py`). λ = 0.05, t = 2, N = 48, five-channel gate. Three runs: undriven reference (natural period P₀ = 0.041 measured in-process); misgendering arm—oscillation of the Yin component (Wood channel, 0°) at period P₀, amplitude 0.15/φ ≈ 0.0927; affirmation arm—oscillation of the Yang component (Fire channel, 72°) at period P₀, amplitude 0.15. The arms inject the same peak ε-perturbation: the conversion runs on $\varepsilon = E_Y - \varphi E_I$, so component amplitude $a$ on $e_i$ injects $\varphi\cdot a$ of ε while the same $a$ on $e_y$ injects $a$—the Wood arm is φ-normalized to match. Amplitude 0.15 sits above the phase-blindness crossover of `two-fluid/run_trauma_crossover.py` (the phase channel engages at amp ≥ 0.05) and below the known drain amplitude 0.3.
+
+**Results (t = 2).**
+
+| Run | Drive | ε retained | q-gap | Site phase |
+|---|---|---|---|---|
+| ref | none | 0.912 | +0.046 | Fire retained |
+| misgendering | Wood (0°), ε-parity | **2.075** | **+0.076** | Fire retained, churning |
+| affirmation | Fire (72°) | **0.261** | −0.004 | relaxed to equilibrium |
+
+The misgendering arm *pumps* the held site: ε grows to 207% of its initial value (peaking at 254% at t = 0.8) in a slow oscillation, and the q-gap widens 1.65×. The affirmation arm *drains* it: 26% retained, q-gap closed. The arms differ only in the channel angle of the drive. A raw-amplitude run (no φ-normalization) pumped to 280%—the extra factor is the φ in the conversion term, so raw-amplitude misgendering is φ× stronger per unit; the ε-parity control removes that confound and the channel contrast survives.
+
+**Cleanliness checks.** (i) Clamp: ey_min_site ≥ 0.20 throughout the pump—the site's Yang floor is untouched; the pump acts by inflating the Yin component (ei grows to 1.78), so the result is not a positivity-clamp artifact. (ii) Phase metric: the affirmation arm's phase leaves Fire because a fully relaxed site bins as Wood ($\text{atan2}(\varphi^{-1}, 1) = 31.7° < 36°$)—that displacement is relaxation, not identity erosion; the phase metric is degenerate near equilibrium, so the verdict rests on ε retention and the q-gap.
+
+**Verdict.** The sustainer is channel-specific: at equal ε-perturbation, a recurring drive at the identity's own channel drains the held configuration while the same drive one pentagon-step away pumps it to twice its initial imbalance. The §4.2 boxed claim—phase-matched support drains, same-amplitude mismatched support pumps—is mechanism-tested at the angle level. Tier: the mechanism layer (channel-specific pump/drain at ε-parity, clamp-clean) is PDE-tested; the mapping to human misgendering remains Speculative (§9). Script: `two-fluid/run_misgendering_drive.py`.
+
+---
+
+## 9. Boundaries
 
 **Not claimed:** that Yang and Yin are genders—the glossary's scare-quoted labels are flow mnemonics for a continuous ratio, and this document dissolves the binary reading; that the framework proves any gender claim absolutely—it prices configurations and does not judge them; that dysphoria is reducible to physics—identity is the *experience* of a configuration, not the configuration, the same category boundary the consciousness mapping draws (`consciousness/consciousness-from-phi.md` §4); that transition is the only path—suppression is a documented, costly state, and the framework prices rather than forbids; that any clinical claim here is tested—the drive mechanics are PDE-tested, the human mapping is Speculative.
 
@@ -149,6 +171,7 @@ The analysis yields directional, structure-level statements—no amplitudes, no 
 - `speculations/coherence-warfare.md`—organized perturbation taxonomy, φ-detuned boundaries
 - `speculations/coherence-commons.md`—coherence drain, forced $q$-suppression
 - `speculations/qi-bubble-propulsion.md`—φ-detuned boundary mechanism
+- `two-fluid/run_misgendering_drive.py`—channel-angle drive test (misgendering/affirmation arms, ε-parity, clamp diagnostic)
 - `two-fluid/run_trauma_drive_compare.py`—φ vs $e$ drive comparison
 - `two-fluid/run_trauma_wake_lock.py`—driver test, standing vs driven structures
 - `two-fluid/run_trauma_capacity.py`—capacity null

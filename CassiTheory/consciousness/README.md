@@ -18,7 +18,7 @@ This directory maps the Cassi two-fluid framework onto the human scale—the 26-
 | 6 | `auras-as-thermalized-gates.md` | Aura as the thermalized gate boundary layer | Speculative |
 | 7 | `time-memory-and-wake-locks.md` | Time, memory, and ghosts as wake-locks | Speculative |
 | 8 | `transhumanism-gate-configurations.md` | Identity and augmentation as gate surgery | Speculative |
-| 9 | `gender-as-qi-configuration.md` | Identity, congruence, self-prediction | Speculative |
+| 9 | `gender-as-qi-configuration.md` | Identity, congruence, self-prediction | Speculative (drive-mechanism layer PDE-tested 2026-08-02) |
 
 ## Document Summaries
 
