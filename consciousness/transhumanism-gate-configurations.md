@@ -243,6 +243,6 @@ Identity is the trajectory of a configuration under the attractor—the $\varphi
 - `speculations/qi-computation.md`—WRITE/ERASE/TRANSFER, persistent $\Pi$ patterns, φ-spaced clocks, the brain as Qi computer
 - `speculations/cascade-infrastructure.md`—gate chain topology, 10-rung bridge limit, human chain as 26-rung stage
 - `speculations/coherence-warfare.md`—attack and shield taxonomy (organized vs random perturbation, phase-matching, φ-detuned boundaries)
-- `speculations/cascade-consciousness.md`—field perception and the cascade nervous system
+- `consciousness/cascade-consciousness.md`—field perception and the cascade nervous system
 - `hypotheses/muscle-cascade-lattice.md`—the body as a living cascade ladder
 - `two-fluid/run_trauma_wake_lock.py`—PDE test script for standing waves, drivers, and φ-phased relaxation

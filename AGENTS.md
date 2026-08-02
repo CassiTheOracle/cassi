@@ -38,7 +38,7 @@ Domain papers open with "at cascade step N", then apply the universal tool. When
 | `particles/` | Yang-Yin particle interference, DFT benchmarks |
 | `cosmology/` | Dark energy, inflation, observational constraints (DESI DR2) |
 | `gravity/` | Quantum gravity, three-body analytical solutions |
-| `consciousness/` | Consciousness as Qi-gate dynamics (single bridge doc; psychology content lives in parent repo) |
+| `consciousness/` | Consciousness as Qi-gate dynamics: core mapping, chakra anatomy, emotions, trauma, plus the identity and perception cluster (dense-medium consciousness, auras, time & memory, transhumanism, gender; moved here from `speculations/` August 2026) |
 | `turbulence/` | Kolmogorov spectrum from φ |
 | `predictions/` | Falsifiable-predictions catalog + `cassi_definitions.md` glossary |
 | `two-fluid/` | Two-fluid PDE solver (`cassi_two_fluid_3d_gpu.py`) + gate/ODE test scripts, calibration |

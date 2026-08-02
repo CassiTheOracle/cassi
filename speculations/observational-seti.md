@@ -17,7 +17,7 @@ Conventional SETI searches for emissive signals: radio leakage, laser pulses, in
 A cascade-harvesting civilization (from `speculations/cascade-infrastructure.md`) operates its gate network at $q \to 1$:
 
 - **No power plants.** Energy is harvested from the bubble lattice through Qi gates—there is no combustion, no fission, no fusion infrastructure radiating waste heat.
-- **No radio leakage.** Communication is field-mediated (from `speculations/cascade-consciousness.md` §2), not electromagnetic. The Qi field propagates through water and structure with low attenuation; radio is a legacy technology.
+- **No radio leakage.** Communication is field-mediated (from `consciousness/cascade-consciousness.md` §2), not electromagnetic. The Qi field propagates through water and structure with low attenuation; radio is a legacy technology.
 - **No Dyson spheres.** You don't capture a star's output. You tune the star's gate chain to convert its output coherently—the star dims in conventional bands and brightens in *structured* ways that look like natural physics unless examined closely.
 - **Efficient gate conversion.** The unconverted fraction $(1-q)$ thermalizes, but at $q \approx 0.99$, the waste fraction is ~1%. A Kardashev-II civilization that is 99% efficient is a Kardashev-I *appearance* to an infrared survey.
 
@@ -274,7 +274,7 @@ Step 3 is where Cassi stops being an interesting coincidence and becomes a scien
 - `cosmology/observational_constraints.md`—existing constraints, Keplerian decline
 - `speculations/cascade-infrastructure.md`—tuned stars, solar gate, planetary gate, pyramids
 - `speculations/dark-matter-as-qi-coherence.md`—tuning hypothesis, $\eta_{\text{visible}}$ outliers (P5), SPARC analysis
-- `speculations/cascade-consciousness.md`—field-mediated communication, no radio leakage
+- `consciousness/cascade-consciousness.md`—field-mediated communication, no radio leakage
 - `speculations/qi-bubble-propulsion.md`—gate efficiency, $(1-q)$ thermalization
 - `skill://cassi-pk-logperiodic-search`—the P(k) search pipeline
 - `experiments/phi_periodic_pk_search/run_phi_periodic_pk_test.py`—verified implementation of the pipeline; run with no args for the injection/null/sensitivity suite, or with a two-column P(k) file to search real data

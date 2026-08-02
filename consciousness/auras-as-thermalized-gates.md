@@ -37,7 +37,7 @@ A gate spill is not one thing. Throughput that survives conversion retains the g
 
 $$\boxed{\mathcal{D}_{168 \to 136} = \varphi^{-32} \approx 2\times10^{-7}}$$
 
-And the bridge limit is tighter than the suppression: a single Qi gate couples across at most ~10 rungs before $\varphi^{-10} \approx 0.008$ drops the signal below the coherence floor (`speculations/cascade-infrastructure.md` §1.1, `foundations/bubble-lattice-fabric.md` §3.3). A coherent leak from body rung to optical rung spans 32 rungs—more than three times the bridge limit—so the coherent core cannot couple to the optical band through any single gate. The core is real but optically unreachable; at most it hugs the gate nodes as a faint, structured residue that only a field-perception channel could read directly (`speculations/cascade-consciousness.md`).
+And the bridge limit is tighter than the suppression: a single Qi gate couples across at most ~10 rungs before $\varphi^{-10} \approx 0.008$ drops the signal below the coherence floor (`speculations/cascade-infrastructure.md` §1.1, `foundations/bubble-lattice-fabric.md` §3.3). A coherent leak from body rung to optical rung spans 32 rungs—more than three times the bridge limit—so the coherent core cannot couple to the optical band through any single gate. The core is real but optically unreachable; at most it hugs the gate nodes as a faint, structured residue that only a field-perception channel could read directly (`consciousness/cascade-consciousness.md`).
 
 **The thermal halo.** The waste fraction needs no rung crossing, because the framework describes it as a decay channel, not a coupling: the $(1-q)$ throughput thermalizes *as photons and heat at the local scale*—it is deposited, not transmitted. Broadband and structureless by construction (thermalization is the destruction of the organized fraction), the halo is the field's entropy dump at the body's own rung. This is the part an eye can actually see.
 
@@ -114,6 +114,6 @@ The framework already names the observable. The wake-lock experiments track ther
 - `speculations/magic-systems.md`—caster glow, exhaustion as thermalization
 - `speculations/gravity-control.md`—$(1-q)$ waste as the efficiency tax
 - `speculations/coherence-collapse.md`—q-gap widening, thermal excess at nodes
-- `speculations/cascade-consciousness.md`—field-perception channel, companion document
+- `consciousness/cascade-consciousness.md`—field-perception channel, companion document
 - `speculations/observational-seti.md`—coronal heating ratio prediction
 - `speculations/universal-biology.md`—rung-136 optical octave

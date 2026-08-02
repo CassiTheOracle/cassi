@@ -66,7 +66,7 @@ Exchange value is the market's operation on configurations: the reduction of eve
 
 Money is the universal equivalent: the pure scalar $q$, the exchange-value axis made into a thing. The fetishism of commodities—relations between people appearing as relations between things—has a precise statement in the framework: coherence is a *process* (a bath, a maintenance, a run), and the market represents it as a *stock* (a hoard, a quantity). The error is structural: exchange value treats the product of labor as an amount of $q$ detached from the process that made it, and the process that made it was people.
 
-The framework has a standing warning against exactly this error, in another domain: identity is the run, not the recipe (`speculations/transhumanism-gate-configurations.md` §6). A person is a process; a copy of the recipe is not the person. The commodity is the same error applied to labor: the run (the worker's living coherence expenditure) is represented as a stock (the product's price), and the representation obscures the run. The fetish is not a trick played on the mind; it is the projection of a manifold onto an axis, and the axis is what is traded.
+The framework has a standing warning against exactly this error, in another domain: identity is the run, not the recipe (`consciousness/transhumanism-gate-configurations.md` §6). A person is a process; a copy of the recipe is not the person. The commodity is the same error applied to labor: the run (the worker's living coherence expenditure) is represented as a stock (the product's price), and the representation obscures the run. The fetish is not a trick played on the mind; it is the projection of a manifold onto an axis, and the axis is what is traded.
 
 ---
 
@@ -300,6 +300,6 @@ The society that follows is a corollary, not the claim. The claim is the inequal
 - `speculations/coherence-warfare.md`—organized perturbation, the attrition siege, the weakest-link structure of attack
 - `speculations/qi-bubble-propulsion.md`—the $(1-q)$ waste law
 - `speculations/cascade-infrastructure.md`—gates as taps; the field energy grid
-- `speculations/transhumanism-gate-configurations.md`—identity as the run, not the recipe
+- `consciousness/transhumanism-gate-configurations.md`—identity as the run, not the recipe
 - `consciousness/emotions-as-gate-configurations.md`—the emotional manifold and configuration formalism
 - `open-questions-cassi-answers.md`—Q7 (measurement), Q9 (proton lifetime)
