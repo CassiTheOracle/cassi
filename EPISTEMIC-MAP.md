@@ -1,6 +1,6 @@
 # Epistemic Map—Every Document by Tier
 
-## Status: Reference—July 2026
+## Status: Reference—August 2026
 
 ## Abstract
 
@@ -79,6 +79,7 @@ Tiers below are taken from each document's Status header. Compound headers are q
 
 | Document | Status | Summary |
 |----------|--------|---------|
+| `analyses/gwtc4-mass-ladder.md` | Speculative—August 2026 | GWTC-4.0 peaks mapped to rungs; integer-rung test; ringdown null |
 | `consciousness/cascade-consciousness.md` | Speculative | Medium-dependent perception; cascade nervous system |
 | `consciousness/auras-as-thermalized-gates.md` | Speculative | Aura as the $(1-q)$ thermalization boundary layer; heat-haze optics |
 | `consciousness/time-memory-and-wake-locks.md` | Speculative | Arrow of time from conversion; ghosts as wake-locks |
@@ -120,6 +121,7 @@ Documents that are not claims: registries, catalogs, explainers, and plans.
 | `audit.md` | Self-critical prediction-vs-experiment audit |
 | `cassi-physics.md` | Physics guide: lattice, cascade, predictions |
 | `cassi-psychology.md` | Psychology-focused guide (consciousness, emotion, trauma, therapy) |
+| `analyses/README.md` | Analysis index (data analyses against the framework) |
 | `hypotheses/README.md` | Hypothesis catalog + quality bar |
 | `speculations/README.md` | Speculation index + boundary with `hypotheses/` |
 

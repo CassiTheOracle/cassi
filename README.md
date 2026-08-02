@@ -63,6 +63,7 @@ Cassi meets these arguments with explicit discipline rather than dismissal. Ever
 | `principles/` | Cross-cutting principles: de-resonance, v0 hierarchy |
 | `hypotheses/` | New application domains (exploratory catalog) |
 | `speculations/` | Speculative extensions |
+| `analyses/` | Data analyses of observations against the framework (GWTC-4.0 mass ladder) |
 | `EPISTEMIC-MAP.md` | Every document indexed by epistemic tier |
 | `predictions/` | Falsifiable prediction catalog + `cassi_definitions.md` glossary |
 | `experiments/` | Physics experiment scripts (φ-attractor paths, SPARC rotation-curve analysis) |
