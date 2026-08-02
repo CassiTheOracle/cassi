@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-C1: The Ke-Alternating Profile — Single-Lock Gate Test
+C1: The Ke-Alternating Profile—Single-Lock Gate Test
 ======================================================
 
 C1 of `foundations/wu-xing-cycle-structure.md` §4: a locked channel drives
@@ -12,24 +12,24 @@ Predicted one-cycle fractions (doc §2.1, channel order Wood..Water):
     ke order (1,3,5,2,4): strictly alternating +, -, +, -, +.
 
 This script tests the claim at the gate level with the PDE's own ke round
-(`gate_model='five_ke'` in `two-fluid/cassi_two_fluid_3d_gpu.py` — one
+(`gate_model='five_ke'` in `two-fluid/cassi_two_fluid_3d_gpu.py`—one
 SIMULTANEOUS round per evaluation: each excess channel restrains its ke
 target i+2 by min(kappa*excess, target's openness) and deposits the actual
 restraint at i+4; kappa = phi^-1 = K_fw). Objects measured:
 
-  V1  one-round response        — what the PDE implements per step; must
+  V1  one-round response       —what the PDE implements per step; must
                                   match the capped algebra exactly
-  V2  one-lap response (3 free  — the ring's one-lap propagation; compared
+  V2  one-lap response (3 free —the ring's one-lap propagation; compared
       rounds)                     against the doc's sequential fractions
                                   (magnitudes capped at target openness)
-  V3  threshold D_c = phi^-4    — full starvation of the ke target engages
+  V3  threshold D_c = phi^-4   —full starvation of the ke target engages
                                   only for strong locks
-  V4  free fixed point          — no driver: the ring damps and rearranges;
+  V4  free fixed point         —no driver: the ring damps and rearranges;
                                   alternation does NOT persist (gate-level
                                   restatement of "nothing self-sustains")
-  V5  uniform-starvation null   — the four non-locked channels are NOT
+  V5  uniform-starvation null  —the four non-locked channels are NOT
                                   starved equally (two are elevated)
-  V6  real-state probe          — the measured Wood/Fire event site states
+  V6  real-state probe         —the measured Wood/Fire event site states
                                   from the phase-channel runs, one ke round
 
 Usage: python two-fluid/run_trauma_c1_ring.py
@@ -49,13 +49,13 @@ CHANNELS = ["Wood", "Fire", "Earth", "Metal", "Water"]
 KE_ORDER = [0, 2, 4, 1, 3]           # channel order 1, 3, 5, 2, 4
 BASELINE = np.array([PHI ** -k for k in (3, 4, 5, 6, 7)])   # b_i = phi^-(3+i)
 
-D_STRONG = PHI ** -3                 # 0.236 — the closure-scale excess
-D_THRESH = PHI ** -4                 # 0.146 — Delta_c = phi * b_3
-D_MILD = PHI ** -5                   # 0.056 — everyday, sub-threshold
+D_STRONG = PHI ** -3                 # 0.236—the closure-scale excess
+D_THRESH = PHI ** -4                 # 0.146—Delta_c = phi * b_3
+D_MILD = PHI ** -5                   # 0.056—everyday, sub-threshold
 
 
 def ke_round(ch):
-    """One simultaneous ke round — the solver's five_ke algebra (numpy)."""
+    """One simultaneous ke round—the solver's five_ke algebra (numpy)."""
     excess = np.maximum(ch - BASELINE, 0.0)
     d = np.minimum(PHI_INV * excess, np.roll(ch, -2))   # i restrains i+2
     out = ch - np.roll(d, +2) + np.roll(d, +4)          # target loses, i+4 gains
@@ -65,11 +65,11 @@ def ke_round(ch):
 def doc_pattern(j, D):
     """The doc's one-cycle fractions, channel order 1..5 (uncapped)."""
     dev = np.zeros(5)
-    dev[j] = (1 - PHI_INV ** 3) * D        # +0.764 — lock retains 1 - kappa^3
+    dev[j] = (1 - PHI_INV ** 3) * D        # +0.764—lock retains 1 - kappa^3
     dev[(j + 1) % 5] = -PHI_INV ** 2 * D   # -0.382
-    dev[(j + 2) % 5] = -PHI_INV * D        # -0.618 — ke target
+    dev[(j + 2) % 5] = -PHI_INV * D        # -0.618—ke target
     dev[(j + 3) % 5] = +PHI_INV ** 2 * D   # +0.382
-    dev[(j + 4) % 5] = +PHI_INV * D        # +0.618 — ke-released partner
+    dev[(j + 4) % 5] = +PHI_INV * D        # +0.618—ke-released partner
     return dev
 
 
@@ -128,7 +128,7 @@ def main():
     verdicts = {}
 
     print("=" * 72)
-    print("C1: KE-ALTERNATING PROFILE — SINGLE-LOCK GATE TEST")
+    print("C1: KE-ALTERNATING PROFILE—SINGLE-LOCK GATE TEST")
     print(f"baseline b_i = phi^-(3+i): {np.round(BASELINE, 4)}")
     print("=" * 72)
 
@@ -165,7 +165,7 @@ def main():
         rec["lap_starved"] = [CHANNELS[i] for i in range(5)
                               if BASELINE[i] + dev_lap[i] < 1e-4]
 
-        # V3: threshold — target starvation at the three scales
+        # V3: threshold—target starvation at the three scales
         target = (j + 2) % 5
         th = {}
         for dlab, D in (("strong", D_STRONG), ("threshold", D_THRESH),
@@ -226,7 +226,7 @@ def main():
     print(f"\n── V5 counterfactual (Wood lock, one lap) ──")
     print(f"  ke ring: {n_elev} non-locked channels ELEVATED "
           f"({[c for c in results['locks']['Wood']['lap_elevated'] if c != 'Wood']})")
-    print(f"  uniform-deficit model: {uni_elev} elevated — cannot produce "
+    print(f"  uniform-deficit model: {uni_elev} elevated—cannot produce "
           f"the pattern → rejected: "
           f"{verdicts['V5_uniform_starvation_rejected']}")
 
@@ -258,7 +258,7 @@ def main():
     verdicts["V7_pde_cross_validation"] = v7_ok
     print(f"\n── V7 cross-validation vs C3 PDE run (five_ke @t=2, amp 1.6) ──")
     print(f"  ke_round(this) vs PDE state max err: {v7_err:.6f} "
-          f"(C3 reported {ke['pred_err']:.6f}) — {'OK' if v7_ok else 'FAIL'}")
+          f"(C3 reported {ke['pred_err']:.6f})—{'OK' if v7_ok else 'FAIL'}")
 
     results["verdicts"] = verdicts
 
@@ -284,7 +284,7 @@ def main():
     print("  V3 target starvation iff kappa*D >= target baseline; the Wood-lock")
     print("     threshold D_c = phi^-4 = phi*b_3 reproduced exactly")
     print("  V4 no driver: the ring jams (excess stuck in Earth, Metal/Water")
-    print("     starved), total conserved — relaxation lives in the conversion")
+    print("     starved), total conserved—relaxation lives in the conversion")
     print("     coupling, not the gate (consistent with the PDE null)")
     print("  V5 uniform-starvation null rejected (ke ring elevates two non-locked")
     print("     channels)")
