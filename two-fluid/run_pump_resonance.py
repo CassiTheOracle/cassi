@@ -164,6 +164,21 @@ def main():
         print(f"PEAK at T = {t_worst:.3f} (not 2*P0): the worst rhythm "
               f"lives at this period; check the curve shape in the figure.")
 
+    # Linear-law check (intact regime): peak eps ~= (phi*I/pi)*T, I = rate
+    intact = [p for p in probes if 0.16 <= p <= 0.60]
+    if len(intact) >= 3:
+        slopes = [peaks[str(p)]['peak_eps'] / p for p in intact]
+        slope = float(np.mean(slopes))
+        e0_local = h_ref[0]['eps_site']
+        rate = WOOD_AMP / T.DT
+        pred = T.PHI * rate / np.pi
+        print("\n=== LINEAR LAW (intact regime) ===")
+        print(f"slope over T in [{intact[0]:.2f}, {intact[-1]:.2f}]: "
+              f"peak_eps/T = {slope:.1f} +/- {np.std(slopes):.1f}")
+        print(f"first-principles prefactor phi*I/pi = {pred:.2f} "
+              f"(I = {rate:.1f}/s); measured in eps_site units: "
+              f"{slope * e0_local:.2f} (ratio {slope * e0_local / pred:.3f})")
+
     # ── Figure ─────────────────────────────────────────────────────────────
     try:
         import matplotlib
