@@ -386,7 +386,7 @@ Open question 2 and the foundation of the channel-to-trauma-type mapping (§4.1)
 
 ### T1: Channel-Specific Emotional Range Deficits
 
-**Claim:** Post-trauma emotional deficits are not global—they are specific to the channels complementary to the locked one, and they are **ke-alternating, not uniform** (`foundations/wu-xing-cycle-structure.md` §2). The ke control cycle transmits at $\kappa = \varphi^{-1}$: a Wood-locked survivor shows Earth fully starved, Fire partially starved (−38% of the lock excess), and Metal and Water *elevated* (+38%, +62%)—the pattern rotating with the locked channel. The ring also damps the locked channel by $\varphi^{-3}$ (23.6%) and is sub-critical (ring gain < 1), so the lock itself cannot self-sustain—consistent with the driver requirement (§10.5). Both survivors retain normal access to *their* locked channel, which is hyper-available.
+**Claim:** Post-trauma emotional deficits are not global—they are specific to the channels complementary to the locked one, and they are **ke-alternating, not uniform** (`foundations/wu-xing-cycle-structure.md` §2). The ke control cycle transmits at $\kappa = \varphi^{-1}$: a Wood-locked survivor shows Earth fully starved, Fire partially starved (−38% of the lock excess), and Metal and Water *elevated* (+38%, +62%)—the pattern rotating with the locked channel. The ring also damps the locked channel by $\varphi^{-3}$ (23.6%) and is sub-critical (ring gain < 1), so the lock itself cannot self-sustain—consistent with the driver requirement (§10.5). Both survivors retain normal access to *their* locked channel, which is hyper-available. **Gate-level status (2026-08-01):** the alternating pattern is verified in the solver's ke round for all five lock channels—strict ke-order alternation read from the locked channel, sign pattern matching the fractions, threshold $\Delta_c = \varphi^{-4}$ exact, uniform-starvation counterfactual rejected (`two-fluid/run_trauma_c1_ring.py`); magnitudes follow the implementation's target-openness caps (`foundations/wu-xing-cycle-structure.md` §2.1 note). The affect-data test below is the remaining clinical leg.
 
 **Test:** Multi-dimensional affect ratings (the P3 instrument of the emotions document) in trauma-exposed populations, compared against the $\varphi^{-i}$ baseline hierarchy (Prediction P2 of the emotions document). The trauma profile should show one channel above the baseline prediction and the four others in the ke-alternating pattern (the locked channel's ke target starved most, the ke-released partner elevated), rather than a uniform shift.
 
@@ -448,6 +448,7 @@ Open question 2 and the foundation of the channel-to-trauma-type mapping (§4.1)
 - Representability bound: the positivity clamp confines the field angle to the first quadrant—only Wood and Fire are representable in the field angle; Earth/Metal/Water events clamp onto Fire/Wood (§10.8, `run_trauma_phase_channels.py`)
 - Phase-channel selectivity: Fire events lock Fire and Wood events lock Wood, persistent through $t=10$—the lock channel tracks the event direction across the representable arc (§10.8)
 - The ke control ring in the gate: `gate_model='five_ke'` reproduces the derived ring algebra exactly (≤ 6×10⁻⁴); excess channels restrain ke targets and release ke partners; decay with no driver unchanged (no self-sustenance); the $\varphi$-drive still dissolves (C3 of `foundations/wu-xing-cycle-structure.md`, `two-fluid/run_trauma_ke_ring.py`)
+- The C1 alternating profile at the gate level: all five lock channels produce strict ke-order alternation with the predicted sign pattern; the threshold $\Delta_c = \varphi^{-4}$ is exact; the no-driver ring jams rather than relaxes (relaxation lives in the conversion coupling); uniform starvation rejected (`two-fluid/run_trauma_c1_ring.py`, 2026-08-01)
 
 ### Hypothesized (derivation supplied, partially tested)
 
@@ -508,4 +509,5 @@ Open question 2 and the foundation of the channel-to-trauma-type mapping (§4.1)
 - `two-fluid/run_trauma_crossover.py` and `run_trauma_crossover_low.py`—the drive-crossover probes (onset bracket + low-amplitude $\varphi$-specificity, 2026-07-31)
 - `two-fluid/run_trauma_phase_channels.py`—the phase-channel selectivity test (representability bound + Wood/Fire binary, 2026-07-31)
 - `two-fluid/run_trauma_ke_ring.py`—the ke-ring gate test (five vs five_ke vs five_ke+φ-drive, 2026-07-31)
+- `two-fluid/run_trauma_c1_ring.py`—the C1 gate test (single-lock ke-alternating response, threshold, no-driver jam, 2026-08-01)
 - `cassi-physics.md`—physics guide, epistemic tiers
