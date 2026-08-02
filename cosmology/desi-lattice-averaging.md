@@ -30,7 +30,7 @@ At the cosmological rungs the cells span exactly the survey's scales (computed f
 | Rung | $\lambda_Y$ (Mpc) | $\lambda_I$ (Mpc) | Structure |
 |---|---|---|---|
 | 284 | 117.9 | 72.9 | Yin wake of rung 285; old "BAO ~120 Mpc" label |
-| **285** | **190.8** | **117.9** | Wu Xing bubble |
+| **285** | **190.8** | **117.9** | Cassi bubble |
 | 286 | 308.8 | 190.8 |—|
 | 287 | 499.6 | 308.8 |—|
 | 288 | 808.4 | 499.6 | Supercluster scale |
@@ -160,7 +160,7 @@ Standard analyses treat the large-scale field as a Gaussian random realization; 
 ## References
 
 - `foundations/bubble-lattice-fabric.md`—condensation field, triaxial periods, nesting, edge anisotropy
-- `foundations/dimensionful-cascade.md`—rung table, wake-wave mechanism, §6 Wu Xing bubble
+- `foundations/dimensionful-cascade.md`—rung table, wake-wave mechanism, §6 Cassi bubble
 - `cosmology/observational_constraints.md`—DESI DR2 comparison (§1, §6) and CMB axis (§4)
 - `predictions/falsifiable-predictions.md`—φ-periodic $P(k)$ row and catalog entries
 - `experiments/desi_pk_phi_search/desi_lrg_n_pk.txt`—DESI LRG_N FKP monopole used in §5

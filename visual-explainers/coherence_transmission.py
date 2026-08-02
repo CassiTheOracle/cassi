@@ -126,7 +126,7 @@ LANDMARKS = {
     80:  ("Electroweak", YANG_MID, -0.5),
     95:  ("QCD", YANG_MID, -0.5),
     117: ("Atomic (Bohr)", YANG_DARK, -0.5),
-    285: ("Wu Xing bubble", YANG_BRIGHT, 0.5),
+    285: ("Cassi bubble", YANG_BRIGHT, 0.5),
     292: ("Hubble", YANG_PEAK, 0.5),
 }
 

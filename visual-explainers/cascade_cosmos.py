@@ -139,7 +139,7 @@ for n in range(AX0, AX1 + 1):
 axA.text(AX1 - 0.5, 0.32, "wake crests at every integer $n$  (period $\\ln\\varphi$ in $\\ln\\ell$)",
          fontsize=7.5, color=TEXT_SUB, ha="right")
 
-# The bubble chain: centers n_k = 286 + 7k; ours (k=0) is the Wu Xing bubble
+# The bubble chain: centers n_k = 286 + 7k; ours (k=0) is the Cassi bubble
 SHEET_FRAC = 0.34                     # antinode at ±λ/2 (anti-phase, W1)
 for k in range(-4, 5):
     cx = N_CENTER + CHAIN_PERIOD * k
@@ -164,7 +164,7 @@ for k in range(-4, 5):
              zorder=5, alpha=0.9 if ours else 0.5 * fade)
     # labels
     if ours:
-        axA.text(cx, BUB_H + 0.42, "OUR UNIVERSE—Wu Xing bubble, $w{=}5$",
+        axA.text(cx, BUB_H + 0.42, "OUR UNIVERSE—Cassi bubble, $w{=}5$",
                  ha="center", fontsize=11, fontweight="bold", color=YANG_PEAK)
         axA.text(cx, BUB_H + 0.14, "step 285 · Ø ≈ 191 Mpc · 98% of the observable volume",
                  ha="center", fontsize=8, color=TEXT_MAIN)
@@ -265,11 +265,11 @@ for n, label, side in landmarks:
     axB.plot([n], [BASE], marker="o", ms=3.5, color=YANG_PEAK, zorder=4)
     axB.text(n, y_text, label, ha="center", va=va, fontsize=8.0,
              color=TEXT_MAIN, linespacing=1.25)
-# BAO + Wu Xing bubble share one callout (rungs 1 apart)
+# BAO + Cassi bubble share one callout (rungs 1 apart)
 for nb in (284, 285):
     axB.plot([nb], [BASE], marker="o", ms=3.5, color=YANG_PEAK, zorder=4)
     axB.vlines(nb, BASE, 0.60, color=TEXT_SUB, lw=0.7, alpha=0.65, zorder=3)
-axB.text(284.5, 0.71, "BAO (284) · Wu Xing bubble (285)\n$\\varphi$-adjacent: 120 Mpc · 191 Mpc",
+axB.text(284.5, 0.71, "BAO (284) · Cassi bubble (285)\n$\\varphi$-adjacent: 120 Mpc · 191 Mpc",
          ha="center", va="bottom", fontsize=8.0, color=YANG_PEAK, linespacing=1.25)
 
 # Membranes and connectors to the other two regimes
@@ -289,7 +289,7 @@ axB.text(146, 0.97,
          ha="center", va="top", fontsize=9.5, color=TEXT_MAIN)
 panel_title(axB, "B · THE CASCADE ($0 \\leq n \\leq 292$)—our universe, rung by rung")
 
-# ── Panel B zoom: inside the Wu Xing bubble (triaxial cross-section) ──────────
+# ── Panel B zoom: inside the Cassi bubble (triaxial cross-section) ──────────
 A_YANG, B_YIN = PHI, 1.0     # axis ratio = freeze-out ratio r → φ (§3.4)
 axBi.set_xlim(-2.05, 2.05)
 axBi.set_ylim(-1.82, 1.62)

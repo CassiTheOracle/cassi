@@ -64,7 +64,7 @@ The frame rate is not uniform: each rung ticks at $t_n = \ell_n/c$ (`speculation
 
 ### 2.3 World edges at $n \approx 285$
 
-The Wu Xing bubble sits at rung 285: a coherence volume of $\sim 191$ Mpc containing roughly a million Milky-Way-sized galaxies—98% of the way up the 292-rung ladder (`foundations/dimensionful-cascade.md` §6). This is the nearest thing the architecture has to a world edge: the boundary of our initial conditions, where our $w=5$ volume ends and the neighbor's begins. The boundary is a level set of the condensation field $C(x,y) = \cos(2\pi x/\lambda_Y)\cos(2\pi y/\lambda_I) = \theta_{\text{cond}}$, with an edge gradient $1.70\times$ steeper in the Yin direction than the Yang direction (`foundations/cassi-theory-reference.md` §10.3). Because $285 < 292$, the edge is inside the render distance: a transition zone, not a wall. From inside, its signature is statistical—a preferred axis and the $12.2^\circ$ quadrupole-octopole alignment in the CMB's largest angular scales ($\ell < 5$), predicted from the bubble's triaxial geometry (`foundations/dimensionful-cascade.md` §8.3, `foundations/bubble-edge-geometry.md`). Beyond it lie adjacent bubbles of identical $w=5$ at $\varphi$-spaced intervals: "the next instance of the same world," in save-file terms.
+The Cassi bubble sits at rung 285: a coherence volume of $\sim 191$ Mpc containing roughly a million Milky-Way-sized galaxies—98% of the way up the 292-rung ladder (`foundations/dimensionful-cascade.md` §6). This is the nearest thing the architecture has to a world edge: the boundary of our initial conditions, where our $w=5$ volume ends and the neighbor's begins. The boundary is a level set of the condensation field $C(x,y) = \cos(2\pi x/\lambda_Y)\cos(2\pi y/\lambda_I) = \theta_{\text{cond}}$, with an edge gradient $1.70\times$ steeper in the Yin direction than the Yang direction (`foundations/cassi-theory-reference.md` §10.3). Because $285 < 292$, the edge is inside the render distance: a transition zone, not a wall. From inside, its signature is statistical—a preferred axis and the $12.2^\circ$ quadrupole-octopole alignment in the CMB's largest angular scales ($\ell < 5$), predicted from the bubble's triaxial geometry (`foundations/dimensionful-cascade.md` §8.3, `foundations/bubble-edge-geometry.md`). Beyond it lie adjacent bubbles of identical $w=5$ at $\varphi$-spaced intervals: "the next instance of the same world," in save-file terms.
 
 ### 2.4 What it looks like from inside
 
@@ -196,7 +196,7 @@ What the framework does provide, and what this document intends to preserve, is 
 - `foundations/cassi-first-principles.md`—two-fluid PDE, Qi gate, IIR memory, Schrödinger limit
 - `foundations/unified-lagrangian.md`—the complete action; zero free parameters
 - `foundations/cassi-theory-reference.md`—$\sigma = \ell_{\text{Pl}}/\varphi^3$, $\xi = \varphi^6$, bubble geometry, pinch transition
-- `foundations/dimensionful-cascade.md`—$\ell_n = \ell_{\text{Pl}}\varphi^n$, 292-rung table, Wu Xing bubble, open questions
+- `foundations/dimensionful-cascade.md`—$\ell_n = \ell_{\text{Pl}}\varphi^n$, 292-rung table, Cassi bubble, open questions
 - `foundations/microcascade-mirror.md`—infinite sub-Planckian ladder, mirror symmetry, $\sigma$-softening
 - `foundations/bubble-lattice-fabric.md`—universal checkerboard, scale covariance, 10-rung nesting depth
 - `foundations/bubble-edge-geometry.md`—condensation field level sets, edge anisotropy, CMB imprint

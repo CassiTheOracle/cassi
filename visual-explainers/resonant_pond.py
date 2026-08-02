@@ -649,7 +649,7 @@ class CosmicWeb(Scene):
             (1.55, "Solar System"),
             (1.90, "Milky Way"),
             (2.30, "BAO"),
-            (2.80, "Wu Xing bubble"),
+            (2.80, "Cassi bubble"),
             (2.98, "Hubble radius"),
         ]
         cascade_rings = VGroup()

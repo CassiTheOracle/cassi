@@ -183,7 +183,7 @@ $$\boxed{\ell_n = \ell_{\text{Pl}} \times \varphi^{\,n}, \qquad n \in [0, 292]}$
 | 220 | $1.5 \times 10^{11}$ m | Earth–Sun distance (1 AU) |
 | 267 | $9.3 \times 10^{20}$ m | Milky Way diameter |
 | 284 | $3.6 \times 10^{24}$ m | BAO scale (118 Mpc) |
-| 285 | $5.9 \times 10^{24}$ m | Wu Xing bubble: our cosmic bubble |
+| 285 | $5.9 \times 10^{24}$ m | Cassi bubble: our cosmic bubble |
 | 292 | $1.7 \times 10^{26}$ m | Hubble radius: observable universe |
 
 The cascade extends in both directions: downward into the **microcascade** ($n < 0$, sub-Planckian), upward into the **megacascade** ($n > 292$, the chord lattice of $w=5$ bubbles beyond the horizon). The full 292-step table is in `foundations/dimensionful-cascade.md`.

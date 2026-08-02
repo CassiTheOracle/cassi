@@ -92,7 +92,7 @@ $\ln\varphi \approx 0.4812$ log-periodicity is the one constant every physics-li
 
 ### `simulation-hypothesis.md`—The Simulation Hypothesis, Cassi Edition
 
-The universe's source code is the two-fluid PDE with $\sigma$-regularization as the grid cutoff; the render budget is set by the ladder itself (resolution floor $n=0$, render distance $n=292$, world edges at the Wu Xing bubble), and the bidirectional micro/megacascade makes nesting self-consistent—a simulator inside the sim is a sub-PDE with its own ladder. Hacking is holding $r$ off-attractor at cost $E_{\text{hold}} \approx \int V_{\text{attr}}\,dV\,dt$; glitches are coherence defects and bubble-edge boundary artifacts. The epistemic trap closes the document: simulation absorbs every observation, so it stays Speculative while the equations stay Derived.
+The universe's source code is the two-fluid PDE with $\sigma$-regularization as the grid cutoff; the render budget is set by the ladder itself (resolution floor $n=0$, render distance $n=292$, world edges at the Cassi bubble), and the bidirectional micro/megacascade makes nesting self-consistent—a simulator inside the sim is a sub-PDE with its own ladder. Hacking is holding $r$ off-attractor at cost $E_{\text{hold}} \approx \int V_{\text{attr}}\,dV\,dt$; glitches are coherence defects and bubble-edge boundary artifacts. The epistemic trap closes the document: simulation absorbs every observation, so it stays Speculative while the equations stay Derived.
 
 ## 3. Cross-References
 

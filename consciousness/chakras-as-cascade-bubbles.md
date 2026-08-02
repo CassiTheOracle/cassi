@@ -40,7 +40,7 @@ In the human body, the string axis has a natural physical correlate: the **spina
 
 4. **Vertical orientation.** In the standing human posture, the spine is approximately vertical, aligned with the cosmological cascade direction. Bipedalism—unique among mammals—aligns the body's string axis with the universe's.
 
-The identification is structural, not metaphorical: the spine IS the string axis in the human body, just as the Wu Xing bubble's along-string direction IS the string axis at the cosmological scale. The same condensation field geometry operates at both scales.
+The identification is structural, not metaphorical: the spine IS the string axis in the human body, just as the Cassi bubble's along-string direction IS the string axis at the cosmological scale. The same condensation field geometry operates at both scales.
 
 ---
 

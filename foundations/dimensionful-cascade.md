@@ -84,7 +84,7 @@ The electroweak cascade depth $N \approx 80$ is robust against variations in the
 | 275 | $4.8 \times 10^{22}$ | Local Group ($\sim 1.6$ Mpc) | Extragalactic |
 | 280 | $5.3 \times 10^{23}$ | Cosmic void scale ($\sim 17$ Mpc) | Extragalactic |
 | **284** | **$3.6 \times 10^{24}$** | **Yin wake of rung 285** ($\lambda_I = \ell_{285}/\varphi$; old “BAO ~120 Mpc” label—the measured ruler sits at the 284.5 half-step, 150 Mpc) | Cosmological |
-| **285** | **$5.9 \times 10^{24}$** | **Wu Xing bubble** ($\sim 191$ Mpc) | Multiverse |
+| **285** | **$5.9 \times 10^{24}$** | **Cassi bubble** ($\sim 191$ Mpc) | Multiverse |
 | 288 | $2.5 \times 10^{25}$ | Supercluster scale ($\sim 800$ Mpc) | Cosmological |
 | 290 | $6.5 \times 10^{25}$ | Horizon at recombination ($\sim 2.1$ Gpc) | Cosmological |
 | **292** | **$1.7 \times 10^{26}$** | **Hubble radius** ($\sim 5.5$ Gpc) | Observable universe |
@@ -114,14 +114,14 @@ The full 292-step cascade divides naturally into three regimes:
 - The electroweak scale emerges at $n \approx 80$ as a dynamical threshold where the Qi gate begins to engage
 
 ### Zone 2: Astrophysics ($n \approx 80$ to $n \approx 285$)
-- Electroweak scale to the Wu Xing bubble
+- Electroweak scale to the Cassi bubble
 - Governed by Qi-enhanced gravity ($\xi = \varphi^6$)
 - Structure formation: galaxies, clusters, superclusters
 - The wave speed $c(r)$ varies from $\sim 0.24$ (at $r_0$) to $\sim 0$ (near $\varphi$), creating a variable-tension "string" that generates wake waves at $\varphi$-scaled intervals
 - The Qi gate engagement at $r = \varphi^{-1}$ ($a \sim 0.051$, $z \sim 19$) sets the bubble scale
 
 ### Zone 3: Cosmology ($n \approx 285$ to $n \approx 292$)
-- Wu Xing bubble to Hubble radius
+- Cassi bubble to Hubble radius
 - Only 7 $\varphi$-steps—the bubble fills 98% of the observable volume
 - Adjacent bubbles in the chord lattice appear at $\varphi$-scaled intervals, mostly beyond the horizon; only one bubble per observable volume
 - CMB large-angle anomalies reflect bubble-boundary geometry at these scales (see `foundations/bubble-edge-geometry.md`)
@@ -182,7 +182,7 @@ The lattice structure varies with the condensation dimension $P_\parallel(n)$, w
 | 0 | Planck length | $\sigma$-regularized crossover; discrete lattice dissolves into harmonic regime |
 | 142–168 | Human body | 26-rung nested lattice; $P_\parallel = 2$ (13 chakra nodes at 2-rung spacing) |
 | 144 | Neuron soma (~20 µm) | Neural hierarchy anchor; 8 φ-spaced lattice levels |
-| 285 | Wu Xing bubble | $P_\parallel = 1$; staggered 2D checkerboard; foreground bubble in chord lattice |
+| 285 | Cassi bubble | $P_\parallel = 1$; staggered 2D checkerboard; foreground bubble in chord lattice |
 | >292 | Megacascade | Chord lattice of $w=5$ bubbles; 5-arm Fibonacci spiral at gigacascade octave |
 
 **Note:** $P_\parallel(n)$ varies with scale—1 rung at cosmological scales, 2 rungs at human scales. The $n$-dependence of $P_\parallel$ is not yet derived from first principles.
