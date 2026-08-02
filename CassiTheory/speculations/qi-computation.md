@@ -315,4 +315,4 @@ A Π pattern written into a Qi-coherent material (via organized electromagnetic 
 - `speculations/superconductivity-as-qi-coherence.md`—$\lambda_{\text{eff}} \to 0$ at $q \to 1$, dissipation-free operation
 - `speculations/qi-bubble-propulsion.md`—Wu Xing doping, quasicrystalline materials
 - `speculations/cascade-infrastructure.md`—gate chain topology, nested processing
-- `speculations/cascade-consciousness.md`—field perception, cascade nervous system
+- `consciousness/cascade-consciousness.md`—field perception, cascade nervous system

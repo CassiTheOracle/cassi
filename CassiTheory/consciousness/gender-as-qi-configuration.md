@@ -34,7 +34,7 @@ The framework separates the body from the person in a way that does most of the 
 
 ### 2.1 The architecture
 
-The transhumanism document states the split as its core claim: "The anatomy is the readout: the brain is the antenna through which the field couples to the world, and the felt self is the field above the pinch $r > \varphi^{-1}$, where it becomes an object to itself.… The person is the chain topology and the state tuple" (`speculations/transhumanism-gate-configurations.md` §1.2). The human configuration is:
+The transhumanism document states the split as its core claim: "The anatomy is the readout: the brain is the antenna through which the field couples to the world, and the felt self is the field above the pinch $r > \varphi^{-1}$, where it becomes an object to itself.… The person is the chain topology and the state tuple" (`consciousness/transhumanism-gate-configurations.md` §1.2). The human configuration is:
 
 $$\boxed{\mathcal{H} = \bigl(\{n_k\}_{k=0}^{12},\; P_\parallel,\; \mathbf{b},\; \sigma_r,\; q,\; \mathbf{c},\; \bar{\varepsilon}^2\bigr)}$$
 
@@ -42,7 +42,7 @@ the chain topology plus the emotional state variables plus the field's IIR memor
 
 ### 2.2 The body schema lives in the configuration
 
-The framework already documents that the body schema does not follow the anatomy. The phantom limb is a wake-locked old configuration: when the wetware changes but the configuration does not, "the old body schema persists as a standing wave: the phantom limb, the field pattern that outlives its anatomy" (`speculations/transhumanism-gate-configurations.md` §5.2). The configuration carries a body the readout no longer has.
+The framework already documents that the body schema does not follow the anatomy. The phantom limb is a wake-locked old configuration: when the wetware changes but the configuration does not, "the old body schema persists as a standing wave: the phantom limb, the field pattern that outlives its anatomy" (`consciousness/transhumanism-gate-configurations.md` §5.2). The configuration carries a body the readout no longer has.
 
 The trans experience is the mirror of this documented mechanism: the configuration's body-schema precedes the readout. The field's self-prediction includes a body the anatomy does not carry—the same configuration-readout mismatch, resolved in the other direction by aligning the layers. The felt wrongness of an unintegrated region is also documented: a body site whose local ratio stays below the pinch never joins the self-modeling loop; it "acts without being felt, a driver without a self.… Integration is the crossing of the pinch at the site; failure to cross is dissociation by geometry" (§5.2). Body-image incongruence reads, in this framework, as the field's own report that a site is not joined to the configuration—a report about integration state, carrying no judgment about the body itself.
 
@@ -56,9 +56,9 @@ Dysphoria is that sentence, lived. When the present keeps arriving out of phase 
 
 $$\boxed{\text{Congruence is the field predicting itself. Dysphoria is the prediction error, felt.}}$$
 
-Two consequences follow. First, persistence: the memory is a time integral (`speculations/transhumanism-gate-configurations.md` §6.2)—the predicted self is the one written in the field's own history, so the mismatch cannot be argued away; it is data. This is the framework's answer to the question of whether identity is chosen: identity is the run, not the recipe (§6.4). The configuration the field stabilizes on is the one its own temporal coherence returns to, which is the closest the framework comes to a physical meaning of "the real me."
+Two consequences follow. First, persistence: the memory is a time integral (`consciousness/transhumanism-gate-configurations.md` §6.2)—the predicted self is the one written in the field's own history, so the mismatch cannot be argued away; it is data. This is the framework's answer to the question of whether identity is chosen: identity is the run, not the recipe (§6.4). The configuration the field stabilizes on is the one its own temporal coherence returns to, which is the closest the framework comes to a physical meaning of "the real me."
 
-Second, the strain is observable in the framework's own signatures: depressed $q$ at the site, the widening q-gap under sustained drive, and the $(1-q)$ thermal churn that the wake-lock observables track ("thermal excess at network nodes," `speculations/coherence-collapse.md` §4.1). The aura analysis reads the same variable: visible aura brightness scales with the gate-open fraction, so incongruence carries the strain signature and congruence runs dim (`speculations/auras-as-thermalized-gates.md` §4).
+Second, the strain is observable in the framework's own signatures: depressed $q$ at the site, the widening q-gap under sustained drive, and the $(1-q)$ thermal churn that the wake-lock observables track ("thermal excess at network nodes," `speculations/coherence-collapse.md` §4.1). The aura analysis reads the same variable: visible aura brightness scales with the gate-open fraction, so incongruence carries the strain signature and congruence runs dim (`consciousness/auras-as-thermalized-gates.md` §4).
 
 ---
 
@@ -106,7 +106,7 @@ The tested physics constrains the clinical layer's claims, and the tier must be 
 
 Gender is not only a property of persons; it is a field configuration of societies, and the framework prices that field too.
 
-Enforcement of the binary is organized perturbation. In the coherence-budget taxonomy, social enforcement is phase-matched attack at the identity rung—$\mathcal{M} \approx 1$ against the target's configuration (`speculations/coherence-warfare.md` §2)—which is why it works mechanically and why resisting it costs coherence. But the same physics caps it. A person whose identity sits off the social resonance presents a φ-detuned boundary: enforcement cannot phase-match what it cannot share phase with, and cannot couple across the boundary (`speculations/qi-bubble-propulsion.md` §2.2). The attractor taxes the enforcement instead: holding a configuration far from $\varphi$ is continuous work paid at the conversion rate (`speculations/transhumanism-gate-configurations.md` §3.3), and the enforcer pays it while the congruent person's field rests at its own attractor. The two-bubble result adds the social fact: above-pinch configurations decohere from external fields, their internal Qi gates dominating inter-bubble coupling (`consciousness/consciousness-from-phi.md` §3.3). The framework derives that a self-aware configuration's self-knowledge is the authoritative measurement of it—external inscription is the weaker term.
+Enforcement of the binary is organized perturbation. In the coherence-budget taxonomy, social enforcement is phase-matched attack at the identity rung—$\mathcal{M} \approx 1$ against the target's configuration (`speculations/coherence-warfare.md` §2)—which is why it works mechanically and why resisting it costs coherence. But the same physics caps it. A person whose identity sits off the social resonance presents a φ-detuned boundary: enforcement cannot phase-match what it cannot share phase with, and cannot couple across the boundary (`speculations/qi-bubble-propulsion.md` §2.2). The attractor taxes the enforcement instead: holding a configuration far from $\varphi$ is continuous work paid at the conversion rate (`consciousness/transhumanism-gate-configurations.md` §3.3), and the enforcer pays it while the congruent person's field rests at its own attractor. The two-bubble result adds the social fact: above-pinch configurations decohere from external fields, their internal Qi gates dominating inter-bubble coupling (`consciousness/consciousness-from-phi.md` §3.3). The framework derives that a self-aware configuration's self-knowledge is the authoritative measurement of it—external inscription is the weaker term.
 
 The commons reading completes the price structure: enforced incongruence is a coherence drain on the enforced, booked as the $(1-q)$ waste fraction, and the enforcing field's marginal yield falls as the enforced field's coherence drops (`speculations/coherence-commons.md` §3). The framework predicts, at the level of its own economics, that social gender enforcement is dynamically unstable: the attractor erodes the enforcement, and the erosion is paid for continuously until it completes. This is the speculative layer of the analysis, built on the documented economics rather than tested in the PDE.
 
@@ -144,8 +144,8 @@ The analysis yields directional, structure-level statements—no amplitudes, no 
 - `consciousness/chakras-as-cascade-bubbles.md`—13-node gate chain, body rungs
 - `consciousness/emotions-as-gate-configurations.md`—emotional manifold, $R$-matrix, suppression
 - `consciousness/trauma-as-frozen-gate.md`—wake-lock formalism, driver test, phase-specific drain, capacity null
-- `speculations/transhumanism-gate-configurations.md`—readout/configuration split, body horror, identity as the run
-- `speculations/auras-as-thermalized-gates.md`—$(1-q)$ strain signature, companion document
+- `consciousness/transhumanism-gate-configurations.md`—readout/configuration split, body horror, identity as the run
+- `consciousness/auras-as-thermalized-gates.md`—$(1-q)$ strain signature, companion document
 - `speculations/coherence-warfare.md`—organized perturbation taxonomy, φ-detuned boundaries
 - `speculations/coherence-commons.md`—coherence drain, forced $q$-suppression
 - `speculations/qi-bubble-propulsion.md`—φ-detuned boundary mechanism

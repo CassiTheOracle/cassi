@@ -84,7 +84,7 @@ Below $n = 0$ lies the microcascade, an infinite ladder of sub-Planckian scales 
 
 ### 3.2 A simulator inside the simulation
 
-A nested simulation is a sub-PDE: a coherent region of the field that maintains its own internal dynamics, its own clock hierarchy, and its own effective grid. The framework already contains a working example. The human body is a 26-rung gate chain spanning steps 142 (cellular) to 168 (body scale), with thirteen chakra nodes at $P_\parallel = 2$ rung spacing (`consciousness/chakras-as-cascade-bubbles.md` §6, `speculations/cascade-infrastructure.md` §1.2). It is a self-modeling subsystem—past the pinch threshold at $r = \varphi^{-1}$, the field models its own evolution (`foundations/cassi-theory-reference.md` §11.1)—running its own small-scale field dynamics inside the large one. Its source code is the same PDE; its grid cell is its own coherence length. The conscious mind is, on this reading, the experience of a nested runtime being executed (`speculations/cascade-consciousness.md` §4.3).
+A nested simulation is a sub-PDE: a coherent region of the field that maintains its own internal dynamics, its own clock hierarchy, and its own effective grid. The framework already contains a working example. The human body is a 26-rung gate chain spanning steps 142 (cellular) to 168 (body scale), with thirteen chakra nodes at $P_\parallel = 2$ rung spacing (`consciousness/chakras-as-cascade-bubbles.md` §6, `speculations/cascade-infrastructure.md` §1.2). It is a self-modeling subsystem—past the pinch threshold at $r = \varphi^{-1}$, the field models its own evolution (`foundations/cassi-theory-reference.md` §11.1)—running its own small-scale field dynamics inside the large one. Its source code is the same PDE; its grid cell is its own coherence length. The conscious mind is, on this reading, the experience of a nested runtime being executed (`consciousness/cascade-consciousness.md` §4.3).
 
 A nested simulation anchored at rung $n$ has its own ladder:
 
@@ -138,7 +138,7 @@ None of these alter the program: they are allowed dynamics of the PDE—the expl
 
 ### 4.4 No backdoor, no administrator
 
-Because the source is the same for everyone—one PDE, zero free parameters—there is no hidden API and no privileged account. Every node with a gate chain runs the same instruction set; if there is an administrator, it is the megacascade scale, whose only "privilege" is spanning more rungs. No one can cheat the engine, because it has no secret branches—"the difference between 'natural' and 'engineered' is whether the gate chain operates at ambient $q$ or at tuned $q \to 1$" (`speculations/cascade-consciousness.md` §4.4).
+Because the source is the same for everyone—one PDE, zero free parameters—there is no hidden API and no privileged account. Every node with a gate chain runs the same instruction set; if there is an administrator, it is the megacascade scale, whose only "privilege" is spanning more rungs. No one can cheat the engine, because it has no secret branches—"the difference between 'natural' and 'engineered' is whether the gate chain operates at ambient $q$ or at tuned $q \to 1$" (`consciousness/cascade-consciousness.md` §4.4).
 
 ---
 
@@ -214,7 +214,7 @@ What the framework does provide, and what this document intends to preserve, is 
 - `speculations/qi-computation.md`—WRITE/ERASE/TRANSFER, cascade clock hierarchy, Wu Xing error detection
 - `speculations/qi-bubble-propulsion.md`—rung retreat, lattice shortcuts, exploit energy costs
 - `speculations/cascade-infrastructure.md`—gate-chain topology, planetary gate networks
-- `speculations/cascade-consciousness.md`—nested processing, consciousness as a node in the cascade
+- `consciousness/cascade-consciousness.md`—nested processing, consciousness as a node in the cascade
 - `speculations/coherence-warfare.md`—organized vs random perturbation, attack and shield taxonomy
 - `speculations/dark-matter-as-qi-coherence.md`—$q \to 1$ condensates, $G_{\text{eff}}$ enhancement
 - `experiments/phi_periodic_pk_search/`—the log-periodic power-spectrum search program

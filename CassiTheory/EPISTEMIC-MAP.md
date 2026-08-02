@@ -79,25 +79,25 @@ Tiers below are taken from each document's Status header. Compound headers are q
 
 | Document | Status | Summary |
 |----------|--------|---------|
+| `consciousness/cascade-consciousness.md` | Speculative | Medium-dependent perception; cascade nervous system |
+| `consciousness/auras-as-thermalized-gates.md` | Speculative | Aura as the $(1-q)$ thermalization boundary layer; heat-haze optics |
+| `consciousness/time-memory-and-wake-locks.md` | Speculative | Arrow of time from conversion; ghosts as wake-locks |
+| `consciousness/transhumanism-gate-configurations.md` | Speculative | Augmentation as gate-chain topology surgery; identity as the run |
+| `consciousness/gender-as-qi-configuration.md` | Speculative | Identity as configuration; anatomy as readout; dysphoria as self-prediction failure |
 | `speculations/dark-matter-as-qi-coherence.md` | Speculative | Halos as unharvested coherence; bubble edge at $n \approx 267$ |
 | `speculations/superconductivity-as-qi-coherence.md` | Speculative | Resistance as Yang→Yin conversion; Qi-gap |
 | `speculations/qi-computation.md` | Speculative | Qi gate as computational primitive; Wu Xing logic |
 | `speculations/qi-bubble-propulsion.md` | Speculative | Rung-shifting as a travel mechanism |
-| `speculations/cascade-consciousness.md` | Speculative | Medium-dependent perception; cascade nervous system |
 | `speculations/cascade-infrastructure.md` | Speculative | Planetary and stellar gate networks |
 | `speculations/observational-seti.md` | Speculative | Structural (non-emissive) SETI signatures |
 | `speculations/coherence-warfare.md` | Speculative | Coherence budget as weapons table; φ-detuned shields; mutual assured incoherence |
 | `speculations/gravity-control.md` | Speculative | $G_{\text{eff}}$ as an engineering dial; Qi condenser devices |
-| `speculations/time-memory-and-wake-locks.md` | Speculative | Arrow of time from conversion; ghosts as wake-locks |
 | `speculations/universal-biology.md` | Speculative | Cascade ladder as convergent evolutionary scaffold |
-| `speculations/transhumanism-gate-configurations.md` | Speculative | Augmentation as gate-chain topology surgery |
 | `speculations/magic-systems.md` | Speculative | Magic as phase-matched field operation |
 | `speculations/coherence-commons.md` | Speculative | Two-fluid theory of value; equality theorem; the transition to the commons |
 | `speculations/coherence-collapse.md` | Speculative | Attractor self-healing; civilization death modes |
 | `speculations/first-contact-and-stellar-engineering.md` | Speculative | $\ln\varphi$ protocol; stars as gate chains |
 | `speculations/simulation-hypothesis.md` | Speculative | Two-fluid PDE as source code; nested universes |
-| `speculations/gender-as-qi-configuration.md` | Speculative | Identity as configuration; anatomy as readout; dysphoria as self-prediction failure |
-| `speculations/auras-as-thermalized-gates.md` | Speculative | Aura as the $(1-q)$ thermalization boundary layer; heat-haze optics |
 | `hypotheses/periodic-table-madelung.md` | Speculative | $n$ and $l$ as cascade coordinates |
 | `hypotheses/atmospheric-climate-cascade.md` | Speculative | $\varphi$-break in the atmospheric energy spectrum |
 | `hypotheses/fatigue-fracture-cascade.md` | Speculative | $\sigma$-regularized crack tip; Paris law |

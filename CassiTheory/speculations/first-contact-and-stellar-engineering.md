@@ -100,7 +100,7 @@ The handshake is asymmetric by design. We can listen on the cosmological channel
 
 ### 3.4 Exchange: the medium is the message
 
-Once locked, exchange is field-mediated coupling (`speculations/cascade-consciousness.md` §2.1): a structured perturbation formed at one gate, phase-locked transfer to the other, with the experiential context of the sender carried in the packet rather than encoded in a symbol table. Language becomes a supplement for precision—specifying which coupling, at what offset, with what correction.
+Once locked, exchange is field-mediated coupling (`consciousness/cascade-consciousness.md` §2.1): a structured perturbation formed at one gate, phase-locked transfer to the other, with the experiential context of the sender carried in the packet rather than encoded in a symbol table. Language becomes a supplement for precision—specifying which coupling, at what offset, with what correction.
 
 Content, when the medium is the field, is carried by deviations from the φ-attractor. The ambient field rests at $r = E_Y/E_I \to \varphi$; a message is a phase-matched excursion—a trajectory $r(t)$ that departs from the attractor, holds a pattern, and relaxes back:
 
@@ -186,7 +186,7 @@ The old ladder survives, re-read as spans of the cascade (`foundations/dimension
 | Threshold of self-aware integration | the human chain | $R = 26$, $n = 142$–168 (`consciousness/chakras-as-cascade-bubbles.md`) |
 | Former Type I | planetary network | $R \approx 20$, $n \approx 185$–204 (crust through magnetosphere) |
 | Former Type II | stellar chain (a civilization's multi-star network; a single star is a ~6-rung gate stage, §4.1) | $R \approx 16$, $n \approx 205$–220 |
-| Former Type III | galactic chain | $R \approx 60$, $n \approx 200$–267 (`speculations/cascade-consciousness.md` §4.2) |
+| Former Type III | galactic chain | $R \approx 60$, $n \approx 200$–267 (`consciousness/cascade-consciousness.md` §4.2) |
 | Post-Kardashev | megacascade | $n > 292$ (`cascade-infrastructure.md` §4) |
 
 Each rung of the old ladder is a coherence span of the new one, and the ladder's top falls away: there is no class beyond commanding a galaxy's output, only the question of how far up the chain a civilization holds coherence.
@@ -240,7 +240,7 @@ The stack is self-consistent in both directions: the beacon is designed to be he
 - `predictions/falsifiable-predictions.md`—φ-periodic $P(k)$ (§3), CMB $\ell < 5$ (§2), $\ln\varphi$ physiological signature (#35)
 - `speculations/observational-seti.md`—structural signatures, tuned stars (§2), multi-rung detection (§7)
 - `speculations/cascade-infrastructure.md`—stellar gate network, solar structure (§3), megacascade (§4)
-- `speculations/cascade-consciousness.md`—field-resonance communication (§2), cascade nervous system (§4)
+- `consciousness/cascade-consciousness.md`—field-resonance communication (§2), cascade nervous system (§4)
 - `speculations/qi-computation.md`—WRITE / ERASE / TRANSFER field operations
 - `speculations/qi-bubble-propulsion.md`—gate efficiency, $(1-q)$ thermalization, φ-detuned boundary, Yang conversion term
 - `speculations/coherence-warfare.md`—companion document: organized vs random perturbation taxonomy, shields
