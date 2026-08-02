@@ -4,7 +4,7 @@
 
 ## Abstract
 
-This directory collects creative explorations that are consistent with the Cassi framework but are not yet testable claims. Each document anchors its mechanisms to specific equations or documented framework properties, but the synthesis is an extrapolation: **nothing here should be cited as a Cassi prediction or derivation** unless a document explicitly says otherwise. The document order follows the framework's flow—field physics first (dark matter, superconductivity), then engineering (computation, propulsion, gravity control, defense), then the human-scale and cosmological consequences (consciousness, perception, time and memory, biology, transhumanism, magic, the commons), then infrastructure and apocalypse, and finally the observational signatures of it all (SETI, first contact) and the ontological question (simulation).
+This directory collects creative explorations that are consistent with the Cassi framework but are not yet testable claims. Each document anchors its mechanisms to specific equations or documented framework properties, but the synthesis is an extrapolation: **nothing here should be cited as a Cassi prediction or derivation** unless a document explicitly says otherwise. The document order follows the framework's flow—field physics first (dark matter, superconductivity), then engineering (computation, propulsion, gravity control, defense), then the human-scale and cosmological consequences (consciousness, perception, time and memory, biology, transhumanism, gender, magic, the commons), then infrastructure and apocalypse, and finally the observational signatures of it all (SETI, first contact) and the ontological question (simulation).
 
 ## 1. Boundary with `hypotheses/`
 
@@ -32,13 +32,14 @@ All documents are **Speculative—July 2026** unless noted.
 | 9 | Time & memory | Arrow of time from the dissipative conversion pair; ghosts as wake-locks | `time-memory-and-wake-locks.md` |
 | 10 | Universal biology | The ladder band 136–168 as a convergent evolutionary scaffold; alien gate chains | `universal-biology.md` |
 | 11 | Transhumanism | Augmentation as gate-chain topology surgery; identity as the run, not the recipe | `transhumanism-gate-configurations.md` |
-| 12 | Magic | Magic as phase-matched field operation; spells as WRITE/ERASE/TRANSFER | `magic-systems.md` |
-| 13 | The Commons | Two-fluid theory of value and accumulation; the equality theorem; the transition | `coherence-commons.md` |
-| 14 | Infrastructure | Planetary and stellar gate networks as tuning of the existing cascade energy grid | `cascade-infrastructure.md` |
-| 15 | Apocalypse | Attractor self-healing; how civilizations die (coherence death, wake-lock, collapse) | `coherence-collapse.md` |
-| 16 | SETI | Structural (non-emissive) signatures of gate-harvesting civilizations, catalogued by cascade rung | `observational-seti.md` |
-| 17 | First contact | $\ln\varphi$ log-periodicity as the universal language; stars as gate chains | `first-contact-and-stellar-engineering.md` |
-| 18 | Simulation | Two-fluid PDE as source code; render budget from the ladder; nested universes | `simulation-hypothesis.md` |
+| 12 | Gender | Identity as configuration; anatomy as readout; dysphoria as self-prediction failure | `gender-as-qi-configuration.md` |
+| 13 | Magic | Magic as phase-matched field operation; spells as WRITE/ERASE/TRANSFER | `magic-systems.md` |
+| 14 | The Commons | Two-fluid theory of value and accumulation; the equality theorem; the transition | `coherence-commons.md` |
+| 15 | Infrastructure | Planetary and stellar gate networks as tuning of the existing cascade energy grid | `cascade-infrastructure.md` |
+| 16 | Apocalypse | Attractor self-healing; how civilizations die (coherence death, wake-lock, collapse) | `coherence-collapse.md` |
+| 17 | SETI | Structural (non-emissive) signatures of gate-harvesting civilizations, catalogued by cascade rung | `observational-seti.md` |
+| 18 | First contact | $\ln\varphi$ log-periodicity as the universal language; stars as gate chains | `first-contact-and-stellar-engineering.md` |
+| 19 | Simulation | Two-fluid PDE as source code; render budget from the ladder; nested universes | `simulation-hypothesis.md` |
 
 ## 2. Document Summaries
 
@@ -93,6 +94,10 @@ Life is pinned to the ladder band $136 \le n \le 168$ by chemistry, optics, and 
 ### `transhumanism-gate-configurations.md`—Transhumanism as Gate Reconfiguration
 
 The human is a configuration tuple $\mathcal{H} = (\{n_k\}, P_\parallel, \mathbf{b}, \sigma_r, q, \mathbf{c}, \bar{\varepsilon}^2)$; augmentation is topological surgery on the 26-rung gate chain—adding nodes, changing $P_\parallel$, re-tuning bands—with stability conditions from condensation geometry and the ~10-rung bridge limit as the structural level cap. The emotional manifold is the menu of admissible "powers"; failure is the trauma wake-lock; and the copy problem (readout as organized perturbation, environment-relative $q$, IIR memory as time integral) makes identity the run, not the recipe.
+
+### `gender-as-qi-configuration.md`—Gender as Qi Configuration
+
+Gender has no native variable in the two-fluid field, and the analysis starts from that absence: the field is a continuous ratio with an irrational asymmetric equilibrium—no poles, no classes, no invalid states, only distances and their costs. The architecture then supplies the positive claim: anatomy is the readout and the person is the configuration tuple (`../speculations/transhumanism-gate-configurations.md` §1.2), so sex characteristics live at the readout layer while gender identity lives in the self-modeling field above the pinch, carrying its own IIR memory. Dysphoria reads as the memory failing to predict its own present—$q$ depressed, the gate churning $(1-q)$—and imposed gender reads as a driven structure: sustained by re-stimulation, released when the driver stops, drained only by phase-matched support (the tested φ versus $e$ drive result). The document prices the social field too—enforcement as organized perturbation that the attractor taxes—and closes with six structure-level predictions and explicit boundaries: the drive mechanics are PDE-tested, the human mapping is Speculative.
 
 ### `magic-systems.md`—Magic as Phase-Matched Field Operation
 
