@@ -159,7 +159,28 @@ Follow-up (`two-fluid/run_misgendering_release.py`): from an actively pumped sta
 
 Two findings. First, the pumped state is sticky: after the misgendering drive stops, the site barely relaxes (10–11% decay over 2 s, q-gap held wide at +0.074)—incongruence does not self-heal on the conversion timescale once pumped; removal alone leaves it far above the natural floor (1.88 vs 0.83, 4.21 vs 0.83). Second, affirmation is an active drain, not a permissive one: the in-channel drive takes the site below even the never-touched undriven trajectory (0.715 and 0.476 vs the 0.833 floor), closing the q-gap. Active support is restorative; silence is a plateau.
 
-Cleanliness: at the mild pump both arms are clamp-free (ey_min_site = 0.200 throughout); at the hard pump the affirmation arm touches the floor (ey_min_site = 0.001), so its quantitative value is partially clamp-limited—the direction and the mild-pump magnitude are clean. The pump itself is drive-period sensitive (2.08 at P₀, 4.72 at 2P₀): the harder pump at twice the natural period suggests a resonance near 2P₀ worth its own run. Tier: the release mechanism (sticky pumped state, affirmation drain below floor) is PDE-tested at the mechanism layer; the human mapping remains Speculative (§9).
+Cleanliness: at the mild pump both arms are clamp-free (ey_min_site = 0.200 throughout); at the hard pump the affirmation arm touches the floor (ey_min_site = 0.001), so its quantitative value is partially clamp-limited—the direction and the mild-pump magnitude are clean. The pump itself is drive-period sensitive; §8.2 resolves the curve. Tier: the release mechanism (sticky pumped state, affirmation drain below floor) is PDE-tested at the mechanism layer; the human mapping remains Speculative (§9).
+
+### 8.2 The pump curve: no resonance, dwell-limited damage (2026-08-02)
+
+The 2P₀ hint from §8.1 was two points on a curve; the scan (`two-fluid/run_pump_resonance.py`) resolves it. Protocol: Wood drive at ε-parity, one run per probe period, pump measured as the peak ε over the back 40% of t = 2.4. The t = 2 snapshot is sampling-phase lottery—at T = 0.100 the snapshot reads 0.60 while the peak is 7.93—so snapshots are not used for ranking. Trajectories reproduce bit-identically across scripts (1e-4) and the ranking is robust.
+
+| T | peak pump (ε/ε₀) | ey_min_site | regime |
+|---|---|---|---|
+| 0.020 (P₀/2) | 2.3 | 0.200 | intact |
+| 0.041 (P₀) | 3.7 | 0.200 | intact |
+| 0.082 (2P₀) | 6.6 | 0.200 | intact |
+| 0.164 (4P₀) | 12.2 | 0.200 | intact |
+| 0.300 | 22.2 | 0.200 | intact |
+| 0.500 | 37.8 | 0.126 | intact (marginal) |
+| 0.600 | 45.4 | 0.094 | intact |
+| 0.800 | 63.7 | 0.055 | clamp onset |
+| 1.000 | 72.8 | 0.001 | clamp-limited |
+| 5.000 | 209.7 | 0.001 | clamp-limited |
+
+Findings. (i) **No resonance**: the pump rises monotonically with the drive period, from 2.3× at P₀/2 to 45× at T ≈ 0.6, with no peak at 2P₀ or any other frequency—the subharmonic hypothesis is falsified and the §8.1 hint resolves as monotone trend plus snapshot lottery. (ii) **The worst intact rhythm** sits at T ≈ 0.6 (≈15× the natural wobble, ≈3% of the conversion timescale): a clamp-free 45× pump. (iii) **Slow drives break the site**: ey_min_site falls below 0.1 by T ≈ 0.7 and reaches the positivity floor by T = 1.0, beyond which the values are clamp-limited and the drive is destroying the site (Yang pinned at the floor, Yin inflating) rather than pumping it. (iv) **The asymptote is continuous exposure**: as T → ∞ the drive becomes quasi-static and the site equilibrates into the floor—the absolute worst is a continuous drive, which does not churn the site but breaks it.
+
+Mechanism: the drive is mean-zero, but the conversion responds to |ε| and the gate to ε², so a symmetric drive rectifies into a net pump; slower periods dwell longer near their extremes, so the damage is set by dwell time per episode, not by frequency matching to the site's own dynamics. In the language of §4: the worst harassment rhythm is the most sustained one—cadence is irrelevant, episode length is everything. Tier: mechanism layer PDE-tested; the human mapping remains Speculative (§9).
 
 ---
 
@@ -187,6 +208,7 @@ Cleanliness: at the mild pump both arms are clamp-free (ey_min_site = 0.200 thro
 - `speculations/coherence-warfare.md`—organized perturbation taxonomy, φ-detuned boundaries
 - `speculations/coherence-commons.md`—coherence drain, forced $q$-suppression
 - `speculations/qi-bubble-propulsion.md`—φ-detuned boundary mechanism
+- `two-fluid/run_pump_resonance.py`—drive-period scan (peak-pump metric, clamp diagnostic, per-period verdict)
 - `two-fluid/run_misgendering_release.py`—two-phase release test (pump, then silence vs in-channel drive; P₀ override for strict comparability)
 - `two-fluid/run_misgendering_drive.py`—channel-angle drive test (misgendering/affirmation arms, ε-parity, clamp diagnostic)
 - `two-fluid/run_trauma_drive_compare.py`—φ vs $e$ drive comparison
