@@ -34,6 +34,7 @@ domain is not enough—the contribution must be what Cassi *uniquely* adds.
 | 9 | Market cascade cycles | Speculative | Wake-wave in information propagation networks | `market-cascade-cycles.md` |
 | 10 | Metabolic allometry | Speculative (open problem) | $\varphi$-derived fractal dimension for resource networks | `metabolic-scaling.md` |
 | 11 | Muscle structural hierarchy | Hypothesized | Bubble-lattice ladder at biological rungs (142–168) maps the filament→belly ladder to consecutive cascade rungs | `muscle-cascade-lattice.md` |
+| 12 | Riemann hypothesis | Speculative | De-resonance: RH as the absence of resonance in primes; φ-periodicity null test on ζ zeros | `riemann-hypothesis-de-resonance.md` |
 
 ---
 
@@ -172,6 +173,22 @@ an open problem, not a framework claim, and lists contingent predictions
 Fibonacci branching ratios, heart-to-respiration ratio $\varphi^3 \approx 4.24$)
 that would become testable only if the derivation closes. **Epistemic tier:
 Speculative (derivation not closed)**—kept as a prompt for future work.
+
+### `riemann-hypothesis-de-resonance.md`—The Riemann Hypothesis and the De-Resonance of Primes
+
+Reads the 2026 Nature Communications correspondence (ζ zeros ↔ dynamical
+quantum phase transitions; RH ⇔ phase transition at a unique temperature)
+through the de-resonance principle: by the explicit formula, RH is exactly
+the claim that the primes carry no resonant component, and the critical line
+is the Yang-Yin balance axis of the functional equation. The framework's
+universal fingerprint (log-periodic modulation at $\ln\varphi \approx 0.4812$)
+is tested against the first 100,000 zeros with the calibrated protocol—null
+on both spacing and density statistics at $\omega_0 = 2\pi/\ln\varphi$, with
+demonstrated sensitivity to a 1–3% modulation. The null is the expected
+outcome: de-resonance predicts featureless (GUE) prime statistics, not a
+$\varphi$ signature. **Epistemic tier: Speculative**—the mapping is
+interpretation; no mechanism from the two-fluid PDE reaches the zeros, and no
+proof of RH is claimed.
 
 ### `muscle-cascade-lattice.md`—Muscle as a Cascade Lattice: Structural Hierarchy and the Bubble Geometry
 
