@@ -193,14 +193,15 @@ The half-channel positions predict that affect profiles anchored at the secondar
 - The ring algebra given the control-release rule: the alternating state, the ring gain $\kappa^3 = \varphi^{-3}$ (equal to the pentagram's central segment), the threshold $\Delta_c = \varphi^{-4}$, the sub-criticality (§2)
 - The Fibonacci partition $13 = 5 + 8 = F_5 + F_6$ and the $8{:}13$ convergent (§3.2), the identity $\varphi^3 - \varphi^{-3} = 4$ (§3.3)
 
-### Tested (PDE, 2026-07-31)
+### Tested (PDE 2026-07-31; gate level 2026-08-01)
 
 - The control-release rule as the gate's ke coupling: `gate_model='five_ke'` reproduces the derived ring algebra to ≤ 6×10⁻⁴; excess channels restrain ke targets and release ke partners; the ring is sub-critical (no driverless self-sustenance); the φ-phased drive still dissolves the displaced site (§4 C3, `two-fluid/run_trauma_ke_ring.py`)
+- The C1 ke-alternating profile at the gate level: all five lock channels produce strict ke-order alternation (read from the locked channel) with the predicted sign pattern; the threshold $\Delta_c = \varphi^{-4}$ is exact; the no-driver ring jams rather than relaxes; uniform starvation rejected (§4 C1, `two-fluid/run_trauma_c1_ring.py`, 2026-08-01)
 
 ### Hypothesized (mechanism supplied, test designed)
 
 - The affinity phase gradient 18°/rung as the structure of the chakra-channel table (reproduces 5/7 primaries exactly; the mechanism fixing the gradient is open) (§3.1)
-- The alternating-profile predictions C1–C4 in affect data (the gate-level pattern is PDE-verified; the clinical instrument test remains)
+- The alternating-profile predictions C2–C4 and the clinical leg of C1 in affect data (the gate-level pattern is verified; the P3 instrument test remains)
 
 ### Not claimed
 
