@@ -35,7 +35,8 @@ All documents are **Speculative—July 2026** unless noted.
 | 12 | SETI | Structural (non-emissive) signatures of gate-harvesting civilizations, catalogued by cascade rung | `observational-seti.md` |
 | 13 | First contact | $\ln\varphi$ log-periodicity as the universal language; stars as gate chains | `first-contact-and-stellar-engineering.md` |
 | 14 | Simulation | Two-fluid PDE as source code; render budget from the ladder; nested universes | `simulation-hypothesis.md` |
-| 15 | Gravitational-wave masses | GWTC-4.0 peaks and events mapped to rungs via $N_{\text{BH}} = \log_\varphi(M/M_{\text{Pl}})$; integer-rung test; ringdown null | `gwtc4-mass-ladder.md` |
+
+Data-analysis documents (observational datasets tested against framework claims) live in `../analyses/`.
 
 ## 2. Document Summaries
 
@@ -95,10 +96,6 @@ $\ln\varphi \approx 0.4812$ log-periodicity is the one constant every physics-li
 
 The universe's source code is the two-fluid PDE with $\sigma$-regularization as the grid cutoff; the render budget is set by the ladder itself (resolution floor $n=0$, render distance $n=292$, world edges at the Cassi bubble), and the bidirectional micro/megacascade makes nesting self-consistent—a simulator inside the sim is a sub-PDE with its own ladder. Hacking is holding $r$ off-attractor at cost $E_{\text{hold}} \approx \int V_{\text{attr}}\,dV\,dt$; glitches are coherence defects and bubble-edge boundary artifacts. The epistemic trap closes the document: simulation absorbs every observation, so it stays Speculative while the equations stay Derived.
 
-### `gwtc4-mass-ladder.md`—GWTC-4.0 and the Cascade Ladder: Black-Hole Masses as Rung Diagnostics
-
-The fourth gravitational-wave catalog (218 events, O4a doubling) is mapped onto the ladder via the derived coherence-capacity relation $\boxed{N_{\text{BH}} = \log_\varphi(M/M_{\text{Pl}})}$ (quantum-gravity §7.4). The stellar-black-hole zone (rungs ~182–194) is unmapped territory between the rung-185 and rung-200 anchors; the LVK primary-mass peaks (10, ~20, 35 M$_{\odot}$) land at rungs 186.4/187.9/189.0 with 1.44/1.16-rung spacings—not an integer grid, with near-integer coincidences to track (35 M$_{\odot}$ → 189.03, GW231123 total → 193.0, lower gap edge → 185.0). The loudest event ever recorded (GW230814_230901, SNR 42.1) shows a statistically insignificant ringdown deviation, consistent with the framework's GR-exact prediction ($q \to 0$ at compact densities)—a binary falsifier if it survives. Analysis script: `experiments/gwtc4_mass_ladder/gwtc4_mass_ladder.py`.
-
 ## 3. Cross-References
 
 - `../hypotheses/README.md`—quality-barred hypothesis catalog
@@ -107,3 +104,4 @@ The fourth gravitational-wave catalog (218 events, O4a doubling) is mapped onto 
 - `../parameter-inventory.md`—parameter registry ($\xi = \varphi^6$, $q$, $g(q)$, $\theta_{\text{cond}}$)
 - `../foundations/dimensionful-cascade.md`—the 292-step ladder
 - `../foundations/bubble-lattice-fabric.md`—condensation field geometry
+- `../analyses/README.md`—data analyses of observations against the framework (GWTC-4.0 mass ladder)
