@@ -1,6 +1,6 @@
 # Wu Xing Cycle Structure: The Two 5-Cycles, the Control Ring, and the 5↔13 Partition
 
-## Status: Derived (cycle geometry, coupling, ring algebra) / Tested (ke ring, PDE 2026-07-31) / Hypothesized (affinity gradient, clinical profile)—July 2026
+## Status: Derived (cycle geometry, coupling, ring algebra) / Tested (ke ring PDE 2026-07-31, C1 gate level 2026-08-01) / Hypothesized (affinity gradient, clinical profile)—July 2026
 
 ## Abstract
 
@@ -59,6 +59,8 @@ $$\Delta_1 = \Delta(1 - \kappa^3), \quad \Delta_2 = -\kappa^2 \Delta, \quad \Del
 
 $$\boxed{\Delta = [+0.764,\; -0.382,\; -0.618,\; +0.382,\; +0.618]\,\Delta}$$
 
+**Implementation note (PDE-accurate, verified 2026-08-01, C1 gate test):** the gate in the solver (`gate_model='five_ke'`) applies *one simultaneous round per evaluation*, which caps every restraint at the target's current openness—over-starvation transmits only the target's baseline, not the full $\kappa\Delta$—and lets the ring's circulation back-flow into the starved target (the released partner's own release deposits there). The sign pattern and the ke-order alternation survive exactly; the magnitudes are capped. Measured one-lap response for a Wood lock at $\Delta = \varphi^{-3}$ (channel order Wood..Water): deviations $[+0.202, -0.112, -0.056, +0.112, +0.090]$ vs the sequential $[+0.180, -0.090, -0.146, +0.090, +0.146]$ (capped): Earth starves in round one but is partially restored to 0.034 by the ring's back-flow; the locked channel retains 0.85 of its excess after one lap (the caps dilute the $\kappa^3$ attenuation). The sequential fractions remain the ideal one-pass propagation; the implementation-accurate magnitudes are the C1-test numbers (`two-fluid/run_trauma_c1_ring.py`).
+
 ### 2.2 The alternating lock pattern
 
 For a Wood lock with the closure-scale excess $\Delta = \varphi^{-3} = 0.236$ (the natural magnitude: closing channel 1 releases exactly $\varphi^{-3}$), the effective openness $\mathbf{b}_{\text{eff}} = \mathbf{b} + \Delta$ becomes:
@@ -90,6 +92,8 @@ Two consequences:
 
 **A structural identity:** the ring gain equals the pentagram's central segment fraction ($\varphi^{-3}$ of the diagonal, §1.2)—the one-cycle attenuation of the control ring is exactly the golden-section core of its own geometry.
 
+**No-driver behavior of the simultaneous implementation (C1 gate test, 2026-08-01):** iterated without a driver, the ke round conserves total openness exactly (deposits equal actual restraints) and converges to a jammed attractor—for all five lock channels the same state $\approx [0.07, 0.16, 0.57, 0, 0]$: the excess collects in Earth, whose ke target (Water) is starved, so the ring can neither transmit nor restore—Metal and Water stay starved, the locked channel is drained below baseline. The gate alone neither relaxes nor self-sustains; relaxation comes from the conversion coupling in the PDE (which is why the driver test and the §10 nulls of the trauma document say what they say).
+
 ### 2.4 The threshold
 
 Earth (the ke target of the strongest baseline channel) is fully starved when $\kappa \Delta \geq b_3$:
@@ -97,6 +101,8 @@ Earth (the ke target of the strongest baseline channel) is fully starved when $\
 $$\Delta_c = \varphi \cdot b_3 = \varphi \cdot \varphi^{-5} = \varphi^{-4} = 0.146$$
 
 Strong locks ($\Delta \gtrsim 0.146$) engage the full alternating ring; mild over-activity (everyday emotions) stays below threshold and shows ordinary $R$-matrix behavior. The ring is a *lock-regime* phenomenon, not an everyday one.
+
+The implementation-accurate statement (verified 2026-08-01): the ke target of a locked channel fully starves iff $\kappa\Delta \geq b_{j+2}$—the cap mechanism makes the threshold per-target. For a Wood lock ($b_3 = \varphi^{-5}$) this reproduces $\Delta_c = \varphi \cdot b_3 = \varphi^{-4} = 0.146$ exactly: at $\Delta = \varphi^{-4}$ Earth reaches 0; at $\Delta = \varphi^{-5}$ it keeps $\varphi^{-7}$ of openness. The Metal lock never starves Wood at $\Delta = \varphi^{-3}$ ($\kappa\Delta = 0.146 < b_1 = 0.236$); the Fire lock's mild case is marginal ($\kappa\varphi^{-5} = \varphi^{-6} = b_4$ exactly).
 
 ### 2.5 The cosmological sibling
 
@@ -157,9 +163,9 @@ The channel step is the span between $\varphi^3$ and its reciprocal—an exact i
 
 ## 4. Predictions
 
-### C1: The alternating trauma profile
+### C1: The alternating trauma profile—**tested at the gate level (2026-08-01, `two-fluid/run_trauma_c1_ring.py`)**
 
-A locked channel produces the ke-alternating pattern, not uniform starvation: for a Wood lock, Earth fully starved, Fire partially starved (−38% of the excess), Metal and Water *elevated* (+38%, +62%). **PDE-verified at the gate level (2026-07-31, §4 C3 result):** whenever a channel's openness exceeds its baseline, the ke term restrains its ke target and releases the ke-released partner, forming the alternating ring in channel openness. **Test (clinical):** the P3 multi-dimensional affect instrument of the emotions document, on trauma-exposed populations (§11 T1 of `consciousness/trauma-as-frozen-gate.md`): profile the four non-locked channels against the $\varphi^{-i}$ baseline and check the ring fractions $[-0.382, -0.618, +0.382, +0.618]$, not four equal deficits.
+A locked channel produces the ke-alternating pattern, not uniform starvation: for a Wood lock, Earth fully starved, Fire partially starved (−38% of the excess), Metal and Water *elevated* (+38%, +62%). **Gate-level result (2026-08-01):** with the solver's own ke round on synthetic single-lock states, all five lock channels pass—(i) the one-round response equals the capped ke algebra exactly; (ii) the one-lap response alternates strictly in ke order read from the locked channel, with the sign pattern of the fractions $[-0.382, -0.618, +0.382, +0.618]$; (iii) the ke target starves iff $\kappa\Delta \geq b_{j+2}$ (Wood-lock threshold $\Delta_c = \varphi^{-4}$ exact); (iv) the uniform-starvation counterfactual is rejected—the ring elevates two non-locked channels; (v) the ke round reproduces the C3 PDE state to its own prediction error ($5.5\times10^{-4}$). Magnitudes follow the implementation caps (§2.1 note). **Test (clinical):** the P3 multi-dimensional affect instrument of the emotions document, on trauma-exposed populations (§11 T1 of `consciousness/trauma-as-frozen-gate.md`): profile the four non-locked channels against the $\varphi^{-i}$ baseline and check the ring fractions $[-0.382, -0.618, +0.382, +0.618]$, not four equal deficits.
 
 ### C2: The damping signature
 
@@ -215,3 +221,4 @@ The half-channel positions predict that affect profiles anchored at the secondar
 - `foundations/dimensionful-cascade.md`—the rung ladder, steps 142–168
 - `two-fluid/cassi_two_fluid_3d_gpu.py`—the PDE solver; `gate_model='five_ke'` implements the ke control ring
 - `two-fluid/run_trauma_ke_ring.py`—the C3 test (five vs five_ke vs five_ke+φ-drive, 2026-07-31)
+- `two-fluid/run_trauma_c1_ring.py`—the C1 gate test (single-lock ke-alternating response, threshold, no-driver jam, 2026-08-01)
