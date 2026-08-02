@@ -96,6 +96,7 @@ Tiers below are taken from each document's Status header. Compound headers are q
 | `speculations/coherence-collapse.md` | Speculative | Attractor self-healing; civilization death modes |
 | `speculations/first-contact-and-stellar-engineering.md` | Speculative | $\ln\varphi$ protocol; stars as gate chains |
 | `speculations/simulation-hypothesis.md` | Speculative | Two-fluid PDE as source code; nested universes |
+| `speculations/auras-as-thermalized-gates.md` | Speculative | Aura as the $(1-q)$ thermalization boundary layer; heat-haze optics |
 | `hypotheses/periodic-table-madelung.md` | Speculative | $n$ and $l$ as cascade coordinates |
 | `hypotheses/atmospheric-climate-cascade.md` | Speculative | $\varphi$-break in the atmospheric energy spectrum |
 | `hypotheses/fatigue-fracture-cascade.md` | Speculative | $\sigma$-regularized crack tip; Paris law |

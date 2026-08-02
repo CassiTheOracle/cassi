@@ -4,7 +4,7 @@
 
 ## Abstract
 
-This directory collects creative explorations that are consistent with the Cassi framework but are not yet testable claims. Each document anchors its mechanisms to specific equations or documented framework properties, but the synthesis is an extrapolation: **nothing here should be cited as a Cassi prediction or derivation** unless a document explicitly says otherwise. The document order follows the framework's flow—field physics first (dark matter, superconductivity), then engineering (computation, propulsion, gravity control, defense), then the human-scale and cosmological consequences (consciousness, time and memory, biology, transhumanism, magic, the commons), then infrastructure and apocalypse, and finally the observational signatures of it all (SETI, first contact) and the ontological question (simulation).
+This directory collects creative explorations that are consistent with the Cassi framework but are not yet testable claims. Each document anchors its mechanisms to specific equations or documented framework properties, but the synthesis is an extrapolation: **nothing here should be cited as a Cassi prediction or derivation** unless a document explicitly says otherwise. The document order follows the framework's flow—field physics first (dark matter, superconductivity), then engineering (computation, propulsion, gravity control, defense), then the human-scale and cosmological consequences (consciousness, perception, time and memory, biology, transhumanism, magic, the commons), then infrastructure and apocalypse, and finally the observational signatures of it all (SETI, first contact) and the ontological question (simulation).
 
 ## 1. Boundary with `hypotheses/`
 
@@ -28,16 +28,17 @@ All documents are **Speculative—July 2026** unless noted.
 | 5 | Gravity control | $G_{\text{eff}} = (\pi/\rho)(1+\xi q)G$ as an engineering dial; Qi condenser + gate as the device | `gravity-control.md` |
 | 6 | Warfare | Coherence budget as weapons table; φ-detuned shields; mutual assured incoherence | `coherence-warfare.md` |
 | 7 | Consciousness | Medium-dependent perception; the cascade as a distributed φ-structured nervous system | `cascade-consciousness.md` |
-| 8 | Time & memory | Arrow of time from the dissipative conversion pair; ghosts as wake-locks | `time-memory-and-wake-locks.md` |
-| 9 | Universal biology | The ladder band 136–168 as a convergent evolutionary scaffold; alien gate chains | `universal-biology.md` |
-| 10 | Transhumanism | Augmentation as gate-chain topology surgery; identity as the run, not the recipe | `transhumanism-gate-configurations.md` |
-| 11 | Magic | Magic as phase-matched field operation; spells as WRITE/ERASE/TRANSFER | `magic-systems.md` |
-| 12 | The Commons | Two-fluid theory of value and accumulation; the equality theorem; the transition | `coherence-commons.md` |
-| 13 | Infrastructure | Planetary and stellar gate networks as tuning of the existing cascade energy grid | `cascade-infrastructure.md` |
-| 14 | Apocalypse | Attractor self-healing; how civilizations die (coherence death, wake-lock, collapse) | `coherence-collapse.md` |
-| 15 | SETI | Structural (non-emissive) signatures of gate-harvesting civilizations, catalogued by cascade rung | `observational-seti.md` |
-| 16 | First contact | $\ln\varphi$ log-periodicity as the universal language; stars as gate chains | `first-contact-and-stellar-engineering.md` |
-| 17 | Simulation | Two-fluid PDE as source code; render budget from the ladder; nested universes | `simulation-hypothesis.md` |
+| 8 | Perception | Aura as the $(1-q)$ thermalization boundary layer of the human gate chain; heat-haze optics | `auras-as-thermalized-gates.md` |
+| 9 | Time & memory | Arrow of time from the dissipative conversion pair; ghosts as wake-locks | `time-memory-and-wake-locks.md` |
+| 10 | Universal biology | The ladder band 136–168 as a convergent evolutionary scaffold; alien gate chains | `universal-biology.md` |
+| 11 | Transhumanism | Augmentation as gate-chain topology surgery; identity as the run, not the recipe | `transhumanism-gate-configurations.md` |
+| 12 | Magic | Magic as phase-matched field operation; spells as WRITE/ERASE/TRANSFER | `magic-systems.md` |
+| 13 | The Commons | Two-fluid theory of value and accumulation; the equality theorem; the transition | `coherence-commons.md` |
+| 14 | Infrastructure | Planetary and stellar gate networks as tuning of the existing cascade energy grid | `cascade-infrastructure.md` |
+| 15 | Apocalypse | Attractor self-healing; how civilizations die (coherence death, wake-lock, collapse) | `coherence-collapse.md` |
+| 16 | SETI | Structural (non-emissive) signatures of gate-harvesting civilizations, catalogued by cascade rung | `observational-seti.md` |
+| 17 | First contact | $\ln\varphi$ log-periodicity as the universal language; stars as gate chains | `first-contact-and-stellar-engineering.md` |
+| 18 | Simulation | Two-fluid PDE as source code; render budget from the ladder; nested universes | `simulation-hypothesis.md` |
 
 ## 2. Document Summaries
 
@@ -60,6 +61,10 @@ Propulsion is replaced by rung-shifting: a craft with a coherent Qi gate re-tune
 ### `cascade-consciousness.md`—Consciousness in the Dense Medium: Perception, Communication, and the Cascade Nervous System
 
 Starting from the Hypothesized consciousness-as-Qi-gate framework (`../consciousness/consciousness-from-phi.md`), this document explores how the medium shapes experience: water's 833× higher field energy density lifts the signal-to-noise ratio by nearly three orders of magnitude, making field perception and field-resonance communication the default rather than a trained skill, and making filtering—not seeking—the perceptual challenge. Social structure follows field presence rather than external markers, and deception becomes structurally impossible when internal states broadcast directly through the shared field. The analysis then extends up the ladder: the 292-rung cascade is read as a distributed, nested, φ-structured nervous system in which consciousness at any rung is what it feels like to be a node in that network. Speculative—July 2026: the medium-dependence and cascade-nervous-system claims are extrapolations beyond the base framework.
+
+### `auras-as-thermalized-gates.md`—Auras as Thermalized Qi Gates
+
+The aura is the human-scale instance of the framework's universal gate-waste channel: the fraction $(1-q)$ of throughput that fails to convert coherently thermalizes as photons and heat, the same mechanism that lights the UAP sheath, the stellar corona, and the caster's glow. The body's 26-rung gate chain wraps in a two-part boundary layer—a coherent core whose coupling to the optical band is bridge-suppressed ($\varphi^{-32} \approx 2\times10^{-7}$, below the $\varphi^{-10}$ coherence floor), and a broadband thermal halo deposited locally, whose visual signature is exactly heat haze: warm, structureless, convecting. The document argues the resemblance is structural (the halo is a heat layer), derives the brightness inversion (visible aura $\propto (1-q)$, so bright auras mark strained gates, not enlightened ones), reads the two-bubble runs for aura-aura coupling (strongest when one party sits below the pinch), and sketches the node-thermal-imaging test from the wake-lock observables (`../consciousness/chakras-as-cascade-bubbles.md`, `../speculations/coherence-collapse.md` §4.1).
 
 ### `cascade-infrastructure.md`—Cascade Infrastructure: Planetary and Stellar Gate Networks
 
