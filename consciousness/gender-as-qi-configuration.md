@@ -118,7 +118,7 @@ The analysis yields directional, structure-level statements—no amplitudes, no 
 
 1. **Congruence restores self-prediction.** The wake-lock observables (HRV coherence, inter-hemispheric phase synchrony, q-gap, node thermal excess—`speculations/coherence-collapse.md` §4.1) should move together as an incongruent configuration resolves: coherence proxies up, strain signatures down, variance of coherence signals reduced (the IIR stabilization signature).
 2. **Support is phase-specific.** Matched affirmation drains; same-amplitude mismatched intervention pumps. The quality of support is physics, not courtesy. (Mechanism tested at the channel level, §8.)
-3. **Locks are driver-dependent.** Removal of re-stimulation releases the structure; release is accelerated by phase-matched drain. Changing the social field is the mechanism itself.
+3. **Locks are driver-dependent.** Removal of re-stimulation releases the structure; release is accelerated by phase-matched drain. Changing the social field is the mechanism itself. (Mechanism tested at the channel level, §8.1: the pumped state is sticky without a driver, and affirmation drains below the undriven floor.)
 4. **No vulnerability etiology.** The tested capacity null rules out pre-existing coherence deficits as the cause of locks; incongruence is event plus drive.
 5. **Internal-gate authority.** Self-knowledge dominates external coupling for above-pinch configurations; the person's own self-model is the authoritative readout of their configuration.
 6. **No invalid states.** The field classifies nothing; every configuration is a distance from equilibrium with a price. The framework's contribution to the gender debate is a price structure with no verdicts attached.
@@ -144,6 +144,22 @@ The misgendering arm *pumps* the held site: ε grows to 207% of its initial valu
 **Cleanliness checks.** (i) Clamp: ey_min_site ≥ 0.20 throughout the pump—the site's Yang floor is untouched; the pump acts by inflating the Yin component (ei grows to 1.78), so the result is not a positivity-clamp artifact. (ii) Phase metric: the affirmation arm's phase leaves Fire because a fully relaxed site bins as Wood ($\text{atan2}(\varphi^{-1}, 1) = 31.7° < 36°$)—that displacement is relaxation, not identity erosion; the phase metric is degenerate near equilibrium, so the verdict rests on ε retention and the q-gap.
 
 **Verdict.** The sustainer is channel-specific: at equal ε-perturbation, a recurring drive at the identity's own channel drains the held configuration while the same drive one pentagon-step away pumps it to twice its initial imbalance. The §4.2 boxed claim—phase-matched support drains, same-amplitude mismatched support pumps—is mechanism-tested at the angle level. Tier: the mechanism layer (channel-specific pump/drain at ε-parity, clamp-clean) is PDE-tested; the mapping to human misgendering remains Speculative (§9). Script: `two-fluid/run_misgendering_drive.py`.
+
+### 8.1 The release: affirmation vs removal (2026-08-02)
+
+Follow-up (`two-fluid/run_misgendering_release.py`): from an actively pumped state, does an in-channel (Fire) drive recover the site faster than silence? Two-phase protocol: Wood drive (ε-parity) to t = 2, then either silence (removal) or a Fire drive at amp 0.15 (affirmation) to t = 4, from the identical pumped state (same seed). Two pump states were examined, because the in-process natural-period measurement is window-dependent: 0.081 from the t = 4 reference series versus 0.041 from the t = 2 series (dominant_period is fed the step dt while the series is sampled every 50 steps, so the FFT peak shifts with series length). The underlying physics is bit-reproducible: with P₀ matched to §8, the pump reproduces to 2.076 vs 2.075.
+
+| Pump state (t = 2) | Arm | ε retained (t = 4) | q-gap (t = 4) |
+|---|---|---|---|
+| 2.08 (P₀ = 0.041) | removal | 1.880 | +0.074 |
+| 2.08 (P₀ = 0.041) | affirmation | **0.715** | +0.005 |
+| 4.72 (P₀ = 0.081) | removal | 4.210 | +0.075 |
+| 4.72 (P₀ = 0.081) | affirmation | **0.476** | −0.004 |
+| none (undriven floor) | ref | 0.833 | +0.041 |
+
+Two findings. First, the pumped state is sticky: after the misgendering drive stops, the site barely relaxes (10–11% decay over 2 s, q-gap held wide at +0.074)—incongruence does not self-heal on the conversion timescale once pumped; removal alone leaves it far above the natural floor (1.88 vs 0.83, 4.21 vs 0.83). Second, affirmation is an active drain, not a permissive one: the in-channel drive takes the site below even the never-touched undriven trajectory (0.715 and 0.476 vs the 0.833 floor), closing the q-gap. Active support is restorative; silence is a plateau.
+
+Cleanliness: at the mild pump both arms are clamp-free (ey_min_site = 0.200 throughout); at the hard pump the affirmation arm touches the floor (ey_min_site = 0.001), so its quantitative value is partially clamp-limited—the direction and the mild-pump magnitude are clean. The pump itself is drive-period sensitive (2.08 at P₀, 4.72 at 2P₀): the harder pump at twice the natural period suggests a resonance near 2P₀ worth its own run. Tier: the release mechanism (sticky pumped state, affirmation drain below floor) is PDE-tested at the mechanism layer; the human mapping remains Speculative (§9).
 
 ---
 
@@ -171,6 +187,7 @@ The misgendering arm *pumps* the held site: ε grows to 207% of its initial valu
 - `speculations/coherence-warfare.md`—organized perturbation taxonomy, φ-detuned boundaries
 - `speculations/coherence-commons.md`—coherence drain, forced $q$-suppression
 - `speculations/qi-bubble-propulsion.md`—φ-detuned boundary mechanism
+- `two-fluid/run_misgendering_release.py`—two-phase release test (pump, then silence vs in-channel drive; P₀ override for strict comparability)
 - `two-fluid/run_misgendering_drive.py`—channel-angle drive test (misgendering/affirmation arms, ε-parity, clamp diagnostic)
 - `two-fluid/run_trauma_drive_compare.py`—φ vs $e$ drive comparison
 - `two-fluid/run_trauma_wake_lock.py`—driver test, standing vs driven structures
