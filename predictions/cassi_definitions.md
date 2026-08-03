@@ -109,7 +109,7 @@ Three modes of expansion:
    - Standard ΛCDM compatible limit when q → 0.
 
 ### DESI Calibration
-- **Result**: $w_0 = -0.87$ (corrected 2026-07-31; structural gap-derived $r_0 = \varphi^{-5}/(2-\varphi^{-5}) = 0.0472$), $2\sigma$ from DESI DR2's $w_0 \approx -0.75 \pm 0.06$ [INFERENCE]—the earlier $-0.838$ was the repo's own calibration target (circular).
+- **Result**: $w_0 = -0.87$ (structural gap-derived $r_0 = \varphi^{-5}/(2-\varphi^{-5}) = 0.0472$), $2\sigma$ from DESI DR2's $w_0 \approx -0.75 \pm 0.06$ [INFERENCE].
 - **Procedure**: ODE bisection over the EY/EI ratio with the Yang-fraction-weighted coupling (`two-fluid/calibrate_initial_ratio_xi_v2.py`).
 - **Physical meaning**: Today's universe sits at EY/EI slightly above φ, giving a small residual dark energy.
 
@@ -359,7 +359,7 @@ of time is not merely psychological—it is enforced by the field equations.
 ## 7. Consciousness & Psychology
 
 ### Overview
-See `papers/consciousness-framework.md` (117 KB) for the complete theory.
+See `consciousness/consciousness-from-phi.md` for the complete theory.
 This section provides only the cross-reference bridge between Cassi physics terms
 and consciousness framework terms.
 
@@ -607,8 +607,8 @@ physics at different σ-scales, with φ as the universal attractor coupling.
 ### Confirmed
 | Observation | Cassi Prediction | Status |
 |-------------|-----------------|--------|
-| Dark energy (DESI DR2) | $w_0 = -0.87$ (corrected 2026-07-31) | $2\sigma$ from DESI $\approx -0.75 \pm 0.06$ [INFERENCE]—tension, not matched |
-| Galaxy rotation curves | Qi-enhanced G_eff | ⚠️ MOND preferred (4/8 vs 3/8 dwarfs; corrected 2026-08-03) |
+| Dark energy (DESI DR2) | $w_0 = -0.87$ | $2\sigma$ from DESI $\approx -0.75 \pm 0.06$ [INFERENCE]—tension, not matched |
+| Galaxy rotation curves | Qi-enhanced G_eff | ⚠️ MOND preferred (4/8 vs 3/8 dwarfs) |
 | Baryonic Tully-Fisher | Slope ≈ 0.96 | ✓ Consistent |
 | Mercury precession | GR limit (σ→0) | ✓ Reproduces 43″/century |
 | BH shadow (EHT) | GR-like (core G_eff≈1) | ✓ Consistent with M87* |
@@ -649,8 +649,8 @@ See `theory/cosmology-from-phi.md` for full derivations.
 
 | Phenomenon | Mechanism | Cassi Prediction | Observed | Gap |
 |-----------|----------|-----------------|----------|-----|
-| Inflation | Yang/Yin ratio $r \to \varphi$ | $n_s = 0.967$, $r = 0.003$ | $0.965 \pm 0.004$ | $0.5\sigma$ |
-| Baryogenesis | $\varphi^{-3}$ chiral asym → sphalerons | $\eta = 5.1\times10^{-10}$ | $6.1\times10^{-10}$ | $17\%$ |
+| Inflation | Yang/Yin ratio $r \to \varphi$ | $n_s = 0.9691$, $r = 0.003$ | $0.9649 \pm 0.0042$ | $1.0\sigma$ |
+| Baryogenesis | $\varphi^{-3}$ chiral asym → sphalerons | $\eta = \varphi^{-44} \approx 6.38\times10^{-10}$ | $6.0\times10^{-10}$ | Within $6.3\%$ |
 | Dark Matter | High-Qi condensate, $G_{\text{eff}}$ boost | $\Omega_{\text{DM}}/\Omega_b = 5.24$ | $5.39$ | $2.8\%$ |
 
 New theory documents:

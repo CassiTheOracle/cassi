@@ -53,7 +53,7 @@ The most important quantity in the two-fluid dynamics is the ratio $r = E_Y / E_
 
 ### The Qi Gate—a Nonlinear Switch
 
-The two-fluid PDE includes a nonlinear **Qi gate** whose *openness* is $(1-q)$. When Qi density is low ($q \to 0$), the gate is open and conversion runs hard—the region churns, unable to settle. When Qi density is high ($q \to 1$), the gate closes and the system rests at $\varphi$-balance. (Sign corrected 2026-07-31 by the PDE tests in `consciousness/trauma-as-frozen-gate.md` §10.4; the earlier claim that "depressed $q$ closes the gate" had the sign inverted and is withdrawn.) The shape of this gate determines the universe's expansion history and is the source of the dark energy equation of state $w_0 = -0.87$ (corrected 2026-07-31).
+The two-fluid PDE includes a nonlinear **Qi gate** whose *openness* is $(1-q)$. When Qi density is low ($q \to 0$), the gate is open and conversion runs hard—the region churns, unable to settle. When Qi density is high ($q \to 1$), the gate closes and the system rests at $\varphi$-balance. The shape of this gate determines the universe's expansion history and is the source of the dark energy equation of state $w_0 = -0.87$.
 
 ### The $\varphi$-Attractor
 
@@ -154,11 +154,11 @@ flowchart TD
 **Visual:** Like a marble rolling into a funnel, the ratio r(t) is pulled inexorably toward φ, producing acceleration without any dark energy.
 
 
-Since 1998, physicists have known the universe's expansion is accelerating—something seems to be pushing galaxies apart ever faster. The standard model calls this "dark energy" and treats it as a constant energy density of empty space (the cosmological constant $\Lambda$), but quantum field theory predicts a value $10^{120}$ times too large. Cassi takes a different path: there is no dark energy at all. The acceleration comes from the two-fluid dynamics—the Yang and Yin fields (explained in the Primer) convert into one another at a rate set by their ratio $r = E_Y/E_I$, and as the universe expands, this conversion naturally approaches the $\varphi$-attractor equilibrium. The present-day equation-of-state parameter $w_0 = -0.87$ (corrected 2026-07-31) is not a free parameter; i…
+Since 1998, physicists have known the universe's expansion is accelerating—something seems to be pushing galaxies apart ever faster. The standard model calls this "dark energy" and treats it as a constant energy density of empty space (the cosmological constant $\Lambda$), but quantum field theory predicts a value $10^{120}$ times too large. Cassi takes a different path: there is no dark energy at all. The acceleration comes from the two-fluid dynamics—the Yang and Yin fields (explained in the Primer) convert into one another at a rate set by their ratio $r = E_Y/E_I$, and as the universe expands, this conversion naturally approaches the $\varphi$-attractor equilibrium. The present-day equation-of-state parameter $w_0 = -0.87$ is not a free parameter; i…
 
-| **Cassi Answer** | $w(a)$ evolves with $r(a)$; $w_0 = -0.87$ from Qi gate shape (corrected 2026-07-31); no $\Lambda$ |
+| **Cassi Answer** | $w(a)$ evolves with $r(a)$; $w_0 = -0.87$ from Qi gate shape; no $\Lambda$ |
 | **Mechanism** | Conversion term sets $H(a)$; Qi gate modulates; $\lambda = 3\varphi^2 H_0$ |
-| **Epistemic** | **Derived**—2σ from DESI $w_0 \approx -0.75 \pm 0.06$ [INFERENCE] (corrected 2026-07-31; the old "$0\sigma$ match" was circular—the $-0.838$ was the repo's own calibration target) |
+| **Epistemic** | **Derived**—2σ from DESI $w_0 \approx -0.75 \pm 0.06$ [INFERENCE] |
 | **Reference** | `cosmology/cosmology-from-phi.md`, `calibrate_initial_ratio.py` |
 
 ### C2: Dark matter
@@ -179,7 +179,7 @@ Galaxies spin much faster than their visible mass can explain—something invisi
 | **Cassi Answer** | Qi condensate; $\Omega_{\text{DM}}/\Omega_b = \varphi^3+1$; galaxy rotation from $\xi = \varphi^6$ |
 | **Mechanism** | Qi density $q$ amplifies gravity; no particles |
 | **Epistemic** | **Derived**—$\xi$ within 0.3% of empirical |
-| **Reference** | `xi-derivation.md`, `run_galactic_rotation.py` |
+| **Reference** | `foundations/xi-derivation.md`, `run_galactic_rotation.py` |
 
 ### C3: Hubble tension
 
@@ -211,15 +211,15 @@ flowchart TD
     B --> C[Qi gate opens at step 20]
     C --> D[40 e-folds of expansion]
     D --> E[Gate closes at step 60]
-    E --> F[φ⁻¹² imprint, n_s ≈ 0.967]
+    E --> F[φ⁻¹² imprint, n_s ≈ 0.9691]
 ```
 
 **Visual:** Steps 20–60 of the 292-rung cascade ladder are the inflationary epoch, with the Qi gate providing a graceful 40 e-folds and a clean exit.
 
 
-The standard Big Bang model requires a period of impossibly fast expansion in the first split-second to explain why the cosmos is so uniform and flat. Nobody knows what drove this "inflation," why it started, or why it stopped—the usual story invokes a speculative new field (the inflaton) with an exquisitely tuned potential. Cassi's answer draws on the cascade ladder: steps 20 through 60 of the ratio's natural evolution produce 40 e-folds of expansion, with the Qi gate providing both a graceful entry at step 20 and an exit at step 60. The spectral index $n_s \approx 0.967$ and tensor-to-scalar ratio $r \approx \varphi^{-12} \approx 0.003$ emerge without any free parameters, and the gate exit mechanism replaces the fine-tuned inflaton potential that plagues…
+The standard Big Bang model requires a period of impossibly fast expansion in the first split-second to explain why the cosmos is so uniform and flat. Nobody knows what drove this "inflation," why it started, or why it stopped—the usual story invokes a speculative new field (the inflaton) with an exquisitely tuned potential. Cassi's answer draws on the cascade ladder: steps 20 through 60 of the ratio's natural evolution produce 40 e-folds of expansion, with the Qi gate providing both a graceful entry at step 20 and an exit at step 60. The spectral index $n_s \approx 0.9691$ (from $n_s = 1 - 2\varphi^{-1}/N_e$ with $N_e = 40$) and tensor-to-scalar ratio $r \approx \varphi^{-12} \approx 0.003$ emerge without any free parameters, and the gate exit mechanism replaces the fine-tuned inflaton potential that plagues…
 
-| **Cassi Answer** | Cascade steps $n \approx 20$–$60$ are the inflationary epoch; Qi gate slow-roll drives expansion; gate engagement at $r = \varphi^{-1}$ (step $\sim 60$) provides graceful exit. $N_e = 40$ e-folds, $n_s = 0.950 + \delta n_s \approx 0.967$, $r \approx \varphi^{-12} \approx 0.003$, $\alpha_s = -0.0013$. No inflaton. Refined predictions: `foundations/refined-numeric-predictions.md` §2.4 |
+| **Cassi Answer** | Cascade steps $n \approx 20$–$60$ are the inflationary epoch; Qi gate slow-roll drives expansion; gate engagement at $r = \varphi^{-1}$ (step $\sim 60$) provides graceful exit. $N_e = 40$ e-folds, $n_s = 0.950 + 0.0191 = 0.9691$, $r \approx \varphi^{-12} \approx 0.003$, $\alpha_s = -0.0013$. No inflaton. Refined predictions: `foundations/refined-numeric-predictions.md` §2.4 |
 | **Mechanism** | Qi gate $(1-q)$ modulates $H$ during ratio evolution; wake-wave mechanism imprints $\varphi$-scaled perturbations. Gate closure replaces fine-tuned inflaton potential. Zero free parameters. $r \approx \varphi^{-12} = \xi^{-1} \cdot \varphi^{-6}$. |
 | **Epistemic** | **Hypothesized**—mechanism (steps 20-60, gate exit) derived; $n_s$, $r$ predictions testable with CMB-S4/LiteBIRD |
 | **Reference** | `cosmology/inflation-from-cascade.md`, `foundations/refined-numeric-predictions.md` |
@@ -261,7 +261,7 @@ The cosmic microwave background has the exact same temperature in every directio
 | **Cassi Answer** | Cascade emergence: all scales activate simultaneously when $r(t)$ crosses each step |
 | **Mechanism** | Scale emergence is temporal (ratio-driven), not spatial (light-travel); no pre-inflation contact needed |
 | **Epistemic** | **Hypothesized** |
-| **Reference** | `dimensionful-cascade.md` |
+| **Reference** | `foundations/dimensionful-cascade.md` |
 
 ### C7: Baryon asymmetry
 
@@ -278,7 +278,7 @@ flowchart TD
 
 The universe is overwhelmingly made of matter, not antimatter—but this should not be the case if the Big Bang created equal amounts of both. Something must have produced a slight excess, roughly one extra particle per billion. Cassi's answer combines three independently derived mechanisms: organized annihilation (a phase-inverted antiparticle attack that eliminates paired antimatter, derived from the coherence budget framework), a freeze-out gap $g = 1 - \varphi^{-5}$ from the Wu Xing five-phase cycle that leaves a residual Yang excess, and cascade expansion that dilutes the asymmetry to precisely the observed value. The result, $\eta \approx \varphi^{-44} \approx 6.4 \times 10^{-10}$, matches the observed baryon-to-photon ratio within 6% with zero free pa…
 
-| **Cassi Answer** | $\eta \approx \varphi^{-44} \approx 6.4 \times 10^{-10}$ from three derived mechanisms: (1) organized annihilation ($\S5.2$ of `proton-coherence-budget.md`) eliminates paired antimatter; (2) Yang-Yin imbalance at Wu Xing freeze-out (gap $g = 1-\varphi^{-5}$) leaves residual Yang excess; (3) cascade photon-production dilution through rungs 8→52. All three Sakharov conditions satisfied. Full derivation: `foundations/baryon-asymmetry.md` |
+| **Cassi Answer** | $\eta \approx \varphi^{-44} \approx 6.4 \times 10^{-10}$ from three derived mechanisms: (1) organized annihilation ($\S5.2$ of `foundations/proton-coherence-budget.md`) eliminates paired antimatter; (2) Yang-Yin imbalance at Wu Xing freeze-out (gap $g = 1-\varphi^{-5}$) leaves residual Yang excess; (3) cascade photon-production dilution through rungs 8→52. All three Sakharov conditions satisfied. Full derivation: `foundations/baryon-asymmetry.md` |
 | **Mechanism** | Freeze-out Yang-Yin ratio at GUT; organized annihilation probability O(1); cascade expansion dilutes to present-epoch $\eta$. $\eta \approx \varphi^{-44}$ is within 6% of observed $6.0 \times 10^{-10}$. Refined prediction in `foundations/refined-numeric-predictions.md` §2.1 |
 | **Epistemic** | **Hypothesized**—mechanism derived; specific exponent (-44) pins freeze-out to step 52 |
 | **Reference** | `foundations/baryon-asymmetry.md`, `foundations/refined-numeric-predictions.md` |
@@ -301,7 +301,7 @@ General relativity predicts that the universe began as a point of infinite densi
 | **Cassi Answer** | $\sigma$-regularized PDE: force goes harmonic as $r \to 0$, not singular |
 | **Mechanism** | $F \propto -r/(3\sigma^3) \cdot (1+\xi q)$—linear core |
 | **Epistemic** | **Derived**—no singularity in the governing equation |
-| **Reference** | `unified-lagrangian.md` §3 |
+| **Reference** | `foundations/unified-lagrangian.md` §3 |
 
 ### C9: Cosmic web structure
 
@@ -321,7 +321,7 @@ Map the distribution of galaxies across the sky and you see an intricate web of 
 | **Cassi Answer** | Wake-wave mechanism: $\varphi$-scaled wake interference; Yang dominance produces flattened, paired-sheet morphology |
 | **Mechanism** | Anti-phase conversion + Yang-dominant axis → triaxial spheroid with paired sheets |
 | **Epistemic** | **Hypothesized**—morphology matches; W1 anti-phase confirmed |
-| **Reference** | `why-three-dimensions.md`, `kolmogorov-from-phi.md` |
+| **Reference** | `foundations/why-three-dimensions.md`, `turbulence/kolmogorov-from-phi.md` |
 
 ### C10: CMB large-angle anomalies
 
@@ -341,7 +341,7 @@ The cosmic microwave background is mostly uniform, but its largest-scale feature
 | **Cassi Answer** | Adjacent bubbles at identical $w=5$ and $\varphi$-spaced chord lattice intervals imprint preferred axis at $\ell<5$; predicted axis-dipole alignment $12.2°$ from bubble triaxial geometry. All bubbles share the same derived $w=5$ (`foundations/wu-xing-derivation.md`). |
 | **Mechanism** | Bubble-boundary structure at step 285; edge geometry derived from condensation field + Qi gate + cascade (`foundations/bubble-edge-geometry.md`). Yang axis + string axis give two preferred directions; $12.2°$ is the angular separation between CMB dipole (Yang axis) and quadrupole-octopole axis (bubble boundary normal). Refined in `foundations/refined-numeric-predictions.md` §2.3 |
 | **Epistemic** | **Derived**—bubble edge geometry structurally derived (`foundations/bubble-edge-geometry.md` Status: Derived); CMB axis at $\ell<5$ follows from condensation field + Qi gate + cascade; $12.2°$ is a geometric consequence of triaxial geometry (not a $\varphi$-power). E-mode test pending (Simons Obs./LiteBIRD) |
-| **Reference** | `observational_constraints.md` §4, `foundations/bubble-edge-geometry.md`, `foundations/refined-numeric-predictions.md` |
+| **Reference** | `cosmology/observational_constraints.md` §4, `foundations/bubble-edge-geometry.md`, `foundations/refined-numeric-predictions.md` |
 
 ---
 
@@ -364,7 +364,7 @@ The weak nuclear force is about $10^{32}$ times stronger than gravity—a gap so
 | **Cassi Answer** | $v_0/M_{\text{Pl}} \approx \varphi^{-80}$—cascade step count, not a tuning |
 | **Mechanism** | Gap $g = 1-\varphi^{-5}$ sets cascade depth from Wu Xing structure; $N \approx 80$ is a count, not a cancellation |
 | **Epistemic** | **Derived**—$N = \log_\varphi(M_{\text{Pl}}/v_0) \approx 79.7$ |
-| **Reference** | `dimensionful-cascade.md` §2 |
+| **Reference** | `foundations/dimensionful-cascade.md` §2 |
 
 ### Q2: Strong CP problem
 
@@ -391,15 +391,15 @@ The strong nuclear force could in principle violate CP symmetry (the combined ma
 flowchart TD
     A[Compressed seesaw span ~12 rungs] --> B[Fibonacci triple-cluster]
     B --> C[Three mass eigenstates]
-    C --> D[Normal ordering, m_ν ≈ 0.8 eV]
+    C --> D[Normal ordering, m₃ = 0.0502 eV (computed spectrum)]
 ```
 
 **Visual:** Three neutrino masses come from Fibonacci triple-clustering over a compressed cascade span, like three notes from a single compressed string.
 
 
-Neutrinos have tiny but non-zero masses—millions of times smaller than the electron—and nobody knows why they are so light, whether they are their own antiparticles (Majorana or Dirac), or why the three masses are arranged the way they are. Cassi's answer: the seesaw mechanism operates over a compressed cascade span at step 20, giving $m_\nu \approx v_0 \cdot \varphi^{-12} \sim 0.8$ eV as the overall scale. The three mass eigenstates come from the same Fibonacci triple-clustering (Primer) that produces three fermion generations in Q5—the compressed seesaw span of about 12 rungs is partitioned into three Fibonacci sub-channels. Normal ordering is predicted, no sterile neutrinos are required, and the $\varphi$-power spacing between masses is testable wit…
+Neutrinos have tiny but non-zero masses—millions of times smaller than the electron—and nobody knows why they are so light, whether they are their own antiparticles (Majorana or Dirac), or why the three masses are arranged the way they are. Cassi's answer: the seesaw mechanism operates over a compressed cascade span at step 20, and the cascade RGE + PMNS pipeline pins the full spectrum: $m_1 = 0.00356$, $m_2 = 0.00931$, $m_3 = 0.05019$ eV, $\Sigma m_\nu = 0.0631$ eV. The three mass eigenstates come from the same Fibonacci triple-clustering (Primer) that produces three fermion generations in Q5—the compressed seesaw span of about 12 rungs is partitioned into three Fibonacci sub-channels. Normal ordering is predicted, no sterile neutrinos are required, and the $\varphi$-power spacing between masses is testable wit…
 
-| **Cassi Answer** | Seesaw scale at cascade step 20: $m_\nu \approx v_0 \cdot \varphi^{-12} \sim 0.8$ eV. Three mass eigenstates from Fibonacci triple-clustering over compressed seesaw span ($N_\nu \approx 12$ vs $N_{\text{lep}} \approx 72$). The seesaw $y_\nu^2$ structure doubles the $\varphi$-exponent of the mass ratios. Cascade RGE + PMNS pins the exact Fibonacci offsets: $\Delta_1 = 1.00$, $\Delta_2 = 1.75$ rungs (mass-exponent $2\Delta_1 = 2.00$, $2\Delta_2 = 3.50$). Predicted $\Delta m^2_{31}/\Delta m^2_{21} \approx 33.82$, matching observed $\approx 33.89$ to **0.2%**. Full mass spectrum computed: $m_1 = 0.00356$, $m_2 = 0.00931$, $m_3 = 0.05019$ eV, $\Sigma m_\nu = 0.0631$ eV. Predicts **normal ordering**, no sterile neutrinos. See `computations/cas…
+| **Cassi Answer** | Seesaw scale at cascade step 20, pinned by the cascade RGE + PMNS pipeline (spectrum below). Three mass eigenstates from Fibonacci triple-clustering over compressed seesaw span ($N_\nu \approx 12$ vs $N_{\text{lep}} \approx 72$). The seesaw $y_\nu^2$ structure doubles the $\varphi$-exponent of the mass ratios. Cascade RGE + PMNS pins the exact Fibonacci offsets: $\Delta_1 = 1.00$, $\Delta_2 = 1.75$ rungs (mass-exponent $2\Delta_1 = 2.00$, $2\Delta_2 = 3.50$). Predicted $\Delta m^2_{31}/\Delta m^2_{21} \approx 33.82$, matching observed $\approx 33.89$ to **0.2%**. Full mass spectrum computed: $m_1 = 0.00356$, $m_2 = 0.00931$, $m_3 = 0.05019$ eV, $\Sigma m_\nu = 0.0631$ eV. Predicts **normal ordering**, no sterile neutrinos. See `computations/cas…
 | **Mechanism** | Same Fibonacci partitioning as three-generations (Q5), applied to compressed seesaw span. The $y_\nu^2$ factor gives a built-in $\varphi$-exponent doubling. Non-uniform partitioning over 12 rungs, pinned by discrete φ-RG scan from GUT to seesaw, yields $\Delta_1 = 1.00$ (exact integer rung—gen1→gen2 is exactly one φ-step), $\Delta_2 = 1.75$ rungs. Anomalous dimension $\gamma_\nu \approx 0.37 \approx \varphi^{-2}$ confirms spectral-gap governance. $\varphi$-power spacing testable with JUNO/DUNE |
 | **Epistemic** | **Hypothesized with derived mechanism**—overall scale $m_\nu \approx v_0\varphi^{-12}$ and $y_\nu^2$ amplification are Derived; PMNS angles $\theta_{12},\theta_{13},\theta_{23}$ follow from conversion Jacobian eigenvectors with zero free parameters; Fibonacci offsets $\Delta_1 = 1.00$, $\Delta_2 = 1.75$ rungs now **pinned** by cascade RGE + PMNS (0.2% residual); full mass spectrum computed |
 | **Reference** | `foundations/neutrino-masses.md`, `foundations/refined-numeric-predictions.md`, `computations/cascade_rge_pmns.py` |
@@ -422,7 +422,7 @@ The three forces of the Standard Model—electromagnetic, weak, and strong—hav
 | **Cassi Answer** | $\alpha_{\text{GUT}} = \varphi^{-3}/(4\pi) \approx 1/53$ at GUT scale (step 5–10) |
 | **Mechanism** | Single coupling at single scale; all SM couplings flow from it; RGE running explains deviations |
 | **Epistemic** | **Derived**—$\sin^2\theta_W$ within 2%, FCC-ee test pending |
-| **Reference** | `sm-from-phi.md`, `su2-gauge-extension.md` |
+| **Reference** | `standard-model/sm-from-phi.md`, `standard-model/su2-gauge-extension.md` |
 
 ### Q5: Three generations
 
@@ -474,7 +474,7 @@ When a quantum system is in a superposition of states, the act of measurement se
 | **Cassi Answer** | Single-rung coherence-budget: organized ($\mathcal{M}\approx 1$) perturbation attacks inter-branch coherence at the superposed quantum number's rung; Born rule from Qi selection ($\S4$). Environmental decoherence is unphase-matched ($\mathcal{M}\approx 0$)—off-diagonal decay only, no branch selection. Measurement collapse may correspond to a single-rung lattice decoherence event—the superposition resolving to one lattice site (`foundations/bubble-lattice-fabric.md` §8.5). Full derivation: `foundations/quantum-measurement-derivation.md`, `foundations/refined-numeric-predictions.md` §2.5 |
 | **Mechanism** | Inter-branch coherence lives at ONE cascade rung; phase-matching factor $\mathcal{M}$ distinguishes measurement ($\mathcal{M}\approx 1$) from environment ($\mathcal{M}\approx 0$). Born rule $P(\alpha)=|\alpha|^2$ derived from $q \propto |\psi|^2$ |
 | **Epistemic** | **Hypothesized with derived core**—Born rule and single-rung architecture derived; $\mathcal{M}$ hypothesized. 5 predictions (M1-M5) |
-| **Reference** | `foundations/quantum-measurement-derivation.md`, `quantum-measurement-qi-appendix.md` |
+| **Reference** | `foundations/quantum-measurement-derivation.md`, `../../quantum-measurement-qi-appendix.md` |
 
 ### Q8: Quark confinement
 
@@ -542,19 +542,19 @@ Spin is a fundamental property of particles—like rotation but not actually rot
 ```mermaid
 flowchart TD
     A[σ-regularized Poisson: ∇²Φ → 1/√(|r|²+σ²)] --> B[G_eff = (π/ρ)(1+ξq) G_N]
-    B --> C[No graviton needed]
+    B --> C[No fundamental graviton—composite in quantized extension]
     C --> D[Gravity emerges from field density gradients]
 ```
 
-**Visual:** Gravity is a σ-regularized Poisson equation with a softened kernel—a spring instead of a spike, requiring no graviton and no quantization of spacetime.
+**Visual:** Gravity is a σ-regularized Poisson equation with a softened kernel—a spring instead of a spike. No fundamental graviton is required; the spin-2 graviton exists only as a composite SO(2) excitation in the quantized two-fluid extension (Hypothesized).
 
 
-General relativity and quantum mechanics are mathematically incompatible—no consistent quantum theory of gravity exists the way it does for the other three forces. Cassi takes a different approach: gravity is not quantized at all. It emerges from field density gradients in a $\sigma$-regularized Poisson equation (see Primer), where the effective gravitational constant $G_{\text{eff}} = (\pi/\rho)(1 + \xi q)\,G_N$ depends on local Qi density and matter density. The softening parameter $\sigma = \ell_{\text{Pl}}/\varphi^3$ comes from the cascade, and no graviton or quantization of spacetime is required—gravity is a macroscopic field effect, not a quantum exchange force. The $\sigma$-regularization eliminates the need for a graviton just as it eliminates si…
+General relativity and quantum mechanics are mathematically incompatible—no consistent quantum theory of gravity exists the way it does for the other three forces. Cassi takes a different approach: gravity is not a quantum exchange force at the classical layer—it emerges from field density gradients in a $\sigma$-regularized Poisson equation (see Primer), where the effective gravitational constant $G_{\text{eff}} = (\pi/\rho)(1 + \xi q)\,G_N$ depends on local Qi density and matter density. The softening parameter $\sigma = \ell_{\text{Pl}}/\varphi^3$ comes from the cascade, and no fundamental graviton or quantization of spacetime is required—gravity is a macroscopic field effect. In the quantized two-fluid extension (Hypothesized), the graviton is a composite spin-2 SO(2) excitation with the massless GR limit at $k \ll 1/\sigma$; no renormalization is ever needed. The $\sigma$-regularization eliminates the need for a fundamental graviton just as it eliminates si…
 
-| **Cassi Answer** | $\sigma$-regularized Poisson equation; gravity is Qi-enhanced, not quantized |
-| **Mechanism** | $G_{\text{eff}} = (\pi/\rho)(1 + \xi q) G_N$; no graviton; gravity emerges from field density gradient |
+| **Cassi Answer** | No fundamental graviton: $\sigma$-regularized Poisson emergence; gravity is Qi-enhanced, not a quantum exchange force (Derived, G1). In the quantized two-fluid extension (Hypothesized), the graviton is a composite spin-2 SO(2) excitation with the massless GR limit at $k \ll 1/\sigma$ |
+| **Mechanism** | $G_{\text{eff}} = (\pi/\rho)(1 + \xi q) G_N$; no fundamental graviton; composite SO(2) excitation in the quantized extension (Hypothesized); gravity emerges from field density gradient |
 | **Epistemic** | **Derived**—$\sigma = \ell_{\text{Pl}}/\varphi^3$ from cascade |
-| **Reference** | `unified-lagrangian.md`, `quantum-gravity.md` |
+| **Reference** | `foundations/unified-lagrangian.md`, `gravity/quantum-gravity.md` |
 
 ### G2: Black hole information paradox
 
@@ -593,7 +593,7 @@ General relativity predicts that at the center of every black hole, matter is cr
 | **Cassi Answer** | Harmonic core: $F \propto -r/(3\sigma^3)$ at small $r$ prevents divergence |
 | **Mechanism** | Same $\sigma$-regularization that prevents Big Bang singularity |
 | **Epistemic** | **Derived**—consequence of $\sigma$-regularized PDE |
-| **Reference** | `unified-lagrangian.md` §3 |
+| **Reference** | `foundations/unified-lagrangian.md` §3 |
 
 ### G4: Galaxy rotation curves
 
@@ -613,7 +613,7 @@ Stars at the outskirts of galaxies orbit just as fast as stars near the center�
 | **Cassi Answer** | $\xi = \varphi^6 \approx 17.944$—Qi-enhanced gravity at galactic scales ($q \approx 0.67$) |
 | **Mechanism** | Qi density amplifies $G_{\text{eff}}$; rotation curve, RAR, BTFR all follow from $\xi$ |
 | **Epistemic** | **Derived**—$\xi$ within 0.3% of empirical; multiple galaxy-scale predictions matched |
-| **Reference** | `xi-derivation.md`, `run_galactic_rotation.py` |
+| **Reference** | `foundations/xi-derivation.md`, `run_galactic_rotation.py` |
 
 ### G5: Why 3+1 dimensions?
 
@@ -653,7 +653,7 @@ Gravity is staggeringly weaker than the other forces—a small refrigerator magn
 | **Cassi Answer** | Gravity IS the Qi-enhanced Poisson equation; its apparent weakness is the $\pi/\rho$ prefactor at low density |
 | **Mechanism** | In high-density regions (galactic center) gravity strengthens; in voids it weakens—variable, not weak |
 | **Epistemic** | **Derived**—follows from Qi-gravity coupling scheme |
-| **Reference** | `unified-lagrangian.md` |
+| **Reference** | `foundations/unified-lagrangian.md` |
 
 ---
 
@@ -663,12 +663,12 @@ Gravity is staggeringly weaker than the other forces—a small refrigerator magn
 
 ```mermaid
 flowchart TD
-    A[φ-power spectrum] --> B[17 of 40 params are φ-powers]
+    A[φ-power spectrum] --> B[24 of 46 params are φ-derived]
     B --> C[Single de-resonance attractor]
     C --> D[No cancellations, no tuning needed]
 ```
 
-**Visual:** Seventeen of the Standard Model's 40 parameters are direct φ-powers—the de-resonance attractor eliminates tuning, like a 292-rung ladder that needs no guesswork.
+**Visual:** Twenty-four of the Standard Model's 46 parameters are derived φ-powers—the de-resonance attractor eliminates tuning, like a 292-rung ladder that needs no guesswork.
 
 
 The parameters of the Standard Model and cosmology seem exquisitely tuned—tiny deviations in dozens of numbers would produce a universe unable to support life or even exist for more than an instant. Cassi's answer: there is no fine-tuning because every coupling flows to a $\varphi$-power at the de-resonance attractor (see Primer). All dimensionless parameters are now derived from $\varphi$ (zero free parameters), including the PDE conversion rate $\lambda = 1/(2w) = 0.1$ via the now-derived $w=5$ (`foundations/wu-xing-derivation.md`). Three dimensionful constants ($c$, $\hbar$, $G$) remain external. Because $\varphi$ is the most irrational number, it is the maximally stable configuration—couplings naturally flow toward it, eliminating the need for fine-t…
@@ -717,7 +717,7 @@ Physics has four fundamental forces—gravity, electromagnetism, the strong nucl
 | **Cassi Answer** | Single PDE: all forces are manifestations of two-fluid dynamics at different cascade rungs |
 | **Mechanism** | Gravity = Qi-enhanced Poisson; EM = gauge from SU(2) extension; strong = cascade confinement; weak = symmetry breaking at step 80 |
 | **Epistemic** | **Hypothesized**—gauge structure identified; full force derivation in progress |
-| **Reference** | `unified-lagrangian.md`, `su2-gauge-extension.md` |
+| **Reference** | `foundations/unified-lagrangian.md`, `standard-model/su2-gauge-extension.md` |
 
 ### F4: Theory of Everything
 
@@ -733,7 +733,7 @@ flowchart TD
 **Visual:** One equation (the two-fluid PDE), one constant (φ), and the cascade structure—one guitar string producing all the pillars of physics.
 
 
-The ultimate goal of theoretical physics is a single, coherent framework that explains all of physical reality—from particles to galaxies to consciousness. No previous attempt, whether string theory, loop quantum gravity, or any other approach, has succeeded. Cassi offers: one equation (the two-fluid PDE), one constant ($\varphi$), and the cascade structure. From these alone it produces cosmology ($w_0 = -0.87$ from the $\varphi$-attractor, corrected 2026-07-31), particle physics (spin quantization from SO(2) winding, three generations from Fibonacci tripartition), gravity ($\xi = \varphi^6$ amplification from the Qi condensate), and Standard Model parameters ($\sin^2\theta_W = \varphi^{-3}$ from unified coupling). All four pillars of physics emerge from the same underlying dy…
+The ultimate goal of theoretical physics is a single, coherent framework that explains all of physical reality—from particles to galaxies to consciousness. No previous attempt, whether string theory, loop quantum gravity, or any other approach, has succeeded. Cassi offers: one equation (the two-fluid PDE), one constant ($\varphi$), and the cascade structure. From these alone it produces cosmology ($w_0 = -0.87$ from the $\varphi$-attractor), particle physics (spin quantization from SO(2) winding, three generations from Fibonacci tripartition), gravity ($\xi = \varphi^6$ amplification from the Qi condensate), and Standard Model parameters ($\sin^2\theta_W = \varphi^{-3}$ from unified coupling). All four pillars of physics emerge from the same underlying dy…
 
 | **Cassi Answer** | Cassi: one equation ($\partial_t E_Y + \nabla\cdot(E_Y\mathbf{u}) = \omega_0 g(q)(E_Y-\varphi E_I) + \nu\nabla^2 E_Y$, etc.), one constant ($\varphi$) |
 | **Mechanism** | All four pillars (particles, cosmology, gravity, SM) from two-fluid PDE + $\varphi$ + cascade |
@@ -767,17 +767,17 @@ The along-string bubble period is 1 rung at cosmological scale (step 285) and 2 
 ```mermaid
 flowchart TD
     A[DESI DR2: w₀ ≈ −0.75 ± 0.06] --> B[Cassi: w₀ = −0.87—2σ]
-| **Cassi Answer** | $w_0 = -0.87$ (2σ from DESI $w_0 \approx -0.75 \pm 0.06$ [INFERENCE], corrected 2026-07-31); $w_a = +0.012$ with $\xi = \varphi^6$ (corrected Yang-fraction form; 2.7σ, 2.2–3.2σ, from DESI $w_a \approx -0.73 \pm 0.28$ [INFERENCE])—tension, not resolved |
 ```
+| **Cassi Answer** | $w_0 = -0.87$ (2σ from DESI $w_0 \approx -0.75 \pm 0.06$ [INFERENCE]); $w_a = +0.012$ with $\xi = \varphi^6$ (2.7σ, 2.2–3.2σ, from DESI $w_a \approx -0.73 \pm 0.28$ [INFERENCE])—tension, not resolved |
 
-**Visual:** DESI DR2 constrains w₀ ≈ −0.75 ± 0.06 [INFERENCE]; Cassi predicts w₀ = −0.87—a 2σ offset (corrected 2026-07-31; the old −0.838 was the repo's own calibration target—circular).
+**Visual:** DESI DR2 constrains w₀ ≈ −0.75 ± 0.06 [INFERENCE]; Cassi predicts w₀ = −0.87—a 2σ offset.
 
 
-The Dark Energy Spectroscopic Instrument (DESI) recently measured how dark energy has evolved over cosmic time and found that it does not behave like a simple cosmological constant—the deviation is at 4.2 sigma, crossing the threshold for a discovery. If confirmed, this would rule out the standard $\Lambda$CDM model. Cassi's answer: $w_0 = -0.87$ (corrected 2026-07-31)—$2\sigma$ from the DESI anchor $w_0 \approx -0.75 \pm 0.06$ [INFERENCE]; the earlier "$0\sigma$ match" at $-0.838$ was the repo's own calibration target (circular)—because $w(a)$ evolves naturally with $r(a)$ in the two-fluid model (see Primer), and the present-day value is simply a snapshot of the closing Qi gate. DESI also constrains $w_a \approx -0.73 \pm 0.28$ [INFERENCE] (Table 9; range $-0.6$ to $-1.1$ across SNe compilations). The bare Cassi prediction was $w_a = +0.46$ ($\sim 4\sigma$ tension, corrected 2026-07-31). Including the Qi-gravity coupling $\xi = \varphi^6$ (already verified in rotation curves at $0\sigma$) in $H(a)$ in its corrected Yang-fraction-weighted form gives $w_a = +0.012$—2.7σ (2.2–3.2σ) from DESI: tension, not resolved (corrected 2026-07-31).
+The Dark Energy Spectroscopic Instrument (DESI) recently measured how dark energy has evolved over cosmic time and found that it does not behave like a simple cosmological constant—the deviation is at 4.2 sigma, crossing the threshold for a discovery. If confirmed, this would rule out the standard $\Lambda$CDM model. Cassi's answer: $w_0 = -0.87$—$2\sigma$ from the DESI anchor $w_0 \approx -0.75 \pm 0.06$ [INFERENCE]—because $w(a)$ evolves naturally with $r(a)$ in the two-fluid model (see Primer), and the present-day value is simply a snapshot of the closing Qi gate. DESI also constrains $w_a \approx -0.73 \pm 0.28$ [INFERENCE] (Table 9; range $-0.6$ to $-1.1$ across SNe compilations). With the Qi-gravity coupling $\xi = \varphi^6$ (verified in rotation curves) in $H(a)$, the Yang-fraction-weighted form gives $w_a = +0.012$—2.7σ (2.2–3.2σ) from DESI: tension, not resolved.
 
-| **Cassi Answer** | $w_0 = -0.87$ (2σ from DESI $w_0 \approx -0.75 \pm 0.06$ [INFERENCE], corrected 2026-07-31); $w_a = +0.012$ with $\xi = \varphi^6$ (corrected Yang-fraction form; 2.7σ, 2.2–3.2σ, from DESI $w_a \approx -0.73 \pm 0.28$ [INFERENCE])—tension, not resolved |
-| **Mechanism** | $w(a)$ evolves with $r(a)$; $w_0$ is present-epoch snapshot of closing Qi gate; $\xi = \varphi^6$ in $H(a)$ shifts $w_a$ from $+0.46$ to $+0.012$ (corrected Yang-fraction form) |
-| **Epistemic** | **Derived**—$\xi = \varphi^6$ verified against the ODE (`two-fluid/calibrate_initial_ratio_xi_v2.py`); prediction at 2.7σ (2.2–3.2σ) from DESI $w_a \approx -0.73 \pm 0.28$ [INFERENCE]—tension, not resolved (corrected 2026-07-31) |
+| **Cassi Answer** | $w_0 = -0.87$ (2σ from DESI $w_0 \approx -0.75 \pm 0.06$ [INFERENCE]); $w_a = +0.012$ with $\xi = \varphi^6$ (2.7σ, 2.2–3.2σ, from DESI $w_a \approx -0.73 \pm 0.28$ [INFERENCE])—tension, not resolved |
+| **Mechanism** | $w(a)$ evolves with $r(a)$; $w_0$ is present-epoch snapshot of closing Qi gate; $\xi = \varphi^6$ in $H(a)$ gives $w_a = +0.012$ |
+| **Epistemic** | **Derived**—$\xi = \varphi^6$ verified against the ODE (`two-fluid/calibrate_initial_ratio_xi_v2.py`); prediction at 2.7σ (2.2–3.2σ) from DESI $w_a \approx -0.73 \pm 0.28$ [INFERENCE]—tension, not resolved |
 | **Reference** | `two-fluid/calibrate_initial_ratio_xi.py`, `foundations/wa-pentagon-gate.md` §5 |
 
 ### T2: JWST "impossible" early galaxies
@@ -854,10 +854,10 @@ flowchart TD
 
 Why should a collection of neurons firing produce subjective experience—the feeling of "what it is like" to be you? This is the hard problem of consciousness, and many consider it the most difficult question in modern science. Cassi's answer directly addresses the "why": consciousness is the experience of being a self-predicting, $\varphi$-damped, cross-chakra Qi fluid with a persistent self-condensate. The critical transition is the "pinch" at $r = \varphi^{-1}$ (see Primer), where the ratio of Yang to Yin crosses a threshold and the field becomes an object to itself—a river bending back to see its own flow. This self-reference is what we experience as subjective awareness, and the theory makes 19 testable predictions.
 
-| **Cassi Answer** | Consciousness is the experience of being a self-predicting, phi-damped, cross-chakra Qi fluid with a persistent self-condensate ($\S4$, $\S 6.3$) |
+| **Cassi Answer** | Consciousness is the experience of being a self-predicting, phi-damped, cross-chakra Qi fluid with a persistent self-condensate |
 | **Mechanism** | Qi-gate pinch at $r = \varphi^{-1}$ is self-reference; the field becomes an object to itself; phenomenal qualities ARE Qi fluid patterns |
 | **Epistemic** | **Hypothesized**—19 testable predictions; two-bubble weak-moderate signal confirmed |
-| **Reference** | `consciousness-framework.md` |
+| **Reference** | `consciousness/consciousness-from-phi.md` |
 
 ### M2: Mind-brain relation
 
@@ -876,7 +876,7 @@ Philosophers and neuroscientists have long debated how neural activity in the br
 | **Cassi Answer** | Mind IS concentrated post-pinch field dynamics; the brain is the antenna, the Qi fluid is the signal |
 | **Mechanism** | Same PDE, same attractor, same pinch as the cosmos—mind is not produced by brain, it is local field coherence |
 | **Epistemic** | **Hypothesized**—structural identity with cosmology established |
-| **Reference** | `consciousness-framework.md` §3 |
+| **Reference** | `consciousness/consciousness-from-phi.md` §3 |
 
 ### M3: Depth of mind
 
@@ -892,10 +892,10 @@ flowchart TD
 
 When you introspect—look inward at your own mind—you find no bottom. There is always another layer of awareness, another observer behind the observer. This unbounded depth has no explanation in standard neuroscience. Cassi's answer: the field's cascade has no floor—it extends downward infinitely, and mind inherits this infinite-ladder structure. Meditation protocols that reduce $\sigma_r$ (the spatial ratio dispersion, explained in the Primer) allow access to ever-finer cascade-step resolutions, giving the experience of unbounded depth. Prediction #31 of the framework links subjective depth to measurable coherence parameters, making it empirically testable.
 
-| **Cassi Answer** | The field's cascade has no floor (§1.2 of `why-three-dimensions.md`); mind inherits the infinite ladder |
+| **Cassi Answer** | The field's cascade has no floor (§1.2 of `foundations/why-three-dimensions.md`); mind inherits the infinite ladder |
 | **Mechanism** | Meditation as coherence protocol: $\sigma_r$ collapse → finer cascade-step resolution → no floor to experience |
 | **Epistemic** | **Hypothesized**—Prediction #31 (depth↔coherence correlation) |
-| **Reference** | `consciousness-framework.md` §7.1, `foundations/bubble-lattice-fabric.md` §8.5 |
+| **Reference** | `consciousness/consciousness-from-phi.md`, `foundations/bubble-lattice-fabric.md` §8.5 |
 
 ### M4: Altered states
 
@@ -917,7 +917,7 @@ Psychedelics, deep meditation, and near-death experiences produce profoundly dif
 | **Cassi Answer** | Changes in spatial ratio dispersion $\sigma_r = \sqrt{\langle(r-\langle r\rangle)^2\rangle}$ |
 | **Mechanism** | Waking: moderate $\sigma_r$; Meditation: $\sigma_r$ reduced; Psychedelic: $\sigma_r$ increased with sub-pinch excursions |
 | **Epistemic** | **Hypothesized**—two-bubble test provides PDE-level support |
-| **Reference** | `consciousness-framework.md` §7.2, `consciousness-from-phi.md` §2.3 |
+| **Reference** | `consciousness/consciousness-from-phi.md` §2.3 |
 
 ### M5: Empathy / coupling
 
@@ -941,7 +941,7 @@ People sometimes report feeling what others feel—not through observation or in
 | **Cassi Answer** | Field-as-sense: the Qi field is a sensory modality; no brain-to-brain mechanical link needed |
 | **Mechanism** | Boundary residual coupling through shared field medium; two-bubble $\varphi$-resonance confirmed (weak-moderate, pinch-dependent) |
 | **Epistemic** | **Hypothesized**—W1 anti-phase confirmed; two-bubble signal detected |
-| **Reference** | `consciousness-framework.md` §8, `consciousness-from-phi.md` §3 |
+| **Reference** | `consciousness/consciousness-from-phi.md` §3 |
 
 ---
 
@@ -959,7 +959,7 @@ People sometimes report feeling what others feel—not through observation or in
 **Total: 41 open questions mapped to Cassi answers.** Of those, 17 Derived, 6 Hypothesized with pinned $\varphi$-powers, 18 Hypothesized needing computational pipelines, 0 Speculative. The 6 pinned-$\varphi$ questions have specific numeric predictions refined in `foundations/refined-numeric-predictions.md`; 5 of 6 are within observational bounds (C10 CMB axis now upgraded to Derived from edge geometry). The remaining 17 require computational pipelines ($w(a) \to H(z)$ integration, modified Boltzmann code, PDE N-body, curved-spacetime BH solver) for full quantitative closure.
 
 
-## 9. What Cassi Does Not Yet Answer (Honesty)
+## 9. What Cassi Does Not Yet Answer (Open Gaps)
 
 With the refined numeric predictions (`foundations/refined-numeric-predictions.md`), the status of each open gap is:
 
@@ -980,7 +980,7 @@ See `foundations/refined-numeric-predictions.md` §5 for the complete open-quest
 ---
 
 ## 10. References
-- `foundations/refined-numeric-predictions.md`—refined $\varphi$-powers for all 22 hypothesized questions
+- `foundations/refined-numeric-predictions.md`—refined $\varphi$-powers for all 24 hypothesized questions
 
 All Cassi theory documents are organized in the subdirectories listed above. Key cross-references:
 
@@ -997,8 +997,8 @@ All Cassi theory documents are organized in the subdirectories listed above. Key
 - `standard-model/sm-from-phi.md`—SM couplings, GUT, generations
 - `standard-model/cp-violation.md`—CP, baryon asymmetry
 - `standard-model/neutrino-mass.md`—neutrino masses
-- `predictions/falsifiable-predictions.md`—complete 37-entry prediction catalog
+- `predictions/falsifiable-predictions.md`—complete 46-entry prediction catalog
 - `consciousness/consciousness-from-phi.md`—pinch, wake, two-bubble verification
 - `foundations/bubble-edge-geometry.md`—bubble edge profile, condensation threshold, anisotropic void ellipticity
-- `../../consciousness-framework.md`—full consciousness theory
+- `consciousness/consciousness-from-phi.md`—full consciousness theory
 - `../../quantum-measurement-qi-appendix.md`—measurement problem resolution

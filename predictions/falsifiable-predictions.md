@@ -29,27 +29,27 @@ The W/Z mass ratio deviates by 0.86%—detected at $>100\sigma$ with FCC-ee's
 
 | Observable | Planck (2018) | Cassi | CMB-S4 Reach |
 |-----------|---------------|-------|-------------|
-| $n_s$ | $0.965 \pm 0.004$ | **0.967** | $\pm 0.002$ |
+| $n_s$ | $0.965 \pm 0.004$ | **0.9691** | $\pm 0.002$ |
 | $r$ (tensor-to-scalar) | $<0.032$ | **0.003** | $0.001$ |
 | $dn_s/d\ln k$ | $-0.005 \pm 0.013$ | **$-5\times10^{-4}$** | $\pm 0.002$ |
 | $\mathcal{P}_\zeta$ | $2.1\times10^{-9}$ | **$\sim 2\times10^{-9}$** | In-situ |
 | $N_e$ (e-foldings) | $50$–$60$ | **$60 \pm 10$** | Degenerate |
 
 **Source:** `theory/cosmology-from-phi.md` §2. Inflation is a $\varphi$-driven phase
-transition ($r \gg \varphi$ to $r = \varphi$). The spectral index $n_s = 1-2/N_e$
-matches Planck at $0.5\sigma$. Tensor ratio $r = 12/N_e^2 = 0.003$ is within
+transition ($r \gg \varphi$ to $r = \varphi$). The spectral index $n_s = 1 - 2\varphi^{-1}/N_e = 0.9691$
+matches Planck at $1.0\sigma$ ($N_e = 40$). Tensor ratio $r = 12/N_e^2 = 0.003$ is within
 CMB-S4 detection threshold ($\sigma_r = 0.001$).
 
 
-**CMB large-angle anomaly (w-gradient)**: The multiverse w-spectrum predicts a preferred axis at super-horizon scales ($\ell < 5$) that fades at smaller scales. The CMB "axis of evil" (quadrupole-octopole alignment at $(l,b)=(260\degree,+60\degree)$, 5.4σ; Jones+ 2023) is a candidate. The Cassi-unique test: the anomaly must be scale-dependent (fading for $\ell > 5$), distinguishing from foreground contamination. Simons Observatory + LiteBIRD E-mode polarization data (2025+) will resolve.
+**CMB large-angle anomaly (bubble-boundary axis)**: triaxial bubble geometry at step 285 imprints a preferred axis at super-horizon scales ($\ell < 5$); predicted dipole↔quadrupole alignment $12.2°$ (C10). The CMB "axis of evil" (quadrupole-octopole alignment at $(l,b)=(260\degree,+60\degree)$, 5.4σ; Jones+ 2023) is a candidate. The Cassi-unique test: the anomaly must be scale-dependent (fading for $\ell > 5$), distinguishing from foreground contamination. Simons Observatory + LiteBIRD E-mode polarization data (2025+) will resolve.
 ---
 
 ## 3. Cosmic Surveys (LSST, Roman, SKA)—Structure & Dark Energy
 
 | Observable | $\Lambda$CDM | Cassi | Test / Status |
 |-----------|---------|-------|-----------|
-| $w_0$ (DE EoS today) | $-1$ | **$-0.87$** (structural, corrected 2026-07-31; pinned across $r_0$) | $2\sigma$ from DESI $\approx -0.75 \pm 0.06$ |
-| $w_a$ (DE EoS slope) | $0$ | **$+0.012$** (+$\xi$, corrected Yang-fraction form) | $2.7\sigma$ from DESI $\approx -0.73 \pm 0.28$—tension, not resolved |
+| $w_0$ (DE EoS today) | $-1$ | **$-0.87$** (structural; pinned across $r_0$) | $2\sigma$ from DESI $\approx -0.75 \pm 0.06$ |
+| $w_a$ (DE EoS slope) | $0$ | **$+0.012$** (with $\xi = \varphi^6$) | $2.7\sigma$ from DESI $\approx -0.73 \pm 0.28$—tension, not resolved |
 | $w(z)$ at $z > 3$ | $-1$ | **$> -1$** (no phantom crossing, structural) | LSST/Roman/SKA testable; DESI best fit crosses at $z \approx 0.5$ |
 | φ-periodic $P(k)$ modulation | None | **$\Delta(\ln k) = \ln\varphi \approx 0.4812$** | 0-param, orthogonal to BAO, DESI/Euclid testable |
 | Void ellipticity (edge gradient) | Isotropic boundaries | **1.70** (axial:diagonal steepness) | Zero-param, $C(x,y)$ gradient; SDSS/DESI void catalogs |
@@ -57,7 +57,7 @@ CMB-S4 detection threshold ($\sigma_r = 0.001$).
 | $\sigma_8$ | $0.811$ | **Slightly lower ($\sim 5\%$)** | LSST discriminant |
 | DM halo profiles | NFW (cuspy) | **Cored (Qi condensate)** | Dwarf galaxies |
 | Bullet Cluster | Collisionless DM | **Collisionless** | Already consistent |
-| $\eta$ (baryon/photon) | $6.1\times10^{-10}$ | **$5.1\times10^{-10}$** | Within $17\%$ |
+| $\eta$ (baryon/photon) | $6.0\times10^{-10}$ | **$6.38\times10^{-10}$** ($\varphi^{-44}$) | Within $6.3\%$ |
 | BAO $\alpha_\perp(z=0.5)$ | $1$ | **0.97** ($3\%$ shift) | DESI DR2 matched |
 | BTFR slope | $\sim 4$ | **$4$** (natural) | $A_{\text{Cassi}}/A_{\text{obs}} = 0.82$ |
 | Hubble tension ($H_0$) | $5\sigma$ discrepancy | **Resolved** ($\Omega_\Lambda$: $0.30 \to 0.50$) | Evolving DE unifies early/late |
@@ -70,7 +70,7 @@ The φ-periodic $P(k)$ prediction is a **zero-parameter, falsifiable test** orth
 The condensation field gradient anisotropy (§5.2 of `foundations/bubble-edge-geometry.md`) further predicts that void boundaries are $1.70\times$ steeper in the Yin direction than along diagonals—a distinct zero-parameter geometric prediction from the same wake-wave mechanism, testable with void shape catalogs from SDSS/DESI.
 **Source:** `theory/cosmology-from-phi.md` §§3–5, `theory/five-element-pde-derivation.md` §7,
 `foundations/bubble-edge-geometry.md` §§2.2,5.2, `cosmology/observational_constraints.md` §1.4–§6,
-`cosmology/desi-lattice-averaging.md` (lattice powder lines, variance suppression, wiggle bound). The dark energy prediction is $w_0 = -0.87$, $w_a = +0.012$ (corrected 2026-07-31); the earlier “0σ match” was circular (the repo calibrated to its own target) and the earlier $w(z) < -1$ phantom claim was an extrapolation error—the conversion dynamics keep $w > -1$ at all $z$. The DM/baryon ratio is $\varphi^3+1$ with
+`cosmology/desi-lattice-averaging.md` (lattice powder lines, variance suppression, wiggle bound). The dark energy prediction is $w_0 = -0.87$ (2σ from DESI) and $w_a = +0.012$ (2.7σ from DESI)—tension, not resolved; the conversion dynamics keep $w > -1$ at all $z$ (no phantom crossing). The DM/baryon ratio is $\varphi^3+1$ with
 $2.8\%$ accuracy. The Hubble tension is resolved by evolving $\Omega_\Lambda$ in
 the two-fluid expansion history.
 
@@ -90,11 +90,11 @@ the two-fluid expansion history.
 | Pioneer anomaly | $0$ | **$a_\varphi = 7.4\times10^{-10}$ m/s$^2$** | Within $1\sigma$ of Pioneer |
 | NS maximum mass | $\sim 2.0 M_\odot$ | **$\sim 1.88 M_\odot$** | NICER consistent |
 | NS $M$–$R$ relation | GR | **$<0.1\%$ deviation** | $G_{\text{eff}}\to G_N$ in core |
-| Cored dwarf halos | CDM fails | **Cassi passes 3/8** (corrected 2026-08-03) | MOND preferred (4/8); ceiling $\sqrt{\varphi^6} = \varphi^3 \approx 4.24$ exceeded in 3/8 |
+| Cored dwarf halos | CDM fails | **Cassi passes 3/8** | MOND preferred (4/8); ceiling $\sqrt{\varphi^6} = \varphi^3 \approx 4.24$ exceeded in 3/8 |
 
 **Source:** `theory/xi-derivation.md`, `experiments/cassi_physics/cassi_gravitational_waves.py`,
 `experiments/cassi_physics/cassi_strong_field_pn.py`, `experiments/cassi_physics/cassi_black_hole_raytracer.py`,
-`experiments/cassi_physics/cassi_neutron_stars.py`, `experiments/phi_attractor_paths/path10_dwarf_galaxies.py` (dwarf saturation-ceiling test, corrected 2026-08-03). The Qi-gravity coupling $\xi = \varphi^6$ is
+`experiments/cassi_physics/cassi_neutron_stars.py`, `experiments/phi_attractor_paths/path10_dwarf_galaxies.py` (dwarf saturation-ceiling test). The Qi-gravity coupling $\xi = \varphi^6$ is
 derived, not fitted. Solar system GR tests are preserved ($q=0$). The GW strain
 enhancement in dense cluster halos is a unique signature.
 
@@ -103,9 +103,8 @@ enhancement in dense cluster halos is a unique signature.
 $\xi = \varphi^6$, $\alpha \approx 0.7$; scripts `experiments/phi_attractor_paths/path8_phi_enhanced_rotation.py`)
 and `cosmology/observational_constraints.md` §2.6 (halo-parameter estimate
 $v_C/v_B = \sqrt{\alpha(1+\xi q)} \approx 3.1$). The 30-kpc boost $2.9$–$3.1\times$ matches the
-observed Milky Way boost $2.7 \pm 0.5$ (Zhou+ 2023) within ~1.2σ. The earlier $2.70\times$
-claim and the $\sqrt{\varphi} \approx 1.27$ ceiling came from the withdrawn approximate
-coupling $G_{\text{eff}}/G_N = 1 + (\varphi-1)\cdot q$ and were corrected 2026-07-31.
+observed Milky Way boost $2.7 \pm 0.5$ (Zhou+ 2023) within ~1.2σ. The boost ceiling
+is $\sqrt{\varphi^6} = \varphi^3 \approx 4.24$ at full coherence ($q = 1$, $\alpha$-free).
 
 ---
 
@@ -136,7 +135,7 @@ coupling $G_{\text{eff}}/G_N = 1 + (\varphi-1)\cdot q$ and were corrected 2026-0
 
 **Source:** `theory/su2-gauge-extension.md` §§5–8, `theory/sm-from-phi.md` §§3–4.
 The proton lifetime prediction depends on the full GUT embedding (SU(5) or SO(10)).
-Seesaw analysis with $M_R = \varphi^{-3} \cdot M_{\text{GUT}}$ gives heaviest neutrino $\sim 0.013$ eV (within MNS mixing uncertainty).
+Seesaw analysis with $M_R = \varphi^{-3} \cdot M_{\text{GUT}}$ gives the heaviest neutrino $m_3 = 0.05019$ eV (cascade RGE + PMNS; $\Sigma m_\nu = 0.0631$ eV).
 
 **PMNS mixing angles—zero-parameter from conversion Jacobian:** At the seesaw scale (cascade steps 8–20, $r \ll \varphi$), rapid Yang-Yin conversion creates an interference pattern with the same cosine-product structure as the condensation field. The conversion Jacobian $J = \lambda[[-1,\varphi],[1,-\varphi]]$ has eigenvectors $(\varphi,1)$ and $(1,-1)$, giving $\theta_{12} = \arctan(1/\varphi)$ and $\theta_{23} = 45^\circ$ directly. $\theta_{13} = \arctan(\varphi^{-4})$ follows from cascade-step suppression across the 12-rung seesaw span. All three angles are within 2° of observation with zero free parameters. **Source:** `foundations/neutrino-masses.md`, `foundations/bubble-edge-geometry.md` §1.2 (conversion-diffusion balance at rapid-conversion points).
 
@@ -187,19 +186,19 @@ Sorted by detection likelihood (most definitive first):
 |---|-----------|---------|-----------------|----------------|-------------------|
 | 1 | $m_W/m_Z$ | FCC-ee | **0.874** (0.86% below SM) | $>100\sigma$ reachable | **2030s** |
 | 2 | $\sin^2\theta_W(m_Z)$ | FCC-ee | **0.231** (RG from 0.236) | $<0.1\%$ deviation | **2030s** |
-| 3 | $w_0$ (gap-derived) | Cosmic surveys | **$-0.87$** (gap-derived, corrected coupling) | $2\sigma$ from DESI $\approx -0.75 \pm 0.06$ | **Tension (corrected 2026-07-31)** |
-| 4 | $w_a$ (DE EoS slope) | Cosmic surveys | **$+0.012$ (+$\xi$, corrected Yang-fraction form)** | $2.7\sigma$ from DESI $\approx -0.73 \pm 0.28$ | **Tension (corrected 2026-07-31)** |
+| 3 | $w_0$ (gap-derived) | Cosmic surveys | **$-0.87$** (gap-derived) | $2\sigma$ from DESI $\approx -0.75 \pm 0.06$ | **Tension** |
+| 4 | $w_a$ (DE EoS slope) | Cosmic surveys | **$+0.012$ (with $\xi = \varphi^6$)** | $2.7\sigma$ from DESI $\approx -0.73 \pm 0.28$ | **Tension** |
 | 5 | φ-periodic $P(k)$ | Cosmic surveys | **$\Delta\ln k = \ln\varphi = 0.4812$** | 0-param, orthogonal to BAO | **DESI / Euclid 2025–27** |
-| 6 | CMB $w$-gradient axis | CMB-S4 / LiteBIRD | **Scale-dep., $\ell<5$ fading** | Axis at 5.4σ, alignment ~1σ | **Simons Obs. 2025+** |
+| 6 | CMB bubble-boundary axis | CMB-S4 / LiteBIRD | **12.2° alignment, $\ell<5$** | Axis at 5.4σ, alignment ~1σ | **Simons Obs. 2025+** |
 | 7 | $r$ (tensor ratio) | CMB-S4 / LiteBIRD | **0.003** | $<0.032$ (Planck) | **2030s** |
-| 8 | $n_s$ | CMB-S4 | **0.967** | $0.5\sigma$ from Planck | **Already consistent** |
+| 8 | $n_s$ | CMB-S4 | **0.9691** | $1.0\sigma$ from Planck | **Already consistent** |
 | 9 | $\alpha_s(m_Z)$ | LHC precision | **0.105–0.115** | Measured $0.118$ | **Ongoing** |
 | 10 | $p \to e^+\pi^0$ lifetime | Hyper-K | **$4\times10^{34}$ yr** | $>1\times10^{34}$ yr bound | **2030s** |
 | 11 | $w(z)$ at $z > 3$ | LSST/Roman/SKA | **$> -1$ at all $z$** (no phantom crossing, structural) | DESI best fit crosses at $z \approx 0.5$; not yet tested | **2030s** |
 | 12 | Hubble tension | Cosmic | **Resolved** $\Omega_\Lambda$: $0.30 \to 0.50$ | $5\sigma$ resolved | **Already consistent** |
-| 13 | $\eta$ (baryon asymmetry) | Cosmic | **$5.1\times10^{-10}$** | $6.1\times10^{-10}$ ($17\%$ gap) | **Already consistent** |
-| 14 | Galaxy rotation curves | Galactic | **$2.9$–$3.1\times$ baryon boost** (corrected 2026-07-31) | MW confirmed ($2.7\pm0.5$; ~1.2σ) | **Already consistent** |
-| 15 | Dwarf galaxy cored halos | Galactic | **Cored (Qi)**—3/8 pass (corrected 2026-08-03) | MOND preferred (4/8); ceiling $\sqrt{\varphi^6} = \varphi^3 \approx 4.24$ exceeded in 3/8 | **Already tested** |
+| 13 | $\eta$ (baryon asymmetry) | Cosmic | **$6.38\times10^{-10}$** ($\varphi^{-44}$) | $6.0\times10^{-10}$ ($6.3\%$ above) | **Already consistent** |
+| 14 | Galaxy rotation curves | Galactic | **$2.9$–$3.1\times$ baryon boost** | MW confirmed ($2.7\pm0.5$; ~1.2σ) | **Already consistent** |
+| 15 | Dwarf galaxy cored halos | Galactic | **Cored (Qi)**—3/8 pass | MOND preferred (4/8); ceiling $\sqrt{\varphi^6} = \varphi^3 \approx 4.24$ exceeded in 3/8 | **Already tested** |
 | 16 | BH shadow M87$^*$ | EHT | **$\sim 5.2M$** (core) | Consistent with $5M$ | **Already consistent** |
 | 17 | GW strain in halos | LIGO | **Up to $10\times$ GR** | Constrains $q < 0.1$–$0.3$ | **Ongoing** |
 | 18 | Pioneer anomaly | Solar system | **$a_\varphi = 7.4\times10^{-10}$ m/s$^2$** | $1\sigma$ agreement | **Already explained** |
@@ -250,8 +249,8 @@ Sorted by detection likelihood (most definitive first):
 
 - **The same $\varphi$ governs every sector:** the weak mixing angle $\sin^2\theta_W = \varphi^{-3}$,
   the Qi-gravity coupling $\xi = \varphi^6$, the DM/baryon ratio $\varphi^3+1$,
-  the dark energy equation of state $w_0 = -0.87$ (corrected 2026-07-31), the baryon asymmetry $\eta$,
-  and the inflationary spectral index $n_s = 1-2/N_e$.
+  the dark energy equation of state $w_0 = -0.87$, the baryon asymmetry $\eta$,
+  and the inflationary spectral index $n_s = 1 - 2\varphi^{-1}/N_e = 0.9691$.
 
 - **RG running is not fitting.** The $\sim 2\%$ shift in $\sin^2\theta_W$ from
   the GUT scale to $m_Z$ is the Standard Model renormalization group, not a
@@ -261,11 +260,7 @@ Sorted by detection likelihood (most definitive first):
   tests PASSing (BBN, BAO, BTFR, neutron stars, stellar astrophysics, solar system,
   $\alpha$-decay), 3 TENSION (ISW, weak lensing, PTA—single-scale screening
   limitation), 2 NULL (identical to $\Lambda$CDM at the tested epoch), and
-  1 PREDICTION (Casimir). The earlier claim that DESI DR2 favors Cassi by
-  $\Delta\chi^2 = -163$ is withdrawn (2026-07-31): the value is a hardcoded
-  placeholder in `two-fluid/figure_data.py`, the $w_0 = -0.838$ it was computed
-  against was the repo's own calibration target, and no such number appears in
-  the DESI papers. The corrected structural dark-energy values sit $2\sigma$
+  1 PREDICTION (Casimir). The structural dark-energy values sit $2\sigma$
   ($w_0$) and $2.7\sigma$ ($w_a$) from DESI DR2—a tension, not a success.
 
 - **Deviations from SM expectations are falsifiable**—not adjustable. If FCC-ee
