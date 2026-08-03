@@ -13,6 +13,15 @@ Theory:
   SM: b₁=-4.1, b₂=3.17, b₃=7 (GUT normalization)
   Audit §1.4: α_s(M_Z) from SM alone is 2× too small
 
+Convention (doctrine settlement 2026-08-03):
+  This script runs the DISCRETE 72-rung φ-RG convention: E(n) = M_Pl·φ⁻ⁿ with
+  the GUT at step 8, so E_GUT = M_Pl·φ⁻⁸ = 2.60×10¹⁷ GeV and the 72-rung span
+  covers 72·ln φ = 34.65 in ln μ (vs 32.33 for ln(10¹⁶ GeV/M_Z)).  Its output
+  α_s(M_Z) ≈ 0.0683 with Δb₃ ≈ 1.12 is convention-dependent and is NOT the
+  canonical value.  Canonical: α_s(M_Z) = 0.0581, Δb = 1.70 from the continuous
+  one-loop SM RGE with α_GUT = φ⁻³/(4π), M_GUT = 10¹⁶ GeV, b₃ = −7
+  (parameter-inventory.md; numeric-reconciliation 06 §2).
+
 Usage: python computations/cascade_gut_ew_rge.py
 """
 
@@ -30,6 +39,8 @@ N_SPAN = N_EW - N_GUT  # 72 rungs
 M_Z   = 91.1876
 
 def E(n): return M_PL * PHI**(-n)
+# Discrete-convention scale ladder: E_GUT = E(8) = 2.60×10¹⁷ GeV — NOT the
+# canonical M_GUT = 10¹⁶ GeV of the continuous one-loop SM RGE (see docstring).
 
 E_GUT = E(N_GUT)
 alpha_GUT = PHI**(-3) / (4*pi)
@@ -49,6 +60,9 @@ print("  CASCADE RGE: GUT → EW—GAUGE COUPLINGS & PARTICLE SPECTRUM")
 print("=" * 72)
 print()
 print(f"  GUT:  step {N_GUT}, E = {E_GUT:.2e} GeV, α_GUT = φ⁻³/(4π) = {alpha_GUT:.4f}")
+# NOTE: E_GUT = 2.60×10¹⁷ GeV is the discrete 72-rung convention scale; the
+# canonical M_GUT = 10¹⁶ GeV (continuous one-loop SM RGE) gives α_s(M_Z) = 0.0581,
+# Δb = 1.70 — this script's 0.0683/Δb₃ = 1.12 output is NOT canonical (06 §2).
 print(f"  EW:   step {N_EW}, E = {E(N_EW):.2e} GeV, M_Z = {M_Z:.1f} GeV")
 print(f"  Span: {N_SPAN} φ-steps")
 print()
@@ -101,6 +115,9 @@ print()
 inv_target = 1/alpha3_obs
 deficit = inv_a3_sm - inv_target  # how much more α⁻¹ needs to decrease
 db3_needed = deficit / (LN_PHI * N_SPAN / (2*pi))
+# Convention flag (doctrine settlement 2026-08-03): the Δb₃ ≈ 1.12 printed below
+# is the discrete 72-rung φ-RG value and is NOT the canonical Δb = 1.70 of the
+# continuous one-loop SM RGE (M_GUT = 10¹⁶ GeV) quoted in parameter-inventory.md.
 
 print(f"  α⁻¹(M_Z) target:  {inv_target:.1f}")
 print(f"  α⁻¹(M_Z) from SM: {inv_a3_sm:.1f}")

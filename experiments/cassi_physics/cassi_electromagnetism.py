@@ -118,7 +118,9 @@ def photon_wave_speed():
     Since φ ≈ 1.618, c is always slightly larger than c₀.
     This means TWO propagating modes:
     1. Fast mode: c_+ = φ·c₀ (the photon—EM)
-    2. Slow mode: c_- = φ⁻¹·c₀ (the graviton—gravity?)
+    2. Slow mode: c_- = φ⁻¹·c₀ (gravity mode: composite spin-2 SO(2)
+       excitation in the quantized two-fluid extension, Hypothesized; no
+       fundamental graviton, σ-regularized Poisson, Derived)
     
     The ratio: c_EM / c_gravity = φ / φ⁻¹ = φ² ≈ 2.618
     """

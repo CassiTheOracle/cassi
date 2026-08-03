@@ -3,7 +3,9 @@
 Cassi Quantum Gravity—UV-Finite from σ-Regularized Two-Field Quantization.
 
 THE MISSING PILLAR: quantize the two-fluid PDE and show that:
-  1. The graviton emerges as a composite two-fluid excitation
+  1. No fundamental graviton (σ-regularized Poisson emergence, Derived);
+     the graviton is a composite spin-2 SO(2) two-fluid excitation in the
+     quantized extension (Hypothesized)
   2. Loop corrections to G_eff are UV-finite (σ-regulator)
   3. At low energy E << 1/σ, standard GR is recovered
   4. At high energy E ~ 1/σ, quantum corrections become important but finite
@@ -71,7 +73,10 @@ def loop_integral_1loop(omega, sigma=SIGMA, G_const=1.0):
 def graviton_mode_energy(k, sigma=SIGMA):
     """Energy of a graviton mode from the two-fluid.
     
-    The graviton is a composite excitation of the EY/EI fields.
+    The graviton is a composite spin-2 SO(2) excitation of the EY/EI fields
+    in the quantized two-fluid extension (Hypothesized). There is no
+    fundamental graviton: the classical layer is σ-regularized Poisson
+    emergence (Derived).
     Its dispersion relation is:
     
     ω²(k) = k² · exp(k²·σ²/2) + ω₀²·(1 - exp(-k²·σ²/2))
@@ -187,7 +192,9 @@ def main():
     print("="*65)
     print("  • Two-fluid fields (EY, EI) are quantized canonically")
     print("  • σ acts as a NATURAL UV regulator (no renormalization needed)")
-    print("  • The graviton is a composite EY/EI excitation")
+    print("  • No fundamental graviton (σ-regularized Poisson, Derived)")
+    print("  • Composite spin-2 SO(2) EY/EI excitation in the quantized")
+    print("    two-fluid extension (Hypothesized)")
     print("  • At k << 1/σ: standard GR (ω = k, massless graviton)")
     print("  • At k ~ 1/σ: quantum dispersion (ω ≠ k)")
     print("  • At k >> 1/σ: maximal frequency (no trans-Planckian modes)")

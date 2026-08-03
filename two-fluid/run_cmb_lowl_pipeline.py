@@ -12,7 +12,10 @@ CMB low-ℓ angular power spectrum from the Cassi bubble-boundary geometry:
     super-horizon scales imprints a preferred axis at ℓ < 5.
 
     Our bubble is at cascade step 285 (191 Mpc comoving diameter), embedded
-    in a 292-step cascade (5.5 Gpc Hubble radius).  The bubble boundary is
+    in a 292-step cascade (5500 Mpc = rung-292 lattice length, not R_H;
+    R_H ≈ 4440 Mpc, ℓ_Pl·φ^291.54).  The boundary-tangency argument uses
+    R_H ≈ 4440 Mpc; the 12.2° angle itself is set only by the Galactic
+    direction vectors below and is unaffected at stated precision.  The bubble boundary is
     nearly tangent to our past light cone at the recombination surface,
     producing a ~12.2° projected angle between the bubble's Yang axis (CMB
     dipole direction) and the boundary normal (quadrupole-octopole axis).
@@ -53,7 +56,10 @@ XI        = PHI ** 6                      # ≈ 17.944—Qi-gravity coupling
 # Bubble geometry (from refined-numeric-predictions.md §2.3)
 BUBBLE_STEP    = 285                       # cascade step
 BUBBLE_DIAMETER_MPC = 191.0                # comoving diameter [Mpc]
-HUBBLE_RADIUS_MPC   = 5500.0               # Hubble radius [Mpc] (step 292)
+HUBBLE_RADIUS_MPC   = 5500.0               # rung-292 lattice length [Mpc] (ℓ₂₉₂ = 5.51 Gpc)
+# R_H ≈ 4440 Mpc (ℓ_Pl·φ^291.54) is the Hubble radius used by the boundary-tangency
+# argument; the 12.2° alignment angle uses only the direction vectors below and is
+# unaffected at stated precision (0.01°).
 CASCADE_STEPS       = 292                  # total cascade steps
 
 # Boundary normal direction = quadrupole-octopole axis (Galactic coordinates)
