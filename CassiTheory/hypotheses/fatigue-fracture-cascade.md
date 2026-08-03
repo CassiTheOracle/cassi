@@ -168,7 +168,7 @@ modulation amplitude $A \approx 1$–$3\%$ requires high-statistics AE catalogs
 
 ## References
 
-- `../open-questions-cassi-answers.md`—C8 (Big Bang singularity), G3 (BH singularity)—same $\sigma$-regularization
-- `../foundations/cascade-suppression-formula.md`—$\varphi^{-N}$ attenuation
-- `../foundations/dimensionful-cascade.md`—the 292-step ladder
-- `../turbulence/kolmogorov-from-phi.md`—$\varphi$-break in turbulence spectrum
+- `open-questions-cassi-answers.md`—C8 (Big Bang singularity), G3 (BH singularity)—same $\sigma$-regularization
+- `foundations/cascade-suppression-formula.md`—$\varphi^{-N}$ attenuation
+- `foundations/dimensionful-cascade.md`—the $\varphi$-ladder (292 = today's horizon rung)
+- `turbulence/kolmogorov-from-phi.md`—$\varphi$-break in turbulence spectrum

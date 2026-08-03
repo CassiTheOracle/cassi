@@ -2,12 +2,19 @@
 
 ## Status: Speculative (derivation not closed)—July 2026
 
-**Caveat:** This hypothesis identifies a $\varphi$-adjacent pattern in
-metabolic scaling but does not yet close the derivation. The connection
-$\varphi^2 \approx 2.618 \to 3/4$ is not mathematically rigorous—it is noted
-here as a prompt for future work, not as a claim at the framework's usual
-epistemic standard. Readers should treat the $\varphi$-derivation of Kleiber's
-exponent as an open problem, not a solved one.
+## Abstract
+
+Metabolic rate scales with body mass as $B = B_0 \cdot M^{3/4}$ (Kleiber's law)
+across 21 orders of magnitude. West, Brown, and Enquist derived the $3/4$
+exponent from space-filling, area-preserving, impedance-minimizing resource
+networks—a derivation that does not involve $\varphi$. This document examines
+whether the Cassi framework can supply the missing first-principles origin,
+making the optimal branching ratio and the network's fractal dimension
+$\varphi$-determined. The connection $\varphi^2 \approx 2.618 \to 3/4$ is not
+mathematically rigorous: it is a prompt for future work, not a claim at the
+framework's usual epistemic standard. The $\varphi$-derivation of Kleiber's
+exponent is an open problem, not a solved one; metabolic scaling remains a
+Speculative application.
 
 ---
 
@@ -94,13 +101,13 @@ predict:
 
 ## 4. Why This Remains Speculative
 
-The honest assessment is that metabolic scaling does not currently admit a
-$\varphi$-derivation at the framework's quality bar:
+Metabolic scaling does not currently admit a $\varphi$-derivation at the
+framework's quality bar:
 
 - The $3/4$ exponent is already derived from geometric constraints (space-filling,
   area-preserving, impedance-minimizing networks) without $\varphi$. The Cassi
   contribution would need to derive one of these constraints *from* $\varphi$,
-  not just note that $\varphi$ appears nearby in the arithmetic.
+  rather than merely noting that $\varphi$ appears nearby in the arithmetic.
 
 - The connection $\varphi^2 \approx 2.618 \to 3/4 = 0.75$ via
   $1/(\varphi^2 + 1) \approx 0.276$ (not 0.75) or $\varphi^2/(\varphi^2+1)
@@ -141,7 +148,7 @@ for the Cassi framework—an intriguing pattern, but not yet a Cassi prediction.
 
 ## References
 
-- `../foundations/why-three-dimensions.md`—spiral's Frenet-Serret frame, triaxial spheroid
-- `../principles/de-resonance-principle.md`—$\varphi$ as optimization attractor
-- `../foundations/cascade-suppression-formula.md`—$\varphi^{-N}$ attenuation
-- `../turbulence/kolmogorov-from-phi.md`—cascade dimensional analysis methodology
+- `foundations/why-three-dimensions.md`—spiral's Frenet-Serret frame, triaxial spheroid
+- `principles/de-resonance-principle.md`—$\varphi$ as optimization attractor
+- `foundations/cascade-suppression-formula.md`—$\varphi^{-N}$ attenuation
+- `turbulence/kolmogorov-from-phi.md`—cascade dimensional analysis methodology

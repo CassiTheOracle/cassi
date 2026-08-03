@@ -4,11 +4,7 @@
 
 ## Abstract
 
-The condensation field
-
-$$B(x, y, z) = \cos(\alpha x)\cos(\beta y)\cos(\gamma z)$$
-
-is scale-covariant (`foundations/bubble-lattice-fabric.md` §2): the same 3D staggered checkerboard of coherent condensates and empty voids operates at every cascade rung $n$, with wavelengths scaled to $\ell_n = \ell_{\text{Pl}} \times \varphi^n$. At biological scales (cascade steps 142–168), the field must produce bubble structure—the same $\varphi$-elliptical geometry, the same $1.70\times$ edge steepness anisotropy, the same checkerboard connectivity. This document hypothesizes that **skeletal muscle's structural hierarchy is the most legible anatomical instantiation of the bubble lattice**. The muscle's discrete ladder—filament, sarcomere, myofibril, fiber, fascicle, belly, group—maps directly to consecutive cascade rungs within the 26-step human window, with fascial planes corresponding to $C = -1$ void boundaries and sarcomere banding corresponding to the 1D lattice along the muscle fiber's string axis.
+The condensation field of `foundations/bubble-lattice-fabric.md`—a scale-covariant 3D staggered checkerboard of coherent condensates and empty voids that operates at every cascade rung—must at biological scales (cascade steps 142–168) produce bubble structure: $\varphi$-elliptical bubbles, the $1.70\times$ edge steepness anisotropy, and checkerboard connectivity. This document hypothesizes that **skeletal muscle's structural hierarchy is the most legible anatomical instantiation of the bubble lattice**. The muscle's discrete ladder—filament, sarcomere, myofibril, fiber, fascicle, belly, group—maps directly to consecutive cascade rungs within the 26-step human window, with fascial planes corresponding to $C = -1$ void boundaries and sarcomere banding corresponding to the 1D lattice along the muscle fiber's string axis.
 
 ---
 
@@ -23,24 +19,11 @@ From the dimensionful cascade (`foundations/dimensionful-cascade.md` §3):
 | 142 | $7.7 \times 10^{-6}$ | Cellular scale ($\sim 8\ \mu$m) |
 | 168 | $1.7$ | Human scale ($\sim 1.7$ m) |
 
-The human body spans exactly 26 $\varphi$-multiplications, from the cell to the full organism. Within this window, the condensation field $B(x,y,z)$ (derived in `foundations/bubble-lattice-fabric.md` §1) produces a 3D checkerboard lattice of coherent condensate bubbles and empty voids. The lattice has three orthogonal periods:
-
-- **Yang axis ($x$, normal, extended):** period $\lambda_Y = \ell_n$
-- **Yin axis ($y$, binormal, contracted):** period $\lambda_I = \ell_n/\varphi$
-- **String axis ($z$, tangent, cascade direction):** period $P_\parallel \cdot \ell_n$, with $P_\parallel = 2$ rungs at the human scale (`consciousness/chakras-as-cascade-bubbles.md` §5)
-
-The same functional form $B(x,y,z) = \cos(\alpha x)\cos(\beta y)\cos(\gamma z)$ applies at every rung. The lattice is self-similar: a bubble at rung $n$ contains the full sub-lattice of rungs $n-1, n-2, \ldots$ within it, and is itself a site in the lattice at rung $n+1$ (`foundations/bubble-lattice-fabric.md` §3.2).
+The human body spans exactly 26 $\varphi$-multiplications, from the cell to the full organism. Within this window, the condensation field (`foundations/bubble-lattice-fabric.md` §1) produces a 3D checkerboard lattice of coherent condensate bubbles and empty voids. The lattice is triaxial—Yang axis period $\ell_n$, Yin axis period $\ell_n/\varphi$, string axis period $P_\parallel \cdot \ell_n$ (`foundations/bubble-lattice-fabric.md` §1)—and self-similar: a bubble at rung $n$ contains the full sub-lattice of rungs $n-1, n-2, \ldots$ within it, and is itself a site in the lattice at rung $n+1$ (`foundations/bubble-lattice-fabric.md` §3.2). Along the string axis at the human scale, $P_\parallel = 2$ rungs (`consciousness/chakras-as-cascade-bubbles.md` §5)—the value the sarcomere predictions in §4 use.
 
 ### 1.2 Universal Geometric Signatures
 
-Because the condensation field has identical functional form at every scale, four signatures are universal (`foundations/bubble-lattice-fabric.md` §4):
-
-1. **$\varphi$-elliptical bubble cross-section** in the Yang-Yin plane: axis ratio $a_X/a_Y = \varphi \approx 1.618$.
-2. **Edge steepness anisotropy**: the gradient at the bubble boundary is $1.70\times$ steeper toward voids (axial/Yin direction) than toward neighboring bubbles (diagonal direction). The ratio $\sqrt{4\varphi^2/(1+\varphi^2)} \approx 1.70$ is zero-parameter.
-3. **Qi density profile**: $q(\mathbf{x}) = (1 + B(\mathbf{x}))/2$, with $q \to 1$ at bubble centers and $q \to 0$ at void centers.
-4. **Fibonacci spiral** at octave boundaries: the 5-arm spiral with polar equation $\Theta(r) = 2\pi \ln(r/\ell_n)/\ln\varphi$, one full rotation per cascade rung.
-
-These signatures are Derived (from the PDE). That they appear in anatomical structures at the human scale is the hypothesis of this document.
+Because the condensation field has identical functional form at every scale, four signatures are universal and Derived from the PDE (`foundations/bubble-lattice-fabric.md` §4): the $\varphi$-elliptical bubble cross-section (axis ratio $\varphi \approx 1.618$), the $1.70\times$ edge-steepness anisotropy (ratio $\sqrt{4\varphi^2/(1+\varphi^2)} \approx 1.70$, zero-parameter), the Qi density profile $q = (1+B)/2$, and the Fibonacci spiral at octave boundaries. That they appear in anatomical structures at the human scale is the hypothesis of this document.
 
 ---
 
@@ -211,7 +194,7 @@ The neural criticality hypothesis (`hypotheses/neural-criticality.md`) addresses
 ## References
 
 - `foundations/bubble-lattice-fabric.md`—condensation field, scale covariance, staggered checkerboard, edge anisotropy, nesting, universal signatures
-- `foundations/dimensionful-cascade.md`—complete 292-step cascade table, $\ell_n = \ell_{\text{Pl}} \times \varphi^n$
+- `foundations/dimensionful-cascade.md`—the full $\varphi$-ladder table, $\ell_n = \ell_{\text{Pl}} \times \varphi^n$ (292 = today's horizon rung)
 - `foundations/bubble-edge-geometry.md`—condensation field derivation, checkerboard lattice, $\theta_{\text{cond}}$
 - `foundations/why-three-dimensions.md`—Frenet-Serret frame, triaxial spheroid, string axis
 - `foundations/microcascade-mirror.md`—bidirectional cascade extension, scale covariance statement
