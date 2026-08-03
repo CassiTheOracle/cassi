@@ -15,9 +15,9 @@ budget of
 
 $$\boxed{N_{\text{max}} = \prod_{i=0}^{n} \frac{1}{1-q_i} \approx \varphi^{\,n(n+1)/2}}$$
 
-For $n = 95$, $N_{\text{max}} \approx \varphi^{4560} \approx 10^{950}$ cycles.
+For $n = 95$, $N_{\text{max}} \approx \varphi^{4848} \approx 10^{1010}$ cycles.
 The proton's effective lifetime exceeds the age of the observable universe by
-~900 orders of magnitude. Proton decay is not observed because the universe is
+~970 orders of magnitude. Proton decay is not observed because the universe is
 not remotely old enough—and no experiment, in any environment, will see it.
 
 ---
@@ -45,7 +45,7 @@ but minuscule residual noise from $\sigma$-regularization.
 
 ## 2. Dephasing as simultaneous cascade failure
 
-A standing wave dissolves when its accumulated phase error reaches $O(1)$ —
+A standing wave dissolves when its accumulated phase error reaches $O(1)$—
 one full cycle of phase coherence is lost. The per-cycle probability of this
 event is the probability that the field configuration at EVERY supporting rung
 independently fails to maintain coherence during that cycle:

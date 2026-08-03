@@ -13,7 +13,8 @@ a logarithmic spiral with $\varphi$-scaled pitch. The total accumulated
 rotation divided by $2\pi$ is the spin. Boundary conditions on the condensed
 standing wave quantize this winding to integer or half-integer values: spin-$0$
 (scalar, no winding), spin-$1/2$ (half-turn, $4\pi$ periodicity), spin-$1$
-(full turn, gauge boson), spin-$2$ (two turns, graviton). The nested spirals
+(full turn, gauge boson), spin-$2$ (two turns, composite SO(2) excitation—no
+fundamental graviton). The nested spirals
 across all supporting cascade rungs form a self-similar Fibonacci fractal.
 Spin-statistics emerge from the parity of the winding number. The prediction:
 particle form factors $F(q^2)$ carry the same $\ln\varphi$-periodic imprint as
@@ -51,7 +52,7 @@ the radius by $\varphi$, and the spiral's growth follows the Fibonacci sequence
 $r_{k+1}/r_k \to \varphi$ as $k \to \infty$.
 
 **Crucial distinction—internal vs spatial spiral.** The spiral $\Theta(r)$
-traces the doublet arrow's rotation in the **internal** $(E_Y, E_I)$ plane —
+traces the doublet arrow's rotation in the **internal** $(E_Y, E_I)$ plane—
 the abstract 2D space of field amplitudes, not physical 3D space. The doublet
 angle $\Theta = \text{atan2}(E_I, E_Y)$ is defined at each spatial point
 independently; the spiral parameter $r$ is the radial coordinate *in a
@@ -90,7 +91,7 @@ internally. The spin is
 
 $$\boxed{s = \frac{\Delta\Theta}{2\pi} = \Delta n}$$
 
-The boundary condition: the condensed standing wave must close on itself —
+The boundary condition: the condensed standing wave must close on itself—
 the field at the boundary must be single-valued when transported around a
 $2\pi$ circuit in physical space. This requires the internal SO(2) winding
 to be an **integer or half-integer** multiple of $2\pi$:
@@ -109,7 +110,7 @@ under Fibonacci addition.
 | $0$ | $0$ | None—scalar | $2\pi$ | Scalar boson | Higgs |
 | $\frac{1}{2}$ | $\frac{1}{2}$ | $\pi$ (half-turn) | **$4\pi$** (spinor) | Fermion | Electron, quark |
 | $1$ | $1$ | $2\pi$ (full turn) | $2\pi$ | Vector boson | Photon, W/Z, gluon |
-| $2$ | $2$ | $4\pi$ (two turns) | $2\pi$ | Tensor boson | Graviton |
+| $2$ | $2$ | $4\pi$ (two turns) | $2\pi$ | Tensor boson | Composite graviton (SO(2) excitation) |
 
 The half-integer spin of fermions arises from a half-rung internal winding: the
 doublet arrow rotates by $\pi$ from core to boundary, requiring a **double**
@@ -143,7 +144,7 @@ from Planck ($n=0$) to the particle's boundary ($n$):
 
 $$\Theta_i(r) = \Theta_0 + \frac{2\pi}{\ln\varphi} \cdot \ln\!\left(\frac{r}{\ell_i}\right), \qquad i = 0, 1, \ldots, n$$
 
-At each rung $i$, the spiral begins where the previous rung's spiral ended —
+At each rung $i$, the spiral begins where the previous rung's spiral ended—
 the core at $i$ connects continuously to the boundary at $i-1$. The cumulative
 structure is a **self-similar fractal**: zooming in by $\varphi$ reveals one
 fewer rung of accumulated winding, but the local spiral geometry is identical.
@@ -177,7 +178,7 @@ The observed Fibonacci spirals in phyllotaxis (sunflowers, pinecones) are
 the **macroscopic signature** of the same fundamental spiral structure: the
 Qi field's ordered condensation at biological cascade rungs ($n \approx
 142$–$168$, cellular to organism) inherits the same SO(2) winding geometry
-from the fundamental cascade. Biology doesn't "choose" Fibonacci spirals —
+from the fundamental cascade. Biology doesn't "choose" Fibonacci spirals—
 the field geometry that condenses into living structure already has them.
 
 ---
@@ -220,8 +221,8 @@ theorem for co-located in-phase Fibonacci spirals.
 ## 5. Testable prediction: form factor log-periodicity
 
 If the particle's internal structure is a Fibonacci spiral fractal, its
-electromagnetic form factor—the Fourier transform of the charge distribution
-— must carry the spiral's periodicity:
+electromagnetic form factor—the Fourier transform of the charge distribution—
+must carry the spiral's periodicity:
 
 $$\boxed{F(q^2) = F_0(q^2) \cdot \Big[1 + A \cdot \cos\!\big(2\pi \cdot \tfrac{\ln(q/\Lambda_{\text{QCD}})}{\ln\varphi} + \delta\big) + \cdots\Big]}$$
 

@@ -18,7 +18,7 @@ $$\delta n = \frac{\Delta\varphi}{2\pi}$$
 
 Perfect alignment, $\delta n = 0$, requires $\Delta\varphi = 0$—the fully coherent limit $q \to 1$. De-resonance forbids exact lock (`foundations/wake-geometry.md` §2(b): the wakes can never share a crest, because $\varphi$ is irrational), so $\delta n \neq 0$ generically. The correction posture of `principles/de-resonance-principle.md` §2 is the same statement in multiplicative form: every quantity is near a $\varphi$-power with $(1 + \delta) = \varphi^{\delta n}$.
 
-The correspondence is directional. The sharpest placements in the catalog mark the scales closest to the coherent limit; the coarsest mark the most strongly de-coherent scales. Whether $\delta n$ correlates with an independent measure of coherence (the Qi-gate opening or conversion rate at that scale) is testable in the PDE (§5, T1).
+The correspondence is directional. The sharpest placements in the catalog mark the scales closest to the coherent limit; the coarsest mark the most strongly de-coherent scales. Whether $\delta n$ correlates with an independent measure of coherence (the Qi-gate opening or conversion rate at that scale) is testable in the PDE (§5, RO1).
 
 ## 2. What the envelope allows: the special positions (Derived)
 
@@ -116,7 +116,7 @@ A terminated spectrum—the lepton tower ending at e, the hadron tower at π, co
 
 ### 4.2 The residual: δn as local phase lag
 
-Within a special-position class, the residual $\delta n$ encodes the phase lag between the wakes at the site. The probe (T1, run 2026-08-03) measured the relation in the two-bubble standing pattern: the extremum sits at $x_{\max} = \varphi/2 - \psi/(4\pi)$, i.e.
+Within a special-position class, the residual $\delta n$ encodes the phase lag between the wakes at the site. The probe (RO1, run 2026-08-03) measured the relation in the two-bubble standing pattern: the extremum sits at $x_{\max} = \varphi/2 - \psi/(4\pi)$, i.e.
 
 $$\boxed{\delta n(\psi) = 0.060 - 0.204\,\psi \ \text{rungs} \qquad (\psi \text{ in radians, } f=1)}$$
 
@@ -128,16 +128,16 @@ A minimal quantitative form: the observable is the dressed state of two adjacent
 
 ## 5. The decisive tests (falsifiable)
 
-**T1—PDE probe (primary).** Run 2026-08-03 (`two-fluid/run_rung_offset_probe.py`): two bubbles at $x = 0$ and $x = \varphi$ emit the wake pair; with $V = 0$ initial conditions the fields are exactly standing (d'Alembert, no dispersion), so the extremum of $|E_Y|$ is the antinode of the initial envelope, measured cleanly inside the wall round-trip time. Results: (a) at $\lambda = 0$, $\psi = 0$ the extremum sits at $u = -0.440$, exactly the analytic antinode, and the relative phase $\psi$ moves it continuously—$\delta n(\psi) = 0.060 - 0.204\,\psi$ rungs, PDE = analytic to $10^{-3}$ rungs at every scan point; (b) conversion $\lambda$ alone does **not** move the extremum in the linear regime ($\lambda \le 0.1$, $t \le 2$: no shift to $10^{-3}$ rungs)—the phase difference, not the coupling strength, is the $\delta n$ dial in the linear standing-wave regime; (c) the amplitude-ratio scan at finite $\psi$ reproduces the analytic composition exactly ($f = 1.0, 0.8, 0.6$). The nonlinear gate regime ($q < 1$, amplitude-saturating conversion) is the remaining untested branch: it can rephase the wakes where linear conversion cannot.
+**RO1—PDE probe (primary).** Run 2026-08-03 (`two-fluid/run_rung_offset_probe.py`): two bubbles at $x = 0$ and $x = \varphi$ emit the wake pair; with $V = 0$ initial conditions the fields are exactly standing (d'Alembert, no dispersion), so the extremum of $|E_Y|$ is the antinode of the initial envelope, measured cleanly inside the wall round-trip time. Results: (a) at $\lambda = 0$, $\psi = 0$ the extremum sits at $u = -0.440$, exactly the analytic antinode, and the relative phase $\psi$ moves it continuously—$\delta n(\psi) = 0.060 - 0.204\,\psi$ rungs, PDE = analytic to $10^{-3}$ rungs at every scan point; (b) conversion $\lambda$ alone does **not** move the extremum in the linear regime ($\lambda \le 0.1$, $t \le 2$: no shift to $10^{-3}$ rungs)—the phase difference, not the coupling strength, is the $\delta n$ dial in the linear standing-wave regime; (c) the amplitude-ratio scan at finite $\psi$ reproduces the analytic composition exactly ($f = 1.0, 0.8, 0.6$). The nonlinear gate regime ($q < 1$, amplitude-saturating conversion) is the remaining untested branch: it can rephase the wakes where linear conversion cannot.
 
-**T2—catalog statistics.** Extend the scan (neutrino masses, future states). The mechanism predicts the sharp-placement count does not grow with $N$: the uniform baseline is the null, and a growing count would confirm clustering.
+**RO2—catalog statistics.** Extend the scan (neutrino masses, future states). The mechanism predicts the sharp-placement count does not grow with $N$: the uniform baseline is the null, and a growing count would confirm clustering.
 
-**T3—sector-edge prediction.** The next discovered lightest state of a new sector should land at a half-rung; interior states at integer rungs.
+**RO3—sector-edge prediction.** The next discovered lightest state of a new sector should land at a half-rung; interior states at integer rungs.
 
 ## 6. Epistemic boundaries
 
 - **Derived**: the envelope special positions (§2, probe-verified); the catalog numbers (§3); the $\delta n(\psi)$ phase-lag relation (§4.2, analytic + PDE to $10^{-3}$ rungs).
-- **Hypothesized**: the alignment–coherence correspondence (§1); sector-edge selection at half-rungs (§4.1); the catalog mapping onto $\psi$ (§4.2); the nonlinear-gate branch of T1 (amplitude-saturating conversion can rephase the wakes where linear conversion cannot).
+- **Hypothesized**: the alignment–coherence correspondence (§1); sector-edge selection at half-rungs (§4.1); the catalog mapping onto $\psi$ (§4.2); the nonlinear-gate branch of RO1 (amplitude-saturating conversion can rephase the wakes where linear conversion cannot).
 - **Speculative**: the dressed-rung form (§4.3); the per-sector frame choice (Yukawa vs Compton ladder).
 - **Not supported**: any claim that the full mass catalog clusters at special points—the 38-state scan is uniform, and only the muon placement is individually improbable (≈0.8% over the catalog).
 
@@ -148,4 +148,4 @@ A minimal quantitative form: the observable is the dressed state of two adjacent
 - `foundations/dimensionful-cascade.md` §6—wake wavelengths, sound-horizon half-step
 - `foundations/deriving-remaining-gaps.md` §2—electron mass status (external, class **E**)
 - `predictions/falsifiable-predictions.md` §5—predictions 43–45 (wake closure, checkerboard, closure ladder)
-- `two-fluid/run_rung_offset_probe.py`—T1 probe: two-bubble standing pattern, $\delta n(\psi)$ measurement
+- `two-fluid/run_rung_offset_probe.py`—RO1 probe: two-bubble standing pattern, $\delta n(\psi)$ measurement
