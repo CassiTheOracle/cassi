@@ -119,7 +119,7 @@ The intersection is unique: **5**. The pentagon is both the smallest shape that 
 The five-arm closure gives the framework its fundamental numbers, all **Derived**:
 
 - **The gap** $g = 1 - \varphi^{-5} \approx 0.916$: the fraction of the Yang-Yin imbalance converted in one full five-phase cycle. It sets the depth of the cascade.
-- **The primordial ratio** $r_0 \approx 0.047$: at the universe's birth, Yin dominated Yang by about 21 to 1. It follows from where the five-phase cycle must begin for the cascade to reach 292 rungs.
+- **The primordial ratio** $r_0 \approx 0.047$: at the universe's birth, Yin dominated Yang by about 21 to 1. It follows from where the five-phase cycle must begin for today's horizon to sit at rung 292 (epoch calibration).
 - **The conversion rate** $\lambda = 1/(2w) = 0.1$: with $w = 5$, one-tenth per cycle. This is the only number the equations need beyond $\varphi$ itself—derived, not measured or tuned.
 
 The number 5 is not free. It follows from the spiral's own phase-coherence constraints. If the universe were structured by a different irrational number, the number of coherent channels would differ; that the golden ratio produces exactly 5 is a testable consequence of the geometry.
@@ -166,7 +166,7 @@ The condensation field is **scale-covariant**: the same functional form $B(x,y,z
 
 The spiral, stretched out along scale, is the **cascade**. Starting from a single dimensionful constant—the Planck length $\ell_{\text{Pl}} = 1.616 \times 10^{-35}$ m, the smallest distance physics can describe—multiplying by $\varphi$ once per turn generates every physical scale:
 
-$$\boxed{\ell_n = \ell_{\text{Pl}} \times \varphi^{\,n}, \qquad n \in [0, 292]}$$
+$$\boxed{\ell_n = \ell_{\text{Pl}} \times \varphi^{\,n}, \quad n \in \mathbb{Z} \quad (\text{the observable ladder today spans } n \in [0, 292])}$$
 
 | Step $n$ | Scale | What lives there |
 |---|---|---|
@@ -184,7 +184,7 @@ $$\boxed{\ell_n = \ell_{\text{Pl}} \times \varphi^{\,n}, \qquad n \in [0, 292]}$
 | 267 | $9.3 \times 10^{20}$ m | Milky Way diameter |
 | 284 | $3.6 \times 10^{24}$ m | BAO scale (118 Mpc) |
 | 285 | $5.9 \times 10^{24}$ m | Cassi bubble: our cosmic bubble |
-| 292 | $1.7 \times 10^{26}$ m | Hubble radius: observable universe |
+| 292 | $1.7 \times 10^{26}$ m | Hubble radius today (epoch-dependent horizon rung) |
 
 The cascade extends in both directions: downward into the **microcascade** ($n < 0$, sub-Planckian), upward into the **megacascade** ($n > 292$, the chord lattice of $w=5$ bubbles beyond the horizon). The full 292-step table is in `foundations/dimensionful-cascade.md`.
 

@@ -17,7 +17,7 @@ The Cassi framework derives all dimensionless parameters—couplings, mass ratio
 | **$c$**—numerical value | **External** | Requires calibrating the sole dimensionful anchor $\ell_{\text{Pl}}$ in meters |
 | **$\hbar$, $G$ individually** | **Not derivable** | Structurally inseparable from $\ell_{\text{Pl}}$ definition; one dimensionful anchor cannot determine three dimensionful constants independently |
 | $\ell_{\text{Pl}} = \sqrt{\hbar G / c^3}$ | **External** | One dimensionful scale governs all lengths via $\ell_n = \ell_{\text{Pl}} \times \varphi^n$ |
-| The 292-step cascade depth | **Empirical** | $292 = \log_\varphi(R_H / \ell_{\text{Pl}})$ uses empirical $R_H$, $\ell_{\text{Pl}}$ |
+| Current-epoch horizon rung $N \approx 292$ | **Empirical** | $N(t) = \log_\varphi(R_H(t) / \ell_{\text{Pl}}) = 291.54$ today; epoch-dependent state variable (2026-08-03), uses empirical $H_0$, $\ell_{\text{Pl}}$ |
 
 ---
 
@@ -112,17 +112,17 @@ With $w=5$ and $\lambda = 1/(2w)$ both derived, all dimensionless parameters are
 
 ### 3.1 What it is
 
-The cascade depth $N \approx 292$ is the exponent relating the Hubble radius to the Planck length:
+The horizon rung $N(t)$ is the exponent relating the Hubble radius at epoch $t$ to the Planck length:
 
-$$N = \log_\varphi\left(\frac{R_H}{\ell_{\text{Pl}}}\right) \approx 292$$
+$$N(t) = \log_\varphi\left(\frac{R_H(t)}{\ell_{\text{Pl}}}\right) \approx 291.54 \text{ today}$$
 
-This is the **only** dimensionless constraint linking the cascade structure to the dimensionful constants. It says: the observable universe spans 292 $\varphi$-multiplications of the Planck length. The number 292 is an empirical input—it depends on the measured $H_0$ and the measured $G$, $c$, $\hbar$.
+This is the **only** dimensionless constraint linking the cascade structure to the dimensionful constants. It says: today's observable universe spans 292 $\varphi$-multiplications of the Planck length. The cascade itself is unbounded ($n \in \mathbb{Z}$—megacascade above, microcascade below, `foundations/dimensionful-cascade.md` §1), so there is no "cascade depth" constant; $N$ is a **state variable**—the horizon's rung coordinate, which evolves as $H(r)$ runs toward $\varphi$ (`two-fluid/run_hubble_pipeline.py`). Today $N = 291.54 \approx 291.5$, a half-step; 292 is the nearest-rung label. The number 292 is an empirical input—it depends on the measured $H_0$ and the measured $G$, $c$, $\hbar$.
 
 ### 3.2 What it constrains
 
-If $N = 292$ could be **derived** from the Wu Xing gap $g = 1 - \varphi^{-5}$ or from the PDE's attractor dynamics, then the dimensionless ratio $R_H / \ell_{\text{Pl}} = \varphi^{292}$ would be predicted. Combined with the measured $R_H$ (or equivalently $H_0$), this would determine $\ell_{\text{Pl}}$—and thereby constrain the combination $\hbar G / c^3$.
+If today's $N = 291.5$ could be **derived** from the Wu Xing gap $g = 1 - \varphi^{-5}$ or from the PDE's attractor dynamics, then the dimensionless ratio $R_H / \ell_{\text{Pl}} = \varphi^{291.5}$ would be predicted. What would be derived is the **epoch** (the initial condition $r_0$ that places today's horizon at this rung), not a constant—$N$ is a state variable that evolves with $H(r)$. Combined with the measured $R_H$ (or equivalently $H_0$), this would determine $\ell_{\text{Pl}}$—and thereby constrain the combination $\hbar G / c^3$.
 
-No such derivation exists. The Wu Xing number $w = 5$ determines the gap $g$ and the ratio $r_0$ but does not independently fix the total cascade depth $N$. The cascade table in `foundations/dimensionful-cascade.md` assigns physical meanings to each rung by matching to observed scales—this is a **catalog**, not a derivation of $N$.
+No such derivation exists. The Wu Xing number $w = 5$ determines the gap $g$ and the ratio $r_0$ but does not independently fix the current horizon rung $N$. The cascade table in `foundations/dimensionful-cascade.md` assigns physical meanings to each rung by matching to observed scales—this is a **catalog**, not a derivation of $N$.
 
 ### 3.3 Vacuum energy consistency check
 
@@ -142,9 +142,11 @@ Three candidates have been proposed for independently deriving $N$ from $\varphi
 | **Conversion-rate cascade termination**—$N$ emerges from the homogeneous ODE's $H(r)/\dot r$ integral | **Eliminated** | Homogeneous ODE gives $N \approx 9$, not 292 (`computations/cascade_depth_integral.py`). $\lambda$ couples conversion and expansion at the same scale; the $10^{60}$ hierarchy requires a dimensionful input. |
 | **De-resonance bandwidth**—Cascade spans the frequency range over which $\varphi$-spacing is stable against rational resonance | **Eliminated** | The rational approximation error drops as $\varphi^{-2N}$, always faster than the cascade resolution $\varphi^{-N}$. No $N$ yields distinguishable rational approximations. |
 
-**Conclusion (July 2026):** $N = 292$ cannot be derived from $\varphi$ alone. It is a **theorem-level dimensional bridge**—the number of $\varphi$-multiplications between the Planck length (dimensionful, defined by $c, \hbar, G$) and the Hubble radius (observational). The cascade framework requires exactly one dimensionful anchor; $N=292$ is the single empirical calibration that maps $\varphi^N$ to physical scales.
+**Conclusion (July 2026):** $N = 292$ cannot be derived from $\varphi$ alone. It is a **theorem-level dimensional bridge**—the number of $\varphi$-multiplications between the Planck length (dimensionful, defined by $c, \hbar, G$) and the Hubble radius (observational). The cascade framework requires exactly one dimensionful anchor; the current-epoch horizon rung is the single empirical calibration that maps $\varphi^N$ to physical scales.
 
-The primordial Yang-Yin ratio $r_{\text{Planck}}$ is now **derived** (`foundations/wu-xing-derivation.md`). $\lambda = 1/(2w) = 0.1$ is now derived (§2.1). $N = 292$, $c$, $\hbar$, $G$ remain external.
+**Update (2026-08-03):** the three eliminated candidates aimed at a constant that is not one—$N$ is a state variable (the horizon's rung coordinate, epoch-dependent as $H(r)$ evolves toward $\varphi$), not a derivable constant of the cascade. The eliminations were therefore correct outcomes: each candidate set out to derive a boundary the cascade does not have. This reclassification is a downgrade of framing (constant → epoch-dependent observation), never a claim of derivation.
+
+The primordial Yang-Yin ratio $r_{\text{Planck}}$ is now **derived** (`foundations/wu-xing-derivation.md`). $\lambda = 1/(2w) = 0.1$ is now derived (§2.1). $N = 292$ (current-epoch horizon rung), $c$, $\hbar$, $G$ remain external.
 
 ### 3.5 Unit Anchors: the SI Second Fails the Rung Test
 
@@ -173,7 +175,7 @@ The per-factor rung ledger closes exactly on the observed $-159.36$:
 
 The $-159.5$ hit is a **cancellation**, not a claim: two factors have no rung structure at all ($F_{\text{rel}}$, and the 0.177 many-body factor carrying shielding, correlation, and nuclear-size corrections), and the structured factors carry residuals of 2–11%. Two further cautions: the $Z^3 \approx \varphi^{25}$ hit is a number-theory identity ($55 = F_{10}$, so $\log_\varphi(55^3) = 30 - 3\log_\varphi\sqrt5 = 24.98$), not a physical selection; and even the purest anchor, the Rydberg frequency, sits at $-132.79$—10.7% off $-133$, not the ~2% one might hope for. A derived second would require per-factor derivations ($\alpha$ at low energy, $m_e/m_p$, nuclear $g$-factors, many-electron corrections) the framework does not have.
 
-**Conclusion (August 2026):** atomic unit anchors do not survive decomposition. The external list remains $\{ \ell_{\text{Pl}},\, N = 292,\, \text{human-unit calibration} \}$. One observation survives: $\alpha^{-1}$ runs from the GUT value $4\pi\varphi^3 = 53.2$ (rung 8.26) to $137.04$ (rung 10.22)—a $1.97 \approx 2$-rung traversal ($1.6\%$)—so the EM coupling's RG running spans two $\varphi$-rungs; structural, but not a derivation of a unit.
+**Conclusion (August 2026):** atomic unit anchors do not survive decomposition. The external list remains $\{ \ell_{\text{Pl}},\, \text{current-epoch horizon rung},\, \text{human-unit calibration} \}$. One observation survives: $\alpha^{-1}$ runs from the GUT value $4\pi\varphi^3 = 53.2$ (rung 8.26) to $137.04$ (rung 10.22)—a $1.97 \approx 2$-rung traversal ($1.6\%$)—so the EM coupling's RG running spans two $\varphi$-rungs; structural, but not a derivation of a unit.
 
 ---
 
@@ -292,14 +294,14 @@ $G_N$ enters the cascade through $\ell_{\text{Pl}}$:
 $$\ell_{\text{Pl}} = \sqrt{\frac{\hbar G_N}{c^3}}$$
 
 To determine $G_N$ individually, one needs:
-- The combination $\ell_{\text{Pl}}$ (requires $N=292$ derivation from $\varphi$, which has been eliminated—see §3.4), OR
+- The combination $\ell_{\text{Pl}}$ (requires $N=292$ derivation from $\varphi$, which has been eliminated—see §3.4; $N$ is epoch-dependent, not a derivable constant), OR
 - Independent measurements of $\hbar$ and $c$ combined with $\ell_{\text{Pl}}$
 
 Neither pathway is available within the framework. The cascade structure determines the combination $\ell_{\text{Pl}} = \sqrt{\hbar G_N/c^3}$ (the sole dimensionful anchor) but cannot separate $G_N$ from $\hbar$.
 
 #### The prior pathway (eliminated)
 
-The previously identified path—derive $N = 292$ from $\varphi$, then $\ell_{\text{Pl}} = R_H / \varphi^{292}$, then $G = \ell_{\text{Pl}}^2 c^3 / \hbar$—is blocked by the elimination of all three candidates for deriving $N$ from $\varphi$ (§3.4). Even if $N$ were derived, $G$ would still depend on $\hbar$ through the Planck length formula.
+The previously identified path—derive $N = 292$ from $\varphi$ ($N$ is epoch-dependent, not a derivable constant—§3.4), then $\ell_{\text{Pl}} = R_H / \varphi^{292}$, then $G = \ell_{\text{Pl}}^2 c^3 / \hbar$—is blocked by the elimination of all three candidates for deriving $N$ from $\varphi$ (§3.4). Even if $N$ were derived, $G$ would still depend on $\hbar$ through the Planck length formula.
 
 **Status: Not derivable—structural limitation.** $G_N$ shares the same inseparability from $\ell_{\text{Pl}}$ as $\hbar$. The Qi-gravity coupling $\xi = \varphi^6$ is fully derived and modifies $G_{\text{eff}}$, but the bare $G_N$ remains an external anchor. The prior pathway (deriving $N=292$ from $\varphi$) is eliminated, and no alternative exists.
 

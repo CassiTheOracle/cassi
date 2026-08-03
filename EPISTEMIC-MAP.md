@@ -22,6 +22,7 @@ Tiers below are taken from each document's Status header. Compound headers are q
 |----------|--------|---------|
 | `foundations/cascade-suppression-formula.md` | Derived | Universal $\varphi^{-N}$ attenuation law (wedge tool) |
 | `foundations/dimensionful-cascade.md` | Derived | 292-step ladder $\ell_n = \ell_{\text{Pl}} \times \varphi^n$ (wedge tool) |
+| `foundations/wake-geometry.md` | Derived (structural) | Wake geometry: $\lambda_Y + \lambda_I = \ell_{n+1}$ closure; envelope checkerboard; closure ladder; $N_\infty \approx 296$–$303$ |
 | `foundations/bubble-lattice-fabric.md` | Derived (structural) | 3D condensation field; universal bubble geometry |
 | `foundations/cassi-first-principles.md` | Derived | Two-fluid PDE, governing equations, conversion |
 | `foundations/unified-lagrangian.md` | Derived | Single Lagrangian; gravity as $q = 0$ Poisson limit; $\sigma$-regularization |
@@ -55,7 +56,7 @@ Tiers below are taken from each document's Status header. Compound headers are q
 | `foundations/spin-fibonacci-spiral.md` | Derivation (result: Hypothesized, Q10) | Spin as SO(2) Fibonacci winding; form-factor periodicity |
 | `foundations/refined-numeric-predictions.md` | Active derivation | Numeric predictions for the 24 Hypothesized questions |
 | `foundations/three-generations.md` | Hypothesized | $N_{\text{gen}} = 3$ from Fibonacci sub-channels (Q5) |
-| `foundations/dimensionful-constants-status.md` | Hypothesized | $c$, $\hbar$, $G$ external; $N = 292$ empirical anchor (F5) |
+| `foundations/dimensionful-constants-status.md` | Hypothesized | $c$, $\hbar$, $G$ external; $N = 292$ epoch-dependent horizon rung (F5) |
 | `foundations/microcascade-mirror.md` | Hypothesized | Bidirectional cascade extension |
 | `foundations/phi-rg-formalism.md` | Hypothesized | RG flow under $\varphi$-spacing |
 | `foundations/spiral-dynamics.md` | Hypothesized | Hubble, gravity, $c$ as spiral geometry projections |
