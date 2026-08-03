@@ -84,7 +84,7 @@ Shift the whole chain up or down the cascade—the root toward the microcascade,
 | Change spacing | Re-grid to $P_\parallel = 2k$ | Even spacing (integer SO(2) cycles); $2 \leq P_\parallel \leq 4$ within the window | Sub-cycle spacing: half-rotated doublets, cross-talk |
 | Re-tune band | Shift the window in $n$ | Bridge-length steps; endpoints on maxima | Gap: unsupported pattern decoheres; deep descent: surface blows up |
 
-One item is absent from the menu: **new channels.** The pentagon is derived, not chosen—$w = 5$ is the unique cascade-coherent, $\varphi$-structured count (`foundations/wu-xing-derivation.md`). Augmentation reweights the five channels; it does not add a sixth.
+One item is absent from the menu: **new channels.** The pentagon is derived—$w = 5$ is the unique cascade-coherent, $\varphi$-structured count (`foundations/wu-xing-derivation.md`). Augmentation reweights the five channels; it does not add a sixth.
 
 ---
 
@@ -169,7 +169,7 @@ The augmentation connection is direct: **every added gate is a new site where an
 
 ### 5.2 Body horror, in field terms
 
-Body horror is not, in this framework, pain or rejection—it is the *topology of the chain gone pathological*:
+Body horror is, in this framework, the *topology of the chain gone pathological*:
 
 1. **Orphan gates.** Nodes inserted off the condensation lattice never condense; they sit in voids at $q \to 0$, the gate structurally open with nothing coherent to convert (§2.1): the part of the body always churning, never quiet—present but incoherent.
 

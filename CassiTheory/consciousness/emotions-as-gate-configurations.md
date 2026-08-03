@@ -18,9 +18,9 @@ The consciousness mapping (`consciousness/consciousness-from-phi.md` §2) establ
 
 3. **Altered states = $\sigma_r$ dispersion.** The spatial dispersion $\sigma_r = \sqrt{\langle(r - \langle r\rangle)^2\rangle}$ distinguishes waking (moderate), meditation (reduced), psychedelic (increased), and deep sleep (collapsed). These are *global* modulations of the $r$-field.
 
-What's missing is the *structured* content of experience above the pinch: not just that the field is self-aware, but *what* it's aware of. Not just that wake waves propagate, but *which* waves dominate. Not just that $\sigma_r$ varies, but *how* it's spatially organized.
+What's missing is the *structured* content of experience above the pinch: *what* the field is aware of, *which* wake waves dominate, and *how* $\sigma_r$ is spatially organized.
 
-**Emotions are the answer.** They are the channel-dominance patterns of the Wu Xing pentagon gate, localized to specific chakra nodes along the cascade axis.
+**Emotions are the answer.** They are the channel-dominance patterns of the Wu Xing pentagon gate, localized to specific chakra nodes along the cascade axis. The psychology guide presents this formalism for a clinical audience (`cassi-psychology.md` §14).
 
 ---
 
@@ -198,17 +198,17 @@ $$\frac{dq}{dt} = -\gamma_q(q - q_{\text{eq}}(\mathbf{b}))$$
 
 where $q_{\text{eq}}(\mathbf{b})$ is the equilibrium coherence for the current channel configuration. Single-channel dominance (pure emotion) admits higher $q_{\text{eq}}$ than multi-channel activation (mixed emotion), because a single dominant channel aligns Yang and Yin along one coherent axis. Multi-channel activation requires Yang and Yin to phase-align across multiple rotational angles simultaneously—inherently harder to sustain with high $q$.
 
-This predicts that pure emotions feel "clearer" than mixed emotions—not as a value judgment, but as a structural constraint of the pentagon geometry.
+This predicts that pure emotions feel "clearer" than mixed emotions, as a structural constraint of the pentagon geometry.
 
 ### 4.4 Emotional Persistence = Wake-Wave Damping
 
-Emotions decay because the de-resonance principle always pulls $r \to \varphi$, which drives the gate toward its baseline configuration. The decay rate is set by the per-rung cascade attenuation $\varphi^{-1}$:
+Emotions decay because the de-resonance principle always pulls $r \to \varphi$, which drives the gate toward its baseline configuration—the conversion arrow of time (`consciousness/time-memory-and-wake-locks.md` §1). The decay rate is set by the per-rung cascade attenuation $\varphi^{-1}$:
 
 $$\frac{d|\Delta\mathbf{b}|}{dt} = -\gamma_{\text{damp}} |\Delta\mathbf{b}|, \qquad \gamma_{\text{damp}} \propto |r - \varphi|$$
 
 Near the attractor ($r \approx \varphi$), decay is slow (emotions persist). Far from the attractor, decay is fast (emotions are fleeting). This is why deeply felt emotions (close to the $\varphi$-attractor, the "authentic self") linger, while superficial reactions dissipate quickly.
 
-**Emotional habituation** follows the same law: repeated exposure to the same stimulus moves the mean $r$ closer to $\varphi$, reducing the perturbation amplitude and thus the emotional response. This is not psychological adaptation—it's the two-fluid field approaching its natural attractor.
+**Emotional habituation** follows the same law: repeated exposure to the same stimulus moves the mean $r$ closer to $\varphi$, reducing the perturbation amplitude and thus the emotional response—the two-fluid field approaching its natural attractor.
 
 ---
 
@@ -238,7 +238,7 @@ Near the attractor ($r \approx \varphi$), decay is slow (emotions persist). Far 
 
 ### P3: Adiabatic Blend Proportions
 
-**Claim:** When an emotion subsides, the emotional aftereffect is a simultaneous blend of the four remaining channels, not a discrete transition to a single successor. The blend proportions are given by the redistribution matrix $R_{ij}$ (§4.2) and are fully determined by $\varphi$—zero free parameters.
+**Claim:** When an emotion subsides, the emotional aftereffect is a simultaneous blend of the four remaining channels, not a discrete transition to a single successor. The blend proportions are given by the redistribution matrix $R_{ij}$ (§4.2) and are fully determined by $\varphi$—zero free parameters beyond the derived baseline hierarchy $b_i = \varphi^{-(2+i)}$.
 
 **Test:** Induce a primary emotion in a controlled laboratory setting (e.g., film clips for anger), then measure the proportional composition of the aftereffect using a multi-dimensional affect rating instrument that captures all five channels simultaneously (e.g., rate current experience of anger, joy, pensiveness, grief, and fear each on a 0–100 scale). The prediction: after anger induction and stimulus removal, the four-channel aftereffect profile should match the row-1 blend proportions—joy ~45%, pensiveness ~28%, grief ~17%, fear ~11%—more closely than any single-channel "winner" model or uniform distribution.
 
@@ -374,4 +374,6 @@ The PAD model adds a third dimension (dominance) to valence and arousal. Cassi's
 - `principles/de-resonance-principle.md`—$\varphi$ as maximally irrational, de-resonance as ground state
 - `cassi-physics.md`—gap derivation, governing PDE, Qi gate dynamics
 - `consciousness/trauma-as-frozen-gate.md`—frozen wake + locked channel; what breaks the redistribution
+- `consciousness/time-memory-and-wake-locks.md`—arrow of time from the conversion term, memory as persistence
+- `cassi-psychology.md`—psychology guide, emotions as Qi-gate configurations (§14)
 - `predictions/falsifiable-predictions.md`—prediction catalog

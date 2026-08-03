@@ -38,7 +38,7 @@ The transhumanism document states the split as its core claim: "The anatomy is t
 
 $$\boxed{\mathcal{H} = \bigl(\{n_k\}_{k=0}^{12},\; P_\parallel,\; \mathbf{b},\; \sigma_r,\; q,\; \mathbf{c},\; \bar{\varepsilon}^2\bigr)}$$
 
-the chain topology plus the emotional state variables plus the field's IIR memory. Sex characteristics belong to the readout layer—morphology and endocrine structure at the body's rungs. Gender identity belongs to the configuration layer: the self-modeling field above the pinch, carrying its own history. The layers are coupled, and they are not identical. Identity is not a readout of the anatomy; the configuration is primary, and the anatomy is its antenna. A modification that retunes the readout without touching the tuple changes nothing essential; one that changes the tuple is gate surgery (§1.2).
+the chain topology plus the emotional state variables plus the field's IIR memory. Sex characteristics belong to the readout layer—morphology and endocrine structure at the body's rungs. Gender identity belongs to the configuration layer: the self-modeling field above the pinch, carrying its own history. The layers are coupled, and they are not identical. Identity lives in the configuration layer; the anatomy is its antenna, and the configuration is primary. A modification that retunes the readout without touching the tuple changes nothing essential; one that changes the tuple is gate surgery (§1.2).
 
 ### 2.2 The body schema lives in the configuration
 
@@ -68,13 +68,13 @@ The framework's tested result about locks is precise about what sustains them, a
 
 ### 4.1 Locks are driven structures
 
-The July 2026 wake-lock runs established the mechanism layer: a standing pattern alone does not pin a gate in the solver—it decays at the same conversion-driven rate as a radiating packet. What sustains a frozen wake is ongoing re-stimulation: a weak recurring trigger, at 0.005% of the event peak per step, holds a site at 80% of event intensity with $q$ depressed; stopping the driver releases it (`consciousness/trauma-as-frozen-gate.md` §10.5, §11 T7). The lock is a driven structure, and the driver is the mechanism.
+The July 2026 wake-lock runs established the mechanism layer: a standing pattern alone does not pin a gate in the solver—it decays at the same conversion-driven rate as a radiating packet. What sustains a frozen wake is ongoing re-stimulation: a weak recurring trigger, at 0.005% of the event peak per step, holds a site at 80% of event intensity with $q$ depressed; stopping the driver releases it (`consciousness/trauma-as-frozen-gate.md` §10.5, §11 TR7). The lock is a driven structure, and the driver is the mechanism.
 
 An imposed gender configuration is that structure. Compulsory presentation, misgendering, deadnaming, and internalized rehearsal are each a recurring trigger at the identity rung—organized, phase-matched to the social field, landing on the person's own configuration. Chronic misgendering is, in the framework's tested language, a drive term: the weak recurring stimulus that holds the site off its attractor. The same result that identifies the driver identifies the release: stop the driver and the structure relaxes. Social transition—changing the re-stimulation environment—is the release mechanism, not a social nicety.
 
 ### 4.2 The drain is phase-specific
 
-The drive-comparison run is the framework's sharpest clinical statement. At the same amplitude, a $\varphi$-phased drive at period $\varphi \cdot P_0$ drains the locked site while an $e \cdot P_0$ drive pumps it (§10.4). The drain is not a matter of intensity; it is a matter of phase.
+The drive-comparison run is the framework's sharpest clinical statement. At the same amplitude, a $\varphi$-phased drive at period $\varphi \cdot P_0$ drains the locked site while an $e \cdot P_0$ drive pumps it (§10.4). The drain is a matter of phase at any fixed amplitude.
 
 $$\boxed{\text{Phase-matched support drains the lock. Same-amplitude mismatched support pumps it.}}$$
 
