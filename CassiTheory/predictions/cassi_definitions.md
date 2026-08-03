@@ -608,7 +608,7 @@ physics at different σ-scales, with φ as the universal attractor coupling.
 | Observation | Cassi Prediction | Status |
 |-------------|-----------------|--------|
 | Dark energy (DESI DR2) | $w_0 = -0.87$ (corrected 2026-07-31) | $2\sigma$ from DESI $\approx -0.75 \pm 0.06$ [INFERENCE]—tension, not matched |
-| Galaxy rotation curves | Qi-enhanced G_eff | ✓ Beats MOND (5/8 dwarfs) |
+| Galaxy rotation curves | Qi-enhanced G_eff | ⚠️ Ties MOND (4/8 dwarfs; corrected 2026-08-03) |
 | Baryonic Tully-Fisher | Slope ≈ 0.96 | ✓ Consistent |
 | Mercury precession | GR limit (σ→0) | ✓ Reproduces 43″/century |
 | BH shadow (EHT) | GR-like (core G_eff≈1) | ✓ Consistent with M87* |
