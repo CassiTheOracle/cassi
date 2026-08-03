@@ -217,8 +217,11 @@ The exact spectra are Bessel (interior cavity $E_n = j_{\kappa,n}/L$;
 exterior continuum; box Weyl-linear) and count linearly in $E$—the acceptance
 test fails at leading order against the logarithmic Riemann–von Mangoldt
 count. The logarithmic shape is semiclassical only, pinning $Lp_{\min} = 2\pi$
-(order-unity, no $\varphi$-power) with a $1/8$ corner-phase gap; the
-energy-dependent (SR-L-type) boundary is what the framework does not supply.
+(order-unity, no $\varphi$-power) with a $1/8$ corner-phase gap. Step 2b: the
+unique moving wall reproducing R-vM is $L(E) = \tfrac{1}{2}\ln(E/2\pi e) +
+9\pi/(8E)$—the boundary phase is the Riemann–Siegel $\Gamma$-phase, verified;
+the framework candidates (fixed rung walls, Qi-gated masses, IIR
+$\tau = \varphi^{-1}$ boundary) are all excluded.
 All claims verified numerically. **Epistemic tier: Speculative**—the operator
 derivation is explicit, but the program's target remains out of reach and the
 naive candidate is now excluded.

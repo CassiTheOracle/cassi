@@ -29,8 +29,14 @@ $Lp_{\min} = 2\pi$ (order-unity; no $\varphi$-power) and leaving the constant
 one-eighth above the theorem's $7/8$ (the corner phase). Every claim is
 verified numerically (`run_phase_operator_check.py`). The program is revised:
 the exact realization of the zeros requires the energy-dependent boundary of
-the Sierra–Rodríguez-Laguna type, which the two-fluid linearization does not
-supply.
+the Sierra–Rodríguez-Laguna type. Step 2b executes that investigation: the
+unique moving wall reproducing R-vM is $L(E) = \tfrac{1}{2}\ln(E/2\pi e) +
+9\pi/(8E)$, whose argument is the Riemann–Siegel $\Gamma$-phase
+($E\,L(E) = \theta(E) + 5\pi/4$, verified); all three framework candidates
+for supplying it—fixed rung walls, Qi-gated masses, and the IIR
+$\tau = \varphi^{-1}$ boundary (a $\varphi$-locked lattice $E_n = n\omega_0$)—
+are excluded by computation and by the measured null. The boundary is
+identified, and it is external to the two-fluid dynamics.
 
 ---
 
@@ -184,7 +190,59 @@ Script `../experiments/riemann_phi_search/run_phase_operator_check.py`
   law $50.8/101.7/203.4$; the Riemann–von Mangoldt values 2.4/9.4/29.0 are
   not approached.
 
-## 8. Status of the Program
+## 8. Step 2b: The Energy-Dependent Boundary
+
+Step 1 established that fixed walls count linearly. The logarithmic shape
+requires a wall whose position depends on the energy. The unique moving wall
+that reproduces Riemann–von Mangoldt is determined by the acceptance test
+itself. With the cavity counting $N(E) = \#\{n : j_{1,n} \le E\,L(E)\}$ and
+the Bessel asymptotics $j_{1,n} \approx \pi(n + \tfrac{1}{4})$, the condition
+$N(E) = \bar N(E)$ fixes
+
+$$\boxed{L(E) = \frac{1}{2}\ln\frac{E}{2\pi e} + \frac{9\pi}{8E}}$$
+
+The $9/8$ is the corner phase; the $\tfrac{1}{4}$ is the Bessel phase
+($\kappa/2 - 1/4$ with $\kappa = 1$); together they land exactly on the
+theorem's $7/8$: $\tfrac{9}{8} - \tfrac{1}{4} = \tfrac{7}{8}$. The wall
+argument is the Riemann–Siegel theta:
+
+$$E\,L(E) = \theta(E) + \frac{5\pi}{4}$$
+
+verified to $2\times10^{-4}$ at $E = 100$ and $10^{-5}$ at $E = 2000$; the
+counting tracks $\bar N(E)$ to within one state over $E \in [20, 2000]$
+(`run_phase_boundary_check.py`). This is the Sierra–Rodríguez-Laguna insight
+restated in the framework's operator language: **the boundary phase of the
+zero problem is the $\Gamma$-phase**. The moving wall is not a framework
+structure—it is the Riemann–Siegel theta in disguise.
+
+The three framework candidates for supplying this boundary are excluded:
+
+1. **$\sigma$-regularization at a cascade rung** (any fixed wall): linear
+   counting, Step-1 acceptance test. Excluded.
+2. **Qi-gated, energy-dependent conversion** (mass $m_\theta(E)$): a mass
+   term perturbs the Weyl law of a fixed domain at order $V/E^2$; it cannot
+   change the leading linear counting, and it does not move the wall.
+   Excluded.
+3. **IIR memory timescale $\tau = \varphi^{-1}$** as a boundary period in
+   $u$ of length $\ln\varphi$ (the identification $x \to \varphi x$): the
+   spectrum is the $\varphi$-locked lattice $E_n = n\,\omega_0$,
+   $\omega_0 = 2\pi/\ln\varphi = 13.057$, with density $1/\omega_0 = 0.0766$.
+   The zeros' measured density is $1.335$—a factor 17 denser—and only 2.6%
+   of the first 100,000 zeros lie within 0.2 of the lattice, statistically
+   identical to a phase-shifted control (3.3%). The $\tau$ candidate is
+   excluded on density and by measurement; it is also exactly the
+   log-periodic structure the null test of `riemann-hypothesis-de-resonance.md`
+   §4 rejects ($dAIC = +4.00$, $p_{\text{spec}} = 0.68$).
+
+What remains is a selection rule, not a derivation: among all boundary
+phases, the one the zeros actually realize is the $\Gamma$-phase of
+$\theta(E)$—the phase that makes the spectrum maximally de-resonant (no
+locked frequency, minimal fluctuation). The framework's de-resonance
+principle says the arithmetic boundary is the maximally de-resonant one; its
+measured signatures are the GUE featurelessness of the spacings, Selberg's
+mean-square minimality, and Gram's law at 79.4%.
+
+## 9. Status of the Program
 
 - **Step 1 (write the operator): done.** The massless phase fluctuation on
   the balanced self-similar background reduces to the Bessel-index-1 scale
@@ -194,16 +252,22 @@ Script `../experiments/riemann_phi_search/run_phase_operator_check.py`
   spectra count linearly; the zeros count logarithmically. The logarithmic
   shape is semiclassical and requires the energy-dependent boundary of the
   Sierra–Rodríguez-Laguna construction.
-- **Revised step 2b (open):** identify which framework structure could
-  supply the energy-dependent boundary—the candidates (the $\sigma$
-  regularization at the Planck rung, the Qi-gated conversion, the IIR memory
-  timescale $\tau = \varphi^{-1}$) are listed for investigation, none
-  claimed.
-- **The durable content:** the operator, its Bessel spectrum, and the
-  semiclassical pinning $Lp_{\min} = 2\pi$ with the $1/8$ corner-phase gap.
-  The naive route to the Hilbert–Pólya operator through the two-fluid phase
-  is now excluded by a verified computation, which is progress: the program
-  no longer has an unexamined candidate.
+- **Step 2b (the energy-dependent boundary): done, negative.** The unique
+  moving wall reproducing R-vM is $L(E) = \tfrac{1}{2}\ln(E/2\pi e) +
+  9\pi/(8E)$—the boundary phase is the Riemann–Siegel $\Gamma$-phase
+  ($E\,L(E) = \theta(E) + 5\pi/4$, verified). None of the framework's
+  structures supplies it: fixed rung walls and Qi-gated masses keep linear
+  counting; the IIR $\tau = \varphi^{-1}$ boundary gives a $\varphi$-locked
+  lattice $E_n = n\omega_0$ excluded by density and by the measured null.
+  The de-resonance selection rule (the boundary is the maximally de-resonant
+  phase) remains a research statement, not a derivation.
+- **The durable content:** the operator, its Bessel spectrum, the
+  semiclassical pinning $Lp_{\min} = 2\pi$ with the $1/8$ corner-phase gap,
+  and now the explicit form of the required boundary with the three
+  candidate exclusions. The naive routes through the framework's existing
+  structures are excluded by verified computation; the $\Gamma$-phase
+  boundary itself is identified, and it is external to the two-fluid
+  dynamics.
 
 ---
 
@@ -217,3 +281,4 @@ Script `../experiments/riemann_phi_search/run_phase_operator_check.py`
 - Berry, M. V. and Keating, J. P., "The Riemann zeros and eigenvalue asymptotics," SIAM Review 41 (1999) 236–266
 - Sierra, G. and Rodríguez-Laguna, J., "The Riemann zeros as spectrum of a Hamiltonian," J. Phys. A 44 (2011) 305204
 - `../experiments/riemann_phi_search/run_phase_operator_check.py`—verification of every claim in §§3–7
+- `../experiments/riemann_phi_search/run_phase_boundary_check.py`—moving-wall theorem and candidate exclusions (§8)
