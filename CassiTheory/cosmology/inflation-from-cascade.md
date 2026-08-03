@@ -1,18 +1,18 @@
 # Inflation from Cascade Steps 20–60: The Qi-Gate Epoch
 
-## Status: Derived—July 2026
+## Status: Derivation (result: Hypothesized, per registry C4)
 
 ## Abstract
 
-Cosmic inflation—the early-universe period of quasi-exponential expansion —
+Cosmic inflation—the early-universe period of quasi-exponential expansion—
 corresponds to cascade steps $n \approx 20$–$60$ in the Cassi framework. The
 inflationary dynamics are driven by the **Qi gate** as the ratio $r(t)$ evolves
 through these rungs: the open gate ($1-q \approx 1$) at small $r$ drives rapid
 conversion and expansion; the gate's progressive closing terminates inflation
 when $r$ crosses the pinch at $r = \varphi^{-1}$ (step $\sim 60$). The
 primordial power spectrum follows from the wake-wave mechanism with cascade
-spacing: $n_s = 1 - 2/N_e$, where $N_e \approx 40$ is the number of cascade
-e-folds during the inflationary epoch. The tensor-to-scalar ratio is $r \approx
+spacing: $n_s = 1 - 2\varphi^{-1}/N_e$, with $N_e = 40$ cascade e-folds during
+the inflationary epoch. The tensor-to-scalar ratio is $r \approx
 \varphi^{-6} \approx 0.003$, set by the Qi-gravity coupling at the inflation
 scale. Both predictions match CMB data with zero free parameters beyond the
 cascade.
@@ -21,8 +21,8 @@ cascade.
 
 ## 1. The inflationary epoch in the cascade
 
-The cascade table (`dimensionful-cascade.md`) spans steps 0 (Planck) to 292
-(Hubble). The inflationary epoch occupies steps 20–60:
+The cascade table (`foundations/dimensionful-cascade.md`) spans steps 0 (Planck) to 292
+(today's horizon rung). The inflationary epoch occupies steps 20–60:
 
 | Step $n$ | Physical scale | Physics |
 |---|---|---|
@@ -63,7 +63,7 @@ fine-tuned potential—the gate IS the inflaton.
 
 ## 3. Primordial power spectrum: $n_s = 1 - 2\varphi^{-1}/N_e$
 
-The wake-wave mechanism (`consciousness-from-phi.md` $\S2.3$) imprints
+The wake-wave mechanism (`consciousness/consciousness-from-phi.md` $\S2.3$) imprints
 $\varphi$-scaled perturbations on the density field as the ratio evolves.
 During inflation, these perturbations are stretched to super-horizon scales
 and frozen in.
@@ -139,7 +139,7 @@ prediction is within 1σ and too small to be detected at current sensitivity.
 
 | Observable | Cassi prediction | Planck 2018 | Status |
 |---|---|---|---|
-| $n_s$ | $0.967$ | $0.9649 \pm 0.0042$ | 0.5σ (with gate correction) |
+| $n_s$ | $0.9691$ ($1 - 2\varphi^{-1}/N_e$) | $0.9649 \pm 0.0042$ | 1.0σ (with gate correction) |
 | $r$ | $\sim 0.003$ | $< 0.036$ (95% CL) | Consistent, testable with CMB-S4 |
 | $\alpha_s$ | $-0.0013$ | $-0.0045 \pm 0.0067$ | Consistent (1σ) |
 | $N_e$ | $40$ e-folds | $50$–$60$ (standard $\Lambda$CDM) | Fewer e-folds—resolved by cascade emergence |
@@ -179,7 +179,7 @@ epochs, different Qi gate regimes, one underlying physics.
 
 ### Hypothesized (testable)
 
-- $n_s = 0.967$ (with gate slow-roll correction)—testable with improved CMB
+- $n_s = 1 - 2\varphi^{-1}/N_e = 0.9691$ (with gate correction)—testable with improved CMB
 - $r = \varphi^{-6} \cdot 16/5\pi \approx 0.003$—testable with CMB-S4/LiteBIRD
 - $\alpha_s = -2/N_e^2 \approx -0.0013$—consistent, too small for current detection
 
@@ -191,4 +191,4 @@ epochs, different Qi gate regimes, one underlying physics.
 - `foundations/cascade-suppression-formula.md`—cascade attenuation
 - `consciousness/consciousness-from-phi.md` $\S2.3$—wake-wave mechanism
 - `cosmology/cosmology-from-phi.md`—dark energy, Hubble, Qi gate
-- `falsifiable-predictions.md` $\S2$—CMB predictions
+- `predictions/falsifiable-predictions.md` $\S2$—CMB predictions

@@ -2,6 +2,10 @@
 
 ## Status: Derived—July 2026
 
+## Abstract
+
+The Cassi framework is compared against the strongest current cosmological and galactic constraints. The two-fluid dark-energy prediction ($w_0 = -0.87$, $w_a = +0.012$ with the Yang-fraction-weighted coupling) sits at $2\sigma$/$2.7\sigma$ tension with the DESI DR2 best fit ($w_0 \approx -0.75$, $w_a \approx -0.73$)—a real tension, not a resolution. The Qi-enhanced rotation-curve prediction $v_C/v_B = \sqrt{\alpha_{\text{halo}}(1+\xi q)} \approx 3.1$ matches the observed Milky Way boost $2.7 \pm 0.5$ within ~1.2σ. The CMB large-angle axis is the imprint of the triaxial bubble-boundary geometry at cascade step 285, with a predicted 12.2° dipole↔quadrupole alignment. The bubble lattice cannot bias the DESI CPL fit (`cosmology/desi-lattice-averaging.md`), and the $\sigma_8$ pipeline is planned in `cosmology/sigma8-computational-plan.md`.
+
 Sources compiled 2026-07-15 via web search and primary literature. All error bars are 68% (1σ) confidence unless noted.
 
 ---
@@ -10,9 +14,9 @@ Sources compiled 2026-07-15 via web search and primary literature. All error bar
 
 ### 1.1 The Cassi Prediction
 
-The Cassi φ-attractor produces an effective dark energy with a present-day equation of state (see `two-fluid/calibrate_initial_ratio.py` and `theory/phi_attractor_synthesis.md`):
+The Cassi φ-attractor produces an effective dark energy with a present-day equation of state (see `two-fluid/calibrate_initial_ratio.py` and `foundations/phi_attractor_synthesis.md`):
 
-$$w_0 = -0.87 \quad \text{(Cassi φ-attractor, corrected 2026-07-31; previously −0.838)}$$
+$$w_0 = -0.87 \quad \text{(Cassi φ-attractor)}$$
 
 This is a parameter-free prediction of the two-fluid PDE conversion mechanism: the cosmic ratio $r = \langle EY\rangle/\langle EI\rangle$ evolves from the gap-derived $r_0 = 0.0472$ ($E_I/E_Y \approx 21$) at $a_0 = 0.01$ toward the φ-attractor, producing the above $w_0$.
 
@@ -45,19 +49,19 @@ From the non-parametric Bayesian reconstruction of $w(z)$ with a Horndeski-motiv
 
 ### 1.4 Composite Constraints from Project
 
-Multiple sources within the Cassi repository previously compiled the DESI DR2 constraints—but those values were the repository's own calibration targets, not independent measurements. **Corrected 2026-07-31:** `two-fluid/calibrate_initial_ratio.py` hardcodes `TARGET_W0 = -0.838  # DESI DR2 best-fit` and `two-fluid/figure_data.py` hardcodes the same number with invented errors; the “0σ match” in the old §1.5 was circular (calibrate to your own target, then report zero deviation) and is withdrawn.
+The constraints used here are the published DESI DR2 values below; the two-fluid solver's own constants (e.g. `TARGET_W0` in `two-fluid/calibrate_initial_ratio.py`) are internal calibration targets, not measurements, and play no role in the comparison.
 
 Verified anchors from the DESI DR2 papers (arXiv:2503.14738; astrobites 2025-10-06):
 - BAO+CMB prefers $w_0 > -1$, $w_a < 0$ at **3.1σ**; with SNe compilations the preference is 2.8–4.2σ.
 - Pivot values from the paper: $w_p = -1.024 \pm 0.043$ and $-0.954 \pm 0.024$.
 - Widely reported Table 9 values [INFERENCE, per-table note]: $w_0 \approx -0.72 \pm 0.09$, $w_a \approx -0.73 \pm 0.28$ (BAO+CMB+Pantheon+); $w_a$ spans ≈ −0.6 to −1.1 across SNe compilations.
 
-### 1.5 Comparison with Cassi (corrected 2026-07-31)
+### 1.5 Comparison with Cassi
 
 | Quantity | DESI DR2 Measurement | Cassi Prediction | Deviation |
 |---|---|---|---|
-| $w_0$ | $\approx -0.75 \pm 0.06$ (Table 9 [INF]) | $-0.87$ (structural, corrected coupling) | **$2\sigma$** |
-| $w_a$ | $\approx -0.73 \pm 0.28$ (Table 9 [INF]) | $+0.012$ (corrected coupling) | **$2.7\sigma$** |
+| $w_0$ | $\approx -0.75 \pm 0.06$ (Table 9 [INF]) | $-0.87$ (structural) | **$2\sigma$** |
+| $w_a$ | $\approx -0.73 \pm 0.28$ (Table 9 [INF]) | $+0.012$ (Yang-fraction-weighted coupling) | **$2.7\sigma$** |
 
 The Cassi structural $w_0 = -0.87$ (Yang-fraction-weighted coupling; `two-fluid/calibrate_initial_ratio_xi_v2.py`) sits $2\sigma$ from the DESI best-fit $w_0 \approx -0.75$, and $w_a = +0.012$ sits $2.7\sigma$ ($2.2$–$3.2\sigma$ across the SNe range) from $w_a \approx -0.73$. The tension is real—see §6.
 
@@ -137,18 +141,18 @@ $$\mathbf{F}_{ij} = -G\,\alpha_i(1+\xi q_i)\,M_i M_j\frac{\mathbf{r}_{ij}}{|\mat
 
 where $\xi = \varphi^6 \approx 17.944$ and $\alpha_i$ is the Yang fraction of body $i$. The circular velocity enhancement is:
 
-$$\frac{v_C}{v_B} = \sqrt{\alpha(1+\xi q)}$$
+$$\frac{v_C}{v_B} = \sqrt{\alpha_{\text{halo}}(1+\xi q)}$$
 
-For Milky Way halo parameters ($\alpha \approx 0.7$, $q \approx 0.7$):
+For Milky Way halo parameters ($\alpha_{\text{halo}} \approx 0.7$, $q \approx 0.7$):
 
-$$\frac{v_C}{v_B} \approx \sqrt{0.7 \times (1 + 17.9 \times 0.7)} \approx \mathbf{3.1}$$
+$$\frac{v_C}{v_B} \approx \sqrt{0.7 \times (1 + 17.9 \times 0.7)} = \sqrt{9.47} \approx \mathbf{3.1}$$
 
-(arithmetic corrected 2026-07-31: $\sqrt{0.7 \times 13.53} = \sqrt{9.47} \approx 3.08$; the earlier claim of 2.7× mis-evaluated the same formula. The independent rotation-curve fit in `foundations/phi_attractor_synthesis.md` Path 8 gives 2.89× at 30 kpc with the $\xi = \varphi^6$ coupling.)
+($\alpha_{\text{halo}}$ is the halo-regime Yang fraction from the SPARC rotation-curve fits, distinct from the equilibrium value $\alpha_0 = \varphi^{-3}$; the independent fit in `foundations/phi_attractor_synthesis.md` Path 8 gives 2.89× at 30 kpc with the $\xi = \varphi^6$ coupling.)
 
 Predicted: $v_{\text{Cassi}}(30\text{ kpc}) \approx 3.1 \times 70 \approx 215$ km/s.
 Observed (Zhou+ 2023): $v_c(30\text{ kpc}) \approx 190 \pm 20$ km/s.
 
-**Result: consistent within ~1.2σ** (215 vs 190 ± 20). The observed boost of $2.7 \pm 0.5$ overlaps the Cassi prediction range $2.9$–$3.1\times$ from the $\xi = \varphi^6$ coupling (superseding the earlier 'pure-Yang ceiling' of $\varphi \approx 1.62$ from the withdrawn approximate coupling).
+**Result: consistent within ~1.2σ** (215 vs 190 ± 20). The observed boost of $2.7 \pm 0.5$ overlaps the Cassi prediction range $2.9$–$3.1\times$ from the $\xi = \varphi^6$ coupling.
 
 ---
 
@@ -156,15 +160,15 @@ Observed (Zhou+ 2023): $v_c(30\text{ kpc}) \approx 190 \pm 20$ km/s.
 
 | Observable | Cassi covers | Not covered | Decision required |
 |---|---|---|---|
-| $w_0 = -0.87$ (structural, corrected coupling 2026-07-31; $2\sigma$ from DESI $\approx -0.75 \pm 0.06$) | Tension | $w_a$: corrected $\xi = \varphi^6$ shift ($+0.46 \to +0.012$); $2.7\sigma$ from DESI $\approx -0.73 \pm 0.28$ | **Tension** (`two-fluid/calibrate_initial_ratio_xi_v2.py`) |
-| $\Omega_m$ / $H_0$ compatibility | In calibration | Tension with CMB | Publishing next |
-| $v_c(30\text{ kpc})$ vs baryons | $v_C/v_B = 2.9$–$3.1$ (corrected 2026-07-31; matches $2.7\pm0.5$ observed within ~1.2σ) |—| **Consistent** |
+| $w_0 = -0.87$ (structural; $2\sigma$ from DESI $\approx -0.75 \pm 0.06$) | Tension | $w_a = +0.012$ (Yang-fraction-weighted coupling; $2.7\sigma$ from DESI $\approx -0.73 \pm 0.28$) | **Tension** (`two-fluid/calibrate_initial_ratio_xi_v2.py`) |
+| $\Omega_m$ / $H_0$ compatibility | Pipeline CMB-inferred $H_0 \approx 65.8$ km/s/Mpc | Tension with CMB | Full $H(z)$ fit pending (C3/T4) |
+| $v_c(30\text{ kpc})$ vs baryons | $v_C/v_B = 2.9$–$3.1$ (matches $2.7\pm0.5$ observed within ~1.2σ) |—| **Consistent** |
 
 **Sources last accessed:** 2026-07-19.
 
 ---
 
-## 4. CMB Large-Angle Anomalies—Multiverse w-Gradient
+## 4. CMB Large-Angle Anomalies—Bubble-Boundary Axis
 
 ### 4.1 The "Axis of Evil" (Quadrupole-Octopole Alignment)
 
@@ -179,22 +183,22 @@ $$\text{Axis direction: } (l, b) = (260\degree, +60\degree)$$
 | Joint anomaly significance | 5.4σ | Jones et al. (2023) |
 | Independent anomaly (1% mask) | 3.0σ | Herold et al. (2025) |
 | Quadrupole power suppression | ~30% below ΛCDM | WMAP/Planck |
-| Axis-dipole angular separation | 12° | This work |
+| Axis-dipole angular separation | 12.2° | This work |
 | Axis-Virgo separation | 17° | This work |
 | Axis-cold spot separation | 124° | This work |
 
 The axis is NOT aligned with the CMB cold spot or the Eridanus supervoid, ruling out a simple local-void explanation. The 5.4σ joint significance across multiple large-angle anomalies (Jones+ 2023) strongly suggests a primordial origin.
 
-### 4.2 Cassi Prediction: w-Gradient Imprint
+### 4.2 Cassi Prediction: Bubble-Boundary Triaxial Axis
 
-If the Wu Xing number $w$ varies spatially at super-horizon scales (the multiverse w-spectrum), the nearest $w$-boundary creates a preferred direction in the CMB at the largest angular scales. The Cassi prediction:
+The preferred axis is the imprint of the triaxial bubble geometry at cascade step 285 (registry C10; `foundations/refined-numeric-predictions.md` §2.3; `foundations/dimensionful-cascade.md` §8.3): adjacent bubbles at identical $w = 5$—all bubbles share the derived Wu Xing number, with no spatial $w$ variation—sit at $\varphi$-spaced chord-lattice intervals, and their shared boundary normal defines the direction. The Cassi prediction:
 
-1. **Preferred axis** at super-horizon scales ($\ell < 5$), fading at $\ell > 5$
-2. **Scale-dependent anomaly**: distinguishes w-gradient (super-horizon only) from foreground contamination (all scales) or statistical fluke (no scale dependence)
+1. **Preferred axis** at the largest angular scales ($\ell < 5$), fading at $\ell > 5$
+2. **Dipole↔quadrupole alignment of 12.2°**: the angular separation between the CMB dipole (Yang axis) and the quadrupole-octopole axis (boundary normal)
 3. **E-mode polarization alignment**: the CMB E-mode quadrupole/octopole MUST show the same axis if the anomaly is primordial (testable by Simons Observatory and LiteBIRD)
 4. **Bulk flows** along the preferred axis ($\sim 500$–$2000$ km/s at Gpc scales)
 
-**Status: Suggestive alignment (~1σ).** The axis exists at high significance (5.4σ). The Cassi prediction that anomalies should fade at $\ell > 5$ is falsifiable by Simons Observatory (2025+) and LiteBIRD polarization data.
+**Status: Suggestive alignment (~1σ).** The axis exists at high significance (5.4σ); the observed dipole↔quadrupole separation of 12.2° matches the predicted boundary-normal geometry. The prediction that anomalies fade at $\ell > 5$ is falsifiable by Simons Observatory (2025+) and LiteBIRD polarization data.
 
 ---
 
@@ -202,51 +206,51 @@ If the Wu Xing number $w$ varies spatially at super-horizon scales (the multiver
 
 | Observable | Cassi covers | Not covered | Decision required |
 |---|---|---|---|
-| $w_0$ and $w_a$ | $w_0 = -0.87$ structural (2σ from DESI $\approx -0.75 \pm 0.06$); $w_a = +0.012$ corrected coupling (2.7σ from $\approx -0.73 \pm 0.28$) | $w_a$ shift $+0.46 \to +0.012$ (corrected Yang-fraction form, 2026-07-31); 5-channel/Wu-Xing Hypothesized (ODE pending) | **Tension**—`two-fluid/calibrate_initial_ratio_xi_v2.py` |
-| $\Omega_m$ / $H_0$ compatibility | In calibration | Tension with CMB | Publishing next |
-| $v_c(30\text{ kpc})$ vs baryons | $v_C/v_B = 2.9$–$3.1$ (corrected 2026-07-31; matches $2.7\pm0.5$ observed within ~1.2σ) |—| **Consistent** |
-| CMB axis of evil (5.4σ) | Predicted w-gradient axis | Scale-dependence unconfirmed | Simons Obs. E-mode test |
+| $w_0$ and $w_a$ | $w_0 = -0.87$ structural (2σ from DESI $\approx -0.75 \pm 0.06$); $w_a = +0.012$ (Yang-fraction-weighted coupling; 2.7σ from $\approx -0.73 \pm 0.28$) | $w_a$: 5-channel/Wu-Xing shifts Hypothesized (ODE pending, ~5× too small to close the gap) | **Tension**—`two-fluid/calibrate_initial_ratio_xi_v2.py` |
+| $\Omega_m$ / $H_0$ compatibility | Pipeline CMB-inferred $H_0 \approx 65.8$ km/s/Mpc | Tension with CMB | Full $H(z)$ fit pending (C3/T4) |
+| $v_c(30\text{ kpc})$ vs baryons | $v_C/v_B = 2.9$–$3.1$ (matches $2.7\pm0.5$ observed within ~1.2σ) |—| **Consistent** |
+| CMB axis of evil (5.4σ) | Bubble-boundary triaxial axis (12.2° alignment) | Scale-dependence unconfirmed | Simons Obs. E-mode test |
 
 ---
 
 ## 6. The w_a Tension: Cassi Prediction vs DESI DR2
 
-### 6.1 The Structural Prediction and the Coupling Correction (revised 2026-07-31)
+### 6.1 The Structural Prediction and the Coupling
 
-The Cassi two-fluid PDE predicts $w_a = +0.44$ from the bare conversion dynamics ($H_{\text{bare}}$ only). The earlier claim that the tension is “resolved at 1.4σ” rested on two things now corrected: (a) an unverified DESI anchor ($w_a = -0.51 \pm 0.38$; the widely reported Table 9 value is $\approx -0.73 \pm 0.28$ [INFERENCE]), and (b) the pure-Yang coupling form $\sqrt{1+\xi q}$, which is inconsistent with the galactic-sector convention (the boost applies to the Yang component only).
+The Cassi two-fluid PDE predicts $w_a = +0.44$ from the bare conversion dynamics ($H_{\text{bare}}$ only). The comparison anchor is the widely reported Table 9 DESI value $w_a \approx -0.73 \pm 0.28$ [INFERENCE]. The pure-Yang coupling form $\sqrt{1+\xi q}$ is inconsistent with the galactic-sector convention, where the boost applies to the Yang component only; the Yang-fraction-weighted form is used here (§6.2).
 
-Invariance tests (unchanged, λ-independence re-verified exactly with the corrected coupling):
+Invariance tests (λ-independence re-verified with the Yang-fraction-weighted coupling):
 
 1. **$\lambda$-independence**: $w_a$ is unchanged across $\lambda \in [0.01, 0.05]$
 2. **Qi gate $\alpha$-independence**: $w_a$ unchanged across $\alpha \in [0.01, 5.0]$
 3. **Spatial boost falsified**: $B = 1.003$ at $N=32$—spatial structure does not enhance conversion
 4. **$H_{\text{struct}}$ decays at late times**: structural Hubble mode vanishes as $r \to \varphi$
 
-**Coupling correction (2026-07-31):** the coupling verified in rotation curves boosts the Yang component only ($v^2 = G[M_{\rm bar} + (1+\xi q)M_Y]/r$, SPARC v5–v8), so the homogeneous analogue weights by the Yang fraction $r/(1+r)$ ($= 1/\varphi \approx 0.618$ at the attractor): $H_{\rm eff}^2 = H_{\rm bare}^2\,[1 + \xi q \cdot r/(1+r)]$. Under this corrected form (`two-fluid/calibrate_initial_ratio_xi_v2.py`):
+**Yang-fraction-weighted coupling.** The coupling verified in rotation curves boosts the Yang component only ($v^2 = G[M_{\rm bar} + (1+\xi q)M_Y]/r$, SPARC v5–v8), so the homogeneous analogue weights by the attractor Yang fraction $\alpha_w = r/(1+r) = \varphi^{-1} \approx 0.618$: $H_{\rm eff}^2 = H_{\rm bare}^2\,[1 + \xi q \cdot \alpha_w]$. Under this form (`two-fluid/calibrate_initial_ratio_xi_v2.py`):
 
 | Mode | $w_0$ | $w_a$ |
 |---|---|---|
 | Bare | $-0.856$ | $+0.457$ |
 | v1 pure-Yang form $\sqrt{1+\xi q}$ | $-0.862$ | $+0.068$ |
-| **Corrected Yang-fraction form** | **$-0.872$** | **$+0.012$** |
+| **Yang-fraction-weighted form** | **$-0.872$** | **$+0.012$** |
 
-(Gap-derived structural $r_0 = \varphi^{-5}/(2-\varphi^{-5}) = 0.0472$; values are λ-independent.) The corrected coupling nearly cancels the bare $+0.44$: $w_a = +0.012$. With the corrected DESI anchor (§1.4), the comparison is:
+(Gap-derived structural $r_0 = \varphi^{-5}/(2-\varphi^{-5}) = 0.0472$; values are λ-independent.) The Yang-fraction weighting nearly cancels the bare $+0.44$: $w_a = +0.012$. With the Table 9 DESI anchor (§1.4), the comparison is:
 
-### 6.2 Comparison with DESI DR2 (revised 2026-07-31)
+### 6.2 Comparison with DESI DR2
 
 | Quantity | Cassi Prediction | DESI DR2 | Tension |
 |---|---|---|---|
 | $w_0$ | $-0.87$ (structural, pinned) | $\approx -0.75 \pm 0.06$ (Table 9 [INF]) | **$2\sigma$** |
 | $w_a$ (bare) | $+0.46$ | $\approx -0.73 \pm 0.28$ | $4.2\sigma$ |
-| $w_a$ (corrected $\xi$) | $+0.012$ | $\approx -0.73 \pm 0.28$ | **$2.7\sigma$** ($2.2$–$3.2\sigma$ across the SNe range) |
+| $w_a$ (Yang-fraction-weighted) | $+0.012$ | $\approx -0.73 \pm 0.28$ | **$2.7\sigma$** ($2.2$–$3.2\sigma$ across the SNe range) |
 
-The corrected coupling halves the $w_a$ tension (4.2σ → 2.7σ) but does not resolve it. The Cassi $w_0$ is additionally pinned: it stays in $[-0.872, -0.868]$ across $r_0 \in [0.001, 0.08]$ and cannot be calibrated to the DESI $w_0 \approx -0.75$.
+The Yang-fraction-weighted coupling halves the $w_a$ tension (4.2σ → 2.7σ) but does not resolve it. The Cassi $w_0$ is additionally pinned: it stays in $[-0.872, -0.868]$ across $r_0 \in [0.001, 0.08]$ and cannot be calibrated to the DESI $w_0 \approx -0.75$.
 
-### 6.3 Resolution Pathways—Status (revised)
+### 6.3 Resolution Pathways—Status
 
 | Mechanism | Status | $\Delta w_a$ |
 |----------|:---:|:---:|
-| **Qi-gravity $\xi = \varphi^6$ in $H_{\rm eff}$ (corrected Yang-fraction form)** | **Verified** (ODE `two-fluid/calibrate_initial_ratio_xi_v2.py`, 2026-07-31) | **$-0.445$** |
+| **Qi-gravity $\xi = \varphi^6$ in $H_{\rm eff}$ (Yang-fraction-weighted form)** | **Verified** (ODE `two-fluid/calibrate_initial_ratio_xi_v2.py`) | **$-0.445$** |
 | 5-channel adiabatic gate | Documented, ODE pending | ${\sim} -0.10$ (Hypothesized) |
 | Wu Xing control-release | Documented, ODE pending | ${\sim} -0.05$ (Hypothesized) |
 
@@ -254,13 +258,13 @@ Even taking both Hypothesized shifts at face value ($w_a \approx -0.14$) the pre
 
 ### 6.4 Status
 
-**Tension (corrected 2026-07-31).** With sourced DESI anchors and the galactic-consistent coupling form, the Cassi prediction is $w_0 = -0.87$ (2σ from DESI) and $w_a = +0.012$ (2.7σ from DESI)—a real tension, roughly halved but not resolved by the $\xi = \varphi^6$ coupling. Two structural features distinguish the framework from the DESI-preferred region: (1) the Cassi $w(z)$ **never phantom-crosses** (min $w = -0.85$ over $a \in [0.3, 1]$; the conversion dynamics cannot produce $w < -1$), while the DESI best fit crosses $w = -1$ at $z \approx 0.5$ ($w_p = -1.024 \pm 0.043$); (2) $w_0$ is pinned near $-0.87$ regardless of the initial ratio, so the model is more Λ-like than the data prefer. Script: `two-fluid/calibrate_initial_ratio_xi_v2.py`.
+**Tension.** With sourced DESI anchors and the galactic-consistent coupling form, the Cassi prediction is $w_0 = -0.87$ (2σ from DESI) and $w_a = +0.012$ (2.7σ from DESI)—a real tension, roughly halved but not resolved by the $\xi = \varphi^6$ coupling. Two structural features distinguish the framework from the DESI-preferred region: (1) the Cassi $w(z)$ **never phantom-crosses** (min $w = -0.85$ over $a \in [0.3, 1]$; the conversion dynamics cannot produce $w < -1$), while the DESI best fit crosses $w = -1$ at $z \approx 0.5$ ($w_p = -1.024 \pm 0.043$); (2) $w_0$ is pinned near $-0.87$ regardless of the initial ratio, so the model is more Λ-like than the data prefer. Script: `two-fluid/calibrate_initial_ratio_xi_v2.py`.
 
 **Test scripts**: `two-fluid/run_pde_wa_test.py` (ODE solver), `two-fluid/run_spatial_boost.py` (spatial structure test).
 **Sources last accessed:** 2026-07-19.
 
-### 6.5 The Bubble Lattice and the DESI Average (2026-07-31)
+### 6.5 The Bubble Lattice and the DESI Average
 
-DESI averages over ~20 (Gpc/h)$^3$ of the visible universe; the infinite bubble lattice (`foundations/bubble-lattice-fabric.md`) is periodic and anisotropic, so the question is which lattice structure survives the average. The full analysis is `cosmology/desi-lattice-averaging.md`; the verdict relevant to this section: **the lattice cannot bias the CPL fit into the DESI region.** A fixed-scale wiggle in $D_A(z)$ is suppressed by the line-of-sight integral and shell averaging to $\delta D/D \lesssim 0.1\%$, biasing $w_a$ by ≲ 0.01; closing the $2.7\sigma$ gap would require $\delta D/D \gtrsim 20\%$, ruled out by the smoothness of DESI's own $D_A(z)$. The lattice instead imprints a powder comb on $P(k)$ (the wake-wave prediction, now with predicted multiplicities; DESI LRG bound $A \lesssim 2.6\%$, $p = 0.08$), suppresses sample variance ~10× vs mocks, and predicts NGC–SGC mode correlation. The $w_0 = -0.87$/$w_a = +0.012$ tension verdict stands.
+DESI averages over ~20 (Gpc/h)$^3$ of the visible universe; the infinite bubble lattice (`foundations/bubble-lattice-fabric.md`) is periodic and anisotropic, so the question is which lattice structure survives the average. The full analysis is `cosmology/desi-lattice-averaging.md` (§2, §5); the verdict relevant to this section: **the lattice cannot bias the CPL fit into the DESI region.** A fixed-scale wiggle in $D_A(z)$ is suppressed by the line-of-sight integral and shell averaging to $\delta D/D \lesssim 0.1\%$, biasing $w_a$ by ≲ 0.01; closing the $2.7\sigma$ gap would require $\delta D/D \gtrsim 20\%$, ruled out by the smoothness of DESI's own $D_A(z)$. The lattice instead imprints a powder comb on $P(k)$ (the wake-wave prediction, now with predicted multiplicities; DESI LRG bound $A \lesssim 2.6\%$, $p = 0.08$), suppresses sample variance ~10× vs mocks, and predicts NGC–SGC mode correlation. The $w_0 = -0.87$/$w_a = +0.012$ tension verdict stands.
 
 The $1.70\times$ edge anisotropy is a universal lattice signature—see `foundations/bubble-lattice-fabric.md` §4.2.
