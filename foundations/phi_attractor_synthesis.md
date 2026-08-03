@@ -4,7 +4,7 @@
 
 ## Abstract
 
-An investigation of whether the Cassi N-body solver --- a gravitational $N$-body integrator modified by Gaussian force softening, $\varphi$-damped velocity updates, and a Qi-coherence-enhanced gravitational constant --- admits partial analytical solutions to the three-body problem. Starting from the question of whether steady-state attractors exist for the damped system, nine interconnected analytical paths are developed. The analysis finds: (1) the asymptotic half-mass radius follows $R_\infty(d) = R_{\min} + \Delta R \cdot \exp(-\gamma_0 \cdot d/(1-d) \cdot T)$ with $R^2 = 0.945$; (2) Qi-hydrostatic equilibrium is **disproven** for damped systems; (3) cold-collapse virial ratio decays as $Q(t) \sim \exp(-t/\tau_Q)$ with $\tau_Q = dt/(2|\ln d|)…
+An investigation of whether the Cassi N-body solver --- a gravitational $N$-body integrator modified by Gaussian force softening, $\varphi$-damped velocity updates, and a Qi-coherence-enhanced gravitational constant --- admits partial analytical solutions to the three-body problem. Starting from the question of whether steady-state attractors exist for the damped system, nine interconnected analytical paths are developed. The analysis finds: (1) the asymptotic half-mass radius follows $R_\infty(d) = R_{\min} + \Delta R \cdot \exp(-\gamma_0 \cdot d/(1-d) \cdot T)$ with $R^2 = 0.945$; (2) Qi-hydrostatic equilibrium is **disproven** for damped systems; (3) cold-collapse virial ratio decays as $Q(t) \sim \exp(-t/\tau_Q)$ with $\tau_Q = dt/(2|\ln d|)$; (4) softened gravity produces retrograde precession $\Delta\phi = -\sqrt{2\pi}(\sigma/a)^3(1+e^2/4)/(1-e^2)^3$; (5) L4/L5 are universally stable for $\sigma/a \geq 0.44$; (6) softened gravity alone cannot produce flat rotation curves (14-order-of-magnitude gap); (7) the full two-fluid coupling $G_{\text{eff}}/G = \alpha(1+\xi q)$, $\xi = \varphi^6$, gives the right 30-kpc boost but a U-shaped single-$\rho_{\text{ref}}$ curve, with the flat-curve mechanism living in the hydrostatic condensate (SPARC v5–v8); (8) Cassi saturates at the derived max boost $\varphi^6 \approx 17.94$ (velocity ceiling $\sqrt{1+\xi} \approx 4.35$, identified with $\varphi^3 \approx 4.24$) while MOND grows without bound—a decisive falsifiable distinction, with the ceiling exceeded in 3/8 dwarfs (Path 10); and (9) the exponential $R_\infty(d)$ model survives the cold-collapse resolution through its $d/(1-d)$ functional form. Nine paths are backed by runnable scripts in `experiments/phi_attractor_paths/`.
 
 ## 1. Introduction
 
@@ -16,13 +16,13 @@ The classical three-body problem has no general closed-form solution (Poincare, 
 > `gravity/three-body-analytical.md` (Derived). This document applies the
 > machinery computationally through nine paths, each backed by a script in
 > `experiments/phi_attractor_paths/`. Read the reduction theory first.
-> Paths 8–9 below were re-evaluated 2026-07-31 with the full coupling
-> $G_{\text{eff}}/G = \alpha(1+\xi q)$, $\xi = \varphi^6$ (see §2.4 note).
+> Paths 8–9 use the full coupling $G_{\text{eff}}/G = \alpha(1+\xi q)$,
+> $\xi = \varphi^6$ (§2.4).
 
 Cassi modifies standard Newtonian gravity in three ways:
 1. **Gaussian force softening** with length scale $\sigma$, regularizing the $1/r^2$ singularity.
 2. **$\varphi$-attractor damping**: velocities are updated as $\mathbf{v} \leftarrow d \cdot \mathbf{v} + \mathbf{a} \cdot dt$, where $d = \varphi^{-1} \approx 0.618$ is the canonical damping rate.
-3. **Qi-coherence-enhanced gravity**: $G_{\text{eff}}/G = (\pi/\rho)\,(1 + \xi \cdot q)$, where $\xi = \varphi^6 \approx 17.944$ and $q \in [0,1]$ measures local coherence.
+3. **Qi-coherence-enhanced gravity**: $G_{\text{eff}}/G = \alpha\,(1 + \xi \cdot q)$, where $\alpha = \pi/\rho$ is the local Yang fraction ($\alpha_0 = \varphi^{-3} \approx 0.236$ at the $\varphi$-fixed point), $\xi = \varphi^6 \approx 17.944$ and $q \in [0,1]$ measures local coherence.
 
 These modifications break the scale-free structure of Newtonian gravity, potentially introducing new integrals of motion or modifying the chaotic phase space. The analytical consequences are explored systematically below.
 
@@ -71,32 +71,15 @@ The effective gravitational constant in the two-fluid model is:
 
 $$\frac{G_{\text{eff}}}{G} = \frac{\pi}{\rho}\left(1 + \xi \cdot q\right), \qquad \xi = \varphi^6 \approx 17.944$$
 
-where $\pi/\rho$ is the geometric dilution factor from the two-fluid projection, $\xi = \varphi^6$ is the derived coupling constant arising from the six-dimensional phase-space structure, and $q$ is the Qi coherence factor (Section 2.3).
+where $\pi/\rho$ is the local Yang fraction ($\alpha_0 = \pi/\rho = \varphi^{-3} \approx 0.236$ at the $\varphi$-fixed point; $\alpha_{\text{halo}} \approx 0.7$ in the galactic halo regime), $\xi = \varphi^6$ is the derived coupling constant arising from the six-dimensional phase-space structure, and $q$ is the Qi coherence factor (Section 2.3).
 
-Maximum enhancement at the $\varphi$-fixed point ($\pi/\rho = \varphi^{-3} \approx 0.236$, $q \approx 0.7$):
+Maximum enhancement at the $\varphi$-fixed point (equilibrium Yang fraction $\alpha_0 = \pi/\rho = \varphi^{-3} \approx 0.236$, $q \approx 0.7$):
 
 $$\frac{G_{\text{eff}}}{G} \approx 0.236 \times (1 + 17.944 \times 0.7) \approx 3.2\times$$
 
-**Note on the $G_{\text{eff}}$ formula (revised 2026-07-31):** Paths 8--9 previously
-used the approximate coupling $G_{\text{eff}}/G_N = 1 + (\varphi-1)\cdot q$ with
-max boost $\varphi \approx 1.618$ (and the derived $\sqrt{\varphi} \approx 1.27$
-ceiling on $v_{\text{circ}}$). That coupling was an incorrect early equation and
-is **withdrawn**. The scripts and sections below now use the full two-fluid
-coupling $G_{\text{eff}}/G = \alpha(1+\xi q)$ with $\xi = \varphi^6 \approx 17.944$
-and halo Yang fraction $\alpha \approx 0.7$, consistent with
-`cosmology/observational_constraints.md` §2.6 and the point-particle reduction
-of `gravity/three-body-analytical.md`. Under this coupling the boost at 30 kpc
-is $v_{\text{enh}}/v_{\text{Newt}} \approx 2.9$—consistent with the observed
-Milky Way boost $2.7 \pm 0.5$ (Zhou+ 2023)—but the single-$\rho_{\text{ref}}$
-model *overproduces* at the χ² best (v(30) ≈ 296 km/s vs ~190–200 observed),
-and its curve is U-shaped. The overproduction is a profile-shape disease, not
-a coupling failure: the SPARC fit with the baryon-seeded oscillatory lattice
-(v4) overpredicts in 111/143 galaxies, while the hydrostatic two-component
-condensate (pseudo-isothermal $\rho_Y$, v5) survives with the same fixed
-$\xi = \varphi^6$ (median $\Delta$AIC = −7.0, 90/143; see
-`speculations/dark-matter-as-qi-coherence.md` §7.2).
+**The $G_{\text{eff}}$ formula.** Paths 8–9 use the full two-fluid coupling $G_{\text{eff}}/G = \alpha(1+\xi q)$ with $\xi = \varphi^6 \approx 17.944$ and halo Yang fraction $\alpha_{\text{halo}} \approx 0.7$, consistent with `cosmology/observational_constraints.md` §2.6 and the point-particle reduction of `gravity/three-body-analytical.md`. Under this coupling the boost at 30 kpc is $v_{\text{enh}}/v_{\text{Newt}} \approx 2.9$—consistent with the observed Milky Way boost $2.7 \pm 0.5$ (Zhou+ 2023)—but the single-$\rho_{\text{ref}}$ model *overproduces* at the χ² best (v(30) ≈ 296 km/s vs ~190–200 observed), and its curve is U-shaped. The overproduction is a profile-shape disease, not a coupling failure: the SPARC fit with the baryon-seeded oscillatory lattice (v4) overpredicts in 111/143 galaxies, while the hydrostatic two-component condensate (pseudo-isothermal $\rho_Y$, v5) survives with the same fixed $\xi = \varphi^6$ (median $\Delta$AIC = −7.0, 90/143; see `speculations/dark-matter-as-qi-coherence.md` §7.2).
 
-This is the mechanism tested in Paths 8--9 for galactic dynamics.
+This is the mechanism tested in Paths 8–9 for galactic dynamics.
 
 ## 3. Path 1: Asymptotic $R_\infty(d)$
 
@@ -129,7 +112,7 @@ The exponential form arises naturally: higher damping $\to$ faster energy extrac
 
 ### The Model
 
-The hypothesis was that the $\varphi$-damped system relaxes to a Qi-hydrostatic equilibrium satisfying:
+The hypothesis under test: the $\varphi$-damped system relaxes to a Qi-hydrostatic equilibrium satisfying:
 
 $$\frac{dP}{dr} = -\rho \cdot \frac{d\Phi}{dr}, \qquad \nabla^2\Phi = 4\pi G\,\rho_{\text{soft}}$$
 
@@ -316,35 +299,28 @@ A single scale-independent $\sigma$ **cannot** simultaneously explain flat galac
 
 Unlike softened gravity (which only reduces forces), $\varphi$-enhanced gravity **increases** $G_{\text{eff}}$ at low densities through the two-fluid coupling:
 
-$$\frac{G_{\text{eff}}}{G} = \alpha\bigl(1 + \xi \cdot q(\rho)\bigr), \qquad \xi = \varphi^6 \approx 17.944, \qquad \alpha \approx 0.7, \qquad q = \frac{1}{1 + (\rho/\rho_{\text{ref}})^2}$$
+$$\frac{G_{\text{eff}}}{G} = \alpha\bigl(1 + \xi \cdot q(\rho)\bigr), \qquad \xi = \varphi^6 \approx 17.944, \qquad \alpha_{\text{halo}} \approx 0.7, \qquad q = \frac{1}{1 + (\rho/\rho_{\text{ref}})^2}$$
 
-In the low-density outskirts of a galaxy ($\rho \ll \rho_{\text{ref}}$), $q \to 1$ and the enhancement approaches the framework's saturation: $G_{\text{eff}}/G \to \varphi^6 \approx 17.94$ (velocity ceiling $\sqrt{\varphi^6} = \varphi^3 \approx 4.24$; corrected 2026-08-03—the earlier $\alpha(1+\xi) \approx 13.3$ used the $\alpha = 0.7$ halo parametrization and is superseded as the framework maximum).
+In the low-density outskirts of a galaxy ($\rho \ll \rho_{\text{ref}}$), $q \to 1$ and the enhancement approaches the framework's saturation: $G_{\text{eff}}/G \to \varphi^6 \approx 17.94$ (velocity ceiling $\sqrt{1+\xi} = \sqrt{1+\varphi^6} \approx 4.35$, identified with $\varphi^3 \approx 4.24$; the halo parametrization $\alpha_{\text{halo}} = 0.7$ gives $\sqrt{\alpha_{\text{halo}}(1+\xi)} \approx 3.64$—a halo-regime value, not the framework maximum).
 
-> **Revision (2026-07-31):** this section previously used the approximate
-> coupling $G_{\text{eff}}/G_N = 1 + (\varphi-1)\cdot q$ (max boost
-> $\varphi \approx 1.618$, velocity ceiling $\sqrt{\varphi} \approx 1.27$). That
-> coupling was an incorrect early equation and is **withdrawn**; the script and
-> results below use the full $\xi = \varphi^6$ coupling above.
-
-### Results (re-evaluated with $\xi = \varphi^6$)
+### Results
 
 Sweeping $\rho_{\text{ref}}$ to minimize $\chi^2$ against a flat $v_{\text{circ}} = 200$ km/s target:
 
-- **Maximum velocity boost:** $\sqrt{\varphi^6} = \varphi^3 \approx 4.24\times$ (since $v \propto \sqrt{G_{\text{eff}}}$; max boost $G_{\text{eff}}/G = \varphi^6 \approx 17.94$, corrected 2026-08-03)
+- **Maximum velocity boost:** $\sqrt{1+\xi} \approx 4.35\times$ (identified with $\varphi^3 \approx 4.24$; since $v \propto \sqrt{G_{\text{eff}}}$, max boost $G_{\text{eff}}/G \to \varphi^6 \approx 17.94$ at $q \to 1$)
 - **At 30 kpc (χ²-best $\rho_{\text{ref}} = 1\times10^5$ M$_\odot$/kpc³):** $v_{\text{enhanced}} = 296$ km/s vs $v_{\text{Newton}} = 103$ km/s—a boost of $2.89\times$, consistent with the observed Milky Way boost of $2.7 \pm 0.5$ (Zhou+ 2023)
-- **But the curve is U-shaped, not flat:** interior suppressed ($G_{\text{eff}}/G = \alpha = 0.7$ where $q \to 0$; $v(5) = 168$ km/s vs Newtonian 201), outskirts overproduced ($v(30) = 296$ km/s vs observed ~190–200); flattening ratio $v(30)/v(5) = 1.76$
+- **But the curve is U-shaped, not flat:** interior suppressed ($G_{\text{eff}}/G = \alpha_{\text{halo}} = 0.7$ where $q \to 0$; $v(5) = 168$ km/s vs Newtonian 201), outskirts overproduced ($v(30) = 296$ km/s vs observed ~190–200); flattening ratio $v(30)/v(5) = 1.76$
 - **χ² worsens:** 4522 vs 4047 Newtonian—no single $\rho_{\text{ref}}$ fits the whole curve
 
-### Interpretation (revised)
+### Interpretation
 
-The old failure mode—"even full enhancement cannot reach 200 km/s"—is gone:
-the $\xi = \varphi^6$ coupling provides *plenty* of boost (up to $\varphi^3 \approx 4.24\times$ in
-$v_{\text{circ}}$). The new failure mode is **overproduction**: the transition
+The $\xi = \varphi^6$ coupling provides *plenty* of boost (up to $\sqrt{1+\xi} \approx 4.35$, identified with $\varphi^3 \approx 4.24\times$, in
+$v_{\text{circ}}$). The failure mode is **overproduction**: the transition
 $q(R)$ turns on too abruptly (0 → ~0.6 between 20 and 30 kpc at the χ²-best
 $\rho_{\text{ref}}$), suppressing the inner disk while over-boosting the
 outskirts. A flat curve requires a $\rho_{\text{ref}}$ that scales with radius
 ($\rho_{\text{ref}} \propto \rho(R)$), the two-fluid's $\pi\nabla\Phi$ buoyancy
-force, or an additional mechanism. The profile dependence is now measured:
+force, or an additional mechanism. The profile dependence is measured:
 the baryon-seeded oscillatory-lattice condensate (SPARC v4) overproduces in
 111/143 galaxies, but the hydrostatic pseudo-isothermal condensate (SPARC v5,
 `experiments/sparc_qi/sparc_qi_analysis_v5.py`) survives with the same fixed
@@ -353,7 +329,7 @@ fitted central density satisfies $\rho_c(1+\xi) \approx$ the naive DM
 density—the boost replaces most of the dark matter. The single-$\rho_{\text{ref}}$
 failure is therefore a feature of the toy, not the framework: flatness lives
 in the condensate's hydrostatic envelope ($\rho_Y \propto r^{-2}$), not in a
-tuned turn-on. The core of that envelope is now physical too: the coherence
+tuned turn-on. The core of that envelope is physical too: the coherence
 budget suppresses the boost inside the baryonic scale $q(r) = r/(r+r_{\text{half}})$
 (SPARC v6, `experiments/sparc_qi/sparc_qi_analysis_v6.py`)—same parsimony as
 NFW, fit parity with v5 (median $\Delta$AIC = 0.0 vs the uniform boost), and
@@ -376,45 +352,37 @@ empirical $0.41 \pm 0.02$ at $1\sigma$, and $c_s$ shows no mass trend
 
 The comparison between the Cassi $\varphi$-enhanced model and MOND uses the radial acceleration relation (RAR, McGaugh et al. 2016). MOND uses the simple interpolating function $\mu(x) = x/\sqrt{1+x^2}$ with $a_0 = 1.2 \times 10^{-10}$ m/s$^2$.
 
-> **Revision (2026-07-31):** this section previously used the approximate
-> coupling $G_{\text{eff}}/G_N = 1 + (\varphi-1)\cdot q$ (max boost
-> $\varphi \approx 1.618$). That coupling was an incorrect early equation and
-> is **withdrawn**. The comparison below uses the full coupling
-> $G_{\text{eff}}/G = \alpha(1+\xi q)$ with $\xi = \varphi^6$ and $\alpha = 0.7$
-> (same revision as Path 8).
-
 ### The Decisive Distinction
 
 | Regime | MOND boost ($a_{\text{obs}}/a_{\text{baryon}}$) | Cassi boost |
 |--------|--------------------------------------------------|-------------|
-| $a \gg a_0$ | $\to 1$ (Newtonian) | $\to \alpha = 0.7$ (suppressed, high density) |
+| $a \gg a_0$ | $\to 1$ (Newtonian) | $\to \alpha_{\text{halo}} = 0.7$ (suppressed, high density) |
 | $a \sim a_0$ | $\sim \sqrt{a_0/a} \sim 3$--$10\times$ | $\sim 1$--$13\times$ (density-dependent) |
 | $a \ll a_0$ (deep MOND) | $\to \sqrt{a_0/a} \to \infty$ | $\to \varphi^6 \approx 17.9$ (saturates) |
 
 At $a_{\text{baryon}} = 10^{-4}\,a_0$ (deep low-acceleration regime):
 - **MOND:** boost $= 100\times$
-- **Cassi:** boost $\to \varphi^6 \approx 17.9\times$ (saturation; corrected 2026-08-03)
+- **Cassi:** boost $\to \varphi^6 \approx 17.9\times$ (saturation)
 
 The two theories disagree by a factor of $\sim 5.6\times$ in the deep
-low-acceleration regime (previously $\sim 60\times$ under the withdrawn
-coupling; the $\alpha(1+\xi) \approx 13.3$ halo-regime value gave $7.5\times$). This is still a **decisive, falsifiable distinction**: MOND grows
+low-acceleration regime. This is a **decisive, falsifiable distinction**: MOND grows
 without bound, Cassi saturates. The best-fit $\rho_{\text{ref}}$ reproduces the
 MOND RAR only to 47% RMS—Cassi's density-dependent boost (turning on at
 $\rho = \rho_{\text{ref}}$, i.e. $a_{\text{baryon}} \approx 0.99\,a_0$ for the
-best fit) is a poorer RAR mimic than the withdrawn weak coupling, but the
+best fit) is a poorer RAR mimic, but the
 saturation-vs-growth test remains the clean discriminator.
 
-### Falsifiable Prediction (revised 2026-07-31)
+### Falsifiable Prediction
 
 In ultra-faint dwarf galaxies (where $a_{\text{baryon}} \ll a_0$):
 - **MOND predicts:** $v_{\text{obs}}/v_{\text{Newt}} \propto \sqrt{a_0/a_{\text{baryon}}}$, growing without bound
-- **Cassi predicts:** $v_{\text{obs}}/v_{\text{Newt}} \leq \sqrt{\varphi^6} = \varphi^3 \approx 4.24$, a hard ceiling (from the derived max boost $G_{\text{eff}}/G = \varphi^6$ at $q \to 1$, which requires $\rho \ll \rho_{\text{ref}}$; corrected 2026-08-03 from the withdrawn $\sqrt{\varphi} \approx 1.27$ and the $\alpha = 0.7$ halo-regime $\sqrt{\alpha(1+\xi)} \approx 3.64$)
+- **Cassi predicts:** $v_{\text{obs}}/v_{\text{Newt}} \leq \sqrt{1+\xi} \approx 4.35$, a hard ceiling (identified with $\varphi^3 \approx 4.24$; from the derived max boost $G_{\text{eff}}/G \to \varphi^6$ at $q \to 1$, which requires $\rho \ll \rho_{\text{ref}}$). The halo parametrization $\alpha_{\text{halo}} = 0.7$ gives $\sqrt{\alpha_{\text{halo}}(1+\xi)} \approx 3.64$—a halo-regime value, not the ceiling.
 
-If dwarf galaxy rotation curves show $v_{\text{obs}}/v_{\text{Newt}} > 4.24$ with $\sqrt{a_0/a}$ scaling, MOND is correct and Cassi $\varphi$-enhanced gravity is ruled out. The previous $1.27$ ceiling came from the withdrawn approximate coupling and must not be used.
+If dwarf galaxy rotation curves show $v_{\text{obs}}/v_{\text{Newt}} > 4.24$ with $\sqrt{a_0/a}$ scaling, MOND is correct and Cassi $\varphi$-enhanced gravity is ruled out.
 
-### Path 10: Dwarf Galaxy Ceiling Test (2026-08-03)
+### Path 10: Dwarf Galaxy Ceiling Test
 
-**Script:** `experiments/phi_attractor_paths/path10_dwarf_galaxies.py` (imported from the parent repo and corrected 2026-08-03: the withdrawn $\sqrt{\varphi} \approx 1.27$ ceiling replaced by the derived max-boost ceiling $\sqrt{\varphi^6} = \varphi^3 \approx 4.24$, from $G_{\text{eff}}/G \to \varphi^6$ at $q \to 1$)
+**Script:** `experiments/phi_attractor_paths/path10_dwarf_galaxies.py` (tests the derived max-boost ceiling $\sqrt{1+\xi} \approx 4.35$, identified with $\varphi^3 \approx 4.24$, from $G_{\text{eff}}/G \to \varphi^6$ at $q \to 1$)
 
 The ceiling prediction was tested on 8 classical + ultra-faint dwarfs (Segue 1/2, Willman 1, Bootes I, Coma Berenices, Draco, Sculptor, Fornax) with $v_{\text{circ}} = \sqrt{3}\,\sigma_v$ and baryonic-only Newtonian velocities at $r_{\text{half}}$:
 
@@ -424,17 +392,17 @@ The ceiling prediction was tested on 8 classical + ultra-faint dwarfs (Segue 1/2
 | Cassi ceiling ($\varphi^3 \approx 4.24$) | 3/8 (Bootes I, Coma Berenices, Draco) |
 | MOND | 4/8 (Willman 1, Draco, Sculptor, Fornax) |
 
-**The ceiling is exceeded in 3/8 dwarfs**: Segue 1 ($v_{\text{obs}}/v_{\text{Newt}} = 16.6$), Segue 2 (16.8), and Draco (6.2) all exceed the $\varphi^3 \approx 4.24$ saturation ceiling (Coma Berenices at 4.0 now survives under the corrected ceiling), and the log-log slope of the observed ratio vs baryonic mass is $-0.21$ (ratio grows toward low mass—the MOND/dark-matter signature). The corrected coupling therefore does not rescue the lowest-mass systems: they need boosts the saturation ceiling forbids. Verdict: the ceiling survives where the observed boost stays below $\varphi^3$ (Willman 1 at 1.5, Bootes I at 3.5, Coma Berenices at 4.0, Sculptor at 1.8, Fornax at 1.8); it is exceeded in the ultra-faints Segue 1 and Segue 2 and in one classical dwarf (Draco)—and the dwarf test now favors MOND (4/8 vs Cassi's 3/8). The earlier "5/8 pass, beats MOND" claim was never reproducible from this catalog (the uncorrected script gives Cassi 3/8) and is superseded.
+**The ceiling is exceeded in 3/8 dwarfs**: Segue 1 ($v_{\text{obs}}/v_{\text{Newt}} = 16.6$), Segue 2 (16.8), and Draco (6.2) all exceed the $\varphi^3 \approx 4.24$ saturation ceiling (Coma Berenices at 4.0 survives under the ceiling), and the log-log slope of the observed ratio vs baryonic mass is $-0.21$ (ratio grows toward low mass—the MOND/dark-matter signature). The ceiling therefore does not rescue the lowest-mass systems: they need boosts the saturation ceiling forbids. Verdict: the ceiling survives where the observed boost stays below $\varphi^3$ (Willman 1 at 1.5, Bootes I at 3.5, Coma Berenices at 4.0, Sculptor at 1.8, Fornax at 1.8); it is exceeded in the ultra-faints Segue 1 and Segue 2 and in one classical dwarf (Draco)—and the dwarf test favors MOND (4/8 vs Cassi's 3/8).
 
-**Sector boundary (2026-08-03):** this falsifies the pure G-rescaling sector only—the boost as $(G_{\text{eff}}/G)$ acting on baryonic mass. The coherence-condensate sector (`speculations/dark-matter-as-qi-coherence.md` §7) carries the boost in Yang-field mass instead, $v^2 = G[M_{\text{bar}} + (1+\xi q)M_Y]/r$, which has no $\varphi^3$ ceiling. For the Segues that requires $M_Y/M_{\text{bar}} \approx 15$ at $q \to 1$—four-plus decades below the SPARC calibration range ($M_{\text{bar}} \gtrsim 10^7\,M_\odot$), so the condensate mechanism is untested, not excluded, in the ultra-faints; MOND remains preferred there.
+**Sector boundary:** this falsifies the pure G-rescaling sector only—the boost as $(G_{\text{eff}}/G)$ acting on baryonic mass. The coherence-condensate sector (`speculations/dark-matter-as-qi-coherence.md` §7) carries the boost in Yang-field mass instead, $v^2 = G[M_{\text{bar}} + (1+\xi q)M_Y]/r$, which has no $\varphi^3$ ceiling. For the Segues that requires $M_Y/M_{\text{bar}} \approx 15$ at $q \to 1$—four-plus decades below the SPARC calibration range ($M_{\text{bar}} \gtrsim 10^7\,M_\odot$), so the condensate mechanism is untested, not excluded, in the ultra-faints; MOND remains preferred there.
 
 ## 12. Unified Picture
 
-### Why the Exponential Model Works Despite Wrong Physics
+### Why the Exponential Model Fits
 
-The Path 1 exponential model $R_\infty(d) = R_{\min} + \Delta R \cdot \exp(-\gamma_0 \cdot d/(1-d) \cdot T)$ was derived assuming a "hot phase" of gradual energy dissipation. Path 3 revealed the system is cold after $\sim 1$ timestep ($\tau_Q \approx dt$). Yet the model still fits with $R^2 = 0.945$.
+The Path 1 exponential model $R_\infty(d) = R_{\min} + \Delta R \cdot \exp(-\gamma_0 \cdot d/(1-d) \cdot T)$ assumed a "hot phase" of gradual energy dissipation; the cold-collapse analysis (§5a) shows the system is cold after $\sim 1$ timestep ($\tau_Q \approx dt$). The model still fits with $R^2 = 0.945$.
 
-**Explanation:** The cold-phase contraction rate also scales as $d/(1-d)$. The hot phase lasts $\sim 1$ step and contributes negligibly. The cold phase dominates but has the same functional form, so the exponential model captures the mathematical structure without the originally assumed physical mechanism.
+**Explanation:** The cold-phase contraction rate also scales as $d/(1-d)$. The hot phase lasts $\sim 1$ step and contributes negligibly. The cold phase dominates but has the same functional form, so the exponential model captures the mathematical structure without the hot-phase mechanism.
 
 ### The Natural Appearance of $\varphi$
 
@@ -454,7 +422,7 @@ graph TD
     A --> I["Qi coherence<br/>q(rho)"]
     I --> J["G_eff enhancement<br/>max = phi^6 ~ 17.9x (derived)"]
     J --> K["Rotation curves<br/>single rho_ref overproduces (U-shaped);<br/>hydrostatic condensate survives (SPARC v5)"]
-    J --> L["vs MOND<br/>saturates at phi^6 ~ 17.9x (corrected)"]
+    J --> L["vs MOND<br/>saturates at phi^6 ~ 17.9x"]
     F --> M["sigma < 370 km<br/>from pulsars"]
     M --> N["14 orders of magnitude<br/>gap to galactic sigma"]
 ```
@@ -463,7 +431,7 @@ graph TD
 
 The following testable predictions emerge from this work:
 
-1. **Rotation curve ceiling (revised 2026-07-31; corrected 2026-08-03):** In the low-acceleration tail (dwarf galaxies), Cassi predicts $v_{\text{obs}}/v_{\text{Newt}} \leq \sqrt{\varphi^6} = \varphi^3 \approx 4.24$ (max boost $G_{\text{eff}}/G = \varphi^6 \approx 17.94$ at $q \to 1$; the $\alpha = 0.7$ halo-regime value $\sqrt{\alpha(1+\xi)} \approx 3.64$ is superseded as the framework maximum). The earlier $\sqrt{\varphi} \approx 1.27$ ceiling came from the withdrawn approximate coupling $G_{\text{eff}}/G_N = 1 + (\varphi-1)\cdot q$ and is obsolete. Path 10 found the ceiling exceeded in 3/8 dwarfs (Segue 1/2 at ~17$\times$, Draco at 6.2$\times$)—falsified for the ultra-faint regime (G-rescaling sector only; the coherence-condensate sector, uncalibrated below $10^7\,M_\odot$, is untested there) and for one classical dwarf (Draco), where the observed boost grows with $\sqrt{a_0/a}$ scaling.
+1. **Rotation curve ceiling:** In the low-acceleration tail (dwarf galaxies), Cassi predicts $v_{\text{obs}}/v_{\text{Newt}} \leq \sqrt{1+\xi} \approx 4.35$ (identified with $\varphi^3 \approx 4.24$; max boost $G_{\text{eff}}/G \to \varphi^6 \approx 17.94$ at $q \to 1$; the $\alpha_{\text{halo}} = 0.7$ halo-regime value $\sqrt{\alpha_{\text{halo}}(1+\xi)} \approx 3.64$ is not the framework maximum). Path 10 found the ceiling exceeded in 3/8 dwarfs (Segue 1/2 at ~17$\times$, Draco at 6.2$\times$)—falsified for the ultra-faint regime (G-rescaling sector only; the coherence-condensate sector, uncalibrated below $10^7\,M_\odot$, is untested there) and for one classical dwarf (Draco), where the observed boost grows with $\sqrt{a_0/a}$ scaling.
 
 2. **Precession direction:** Cassi softened gravity predicts **retrograde** pericenter precession ($\Delta\phi < 0$), opposite to the **prograde** GR precession. In systems where softening is significant ($\sigma/a$ not negligibly small), the precession direction is a direct test. For binary pulsars, Cassi precession is negligible ($\sigma < 370$ km), but for wider systems with larger $\sigma/a$, the retrograde signature could be detectable.
 
@@ -473,7 +441,7 @@ The following testable predictions emerge from this work:
 
 4. **No universal acceleration scale:** Unlike MOND's $a_0$, Cassi has a **density** scale $\rho_{\text{ref}}$, not an acceleration scale. Different galaxies should show the enhancement turning on at different $a_{\text{baryon}}$, depending on their density profiles. If a truly universal $a_0$ is confirmed across all galaxy types, Cassi is disfavored relative to MOND.
 
-5. **Saturation vs growth (revised 2026-07-31; corrected 2026-08-03):** The most decisive test: measure the boost factor $a_{\text{obs}}/a_{\text{baryon}}$ at progressively lower accelerations. MOND predicts continued growth ($\propto 1/\sqrt{a}$); Cassi predicts saturation at the derived max boost $\varphi^6 \approx 17.9$ (velocity ceiling $\varphi^3 \approx 4.24$; the $\alpha(1+\xi) \approx 13.3$ value used the $\alpha = 0.7$ halo parametrization and is superseded as the maximum; the $\varphi \approx 1.618$ saturation came from the withdrawn approximate coupling). Path 10's dwarf test shows the observed boost growing with decreasing mass (slope $-0.21$ in $\log(v_{\text{obs}}/v_{\text{Newt}})$ vs $\log M$), the MOND signature—Cassi's saturation is not observed in the ultra-faints.
+5. **Saturation vs growth:** The most decisive test: measure the boost factor $a_{\text{obs}}/a_{\text{baryon}}$ at progressively lower accelerations. MOND predicts continued growth ($\propto 1/\sqrt{a}$); Cassi predicts saturation at the derived max boost $\varphi^6 \approx 17.9$ (velocity ceiling $\sqrt{1+\xi} \approx 4.35$, identified with $\varphi^3 \approx 4.24$). Path 10's dwarf test shows the observed boost growing with decreasing mass (slope $-0.21$ in $\log(v_{\text{obs}}/v_{\text{Newt}})$ vs $\log M$), the MOND signature—Cassi's saturation is not observed in the ultra-faints.
 
 ## 14. Open Questions
 
@@ -487,12 +455,12 @@ Path 7 showed that a single $\sigma$ cannot simultaneously satisfy binary pulsar
 - **Scale-dependent $\sigma$:** $\sigma = \epsilon \cdot R$ where $R$ is the system size. This gives $\sigma \sim$ kpc for galaxies and $\sigma \sim 10^{-14}$ kpc for binary pulsars.
 - **Different mechanism entirely:** Flat rotation curves are not produced by
   softened gravity (Path 7, disproven) nor by the single-$\rho_{\text{ref}}$
-  $\varphi$-enhanced model (Path 8, revised 2026-07-31: the full $\xi = \varphi^6$
+  $\varphi$-enhanced model (Path 8: the full $\xi = \varphi^6$
   coupling gives the right 30-kpc boost but a U-shaped curve). The
   hydrostatic two-component condensate ($\rho_Y \propto r^{-2}$ envelope, ξ
-  applied to the condensate's own mass) now provides the flat-curve
+  applied to the condensate's own mass) provides the flat-curve
   mechanism directly—SPARC v5 with fixed $\xi = \varphi^6$ survives at NFW
-  parity (median $\Delta$AIC = −7.0, 90/143; see §10). Core diversity now has a
+  parity (median $\Delta$AIC = −7.0, 90/143; see §10). Core diversity has a
   mechanism: the coherence budget suppresses the boost inside the baryonic
   scale (SPARC v6, $q(r) = r/(r+r_{\text{half}})$, free scale $a = 1.025$). The
   residual $\gamma$ gap is closed by the hydrostatic solution (§14.3): the
@@ -501,15 +469,15 @@ Path 7 showed that a single $\sigma$ cannot simultaneously satisfy binary pulsar
 
 ### 14.3 Self-Consistent Galactic Dynamics
 
-Solved 2026-07-31 (SPARC v7, `experiments/sparc_qi/sparc_qi_analysis_v7.py`): the
-rotation-curve condensate is the hydrostatic equilibrium of a self-gravitating
+The rotation-curve condensate is the hydrostatic equilibrium of a self-gravitating
 isothermal Yang field, $P_Y = c_s^2 \rho_Y$, supported against its **own**
 gravity only—not the baryonic well (baryonic compression degrades the fit
-from ΔAIC = −6.4 to 0.0 vs NFW; the field's structure is self-organized).
+from ΔAIC = −6.4 to 0.0 vs NFW; the field's structure is self-organized;
+SPARC v7, `experiments/sparc_qi/sparc_qi_analysis_v7.py`).
 Per-galaxy ($\rho_c$, $c_s$), the model matches NFW-level fits (median ΔAIC =
 −6.4, 76/143) and the emergent core scaling $\gamma = 0.389 \pm 0.021$
 ($R^2 = 0.71$) reproduces the empirical $0.41 \pm 0.02$ at $1\sigma$—the
-$3.6\sigma$ tension from §14.2 is resolved. The fitted sound speed shows no
+$3.6\sigma$ tension of §14.2 is resolved. The fitted sound speed shows no
 mass trend ($\alpha = 0.017 \pm 0.038$, $R^2 = 0.00$; median $c_s \approx 14$
 km/s), but strict universality is not established: forcing one global $c_s$
 (variant B) costs ~5.6 AIC points (ΔAIC = −0.8 vs −6.4), and the per-galaxy
@@ -537,10 +505,10 @@ from $\xi$ alone.
 | 4b | Analytical precession $\Delta\phi = -\sqrt{2\pi}(\sigma/a)^3(1+e^2/4)/(1-e^2)^3$ | Confirmed |
 | 5 | L1/L2 merge at $\sigma/a \approx 0.35$; $\sigma < 370$ km from pulsars | Confirmed |
 | 6 | L4/L5 universally stable for $\sigma/a \geq 0.44$ | Confirmed |
-| 8 | $\varphi$-enhanced gravity (full $\xi = \varphi^6$): boost $2.89\times$ at 30 kpc consistent with observed $2.7\pm0.5$; single-$\rho_{\text{ref}}$ curve U-shaped (overproduces v(30) = 296 km/s), but hydrostatic two-component condensate survives SPARC (median $\Delta$AIC = −7.0, 90/143); revised 2026-07-31 | Confirmed* |
-| 9 | Cassi saturates at $\varphi^6 \approx 17.9$ (v-ceiling $\varphi^3 \approx 4.24$); MOND grows without bound (corrected 2026-08-03) | **Tested—exceeded in 3/8 dwarfs (Path 10; G-rescaling sector only—coherence sector uncalibrated below $10^7\,M_\odot$)** |
+| 8 | $\varphi$-enhanced gravity (full $\xi = \varphi^6$): boost $2.89\times$ at 30 kpc consistent with observed $2.7\pm0.5$; single-$\rho_{\text{ref}}$ curve U-shaped (overproduces v(30) = 296 km/s), but hydrostatic two-component condensate survives SPARC (median $\Delta$AIC = −7.0, 90/143) | Confirmed* |
+| 9 | Cassi saturates at $\varphi^6 \approx 17.9$ (v-ceiling $\sqrt{1+\xi} \approx 4.35$, identified with $\varphi^3 \approx 4.24$); MOND grows without bound | **Tested—exceeded in 3/8 dwarfs (Path 10; G-rescaling sector only—coherence sector uncalibrated below $10^7\,M_\odot$)** |
 
-\* Revised 2026-07-31 with the full $G_{\text{eff}}/G = \alpha(1+\xi q)$ coupling ($\xi = \varphi^6$, $\alpha = 0.7$); the earlier $\sqrt{\varphi} \approx 1.27$ ceiling and $\varphi \approx 1.62$ saturation came from the withdrawn approximate coupling $G_{\text{eff}}/G_N = 1 + (\varphi-1)\cdot q$. Corrected 2026-08-03: the framework's universal saturation is the derived max boost $\varphi^6 \approx 17.94$ (velocity ceiling $\varphi^3 \approx 4.24$); the $\alpha = 0.7$ form remains the MW-halo fit parametrization, not the framework maximum.
+\* The full coupling $G_{\text{eff}}/G = \alpha(1+\xi q)$ ($\xi = \varphi^6$) is used throughout; the framework's universal saturation is the derived max boost $\varphi^6 \approx 17.94$ (velocity ceiling $\sqrt{1+\xi} \approx 4.35$, identified with $\varphi^3 \approx 4.24$); $\alpha_{\text{halo}} = 0.7$ is the MW-halo fit parametrization, not the framework maximum.
 
 ### Disproven Hypotheses
 
@@ -575,6 +543,15 @@ The Cassi modifications do not solve the three-body problem in the classical sen
 | `path7_rotation_curves.py` | 7 | Test softened gravity for galactic rotation curves (negative result) |
 | `path8_phi_enhanced_rotation.py` | 8 | Test $\varphi$-enhanced gravity for rotation curves, fit $\rho_{\text{ref}}$ |
 | `path9_cassi_vs_mond.py` | 9 | Compare Cassi to MOND via radial acceleration relation |
-| `path10_dwarf_galaxies.py` | 10 | Test the Cassi saturation ceiling vs MOND on 8 ultra-faint + classical dwarfs (corrected 2026-08-03) |
+| `path10_dwarf_galaxies.py` | 10 | Test the Cassi saturation ceiling vs MOND on 8 ultra-faint + classical dwarfs |
 
 All scripts are in `experiments/phi_attractor_paths/` and produce `.png` figures with the same base name. CSV tracking data from Path 3 is stored as `path3_cold_collapse_d{value}.csv`.
+
+## References
+
+- `gravity/three-body-analytical.md`—point-particle reduction, φ-fixed point
+- `cosmology/observational_constraints.md` §2.6—Qi-gravity force law, rotation-curve verification
+- `foundations/xi-derivation.md`—$\xi = \varphi^6$ derivation
+- `speculations/dark-matter-as-qi-coherence.md` §7—coherence-condensate sector
+- `principles/de-resonance-principle.md`—φ as maximal de-resonance
+- `experiments/phi_attractor_paths/`—path scripts (see Appendix)

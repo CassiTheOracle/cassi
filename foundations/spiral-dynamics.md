@@ -19,18 +19,19 @@ explicit.
 
 ## 1. The Fibonacci Spiral as Universal Geometry
 
-### 1.1 The doublet spiral (recap)
+### 1.1 The doublet spiral
 
 The conversion term $\text{conv} = -\lambda(E_Y - \varphi E_I)$ continuously
-rotates the $(E_Y, E_I)$ doublet vector in its internal SO(2) plane. The
-accumulated rotation angle as a function of cascade rung index $n$ (or
-equivalently, length scale $\ell_n = \ell_{\text{Pl}}\varphi^n$) is
+rotates the $(E_Y, E_I)$ doublet vector in its internal SO(2) plane, tracing
+the Fibonacci spiral (derived in `foundations/spin-fibonacci-spiral.md` §1,
+with winding quantization in §2.1). The accumulated rotation angle as a
+function of cascade rung index $n$ (or equivalently, length scale
+$\ell_n = \ell_{\text{Pl}}\varphi^n$) is
 
 $$\boxed{\Theta(n) = \Theta_0 + \frac{2\pi}{\ln\varphi} \cdot n}$$
 
 One full rotation ($2\pi$) per cascade rung ($\Delta n = 1$). The pitch is
-$2\pi/\ln\varphi \approx 13.06$ rad per e-fold in scale. This is the **Fibonacci
-spiral**—see `spin-fibonacci-spiral.md` for the full derivation.
+$2\pi/\ln\varphi \approx 13.06$ rad per e-fold in scale.
 
 Crucially, this spiral lives in the **internal** $(E_Y, E_I)$ plane, not
 physical 3D space. The doublet angle $\Theta = \text{atan2}(E_I, E_Y)$ is
@@ -189,7 +190,7 @@ a signal at the cosmic scale propagates one cosmic coherence length per
 (proportionally slower) conversion cycle. Both give the same $c$.
 
 This is a dimensional consistency check, not a derivation—both $\lambda = 0.1$
-(empirical) and $\ell_{\text{Pl}}$ (external dimensionful anchor) are inputs.
+(derived, $w = 5$) and $\ell_{\text{Pl}}$ (external dimensionful anchor) are inputs.
 The framework predicts that their product should be scale-invariant, and that
 this invariant product IS the speed of light. Testing this requires calibrating
 $\lambda$'s PDE inverse-time units against physical seconds (see
@@ -204,13 +205,14 @@ by the Hubble time at the current cascade rung:
 
 $$t_{\text{PDE}} \sim \frac{1}{H_0} \sim 4.4 \times 10^{17} \text{ s}$$
 
-At the current rung ($n \approx 292$), $\lambda_{\text{eff}} = 0.1 \cdot
-\varphi^{-292}$. The coherence length at this rung is the Hubble radius
-$\ell_{292} \sim c/H_0 \sim 1.3 \times 10^{26}$ m. The product:
+At the current epoch (horizon rung $N \approx 291.54$), $\lambda_{\text{eff}} = 0.1 \cdot
+\varphi^{-291.54}$. The coherence length at this rung is the Hubble radius
+$R_H = \ell_{\text{Pl}}\,\varphi^{291.54} \sim c/H_0 \sim 1.37 \times 10^{26}$ m
+(4.44 Gpc = 14.5 Glyr). The product:
 
-$$c \sim \lambda_{\text{eff}} \cdot \ell_{292} \sim (0.1 \cdot \varphi^{-292}) \cdot (1.3 \times 10^{26} \text{ m}) \cdot \frac{1}{t_{\text{PDE}}}$$
+$$c \sim \lambda_{\text{eff}} \cdot R_H \sim (0.1 \cdot \varphi^{-291.54}) \cdot (1.37 \times 10^{26} \text{ m}) \cdot \frac{1}{t_{\text{PDE}}}$$
 
-The $\varphi^{-292}$ factor compensates the enormous coherence length, and
+The $\varphi^{-291.54}$ factor compensates the enormous coherence length, and
 the product should recover $c \approx 3 \times 10^8$ m/s. The exact
 numerical agreement depends on the PDE-to-physical-unit calibration, which
 is not yet pinned—but the structure of the cancellation is exact.

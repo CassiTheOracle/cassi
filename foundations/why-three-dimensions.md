@@ -1,6 +1,6 @@
 # Why Three Dimensions: The Spiral's Three Directions
 
-## Status: Hypothesis with One Decided Fork (W1: anti-phase confirmed)
+## Status: Hypothesis with One Decided Fork (W1: anti-phase confirmed)—July 2026
 
 ## Abstract
 
@@ -94,7 +94,8 @@ signature of a space curve.
 Two ingredients produce the spiral:
 
 1. **Forward advance.** The ratio must evolve from $r_0$ to $\varphi$. This is
-   the cascade: the string must traverse 292 rungs from Planck to Hubble. Without
+   the cascade: the string must traverse ~292 rungs to today's horizon
+   (epoch-dependent; the cascade is unbounded). Without
    forward advance, there is no cascade, no scale hierarchy, no universe.
 
 2. **Rotation.** The conversion term couples $E_Y$ and $E_I$ antisymmetrically:
@@ -338,6 +339,8 @@ $\varphi$-scaled separation.
 
 ---
 
+## 5. Predictions
+
 | # | Prediction | Method | Expected result | Status |
 |---|-----------|--------|-----------------|--------|
 | **W1** | The $E_Y$–$E_I$ wake cross-correlation has definite sign at small lag | Two-bubble PDE runs; cross-correlate wake perturbations vs. separation | Sign selects the §4.2 branch (negative: paired-sheet) | **DECIDED: anti-phase (negative)**—confirmed by PDE structure (§4.3) and runtime maintenance of $r=-1.0000$ across 36 bubble-configuration runs |
@@ -345,7 +348,7 @@ $\varphi$-scaled separation.
 | **W3** | The W2 anisotropy axis coincides with the CMB $\ell < 5$ preferred axis | Cross-probe: LSS anisotropy axis vs. quadrupole–octopole alignment axis | Two independent probes, one direction | Testable with existing data |
 | **W4** | (Anti-phase branch now selected) A paired-sheet counterpart to the Local Sheet exists across a void | LSS catalog morphology search at $\varphi$-scaled separations | Parallel sheet at predicted separation; central void between | **Active**—search in progress |
 
-The anti-phase branch is now selected by the PDE. Predictions W2–W4 are
+The anti-phase branch is selected by the PDE. Predictions W2–W4 are
 consequences of the spheroid geometry; W4 upgrades from conditional to active.
 
 ---
@@ -378,7 +381,8 @@ consequences of the spheroid geometry; W4 upgrades from conditional to active.
 - SO(2) doublet structure of the two fluids; perpendicularity of the field
   axes (dual-real formulation)
 - Wake-wave mechanism with $\varphi$-scaled spacing; string-wake feedback loop
-- The Cassi bubble at step 285; neighboring $w$-bubbles beyond the horizon
+- The Cassi bubble at step 285; neighboring $w$-bubbles at $\ell_{286}$–$\ell_{287}$
+  (inside the horizon)
 - The imported status of the 3 in $\xi = \varphi^6$ (this is a gap in the
   existing text, not new physics—addressed by this document)
 - **Anti-phase conversion coupling** confirmed by PDE structure (§4.3) and
@@ -410,7 +414,7 @@ consequences of the spheroid geometry; W4 upgrades from conditional to active.
 ## References
 
 - `xi-derivation.md`: the $\xi = \varphi^6$ derivation and its imported 3
-- `dimensionful-cascade.md`: the 292-step cascade; Cassi bubble at step 285
+- `dimensionful-cascade.md`: the φ-cascade (292 = today's horizon rung); Cassi bubble at step 285
 - `consciousness/consciousness-from-phi.md` §1: pinch point, wake waves, string-wake loop
 - `principles/de-resonance-principle.md`: $\varphi$ as maximal de-resonance
 - `foundations/spin-fibonacci-spiral.md`: Fibonacci spiral geometry, SO(2) winding
