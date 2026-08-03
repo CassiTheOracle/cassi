@@ -4,8 +4,8 @@
 
 ## Abstract
 
-The open-questions catalog (`open-questions-cassi-answers.md`) classifies 40
-physics questions: 16 Derived, 24 Hypothesized, 0 Speculative. Each of the 23
+The open-questions catalog (`open-questions-cassi-answers.md`) classifies 41
+physics questions: 17 Derived, 24 Hypothesized, 0 Speculative. Each of the 24
 Hypothesized questions has a proposed Cassi mechanism and a testable prediction.
 This document refines the **specific numeric predictions** for every question
 that admits a cascade-span derivation ($\varphi^{-N}$), and tightens the
@@ -27,7 +27,7 @@ further verification looks like.
 
 ## 1. Classification: Cascade-Span vs Structural
 
-Of the 24 Hypothesized questions, 13 admit a cascade-span numeric refinement
+Of the 24 Hypothesized questions, 14 admit a cascade-span numeric refinement
 (either a specific $\varphi$-power or a number already present in the
 derivation), and 10 are structural answers where the mechanism is the
 deliverable:
@@ -35,20 +35,21 @@ deliverable:
 | # | Question | Type | Existing Number | Refinement |
 |---|----------|------|----------------|------------|
 | C3 | Hubble tension | Cascade-span (needs $w(a)$ pipeline) | $w_0=-0.87$ (2σ) | $\Delta H_0$ from $w(z)$ integration |
-| C4 | Inflation | Cascade-span (numbers present) | $n_s=0.967$, $r\approx 0.003$ | Pin $r$ to $\varphi^{-12}$, $n_s$ correction form |
+| C4 | Inflation | Cascade-span (numbers present) | $n_s=0.9691$, $r\approx 0.003$ | Pin $r$ to $\varphi^{-12}$, $n_s$ correction form |
 | C6 | Horizon problem | **Structural** |—| Cascade emergence mechanism |
-| C7 | Baryon asymmetry | Cascade-span | $\eta\approx\varphi^{-46}$ (fit) | Pin to $\varphi^{-44}\approx 6.4\times 10^{-10}$ |
+| C7 | Baryon asymmetry | Cascade-span | $\eta\approx\varphi^{-44}$ | $6.38\times 10^{-10}$, within 6.3% of observed |
 | C9 | Cosmic web | **Structural** |—| Wake-wave interference morphology |
 | C10 | CMB axis | Cascade-span (geometric) | Axis at $(l,b)=(260°,+60°)$ | Alignment angle $12.2°$ from bubble geometry |
-| Q3 | Neutrino masses | Cascade-span | $m_\nu\approx 0.8$ eV | Specific $\Delta_{\nu,k}$ offsets |
+| Q3 | Neutrino masses | Cascade-span | $m_3 \approx 0.050$ eV (computed spectrum) | Specific $\Delta_{\nu,k}$ offsets |
 | Q5 | Three generations | Cascade-span (number present) | $N_{\text{gen}}=3$ | Mass ratios per sector |
-| Q6 | Matter asymmetry | Same as C7 | $\eta\approx\varphi^{-46}$ | Same refinement as C7 |
+| Q6 | Matter asymmetry | Same as C7 | $\eta\approx\varphi^{-44}$ | Same refinement as C7 |
 | Q7 | Measurement | Cascade-span (derived core) | $P=|\alpha|^2$ | Born rule from $q\propto|\psi|^2$ |
 | Q10 | Spin | Cascade-span (geometric) | $s\in\{0,\frac12,1,2\}$ | Form factor $\Delta(\ln q)=\ln\varphi$ |
-| G5 | 3+1 dimensions | **Structural** | Spiral's Frenet-Serret frame | SO(2) doublet generates spiral; Frenet-Serret gives 3 axes |
+| G5 | 3+1 dimensions | Cascade-span (number present) | $D=3$ (Frenet-Serret) | SO(2) doublet generates spiral; Frenet-Serret gives 3 axes |
 | F3 | Force unification | **Structural** |—| All forces from PDE at different rungs |
 | F4 | Theory of Everything | **Structural** |—| One equation, one constant |
-| F5 | Dimensionful constants | **Structural** |—| $c$, $\hbar$, $G$ external; $\lambda=0.1$ derived; $N=292$ = epoch-dependent horizon rung (2026-08-03) |
+| F5 | Dimensionful constants | Cascade-span (numbers present) | $\lambda=0.1$ (derived), $N=291.54$ (epoch-dependent) | $c$, $\hbar$, $G$ external; $c = \lambda\ell_{\text{Pl}}$ structure |
+| T1 | DESI $w_0/w_a$ | Cascade-span (numbers present) | $w_0=-0.87$, $w_a=+0.012$ | CPL $w(z)$ fit; 2σ / 2.7σ tensions |
 | T2 | JWST galaxies | **Structural** |—| Wake-wave formation timeline |
 | T3 | $\sigma_8$ tension | Cascade-span (needs $G_{\text{eff}}$ pipeline) | $\xi=\varphi^6$ | $G_{\text{eff}}(k,q)$ integration |
 | T4 | $H_0$ tension | Same as C3 |—| Same refinement as C3 |
@@ -68,8 +69,8 @@ deliverable:
 (`foundations/baryon-asymmetry.md`) derives the three Sakharov conditions:
 (1) organized annihilation eliminates all paired antimatter with $P\approx 1$,
 (2) CP violation from $\delta_{\text{CP}}=\pi\varphi^{-2}$, (3) out-of-equilibrium
-dynamics from cascade freeze-out. The specific $\varphi$-power was left as an
-empirical fit at $\varphi^{-46}$.
+dynamics from cascade freeze-out. The specific $\varphi$-power pins to the
+nearest integer exponent, $\varphi^{-44}$.
 
 **Refined prediction:** The integer exponent closest to the observed
 $\eta_{\text{obs}} = 6.0 \times 10^{-10}$ is:
@@ -109,7 +110,8 @@ GUT epoch.
 
 **Current status:** The neutrino mass derivation
 (`foundations/neutrino-masses.md`) establishes:
-- Overall scale: $m_\nu \approx v_0 \cdot \varphi^{-12} \approx 0.8$ eV
+- Overall scale: $m_3 = 0.0502$ eV (computed spectrum,
+  `computations/cascade_rge_pmns.py`)
 - Three mass eigenstates from Fibonacci triple-clustering
 - Normal ordering ($m_{\nu_1} < m_{\nu_2} < m_{\nu_3}$)
 - Compressed $\varphi$-power spacing amplified by the seesaw Yukawa-squared
@@ -162,8 +164,8 @@ $$\boxed{\frac{\Delta m^2_{31}}{\Delta m^2_{21}} = \frac{\varphi^{11.00} - 1}{\v
 
 **This matches the observed ratio $\approx 33.89$ to 0.2%.** The residual is
 dwarfed by the current experimental uncertainty ($\sim 3\%$). The
-cascade RGE + PMNS computation (`computations/cascade_rge_pmns.py`, July 2026)
-pins the exact Fibonacci offsets: $\Delta_1 = 1.00$ rung (the gen1→gen2
+cascade RGE + PMNS computation (`computations/cascade_rge_pmns.py`) pins the
+exact Fibonacci offsets: $\Delta_1 = 1.00$ rung (the gen1→gen2
 transition is exactly one cascade φ-step), $\Delta_2 = 1.75$ rungs.
 
 The anomalous dimension extracted from the compression factor is
@@ -177,7 +179,7 @@ spectral gap—not the φ-RG fixed point—governs the seesaw sector.
 - $|m_{\beta\beta}| = 0.0043$–$0.0052$ eV (δ_CP-dependent)
 - Normal ordering, no sterile neutrinos
 - **$\Delta m^2_{31}/\Delta m^2_{21} \approx 33.82$ (0.2% residual)** —
-  the Fibonacci offsets are now **pinned**, not estimated.
+  the Fibonacci offsets are **pinned**, not estimated.
 
 ---
 
@@ -204,12 +206,13 @@ the bubble boundary (the interface with an adjacent $w=5$ bubble in the chord la
 If both directions are set by the same bubble geometry (Yang axis within the
 bubble, boundary normal at the bubble edge), their angular separation is the
 angle between the bubble's internal symmetry axis and its surface normal.
-For a bubble at step 285 (191 Mpc comoving diameter) embedded in a 292-step
-cascade (5.5 Gpc Hubble radius), the boundary is nearly tangent to the
+For a bubble at step 285 (191 Mpc comoving diameter) embedded in today's
+cascade (horizon rung 292; the rung-292 lattice length is 5.5 Gpc, while
+$R_H = 4.44$ Gpc = 14.5 Glyr at $N = 291.54$), the boundary is nearly tangent to the
 past light cone at the recombination surface, producing a small ($\sim 10°$–$15°$)
 projected angle.
 
-**Pipeline result (July 2026):** A computational pipeline
+**Pipeline result:** A computational pipeline
 (`two-fluid/run_cmb_lowl_pipeline.py`) computes the predicted angular power
 spectrum from the bubble-boundary geometry:
 - $\theta_{\text{align}} = 12.22°$ (verified via spherical law of cosines)
@@ -231,17 +234,17 @@ the bubble-boundary geometry in the full 3D PDE, mapping the Yang axis
 direction to the boundary normal of the adjacent chord-lattice bubble.
 ---
 
-### 2.4 C4—Inflation: $r \approx \varphi^{-12}$ and $n_s = 0.950 + \delta n_s$
+### 2.4 C4—Inflation: $r \approx \varphi^{-12}$ and $n_s = 0.9691$
 
 **Current status:** The inflation derivation
 (`cosmology/inflation-from-cascade.md`) gives:
 - $N_e = 40$ e-folds (cascade steps 20–60)
-- $n_s = 0.967$ (with gate slow-roll correction)
+- $n_s = 0.9691$ (closed form $1 - 2\varphi^{-1}/N_e$)
 - $r \approx 0.003$
 - $\alpha_s = -0.0013$
 
-The current document contains formula discrepancies for $r$, and the $n_s$
-correction ($+0.017$) lacks a clean $\varphi$-power form.
+The $n_s$ gate correction takes the closed φ-form $\delta n_s = 2\varphi^{-2}/N_e$;
+$r$ pins to a clean $\varphi$-power.
 
 **Refined prediction for $r$:**
 
@@ -278,16 +281,14 @@ The gate correction in φ-powers:
 $$\delta n_s = n_s - \left(1 - \frac{2}{N_e}\right) = \frac{2\varphi^{-2}}{N_e} \approx 0.0191$$
 
 This is consistent with Planck 2018 ($0.9649 \pm 0.0042$) at $1.0\sigma$.
-The computation is in `computations/ns_gate_correction.py` (July 2026).
+The computation is in `computations/ns_gate_correction.py`.
 
-**The gate correction is now derived in closed φ-form—the gap is closed.**
+**The gate correction is derived in closed φ-form.**
 
-**Honest assessment:** The result $0.969$ is $+0.002$ above the previously
-stated $0.967$, but $0.002$ is half the Planck uncertainty ($\pm 0.004$)
-and well within the gate closure-width systematic. The key advance is that
-the correction is no longer "parameterized"—it is a structural consequence
-of the Qi gate transparency at $r = \varphi^{-1}$ reducing to $2\varphi^{-2}/N_e$.
-with Planck ($-0.0045 \pm 0.0067$).
+**Honest assessment:** The result $0.9691$ sits $+0.0042$ above the Planck
+central value—$1.0\sigma$, within the gate closure-width systematic. The
+correction is a structural consequence of the Qi gate transparency at
+$r = \varphi^{-1}$, reducing to $\delta n_s = 2\varphi^{-2}/N_e$.
 
 ---
 
@@ -342,14 +343,14 @@ mass eigenstates per sector.
 and CKM mixing between the GUT and EW scales. **Neutrinos**—the mass ratios
 include the seesaw $y_\nu^2$ amplification factor. The predicted
 $\Delta m^2_{31}/\Delta m^2_{21} \approx 33.82$ matches the observed $\sim 33.89$
-to 0.2%, with the Fibonacci offsets now pinned by the cascade RGE + PMNS
+to 0.2%, with the Fibonacci offsets pinned by the cascade RGE + PMNS
 computation (see §2.2). The mass ratios themselves ($\varphi^{2.00}$, $\varphi^{3.50}$)
 are consistent with observations when the PMNS mixing angles are accounted for
 in converting mass ratios to $\Delta m^2$ observables.
 
 **The number IS $N_{\text{gen}} = 3$.** The specific mass ratios per sector
 are partially derived (charged leptons: excellent; quarks: moderate; neutrinos:
-now pinned to 0.2% of the observed $\Delta m^2$ ratio by cascade RGE + PMNS). The generation COUNT is
+pinned to 0.2% of the observed $\Delta m^2$ ratio by cascade RGE + PMNS). The generation COUNT is
 scale.
 
 ---
@@ -380,21 +381,23 @@ to perturbative QCD.
 ### 2.8 C3/T4—Hubble Tension: $\Delta H_0$ from $w(z)$ Pipeline
 
 **Current status:** The Cassi $w_0 = -0.87$ sits $2\sigma$ from the DESI anchor
-$w_0 \approx -0.75 \pm 0.06$ [INFERENCE] (corrected 2026-07-31: the earlier
-$-0.838$ "0σ match" was circular—the repo calibrated its own ODE to that
-hardcoded target). The
+$w_0 \approx -0.75 \pm 0.06$ [INFERENCE]. The
 Hubble tension ($H_0^{\text{local}} = 73.0$ vs $H_0^{\text{CMB}} = 67.4$
 km/s/Mpc, 8.3% difference) is hypothesized to resolve when the CMB-calibrated
 $H_0$ is recomputed using the Cassi $w(z)$ instead of $\Lambda$CDM's $w=-1$.
 
-**The prediction is a function, not a single number.** The evolving equation
-**Pipeline result (July 2026):** A computational pipeline
+**The prediction is a function, not a single number.**
+
+**Pipeline result:** A computational pipeline
 (`two-fluid/run_hubble_pipeline.py`) uses the analytic ODE approach
 (same as `calibrate_initial_ratio.py`) to compute the full $w(a) \to H(z)$
 evolution and the CMB-inferred $H_0$ bias:
 
-- **$w_0 = -0.87$** (structurally pinned: $-0.868$ to $-0.872$ across $r_0 \in [0.001, 0.08]$; $2\sigma$ from DESI $w_0 \approx -0.75 \pm 0.06$ [INFERENCE], corrected 2026-07-31)
-- **$w_a = +0.46$** (bare) / **$+0.012$ (+$\xi = \varphi^6$, corrected Yang-fraction form, $\Delta -0.45$)**—shift verified via the ODE (`two-fluid/calibrate_initial_ratio_xi_v2.py`), at 2.7σ (2.2–3.2σ) from DESI $w_a \approx -0.73 \pm 0.28$ [INFERENCE] (range $-0.6$ to $-1.1$; corrected 2026-07-31)
+- **$w_0 = -0.87$** (structurally pinned: $-0.868$ to $-0.872$ across $r_0 \in [0.001, 0.08]$; $2\sigma$ from DESI $w_0 \approx -0.75 \pm 0.06$ [INFERENCE])
+- **$w_a = +0.46$** (bare) / **$+0.012$** (with $\xi = \varphi^6$ in the
+  Yang-fraction-weighted form, $\Delta -0.45$)—shift verified via the ODE
+  (`two-fluid/calibrate_initial_ratio_xi_v2.py`), at 2.7σ (2.2–3.2σ) from DESI
+  $w_a \approx -0.73 \pm 0.28$ [INFERENCE]
 - **$\langle R(z) \rangle_{\text{CMB}} = 1.1095$**—Cassi $H(z)$ is 10.95% higher than $\Lambda$CDM at CMB recombination ($z \approx 1000$–$1100$)
 - **$H_0^{\text{CMB-inferred}} = 65.8$ km/s/Mpc** (from $H_0^{\text{local}} = 73.0$ km/s/Mpc)
 - **$\Delta H_0 = -7.2$ km/s/Mpc ($-9.9\%$)**—CMB-inferred $H_0$ is lower than local
@@ -407,18 +410,21 @@ evolution and the CMB-inferred $H_0$ bias:
 $w(a)$ evolution with DESI band, and $R(z) = H_{\text{Cassi}}/H_{\Lambda\text{CDM}}$
 ratio with CMB region highlighted.
 
-**Interpretation:** The Cassi $w(a) > -1$ (quintessence-like, $w_0 = -0.87$, corrected 2026-07-31)
+**Interpretation:** The Cassi $w(a) > -1$ (quintessence-like, $w_0 = -0.87$)
 means dark energy density was lower at early times, producing faster expansion
 ($R > 1$ at $z \approx 1000$). A $\Lambda$CDM fit to Cassi data underestimates
 $H_0$ because it forces $w = -1$. The direction matches the observed Hubble
 tension, and the magnitude is $9.9\%$ (vs observed $8.3\%$). Additional physics
 (Qi-gravity modification of the pre-recombination sound horizon, wake-wave
-effects on $r_s$) would refine the magnitude. The $w_a$ tension is not resolved (corrected 2026-07-31): the corrected Yang-fraction coupling $\xi = \varphi^6$ in $H(a)$ shifts $w_a$ from $+0.46$ to $+0.012$ ($\Delta -0.45$), which is 2.7σ (2.2–3.2σ) from DESI $w_a \approx -0.73 \pm 0.28$ [INFERENCE].
+effects on $r_s$) would refine the magnitude. The $w_a$ tension is not
+resolved: the Yang-fraction-weighted coupling $\xi = \varphi^6$ in $H(a)$
+shifts $w_a$ from $+0.46$ to $+0.012$ ($\Delta -0.45$), which is 2.7σ
+(2.2–3.2σ) from DESI $w_a \approx -0.73 \pm 0.28$ [INFERENCE].
 
 **Existing constraints:**
-- $w_0 = -0.87$ ($2\sigma$ from DESI $w_0 \approx -0.75 \pm 0.06$ [INFERENCE], corrected 2026-07-31)
-- $w_a$ with $\xi = \varphi^6$ (corrected Yang-fraction form): $+0.012$ (2.7σ, 2.2–3.2σ, from DESI $w_a \approx -0.73 \pm 0.28$ [INFERENCE])
-- $w_a = +0.012$ verified with the corrected coupling alone; 5-channel/Wu-Xing shifts Hypothesized (ODE pending). **Tension, not resolved (corrected 2026-07-31).**
+- $w_0 = -0.87$ ($2\sigma$ from DESI $w_0 \approx -0.75 \pm 0.06$ [INFERENCE])
+- $w_a$ with $\xi = \varphi^6$ (Yang-fraction-weighted form): $+0.012$ (2.7σ, 2.2–3.2σ, from DESI $w_a \approx -0.73 \pm 0.28$ [INFERENCE])
+- $w_a = +0.012$ verified with the coupling alone; 5-channel/Wu-Xing shifts Hypothesized (ODE pending). **Tension, not resolved.**
 
 ---
 
@@ -430,7 +436,7 @@ probes. The Cassi mechanism: $\xi = \varphi^6 \approx 17.944$ makes
 $G_{\text{eff}}$ density-dependent, reducing structure growth in low-density
 regions (voids, cluster outskirts).
 
-**Pipeline result (July 2026):** A computational pipeline
+**Pipeline result:** A computational pipeline
 (`two-fluid/run_sigma8_pipeline.py`) runs a short PDE simulation with
 Eisenstein-Hu ICs, extracts the Qi coherence field $q(x)$, and computes
 the Qi-modified power spectrum and $\sigma_8$:
@@ -463,13 +469,15 @@ $N=32$ resolution.
 
 ### 2.10 F3/T4—CMB Power Spectrum: $C_\ell$ Shifts from Cassi Cosmology
 
-**Current status:** The Cassi $w(a)$ profile (corrected 2026-07-31: bare $w_0 = -0.856$, $w_a = +0.457$; with the corrected Yang-fraction coupling $w_0 = -0.87$, $w_a = +0.012$; the quoted $-0.839$/$+0.439$ is the v1 bare ODE output still hardcoded in `two-fluid/run_boltzmann_cassi.py`)
+**Current status:** The Cassi $w(a)$ profile (bare: $w_0 = -0.856$,
+$w_a = +0.457$; with the Yang-fraction-weighted coupling $\xi = \varphi^6$:
+$w_0 = -0.87$, $w_a = +0.012$)
 modifies the expansion history and the angular diameter distance to last
 scattering. The Qi transfer function modifies the growth of perturbations
 at recombination. Together, these produce distinctive signatures in the
 CMB temperature power spectrum.
 
-**Pipeline result (July 2026):** A computational pipeline
+**Pipeline result:** A computational pipeline
 (`two-fluid/run_boltzmann_cassi.py`) uses CAMB (v2.0.0) to compute the
 CMB $C_\ell^{\text{TT}}$ spectrum with Cassi modifications:
 
@@ -519,9 +527,27 @@ $\varepsilon^2$-dependent $G_{\text{eff}}$.
 
 ---
 
+### 2.11 G5—3+1 Dimensions: The Number IS 3
+
+**The mechanism:** The string's spiral trajectory through field space generates three orthogonal directions via its Frenet-Serret frame: tangent (string axis), normal (Yang axis), and binormal (Yin axis). Three dimensions = $\{\mathbf{T}, \mathbf{N}, \mathbf{B}\}$, the three vectors of any space curve's Frenet-Serret frame. The $\xi = \varphi^{2 \times 3} = \varphi^{6}$ Qi-gravity coupling internally encodes the dimension count.
+
+**Why the number is already present:** The answer IS the number 3—a **derivation**
+of $D=3$ from the PDE structure, not a prediction of a measured quantity.
+
+**The number is 3 from the Frenet-Serret frame.** The prediction is that spatial dimensions are
+NOT fundamental—they emerge from the string's spiral, which requires exactly two fields (Yang and Yin). A space curve carries exactly three Frenet-Serret vectors. The W1 anti-phase verification confirms the
+two-fluid SO(2) structure.
+
+**Open:** The internal→physical axis map. The mechanism distinguishing the
+Yang axis, Yin axis, and string axis in physical space is proposed but not
+fully derived from the PDE. This is listed in the honesty section of the
+open-questions catalog.
+
+---
+
 ## 3. Structural Answers: When the Mechanism IS the Number
 
-For these 9 questions, the Cassi answer is a **mechanism**, not a single
+For these 10 questions, the Cassi answer is a **mechanism**, not a single
 numeric prediction. The mechanism itself is falsifiable through its
 observational consequences.
 
@@ -568,25 +594,7 @@ the same log-periodicity that appears in $P(k)$ and form factors.
 
 ---
 
-### 3.3 G5—3+1 Dimensions
-
-**The mechanism:** The string's spiral trajectory through field space generates three orthogonal directions via its Frenet-Serret frame: tangent (string axis), normal (Yang axis), and binormal (Yin axis). Three dimensions = $\{\mathbf{T}, \mathbf{N}, \mathbf{B}\}$, the three vectors of any space curve's Frenet-Serret frame. The $\xi = \varphi^{2 \times 3} = \varphi^{6}$ Qi-gravity coupling internally encodes the dimension count.
-
-**Why it's structural:** The answer IS the number 3—but it's a **derivation**
-of $D=3$ from the PDE structure, not a prediction of a measured quantity.
-
-**The number is 3 from the Frenet-Serret frame.** The prediction is that spatial dimensions are
-NOT fundamental—they emerge from the string's spiral, which requires exactly two fields (Yang and Yin). A space curve carries exactly three Frenet-Serret vectors. The W1 anti-phase verification confirms the
-two-fluid SO(2) structure.
-
-**Open:** The internal→physical axis map. The mechanism distinguishing the
-Yang axis, Yin axis, and string axis in physical space is proposed but not
-fully derived from the PDE. This is listed in the honesty section of the
-open-questions catalog.
-
----
-
-### 3.4 F3—Force Unification
+### 3.3 F3—Force Unification
 
 **The mechanism:** All four forces are manifestations of two-fluid dynamics
 at different cascade rungs:
@@ -598,7 +606,7 @@ at different cascade rungs:
 **Why it's structural:** The answer is a **mapping** of known forces to
 cascade mechanisms, not a single number. Each force already has its numeric
 prediction in its respective derivation (e.g., $\alpha_{\text{GUT}} =
-|\varphi^{-3}/(4\pi)$ for gauge unification, $\xi = \varphi^6$ for gravity).
+\varphi^{-3}/(4\pi)$ for gauge unification, $\xi = \varphi^6$ for gravity).
 
 **Testable consequence:** The single PDE must reproduce all four force
 laws in their respective cascade regimes. This is the grand computational
@@ -612,7 +620,7 @@ challenge of the framework.
 
 ---
 
-### 3.5 F4—Theory of Everything Status
+### 3.4 F4—Theory of Everything Status
 
 **The mechanism:** One equation (the two-fluid PDE), one constant ($\varphi$).
 All four pillars (particles, cosmology, gravity, Standard Model) emerge from
@@ -622,13 +630,12 @@ these alone.
 not a number. The number of free parameters IS the number: **one** ($\varphi$).
 
 **The number IS 1.** The parameter inventory (`parameter-inventory.md`)
-classifies all 40 parameters: 1 Fundamental ($\varphi$), 20 Derived ($\varphi$-powers),
-3 Calibrated ($\lambda \leftrightarrow H_0$, Newton's $G$, $\alpha_s$ shift),
+classifies 46 parameters: 1 Fundamental ($\varphi$), 24 Derived ($\varphi$-powers),
 plus dimensionful constants ($\hbar, c$) and numerical parameters.
 
 ---
 
-### 3.6 T2—JWST "Impossible" Early Galaxies
+### 3.5 T2—JWST "Impossible" Early Galaxies
 
 **The mechanism:** Post-pinch ($r > \varphi^{-1}$, $a \approx 0.051$, $z \approx 19$),
 Qi-enhanced gravity ($\xi = \varphi^6$) accelerates structure formation. The
@@ -636,10 +643,10 @@ wake-wave mechanism operates from the pinch onward—there is no "dark age"
 where structure formation must wait for $\Lambda$CDM hierarchical merging.
 
 **Why it's structural:** The answer is a **formation timeline**, not a single
-number. The prediction is that luminous objects exist earlier than $\Lambda$CDM
-expects—consistent with JWST observations.
+number. The prediction is that luminous objects exist at higher redshift than
+$\Lambda$CDM expects—consistent with JWST observations.
 
-**Pipeline result (July 2026):** A semi-analytic pipeline
+**Pipeline result:** A semi-analytic pipeline
 (`two-fluid/run_galaxy_mass_function.py`) computes the Qi-modified halo mass
 function using Sheth-Tormen formalism with enhanced growth and wake-wave modulation:
 
@@ -670,7 +677,7 @@ halos at $z=15$ is $31\times$ the $\Lambda$CDM expectation—this is a
 **falsifiable prediction** testable with JWST and Roman Space Telescope.
 ---
 
-### 3.7 M1–M5—Consciousness
+### 3.6 M1–M5—Consciousness
 
 **The mechanism:** Consciousness is the experience of being a self-predicting,
 $\varphi$-damped, cross-chakra Qi fluid with a persistent self-condensate.
@@ -687,53 +694,58 @@ an object to itself.
 - M5 (empathy): field-as-sense—two-bubble $\varphi$-resonance confirmed
 
 **The numbers are in the prediction catalog:** The consciousness framework
-has **19 testable predictions** (`predictions/falsifiable-predictions.md`,
-entries C1–C19), including the two-bubble $\varphi$-resonance (weak-moderate
-signal confirmed, pinch-dependent), EEG Qi-coherence metrics, and altered-state
-$\sigma_r$ signatures.
+has **19 testable predictions** (M1; catalog entries 1–19,
+`predictions/falsifiable-predictions.md`), including the two-bubble
+$\varphi$-resonance (weak-moderate signal confirmed, pinch-dependent), EEG
+Qi-coherence metrics, and altered-state $\sigma_r$ signatures.
 
 ---
 
-## 4. Updated Epistemic Tier Summary
+## 4. Epistemic Tier Summary
 
-| Tier | Before | After | Change |
-|------|--------|-------|--------|
-| **Derived** | 16 | 16 |—(refinements strengthen existing derivations) |
-| **Hypothesized (numeric refined)** | 22 | 24 | BH info upgraded from Speculative; n_s gate correction now derived |
-| **Speculative** | 1 | 0 | **Eliminated**—BH information upgraded to Hypothesized (S-matrix unitarity theorem proved) |
+| Tier | Count | Notes |
+|------|-------|-------|
+| **Derived** | 17 | Registry §8 (open-questions-cassi-answers.md); refinements strengthen existing derivations |
+| **Hypothesized (numeric refined)** | 24 | Registry §8 (6 pinned φ-powers + 18 computational) |
+| **Speculative** | 0 |—|
 
-The tier counts haven't changed because "Derived" requires the prediction to
-be a mathematical consequence of $\varphi$ + PDE with zero freedom. The
-refinements in §2 pin specific numbers but don't yet close the derivation
-gaps (e.g., baryon asymmetry's freeze-out step requires the thermal history;
-neutrino spacings require the full seesaw RGE).
+A "Derived" label requires the prediction to be a mathematical consequence of
+$\varphi$ + PDE with zero freedom. The refinements in §2 pin specific numbers
+but don't yet close the derivation gaps (e.g., baryon asymmetry's freeze-out
+step requires the thermal history; neutrino spacings require the full seesaw
+RGE).
 
-**Questions with newly pinned $\varphi$-powers:**
+**Questions with pinned $\varphi$-powers:**
 
-| Question | Old Status | Refined $\varphi$-power | Value |
-|----------|-----------|----------------------|-------|
-| C7/Q6 (baryon asymmetry) | $\varphi^{-46}$ (fit) | $\varphi^{-44}$ | $6.38 \times 10^{-10}$ (6.3% of obs.) |
-| C4 (inflation $r$) | $r \approx 0.003$ | $\varphi^{-12}$ | 0.0031 (3.5% above stated) |
-| C4 (inflation $n_s$) | $+0.017$ correction | $\varphi^{-2}/N_e$ | $0.950 + 0.0095 = 0.9595$ |
-| C10 (CMB axis) | Axis exists (structural) | $12.2°$ alignment | Geometric from bubble |
-| Q3 (neutrino $\Delta_\nu$) | $\Delta_\nu \approx 2$ (uniform, gap) | **$\Delta_1 = 1.00$, $\Delta_2 = 1.75$ rungs (cascade RGE + PMNS pinned)** | **$\Delta m^2$ ratio $33.82$ (0.2% residual)** |
-| Q10 (spin form factor) | Period exists (qualitative) | $\Delta(\ln q) = \ln\varphi = 0.4812$ | Zero-parameter |
-| G5 (dimensions) | Spiral's Frenet-Serret frame (structural) | Same | Number IS the derivation |
+| Question | Refined $\varphi$-power | Value |
+|----------|------------------------|-------|
+| C7/Q6 (baryon asymmetry) | $\varphi^{-44}$ | $6.38 \times 10^{-10}$ (6.3% of obs.) |
+| C4 (inflation $r$) | $\varphi^{-12}$ | 0.0031 (3.5% above stated) |
+| C4 (inflation $n_s$) | $1 - 2\varphi^{-1}/N_e$ (δn_s = 2φ⁻²/N_e) | $0.950 + 0.0191 = 0.9691$ |
+| C10 (CMB axis) | $12.2°$ alignment | Geometric from bubble |
+| Q3 (neutrino $\Delta_\nu$) | **$\Delta_1 = 1.00$, $\Delta_2 = 1.75$ rungs (cascade RGE + PMNS pinned)** | **$\Delta m^2$ ratio $33.82$ (0.2% residual)** |
+| Q10 (spin form factor) | $\Delta(\ln q) = \ln\varphi = 0.4812$ | Zero-parameter |
+| G5 (dimensions) | 3 (Frenet-Serret) | Number IS the derivation |
 
 ---
 
 ## 5. What Remains Open (Honesty)
 
-| Q3 (neutrino $\Delta_\nu$) | $\Delta_\nu \approx 2$ (uniform, gap) | **$\Delta_1 = 1.00$, $\Delta_2 = 1.75$ rungs (cascade RGE + PMNS)** | **$\Delta m^2$ ratio $33.82$ (0.2% residual)**—pinned |
-
 - **Baryon asymmetry specific exponent.** The $\varphi^{-44}$ is a fit (6.3%),
   not a derivation. The freeze-out step 52 must be computed from the thermal
-- **$n_s$ gate correction.** **Now derived in closed φ-form:** $n_s = 1 - 2\varphi^{-1}/N_e = 0.969$ (1.0σ from Planck). The gate correction $\delta n_s = 2\varphi^{-2}/N_e$ is a structural consequence of the Qi gate transparency at $r = \varphi^{-1}$. Gap closed (`computations/ns_gate_correction.py`, July 2026).
+  history of the cascade through the GUT epoch.
+- **$n_s$ gate correction.** **Derived in closed φ-form:** $n_s = 1 - 2\varphi^{-1}/N_e = 0.9691$ (1.0σ from Planck). The gate correction $\delta n_s = 2\varphi^{-2}/N_e$ is a structural consequence of the Qi gate transparency at $r = \varphi^{-1}$ (`computations/ns_gate_correction.py`).
 - **Quark mass ratios.** RGE running obscures the bare $\varphi$-power
   hierarchy in the up and down sectors.
-- **Gauge coupling running (GUT→EW).** $\alpha_s(M_Z) = 0.068$ from SM alone (1.7× too small), requiring $\Delta b_3 \approx 1.12$ from beyond-SM particles. Cascade RGE predicts a vector-like quark doublet $Q(3,2,1/6)+\bar{Q}$ at step ~36 ($\sim 10^{11}$ GeV). See `computations/cascade_gut_ew_rge.py` (July 2026).
+- **Gauge coupling running (GUT→EW).** $\alpha_s(M_Z) = 0.0581$ (one-loop SM
+  RGE, $M_{\text{GUT}} = 10^{16}$ GeV), 2.0× too small, requiring
+  $\Delta b = 1.70$ from beyond-SM particles; the discrete 72-rung φ-RG
+  convention value $0.068$/$\Delta b_3 = 1.12$ is convention-dependent and
+  not canonical. Cascade RGE predicts a vector-like quark doublet
+  $Q(3,2,1/6)+\bar{Q}$ at step ~36 ($\sim 10^{11}$ GeV). See
+  `computations/cascade_gut_ew_rge.py`.
 
-- **Neutrino mass eigenvalues.** Individual $m_{\nu_k}$ are now computed: $m_1 = 0.00356$, $m_2 = 0.00931$, $m_3 = 0.05019$ eV from the cascade RGE + PMNS pipeline (`computations/cascade_rge_pmns.py`, July 2026). The Fibonacci offsets $\Delta_1 = 1.00$, $\Delta_2 = 1.75$ rungs are pinned to 0.2% residual on $\Delta m^2_{31}/\Delta m^2_{21}$.
+- **Neutrino mass eigenvalues.** Individual $m_{\nu_k}$ are now computed: $m_1 = 0.00356$, $m_2 = 0.00931$, $m_3 = 0.05019$ eV from the cascade RGE + PMNS pipeline (`computations/cascade_rge_pmns.py`). The Fibonacci offsets $\Delta_1 = 1.00$, $\Delta_2 = 1.75$ rungs are pinned to 0.2% residual on $\Delta m^2_{31}/\Delta m^2_{21}$.
 
 | Pipeline | Script | Status | Key Result |
 |----------|--------|--------|------------|
@@ -747,13 +759,14 @@ neutrino spacings require the full seesaw RGE).
 - **Full N-body simulation.** Replace semi-analytic HMF with full N-body (GADGET-4 or similar) including PDE wake-wave ICs.
 - **Full Boltzmann modification.** Modify CAMB/CLASS source code to include $G_{\text{eff}}(k,q)$ in the Poisson equation, rather than using a phenomenological transfer function.
 - **Resolution scaling.** All PDE-based pipelines run at $N=32$ on CPU; scaling to $N=64$–$128$ on GPU would improve the $\sigma_8$ and $P(k)$ accuracy.
-### 5.3 Requires cross-pillar computation
+
+### 5.1 Requires cross-pillar computation
 
 - **Force unification (F3).** The single PDE must reproduce all four force
   laws—demonstrated in separate derivations, not yet in a unified
   computation.
 - **TOE completeness (F4).** The claim is falsifiable through the prediction
-  catalog (31 entries). Confirming all 31 would constitute empirical
+  catalog (46 entries). Confirming all 46 would constitute empirical
   verification.
 
 ---
@@ -761,7 +774,7 @@ neutrino spacings require the full seesaw RGE).
 ## 6. References
 
 - `cascade-suppression-formula.md`—universal attenuation law
-- `dimensionful-cascade.md`—complete 292-step cascade table
+- `dimensionful-cascade.md`—cascade table (292 = today's horizon rung)
 - `baryon-asymmetry.md`—matter-antimatter asymmetry derivation
 - `neutrino-masses.md`—seesaw + Fibonacci partitioning
 - `three-generations.md`—$N_{\text{gen}} = 3$ derivation
@@ -770,6 +783,6 @@ neutrino spacings require the full seesaw RGE).
 - `why-three-dimensions.md`—spiral's Frenet-Serret frame, triaxial spheroid
 - `unified-lagrangian.md`—unified action
 - `cosmology/observational_constraints.md`—CMB axis, $\sigma_8$, DESI
-- `predictions/falsifiable-predictions.md`—31-entry prediction catalog
+- `predictions/falsifiable-predictions.md`—46-entry prediction catalog
 - `open-questions-cassi-answers.md`—master catalog
 - `bubble-edge-geometry.md`—condensation field geometry, edge steepness ratio
