@@ -231,6 +231,7 @@ appears in a **verified physical quantity**.
 | 1 | 1.618 | Fundamental ratio $r = E_Y/E_I$ | Postulate |
 | 2 | 2.618 | Qi gate normalization denominator | PDE structure |
 | 3 | 4.236 | $\sin^2\theta_W = \varphi^{-3}$, Yang fraction $\varphi^{-3}$ | 2.1% (tree) |
+| 3 | 4.24 | $\kappa_s^{-1/2} = \varphi^3 v_0 \approx 1.04$ TeV (sector coupling) | 5.5% (vs rung 77); coefficient $C$ open |
 | 5 | 11.09 | Wu Xing scale, gap $g = 1-\varphi^{-5}$ | $w_0 = -0.87$ (corrected 2026-07-31; $2\sigma$ from DESI $\approx -0.75 \pm 0.06$ [INF]) |
 | 6 | 17.94 | $\xi = \varphi^6$ (Qi-gravity coupling) | $v_C/v_B = 2.9$–$3.1$ (~1.2σ; corrected 2026-07-31) |
 | 26 | $2.7\times 10^5$ | $m_e/v_0 \approx \varphi^{-26}$ (human cascade depth) | 25% (integer), 1.4% (half-step) |
@@ -295,11 +296,12 @@ With these derivations, the parameter inventory classification shifts:
 | Parameter | Old Class | New Class | Rationale |
 |-----------|-----------|-----------|-----------|
 | $\alpha_s(M_Z)$ | **E** | **C** | Requires particle content specification (one calibrated input: $\Delta b = 1.70$) |
+| $\kappa_s$ (sector coupling) |—| **D** | $\varphi^{-6}/v_0^2$ (scale derived; coefficient Hypothesized) |
 | $m_e/v_0$ | **E** | **D** | $\varphi^{-26.5}$ with cascade truncation mechanism (1.4% residual) |
 | $v_0/M_{\text{Pl}}$ | **E** | **D** | $\varphi^{-80}$ with 5.3% cascade discretization residual |
 | Activated steps |—| **E** | Empirical catalog (6 observables that happen to be $\varphi$-powers) |
 
-The updated legend: **F**=1, **D**=20, **C**=3, **E**=7, **I**=6, **N**=7, **Total**=44.
+The updated legend: **F**=1, **D**=21, **C**=3, **E**=7, **I**=6, **N**=7, **Total**=45.
 
 The net effect: three of six "External" constants have been partially derived,
 with residual gaps explained by cascade boundary effects and particle content

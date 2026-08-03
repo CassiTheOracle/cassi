@@ -123,12 +123,13 @@ $$r_0 = \frac{\varphi^{-5}}{2 - \varphi^{-5}} \quad\text{(primordial ratio } E_Y
 
 $$\lambda = 1/(2w) = 0.1 \quad\text{(PDE conversion rate)}$$
 
-| Coefficient | Expression | Value |
-|------------|-----------|-------|
-| $K_{fw}$ | $\varphi^{-1}$ | $0.618$ |
-| $K_{fm}$ | $\lambda\varphi^2$ | $0.262$ |
-| $K_{md}$ | $3\varphi^2$ | $7.85$ |
-| $H_{\text{empty}}$ | $\lambda\varphi^{-2}/3$ |—|
+| Coefficient | Expression | Value | Meaning |
+|------------|-----------|-------|---------|
+| $K_{fw}$ | $\varphi^{-1}$ | $0.618$ | Water damps Fire |
+| $K_{fm}$ | $\lambda\varphi^2$ | $0.262$ | Fire melts Metal |
+| $K_{md}$ | $3\varphi^2$ | $7.85$ | Metal cuts Wood |
+| $H_{\text{empty}}$ | $\lambda\varphi^{-2}/3$ |—| Irreducible cosmological baseline |
+| $\kappa_s$ | $\varphi^{-6}/v_0^2$ | $0.92$ TeV$^{-2}$ | Dirac↔two-fluid sector-coupling scale (rung 77) |
 
 ---
 
@@ -186,7 +187,7 @@ Fermion mass hierarchy ($y_f = y_0 \cdot \varphi^{-n_f}$):
 
 ### 4.5 Mixing Terms $\mathcal{L}_{\text{mix}}$
 
-$$\mathcal{L}_{\text{mix}} = \frac{\xi q}{16\pi G}R\sqrt{-g} + \frac{\kappa}{2}\sum_{\pm}\left(\bar\psi\frac{1\pm\gamma^5}{2}\psi - \Psi_{0,1}^2\right)^2 + \left(|D_\mu\Psi|^2 - |\partial_\mu\Psi|^2\right)$$
+$$\mathcal{L}_{\text{mix}} = \frac{\xi q}{16\pi G}R\sqrt{-g} + \frac{\kappa_s}{2}\sum_{\pm}\left(\bar\psi\frac{1\pm\gamma^5}{2}\psi - \Psi_{0,1}^2\right)^2 + \left(|D_\mu\Psi|^2 - |\partial_\mu\Psi|^2\right)$$
 
 ---
 

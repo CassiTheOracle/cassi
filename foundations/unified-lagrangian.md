@@ -6,7 +6,7 @@ $$
 \boxed{\mathcal{L}_{\text{Cassi}} = \mathcal{L}_{\text{TF}} + \mathcal{L}_{\text{D}} + \mathcal{L}_{\text{GR}} + \mathcal{L}_{\text{SM}} + \mathcal{L}_{\text{mix}}}
 $$
 
-*All dimensionless couplings derived from $\varphi = (1+\sqrt{5})/2$. One free parameter ($\lambda$) and three external dimensionful constants ($c$, $\hbar$, $G$)—see `foundations/dimensionful-constants-status.md`.*
+*All dimensionless couplings derived from $\varphi = (1+\sqrt{5})/2$, including the PDE conversion rate $\lambda = 1/(2w)$ with $w = 5$ derived (`foundations/wu-xing-derivation.md`; `foundations/dimensionful-constants-status.md` §2.1); three external dimensionful constants ($c$, $\hbar$, $G$)—see `foundations/dimensionful-constants-status.md`.*
 
 ---
 
@@ -23,7 +23,7 @@ All dimensionless parameters are $\varphi$-powers:
 | $\varphi^{6}$ | $17.94427191$ | $= \varphi^5 + \varphi^4$—Qi-gravity coupling |
 | $\varphi^{4}$ | $6.854101966$ | Four-interaction scale |
 | $\varphi^{5}$ | $11.09016994$ | Wu Xing cycle scale |
-| $\lambda$ | $0.1$ | PDE conversion rate (empirical; not derived from $\varphi$) |
+| $\lambda$ | $0.1$ | PDE conversion rate, $= 1/(2w)$ with $w = 5$ derived (`foundations/wu-xing-derivation.md`) |
 | $G$, $c$, $\hbar$ |—| External dimensionful constants (set $\ell_{\text{Pl}} = \sqrt{\hbar G / c^3}$) |
 | $\hbar = c = 1$ |—| Natural units throughout |
 
@@ -390,11 +390,11 @@ This is not a separate term but is absorbed into $G_{\text{eff}}$ in Section 3.2
 The Dirac spinor's chiral densities source the two-fluid:
 
 $$
-\boxed{\mathcal{L}_{\text{D→TF}} = \frac{\kappa}{2}\left(\bar\psi\frac{1+\gamma^5}{2}\psi - \Psi_0^2\right)^2
-+ \frac{\kappa}{2}\left(\bar\psi\frac{1-\gamma^5}{2}\psi - \Psi_1^2\right)^2}
+\boxed{\mathcal{L}_{\text{D→TF}} = \frac{\kappa_s}{2}\left(\bar\psi\frac{1+\gamma^5}{2}\psi - \Psi_0^2\right)^2
++ \frac{\kappa_s}{2}\left(\bar\psi\frac{1-\gamma^5}{2}\psi - \Psi_1^2\right)^2}
 $$
 
-This ensures the Dirac field and the two-fluid agree on the Yang/Yin decomposition. The coupling $\kappa$ sets the timescale for equilibration between sectors.
+This ensures the Dirac field and the two-fluid agree on the Yang/Yin decomposition. The coupling $\kappa_s$ sets the timescale for equilibration between sectors.
 
 ### 5.3 Gauge → Two-Fluid Coupling
 
@@ -426,7 +426,7 @@ $$
 \begin{aligned}
 \mathcal{L}_{\text{mix}} &=
 \frac{\xi q}{16\pi G}R\sqrt{-g} \\
-&\quad + \frac{\kappa}{2}\sum_{\pm}\left(\bar\psi\frac{1\pm\gamma^5}{2}\psi - \Psi_{0,1}^2\right)^2 \\
+&\quad + \frac{\kappa_s}{2}\sum_{\pm}\left(\bar\psi\frac{1\pm\gamma^5}{2}\psi - \Psi_{0,1}^2\right)^2 \\
 &\quad + \left(|D_\mu\Psi|^2 - |\partial_\mu\Psi|^2\right)
 \end{aligned}}
 $$
@@ -456,7 +456,7 @@ $$
 &\quad \underbrace{+\frac{1}{16\pi G_{\text{eff}}}R\sqrt{-g} + \frac{1}{2}T_{\mu\nu}g^{\mu\nu}}_{\text{Gravity}} \\
 &\quad \underbrace{-\frac{1}{4g_s^2}G^2 - \frac{1}{4g^2}W^2 - \frac{1}{4g'^2}B^2}_{\text{Gauge kinetic}} \\
 &\quad \underbrace{+ |D_\mu\Psi|^2 - \lambda_\phi(|\Psi|^2 - v_0^2/2)^2 - y_f\bar\psi_f\Psi\psi_f'}_{\text{Higgs + Yukawa}} \\
-&\quad \underbrace{+ \frac{\kappa}{2}\sum_{\pm}\left(\bar\psi P_{\pm}\psi - \Psi_{0,1}^2\right)^2}_{\text{Sector coupling}}
+&\quad \underbrace{+ \frac{\kappa_s}{2}\sum_{\pm}\left(\bar\psi P_{\pm}\psi - \Psi_{0,1}^2\right)^2}_{\text{Sector coupling}}
 \end{aligned}}
 $$
 
@@ -491,7 +491,7 @@ $$
 
 $$
 (i\gamma^\mu D_\mu - m)\psi - \frac{\varphi^{-1}}{2}M\psi
-+ \kappa\left(\bar\psi P_{\pm}\psi - \Psi_{0,1}^2\right)P_{\pm}\psi = 0
++ \kappa_s\left(\bar\psi P_{\pm}\psi - \Psi_{0,1}^2\right)P_{\pm}\psi = 0
 $$
 
 ### 7.3 Einstein Equation
@@ -528,6 +528,7 @@ where the currents come from the fermion and Higgs covariant derivatives.
 | $H_{\text{empty}}$ | $\lambda\varphi^{-2}/3$ |—| **Derived** (CC) |
 | $K_{fw}$ | $\varphi^{-1}$ | $0.618$ | **Derived** |
 | $K_{md}$ | $3\varphi^2$ | $7.85$ | **Derived** |
+| $\kappa_s$ | $\varphi^{-6}/v_0^2$ | $0.92$ TeV$^{-2}$ | **Derived** (scale) |
 | $G_{\text{eff}}$ | $G\cdot(\pi/\rho)\cdot(1+\varphi^6 q)$ |—| **Derived** |
 
 **Every constant is a $\varphi$-power or zero.**
