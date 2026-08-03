@@ -214,7 +214,7 @@ One signature is a false positive; two independent rungs are corroboration; thre
 
 ## References
 
-- `foundations/dimensionful-cascade.md`—292-step cascade table, rungs 136–168, phyllotaxis figure notes
+- `foundations/dimensionful-cascade.md`—cascade table (292 = today's horizon rung), rungs 136–168, phyllotaxis figure notes
 - `foundations/bubble-lattice-fabric.md`—condensation field, scale covariance, 10-rung nesting depth, universal signatures
 - `foundations/bubble-edge-geometry.md`—condensation field derivation, $\theta_{\text{cond}}$, checkerboard lattice
 - `foundations/spiral-dynamics.md`—Fibonacci spiral, $\Theta(n) = 2\pi n/\ln\varphi$, $2\pi/\ln\varphi$ rad per rung

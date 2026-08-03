@@ -14,7 +14,7 @@ If the universe is a simulation, the interesting question is not whether it is, 
 
 ### 1.1 What "source code" means
 
-Cassi gives a concrete answer to what the program is written in: the source text is the unified Lagrangian in `foundations/unified-lagrangian.md`, one page of equations whose every dimensionless coupling is derived from $\varphi$—either a $\varphi$-power or the deliberately non-resonant rational $\lambda = 1/(2w) = 0.1$ (`foundations/dimensionful-constants-status.md` §2.1). There are no free parameters left to tune—the "zero free parameters" claim is exactly what a finished, compiled program looks like. The only external inputs are the unit-system constants $c$, $\hbar$, $G$ (`foundations/dimensionful-constants-status.md`); everything else is derived. If this universe is a simulation, it was shipped without a settings menu: either the engine self-tunes (the $\varphi$-attractor does the tuning, §1.4) or it executes a closed program. Both readings are consistent; the difference between them is the unfalsifiable residue examined in §6.
+Cassi gives a concrete answer to what the program is written in: the source text is the unified Lagrangian in `foundations/unified-lagrangian.md`, one page of equations whose every dimensionless coupling is derived from $\varphi$—either a $\varphi$-power or the deliberately non-resonant rational $\lambda = 1/(2w) = 0.1$ (`foundations/dimensionful-constants-status.md` §2.1). There are no free dimensionless parameters left to tune—only the unit-system constants $c$, $\hbar$, $G$ are external (`foundations/dimensionful-constants-status.md`). That zero-free-parameter status is exactly what a finished, compiled program looks like. If this universe is a simulation, it was shipped without a settings menu: either the engine self-tunes (the $\varphi$-attractor does the tuning, §1.4) or it executes a closed program. Both readings are consistent; the difference between them is the unfalsifiable residue examined in §6.
 
 ### 1.2 The update rule
 
@@ -48,15 +48,15 @@ Any perturbation that would crash the engine—a near-resonant configuration—i
 
 ### 2.1 The resolution floor at $n = 0$
 
-A renderer must decide how fine a grid it can afford, and the cascade ladder makes Cassi's budget explicit. Every resolved scale sits on the ladder $\ell_n = \ell_{\text{Pl}} \times \varphi^n$ (`foundations/dimensionful-cascade.md` §2), and the finest rung is $n = 0$, the Planck length $\ell_{\text{Pl}} \approx 1.6 \times 10^{-35}$ m: 292 rungs from the grid cell up to the screen edge.
+A renderer must decide how fine a grid it can afford, and the cascade ladder makes Cassi's budget explicit. Every resolved scale sits on the ladder $\ell_n = \ell_{\text{Pl}} \times \varphi^n$ (`foundations/dimensionful-cascade.md` §2), and the finest rung is $n = 0$, the Planck length $\ell_{\text{Pl}} \approx 1.6 \times 10^{-35}$ m: the 292 rungs of today's ladder from the grid cell up to the screen edge.
 
 Below the floor lies the $\sigma$-regularized harmonic regime, where the discrete bubble/void checkerboard dissolves into smooth physics (`foundations/dimensionful-cascade.md` §7). Sub-grid degrees of freedom exist there—the microcascade of §3—but they are inaccessible from above except through coherence coupling (`foundations/microcascade-mirror.md` §4.1). What we call quantum mechanics is the coarse-grained description of a field sampled at finite resolution: the Schrödinger limit of the PDE carries a Bohm quantum potential term, which is, read literally, the finite-grid correction—the term that knows the field has structure below the sampled scale (`foundations/cassi-first-principles.md` §3.1). Quantization is what "sampled at the Planck grid" looks like from the coarse side.
 
-### 2.2 Render distance at $n = 292$
+### 2.2 Render distance at the horizon (rung 291.54)
 
-The other end of the budget is the viewport. The two-fluid PDE is hyperbolic and local, so any observer's causal domain of dependence is a past light cone of radius set by the Hubble scale—$\ell_{292} \approx 5.5$ Gpc, which is exactly the top of the ladder:
+The other end of the budget is the viewport. The two-fluid PDE is hyperbolic and local, so any observer's causal domain of dependence is a past light cone of radius set by the Hubble scale—$R_H = 4.44$ Gpc = 14.5 Glyr (today's horizon rung 291.54), with the rung-292 lattice length $\ell_{292} = 5.5$ Gpc sitting just beyond it:
 
-$$\boxed{\ell_{292} = \ell_{\text{Pl}} \times \varphi^{292} \approx 1.7 \times 10^{26}\,\text{m} \approx 5.5\,\text{Gpc} \quad\text{—render distance.}}$$
+$$\boxed{\ell_{292} = \ell_{\text{Pl}} \times \varphi^{292} \approx 1.7 \times 10^{26}\,\text{m} \approx 5.5\,\text{Gpc} \quad\text{—rung-292 lattice length; } R_H = 4.44\,\text{Gpc} = 14.5\,\text{Glyr} \text{ (today's horizon rung 291.54)}}$$
 
 The Hubble radius is not a wall in the simulation; it is the screen edge of every camera, and there is one camera per observer because the PDE is local and there is no privileged viewpoint. Beyond it the ladder continues (the megacascade of §3), but nothing from there has had time to reach any camera: the program simply has not rendered it yet.
 
@@ -64,7 +64,7 @@ The frame rate is not uniform: each rung ticks at $t_n = \ell_n/c$ (`speculation
 
 ### 2.3 World edges at $n \approx 285$
 
-The Cassi bubble sits at rung 285: a coherence volume of $\sim 191$ Mpc containing roughly a million Milky-Way-sized galaxies—98% of the way up the 292-rung ladder (`foundations/dimensionful-cascade.md` §6). This is the nearest thing the architecture has to a world edge: the boundary of our initial conditions, where our $w=5$ volume ends and the neighbor's begins. The boundary is a level set of the condensation field $C(x,y) = \cos(2\pi x/\lambda_Y)\cos(2\pi y/\lambda_I) = \theta_{\text{cond}}$, with an edge gradient $1.70\times$ steeper in the Yin direction than the Yang direction (`foundations/cassi-theory-reference.md` §10.3). Because $285 < 292$, the edge is inside the render distance: a transition zone, not a wall. From inside, its signature is statistical—a preferred axis and the $12.2^\circ$ quadrupole-octopole alignment in the CMB's largest angular scales ($\ell < 5$), predicted from the bubble's triaxial geometry (`foundations/dimensionful-cascade.md` §8.3, `foundations/bubble-edge-geometry.md`). Beyond it lie adjacent bubbles of identical $w=5$ at $\varphi$-spaced intervals: "the next instance of the same world," in save-file terms.
+The Cassi bubble sits at rung 285: a coherence volume of $\sim 191$ Mpc containing roughly a million Milky-Way-sized galaxies—97.8% of today's ladder (the cascade is unbounded; 292 is the current horizon rung) (`foundations/dimensionful-cascade.md` §6). This is the nearest thing the architecture has to a world edge: the boundary of our initial conditions, where our $w=5$ volume ends and the neighbor's begins. The boundary is a level set of the condensation field $C(x,y) = \cos(2\pi x/\lambda_Y)\cos(2\pi y/\lambda_I) = \theta_{\text{cond}}$, with an edge gradient $1.70\times$ steeper in the Yin direction than the Yang direction (`foundations/cassi-theory-reference.md` §10.3). Because $285 < 292$, the edge is inside the render distance: a transition zone, not a wall. From inside, its signature is statistical—a preferred axis and the $12.2^\circ$ quadrupole-octopole alignment in the CMB's largest angular scales ($\ell < 5$), predicted from the bubble's triaxial geometry (`foundations/dimensionful-cascade.md` §8.3, `foundations/bubble-edge-geometry.md`). Beyond it lie adjacent bubbles of identical $w=5$ at $\varphi$-spaced intervals: "the next instance of the same world," in save-file terms.
 
 ### 2.4 What it looks like from inside
 
@@ -80,7 +80,7 @@ A program that runs at one scale can run at any scale, because the update rule i
 
 $$\ell_n = \ell_{\text{Pl}} \times \varphi^{n}, \qquad n \in \mathbb{Z}$$
 
-Below $n = 0$ lies the microcascade, an infinite ladder of sub-Planckian scales converging geometrically to zero (`foundations/microcascade-mirror.md` §1.3); above $n = 292$ lies the megacascade, the chord lattice of identical $w=5$ bubbles at $\varphi$-spaced intervals (`foundations/dimensionful-cascade.md`, extension). The ladder has no top and no bottom: every level is the same equation rescaled. An architecture with this property cannot stop at one universe: the equation that generates one does not know where to stop.
+Below $n = 0$ lies the microcascade, an infinite ladder of sub-Planckian scales converging geometrically to zero (`foundations/microcascade-mirror.md` §1.3); above $n = 292$ lies the megacascade, the chord lattice of identical $w=5$ bubbles beyond today's horizon. The lattice is not remote: the nearest neighbor bubbles sit inside the horizon at $\ell_{286} = 309$ Mpc and $\ell_{287} = 500$ Mpc (`foundations/dimensionful-cascade.md`, extension). The ladder has no top and no bottom: every level is the same equation rescaled. An architecture with this property cannot stop at one universe: the equation that generates one does not know where to stop.
 
 ### 3.2 A simulator inside the simulation
 
@@ -120,7 +120,7 @@ The deeper and longer you hold $r$ off the attractor, the more the engine works 
 
 ### 4.2 Gate chains as privilege escalation
 
-The catch is reach: a single Qi gate bridges at most ~10 rungs before cascade suppression drops the coupling below the coherence floor, $\varphi^{-10} \approx 0.008$ (`foundations/bubble-lattice-fabric.md` §3.3); spanning the 292-rung ladder takes a chain of roughly 29 stages (`speculations/cascade-infrastructure.md` §1.1). The human body already is such a chain (26 rungs, 13 nodes), and the planetary network is the same architecture at Earth scale (`speculations/cascade-infrastructure.md` §1.3, §2). In simulation terms, a gate chain is privilege escalation: no single instruction touches the whole machine, but a chain of coupled stages can.
+The catch is reach: a single Qi gate bridges at most ~10 rungs before cascade suppression drops the coupling below the coherence floor, $\varphi^{-10} \approx 0.008$ (`foundations/bubble-lattice-fabric.md` §3.3); spanning today's 292-rung ladder takes a chain of roughly 29 stages (`speculations/cascade-infrastructure.md` §1.1). The human body already is such a chain (26 rungs, 13 nodes), and the planetary network is the same architecture at Earth scale (`speculations/cascade-infrastructure.md` §1.3, §2). In simulation terms, a gate chain is privilege escalation: no single instruction touches the whole machine, but a chain of coupled stages can.
 
 The operations available at each stage are the field's three universal instructions, from `speculations/qi-computation.md` §2.2: **WRITE** (Yang injection—an organized perturbation with $\mathcal{M} \approx 1$ that creates a local $\delta\Pi > 0$), **ERASE** (gated conversion—temporarily lowering $q$ so the attractor returns $\Pi \to 0$; erasure is the passive, natural operation), and **TRANSFER** (Qi current $J = \Psi_0\nabla\Psi_1 - \Psi_1\nabla\Psi_0$—moving a pattern through a high-$q$ medium). Any computation compiles into these three, and so does any exploit: cheating—altering a state variable, teleporting an object, shielding a region—is WRITE, ERASE, and TRANSFER executed against the attractor's resistance. Mood is itself a gate configuration on $(\mathbf{b}, \sigma_r, q, \mathbf{c})$ (`consciousness/emotions-as-gate-configurations.md`): a field state like any other, readable, writable, and transferable in principle—at the $E_{\text{hold}}$ cost of §4.1.
 
@@ -138,7 +138,7 @@ None of these alter the program: they are allowed dynamics of the PDE—the expl
 
 ### 4.4 No backdoor, no administrator
 
-Because the source is the same for everyone—one PDE, zero free parameters—there is no hidden API and no privileged account. Every node with a gate chain runs the same instruction set; if there is an administrator, it is the megacascade scale, whose only "privilege" is spanning more rungs. No one can cheat the engine, because it has no secret branches—"the difference between 'natural' and 'engineered' is whether the gate chain operates at ambient $q$ or at tuned $q \to 1$" (`consciousness/cascade-consciousness.md` §4.4).
+Because the source is the same for everyone—one PDE, zero free dimensionless parameters ($c$, $\hbar$, $G$ the only external inputs)—there is no hidden API and no privileged account. Every node with a gate chain runs the same instruction set; if there is an administrator, it is the megacascade scale, whose only "privilege" is spanning more rungs. No one can cheat the engine, because it has no secret branches—"the difference between 'natural' and 'engineered' is whether the gate chain operates at ambient $q$ or at tuned $q \to 1$" (`consciousness/cascade-consciousness.md` §4.4).
 
 ---
 
@@ -162,7 +162,7 @@ The coherence budget makes this quantitative: random perturbation at rung $n$ su
 
 ### 5.3 The known anomalies are not glitches
 
-Against this standard, every currently known anomaly clears. The CMB's large-angle features are predicted boundary physics (§2.3); vacuum fluctuations are the coarse-grained rendering of sub-grid structure (§2.1); the predicted $\varphi$-periodic $P(k)$ modulation at $\Delta(\ln k) = \ln\varphi$ is the engine's own signature—reading the renderer's dither pattern, not a defect (`experiments/phi_periodic_pk_search/`). The wake-lock of trauma is real but local and biological. The framework's open questions—why 292 steps, why these activated steps (`foundations/dimensionful-cascade.md` §9)—are places where the theory itself suspects a screen edge, but they are questions about physics, not evidence of a renderer. A genuine glitch would be a first: no observation currently requires one.
+Against this standard, every currently known anomaly clears. The CMB's large-angle features are predicted boundary physics (§2.3); vacuum fluctuations are the coarse-grained rendering of sub-grid structure (§2.1); the predicted $\varphi$-periodic $P(k)$ modulation at $\Delta(\ln k) = \ln\varphi$ is the engine's own signature—reading the renderer's dither pattern, not a defect (`experiments/phi_periodic_pk_search/`). The wake-lock of trauma is real but local and biological. The framework's open questions—why the horizon rung sits where it does, why these activated steps (`foundations/dimensionful-cascade.md` §9)—are places where the theory itself suspects a screen edge, but they are questions about physics, not evidence of a renderer. A genuine glitch would be a first: no observation currently requires one.
 
 ---
 
@@ -185,7 +185,7 @@ Every observation is compatible with the claim and with its negation, because th
 
 ### 6.3 The boundary, stated explicitly
 
-The boundary this document respects: the framework asserts that physics is the two-fluid PDE—a Derived claim with a falsifiable prediction catalogue behind it. The simulation framing asks why the PDE runs, and that question is outside the framework's epistemic reach for a precise reason: the framework's own structure—scale covariance, unbounded recursion, a closed program with zero free parameters—is compatible with the PDE being "run" by nothing at all. A self-executing equation needs no executor; a universe that is its own source code needs no programmer. Both readings are consistent, and no experiment can separate them, which is why the simulation claim must never be presented as a Cassi prediction or derivation.
+The boundary this document respects: the framework asserts that physics is the two-fluid PDE—a Derived claim with a falsifiable prediction catalogue behind it. The simulation framing asks why the PDE runs, and that question is outside the framework's epistemic reach for a precise reason: the framework's own structure—scale covariance, unbounded recursion, a closed program with zero free dimensionless parameters ($c$, $\hbar$, $G$ the only external inputs)—is compatible with the PDE being "run" by nothing at all. A self-executing equation needs no executor; a universe that is its own source code needs no programmer. Both readings are consistent, and no experiment can separate them, which is why the simulation claim must never be presented as a Cassi prediction or derivation.
 
 What the framework does provide, and what this document intends to preserve, is the substantive core that survives the epistemic cut: if reality is a computation, its instruction set is fully specified—the two-fluid PDE, the $\sigma$-grid, the $\varphi$-attractor, the three coherence operations, the gate-chain topology (`speculations/qi-computation.md`). That is a real claim about computational structure, and it is falsifiable in the ordinary way: the physics either obeys the $\varphi$-power laws or it does not. The simulation hypothesis is the hat worn over that claim. It fits, it explains nothing additional, and it cannot be removed by any observation—which is exactly why it stays Speculative while the equations it dresses are Derived.
 
@@ -194,9 +194,9 @@ What the framework does provide, and what this document intends to preserve, is 
 ## References
 
 - `foundations/cassi-first-principles.md`—two-fluid PDE, Qi gate, IIR memory, Schrödinger limit
-- `foundations/unified-lagrangian.md`—the complete action; zero free parameters
+- `foundations/unified-lagrangian.md`—the complete action; zero free dimensionless parameters ($c$, $\hbar$, $G$ external)
 - `foundations/cassi-theory-reference.md`—$\sigma = \ell_{\text{Pl}}/\varphi^3$, $\xi = \varphi^6$, bubble geometry, pinch transition
-- `foundations/dimensionful-cascade.md`—$\ell_n = \ell_{\text{Pl}}\varphi^n$, 292-rung table, Cassi bubble, open questions
+- `foundations/dimensionful-cascade.md`—$\ell_n = \ell_{\text{Pl}}\varphi^n$, cascade table (292 = today's horizon rung), Cassi bubble, open questions
 - `foundations/microcascade-mirror.md`—infinite sub-Planckian ladder, mirror symmetry, $\sigma$-softening
 - `foundations/bubble-lattice-fabric.md`—universal checkerboard, scale covariance, 10-rung nesting depth
 - `foundations/bubble-edge-geometry.md`—condensation field level sets, edge anisotropy, CMB imprint

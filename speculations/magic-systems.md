@@ -181,7 +181,7 @@ A one-page system built entirely from the rules above, for a hearth-folk traditi
 - `foundations/proton-coherence-budget.md`—coherence budget, annihilation as organized attack
 - `foundations/cascade-suppression-formula.md`—$\varphi^{-N}$ signal attenuation, per-rung damping
 - `foundations/cassi-first-principles.md`—two-fluid PDE, Qi gate, IIR memory
-- `foundations/dimensionful-cascade.md`—292-step cascade, human-scale rungs 142–168
+- `foundations/dimensionful-cascade.md`—cascade table (292 = today's horizon rung), human-scale rungs 142–168
 - `foundations/bubble-lattice-fabric.md`—10-rung nesting depth, condensation field
 - `principles/de-resonance-principle.md`—$\varphi$ as maximally irrational attractor
 - `speculations/qi-computation.md`—WRITE/ERASE/TRANSFER, gate regimes, Qi noise floor

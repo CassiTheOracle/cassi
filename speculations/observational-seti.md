@@ -125,7 +125,7 @@ These are the **formal Cassi predictions**—already cataloged in `predictions/f
 
 **Mechanism:** The megacascade boundary (from `speculations/cascade-infrastructure.md` §4.2): our observable universe is one bubble in a larger lattice. The bubble boundary imprints on the largest angular scales.
 
-**Predicted observable:** A $w$-gradient axis in CMB temperature fluctuations, present at $\ell < 5$ and fading at larger $\ell$. The framework also predicts the quadrupole-octopole alignment and cold spot as boundary conditions.
+**Predicted observable:** A bubble-boundary axis in CMB temperature fluctuations—the triaxial boundary geometry at step 285 imprints a preferred axis (predicted dipole↔quadrupole alignment 12.2°) at $\ell < 5$, fading at larger $\ell$. The framework also predicts the quadrupole-octopole alignment and cold spot as boundary conditions.
 
 **Current data:** The axis is observed at 5.4σ (Planck). Alignment with the framework's predicted direction is ~1σ—suggestive but not conclusive. Simons Observatory and LiteBIRD will improve polarization measurements.
 
@@ -248,7 +248,7 @@ Step 3 is where Cassi stops being an interesting coincidence and becomes a scien
 ### Formal Cassi predictions (already in the catalog, zero free parameters)
 
 - φ-periodic $P(k)$ modulation, $\Delta(\ln k) = \ln\varphi = 0.4812$ (prediction #5)
-- CMB $w$-gradient axis at $\ell < 5$, fading (prediction #6)
+- CMB bubble-boundary axis (12.2° dipole↔quadrupole alignment) at $\ell < 5$, fading (prediction #6)
 - Void ellipticity 1.70 (from `foundations/bubble-edge-geometry.md` §5.2)
 - $\Omega_{\text{DM}}/\Omega_b = \varphi^3 + 1 \approx 5.236$ (already matches to 2.8%)
 - $\ln\varphi$ periodic physiological spectral signature (prediction #35)
@@ -278,5 +278,5 @@ Step 3 is where Cassi stops being an interesting coincidence and becomes a scien
 - `speculations/qi-bubble-propulsion.md`—gate efficiency, $(1-q)$ thermalization
 - `skill://cassi-pk-logperiodic-search`—the P(k) search pipeline
 - `experiments/phi_periodic_pk_search/run_phi_periodic_pk_test.py`—verified implementation of the pipeline; run with no args for the injection/null/sensitivity suite, or with a two-column P(k) file to search real data
-- `experiments/phi_periodic_pk_search/`—eBOSS DR16 pipeline: `phi_periodic_pk_search.py` (search), `dr16_phi_significance.py` (1000-EZmocks null test), plus data (Gil-Marin et al. 2020 public files)
-- `experiments/desi_pk_phi_search/`—DESI DR1 pipeline: `desi_lrg_pk_fft.py` (numpy FFT-based FKP estimator on guadalupe v1.0 LSS catalogs) + catalog data
+- `experiments/phi_periodic_pk_search/`—eBOSS DR16 pipeline: `experiments/phi_periodic_pk_search/phi_periodic_pk_search.py` (search), `experiments/phi_periodic_pk_search/dr16_phi_significance.py` (1000-EZmocks null test), plus data (Gil-Marin et al. 2020 public files)
+- `experiments/desi_pk_phi_search/`—DESI DR1 pipeline: `experiments/desi_pk_phi_search/desi_lrg_pk_fft.py` (numpy FFT-based FKP estimator on guadalupe v1.0 LSS catalogs) + catalog data
