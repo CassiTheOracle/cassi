@@ -195,7 +195,7 @@ Two worked scenarios, to show how the rules play out:
 - `foundations/cascade-suppression-formula.md`—$\varphi^{-N}$ attenuation; signal vs. coherence regimes
 - `principles/de-resonance-principle.md`—why $\varphi$ is the attractor; the damping of departures from equilibrium
 - `foundations/cassi-first-principles.md`—the two-fluid PDE and conversion term
-- `foundations/dimensionful-cascade.md`—the 292-step ladder; rung assignments used throughout
+- `foundations/dimensionful-cascade.md`—the φ-ladder (292 = today's horizon rung); rung assignments used throughout
 - `speculations/qi-bubble-propulsion.md`—the $\varphi$-detuned boundary; the $(1-q)$ glow; the Fibonacci hull stack
 - `speculations/cascade-infrastructure.md`—gate chains, the ~10-rung bridge limit, planetary and stellar gate networks
 - `speculations/observational-seti.md`—tuned networks as structurally invisible; stellar gate signatures

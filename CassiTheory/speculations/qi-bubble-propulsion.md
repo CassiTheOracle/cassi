@@ -243,6 +243,6 @@ The expensive leg—against the Hubble flow, against the density gradient. The r
 - `foundations/xi-derivation.md`—$\xi = \varphi^6$ derivation and Qi-gravity coupling
 - `foundations/quantum-measurement-derivation.md`—phase-matching factor $\mathcal{M}$
 - `foundations/proton-coherence-budget.md`—organized vs random perturbation, cascade coherence architecture
-- `foundations/dimensionful-cascade.md`—292-step cascade table, $\ell_n = \ell_{\text{Pl}}\varphi^n$
+- `foundations/dimensionful-cascade.md`—cascade table (292 = today's horizon rung), $\ell_n = \ell_{\text{Pl}}\varphi^n$
 - `principles/de-resonance-principle.md`—$\varphi$ as maximally irrational, per-rung decoupling
 - `consciousness/chakras-as-cascade-bubbles.md`—human gate chain, $P_\parallel = 2$, 13-node derivation

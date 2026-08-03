@@ -133,19 +133,19 @@ $$q_{\text{eff}}(T) = q_{\text{eff}}(0) - \gamma' \left(\frac{T}{\Theta_D}\right
 
 For $T \ll \Theta_D$ in $d=3$:
 
-$$q_{\text{eff}}(T) \approx q_{\text{eff}}(0) - \alpha T^4$$
+$$q_{\text{eff}}(T) \approx q_{\text{eff}}(0) - \alpha_T T^4$$
 
-where $\alpha \propto \gamma' / \Theta_D^3$.
+where $\alpha_T \propto \gamma' / \Theta_D^3$.
 
 ### 3.3 The transition temperature
 
 Setting $q_{\text{eff}}(T_c) = q_c$:
 
-$$q_{\text{eff}}(0) - \alpha T_c^4 = q_c$$
+$$q_{\text{eff}}(0) - \alpha_T T_c^4 = q_c$$
 
-$$\boxed{k_B T_c = k_B \left(\frac{q_{\text{eff}}(0) - q_c}{\alpha}\right)^{1/4}}$$
+$$\boxed{k_B T_c = k_B \left(\frac{q_{\text{eff}}(0) - q_c}{\alpha_T}\right)^{1/4}}$$
 
-The maximum $T_c$ is achieved when $q_{\text{eff}}(0) \to 1$ (perfectly coherent lattice) and $\alpha$ is minimized (stiff lattice, high $\Theta_D$). The minimum $T_c$ is zero when $q_{\text{eff}}(0) \leq q_c$—the material never goes superconducting.
+The maximum $T_c$ is achieved when $q_{\text{eff}}(0) \to 1$ (perfectly coherent lattice) and $\alpha_T$ is minimized (stiff lattice, high $\Theta_D$). The minimum $T_c$ is zero when $q_{\text{eff}}(0) \leq q_c$—the material never goes superconducting.
 
 ### 3.4 The zero-temperature gap
 
@@ -203,7 +203,7 @@ The derivation implies specific material design principles that differ from conv
 ### 5.2 High Debye temperature (stiff lattice)
 
 - Minimizes thermal phonon population at a given temperature
-- Reduces $\alpha$ in the $q_{\text{eff}}(T)$ formula
+- Reduces $\alpha_T$ in the $q_{\text{eff}}(T)$ formula
 - Consistent with the known empirical correlation: high-$\Theta_D$ materials tend to have higher $T_c$ (Nb, Nb₃Sn, MgB₂)
 
 ### 5.3 Low electronic density of states at $E_F$
