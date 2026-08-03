@@ -137,7 +137,7 @@ $$\lambda = 1/(2w) = 0.1 \quad\text{(PDE conversion rate)}$$
 
 $$S_{\text{Cassi}} = \int d^4x\sqrt{-g}\,(\mathcal{L}_{\text{TF}} + \mathcal{L}_{\text{D}} + \mathcal{L}_{\text{GR}} + \mathcal{L}_{\text{SM}} + \mathcal{L}_{\text{mix}})$$
 
-All dimensionless couplings are $\varphi$-powers. One empirical parameter ($\lambda = 0.1$) and three external dimensionful constants ($c$, $\hbar$, $G$) set the unit system; $\ell_{\text{Pl}} = \sqrt{\hbar G/c^3}$ is the cascade's sole dimensionful anchor.
+All dimensionless couplings are $\varphi$-powers, with the derived rational conversion rate $\lambda = 1/(2w) = 0.1$. Three external dimensionful constants ($c$, $\hbar$, $G$) set the unit system; $\ell_{\text{Pl}} = \sqrt{\hbar G/c^3}$ is the cascade's sole dimensionful anchor.
 
 ### 4.1 Two-Fluid Core $\mathcal{L}_{\text{TF}}$
 
