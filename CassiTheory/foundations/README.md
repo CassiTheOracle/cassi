@@ -37,6 +37,7 @@ This directory holds the load-bearing derivations of the Cassi framework: the di
 | 25 | `refined-numeric-predictions.md` | Pinned φ-powers | Active derivation |
 | 26 | `deriving-remaining-gaps.md` | Residual parameters | Resolved / narrowed |
 | 27 | `sector-coupling-derivation.md` | Dirac↔two-fluid sector coupling | Derived scale w/ Hypothesized coefficient |
+| 28 | `wake-geometry.md` | Wake geometry | Derived (structural) |
 
 ## Document Summaries
 
@@ -243,6 +244,10 @@ Derives the Dirac↔two-fluid sector-coupling scale from the Qi-gravity coupling
 $$\boxed{\kappa_s = \frac{\varphi^{-6}}{v_0^2} \approx 0.92\ \text{TeV}^{-2}}$$
 
 so $\kappa_s^{-1/2} = \varphi^3 v_0 = 1042$ GeV sits +5.5% off cascade rung 77 (987.7 GeV)—the same residual class as the documented electroweak placement (rung 80, −5.2%). Cycle-factor variants give 1.042/1.326/1.686 TeV for $C = 1, \varphi^{-1}, \varphi^{-2}$. The as-written chemotactic bridge $\chi = \kappa_s\varphi^{-1}/[m_e(1+\varphi)]$ is dimensionally inconsistent as it stands ($\chi \approx 4\times10^{-4}$ vs the calibrated 0.5–1.0); closing it needs the PDE normalization factor $\mathcal{N}_{\text{pde}} \approx 2.35\times10^{3}$, a concrete computational follow-up. Status: Derived scale with Hypothesized coefficient.
+
+### `wake-geometry.md`—The Wake Geometry: Composite-Wavelength Closure and the Horizon Rung
+
+The Yang–Yin wake pair $\lambda_Y = \varphi\lambda_I$ closes the cascade ladder exactly through the identity $1 + 1/\varphi = \varphi$—$\lambda_Y + \lambda_I = \ell_n(1 + 1/\varphi) = \ell_{n+1}$ (at rung 285: 191 + 118 = 309 Mpc = $\ell_{286}$)—with the checkerboard envelope $\cos(2\pi x/\ell_n) + \cos(2\pi\varphi x/\ell_n) = 2\cos(\pi(1+\varphi)x/\ell_n)\cos(\pi(\varphi-1)x/\ell_n)$ peaking on $\ell_{n+1}$ and the golden-angle closure ladder converging through Fibonacci denominators without ever closing exactly. On this reading $N = 292$ is today's epoch-dependent horizon rung, $\log_\varphi(R_H/\ell_{\text{Pl}}) = 291.54$ with $R_H/\ell_{285} = 23.29 \approx \varphi^{6.5}$, saturating toward $N_\infty \approx 296$–$303$ as $r \to \varphi$ (2026-08-03 reclassification). Status: Derived wake geometry with Hypothesized closure imprint.
 
 ## Cross-References
 

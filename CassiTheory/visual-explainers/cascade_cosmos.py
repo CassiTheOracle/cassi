@@ -166,7 +166,7 @@ for k in range(-4, 5):
     if ours:
         axA.text(cx, BUB_H + 0.42, "OUR UNIVERSE—Cassi bubble, $w{=}5$",
                  ha="center", fontsize=11, fontweight="bold", color=YANG_PEAK)
-        axA.text(cx, BUB_H + 0.14, "step 285 · Ø ≈ 191 Mpc · 98% of the observable volume",
+        axA.text(cx, BUB_H + 0.14, "step 285 · Ø ≈ 191 Mpc · 97.8% of today's ladder",
                  ha="center", fontsize=8, color=TEXT_MAIN)
         axA.text(cx, -BUB_H - 0.55, "bounded between cascade steps 284 ↔ 288",
                  ha="center", fontsize=7.5, color=TEXT_SUB)

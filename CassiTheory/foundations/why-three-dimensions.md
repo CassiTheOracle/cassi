@@ -190,8 +190,8 @@ extension in the doublet plane (Yang-dominated) against the cascade confinement
 (string). The universe on the string is a lens whose two diameters are unequal,
 with the longer one marked by Yang.
 
-The Cassi bubble (step 285, $\sim 191$ Mpc comoving, 98% of the observable
-volume) thereby acquires a *shape* for the first time: three axes, and with them
+The Cassi bubble (step 285, $\sim 191$ Mpc comoving, 97.8% of today's observable
+ladder; volume fraction $\sim 10^{-5}$) thereby acquires a *shape* for the first time: three axes, and with them
 **two preferred geometric directions**: the short axis (string/tangent) and the
 long in-plane axis (Yang/normal).
 

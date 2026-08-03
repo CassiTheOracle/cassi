@@ -115,7 +115,7 @@ A bubble is not spherical: stretched along Yang, contracted along Yin, its cross
 
 The spiral, stretched out along scale, is the **cascade**: starting from the Planck length $\ell_{\text{Pl}} = 1.616 \times 10^{-35}$ m and multiplying by $\varphi$ per turn generates every physical scale, 292 rungs to the observable universe:
 
-$$\ell_n = \ell_{\text{Pl}} \times \varphi^{n}, \qquad n \in [0, 292]$$
+$$\ell_n = \ell_{\text{Pl}} \times \varphi^{n}, \qquad n \in [0, 292] \quad (\text{today})$$
 
 The human body occupies rungs 142–168: from the living cell (~8 µm) to the body (~1.7 m). Below the Planck scale the **microcascade** winds inward without end; above the horizon the **megacascade** continues outward.
 

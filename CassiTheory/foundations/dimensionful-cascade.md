@@ -8,7 +8,7 @@ The Cassi two-fluid framework has one fundamental dimensionful scale: the Planck
 
 $$\boxed{\ell_n = \ell_{\text{Pl}} \times \varphi^{\,n}}$$
 
-where $\varphi = (1+\sqrt{5})/2 \approx 1.618$ and the integer exponent $n$ is determined by the dynamics of the $\varphi$-attractor—specifically, by where in the cascade a given physical process freezes out. The total cascade spans $n = 0$ (Planck) to $n \approx 292$ (Hubble radius), a range of 292 $\varphi$-multiplications. This document catalogues the complete spectrum.
+where $\varphi = (1+\sqrt{5})/2 \approx 1.618$ and the integer exponent $n$ is determined by the dynamics of the $\varphi$-attractor—specifically, by where in the cascade a given physical process freezes out. The observable ladder spans $n = 0$ (Planck) to $n \approx 292$ (today's horizon rung—epoch-dependent); the cascade itself is unbounded (megacascade above, microcascade below). This document catalogues the complete spectrum.
 
 **Extension:** The cascade does not truncate at either boundary. Above $n \approx 292$ lies the **megacascade** (multiverse, bubble boundaries). Below $n = 0$ lies the **microcascade** (sub-Planckian infinite ladder). See `microcascade-mirror.md` for the bidirectional extension.
 
@@ -87,7 +87,7 @@ The electroweak cascade depth $N \approx 80$ is robust against variations in the
 | **285** | **$5.9 \times 10^{24}$** | **Cassi bubble** ($\sim 191$ Mpc) | Multiverse |
 | 288 | $2.5 \times 10^{25}$ | Supercluster scale ($\sim 800$ Mpc) | Cosmological |
 | 290 | $6.5 \times 10^{25}$ | Horizon at recombination ($\sim 2.1$ Gpc) | Cosmological |
-| **292** | **$1.7 \times 10^{26}$** | **Hubble radius** ($\sim 5.5$ Gpc) | Observable universe |
+| **292** | **$1.7 \times 10^{26}$** | **Hubble radius today** ($\sim 5.5$ Gpc) | Observable universe |
 
 ### Step Verification
 
@@ -105,7 +105,7 @@ Step 285:  ℓ_Pl × φ^285 = 1.616e-35 × 3.65e59 = 5.89e24 m   (191 Mpc, bubbl
 
 ## 4. Cascade Zones
 
-The full 292-step cascade divides naturally into three regimes:
+The 292-step observable ladder (today) divides naturally into three regimes:
 
 ### Zone 1: Quantum ($n = 0$ to $n \approx 80$)
 - Planck scale to electroweak scale
@@ -122,8 +122,8 @@ The full 292-step cascade divides naturally into three regimes:
 
 ### Zone 3: Cosmology ($n \approx 285$ to $n \approx 292$)
 - Cassi bubble to Hubble radius
-- Only 7 $\varphi$-steps—the bubble fills 98% of the observable volume
-- Adjacent bubbles in the chord lattice appear at $\varphi$-scaled intervals, mostly beyond the horizon; only one bubble per observable volume
+- Only 7 $\varphi$-steps in the rung labels—the bubble sits at 97.8% of today's observable ladder; by volume it is $\sim 10^{-5}$ of the observable universe ($R_H/\ell_{285} = 23.3 \approx \varphi^{6.5}$, +2%)
+- Adjacent lattice bubbles sit at $\varphi$-spaced intervals ($\ell_{286} = 309$ Mpc, $\ell_{287} = 500$ Mpc, …)—the nearest lie INSIDE the horizon; the horizon's rung coordinate (291.5 today) is an epoch-dependent cut through the lattice
 - CMB large-angle anomalies reflect bubble-boundary geometry at these scales (see `foundations/bubble-edge-geometry.md`)
 
 ---
@@ -163,7 +163,7 @@ The bubble at step 285 is the coherence length of the Wu Xing number $w$—the s
 
 **Bubble properties:**
 - Diameter: $\sim 191$ Mpc (comoving)
-- Position in cascade: step 285 of 292 (98%)
+- Position in cascade: step 285 of today's observable ladder (97.8%; volume fraction $\sim 10^{-5}$)
 - Contains: $\sim 10^6$ Milky-Way-sized galaxies
 - Adjacent bubbles: identical $w=5$, arranged at $\varphi$-spaced intervals in the chord lattice. Separated by voids at $C=-1$ sites of the condensation field (`visual-explainers/chord_lattice.py`).
 
@@ -213,7 +213,7 @@ The bubble at step 285 is bounded by adjacent bubbles at identical $w=5$ in the 
 
 ## 9. Open Questions
 
-1. **Why 292 steps?** The total cascade from Planck to Hubble is $\log_\varphi(M_{\text{Pl}}/H_0) \approx 292$. Is this number derivable from the PDE dynamics, or is it set by the initial conditions of inflation?
+1. **Why 292 steps?** $\log_\varphi(M_{\text{Pl}}/H_0) \approx 291.54$ today; is this number derivable from the PDE dynamics, or is it set by the initial conditions of inflation? **Sharpening (2026-08-03):** 292 is not a constant of the cascade—the cascade is unbounded ($n \in \mathbb{Z}$, megacascade above, microcascade below), and 292 is today's horizon rung (epoch-dependent; $N(t) = \log_\varphi(R_H(t)/\ell_{\text{Pl}})$ evolves as $H(r) \to \varphi$). The derivable targets are the asymptotic horizon $N_\infty \approx 296$–303 (`foundations/wake-geometry.md` §4) and the epoch selection via the initial condition $r_0$.
 
 2. **Why these specific activated steps?** The set $\{1, 2, 3, 5, 6, 26, 80, 292\}$ has no obvious pattern. Do the "dark" steps carry physical meaning (e.g., sterile neutrino masses, dark sector couplings)?
 

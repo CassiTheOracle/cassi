@@ -83,7 +83,7 @@ The two-fluid dynamics organize into a discrete ladder of "rungs," each separate
 
 $$\ell_n = \ell_{\text{Pl}} \times \varphi^{n}$$
 
-There are 292 rungs from the Planck scale (step 0, the smallest meaningful distance) to the size of the observable universe (step 292). Each rung corresponds to a specific physical scale: the electroweak symmetry breaking happens at step $\sim$80; the QCD confinement scale at step $\sim$95; the human body spans steps 142–168. The cascade ladder explains why different physical phenomena appear at the widely separated scales they do—they are simply different rungs of the same ladder.
+There are 292 rungs from the Planck scale (step 0, the smallest meaningful distance) to the size of the observable universe (step 292 today—the cascade is unbounded; 292 is the current horizon rung, epoch-dependent). Each rung corresponds to a specific physical scale: the electroweak symmetry breaking happens at step $\sim$80; the QCD confinement scale at step $\sim$95; the human body spans steps 142–168. The cascade ladder explains why different physical phenomena appear at the widely separated scales they do—they are simply different rungs of the same ladder.
 
 ### Cascade Suppression
 
@@ -745,7 +745,7 @@ The ultimate goal of theoretical physics is a single, coherent framework that ex
 
 The Cassi framework derives all dimensionless couplings as $\varphi$-powers. The PDE conversion rate $\lambda = 0.1$ is now **derived** from the pentagon structure: $\lambda = 1/(2w) = 0.1$ with $w = 5$ derived via cascade dynamics (`foundations/wu-xing-derivation.md`). Three dimensionful constants—the speed of light $c$, Planck's constant $\hbar$, and Newton's constant $G$—remain external. This is not a failure of the framework—a dimensionless constant mathematically cannot fix a dimensionful scale.
 
-| **Cassi Answer** | All dimensionless parameters derived from $\varphi$ (zero free parameters); $c$, $\hbar$, $G$ remain external dimensionful constants |
+| **Cassi Answer** | All dimensionless parameters derived from $\varphi$ (zero free parameters); $c$, $\hbar$, $G$ remain external dimensionful constants; the sole empirical calibration is the current-epoch horizon rung $N = 292$ (epoch-dependent, not a derivable constant—2026-08-03) |
 | **Mechanism** | $\lambda = 1/(2w)$ with $w=5$ derived; $\varphi$ is dimensionless and cannot determine a dimensionful scale without a reference; $\ell_{\text{Pl}}$ is the cascade's sole dimensionful anchor |
 | **Epistemic** | **Derived** for all dimensionless parameters; **Hypothesized** for $c$, $\hbar$, $G$ (pathways proposed, not yet closed) |
 | **Reference** | `foundations/dimensionful-constants-status.md`, `foundations/wu-xing-derivation.md`, `parameter-inventory.md` §4 |

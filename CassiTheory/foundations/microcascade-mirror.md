@@ -18,7 +18,7 @@ A practical consequence: a φ-aligned electromagnetic array tuned to the specifi
 
 The dimensionful cascade (see `dimensionful-cascade.md`) maps all known physical scales:
 
-$$\ell_n = \ell_{\text{Pl}} \times \varphi^n, \qquad n \in [0, 292]$$
+$$\ell_n = \ell_{\text{Pl}} \times \varphi^n, \qquad n \in [0, 292] \quad (\text{today's observable range})$$
 
 | n | Scale | Physical meaning |
 |---|-------|-----------------|
