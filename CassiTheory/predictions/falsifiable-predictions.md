@@ -140,6 +140,10 @@ Seesaw analysis with $M_R = \varphi^{-3} \cdot M_{\text{GUT}}$ gives heaviest ne
 
 **PMNS mixing angles—zero-parameter from conversion Jacobian:** At the seesaw scale (cascade steps 8–20, $r \ll \varphi$), rapid Yang-Yin conversion creates an interference pattern with the same cosine-product structure as the condensation field. The conversion Jacobian $J = \lambda[[-1,\varphi],[1,-\varphi]]$ has eigenvectors $(\varphi,1)$ and $(1,-1)$, giving $\theta_{12} = \arctan(1/\varphi)$ and $\theta_{23} = 45^\circ$ directly. $\theta_{13} = \arctan(\varphi^{-4})$ follows from cascade-step suppression across the 12-rung seesaw span. All three angles are within 2° of observation with zero free parameters. **Source:** `foundations/neutrino-masses.md`, `foundations/bubble-edge-geometry.md` §1.2 (conversion-diffusion balance at rapid-conversion points).
 
+**Prediction 42:** The Dirac$\leftrightarrow$two-fluid sector-coupling scale is $\kappa_s^{-1/2} = \varphi^3 v_0 \approx 1.04$ TeV—cascade rung 77 (987.7 GeV), three rungs above the electroweak rung; equivalently $\kappa_s = \varphi^{-6}/v_0^2 = 0.92$ TeV$^{-2}$. The repaired PDE bridge then requires $\chi = \mathcal{N}_{\text{pde}}\,\kappa_s\,\varphi^{-1}/[m_e(1+\varphi)] \in [0.5, 1.0]$ once the solver-normalization factor $\mathcal{N}_{\text{pde}}$ is computed; a sharp $\chi$ measurement (factor $< 2$) fixes the $O(1)$ coefficient (candidates $C = 1, \varphi^{-1}, \varphi^{-2}$).
+
+**Source:** `foundations/sector-coupling-derivation.md` §§2–4. $\kappa_s = \varphi^{-6}/v_0^2$ follows from the Qi-gravity constant $\xi = \varphi^6$ (`foundations/unified-lagrangian.md` §5.1) and the electroweak scale $v_0$; $\kappa_s^{-1/2} = 1042$ GeV lands $+5.5\%$ off rung 77, the same residual class as the documented electroweak placement ($v_0 = 246$ GeV vs rung 80 = 233.2 GeV, $-5.2\%$; `foundations/deriving-remaining-gaps.md` §3.3). The as-written inventory bridge gives $\chi \approx 4.25\times10^{-4}$, not the calibrated $0.5$–$1.0$; the repaired bridge requires the solver-normalization factor $\mathcal{N}_{\text{pde}} \approx 2.35\times10^3$ (grid $L = 40$, $N = 48$, $\Delta t = 0.002$, $\rho_{\text{crit}} = \varphi$)—a concrete computational follow-up.
+
 
 ---
 
@@ -206,6 +210,7 @@ Sorted by detection likelihood (most definitive first):
 | 39 | Lattice powder lines in $P(k)$ | Cosmic surveys | **Comb at $k/k_0 \in \{1, \sqrt{2}, \varphi, \ldots\}$**; period $\ln\varphi$; 1–3% amplitude | DESI LRG $A \lesssim 2.6\%$ ($p = 0.08$), no detection | **Euclid 2027** |
 | 40 | Sample-variance suppression | Cosmic surveys | **~10$\times$ reduced $k \to 0$ scatter; NGC–SGC mode correlation** | Untested | **DESI mocks** |
 | 41 | $D_A(z)$ lattice wiggle bound | Cosmic surveys | **$\delta D/D \lesssim 0.1\%$; cannot bias $w_a$** (needs $\gtrsim 20\%$ to close gap) | Consistent with DESI smoothness | **Already consistent** |
+| 42 | Sector-coupling scale | FCC-ee | **$\kappa_s^{-1/2} = \varphi^3 v_0 \approx 1.04$ TeV** (rung 77; $\kappa_s = \varphi^{-6}/v_0^2 = 0.92$ TeV$^{-2}$) | Not yet tested | **2030s** |
 
 ## 8. Universal Boundary Anisotropy—Scale-Invariant Edge Steepness
 

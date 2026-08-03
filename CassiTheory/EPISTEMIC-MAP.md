@@ -120,6 +120,7 @@ Documents that are not claims: registries, catalogs, explainers, and plans.
 | `predictions/cassi_definitions.md` | Framework glossary |
 | `foundations/cassi-theory-reference.md` | Compact framework reference |
 | `foundations/deriving-remaining-gaps.md` | Four derivations, three resolved, one narrowed |
+| `foundations/sector-coupling-derivation.md` | Dirac↔two-fluid sector-coupling scale $\kappa_s = \varphi^{-6}/v_0^2$; Derived scale with Hypothesized coefficient—August 2026 |
 | `cosmology/sigma8-computational-plan.md` | Plan |
 | `audit.md` | Self-critical prediction-vs-experiment audit |
 | `cassi-physics.md` | Physics guide: lattice, cascade, predictions |

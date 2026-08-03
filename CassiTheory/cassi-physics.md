@@ -277,7 +277,7 @@ The proton is a condensed standing wave spanning 95 cascade rungs. Its lifetime 
 
 $$\tau_p \sim \varphi^{4848} \cdot \tau_{\text{Planck}} \sim 10^{980} \text{ yr}$$
 
-A coherence-budget analysis (`foundations/proton-coherence-budget.md`) shows why organized conversion (coherent across the full 95-rung span) is required to dismantle the proton, while random perturbation cannot do it: the coherence requirement imposes the quadratic suppression. The prediction is consistent with all null results to date and is untestable with current technology—the framework's honest position is that this prediction will not be directly falsified in the foreseeable future.
+A coherence-budget analysis (`foundations/proton-coherence-budget.md`) shows why organized conversion (coherent across the full 95-rung span) is required to dismantle the proton, while random perturbation cannot do it: the coherence requirement imposes the quadratic suppression. The prediction is consistent with all null results to date and is untestable with current technology—the framework's position is that this prediction will not be directly falsified in the foreseeable future.
 
 **Epistemic status: Derived** (from the coherence budget); **not testable**.
 
@@ -318,6 +318,8 @@ The wake-wave mechanism imprints log-periodic modulation on the matter power spe
 $$\Delta(\ln k) = \ln\varphi \approx 0.4812$$
 
 This is a **zero-parameter prediction**, orthogonal to BAO: the Cassi modulation has constant period in $\ln k$-space, where BAO has constant period in $k$-space. The search procedure: subtract the BAO template, then search the residual for $\ln\varphi$ periodicity. Current status: DESI DR2 shows a marginal 2–3σ hint; Euclid (2027) is the definitive test (>5σ predicted). The same $\ln\varphi$ periodicity is predicted in physiological signals along the spine, neuronal avalanche distributions, and emotional self-report factor structure—one constant, several domains, zero free parameters. See `predictions/falsifiable-predictions.md` §5.
+
+The Dirac↔two-fluid sector-coupling scale is now derived, $\kappa_s = \varphi^{-6}/v_0^2 \approx 0.92$ TeV$^{-2}$ (rung 77, `foundations/sector-coupling-derivation.md`).
 
 **Epistemic status: Hypothesized** (being tested).
 

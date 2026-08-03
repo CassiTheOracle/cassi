@@ -36,6 +36,7 @@ This directory holds the load-bearing derivations of the Cassi framework: the di
 | 24 | `microcascade-mirror.md` | Sub-Planckian ladder | Hypothesized |
 | 25 | `refined-numeric-predictions.md` | Pinned φ-powers | Active derivation |
 | 26 | `deriving-remaining-gaps.md` | Residual parameters | Resolved / narrowed |
+| 27 | `sector-coupling-derivation.md` | Dirac↔two-fluid sector coupling | Derived scale w/ Hypothesized coefficient |
 
 ## Document Summaries
 
@@ -235,13 +236,21 @@ Takes the Hypothesized entries of the open-questions catalog and refines the spe
 
 Catalogues the remaining underived quantities in the framework and assesses each derivation for whether it fully resolves, partially narrows, or hits an irreducible barrier. The headline correction: the strong coupling gap at $M_Z$ is $2.0\times$, not the $11\times$ previously claimed—pure SM running from $\alpha_{\text{GUT}} = \varphi^{-3}/4\pi$ gives $\alpha_s(M_Z) = 0.058$ versus the observed 0.118, requiring an effective beta coefficient $b_{\text{eff}} = 8.70$, i.e. $\Delta b = 1.70$ from roughly one vector-like colored fermion pair plus two colored scalars, or three KK levels. Three of the four gaps are resolved and one is narrowed with the residual barrier identified. Status: custom (four derivations, three resolved, one narrowed).
 
+### `sector-coupling-derivation.md`—The Sector-Coupling Scale: Dirac↔Two-Fluid Equilibration from $\varphi$
+
+Derives the Dirac↔two-fluid sector-coupling scale from the Qi-gravity coupling and the Higgs VEV:
+
+$$\boxed{\kappa_s = \frac{\varphi^{-6}}{v_0^2} \approx 0.92\ \text{TeV}^{-2}}$$
+
+so $\kappa_s^{-1/2} = \varphi^3 v_0 = 1042$ GeV sits +5.5% off cascade rung 77 (987.7 GeV)—the same residual class as the documented electroweak placement (rung 80, −5.2%). Cycle-factor variants give 1.042/1.326/1.686 TeV for $C = 1, \varphi^{-1}, \varphi^{-2}$. The as-written chemotactic bridge $\chi = \kappa_s\varphi^{-1}/[m_e(1+\varphi)]$ is dimensionally inconsistent as it stands ($\chi \approx 4\times10^{-4}$ vs the calibrated 0.5–1.0); closing it needs the PDE normalization factor $\mathcal{N}_{\text{pde}} \approx 2.35\times10^{3}$, a concrete computational follow-up. Status: Derived scale with Hypothesized coefficient.
+
 ## Cross-References
 
 - `../foundations/dimensionful-cascade.md`—the cascade wedge (entry point for this directory)
 - `../principles/de-resonance-principle.md`—why $\varphi$ is the maximally de-resonant attractor (Derived)
 - `../open-questions-cassi-answers.md`—the 41-entry epistemic registry
 - `../parameter-inventory.md`—parameter registry
-- `../predictions/falsifiable-predictions.md`—the 38-entry prediction catalog
+- `../predictions/falsifiable-predictions.md`—the 42-entry prediction catalog
 - `../cassi-physics.md`—framework overview and the gap $g = 1 - \varphi^{-5}$ derivation
 - `../gravity/quantum-gravity.md`—the $\sigma = \ell_{\text{Pl}}/\varphi^3$ regularization that anchors the cascade
 - `../standard-model/sm-from-phi.md`—Standard Model couplings from $\varphi$

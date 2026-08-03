@@ -5,12 +5,12 @@
 | Label | Meaning | Count |
 |-------|---------|-------|
 | **F** | **Fundamental axiom**—the single postulate from which everything follows | 1 |
-| **D** | **Derived**—mathematical consequence of φ and the PDE structure, zero freedom | 18 |
+| **D** | **Derived**—mathematical consequence of φ and the PDE structure, zero freedom | 21 |
 | **C** | **Calibrated**—single universal value fit to experiment, fixed across all domains | 3 |
 | **E** | **External / empirically determined**—standard physics constants inherited by the framework, plus lattice parameters not yet derived from $\varphi$ | 7 |
 | **I** | **Initial condition**—free initial values that evolve dynamically, not fixed by theory | 6 |
 | **N** | **Numerical**—computational parameters with no physical significance | 7 |
-| | **Total** | **42** |
+| | **Total** | **45** |
 
 ---
 
@@ -57,6 +57,7 @@ All dimensionless coupling constants in the Cassi framework are $\varphi$-powers
 | $r$ (tensor-to-scalar) |—| $0.003$ | **D** | From inflation in Cassi framework |
 | $K_{fw}$ (Wu Xing coeff) | $\varphi^{-1}$ | $0.618$ | **D** | Water damps Fire |
 | $K_{ring}$ (ke ring gain) | $\varphi^{-3}$ | $0.236$ | **D** | One-cycle attenuation of the control ring (`foundations/wu-xing-cycle-structure.md` §2.3) |
+| $\kappa_s$ (sector coupling) | $\varphi^{-6}/v_0^2$ | $0.92$ TeV$^{-2}$ | **D** | Dirac↔two-fluid equilibration scale (`foundations/sector-coupling-derivation.md`) |
 
 
 ## 3. PDE Solver Parameters (Numerical Conventions)
@@ -123,23 +124,30 @@ dark matter velocity dispersion), but in simulation coordinates the same
 numerical $c_s^2 = 0.01$ is used—this is a **unit conversion** from atomic
 to simulation units, not a universal physical constant.
 
-### 3.3 $\chi$ and $\nu$: No Derivation
+### 3.3 $\chi$: The Sector-Coupling Bridge; $\nu$: Numerical
 
 **$\chi$ (chemotactic mobility)** couples the two-fluid density gradient to the
 gravitational potential:
 
 $$\partial_t E_I \supset +\chi\,\nabla\cdot(E_I\nabla\Phi)$$
 
-This term originates from the Dirac-to-two-fluid sector coupling $\kappa$ in the
+This term originates from the Dirac-to-two-fluid sector coupling $\kappa_s$ in the
 unified Lagrangian:
 
-$$\chi = \frac{\kappa}{m_e} \cdot \frac{\varphi^{-1}}{(1+\varphi)}$$
+$$\chi = \frac{\kappa_s}{m_e} \cdot \frac{\varphi^{-1}}{(1+\varphi)}$$
 
-where $\kappa$ is the sector-coupling parameter that sets the timescale for
-equilibration between the Dirac and two-fluid sectors. $\kappa$ is a free
-parameter of the Lagrangian—it is NOT determined by $\varphi$. The value
-$\chi \approx 0.5-1.0$ implies $\kappa \sim 1/\text{TeV}^2$, consistent with
-a GUT-scale suppressed coupling, but this is not a derivation.
+The sector-coupling scale is now scale-derived rather than free:
+$\kappa_s = \varphi^{-6}/v_0^2 = 0.92$ TeV$^{-2}$ (see `foundations/sector-coupling-derivation.md`).
+The as-written bridge above is dimensionally inconsistent as it stands—with
+$\kappa_s = 0.92$ TeV$^{-2}$ and $m_e = 5.11\times10^{-4}$ GeV it gives
+$\chi \approx 4\times10^{-4}$, not the calibrated $0.5$–$1.0$. The repaired
+bridge
+
+$$\chi = \frac{\mathcal{N}_{\text{pde}}\,\kappa_s\,\varphi^{-1}}{m_e(1+\varphi)}$$
+
+needs the PDE normalization factor $\mathcal{N}_{\text{pde}} \approx 2.35\times10^{3}$
+(solver conventions: grid $L=40$, $N=48$, $\Delta t=0.002$, $\rho_{\text{crit}}=\varphi$)—a
+concrete computational follow-up, not derived here.
 
 **$\nu$ (hyperviscosity)** is purely numerical. In the Lagrangian:
 
@@ -158,7 +166,7 @@ consistent with the solver's $\nu = 10^{-4}$. No physical content.
 | Parameter | True status | If it's a constant, which one? |
 |-----------|-------------|-------------------------------|
 | $\lambda = 0.1$ | **Derived** from Higgs mass/VEV ($\lambda = m_H^2 \cdot \varphi / 4v_0^2$) | The Higgs quartic's orthogonal mode coupling |
-| $\chi \approx 1.0$ | **Free**—set by Dirac-to-two-fluid sector coupling $\kappa$ | $\chi = \kappa\varphi^{-1}/[m_e(1+\varphi)]$ |
+| $\chi \approx 1.0$ | **Scale-derived**—$\kappa_s = \varphi^{-6}/v_0^2$ (coefficient Hypothesized); PDE-normalization factor $\mathcal{N}_{\text{pde}}$ pending | $\chi = \mathcal{N}_{\text{pde}}\kappa_s\varphi^{-1}/[m_e(1+\varphi)]$ |
 | $c_s^2 \approx 0.01$ | **Emergent**—Bohm pressure + normalization choice | $c_s^2 \propto \hbar^2/(m_e^2 a_0^2) \cdot \varphi^{-2}$ |
 | $\nu \approx 10^{-4}$ | **Numerical**—Nyquist stability at $N=48$ | $\nu \approx (L/N)^4 / \Delta t$ |
 
@@ -383,11 +391,12 @@ Most initial-condition parameters must be specified for any Cassi simulation. Th
 | Category | Label | Count | Description |
 |----------|-------|-------|-------------|
 | Fundamental axiom | **F** | 1 | $\varphi$ itself |
-| $\varphi$-derived | **D** | 18 | All coupling constants + $r_0$, all from $\varphi$ + cascade |
+| $\varphi$-derived | **D** | 21 | All coupling constants + $r_0$ + $\kappa_s$, all from $\varphi$ + cascade |
 | PDE solver parameter | **C** | 3 | $\chi$, $c_s^2$, $\nu$—consistent across simulations |
 | External constant | **E** | 7 | $G$, $c$, $\hbar$, $m_e$, $m_p$, $\alpha_s(M_Z)$, $P_\parallel(n)$ |
-| Initial condition | **I** | 5 | $a_0$, $H_0$, positions, velocities, masses |
-| **Total** | | **42** |
+| Initial condition | **I** | 6 | $a_0$, $H_0$, $N_{\text{blobs}}$, positions, velocities, masses |
+| Numerical parameter | **N** | 7 | $N$, $L$, $\Delta t$, $\epsilon$, $\text{grav\_sigma}$, $h_{\text{smooth}}$, $D$, $\tau_{\text{qi}}$ |
+| **Total** | | **45** |
 
 ### Historical Reduction
 
