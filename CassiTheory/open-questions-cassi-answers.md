@@ -75,7 +75,7 @@ The spiral's rotation carves the full circle into distinct angular sectors—**c
 
 ### The Bubble and the Lattice
 
-Where the wake waves of the two fluids interfere, they create a **condensation field** $C(x,y) = \cos(2\pi x/\lambda_Y)\cos(2\pi y/\lambda_I)$: where both waves are in phase, coherence is high and the field condenses into a **bubble**; where they cancel, a **void** forms. The pattern is a **staggered checkerboard**—bubbles at every other grid position, voids between them. A bubble is not spherical: stretched along Yang, contracted along Yin, its cross-section is an ellipse of axis ratio $\varphi$ (a triaxial spheroid), and its boundary is $1.70\times$ steeper toward voids than toward neighbors. The same geometry operates at every scale—the lattice is scale-covariant, which is why the framework can use it for atoms, bodies, and galaxies alike.
+Where the wake waves of the two fluids interfere, they create a **condensation field** $C(x,y) = \cos(2\pi x/\Lambda_Y)\cos(2\pi y/\Lambda_I)$: where both waves are in phase, coherence is high and the field condenses into a **bubble**; where they cancel, a **void** forms. The pattern is a **staggered checkerboard**—bubbles at every other grid position, voids between them. A bubble is not spherical: stretched along Yang, contracted along Yin, its cross-section is an ellipse of axis ratio $\varphi$ (a triaxial spheroid), and its boundary is $1.70\times$ steeper toward voids than toward neighbors. The same geometry operates at every scale—the lattice is scale-covariant, which is why the framework can use it for atoms, bodies, and galaxies alike.
 
 ### The Cascade Ladder—Discrete Steps of Nature
 
@@ -123,7 +123,7 @@ The human body occupies a 26-rung window of the cascade (steps 142–168). The a
 
 ### Bubbles—The Chord Lattice
 
-Our observable universe sits in a larger structure—the megacascade—where identical $w=5$ bubbles (all with the same derived Wu Xing number; see `foundations/wu-xing-derivation.md`) are arranged at $\varphi$-spaced intervals. The chord lattice (`visual-explainers/chord_lattice.py`) derives this arrangement from the condensation field $C(x,y) = \cos(2\pi x/\lambda_Y)\cos(2\pi y/\lambda_I)$: bubbles occupy the $m+n$ even sublattice, voids the odd sublattice. Bubble boundaries imprint preferred directions on the cosmic microwave background, explaining several large-angle anomalies.
+Our observable universe sits in a larger structure—the megacascade—where identical $w=5$ bubbles (all with the same derived Wu Xing number; see `foundations/wu-xing-derivation.md`) are arranged at $\varphi$-spaced intervals. The chord lattice (`visual-explainers/chord_lattice.py`) derives this arrangement from the condensation field $C(x,y) = \cos(2\pi x/\Lambda_Y)\cos(2\pi y/\Lambda_I)$: bubbles occupy the $m+n$ even sublattice, voids the odd sublattice. Bubble boundaries imprint preferred directions on the cosmic microwave background, explaining several large-angle anomalies.
 
 ---
 
@@ -157,7 +157,7 @@ flowchart TD
 Since 1998, physicists have known the universe's expansion is accelerating—something seems to be pushing galaxies apart ever faster. The standard model calls this "dark energy" and treats it as a constant energy density of empty space (the cosmological constant $\Lambda$), but quantum field theory predicts a value $10^{120}$ times too large. Cassi takes a different path: there is no dark energy at all. The acceleration comes from the two-fluid dynamics—the Yang and Yin fields (explained in the Primer) convert into one another at a rate set by their ratio $r = E_Y/E_I$, and as the universe expands, this conversion naturally approaches the $\varphi$-attractor equilibrium. The present-day equation-of-state parameter $w_0 = -0.87$ is not a free parameter; i…
 
 | **Cassi Answer** | $w(a)$ evolves with $r(a)$; $w_0 = -0.87$ from Qi gate shape; no $\Lambda$ |
-| **Mechanism** | Conversion term sets $H(a)$; Qi gate modulates; $\lambda = 3\varphi^2 H_0$ |
+| **Mechanism** | Conversion term sets $H(a)$; Qi gate modulates; $\kappa_{\text{DE}} = 3\varphi^2 H_0$ |
 | **Epistemic** | **Derived**—2σ from DESI $w_0 \approx -0.75 \pm 0.06$ [INFERENCE] |
 | **Reference** | `cosmology/cosmology-from-phi.md`, `calibrate_initial_ratio.py` |
 

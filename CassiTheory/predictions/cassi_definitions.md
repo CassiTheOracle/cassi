@@ -255,7 +255,7 @@ This is consistent with GW170817 which constrains |c_grav − c_EM|/c_EM < 10⁻
 In vacuum, both EM and gravitational modes propagate at c (consistent with GW170817, |Δc/c| < 10⁻¹⁵). The φ-scaling ratio c_EM/c_grav = φ² applies to effective speeds in the two-fluid medium (e.g., near galaxy halos or in the early universe), where different coupling to EY vs EI creates a refractive index difference.
 
 **Weak Force (SU(2) × U(1)_Y gauge theory)**:
-See `theory/su2-gauge-extension.md` for the full derivation.
+See `standard-model/su2-gauge-extension.md` for the full derivation.
 
 The weak interaction emerges from an SU(2) gauge symmetry on the isospinor
 doublet (ν_e, e) with U(1)_Y hypercharge coupling. The W/Z boson masses
@@ -284,7 +284,7 @@ The weak interaction emerges from an SU(2) isospinor doublet coupled to the two-
 - Photon-photon scattering at intensity I ≈ σ²·ω₀² (nonlinear correction)
 - No magnetic monopoles (EI divergence is identically zero)
 - Charge quantized in units of φ⁻²·e (Qi coherence is φ-quantized)
-- **Weak force**: SU(2) × U(1)_Y gauge theory with φ-VEV (see `theory/su2-gauge-extension.md`)
+- **Weak force**: SU(2) × U(1)_Y gauge theory with φ-VEV (see `standard-model/su2-gauge-extension.md`)
 - **Gravity**: The universal residual—the net Qi "pull" from all solitons in a region.
 
 
@@ -631,21 +631,21 @@ physics at different σ-scales, with φ as the universal attractor coupling.
 
 
 **Unified Lagrangian:** The full Cassi action combines all sectors with zero free parameters.
-See `theory/unified-lagrangian.md` for the complete derivation.
+See `foundations/unified-lagrangian.md` for the complete derivation.
 
 $$
 \mathcal{L}_{\text{Cassi}} = \mathcal{L}_{\text{TF}} + \mathcal{L}_{\text{D}} + \mathcal{L}_{\text{GR}} + \mathcal{L}_{\text{SM}} + \mathcal{L}_{\text{mix}}
 $$
 
 Each subsector has its own document:
-- Two-fluid core ($\mathcal{L}_{\text{TF}}$): `theory/cassi-first-principles.md`
+- Two-fluid core ($\mathcal{L}_{\text{TF}}$): `foundations/cassi-first-principles.md`
 - Dirac matter ($\mathcal{L}_{\text{D}}$): `cassi_dirac_bridge.py`
-- Gravity ($\mathcal{L}_{\text{GR}}$): `theory/xi-derivation.md`, `theory/qi-fluid-formalism.md`
-- SM gauge ($\mathcal{L}_{\text{SM}}$): `theory/su2-gauge-extension.md`, `theory/sm-from-phi.md`
-- Mixing ($\mathcal{L}_{\text{mix}}$): `theory/unified-lagrangian.md`
+- Gravity ($\mathcal{L}_{\text{GR}}$): `foundations/xi-derivation.md`, `theory/qi-fluid-formalism.md`
+- SM gauge ($\mathcal{L}_{\text{SM}}$): `standard-model/su2-gauge-extension.md`, `standard-model/sm-from-phi.md`
+- Mixing ($\mathcal{L}_{\text{mix}}$): `foundations/unified-lagrangian.md`
 
 **Cosmology:** All three open problems solved by the $\varphi$-governed two-fluid.
-See `theory/cosmology-from-phi.md` for full derivations.
+See `cosmology/cosmology-from-phi.md` for full derivations.
 
 | Phenomenon | Mechanism | Cassi Prediction | Observed | Gap |
 |-----------|----------|-----------------|----------|-----|
@@ -654,9 +654,9 @@ See `theory/cosmology-from-phi.md` for full derivations.
 | Dark Matter | High-Qi condensate, $G_{\text{eff}}$ boost | $\Omega_{\text{DM}}/\Omega_b = 5.24$ | $5.39$ | $2.8\%$ |
 
 New theory documents:
-- `theory/cosmology-from-phi.md` | Inflation, baryogenesis, dark matter from $\varphi$
-- `theory/unified-lagrangian.md` | Full Cassi action with zero free parameters
-- `theory/xi-derivation.md` | $\xi = \varphi^6$ first-principles derivation
+- `cosmology/cosmology-from-phi.md` | Inflation, baryogenesis, dark matter from $\varphi$
+- `foundations/unified-lagrangian.md` | Full Cassi action with zero free parameters
+- `foundations/xi-derivation.md` | $\xi = \varphi^6$ first-principles derivation
 ---
 
 ## 15. Code & Implementation
@@ -678,11 +678,11 @@ New theory documents:
 | `experiments/cassi_life.py` | Life as self-sustaining Qi condensate (parent repo) |
 | `experiments/cassi_spacetime_variable_geff.py` | Spatially-varying G_eff(r) (parent repo) |
 | `experiments/cassi_accretion_disk.py` | Accretion disk emission (parent repo) |
-| `theory/unified-lagrangian.md` | Full Cassi Lagrangian (all sectors, zero free parameters) |
-| `theory/su2-gauge-extension.md` | SU(2) × U(1)_Y gauge derivation, φ-VEV |
+| `foundations/unified-lagrangian.md` | Full Cassi Lagrangian (all sectors, zero free parameters) |
+| `standard-model/su2-gauge-extension.md` | SU(2) × U(1)_Y gauge derivation, φ-VEV |
 | `two-fluid/cassi_su2_bridge.py` | SU(2) gauge bridge with φ-governed weak force |
 | `two-fluid/run_electroweak.py` | Electroweak runner—W/Z mass prediction |
-| `theory/xi-derivation.md` | ξ = φ⁶ first-principles derivation |
+| `foundations/xi-derivation.md` | ξ = φ⁶ first-principles derivation |
 | `godot/space-sim/` | Real-time universe simulator |
 ### Managed Skills
 | Skill | Purpose |
@@ -699,7 +699,7 @@ New theory documents:
 | ξ = φ⁶ | 17.944 | Derived Qi-gravity coupling (Fibonacci identity φ⁶ = φ⁵ + φ⁴) |
 | PHI_6 = φ⁶ | 17.944 | Derived Qi-gravity coupling constant |
 | `σ` | 0.1–1.0 (code units) | Gaussian softening scale |
-| `theory/cosmology-from-phi.md` | Complete Cassi cosmology (inflation, baryogenesis, DM) |
+| `cosmology/cosmology-from-phi.md` | Complete Cassi cosmology (inflation, baryogenesis, DM) |
 | Qi gate threshold | q₀ ≈ φ⁻² | Conversion block at equilibrium |
 
 ---

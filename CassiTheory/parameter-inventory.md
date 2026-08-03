@@ -452,4 +452,4 @@ Symbols used framework-wide that are not parameter rows above (or names for rows
 | $\mathcal{M}$ | phase-matching factor | $\approx 1$ organized / $\approx 0$ random | quantum-measurement derivation (Q7) |
 | $g$ | Wu Xing freeze-out gap | $1 - \varphi^{-5} \approx 0.9098$ | derived identity |
 | $\Lambda_Y$, $\Lambda_I$ | wake wavelengths | $\ell_n$ and $\ell_n/\varphi$ | distinct from the conversion rate $\lambda$ (`foundations/wake-geometry.md`) |
-| $\lambda$ | conversion rate | $1/(2w) = 0.1$ | keep—do not reuse $\lambda$ for wavelengths or the C1 mechanism scale ($\lambda = 3\varphi^2 H_0$) |
+| $\lambda$ | conversion rate | $1/(2w) = 0.1$ | keep—do not reuse $\lambda$ for wavelengths or the C1 mechanism scale ($\kappa_{\text{DE}} = 3\varphi^2 H_0$) |
