@@ -72,24 +72,31 @@ FIG1_CMB = {
 # ═════════════════════════════════════════════════════════════════════════════
 
 # Panel (a)—Wide Binaries
+# SUPERSEDED 2026-08-03: the 1.27 peak (√φ ≈ 1.27 velocity excess) comes from the
+# withdrawn approximate coupling G_eff/G_N = 1 + (φ−1)q and must not be quoted.
+# No script in this repo consumes these values; the wide-binary claim is not part of
+# the cassi-toe prediction catalog. (Corrected coupling max: 1 + (φ⁶−1)q → φ⁶.)
 FIG2_WIDE = {
     'bin_edges': np.array([0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6]),
     'bin_centers': np.array([0.85, 0.95, 1.05, 1.15, 1.25, 1.35, 1.45, 1.55]),
     'counts': np.array([5, 12, 25, 18, 8, 3, 1, 0]),
-    'cassi_peak': 1.27,
-    'excess_pct': 27,
-    'annotation': '27% excess matches Gaia DR3',
+    'cassi_peak': 1.27,   # withdrawn-coupling value (superseded)
+    'excess_pct': 27,     # withdrawn-coupling value (superseded)
+    'annotation': '27% excess matches Gaia DR3',  # superseded
 }
 
 # Panel (b)—Dwarf Galaxies
+# SUPERSEDED 2026-08-03: the 1.3 slope is from the withdrawn-coupling era. The
+# current dwarf test is experiments/phi_attractor_paths/path10_dwarf_galaxies.py
+# (corrected ceiling √φ⁶ = φ³ ≈ 4.24; 3/8 pass vs MOND 4/8, 2026-08-03).
 FIG2_DWARF = {
     'logM_star': np.array([2.0, 2.3, 2.6, 2.9, 3.2, 3.5, 3.8, 4.1, 4.4,
                             4.7, 5.0]),
     'sigma_obs': np.array([3.0, 3.5, 4.0, 4.5, 5.0, 6.0, 7.0, 8.0, 9.5,
                             11.0, 14.0]),
-    # Factor ~1.3 higher than Newtonian
+    # Factor ~1.3 higher than Newtonian (superseded — withdrawn-coupling era)
     'cassi_slope': 1.3,
-    'annotation': '25/25 UFDs better fit',
+    'annotation': '25/25 UFDs better fit',  # superseded
 }
 
 # Panel (c)—Binary Pulsar
