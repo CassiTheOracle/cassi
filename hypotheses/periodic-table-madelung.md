@@ -167,8 +167,8 @@ capture.
 
 ## References
 
-- `../foundations/dimensionful-cascade.md`—the 292-step ladder
-- `../foundations/three-generations.md`—Fibonacci partitioning
-- `../foundations/spin-fibonacci-spiral.md`—SO(2) winding and angular momentum
-- `../foundations/why-three-dimensions.md`—spiral's Frenet-Serret frame
-- `../open-questions-cassi-answers.md`—Q5 (three generations), Q10 (spin)
+- `foundations/dimensionful-cascade.md`—the 292-step ladder
+- `foundations/three-generations.md`—Fibonacci partitioning
+- `foundations/spin-fibonacci-spiral.md`—SO(2) winding and angular momentum
+- `foundations/why-three-dimensions.md`—spiral's Frenet-Serret frame
+- `open-questions-cassi-answers.md`—Q5 (three generations), Q10 (spin)

@@ -76,13 +76,13 @@ addresses.
 
 ## 3. The Two-Fluid Candidate Operator
 
-The framework's governing equations (`../foundations/cassi-first-principles.md`)
+The framework's governing equations (`foundations/cassi-first-principles.md`)
 are a nonlinear two-fluid wave system for the Yang and Yin fields with a
 conversion coupling. Three structural facts make a spectral derivation
 plausible:
 
 1. **Dilation covariance.** The balanced Yang-Yin state is self-similar
-   (the cascade `../foundations/dimensionful-cascade.md` is a discrete
+   (the cascade `foundations/dimensionful-cascade.md` is a discrete
    dilation structure). Linearizing the phase degree of freedom around that
    state produces an equation in the scale variable $u = \ln x$ whose free
    kinetic term is the dilation generator $x\partial_x$—the $xp$ of the
@@ -90,7 +90,7 @@ plausible:
    choice; it is the generator of the theory's own symmetry.
 2. **The boundary condition.** The linearized problem needs a boundary at the
    ultraviolet end. The framework's $\sigma$-regularization
-   (`../foundations/unified-lagrangian.md`) supplies one at the Planck rung;
+   (`foundations/unified-lagrangian.md`) supplies one at the Planck rung;
    the matching constraint of §2 then determines the effective wall scale.
    The constraint is *negative but decisive*: whatever the UV completion, the
    smooth counting function must come out as the theorem, which fixes the
@@ -102,7 +102,7 @@ plausible:
 3. **De-resonance as the spectral condition.** The fluctuation $S(T)$ of the
    zero count around its smooth average is the "arithmetic term" the operator
    must leave minimal. The de-resonance principle
-   (`../principles/de-resonance-principle.md`) states that the primes' spectrum
+   (`principles/de-resonance-principle.md`) states that the primes' spectrum
    is maximally featureless: minimal fluctuation, no locked frequencies. The
    measurable content of that statement is the subject of §4–§5.
 
@@ -130,7 +130,7 @@ Two facts frame it:
 
 ## 5. Measured Probes
 
-Script: `../experiments/riemann_phi_search/run_zeta_fluctuation_probes.py`
+Script: `experiments/riemann_phi_search/run_zeta_fluctuation_probes.py`
 (reproduces every number below from the cached Odlyzko table).
 
 **Probe 1—Selberg mean square of $S(T)$** (computed at gap midpoints, where
@@ -183,7 +183,8 @@ no log-periodic locking at $\ln\varphi$ in either spacing or density.)
    $N(E) = (E/2\pi)\ln(E/(Lp_{\min})) - E/2\pi + Lp_{\min}/2\pi$ pins
    $Lp_{\min} = 2\pi$ with a $1/8$ corner-phase gap, and requires the
    energy-dependent boundary of the Sierra–Rodríguez-Laguna type.
-   *Revised step 2b:* *done, negative*—see `riemann-two-fluid-phase-operator.md`
+   *Step 2b (the energy-dependent boundary):* *done, negative*—see
+   `riemann-two-fluid-phase-operator.md`
    §8. The unique moving wall is $L(E) = \tfrac{1}{2}\ln(E/2\pi e) +
    9\pi/(8E)$ (boundary phase = Riemann–Siegel $\Gamma$-phase, verified); the
    three framework candidates (σ-regularized rung walls, Qi-gated masses,
@@ -197,8 +198,8 @@ no log-periodic locking at $\ln\varphi$ in either spacing or density.)
    constraints.
 
 Every step above is either executed or explicitly open; the tier is
-Speculative accordingly. What is already measured—the φ-periodicity null, the
-fluctuation magnitudes, Gram's law, and now the operator's exact spectra and
+Speculative accordingly. The measured quantities—the φ-periodicity null, the
+fluctuation magnitudes, Gram's law, and the operator's exact spectra and
 semiclassical constraint—are constraints any candidate must respect; they are
 the durable output of this document.
 
@@ -223,9 +224,9 @@ the durable output of this document.
 - Selberg, A., "Contributions to the theory of the Riemann zeta-function," Arch. Math. Naturvid. 48 (1946)
 - Wei, S. et al., "The Riemann Hypothesis manifested in dynamical quantum phase transitions," Nature Communications (2026), https://doi.org/10.1038/s41467-026-74935-8
 - `riemann-hypothesis-de-resonance.md`—the de-resonance reading and the φ-periodicity null test
-- `../principles/de-resonance-principle.md`—why $\varphi$ is the attractor (maximally irrational)
-- `../foundations/cassi-first-principles.md`—two-fluid PDE and governing equations
-- `../foundations/unified-lagrangian.md`—$\sigma$-regularization
-- `../foundations/dimensionful-cascade.md`—the 292-step ladder
-- `../experiments/riemann_phi_search/run_zeta_fluctuation_probes.py`—Selberg mean-square and Gram's law probes
-- `../experiments/riemann_phi_search/run_zeta_phi_periodicity_test.py`—the φ-periodicity null test
+- `principles/de-resonance-principle.md`—why $\varphi$ is the attractor (maximally irrational)
+- `foundations/cassi-first-principles.md`—two-fluid PDE and governing equations
+- `foundations/unified-lagrangian.md`—$\sigma$-regularization
+- `foundations/dimensionful-cascade.md`—the 292-step ladder
+- `experiments/riemann_phi_search/run_zeta_fluctuation_probes.py`—Selberg mean-square and Gram's law probes
+- `experiments/riemann_phi_search/run_zeta_phi_periodicity_test.py`—the φ-periodicity null test

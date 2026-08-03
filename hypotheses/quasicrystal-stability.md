@@ -13,13 +13,14 @@ provides that reason: the de-resonance principle
 (`principles/de-resonance-principle.md`) predicts that the Qi field at
 condensed-matter scales (cascade steps ~120–150) forms $\varphi$-spaced density
 waves as its attractor state. Crystallization into a periodic lattice requires
-de-tuning from this attractor, incurring a cascade suppression penalty. The
-critical cooling rate for quasicrystal formation—the boundary between glass,
+de-tuning from this attractor, incurring a cascade suppression penalty.
+The critical cooling rate for quasicrystal formation—the boundary between glass,
 quasicrystal, and crystal—is determined by $\varphi$-powers of the cooling
-rate, making it a zero-parameter prediction of the same two-fluid PDE that
-governs cosmology.
+rate, a zero-parameter prediction of the same two-fluid PDE that governs
+cosmology once the rung span of the defining cluster is read off the material
+structure.
 
-**Note on prior art:** The role of $\varphi$ in quasicrystal diffraction
+**Prior art.** The role of $\varphi$ in quasicrystal diffraction
 patterns (Penrose tilings, Fibonacci chains) is well-established since Levine &
 Steinhardt (1984) and Shechtman's Nobel-winning discovery. The Cassi contribution
 is not discovering $\varphi$ in quasicrystals—it is deriving quasicrystal
@@ -117,9 +118,10 @@ prediction). This modulates the low-temperature heat capacity:
 $$C_V(T) \propto T^d \cdot \left[1 + A' \cos\left(\frac{2\pi}{\ln\varphi} \ln\frac{k_B T}{\hbar\omega_0} + \phi_0'\right)\right]$$
 
 with $d = 3$ for a 3D quasicrystal. The modulation period in $\ln T$ space is
-$\ln\varphi \approx 0.4812$, and the phase $\phi_0'$ is set by the
-quasicrystal's Fibonacci-chain geometry—zero free parameters once the
-quasicrystal composition is specified.
+$\ln\varphi \approx 0.4812$, and the phase $\phi_0'$ follows from the
+quasicrystal's Fibonacci-chain geometry—no fitted parameters beyond that
+structural input, with the explicit geometry-to-phase mapping for a given
+material still open (§7).
 
 This is testable with existing low-temperature specific heat measurements on
 quasicrystals (e.g., Al-Pd-Mn, Al-Cu-Fe). The modulation amplitude of 1–3% is
@@ -187,9 +189,9 @@ Fourier module competes with periodic order:
 
 ## References
 
-- `../principles/de-resonance-principle.md`—why $\varphi$ is the attractor
-- `../foundations/why-three-dimensions.md`—spiral's Frenet-Serret frame, triaxial spheroid
-- `../foundations/dimensionful-cascade.md`—the 292-step ladder
-- `../foundations/cascade-suppression-formula.md`—$\varphi^{-N}$ attenuation
-- `../predictions/falsifiable-predictions.md`—$\varphi$-periodic $P(k)$ prediction (same mechanism at cosmological scale)
-- `../open-questions-cassi-answers.md`—F1 (fine-tuning replaced by de-resonance attractor)
+- `principles/de-resonance-principle.md`—why $\varphi$ is the attractor
+- `foundations/why-three-dimensions.md`—spiral's Frenet-Serret frame, triaxial spheroid
+- `foundations/dimensionful-cascade.md`—the 292-step ladder
+- `foundations/cascade-suppression-formula.md`—$\varphi^{-N}$ attenuation
+- `predictions/falsifiable-predictions.md`—$\varphi$-periodic $P(k)$ prediction (same mechanism at cosmological scale)
+- `open-questions-cassi-answers.md`—F1 (fine-tuning replaced by de-resonance attractor)

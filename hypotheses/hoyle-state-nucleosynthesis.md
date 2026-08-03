@@ -4,8 +4,9 @@
 
 ## Abstract
 
-The triple-alpha process—the gateway to carbon and all heavier elements —
-depends on a resonance in $^{12}$C at 7.65 MeV (the Hoyle state), famously
+The triple-alpha process—the gateway to carbon and all heavier
+elements—depends on a resonance in $^{12}$C at 7.65 MeV (the Hoyle state),
+famously
 predicted by Fred Hoyle from the anthropic principle. In the Cassi framework,
 this resonance is not anthropic but structural: the Hoyle state sits exactly one
 cascade rung above the $^3\alpha$ threshold (7.27 MeV), and the 0.38 MeV gap
@@ -63,8 +64,8 @@ sub-rung resonance**: the $0^+$ excited state of $^{12}$C occupies a Fibonacci
 sub-channel one level finer than the rung containing the $^3\alpha$ threshold.
 
 This is the same mechanism that gives three fermion generations
-(`foundations/three-generations.md`)—Fibonacci tripartition of a cascade span
-— applied to the nuclear energy level structure.
+(`foundations/three-generations.md`)—Fibonacci tripartition of a cascade
+span—applied to the nuclear energy level structure.
 
 ## 3. Key Prediction: $\alpha$-Cluster Resonance Spacing
 
@@ -151,8 +152,8 @@ threshold, which would enhance the reaction rate at specific temperatures.
 
 ## References
 
-- `../foundations/dimensionful-cascade.md`—the 292-step ladder
-- `../foundations/three-generations.md`—Fibonacci tripartition
-- `../foundations/wu-xing-derivation.md`—five-phase cycle (Wood = growth, relevant to $\alpha$-clustering)
-- `../foundations/proton-coherence-budget.md`—cascade coherence product (same suppression mechanism governs resonance widths)
-- `../open-questions-cassi-answers.md`—F1 (fine-tuning), C7 (baryon asymmetry from organized processes)
+- `foundations/dimensionful-cascade.md`—the 292-step ladder
+- `foundations/three-generations.md`—Fibonacci tripartition
+- `foundations/wu-xing-derivation.md`—five-phase cycle (Wood = growth, relevant to $\alpha$-clustering)
+- `foundations/proton-coherence-budget.md`—cascade coherence product (same suppression mechanism governs resonance widths)
+- `open-questions-cassi-answers.md`—F1 (fine-tuning), C7 (baryon asymmetry from organized processes)
