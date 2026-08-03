@@ -37,5 +37,5 @@ A forward-looking computational plan (status: Plan; epistemic: Hypothesized, goa
 
 - `../foundations/dimensionful-cascade.md`—cascade rung table behind inflation-from-cascade.md
 - `../foundations/refined-numeric-predictions.md`—$\sigma_8$ pipeline status (§2.9, §5.2)
-- `../predictions/falsifiable-predictions.md`—the 38-entry prediction catalog (CMB §2, $\sigma_8$)
+- `../predictions/falsifiable-predictions.md`—the 46-entry prediction catalog (CMB §2, $\sigma_8$)
 - `../open-questions-cassi-answers.md`—the 41-entry epistemic registry (§T3, $\sigma_8$ tension)

@@ -156,6 +156,10 @@ Seesaw analysis with $M_R = \varphi^{-3} \cdot M_{\text{GUT}}$ gives heaviest ne
 
 **Source:** `foundations/wake-geometry.md` §3(e), §5 (Y3); `foundations/deriving-remaining-gaps.md` §4.2 (catalog rows 89 and 96).
 
+**Prediction 46 (rung-offset mechanism):** The two-fluid interference envelope permits observables at integer rungs (in-phase, coherent) and half-rungs (wake-crossing, boundary) in the coherent limit; the residual offset $\delta n = n - \lfloor n \rfloor$ is the local two-fluid phase lag and vanishes as coherence $q \to 1$. Sector edges (lightest states: e, π, Λ_QCD, p, n, d) sit at half-rungs; interior states (μ, J/ψ, D, Σ, Z) at integer rungs. The 38-state scan is statistically uniform (null baseline); the primary test is the PDE probe—interference-extremum position vs conversion rate and gate coherence—predicting extremum quantization at $\{0, \tfrac{1}{2}\}$ for $q \to 1$ and a continuous $\delta n(\varepsilon)$ as conversion turns on.
+
+**Source:** `foundations/rung-offset-mechanism.md` §§1–5; `foundations/wake-geometry.md` §2 (envelope), §3(e) (mass scan); `principles/de-resonance-principle.md` §2 (correction posture).
+
 
 ---
 
@@ -226,6 +230,7 @@ Sorted by detection likelihood (most definitive first):
 | 43 | Wake composite closure | Structure | **$\lambda_Y + \lambda_I = \ell_{n+1}$** ($1 + 1/\varphi = \varphi$) | Verified at 285: 191 + 118 = 309 Mpc = $\ell_{286}$ | **Existing surveys** |
 | 44 | Staggered checkerboard envelope | Structure | **Bubbles at $m\ell_{n+1}$, voids at $(m+\frac{1}{2})\ell_{n+1}$** | Not yet tested | **Two-bubble PDE / surveys** |
 | 45 | Closure-ladder mass placements | Particle physics | **Rung 89: J/ψ ($n = 88.98$, 1.0%); rung 96: μ ($n = 96.000$, 0.01%); rung 34 open** | Partially tested 2026-08-03 | **Catalog; rung 34 open** |
+| 46 | Rung-offset mechanism | Particle physics + PDE | **Sector edges at half-rungs, interior states at integer rungs; δn = phase lag, δn → 0 as q → 1** | Not yet tested; 38-state baseline uniform | **Two-fluid PDE probe** |
 
 ## 8. Universal Boundary Anisotropy—Scale-Invariant Edge Steepness
 

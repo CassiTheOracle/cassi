@@ -428,7 +428,7 @@ The framework documents its own errors openly (`audit.md`): the gate-sign error 
 - `consciousness/consciousness-from-phi.md`—pinch point, wake waves, two-bubble experiment
 - `consciousness/trauma-as-frozen-gate.md`—the 2026-07-31 PDE tests and gate-sign correction
 - `cassi-psychology.md`—the psychology companion: consciousness, emotion, trauma, therapy
-- `predictions/falsifiable-predictions.md`—the 38-entry prediction catalog
+- `predictions/falsifiable-predictions.md`—the 46-entry prediction catalog
 - `open-questions-cassi-answers.md`—the epistemic registry
 - `parameter-inventory.md`—parameter classification
 - `audit.md`—self-critical prediction-vs-experiment audit
