@@ -1,8 +1,10 @@
 # Yang-Yin Field Interference and Particle Formation
 
-*A mathematical framework for the emergence of particle-like excitations from the interference of expansive and contractive wave fields.*
-
 ## Status: Derived—July 2026
+
+## Abstract
+
+Particle-like excitations emerge from the interference of the two Cassi fields: expansive Yang waves and contractive Yin waves counter-propagate on the spine manifold, and their superposition forms a standing wave whose intensity pattern condenses, above the threshold $\theta_\text{cond}$, into localized solitons under nonlinear self-focusing. The soliton is most stable at the amplitude ratio $A_I/A_Y = \varphi^{-1}$; the golden ratio emerges as the structural optimum of the interference pattern. The framework maps directly onto Dirac spinors, the Higgs mass mechanism, and quantum scattering, and its condensation physics is realized in the CassiBridgeV2 real-space DFT benchmarks (`particles/dft-benchmarks.md`).
 
 ---
 
@@ -22,7 +24,7 @@ Yang and Yin are defined as **complex scalar fields** on the spine manifold $s \
 
 $$\Psi_Y(s,t) \in \mathbb{C}, \quad \Psi_I(s,t) \in \mathbb{C}$$
 
-The subscript $I$ denotes Yin ( contractive/inward ) to avoid confusion with the imaginary unit $i$.
+The subscript $I$ denotes Yin (contractive/inward) to avoid confusion with the imaginary unit $i$.
 
 ---
 
@@ -161,7 +163,7 @@ In the nonlinear wave framework, this becomes the **self-focusing threshold**:
 
 $$\rho_\text{peak} = \frac{\mu}{g} > \theta_\text{cond}$$
 
-When the peak intensity exceeds the threshold, the nonlinear term dominates over dispersion, and a soliton nucleates.
+When the peak intensity exceeds the threshold, the nonlinear term dominates over dispersion, and a soliton nucleates. The same condensation physics is implemented on a uniform real-space grid in the CassiBridgeV2 DFT, whose benchmark tables (`particles/dft-benchmarks.md`) reproduce the correct shell structure, orbital ordering, and energy hierarchy for the first-row atoms (Z = 1–10).
 
 ---
 
@@ -413,3 +415,12 @@ $$\rho_\text{peak} = A_Y^2 \varphi^2 > \theta_\text{cond}$$
 ---
 
 *Particles are not fundamental. They are the interference pattern of Yang and Yin, stabilized by nonlinearity, localized by self-focusing, and protected by topology. The golden ratio is not added to the equations—it is the stability condition that determines when a wave becomes a particle.*
+
+---
+
+## References
+
+- `particles/dft-benchmarks.md`—CassiBridgeV2 real-space DFT: the condensation physics of §5 implemented on a uniform grid (LDA/PBE/Dirac-Kohn-Sham tables)
+- `foundations/cassi-theory-reference.md` §5–6—quantum mechanics as two-fluid interference (Dirac analogy, spin, Born rule)
+- `foundations/bubble-edge-geometry.md`—the condensation threshold $\theta_\text{cond}$ as a fixed point
+- `consciousness/chakras-as-cascade-bubbles.md`—chakra positions on the spine used in §7.3

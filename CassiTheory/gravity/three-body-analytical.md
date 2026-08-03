@@ -1,6 +1,19 @@
 # The Three-Body Problem in Cassi Two-Fluid Gravity
 
-## Status: Derived—July 2026 (reconciled 2026-07-31)
+## Status: Derived—July 2026
+
+## Abstract
+
+The Cassi two-fluid PDE with Qi-enhanced gravity reduces, for well-separated
+blobs, to point-particle ODEs with body-dependent coupling
+$G_{\text{eff},j} = \alpha_j(1+\xi q_j)G$ and dynamically evolving masses. At
+the $\varphi$-fixed point $\alpha_j = \varphi^{-3}$ the equations reduce
+exactly to Newtonian gravity with $G_{\text{eff}} = \varphi^{-3}G$, so the
+three-body problem inherits classical non-integrability; away from the fixed
+point the coupling is body-dependent and the masses evolve, a non-Newtonian
+dynamics that is even less integrable. The conversion term drives every
+configuration toward the fixed point on the timescale
+$\tau_\lambda \sim 2/[\lambda(1-q)(1+\varphi)^2]$.
 
 > **Division of labor with `foundations/phi_attractor_synthesis.md`:** this document
 derives the *reduction theory*—PDE → point-particle ODEs, the φ-fixed point,
@@ -10,15 +23,11 @@ integrability assessment, and the effective 2+1 reduction. The companion
 curves) with scripts in `experiments/phi_attractor_paths/`. Read this document
 first for the formal reduction, then the synthesis doc for the numerical tests.
 >
-> **Revision note (2026-07-31):** the conversion terms below now carry the
-canonical Qi gate factor $(1-q)$ (sign corrected 2026-07-31 by the PDE tests in
-`consciousness/trauma-as-frozen-gate.md` §10.4), and $q$ is the canonical
-coherence $q = \rho^2/(\rho^2 + \varphi^{-2} + \varepsilon^2)$. The earlier
-exponential $q = 1 - \exp[-\beta\max(\alpha_j - \varphi^{-3}, 0)]$ was a
-pre-gate placeholder; the fixed-point verdict is unchanged (at
-$E_Y = \varphi E_I$ the conversion term vanishes for any gate openness).
-
-## An Analytical Assessment of Integrability
+> The conversion terms carry the canonical Qi gate factor $(1-q)$ (PDE-verified
+in `consciousness/trauma-as-frozen-gate.md` §10.4), and $q$ is the canonical
+coherence $q = \rho^2/(\rho^2 + \varphi^{-2} + \varepsilon^2)$. At the
+$\varphi$-fixed point $E_Y = \varphi E_I$ the conversion term vanishes for any
+gate openness.
 
 ---
 
@@ -43,10 +52,10 @@ $$
 
 The conversion terms carry the canonical Qi gate factor $(1-q)$: the gate is
 **open** (conversion runs hard) when $q \to 0$ and **closed** (system rests at
-$\varphi$-balance) when $q \to 1$ (sign corrected 2026-07-31;
-`foundations/cassi-theory-reference.md` §2.5). At the $\varphi$-fixed point
-$E_Y = \varphi E_I$ the conversion term vanishes for *any* gate openness—the
-fixed-point reduction below does not depend on the gate sign.
+$\varphi$-balance) when $q \to 1$ (`foundations/cassi-theory-reference.md`
+§2.5). At the $\varphi$-fixed point $E_Y = \varphi E_I$ the conversion term
+vanishes for *any* gate openness—the fixed-point reduction below does not
+depend on the gate state.
 
 #### Momentum
 
@@ -72,14 +81,12 @@ q = \frac{\rho^2}{\rho^2 + \varphi^{-2} + \varepsilon^2},
 \qquad \varepsilon^2 = (\Psi_0 - \varphi\Psi_1)^2
 $$
 
-(the canonical coherence of `foundations/cassi-theory-reference.md` §2.4; the
-earlier exponential $q = 1 - \exp[-\beta\max(\pi/\rho - \varphi^{-3}, 0)]$ was
-a pre-gate placeholder and is withdrawn). $q \to 1$ at high density near
-$\varphi$-equilibrium; $q \to 0$ far from it. At the $\varphi$-fixed point the
-classical limit $q \to 0$ applies (theory-reference §2.6), giving
-$G_{\text{eff}} = \varphi^{-3}G$.
+(the canonical coherence of `foundations/cassi-theory-reference.md` §2.4).
+$q \to 1$ at high density near $\varphi$-equilibrium; $q \to 0$ far from it.
+At the $\varphi$-fixed point the classical limit $q \to 0$ applies
+(theory-reference §2.6), giving $G_{\text{eff}} = \varphi^{-3}G$.
 
-#### Parameters (all from $\varphi$, zero free)
+#### Parameters (dimensionless couplings; $c$, $\hbar$, $G$ external)
 
 $$
 \varphi = \frac{1+\sqrt5}{2} \approx 1.618,\quad
@@ -472,5 +479,5 @@ reduces to 18—the classical Newtonian three-body phase space.
 - `foundations/phi_attractor_synthesis.md`—the computational companion: Paths 1–9 apply this reduction theory numerically (precession formula, Lagrange structure, L4/L5 stability, rotation curves) with scripts in `experiments/phi_attractor_paths/`
 - `foundations/cassi-theory-reference.md` §2, §7.3—canonical two-fluid PDE, Qi gate sign, and the point-particle three-body result
 - `foundations/dimensionful-cascade.md`—the cascade ladder setting the softening scale $\sigma$ context
-- `consciousness/trauma-as-frozen-gate.md` §10.4—the 2026-07-31 gate-sign correction used throughout
+- `consciousness/trauma-as-frozen-gate.md` §10.4—PDE gate verification behind the $(1-q)$ factor used throughout
 - `open-questions-cassi-answers.md`—epistemic registry (Q7 measurement, G-series gravity questions)

@@ -1,8 +1,10 @@
 # Cassi Quantum Gravity: UV-Finite from $\sigma$-Regularized Two-Fluid Quantization
 
-*The 4th Pillar: quantizing the two-fluid shows that gravity is UV-finite, the graviton is a composite excitation, and no renormalization is ever needed.*
+## Status: Derived (σ = ℓ_Pl/φ³ regularization, per registry G1) / Hypothesized (two-fluid quantization, composite graviton)
 
-## Status: Hypothesized—July 2026
+## Abstract
+
+General relativity breaks down at the Planck scale: perturbative quantization of the graviton diverges in the ultraviolet. Cassi quantum gravity resolves this at two layers. The classical layer (Derived, per registry G1) is $\sigma$-regularized Poisson emergence—gravity is not a quantum exchange force, and the Gaussian propagator $G(k^2) = e^{-k^2\sigma^2/2}/(k^2+i\epsilon)$ makes the theory UV-finite. The quantized two-fluid extension (Hypothesized) carries this further: the graviton is a composite spin-2 SO(2) excitation with the massless GR limit at $k \ll 1/\sigma$, no modes beyond $1/\sigma$, and no renormalization at any order. The information-paradox analysis (§7) and the black-hole coherence-capacity relation feed the GWTC mass-ladder analysis in `analyses/gwtc4-mass-ladder.md`.
 
 ---
 
@@ -58,7 +60,7 @@ The Gaussian factor $e^{-k^2\sigma^2/2}$ is the $\sigma$-regulator:
 
 ## 4. Graviton as a Composite Excitation
 
-In the Cassi framework, gravity is not a fundamental force—it emerges from the two-fluid dynamics. The graviton is a **composite excitation** of the Yang/Yin fields.
+No fundamental graviton: gravity is not a quantum exchange force—it emerges from the $\sigma$-regularized Poisson dynamics of the two-fluid fields (Derived, per registry G1). In the quantized two-fluid extension (Hypothesized), the graviton is a composite spin-2 SO(2) excitation with the massless GR limit at $k \ll 1/\sigma$; no renormalization is ever needed.
 
 ### 4.1 Field Quantization
 
@@ -82,7 +84,7 @@ The dimensionless group velocity $c_{\text{eff}} = d\omega/dk$:
 
 | $k$ | $\omega(k)$ | $c_{\text{eff}}$ |
 |-----|-------------|-----------------|
-| $k \ll 1/\sigma$ | $\omega \approx k$ | $c_{\text{eff}} \approx 1$ (massless GR graviton) |
+| $k \ll 1/\sigma$ | $\omega \approx k$ | $c_{\text{eff}} \approx 1$ (massless GR limit of the composite excitation) |
 | $k \approx 1/\sigma$ | $\omega \approx 1.1\,k$ | $c_{\text{eff}} \approx 1.08$ (superluminal? See below) |
 | $k \gg 1/\sigma$ | $\omega \to \omega_0 = M_{\text{Pl}}$ | $c_{\text{eff}} \to 0$ (no trans-Planckian modes) |
 
@@ -90,7 +92,7 @@ The dimensionless group velocity $c_{\text{eff}} = d\omega/dk$:
 
 ### 4.3 Why This Is a Graviton
 
-The spin-2 nature of the graviton emerges from the SO(2) structure of the two-fluid. The polarization tensor of the composite excitation is:
+There is no fundamental graviton; the composite excitation's spin-2 nature emerges from the SO(2) structure of the two-fluid. The polarization tensor of the composite excitation is:
 
 $$
 \epsilon_{\mu\nu}(\mathbf{k}) = \frac{1}{\sqrt{2}}\left( \epsilon_\mu^{(Y)}\epsilon_\nu^{(Y)} - \epsilon_\mu^{(I)}\epsilon_\nu^{(I)} \right)
@@ -102,7 +104,7 @@ $$
 k^\mu \epsilon_{\mu\nu} = 0, \qquad \eta^{\mu\nu} \epsilon_{\mu\nu} = 0
 $$
 
-At low energy ($k \ll 1/\sigma$), this reproduces the standard GR graviton with two polarization modes $+$ and $\times$.
+At low energy ($k \ll 1/\sigma$), the composite excitation reproduces the standard GR graviton with two polarization modes $+$ and $\times$.
 
 ---
 
@@ -180,11 +182,9 @@ This is the Cassi resolution of the trans-Planckian problem.
 
 The black hole information paradox is the most acute test of any quantum gravity theory. Hawking's 1975 calculation shows that semiclassical black hole evaporation produces thermal radiation uncorrelated with the initial collapsing matter—if the black hole evaporates completely, the final state is mixed, violating quantum unitarity. Resolving the paradox requires either (1) demonstrating that the outgoing radiation is not truly thermal (it carries correlations that restore a pure final state), or (2) providing a new mechanism that retrieves information from the interior.
 
-### 7.1 Gap in the Previous Argument
+### 7.1 The Horizon, Not the Singularity
 
-The 2025 version of this document argued that σ-regularization resolves the paradox because at $M \sim M_{\text{Pl}}$ the curvature reaches $R \sim 1/\sigma^2$, causing the semiclassical horizon to disappear. This argument is **incomplete** for astrophysical black holes: for $M \gg M_{\text{Pl}}$, the horizon curvature $R \sim 1/r_s^2 = 1/(4G^2M^2) \ll 1/\sigma^2$, so semiclassical GR applies at the horizon. The σ-regularized core (radius $\sim \sigma$) is deep inside the black hole, not at the horizon. The information paradox concerns the **horizon**—how does information in interior degrees of freedom escape in the Hawking flux?—not the singularity.
-
-The Cassi resolution must therefore address the horizon directly, not merely the singularity. The σ-regularized two-fluid provides the necessary tools: a manifestly unitary S-matrix, a finite UV cutoff that regulates the trans-Planckian modes on which Hawking's derivation relies, and the two-fluid condensate dynamics that can encode correlations in the outgoing radiation.
+σ-regularization removes the singularity, but the information paradox concerns the **horizon**, not the singularity: how does information in interior degrees of freedom escape in the Hawking flux? For astrophysical black holes with $M \gg M_{\text{Pl}}$, the horizon curvature $R \sim 1/r_s^2 = 1/(4G^2M^2) \ll 1/\sigma^2$, so semiclassical GR applies at the horizon; the σ-regularized core (radius $\sim \sigma$) lies deep inside the black hole. The Cassi resolution must therefore address the horizon directly. The σ-regularized two-fluid provides the necessary tools: a manifestly unitary S-matrix, a finite UV cutoff that regulates the trans-Planckian modes on which Hawking's derivation relies, and the two-fluid condensate dynamics that can encode correlations in the outgoing radiation.
 
 ### 7.2 The Unitarity Theorem
 
@@ -257,7 +257,7 @@ The **Page time** $t_{\text{Page}} \sim \mathcal{O}(G^2 M^3)$ is when the entang
 | Backreaction | **Does not exist** | Self-consistent metric evolution from two-fluid stress-energy |
 | σ-regulated QFT on curved spacetime | **Partially exists** | The propagator $G(k^2)$ is derived; curved-space generalization needed |
 
-**Infrastructure estimate**: A dedicated curved-spacetime two-fluid solver is a significant new codebase—approximately 2,000–5,000 lines of Python/CUDA, comparable in scope to `cassi_two_fluid_3d_gpu.py` but with different numerical methods (finite-difference or pseudo-spectral on radial grid, not Fourier on periodic box).
+**Infrastructure estimate**: A dedicated curved-spacetime two-fluid solver is a significant new codebase—approximately 2,000–5,000 lines of Python/CUDA, comparable in scope to `two-fluid/cassi_two_fluid_3d_gpu.py` but with different numerical methods (finite-difference or pseudo-spectral on radial grid, not Fourier on periodic box).
 
 ### 7.5 Analytic Progress Possible Now
 
@@ -270,6 +270,8 @@ Without the full computational pipeline, the following results are already estab
 $$
 N_{\text{BH}} \approx \log_\varphi\!\left(\frac{M}{M_{\text{Pl}}}\right)
 $$
+
+The resulting mass-to-rung map is applied to the GWTC-4.0 compact-object catalog in `analyses/gwtc4-mass-ladder.md`.
 
 For $M = M_\odot \approx 2\times 10^{30}\ \text{kg} \approx 10^{38} M_{\text{Pl}}$: $N_{\text{BH}} \approx 180$ rungs. The per-rung coherence is $q_i = 1 - \varphi^{-i-\delta}$ (from `foundations/cascade-suppression-formula.md`), giving a total storage capacity:
 
@@ -309,14 +311,14 @@ For modes with $\omega \ll M_{\text{Pl}}$ (the dominant Hawking quanta for $M \g
 | Property | Cassi QG | String Theory | LQG | Asymptotic Safety |
 |----------|---------|---------------|-----|-------------------|
 | UV complete | ✅ Yes | ✅ Yes | ? | ✅ Yes (non-pert) |
-| Free parameters | **0** | Many | 1 (Barbero-Immirzi) | 1 (fixed point) |
+| Free parameters | **0** dimensionless | Many | 1 (Barbero-Immirzi) | 1 (fixed point) |
 | Graviton | Composite | Fundamental | Emergent | Fundamental |
 | Regulator | $\sigma = 1/M_{\text{Pl}}$ | Strings | Area/Volume | Nothing explicit |
 | Renormalization | **None needed** | Yes (worldsheet) | Yes (spin foam) | Yes (fixed point) |
 | Testable | ✅ Many | ? | ? | ? |
 | Unifies with SM | ✅ Gauge pillars | ✅ | ? | ? |
 
-Cassi is the only approach with **zero free parameters**, a **built-in UV regulator**, and **no renormalization**.
+Cassi is the only approach with **zero free dimensionless parameters** (every dimensionless coupling is a $\varphi$-power; $c$, $\hbar$, $G$ remain external), a **built-in UV regulator**, and **no renormalization**.
 
 ---
 
@@ -334,7 +336,7 @@ Cassi is the only approach with **zero free parameters**, a **built-in UV regula
 | High energy | $\omega \to M_{\text{Pl}}$ (no trans-Planckian modes) |
 | Running of $G$ | $< 1\%$ correction at Planck scale |
 | Renormalization | **Not needed**—theory is already UV-finite |
-| Free parameters | **Zero** ($\sigma = 1/M_{\text{Pl}}$ from $\varphi$) |
+| Free parameters | **Zero dimensionless** ($c$, $\hbar$, $G$ external) |
 
 ### Falsifiable Predictions
 
@@ -360,6 +362,20 @@ $$
 \underbrace{\sigma\text{-Regularization}}_{\text{Quantum Gravity}}
 $$
 
-All four pillars emerge from the same $\varphi$-governed two-fluid PDE. The quantum gravity pillar adds no new dimensionless constants—$\sigma = 1/M_{\text{Pl}}$ is the cascade's dimensionful anchor (see `foundations/dimensionful-constants-status.md`). One dimensionless parameter ($\lambda$) and three dimensionful constants ($c$, $\hbar$, $G$) remain external.
+All four pillars emerge from the same $\varphi$-governed two-fluid PDE. The quantum gravity pillar adds no new dimensionless constants: every dimensionless coupling is a $\varphi$-power, with $\lambda = 1/(2w) = 0.1$ derived from $w = 5$ (see `foundations/dimensionful-constants-status.md`). Three dimensionful constants ($c$, $\hbar$, $G$) remain external.
 
 The **theory is structurally complete**; the remaining gaps are catalogued in `foundations/dimensionful-constants-status.md`.
+
+---
+
+## References
+
+- `open-questions-cassi-answers.md`—epistemic registry (G1: σ-regularized Poisson emergence, Derived; G2: black-hole information paradox)
+- `foundations/unified-lagrangian.md`—the two-fluid Lagrangian on curved backgrounds used in §7.4
+- `foundations/cassi-theory-reference.md` §7—the gravity sector and the σ-regularization
+- `foundations/dimensionful-constants-status.md`—dimensionful constants and the remaining gaps
+- `foundations/cascade-suppression-formula.md`—per-rung coherence $q_i = 1 - \varphi^{-i-\delta}$ used for the black-hole capacity bound
+- `foundations/bubble-lattice-fabric.md` §6—the bubble/void checkerboard that becomes the σ-regularized harmonic regime
+- `analyses/gwtc4-mass-ladder.md`—the black-hole mass-to-rung map applied to the GWTC-4.0 catalog
+- `two-fluid/cassi_two_fluid_3d_gpu.py`—the existing two-fluid PDE solver (flat/FLRW backgrounds)
+- `experiments/cassi_physics/cassi_quantum_gravity.py`—numerical verification of the propagator, dispersion, and loop integrals
