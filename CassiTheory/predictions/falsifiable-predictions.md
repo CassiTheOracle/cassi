@@ -60,7 +60,7 @@ CMB-S4 detection threshold ($\sigma_r = 0.001$).
 | $\eta$ (baryon/photon) | $6.0\times10^{-10}$ | **$6.38\times10^{-10}$** ($\varphi^{-44}$) | Within $6.3\%$ |
 | BAO $\alpha_\perp(z=0.5)$ | $1$ | **0.97** ($3\%$ shift) | DESI DR2 matched |
 | BTFR slope | $\sim 4$ | **$4$** (natural) | $A_{\text{Cassi}}/A_{\text{obs}} = 0.82$ |
-| Hubble tension ($H_0$) | $5\sigma$ discrepancy | **Resolved** ($\Omega_\Lambda$: $0.30 \to 0.50$) | Evolving DE unifies early/late |
+| Hubble tension ($H_0$) | $5\sigma$ discrepancy | **Evolving $\Omega_\Lambda$: $0.30 \to 0.50$ (full $H(z)$ fit pending)** | Pending—full H(z) fit (registry C3/T4); pipeline CMB-inferred ≈ 65.8 |
 | Lattice powder lines in $P(k)$ | None | **Comb at $k/k_0 \in \{1, \sqrt{2}, \varphi, \sqrt{1+\varphi^2}, 2, \ldots\}$**, period $\ln\varphi$; multiplicities 4:2 (single-rung) | DESI LRG: $A \lesssim 2.6\%$ ($p = 0.08$, no detection); Euclid definitive |
 | Sample-variance suppression | Gaussian mocks | **~10$\times$ smaller $k \to 0$ scatter; NGC–SGC large-scale modes correlated** | DESI mock comparison |
 | $D_A(z)$ lattice wiggles | Smooth | **$\delta D/D \lesssim 0.1\%$; no CPL bias**—the lattice cannot produce the $w_a$ offset | Already consistent with DESI smoothness |
@@ -71,8 +71,7 @@ The condensation field gradient anisotropy (§5.2 of `foundations/bubble-edge-ge
 **Source:** `theory/cosmology-from-phi.md` §§3–5, `theory/five-element-pde-derivation.md` §7,
 `foundations/bubble-edge-geometry.md` §§2.2,5.2, `cosmology/observational_constraints.md` §1.4–§6,
 `cosmology/desi-lattice-averaging.md` (lattice powder lines, variance suppression, wiggle bound). The dark energy prediction is $w_0 = -0.87$ (2σ from DESI) and $w_a = +0.012$ (2.7σ from DESI)—tension, not resolved; the conversion dynamics keep $w > -1$ at all $z$ (no phantom crossing). The DM/baryon ratio is $\varphi^3+1$ with
-$2.8\%$ accuracy. The Hubble tension is resolved by evolving $\Omega_\Lambda$ in
-the two-fluid expansion history.
+$2.8\%$ accuracy. The Hubble tension is pending a full $H(z)$ fit (registry C3/T4); the evolving-$\Omega_\Lambda$ expansion history gives a pipeline CMB-inferred value of ≈ 65.8 km/s/Mpc.
 
 ---
 
@@ -195,7 +194,7 @@ Sorted by detection likelihood (most definitive first):
 | 9 | $\alpha_s(m_Z)$ | LHC precision | **0.105–0.115** | Measured $0.118$ | **Ongoing** |
 | 10 | $p \to e^+\pi^0$ lifetime | Hyper-K | **$4\times10^{34}$ yr** | $>1\times10^{34}$ yr bound | **2030s** |
 | 11 | $w(z)$ at $z > 3$ | LSST/Roman/SKA | **$> -1$ at all $z$** (no phantom crossing, structural) | DESI best fit crosses at $z \approx 0.5$; not yet tested | **2030s** |
-| 12 | Hubble tension | Cosmic | **Resolved** $\Omega_\Lambda$: $0.30 \to 0.50$ | $5\sigma$ resolved | **Already consistent** |
+| 12 | Hubble tension | Cosmic | **Evolving $\Omega_\Lambda$: $0.30 \to 0.50$ (full $H(z)$ fit pending)** | Pending—full H(z) fit (registry C3/T4); pipeline CMB-inferred ≈ 65.8 | **2030s** |
 | 13 | $\eta$ (baryon asymmetry) | Cosmic | **$6.38\times10^{-10}$** ($\varphi^{-44}$) | $6.0\times10^{-10}$ ($6.3\%$ above) | **Already consistent** |
 | 14 | Galaxy rotation curves | Galactic | **$2.9$–$3.1\times$ baryon boost** | MW confirmed ($2.7\pm0.5$; ~1.2σ) | **Already consistent** |
 | 15 | Dwarf galaxy cored halos | Galactic | **Cored (Qi)**—3/8 pass | MOND preferred (4/8); ceiling $\sqrt{\varphi^6} = \varphi^3 \approx 4.24$ exceeded in 3/8 | **Already tested** |
