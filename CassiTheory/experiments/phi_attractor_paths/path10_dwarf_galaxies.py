@@ -171,6 +171,12 @@ elif n_exceed < n:
                f"lowest-mass systems; MOND's unbounded growth is preferred there")
     if n_mond > n_cassi:
         verdict += f"\n  MOND fits {n_mond} galaxies vs Cassi's {n_cassi}."
+        verdict += ("\n  This falsifies the pure G-rescaling sector only (boost = (G_eff/G)")
+        verdict += ("\n  acting on baryonic mass). The coherence-condensate sector")
+        verdict += ("\n  (speculations/dark-matter-as-qi-coherence.md) carries the boost in")
+        verdict += ("\n  Yang-field mass instead: v^2 = G[M_bar + (1+xi q) M_Y]/r — no phi^3")
+        verdict += ("\n  ceiling there, but M_Y/M_bar ~ 15 at q -> 1 is required, four-plus")
+        verdict += ("\n  decades below the SPARC calibration range (uncalibrated, not falsified).")
     else:
         verdict += f"\n  MOND fits {n_mond} galaxies vs Cassi's {n_cassi}."
 else:
