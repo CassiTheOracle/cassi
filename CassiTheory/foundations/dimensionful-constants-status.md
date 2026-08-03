@@ -146,7 +146,7 @@ Three candidates have been proposed for independently deriving $N$ from $\varphi
 
 The primordial Yang-Yin ratio $r_{\text{Planck}}$ is now **derived** (`foundations/wu-xing-derivation.md`). $\lambda = 1/(2w) = 0.1$ is now derived (§2.1). $N = 292$, $c$, $\hbar$, $G$ remain external.
 
-### 3.5 Unit Anchors: the SI Second Fails the Rung Test (eliminated 2026-08-03)
+### 3.5 Unit Anchors: the SI Second Fails the Rung Test
 
 A candidate for anchoring the unit system without a human-scale measurement is the SI second itself: if the cesium hyperfine transition sat on a cascade rung, $\Delta\nu_{\text{Cs}}\,t_{\text{Pl}} = \varphi^{-n}$ would turn the defined unit of time into a prediction. The bare ratio is tantalizing:
 
