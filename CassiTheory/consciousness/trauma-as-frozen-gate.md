@@ -406,7 +406,7 @@ Open question 2 and the foundation of the channel-to-trauma-type mapping (§4.1)
 
 **Claim:** The coherence $q$ at the trauma's somatic locus is depressed relative to the field's global value, and drops further under trigger exposure (dissociation).
 
-**Test:** Physiological proxies for $q$ (sympathetic-parasympathetic phase synchrony, inter-hemispheric coherence—emotions doc P5) measured at rest and under trigger exposure, with somatic localization via the chakra proxies (skin conductance, HRV coherence—predictions C4/C5 of the chakra document).
+**Test:** Physiological proxies for $q$ (sympathetic-parasympathetic phase synchrony, inter-hemispheric coherence—emotions doc P5) measured at rest and under trigger exposure, with somatic localization via the chakra proxies (skin conductance, HRV coherence—predictions CH4/CH5 of the chakra document).
 
 ### TR5: $\sigma_r$ Brittleness
 

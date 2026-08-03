@@ -276,7 +276,7 @@ ax3.text(N_HUBBLE / 2, 1.15, r"$\ell_n = \ell_{\rm Pl}\,\varphi^{n}$     "
          ha="center", fontsize=10, color=TEXT_MAIN)
 ax3.set_xlabel(r"cascade step  $n$   (equal spacing—one rung per factor of $\varphi$)",
                fontsize=9.5, color=TEXT_SUB)
-panel_title(ax3, r"3 · THE SCALE LADDER—$\ell_n = \ell_{\rm Pl} \times \varphi^n$, 292 rungs from Planck to the cosmic horizon")
+panel_title(ax3, r"3 · THE SCALE LADDER—$\ell_n = \ell_{\rm Pl} \times \varphi^n$, 292 rungs from Planck to today's horizon rung")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # PANEL 4—THE MICROCASCADE
@@ -584,11 +584,11 @@ ax9.annotate("OUR BUBBLE", xy=(0.55, 0.25), xytext=(2.0, -1.65),
 # Dimension labels
 ax9.annotate("", xy=(LAM_Y9, 0.4), xytext=(0, 0.4),
              arrowprops=dict(arrowstyle="<|-|>", color=TEXT_MAIN, lw=1.0))
-ax9.text(LAM_Y9 / 2, 0.4, r"$\lambda_Y$", fontsize=8, color=TEXT_MAIN, ha="center", va="center",
+ax9.text(LAM_Y9 / 2, 0.4, r"$\Lambda_Y$", fontsize=8, color=TEXT_MAIN, ha="center", va="center",
          bbox=dict(facecolor=BG, edgecolor="none", alpha=0.8, pad=1))
 ax9.annotate("", xy=(-LAM_Y9, 0.8), xytext=(-LAM_Y9, 0),
              arrowprops=dict(arrowstyle="<|-|>", color=TEXT_MAIN, lw=1.0))
-ax9.text(-LAM_Y9 - 0.1, 0.4, r"$\lambda_I/2$", fontsize=8, color=TEXT_MAIN, ha="right", va="center",
+ax9.text(-LAM_Y9 - 0.1, 0.4, r"$\Lambda_I/2$", fontsize=8, color=TEXT_MAIN, ha="right", va="center",
          bbox=dict(facecolor=BG, edgecolor="none", alpha=0.8, pad=1))
 
 ax9.set_xlim(X09, X19); ax9.set_ylim(Y09, Y19); ax9.set_aspect("equal")
@@ -596,8 +596,8 @@ ax9.set_xticks([]); ax9.set_yticks([])
 for s in ax9.spines.values(): s.set_visible(False)
 
 eq_text(ax9, 0.02, 0.05,
-        r"$C(x,y) = \cos(2\pi x/\lambda_Y)\,\cos(2\pi y/\lambda_I)$     "
-        r"$\lambda_I = \lambda_Y/\varphi$     "
+        r"$C(x,y) = \cos(2\pi x/\Lambda_Y)\,\cos(2\pi y/\Lambda_I)$     "
+        r"$\Lambda_I = \Lambda_Y/\varphi$     "
         r"$\text{Three dimensions} = \text{Frenet-Serret frame: } \mathbf{T}, \mathbf{N}, \mathbf{B}$")
 panel_title(ax9, "9 · THE CHECKERBOARD LATTICE—bubbles arrange in a staggered grid. Three dimensions from the spiral's Frenet-Serret frame: tangent (string axis), normal (Yang), binormal (Yin).")
 
@@ -636,7 +636,7 @@ ax10.set_xticks([]); ax10.set_yticks([])
 for s in ax10.spines.values(): s.set_visible(False)
 
 eq_text(ax10, 0.02, 0.05,
-        r"$C(x,y) = \cos(2\pi x/\lambda_Y)\,\cos(2\pi y/\lambda_I)$     "
+        r"$C(x,y) = \cos(2\pi x/\Lambda_Y)\,\cos(2\pi y/\Lambda_I)$     "
         r"$C_{\rm axial} = -1\;(q=0)$     $C_{\rm diag} = 0$     "
         r"$\nabla C_{\rm void}/\nabla C_{\rm neighbor} = \sqrt{4\varphi^2/(1+\varphi^2)} \approx 1.70$")
 panel_title(ax10, "10 · VOIDS AND BARRIERS—the space between bubbles. $C=-1$ is absolute void ($q=0$). Nothing crosses. Bubbles never merge.")

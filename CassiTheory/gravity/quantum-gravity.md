@@ -1,6 +1,6 @@
 # Cassi Quantum Gravity: UV-Finite from $\sigma$-Regularized Two-Fluid Quantization
 
-## Status: Derived (σ = ℓ_Pl/φ³ regularization, per registry G1) / Hypothesized (two-fluid quantization, composite graviton)
+## Status: Derived (σ = ℓ_Pl/φ³ regularization, per registry G1) / Hypothesized (two-fluid quantization, composite graviton)—August 2026
 
 ## Abstract
 

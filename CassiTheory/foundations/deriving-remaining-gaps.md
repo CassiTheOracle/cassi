@@ -317,7 +317,7 @@ None of the four assessments reclassifies a parameter. The registry
 | $\kappa_s$ (sector coupling) | **D** | Already derived: $\varphi^{-6}/v_0^2$ (coefficient Hypothesized) |
 | Activated steps | **E** | Empirical catalog of observables that happen to be $\varphi$-powers |
 
-Legend unchanged: **F**=1, **D**=21, **C**=3, **E**=7, **I**=6, **N**=7, **Total**=45.
+Legend: **F1 / D24 / C0 / E7 / I6 / N8 / Total 46**.
 
 The assessments narrow the gaps without moving classes: $\alpha_s$ requires a
 specific particle content between the EW and GUT scales, and $m_e$ and

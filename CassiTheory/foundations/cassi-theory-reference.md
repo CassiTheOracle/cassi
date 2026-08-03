@@ -96,7 +96,7 @@ $n \in [0, \approx 292]$ today (cascade unbounded; horizon rung epoch-dependent)
 | 267 | $9.3 \times 10^{20}$ | Milky Way diameter |
 | 284 | $3.6 \times 10^{24}$ | Yin wake of 285 |
 | 285 | $5.9 \times 10^{24}$ | Cassi bubble |
-| 292 | $1.7 \times 10^{26}$ | Hubble radius |
+| 292 | $1.7 \times 10^{26}$ | Horizon rung today (ℓ₂₉₂ = 5.5 Gpc label; R_H = 4.44 Gpc = 14.5 Glyr) |
 
 ### 3.2 Cascade Suppression
 

@@ -30,7 +30,7 @@ This reframes the relationship between information and thermodynamics. In conven
 
 The information content of a Qi-coherent region of volume $V$ at coherence $q$ is not measured in bits per unit volume. It is measured by the **number of distinguishable Π configurations** the field can sustain without triggering conversion.
 
-For a field with characteristic spatial frequency $\alpha = 2\pi/\lambda_Y$ (the Yang wavelength at the operating rung), the number of independently addressable field modes in volume $V$ is:
+For a field with characteristic spatial frequency $\alpha = 2\pi/\Lambda_Y$ (the Yang wavelength at the operating rung), the number of independently addressable field modes in volume $V$ is:
 
 $$N_{\text{modes}} \approx V \cdot \frac{\alpha^3}{(2\pi)^3}$$
 

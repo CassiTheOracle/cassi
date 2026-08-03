@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""C3: the ke control ring in the 5-channel gate—PDE test.
+"""WX3: the ke control ring in the 5-channel gate—PDE test.
 
-Prediction C3 of `foundations/wu-xing-cycle-structure.md` §4: with the ke
+Prediction WX3 of `foundations/wu-xing-cycle-structure.md` §4: with the ke
 control term (kappa = phi^-1 = K_fw) added to the gate, a locked channel
-should drive the ke-alternating pattern in channel openness (C1), the lock
+should drive the ke-alternating pattern in channel openness (WX1), the lock
 should still decay with no driver (sub-critical ring, kappa^3 < 1), and the
 phi-phased drive should still dissolve it.
 
@@ -14,14 +14,14 @@ evaluation: each channel's excess over baseline restrains its ke target
 Runs (lambda=0.1, t=10, N=48, standing Yang-deficit event):
   five     the standard gate (control, known behavior)
   five_ke  the ke-extended gate (test)
-  five_ke  + phi-phased drive at T = phi*P0 (C3 robustness)
+  five_ke  + phi-phased drive at T = phi*P0 (WX3 robustness)
 
 Verdicts:
-  C1: site ch_open deviation pattern of five_ke vs five at t=2 follows the
+  WX1: site ch_open deviation pattern of five_ke vs five at t=2 follows the
       ring fractions [+0.618, +0.764, -0.382, -0.618, +0.382] * D for a
       Fire lock (ke order 2,4,1,3,5 strictly alternating).
-  C3a: eps_site decays without a driver in five_ke (no self-sustenance).
-  C3b: the phi-drive accelerates decay in five_ke (eps_rel below undriven).
+  WX3a: eps_site decays without a driver in five_ke (no self-sustenance).
+  WX3b: the phi-drive accelerates decay in five_ke (eps_rel below undriven).
 
 Usage: python two-fluid/run_trauma_ke_ring.py
 Output: runs/<id>_ke_ring/results.json + figure

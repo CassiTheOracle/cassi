@@ -285,7 +285,7 @@ The computation is in `computations/ns_gate_correction.py`.
 
 **The gate correction is derived in closed φ-form.**
 
-**Honest assessment:** The result $0.9691$ sits $+0.0042$ above the Planck
+**Assessment:** The result $0.9691$ sits $+0.0042$ above the Planck
 central value—$1.0\sigma$, within the gate closure-width systematic. The
 correction is a structural consequence of the Qi gate transparency at
 $r = \varphi^{-1}$, reducing to $\delta n_s = 2\varphi^{-2}/N_e$.
@@ -540,7 +540,7 @@ two-fluid SO(2) structure.
 
 **Open:** The internal→physical axis map. The mechanism distinguishing the
 Yang axis, Yin axis, and string axis in physical space is proposed but not
-fully derived from the PDE. This is listed in the honesty section of the
+fully derived from the PDE. This is listed in the open-gaps section of the
 open-questions catalog.
 
 ---
@@ -729,7 +729,7 @@ RGE).
 
 ---
 
-## 5. What Remains Open (Honesty)
+## 5. What Remains Open
 
 - **Baryon asymmetry specific exponent.** The $\varphi^{-44}$ is a fit (6.3%),
   not a derivation. The freeze-out step 52 must be computed from the thermal

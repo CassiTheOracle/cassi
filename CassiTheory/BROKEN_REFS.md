@@ -52,6 +52,19 @@ These refer to scripts now present in this repo's `two-fluid/` directory (copied
 | `foundations/refined-numeric-predictions.md` | `two-fluid/figures/galaxy_mass_function.png` |
 | `particles/dft-benchmarks.md` | `two-fluid/cassi_dirac_bridge.py` |
 
+### Pipeline figure outputs (regenerable, gitignored)
+
+The three figure references below are dangling on disk: the PNGs are gitignored
+outputs that the named pipeline scripts regenerate (run the `.py` to reproduce
+the figure). They are cited from `foundations/refined-numeric-predictions.md`
+and resolve only after the pipeline runs.
+
+| Source Document | Reference | Regenerating script |
+|----------------|-----------|---------------------|
+| `foundations/refined-numeric-predictions.md` | `two-fluid/figures/sigma8_pipeline.png` | `two-fluid/run_sigma8_pipeline.py` |
+| `foundations/refined-numeric-predictions.md` | `two-fluid/figures/boltzmann_cassi.png` | `two-fluid/run_boltzmann_cassi.py` |
+| `foundations/refined-numeric-predictions.md` | `two-fluid/figures/galaxy_mass_function.png` | `two-fluid/run_galaxy_mass_function.py` |
+
 ## References to `theory/` (now `archive/theory/` in main repo)
 
 These refer to older formalism files that lived in the root-level `theory/` directory, now moved to `archive/theory/` in the main repo:

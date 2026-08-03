@@ -80,7 +80,7 @@ The bubble-edge geometry (`foundations/bubble-edge-geometry.md` §2.3) gives the
 $$\boxed{B(x, y, z) = \cos(\alpha x)\cos(\beta y)\cos(\gamma z), \qquad \gamma = \frac{2\pi}{P_\parallel}}$$
 
 where:
-- $\alpha = 2\pi/\lambda_Y$, $\beta = 2\pi/\lambda_I = \varphi\alpha$ (Yang and Yin wavelengths in the doublet plane)
+- $\alpha = 2\pi/\Lambda_Y$, $\beta = 2\pi/\Lambda_I = \varphi\alpha$ (Yang and Yin wavelengths in the doublet plane)
 - $P_\parallel$ is the **along-string bubble period**—the distance between adjacent bubble maxima along the string axis
 - Bubbles condense where $B > \theta_{\text{cond}}$ (constructive interference, high Qi)
 - Voids form where $B < -\theta_{\text{cond}}$ (destructive interference, low Qi)
@@ -91,7 +91,7 @@ At the cosmological scale, $P_\parallel$ is the cascade step spacing: the comovi
 
 The same condensation field operates at every cascade scale. The two-fluid PDE is scale-covariant under $\varphi$-rescaling (up to the Qi-gate nonlinearity). At the human scale, the condensation field $B(x,y,z)$ has the identical functional form, with:
 
-- $\lambda_Y$, $\lambda_I$ set by the wake-wave interference at steps 142–168 (the body's internal Yang-Yin plane)
+- $\Lambda_Y$, $\Lambda_I$ set by the wake-wave interference at steps 142–168 (the body's internal Yang-Yin plane)
 - $P_\parallel$ set by the along-string bubble period at this scale
 
 The question is: what is $P_\parallel$ in cascade rungs?
@@ -327,7 +327,7 @@ The specific sub-rung that a given chakra resonates with is determined by the Fi
 
 #### Testable Prediction
 
-**Prediction C6:** Each chakra radiates at a characteristic wavelength given by the sub-rung resonance condition. The predicted wavelengths for the 7 primary chakras are given in the table above. The secondary chakras (at steps 144, 148, 152, 156, 160, 164) should radiate at intermediate sub-rung positions between the primary colors.
+**Prediction CH6:** Each chakra radiates at a characteristic wavelength given by the sub-rung resonance condition. The predicted wavelengths for the 7 primary chakras are given in the table above. The secondary chakras (at steps 144, 148, 152, 156, 160, 164) should radiate at intermediate sub-rung positions between the primary colors.
 
 **Test:** Measure the spectral emission peak of each chakra region using hyperspectral imaging or photomultiplier-based biophoton detection during meditative states. The predicted wavelength ratios between adjacent chakras should be $\varphi^{2/3} \approx 1.378$ (since adjacent primary chakras differ by 4 cascade rungs and the visible octave spans 1 rung, giving a wavelength ratio of $\varphi^{4/6} = \varphi^{2/3}$ per primary chakra step).
 
@@ -342,7 +342,7 @@ The specific sub-rung that a given chakra resonates with is determined by the Fi
 
 ### 10.1 Inter-Chakra Spacing Ratio
 
-**Prediction C1:** The ratio of physical distances between adjacent chakras along the spine is $\varphi^2 \approx 2.618$.
+**Prediction CH1:** The ratio of physical distances between adjacent chakras along the spine is $\varphi^2 \approx 2.618$.
 
 **Test:** Measure chakra locations via established protocols (acupuncture point coordinates, thermal imaging peaks, electrical conductivity maxima along the spine) and compute the ratio of adjacent inter-chakra distances. The prediction is zero-parameter: no fitting, no normalization.
 
@@ -350,7 +350,7 @@ The specific sub-rung that a given chakra resonates with is determined by the Fi
 
 ### 10.2 Qi Density Gradient Anisotropy
 
-**Prediction C2:** The Qi density gradient at the boundary of any chakra is $1.70\times$ steeper in the Yin direction (left-right, toward the body's flanks) than in the diagonal direction (toward adjacent chakras along the spine).
+**Prediction CH2:** The Qi density gradient at the boundary of any chakra is $1.70\times$ steeper in the Yin direction (left-right, toward the body's flanks) than in the diagonal direction (toward adjacent chakras along the spine).
 
 **Test:** Map the spatial profile of a physiological correlate of Qi density—skin conductance, temperature, or infrared emission—in a 2D grid across a chakra region. Fit the gradient in axial vs. diagonal directions. The predicted anisotropy ratio is $\sqrt{4\varphi^2/(1+\varphi^2)} \approx 1.70$.
 
@@ -358,7 +358,7 @@ The specific sub-rung that a given chakra resonates with is determined by the Fi
 
 ### 10.3 Fibonacci-Spaced Secondary Nodes
 
-**Prediction C3:** In addition to the 7 primary chakras of the traditional system, 6 secondary nodes exist at the intermediate cascade steps ($n = 144, 148, 152, 156, 160, 164$). These secondary chakras are structurally identical to the primary ones (bubble geometry, $\varphi$-spacing, edge anisotropy) but span a narrower physical range because they sit closer to the lower-$n$ (denser) end of the cascade.
+**Prediction CH3:** In addition to the 7 primary chakras of the traditional system, 6 secondary nodes exist at the intermediate cascade steps ($n = 144, 148, 152, 156, 160, 164$). These secondary chakras are structurally identical to the primary ones (bubble geometry, $\varphi$-spacing, edge anisotropy) but span a narrower physical range because they sit closer to the lower-$n$ (denser) end of the cascade.
 
 **Test:** Search for physiological or subjective correlates at the predicted intermediate locations along the spine. The prediction identifies specific anatomical positions: the 6 secondary nodes lie exactly midway (in cascade-index space) between the traditional 7.
 
@@ -366,7 +366,7 @@ The specific sub-rung that a given chakra resonates with is determined by the Fi
 
 ### 10.4 $\varphi$-Periodic Spectral Signature
 
-**Prediction C4:** Any physiological signal that tracks Qi density along the spine—heart rate variability (HRV) coherence, skin conductance response, EEG/MEG source-localized to the brainstem/spinal axis—should show $\varphi$-periodic structure in its power spectrum. The period is $\Delta(\ln f) = \ln\varphi \approx 0.4812$ for frequency-domain signals, or $\Delta(\ln z) = 2\ln\varphi \approx 0.9624$ for signals parametrized by position along the spine.
+**Prediction CH4:** Any physiological signal that tracks Qi density along the spine—heart rate variability (HRV) coherence, skin conductance response, EEG/MEG source-localized to the brainstem/spinal axis—should show $\varphi$-periodic structure in its power spectrum. The period is $\Delta(\ln f) = \ln\varphi \approx 0.4812$ for frequency-domain signals, or $\Delta(\ln z) = 2\ln\varphi \approx 0.9624$ for signals parametrized by position along the spine.
 
 **Test:** Collect physiological time series during meditative or resting states. Compute the power spectrum and search for log-periodic modulation at the predicted periods. Subtract any broadband $1/f$ background.
 
@@ -374,7 +374,7 @@ The specific sub-rung that a given chakra resonates with is determined by the Fi
 
 ### 10.5 Qi-Gate Signature Across the Chakra Boundary
 
-**Prediction C5:** A nonlinear threshold response exists at each chakra boundary. Stimulation below a critical coherence threshold ($q < q_{\text{edge}}$) produces no resonant chakra activation; stimulation above the threshold produces a step-like increase in measured coherence. The threshold $q_{\text{edge}} = (1+\theta_{\text{cond}})/2$ is predicted to be in the range 0.5–0.85, with a best estimate of $\sim 0.725$ (from the cosmological $\theta_{\text{cond}} \approx 0.45$).
+**Prediction CH5:** A nonlinear threshold response exists at each chakra boundary. Stimulation below a critical coherence threshold ($q < q_{\text{edge}}$) produces no resonant chakra activation; stimulation above the threshold produces a step-like increase in measured coherence. The threshold $q_{\text{edge}} = (1+\theta_{\text{cond}})/2$ is predicted to be in the range 0.5–0.85, with a best estimate of $\sim 0.725$ (from the cosmological $\theta_{\text{cond}} \approx 0.45$).
 
 **Test:** Apply controlled vibratory, acoustic, or electromagnetic stimulation at a chakra site, varying the stimulus amplitude while measuring a coherence correlate (HRV, EEG phase synchrony, or subjective report). The response should show a threshold nonlinearity, not a linear dose-response curve.
 
@@ -409,7 +409,7 @@ The specific sub-rung that a given chakra resonates with is determined by the Fi
 
 - That the chakras are physical organs detectable by dissection or standard medical imaging
 - That the 13-node count supersedes or invalidates traditional systems with different counts
-- That chakra activation has been experimentally demonstrated under the specific protocols of Predictions C1–C5
+- That chakra activation has been experimentally demonstrated under the specific protocols of Predictions CH1–CH5
 
 ---
 

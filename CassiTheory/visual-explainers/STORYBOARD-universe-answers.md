@@ -202,7 +202,7 @@ $$
 \qquad
 n \in \mathbb{Z},
 \qquad
-\boxed{292 \text{ rungs from Planck to the cosmic horizon}}
+\boxed{292 \text{ rungs from Planck to today's horizon rung}}
 $$
 
 **The fundamental:**
@@ -369,7 +369,7 @@ w = 5,
 \qquad
 g = 1 - \varphi^{-5},
 \qquad
-\lambda_Y = \ell_{\text{bubble}},\; \lambda_I = \ell_{\text{bubble}}/\varphi,
+\Lambda_Y = \ell_{\text{bubble}},\; \Lambda_I = \ell_{\text{bubble}}/\varphi,
 \qquad
 \boxed{w = 5 \text{—the only stable polygon}}
 $$
@@ -395,15 +395,15 @@ gold‑edged with indigo interiors. A gold axis—the string or chord—runs
 vertically through the staggered columns, connecting each bubble to its
 axial neighbors. The two perpendicular directions in the bubble plane plus
 the connecting axis produce exactly three spatial dimensions. A small inset
-shows the 2D interference function $C(x,y) = \cos(2\pi x/\lambda_Y)\cos(2\pi y/\lambda_I)$
+shows the 2D interference function $C(x,y) = \cos(2\pi x/\Lambda_Y)\cos(2\pi y/\Lambda_I)$
 that generates the lattice.
 
 **Generating equations (on‑panel):**
 
 $$
-C(x,y) = \cos\!\left(\frac{2\pi x}{\lambda_Y}\right)\cos\!\left(\frac{2\pi y}{\lambda_I}\right),
+C(x,y) = \cos\!\left(\frac{2\pi x}{\Lambda_Y}\right)\cos\!\left(\frac{2\pi y}{\Lambda_I}\right),
 \qquad
-\lambda_I = \lambda_Y/\varphi,
+\Lambda_I = \Lambda_Y/\varphi,
 \qquad
 \boxed{\text{Three dimensions} = \text{Frenet-Serret frame: } \mathbf{T}, \mathbf{N}, \mathbf{B}}
 $$
@@ -435,7 +435,7 @@ toward the void than toward the neighboring bubble.
 **Generating equations (on‑panel):**
 
 $$
-C(x,y) = \cos(2\pi x/\lambda_Y)\cos(2\pi y/\lambda_I),
+C(x,y) = \cos(2\pi x/\Lambda_Y)\cos(2\pi y/\Lambda_I),
 \qquad
 C_{\text{axial}} = -1\;(q=0),\;
 C_{\text{diag}} = 0,

@@ -85,7 +85,7 @@ The electroweak cascade depth $N \approx 80$ is robust against variations in the
 | **267** | **$9.3 \times 10^{20}$** | **Milky Way diameter** ($\sim 30$ kpc) | Galactic |
 | 275 | $4.8 \times 10^{22}$ | Local Group ($\sim 1.6$ Mpc) | Extragalactic |
 | 280 | $5.3 \times 10^{23}$ | Cosmic void scale ($\sim 17$ Mpc) | Extragalactic |
-| **284** | **$3.6 \times 10^{24}$** | **Yin wake of rung 285** ($\lambda_I = \ell_{285}/\varphi$; old “BAO ~120 Mpc” label—the measured ruler sits at the 284.5 half-step, 150 Mpc) | Cosmological |
+| **284** | **$3.6 \times 10^{24}$** | **Yin wake of rung 285** ($\Lambda_I = \ell_{285}/\varphi$; old “BAO ~120 Mpc” label—the measured ruler sits at the 284.5 half-step, 150 Mpc) | Cosmological |
 | **285** | **$5.9 \times 10^{24}$** | **Cassi bubble** ($\sim 191$ Mpc) | Multiverse |
 | 288 | $2.5 \times 10^{25}$ | Supercluster scale ($\sim 800$ Mpc) | Cosmological |
 | 290 | $6.5 \times 10^{25}$ | Horizon at recombination ($\sim 2.1$ Gpc) | Cosmological |
@@ -169,7 +169,7 @@ The bubble at step 285 is the coherence length of the Wu Xing number $w$—the s
 - Contains: $\sim 10^6$ Milky-Way-sized galaxies
 - Adjacent bubbles: identical $w=5$, arranged at $\varphi$-spaced intervals in the chord lattice. Separated by voids at $C=-1$ sites of the condensation field (`visual-explainers/chord_lattice.py`).
 
-The bubble is nearly degenerate with the BAO scale, but the measured sound horizon sits at the *half-step* between the two cells: $r_d = 147.1$ Mpc (DESI/Planck) corresponds to $n = 284.46$ in $\ell_n = \ell_{\text{Pl}}\varphi^n$, and $\ell_{284.5} = \sqrt{\ell_{284}\ell_{285}} = 150.0$ Mpc (+1.98%—a structural anchor within 2%). Step 284 (117.9 Mpc) is the Yin wake wavelength of the rung-285 lattice ($\lambda_I^{(285)} = \ell_{285}/\varphi$); the older “BAO scale ~120 Mpc” label is that Yin period, not the measured ruler. The wake wave modulation in $P(k)$ therefore sits adjacent to the BAO feature—entangled but separable through their different period structures (fixed scale vs. fixed ratio). See `cosmology/desi-lattice-averaging.md` §3.
+The bubble is nearly degenerate with the BAO scale, but the measured sound horizon sits at the *half-step* between the two cells: $r_d = 147.1$ Mpc (DESI/Planck) corresponds to $n = 284.46$ in $\ell_n = \ell_{\text{Pl}}\varphi^n$, and $\ell_{284.5} = \sqrt{\ell_{284}\ell_{285}} = 150.0$ Mpc (+1.98%—a structural anchor within 2%). Step 284 (117.9 Mpc) is the Yin wake wavelength of the rung-285 lattice ($\Lambda_I^{(285)} = \ell_{285}/\varphi$); the older “BAO scale ~120 Mpc” label is that Yin period, not the measured ruler. The wake wave modulation in $P(k)$ therefore sits adjacent to the BAO feature—entangled but separable through their different period structures (fixed scale vs. fixed ratio). See `cosmology/desi-lattice-averaging.md` §3.
 
 ---
 

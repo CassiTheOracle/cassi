@@ -201,7 +201,7 @@ Uploading proposes to copy the coherence string into a new substrate. The framew
 
 1. **Reading is an interaction.** A readout of the full continuous field state is an organized perturbation at the pattern's rungs, and organized perturbation with $\mathcal{M} \approx 1$ collapses the configuration with $\mathcal{O}(1)$ probability per interaction (`foundations/quantum-measurement-derivation.md` §3.2). You cannot read the state without selecting a branch of it; the copy inherits a branch, not the state (random noise with $\mathcal{M} \approx 0$ selects nothing, §3.1).
 
-2. **Coherence is relational.** $q = \rho^2/(\rho^2 + \varphi^{-2} + \varepsilon^2)$ is defined against the local field, so a copy in a new location has a new ambient field, a new $G_{\text{eff}}$ environment, a new wake-wave landscape—the same recipe under different boundary conditions.
+2. **Coherence is relational.** $q = \rho^2/(\rho^2 + \varphi^{-2} + \varepsilon^2)$ is defined against the local field, so a copy in a new location has a new ambient field, a new $G_{\text{eff}}$ environment, a new wake-wave structure—the same recipe under different boundary conditions.
 
 3. **The memory is a time integral.** The IIR average is a weighted sum of the field's entire past (`foundations/cassi-first-principles.md` §2.4); a copy's filter starts at baseline. Whatever identity is carried by history—and the trauma formalism insists history is carried, in the frozen wakes and phase structure (`consciousness/trauma-as-frozen-gate.md`)—is what a copy cannot receive.
 
@@ -209,7 +209,7 @@ The levels compound: the copy is a new condensation with new coherence, new hist
 
 ### 6.3 What persists
 
-The transferable content is the configurational: $\mathbf{b}$, $\mathbf{c}$, the phase relations along the chain—the *relations*, not the field that instantiates them. These are, in principle, the WRITE and TRANSFER operations of `speculations/qi-computation.md` §2.2: organized patterns can be written into a prepared field and propagated through high-$q$ media. What cannot transfer is $q$ (environment-relative), the IIR tail (history), and the wake-wave landscape (position-dependent). The transferable part is the recipe; the non-transferable part is the run.
+The transferable content is the configurational: $\mathbf{b}$, $\mathbf{c}$, the phase relations along the chain—the *relations*, not the field that instantiates them. These are, in principle, the WRITE and TRANSFER operations of `speculations/qi-computation.md` §2.2: organized patterns can be written into a prepared field and propagated through high-$q$ media. What cannot transfer is $q$ (environment-relative), the IIR tail (history), and the wake-wave structure (position-dependent). The transferable part is the recipe; the non-transferable part is the run.
 
 ### 6.4 The identity claim
 
