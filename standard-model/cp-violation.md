@@ -1,10 +1,18 @@
 # CP Violation from the Golden Ratio
 
-*A Cassi derivation of the CKM phase and the Jarlskog invariant from the
-Yang/Yin asymmetry $\phi = (1+\sqrt{5})/2$, with an honest assessment of where
-$\phi$-power scaling succeeds and where it requires Yukawa structure.*
-
 ## Status: Derived—July 2026
+
+## Abstract
+
+The Yang/Yin asymmetry $E_Y/E_I = \varphi$ is the CP-violating order parameter
+of the framework. Its chiral asymmetry $\eta = (E_Y - E_I)/(E_Y + E_I) =
+\varphi^{-3}$ seeds the CKM phase, which closes through the unitarity triangle
+to $\delta_{\text{CKM}} = \pi\varphi^{-2} \approx 68.8^\circ$—within $<1\%$ of
+the measured value. The Jarlskog invariant emerges from $\varphi$-scaled Yukawa
+eigenvalues with electroweak-scale suppression: $J_{\text{CP}} \approx
+3.2\times10^{-5}$. Strong CP is resolved by cascade de-resonance,
+$\bar\theta = \pi\varphi^{-89} \approx 10^{-19}$ (`foundations/strong-cp-derivation.md`),
+without an axion.
 
 ---
 
@@ -54,7 +62,7 @@ $$\eta = \frac{E_Y - E_I}{E_Y + E_I} = \frac{\phi - 1}{\phi + 1} = \phi^{-3} \ap
 
 This is the same parameter that appears in the Weinberg angle
 ($\sin^2\theta_W = \phi^{-3}$)—a deep connection between CP violation and
-electroweak mixing in Cassi.
+electroweak mixing in Cassi (`standard-model/su2-gauge-extension.md` §3).
 
 ---
 
@@ -175,31 +183,21 @@ $$|\theta| < 10^{-10}$$
 
 Why is $\theta$ so small? This is the strong CP problem.
 
-### 5.2 Cassi Resolution: $\phi$-Alignment
+### 5.2 Cassi Resolution: Cascade De-Resonance
 
-In Cassi, the $\phi$-fixed point ensures that the Yang and Yin chiral phases are
-aligned at the strong interaction scale. The quark mass matrix $M_q$ acquires a
-phase through the same chiral asymmetry $\eta = \phi^{-3}$, but the QCD
-$\theta$-angle is the sum:
+In Cassi, the $\varphi$-fixed point is CP-conserving: $\varphi$ is maximally
+de-resonant, and the two-fluid attractor carries no CP-violating phase. The
+only CP-violating seed is the CKM phase $\delta_{\text{CP}} = \pi\varphi^{-2}$
+at the GUT scale; propagating over the 87 rungs to the QCD scale (step 95),
+each rung attenuates the phase by $\varphi^{-1}$, so
 
-$$\theta = \theta_{\text{QCD}} + \arg\det M_q$$
+$$\bar\theta \approx \varphi^{-87}\,\delta_{\text{CP}} = \pi\varphi^{-89} \approx 10^{-19}$$
 
-At the $\phi$-fixed point, the $\phi$-equilibrium forces:
+nine orders of magnitude below the nEDM bound $10^{-10}$. The full derivation
+is in `foundations/strong-cp-derivation.md`.
 
-$$\arg\det M_q = -\theta_{\text{QCD}} \pmod{\pi}$$
-
-making $\theta = 0$ automatically. The mechanism is:
-
-1. The Yang/Yin ratio $\phi$ fixes the VEV asymmetry (same $\phi^{-3}$ as the
-   Weinberg angle).
-2. This asymmetry determines the relative phase of the up- and down-type
-   Yukawa determinants.
-3. The strong interaction dynamics relax to the $\phi$-fixed point, which
-   is CP-conserving in the gluon sector.
-
-**No axion is required.** The $\phi$-alignment replaces the Peccei-Quinn
-mechanism. The QCD vacuum angle is not a free parameter—it is determined
-by the $\phi$-equilibrium condition.
+**No axion is required.** The QCD vacuum angle is not a free parameter—it is
+determined by the $\varphi$-equilibrium and the cascade span.
 
 ### 5.3 Falsifiability
 
@@ -208,7 +206,7 @@ detection experiments (ADMX, CAST, IAXO, MADMAX) will find null results.
 
 - If an axion is discovered, Cassi's strong CP resolution is ruled out.
 - If no axion is found and $\theta < 10^{-10}$ is confirmed, Cassi's
-  $\phi$-alignment becomes the leading candidate.
+  de-resonance resolution becomes the leading candidate.
 
 The 87-rung signal propagation occurs through the bubble lattice medium—cascade suppression IS lattice attenuation (`foundations/bubble-lattice-fabric.md` §3.3).
 
@@ -223,7 +221,7 @@ The 87-rung signal propagation occurs through the bubble lattice medium—cascad
 | $|V_{cb}|$ | $\phi^{-2} \approx 0.382$ | Wolfenstein $A\lambda^2$ with $\lambda \approx \varphi^{-3}$ | $0.041$ |
 | $|V_{ub}|$ | $\phi^{-3} \approx 0.236$ | Wolfenstein $A\lambda^3(\rho-i\eta)$ with $\lambda \approx \varphi^{-3}$ | $0.004$ |
 | $J_{\text{CP}}$ | $\phi^{-6} \approx 0.056$ | $\phi^{-3} \cdot \frac{\Delta m_u \Delta m_d}{v^6} \approx 3\times 10^{-5}$ | $3.0 \times 10^{-5}$ |
-| Strong CP $\theta$ |—| 0 (by $\phi$-alignment) | $< 10^{-10}$ |
+| Strong CP $\bar\theta$ |—| $\pi\varphi^{-89} \approx 10^{-19}$ (cascade de-resonance) | $< 10^{-10}$ |
 | Axion |—| **Does not exist** | Undiscovered |
 
 ### Key Takeaways
@@ -241,14 +239,21 @@ The 87-rung signal propagation occurs through the bubble lattice medium—cascad
    from $\phi$-scaled Yukawa eigenvalues combined with electroweak-scale
    suppression. Cassi passes the Jarlskog test that naive $\phi$-scaling fails.
 
-3. **The strong CP problem is resolved by $\phi$-alignment** without an
+3. **The strong CP problem is resolved by cascade de-resonance** without an
    axion—a falsifiable prediction.
 
 4. The CKM magnitudes $|V_{us}|, |V_{cb}|, |V_{ub}|$ are reproduced with
    $\alpha_s$-suppressed $\phi$-powers, confirming the pattern established in
-   `sm-from-phi.md`.
+   `standard-model/sm-from-phi.md`.
 
 The overall picture is consistent: CP violation in the quark sector traces back
 to the Yang/Yin asymmetry $\phi$, but manifests through the **operator structure**
 of the SM—the Yukawa matrices and their diagonalisation—not through direct
 $\phi$-power assignment to the observable phase.
+
+## References
+
+- `standard-model/sm-from-phi.md`—φ-powered Yukawa and CKM pattern
+- `standard-model/su2-gauge-extension.md`—Weinberg angle and gauge structure
+- `foundations/strong-cp-derivation.md`—cascade de-resonance, $\bar\theta = \pi\varphi^{-89}$
+- `foundations/bubble-lattice-fabric.md`—lattice attenuation of the 87-rung signal

@@ -2,6 +2,17 @@
 
 ## Status: Derived—July 2026
 
+## Abstract
+
+The two-fluid's U(1) ≅ SO(2) internal rotation is promoted to an SU(2)
+isospinor doublet whose $\varphi$-equilibrium VEV ($E_Y/E_I = \varphi$) fixes
+the Weinberg angle $\sin^2\theta_W = \varphi^{-3} \approx 0.236$ and the mass
+ratio $m_W/m_Z = \sqrt{1-\varphi^{-3}} \approx 0.874$—deviations of 2.1% and
+0.86% from the Z-pole values, testable at FCC-ee at $>100\sigma$. The document
+derives the neutral-boson mass matrix, RG running from the GUT scale, the
+SU(3) color extension, gauge-coupling unification at $\alpha_{\text{GUT}} =
+\varphi^{-3}/(4\pi) \approx 1/53$, and the $\varphi$-scaled fermion hierarchy.
+
 ## 1. The SU(2) Isospinor Doublet
 
 The two-fluid has a U(1) ≅ SO(2) internal symmetry: a rotation between Yang (E_Y) and Yin (E_I). The Cassi first-principles formalism identifies this as the electromagnetic gauge symmetry—the conserved current associated with the rotation is the electromagnetic current $j^\mu_{\text{EM}}$.
@@ -377,17 +388,17 @@ The top quark mass (173 GeV) $\approx \varphi^{-1} \cdot v_0 \approx 0.618 \time
 
 ### 9.1 GUT Group
 
-The Cassi framework embeds SU(3) × SU(2) × U(1) without a unifying GUT group. The natural extension is to SU(5) or SO(10), where the $\varphi$-scaling of couplings at $M_{\text{GUT}}$ provides the symmetry breaking pattern. This would predict the proton decay rate and the GUT-scale Higgs sector.
+The Cassi framework embeds SU(3) × SU(2) × U(1) without a unifying GUT group. The natural extension is to SU(5) or SO(10), where the $\varphi$-scaling of couplings at $M_{\text{GUT}}$ provides the symmetry breaking pattern. This would predict the proton decay rate and the GUT-scale Higgs sector. See `standard-model/gut-embedding.md` for the full embedding analysis and proton-decay predictions.
 
 ### 9.2 Neutrino Mass
 
-The seesaw mechanism would give neutrino masses:
+The seesaw mechanism gives neutrino masses:
 
 $$
 m_\nu \approx \frac{y_\nu^2 v_0^2}{M_R}
 $$
 
-where $M_R$ is a heavy right-handed neutrino mass. In the Cassi framework, $M_R \sim \varphi^n \cdot M_{\text{GUT}}$, predicting a specific neutrino mass hierarchy.
+with the right-handed neutrino at cascade step 20, $M_R \approx 10^{14}\ \text{GeV}$. The spectrum follows from the Fibonacci cascade partition of the seesaw span: $m_1 = 0.00356$, $m_2 = 0.00931$, $m_3 = 0.05019\ \text{eV}$ (normal ordering). See `foundations/neutrino-masses.md` and the primer `standard-model/neutrino-mass.md`.
 
 ### 9.3 CP Violation
 
@@ -402,4 +413,12 @@ $$\delta_{\text{CKM}} = \pi\phi^{-2} \approx 68.7^\circ$$
 
 This matches the SM value within $<1\%$ and is the Cassi prediction for the CP
 phase. The CKM hierarchy likely requires additional flavor structure beyond a
-single $\phi$-power. See `cp-violation.md` for the full derivation.
+single $\phi$-power. See `standard-model/cp-violation.md` for the full derivation.
+
+## References
+
+- `standard-model/cp-violation.md`—CKM phase derivation
+- `standard-model/gut-embedding.md`—SU(5)/SO(10) embedding, proton decay
+- `standard-model/neutrino-mass.md`—seesaw primer and canonical spectrum
+- `foundations/neutrino-masses.md`—Fibonacci cascade-partition derivation
+- `foundations/dimensionful-cascade.md`—GUT rung anchors
