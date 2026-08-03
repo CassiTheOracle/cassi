@@ -14,7 +14,7 @@ The Cassi framework's cosmological initial conditions depend on a single dimensi
 
 - The primordial gap: $g = 1 - \varphi^{-w}$
 - The primordial Yang-Yin ratio: $r_0 = (1-g)/(1+g) = \varphi^{-w}/(2 - \varphi^{-w})$
-- The dark energy equation of state: $w_0$ (derived from $r_0$ via the PDE, matches DESI DR2 at $0.3\sigma$ for $w=5$)
+- The dark energy equation of state: $w_0 = -0.87$ (derived from $r_0$ via the PDE), $2\sigma$ from DESI $\approx -0.75 \pm 0.06$
 
 Geometric candidates for $w = 5$ include (`computations/pinch_point_modes.py`):
 1. Elliptical cavity mode bands (threshold-dependent, does not enforce exactly 5)
@@ -142,7 +142,7 @@ Equivalently: $E_I/E_Y = 1/r_0 \approx 21.2$. Yin dominates Yang by a factor of 
 
 ### 5.3 Observable Consequences
 
-- **Dark energy equation of state:** $w_0 = -0.87$ (from PDE integration with $r_0$; corrected 2026-07-31—the earlier $-0.856$ “matching at 0.3σ” was measured against the repo's own calibration target), $2\sigma$ from DESI $\approx -0.75 \pm 0.06$ [INFERENCE]
+- **Dark energy equation of state:** $w_0 = -0.87$ (from PDE integration with $r_0$), $2\sigma$ from DESI $\approx -0.75 \pm 0.06$ [INFERENCE]
 - **Baryon asymmetry:** The gap $g = 1 - \varphi^{-5}$ sets the Yang-Yin imbalance at GUT freeze-out, which seeds the matter-antimatter asymmetry
 - **Cascade depth:** $N \approx 292$ follows from $H(r)$ dynamics + cosmic age, with $r_0$ as the initial condition
 
@@ -170,10 +170,10 @@ Equivalently: $E_I/E_Y = 1/r_0 \approx 21.2$. Yin dominates Yang by a factor of 
 
 - `foundations/cascade-suppression-formula.md`—per-rung attenuation $\varphi^{-1}$, signal regime
 - `foundations/dimensionful-cascade.md`—cascade table, step 5 (GUT), step 285 (Cassi bubble)
-- `foundations/dimensionful-constants-status.md`—prior status of $w = 5$ as Hypothesized
+- `foundations/dimensionful-constants-status.md`—status of $w = 5$
 - `computations/pinch_point_modes.py`—Candidate 2: Fibonacci convergent hierarchy
 - `foundations/spiral-dynamics.md`—Hubble, gravity, and $c$ from spiral geometry
 - `principles/de-resonance-principle.md`—$\varphi$ as maximally irrational
-- `parameter-inventory.md`—$r_0$ classification (updated to Derived)
-- `open-questions-cassi-answers.md`—$r_{\text{Planck}}$ entry (updated)
+- `parameter-inventory.md`—$r_0$ classification (Derived)
+- `open-questions-cassi-answers.md`—$r_{\text{Planck}}$ entry
 - `cassi-physics.md`—gap derivation

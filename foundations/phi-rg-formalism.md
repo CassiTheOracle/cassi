@@ -181,7 +181,7 @@ The φ-RG interpretation: $\sin^2\theta_W$ is an IR value of the RG trajectory f
 
 ### 4.3 Qi-Gravity Coupling $\xi = \varphi^6$
 
-From `xi-derivation.md`, the Qi-gravity coupling $\xi = \varphi^6$ emerges from the dimensional reduction of the 4D two-fluid action to the 3D effective potential. In φ-RG language:
+From `foundations/xi-derivation.md`, the Qi-gravity coupling $\xi = \varphi^6$ emerges from the dimensional reduction of the 4D two-fluid action to the 3D effective potential. In φ-RG language:
 
 The gravitational coupling $G_{\text{eff}}(k) = (\pi/\rho)(1 + \xi q(k)) G$ has two fixed-point values:
 
@@ -275,7 +275,7 @@ where $\gamma_v$ is the anomalous dimension of the Higgs field. The observed rat
 
 $$N_{\text{eff}} \cdot \gamma_v \approx -80$$
 
-where $N_{\text{eff}}$ is the number of φ-steps between $M_{\text{Pl}}$ and $v_0$. For $N_{\text{eff}} \approx 287$ (from O3, the CC hierarchy):
+where $N_{\text{eff}}$ is the number of φ-steps between $M_{\text{Pl}}$ and $v_0$. For $N_{\text{eff}} \approx 287$ (the CC hierarchy):
 
 $$\gamma_v \approx -80/287 \approx -0.279$$
 
@@ -342,9 +342,9 @@ The φ-RG formalization provides the missing field-theoretic foundation for the 
 ## References
 
 - `principles/de-resonance-principle.md`—empirical pattern of φ-power corrections
-- `xi-derivation.md`—derivation of $\xi = \varphi^6$ from dimensional reduction
+- `foundations/xi-derivation.md`—derivation of $\xi = \varphi^6$ from dimensional reduction
 - `standard-model/sm-from-phi.md`—Standard Model parameters from φ
 - `foundations/cassi-first-principles.md`—self-predictive wave equation and critical coupling
 - `(external—see archive/theory/qi-fluid-formalism.md in physics repo)`—no-fixed-point theorem ($\alpha \geq \varphi^{-1}$, $S \neq 0$)
-- `parameter-inventory.md`—honest accounting of derived vs. external parameters
+- `parameter-inventory.md`—accurate accounting of derived vs. external parameters
 - `turbulence/kolmogorov-from-phi.md`—φ-RG applied to turbulence (φ-break scale)

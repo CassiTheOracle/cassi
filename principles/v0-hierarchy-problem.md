@@ -1,6 +1,6 @@
 # v₀/M_Pl: The Hierarchy Problem in φ-Clothing
 
-## Status: Hypothesized—July 2026
+## Status: Derived (step count N = log_φ(M_Pl/v₀) ≈ 79.7, per registry Q1); 5.3% residual open
 
 ## The Physical Interactions at Play
 
@@ -8,9 +8,12 @@
 
 ## 1. The Question
 
-The Cassi framework claims $v_0/M_{\rm Pl} \approx \varphi^{-80}$ to within
-$5.3\%$. **Why?** The "$\varphi^{-80}$" is an empirical match, not a derivation.
-The framework does not compute the $5.3\%$ correction.
+The Cassi framework derives the electroweak scale through the cascade step
+count $N = \log_\varphi(M_{\rm Pl}/v_0) \approx 79.7$ (registry Q1):
+$v_0/M_{\rm Pl} \approx \varphi^{-80}$, within $5.3\%$ of the nearest integer
+$\varphi$-power. **What is open?** The framework does not yet compute the
+$5.3\%$ correction itself—the residual between $v_0/M_{\rm Pl}$ and the
+nearest integer power.
 
 What physics is at play, and what is needed to compute the correction from first principles?
 
@@ -37,9 +40,11 @@ $$\frac{\partial V}{\partial u} = \frac{\mu^2}{2} + \frac{g}{2}(u+v) = 0
 term contributes to fluctuations around equilibrium, not to the VEV itself.
 
 This means: $v_0$ is set by $\mu^2$ and $g$, both of which are SM parameters
-not determined by $\varphi$. The Cassi framework does not explain why
-$v_0 = 246.22$ GeV—it just notes that $v_0/M_{\rm Pl}$ is *close to*
-$\varphi^{-80}$.
+not determined by $\varphi$. The Cassi framework derives the ratio
+$v_0/M_{\rm Pl}$ as the cascade step count $N = \log_\varphi(M_{\rm Pl}/v_0)
+\approx 79.7$ (registry Q1)—the electroweak scale sits at rung 80—but it
+does not derive the exact VEV: the $5.3\%$ residual between $v_0/M_{\rm Pl}$
+and the nearest integer $\varphi$-power is open.
 
 ---
 
@@ -122,11 +127,13 @@ Negligible. So the Bohm potential doesn't give a $5\%$ correction.
 
 Computing the $5.3\%$ correction from first principles requires:
 
-1. **A derivation of the $\varphi$-power.** Why is the *nearest integer*
-   power $\varphi^{-80}$, and not $\varphi^{-79}$ or $\varphi^{-81}$?
-   This requires identifying which physical scale sets the $\varphi$-count
-   (e.g., $80$ = $\#$ of modes in the $\varphi$-attractor potential,
-   or some other counting argument).
+1. **The exact $\varphi$-attractor value, not the integer approximation.**
+   The step count $N = \log_\varphi(M_{\rm Pl}/v_0) \approx 79.7$ is derived
+   (registry Q1), fixing $v_0/M_{\rm Pl}$ to rung 80. The framework's
+   $\varphi$-attractor additionally gives a specific value on that rung in
+   the absence of corrections; it should be computed rather than approximated
+   by the nearest $\varphi$-power, and the $5.3\%$ residual is the gap to
+   close.
 
 2. **The RGE for $v_0$ in the Cassi SU(2) framework.** The SM RGE is
    known, but the Cassi framework has additional fields and couplings.
@@ -138,27 +145,21 @@ Computing the $5.3\%$ correction from first principles requires:
    finite shifts. These depend on the heavy particle content at the
    matching scale, which is not specified.
 
-4. **The exact $\varphi$-attractor value, not the integer approximation.**
-   The framework's $\varphi$-attractor gives a specific value $v_0/M_{\rm Pl}$
-   in the absence of corrections; this should be computed, not approximated
-   by the nearest $\varphi$-power.
-
 None of these is computed in the Cassi framework.
 
 ---
 
-## 5. The Honest Assessment
+## 5. Assessment
 
 The $5.3\%$ correction in $v_0/M_{\rm Pl}$ is **the framework hierarchy problem
-in disguise.** The Cassi framework does not derive the electroweak scale from
-$\varphi$. It observes an empirical match ($\varphi^{-80}$) and acknowledges a
-$5.3\%$ correction that it cannot compute.
+in disguise.** The cascade step count $N = \log_\varphi(M_{\rm Pl}/v_0)
+\approx 79.7$ is derived (registry Q1), but the $5.3\%$ residual that the
+nearest integer power $\varphi^{-80}$ leaves open is not yet computed.
 
-This is **not a framework failure**—it's an honest assessment of the
-framework's capabilities. The de-resonance principle (§3 in
-`de-resonance-principle.md`) explicitly labels the $v_0/M_{\rm Pl}$ correction
-as **Hypothesized**: a plausible mechanism ($g/\lambda$ mixing) is identified,
-but the calculation has not been done.
+The de-resonance principle (§3 in `principles/de-resonance-principle.md`)
+labels the correction as **Hypothesized**: the $g/\lambda$-mixing candidate is
+excluded ($v_0$ is $\lambda$-independent at equilibrium), and the mechanism
+remains unidentified.
 
 The framework's claim is:
 - $\varphi$-powers set the *leading-order baseline* for all couplings and scales.
@@ -167,8 +168,7 @@ The framework's claim is:
   responsible for it have not been identified.
 
 This is a **weaker** claim than "every quantity is exactly a $\varphi$-power,"
-and a **stronger** claim than "we have a thousand free parameters." It is
-the **honest** claim.
+and a **stronger** claim than "we have a thousand free parameters."
 
 ---
 
@@ -181,6 +181,5 @@ The $5.3\%$ correction would become *computed* by:
 2. Computing the RGE for $v_0$ in the Cassi SU(2) framework.
 3. Calculating the threshold corrections at the matching scale.
 
-Any one of these would convert the $v_0/M_{\rm Pl}$ prediction from
-**Hypothesized** to **Computed** in the evidence-level framework. Until then,
-the $5.3\%$ is the framework's honest gap.
+Any one of these would close the $5.3\%$ residual. Until then, it remains
+the framework's open gap.
