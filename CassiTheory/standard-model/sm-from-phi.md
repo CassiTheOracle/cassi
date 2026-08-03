@@ -1,9 +1,17 @@
 # Standard Model from φ
 
-*A rigorous derivation of electroweak symmetry breaking, gauge structure, and
-fermion masses from the Cassi golden ratio φ = (1+√5)/2.*
-
 ## Status: Derived—July 2026
+
+## Abstract
+
+The Standard Model's structure follows from the Cassi golden ratio $\varphi$:
+the gauge groups arise from successive truncations of the continued fraction
+$[1; 1, 1, 1, \ldots]$, the Weinberg angle is the Yang/Yin VEV asymmetry
+$\sin^2\theta_W = \varphi^{-3} \approx 0.236$, and fermion masses follow a
+$\varphi$-powered Yukawa hierarchy. This document derives the
+symmetry-breaking chain, the Higgs mechanism at the $\varphi$-point, quark
+confinement from Qi coherence, and the CKM phase, and tabulates the
+falsifiable predictions.
 
 ---
 
@@ -15,6 +23,9 @@ in the φ structure of the isospinor field Ψ = (ψ_Y, ψ_I)^T:
 ```
 SU(4) ──→ SU(3)_C × U(1)_B-L ──→ SU(3)_C × SU(2)_L × U(1)_Y ──→ U(1)_EM
 ```
+
+The grand-unified embedding of this chain—SU(5) and SO(10) completions,
+GUT-scale proton decay—is developed in `standard-model/gut-embedding.md`.
 
 ### 1.1 Generator Counting from φ
 
@@ -203,30 +214,23 @@ $|V_{cb}| \sim \lambda^2$, $|V_{ub}| \sim \lambda^3$ with $\lambda \approx
 0.225$. The nearest $\varphi$ match is $\lambda \approx \varphi^{-3}
 \approx 0.236$ ($5\%$ off), suggesting running or mixing corrections.
 The CP phase is derived independently: $\delta_{\text{CKM}} = \pi\varphi^{-2}
-\approx 1.199$ rad (see `cp-violation.md`).
+\approx 1.199$ rad (see `standard-model/cp-violation.md`).
 
 ### 4.3 Neutrino Masses
 
+Neutrino masses come from the seesaw mechanism, $m_\nu = y_\nu^2 v_0^2 / M_R$,
+with the right-handed neutrino at cascade step 20, $M_R \approx 10^{14}\ \text{GeV}$
+(`foundations/dimensionful-cascade.md`). Two naive $\varphi$-powers (one for
+$y_\nu$, one for $M_R$) would leave a degenerate two-parameter family, but the
+cascade RGE + PMNS computation (`computations/cascade_rge_pmns.py`) resolves
+it: the compressed seesaw span partitions into Fibonacci sub-rungs with
+offsets $\Delta_1 = 1.00$ and $\Delta_2 = 1.75$ rungs, giving the spectrum
 
-Neutrino masses are not cleanly derivable from $\varphi$ alone. The seesaw
-mechanism gives $m_\nu = y_\nu^2 v_0^2 / M_R$ where $y_\nu$ is the Dirac
-Yukawa and $M_R$ is the right-handed neutrino mass. Both parameters are
-independent $\varphi$ powers, producing a two-parameter family:
+$$m_1 = 0.00356\ \text{eV},\qquad m_2 = 0.00931\ \text{eV},\qquad m_3 = 0.05019\ \text{eV}$$
 
-$$m_{\nu_e} \approx \frac{\varphi^{-2n_y} \cdot v_0^2}
-                       {\varphi^{-n_R} \cdot M_{\text{Pl}}}
-               = \varphi^{-(2n_y - n_R)} \cdot \frac{v_0^2}{M_{\text{Pl}}}$$
-
-For the observed $m_\nu \sim 0.01$ eV with $v_0^2/M_{\text{Pl}} \sim
-5\times10^{-6}$ eV, the constraint $2n_y - n_R \approx 16$ emerges. This can be satisfied
-by many pairs $(n_y, n_R)$, e.g., $(n_y, n_R) = (26, 36)$ or $(20, 24)$.
-The framework cannot distinguish them without additional assumptions about
-the right-handed neutrino sector.
-
-**Status:** Neutrino masses and mixing angles require a dedicated right-handed
-neutrino sector whose $\varphi$-powers are not determined by the Standard Model
-extension alone. See the companion document `neutrino-mass.md` for the current
-bounds and UV completion scenarios.
+(normal ordering, no sterile neutrino). The full derivation is in
+`foundations/neutrino-masses.md`; the pedagogical primer is
+`standard-model/neutrino-mass.md`.
 
 ## 5. Full Lagrangian
 
@@ -299,10 +303,18 @@ forms—confinement. When $Q < \phi^{-1}$, chiral symmetry is restored.
 | $m_H$ | ~125 GeV | 125.2 GeV | Consistent |
 | $m_p$ | $\varphi^3 \cdot \Lambda_{\text{QCD}}$ | 938 MeV | Within ~10% |
 | $|V_{us}|$ | $\varphi^{-3} \approx 0.236$ (nearest $\varphi$ power) | 0.225 | $5\%$ off; mixing corrections needed |
-| $m_{\nu_e}$ | $y_e^2 v_0^2/M_R$ with $M_R \sim \varphi^{-14}M_{\text{Pl}}$ | $\lesssim 0.1\ \text{eV}$ | Consistent; seesaw scale $\sim 40$ TeV |
+| $m_{\nu_3}$ | $0.05019\ \text{eV}$ (cascade RGE + PMNS) | 0.050 | See `foundations/neutrino-masses.md` |
 
 The φ-structure predicts the overall pattern of SM parameters to within
 $\mathcal{O}(10\text{--}30\%)$, with quantitative agreement improving when
 φ-weighted loop corrections are included. The residual discrepancies point
 to the precise nature of the completion of the Standard Model at the
 φ-fixed point.
+
+## References
+
+- `standard-model/cp-violation.md`—CKM phase and Jarlskog invariant
+- `standard-model/gut-embedding.md`—SU(5)/SO(10) embedding, proton decay
+- `standard-model/neutrino-mass.md`—seesaw primer and canonical spectrum
+- `foundations/neutrino-masses.md`—canonical neutrino spectrum (cascade RGE + PMNS)
+- `foundations/dimensionful-cascade.md`—cascade rung anchors

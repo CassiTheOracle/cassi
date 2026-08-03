@@ -1,9 +1,18 @@
 # SU(5) / SO(10) GUT Embedding
 
-*A Cassi theory document exploring grand unification of the Standard Model gauge
-groups at the φ-fixed point.*
-
 ## Status: Hypothesized—July 2026
+
+## Abstract
+
+The Cassi symmetry-breaking chain SU(4) → SU(3)$_C$ × U(1)$_{B-L}$ →
+SU(3)$_C$ × SU(2)$_L$ × U(1)$_Y$ → U(1)$_{EM}$ is embedded at the φ-fixed
+point in the two minimal grand-unified groups. SU(5) (Georgi–Glashow) unifies
+one generation in $\mathbf{\bar{5}} \oplus \mathbf{10}$ with $\alpha_{\text{GUT}}
+= \varphi^{-3}/(4\pi) \approx 1/53$ and $M_{\text{GUT}} \approx 2\times10^{16}\ \text{GeV}$,
+predicting $\tau(p \to e^+\pi^0) \approx 4\times10^{34}\ \text{yr}$—within
+Hyper-Kamiokande reach. SO(10) adds the right-handed neutrino in the
+$\mathbf{16}$, giving a natural seesaw and a longer proton lifetime
+($10^{35}$–$10^{36}\ \text{yr}$).
 
 ---
 
@@ -329,3 +338,10 @@ beyond the reach of future experiments.
 | $\sin^2\theta_W(M_{\text{GUT}})$ | $\phi^{-3} \approx 0.236$ | Same | RG-extrapolated |
 | $\tau(p \to e^+ \pi^0)$ | $\mathbf{4 \times 10^{34}}\ \text{y}$ | $10^{35}{-}10^{36}\ \text{y}$ | Hyper-K: $\mathbf{>10^{35}}\ \text{y}$ |
 | $\nu$ masses | External seesaw | Natural seesaw | Oscillation experiments |
+
+## References
+
+- `standard-model/sm-from-phi.md`—φ-breaking chain and GUT-scale coupling
+- `standard-model/su2-gauge-extension.md`—gauge-coupling unification at $M_{\text{GUT}}$
+- `standard-model/neutrino-mass.md`—seesaw scale and canonical spectrum
+- `foundations/dimensionful-cascade.md`—GUT rung anchors (steps 5–10)
