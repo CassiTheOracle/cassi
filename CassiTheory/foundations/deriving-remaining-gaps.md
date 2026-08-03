@@ -1,6 +1,6 @@
 # Closing the Gaps: Derivation of Residual Parameters
 
-## Status: Four derivations, three resolved, one narrowed
+## Status: Assessment—August 2026. Four gap assessments: one narrowed, one open, one identified, one empirical
 
 The remaining underived quantities in the Cassi two-fluid framework are
 cataloged, classified, and bounded below. The goal is not to claim that every
@@ -95,61 +95,69 @@ The nearest integer exponents:
 
 The half-integer $n_e = 26.5$ gives $m_e = 0.504$ MeV ($-1.4\%$).
 
-### 2.2 The Half-Step Mechanism
+### 2.2 The Half-Integer Exponent Is a Fit, Not a Mechanism
 
-The exponent $26.5$ is not arbitrary—it is the **geometric mean** of adjacent
-cascade steps:
+The exponent $n_e = 26.5$ in §2.1 is **solved from the observed mass**—
+$n_e = \ln((v_0/\sqrt2)/m_e)/\ln\varphi$—so the 1.4% agreement at
+$\varphi^{-26.5}$ is a rearrangement of the input, not a prediction. The
+geometric-mean identity
 
 $$y_e = \sqrt{\varphi^{-26} \cdot \varphi^{-27}} = \varphi^{-26.5}$$
 
-This arises naturally because the electron is the **lightest charged lepton**.
-The cascade of charged lepton Yukawas terminates at the electron; there are no
-lighter states to continue the $\varphi$-spacing. The boundary condition at the
-base of the lepton hierarchy forces the lightest state to sit at a **half-step**
-between two adjacent cascade nodes:
+holds for any fractional exponent, so it does not select $26.5$: a mechanism
+would have to predict the half-step offset without inputting $m_e$. No
+mechanism in the Cassi framework produces half-integer $\varphi$-powers
+(`parameter-inventory.md` §4.2).
 
-| Lepton | Exponent $n$ | $m$ (predicted) | $m$ (observed) |
-|--------|-------------|-----------------|----------------|
-| $\tau$ | 18 | 1.78 GeV | 1.78 GeV |
-| $\mu$ | 22 | 106 MeV | 106 MeV |
-| $e$ | 26.5 | 0.504 MeV | 0.511 MeV |
+The charged leptons do not sit on integer rungs of the $v_0/\sqrt2$ ladder at
+all. Solving $n = \ln((v_0/\sqrt2)/m)/\ln\varphi$ from the observed masses:
 
-The spacing is $\Delta n = 4$ between $\tau$ and $\mu$, and $\Delta n = 4.5$
-between $\mu$ and $e$. The half-step at the bottom reflects the cascade
-truncation: there is no $\varphi^{-27}$ lepton because the lepton spectrum
-terminates at the lightest state.
+| Lepton | $n$ (v$_0$ ladder) | Nearest half-step | Mass at nearest integer rung |
+|--------|---------------------|-------------------|------------------------------|
+| $\tau$ | 9.53 | 9.5 | rung 9: 2.29 GeV (+29%) |
+| $\mu$ | 15.39 | 15.5 | rung 15: 127 MeV (+20%) |
+| $e$ | 26.47 | 26.5 | rung 26: 0.64 MeV (+25%) |
 
-### 2.3 Qi Gate Boundary Condition
+Every charged lepton lands within $\pm 0.25$ steps of some half-integer, which
+is automatic for any continuous placement; the residuals (1.2%, −5.0%, −1.5%
+at the nearest half-steps) carry no ladder structure. The "truncation at the
+lightest state" story predicts nothing about where the leptons sit.
 
-Physically, the half-step corresponds to a Qi gate boundary. The Qi coherence
-$q$ at the electron scale modifies the effective Yukawa:
+The sharper reference frame is the $M_{\text{Pl}}$-anchored mass ladder
+(`foundations/wake-geometry.md` §3, $n = \log_\varphi(M_{\text{Pl}}/m)$). There
+the electron sits at $n = 107.08$—a 3.9% near-miss of rung 107, the rung that
+`foundations/dimensionful-cascade.md` lists as the electron's reduced Compton
+wavelength ($\ell_{107} = 3.72\times10^{-13}$ m vs $\hbar/m_ec = 3.86\times10^{-13}$ m,
+3.7% off). Unlike the muon ($n = 96.000$, 0.01%) and J/ψ ($n = 88.98$, 1.0%),
+the electron is a near-miss rather than a catalog hit.
 
-$$y_e^{\text{eff}} = \varphi^{-26} \times f(q_e)$$
+### 2.3 Qi Gate Boundary Condition (Hypothesized)
 
-where $f(q_e)$ is the Qi-gate correction at the electron cascade node. When the
-Qi gate is partially open at the boundary, the effective exponent interpolates
-between 26 and 27:
+The half-step can be parameterized as a Qi-gate correction to the integer-rung
+Yukawa:
 
-$$f(q) = \varphi^{-q} \quad \Rightarrow \quad q_e = 0.5 \text{ gives } f = \varphi^{-0.5}$$
+$$y_e^{\text{eff}} = \varphi^{-26} \times f(q_e), \qquad f(q) = \varphi^{-q}$$
 
-The electron's $q_e = 0.5$ (exactly halfway through the Qi gate transition at
-its cascade scale) is consistent with the electron being the **boundary state**
-— the last lepton before the Qi gate fully closes.
+with $q_e = 0.5$ reproducing the observed mass. This is a restatement of the
+fit, not a derivation: $q_e = 0.5$ is set to match $m_e$, and no PDE or gate
+calculation fixes the gate opening at the electron scale. A formal derivation
+would have to produce $q_e = 0.5$ from the two-fluid dynamics at the base of
+the lepton hierarchy; none exists yet.
 
 ### 2.4 Derivation Status
 
 | Aspect | Status |
 |--------|--------|
-| $m_\tau$, $m_\mu$ from $\varphi$ | **Derived**—integer exponents 18, 22 |
-| $m_e$ from $\varphi^{-26}$ alone | **Not derivable**—25% gap |
-| $m_e$ from $\varphi^{-26.5}$ (half-step) | **Derived**—1.4% residual, cascade truncation at lightest lepton |
-| $q_e = 0.5$ (Qi gate boundary) | **Plausible**—consistent with boundary-state phenomenology, awaits formal PDE derivation |
+| $m_e$ from $\varphi^{-26}$ alone | **Not derivable**—25% gap at integer rungs 26/27 |
+| $m_e$ from $\varphi^{-26.5}$ (half-step) | **Not derivable**—$n_e = 26.5$ is solved from the observed mass; no mechanism produces half-integer $\varphi$-powers; the 1.4% agreement is a fit, not a prediction |
+| $m_e$ on the $M_{\text{Pl}}$ mass ladder | **Near-miss**—$n = 107.08$ vs rung 107 (3.9%), the rung of the reduced Compton wavelength (3.7% off); not a catalog hit |
+| $q_e = 0.5$ (Qi gate boundary) | **Hypothesized**—set to match the fit; awaits formal PDE derivation |
 
-**Conclusion**: The electron mass is derivable as $\varphi^{-26.5} v_0/\sqrt{2}$
-with a 1.4% residual. The half-integer exponent is not a fudge—it is the
-geometric mean of adjacent cascade steps, enforced by the cascade truncation
-at the lightest charged lepton. The formal derivation requires solving the
-Qi gate boundary condition at the base of the lepton hierarchy.
+**Conclusion**: The electron mass is not derivable from $\varphi$. It misses
+the integer rungs of the $v_0/\sqrt2$ ladder by $\pm 25\%$, sits 3.9% off rung
+107 of the $M_{\text{Pl}}$ mass ladder, and the 1.4% half-step agreement is a
+fit to the observed mass rather than a prediction. The electron mass remains
+an external input (`parameter-inventory.md` §4.2, class **E**).
 
 ---
 
@@ -188,21 +196,21 @@ physical scale is at some $n$, and $n$ is not constrained to be an integer.
 
 ### 3.3 Why $n = 79.89$?
 
-The same half-step mechanism as the electron mass applies here. The electroweak
-scale is the **boundary** between two cascade regimes:
+The electroweak scale is the **boundary** between two cascade regimes:
 - Above: GUT-scale physics (steps ~0 to ~79)
 - Below: low-energy physics (steps ~80 to ~292)
 
-The boundary condition at this interface produces a fractional step offset.
-The offset $\delta n = 0.11$ is smaller than the electron's $\delta n = 0.50$
-because the EW scale is a "softer" boundary (many degrees of freedom span
-the transition) while the electron is a "hard" boundary (the spectrum terminates).
+The boundary condition at this interface could produce a fractional step
+offset, but the specific value $\delta n = 0.11$ is not derived from it—it is
+read off the observed $v_0$, and §3.2 already accounts for it as a
+continuous-spectrum residual. The electron's $\delta n = 0.50$ carries no
+predictive weight here: that offset is itself fit to observation (§2.2).
 
 ### 3.4 Derivation Status
 
 | Aspect | Status |
 |--------|--------|
-| $v_0/M_{\text{Pl}} \approx \varphi^{-80}$ | **Derived**—5.3% residual, closest integer power |
+| $v_0/M_{\text{Pl}} \approx \varphi^{-80}$ | **Consistent**—5.3% residual at the closest integer power; a numerical coincidence, not a derivation (`parameter-inventory.md` §4.1) |
 | $\delta n = 0.11$ offset | **Identified**—cascade discretization residual |
 | Physical mechanism for $\delta n = 0.11$ | **Plausible**—EW-scale boundary between cascade regimes |
 | Exact derivation of $\delta n$ | **Not derivable**—would require full cascade boundary dynamics |
@@ -234,7 +242,7 @@ appears in a **verified physical quantity**.
 | 3 | 4.24 | $\kappa_s^{-1/2} = \varphi^3 v_0 \approx 1.04$ TeV (sector coupling) | 5.5% (vs rung 77); coefficient $C$ open |
 | 5 | 11.09 | Wu Xing scale, gap $g = 1-\varphi^{-5}$ | $w_0 = -0.87$ (corrected 2026-07-31; $2\sigma$ from DESI $\approx -0.75 \pm 0.06$ [INF]) |
 | 6 | 17.94 | $\xi = \varphi^6$ (Qi-gravity coupling) | $v_C/v_B = 2.9$–$3.1$ (~1.2σ; corrected 2026-07-31) |
-| 26 | $2.7\times 10^5$ | $m_e/v_0 \approx \varphi^{-26}$ (human cascade depth) | 25% (integer), 1.4% (half-step) |
+| 26 | $2.7\times 10^5$ | $m_e/v_0 \approx \varphi^{-26}$ (human cascade depth) | 25% (integer rung 26); the half-step 26.5 is a fit to the observed mass, not a derivation (§2.2) |
 | 80 | $5.2\times 10^{16}$ | $v_0/M_{\text{Pl}} \approx \varphi^{-80}$ | 5.3% |
 | 89 | $3.94\times 10^{18}$ | $M_{\text{Pl}}/m_{J/\psi} \approx \varphi^{89}$ (charmonium ground state) | 1.0% (2026-08-03, closure level) |
 | 96 | $1.16\times 10^{20}$ | $M_{\text{Pl}}/m_\mu \approx \varphi^{96}$ (muon mass) | 0.01% (2026-08-03, sharpest placement) |
@@ -290,26 +298,28 @@ $\varphi$-cascade.
 | Parameter | Original Gap | Resolution | New Status |
 |-----------|-------------|-----------|------------|
 | $\alpha_s(M_Z)$ | $11\times$ (claimed), $2.0\times$ (actual) | RGE sign corrected; $\Delta b = 1.70$ from new physics thresholds | **Narrowed**: factor 2.0, requires particle content | 
-| $m_e/v_0$ | $25\%$ (integer exponent 26) | Half-step $\varphi^{-26.5}$ (geometric mean, cascade truncation) | **Derived**: 1.4% residual, $q_e = 0.5$ boundary |
+| $m_e/v_0$ | $25\%$ (integer exponent 26) | None—no mechanism for half-integer $\varphi$-powers; $\varphi^{-26.5}$ is fit to the observed mass; M$_{\text{Pl}}$-ladder rung 107 misses by 3.9% | **Open**: remains External (**E**) |
 | $v_0/M_{\text{Pl}}$ | $5.3\%$ (integer exponent 80) | Cascade discretization residual ($\delta n = 0.11$, EW boundary) | **Identified**: mechanism understood, exact value not derived |
 | Activated step set | No derivation | Empirical catalog of $\varphi$-powers in verified quantities | **Empirical**: not derivable, catalog of our universe |
 
-### Updated Parameter Classification
+### Classification: No Registry Changes
 
-With these derivations, the parameter inventory classification shifts:
+None of the four assessments reclassifies a parameter. The registry
+(`parameter-inventory.md` §5) holds the accurate classes:
 
-| Parameter | Old Class | New Class | Rationale |
-|-----------|-----------|-----------|-----------|
-| $\alpha_s(M_Z)$ | **E** | **C** | Requires particle content specification (one calibrated input: $\Delta b = 1.70$) |
-| $\kappa_s$ (sector coupling) |—| **D** | $\varphi^{-6}/v_0^2$ (scale derived; coefficient Hypothesized) |
-| $m_e/v_0$ | **E** | **D** | $\varphi^{-26.5}$ with cascade truncation mechanism (1.4% residual) |
-| $v_0/M_{\text{Pl}}$ | **E** | **D** | $\varphi^{-80}$ with 5.3% cascade discretization residual |
-| Activated steps |—| **E** | Empirical catalog (6 observables that happen to be $\varphi$-powers) |
+| Parameter | Class | Rationale |
+|-----------|-------|-----------|
+| $\alpha_s(M_Z)$ | **E** | Partial: RGE from $\alpha_{\text{GUT}}$ needs particle content (§1) |
+| $m_e/v_0$ | **E** | $\varphi^{-26}$ misses by 25%; the half-step 26.5 is a fit, not a derivation (§2) |
+| $v_0/M_{\text{Pl}}$ | **E** | $\varphi^{-80}$ within 5.3% is a numerical coincidence, not a derivation |
+| $\kappa_s$ (sector coupling) | **D** | Already derived: $\varphi^{-6}/v_0^2$ (coefficient Hypothesized) |
+| Activated steps | **E** | Empirical catalog of observables that happen to be $\varphi$-powers |
 
-The updated legend: **F**=1, **D**=21, **C**=3, **E**=7, **I**=6, **N**=7, **Total**=45.
+Legend unchanged: **F**=1, **D**=21, **C**=3, **E**=7, **I**=6, **N**=7, **Total**=45.
 
-The net effect: three of six "External" constants have been partially derived,
-with residual gaps explained by cascade boundary effects and particle content
-specification. The remaining three external constants ($G$, $c$, $\hbar$) are
-dimensionful and cannot be derived from a dimensionless constant—this is
-a feature of any theory, not a bug.
+The assessments narrow the gaps without moving classes: $\alpha_s$ requires a
+specific particle content between the EW and GUT scales, and $m_e$ and
+$v_0/M_{\text{Pl}}$ remain empirical near-misses (25% and 5.3% on the nearest
+integer rungs; 3.9% for $m_e$ on the $M_{\text{Pl}}$ ladder). The dimensionful
+constants ($G$, $c$, $\hbar$) cannot be derived from a dimensionless
+constant—this is a feature of any theory, not a bug.

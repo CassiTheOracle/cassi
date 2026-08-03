@@ -199,7 +199,7 @@ these constants.
 | Newton's constant | $G$ | $6.67430\times10^{-11}$ m$^3$/kg/s$^2$ | **E** | Not derivable (dimensionful) |
 | Speed of light | $c$ | $299792458$ m/s | **E** | Not derivable (unit conversion) |
 | Planck constant | $\hbar$ | $1.054571817\times10^{-34}$ J$\cdot$s | **E** | Not derivable (unit conversion) |
-| Electron mass | $m_e$ | $0.511$ MeV | **E** | Partial: $m_e \approx \varphi^{-26} v_0/\sqrt2$ (20% off) |
+| Electron mass | $m_e$ | $0.511$ MeV | **E** | Partial: $m_e \approx \varphi^{-26} v_0/\sqrt2$ (~25% off) |
 | Proton mass | $m_p$ | $938$ MeV | **E** | Not derivable (QCD scale) |
 | Strong coupling | $\alpha_s(M_Z)$ | $0.118$ | **E** | Partial: RGE from $\alpha_{\text{GUT}}$ needs particle content |
 | Along-string bubble period | $P_\parallel(n)$ | $P_\parallel(285)=1$, $P_\parallel(142\text{–}168)=2$ | **E** | Empirically determined at two rungs; $n$-dependence not yet derived from PDE. Source: `foundations/bubble-lattice-fabric.md` §2.3 |
@@ -256,6 +256,11 @@ integer predictions:
 $25\%$ through a simple Yukawa $\varphi$-power. The Yukawa ratio $y_\mu/y_e$
 deviation (predicted $\varphi^4\approx 6.85$, observed $207$) is even worse,
 confirming that generation-mixing dynamics dominate the absolute Yukawa values.
+On the $M_{\text{Pl}}$-anchored mass ladder ($n = \log_\varphi(M_{\text{Pl}}/m)$,
+`foundations/wake-geometry.md` §3) the electron sits at $n = 107.08$—a 3.9%
+near-miss of rung 107, the rung of the reduced Compton wavelength (3.7% off,
+`foundations/dimensionful-cascade.md`)—a near-miss rather than a catalog hit,
+unlike the muon ($n = 96.000$, 0.01%) and J/ψ ($n = 88.98$, 1.0%).
 
 ### 4.3 $m_p$—The Proton Mass
 
