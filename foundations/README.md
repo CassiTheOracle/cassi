@@ -39,6 +39,7 @@ This directory holds the load-bearing derivations of the Cassi framework: the di
 | 27 | `sector-coupling-derivation.md` | Dirac↔two-fluid sector coupling | Derived scale w/ Hypothesized coefficient |
 | 28 | `wake-geometry.md` | Wake geometry | Derived (structural) |
 | 29 | `rung-offset-mechanism.md` | Rung offsets δn | Hypothesized mechanism, Empirical catalog |
+| 30 | `wu-xing-cycle-structure.md` | Wu Xing cycles, ring algebra | Derived / Tested / Hypothesized |
 
 ## Document Summaries
 
@@ -48,7 +49,7 @@ The wedge document. The two-fluid framework has exactly one dimensionful constan
 
 $$\boxed{\ell_n = \ell_{\text{Pl}} \times \varphi^{\,n}}$$
 
-for integer $n$ from 0 (Planck) to 292 (Hubble radius). The exponent is the freeze-out point of the $\varphi$-attractor dynamics, so the cascade table ($n = 80$ electroweak, 95 QCD, 117 Bohr, 267 Milky Way, 292 Hubble) is a catalogue of dynamical thresholds, not fitted points. Includes the consistency check $v_0/M_{\text{Pl}} = g\,\varphi^{-N}$ with $N \approx 80$ matching observation within 5.3%, and the extension notes to the megacascade and microcascade. Status: Derived.
+for integer $n$ from 0 (Planck) to 292 (today's horizon rung). The exponent is the freeze-out point of the $\varphi$-attractor dynamics, so the cascade table ($n = 80$ electroweak, 95 QCD, 117 Bohr, 267 Milky Way, 292 horizon rung) is a catalogue of dynamical thresholds, not fitted points. Includes the consistency check $v_0/M_{\text{Pl}} = g\,\varphi^{-N}$ with $N \approx 80$ matching observation within 5.3%, and the extension notes to the megacascade and microcascade. Status: Derived.
 
 ### `cascade-suppression-formula.md`—The Cascade Suppression Formula: $\varphi^{-N}$ as the Universal Attenuation Law
 
@@ -76,7 +77,7 @@ as the universal scale-separation constant, with every coupling, mass ratio, and
 
 ### `cassi-theory-reference.md`—The Cassi Framework (Compact Reference)
 
-The audited compact reference: one document restating the postulate, the two-fluid PDE, Qi coherence ($q = \rho^2/(\rho^2 + \varphi^{-2} + \varepsilon^2)$), the Qi gate with its corrected sign convention (conversion runs hard when $q \to 0$; the gate determines $w(a)$), the cascade, and the derived constants—$G_{\text{eff}} = G(\pi/\rho)(1 + \xi q)$ with $\xi = \varphi^6$, $\sin^2\theta_W = \varphi^{-3}$, and the three spatial dimensions as the spiral's Frenet-Serret frame. The 2026-07-31 gate-sign correction, established by the PDE tests in `../consciousness/trauma-as-frozen-gate.md` §10.4, supersedes the earlier inverted claim. Use it as the map before reading the individual derivations. Status: Reference.
+The audited compact reference: one document restating the postulate, the two-fluid PDE, Qi coherence ($q = \rho^2/(\rho^2 + \varphi^{-2} + \varepsilon^2)$), the Qi gate with its sign convention (conversion runs hard when $q \to 0$; the gate determines $w(a)$), the cascade, and the derived constants—$G_{\text{eff}} = G(\pi/\rho)(1 + \xi q)$ with $\xi = \varphi^6$, $\sin^2\theta_W = \varphi^{-3}$, and the three spatial dimensions as the spiral's Frenet-Serret frame. The gate sign is established by the PDE tests in `consciousness/trauma-as-frozen-gate.md` §10.4. Use it as the map before reading the individual derivations. Status: Reference.
 
 ### `xi-derivation.md`—Derivation of $\xi = \varphi^6$: The Last Free Parameter
 
@@ -236,7 +237,7 @@ Takes the Hypothesized entries of the open-questions catalog and refines the spe
 
 ### `deriving-remaining-gaps.md`—Closing the Gaps: Derivation of Residual Parameters
 
-Catalogues the remaining underived quantities in the framework and assesses each derivation for whether it fully resolves, partially narrows, or hits an irreducible barrier. The headline correction: the strong coupling gap at $M_Z$ is $2.0\times$, not the $11\times$ previously claimed—pure SM running from $\alpha_{\text{GUT}} = \varphi^{-3}/4\pi$ gives $\alpha_s(M_Z) = 0.058$ versus the observed 0.118, requiring an effective beta coefficient $b_{\text{eff}} = 8.70$, i.e. $\Delta b = 1.70$ from roughly one vector-like colored fermion pair plus two colored scalars, or three KK levels. Three of the four gaps are resolved and one is narrowed with the residual barrier identified. Status: custom (four derivations, three resolved, one narrowed).
+Catalogues the remaining underived quantities in the framework and assesses each derivation for whether it fully resolves, partially narrows, or hits an irreducible barrier. The headline result: the strong coupling gap at $M_Z$ is $2.0\times$—pure SM running from $\alpha_{\text{GUT}} = \varphi^{-3}/4\pi$ gives $\alpha_s(M_Z) = 0.058$ versus the observed 0.118, requiring an effective beta coefficient $b_{\text{eff}} = 8.70$, i.e. $\Delta b = 1.70$ from roughly one vector-like colored fermion pair plus two colored scalars, or three KK levels. Three of the four gaps are resolved and one is narrowed with the residual barrier identified. Status: custom (four derivations, three resolved, one narrowed).
 
 ### `sector-coupling-derivation.md`—The Sector-Coupling Scale: Dirac↔Two-Fluid Equilibration from $\varphi$
 
@@ -254,15 +255,19 @@ The Yang–Yin wake pair $\lambda_Y = \varphi\lambda_I$ closes the cascade ladde
 
 No observable sits exactly on a rung; the fractional offset $\delta n = n - \lfloor n \rfloor$ is the two-fluid phase lag at that scale, and exact alignment would mean perfect coherence ($q \to 1$). The wake envelope allows only two special positions—peaks at integer rungs, zeros at half-rungs—and the catalog shows sector edges (e, π, Λ_QCD, p, n, d) at half-rungs and interior states (μ, J/ψ, D, Σ, Z) at integer rungs, with the muon at 96.000 (0.01%) the sharpest placement in the framework. The full 38-state $\delta n$ distribution is uniform (null baseline); the decisive test is a PDE probe of the interference-extremum position vs coupling and coherence. Status: Hypothesized mechanism, Empirical catalog.
 
+### `wu-xing-cycle-structure.md`—The Wu Xing Cycle Structure: Control-Ring Algebra and the 5↔13 Partition
+
+Derives how the five-channel gate operates as two interlaced cycles—the sheng cycle (pentagon sides, step +1) and the ke control cycle (pentagram diagonals, step +2)—with control transmission $\kappa = \text{side}/\text{diagonal} = \varphi^{-1}$, sub-critical ring gain $\kappa^3 = \varphi^{-3}$, and lock threshold $\Delta_c = \varphi^{-4}$. The ke ring reproduces the ring algebra to ≤6×10⁻⁴ in the two-fluid PDE (`gate_model='five_ke'`; WX1 gate test 2026-08-01). The 5↔13 partition places the chakra nodes on the body-axis phase gradient—18°/rung, $\theta(n) = 288° + 18°(n-142)$—with the counts related as $13 = F_5 + F_6$ and channel step $\varphi^3 - \varphi^{-3} = 4$. Status: Derived / Tested / Hypothesized.
+
 ## Cross-References
 
-- `../foundations/dimensionful-cascade.md`—the cascade wedge (entry point for this directory)
-- `../principles/de-resonance-principle.md`—why $\varphi$ is the maximally de-resonant attractor (Derived)
-- `../open-questions-cassi-answers.md`—the 41-entry epistemic registry
-- `../parameter-inventory.md`—parameter registry
-- `../predictions/falsifiable-predictions.md`—the 46-entry prediction catalog
-- `../cassi-physics.md`—framework overview and the gap $g = 1 - \varphi^{-5}$ derivation
-- `../gravity/quantum-gravity.md`—the $\sigma = \ell_{\text{Pl}}/\varphi^3$ regularization that anchors the cascade
-- `../standard-model/sm-from-phi.md`—Standard Model couplings from $\varphi$
-- `../cosmology/observational_constraints.md`—CMB and large-scale-structure tests referenced by the geometry docs
-- `../turbulence/kolmogorov-from-phi.md`—φ-RG applied to turbulence
+- `foundations/dimensionful-cascade.md`—the cascade wedge (entry point for this directory)
+- `principles/de-resonance-principle.md`—why $\varphi$ is the maximally de-resonant attractor (Derived)
+- `open-questions-cassi-answers.md`—the 41-entry epistemic registry
+- `parameter-inventory.md`—parameter registry
+- `predictions/falsifiable-predictions.md`—the 46-entry prediction catalog
+- `cassi-physics.md`—framework overview and the gap $g = 1 - \varphi^{-5}$ derivation
+- `gravity/quantum-gravity.md`—the $\sigma = \ell_{\text{Pl}}/\varphi^3$ regularization that anchors the cascade
+- `standard-model/sm-from-phi.md`—Standard Model couplings from $\varphi$
+- `cosmology/observational_constraints.md`—CMB and large-scale-structure tests referenced by the geometry docs
+- `turbulence/kolmogorov-from-phi.md`—φ-RG applied to turbulence

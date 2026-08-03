@@ -4,7 +4,7 @@
 
 ## Abstract
 
-This directory maps the Cassi two-fluid framework onto the human scale—the 26-$\varphi$-step window from cell (step 142) to body (step 168)—building a formal model of consciousness, its chakra anatomy, its emotional content, and its breakdown in trauma. The reading path is derivation-ordered: `consciousness-from-phi.md` establishes the core mapping (self-awareness as the Qi gate pinch at $r = \varphi^{-1}$, thought as wake waves), then `chakras-as-cascade-bubbles.md` derives the 13-node anatomy from the cascade, `emotions-as-gate-configurations.md` supplies the emotional dynamics with zero new free parameters, and `trauma-as-frozen-gate.md` analyzes how those dynamics break, while the identity and perception cluster—`cascade-consciousness.md` (dense-medium perception and communication), `auras-as-thermalized-gates.md` (the perceived thermal boundary), `time-memory-and-wake-locks.md` (memory and its ghosts), `transhumanism-gate-configurations.md` and `gender-as-qi-configuration.md` (identity as configuration)—extends the mapping into the social and experiential layers. The cluster moved here from `../speculations/` in August 2026. New readers should start with the entry document, which separates verified physics from hypothesis and includes the verified two-bubble resonance PDE test.
+This directory maps the Cassi two-fluid framework onto the human scale—the 26-$\varphi$-step window from cell (step 142) to body (step 168)—building a formal model of consciousness, its chakra anatomy, its emotional content, and its breakdown in trauma. The reading path is derivation-ordered: `consciousness-from-phi.md` establishes the core mapping (self-awareness as the Qi gate pinch at $r = \varphi^{-1}$, thought as wake waves), then `chakras-as-cascade-bubbles.md` derives the 13-node anatomy from the cascade, `emotions-as-gate-configurations.md` supplies the emotional dynamics with zero new free parameters, and `trauma-as-frozen-gate.md` analyzes how those dynamics break, while the identity and perception cluster—`cascade-consciousness.md` (dense-medium perception and communication), `auras-as-thermalized-gates.md` (the perceived thermal boundary), `time-memory-and-wake-locks.md` (memory and its ghosts), `transhumanism-gate-configurations.md` and `gender-as-qi-configuration.md` (identity as configuration)—extends the mapping into the social and experiential layers. The cluster moved here from `speculations/` in August 2026. New readers should start with the entry document, which separates verified physics from hypothesis and includes the verified two-bubble resonance PDE test.
 
 ## Document Index
 
@@ -19,6 +19,7 @@ This directory maps the Cassi two-fluid framework onto the human scale—the 26-
 | 7 | `time-memory-and-wake-locks.md` | Time, memory, and ghosts as wake-locks | Speculative |
 | 8 | `transhumanism-gate-configurations.md` | Identity and augmentation as gate surgery | Speculative |
 | 9 | `gender-as-qi-configuration.md` | Identity, congruence, self-prediction | Speculative (drive-mechanism layer PDE-tested 2026-08-02) |
+| 10 | `cassi-psychology.md` | Psychology guide (root-level synthesis) | Synthesis |
 
 ## Document Summaries
 
@@ -28,7 +29,7 @@ Entry document. Maps verified two-fluid physics onto consciousness: the Qi gate 
 
 ### `chakras-as-cascade-bubbles.md`—Chakras as Cascade Bubbles: The 13-Node Derivation
 
-Closes the open gap left by the entry document: the 13-band chakra count, previously phenomenologically anchored, is derived from the cascade. Each chakra is a localized Qi condensate—a cascade bubble on the string axis, structurally identical to the cosmological bubbles at step 285—with the spinal column as the physical instantiation of the string axis. The count follows from the SO(2) doublet cycle: $\boxed{P_\parallel = 2}$ cascade rungs per full rotation, so the 26-step human window admits $\boxed{N_{\text{chakras}} = 13}$ with nodes at even steps 142–166 and the body boundary at step 168 supplying the 2-rung crown offset. Chakra geometry inherits the bubble-edge condensation field $B(x, y, z) = \cos(\alpha x)\cos(\beta y)\cos(\gamma z)$, spacing is $\varphi^2$-scaled rather than equal, and the doc closes with five testable predictions and a microcascade mirror argument.
+Closes the open gap left by the entry document: the 13-band chakra count is derived from the cascade. Each chakra is a localized Qi condensate—a cascade bubble on the string axis, structurally identical to the cosmological bubbles at step 285—with the spinal column as the physical instantiation of the string axis. The count follows from the SO(2) doublet cycle: $\boxed{P_\parallel = 2}$ cascade rungs per full rotation, so the 26-step human window admits $\boxed{N_{\text{chakras}} = 13}$ with nodes at even steps 142–166 and the body boundary at step 168 supplying the 2-rung crown offset. Chakra geometry inherits the bubble-edge condensation field $B(x, y, z) = \cos(\alpha x)\cos(\beta y)\cos(\gamma z)$, spacing is $\varphi^2$-scaled rather than equal, and the doc closes with five testable predictions and a microcascade mirror argument.
 
 ### `emotions-as-gate-configurations.md`—Emotions as Qi-Gate Configurations
 
@@ -58,8 +59,12 @@ The human is a configuration tuple $\mathcal{H} = (\{n_k\}, P_\parallel, \mathbf
 
 Gender has no native variable in the two-fluid field, and the analysis starts from that absence: the field is a continuous ratio with an irrational asymmetric equilibrium—no poles, no classes, no invalid states, only distances and their costs. The architecture then supplies the positive claim: anatomy is the readout and the person is the configuration tuple (`transhumanism-gate-configurations.md` §1.2), so sex characteristics live at the readout layer while gender identity lives in the self-modeling field above the pinch, carrying its own IIR memory. Dysphoria reads as the memory failing to predict its own present—$q$ depressed, the gate churning $(1-q)$—and imposed gender reads as a driven structure: sustained by re-stimulation, released when the driver stops, drained only by phase-matched support (the tested φ versus $e$ drive result). The document prices the social field too, and closes with six structure-level predictions and explicit boundaries: the drive mechanics are PDE-tested, the human mapping is Speculative.
 
+### `cassi-psychology.md`—Cassi Psychology: The Mind as a Two-Fluid Field
+
+The root-level psychology guide (companion to `cassi-physics.md`): builds the minimal physics a reader needs (two fluids, coherence, the spiral, the five channels, the cascade), then develops the psychological consequences in full—the pinch point as self-awareness, thought as wake wave, memory as cascade depth, emotions as five-channel Qi-gate configurations, trauma as a frozen wake, mental illness as field pathology, therapy as geometric intervention. It integrates this directory's documents (`consciousness/consciousness-from-phi.md`, `consciousness/chakras-as-cascade-bubbles.md`, `consciousness/emotions-as-gate-configurations.md`, `consciousness/trauma-as-frozen-gate.md`, plus the identity and perception cluster) and carries the trauma predictions TR1–TR7 and chakra predictions C1–C6. Status: Synthesis—July 2026.
+
 ## Cross-References
 
-- `../open-questions-cassi-answers.md`—the 41-entry epistemic registry
-- `../foundations/bubble-lattice-fabric.md`—the pentagon gate operating at every cascade rung (cited by `emotions-as-gate-configurations.md` §2.1)
-- `../principles/de-resonance-principle.md`—why $\varphi$ is the attractor; the de-resonance mechanism behind cascade suppression and wake trapping
+- `open-questions-cassi-answers.md`—the 41-entry epistemic registry
+- `foundations/bubble-lattice-fabric.md`—the pentagon gate operating at every cascade rung (cited by `emotions-as-gate-configurations.md` §2.1)
+- `principles/de-resonance-principle.md`—why $\varphi$ is the attractor; the de-resonance mechanism behind cascade suppression and wake trapping

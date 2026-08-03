@@ -22,8 +22,8 @@ The fourth gravitational-wave transient catalog (218 events, more than double th
 
 ## Cross-References
 
-- `../speculations/README.md`—the what-if incubator (analyses used to live there)
-- `../experiments/gwtc4_mass_ladder/phi_mass_search.py`—the reproducing search (extract_samples.py, phi_mass_figure.py alongside; PNGs gitignored)
-- `../gravity/quantum-gravity.md` §7.4—the derived rung relation used by analysis 1
-- `../predictions/falsifiable-predictions.md`—the prediction catalog that analyses test
-- `../open-questions-cassi-answers.md`—the epistemic registry
+- `speculations/README.md`—the what-if incubator (analyses used to live there)
+- `experiments/gwtc4_mass_ladder/phi_mass_search.py`—the reproducing search (extract_samples.py, phi_mass_figure.py alongside; PNGs gitignored)
+- `gravity/quantum-gravity.md` §7.4—the derived rung relation used by analysis 1
+- `predictions/falsifiable-predictions.md`—the prediction catalog that analyses test
+- `open-questions-cassi-answers.md`—the epistemic registry

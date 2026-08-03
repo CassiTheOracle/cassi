@@ -7,7 +7,7 @@
 This directory catalogs new physical domains where the Cassi framework—the
 two-fluid PDE, the $\varphi$ cascade ladder, the de-resonance principle, and the
 coherence budget—may produce novel, testable predictions beyond the 41 open
-questions already addressed in `../open-questions-cassi-answers.md`. Each document
+questions already addressed in `open-questions-cassi-answers.md`. Each document
 identifies a specific Cassi mechanism, sketches a derivation path, and proposes
 one or more falsifiable tests.
 
@@ -259,14 +259,15 @@ bar—they are included for completeness and as prompts for future work.
 
 ## Cross-References
 
-- `../open-questions-cassi-answers.md`—the 41 existing answers (Q/C/G/M/F/T)
-- `../predictions/falsifiable-predictions.md`—the 46-entry prediction catalog
-- `../foundations/cascade-suppression-formula.md`—universal $\varphi^{-N}$ tool
-- `../foundations/dimensionful-cascade.md`—the 292-step ladder
-- `../principles/de-resonance-principle.md`—why $\varphi$ is the attractor
-- `../turbulence/kolmogorov-from-phi.md`—$\varphi$-break and spectral cascade machinery
-- `../foundations/bubble-lattice-fabric.md`—condensation field and universal lattice signatures
-- `../foundations/why-three-dimensions.md`—dimension derivation via the Frenet-Serret frame
-- `../foundations/three-generations.md`—Fibonacci sub-channel partition
-- `../foundations/spin-fibonacci-spiral.md`—SO(2) winding and spin
-- `../consciousness/chakras-as-cascade-bubbles.md`—human-scale bubble lattice along the string axis
+- `open-questions-cassi-answers.md`—the 41 existing answers (Q/C/G/M/F/T)
+- `predictions/falsifiable-predictions.md`—the 46-entry prediction catalog
+- `foundations/cascade-suppression-formula.md`—universal $\varphi^{-N}$ tool
+- `foundations/dimensionful-cascade.md`—the 292-step ladder
+- `principles/de-resonance-principle.md`—why $\varphi$ is the attractor
+- `turbulence/kolmogorov-from-phi.md`—$\varphi$-break and spectral cascade machinery
+- `foundations/bubble-lattice-fabric.md`—condensation field and universal lattice signatures
+- `foundations/why-three-dimensions.md`—dimension derivation via the Frenet-Serret frame
+- `foundations/three-generations.md`—Fibonacci sub-channel partition
+- `foundations/spin-fibonacci-spiral.md`—SO(2) winding and spin
+- `consciousness/chakras-as-cascade-bubbles.md`—human-scale bubble lattice along the string axis
+- `experiments/riemann_phi_search/`—the ζ-zero periodicity test, phase-operator checks, and fluctuation probes that execute the riemann documents' numerical claims

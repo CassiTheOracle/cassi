@@ -20,7 +20,7 @@ The spectral analysis of the two-fluid PDE with the Qi gate: the deviation from 
 
 ## Cross-References
 
-- `../foundations/xi-derivation.md`—first-principles derivation of the Qi-gravity coupling $\xi = \varphi^6$ used in the velocity equation
-- `../foundations/bubble-lattice-fabric.md`—the condensation-vs-diffusion balance (§2.3) that the $\varphi$-break mirrors
-- `../cassi-physics.md`—the two-fluid PDE as written in the core physics document
-- `../predictions/falsifiable-predictions.md`—the 46-entry prediction catalog, of which the break-scale test is a prospective member
+- `foundations/xi-derivation.md`—first-principles derivation of the Qi-gravity coupling $\xi = \varphi^6$ used in the velocity equation
+- `foundations/bubble-lattice-fabric.md`—the condensation-vs-diffusion balance (§2.3) that the $\varphi$-break mirrors
+- `cassi-physics.md`—the two-fluid PDE as written in the core physics document
+- `predictions/falsifiable-predictions.md`—the 46-entry prediction catalog, of which the break-scale test is a prospective member
