@@ -2,11 +2,15 @@
 
 ## Status: Reference—July 2026
 
+## Abstract
+
+This document compacts the Cassi framework into a single reference: the two-fluid postulate and governing PDEs, the dimensionful cascade and its suppression law, the unified action, and the quantum, particle, gravity, cosmological, turbulence, geometric, and consciousness consequences. Each section condenses a dedicated derivation paper cited inline; all dimensionless couplings are φ-powers with zero free parameters among them, and the three external dimensionful constants are $c$, $\hbar$, $G$.
+
 ## 1. The Postulate
 
 $$\boxed{\varphi = \frac{1 + \sqrt{5}}{2} \approx 1.618033989}$$
 
-is the universal scale-separation constant. $\varphi$ has continued fraction $[1;1,1,1,\ldots]$, making it the most irrational number—maximally resistant to rational approximation. Physical couplings flow toward $\varphi$-powers because these configurations are maximally **de-resonant**: a rational frequency ratio between Yang and Yin would concentrate energy at a single scale and collapse the multi-scale structure; $\varphi$, being worst-case for rational lock-in, is the unique value that preserves structure across all scales.
+is the universal scale-separation constant. $\varphi$ has continued fraction $[1;1,1,1,\ldots]$, making it the most irrational number—maximally resistant to rational approximation. Physical couplings flow toward $\varphi$-powers because these configurations are maximally **de-resonant**: a rational frequency ratio between Yang and Yin would concentrate energy at a single scale and collapse the multi-scale structure; $\varphi$, being worst-case for rational lock-in, is the unique value that preserves structure across all scales. This flow is formalized as a discrete renormalization group with scale factor $\varphi$ in `foundations/phi-rg-formalism.md`.
 
 ---
 
@@ -56,7 +60,7 @@ $q \to 0$: far from $\varphi$-equilibrium. $q \to 1$: perfect $\varphi$-equilibr
 
 $$\partial_t E_Y \supset -\lambda(1-q)(E_Y - \varphi E_I),\qquad \partial_t E_I \supset +\lambda(1-q)(E_Y - \varphi E_I)/\varphi$$
 
-The gate *openness* is $(1-q)$: $q \to 0$ means the gate is **open**—conversion runs hard, the region churns; $q \to 1$ means the gate is **closed**—the system rests at $\varphi$-balance. (Sign corrected 2026-07-31 by the PDE tests in `consciousness/trauma-as-frozen-gate.md` §10.4; the earlier "depressed $q$ closes the gate" claim had the sign inverted and is withdrawn.) The gate determines $w(a)$; its shape follows from the $\varphi$-power structure.
+The gate *openness* is $(1-q)$: $q \to 0$ means the gate is **open**—conversion runs hard, the region churns; $q \to 1$ means the gate is **closed**—the system rests at $\varphi$-balance. (Sign PDE-tested 2026-07-31 in `consciousness/trauma-as-frozen-gate.md` §10.4.) The gate determines $w(a)$; its shape follows from the $\varphi$-power structure.
 
 ### 2.6 Classical Limits
 
@@ -76,7 +80,7 @@ The gate *openness* is $(1-q)$: $q \to 0$ means the gate is **open**—conversio
 
 $$\boxed{\ell_n = \ell_{\text{Pl}} \times \varphi^{\,n}},\qquad \ell_{\text{Pl}} = \sqrt{\hbar G/c^3}$$
 
-$n \in [0, \approx 292]$ (Planck to Hubble). $n = \log_\varphi(\ell / \ell_{\text{Pl}})$.
+$n \in [0, \approx 292]$ today (cascade unbounded; horizon rung epoch-dependent). $n = \log_\varphi(\ell / \ell_{\text{Pl}})$.
 
 | $n$ | Scale (m) | Meaning |
 |-----|-----------|---------|
@@ -90,7 +94,7 @@ $n \in [0, \approx 292]$ (Planck to Hubble). $n = \log_\varphi(\ell / \ell_{\tex
 | 168 | $1.7$ | Human scale |
 | 220 | $1.5 \times 10^{11}$ | Astronomical Unit |
 | 267 | $9.3 \times 10^{20}$ | Milky Way diameter |
-| 284 | $3.6 \times 10^{24}$ | BAO scale |
+| 284 | $3.6 \times 10^{24}$ | Yin wake of 285 |
 | 285 | $5.9 \times 10^{24}$ | Cassi bubble |
 | 292 | $1.7 \times 10^{26}$ | Hubble radius |
 
@@ -104,7 +108,7 @@ $$\text{Coherence:}\quad \mathcal{D}_{0 \to n} = \prod_{i=0}^{n} (1-q_i) = \varp
 
 where $1-q_i = \varphi^{-i-\delta}$ is the per-rung dephasing probability, $\delta = 3$ (from $\sigma = \ell_{\text{Pl}}/\varphi^3$). Signal propagation is linear in span $N$; coherence maintenance is quadratic in depth $n$.
 
-Applications: hierarchy ($v_0/M_{\text{Pl}} \propto \varphi^{-80}$), strong CP ($\bar{\theta} \propto \varphi^{-87} \times \pi\varphi^{-2}$), neutrino masses ($m_\nu \propto v_0 \cdot \varphi^{-12}$), proton lifetime (coherence: $\varphi^{-4848}$).
+Applications: hierarchy ($v_0/M_{\text{Pl}} \propto \varphi^{-80}$; see `principles/v0-hierarchy-problem.md`), strong CP ($\bar{\theta} \propto \varphi^{-87} \times \pi\varphi^{-2}$), neutrino masses ($m_\nu \propto v_0 \cdot \varphi^{-12}$), proton lifetime (coherence: $\varphi^{-4848}$).
 
 ### 3.3 Wu Xing Cycle
 
@@ -316,7 +320,7 @@ From two-fluid conversion as $r(t) \to \varphi$:
 
 $$w(a) = \frac{P_{\text{DE}}}{\rho_{\text{DE}}} = \frac{\dot{r}/r - 3H(1+r^{-1})}{3H(1+r^{-1})}$$
 
-$$w_0 = -0.87 \quad\text{(corrected 2026-07-31)},\qquad w_a = +0.012 \; (+ \xi = \varphi^6, \text{ corrected Yang-fraction form})$$
+$$w_0 = -0.87,\qquad w_a = +0.012 \; (+ \xi = \varphi^6,\ \text{Yang-fraction form})$$
 
 ### 8.2 Inflation
 
@@ -358,7 +362,7 @@ $$\Delta(\ln k) = \ln\varphi$$
 
 ### 8.6 Hubble Tension
 
-$w(a)$ evolution produces $H_0 \approx 69.8$ km/s/Mpc when replacing constant-$\Lambda$ extrapolation.
+$w(a)$ evolution shifts $H_0$ relative to the constant-$\Lambda$ extrapolation. The full $H(z)$ fit is pending (registry C3/T4); the pipeline CMB-inferred value is $H_0 \approx 65.8$ km/s/Mpc.
 
 ---
 
@@ -430,14 +434,14 @@ Mind: concentrated post-pinch field dynamics. Brain: antenna for the Qi field. A
 
 | Parameter | Expression | Value | Origin |
 |-----------|-----------|-------|--------|
-| $\varphi^{-3}$ | $(\varphi-1)/(\varphi+1)$ | $0.236$ | Equilibrium Yang fraction |
+| $\alpha_0$ | $\varphi^{-3} = (\varphi-1)/(\varphi+1)$ | $0.236$ | Equilibrium Yang fraction |
 | $\xi$ | $\varphi^6$ | $17.944$ | 2 fields $\times$ 3 dimensions |
 | $\sin^2\theta_W$ | $\varphi^{-3}$ | $0.236$ | VEV asymmetry |
 | $\alpha_{\text{GUT}}$ | $\varphi^{-3}/(4\pi)$ | $1/53$ | Yang fraction / $4\pi$ |
 | $m_W/m_Z$ | $\sqrt{1-\varphi^{-3}}$ | $0.874$ | From $\sin^2\theta_W$ |
 | $\delta_{\text{CKM}}$ | $\pi\varphi^{-2}$ | $68.7^\circ$ | Yukawa diagonalisation |
-| $w_0$ | Wu Xing + $\xi$ | $-0.87$ | Two-fluid conversion (corrected 2026-07-31) |
-| $w_a$ | $\xi$ in $H(a)$ | $+0.012$ | Two-fluid conversion, Yang-fraction form (corrected 2026-07-31) |
+| $w_0$ | Wu Xing + $\xi$ | $-0.87$ | Two-fluid conversion |
+| $w_a$ | $\xi$ in $H(a)$ | $+0.012$ | Two-fluid conversion, Yang-fraction form |
 | $g$ | $1 - \varphi^{-5}$ | $0.910$ | Wu Xing gap |
 | $r_0$ | $\varphi^{-5}/(2-\varphi^{-5})$ | $0.047$ | Primordial ratio |
 | $\lambda$ | $1/(2w)$ | $0.1$ | PDE conversion rate |
@@ -447,6 +451,6 @@ Mind: concentrated post-pinch field dynamics. Brain: antenna for the Qi field. A
 | $\sigma$ | $\ell_{\text{Pl}}/\varphi^3$ |—| Regularization scale |
 | $\Omega_{\text{DM}}/\Omega_b$ | $\varphi^3 + 1$ | $5.24$ | Qi condensate freeze-out |
 | $\bar{\theta}$ | $\pi\varphi^{-89}$ | $\sim 10^{-19}$ | Strong CP |
-| $\tau_p$ | $\varphi^{4848}/\omega_p$ | $\sim 10^{978}$ yr | Proton coherence budget |
+| $\tau_p$ | $\varphi^{4848}/\omega_p$ | $\sim 10^{980}$ yr | Proton coherence budget |
 
 External constants: $c$, $\hbar$, $G$ define the unit system. $\ell_{\text{Pl}} = \sqrt{\hbar G/c^3}$ is the cascade's sole dimensionful anchor.
