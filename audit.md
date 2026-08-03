@@ -58,7 +58,7 @@ Neutrino masses are not cleanly derivable from $\varphi$ alone. The seesaw mecha
 | Mercury perihelion | $42.98''$/cy (GR) | $42.98'' \pm 0.01''$/cy | ✅ **Matches GR** |
 | $G_{\text{eff}}/G$ (fixed point) | $\varphi^{-3} \approx 0.236$ |—| ✅ **Definition** |
 | $v_C/v_B$ (MW rotation) | $2.9$–$3.1$ (revised 2026-07-31) | $2.5-3.0$ | ✅ **Within range** |
-| Dwarf spheroidal M/L | 5/8 pass | 5/8 | ✅ **Beats MOND (4/8)** |
+| Dwarf spheroidal M/L | 4/8 pass (corrected 2026-08-03) | 4/8 | ⚠️ **Ties MOND (4/8); ceiling exceeded in 4/8** |
 | MESSENGER bound $\|q\|$ | $< 1.1\times 10^{-6}$ at 0.39 AU | Satisfied | ✅ **Passes** |
 | Gravitational wave amplif. | Up to $10\times$ GR in high-Qi |—| 🔭 **Falsifiable** |
 
@@ -76,7 +76,7 @@ Neutrino masses are not cleanly derivable from $\varphi$ alone. The seesaw mecha
 
 ## 5. Summary
 
-### Confirmed Predictions (11)
+### Confirmed Predictions (9)
 
 | Sector | Prediction | Accuracy |
 |--------|-----------|----------|
@@ -89,7 +89,10 @@ Neutrino masses are not cleanly derivable from $\varphi$ alone. The seesaw mecha
 | Cosmology | $H_0 \approx 69.8$ km/s/Mpc | Resolves tension ($<1\sigma$ both sides) |
 | Atomic | He ground state (LDA, N=64) | $0.9\%$ |
 | Gravity | $v_C/v_B$ (MW rotation) | Within $2.5$-$3.0$ range |
-| Gravity | Dwarf spheroidal M/L | 5/8 pass (beats MOND) |
+
+(The dwarf-spheroidal M/L row moved out of Confirmed on 2026-08-03: with the corrected
+full coupling the test ties MOND (4/8 vs 4/8) and the saturation ceiling is exceeded in
+4/8 dwarfs—see the §3 Gravity table and `experiments/phi_attractor_paths/path10_dwarf_galaxies.py`.)
 
 ### Framework Limitations
 

@@ -412,6 +412,20 @@ In ultra-faint dwarf galaxies (where $a_{\text{baryon}} \ll a_0$):
 
 If dwarf galaxy rotation curves show $v_{\text{obs}}/v_{\text{Newt}} > 3.64$ with $\sqrt{a_0/a}$ scaling, MOND is correct and Cassi $\varphi$-enhanced gravity is ruled out. The previous $1.27$ ceiling came from the withdrawn approximate coupling and must not be used.
 
+### Path 10: Dwarf Galaxy Ceiling Test (2026-08-03)
+
+**Script:** `experiments/phi_attractor_paths/path10_dwarf_galaxies.py` (imported from the parent repo and corrected 2026-08-03: the withdrawn $\sqrt{\varphi} \approx 1.27$ ceiling replaced by the full-coupling ceiling $\sqrt{\alpha(1+\xi)} \approx 3.64$)
+
+The ceiling prediction was tested on 8 classical + ultra-faint dwarfs (Segue 1/2, Willman 1, Bootes I, Coma Berenices, Draco, Sculptor, Fornax) with $v_{\text{circ}} = \sqrt{3}\,\sigma_v$ and baryonic-only Newtonian velocities at $r_{\text{half}}$:
+
+| Model | Pass (within $\times 2$ of observed) |
+|---|---|
+| Newtonian | 3/8 |
+| Cassi ceiling | 4/8 (Bootes I, Coma Berenices, Draco, Fornax) |
+| MOND | 4/8 (Willman 1, Draco, Sculptor, Fornax) |
+
+**The ceiling is exceeded in 4/8 dwarfs**: Segue 1 ($v_{\text{obs}}/v_{\text{Newt}} = 16.6$), Segue 2 (16.8), Coma Berenices (4.0), and Draco (6.2) all exceed the $3.64$ saturation limit, and the log-log slope of the observed ratio vs baryonic mass is $-0.21$ (ratio grows toward low mass—the MOND/dark-matter signature). The corrected coupling therefore does not rescue the ultra-faint regime: those systems need boosts the saturation ceiling forbids. Verdict: the ceiling survives for the classical dwarfs but is falsified for the ultra-faints, and the dwarf test now ties MOND (4/8 vs 4/8) rather than beating it. The earlier "5/8 pass, beats MOND" claim was never reproducible from this catalog (the uncorrected script gives Cassi 3/8) and is superseded.
+
 ## 12. Unified Picture
 
 ### Why the Exponential Model Works Despite Wrong Physics
@@ -447,7 +461,7 @@ graph TD
 
 The following testable predictions emerge from this work:
 
-1. **Rotation curve ceiling (revised 2026-07-31):** In the low-acceleration tail (dwarf galaxies), Cassi predicts $v_{\text{obs}}/v_{\text{Newt}} \leq \sqrt{\alpha(1+\xi)} \approx 3.64$ with the full $\xi = \varphi^6$ coupling (ceiling reached only where $q \to 1$, i.e. $\rho \ll \rho_{\text{ref}}$). The earlier $\sqrt{\varphi} \approx 1.27$ ceiling came from the withdrawn approximate coupling $G_{\text{eff}}/G_N = 1 + (\varphi-1)\cdot q$ and is obsolete. If observations show $v_{\text{obs}}/v_{\text{Newt}} > 3.64$ with $\sqrt{a_0/a}$ scaling, the Cassi bound is falsified.
+1. **Rotation curve ceiling (revised 2026-07-31; tested 2026-08-03):** In the low-acceleration tail (dwarf galaxies), Cassi predicts $v_{\text{obs}}/v_{\text{Newt}} \leq \sqrt{\alpha(1+\xi)} \approx 3.64$ with the full $\xi = \varphi^6$ coupling (ceiling reached only where $q \to 1$, i.e. $\rho \ll \rho_{\text{ref}}$). The earlier $\sqrt{\varphi} \approx 1.27$ ceiling came from the withdrawn approximate coupling $G_{\text{eff}}/G_N = 1 + (\varphi-1)\cdot q$ and is obsolete. Path 10 found the ceiling exceeded in 4/8 dwarfs (Segue 1/2 at ~17$\times$, Coma Berenices at 4.0$\times$, Draco at 6.2$\times$)—falsified for the ultra-faint regime, where the observed boost grows with $\sqrt{a_0/a}$ scaling.
 
 2. **Precession direction:** Cassi softened gravity predicts **retrograde** pericenter precession ($\Delta\phi < 0$), opposite to the **prograde** GR precession. In systems where softening is significant ($\sigma/a$ not negligibly small), the precession direction is a direct test. For binary pulsars, Cassi precession is negligible ($\sigma < 370$ km), but for wider systems with larger $\sigma/a$, the retrograde signature could be detectable.
 
@@ -457,7 +471,7 @@ The following testable predictions emerge from this work:
 
 4. **No universal acceleration scale:** Unlike MOND's $a_0$, Cassi has a **density** scale $\rho_{\text{ref}}$, not an acceleration scale. Different galaxies should show the enhancement turning on at different $a_{\text{baryon}}$, depending on their density profiles. If a truly universal $a_0$ is confirmed across all galaxy types, Cassi is disfavored relative to MOND.
 
-5. **Saturation vs growth (revised 2026-07-31):** The most decisive test: measure the boost factor $a_{\text{obs}}/a_{\text{baryon}}$ at progressively lower accelerations. MOND predicts continued growth ($\propto 1/\sqrt{a}$); Cassi predicts saturation at $\alpha(1+\xi) \approx 13.3$ with the full $\xi = \varphi^6$ coupling (the earlier $\varphi \approx 1.618$ saturation came from the withdrawn approximate coupling). Ultra-faint dwarf galaxies and galaxy cluster outskirts provide the testing ground.
+5. **Saturation vs growth (revised 2026-07-31; tested 2026-08-03):** The most decisive test: measure the boost factor $a_{\text{obs}}/a_{\text{baryon}}$ at progressively lower accelerations. MOND predicts continued growth ($\propto 1/\sqrt{a}$); Cassi predicts saturation at $\alpha(1+\xi) \approx 13.3$ with the full $\xi = \varphi^6$ coupling (the earlier $\varphi \approx 1.618$ saturation came from the withdrawn approximate coupling). Path 10's dwarf test shows the observed boost growing with decreasing mass (slope $-0.21$ in $\log(v_{\text{obs}}/v_{\text{Newt}})$ vs $\log M$), the MOND signature—Cassi's saturation is not observed in the ultra-faints.
 
 ## 14. Open Questions
 
@@ -559,5 +573,6 @@ The Cassi modifications do not solve the three-body problem in the classical sen
 | `path7_rotation_curves.py` | 7 | Test softened gravity for galactic rotation curves (negative result) |
 | `path8_phi_enhanced_rotation.py` | 8 | Test $\varphi$-enhanced gravity for rotation curves, fit $\rho_{\text{ref}}$ |
 | `path9_cassi_vs_mond.py` | 9 | Compare Cassi to MOND via radial acceleration relation |
+| `path10_dwarf_galaxies.py` | 10 | Test the Cassi saturation ceiling vs MOND on 8 ultra-faint + classical dwarfs (corrected 2026-08-03) |
 
 All scripts are in `experiments/phi_attractor_paths/` and produce `.png` figures with the same base name. CSV tracking data from Path 3 is stored as `path3_cold_collapse_d{value}.csv`.
