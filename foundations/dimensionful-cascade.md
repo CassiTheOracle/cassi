@@ -61,9 +61,11 @@ The electroweak cascade depth $N \approx 80$ is robust against variations in the
 | 40 | $3.7 \times 10^{-27}$ | Inflationary energy scale | Inflation |
 | 60 | $5.6 \times 10^{-23}$ | SUSY-breaking / intermediate scale | Desert |
 | **80** | **$8.0 \times 10^{-19}$** | **Electroweak scale** ($v_0 \approx 246$ GeV) | Particle physics |
-| 88 | $4.0 \times 10^{-17}$ | Weak boson Compton wavelength | Particle physics |
+| 82 | $2.2 \times 10^{-18}$ | Weak boson Compton wavelength ($Z$: 91.2 GeV) | Particle physics |
+| 89 | $6.4 \times 10^{-17}$ | J/ψ charmonium ($m \approx 3.10$ GeV) | Particle physics |
 | **95** | **$1.1 \times 10^{-15}$** | **QCD confinement** ($\Lambda_{\text{QCD}} \sim 200$ MeV) | Nuclear |
-| 105 | $1.4 \times 10^{-13}$ | Pion Compton wavelength ($\sim 140$ MeV) | Nuclear |
+| 96 | $1.9 \times 10^{-15}$ | Muon Compton wavelength ($m_\mu \approx 105.7$ MeV) | Particle physics |
+| 107 | $3.7 \times 10^{-13}$ | Electron Compton wavelength (reduced; $m_e \approx 0.51$ MeV) | Particle physics |
 | **117** | **$5.3 \times 10^{-11}$** | **Bohr radius** (atomic scale, $a_0$) | Atomic |
 | 125 | $2.1 \times 10^{-9}$ | Typical molecular bond length | Molecular |
 | **136** | **$5.0 \times 10^{-7}$** | **Visible light** wavelength (500 nm) | Optical |
@@ -215,7 +217,7 @@ The bubble at step 285 is bounded by adjacent bubbles at identical $w=5$ in the 
 
 1. **Why 292 steps?** $\log_\varphi(M_{\text{Pl}}/H_0) \approx 291.54$ today; is this number derivable from the PDE dynamics, or is it set by the initial conditions of inflation? **Sharpening (2026-08-03):** 292 is not a constant of the cascade—the cascade is unbounded ($n \in \mathbb{Z}$, megacascade above, microcascade below), and 292 is today's horizon rung (epoch-dependent; $N(t) = \log_\varphi(R_H(t)/\ell_{\text{Pl}})$ evolves as $H(r) \to \varphi$). The derivable targets are the asymptotic horizon $N_\infty \approx 296$–303 (`foundations/wake-geometry.md` §4) and the epoch selection via the initial condition $r_0$.
 
-2. **Why these specific activated steps?** The set $\{1, 2, 3, 5, 6, 26, 80, 292\}$ has no obvious pattern. Do the "dark" steps carry physical meaning (e.g., sterile neutrino masses, dark sector couplings)?
+2. **Why these specific activated steps?** The set $\{1, 2, 3, 5, 6, 26, 80, 292\}$ has no obvious pattern. Do the "dark" steps carry physical meaning (e.g., sterile neutrino masses, dark sector couplings)? **Two dark steps answered (2026-08-03, `foundations/wake-geometry.md` §3):** rung 89 hosts the J/ψ ($n = 88.98$, 1.0%—a golden-angle closure level) and rung 96 the muon ($n = 96.000$, 0.01%—wake-anchored).
 
 3. **Cascade spacing regularity?** The steps are irregularly spaced: sparse at low $n$, dense at high $n$ (near $\varphi$). Is there an underlying periodicity in $\ln n$ space?
 

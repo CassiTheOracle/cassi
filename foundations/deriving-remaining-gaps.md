@@ -236,14 +236,16 @@ appears in a **verified physical quantity**.
 | 6 | 17.94 | $\xi = \varphi^6$ (Qi-gravity coupling) | $v_C/v_B = 2.9$–$3.1$ (~1.2σ; corrected 2026-07-31) |
 | 26 | $2.7\times 10^5$ | $m_e/v_0 \approx \varphi^{-26}$ (human cascade depth) | 25% (integer), 1.4% (half-step) |
 | 80 | $5.2\times 10^{16}$ | $v_0/M_{\text{Pl}} \approx \varphi^{-80}$ | 5.3% |
+| 89 | $3.94\times 10^{18}$ | $M_{\text{Pl}}/m_{J/\psi} \approx \varphi^{89}$ (charmonium ground state) | 1.0% (2026-08-03, closure level) |
+| 96 | $1.16\times 10^{20}$ | $M_{\text{Pl}}/m_\mu \approx \varphi^{96}$ (muon mass) | 0.01% (2026-08-03, sharpest placement) |
 
 ### 4.3 Why These and Not Others?
 
-The set $\{1, 2, 3, 5, 6, 26, 80\}$ is **not derivable from $\varphi$**.
+The set $\{1, 2, 3, 5, 6, 26, 80, 89, 96\}$ is **not derivable from $\varphi$**.
 It is an **empirical catalog**—the subset of $\varphi$-powers that happen to
 correspond to observable quantities in our universe.
 
-Steps $\{4, 7, 8, \ldots, 25, 27, \ldots, 79, 81, \ldots, 292\}$ are **dark** —
+Steps $\{4, 7, 8, \ldots, 25, 27, \ldots, 79, 81, \ldots, 88, 90, \ldots, 95, 97, \ldots\}$ are **dark** —
 they exist in the cascade spectrum but do not (yet) correspond to independently
 measured physical couplings or scale ratios. They may correspond to:
 - Unobserved particles or forces
@@ -255,8 +257,11 @@ measured physical couplings or scale ratios. They may correspond to:
 
 The first four activated steps $\{1, 2, 3, 5\}$ are the first four Fibonacci
 numbers. Step 6 is the product of Fibonacci primes $2 \times 3$. The larger
-steps (26, 80) are not Fibonacci-related in any obvious way—they emerge
-from the cascade depth rather than number-theoretic properties.
+steps (26, 80, 96) are not Fibonacci-related in any obvious way—they emerge
+from the cascade depth rather than number-theoretic properties. Step 89 is
+Fibonacci ($F_{11}$) and a golden-angle closure level: the J/ψ placement at
+$n = 88.98$ (1.0%, 2026-08-03) is the first mass-catalog hit on a closure
+level (`foundations/wake-geometry.md` §3).
 
 The Fibonacci pattern at low $n$ is likely coincidental: $\varphi^n$ for
 small integer $n$ naturally approximates Fibonacci ratios $\varphi^n \approx
@@ -270,7 +275,7 @@ mathematical identity, not a physical selection mechanism.
 | Which steps are activated | **Empirical**—observed from verified $\varphi$-power predictions |
 | Why $\{1, 2, 3, 5\}$ and not $\{4, 7, 8\}$ | **Not derivable**—these are the exponents that happen to map to observable couplings in our universe |
 | Fibonacci coincidence at low $n$ | **Mathematical identity**—$\varphi^n \approx F_{n+1}/F_n$, not a physical selection |
-| Dark steps (4, 7, 8-25, 27-79, 81+) | **Prediction**—these correspond to unobserved scales/couplings; their darkness is a testable feature |
+| Dark steps (4, 7, 8-25, 27-79, 81-88, 90-95, 97+) | **Prediction**—these correspond to unobserved scales/couplings; their darkness is a testable feature (89 and 96 were dark until the 2026-08-03 mass scan placed J/ψ and μ) |
 
 **Conclusion**: The activated step set is an empirical catalog, not a
 $\varphi$-derivation. It tells us which $\varphi$-powers correspond to
