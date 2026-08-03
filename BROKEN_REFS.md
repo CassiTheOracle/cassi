@@ -2,7 +2,7 @@
 
 This repository contains the Theory of Everything documents **and the code that supports the theory** (all theory code lives in this repo). Cross-references that point outside the TOE document tree are listed below. They serve as provenance markers rather than working links.
 
-> **Migration note (July 2026):** All scripts previously referenced as `experiments/…` and `two-fluid/…` (main-repo-only) have been copied into this repository at those same relative paths. Those references now resolve locally. Only the `theory/`, `../../`, and figure-output references remain external.
+> **Migration note (July 2026):** All scripts referenced as `experiments/…` and `two-fluid/…` (main-repo-only) have been copied into this repository at those same relative paths. Those references now resolve locally. Only the `theory/`, `../../`, and figure-output references remain external.
 
 ## References to `experiments/` (now local)
 
@@ -67,12 +67,12 @@ These refer to older formalism files that lived in the root-level `theory/` dire
 
 These point to papers in the parent repository's `papers/` directory (siblings of `papers/theory-of-everything/`):
 
-| Source Document | Reference |
-|----------------|-----------|
-| `foundations/quantum-measurement-derivation.md` | `../../quantum-measurement-qi-appendix.md` |
-| `open-questions-cassi-answers.md` | `../../consciousness-framework.md` |
-| `open-questions-cassi-answers.md` | `../../quantum-measurement-qi-appendix.md` |
-| `predictions/cassi_definitions.md` | `../../consciousness-framework.md` |
+|| Source Document | Reference |
+||----------------|-----------|
+|| `foundations/quantum-measurement-derivation.md` | `../../quantum-measurement-qi-appendix.md` |
+|| `open-questions-cassi-answers.md` | `../../quantum-measurement-qi-appendix.md` |
+
+The two `../../quantum-measurement-qi-appendix.md` rows remain external: that appendix still lives in the parent repository and resolves only there. The former `consciousness-framework.md` rows are gone—the registry and glossary now cite the in-repo `consciousness/consciousness-from-phi.md`.
 
 ## References to `experiments/` scripts not in this repo (main-repo-only)
 
