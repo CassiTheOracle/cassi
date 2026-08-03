@@ -20,7 +20,7 @@ Standalone **theory repository** for the Cassi "Theory of Everything": a physics
 The repo is a **document graph with three master registries** at the root:
 
 - `open-questions-cassi-answers.md`—epistemic master registry: 41 open questions (`Q1–Q10`, `C1–C10`, `G1–G6`, `M1–M5`, `F1–F6`, `T1–T4`), each with a `Cassi Answer | Mechanism | Epistemic | Reference` table. Epistemic tiers: **Derived / Hypothesized / Speculative**.
-- `parameter-inventory.md`—parameter master registry: all ~40 parameters classified by type (F/D/C/E/I/N). **Must be updated** when a paper introduces, derives, or reclassifies a parameter.
+- `parameter-inventory.md`—parameter master registry: all ~46 parameters classified by type (F/D/C/E/I/N). **Must be updated** when a paper introduces, derives, or reclassifies a parameter.
 - `predictions/falsifiable-predictions.md`—prediction catalog: 46 numbered predictions grouped by experiment (FCC-ee, CMB-S4, LSST…), each with a `**Source:**` block. Cited elsewhere by number / `§`.
 - `cassi-physics.md`—physics guide (start here)
 - `audit.md`—self-critical prediction-vs-experiment audit.
@@ -39,7 +39,7 @@ Domain papers open with "at cascade step N", then apply the universal tool. When
 
 | Path | Purpose |
 |------|---------|
-| `foundations/` (26 docs) | First principles, unified Lagrangian, cascade formulas, derivations (strong CP, generations, neutrinos, proton stability…) |
+| `foundations/` (30 docs) | First principles, unified Lagrangian, cascade formulas, derivations (strong CP, generations, neutrinos, proton stability…) |
 | `principles/` | Cross-cutting principles: de-resonance, v0 hierarchy |
 | `standard-model/` | SM couplings, SU(2) gauge, GUT embedding, CP violation, neutrino mass |
 | `particles/` | Yang-Yin particle interference, DFT benchmarks |

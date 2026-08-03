@@ -5,12 +5,12 @@
 | Label | Meaning | Count |
 |-------|---------|-------|
 | **F** | **Fundamental axiom**—the single postulate from which everything follows | 1 |
-| **D** | **Derived**—mathematical consequence of φ and the PDE structure, zero freedom | 21 |
-| **C** | **Calibrated**—single universal value fit to experiment, fixed across all domains | 3 |
+| **D** | **Derived**—mathematical consequence of φ and the PDE structure, zero freedom | 24 |
+| **C** | **PDE solver convention**—simulation conventions, no calibrated constants | 0 |
 | **E** | **External / empirically determined**—standard physics constants inherited by the framework, plus lattice parameters not yet derived from $\varphi$ | 7 |
 | **I** | **Initial condition**—free initial values that evolve dynamically, not fixed by theory | 6 |
-| **N** | **Numerical**—computational parameters with no physical significance | 7 |
-| | **Total** | **45** |
+| **N** | **Numerical**—computational parameters with no physical significance | 8 |
+| | **Total** | **46** |
 
 ---
 
@@ -51,9 +51,9 @@ All dimensionless coupling constants in the Cassi framework are $\varphi$-powers
 | $\delta_{\text{CKM}}$ (CP phase) | $\pi\varphi^{-2}$ | $1.199$ rad $(68.7^\circ)$ | **D** | Via unitarity triangle from $\varphi$-scaled CKM elements |
 | $\beta$ (Bohm QP exponent) | $\varphi^{-1}/2$ | $0.309$ | **D** | Quantum potential scaling exponent |
 | $\chi_Y$ (Yang chemotaxis) | $\chi/\varphi$ | $\chi \cdot 0.618$ | **D** | Ratio fixed, absolute value calibrated ($\chi$) |
-| $w_0$ (DE equation of state) |—| $-0.87$ (corrected 2026-07-31) | **D** | From $\lambda$ and $\varphi$; the earlier −0.838 was a calibration to the repo's own target (circular) |
-| $w_a$ (DE running) |—| $+0.012$ (+$\xi$, corrected Yang-fraction form) | **D** | $\xi = \varphi^6$ in $H(a)$ shifts from +0.46; verified via `two-fluid/calibrate_initial_ratio_xi_v2.py`; $2.7\sigma$ from DESI $\approx -0.73 \pm 0.28$ (tension) |
-| $n_s$ (spectral index) |—| $0.967$ | **D** | From inflation in Cassi framework |
+| $w_0$ (DE equation of state) |—| $-0.87$ | **D** | From $\lambda$ and $\varphi$; 2σ from DESI $w_0 \approx -0.75 \pm 0.06$ |
+| $w_a$ (DE running) |—| $+0.012$ (with $\xi = \varphi^6$) | **D** | $\xi = \varphi^6$ in $H(a)$; verified via `two-fluid/calibrate_initial_ratio_xi_v2.py`; $2.7\sigma$ from DESI $\approx -0.73 \pm 0.28$ (tension) |
+| $n_s$ (spectral index) |—| $0.9691$ | **D** | From $n_s = 1 - 2\varphi^{-1}/N_e$ with $N_e = 40$ |
 | $r$ (tensor-to-scalar) |—| $0.003$ | **D** | From inflation in Cassi framework |
 | $K_{fw}$ (Wu Xing coeff) | $\varphi^{-1}$ | $0.618$ | **D** | Water damps Fire |
 | $K_{ring}$ (ke ring gain) | $\varphi^{-3}$ | $0.236$ | **D** | One-cycle attenuation of the control ring (`foundations/wu-xing-cycle-structure.md` §2.3) |
@@ -70,7 +70,7 @@ simulations reflect consistent solver conventions, not a hidden $\varphi$
 derivation for each individually.
 | # | Parameter | Value | Role | Status |
 |---|-----------|-------|------|--------|
-| 1 | $\lambda$ (conversion) | $0.1 = 1/(2w)$ | $\varphi$-attractor timescale | **D**—$\lambda = 1/(2w)$ with $w=5$ derived (`foundations/wu-xing-derivation.md`) |
+| 1 | $\lambda$ (conversion) | $0.1 = 1/(2w)$ | $\varphi$-attractor timescale | Derived—$\lambda = 1/(2w)$ with $w=5$ derived (`foundations/wu-xing-derivation.md`) |
 | 2 | $\chi$ (chemotaxis) | $0.5$–$1.0$ | Density-focusing mobility | **Empirical**—no independent derivation |
 | 3 | $c_s^2$ (sound speed) | $0.01$ | Effective pressure | **Empirical**—set by Bohm scale + normalization (see §3.2) |
 | 4 | $\nu$ (hyperviscosity) | $10^{-4}$–$10^{-3}$ | Grid-scale dissipation | **Numerical**—set by Nyquist stability, not physical |
@@ -174,15 +174,6 @@ test**: the SAME grid scale $L=40$, $N=48$, $\Delta t=0.002$ works well for
 all three domains, so the same numerical parameters suffice. If any sector
 required different values (e.g., $N=256$ for cosmological cluster simulations),
 $\nu$ and $c_s^2$ would need to be rescaled proportionally.
-| $H_0$ | $0.05$–$1.0$ | **I** | Initial Hubble parameter |
-| $N_{\text{blobs}}$ | $2$–$3$ | **I** | Number of density peaks |
-| $M_j$ (blob masses) | $200$ (typical) | **I** | Individual blob masses |
-| $\sigma_j$ (blob width) | $3.0$–$4.0$ a$_0$ | **I** | Gaussian density profile width |
-| $\mathbf{X}_j$, $\mathbf{V}_j$ | varies | **I** | Initial positions and velocities |
-
-At the $\varphi$-fixed point, $r = \varphi$ and the specific initial ratio
-becomes irrelevant—the conversion term $\lambda$ drives all configurations
-toward the equilibrium.
 
 ---
 
@@ -353,8 +344,7 @@ This matches the Standard Model (which also takes $\{G, c, \hbar, m_e, m_p,
 quantities must eventually be set by experiment in any theory that lacks a
 mechanism for generating them.
 
-**The Cassi framework improves the SM by deriving 15 dimensionless
-couplings from $\varphi$.** This is its achievement. Dimensional
+**The Cassi framework improves the SM by deriving 24 parameters from $\varphi$ (7 pure $\varphi$-powers + 16 physical couplings + $r_0$).** This is its achievement. Dimensional
 scale-setting is a separate problem shared by all current physical theories.
 ---
 
@@ -364,13 +354,17 @@ Most initial-condition parameters must be specified for any Cassi simulation. Th
 
 | Parameter | Typical Value | Class | Physical Meaning |
 |-----------|--------------|-------|-----------------|
-| $r_0 = E_{Y,0}/E_{I,0}$ | $0.0472$ (cosmology; $E_I/E_Y \approx 21$), $\varphi$ (atoms) | **D** | Initial Yang/Yin ratio; derived from Wu Xing gap $g = 1-\varphi^{-5}$, with $w=5$ now derived from cascade dynamics + Fibonacci identity (`foundations/wu-xing-derivation.md`). $w_0 = -0.87$, $2\sigma$ from DESI (corrected 2026-07-31). |
+| $r_0 = E_{Y,0}/E_{I,0}$ | $0.0472$ (cosmology; $E_I/E_Y \approx 21$), $\varphi$ (atoms) | **D** | Initial Yang/Yin ratio; derived from Wu Xing gap $g = 1-\varphi^{-5}$, with $w=5$ now derived from cascade dynamics + Fibonacci identity (`foundations/wu-xing-derivation.md`). $w_0 = -0.87$, $2\sigma$ from DESI. |
 | $a_0$ | $0.01$-$1.0$ | **I** | Initial scale factor (expanding universe) |
 | $H_0$ | $0.05$-$1.0$ | **I** | Initial Hubble parameter |
 | $N_{\text{blobs}}$ | $2$-$3$ | **I** | Number of density peaks |
 | $M_j$ (blob masses) | $200$ (typical) | **I** | Individual blob masses |
 | $\sigma_j$ (blob width) | $3.0$-$4.0$ a$_0$ | **I** | Gaussian density profile width |
 | $\mathbf{X}_j$, $\mathbf{V}_j$ | varies | **I** | Initial positions and velocities |
+
+At the $\varphi$-fixed point, $r = \varphi$ and the specific initial ratio
+becomes irrelevant—the conversion term $\lambda$ drives all configurations
+toward the equilibrium.
 
 ---
 
@@ -381,7 +375,7 @@ Most initial-condition parameters must be specified for any Cassi simulation. Th
 | $N$ (grid points) | $32$, $48$, $64$ | **N** | Fourier grid resolution |
 | $L$ (box size) | variable | **N** | Physical domain size |
 | $\Delta t$ (timestep) | $0.0005$–$0.002$ | **N** | Numerical stability |
-| $\epsilon$ (Coulomb soft) | $0.02$ a$_0$ | **N** | Removes $1/r$ singularity |
+| $\epsilon_{\text{soft}}$ (Coulomb softening) | $0.02$ a$_0$ | **N** | Removes $1/r$ singularity |
 | $\text{grav\_sigma}$ | $0.2$ | **N** | $|\nabla\Phi|$ saturation for N-body |
 | $h_{\text{smooth}}$ | $0.1$ | **N** | Hubble parameter EMA smoothing |
 | $D$ (diffusion) | $0.001$ | **N** | Can be set to zero (energy-conserving) |
@@ -394,12 +388,12 @@ Most initial-condition parameters must be specified for any Cassi simulation. Th
 | Category | Label | Count | Description |
 |----------|-------|-------|-------------|
 | Fundamental axiom | **F** | 1 | $\varphi$ itself |
-| $\varphi$-derived | **D** | 21 | All coupling constants + $r_0$ + $\kappa_s$, all from $\varphi$ + cascade |
-| PDE solver parameter | **C** | 3 | $\chi$, $c_s^2$, $\nu$—consistent across simulations |
+| $\varphi$-derived | **D** | 24 | 24 derived parameters (7 pure $\varphi$-powers + 16 physical couplings + $r_0$) |
+| PDE solver convention | **C** | 0 | No calibrated constants ($\chi$, $c_s^2$, $\nu$ are Empirical/Derived/Numerical) |
 | External constant | **E** | 7 | $G$, $c$, $\hbar$, $m_e$, $m_p$, $\alpha_s(M_Z)$, $P_\parallel(n)$ |
 | Initial condition | **I** | 6 | $a_0$, $H_0$, $N_{\text{blobs}}$, positions, velocities, masses |
-| Numerical parameter | **N** | 7 | $N$, $L$, $\Delta t$, $\epsilon$, $\text{grav\_sigma}$, $h_{\text{smooth}}$, $D$, $\tau_{\text{qi}}$ |
-| **Total** | | **45** |
+| Numerical parameter | **N** | 8 | $N$, $L$, $\Delta t$, $\epsilon_{\text{soft}}$, $\text{grav\_sigma}$, $h_{\text{smooth}}$, $D$, $\tau_{\text{qi}}$ |
+| **Total** | | **46** |
 
 ### Historical Reduction
 
@@ -413,7 +407,7 @@ The Cassi framework eliminates free parameters:
 | $\xi$ (Qi-gravity) | $\varphi^{6}$ | Modified gravity |
 | $\Lambda$ (cosmological constant) | $\lambda\varphi^{-2}/3$ | Dark energy |
 | DM halo concentration | $q$-dependent $G_{\text{eff}}$ | Galaxy dynamics |
-| Inflation parameters | $n_s = 0.967$, $r = 0.003$ | Early universe |
+| Inflation parameters | $n_s = 0.9691$, $r = 0.003$ | Early universe |
 
 The four PDE solver parameters ($\lambda$, $\chi$, $c_s^2$, $\nu$) are consistent
 across all simulations—a solver-consistency test that the framework passes,
@@ -428,12 +422,34 @@ work in every sector.
 
 | Sector | $\lambda$ | $\chi$ | $c_s^2$ | $\nu$ | Validated? |
 |--------|-----------|--------|---------|-------|-----------|
-| Cosmology (DESI DR2) | $0.1$ | $1.0$ | $0.01$ | $10^{-4}$ | $w_0 = -0.87$, $w_a = +0.012$ (corrected 2026-07-31); 2σ/2.7σ tension |
-| MW rotation curve | $0.1$ | $1.0$ | $0.01$ | $10^{-4}$ | $v_C/v_B = 2.9$–$3.1\times$ (matches $2.7\pm0.5$ within ~1.2σ; corrected 2026-07-31) |
-| Dwarf spheroidals (8) | $0.1$ | $1.0$ | $0.01$ | $10^{-4}$ | 3/8 pass; MOND preferred (4/8); ceiling exceeded in 3/8 (corrected 2026-08-03) |
+| Cosmology (DESI DR2) | $0.1$ | $1.0$ | $0.01$ | $10^{-4}$ | $w_0 = -0.87$, $w_a = +0.012$; 2σ/2.7σ tension |
+| MW rotation curve | $0.1$ | $1.0$ | $0.01$ | $10^{-4}$ | $v_C/v_B = 2.9$–$3.1\times$ (matches $2.7\pm0.5$ within ~1.2σ) |
+| Dwarf spheroidals (8) | $0.1$ | $1.0$ | $0.01$ | $10^{-4}$ | 3/8 pass; MOND preferred (4/8); ceiling exceeded in 3/8 |
 | He DFT (LDA, N=64) | $0.1$ | $1.0$ | $0.01$ | $10^{-4}$ | 0.8% error (chemical accuracy) |
 | Three-body Lagrange | $0.01$ | $1.0$ |—| $10^{-4}$ | Stable triangle, 500+ steps |
 | Mercury precession | $0.1$ |—|—|—| 42.98''/cy (GR recovered) |
 
 No sector requires different values. This universal consistency is a nontrivial
 check that Cassi is not over-parameterized.
+
+---
+
+## 9. Canonical Symbol Table
+
+Symbols used framework-wide that are not parameter rows above (or names for rows that are). Bare $\alpha$ is prohibited repo-wide; always subscript.
+
+| Symbol | Canonical meaning | Value / expression | Notes |
+|---|---|---|---|
+| $\varphi$ | universal scale-separation constant | $(1+\sqrt{5})/2 = 1.618033989$ | F-class axiom (§1) |
+| $\alpha_0$ | equilibrium Yang fraction ($\pi/\rho$ at the $\varphi$-fixed point) | $\varphi^{-3} \approx 0.236$ | = $G_{\text{eff}}/G$ at fixed point; row in §2.1 |
+| $\alpha_{\text{halo}}$ | galactic/halo Yang fraction (SPARC fits) | $\approx 0.7$ | $G_{\text{eff}}/G = \alpha(1+\xi q)$; halo-regime parametrization, NOT the framework maximum ($\varphi^6 = 17.94$) |
+| $\alpha_w$ | attractor conversion weight | $\varphi^{-1} \approx 0.618$ | = $r/(1+r)$ at $r = \varphi$ in $H_{\text{eff}}^2$; row in §2.1 |
+| $\varepsilon$ | field deviation | $\varepsilon = E_Y - \varphi E_I$ | core physics (governing-equation pair); keep $\varepsilon$ |
+| $\varepsilon_{\text{soft}}$ | Coulomb softening (numerical) | $0.02\,a_0$ | numerical (§6 row); distinct from the field deviation $\varepsilon$ |
+| $\sigma$ | regularization scale | $\ell_{\text{Pl}}/\varphi^3$ | gravity cores, UV-finite propagator; registered here |
+| $\sigma_r$ | spatial ratio dispersion | dynamic state variable | consciousness master variable (registry M4) |
+| $\theta_{\text{cond}}$ | condensation threshold | $0.45$ (at $R \approx 0.093$) | fixed point, not a free parameter (`foundations/bubble-edge-geometry.md`) |
+| $\mathcal{M}$ | phase-matching factor | $\approx 1$ organized / $\approx 0$ random | quantum-measurement derivation (Q7) |
+| $g$ | Wu Xing freeze-out gap | $1 - \varphi^{-5} \approx 0.9098$ | derived identity |
+| $\Lambda_Y$, $\Lambda_I$ | wake wavelengths | $\ell_n$ and $\ell_n/\varphi$ | distinct from the conversion rate $\lambda$ (`foundations/wake-geometry.md`) |
+| $\lambda$ | conversion rate | $1/(2w) = 0.1$ | keep—do not reuse $\lambda$ for wavelengths or the C1 mechanism scale ($\lambda = 3\varphi^2 H_0$) |
