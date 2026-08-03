@@ -4,15 +4,15 @@
 
 ---
 
-## Executive Summary
+## Abstract
 
-**The Kolmogorov −5/3 spectrum is NOT derived from φ.** It emerges from the standard Navier-Stokes advection term $(\mathbf{u}\cdot\nabla)\mathbf{u}$ embedded in the two-fluid velocity equation. Cassi *inherits* the −5/3 in the inertial range where the Yang-Yin conversion is slow compared to eddy turnover.
+**The Kolmogorov −5/3 spectrum is not derived from φ.** It emerges from the standard Navier-Stokes advection term $(\mathbf{u}\cdot\nabla)\mathbf{u}$ embedded in the two-fluid velocity equation. Cassi *inherits* the −5/3 in the inertial range where the Yang-Yin conversion is slow compared to eddy turnover.
 
 **Cassi's novel contributions to turbulence are:**
 
 1. **The φ-break scale** $k_\varphi = \varphi^3\sqrt{\lambda^3/\varepsilon}$—the wavenumber where conversion and eddy turnover timescales cross
 2. **The ε-spectrum** $E_\varepsilon(k) \propto k^{-5/3} \cdot f(k/k_\varphi)$—the deviation from φ-equilibrium has its own inertial-range scaling with a φ-determined break
-3. **Scale-dependent gravitational enhancement**—$G_{\text{eff}}(k)$ varies by factor $\sim 19\times$ across the φ-break
+3. **Scale-dependent gravitational enhancement**—$G_{\text{eff}}(k)$ varies by factor $\sim 18\times$ across the φ-break
 4. **The Qi-quality spectrum** $q(k)$—a direct observable of the conversion dynamics
 
 ---
@@ -34,7 +34,7 @@ where:
 - $\pi = E_Y - E_I$ (Yang excess)
 - $\varepsilon = E_Y - \varphi E_I$ (deviation from φ-equilibrium)
 - $q = \frac{\rho^2}{\rho^2 + \varphi^{-2} + \varepsilon^2}$ (Qi quality)
-- $\xi = \varphi^6 \approx 17.944$ (Qi-gravity coupling, derived in xi-derivation.md)
+- $\xi = \varphi^6 \approx 17.944$ (Qi-gravity coupling, derived in `foundations/xi-derivation.md`)
 - $M$ = Metal element ($\lambda_{\text{eff}}/\lambda$, ≈ 1 in turbulence)
 
 ### 1.2 Evolution of the Deviation
@@ -109,7 +109,7 @@ The box fundamental mode is $k_{\text{min}} = 2\pi/L \approx 1.0$ (for $L=2\pi$)
 
 For standard simulation parameters: **the entire resolved range is in the Inertial regime**. This is why the solver recovers Kolmogorov −5/3 without any φ-modification—the conversion term is negligible in the inertial range.
 
-The $\varphi$-break corresponds to the transition from lattice-coherent (large scales, discrete bubbles intact) to lattice-incoherent (small scales, bubbles dissolved by diffusion)—the same condensation-vs-diffusion balance that sets $\theta_{\text{cond}}$ (`foundations/bubble-lattice-fabric.md` §2.3).
+The $\varphi$-break corresponds to the transition from lattice-coherent (large scales, discrete bubbles intact) to lattice-incoherent (small scales, bubbles dissolved by diffusion)—the same condensation-vs-diffusion balance that sets $\theta_{\text{cond}}$ (`foundations/bubble-edge-geometry.md` §1.2).
 
 ---
 
@@ -230,7 +230,7 @@ $$q(k) \approx 1 - \frac{E_\varepsilon(k)}{\bar{\rho}^2} + \mathcal{O}(k^{-10/3}
 | ε-spectrum slope change at $k_\varphi$ | Conversion damping | φ enters via $\gamma_\varepsilon = \lambda(1+\varphi)(1-q)$ |
 | Energy amplitude jump at break | Factor $\varphi^4$ | From $\tilde{\varepsilon}^{2/3}$ with $\tilde{\varepsilon} = \varphi^6\varepsilon$ |
 
-### NOT Derivable (Requires External Physics):
+### Not Derivable (Requires External Physics):
 
 | Result | Why not | What's needed |
 |--------|---------|---------------|
@@ -241,7 +241,7 @@ $$q(k) \approx 1 - \frac{E_\varepsilon(k)}{\bar{\rho}^2} + \mathcal{O}(k^{-10/3}
 
 ---
 
-## 7. The Honest Conclusion
+## 7. Conclusion
 
 **The Kolmogorov −5/3 spectrum is not a φ-prediction.** It is a Navier-Stokes prediction that Cassi recovers in the inertial range where the conversion term is negligible ($k \gg k_\varphi$). Cassi's contribution is:
 
@@ -249,7 +249,7 @@ $$q(k) \approx 1 - \frac{E_\varepsilon(k)}{\bar{\rho}^2} + \mathcal{O}(k^{-10/3}
 2. **Predicting where −5/3 breaks down**—at $k \approx k_\varphi$, with a calculable transition
 3. **Providing new observables**—$E_\varepsilon(k)$, $q(k)$, $G_{\text{eff}}(k)$—that are uniquely Cassi and falsifiable
 
-The empirical result from the solver (slope = −1.600 at $\alpha = 1.0$, within 4% of −1.667) is consistent with this framework: the Yin spectral tilt was an ad-hoc mechanism that happened to push energy in the right direction, but the true Cassi mechanism is the scale-dependent conversion/Qi-gravity, which operates at scales too large to be resolved in a 128³ box with standard parameters.
+The empirical result from the solver (slope = −1.600 at $\alpha = 1.0$, within 4% of −1.667) is consistent with this framework: the scale-dependent conversion/Qi-gravity operates at scales too large to be resolved in a 128³ box with standard parameters, so the resolved range recovers unmodified Kolmogorov scaling.
 
 ### Falsifiable Prediction
 
@@ -307,3 +307,11 @@ print(f"Above break: {int(k_max2/k_phi2)} wavenumbers")
 ```
 
 For N=64 with $\lambda=0.17$, $\varepsilon=0.01$: $k_\varphi \approx 3.0$, with ~2 wavenumbers below the break and ~7 above. For N=128 with $\lambda=0.2$, $\varepsilon=0.01$: $k_\varphi \approx 3.8$, with ~3 below and ~11 above—a clean inertial range on both sides of the break.
+
+---
+
+## References
+
+- `cassi-physics.md`—two-fluid PDE, Qi gate, and $G_{\text{eff}} = (\pi/\rho)(1+\xi q)G$
+- `foundations/xi-derivation.md`—derivation of the Qi-gravity coupling $\xi = \varphi^6$
+- `foundations/bubble-edge-geometry.md` §1.2—condensation threshold $\theta_{\text{cond}}$ from the conversion-diffusion balance

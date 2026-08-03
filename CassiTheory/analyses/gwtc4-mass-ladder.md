@@ -4,7 +4,7 @@
 
 ## Abstract
 
-The fourth gravitational-wave transient catalog (GWTC-4.0) more than doubles the census of compact-binary mergers, to 218 events with $p_{\text{astro}} \ge 0.5$. This document runs the new catalog through the framework's only derived mass-to-rung relation—the black-hole coherence-capacity rung $N_{\text{BH}} = \log_\varphi(M/M_{\text{Pl}})$ from `gravity/quantum-gravity.md` §7.4—and maps the population peaks, the mass-gap edges, and the headline events onto the cascade ladder. The stellar-black-hole zone ($n \approx 182$–$194$) is unmapped territory: the ladder has no claims there between the rung-185 and rung-200 anchors. The observed primary-mass peaks (10, $\sim$20, 35 M$_\odot$ at rungs 186.4, 187.9, 189.0) do **not** form an integer-rung grid—the spacings are 1.44 and 1.16 rungs—and a full-posterior search over all 173 catalog events with proper measurement uncertainties confirms this: no significant comb at the predicted period ln $\varphi$ ($\Delta\ln L = +1.9$ vs a null median of +12.8, p ≈ 1.0), a marginal rung-fraction excess (p ≈ 0.02) worth tracking with GWTC-5, and no periodicity at any other period. The catalog also supplies the first high-loudness test of the framework's GR-exact ringdown prediction The catalog also supplies the first high-loudness test of the framework's GR-exact ringdown prediction: the loudest event ever recorded, GW230814_230901, shows a ringdown hint that the collaboration judges statistically insignificant—consistent with the framework so far, and a falsifier if it survives corroboration.
+The fourth gravitational-wave transient catalog (GWTC-4.0) more than doubles the census of compact-binary mergers, to 218 events with $p_{\text{astro}} \ge 0.5$. This document runs the new catalog through the framework's only derived mass-to-rung relation—the black-hole coherence-capacity rung $N_{\text{BH}} = \log_\varphi(M/M_{\text{Pl}})$ from `gravity/quantum-gravity.md` §7.5—and maps the population peaks, the mass-gap edges, and the headline events onto the cascade ladder. The stellar-black-hole zone ($n \approx 182$–$194$) is unmapped territory: the ladder has no claims there between the rung-185 and rung-200 anchors. The observed primary-mass peaks (10, $\sim$20, 35 M$_\odot$ at rungs 186.4, 187.9, 189.0) do **not** form an integer-rung grid—the spacings are 1.44 and 1.16 rungs—and a full-posterior search over all 173 catalog events with proper measurement uncertainties confirms this: no significant comb at the predicted period ln $\varphi$ ($\Delta\ln L = +1.9$ vs a null median of +12.8, p ≈ 1.0), a marginal rung-fraction excess (p ≈ 0.02) worth tracking with GWTC-5, and no periodicity at any other period. The catalog also supplies the first high-loudness test of the framework's GR-exact ringdown prediction The catalog also supplies the first high-loudness test of the framework's GR-exact ringdown prediction: the loudest event ever recorded, GW230814_230901, shows a ringdown hint that the collaboration judges statistically insignificant—consistent with the framework so far, and a falsifier if it survives corroboration.
 
 ---
 
@@ -18,7 +18,7 @@ Every claim in this document uses one derived relation: the number of accessible
 
 $$\boxed{N_{\text{BH}} = \log_\varphi\!\left(\frac{M}{M_{\text{Pl}}}\right)}$$
 
-derived in `gravity/quantum-gravity.md` §7.4 as the coherence capacity of the interior two-fluid condensate ($M_\odot \to N_{\text{BH}} \approx 180$ rungs; exact value 181.6). Applying it to GWTC-4.0 places the entire stellar-black-hole population in a previously silent band of the ladder:
+derived in `gravity/quantum-gravity.md` §7.5 as the coherence capacity of the interior two-fluid condensate ($M_\odot \to N_{\text{BH}} \approx 180$ rungs; exact value 181.6). Applying it to GWTC-4.0 places the entire stellar-black-hole population in an unmapped band of the ladder:
 
 | Quantity | Mass | Rung $N_{\text{BH}}$ |
 |---|---|---|
@@ -71,7 +71,7 @@ The one marginal result is the rung-fraction statistic: the event-weighted exces
 
 ## 4. Test 2: Ringdown—The Framework Predicts GR, and the Loudest Event Agrees
 
-The framework's effective gravity at compact-object densities is unmodified: the halo parameterization $q = 1/(1 + (\rho/\rho_{\text{ref}})^2)$ drives $q \to 0$ at nuclear and horizon densities, so $G_{\text{eff}} = G(1+\xi q) \to G_N$ (`cosmology/observational_constraints.md` §2.6), and the σ-regularized running of $G$ is below 1% even at the Planck scale (`gravity/quantum-gravity.md` §7.3). The prediction is therefore **GR-exact ringdown frequencies** for a given remnant mass and spin: no mass-shift, no frequency-shift, no anomalous damping.
+The framework's effective gravity at compact-object densities is unmodified: the halo parameterization $q = 1/(1 + (\rho/\rho_{\text{ref}})^2)$ drives $q \to 0$ at nuclear and horizon densities, so $G_{\text{eff}} = G(1+\xi q) \to G_N$ (`cosmology/observational_constraints.md` §2.6), and the σ-regularized running of $G$ is below 1% even at the Planck scale (`gravity/quantum-gravity.md` §5.3). The prediction is therefore **GR-exact ringdown frequencies** for a given remnant mass and spin: no mass-shift, no frequency-shift, no anomalous damping.
 
 GW230814_230901—the loudest event ever recorded, SNR 42.1—is precisely the event that could break this. Its single-detector analysis found a potential ringdown deviation that the collaboration explicitly could not separate from statistical noise and could not corroborate with a second facility [5]. Consistent with the framework so far; **if the deviation survives with corroborated detections, it falsifies the current $q$-density dependence** (the branch $q \to 1$ at high density, or a nonzero compact-density enhancement, would be required instead). This is a clean, binary falsifier and the most valuable contact point between GWTC-4.0 and the framework.
 
@@ -83,9 +83,9 @@ The framework's unique gravitational-wave signature is enhanced strain from merg
 
 Three strengthened population results have no framework counterpart and must not be retrofitted casually:
 
-- **Merger rate increasing with redshift** — the framework's cosmology has gate engagement at $z \sim 19$ and wake-wave structure formation, but no merger-rate prediction; the rate-redshift relation is a test for the future, not a consistency check.
-- **Spin-distribution width increasing with redshift** — spin in the framework is SO(2) doublet winding (`foundations/spin-fibonacci-spiral.md`); nothing predicts its population evolution.
-- **Broad neutron-star mass distribution** — the Cassi NS model (`experiments/cassi_physics/cassi_neutron_stars.py`) predicts a modified TOV mass-radius relation, not a population distribution. Its one sharp, testable statement—a lower maximum NS mass than GR for the same EOS, from the $G_{\text{eff}}$ enhancement in the outer layers—is unquantified in the docs and should be quantified before being compared to the catalog's NS-BH events (GW230529_181500, GW230518_125908).
+- **Merger rate increasing with redshift**—the framework's cosmology has gate engagement at $z \sim 19$ and wake-wave structure formation, but no merger-rate prediction; the rate-redshift relation is a test for the future, not a consistency check.
+- **Spin-distribution width increasing with redshift**—spin in the framework is SO(2) doublet winding (`foundations/spin-fibonacci-spiral.md`); nothing predicts its population evolution.
+- **Broad neutron-star mass distribution**—the Cassi NS model (`experiments/cassi_physics/cassi_neutron_stars.py`) predicts a modified TOV mass-radius relation, not a population distribution. Its one sharp, testable statement—a lower maximum NS mass than GR for the same EOS, from the $G_{\text{eff}}$ enhancement in the outer layers—is unquantified in the docs and should be quantified before being compared to the catalog's NS-BH events (GW230529_181500, GW230518_125908).
 
 ## 7. Epistemic Summary
 
@@ -103,17 +103,17 @@ Three strengthened population results have no framework counterpart and must not
 
 ## References
 
-- `../gravity/quantum-gravity.md` §7.4—coherence-capacity rungs $N_{\text{BH}}$
-- `../foundations/dimensionful-cascade.md`—the 292-step ladder and its anchors
-- `../predictions/falsifiable-predictions.md` §4—GW predictions 17 and 29
-- `../cosmology/observational_constraints.md` §2.6—halo $q$ parameterization
-- `../experiments/cassi_physics/cassi_gravitational_waves.py`—strain-enhancement model
-- `../experiments/cassi_physics/cassi_neutron_stars.py`—modified TOV
-- `../experiments/phi_periodic_pk_search/phi_periodic_pk_search.py`—log-periodic search pipeline to reuse
-- `../experiments/gwtc4_mass_ladder/gwtc4_mass_ladder.py`—rung mapping, verification block, figure
-- `../experiments/gwtc4_mass_ladder/extract_samples.py`—posterior extraction from the LVK releases
-- `../experiments/gwtc4_mass_ladder/phi_mass_search.py`—the φ-periodic mass search (models, bootstrap null)
-- `../experiments/gwtc4_mass_ladder/phi_mass_figure.py`—result figure (PNG gitignored)
+- `gravity/quantum-gravity.md` §7.5—coherence-capacity rungs $N_{\text{BH}}$
+- `foundations/dimensionful-cascade.md`—the 292-step ladder and its anchors
+- `predictions/falsifiable-predictions.md` §4—GW predictions 17 and 29
+- `cosmology/observational_constraints.md` §2.6—halo $q$ parameterization
+- `experiments/cassi_physics/cassi_gravitational_waves.py`—strain-enhancement model
+- `experiments/cassi_physics/cassi_neutron_stars.py`—modified TOV
+- `experiments/phi_periodic_pk_search/phi_periodic_pk_search.py`—log-periodic search pipeline to reuse
+- `experiments/gwtc4_mass_ladder/gwtc4_mass_ladder.py`—rung mapping, verification block, figure
+- `experiments/gwtc4_mass_ladder/extract_samples.py`—posterior extraction from the LVK releases
+- `experiments/gwtc4_mass_ladder/phi_mass_search.py`—the φ-periodic mass search (models, bootstrap null)
+- `experiments/gwtc4_mass_ladder/phi_mass_figure.py`—result figure (PNG gitignored)
 - Data: GWTC-4.0 PE release (zenodo 17602505), GWTC-2.1 v2 (zenodo 6513631), GWTC-3 (zenodo 8177023); posteriors via [9]
 - [1] AAS Nova roundup, 2026-07-29: https://aasnova.org/2026/07/29/monthly-roundup-the-fourth-catalog-of-gravitational-wave-events-from-ligo-virgo-and-kagra/
 - [2] GWTC-4.0 catalog paper, arXiv:2508.18082, doi:10.3847/2041-8213/ae2c74
