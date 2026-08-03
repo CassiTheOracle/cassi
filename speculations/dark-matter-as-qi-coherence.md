@@ -34,7 +34,7 @@ This single mechanism replaces particle dark matter for explaining galaxy rotati
 ### 1.2 What has been established
 
 - Milky Way rotation curve: matched with $\xi = \varphi^6 \approx 17.944$ to 0.3% of the empirically calibrated value (`foundations/xi-derivation.md` §3)
-- Dwarf spheroidal galaxies: 5 of 8 pass with Qi gravity, compared to 4 of 8 for MOND (`foundations/cassi-first-principles.md` §3.3)
+- Dwarf spheroidal galaxies: G-rescaling sector 3/8 vs MOND 4/8 (Path 10, `experiments/phi_attractor_paths/path10_dwarf_galaxies.py`); coherence sector uncalibrated below $10^7\,M_\odot$ (see UFD note below)
 - The gravitational coupling $\alpha_G \propto \varphi^{-2n}$ is parameter-free: only $\varphi$ and the cascade rung count are needed
 
 ---
