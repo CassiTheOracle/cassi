@@ -55,6 +55,7 @@ import numpy as np
 
 PHI = (1 + 5**0.5) / 2
 LNPHI = np.log(PHI)
+PHI_INV2 = PHI ** -2      # phi^-2 = 0.382, the gate's coherence floor
 
 
 def u_of(x):
@@ -75,25 +76,41 @@ def laplacian(f, dx):
     return lap
 
 
-def rhs(EY, EI, VY, VI, dx, lam, gamma, c2):
+def gate_openness(EY, EI):
+    """Qi gate openness (1-q) of the solver's 'single' gate
+    (cassi_two_fluid_3d_gpu.py, rhs): q = M/(M + phi^-2 + eps^2),
+    M = (EY+EI)^2, eps = EY - phi*EI. Conversion is gated by (1-q)."""
+    M_qi = (EY + EI) ** 2
+    eps_sq = (EY - PHI * EI) ** 2
+    return (PHI_INV2 + eps_sq) / (M_qi + PHI_INV2 + eps_sq + 1e-30)
+
+
+def rhs(EY, EI, VY, VI, dx, lam, gamma, c2, gate=False):
     dEY = VY
     dEI = VI
-    dVY = c2 * laplacian(EY, dx) - gamma * VY - lam * (EY - PHI * EI)
-    dVI = c2 * laplacian(EI, dx) - gamma * VI + lam * (EY - PHI * EI)
+    imbalance = EY - PHI * EI
+    if gate:
+        conv = -lam * gate_openness(EY, EI) * imbalance
+    else:
+        conv = -lam * imbalance
+    dVY = c2 * laplacian(EY, dx) - gamma * VY + conv
+    dVI = c2 * laplacian(EI, dx) - gamma * VI - conv
     return dEY, dEI, dVY, dVI
 
 
 def evolve(EY, EI, VY, VI, dx, dt, n_steps, lam, gamma=0.01, c2=1.0,
-           conserve_mass=True):
+           conserve_mass=True, gate=False):
     M0Y, M0I = EY.sum(), EI.sum()
     for _ in range(n_steps):
-        k1 = rhs(EY, EI, VY, VI, dx, lam, gamma, c2)
+        k1 = rhs(EY, EI, VY, VI, dx, lam, gamma, c2, gate)
         k2 = rhs(EY + 0.5*dt*k1[0], EI + 0.5*dt*k1[1],
-                 VY + 0.5*dt*k1[2], VI + 0.5*dt*k1[3], dx, lam, gamma, c2)
+                 VY + 0.5*dt*k1[2], VI + 0.5*dt*k1[3], dx, lam, gamma,
+                 c2, gate)
         k3 = rhs(EY + 0.5*dt*k2[0], EI + 0.5*dt*k2[1],
-                 VY + 0.5*dt*k2[2], VI + 0.5*dt*k2[3], dx, lam, gamma, c2)
+                 VY + 0.5*dt*k2[2], VI + 0.5*dt*k2[3], dx, lam, gamma,
+                 c2, gate)
         k4 = rhs(EY + dt*k3[0], EI + dt*k3[1],
-                 VY + dt*k3[2], VI + dt*k3[3], dx, lam, gamma, c2)
+                 VY + dt*k3[2], VI + dt*k3[3], dx, lam, gamma, c2, gate)
         EY += dt/6 * (k1[0] + 2*k2[0] + 2*k3[0] + k4[0])
         EI += dt/6 * (k1[1] + 2*k2[1] + 2*k3[1] + k4[1])
         VY += dt/6 * (k1[2] + 2*k2[2] + 2*k3[2] + k4[2])
@@ -238,6 +255,112 @@ def panel_b(L, x_sp, N, dt, t_short, t_long, psi_scan, lam_scan):
               f"{u_pde + 0.5:>+9.3f} {u_an:>9.3f}")
 
 
+# ----------------------------------------------------------------------
+# Panel C: nonlinear gate regime (solver 'single' gate)
+# ----------------------------------------------------------------------
+
+def panel_c(L, x_sp, N, dt, t_long, lam_scan, m_scan, amp_scan, psi_scan):
+    print()
+    print("=" * 72)
+    print("Panel C — nonlinear gate regime")
+    print("conv = -lam*(1-q)*(E_Y - phi E_I),  q = M/(M + phi^-2 + eps^2)")
+    print("(solver 'single' gate; M = (E_Y+E_I)^2, eps = E_Y - phi E_I)")
+    print("Wall influence reaches the window at t = x + x_sp ~ "
+          f"{x_sp + 0.12:.2f} > t_max = {t_long}")
+    print("Extremum measured on the REACH: max over the last 1.7 time")
+    print("units of |E_Y| (the sourced harmonics oscillate; a single")
+    print("snapshot can miss them)")
+    print("=" * 72)
+    x = np.linspace(-x_sp, L, N)
+    dx = x[1] - x[0]
+    x_lo, x_hi = 0.12, 1.0
+    AMP = 0.32
+
+    def run(m, amp, psi, lam, t):
+        EY = m + amp*(np.cos(2*np.pi*x) + np.cos(2*np.pi*(x - PHI) + psi))
+        EI = m + amp*(np.cos(2*np.pi*PHI*x)
+                      + np.cos(2*np.pi*PHI*(x - PHI) + psi))
+        VY = np.zeros_like(x)
+        VI = np.zeros_like(x)
+        n_steps = int(round(t / dt))
+        n_rec = int(round(1.7 / dt))
+        reach = np.zeros_like(x)
+        # evolve; keep max |EY| over the final 1.7 time units
+        for step in range(n_steps):
+            k1 = rhs(EY, EI, VY, VI, dx, lam, 0.01, 1.0, gate=True)
+            k2 = rhs(EY + 0.5*dt*k1[0], EI + 0.5*dt*k1[1],
+                     VY + 0.5*dt*k1[2], VI + 0.5*dt*k1[3], dx, lam,
+                     0.01, 1.0, True)
+            k3 = rhs(EY + 0.5*dt*k2[0], EI + 0.5*dt*k2[1],
+                     VY + 0.5*dt*k2[2], VI + 0.5*dt*k2[3], dx, lam,
+                     0.01, 1.0, True)
+            k4 = rhs(EY + dt*k3[0], EI + dt*k3[1],
+                     VY + dt*k3[2], VI + dt*k3[3], dx, lam, 0.01, 1.0,
+                     True)
+            EY += dt/6 * (k1[0] + 2*k2[0] + 2*k3[0] + k4[0])
+            EI += dt/6 * (k1[1] + 2*k2[1] + 2*k3[1] + k4[1])
+            VY += dt/6 * (k1[2] + 2*k2[2] + 2*k3[2] + k4[2])
+            VI += dt/6 * (k1[3] + 2*k2[3] + 2*k3[3] + k4[3])
+            if step >= n_steps - n_rec:
+                reach = np.maximum(reach, np.abs(EY))
+        u_max = extremum_u(x, reach, x_lo, x_hi)
+        m_win = (x >= x_lo) & (x <= x_hi)
+        omq = gate_openness(EY, EI)[m_win].mean()
+        return u_max, omq, EY, EI
+
+    # (1) lambda scan at m = 1, amp = 0.32, psi = 0
+    print(f"\n(1) lambda scan, m = 1, amp = 0.32, psi = 0, t = {t_long}")
+    print(f"{'lambda':>8} {'u_max':>9} {'delta_n':>9} {'<1-q>':>7}")
+    for lam in lam_scan:
+        u_max, omq, _, _ = run(1.0, AMP, 0.0, lam, t_long)
+        print(f"{lam:>8.3f} {u_max:>9.3f} {u_max + 0.5:>+9.3f} {omq:>7.3f}")
+
+    # (2) density m scan (coherence dial), at lam = 0.3
+    print(f"\n(2) density m scan (coherence dial), lam = 0.3, psi = 0, "
+          f"t = {t_long}")
+    print(f"{'m':>6} {'u_max':>9} {'delta_n':>9} {'<1-q>':>7}")
+    for m in m_scan:
+        u_max, omq, _, _ = run(m, AMP, 0.0, 0.3, t_long)
+        print(f"{m:>6.2f} {u_max:>9.3f} {u_max + 0.5:>+9.3f} {omq:>7.3f}")
+
+    # (3) amplitude scan (nonlinearity strength), at m = 1, lam = 0.3
+    print(f"\n(3) amplitude scan, m = 1, lam = 0.3, psi = 0, t = {t_long}")
+    print(f"{'amp':>6} {'u_max':>9} {'delta_n':>9} {'<1-q>':>7}")
+    for amp in amp_scan:
+        u_max, omq, _, _ = run(1.0, amp, 0.0, 0.3, t_long)
+        print(f"{amp:>6.2f} {u_max:>9.3f} {u_max + 0.5:>+9.3f} {omq:>7.3f}")
+
+    # (4) psi scan under the gate, vs the linear curve 0.060 - 0.204 psi
+    print(f"\n(4) psi scan under the gate, lam = 0.3, m = 1, t = {t_long}")
+    print(f"{'psi':>6} {'u_max':>9} {'delta_n':>9} {'linear curve':>13}")
+    for psi in psi_scan:
+        u_max, omq, _, _ = run(1.0, AMP, psi, 0.3, t_long)
+        lin = 0.060 - 0.204 * psi
+        print(f"{psi:>6.2f} {u_max:>9.3f} {u_max + 0.5:>+9.3f} "
+              f"{lin:>+13.3f}")
+
+    # (5) time accumulation at the strongest case
+    print(f"\n(5) time accumulation, m = 0.5, amp = 0.32, lam = 0.3")
+    for t in [2.0, 4.0, t_long]:
+        u_max, omq, _, _ = run(0.5, AMP, 0.0, 0.3, t)
+        print(f"   t = {t:4.1f}: u_max = {u_max:+.3f}, delta_n = "
+              f"{u_max + 0.5:+.3f}, <1-q> = {omq:.3f}")
+
+    # (6) nonlinear mixing: windowed spectrum of (1-q) at the strongest case
+    _, omq, EY, EI = run(0.5, AMP, 0.0, 0.3, t_long)
+    f_win = gate_openness(EY, EI)
+    m_win = (x >= x_lo) & (x <= x_hi)
+    sig = f_win[m_win] - f_win[m_win].mean()
+    sig *= np.hanning(sig.size)               # kill FFT leakage
+    kk = np.fft.rfftfreq(sig.size, d=dx)
+    spec = np.abs(np.fft.rfft(sig))
+    order = np.argsort(spec)[::-1][:8]
+    print(f"\n(6) dominant wave numbers (cycles/ell_n) of (1-q) at "
+          f"t = {t_long}; linear wakes sit at 1.000 and 1.618")
+    for i in order:
+        print(f"    k/2pi = {kk[i]:6.3f}   power = {spec[i]:.4f}")
+
+
 if __name__ == "__main__":
     L = 5 * PHI          # physical domain
     x_sp = 1.5           # left extension: wall round trip from the window
@@ -250,6 +373,11 @@ if __name__ == "__main__":
     panel_b(L=L, x_sp=x_sp, N=N, dt=dt, t_short=t_short, t_long=t_long,
             psi_scan=[0.0, 0.1, 0.2, 0.4, 0.6, 0.8],
             lam_scan=[0.0, 0.02, 0.05, 0.1])
+    panel_c(L=L, x_sp=8.0, N=2048, dt=dt, t_long=6.0,
+            lam_scan=[0.0, 0.1, 0.3, 0.5],
+            m_scan=[0.5, 1.0, 2.0],
+            amp_scan=[0.16, 0.32, 0.64],
+            psi_scan=[0.0, 0.2, 0.4])
 
     print()
     print("=" * 72)
@@ -261,9 +389,21 @@ if __name__ == "__main__":
     print("    special points are {1 + log_phi m} and")
     print("    {1 + log_phi(m+1/2)}.")
     print("(b) the relative phase psi between the two wakes moves the")
-    print("    extremum: x_max = phi/2 - psi/(4 pi), i.e. delta_n(psi) —")
-    print("    the phase-lag mechanism of the doc sec 4.2.")
-    print("(c) conversion lambda leaks the I-fluid structure into E_Y,")
-    print("    whose antinode sits at u = +0.23; the extremum drifts")
-    print("    toward it as lambda grows (energy flows Y -> I when")
-    print("    r > phi; W1 anti-phase sign convention).")
+    print("    extremum: x_max = phi/2 - psi/(4 pi), i.e.")
+    print("    delta_n(psi) = 0.060 - 0.204 psi — the phase-lag")
+    print("    mechanism of the doc sec 4.2 — and the curve is")
+    print("    unchanged under the gate (Panel C (4)).")
+    print("(c) conversion — linear (Panel B) or gated (Panel C) — does")
+    print("    NOT move the extremum in the standing pattern: pinned at")
+    print("    delta_n = +0.060 for lambda up to 0.5, <1-q> up to 0.33,")
+    print("    t up to 6, all densities and amplitudes. The gate sources")
+    print("    harmonics of the wakes (k = 2.0 component in (1-q), table")
+    print("    (6)) but cannot rephase the crossing. The lambda = 0")
+    print("    reach tie at u = -2.440 is a degenerate tie between the")
+    print("    |A| and |2-A| envelope maxima, not physics.")
+    print("(d) conclusion: in the standing two-bubble pattern, delta_n")
+    print("    is set by the wake phase difference psi alone; the local")
+    print("    conversion dynamics cannot shift it. The catalog offsets")
+    print("    must trace to the emission phase of the wakes (their age")
+    print("    since the last closure event), not to the local gate")
+    print("    dynamics.")
