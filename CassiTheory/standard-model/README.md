@@ -4,7 +4,7 @@
 
 ## Abstract
 
-Five documents derive the Standard Model's gauge structure, couplings, and flavor sector from the Cassi $\varphi$-fixed point: the isospinor two-fluid field $\Psi = (\psi_Y, \psi_I)^T$ with Yang/Yin equilibrium ratio $\varphi$ fixes the symmetry-breaking chain, the Weinberg angle, the Yukawa hierarchy, the CKM phase, and the seesaw scale. The reading path is derivation order—start with `sm-from-phi.md` for the full breaking chain, then `su2-gauge-extension.md` for the gauge mechanics, `gut-embedding.md` for unification, and the two flavor-sector documents `cp-violation.md` and `neutrino-mass.md`. Three documents are Derived (electroweak structure, gauge extension, CP), two are Hypothesized (GUT embedding, neutrino masses), and each closes with falsifiable predictions cataloged in `../predictions/falsifiable-predictions.md`.
+Five documents derive the Standard Model's gauge structure, couplings, and flavor sector from the Cassi $\varphi$-fixed point: the isospinor two-fluid field $\Psi = (\psi_Y, \psi_I)^T$ with Yang/Yin equilibrium ratio $\varphi$ fixes the symmetry-breaking chain, the Weinberg angle, the Yukawa hierarchy, the CKM phase, and the seesaw scale. The reading path is derivation order—start with `sm-from-phi.md` for the full breaking chain, then `su2-gauge-extension.md` for the gauge mechanics, `gut-embedding.md` for unification, and the two flavor-sector documents `cp-violation.md` and `neutrino-mass.md`. Three documents are Derived (electroweak structure, gauge extension, CP), two are Hypothesized (GUT embedding, neutrino masses), and each closes with falsifiable predictions cataloged in `predictions/falsifiable-predictions.md`.
 
 ## Document Index
 
@@ -40,6 +40,6 @@ Explains the 0.01–0.1 eV neutrino scale via the seesaw mechanism with the righ
 
 ## Cross-References
 
-- `../foundations/unified-lagrangian.md`—the unified Cassi Lagrangian from which the SM-from-φ breaking chain descends
-- `../foundations/xi-derivation.md`—derivation of the gravity coupling $\xi = \varphi^6$, the framework's last free parameter
-- `../predictions/falsifiable-predictions.md`—the prediction catalog hosting this directory's results ($m_W/m_Z$, $\sin^2\theta_W$, $\delta_{\text{CKM}}$, proton lifetime, neutrino splittings)
+- `foundations/unified-lagrangian.md`—the unified Cassi Lagrangian from which the SM-from-φ breaking chain descends
+- `foundations/xi-derivation.md`—derivation of the gravity coupling $\xi = \varphi^6$, the framework's last free parameter
+- `predictions/falsifiable-predictions.md`—the prediction catalog hosting this directory's results ($m_W/m_Z$, $\sin^2\theta_W$, $\delta_{\text{CKM}}$, proton lifetime, neutrino splittings)

@@ -4,16 +4,16 @@
 
 ## Abstract
 
-This directory collects creative explorations that are consistent with the Cassi framework but are not yet testable claims. Each document anchors its mechanisms to specific equations or documented framework properties, but the synthesis is an extrapolation: **nothing here should be cited as a Cassi prediction or derivation** unless a document explicitly says otherwise. The document order follows the framework's flow—field physics first (dark matter, superconductivity), then engineering (computation, propulsion, gravity control, defense), then the human-scale consequences that remain here (biology, magic, the commons)—the inner-life cluster (consciousness, perception, time and memory, identity) now lives in `../consciousness/`—then infrastructure and apocalypse, and finally the observational signatures of it all (SETI, first contact) and the ontological question (simulation).
+This directory collects creative explorations that are consistent with the Cassi framework but are not yet testable claims. Each document anchors its mechanisms to specific equations or documented framework properties, but the synthesis is an extrapolation: **nothing here should be cited as a Cassi prediction or derivation** unless a document explicitly says otherwise. The document order follows the framework's flow—field physics first (dark matter, superconductivity), then engineering (computation, propulsion, gravity control, defense), then the human-scale consequences that remain here (biology, magic, the commons)—the inner-life cluster (consciousness, perception, time and memory, identity) now lives in `consciousness/`—then infrastructure and apocalypse, and finally the observational signatures of it all (SETI, first contact) and the ontological question (simulation).
 
 ## 1. Boundary with `hypotheses/`
 
 One test separates the two tier directories:
 
-- `hypotheses/`—the document proposes a specific Cassi mechanism **and** pins a zero/low-parameter falsifiable prediction distinguishable from the null (full quality bar in `../hypotheses/README.md`).
+- `hypotheses/`—the document proposes a specific Cassi mechanism **and** pins a zero/low-parameter falsifiable prediction distinguishable from the null (full quality bar in `hypotheses/README.md`).
 - `speculations/`—framework-consistent what-ifs: mechanism sketched, prediction not yet pinned. This is the incubator.
 
-**Promotion path:** when a speculation pins its prediction, it graduates to `hypotheses/`; when a hypothesis matures into a full domain, it moves to a domain directory. Everyday tier changes never move files—they live in the Status header, the registries, and `../EPISTEMIC-MAP.md`.
+**Promotion path:** when a speculation pins its prediction, it graduates to `hypotheses/`; when a hypothesis matures into a full domain, it moves to a domain directory. Everyday tier changes never move files—they live in the Status header, the registries, and `EPISTEMIC-MAP.md`.
 
 ## Document Index
 
@@ -36,7 +36,7 @@ All documents are **Speculative—July 2026** unless noted.
 | 13 | First contact | $\ln\varphi$ log-periodicity as the universal language; stars as gate chains | `first-contact-and-stellar-engineering.md` |
 | 14 | Simulation | Two-fluid PDE as source code; render budget from the ladder; nested universes | `simulation-hypothesis.md` |
 
-Data-analysis documents (observational datasets tested against framework claims) live in `../analyses/`.
+Data-analysis documents (observational datasets tested against framework claims) live in `analyses/`.
 
 ## 2. Document Summaries
 
@@ -98,10 +98,10 @@ The universe's source code is the two-fluid PDE with $\sigma$-regularization as 
 
 ## 3. Cross-References
 
-- `../hypotheses/README.md`—quality-barred hypothesis catalog
-- `../open-questions-cassi-answers.md`—epistemic registry (41 questions)
-- `../predictions/falsifiable-predictions.md`—the 46-entry prediction catalog
-- `../parameter-inventory.md`—parameter registry ($\xi = \varphi^6$, $q$, $g(q)$, $\theta_{\text{cond}}$)
-- `../foundations/dimensionful-cascade.md`—the 292-step ladder
-- `../foundations/bubble-lattice-fabric.md`—condensation field geometry
-- `../analyses/README.md`—data analyses of observations against the framework (GWTC-4.0 mass ladder)
+- `hypotheses/README.md`—quality-barred hypothesis catalog
+- `open-questions-cassi-answers.md`—epistemic registry (41 questions)
+- `predictions/falsifiable-predictions.md`—the 46-entry prediction catalog
+- `parameter-inventory.md`—parameter registry ($\xi = \varphi^6$, $q$, $g(q)$, $\theta_{\text{cond}}$)
+- `foundations/dimensionful-cascade.md`—the 292-step ladder
+- `foundations/bubble-lattice-fabric.md`—condensation field geometry
+- `analyses/README.md`—data analyses of observations against the framework (GWTC-4.0 mass ladder)
