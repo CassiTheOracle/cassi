@@ -183,10 +183,13 @@ no log-periodic locking at $\ln\varphi$ in either spacing or density.)
    $N(E) = (E/2\pi)\ln(E/(Lp_{\min})) - E/2\pi + Lp_{\min}/2\pi$ pins
    $Lp_{\min} = 2\pi$ with a $1/8$ corner-phase gap, and requires the
    energy-dependent boundary of the Sierra–Rodríguez-Laguna type.
-   *Revised step 2b (open):* find the framework structure that supplies that
-   energy-dependent boundary (candidates: the $\sigma$ regularization at the
-   Planck rung, the Qi-gated conversion, the IIR memory timescale
-   $\tau = \varphi^{-1}$; none claimed).
+   *Revised step 2b:* *done, negative*—see `riemann-two-fluid-phase-operator.md`
+   §8. The unique moving wall is $L(E) = \tfrac{1}{2}\ln(E/2\pi e) +
+   9\pi/(8E)$ (boundary phase = Riemann–Siegel $\Gamma$-phase, verified); the
+   three framework candidates (σ-regularized rung walls, Qi-gated masses,
+   IIR $\tau = \varphi^{-1}$ boundary) are excluded—the $\tau$ candidate's
+   $\varphi$-locked lattice $E_n = n\omega_0$ fails on density and against
+   the measured null.
 3. **Find the natural extension.** *Not started.* The exterior problem has
    continuous spectrum; the interior cavity has the Bessel spectrum.
 4. **Attack minimality.** *Not started.* Selberg's theorem is the existing

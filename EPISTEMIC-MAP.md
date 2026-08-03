@@ -106,7 +106,7 @@ Tiers below are taken from each document's Status header. Compound headers are q
 | `hypotheses/metabolic-scaling.md` | Speculative (derivation not closed) | $\varphi$-derived fractal dimension for resource networks |
 | `hypotheses/riemann-hypothesis-de-resonance.md` | Speculative—August 2026 | RH as no-resonance in primes; ζ-zero φ-test null |
 | `hypotheses/riemann-two-fluid-spectral-program.md` | Speculative—August 2026 | Scale-operator candidate; minimal-fluctuation probes |
-| `hypotheses/riemann-two-fluid-phase-operator.md` | Speculative—August 2026 | Step 1 done: Bessel scale operator; linear spectra fail R-vM |
+| `hypotheses/riemann-two-fluid-phase-operator.md` | Speculative—August 2026 | Step 1 done: Bessel scale operator; linear spectra fail R-vM; Γ-phase boundary identified |
 
 ## 4. Reference & Cross-Cutting
 
