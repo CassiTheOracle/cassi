@@ -44,11 +44,16 @@ where $N_\nu$ is the effective cascade span from the GUT-scale Yukawa seed
 to the seesaw freeze-out at step 20. With $n_{\text{GUT}} \approx 8$ and
 $n_{\text{seesaw}} \approx 20$, the span is $N_\nu \approx 12$ cascade rungs.
 
-$$m_\nu \approx 246\ \text{GeV} \times \varphi^{-12} \approx 246\ \text{GeV} \times 0.0031 \approx 0.8\ \text{eV}$$
+The single-rung estimate $v_0\,\varphi^{-12}$ sets the seesaw suppression
+scale; the absolute spectrum is fixed by the cascade RGE + PMNS computation
+(`computations/cascade_rge_pmns.py`), which pins
 
-This is the **overall** scale of neutrino masses—$\mathcal{O}(0.1\text{–}1\ \text{eV})$.
-Consistent with cosmological bounds ($\sum m_\nu < 0.12$–$0.6$ eV depending on
-dataset) and $\beta$-decay limits ($m_{\nu_e} < 0.8$ eV, KATRIN).
+$$m_1 = 0.00356\ \text{eV}, \qquad m_2 = 0.00931\ \text{eV}, \qquad m_3 = 0.05019\ \text{eV}, \qquad \Sigma m_\nu = 0.0631\ \text{eV}$$
+
+in normal ordering, with Fibonacci offsets $\Delta_1 = 1.00$ and $\Delta_2 =
+1.75$ rungs (§4). The spectrum is consistent with cosmological bounds
+($\Sigma m_\nu < 0.12$–$0.6$ eV depending on dataset) and KATRIN's
+$\beta$-decay endpoint limit.
 
 ---
 
@@ -173,7 +178,7 @@ dwarfed by the current experimental uncertainty ($\sim 3\%$ on the ratio).
 
 ### 4.1 The pinned offsets are clean φ-powers
 
-The striking result is that $\Delta_1 = 1.00$ is an **exact integer rung** —
+The striking result is that $\Delta_1 = 1.00$ is an **exact integer rung**—
 the Fibonacci offset from generation 1 to generation 2 is precisely one
 cascade φ-step. And $\Delta_2 = 1.75 = 7/4$ rungs is a rational fraction
 with denominator 4, corresponding to the Fibonacci spiral's quarter-rung
@@ -186,19 +191,17 @@ close to the spectral gap $\varphi^{-2} \approx 0.382$. This confirms that
 the φ-RG spectral gap—not the fixed point $\varphi^{-1}$—governs the
 seesaw sector's Fibonacci offset compression.
 
-### 4.2 Comparison with the earlier estimate
+### 4.2 The pinned offsets in mass-exponent space
 
-The previous estimate ($\Delta_1 \approx 0.75$, $\Delta_2 \approx 1.75$ rungs,
-giving $\Delta m^2_{31}/\Delta m^2_{21} \approx 37.7$, 13% residual) used
-$\Delta_{\nu,1} \approx 1.5$ in mass-exponent space. The cascade RGE + PMNS
-computation reveals that the correct mass-exponent offset is $2\Delta_1 = 2.00$
-(not $1.50$)—the first Fibonacci sub-rung sits exactly one full cascade
-φ-step from the lightest generation, not three-quarters of a step.
+In mass-exponent space the pinned offsets are $2\Delta_1 = 2.00$ and
+$2\Delta_2 = 3.50$: the first Fibonacci sub-rung sits exactly one full
+cascade φ-step from the lightest generation, the second at three and a half
+steps ($\Delta_2 = 7/4$ rungs, the quarter-rung subdivision of the
+Fibonacci spiral).
 
-**The key result: the cascade RGE + PMNS pins the Fibonacci offsets to**
+**The cascade RGE + PMNS computation pins the Fibonacci offsets to**
 **$\Delta_1 = 1.00$, $\Delta_2 = 1.75$ rungs, matching the observed**
-**$\Delta m^2_{31}/\Delta m^2_{21} \approx 33.89$ to 0.2%—a 65× improvement**
-**over the previous 13% residual. The gap is closed.**
+**$\Delta m^2_{31}/\Delta m^2_{21} \approx 33.89$ to 0.2%.**
 
 ---
 

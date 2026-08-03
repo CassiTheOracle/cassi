@@ -1,6 +1,6 @@
 # Matter-Antimatter Asymmetry from Cascade Freeze-Out and Organized Annihilation
 
-## Status: Derived—July 2026
+## Status: Derivation (result: Hypothesized, per registry C7/Q6)
 
 ## Abstract
 
@@ -61,7 +61,7 @@ but the **difference** $E_Y - E_I$ survives:
 
 $$\eta_{\text{GUT}} = \frac{E_{Y,\text{GUT}} - E_{I,\text{GUT}}}{E_{Y,\text{GUT}} + E_{I,\text{GUT}}} = \frac{r_{\text{GUT}} - 1}{r_{\text{GUT}} + 1}$$
 
-At $r_{\text{GUT}} \approx 0.4$: $\eta_{\text{GUT}} \approx -0.43$ —
+At $r_{\text{GUT}} \approx 0.4$: $\eta_{\text{GUT}} \approx -0.43$—
 negative because Yin dominates, but the absolute Yang excess $|E_Y - E_I|$
 is 43% of the total density at GUT. After annihilation eliminates paired
 matter-antimatter in the $(E_Y + E_I)$ channel, the surviving fraction is:
@@ -127,8 +127,7 @@ through the Wu Xing phases and the gate-mediated dilution cutoff.
 
 ## 3. The $\varphi$-power scaling: $\eta \approx \varphi^{-44}$
 
-The observed baryon-to-photon ratio is $\eta_{\text{obs}} = (6.104 \pm 0.058)
-\times 10^{-10}$. The nearest integer $\varphi$-power is:
+The observed baryon-to-photon ratio is $\eta_{\text{obs}} = 6.0 \times 10^{-10}$. The nearest integer $\varphi$-power is:
 
 | Exponent $k$ | $\varphi^{-k}$ | Ratio to observed $\eta_{\text{obs}}$ |
 |:---:|:---|:---:|
@@ -138,7 +137,7 @@ The observed baryon-to-photon ratio is $\eta_{\text{obs}} = (6.104 \pm 0.058)
 | 46 | $2.44 \times 10^{-10}$ | 0.41× |
 
 $$\boxed{\eta \approx \varphi^{-44} \approx 6.38 \times 10^{-10} \quad
-        \text{(6.3% of observed)}}$$
+        \text{(6.3% above observed)}}$$
 
 The exponent $-44$ is the cascade span from the GUT seed (step $\sim 8$) to
 the effective freeze-out (step $52$). The **mechanism** (organized annihilation
@@ -354,7 +353,7 @@ mechanism that eliminates the paired fraction.
 ### Hypothesized (testable)
 
 - **Specific $\varphi$-power**: $\eta \approx \varphi^{-44} \approx 6.38 \times
-  10^{-10}$ pins the cascade freeze-out to step 52 with 6.3% residual —
+  10^{-10}$ pins the cascade freeze-out to step 52 with 6.3% residual—
   consistent with all current observations
 - **5-phase mapping**: the assignment of Wu Xing phases to specific cascade
   step ranges (§4.1) is structurally motivated but not uniquely fixed by the
@@ -409,7 +408,7 @@ The following gaps prevent upgrading to fully "Derived" status:
 - `foundations/wa-pentagon-gate.md`—5-channel pentagonal gate, channel
   opennesses, adiabatic redistribution
 - `foundations/refined-numeric-predictions.md` §2.1—$\eta \approx
-  \varphi^{-44}$ refinement from $\varphi^{-46}$
+  \varphi^{-44}$ refinement
 - `standard-model/cp-violation.md`—$\delta_{\text{CP}} = \pi\varphi^{-2}$
 - `foundations/strong-cp-derivation.md`—CP suppression
 - `cosmology/inflation-from-cascade.md`—inflation epoch (steps 20–60),

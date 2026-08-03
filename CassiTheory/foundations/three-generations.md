@@ -219,7 +219,7 @@ The Fibonacci sub-channel partitioning is a 1D projection of the 3D bubble latti
 
 - Specific $\Delta_k$ values for each sector (predict $\varphi$-power spacing)
 - Neutrino mass hierarchy from compressed cascade span with y² amplification
-- **$\Delta m^2_{31}/\Delta m^2_{21} \approx 33.82$ (0.2% residual)** —
+- **$\Delta m^2_{31}/\Delta m^2_{21} \approx 33.82$ (0.2% residual)**—
   Fibonacci offsets $\Delta_1 = 1.00$, $\Delta_2 = 1.75$ rungs pinned by cascade RGE + PMNS
 - No fourth generation at any reachable energy scale
 
@@ -235,6 +235,6 @@ The Fibonacci sub-channel partitioning is a 1D projection of the 3D bubble latti
 - `foundations/dimensionful-cascade.md`—cascade table, GUT/EW/QCD positions
 - `foundations/xi-derivation.md`—$\xi = \varphi^6$ from cascade
 - `foundations/spin-fibonacci-spiral.md`—half-rung Fibonacci subdivision
-- `foundations/neutrino-masses.md`—seesaw y² amplification, corrected $\Delta m^2$ ratio
+- `foundations/neutrino-masses.md`—seesaw y² amplification, pinned $\Delta m^2$ ratio
 - `foundations/refined-numeric-predictions.md` §2.2—updated numeric refinement
 - `standard-model/sm-from-phi.md`—SM couplings from $\varphi$

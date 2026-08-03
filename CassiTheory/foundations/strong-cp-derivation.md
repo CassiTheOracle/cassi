@@ -85,8 +85,8 @@ With $n_{\text{QCD}} = 95$, $n_{\text{GUT}} \approx 8$, and $\delta_{\text{CP}}
 
 $$\boxed{\bar{\theta} \approx \varphi^{-87} \times \pi\varphi^{-2} = \pi\varphi^{-89} \approx 10^{-19}}$$
 
-This is nine orders of magnitude below the experimental bound of $10^{-10}$
-— and it is a **prediction**, not a tuning. The cascade depth between GUT and
+This is nine orders of magnitude below the experimental bound of $10^{-10}$—
+and it is a **prediction**, not a tuning. The cascade depth between GUT and
 QCD is 87 rungs; the exponential suppression comes from the same product
 structure that gives the proton its $10^{980}$-year lifetime, applied to
 CP-violating propagation rather than random dephasing.

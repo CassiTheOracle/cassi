@@ -4,7 +4,7 @@
 
 ## Abstract
 
-The Dirac↔two-fluid sector coupling—the parameter behind the chemotactic mobility $\chi$, previously marked free in `parameter-inventory.md` §3.3—gets its scale derived from the cascade: three $\varphi$-rungs above the electroweak VEV (rung 77 ≈ 1.04 TeV), giving $\kappa_s = \varphi^{-6}/v_0^2$. The O(1) coefficient and the exact bridge to $\chi$ remain open, with candidate readings and a computable check identified.
+The Dirac↔two-fluid sector coupling—the parameter behind the chemotactic mobility $\chi$, marked free in `parameter-inventory.md` §3.3—gets its scale derived from the cascade: three $\varphi$-rungs above the electroweak VEV (rung 77 ≈ 1.04 TeV), giving $\kappa_s = \varphi^{-6}/v_0^2$. The O(1) coefficient and the exact bridge to $\chi$ remain open, with candidate readings and a computable check identified.
 
 ## 1. The sector coupling and its symbol
 
@@ -18,7 +18,7 @@ with $P_{\pm} = (1\pm\gamma^5)/2$ the chiral projectors: the plus term ties the 
 
 ### The symbol
 
-The symbol $\kappa$ was previously shared with two other established constants. The Wu Xing pentagram transmission $\kappa = \varphi^{-1} = K_{fw}$ ("Water damps Fire", the control-cycle coefficient fixed by the pentagon side/diagonal ratio) is a different, derived constant documented in `foundations/wu-xing-cycle-structure.md` §1.3, and a charge-density constant appears as $\kappa$ in the Qi charge/current definitions of `predictions/cassi_definitions.md` ($\rho = -\kappa\nabla^2 q$, $J = \kappa\,\partial_t\nabla q$). This document uses $\kappa_s$ (s = sector) for the Dirac↔two-fluid coupling, and the rename is applied repo-wide.
+The symbol $\kappa$ is shared with two other established constants. The Wu Xing pentagram transmission $\kappa = \varphi^{-1} = K_{fw}$ ("Water damps Fire", the control-cycle coefficient fixed by the pentagon side/diagonal ratio) is a different, derived constant documented in `foundations/wu-xing-cycle-structure.md` §1.3, and a charge-density constant appears as $\kappa$ in the Qi charge/current definitions of `predictions/cassi_definitions.md` ($\rho = -\kappa\nabla^2 q$, $J = \kappa\,\partial_t\nabla q$). This document uses $\kappa_s$ (s = sector) for the Dirac↔two-fluid coupling, and the rename is applied repo-wide.
 
 ### Dimensions
 
@@ -74,11 +74,11 @@ The suppression $\kappa_s \propto \varphi^{-6}$ is the reciprocal of the Qi-grav
 
 ### A dark step answered
 
-Rung 77 was previously unlabeled—a "dark step" in the activated set $\{1,2,3,5,6,26,80,292\}$. `foundations/dimensionful-cascade.md` §9 Q2 asks whether dark steps carry physical meaning (sterile neutrino masses, dark sector couplings). This derivation answers Q2 for rung 77: it is the Dirac↔two-fluid equilibration scale.
+Rung 77 is a "dark step"—a rung the activated set $\{1,2,3,5,6,26,80,292\}$ leaves unlabeled. `foundations/dimensionful-cascade.md` §9 Q2 asks whether dark steps carry physical meaning (sterile neutrino masses, dark sector couplings). This derivation answers Q2 for rung 77: it is the Dirac↔two-fluid equilibration scale.
 
 ### Consistency with the inventory
 
-`parameter-inventory.md` §3.3's slogan "$\kappa \sim 1/\text{TeV}^2$" is now pinned to a specific value, $\kappa_s = 0.92$ TeV$^{-2}$—same order of magnitude as the inventory's estimate, now derived rather than assumed.
+`parameter-inventory.md` §3.3's slogan "$\kappa \sim 1/\text{TeV}^2$" is now pinned to a specific value, $\kappa_s = 0.92$ TeV$^{-2}$—same order of magnitude as the inventory's estimate, derived rather than assumed.
 
 ## 3. The O(1) coefficient: candidate readings
 
@@ -92,7 +92,7 @@ Write $\kappa_s = C\cdot\varphi^{-6}/v_0^2$ with $C$ an O(1) coefficient. The ca
 | $\varphi^{-1} = K_{fw}$ | One pentagram transmission | 0.569 TeV$^{-2}$ | 1.326 TeV |
 | $\varphi^{-2}$ | Two transmissions | 0.352 TeV$^{-2}$ | 1.686 TeV |
 
-All three sit inside the historical "$\sim 1/\text{TeV}^2$" band, so the inventory's order-of-magnitude slogan cannot discriminate between them.
+All three sit inside the "$\sim 1/\text{TeV}^2$" band, so the inventory's order-of-magnitude slogan cannot discriminate between them.
 
 The framework provides two precedents for how such a coefficient should be read. First, the conversion rate $\lambda = 1/(2w) = 1/10$ is deliberately rational, *not* a $\varphi$-power, precisely to avoid phase-locking with cascade rungs (`foundations/dimensionful-constants-status.md` §2.1)—so $C = 1$ is not required to be a $\varphi$-power, and the mechanism may well produce a rational coefficient. Second, the de-resonance posture (`principles/de-resonance-principle.md` §6): the $\varphi$-attractor sets leading-order baselines and dynamics supply subleading corrections, so the coefficient is exactly the kind of quantity the attractor leaves free.
 
@@ -148,7 +148,7 @@ The K-numbers (letter K for kappa) do not collide with the numbered prediction c
 
 ## 6. Epistemic Boundaries
 
-- **Supported by Verified Physics**: the rung-77 placement (arithmetic identity $E_n = M_{\text{Pl}}\varphi^{-n}$); consistency of $\kappa_s = 0.92$ TeV$^{-2}$ with the previously quoted order of magnitude; the dimensional failure of the as-written $\chi$ bridge.
+- **Supported by Verified Physics**: the rung-77 placement (arithmetic identity $E_n = M_{\text{Pl}}\varphi^{-n}$); consistency of $\kappa_s = 0.92$ TeV$^{-2}$ with the inventory's order of magnitude; the dimensional failure of the as-written $\chi$ bridge.
 - **Plausible Hypothesis (test exists)**: $\kappa_s = \varphi^{-6}/v_0^2$ with $C = 1$; the $\mathcal{N}_{\text{pde}}$ computation is a concrete calculation with a falsifiable target ($\chi \in [0.5, 1.0]$).
 - **Speculative**: TeV-scale phenomenology of the sector-coupling enforcement dynamics.
 - **Not Supported**: any claim that the O(1) coefficient is determined without the mechanism (no discriminator between $C = 1$, $\varphi^{-1}$, $\varphi^{-2}$ yet).
@@ -161,4 +161,4 @@ The K-numbers (letter K for kappa) do not collide with the numbered prediction c
 - `foundations/dimensionful-constants-status.md`—§2.1: $\lambda = 1/(2w)$ rate precedent (rational, not a $\varphi$-power)
 - `foundations/wu-xing-cycle-structure.md`—§1.3: the other $\kappa$ (pentagram transmission $K_{fw} = \varphi^{-1}$)
 - `principles/de-resonance-principle.md`—$\varphi$-baseline posture: attractor sets leading order, dynamics supply corrections
-- `parameter-inventory.md`—§3.3: previous status of $\chi$ and $\kappa$ (free, $\sim 1/\text{TeV}^2$)
+- `parameter-inventory.md`—§3.3: status of $\chi$ and $\kappa$ (free, $\sim 1/\text{TeV}^2$)
