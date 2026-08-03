@@ -418,7 +418,7 @@ work in every sector.
 |--------|-----------|--------|---------|-------|-----------|
 | Cosmology (DESI DR2) | $0.1$ | $1.0$ | $0.01$ | $10^{-4}$ | $w_0 = -0.87$, $w_a = +0.012$ (corrected 2026-07-31); 2σ/2.7σ tension |
 | MW rotation curve | $0.1$ | $1.0$ | $0.01$ | $10^{-4}$ | $v_C/v_B = 2.9$–$3.1\times$ (matches $2.7\pm0.5$ within ~1.2σ; corrected 2026-07-31) |
-| Dwarf spheroidals (8) | $0.1$ | $1.0$ | $0.01$ | $10^{-4}$ | 4/8 pass, ties MOND (corrected 2026-08-03) |
+| Dwarf spheroidals (8) | $0.1$ | $1.0$ | $0.01$ | $10^{-4}$ | 3/8 pass; MOND preferred (4/8); ceiling exceeded in 3/8 (corrected 2026-08-03) |
 | He DFT (LDA, N=64) | $0.1$ | $1.0$ | $0.01$ | $10^{-4}$ | 0.8% error (chemical accuracy) |
 | Three-body Lagrange | $0.01$ | $1.0$ |—| $10^{-4}$ | Stable triangle, 500+ steps |
 | Mercury precession | $0.1$ |—|—|—| 42.98''/cy (GR recovered) |

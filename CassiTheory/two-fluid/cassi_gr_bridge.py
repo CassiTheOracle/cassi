@@ -123,15 +123,12 @@ class CassGRBridge:
     # ─────────────────────────────────────────────────────────────────────
 
     def get_geff(self, q=0.0):
-        """G_eff(q) = (π/ρ) · (1 + ξ·q) · G_N  [from cassi_qi_gravity.py line 87].
+        """G_eff(q)/G_N = 1 + (φ⁶−1)·q  [corrected 2026-08-03].
 
-        Uses the actual Qi gravity force law:
-            F = π · (1 + ξ·q) · ∇Φ = (π/ρ) · (1 + ξ·q) · ρ · ∇Φ
-        so the effective gravitational constant is:
-            G_eff = (π/ρ) · (1 + ξ·q) · G_N
-
-        The π/ρ ratio is estimated from q using the terminal attractor
-        relation: π/ρ ≈ φ⁻³ + q  (matches sweep data within 15%).
+        Max boost φ⁶ ≈ 17.94 at q → 1 (the derived Qi-gravity coupling,
+        `foundations/xi-derivation.md`); Newtonian at q = 0. The withdrawn
+        approximate coupling 1+(φ−1)q (max boost φ ≈ 1.62) and the earlier
+        empirical π/ρ-scaled fit with ξ = 18 are removed.
 
         Parameters
         ----------
@@ -143,11 +140,8 @@ class CassGRBridge:
         float
             Effective gravitational constant G_eff in m³ kg⁻¹ s⁻².
         """
-        # π/ρ from terminal attractor trend: φ⁻³ at q=0, ~0.72 at q=0.7
-        pi_over_rho = PHI_INV ** 3 + q * 0.7  # empirical fit
-        pi_over_rho = min(pi_over_rho, 0.72)  # saturate at terminal max
-        xi = 18.0  # calibrated from MW rotation curve
-        return G_N * pi_over_rho * (1.0 + xi * q)
+        xi = PHI ** 6
+        return G_N * (1.0 + (xi - 1.0) * q)
 
     def effective_potential(self, r, M, L, c=C, q=0):
         """Effective radial potential (Newtonian + 1PN GR correction).
@@ -681,7 +675,7 @@ class CassGRBridge:
         r_s = 2 * G_eff(q) * M / c²
 
         For M = 1 M_sun, q = 0.5:
-            r_s ≈ 2 * (G_N * (1 + (φ-1)*0.5)) * M_sun / c²
+            r_s ≈ 2 * (G_N * (1 + (φ⁶−1)*0.5)) * M_sun / c²
             ≈ 3.86 km  (GR: 2.95 km)
 
         Parameters
@@ -1018,7 +1012,7 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 φ-predictions:
-  G_eff(q) = G_N * (1 + (φ-1)·q) for q ∈ [0,1]
+  G_eff(q) = G_N * (1 + (φ⁶−1)·q) for q ∈ [0,1] — max boost φ⁶ ≈ 17.94
   Mercury precession: 43 arcsec/century at q=0 (pure GR)
   Schwarzschild: ~3 km for 1 M_sun at q ≈ 0.5
         """)

@@ -3,21 +3,22 @@ Path 10: Cassi saturation ceiling vs MOND — Ultra-Faint Dwarf Galaxy Test
 =========================================================================
 
 Tests the key prediction from Path 9 (`path9_cassi_vs_mond.py`):
-  - Cassi full-coupling ceiling: v_obs/v_Newt <= sqrt(alpha(1+xi)) ~ 3.64
-    (SATURATES), with xi = phi^6 ~ 17.944 and alpha = 0.7 the halo Yang
-    fraction (cosmology/observational_constraints.md Sec 2.6;
-    foundations/phi_attractor_synthesis.md Sec 13, revised 2026-07-31)
+  - Cassi full-coupling ceiling: v_obs/v_Newt <= sqrt(phi^6) = phi^3 ~ 4.24
+    (SATURATES), with xi = phi^6 ~ 17.944 the derived Qi-gravity coupling:
+    the max boost G_eff/G_N -> phi^6 at q -> 1
+    (foundations/xi-derivation.md; revised 2026-08-03)
   - MOND:            v_obs/v_Newt ~ sqrt(a0/a)          (GROWS unboundedly)
 
 Revised 2026-08-03: the earlier ceiling sqrt(phi) ~ 1.27 came from the
 withdrawn approximate coupling G_eff/G_N = 1 + (phi-1)q and is obsolete.
-The full two-fluid coupling G_eff/G = alpha(1+xi*q) saturates at
-sqrt(alpha(1+xi)) = sqrt(0.7 x 18.94) ~ 3.64 (reached only where q -> 1,
-i.e. rho << rho_ref — exactly the ultra-faint regime).
+The corrected coupling G_eff/G_N = 1 + (phi^6-1)q saturates at the derived
+max boost phi^6 ~ 17.94, i.e. a velocity ceiling sqrt(phi^6) = phi^3 ~ 4.24
+(reached only where q -> 1, i.e. rho << rho_ref — exactly the ultra-faint
+regime).
 
 Ultra-faint dwarfs (a << a0) are the decisive test case.
 At a ~ 0.001 a0:
-  Cassi predicts: ratio <= 3.64 (ceiling)
+  Cassi predicts: ratio <= 4.24 (ceiling, phi^3)
   MOND predicts:  ratio ~ sqrt(1000) ~ 31
 
 Data: observed line-of-sight velocity dispersions, half-light radii,
@@ -39,8 +40,8 @@ pc      = 3.086e16       # m
 a0_mond = 1.2e-10        # m/s^2  (MOND acceleration scale)
 PHI     = (1.0 + np.sqrt(5.0)) / 2.0   # golden ratio ~ 1.618
 XI      = PHI ** 6                      # Qi-gravity coupling xi = phi^6 ~ 17.944
-ALPHA_HALO = 0.7                        # halo Yang fraction pi/rho (MW halo regime)
-CEILING = np.sqrt(ALPHA_HALO * (1.0 + XI))   # Cassi saturation limit ~ 3.64
+CEILING = np.sqrt(XI)                   # velocity ceiling sqrt(phi^6) = phi^3 ~ 4.24
+                                         # (max boost G_eff/G_N = phi^6 at q -> 1)
 
 # ── Dwarf Galaxy Catalog ───────────────────────────────────────────────────
 # (name, sigma_v [km/s], r_half [pc], M_baryon [M_sun])
@@ -71,7 +72,8 @@ print()
 print(f"{'Galaxy':<20} {'M_bary':>10} {'sigma_v':>8} {'v_obs':>8} {'v_Newt':>8} "
       f"{'v_Cassi':>8} {'v_MOND':>8} {'v_obs/':>8} {'MOND/':>8} {'Cassi':>8} {'ceil?':>7}")
 print(f"{'':20} {'[M_sun]':>10} {'[km/s]':>8} {'[km/s]':>8} {'[km/s]':>8} "
-      f"{'[km/s]':>8} {'[km/s]':>8} {'v_Newt':>8} {'v_Newt':>8} {'fit?':>8} {'>3.64':>7}")
+      f"{'[km/s]':>8} {'[km/s]':>8} {'v_Newt':>8} {'v_Newt':>8} {'fit?':>8} "
+      f"{'>' + f'{CEILING:.2f}':>7}")
 print("-" * 112)
 
 for name, sigma_v, r_half_pc, M_bary_msun in dwarfs:
@@ -141,7 +143,7 @@ n_exceed = sum(1 for r in results if r['exceeded'])
 print()
 print("MODEL CONSISTENCY (within factor 2 of observed sigma_v):")
 print(f"  Newtonian: {n_newt}/{n} galaxies")
-print(f"  Cassi (sqrt(alpha(1+xi)) = {CEILING:.2f}):  {n_cassi}/{n} galaxies")
+print(f"  Cassi (sqrt(phi^6) = phi^3 = {CEILING:.2f}):  {n_cassi}/{n} galaxies")
 print(f"  MOND (a0 = 1.2e-10 m/s^2): {n_mond}/{n} galaxies")
 print(f"  Observed boost EXCEEDS the Cassi ceiling ({CEILING:.2f}x): {n_exceed}/{n} galaxies")
 
@@ -162,10 +164,10 @@ print("=" * 112)
 
 if n_exceed == 0:
     verdict = (f"(a) Cassi ceiling consistent — no dwarf exceeds v_obs/v_Newt = "
-               f"{CEILING:.2f} (the full-coupling saturation limit)")
+               f"{CEILING:.2f} (the phi^3 saturation ceiling)")
 elif n_exceed < n:
     verdict = (f"(b) Ceiling exceeded in {n_exceed}/{n} dwarfs — the Cassi "
-               f"saturation limit sqrt(alpha(1+xi)) ~ {CEILING:.2f} is falsified for the "
+               f"saturation limit sqrt(phi^6) = phi^3 ~ {CEILING:.2f} is falsified for the "
                f"lowest-mass systems; MOND's unbounded growth is preferred there")
     if n_mond > n_cassi:
         verdict += f"\n  MOND fits {n_mond} galaxies vs Cassi's {n_cassi}."
@@ -230,7 +232,7 @@ ax.plot(M_range, np.ones_like(M_range), 'k--', alpha=0.5, linewidth=1.5, label='
 
 # Cassi saturation ceiling
 ax.plot(M_range, np.full_like(M_range, CEILING), color='#2ecc71', linewidth=2.5,
-        linestyle='-', label=f'Cassi ceiling ($\\sqrt{{\\alpha(1+\\xi)}}$ = {CEILING:.2f})')
+        linestyle='-', label=f'Cassi ceiling ($\\sqrt{{\\phi^6}}$ = $\\phi^3$ = {CEILING:.2f})')
 
 # MOND prediction curve: v_MOND/v_Newt = (G M a0)^{1/4} / (GM/r)^{1/2}
 # = (a0)^{1/4} * r^{1/2} / (G M)^{1/4}; fiducial r = 100 pc

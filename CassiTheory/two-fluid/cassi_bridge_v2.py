@@ -45,6 +45,8 @@ import torch
 PHI     = (1.0 + np.sqrt(5.0)) / 2.0   # ≈ 1.618034
 PHI_INV = 1.0 / PHI                     # ≈ 0.618034
 PHI_INV2 = PHI_INV ** 2                 # ≈ 0.381966
+XI      = PHI ** 6                      # Qi-gravity coupling ξ = φ⁶ ≈ 17.944
+                                         # (foundations/xi-derivation.md)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -552,7 +554,10 @@ class CassiBridgeV2:
         With N-body saturation: softens |∇Φ| when gradients exceed σ.
 
         When phi_gravity is True, the Poisson source is amplified by
-        G_eff(q)/G_N = 1 + (φ-1)·q, where Qi coherence q ∈ [0,1].
+        G_eff(q)/G_N = 1 + (φ⁶−1)·q, where Qi coherence q ∈ [0,1].
+        Max boost φ⁶ ≈ 17.94 at q → 1; Newtonian at q = 0.
+        (Corrected 2026-08-03: the withdrawn approximate coupling
+        1+(φ−1)q, max boost φ ≈ 1.62, is gone.)
         """
         S = self.build_source(rho, tau=tau, rho_mag=rho_mag)
         S_hat = torch.fft.fftn(S)
@@ -571,8 +576,9 @@ class CassiBridgeV2:
                     q_val = 1.0 / (1.0 + delta_rms + 1e-12)
                 else:
                     q_val = 0.0
-            # G_eff(q) / G_N = 1 + (φ-1)·q
-            eff_factor = 1.0 + (PHI - 1.0) * q_val
+            # G_eff(q) / G_N = 1 + (φ⁶−1)·q — max boost φ⁶ ≈ 17.94 (corrected 2026-08-03;
+            # the withdrawn 1+(φ−1)q with max φ ≈ 1.62 is removed)
+            eff_factor = 1.0 + (XI - 1.0) * q_val
             S_hat = S_hat * eff_factor
 
         # Scale-dependent Poisson kernel

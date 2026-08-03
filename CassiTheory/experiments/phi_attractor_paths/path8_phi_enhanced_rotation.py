@@ -25,8 +25,11 @@ rotation-curve modeling, consistent with cosmology/observational_constraints.md 
     q → 0  when  ρ >> ρ_ref   (high density → screened)
     q → 1  when  ρ << ρ_ref   (low density → G_eff → α(1+ξ)G)
 
-Maximum enhancement: G_eff/G → α(1+ξ) ≈ 0.7 × 18.94 ≈ 13.3 in the
-zero-density limit — v-boost √(α(1+ξ)) ≈ 3.6×. This supersedes the
+Halo-regime enhancement: G_eff/G → α(1+ξ) ≈ 0.7 × 18.94 ≈ 13.3 in the
+zero-density limit (α = 0.7 the halo Yang fraction) — v-boost √(α(1+ξ)) ≈ 3.6×.
+Framework saturation (corrected 2026-08-03): max boost G_eff/G = φ⁶ ≈ 17.94,
+velocity ceiling √φ⁶ = φ³ ≈ 4.24 — the α = 0.7 form is the halo-regime
+parametrization, not the framework maximum. This supersedes the
 earlier approximate coupling G_eff/G_N = 1 + (φ−1)·q (max v-boost
 √φ ≈ 1.27), which used the wrong equation and was withdrawn.
 
@@ -389,8 +392,9 @@ def main():
     print(f"    Bulge: M = {M_BULGE:.1e} M_sun,  r_b = {R_BULGE} kpc")
     print(f"    Total baryonic mass: {M_DISK + M_BULGE:.1e} M_sun")
     print(f"  φ = {PHI:.10f},  ξ = φ⁶ = {XI:.6f},  α = {ALPHA_HALO}")
-    print(f"  Max G_eff enhancement: α(1+ξ)·G = {ALPHA_HALO*(1.0+XI):.3f}·G  "
-          f"(v-boost √(α(1+ξ)) = {np.sqrt(ALPHA_HALO*(1.0+XI)):.3f})")
+    print(f"  Halo-regime max G_eff: α(1+ξ)·G = {ALPHA_HALO*(1.0+XI):.3f}·G  "
+          f"(v-boost √(α(1+ξ)) = {np.sqrt(ALPHA_HALO*(1.0+XI)):.3f}); "
+          f"framework saturation: φ⁶·G ≈ {XI:.2f}·G (v-boost φ³ ≈ {np.sqrt(XI):.3f})")
     print()
 
     # ── Setup ─────────────────────────────────────────────────────────────
@@ -632,8 +636,9 @@ def main():
      the 220 km/s at 8 kpc, and it {'rises' if flat_ratio > 1.0 else 'declines'}
      steeply from 8 to 30 kpc (v(30)/v(8) = {v_enhanced_30 / v_phi_8:.2f}).
 
-     The maximum boost is now √(α(1+ξ)) ≈ {np.sqrt(ALPHA_HALO*(1.0+XI)):.2f}×
-     (not the withdrawn √φ ≈ 1.27 ceiling).  At 30 kpc the model
+     The halo-regime maximum boost is now √(α(1+ξ)) ≈ {np.sqrt(ALPHA_HALO*(1.0+XI)):.2f}×
+     (framework saturation: √φ⁶ = φ³ ≈ {np.sqrt(XI):.2f}×; not the withdrawn √φ ≈ 1.27
+     ceiling).  At 30 kpc the model
      *overproduces*: v(30) = {v_enhanced_30:.0f} km/s vs the observed
      190–200 km/s — the mass deficit problem of the old coupling is
      replaced by a mass excess.  The observed MW boost at 30 kpc
@@ -670,8 +675,9 @@ def main():
      This equals sqrt(G_eff(30)/G) = sqrt({results_best['g_ratio'][i30]:.4f})
      = {np.sqrt(results_best['g_ratio'][i30]):.4f}
 
-     The maximum possible enhancement is sqrt(α(1+ξ)) = {np.sqrt(ALPHA_HALO*(1.0+XI)):.4f}
-     (when q → 1, G_eff → α(1+ξ)·G ≈ {ALPHA_HALO*(1.0+XI):.2f}·G).
+     The maximum possible enhancement in this halo parametrization is sqrt(α(1+ξ)) = {np.sqrt(ALPHA_HALO*(1.0+XI)):.4f}
+     (when q → 1, G_eff → α(1+ξ)·G ≈ {ALPHA_HALO*(1.0+XI):.2f}·G); the framework
+     saturation is φ⁶·G ≈ {XI:.2f}·G (v-boost φ³ ≈ {np.sqrt(XI):.4f}).
 
      Interpretation: with the corrected ξ = φ⁶ coupling the boost at
      30 kpc is {ratio_30:.2f}×, in line with the observed Milky Way

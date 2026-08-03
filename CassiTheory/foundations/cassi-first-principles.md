@@ -214,7 +214,7 @@ the Yang-Yin ratio.
   $\gamma = 1 + \mathcal{O}(\xi q^2)$
 - **Gravitational waves**: Modified propagation speed near high-Qi regions
 - **Rotation curves**: $v_C/v_B = 2.7\times$ from $G_{\text{eff}}$ boost
-- **Dwarf spheroidals**: 4/8 pass, ties MOND (corrected 2026-08-03; ceiling $\sqrt{\alpha(1+\xi)} \approx 3.64$ exceeded in 4/8)
+- **Dwarf spheroidals**: 3/8 pass; MOND preferred (4/8) (corrected 2026-08-03; ceiling $\sqrt{\varphi^6} = \varphi^3 \approx 4.24$ exceeded in 3/8)
 
 At the $\varphi$-fixed point ($q=0$), the Cassi gravitational action reduces
 to the Einstein-Hilbert action with $G_{\text{eff}} = \varphi^{-3}G$.

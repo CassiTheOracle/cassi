@@ -318,7 +318,7 @@ Unlike softened gravity (which only reduces forces), $\varphi$-enhanced gravity 
 
 $$\frac{G_{\text{eff}}}{G} = \alpha\bigl(1 + \xi \cdot q(\rho)\bigr), \qquad \xi = \varphi^6 \approx 17.944, \qquad \alpha \approx 0.7, \qquad q = \frac{1}{1 + (\rho/\rho_{\text{ref}})^2}$$
 
-In the low-density outskirts of a galaxy ($\rho \ll \rho_{\text{ref}}$), $q \to 1$ and the enhancement approaches $G_{\text{eff}}/G \to \alpha(1+\xi) \approx 13.3$.
+In the low-density outskirts of a galaxy ($\rho \ll \rho_{\text{ref}}$), $q \to 1$ and the enhancement approaches the framework's saturation: $G_{\text{eff}}/G \to \varphi^6 \approx 17.94$ (velocity ceiling $\sqrt{\varphi^6} = \varphi^3 \approx 4.24$; corrected 2026-08-03—the earlier $\alpha(1+\xi) \approx 13.3$ used the $\alpha = 0.7$ halo parametrization and is superseded as the framework maximum).
 
 > **Revision (2026-07-31):** this section previously used the approximate
 > coupling $G_{\text{eff}}/G_N = 1 + (\varphi-1)\cdot q$ (max boost
@@ -330,7 +330,7 @@ In the low-density outskirts of a galaxy ($\rho \ll \rho_{\text{ref}}$), $q \to 
 
 Sweeping $\rho_{\text{ref}}$ to minimize $\chi^2$ against a flat $v_{\text{circ}} = 200$ km/s target:
 
-- **Maximum velocity boost:** $\sqrt{\alpha(1+\xi)} \approx 3.64\times$ (since $v \propto \sqrt{G_{\text{eff}}}$)
+- **Maximum velocity boost:** $\sqrt{\varphi^6} = \varphi^3 \approx 4.24\times$ (since $v \propto \sqrt{G_{\text{eff}}}$; max boost $G_{\text{eff}}/G = \varphi^6 \approx 17.94$, corrected 2026-08-03)
 - **At 30 kpc (χ²-best $\rho_{\text{ref}} = 1\times10^5$ M$_\odot$/kpc³):** $v_{\text{enhanced}} = 296$ km/s vs $v_{\text{Newton}} = 103$ km/s—a boost of $2.89\times$, consistent with the observed Milky Way boost of $2.7 \pm 0.5$ (Zhou+ 2023)
 - **But the curve is U-shaped, not flat:** interior suppressed ($G_{\text{eff}}/G = \alpha = 0.7$ where $q \to 0$; $v(5) = 168$ km/s vs Newtonian 201), outskirts overproduced ($v(30) = 296$ km/s vs observed ~190–200); flattening ratio $v(30)/v(5) = 1.76$
 - **χ² worsens:** 4522 vs 4047 Newtonian—no single $\rho_{\text{ref}}$ fits the whole curve
@@ -338,7 +338,7 @@ Sweeping $\rho_{\text{ref}}$ to minimize $\chi^2$ against a flat $v_{\text{circ}
 ### Interpretation (revised)
 
 The old failure mode—"even full enhancement cannot reach 200 km/s"—is gone:
-the $\xi = \varphi^6$ coupling provides *plenty* of boost (up to 3.64× in
+the $\xi = \varphi^6$ coupling provides *plenty* of boost (up to $\varphi^3 \approx 4.24\times$ in
 $v_{\text{circ}}$). The new failure mode is **overproduction**: the transition
 $q(R)$ turns on too abruptly (0 → ~0.6 between 20 and 30 kpc at the χ²-best
 $\rho_{\text{ref}}$), suppressing the inner disk while over-boosting the
@@ -389,15 +389,15 @@ The comparison between the Cassi $\varphi$-enhanced model and MOND uses the radi
 |--------|--------------------------------------------------|-------------|
 | $a \gg a_0$ | $\to 1$ (Newtonian) | $\to \alpha = 0.7$ (suppressed, high density) |
 | $a \sim a_0$ | $\sim \sqrt{a_0/a} \sim 3$--$10\times$ | $\sim 1$--$13\times$ (density-dependent) |
-| $a \ll a_0$ (deep MOND) | $\to \sqrt{a_0/a} \to \infty$ | $\to \alpha(1+\xi) \approx 13.3$ (saturates) |
+| $a \ll a_0$ (deep MOND) | $\to \sqrt{a_0/a} \to \infty$ | $\to \varphi^6 \approx 17.9$ (saturates) |
 
 At $a_{\text{baryon}} = 10^{-4}\,a_0$ (deep low-acceleration regime):
 - **MOND:** boost $= 100\times$
-- **Cassi:** boost $\to \alpha(1+\xi) \approx 13.3\times$ (saturation)
+- **Cassi:** boost $\to \varphi^6 \approx 17.9\times$ (saturation; corrected 2026-08-03)
 
-The two theories disagree by a factor of $\sim 7.5\times$ in the deep
+The two theories disagree by a factor of $\sim 5.6\times$ in the deep
 low-acceleration regime (previously $\sim 60\times$ under the withdrawn
-coupling). This is still a **decisive, falsifiable distinction**: MOND grows
+coupling; the $\alpha(1+\xi) \approx 13.3$ halo-regime value gave $7.5\times$). This is still a **decisive, falsifiable distinction**: MOND grows
 without bound, Cassi saturates. The best-fit $\rho_{\text{ref}}$ reproduces the
 MOND RAR only to 47% RMS—Cassi's density-dependent boost (turning on at
 $\rho = \rho_{\text{ref}}$, i.e. $a_{\text{baryon}} \approx 0.99\,a_0$ for the
@@ -408,23 +408,23 @@ saturation-vs-growth test remains the clean discriminator.
 
 In ultra-faint dwarf galaxies (where $a_{\text{baryon}} \ll a_0$):
 - **MOND predicts:** $v_{\text{obs}}/v_{\text{Newt}} \propto \sqrt{a_0/a_{\text{baryon}}}$, growing without bound
-- **Cassi predicts:** $v_{\text{obs}}/v_{\text{Newt}} \leq \sqrt{\alpha(1+\xi)} \approx 3.64$, a hard ceiling (revised from the withdrawn $\sqrt{\varphi} \approx 1.27$; note the ceiling applies only where $q \to 1$ is reached, which requires $\rho \ll \rho_{\text{ref}}$)
+- **Cassi predicts:** $v_{\text{obs}}/v_{\text{Newt}} \leq \sqrt{\varphi^6} = \varphi^3 \approx 4.24$, a hard ceiling (from the derived max boost $G_{\text{eff}}/G = \varphi^6$ at $q \to 1$, which requires $\rho \ll \rho_{\text{ref}}$; corrected 2026-08-03 from the withdrawn $\sqrt{\varphi} \approx 1.27$ and the $\alpha = 0.7$ halo-regime $\sqrt{\alpha(1+\xi)} \approx 3.64$)
 
-If dwarf galaxy rotation curves show $v_{\text{obs}}/v_{\text{Newt}} > 3.64$ with $\sqrt{a_0/a}$ scaling, MOND is correct and Cassi $\varphi$-enhanced gravity is ruled out. The previous $1.27$ ceiling came from the withdrawn approximate coupling and must not be used.
+If dwarf galaxy rotation curves show $v_{\text{obs}}/v_{\text{Newt}} > 4.24$ with $\sqrt{a_0/a}$ scaling, MOND is correct and Cassi $\varphi$-enhanced gravity is ruled out. The previous $1.27$ ceiling came from the withdrawn approximate coupling and must not be used.
 
 ### Path 10: Dwarf Galaxy Ceiling Test (2026-08-03)
 
-**Script:** `experiments/phi_attractor_paths/path10_dwarf_galaxies.py` (imported from the parent repo and corrected 2026-08-03: the withdrawn $\sqrt{\varphi} \approx 1.27$ ceiling replaced by the full-coupling ceiling $\sqrt{\alpha(1+\xi)} \approx 3.64$)
+**Script:** `experiments/phi_attractor_paths/path10_dwarf_galaxies.py` (imported from the parent repo and corrected 2026-08-03: the withdrawn $\sqrt{\varphi} \approx 1.27$ ceiling replaced by the derived max-boost ceiling $\sqrt{\varphi^6} = \varphi^3 \approx 4.24$, from $G_{\text{eff}}/G \to \varphi^6$ at $q \to 1$)
 
 The ceiling prediction was tested on 8 classical + ultra-faint dwarfs (Segue 1/2, Willman 1, Bootes I, Coma Berenices, Draco, Sculptor, Fornax) with $v_{\text{circ}} = \sqrt{3}\,\sigma_v$ and baryonic-only Newtonian velocities at $r_{\text{half}}$:
 
 | Model | Pass (within $\times 2$ of observed) |
 |---|---|
 | Newtonian | 3/8 |
-| Cassi ceiling | 4/8 (Bootes I, Coma Berenices, Draco, Fornax) |
+| Cassi ceiling ($\varphi^3 \approx 4.24$) | 3/8 (Bootes I, Coma Berenices, Draco) |
 | MOND | 4/8 (Willman 1, Draco, Sculptor, Fornax) |
 
-**The ceiling is exceeded in 4/8 dwarfs**: Segue 1 ($v_{\text{obs}}/v_{\text{Newt}} = 16.6$), Segue 2 (16.8), Coma Berenices (4.0), and Draco (6.2) all exceed the $3.64$ saturation limit, and the log-log slope of the observed ratio vs baryonic mass is $-0.21$ (ratio grows toward low mass—the MOND/dark-matter signature). The corrected coupling therefore does not rescue the lowest-mass systems: they need boosts the saturation ceiling forbids. Verdict: the ceiling survives only where the observed boost stays below $3.64\times$ (Willman 1 at 1.5, Bootes I at 3.5, Sculptor at 1.8, Fornax at 1.8)—it is exceeded in the ultra-faints (Segue 1/2, Coma Berenices) and in one classical dwarf (Draco)—and the dwarf test ties MOND (4/8 vs 4/8) rather than beating it. The earlier "5/8 pass, beats MOND" claim was never reproducible from this catalog (the uncorrected script gives Cassi 3/8) and is superseded.
+**The ceiling is exceeded in 3/8 dwarfs**: Segue 1 ($v_{\text{obs}}/v_{\text{Newt}} = 16.6$), Segue 2 (16.8), and Draco (6.2) all exceed the $\varphi^3 \approx 4.24$ saturation ceiling (Coma Berenices at 4.0 now survives under the corrected ceiling), and the log-log slope of the observed ratio vs baryonic mass is $-0.21$ (ratio grows toward low mass—the MOND/dark-matter signature). The corrected coupling therefore does not rescue the lowest-mass systems: they need boosts the saturation ceiling forbids. Verdict: the ceiling survives where the observed boost stays below $\varphi^3$ (Willman 1 at 1.5, Bootes I at 3.5, Coma Berenices at 4.0, Sculptor at 1.8, Fornax at 1.8); it is exceeded in the ultra-faints Segue 1 and Segue 2 and in one classical dwarf (Draco)—and the dwarf test now favors MOND (4/8 vs Cassi's 3/8). The earlier "5/8 pass, beats MOND" claim was never reproducible from this catalog (the uncorrected script gives Cassi 3/8) and is superseded.
 
 ## 12. Unified Picture
 
@@ -450,9 +450,9 @@ graph TD
     E --> G["Lagrange points<br/>merge at sigma/a ~ 0.35"]
     E --> H["L4/L5 stability<br/>universal for sigma/a >= 0.44"]
     A --> I["Qi coherence<br/>q(rho)"]
-    I --> J["G_eff enhancement<br/>max ~ 13.3x (alpha(1+xi), xi = phi^6)"]
+    I --> J["G_eff enhancement<br/>max = phi^6 ~ 17.9x (derived)"]
     J --> K["Rotation curves<br/>single rho_ref overproduces (U-shaped);<br/>hydrostatic condensate survives (SPARC v5)"]
-    J --> L["vs MOND<br/>saturates at 13.3x (revised)"]
+    J --> L["vs MOND<br/>saturates at phi^6 ~ 17.9x (corrected)"]
     F --> M["sigma < 370 km<br/>from pulsars"]
     M --> N["14 orders of magnitude<br/>gap to galactic sigma"]
 ```
@@ -461,7 +461,7 @@ graph TD
 
 The following testable predictions emerge from this work:
 
-1. **Rotation curve ceiling (revised 2026-07-31; tested 2026-08-03):** In the low-acceleration tail (dwarf galaxies), Cassi predicts $v_{\text{obs}}/v_{\text{Newt}} \leq \sqrt{\alpha(1+\xi)} \approx 3.64$ with the full $\xi = \varphi^6$ coupling (ceiling reached only where $q \to 1$, i.e. $\rho \ll \rho_{\text{ref}}$). The earlier $\sqrt{\varphi} \approx 1.27$ ceiling came from the withdrawn approximate coupling $G_{\text{eff}}/G_N = 1 + (\varphi-1)\cdot q$ and is obsolete. Path 10 found the ceiling exceeded in 4/8 dwarfs (Segue 1/2 at ~17$\times$, Coma Berenices at 4.0$\times$, Draco at 6.2$\times$)—falsified for the ultra-faint regime and for one classical dwarf (Draco), where the observed boost grows with $\sqrt{a_0/a}$ scaling.
+1. **Rotation curve ceiling (revised 2026-07-31; corrected 2026-08-03):** In the low-acceleration tail (dwarf galaxies), Cassi predicts $v_{\text{obs}}/v_{\text{Newt}} \leq \sqrt{\varphi^6} = \varphi^3 \approx 4.24$ (max boost $G_{\text{eff}}/G = \varphi^6 \approx 17.94$ at $q \to 1$; the $\alpha = 0.7$ halo-regime value $\sqrt{\alpha(1+\xi)} \approx 3.64$ is superseded as the framework maximum). The earlier $\sqrt{\varphi} \approx 1.27$ ceiling came from the withdrawn approximate coupling $G_{\text{eff}}/G_N = 1 + (\varphi-1)\cdot q$ and is obsolete. Path 10 found the ceiling exceeded in 3/8 dwarfs (Segue 1/2 at ~17$\times$, Draco at 6.2$\times$)—falsified for the ultra-faint regime and for one classical dwarf (Draco), where the observed boost grows with $\sqrt{a_0/a}$ scaling.
 
 2. **Precession direction:** Cassi softened gravity predicts **retrograde** pericenter precession ($\Delta\phi < 0$), opposite to the **prograde** GR precession. In systems where softening is significant ($\sigma/a$ not negligibly small), the precession direction is a direct test. For binary pulsars, Cassi precession is negligible ($\sigma < 370$ km), but for wider systems with larger $\sigma/a$, the retrograde signature could be detectable.
 
@@ -471,7 +471,7 @@ The following testable predictions emerge from this work:
 
 4. **No universal acceleration scale:** Unlike MOND's $a_0$, Cassi has a **density** scale $\rho_{\text{ref}}$, not an acceleration scale. Different galaxies should show the enhancement turning on at different $a_{\text{baryon}}$, depending on their density profiles. If a truly universal $a_0$ is confirmed across all galaxy types, Cassi is disfavored relative to MOND.
 
-5. **Saturation vs growth (revised 2026-07-31; tested 2026-08-03):** The most decisive test: measure the boost factor $a_{\text{obs}}/a_{\text{baryon}}$ at progressively lower accelerations. MOND predicts continued growth ($\propto 1/\sqrt{a}$); Cassi predicts saturation at $\alpha(1+\xi) \approx 13.3$ with the full $\xi = \varphi^6$ coupling (the earlier $\varphi \approx 1.618$ saturation came from the withdrawn approximate coupling). Path 10's dwarf test shows the observed boost growing with decreasing mass (slope $-0.21$ in $\log(v_{\text{obs}}/v_{\text{Newt}})$ vs $\log M$), the MOND signature—Cassi's saturation is not observed in the ultra-faints.
+5. **Saturation vs growth (revised 2026-07-31; corrected 2026-08-03):** The most decisive test: measure the boost factor $a_{\text{obs}}/a_{\text{baryon}}$ at progressively lower accelerations. MOND predicts continued growth ($\propto 1/\sqrt{a}$); Cassi predicts saturation at the derived max boost $\varphi^6 \approx 17.9$ (velocity ceiling $\varphi^3 \approx 4.24$; the $\alpha(1+\xi) \approx 13.3$ value used the $\alpha = 0.7$ halo parametrization and is superseded as the maximum; the $\varphi \approx 1.618$ saturation came from the withdrawn approximate coupling). Path 10's dwarf test shows the observed boost growing with decreasing mass (slope $-0.21$ in $\log(v_{\text{obs}}/v_{\text{Newt}})$ vs $\log M$), the MOND signature—Cassi's saturation is not observed in the ultra-faints.
 
 ## 14. Open Questions
 
@@ -536,9 +536,9 @@ from $\xi$ alone.
 | 5 | L1/L2 merge at $\sigma/a \approx 0.35$; $\sigma < 370$ km from pulsars | Confirmed |
 | 6 | L4/L5 universally stable for $\sigma/a \geq 0.44$ | Confirmed |
 | 8 | $\varphi$-enhanced gravity (full $\xi = \varphi^6$): boost $2.89\times$ at 30 kpc consistent with observed $2.7\pm0.5$; single-$\rho_{\text{ref}}$ curve U-shaped (overproduces v(30) = 296 km/s), but hydrostatic two-component condensate survives SPARC (median $\Delta$AIC = −7.0, 90/143); revised 2026-07-31 | Confirmed* |
-| 9 | Cassi saturates at $\alpha(1+\xi) \approx 13.3$; MOND grows without bound (full $\xi = \varphi^6$; revised 2026-07-31) | Confirmed* |
+| 9 | Cassi saturates at $\varphi^6 \approx 17.9$ (v-ceiling $\varphi^3 \approx 4.24$); MOND grows without bound (corrected 2026-08-03) | **Tested—exceeded in 3/8 dwarfs (Path 10)** |
 
-\* Revised 2026-07-31 with the full $G_{\text{eff}}/G = \alpha(1+\xi q)$ coupling ($\xi = \varphi^6$, $\alpha = 0.7$); the earlier $\sqrt{\varphi} \approx 1.27$ ceiling and $\varphi \approx 1.62$ saturation came from the withdrawn approximate coupling $G_{\text{eff}}/G_N = 1 + (\varphi-1)\cdot q$.
+\* Revised 2026-07-31 with the full $G_{\text{eff}}/G = \alpha(1+\xi q)$ coupling ($\xi = \varphi^6$, $\alpha = 0.7$); the earlier $\sqrt{\varphi} \approx 1.27$ ceiling and $\varphi \approx 1.62$ saturation came from the withdrawn approximate coupling $G_{\text{eff}}/G_N = 1 + (\varphi-1)\cdot q$. Corrected 2026-08-03: the framework's universal saturation is the derived max boost $\varphi^6 \approx 17.94$ (velocity ceiling $\varphi^3 \approx 4.24$); the $\alpha = 0.7$ form remains the MW-halo fit parametrization, not the framework maximum.
 
 ### Disproven Hypotheses
 

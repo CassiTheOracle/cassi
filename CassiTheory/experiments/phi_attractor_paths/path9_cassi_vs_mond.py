@@ -18,6 +18,9 @@ Cassi φ-enhanced gravity:
 This is the full two-fluid coupling (cosmology/observational_constraints.md §2.6),
 superseding the earlier approximate G_eff/G_N = 1 + (φ−1)·q (max boost
 φ ≈ 1.618), which used the wrong equation and was withdrawn.
+The α = 0.7 form is the halo-regime parametrization (max α(1+ξ) ≈ 13.3);
+the framework saturation is the derived max boost φ⁶ ≈ 17.94 (velocity
+ceiling √φ⁶ = φ³ ≈ 4.24; corrected 2026-08-03).
 
 The Cassi enhancement depends on LOCAL DENSITY ρ, not on acceleration.
 This is a fundamental difference from MOND, where the boost depends on
@@ -524,13 +527,13 @@ def main():
         print(f"  Deep regime (a_baryon ≈ {a_bar_deep:.2e} m/s², target {a_deep:.2e}):")
         print(f"    R ≈ {R[idx_deep]/KPC:.1f} kpc, ρ = {rho[idx_deep]:.3e} kg/m³")
         print(f"    MOND:   a_obs/a_baryon = {a_mond_deep/a_bar_deep:.1f}×")
-        print(f"    Cassi:  a_obs/a_baryon = {a_cassi_deep/a_bar_deep:.3f}×  (G_eff/G = {g_deep:.4f}, max α(1+ξ) = {ALPHA_HALO*(1.0+XI):.4f})")
+        print(f"    Cassi:  a_obs/a_baryon = {a_cassi_deep/a_bar_deep:.3f}×  (G_eff/G = {g_deep:.4f}, halo max α(1+ξ) = {ALPHA_HALO*(1.0+XI):.4f}; framework saturation φ⁶ = {XI:.4f})")
         print(f"    Ratio a_Cassi/a_MOND = {a_cassi_deep/a_mond_deep:.4e}")
     else:
         print(f"  Deep regime: grid does not reach a_baryon = {a_deep:.2e} m/s²")
         print(f"    Closest grid point: a_baryon = {a_bar_deep:.2e} m/s² at R = {R[idx_deep]/KPC:.1f} kpc")
         print(f"    MOND asymptotic: a_obs/a_baryon → √(a₀/a_baryon) as a_baryon → 0")
-        print(f"    Cassi asymptotic: a_obs/a_baryon → α(1+ξ) = {ALPHA_HALO*(1.0+XI):.4f} as ρ → 0")
+        print(f"    Cassi asymptotic (halo regime): a_obs/a_baryon → α(1+ξ) = {ALPHA_HALO*(1.0+XI):.4f} as ρ → 0; framework saturation φ⁶ = {XI:.4f}")
     print()
 
     # ── Answer the key questions ──────────────────────────────────────────
@@ -551,7 +554,7 @@ def main():
     print(f"  Q2: What's the testable difference between Cassi and MOND?")
     print(f"      MOND boost → ∞ as a_baryon → 0 (a_obs ∝ √a_baryon).")
     print(f"      Cassi boost → α(1+ξ) = {ALPHA_HALO*(1.0+XI):.3f} as ρ → 0 "
-          f"(a_Cassi → α(1+ξ)·a_baryon).")
+          f"(halo regime; framework saturation φ⁶ = {XI:.3f}).")
     print(f"      In the deep low-acceleration regime, MOND predicts MUCH larger")
     print(f"      boosts than Cassi.  For a_baryon = 10⁻⁴ a₀:")
     a_deep_test = 1e-4 * A0
@@ -559,7 +562,7 @@ def main():
     print(f"        MOND boost = {a_mond_deep_test/a_deep_test:.0f}×, Cassi max boost = {ALPHA_HALO*(1.0+XI):.3f}×")
     print(f"      This is a decisive test: measure rotation curves at very large")
     print(f"      radii (very low accelerations) and check whether the boost")
-    print(f"      continues to grow (MOND) or saturates at α(1+ξ) ≈ {ALPHA_HALO*(1.0+XI):.2f} (Cassi).")
+    print(f"      continues to grow (MOND) or saturates (Cassi: halo α(1+ξ) ≈ {ALPHA_HALO*(1.0+XI):.2f}, framework φ⁶ ≈ {XI:.2f}).")
     print()
 
     print(f"  Q3: For low-acceleration regions (a < 0.01 a₀), do they predict")
@@ -567,10 +570,10 @@ def main():
     print(f"      No.  At a_baryon ≈ 0.01 a₀:")
     print(f"        MOND boost  = {a_mond_at_target/a_bar_at_target:.2f}×")
     print(f"        Cassi boost = {a_cassi_at_target/a_bar_at_target:.3f}×  "
-          f"(at most α(1+ξ) = {ALPHA_HALO*(1.0+XI):.3f})")
+          f"(at most the φ⁶ saturation = {XI:.3f}; halo regime α(1+ξ) = {ALPHA_HALO*(1.0+XI):.3f})")
     mond_equiv_boost = a_mond_at_target/a_bar_at_target
-    print(f"      MOND gives ≈ {mond_equiv_boost:.0f}× boost, Cassi gives at most {ALPHA_HALO*(1.0+XI):.3f}×.")
-    print(f"      The two disagree by a factor of ∼{mond_equiv_boost/(ALPHA_HALO*(1.0+XI)):.1f} at this acceleration.")
+    print(f"      MOND gives ≈ {mond_equiv_boost:.0f}× boost, Cassi gives at most φ⁶ = {XI:.3f}×.")
+    print(f"      The two disagree by a factor of ∼{mond_equiv_boost/XI:.1f} at this acceleration.")
     print()
 
     print(f"  Q4: Does Cassi have a 'natural' a₀?")

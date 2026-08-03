@@ -90,7 +90,7 @@ the two-fluid expansion history.
 | Pioneer anomaly | $0$ | **$a_\varphi = 7.4\times10^{-10}$ m/s$^2$** | Within $1\sigma$ of Pioneer |
 | NS maximum mass | $\sim 2.0 M_\odot$ | **$\sim 1.88 M_\odot$** | NICER consistent |
 | NS $M$–$R$ relation | GR | **$<0.1\%$ deviation** | $G_{\text{eff}}\to G_N$ in core |
-| Cored dwarf halos | CDM fails | **Cassi passes 4/8** (corrected 2026-08-03) | Ties MOND (4/8); ceiling $\sqrt{\alpha(1+\xi)} \approx 3.64$ exceeded in 4/8 |
+| Cored dwarf halos | CDM fails | **Cassi passes 3/8** (corrected 2026-08-03) | MOND preferred (4/8); ceiling $\sqrt{\varphi^6} = \varphi^3 \approx 4.24$ exceeded in 3/8 |
 
 **Source:** `theory/xi-derivation.md`, `experiments/cassi_physics/cassi_gravitational_waves.py`,
 `experiments/cassi_physics/cassi_strong_field_pn.py`, `experiments/cassi_physics/cassi_black_hole_raytracer.py`,
@@ -179,7 +179,7 @@ Sorted by detection likelihood (most definitive first):
 | 12 | Hubble tension | Cosmic | **Resolved** $\Omega_\Lambda$: $0.30 \to 0.50$ | $5\sigma$ resolved | **Already consistent** |
 | 13 | $\eta$ (baryon asymmetry) | Cosmic | **$5.1\times10^{-10}$** | $6.1\times10^{-10}$ ($17\%$ gap) | **Already consistent** |
 | 14 | Galaxy rotation curves | Galactic | **$2.9$–$3.1\times$ baryon boost** (corrected 2026-07-31) | MW confirmed ($2.7\pm0.5$; ~1.2σ) | **Already consistent** |
-| 15 | Dwarf galaxy cored halos | Galactic | **Cored (Qi)**—4/8 pass (corrected 2026-08-03) | Ties MOND (4/8); ceiling $\sqrt{\alpha(1+\xi)} \approx 3.64$ exceeded in 4/8 | **Already tested** |
+| 15 | Dwarf galaxy cored halos | Galactic | **Cored (Qi)**—3/8 pass (corrected 2026-08-03) | MOND preferred (4/8); ceiling $\sqrt{\varphi^6} = \varphi^3 \approx 4.24$ exceeded in 3/8 | **Already tested** |
 | 16 | BH shadow M87$^*$ | EHT | **$\sim 5.2M$** (core) | Consistent with $5M$ | **Already consistent** |
 | 17 | GW strain in halos | LIGO | **Up to $10\times$ GR** | Constrains $q < 0.1$–$0.3$ | **Ongoing** |
 | 18 | Pioneer anomaly | Solar system | **$a_\varphi = 7.4\times10^{-10}$ m/s$^2$** | $1\sigma$ agreement | **Already explained** |
