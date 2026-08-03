@@ -157,8 +157,9 @@ confinement. A Cassi contribution would be a *derived* spectral problem: the
 two-fluid PDE linearized around its Yang-Yin balanced state, with a proof that
 the linearized operator is (unitarily equivalent to something) self-adjoint
 with spectrum on the symmetry axis. Nothing in the current framework
-(`../foundations/cassi-first-principles.md`) contains that result; this
-document records it as the open research direction, not as a claim.
+(`../foundations/cassi-first-principles.md`) contains that result; the
+research sketch with the candidate operator, the boundary constraint, and the
+measured fluctuation probes lives in `riemann-two-fluid-spectral-program.md`.
 
 ## 7. Open Issues
 
