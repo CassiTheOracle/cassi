@@ -48,7 +48,7 @@ deliverable:
 | G5 | 3+1 dimensions | **Structural** | Spiral's Frenet-Serret frame | SO(2) doublet generates spiral; Frenet-Serret gives 3 axes |
 | F3 | Force unification | **Structural** |—| All forces from PDE at different rungs |
 | F4 | Theory of Everything | **Structural** |—| One equation, one constant |
-| F5 | Dimensionful constants | **Structural** |—| $c$, $\hbar$, $G$ external; $\lambda=0.1$ empirical; pathways proposed |
+| F5 | Dimensionful constants | **Structural** |—| $c$, $\hbar$, $G$ external; $\lambda=0.1$ derived ($\lambda = 1/(2w)$); pathways proposed |
 | T2 | JWST galaxies | **Structural** |—| Wake-wave formation timeline |
 | T3 | $\sigma_8$ tension | Cascade-span (needs $G_{\text{eff}}$ pipeline) | $\xi=\varphi^6$ | $G_{\text{eff}}(k,q)$ integration |
 | T4 | $H_0$ tension | Same as C3 |—| Same refinement as C3 |

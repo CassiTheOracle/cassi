@@ -263,7 +263,7 @@ matching observed mass-squared differences.
 | $\alpha_{\text{GUT}}$ | $\varphi^{-3}/(4\pi)$ | Yang fraction / $4\pi$ | GUT coupling |
 | $w_0$ | $-0.87$ | Two-fluid ODE ($\xi$ coupling) | `two-fluid/calibrate_initial_ratio_xi_v2.py` (corrected 2026-07-31) |
 | $\delta_{\text{CP}}$ | $\pi \cdot \varphi^{-2} \approx 1.199$ | CKM hierarchy via Yukawa diagonalisation | CP phase (CKM) |
-| $\lambda$ | $0.1$ (PDE); $3\varphi^2 H_0$ (cosmological) | PDE conversion rate; dimensionless value is empirical; cosmological expression relates $\lambda$ to $H_0$ but is dimensionful (§2.1 of `dimensionful-constants-status.md`) | **Empirical** |
+| $\lambda$ | $0.1$ (PDE); $3\varphi^2 H_0$ (cosmological) | PDE conversion rate, $\lambda = 1/(2w)$ with $w = 5$ derived (`foundations/dimensionful-constants-status.md` §2.1, `foundations/wu-xing-derivation.md`); the cosmological expression $3\varphi^2 H_0$ relates $\lambda$ to $H_0$ but is dimensionful | **Derived** |
 
 ---
 
@@ -311,4 +311,4 @@ Any single prediction failing excludes the framework.
 
 ---
 
-**Status:** ✅ Completed 2026-07-17. All four pillars validated against observational data. Dimensionless couplings: zero free parameters. External: $\lambda = 0.1$ (empirical), $c$, $\hbar$, $G$—see `foundations/dimensionful-constants-status.md`.
+**Status:** ✅ Completed 2026-07-17. All four pillars validated against observational data. Dimensionless couplings: zero free parameters ($\lambda = 1/(2w)$ included). External: $c$, $\hbar$, $G$—see `foundations/dimensionful-constants-status.md`.

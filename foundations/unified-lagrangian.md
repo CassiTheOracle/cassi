@@ -529,9 +529,10 @@ where the currents come from the fermion and Higgs covariant derivatives.
 | $K_{fw}$ | $\varphi^{-1}$ | $0.618$ | **Derived** |
 | $K_{md}$ | $3\varphi^2$ | $7.85$ | **Derived** |
 | $\kappa_s$ | $\varphi^{-6}/v_0^2$ | $0.92$ TeV$^{-2}$ | **Derived** (scale) |
+| $\lambda$ | $1/(2w) = 0.1$ | $0.1$ | **Derived** (rational; non-resonant by design) |
 | $G_{\text{eff}}$ | $G\cdot(\pi/\rho)\cdot(1+\varphi^6 q)$ |—| **Derived** |
 
-**Every constant is a $\varphi$-power or zero.**
+**Every constant is a $\varphi$-power, zero, or the derived rational $\lambda = 1/10$.**
 
 ---
 

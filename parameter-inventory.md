@@ -75,7 +75,7 @@ derivation for each individually.
 | 3 | $c_s^2$ (sound speed) | $0.01$ | Effective pressure | **Empirical**—set by Bohm scale + normalization (see §3.2) |
 | 4 | $\nu$ (hyperviscosity) | $10^{-4}$–$10^{-3}$ | Grid-scale dissipation | **Numerical**—set by Nyquist stability, not physical |
 
-### 3.1 $\lambda$: Consistency with the Electroweak Scale, Not a Derivation
+### 3.1 $\lambda$: The Electroweak Consistency Check (the Wu Xing Route Derives $\lambda$)
 
 The Lagrangian has the $\varphi$-attractor coupled to the Higgs quartic:
 
@@ -96,9 +96,7 @@ $\sim 145$ GeV and $\sim 95$ GeV—bracketing the observed 125 GeV. This is
 **not a derivation** but a nontrivial consistency check: $\lambda = 0.1$ is the
 right order of magnitude for the electroweak scale.
 
-**Summary:** $\lambda = 0.1$ is not independently derivable from $\varphi$ without
-fixing $g$. Its value is consistent with the Higgs mass/VEV within a factor of 2,
-which is the best that can be claimed.
+**Summary:** The Higgs route cannot derive $\lambda = 0.1$ without fixing $g$; the value is consistent with the Higgs mass/VEV within a factor of 2. The derivation comes from the Wu Xing route: $\lambda = 1/(2w) = 1/10$ with $w = 5$ derived (`foundations/dimensionful-constants-status.md` §2.1, `foundations/wu-xing-derivation.md`).
 
 ### 3.2 $c_s^2$ from the Bohm Quantum Potential
 
@@ -165,7 +163,7 @@ consistent with the solver's $\nu = 10^{-4}$. No physical content.
 
 | Parameter | True status | If it's a constant, which one? |
 |-----------|-------------|-------------------------------|
-| $\lambda = 0.1$ | **Derived** from Higgs mass/VEV ($\lambda = m_H^2 \cdot \varphi / 4v_0^2$) | The Higgs quartic's orthogonal mode coupling |
+| $\lambda = 0.1$ | **Derived** via Wu Xing ($\lambda = 1/(2w)$, $w=5$—`foundations/dimensionful-constants-status.md` §2.1); $m_H^2\varphi/4v_0^2 \approx 0.104$ is a consistency check (§3.1) | The Higgs quartic's orthogonal mode coupling |
 | $\chi \approx 1.0$ | **Scale-derived**—$\kappa_s = \varphi^{-6}/v_0^2$ (coefficient Hypothesized); PDE-normalization factor $\mathcal{N}_{\text{pde}}$ pending | $\chi = \mathcal{N}_{\text{pde}}\kappa_s\varphi^{-1}/[m_e(1+\varphi)]$ |
 | $c_s^2 \approx 0.01$ | **Emergent**—Bohm pressure + normalization choice | $c_s^2 \propto \hbar^2/(m_e^2 a_0^2) \cdot \varphi^{-2}$ |
 | $\nu \approx 10^{-4}$ | **Numerical**—Nyquist stability at $N=48$ | $\nu \approx (L/N)^4 / \Delta t$ |

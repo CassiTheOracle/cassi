@@ -81,7 +81,7 @@ m_\theta^2 = 4\lambda\varphi R_0^2$$
 
 The phase fluctuation is massive: the $\varphi$-attractor potential breaks the
 SO(2) rotation explicitly, so $\theta$ is not a Goldstone mode. With the
-framework's empirical $\lambda = 0.1$ the mass is small at low $R_0$ but
+framework's derived $\lambda = 0.1$ the mass is small at low $R_0$ but
 structurally present; the spectral machinery of the program lives in the
 massless sector.
 
