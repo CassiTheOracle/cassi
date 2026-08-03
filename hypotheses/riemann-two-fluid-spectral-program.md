@@ -17,7 +17,8 @@ would make the two-fluid framework the source of that operator. The candidate
 is the linearized phase dynamics of the Yang-Yin fields around their balanced
 state, whose dilation covariance makes the scale operator $x\partial_x$ the
 natural free generator; the matching constraint to the Riemann–von Mangoldt
-counting function pins the spectral boundary at the order-unity scale $2\pi e$
+counting function pins the spectral boundary at the order-unity scale
+$L p_{\min} = 2\pi$
 (no cascade rung $\varphi^n$ enters), and the de-resonance principle becomes
 the claim that the zero-counting fluctuation is minimal—a claim with one
 unconditional theorem behind it (Selberg's mean-square law) and two measured
@@ -55,10 +56,12 @@ that reading constructive.
   half-line with a boundary wall: its WKB counting function reproduces the
   smooth part of the zero count, including the famous $7/8$ constant of
   Riemann–von Mangoldt. The wall position is not free: matching the phase-space
-  area $(E/2\pi)\ln(E/L)$ to the theorem
+  area $E\ln(E/(Lp_{\min})) - E + Lp_{\min}$ to the theorem
   $N(T) = (T/2\pi)\ln(T/2\pi) - T/2\pi + 7/8 + S(T) + O(1/T)$ pins the
-  cutoff product at $2\pi e$ (in $\hbar = 1$ units with unit momentum
-  cutoff). This is a model-interpretation constraint, not a fit: the
+  cutoff product at $Lp_{\min} = 2\pi$; the constant term comes out
+  one-eighth above the theorem's $7/8$—the corner phase, repaired by the
+  exact spectral construction (see `riemann-two-fluid-phase-operator.md`
+  §6). This is a model-interpretation constraint, not a fit: the
   arithmetic boundary sits at the order-unity scale, and no cascade rung
   $\varphi^n$ appears anywhere in the smooth asymptotics.
 - **Sierra–Rodríguez-Laguna (2011).** A Hermitian Hamiltonian whose
@@ -91,7 +94,8 @@ plausible:
    the matching constraint of §2 then determines the effective wall scale.
    The constraint is *negative but decisive*: whatever the UV completion, the
    smooth counting function must come out as the theorem, which fixes the
-   wall at $2\pi e$ in natural units—an order-unity scale. The cascade rungs
+   wall-cutoff product at $L p_{\min} = 2\pi$ in natural units—an order-unity
+   scale. The cascade rungs
    $\varphi^n$, $n \ge 1$, are excluded by the asymptotics; the number-theoretic
    system is the one-rung ($\varphi^0 = 1$) limit, consistent with the
    unique-temperature reading in `riemann-hypothesis-de-resonance.md` §3.
@@ -168,30 +172,39 @@ no log-periodic locking at $\ln\varphi$ in either spacing or density.)
 
 ## 6. The Program's Steps
 
-1. **Write the operator.** Linearize the two-fluid phase dynamics
-   (`../foundations/cassi-first-principles.md`) around the balanced
-   self-similar state; obtain the explicit spectral problem in
-   $u = \ln x$. *Status: not started—the concrete first task.*
-2. **Check the asymptotics.** Verify the WKB count of the candidate
-   reproduces Riemann–von Mangoldt with the $7/8$; the wall-scale constraint
-   of §2 is the acceptance test. *Status: not started.*
-3. **Find the natural extension.** Identify the self-adjoint extension
-   selected by the $\sigma$-regularized boundary. *Status: not started.*
-4. **Attack minimality.** Prove (or sharpen) the $S(T)$ bound for the
-   operator's spectral fluctuation—the step that would constitute RH.
-   *Status: the deep problem; Selberg's theorem is the existing anchor.*
+1. **Write the operator.** *Done—see `riemann-two-fluid-phase-operator.md`.*
+   The linearized phase dynamics reduces to the Bessel-index-1 scale operator
+   $\tilde\varphi'' + [E^2e^{2u} - 1]\tilde\varphi = 0$ in $D = 3$ (the
+   phase is massive in general, $m_\theta^2 = 4\lambda\varphi R_0^2$).
+2. **Check the asymptotics.** *Done, failed at leading order.* All exact
+   spectra of the operator count linearly in $E$ (cavity $E_n = j_{1,n}/L$,
+   box Weyl $N \sim E(e^U-1)/\pi$); the zero count is logarithmic. The
+   logarithmic shape is semiclassical only: the truncated-hyperbola count
+   $N(E) = (E/2\pi)\ln(E/(Lp_{\min})) - E/2\pi + Lp_{\min}/2\pi$ pins
+   $Lp_{\min} = 2\pi$ with a $1/8$ corner-phase gap, and requires the
+   energy-dependent boundary of the Sierra–Rodríguez-Laguna type.
+   *Revised step 2b (open):* find the framework structure that supplies that
+   energy-dependent boundary (candidates: the $\sigma$ regularization at the
+   Planck rung, the Qi-gated conversion, the IIR memory timescale
+   $\tau = \varphi^{-1}$; none claimed).
+3. **Find the natural extension.** *Not started.* The exterior problem has
+   continuous spectrum; the interior cavity has the Bessel spectrum.
+4. **Attack minimality.** *Not started.* Selberg's theorem is the existing
+   anchor; the probes of the spectral-program document are the measured
+   constraints.
 
-Every step is open, and the tier is Speculative accordingly. What is already
-measured—the φ-periodicity null, the fluctuation magnitudes, Gram's law—are
-constraints any candidate operator must respect; they are the durable output
-of this document.
+Every step above is either executed or explicitly open; the tier is
+Speculative accordingly. What is already measured—the φ-periodicity null, the
+fluctuation magnitudes, Gram's law, and now the operator's exact spectra and
+semiclassical constraint—are constraints any candidate must respect; they are
+the durable output of this document.
 
 ## 7. Open Issues
 
 - No operator has been derived from the two-fluid equations; §3 is a
   structural sketch, not a derivation.
-- The wall-scale constraint ($2\pi e$, order-unity) is an interpretation of a
-  theorem about $\zeta$, not an output of the framework.
+- The wall-scale constraint ($L p_{\min} = 2\pi$, order-unity) is an
+  interpretation of a theorem about $\zeta$, not an output of the framework.
 - The Selberg probe is consistent with minimality but sits in the slow
   convergence regime; nothing here constrains RH beyond the direction of the
   data.
