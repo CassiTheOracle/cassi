@@ -39,7 +39,7 @@ The present status of the field sets the bar Cassi aims at: no candidate theory 
 
 ## How it can be tested
 
-The charge against string theory is that it cannot be falsified. Cassi answers with a catalog of 45 numbered predictions, each with a concrete test design: a log-periodic modulation in the matter power spectrum at the golden-ratio period, a 1.70× edge anisotropy at any condensate boundary, the $\varphi^2$ inter-node spacing ratio of the chakra lattice, the dark-energy equation of state. Full catalog: `predictions/falsifiable-predictions.md`.
+The charge against string theory is that it cannot be falsified. Cassi answers with a catalog of 46 numbered predictions, each with a concrete test design: a log-periodic modulation in the matter power spectrum at the golden-ratio period, a 1.70× edge anisotropy at any condensate boundary, the $\varphi^2$ inter-node spacing ratio of the chakra lattice, the dark-energy equation of state. Full catalog: `predictions/falsifiable-predictions.md`.
 
 ## The arguments against
 

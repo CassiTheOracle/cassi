@@ -260,7 +260,7 @@ bar—they are included for completeness and as prompts for future work.
 ## Cross-References
 
 - `../open-questions-cassi-answers.md`—the 41 existing answers (Q/C/G/M/F/T)
-- `../predictions/falsifiable-predictions.md`—the 38-entry prediction catalog
+- `../predictions/falsifiable-predictions.md`—the 46-entry prediction catalog
 - `../foundations/cascade-suppression-formula.md`—universal $\varphi^{-N}$ tool
 - `../foundations/dimensionful-cascade.md`—the 292-step ladder
 - `../principles/de-resonance-principle.md`—why $\varphi$ is the attractor

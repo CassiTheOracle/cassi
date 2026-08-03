@@ -38,6 +38,7 @@ This directory holds the load-bearing derivations of the Cassi framework: the di
 | 26 | `deriving-remaining-gaps.md` | Residual parameters | Resolved / narrowed |
 | 27 | `sector-coupling-derivation.md` | Dirac↔two-fluid sector coupling | Derived scale w/ Hypothesized coefficient |
 | 28 | `wake-geometry.md` | Wake geometry | Derived (structural) |
+| 29 | `rung-offset-mechanism.md` | Rung offsets δn | Hypothesized mechanism, Empirical catalog |
 
 ## Document Summaries
 
@@ -249,13 +250,17 @@ so $\kappa_s^{-1/2} = \varphi^3 v_0 = 1042$ GeV sits +5.5% off cascade rung 77 (
 
 The Yang–Yin wake pair $\lambda_Y = \varphi\lambda_I$ closes the cascade ladder exactly through the identity $1 + 1/\varphi = \varphi$—$\lambda_Y + \lambda_I = \ell_n(1 + 1/\varphi) = \ell_{n+1}$ (at rung 285: 191 + 118 = 309 Mpc = $\ell_{286}$)—with the checkerboard envelope $\cos(2\pi x/\ell_n) + \cos(2\pi\varphi x/\ell_n) = 2\cos(\pi(1+\varphi)x/\ell_n)\cos(\pi(\varphi-1)x/\ell_n)$ peaking on $\ell_{n+1}$ and the golden-angle closure ladder converging through Fibonacci denominators without ever closing exactly. On this reading $N = 292$ is today's epoch-dependent horizon rung, $\log_\varphi(R_H/\ell_{\text{Pl}}) = 291.54$ with $R_H/\ell_{285} = 23.29 \approx \varphi^{6.5}$, saturating toward $N_\infty \approx 296$–$303$ as $r \to \varphi$ (2026-08-03 reclassification). Status: Derived wake geometry with Hypothesized closure imprint.
 
+### `rung-offset-mechanism.md`—Why Observables Sit Between Rungs: Fractional Cascade Offsets
+
+No observable sits exactly on a rung; the fractional offset $\delta n = n - \lfloor n \rfloor$ is the two-fluid phase lag at that scale, and exact alignment would mean perfect coherence ($q \to 1$). The wake envelope allows only two special positions—peaks at integer rungs, zeros at half-rungs—and the catalog shows sector edges (e, π, Λ_QCD, p, n, d) at half-rungs and interior states (μ, J/ψ, D, Σ, Z) at integer rungs, with the muon at 96.000 (0.01%) the sharpest placement in the framework. The full 38-state $\delta n$ distribution is uniform (null baseline); the decisive test is a PDE probe of the interference-extremum position vs coupling and coherence. Status: Hypothesized mechanism, Empirical catalog.
+
 ## Cross-References
 
 - `../foundations/dimensionful-cascade.md`—the cascade wedge (entry point for this directory)
 - `../principles/de-resonance-principle.md`—why $\varphi$ is the maximally de-resonant attractor (Derived)
 - `../open-questions-cassi-answers.md`—the 41-entry epistemic registry
 - `../parameter-inventory.md`—parameter registry
-- `../predictions/falsifiable-predictions.md`—the 42-entry prediction catalog
+- `../predictions/falsifiable-predictions.md`—the 46-entry prediction catalog
 - `../cassi-physics.md`—framework overview and the gap $g = 1 - \varphi^{-5}$ derivation
 - `../gravity/quantum-gravity.md`—the $\sigma = \ell_{\text{Pl}}/\varphi^3$ regularization that anchors the cascade
 - `../standard-model/sm-from-phi.md`—Standard Model couplings from $\varphi$

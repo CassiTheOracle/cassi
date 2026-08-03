@@ -47,6 +47,8 @@ the wave-physics principle that multi-scale structure requires de-resonance.
 | $m_e$ | $v_0\varphi^{-26}/\sqrt{2} = 0.64$ MeV | $0.511$ MeV | $-20\%$ | Flavor mixing from $\mu,\tau$ sector | **Speculative** |
 | $\alpha_s(M_Z)$ | $0.058$ (SM RGE) | $0.118$ | $\times 2.0$ | Needs $\Delta b = 1.70$ from ~1 vector-like colored fermion pair + 2 colored scalars, or ~3 KK levels | **Speculative** |
 
+The rung-offset program (`foundations/rung-offset-mechanism.md`) develops the mechanism behind these corrections: the offset $\delta n = \ln(1+\delta)/\ln\varphi$ is the two-fluid phase lag at that scale, and exact alignment would mean perfect coherence.
+
 **Evidence levels:**
 - **Computed** = explicit calculation done in Cassi or SM RGE
 - **Hypothesized** = plausible mechanism identified but not yet calculated in detail

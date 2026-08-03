@@ -58,6 +58,7 @@ Tiers below are taken from each document's Status header. Compound headers are q
 | `foundations/three-generations.md` | Hypothesized | $N_{\text{gen}} = 3$ from Fibonacci sub-channels (Q5) |
 | `foundations/dimensionful-constants-status.md` | Hypothesized | $c$, $\hbar$, $G$ external; $N = 292$ epoch-dependent horizon rung (F5) |
 | `foundations/microcascade-mirror.md` | Hypothesized | Bidirectional cascade extension |
+| `foundations/rung-offset-mechanism.md` | Hypothesized mechanism, Empirical catalog—August 2026 | δn as two-fluid phase lag; sector edges at half-rungs; uniform 38-state baseline |
 | `foundations/phi-rg-formalism.md` | Hypothesized | RG flow under $\varphi$-spacing |
 | `foundations/spiral-dynamics.md` | Hypothesized | Hubble, gravity, $c$ as spiral geometry projections |
 | `foundations/why-three-dimensions.md` | Hypothesis with One Decided Fork (W1: anti-phase confirmed) | Three dimensions from the Frenet-Serret frame (G5) |
@@ -117,7 +118,7 @@ Documents that are not claims: registries, catalogs, explainers, and plans.
 |----------|------|
 | `open-questions-cassi-answers.md` | Epistemic registry (41 questions, tier authority) |
 | `parameter-inventory.md` | Parameter registry (~40 parameters) |
-| `predictions/falsifiable-predictions.md` | 45-prediction catalog |
+| `predictions/falsifiable-predictions.md` | 46-prediction catalog |
 | `predictions/cassi_definitions.md` | Framework glossary |
 | `foundations/cassi-theory-reference.md` | Compact framework reference |
 | `foundations/deriving-remaining-gaps.md` | Four gap assessments—one narrowed, one open, one identified, one empirical |
