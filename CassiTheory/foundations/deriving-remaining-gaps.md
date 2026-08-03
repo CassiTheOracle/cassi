@@ -1,12 +1,14 @@
 # Closing the Gaps: Derivation of Residual Parameters
 
-## Status: Assessment—August 2026. Four gap assessments: one narrowed, one open, one identified, one empirical
+## Status: Reference—August 2026
+
+## Abstract
 
 The remaining underived quantities in the Cassi two-fluid framework are
-cataloged, classified, and bounded below. The goal is not to claim that every
-framework, closing the parameter inventory gaps documented in `parameter-inventory.md`.
-Each derivation is assessed for whether it fully resolves the gap, partially
-narrows it, or identifies an irreducible barrier.
+cataloged, classified, and bounded, closing the parameter-inventory gaps
+documented in `parameter-inventory.md`. Each derivation is assessed for
+whether it fully resolves the gap, partially narrows it, or identifies an
+irreducible barrier.
 
 ---
 
@@ -240,8 +242,8 @@ appears in a **verified physical quantity**.
 | 2 | 2.618 | Qi gate normalization denominator | PDE structure |
 | 3 | 4.236 | $\sin^2\theta_W = \varphi^{-3}$, Yang fraction $\varphi^{-3}$ | 2.1% (tree) |
 | 3 | 4.24 | $\kappa_s^{-1/2} = \varphi^3 v_0 \approx 1.04$ TeV (sector coupling) | 5.5% (vs rung 77); coefficient $C$ open |
-| 5 | 11.09 | Wu Xing scale, gap $g = 1-\varphi^{-5}$ | $w_0 = -0.87$ (corrected 2026-07-31; $2\sigma$ from DESI $\approx -0.75 \pm 0.06$ [INF]) |
-| 6 | 17.94 | $\xi = \varphi^6$ (Qi-gravity coupling) | $v_C/v_B = 2.9$–$3.1$ (~1.2σ; corrected 2026-07-31) |
+| 5 | 11.09 | Wu Xing scale, gap $g = 1-\varphi^{-5}$ | $w_0 = -0.87$ ($2\sigma$ from DESI $\approx -0.75 \pm 0.06$ [INF]) |
+| 6 | 17.94 | $\xi = \varphi^6$ (Qi-gravity coupling) | $v_C/v_B = 2.9$–$3.1$ (~1.2σ) |
 | 26 | $2.7\times 10^5$ | $m_e/v_0 \approx \varphi^{-26}$ (human cascade depth) | 25% (integer rung 26); the half-step 26.5 is a fit to the observed mass, not a derivation (§2.2) |
 | 80 | $5.2\times 10^{16}$ | $v_0/M_{\text{Pl}} \approx \varphi^{-80}$ | 5.3% |
 | 89 | $3.94\times 10^{18}$ | $M_{\text{Pl}}/m_{J/\psi} \approx \varphi^{89}$ (charmonium ground state) | 1.0% (2026-08-03, closure level) |
@@ -323,3 +325,14 @@ $v_0/M_{\text{Pl}}$ remain empirical near-misses (25% and 5.3% on the nearest
 integer rungs; 3.9% for $m_e$ on the $M_{\text{Pl}}$ ladder). The dimensionful
 constants ($G$, $c$, $\hbar$) cannot be derived from a dimensionless
 constant—this is a feature of any theory, not a bug.
+
+---
+
+## References
+
+- `parameter-inventory.md` §4—parameter classes (F/D/C/E/I/N)
+- `foundations/dimensionful-constants-status.md`—status of $c$, $\hbar$, $G$
+- `foundations/wake-geometry.md` §3—$M_{\text{Pl}}$-anchored mass ladder
+- `foundations/dimensionful-cascade.md`—cascade table, rung labels
+- `foundations/xi-derivation.md`—$\xi = \varphi^6$ derivation
+- `foundations/wu-xing-derivation.md`—$w = 5$, gap $g$
