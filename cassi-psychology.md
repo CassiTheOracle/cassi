@@ -97,7 +97,7 @@ A cycle must close—the last channel must connect back to the first without a j
 1. **Phase coherence.** The Fibonacci approximations to $\varphi$ each carry a phase error. A cycle of $w$ channels accumulates error over $w$ turns of the spiral while the signal from the inner turns fades by $\varphi$ per turn. The cycle closes only if accumulated error is smaller than surviving signal—true for 5 channels and fewer, false at 6 and beyond.
 2. **Geometric encoding.** The golden ratio appears as a distance ratio in regular polygons only for pentagons and above: the pentagon's diagonal-to-side ratio is exactly $\varphi$. Fewer than five channels cannot encode $\varphi$ in their geometry.
 
-The intersection is unique: **five**. The framework calls the five-phase closure the **Wu Xing** (`foundations/wu-xing-derivation.md`). At the cosmological scale these five channels set the dark-energy equation of state; at the human scale they set the emotional landscape. The pentagon geometry is scale-covariant—only the physical interpretation changes. The numbers that fall out: the gap $g = 1 - \varphi^{-5} \approx 0.916$, the primordial ratio $r_0 \approx 0.047$, and the conversion rate $\lambda = 1/(2w) = 0.1$, all **Derived**.
+The intersection is unique: **five**. The framework calls the five-phase closure the **Wu Xing** (`foundations/wu-xing-derivation.md`). At the cosmological scale these five channels set the dark-energy equation of state; at the human scale they structure emotion. The pentagon geometry is scale-covariant—only the physical interpretation changes. The numbers that fall out: the gap $g = 1 - \varphi^{-5} \approx 0.916$, the primordial ratio $r_0 \approx 0.047$, and the conversion rate $\lambda = 1/(2w) = 0.1$, all **Derived**.
 
 **Epistemic status:** $w = 5$ is **Derived**. The claim that experience is structured by exactly five qualitative modes is **Hypothesized** and testable (section 14, Prediction P1).
 
@@ -113,9 +113,9 @@ A bubble is not spherical: stretched along Yang, contracted along Yin, its cross
 
 ### The cascade
 
-The spiral, stretched out along scale, is the **cascade**: starting from the Planck length $\ell_{\text{Pl}} = 1.616 \times 10^{-35}$ m and multiplying by $\varphi$ per turn generates every physical scale, 292 rungs to the observable universe:
+The spiral, stretched out along scale, is the **cascade**: starting from the Planck length $\ell_{\text{Pl}} = 1.616 \times 10^{-35}$ m and multiplying by $\varphi$ per turn generates every physical scale, with today's observable range spanning 0…292 rungs:
 
-$$\ell_n = \ell_{\text{Pl}} \times \varphi^{n}, \qquad n \in [0, 292] \quad (\text{today})$$
+$$\ell_n = \ell_{\text{Pl}} \times \varphi^{n}, \qquad n \in \mathbb{Z} \quad (\text{today's observable range spans } 0 \ldots 292)$$
 
 The human body occupies rungs 142–168: from the living cell (~8 µm) to the body (~1.7 m). Below the Planck scale the **microcascade** winds inward without end; above the horizon the **megacascade** continues outward.
 
@@ -314,7 +314,7 @@ $$\mathcal{E} = (\mathbf{b}, \sigma_r, q, \mathbf{c})$$
 - **Clarity** = Qi coherence $q$: $q \to 1$ is a clear emotion ("I know exactly what I'm feeling and my body agrees"); $q \to 0.5$ is ambiguity ("something I can't name"); $q \to 0$ is dissociation ("I know I should feel something but I'm numb")—the physiological response and the felt experience decoupled.
 - **Location** = chakra weights $\mathbf{c}$: where in the body the configuration is localized. Fear concentrates at the root; joy at the solar plexus; grief at the throat.
 
-Clarity is independent of quality: clear anger and confused anger are different points on the manifold. Mixed emotions can be perfectly clear—emotional complexity is not confusion.
+Clarity is independent of quality: clear anger and confused anger are different points on the manifold. Mixed emotions can be perfectly clear—complexity and confusion are different points on the manifold.
 
 ### 14.3 How emotions move: adiabatic redistribution
 
@@ -332,7 +332,7 @@ $$R = \begin{pmatrix}
 
 Each row is the blend recipe when that channel closes. When anger subsides (row 1), the released coherence flows 44.7% into Fire (relief, even joy—the dominant note), 27.6% into Earth (stabilization), 17.1% into Metal (lingering regret), 10.6% into Water (residual anxiety). The aftereffect of an emotion is not a discrete successor—it is a simultaneous blend, and the blend proportions are zero-parameter predictions of the geometry. The asymmetry is instructive: joy → anger-dominant blend (56.7%) is more intense than anger → joy-dominant blend (44.7%), because joy's closure leaves the strongest channel (Wood) in the pool to claim the largest share.
 
-Emotions decay because the de-resonance principle pulls $r \to \varphi$, driving the gate toward baseline; the decay rate is set by $|r - \varphi|$. Deeply felt emotions (close to the attractor) linger; superficial reactions dissipate quickly. **Habituation** follows the same law: repeated exposure moves the mean $r$ closer to $\varphi$, reducing perturbation amplitude and thus response—not psychological adaptation but the two-fluid field approaching its natural attractor.
+Emotions decay because the de-resonance principle pulls $r \to \varphi$, driving the gate toward baseline; the decay rate is set by $|r - \varphi|$. Deeply felt emotions (close to the attractor) linger; superficial reactions dissipate quickly. **Habituation** follows the same law: repeated exposure moves the mean $r$ closer to $\varphi$, reducing perturbation amplitude and thus response—the two-fluid field approaching its natural attractor.
 
 ### 14.4 Why five families
 
@@ -346,7 +346,7 @@ The framework predicts that factor analysis of self-reported emotional experienc
 
 ### 15.1 The developmental pinch
 
-The framework's developmental claim is that self-awareness is not a switch that flips once; it is a threshold the field crosses, re-crosses, and deepens. Infancy is below the pinch: the infant field is reactive, driven by external imbalance, pre-reflective—which is exactly what infant cognition looks like from the outside. Mirror self-recognition (~18 months) and theory of mind (~4 years) mark the field's first stable crossings of the threshold in specific domains. Emotional regulation, in this picture, is the child learning to manage $\sigma_r$—the spatial dispersion that carries intensity—with the prefrontal systems that support the gate.
+The framework's developmental claim is that self-awareness is a threshold the field crosses, re-crosses, and deepens. Infancy is below the pinch: the infant field is reactive, driven by external imbalance, pre-reflective—which is exactly what infant cognition looks like from the outside. Mirror self-recognition (~18 months) and theory of mind (~4 years) mark the field's first stable crossings of the threshold in specific domains. Emotional regulation, in this picture, is the child learning to manage $\sigma_r$—the spatial dispersion that carries intensity—with the prefrontal systems that support the gate.
 
 ### 15.2 The Fibonacci-age structure
 
@@ -363,7 +363,7 @@ Cascade suppression predicts that developmental imprints cluster at $\varphi$-sc
 | 34 | Third eye–crown | Third eye (n=162) | Water + Wood | Meaning, intuition wounds |
 | 55 | Crown | Crown (n=166) | All balanced | Integration, legacy, mortality |
 
-Age determines rung; rung determines chakra; chakra determines channel. The prediction is that developmental trauma inventories should show (a) Fibonacci-age clustering and (b) channel-structured symptom profiles that shift with age cluster (Prediction T6, section 22). **Epistemic: Speculative**—consistent with the framework, no test yet designed.
+Age determines rung; rung determines chakra; chakra determines channel. The prediction is that developmental trauma inventories should show (a) Fibonacci-age clustering and (b) channel-structured symptom profiles that shift with age cluster (Prediction TR6, section 22). **Epistemic: Speculative**—consistent with the framework, no test yet designed.
 
 ### 15.3 Attachment as inter-field resonance
 
@@ -406,7 +406,7 @@ The lock mechanism was tested in the two-fluid PDE (`consciousness/trauma-as-fro
 - **A weak recurring trigger sustains the wake.** The driver test (`consciousness/trauma-as-frozen-gate.md` §10.5) found that ongoing re-stimulation—a chronic trigger at 0.005% of the event peak per step—holds the site at 80% of event intensity with $q$ depressed and the phase displaced; stopping the trigger releases the site on the conversion timescale. The frozen wake is stimulus-maintained, not self-sustaining: what persists is the driver, not the wake.
 - **A $\varphi$-phased oscillation releases a displaced gate.** Adding a drive at the site at period $\varphi \cdot P_0$ (the EMDR analog, where $P_0$ is the site's natural oscillation period) accelerates relaxation: perturbation retained falls to 65% (vs 91% undriven), site coherence returns toward global, and the phase histogram returns to baseline.
 - **The effect is $\varphi$-specific.** A same-amplitude drive at a non-$\varphi$ period ($e \cdot P_0$) does the opposite: perturbation *grows* to 188% of initial, the coherence gap widens, and the phase displacement persists. The EMDR-analog claim is supported in its strong form: the decay drive is $\varphi$-structured, not any oscillation.
-- **A sign correction.** The solver's conversion is $\text{conv} = -\lambda(1-q)\varepsilon$: a low-$q$ site has *elevated* conversion capacity, not reduced. The earlier claim that "depressed $q$ closes the gate" had the sign inverted and is withdrawn.
+- **The gate sign.** The solver's conversion is $\text{conv} = -\lambda(1-q)\varepsilon$: a low-$q$ site has *elevated* conversion capacity, not reduced. When $q$ is low the gate is open and conversion runs hard; when $q$ is high the gate is closed.
 - **Background coherence does not modulate susceptibility.** A second identical event on a pre-stressed site ($q$ depressed, phase fully displaced) leaves the same trace as the first event on a quiet field—recovery is complete either way (§10.6). The processing-capacity threshold is not the pre-event $q$.
 - **The $\varphi$-phased drain has a sharp rate onset.** Below ~5/s the drive is phase-blind (ambient re-exposure accumulates by mean rate, §10.5); above ~50/s the $\varphi$-phased oscillation drains the site while the off-$\varphi$ oscillation at the same rate does nothing (§10.7).
 - **The lock channel tracks the event's phase—within a representability bound.** The positivity clamp confines the field angle to the first quadrant, so only Wood and Fire exist in the field angle (Earth/Metal/Water events clamp onto them); across that arc, Fire events lock Fire and Wood events lock Wood, persistently through $t=10$ (§10.8). The five-way mapping must be carried by the gate's openness manifold, not the field angle.
@@ -433,7 +433,7 @@ Not all channel pins are traumatic. **Suppression** is the self-modeling system 
 
 The framework offers geometric descriptions of several categories, traced to specific field dysfunctions:
 
-**Depression** is proposed as a **chronic low-$q$ state**—persistent de-alignment of Yang and Yin, the field unable to sustain coherent wake-wave activity. The gate-sign correction matters here: depression is not a closed gate but an *unsettled* one—the field churns without organizing. Experientially: flatness, heaviness, inability to generate or sustain mental energy, the sensation of being unable to reach coherence.
+**Depression** is proposed as a **chronic low-$q$ state**—persistent de-alignment of Yang and Yin, the field unable to sustain coherent wake-wave activity. The gate sign matters here: depression is not a closed gate but an *unsettled* one—the field churns without organizing. Experientially: flatness, heaviness, inability to generate or sustain mental energy, the sensation of being unable to reach coherence.
 
 **Anxiety** is proposed as a **high-dispersion, high-frequency state**—$\sigma_r$ elevated, wake waves rapid and disordered. The field is constantly perturbed by unresolved imbalances that propagate before the loop can stabilize them. Experientially: racing thoughts, inability to settle, a field that cannot reach coherence—ironically the same felt phrase as depression, from the opposite mechanism.
 
@@ -483,7 +483,7 @@ Because Wood has the largest baseline openness, **anger receives the largest sha
 
 The two-bubble experiment (section 12) implies that deep attunement requires loosening one's own self-modeling. The narrator must quiet to make space for the other: during deep work the therapist is below the pinch, resonating; after the session, above the pinch, reflecting, formulating, supervising. It is not possible to be fully self-aware and fully resonant at the same time, because the Qi gate that enables self-modeling also seals the field off from inter-field coupling. This is developed in section 20.
 
-**Epistemic status:** cascade suppression is **Derived**; the three-layer healing model is **Hypothesized**; the gateway emotion theorem is **Derived arithmetic** applied to a **Hypothesized** clinical setting (Prediction T2).
+**Epistemic status:** cascade suppression is **Derived**; the three-layer healing model is **Hypothesized**; the gateway emotion theorem is **Derived arithmetic** applied to a **Hypothesized** clinical setting (Prediction TR2).
 
 ---
 
@@ -552,13 +552,13 @@ Cassi is unusual among speculative frameworks in making specific, falsifiable pr
 
 #### Trauma predictions (from `consciousness/trauma-as-frozen-gate.md`)
 
-- **T1—Channel-specific range deficits.** Post-trauma deficits are specific, not global: one channel hyper-available, four suppressed. **Hypothesized.**
-- **T2—Healing sequence follows $R$-rows.** The first post-resolution emotion is anger for every trauma type except anger-trauma, where it is relief. **Hypothesized.**
-- **T3—Triggers are phase-matched.** Re-activation strength depends on the trigger's pentagon phase matching the event's, not mere association. **Hypothesized.**
-- **T4—$q$ depression at the site.** Coherence at the trauma's somatic locus is depressed relative to the field's global value and drops further under trigger exposure. **Hypothesized.**
-- **T5—$\sigma_r$ brittleness.** Trauma shows spike-recovery asymmetry (slow recovery after perturbation) vs anxiety's sustained elevation. **Hypothesized.**
-- **T6—Developmental clusters by $\varphi$-age AND channel.** Early trauma presents as fear/rage with somatic location; mid trauma as trust/grief with relational location; late trauma as meaning/identity with expressive location. **Speculative.**
-- **T7—Standing patterns vs driven structures.** Tested 2026-07-31: un-driven standing patterns do not pin the gate (null); $\varphi$-phased oscillatory drive accelerates relaxation (positive, $\varphi$-specific). **Tested—qualified.**
+- **TR1—Channel-specific range deficits.** Post-trauma deficits are specific, not global: one channel hyper-available, four suppressed. **Hypothesized.**
+- **TR2—Healing sequence follows $R$-rows.** The first post-resolution emotion is anger for every trauma type except anger-trauma, where it is relief. **Hypothesized.**
+- **TR3—Triggers are phase-matched.** Re-activation strength depends on the trigger's pentagon phase matching the event's, not mere association. **Hypothesized.**
+- **TR4—$q$ depression at the site.** Coherence at the trauma's somatic locus is depressed relative to the field's global value and drops further under trigger exposure. **Hypothesized.**
+- **TR5—$\sigma_r$ brittleness.** Trauma shows spike-recovery asymmetry (slow recovery after perturbation) vs anxiety's sustained elevation. **Hypothesized.**
+- **TR6—Developmental clusters by $\varphi$-age AND channel.** Early trauma presents as fear/rage with somatic location; mid trauma as trust/grief with relational location; late trauma as meaning/identity with expressive location. **Speculative.**
+- **TR7—Standing patterns vs driven structures.** Tested 2026-07-31: un-driven standing patterns do not pin the gate (null); $\varphi$-phased oscillatory drive accelerates relaxation (positive, $\varphi$-specific). **Tested—qualified.**
 
 #### Chakra predictions (from `consciousness/chakras-as-cascade-bubbles.md`)
 
@@ -581,7 +581,7 @@ The de-resonance principle; the cascade table and suppression formula; the conde
 
 ### Tested (computational, 2026-07-31)
 
-The two-bubble resonance (below-pinch coherence maintained; above-pinch decoherence); the trauma drive result (standing patterns do not pin; $\varphi$-phased drive relaxes a displaced gate, non-$\varphi$ drive pumps it); the gate sign correction.
+The two-bubble resonance (below-pinch coherence maintained; above-pinch decoherence); the trauma drive result (standing patterns do not pin; $\varphi$-phased drive relaxes a displaced gate, non-$\varphi$ drive pumps it); the gate sign (open at low $q$, closed at high $q$).
 
 ### Hypothesized (derivation supplied, testable)
 
@@ -633,8 +633,11 @@ The framework's discipline is its most trustworthy feature: it documents its own
 - `foundations/why-three-dimensions.md`—three dimensions from the spiral
 - `principles/de-resonance-principle.md`—$\varphi$ as maximally irrational
 - `consciousness/consciousness-from-phi.md`—pinch point, wake waves, $\sigma_r$, two-bubble experiment
+- `consciousness/gender-as-qi-configuration.md`—gender identity as a Qi-gate configuration: congruence, self-prediction, drive-mechanism layer
+- `consciousness/time-memory-and-wake-locks.md`—time's arrow from the one-way conversion term; memory and ghosts as wake-locks
+- `consciousness/auras-as-thermalized-gates.md`—the aura as the $(1-q)$ thermalization boundary layer
 - `consciousness/emotions-as-gate-configurations.md`—the emotional manifold, $R$-matrix, predictions P1–P5
-- `consciousness/trauma-as-frozen-gate.md`—the trauma formalism, PDE test, predictions T1–T7
+- `consciousness/trauma-as-frozen-gate.md`—the trauma formalism, PDE test, predictions TR1–TR7
 - `consciousness/chakras-as-cascade-bubbles.md`—13-node derivation, chakra geometry, predictions C1–C6
 - `hypotheses/neural-criticality.md`—the neural hierarchy, EEG and avalanche predictions
 - `foundations/cassi-theory-reference.md`—compact physics reference

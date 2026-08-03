@@ -45,9 +45,9 @@ Neutrino masses are not cleanly derivable from $\varphi$ alone. The seesaw mecha
 |----------|-------------|--------------|-----------|--------|
 | $w_0$ (DESI DR2) | $-0.87$ (corrected 2026-07-31) | $\approx -0.75 \pm 0.06$ (Table 9 [INF]) | $2\sigma$ | ⚠️ **Tension** |
 | $w_a$ (DESI DR2) | $+0.012$ (+$\xi$, corrected form) | $\approx -0.73 \pm 0.28$ | $2.7\sigma$ | ⚠️ **Tension**—corrected 2026-07-31 (the earlier “0σ / resolved” was circular: the DESI anchor was the repo's own calibration target) |
-| $n_s$ (Planck 2018) | $0.967$ | $0.9649 \pm 0.0042$ | $0.5\sigma$ | ✅ **Within MoE** |
+| $n_s$ (Planck 2018) | $0.9691 = 1 - 2\varphi^{-1}/N_e$, $N_e = 40$ | $0.9649 \pm 0.0042$ | $1.0\sigma$ | ✅ **Within MoE** |
 | $r$ (tensor-to-scalar) | $0.003$ | $< 0.03$ (Planck+BICEP) |—| ✅ **Within bound** |
-| $H_0$ (Hubble tension) | $\approx 69.8$ km/s/Mpc | Planck $67.4\pm0.5$, SH0ES $73.0\pm1.0$ |—| ✅ **Resolves tension** |
+| $H_0$ (Hubble tension) | ≈ 65.8 km/s/Mpc (pipeline, CMB-inferred) | Planck $67.4\pm0.5$, SH0ES $73.0\pm1.0$ | $\Delta H_0 = -7.2$ (−9.9%) | ⚠️ **Tension/pending**—full H(z) fit pending (registry C3/T4) |
 
 ---
 
@@ -84,9 +84,9 @@ Neutrino masses are not cleanly derivable from $\varphi$ alone. The seesaw mecha
 | SM | $\delta_{\text{CKM}} = \pi\varphi^{-2}$ | $<1\%$ |
 | SM | $m_W/m_Z = \sqrt{1-\varphi^{-3}}$ | $0.8\%$ |
 | Cosmology | $w_0 = -0.87$, $w_a = +0.012$ (corrected 2026-07-31) | $2\sigma$ / $2.7\sigma$ tension |
-| Cosmology | $n_s = 0.967$ | $0.5\sigma$ |
+| Cosmology | $n_s = 0.9691$ (closed form, $N_e = 40$) | $1.0\sigma$ |
 | Cosmology | $r = 0.003$ | Within bound |
-| Cosmology | $H_0 \approx 69.8$ km/s/Mpc | Resolves tension ($<1\sigma$ both sides) |
+| Cosmology | $H_0$: pipeline CMB-inferred ≈ 65.8 km/s/Mpc | Tension/pending—full H(z) fit pending (registry C3/T4) |
 | Atomic | He ground state (LDA, N=64) | $0.9\%$ |
 | Gravity | $v_C/v_B$ (MW rotation) | Within $2.5$-$3.0$ range |
 
