@@ -10,7 +10,7 @@ $$\boxed{\ell_n = \ell_{\text{Pl}} \times \varphi^{\,n}}$$
 
 where $\varphi = (1+\sqrt{5})/2 \approx 1.618$ and the integer exponent $n$ is determined by the dynamics of the $\varphi$-attractor—specifically, by where in the cascade a given physical process freezes out. The observable ladder spans $n = 0$ (Planck) to $n \approx 292$ (today's horizon rung—epoch-dependent); the cascade itself is unbounded (megacascade above, microcascade below). This document catalogues the complete spectrum.
 
-**Extension:** The cascade does not truncate at either boundary. Above $n \approx 292$ lies the **megacascade** (multiverse, bubble boundaries). Below $n = 0$ lies the **microcascade** (sub-Planckian infinite ladder). See `microcascade-mirror.md` for the bidirectional extension.
+**Extension:** The cascade does not truncate at either boundary. Above $n \approx 292$ lies the **megacascade** (multiverse, bubble boundaries). Below $n = 0$ lies the **microcascade** (sub-Planckian infinite ladder). See `foundations/microcascade-mirror.md` for the bidirectional extension.
 
 **Figure:** `visual-explainers/cascade_cosmos.png`—3-regime diagram: megacascade bubble chain, the 292-rung ladder, and the microcascade golden spiral, all computed from $\ell_n = \ell_{\text{Pl}}\,\varphi^{n}$ (`visual-explainers/cascade_cosmos.py`).
 **Figure:** `visual-explainers/fractal_zoom.png`—three-panel fractal zoom demonstrating cascade self-similarity: overview with φ-spaced rings, deep zoom into a Qi bubble interior (elliptical φ:1 cross-section, five-arm spiral poles), and pole ultra-zoom with Fibonacci phyllotaxis. Zoom by φ → identical structure at every rung (`visual-explainers/fractal_zoom.py`).
@@ -89,7 +89,7 @@ The electroweak cascade depth $N \approx 80$ is robust against variations in the
 | **285** | **$5.9 \times 10^{24}$** | **Cassi bubble** ($\sim 191$ Mpc) | Multiverse |
 | 288 | $2.5 \times 10^{25}$ | Supercluster scale ($\sim 800$ Mpc) | Cosmological |
 | 290 | $6.5 \times 10^{25}$ | Horizon at recombination ($\sim 2.1$ Gpc) | Cosmological |
-| **292** | **$1.7 \times 10^{26}$** | **Hubble radius today** ($\sim 5.5$ Gpc) | Observable universe |
+| **292** | **$1.7 \times 10^{26}$** | **Horizon rung** (lattice length $\ell_{292} = 5.5$ Gpc; $R_H = 4.44$ Gpc $= 14.5$ Glyr, $\log_\varphi = 291.54$, c/H₀-consistent) | Observable universe |
 
 ### Step Verification
 
@@ -215,9 +215,9 @@ The bubble at step 285 is bounded by adjacent bubbles at identical $w=5$ in the 
 
 ## 9. Open Questions
 
-1. **Why 292 steps?** $\log_\varphi(M_{\text{Pl}}/H_0) \approx 291.54$ today; is this number derivable from the PDE dynamics, or is it set by the initial conditions of inflation? **Sharpening (2026-08-03):** 292 is not a constant of the cascade—the cascade is unbounded ($n \in \mathbb{Z}$, megacascade above, microcascade below), and 292 is today's horizon rung (epoch-dependent; $N(t) = \log_\varphi(R_H(t)/\ell_{\text{Pl}})$ evolves as $H(r) \to \varphi$). The derivable targets are the asymptotic horizon $N_\infty \approx 296$–303 (`foundations/wake-geometry.md` §4) and the epoch selection via the initial condition $r_0$.
+1. **Why 292 steps?** $\log_\varphi(M_{\text{Pl}}/H_0) \approx 291.54$ today; is this number derivable from the PDE dynamics, or is it set by the initial conditions of inflation? 292 is not a constant of the cascade—the cascade is unbounded ($n \in \mathbb{Z}$, megacascade above, microcascade below), and 292 is today's horizon rung (epoch-dependent; $N(t) = \log_\varphi(R_H(t)/\ell_{\text{Pl}})$ evolves as $H(r) \to \varphi$). The derivable targets are the asymptotic horizon $N_\infty \approx 294.2$ under the verified Yang-fraction-weighted coupling (292–296 across documented forms—`foundations/wake-geometry.md` §4) and the epoch selection via the initial condition $r_0$.
 
-2. **Why these specific activated steps?** The set $\{1, 2, 3, 5, 6, 26, 80, 292\}$ has no obvious pattern. Do the "dark" steps carry physical meaning (e.g., sterile neutrino masses, dark sector couplings)? **Two dark steps answered (2026-08-03, `foundations/wake-geometry.md` §3):** rung 89 hosts the J/ψ ($n = 88.98$, 1.0%—a golden-angle closure level) and rung 96 the muon ($n = 96.000$, 0.01%—wake-anchored).
+2. **Why these specific activated steps?** The set $\{1, 2, 3, 5, 6, 26, 80, 292\}$ has no obvious pattern. Do the "dark" steps carry physical meaning (e.g., sterile neutrino masses, dark sector couplings)? Two dark steps host wake-anchored particles (`foundations/wake-geometry.md` §3): rung 89 hosts the J/ψ ($n = 88.98$, 1.0%—a golden-angle closure level) and rung 96 the muon ($n = 96.000$, 0.01%—wake-anchored).
 
 3. **Cascade spacing regularity?** The steps are irregularly spaced: sparse at low $n$, dense at high $n$ (near $\varphi$). Is there an underlying periodicity in $\ln n$ space?
 
@@ -229,8 +229,8 @@ The bubble at step 285 is bounded by adjacent bubbles at identical $w=5$ in the 
 
 - `foundations/bubble-lattice-fabric.md`—Universal 3D checkerboard lattice; φ-elliptical bubble shape, edge anisotropy, and condensation field derivation
 - `cassi-physics.md`—Gap derivation, governing PDE, and $\varphi$-periodic $P(k)$ prediction
-- `parameter-inventory.md`: Complete parameter classification (D:16, C:4, E:6, I:6)
-- `cosmology/observational_constraints.md` §2.6: Rotation curve prediction ($\xi=\varphi^6$)
-- `cosmology/observational_constraints.md` §4: CMB $w$-gradient analysis
-- `predictions/falsifiable-predictions.md`: Full prediction catalogue (31 entries)
+- `parameter-inventory.md`—Complete parameter classification (46 parameters: F1/D24/C0/E7/I6/N8)
+- `cosmology/observational_constraints.md` §2.6—Rotation curve prediction ($\xi=\varphi^6$)
+- `cosmology/observational_constraints.md` §4—CMB bubble-boundary axis analysis
+- `predictions/falsifiable-predictions.md`—Full prediction catalogue (46 entries)
 - `visual-explainers/fractal_zoom.py`—fractal zoom: cascade self-similarity, φ-spaced rings

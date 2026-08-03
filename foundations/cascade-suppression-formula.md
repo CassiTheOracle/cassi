@@ -19,14 +19,14 @@ cover all known applications:
 
 - **Signal propagation** ($d_i \approx \varphi^{-1}$ uniform): $\mathcal{D} = \varphi^{-N}$—linear in span. Applies to CP violation, hierarchy, neutrino masses, and any phenomenon where a physical coupling propagates through the cascade medium.
 
-- **Coherence maintenance** ($d_i \approx (1-q_i) \approx \varphi^{-i-\delta}$): $\mathcal{D} = \varphi^{-n(n+1)/2 + \delta n}$—quadratic in depth. Applies to proton stability and any phenomenon requiring simultaneous coherence across all supporting rungs.
+- **Coherence maintenance** ($d_i \approx (1-q_i) \approx \varphi^{-i-\delta}$): $\mathcal{D} = \varphi^{-n(n+1)/2 - \delta(n+1)}$—quadratic in depth. Applies to proton stability and any phenomenon requiring simultaneous coherence across all supporting rungs.
 
 The per-rung damping $d_i$ is derived from the PDE once (Section 1), applied to
 all five cases (Sections 2--4), establishing $\varphi^{-N}$ as the framework's
 universal attenuation law—the single mathematical structure behind every
 "hierarchy" or "stability" puzzle in physics.
 
-**Bidirectional extension:** The per-rung attenuation formulas in §1 are defined for $n \geq 0$ (Planck → observable scales). For the extension to sub-Planckian scales ($n < 0$), see `microcascade-mirror.md`.
+**Bidirectional extension:** The per-rung attenuation formulas in §1 are defined for $n \geq 0$ (Planck → observable scales). For the extension to sub-Planckian scales ($n < 0$), see `foundations/microcascade-mirror.md`.
 
 ---
 
@@ -83,8 +83,9 @@ particle, $i=n$) is:
 $$\mathcal{D}_{0 \to n}^{\text{coherence}} = \prod_{i=0}^{n} (1-q_i) = \varphi^{-\sum_{i=0}^{n}(i+\delta)} = \varphi^{-n(n+1)/2 - \delta(n+1)}$$
 
 The quadratic-in-$n$ exponent is why the proton lives $10^{980}$ years:
-95 rungs of position-dependent coherence, each contributing $\varphi^{-i}$,
-compound to $\varphi^{-4560}$.
+95 rungs of position-dependent coherence, each contributing
+$\varphi^{-i-\delta}$ with $\delta = 3$ (from $\sigma = \ell_{\text{Pl}}/\varphi^3$),
+compound to $\varphi^{-4848}$ (see `foundations/proton-coherence-budget.md`).
 
 ---
 
@@ -171,8 +172,8 @@ Together they constitute the complete scaling laws of the framework.
 
 ## 7. References
 
-- `dimensionful-cascade.md`—complete 292-step cascade table
-- `proton-coherence-budget.md`—coherence maintenance, quadratic exponent
-- `strong-cp-derivation.md`—signal propagation, $\bar{\theta} = \varphi^{-87}$
-- `xi-derivation.md`—$\xi = \varphi^6$ as a cascade suppression factor
+- `foundations/dimensionful-cascade.md`—complete cascade table, $\ell_n = \ell_{\text{Pl}}\varphi^n$ (292 = today's horizon rung)
+- `foundations/proton-coherence-budget.md`—coherence maintenance, quadratic exponent
+- `foundations/strong-cp-derivation.md`—signal propagation, $\bar{\theta} = \varphi^{-87}$
+- `foundations/xi-derivation.md`—$\xi = \varphi^6$ as a cascade suppression factor
 - `principles/de-resonance-principle.md`—why $\varphi^{-1}$ is the per-rung damping

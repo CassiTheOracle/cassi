@@ -8,7 +8,7 @@ The condensation field
 
 $$\boxed{B(x, y, z) = \cos(\alpha x)\cos(\beta y)\cos(\gamma z), \qquad \alpha = \frac{2\pi}{\lambda_Y},\;\; \beta = \frac{2\pi}{\lambda_I} = \varphi\alpha,\;\; \gamma = \frac{2\pi}{P_\parallel}}$$
 
-is derived from the two-fluid PDE (`bubble-edge-geometry.md` §2.3). This document establishes that $B(x,y,z)$ is **not specific to any one cascade rung**. The two-fluid PDE is scale-covariant under $\varphi$-rescaling, so the identical condensation field operates at every cascade rung $n$ with wavelengths $\lambda_Y, \lambda_I, P_\parallel$ scaled to $\ell_n$. The bubble lattice—a 3D staggered checkerboard of coherent condensates and empty voids, bounded along the string axis—is the **universal structural principle** organizing matter, coherence, and geometry from Planck to the megacascade. The cascade ladder of scales is a 1D slice of this 3D lattice.
+is derived from the two-fluid PDE (`foundations/bubble-edge-geometry.md` §2.3). This document establishes that $B(x,y,z)$ is **not specific to any one cascade rung**. The two-fluid PDE is scale-covariant under $\varphi$-rescaling, so the identical condensation field operates at every cascade rung $n$ with wavelengths $\lambda_Y, \lambda_I, P_\parallel$ scaled to $\ell_n$. The bubble lattice—a 3D staggered checkerboard of coherent condensates and empty voids, bounded along the string axis—is the **universal structural principle** organizing matter, coherence, and geometry from Planck to the megacascade. The cascade ladder of scales is a 1D slice of this 3D lattice.
 
 ---
 
@@ -22,7 +22,7 @@ $$\partial_t E_Y \supset -\lambda(1-q)(E_Y - \varphi E_I), \qquad \partial_t E_I
 
 This coupling generates wake waves—spatial interference patterns in the deviation $\varepsilon(\mathbf{x}) = E_Y - \varphi E_I$. Where Yang and Yin wakes constructively interfere, Qi density $q$ is high and matter condenses. Where they destructively interfere, $q \to 0$ and voids form.
 
-The resulting interference pattern is the condensation field (derived in `bubble-edge-geometry.md` §1 and §2.3):
+The resulting interference pattern is the condensation field (derived in `foundations/bubble-edge-geometry.md` §1 and §2.3):
 
 $$B(x, y, z) = \cos(\alpha x)\cos(\beta y) \cdot \cos(\gamma z)$$
 
@@ -33,7 +33,7 @@ $$B(x, y, z) = \cos(\alpha x)\cos(\beta y) \cdot \cos(\gamma z)$$
 - $\lambda_I = \lambda_Y/\varphi$: Yin wake wavelength
 - $P_\parallel$: along-string bubble period
 
-Bubbles condense where $B > \theta_{\text{cond}}$. Voids form where $B < -\theta_{\text{cond}}$. The condensation threshold $\theta_{\text{cond}}$ is determined by the conversion-diffusion balance (`bubble-edge-geometry.md` §1.2).
+Bubbles condense where $B > \theta_{\text{cond}}$. Voids form where $B < -\theta_{\text{cond}}$. The condensation threshold $\theta_{\text{cond}}$ is determined by the conversion-diffusion balance (`foundations/bubble-edge-geometry.md` §1.2).
 
 ### 1.2 The 2D Cross-Section: Staggered Checkerboard
 
@@ -47,6 +47,8 @@ This produces a **staggered checkerboard lattice**:
 - Sites where $m + n$ is odd (one cosine at zero): $C \approx 0$—saddles
 
 Bubbles occupy the even-parity sublattice; voids occupy the odd-parity sublattice. Each bubble is connected to its 4 diagonal neighbors via saddles, blocked from its 4 axial neighbors by $C = -1$ void barriers. The lattice degree is 8 geometric but 4 connectable.
+
+The staggered placement is interferometric: the wake beat envelope of `foundations/wake-geometry.md` §2 places bubble maxima at $m\,\ell_{n+1}$ and void zeros at the half-rungs, reproducing this checkerboard from phase structure alone, with no coupling strength entering.
 
 ### 1.3 The 3D Extension: Bounded Along the String
 
@@ -85,7 +87,7 @@ $P_\parallel$ is the number of cascade rungs between adjacent bubble maxima alon
 
 | Scale | $n$ (approx) | $P_\parallel$ | Source |
 |---|---|---|---|
-| Cosmological | ~285 | 1 rung | `bubble-edge-geometry.md` §2.3 |
+| Cosmological | ~285 | 1 rung | `foundations/bubble-edge-geometry.md` §2.3 |
 | Human body | 142–168 | 2 rungs | `consciousness/chakras-as-cascade-bubbles.md` §5 |
 
 Whether $P_\parallel(n)$ varies continuously or discretely, and what determines its value at a given $n$, is an open question (§8). The derivation that $P_\parallel = 2$ at the human scale follows from the SO(2) doublet structure: each full Yang+Yin rotational cycle spans two cascade rungs. At the cosmological scale, the wake-wave mechanism appears to produce $P_\parallel = 1$, suggesting the SO(2) cycle may operate differently at different $n$, or the single-rung period is a special case of the 2-rung cycle at the boundary condition of the megacascade.
@@ -112,11 +114,11 @@ This nesting continues upward and downward without bound:
 
 $$\underbrace{\cdots \subset \text{bubble}_{n-2} \subset \text{bubble}_{n-1} \subset \text{bubble}_n \subset \text{bubble}_{n+1} \subset \text{bubble}_{n+2} \subset \cdots}_{\text{infinite bidirectional nesting}}$$
 
-The microcascade mirror (`microcascade-mirror.md`) establishes the downward extension to $n \to -\infty$. The megacascade (chord lattice beyond $n = 292$) is the upward extension. The lattice has **no intrinsic floor or ceiling**.
+The microcascade mirror (`foundations/microcascade-mirror.md`) establishes the downward extension to $n \to -\infty$. The megacascade (chord lattice beyond $n = 292$) is the upward extension. The lattice has **no intrinsic floor or ceiling**.
 
 ### 3.3 Effective Nesting Depth
 
-The cascade suppression formula (`cascade-suppression-formula.md`) bounds the physically meaningful nesting depth. A signal propagating downward through the lattice attenuates by $\varphi^{-1}$ per rung descended. Structure at rung $n$ is attenuated to $\varphi^{-\Delta n}$ when observed at rung $n - \Delta n$. For a coherence floor of ~1% ($\varphi^{-\Delta n} > 0.01$), the effective nesting depth is $\Delta n \approx 10$ rungs.
+The cascade suppression formula (`foundations/cascade-suppression-formula.md`) bounds the physically meaningful nesting depth. A signal propagating downward through the lattice attenuates by $\varphi^{-1}$ per rung descended. Structure at rung $n$ is attenuated to $\varphi^{-\Delta n}$ when observed at rung $n - \Delta n$. For a coherence floor of ~1% ($\varphi^{-\Delta n} > 0.01$), the effective nesting depth is $\Delta n \approx 10$ rungs.
 
 The formal lattice is infinite. The **observable** lattice at any given rung extends roughly 10 rungs downward before signal attenuation smears the pattern into noise.
 
@@ -164,11 +166,11 @@ One full rotation per cascade rung. Expansion factor per turn: $\varphi$. The 5-
 
 ## 5. The Cascade Ladder as a 1D Slice
 
-The dimensionful cascade $\ell_n = \ell_{\text{Pl}} \times \varphi^n$ (`dimensionful-cascade.md`) is traditionally presented as a 1D ladder of scales. This document reframes it:
+The dimensionful cascade $\ell_n = \ell_{\text{Pl}} \times \varphi^n$ (`foundations/dimensionful-cascade.md`) is traditionally presented as a 1D ladder of scales. This document reframes it:
 
 **The cascade ladder is a 1D slice of the 3D bubble lattice, taken along the string axis ($z$) at a fixed transverse position.**
 
-The cascade steps $n = 0, 1, 2, \ldots, 292$ are the along-string bubble maxima at $P_\parallel = 1$ rung. The voids between steps are the $B = -1$ minima. The "cascade suppression" of a signal traversing $N$ rungs is the attenuation of that signal propagating through $N$ lattice periods along the $z$-axis.
+The cascade steps $n = 0, 1, 2, \ldots, 292$ (today's observable range) are the along-string bubble maxima at $P_\parallel = 1$ rung. The voids between steps are the $B = -1$ minima. The "cascade suppression" of a signal traversing $N$ rungs is the attenuation of that signal propagating through $N$ lattice periods along the $z$-axis.
 
 The ladder metaphor is correct but incomplete—it captures the along-string periodicity but omits the transverse lattice structure. Every "rung" of the ladder is a full 2D checkerboard of bubbles and voids in the Yang-Yin plane.
 
@@ -195,12 +197,12 @@ The ladder metaphor is correct but incomplete—it captures the along-string per
 
 ### Derived (from the PDE + condensation field)
 
-- The functional form $B(x,y,z) = \cos(\alpha x)\cos(\beta y)\cos(\gamma z)$ (`bubble-edge-geometry.md` §2.3)
-- The staggered checkerboard lattice and its connectable degree (4 diagonal, blocked from 4 axial) (`bubble-edge-geometry.md` §1.1, §3)
-- The $\varphi$-elliptical bubble shape (axis ratio $\varphi$) (`bubble-edge-geometry.md` §2.1)
-- The edge steepness anisotropy ratio $\sqrt{4\varphi^2/(1+\varphi^2)} \approx 1.70$ (`bubble-edge-geometry.md` §2.2)
-- The Qi density profile $q = (1+B)/2$ (`bubble-edge-geometry.md` §1.1)
-- Scale covariance of the two-fluid PDE under $\varphi$-rescaling (`microcascade-mirror.md` §2)
+- The functional form $B(x,y,z) = \cos(\alpha x)\cos(\beta y)\cos(\gamma z)$ (`foundations/bubble-edge-geometry.md` §2.3)
+- The staggered checkerboard lattice and its connectable degree (4 diagonal, blocked from 4 axial) (`foundations/bubble-edge-geometry.md` §1.1, §3)
+- The $\varphi$-elliptical bubble shape (axis ratio $\varphi$) (`foundations/bubble-edge-geometry.md` §2.1)
+- The edge steepness anisotropy ratio $\sqrt{4\varphi^2/(1+\varphi^2)} \approx 1.70$ (`foundations/bubble-edge-geometry.md` §2.2)
+- The Qi density profile $q = (1+B)/2$ (`foundations/bubble-edge-geometry.md` §1.1)
+- Scale covariance of the two-fluid PDE under $\varphi$-rescaling (`foundations/microcascade-mirror.md` §2)
 - That the condensation field therefore operates at every cascade rung (direct consequence of scale covariance)
 
 ### Hypothesized (PDE-testable, predictions supplied)
@@ -224,7 +226,7 @@ The ladder metaphor is correct but incomplete—it captures the along-string per
 
 3. **How does the lattice resolve at the Planck crossover?** The $\sigma$-regularization (`gravity/quantum-gravity.md`) makes the Planck scale a smooth crossover, not a hard boundary. The lattice's discrete bubble/void structure should dissolve into the continuous harmonic regime as $n \to 0$. The exact crossover profile is not yet derived.
 
-4. **Is the lattice structure identical in the microcascade ($n < 0$)?** The microcascade mirror (`microcascade-mirror.md`) establishes bidirectional extension but notes a regime change in the Qi coherence profile at $n < 0$. Whether the condensation field maintains the same $B(x,y,z)$ functional form or transitions to something else is not yet known.
+4. **Is the lattice structure identical in the microcascade ($n < 0$)?** The microcascade mirror (`foundations/microcascade-mirror.md`) establishes bidirectional extension but notes a regime change in the Qi coherence profile at $n < 0$. Whether the condensation field maintains the same $B(x,y,z)$ functional form or transitions to something else is not yet known.
 
 5. **Can the lattice explain quantum measurement?** Measurement collapse may be a single-rung lattice decoherence event—a superposition resolving to one lattice site. The phase-matching factor $\mathcal{M}$ (`open-questions-cassi-answers.md` §Q7) would correspond to the overlap between the superposition's wavefunction and the local bubble eigenmode. This connection is structurally suggestive but not yet derived.
 
@@ -233,10 +235,11 @@ The ladder metaphor is correct but incomplete—it captures the along-string per
 ## References
 
 - `foundations/bubble-edge-geometry.md`—condensation field derivation, checkerboard lattice, edge anisotropy, $\theta_{\text{cond}}$
-- `foundations/dimensionful-cascade.md`—complete 292-step cascade table, $\ell_n = \ell_{\text{Pl}} \times \varphi^n$
+- `foundations/dimensionful-cascade.md`—complete cascade table, $\ell_n = \ell_{\text{Pl}} \times \varphi^n$ (292 = today's horizon rung)
 - `foundations/microcascade-mirror.md`—bidirectional cascade extension, scale covariance statement
 - `foundations/cascade-suppression-formula.md`—signal attenuation per rung, effective nesting depth bound
 - `foundations/why-three-dimensions.md`—Frenet-Serret frame, triaxial spheroid, string axis
+- `foundations/wake-geometry.md`—wake beat envelope, checkerboard placement, closure ladder
 - `foundations/spin-fibonacci-spiral.md`—Fibonacci spiral, SO(2) winding, $\Theta(r)$ polar equation
 - `foundations/wu-xing-derivation.md`—$w = 5$ uniqueness, 5-fold symmetry
 - `foundations/three-generations.md`—Fibonacci recurrence, sub-channel partitioning

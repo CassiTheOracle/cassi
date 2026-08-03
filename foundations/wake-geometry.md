@@ -4,7 +4,7 @@
 
 ## Abstract
 
-The primordial string's waveform is the Yang/Yin wake pair: a Yin wake at $\lambda_I^{(n)} = \ell_n/\varphi$ and a Yang wake at $\lambda_Y = \varphi\,\lambda_I = \ell_n$. The composite period closes the next cascade rung ($\lambda_Y + \lambda_I = \ell_{n+1}$). The wakes never phase-lock—de-resonance is built into the wave structure itself—and their beat envelope places the bubbles and voids of the staggered checkerboard. The golden-angle phyllotaxis closure ladder (5, 13, 34, 89, 233, 610, …) is the geometry of bubble closure, with a Hypothesized imprint on the activated rungs. The cosmic-depth question is reframed per the 2026-08-03 reclassification: 292 is the epoch-dependent horizon rung, not a cascade boundary; the derivable quantity is the asymptotic horizon $N_\infty \approx 296$–$303$.
+The primordial string's waveform is the Yang/Yin wake pair: a Yin wake at $\lambda_I^{(n)} = \ell_n/\varphi$ and a Yang wake at $\lambda_Y = \varphi\,\lambda_I = \ell_n$. The composite period closes the next cascade rung ($\lambda_Y + \lambda_I = \ell_{n+1}$). The wakes never phase-lock—de-resonance is built into the wave structure itself—and their beat envelope places the bubbles and voids of the staggered checkerboard. The golden-angle phyllotaxis closure ladder (5, 13, 34, 89, 233, 610, …) is the geometry of bubble closure, with a Hypothesized imprint on the activated rungs. The cosmic depth is not a constant: 292 is the epoch-dependent horizon rung, not a cascade boundary; the derivable quantity is the asymptotic horizon $N_\infty \approx 294.2$ under the verified Yang-fraction-weighted coupling (292–296 across documented forms, §4).
 
 ## 1. The waveform and its wavelength (Derived)
 
@@ -66,7 +66,7 @@ The bubble closes at 5 levels—the pentagon, ≈ 2 turns—and self-replicates 
 
 **(c) Imprint on the activated rungs (Hypothesized).** Two rung hits are exact: $26 = 2 \times 13$—the human window is two closures—and $285 = 5 \times 57$—the Cassi bubble sits on a five-arm closure boundary. Two further coincidences are index-ratio curiosities, $80 \approx 26.5\,(\varphi^2 + \varphi^{-2}) = 3 \times 26.5$ (+0.6%) and $292 \approx 26.5\,\varphi^5$ (+0.6%). Both require the "rung number = level count" reading to mean anything, and both are flagged as curiosities, not claims.
 
-**(d) The cosmic depth, reframed.** 292 is not on the closure ladder—the nearest level is 233, a gap of 59—and per the 2026-08-03 reclassification (`foundations/dimensionful-constants-status.md` §3) it is the epoch-dependent horizon rung, not a cascade boundary. What the ladder gives instead is the horizon's half-step structure: $\log_\varphi(R_H/\ell_{\text{Pl}}) = 291.54$ today—within 2.2% of the half-integer 291.5—and $R_H/\ell_{285} = 23.3 \approx \varphi^{6.5}$ (+2.0%), the horizon sitting a half-step above the Cassi bubble. These are epoch observations, not constants.
+**(d) The cosmic depth.** 292 is not on the closure ladder—the nearest level is 233, a gap of 59—and it is the epoch-dependent horizon rung, not a cascade boundary (`foundations/dimensionful-constants-status.md` §3). What the ladder gives instead is the horizon's half-step structure: $\log_\varphi(R_H/\ell_{\text{Pl}}) = 291.54$ today—within 2.2% of the half-integer 291.5—and $R_H/\ell_{285} = 23.3 \approx \varphi^{6.5}$ (+2.0%), the horizon sitting a half-step above the Cassi bubble. These are epoch observations, not constants.
 
 **(e) The first closure-ladder test (2026-08-03).** Y3 targets rungs 34 and 89 with a mass scan, $n = \log_\varphi(M_{\text{Pl}}/m)$. Rung 89 hits: the J/ψ sits at $n = 88.98$—1.0% off the closure level 89 ($F_{11}$)—and the charmed-hadron family clusters at 89–90 (D$_s$: 89.92, D: 90.03, Λ$_c$: 89.61). Rung 34 has no established anchor: the Peccei-Quinn window top ($\sim 10^{12}$ GeV) is the only candidate, and it is Hypothesized physics. The scan's sharpest placement was not a Y3 target: the muon sits at $n = 96.000$—0.01%, limited by $M_{\text{Pl}}$'s own precision from $G$—the cleanest absolute rung placement in the framework's catalog, and a wake-anchored integer rung (not a closure level). The neutrino band (0.008–0.05 eV) occupies $n = 140.6$–$144.3$, just below the human window at 142: a structural observation only—neutrino masses are seesaw compounds, so no rung claim is made.
 
@@ -101,15 +101,15 @@ $$N_\infty = N_{\text{now}} + \log_\varphi\!\left(\frac{H(a{=}1)}{H_\infty}\righ
 
 | Convention | Script | $r(a{=}1)$ | $H(a{=}1)/H_\infty$ | $N_\infty$ |
 |---|---|---|---|---|
-| Bare (legacy ODE) | `run_hubble_pipeline.py` | 1.589 | 1.12 | 291.8 |
-| ξ-full, $\sqrt{1+\xi q}$ (superseded) | `calibrate_initial_ratio_xi.py` | 0.523 | 7.9 | 295.8 |
+| Bare (no boost) | `run_hubble_pipeline.py` | 1.589 | 1.12 | 291.8 |
+| ξ-full, $\sqrt{1+\xi q}$ (not Yang-weighted) | `calibrate_initial_ratio_xi.py` | 0.523 | 7.9 | 295.8 |
 | Yang-fraction-weighted (verified) | `calibrate_initial_ratio_xi_v2.py` | 1.013 | 3.7 | **294.2** |
 
-The Yang-fraction-weighted form is the verified convention (SPARC rotation curves; the v1 ξ-full form is flagged superseded in its own docstring). With the structural initial ratio $r_0 = \varphi^{-5}/(2-\varphi^{-5}) = 0.0472$ the trajectory reaches $r(a{=}8) = 1.28$, still approaching the attractor:
+The Yang-fraction-weighted form is the verified convention (SPARC rotation curves; the ξ-full form without the Yang weighting is not). With the structural initial ratio $r_0 = \varphi^{-5}/(2-\varphi^{-5}) = 0.0472$ the trajectory reaches $r(a{=}8) = 1.28$, still approaching the attractor:
 
 $$\boxed{N_\infty \approx 294.2,\qquad N_{\text{now}} = 291.54,\qquad \Delta N \approx 2.7\text{ rungs}}$$
 
-The bare form reaches the attractor already by $a \approx 1$ ($r = 1.59$, $\Delta N = 0.25$); the superseded v1 form gives the ceiling ($\Delta N = 4.3$).
+The bare form reaches the attractor already by $a \approx 1$ ($r = 1.59$, $\Delta N = 0.25$); the non-weighted ξ-full form gives the ceiling ($\Delta N = 4.3$).
 
 **(d) The caveat, stated plainly.** The exact value depends on which near-equilibrium form of $H$ is canonical; the three documented forms span $\Delta N = 0.25$–$4.3$ rungs. Today's horizon is at most ~4 rungs from the end of its growth—under the verified convention, ~2.7.
 
@@ -130,7 +130,7 @@ The tiers below separate what the geometry proves from what it suggests.
 - **Supported by Verified Physics**: the composite closure $\lambda_Y + \lambda_I = \ell_{n+1}$ (exact identity on documented anchors); the envelope period and checkerboard spacing; the closure ladder's Fibonacci structure; the saturation of the horizon (positive floor, $q_{\max} < 1$).
 - **Plausible Hypothesis (test exists)**: the closure-ladder imprint ($26 = 2\times13$, $285 = 5\times57$; Y3 first test: J/ψ at 88.98, muon at 96.000—catalog hits, mechanism open); the $N_\infty$ value (≈ 294.2 under the verified Yang-weighted coupling; 292–296 across documented forms).
 - **Speculative**: the rung-index ratio curiosities ($80 \approx 3\times26.5$, $292 \approx 26.5\,\varphi^5$) under the "rung number = level count" reading.
-- **Not Supported**: any claim that the current horizon rung 291.5/292 is a derivable constant—it is an epoch-dependent observation (see `foundations/dimensionful-constants-status.md` §3, reclassified 2026-08-03); exact spiral closure at any finite level ($1/\varphi^2$ is irrational).
+- **Not Supported**: any claim that the current horizon rung 291.5/292 is a derivable constant—it is an epoch-dependent observation (see `foundations/dimensionful-constants-status.md` §3); exact spiral closure at any finite level ($1/\varphi^2$ is irrational).
 
 ## References
 

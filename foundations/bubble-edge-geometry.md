@@ -20,7 +20,7 @@ The chord lattice field is:
 
 $$\boxed{C(x,y) = \cos\!\left(\frac{2\pi x}{\lambda_Y}\right) \cos\!\left(\frac{2\pi y}{\lambda_I}\right), \qquad \lambda_Y = \varphi\,\lambda_I}$$
 
-This is the product of the two perpendicular wake systems—Yang wake along the extended axis, Yin wake along the contracted axis. The W1 experiment confirmed anti-phase coupling, so the $m+n$ even sublattice (where $C = +1$ at extrema) are the condensate sites; the $m+n$ odd sublattice (where $C = -1$) are the voids.
+This is the product of the two perpendicular wake systems—Yang wake along the extended axis, Yin wake along the contracted axis. The W1 experiment confirmed anti-phase coupling, so the $m+n$ even sublattice (where $C = +1$ at extrema) are the condensate sites; the $m+n$ odd sublattice (where $C = -1$) are the voids. The staggered placement is interferometric: the wake beat envelope of `foundations/wake-geometry.md` §2 puts bubble centers at $m\,\ell_{n+1}$ and voids at the half-rungs, so the checkerboard follows from phase structure alone.
 
 $C$ is not just a geometric label. It measures the **degree of constructive interference** between the two fluid wakes. Where $C \approx 1$, both wakes are in phase—the two fluids are tightly coupled, conversion is efficient, and Qi density $q$ is high. Where $C \approx -1$, the wakes are maximally out of phase—the fluids work against each other, conversion stalls, and $q \to 0$.
 
@@ -35,7 +35,7 @@ At the void center ($C = -1$): $q \to 0$, fully disordered.
 
 The condensation threshold $\theta_{\text{cond}}$ is not a free parameter—it is the fixed point where the conversion rate (which builds coherence) balances the effective diffusion rate (which smooths it away).
 
-**Conversion power.** The Qi gate $g(q) = q/(\varphi^2 + q^2)$ (derived in `cassi-first-principles.md` §2, from the unified Lagrangian) modulates the $\varphi$-attractor conversion efficiency. The deviation from $\varphi$-equilibrium, $(1-q)$, provides the thermodynamic driving force. The conversion energy injection per unit time is:
+**Conversion power.** The Qi gate $g(q) = q/(\varphi^2 + q^2)$ (derived in `foundations/cassi-first-principles.md` §2, from the unified Lagrangian) modulates the $\varphi$-attractor conversion efficiency. The deviation from $\varphi$-equilibrium, $(1-q)$, provides the thermodynamic driving force. The conversion energy injection per unit time is:
 
 $$P_{\text{conv}} = \omega_0 \cdot g(q) \cdot (1-q) \cdot \rho_0, \qquad g(q) = \frac{q}{\varphi^2 + q^2}$$
 
@@ -63,7 +63,7 @@ This equation determines $\theta_{\text{cond}}$ from the single dimensionless pa
 
 **The phase diagram.** Unlike the simplified cubic form (which would arise from a $(1-q)^2$ gate), the relation with the true gate $g(q) = q/(\varphi^2 + q^2)$ is **monotonic**: larger $R$ produces larger $\theta_{\text{cond}}$ (thicker-edge bubbles). There is no catastrophic percolation threshold—bubbles never merge spontaneously. The mapping is smooth from $\theta_{\text{cond}} \to 0$ at $R \to 0$ (infinitesimal bubbles) to $\theta_{\text{cond}} \to 1$ at $R \to 2/(\varphi^2 + 1) \approx 0.552$ (bubbles filling the entire lattice). The calibration $R \approx 0.093$ gives the phenomenologically-inferred $\theta_{\text{cond}} = 0.45$.
 
-**The wavenumbers.** The condensation field wavelengths are set by the bubble scale: $\lambda_Y = \ell_{285} \approx 191$ Mpc (the Cassi bubble diameter from `dimensionful-cascade.md`), $\lambda_I = \lambda_Y/\varphi \approx 118$ Mpc. This gives $\alpha = 2\pi/\lambda_Y \approx 1.07 \times 10^{-24}$ m$^{-1}$, $\beta = \varphi\alpha \approx 1.73 \times 10^{-24}$ m$^{-1}$, and $\alpha^2 + \beta^2 = \alpha^2(1+\varphi^2) \approx 4.12 \times 10^{-48}$ m$^{-2}$.
+**The wavenumbers.** The condensation field wavelengths are set by the bubble scale: $\lambda_Y = \ell_{285} \approx 191$ Mpc (the Cassi bubble diameter from `foundations/dimensionful-cascade.md`), $\lambda_I = \lambda_Y/\varphi \approx 118$ Mpc. This gives $\alpha = 2\pi/\lambda_Y \approx 1.07 \times 10^{-24}$ m$^{-1}$, $\beta = \varphi\alpha \approx 1.73 \times 10^{-24}$ m$^{-1}$, and $\alpha^2 + \beta^2 = \alpha^2(1+\varphi^2) \approx 4.12 \times 10^{-48}$ m$^{-2}$.
 
 **Status.** The functional form relating $\theta_{\text{cond}}$ to $R$ is **Derived** from the balance of gated conversion and diffusion. The numerical value depends on $D_{\text{eff}}/\omega_0$—the ratio of the condensation field's effective diffusion to the conversion rate, measurable from the PDE. The phenomenologically-calibrated $\theta_{\text{cond}} = 0.45$ corresponds to $R \approx 0.093$. Section 8 specifies the PDE computation to determine $R$ and $\theta_{\text{cond}}$ from first principles.
 
@@ -109,7 +109,7 @@ where $P_\parallel$ is the along-string bubble period. The bubble edge in 3D is:
 
 $$\{B(x,y,z) = \theta_{\text{cond}}\}$$
 
-an oblate triaxial spheroid—extended in Yang, contracted in Yin, bounded along the string—with a waisted cross-section in the Yin-string plane (the anti-phase node produces the paired-sheet morphology; see `why-three-dimensions.md` §4).
+an oblate triaxial spheroid—extended in Yang, contracted in Yin, bounded along the string—with a waisted cross-section in the Yin-string plane (the anti-phase node produces the paired-sheet morphology; see `foundations/why-three-dimensions.md` §4).
 
 ---
 
@@ -168,7 +168,7 @@ The matter density $\rho$ traces the condensation field because structure conden
 
 $$\rho(C) \approx \rho_0 \cdot \max\!\left(0,\; \frac{C - \theta_{\text{cond}}}{1 - \theta_{\text{cond}}}\right)^{n_{\text{cond}}}$$
 
-with $n_{\text{cond}} \approx 1$ (linear condensation) to $n_{\text{cond}} \approx 2$ (quadratic, from the catalytic template mechanism in `why-three-dimensions.md` §3.3). The exact exponent is a target for PDE computation. Section 8.4 specifies the measurement protocol.
+with $n_{\text{cond}} \approx 1$ (linear condensation) to $n_{\text{cond}} \approx 2$ (quadratic, from the catalytic template mechanism in `foundations/why-three-dimensions.md` §3.3). The exact exponent is a target for PDE computation. Section 8.4 specifies the measurement protocol.
 
 ---
 
@@ -193,7 +193,7 @@ The gradient anisotropy ratio $\sqrt{4\varphi^2/(1+\varphi^2)} \approx 1.70$ is 
 
 ### 5.3 Absolute Lattice Scales
 
-The condensation field wavelengths are set by the cascade. From `dimensionful-cascade.md`, the Cassi bubble at step 285 gives:
+The condensation field wavelengths are set by the cascade. From `foundations/dimensionful-cascade.md`, the Cassi bubble at step 285 gives:
 
 $$\lambda_Y = \ell_{285} \approx 191\ \text{Mpc}, \qquad \lambda_I = \frac{\lambda_Y}{\varphi} \approx 118\ \text{Mpc}$$
 
@@ -291,7 +291,7 @@ The most direct method: **seed the condensation field and measure its decay rate
    |---|---|---|
    | Grid | $64 \times 64 \times 4$ | 2D slice + thin z (minimal, only for 3D operator) |
    | `D` | 0.001 | Default microscopic diffusion |
-   | `lam` | 0.1 | Derivation value $\lambda = 1/(2w)$ from `wu-xing-derivation.md` |
+   | `lam` | 0.1 | Derivation value $\lambda = 1/(2w)$ from `foundations/wu-xing-derivation.md` |
    | `qi_gate` | True | Qi gate active (defines $q$ from fields) |
    | `chi` | 0.0 | No chemotaxis (isolate pure reaction-diffusion) |
    | `hubble_mode` | 'conversion' | Standard expansion |
@@ -411,7 +411,7 @@ If the result lands in the mid-range (best guess based on phenomenological succe
 
 **Lower bound: $n_{\text{cond}} \geq 1$.** The density cannot respond more steeply than linearly to the condensation field because the driving mechanism (conversion rate $\propto q \propto (1+C)/2$) is linear in $C$ for small deviations from threshold. A sub-linear response ($n_{\text{cond}} < 1$) would require a suppression mechanism with no physical basis.
 
-**Upper bound: $n_{\text{cond}} \leq 2$.** Quadratic response arises naturally from the catalytic template mechanism (`why-three-dimensions.md` §3.3): existing density enhances further condensation, giving a self-amplifying $n_{\text{cond}} = 2$ in the limit. Values above 2 would require a higher-order amplification mechanism not present in the two-fluid PDE.
+**Upper bound: $n_{\text{cond}} \leq 2$.** Quadratic response arises naturally from the catalytic template mechanism (`foundations/why-three-dimensions.md` §3.3): existing density enhances further condensation, giving a self-amplifying $n_{\text{cond}} = 2$ in the limit. Values above 2 would require a higher-order amplification mechanism not present in the two-fluid PDE.
 
 **Conjecture: $n_{\text{cond}} \approx 3/2$.** The condensation front moves outward from the bubble center. Points further from the center crossed the threshold earlier and have accumulated density for longer. The accumulated density scales as $\rho \propto \delta^{3/2}$ for a diffusive front ($\dot{\delta} \propto 1/\sqrt{t}$), which translates to $n_{\text{cond}} \approx 1.5$ when template acceleration is active. The precise value depends on whether the growth phase is diffusion-limited ($n \approx 0.75$, excluded by the $n \geq 1$ bound) or template-accelerated ($n \approx 1.5$).
 
@@ -448,7 +448,8 @@ The condensation field $B(x,y,z)$ and its checkerboard lattice are not specific 
 - `visual-explainers/chord_connectivity.py`—percolation analysis, saddle barriers
 - `visual-explainers/chord_side_on.py`—3D bubble shape, waisted lobe-pairs, string threading
 - `foundations/why-three-dimensions.md`—three dimensions from the spiral's Frenet-Serret frame, triaxial spheroid, anti-phase selection
-- `foundations/wu-xing-derivation.md` -- $w = 5$ uniqueness (all bubbles identical)
+- `foundations/wake-geometry.md`—wake beat envelope, staggered checkerboard placement, closure ladder
+- `foundations/wu-xing-derivation.md`—$w = 5$ uniqueness (all bubbles identical)
 - `foundations/dimensionful-cascade.md`—Cassi bubble at step 285, 191 Mpc
 - `foundations/spiral-dynamics.md`—$c(r)$ profile, wave speed; $H \propto (1-q)$
 - `foundations/cassi-first-principles.md`—Qi gate $g(q) = q/(\varphi^2+q^2)$, conversion dynamics
