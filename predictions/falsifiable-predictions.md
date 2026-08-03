@@ -19,7 +19,7 @@ constants. All couplings are $\varphi$-powers; the last empirical parameter
 | $\alpha_{\text{EM}}^{-1}(m_Z)$ | 128.9 | **128.9** (RG from $4\pi/\varphi^{-3}$) | $<0.1\%$ | In-situ |
 | $m_H$ | 125.2 GeV | **125 GeV** | $<0.2\%$ | 4 MeV |
 
-**Source:** `theory/su2-gauge-extension.md` §§3–4, `theory/sm-from-phi.md` §2.
+**Source:** `standard-model/su2-gauge-extension.md` §§3–4, `standard-model/sm-from-phi.md` §2.
 The W/Z mass ratio deviates by 0.86%—detected at $>100\sigma$ with FCC-ee's
 0.5 MeV precision on $m_W$. This is the **single most powerful test** of Cassi.
 
@@ -35,7 +35,7 @@ The W/Z mass ratio deviates by 0.86%—detected at $>100\sigma$ with FCC-ee's
 | $\mathcal{P}_\zeta$ | $2.1\times10^{-9}$ | **$\sim 2\times10^{-9}$** | In-situ |
 | $N_e$ (e-foldings) | $50$–$60$ | **$60 \pm 10$** | Degenerate |
 
-**Source:** `theory/cosmology-from-phi.md` §2. Inflation is a $\varphi$-driven phase
+**Source:** `cosmology/cosmology-from-phi.md` §2. Inflation is a $\varphi$-driven phase
 transition ($r \gg \varphi$ to $r = \varphi$). The spectral index $n_s = 1 - 2\varphi^{-1}/N_e = 0.9691$
 matches Planck at $1.0\sigma$ ($N_e = 40$). Tensor ratio $r = 12/N_e^2 = 0.003$ is within
 CMB-S4 detection threshold ($\sigma_r = 0.001$).
@@ -68,7 +68,7 @@ CMB-S4 detection threshold ($\sigma_r = 0.001$).
 
 The φ-periodic $P(k)$ prediction is a **zero-parameter, falsifiable test** orthogonal to BAO. Unlike BAO wiggles—which have constant period in $k$-space (one fixed scale, the sound horizon $r_s \approx 150$ Mpc)—the Cassi modulation has constant period in $\ln k$-space: $\Delta(\ln k) = \ln\varphi \approx 0.4812$. The detection pipeline: subtract the smooth+BAO $P(k)$ template, search the residual for a log-periodic signal. Predicted amplitude from wake mechanism: 1–3%. DESI DR2 sensitivity: marginal (2–3σ). Euclid (2027): definitive (>5σ).
 The condensation field gradient anisotropy (§5.2 of `foundations/bubble-edge-geometry.md`) further predicts that void boundaries are $1.70\times$ steeper in the Yin direction than along diagonals—a distinct zero-parameter geometric prediction from the same wake-wave mechanism, testable with void shape catalogs from SDSS/DESI.
-**Source:** `theory/cosmology-from-phi.md` §§3–5, `theory/five-element-pde-derivation.md` §7,
+**Source:** `cosmology/cosmology-from-phi.md` §§3–5, `theory/five-element-pde-derivation.md` §7,
 `foundations/bubble-edge-geometry.md` §§2.2,5.2, `cosmology/observational_constraints.md` §1.4–§6,
 `cosmology/desi-lattice-averaging.md` (lattice powder lines, variance suppression, wiggle bound). The dark energy prediction is $w_0 = -0.87$ (2σ from DESI) and $w_a = +0.012$ (2.7σ from DESI)—tension, not resolved; the conversion dynamics keep $w > -1$ at all $z$ (no phantom crossing). The DM/baryon ratio is $\varphi^3+1$ with
 $2.8\%$ accuracy. The Hubble tension is pending a full $H(z)$ fit (registry C3/T4); the evolving-$\Omega_\Lambda$ expansion history gives a pipeline CMB-inferred value of ≈ 65.8 km/s/Mpc.
@@ -91,7 +91,7 @@ $2.8\%$ accuracy. The Hubble tension is pending a full $H(z)$ fit (registry C3/T
 | NS $M$–$R$ relation | GR | **$<0.1\%$ deviation** | $G_{\text{eff}}\to G_N$ in core |
 | Cored dwarf halos | CDM fails | **Cassi passes 3/8** | MOND preferred (4/8); ceiling $\sqrt{\varphi^6} = \varphi^3 \approx 4.24$ exceeded in 3/8 |
 
-**Source:** `theory/xi-derivation.md`, `experiments/cassi_physics/cassi_gravitational_waves.py`,
+**Source:** `foundations/xi-derivation.md`, `experiments/cassi_physics/cassi_gravitational_waves.py`,
 `experiments/cassi_physics/cassi_strong_field_pn.py`, `experiments/cassi_physics/cassi_black_hole_raytracer.py`,
 `experiments/cassi_physics/cassi_neutron_stars.py`, `experiments/phi_attractor_paths/path10_dwarf_galaxies.py` (dwarf saturation-ceiling test). The Qi-gravity coupling $\xi = \varphi^6$ is
 derived, not fitted. Solar system GR tests are preserved ($q=0$). The GW strain
@@ -132,7 +132,7 @@ is $\sqrt{\varphi^6} = \varphi^3 \approx 4.24$ at full coherence ($q = 1$, $\alp
 | $|V_{us}|$ | $0.225$ | **$\varphi^{-3} \approx 0.236$ ($5\%$ off)** | Near miss ($5\%$ off) |
 | $\delta_{\text{CKM}}$ | $\approx 68^\circ$ | **$\pi\varphi^{-2} \approx 68.7^\circ$** | < 1%—Yukawa triangle closure |
 
-**Source:** `theory/su2-gauge-extension.md` §§5–8, `theory/sm-from-phi.md` §§3–4.
+**Source:** `standard-model/su2-gauge-extension.md` §§5–8, `standard-model/sm-from-phi.md` §§3–4.
 The proton lifetime prediction depends on the full GUT embedding (SU(5) or SO(10)).
 Seesaw analysis with $M_R = \varphi^{-3} \cdot M_{\text{GUT}}$ gives the heaviest neutrino $m_3 = 0.05019$ eV (cascade RGE + PMNS; $\Sigma m_\nu = 0.0631$ eV).
 

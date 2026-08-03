@@ -58,10 +58,8 @@ These refer to older formalism files that lived in the root-level `theory/` dire
 
 | Source Document | Reference |
 |----------------|-----------|
-| `cosmology/observational_constraints.md` | `theory/phi_attractor_synthesis.md` (also see `foundations/phi_attractor_synthesis.md` for the active version) |
-| `cosmology/observational_constraints.md` | `theory/five-element-pde-derivation.md` |
 | `predictions/cassi_definitions.md` | `theory/qi-fluid-formalism.md` |
-| `predictions/cassi_definitions.md` | `theory/five-element-pde-derivation.md` |
+| `predictions/falsifiable-predictions.md` | `theory/five-element-pde-derivation.md` |
 
 ## References via `../../` (parent papers/ directory in main repo)
 
@@ -86,18 +84,3 @@ These scripts are referenced from the glossary's Key Scripts table but live only
 | `predictions/cassi_definitions.md` | `experiments/cassi_life.py` |
 | `predictions/cassi_definitions.md` | `experiments/cassi_spacetime_variable_geff.py` |
 | `predictions/cassi_definitions.md` | `experiments/cassi_accretion_disk.py` |
-
-## References that should resolve within the TOE (incorrect paths)
-
-These references use `theory/` as a prefix but describe files that exist within the TOE at their correct paths shown below. The `theory/` prefix comes from an earlier directory structure.
-
-| Documented Path | Correct Path |
-|-----------------|-------------|
-| `theory/su2-gauge-extension.md` | `standard-model/su2-gauge-extension.md` |
-| `theory/sm-from-phi.md` | `standard-model/sm-from-phi.md` |
-| `theory/cosmology-from-phi.md` | `cosmology/cosmology-from-phi.md` |
-| `theory/xi-derivation.md` | `foundations/xi-derivation.md` |
-| `theory/unified-lagrangian.md` | `foundations/unified-lagrangian.md` |
-| `theory/cassi-first-principles.md` | `foundations/cassi-first-principles.md` |
-| `theory/observational_constraints.md` | `cosmology/observational_constraints.md` |
-| `theory/phi_attractor_synthesis.md` | `foundations/phi_attractor_synthesis.md` |

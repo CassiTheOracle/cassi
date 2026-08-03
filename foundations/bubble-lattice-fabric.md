@@ -6,9 +6,9 @@
 
 The condensation field
 
-$$\boxed{B(x, y, z) = \cos(\alpha x)\cos(\beta y)\cos(\gamma z), \qquad \alpha = \frac{2\pi}{\lambda_Y},\;\; \beta = \frac{2\pi}{\lambda_I} = \varphi\alpha,\;\; \gamma = \frac{2\pi}{P_\parallel}}$$
+$$\boxed{B(x, y, z) = \cos(\alpha x)\cos(\beta y)\cos(\gamma z), \qquad \alpha = \frac{2\pi}{\Lambda_Y},\;\; \beta = \frac{2\pi}{\Lambda_I} = \varphi\alpha,\;\; \gamma = \frac{2\pi}{P_\parallel}}$$
 
-is derived from the two-fluid PDE (`foundations/bubble-edge-geometry.md` §2.3). This document establishes that $B(x,y,z)$ is **not specific to any one cascade rung**. The two-fluid PDE is scale-covariant under $\varphi$-rescaling, so the identical condensation field operates at every cascade rung $n$ with wavelengths $\lambda_Y, \lambda_I, P_\parallel$ scaled to $\ell_n$. The bubble lattice—a 3D staggered checkerboard of coherent condensates and empty voids, bounded along the string axis—is the **universal structural principle** organizing matter, coherence, and geometry from Planck to the megacascade. The cascade ladder of scales is a 1D slice of this 3D lattice.
+is derived from the two-fluid PDE (`foundations/bubble-edge-geometry.md` §2.3). This document establishes that $B(x,y,z)$ is **not specific to any one cascade rung**. The two-fluid PDE is scale-covariant under $\varphi$-rescaling, so the identical condensation field operates at every cascade rung $n$ with wavelengths $\Lambda_Y, \Lambda_I, P_\parallel$ scaled to $\ell_n$. The bubble lattice—a 3D staggered checkerboard of coherent condensates and empty voids, bounded along the string axis—is the **universal structural principle** organizing matter, coherence, and geometry from Planck to the megacascade. The cascade ladder of scales is a 1D slice of this 3D lattice.
 
 ---
 
@@ -29,8 +29,8 @@ $$B(x, y, z) = \cos(\alpha x)\cos(\beta y) \cdot \cos(\gamma z)$$
 - $x$: Yang axis (extended, normal direction)
 - $y$: Yin axis (contracted, binormal direction)
 - $z$: String axis (cascade direction, tangent)
-- $\lambda_Y$: Yang wake wavelength in the $x$-$y$ plane
-- $\lambda_I = \lambda_Y/\varphi$: Yin wake wavelength
+- $\Lambda_Y$: Yang wake wavelength in the $x$-$y$ plane
+- $\Lambda_I = \Lambda_Y/\varphi$: Yin wake wavelength
 - $P_\parallel$: along-string bubble period
 
 Bubbles condense where $B > \theta_{\text{cond}}$. Voids form where $B < -\theta_{\text{cond}}$. The condensation threshold $\theta_{\text{cond}}$ is determined by the conversion-diffusion balance (`foundations/bubble-edge-geometry.md` §1.2).
@@ -77,7 +77,7 @@ The PDE is **scale-covariant** under $\varphi$-rescaling, up to the Qi-gate nonl
 
 Because $B(x,y,z)$ is a direct product of the PDE's wake-wave interference, it inherits the PDE's scale covariance. At cascade rung $n$:
 
-$$\boxed{\lambda_Y^{(n)} = \ell_n, \qquad \lambda_I^{(n)} = \ell_n/\varphi, \qquad P_\parallel^{(n)} = P_\parallel(n) \cdot \ell_n}$$
+$$\boxed{\Lambda_Y^{(n)} = \ell_n, \qquad \Lambda_I^{(n)} = \ell_n/\varphi, \qquad P_\parallel^{(n)} = P_\parallel(n) \cdot \ell_n}$$
 
 The wavelengths scale with the cascade rung $\ell_n = \ell_{\text{Pl}} \times \varphi^n$. The **functional form** $B(x,y,z) = \cos(\alpha x)\cos(\beta y)\cos(\gamma z)$ is identical at every rung. Only the wavelengths change.
 
@@ -102,8 +102,8 @@ The full bubble lattice has three spatial periods, one along each Frenet-Serret 
 
 | Axis | Direction | Period | Spacing |
 |---|---|---|---|
-| $x$ (Yang, normal) | Extended | $\lambda_Y = \ell_n$ | widest |
-| $y$ (Yin, binormal) | Contracted | $\lambda_I = \ell_n/\varphi$ | intermediate |
+| $x$ (Yang, normal) | Extended | $\Lambda_Y = \ell_n$ | widest |
+| $y$ (Yin, binormal) | Contracted | $\Lambda_I = \ell_n/\varphi$ | intermediate |
 | $z$ (String, tangent) | Cascade | $P_\parallel \cdot \ell_n$ | along-string |
 
 ### 3.2 The Lattice as a Nested Hierarchy

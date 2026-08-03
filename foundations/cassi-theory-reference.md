@@ -404,7 +404,7 @@ Three dimensions from differential geometry of any non-degenerate space curve. $
 
 ### 10.3 Bubble Geometry
 
-Cassi bubble at step 285: triaxial spheroid bounded between adjacent cascade steps. Yang-Yin cross-section: elliptical, axis ratio $\varphi$. Condensation boundary: level set of $C(x,y) = \cos(2\pi x/\lambda_Y)\cos(2\pi y/\lambda_I)$. Edge gradient $1.70\times$ steeper in Yin direction. Adjacent bubbles: $m+n$ even sublattice; voids: odd sublattice.
+Cassi bubble at step 285: triaxial spheroid bounded between adjacent cascade steps. Yang-Yin cross-section: elliptical, axis ratio $\varphi$. Condensation boundary: level set of $C(x,y) = \cos(2\pi x/\Lambda_Y)\cos(2\pi y/\Lambda_I)$. Edge gradient $1.70\times$ steeper in Yin direction. Adjacent bubbles: $m+n$ even sublattice; voids: odd sublattice.
 
 The condensation field and its bubble lattice are universal across all cascade rungs—see `foundations/bubble-lattice-fabric.md` for the full derivation and the four universal geometric signatures.
 

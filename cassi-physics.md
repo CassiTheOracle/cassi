@@ -134,9 +134,9 @@ The string moves along two axes. Along the Yang axis the wakes are widely spaced
 
 The interference pattern is the **condensation field**:
 
-$$\boxed{B(x, y, z) = \cos(\alpha x)\cos(\beta y)\cos(\gamma z), \qquad \alpha = \frac{2\pi}{\lambda_Y},\;\; \beta = \frac{2\pi}{\lambda_I} = \varphi\alpha,\;\; \gamma = \frac{2\pi}{P_\parallel}}$$
+$$\boxed{B(x, y, z) = \cos(\alpha x)\cos(\beta y)\cos(\gamma z), \qquad \alpha = \frac{2\pi}{\Lambda_Y},\;\; \beta = \frac{2\pi}{\Lambda_I} = \varphi\alpha,\;\; \gamma = \frac{2\pi}{P_\parallel}}$$
 
-with $\lambda_Y$ the Yang wake wavelength, $\lambda_I = \lambda_Y/\varphi$ the Yin wavelength, and $P_\parallel$ the along-string bubble period. Where $B > \theta_{\text{cond}}$ (the condensation threshold, set by the conversion-diffusion balance), bubbles condense; where $B < -\theta_{\text{cond}}$, voids form.
+with $\Lambda_Y$ the Yang wake wavelength, $\Lambda_I = \Lambda_Y/\varphi$ the Yin wavelength, and $P_\parallel$ the along-string bubble period. Where $B > \theta_{\text{cond}}$ (the condensation threshold, set by the conversion-diffusion balance), bubbles condense; where $B < -\theta_{\text{cond}}$, voids form.
 
 ### The staggered checkerboard
 

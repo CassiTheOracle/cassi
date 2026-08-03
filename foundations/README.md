@@ -213,13 +213,13 @@ Establishes that the condensation field
 
 $$\boxed{B(x, y, z) = \cos(\alpha x)\cos(\beta y)\cos(\gamma z), \qquad \beta = \varphi\alpha}$$
 
-is not specific to any one cascade rung: the two-fluid PDE is scale-covariant under $\varphi$-rescaling, so the identical field—a 3D staggered checkerboard of coherent bubble condensates and empty voids, bounded along the string axis—operates at every rung with wavelengths $\lambda_Y^{(n)} = \ell_n$, $\lambda_I^{(n)} = \ell_n/\varphi$. The cascade ladder of scales is a 1D slice of this 3D lattice, the universal structural principle from Planck to the megacascade. Status: Derived (structural).
+is not specific to any one cascade rung: the two-fluid PDE is scale-covariant under $\varphi$-rescaling, so the identical field—a 3D staggered checkerboard of coherent bubble condensates and empty voids, bounded along the string axis—operates at every rung with wavelengths $\Lambda_Y^{(n)} = \ell_n$, $\Lambda_I^{(n)} = \ell_n/\varphi$. The cascade ladder of scales is a 1D slice of this 3D lattice, the universal structural principle from Planck to the megacascade. Status: Derived (structural).
 
 ### `bubble-edge-geometry.md`—Bubble Edge Geometry: Physical Profile of the Condensation Boundary
 
 Derives the physical profile of the condensation boundary: the chord-lattice proxy
 
-$$\boxed{C(x,y) = \cos\!\left(\frac{2\pi x}{\lambda_Y}\right) \cos\!\left(\frac{2\pi y}{\lambda_I}\right), \qquad \lambda_Y = \varphi\,\lambda_I}$$
+$$\boxed{C(x,y) = \cos\!\left(\frac{2\pi x}{\Lambda_Y}\right) \cos\!\left(\frac{2\pi y}{\Lambda_I}\right), \qquad \Lambda_Y = \varphi\,\Lambda_I}$$
 
 the Qi-density mapping $q(\mathbf{x}) = (1 + C)/2$, and the condensation threshold from the conversion-diffusion balance, $\boxed{\theta_{\text{cond}}^2 (1 + \theta_{\text{cond}}) = R(\varphi^2 + (1+\theta_{\text{cond}})^2/4)}$ with the single dimensionless parameter $R \equiv 2D_{\text{eff}}(\alpha^2+\beta^2)/\omega_0$, calibrated to $\theta_{\text{cond}} = 0.45$ at $R \approx 0.093$. Its zero-parameter prediction is the edge steepness anisotropy $\boxed{|\nabla C|_{\text{axial}}/|\nabla C|_{\text{diag}} = \sqrt{4\varphi^2/(1+\varphi^2)} \approx 1.70}$—prediction #38 of the falsifiable catalog—testable in void shape catalogs. Status: Derived (structural).
 
@@ -249,7 +249,7 @@ so $\kappa_s^{-1/2} = \varphi^3 v_0 = 1042$ GeV sits +5.5% off cascade rung 77 (
 
 ### `wake-geometry.md`—The Wake Geometry: Composite-Wavelength Closure and the Horizon Rung
 
-The Yang–Yin wake pair $\lambda_Y = \varphi\lambda_I$ closes the cascade ladder exactly through the identity $1 + 1/\varphi = \varphi$—$\lambda_Y + \lambda_I = \ell_n(1 + 1/\varphi) = \ell_{n+1}$ (at rung 285: 191 + 118 = 309 Mpc = $\ell_{286}$)—with the checkerboard envelope $\cos(2\pi x/\ell_n) + \cos(2\pi\varphi x/\ell_n) = 2\cos(\pi(1+\varphi)x/\ell_n)\cos(\pi(\varphi-1)x/\ell_n)$ peaking on $\ell_{n+1}$ and the golden-angle closure ladder converging through Fibonacci denominators without ever closing exactly. On this reading $N = 292$ is today's epoch-dependent horizon rung, $\log_\varphi(R_H/\ell_{\text{Pl}}) = 291.54$ with $R_H/\ell_{285} = 23.29 \approx \varphi^{6.5}$, saturating toward $N_\infty \approx 296$–$303$ as $r \to \varphi$ (2026-08-03 reclassification). Status: Derived wake geometry with Hypothesized closure imprint.
+The Yang–Yin wake pair $\Lambda_Y = \varphi\Lambda_I$ closes the cascade ladder exactly through the identity $1 + 1/\varphi = \varphi$—$\Lambda_Y + \Lambda_I = \ell_n(1 + 1/\varphi) = \ell_{n+1}$ (at rung 285: 191 + 118 = 309 Mpc = $\ell_{286}$)—with the checkerboard envelope $\cos(2\pi x/\ell_n) + \cos(2\pi\varphi x/\ell_n) = 2\cos(\pi(1+\varphi)x/\ell_n)\cos(\pi(\varphi-1)x/\ell_n)$ peaking on $\ell_{n+1}$ and the golden-angle closure ladder converging through Fibonacci denominators without ever closing exactly. On this reading $N = 292$ is today's epoch-dependent horizon rung, $\log_\varphi(R_H/\ell_{\text{Pl}}) = 291.54$ with $R_H/\ell_{285} = 23.29 \approx \varphi^{6.5}$, saturating toward $N_\infty \approx 296$–$303$ as $r \to \varphi$ (2026-08-03 reclassification). Status: Derived wake geometry with Hypothesized closure imprint.
 
 ### `rung-offset-mechanism.md`—Why Observables Sit Between Rungs: Fractional Cascade Offsets
 

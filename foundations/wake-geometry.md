@@ -4,7 +4,7 @@
 
 ## Abstract
 
-The primordial string's waveform is the Yang/Yin wake pair: a Yin wake at $\lambda_I^{(n)} = \ell_n/\varphi$ and a Yang wake at $\lambda_Y = \varphi\,\lambda_I = \ell_n$. The composite period closes the next cascade rung ($\lambda_Y + \lambda_I = \ell_{n+1}$). The wakes never phase-lock—de-resonance is built into the wave structure itself—and their beat envelope places the bubbles and voids of the staggered checkerboard. The golden-angle phyllotaxis closure ladder (5, 13, 34, 89, 233, 610, …) is the geometry of bubble closure, with a Hypothesized imprint on the activated rungs. The cosmic depth is not a constant: 292 is the epoch-dependent horizon rung, not a cascade boundary; the derivable quantity is the asymptotic horizon $N_\infty \approx 294.2$ under the verified Yang-fraction-weighted coupling (292–296 across documented forms, §4).
+The primordial string's waveform is the Yang/Yin wake pair: a Yin wake at $\Lambda_I^{(n)} = \ell_n/\varphi$ and a Yang wake at $\Lambda_Y = \varphi\,\Lambda_I = \ell_n$. The composite period closes the next cascade rung ($\Lambda_Y + \Lambda_I = \ell_{n+1}$). The wakes never phase-lock—de-resonance is built into the wave structure itself—and their beat envelope places the bubbles and voids of the staggered checkerboard. The golden-angle phyllotaxis closure ladder (5, 13, 34, 89, 233, 610, …) is the geometry of bubble closure, with a Hypothesized imprint on the activated rungs. The cosmic depth is not a constant: 292 is the epoch-dependent horizon rung, not a cascade boundary; the derivable quantity is the asymptotic horizon $N_\infty \approx 294.2$ under the verified Yang-fraction-weighted coupling (292–296 across documented forms, §4).
 
 ## 1. The waveform and its wavelength (Derived)
 
@@ -12,17 +12,17 @@ The wake pair that the expanding string drags through the two-fluid condensate h
 
 **(a) The anchors.** The Yin wake is the rung scale divided by $\varphi$:
 
-$$\lambda_I^{(n)} = \frac{\ell_n}{\varphi}$$
+$$\Lambda_I^{(n)} = \frac{\ell_n}{\varphi}$$
 
 documented in `foundations/dimensionful-cascade.md` §6, where it evaluates to 117.9 Mpc at rung 285. The Yang wake is its $\varphi$-complement:
 
-$$\lambda_Y = \varphi\,\lambda_I^{(n)} = \ell_n$$
+$$\Lambda_Y = \varphi\,\Lambda_I^{(n)} = \ell_n$$
 
 the rung scale itself. The two wakes are the two phases of one string motion: one period at the rung wavelength, one at the sub-rung wavelength.
 
 **(b) The composite closes the rung.** The wake pair's sum is the next rung, by the identity $1 + 1/\varphi = \varphi$:
 
-$$\boxed{\lambda_Y + \lambda_I = \ell_n\left(1+\frac{1}{\varphi}\right) = \ell_n\,\varphi = \ell_{n+1}}$$
+$$\boxed{\Lambda_Y + \Lambda_I = \ell_n\left(1+\frac{1}{\varphi}\right) = \ell_n\,\varphi = \ell_{n+1}}$$
 
 Verified at rung 285: $191 + 118 = 309$ Mpc $= \ell_{286}$.
 
@@ -117,7 +117,7 @@ The bare form reaches the attractor already by $a \approx 1$ ($r = 1.59$, $\Delt
 
 | # | Prediction | Status |
 |---|---|---|
-| Y1 | The composite wake pair closes each rung: $\lambda_Y + \lambda_I = \ell_{n+1}$. Verified at 285 ($191 + 118 = 309$ Mpc $= \ell_{286}$); testable wherever two wake scales are resolvable. | Derived |
+| Y1 | The composite wake pair closes each rung: $\Lambda_Y + \Lambda_I = \ell_{n+1}$. Verified at 285 ($191 + 118 = 309$ Mpc $= \ell_{286}$); testable wherever two wake scales are resolvable. | Derived |
 | Y2 | The wake envelope places bubbles at $m\,\ell_{n+1}$ and voids at $(m+\frac{1}{2})\ell_{n+1}$—the staggered checkerboard. Testable in the two-bubble and chord-lattice PDE setups. | Derived (structure), test pending |
 | Y3 | The closure ladder imprints on the cascade. First test (2026-08-03): rung 89 hosts the J/ψ ($n = 88.98$, 1.0%—closure level 89); rung 96 hosts the muon ($n = 96.000$, 0.01%); rung 34: no established hit (PQ-window candidate). Existing hits $26 = 2\times13$ and $285 = 5\times57$. | Hypothesized (partially tested) |
 
@@ -127,7 +127,7 @@ Y1–Y3 are cataloged as predictions 43–45 in `predictions/falsifiable-predict
 
 The tiers below separate what the geometry proves from what it suggests.
 
-- **Supported by Verified Physics**: the composite closure $\lambda_Y + \lambda_I = \ell_{n+1}$ (exact identity on documented anchors); the envelope period and checkerboard spacing; the closure ladder's Fibonacci structure; the saturation of the horizon (positive floor, $q_{\max} < 1$).
+- **Supported by Verified Physics**: the composite closure $\Lambda_Y + \Lambda_I = \ell_{n+1}$ (exact identity on documented anchors); the envelope period and checkerboard spacing; the closure ladder's Fibonacci structure; the saturation of the horizon (positive floor, $q_{\max} < 1$).
 - **Plausible Hypothesis (test exists)**: the closure-ladder imprint ($26 = 2\times13$, $285 = 5\times57$; Y3 first test: J/ψ at 88.98, muon at 96.000—catalog hits, mechanism open); the $N_\infty$ value (≈ 294.2 under the verified Yang-weighted coupling; 292–296 across documented forms).
 - **Speculative**: the rung-index ratio curiosities ($80 \approx 3\times26.5$, $292 \approx 26.5\,\varphi^5$) under the "rung number = level count" reading.
 - **Not Supported**: any claim that the current horizon rung 291.5/292 is a derivable constant—it is an epoch-dependent observation (see `foundations/dimensionful-constants-status.md` §3); exact spiral closure at any finite level ($1/\varphi^2$ is irrational).
