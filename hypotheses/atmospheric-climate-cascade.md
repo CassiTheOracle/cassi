@@ -157,7 +157,7 @@ integrated over longer timescales.
 
 ## References
 
-- `../turbulence/kolmogorov-from-phi.md`—$\varphi$-break in turbulence
-- `../foundations/dimensionful-cascade.md`—the 292-step ladder
-- `../predictions/falsifiable-predictions.md`—$\varphi$-periodic $P(k)$
-- `../open-questions-cassi-answers.md`—C9 (cosmic web from wake-wave)
+- `turbulence/kolmogorov-from-phi.md`—$\varphi$-break in turbulence
+- `foundations/dimensionful-cascade.md`—the $\varphi$-ladder (292 = today's horizon rung)
+- `predictions/falsifiable-predictions.md`—$\varphi$-periodic $P(k)$
+- `open-questions-cassi-answers.md`—C9 (cosmic web from wake-wave)

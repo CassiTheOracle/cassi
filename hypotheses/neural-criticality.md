@@ -60,8 +60,8 @@ has spectral exponent $-5/3$, and the integrated avalanche size distribution
 has exponent $-3/2 = -5/3 + 1/6$, where the $+1/6$ correction comes from the
 branching structure of the neural network.
 
-The Cassi-specific prediction is not just criticality (which many models
-predict) but the $\varphi$-structure of the avalanche distribution:
+Criticality itself is generic—many models predict it. The Cassi-specific
+prediction is the $\varphi$-structure of the avalanche distribution:
 
 $$\boxed{P(S) \propto S^{-3/2} \cdot \left[1 + A \cos\left(\frac{2\pi}{\ln\varphi} \ln\frac{S}{S_0} + \phi_0\right)\right]}$$
 
@@ -101,9 +101,9 @@ $$f_\varphi \approx \frac{0.1 \times 2.618}{2\pi} \times (1\text{--}10)\;\text{H
 
 The predicted break falls in the delta-to-theta band (0.04–0.4 Hz), corresponding
 to the transition between slow-wave sleep oscillations and waking
-desynchronization. This aligns with the known spectral inflection in human EEG
-— the "knee" where the spectrum transitions from approximately $1/f^2$ at very
-low frequencies to approximately $1/f$ at higher frequencies.
+desynchronization. This aligns with the known spectral inflection in human
+EEG—the "knee" where the spectrum transitions from approximately $1/f^2$ at
+very low frequencies to approximately $1/f$ at higher frequencies.
 
 ## 4. Ultradian and Circadian Rhythms as $\varphi$-Spaced Periods
 
@@ -180,8 +180,8 @@ suggesting a cascade offset of approximately one rung.
 
 ## References
 
-- `../consciousness/consciousness-from-phi.md`—consciousness as post-pinch field dynamics
-- `../turbulence/kolmogorov-from-phi.md`—$\varphi$-break in turbulence spectrum
-- `../foundations/dimensionful-cascade.md`—the 292-step ladder
-- `../principles/de-resonance-principle.md`—$\varphi$ as attractor
-- `../open-questions-cassi-answers.md`—M1–M5 (consciousness), G5 (3+1 dimensions)
+- `consciousness/consciousness-from-phi.md`—consciousness as post-pinch field dynamics
+- `turbulence/kolmogorov-from-phi.md`—$\varphi$-break in turbulence spectrum
+- `foundations/dimensionful-cascade.md`—the $\varphi$-ladder (292 = today's horizon rung)
+- `principles/de-resonance-principle.md`—$\varphi$ as attractor
+- `open-questions-cassi-answers.md`—M1–M5 (consciousness), G5 (3+1 dimensions)
