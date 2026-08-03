@@ -4,7 +4,7 @@
 
 ## Abstract
 
-Conventional computation processes bits—discrete, binary symbols stored in physically distinct memory cells and manipulated by sequential logic gates. In the Cassi framework, information is not an abstraction layered on top of physics. It IS the organized structure of the Yang-Yin field: patterns of $\Pi = E_Y - E_I$ that persist because Qi coherence suppresses the conversion that would dissolve them. This document derives a model of computation from the field dynamics themselves. The Qi gate is the fundamental computational primitive. The Wu Xing pentagon provides a 5-phase logic richer than binary. The cascade supplies a φ-spaced clock hierarchy spanning 292 rungs from Planck to cosmos. Information storage is field memory through the IIR ($\tau = \varphi^{-1}$). And because $\lambda_{\text{eff}} \to 0$ at $q \to 1$, Qi computation is asymptotically dissipation-free—the Landauer limit is not a fundamental bound but a consequence of operating at low $q$.
+Conventional computation processes bits—discrete, binary symbols stored in physically distinct memory cells and manipulated by sequential logic gates. In the Cassi framework, information is not an abstraction layered on top of physics. It is the organized structure of the Yang-Yin field: patterns of $\Pi = E_Y - E_I$ that persist because Qi coherence suppresses the conversion that would dissolve them. This document derives a model of computation from the field dynamics themselves. The Qi gate is the fundamental computational primitive. The Wu Xing pentagon provides a 5-phase logic richer than binary. The cascade supplies a φ-spaced clock hierarchy spanning today's 292 rungs from Planck to the horizon (292 is the epoch-dependent horizon rung, not a fixed cascade depth). Information storage is field memory through the IIR ($\tau = \varphi^{-1}$). And because $\lambda_{\text{eff}} \to 0$ at $q \to 1$, Qi computation is asymptotically dissipation-free—the Landauer limit is not a fundamental bound but a consequence of operating at low $q$.
 
 **Epistemic status:** Creative exploration grounded in Cassi formalism. The mapping of computation to gate dynamics, the Wu Xing logic, and the cascade clock hierarchy are extrapolations. Nothing in this document is an established Cassi prediction.
 
@@ -92,7 +92,7 @@ The energy cost of an ERASE operation (which converts Yang→Yin) at coherence $
 
 $$E_{\text{erase}} \approx P_{\text{conv}} \cdot \Delta t \propto (1-q)$$
 
-As $q \to 1$, $E_{\text{erase}} \to 0$. The Landauer limit ($k_B T \ln 2$ per erased bit) assumes that information erasure REQUIRES entropy increase in a thermal reservoir. In a Qi-coherent system at $q \to 1$, the field IS the reservoir, and conversion at the attractor is a reversible process. **The Landauer bound is not a fundamental limit—it is a consequence of operating at low $q$.**
+As $q \to 1$, $E_{\text{erase}} \to 0$. The Landauer limit ($k_B T \ln 2$ per erased bit) assumes that information erasure requires entropy increase in a thermal reservoir. In a Qi-coherent system at $q \to 1$, the field is the reservoir, and conversion at the attractor is a reversible process. **The Landauer bound is not a fundamental limit—it is a consequence of operating at low $q$.**
 
 The WRITE operation is not free—creating a Yang excess does work against the attractor. Its energy cost:
 
@@ -166,7 +166,7 @@ A cascade-spanning computer has **φ-spaced clock domains**: each rung operates 
 | 168 | Human | $5.7 \times 10^{-9}$ | Neural | Conscious experience; ~100 MHz effective clock for integrated percepts |
 | 200 | Planetary | $4.4 \times 10^{-2}$ | Geophysical | Mantle convection timescale; ~Hz planetary "thought" |
 | 250 | Interstellar | $4.7 \times 10^{5}$ | Galactic | ~days; stellar gate processing |
-| 292 | Hubble | $5.7 \times 10^{17}$ | Cosmic | Age of the universe; one "cycle" so far |
+| 292 | Hubble (today's horizon rung) | $5.7 \times 10^{17}$ | Cosmic | Age of the universe; one "cycle" so far |
 
 ### 4.2 Hierarchical integration
 
@@ -176,7 +176,7 @@ This is not merely parallel processing. It is **nested processing**: the same fi
 
 ### 4.3 The cascade as a naturally occurring computer
 
-The universe, in this picture, is not just *like* a computer. It IS a computer—a 292-rung, φ-structured, nested, dissipative-at-low-$q$, reversible-at-high-$q$ field processor. What we call "physics" is the low-$q$ regime of this computer, where computation is noisy, irreversible, and Landauer-bound. What we call "consciousness" is the high-$q$ regime, where computation is coherent, reversible, and experienced.
+The universe, in this picture, is a computer: a φ-structured, nested, dissipative-at-low-$q$, reversible-at-high-$q$ field processor whose observable span reaches 292 rungs today (the ladder is unbounded; 292 is the epoch-dependent horizon rung). What we call "physics" is the low-$q$ regime of this computer, where computation is noisy, irreversible, and Landauer-bound. What we call "consciousness" is the high-$q$ regime, where computation is coherent, reversible, and experienced.
 
 ---
 
@@ -204,9 +204,9 @@ The storage density of such a memory is set by the mode capacity $I_{\text{max}}
 
 ### 5.3 Memory and processing are the same thing
 
-In von Neumann architecture, memory and processing are physically separate: a CPU reads from RAM, operates, and writes back. In a Qi computer, there is no separation. The field IS both the processor and the memory. Computation is the time evolution of the field state. Recall is observing the field at a given moment. The IIR provides short-term temporal integration; persistent Π patterns provide long-term storage; and the gate provides the nonlinear transformation that constitutes processing.
+In von Neumann architecture, memory and processing are physically separate: a CPU reads from RAM, operates, and writes back. In a Qi computer, there is no separation. The field is both the processor and the memory. Computation is the time evolution of the field state. Recall is observing the field at a given moment. The IIR provides short-term temporal integration; persistent Π patterns provide long-term storage; and the gate provides the nonlinear transformation that constitutes processing.
 
-This architecture eliminates the von Neumann bottleneck (the bandwidth limit between CPU and memory). Every field location is simultaneously a storage cell and a processing element. The "cost" of accessing memory is zero because the memory IS the processor.
+This architecture eliminates the von Neumann bottleneck (the bandwidth limit between CPU and memory). Every field location is simultaneously a storage cell and a processing element. The "cost" of accessing memory is zero because the memory is the processor.
 
 ---
 
@@ -241,14 +241,14 @@ This explains why neural firing patterns look noisy at the single-neuron level b
 | State variable | Voltage (binary) | Qubit amplitude (continuous, probabilistic) | Spike rate (analog) | Π pattern (continuous field) |
 | Logic primitive | NAND gate | Unitary gate (e.g., CNOT) | Synaptic weight | Qi gate (Yang-Yin conversion) |
 | Information representation | Bits (0/1) | Qubits ($\alpha|0\rangle + \beta|1\rangle$) | Spike timing | Wu Xing phase (5-state) or continuous Π |
-| Memory | Separate (SRAM/DRAM) | Fragile (decoherence) | Distributed (synaptic weights) | Field IS memory (IIR + persistent Π) |
+| Memory | Separate (SRAM/DRAM) | Fragile (decoherence) | Distributed (synaptic weights) | Field is memory (IIR + persistent Π) |
 | Energy per operation | ~$10^{-15}$ J (Landauer-limited) | ~$10^{-12}$ J (cooling-dominated) | ~$10^{-12}$ J (spike) | $\propto (1-q)$, $\to 0$ as $q \to 1$ |
 | Error correction | Explicit (ECC, parity) | Explicit (surface codes) | Implicit (redundancy) | Geometric (Wu Xing cycle forbids invalid transitions) |
 | Clock | Global | Gate-level | Asynchronous | φ-spaced cascade domains |
 | Parallelism | Moderate (multicore) | Massive (Hilbert space) | Massive (neural population) | Nested (all rungs simultaneously) |
 | Decoherence | Not applicable | The central problem | Tolerated (stochastic) | Suppressed by $q \to 1$ |
 
-Qi computation occupies a unique position in this landscape. It is not quantum—there is no superposition or entanglement. It is not classical—information is stored in continuous field configurations, not discrete bits. It is not neuromorphic—the field dynamics are governed by the two-fluid PDE, not by simplified neuron models. It is a **fourth paradigm**, one in which computation, memory, and physical law are the same thing at different levels of description.
+Qi computation occupies a unique position among these paradigms. It is not quantum—there is no superposition or entanglement. It is not classical—information is stored in continuous field configurations, not discrete bits. It is not neuromorphic—the field dynamics are governed by the two-fluid PDE, not by simplified neuron models. It is a **fourth paradigm**, one in which computation, memory, and physical law are the same thing at different levels of description.
 
 ---
 
@@ -297,7 +297,7 @@ A Π pattern written into a Qi-coherent material (via organized electromagnetic 
 - That Qi computers can be built with current or near-future technology
 - That the human brain literally implements the Wu Xing logic described here
 - That quantum computing is a subset or special case of Qi computation
-- That the cascade IS a computer in any designed or teleological sense—only that its dynamics are computationally interpretable
+- That the cascade is a computer in any designed or teleological sense—only that its dynamics are computationally interpretable
 
 ---
 
@@ -306,7 +306,7 @@ A Π pattern written into a Qi-coherent material (via organized electromagnetic 
 - `foundations/cassi-first-principles.md`—two-fluid PDE, Qi gate, IIR memory, $\tau = \varphi^{-1}$
 - `foundations/bubble-edge-geometry.md`—Qi gate $g(q)$, conversion-diffusion balance
 - `foundations/wu-xing-derivation.md`—pentagon geometry, generation and control cycles
-- `foundations/dimensionful-cascade.md`—292-step cascade, φ-spaced clock hierarchy
+- `foundations/dimensionful-cascade.md`—the φ-ladder (292 = today's horizon rung), φ-spaced clock hierarchy
 - `foundations/cascade-suppression-formula.md`—per-rung attenuation, signal propagation
 - `foundations/quantum-measurement-derivation.md`—phase-matching factor $\mathcal{M}$
 - `foundations/bubble-lattice-fabric.md`—8-level neural hierarchy at n≈144

@@ -94,12 +94,12 @@ The only empirically grounded Qi condensates in the framework are galactic halos
 
 ### 3.1 What the SPARC fits say
 
-The July 2026 SPARC analysis (143 galaxies with ≥8 rotation-curve points; `experiments/sparc_qi/`, scripts `sparc_qi_analysis_v5.py` through `v8.py`; summary in `speculations/dark-matter-as-qi-coherence.md` §7) converged on a definite picture:
+The SPARC analysis (143 galaxies with ≥8 rotation-curve points; fit scripts in `experiments/sparc_qi/`; summary in `speculations/dark-matter-as-qi-coherence.md` §7) converged on a definite picture:
 
 - **The condensate is a hydrostatic isothermal Yang field.** The envelope that survives is the equilibrium of $P_Y = c_s^2\rho_Y$ supported against baryons and its own mass—a pseudo-isothermal core $\rho_Y(r) = \rho_c/(1 + (r/r_c)^2)$—fitted per galaxy with two parameters ($\rho_c$, $c_s$). It beats NFW on median AIC ($\Delta$AIC $\approx -6.4$ to $-7.0$, preferred in 76–90 of 143 galaxies) at equal parameter count.
 - **The boost is the dark matter.** Fitted central densities satisfy $\rho_c \times (1 + \xi) \approx 1.1 \times 10^7\,M_\odot/\text{kpc}^3$—exactly the naive dark-matter density—so the model needs $1/(1+\xi)$ of the physical dark matter: the amplification *replaces* the missing mass.
 - **The coupling runs through $q$, with $\xi$ fixed.** The rotation curve uses $v^2(r) = G[M_{\text{bar}} + (1 + \xi q(r))M_Y(r)]/r$ with $q(r) = r/(r + r_{\text{half}})$: baryonic activity decoheres the field out to the baryonic half-mass radius, and coherence recovers outside it. The decoherence scale self-tunes to the baryonic radius (median $a = 1.025$ when freed).
-- **The sound speed tracks the virial ratio.** $c_s \approx v_{DM,\text{flat}}/\sqrt{2(1+\xi)} \approx v_{DM,\text{flat}}/6.15$ for the constrained galaxies (v8 fit: $(1.10 \pm 0.32)\times$ the virial value, `sparc_qi_analysis_v8.py`), and the emergent core-radius scaling $\gamma = 0.389 \pm 0.021$ matches the empirical $0.41 \pm 0.02$ at $1\sigma$: condensate cores are set by hydrostatic balance, not by fitting.
+- **The sound speed tracks the virial ratio.** $c_s \approx v_{DM,\text{flat}}/\sqrt{2(1+\xi)} \approx v_{DM,\text{flat}}/6.15$ for the constrained galaxies (fit of `experiments/sparc_qi/sparc_qi_analysis_v8.py`: $(1.10 \pm 0.32)\times$ the virial value), and the emergent core-radius scaling $\gamma = 0.389 \pm 0.021$ matches the empirical $0.41 \pm 0.02$ at $1\sigma$: condensate cores are set by hydrostatic balance, not by fitting.
 
 Three engineering lessons follow. First, the only lever is the charge field; the coupling $\xi = \varphi^6$ is derived, not tunable (`foundations/xi-derivation.md` §2). Second, condensates are cored and analytic at the center—coherence is a smooth field, so curvature engineering produces soft, cored profiles (`foundations/bubble-edge-geometry.md`). Third, and most important: **organized baryonic activity destroys coherence** ($q(r) = r/(r+r_{\text{half}})$). A gravity device is itself organized baryonic activity; it eats its own fuel, so a working condenser must be thermodynamically quiet—superconducting, monoisotopic, defect-free—the same hull discipline the propulsion speculations require (`speculations/qi-bubble-propulsion.md` §4).
 
@@ -193,4 +193,4 @@ and detection is the *joint occurrence*: any single anomaly can be a systematic,
 - `speculations/observational-seti.md`—structural signatures, multi-rung detection criterion, search strategy
 - `speculations/coherence-warfare.md`—companion speculation: shield and attack taxonomy
 - `consciousness/trauma-as-frozen-gate.md`—wake-lock, frozen gate preservation
-- `experiments/sparc_qi/`—SPARC Qi fits v5–v8: hydrostatic condensate, $q(r) = r/(r+r_{\text{half}})$, core scaling
+- `experiments/sparc_qi/`—SPARC Qi fits: hydrostatic condensate, $q(r) = r/(r+r_{\text{half}})$, core scaling

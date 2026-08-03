@@ -4,7 +4,7 @@
 
 ## Abstract
 
-The Cassi framework replaces particle dark matter with Qi-enhanced gravity: $G_{\text{eff}} = (\pi/\rho)(1 + \xi q)G$, where $\xi = \varphi^6 \approx 17.944$ and $q$ is the local Qi coherence. This already matches galaxy rotation curves to 0.1%. This document reframes the "missing mass" as **unharvested Qi coherence**—organized Π that has not yet condensed into visible structure. The same condensation field $C(x,y) = \cos(\alpha x)\cos(\beta y)$ that generates the cosmic web's bubble lattice generates galaxy halos at $n \approx 267$: the halo IS the bubble edge, where $q$ transitions from $\sim 1$ (center) toward 0 (void). The Qi field provides gravitational pull without electromagnetic coupling—it is dark by nature, not by particle properties. This resolves the cusp-core problem (the $q(r)$ profile is naturally cored), the missing satellites problem (sub-halos below $\theta_{\text{cond}}$ form no stars), and the Bullet Cluster offset (the Qi field is a field, not collisional particles). The ratio of visible to dark matter becomes a diagnostic of galactic coherence—a measure of how much of a galaxy's Π budget has been organized into luminous structure, and potentially a SETI-relevant signature of tuned galactic gate networks.
+The Cassi framework replaces particle dark matter with Qi-enhanced gravity: $G_{\text{eff}} = (\pi/\rho)(1 + \xi q)G$, where $\xi = \varphi^6 \approx 17.944$ and $q$ is the local Qi coherence. This already matches galaxy rotation curves to 0.1%. This document reframes the "missing mass" as **unharvested Qi coherence**—organized Π that has not yet condensed into visible structure. The same condensation field $C(x,y) = \cos(\alpha x)\cos(\beta y)$ that generates the cosmic web's bubble lattice generates galaxy halos at $n \approx 267$: the halo is the bubble edge, where $q$ transitions from $\sim 1$ (center) toward 0 (void). The Qi field provides gravitational pull without electromagnetic coupling—it is dark by nature, not by particle properties. This resolves the cusp-core problem (the $q(r)$ profile is naturally cored), the missing satellites problem (sub-halos below $\theta_{\text{cond}}$ form no stars), and the Bullet Cluster offset (the Qi field is a field, not collisional particles). The ratio of visible to dark matter becomes a diagnostic of galactic coherence—a measure of how much of a galaxy's Π budget has been organized into luminous structure, and potentially a SETI-relevant signature of tuned galactic gate networks.
 
 **Epistemic status:** The $G_{\text{eff}}$ mechanism and the condensation field geometry are Derived within the Cassi framework. The reframing of dark matter as "unharvested Qi," the tuning hypothesis, and the specific dark-matter-profile predictions are creative extrapolations.
 
@@ -26,7 +26,9 @@ $$\boxed{G_{\text{eff}} = \frac{\pi}{\rho}(1 + \xi q)G, \qquad \xi = \varphi^6 \
 
 (`foundations/bubble-edge-geometry.md` §4.2, `foundations/xi-derivation.md` §2)
 
-At $q \to 1$ (galactic center): $G_{\text{eff}} \approx 18.9 \cdot (\pi/\rho_0)G$—gravity amplified by up to $\sim 3\times$ in galaxy halos when accounting for the density profile.
+The Yang fraction $\pi/\rho$ is the local fraction of the field in the Yang component. At the $\varphi$-fixed point it is the equilibrium fraction $\alpha_0 = \varphi^{-3} \approx 0.236$, giving $G_{\text{eff}} = \varphi^{-3}G$ (the classical limit); the galactic-halo fits of §7 use the halo-regime value $\alpha_{\text{halo}} \approx 0.7$, giving the halo form $G_{\text{eff}} = \alpha_{\text{halo}}(1+\xi q)G$; and the homogeneous cosmological analogue weights by the attractor value $\alpha_w = r/(1+r) = \varphi^{-1} \approx 0.618$.
+
+At $q \to 1$ (galactic center): $G_{\text{eff}} \to (\pi/\rho)(1+\xi)G \approx 18.9\,(\pi/\rho)G$—gravity amplified by up to $1 + \xi \approx 18.9$ over the bare coupling at the saturation ceiling.
 At $q \to 0$ (cosmic voids): $G_{\text{eff}} \to (\pi/\rho_{\text{void}})G$—unamplified gravity.
 
 This single mechanism replaces particle dark matter for explaining galaxy rotation curves. No WIMPs, no axions, no MOND interpolation function. The extra gravitational pull comes from the Qi field's amplification of the existing mass distribution.
@@ -55,7 +57,7 @@ The Qi field has exactly the properties attributed to particle dark matter:
 | Distribution | Halos, following NFW or Einasto profile | Halos, following $q(r) = (1+C(r))/2$ |
 | Small-scale structure | Too much (missing satellites, cusp-core) | Naturally regulated by $\theta_{\text{cond}}$ threshold |
 
-The Qi field IS dark. Not because it's made of dark particles, but because it couples to gravity through $\xi q$ and does not radiate. The "dark matter halo" is the region of the galactic bubble where $q$ is intermediate—too low for visible matter to condense ($C < \theta_{\text{cond}}$) but high enough to provide significant $G_{\text{eff}}$ amplification.
+The Qi field is dark by nature: it couples to gravity through $\xi q$ and does not radiate. The "dark matter halo" is the region of the galactic bubble where $q$ is intermediate—too low for visible matter to condense ($C < \theta_{\text{cond}}$) but high enough to provide significant $G_{\text{eff}}$ amplification. The cosmological side of the condensate—formation, the dark-matter abundance, and the comparison with WIMP/axion candidates—is derived in `cosmology/cosmology-from-phi.md` §4; this document keeps to the halo-scale geometry, cored profiles, and the SPARC fits.
 
 ### 2.2 The condensation field at galactic scale
 
@@ -67,7 +69,7 @@ The Qi density at any point is:
 
 $$\boxed{q(\mathbf{x}) = \frac{1 + C(\mathbf{x})}{2}}$$
 
-At the galactic center ($C=1$, $q=1$): maximal coherence. Stars, gas, and visible structure condense here because conversion is efficient ($P_{\text{conv}} \propto g(q)(1-q)$—at $q=1$, conversion is suppressed, meaning structure IS stable).
+At the galactic center ($C=1$, $q=1$): maximal coherence. Stars, gas, and visible structure condense here because conversion is efficient ($P_{\text{conv}} \propto g(q)(1-q)$—at $q=1$, conversion is suppressed, meaning structure is stable).
 
 At the bubble edge ($C = \theta_{\text{cond}} \approx 0.45$, $q \approx 0.725$): the threshold where condensation occurs. Inside this surface, $q > q_{\text{edge}}$, and matter has condensed into visible structure. Outside, $q < q_{\text{edge}}$, and the Qi field is present but unorganized into luminous matter.
 
@@ -78,7 +80,7 @@ In the void between galaxies ($C = -1$, $q = 0$): no Qi amplification. Gravity r
 The condensation threshold $\theta_{\text{cond}}$ separates visible from dark:
 
 - **$C > \theta_{\text{cond}}$ ($q > 0.725$):** Visible regime. The Qi field is coherent enough that matter condenses into stars and gas. This is the "baryonic" galaxy.
-- **$\theta_{\text{cond}} > C > 0$ ($0.5 < q < 0.725$):** Transition regime. The Qi field provides gravitational amplification ($G_{\text{eff}} \approx 5$–$14\times$ background) but matter has not condensed. This is the inner "dark matter halo."
+- **$\theta_{\text{cond}} > C > 0$ ($0.5 < q < 0.725$):** Transition regime. The Qi field provides gravitational amplification ($G_{\text{eff}}/G = \alpha_{\text{halo}}(1+\xi q) \approx 7$–$10\times$ in this band) but matter has not condensed. This is the inner "dark matter halo."
 - **$C < 0$ ($q < 0.5$):** Outer halo. $G_{\text{eff}}$ amplification fades toward the void value. This is the outer halo where dark matter density drops.
 
 The total gravitational mass inferred from rotation curves or lensing is the integral of $G_{\text{eff}} \cdot \rho$ over the entire bubble, including regions where $\rho$ is negligible but $G_{\text{eff}}$ is amplified. The "missing mass" is not missing. It is the gravitational effect of the Qi field in regions where visible matter has not condensed.
@@ -154,7 +156,7 @@ The number of visible satellites is not the number of subhalos. It is the number
 
 ### 4.3 The too-big-to-fail problem
 
-Some ΛCDM subhalos are massive enough that they SHOULD have formed stars—their gravitational potential wells are deep enough to retain gas against supernova feedback. Yet they are dark. In the Qi picture: a subhalo's mass (from $G_{\text{eff}}$) is not directly tied to its central $C$. A massive dark halo can have deep $G_{\text{eff}}$ amplification (making it "too big to fail" by ΛCDM standards) while still having $C_{\text{max}} < \theta_{\text{cond}}$ (no condensation). The two thresholds—gravitational depth from $G_{\text{eff}}$ and condensation threshold from $C$—are independent.
+Some ΛCDM subhalos are massive enough that they should have formed stars—their gravitational potential wells are deep enough to retain gas against supernova feedback. Yet they are dark. In the Qi picture: a subhalo's mass (from $G_{\text{eff}}$) is not directly tied to its central $C$. A massive dark halo can have deep $G_{\text{eff}}$ amplification (making it "too big to fail" by ΛCDM standards) while still having $C_{\text{max}} < \theta_{\text{cond}}$ (no condensation). The two thresholds—gravitational depth from $G_{\text{eff}}$ and condensation threshold from $C$—are independent.
 
 ### 4.4 The Bullet Cluster
 
@@ -182,7 +184,7 @@ This suggests a target for Cassi-specific SETI: search for galaxies with **anoma
 
 Spiral galaxies are more organized than irregulars. In the Qi picture, spiral arms trace the connectable diagonal channels of the galactic-scale bubble lattice (`foundations/bubble-edge-geometry.md` §3.1). A grand-design spiral has a coherent, φ-structured Qi field. An irregular galaxy has a fragmented, low-$q$ field.
 
-This predicts a correlation: grand-design spirals should have systematically higher $\eta_{\text{visible}}$ than irregulars of the same baryonic mass. The morphological type IS the gate network's organizational state, made visible in the distribution of stars and gas.
+This predicts a correlation: grand-design spirals should have systematically higher $\eta_{\text{visible}}$ than irregulars of the same baryonic mass. The morphological type is the gate network's organizational state, made visible in the distribution of stars and gas.
 
 ---
 
@@ -194,7 +196,7 @@ The dark matter density profile inferred from rotation curves and lensing should
 
 $$\rho_{\text{DM}}^{\text{eff}}(r) \propto (1 + \xi q(r)) \cdot \max\!\left(0, \frac{C(r) - \theta_{\text{cond}}}{1 - \theta_{\text{cond}}}\right)^{n_{\text{cond}}}$$
 
-with $C(r) = \cos(\alpha r)$ (along the Yang axis) or $\cos(\beta r)$ (along the Yin axis), and $q(r) = (1 + C(r))/2$. The profile has exactly two free parameters ($\alpha$ sets the scale, $\theta_{\text{cond}}$ sets the knee position) compared to NFW's two ($r_s$, $\rho_0$) or Einasto's three ($r_{-2}$, $\rho_{-2}$, $\alpha$). The Qi profile makes a stronger prediction because the functional form is fixed, not empirical.
+with $C(r) = \cos(\alpha r)$ (along the Yang axis) or $\cos(\beta r)$ (along the Yin axis), and $q(r) = (1 + C(r))/2$. The profile has exactly two free parameters ($\alpha$ sets the scale, $\theta_{\text{cond}}$ sets the knee position) compared to NFW's two ($r_s$, $\rho_0$) or Einasto's three ($r_{-2}$, $\rho_{-2}$, $\alpha$). The Qi profile makes a stronger prediction because the functional form is fixed, not empirical. §7 reports the SPARC test of this profile: the oscillatory-lattice mask is ruled out, while the hydrostatic cored condensate survives.
 
 ### P2: The core radius scales with galactic mass
 
@@ -219,11 +221,11 @@ Galaxies with $\eta_{\text{visible}}$ more than $2\sigma$ above the morphology-m
 
 ---
 
-## 7. SPARC Analysis Results (July 2026)
+## 7. SPARC Analysis Results
 
 ### 7.1 What was tested
 
-The Qi dark matter profile (Prediction P1) and the core-radius scaling relation (Prediction P2) were tested against the SPARC database of 175 nearby galaxies with high-quality rotation curves.
+The Qi dark matter profile (Prediction P1) and the core-radius scaling relation (Prediction P2) were tested against the SPARC database of 175 nearby galaxies with high-quality rotation curves (143 with ≥8 data points).
 
 Three models were compared:
 
@@ -241,31 +243,23 @@ where $\langle q \rangle(r) = (1 + \langle C \rangle(r))/2$ uses the 2D angular 
 
 ### 7.2 Results
 
-**Prediction P1 (Qi density profile fit): MODEL-DEPENDENT**—the baryon-seeded oscillatory-lattice form is not supported; the hydrostatic condensate form survives (revision below).
+**Prediction P1 (Qi density profile fit): MODEL-DEPENDENT.** Two profile families were tested, and they separate cleanly.
 
-Across 143 galaxies (≥8 data points):
+The baryon-seeded oscillatory-lattice form—the 2D angular-averaged condensation mask of §3—is ruled out as a universal halo profile. With fixed $\xi = \varphi^6$ it overpredicts dark matter by a large factor in most galaxies: NFW is strongly preferred on full-range AIC (median ΔAIC = +40, NFW wins in 111/143) and in the inner region (64/75, median ΔAIC = +18); Qi is better or indistinguishable in only 32/143 full-range and 11/75 inner-region. The coupling constant that works for the Milky Way rotation curve does not generalize as a universal radial profile in this form.
 
-| Metric | Qi 1-param vs NFW |
-|---|---|
-| Full-range AIC | NFW strongly preferred (median ΔAIC = +40, NFW wins in 111/143) |
-| Inner-region AIC ($r < 3r_{\text{core}}$) | NFW preferred (64/75, median ΔAIC = +18) |
-| Qi better or indistinguishable | 32/143 full-range, 11/75 inner-region |
+The hydrostatic condensate form survives. Replacing the oscillatory-lattice mask with the pseudo-isothermal envelope $\rho_Y(r) = \rho_c/(1 + (r/r_c)^2)$—the profile the two-fluid hydrostatic equilibrium produces (`experiments/sparc_qi/sparc_qi_analysis_v5.py`)—keeping $\xi = \varphi^6$ fixed and two free parameters ($\rho_c$, $r_c$) vs NFW's two, flips the full-range verdict: median $\Delta$AIC $= -7.0$, Qi preferred in 90/143, NFW preferred in 14/143. The fitted central density satisfies $\rho_c \times (1+\xi) \approx 1.1 \times 10^7$ M$_\odot$/kpc$^3$—exactly the naive dark-matter density—so the model needs $1/(1+\xi)$ of the physical dark matter: the boost *is* the dark matter.
 
-The Qi model with fixed $\xi = \varphi^6$ **overpredicts** dark matter by a large factor in most galaxies. The coupling constant that works for the Milky Way rotation curve does not generalize as a universal radial profile in this form.
+The boost is not uniform: baryonic activity decoheres the field, so $q(r) = r/(r + r_q)$ recovers outside the baryonic scale (`experiments/sparc_qi/sparc_qi_analysis_v6.py`). With $r_q = r_{\text{half}}$ (baryonic half-mass radius, zero new parameters) the model still beats NFW (median $\Delta$AIC = −3.2, 74/143) and is statistically equivalent to the uniform boost at equal parsimony (median $\Delta$AIC = 0.0, 77/143 indistinguishable). Freed, the decoherence scale self-tunes to the baryonic radius (median $a = 1.025$; per-galaxy scatter is large and $a$ is degenerate with $\rho_c$). The model core scaling is $\gamma = 0.34 \pm 0.04$ ($R^2 = 0.46$) vs the empirical $0.41 \pm 0.02$—$1.9\sigma$, inside the methodology band ($0.31$–$0.41$). The core-radius tension is softened to $\lesssim 1.9\sigma$, but not fully resolved: the model traces the constant-density $\approx 1/3$ scaling while the data sit slightly above it.
 
-**Revision (2026-07-31, v5): the overprediction is a profile-shape effect, not a coupling failure.** Replacing the baryon-seeded oscillatory-lattice condensate with the hydrostatic pseudo-isothermal form $\rho_Y(r) = \rho_c/(1 + (r/r_c)^2)$—the envelope the two-fluid equilibrium produces (`experiments/sparc_qi/sparc_qi_analysis_v5.py`)—keeping $\xi = \varphi^6$ fixed and two free parameters ($\rho_c$, $r_c$) vs NFW's two, flips the full-range verdict: median $\Delta$AIC $= -7.0$, Qi preferred in 90/143, NFW preferred in 14/143. The fitted central density satisfies $\rho_c \times (1+\xi) \approx 1.1 \times 10^7$ M$_\odot$/kpc$^3$—exactly the naive dark-matter density—so the model needs $1/(1+\xi)$ the physical DM: the boost *is* the dark matter. The v4 oscillatory-lattice model remains falsified: its shell-y $\langle C \rangle$ mask cannot match smooth rotation curves.
+The condensate is the hydrostatic equilibrium of a self-gravitating isothermal Yang field ($P_Y = c_s^2\rho_Y$, `experiments/sparc_qi/sparc_qi_analysis_v7.py`): per-galaxy ($\rho_c$, $c_s$) fits give median $\Delta$AIC = −6.4 vs NFW (76/143)—nearly the fitted-profile score (−7.0)—and the emergent half-max core scaling is $\gamma = 0.389 \pm 0.021$ ($R^2 = 0.71$), matching the empirical $0.41 \pm 0.02$ at $1\sigma$: the P2 tension is resolved. Two sharp structural findings: (1) baryonic compression must be excluded from the condensate's support—including $M_{\rm bar}$ in the hydrostatic balance collapses the fit to ΔAIC = 0.0, so the field's envelope is self-organized, not baryon-shaped; (2) the fitted $c_s$ shows no mass trend (slope $0.017 \pm 0.038$, $R^2 = 0.00$, median ≈ 14 km/s), but strict universality is not established (a single global $c_s$ costs ~5.6 AIC points; per-galaxy scatter is degenerate with $\rho_c$). The integrated $\rho_c(1+\xi) \approx$ naive-DM relation holds (median ratio 1.36).
 
-**Revision (2026-07-31, v6): the coherence budget generates the cores.** The boost is not uniform—baryonic activity decoheres the field, so $q(r) = r/(r + r_q)$ recovers outside the baryonic scale (`experiments/sparc_qi/sparc_qi_analysis_v6.py`). With $r_q = r_{\text{half}}$ (baryonic half-mass radius, zero new parameters) the model still beats NFW (median $\Delta$AIC = −3.2, 74/143) and is statistically equivalent to the v5 uniform boost at equal parsimony (median $\Delta$AIC = 0.0, 77/143 indistinguishable). Freeing the scale gives median $a = 1.025$—the decoherence scale self-tunes to the baryonic radius, confirming the mechanism at ensemble level (per-galaxy scatter is large; $a$ is degenerate with $\rho_c$). Model core scaling $\gamma = 0.34 \pm 0.04$ ($R^2 = 0.46$) vs empirical $0.41 \pm 0.02$: $1.9\sigma$, and inside the methodology band ($0.31$–$0.41$). The core-radius tension is softened from $3.6\sigma$ to $\lesssim 1.9\sigma$, but not fully resolved: the model still traces the constant-density $\approx 1/3$ scaling while the data sit slightly above it.
+The per-galaxy $c_s$ scatter (2.6–123 km/s) decomposes into a degeneracy artifact and a measurement limit (`experiments/sparc_qi/sparc_qi_analysis_v8.py`): (1) for 68/143 galaxies the curve never reaches the isothermal asymptote in the data, so $c_s$ is unconstrained from above and the fitted value is a degeneracy artifact; (2) for the remaining 75, $c_s$ tracks the virial value—$c_s = (1.10 \pm 0.32)\, v_{DM,\text{flat}}/\sqrt{2(1+\xi)}$, slope $0.82 \pm 0.07$ ($R^2 = 0.68$)—and $c_s \propto M^{0.19}$ (the BTFR slope); (3) the residual (0.136 dex) is uncorrelated with baryon fraction, size, and distance, but strongly with sampling ($n_{\rm pts}$: $R^2 = 0.42$, $p < 0.001$)—measurement-limited, not a physical dispersion. $c_s$ is not a universal constant (the Yang field virializes in each host); the universal quantity is the ratio $c_s/v_{DM,\text{flat}} = 1/\sqrt{2(1+\xi)} \approx 0.163$, derived from $\xi$ itself. Fixing $c_s$ to the virial value costs ~9 AIC points vs the free fit (median ΔAIC = −2.0 vs NFW with 1 parameter per galaxy).
 
-**Revision (2026-07-31, v7): the hydrostatic equilibrium is solved, and the core scaling emerges.** The condensate is the hydrostatic equilibrium of a self-gravitating isothermal Yang field ($P_Y = c_s^2\rho_Y$, `experiments/sparc_qi/sparc_qi_analysis_v7.py`): per-galaxy ($\rho_c$, $c_s$) fits give median $\Delta$AIC = −6.4 vs NFW (76/143)—nearly the v5 fitted-profile score (−7.0)—and the emergent half-max core scaling is $\gamma = 0.389 \pm 0.021$ ($R^2 = 0.71$), matching the empirical $0.41 \pm 0.02$ at $1\sigma$: the P2 tension is resolved. Two sharp structural findings: (1) baryonic compression must be excluded from the condensate's support—including $M_{\rm bar}$ in the hydrostatic balance collapses the fit to ΔAIC = 0.0, so the field's envelope is self-organized, not baryon-shaped; (2) the fitted $c_s$ shows no mass trend ($\alpha = 0.017 \pm 0.038$, $R^2 = 0.00$, median ≈ 14 km/s), but strict universality is not established (a single global $c_s$ costs ~5.6 AIC points; per-galaxy scatter is degenerate with $\rho_c$). The integrated $\rho_c(1+\xi) \approx$ naive DM relation holds (median ratio 1.36).
+The boost applies to the Yang component only ($v^2 = G[M_{\rm bar} + (1+\xi q)M_Y]/r$), and the homogeneous analogue weights by the attractor Yang fraction $\alpha_w = r/(1+r) = \varphi^{-1} \approx 0.618$ (`two-fluid/calibrate_initial_ratio_xi_v2.py`). The galactic-sector implementation of that insight—driving the coherence by the enclosed-mass Yang fraction itself, $q(r) = \alpha_{\text{halo}}(r) = M_Y(r)/[M_{\rm bar}(r)+M_Y(r)]$, the exact analogue of the cosmic $r/(1+r)$—was tested at zero new parameters (same 2-parameter fit; `experiments/sparc_qi/sparc_qi_analysis_v9.py`). It gives overall statistical parity with the decoherence-envelope form (median $\Delta$AIC(B−A) = −0.5, B better in 83/143) and a genuine gain on high-mass galaxies ($V_{\rm flat} \geq 100$ km/s, $n=81$: median −3.8, 55/81), but a modest loss on dwarfs ($V_{\rm flat} < 100$ km/s, $n=62$: median +0.6, A better in 29 vs B's 17). It still beats NFW on dwarfs (median −7.5), yet the decoherence envelope is preferred: under the Yang-fraction form no galaxy reaches its isothermal asymptote within the data (the recovery is too gradual), so the constrained/unconstrained decomposition collapses; and the fitted $c_s$ loses the virial anchor (median $c_s\cdot 6.15/v_{DM,\rm flat} = 1.64$ vs 1.10 under the envelope, though the relation tightens: slope $0.96 \pm 0.06$, $R^2 = 0.77$). The emergent core scaling survives ($\gamma = 0.397 \pm 0.021$, $R^2 = 0.72$, vs empirical $0.41 \pm 0.02$). A third variant—the envelope shape with the Yang-fraction crossover radius as its scale—is worse on dwarfs (median +2.7). The Yang-component-only boost with the baryonic-decoherence envelope is the form the data support.
 
-**Revision (2026-07-31, v8): the $c_s$ scatter is solved.** The v7 scatter (2.6–123 km/s) decomposes cleanly (`experiments/sparc_qi/sparc_qi_analysis_v8.py`): (1) for 68/143 galaxies the curve never reaches the isothermal asymptote in the data, so $c_s$ is unconstrained from above and the fitted value is a degeneracy artifact; (2) for the remaining 75, $c_s$ tracks the virial value—$c_s = (1.10 \pm 0.32)\, v_{DM,\text{flat}}/\sqrt{2(1+\xi)}$, slope $0.82 \pm 0.07$ ($R^2 = 0.68$)—and $c_s \propto M^{0.19}$ (the BTFR slope); (3) the residual (0.136 dex) is uncorrelated with baryon fraction, size, and distance, but strongly with sampling ($n_{\rm pts}$: $R^2 = 0.42$, $p < 0.001$)—it is measurement-limited, not a physical dispersion. So $c_s$ is not a universal constant (the Yang field virializes in each host); the universal quantity is the ratio $c_s/v_{DM,\text{flat}} = 1/\sqrt{2(1+\xi)} \approx 0.163$, derived from $\xi$ itself. Fixing $c_s$ to the virial value costs ~9 AIC points vs the free fit (median ΔAIC = −2.0 vs NFW with 1 param per galaxy).
+**UFD regime.** The ultra-faint dwarfs that exceed the G-rescaling velocity ceiling (Path 10: Segue 1/2 at $v_{\rm obs}/v_{\rm Newt} \approx 16.6$–$16.8$, Draco at 6.2; `experiments/phi_attractor_paths/path10_dwarf_galaxies.py`) are not a test of this sector's ceiling—in the coupling above they demand $M_Y/M_{\rm bar} \approx 15$ at $q \to 1$, four-plus decades below the SPARC calibration range ($M_{\rm bar} \gtrsim 10^7\,M_\odot$). The condensate mechanism is therefore uncalibrated (not falsified) there; the SPARC $c_s$ scalings cannot be extrapolated to $10^3\,M_\odot$ stellar masses.
 
-**Revision (2026-08-03, v9): the Yang-fraction coherence envelope does not improve the dwarf fits.** The 2026-07-31 coupling correction established that the boost applies to the Yang component only ($v^2 = G[M_{\rm bar} + (1+\xi q)M_Y]/r$) and weights the homogeneous analogue by the cosmic Yang fraction $r/(1+r)$ (`two-fluid/calibrate_initial_ratio_xi_v2.py`). v9 (`experiments/sparc_qi/sparc_qi_analysis_v9.py`) tested the galactic-sector implementation of that insight—driving the coherence by the enclosed-mass Yang fraction itself, $q(r) = \alpha(r) = M_Y(r)/[M_{\rm bar}(r)+M_Y(r)]$, the exact analogue of the cosmic $r/(1+r)$—at zero new parameters (same 2-param fit as v7/v8). Result: overall statistical parity with v8 (median $\Delta$AIC(B−A) = −0.5, B better in 83/143), a genuine gain on high-mass galaxies ($V_{\rm flat} \geq 100$ km/s, $n=81$: median −3.8, 55/81), but a modest loss exactly where improvement was hoped—dwarfs ($V_{\rm flat} < 100$ km/s, $n=62$): median +0.6, A better in 29 vs B's 17. B still beats NFW on dwarfs (median −7.5) but the v8 envelope is preferred. Two further costs: under B no galaxy reaches its isothermal asymptote within the data (the Yang-fraction recovery is too gradual), so the v8 constrained/unconstrained decomposition collapses; and the fitted $c_s$ loses the virial anchor (median $c_s\cdot 6.15/v_{DM,\rm flat} = 1.64$ vs 1.10 under A, though the relation tightens: slope $0.96 \pm 0.06$, $R^2 = 0.77$). The emergent core scaling survives ($\gamma = 0.397 \pm 0.021$, $R^2 = 0.72$, vs empirical $0.41 \pm 0.02$). A third variant—the envelope shape with the Yang-fraction crossover radius as its scale—is worse on dwarfs (median +2.7). Conclusion: the Yang-component-only boost (v5–v8) is the form the data support; pushing the insight further, by making the coherence itself the Yang fraction, trades dwarf accuracy for high-mass accuracy and sacrifices the virial anchor, so v8 remains the adopted model.
-
-**UFD regime (2026-08-03):** the ultra-faint dwarfs that exceed the G-rescaling velocity ceiling (Path 10: Segue 1/2 at $v_{\rm obs}/v_{\rm Newt} \approx 16.6$–$16.8$, Draco at 6.2; `experiments/phi_attractor_paths/path10_dwarf_galaxies.py`) are not a test of this sector's ceiling—in the coupling above they demand $M_Y/M_{\rm bar} \approx 15$ at $q \to 1$, four-plus decades below the SPARC calibration range ($M_{\rm bar} \gtrsim 10^7\,M_\odot$). The condensate mechanism is therefore uncalibrated (not falsified) there; the SPARC $c_s$ scalings cannot be extrapolated to $10^3\,M_\odot$ stellar masses.
-
-**Prediction P2 (core radius scaling), v5 update:** the pseudo-isothermal fits give $\gamma = 0.23 \pm 0.10$ with $R^2 = 0.05$—the model-fitted $r_c$ is too degenerate with $\rho_c$ to trace mass, so this does not constrain P2. The empirical measurement below stands as the P2 constraint.
+**Prediction P2 (core radius scaling).** The pseudo-isothermal fits give $\gamma = 0.23 \pm 0.10$ with $R^2 = 0.05$—the model-fitted $r_c$ is too degenerate with $\rho_c$ to trace mass, so the fitted scaling does not constrain P2. The empirical measurement stands as the P2 constraint.
 
 The empirical core radius (measured as the radius where $v_{\text{DM}}$ reaches half its maximum) gives $\gamma = 0.41 \pm 0.02$—a $3.6\sigma$ deviation from the predicted $1/3$. However, the result is sensitive to measurement methodology: different bulge-mass scaling factors and filtering criteria produce $\gamma$ values ranging from 0.31 to 0.41, with $R^2$ between 0.32 and 0.73. The prediction is neither cleanly confirmed nor cleanly falsified by current data.
 
@@ -275,7 +269,7 @@ The small-$r$ dark matter velocity slope is intermediate between cusp ($p = 0.5$
 
 The analysis does **not** support promoting Prediction P1 or P2 to Hypothesized. The specific radial profile derived from a 1D/2D condensation field model with fixed $\xi = \varphi^6$ is ruled out as a universal galaxy halo profile.
 
-The existing Cassi result—that $\xi = \varphi^6$ matches the Milky Way rotation curve—remains valid. The issue is not with the coupling constant itself but with the attempt to apply it as a universal radial profile in a simplified 1D/2D geometry. Possible explanations for the failure:
+The existing Cassi result—that $\xi = \varphi^6$ matches the Milky Way rotation curve—stands. The issue is not with the coupling constant itself but with the attempt to apply it as a universal radial profile in a simplified 1D/2D geometry. Possible explanations for the failure:
 
 1. **Geometry**: A full 3D bubble-lattice solution with checkerboard connectivity may produce a radial profile different from the 2D angular average
 2. **Coupling saturation**: $\xi = \varphi^6$ is the vacuum coupling; the effective $\xi$ in partially organized galaxy halos may be lower
@@ -284,18 +278,15 @@ The existing Cassi result—that $\xi = \varphi^6$ matches the Milky Way rotatio
 
 ### 7.4 Path forward
 
-Progress 2026-07-31 (v5): the radial-profile test is no longer the blocker.
-The hydrostatic two-component condensate survives SPARC at NFW parity with
-fixed $\xi$ (median $\Delta$AIC = −7.0). Remaining steps:
+The hydrostatic two-component condensate survives SPARC at NFW parity with fixed $\xi$ (median $\Delta$AIC = −7.0). The per-galaxy $c_s$ scatter is closed: unconstrained-direction degeneracy (68/143) plus measurement-limited scatter ($R^2 = 0.42$ vs $n_{\rm pts}$); the constrained 75 follow the virial ratio $c_s/v_{DM,\text{flat}} = 1/\sqrt{2(1+\xi)}$. Remaining steps:
 - Full 3D bubble-lattice galaxy model with checkerboard geometry, not radial approximation
 - Two-fluid PDE simulation at galactic scale ($n \approx 267$) with realistic baryonic distributions
 - Scaling the effective $\xi$ from the PDE output rather than fixing it at the vacuum value
-- Residual: a physical origin for the per-galaxy $c_s$ scatter is now closed: unconstrained-direction degeneracy (68/143) plus measurement-limited scatter ($R^2 = 0.42$ vs $n_{\rm pts}$); the constrained 75 follow the virial ratio $c_s/v_{DM,\text{flat}} = 1/\sqrt{2(1+\xi)}$
 
 Until one of these is implemented, the dark-matter-as-Qi-coherence framework remains Speculative.
 ---
 
-## 7. Epistemic Boundaries
+## 8. Epistemic Boundaries
 
 ### Derived (within the Cassi framework)
 
@@ -334,5 +325,10 @@ Until one of these is implemented, the dark-matter-as-Qi-coherence framework rem
 - `foundations/cassi-first-principles.md`—two-fluid PDE, Qi gate, $G_{\text{eff}}$ limits
 - `foundations/bubble-lattice-fabric.md`—scale covariance, checkerboard lattice at every rung
 - `foundations/cascade-suppression-formula.md`—per-rung attenuation
+- `cosmology/cosmology-from-phi.md`—dark-matter condensate: formation, abundance, candidate comparison (§4)
+- `experiments/sparc_qi/`—SPARC fits: hydrostatic condensate, baryonic-decoherence envelope, core scaling
+- `experiments/phi_attractor_paths/path10_dwarf_galaxies.py`—dwarf-spheroidal G-rescaling sector, UFD ceiling tests
+- `two-fluid/calibrate_initial_ratio_xi_v2.py`—Yang-component boost, attractor weighting $r/(1+r)$
 - `speculations/cascade-infrastructure.md`—gate chain topology, tuned vs untuned galaxies
 - `speculations/qi-bubble-propulsion.md`—Qi bubble drive, energy harvesting
+- `speculations/gravity-control.md`—gravity control at the condensate rung; SPARC constraints
