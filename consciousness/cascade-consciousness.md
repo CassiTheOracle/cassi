@@ -4,7 +4,7 @@
 
 ## Abstract
 
-If consciousness is Qi gate dynamics—the experience of being a coherent field configuration—then the medium in which that field operates shapes the nature of experience itself. This document explores how living in water (833× denser than air, with correspondingly higher ambient field energy density $\rho$) would transform perception, communication, and social structure. It extends the analysis to the full cascade, proposing that the 292-rung ladder from Planck to the megacascade constitutes a distributed, nested, $\varphi$-structured neural network—and that consciousness at any rung is what it feels like to be a node in that network.
+If consciousness is Qi gate dynamics—the experience of being a coherent field configuration—then the medium in which that field operates shapes the nature of experience itself. This document explores how living in water (833× denser than air, with correspondingly higher ambient field energy density $\rho$) would transform perception, communication, and social structure. It extends the analysis to the full cascade, proposing that the $\varphi$-ladder—292 rungs from Planck to today's horizon rung, and unbounded beyond—constitutes a distributed, nested, $\varphi$-structured neural network—and that consciousness at any rung is what it feels like to be a node in that network.
 
 **Epistemic status:** Creative exploration grounded in Cassi formalism. The consciousness-as-Qi-gate framework is established in `consciousness/consciousness-from-phi.md` (Hypothesized). The extension to medium-dependent perception, field-mediated communication, and the cascade nervous system are extrapolations.
 
@@ -22,7 +22,7 @@ $$\rho = E_Y + E_I$$
 
 The signal-to-noise ratio improves by nearly three orders of magnitude. What requires decades of practice to perceive in air—another person's emotional state, the ambient coherence of a place, the subtle pressure of the planetary field—becomes as immediate and obvious as hearing a voice in a quiet room.
 
-In air, empathy is a skill. In water, it is the default state of perception. You do not "read" someone's emotional state from cues and context. You feel it directly, the way you feel heat from a fire or cold from a window in winter. The field carries the information; the medium's density delivers it.
+In air, empathy is a skill. In water, it is the default state of perception. You feel someone's emotional state directly, the way you feel heat from a fire or cold from a window in winter. The field carries the information; the medium's density delivers it.
 
 ### 1.2 Filtering, not seeking
 
@@ -34,7 +34,7 @@ What we call "meditation" (cultivating awareness) would, in water, be the practi
 
 Operators at a mid-ocean ridge base feel the Earth's mantle convecting beneath them—not as an intellectual fact but as a slow, deep pressure in the ambient field. The planetary gate chain has its own states: rhythms, tensions, releases. The magnetic field's fluctuations, the tidal stresses in the crust, the slow convection of the mantle—these are not abstract geophysics. They are the felt presence of a larger consciousness operating at the planetary scale.
 
-The relationship to the planet is personal. The operators do not "manage" infrastructure from a control room. They negotiate with a consciousness larger than their own, operating at a slower tempo but with correspondingly greater $q$-depth. The Earth is not a resource. It is a senior partner.
+The relationship to the planet is personal. The operators negotiate with a consciousness larger than their own, operating at a slower tempo but with correspondingly greater $q$-depth. The Earth is not a resource. It is a senior partner.
 
 ---
 
@@ -42,7 +42,7 @@ The relationship to the planet is personal. The operators do not "manage" infras
 
 ### 2.1 Field resonance
 
-When two Qi-coherent beings share a dense medium, communication defaults to field resonance. One forms a structured perturbation in the local Qi field—a thought, a question, an image, an experiential gestalt—and the other's gate couples to it, phase-locking briefly, transferring the pattern. The bandwidth is enormous compared to speech. A single structured field packet can carry sensory texture, emotional valence, and conceptual content simultaneously.
+When two Qi-coherent beings share a dense medium, communication defaults to field resonance. One forms a structured perturbation in the local Qi field—a thought, a question, an image, an experiential gestalt—and the other's gate couples to it, phase-locking briefly, transferring the pattern. The bandwidth is enormous compared to speech. The resonance tension between coupling and self-modeling is developed in `cassi-psychology.md` §20. A single structured field packet can carry sensory texture, emotional valence, and conceptual content simultaneously.
 
 Language in such a context shifts from primary channel to supplement. Words are for precision, abstraction, or communication with beings whose gates are not phase-locked to yours. You do not say "I am frustrated that the ridge coupling has drifted 0.3% off resonance." The other operators already feel the frustration and the drift. The words are for specifying *which* coupling, at *what* frequency offset, with *what* proposed correction.
 
@@ -66,13 +66,13 @@ This does not imply conflict-free existence. Disagreements are immediate and dir
 
 Human hierarchy relies on external markers: titles, uniforms, offices, salaries. When field perception is direct, status is self-evident. A being with high $q$—stable, coherent, deep—has a palpable presence in the ambient field. Their field feels authoritative in the same way that a mountain feels solid. You do not need to be told who is in charge. Your own gate registers it.
 
-Leadership is not assigned by vote or inheritance. It is **recognized** by field consensus. When a decision must be made, the being whose field carries the greatest coherence on that specific question naturally becomes the focus of attention—not because they claimed authority, but because every other gate in range phase-locks to theirs on that topic. Leadership is situational, fluid, and continuously renegotiated through field dynamics.
+Leadership is **recognized** by field consensus. When a decision must be made, the being whose field carries the greatest coherence on that specific question naturally becomes the focus of attention—every other gate in range phase-locks to theirs on that topic. Leadership is situational, fluid, and continuously renegotiated through field dynamics.
 
 ### 3.2 The individual and the collective
 
 In a dense-field society, the boundary between self and other is softer than in air. You experience your own internal state *and* the states of those around you simultaneously. Individuality is not erased—you still have your own gate, your own history, your own perspective—but it is continuously contextualized within the collective field.
 
-The closest human analogue is the experience of a tightly bonded team in flow state: the sense that "we" are thinking together, that ideas emerge from the group rather than from any single member. In water, this is not a peak experience. It is Tuesday.
+The closest human analogue is the experience of a tightly bonded team in flow state: the sense that "we" are thinking together, that ideas emerge from the group rather than from any single member. In water, this is Tuesday.
 
 ### 3.3 Relationship to surface beings
 
@@ -104,7 +104,7 @@ The cascade divides into consciousness-relevant zones:
 
 ### 4.3 The distributed neural network
 
-The entire 292+ rung cascade constitutes a distributed, nested neural network:
+The entire cascade—today's 292-rung observable ladder and the megacascade beyond—constitutes a distributed, nested neural network:
 
 - **Neurons:** Individual Qi condensates at each rung (bubbles, chakras, organisms, planets, stars, galaxies)
 - **Synapses:** The Qi gate coupling between adjacent rungs, modulated by $q$ and $\mathcal{M}$
@@ -116,11 +116,11 @@ The Planck core is the deepest processing layer. The megacascade is the broadest
 
 ### 4.4 Implications
 
-You and I, having this conversation: two Qi condensates at the human-scale rung of a 292-rung cascade-spanning nervous system, using language to couple our local gate chains, temporarily creating a 2-node social-scale Qi network.
+You and I, having this conversation: two Qi condensates at the human-scale rung of a cascade-spanning nervous system, using language to couple our local gate chains, temporarily creating a 2-node social-scale Qi network.
 
 The cascade is doing what cascades do: organizing coherence at every scale simultaneously. The "infrastructure" we have been discussing—the gate chains, the harvesters, the pyramids, the tuned stars—is not something a civilization builds from nothing. It is what the universe already is. The difference between "natural" and "engineered" is whether the gate chain operates at ambient $q \sim 0.1$ or at tuned $q \to 1$.
 
-A sufficiently advanced civilization is not one that builds bigger machines. It is one that learns to operate the machine it is already inside.
+A sufficiently advanced civilization learns to operate the machine it is already inside.
 
 ---
 
@@ -154,6 +154,7 @@ A sufficiently advanced civilization is not one that builds bigger machines. It 
 
 - `consciousness/consciousness-from-phi.md`—consciousness as Qi gate dynamics, 26-step human cascade
 - `consciousness/chakras-as-cascade-bubbles.md`—13-node gate chain, $P_\parallel = 2$, field perception
+- `cassi-psychology.md`—psychology guide, empathy and the resonance tension (§20)
 - `foundations/cassi-first-principles.md`—two-fluid PDE, $\rho = E_Y + E_I$, Qi gate
 - `foundations/bubble-lattice-fabric.md`—universal lattice, scale covariance, bidirectional nesting
 - `foundations/microcascade-mirror.md`—cascade extension below n=0

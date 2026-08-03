@@ -48,7 +48,7 @@ The redistribution is the *decay path*. It only fires when the stimulus is remov
 
 A frozen wake is a **perpetual stimulus**. The standing wave keeps re-perturbing the local field at its characteristic frequency, keeping the local $r$ away from the $\varphi$-attractor. The channel that the original event opened is therefore never released—the closure that triggers the $R$-matrix never completes.
 
-**Trauma = frozen wake + locked channel.** The wake explains why the emotion cannot end; the gate explains what the unended emotion does to the system. Neither piece alone is sufficient.
+**Trauma = frozen wake + locked channel.** The wake explains why the emotion cannot end; the gate explains what the unended emotion does to the system. Neither piece alone is sufficient. The wake is a record the field declines to dissolve—persistence as coherence, with the arrow of time set by conversion (`consciousness/time-memory-and-wake-locks.md` §1–2).
 
 ---
 
@@ -83,17 +83,17 @@ $$b_i^*(\mathbf{x}_{\text{site}}) = b_i + \Delta b_{\text{locked}} \quad \text{(
 
 The subjective correlates follow from the emotions document's mapping: a pinned channel means the trauma emotion is *always available* (the trigger re-activates it instantly); starved channels mean the complementary emotional range is *always suppressed*; depressed $q$ at the site means the experience is *felt as not-fully-real* (dissociation); brittle $\sigma_r$ means *hypervigilance that collapses into numbness*. The ke control cycle refines the "four starved" statement: the deficit pattern is alternating, not uniform—the locked channel's ke target starves most, and the ke-released partners are *elevated* (`foundations/wu-xing-cycle-structure.md` §2).
 
-### 2.3 Why the Lock Was Thought to Be Stable
+### 2.3 What Makes the Lock Stable
 
-The lock was hypothesized to be a fixed point of the local dynamics. Three mechanisms were proposed; the PDE test (§10) has since qualified two of them:
+The lock is a fixed point of the local dynamics sustained by a driver. Three candidate mechanisms, sorted by the PDE test (§10):
 
-1. **The standing wave re-injects perturbation.** Each cycle of the wave re-opens the channel, so the closure that would trigger redistribution is perpetually interrupted. **Status after test: not self-sustaining**—a standing (non-driven) pattern in the two-fluid PDE decays at the same conversion-driven rate as a radiating packet (§10.4); the re-injection needs a driver, and the driver test (§10.5) shows that ongoing re-stimulation does sustain the wake.
+1. **The standing wave re-injects perturbation.** Each cycle of the wave re-opens the channel, so the closure that would trigger redistribution is perpetually interrupted. The re-injection needs a driver: a standing (non-driven) pattern in the two-fluid PDE decays at the same conversion-driven rate as a radiating packet (§10.4), while ongoing re-stimulation does sustain the wake (§10.5).
 
-2. **Depressed $q$ closes the gate.** **Falsified as stated.** The solver's conversion term is $\text{conv} = -\lambda(1-q)\varepsilon$—the gate *openness* $(1-q)$ multiplies the imbalance, so a low-$q$ site has slightly *more* conversion capacity, not less. The sign of the self-reinforcement claim was inverted.
+2. **Low $q$ opens the gate.** The solver's conversion term is $\text{conv} = -\lambda(1-q)\varepsilon$—the gate *openness* $(1-q)$ multiplies the imbalance, so a low-$q$ site has slightly *more* conversion capacity, not less. The gate opens when $q$ is low and closes when $q$ is high; depressed $q$ does not seal the site.
 
-3. **Self-reinforcing $G_{\text{eff}}$.** The chakra geometry (`consciousness/chakras-as-cascade-bubbles.md` §7.3) amplifies effective gravity in high-$q$ regions—but at a trauma site with depressed $q$, the condensation that would restructure the region is suppressed. The site would be a stable void pocket inside the field: low coherence, self-sealed. **Status after test: untested** (the $G_{\text{eff}}$ mechanism operates through the Qi-gravity coupling $\xi$, which is not active in the base solver runs of §10).
+3. **Self-reinforcing $G_{\text{eff}}$.** The chakra geometry (`consciousness/chakras-as-cascade-bubbles.md` §7.3) amplifies effective gravity in high-$q$ regions—but at a trauma site with depressed $q$, the condensation that would restructure the region is suppressed. The site would be a stable void pocket inside the field: low coherence, self-sealed. Untested in the base solver runs of §10 (the $G_{\text{eff}}$ mechanism operates through the Qi-gravity coupling $\xi$, which is not active there).
 
-The honest Cassi account of why trauma might persist: the standing wave needs a *driving source*, and the driver test (§10.5) identified it as ongoing re-stimulation—a weak recurring trigger sustains the wake, and stopping the trigger releases it. What the test *also* supported: an oscillatory drive at the site accelerates the perturbation's decay and returns the gate to baseline (§10.4, drive run)—the first numerical evidence for the EMDR-analog claim.
+The Cassi account of why trauma might persist: the standing wave needs a *driving source*, and the driver test (§10.5) identified it as ongoing re-stimulation—a weak recurring trigger sustains the wake, and stopping the trigger releases it. The test also supported the decay side: an oscillatory drive at the site accelerates the perturbation's decay and returns the gate to baseline (§10.4, drive run)—the first numerical evidence for the EMDR-analog claim.
 
 ---
 
@@ -166,7 +166,7 @@ Because $b_1 = \varphi^{-3}$ is the largest baseline openness, **Wood (anger) re
 
 **Anger is the gateway emotion of trauma recovery**—the first emotion to return after resolving *any* trauma except anger-trauma itself. When fear-work completes, the released coherence flows 44.7% into Wood: the client gets angry. When grief-work completes: 46.6% into Wood: the client gets angry. When the anger-trauma itself resolves, the released coherence flows 44.7% into Fire: the client experiences relief, lightness, joy.
 
-This is the "anger phase" of trauma recovery—not as a clinical stage model, but as a **theorem of the redistribution matrix**. The order of emotional return is fixed: anger first (except after rage-work), then Earth (grounding, stabilization), then Metal (grief surfacing), then Fire (joy returning), with the residual channel last.
+This "anger phase" of trauma recovery is the **theorem of the redistribution matrix** applied clinically. The order of emotional return is fixed: anger first (except after rage-work), then Earth (grounding, stabilization), then Metal (grief surfacing), then Fire (joy returning), with the residual channel last.
 
 ### 5.3 Comparison with the Grief Sequence
 
@@ -180,11 +180,11 @@ The classic grief sequence (denial → anger → bargaining → depression → a
 | Depression | The still-locked residue: low $q$ shadow while the channel finishes closing |
 | Acceptance | 17.8% into Fire—joy/light returning; 6.8% residual Water (the sadness that never fully leaves) |
 
-The ordering—anger before bargaining before acceptance—follows from the magnitude ordering of row 4 ($0.466 > 0.288 > 0.178$). The framework does not *assume* the grief sequence; it derives the sequence's order from $\varphi$.
+The ordering—anger before bargaining before acceptance—follows from the magnitude ordering of row 4 ($0.466 > 0.288 > 0.178$): the framework derives the grief sequence's order from $\varphi$.
 
 ### 5.4 A Clinical Prediction
 
-**Prediction T2:** During trauma-focused therapy, the emotional profile of the client should show channels activating in the $R$-row order of the locked channel—with the first post-resolution emotion being anger (Wood) for every trauma type except anger-trauma, where it is relief (Fire). This is measurable with multi-dimensional affect ratings across treatment (the instrument from Prediction P3 of the emotions document).
+**Prediction TR2:** During trauma-focused therapy, the emotional profile of the client should show channels activating in the $R$-row order of the locked channel—with the first post-resolution emotion being anger (Wood) for every trauma type except anger-trauma, where it is relief (Fire). This is measurable with multi-dimensional affect ratings across treatment (the instrument from Prediction P3 of the emotions document).
 
 ---
 
@@ -207,7 +207,7 @@ The gate formalism adds the second axis: **each age window not only lands on dif
 | 34 | Third eye–crown | Third eye (n=162) | Water + Wood | Meaning, intuition wounds, vision |
 | 55 | Crown | Crown (n=166) | All balanced | Integration, legacy, mortality |
 
-**Prediction T6:** Retrospective developmental trauma inventories should show (a) the Fibonacci-age clustering already predicted, and (b) *channel-structured* differences between clusters—early trauma presenting with fear/rage-dominant symptom profiles and somatic location; mid trauma with trust/grief profiles and relational location; late trauma with meaning/identity profiles. The two predictions are locked together: age determines rung determines chakra determines channel.
+**Prediction TR6:** Retrospective developmental trauma inventories should show (a) the Fibonacci-age clustering already predicted, and (b) *channel-structured* differences between clusters—early trauma presenting with fear/rage-dominant symptom profiles and somatic location; mid trauma with trust/grief profiles and relational location; late trauma with meaning/identity profiles. The two predictions are locked together: age determines rung determines chakra determines channel.
 
 **Epistemic note:** The Fibonacci-age clustering is Speculative (per `cassi-psychology.md` §15). The channel refinement inherits that tier—it is consistent with the chakra affinity mapping (Hypothesized in the emotions document) but adds no independent confirmation.
 
@@ -224,7 +224,7 @@ This is why early trauma is described as "pre-verbal" and "in the body": its wak
 
 ## 7. Complex Trauma: Multiple Locks
 
-Complex PTSD is not a more intense single lock—it is **multiple standing waves at multiple rungs, often in different channels**:
+Complex PTSD is **multiple standing waves at multiple rungs, often in different channels**—a superposition of locks:
 
 $$\mathcal{T}_{\text{complex}} = \bigcup_k \mathcal{T}_k, \qquad k = 1, \ldots, N_{\text{events}}$$
 
@@ -252,13 +252,13 @@ Suppression differs from trauma in three ways:
 
 But the *consequence* is the same class of signature at lower intensity: one channel starved, its coherence held captive, the $R$-matrix blocked for that row. Chronic suppression therefore mimics trauma—the suppressed person shows the same channel-specific emotional range deficit, at a milder amplitude, without the frozen wake beneath it.
 
-This makes a useful diagnostic distinction: **a person with a channel locked by suppression can recover it through the channel's own dynamics (allowing the emotion, letting it complete); a person with a trauma lock cannot, because the standing wave keeps re-opening the channel no matter how it is approached.** The failure of "just feel it" in trauma is not resistance—it is the standing wave.
+This makes a useful diagnostic distinction: **a person with a channel locked by suppression can recover it through the channel's own dynamics (allowing the emotion, letting it complete); a person with a trauma lock cannot, because the standing wave keeps re-opening the channel no matter how it is approached.** The failure of "just feel it" in trauma is the standing wave re-opening the channel.
 
 ---
 
 ## 9. Trauma vs. Depression vs. Anxiety
 
-The psychology document (`cassi-psychology.md` §17) characterizes depression as chronic low-$q$ and anxiety as high-dispersion, high-frequency $\sigma_r$. Trauma is different in kind: **it is localized, not global**.
+The psychology document (`cassi-psychology.md` §17) characterizes depression as chronic low-$q$ and anxiety as high-dispersion, high-frequency $\sigma_r$. Trauma is different in kind: **it is localized**.
 
 | Condition | $\mathbf{b}$ | $\sigma_r$ | $q$ | Spatial structure |
 |---|---|---|---|---|
@@ -295,9 +295,9 @@ In each case, measure over time:
 - **Test**: while the standing wave persists, the phase distribution stays pinned at the initial event's phase (the channel stays open), $q$ at the site remains depressed below the field's global value, and $\sigma_r$ shows sustained oscillation with poor decay—the lock signature.
 - **Decisive variant**: introduce a second, $\varphi$-phased oscillation at the site (the EMDR analog—bilateral stimulation as a $\varphi$-structured drive). Prediction: when the driving frequency matches the standing wave's decay channel, the wave loses coherence and the phase distribution relaxes—the wake unfreezes.
 
-### 10.3 Epistemic Consequence (pre-test)
+### 10.3 Epistemic Consequence
 
-The mechanism layer of this document (standing wave pins channel openness; depressed $q$ is self-reinforcing) was **Hypothesized with a designed test**—it would graduate from Speculative once the PDE run was performed, exactly as the two-bubble resonance did for the empathy mapping (`consciousness/consciousness-from-phi.md` §3). The clinical layer (channel-to-trauma-type mapping, healing sequence, developmental clustering) remains Speculative regardless of the PDE outcome.
+The mechanism layer of this document is **Tested**: the standing-vs-radiating contrast returned a null (standing patterns do not pin the gate, §10.4), the drive layer is supported (re-stimulation sustains the wake, the $\varphi$-phased drive drains it, §10.4–10.8), and the gate-sign result is stated in §10.4. The clinical layer (channel-to-trauma-type mapping, healing sequence, developmental clustering) remains Speculative regardless of the PDE outcome.
 
 ### 10.4 Test Results (2026-07-31)
 
@@ -315,7 +315,7 @@ The mechanism layer of this document (standing wave pins channel openness; depre
 
 **φ-specificity follow-up** (`two-fluid/run_trauma_drive_compare.py`, same protocol): the relaxation is **not generic stirring**—it is frequency-specific. A drive at the same amplitude but a non-$\varphi$ period ($T = e \cdot P_0$, $e \approx 2.718$) does the opposite: $|\varepsilon|$ at the site *grows* to 188% of its initial value, the $q$-gap widens (0.053, above the undriven lock's 0.046), and the phase displacement persists (74% kept). The $\varphi$-phased drive closes the gap (0.003) and returns the phase to baseline; the off-resonance drive pumps the locked site. The EMDR-analog claim is supported in its strong form: the decay drive is $\varphi$-structured, not any oscillation.
 
-**Gate-sign finding**: the solver's conversion is $\text{conv} = -\lambda(1-q)\varepsilon$; the site's depressed $q$ therefore implies *elevated* openness $(1-q)$, mildly *increasing* local conversion. The earlier claim that "depressed $q$ closes the gate" (§2.3) had the sign inverted and is withdrawn.
+**Gate-sign finding**: the solver's conversion is $\text{conv} = -\lambda(1-q)\varepsilon$; the gate opens when $q$ is low and closes when $q$ is high—the site's depressed $q$ implies *elevated* openness $(1-q)$, mildly *increasing* local conversion (§2.3).
 
 **Interpretation**: a genuine frozen wake must be a *driven* structure—sustained by reflecting boundaries, ongoing re-stimulation, or another source outside this PDE's scope—rather than an un-driven standing pattern. The locking mechanism, if real, lives in the driving, not in the mode itself. The drive result suggests the *decay* side of the mechanism is sound: an external $\varphi$-phased oscillation can release a displaced gate.
 
@@ -353,7 +353,7 @@ Open question 1 asks what sets the processing-capacity threshold. The measurable
 
 ### 10.7 Drive Crossover: Where Does the $\varphi$-Phased Drain Turn On? (2026-07-31)
 
-The drive_compare (§10.4) found $\varphi \cdot P_0$ drives drain the site while $e \cdot P_0$ drives pump it at amp 0.3; the driver test (§10.5) found weak chronic re-exposure (rate 0.04/s) phase-blind. Two questions remained: at what intensity does the phase channel engage, and is the $\varphi$-specificity present at onset? Probed in `two-fluid/run_trauma_crossover.py` and `run_trauma_crossover_low.py` ($\lambda = 0.05$, $t = 2$, standing init, $P_0 = 0.041$):
+The drive_compare (§10.4) found $\varphi \cdot P_0$ drives drain the site while $e \cdot P_0$ drives pump it at amp 0.3; the driver test (§10.5) found weak chronic re-exposure (rate 0.04/s) phase-blind. Two questions remained: at what intensity does the phase channel engage, and is the $\varphi$-specificity present at onset? Probed in `two-fluid/run_trauma_crossover.py` and `two-fluid/run_trauma_crossover_low.py` ($\lambda = 0.05$, $t = 2$, standing init, $P_0 = 0.041$):
 
 | Drive | amp per step | rate | $\varepsilon$ retained at t=2 |
 |---|---|---:|---:|
@@ -384,43 +384,43 @@ Open question 2 and the foundation of the channel-to-trauma-type mapping (§4.1)
 
 ## 11. Predictions
 
-### T1: Channel-Specific Emotional Range Deficits
+### TR1: Channel-Specific Emotional Range Deficits
 
 **Claim:** Post-trauma emotional deficits are not global—they are specific to the channels complementary to the locked one, and they are **ke-alternating, not uniform** (`foundations/wu-xing-cycle-structure.md` §2). The ke control cycle transmits at $\kappa = \varphi^{-1}$: a Wood-locked survivor shows Earth fully starved, Fire partially starved (−38% of the lock excess), and Metal and Water *elevated* (+38%, +62%)—the pattern rotating with the locked channel. The ring also damps the locked channel by $\varphi^{-3}$ (23.6%) and is sub-critical (ring gain < 1), so the lock itself cannot self-sustain—consistent with the driver requirement (§10.5). Both survivors retain normal access to *their* locked channel, which is hyper-available. **Gate-level status (2026-08-01):** the alternating pattern is verified in the solver's ke round for all five lock channels—strict ke-order alternation read from the locked channel, sign pattern matching the fractions, threshold $\Delta_c = \varphi^{-4}$ exact, uniform-starvation counterfactual rejected (`two-fluid/run_trauma_c1_ring.py`); magnitudes follow the implementation's target-openness caps (`foundations/wu-xing-cycle-structure.md` §2.1 note). The affect-data test below is the remaining clinical leg.
 
 **Test:** Multi-dimensional affect ratings (the P3 instrument of the emotions document) in trauma-exposed populations, compared against the $\varphi^{-i}$ baseline hierarchy (Prediction P2 of the emotions document). The trauma profile should show one channel above the baseline prediction and the four others in the ke-alternating pattern (the locked channel's ke target starved most, the ke-released partner elevated), rather than a uniform shift.
 
-### T2: The Healing Sequence Follows the $R$-Matrix Rows
+### TR2: The Healing Sequence Follows the $R$-Matrix Rows
 
 **Claim:** As a specific trauma resolves, the returning emotions follow the $R$-row order of the locked channel. Anger precedes joy after fear-work (row 5: Wood 44.7% first); relief precedes anger after rage-work (row 1: Fire 44.7% first).
 
 **Test:** Longitudinal multi-dimensional affect ratings across trauma therapy. The sequence of first-surfacing emotions should match the row ordering, not a uniform or random order.
 
-### T3: Trigger Specificity Is Phase Matching
+### TR3: Trigger Specificity Is Phase Matching
 
 **Claim:** A trigger re-activates a trauma when its pentagon phase matches the original event's phase (emotions doc §4.1). Triggers are phase-matched, not merely associated.
 
 **Test:** Controlled trigger exposure with phase-content analysis of the stimuli (e.g., threat-phase vs. violation-phase cues) while measuring the re-activation of the locked channel's physiological signature. Mismatched-phase cues should produce weaker activation than matched-phase cues of equal intensity.
 
-### T4: $q$ Depression at the Trauma Site
+### TR4: $q$ Depression at the Trauma Site
 
 **Claim:** The coherence $q$ at the trauma's somatic locus is depressed relative to the field's global value, and drops further under trigger exposure (dissociation).
 
 **Test:** Physiological proxies for $q$ (sympathetic-parasympathetic phase synchrony, inter-hemispheric coherence—emotions doc P5) measured at rest and under trigger exposure, with somatic localization via the chakra proxies (skin conductance, HRV coherence—predictions C4/C5 of the chakra document).
 
-### T5: $\sigma_r$ Brittleness
+### TR5: $\sigma_r$ Brittleness
 
 **Claim:** Trauma presents as *brittle* dispersion—high variance with poor recovery—rather than the steady high dispersion of anxiety.
 
 **Test:** Time series of $\sigma_r$ proxies (HRV variance, skin conductance variance) with perturbation-recovery protocols. Trauma should show slow recovery after perturbation; anxiety should show sustained elevation without the spike-recovery asymmetry.
 
-### T6: Developmental Trauma Clusters by $\varphi$-Age AND Channel
+### TR6: Developmental Trauma Clusters by $\varphi$-Age AND Channel
 
 **Claim:** The Fibonacci-age clustering (`cassi-psychology.md` §15) carries channel content: early trauma (ages 2–5) presents as fear/rage with somatic location; mid trauma (8–13) as trust/grief with relational location; late trauma (21+) as meaning/identity with expressive location.
 
 **Test:** Retrospective developmental trauma inventories with multi-dimensional symptom profiles. The age-of-trauma distribution should show Fibonacci clustering, and the symptom profile should shift with age cluster as predicted.
 
-### T7: Standing Patterns vs. Driven Structures (tested: null un-driven; driver identified)
+### TR7: Standing Patterns vs. Driven Structures (tested: null un-driven; driver identified)
 
 **Claim (tested 2026-07-31):** an un-driven standing pattern does **not** pin the gate—it decays at the same conversion-driven rate as a radiating packet (42% vs 44% retained over $t=10$ at $\lambda=0.1$; q-gap closes in both). The frozen wake is a *driven* structure, and the driver test (§10.5, `two-fluid/run_trauma_driver.py`) identifies the sustainer as ongoing re-stimulation: a weak recurring trigger (0.005% of the event peak per step) holds the site at 80% of event intensity with $q$ depressed and the phase displaced, and stopping the trigger releases it ($|\varepsilon|$ to 22%, q-gap +0.008, phase 64% returned, by $t=20$). The decay side is also supported: a $\varphi$-phased oscillation at period $\varphi \cdot P_0$ accelerates relaxation (65% vs 91% retained) and is $\varphi$-specific—the same-amplitude $e \cdot P_0$ drive pumps the site to 188% (§10.4).
 
@@ -437,18 +437,18 @@ Open question 2 and the foundation of the channel-to-trauma-type mapping (§4.1)
 
 ### Tested (2026-07-31, PDE runs in §10.4–10.8)
 
-- The 5-channel gate's conversion sign: $\text{conv} \propto -(1-q)\varepsilon$—low $q$ means the gate is *open*, conversion active (falsified the earlier "depressed $q$ closes the gate" claim, §2.3)
+- The 5-channel gate's conversion sign: $\text{conv} \propto -(1-q)\varepsilon$—low $q$ means the gate is *open* and conversion active; the gate opens when $q$ is low and closes when $q$ is high (§2.3)
 - Standing vs radiating contrast: **null**—no extra persistence for the standing pattern in the periodic-box solver
-- EMDR-analog drive: **positive and φ-specific**—a $\varphi$-phased oscillation at the site accelerates relaxation and returns the gate to baseline, while the same-amplitude non-$\varphi$ drive pumps the site instead (§10.4, `run_trauma_drive_compare.py`)
-- Perpetual stimulus sustains the wake: a weak ongoing trigger (0.005% of the event peak per step) holds $|\varepsilon|$ at 80% of event intensity, widens the q-gap 4.5×, and keeps the phase displaced (§10.5, `run_trauma_driver.py`)
+- EMDR-analog drive: **positive and φ-specific**—a $\varphi$-phased oscillation at the site accelerates relaxation and returns the gate to baseline, while the same-amplitude non-$\varphi$ drive pumps the site instead (§10.4, `two-fluid/run_trauma_drive_compare.py`)
+- Perpetual stimulus sustains the wake: a weak ongoing trigger (0.005% of the event peak per step) holds $|\varepsilon|$ at 80% of event intensity, widens the q-gap 4.5×, and keeps the phase displaced (§10.5, `two-fluid/run_trauma_driver.py`)
 - Extinction: stopping the trigger releases the site—$|\varepsilon|$ falls below the undriven curve, the q-gap closes, the phase returns (§10.5)
 - Ambient-rate phase-blindness: at chronic-trigger rates (0.04/s), $\varphi$-pulsed and $e$-pulsed envelopes hold identical wakes—re-exposure accumulates by mean rate (§10.5); the $\varphi$-specific drain engages only at rates ≳50/s, with specificity present at onset (§10.7)
-- Capacity null: a second identical event on a pre-stressed site leaves the same trace as the first on a quiet site—background coherence does not modulate susceptibility (§10.6, `run_trauma_capacity.py`)
-- Sharp crossover of the $\varphi$-phased drain: absent below rate ~5/s, fully engaged by 50/s, with $\varphi$-specificity present at onset (the $e \cdot P_0$ counterfactual is neutral at the first draining amplitude) (§10.7, `run_trauma_crossover.py`, `run_trauma_crossover_low.py`)
-- Representability bound: the positivity clamp confines the field angle to the first quadrant—only Wood and Fire are representable in the field angle; Earth/Metal/Water events clamp onto Fire/Wood (§10.8, `run_trauma_phase_channels.py`)
+- Capacity null: a second identical event on a pre-stressed site leaves the same trace as the first on a quiet site—background coherence does not modulate susceptibility (§10.6, `two-fluid/run_trauma_capacity.py`)
+- Sharp crossover of the $\varphi$-phased drain: absent below rate ~5/s, fully engaged by 50/s, with $\varphi$-specificity present at onset (the $e \cdot P_0$ counterfactual is neutral at the first draining amplitude) (§10.7, `two-fluid/run_trauma_crossover.py`, `two-fluid/run_trauma_crossover_low.py`)
+- Representability bound: the positivity clamp confines the field angle to the first quadrant—only Wood and Fire are representable in the field angle; Earth/Metal/Water events clamp onto Fire/Wood (§10.8, `two-fluid/run_trauma_phase_channels.py`)
 - Phase-channel selectivity: Fire events lock Fire and Wood events lock Wood, persistent through $t=10$—the lock channel tracks the event direction across the representable arc (§10.8)
-- The ke control ring in the gate: `gate_model='five_ke'` reproduces the derived ring algebra exactly (≤ 6×10⁻⁴); excess channels restrain ke targets and release ke partners; decay with no driver unchanged (no self-sustenance); the $\varphi$-drive still dissolves (C3 of `foundations/wu-xing-cycle-structure.md`, `two-fluid/run_trauma_ke_ring.py`)
-- The C1 alternating profile at the gate level: all five lock channels produce strict ke-order alternation with the predicted sign pattern; the threshold $\Delta_c = \varphi^{-4}$ is exact; the no-driver ring jams rather than relaxes (relaxation lives in the conversion coupling); uniform starvation rejected (`two-fluid/run_trauma_c1_ring.py`, 2026-08-01)
+- The ke control ring in the gate: `gate_model='five_ke'` reproduces the derived ring algebra exactly (≤ 6×10⁻⁴); excess channels restrain ke targets and release ke partners; decay with no driver unchanged (no self-sustenance); the $\varphi$-drive still dissolves (WX3 of `foundations/wu-xing-cycle-structure.md`, `two-fluid/run_trauma_ke_ring.py`)
+- The WX1 alternating profile at the gate level: all five lock channels produce strict ke-order alternation with the predicted sign pattern; the threshold $\Delta_c = \varphi^{-4}$ is exact; the no-driver ring jams rather than relaxes (relaxation lives in the conversion coupling); uniform starvation rejected (`two-fluid/run_trauma_c1_ring.py`, 2026-08-01)
 
 ### Hypothesized (derivation supplied, partially tested)
 
@@ -459,8 +459,8 @@ Open question 2 and the foundation of the channel-to-trauma-type mapping (§4.1)
 ### Speculative (no current test design)
 
 - The channel-to-trauma-type mapping beyond the representable arc (which of the five channels locks is set by the event phase in the $\mathbf{b}$-manifold and the person's interpretation; the PDE supports the stimulus side only for Wood and Fire, §10.8)
-- The clinical healing sequence prediction (T2) as applied to real therapy outcomes
-- The Fibonacci-age × channel developmental structure (T6)
+- The clinical healing sequence prediction (TR2) as applied to real therapy outcomes
+- The Fibonacci-age × channel developmental structure (TR6)
 - The claim that EMDR's bilateral stimulation is a $\varphi$-structured decay drive—**supported at the PDE level**: the analog drive at period $\varphi \cdot P_0$ relaxes the locked site while the same-amplitude drive at a non-$\varphi$ period pumps it (§10.4). The clinical mapping remains untested.
 
 ### Not Claimed
@@ -506,8 +506,8 @@ Open question 2 and the foundation of the channel-to-trauma-type mapping (§4.1)
 - `two-fluid/run_trauma_drive_compare.py`—the φ-specificity follow-up (φ·P₀ vs e·P₀ drive, 2026-07-31)
 - `two-fluid/run_trauma_driver.py`—the driver-question follow-up (weak-trigger envelopes + extinction run, 2026-07-31)
 - `two-fluid/run_trauma_capacity.py`—the capacity/susceptibility test (re-traumatization binary, 2026-07-31)
-- `two-fluid/run_trauma_crossover.py` and `run_trauma_crossover_low.py`—the drive-crossover probes (onset bracket + low-amplitude $\varphi$-specificity, 2026-07-31)
+- `two-fluid/run_trauma_crossover.py` and `two-fluid/run_trauma_crossover_low.py`—the drive-crossover probes (onset bracket + low-amplitude $\varphi$-specificity, 2026-07-31)
 - `two-fluid/run_trauma_phase_channels.py`—the phase-channel selectivity test (representability bound + Wood/Fire binary, 2026-07-31)
 - `two-fluid/run_trauma_ke_ring.py`—the ke-ring gate test (five vs five_ke vs five_ke+φ-drive, 2026-07-31)
-- `two-fluid/run_trauma_c1_ring.py`—the C1 gate test (single-lock ke-alternating response, threshold, no-driver jam, 2026-08-01)
+- `two-fluid/run_trauma_c1_ring.py`—the WX1 gate test (single-lock ke-alternating response, threshold, no-driver jam, 2026-08-01)
 - `cassi-physics.md`—physics guide, epistemic tiers

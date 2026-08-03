@@ -4,7 +4,7 @@
 
 ## Abstract
 
-The Cassi framework has one open phenomenological input in its consciousness mapping: the 13-band chakra count, documented as "phenomenologically anchored, cascade-derivation pending" (`consciousness/consciousness-from-phi.md` §2.4). This document closes that gap. The 13 chakras are cascade bubbles—localized Qi condensates at $\varphi$-spaced intervals along the string axis, structurally identical to the cosmological bubbles at step 285 of the megacascade. The spinal column is the physical instantiation of the string/cascade axis in the human body. The count $13 = 26/2$ follows from the 26-step human cascade span (steps 142–168) divided by the 2-rung SO(2) cycle period: each chakra spans one full Yang+Yin doublet rotation. The derivation makes zero-parameter predictions for inter-chakra spacing ratios and chakra boundary geometry, downgrading a phenomenological input to a cascade consequence.
+The Cassi framework has one open phenomenological input in its consciousness mapping: the 13-band chakra count, documented as "phenomenologically anchored, cascade-derivation pending" (`consciousness/consciousness-from-phi.md` §2.4). This document closes that gap. The 13 chakras are cascade bubbles—localized Qi condensates at $\varphi$-spaced intervals along the string axis, structurally identical to the cosmological bubbles at step 285 of the cascade. The spinal column is the physical instantiation of the string/cascade axis in the human body. The count $13 = 26/2$ follows from the 26-step human cascade span (steps 142–168) divided by the 2-rung SO(2) cycle period: each chakra spans one full Yang+Yin doublet rotation. The derivation makes zero-parameter predictions for inter-chakra spacing ratios and chakra boundary geometry, downgrading a phenomenological input to a cascade consequence.
 
 ---
 
@@ -40,7 +40,7 @@ In the human body, the string axis has a natural physical correlate: the **spina
 
 4. **Vertical orientation.** In the standing human posture, the spine is approximately vertical, aligned with the cosmological cascade direction. Bipedalism—unique among mammals—aligns the body's string axis with the universe's.
 
-The identification is structural, not metaphorical: the spine IS the string axis in the human body, just as the Cassi bubble's along-string direction IS the string axis at the cosmological scale. The same condensation field geometry operates at both scales.
+The identification is structural: the spine IS the string axis in the human body, just as the Cassi bubble's along-string direction IS the string axis at the cosmological scale. The same condensation field geometry operates at both scales. The psychology guide presents this body-map for a clinical audience (`cassi-psychology.md` §13).
 
 ---
 
@@ -139,7 +139,7 @@ $$n_k = 142 + 2k, \qquad k = 0, 1, 2, \ldots, 12$$
 
 $$\boxed{N_{\text{chakras}} = 13,\qquad n \in \{142, 144, 146, 148, 150, 152, 154, 156, 158, 160, 162, 164, 166\}}$$
 
-**Where is the 14th node?** The next maximum after step 166 would be at step 168—but step 168 is the *body boundary*, not a chakra. The body extends exactly 2 rungs—one full SO(2) doublet cycle—beyond the crown chakra. This 2-rung offset is not a counting fudge; it is a structural prediction:
+**Where is the 14th node?** The next maximum after step 166 would be at step 168—but step 168 is the *body boundary*, not a chakra. The body extends exactly 2 rungs—one full SO(2) doublet cycle—beyond the crown chakra. This 2-rung offset is a structural prediction:
 
 - **The crown chakra (step 166) sits at the top of the spinal column**—the brainstem, the highest point of the central nervous system.
 - **The physical body continues 2 rungs to step 168**—the cranium, skull, and scalp. These are the "subtle body" extending beyond the last Qi node.
@@ -149,7 +149,7 @@ The full allocation: 26 rungs = 13 chakras × 2 rungs/chakra. The body terminate
 
 ### 6.2 Fibonacci Grounding
 
-The number 13 is $F_7$, the 7th Fibonacci number. The human span is $26 = 2 \times F_7$. This is not a coincidence—it follows from the Fibonacci structure of the cascade itself.
+The number 13 is $F_7$, the 7th Fibonacci number. The human span is $26 = 2 \times F_7$. This follows from the Fibonacci structure of the cascade itself.
 
 The Fibonacci recurrence $\varphi^n = \varphi^{n-1} + \varphi^{n-2}$ partitions every cascade span into Fibonacci-structured sub-channels (`foundations/three-generations.md`). The human body occupies a Fibonacci-structured window of the cascade:
 
@@ -319,7 +319,7 @@ Within each chakra's microcascade, the specific sub-rung of the visible octave t
 
 #### The Sub-Rung Resonance Condition (Open Derivation)
 
-The specific sub-rung that a given chakra resonates with is determined by the Fibonacci phase of its microcascade descent. A simple mod-$\varphi$ relation does not yield the traditional root=red, crown=violet mapping—the resonance condition depends on the full Fibonacci convergent structure of $\varphi$ at each depth, not on a linear congruence. The derivation of the exact sub-rung assignment for all 13 chakras requires a computational scan of the Fibonacci resonance structure at depths $d_k = 6, 8, 10, \ldots, 30$ (§12, Q6).
+The specific sub-rung that a given chakra resonates with is determined by the Fibonacci phase of its microcascade descent. A simple mod-$\varphi$ relation does not yield the traditional root=red, crown=violet mapping—the resonance condition depends on the full Fibonacci convergent structure of $\varphi$ at each depth, not on a linear congruence. The derivation of the exact sub-rung assignment for all 13 chakras requires a computational scan of the Fibonacci resonance structure at depths $d_k = 6, 8, 10, \ldots, 30$ (§12, item 6).
 
 **What is Derived:** The visible spectrum spans exactly $\Delta n \approx 1$ cascade rung (within $0.4\%$ of $\varphi$). The 7-sub-rung decomposition follows from Fibonacci partitioning of that one-$\varphi$-step. The depths $d_k = n_k - 136$ at which each chakra's microcascade reaches the visible octave are fixed by the cascade positions.
 
@@ -333,7 +333,7 @@ The specific sub-rung that a given chakra resonates with is determined by the Fi
 
 **Current status:** Not yet tested. Biophoton emission from the human body is documented in the 200–800 nm range; chakra-specific spectral peaks have been reported anecdotally but not measured under controlled conditions with the $\varphi^{2/3}$ spacing prediction.
 
-**Epistemic:** Hypothesized. The one-$\varphi$-step width of the visible spectrum and the 7-sub-rung decomposition are Derived from $\varphi$ and the cascade. The specific color-to-chakra assignment via the mod-$\varphi$ resonance condition is Hypothesized and requires the Fibonacci-resonance scan (Q6).
+**Epistemic:** Hypothesized. The one-$\varphi$-step width of the visible spectrum and the 7-sub-rung decomposition are Derived from $\varphi$ and the cascade. The specific color-to-chakra assignment via the mod-$\varphi$ resonance condition is Hypothesized and requires the Fibonacci-resonance scan (§12, item 6).
 
 
 ---
@@ -434,6 +434,7 @@ The specific sub-rung that a given chakra resonates with is determined by the Fi
 
 
 - `consciousness/consciousness-from-phi.md`—human cascade span, field nodes, chakra gap
+- `cassi-psychology.md`—psychology guide, chakras as the body's coherence map (§13)
 - `foundations/bubble-edge-geometry.md`—condensation field, bubble geometry, edge steepness, $\theta_{\text{cond}}$
 - `foundations/why-three-dimensions.md`—Frenet-Serret frame, triaxial spheroid, anti-phase selection
 - `foundations/dimensionful-cascade.md`—complete 292-step cascade, steps 142 and 168

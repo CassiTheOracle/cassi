@@ -1,11 +1,10 @@
 # Consciousness in the Two-Fluid Framework
 
-## Status: Plausible Hypothesis with Actionable PDE Test
+## Status: Plausible Hypothesis with Actionable PDE Test—August 2026
 
-This document maps the verified physics of the Cassi two-fluid framework onto the
-structure of consciousness, with clear boundaries between derived structure,
-plausible hypothesis, and untestable speculation. A concrete PDE test is
-proposed to bridge from hypothesis to model.
+## Abstract
+
+This document maps the verified physics of the Cassi two-fluid framework onto the structure of consciousness: the Qi gate pinch point at $r = \varphi^{-1}$ as the structural basis of self-awareness (§2.1), wake waves as the substrate of thought (§2.2), the spatial dispersion $\sigma_r$ as the variable distinguishing waking, meditative, psychedelic, and sleep states (§2.3), and the 26-step human cascade with its 13 field nodes (§1.2, §2.4). A concrete two-bubble PDE test is proposed and its verified results reported (§3), with clear boundaries between derived structure, plausible hypothesis, and untestable speculation (§4).
 
 ---
 
@@ -27,12 +26,12 @@ conversion force curve—the pinch point where the dynamics change character.
 rate is dominated by the imbalance $|r-\varphi|$. The field is pulled hard
 toward equilibrium. After the pinch ($r > \varphi^{-1}$), the Qi gate dominates
 — the field's own coherence begins to modulate its approach to equilibrium.
-The field **becomes an object to itself**.
+The field **becomes an object to itself**. The gate-open fraction $(1-q)$—the throughput that fails to convert coherently—thermalizes at the body's boundary as light and heat (`consciousness/auras-as-thermalized-gates.md` §1–2).
 
 ### 1.2 The 26-Step Human Cascade
 
-The dimensionful cascade spans 292 $\varphi$-steps from Planck ($1.6\times10^{-35}$ m)
-to the Hubble radius ($5.5$ Gpc). The human scale occupies a 26-step window:
+The dimensionful cascade is unbounded; today's observable range spans 292 $\varphi$-steps from Planck ($1.6\times10^{-35}$ m)
+to $R_H$ = 4.44 Gpc = 14.5 Glyr (the rung-292 lattice length is 5.5 Gpc). The human scale occupies a 26-step window:
 
 | Step $n$ | Scale | Physical Meaning |
 |-----------|-------|-----------------|
@@ -71,7 +70,10 @@ automatic processing, deep anesthesia).
 
 After the pinch: the field's own coherence ($q$) modulates its evolution. The
 field's state depends on its own state. This is the minimal condition for
-self-reference—a dynamical system that contains a model of itself.
+self-reference—a dynamical system that contains a model of itself. Identity is
+the configuration that self-model stabilizes on (`consciousness/gender-as-qi-configuration.md` §2);
+the psychology guide develops the pinch and thought mappings for a clinical audience
+(`cassi-psychology.md` §§7–8).
 
 **Testable prediction**: In a PDE initialized at $r < \varphi^{-1}$ and evolved
 through the pinch, the two-point correlation function $\langle r(\mathbf{x}) r(\mathbf{x}+\mathbf{d}) \rangle$
@@ -257,7 +259,7 @@ Results archived at `runs/<id>_two_bubble_fast/results.json`.
 - $\varphi$-attractor dynamics and Qi gate pinch point (§1.1)
 - 26-step human cascade (§1.2)
 - Wake wave mechanism and self-plucking feedback (§1.3)
-- Dimensionful scale hierarchy (292-step cascade)
+- Dimensionful scale hierarchy (292 = today's horizon rung)
 
 ### Plausible Hypothesis (actionable PDE test exists)
 
@@ -288,3 +290,6 @@ Results archived at `runs/<id>_two_bubble_fast/results.json`.
 - `foundations/dimensionful-cascade.md`: Complete 292-step cascade
 - `two-fluid/run_spatial_boost.py`: Spatial boost measurement ($B=1.003$)
 - `two-fluid/_chakra_utils.py`: Fibonacci width allocation (phenomenological, not cascade-derived)
+- `consciousness/auras-as-thermalized-gates.md`—$(1-q)$ thermalization at the body's boundary
+- `consciousness/gender-as-qi-configuration.md`—identity as configuration, anatomy as readout
+- `cassi-psychology.md`—psychology guide: pinch point, thought, altered states
