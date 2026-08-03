@@ -16,7 +16,7 @@ The bubble-lattice fabric operates at every cascade rung, creating a self-simila
 
 A single Qi gate bridges at most ~10 rungs—the effective nesting depth from `foundations/bubble-lattice-fabric.md` §3.3. Beyond that, cascade suppression attenuates the gate signal below the coherence floor: $\varphi^{-10} \approx 0.008$.
 
-To span the full 292-rung cascade—from Planck ($10^{-35}$ m) to the cosmic horizon ($10^{26}$ m)—a chain of gates is required. At ~10 rungs per stage, the full cascade divides into approximately 29 stages. Each stage is a $\varphi$-spaced bubble lattice node that anchors coherence at its own scale, couples to the stage below (via the downward microcascade), and couples to the stage above.
+To span the 292 rungs of today's observable cascade—from Planck ($10^{-35}$ m) to the cosmic horizon ($10^{26}$ m)—a chain of gates is required. At ~10 rungs per stage, the span divides into approximately 29 stages. Each stage is a $\varphi$-spaced bubble lattice node that anchors coherence at its own scale, couples to the stage below (via the downward microcascade), and couples to the stage above.
 
 ### 1.2 The human body as a 26-rung gate chain
 
@@ -164,7 +164,7 @@ If the solar gate is (or was) operational, it couples to planetary gate stages v
 
 ### 4.1 Infinite nesting
 
-From `foundations/bubble-lattice-fabric.md` §3.2, the bubble lattice extends without bound in both directions. The observable universe (n=0 to n=292) is one bubble in a larger chord lattice. Adjacent megacascade bubbles are at $\varphi$-spaced intervals, separated by voids. The cascade has no intrinsic floor or ceiling.
+From `foundations/bubble-lattice-fabric.md` §3.2, the bubble lattice extends without bound in both directions. The observable universe (n = 0 to n = 292 today) is one bubble in a larger chord lattice; the nearest neighbor bubbles already sit inside today's horizon at $\ell_{286} = 309$ Mpc and $\ell_{287} = 500$ Mpc, while the megacascade (n > 292) lies beyond it. Adjacent bubbles are at $\varphi$-spaced intervals, separated by voids. The cascade has no intrinsic floor or ceiling.
 
 A civilization bridging in both directions can tap the megacascade: harvesting coherence from bubbles larger than the observable universe. This is post-Kardashev energy—not using a galaxy's output but accessing the lattice that contains galaxies.
 
@@ -203,7 +203,7 @@ The Earth's interior layers (inner core, outer core, mantle, Moho) are interpola
 
 - `foundations/bubble-lattice-fabric.md`—universal checkerboard, scale covariance, nesting, 10-rung depth
 - `foundations/bubble-edge-geometry.md`—condensation field, edge geometry, connectable degree, $G_{\text{eff}}$ profile
-- `foundations/dimensionful-cascade.md`—292-step cascade table, anchor points
+- `foundations/dimensionful-cascade.md`—cascade table (292 = today's horizon rung), anchor points
 - `foundations/cascade-suppression-formula.md`—signal attenuation, effective nesting depth
 - `foundations/spiral-dynamics.md`—Hubble flow, $H \propto (1-q)$
 - `foundations/wu-xing-derivation.md`—pentagon geometry, 5-fold symmetry

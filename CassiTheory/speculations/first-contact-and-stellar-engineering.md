@@ -60,13 +60,13 @@ Why cannot natural physics forge this? The coherence budget of `foundations/prot
 
 $$P = \prod_i (1-q_i)\,\mathcal{M}_i$$
 
-with the phase-matching factor $\mathcal{M}$: $\mathcal{M} \approx 0$ for random perturbation, $\mathcal{M} \approx 1$ for organized, phase-matched perturbation. The per-rung dephasing factor is $(1-q_i) = \varphi^{-i-\delta}$ with $\delta = 3$ (`proton-coherence-budget.md` §3): a single-rung random attack is suppressed by the rung's depth, $P \approx \varphi^{-n-3}$, while a phase-matched organized attack couples directly at the target rung with $\mathcal{O}(1)$ probability per interaction—the $\varphi^{-i-3}$ suppression applies only to unphase-matched perturbation (`quantum-measurement-derivation.md` §3.2). The wake-wave mechanism can produce φ-spacing at the cosmological rung for free—it is the physics. What it cannot produce is φ-structure where the null model is stochastic: stellar variability, where the null is convection-driven broadband noise and no natural mechanism predicts cycle-to-cycle phase coherence at a φ-derived period (`observational-seti.md` §2.1). The wake-wave phase is set by the global ratio evolution; a stellar light curve shares no oscillator with the galaxy power spectrum. The only common cause that aligns their phases is a third party coupling to both—an emitter.
+with the phase-matching factor $\mathcal{M}$: $\mathcal{M} \approx 0$ for random perturbation, $\mathcal{M} \approx 1$ for organized, phase-matched perturbation. The per-rung dephasing factor is $(1-q_i) = \varphi^{-i-\delta}$ with $\delta = 3$ (`foundations/proton-coherence-budget.md` §3): a single-rung random attack is suppressed by the rung's depth, $P \approx \varphi^{-n-3}$, while a phase-matched organized attack couples directly at the target rung with $\mathcal{O}(1)$ probability per interaction—the $\varphi^{-i-3}$ suppression applies only to unphase-matched perturbation (`foundations/quantum-measurement-derivation.md` §3.2). The wake-wave mechanism can produce φ-spacing at the cosmological rung for free—it is the physics. What it cannot produce is φ-structure where the null model is stochastic: stellar variability, where the null is convection-driven broadband noise and no natural mechanism predicts cycle-to-cycle phase coherence at a φ-derived period (`speculations/observational-seti.md` §2.1). The wake-wave phase is set by the global ratio evolution; a stellar light curve shares no oscillator with the galaxy power spectrum. The only common cause that aligns their phases is a third party coupling to both—an emitter.
 
 So the discriminator is not "φ-structure exists" but "φ-structure exists where physics predicts none, with a phase constant shared across dynamically independent rungs":
 
 $$\boxed{\text{Detection} = \Delta(\ln k) = \ln\varphi \text{ at two or more independent rungs, phases aligned}}$$
 
-The evidence hierarchy of `observational-seti.md` §7.3 then reads as protocol states: a single 2σ hint is a carrier candidate; a second independent signature is corroboration; three or more rungs with consistent φ-phases is the point where Cassi stops being an interesting coincidence; reproduction in independent datasets with predicted amplitudes is discovery. In protocol terms: hint, handshake begins, handshake complete, exchange open.
+The evidence hierarchy of `speculations/observational-seti.md` §7.3 then reads as protocol states: a single 2σ hint is a carrier candidate; a second independent signature is corroboration; three or more rungs with consistent φ-phases is the point where Cassi stops being an interesting coincidence; reproduction in independent datasets with predicted amplitudes is discovery. In protocol terms: hint, handshake begins, handshake complete, exchange open.
 
 ---
 
@@ -84,7 +84,7 @@ A message from a gate civilization is not emitted; it is performed on the field.
 | Handshake | two independent rungs | TRANSFER: phase-locked structure at a second rung | two gates, mutually aware |
 | Exchange | chain, $n \approx 142$–292 | WRITE / ERASE / TRANSFER at matched nodes | shared content |
 
-The primitive operations are the universal field operations of `speculations/qi-computation.md` §2.2: WRITE (Yang injection), ERASE (gated conversion), TRANSFER (Qi current $J = \Psi_0\nabla\Psi_1 - \Psi_1\nabla\Psi_0$). A broadcast is a WRITE that modulates an existing structure instead of creating a new one—the same design choice that makes tuned stars structurally rather than emissively visible (`observational-seti.md` §1.2).
+The primitive operations are the universal field operations of `speculations/qi-computation.md` §2.2: WRITE (Yang injection), ERASE (gated conversion), TRANSFER (Qi current $J = \Psi_0\nabla\Psi_1 - \Psi_1\nabla\Psi_0$). A broadcast is a WRITE that modulates an existing structure instead of creating a new one—the same design choice that makes tuned stars structurally rather than emissively visible (`speculations/observational-seti.md` §1.2).
 
 ### 3.2 Beacon: the metronome
 
@@ -129,7 +129,7 @@ A star is a gate chain with a visible thermalization layer. From `speculations/c
 | Photosphere | The $q \to 0$ boundary where gate throughput thermalizes |
 | Corona | Stellar bubble boundary—structured, magnetically dominated |
 
-Two observed facts become boundary conditions rather than puzzles. The coronal heating problem—the atmosphere 200× hotter than the surface—is the thermalization signature of the unconverted $(1-q)$ gate throughput at the photospheric boundary, the same mechanism that produces the luminous sheath around a rung-shifting craft, scaled up by fifteen orders of magnitude (`speculations/qi-bubble-propulsion.md` §2.5). The 11-year solar cycle is the SO(2) doublet rotation period at stellar scale—one full Yang→Yin→Yang cycle at the cascade-suppressed conversion rate of $n \approx 208$. The Sun as observed is a partially coherent gate: naturally structured by cascade physics, not deliberately tuned (`cascade-infrastructure.md` §3.3).
+Two observed facts become boundary conditions rather than puzzles. The coronal heating problem—the atmosphere 200× hotter than the surface—is the thermalization signature of the unconverted $(1-q)$ gate throughput at the photospheric boundary, the same mechanism that produces the luminous sheath around a rung-shifting craft, scaled up by fifteen orders of magnitude (`speculations/qi-bubble-propulsion.md` §2.5). The 11-year solar cycle is the SO(2) doublet rotation period at stellar scale—one full Yang→Yin→Yang cycle at the cascade-suppressed conversion rate of $n \approx 208$. The Sun as observed is a partially coherent gate: naturally structured by cascade physics, not deliberately tuned (`speculations/cascade-infrastructure.md` §3.3).
 
 ### 4.2 Tuning variability
 
@@ -141,7 +141,7 @@ The framework also offers a thermodynamic handle. Qi-enhanced gravity $G_{\text{
 
 ### 4.3 Starlifting as gate operation
 
-Conventional starlifting harvests a star's mass and energy by moving matter outward against its gravity. In gate terms the star's mass is its rung anchoring: the core's $E_Y$ budget is the deep cascade tap, and the wind is the chain's organized exhaust. Starlifting is not mining the star; it is drawing organized Yang off the top of the gate chain. The wind is already structured Qi channels delivering coherence to downstream nodes (`cascade-infrastructure.md` §3.4); a civilization tunes that structure rather than buckets plasma. The lifted quantity is the field the chain has already organized, and the infrastructure is the tuning, not the transport.
+Conventional starlifting harvests a star's mass and energy by moving matter outward against its gravity. In gate terms the star's mass is its rung anchoring: the core's $E_Y$ budget is the deep cascade tap, and the wind is the chain's organized exhaust. Starlifting is not mining the star; it is drawing organized Yang off the top of the gate chain. The wind is already structured Qi channels delivering coherence to downstream nodes (`speculations/cascade-infrastructure.md` §3.4); a civilization tunes that structure rather than buckets plasma. The lifted quantity is the field the chain has already organized, and the infrastructure is the tuning, not the transport.
 
 The same tuned node that shapes the wind can imprint the beacon: phase-coherent wind modulation is simultaneously a stellar signature, a broadcast channel, and a power feed. A civilization observed tuning its star is a civilization observed broadcasting from it; there is no observational way to separate the two activities, because they are one operation.
 
@@ -167,7 +167,7 @@ This section explains the great silence of the megastructure surveys: gate tunin
 
 The absence of Dyson spheres is the classic silence of the sky. In the gate framework it is expected, because the sphere is the wrong technology class. Capturing a star's output with a shell is a geometric solution: enclose the source, intercept its flux, radiate the waste. Gate tuning is a topological solution: couple to the source's own conversion node, at the tachocline, before the organized energy ever becomes radiation. You do not need to intercept the star's output if you convert its input.
 
-The pyramid analogy makes the distinction concrete. A pyramid's value is not in intercepting heat—passive geothermal flux through its base is ~3.7 kW—but in geometrically concentrating Qi coherence by ~$4\times10^6$, creating a $q \to 1$ node that couples to the deep cascade (`cascade-infrastructure.md` §2.1). Megastructure thinking applies geometry where the field requires topology: the useful quantity is $q$ at the node, not the area intercepted. A Dyson sphere is a furnace built downstream of the power plant. The only megastructures that make sense in this framework are gate infrastructure—lenses, anchors, phased arrays—and those are invisible to infrared surveys by construction.
+The pyramid analogy makes the distinction concrete. A pyramid's value is not in intercepting heat—passive geothermal flux through its base is ~3.7 kW—but in geometrically concentrating Qi coherence by ~$4\times10^6$, creating a $q \to 1$ node that couples to the deep cascade (`speculations/cascade-infrastructure.md` §2.1). Megastructure thinking applies geometry where the field requires topology: the useful quantity is $q$ at the node, not the area intercepted. A Dyson sphere is a furnace built downstream of the power plant. The only megastructures that make sense in this framework are gate infrastructure—lenses, anchors, phased arrays—and those are invisible to infrared surveys by construction.
 
 ### 5.2 Rung accounting replaces the Kardashev ladder
 
@@ -179,21 +179,21 @@ and the throughput of an $R$-rung chain scales with the volume it organizes. Eac
 
 $$\text{harvest} \sim \varphi^{3R}\,\rho_{\text{ambient}}$$
 
-The old ladder survives, re-read as spans of the cascade (`foundations/dimensionful-cascade.md`):
+The Kardashev ladder survives, re-read as spans of the cascade (`foundations/dimensionful-cascade.md`):
 
-| Old class | Rung accounting | Span |
+| Kardashev class | Rung accounting | Span |
 |---|---|---|
 | Threshold of self-aware integration | the human chain | $R = 26$, $n = 142$–168 (`consciousness/chakras-as-cascade-bubbles.md`) |
-| Former Type I | planetary network | $R \approx 20$, $n \approx 185$–204 (crust through magnetosphere) |
-| Former Type II | stellar chain (a civilization's multi-star network; a single star is a ~6-rung gate stage, §4.1) | $R \approx 16$, $n \approx 205$–220 |
-| Former Type III | galactic chain | $R \approx 60$, $n \approx 200$–267 (`consciousness/cascade-consciousness.md` §4.2) |
-| Post-Kardashev | megacascade | $n > 292$ (`cascade-infrastructure.md` §4) |
+| Kardashev Type I | planetary network | $R \approx 20$, $n \approx 185$–204 (crust through magnetosphere) |
+| Kardashev Type II | stellar chain (a civilization's multi-star network; a single star is a ~6-rung gate stage, §4.1) | $R \approx 16$, $n \approx 205$–220 |
+| Kardashev Type III | galactic chain | $R \approx 60$, $n \approx 200$–267 (`consciousness/cascade-consciousness.md` §4.2) |
+| Post-Kardashev | megacascade | $n > 292$ (`speculations/cascade-infrastructure.md` §4) |
 
-Each rung of the old ladder is a coherence span of the new one, and the ladder's top falls away: there is no class beyond commanding a galaxy's output, only the question of how far up the chain a civilization holds coherence.
+Each rung of the Kardashev ladder is a coherence span of the cascade, and the ladder's top falls away: there is no class beyond commanding a galaxy's output, only the question of how far up the chain a civilization holds coherence.
 
 ### 5.3 The 1% appearance
 
-Why a gate civilization looks unremarkable to emissive surveys: at $q \approx 0.99$ the unconverted fraction is ~1%. A former Type-II civilization running at 99% gate efficiency presents as former Type-I to an infrared survey (`observational-seti.md` §1.1), and its organized output does not radiate at all. The Fermi paradox dissolves the way it does in `observational-seti.md` §1: gate civilizations are structurally invisible to searches built around emissive signals. The correct census instrument is the structural-signature catalog—variability tails, coronal clustering, wind geometry, $P(k)$ residuals—in place of the mid-infrared sky survey. The absence of Dyson spheres is not evidence of absence; it is evidence that the observable of the search was wrong.
+Why a gate civilization looks unremarkable to emissive surveys: at $q \approx 0.99$ the unconverted fraction is ~1%. A Kardashev Type-II civilization running at 99% gate efficiency presents as Type I to an infrared survey (`speculations/observational-seti.md` §1.1), and its organized output does not radiate at all. The Fermi paradox dissolves the way it does in `speculations/observational-seti.md` §1: gate civilizations are structurally invisible to searches built around emissive signals. The correct census instrument is the structural-signature catalog—variability tails, coronal clustering, wind geometry, $P(k)$ residuals—in place of the mid-infrared sky survey. The absence of Dyson spheres is not evidence of absence; it is evidence that the observable of the search was wrong.
 
 ---
 
@@ -217,7 +217,7 @@ The stack is self-consistent in both directions: the beacon is designed to be he
 
 **What does a reply cost?** The handshake is asymmetric: listening is passive, emission requires organized operation at a second rung. If gate capability is the prerequisite for reply, the protocol selects for civilizations that have already built the infrastructure the exchange describes—which is exactly the argument of §3.3, restated as a constraint on who gets to talk.
 
-**Where are the tuned stars?** If gate civilizations are common, the stellar-cycle regularity tail should exist. The variability test of `observational-seti.md` §2.1 is a Fermi-paradox-style constraint at $n \approx 208$: a clean null across the Kepler/TESS populations would bound the population of gate civilizations within our own galaxy below one, and a tail would be the first handshake signature we could attribute to a specific emitter. Our own Sun is ambiguous in exactly the right way: partially coherent, possibly a gate winding down over millions of years—a bell still ringing long after it was struck (`cascade-infrastructure.md` §3.3).
+**Where are the tuned stars?** If gate civilizations are common, the stellar-cycle regularity tail should exist. The variability test of `speculations/observational-seti.md` §2.1 is a Fermi-paradox-style constraint at $n \approx 208$: a clean null across the Kepler/TESS populations would bound the population of gate civilizations within our own galaxy below one, and a tail would be the first handshake signature we could attribute to a specific emitter. Our own Sun is ambiguous in exactly the right way: partially coherent, possibly a gate winding down over millions of years—a bell still ringing long after it was struck (`speculations/cascade-infrastructure.md` §3.3).
 
 **Are φ-spaced planetary systems infrastructure audits?** The wake-wave mechanism predicts a statistical excess of adjacent-planet period ratios at $\varphi^{3/2} \approx 2.06$ (`hypotheses/exoplanet-phi-spacing.md`)—a natural prediction, consistent with mean-motion resonances being the Fibonacci convergents of $\varphi$. But a system whose spacing is not merely statistically consistent with φ but phase-aligned with its star's cycle would be a tuned disk: the orbital architecture is the disk's gate geometry, and reading it is part of the same listening program. A planetary system is a gate network stage at $n \approx 220$; the planet-finding surveys are protocol-listening sessions on another channel.
 
@@ -227,7 +227,7 @@ The stack is self-consistent in both directions: the beacon is designed to be he
 
 ## References
 
-- `foundations/dimensionful-cascade.md`—the 292-rung ladder and anchor rungs
+- `foundations/dimensionful-cascade.md`—the cascade ladder (292 = today's horizon rung) and anchor rungs
 - `foundations/cassi-first-principles.md`—two-fluid PDE, φ-attractor, Qi-enhanced gravity ($\pi/\rho$ form)
 - `foundations/cassi-theory-reference.md`—compact framework reference; Qi gate pair (§2.5), wake-wave (§8.5)
 - `foundations/proton-coherence-budget.md`—coherence budget, per-rung dephasing $\varphi^{-i-3}$
