@@ -29,7 +29,9 @@ def synthetic_pk(k, om0=0.31, amplitude=1.0, with_bao=True, with_phi=False, phi_
     """Smooth ΛCDM-like P(k) with optional BAO and optional ln-φ modulation."""
     # Smooth component: broken power law (approximate Eisenstein-Hu shape)
     k_pivot = 0.05
-    ns = 0.967
+    ns = 0.9691  # canonical n_s = 1 - 2φ⁻¹/N_e (N_e = 40); 0.967 was the legacy
+                 # 1 - 2/N_e form with N_e = 60. Tilt shapes only the smooth
+                 # component, which the search subtracts; recovery unaffected.
     pk = amplitude * (k / k_pivot)**ns
     # Turnover toward white noise at high k
     pk = pk / (1 + (k / 0.3)**2.5)

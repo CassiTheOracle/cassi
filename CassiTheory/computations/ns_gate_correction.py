@@ -5,14 +5,13 @@ n_s Gate Correction: Closed φ-Form Derivation
 
 Derives the Qi gate slow-roll correction to the scalar spectral index n_s
 in closed φ-power form. The leading-order result from the cascade e-fold
-count is n_s^0 = 1 - 2/N_e = 0.950. The observed value is 0.967.
+count is n_s^0 = 1 - 2/N_e = 0.950 (N_e = 40). The canonical closed form is
 
-The correction δn_s = +0.017 arises from the gate's partial transparency
-during the final e-folds of inflation. We derive:
+    n_s = 1 - 2φ⁻¹/N_e = 0.9691
 
-    n_s = 1 - 2φ⁻¹/N_e = 0.969
-
-with the correction δn_s = 2φ⁻²/N_e expressed entirely in φ-powers.
+with the correction δn_s = 2φ⁻²/N_e = 0.0191 expressed entirely in φ-powers
+(cf. observed n_s = 0.9649 ± 0.0042, +1.0σ). The 0.967 figure was the legacy
+1 - 2/N_e form with N_e = 60 (0.9667), superseded by the closed form.
 
 Theory:
   - cosmology/inflation-from-cascade.md §3—n_s formula
@@ -267,13 +266,18 @@ print()
 print("── §7  GATE PROFILE INTEGRATION ──")
 print()
 
-# Numerically verify the effective e-fold count by integrating
-# the gate profile over the final e-folds.
+# Numerically integrate the gate profile over the final e-folds.
 #
 # Model the gate profile during the closing phase:
 #   1 - q(N) = 1/(1 + φ²·e^{-(N-N_close)/τ})
 # where N_close ≈ 35-40 (where gate closure becomes significant)
 # and τ ≈ 2-3 e-folds (closure width).
+#
+# INCONSISTENT CHECK (doctrine settlement 2026-08-03): the uniform-transparency
+# weighting N_eff = N_e/⟨1−q⟩ yields N_eff ≈ 43.2, which does NOT reproduce the
+# analytic N_eff = N_e·φ = 64.72 (ratio 0.668). This section is therefore NOT a
+# verification of §4; the canonical result is the closed form n_s = 1 − 2φ⁻¹/N_e
+# = 0.9691 (§4), which stands on its own derivation.
 
 # For numerical integration, use a sigmoid profile:
 def gate_profile(N, N_close=37, width=2.0):
@@ -311,6 +315,9 @@ print(f"    Average 1-q:       {np.mean(weights):.4f}")
 print(f"    N_eff (numeric):   {N_eff_numeric:.2f}")
 print(f"    N_eff (analytic):  {N_eff:.2f}  (= N_e·φ)")
 print(f"    Ratio:             {N_eff_numeric/N_eff:.3f}")
+print(f"    ⚠ INCONSISTENT: numeric model does not reproduce the analytic")
+print(f"      N_eff = N_e·φ; NOT a verification. Canonical closed form §4")
+print(f"      (n_s = 1 - 2φ⁻¹/N_e = 0.9691) stands.")
 print()
 
 # ============================================================================
@@ -323,17 +330,24 @@ print()
 # The gate closure width τ is not exactly determined—it depends on
 # the detailed Qi gate dynamics near r=φ⁻¹.
 # Varying τ gives a range of n_s values.
+#
+# INCONSISTENT CHECK (doctrine settlement 2026-08-03): this τ-scan reuses the
+# §7 weighting model (N_eff = N_e/⟨1−q⟩), which already failed to reproduce
+# N_eff = N_e·φ, and yields n_s ≈ 0.997 — contradicting the canonical closed
+# form n_s = 1 − 2φ⁻¹/N_e = 0.9691 (§4). It is NOT a verification of §4.
 
 for tau in [1.0, 1.5, 2.0, 3.0, 5.0]:
     gate_vals_tau = 1/(1 + PHI**2 * np.exp(-(N_grid - 37)/tau))
     N_eff_tau = N_E / np.mean(gate_vals_tau)
     ns_tau = 1 - 2 / N_eff_tau
-    print(f"    τ={tau:.1f}: N_eff={N_eff_tau:.1f}, n_s={ns_tau:.4f}")
+    print(f"    τ={tau:.1f}: N_eff={N_eff_tau:.1f}, n_s={ns_tau:.4f}   (inconsistent model)")
 
 print()
 print(f"  Analytic result (τ→0, sharp closure): n_s = {ns_leading:.4f}")
 print(f"  Analytic result (gate extended):       n_s = {ns_derived:.4f}")
-print(f"  The closure width τ affects n_s at the ~0.005 level.")
+print(f"  ⚠ The τ-scan above is inconsistent with the canonical closed form;")
+print(f"    its spread is an artifact of the §7 weighting model, not a")
+print(f"    systematic uncertainty on n_s = 1 - 2φ⁻¹/N_e = 0.9691 (§4).")
 print()
 
 # ============================================================================
@@ -356,9 +370,9 @@ print(f"  With N_e = 40:   n_s = {ns_derived:.4f}")
 print(f"  Observed:        n_s = {NS_OBS:.4f} ± {NS_OBS_ERR:.4f}")
 print(f"  Deviation:       {ns_sigma:+.1f}σ")
 print()
-print(f"  Previous estimate: n_s ≈ 0.967 (with 'parameterized' +0.017)")
-print(f"  New derivation:    n_s = 0.969 (closed φ-form, +0.019)")
-print(f"  The 0.002 difference is within the closure-width uncertainty.")
+print(f"  Legacy N_e = 60 form: n_s = 1 - 2/N_e = 0.9667 ≈ 0.967 (superseded)")
+print(f"  Canonical:            n_s = 1 - 2φ⁻¹/N_e = 0.9691 (N_e = 40,")
+print(f"                        δn_s = 2φ⁻²/N_e = 0.0191; Planck 0.9649 ± 0.0042 → +1.0σ)")
 print()
 print(f"  Status: DERIVED. The gate correction is now a closed φ-form.")
 print()
