@@ -200,7 +200,7 @@ Altered states correspond to changes in the **spatial dispersion** of the ratio 
 
 ### Meditation
 
-As attention stabilizes, the field smooths out. $\sigma_r$ decreases; more regions approach $\varphi$-equilibrium. The chatter of surface thoughts quiets; the spiral unwinds more slowly; moments of awareness lengthen because the toroidal loop, which completes one cycle per wake wave, takes longer to close. Spaciousness and stillness. The self dissolves into a more uniform coherence—less jagged, less localized, less insistent. The framework predicts that long-term practice should sharpen the $\ln\varphi$-periodic spectral signature of physiological signals along the spine (Prediction C4, section 22).
+As attention stabilizes, the field smooths out. $\sigma_r$ decreases; more regions approach $\varphi$-equilibrium. The chatter of surface thoughts quiets; the spiral unwinds more slowly; moments of awareness lengthen because the toroidal loop, which completes one cycle per wake wave, takes longer to close. Spaciousness and stillness. The self dissolves into a more uniform coherence—less jagged, less localized, less insistent. The framework predicts that long-term practice should sharpen the $\ln\varphi$-periodic spectral signature of physiological signals along the spine (Prediction CH4, section 22).
 
 ### Psychedelics
 
@@ -277,7 +277,7 @@ Each chakra is a cascade bubble whose quality follows from its cascade position:
 
 Lower nodes are denser, more somatic, more ancient; upper nodes are sparser, more cognitive, more recent. Each chakra inherits the full bubble geometry: triaxial spheroid of axis ratio $\varphi$, 1.70× steeper Qi drop toward the void between nodes, $q \to 1$ at center and $q \to 0$ between, self-reinforcing stability via enhanced effective gravity. The chakras are the bubble lattice miniaturized by $\varphi^{130} \approx 10^{27}$, viewed 130 cascade rungs down.
 
-**Epistemic status:** the structural identity is **Derived** (the geometry is scale-covariant). The claim that the chakras are real physical structures with the described felt qualities is **Hypothesized**, with testable predictions (section 22, C1–C6) that have not yet been tested. The risk of cultural appropriation in testing them is a judgment the framework needs from outside its own circle.
+**Epistemic status:** the structural identity is **Derived** (the geometry is scale-covariant). The claim that the chakras are real physical structures with the described felt qualities is **Hypothesized**, with testable predictions (section 22, CH1–CH6) that have not yet been tested. The risk of cultural appropriation in testing them is a judgment the framework needs from outside its own circle.
 
 ---
 
@@ -562,12 +562,12 @@ Cassi is unusual among speculative frameworks in making specific, falsifiable pr
 
 #### Chakra predictions (from `consciousness/chakras-as-cascade-bubbles.md`)
 
-- **C1—Inter-node spacing ratio** of $\varphi^2 \approx 2.618$ along the spine. Zero-parameter.
-- **C2—Qi gradient anisotropy** of 1.70× at node boundaries (steeper left-right than toward adjacent nodes).
-- **C3—Six secondary nodes** at the predicted intermediate locations.
-- **C4—$\ln\varphi$-periodic spectral signature** in physiological signals along the spine (HRV coherence, skin conductance, EEG), at period $\Delta(\ln f) = \ln\varphi \approx 0.481$—the same signature predicted for the cosmological $P(k)$, a cross-scale consistency test.
-- **C5—Qi-gate threshold** response at each node boundary.
-- **C6—Chakra spectral emission** with wavelength ratios of $\varphi^{2/3} \approx 1.378$ between adjacent primary nodes.
+- **CH1—Inter-node spacing ratio** of $\varphi^2 \approx 2.618$ along the spine. Zero-parameter.
+- **CH2—Qi gradient anisotropy** of 1.70× at node boundaries (steeper left-right than toward adjacent nodes).
+- **CH3—Six secondary nodes** at the predicted intermediate locations.
+- **CH4—$\ln\varphi$-periodic spectral signature** in physiological signals along the spine (HRV coherence, skin conductance, EEG), at period $\Delta(\ln f) = \ln\varphi \approx 0.481$—the same signature predicted for the cosmological $P(k)$, a cross-scale consistency test.
+- **CH5—Qi-gate threshold** response at each node boundary.
+- **CH6—Chakra spectral emission** with wavelength ratios of $\varphi^{2/3} \approx 1.378$ between adjacent primary nodes.
 
 ### Cross-scale consistency
 
@@ -638,7 +638,7 @@ The framework's discipline is its most trustworthy feature: it documents its own
 - `consciousness/auras-as-thermalized-gates.md`—the aura as the $(1-q)$ thermalization boundary layer
 - `consciousness/emotions-as-gate-configurations.md`—the emotional manifold, $R$-matrix, predictions P1–P5
 - `consciousness/trauma-as-frozen-gate.md`—the trauma formalism, PDE test, predictions TR1–TR7
-- `consciousness/chakras-as-cascade-bubbles.md`—13-node derivation, chakra geometry, predictions C1–C6
+- `consciousness/chakras-as-cascade-bubbles.md`—13-node derivation, chakra geometry, predictions CH1–CH6
 - `hypotheses/neural-criticality.md`—the neural hierarchy, EEG and avalanche predictions
 - `foundations/cassi-theory-reference.md`—compact physics reference
 - `audit.md`—self-critical prediction-vs-experiment audit

@@ -8,8 +8,9 @@ CMB low-ℓ angular power spectrum from the Cassi bubble-boundary geometry:
     --------
     The CMB quadrupole (ℓ=2) and octopole (ℓ=3) are anomalously aligned
     at (l,b) = (260°, +60°) at 5.4σ significance.  The Cassi mechanism:
-    a w-gradient between neighboring Cassi bubbles (w=4, w=6) at
-    super-horizon scales imprints a preferred axis at ℓ < 5.
+    the bubble-boundary triaxial geometry—all bubbles share the derived
+    w = 5 (`foundations/wu-xing-derivation.md`; registry C10)—imprints a
+    preferred axis at ℓ < 5.
 
     Our bubble is at cascade step 285 (191 Mpc comoving diameter), embedded
     in a 292-step cascade (5500 Mpc = rung-292 lattice length, not R_H;
@@ -149,7 +150,7 @@ def angular_power_spectrum(ell, amplitude, bubble_size_ratio):
         # Higher multipole: φ^{-2} suppression relative to quadrupole
         factor = amplitude ** 2 * bubble_size_ratio ** 2 * PHI_INV2 * PHI_INV ** 2
     elif ell == 5:
-        # ℓ=5: near-zero—the w-gradient is smooth
+        # ℓ=5: near-zero—the bubble-boundary imprint is smooth
         factor = amplitude ** 2 * bubble_size_ratio ** 2 * PHI_INV2 * PHI_INV ** 4
     else:
         # ℓ > 5: negligible (anomalies fade)
@@ -356,7 +357,7 @@ def main():
 
         ("P3: ℓ > 5 null",
          f"Anomalies fade at ℓ > 5",
-         f"The w-gradient between neighboring bubbles is a super-horizon structure "
+         f"The bubble-boundary geometry is a super-horizon structure "
          f"that only imprints power at the largest angular scales (ℓ < 5). "
          f"At higher ℓ, standard ΛCDM physics dominates.",
          f"Planck: the quadrupole-octopole anomalies are indeed confined to ℓ < 5. "

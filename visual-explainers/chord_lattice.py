@@ -13,23 +13,23 @@ Derivation
 The two fluids are perpendicular axes of the SO(2) doublet, and each leaves a
 standing wake system along its own axis (why-three-dimensions.md §3.1):
 
-    Yang wake along the Yang axis:  wavelength λ_Y
-    Yin wake along the Yin axis:    wavelength λ_I = λ_Y / φ   (φ-scaled wakes)
+    Yang wake along the Yang axis:  wavelength Λ_Y
+    Yin wake along the Yin axis:    wavelength Λ_I = Λ_Y / φ   (φ-scaled wakes)
 
 Condensation requires BOTH fluids (conversion feeds one from the other), so the
 condensation field is the PRODUCT of the two standing waves:
 
-    C(x, y) = cos(2πx/λ_Y) · cos(2πy/λ_I)
+    C(x, y) = cos(2πx/Λ_Y) · cos(2πy/Λ_I)
 
 Everything else follows, with no further assumptions:
 
-1. Extrema sit at x = m·λ_Y/2, y = n·λ_I/2, with C = (−1)^(m+n).
+1. Extrema sit at x = m·Λ_Y/2, y = n·Λ_I/2, with C = (−1)^(m+n).
    Anti-phase coupling (Δφ = π, confirmed by W1) makes the m+n even sublattice
    the condensate and the m+n odd sublattice the voids. That is exactly the
    staggered checkerboard:
 
        ~ • ~ • ~        row n even: bubbles at m even
-       • ~ • ~ •        row n odd:  bubbles at m odd  (offset λ_Y/2)
+       • ~ • ~ •        row n odd:  bubbles at m odd  (offset Λ_Y/2)
        ~ • ~ • ~
 
    The stagger is DERIVED (product of perpendicular anti-phase waves),
@@ -39,7 +39,7 @@ Everything else follows, with no further assumptions:
    cos(αx)cos(βy) ≈ 1 − (α²x² + β²y²)/2, so the level set is an oval with
    semi-axis ratio
 
-       a_Yang / a_Yin = β/α = λ_Y/λ_I = φ
+       a_Yang / a_Yin = β/α = Λ_Y/Λ_I = φ
 
   —the oblong φ:1 spheroid cross-section (why-three-dimensions.md §3.4)
    falls out of the same equation. The plot shows the EXACT level sets (no paraxial
@@ -152,22 +152,22 @@ ax.text(3 * LAM_Y / 2, -1.50, "$w{=}5$", fontsize=8, color=TEXT_SUB, ha="center"
 ax.text(-3 * LAM_Y / 2, 1.50, "$w{=}5$", fontsize=8, color=TEXT_SUB, ha="center",
         bbox=dict(facecolor=BG, edgecolor="none", alpha=0.7, pad=1.5))
 
-# λ_Y: bubble spacing along Yang (arrow floats in the void band between rows 0 and 1)
+# Λ_Y: bubble spacing along Yang (arrow floats in the void band between rows 0 and 1)
 ax.annotate("", xy=(LAM_Y, 0.5), xytext=(0, 0.5),
             arrowprops=dict(arrowstyle="<|-|>", color=TEXT_MAIN, lw=1.1))
-ax.text(LAM_Y / 2, 0.5, "$\\lambda_Y$—bubble\nspacing along Yang",
+ax.text(LAM_Y / 2, 0.5, "$\\Lambda_Y$—bubble\nspacing along Yang",
         fontsize=7.5, color=TEXT_MAIN, ha="center", va="center",
         bbox=dict(facecolor=BG, edgecolor="none", alpha=0.85, pad=2))
-# λ_I/2: row (string) spacing along Yin—bubble row to void row
+# Λ_I/2: row (string) spacing along Yin—bubble row to void row
 ax.annotate("", xy=(-LAM_Y, 1.0), xytext=(-LAM_Y, 0),
             arrowprops=dict(arrowstyle="<|-|>", color=TEXT_MAIN, lw=1.1))
-ax.text(-LAM_Y - 0.12, 0.5, "$\\lambda_I/2$\nrow\nspacing", fontsize=7.5,
+ax.text(-LAM_Y - 0.12, 0.5, "$\\Lambda_I/2$\nrow\nspacing", fontsize=7.5,
         color=TEXT_MAIN, ha="right", va="center",
         bbox=dict(facecolor=BG, edgecolor="none", alpha=0.85, pad=2))
-# stagger: λ_Y/2 offset of alternate rows (anti-phase), in the band above row 1
+# stagger: Λ_Y/2 offset of alternate rows (anti-phase), in the band above row 1
 ax.annotate("", xy=(LAM_Y / 2, 1.5), xytext=(0, 1.5),
             arrowprops=dict(arrowstyle="<|-|>", color=YANG_BRIGHT, lw=1.1))
-ax.text(LAM_Y / 4, 1.5, "stagger $\\lambda_Y/2$\n(anti-phase)",
+ax.text(LAM_Y / 4, 1.5, "stagger $\\Lambda_Y/2$\n(anti-phase)",
         fontsize=7.5, color=YANG_BRIGHT, ha="center", va="center",
         bbox=dict(facecolor=BG, edgecolor="none", alpha=0.85, pad=2))
 
@@ -177,13 +177,13 @@ ax.text(LAM_Y / 4, 1.5, "stagger $\\lambda_Y/2$\n(anti-phase)",
 fig.suptitle("THE CHORD—strings packed on the anti-phase interference lattice",
              fontsize=17, fontweight="bold", color=YANG_PEAK, y=0.968)
 fig.text(0.5, 0.135,
-         "$C(x,y) = \\cos(2\\pi x/\\lambda_Y)\\;\\cos(2\\pi y/\\lambda_I)$,"
-         "   $\\lambda_Y = \\varphi\\,\\lambda_I$       "
+         "$C(x,y) = \\cos(2\\pi x/\\Lambda_Y)\\;\\cos(2\\pi y/\\Lambda_I)$,"
+         "   $\\Lambda_Y = \\varphi\\,\\Lambda_I$       "
          "bubbles $=$ superlevel sets $\\{C \\geq \\theta_{\\rm cond}\\}$"
-         "  →  oblong ovals, semi-axis ratio $\\lambda_Y/\\lambda_I = \\varphi$",
+         "  →  oblong ovals, semi-axis ratio $\\Lambda_Y/\\Lambda_I = \\varphi$",
          ha="center", fontsize=10, color=TEXT_MAIN)
 fig.text(0.5, 0.098,
-         "sites $(m\\lambda_Y/2,\\; n\\lambda_I/2)$ with $m{+}n$ even  ·  voids $m{+}n$ odd"
+         "sites $(m\\Lambda_Y/2,\\; n\\Lambda_I/2)$ with $m{+}n$ even  ·  voids $m{+}n$ odd"
          "—the stagger is derived (product of perpendicular anti-phase wakes), not assumed",
          ha="center", fontsize=9, color=TEXT_SUB)
 fig.text(0.5, 0.055,
@@ -204,12 +204,12 @@ print(f"wrote {OUT}")
 # Verification of the derived geometry
 # ─────────────────────────────────────────────────────────────────────────────
 print("\nderived chord geometry:")
-print(f"  wake ratio        λ_Y/λ_I = {LAM_Y / LAM_I:.6f}  (φ = {PHI:.6f})")
+print(f"  wake ratio        Λ_Y/Λ_I = {LAM_Y / LAM_I:.6f}  (φ = {PHI:.6f})")
 a_yang = np.arccos(THETA_COND) / ALPHA
 a_yin = np.arccos(THETA_COND) / BETA
 print(f"  oval semi-axes    a_Yang = {a_yang:.4f}, a_Yin = {a_yin:.4f}"
       f"  (at θ_cond = {THETA_COND})")
 print(f"  oval axis ratio   a_Yang/a_Yin = {a_yang / a_yin:.6f}  (= β/α = φ exactly)")
-print(f"  in-row spacing    λ_Y   = {LAM_Y:.4f}   (bubble → bubble)")
-print(f"  row spacing       λ_I/2 = {LAM_I / 2:.4f}   (string → string)")
-print(f"  row stagger       λ_Y/2 = {LAM_Y / 2:.4f}   (anti-phase offset)")
+print(f"  in-row spacing    Λ_Y   = {LAM_Y:.4f}   (bubble → bubble)")
+print(f"  row spacing       Λ_I/2 = {LAM_I / 2:.4f}   (string → string)")
+print(f"  row stagger       Λ_Y/2 = {LAM_Y / 2:.4f}   (anti-phase offset)")

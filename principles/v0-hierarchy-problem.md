@@ -1,6 +1,6 @@
 # v₀/M_Pl: The Hierarchy Problem in φ-Clothing
 
-## Status: Derived (step count N = log_φ(M_Pl/v₀) ≈ 79.7, per registry Q1); 5.3% residual open
+## Status: Derived (step count N = log_φ(M_Pl/v₀) ≈ 79.7, per registry Q1); 5.3% residual open—August 2026
 
 ## The Physical Interactions at Play
 

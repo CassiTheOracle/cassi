@@ -99,9 +99,9 @@ for i, theta in enumerate(theta_values):
 # ─────────────────────────────────────────────────────────────────────────────
 # Saddle analysis between bubble (0,0) and its nearest diagonal neighbor
 # ─────────────────────────────────────────────────────────────────────────────
-# Diagonal neighbor: (λ_Y/2, λ_I/2)—m+n=0+0=0 (even), neighbor (1,1): 1+1=2 (even)
-# Path from (0,0) to (λ_Y/2, λ_I/2)
-# Parametric: (t * λ_Y/2, t * λ_I/2) for t ∈ [0, 1]
+# Diagonal neighbor: (Λ_Y/2, Λ_I/2)—m+n=0+0=0 (even), neighbor (1,1): 1+1=2 (even)
+# Path from (0,0) to (Λ_Y/2, Λ_I/2)
+# Parametric: (t * Λ_Y/2, t * Λ_I/2) for t ∈ [0, 1]
 t_path = np.linspace(0, 1, 500)
 path_x = t_path * (LAM_Y / 2)
 path_y = t_path * (LAM_I / 2)
@@ -111,7 +111,7 @@ C_path = np.cos(ALPHA * path_x) * np.cos(BETA * path_y)
 saddle_t = 0.5
 saddle_C = 0.0
 
-# Also analyze the axial path: (0,0) → (λ_Y, 0)  [never merges]
+# Also analyze the axial path: (0,0) → (Λ_Y, 0)  [never merges]
 path_ax_x = np.linspace(0, LAM_Y, 500)
 path_ax_y = np.zeros(500)
 C_path_ax = np.cos(ALPHA * path_ax_x) * np.cos(BETA * path_ax_y)
@@ -120,9 +120,9 @@ C_path_ax = np.cos(ALPHA * path_ax_x) * np.cos(BETA * path_ax_y)
 # Bubble geometry: nearest-neighbor distances
 # ─────────────────────────────────────────────────────────────────────────────
 # Bubble at (0,0), neighbors in the even (m+n even) sublattice
-# Axial Yang: (±2, 0) at distance λ_Y
-# Axial Yin: (0, ±2) at distance λ_I
-# Diagonal: (±1, ±1) at distance sqrt(λ_Y²/4 + λ_I²/4) = sqrt(λ_Y²+λ_I²)/2
+# Axial Yang: (±2, 0) at distance Λ_Y
+# Axial Yin: (0, ±2) at distance Λ_I
+# Diagonal: (±1, ±1) at distance sqrt(Λ_Y²/4 + Λ_I²/4) = sqrt(Λ_Y²+Λ_I²)/2
 # Degree of the lattice: each bubble has 4 axial + 4 diagonal = 8 neighbors
 # BUT: only diagonal neighbors share a saddle path (C passes through 0)
 # Axial neighbors are separated by C=-1 void minimum—NEVER merge
@@ -174,7 +174,7 @@ for m in range(-m_max, m_max + 1):
 axA.plot(0, 0, "o", ms=9, mfc="none", mec=YANG_PEAK, mew=2.0, zorder=6)
 axA.plot(LAM_Y/2, LAM_I/2, "o", ms=9, mfc="none", mec=SADDLE_COLOR, mew=2.0, zorder=6)
 
-# Saddle path: dashed line between (0,0) and (λ_Y/2, λ_I/2)
+# Saddle path: dashed line between (0,0) and (Λ_Y/2, Λ_I/2)
 axA.plot([0, LAM_Y/2], [0, LAM_I/2], "--", color=SADDLE_COLOR, lw=1.5, alpha=0.8, zorder=4)
 # Saddle marker
 axA.plot(LAM_Y/4, LAM_I/4, "s", ms=7, color=SADDLE_COLOR, zorder=6, alpha=0.9)
@@ -261,10 +261,10 @@ axC.set_facecolor(BG)
 
 # Diagonal saddle path
 axC.plot(t_path, C_path, color=SADDLE_COLOR, lw=2.0,
-         label="diagonal: $(0,0) \\to (\\lambda_Y/2,\\,\\lambda_I/2)$")
+         label="diagonal: $(0,0) \\to (\\Lambda_Y/2,\\,\\Lambda_I/2)$")
 # Axial path
 axC.plot(t_path, C_path_ax, color=RED_DANGER, lw=1.5, ls="--",
-         label="axial: $(0,0) \\to (\\lambda_Y,\\,0)$")
+         label="axial: $(0,0) \\to (\\Lambda_Y,\\,0)$")
 
 # Threshold lines
 axC.axhline(y=0, color=GREEN_SAFE, lw=1.2, ls=":", alpha=0.7)
@@ -315,10 +315,10 @@ axD.axis("off")
 findings = [
     ("LATTICE GEOMETRY—Derived (from C(x,y) = cos(αx)·cos(βy))", YANG_PEAK, 12, "bold"),
     ("", TEXT_SUB, 7, "normal"),
-    (f"  Bubble spacing (Yang axis):     λ_Y = {LAM_Y:.4f}  (φ · λ_I)", TEXT_MAIN, 9, "normal"),
-    (f"  Bubble spacing (Yin axis):       λ_I = {LAM_I:.4f}", TEXT_MAIN, 9, "normal"),
-    (f"  Row stagger (anti-phase):        λ_Y/2 = {LAM_Y/2:.4f}", TEXT_MAIN, 9, "normal"),
-    (f"  Diagonal neighbor distance:      {diag_dist:.4f}  = √(λ_Y²+λ_I²)/2", TEXT_MAIN, 9, "normal"),
+    (f"  Bubble spacing (Yang axis):     Λ_Y = {LAM_Y:.4f}  (φ · Λ_I)", TEXT_MAIN, 9, "normal"),
+    (f"  Bubble spacing (Yin axis):       Λ_I = {LAM_I:.4f}", TEXT_MAIN, 9, "normal"),
+    (f"  Row stagger (anti-phase):        Λ_Y/2 = {LAM_Y/2:.4f}", TEXT_MAIN, 9, "normal"),
+    (f"  Diagonal neighbor distance:      {diag_dist:.4f}  = √(Λ_Y²+Λ_I²)/2", TEXT_MAIN, 9, "normal"),
     (f"  Bubble aspect ratio:             a_Yang/a_Yin = β/α = φ = {PHI:.4f}", TEXT_MAIN, 9, "normal"),
     ("", TEXT_SUB, 7, "normal"),
     ("CONNECTIVITY—Geometric analysis", YANG_BRIGHT, 11, "bold"),
@@ -356,9 +356,9 @@ for text, color, size, weight in findings:
 fig.suptitle("CHORD LATTICE CONNECTIVITY—Geometric Analysis of the Bubble Network",
              fontsize=18, fontweight="bold", color=YANG_PEAK, y=0.985)
 fig.text(0.5, 0.975,
-         r"$C(x,y) = \cos(2\pi x/\lambda_Y)\;\cos(2\pi y/\lambda_I)$"
-         r"    $\lambda_Y = \varphi\lambda_I$"
-         r"    bubbles at $(m\lambda_Y/2,\;n\lambda_I/2)$ with $m{+}n$ even"
+         r"$C(x,y) = \cos(2\pi x/\Lambda_Y)\;\cos(2\pi y/\Lambda_I)$"
+         r"    $\Lambda_Y = \varphi\Lambda_I$"
+         r"    bubbles at $(m\Lambda_Y/2,\;n\Lambda_I/2)$ with $m{+}n$ even"
          r"    ·    lattice geometry: Derived    ·    coherence transport: Speculative",
          ha="center", fontsize=9, color=TEXT_SUB)
 
@@ -371,8 +371,8 @@ print(f"wrote {OUT}")
 # ─────────────────────────────────────────────────────────────────────────────
 print("\n── Chord Lattice Connectivity Analysis ──")
 print(f"  PHI              = {PHI:.12f}")
-print(f"  λ_I (Yin wake)   = {LAM_I:.4f}")
-print(f"  λ_Y (Yang wake)  = {LAM_Y:.4f}  = φ · λ_I")
+print(f"  Λ_I (Yin wake)   = {LAM_I:.4f}")
+print(f"  Λ_Y (Yang wake)  = {LAM_Y:.4f}  = φ · Λ_I")
 print(f"  β/α              = {BETA/ALPHA:.6f}  (= φ)")
 print(f"")
 

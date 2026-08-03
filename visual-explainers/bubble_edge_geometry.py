@@ -205,8 +205,8 @@ fig.suptitle("BUBBLE EDGE GEOMETRY—The Physical Profile of the Condensation Bo
              fontsize=20, fontweight="bold", color=YANG_PEAK, y=0.97)
 fig.text(0.5, 0.953,
          "$C(x,y) = \\cos(\\alpha x)\\cos(\\beta y)$,  "
-         "$\\alpha = 2\\pi/\\lambda_Y$,  $\\beta = 2\\pi/\\lambda_I$,  "
-         "$\\lambda_Y = \\varphi\\lambda_I$  ·  edge = level set $C = \\theta_{\\rm cond}$"
+         "$\\alpha = 2\\pi/\\Lambda_Y$,  $\\beta = 2\\pi/\\Lambda_I$,  "
+         "$\\Lambda_Y = \\varphi\\Lambda_I$  ·  edge = level set $C = \\theta_{\\rm cond}$"
          "  ·  $q = (1+C)/2$,  $\\xi = \\varphi^6$",
          ha="center", fontsize=10, color=TEXT_SUB)
 
@@ -273,11 +273,11 @@ axA.annotate("saddle\n$C{=}0$", xy=(LAM_Y/4, LAM_I/4), xytext=(LAM_Y/4 + 0.65, L
 # Axis labels
 axA.annotate("", xy=(LAM_Y, 0.65*LAM_I), xytext=(0, 0.65*LAM_I),
              arrowprops=dict(arrowstyle="<|-|>", color=TEXT_MAIN, lw=1.1))
-axA.text(LAM_Y/2, 0.72*LAM_I, "$\\lambda_Y$—Yang (extended)",
+axA.text(LAM_Y/2, 0.72*LAM_I, "$\\Lambda_Y$—Yang (extended)",
          fontsize=8, color=TEXT_MAIN, ha="center")
 axA.annotate("", xy=(X0 + 0.2, LAM_I/2), xytext=(X0 + 0.2, 0),
              arrowprops=dict(arrowstyle="<|-|>", color=TEXT_SUB, lw=1.1))
-axA.text(X0 + 0.05, LAM_I/4, "$\\lambda_I/2$", fontsize=7.5,
+axA.text(X0 + 0.05, LAM_I/4, "$\\Lambda_I/2$", fontsize=7.5,
          color=TEXT_SUB, ha="right", va="center", rotation=90)
 
 axA.text(LAM_Y*0.28, LAM_I*0.22,
@@ -357,12 +357,12 @@ panel_title(axB, "B · GRADIENT ANISOTROPY—the edge is $1.70\\times$ steeper t
 axC = axes["C"]
 axC.set_facecolor(BG)
 
-# Axial path along Yin: x=0, y from 0 to λ_I/2
+# Axial path along Yin: x=0, y from 0 to Λ_I/2
 t_axial = np.linspace(0, LAM_I/2, 300)
 C_axial = np.cos(BETA * t_axial)
 grad_axial = BETA * np.abs(np.sin(BETA * t_axial))
 
-# Diagonal path: (t·λ_Y/4, t·λ_I/4) for t ∈ [0, 2]
+# Diagonal path: (t·Λ_Y/4, t·Λ_I/4) for t ∈ [0, 2]
 t_diag = np.linspace(0, 2, 300)
 xd = t_diag * LAM_Y / 4
 yd = t_diag * LAM_I / 4
@@ -701,8 +701,8 @@ print("=" * 72)
 print(f"\n── Framework constants ──")
 print(f"  φ  = {PHI:.12f}")
 print(f"  ξ  = φ⁶ = {XI:.6f}")
-print(f"  α  = 2π/λ_Y = {ALPHA:.6f}")
-print(f"  β  = 2π/λ_I = {BETA:.6f}")
+print(f"  α  = 2π/Λ_Y = {ALPHA:.6f}")
+print(f"  β  = 2π/Λ_I = {BETA:.6f}")
 print(f"  β/α = {BETA/ALPHA:.6f}  (should equal φ)")
 
 print(f"\n── Bubble shape (§2.1) ──")

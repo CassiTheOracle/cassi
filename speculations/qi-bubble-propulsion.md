@@ -84,7 +84,7 @@ A conventional material fails because it is a **single-rung structure**—its ch
 
 ### 4.1 The Fibonacci layer stack
 
-From `foundations/bubble-lattice-fabric.md` §1.1, the condensation field has three orthogonal periods: $\lambda_Y = \ell_n$, $\lambda_I = \ell_n/\varphi$, $P_\parallel$. A material layer engineered at rung $n$ has its own internal bubble lattice. Stack layers at $\varphi$-spaced intervals and you get a cascade of coherence anchors:
+From `foundations/bubble-lattice-fabric.md` §1.1, the condensation field has three orthogonal periods: $\Lambda_Y = \ell_n$, $\Lambda_I = \ell_n/\varphi$, $P_\parallel$. A material layer engineered at rung $n$ has its own internal bubble lattice. Stack layers at $\varphi$-spaced intervals and you get a cascade of coherence anchors:
 
 $$d_k = d_0 \cdot \varphi^k, \qquad k = 0, 1, 2, 3, 4$$
 

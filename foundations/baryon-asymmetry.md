@@ -1,6 +1,6 @@
 # Matter-Antimatter Asymmetry from Cascade Freeze-Out and Organized Annihilation
 
-## Status: Derivation (result: Hypothesized, per registry C7/Q6)
+## Status: Derivation (result: Hypothesized, per registry C7/Q6)—August 2026
 
 ## Abstract
 

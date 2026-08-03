@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-C1: The Ke-Alternating Profile—Single-Lock Gate Test
-======================================================
+WX1: The Ke-Alternating Profile—Single-Lock Gate Test
+=====================================================
 
-C1 of `foundations/wu-xing-cycle-structure.md` §4: a locked channel drives
+WX1 of `foundations/wu-xing-cycle-structure.md` §4: a locked channel drives
 the ke-alternating pattern in channel openness, not uniform starvation.
 Predicted one-cycle fractions (doc §2.1, channel order Wood..Water):
 
@@ -128,7 +128,7 @@ def main():
     verdicts = {}
 
     print("=" * 72)
-    print("C1: KE-ALTERNATING PROFILE—SINGLE-LOCK GATE TEST")
+    print("WX1: KE-ALTERNATING PROFILE—SINGLE-LOCK GATE TEST")
     print(f"baseline b_i = phi^-(3+i): {np.round(BASELINE, 4)}")
     print("=" * 72)
 
@@ -277,7 +277,7 @@ def main():
     ok &= verdicts["V5_uniform_starvation_rejected"]
     ok &= verdicts["V7_pde_cross_validation"]
     print("\n" + "=" * 72)
-    print("VERDICT: " + ("ALL C1 GATE CHECKS PASSED" if ok else "SOME CHECKS FAILED"))
+    print("VERDICT: " + ("ALL WX1 GATE CHECKS PASSED" if ok else "SOME CHECKS FAILED"))
     print("  V1 one-round response = capped ke algebra (exact, all five locks)")
     print("  V2 one-lap response: ke-order alternation read from the locked")
     print("     channel, sign pattern = the doc's fractions (all five locks)")

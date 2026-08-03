@@ -11,7 +11,8 @@ count is n_s^0 = 1 - 2/N_e = 0.950 (N_e = 40). The canonical closed form is
 
 with the correction δn_s = 2φ⁻²/N_e = 0.0191 expressed entirely in φ-powers
 (cf. observed n_s = 0.9649 ± 0.0042, +1.0σ). The 0.967 figure was the legacy
-1 - 2/N_e form with N_e = 60 (0.9667), superseded by the closed form.
+1 - 2/N_e form with N_e = 60 (0.9667), superseded by the canonical closed
+form n_s = 1 - 2φ⁻¹/N_e = 0.9691.
 
 Theory:
   - cosmology/inflation-from-cascade.md §3—n_s formula

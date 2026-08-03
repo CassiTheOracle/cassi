@@ -43,12 +43,12 @@ plt.rcParams.update({
 # Contour C = θ: α²x² + β²y² + γ²z² = 2(1-θ)
 # Semi-axes: ax = √(2(1-θ))/α, ay = √(2(1-θ))/β, az = √(2(1-θ))/γ
 #
-# From the chord lattice: α = 2π/λ_Y, β = 2π/λ_I, γ = 2π/λ_string
-# λ_Y = φ·λ_I, and typically λ_string ≈ 1 (cascade direction)
-# So: ax ∝ 1/α = λ_Y/(2π) = φ·λ_I/(2π)
-#     ay ∝ 1/β = λ_I/(2π)
+# From the chord lattice: α = 2π/Λ_Y, β = 2π/Λ_I, γ = 2π/λ_string
+# Λ_Y = φ·Λ_I, and typically λ_string ≈ 1 (cascade direction)
+# So: ax ∝ 1/α = Λ_Y/(2π) = φ·Λ_I/(2π)
+#     ay ∝ 1/β = Λ_I/(2π)
 #     az ∝ 1/γ = λ_string/(2π)
-# Ratio: ax : ay : az = φ : 1 : 1/φ  (assuming λ_string = φ·λ_I or similar)
+# Ratio: ax : ay : az = φ : 1 : 1/φ  (assuming λ_string = φ·Λ_I or similar)
 
 # Normalized axes:
 AX, AY, AZ = PHI, 1.0, 1.0/PHI
@@ -260,7 +260,7 @@ if len(impacts) > 0:
 # 5. Why 5? Curvature ratio argument
 # ─────────────────────────────────────────────────────────────────────────────
 # The ratio of curvature eigenvalues at the pole:
-# κ_x = α² = (2π/λ_Y)², κ_y = β² = (2π/λ_I)²
+# κ_x = α² = (2π/Λ_Y)², κ_y = β² = (2π/Λ_I)²
 # ratio κ_y/κ_x = (β/α)² = φ²
 #
 # A geodesic launched at azimuth θ on the equator arrives at the pole

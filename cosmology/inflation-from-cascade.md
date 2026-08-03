@@ -1,6 +1,6 @@
 # Inflation from Cascade Steps 20–60: The Qi-Gate Epoch
 
-## Status: Derivation (result: Hypothesized, per registry C4)
+## Status: Derivation (result: Hypothesized, per registry C4)—August 2026
 
 ## Abstract
 

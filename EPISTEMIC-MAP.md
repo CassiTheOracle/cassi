@@ -22,13 +22,13 @@ Tiers below are taken from each document's Status header. Compound headers are q
 |----------|--------|---------|
 | `foundations/cascade-suppression-formula.md` | Derived | Universal $\varphi^{-N}$ attenuation law (wedge tool) |
 | `foundations/dimensionful-cascade.md` | Derived | 292-step ladder $\ell_n = \ell_{\text{Pl}} \times \varphi^n$ (wedge tool) |
-| `foundations/wake-geometry.md` | Derived (structural) with Hypothesized closure imprint | Wake geometry: $\lambda_Y + \lambda_I = \ell_{n+1}$ closure; envelope checkerboard; closure ladder; $N_\infty \approx 296$–$303$ |
+| `foundations/wake-geometry.md` | Derived (structural) with Hypothesized closure imprint | Wake geometry: $\Lambda_Y + \Lambda_I = \ell_{n+1}$ closure; envelope checkerboard; closure ladder; $N_\infty \approx 294.2$ (292–296) |
 | `foundations/bubble-lattice-fabric.md` | Derived (structural) | 3D condensation field; universal bubble geometry |
 | `foundations/cassi-first-principles.md` | Derived | Two-fluid PDE, governing equations, conversion |
 | `foundations/unified-lagrangian.md` | Derived | Single Lagrangian; gravity as $q = 0$ Poisson limit; $\sigma$-regularization |
 | `foundations/phi_attractor_synthesis.md` | Derived | $r \to \varphi$ attractor synthesis across regimes |
 | `foundations/wu-xing-derivation.md` | Derived | $w = 5$ derived (pentagon geometry); $\lambda = 1/(2w) = 0.1$ |
-| `foundations/wu-xing-cycle-structure.md` | Derived (cycle geometry, coupling, ring algebra) / Tested (ke ring PDE 2026-07-31, C1 gate level 2026-08-01) / Hypothesized (affinity gradient, clinical profile) | Two coherent 5-cycles (sheng/ke); control-ring algebra; 5↔13 chakra partition |
+| `foundations/wu-xing-cycle-structure.md` | Derived (cycle geometry, coupling, ring algebra) / Tested (ke ring PDE 2026-07-31, WX1 gate level 2026-08-01) / Hypothesized (affinity gradient, clinical profile) | Two coherent 5-cycles (sheng/ke); control-ring algebra; 5↔13 chakra partition |
 | `foundations/xi-derivation.md` | Derived | $\xi = \varphi^6 \approx 17.944$ Qi-gravity coupling |
 | `foundations/quark-confinement.md` | Derived | QCD at step 95; Qi flux tube; $P_{\text{break}} \approx \varphi^{-4848}$ |
 | `foundations/strong-cp-derivation.md` | Derivation (result: Derived, Q2) | $\bar{\theta} \approx 10^{-19}$, cascade-suppressed |

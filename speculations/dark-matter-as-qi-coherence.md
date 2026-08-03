@@ -63,7 +63,7 @@ The Qi field is dark by nature: it couples to gravity through $\xi q$ and does n
 
 Galaxies are bubble condensates at cascade step $n \approx 267$ (Milky Way diameter $\sim 9.3 \times 10^{20}$ m, `foundations/dimensionful-cascade.md` §3). From `foundations/bubble-edge-geometry.md` §1.1:
 
-$$C(x,y) = \cos(\alpha x)\cos(\beta y), \qquad \alpha = \frac{2\pi}{\lambda_Y},\;\; \beta = \frac{2\pi}{\lambda_I} = \varphi\alpha$$
+$$C(x,y) = \cos(\alpha x)\cos(\beta y), \qquad \alpha = \frac{2\pi}{\Lambda_Y},\;\; \beta = \frac{2\pi}{\Lambda_I} = \varphi\alpha$$
 
 The Qi density at any point is:
 
@@ -115,7 +115,7 @@ $$G_{\text{eff}} \cdot \rho \approx \frac{\pi}{\rho_0}(1 + \xi \cdot 1) \cdot \r
 
 which is **finite and constant**. No cusp. The Qi profile is naturally cored because $C(r)$ is smooth and analytic at the origin. The core radius is set by the bubble wavelength at galactic scale:
 
-$$r_{\text{core}} \sim \frac{1}{\alpha} = \frac{\lambda_Y}{2\pi} \sim \frac{\ell_{267}}{2\pi}$$
+$$r_{\text{core}} \sim \frac{1}{\alpha} = \frac{\Lambda_Y}{2\pi} \sim \frac{\ell_{267}}{2\pi}$$
 
 For the Milky Way, $\ell_{267} \approx 9.3 \times 10^{20}$ m $\approx 30$ kpc, giving $r_{\text{core}} \sim 5$ kpc—consistent with the observed core radii of large spiral galaxies (~2–10 kpc).
 
@@ -150,7 +150,7 @@ Resolved in §3.2. The Qi profile is analytic at the origin. No divergent cusp e
 
 ΛCDM predicts hundreds of dark matter subhalos around a Milky-Way-sized galaxy. We observe only ~50 satellite galaxies. The discrepancy is a factor of ~5–10.
 
-In the Qi picture: subhalos are small bubble condensates at lower $n$ (dwarf galaxy scale). A subhalo only forms visible stars if its central $q$ exceeds $\theta_{\text{cond}}$. Small bubbles have shorter wavelengths ($\lambda_Y \propto \ell_n \propto \varphi^n$) and correspondingly smaller $q$ spans. A subhalo with peak $C_{\text{max}} < \theta_{\text{cond}}$ never crosses the condensation threshold—it is a **dark Qi halo**: gravitationally detectable (its $G_{\text{eff}}$ is still amplified) but optically invisible (no stars form).
+In the Qi picture: subhalos are small bubble condensates at lower $n$ (dwarf galaxy scale). A subhalo only forms visible stars if its central $q$ exceeds $\theta_{\text{cond}}$. Small bubbles have shorter wavelengths ($\Lambda_Y \propto \ell_n \propto \varphi^n$) and correspondingly smaller $q$ spans. A subhalo with peak $C_{\text{max}} < \theta_{\text{cond}}$ never crosses the condensation threshold—it is a **dark Qi halo**: gravitationally detectable (its $G_{\text{eff}}$ is still amplified) but optically invisible (no stars form).
 
 The number of visible satellites is not the number of subhalos. It is the number of subhalos with $C_{\text{max}} > \theta_{\text{cond}}$. The "missing" satellites are not missing. They are dark.
 
@@ -200,7 +200,7 @@ with $C(r) = \cos(\alpha r)$ (along the Yang axis) or $\cos(\beta r)$ (along the
 
 ### P2: The core radius scales with galactic mass
 
-From the cascade, the bubble wavelength at galactic rung $n$ is $\lambda_Y = \ell_{\text{Pl}} \varphi^n$. Galaxies at different masses occupy different rungs. The core radius $r_{\text{core}} \sim \lambda_Y / 2\pi$ should scale with galactic baryonic mass $M_b$ as:
+From the cascade, the bubble wavelength at galactic rung $n$ is $\Lambda_Y = \ell_{\text{Pl}} \varphi^n$. Galaxies at different masses occupy different rungs. The core radius $r_{\text{core}} \sim \Lambda_Y / 2\pi$ should scale with galactic baryonic mass $M_b$ as:
 
 $$r_{\text{core}} \propto M_b^{1/3}$$
 
