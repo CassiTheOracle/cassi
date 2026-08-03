@@ -146,6 +146,35 @@ Three candidates have been proposed for independently deriving $N$ from $\varphi
 
 The primordial Yang-Yin ratio $r_{\text{Planck}}$ is now **derived** (`foundations/wu-xing-derivation.md`). $\lambda = 1/(2w) = 0.1$ is now derived (§2.1). $N = 292$, $c$, $\hbar$, $G$ remain external.
 
+### 3.5 Unit Anchors: the SI Second Fails the Rung Test (eliminated 2026-08-03)
+
+A candidate for anchoring the unit system without a human-scale measurement is the SI second itself: if the cesium hyperfine transition sat on a cascade rung, $\Delta\nu_{\text{Cs}}\,t_{\text{Pl}} = \varphi^{-n}$ would turn the defined unit of time into a prediction. The bare ratio is tantalizing:
+
+$$\Delta\nu_{\text{Cs}}\,t_{\text{Pl}} = 4.956\times10^{-34} \;\Rightarrow\; n = -159.36 \approx -159.5 \quad (6.8\%)$$
+
+Same residual class as the electroweak placement, same half-step pattern as $m_e/v_0$. But $\Delta\nu_{\text{Cs}}$ is a **compound** observable (Fermi contact, hydrogenic $Z=55$, $n=6$):
+
+$$\Delta\nu_{\text{Cs}} = \frac{8}{3}\alpha^2\,\frac{m_e}{m_p}\,\frac{g_I}{2}\,\frac{Z^3}{n^3}\,F_{\text{rel}}(Z\alpha)\,(1-\delta)(1-\epsilon)\,cR_\infty$$
+
+The per-factor rung ledger closes exactly on the observed $-159.36$:
+
+| Factor | Rung $n$ | Nearest structure | Residual |
+|--------|----------|-------------------|----------|
+| $cR_\infty\,t_{\text{Pl}}$ (Rydberg) | $-132.79$ | $-133$ | 10.7% |
+| $8/3$ | $+2.04$ | $+2$ | 1.9% |
+| $\alpha^2$ | $-20.45$ | $-20.5$ | 2.5% |
+| $m_e/m_p$ | $-15.62$ | $-15.5$ | 5.8% |
+| $g_I/2$ (Cs-133) | $-2.07$ | $-2$ | 3.6% |
+| $Z^3 = 55^3$ | $+24.98$ | $+25$ | 0.8% |
+| $1/n^3$ | $-11.17$ | $-11$ | 8.5% |
+| $F_{\text{rel}}(Z\alpha)$ | $-0.69$ | — | no claim |
+| $(1-\delta)(1-\epsilon)$ (many-body) | $-3.60$ | — | no claim (factor 0.177) |
+| **Sum** | **$-159.36$** | — | = observed exactly |
+
+The $-159.5$ hit is a **cancellation**, not a claim: two factors have no rung structure at all ($F_{\text{rel}}$, and the 0.177 many-body factor carrying shielding, correlation, and nuclear-size corrections), and the structured factors carry residuals of 2–11%. Two further cautions: the $Z^3 \approx \varphi^{25}$ hit is a number-theory identity ($55 = F_{10}$, so $\log_\varphi(55^3) = 30 - 3\log_\varphi\sqrt5 = 24.98$), not a physical selection; and even the purest anchor, the Rydberg frequency, sits at $-132.79$—10.7% off $-133$, not the ~2% one might hope for. A derived second would require per-factor derivations ($\alpha$ at low energy, $m_e/m_p$, nuclear $g$-factors, many-electron corrections) the framework does not have.
+
+**Conclusion (August 2026):** atomic unit anchors do not survive decomposition. The external list remains $\{ \ell_{\text{Pl}},\, N = 292,\, \text{human-unit calibration} \}$. One observation survives: $\alpha^{-1}$ runs from the GUT value $4\pi\varphi^3 = 53.2$ (rung 8.26) to $137.04$ (rung 10.22)—a $1.97 \approx 2$-rung traversal ($1.6\%$)—so the EM coupling's RG running spans two $\varphi$-rungs; structural, but not a derivation of a unit.
+
 ---
 
 ## 4. Derivation Pathways—Updated July 2026
