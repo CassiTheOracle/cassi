@@ -68,6 +68,21 @@ The bubble closes at 5 levels—the pentagon, ≈ 2 turns—and self-replicates 
 
 **(d) The cosmic depth, reframed.** 292 is not on the closure ladder—the nearest level is 233, a gap of 59—and per the 2026-08-03 reclassification (`foundations/dimensionful-constants-status.md` §3) it is the epoch-dependent horizon rung, not a cascade boundary. What the ladder gives instead is the horizon's half-step structure: $\log_\varphi(R_H/\ell_{\text{Pl}}) = 291.54$ today—within 2.2% of the half-integer 291.5—and $R_H/\ell_{285} = 23.3 \approx \varphi^{6.5}$ (+2.0%), the horizon sitting a half-step above the Cassi bubble. These are epoch observations, not constants.
 
+**(e) The first closure-ladder test (2026-08-03).** Y3 targets rungs 34 and 89 with a mass scan, $n = \log_\varphi(M_{\text{Pl}}/m)$. Rung 89 hits: the J/ψ sits at $n = 88.98$—1.0% off the closure level 89 ($F_{11}$)—and the charmed-hadron family clusters at 89–90 (D$_s$: 89.92, D: 90.03, Λ$_c$: 89.61). Rung 34 has no established anchor: the Peccei-Quinn window top ($\sim 10^{12}$ GeV) is the only candidate, and it is Hypothesized physics. The scan's sharpest placement was not a Y3 target: the muon sits at $n = 96.000$—0.01%, limited by $M_{\text{Pl}}$'s own precision from $G$—the cleanest absolute rung placement in the framework's catalog, and a wake-anchored integer rung (not a closure level). The neutrino band (0.008–0.05 eV) occupies $n = 140.6$–$144.3$, just below the human window at 142: a structural observation only—neutrino masses are seesaw compounds, so no rung claim is made.
+
+| Particle | $n = \log_\varphi(M_{\text{Pl}}/m)$ | Nearest structure | Residual |
+|---|---|---|---|
+| μ | 96.000 | 96 | 0.01% |
+| J/ψ | 88.980 | 89 (closure level) | 0.96% |
+| D | 90.029 | 90 | 1.4% |
+| p | 91.462 | 91.5 | 1.9% |
+| n | 91.459 | 91.5 | 2.0% |
+| Λ_QCD | 94.543 | 94.5 | 2.1% |
+| Z | 81.951 | 82 | 2.4% |
+| π | 95.421 | 95.5 | 3.9% |
+| e | 107.079 | 107 | 3.9% |
+| v₀ | 79.889 | 80 | 5.5% |
+
 ## 4. The asymptotic horizon (Derived, conditional)
 
 The horizon does not grow forever: the expansion law has a strictly positive floor, so the cascade depth saturates at a computable $N_\infty$ in the mid-290s, roughly six to eleven rungs above today.
@@ -96,14 +111,14 @@ $$\boxed{N_\infty \approx 296\text{–}303,\qquad N_{\text{now}} = 291.54}$$
 |---|---|---|
 | Y1 | The composite wake pair closes each rung: $\lambda_Y + \lambda_I = \ell_{n+1}$. Verified at 285 ($191 + 118 = 309$ Mpc $= \ell_{286}$); testable wherever two wake scales are resolvable. | Derived |
 | Y2 | The wake envelope places bubbles at $m\,\ell_{n+1}$ and voids at $(m+\frac{1}{2})\ell_{n+1}$—the staggered checkerboard. Testable in the two-bubble and chord-lattice PDE setups. | Derived (structure), test pending |
-| Y3 | The closure ladder imprints on the cascade: rungs near 34 and 89 (currently dark) should host physical structure; existing hits $26 = 2\times13$ and $285 = 5\times57$. | Hypothesized |
+| Y3 | The closure ladder imprints on the cascade. First test (2026-08-03): rung 89 hosts the J/ψ ($n = 88.98$, 1.0%—closure level 89); rung 96 hosts the muon ($n = 96.000$, 0.01%); rung 34: no established hit (PQ-window candidate). Existing hits $26 = 2\times13$ and $285 = 5\times57$. | Hypothesized (partially tested) |
 
 ## 6. Epistemic Boundaries
 
 The tiers below separate what the geometry proves from what it suggests.
 
 - **Supported by Verified Physics**: the composite closure $\lambda_Y + \lambda_I = \ell_{n+1}$ (exact identity on documented anchors); the envelope period and checkerboard spacing; the closure ladder's Fibonacci structure; the saturation of the horizon (positive floor, $q_{\max} < 1$).
-- **Plausible Hypothesis (test exists)**: the closure-ladder imprint ($26 = 2\times13$, $285 = 5\times57$; Y3 searches rungs 34/89); the $N_\infty$ range (296–303) once the canonical $H$ form is settled.
+- **Plausible Hypothesis (test exists)**: the closure-ladder imprint ($26 = 2\times13$, $285 = 5\times57$; Y3 first test: J/ψ at 88.98, muon at 96.000—catalog hits, mechanism open); the $N_\infty$ range (296–303) once the canonical $H$ form is settled.
 - **Speculative**: the rung-index ratio curiosities ($80 \approx 3\times26.5$, $292 \approx 26.5\,\varphi^5$) under the "rung number = level count" reading.
 - **Not Supported**: any claim that the current horizon rung 291.5/292 is a derivable constant—it is an epoch-dependent observation (see `foundations/dimensionful-constants-status.md` §3, reclassified 2026-08-03); exact spiral closure at any finite level ($1/\varphi^2$ is irrational).
 
