@@ -35,6 +35,7 @@ domain is not enough—the contribution must be what Cassi *uniquely* adds.
 | 10 | Metabolic allometry | Speculative (open problem) | $\varphi$-derived fractal dimension for resource networks | `metabolic-scaling.md` |
 | 11 | Muscle structural hierarchy | Hypothesized | Bubble-lattice ladder at biological rungs (142–168) maps the filament→belly ladder to consecutive cascade rungs | `muscle-cascade-lattice.md` |
 | 12 | Riemann hypothesis | Speculative | De-resonance: RH as the absence of resonance in primes; φ-periodicity null test on ζ zeros | `riemann-hypothesis-de-resonance.md` |
+| 13 | Two-fluid Hilbert–Pólya program | Speculative | Scale-operator candidate for the zeros; minimal-fluctuation probes (Selberg, Gram) | `riemann-two-fluid-spectral-program.md` |
 
 ---
 
@@ -189,6 +190,20 @@ outcome: de-resonance predicts featureless (GUE) prime statistics, not a
 $\varphi$ signature. **Epistemic tier: Speculative**—the mapping is
 interpretation; no mechanism from the two-fluid PDE reaches the zeros, and no
 proof of RH is claimed.
+
+### `riemann-two-fluid-spectral-program.md`—The Two-Fluid Hilbert–Pólya Program
+
+Sketch of the research route to a *derived* spectral problem whose spectrum
+would be the zeros: the linearized phase dynamics of the Yang-Yin fields
+around the balanced self-similar state, whose dilation covariance makes the
+scale operator $x\partial_x$ the natural free generator. The matching
+constraint to Riemann–von Mangoldt pins the spectral boundary at the
+order-unity scale $2\pi e$—no cascade rung $\varphi^n$ enters—and the
+de-resonance principle becomes the minimality of the zero-counting
+fluctuation, anchored by Selberg's unconditional mean-square theorem and two
+measured probes (mean square of $S(T)$ and Gram's law on the first 100,000
+zeros). **Epistemic tier: Speculative**—step zero of the program; the
+operator has not been derived from the PDE source.
 
 ### `muscle-cascade-lattice.md`—Muscle as a Cascade Lattice: Structural Hierarchy and the Bubble Geometry
 
