@@ -85,25 +85,33 @@ The bubble closes at 5 levels—the pentagon, ≈ 2 turns—and self-replicates 
 
 ## 4. The asymptotic horizon (Derived, conditional)
 
-The horizon does not grow forever: the expansion law has a strictly positive floor, so the cascade depth saturates at a computable $N_\infty$ in the mid-290s, roughly six to eleven rungs above today.
+The horizon does not grow forever: the expansion law has a strictly positive floor, so the cascade depth saturates at a computable $N_\infty$ ≈ 294, roughly three rungs above today.
 
-**(a) The expansion law.** The pipeline (`two-fluid/run_hubble_pipeline.py`) integrates
+**(a) The expansion law.** The homogeneous ODE evolves $r = \langle E_Y\rangle/\langle E_I\rangle$ from $a = 0.01$ with
 
 $$H(r) = \frac{\lambda}{3}\left[\frac{(\varphi - r)(1 + r)}{r} + \varphi^{-2}\right]$$
 
-with $r = \langle E_Y\rangle/\langle E_I\rangle$. The conversion rate $\lambda$ cancels from the $r$-evolution, so the shape of the trajectory is $\lambda$-independent; the calibration fixes only the overall clock.
+(`two-fluid/run_hubble_pipeline.py`; the Qi-gravity boost variants in `two-fluid/calibrate_initial_ratio_xi.py` and `two-fluid/calibrate_initial_ratio_xi_v2.py`). The conversion rate $\lambda$ cancels from the $r$-evolution—verified numerically for $\lambda = 0.02, 0.05, 0.1$ in the v2 script—so the trajectory's shape is $\lambda$-independent; the calibration fixes only the overall clock.
 
-**(b) The floor.** The empty term $H_\infty = (\lambda/3)\,\varphi^{-2} > 0$ never vanishes: the horizon saturates at $R_{H\infty} = c/H_\infty$, with
+**(b) The floor and the boost.** The Qi gate saturates at $q_{\max} = 0.873 < 1$, so the Qi-gravity boost factor $\sqrt{1 + \xi q \cdot f}$ (with $f$ the sourced Yang fraction) never vanishes: every coupling convention retains a strictly positive floor, consistent with the irreducible $(1-q)$ floor $\approx 0.23$ measured in the bubble PDE (`foundations/dimensionful-constants-status.md` §3.4). The horizon saturates at
 
-$$N_\infty = N_{\text{now}} + \log_\varphi\!\left(\frac{H(a{=}1)}{H_\infty}\right).$$
+$$N_\infty = N_{\text{now}} + \log_\varphi\!\left(\frac{H(a{=}1)}{H_\infty}\right),\qquad H_\infty = \frac{\lambda}{3}\,\varphi^{-2}\,\sqrt{1 + \xi q_{\max} f}.$$
 
-The saturation is robust. The Qi gate saturates at $q_{\max} = 0.873 < 1$, so every near-equilibrium form of $H$ retains a positive floor—consistent with the documented irreducible $(1-q)$ floor $\approx 0.23$ in `foundations/dimensionful-constants-status.md` §3.4.
+**(c) The computed values (verified against the scripts).** The three coupling conventions documented in the repo give different trajectories and different saturations:
 
-**(c) The computed range.** From the pipeline ODE ($r_0 = 1/23$, $a = 0.01 \to 8$): $r(a{=}1) = 0.284$ today, and $r(a{=}8) = \varphi$ exactly. The ratio $H(a{=}1)/H_\infty = 16.8$ gives $N_\infty = 297.4$ for the bare form; the Yang-fraction-weighted coupling (`two-fluid/calibrate_initial_ratio_xi_v2.py`) shifts it to ≈ 296.0; and the $(1-q)$ near-equilibrium form, whose floor is 13× smaller, gives ≈ 302.7:
+| Convention | Script | $r(a{=}1)$ | $H(a{=}1)/H_\infty$ | $N_\infty$ |
+|---|---|---|---|---|
+| Bare (legacy ODE) | `run_hubble_pipeline.py` | 1.589 | 1.12 | 291.8 |
+| ξ-full, $\sqrt{1+\xi q}$ (superseded) | `calibrate_initial_ratio_xi.py` | 0.523 | 7.9 | 295.8 |
+| Yang-fraction-weighted (verified) | `calibrate_initial_ratio_xi_v2.py` | 1.013 | 3.7 | **294.2** |
 
-$$\boxed{N_\infty \approx 296\text{–}303,\qquad N_{\text{now}} = 291.54}$$
+The Yang-fraction-weighted form is the verified convention (SPARC rotation curves; the v1 ξ-full form is flagged superseded in its own docstring). With the structural initial ratio $r_0 = \varphi^{-5}/(2-\varphi^{-5}) = 0.0472$ the trajectory reaches $r(a{=}8) = 1.28$, still approaching the attractor:
 
-**(d) The caveat, stated plainly.** The exact value of $N_\infty$ depends on which near-equilibrium form of $H$ is canonical; the two forms differ by ~6 rungs. Today's horizon is ~5–11 rungs from the end of its growth.
+$$\boxed{N_\infty \approx 294.2,\qquad N_{\text{now}} = 291.54,\qquad \Delta N \approx 2.7\text{ rungs}}$$
+
+The bare form reaches the attractor already by $a \approx 1$ ($r = 1.59$, $\Delta N = 0.25$); the superseded v1 form gives the ceiling ($\Delta N = 4.3$).
+
+**(d) The caveat, stated plainly.** The exact value depends on which near-equilibrium form of $H$ is canonical; the three documented forms span $\Delta N = 0.25$–$4.3$ rungs. Today's horizon is at most ~4 rungs from the end of its growth—under the verified convention, ~2.7.
 
 ## 5. Predictions
 
@@ -113,12 +121,14 @@ $$\boxed{N_\infty \approx 296\text{–}303,\qquad N_{\text{now}} = 291.54}$$
 | Y2 | The wake envelope places bubbles at $m\,\ell_{n+1}$ and voids at $(m+\frac{1}{2})\ell_{n+1}$—the staggered checkerboard. Testable in the two-bubble and chord-lattice PDE setups. | Derived (structure), test pending |
 | Y3 | The closure ladder imprints on the cascade. First test (2026-08-03): rung 89 hosts the J/ψ ($n = 88.98$, 1.0%—closure level 89); rung 96 hosts the muon ($n = 96.000$, 0.01%); rung 34: no established hit (PQ-window candidate). Existing hits $26 = 2\times13$ and $285 = 5\times57$. | Hypothesized (partially tested) |
 
+Y1–Y3 are cataloged as predictions 43–45 in `predictions/falsifiable-predictions.md` §5.
+
 ## 6. Epistemic Boundaries
 
 The tiers below separate what the geometry proves from what it suggests.
 
 - **Supported by Verified Physics**: the composite closure $\lambda_Y + \lambda_I = \ell_{n+1}$ (exact identity on documented anchors); the envelope period and checkerboard spacing; the closure ladder's Fibonacci structure; the saturation of the horizon (positive floor, $q_{\max} < 1$).
-- **Plausible Hypothesis (test exists)**: the closure-ladder imprint ($26 = 2\times13$, $285 = 5\times57$; Y3 first test: J/ψ at 88.98, muon at 96.000—catalog hits, mechanism open); the $N_\infty$ range (296–303) once the canonical $H$ form is settled.
+- **Plausible Hypothesis (test exists)**: the closure-ladder imprint ($26 = 2\times13$, $285 = 5\times57$; Y3 first test: J/ψ at 88.98, muon at 96.000—catalog hits, mechanism open); the $N_\infty$ value (≈ 294.2 under the verified Yang-weighted coupling; 292–296 across documented forms).
 - **Speculative**: the rung-index ratio curiosities ($80 \approx 3\times26.5$, $292 \approx 26.5\,\varphi^5$) under the "rung number = level count" reading.
 - **Not Supported**: any claim that the current horizon rung 291.5/292 is a derivable constant—it is an epoch-dependent observation (see `foundations/dimensionful-constants-status.md` §3, reclassified 2026-08-03); exact spiral closure at any finite level ($1/\varphi^2$ is irrational).
 

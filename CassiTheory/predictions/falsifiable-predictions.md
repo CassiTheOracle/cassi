@@ -1,6 +1,6 @@
 # Cassi Falsifiable Predictions
 
-## Status: Reference—July 2026
+## Status: Reference—August 2026
 
 Every prediction is derived from the golden ratio $\varphi = (1+\sqrt{5})/2$ and the
 two-fluid PDE with **zero free parameters**. No fitting, no fine-tuning, no hidden
@@ -144,6 +144,18 @@ Seesaw analysis with $M_R = \varphi^{-3} \cdot M_{\text{GUT}}$ gives heaviest ne
 
 **Source:** `foundations/sector-coupling-derivation.md` §§2–4. $\kappa_s = \varphi^{-6}/v_0^2$ follows from the Qi-gravity constant $\xi = \varphi^6$ (`foundations/unified-lagrangian.md` §5.1) and the electroweak scale $v_0$; $\kappa_s^{-1/2} = 1042$ GeV lands $+5.5\%$ off rung 77, the same residual class as the documented electroweak placement ($v_0 = 246$ GeV vs rung 80 = 233.2 GeV, $-5.2\%$; `foundations/deriving-remaining-gaps.md` §3.3). The as-written inventory bridge gives $\chi \approx 4.25\times10^{-4}$, not the calibrated $0.5$–$1.0$; the repaired bridge requires the solver-normalization factor $\mathcal{N}_{\text{pde}} \approx 2.35\times10^3$ (grid $L = 40$, $N = 48$, $\Delta t = 0.002$, $\rho_{\text{crit}} = \varphi$)—a concrete computational follow-up.
 
+**Prediction 43 (wake closure):** The composite wake pair closes each cascade rung: $\lambda_Y + \lambda_I = \ell_{n+1}$—the exact identity $1 + 1/\varphi = \varphi$. Verified at rung 285: the Cassi bubble and sound-horizon wavelengths sum to $\ell_{286}$ (191 + 118 = 309 Mpc). Testable wherever two wake scales are resolvable.
+
+**Source:** `foundations/wake-geometry.md` §3(a)–(c). The identity is exact on the documented anchors; the wake pair never phase-locks because $\varphi$ is irrational (de-resonance in the wave structure), so the composite period $\ell_{n+1}$ is the only closed scale.
+
+**Prediction 44 (staggered checkerboard):** The wake envelope places condensation bubbles at $m\,\ell_{n+1}$ and voids at $(m+\frac{1}{2})\ell_{n+1}$—the staggered checkerboard of the bubble lattice. Testable in the two-bubble and chord-lattice PDE setups; the 285-verified composite closure fixes the period.
+
+**Source:** `foundations/wake-geometry.md` §3(b), `foundations/bubble-lattice-fabric.md`. The beat envelope peaks where the two wakes re-phase, i.e., at integer multiples of the composite period.
+
+**Prediction 45 (closure-ladder imprint):** The closure ladder of the golden-angle spiral (levels 5, 13, 34, 89, 233, …) imprints on the cascade: currently-dark rungs near closure levels should host physical structure. First test (2026-08-03, mass scan $n = \log_\varphi(M_{\text{Pl}}/m)$): rung 89 hosts the J/ψ ($n = 88.98$, 1.0%—the first mass hit on a closure level); rung 96 hosts the muon ($n = 96.000$, 0.01%—the sharpest absolute placement in the framework, wake-anchored); rung 34 has no established anchor (the Peccei-Quinn window top $\sim 10^{12}$ GeV is the only candidate). Existing rung hits $26 = 2\times13$ and $285 = 5\times57$.
+
+**Source:** `foundations/wake-geometry.md` §3(e), §5 (Y3); `foundations/deriving-remaining-gaps.md` §4.2 (catalog rows 89 and 96).
+
 
 ---
 
@@ -211,6 +223,9 @@ Sorted by detection likelihood (most definitive first):
 | 40 | Sample-variance suppression | Cosmic surveys | **~10$\times$ reduced $k \to 0$ scatter; NGC–SGC mode correlation** | Untested | **DESI mocks** |
 | 41 | $D_A(z)$ lattice wiggle bound | Cosmic surveys | **$\delta D/D \lesssim 0.1\%$; cannot bias $w_a$** (needs $\gtrsim 20\%$ to close gap) | Consistent with DESI smoothness | **Already consistent** |
 | 42 | Sector-coupling scale | FCC-ee | **$\kappa_s^{-1/2} = \varphi^3 v_0 \approx 1.04$ TeV** (rung 77; $\kappa_s = \varphi^{-6}/v_0^2 = 0.92$ TeV$^{-2}$) | Not yet tested | **2030s** |
+| 43 | Wake composite closure | Structure | **$\lambda_Y + \lambda_I = \ell_{n+1}$** ($1 + 1/\varphi = \varphi$) | Verified at 285: 191 + 118 = 309 Mpc = $\ell_{286}$ | **Existing surveys** |
+| 44 | Staggered checkerboard envelope | Structure | **Bubbles at $m\ell_{n+1}$, voids at $(m+\frac{1}{2})\ell_{n+1}$** | Not yet tested | **Two-bubble PDE / surveys** |
+| 45 | Closure-ladder mass placements | Particle physics | **Rung 89: J/ψ ($n = 88.98$, 1.0%); rung 96: μ ($n = 96.000$, 0.01%); rung 34 open** | Partially tested 2026-08-03 | **Catalog; rung 34 open** |
 
 ## 8. Universal Boundary Anisotropy—Scale-Invariant Edge Steepness
 
