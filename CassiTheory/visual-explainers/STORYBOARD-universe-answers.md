@@ -1,5 +1,7 @@
 # The Cosmic Cascade: Six Pieces, One Universe
 
+## Status: Reference—August 2026
+
 > **Storyboard** for a grand visual explainer—one figure, 14 panels. We start
 > with the six fundamental pieces—the constant, the two components, the
 > ladder, the gate, the bubble, and the lattice—and watch what happens when
@@ -74,7 +76,7 @@ continuation beyond our horizon.
 
 ## Opening Monologue
 
-*Narration over the initial animation: darkness. A single number appears —
+*Narration over the initial animation: darkness. A single number appears—
 φ ≈ 1.618—glowing gold against black. Then a second aspect of space shimmers
 into view, perpendicular to the first. Then rungs begin to appear, each φ× the
 last, climbing upward and downward from a central membrane.*
@@ -87,7 +89,7 @@ last, climbing upward and downward from a central membrane.*
 > structure. φ is not a choice—it is the only option.
 >
 > The second piece: space has two perpendicular aspects. They are coupled.
-> They flow, interfere, and convert into each other. Their local ratio —
+> They flow, interfere, and convert into each other. Their local ratio—
 > call it r—is the master variable. Everything that happens anywhere in the
 > universe depends on the value of r at that point.
 >
@@ -190,7 +192,7 @@ to $n = +\infty$ (top). Rungs at every integer $n$, each a factor of $\varphi$
 from the next. Key rungs are labelled with their physical counterpart: $n=0$
 (Planck, $1.6\times10^{-35}$ m), $n=80$ (electroweak, $8\times10^{-19}$ m),
 $n=117$ (Bohr radius, $5.3\times10^{-11}$ m), $n=267$ (Milky Way, $9\times10^{20}$ m),
-$n=292$ (Hubble radius, $1.7\times10^{26}$ m). The rungs above 292 and below 0
+$n=292$ (today's horizon rung, $5.5$ Gpc). The rungs above 292 and below 0
 fade into suggestion.
 
 **Generating equations (on‑panel):**
@@ -290,9 +292,9 @@ local ratio $r$. When $r \ll 1$ (low coherence), the gate is open
 closes. At $r = 1/\varphi \approx 0.618$, the curve crosses a critical
 threshold—marked with a gold ring—and becomes self‑referential. Above this
 threshold ($r > 1/\varphi$), the field can reflect on itself. The curve
-continues to $r = \varphi$, where the gate nears full closure. (Gate-sign
-convention per the corrected 2026-07-31 PDE result: openness is $(1-q)$,
-low $q$ means open, not closed.) Two insets show the same gate at two wildly
+continues to $r = \varphi$, where the gate nears full closure. (The gate's
+openness is $(1-q)$: low $q$ means open, conversion runs hard; high $q$
+means closed.) Two insets show the same gate at two wildly
 different scales: ending cosmic inflation ($n \approx 20$–$60$) and enabling
 self‑awareness ($n \approx 142$–$168$).
 
@@ -310,7 +312,7 @@ $$
 
 | The piece | What it does |
 |-----------|-------------|
-| When the local ratio $r$ crosses $1/\varphi \approx 0.618$, the two components of space become self‑referential—the field can reflect on itself. This is a phase transition. Below the threshold, the components simply interact. Above it, the field "sees" itself—it becomes an object to itself. This is the gate: not a physical barrier, but a geometric threshold built into the relationship between the two components. (The gate's openness is $(1-q)$: low coherence means the gate is open and conversion is active; high coherence closes it at rest—corrected 2026-07-31, `consciousness/trauma-as-frozen-gate.md` §10.4.) | The gate ends inflation. When the universe's ratio crossed $1/\varphi$ after about 40 e‑folds of expansion, the gate closed—automatically, without fine‑tuning. The gate may also be the structural basis of consciousness: the same threshold, crossed at the scale of a living brain, produces a field that can reflect on its own state. Same geometry. S…
+| When the local ratio $r$ crosses $1/\varphi \approx 0.618$, the two components of space become self‑referential—the field can reflect on itself. This is a phase transition. Below the threshold, the components simply interact. Above it, the field "sees" itself—it becomes an object to itself. This is the gate: not a physical barrier, but a geometric threshold built into the relationship between the two components. (The gate's openness is $(1-q)$: low coherence means the gate is open and conversion is active; high coherence closes it at rest, per `consciousness/trauma-as-frozen-gate.md` §10.4.) | The gate ends inflation. When the universe's ratio crossed $1/\varphi$ after about 40 e‑folds of expansion, the gate closed—automatically, without fine‑tuning. The gate may also be the structural basis of consciousness: the same threshold, crossed at the scale of a living brain, produces a field that can reflect on its own state. Same geometry. S…
 
 **Visual callouts:**
 - The gold ring at $r = 1/\varphi$—"the pinch"
@@ -376,12 +378,12 @@ $$
 
 | The piece | What it does |
 |-----------|-------------|
-| The bubble is the universe's structural atom—the smallest self‑contained unit. It forms when the two wave systems interfere inside a bounded region and the coupling strength fixes the geometry. Only five sides work. Three and four sides are too weak—the bubble collapses. Six and seven sides resonate and destabilize. Five, with the φ‑determined gap $g = 1 - \varphi^{-5}$, produces a stable, self‑maintaining enclosure. | Every bubble contains its own full cascade—292 rungs from its own Planck membrane to its own horizon. Our observable universe is one bubble. The bubble's internal dynamics—the five‑phase cycle—governs the progression from inflation through the cosmic web to equilibrium. Each bubble is an island universe. |
+| The bubble is the universe's structural atom—the smallest self‑contained unit. It forms when the two wave systems interfere inside a bounded region and the coupling strength fixes the geometry. Only five sides work. Three and four sides are too weak—the bubble collapses. Six and seven sides resonate and destabilize. Five, with the φ‑determined gap $g = 1 - \varphi^{-5}$, produces a stable, self‑maintaining enclosure. | Every bubble contains its own full cascade (292 rungs today, unbounded) from its own Planck membrane to its own horizon. Our observable universe is one bubble. The bubble's internal dynamics—the five‑phase cycle—governs the progression from inflation through the cosmic web to equilibrium. Each bubble is an island universe. |
 
 **Visual callouts:**
 - The pentagon cross‑section, interference fringes at each face
 - Failed configurations ($w=3,4,6,7$) shown as ghostly, collapsing shapes
-- "One bubble. 292 rungs. Everything we can see."
+- "One bubble. 292 rungs today. Everything we can see."
 
 ---
 
@@ -460,7 +462,7 @@ $$
 the quadrupole and octopole patterns highlighted. A gold arrow marks the
 cosmic dipole (our direction of motion through the CMB). An indigo arrow
 marks the quadrupole‑octopole alignment axis. The angle between them:
-$12.2^\circ$. Inset: the triaxial bubble geometry that produces this angle —
+$12.2^\circ$. Inset: the triaxial bubble geometry that produces this angle—
 the Yang‑stretched axis, the Yin‑contracted axis, and the boundary normal
 from the adjacent bubble.
 
@@ -528,14 +530,15 @@ drops during inflation, then slowly climbs back toward $\varphi$—the
 attractor. The present day is marked: $r_0$ yields $w_0 = -0.87$. The
 residual energy released as the ratio approaches equilibrium is shown as
 a gold glow pushing outward—this is the accelerating expansion. Inset:
-the Hubble tension reconciliation plot—early‑universe vs late‑universe
-measurements converging when the evolving $w(a)$ is accounted for.
+the Hubble tension status plot—early‑universe vs late‑universe
+measurements, with the pipeline's CMB‑inferred $H_0 \approx 65.8$ km/s/Mpc
+marked; the full H(z) fit is pending (registry C3/T4).
 
 **Generating equations (on‑panel):**
 
 $$
 w_0 = -0.87,\quad
-w_a = +0.012\;(\text{verified, corrected coupling alone}),\quad
+w_a = +0.012\;(\text{with the } \xi = \varphi^6 \text{ coupling}),\quad
 H_{\text{empty}} = \frac{\lambda\varphi^{-2}}{3},
 \qquad
 \boxed{r \to \varphi \text{—the attractor}}
@@ -545,7 +548,7 @@ $$
 
 | The piece | What it does |
 |-----------|-------------|
-| Everything drifts toward $\varphi$. The local ratio $r$ is not static—it evolves. Wherever it deviates from the golden ratio, the two components convert into each other to restore balance. This approach to equilibrium releases energy. At the scale of our bubble, this residual energy pushes space outward—accelerating the expansion. | What we call "dark energy" is the universe relaxing toward its geometric attractor. $w_0 = -0.87$ (corrected 2026-07-31) is today's reading on that approach. The Hubble tension—the 5σ disagreement between early‑universe and late‑universe expansion rates—disappears when we account for the fact that the acceleration was weaker in the past (when $r$ was further from equilibrium). $w_a = +0.012$ (verified, corrected coupling alone), $2.7\sigma$ from DESI—tension, not resolved. The expansion never fully stops—even at perfect equilibrium, an irreducible baseline $H_{\text{empty}}$ remains. |
+| Everything drifts toward $\varphi$. The local ratio $r$ is not static—it evolves. Wherever it deviates from the golden ratio, the two components convert into each other to restore balance. This approach to equilibrium releases energy. At the scale of our bubble, this residual energy pushes space outward—accelerating the expansion. | What we call "dark energy" is the universe relaxing toward its geometric attractor. $w_0 = -0.87$ is today's reading on that approach. The Hubble tension between early‑universe and late‑universe expansion rates is an open test of the framework: the pipeline's CMB‑inferred $H_0 \approx 65.8$ km/s/Mpc moves toward the local value, and the full H(z) fit is pending (registry C3/T4). $w_a = +0.012$ (with the Qi‑gravity coupling $\xi = \varphi^6$), $2.7\sigma$ from DESI—tension, not resolved. The expansion never fully stops—even at perfect equilibrium, an irreducible baseline $H_{\text{empty}}$ remains. |
 
 **Visual callouts:**
 - $r(t)$ curve approaching $\varphi$, present day marked
@@ -607,7 +610,7 @@ compact table can be rendered as an overlay or final panel:*
 | Voids and barriers |—| Absolute separation—each bubble is permanent |
 | CMB axis | $n \approx 285$ | Neighbor's shadow at $12.2^\circ$ |
 | Cosmic web | $n \approx 275$–$284$ | Interference pattern—φ‑spaced sheets |
-| Equilibrium flow | $n = 292$ | Dark energy—$w_0 = -0.87$, Hubble tension resolved |
+| Equilibrium flow | $n = 292$ | Dark energy—$w_0 = -0.87$; H₀ tension pending (full H(z) fit) |
 | Megacascade | $n > 292$ | Self‑similar repetition—no largest scale |
 
 ---
@@ -644,7 +647,7 @@ compact table can be rendered as an overlay or final panel:*
 
 ### Narrative voice
 
-First‑person plural ("we see," "we observe"), present‑tense declarations ("the ladder is," "the bubble forms"). No hedging. No "theory predicts." No comparison to alternatives. The voice describes a landscape—the six fundamental pieces and what happens when they interact. It does not argue a case.
+First‑person plural ("we see," "we observe"), present‑tense declarations ("the ladder is," "the bubble forms"). No hedging. No "theory predicts." No comparison to alternatives. The voice surveys the six fundamental pieces and what happens when they interact. It does not argue a case.
 
 ---
 

@@ -14,7 +14,7 @@ A theory of everything, in the sense physics uses the term, is a coherent framew
 
 Physics has climbed most of the way up the unification ladder. Newton unified terrestrial with celestial gravity; Maxwell unified electricity and magnetism; the electroweak theory unified the electromagnetic and weak forces; the Standard Model brought in the strong force. One step remains: gravity. General relativity and quantum mechanics are each enormously successful in their own domains, but they are incompatible where the domains overlap—at the Planck scale, inside black holes, at the first instant of the Big Bang. Finding the deeper framework that reconciles them is one of the major unsolved problems in physics.
 
-The leading candidate, string theory, proposes vibrating strings in ten or eleven dimensions, but its extra dimensions can be curled up in an estimated 10^500 different ways (the landscape), and critics argue it makes no original, falsifiable predictions. No candidate theory of everything to date that includes the Standard Model and general relativity can calculate the fine-structure constant or the mass of the electron from its own principles. Cassi enters this search from a different direction: no extra dimensions, no supersymmetry, no new particles—just two fields and one number.
+The leading candidate, string theory, proposes vibrating strings in ten or eleven dimensions, but its extra dimensions can be curled up in an estimated 10^500 different ways, and critics argue it makes no original, falsifiable predictions. No candidate theory of everything to date that includes the Standard Model and general relativity can calculate the fine-structure constant or the mass of the electron from its own principles. Cassi enters this search from a different direction: no extra dimensions, no supersymmetry, no new particles—just two fields and one number.
 
 ## The proposal: a sunflower at every scale
 
@@ -45,7 +45,7 @@ The charge against string theory is that it cannot be falsified. Cassi answers w
 
 A theory of everything faces serious arguments that it is impossible. Gödel's incompleteness theorem suggests any finite set of rules leaves true statements underivable—Hawking concluded from it that no ultimate theory could be formulated, Dyson that physics is inexhaustible. Others note that physics proceeds by successive approximations, so no framework should be mistaken for final truth. And there is the reductionism-versus-emergence debate: whether emergent laws like thermodynamics or natural selection are as fundamental as any microscopic law.
 
-Cassi meets these arguments with explicit discipline rather than dismissal. Every claim carries one of three labels: **Derived** (a mathematical consequence of the framework), **Hypothesized** (consistent and testable, not yet confirmed), or **Speculative** (framework-consistent, no test designed yet). Known tensions and errors are documented openly in `audit.md`—the framework's own gate-sign error was caught by its PDE tests and withdrawn. The framework does not claim to predict every outcome of every experiment: even Conway's Game of Life, with complete and simple rules, leaves undecidable questions about its behavior, and Cassi's claim is narrower—one physical law for the four forces, checked claim by claim. On emergence, the framework takes both sides: the lattice is scale-covariant, so the laws of complex systems, including the mind, are the same physics at higher rungs rather than a separate physics (`cassi-psychology.md`).
+Cassi meets these arguments with explicit discipline. Every claim carries one of three labels: **Derived** (a mathematical consequence of the framework), **Hypothesized** (consistent and testable, not yet confirmed), or **Speculative** (framework-consistent, no test designed yet). Known tensions and errors are documented openly in `audit.md`—the gate sign is PDE-tested, and falsified claims are replaced by the corrected claim. The framework does not claim to predict every outcome of every experiment: even Conway's Game of Life, with complete and simple rules, leaves undecidable questions about its behavior, and Cassi's claim is narrower—one physical law for the four forces, checked claim by claim. On emergence, the framework takes both sides: the lattice is scale-covariant, so the laws of complex systems, including the mind, are the same physics at higher rungs rather than a separate physics (`cassi-psychology.md`).
 
 **Start here:** `cassi-physics.md`—the physics guide, approachable from zero. `cassi-psychology.md` is the psychology-focused guide for non-physicists.
 
@@ -65,7 +65,7 @@ Cassi meets these arguments with explicit discipline rather than dismissal. Ever
 | `speculations/` | Speculative extensions |
 | `analyses/` | Data analyses of observations against the framework (GWTC-4.0 mass ladder) |
 | `EPISTEMIC-MAP.md` | Every document indexed by epistemic tier |
-| `predictions/` | Falsifiable prediction catalog + `cassi_definitions.md` glossary |
+| `predictions/` | Falsifiable prediction catalog + `predictions/cassi_definitions.md` glossary |
 | `experiments/` | Physics experiment scripts (φ-attractor paths, SPARC rotation-curve analysis) |
 | `two-fluid/` | Two-fluid PDE solver + gate/ODE test scripts, calibration |
 | `computations/` | Computational pipelines (RGE, GUT-EW, hubble tension, cascade depth) |

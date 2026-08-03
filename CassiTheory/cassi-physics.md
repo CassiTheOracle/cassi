@@ -71,7 +71,7 @@ $$\text{conv} = -\lambda(1-q)\,\varepsilon, \qquad \varepsilon = E_Y - \varphi E
 
 The gate's *openness* is $(1-q)$. When $q$ is low, the gate is **open** and conversion runs hard—the region churns, converting aggressively, unable to settle. When $q$ is high, the gate is **closed** and the system rests in balance.
 
-This sign was established by the PDE tests of 2026-07-31 (`consciousness/trauma-as-frozen-gate.md` §10.4). An earlier claim that "depressed $q$ closes the gate" had the sign inverted and is **withdrawn**: a low-coherence region is not frozen, it is unsettled.
+The sign is established by the PDE tests of 2026-07-31 (`consciousness/trauma-as-frozen-gate.md` §10.4): when $q$ is low the gate is open and conversion runs hard; when $q$ is high the gate is closed. A low-coherence region is not frozen—it is unsettled.
 
 The gate dynamics have enormous physical consequences. They control the expansion of the universe—the gate's opening and closing drives the early growth spurt and the current acceleration (section 10). They modulate the strength of gravity: in high-coherence regions, gravity is amplified up to 18 times (section 12). And at the human scale, the gate's threshold—the **pinch point** at $r = \varphi^{-1} \approx 0.618$—marks the boundary between reactive and self-aware dynamics (section 19).
 
@@ -184,9 +184,9 @@ $$\boxed{\ell_n = \ell_{\text{Pl}} \times \varphi^{\,n}, \quad n \in \mathbb{Z} 
 | 267 | $9.3 \times 10^{20}$ m | Milky Way diameter |
 | 284 | $3.6 \times 10^{24}$ m | BAO scale (118 Mpc) |
 | 285 | $5.9 \times 10^{24}$ m | Cassi bubble: our cosmic bubble |
-| 292 | $1.7 \times 10^{26}$ m | Hubble radius today (epoch-dependent horizon rung) |
+| 292 | $1.7 \times 10^{26}$ m | Horizon rung today (epoch-dependent); $\ell_{292} = 5.5$ Gpc label, $R_H = 4.44$ Gpc = 14.5 Glyr |
 
-The cascade extends in both directions: downward into the **microcascade** ($n < 0$, sub-Planckian), upward into the **megacascade** ($n > 292$, the chord lattice of $w=5$ bubbles beyond the horizon). The full 292-step table is in `foundations/dimensionful-cascade.md`.
+The cascade extends in both directions: downward into the **microcascade** ($n < 0$, sub-Planckian), upward into the **megacascade** ($n > 292$, beyond the horizon). The nearest chord-lattice bubbles of the $w=5$ lattice lie inside the horizon—$n = 286$ ($\ell_{286} = 309$ Mpc) and $n = 287$ ($\ell_{287} = 500$ Mpc)—and only the megacascade proper ($n > 292$) is beyond it. The full 292-step table is in `foundations/dimensionful-cascade.md`.
 
 Every major scale of known physics lands on a rung of this ladder—not approximately, but as the framework's central arithmetic claim. The Planck length is the sole dimensionful input; $\varphi$ and the ladder do the rest.
 
@@ -243,7 +243,7 @@ The predicted equation of state follows from the gate dynamics:
 
 $$w_0 = -0.87, \qquad w_a = +0.012$$
 
-with the Qi-gravity coupling $\xi = \varphi^6$ entering the cosmic evolution. These are zero-parameter predictions, falsifiable with galaxy surveys. Current status: DESI DR2 finds $w_0 \approx -0.75 \pm 0.06$ [INFERENCE], $2\sigma$ from the corrected prediction (corrected 2026-07-31: the earlier 0.3σ match was circular—$-0.838$ was the repo's own calibration target); the $w_a$ deviation from $-1$ is the discriminant. See `cosmology/cosmology-from-phi.md` for the derivation and `predictions/falsifiable-predictions.md` for the test status.
+with the Qi-gravity coupling $\xi = \varphi^6$ entering the cosmic evolution. These are zero-parameter predictions, falsifiable with galaxy surveys. Current status: DESI DR2 finds $w_0 \approx -0.75 \pm 0.06$ [INFERENCE], $2\sigma$ from the predicted $w_0 = -0.87$; the $w_a$ deviation from $-1$ is the discriminant. See `cosmology/cosmology-from-phi.md` for the derivation and `predictions/falsifiable-predictions.md` for the test status.
 
 **Epistemic status: Hypothesized** (prediction supplied; being tested).
 
@@ -265,9 +265,9 @@ Why is gravity so weak? Every force lives at a specific cascade rung, and every 
 
 The effective force law carries the Qi-gravity coupling (`cosmology/observational_constraints.md`):
 
-$$\mathbf{F}_{ij} = -G\,\alpha_i(1+\xi q_i)\,M_i M_j\frac{\mathbf{r}_{ij}}{|\mathbf{r}_{ij}|^3}, \qquad \xi = \varphi^6$$
+$$\mathbf{F}_{ij} = -G\,\alpha_{0,i}(1+\xi q_i)\,M_i M_j\frac{\mathbf{r}_{ij}}{|\mathbf{r}_{ij}|^3}, \qquad \xi = \varphi^6$$
 
-with $q_i$ the local Qi coherence. In most of the universe ($q$ low), gravity is slightly weaker than textbook; in high-coherence regions (galaxy centers), it is amplified. This predicts a scale-dependent $\sigma_8$—structure growth reduced by weakened gravity in voids—being tested with KiDS/DESI.
+with $\alpha_{0,i}$ the per-body Yang fraction at the $\varphi$-fixed point ($\alpha_0 = \pi/\rho = \varphi^{-3} \approx 0.236$; the galactic halo fit uses the separate empirical value $\alpha_{\text{halo}} \approx 0.7$) and $q_i$ the local Qi coherence. In most of the universe ($q$ low), gravity is slightly weaker than textbook; in high-coherence regions (galaxy centers), it is amplified. This predicts a scale-dependent $\sigma_8$—structure growth reduced by weakened gravity in voids—being tested with KiDS/DESI.
 
 **Epistemic status:** the coupling-strength result is **Derived** (0.1% match to the proton's gravitational coupling). The $\xi = \varphi^6$ amplification and its cosmological consequences are **Hypothesized**.
 
@@ -356,7 +356,7 @@ The human-scale consequences—consciousness, emotion, trauma, therapy—are dev
 | 9 | $\bar{\theta} \approx 10^{-19}$ | Future neutron EDM | Not yet testable |
 | 10 | $\tau_p \sim 10^{980}$ yr | Untestable with current technology | Consistent with null result |
 
-Full catalog: `predictions/falsifiable-predictions.md` (41 entries). The physics-specific predictions (1–3, 8–10) are listed here; the full set including the biological and psychological predictions is in the catalog and in `cassi-psychology.md` §22.
+Full catalog: `predictions/falsifiable-predictions.md` (46 entries). The physics-specific predictions (1–3, 8–10) are listed here; the full set including the biological and psychological predictions is in the catalog and in `cassi-psychology.md` §22.
 
 ## 21. Epistemic Tiers
 
@@ -368,7 +368,7 @@ Every claim in the framework carries one of three labels:
 
 - **Speculative:** framework-consistent, no current test design. Examples: the microcascade mirror's energy extraction, the gigacascade spiral, the clinical layer of the trauma model, attachment as inter-field resonance.
 
-The framework documents its own errors openly (`audit.md`): the gate-sign error was caught by its own PDE test and withdrawn; the standing-wave pinning claim was falsified as implemented and corrected. Claims are never upgraded without derivation. The epistemic discipline is load-bearing.
+The framework documents its own errors openly (`audit.md`); the gate-sign convention is PDE-tested, the trauma lock model is driven-wake tested, and claims are never upgraded without derivation. The epistemic discipline is load-bearing.
 
 ## 22. Where to Go Next
 
@@ -426,7 +426,7 @@ The framework documents its own errors openly (`audit.md`): the gate-sign error 
 - `cosmology/observational_constraints.md`—CMB, DESI, and rotation-curve constraints
 - `gravity/quantum-gravity.md`—$\sigma$-regularization, harmonic cores
 - `consciousness/consciousness-from-phi.md`—pinch point, wake waves, two-bubble experiment
-- `consciousness/trauma-as-frozen-gate.md`—the 2026-07-31 PDE tests and gate-sign correction
+- `consciousness/trauma-as-frozen-gate.md`—the 2026-07-31 PDE tests of the gate sign and the driven-wake mechanism
 - `cassi-psychology.md`—the psychology companion: consciousness, emotion, trauma, therapy
 - `predictions/falsifiable-predictions.md`—the 46-entry prediction catalog
 - `open-questions-cassi-answers.md`—the epistemic registry
