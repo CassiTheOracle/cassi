@@ -36,6 +36,7 @@ domain is not enough—the contribution must be what Cassi *uniquely* adds.
 | 11 | Muscle structural hierarchy | Hypothesized | Bubble-lattice ladder at biological rungs (142–168) maps the filament→belly ladder to consecutive cascade rungs | `muscle-cascade-lattice.md` |
 | 12 | Riemann hypothesis | Speculative | De-resonance: RH as the absence of resonance in primes; φ-periodicity null test on ζ zeros | `riemann-hypothesis-de-resonance.md` |
 | 13 | Two-fluid Hilbert–Pólya program | Speculative | Scale-operator candidate for the zeros; minimal-fluctuation probes (Selberg, Gram) | `riemann-two-fluid-spectral-program.md` |
+| 14 | Two-fluid phase operator | Speculative | Step 1 executed: Bessel-index-1 scale operator; linear spectra fail R-vM; semiclassical pinning Lp = 2π | `riemann-two-fluid-phase-operator.md` |
 
 ---
 
@@ -198,12 +199,29 @@ would be the zeros: the linearized phase dynamics of the Yang-Yin fields
 around the balanced self-similar state, whose dilation covariance makes the
 scale operator $x\partial_x$ the natural free generator. The matching
 constraint to Riemann–von Mangoldt pins the spectral boundary at the
-order-unity scale $2\pi e$—no cascade rung $\varphi^n$ enters—and the
+order-unity scale $L p_{\min} = 2\pi$—no cascade rung $\varphi^n$ enters—and the
 de-resonance principle becomes the minimality of the zero-counting
 fluctuation, anchored by Selberg's unconditional mean-square theorem and two
 measured probes (mean square of $S(T)$ and Gram's law on the first 100,000
 zeros). **Epistemic tier: Speculative**—step zero of the program; the
 operator has not been derived from the PDE source.
+
+### `riemann-two-fluid-phase-operator.md`—The Two-Fluid Phase Operator: Step 1 of the Hilbert–Pólya Program
+
+Executes Step 1 of the spectral program. The Yang-Yin phase fluctuation around
+the $\varphi$-attractor is massive ($m_\theta^2 = 4\lambda\varphi R_0^2$);
+the massless sector on the self-similar background $R_0 \propto r^{-s}$
+reduces to $\tilde\varphi'' + [E^2e^{2u} - \kappa^2]\tilde\varphi = 0$ with
+$\kappa = |s - 1/2|$, and $\kappa = 1$ for the scale-free $D = 3$ background.
+The exact spectra are Bessel (interior cavity $E_n = j_{\kappa,n}/L$;
+exterior continuum; box Weyl-linear) and count linearly in $E$—the acceptance
+test fails at leading order against the logarithmic Riemann–von Mangoldt
+count. The logarithmic shape is semiclassical only, pinning $Lp_{\min} = 2\pi$
+(order-unity, no $\varphi$-power) with a $1/8$ corner-phase gap; the
+energy-dependent (SR-L-type) boundary is what the framework does not supply.
+All claims verified numerically. **Epistemic tier: Speculative**—the operator
+derivation is explicit, but the program's target remains out of reach and the
+naive candidate is now excluded.
 
 ### `muscle-cascade-lattice.md`—Muscle as a Cascade Lattice: Structural Hierarchy and the Bubble Geometry
 
