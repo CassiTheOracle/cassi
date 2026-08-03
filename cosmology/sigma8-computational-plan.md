@@ -2,6 +2,10 @@
 
 ## Status: Plan—July 2026
 
+## Abstract
+
+This document is the computational plan for promoting the Cassi $\sigma_8$ prediction from Hypothesized to Derived. The mechanism is the density-dependent Qi-gravity coupling $G_{\text{eff}} = (\pi/\rho)(1+\xi q)G_N$ with $\xi = \varphi^6$: voids see near-Newtonian gravity while filament and halo regions see an enhanced $G_{\text{eff}}$, and the cosmic-mean $q$ decreases with time, suppressing late-time growth by roughly $5$–$10\%$ relative to $\Lambda$CDM—matching the observed Planck-vs-weak-lensing $\sigma_8$ deficit. The plan runs a high-resolution two-fluid PDE, extracts $q(k, a)$ per Fourier mode, integrates it into a modified Boltzmann solver, and validates against rotation curves, cluster masses, and $f\sigma_8$.
+
 ---
 
 ## 1. Objective
@@ -20,7 +24,7 @@ $$\boxed{G_{\text{eff}}(x) = \frac{\pi}{\rho(x)}\left(1 + \xi\,q(x)\right) G_N, 
 
 where:
 - $q \in [0, 1]$ is the Qi coherence quality (derived from the two-fluid Yang/Yin ratio)
-- $\pi/\rho$ is the geometric dilution factor from the two-fluid projection onto 3D space
+- $\pi/\rho$ is the geometric dilution factor from the two-fluid projection onto 3D space; at the $\varphi$-fixed point it is the equilibrium Yang fraction $\alpha_0 = \varphi^{-3} \approx 0.236$
 - $\xi = \varphi^6$ is the **derived** coupling (cascade activation at step 6, see `foundations/xi-derivation.md`)
 
 ### 2.2 Density Dependence of $q$
@@ -84,7 +88,7 @@ For Cassi ($\mu \neq 1$), growth is enhanced at early times (high $q$) and suppr
 
 ### 3.2 Effective $\mu$ from the Pipeline
 
-The existing PDE pipeline (`run_sigma8_pipeline.py`) at $N=32$ gives:
+The existing PDE pipeline (`two-fluid/run_sigma8_pipeline.py`) at $N=32$ gives:
 
 - $q_{\text{initial}} = 0.429$, $q_{\text{final}} = 0.382$ (spatial mean)
 - $G_{\text{eff}}/G_{\text{ref}} = 0.904$ (9.6% relative reduction in effective gravity as $q$ drops)
@@ -129,7 +133,7 @@ Using $q(z)$ from the PDE and integrating the growth equation numerically with $
 $$\boxed{\frac{\sigma_8^{\text{Cassi}}}{\sigma_8^{\Lambda\text{CDM}}} \approx 0.90\text{--}0.95 \quad \Rightarrow \quad \Delta\sigma_8/\sigma_8 \approx -5\%\text{ to }-10\%}$$
 
 This matches:
-- The qualitative expectation from `falsifiable-predictions.md` ("slightly lower, ~5%")
+- The qualitative expectation from `predictions/falsifiable-predictions.md` ("slightly lower, ~5%")
 - The observed Planck vs. weak-lensing tension ($\sim 5\text{–}9\%$)
 - The $f\sigma_8$ suppression seen in BOSS/eBOSS at $z \lesssim 0.5$ ($\sim 1\sigma$)
 
@@ -152,7 +156,7 @@ PDE Simulation       q(k,z) Extraction      Boltzmann Solver         Sigma8
 
 ### 4.2 Step 1: High-Resolution PDE Simulation
 
-**What:** Run `cassi_two_fluid_3d_gpu.py` at $N=64$ or $N=128$ with cosmological ICs.
+**What:** Run `two-fluid/cassi_two_fluid_3d_gpu.py` at $N=64$ or $N=128$ with cosmological ICs.
 
 **Parameters:**
 - Grid: $N=64$ minimum, $N=128$ target (GPU), $N=32$ minimum (CPU)
@@ -294,7 +298,7 @@ The output is $\sigma_8(z)$ for direct comparison with:
 
 From MW rotation curve analysis (`cosmology/observational_constraints.md` §2.6):
 
-$$v_C/v_B = \sqrt{\alpha(1+\xi q)} \approx 2.7 \;\Rightarrow\; q_{\text{MW}} \approx 0.7$$
+$$v_C/v_B = \sqrt{\alpha_{\text{halo}}(1+\xi q)} \approx 2.7 \;\Rightarrow\; q_{\text{MW}} \approx 0.7$$
 
 This constrains $q$ in galaxy halos at $\rho \sim 10^{-2}$–$10^{-3}$ atoms/cm³. It is a local, $z\approx0$ constraint. This $q$ value is consistent with the filament/halo-outskirt regime in Section 2.3.
 
@@ -334,7 +338,7 @@ Existing data (BOSS/eBOSS) shows a mild ($\sim 1\text{–}2\sigma$) suppression 
 | $q_{\text{CMB}}$ ($z\sim1100$) | $\sim 0.5$ (estimate) | PDE near recombination | Requires extraction |
 | $q_{0}$ ($z=0$) | $\sim 0.4$ (interpolated) | PDE at $z=0$ | From pipeline |
 | $q_{\text{void}}$ | $\to 0$ | Condensation field geometric limit | Fixed |
-| $\langle\pi/\rho\rangle$ at mean density | $\varphi^{-3} \approx 0.236$ | Derived (Yin/Yang equilibrium) | Fixed |
+| $\langle\pi/\rho\rangle = \alpha_0$ at mean density | $\varphi^{-3} \approx 0.236$ | Derived (equilibrium Yang fraction $\alpha_0$) | Fixed |
 | $\mu(k, a)$ | $(\pi/\rho(a))(1 + \xi q(k, a))$ | Composite | **Computed from PDE** |
 | $q_{\text{MW halo}}$ | $\sim 0.7$ | Rotation curve fit ($v_C/v_B = 2.7$) | Independent calibration check |
 
@@ -345,7 +349,7 @@ Existing data (BOSS/eBOSS) shows a mild ($\sim 1\text{–}2\sigma$) suppression 
 ## 7. Timeline and Milestones
 
 ### Phase 1: PDE at Higher Resolution (Week 1)
-- Run `cassi_two_fluid_3d_gpu.py` at $N=64$ with cosmological ICs
+- Run `two-fluid/cassi_two_fluid_3d_gpu.py` at $N=64$ with cosmological ICs
 - Output $q(x, a)$ and $\rho(x, a)$ at 50 snapshots from $a=0.01$ to $a=1.0$
 - **Deliverable:** `q_grid_{a}.npy`, `rho_grid_{a}.npy`
 
@@ -422,9 +426,9 @@ Interpolation routines for $q(k, z)$ and computation of $\mu(k, z)$.
 
 | Script | Change |
 |--------|--------|
-| `run_sigma8_pipeline.py` | Use for IC generation only; replace $\sigma_8$ computation with Boltzmann integration |
-| `run_boltzmann_cassi.py` | Add $\sigma_8$ computation alongside $C_\ell$; accept $q(k,z)$ input |
-| `cassi_two_fluid_3d_gpu.py` | Ensure $q(k)$ snapshot output at cosmological resolution |
+| `two-fluid/run_sigma8_pipeline.py` | Use for IC generation only; replace $\sigma_8$ computation with Boltzmann integration |
+| `two-fluid/run_boltzmann_cassi.py` | Add $\sigma_8$ computation alongside $C_\ell$; accept $q(k,z)$ input |
+| `two-fluid/cassi_two_fluid_3d_gpu.py` | Ensure $q(k)$ snapshot output at cosmological resolution |
 
 ---
 
@@ -435,8 +439,8 @@ The computation reaches **Derived** status when:
 1. **Quantitative match:** $\sigma_8^{\text{Cassi}}(z=0)$ is within $1\sigma$ of the combined low-redshift weak-lensing measurements ($\sigma_8 \approx 0.75\text{–}0.78$) given the Planck-calibrated initial conditions.
 
 2. **Consistency with existing tests:** The same $\xi = \varphi^6$ and $q$ evolution reproduces:
-   - MW rotation curve boost ($2.7\times$ at 30 kpc)—already $0\sigma$
-   - $w_0 = -0.87$ (corrected 2026-07-31; $2\sigma$ from DESI DR2's $w_0 \approx -0.75 \pm 0.06$ [INFERENCE])
+   - MW rotation curve boost ($2.9$–$3.1\times$ predicted vs $2.7 \pm 0.5$ observed at 30 kpc)—consistent within ~1.2σ
+   - $w_0 = -0.87$ ($2\sigma$ from DESI DR2's $w_0 \approx -0.75 \pm 0.06$ [INFERENCE])
    - $w_a = +0.012$ with $\xi$ correction ($2.7\sigma$, $2.2$–$3.2\sigma$: tension, not resolved)
 
 3. **Residual tension explained:** The $\sim 0.02\text{–}0.06$ gap between Cassi and the lowest $\sigma_8$ measurements is within the systematic uncertainty of $q(k)$ extraction at finite resolution ($N \geq 64$).

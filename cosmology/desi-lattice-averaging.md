@@ -35,7 +35,7 @@ At the cosmological rungs the cells span exactly the survey's scales (computed f
 | 287 | 499.6 | 308.8 |—|
 | 288 | 808.4 | 499.6 | Supercluster scale |
 | 290 | 2116 | 1308 | Horizon at recombination |
-| 292 | 5541 | 3424 | Hubble radius |
+| 292 | 5541 | 3424 | Rung-292 lattice length ($R_H = 4.44$ Gpc $= 14.5$ Glyr, $\log_\varphi = 291.54$) |
 
 DESI's comoving range (z ∈ [0.1, 2.1], out to ~3.4 Gpc) crosses ~18 rung-285 cells along the line of sight and contains ~$10^3$ of them in volume; the survey side length (≈ 2.7 Gpc) spans 1–3 rung-288 cells. The lattice is *nested*: every rung-$n$ cell contains the full sub-lattice of rungs $n-1, n-2, \ldots$ (`foundations/bubble-lattice-fabric.md` §3.2), so DESI's power spectrum carries the superposition of rungs ~283–291.
 

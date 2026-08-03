@@ -1,8 +1,10 @@
 # Cassi Cosmology: Inflation, Baryogenesis, and Dark Matter from $\varphi$
 
-*Three open problems solved by the $\varphi$-governed two-fluid—zero new parameters.*
-
 ## Status: Derived—July 2026
+
+## Abstract
+
+The same two-fluid dynamics in an expanding universe produce inflation, the baryon asymmetry, and the dark-matter budget—three open problems solved with zero new parameters. Inflation is a $\varphi$-driven phase transition of the Yang/Yin ratio toward the attractor; its scalar spectral index is $n_s = 1 - 2\varphi^{-1}/N_e \approx 0.9691$ ($N_e = 40$), within $1.0\sigma$ of Planck. The baryon-to-photon ratio follows from cascade freeze-out, $\eta = \varphi^{-44} \approx 6.38\times10^{-10}$, within 6.3% of the observed $6.0\times10^{-10}$. Dark matter is a high-Qi condensate with $\Omega_{\text{DM}}/\Omega_b = \varphi^3 + 1 \approx 5.24$ against the observed 5.39 (2.8% gap).
 
 ---
 
@@ -85,14 +87,14 @@ $$
 
 | Quantity | Cassi Prediction | Planck 2018 |
 |----------|-----------------|-------------|
-| Scalar spectral index $n_s$ | $1 - 2/N_e \approx 0.967$ | $0.965 \pm 0.004$ |
+| Scalar spectral index $n_s$ | $1 - 2\varphi^{-1}/N_e \approx 0.9691$ | $0.9649 \pm 0.0042$ |
 | Tensor-to-scalar ratio $r$ | $12/N_e^2 \approx 0.003$ | $< 0.032$ |
 | Running $dn_s/d\ln k$ | $-2/N_e^2 \approx -5\times10^{-4}$ | $-0.005 \pm 0.013$ |
-| E-foldings $N_e$ | $60 \pm 10$ | $50$--$60$ |
+| E-foldings $N_e$ | $40$ (cascade steps 20--60) | $50$--$60$ |
 | Perturbation amplitude $\mathcal{P}_\zeta$ | $(H_{\text{inf}}^2)/(2\pi\dot\phi)^2 \approx 2\times10^{-9}$ | $2.1\times10^{-9}$ |
 | Inflation scale $M_{\text{inf}}$ | $\sqrt{\alpha_{\text{GUT}}}\,M_{\text{Pl}} \approx 3\times10^{16}$ GeV |—|
 
-The spectral index $n_s = 0.967$ matches Planck at the $0.5\sigma$ level. The tensor ratio $r = 0.003$ is well below the current bound but detectable by future CMB-S4 and LiteBIRD experiments.
+The spectral index $n_s = 0.9691$ matches Planck at the $1.0\sigma$ level. The tensor ratio $r = 0.003$ is well below the current bound but detectable by future CMB-S4 and LiteBIRD experiments.
 
 ### 2.4 Reheating
 
@@ -142,30 +144,15 @@ $$
 B = \frac{28}{79}(B-L) \quad \text{(SM with one Higgs doublet)}
 $$
 
-The produced baryon-to-photon ratio:
+The baryon-to-photon ratio is fixed by the cascade freeze-out derivation (`foundations/baryon-asymmetry.md`): the residual Yang excess after organized annihilation is attenuated through 44 rungs of photon-producing conversion (steps 8 → 52) to
 
 $$
-\eta = \frac{n_B}{n_\gamma} = \frac{28}{79} \cdot \varphi^{-3} \cdot \frac{n_\gamma^{-1}}{dof} \cdot \varepsilon_{\text{sph}}
+\boxed{\eta = \varphi^{-44} \approx 6.38 \times 10^{-10}}
 $$
 
-A cleaner derivation uses the equilibrium relation:
+**Observed:** $\eta = 6.0 \times 10^{-10}$
 
-$$
-\boxed{\eta = B_s \cdot \varphi^{-1} \cdot \frac{T_{\text{sph}}}{M_{\text{Pl}}}}
-$$
-
-where $B_s = 28/79$ is the sphaleron conversion factor, $T_{\text{sph}} \approx 100$ GeV is the sphaleron freeze-out temperature, and $\varphi^{-1} \approx 0.618$ is the chiral asymmetry leakage factor.
-
-**Numerically:**
-
-$$
-\eta = \frac{28}{79} \cdot 0.618 \cdot \frac{100\text{ GeV}}{1.22\times10^{19}\text{ GeV}}
-\approx 5.1 \times 10^{-10}
-$$
-
-**Observed:** $\eta = (6.104 \pm 0.058) \times 10^{-10}$
-
-The gap of $\sim 17\%$ is within theoretical uncertainty from the exact sphaleron temperature, the number of active fermion flavors, and the precise mapping between the Yang/Yin ratio and the chiral chemical potential at the electroweak scale.
+The prediction sits **within 6.3%** of the observed value.
 
 ### 3.3 Sakharov Conditions
 
@@ -183,7 +170,7 @@ No additional CP-violating phases beyond the Standard Model are needed. The $\va
 
 | Quantity | Cassi Prediction | Observed | Ratio |
 |----------|-----------------|----------|-------|
-| $\eta = n_B/n_\gamma$ | $B_s \cdot \varphi^{-1} \cdot T_{\text{sph}}/M_{\text{Pl}} \approx 5.1\times10^{-10}$ | $6.1\times10^{-10}$ | 0.84 |
+| $\eta = n_B/n_\gamma$ | $\varphi^{-44} \approx 6.38\times10^{-10}$ | $6.0\times10^{-10}$ | Within 6.3% |
 
 ---
 
@@ -194,7 +181,7 @@ No additional CP-violating phases beyond the Standard Model are needed. The $\va
 The two-fluid can form stable, coherent condensates—regions where the Qi quality $q \to 1$ and the Yang/Yin ratio is at the $\varphi$-attractor. These condensates:
 
 - **Are dark**: They are pure two-fluid field, not baryonic matter. No electromagnetic interaction.
-- **Are gravitationally active**: $G_{\text{eff}} = G\cdot(1+\xi q)$ with $\xi = \varphi^6 \approx 17.944$.
+- **Are gravitationally active**: $G_{\text{eff}} = G\,(\pi/\rho)(1+\xi q)$ with $\xi = \varphi^6 \approx 17.944$; at the $\varphi$-fixed point the geometric factor is the equilibrium Yang fraction $\alpha_0 = \pi/\rho = \varphi^{-3} \approx 0.236$.
 - **Are stable**: The $\varphi$-attractor maintains $r = \varphi$ and the PDE's dissipative terms damp perturbations.
 - **Are collisionless**: A field condensate passes through other matter without friction—consistent with the Bullet Cluster.
 
@@ -243,7 +230,7 @@ The Qi condensate naturally produces cored profiles (from the $\varphi$-attracto
 | Bullet Cluster | Collisionless DM consistent | Confirmed |
 | Weak lensing | Enhanced $G_{\text{eff}}$ in halos | LSST testable |
 | Direct detection | Null (field condensate) | All experiments null |
-| CMB $\sigma_8$ | Slightly lower ($\sim 5\%$) than $\Lambda$CDM | Within current uncertainty |
+| CMB $\sigma_8$ | Slightly lower ($\sim 5\%$) than $\Lambda$CDM | Within current uncertainty; pipeline plan in `cosmology/sigma8-computational-plan.md` |
 
 ---
 
@@ -253,10 +240,10 @@ The Qi condensate naturally produces cored profiles (from the $\varphi$-attracto
 
 | Time | Event | Key Equation |
 |------|-------|-------------|
-| $t \sim 10^{-38}$ s | Inflation begins: $r \gg \varphi$ | $H \approx -\lambda/3$, $N_e \approx 60$ |
+| $t \sim 10^{-38}$ s | Inflation begins: $r \gg \varphi$ | $H \approx -\lambda/3$, $N_e = 40$ |
 | $t \sim 10^{-36}$ s | Inflation ends: $r \to \varphi$ | $\varepsilon = \eta \approx 1$ |
 | $t \sim 10^{-34}$ s | Reheating: $T \sim 10^{15}$ GeV | $\Gamma_{\text{reh}} \approx \lambda\varphi^{-2}M_{\text{Pl}}$ |
-| $t \sim 10^{-10}$ s | Electroweak phase transition: $T \sim 100$ GeV | $\eta \approx \varphi^{-1}\cdot T_{\text{sph}}/M_{\text{Pl}}$ |
+| $t \sim 10^{-10}$ s | Electroweak phase transition: $T \sim 100$ GeV | $\eta \approx \varphi^{-44}$ |
 | $t \sim 1$ Gyr | Structure formation: $z \sim 3$ | $\Omega_{\text{DM}}/\Omega_b \approx \varphi^3 + 1$ |
 | $t \sim 13.8$ Gyr | Today: terminal attractor | $q \to 1$, $\pi/\rho \to 1$, $r \to \varphi$ |
 
@@ -264,10 +251,10 @@ The Qi condensate naturally produces cored profiles (from the $\varphi$-attracto
 
 | Observable | Cassi Prediction | Measurement | Gap |
 |-----------|-----------------|-------------|-----|
-| $n_s$ | $1 - 2/N_e \approx 0.967$ | $0.965 \pm 0.004$ | $0.5\sigma$ |
+| $n_s$ | $1 - 2\varphi^{-1}/N_e \approx 0.9691$ | $0.9649 \pm 0.0042$ | $1.0\sigma$ |
 | $r$ | $12/N_e^2 \approx 0.003$ | $< 0.032$ |—|
 | $\mathcal{P}_\zeta$ | $\sim 2\times10^{-9}$ | $2.1\times10^{-9}$ | $5\%$ |
-| $\eta$ | $5.1\times10^{-10}$ | $6.1\times10^{-10}$ | $17\%$ |
+| $\eta$ | $\varphi^{-44} \approx 6.38\times10^{-10}$ | $6.0\times10^{-10}$ | $6.3\%$ |
 | $\Omega_{\text{DM}}/\Omega_b$ | $\varphi^3 + 1 \approx 5.24$ | $5.39$ | $2.8\%$ |
 | $T_{\text{reh}}$ | $\sim 10^{15}$ GeV |—| Consistent |
 | DM direct detection | Null | Null (all expts) | Consistent |
