@@ -2,6 +2,10 @@
 
 ## Status: Derived—July 2026
 
+## Abstract
+
+A single action assembles every sector of the framework: the two-fluid core (paired-real SO(2) doublet with the $\varphi$-attractor potential and Bohm quantum potential), the Dirac sector (Yang/Yin as chiral projections $\hat P_{Y/I} = (1 \pm \gamma^5)/2$), general relativity with the Qi-modified Newton constant $G_{\text{eff}} = G\,(\pi/\rho)(1 + \xi q)$, the Standard Model gauge/Higgs/Yukawa sectors, and the cross-coupling terms—including the sector coupling $\kappa_s = \varphi^{-6}/v_0^2$. All dimensionless couplings are $\varphi$-powers; the three dimensionful constants ($c$, $\hbar$, $G$) remain external.
+
 $$
 \boxed{\mathcal{L}_{\text{Cassi}} = \mathcal{L}_{\text{TF}} + \mathcal{L}_{\text{D}} + \mathcal{L}_{\text{GR}} + \mathcal{L}_{\text{SM}} + \mathcal{L}_{\text{mix}}}
 $$
@@ -19,7 +23,7 @@ All dimensionless parameters are $\varphi$-powers:
 | $\varphi = (1+\sqrt{5})/2$ | $1.618033989$ | Golden ratio (mathematical constant) |
 | $\varphi^{-1}$ | $0.618033989$ | $= \varphi - 1$ |
 | $\varphi^{-2}$ | $0.381966011$ | $= 1 - \varphi^{-1}$ |
-| $\varphi^{-3}$ | $0.236067978$ | $= (\varphi-1)/(\varphi+1)$—VEV asymmetry |
+| $\alpha_0 = \varphi^{-3}$ | $0.236067978$ | $= (\varphi-1)/(\varphi+1)$—equilibrium Yang fraction (VEV asymmetry) |
 | $\varphi^{6}$ | $17.94427191$ | $= \varphi^5 + \varphi^4$—Qi-gravity coupling |
 | $\varphi^{4}$ | $6.854101966$ | Four-interaction scale |
 | $\varphi^{5}$ | $11.09016994$ | Wu Xing cycle scale |
@@ -265,7 +269,7 @@ $$
 The Weinberg angle at $M_{\text{GUT}}$:
 
 $$
-\boxed{\sin^2\theta_W = \frac{\varphi-1}{\varphi+1} = \varphi^{-3} \approx 0.236}
+\boxed{\sin^2\theta_W = \frac{\varphi-1}{\varphi+1} = \alpha_0 = \varphi^{-3} \approx 0.236}
 $$
 
 Coupling ratio:
@@ -467,8 +471,8 @@ The action decomposes into five independently derivable subsector actions, each 
 | Sector | Action | Document |
 |--------|--------|----------|
 | Two-fluid core | $S_{\text{TF}} = \int\mathcal{L}_{\text{TF}}$ | `foundations/cassi-first-principles.md` |
-| Dirac matter | $S_{\text{D}} = \int\mathcal{L}_{\text{D}}$ | `cassi_dirac_bridge.py`, `particles/cassi-yang-yin-particles.md` |
-| Gravity | $S_{\text{GR}} = \int\mathcal{L}_{\text{GR}}$ | `xi-derivation.md`, `(external—see archive/theory/qi-fluid-formalism.md in physics repo)` |
+| Dirac matter | $S_{\text{D}} = \int\mathcal{L}_{\text{D}}$ | `two-fluid/cassi_dirac_bridge.py`, `particles/cassi-yang-yin-particles.md` |
+| Gravity | $S_{\text{GR}} = \int\mathcal{L}_{\text{GR}}$ | `foundations/xi-derivation.md`, `(external—see archive/theory/qi-fluid-formalism.md in physics repo)` |
 | SM gauge | $S_{\text{SM}} = \int\mathcal{L}_{\text{SM}}$ | `standard-model/su2-gauge-extension.md`, `standard-model/sm-from-phi.md` |
 | Mixing | $S_{\text{mix}} = \int\mathcal{L}_{\text{mix}}$ | This document |
 
@@ -513,16 +517,18 @@ where the currents come from the fermion and Higgs covariant derivatives.
 
 ---
 
-## 8. Zero Free Parameters
+## 8. Zero Free Dimensionless Parameters
+
+All dimensionless couplings in the action are derived; the three dimensionful constants ($c$, $\hbar$, $G$) are external (see `foundations/dimensionful-constants-status.md`).
 
 | Quantity | Expression | Value | Status |
 |----------|-----------|-------|--------|
 | $\varphi$ | $(1+\sqrt{5})/2$ | $1.618033989$ | Mathematical constant |
 | $\varphi^{-1}$ | $1/\varphi$ | $0.618033989$ | Derived |
 | $\varphi^{-2}$ | $1/\varphi^2$ | $0.381966011$ | Derived |
-| $\varphi^{-3}$ | $(\varphi-1)/(\varphi+1)$ | $0.236067978$ | Derived (VEV asymmetry) |
-| $\xi$ | $\varphi^6 = \varphi^5 + \varphi^4$ | $17.94427191$ | **Derived** (was empirical) |
-| $\sin^2\theta_W$ | $\varphi^{-3}$ | $0.236$ (GUT) → $0.231$ (Z-pole) | **Derived** (was free) |
+| $\alpha_0 = \varphi^{-3}$ | $(\varphi-1)/(\varphi+1)$ | $0.236067978$ | Derived (equilibrium Yang fraction; VEV asymmetry) |
+| $\xi$ | $\varphi^6 = \varphi^5 + \varphi^4$ | $17.94427191$ | **Derived** |
+| $\sin^2\theta_W$ | $\varphi^{-3}$ | $0.236$ (GUT) → $0.231$ (Z-pole) | **Derived** |
 | $\alpha_{\text{GUT}}$ | $\varphi^{-3}/(4\pi)$ | $1/53$ | **Derived** |
 | $m_W/m_Z$ | $\sqrt{1-\varphi^{-3}}$ | $0.874$ | **Prediction** |
 | $H_{\text{empty}}$ | $\lambda\varphi^{-2}/3$ |—| **Derived** (CC) |
@@ -532,7 +538,7 @@ where the currents come from the fermion and Higgs covariant derivatives.
 | $\lambda$ | $1/(2w) = 0.1$ | $0.1$ | **Derived** (rational; non-resonant by design) |
 | $G_{\text{eff}}$ | $G\cdot(\pi/\rho)\cdot(1+\varphi^6 q)$ |—| **Derived** |
 
-**Every constant is a $\varphi$-power, zero, or the derived rational $\lambda = 1/10$.**
+**Every dimensionless constant is a $\varphi$-power, zero, or the derived rational $\lambda = 1/10$; $c$, $\hbar$, $G$ remain external.**
 
 ---
 
@@ -551,13 +557,13 @@ where $N_f$ counts field degrees of freedom and $N_b$ counts background "binding
 - Gravity: 2 fields $\times$ 3 dimensions = $\varphi^{6}$ → $\xi = \varphi^6$
 - Gauge: 2 components $\times$ 3 generators (SU(2)) = $\varphi^{6}$ → $\varphi^{-3}$ mixing
 
-This is not numerology. The $\varphi$-powers arise from the continued fraction $\varphi = [1;1,1,1,\ldots]$ and its truncations at successive depths, which correspond to the group ranks (SU(4) → SU(3) → SU(2) → U(1)) and the chiral splitting of the Dirac spinor.
+The $\varphi$-powers arise from the continued fraction $\varphi = [1;1,1,1,\ldots]$ and its truncations at successive depths, which correspond to the group ranks (SU(4) → SU(3) → SU(2) → U(1)) and the chiral splitting of the Dirac spinor.
 
 ---
 
 ## 10. Summary
 
-The Cassi Unified Lagrangian unifies all known physics—quantum matter, spacetime curvature, gauge interactions, and the emergent two-fluid dynamics—into a single action with **zero free parameters**. Every coupling is a power of $\varphi$, determined by the $\varphi$-scale invariance of the Yang/Yin principle.
+The Cassi Unified Lagrangian unifies all known physics—quantum matter, spacetime curvature, gauge interactions, and the emergent two-fluid dynamics—into a single action with zero free dimensionless parameters. Every dimensionless coupling is a power of $\varphi$, determined by the $\varphi$-scale invariance of the Yang/Yin principle; the three dimensionful constants ($c$, $\hbar$, $G$) are external.
 
 The falsifiable predictions are:
 
@@ -569,3 +575,16 @@ The falsifiable predictions are:
 | $M_{\text{GUT}}$ | $10^{16}$–$10^{17}$ GeV |—| Proton lifetime |
 | $m_W$ | $79.7$ GeV | $80.377$ GeV | FCC-ee (0.5 MeV) |
 | $G_{\text{eff}}$ boost | $(1+\varphi^6 q)\times$ | $1\times$ | Galaxy rotation |
+
+---
+
+## References
+
+- `foundations/cassi-first-principles.md`—two-fluid postulate, Qi coherence, the four pillars
+- `foundations/xi-derivation.md`—$\xi = \varphi^6$ as a cascade-derived coupling
+- `foundations/wu-xing-derivation.md`—$w = 5$ uniqueness, conversion rate $\lambda = 1/(2w)$
+- `foundations/dimensionful-constants-status.md`—external dimensionful constants, parameter accounting
+- `standard-model/su2-gauge-extension.md`—SM gauge sector, Weinberg angle
+- `standard-model/sm-from-phi.md`—Standard Model couplings from $\varphi$
+- `particles/cassi-yang-yin-particles.md`—Dirac sector, chiral projections
+- `two-fluid/cassi_two_fluid_3d_gpu.py`—PDE solver implementing the two-fluid core

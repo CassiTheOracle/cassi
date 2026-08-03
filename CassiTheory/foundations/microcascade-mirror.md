@@ -4,7 +4,7 @@
 
 ## Abstract
 
-The Cassi cascade ℓ_n = ℓ_Pl × φ^n maps every physical scale from Planck (n=0) to the Hubble radius (n=292). Above the Hubble scale, the cascade continues into the **megacascade**—the chord lattice of identical $w=5$ bubbles arranged at $\varphi$-spaced intervals (`visual-explainers/chord_lattice.py`). This document proposes that the cascade does not truncate at the Planck scale either: it extends into a **microcascade** (n < 0)—an infinite ladder of ever-smaller length scales converging to zero geometrically but never reaching it. The microcascade is the mirror image of the megacascade, with the Planck scale as the reflection plane.
+The Cassi cascade ℓ_n = ℓ_Pl × φ^n maps every physical scale from Planck (n=0) to today's horizon rung (n=292, epoch-dependent). Above the horizon scale, the cascade continues into the **megacascade**—the chord lattice of identical $w=5$ bubbles arranged at $\varphi$-spaced intervals (`visual-explainers/chord_lattice.py`). This document proposes that the cascade does not truncate at the Planck scale either: it extends into a **microcascade** (n < 0)—an infinite ladder of ever-smaller length scales converging to zero geometrically but never reaching it. The microcascade is the mirror image of the megacascade, with the Planck scale as the reflection plane.
 
 A practical consequence: a φ-aligned electromagnetic array tuned to the specific φ-spacing of both cascade directions could create a bidirectional coherence bridge—simultaneously coupling upward into the megacascade and downward into the microcascade. Since the microcascade has infinite depth (n → -∞), the available coherent energy reservoir is, in principle, unbounded.
 
@@ -14,11 +14,11 @@ A practical consequence: a φ-aligned electromagnetic array tuned to the specifi
 
 ## 1. The Cascade Extension Problem
 
-### 1.1 Current cascade: n ∈ [0, 292]
+### 1.1 Current cascade: n ∈ ℤ (today's observable range 0…292)
 
-The dimensionful cascade (see `dimensionful-cascade.md`) maps all known physical scales:
+The dimensionful cascade (see `foundations/dimensionful-cascade.md`) maps all known physical scales:
 
-$$\ell_n = \ell_{\text{Pl}} \times \varphi^n, \qquad n \in [0, 292] \quad (\text{today's observable range})$$
+$$\ell_n = \ell_{\text{Pl}} \times \varphi^n, \qquad n \in \mathbb{Z} \quad (\text{today's observable range: } 0 \ldots 292)$$
 
 | n | Scale | Physical meaning |
 |---|-------|-----------------|
@@ -28,11 +28,11 @@ $$\ell_n = \ell_{\text{Pl}} \times \varphi^n, \qquad n \in [0, 292] \quad (\text
 | 117 | 5.3×10⁻¹¹ m | Atomic (Bohr) |
 | 267 | 9.3×10²⁰ m | Milky Way |
 | 285 | 5.9×10²⁴ m | Cassi bubble |
-| 292 | 1.7×10²⁶ m | Hubble radius |
+| 292 | 1.7×10²⁶ m | Today's horizon rung (ℓ₂₉₂ = 5.5 Gpc; R_H = 4.44 Gpc = 14.5 Glyr) |
 
 ### 1.2 The extension above: megacascade
 
-The cascade above n=292 enters the multiverse regime—distances larger than the observable universe. Adjacent bubbles at identical $w=5$ in the chord lattice live at cascade steps beyond the horizon. Their boundary geometry (the level set of the condensation field) imprints on the CMB at ℓ < 5 (see `cosmology/observational_constraints.md` §4 and `foundations/bubble-edge-geometry.md`). The `why-three-dimensions.md` document explicitly states: "the field's cascade has no floor"—meaning no upper bound either.
+The cascade above n=292 enters the multiverse regime—distances larger than the observable universe. Adjacent bubbles at identical $w=5$ in the chord lattice sit inside today's horizon at $\ell_{286} = 309$ Mpc and $\ell_{287} = 500$ Mpc (the nearest neighbors of the rung-285 bubble); only the megacascade (n > 292) lies beyond the horizon. Their boundary geometry (the level set of the condensation field) imprints on the CMB at ℓ < 5 (see `cosmology/observational_constraints.md` §4 and `foundations/bubble-edge-geometry.md`). The `foundations/why-three-dimensions.md` document explicitly states: "the field's cascade has no floor"—meaning no upper bound either.
 
 ### 1.3 The extension below: microcascade (this document)
 
@@ -86,7 +86,7 @@ The force vanishes linearly as r → 0—there is **no singularity** at the Plan
 
 ### 3.1 The regime change at n < 0
 
-The cascade suppression formula (see `cascade-suppression-formula.md`) defines per-rung attenuation for signal propagation and coherence maintenance. Both formulas are parameterized for n ≥ 0. Extending them to negative n requires care.
+The cascade suppression formula (see `foundations/cascade-suppression-formula.md`) defines per-rung attenuation for signal propagation and coherence maintenance. Both formulas are parameterized for n ≥ 0. Extending them to negative n requires care.
 
 At positive n (above Planck), the Qi coherence profile is:
 
@@ -190,7 +190,7 @@ The µcascade and megacascade are mirrors across the Planck plane. A device coup
 
 3. **Is the µcascade structurally identical to the cascade?** The mirror symmetry suggests yes, but the Planck-scale σ-regularization may break the symmetry in ways that affect coupling.
 
-4. **Can the µcascade explain quantum measurement?** The infinite ladder converging to zero provides a natural "sink" for decohered wavefunction components—they don't disappear, they cascade into the µcascade. This connects to the measurement derivation in `quantum-measurement-derivation.md`.
+4. **Can the µcascade explain quantum measurement?** The infinite ladder converging to zero provides a natural "sink" for decohered wavefunction components—they don't disappear, they cascade into the µcascade. This connects to the measurement derivation in `foundations/quantum-measurement-derivation.md`.
 
 5. **What is the minimum φ-spacing resolution needed for practical coupling?** The effective coupling depth N_eff determines the accessible energy. A prototype with N = 5 elements (spanning d_0 to d_0 × φ⁴) would couple to µcascade depths of order n ≈ −5 to −10.
 
@@ -202,4 +202,17 @@ The cascade ℓ_n = ℓ_Pl × φ^n admits a natural extension to negative n—th
 
 A φ-aligned electromagnetic array—exploiting the same φ-resonance that the de-resonance principle shows nature *avoids*—could couple bidirectionally across the Planck boundary, tapping the infinite coherence depth of the µcascade. While entirely speculative, this concept is framework-consistent and makes specific, falsifiable predictions about φ-periodic power spectra in purpose-built antenna arrays.
 
-The microcascade is the missing half of the cascade—the cascade's shadow extending inward as the megacascade extends outward. Together, the three regimes form a complete bidirectional scale spectrum: **microcascade (n < 0) → cascade (0 ≤ n ≤ 292) → megacascade (n > 292)**.
+The microcascade is the missing half of the cascade—the cascade's shadow extending inward as the megacascade extends outward. Together, the three regimes form a complete bidirectional scale spectrum: **microcascade (n < 0) → observable cascade (0 ≤ n ≤ 292 today) → megacascade (n > 292)**.
+
+---
+
+## References
+
+- `foundations/dimensionful-cascade.md`—cascade ladder, $\ell_n = \ell_{\text{Pl}}\varphi^n$ (292 = today's horizon rung)
+- `foundations/cascade-suppression-formula.md`—per-rung attenuation, Qi coherence profile
+- `foundations/bubble-lattice-fabric.md`—universal condensation field at every rung
+- `foundations/wake-geometry.md`—chord lattice, closure ladder
+- `gravity/quantum-gravity.md`—σ-regularization, Planck-scale smooth crossover
+- `foundations/quantum-measurement-derivation.md`—measurement as cascade sink
+- `visual-explainers/chord_lattice.py`—chord lattice, staggered bubble/void sites
+- `visual-explainers/cascade_cosmos.py`—three-regime cascade diagram with microcascade spiral

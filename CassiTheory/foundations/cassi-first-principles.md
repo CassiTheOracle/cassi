@@ -1,8 +1,10 @@
 # Cassi First Principles
 
-**The universal scale-separation constant $\varphi$ and the two-fluid postulate from which all known physics follows.**
-
 ## Status: Derived—July 2026
+
+## Abstract
+
+There exists a universal constant of scale separation, $\varphi = (1+\sqrt{5})/2 \approx 1.618033989$, which governs the equilibrium ratio between two complementary aspects of physical reality—Yang (expansive, active) and Yin (contractive, receptive). This document states the postulate, derives the two-fluid PDE and its Qi coherence measure, and shows how quantum mechanics, cosmology, general relativity, and the Standard Model emerge as the four pillars of the framework. Every dimensionless coupling constant and mass ratio is a $\varphi$-power: the dimensionless sector carries zero free parameters, with $c$, $\hbar$, $G$ external (see `foundations/dimensionful-constants-status.md`).
 
 ---
 
@@ -14,7 +16,7 @@ $$
 \boxed{\varphi = \frac{1 + \sqrt{5}}{2} \approx 1.618033989}
 $$
 
-which governs the equilibrium ratio between two complementary aspects of physical reality—Yang (expansive, active) and Yin (contractive, receptive). Every coupling constant, mass ratio, and cosmological parameter in the framework is a $\varphi$-power, with **zero free parameters**.
+which governs the equilibrium ratio between two complementary aspects of physical reality—Yang (expansive, active) and Yin (contractive, receptive). Every dimensionless coupling constant and mass ratio in the framework is a $\varphi$-power; the dimensionless couplings carry zero free parameters, with $c$, $\hbar$, $G$ external (see `foundations/dimensionful-constants-status.md`).
 
 ---
 
@@ -52,10 +54,10 @@ This drives the system toward the fixed point $\Psi_0^2 = \varphi\Psi_1^2$. At t
 
 $$
 \Psi_0 : \Psi_1 = \sqrt{\varphi} : 1, \qquad
-\frac{\pi}{\rho} = \frac{\varphi-1}{\varphi+1} = \varphi^{-3} \approx 0.236
+\alpha_0 \equiv \frac{\pi}{\rho} = \frac{\varphi-1}{\varphi+1} = \varphi^{-3} \approx 0.236
 $$
 
-The equilibrium Yang fraction $\varphi^{-3}$ is universal—it appears in cosmology (dark energy), particle physics (weak mixing angle), and gravity (effective coupling).
+The equilibrium Yang fraction $\alpha_0 = \varphi^{-3}$ is universal—it appears in cosmology (dark energy), particle physics (weak mixing angle), and gravity (effective coupling).
 
 ### 1.3 Two-fluid PDE
 
@@ -109,13 +111,13 @@ $$
 G_{\text{eff}} = \frac{\pi}{\rho}\,(1 + \xi q)\,G
 $$
 
-where $\xi = \varphi^6 \approx 17.944$ is the Qi-gravity coupling constant. At the $\varphi$-fixed point ($q=0$, $\pi/\rho = \varphi^{-3}$):
+where $\xi = \varphi^6 \approx 17.944$ is the Qi-gravity coupling constant. At the $\varphi$-fixed point ($q=0$, $\pi/\rho = \alpha_0 = \varphi^{-3}$):
 
 $$
-G_{\text{eff}} = \varphi^{-3}G \approx 0.236\,G
+G_{\text{eff}} = \alpha_0\,G \approx 0.236\,G
 $$
 
-In regions of high Qi coherence (galaxy halos, structure formation), $G_{\text{eff}}$ can be up to $\sim 3\times$ larger than Newton's constant.
+In regions of high Qi coherence (galaxy halos, structure formation), the $G_{\text{eff}}$ amplification factor $1 + \xi q$ reaches $\sim 18\times$ ($1+\xi \approx 18.9$); the velocity-boost ceiling is $\sqrt{1+\xi} \approx 4.35$.
 
 ### 2.4 Temporal Coherence: The IIR Memory
 
@@ -192,12 +194,9 @@ $$
 
 where $\Lambda_{\text{eff}}$ is determined by the Yang-Yin conversion
 dynamics. The dark energy equation of state evolves and is calibrated by:
-- **DESI DR2 baryon acoustic oscillations**: $w_0 \approx -0.75 \pm 0.06$ [INFERENCE]
-  (corrected 2026-07-31: the old $-0.838$ ($0\sigma$) was the repo's own calibration
-  target—circular); the Cassi ODE predicts $w_0 = -0.87$ ($2\sigma$ from the anchor)
-- **Planck 2018 CMB**: spectral index $n_s = 0.967$ ($0.5\sigma$)
-- **Hubble tension resolved**: $H_0 = 69.8$ km/s/Mpc ($< 1\sigma$ with both
-  CMB and local measurements)
+- **DESI DR2 baryon acoustic oscillations**: $w_0 \approx -0.75 \pm 0.06$; the Cassi ODE predicts $w_0 = -0.87$ ($2\sigma$ from the anchor)
+- **Planck 2018 CMB**: spectral index $n_s = 1 - 2\varphi^{-1}/N_e = 0.9691$ ($N_e = 40$; $1.0\sigma$ from Planck $0.9649 \pm 0.0042$)
+- **Hubble tension**: pending (registry C3/T4—full $H(z)$ fit not yet performed); the pipeline CMB-inferred value is $H_0 \approx 65.8$ km/s/Mpc from the local $73.0$, with no resolved value claimed
 
 The conversion term $\lambda(\Psi_0^2 - \varphi\Psi_1^2)$ sources dark energy
 as the universe evolves away from $\varphi$-equilibrium during structure
@@ -213,11 +212,11 @@ the Yang-Yin ratio.
 - **Strong-field**: PPN parameters $\beta = 1 + \mathcal{O}(\xi q^2)$,
   $\gamma = 1 + \mathcal{O}(\xi q^2)$
 - **Gravitational waves**: Modified propagation speed near high-Qi regions
-- **Rotation curves**: $v_C/v_B = 2.7\times$ from $G_{\text{eff}}$ boost
-- **Dwarf spheroidals**: 3/8 pass; MOND preferred (4/8) (corrected 2026-08-03; ceiling $\sqrt{\varphi^6} = \varphi^3 \approx 4.24$ exceeded in 3/8)
+- **Rotation curves**: $v_C/v_B = \sqrt{\alpha_{\text{halo}}(1+\xi q)} \approx 3.08\times$ ($\alpha_{\text{halo}} \approx 0.7$, $q \approx 0.7$; range 2.9–3.1) from the $G_{\text{eff}}$ boost
+- **Dwarf spheroidals**: 3/8 pass; MOND preferred (4/8); the velocity ceiling $\sqrt{\varphi^6} = \varphi^3 \approx 4.24$ is exceeded in 3/8
 
 At the $\varphi$-fixed point ($q=0$), the Cassi gravitational action reduces
-to the Einstein-Hilbert action with $G_{\text{eff}} = \varphi^{-3}G$.
+to the Einstein-Hilbert action with $G_{\text{eff}} = \alpha_0 G$ ($\alpha_0 = \varphi^{-3}$).
 Deviations from GR are proportional to $q$ and thus strongest in galaxy
 halos, providing an explicit mechanism for modified gravity without
 renormalization.
@@ -242,14 +241,13 @@ $$
 
 matching the running gauge couplings at $M_{\text{GUT}} \sim 10^{16}$ GeV.
 
-Neutrino masses follow the $\varphi$-hierarchy:
+Neutrino masses follow the cascade seesaw hierarchy (seesaw at step 20; cascade RGE + PMNS pinning in `computations/cascade_rge_pmns.py`):
 
 $$
-m_{\nu_i} \sim \varphi^{-n_i} \cdot m_{\text{Planck}},
-\quad n_1 = 30,\; n_2 = 29,\; n_3 = 28
+m_1 = 0.00356,\quad m_2 = 0.00931,\quad m_3 = 0.05019\ \text{eV}, \qquad \Sigma m_\nu = 0.0631\ \text{eV}
 $$
 
-matching observed mass-squared differences.
+normal ordering, no sterile state; the squared-mass ratio $\Delta m^2_{31}/\Delta m^2_{21} = 33.82$ matches the observed $33.89$ (0.2%), with rung offsets $\Delta_1 = 1.00$, $\Delta_2 = 1.75$.
 ## 4. Derived Constants
 
 | Symbol | Value | Derivation | From |
@@ -257,13 +255,13 @@ matching observed mass-squared differences.
 | $\varphi$ | $1.618033989$ | Golden ratio | Postulate |
 | $\varphi^{-1}$ | $0.618033989$ | $= \varphi - 1$ | |
 | $\varphi^{-2}$ | $0.381966011$ | $= 1 - \varphi^{-1}$ | |
-| $\varphi^{-3}$ | $0.236067978$ | $= (\varphi-1)/(\varphi+1)$ | Yang fraction at equilibrium |
+| $\alpha_0 = \varphi^{-3}$ | $0.236067978$ | $= (\varphi-1)/(\varphi+1)$ | Equilibrium Yang fraction ($\pi/\rho$ at the fixed point) |
 | $\xi = \varphi^6$ | $17.94427191$ | $= \varphi^5 + \varphi^4$ | Qi-gravity coupling |
 | $\sin^2\theta_W$ | $\varphi^{-3}$ | VEV ratio | Weak mixing angle (tree) |
 | $\alpha_{\text{GUT}}$ | $\varphi^{-3}/(4\pi)$ | Yang fraction / $4\pi$ | GUT coupling |
-| $w_0$ | $-0.87$ | Two-fluid ODE ($\xi$ coupling) | `two-fluid/calibrate_initial_ratio_xi_v2.py` (corrected 2026-07-31) |
+| $w_0$ | $-0.87$ | Two-fluid ODE ($\xi$ coupling) | `two-fluid/calibrate_initial_ratio_xi_v2.py` |
 | $\delta_{\text{CP}}$ | $\pi \cdot \varphi^{-2} \approx 1.199$ | CKM hierarchy via Yukawa diagonalisation | CP phase (CKM) |
-| $\lambda$ | $0.1$ (PDE); $3\varphi^2 H_0$ (cosmological) | PDE conversion rate, $\lambda = 1/(2w)$ with $w = 5$ derived (`foundations/dimensionful-constants-status.md` §2.1, `foundations/wu-xing-derivation.md`); the cosmological expression $3\varphi^2 H_0$ relates $\lambda$ to $H_0$ but is dimensionful | **Derived** |
+| $\lambda$ | $0.1$ (PDE) | PDE conversion rate, $\lambda = 1/(2w)$ with $w = 5$ derived (`foundations/dimensionful-constants-status.md` §2.1, `foundations/wu-xing-derivation.md`); the cosmological dark-energy rate is the separate dimensionful constant $\kappa_{\text{DE}} = 3\varphi^2 H_0$ | **Derived** |
 
 ---
 
@@ -271,7 +269,7 @@ matching observed mass-squared differences.
 
 | Limit | Condition | Effective Theory |
 |-------|-----------|-----------------|
-| $q \to 0$ | $\pi/\rho = \varphi^{-3}$ | General relativity with $G_{\text{eff}} = \varphi^{-3}G$ |
+| $q \to 0$ | $\alpha_0 \equiv \pi/\rho = \varphi^{-3}$ | General relativity with $G_{\text{eff}} = \alpha_0 G$ |
 | $q \to 0,\ \hbar \to 0$ | Classical + equilibrium | Newtonian gravity |
 | $\hbar \not\to 0,\ q \to 0$ | Quantum + equilibrium | Schrödinger equation |
 | $\lambda \to 0$ | No conversion | Euler-Poisson system |
@@ -290,7 +288,7 @@ The framework makes specific, quantitative predictions that can be falsified by 
 2. **Gravitational waves amplified**: $h_{\text{Cassi}}/h_{\text{GR}} \leq 1 + \xi q$ in high-Qi regions (LIGO falsifiable)
 3. **Atomic energies**: He ground state within $1\%$ of $-2.903$ E_h (chemical accuracy)
 4. **Weak mixing angle**: $\sin^2\theta_W = 0.236 \pm 0.001$ at tree level
-5. **Neutrino mass hierarchy**: $m_1 : m_2 : m_3 = \varphi^{-30} : \varphi^{-29} : \varphi^{-28}$
+5. **Neutrino mass spectrum**: $m_1 = 0.00356$, $m_2 = 0.00931$, $m_3 = 0.05019$ eV, normal ordering (Δm² ratio 33.82 vs observed 33.89)
 
 Any single prediction failing excludes the framework.
 
@@ -300,9 +298,9 @@ Any single prediction failing excludes the framework.
 
 | Document | Content |
 |----------|---------|
-| `unified-lagrangian.md` | Full Lagrangian density with all terms |
-| `xi-derivation.md` | Derivation of $\xi = \varphi^6$ |
-| `phi_attractor_synthesis.md` | $\varphi$-attractor dynamics |
+| `foundations/unified-lagrangian.md` | Full Lagrangian density with all terms |
+| `foundations/xi-derivation.md` | Derivation of $\xi = \varphi^6$ |
+| `foundations/phi_attractor_synthesis.md` | $\varphi$-attractor dynamics |
 | `standard-model/sm-from-phi.md` | Standard Model couplings |
 | `cosmology/cosmology-from-phi.md` | DESI calibration and cosmology |
 | `gravity/quantum-gravity.md` | UV-finite quantum gravity |
@@ -311,4 +309,14 @@ Any single prediction failing excludes the framework.
 
 ---
 
-**Status:** ✅ Completed 2026-07-17. All four pillars validated against observational data. Dimensionless couplings: zero free parameters ($\lambda = 1/(2w)$ included). External: $c$, $\hbar$, $G$—see `foundations/dimensionful-constants-status.md`.
+## References
+
+- `foundations/unified-lagrangian.md`—the complete action assembled from this document's pillars
+- `foundations/xi-derivation.md`—$\xi = \varphi^6$ as a cascade-derived coupling
+- `foundations/dimensionful-constants-status.md`—external dimensionful constants, parameter accounting
+- `foundations/phi_attractor_synthesis.md`—$\varphi$-attractor dynamics
+- `standard-model/sm-from-phi.md`—Standard Model couplings
+- `cosmology/cosmology-from-phi.md`—DESI calibration and cosmology
+- `gravity/quantum-gravity.md`—UV-finite quantum gravity
+- `gravity/three-body-analytical.md`—three-body problem in the Cassi framework
+- `predictions/falsifiable-predictions.md`—full prediction catalog
