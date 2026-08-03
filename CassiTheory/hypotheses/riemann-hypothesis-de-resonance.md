@@ -13,7 +13,7 @@ by the explicit formula, RH is exactly the claim that the primes carry no
 resonant component, and the critical line $\operatorname{Re} s = \frac{1}{2}$
 is the Yang-Yin balance axis of the functional equation
 $\zeta(s) \leftrightarrow \zeta(1-s)$. The framework's universal fingerprint—
-log-periodic modulation at period $\ln\varphi \approx 0.4812$—is then tested
+log-periodic modulation at period $\ln\varphi \approx 0.4812$—is tested
 against the first 100,000 zeros (Odlyzko's table) with the repo's calibrated
 protocol: the result is null at $\omega_0 = 2\pi/\ln\varphi$ on both spacing
 and density statistics, with demonstrated sensitivity to a 1–3% modulation.
@@ -32,7 +32,7 @@ average accumulated phase factor and the Loschmidt amplitude—whose dynamical
 phase transitions occur exactly at the points where $\zeta$ has a nontrivial
 zero. The correspondence recasts RH as the statement that these systems
 undergo phase transitions at a **unique temperature**, and identifies a
-previously unknown transition mechanism. The construction was demonstrated in
+transition mechanism new to the literature. The construction was demonstrated in
 proof-of-principle on a quantum processor, with a polynomial-resource quantum
 computational framework proposed for probing the hypothesis.
 
@@ -66,7 +66,7 @@ that no such component exists:
 
 $$\boxed{\text{RH} \iff \text{the primes carry no resonant component}}$$
 
-This is the vocabulary of `../principles/de-resonance-principle.md`: nature's
+This is the vocabulary of `principles/de-resonance-principle.md`: nature's
 structures avoid resonance, and $\varphi$ is the attractor because it is the
 maximally irrational number—the hardest frequency to lock onto. The primes are
 then the archetypal de-resonant sequence: the explicit formula shows that the
@@ -81,7 +81,7 @@ de-resonant object in mathematics.
 The correspondence's "phase transition at a unique temperature" has a cascade
 reading. Physical systems in the Cassi framework carry a ladder of critical
 scales—every rung $\ell_n = \ell_{\text{Pl}} \varphi^n$ of
-`../foundations/dimensionful-cascade.md` is a possible transition scale. The
+`foundations/dimensionful-cascade.md` is a possible transition scale. The
 number-theoretic system is the degenerate limit: exactly one critical point.
 In the Riemann gas the critical temperature is dimensionless $T_c = 1$, the
 identity rung $\varphi^0$; a single phase transition is a single-rung system.
@@ -94,7 +94,7 @@ derives nothing new.
 
 The framework's universal experimental signature is log-periodic modulation
 at period $\ln\varphi \approx 0.4812$ in physical spectra—Prediction 5 of
-`../predictions/falsifiable-predictions.md`
+`predictions/falsifiable-predictions.md`
 ($\Delta(\ln k) = \ln\varphi$ in the matter power spectrum). If the
 de-resonance reading of §2 were literal enough to leave a fingerprint, the
 zeros themselves would show it: a log-periodic clustering of zeros at period
@@ -102,7 +102,7 @@ $\ln\varphi$ in $\ln T$, or a modulation of the unfolded spacing sequence at
 $\omega_0 = 2\pi/\ln\varphi \approx 13.057$ radians per log-unit.
 
 The test follows the repo's calibration protocol
-(`../experiments/riemann_phi_search/run_zeta_phi_periodicity_test.py`, which
+(`experiments/riemann_phi_search/run_zeta_phi_periodicity_test.py`, which
 reproduces every number below): $\omega_0$ fixed with zero fitted parameters,
 linear cos/sin basis (no phase grid), both dAIC and the $\omega$-specificity
 percentile $p_{\text{spec}}$ reported, planted-signal power check, and
@@ -125,7 +125,7 @@ of 1–3% of the noise level would have been detected at $p < 0.001$. Windowed
 spacing tests (four windows) are null at $\omega_0$ in every window.
 
 One apparent outlier on the density series, $\omega \approx 25.4$ with
-dAIC = −9.2, was diagnosed as the documented smooth-data trap: its dAIC is
+dAIC = −9.2, is the documented smooth-data trap: its dAIC is
 non-stationary across windows (ranging −5.1 to +3.5), and the spectrum of
 $D(u)$ is dominated by high-frequency mass (peak at $\omega \approx 206$)—the
 chirp of the argument-fluctuation function $S(T)$, whose local oscillation
@@ -157,7 +157,7 @@ confinement. A Cassi contribution would be a *derived* spectral problem: the
 two-fluid PDE linearized around its Yang-Yin balanced state, with a proof that
 the linearized operator is (unitarily equivalent to something) self-adjoint
 with spectrum on the symmetry axis. Nothing in the current framework
-(`../foundations/cassi-first-principles.md`) contains that result; the
+(`foundations/cassi-first-principles.md`) contains that result; the
 research sketch with the candidate operator, the boundary constraint, and the
 measured fluctuation probes lives in `riemann-two-fluid-spectral-program.md`.
 
@@ -181,8 +181,8 @@ measured fluctuation probes lives in `riemann-two-fluid-spectral-program.md`.
 
 - Wei, S., Zhai, Y., Lu, Q. et al., "The Riemann Hypothesis manifested in dynamical quantum phase transitions," Nature Communications (2026), https://doi.org/10.1038/s41467-026-74935-8
 - Odlyzko, A., tables of zeros of the Riemann zeta function (first 100,000), http://www.dtc.umn.edu/~odlyzko/zeta_tables/zeros1
-- `../principles/de-resonance-principle.md`—why $\varphi$ is the attractor (maximally irrational)
-- `../foundations/dimensionful-cascade.md`—the 292-step ladder
-- `../predictions/falsifiable-predictions.md`—Prediction 5, φ-periodic $P(k)$ at $\Delta\ln k = \ln\varphi$
-- `../foundations/cassi-first-principles.md`—two-fluid PDE and governing equations
-- `../experiments/riemann_phi_search/run_zeta_phi_periodicity_test.py`—reproduces the §4 table
+- `principles/de-resonance-principle.md`—why $\varphi$ is the attractor (maximally irrational)
+- `foundations/dimensionful-cascade.md`—the 292-step ladder
+- `predictions/falsifiable-predictions.md`—Prediction 5, φ-periodic $P(k)$ at $\Delta\ln k = \ln\varphi$
+- `foundations/cassi-first-principles.md`—two-fluid PDE and governing equations
+- `experiments/riemann_phi_search/run_zeta_phi_periodicity_test.py`—reproduces the §4 table

@@ -151,10 +151,10 @@ PDE rather than inferred from the phenomenological coefficient.
 
 ## References
 
-- `../foundations/dimensionful-cascade.md`—the 292-step ladder
-- `../foundations/three-generations.md`—Fibonacci sub-channel partitioning
-- `../foundations/spin-fibonacci-spiral.md`—SO(2) winding and angular momentum
-- `../foundations/wu-xing-derivation.md`—five-phase cycle structure
-- `../foundations/quark-confinement.md`—QCD at cascade step 95
-- `../foundations/cascade-suppression-formula.md`—$\varphi^{-N}$ attenuation
-- `../open-questions-cassi-answers.md`—Q8 (quark confinement), Q10 (spin)
+- `foundations/dimensionful-cascade.md`—the 292-step ladder
+- `foundations/three-generations.md`—Fibonacci sub-channel partitioning
+- `foundations/spin-fibonacci-spiral.md`—SO(2) winding and angular momentum
+- `foundations/wu-xing-derivation.md`—five-phase cycle structure
+- `foundations/quark-confinement.md`—QCD at cascade step 95
+- `foundations/cascade-suppression-formula.md`—$\varphi^{-N}$ attenuation
+- `open-questions-cassi-answers.md`—Q8 (quark confinement), Q10 (spin)

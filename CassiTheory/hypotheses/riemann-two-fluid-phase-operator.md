@@ -27,10 +27,10 @@ semiclassically—the truncated-hyperbola phase space gives
 $N(E) = (E/2\pi)\ln(E/(L p_{\min})) - E/2\pi + Lp_{\min}/2\pi$, forcing
 $Lp_{\min} = 2\pi$ (order-unity; no $\varphi$-power) and leaving the constant
 one-eighth above the theorem's $7/8$ (the corner phase). Every claim is
-verified numerically (`run_phase_operator_check.py`). The program is revised:
-the exact realization of the zeros requires the energy-dependent boundary of
-the Sierra–Rodríguez-Laguna type. Step 2b executes that investigation: the
-unique moving wall reproducing R-vM is $L(E) = \tfrac{1}{2}\ln(E/2\pi e) +
+verified numerically (`run_phase_operator_check.py`). The exact realization
+of the zeros requires the energy-dependent boundary of the
+Sierra–Rodríguez-Laguna type; Step 2b executes that investigation. The unique
+moving wall reproducing R-vM is $L(E) = \tfrac{1}{2}\ln(E/2\pi e) +
 9\pi/(8E)$, whose argument is the Riemann–Siegel $\Gamma$-phase
 ($E\,L(E) = \theta(E) + 5\pi/4$, verified); all three framework candidates
 for supplying it—fixed rung walls, Qi-gated masses, and the IIR
@@ -42,7 +42,7 @@ identified, and it is external to the two-fluid dynamics.
 
 ## 1. The Polar Reduction of the Two-Fluid Core
 
-The two-fluid core of `../foundations/unified-lagrangian.md` is a real SO(2)
+The two-fluid core of `foundations/unified-lagrangian.md` is a real SO(2)
 doublet $\Psi = (\Psi_0, \Psi_1)$ with kinetic term $\tfrac{1}{2}(\partial\Psi)^2$
 and the $\varphi$-attractor potential
 $V = \tfrac{\lambda}{2}(\Psi_0^2 - \varphi\Psi_1^2)^2$. In polar form
@@ -58,7 +58,7 @@ $$\boxed{\theta_{\text{eq}} = \arctan\varphi^{-1/2} \approx 0.6577\ \text{rad}}$
 The field $R$ is the magnitude (the framework's $\rho$), and the angle
 $\theta$ is the Yang-Yin phase—the phase current
 $J = \Psi_0\nabla\Psi_1 - \Psi_1\nabla\Psi_0 = R^2\nabla\theta$ of
-`../foundations/cassi-first-principles.md` §2.2 is the gradient of this
+`foundations/cassi-first-principles.md` §2.2 is the gradient of this
 phase.
 
 ## 2. The Phase Fluctuation Is Massive
@@ -101,7 +101,7 @@ $$\boxed{\tilde\varphi'' + \left[E^2 e^{2u} - \kappa^2\right]\tilde\varphi = 0,
 
 The constant $\kappa$ is the Bessel index of the operator. For the scale-free
 background in three dimensions—energy density $R_0^2 \propto r^{-3}$, so
-$s = D/2 = 3/2$ (`../foundations/why-three-dimensions.md`)—
+$s = D/2 = 3/2$ (`foundations/why-three-dimensions.md`)—
 
 $$\boxed{\kappa = 1 \quad (D = 3)}$$
 
@@ -172,7 +172,7 @@ through the wall reflection phase; it does not reach the $7/8$.
 
 ## 7. Numerical Verification
 
-Script `../experiments/riemann_phi_search/run_phase_operator_check.py`
+Script `experiments/riemann_phi_search/run_phase_operator_check.py`
 (reproduces every number above):
 
 - **ODE residual**: $J_\kappa(Ee^u)$ solves the normal form to machine
@@ -210,7 +210,7 @@ $$E\,L(E) = \theta(E) + \frac{5\pi}{4}$$
 
 verified to $2\times10^{-4}$ at $E = 100$ and $10^{-5}$ at $E = 2000$; the
 counting tracks $\bar N(E)$ to within one state over $E \in [20, 2000]$
-(`run_phase_boundary_check.py`). This is the Sierra–Rodríguez-Laguna insight
+(`experiments/riemann_phi_search/run_phase_boundary_check.py`). This is the Sierra–Rodríguez-Laguna insight
 restated in the framework's operator language: **the boundary phase of the
 zero problem is the $\Gamma$-phase**. The moving wall is not a framework
 structure—it is the Riemann–Siegel theta in disguise.
@@ -275,10 +275,10 @@ mean-square minimality, and Gram's law at 79.4%.
 
 - `riemann-two-fluid-spectral-program.md`—the program this document executes (Step 1)
 - `riemann-hypothesis-de-resonance.md`—the de-resonance reading and the φ-periodicity null test
-- `../foundations/unified-lagrangian.md`—the two-fluid core Lagrangian
-- `../foundations/cassi-first-principles.md`—field equations, phase current, attractor
-- `../foundations/why-three-dimensions.md`—$D = 3$ (hence $s = 3/2$, $\kappa = 1$)
+- `foundations/unified-lagrangian.md`—the two-fluid core Lagrangian
+- `foundations/cassi-first-principles.md`—field equations, phase current, attractor
+- `foundations/why-three-dimensions.md`—$D = 3$ (hence $s = 3/2$, $\kappa = 1$)
 - Berry, M. V. and Keating, J. P., "The Riemann zeros and eigenvalue asymptotics," SIAM Review 41 (1999) 236–266
 - Sierra, G. and Rodríguez-Laguna, J., "The Riemann zeros as spectrum of a Hamiltonian," J. Phys. A 44 (2011) 305204
-- `../experiments/riemann_phi_search/run_phase_operator_check.py`—verification of every claim in §§3–7
-- `../experiments/riemann_phi_search/run_phase_boundary_check.py`—moving-wall theorem and candidate exclusions (§8)
+- `experiments/riemann_phi_search/run_phase_operator_check.py`—verification of every claim in §§3–7
+- `experiments/riemann_phi_search/run_phase_boundary_check.py`—moving-wall theorem and candidate exclusions (§8)

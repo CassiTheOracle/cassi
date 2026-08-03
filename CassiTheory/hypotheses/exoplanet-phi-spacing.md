@@ -32,8 +32,8 @@ close to $\varphi + 0.11$.
 The standard interpretation is that orbital resonances (mean-motion resonances
 at period ratios like 2:1, 3:2, 5:3) sculpt planetary spacing through
 gravitational interactions. In Cassi, these resonances ARE the Fibonacci
-convergents of $\varphi$—the de-resonance attractor in orbital frequency space
-— and their ubiquity is a consequence of the disk's Qi field seeking
+convergents of $\varphi$—the de-resonance attractor in orbital frequency
+space—and their ubiquity is a consequence of the disk's Qi field seeking
 $\varphi$-equilibrium.
 
 ## 2. Wake-Wave in Protoplanetary Disks
@@ -74,7 +74,7 @@ The prediction is that these period ratios should be overrepresented in the
 Kepler multi-planet catalog compared to random spacing, and the excess should
 peak at period ratios corresponding to low-order Fibonacci convergents.
 
-**Note:** Mean-motion resonances are already known to be common. The Cassi
+Mean-motion resonances are already known to be common. The Cassi
 prediction is stronger: the specific resonances that are populated are exactly
 the Fibonacci convergents of $\varphi$—not an arbitrary set of rational
 ratios. Resonances like 4:3 (1.333), 5:2 (2.5), or 7:3 (2.333) that are NOT
@@ -143,8 +143,8 @@ form.
 
 ## References
 
-- `../open-questions-cassi-answers.md`—C9 (cosmic web from wake-wave), G5 (3+1 dimensions)
-- `../predictions/falsifiable-predictions.md`—$\varphi$-periodic $P(k)$ prediction
-- `../foundations/dimensionful-cascade.md`—the 292-step ladder
-- `../foundations/bubble-edge-geometry.md`—condensation field $C(x,y)$ structure (same wake-wave mechanism)
-- `../principles/de-resonance-principle.md`—why orbital resonances lock to $\varphi$
+- `open-questions-cassi-answers.md`—C9 (cosmic web from wake-wave), G5 (3+1 dimensions)
+- `predictions/falsifiable-predictions.md`—$\varphi$-periodic $P(k)$ prediction
+- `foundations/dimensionful-cascade.md`—the 292-step ladder
+- `foundations/bubble-edge-geometry.md`—condensation field $C(x,y)$ structure (same wake-wave mechanism)
+- `principles/de-resonance-principle.md`—why orbital resonances lock to $\varphi$
