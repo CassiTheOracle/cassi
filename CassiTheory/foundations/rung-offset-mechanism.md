@@ -4,7 +4,7 @@
 
 ## Abstract
 
-No observable sits exactly on a cascade rung. The fractional offsets $\delta n = n - \lfloor n \rfloor$ in $n = \log_\varphi(\text{scale})$ are not noise—they are the dynamical fingerprint of the two-fluid interaction at each scale. Perfect rung alignment would mean the Yang and Yin wakes sit in perfect phase at that scale (coherence $q \to 1$); the de-resonance principle forbids that lock, so every scale inherits a local phase difference $\delta n = \Delta\varphi/2\pi$. The wake envelope (`foundations/wake-geometry.md` §2) supplies the only dynamically-distinguished positions—peaks at integer rungs, zeros at half-rungs—and the empirical catalog shows the lightest state of each terminated sector sitting at the half-rung (electron, pion, QCD scale, nucleons, down quark) while interior stable states sit at integer rungs (muon, J/ψ, D, Σ, Z). The full 38-state catalog is statistically uniform in $\delta n$; the mechanism's case rests on the sharp individual placements and on a decisive PDE probe that measures where the two-wake interference extremum sits as a function of coupling and coherence.
+No observable sits exactly on a cascade rung. The fractional offsets $\delta n = n - \lfloor n \rfloor$ in $n = \log_\varphi(\text{scale})$ are not noise—they are the dynamical fingerprint of the two-fluid interaction at each scale. Perfect rung alignment would mean the Yang and Yin wakes sit in perfect phase at that scale (coherence $q \to 1$); the de-resonance principle forbids that lock, so every scale inherits a local phase difference $\delta n = \Delta\varphi/2\pi$. The wake envelope (`foundations/wake-geometry.md` §2) supplies the dynamically-distinguished positions—peaks at $u = 1+\log_\varphi m$, zeros at $u = 1+\log_\varphi(m+\tfrac12)$—and the empirical catalog shows the lightest state of each terminated sector sitting at the crossing positions (electron, pion, QCD scale, nucleons, down quark) while interior stable states sit at integer rungs (muon, J/ψ, D, Σ, Z). The full 38-state catalog is statistically uniform in $\delta n$; the PDE probe (run 2026-08-03) verified the phase-lag mechanism $\delta n(\psi) = 0.060 - 0.204\,\psi$ rungs for the two-bubble standing pattern and found linear conversion alone leaves the extremum unmoved. The mechanism's case rests on the sharp individual placements (μ at 96.000, 0.01%) and on the nonlinear gate branch, which remains untested.
 
 ---
 
@@ -22,11 +22,13 @@ The correspondence is directional. The sharpest placements in the catalog mark t
 
 ## 2. What the envelope allows: the special positions (Derived)
 
-The wake envelope of `foundations/wake-geometry.md` §2(c) is the only dynamically-distinguished ruler in the cascade. In $\ln$-scale its peaks sit at integer rungs and its zeros at half-rungs:
+The wake envelope of `foundations/wake-geometry.md` §2(c) is the only dynamically-distinguished ruler in the cascade. In real space its peaks sit at $x = m\,\ell_{n+1}$ and its zeros at $x = (m+\tfrac{1}{2})\ell_{n+1}$. Mapped to $\ln$-rung units $u = \log_\varphi(x/\ell_n)$:
 
-$$\boxed{\text{peaks at } n \in \mathbb{Z}, \qquad \text{zeros at } n \in \mathbb{Z} + \tfrac{1}{2}}$$
+$$\boxed{\text{peaks at } u = 1 + \log_\varphi m, \qquad \text{zeros at } u = 1 + \log_\varphi\!\left(m+\tfrac{1}{2}\right)}$$
 
-The peaks are the constructive (bubble) positions where the next cell condenses; the zeros are the destructive (void, wake-crossing) positions where the wakes pass through each other—the geometric-mean half-steps of `foundations/wake-geometry.md` §1(c). An observable set by the interference pattern can sit at one of these positions in the coherent limit; the local dynamics then shift it by $\delta n$.
+Only the first peak ($m=1$) is an integer rung; the first zero sits at $u = -0.440$—not at the half-rung $-0.5$. The "half-rung" reading of the envelope is real-space language ($x = \ell_{n+1}/2$); the geometric-mean half-step $u = \pm\tfrac{1}{2}$ of `foundations/wake-geometry.md` §1(c) is a separate object. The probe (`two-fluid/run_rung_offset_probe.py`, Panel A) verifies these positions and confirms that in the coherent limit the interference extremum is pinned at the first-cell crossing $u = -0.440$—0.06 rungs above the half-rung, a 3% displacement that is the natural near-miss scale of the mass catalog.
+
+An observable set by the interference pattern can sit at one of these positions in the coherent limit; the local dynamics then shift it by $\delta n$.
 
 ## 3. The empirical catalog (Empirical)
 
@@ -114,7 +116,11 @@ A terminated spectrum—the lepton tower ending at e, the hadron tower at π, co
 
 ### 4.2 The residual: δn as local phase lag
 
-Within a special-position class, the residual $\delta n$ encodes the phase lag between the wakes at the site, set by the local coupling (conversion rate, sector coupling χ) and the wake's travel since the last closure event. The alignment–coherence correspondence (§1) turns sharpness into a coherence meter: the muon's 0.01% marks a near-coherent scale; the W, H, t residuals of ~10% mark strongly de-coherent scales.
+Within a special-position class, the residual $\delta n$ encodes the phase lag between the wakes at the site. The probe (T1, run 2026-08-03) measured the relation in the two-bubble standing pattern: the extremum sits at $x_{\max} = \varphi/2 - \psi/(4\pi)$, i.e.
+
+$$\boxed{\delta n(\psi) = 0.060 - 0.204\,\psi \ \text{rungs} \qquad (\psi \text{ in radians, } f=1)}$$
+
+around the coherent point, where $\psi$ is the relative phase between the two bubbles' wakes. The catalog's crossing-state residuals then correspond to modest phase lags: the electron's $-0.03$ rungs on the Yukawa ladder maps to $\psi \approx 0.44$ rad (25°), the nucleons' $-0.04$ to $\psi \approx 0.49$ rad, the pion's $-0.08$ to $\psi \approx 0.69$ rad. Amplitude asymmetry alone does not move the extremum at $\psi = 0$—the $\varphi$-spacing geometry locks the crossing—while at finite $\psi$ it moves through the phase composition (probe table 3). The alignment–coherence correspondence (§1) turns sharpness into a coherence meter: the muon's 0.01% marks a near-coherent scale; the W, H, t residuals of ~10% mark strongly de-coherent scales.
 
 ### 4.3 The dressed-rung form (Speculative)
 
@@ -122,7 +128,7 @@ A minimal quantitative form: the observable is the dressed state of two adjacent
 
 ## 5. The decisive tests (falsifiable)
 
-**T1—PDE probe (primary).** In the two-fluid solver, launch the wake pair from a bubble and measure the interference extremum's position in $\ln$-scale relative to the lattice nodes, scanning the conversion rate and the gate coherence $q$. Predictions: (a) at $q \to 1$ the extrema sit at $\{0, \tfrac{1}{2}\}$ exactly; (b) as conversion turns on, the extremum shifts continuously—$\delta n(\varepsilon)$; (c) the sign of the shift tracks the direction of energy flow between the fluids. The catalog's sharp placements then map onto the $\delta n(\varepsilon)$ curve at their scales.
+**T1—PDE probe (primary).** Run 2026-08-03 (`two-fluid/run_rung_offset_probe.py`): two bubbles at $x = 0$ and $x = \varphi$ emit the wake pair; with $V = 0$ initial conditions the fields are exactly standing (d'Alembert, no dispersion), so the extremum of $|E_Y|$ is the antinode of the initial envelope, measured cleanly inside the wall round-trip time. Results: (a) at $\lambda = 0$, $\psi = 0$ the extremum sits at $u = -0.440$, exactly the analytic antinode, and the relative phase $\psi$ moves it continuously—$\delta n(\psi) = 0.060 - 0.204\,\psi$ rungs, PDE = analytic to $10^{-3}$ rungs at every scan point; (b) conversion $\lambda$ alone does **not** move the extremum in the linear regime ($\lambda \le 0.1$, $t \le 2$: no shift to $10^{-3}$ rungs)—the phase difference, not the coupling strength, is the $\delta n$ dial in the linear standing-wave regime; (c) the amplitude-ratio scan at finite $\psi$ reproduces the analytic composition exactly ($f = 1.0, 0.8, 0.6$). The nonlinear gate regime ($q < 1$, amplitude-saturating conversion) is the remaining untested branch: it can rephase the wakes where linear conversion cannot.
 
 **T2—catalog statistics.** Extend the scan (neutrino masses, future states). The mechanism predicts the sharp-placement count does not grow with $N$: the uniform baseline is the null, and a growing count would confirm clustering.
 
@@ -130,8 +136,8 @@ A minimal quantitative form: the observable is the dressed state of two adjacent
 
 ## 6. Epistemic boundaries
 
-- **Derived**: the envelope special positions (§2, from `foundations/wake-geometry.md` §2); the catalog numbers (§3).
-- **Hypothesized**: the alignment–coherence correspondence (§1); sector-edge selection at half-rungs (§4.1); $\delta n$ as local phase lag (§4.2).
+- **Derived**: the envelope special positions (§2, probe-verified); the catalog numbers (§3); the $\delta n(\psi)$ phase-lag relation (§4.2, analytic + PDE to $10^{-3}$ rungs).
+- **Hypothesized**: the alignment–coherence correspondence (§1); sector-edge selection at half-rungs (§4.1); the catalog mapping onto $\psi$ (§4.2); the nonlinear-gate branch of T1 (amplitude-saturating conversion can rephase the wakes where linear conversion cannot).
 - **Speculative**: the dressed-rung form (§4.3); the per-sector frame choice (Yukawa vs Compton ladder).
 - **Not supported**: any claim that the full mass catalog clusters at special points—the 38-state scan is uniform, and only the muon placement is individually improbable (≈0.8% over the catalog).
 
@@ -142,3 +148,4 @@ A minimal quantitative form: the observable is the dressed state of two adjacent
 - `foundations/dimensionful-cascade.md` §6—wake wavelengths, sound-horizon half-step
 - `foundations/deriving-remaining-gaps.md` §2—electron mass status (external, class **E**)
 - `predictions/falsifiable-predictions.md` §5—predictions 43–45 (wake closure, checkerboard, closure ladder)
+- `two-fluid/run_rung_offset_probe.py`—T1 probe: two-bubble standing pattern, $\delta n(\psi)$ measurement
