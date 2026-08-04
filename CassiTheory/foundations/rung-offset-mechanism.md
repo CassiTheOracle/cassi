@@ -1,6 +1,6 @@
 # Why Observables Sit Between Rungs: The Two-Fluid Phase Mechanism for Fractional Cascade Offsets
 
-## Status: Hypothesized mechanism, Empirical catalog—August 2026
+## Status: Derived quantization, Hypothesized selection, Empirical catalog—August 2026
 
 ## Abstract
 
@@ -112,9 +112,43 @@ The mechanism applied to the whole catalog reads every residual as a phase lag: 
 
 ## 4. The mechanism hypothesis
 
-### 4.1 Selection: why sector edges sit at crossings
+### 4.1 Selection: why sector edges sit at crossings (mode quantization)
 
-A terminated spectrum—the lepton tower ending at e, the hadron tower at π, confinement at Λ_QCD—has a boundary in the cascade: no lighter state exists to continue the $\varphi$-spacing. The boundary acts as a free end for the sector's mode: the wavefunction must close at the boundary, and the lowest mode of a half-open interval sits at the midpoint of its two neighbors—the wake-crossing at $n \pm \tfrac{1}{2}$. This is the wave-mechanical form of the boundary-state idea: the edges of each spectrum are crossing states, the interior states are bubble states. The muon—interior to the lepton tower—is the sharpest bubble placement in the catalog.
+The pool-cell quantization (`computations/pooled_zone_modes.py`) supplies the
+wave-mechanical form of the boundary-state idea. The energy pool of a state is
+the constructive-overlap cell of the rotating wake pair
+(`foundations/wake-geometry.md` §2): the two wakes are the two phases of one
+string motion, and their overlap—the pool—pulses at the beat period
+$\ell_{n+1}/c$, so the state's standing wave must close on the cell bounded by
+the envelope zeros (the voids, where the overlap vanishes).
+
+The cell $[n, n+1]$ in rung space closes with nodes at both ends, and the two
+wake phases select the two parity classes:
+
+$$\psi_1(u) = \sin\!\big(\pi(u-n)\big):\ \text{nodes at } n, n{+}1;\ \text{antinode at } n + \tfrac{1}{2} \qquad \text{(Yin, crossing)}$$
+$$\psi_2(u) = \cos\!\big(\pi(u-n)\big):\ \text{antinodes at the integer rungs} \qquad \text{(Yang, bubble)}$$
+
+The half-rung is not a free position: it is the antinode of the fundamental
+mode of the terminal cell—the only mode with a single antinode at the
+midpoint; $\sin(m\pi(u-n))$ with $m \ge 2$ puts antinodes at $n + k/m$.
+A terminated sector—the lepton tower ending at $e$, the hadron tower at $\pi$,
+confinement at $\Lambda_{\text{QCD}}$—leaves its lightest cell half-open: no
+state exists beyond to continue the $\varphi$-spacing, so the state is the
+fundamental of its cell and sits at the crossing $n \pm \tfrac{1}{2}$.
+Interior stable states, sustained by the wake's self-launching
+(`wake-geometry.md` §2(e)), are the bubble parity at integer rungs. The
+catalog reading (pipeline §3): sector edges at 26.5 ($e$), 9.5 ($\tau$), 8.5
+($b$), 95.5 ($\pi$), 91.5 ($p,n$), 102.5 ($d$), 94.5 ($\Lambda_{\text{QCD}}$),
+mean |residual| 0.038 rungs; interior stable states at integer rungs ($\mu$
+96.000, J/$\psi$ 89, $D$ 90, $\Sigma$ 91, $Z$ 82).
+
+The quantization is silent on two things, and both are open: the absolute
+placement of each cell (why the electron's cell is [26, 27] and not [25, 26])—
+the empirical content of the ladder; and the frame choice—the muon is the dual
+citizen, 96.000 on the Compton ladder and 15.39 on the Yukawa ladder. The
+catalog statistics of §3 remain the honest baseline: the full 38-state scan
+does not cluster at special points, and the identification of the sector edges
+with the fundamental sine modes is Hypothesized, not Derived.
 
 ### 4.2 The residual: δn as local phase lag
 
@@ -122,7 +156,7 @@ Within a special-position class, the residual $\delta n$ encodes the phase lag b
 
 $$\boxed{\delta n(\psi) = 0.060 - 0.204\,\psi \ \text{rungs} \qquad (\psi \text{ in radians, } f=1)}$$
 
-around the coherent point, where $\psi$ is the relative phase between the two bubbles' wakes. The catalog's crossing-state residuals then correspond to modest phase lags: the electron's $-0.03$ rungs on the Yukawa ladder maps to $\psi \approx 0.44$ rad (25°), the nucleons' $-0.04$ to $\psi \approx 0.49$ rad, the pion's $-0.08$ to $\psi \approx 0.69$ rad. Amplitude asymmetry alone does not move the extremum at $\psi = 0$—the $\varphi$-spacing geometry locks the crossing—while at finite $\psi$ it moves through the phase composition (probe table 3). The alignment–coherence correspondence (§1) turns sharpness into a coherence meter: the muon's 0.01% marks a near-coherent scale; the W, H, t residuals of ~10% mark strongly de-coherent scales.
+around the coherent point, where $\psi$ is the relative phase between the two bubbles' wakes. Both coefficients are analytic, not fit: the coherent crossing sits at $u = 1 - \log_\varphi 2 = -0.4404$ (0.06 rungs above the naive half-rung), so the intercept is $A_0 = 1.5 - \log_\varphi 2 = 0.0596$; and the slope is the inverse of the self-similar phase advance, $B_0 = 1/\omega_0 = 1/(2\pi\varphi\ln\varphi) = 0.2044$ ($\omega_0 = 4.892$ rad/rung, `foundations/wake-geometry.md` §3b). The measured relation is the linearization of $u(x_{\max}(\psi)) + \tfrac12$ about the coherent crossing (`computations/pooled_zone_modes.py` §1). The catalog's crossing-state residuals then correspond to modest phase lags: the electron's $-0.03$ rungs on the Yukawa ladder maps to $\psi \approx 0.44$ rad (25°), the nucleons' $-0.04$ to $\psi \approx 0.49$ rad, the pion's $-0.08$ to $\psi \approx 0.69$ rad. Amplitude asymmetry alone does not move the extremum at $\psi = 0$—the $\varphi$-spacing geometry locks the crossing—while at finite $\psi$ it moves through the phase composition (probe table 3). The alignment–coherence correspondence (§1) turns sharpness into a coherence meter: the muon's 0.01% marks a near-coherent scale; the W, H, t residuals of ~10% mark strongly de-coherent scales.
 
 ### 4.3 The dressed-rung form (Speculative)
 
@@ -146,8 +180,8 @@ A minimal quantitative form: the observable is the dressed state of two adjacent
 
 ## 6. Epistemic boundaries
 
-- **Derived**: the envelope special positions (§2, probe-verified); the catalog numbers (§3); the $\delta n(\psi)$ phase-lag relation (§4.2, analytic + PDE to $10^{-3}$ rungs); the multi-rung phasor-sum response (T6, PDE-verified to $10^{-3}$ rungs).
-- **Hypothesized**: the alignment–coherence correspondence (§1); sector-edge selection at half-rungs (§4.1); the catalog mapping onto $\psi$ (§4.2); the open question of what sets $\psi$ at each rung (the gate branch, tested null 2026-08-03, is not the dial; the closure-emission reading, tested null, is not supported—§5 T4).
+- **Derived**: the envelope special positions (§2, probe-verified); the catalog numbers (§3); the $\delta n(\psi)$ phase-lag relation (§4.2, analytic + PDE to $10^{-3}$ rungs, with the exact $A_0$, $B_0$ forms); the multi-rung phasor-sum response (T6, PDE-verified to $10^{-3}$ rungs); the pool-cell quantization (§4.1)—the cell $[n, n+1]$ closes with nodes at the voids, and the two parities $\sin(\pi(u-n))$ / $\cos(\pi(u-n))$ put their antinodes at the half-rung / the integer rungs.
+- **Hypothesized**: the alignment–coherence correspondence (§1); sector-edge selection at half-rungs (§4.1)—the identification of the catalog's sector edges with the fundamental sine modes, and the cell placements; the catalog mapping onto $\psi$ (§4.2); the open question of what sets $\psi$ at each rung (the gate branch, tested null 2026-08-03, is not the dial; the closure-emission reading, tested null, is not supported—§5 T4).
 - **Speculative**: the dressed-rung form (§4.3); the per-sector frame choice (Yukawa vs Compton ladder); the source term of the multi-rung sum (state-density sources show no cumulative structure, T7).
 - **Not supported**: any claim that the full mass catalog clusters at special points—the 38-state scan is uniform, and only the muon placement is individually improbable (≈0.8% over the catalog); likewise the full-catalog ψ map is structureless (T5), and no cumulative signature appears with state-density sources (T7).
 
@@ -159,6 +193,7 @@ A minimal quantitative form: the observable is the dressed state of two adjacent
 - `foundations/deriving-remaining-gaps.md` §2—electron mass status (external, class **E**)
 - `predictions/falsifiable-predictions.md` §5—predictions 43–45 (wake closure, checkerboard, closure ladder)
 - `two-fluid/run_rung_offset_probe.py`—T1 probe: two-bubble standing pattern, $\delta n(\psi)$ measurement
+- `computations/pooled_zone_modes.py`—pool-cell quantization: the two parities, antinode positions, catalog reading, the t/H phase-rung
 - `experiments/rung_offset_closure/closure_phase_test.py`—T4: closure-phase connection, null result
 - `experiments/rung_offset_closure/catalog_psi_map.py`—T5: full-catalog ψ map (CSV: `catalog_psi_map.csv`), null result
 - `two-fluid/run_rung_offset_probe_panel_d.py`—T6: multi-rung phasor-sum superposition, verified

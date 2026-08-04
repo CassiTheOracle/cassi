@@ -364,7 +364,7 @@ $m_H = 125.25$ GeV (`computations/sm_radiative_corrections.py` §5.5):
 | $m_H = v\sqrt{2(2\lambda_{\text{WX}}/\varphi)(1+\varphi^{-3}/w)}$, $w = 5$ | 125.28 GeV | +0.02% | Hypothesized—Wu-Xing quartic with the Yang-fraction-$w$ correction; mechanism open |
 | $m_H = m_t\,\varphi^{-2/3}$ (top chain) | 125.30 GeV | +0.04% | mechanism target—2/3-rung separation has no Cassi origin yet |
 | $m_H = \sqrt{2}\,y_t(m_Z)\,v\,\varphi^{-2}$ | 124.90 GeV | −0.28% | Hypothesized—top-loop pooling, $\lambda(m_Z) = y_t^2(m_Z)\varphi^{-4}$ |
-| $m_Z\,\varphi^{2/3}$, $v\,\varphi^{-7/5}$ | 125.7 / 125.5 GeV | +0.34% / +0.22% | rejected as fits—no mechanism produces fractional rungs (the $m_e$ half-step 26.5 precedent, `foundations/deriving-remaining-gaps.md` §2.2) |
+| $m_Z\,\varphi^{2/3}$, $v\,\varphi^{-7/5}$ | 125.7 / 125.5 GeV | +0.34% / +0.22% | rejected as fits—no mechanism produces these fractional rungs (the pool-cell quantization covers half-rungs only, §6.3; the $m_e$ half-step 26.5 fit-rejection precedent, `foundations/deriving-remaining-gaps.md` §2.2) |
 
 **Collision pooling.** The measured mass is a property of the pooled collision
 zone, not of the isolated vacuum: the Higgs is produced through the top loop
@@ -430,12 +430,29 @@ The b half-rung is new (the framework's lepton table did not include
 quarks), and the electron half-step sharpens in the top-anchored frame; but
 the family does not close—μ resists at −5.8%, and the result is
 convention-sensitive: the MS-bar top anchor shifts b/τ to ≈ −4.5%, and the
-pole bottom mass kills the b half-rung outright. Half-integer rungs would
-follow from mode quantization with mixed boundary conditions in the pooled
-collision zone (a standing wave with one node at the condensate boundary),
-but that derivation does not exist yet. The ladder is a mechanism-flavored
-hypothesis, not a prediction, and the rejection of unmotivated half-steps
-(`foundations/deriving-remaining-gaps.md` §2.2) stands.
+pole bottom mass kills the b half-rung outright.
+
+The half-rung positions are the wave-mechanical content of the pool-cell
+quantization (`foundations/rung-offset-mechanism.md` §4.1,
+`computations/pooled_zone_modes.py`): the pool is the constructive-overlap
+cell of the rotating wake pair (`foundations/wake-geometry.md` §2), the
+terminal cell $[n, n+1]$ closes with nodes at the voids, and the fundamental
+mode $\sin(\pi(u-n))$ has its antinode at the midpoint—the sector-edge state
+sits at the half-rung by boundary conditions, not by fit. What the
+quantization does not supply: the absolute placement of each cell (the
+empirical ladder) and the frame choice. The ladder remains a
+mechanism-flavored hypothesis, not a prediction: the identification of the
+catalog states with the fundamental modes is Hypothesized, and the electron's
+$n_e = 26.5$ is still solved from the observed mass
+(`foundations/deriving-remaining-gaps.md` §2.2).
+
+The t/H 2/3-rung re-expresses in the same phase language: the wake phases of
+the two cells are $\psi_t = -0.315$ and $\psi_H = +1.31$ rad (from
+$\delta n(\psi) = A_0 - \psi/\omega_0$), so $\Delta\psi = 1.63$ rad $=
+\omega_0/3$ and $n_H - n_t = 1 - \Delta\psi/\omega_0 = 1 - \tfrac13 =
+\tfrac23$. The separation is one full cell minus exactly one third of a
+phase-rung; the origin of the third is the open structure of the Higgs
+chain.
 
 The mechanism reduces the Higgs chain to one open structure:
 
