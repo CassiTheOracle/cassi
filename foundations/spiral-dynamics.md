@@ -30,8 +30,25 @@ $\ell_n = \ell_{\text{Pl}}\varphi^n$) is
 
 $$\boxed{\Theta(n) = \Theta_0 + \frac{2\pi}{\ln\varphi} \cdot n}$$
 
-One full rotation ($2\pi$) per cascade rung ($\Delta n = 1$). The pitch is
-$2\pi/\ln\varphi \approx 13.06$ rad per e-fold in scale.
+One full rotation ($2\pi$) per cascade rung ($\Delta n = 1$); equivalently the
+pitch is $2\pi/\ln\varphi \approx 13.06$ rad per e-fold in scale. This
+rung-to-angle mapping is the **coordinate postulate** (Asserted; pitch
+convention $\Theta = 2\pi n$), not a dynamical claim.
+
+**Status: Hypothesized—August 2026 (this interaction).** The dynamics'
+rotation rate is a separate, derived quantity. With the ratified
+conversion→expansion coupling (zero free constants;
+`cassi-toe-rewrite-briefs/spiral-gravity/08-conversion-expansion-coupling.md`
+§A.2):
+
+$$\boxed{V_{\text{new}} = \lambda\,\tilde{h}(E_Y,E_I) + \frac{\lambda\varphi^{-2}}{d}}$$
+
+the spiral clock turns **$\varphi^{-2} = 0.38197$ turns per Hubble rung**
+(dynamical pitch angle $\approx 11.34°$, $\tan = \ln\varphi/(2\pi\varphi^{-2}) =
+0.2005$)—not one turn per rung; the azimuthal discriminator is
+$|a_\theta/a_r| = 0.19880$ (08 §C.3). The solver as written has no $\Omega$
+term (exchange-only rotation, $\omega = 0$); the term is not implemented.
+[COMPUTED]
 
 Crucially, this spiral lives in the **internal** $(E_Y, E_I)$ plane, not
 physical 3D space. The doublet angle $\Theta = \text{atan2}(E_I, E_Y)$ is
@@ -97,11 +114,17 @@ $$\boxed{H = \frac{\lambda}{3}\frac{(\varphi - r)(1+r)}{r} + \frac{\lambda}{3}\v
 
 (**Asserted** (postulate)—the 1/3 is the 3D continuity reading; the $(\lambda/2\pi)(1-q)$ clock form is Hypothesized (§2.1); T₀₀ at equilibrium gives 0 or (g/4)φ², never λφ⁻²/3; Lagrangian derivation open.)
 
-This is the general form; the spiral-linearized $H \propto (1-q)$ is recovered
-as $r \to \varphi$ where $(1+r)/r \to (\varphi+1)/\varphi \approx 1.618$. Both
-forms share the same structure: $H$ is driven by deviation from
-$\varphi$-equilibrium, and $H \to 0$ at the attractor (up to the irreducible
-baseline $\lambda\varphi^{-2}/3$). Verified July 2026: this PDE formula matches
+The two H forms are **two different clocks**, not one H in two limits: at the
+fixed point the PDE form gives $H = \lambda\varphi^{-2}/3$, while the
+spiral-linearized form gives $H = \lambda\ln\varphi\,(1-q_0)/2\pi =
+\lambda\varphi^{-2}\ln\varphi/(6\pi)$—the ratio is exactly $2\pi/\ln\varphi$
+(the rung-clock identity, 05 §C / 07; the gate is nonzero at the attractor,
+$(1-q_0) = \varphi^{-2}/3$, so neither clock stops there). The deviation parts
+differ in order: $(1-q) \to \varphi^{-2}/3 + O(\varepsilon^2)$ while
+$(\varphi-r)(1+r)/r \to 0$ linearly. The identity locks the two clocks'
+rates: the spiral clock turns $\ln\varphi/2\pi = 0.0766$ turns per H-rung
+(bare), and with the ratified conversion→expansion coupling $\varphi^{-2} =
+0.382$ turns per rung (08). Verified July 2026: this PDE formula matches
 observed $H$ to R² = 1.000 (mean error 0.06%).
 
 ### 2.3 The irreducible baseline
@@ -235,7 +258,7 @@ rate) and spatial (coherence length) scales cascade-lock together.
                     THE FIBONACCI SPIRAL
                     ====================
          Internal SO(2) doublet rotation Theta(n)
-         Pitch: 2*pi/ln(phi) ~ 13.06 rad per cascade rung
+         Pitch: 2*pi/ln(phi) ~ 13.06 rad per e-fold of scale
                           |
           ┌───────────────┼───────────────┐
           │               │               │
@@ -273,11 +296,12 @@ Lagrangian but three projections of the same Fibonacci spiral structure.
 The PDE formula $H = (\lambda/3)(\varphi-r)(1+r)/r + \lambda\varphi^{-2}/3$
 is confirmed to R² = 1.000 (mean error 0.06%, tested July 2026). The
 spiral-linearized form $H \approx (\lambda\cdot\ln\varphi/2\pi)\cdot(1-q)$
-is the equilibrium limit; at early times the $(1+r)/r$ enhancement dominates.
-Both share the same mechanism: $H$ is driven by deviation from
-$\varphi$-equilibrium. The predicted correlation between $H$ and $(1-q)$ is
-strong ($R^2 > 0.99$), confirming the spiral mechanism—the exact
-proportionality constant depends on the dynamical regime.
+is NOT the equilibrium limit of the PDE form: the two are different clocks
+locked by the rung-clock identity $dn_H/dn_S = 2\pi/\ln\varphi$ (§2.2). The
+correlation between $H$ and $(1-q)$ is strong ($R^2 > 0.99$), confirming the
+spiral mechanism; the proportionality constant is fixed by the identity, and
+with the ratified conversion→expansion coupling the spiral clock turns
+$\varphi^{-2} = 0.382$ turns per H-rung (08).
 
 ### 6.2 Gravitational coupling from cascade depth
 
@@ -321,7 +345,14 @@ across different cascade depths (atomic, nuclear, particle).
 ### Hypothesized (mechanism specified, testable)
 
 - Hubble as spiral unwinding: $H \approx (\lambda\cdot\ln\varphi/2\pi)\cdot(1-q)$
-  (equilibrium limit; PDE general form confirmed to R² = 1.000)
+  (Hypothesized spiral clock; related to the PDE $H$ by the rung-clock
+  identity $dn_H/dn_S = 2\pi/\ln\varphi$, §2.2—not the equilibrium limit; PDE
+  general form confirmed to R² = 1.000)
+- Conversion→expansion coupling $V_{\text{new}} = \lambda\tilde{h}(E_Y,E_I) +
+  \lambda\varphi^{-2}/d$ (Hypothesized—August 2026, zero free constants; the
+  vacuum half is the framework's own $\Lambda$; predicts $\varphi^{-2} = 0.382$
+  turns per rung, pitch 11.34°, discriminator $|a_\theta/a_r| = 0.19880$; not
+  implemented in the solver—08 §A.2, §C.3)
 - Gravity as gradient descent along the spiral (anchored quantitatively by the rung-offset probes: at the closure rungs the flow reads $\le 1.5\%$ of the wave speed, inward for J/ψ and $\approx 0$ for μ, and the conversion term alone transports outward at $\le 0.1\%$—`foundations/rung-offset-mechanism.md` §5 T11–T13)
 - $c$ as scale-invariant product $\lambda_{\text{eff}} \cdot \ell_n$
   (algebraically confirmed; numerical value awaits unit calibration)
