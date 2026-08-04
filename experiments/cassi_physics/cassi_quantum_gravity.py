@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 
 PHI = (1.0 + math.sqrt(5.0)) / 2.0
 M_PL = 1.22e19  # GeV (Planck mass)
-SIGMA = 1.0 / M_PL  # σ ~ 1/M_Pl in natural units (~10^-35 m)
+SIGMA = 1.0 / (PHI**3 * M_PL)  # σ = ℓ_Pl/φ³ per registry G1 (2026-08-03); natural units
 
 
 def free_propagator(k_squared, sigma=SIGMA):
@@ -85,7 +85,7 @@ def graviton_mode_energy(k, sigma=SIGMA):
     At k ~ 1/σ: ω deviates from linear (quantum dispersion)
     At k >> 1/σ: ω → constant (max frequency—no trans-Planckian modes)
     """
-    omega0 = M_PL  # φ-resonance frequency = Planck scale
+    omega0 = M_PL  # φ-resonance frequency = rung-0 cascade scale (independent of σ)
     return np.sqrt(k**2 + omega0**2 * (1 - np.exp(-k**2 * sigma**2)))
 
 
@@ -94,8 +94,8 @@ def main():
     print("CASSI QUANTUM GRAVITY—UV-Finite Two-Fluid Quantization")
     print("=" * 65)
     
-    print(f"\n  σ = 1/M_Pl = {SIGMA:.2e} GeV⁻¹ (the fundamental length)")
-    print(f"  UV cutoff: Λ_UV = 1/σ = M_Pl ≈ {M_PL:.2e} GeV")
+    print(f"\n  σ = ℓ_Pl/φ³ = {SIGMA:.2e} GeV⁻¹ (the fundamental length; registry G1)")
+    print(f"  UV cutoff: Λ_UV = 1/σ = φ³·M_Pl ≈ {PHI**3 * M_PL:.2e} GeV")
     
     # 1. Free propagator
     print("\n1. Free propagator G(k²) = exp(-k²·σ²/2)/k²:")
@@ -146,7 +146,7 @@ def main():
     # Propagator
     ax = axes[0, 0]
     ax.loglog(ks, Gs, 'b-', lw=2)
-    ax.axvline(1/SIGMA, color='r', ls='--', alpha=0.5, label=f'σ⁻¹ = M_Pl')
+    ax.axvline(1/SIGMA, color='r', ls='--', alpha=0.5, label=f'σ⁻¹ = φ³·M_Pl')
     ax.set_xlabel('k (GeV)'); ax.set_ylabel('G(k²)')
     ax.set_title('Two-Fluid Propagator (σ-regularized)')
     ax.legend(); ax.grid(True, alpha=0.3)
@@ -174,7 +174,7 @@ def main():
     G_eff = 1.0 + np.array([loop_integral_1loop(k) / M_PL**2 for k in ks])
     ax.semilogx(ks, G_eff, 'b-', lw=2)
     ax.axhline(1.0, color='r', ls='--', alpha=0.5, label='GR (G = 1)')
-    ax.axvline(1/SIGMA, color='g', ls=':', alpha=0.5, label=f'σ⁻¹ = M_Pl')
+    ax.axvline(1/SIGMA, color='g', ls=':', alpha=0.5, label=f'σ⁻¹ = φ³·M_Pl')
     ax.set_xlabel('Energy scale (GeV)'); ax.set_ylabel('G_eff / G_N')
     ax.set_title('Running of Newton\'s Constant')
     ax.set_xlim(1e-4, 1e6)

@@ -451,7 +451,7 @@ Symbols used framework-wide that are not parameter rows above (or names for rows
 | $\alpha_w$ | attractor conversion weight | $\varphi^{-1} \approx 0.618$ | = $r/(1+r)$ at $r = \varphi$ in $H_{\text{eff}}^2$; row in §2.1 |
 | $\varepsilon$ | field deviation | $\varepsilon = E_Y - \varphi E_I$ | core physics (governing-equation pair); keep $\varepsilon$ |
 | $\varepsilon_{\text{soft}}$ | Coulomb softening (numerical) | $0.02\,a_0$ | numerical (§6 row); distinct from the field deviation $\varepsilon$ |
-| $\sigma$ | regularization scale | $\ell_{\text{Pl}}/\varphi^3$ | gravity cores, UV-finite propagator; registered here |
+| $\sigma$ | regularization scale | $\ell_{\text{Pl}}/\varphi^3$ | gravity cores, UV-finite propagator; **Derived** (rung identity $\ell_{\text{Pl}}/\varphi^3$), registry G1; no ledger row (not Calibrated/Mapped) |
 | $\sigma_r$ | spatial ratio dispersion | dynamic state variable | consciousness master variable (registry M4) |
 | $\theta_{\text{cond}}$ | condensation threshold | $0.45$ (at $R \approx 0.093$) | calibrated to phenomenology at step 285 (ledger §10); not an a-priori fixed point |
 | $\mathcal{M}$ | phase-matching factor | $\approx 1$ organized / $\approx 0$ random | quantum-measurement derivation (Q7) |
