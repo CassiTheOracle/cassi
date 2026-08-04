@@ -12,10 +12,9 @@ The ODE is lambda-independent: dr/da = f(r, a) where lambda cancels
 from the ratio dr/dt / H, so the result is structural.
 
 Calibrated initial condition: r_0 at a=0.01 chosen to match the
-internal w_0 = -0.838 calibration target (not a measured DESI
-constraint—corrected 2026-07-31) or the gap-derived r_0
-(w_0 = -0.856; corrected 2026-07-31: w_0 = -0.87, see
-calibrate_initial_ratio_xi_v2.py).
+w_0 = -0.87 calibration target (DESI-anchored, Calibrated tier — see
+parameter-inventory §10 fit ledger; not a prediction; synced to doctrine
+settlement 2026-08-03).
 
 Run: python wa_full_ode.py
 """
@@ -102,11 +101,11 @@ def integrate_ode(r_start, a_start=0.01, a_end=1.0, n_pts=50000, xi=0.0):
     
     return a_grid, w_vals, coeffs[0], coeffs[1], r, H_vals
 
-# ── Calibration: find r_start that gives w_0 ≈ -0.838 ──────────────────────
+# ── Calibration: find r_start that gives w_0 ≈ -0.87 ──────────────────────
 print("=== Calibrating initial ratio for w_0 match ===")
 print()
 
-# Binary search for r_start that gives w_0 ≈ -0.838 (bare, xi=0)
+# Binary search for r_start that gives w_0 ≈ -0.87 (bare, xi=0)
 # The ratio at a=0.01 should be r = E_Y/E_I << phi (Yin-dominated early)
 # Docs say calibrated r_0 = 1/23 at a_0 = 0.01
 
@@ -115,7 +114,7 @@ for r_try in [0.04, 0.043, 0.0435, 0.044, 0.045, 0.05, 0.10, 0.20]:
     a_grid, w_vals, w0, wa, r_hist, H_hist = integrate_ode(r_try, xi=0.0, n_pts=20000)
     print(f"  r_start={r_try:.4f}: w_0={w0:.4f}, w_a={wa:+.4f}")
 
-# The calibrated r should give w_0 ≈ -0.838
+# The calibrated r should give w_0 ≈ -0.87
 # Let me find it precisely
 print()
 print("Binary search for calibrated r_start...")
@@ -124,7 +123,7 @@ lo, hi = 0.04, 0.05
 for _ in range(30):
     mid = (lo + hi) / 2
     _, _, w0_mid, _, _, _ = integrate_ode(mid, xi=0.0, n_pts=15000)
-    if w0_mid > -0.838:  # w_0 is more negative → need larger r
+    if w0_mid > -0.87:  # w_0 is more negative → need larger r
         lo = mid
     else:
         hi = mid
@@ -140,7 +139,7 @@ a_xi, w_xi, w0_xi, wa_xi, r_xi, H_xi = integrate_ode(r_cal, xi=XI, n_pts=50000)
 print(f"  Qi-gravity:   w_0 = {w0_xi:.4f}, w_a = {wa_xi:+.4f}")
 
 print()
-print(f"  Internal calibration target (not DESI):  w_0 = -0.838 ± 0.055, w_a = -0.51 ± 0.38")
+print(f"  Calibration target (DESI-anchored, not a prediction):  w_0 = -0.87 ± 0.06, w_a = +0.012 ± 0.28  [synced to doctrine settlement 2026-08-03]")
 print()
 
 dw0 = w0_xi - w0_cal

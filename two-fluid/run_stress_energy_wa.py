@@ -35,8 +35,8 @@ A=np.column_stack([np.ones(sum(desi)),1-a_arr[desi]])
 w0,wa=np.linalg.lstsq(A,w[desi],rcond=None)[0]
 
 print(f"\nstress_energy: w0={w0:.4f} wa={wa:+.4f} (a_max={a_arr[-1]:.4f})")
-print(f"ODE conversion: w0=-0.856 wa=+0.457")
-print(f"Internal calibration target (not DESI): w0=-0.838+-0.064 wa=-0.51+-0.38")
+print(f"ODE conversion (pre-retarget output; rerun pending): w0=-0.856 wa=+0.457")
+print(f"Calibration target (DESI-anchored, not a prediction): w0=-0.87+-0.06 wa=+0.012+-0.28  [synced to doctrine settlement 2026-08-03]")
 if wa < 0: print("*** w_a SIGN FLIPPED! ***")
 elif wa < 0.2: print("w_a significantly reduced")
 else: print("w_a unchanged from ODE")

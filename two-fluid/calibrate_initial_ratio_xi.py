@@ -22,7 +22,7 @@ LAM = 0.02
 XI = PHI**6  # ≈ 17.944
 H_EMPTY = (LAM / 3) * PHI_INV**2
 A0 = 0.01
-TARGET_W0 = -0.838  # Calibration target (NOT a measured DESI constraint—see calibrate_initial_ratio_xi_v2.py; corrected 2026-07-31)
+TARGET_W0 = -0.87  # Calibration target (DESI-anchored, Calibrated tier — see parameter-inventory §10 fit ledger); not a prediction — synced to doctrine settlement 2026-08-03
 
 
 def system(lna, y):
@@ -117,10 +117,9 @@ print()
 
 # Compare to bare
 print(f"COMPARISON:")
-print(f"  Bare (no ξ):   w0 = -0.838  wa = +0.438  (calibrate_initial_ratio.py; calibration output, not measured DESI)")
+print(f"  Bare (no ξ):   w0 = -0.87  (calibrate_initial_ratio.py at TARGET_W0 = -0.87, synced 2026-08-03; bare wa = +0.438 is the pre-retarget value, rerun pending)")
 print(f"  With ξ = φ⁶:   w0 = {w0:+.4f}  wa = {wa:+.4f}")
-print(f"  Δ from ξ:      Δw0 = {w0+0.838:+.4f}  Δwa = {wa-0.438:+.4f}")
+print(f"  Δ from ξ:      Δw0 = {w0+0.87:+.4f}  Δwa = {wa-0.438:+.4f}")
 print()
-print(f"Internal calibration target (not DESI):  w0 = -0.838 ± 0.068,  wa = -0.06 ± 0.68  (wide)")
-print(f"Internal calibration target (not DESI, tight):  w0 = -0.838 ± 0.055,  wa = -0.51 ± 0.38  (tight)")
+print(f"Calibration target (DESI-anchored, not a prediction):  w0 = -0.87 ± 0.06,  wa = +0.012 ± 0.28  [synced to doctrine settlement 2026-08-03]")
 print(f"Prediction +ξ:   w0 = {w0:+.4f}     wa = {wa:+.4f}")

@@ -775,8 +775,9 @@ ax13.annotate("today\n$w_0 = -0.87$", xy=(0.33, r_t[100]), xytext=(0.12, r_t[100
               arrowprops=dict(arrowstyle="->", color=YANG_PEAK, lw=1.0))
 ax13.fill_between(a_arr, r_t, PHI, alpha=0.12, color=YANG_PEAK)
 
-# DESI DR2 anchor (≈ −0.75 ± 0.06 [INFERENCE]; the old −0.838 was the
-# repo's own calibration target—circular, corrected 2026-07-31)
+# DESI DR2 anchor (≈ −0.75 ± 0.06 [INFERENCE]); the former w₀ target was the
+# repo's own calibration value (circular) — retargeted to −0.87
+# (calibration target, not a prediction; synced to doctrine settlement 2026-08-03)
 ax13.errorbar([0.33], [PHI - 0.02], yerr=0.008, fmt="o", ms=8,
               color=YANG_BRIGHT, capsize=4, zorder=5)
 ax13.annotate("DESI DR2\n$w_0 \\approx -0.75 \\pm 0.06$", xy=(0.33, PHI - 0.02),

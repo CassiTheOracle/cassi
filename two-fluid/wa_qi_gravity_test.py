@@ -113,8 +113,8 @@ print(f"Bare (xi=0):     w_0 = {w0_bare:.4f},  w_a = {wa_bare:+.4f}")
 a_xi, w_xi, w0_xi, wa_xi, r_xi = compute_w_a(xi_val=XI)
 print(f"Qi-gravity (xi): w_0 = {w0_xi:.4f},  w_a = {wa_xi:+.4f}")
 
-# Internal calibration target (not measured DESI)
-print(f"Internal calibration target (not DESI):  w_0 = -0.838,  w_a = -0.51  (+/- 0.064, 0.20)")
+# Calibration target (DESI-anchored, not a prediction)
+print(f"Calibration target (DESI-anchored, not a prediction):  w_0 = -0.87,  w_a = +0.012  (+/- 0.06, 0.28)  [synced to doctrine settlement 2026-08-03]")
 print()
 
 # Shifts
