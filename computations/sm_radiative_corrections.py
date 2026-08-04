@@ -539,6 +539,54 @@ print("  targets, not predictions.")
 print()
 
 # ----------------------------------------------------------------------
+# §5.7  The 2g−g² mechanism and the Yukawa ladder
+# ----------------------------------------------------------------------
+print("── §5.7  THE 2g−g² MECHANISM AND THE YUKAWA LADDER ──")
+print()
+G_GAP = 1 - PHI**(-5)                  # Wu-Xing gap (derived)
+Y_T_2G = 2*G_GAP - G_GAP**2            # = 1 − (1−g)² = 1 − φ⁻¹⁰
+Y_T_POLE = sqrt(2) * M_T / V
+print(f"  Mechanism: Yang/Yin = chiral projections; the top Yukawa couples")
+print(f"  both components through the condensate; the per-cycle unconverted")
+print(f"  fraction is 1−g = φ⁻⁵ per component:")
+print(f"      y_t = 1 − (1−g)² = 2g − g² = {Y_T_2G:.6f}  vs y_t(pole) ="
+      f" {Y_T_POLE:.6f}  ({100*(Y_T_2G/Y_T_POLE-1):+.4f}%)")
+print(f"      (g = 1−φ⁻⁵ = {G_GAP:.6f}, the derived Wu-Xing gap)")
+print()
+# Yukawa ladder below the top: Δn = log_φ(y_t/y_f), nearest-half-rung test
+print("  Yukawa ladder (pole top anchor; MS-bar quark masses at m_Z):")
+print(f"      {'f':>2s} {'m(m_Z) GeV':>11s} {'y_f':>10s} {'Δn':>7s}"
+      f" {'half':>6s} {'resid':>7s}")
+for lab, m in [("b", 2.86), ("τ", 1.77686), ("c", 0.62), ("μ", 0.105658),
+               ("s", 0.055), ("d", 0.0029), ("u", 0.0014),
+               ("e", 0.000510999)]:
+    yf = sqrt(2) * m / V
+    dn = log(Y_T_POLE / yf) / log(PHI)
+    half = 0.5 * round(2 * dn)
+    resid = 100 * (PHI**(dn - half) - 1)
+    print(f"      {lab:2s} {m:11.6g} {yf:10.6g} {dn:7.2f} {half:6.1f}"
+          f" {resid:+6.1f}%")
+print(f"      (b, τ close at half-rungs +1.1% / +0.5%; e −2.0%; μ −5.7%")
+print(f"       resists; c/s/d/u masses carry MS-bar uncertainties ~10–20% —")
+print(f"       the family is not closed)")
+print("  Convention sensitivity (b, τ):")
+print(f"      pole top + MS-bar quarks: Δn = 8.52 / 9.51  (b +1.1%, τ +0.5%)")
+dn_b_ms = log(YT_MZ_RUN / (sqrt(2)*2.86/V)) / log(PHI)
+dn_t_ms = log(YT_MZ_RUN / (sqrt(2)*1.77686/V)) / log(PHI)
+print(f"      MS-bar top (y_t(m_Z) = {YT_MZ_RUN:.4f}):      Δn ="
+      f" {dn_b_ms:.2f} / {dn_t_ms:.2f}  (b {100*(PHI**(dn_b_ms-8.5)-1):+.1f}%,"
+      f" τ {100*(PHI**(dn_t_ms-9.5)-1):+.1f}%)")
+print(f"      pole top + pole b (4.18 GeV): Δn = 7.73 — the b half-rung")
+print(f"      fails outright (mixed conventions do not rescue the ladder)")
+print()
+# combined chain
+M_H_CHAIN = (V / sqrt(2)) * Y_T_2G * PHI**(-2/3)
+print(f"  Combined chain: m_H = (v/√2)(2g−g²)·φ^(−2/3) = {M_H_CHAIN:.2f} GeV"
+      f"  ({100*(M_H_CHAIN/M_H_EXP-1):+.3f}%) — one open structure (2/3)"
+      f" + one derived constant (g)")
+print()
+
+# ----------------------------------------------------------------------
 # §6  Summary
 # ----------------------------------------------------------------------
 print("=" * 76)

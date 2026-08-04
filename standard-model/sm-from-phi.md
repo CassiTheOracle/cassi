@@ -231,6 +231,12 @@ The muon and tau masses deviate significantly from the simple φ-power scaling,
 indicating that additional generation-mixing dynamics (CKM angles) renormalize
 the Yukawa couplings by generation-dependent factors.
 
+The sharper frame is top-anchored: the top Yukawa closes at
+$y_t = 1 - \varphi^{-10} = 2g - g^2$ with the derived Wu-Xing gap
+$g = 1-\varphi^{-5}$, and the b/τ Yukawas sit at half-rungs 8.5/9.5 below it
+(+1.0% / +0.5%)—a mechanism-flavored ladder whose PDE derivation is open
+(`standard-model/sm-radiative-corrections.md` §6.3).
+
 ### 4.2 CKM Matrix from φ-Angles
 
 The CKM matrix follows the Wolfenstein hierarchy $|V_{us}| \sim \lambda$,
