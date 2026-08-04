@@ -7,24 +7,28 @@ CMB low-ℓ angular power spectrum from the Cassi bubble-boundary geometry:
     Physics:
     --------
     The CMB quadrupole (ℓ=2) and octopole (ℓ=3) are anomalously aligned
-    at (l,b) = (260°, +60°) at 5.4σ significance.  The Cassi mechanism:
-    the bubble-boundary triaxial geometry—all bubbles share the derived
-    w = 5 (`foundations/wu-xing-derivation.md`; registry C10)—imprints a
+    at (l,b) = (260°, +60°) at 5.4σ significance (a-posteriori: the axis
+    was discovered in the data; a look-elsewhere correction across
+    multipoles applies).  The Cassi candidate mechanism: the bubble-
+    boundary triaxial geometry—all bubbles share the derived w = 5
+    (`foundations/wu-xing-derivation.md`; registry C10)—imprints a
     preferred axis at ℓ < 5.
 
     Our bubble is at cascade step 285 (191 Mpc comoving diameter), embedded
     in a 292-step cascade (5500 Mpc = rung-292 lattice length, not R_H;
     R_H ≈ 4440 Mpc, ℓ_Pl·φ^291.54).  The boundary-tangency argument uses
-    R_H ≈ 4440 Mpc; the 12.2° angle itself is set only by the Galactic
-    direction vectors below and is unaffected at stated precision.  The bubble boundary is
-    nearly tangent to our past light cone at the recombination surface,
-    producing a ~12.2° projected angle between the bubble's Yang axis (CMB
-    dipole direction) and the boundary normal (quadrupole-octopole axis).
+    R_H ≈ 4440 Mpc; the 12.2° alignment angle is a CALIBRATION INPUT
+    (computed from the measured dipole and quadrupole-octopole direction
+    vectors below), not a prediction.  The boundary normal is set equal to
+    the measured quadrupole-octopole axis, so the mechanism (Hypothesized,
+    registry C10) currently explains the direction post-hoc pending an a
+    priori boundary-orientation derivation from the cascade.
 
     Predictions:
     ------------
     1.  C₂/C₃ ratio ≈ φ ≈ 1.618 (Fibonacci suppression of octopole)
-    2.  Dipole-quadrupole alignment angle ≈ 12.2°
+    2.  Dipole-quadrupole alignment angle = 12.2° (measured; computed from
+        the data vectors below—calibrated, not predicted)
     3.  Anomalies fade at ℓ > 5 (not a local foreground effect)
     4.  E-mode polarization at ℓ=2-4 shows same axis (Simons Obs./LiteBIRD)
     5.  Axis does NOT align with CMB cold spot (step-280, not step-285)
@@ -63,11 +67,14 @@ HUBBLE_RADIUS_MPC   = 5500.0               # rung-292 lattice length [Mpc] (ℓ�
 # unaffected at stated precision (0.01°).
 CASCADE_STEPS       = 292                  # total cascade steps
 
-# Boundary normal direction = quadrupole-octopole axis (Galactic coordinates)
-L0_DEG  = 260.0    # Galactic longitude [deg]
+# The boundary normal is set to the measured axis direction (calibration
+# input, NOT a prediction—the 12.2° angle follows from the data vectors);
+# the framework mechanism (C10) is Hypothesized pending an a priori
+# boundary-orientation derivation.
+L0_DEG  = 260.0    # Galactic longitude [deg]  (measured quadrupole-octopole axis)
 B0_DEG  = 60.0     # Galactic latitude [deg]
 
-# CMB dipole direction = our motion relative to CMB rest frame
+# CMB dipole direction = our motion relative to CMB rest frame (measured)
 L_DIPOLE_DEG = 264.0   # Galactic longitude [deg]
 B_DIPOLE_DEG = 48.0    # Galactic latitude [deg]
 
@@ -287,8 +294,11 @@ def main():
                       * math.cos(math.radians(L_DIPOLE_DEG - L0_DEG)))
     print(f"    cos(θ) = {cos_theta_calc:.6f}")
     print(f"\n  >>> Alignment angle θ = {theta_align:.2f}° <<<")
+    print(f"  [calibrated from data] θ is computed from the measured dipole and")
+    print(f"  quadrupole-octopole direction vectors (calibration inputs, NOT a")
+    print(f"  prediction); matching the observed 12.2° is by construction.")
     if abs(theta_align - 12.2) < 0.5:
-        print(f"  ✓ VERIFIED: matches observed 12.2° within tolerance")
+        print(f"  ✓ input self-check: reproduces observed 12.2° within tolerance")
     else:
         print(f"  ⚠ Deviation from 12.2°—check coordinates")
 
@@ -348,12 +358,14 @@ def main():
          f"within range of φ when cosmic variance (≈ 40% at ℓ=2-3) is included."),
 
         ("P2: Alignment angle",
-         f"θ ≈ {theta_align:.1f}° (from bubble geometry)",
+         f"θ ≈ {theta_align:.1f}° (computed from measured vectors)",
          f"The angular separation between the CMB dipole (Yang axis direction) "
-         f"and the quadrupole-octopole axis (bubble boundary normal) is predicted "
-         f"by the geometry of a step-285 bubble in a 292-step cascade.",
-         f"Observed θ = 12.2°. Cassi predicts θ = {theta_align:.2f}°—"
-         f"a zero-parameter geometric prediction."),
+         f"and the quadrupole-octopole axis (bubble boundary normal) is computed "
+         f"from the measured direction vectors—the boundary normal is set to the "
+         f"measured axis (calibration input, NOT a prediction).  The step-285 "
+         f"bubble geometry is the candidate mechanism (Hypothesized, C10).",
+         f"Observed θ = 12.2°; the pipeline reproduces θ = {theta_align:.2f}° by "
+         f"construction (calibrated from data)."),
 
         ("P3: ℓ > 5 null",
          f"Anomalies fade at ℓ > 5",
@@ -613,9 +625,10 @@ def main():
     D/H = {bubble_size_ratio:.4f}
 
   Alignment angle:
-    Dipole (Yang axis):   ({L_DIPOLE_DEG}°, {B_DIPOLE_DEG}°)
-    Q-O axis (boundary):  ({L0_DEG}°, {B0_DEG}°)
-    θ = {theta_align:.2f}°  (observed 12.2°)
+    Dipole (Yang axis):   ({L_DIPOLE_DEG}°, {B_DIPOLE_DEG}°)  [measured]
+    Q-O axis (boundary):  ({L0_DEG}°, {B0_DEG}°)  [measured; boundary normal set to it]
+    θ = {theta_align:.2f}°  (observed 12.2°; calibrated from the data vectors,
+                            not predicted)
 
   Angular power spectrum (predicted → μK²):
     ℓ=2: {C_pred[2]:.1f}  (calibrated to Planck)
@@ -625,7 +638,7 @@ def main():
 
   Key falsifiable predictions:
     P1: C₂/C₃ ≈ φ ≈ {PHI:.4f}    →  Planck-consistent within cosmic variance
-    P2: θ ≈ {theta_align:.1f}°         →  Zero-parameter geometric prediction
+    P2: θ ≈ {theta_align:.1f}°         →  Calibrated from data vectors (not a prediction)
     P3: ℓ > 5 null              →  Already confirmed by Planck
     P4: E-mode axis             →  LiteBIRD test in 2030s
     P5: Cold spot independent   →  Confirmed: spot at (208°, -57°)

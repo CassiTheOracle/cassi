@@ -4,7 +4,7 @@
 
 ## Abstract
 
-The Cassi framework is compared against the strongest current cosmological and galactic constraints. The two-fluid dark-energy prediction ($w_0 = -0.87$, $w_a = +0.012$ with the Yang-fraction-weighted coupling) sits at $2\sigma$/$2.7\sigma$ tension with the DESI DR2 best fit ($w_0 \approx -0.75$, $w_a \approx -0.73$)—a real tension, not a resolution. The Qi-enhanced rotation-curve prediction $v_C/v_B = \sqrt{\alpha_{\text{halo}}(1+(\varphi^{6}-1)q)} \approx 3.0$ matches the observed Milky Way boost $2.7 \pm 0.5$ within ~1.2σ—a consistency check against the calibration object ($\xi$ pinned on the MW curve; $\alpha_{\text{halo}} = 0.7$ a hardcoded nominal, Fit-Status Ledger `parameter-inventory.md` §10), not an independent test. The CMB large-angle axis is the imprint of the triaxial bubble-boundary geometry at cascade step 285, with a predicted 12.2° dipole↔quadrupole alignment. The bubble lattice cannot bias the DESI CPL fit (`cosmology/desi-lattice-averaging.md`), and the $\sigma_8$ pipeline is planned in `cosmology/sigma8-computational-plan.md`.
+The Cassi framework is compared against the strongest current cosmological and galactic constraints. The two-fluid dark-energy prediction ($w_0 = -0.87$, $w_a = +0.012$ with the Yang-fraction-weighted coupling) sits at $2\sigma$/$2.7\sigma$ tension with the DESI DR2 best fit ($w_0 \approx -0.75$, $w_a \approx -0.73$)—a real tension, not a resolution. The Qi-enhanced rotation-curve prediction $v_C/v_B = \sqrt{\alpha_{\text{halo}}(1+(\varphi^{6}-1)q)} \approx 3.0$ matches the observed Milky Way boost $2.7 \pm 0.5$ within ~1.2σ—a consistency check against the calibration object ($\xi$ pinned on the MW curve; $\alpha_{\text{halo}} = 0.7$ a hardcoded nominal, Fit-Status Ledger `parameter-inventory.md` §10), not an independent test. The CMB large-angle axis is a measured alignment (12.2° dipole↔quadrupole separation, computed from the data vectors—Calibrated); the triaxial bubble-boundary geometry at cascade step 285 is a candidate mechanism whose orientation is fitted to the measured axis (Hypothesized). The bubble lattice cannot bias the DESI CPL fit (`cosmology/desi-lattice-averaging.md`), and the $\sigma_8$ pipeline is planned in `cosmology/sigma8-computational-plan.md`.
 
 Sources compiled 2026-07-15 via web search and primary literature. All error bars are 68% (1σ) confidence unless noted.
 
@@ -183,22 +183,24 @@ $$\text{Axis direction: } (l, b) = (260\degree, +60\degree)$$
 | Joint anomaly significance | 5.4σ | Jones et al. (2023) |
 | Independent anomaly (1% mask) | 3.0σ | Herold et al. (2025) |
 | Quadrupole power suppression | ~30% below ΛCDM | WMAP/Planck |
-| Axis-dipole angular separation | 12.2° | This work |
+| Axis-dipole angular separation | 12.2° | Computed from measured direction vectors |
 | Axis-Virgo separation | 17° | This work |
 | Axis-cold spot separation | 124° | This work |
 
-The axis is NOT aligned with the CMB cold spot or the Eridanus supervoid, ruling out a simple local-void explanation. The 5.4σ joint significance across multiple large-angle anomalies (Jones+ 2023) strongly suggests a primordial origin.
+The axis is NOT aligned with the CMB cold spot or the Eridanus supervoid, ruling out a simple local-void explanation. The 5.4σ joint significance across multiple large-angle anomalies (Jones+ 2023) is an a-posteriori statistic—the alignment was discovered in the data, so a look-elsewhere correction across multipoles applies—but the anomaly remains persistent.
 
-### 4.2 Cassi Prediction: Bubble-Boundary Triaxial Axis
+### 4.2 Cassi Mechanism (Hypothesized): Bubble-Boundary Triaxial Axis
 
-The preferred axis is the imprint of the triaxial bubble geometry at cascade step 285 (registry C10; `foundations/refined-numeric-predictions.md` §2.3; `foundations/dimensionful-cascade.md` §8.3): adjacent bubbles at identical $w = 5$—all bubbles share the derived Wu Xing number, with no spatial $w$ variation—sit at $\varphi$-spaced chord-lattice intervals, and their shared boundary normal defines the direction. The Cassi prediction:
+**Tier: Calibrated (12.2° angle, computed from data) / Hypothesized (boundary mechanism).** The 12.2° dipole↔quadrupole separation is a *measured* property of the CMB: the angle is computed from the measured multipole direction vectors—the CMB dipole at $(l,b) \approx (264\degree, +48\degree)$ and the quadrupole-octopole axis at $(l,b) = (260\degree, +60\degree)$—so the value is calibrated from the data, not predicted (`two-fluid/run_cmb_lowl_pipeline.py`). The framework's candidate mechanism is the triaxial bubble geometry at cascade step 285 (registry C10; `foundations/refined-numeric-predictions.md` §2.3; `foundations/dimensionful-cascade.md` §8.3): adjacent bubbles at identical $w = 5$—all bubbles share the derived Wu Xing number, with no spatial $w$ variation—sit at $\varphi$-spaced chord-lattice intervals, and their shared boundary normal defines a preferred direction at $\ell < 5$. This mechanism is **Hypothesized**: its boundary orientation is chosen to match the measured axis, so it currently explains the direction post-hoc rather than predicting it.
+
+The mechanism's claims:
 
 1. **Preferred axis** at the largest angular scales ($\ell < 5$), fading at $\ell > 5$
-2. **Dipole↔quadrupole alignment of 12.2°**: the angular separation between the CMB dipole (Yang axis) and the quadrupole-octopole axis (boundary normal)
+2. **Dipole↔quadrupole separation of 12.2°** (measured): the angular separation between the CMB dipole (Yang axis) and the quadrupole-octopole axis (boundary normal); the value follows from the measured vectors, not from the geometry
 3. **E-mode polarization alignment**: the CMB E-mode quadrupole/octopole MUST show the same axis if the anomaly is primordial (testable by Simons Observatory and LiteBIRD)
 4. **Bulk flows** along the preferred axis ($\sim 500$–$2000$ km/s at Gpc scales)
 
-**Status: Suggestive alignment (~1σ).** The axis exists at high significance (5.4σ); the observed dipole↔quadrupole separation of 12.2° matches the predicted boundary-normal geometry. The prediction that anomalies fade at $\ell > 5$ is falsifiable by Simons Observatory (2025+) and LiteBIRD polarization data.
+**Status: measured alignment, mechanism unconfirmed.** The 5.4σ is the data's a-posteriori significance: the alignment was discovered in the data (WMAP; Land & Magueijo 2005), so a look-elsewhere correction across multipoles applies to the claimed significance. The bubble-boundary mechanism is a candidate whose boundary normal is fitted to the measured axis—not yet a prediction. Elevation requires an a priori derivation of the boundary normal from the cascade: the condensation field's orientation at rung 285 (the bubble normal direction relative to the galaxy/CMB frame), computed without taking the measured axis as input. The E-mode polarization test (Simons Observatory, LiteBIRD) is falsifiable and independent of the orientation question.
 
 ---
 
@@ -209,7 +211,7 @@ The preferred axis is the imprint of the triaxial bubble geometry at cascade ste
 | $w_0$ and $w_a$ | $w_0 = -0.87$ structural (2σ from DESI $\approx -0.75 \pm 0.06$); $w_a = +0.012$ (Yang-fraction-weighted coupling; 2.7σ from $\approx -0.73 \pm 0.28$) | $w_a$: 5-channel/Wu-Xing shifts Hypothesized (ODE pending, ~5× too small to close the gap) | **Tension**—`two-fluid/calibrate_initial_ratio_xi_v2.py` |
 | $\Omega_m$ / $H_0$ compatibility | Pipeline CMB-inferred $H_0 \approx 65.8$ km/s/Mpc | Tension with CMB | Full $H(z)$ fit pending (C3/T4) |
 | $v_c(30\text{ kpc})$ vs baryons | $v_C/v_B = 2.8$–$3.0$ (matches $2.7\pm0.5$ observed within ~0.4σ) |—| **Consistent** |
-| CMB axis of evil (5.4σ) | Bubble-boundary triaxial axis (12.2° alignment) | Scale-dependence unconfirmed | Simons Obs. E-mode test |
+| CMB axis of evil (5.4σ, a-posteriori) | Bubble-boundary triaxial axis (12.2° alignment; **Calibrated** angle, **Hypothesized** mechanism) | Scale-dependence unconfirmed; boundary orientation fitted to measured axis | Simons Obs. E-mode test |
 
 ---
 
