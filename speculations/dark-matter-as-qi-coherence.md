@@ -28,7 +28,7 @@ $$\boxed{G_{\text{eff}} = \frac{\pi}{\rho}(1 + \xi q)G, \qquad \xi = \varphi^6 \
 
 The Yang fraction $\pi/\rho$ is the local fraction of the field in the Yang component. At the $\varphi$-fixed point it is the equilibrium fraction $\alpha_0 = \varphi^{-3} \approx 0.236$, giving $G_{\text{eff}} = \varphi^{-3}G$ (the classical limit); the galactic-halo fits of §7 use the halo-regime value $\alpha_{\text{halo}} \approx 0.7$, giving the halo form $G_{\text{eff}} = \alpha_{\text{halo}}(1+\xi q)G$; and the homogeneous cosmological analogue weights by the attractor value $\alpha_w = r/(1+r) = \varphi^{-1} \approx 0.618$.
 
-At $q \to 1$ (galactic center): $G_{\text{eff}} \to (\pi/\rho)(1+\xi)G \approx 18.9\,(\pi/\rho)G$—gravity amplified by up to $1 + \xi \approx 18.9$ over the bare coupling at the saturation ceiling.
+At the full-coherence ceiling ($q \to 1$): $G_{\text{eff}} \to (\pi/\rho)(1+\xi)G \approx 18.9\,(\pi/\rho)G$—gravity amplified by up to $1 + \xi \approx 18.9$ over the bare coupling at the saturation ceiling. Halo-regime values ($q \approx 0.6$–$0.7$ in the outskirts, $\pi/\rho \approx 0.7$) give $G_{\text{eff}} \approx 8$–$10\,G$ at galaxy outskirts; the $q \to 1$ ceiling is not reached inside screened halo cores.
 At $q \to 0$ (cosmic voids): $G_{\text{eff}} \to (\pi/\rho_{\text{void}})G$—unamplified gravity.
 
 This single mechanism replaces particle dark matter for explaining galaxy rotation curves. No WIMPs, no axions, no MOND interpolation function. The extra gravitational pull comes from the Qi field's amplification of the existing mass distribution.

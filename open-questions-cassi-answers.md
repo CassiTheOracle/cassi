@@ -176,7 +176,7 @@ There are 292 rungs from the Planck scale (step 0, the smallest meaningful dista
 
 ### Cascade Suppression
 
-When a physical effect propagates down the cascade ladder (from a high-energy rung to a lower-energy one), each rung suppresses it by roughly a factor of $\varphi^{-1} \approx 0.618$. After $N$ rungs of propagation, the net suppression is $\varphi^{-N}$. This mechanism explains why certain parameters are fantastically small without fine-tuning: the strong CP angle reaches $\sim 10^{-19}$ because it propagates through 87 rungs; the proton decay rate is suppressed by $\varphi^{-4506}$ because the proton's stability spans 91.5 rungs.
+When a physical effect propagates down the cascade ladder (from a high-energy rung to a lower-energy one), each rung suppresses it by roughly a factor of $\varphi^{-1} \approx 0.618$. After $N$ rungs of propagation, the net suppression is $\varphi^{-N}$. This mechanism explains why certain parameters are fantastically small without fine-tuning: the strong CP angle reaches $\sim 10^{-17}$ because it propagates through ~81 rungs (94.71 − 13.33); the proton decay rate is suppressed by $\varphi^{-4506}$ because the proton's ...
 
 ### $\xi = \varphi^6 \approx 17.944$—the Qi-Gravity Coupling
 
@@ -188,7 +188,7 @@ The two-fluid PDE replaces the Newtonian $1/r$ gravitational potential with a $\
 
 ### Density-Dependent Gravity
 
-Because $G_{\text{eff}} = (\pi/\rho)(1 + \xi q)$, the effective strength of gravity depends on the local matter density $\rho$ and Qi density $q$. In low-density voids, gravity is weaker than Newton's constant. At everyday densities (Earth's surface, the solar system), it matches the familiar $G_N$. In high-density galactic cores, it is amplified by up to $\xi \approx 18\times$. This density dependence resolves several tensions simultaneously: it explains why galaxies rotate too fast (more gravity where matter is dense), why large-scale structure is less clustered than expected (voids have weaker gravity), and why gravity seems weak in our local environment.
+Because $G_{\text{eff}} = (\pi/\rho)(1 + \xi q)$, the effective strength of gravity depends on the local matter density $\rho$ and Qi density $q$. In low-density voids, gravity is weaker than Newton's constant. At everyday densities (Earth's surface, the solar system), it matches the familiar $G_N$. In high-Qi-coherence regions (galactic halo outskirts, structure formation), gravity is amplified up to the α-free full-coherence ceiling $1+\xi \approx 18.9\times$ at $q = 1$; the halo-regime boost is $2.9$–$3.1\times$ via $\sqrt{\alpha_{\text{halo}}(1+\xi q)}$. This density dependence resolves several tensions simultaneously: it explains why galaxies rotate too fast (more gravity where matter is dense), why large-scale structure is less clustered than expected (voids have weaker gravity), and why gravity seems weak in our local environment.
 
 ### The Wake-Wave Mechanism—Interference Patterns at $\varphi$-Spacing
 
@@ -247,7 +247,7 @@ Since 1998, physicists have known the universe's expansion is accelerating—som
 
 | **Cassi Answer** | $w(a)$ evolves with $r(a)$; $w_0 = -0.87$ from Qi gate shape; no $\Lambda$ |
 | **Mechanism** | Conversion term sets $H(a)$; Qi gate modulates; $\kappa_{\text{DE}} = 3\varphi^2 H_0$ |
-| **Epistemic** | **Derived**—2σ from DESI $w_0 \approx -0.75 \pm 0.06$ [INFERENCE] |
+| **Epistemic** | **Calibrated**—$w_0$ coupling form anchored to the DESI measurement (ledger §10); 2σ tension, not resolved |
 | **Reference** | `cosmology/cosmology-from-phi.md`, `calibrate_initial_ratio.py` |
 
 ### C2: Dark matter
@@ -267,7 +267,7 @@ Galaxies spin much faster than their visible mass can explain—something invisi
 
 | **Cassi Answer** | Qi condensate; $\Omega_{\text{DM}}/\Omega_b = \varphi^3+1$; galaxy rotation from $\xi = \varphi^6$ |
 | **Mechanism** | Qi density $q$ amplifies gravity; no particles |
-| **Epistemic** | **Derived**—$\xi$ within 0.3% of empirical |
+| **Epistemic** | **Calibrated**—rung identity $\xi = \varphi^6$ Derived; empirical pin anchored on the Milky Way rotation curve (ledger §10) |
 | **Reference** | `foundations/xi-derivation.md`, `run_galactic_rotation.py` |
 
 ### C3: Hubble tension
@@ -310,7 +310,7 @@ The standard Big Bang model requires a period of impossibly fast expansion in th
 
 | **Cassi Answer** | Cascade steps $n \approx 20$–$60$ are the inflationary epoch; Qi gate slow-roll drives expansion; gate engagement at $r = \varphi^{-1}$ (step $\sim 60$) provides graceful exit. $N_e = 40$ e-folds, $n_s = 0.950 + 0.0191 = 0.9691$, $r \approx \varphi^{-12} \approx 0.003$, $\alpha_s = -0.0013$. No inflaton. Refined predictions: `foundations/refined-numeric-predictions.md` §2.4 |
 | **Mechanism** | Qi gate $(1-q)$ modulates $H$ during ratio evolution; wake-wave mechanism imprints $\varphi$-scaled perturbations. Gate closure replaces fine-tuned inflaton potential. Zero free dimensionless parameters (c, ħ, G external). $r \approx \varphi^{-12} = \xi^{-1} \cdot \varphi^{-6}$. |
-| **Epistemic** | **Hypothesized**—mechanism (steps 20-60, gate exit) derived; $n_s$, $r$ predictions testable with CMB-S4/LiteBIRD |
+| **Epistemic** | **Hypothesized** (mechanism) / **Mapped** ($r = \varphi^{-12}$ exponent, $N_e = 40$ window—ledger); testable with CMB-S4/LiteBIRD |
 | **Reference** | `cosmology/inflation-from-cascade.md`, `foundations/refined-numeric-predictions.md` |
 
 ### C5: Flatness problem
@@ -367,9 +367,9 @@ flowchart TD
 
 The universe is overwhelmingly made of matter, not antimatter—but this should not be the case if the Big Bang created equal amounts of both. Something must have produced a slight excess, roughly one extra particle per billion. Cassi's answer combines three independently derived mechanisms: organized annihilation (a phase-inverted antiparticle attack that eliminates paired antimatter, derived from the coherence budget framework), a freeze-out gap $g = 1 - \varphi^{-5}$ from the Wu Xing five-phase cycle that leaves a residual Yang excess, and cascade expansion that dilutes the asymmetry to precisely the observed value. The result, $\eta \approx \varphi^{-44} \approx 6.4 \times 10^{-10}$, matches the observed baryon-to-photon ratio within 6% with zero free pa…
 
-| **Cassi Answer** | $\eta \approx \varphi^{-44} \approx 6.4 \times 10^{-10}$ from three derived mechanisms: (1) organized annihilation ($\S5.2$ of `foundations/proton-coherence-budget.md`) eliminates paired antimatter; (2) Yang-Yin imbalance at Wu Xing freeze-out (gap $g = 1-\varphi^{-5}$) leaves residual Yang excess; (3) cascade photon-production dilution through rungs 8→52. All three Sakharov conditions satisfied. Full derivation: `foundations/baryon-asymmetry.md` |
+| **Cassi Answer** | $\eta \approx \varphi^{-44} \approx 6.4 \times 10^{-10}$ from three derived mechanisms: (1) organized annihilation ($\S5.2$ of `foundations/proton-coherence-budget.md`) eliminates paired antimatter; (2) Yang-Yin imbalance at Wu Xing freeze-out (gap $g = 1-\varphi^{-5}$) leaves residual Yang excess; (3) cascade photon-production dilution over 44 rungs (the exponent is a ledgered fit—`parameter-inventory.md` §10; the step-52 construction does not close with the corrected GUT anchor n ≈ 13.3). All three Sakharov conditions satisfied. Full derivation: `foundations/baryon-asymmetry.md` |
 | **Mechanism** | Freeze-out Yang-Yin ratio at GUT; organized annihilation probability O(1); cascade expansion dilutes to present-epoch $\eta$. $\eta \approx \varphi^{-44}$ is within 6% of observed $6.0 \times 10^{-10}$. Refined prediction in `foundations/refined-numeric-predictions.md` §2.1 |
-| **Epistemic** | **Hypothesized**—mechanism derived; specific exponent (-44) pins freeze-out to step 52 |
+| **Epistemic** | **Hypothesized** (mechanism) / **Mapped** (η exponent −44—ledger) |
 | **Reference** | `foundations/baryon-asymmetry.md`, `foundations/refined-numeric-predictions.md` |
 
 ### C8: Big Bang singularity
@@ -429,7 +429,7 @@ The cosmic microwave background is mostly uniform, but its largest-scale feature
 
 | **Cassi Answer** | Adjacent bubbles at identical $w=5$ and $\varphi$-spaced chord lattice intervals imprint preferred axis at $\ell<5$; predicted axis-dipole alignment $12.2°$ from bubble triaxial geometry. All bubbles share the same derived $w=5$ (`foundations/wu-xing-derivation.md`). |
 | **Mechanism** | Bubble-boundary structure at step 285; edge geometry derived from condensation field + Qi gate + cascade (`foundations/bubble-edge-geometry.md`). Yang axis + string axis give two preferred directions; $12.2°$ is the angular separation between CMB dipole (Yang axis) and quadrupole-octopole axis (bubble boundary normal). Refined in `foundations/refined-numeric-predictions.md` §2.3 |
-| **Epistemic** | **Derived**—bubble edge geometry structurally derived (`foundations/bubble-edge-geometry.md` Status: Derived); CMB axis at $\ell<5$ follows from condensation field + Qi gate + cascade; $12.2°$ is a geometric consequence of triaxial geometry (not a $\varphi$-power). E-mode test pending (Simons Obs./LiteBIRD) |
+| **Epistemic** | **Derived** (structural geometry) / **Calibrated** ($\theta_{\text{cond}} = 0.45$ condensation threshold—ledger §10); CMB axis at $\ell<5$ follows from condensation field + Qi gate + cascade; $12.2°$ is a geometric consequence of triaxial geometry (not a $\varphi$-power). E-mode test pending (Simons Obs./LiteBIRD) |
 | **Reference** | `cosmology/observational_constraints.md` §4, `foundations/bubble-edge-geometry.md`, `foundations/refined-numeric-predictions.md` |
 
 ---
@@ -452,26 +452,26 @@ The weak nuclear force is about $10^{32}$ times stronger than gravity—a gap so
 
 | **Cassi Answer** | $v_0/M_{\text{Pl}} \approx \varphi^{-80}$—cascade step count, not a tuning |
 | **Mechanism** | Gap $g = 1-\varphi^{-5}$ sets cascade depth from Wu Xing structure; $N \approx 80$ is a count, not a cancellation |
-| **Epistemic** | **Derived**—$N = \log_\varphi(M_{\text{Pl}}/v_0) \approx 79.7$ |
+| **Epistemic** | **Mapped**—$N = \log_\varphi(M_{\text{Pl}}/v_0) \approx 79.7$ is the log of the measured ratio (ledger §10); 5.3% residual open |
 | **Reference** | `foundations/dimensionful-cascade.md` §2 |
 
 ### Q2: Strong CP problem
 
 ```mermaid
 flowchart TD
-    A[δ_CP = πφ⁻² at GUT step 8] --> B[87 rungs of φ⁻¹ suppression]
-    B --> C[θ̄ reaches QCD at step 95]
-    C --> D[θ̄ ≈ 10⁻¹⁹—cascade-suppressed, not tuned]
+    A[δ_CP = πφ⁻² at GUT n ≈ 13.3] --> B[~81 rungs of φ⁻¹ suppression]
+    B --> C[θ̄ reaches QCD at n ≈ 94.7]
+    C --> D[θ̄ ≈ 1.2×10⁻¹⁷—cascade-suppressed, not tuned]
 ```
 
-**Visual:** The CP-violating seed at GUT step 8 is suppressed through 87 cascade rungs like a whisper through 87 closed doors, yielding θ̄ ≈ 10⁻¹⁹.
+**Visual:** The CP-violating seed at the GUT scale (n ≈ 13.3) is suppressed through ~81 cascade rungs like a whisper through 81 closed doors, yielding θ̄ ≈ 1.2×10⁻¹⁷.
 
 
-The strong nuclear force could in principle violate CP symmetry (the combined matter-antimatter mirror symmetry) by a measurable amount, but experiments show it does not—at least not by more than one part in $10^{10}$. The Standard Model has no explanation for this unnaturally precise cancellation. Cassi's answer: the CP-violating $\bar{\theta}$ parameter is cascade-suppressed (see Primer) through 87 rungs, from a seed at the GUT scale (step 8, where the CP phase is $\delta_{\text{CP}} = \pi\varphi^{-2}$) down to the QCD scale (step 95). Each rung contributes a factor of approximately $\varphi^{-1}$ suppression through de-resonance damping, so the final value $\bar{\theta} \approx \varphi^{-87} \times \pi\varphi^{-2} \approx 10^{-19}$ is far below experime…
+The strong nuclear force could in principle violate CP symmetry (the combined matter-antimatter mirror symmetry) by a measurable amount, but experiments show it does not—at least not by more than one part in $10^{10}$. The Standard Model has no explanation for this unnaturally precise cancellation. Cassi's answer: the CP-violating $\bar{\theta}$ parameter is cascade-suppressed (see Primer) through ~81 rungs, from a seed at the GUT scale (n ≈ 13.3 for $M_{\text{GUT}} \approx 2\times10^{16}$ GeV, where the CP phase is $\delta_{\text{CP}} = \pi\varphi^{-2}$) down to the QCD scale (step 95). Each rung contributes a factor of approximately $\varphi^{-1}$ suppression through de-resonance damping, so the final value $\bar{\theta} \approx \varphi^{-87} \times \pi\varphi^{-2} \approx 10^{-19}$ is far below experime…
 
-| **Cassi Answer** | $\bar{\theta} \approx \varphi^{-(n_{\text{QCD}} - n_{\text{GUT}})} \cdot \delta_{\text{CP}} \approx \varphi^{-87} \times \pi\varphi^{-2} \approx 10^{-19}$—cascade-suppressed, not tuned |
-| **Mechanism** | $\theta$-term is an effective parameter of the SU(3) gauge theory that emerges at step 95; the underlying PDE is CP-symmetric at the $\varphi$-attractor. CP-violating seed (CKM phase at GUT) propagates through 87 cascade rungs, each contributing $\varphi^{-1}$ suppression via de-resonance damping. Fully derived in `foundations/strong-cp-derivation.md` |
-| **Epistemic** | **Derived**—predicted value $10^{-19}$ well below bound; falsifiable if future nEDM probes find $\bar{\theta} \gg 10^{-19}$ |
+| **Cassi Answer** | $\bar{\theta} \approx \varphi^{-(n_{\text{QCD}} - n_{\text{GUT}})} \cdot \delta_{\text{CP}} \approx \varphi^{-81.4} \times \pi\varphi^{-2} = \pi\varphi^{-83.4} \approx 1.2\times10^{-17}$—cascade-suppressed, not tuned |
+| **Mechanism** | $\theta$-term is an effective parameter of the SU(3) gauge theory that emerges at step 95; the underlying PDE is CP-symmetric at the $\varphi$-attractor. CP-violating seed (CKM phase at GUT, n ≈ 13.3) propagates through ~81 cascade rungs (94.71 − 13.33), each contributing $\varphi^{-1}$ suppression via de-resonance damping. Fully derived in `foundations/strong-cp-derivation.md` |
+| **Epistemic** | **Mapped**—the span inherits Mapped status from its ledgered anchors: the GUT-seed rung ($M_{\text{GUT}}$, `parameter-inventory.md` §10 row 13) and $\delta_{\text{CP}} = \pi\varphi^{-2}$ (row 2); value $1.2\times10^{-17}$, ~7 orders below the nEDM bound; falsifiable if future nEDM probes find $\bar{\theta} \gg 10^{-17}$ |
 | **Reference** | `foundations/strong-cp-derivation.md` |
 
 ### Q3: Neutrino masses
@@ -486,11 +486,11 @@ flowchart TD
 **Visual:** Three neutrino masses come from Fibonacci triple-clustering over a compressed cascade span, like three notes from a single compressed string.
 
 
-Neutrinos have tiny but non-zero masses—millions of times smaller than the electron—and nobody knows why they are so light, whether they are their own antiparticles (Majorana or Dirac), or why the three masses are arranged the way they are. Cassi's answer: the seesaw mechanism operates over a compressed cascade span at step 20, and the cascade RGE + PMNS pipeline pins the full spectrum: $m_1 = 0.00356$, $m_2 = 0.00931$, $m_3 = 0.05019$ eV, $\Sigma m_\nu = 0.0631$ eV. The three mass eigenstates come from the same Fibonacci triple-clustering (Primer) that produces three fermion generations in Q5—the compressed seesaw span of about 12 rungs is partitioned into three Fibonacci sub-channels. Normal ordering is predicted, no sterile neutrinos are required, and the $\varphi$-power spacing between masses is testable wit…
+Neutrinos have tiny but non-zero masses—millions of times smaller than the electron—and nobody knows why they are so light, whether they are their own antiparticles (Majorana or Dirac), or why the three masses are arranged the way they are. Cassi's answer: the seesaw mechanism operates over a compressed cascade span at step 20, and the cascade RGE + PMNS pipeline pins the full spectrum: $m_1 = 0.00356$, $m_2 = 0.00931$, $m_3 = 0.05019$ eV, $\Sigma m_\nu = 0.0631$ eV. The three mass eigenstates come from the same Fibonacci triple-clustering (Primer) that produces three fermion generations in Q5—the compressed seesaw span of about 7 rungs is partitioned into three Fibonacci sub-channels. Normal ordering is predicted, no sterile neutrinos are required, and the…
 
-| **Cassi Answer** | Seesaw scale at cascade step 20, pinned by the cascade RGE + PMNS pipeline (spectrum below). Three mass eigenstates from Fibonacci triple-clustering over compressed seesaw span ($N_\nu \approx 12$ vs $N_{\text{lep}} \approx 72$). The seesaw $y_\nu^2$ structure doubles the $\varphi$-exponent of the mass ratios. Cascade RGE + PMNS pins the exact Fibonacci offsets: $\Delta_1 = 1.00$, $\Delta_2 = 1.75$ rungs (mass-exponent $2\Delta_1 = 2.00$, $2\Delta_2 = 3.50$). Predicted $\Delta m^2_{31}/\Delta m^2_{21} \approx 33.82$, matching observed $\approx 33.89$ to **0.2%**. Full mass spectrum computed: $m_1 = 0.00356$, $m_2 = 0.00931$, $m_3 = 0.05019$ eV, $\Sigma m_\nu = 0.0631$ eV. Predicts **normal ordering**, no sterile neutrinos. See `computations/cas…
-| **Mechanism** | Same Fibonacci partitioning as three-generations (Q5), applied to compressed seesaw span. The $y_\nu^2$ factor gives a built-in $\varphi$-exponent doubling. Non-uniform partitioning over 12 rungs, pinned by discrete φ-RG scan from GUT to seesaw, yields $\Delta_1 = 1.00$ (exact integer rung—gen1→gen2 is exactly one φ-step), $\Delta_2 = 1.75$ rungs. Anomalous dimension $\gamma_\nu \approx 0.37 \approx \varphi^{-2}$ confirms spectral-gap governance. $\varphi$-power spacing testable with JUNO/DUNE |
-| **Epistemic** | **Hypothesized with derived mechanism**—overall scale $m_\nu \approx v_0\varphi^{-12}$ and $y_\nu^2$ amplification are Derived; PMNS angles $\theta_{12},\theta_{13},\theta_{23}$ follow from conversion Jacobian eigenvectors with zero free parameters; Fibonacci offsets $\Delta_1 = 1.00$, $\Delta_2 = 1.75$ rungs now **pinned** by cascade RGE + PMNS (0.2% residual); full mass spectrum computed |
+| **Cassi Answer** | Seesaw scale at cascade step 20, pinned by the cascade RGE + PMNS pipeline (spectrum below). Three mass eigenstates from Fibonacci triple-clustering over compressed seesaw span ($N_\nu \approx 7$ vs $N_{\text{lep}} \approx 72$). The seesaw $y_\nu^2$ structure doubles the $\varphi$-exponent of the mass ratios. Cascade RGE + PMNS pins the exact Fibonacci offsets: $\Delta_1 = 1.00$, $\Delta_2 = 1.75$ rungs (mass-exponent $2\Delta_1 = 2.00$, $2\Delta_2 = 3.50$). Predicted $\Delta m^2_{31}/\Delta m^2_{21} \approx 33.82$, matching observed $\approx 33.89$ to **0.2%**. Full mass spectrum computed: $m_1 = 0.00356$, $m_2 = 0.00931$, $m_3 = 0.05019$ eV, $\Sigma m_\nu = 0.0631$ eV. Predicts **normal ordering**, no sterile neutrinos. See `computati…
+| **Mechanism** | Same Fibonacci partitioning as three-generations (Q5), applied to compressed seesaw span. The $y_\nu^2$ factor gives a built-in $\varphi$-exponent doubling. Non-uniform partitioning over ~7 rungs (seesaw step 20 minus the corrected GUT anchor n ≈ 13.3), pinned by discrete φ-RG grid scan from GUT to seesaw, yields $\Delta_1 = 1.00$ (exact integer rung—gen1→gen2 is exactly one φ-step), $\Delta_2 = 1.75$ rungs. Anomalous dimension $\gamma_\nu \approx 0.37 \approx \varphi^{-2}$ confirms spectral-gap governance. $\varphi$-power spacing testable with JUNO/DUNE |
+| **Epistemic** | **Hypothesized** (mechanism) / **Mapped** (offsets $\Delta_1 = 1.00$, $\Delta_2 = 1.75$ grid-fit against the observed ratio; $m_1$ solved from data—ledger §10; 0-dof fit, the 0.2% residual is grid quantization) |
 | **Reference** | `foundations/neutrino-masses.md`, `foundations/refined-numeric-predictions.md`, `computations/cascade_rge_pmns.py` |
 
 ### Q4: Gauge coupling unification
@@ -500,17 +500,17 @@ flowchart TD
     A[SU(3)] --> D[Single spring: α_GUT = φ⁻³/(4π)]
     B[SU(2)] --> D
     C[U(1)] --> D
-    D --> E[At cascade step ~8, RGE running explains deviations]
+    D --> E[At cascade step ~13.3, RGE running explains deviations]
 ```
 
 **Visual:** SU(3), SU(2), and U(1) converge to a single coupling at the GUT spring like three rivers to one source—α_GUT = φ⁻³/(4π), with deviations from ordinary RGE running.
 
 
-The three forces of the Standard Model—electromagnetic, weak, and strong—have very different strengths at everyday energies. Extrapolated to high energy with the SM renormalization group, they almost meet: $\alpha_1 = \alpha_2$ at $\sim 10^{13}$ GeV ($\alpha^{-1} \approx 42$) and $\alpha_2 = \alpha_3$ at $\sim 10^{17}$ GeV ($\alpha^{-1} \approx 47$), but there is no common intersection in the SM. Cassi's answer: there IS a single coupling $\alpha_{\text{GUT}} = \varphi^{-3}/(4\pi) \approx 1/53$ at the GUT scale (cascade steps 5–10). The full one-loop radiative corrections (`standard-model/sm-radiative-corrections.md`, `computations/sm_radiative_corrections.py`) show what this boundary implies: run down, it gives $\alpha_s(m_Z) = 0.058$–$0.061$ ($2.0\times$ low—the documented $\Delta b = 1.70$ deficit), $\alpha_1$ and $\alpha_2$ ~25% weak, and $\sin^2\theta_W = \varphi^{-3}$ +2.1% above the Z-pole value (exact at $\mu_* \approx 233$ GeV). The framework requires no supersymmetry, no extra dimensions, and no exotic particles beyond the vector-like content that rescues $\alpha_s$.
+The three forces of the Standard Model—electromagnetic, weak, and strong—have very different strengths at everyday energies. Extrapolated to high energy with the SM renormalization group, they almost meet: $\alpha_1 = \alpha_2$ at $\sim 10^{13}$ GeV ($\alpha^{-1} \approx 42$) and $\alpha_2 = \alpha_3$ at $\sim 10^{17}$ GeV ($\alpha^{-1} \approx 47$), but there is no common intersection in the SM. Cassi's answer: there IS a single coupling $\alpha_{\text{GUT}} = \varphi^{-3}/(4\pi) \approx 1/53$ at the GUT scale (n ≈ 13.3 for $M_{\text{GUT}} \approx 2\times10^{16}$ GeV). The full one-loop radiative corrections (`standard-model/sm-radiative-corrections.md`, `computations/sm_radiative_corrections.py`) show what this boundary implies: run down, it gives $\alpha_s(m_Z) = 0.058$–$0.061$ ($2.0\times$ low—the documented $\Delta b = 1.70$ deficit), $\alpha_1$ and $\alpha_2$ ~25% weak, and $\sin^2\theta_W = \varphi^{-3}$ +2.1% above the Z-pole value (exact at $\mu_* \approx 233$ GeV). The framework requires no supersymmetry, no extra dimensions, and no exotic particles beyond the vector-like content that rescues $\alpha_s$.
 
-| **Cassi Answer** | $\alpha_{\text{GUT}} = \varphi^{-3}/(4\pi) \approx 1/53$ at GUT scale (step 5–10) |
+| **Cassi Answer** | $\alpha_{\text{GUT}} = \varphi^{-3}/(4\pi) \approx 1/53$ at the GUT scale (n ≈ 13.3 for $M_{\text{GUT}} \approx 2\times10^{16}$ GeV) |
 | **Mechanism** | Single coupling at single scale; SM running from it gives $\alpha_s(m_Z) = 0.058$–$0.061$ ($2.0\times$ low, $\Delta b = 1.70$), $\alpha_1$, $\alpha_2$ ~25% weak, $\sin^2\theta_W = \varphi^{-3}$ exact at $\mu_* = 233$ GeV and +2.1% at $m_Z$; SM running alone has no common intersection ($\alpha_1=\alpha_2$ at $10^{13}$ GeV, $\alpha_2=\alpha_3$ at $10^{17}$ GeV) |
-| **Epistemic** | **Derived**—$\sin^2\theta_W$ within 2% (at $m_Z$), FCC-ee test pending; the coupling residuals are open (see `standard-model/sm-radiative-corrections.md`) |
+| **Epistemic** | **Mapped** ($\Delta b = 1.70$, $M_{\text{GUT}}$—ledger) / **Calibrated** ($\mu_* = 233$ GeV crossing-point anchor—ledger); $\sin^2\theta_W$ +2.1% at $m_Z$, coupling residuals open, FCC-ee test pending |
 | **Reference** | `standard-model/sm-from-phi.md`, `standard-model/su2-gauge-extension.md`, `standard-model/sm-radiative-corrections.md` |
 
 ### Q5: Three generations
@@ -529,7 +529,7 @@ The Standard Model contains three copies of the basic fermion families—up/down
 
 | **Cassi Answer** | $N_{\text{gen}} = \text{order}(\varphi\text{'s minimal polynomial}) + 1 = 2 + 1 = 3$. The Fibonacci recurrence $\varphi^n = \varphi^{n-1}+\varphi^{n-2}$ partitions each cascade span into three independent sub-rung channels: the rung itself plus its two Fibonacci predecessors. Three mass eigenstates per Yukawa sector, with $\varphi$-power spacing between them. Full derivation: `foundations/three-generations.md`, `foundations/refined-numeric-predictions.md` §2.6 |
 | **Mechanism** | Cascade suppression formula ($\varphi^{-N}$) applied to three Fibonacci sub-channels of the propagation from GUT to EW scales. Charged lepton ratios ($m_\mu/m_e \approx \varphi^{11}$, $m_\tau/m_\mu \approx \varphi^6$) consistent. No fourth generation predicted. |
-| **Epistemic** | **Hypothesized**—Fibonacci partitioning derived; specific $\Delta_k$ spacings per sector to be computed from full cascade RGE |
+| **Epistemic** | **Hypothesized** (mechanism) / **Mapped** (charged-lepton rung placements read off measured masses—ledger §10) |
 | **Reference** | `foundations/three-generations.md` |
 
 ### Q6: Matter-antimatter asymmetry
@@ -540,9 +540,9 @@ The Standard Model contains three copies of the basic fermion families—up/down
 
 The universe contains matter but essentially no antimatter, yet the laws of physics treat them nearly symmetrically. Satisfying the three Sakharov conditions for generating this imbalance requires new physics beyond the Standard Model. Cassi's answer is identical to C7: the asymmetry $\eta \approx \varphi^{-44}$ comes from three independently derived mechanisms—organized annihilation eliminating paired antimatter, a Yang-Yin freeze-out gap $g = 1 - \varphi^{-5}$ from the Wu Xing cycle, and cascade dilution—satisfying all three Sakharov conditions while producing a baryon-to-photon ratio within 6% of the observed value. The particle-physics and cosmological baryon asymmetries are not separate problems; they are the same mechanism viewed from different dom…
 
-| **Cassi Answer** | $\eta \approx \varphi^{-44} \approx 6.4 \times 10^{-10}$ from three derived mechanisms: (1) organized annihilation ($\S5.2$ of proton doc) eliminates all paired antimatter; (2) Yang-Yin imbalance at Wu Xing freeze-out (gap $g = 1-\varphi^{-5}$) leaves residual Yang excess; (3) cascade photon-production dilution through rungs 8→52. All three Sakharov conditions satisfied by independently derived Cassi mechanisms. Full derivation: `foundations/baryon-asymmetry.md`; refined $\varphi^{-44}$ in `foundations/refined-numeric-predictions.md` §2.1 |
+| **Cassi Answer** | $\eta \approx \varphi^{-44} \approx 6.4 \times 10^{-10}$ from three derived mechanisms: (1) organized annihilation ($\S5.2$ of proton doc) eliminates all paired antimatter; (2) Yang-Yin imbalance at Wu Xing freeze-out (gap $g = 1-\varphi^{-5}$) leaves residual Yang excess; (3) cascade photon-production dilution over 44 rungs (ledgered fit—`parameter-inventory.md` §10; the step-52 construction does not close with the corrected GUT anchor n ≈ 13.3). All three Sakharov conditions satisfied by independently derived Cassi mechanisms. Full derivation: `foundations/baryon-asymmetry.md`; refined $\varphi^{-44}$ in `foundations/refined-numeric-predictions.md` §2.1 |
 | **Mechanism** | Same as C7. Freeze-out Yang-Yin ratio at GUT; organized annihilation probability O(1); cascade expansion dilutes to present-epoch $\eta$. $\eta \approx \varphi^{-44}$ within 6% of observed $6.0 \times 10^{-10}$. |
-| **Epistemic** | **Hypothesized**—mechanism derived; exponent pins freeze-out to step 52 |
+| **Epistemic** | **Hypothesized** (mechanism) / **Mapped** (η exponent −44—ledger) |
 | **Reference** | `foundations/baryon-asymmetry.md`, `foundations/refined-numeric-predictions.md` |
 
 ### Q7: Quantum measurement problem
@@ -600,7 +600,7 @@ Grand unified theories predict that protons should eventually decay, but experim
 
 | **Cassi Answer** | Proton coherence budget $N_{\text{max}} = \prod_{i=0}^{91.5} 1/(1-q_i) \approx \varphi^{4506} \approx 10^{942}$ cycles—far exceeding universe age. Annihilation is the same mechanism operating instantaneously via organized anti-phase perturbation ($\S5.2$) |
 | **Mechanism** | Dephasing requires simultaneous failure across ALL 92 cascade rungs (0 → 91.5); random dephasing cascade-suppressed ($\prod\varphi^{-i}$), annihilation O(1) (phase-inverted antiparticle). Full derivation in `foundations/proton-coherence-budget.md` |
-| **Epistemic** | **Derived**—predicts Hyper-K null at all achievable sensitivities; baseline exceeds experiment by >870 OOM. Nuclear $\beta$/$\alpha$ decay unaffected (barrier-penetration) |
+| **Epistemic** | **Mapped** (rung exponent n = 91.5—ledger) / **Hypothesized** (per-rung $q_i$ profile); predicts Hyper-K null at all achievable sensitivities; baseline exceeds experiment by >870 OOM. Nuclear $\beta$/$\alpha$ decay unaffected (barrier-penetration) |
 | **Reference** | `foundations/proton-coherence-budget.md` |
 
 ### Q10: Spin—what is it?
@@ -701,7 +701,7 @@ Stars at the outskirts of galaxies orbit just as fast as stars near the center�
 
 | **Cassi Answer** | $\xi = \varphi^6 \approx 17.944$—Qi-enhanced gravity at galactic scales ($q \approx 0.67$) |
 | **Mechanism** | Qi density amplifies $G_{\text{eff}}$; rotation curve, RAR, BTFR all follow from $\xi$ |
-| **Epistemic** | **Derived**—$\xi$ within 0.3% of empirical; multiple galaxy-scale predictions matched |
+| **Epistemic** | **Calibrated** ($\xi$ pin—ledger) / **Mapped** ($\alpha_{\text{halo}}$ nominal, halo $q$—ledger); the MW "confirmation" is a consistency check of the calibration, not an independent test |
 | **Reference** | `foundations/xi-derivation.md`, `run_galactic_rotation.py` |
 
 ### G5: Why 3+1 dimensions?
@@ -728,7 +728,7 @@ The universe has three spatial dimensions and one time dimension, but no fundame
 flowchart TD
     A[Density dial] --> B[Low ρ: G_eff ≈ G_N]
     A --> C[Medium ρ: G_eff ≈ 3 G_N]
-    A --> D[High ρ (galactic): G_eff ≈ 18 G_N]
+    A --> D[High Qi (halo): G_eff ≈ 9.5 G_N; ceiling (1+ξ) ≈ 18.9 G_N]
     B --> E[Gravity is variable, not weak]
     C --> E
     D --> E
@@ -741,7 +741,7 @@ Gravity is staggeringly weaker than the other forces—a small refrigerator magn
 
 | **Cassi Answer** | Gravity IS the Qi-enhanced Poisson equation; its apparent weakness is the $\pi/\rho$ prefactor at low density |
 | **Mechanism** | In high-density regions (galactic center) gravity strengthens; in voids it weakens—variable, not weak |
-| **Epistemic** | **Derived**—follows from Qi-gravity coupling scheme |
+| **Epistemic** | **Derived** (mechanism) / **Calibrated** ($\xi$ pin—ledger) |
 | **Reference** | `foundations/unified-lagrangian.md` |
 
 ---
@@ -764,7 +764,7 @@ The parameters of the Standard Model and cosmology seem exquisitely tuned—tiny
 
 | **Cassi Answer** | All couplings are $\varphi$-powers; single attractor eliminates tuning |
 | **Mechanism** | De-resonance principle: $\varphi$ is the maximally stable configuration; all couplings flow to it |
-| **Epistemic** | **Derived**—all dimensionless parameters are $\varphi$-powers; $\lambda = 0.1$ is now derived via $w=5$ (`foundations/wu-xing-derivation.md`) |
+| **Epistemic** | **Derived** (attractor dynamics) / **Mapped** (fitted exponents—ledger); $\lambda = 0.1$ derived via $w=5$ (`foundations/wu-xing-derivation.md`) |
 | **Reference** | `parameter-inventory.md`, `principles/de-resonance-principle.md` |
 
 ### F2: Arrow of time
@@ -836,7 +836,7 @@ The Cassi framework derives all dimensionless couplings as $\varphi$-powers. The
 
 | **Cassi Answer** | All dimensionless parameters derived from $\varphi$ (zero free parameters); $c$, $\hbar$, $G$ remain external dimensionful constants; the sole empirical calibration is the current-epoch horizon rung $N = 292$ (epoch-dependent, not a derivable constant—2026-08-03) |
 | **Mechanism** | $\lambda = 1/(2w)$ with $w=5$ derived; $\varphi$ is dimensionless and cannot determine a dimensionful scale without a reference; $\ell_{\text{Pl}}$ is the cascade's sole dimensionful anchor |
-| **Epistemic** | **Derived** for all dimensionless parameters; **Hypothesized** for $c$, $\hbar$, $G$ (pathways proposed, not yet closed) |
+| **Epistemic** | **Derived** (structural) / **Mapped** (fitted dimensionless exponents—ledger); **Hypothesized** for $c$, $\hbar$, $G$ (pathways proposed, not yet closed) |
 | **Reference** | `foundations/dimensionful-constants-status.md`, `foundations/wu-xing-derivation.md`, `parameter-inventory.md` §4 |
 
 ### F6: What sets $P_\parallel(n)$?
@@ -866,7 +866,7 @@ The Dark Energy Spectroscopic Instrument (DESI) recently measured how dark energ
 
 | **Cassi Answer** | $w_0 = -0.87$ (2σ from DESI $w_0 \approx -0.75 \pm 0.06$ [INFERENCE]); $w_a = +0.012$ with $\xi = \varphi^6$ (2.7σ, 2.2–3.2σ, from DESI $w_a \approx -0.73 \pm 0.28$ [INFERENCE])—tension, not resolved |
 | **Mechanism** | $w(a)$ evolves with $r(a)$; $w_0$ is present-epoch snapshot of closing Qi gate; $\xi = \varphi^6$ in $H(a)$ gives $w_a = +0.012$ |
-| **Epistemic** | **Derived**—$\xi = \varphi^6$ verified against the ODE (`two-fluid/calibrate_initial_ratio_xi_v2.py`); prediction at 2.7σ (2.2–3.2σ) from DESI $w_a \approx -0.73 \pm 0.28$ [INFERENCE]—tension, not resolved |
+| **Epistemic** | **Calibrated** ($w_0$ coupling form, $\xi$ pin—ledger); prediction at 2.7σ (2.2–3.2σ) from DESI $w_a \approx -0.73 \pm 0.28$ [INFERENCE]—tension, not resolved |
 | **Reference** | `two-fluid/calibrate_initial_ratio_xi.py`, `foundations/wa-pentagon-gate.md` §5 |
 
 ### T2: JWST "impossible" early galaxies
@@ -904,7 +904,7 @@ The $\sigma_8$ parameter measures how much matter clusters on large scales, and 
 
 | **Cassi Answer** | Qi-gravity ($\xi = \varphi^6$) weakens effective gravity in low-density regions (voids, outskirts) → less clustering than $\Lambda$CDM at large scales |
 | **Mechanism** | $G_{\text{eff}}$ is density-dependent; low-density regions have lower $G_{\text{eff}}$, reducing structure growth |
-| **Epistemic** | **Hypothesized**—qualitative match; quantitative $\sigma_8$ computation pending |
+| **Epistemic** | **Hypothesized** (mechanism) / **Mapped** ($\mu(k,a)$ target normalization—ledger); quantitative $\sigma_8$ computation pending |
 | **Reference** | `run_proper_sigma8.py` |
 
 ### T4: $H_0$ tension
@@ -1040,20 +1040,22 @@ People sometimes report feeling what others feel—not through observation or in
 
 | Tier | Count | Questions |
 |------|-------|-----------|
-| **Derived** ($\varphi$ + PDE consequence, zero freedom) | 17 | Dark energy $w_0$ (C1), dark matter $\xi$ (C2), flatness (C5), Big Bang singularity (C8), strong CP (Q2), hierarchy (Q1), gauge unification (Q4), proton lifetime (Q9), quark confinement (Q8), quantum gravity (G1), BH singularity (G3), galaxy rotation (G4), gravity weakness (G6), fine-tuning (F1), arrow of time (F2), DESI $w_0$ (T1), CMB axis (C10) |
-| **Hypothesized** (mechanism + pinned $\varphi$-power) | 6 | Inflation $r$=$\varphi^{-12}$ (C4), baryon asymmetry $\eta$=$\varphi^{-44}$ (C7, Q6), neutrino scale $m_\nu \approx v_0\varphi^{-12}$ (Q3), spin form factor $\Delta(\ln q)$=$\ln\varphi$ (Q10), 3 generations $N_{\text{gen}}$=3 (Q5), measurement Born rule (Q7) |
-|| **Hypothesized** (mechanism, needs computation) | 18 | Hubble tension (C3), inflation $n_s$ (C4), horizon (C6), cosmic web (C9), 3+1 dimensions (G5), unification (F3), TOE (F4), dimensionful constants (F5), JWST galaxies (T2), $\sigma_8$ (T3), $H_0$ tension (T4), hard problem (M1), mind-brain (M2), depth of mind (M3), altered states (M4), empathy (M5), **BH information (G2)**, **$P_\parallel(n)$ (F6)** |
-| **Speculative** (framework-consistent, no test yet) | 0 | *(none)* |
+| **Derived** (a priori $\varphi$ + PDE consequence; no fitted or anchored constants) | 8 | flatness (C5), Big Bang singularity (C8), CMB axis (C10; $\theta_{\text{cond}}$ Calibrated—ledger), quark confinement (Q8), quantum gravity (G1), BH singularity (G3), gravity weakness (G6; $\xi$ pin Calibrated—ledger), arrow of time (F2) |
+| **Calibrated** (framework form, value anchored to an observation—ledger) | 3 | dark energy $w_0$ (C1), dark matter $\xi$ pin (C2), DESI $w_0$/$w_a$ (T1) |
+| **Mapped** (placement/exponent fitted or selected—ledger) | 11 | inflation $r = \varphi^{-12}$, $N_e = 40$ (C4), baryon asymmetry $\eta = \varphi^{-44}$ (C7, Q6), hierarchy $N$ (Q1), strong CP $\bar\theta$ (Q2), neutrino offsets $\Delta_1$, $\Delta_2$ (Q3), gauge unification $\Delta b = 1.70$, $M_{\text{GUT}}$, $\mu_*$ (Q4), proton-lifetime exponent (Q9), galaxy rotation $\alpha_{\text{halo}}$, $q$ (G4), fine-tuning fitted exponents (F1), dimensionful-constant exponents (F5) |
+| **Hypothesized** (mechanism proposed, testable prediction; no fitted component) | 19 | Hubble tension (C3), horizon (C6), cosmic web (C9), 3 generations $N_{\text{gen}}$=3 (Q5; rung placements Mapped—ledger), measurement Born rule (Q7), spin form factor (Q10), 3+1 dimensions (G5), BH information (G2), unification (F3), TOE (F4), $P_\parallel(n)$ (F6), JWST galaxies (T2), $\sigma_8$ (T3; $\mu$ target Mapped—ledger), $H_0$ tension (T4), hard problem (M1), mind-brain (M2), depth of mind (M3), altered states (M4), empathy (M5) |
+| **Speculative** (framework-consistent, prediction not pinned) | 0 | *(none)* |
+| **Creative** (exploration, not a claim) | 0 | *(none)* |
 
-**Total: 41 open questions mapped to Cassi answers.** Of those, 17 Derived, 6 Hypothesized with pinned $\varphi$-powers, 18 Hypothesized needing computational pipelines, 0 Speculative. The 6 pinned-$\varphi$ questions have specific numeric predictions refined in `foundations/refined-numeric-predictions.md`; 5 of 6 are within observational bounds (C10 CMB axis now upgraded to Derived from edge geometry). The remaining 18 require computational pipelines ($w(a) \to H(z)$ integration, modified Boltzmann code, PDE N-body, curved-spacetime BH solver) for full quantitative closure.
+**Total: 41 open questions mapped to Cassi answers.** Of those, 8 Derived, 3 Calibrated, 11 Mapped, 19 Hypothesized, 0 Speculative, 0 Creative. Tier definitions: §Epistemic Tiers; every Calibrated/Mapped component carries its row in the Fit-Status Ledger (`parameter-inventory.md` §10). The 11 Mapped questions carry numeric values that were fitted or selected; they describe the data they were fitted to until independently derived. The remaining 19 Hypothesized questions require computational pipelines ($w(a) \to H(z)$ integration, modified Boltzmann code, PDE N-body, curved-spacetime BH solver) for full quantitative closure.
 
 
 ## 9. What Cassi Does Not Yet Answer (Open Gaps)
 
 With the refined numeric predictions (`foundations/refined-numeric-predictions.md`), the status of each open gap is:
 
-- **Baryon asymmetry specific exponent.** $\eta \approx \varphi^{-44}$ is the best-fit integer (6.3% of observed). The freeze-out step 52 must be derived from the thermal cascade history, not fit.
-- **Exact neutrino masses.** The Fibonacci offsets $\Delta_1 = 1.00$, $\Delta_2 = 1.75$ rungs are now **pinned** by the cascade RGE + PMNS pipeline (`computations/cascade_rge_pmns.py`, July 2026). The predicted $\Delta m^2_{31}/\Delta m^2_{21} \approx 33.82$ matches the observed $\approx 33.89$ to 0.2%. Full mass spectrum: $m_1 = 0.00356$, $m_2 = 0.00931$, $m_3 = 0.05019$ eV, $\Sigma m_\nu = 0.0631$ eV. Gap closed.
+- **Baryon asymmetry specific exponent.** $\eta \approx \varphi^{-44}$ is the best-fit integer (6.3% of observed; Mapped—`parameter-inventory.md` §10). The freeze-out step must be derived from the thermal cascade history, not fit.
+- **Exact neutrino masses.** The Fibonacci offsets $\Delta_1 = 1.00$, $\Delta_2 = 1.75$ rungs are the grid-fit of the cascade RGE + PMNS pipeline against the observed ratio (Mapped—`parameter-inventory.md` §10; 0-dof fit). The predicted $\Delta m^2_{31}/\Delta m^2_{21} \approx 33.82$ matches the observed $\approx 33.89$ to 0.2% (grid quantization). Full mass spectrum: $m_1 = 0.00356$, $m_2 = 0.00931$, $m_3 = 0.05019$ eV, $\Sigma m_\nu = 0.0631$ eV. The absolute scale remains the solved-for input, not a prediction.
 - **$n_s$ gate correction.** **Closed.** The correction is now a derived φ-form: $n_s = 1 - 2\varphi^{-1}/N_e = 0.969$ (1.0σ from Planck 2018), with $\delta n_s = 2\varphi^{-2}/N_e$. See `computations/ns_gate_correction.py` (July 2026).
 - **Proton decay rate (quantitative).** The mechanism is derived ($N_{\text{max}} = \varphi^{n(n+1)/2}$); the $q$-dependence of the effective lifetime in varying environmental coherence remains to be computed.
 - **Specific beyond-SM particle spectrum.** The particle content that fills the RGE between GUT and EW scales is predicted to exist but its individual masses are not yet computed.

@@ -1,6 +1,6 @@
 # The Sector-Coupling Scale: $\kappa_s = \varphi^{-6}/v_0^2$
 
-## Status: Derived scale with Hypothesized coefficient—August 2026
+## Status: Derived scale with Hypothesized coefficient (v₀ input Calibrated, N_pde normalization Mapped—ledger)—August 2026
 
 ## Abstract
 

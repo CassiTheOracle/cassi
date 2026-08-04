@@ -34,14 +34,13 @@ Tiers below are taken from each document's Status header. Compound headers are q
 | `foundations/bubble-lattice-fabric.md` | Derived (structural) | 3D condensation field; universal bubble geometry |
 | `foundations/cassi-first-principles.md` | Derived | Two-fluid PDE, governing equations, conversion |
 | `foundations/unified-lagrangian.md` | Derived | Single Lagrangian; gravity as $q = 0$ Poisson limit; $\sigma$-regularization |
-| `foundations/phi_attractor_synthesis.md` | Derived | $r \to \varphi$ attractor synthesis across regimes |
-| `foundations/wu-xing-derivation.md` | Derived | $w = 5$ derived (pentagon geometry); $\lambda = 1/(2w) = 0.1$ |
+| `foundations/phi_attractor_synthesis.md` | Derived (attractor synthesis) / Calibrated ($\xi$ pin) / Mapped ($\alpha_{\text{halo}} = 0.7$ nominal—ledger) | $r \to \varphi$ attractor synthesis across regimes |
+| `foundations/wu-xing-derivation.md` | Derived (w = 5, gap, r₀) / Calibrated (w₀ via the DESI-anchored coupling form—ledger) | $w = 5$ derived (pentagon geometry); $\lambda = 1/(2w) = 0.1$ |
 | `foundations/wu-xing-cycle-structure.md` | Derived (cycle geometry, coupling, ring algebra) / Tested (ke ring PDE 2026-07-31, WX1 gate level 2026-08-01) / Hypothesized (affinity gradient, clinical profile) | Two coherent 5-cycles (sheng/ke); control-ring algebra; 5↔13 chakra partition |
-| `foundations/xi-derivation.md` | Derived | $\xi = \varphi^6 \approx 17.944$ Qi-gravity coupling |
+| `foundations/xi-derivation.md` | Derived rung identity / Calibrated empirical pin (MW anchor—ledger) | $\xi = \varphi^6 \approx 17.944$ Qi-gravity coupling |
 | `foundations/quark-confinement.md` | Derived | QCD at step 95; Qi flux tube; $P_{\text{break}} \approx \varphi^{-4506}$ |
-| `foundations/strong-cp-derivation.md` | Derivation (result: Derived, Q2) | $\bar{\theta} \approx 10^{-19}$, cascade-suppressed |
-| `foundations/proton-coherence-budget.md` | Derivation (result: Derived, Q9) | Proton lifetime $\sim \varphi^{4506}$ cycles; annihilation pathway |
-| `foundations/sector-coupling-derivation.md` | Derived scale with Hypothesized coefficient | Dirac↔two-fluid sector-coupling scale $\kappa_s = \varphi^{-6}/v_0^2$ (0.92 TeV$^{-2}$; $\kappa_s^{-1/2} \approx 1.04$ TeV) |
+| `foundations/proton-coherence-budget.md` | Derivation (rung exponent Mapped—ledger; per-rung $q_i$ profile Hypothesized) | Proton lifetime $\sim \varphi^{4506}$ cycles; annihilation pathway |
+| `foundations/sector-coupling-derivation.md` | Derived scale with Hypothesized coefficient (v₀ input Calibrated, N_pde normalization Mapped—ledger) | Dirac↔two-fluid sector-coupling scale $\kappa_s = \varphi^{-6}/v_0^2$ (0.92 TeV$^{-2}$; $\kappa_s^{-1/2} \approx 1.04$ TeV) |
 | `foundations/bubble-edge-geometry.md` | Derived (structural) | Edge steepness $1.70\times$ anisotropy; CMB axis $12.2°$ (C10) |
 | `foundations/wa-pentagon-gate.md` | Derived ($\xi = \varphi^6$) / Hypothesized (5-channel) | $w_a = +0.012$ via $\xi$: $2.7\sigma$ tension vs DESI, not resolved; 5-channel shift Hypothesized (ODE pending) |
 | `principles/de-resonance-principle.md` | Derived | Why $\varphi$ is the attractor (maximally irrational) |
@@ -49,34 +48,45 @@ Tiers below are taken from each document's Status header. Compound headers are q
 | `standard-model/sm-from-phi.md` | Derived | $\sin^2\theta_W = \varphi^{-3}$; $\alpha_{\text{GUT}} = \varphi^{-3}/(4\pi)$ |
 | `standard-model/sm-radiative-corrections.md` | Derived | Loop corrections from the φ-boundary: RGE, Δα, Δr → m_W, λ running; residuals ($\alpha_s$ $2\times$, $\alpha_1$/$\alpha_2$ ~25%) open |
 | `standard-model/su2-gauge-extension.md` | Derived | SU(2) gauge from two-fluid structure |
-| `standard-model/cp-violation.md` | Derived | CKM phase $\pi\varphi^{-2}$ |
+| `standard-model/cp-violation.md` | Derived (δ_CKM Mapped—ledger; Jarlskog invariant not reproduced) | CKM phase $\pi\varphi^{-2}$ |
 | `particles/cassi-yang-yin-particles.md` | Derived | Particles as standing-wave interference; atomic $Z = 1$–$10$ |
 | `particles/dft-benchmarks.md` | Derived | DFT benchmark comparisons |
 | `cosmology/cosmology-from-phi.md` | Derived | $w_0 = -0.87$; dark energy from Qi gate (C1/T1) |
-| `cosmology/observational_constraints.md` | Derived | DESI DR2 fit; $w_a$ tension vs DESI ($2.7\sigma$, not resolved); rotation curves |
 | `gravity/three-body-analytical.md` | Derived | Body-dependent coupling; mass evolution via conversion |
 | `turbulence/kolmogorov-from-phi.md` | Derived | Kolmogorov spectrum from $\varphi$ |
 
-## 2. Hypothesized
+## 2. Calibrated
 
 | Document | Status | Summary |
 |----------|--------|---------|
-| `foundations/neutrino-masses.md` | Derivation (result: Hypothesized w/ derived mechanism, Q3) | Seesaw at step 20; Fibonacci offsets pinned by cascade RGE + PMNS |
+| `cosmology/observational_constraints.md` | Calibrated ($w_0$ coupling form, $\xi$ pin—ledger) / Mapped ($\alpha_{\text{halo}}$ nominal, halo $q$—ledger) | DESI DR2 fit; $w_a$ tension vs DESI ($2.7\sigma$, not resolved); rotation curves |
+
+## 3. Mapped
+
+| Document | Status | Summary |
+|----------|--------|---------|
+| `foundations/strong-cp-derivation.md` | Derivation (span Mapped: GUT-seed anchor and δ_CP per ledger; θ̄ ≈ 1.2×10⁻¹⁷) | $\bar{\theta} \approx 1.2 \times 10^{-17}$, cascade-suppressed |
+
+## 4. Hypothesized
+
+| Document | Status | Summary |
+|----------|--------|---------|
+| `foundations/neutrino-masses.md` | Derivation (offsets Mapped—ledger; result Hypothesized, Q3) | Seesaw at step 20; Fibonacci offsets pinned by cascade RGE + PMNS |
 | `foundations/quantum-measurement-derivation.md` | Derivation (result: Hypothesized w/ derived core, Q7) | Born rule from Qi selection; phase-matching factor $\mathcal{M}$ |
 | `foundations/spin-fibonacci-spiral.md` | Derivation (result: Hypothesized, Q10) | Spin as SO(2) Fibonacci winding; form-factor periodicity |
-| `foundations/baryon-asymmetry.md` | Derivation (result: Hypothesized, C7/Q6) | $\eta \approx \varphi^{-44}$, within 6% of observed (C7/Q6) |
+| `foundations/baryon-asymmetry.md` | Derivation (mechanism Hypothesized, C7/Q6; η exponent Mapped—ledger) | $\eta \approx \varphi^{-44}$, within 6% of observed (C7/Q6) |
 | `foundations/refined-numeric-predictions.md` | Active derivation | Numeric predictions for the 24 Hypothesized questions |
-| `foundations/three-generations.md` | Hypothesized | $N_{\text{gen}} = 3$ from Fibonacci sub-channels (Q5) |
-| `foundations/dimensionful-constants-status.md` | Hypothesized | $c$, $\hbar$, $G$ external; $N = 292$ epoch-dependent horizon rung (F5) |
+| `foundations/three-generations.md` | Hypothesized (mechanism) / Mapped (rung placements—ledger) | $N_{\text{gen}} = 3$ from Fibonacci sub-channels (Q5) |
+| `foundations/dimensionful-constants-status.md` | Hypothesized ($c$, $\hbar$, $G$ external) / Mapped (fitted exponents—ledger) | $c$, $\hbar$, $G$ external; $N = 292$ epoch-dependent horizon rung (F5) |
 | `foundations/microcascade-mirror.md` | Hypothesized | Bidirectional cascade extension |
-| `foundations/rung-offset-mechanism.md` | Derived quantization, Hypothesized selection, Empirical catalog—August 2026 | δn as two-fluid phase lag (analytic $A_0$, $B_0$); pool-cell mode quantization; sector edges at half-rungs; uniform 38-state baseline |
+| `foundations/rung-offset-mechanism.md` | Derived quantization, Hypothesized selection, Empirical catalog (μ/Jψ placements Mapped—38-state scan, ledger) | δn as two-fluid phase lag (analytic $A_0$, $B_0$); pool-cell mode quantization; sector edges at half-rungs; uniform 38-state baseline |
 | `foundations/phi-rg-formalism.md` | Hypothesized | RG flow under $\varphi$-spacing |
 | `foundations/spiral-dynamics.md` | Hypothesized | Hubble, gravity, $c$ as spiral geometry projections |
 | `foundations/why-three-dimensions.md` | Hypothesis with One Decided Fork (W1: anti-phase confirmed) | Three dimensions from the Frenet-Serret frame (G5) |
 | `standard-model/gut-embedding.md` | Hypothesized | GUT embedding |
 | `standard-model/neutrino-mass.md` | Hypothesized | Neutrino mass structure |
 | `gravity/quantum-gravity.md` | Derived (σ-regularization, G1) / Hypothesized (two-fluid quantization, G2) | $\sigma$-regularized S-matrix; black-hole information (G2) |
-| `cosmology/inflation-from-cascade.md` | Derivation (result: Hypothesized, C4) | Steps 20–60 as inflation; $r = \varphi^{-12}$, $n_s$ |
+| `cosmology/inflation-from-cascade.md` | Derivation (mechanism Hypothesized, C4; r exponent Mapped—ledger) | Steps 20–60 as inflation; $r = \varphi^{-12}$, $n_s$ |
 | `cosmology/desi-lattice-averaging.md` | Hypothesized | Lattice powder lines in $P(k)$; variance suppression; $D_A(z)$ wiggle bound |
 | `consciousness/chakras-as-cascade-bubbles.md` | Hypothesized | 13 chakras as cascade bubbles |
 | `consciousness/consciousness-from-phi.md` | Plausible Hypothesis with Actionable PDE Test | Consciousness as Qi-gate dynamics; two-bubble test (M1) |
@@ -84,16 +94,16 @@ Tiers below are taken from each document's Status header. Compound headers are q
 | `consciousness/trauma-as-frozen-gate.md` | Tested—null pinning, drive effect supported (2026-07-31) / Speculative (clinical) | Trauma as a frozen Qi gate |
 | `hypotheses/nuclear-magic-numbers.md` | Hypothesized | Fibonacci sub-channel closure at steps 80–95 |
 | `hypotheses/hoyle-state-nucleosynthesis.md` | Hypothesized | Cascade rung resonance at the $^3\alpha$ threshold |
-| `hypotheses/quasicrystal-stability.md` | Hypothesized (near-Derived) | De-resonance against crystallization |
 | `hypotheses/exoplanet-phi-spacing.md` | Hypothesized | Wake-wave interference in protoplanetary disks |
 | `hypotheses/neural-criticality.md` | Hypothesized | Cascade PDE at neural scales |
 | `hypotheses/muscle-cascade-lattice.md` | Hypothesized | Muscle ladder as bubble lattice (rungs 142–168) |
 
-## 3. Speculative
+## 5. Speculative
 
 | Document | Status | Summary |
 |----------|--------|---------|
 | `analyses/gwtc4-mass-ladder.md` | Speculative—August 2026 | GWTC-4.0 peaks mapped to rungs; integer-rung test; ringdown null |
+| `hypotheses/quasicrystal-stability.md` | Speculative | De-resonance against crystallization |
 | `consciousness/cascade-consciousness.md` | Speculative | Medium-dependent perception; cascade nervous system |
 | `consciousness/auras-as-thermalized-gates.md` | Speculative | Aura as the $(1-q)$ thermalization boundary layer; heat-haze optics |
 | `consciousness/time-memory-and-wake-locks.md` | Speculative | Arrow of time from conversion; ghosts as wake-locks |
@@ -115,7 +125,7 @@ Tiers below are taken from each document's Status header. Compound headers are q
 | `hypotheses/riemann-two-fluid-spectral-program.md` | Speculative—August 2026 | Scale-operator candidate; minimal-fluctuation probes |
 | `hypotheses/riemann-two-fluid-phase-operator.md` | Speculative—August 2026 | Step 1 done: Bessel scale operator; linear spectra fail R-vM; Γ-phase boundary identified |
 
-## 4. Creative Extensions (speculations/creative-extensions/)
+## 6. Creative Extensions (speculations/creative-extensions/)
 
 Just-for-fun applications of the framework's logic; exempt from the evidential tier system by design.
 
@@ -129,7 +139,7 @@ Just-for-fun applications of the framework's logic; exempt from the evidential t
 | `speculations/creative-extensions/first-contact-and-stellar-engineering.md` | Creative | $\ln\varphi$ protocol; stars as gate chains |
 | `speculations/creative-extensions/simulation-hypothesis.md` | Creative | Two-fluid PDE as source code; nested universes |
 
-## 5. Reference & Cross-Cutting
+## 7. Reference & Cross-Cutting
 
 Documents that are not claims: registries, catalogs, explainers, and plans.
 

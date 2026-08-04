@@ -576,7 +576,7 @@ The falsifiable predictions are:
 | $\alpha_s(m_Z)$ | $0.058$–$0.061$ | $0.118$ | LHC precision ($\Delta b = 1.70$) |
 | $M_{\text{GUT}}$ | $2 \times 10^{16}$ GeV (with beyond-SM content) | no SM intersection | Proton lifetime |
 | $m_W$ | $80.07$ GeV | $80.360$ GeV | FCC-ee (0.5 MeV) |
-| $G_{\text{eff}}$ boost | $(1+\varphi^6 q)\times$ | $1\times$ | Galaxy rotation |
+| $G_{\text{eff}}$ boost | $(1+\varphi^6 q)\times$ α-free ceiling; halo regime $\alpha_{\text{halo}}(1+\xi q) \approx 9.5\times$ | $1\times$ | Galaxy rotation |
 
 ---
 

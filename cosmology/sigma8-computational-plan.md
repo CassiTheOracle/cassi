@@ -298,7 +298,9 @@ The output is $\sigma_8(z)$ for direct comparison with:
 
 From MW rotation curve analysis (`cosmology/observational_constraints.md` §2.6):
 
-$$v_C/v_B = \sqrt{\alpha_{\text{halo}}(1+\xi q)} \approx 2.7 \;\Rightarrow\; q_{\text{MW}} \approx 0.7$$
+$$v_C/v_B = \sqrt{\alpha_{\text{halo}}(1+\xi q)} \approx 2.7 \;\Rightarrow\; q_{\text{MW}} = \frac{(2.7^2/0.7) - 1}{17.944} \approx 0.52$$
+
+(The rotation section's own values 2.9–3.1 give $q = 0.61$–$0.71$.)
 
 This constrains $q$ in galaxy halos at $\rho \sim 10^{-2}$–$10^{-3}$ atoms/cm³. It is a local, $z\approx0$ constraint. This $q$ value is consistent with the filament/halo-outskirt regime in Section 2.3.
 

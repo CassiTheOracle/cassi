@@ -1,6 +1,6 @@
 # Dimensionful Constants: Derivation Status of $c$, $\hbar$, and $G$
 
-## Status: Hypothesized—July 2026
+## Status: Hypothesized ($c$, $\hbar$, $G$ external) / Mapped (fitted dimensionless exponents—ledger)—August 2026
 
 ## Abstract
 

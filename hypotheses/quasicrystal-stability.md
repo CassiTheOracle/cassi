@@ -1,6 +1,6 @@
 # Quasicrystal Stability from De-Resonance
 
-## Status: Hypothesized (near-Derived)—July 2026
+## Status: Speculative—August 2026
 
 ## Abstract
 

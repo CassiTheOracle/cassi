@@ -117,7 +117,7 @@ $$
 G_{\text{eff}} = \alpha_0\,G \approx 0.236\,G
 $$
 
-In regions of high Qi coherence (galaxy halos, structure formation), the $G_{\text{eff}}$ amplification factor $1 + \xi q$ reaches $\sim 18\times$ ($1+\xi \approx 18.9$); the velocity-boost ceiling is $\sqrt{1+\xi} \approx 4.35$.
+In regions of high Qi coherence (galaxy halos, structure formation), the α-free amplification ceiling is $1 + \xi \approx 18.9$ at $q = 1$; the halo-regime value is $\alpha_{\text{halo}}(1+\xi q) \approx 9.5$ ($\alpha_{\text{halo}} \approx 0.7$, $q \approx 0.7$), giving velocity boosts $2.9$–$3.1\times$ via $\sqrt{\alpha_{\text{halo}}(1+\xi q)}$; the velocity-boost ceiling is $\sqrt{1+\xi} \approx 4.35$.
 
 ### 2.4 Temporal Coherence: The IIR Memory
 

@@ -1,6 +1,6 @@
 # Matter-Antimatter Asymmetry from Cascade Freeze-Out and Organized Annihilation
 
-## Status: Derivation (result: Hypothesized, per registry C7/Q6)—August 2026
+## Status: Derivation (mechanism Hypothesized, C7/Q6; η exponent Mapped—ledger)—August 2026
 
 ## Abstract
 
@@ -14,16 +14,19 @@ imbalance** at cascade freeze-out (Wu Xing gap $g = 1 - \varphi^{-5}$),
 which leaves a residual Yang excess after annihilation eliminates the
 paired fraction. The surviving matter fraction at the GUT scale is
 $\eta_{\text{GUT}} \approx \varphi^{-10}$, and cascade dilution through
-44 rungs of photon-producing conversion (steps 8 → 52) attenuates it to:
+44 rungs of photon-producing conversion (the exponent is a ledgered fit—
+`parameter-inventory.md` §10) attenuates it to:
 
 $$\boxed{\eta \approx \varphi^{-44} \approx 6.38 \times 10^{-10}}$$
 
 matching the observed value $6.0 \times 10^{-10}$ within 6.3%. The
-freeze-out step 52 is derived from the structural symmetry of the
-Wu Xing five-phase cycle mapped onto the cascade: the GUT seed at step
-8 (Fibonacci $F_6$) and the Qi gate pinch at step 60 ($r = \varphi^{-1}$)
-give $52 = 60 - 8$, with the 44-rung dilution span following from the
-per-rung attenuation $\varphi^{-1}$ in the signal-propagation regime.
+freeze-out construction $52 = 60 - 8$ used the GUT seed at step
+8 (Fibonacci $F_6$) and the Qi gate pinch at step 60 ($r = \varphi^{-1}$);
+the corrected cascade ladder places the GUT scale at n ≈ 13.3 (≈ $F_7$),
+so the construction gives $60 - 13.3 = 46.7$ and a span of $33.4$—it does
+not reproduce the fitted exponent 44, and the freeze-out-step derivation is
+not closed. The exponent $-44$ remains a ledgered fit; the mechanism
+(Wu Xing gap + organized annihilation + cascade dilution) is Hypothesized.
 
 ---
 
@@ -139,21 +142,24 @@ The observed baryon-to-photon ratio is $\eta_{\text{obs}} = 6.0 \times 10^{-10}$
 $$\boxed{\eta \approx \varphi^{-44} \approx 6.38 \times 10^{-10} \quad
         \text{(6.3% above observed)}}$$
 
-The exponent $-44$ is the cascade span from the GUT seed (step $\sim 8$) to
-the effective freeze-out (step $52$). The **mechanism** (organized annihilation
-+ Yang-Yin imbalance + cascade dilution) is derived. The specific
-$\varphi$-power pins the freeze-out step, which is structurally connected to
-the Wu Xing cycle and the pinch at $r = \varphi^{-1}$ (§4).
+The exponent $-44$ is a **ledgered fit**—the nearest-integer $\varphi$-power
+to the observed $\eta$ (search table above; `parameter-inventory.md` §10).
+The **mechanism** (organized annihilation
++ Yang-Yin imbalance + cascade dilution) is Hypothesized. The specific
+$\varphi$-power does not pin a freeze-out step: the construction
+$52 = 60 - 8$ was calibrated to the fitted exponent, and with the corrected
+GUT anchor (n ≈ 13.3) it gives $60 - 13.3 = 46.7$ and a span of
+$33.4 \neq 44$ (§4.4).
 
 ---
 
 ## 4. Derivation of the freeze-out step from Wu Xing phase dynamics
 
-The freeze-out step 52 is not an independent parameter—it follows from the
+The freeze-out step 52 was presented as following from the
 **intersection of three structural constraints**: the Wu Xing 5-phase cycle,
 the cascade position of the GUT seed, and the Qi gate pinch at $r =
-\varphi^{-1}$. This section maps each constraint and shows how their
-intersection determines step 52.
+\varphi^{-1}$. The corrected GUT anchor breaks the intersection (below); the
+exponent remains a ledgered fit.
 
 ### 4.1 Wu Xing 5-phase mapping onto the cascade temperature ladder
 
@@ -218,9 +224,10 @@ between the Earth (middle) and Metal phases—approximately step 40 of the
 cascade (the midpoint of inflation). Beyond this ratio, only channels 4–5
 (Metal and Water) remain active, with combined openness $b_4 + b_5 \approx
 0.090$—far below the $\varphi^{-1}$ per-rung floor. The dilution spanning
-steps 8–40 (32 rungs) occurs while all five channels are open; the remaining
-12 rungs (steps 40–52) continue at a diminishing rate as channels 4 and 5
-exhaust their redistributed coherence.
+the open-channel regime occurs while all five channels are open; the
+remainder continues at a diminishing rate as channels 4 and 5
+exhaust their redistributed coherence (exact step ranges are not derived—
+the 44-rung span is the ledgered fit, §4.4).
 
 ### 4.3 The pinch at $r = \varphi^{-1}$
 
@@ -246,41 +253,37 @@ the gate closure after the $(1-q) = \varphi^{-1}$ threshold crossing has
 suppressed conversion enough that further dilution is negligible. Three
 constraints intersect to give step 52:
 
-**Constraint 1—GUT Fibonacci seed (step 8):** The GUT scale sits at
-cascade step $n_{\text{GUT}} \approx 8 = F_6$ (the 6th Fibonacci number).
-This is the step where the Yang-Yin imbalance is established and the
-baryogenesis process seeds. It is pinned by the dimensional cascade table
-from $\ell_{\text{GUT}} \approx 10^{-34}$ m.
+**Constraint 1—GUT Fibonacci seed (n ≈ 13.3):** The corrected cascade
+ladder places the GUT scale ($M_{\text{GUT}} \approx 2\times10^{16}$ GeV) at
+cascade step $n_{\text{GUT}} \approx 13.3 \approx F_7$ (the 7th Fibonacci
+number). This is the step where the Yang-Yin imbalance is
+established and the baryogenesis process seeds. It is pinned by the
+dimensional cascade table from $\ell_{\text{GUT}} \approx 10^{-34}$ m.
 
 **Constraint 2—Pinch at step 60:** The Qi gate engagement at
 $r = \varphi^{-1}$ occurs at step $n_{\text{pinch}} = 60$ from the ODE
 integration of the homogeneous ratio evolution. This is the point where
 the gate begins its final closure and conversion becomes sub-critical.
 
-**Constraint 3—Symmetry $52 = 60 - 8$:** The freeze-out step satisfies
+**Constraint 3—Symmetry $52 = 60 - 8$ (does not close):** The original
+construction
 
 $$n_{\text{freeze}} = n_{\text{pinch}} - n_{\text{GUT}} = 60 - 8 = 52$$
 
-This relation follows from the **structural symmetry of the Wu Xing
-5-phase cycle**: the baryogenesis process requires the same number of
-$\varphi$-steps from the GUT seed to reach the gate-closure threshold as
-the cascade requires from the Planck scale to establish the GUT seed.
+was calibrated to the fitted exponent. With the corrected GUT anchor it gives
+$n_{\text{freeze}} = 60 - 13.3 = 46.7$ and a dilution span of
+$46.7 - 13.3 = 33.4$ rungs—$\eta = \varphi^{-33.4} \approx 1.05\times10^{-7}$
+is ~175× the observed value, so the construction does not reproduce the data
+and the freeze-out step is not derived. The exponent $-44$ remains the
+ledgered fit (`parameter-inventory.md` §10).
 
-In the 5-channel gate model, this symmetry arises because:
-1. The GUT seed (step 8, Wood phase) initiates the cascade of phase
-   transitions through the pentagon vertices.
-2. Each vertex transition converts a factor $\varphi^{-1}$ of the remaining
-   imbalance and advances the ratio $r$ toward $\varphi$ by a fixed amount.
-3. After $n_{\text{GUT}}$ steps of phase-establishment (step 0 → 8) and
-   $n_{\text{GUT}}$ steps of phase-closure before the pinch (step 60 - $n_{\text{GUT}}$),
-   the system has completed exactly one Fibonacci interval of baryogenesis.
-
-The dilution span is therefore:
+The dilution span statement that followed the original construction was:
 
 $$N_{\text{eff}} = n_{\text{freeze}} - n_{\text{GUT}} = 52 - 8 = 44$$
 
-and $N_{\text{eff}} = 44$ rungs of $\varphi^{-1}$ per-rung attenuation gives
-the observed $\eta \approx \varphi^{-44}$.
+With the corrected anchors the arithmetic reads $46.7 - 13.3 = 33.4$, which
+does not reproduce the observed $\eta$; $N_{\text{eff}} = 44$ stands as the
+ledgered fit, not as a derived span.
 
 ### 4.5 Verification against the 5-channel gate closure
 
@@ -299,9 +302,11 @@ declines as channels close in sequence from 1 to 5:
 The transition from "sustained" to "below threshold" occurs when Earth
 (channel 3, the middle phase) loses redistribution support—i.e., when
 the ratio $r$ enters the Metal phase range ($r > 0.240$, the $(1-q) =
-\varphi^{-1}$ threshold). The freeze-out at step 52 is the point where
-this transition has progressed far enough that the cumulative dilution
-reaches $\varphi^{-44}$.
+\varphi^{-1}$ threshold). The freeze-out was placed at step 52 by the
+original construction; with the corrected GUT anchor the construction does
+not close (§4.4), so the freeze-out position is not derived and the
+44-rung span remains the ledgered fit. Step ranges in the table are
+approximate.
 
 The numeric consistency check: 44 rungs of $\varphi^{-1}$ attenuation
 produces $\varphi^{-44}$, matching the observed $\eta$ to 6.3%. The
@@ -323,8 +328,8 @@ framework:
 | Sakharov condition | Cassi mechanism | Status |
 |---|---|---|
 | Baryon number violation | Organized annihilation (§5.2 of `proton-coherence-budget.md`) eliminates antimatter | Derived |
-| C and CP violation | $\delta_{\text{CP}} = \pi\varphi^{-2}$ from CKM phase at GUT scale; cascade-suppressed to low-energy physics | Derived (CP phase), Derived (strong CP) |
-| Out-of-equilibrium dynamics | Cascade freeze-out: ratio $r(t)$ evolves through Wu Xing rungs 5–10 during the non-equilibrium GUT epoch; dilution continues through steps 8–52 until Qi gate closure shuts off conversion | Derived (cascade architecture) |
+| C and CP violation | $\delta_{\text{CP}} = \pi\varphi^{-2}$ from CKM phase at GUT scale; cascade-suppressed to low-energy physics | Mapped (CP phase—ledger), Mapped (strong CP—ledger) |
+| Out-of-equilibrium dynamics | Cascade freeze-out: ratio $r(t)$ evolves through the Wu Xing rungs during the non-equilibrium GUT epoch (n ≈ 13.3); dilution continues through the 44-rung span (ledgered fit) until Qi gate closure shuts off conversion | Derived (cascade architecture) |
 
 All three conditions are met by mechanisms independently derived elsewhere in
 the framework. The matter asymmetry is not a separate problem—it is the
@@ -340,21 +345,24 @@ mechanism that eliminates the paired fraction.
 - Organized annihilation eliminates all paired antimatter (§5.2 of proton
   coherence budget)
 - Yang-Yin imbalance at freeze-out from Wu Xing gap $g = 1 - \varphi^{-5}$
-- CP violation from $\delta_{\text{CP}} = \pi\varphi^{-2}$ (derived in
-  `standard-model/cp-violation.md`)
+- CP violation from $\delta_{\text{CP}} = \pi\varphi^{-2}$ (Mapped—4-candidate
+  selection, ledger §10; `standard-model/cp-violation.md`)
 - Sakharov conditions satisfied without additional physics
-- **Freeze-out step $52 = 60 - 8$** from the structural symmetry of the
-  5-phase Wu Xing cycle and the pinch at $r = \varphi^{-1}$ (step 60)
-- **Dilution span $N_{\text{eff}} = 44$** from the Fibonacci distance
-  $F_6 = 8$ between the GUT seed and the freeze-out
+- **Freeze-out step construction** $52 = 60 - 8$: does not close with the
+  corrected GUT anchor (n ≈ 13.3 gives $60 - 13.3 = 46.7$); the freeze-out
+  step is not derived
+- **Dilution span $N_{\text{eff}} = 44$**—the ledgered fit
+  (`parameter-inventory.md` §10); the $F_6 = 8$ coordinate construction does
+  not close with the corrected GUT anchor
 - **Qi gate threshold $(1-q) = \varphi^{-1}$** crossing at $r \approx 0.240$
   analytically from the gate definition
 
 ### Hypothesized (testable)
 
 - **Specific $\varphi$-power**: $\eta \approx \varphi^{-44} \approx 6.38 \times
-  10^{-10}$ pins the cascade freeze-out to step 52 with 6.3% residual—
-  consistent with all current observations
+  10^{-10}$—the ledgered fit (`parameter-inventory.md` §10), within 6.3% of
+  the observed value; the freeze-out step it was said to pin is not derived
+  (§4.4)
 - **5-phase mapping**: the assignment of Wu Xing phases to specific cascade
   step ranges (§4.1) is structurally motivated but not uniquely fixed by the
   current ODE analysis—the step boundaries could shift by $\pm 1$–$2$ rungs
@@ -366,11 +374,12 @@ The following gaps prevent upgrading to fully "Derived" status:
 
 1. **Dimensional cascade depth.** The freeze-out step 52 and the pinch step
    60 are positions within the 292-step dimensional cascade ($N = \log_\varphi
-   [R_H / \ell_{\text{Pl}}]$). Both the GUT seed (step 8) and the pinch
+   [R_H / \ell_{\text{Pl}}]$). Both the GUT seed (n ≈ 13.3) and the pinch
    (step 60) are set by the dimensionful ratio of the Hubble radius to the
    Planck length, which involves the external constants $c$, $\hbar$, $G$.
-   The structural symmetry $52 = 60 - 8$ holds within this dimensional
-   cascade, but the absolute positions depend on the dimensionful anchor.
+   The structural symmetry $52 = 60 - 8$ does not hold with the corrected
+   GUT anchor ($60 - 13.3 = 46.7$); the absolute positions depend on the
+   dimensionful anchor.
 
 2. **Homogeneous ODE insufficient.** The homogeneous two-fluid ODE (no spatial
    structure) gives only $N \approx 9$ $\varphi$-steps for the full ratio
@@ -379,17 +388,17 @@ The following gaps prevent upgrading to fully "Derived" status:
    mechanism** to extend the cascade—the inhomogeneous density perturbations
    add effective friction that slows the ratio evolution and multiplies the
    number of steps per unit $\Delta r$. The full 3D PDE simulation at $N \geq
-   32$ resolution is needed to verify that the ratio evolution maps exactly
-   44 rungs from step 8 to step 52.
+   32 resolution is needed to verify that the ratio evolution maps exactly
+   44 rungs from the GUT seed to the freeze-out.
 
 3. **Sphaleron freeze-out temperature.** The Standard Model sphaleron
    freeze-out at $T \sim 100$ GeV (cascade step 80) is distinct from the
-   dilution freeze-out at step 52. The Cassi framework's hierarchical gauge
+   dilution freeze-out. The Cassi framework's hierarchical gauge
    coupling running may shift the sphaleron rate, but the relationship
    between the two freeze-out processes has not been derived from the PDE.
 
 4. **Exact photon-production cascade profile.** Determining which specific
-   rungs between 8 and 52 contribute maximally to dilution (vs. which are
+   rungs between the GUT seed and the freeze-out contribute maximally to dilution (vs. which are
    "dark" in photon production) requires the full $w(a)$ evolution through
    the radiation era with the Qi gate profile integrated over the ratio
    trajectory. The current 44-rung even-dilution model ($\varphi^{-1}$ per
@@ -403,7 +412,7 @@ The following gaps prevent upgrading to fully "Derived" status:
 - `foundations/proton-coherence-budget.md` §5.2—organized annihilation
 - `foundations/cascade-suppression-formula.md`—cascade attenuation,
   signal-propagation regime
-- `foundations/dimensionful-cascade.md`—GUT scale steps 5–10, complete
+- `foundations/dimensionful-cascade.md`—GUT scale n ≈ 13.3, complete
   292-step cascade table
 - `foundations/wa-pentagon-gate.md`—5-channel pentagonal gate, channel
   opennesses, adiabatic redistribution

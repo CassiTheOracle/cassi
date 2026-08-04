@@ -12,7 +12,7 @@
 
 1. **The φ-break scale** $k_\varphi = \varphi^3\sqrt{\lambda^3/\varepsilon}$—the wavenumber where conversion and eddy turnover timescales cross
 2. **The ε-spectrum** $E_\varepsilon(k) \propto k^{-5/3} \cdot f(k/k_\varphi)$—the deviation from φ-equilibrium has its own inertial-range scaling with a φ-determined break
-3. **Scale-dependent gravitational enhancement**—$G_{\text{eff}}(k)$ varies by factor $\sim 18\times$ across the φ-break
+3. **Scale-dependent gravitational enhancement**—$G_{\text{eff}}(k)$ varies by up to a factor $1+\xi \approx 18.9$ between the α-free full-coherence ceiling and the unamplified limit across the φ-break (halo-regime contrasts are ~$9\times$: $\alpha_{\text{halo}}(1+\xi q) \approx 9.5$ at $q \approx 0.7$)
 4. **The Qi-quality spectrum** $q(k)$—a direct observable of the conversion dynamics
 
 ---
@@ -178,7 +178,7 @@ Gravity is **enhanced** by factor ~4.5 relative to Newton.
 **Ratio across the break:**
 $$\frac{G_{\text{eff}}(k \ll k_\varphi)}{G_{\text{eff}}(k \gg k_\varphi)} \approx \frac{\varphi^3}{\varphi^{-3}} = \varphi^6 \approx 17.94$$
 
-Gravity is ~18× stronger at large scales than at small scales.
+Gravity is up to ~18× stronger at large scales than at small scales (the α-free ceiling ratio; halo-regime contrasts are ~$9\times$ via $\alpha_{\text{halo}}(1+\xi q)$).
 
 ### 4.3 Impact on the Energy Spectrum
 

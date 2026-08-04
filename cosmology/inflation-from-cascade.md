@@ -1,6 +1,6 @@
 # Inflation from Cascade Steps 20–60: The Qi-Gate Epoch
 
-## Status: Derivation (result: Hypothesized, per registry C4)—August 2026
+## Status: Derivation (mechanism Hypothesized, C4; r exponent Mapped—ledger)—August 2026
 
 ## Abstract
 
@@ -13,10 +13,11 @@ when $r$ crosses the pinch at $r = \varphi^{-1}$ (step $\sim 60$). The
 primordial power spectrum follows from the wake-wave mechanism with cascade
 spacing: $n_s = 1 - 2\varphi^{-1}/N_e$, with $N_e = 40$ cascade e-folds during
 the inflationary epoch. The tensor-to-scalar ratio is $r \approx
-\varphi^{-12} \approx 0.003$, the zero-parameter φ-power prediction; the
+$\varphi^{-12} \approx 0.003$, the zero-parameter φ-power prediction; the
 derivational formulas in §4 evaluate to $0.0557$, $2.0\times10^{-7}$, and
-$0.142$ and do not reproduce it. Both predictions match CMB data with zero free parameters beyond the
-cascade.
+$0.142$ and do not reproduce it. The exponent is Mapped per the Fit-Status
+Ledger (`parameter-inventory.md` §10): it was matched to the observed bound
+post-hoc. Both predictions match CMB data.
 
 ---
 
@@ -28,7 +29,7 @@ The cascade table (`foundations/dimensionful-cascade.md`) spans steps 0 (Planck)
 | Step $n$ | Physical scale | Physics |
 |---|---|---|
 | 0 | $\ell_{\text{Pl}}$ | Planck scale, $\sigma$-regularized |
-| 5–10 | $10^{16}$ GeV | GUT scale, Wu Xing freeze-out |
+| 13–15 | $10^{16}$ GeV | GUT scale ($M_{\text{GUT}} \approx 2\times10^{16}$ GeV at n ≈ 13.3), Wu Xing freeze-out |
 | **20** |—| **Inflation begins** |
 | **40** |—| Horizon exit of CMB scales |
 | 60 |—| **Inflation ends** ($r = \varphi^{-1}$, Qi gate engages) |

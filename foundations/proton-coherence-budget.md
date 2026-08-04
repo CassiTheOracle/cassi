@@ -1,6 +1,6 @@
 # Proton Coherence Budget: Derivation of $N_{\text{max}}$
 
-## Status: Derivation—July 2026
+## Status: Derivation (rung exponent Mapped—ledger; per-rung $q_i$ profile Hypothesized)—August 2026
 
 ## Abstract
 
@@ -160,7 +160,7 @@ This unifies three phenomena under a single mechanism:
    exhausted in one cycle because the perturbation is not random.
 3. **Baryon asymmetry** ($\eta = n_b/n_\gamma \sim 10^{-10}$): the cosmic
    excess of matter over antimatter reflects a small Yang-Yin imbalance at
-   cascade freeze-out (step 5–10). The organized-decoherence pathway
+   cascade freeze-out (n ≈ 13.3). The organized-decoherence pathway
    (annihilation) efficiently eliminated antimatter paired with matter; the
    residual Yang excess—one part in $\sim 10^{10}$—is the matter
    observed today.
@@ -242,8 +242,8 @@ late-universe physics we inhabit.
 ### Hypothesized (testable)
 
 - Specific form $q_i = 1 - \varphi^{-i-\delta}$ (the exponential approach to
-  coherence at small scales; plausible from cascade, alternative scalings
-  possible)
+  coherence at small scales; Hypothesized—the rung exponent n = 91.5 is
+  Mapped per the Fit-Status Ledger, `parameter-inventory.md` §10)
 - Hyper-K null result as falsifiable prediction
 - No environmental $q$-suppression deep enough to breach the coherence floor
   and produce observable decays in any terrestrial experiment

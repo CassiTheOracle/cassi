@@ -1,6 +1,6 @@
 # Wu Xing Number $w = 5$: Derivation from Cascade Dynamics
 
-## Status: Derived—July 2026
+## Status: Derived (w = 5, gap, r₀) / Calibrated (w₀ via the DESI-anchored coupling form—ledger)—August 2026
 
 ## Abstract
 
@@ -130,7 +130,7 @@ One complete pentagonal cycle advances the conversion phase by a factor of $\var
 
 $$\boxed{g = 1 - \varphi^{-5} \approx 0.9098}$$
 
-This is the fraction of the primordial Yang-Yin imbalance converted in the first pentagon cycle at the GUT scale (cascade step 5).
+This is the fraction of the primordial Yang-Yin imbalance converted in the first pentagon cycle at the GUT scale (n ≈ 13.3 for $M_{\text{GUT}} \approx 2\times10^{16}$ GeV; the cascade table's step-5 rung is the 1.1×10¹⁸ GeV scale).
 
 ### 5.2 The Primordial Yang-Yin Ratio
 
@@ -169,7 +169,7 @@ Equivalently: $E_I/E_Y = 1/r_0 \approx 21.2$. Yin dominates Yang by a factor of 
 ## 7. References
 
 - `foundations/cascade-suppression-formula.md`—per-rung attenuation $\varphi^{-1}$, signal regime
-- `foundations/dimensionful-cascade.md`—cascade table, step 5 (GUT), step 285 (Cassi bubble)
+- `foundations/dimensionful-cascade.md`—cascade table, n ≈ 13.3 (GUT), step 285 (Cassi bubble)
 - `foundations/dimensionful-constants-status.md`—status of $w = 5$
 - `computations/pinch_point_modes.py`—Candidate 2: Fibonacci convergent hierarchy
 - `foundations/spiral-dynamics.md`—Hubble, gravity, and $c$ from spiral geometry
