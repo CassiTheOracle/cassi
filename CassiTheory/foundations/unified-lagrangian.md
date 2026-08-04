@@ -4,7 +4,7 @@
 
 ## Abstract
 
-A single action assembles every sector of the framework: the two-fluid core (paired-real SO(2) doublet with the $\varphi$-attractor potential and Bohm quantum potential), the Dirac sector (Yang/Yin as chiral projections $\hat P_{Y/I} = (1 \pm \gamma^5)/2$), general relativity with the Qi-modified Newton constant $G_{\text{eff}} = G\,(\pi/\rho)(1 + \xi q)$, the Standard Model gauge/Higgs/Yukawa sectors, and the cross-coupling terms—including the sector coupling $\kappa_s = \varphi^{-6}/v_0^2$. All dimensionless couplings are $\varphi$-powers; the three dimensionful constants ($c$, $\hbar$, $G$) remain external.
+A single action assembles every sector of the framework: the two-fluid core (paired-real SO(2) doublet with the $\varphi$-attractor potential and Bohm quantum potential), the Dirac sector (Yang/Yin as chiral projections $\hat P_{Y/I} = (1 \pm \gamma^5)/2$), general relativity with the Qi-modified Newton constant $G_{\text{eff}} = G\,(\pi/\rho)(1 + (\varphi^{6}-1)q)$, the Standard Model gauge/Higgs/Yukawa sectors, and the cross-coupling terms—including the sector coupling $\kappa_s = \varphi^{-6}/v_0^2$. All dimensionless couplings are $\varphi$-powers; the three dimensionful constants ($c$, $\hbar$, $G$) remain external.
 
 $$
 \boxed{\mathcal{L}_{\text{Cassi}} = \mathcal{L}_{\text{TF}} + \mathcal{L}_{\text{D}} + \mathcal{L}_{\text{GR}} + \mathcal{L}_{\text{SM}} + \mathcal{L}_{\text{mix}}}
@@ -179,7 +179,7 @@ where $R$ is the Ricci scalar and $g = \det(g_{\mu\nu})$.
 The effective Newton constant depends on the local Qi density:
 
 $$
-\boxed{G_{\text{eff}} = G \cdot \frac{\pi}{\rho} \cdot (1 + \xi q)}
+\boxed{G_{\text{eff}} = G \cdot \frac{\pi}{\rho} \cdot (1 + (\varphi^{6}-1)q)}
 $$
 
 where:
@@ -504,7 +504,7 @@ $$
 
 $$
 G_{\mu\nu} = 8\pi G_{\text{eff}}\,T_{\mu\nu},
-\qquad G_{\text{eff}} = G\cdot\frac{\pi}{\rho}\cdot(1+\varphi^6 q)
+\qquad G_{\text{eff}} = G\cdot\frac{\pi}{\rho}\cdot(1+(\varphi^{6}-1)q)
 $$
 
 ### 7.4 Gauge Field Equations
@@ -538,7 +538,7 @@ All dimensionless couplings in the action are derived; the three dimensionful co
 | $K_{md}$ | $3\varphi^2$ | $7.85$ | **Derived** |
 | $\kappa_s$ | $\varphi^{-6}/v_0^2$ | $0.92$ TeV$^{-2}$ | **Derived** (scale) |
 | $\lambda$ | $1/(2w) = 0.1$ | $0.1$ | **Derived** (rational; non-resonant by design) |
-| $G_{\text{eff}}$ | $G\cdot(\pi/\rho)\cdot(1+\varphi^6 q)$ |—| **Derived** |
+| $G_{\text{eff}}$ | $G\cdot(\pi/\rho)\cdot(1+(\varphi^{6}-1)q)$ |—| **Derived** |
 
 **Every dimensionless constant is a $\varphi$-power, zero, or the derived rational $\lambda = 1/10$; $c$, $\hbar$, $G$ remain external.**
 
@@ -576,7 +576,7 @@ The falsifiable predictions are:
 | $\alpha_s(m_Z)$ | $0.058$–$0.061$ | $0.118$ | LHC precision ($\Delta b = 1.70$) |
 | $M_{\text{GUT}}$ | $2 \times 10^{16}$ GeV (with beyond-SM content) | no SM intersection | Proton lifetime |
 | $m_W$ | $80.07$ GeV | $80.360$ GeV | FCC-ee (0.5 MeV) |
-| $G_{\text{eff}}$ boost | $(1+\varphi^6 q)\times$ α-free ceiling; halo regime $\alpha_{\text{halo}}(1+\xi q) \approx 9.5\times$ | $1\times$ | Galaxy rotation |
+| $G_{\text{eff}}$ boost | $(1+(\varphi^{6}-1)q)\times$ α-free ceiling; halo regime $\alpha_{\text{halo}}(1+(\varphi^{6}-1)q) \approx 9.0\times$ | $1\times$ | Galaxy rotation |
 
 ---
 

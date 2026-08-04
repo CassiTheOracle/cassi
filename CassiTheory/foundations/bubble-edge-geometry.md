@@ -154,10 +154,10 @@ In the void ($C = -1$): $q_{\text{void}} = 0$.
 
 ### 4.2 Effective Gravitational Constant
 
-$$G_{\text{eff}}(C) = \frac{\pi}{\rho(C)} \bigl(1 + \xi\,q(C)\bigr), \qquad \xi = \varphi^6 \approx 17.944$$
+$$G_{\text{eff}}(C) = \frac{\pi}{\rho(C)} \bigl(1 + (\varphi^{6}-1)q(C)\bigr), \qquad \xi = \varphi^6 \approx 17.944$$
 
-At the bubble center ($C = 1$, $q = 1$): $G_{\text{eff}} \approx (\pi/\rho_0)(1 + \xi) \approx 18.9\,\pi/\rho_0$.
-At the edge ($C = 0.45$, $q = 0.725$): $G_{\text{eff}} \approx (\pi/\rho_{\text{edge}})(1 + 0.725\xi) \approx 14.0\,\pi/\rho_{\text{edge}}$.
+At the bubble center ($C = 1$, $q = 1$): $G_{\text{eff}} \approx (\pi/\rho_0)\varphi^6 \approx 17.94\,\pi/\rho_0$.
+At the edge ($C = 0.45$, $q = 0.725$): $G_{\text{eff}} \approx (\pi/\rho_{\text{edge}})(1 + 0.725(\varphi^{6}-1)) \approx 13.3\,\pi/\rho_{\text{edge}}$.
 In the void ($C = -1$, $q = 0$): $G_{\text{eff}} \to \pi/\rho_{\text{void}}$—unamplified gravity.
 
 The transition from amplified to unamplified gravity occurs across the edge. The steepness of this transition depends on direction (axial vs. diagonal) as described in §3.3.
@@ -431,8 +431,8 @@ Once $\theta_{\text{cond}}$ and $n_{\text{cond}}$ are determined, several derive
 | Advective enhancement | $D_{\text{eff}}/D$ | $\approx 34$ for $R=0.093$ |
 | Edge width (Yin) | $\Delta r_{\text{Yin}} = \Lambda_I \cdot \sqrt{1-\theta_{\text{cond}}}$ | $118 \times \sqrt{0.55} \approx 87$ Mpc |
 | Edge width (Yang) | $\Delta r_{\text{Yang}} = \Lambda_Y \cdot \sqrt{1-\theta_{\text{cond}}}$ | $191 \times \sqrt{0.55} \approx 142$ Mpc |
-| $G_{\text{eff}}$ ratio (center/edge) | $(1+\xi)/(1+q_{\text{edge}}\xi) \times (\rho_{\text{edge}}/\rho_0)$ | $18.9/14.0 \times 0.30 \approx 0.41$ |
-| $G_{\text{eff}}$ ratio (edge/void) | $(1+q_{\text{edge}}\xi)/1 \times (\rho_{\text{void}}/\rho_{\text{edge}})$ | $14.0 \times \rho_{\text{void}}/\rho_{\text{edge}}$ |
+| $G_{\text{eff}}$ ratio (center/edge) | $\varphi^6/(1+q_{\text{edge}}(\varphi^{6}-1)) \times (\rho_{\text{edge}}/\rho_0)$ | $17.94/13.28 \times 0.30 \approx 0.41$ |
+| $G_{\text{eff}}$ ratio (edge/void) | $(1+q_{\text{edge}}(\varphi^{6}-1))/1 \times (\rho_{\text{void}}/\rho_{\text{edge}})$ | $13.3 \times \rho_{\text{void}}/\rho_{\text{edge}}$ |
 
 ---
 

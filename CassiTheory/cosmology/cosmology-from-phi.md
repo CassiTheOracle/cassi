@@ -1,6 +1,6 @@
 # Cassi Cosmology: Inflation, Baryogenesis, and Dark Matter from $\varphi$
 
-## Status: Derived—July 2026
+## Status: Derived (formation, structure) / Calibrated (w₀ coupling form—ledger)—July 2026
 
 ## Abstract
 
@@ -181,7 +181,7 @@ No additional CP-violating phases beyond the Standard Model are needed. The $\va
 The two-fluid can form stable, coherent condensates—regions where the Qi quality $q \to 1$ and the Yang/Yin ratio is at the $\varphi$-attractor. These condensates:
 
 - **Are dark**: They are pure two-fluid field, not baryonic matter. No electromagnetic interaction.
-- **Are gravitationally active**: $G_{\text{eff}} = G\,(\pi/\rho)(1+\xi q)$ with $\xi = \varphi^6 \approx 17.944$; at the $\varphi$-fixed point the geometric factor is the equilibrium Yang fraction $\alpha_0 = \pi/\rho = \varphi^{-3} \approx 0.236$.
+- **Are gravitationally active**: $G_{\text{eff}} = G\,(\pi/\rho)(1+(\varphi^{6}-1)q)$ with $\xi = \varphi^6 \approx 17.944$; at the $\varphi$-fixed point the geometric factor is the equilibrium Yang fraction $\alpha_0 = \pi/\rho = \varphi^{-3} \approx 0.236$.
 - **Are stable**: The $\varphi$-attractor maintains $r = \varphi$ and the PDE's dissipative terms damp perturbations.
 - **Are collisionless**: A field condensate passes through other matter without friction—consistent with the Bullet Cluster.
 
@@ -196,7 +196,7 @@ $$
 The abundance relative to baryons is determined by the $\varphi$-gap between the gravitational coupling and the EM decoupling scale:
 
 $$
-\boxed{\frac{\Omega_{\text{DM}}}{\Omega_b} = \frac{\xi}{\varphi^3} = \frac{\varphi^6}{\varphi^3} = \varphi^3 \approx 4.24}
+\boxed{\frac{\Omega_{\text{DM}}}{\Omega_b} = \frac{\xi}{\varphi^3} = \frac{\varphi^6}{\varphi^3} = \varphi^3 = 4.2361}
 $$
 
 However, some baryons get captured into the condensate as it forms, increasing the effective DM density:
@@ -226,7 +226,7 @@ The Qi condensate naturally produces cored profiles (from the $\varphi$-attracto
 
 | Test | Cassi Prediction | Current Status |
 |------|-----------------|----------------|
-| Galaxy rotation curves | Flat, $(1+\varphi^6 q)\times$ boost | MW and dwarfs confirmed |
+| Galaxy rotation curves | Flat, $(1+(\varphi^{6}-1)q)\times$ boost | MW and dwarfs confirmed |
 | Bullet Cluster | Collisionless DM consistent | Confirmed |
 | Weak lensing | Enhanced $G_{\text{eff}}$ in halos | LSST testable |
 | Direct detection | Null (field condensate) | All experiments null |

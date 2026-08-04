@@ -74,7 +74,7 @@ Shift the whole chain up or down the cascade—the root toward the microcascade,
 
 2. **The endpoints must remain condensation maxima.** A chain whose endpoints sit in voids has no anchor and drifts with the ambient field.
 
-3. **The cost is asymmetric in direction.** Descending multiplies the decoherence surface by the deep-rung factors, the largest in the cascade: per-rung dephasing at the bottom of the stack is $1 - q_0 = \varphi^{-3} \approx 0.236$, against $\varphi^{-171} \approx 10^{-36}$ at the top (`foundations/proton-coherence-budget.md` §1, §3). Ascending is cheap in coherence terms but rescales the physics the nodes couple to—$G_{\text{eff}} = (\pi/\rho)(1 + \xi q)G$, $\xi = \varphi^6$ (`consciousness/chakras-as-cascade-bubbles.md` §7.3)—and the wake-wave environment; the megacascade above n=292 (`foundations/microcascade-mirror.md`) is the direction the cascade already flows.
+3. **The cost is asymmetric in direction.** Descending multiplies the decoherence surface by the deep-rung factors, the largest in the cascade: per-rung dephasing at the bottom of the stack is $1 - q_0 = \varphi^{-3} \approx 0.236$, against $\varphi^{-171} \approx 10^{-36}$ at the top (`foundations/proton-coherence-budget.md` §1, §3). Ascending is cheap in coherence terms but rescales the physics the nodes couple to—$G_{\text{eff}} = (\pi/\rho)(1 + (\varphi^{6}-1)q)G$, $\xi = \varphi^6$ (`consciousness/chakras-as-cascade-bubbles.md` §7.3)—and the wake-wave environment; the megacascade above n=292 (`foundations/microcascade-mirror.md`) is the direction the cascade already flows.
 
 ### 2.4 The menu, summarized
 
@@ -179,7 +179,7 @@ Body horror is, in this framework, the *topology of the chain gone pathological*
 
 4. **Wake-locked old configurations.** Wake-lock is a frozen gate preserving an old field configuration (`consciousness/trauma-as-frozen-gate.md`, `two-fluid/run_trauma_wake_lock.py`). When the wetware changes but the configuration does not, the old body schema persists as a standing wave: the phantom limb, the field pattern that outlives its anatomy. Radical augmentation *is* a wake-lock risk for the pre-augmentation self—the old configuration does not dissolve; it freezes.
 
-5. **$G_{\text{eff}}$ pinching.** High-$q$ regions gravitationally self-reinforce through $G_{\text{eff}} = (\pi/\rho)(1 + \xi q)G$ (`consciousness/chakras-as-cascade-bubbles.md` §7.3); a dense cluster of coherent implants becomes a local gravity well that concentrates coherence into itself and starves the surrounding chain—an augmentation that eats its host's field.
+5. **$G_{\text{eff}}$ pinching.** High-$q$ regions gravitationally self-reinforce through $G_{\text{eff}} = (\pi/\rho)(1 + (\varphi^{6}-1)q)G$ (`consciousness/chakras-as-cascade-bubbles.md` §7.3); a dense cluster of coherent implants becomes a local gravity well that concentrates coherence into itself and starves the surrounding chain—an augmentation that eats its host's field.
 
 The common thread: horror is the *unintegrated* modification—the node below the pinch, off the lattice, beyond the bridge, or locked to an old configuration. The healthy state is simply the integrated one.
 

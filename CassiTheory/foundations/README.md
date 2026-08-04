@@ -65,7 +65,7 @@ Assembles every sector into a single object,
 
 $$\boxed{\mathcal{L}_{\text{Cassi}} = \mathcal{L}_{\text{TF}} + \mathcal{L}_{\text{D}} + \mathcal{L}_{\text{GR}} + \mathcal{L}_{\text{SM}} + \mathcal{L}_{\text{mix}}}$$
 
-with all dimensionless couplings $\varphi$-powers, the derived conversion rate $\lambda = 1/(2w) = 0.1$, and three external dimensionful constants ($c$, $\hbar$, $G$). The two-fluid core is a paired-real SO(2) doublet with the $\varphi$-attractor potential $(\lambda/2)(\Psi_0^2 - \varphi\Psi_1^2)^2$, a Bohm quantum potential, and the Qi diagnostics; the Dirac sector emerges from the doublet through chiral projectors ($\Psi_0^2 = \bar\psi(1+\gamma^5)\psi/2$), and gravity couples through $G_{\text{eff}} = G(\pi/\rho)(1 + \xi q)$ with $\xi = \varphi^6$. Derives $\sin^2\theta_W = \varphi^{-3} \approx 0.236$ and the mixing-sector terms linking the sectors. Status: Derived.
+with all dimensionless couplings $\varphi$-powers, the derived conversion rate $\lambda = 1/(2w) = 0.1$, and three external dimensionful constants ($c$, $\hbar$, $G$). The two-fluid core is a paired-real SO(2) doublet with the $\varphi$-attractor potential $(\lambda/2)(\Psi_0^2 - \varphi\Psi_1^2)^2$, a Bohm quantum potential, and the Qi diagnostics; the Dirac sector emerges from the doublet through chiral projectors ($\Psi_0^2 = \bar\psi(1+\gamma^5)\psi/2$), and gravity couples through $G_{\text{eff}} = G(\pi/\rho)(1 + (\varphi^{6}-1)q)$ with $\xi = \varphi^6$. Derives $\sin^2\theta_W = \varphi^{-3} \approx 0.236$ and the mixing-sector terms linking the sectors. Status: Derived.
 
 ### `cassi-first-principles.md`—Cassi First Principles
 
@@ -77,7 +77,7 @@ as the universal scale-separation constant, with every coupling, mass ratio, and
 
 ### `cassi-theory-reference.md`—The Cassi Framework (Compact Reference)
 
-The audited compact reference: one document restating the postulate, the two-fluid PDE, Qi coherence ($q = \rho^2/(\rho^2 + \varphi^{-2} + \varepsilon^2)$), the Qi gate with its sign convention (conversion runs hard when $q \to 0$; the gate determines $w(a)$), the cascade, and the derived constants—$G_{\text{eff}} = G(\pi/\rho)(1 + \xi q)$ with $\xi = \varphi^6$, $\sin^2\theta_W = \varphi^{-3}$, and the three spatial dimensions as the spiral's Frenet-Serret frame. The gate sign is established by the PDE tests in `consciousness/trauma-as-frozen-gate.md` §10.4. Use it as the map before reading the individual derivations. Status: Reference.
+The audited compact reference: one document restating the postulate, the two-fluid PDE, Qi coherence ($q = \rho^2/(\rho^2 + \varphi^{-2} + \varepsilon^2)$), the Qi gate with its sign convention (conversion runs hard when $q \to 0$; the gate determines $w(a)$), the cascade, and the derived constants—$G_{\text{eff}} = G(\pi/\rho)(1 + (\varphi^{6}-1)q)$ with $\xi = \varphi^6$, $\sin^2\theta_W = \varphi^{-3}$, and the three spatial dimensions as the spiral's Frenet-Serret frame. The gate sign is established by the PDE tests in `consciousness/trauma-as-frozen-gate.md` §10.4. Use it as the map before reading the individual derivations. Status: Reference.
 
 ### `xi-derivation.md`—Derivation of $\xi = \varphi^6$: The Last Free Parameter
 
@@ -133,7 +133,7 @@ The total rotation divided by $2\pi$ is the spin, $\boxed{s = \Delta\Theta/2\pi 
 
 ### `phi_attractor_synthesis.md`—φ-Attractor Steady States and the Analytical Three-Body Problem in Cassi Gravity
 
-Explores whether the Cassi N-body solver—Gaussian-softened, $\varphi$-damped ($d = \varphi^{-1}$ velocity updates), with Qi-enhanced gravity $G_{\text{eff}}/G = (\pi/\rho)(1 + \xi q)$—admits analytical results, and develops nine interconnected paths. Key outputs: the asymptotic half-mass radius $R_\infty(d) = R_{\min} + \Delta R \exp(-\gamma_0\, d/(1-d)\, T)$, Qi-hydrostatic equilibrium disproven for damped systems, cold-collapse virial decay with time constant $\tau_Q = dt/(2|\ln d|)$, and the Cassi perihelion precession
+Explores whether the Cassi N-body solver—Gaussian-softened, $\varphi$-damped ($d = \varphi^{-1}$ velocity updates), with Qi-enhanced gravity $G_{\text{eff}}/G = (\pi/\rho)(1 + (\varphi^{6}-1)q)$—admits analytical results, and develops nine interconnected paths. Key outputs: the asymptotic half-mass radius $R_\infty(d) = R_{\min} + \Delta R \exp(-\gamma_0\, d/(1-d)\, T)$, Qi-hydrostatic equilibrium disproven for damped systems, cold-collapse virial decay with time constant $\tau_Q = dt/(2|\ln d|)$, and the Cassi perihelion precession
 
 $$\boxed{\Delta\phi_{\text{Cassi}} = -\sqrt{2\pi}\left(\frac{\sigma}{a}\right)^3 \frac{1 + e^2/4}{(1 - e^2)^3} \quad \text{[rad/orbit]}}$$
 
@@ -143,7 +143,7 @@ retrograde, opposite to the prograde GR precession, and a discriminating test be
 
 Resolves the dark-energy equation-of-state tension. The bare two-fluid prediction $w_a = +0.44$ sits $2.5\sigma$ from DESI DR2 ($-0.51 \pm 0.38$), but including the already-verified Qi-gravity coupling in the expansion rate,
 
-$$\boxed{H_{\text{eff}} = H_{\text{bare}} \,\sqrt{1 + \xi q(r)}}$$
+$$\boxed{H_{\text{eff}} = H_{\text{bare}} \,\sqrt{1 + (\varphi^{6}-1)q(r)}}$$
 
 shifts the prediction to $+0.10$ ($1.6\sigma$); the 5-channel pentagonal gate (channel openness $b_i = \varphi^{-k_i}$, $k_i = 2 + i$) and Wu Xing control-release add secondary negative shifts, bringing the combined prediction to $\boxed{w_a^{\text{pred}} \approx [-0.05, +0.10]}$, within $1.4\sigma$ of DESI. Four independent checks ($\lambda$-independence, gate-$\alpha$-independence, spatial-boost falsification, structural-mode decay) rule out numerical artifacts in the bare sign. Status: Derived ($\xi = \varphi^6$) / Hypothesized (5-channel).
 

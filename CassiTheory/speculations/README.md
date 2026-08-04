@@ -25,7 +25,7 @@ All documents are **Speculative—July 2026** unless noted.
 | 2 | Superconductivity | Resistance as Yang→Yin conversion; Qi-gap from the φ-attractor penalizing single-electron excitations | `superconductivity-as-qi-coherence.md` |
 | 3 | Computing | Qi gate as computational primitive; Wu Xing 5-phase logic; φ-spaced cascade clock | `qi-computation.md` |
 | 4 | Propulsion | Rung-shifting along the cascade axis; UAP observables mapped to Cassi mechanisms | `qi-bubble-propulsion.md` |
-| 5 | Gravity control | $G_{\text{eff}} = (\pi/\rho)(1+\xi q)G$ as an engineering dial; Qi condenser + gate as the device | `gravity-control.md` |
+| 5 | Gravity control | $G_{\text{eff}} = (\pi/\rho)(1+(\varphi^{6}-1)q)G$ as an engineering dial; Qi condenser + gate as the device | `gravity-control.md` |
 | 6 | Infrastructure | Planetary and stellar gate networks as tuning of the existing cascade energy grid | `cascade-infrastructure.md` |
 | 7 | SETI | Structural (non-emissive) signatures of gate-harvesting civilizations, catalogued by cascade rung | `observational-seti.md` |
 
@@ -35,7 +35,7 @@ Data-analysis documents (observational datasets tested against framework claims)
 
 ### `dark-matter-as-qi-coherence.md`—Dark Matter as Unharvested Coherence
 
-The halo is reframed as unharvested Qi coherence: organized Π that has not condensed into visible structure, with the galactic bubble edge at cascade step $n \approx 267$ and coherence $\boxed{q(\mathbf{x}) = \frac{1 + C(\mathbf{x})}{2}}$ tracing the same condensation field $C(x,y) = \cos(\alpha x)\cos(\beta y)$ that builds the cosmic web. The gravitational mechanism is Qi-enhanced gravity, $\boxed{G_{\text{eff}} = \frac{\pi}{\rho}(1 + \xi q)G}$ with $\xi = \varphi^6 \approx 17.944$—darkness is a property of the field (it couples through $q$ and does not radiate), not of particles, and the coupling $\alpha_G \sim \varphi^{-2n}$ is parameter-free. The July 2026 SPARC test (§7) compared the predicted $q(r)$ profile against NFW on 175 rotation curves and found the data prefer NFW: median ΔAIC = +40 (NFW wins 111/143 full-range; 64/75 inner-region at ΔAIC = +18), with the fixed-$\xi$ Qi profile overpredicting dark matter in most galaxies. Speculative—July 2026: the $G_{\text{eff}}$ mechanism and condensation-field geometry are Derived within the framework; the dark-matter reframing and profile predictions are the extrapolation.
+The halo is reframed as unharvested Qi coherence: organized Π that has not condensed into visible structure, with the galactic bubble edge at cascade step $n \approx 267$ and coherence $\boxed{q(\mathbf{x}) = \frac{1 + C(\mathbf{x})}{2}}$ tracing the same condensation field $C(x,y) = \cos(\alpha x)\cos(\beta y)$ that builds the cosmic web. The gravitational mechanism is Qi-enhanced gravity, $\boxed{G_{\text{eff}} = \frac{\pi}{\rho}(1 + (\varphi^{6}-1)q)G}$ with $\xi = \varphi^6 \approx 17.944$—darkness is a property of the field (it couples through $q$ and does not radiate), not of particles, and the coupling $\alpha_G \sim \varphi^{-2n}$ is parameter-free. The July 2026 SPARC test (§7) compared the predicted $q(r)$ profile against NFW on 175 rotation curves and found the data prefer NFW: median ΔAIC = +40 (NFW wins 111/143 full-range; 64/75 inner-region at ΔAIC = +18), with the fixed-$\xi$ Qi profile overpredicting dark matter in most galaxies. Speculative—July 2026: the $G_{\text{eff}}$ mechanism and condensation-field geometry are Derived within the framework; the dark-matter reframing and profile predictions are the extrapolation.
 
 ### `superconductivity-as-qi-coherence.md`—Superconductivity as Qi Coherence
 
@@ -59,7 +59,7 @@ A gate-harvesting civilization is argued to be structurally, not emissively, vis
 
 ### `gravity-control.md`—Gravity Control: $G_{\text{eff}}$ as an Engineering Variable
 
-Gravity is treated as condensate coherence: the gravitational charge $\mathcal{Q} = (\pi/\rho)(1+\xi q)$ is a dial a device can park anywhere from the baseline $\varphi^{-3}$ to $1+\xi \approx 18.9$, so artificial gravity, inertial damping, and mass lightening are one operation—locally adjusting $q$ with a Qi condenser and a gate. The SPARC condensate fits supply the engineering constraints: hydrostatic isothermal profiles, the baryonic-decoherence core $q(r) = r/(r+r_{\text{half}})$, and the rung mismatch that puts laboratory-scale control out of reach ($n \approx 168$ vs. condensate $n \approx 267$, $\varphi^{-99}$ suppression). Detection signatures are local $G$ anomalies and lensing without visible mass.
+Gravity is treated as condensate coherence: the gravitational charge $\mathcal{Q} = (\pi/\rho)(1+(\varphi^{6}-1)q)$ is a dial a device can park anywhere from the baseline $\varphi^{-3}$ to $\varphi^6 \approx 17.94$, so artificial gravity, inertial damping, and mass lightening are one operation—locally adjusting $q$ with a Qi condenser and a gate. The SPARC condensate fits supply the engineering constraints: hydrostatic isothermal profiles, the baryonic-decoherence core $q(r) = r/(r+r_{\text{half}})$, and the rung mismatch that puts laboratory-scale control out of reach ($n \approx 168$ vs. condensate $n \approx 267$, $\varphi^{-99}$ suppression). Detection signatures are local $G$ anomalies and lensing without visible mass.
 
 ## 3. Cross-References
 

@@ -56,8 +56,8 @@ Neutrino masses are not cleanly derivable from $\varphi$ alone. The seesaw mecha
 |-----------|-------------|--------------|--------|
 | Mercury perihelion | $42.98''$/cy (GR) | $42.98'' \pm 0.01''$/cy | ✅ **Matches GR** |
 | $G_{\text{eff}}/G$ (fixed point) | $\varphi^{-3} \approx 0.236$ |—| ✅ **Definition** |
-| $v_C/v_B$ (MW rotation) | $2.9$–$3.1$ (revised 2026-07-31) | $2.5-3.0$ | ✅ **Within range** |
-| Dwarf spheroidal M/L | 3/8 pass (corrected 2026-08-03) | 3/8 | ⚠️ **MOND preferred (4/8); ceiling $\varphi^3 \approx 4.24$ exceeded in 3/8** |
+| $v_C/v_B$ (MW rotation) | $2.8$–$3.0$ (revised 2026-07-31) | $2.5-3.0$ | ✅ **Within range** |
+| Dwarf spheroidal M/L | 3/8 pass (corrected 2026-08-03) | 3/8 | ⚠️ **MOND preferred (4/8); ceiling $\varphi^3 = 4.2361$ exceeded in 3/8** |
 | MESSENGER bound $\|q\|$ | $< 1.1\times 10^{-6}$ at 0.39 AU | Satisfied | ✅ **Passes** |
 | Gravitational wave amplif. | Up to $10\times$ GR in high-Qi |—| 🔭 **Falsifiable** |
 
@@ -94,7 +94,7 @@ this confirmed list.
 
 (The dwarf-spheroidal M/L row moved out of Confirmed on 2026-08-03: with the
 corrected coupling the test favors MOND (4/8 vs Cassi's 3/8) and the saturation
-ceiling $\sqrt{\varphi^6} = \varphi^3 \approx 4.24$ (max boost $G_{\text{eff}}/G = \varphi^6$) is
+ceiling $\sqrt{\varphi^6} = \varphi^3 = 4.2361$ (max boost $G_{\text{eff}}/G = \varphi^6$) is
 exceeded in 3/8 dwarfs—see the §3 Gravity table and
 `experiments/phi_attractor_paths/path10_dwarf_galaxies.py`.)
 

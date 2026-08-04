@@ -143,9 +143,9 @@ At any interface between media of different density, $E_Y - \varphi E_I$ is elev
 
 The condensation field $C(x,y) = \cos(\alpha x)\cos(\beta y)$ creates a checkerboard of bubble centers ($q \to 1$) and voids ($q \to 0$). The $G_{\text{eff}}$ gradient between them (`foundations/bubble-edge-geometry.md` §4.2) is a stored coherence potential. The craft descends from bubble center toward void in the $x$-$y$ plane, harvesting:
 
-$$E_{\text{harvest}} \approx \xi \cdot q_{\text{center}} \cdot \frac{GM}{R}$$
+$$E_{\text{harvest}} \approx (\varphi^{6}-1) q_{\text{center}} \cdot \frac{GM}{R}$$
 
-where $\xi = \varphi^6 \approx 17.944$ amplifies the gravitational potential. This is the **lattice as coherence battery**: the organized, $\varphi$-structured gradient has $\mathcal{M} \approx 1$ and can be tapped at near-unit efficiency.
+where $\varphi^6 \approx 17.944$ is the coupling's saturation maximum. This is the **lattice as coherence battery**: the organized, $\varphi$-structured gradient has $\mathcal{M} \approx 1$ and can be tapped at near-unit efficiency.
 
 ### 5.4 Source 3: Nested cascade harvesting
 

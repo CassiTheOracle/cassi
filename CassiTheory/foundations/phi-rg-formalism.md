@@ -177,7 +177,7 @@ The measured value at $m_Z$ is $0.23122(4)$: the φ-point value overshoots by $2
 
 From `foundations/xi-derivation.md`, the Qi-gravity coupling $\xi = \varphi^6$ emerges from the dimensional reduction of the 4D two-fluid action to the 3D effective potential. In φ-RG language:
 
-The gravitational coupling $G_{\text{eff}}(k) = (\pi/\rho)(1 + \xi q(k)) G$ has two fixed-point values:
+The gravitational coupling $G_{\text{eff}}(k) = (\pi/\rho)(1 + (\varphi^{6}-1)q(k)) G$ has two fixed-point values:
 
 - **UV fixed point** ($q \to 0$, small scales): $G_{\text{eff}} \to \varphi^{-3} G$
 - **IR fixed point** ($q \to 1$, large scales): $G_{\text{eff}} \to \varphi^3 G$

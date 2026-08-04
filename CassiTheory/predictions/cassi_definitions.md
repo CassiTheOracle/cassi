@@ -124,19 +124,19 @@ Three modes of expansion:
 - **Fundamental vs derived**: EY and EI are fundamental; g_μν is determined by their distribution.
 
 ### Cassi Gravitational Force Law
-    F(r) = −(1+ξ·q)/r² · [erf(r/(σ√2)) − √(2/π)·(r/σ)·exp(−r²/(2σ²))]
+    F(r) = −(1+(φ⁶−1)q)/r² · [erf(r/(σ√2)) − √(2/π)·(r/σ)·exp(−r²/(2σ²))]
 
-- **At r >> σ**: F → −(1+ξ·q)/r² (Newtonian with Qi enhancement).
-- **At r → 0**: F ∝ −r/(3σ³)·(1+ξ·q) (harmonic—no singularity).
+- **At r >> σ**: F → −(1+(φ⁶−1)q)/r² (Newtonian with Qi enhancement).
+- **At r → 0**: F ∝ −r/(3σ³)·(1+(φ⁶−1)q) (harmonic—no singularity).
 - **ξ = φ⁶ ≈ 17.944**: Derived rung identity via Fibonacci identity φ⁶ = φ⁵ + φ⁴; Calibrated empirical pin (ξ ≈ 18 from Milky Way rotation curves, 0.3% residual; ledger `parameter-inventory.md` §10). The sixth power represents 2 field components × 3 spatial dimensions coupling to curvature.
 
 ### Effective Gravitational Constant
-    G_eff = (π/ρ) · (1 + ξ·q) · G_N
+    G_eff = (π/ρ) · (1 + (φ⁶−1)q) · G_N
 
 - **Core (r < 5)**: π/ρ ≈ 0.274, q ≈ 0.147 ⇒ G_eff ≈ 1.0·G_N (GR-like).
-- **Halo (r ~ 7)**: π/ρ ≈ 0.633, q ≈ 0.669 ⇒ G_eff ≈ 8.3·G_N.
-- **Outer (r > 9)**: π/ρ ≈ 0.723, q ≈ 0.701 ⇒ G_eff ≈ 9.8·G_N.
-- **Maximum (q=1, π/ρ=1)**: G_eff ≈ (1+ξ)·G_N = (1+φ⁶)·G_N ≈ 18.9·G_N.
+- **Halo (r ~ 7)**: π/ρ ≈ 0.633, q ≈ 0.669 ⇒ G_eff ≈ 7.8·G_N.
+- **Outer (r > 9)**: π/ρ ≈ 0.723, q ≈ 0.701 ⇒ G_eff ≈ 9.3·G_N.
+- **Maximum (q=1, π/ρ=1)**: G_eff ≈ φ⁶·G_N ≈ 17.9·G_N.
 
 ### Weak-Field Metric
     ds² = −(1+2Φ)dt² + (1−2Φ)(dr² + r²dΩ²)
@@ -157,7 +157,7 @@ Three modes of expansion:
 
 - **Core (r < 5)**: b_crit ≈ 5.2 M (GR-like, EHT-consistent).
 - **Halo (r ≈ 7)**: b_crit ≈ 14–50 M (enlarged, testable).
-- **Maximum (q→1)**: b_crit ≈ 19 × GR = 98.7 M.
+- **Maximum (q→1)**: b_crit ≈ φ⁶ × GR ≈ 17.9 × GR ≈ 93.2 M.
 
 ### Precession Formula
     Δφ = −√(2π)·(σ/a)³·(1+e²/4)/(1−e²)³   [Cassi softening precession]

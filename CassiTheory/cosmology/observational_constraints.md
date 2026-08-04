@@ -4,7 +4,7 @@
 
 ## Abstract
 
-The Cassi framework is compared against the strongest current cosmological and galactic constraints. The two-fluid dark-energy prediction ($w_0 = -0.87$, $w_a = +0.012$ with the Yang-fraction-weighted coupling) sits at $2\sigma$/$2.7\sigma$ tension with the DESI DR2 best fit ($w_0 \approx -0.75$, $w_a \approx -0.73$)—a real tension, not a resolution. The Qi-enhanced rotation-curve prediction $v_C/v_B = \sqrt{\alpha_{\text{halo}}(1+\xi q)} \approx 3.1$ matches the observed Milky Way boost $2.7 \pm 0.5$ within ~1.2σ—a consistency check against the calibration object ($\xi$ pinned on the MW curve; $\alpha_{\text{halo}} = 0.7$ a hardcoded nominal, Fit-Status Ledger `parameter-inventory.md` §10), not an independent test. The CMB large-angle axis is the imprint of the triaxial bubble-boundary geometry at cascade step 285, with a predicted 12.2° dipole↔quadrupole alignment. The bubble lattice cannot bias the DESI CPL fit (`cosmology/desi-lattice-averaging.md`), and the $\sigma_8$ pipeline is planned in `cosmology/sigma8-computational-plan.md`.
+The Cassi framework is compared against the strongest current cosmological and galactic constraints. The two-fluid dark-energy prediction ($w_0 = -0.87$, $w_a = +0.012$ with the Yang-fraction-weighted coupling) sits at $2\sigma$/$2.7\sigma$ tension with the DESI DR2 best fit ($w_0 \approx -0.75$, $w_a \approx -0.73$)—a real tension, not a resolution. The Qi-enhanced rotation-curve prediction $v_C/v_B = \sqrt{\alpha_{\text{halo}}(1+(\varphi^{6}-1)q)} \approx 3.0$ matches the observed Milky Way boost $2.7 \pm 0.5$ within ~1.2σ—a consistency check against the calibration object ($\xi$ pinned on the MW curve; $\alpha_{\text{halo}} = 0.7$ a hardcoded nominal, Fit-Status Ledger `parameter-inventory.md` §10), not an independent test. The CMB large-angle axis is the imprint of the triaxial bubble-boundary geometry at cascade step 285, with a predicted 12.2° dipole↔quadrupole alignment. The bubble lattice cannot bias the DESI CPL fit (`cosmology/desi-lattice-averaging.md`), and the $\sigma_8$ pipeline is planned in `cosmology/sigma8-computational-plan.md`.
 
 Sources compiled 2026-07-15 via web search and primary literature. All error bars are 68% (1σ) confidence unless noted.
 
@@ -137,22 +137,22 @@ $$\frac{v_c(30\text{ kpc})}{v_{\text{N, bary}}(30\text{ kpc})} \approx \frac{190
 
 The Cassi force law (`cassi-physics.md`) uses Qi-enhanced gravity:
 
-$$\mathbf{F}_{ij} = -G\,\alpha_i(1+\xi q_i)\,M_i M_j\frac{\mathbf{r}_{ij}}{|\mathbf{r}_{ij}|^3}$$
+$$\mathbf{F}_{ij} = -G\,\alpha_i(1+(\varphi^{6}-1)q_i)\,M_i M_j\frac{\mathbf{r}_{ij}}{|\mathbf{r}_{ij}|^3}$$
 
 where $\xi = \varphi^6 \approx 17.944$ and $\alpha_i$ is the Yang fraction of body $i$. The circular velocity enhancement is:
 
-$$\frac{v_C}{v_B} = \sqrt{\alpha_{\text{halo}}(1+\xi q)}$$
+$$\frac{v_C}{v_B} = \sqrt{\alpha_{\text{halo}}(1+(\varphi^{6}-1)q)}$$
 
 For Milky Way halo parameters ($\alpha_{\text{halo}} \approx 0.7$, $q \approx 0.7$):
 
-$$\frac{v_C}{v_B} \approx \sqrt{0.7 \times (1 + 17.9 \times 0.7)} = \sqrt{9.47} \approx \mathbf{3.1}$$
+$$\frac{v_C}{v_B} \approx \sqrt{0.7 \times (1 + 16.944 \times 0.7)} = \sqrt{9.00} \approx \mathbf{3.0}$$
 
-($\alpha_{\text{halo}}$ is the halo-regime Yang fraction from the SPARC rotation-curve fits, distinct from the equilibrium value $\alpha_0 = \varphi^{-3}$; the independent fit in `foundations/phi_attractor_synthesis.md` Path 8 gives 2.89× at 30 kpc with the $\xi = \varphi^6$ coupling.)
+($\alpha_{\text{halo}}$ is the halo-regime Yang fraction from the SPARC rotation-curve fits, distinct from the equilibrium value $\alpha_0 = \varphi^{-3}$; the independent fit in `foundations/phi_attractor_synthesis.md` Path 8 gives 2.89× at 30 kpc with the pre-chord $\xi = \varphi^6$ script coupling.)
 
-Predicted: $v_{\text{Cassi}}(30\text{ kpc}) \approx 3.1 \times 70 \approx 215$ km/s.
+Predicted: $v_{\text{Cassi}}(30\text{ kpc}) \approx 3.0 \times 70 \approx 210$ km/s.
 Observed (Zhou+ 2023): $v_c(30\text{ kpc}) \approx 190 \pm 20$ km/s.
 
-**Result: consistent within ~1.2σ** (215 vs 190 ± 20). The observed boost of $2.7 \pm 0.5$ overlaps the Cassi prediction range $2.9$–$3.1\times$ from the $\xi = \varphi^6$ coupling.
+**Result: consistent within ~1.0σ** (210 vs 190 ± 20). The observed boost of $2.7 \pm 0.5$ overlaps the Cassi prediction range $2.8$–$3.0\times$ from the $(\varphi^{6}-1)q$ coupling.
 
 ---
 
@@ -162,7 +162,7 @@ Observed (Zhou+ 2023): $v_c(30\text{ kpc}) \approx 190 \pm 20$ km/s.
 |---|---|---|---|
 | $w_0 = -0.87$ (structural; $2\sigma$ from DESI $\approx -0.75 \pm 0.06$) | Tension | $w_a = +0.012$ (Yang-fraction-weighted coupling; $2.7\sigma$ from DESI $\approx -0.73 \pm 0.28$) | **Tension** (`two-fluid/calibrate_initial_ratio_xi_v2.py`) |
 | $\Omega_m$ / $H_0$ compatibility | Pipeline CMB-inferred $H_0 \approx 65.8$ km/s/Mpc | Tension with CMB | Full $H(z)$ fit pending (C3/T4) |
-| $v_c(30\text{ kpc})$ vs baryons | $v_C/v_B = 2.9$–$3.1$ (matches $2.7\pm0.5$ observed within ~1.2σ) |—| **Consistent** |
+| $v_c(30\text{ kpc})$ vs baryons | $v_C/v_B = 2.8$–$3.0$ (matches $2.7\pm0.5$ observed within ~0.4σ) |—| **Consistent** |
 
 **Sources last accessed:** 2026-07-19.
 
@@ -208,7 +208,7 @@ The preferred axis is the imprint of the triaxial bubble geometry at cascade ste
 |---|---|---|---|
 | $w_0$ and $w_a$ | $w_0 = -0.87$ structural (2σ from DESI $\approx -0.75 \pm 0.06$); $w_a = +0.012$ (Yang-fraction-weighted coupling; 2.7σ from $\approx -0.73 \pm 0.28$) | $w_a$: 5-channel/Wu-Xing shifts Hypothesized (ODE pending, ~5× too small to close the gap) | **Tension**—`two-fluid/calibrate_initial_ratio_xi_v2.py` |
 | $\Omega_m$ / $H_0$ compatibility | Pipeline CMB-inferred $H_0 \approx 65.8$ km/s/Mpc | Tension with CMB | Full $H(z)$ fit pending (C3/T4) |
-| $v_c(30\text{ kpc})$ vs baryons | $v_C/v_B = 2.9$–$3.1$ (matches $2.7\pm0.5$ observed within ~1.2σ) |—| **Consistent** |
+| $v_c(30\text{ kpc})$ vs baryons | $v_C/v_B = 2.8$–$3.0$ (matches $2.7\pm0.5$ observed within ~0.4σ) |—| **Consistent** |
 | CMB axis of evil (5.4σ) | Bubble-boundary triaxial axis (12.2° alignment) | Scale-dependence unconfirmed | Simons Obs. E-mode test |
 
 ---
@@ -217,7 +217,7 @@ The preferred axis is the imprint of the triaxial bubble geometry at cascade ste
 
 ### 6.1 The Structural Prediction and the Coupling
 
-The Cassi two-fluid PDE predicts $w_a = +0.44$ from the bare conversion dynamics ($H_{\text{bare}}$ only). The comparison anchor is the widely reported Table 9 DESI value $w_a \approx -0.73 \pm 0.28$ [INFERENCE]. The pure-Yang coupling form $\sqrt{1+\xi q}$ is inconsistent with the galactic-sector convention, where the boost applies to the Yang component only; the Yang-fraction-weighted form is used here (§6.2).
+The Cassi two-fluid PDE predicts $w_a = +0.44$ from the bare conversion dynamics ($H_{\text{bare}}$ only). The comparison anchor is the widely reported Table 9 DESI value $w_a \approx -0.73 \pm 0.28$ [INFERENCE]. The pure-Yang coupling form $\sqrt{1+(\varphi^{6}-1)q}$ is inconsistent with the galactic-sector convention, where the boost applies to the Yang component only; the Yang-fraction-weighted form is used here (§6.2).
 
 Invariance tests (λ-independence re-verified with the Yang-fraction-weighted coupling):
 
@@ -226,15 +226,15 @@ Invariance tests (λ-independence re-verified with the Yang-fraction-weighted co
 3. **Spatial boost falsified**: $B = 1.003$ at $N=32$—spatial structure does not enhance conversion
 4. **$H_{\text{struct}}$ decays at late times**: structural Hubble mode vanishes as $r \to \varphi$
 
-**Yang-fraction-weighted coupling.** The coupling verified in rotation curves boosts the Yang component only ($v^2 = G[M_{\rm bar} + (1+\xi q)M_Y]/r$, SPARC v5–v8), so the homogeneous analogue weights by the attractor Yang fraction $\alpha_w = r/(1+r) = \varphi^{-1} \approx 0.618$: $H_{\rm eff}^2 = H_{\rm bare}^2\,[1 + \xi q \cdot \alpha_w]$. Under this form (`two-fluid/calibrate_initial_ratio_xi_v2.py`):
+**Yang-fraction-weighted coupling.** The coupling verified in rotation curves boosts the Yang component only ($v^2 = G[M_{\rm bar} + (1+(\varphi^{6}-1)q)M_Y]/r$, SPARC v5–v8), so the homogeneous analogue weights by the attractor Yang fraction $\alpha_w = r/(1+r) = \varphi^{-1} \approx 0.618$: $H_{\rm eff}^2 = H_{\rm bare}^2\,[1 + (\varphi^{6}-1)q \cdot \alpha_w]$. Under this form (`two-fluid/calibrate_initial_ratio_xi_v2.py`):
 
 | Mode | $w_0$ | $w_a$ |
 |---|---|---|
 | Bare | $-0.856$ | $+0.457$ |
-| v1 pure-Yang form $\sqrt{1+\xi q}$ | $-0.862$ | $+0.068$ |
+| v1 pure-Yang form $\sqrt{1+(\varphi^{6}-1)q}$ | $-0.862$ | $+0.068$ |
 | **Yang-fraction-weighted form** | **$-0.872$** | **$+0.012$** |
 
-(Gap-derived structural $r_0 = \varphi^{-5}/(2-\varphi^{-5}) = 0.0472$; values are λ-independent.) The Yang-fraction weighting nearly cancels the bare $+0.44$: $w_a = +0.012$. With the Table 9 DESI anchor (§1.4), the comparison is:
+(Gap-derived structural $r_0 = \varphi^{-5}/(2-\varphi^{-5}) = 0.0472$; values are λ-independent.) The Yang-fraction weighting nearly cancels the bare $+0.44$: $w_a = +0.012$. *(ODE values above were computed with the pre-chord $\xi = \varphi^6$ coefficient; the $(\varphi^{6}-1)$ re-run is pending—flagged, not asserted.)* With the Table 9 DESI anchor (§1.4), the comparison is:
 
 ### 6.2 Comparison with DESI DR2
 

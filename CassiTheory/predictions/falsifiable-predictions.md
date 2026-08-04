@@ -106,7 +106,7 @@ $\varphi^6$ the saturation maximum, $\alpha \approx 0.7$; the path8/9 script run
 pre-chord $\xi = \varphi^6$ coefficient—`experiments/phi_attractor_paths/path8_phi_enhanced_rotation.py`)
 and `cosmology/observational_constraints.md` §2.6 (halo-parameter estimate
 $v_C/v_B = \sqrt{\alpha(1+(\varphi^{6}-1)q)} \approx 3.0$). The 30-kpc boost $2.8$–$3.0\times$ matches the
-observed Milky Way boost $2.7 \pm 0.5$ (Zhou+ 2023) within ~1.2σ—a consistency check against
+observed Milky Way boost $2.7 \pm 0.5$ (Zhou+ 2023) within ~0.4σ—a consistency check against
 the calibration object ($\xi$ pinned on the MW curve; $\alpha_{\text{halo}}$ a hardcoded nominal,
 ledger §10), not an independent test. The boost ceiling
 is $\sqrt{\varphi^6} = \varphi^3 = 4.2361$ at full coherence ($q = 1$, $\alpha$-free)—exact,

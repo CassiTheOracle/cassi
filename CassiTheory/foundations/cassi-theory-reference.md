@@ -159,11 +159,11 @@ Chiral projections: $\hat{P}_Y = (1+\gamma^5)/2$, $\hat{P}_I = (1-\gamma^5)/2$. 
 
 $$\mathcal{L}_{\text{GR}} = \frac{1}{16\pi G_{\text{eff}}}R\sqrt{-g} + \frac{1}{2}T_{\mu\nu}g^{\mu\nu}$$
 
-$$\boxed{G_{\text{eff}} = G \cdot \frac{\pi}{\rho} \cdot (1 + \xi q)},\qquad \xi = \varphi^6 = \varphi^5 + \varphi^4$$
+$$\boxed{G_{\text{eff}} = G \cdot \frac{\pi}{\rho} \cdot (1 + (\varphi^{6}-1)q)},\qquad \xi = \varphi^6 = \varphi^5 + \varphi^4$$
 
 $\xi = \varphi^6$: 2 field components $\times$ 3 spatial dimensions (Frenet-Serret frame, §10.2).
 
-At the $\varphi$-fixed point ($q=0$, $\pi/\rho = \varphi^{-3}$): $G_{\text{eff}} = \varphi^{-3}G$. In the weak-field limit, PPN parameters $\beta = 1 + \mathcal{O}(\xi q^2)$, $\gamma = 1 + \mathcal{O}(\xi q^2)$. In high-$q$ regions, $G_{\text{eff}}$ is enhanced by factor $\xi q$.
+At the $\varphi$-fixed point ($q=0$, $\pi/\rho = \varphi^{-3}$): $G_{\text{eff}} = \varphi^{-3}G$. In the weak-field limit, PPN parameters $\beta = 1 + \mathcal{O}(\xi q^2)$, $\gamma = 1 + \mathcal{O}(\xi q^2)$. In high-$q$ regions, $G_{\text{eff}}$ is enhanced by factor $(\varphi^{6}-1)q$.
 
 ### 4.4 Gauge Sector $\mathcal{L}_{\text{SM}}$
 
@@ -290,7 +290,7 @@ Qi gate nonlinearity threshold at $n = 95$ produces a linear confining potential
 
 Gravitational kernel: $1/\sqrt{|r|^2 + \sigma^2}$ with $\sigma = \ell_{\text{Pl}}/\varphi^3$. Large $r$: inverse-square. Small $r$:
 
-$$F \propto -\frac{r}{3\sigma^3} \cdot (1 + \xi q)$$
+$$F \propto -\frac{r}{3\sigma^3} \cdot (1 + (\varphi^{6}-1)q)$$
 
 Eliminates singularities. The $\sigma$-regulator also enters the quantum gravity propagator (§7.2).
 
@@ -306,7 +306,7 @@ The Gaussian regulator makes all loop diagrams finite—no renormalization neede
 
 Point-particle reduction of the two-fluid PDE gives:
 
-$$\ddot{\mathbf{X}}_j = -G\,\alpha_j\,(1+\xi q_j)\,\sum_{i\neq j} M_i\frac{\mathbf{X}_j - \mathbf{X}_i}{|\mathbf{X}_j - \mathbf{X}_i|^3}$$
+$$\ddot{\mathbf{X}}_j = -G\,\alpha_j\,(1+(\varphi^{6}-1)q_j)\,\sum_{i\neq j} M_i\frac{\mathbf{X}_j - \mathbf{X}_i}{|\mathbf{X}_j - \mathbf{X}_i|^3}$$
 
 where $\alpha_j = \Pi_j/M_j$ is the local Yang fraction. At the $\varphi$-fixed point ($\alpha_j = \varphi^{-3}$, $q_j = 0$): $G_{\text{eff}} = \varphi^{-3}G$, masses are conserved, and the system is exactly Newtonian (non-integrable except for known special solutions). Off the fixed point, masses evolve via conversion and $G_{\text{eff}}$ is body-dependent.
 

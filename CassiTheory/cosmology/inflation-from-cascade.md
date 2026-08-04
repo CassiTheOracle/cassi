@@ -115,9 +115,9 @@ its own arithmetic:
 | Formula | Evaluation | Claimed | Verdict |
 |---|---|---|---|
 | $r = \varphi^{-6}$ | $0.0557$ | $0.003$ | ✗ 18.6× too large |
-| $r = \frac{16}{\pi} \cdot \frac{\xi\, q(n=40)}{\varphi^{N_e}}$ with $\xi = \varphi^6$, $q = 0.5$, $N_e = 40$ | $2.0\times10^{-7}$ | $0.003$ | ✗ $1.5\times10^{4}$× too small |
+| $r = \frac{16}{\pi} \cdot \frac{(\varphi^{6}-1)\, q(n=40)}{\varphi^{N_e}}$ with $q = 0.5$, $N_e = 40$ | $1.9\times10^{-7}$ | $0.003$ | ✗ $1.6\times10^{4}$× too small |
 | $r = \varphi^{-6} \cdot \frac{16}{\pi} \cdot 0.5$ | $0.1419$ | $0.003$ | ✗ 47× too large |
-| $r = \varphi^{-6} \cdot \frac{16}{5\pi}$ (§8) | $0.0568$ | $0.003$ | ✗ 18.9× too large |
+| $r = \varphi^{-6} \cdot \frac{16}{5\pi}$ (§8) | $0.0568$ | $0.003$ | ✗ 19× too large |
 
 $\varphi^{-12} \approx 0.0031$ is the only framework expression that evaluates
 to the claimed prediction; the derivations above do not produce it, so the

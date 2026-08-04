@@ -4,14 +4,14 @@
 
 ## Abstract
 
-The Qi-gravity force law in the Cassi framework is $\mathbf{F} = \pi\,(1 + \xi\,q)\,\nabla\Phi$, with $q$ the Qi density, $\Phi$ the gravitational potential, and $\xi$ the Qi-gravity coupling. This document derives the coupling from the golden ratio: $\xi = \varphi^6 = \varphi^5 + \varphi^4 \approx 17.944$, via the Fibonacci recurrence. The $2 \times 3 = 6$ degrees of freedom (two field components $\times$ three spatial dimensions) each contribute a factor of $\varphi$; the decomposition into $\varphi^5$ (Wu Xing five-element cycle) and $\varphi^4$ (four fundamental interactions) carries the coupling's structural meaning. The derived value agrees with the empirical rotation-curve calibration ($\xi \approx 18$) to 0.3%—the 0.3% is the residual of that calibration, not an independent confirmation: the empirical pin is Calibrated (Fit-Status Ledger, `parameter-inventory.md` §10).
+The Qi-gravity force law in the Cassi framework is $\mathbf{F} = \pi\,(1 + (\varphi^{6}-1)q)\,\nabla\Phi$, with $q$ the Qi density, $\Phi$ the gravitational potential, and $\xi$ the Qi-gravity coupling. This document derives the coupling from the golden ratio: $\xi = \varphi^6 = \varphi^5 + \varphi^4 \approx 17.944$, via the Fibonacci recurrence. The $2 \times 3 = 6$ degrees of freedom (two field components $\times$ three spatial dimensions) each contribute a factor of $\varphi$; the decomposition into $\varphi^5$ (Wu Xing five-element cycle) and $\varphi^4$ (four fundamental interactions) carries the coupling's structural meaning. The derived value agrees with the empirical rotation-curve calibration ($\xi \approx 18$) to 0.3%—the 0.3% is the residual of that calibration, not an independent confirmation: the empirical pin is Calibrated (Fit-Status Ledger, `parameter-inventory.md` §10).
 
 ## 1. The Problem
 
 The Qi-gravity force law in the Cassi framework is
 
 $$
-\mathbf{F} = \pi\,(1 + \xi\,q)\,\nabla\Phi
+\mathbf{F} = \pi\,(1 + (\varphi^{6}-1)q)\,\nabla\Phi
 $$
 
 where $q$ is the Qi density, $\Phi$ is the gravitational potential, and $\xi$ is the
@@ -62,7 +62,7 @@ The empirical calibration from the Milky Way rotation curve is $\xi \approx 18$,
 determined by the boost factor at galactic radius $r = 7$ (where $q \approx 0.67$):
 
 $$
-\text{Boost} = 1 + \xi\,q
+\text{Boost} = 1 + (\varphi^{6}-1)q
 $$
 
 The derived value $\xi = \varphi^6 \approx 17.944$ differs from the empirical value
@@ -74,14 +74,18 @@ consistency check of that calibration, not an independent test.
 The rotation curve boost ratio between derived and empirical values is:
 
 $$
-\frac{1 + 17.944 \times 0.67}{1 + 18 \times 0.67}
-= \frac{13.022}{13.060}
-= 0.997
+\frac{1 + 16.944 \times 0.67}{1 + 18 \times 0.67}
+= \frac{12.353}{13.060}
+= 0.946
 $$
 
-The 0.3% agreement means all Qi-gravity results (MW rotation curve,
-dwarf galaxy dynamics, MESSENGER perihelion bound, terminal attractor convergence)
-stand at observational precision.
+The constant-level 0.3% agreement anchors the saturation maximum. The
+$q$-coefficient itself is the saturation-anchored chord $(\varphi^6-1)$: the
+boost is exactly $1$ at $q = 0$ (Newtonian) and exactly $\varphi^6$ at $q \to 1$—
+the chord through the two exact endpoints, not a Taylor linearization of the
+exact ladder $1/(1-(1-\varphi^{-6})q)$. All Qi-gravity results (MW rotation
+curve, dwarf galaxy dynamics, MESSENGER perihelion bound, terminal attractor
+convergence) stand at observational precision.
 
 ## 4. Prediction
 
@@ -173,7 +177,7 @@ angle—from a single irrational number: $\varphi$.
 ## References
 
 - `foundations/cassi-first-principles.md`—two-fluid postulate, Qi-enhanced gravity
-- `foundations/unified-lagrangian.md`—the complete action with $G_{\text{eff}} = G(\pi/\rho)(1+\xi q)$
+- `foundations/unified-lagrangian.md`—the complete action with $G_{\text{eff}} = G(\pi/\rho)(1+(\varphi^{6}-1)q)$
 - `foundations/wu-xing-derivation.md`—$w = 5$ uniqueness, five-element cycle
 - `foundations/why-three-dimensions.md`—three dimensions from the spiral's Frenet-Serret frame
 - `foundations/dimensionful-constants-status.md`—external dimensionful constants, parameter accounting
