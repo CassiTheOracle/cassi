@@ -230,10 +230,37 @@ def main():
     print("  evidence; the K = 3 advance (0.2%) remains the only")
     print("  channel-split support.")
     print()
+    print("  Transition-zone reading (the five-fold as the pole structure):")
+    print("  the EW scale is interior to the universe bubble (rung ~80 of")
+    print("  285); the half-rungs (K=2 checkerboard) and the K=3 EW pool")
+    print("  are interior structures.  The five-fold belongs to the")
+    print("  transitions: the top closure (the ladder starts at 5 — the")
+    print("  pentagon; 285 = 5x57, the Cassi bubble on a five-arm closure")
+    print("  boundary) and the bottom — the Planck transition, where a new")
+    print("  bubble starts down the cascade.  Transition band (rungs 0-17):")
+    for name, m in [("M_Pl", 1.220890e19),
+                    ("reduced M_Pl", 1.220890e19 / np.sqrt(8 * np.pi)),
+                    ("GUT 1e16", 1.0e16), ("GUT 3e15", 3.0e15),
+                    ("GUT 3e16", 3.0e16)]:
+        nn = n_of(m)
+        frac = nn % 1.0
+        br = min(min(abs(frac - f), 1 - abs(frac - f))
+                 for f in [0.2, 0.4, 0.6, 0.8, 0.0])
+        print(f"    {name:>12}: n = {nn:7.2f}, frac {frac:.3f},"
+              f" nearest fifth resid {br:+.3f}")
+    print("  the only fifth candidate in the band is the GUT scale at")
+    print("  14.77 = 14 + 4/5 (resid 0.0302, 1.5% in scale — borderline;")
+    print("  the GUT band 10^15.5-10^16.5 spans rungs 12.4-17.2, so the")
+    print("  4/5 position lies inside the uncertainty band).")
+    print()
     print("  Verdict: the channel-split hypothesis is Hypothesized —")
     print("  K = 3 matches the t/H phase difference to 0.2% but the")
     print("  coherent 3-bubble pattern does not reproduce the crossings")
-    print("  (probe T8 panel F), and K = 5 has no statistical footprint.")
+    print("  (probe T8 panel F); K = 5 has no interior footprint (10 vs")
+    print("  12 expected), which is the expected reading if the five-fold")
+    print("  is a transition structure: the top transition already shows")
+    print("  it (285 = 5x57), and the bottom-transition probe (the GUT at")
+    print("  4/5) is borderline, not a hit.")
     print()
 
 

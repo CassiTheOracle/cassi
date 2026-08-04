@@ -185,9 +185,9 @@ def main():
         u_an = u_of(xm)
         print(f"  {f:>6.3f} {u_pde:>+12.3f} {dn_pde:>+9.3f}"
               f" {u_an:>+10.3f}")
-    print("  the doc's 'asymmetry does not move it at psi = 0' claim is")
-    print("  checked against the analytic and the PDE (the crossing moves"
-          "  with f at any psi).")
+    print("  the crossing responds to amplitude asymmetry at any psi:")
+    print("  f = 1: -0.440, f = 0.8: -0.330, f = 0.618: -0.229 at psi = 0;")
+    print("  x_max(f, psi) = -arg(1 + f e^{i(psi-2 pi phi)})/2 pi is exact.")
 
     print()
     print("  Verdicts:")
