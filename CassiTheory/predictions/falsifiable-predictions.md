@@ -128,8 +128,8 @@ is $\sqrt{\varphi^6} = \varphi^3 \approx 4.24$ at full coherence ($q = 1$, $\alp
 | $\theta_{12}$ (solar mixing) | $33.4^\circ$ | **$\arctan(1/\varphi) \approx 31.7^\circ$** | 1.7°—from conversion Jacobian eigenvector $(\varphi,1)$ | JUNO (3% precision, 2027+) |
 | $\theta_{13}$ (reactor mixing) | $8.5^\circ$ | **$\arctan(\varphi^{-4}) \approx 8.3^\circ$** | 0.2°—from cascade-step suppression across seesaw span | Daya Bay / RENO (already consistent); DUNE precision |
 | $\theta_{23}$ (atmospheric) | $\sim 45^\circ$ | **$45^\circ$ (exact maximal)** | From eigenvector $(1,-1)$—equal $E_Y,E_I$ components | Hyper-K / DUNE octant resolution |
-| $\Delta m^2_{31}/\Delta m^2_{21}$ | $\approx 33$ | **$\approx 33.8$ (0.2%)** | Seesaw $y_\nu^2$ amplification + non-uniform Fibonacci partitioning pinned by cascade RGE + PMNS ($\Delta_1 = 1.00$, $\Delta_2 = 1.75$ rungs) | JUNO (sub-percent $\Delta m^2$, 2027+) |
-| $\delta_{\text{CP}}$ (PMNS) | Unknown (hint $\sim -90^\circ$ to $-180^\circ$) | **$\pi\varphi^{-2} \approx 69^\circ$ or $\pi\varphi^{-3} \approx 42^\circ$** (same $\varphi$-structure as CKM) | T2K/NOvA → Hyper-K/DUNE |
+| $\Delta m^2_{31}/\Delta m^2_{21}$ | $\approx 33$ | **$\approx 33.8$ (0.2%)** | offsets $\Delta_1 = 1.00$, $\Delta_2 = 1.75$ grid-fit against the observed ratio (Mapped — ledger §10; 0-dof fit, the 0.2% is grid quantization) | JUNO (sub-percent $\Delta m^2$, 2027+) |
+| $\delta_{\text{CP}}$ (PMNS) | Unknown (hint $\sim -90^\circ$ to $-180^\circ$) | **$\pi\varphi^{-2} \approx 69^\circ$ or $\pi\varphi^{-3} \approx 42^\circ$** (both Mapped candidates — ledger §10; same $\varphi$-structure as CKM) | measured $\sim 197^\circ$ excludes both at ≥5σ | T2K/NOvA → Hyper-K/DUNE |
 | DM direct detection | Predicted (WIMP) | **Null** (field condensate) | All expts null—consistent |
 | $m_t / v_0$ | $0.703$ | **0.618** ($\varphi^{-1}$) | $12\%$ gap |
 | $m_b / m_t$ | $0.025$ | **0.031** ($\varphi^{-1}$) | $24\%$ gap |
@@ -141,7 +141,7 @@ is $\sqrt{\varphi^6} = \varphi^3 \approx 4.24$ at full coherence ($q = 1$, $\alp
 The proton lifetime prediction depends on the full GUT embedding (SU(5) or SO(10)).
 Seesaw analysis with $M_R = \varphi^{-3} \cdot M_{\text{GUT}}$ gives the heaviest neutrino $m_3 = 0.05019$ eV (cascade RGE + PMNS; $\Sigma m_\nu = 0.0631$ eV).
 
-**PMNS mixing angles—zero-parameter from conversion Jacobian:** At the seesaw scale (cascade steps 8–20, $r \ll \varphi$), rapid Yang-Yin conversion creates an interference pattern with the same cosine-product structure as the condensation field. The conversion Jacobian $J = \lambda[[-1,\varphi],[1,-\varphi]]$ has eigenvectors $(\varphi,1)$ and $(1,-1)$, giving $\theta_{12} = \arctan(1/\varphi)$ and $\theta_{23} = 45^\circ$ directly. $\theta_{13} = \arctan(\varphi^{-4})$ follows from cascade-step suppression across the 12-rung seesaw span. All three angles are within 2° of observation with zero free parameters. **Source:** `foundations/neutrino-masses.md`, `foundations/bubble-edge-geometry.md` §1.2 (conversion-diffusion balance at rapid-conversion points).
+**PMNS mixing angles—conversion Jacobian eigenvectors:** At the seesaw scale (cascade steps ~13.3–20, $r \ll \varphi$), rapid Yang-Yin conversion creates an interference pattern with the same cosine-product structure as the condensation field. The conversion Jacobian $J = \lambda[[-1,\varphi],[1,-\varphi]]$ has eigenvectors $(\varphi,1)$ and $(1,-1)$, giving $\theta_{12} = \arctan(1/\varphi)$ and $\theta_{23} = 45^\circ$ directly. $\theta_{13} = \arctan(\varphi^{-4})$ follows from cascade-step suppression across the ~7-rung seesaw span (the offsets are Mapped per the Fit-Status Ledger, `parameter-inventory.md` §10). All three angles are within 2° of observation with zero free parameters. **Source:** `foundations/neutrino-masses.md`, `foundations/bubble-edge-geometry.md` §1.2 (conversion-diffusion balance at rapid-conversion points).
 
 **Prediction 42:** The Dirac$\leftrightarrow$two-fluid sector-coupling scale is $\kappa_s^{-1/2} = \varphi^3 v_0 \approx 1.04$ TeV—cascade rung 77 (987.7 GeV), three rungs above the electroweak rung; equivalently $\kappa_s = \varphi^{-6}/v_0^2 = 0.92$ TeV$^{-2}$. The repaired PDE bridge then requires $\chi = \mathcal{N}_{\text{pde}}\,\kappa_s\,\varphi^{-1}/[m_e(1+\varphi)] \in [0.5, 1.0]$ once the solver-normalization factor $\mathcal{N}_{\text{pde}}$ is computed; a sharp $\chi$ measurement (factor $< 2$) fixes the $O(1)$ coefficient (candidates $C = 1, \varphi^{-1}, \varphi^{-2}$).
 
@@ -195,16 +195,16 @@ Sorted by detection likelihood (most definitive first):
 | 5 | φ-periodic $P(k)$ | Cosmic surveys | **$\Delta\ln k = \ln\varphi = 0.4812$** | 0-param, orthogonal to BAO | **DESI / Euclid 2025–27** |
 | 6 | CMB bubble-boundary axis | CMB-S4 / LiteBIRD | **12.2° alignment, $\ell<5$** | Axis at 5.4σ, alignment ~1σ | **Simons Obs. 2025+** |
 | 7 | $r$ (tensor ratio) | CMB-S4 / LiteBIRD | **0.003** | $<0.032$ (Planck) | **2030s** |
-| 8 | $n_s$ | CMB-S4 | **0.9691** | $1.0\sigma$ from Planck | **Already consistent** |
+| 8 | $n_s$ | CMB-S4 | **0.9691** (closed form; $N_e = 40$ window Mapped — ledger) | $1.0\sigma$ from Planck | **Already consistent** |
 | 9 | $\alpha_s(m_Z)$ | LHC precision | **0.058–0.061** | $2.0\times$ below measured $0.118$ ($\Delta b = 1.70$) | **Ongoing** |
 | 10 | $p \to e^+\pi^0$ lifetime | Hyper-K | **$4\times10^{34}$ yr** | $>1\times10^{34}$ yr bound | **2030s** |
 | 11 | $w(z)$ at $z > 3$ | LSST/Roman/SKA | **$> -1$ at all $z$** (no phantom crossing, structural) | DESI best fit crosses at $z \approx 0.5$; not yet tested | **2030s** |
 | 12 | Hubble tension | Cosmic | **Evolving $\Omega_\Lambda$: $0.30 \to 0.50$ (full $H(z)$ fit pending)** | Pending—full H(z) fit (registry C3/T4); pipeline CMB-inferred ≈ 65.8 | **2030s** |
-| 13 | $\eta$ (baryon asymmetry) | Cosmic | **$6.38\times10^{-10}$** ($\varphi^{-44}$) | $6.0\times10^{-10}$ ($6.3\%$ above) | **Already consistent** |
-| 14 | Galaxy rotation curves | Galactic | **$2.9$–$3.1\times$ baryon boost** | MW confirmed ($2.7\pm0.5$; ~1.2σ) | **Already consistent** |
+| 13 | $\eta$ (baryon asymmetry) | Cosmic | **$6.38\times10^{-10}$** ($\varphi^{-44}$; exponent Mapped — ledger) | $6.0\times10^{-10}$ ($6.3\%$ above) | **Already consistent** |
+| 14 | Galaxy rotation curves | Galactic | **$2.9$–$3.1\times$ baryon boost** (mechanism Calibrated via the $\xi$ pin; $\alpha_{\text{halo}}$, $q$ Mapped — ledger) | MW boost $2.7\pm0.5$ is the calibration object—consistency check, not an independent test | **Calibrated / Mapped** |
 | 15 | Dwarf galaxy cored halos | Galactic | **Cored (Qi)**—3/8 pass | MOND preferred (4/8); ceiling $\sqrt{\varphi^6} = \varphi^3 \approx 4.24$ exceeded in 3/8 | **Already tested** |
-| 16 | BH shadow M87$^*$ | EHT | **$\sim 5.2M$** (core) | Consistent with $5M$ | **Already consistent** |
-| 17 | GW strain in halos | LIGO | **Up to $10\times$ GR** | Constrains $q < 0.1$–$0.3$ | **Ongoing** |
+| 16 | BH shadow M87$^*$ | EHT | **GR limit ($q = 0$): $3\sqrt{3}M \approx 5.2M$** | no Cassi metric exists—shadow prediction not yet derived | **Hypothesized (untested)** |
+| 17 | GW strain in halos | LIGO | **Up to ~10× GR** in halo-outskirt environments ($\pi/\rho$ dilutes cluster cores) | bound uncomputed (script print statement)—pending GW170817 strain-ratio recomputation | **Hypothesized** |
 | 18 | Pioneer anomaly | Solar system | **$a_\varphi = 7.4\times10^{-10}$ m/s$^2$** | $1\sigma$ agreement | **Already explained** |
 | 19 | Mercury perihelion | MESSENGER | **42.98 arcsec/cy** | GR recovered ($q=0$) | **Already consistent** |
 | 20 | $0\nu\beta\beta$ decay | nEXO | **$m_{\nu_e} \sim 0.01$–$0.05$ eV** | nEXO reach $\sim 0.01$ eV | **2030s** |
