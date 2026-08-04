@@ -25,7 +25,7 @@ PHI_INV = 1.0 / PHI
 
 # Panel (a)—Dark Energy Calibration
 FIG1_DE = {
-    'w0': -0.838,                      # Cassi prediction (stale placeholder—corrected 2026-07-31: w0 = −0.87, see calibrate_initial_ratio_xi_v2.py)
+    'w0': -0.87,                       # calibration target (DESI-anchored, Mapped tier — see parameter-inventory fit ledger); not a prediction — synced to doctrine settlement 2026-08-03
     'w0_err': 0.028,                   # unverified hardcoded placeholder, NOT a measured DESI constraint (corrected 2026-07-31)
     'r0_phi': PHI,                     # initial ratio at φ attractor
     'r0_range': np.linspace(0.5, 2.5, 200),
@@ -212,7 +212,7 @@ FIG3_DIRAC = [
 
 # verdict: 'PASS' (green ✓), 'PARTIAL' (yellow), 'PREDICTION' (blue)
 SCORECARD_ROWS = [
-    # STALE (corrected 2026-07-31): −0.838 ± 0.028 was the repo's own
+    # Calibration-target note: the former −0.838 ± 0.028 was the repo's own
     # calibration target, not a measured DESI constraint—circular match.
     {
         'id': 1,
