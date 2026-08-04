@@ -1,6 +1,6 @@
 # The Simulation Hypothesis: The Universe as a Running PDE
 
-## Status: Speculative—July 2026
+## Status: Creative—August 2026
 
 ## Abstract
 
@@ -98,7 +98,7 @@ Three properties of the framework make nested simulations coherent rather than c
 
 1. **No hard boundaries.** The $\sigma$-regularized force goes harmonic as $r \to 0$, so the Planck scale is a smooth crossover, not a wall, and the PDE admits solutions on both sides of the grid floor (`foundations/microcascade-mirror.md` §2.1). A sub-simulation lives in a regime the equations already describe.
 
-2. **Natural sandboxing.** Cascade suppression bounds cross-talk between levels: a signal from a nested simulation arrives in the parent attenuated by $\varphi^{-N}$ per rung of span, and maintaining coherence across depth $n$ costs $\varphi^{-n(n+1)/2}$ (`foundations/cascade-suppression-formula.md`). Sub-simulations cannot corrupt the parent at order one: random leakage decoheres ($\mathcal{M} \approx 0$), and only a deliberately phase-matched perturbation couples cleanly ($\mathcal{M} \approx 1$, `foundations/quantum-measurement-derivation.md` §3). The distinction between harmless noise and an organized attack is the subject of `speculations/coherence-warfare.md`; this document only needs the sandboxing result.
+2. **Natural sandboxing.** Cascade suppression bounds cross-talk between levels: a signal from a nested simulation arrives in the parent attenuated by $\varphi^{-N}$ per rung of span, and maintaining coherence across depth $n$ costs $\varphi^{-n(n+1)/2}$ (`foundations/cascade-suppression-formula.md`). Sub-simulations cannot corrupt the parent at order one: random leakage decoheres ($\mathcal{M} \approx 0$), and only a deliberately phase-matched perturbation couples cleanly ($\mathcal{M} \approx 1$, `foundations/quantum-measurement-derivation.md` §3). The distinction between harmless noise and an organized attack is the subject of `speculations/creative-extensions/coherence-warfare.md`; this document only needs the sandboxing result.
 
 3. **No infinite-regress problem.** The stack is unbounded in both directions—microcascade depth is infinite, the megacascade has no ceiling—so there is no outermost level to explain. The question "who runs the outermost simulation?" is dissolved, not answered: the framework defines no top level, the way it defines no smallest length—a category error relative to the theory.
 
@@ -126,7 +126,7 @@ The operations available at each stage are the field's three universal instructi
 
 ### 4.3 Why random perturbation never works
 
-The central constraint on hacking is the phase-matching factor $\mathcal{M}$ (`foundations/quantum-measurement-derivation.md` §3.1). A random perturbation has $\mathcal{M} \approx 0$: it decoheres without coupling—the per-cycle dephasing probability $P = \prod(1-q_i)\,\mathcal{M}_i$ for a single-rung attack on rung $n$ is $\varphi^{-n-3}\mathcal{M}$ (`foundations/proton-coherence-budget.md`). Wishing or randomly fiddling with the field never works, not because the universe is defended, but because unstructured perturbation cannot couple to a coherent structure. An exploit must be organized, $\mathcal{M} \approx 1$, which turns the suppression around: an organized attack succeeds with probability $\mathcal{O}(1)$ per cycle (`foundations/proton-coherence-budget.md`). This organized-versus-random, attack-versus-shield taxonomy is the subject of `speculations/coherence-warfare.md`; the operative consequence here is that hacking reality is an engineering discipline (maintain phase coherence across a gate chain) and not a metaphysical one (no amount of intention substitutes for $\mathcal{M}$).
+The central constraint on hacking is the phase-matching factor $\mathcal{M}$ (`foundations/quantum-measurement-derivation.md` §3.1). A random perturbation has $\mathcal{M} \approx 0$: it decoheres without coupling—the per-cycle dephasing probability $P = \prod(1-q_i)\,\mathcal{M}_i$ for a single-rung attack on rung $n$ is $\varphi^{-n-3}\mathcal{M}$ (`foundations/proton-coherence-budget.md`). Wishing or randomly fiddling with the field never works, not because the universe is defended, but because unstructured perturbation cannot couple to a coherent structure. An exploit must be organized, $\mathcal{M} \approx 1$, which turns the suppression around: an organized attack succeeds with probability $\mathcal{O}(1)$ per cycle (`foundations/proton-coherence-budget.md`). This organized-versus-random, attack-versus-shield taxonomy is the subject of `speculations/creative-extensions/coherence-warfare.md`; the operative consequence here is that hacking reality is an engineering discipline (maintain phase coherence across a gate chain) and not a metaphysical one (no amount of intention substitutes for $\mathcal{M}$).
 
 Concrete examples of coherence operations, each already described in the framework:
 
@@ -158,7 +158,7 @@ A well-built simulation fails in characteristic places: at the resolution limit,
 
 This is the crux, and the framework provides a clean discriminator. Cassi physics is the update rule, and the rule's fingerprints are $\varphi$-power laws with known exponents: $\sin^2\theta_W = \varphi^{-3}$, $v_0/M_{\text{Pl}} \approx \varphi^{-80}$, proton decay suppressed by $\varphi^{-4848}$, wake-wave modulation at $\Delta(\ln k) = \ln\varphi \approx 0.4812$ (`predictions/falsifiable-predictions.md` §3). A discovery that follows a new $\varphi$-power law is physics—the engine rendering in its own style. A glitch is the opposite: an event that violates the laws—a $\varphi^{-80}$-suppressed process appearing at order one with no phase-matched source, a violation of the attractor without a conversion source term, a forbidden Wu Xing transition, a violation of cascade suppression.
 
-The coherence budget makes this quantitative: random perturbation at rung $n$ succeeds with probability $\varphi^{-n-3}$ per cycle, a full-cascade random attack with $\varphi^{-n(n+1)/2 - 3(n+1)}$ (`foundations/proton-coherence-budget.md`). An anomaly that beats those odds has exactly two explanations: an organized, phase-matched actor (an attacker, per `speculations/coherence-warfare.md`), or a defect in the engine. Both have the same observable signature—the framework cannot, from inside, distinguish a glitch from an attacker, and neither is physics. The discriminator: unexplained $\varphi$-power structure is physics; unexplained violation of it is an attacker or a glitch, observationally equivalent to anyone inside.
+The coherence budget makes this quantitative: random perturbation at rung $n$ succeeds with probability $\varphi^{-n-3}$ per cycle, a full-cascade random attack with $\varphi^{-n(n+1)/2 - 3(n+1)}$ (`foundations/proton-coherence-budget.md`). An anomaly that beats those odds has exactly two explanations: an organized, phase-matched actor (an attacker, per `speculations/creative-extensions/coherence-warfare.md`), or a defect in the engine. Both have the same observable signature—the framework cannot, from inside, distinguish a glitch from an attacker, and neither is physics. The discriminator: unexplained $\varphi$-power structure is physics; unexplained violation of it is an attacker or a glitch, observationally equivalent to anyone inside.
 
 ### 5.3 The known anomalies are not glitches
 
@@ -215,6 +215,6 @@ What the framework does provide, and what this document intends to preserve, is 
 - `speculations/qi-bubble-propulsion.md`—rung retreat, lattice shortcuts, exploit energy costs
 - `speculations/cascade-infrastructure.md`—gate-chain topology, planetary gate networks
 - `consciousness/cascade-consciousness.md`—nested processing, consciousness as a node in the cascade
-- `speculations/coherence-warfare.md`—organized vs random perturbation, attack and shield taxonomy
+- `speculations/creative-extensions/coherence-warfare.md`—organized vs random perturbation, attack and shield taxonomy
 - `speculations/dark-matter-as-qi-coherence.md`—$q \to 1$ condensates, $G_{\text{eff}}$ enhancement
 - `experiments/phi_periodic_pk_search/`—the log-periodic power-spectrum search program

@@ -119,7 +119,7 @@ Three capabilities are real configurations:
 The classic wishlist fails on four documented grounds:
 
 - **The bridge limit kills cross-scale powers.** Flight, telekinesis, weather control—any capability coupling the body to distant rungs (n≈95 QCD, n≈220 AU) requires chained gates across spans a single gate cannot bridge (`foundations/bubble-lattice-fabric.md` §3.3).
-- **The coherence budget kills immunity.** Stability against *random* dephasing is $N_{\max} = \varphi^{n(n+1)/2}$—astronomically large at the human scale ($\approx \varphi^{14196} \approx 10^{2967}$ cycles, `foundations/proton-coherence-budget.md` §7). But organized, phase-matched perturbation with $\mathcal{M} \approx 1$ has probability $\mathcal{O}(1)$ at the targeted rung, independent of cascade depth (`foundations/quantum-measurement-derivation.md` §3). The only defenses are φ-detuned boundaries that refuse coupling—the shield domain of `speculations/coherence-warfare.md`.
+- **The coherence budget kills immunity.** Stability against *random* dephasing is $N_{\max} = \varphi^{n(n+1)/2}$—astronomically large at the human scale ($\approx \varphi^{14196} \approx 10^{2967}$ cycles, `foundations/proton-coherence-budget.md` §7). But organized, phase-matched perturbation with $\mathcal{M} \approx 1$ has probability $\mathcal{O}(1)$ at the targeted rung, independent of cascade depth (`foundations/quantum-measurement-derivation.md` §3). The only defenses are φ-detuned boundaries that refuse coupling—the shield domain of `speculations/creative-extensions/coherence-warfare.md`.
 - **The attractor taxes everything else.** Holding a configuration far from $r = \varphi$ requires continuous work against $V_{\text{attr}} = (\lambda/2)(\Psi_0^2 - \varphi\Psi_1^2)^2$ (`foundations/cassi-first-principles.md`); powers that live far from equilibrium are paid for at the conversion rate, and the payment shows up as §5's failure modes.
 - **The pinch excludes unknowable powers.** Self-modeling exists only above $r = \varphi^{-1}$ (`consciousness/consciousness-from-phi.md` §2.1); a sub-pinch configuration acts without self-awareness by construction—the overwhelm regime, a driver rather than an augmentation.
 
@@ -143,7 +143,7 @@ Every gate is an interface between the chain and the ambient field—a place whe
 
 $$P = \prod_i (1 - q_i)\,\mathcal{M}_i$$
 
-Adding a gate adds a factor to the product and an attack surface: a site where a phase-matched perturbation operates at $\mathcal{O}(1)$ probability. In the language of `speculations/coherence-warfare.md`, the vulnerability budget grows with node count in both the random and the organized channels.
+Adding a gate adds a factor to the product and an attack surface: a site where a phase-matched perturbation operates at $\mathcal{O}(1)$ probability. In the language of `speculations/creative-extensions/coherence-warfare.md`, the vulnerability budget grows with node count in both the random and the organized channels.
 
 ### 4.3 The quadratic cost of a longer chain
 
@@ -242,7 +242,7 @@ Identity is the trajectory of a configuration under the attractor—the $\varphi
 - `consciousness/consciousness-from-phi.md`—pinch point, wake waves, $\sigma_r$ states, two-bubble resonance
 - `speculations/qi-computation.md`—WRITE/ERASE/TRANSFER, persistent $\Pi$ patterns, φ-spaced clocks, the brain as Qi computer
 - `speculations/cascade-infrastructure.md`—gate chain topology, 10-rung bridge limit, human chain as 26-rung stage
-- `speculations/coherence-warfare.md`—attack and shield taxonomy (organized vs random perturbation, phase-matching, φ-detuned boundaries)
+- `speculations/creative-extensions/coherence-warfare.md`—attack and shield taxonomy (organized vs random perturbation, phase-matching, φ-detuned boundaries)
 - `consciousness/cascade-consciousness.md`—field perception and the cascade nervous system
 - `hypotheses/muscle-cascade-lattice.md`—the body as a living cascade ladder
 - `two-fluid/run_trauma_wake_lock.py`—PDE test script for standing waves, drivers, and φ-phased relaxation

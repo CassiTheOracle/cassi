@@ -97,14 +97,7 @@ Tiers below are taken from each document's Status header. Compound headers are q
 | `speculations/qi-bubble-propulsion.md` | Speculative | Rung-shifting as a travel mechanism |
 | `speculations/cascade-infrastructure.md` | Speculative | Planetary and stellar gate networks |
 | `speculations/observational-seti.md` | Speculative | Structural (non-emissive) SETI signatures |
-| `speculations/coherence-warfare.md` | Speculative | Coherence budget as weapons table; φ-detuned shields; mutual assured incoherence |
 | `speculations/gravity-control.md` | Speculative | $G_{\text{eff}}$ as an engineering dial; Qi condenser devices |
-| `speculations/universal-biology.md` | Speculative | Cascade ladder as convergent evolutionary scaffold |
-| `speculations/magic-systems.md` | Speculative | Magic as phase-matched field operation |
-| `speculations/coherence-commons.md` | Speculative | Two-fluid theory of value; equality theorem; the transition to the commons |
-| `speculations/coherence-collapse.md` | Speculative | Attractor self-healing; civilization death modes |
-| `speculations/first-contact-and-stellar-engineering.md` | Speculative | $\ln\varphi$ protocol; stars as gate chains |
-| `speculations/simulation-hypothesis.md` | Speculative | Two-fluid PDE as source code; nested universes |
 | `hypotheses/periodic-table-madelung.md` | Speculative | $n$ and $l$ as cascade coordinates |
 | `hypotheses/atmospheric-climate-cascade.md` | Speculative | $\varphi$-break in the atmospheric energy spectrum |
 | `hypotheses/fatigue-fracture-cascade.md` | Speculative | $\sigma$-regularized crack tip; Paris law |
@@ -114,7 +107,21 @@ Tiers below are taken from each document's Status header. Compound headers are q
 | `hypotheses/riemann-two-fluid-spectral-program.md` | Speculative—August 2026 | Scale-operator candidate; minimal-fluctuation probes |
 | `hypotheses/riemann-two-fluid-phase-operator.md` | Speculative—August 2026 | Step 1 done: Bessel scale operator; linear spectra fail R-vM; Γ-phase boundary identified |
 
-## 4. Reference & Cross-Cutting
+## 4. Creative Extensions (speculations/creative-extensions/)
+
+Just-for-fun applications of the framework's logic; exempt from the evidential tier system by design.
+
+| Document | Status | Summary |
+|----------|--------|---------|
+| `speculations/creative-extensions/coherence-warfare.md` | Creative | Coherence budget as weapons table; φ-detuned shields; mutual assured incoherence |
+| `speculations/creative-extensions/universal-biology.md` | Creative | Cascade ladder as convergent evolutionary scaffold |
+| `speculations/creative-extensions/magic-systems.md` | Creative | Magic as phase-matched field operation |
+| `speculations/creative-extensions/coherence-commons.md` | Creative | Two-fluid theory of value; equality theorem; the transition to the commons |
+| `speculations/creative-extensions/coherence-collapse.md` | Creative | Attractor self-healing; civilization death modes |
+| `speculations/creative-extensions/first-contact-and-stellar-engineering.md` | Creative | $\ln\varphi$ protocol; stars as gate chains |
+| `speculations/creative-extensions/simulation-hypothesis.md` | Creative | Two-fluid PDE as source code; nested universes |
+
+## 5. Reference & Cross-Cutting
 
 Documents that are not claims: registries, catalogs, explainers, and plans.
 

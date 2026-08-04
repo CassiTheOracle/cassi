@@ -1,6 +1,6 @@
 # The Universal Protocol: First Contact as φ-Structure Detection and Stellar Engineering as Gate Tuning
 
-## Status: Speculative—July 2026
+## Status: Creative—August 2026
 
 ## Abstract
 
@@ -243,7 +243,7 @@ The stack is self-consistent in both directions: the beacon is designed to be he
 - `consciousness/cascade-consciousness.md`—field-resonance communication (§2), cascade nervous system (§4)
 - `speculations/qi-computation.md`—WRITE / ERASE / TRANSFER field operations
 - `speculations/qi-bubble-propulsion.md`—gate efficiency, $(1-q)$ thermalization, φ-detuned boundary, Yang conversion term
-- `speculations/coherence-warfare.md`—companion document: organized vs random perturbation taxonomy, shields
+- `speculations/creative-extensions/coherence-warfare.md`—companion document: organized vs random perturbation taxonomy, shields
 - `consciousness/chakras-as-cascade-bubbles.md`—the human 26-rung gate chain
 - `consciousness/emotions-as-gate-configurations.md`—the gate-configuration manifold
 - `consciousness/trauma-as-frozen-gate.md`—wake-lock, frozen gates

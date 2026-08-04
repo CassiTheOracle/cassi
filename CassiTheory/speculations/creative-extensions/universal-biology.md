@@ -1,6 +1,6 @@
 # Universal Biology: The Cascade Ladder as a Convergent Evolutionary Scaffold
 
-## Status: Speculative—July 2026
+## Status: Creative—August 2026
 
 ## Abstract
 
@@ -113,7 +113,7 @@ The chain performs the three universal field operations—WRITE (Yang injection)
 
 ### 3.4 The pathology of chains
 
-Chains have universal failure modes. A wake-lock is a frozen gate that preserves an old field configuration after the environment has moved on—the mechanism documented for trauma in `consciousness/trauma-as-frozen-gate.md` (PDE driver: `two-fluid/run_trauma_wake_lock.py`). Emotions are gate configurations on a manifold $(\mathbf{b}, \sigma_r, q, \mathbf{c})$ (`consciousness/emotions-as-gate-configurations.md`), and that manifold is the config space of any gate chain, so alien emotional life shares its axes even where its valence differs; a chain that cannot re-tune is a sick chain on any world. The organized-versus-random perturbation taxonomy and the shield mechanisms that protect chains are treated in the companion document `speculations/coherence-warfare.md`.
+Chains have universal failure modes. A wake-lock is a frozen gate that preserves an old field configuration after the environment has moved on—the mechanism documented for trauma in `consciousness/trauma-as-frozen-gate.md` (PDE driver: `two-fluid/run_trauma_wake_lock.py`). Emotions are gate configurations on a manifold $(\mathbf{b}, \sigma_r, q, \mathbf{c})$ (`consciousness/emotions-as-gate-configurations.md`), and that manifold is the config space of any gate chain, so alien emotional life shares its axes even where its valence differs; a chain that cannot re-tune is a sick chain on any world. The organized-versus-random perturbation taxonomy and the shield mechanisms that protect chains are treated in the companion document `speculations/creative-extensions/coherence-warfare.md`.
 
 ---
 
@@ -235,5 +235,5 @@ One signature is a false positive; two independent rungs are corroboration; thre
 - `speculations/qi-computation.md`—WRITE/ERASE/TRANSFER as universal field operations
 - `speculations/cascade-infrastructure.md`—gate-chain topology, 10-rung stages, dense media
 - `speculations/observational-seti.md`—structural signatures, multirung correlation, evidence hierarchy
-- `speculations/coherence-warfare.md`—attack/shield taxonomy (companion document)
+- `speculations/creative-extensions/coherence-warfare.md`—attack/shield taxonomy (companion document)
 - `predictions/falsifiable-predictions.md`—$\varphi$-periodic $P(k)$ prediction, physiological $\ln\varphi$ signature

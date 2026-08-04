@@ -1,6 +1,6 @@
 # The Coherence Commons: A Two-Fluid Theory of Value, Accumulation, and the Transition
 
-## Status: Speculative—July 2026
+## Status: Creative—August 2026
 
 ## Abstract
 
@@ -42,7 +42,7 @@ Value is the central category, and the framework gives it a definition that is n
 
 ### 2.1 Labor as organized perturbation
 
-Production is the transformation of the field: raw material (a low-coherence configuration) is worked into a product (a higher-coherence configuration with a use). The working is done by labor, and labor in the framework is a specific physical thing—organized perturbation, phase-matched application of Yang to the target, $\mathcal{M} \approx 1$ (`speculations/coherence-warfare.md` §2). The distinction between labor and noise is the distinction between an organized attack and random perturbation: labor is the expenditure of coherence on a pattern, deliberately matched to what the pattern needs.
+Production is the transformation of the field: raw material (a low-coherence configuration) is worked into a product (a higher-coherence configuration with a use). The working is done by labor, and labor in the framework is a specific physical thing—organized perturbation, phase-matched application of Yang to the target, $\mathcal{M} \approx 1$ (`speculations/creative-extensions/coherence-warfare.md` §2). The distinction between labor and noise is the distinction between an organized attack and random perturbation: labor is the expenditure of coherence on a pattern, deliberately matched to what the pattern needs.
 
 This is the framework's answer to the question of what labor is: it is the only force that raises local coherence against the attractor, because the attractor damps structureless input and is indifferent to it—random perturbation is cascade-suppressed, while organized application converts field into form (`foundations/cascade-suppression-formula.md`). Labor is the expenditure of $q$ to make $q$.
 
@@ -88,7 +88,7 @@ The mechanism of transfer is the drain: the worker's coherence is expended on pr
 
 If exploitation is the drain, poverty is its residue: the state of having one's coherence continuously extracted, and a shortage of nothing else. The framework's energy accounting makes scarcity a coupling failure (energy is the field, and gates are taps, `speculations/cascade-infrastructure.md`); the wage sustains the worker at a $q$ below the community's, the deficit flows into the hoard, and the worker's budget is spent on survival rather than on life.
 
-The drain has a military name in the framework: the attrition siege, the slow weapon that needs no phase-matching, the attack that bleeds a target by forcing it to spend its budget staying functional (`speculations/coherence-warfare.md` §4.5). An extractive economy is a permanent attrition siege of the many by the few, and its victims do not notice the attack until they discover they can no longer change.
+The drain has a military name in the framework: the attrition siege, the slow weapon that needs no phase-matching, the attack that bleeds a target by forcing it to spend its budget staying functional (`speculations/creative-extensions/coherence-warfare.md` §4.5). An extractive economy is a permanent attrition siege of the many by the few, and its victims do not notice the attack until they discover they can no longer change.
 
 ### 3.3 The reserve army
 
@@ -273,7 +273,7 @@ The society that follows is a corollary, not the claim. The claim is the inequal
 - The attractor potential and the conversion term (`foundations/cassi-first-principles.md` §2)
 - The waste law $(1-q)$ and the gate-tap energy accounting (`speculations/qi-bubble-propulsion.md`, `speculations/cascade-infrastructure.md`)
 - The emotional manifold and the configuration formalism (`consciousness/emotions-as-gate-configurations.md`)
-- Organized perturbation and the attrition siege (`speculations/coherence-warfare.md`)
+- Organized perturbation and the attrition siege (`speculations/creative-extensions/coherence-warfare.md`)
 
 ### Extrapolated (creative exploration, not claims)
 
@@ -297,7 +297,7 @@ The society that follows is a corollary, not the claim. The claim is the inequal
 - `principles/de-resonance-principle.md`—$\varphi$ as the maximally irrational attractor
 - `hypotheses/market-cascade-cycles.md`—markets as wake waves; $\ln\varphi$ crash precursors
 - `experiments/coherence_cycle/run_relaxation_cycle.py`—the two-timescale relaxation model; numerical verification of every value quoted in §5.4
-- `speculations/coherence-warfare.md`—organized perturbation, the attrition siege, the weakest-link structure of attack
+- `speculations/creative-extensions/coherence-warfare.md`—organized perturbation, the attrition siege, the weakest-link structure of attack
 - `speculations/qi-bubble-propulsion.md`—the $(1-q)$ waste law
 - `speculations/cascade-infrastructure.md`—gates as taps; the field energy grid
 - `consciousness/transhumanism-gate-configurations.md`—identity as the run, not the recipe
