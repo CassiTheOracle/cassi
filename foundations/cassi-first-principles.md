@@ -108,7 +108,7 @@ $$
 The gravitational coupling is amplified by Qi:
 
 $$
-G_{\text{eff}} = \frac{\pi}{\rho}\,(1 + \xi q)\,G
+G_{\text{eff}} = \frac{\pi}{\rho}\,(1 + (\varphi^{6}-1)q)\,G
 $$
 
 where $\xi = \varphi^6 \approx 17.944$ is the Qi-gravity coupling constant. At the $\varphi$-fixed point ($q=0$, $\pi/\rho = \alpha_0 = \varphi^{-3}$):
@@ -117,7 +117,7 @@ $$
 G_{\text{eff}} = \alpha_0\,G \approx 0.236\,G
 $$
 
-In regions of high Qi coherence (galaxy halos, structure formation), the α-free amplification ceiling is $1 + \xi \approx 18.9$ at $q = 1$; the halo-regime value is $\alpha_{\text{halo}}(1+\xi q) \approx 9.5$ ($\alpha_{\text{halo}} \approx 0.7$, $q \approx 0.7$), giving velocity boosts $2.9$–$3.1\times$ via $\sqrt{\alpha_{\text{halo}}(1+\xi q)}$; the velocity-boost ceiling is $\sqrt{1+\xi} \approx 4.35$.
+In regions of high Qi coherence (galaxy halos, structure formation), the α-free amplification ceiling is $\varphi^6 \approx 17.94$ at $q = 1$; the halo-regime value is $\alpha_{\text{halo}}(1+(\varphi^{6}-1)q) \approx 9.0$ ($\alpha_{\text{halo}} \approx 0.7$, $q \approx 0.7$), giving velocity boosts $2.8$–$3.0\times$ via $\sqrt{\alpha_{\text{halo}}(1+(\varphi^{6}-1)q)}$; the velocity-boost ceiling is $\varphi^3 = 4.2361$.
 
 ### 2.4 Temporal Coherence: The IIR Memory
 
@@ -212,8 +212,8 @@ the Yang-Yin ratio.
 - **Strong-field**: PPN parameters $\beta = 1 + \mathcal{O}(\xi q^2)$,
   $\gamma = 1 + \mathcal{O}(\xi q^2)$
 - **Gravitational waves**: Modified propagation speed near high-Qi regions
-- **Rotation curves**: $v_C/v_B = \sqrt{\alpha_{\text{halo}}(1+\xi q)} \approx 3.08\times$ ($\alpha_{\text{halo}} \approx 0.7$, $q \approx 0.7$; range 2.9–3.1) from the $G_{\text{eff}}$ boost
-- **Dwarf spheroidals**: 3/8 pass; MOND preferred (4/8); the velocity ceiling $\sqrt{\varphi^6} = \varphi^3 \approx 4.24$ is exceeded in 3/8
+- **Rotation curves**: $v_C/v_B = \sqrt{\alpha_{\text{halo}}(1+(\varphi^{6}-1)q)} \approx 3.00\times$ ($\alpha_{\text{halo}} \approx 0.7$, $q \approx 0.7$; range 2.8–3.0) from the $G_{\text{eff}}$ boost
+- **Dwarf spheroidals**: 3/8 pass; MOND preferred (4/8); the velocity ceiling $\sqrt{\varphi^6} = \varphi^3 = 4.2361$ is exceeded in 3/8
 
 At the $\varphi$-fixed point ($q=0$), the Cassi gravitational action reduces
 to the Einstein-Hilbert action with $G_{\text{eff}} = \alpha_0 G$ ($\alpha_0 = \varphi^{-3}$).
@@ -286,7 +286,7 @@ The Cassi framework encompasses all known physics as limits of the single two-fl
 The framework makes specific, quantitative predictions that can be falsified by experiment:
 
 1. **Dark energy evolves**: $w(z)$ deviates from $-1$ by $\Delta w > 0.15$ at $z<1$ (DESI DR2 confirming)
-2. **Gravitational waves amplified**: $h_{\text{Cassi}}/h_{\text{GR}} \leq 1 + \xi q$ in high-Qi regions (LIGO falsifiable)
+2. **Gravitational waves amplified**: $h_{\text{Cassi}}/h_{\text{GR}} \leq 1 + (\varphi^{6}-1)q$ in high-Qi regions (LIGO falsifiable)
 3. **Atomic energies**: He ground state within $1\%$ of $-2.903$ E_h (chemical accuracy)
 4. **Weak mixing angle**: $\sin^2\theta_W = 0.236 \pm 0.001$ at tree level
 5. **Neutrino mass spectrum**: $m_1 = 0.00356$, $m_2 = 0.00931$, $m_3 = 0.05019$ eV, normal ordering (Δm² ratio 33.82 vs observed 33.89)

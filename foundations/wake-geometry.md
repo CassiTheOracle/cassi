@@ -95,16 +95,16 @@ $$H(r) = \frac{\lambda}{3}\left[\frac{(\varphi - r)(1 + r)}{r} + \varphi^{-2}\ri
 
 (`two-fluid/run_hubble_pipeline.py`; the Qi-gravity boost variants in `two-fluid/calibrate_initial_ratio_xi.py` and `two-fluid/calibrate_initial_ratio_xi_v2.py`). The conversion rate $\lambda$ cancels from the $r$-evolution—verified numerically for $\lambda = 0.02, 0.05, 0.1$ in the v2 script—so the trajectory's shape is $\lambda$-independent; the calibration fixes only the overall clock.
 
-**(b) The floor and the boost.** The Qi gate saturates at $q_{\max} = 0.873 < 1$, so the Qi-gravity boost factor $\sqrt{1 + \xi q \cdot f}$ (with $f$ the sourced Yang fraction) never vanishes: every coupling convention retains a strictly positive floor, consistent with the irreducible $(1-q)$ floor $\approx 0.23$ measured in the bubble PDE (`foundations/dimensionful-constants-status.md` §3.4). The horizon saturates at
+**(b) The floor and the boost.** The Qi gate saturates at $q_{\max} = 0.873 < 1$, so the Qi-gravity boost factor $\sqrt{1 + (\varphi^{6}-1)q \cdot f}$ (with $f$ the sourced Yang fraction) never vanishes: every coupling convention retains a strictly positive floor, consistent with the irreducible $(1-q)$ floor $\approx 0.23$ measured in the bubble PDE (`foundations/dimensionful-constants-status.md` §3.4). The horizon saturates at
 
-$$N_\infty = N_{\text{now}} + \log_\varphi\!\left(\frac{H(a{=}1)}{H_\infty}\right),\qquad H_\infty = \frac{\lambda}{3}\,\varphi^{-2}\,\sqrt{1 + \xi q_{\max} f}.$$
+$$N_\infty = N_{\text{now}} + \log_\varphi\!\left(\frac{H(a{=}1)}{H_\infty}\right),\qquad H_\infty = \frac{\lambda}{3}\,\varphi^{-2}\,\sqrt{1 + (\varphi^{6}-1)q_{\max} f}.$$
 
 **(c) The computed values (verified against the scripts).** The three coupling conventions documented in the repo give different trajectories and different saturations:
 
 | Convention | Script | $r(a{=}1)$ | $H(a{=}1)/H_\infty$ | $N_\infty$ |
 |---|---|---|---|---|
 | Bare (no boost) | `run_hubble_pipeline.py` | 1.589 | 1.12 | 291.8 |
-| ξ-full, $\sqrt{1+\xi q}$ (not Yang-weighted) | `calibrate_initial_ratio_xi.py` | 0.523 | 7.9 | 295.8 |
+| ξ-full, $\sqrt{1+\xi q}$ (not Yang-weighted; script convention) | `calibrate_initial_ratio_xi.py` | 0.523 | 7.9 | 295.8 |
 | Yang-fraction-weighted (verified) | `calibrate_initial_ratio_xi_v2.py` | 1.013 | 3.7 | **294.2** |
 
 The Yang-fraction-weighted form is the verified convention (SPARC rotation curves; the ξ-full form without the Yang weighting is not). With the structural initial ratio $r_0 = \varphi^{-5}/(2-\varphi^{-5}) = 0.0472$ the trajectory reaches $r(a{=}8) = 1.28$, still approaching the attractor:

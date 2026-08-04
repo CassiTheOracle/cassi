@@ -164,15 +164,16 @@ The spiral's radial coordinate at angle $\theta$:
 
 $$r(\theta) = \ell_n \cdot \exp\!\left(\frac{\ln\varphi}{2\pi} \cdot (\theta - \Theta_n)\right)$$
 
-Sampling at quarter-turns ($\Delta\theta = \pi/2$) gives:
+Sampling at full turns ($\Delta\theta = 2\pi$—one cascade rung per turn) gives
+$r_{k+1}/r_k = \varphi \approx 1.618$; sampling at quarter-turns
+($\Delta\theta = \pi/2$) gives $r_{k+1}/r_k = \varphi^{1/4} \approx 1.128$:
 
-$$r_{k+1} / r_k = \varphi^{1/2} \approx 1.272, \quad r_{k+4} / r_k = \varphi^2 \approx 2.618$$
+$$r_{k+1} / r_k = \varphi^{1/4} \approx 1.128, \quad r_{k+4} / r_k = \varphi \approx 1.618$$
 
-The radial sequence $r_0, r_1, r_2, \ldots$ from quarter-turn sampling
-approaches the Fibonacci sequence $F_k$ (scaled by $\ell_n$) in the limit
-$k \to \infty$, because $\varphi^k \approx F_k \cdot \varphi + F_{k-1}$ and
-the spiral's sampling at $\pi/2$ intervals lands near Fibonacci-numbered
-radii.
+The radial sequence $r_k = \ell_n \varphi^k$ from full-turn sampling follows
+the Fibonacci sequence (scaled by $\ell_n$) in the limit $k \to \infty$,
+because $\varphi^k = F_k \cdot \varphi + F_{k-1}$ (exact, by Binet) and the
+full-turn samples land on cascade rungs.
 
 The observed Fibonacci spirals in phyllotaxis (sunflowers, pinecones) are
 the **macroscopic signature** of the same fundamental spiral structure: the

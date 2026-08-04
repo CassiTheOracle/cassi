@@ -283,7 +283,7 @@ $G$ faces the same structural limitation as $\hbar$. It cannot be derived from $
 
 The Qi-gravity coupling $\xi = \varphi^6$ is fully **derived** (`foundations/xi-derivation.md`). It modifies the effective gravitational constant:
 
-$$G_{\text{eff}} = G \cdot \alpha\,(1 + \xi q)$$
+$$G_{\text{eff}} = G \cdot \alpha\,(1 + (\varphi^{6}-1)q)$$
 
 with $\alpha$ the local Yang fraction ($\alpha_0 = \pi/\rho = \varphi^{-3}$ at the $\varphi$-fixed point; $\alpha_{\text{halo}} \approx 0.7$ in the galactic halo regime). This is a **dimensionless modification**—it tells us how $G$ is enhanced by local Qi coherence, but it does not determine the bare $G$ itself.
 

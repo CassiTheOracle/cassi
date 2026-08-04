@@ -4,7 +4,7 @@
 
 ## Abstract
 
-This document is the computational plan for promoting the Cassi $\sigma_8$ prediction from Hypothesized to Derived. The mechanism is the density-dependent Qi-gravity coupling $G_{\text{eff}} = (\pi/\rho)(1+\xi q)G_N$ with $\xi = \varphi^6$: voids see near-Newtonian gravity while filament and halo regions see an enhanced $G_{\text{eff}}$, and the cosmic-mean $q$ decreases with time, suppressing late-time growth by roughly $5$–$10\%$ relative to $\Lambda$CDM—matching the observed Planck-vs-weak-lensing $\sigma_8$ deficit. The plan runs a high-resolution two-fluid PDE, extracts $q(k, a)$ per Fourier mode, integrates it into a modified Boltzmann solver, and validates against rotation curves, cluster masses, and $f\sigma_8$.
+This document is the computational plan for promoting the Cassi $\sigma_8$ prediction from Hypothesized to Derived. The mechanism is the density-dependent Qi-gravity coupling $G_{\text{eff}} = (\pi/\rho)(1+(\varphi^{6}-1)q)G_N$ with $\xi = \varphi^6$: voids see near-Newtonian gravity while filament and halo regions see an enhanced $G_{\text{eff}}$, and the cosmic-mean $q$ decreases with time, suppressing late-time growth by roughly $5$–$10\%$ relative to $\Lambda$CDM—matching the observed Planck-vs-weak-lensing $\sigma_8$ deficit. The plan runs a high-resolution two-fluid PDE, extracts $q(k, a)$ per Fourier mode, integrates it into a modified Boltzmann solver, and validates against rotation curves, cluster masses, and $f\sigma_8$.
 
 ---
 
@@ -20,7 +20,7 @@ Compute $\sigma_8(z)$ from the Cassi two-fluid framework by integrating the dens
 
 The Cassi gravitational constant depends on the local Qi coherence $q$ and the geometric projection factor $\pi/\rho$:
 
-$$\boxed{G_{\text{eff}}(x) = \frac{\pi}{\rho(x)}\left(1 + \xi\,q(x)\right) G_N, \qquad \xi = \varphi^6 \approx 17.944}$$
+$$\boxed{G_{\text{eff}}(x) = \frac{\pi}{\rho(x)}\left(1 + (\varphi^{6}-1)q(x)\right) G_N, \qquad \xi = \varphi^6 \approx 17.944}$$
 
 where:
 - $q \in [0, 1]$ is the Qi coherence quality (derived from the two-fluid Yang/Yin ratio)
@@ -128,7 +128,7 @@ The net effect on $\sigma_8$ is the integral over all $k$ with the top-hat windo
 
 ### 3.5 Refined Analytic Estimate
 
-Using $q(z)$ from the PDE and integrating the growth equation numerically with $\mu(k,a) = (\pi/\rho(a))(1 + \xi q(a))$, parameterizing the $k$-dependence as a smooth transition between void ($k$ small, $q \to 0$) and cluster ($k$ large, $q \to \langle q\rangle$) regimes, the estimated suppression is:
+Using $q(z)$ from the PDE and integrating the growth equation numerically with $\mu(k,a) = (\pi/\rho(a))(1 + (\varphi^{6}-1)q(a))$, parameterizing the $k$-dependence as a smooth transition between void ($k$ small, $q \to 0$) and cluster ($k$ large, $q \to \langle q\rangle$) regimes, the estimated suppression is:
 
 $$\boxed{\frac{\sigma_8^{\text{Cassi}}}{\sigma_8^{\Lambda\text{CDM}}} \approx 0.90\text{--}0.95 \quad \Rightarrow \quad \Delta\sigma_8/\sigma_8 \approx -5\%\text{ to }-10\%}$$
 
@@ -149,7 +149,7 @@ This matches:
 PDE Simulation       q(k,z) Extraction      Boltzmann Solver         Sigma8
 (q(x,t) field)  -->  (q per Fourier mode)--> (modified CLASS)  -->  (σ₈(z))
      |                      |                       |
-     |-- q(x) at each a     |-- q(k) = FFT(q(x))    |-- μ(k,a) = (π/ρ)(1+ξ·q(k,a))
+     |-- q(x) at each a     |-- q(k) = FFT(q(x))    |-- μ(k,a) = (π/ρ)(1+(φ⁶−1)q(k,a))
      |-- ρ(x) at each a     |-- ρ average            |-- Poisson: k²Φ = -4πG·μ·a²ρδ
      |-- resolution N≥64    |-- bin in k             |-- Modified growth + C_ℓ
 ```
@@ -210,7 +210,7 @@ def compute_sigma8_cassi(q_k_z, cosmology_params):
     For each k, solve:
     δ'' + (2 + H'/H)δ' - (3/2)Ω_m(a)μ(k,a)δ = 0
 
-    where μ(k,a) = (π/ρ_mean(a))(1 + ξ·q(k,a))
+    where μ(k,a) = (π/ρ_mean(a))(1 + (φ⁶−1)q(k,a))
     """
     for k_idx in range(N_k):
         for a_idx in range(N_a):
@@ -298,9 +298,9 @@ The output is $\sigma_8(z)$ for direct comparison with:
 
 From MW rotation curve analysis (`cosmology/observational_constraints.md` §2.6):
 
-$$v_C/v_B = \sqrt{\alpha_{\text{halo}}(1+\xi q)} \approx 2.7 \;\Rightarrow\; q_{\text{MW}} = \frac{(2.7^2/0.7) - 1}{17.944} \approx 0.52$$
+$$v_C/v_B = \sqrt{\alpha_{\text{halo}}(1+(\varphi^{6}-1)q)} \approx 2.7 \;\Rightarrow\; q_{\text{MW}} = \frac{(2.7^2/0.7) - 1}{16.944} \approx 0.56$$
 
-(The rotation section's own values 2.9–3.1 give $q = 0.61$–$0.71$.)
+(The rotation section's own values 2.8–3.0 give $q = 0.60$–$0.70$.)
 
 This constrains $q$ in galaxy halos at $\rho \sim 10^{-2}$–$10^{-3}$ atoms/cm³. It is a local, $z\approx0$ constraint. This $q$ value is consistent with the filament/halo-outskirt regime in Section 2.3.
 
@@ -341,7 +341,7 @@ Existing data (BOSS/eBOSS) shows a mild ($\sim 1\text{–}2\sigma$) suppression 
 | $q_{0}$ ($z=0$) | $\sim 0.4$ (interpolated) | PDE at $z=0$ | From pipeline |
 | $q_{\text{void}}$ | $\to 0$ | Condensation field geometric limit | Fixed |
 | $\langle\pi/\rho\rangle = \alpha_0$ at mean density | $\varphi^{-3} \approx 0.236$ | Derived (equilibrium Yang fraction $\alpha_0$) | Fixed |
-| $\mu(k, a)$ | $(\pi/\rho(a))(1 + \xi q(k, a))$ | Composite | **Computed from PDE** |
+| $\mu(k, a)$ | $(\pi/\rho(a))(1 + (\varphi^{6}-1)q(k, a))$ | Composite | **Computed from PDE** |
 | $q_{\text{MW halo}}$ | $\sim 0.7$ | Rotation curve fit ($v_C/v_B = 2.7$) | Independent calibration check |
 
 **Zero new free parameters.** All quantities are either derived mathematical constants ($\varphi$, $\xi$) or PDE outputs ($q(k, a)$, $\rho(a)$). The MW rotation curve provides an independent cross-check but is not used as an input to the $\sigma_8$ pipeline.
@@ -441,7 +441,7 @@ The computation reaches **Derived** status when:
 1. **Quantitative match:** $\sigma_8^{\text{Cassi}}(z=0)$ is within $1\sigma$ of the combined low-redshift weak-lensing measurements ($\sigma_8 \approx 0.75\text{–}0.78$) given the Planck-calibrated initial conditions.
 
 2. **Consistency with existing tests:** The same $\xi = \varphi^6$ and $q$ evolution reproduces:
-   - MW rotation curve boost ($2.9$–$3.1\times$ predicted vs $2.7 \pm 0.5$ observed at 30 kpc)—consistent within ~1.2σ
+   - MW rotation curve boost ($2.8$–$3.0\times$ predicted vs $2.7 \pm 0.5$ observed at 30 kpc)—consistent within ~0.4σ
    - $w_0 = -0.87$ ($2\sigma$ from DESI DR2's $w_0 \approx -0.75 \pm 0.06$ [INFERENCE])
    - $w_a = +0.012$ with $\xi$ correction ($2.7\sigma$, $2.2$–$3.2\sigma$: tension, not resolved)
 
@@ -453,11 +453,11 @@ The computation reaches **Derived** status when:
 
 | Equation | Description |
 |----------|-------------|
-| $G_{\text{eff}} = (\pi/\rho)(1 + \xi q) G_N$ | Qi-gravity formula |
+| $G_{\text{eff}} = (\pi/\rho)(1 + (\varphi^{6}-1)q) G_N$ | Qi-gravity formula |
 | $\xi = \varphi^6 \approx 17.944$ | Derived coupling |
 | $q(C) = (1 + C)/2$ | Qi coherence from condensation field (cosmological context) |
 | $\delta'' + (2 + H'/H)\delta' - \frac{3}{2}\Omega_m(a)\mu(k,a)\delta = 0$ | Modified growth equation |
-| $\mu(k,a) = (\pi/\rho(a))(1 + \xi q(k,a))$ | Scale-dependent modification factor |
+| $\mu(k,a) = (\pi/\rho(a))(1 + (\varphi^{6}-1)q(k,a))$ | Scale-dependent modification factor |
 | $\sigma_8^2(z) = \int \frac{dk}{k} \Delta^2(k,z) |W(kR)|^2$ | $\sigma_8$ definition |
 | $q = 1/(1+(\rho/\rho_{\text{ref}})^2)$ | Galaxy-halo $q$ profile (different context, used only for cross-check) |
 

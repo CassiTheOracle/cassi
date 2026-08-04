@@ -3,7 +3,7 @@
 
 ## Abstract
 
-The Cassi two-fluid PDE predicts $w_a = +0.46$ from the bare conversion dynamics ($H_{\text{bare}}$ only), while DESI DR2 constrains $w_a \approx -0.73 \pm 0.28$ [INFERENCE] (Table 9; range $-0.6$ to $-1.1$ across SNe compilations). The Qi-gravity coupling $\xi = \varphi^6$, verified in rotation curves ($v_C/v_B = 2.9$–$3.1$, ~1.2σ from the observed $2.7 \pm 0.5$), must also appear in the cosmological $H(a)$. In its Yang-fraction-weighted form $H_{\text{eff}}^2 = H_{\text{bare}}^2[1 + \xi q \cdot \alpha_w]$, with $\alpha_w = r/(1+r) \to \varphi^{-1} \approx 0.618$ at the attractor, it shifts $w_a$ by $-0.45$, bringing the prediction to $w_a = +0.012$—2.7σ (2.2–3.2σ) from DESI: tension, not resolved. The 5-channel gate and Wu Xing control-release provide secondary shifts—Hypothesized, ODE pending.
+The Cassi two-fluid PDE predicts $w_a = +0.46$ from the bare conversion dynamics ($H_{\text{bare}}$ only), while DESI DR2 constrains $w_a \approx -0.73 \pm 0.28$ [INFERENCE] (Table 9; range $-0.6$ to $-1.1$ across SNe compilations). The Qi-gravity coupling $\xi = \varphi^6$, verified in rotation curves ($v_C/v_B = 2.8$–$3.0$, ~0.4σ from the observed $2.7 \pm 0.5$), must also appear in the cosmological $H(a)$. In its Yang-fraction-weighted form $H_{\text{eff}}^2 = H_{\text{bare}}^2[1 + (\varphi^{6}-1)q \cdot \alpha_w]$, with $\alpha_w = r/(1+r) \to \varphi^{-1} \approx 0.618$ at the attractor, it shifts $w_a$ by $-0.45$, bringing the prediction to $w_a = +0.012$—2.7σ (2.2–3.2σ) from DESI: tension, not resolved. The 5-channel gate and Wu Xing control-release provide secondary shifts—Hypothesized, ODE pending.
 
 ---
 
@@ -157,17 +157,17 @@ The Hypothesized predictions are **testable now**—they require modifying the g
 
 The Cassi force law includes Qi-gravity enhancement (`cosmology/observational_constraints.md` §2.6):
 
-$$\mathbf{F}_{ij} = -G\,\alpha_i(1+\xi q_i)\,M_i M_j\frac{\mathbf{r}_{ij}}{|\mathbf{r}_{ij}|^3}, \quad \xi = \varphi^6 \approx 17.9$$
+$$\mathbf{F}_{ij} = -G\,\alpha_i(1+(\varphi^{6}-1)q_i)\,M_i M_j\frac{\mathbf{r}_{ij}}{|\mathbf{r}_{ij}|^3}, \quad \xi = \varphi^6 \approx 17.9$$
 
-This gives $v_C/v_B = \sqrt{\alpha(1+\xi q)} \approx 2.9$–$3.1$ for Milky Way parameters ($\alpha \approx 0.7$, $q \approx 0.7$)—consistent with the observed boost $2.7 \pm 0.5$ (Zhou+ 2023) at ~1.2σ. The same $\xi$ must appear in the cosmological expansion rate. The Yang-fraction-weighted form
+This gives $v_C/v_B = \sqrt{\alpha(1+(\varphi^{6}-1)q)} \approx 2.8$–$3.0$ for Milky Way parameters ($\alpha \approx 0.7$, $q \approx 0.7$)—consistent with the observed boost $2.7 \pm 0.5$ (Zhou+ 2023) at ~0.4σ. The same $\xi$ must appear in the cosmological expansion rate. The Yang-fraction-weighted form
 
-$$\boxed{H_{\text{eff}}^2 = H_{\text{bare}}^2\left[1 + \xi q \cdot \alpha_w\right], \qquad \alpha_w = \frac{r}{1+r} \to \varphi^{-1} \approx 0.618 \ \text{at the attractor}}$$
+$$\boxed{H_{\text{eff}}^2 = H_{\text{bare}}^2\left[1 + (\varphi^{6}-1)q \cdot \alpha_w\right], \qquad \alpha_w = \frac{r}{1+r} \to \varphi^{-1} \approx 0.618 \ \text{at the attractor}}$$
 
-(`two-fluid/calibrate_initial_ratio_xi_v2.py`) is the coupling consistent with the galactic sector; it gives $w_a = +0.012$ (§5.2).
+(`two-fluid/calibrate_initial_ratio_xi_v2.py`) is the coupling consistent with the galactic sector; it gives $w_a = +0.012$ (§5.2). *(ODE values quoted here and in §5.2 were computed with the pre-chord $\xi = \varphi^6$ coefficient; the $(\varphi^{6}-1)$ re-run is pending—flagged, not asserted.)*
 
-The $\sqrt{1+\xi q}$ factor grows from $\sim 1.7$ (early, $q \ll 1$) to $\sim 4.4$ (late, $q \approx 1$). This **38% growth** adds a positive contribution to $d\ln H / d\ln a$:
+The $\sqrt{1+(\varphi^{6}-1)q}$ factor grows from $\sim 1.0$ ($q \to 0$) to $\varphi^3 = 4.2361$ ($q \to 1$). This growth adds a positive contribution to $d\ln H / d\ln a$:
 
-$$\frac{d\ln H_{\text{eff}}}{d\ln a} = \underbrace{\frac{d\ln H_{\text{bare}}}{d\ln a}}_{\text{negative, }\to 0} + \underbrace{\frac{\xi}{2(1+\xi q)}\frac{dq}{d\ln a}}_{\text{positive}}$$
+$$\frac{d\ln H_{\text{eff}}}{d\ln a} = \underbrace{\frac{d\ln H_{\text{bare}}}{d\ln a}}_{\text{negative, }\to 0} + \underbrace{\frac{\varphi^{6}-1}{2(1+(\varphi^{6}-1)q)}\frac{dq}{d\ln a}}_{\text{positive}}$$
 
 As the bare term decays toward zero (conversion slows near $\varphi$), the Qi-gravity term overtakes it, pushing $d\ln H/d\ln a$ toward zero **from above** and moderating the bare positive $w_a$ drift. Cassi $w(z) > -1$ at all $z$ (min $w = -0.85$ over $a \in [0.3, 1]$); the phantom crossing never occurs.
 
@@ -201,9 +201,9 @@ which is 2.7σ (2.2–3.2σ) from DESI $w_a \approx -0.73 \pm 0.28$ [INFERENCE]�
 
 ### 5.4 The cosmological coupling
 
-The Qi-gravity enhancement is present in the force law (rotation curves) and must propagate to the cosmological $H(a)$. The Yang-fraction-weighted form $H_{\text{eff}}^2 = H_{\text{bare}}^2[1 + \xi q \cdot r/(1+r)]$ shifts $w_a$ from $+0.46$ to $+0.012$ ($\Delta -0.45$).
+The Qi-gravity enhancement is present in the force law (rotation curves) and must propagate to the cosmological $H(a)$. The Yang-fraction-weighted form $H_{\text{eff}}^2 = H_{\text{bare}}^2[1 + (\varphi^{6}-1)q \cdot r/(1+r)]$ shifts $w_a$ from $+0.46$ to $+0.012$ ($\Delta -0.45$).
 
-**Status: Derived.** $\xi = \varphi^6$ is derived (cascade activation at step 6). The Yang-fraction-weighted coupling is parameter-free and verified against the ODE (`two-fluid/calibrate_initial_ratio_xi_v2.py`), giving $w_a = +0.012$; it is consistent with the rotation-curve prediction ($v_C/v_B = 2.9$–$3.1$, ~1.2σ). The 5-channel gate and Wu Xing control-release provide secondary shifts—Hypothesized, ODE pending. The prediction sits at 2.7σ (2.2–3.2σ) from DESI $w_a \approx -0.73 \pm 0.28$ [INFERENCE]: the $w_a$ tension is not resolved.
+**Status: Derived.** $\xi = \varphi^6$ is derived (cascade activation at step 6). The Yang-fraction-weighted coupling is parameter-free and verified against the ODE (`two-fluid/calibrate_initial_ratio_xi_v2.py`), giving $w_a = +0.012$; it is consistent with the rotation-curve prediction ($v_C/v_B = 2.8$–$3.0$, ~0.4σ). The 5-channel gate and Wu Xing control-release provide secondary shifts—Hypothesized, ODE pending. The prediction sits at 2.7σ (2.2–3.2σ) from DESI $w_a \approx -0.73 \pm 0.28$ [INFERENCE]: the $w_a$ tension is not resolved.
 
 ---
 

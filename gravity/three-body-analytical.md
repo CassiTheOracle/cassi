@@ -6,7 +6,7 @@
 
 The Cassi two-fluid PDE with Qi-enhanced gravity reduces, for well-separated
 blobs, to point-particle ODEs with body-dependent coupling
-$G_{\text{eff},j} = \alpha_j(1+\xi q_j)G$ and dynamically evolving masses. At
+$G_{\text{eff},j} = \alpha_j(1+(\varphi^{6}-1)q_j)G$ and dynamically evolving masses. At
 the $\varphi$-fixed point $\alpha_j = \varphi^{-3}$ the equations reduce
 exactly to Newtonian gravity with $G_{\text{eff}} = \varphi^{-3}G$, so the
 three-body problem inherits classical non-integrability; away from the fixed
@@ -61,7 +61,7 @@ depend on the gate state.
 
 $$
 \partial_t \mathbf{u} = -(\mathbf{u}\cdot\nabla)\mathbf{u}
-                        + \pi\,(1 + \xi\,q)\,\nabla\Phi
+                        + \pi\,(1 + (\varphi^{6}-1)q)\,\nabla\Phi
                         - \nu\nabla^2\mathbf{u}
 $$
 
@@ -110,15 +110,15 @@ Consider $N$ well-separated Gaussian blobs indexed by $j$. For each blob:
 
 #### 2.1 The key approximation
 
-The force density on the velocity field is $\mathbf{F} = \pi\,(1+\xi q)\,\nabla\Phi$.
+The force density on the velocity field is $\mathbf{F} = \pi\,(1+(\varphi^{6}-1)q)\,\nabla\Phi$.
 For a compact blob of size $\sigma$ separated by $r \gg \sigma$ from all other blobs,
 the potential varies slowly across the blob, so the total force on the $j$-th blob is:
 
 $$
 \begin{aligned}
 M_j\ddot{\mathbf{X}}_j &\equiv \int \mathbf{F}_j\,dV \\
-&= \int \pi_j\,(1+\xi q_j)\,\nabla\Phi\,dV \\
-&\approx \alpha_j\,(1+\xi q_j)\,M_j \cdot \nabla\Phi(\mathbf{X}_j) \quad\text{when blob is relaxed}
+&= \int \pi_j\,(1+(\varphi^{6}-1)q_j)\,\nabla\Phi\,dV \\
+&\approx \alpha_j\,(1+(\varphi^{6}-1)q_j)\,M_j \cdot \nabla\Phi(\mathbf{X}_j) \quad\text{when blob is relaxed}
 \end{aligned}
 $$
 
@@ -145,7 +145,7 @@ Putting it together, the **three-blob ODE system** is:
 
 $$
 \boxed{
-\ddot{\mathbf{X}}_j = -G\,\alpha_j\,(1+\xi q_j)\,
+\ddot{\mathbf{X}}_j = -G\,\alpha_j\,(1+(\varphi^{6}-1)q_j)\,
 \sum_{i\neq j} M_i\frac{\mathbf{X}_j - \mathbf{X}_i}{|\mathbf{X}_j - \mathbf{X}_i|^3}
 }
 $$
@@ -182,7 +182,7 @@ classical-limit coherence $q_j \to 0$ (theory-reference §2.6).
 #### 3.1 What happens
 
 - The conversion term vanishes: $\lambda(1-q)(E_Y - \varphi E_I) = 0$ (because $E_Y = \varphi E_I$, independent of gate openness)
-- The Qi enhancement factor is exactly 1: $1+\xi q = 1$ (classical limit)
+- The Qi enhancement factor is exactly 1: $1+(\varphi^{6}-1)q = 1$ (classical limit)
 - The equation of motion reduces to:
 
 $$
@@ -262,7 +262,7 @@ limit.
   is effectively at the $\varphi$-fixed point → Newtonian (not integrable).
 - If $T_{\text{orbit}} \ll \tau_\lambda$, the internal dynamics are frozen
   and each blob has a constant $\alpha_j \neq \varphi^{-3}$, giving a **body-dependent
-  effective gravitational constant** $G_{{\rm eff},j} = \alpha_j(1+\xi q_j)\,G$.
+  effective gravitational constant** $G_{{\rm eff},j} = \alpha_j(1+(\varphi^{6}-1)q_j)\,G$.
   This is now a **non-Newtonian** three-body problem with mass-dependent
   coupling—even less likely to be integrable.
 - If $T_{\text{orbit}} \sim \tau_\lambda$, the system has 27+ degrees of
@@ -319,8 +319,8 @@ certain configurations (like the Lagrange triangle) against perturbations.
 
 #### 5.3 Energy extraction via Qi coherence
 
-When $q_j > 0$, the factor $(1+\xi q_j)$ amplifies gravity by up to
-$1 + \xi \approx 18.9\times$. This is a significant effect that can drive
+When $q_j > 0$, the factor $(1+(\varphi^{6}-1)q_j)$ amplifies gravity by up to
+$\varphi^6 \approx 17.94\times$. This is a significant effect that can drive
 behavior not seen in Newtonian gravity—such as the hierarchical M=3,2,1
 configuration maintaining a close binary while the outer body slowly recedes.
 
@@ -329,12 +329,12 @@ configuration maintaining a close binary while the outer body slowly recedes.
 For $\alpha_j > \varphi^{-3}$ and $\xi \gg 1$, the effective coupling
 $G_{{\rm eff},j} \propto \xi$ can saturate, making the blob act as if it
 has a much stronger gravitational pull. In the limit $q_j \to 1$,
-$G_{{\rm eff},j} = (1+\xi)\,\alpha_j\,G \approx \xi\cdot\alpha_j\cdot G$.
+$G_{{\rm eff},j} = (1+(\varphi^{6}-1))\,\alpha_j\,G = \varphi^6\,\alpha_j\,G$.
 The ratio between two blobs' effective G is:
 
 $$
 \frac{G_{{\rm eff},j}}{G_{{\rm eff},i}} \approx
-\frac{\alpha_j(1+\xi q_j)}{\alpha_i(1+\xi q_i)}
+\frac{\alpha_j(1+(\varphi^{6}-1)q_j)}{\alpha_i(1+(\varphi^{6}-1)q_i)}
 $$
 
 When both $q_j, q_i \to 1$, the ratio is approximately $\alpha_j/\alpha_i$.
@@ -352,7 +352,7 @@ known special solutions.
 
 **What IS new:**
 
-1. **Mass-dependent effective gravity**: $G_{\text{eff}} = \alpha_j(1+\xi q_j)G$
+1. **Mass-dependent effective gravity**: $G_{\text{eff}} = \alpha_j(1+(\varphi^{6}-1)q_j)G$
    is body-dependent off the fixed point. This is a non-Newtonian modification
    that changes the dynamics qualitatively, even if it doesn't provide integrability.
 

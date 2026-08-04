@@ -248,7 +248,7 @@ appears in a **verified physical quantity**.
 | 3 | 4.236 | $\sin^2\theta_W = \varphi^{-3}$, Yang fraction $\varphi^{-3}$ | 2.1% (tree) |
 | 3 | 4.24 | $\kappa_s^{-1/2} = \varphi^3 v_0 \approx 1.04$ TeV (sector coupling) | 5.5% (vs rung 77); coefficient $C$ open |
 | 5 | 11.09 | Wu Xing scale, gap $g = 1-\varphi^{-5}$ | $w_0 = -0.87$ ($2\sigma$ from DESI $\approx -0.75 \pm 0.06$ [INF]) |
-| 6 | 17.94 | $\xi = \varphi^6$ (Qi-gravity coupling) | $v_C/v_B = 2.9$–$3.1$ (~1.2σ) |
+| 6 | 17.94 | $\xi = \varphi^6$ (Qi-gravity coupling) | $v_C/v_B = 2.8$–$3.0$ (~0.4σ) |
 | 26 | $2.7\times 10^5$ | $m_e/v_0 \approx \varphi^{-26}$ (human cascade depth) | 25% (integer rung 26); the half-step 26.5 is a fit to the observed mass, not a derivation (§2.2) |
 | 80 | $5.2\times 10^{16}$ | $v_0/M_{\text{Pl}} \approx \varphi^{-80}$ | 5.3% |
 | 89 | $3.94\times 10^{18}$ | $M_{\text{Pl}}/m_{J/\psi} \approx \varphi^{89}$ (charmonium ground state) | 1.0% (2026-08-03, closure level) |

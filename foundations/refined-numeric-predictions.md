@@ -674,7 +674,7 @@ number density $n(>M_\star)$ vs $z$.
 
 **Refined quantitative prediction:** The earliest galaxies should appear at
 $z \sim 19$ (pinch epoch), with stellar masses growing as $M_*(z) \propto
-(1+z)^{-\alpha}$ where $\alpha = 3(1 + \xi q)/(1+z)$ reflects Qi-enhanced
+(1+z)^{-\alpha}$ where $\alpha = 3(1 + (\varphi^{6}-1)q)/(1+z)$ reflects Qi-enhanced
 growth. The predicted comoving number density of $M > 10^{10} M_\odot/h$
 halos at $z=15$ is $31\times$ the $\Lambda$CDM expectation—this is a
 **falsifiable prediction** testable with JWST and Roman Space Telescope.

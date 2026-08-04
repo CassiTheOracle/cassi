@@ -180,7 +180,7 @@ When a physical effect propagates down the cascade ladder (from a high-energy ru
 
 ### $\xi = \varphi^6 \approx 17.944$—the Qi-Gravity Coupling
 
-The coupling constant $\xi = \varphi^6 \approx 17.944$ determines how strongly the Qi field amplifies gravity. When Qi density is high (as it is inside galaxies), the effective gravitational constant becomes $G_{\text{eff}} = (\pi/\rho)(1 + \xi q)\,G_N$. Since $\xi \approx 17.944$, this can boost gravity by nearly a factor of 20 in dense environments, explaining galaxy rotation curves without invoking any dark matter particles.
+The coupling constant $\xi = \varphi^6 \approx 17.944$ determines how strongly the Qi field amplifies gravity. When Qi density is high (as it is inside galaxies), the effective gravitational constant becomes $G_{\text{eff}} = (\pi/\rho)(1 + (\varphi^{6}-1)q)\,G_N$. Since $\varphi^6 \approx 17.944$, this can boost gravity by up to the saturation factor $\varphi^6 \approx 17.9$ in dense environments, explaining galaxy rotation curves without invoking any dark matter particles.
 
 ### $\sigma$-Regularization—Softening Gravity at Small Scales
 
@@ -188,7 +188,7 @@ The two-fluid PDE replaces the Newtonian $1/r$ gravitational potential with a $\
 
 ### Density-Dependent Gravity
 
-Because $G_{\text{eff}} = (\pi/\rho)(1 + \xi q)$, the effective strength of gravity depends on the local matter density $\rho$ and Qi density $q$. In low-density voids, gravity is weaker than Newton's constant. At everyday densities (Earth's surface, the solar system), it matches the familiar $G_N$. In high-Qi-coherence regions (galactic halo outskirts, structure formation), gravity is amplified up to the α-free full-coherence ceiling $1+\xi \approx 18.9\times$ at $q = 1$; the halo-regime boost is $2.9$–$3.1\times$ via $\sqrt{\alpha_{\text{halo}}(1+\xi q)}$. This density dependence resolves several tensions simultaneously: it explains why galaxies rotate too fast (more gravity where matter is dense), why large-scale structure is less clustered than expected (voids have weaker gravity), and why gravity seems weak in our local environment.
+Because $G_{\text{eff}} = (\pi/\rho)(1 + (\varphi^{6}-1)q)$, the effective strength of gravity depends on the local matter density $\rho$ and Qi density $q$. In low-density voids, gravity is weaker than Newton's constant. At everyday densities (Earth's surface, the solar system), it matches the familiar $G_N$. In high-Qi-coherence regions (galactic halo outskirts, structure formation), gravity is amplified up to the α-free full-coherence ceiling $\varphi^6 \approx 17.94\times$ at $q = 1$; the halo-regime boost is $2.8$–$3.0\times$ via $\sqrt{\alpha_{\text{halo}}(1+(\varphi^{6}-1)q)}$. This density dependence resolves several tensions simultaneously: it explains why galaxies rotate too fast (more gravity where matter is dense), why large-scale structure is less clustered than expected (voids have weaker gravity), and why gravity seems weak in our local environment.
 
 ### The Wake-Wave Mechanism—Interference Patterns at $\varphi$-Spacing
 
@@ -255,7 +255,7 @@ Since 1998, physicists have known the universe's expansion is accelerating—som
 ```mermaid
 flowchart TD
     A[Qi condensate] --> B[Density q]
-    B --> C[G_eff = π/ρ · (1+ξq)]
+    B --> C[G_eff = π/ρ · (1+(φ⁶−1)q)]
     C --> D[ξ = φ⁶ ≈ 17.944]
     D --> E[Flat rotation, Ω_DM/Ω_b = φ³+1]
 ```
@@ -388,7 +388,7 @@ flowchart TD
 General relativity predicts that the universe began as a point of infinite density—a singularity where physics breaks down. Most physicists believe a quantum theory of gravity would prevent this, but no such theory is yet established. Cassi's governing equation is $\sigma$-regularized (see Primer): the gravitational force is softened at very small distances, replacing the singular $1/r^2$ behavior with a linear restoring force $F \propto -r/(3\sigma^3)$. The crossover occurs at $\sigma = \ell_{\text{Pl}}/\varphi^3$, roughly one Planck length divided by the golden ratio cubed. At this scale, gravity transitions from inverse-square attraction to a harmonic spring—no singularity anywhere in the equations.
 
 | **Cassi Answer** | $\sigma$-regularized PDE: force goes harmonic as $r \to 0$, not singular |
-| **Mechanism** | $F \propto -r/(3\sigma^3) \cdot (1+\xi q)$—linear core |
+| **Mechanism** | $F \propto -r/(3\sigma^3) \cdot (1+(\varphi^{6}-1)q)$—linear core |
 | **Epistemic** | **Derived**—no singularity in the governing equation |
 | **Reference** | `foundations/unified-lagrangian.md` §3 |
 
@@ -630,7 +630,7 @@ Spin is a fundamental property of particles—like rotation but not actually rot
 
 ```mermaid
 flowchart TD
-    A[σ-regularized Poisson: ∇²Φ → 1/√(|r|²+σ²)] --> B[G_eff = (π/ρ)(1+ξq) G_N]
+    A[σ-regularized Poisson: ∇²Φ → 1/√(|r|²+σ²)] --> B[G_eff = (π/ρ)(1+(φ⁶−1)q) G_N]
     B --> C[No fundamental graviton—composite in quantized extension]
     C --> D[Gravity emerges from field density gradients]
 ```
@@ -638,10 +638,10 @@ flowchart TD
 **Visual:** Gravity is a σ-regularized Poisson equation with a softened kernel—a spring instead of a spike. No fundamental graviton is required; the spin-2 graviton exists only as a composite SO(2) excitation in the quantized two-fluid extension (Hypothesized).
 
 
-General relativity and quantum mechanics are mathematically incompatible—no consistent quantum theory of gravity exists the way it does for the other three forces. Cassi takes a different approach: gravity is not a quantum exchange force at the classical layer—it emerges from field density gradients in a $\sigma$-regularized Poisson equation (see Primer), where the effective gravitational constant $G_{\text{eff}} = (\pi/\rho)(1 + \xi q)\,G_N$ depends on local Qi density and matter density. The softening parameter $\sigma = \ell_{\text{Pl}}/\varphi^3$ comes from the cascade, and no fundamental graviton or quantization of spacetime is required—gravity is a macroscopic field effect. In the quantized two-fluid extension (Hypothesized), the graviton is a composite spin-2 SO(2) excitation with the massless GR limit at $k \ll 1/\sigma$; no renormalization is ever needed. The $\sigma$-regularization eliminates the need for a fundamental graviton just as it eliminates si…
+General relativity and quantum mechanics are mathematically incompatible—no consistent quantum theory of gravity exists the way it does for the other three forces. Cassi takes a different approach: gravity is not a quantum exchange force at the classical layer—it emerges from field density gradients in a $\sigma$-regularized Poisson equation (see Primer), where the effective gravitational constant $G_{\text{eff}} = (\pi/\rho)(1 + (\varphi^{6}-1)q)\,G_N$ depends on local Qi density and matter density. The softening parameter $\sigma = \ell_{\text{Pl}}/\varphi^3$ comes from the cascade, and no fundamental graviton or quantization of spacetime is required—gravity is a macroscopic field effect. In the quantized two-fluid extension (Hypothesized), the graviton is a composite spin-2 SO(2) excitation with the massless GR limit at $k \ll 1/\sigma$; no renormalization is ever needed. The $\sigma$-regularization eliminates the need for a fundamental graviton just as it eliminates si…
 
 | **Cassi Answer** | No fundamental graviton: $\sigma$-regularized Poisson emergence; gravity is Qi-enhanced, not a quantum exchange force (Derived, G1). In the quantized two-fluid extension (Hypothesized), the graviton is a composite spin-2 SO(2) excitation with the massless GR limit at $k \ll 1/\sigma$ |
-| **Mechanism** | $G_{\text{eff}} = (\pi/\rho)(1 + \xi q) G_N$; no fundamental graviton; composite SO(2) excitation in the quantized extension (Hypothesized); gravity emerges from field density gradient |
+| **Mechanism** | $G_{\text{eff}} = (\pi/\rho)(1 + (\varphi^{6}-1)q) G_N$; no fundamental graviton; composite SO(2) excitation in the quantized extension (Hypothesized); gravity emerges from field density gradient |
 | **Epistemic** | **Derived**—$\sigma = \ell_{\text{Pl}}/\varphi^3$ from cascade |
 | **Reference** | `foundations/unified-lagrangian.md`, `gravity/quantum-gravity.md` |
 
@@ -689,7 +689,7 @@ General relativity predicts that at the center of every black hole, matter is cr
 ```mermaid
 flowchart TD
     A[Radius → density] --> B[Qi density q]
-    B --> C[G_eff = (π/ρ)(1+ξq)]
+    B --> C[G_eff = (π/ρ)(1+(φ⁶−1)q)]
     C --> D[ξ = φ⁶ ≈ 17.944]
     D --> E[Flat rotation curve naturally]
 ```
@@ -697,7 +697,7 @@ flowchart TD
 **Visual:** The Qi gate acts like a dimmer switch—where density is high, it turns up the effective gravitational pull by ξ = φ⁶, producing flat rotation curves without dark matter.
 
 
-Stars at the outskirts of galaxies orbit just as fast as stars near the center—much faster than they should based on visible matter alone. This flat rotation curve was the original evidence for dark matter, but decades of particle searches have found nothing. Cassi's answer: the Qi field condensate amplifies gravity on galactic scales through the coupling constant $\xi = \varphi^6 \approx 17.944$ (explained in the Primer). At galactic densities ($q \approx 0.67$), the effective gravitational constant becomes $G_{\text{eff}} = (\pi/\rho)(1 + \xi q)$, which naturally produces flat rotation curves, the radial acceleration relation (RAR), and the baryonic Tully-Fisher relation (BTFR). No dark matter particles are needed—the dimmer switch of Qi-gravity simply…
+Stars at the outskirts of galaxies orbit just as fast as stars near the center—much faster than they should based on visible matter alone. This flat rotation curve was the original evidence for dark matter, but decades of particle searches have found nothing. Cassi's answer: the Qi field condensate amplifies gravity on galactic scales through the coupling constant $\xi = \varphi^6 \approx 17.944$ (explained in the Primer). At galactic densities ($q \approx 0.67$), the effective gravitational constant becomes $G_{\text{eff}} = (\pi/\rho)(1 + (\varphi^{6}-1)q)$, which naturally produces flat rotation curves, the radial acceleration relation (RAR), and the baryonic Tully-Fisher relation (BTFR). No dark matter particles are needed—the dimmer switch of Qi-gravity simply…
 
 | **Cassi Answer** | $\xi = \varphi^6 \approx 17.944$—Qi-enhanced gravity at galactic scales ($q \approx 0.67$) |
 | **Mechanism** | Qi density amplifies $G_{\text{eff}}$; rotation curve, RAR, BTFR all follow from $\xi$ |
@@ -728,7 +728,7 @@ The universe has three spatial dimensions and one time dimension, but no fundame
 flowchart TD
     A[Density dial] --> B[Low ρ: G_eff ≈ G_N]
     A --> C[Medium ρ: G_eff ≈ 3 G_N]
-    A --> D[High Qi (halo): G_eff ≈ 9.5 G_N; ceiling (1+ξ) ≈ 18.9 G_N]
+    A --> D[High Qi (halo): G_eff ≈ 9.0 G_N; ceiling φ⁶ ≈ 17.9 G_N]
     B --> E[Gravity is variable, not weak]
     C --> E
     D --> E
@@ -737,7 +737,7 @@ flowchart TD
 **Visual:** Gravity's apparent weakness is a Qi-gate dimmer-switch effect—the (π/ρ) prefactor makes it appear weak at low everyday densities but strong in galactic cores.
 
 
-Gravity is staggeringly weaker than the other forces—a small refrigerator magnet easily overpowers the gravitational pull of the entire Earth. In natural units, Newton's constant $G_N$ is about $10^{-38}$, an absurdly small number. Cassi argues that gravity is not intrinsically weak at all; it only appears weak because of its density dependence. The effective constant $G_{\text{eff}} = (\pi/\rho)(1 + \xi q)$ carries a $\pi/\rho$ prefactor that makes it tiny at everyday densities (like air or water) but dramatically stronger in dense environments like galactic centers. This is why experiments in the low-density solar neighborhood measure a small $G_N$ while galaxies experience gravity strong enough to explain their rotation curves—gravity is variable, not…
+Gravity is staggeringly weaker than the other forces—a small refrigerator magnet easily overpowers the gravitational pull of the entire Earth. In natural units, Newton's constant $G_N$ is about $10^{-38}$, an absurdly small number. Cassi argues that gravity is not intrinsically weak at all; it only appears weak because of its density dependence. The effective constant $G_{\text{eff}} = (\pi/\rho)(1 + (\varphi^{6}-1)q)$ carries a $\pi/\rho$ prefactor that makes it tiny at everyday densities (like air or water) but dramatically stronger in dense environments like galactic centers. This is why experiments in the low-density solar neighborhood measure a small $G_N$ while galaxies experience gravity strong enough to explain their rotation curves—gravity is variable, not…
 
 | **Cassi Answer** | Gravity IS the Qi-enhanced Poisson equation; its apparent weakness is the $\pi/\rho$ prefactor at low density |
 | **Mechanism** | In high-density regions (galactic center) gravity strengthens; in voids it weakens—variable, not weak |

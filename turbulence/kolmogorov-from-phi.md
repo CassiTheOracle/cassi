@@ -12,7 +12,7 @@
 
 1. **The φ-break scale** $k_\varphi = \varphi^3\sqrt{\lambda^3/\varepsilon}$—the wavenumber where conversion and eddy turnover timescales cross
 2. **The ε-spectrum** $E_\varepsilon(k) \propto k^{-5/3} \cdot f(k/k_\varphi)$—the deviation from φ-equilibrium has its own inertial-range scaling with a φ-determined break
-3. **Scale-dependent gravitational enhancement**—$G_{\text{eff}}(k)$ varies by up to a factor $1+\xi \approx 18.9$ between the α-free full-coherence ceiling and the unamplified limit across the φ-break (halo-regime contrasts are ~$9\times$: $\alpha_{\text{halo}}(1+\xi q) \approx 9.5$ at $q \approx 0.7$)
+3. **Scale-dependent gravitational enhancement**—$G_{\text{eff}}(k)$ varies by up to a factor $\varphi^6 \approx 17.94$ between the α-free full-coherence ceiling and the unamplified limit across the φ-break (halo-regime contrasts are ~$9\times$: $\alpha_{\text{halo}}(1+(\varphi^{6}-1)q) \approx 9.0$ at $q \approx 0.7$)
 4. **The Qi-quality spectrum** $q(k)$—a direct observable of the conversion dynamics
 
 ---
@@ -27,7 +27,7 @@ $$\partial_t E_Y = -\nabla\cdot(\mathbf{u}E_Y) + D\nabla^2 E_Y - \lambda(1-q)(E_
 
 $$\partial_t E_I = -\nabla\cdot(\mathbf{u}E_I) + D\nabla^2 E_I + \lambda(1-q)(E_Y - \varphi E_I) M + \chi\nabla\cdot(E_I\nabla\Phi)$$
 
-$$\partial_t\mathbf{u} = -(\mathbf{u}\cdot\nabla)\mathbf{u} + \pi(1+\xi q)\nabla\Phi - \nu\nabla^2\mathbf{u}$$
+$$\partial_t\mathbf{u} = -(\mathbf{u}\cdot\nabla)\mathbf{u} + \pi(1+(\varphi^{6}-1)q)\nabla\Phi - \nu\nabla^2\mathbf{u}$$
 
 where:
 - $\rho = E_Y + E_I$ (total density)
@@ -155,11 +155,11 @@ where $\delta$ depends on the ratio $\lambda/\varepsilon_{\text{flux}}^{1/3}$.
 
 The buoyancy force in the velocity equation is:
 
-$$\mathbf{F} = \pi(1 + \xi q)\nabla\Phi$$
+$$\mathbf{F} = \pi(1 + (\varphi^{6}-1)q)\nabla\Phi$$
 
 The effective gravitational constant at scale $k$:
 
-$$G_{\text{eff}}(k) = \frac{\pi}{\rho} \cdot (1 + \xi q(k)) \cdot G$$
+$$G_{\text{eff}}(k) = \frac{\pi}{\rho} \cdot (1 + (\varphi^{6}-1)q(k)) \cdot G$$
 
 where $q(k)$ is the mean Qi quality at scale $k$.
 
@@ -171,14 +171,14 @@ $$G_{\text{eff}} \to \frac{\pi}{\rho} \cdot G \approx \varphi^{-3} G \approx 0.2
 Gravity is **weakened** by factor ~4.2 relative to Newton.
 
 **Qi-active range** ($k \ll k_\varphi$, $q \to 1$):
-$$G_{\text{eff}} \to \frac{\pi}{\rho} \cdot (1 + \xi) \cdot G \approx \varphi^{-3}(1 + \varphi^6) G = (\varphi^{-3} + \varphi^3) G \approx 4.47 G$$
+$$G_{\text{eff}} \to \frac{\pi}{\rho} \cdot (1 + (\varphi^{6}-1)) \cdot G = \varphi^{-3}\varphi^6 G = \varphi^3 G \approx 4.2361 G$$
 
-Gravity is **enhanced** by factor ~4.5 relative to Newton.
+Gravity is **enhanced** by the exact factor $\varphi^3 = 4.2361$ relative to Newton.
 
 **Ratio across the break:**
 $$\frac{G_{\text{eff}}(k \ll k_\varphi)}{G_{\text{eff}}(k \gg k_\varphi)} \approx \frac{\varphi^3}{\varphi^{-3}} = \varphi^6 \approx 17.94$$
 
-Gravity is up to ~18× stronger at large scales than at small scales (the α-free ceiling ratio; halo-regime contrasts are ~$9\times$ via $\alpha_{\text{halo}}(1+\xi q)$).
+Gravity is up to ≈ 17.9× stronger at large scales than at small scales (the α-free ceiling ratio; halo-regime contrasts are ~$9\times$ via $\alpha_{\text{halo}}(1+(\varphi^{6}-1)q)$).
 
 ### 4.3 Impact on the Energy Spectrum
 
@@ -312,6 +312,6 @@ For N=64 with $\lambda=0.17$, $\varepsilon=0.01$: $k_\varphi \approx 3.0$, with 
 
 ## References
 
-- `cassi-physics.md`—two-fluid PDE, Qi gate, and $G_{\text{eff}} = (\pi/\rho)(1+\xi q)G$
+- `cassi-physics.md`—two-fluid PDE, Qi gate, and $G_{\text{eff}} = (\pi/\rho)(1+(\varphi^{6}-1)q)G$
 - `foundations/xi-derivation.md`—derivation of the Qi-gravity coupling $\xi = \varphi^6$
 - `foundations/bubble-edge-geometry.md` §1.2—condensation threshold $\theta_{\text{cond}}$ from the conversion-diffusion balance

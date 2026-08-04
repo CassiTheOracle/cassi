@@ -199,10 +199,10 @@ The condensation threshold $\theta_{\text{cond}}$ at the chakra scale is determi
 
 The Qi-gravity coupling $\xi = \varphi^6 \approx 17.944$ operates at the chakra scale exactly as it does at the cosmological scale:
 
-$$G_{\text{eff}}(\mathbf{x}) = \frac{\pi}{\rho(\mathbf{x})}\bigl(1 + \xi\,q(\mathbf{x})\bigr)$$
+$$G_{\text{eff}}(\mathbf{x}) = \frac{\pi}{\rho(\mathbf{x})}\bigl(1 + (\varphi^{6}-1)q(\mathbf{x})\bigr)$$
 
-At a chakra center ($q \to 1$): $G_{\text{eff}} \approx (\pi/\rho_0)(1 + \xi) \approx 19\,\pi/\rho_0$.
-At the chakra edge ($q \approx 0.725$ for $\theta_{\text{cond}} = 0.45$): $G_{\text{eff}} \approx 14\,\pi/\rho_0$.
+At a chakra center ($q \to 1$): $G_{\text{eff}} \approx (\pi/\rho_0)\varphi^6 \approx 17.94\,\pi/\rho_0$.
+At the chakra edge ($q \approx 0.725$ for $\theta_{\text{cond}} = 0.45$): $G_{\text{eff}} \approx 13.3\,\pi/\rho_0$.
 Between chakras ($q \to 0$): $G_{\text{eff}} \to \pi/\rho_{\text{void}}$—unamplified gravity.
 
 The chakras are regions of enhanced effective gravity—not at the Newtonian scale (where the effect is negligible at human masses), but within the Qi field itself. The Qi condensate at a chakra center is gravitationally self-reinforcing: the enhanced $G_{\text{eff}}$ further concentrates Qi, which further enhances $G_{\text{eff}}$, producing a stable attractor—the same mechanism that stabilizes cosmological bubbles against dissipation.

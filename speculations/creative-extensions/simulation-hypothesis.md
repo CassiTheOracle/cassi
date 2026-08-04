@@ -130,7 +130,7 @@ The central constraint on hacking is the phase-matching factor $\mathcal{M}$ (`f
 
 Concrete examples of coherence operations, each already described in the framework:
 
-- **Levitation and weight control.** The effective gravitational coupling is $G_{\text{eff}} = \frac{\pi}{\rho}(1 + \xi q)\,G$ with $\xi = \varphi^6 \approx 17.944$ (`foundations/xi-derivation.md`). Tuning the local Yang fraction $\pi/\rho$ and coherence $q$ changes the local weight—a WRITE against the attractor, paid for at the $V_{\text{attr}}$ rate.
+- **Levitation and weight control.** The effective gravitational coupling is $G_{\text{eff}} = \frac{\pi}{\rho}(1 + (\varphi^{6}-1)q)\,G$ with $\xi = \varphi^6 \approx 17.944$ (`foundations/xi-derivation.md`). Tuning the local Yang fraction $\pi/\rho$ and coherence $q$ changes the local weight—a WRITE against the attractor, paid for at the $V_{\text{attr}}$ rate.
 - **Rung retreat and invisibility.** Shifting a coupled system by $\Delta n \approx 10$ rungs decouples it from visible-light interactions by the $\varphi^{-10} \approx 0.008$ suppression factor (`speculations/qi-bubble-propulsion.md` §3.1): still at the same coordinates, no longer playing on our rung.
 - **Lattice teleportation.** Two points distant in 3-space can be adjacent along the cascade axis; a coherent Qi bridge walks the lattice topology instead of the space (`speculations/qi-bubble-propulsion.md` §3.2). TRANSFER, executed at the lattice level.
 

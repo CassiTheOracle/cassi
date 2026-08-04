@@ -249,7 +249,7 @@ with the Qi-gravity coupling $\xi = \varphi^6$ entering the cosmic evolution. Th
 
 ## 11. Dark Matter
 
-Dark matter is **high-coherence two-fluid condensate**—regions locked at $\varphi$-equilibrium. Two properties follow. First, gravity is amplified in high-$q$ regions (up to the α-free full-coherence ceiling $1+\xi \approx 18.9\times$ at $q=1$; halo-regime boosts are $2.9$–$3.1\times$ via $\sqrt{\alpha_{\text{halo}}(1+\xi q)}$ with $\xi = \varphi^6 \approx 17.9$), so the condensate pulls surrounding matter with more gravitational force than visible matter accounts for. Second, because the two fluids are in perfect $\varphi$-equilibrium, there is no electromagnetic interaction: the region is dark. It bends light and shapes galaxies, but cannot be seen.
+Dark matter is **high-coherence two-fluid condensate**—regions locked at $\varphi$-equilibrium. Two properties follow. First, gravity is amplified in high-$q$ regions (up to the α-free full-coherence ceiling $\varphi^6 \approx 17.94\times$ at $q=1$; halo-regime boosts are $2.8$–$3.0\times$ via $\sqrt{\alpha_{\text{halo}}(1+(\varphi^{6}-1)q)}$ with $\xi = \varphi^6 \approx 17.9$), so the condensate pulls surrounding matter with more gravitational force than visible matter accounts for. Second, because the two fluids are in perfect $\varphi$-equilibrium, there is no electromagnetic interaction: the region is dark. It bends light and shapes galaxies, but cannot be seen.
 
 The predicted ratio of dark matter to ordinary matter follows from the same five-arm structure that sets the gap:
 
@@ -265,7 +265,7 @@ Why is gravity so weak? Every force lives at a specific cascade rung, and every 
 
 The effective force law carries the Qi-gravity coupling (`cosmology/observational_constraints.md`):
 
-$$\mathbf{F}_{ij} = -G\,\alpha_{0,i}(1+\xi q_i)\,M_i M_j\frac{\mathbf{r}_{ij}}{|\mathbf{r}_{ij}|^3}, \qquad \xi = \varphi^6$$
+$$\mathbf{F}_{ij} = -G\,\alpha_{0,i}(1+(\varphi^{6}-1)q_i)\,M_i M_j\frac{\mathbf{r}_{ij}}{|\mathbf{r}_{ij}|^3}, \qquad \xi = \varphi^6$$
 
 with $\alpha_{0,i}$ the per-body Yang fraction at the $\varphi$-fixed point ($\alpha_0 = \pi/\rho = \varphi^{-3} \approx 0.236$; the galactic halo fit uses the separate empirical value $\alpha_{\text{halo}} \approx 0.7$) and $q_i$ the local Qi coherence. In most of the universe ($q$ low), gravity is slightly weaker than textbook; in high-coherence regions (galaxy centers), it is amplified. This predicts a scale-dependent $\sigma_8$—structure growth reduced by weakened gravity in voids—being tested with KiDS/DESI.
 

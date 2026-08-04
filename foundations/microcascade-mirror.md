@@ -76,7 +76,7 @@ This mirror symmetry is structural: the two-fluid PDE is scale-covariant under �
 
 At r → 0 (spatial separation below σ ≈ ℓ_Pl), the two-fluid force goes harmonic:
 
-$$F(r) \propto -\frac{r}{3\sigma^3} \cdot (1 + \xi q), \qquad r \ll \sigma$$
+$$F(r) \propto -\frac{r}{3\sigma^3} \cdot (1 + (\varphi^{6}-1)q), \qquad r \ll \sigma$$
 
 The force vanishes linearly as r → 0—there is **no singularity** at the Planck scale. This means the physics at r < σ is regular and well-defined. The cascade can continue across r = σ without encountering a singularity. The microcascade is not blocked by the Planck scale—it is enabled by σ-regularization.
 

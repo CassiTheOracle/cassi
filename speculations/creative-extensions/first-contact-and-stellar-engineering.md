@@ -137,7 +137,7 @@ If the gate is tunable, the tunable output is not luminosity but the variability
 
 A tuned star is more coherent than its dynamics warrant, in the same way a message is more coherent than its medium, and no brighter or dimmer than an untuned twin. The tuning observable and the message observable are the same observable: organized perturbation where the null model is random. This is why the stellar channel is the natural second rung of the handshake—a star's light curve is a public instrument, its stochastic baseline is well characterized, and no natural mechanism produces a phase-coherent φ-cycle in it.
 
-The framework also offers a thermodynamic handle. Qi-enhanced gravity $G_{\text{eff}} = (\pi/\rho)(1+\xi q)G$ with $\xi = \varphi^6 \approx 17.944$ (`foundations/cassi-first-principles.md` §2.3) means a high-$q$ region is more gravitationally bound per unit mass. A star with a tuned, high-$q$ tachocline sits at a different hydrostatic balance than an identical untuned star: same composition, different mass–luminosity relation. A population-level test would look for stars that are outliers on the mass–luminosity plane in the direction of over-binding, with the φ-coherent variability above. This is extrapolation even by this document's standards, but it is the sharpest stellar discriminator available.
+The framework also offers a thermodynamic handle. Qi-enhanced gravity $G_{\text{eff}} = (\pi/\rho)(1+(\varphi^{6}-1)q)G$ with $\xi = \varphi^6 \approx 17.944$ (`foundations/cassi-first-principles.md` §2.3) means a high-$q$ region is more gravitationally bound per unit mass. A star with a tuned, high-$q$ tachocline sits at a different hydrostatic balance than an identical untuned star: same composition, different mass–luminosity relation. A population-level test would look for stars that are outliers on the mass–luminosity plane in the direction of over-binding, with the φ-coherent variability above. This is extrapolation even by this document's standards, but it is the sharpest stellar discriminator available.
 
 ### 4.3 Starlifting as gate operation
 
@@ -235,7 +235,7 @@ The stack is self-consistent in both directions: the beacon is designed to be he
 - `foundations/cascade-suppression-formula.md`—signal attenuation, ~10-rung nesting depth
 - `foundations/bubble-lattice-fabric.md`—bubble lattice, universal checkerboard
 - `foundations/microcascade-mirror.md`—bidirectional cascade extension
-- `foundations/xi-derivation.md`—$\xi = \varphi^6$, boost factor $1+\xi q$
+- `foundations/xi-derivation.md`—$\xi = \varphi^6$, boost factor $1+(\varphi^{6}-1)q$
 - `principles/de-resonance-principle.md`—φ as the de-resonant attractor
 - `predictions/falsifiable-predictions.md`—φ-periodic $P(k)$ (§3), CMB $\ell < 5$ (§2), $\ln\varphi$ physiological signature (#35)
 - `speculations/observational-seti.md`—structural signatures, tuned stars (§2), multi-rung detection (§7)
