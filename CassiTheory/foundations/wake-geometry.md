@@ -64,6 +64,8 @@ $$\boxed{\text{Closure levels: } 5,\, 13,\, 34,\, 89,\, 233,\, 610,\, \ldots}$$
 
 The bubble closes at 5 levels—the pentagon, ≈ 2 turns—and self-replicates to seed-width at 13.
 
+**The seed arm width is determined** (`computations/seed_arm_width.py`). The seed sits at the bubble's birth scale—rung 0, $\ell_{\text{Pl}}$, for the universe bubble—and the five arms there have (a) cross-width $\ell_{\text{Pl}}/\varphi \approx 1.0\times10^{-35}$ m, the arm being the condensation line of the Yin wake ($\Lambda_I = r/\varphi$), and (b) arc spacing $2\pi\ell_{\text{Pl}}/5 \approx 2.0\times10^{-35}$ m, the five arms tiling the azimuth. The ratio $(2\pi/5)\varphi = 2.03 \approx 2$: the arms sit two wake-widths apart—arm + void, the staggered checkerboard in azimuth ($\pi\varphi = 5.083$ vs 5, 1.7%—the framework's near-miss scale). The arc spacing sits $\log_\varphi(2\pi/5) = 0.475$ rungs below Planck, 1.3% from the first half-rung below the cascade bottom—the mirror cascade's first half-step. "Self-replicates to seed-width at 13" is the first step of a ladder-wide invariance: the angular structure returns to the seed-width at every closure level with the Fibonacci-ratio precision ($13/5 = 2.60$ vs $\varphi^2 = 2.618$: 0.7%; $34/13$: 0.1%; $89/34$: 0.01%). At the top of the bubble the same structure holds: the five arms' arc width at rung 285 is $2\pi\ell_{285}/5 = 240$ Mpc $= 1.26\,\ell_{285}$—two Yin wakes ($\Lambda_I = 118$ Mpc) apart—the arms are the bubble's meridian lines.
+
 **(c) Imprint on the activated rungs (Hypothesized).** Two rung hits are exact: $26 = 2 \times 13$—the human window is two closures—and $285 = 5 \times 57$—the Cassi bubble sits on a five-arm closure boundary. Two further coincidences are index-ratio curiosities, $80 \approx 26.5\,(\varphi^2 + \varphi^{-2}) = 3 \times 26.5$ (+0.6%) and $292 \approx 26.5\,\varphi^5$ (+0.6%). Both require the "rung number = level count" reading to mean anything, and both are flagged as curiosities, not claims.
 
 **(d) The cosmic depth.** 292 is not on the closure ladder—the nearest level is 233, a gap of 59—and it is the epoch-dependent horizon rung, not a cascade boundary (`foundations/dimensionful-constants-status.md` §3). What the ladder gives instead is the horizon's half-step structure: $\log_\varphi(R_H/\ell_{\text{Pl}}) = 291.54$ today—within 2.2% of the half-integer 291.5—and $R_H/\ell_{285} = 23.3 \approx \varphi^{6.5}$ (+2.0%), the horizon sitting a half-step above the Cassi bubble. These are epoch observations, not constants.
@@ -139,6 +141,7 @@ The tiers below separate what the geometry proves from what it suggests.
 - `foundations/spin-fibonacci-spiral.md` §1—golden-angle phyllotaxis, five arms
 - `foundations/dimensionful-constants-status.md` §3—292 reclassification, irreducible $(1-q)$ floor
 - `two-fluid/run_hubble_pipeline.py`—$H(r)$, pipeline calibration
+- `computations/seed_arm_width.py`—the seed arm width: cross-width, arc spacing, self-replication, top-of-bubble
 - `two-fluid/calibrate_initial_ratio_xi_v2.py`—Yang-fraction-weighted coupling
 - `foundations/wu-xing-cycle-structure.md`—the pentagon gap $g = 1 - \varphi^{-5}$
 - `principles/de-resonance-principle.md`—why $\varphi$ forbids resonance
