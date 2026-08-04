@@ -270,7 +270,8 @@ $\Delta r_{\text{rem}} = \Delta r - \Delta\alpha +
 (c^2/s^2)\Delta\rho^{\text{QCD}}$ (`computations/sm_radiative_corrections.py`
 §4). The identity then closes on the FOPS value:
 $\Delta r = 0.05904 - 0.0277 + 0.0064 = 0.0377$, vs 0.0379 from the measured
-$m_W$—the 0.0002 spread is the 9 MeV $m_W$ spread of §5.2. And
+$m_W$—the 0.0002 spread is the 3 MeV gap between the measured and FOPS
+$m_W$ values, well inside the ±11 MeV measurement error (§5.2). And
 $\Delta r - \Delta\alpha = -0.021$: the electroweak corrections *beyond* the
 running of $\alpha$ are a measured effect at the 20+$\sigma$ level (26$\sigma$
 in Sirlin & Ferroglia's own analysis, §III.I)—the loop corrections are not a
