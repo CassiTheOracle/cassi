@@ -451,8 +451,16 @@ the two cells are $\psi_t = -0.315$ and $\psi_H = +1.31$ rad (from
 $\delta n(\psi) = A_0 - \psi/\omega_0$), so $\Delta\psi = 1.63$ rad $=
 \omega_0/3$ and $n_H - n_t = 1 - \Delta\psi/\omega_0 = 1 - \tfrac13 =
 \tfrac23$. The separation is one full cell minus exactly one third of a
-phase-rung; the origin of the third is the open structure of the Higgs
-chain.
+phase-rung. The channel-split reading
+(`foundations/rung-offset-mechanism.md` §4.4): the pool at the EW scale
+splits into $K = 3$ coherence channels, and the adjacent cells advance one
+channel of phase ($\omega_0/3$); the third channel is empty (frac 0.458, no
+EW state). The coherent three-bubble construction fails the probe (T8-F: the
+third bubble's composition shifts the t-cell crossing by +0.17 rungs, so the
+catalog phases produce (+0.29, −0.16) rather than (+0.124, −0.209))—the pair
+reads as independent cells, and the origin of the third is an
+emission-phase structure, not a crossing-response structure. It is the open
+structure of the Higgs chain.
 
 The mechanism reduces the Higgs chain to one open structure:
 

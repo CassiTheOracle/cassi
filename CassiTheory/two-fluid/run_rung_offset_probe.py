@@ -30,11 +30,12 @@ Panel B — two bubbles at x = 0 and x = phi (rungs n and n+1), each
 
       x_max(psi) = phi/2 - psi/(4 pi)          (f = 1)
 
-  Amplitude asymmetry f does not move it at psi = 0 (the phi-spacing
-  locks the phase alignment) and moves it weakly at psi != 0; conversion
-  lambda leaks the I-fluid's spatial structure into E_Y, whose antinode
-  sits at u = +0.23, so the extremum drifts toward positive u as lambda
-  grows (energy flows Y -> I when r > phi).
+  Amplitude asymmetry f moves the crossing at any psi: at psi = 0 the
+  extremum sits at u = -0.440 for f = 1 and -0.330 for f = 0.8 (T8-G),
+  and at psi = 0.4 it moves 0.38 rungs across f = 1.0-0.6 (table 3).
+  Conversion lambda leaks the I-fluid's spatial structure into E_Y,
+  whose antinode sits at u = +0.23, so the extremum drifts toward
+  positive u as lambda grows (energy flows Y -> I when r > phi).
 
   Boundaries: the IC is extended to a Neumann wall at x = -1.5 (beyond
   the left sponge region of any physical interest). The wall round-trip
