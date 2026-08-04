@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Churning-gate drive test: does a matched recurring drive close the gate?
 
-Test design: `consciousness/neurodivergence-as-gate-configuration.md` §8.
+Test design: `consciousness/neurodivergence-as-gate-configuration.md` §9.
 
 Binary question: from a low-q mixed-channel init (the churning state: no
 dominant pentagon vertex, gate open), does a recurring in-channel drive
