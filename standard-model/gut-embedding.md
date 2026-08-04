@@ -76,22 +76,29 @@ $M_{\text{GUT}}$. From the one-loop RGEs:
 $$\frac{1}{\alpha_i(M_Z)} - \frac{1}{\alpha_{\text{GUT}}} =
    \frac{b_i}{2\pi} \ln\frac{M_{\text{GUT}}}{M_Z}$$
 
-where $(b_1, b_2, b_3) = (41/10, -19/6, -7)$ in SU(5) normalisation
-(including two Higgs doublets). Using the measured couplings at $M_Z$:
+where $(b_1, b_2, b_3) = (41/10, -19/6, -7)$ in SU(5) normalisation.
+Using the measured couplings at $M_Z$:
 
 $$\alpha_1^{-1}(M_Z) \approx 59.0,\quad
   \alpha_2^{-1}(M_Z) \approx 29.6,\quad
   \alpha_3^{-1}(M_Z) \approx 8.5$$
 
-gives an intersection at
+the one-loop intersections are
 
-$$M_{\text{GUT}} \approx 10^{15}{-}10^{16}\ \text{GeV}$$
+$$\alpha_1 = \alpha_2 \;\text{at}\; \mu \approx 10^{13}\ \text{GeV}
+  \quad (\alpha^{-1} = 42.4), \qquad
+  \alpha_2 = \alpha_3 \;\text{at}\; \mu \approx 10^{17}\ \text{GeV}
+  \quad (\alpha^{-1} = 47.1).$$
 
-with the nominal Cassi value $M_{\text{GUT}} \approx 2 \times 10^{16}\ \text{GeV}$
-corresponding to the φ-fixed point. The $\alpha_s$-only running estimate from
-[sm-from-phi.md](sm-from-phi.md) gives $\sim 10^{15}\ \text{GeV}$, reflecting
-the one-loop approximation and threshold uncertainties. The range $10^{15}{-}10^{16}$
-is acceptable for unification; the precise value remains a prediction.
+The three couplings do **not** meet at a single point in the SM—the classic
+non-unification pattern (minimal SU(5) predicts $\alpha_s(m_Z) \approx 0.07$,
+equivalently a $2\times$ deficit in the other direction). The value
+$\alpha_{\text{GUT}} = \varphi^{-3}/4\pi = 1/53$ is not realized by any SM
+coupling at any scale below $M_{\text{Pl}}$ (`standard-model/
+sm-radiative-corrections.md` §3.3). A common intersection near
+$2 \times 10^{16}$ GeV requires beyond-SM content between $m_Z$ and
+$M_{\text{GUT}}$—the same $\Delta b = 1.70$ deficit that rescues
+$\alpha_s(m_Z)$ (`parameter-inventory.md` §4.4).
 
 ### 2.2 SU(5) Breaking and the Weinberg Angle
 
@@ -107,18 +114,17 @@ The gauge coupling matching at $M_{\text{GUT}}$ determines the Weinberg angle:
 
 $$\sin^2\theta_W(M_{\text{GUT}}) = \frac{3}{8}$$
 
-for minimal SU(5). The Cassi φ-fixed-point VEV asymmetry modifies this to
+for minimal SU(5). The Cassi φ-fixed-point VEV asymmetry gives instead
 
-$$\sin^2\theta_W(M_{\text{GUT}}) = \phi^{-3} \approx 0.236$$
+$$\sin^2\theta_W = \phi^{-3} \approx 0.236$$
 
-which differs from the standard SU(5) tree-level value $3/8 = 0.375$ at
-$M_{\text{GUT}}$, but **both converge to the measured weak-scale value**
-$\sin^2\theta_W(M_Z) \approx 0.231$ through RG running. In standard SU(5),
-the running from $0.375$ down to $0.231$ requires a large RG evolution;
-in the Cassi φ-point scenario, $\phi^{-3} \approx 0.236$ at $M_{\text{GUT}}$
-is already close to the weak-scale value, requiring substantially less running.
-This is a consistency check: the Cassi prediction at the high scale already
-anticipates the infrared fixed point of the RGEs.
+at the Z-pole scale: the measured MS-bar angle runs **upward** with energy,
+crossing $\varphi^{-3}$ at $\mu_* \approx 233$ GeV and reaching
+$\sin^2\theta_W \approx 0.42$ at $2 \times 10^{16}$ GeV under SM running
+(`standard-model/sm-radiative-corrections.md` §3.3). The running does not
+take $\varphi^{-3} = 0.236$ *down* to 0.231—the direction is opposite. The
+φ-point value is a 2.1% statement at $m_Z$, exact at 233 GeV; it is not a
+GUT-scale boundary condition.
 
 ### 2.3 The SU(5) φ-Lagrangian
 
@@ -193,8 +199,15 @@ For the conservative lower end of the GUT scale range, $M_{\text{GUT}} \approx
 \approx 6 \times 10^{-5}$, giving $\tau \sim 2 \times 10^{30}\ \text{years}$ —
 already excluded. This tension between the α_s-running estimate and the
 full unification scale is **the central quantitative uncertainty** of the
-Cassi SU(5) embedding, resolvable only by two-loop RGEs and threshold
-corrections.
+Cassi SU(5) embedding. The corrected running analysis
+(`standard-model/sm-radiative-corrections.md` §3.3) sharpens it: the SM
+couplings have no common intersection, so the $2 \times 10^{16}$ GeV anchor
+of the boxed lifetime is not a property of SM running—it requires the same
+beyond-SM content ($\Delta b = 1.70$) that rescues $\alpha_s(m_Z)$, placed so
+that $\alpha_1 = \alpha_2 = \alpha_3$ near $10^{16}$ GeV. If that content
+exists, the lifetime prediction stands; if the unification scale instead
+tracks the SM $\alpha_1 = \alpha_2$ intersection ($10^{13}$ GeV), the
+lifetime is excluded by many orders of magnitude.
 
 ### 3.2 Decay Modes
 
@@ -316,12 +329,14 @@ predicted proton lifetime of $4 \times 10^{34}$ years ($p \to e^+ \pi^0$) is
 **within reach** of Hyper-Kamiokande, with the expected sensitivity reaching
 $> 10^{35}$ years in the 2030s.
 
-The central uncertainty is the precise GUT scale: the α_s-running estimate
-from sm-from-phi.md ($\sim 10^{15}$ GeV) gives a shorter lifetime, but the
-full three-coupling unification and two-loop corrections push the scale toward
-$2 \times 10^{16}$ GeV, which makes the prediction consistent with current
-bounds and testable. A proton discovery at Hyper-K would simultaneously
-confirm both grand unification and the Cassi φ-fixed-point principle.
+The central uncertainty is the precise GUT scale: the SM running has no
+common coupling intersection ($\alpha_1 = \alpha_2$ at $10^{13}$ GeV,
+$\alpha_2 = \alpha_3$ at $10^{17}$ GeV), so the $2 \times 10^{16}$ GeV anchor
+of the proton-lifetime prediction requires the cascade's beyond-SM content
+($\Delta b = 1.70$) to complete the unification. If it does, the predicted
+lifetime $4 \times 10^{34}$ yr is within Hyper-Kamiokande reach. A proton
+discovery at Hyper-K would simultaneously confirm both grand unification
+and the Cassi φ-fixed-point principle.
 
 SO(10) remains viable as a larger embedding that naturally accommodates the
 right-handed neutrino and the seesaw mechanism, but it requires Higgs
@@ -333,14 +348,15 @@ beyond the reach of future experiments.
 
 | Observable | SU(5) Prediction | SO(10) Prediction | Experimental Prospect |
 |-----------|-----------------|-------------------|---------------------|
-| $\alpha_{\text{GUT}}$ | $\phi^{-3}/(4\pi) \approx 1/53$ | Same | Inferred from running |
-| $M_{\text{GUT}}$ | $2 \times 10^{16}$ GeV | $\gtrsim 2 \times 10^{16}$ GeV | Unobservable directly |
-| $\sin^2\theta_W(M_{\text{GUT}})$ | $\phi^{-3} \approx 0.236$ | Same | RG-extrapolated |
+| $\alpha_{\text{GUT}}$ | $\phi^{-3}/(4\pi) \approx 1/53$ | Same | Requires $\Delta b = 1.70$ beyond-SM content; no SM intersection |
+| $M_{\text{GUT}}$ | $2 \times 10^{16}$ GeV (with beyond-SM content) | $\gtrsim 2 \times 10^{16}$ GeV | SM running alone: $\alpha_1=\alpha_2$ at $10^{13}$ GeV |
+| $\sin^2\theta_W$ | $\phi^{-3} \approx 0.236$ at $\mu_* = 233$ GeV | Same | 2.1% above Z-pole value |
 | $\tau(p \to e^+ \pi^0)$ | $\mathbf{4 \times 10^{34}}\ \text{y}$ | $10^{35}{-}10^{36}\ \text{y}$ | Hyper-K: $\mathbf{>10^{35}}\ \text{y}$ |
 | $\nu$ masses | External seesaw | Natural seesaw | Oscillation experiments |
 
 ## References
 
+- `standard-model/sm-radiative-corrections.md`—gauge-coupling running, thresholds, Δr
 - `standard-model/sm-from-phi.md`—φ-breaking chain and GUT-scale coupling
 - `standard-model/su2-gauge-extension.md`—gauge-coupling unification at $M_{\text{GUT}}$
 - `standard-model/neutrino-mass.md`—seesaw scale and canonical spectrum

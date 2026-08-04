@@ -43,11 +43,11 @@ All dimensionless coupling constants in the Cassi framework are $\varphi$-powers
 | Parameter | Expression | Value | Class | This was a free parameter: |
 |-----------|-----------|-------|-------|--------------------------------------|
 | $\xi$ (Qi-gravity) | $\varphi^{6}$ | $17.94427191$ | **D** | MOND interpolating function / DM halo concentration |
-| $\sin^2\theta_W$ (tree) | $\varphi^{-3}$ | $0.23607$ | **D** | Weak mixing angle (free in SM) |
-| $\sin^2\theta_W$ (Z-pole) | RG from $\varphi^{-3}$ | $0.23129$ | **D** | RGE running fixed by Cassi GUT scale |
-| $\alpha_{\text{GUT}}$ | $\varphi^{-3} / 4\pi$ | $1/53 \approx 0.01887$ | **D** | GUT coupling (free in SU(5)/SO(10)) |
-| $m_W/m_Z$ | $\sqrt{1-\varphi^{-3}}$ | $0.874$ | **D** | Prediction for FCC-ee |
-| $\alpha_{\varphi}$ (fine-structure) | $\varphi^{-3} / 4\pi$ at $M_{\text{GUT}}$ | $\approx 1/53$ | **D** | Running to $1/137$ at $m_e$ |
+| $\sin^2\theta_W$ (at $m_Z$) | $\varphi^{-3}$ | $0.23607$ | **D** | Weak mixing angle (free in SM); +2.1% at $m_Z$, exact at $\mu_* = 233$ GeV (`standard-model/sm-radiative-corrections.md`) |
+| $\sin^2\theta_W$ (at $\mu_* = 233$ GeV) | running MS-bar angle crosses $\varphi^{-3}$ | $0.23607$ | **D** | Where the φ-point value is realized; the angle runs upward, so the GUT scale is not the boundary |
+| $\alpha_{\text{GUT}}$ | $\varphi^{-3} / 4\pi$ | $1/53 \approx 0.01887$ | **D** | GUT coupling (free in SU(5)/SO(10)); not realized by SM running alone |
+| $m_W/m_Z$ | $\sqrt{1-\varphi^{-3}}$ | $0.874$; $0.878$ with $\rho$ | **D** | Prediction for FCC-ee |
+| $\alpha_{\text{em}}^{-1}(m_Z)$ | from $\varphi^{-3}/(4\pi)$ at $M_{\text{GUT}}$ | $161$ (vs measured $128.9$) | **D** | φ-boundary running gives +25%; the SM value $128.9$ closes via $\alpha(0)+\Delta\alpha$ (`standard-model/sm-radiative-corrections.md` §3–4) |
 | $\delta_{\text{CKM}}$ (CP phase) | $\pi\varphi^{-2}$ | $1.199$ rad $(68.7^\circ)$ | **D** | Via unitarity triangle from $\varphi$-scaled CKM elements |
 | $\beta$ (Bohm QP exponent) | $\varphi^{-1}/2$ | $0.309$ | **D** | Quantum potential scaling exponent |
 | $\chi_Y$ (Yang chemotaxis) | $\chi/\varphi$ | $\chi \cdot 0.618$ | **D** | Ratio fixed, absolute value calibrated ($\chi$) |
@@ -401,7 +401,7 @@ The Cassi framework eliminates free parameters:
 
 | Free parameter | Derived from $\varphi$ | Sector |
 |--------------------------|---------------------------|--------|
-| $\sin^2\theta_W$ | $\varphi^{-3}$ (tree) $\to 0.231$ (RG) | Electroweak |
+| $\sin^2\theta_W$ | $\varphi^{-3}$ (at $m_Z$; exact at $\mu_* = 233$ GeV) | Electroweak |
 | $\alpha_{\text{GUT}}$ | $\varphi^{-3}/(4\pi)$ | GUT unification |
 | $\delta_{\text{CKM}}$ | $\pi\varphi^{-2}$ | CP violation |
 | $\xi$ (Qi-gravity) | $\varphi^{6}$ | Modified gravity |

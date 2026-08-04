@@ -13,15 +13,20 @@ constants. All couplings are $\varphi$-powers; the last empirical parameter
 
 | Observable | SM | Cassi | Deviation | FCC-ee Sensitivity |
 |-----------|---------|-------|-----------|-------------------|
-| $m_W/m_Z$ | 0.881 | **0.874** | $-0.86\%$ | $>100\sigma$ |
-| $m_W$ | 80.377 GeV | **79.7 GeV** | $-0.86\%$ | 0.5 MeV |
-| $\sin^2\theta_W(m_Z)$ | 0.23122 | **0.231** (RG from 0.236) | $<0.1\%$ | $3\times10^{-5}$ |
-| $\alpha_{\text{EM}}^{-1}(m_Z)$ | 128.9 | **128.9** (RG from $4\pi/\varphi^{-3}$) | $<0.1\%$ | In-situ |
-| $m_H$ | 125.2 GeV | **125 GeV** | $<0.2\%$ | 4 MeV |
+| $m_W/m_Z$ | 0.8813 | **0.878** (tree 0.874 + $\rho$ correction) | $-0.36\%$ | $>100\sigma$ |
+| $m_W$ | 80.360 GeV | **80.07 GeV** | $-0.36\%$ | 0.5 MeV |
+| $\sin^2\theta_W(m_Z)$ | 0.23122 | **0.236** ($\varphi^{-3}$; running angle equals it at $\mu_* = 233$ GeV) | $+2.1\%$ | $3\times10^{-5}$ |
+| $\alpha_{\text{EM}}^{-1}(m_Z)$ | 128.9 | **161** (RG from $\varphi^{-3}/4\pi$ at $10^{16}$ GeV) | $+25\%$ | In-situ |
+| $m_H$ | 125.2 GeV | **not predicted** ($\lambda(m_Z) = 0.1294$ from input; $\lambda_\varphi$ formula gives 35 GeV) |—| 4 MeV |
 
-**Source:** `standard-model/su2-gauge-extension.md` §§3–4, `standard-model/sm-from-phi.md` §2.
-The W/Z mass ratio deviates by 0.86%—detected at $>100\sigma$ with FCC-ee's
-0.5 MeV precision on $m_W$. This is the **single most powerful test** of Cassi.
+**Source:** `standard-model/sm-radiative-corrections.md` §§3–5,
+`standard-model/su2-gauge-extension.md` §§3–4, `standard-model/sm-from-phi.md` §2.
+The W/Z mass ratio deviates by 0.36% after radiative corrections (the
+top-loop $\rho$ shift is included in the prediction)—detected at $>100\sigma$
+with FCC-ee's 0.5 MeV precision on $m_W$. This is the **single most
+powerful test** of Cassi. The $\sin^2\theta_W$ offset (+2.1% at $m_Z$) is the
+second: $\varphi^{-3}$ is realized at $\mu_* \approx 233$ GeV, and the
+GUT-scale running direction is upward, so the offset is not absorbable.
 
 ---
 
@@ -111,13 +116,13 @@ is $\sqrt{\varphi^6} = \varphi^3 \approx 4.24$ at full coherence ($q = 1$, $\alp
 
 | Observable | SM | Cassi | Test / Status |
 |-----------|-----|-------|--------------|
-| $m_H$ (Higgs mass) | $125.2$ GeV | **125 GeV** | Already consistent |
-| $\alpha_s(m_Z)$ | $0.118$ | **0.105–0.115** | LHC precision ($\pm 0.001$) |
-| $\Lambda_{\text{QCD}}$ | $200$ MeV | **150–200 MeV** | Consistent |
-| $m_p$ (proton mass) | $938$ MeV | **From $\varphi$-scaled $\Lambda_{\text{QCD}}$** | Within $10\%$ |
-| $p \to e^+\pi^0$ lifetime | $>1\times10^{34}$ yr | **$4\times10^{34}$ yr** | Hyper-K reach ($\sim 10^{35}$ yr) |
-| $M_{\text{GUT}}$ |—| **$10^{16}$–$10^{17}$ GeV** | Proton decay bound |
-| $\alpha_{\text{GUT}}$ |—| **$\varphi^{-3}/(4\pi) \approx 1/53$** | GUT-scale matching |
+| $m_H$ (Higgs mass) | $125.2$ GeV | **input** ($\lambda(m_Z) = 0.1294$; $\lambda_\varphi$ formula gives 35 GeV—not a prediction) | Vacuum metastable at $M_{\text{Pl}}$ |
+| $\alpha_s(m_Z)$ | $0.118$ | **0.058–0.061** (1-/2-loop from $\varphi^{-3}/4\pi$) | $2.0\times$ low; $\Delta b = 1.70$ required |
+| $\Lambda_{\text{QCD}}$ | $200$ MeV | order-of-magnitude low from φ-boundary | Same deficit |
+| $m_p$ (proton mass) | $938$ MeV | **$\varphi^3 \cdot \Lambda_{\text{QCD}} = 847$ MeV** (measured $\Lambda$ input) | Within $10\%$ |
+| $p \to e^+\pi^0$ lifetime | $>1\times10^{34}$ yr | **$4\times10^{34}$ yr** (if beyond-SM content completes unification near $10^{16}$ GeV) | Hyper-K reach ($\sim 10^{35}$ yr) |
+| $M_{\text{GUT}}$ |—| **$2 \times 10^{16}$ GeV** (needs $\Delta b = 1.70$; SM has no intersection) | Proton decay bound |
+| $\alpha_{\text{GUT}}$ |—| **$\varphi^{-3}/(4\pi) \approx 1/53$** | Not realized by SM running ($\alpha_1=\alpha_2$ at $10^{13}$ GeV, $\alpha^{-1}\approx 42$) |
 | $0\nu\beta\beta$ decay | Depends on $m_\nu$ | **$m_{\nu_e} \sim 0.01$–$0.05$ eV** | nEXO reach |
 | $\sum m_\nu$ (cosmological) | $<0.064$ eV ($\Lambda$CDM) | **Consistent with DESI bound** | DESI DR2: $<0.16$ eV ($w_0w_a$CDM) |
 | $\theta_{12}$ (solar mixing) | $33.4^\circ$ | **$\arctan(1/\varphi) \approx 31.7^\circ$** | 1.7°—from conversion Jacobian eigenvector $(\varphi,1)$ | JUNO (3% precision, 2027+) |
@@ -183,15 +188,15 @@ Sorted by detection likelihood (most definitive first):
 
 | # | Observable | Frontier | Cassi Prediction | Current Status | Detection Timeline |
 |---|-----------|---------|-----------------|----------------|-------------------|
-| 1 | $m_W/m_Z$ | FCC-ee | **0.874** (0.86% below SM) | $>100\sigma$ reachable | **2030s** |
-| 2 | $\sin^2\theta_W(m_Z)$ | FCC-ee | **0.231** (RG from 0.236) | $<0.1\%$ deviation | **2030s** |
+| 1 | $m_W/m_Z$ | FCC-ee | **0.878** (tree 0.874 + $\rho$ correction; 0.36% below SM) | $>100\sigma$ reachable | **2030s** |
+| 2 | $\sin^2\theta_W(m_Z)$ | FCC-ee | **0.236** ($\varphi^{-3}$; exact at $\mu_* = 233$ GeV) | $+2.1\%$ deviation | **2030s** |
 | 3 | $w_0$ (gap-derived) | Cosmic surveys | **$-0.87$** (gap-derived) | $2\sigma$ from DESI $\approx -0.75 \pm 0.06$ | **Tension** |
 | 4 | $w_a$ (DE EoS slope) | Cosmic surveys | **$+0.012$ (with $\xi = \varphi^6$)** | $2.7\sigma$ from DESI $\approx -0.73 \pm 0.28$ | **Tension** |
 | 5 | φ-periodic $P(k)$ | Cosmic surveys | **$\Delta\ln k = \ln\varphi = 0.4812$** | 0-param, orthogonal to BAO | **DESI / Euclid 2025–27** |
 | 6 | CMB bubble-boundary axis | CMB-S4 / LiteBIRD | **12.2° alignment, $\ell<5$** | Axis at 5.4σ, alignment ~1σ | **Simons Obs. 2025+** |
 | 7 | $r$ (tensor ratio) | CMB-S4 / LiteBIRD | **0.003** | $<0.032$ (Planck) | **2030s** |
 | 8 | $n_s$ | CMB-S4 | **0.9691** | $1.0\sigma$ from Planck | **Already consistent** |
-| 9 | $\alpha_s(m_Z)$ | LHC precision | **0.105–0.115** | Measured $0.118$ | **Ongoing** |
+| 9 | $\alpha_s(m_Z)$ | LHC precision | **0.058–0.061** | $2.0\times$ below measured $0.118$ ($\Delta b = 1.70$) | **Ongoing** |
 | 10 | $p \to e^+\pi^0$ lifetime | Hyper-K | **$4\times10^{34}$ yr** | $>1\times10^{34}$ yr bound | **2030s** |
 | 11 | $w(z)$ at $z > 3$ | LSST/Roman/SKA | **$> -1$ at all $z$** (no phantom crossing, structural) | DESI best fit crosses at $z \approx 0.5$; not yet tested | **2030s** |
 | 12 | Hubble tension | Cosmic | **Evolving $\Omega_\Lambda$: $0.30 \to 0.50$ (full $H(z)$ fit pending)** | Pending—full H(z) fit (registry C3/T4); pipeline CMB-inferred ≈ 65.8 | **2030s** |
@@ -207,8 +212,8 @@ Sorted by detection likelihood (most definitive first):
 | 22 | Casimir force | Lab | **$q < 0.02$** (95% CL) | Consistent | **Ongoing** |
 | 23 | Neutron star $M$–$R$ | NICER | **$<0.1\%$ deviation from GR** | Consistent | **Already consistent** |
 | 24 | $m_t / v_0$ | LHC/top | **0.618** ($\varphi^{-1}$) | Measured $0.703$, $12\%$ gap | **Ongoing** |
-| 25 | $m_H$ (Higgs mass) | LHC | **125 GeV** | Measured $125.2$ GeV | **Already consistent** |
-| 26 | $\alpha_{\text{GUT}}$ | GUT | **$\varphi^{-3}/(4\pi) \approx 1/53$** | $1/50$–$1/30$ range | **Proton decay** |
+| 25 | $m_H$ (Higgs mass) | LHC | **input** ($\lambda = 0.1294$; $\lambda_\varphi$ gives 35 GeV) | Measured $125.2$ GeV | **Not predicted** |
+| 26 | $\alpha_{\text{GUT}}$ | GUT | **$\varphi^{-3}/(4\pi) \approx 1/53$** | No SM intersection ($\alpha_1=\alpha_2$ at $10^{13}$, $\alpha^{-1}\approx 42$); needs $\Delta b = 1.70$ | **Proton decay** |
 | 27 | BAO scales ($\alpha_\perp, \alpha_\parallel$) | DESI | **$\sim 3\%$ shift from $\Lambda$CDM** | Matches DESI DR2 | **Already tested** |
 | 28 | BTFR normalization | Galactic | **$M_b \propto v_f^4$**, $A \propto \varphi^{-1}$ | $\chi^2/\text{dof} = 0.26$ | **Already confirmed** |
 | 29 | GW polarization | LIGO | **$+$, $\times$ + breathing mode** | Search ongoing | **Ongoing** |
@@ -251,9 +256,14 @@ Sorted by detection likelihood (most definitive first):
   the dark energy equation of state $w_0 = -0.87$, the baryon asymmetry $\eta$,
   and the inflationary spectral index $n_s = 1 - 2\varphi^{-1}/N_e = 0.9691$.
 
-- **RG running is not fitting.** The $\sim 2\%$ shift in $\sin^2\theta_W$ from
-  the GUT scale to $m_Z$ is the Standard Model renormalization group, not a
-  free parameter.
+- **RG running is not fitting.** The running of the couplings between the
+  φ-boundary and $m_Z$ is the Standard Model renormalization group, computed
+  in full by `computations/sm_radiative_corrections.py`. It does **not**
+  erase the φ-anchored residuals: $\sin^2\theta_W = \varphi^{-3}$ is exact at
+  $\mu_* \approx 233$ GeV and +2.1% at $m_Z$ (the angle runs *upward* with
+  energy), $\alpha_s(m_Z)$ comes out $2.0\times$ low, and $\alpha_1$,
+  $\alpha_2$, $\alpha_{\text{em}}$ come out ~25% weak. Those residuals are the
+  theory's testable content, not adjustable parameters.
 
 - **Scope of current tests:** The Cassi framework has 7/13 dedicated experimental
   tests PASSing (BBN, BAO, BTFR, neutron stars, stellar astrophysics, solar system,
@@ -263,4 +273,5 @@ Sorted by detection likelihood (most definitive first):
   ($w_0$) and $2.7\sigma$ ($w_a$) from DESI DR2—a tension, not a success.
 
 - **Deviations from SM expectations are falsifiable**—not adjustable. If FCC-ee
-  measures $m_W/m_Z = 0.881 \pm 0.0001$, the Cassi framework is excluded.
+  measures $m_W/m_Z = 0.881 \pm 0.0001$, the Cassi framework is excluded
+  (the predicted value is 0.878 after radiative corrections).

@@ -63,13 +63,21 @@ $$\cos^2\theta_W = 1 - \varphi^{-3} \approx 0.764$$
 
 **Comparison with experiment:**
 
-| Quantity | $\varphi$-Prediction (GUT) | Measured (Z-pole) | Ratio |
+| Quantity | $\varphi$-Prediction | Measured (Z-pole) | Ratio |
 |----------|--------------------------|-------------------|-------|
-| $\sin^2\theta_W$ | 0.236 (GUT) $\to$ 0.231 ($m_Z$) | 0.231 | 1.0 (RG running) |
+| $\sin^2\theta_W$ | $\varphi^{-3} \approx 0.236$ | 0.23122 | +2.1% (at $\mu_* = 233$ GeV, exact) |
 | $\cos^2\theta_W$ | 0.764 | 0.769 | 0.993 |
 
 The origin of this prediction: the neutral boson mass matrix off-diagonal is
 proportional to the VEV asymmetry $(\varphi-1)/(\varphi+1) = \varphi^{-3}$.
+
+The weak mixing angle runs **upward** with energy (toward the unification
+value $3/8$), so the φ-point value is realized not at the GUT scale but one
+and a half e-folds above the Z-pole: the MS-bar running angle crosses
+$\varphi^{-3}$ at $\mu_* \approx 233$ GeV. At $m_Z$ itself the prediction
+sits 2.1% above the measured 0.23122. The full derivation of the running,
+the threshold corrections, and the residual is in
+`standard-model/sm-radiative-corrections.md` §3–4.
 
 ---
 
@@ -102,20 +110,28 @@ With $\sin^2\theta_W = \varphi^{-3}$ from the first-principles derivation:
 
 $$\frac{m_W}{m_Z} = \sqrt{1 - \varphi^{-3}} \approx 0.874$$
 
-**Comparison with experiment:** The measured ratio $80.4/91.2 \approx 0.882$ differs
-by $0.86\%$. This gap is within theoretical uncertainty from electroweak radiative
-corrections and is **testable at FCC-ee at $>100\sigma$**.
+**Comparison with experiment:** The measured ratio $80.36/91.19 \approx
+0.8813$ differs from the φ-tree value 0.8740 by $-0.82\%$. The leading
+radiative correction—the top-loop $\rho$ parameter—raises the tree ratio to
+$m_W/m_Z = 0.8740\sqrt{1+\Delta\rho} = 0.8781$ ($m_W = 80.07$ GeV), halving
+the gap to $-0.36\%$. The residual traces to the 2.1% Weinberg-angle offset
+($\varphi^{-3}$ vs 0.2312 at $m_Z$); it is **testable at FCC-ee at
+$>100\sigma$** (see `standard-model/sm-radiative-corrections.md` §5).
 
 ### 2.3 The Higgs Mass
 
-The Higgs boson mass is determined by the quartic coupling λ, which at the
-φ-point satisfies:
+The quartic coupling determined by the measured Higgs mass is
+$\lambda = m_H^2/(2v^2) = 0.1294$ at $m_Z$ (with $v = 246.22$ GeV from
+$G_F$). Its one-loop radiative corrections drive $\lambda$ toward zero at
+$10^{10}$–$10^{19}$ GeV: the SM Higgs vacuum is metastable
+($\lambda(M_{\text{Pl}}) = -0.011$ at NNLO)—a structural fact for the Cassi
+cascade, which spans to the Planck rung
+(`standard-model/sm-radiative-corrections.md` §6).
 
-$$\lambda_\phi = \frac{\phi^{-2}}{2} \cdot \frac{g^2}{8}$$
-
-$$m_H = v\sqrt{2\lambda} \approx 125\ \text{GeV}$$
-
-This reproduces the observed Higgs mass within the φ-scaling uncertainty.
+The quartic formula $\lambda_\varphi = (\varphi^{-2}/2)(g^2/8)$ does **not**
+reproduce the measured mass: it gives $\lambda = 0.0101$, i.e. $m_H = 35$ GeV.
+The Higgs mass is an input to the radiative-correction program, not yet an
+output of the φ-framework.
 
 ---
 
@@ -147,12 +163,15 @@ The φ-attractor fixes the GUT-scale coupling:
 
 $$\alpha_{\text{GUT}} = \frac{\phi^{-3}}{4\pi} \approx \frac{0.236}{4\pi} \approx 0.0188 \approx \frac{1}{53}$$
 
-Running to $M_Z \approx 91.2\ \text{GeV}$ with $M_{\text{GUT}} \approx 10^{15}\ \text{GeV}$:
+Running to $M_Z \approx 91.2\ \text{GeV}$ with $M_{\text{GUT}} \approx 10^{16}\ \text{GeV}$:
 
-$$\alpha_s(M_Z) = \frac{\alpha_{\text{GUT}}}{1 + \frac{b_0}{2\pi}\alpha_{\text{GUT}}\ln(M_{\text{GUT}}/M_Z)} \approx 0.097$$
+$$\alpha_s(M_Z) = \frac{\alpha_{\text{GUT}}}{1 + \frac{b_0}{2\pi}\alpha_{\text{GUT}}\ln(M_{\text{GUT}}/M_Z)} \approx 0.058$$
 
-This is about 18% below the measured $\alpha_s(M_Z) = 0.118$—remarkably close
-given the one-loop approximation and the absence of threshold effects.
+(one loop; 0.061 with two-loop QCD). This is $2.0\times$ below the measured
+$\alpha_s(M_Z) = 0.118$—the documented deficit that requires $\Delta b = 1.70$
+of beyond-SM colored content between $M_Z$ and $M_{\text{GUT}}$
+(`parameter-inventory.md` §4.4; `standard-model/sm-radiative-corrections.md`
+§3.2).
 
 ### 3.3 Proton Mass Prediction
 
@@ -295,24 +314,25 @@ forms—confinement. When $Q < \phi^{-1}$, chiral symmetry is restored.
 
 | Observable | $\varphi$-Prediction | Experiment | Notes |
 |-----------|---------------------|------------|-------|
-| $\sin^2\theta_W$ (GUT) | $\varphi^{-3} \approx 0.236$ | 0.231 ($m_Z$) | RG running closes gap |
-| $\sin^2\theta_W$ ($m_Z$) | $0.231$ (from running) | 0.231 | DERIVED: VEV asymmetry |
-| $m_W/m_Z$ | $\sqrt{1-\varphi^{-3}} \approx 0.874$ | 0.882 | FCC-ee testable at $>100\sigma$ |
-| $\alpha_{\text{GUT}}$ | $\varphi^{-3}/(4\pi) \approx 1/53$ | ~1/50—1/30 | Running dependent on GUT scale |
-| $\alpha_s(M_Z)$ | ~0.105—0.115 | 0.118 | Two-loop; within uncertainty |
-| $m_H$ | ~125 GeV | 125.2 GeV | Consistent |
-| $m_p$ | $\varphi^3 \cdot \Lambda_{\text{QCD}}$ | 938 MeV | Within ~10% |
+| $\sin^2\theta_W$ (at $m_Z$) | $\varphi^{-3} \approx 0.236$ | 0.23122 | +2.1%; exact at $\mu_* = 233$ GeV (running is upward, not downward) |
+| $m_W/m_Z$ | $\sqrt{1-\varphi^{-3}} \approx 0.874$; 0.878 with $\rho$-correction | 0.8813 | −0.36% after radiative corrections; FCC-ee testable at $>100\sigma$ |
+| $\alpha_{\text{GUT}}$ | $\varphi^{-3}/(4\pi) \approx 1/53$ | no SM unification point | $\alpha_1=\alpha_2$ at $10^{13}$ GeV ($\alpha^{-1}\approx 42$); $\alpha_2=\alpha_3$ at $10^{17}$ GeV |
+| $\alpha_s(M_Z)$ | 0.058 (1-loop); 0.061 (2-loop) | 0.118 | $2.0\times$ low; $\Delta b = 1.70$ beyond-SM content required |
+| $m_H$ | input ($\lambda = 0.1294$); $\lambda_\varphi$ formula gives 35 GeV | 125.2 GeV | not derived; vacuum metastable at $M_{\text{Pl}}$ |
+| $m_p$ | $\varphi^3 \cdot \Lambda_{\text{QCD}}$ | 938 MeV | Within ~10% (uses measured $\Lambda_{\text{QCD}}$) |
 | $|V_{us}|$ | $\varphi^{-3} \approx 0.236$ (nearest $\varphi$ power) | 0.225 | $5\%$ off; mixing corrections needed |
 | $m_{\nu_3}$ | $0.05019\ \text{eV}$ (cascade RGE + PMNS) | 0.050 | See `foundations/neutrino-masses.md` |
 
 The φ-structure predicts the overall pattern of SM parameters to within
-$\mathcal{O}(10\text{--}30\%)$, with quantitative agreement improving when
-φ-weighted loop corrections are included. The residual discrepancies point
-to the precise nature of the completion of the Standard Model at the
-φ-fixed point.
+$\mathcal{O}(10\text{--}30\%)$, with the standard loop corrections now
+derived in full (`standard-model/sm-radiative-corrections.md`). The residual
+discrepancies—$\alpha_s$ $2\times$ low, $\alpha_1$/$\alpha_2$ ~25% weak,
+$\sin^2\theta_W$ 2.1% high at $m_Z$—point to the precise nature of the
+completion of the Standard Model at the φ-fixed point.
 
 ## References
 
+- `standard-model/sm-radiative-corrections.md`—full derivation of the loop corrections
 - `standard-model/cp-violation.md`—CKM phase and Jarlskog invariant
 - `standard-model/gut-embedding.md`—SU(5)/SO(10) embedding, proton decay
 - `standard-model/neutrino-mass.md`—seesaw primer and canonical spectrum

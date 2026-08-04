@@ -10,9 +10,8 @@
 
 | Prediction | Cassi Value | Experimental Value | MoE | Status |
 |-----------|-------------|-------------------|-----|--------|
-| $\sin^2\theta_W$ (tree) | $0.23607 = \varphi^{-3}$ | $0.23129$ | $\pm 0.00005$ | **2.1% error**—RGE running to Z-pole closes gap |
-| $\sin^2\theta_W$ (Z-pole, w/ RGE) | $\approx 0.2313$ | $0.23129 \pm 0.00005$ | $\pm 0.00005$ | ✅ **Within MoE** |
-| $m_W/m_Z$ | $0.8740 = \sqrt{1-\varphi^{-3}}$ | $0.8814$ |—| **0.8% error** |
+| $\sin^2\theta_W$ (at $m_Z$) | $0.23607 = \varphi^{-3}$ | $0.23122 \pm 0.00004$ |—| **2.1% high**—the running angle crosses $\varphi^{-3}$ at $\mu_* \approx 233$ GeV (running is upward, so the GUT-scale gap is not closed by RG; see `standard-model/sm-radiative-corrections.md` §3.3) |
+| $m_W/m_Z$ | $0.8740 = \sqrt{1-\varphi^{-3}}$; 0.878 with $\rho$-correction | $0.8813$ |—| **0.36% error** after radiative corrections (tree: 0.82%) |
 | $\delta_{\text{CKM}}$ | $68.8^\circ = 180 \cdot \varphi^{-2}$ | $69.2^\circ$ | $\pm 3.0^\circ$ | ✅ **Within MoE** |
 
 ### 1.2 CKM Matrix
@@ -34,7 +33,7 @@ Neutrino masses are not cleanly derivable from $\varphi$ alone. The seesaw mecha
 
 | Quantity | Cassi Prediction | Experimental | Status |
 |----------|-----------------|--------------|--------|
-| $\alpha_{\text{GUT}}$ | $\varphi^{-3}/(4\pi) \approx 1/53.2$ | Unification at $\sim 1/53$ | ✅ **Matches** |
+| $\alpha_{\text{GUT}}$ | $\varphi^{-3}/(4\pi) \approx 1/53.2$ | No common SM intersection: $\alpha_1=\alpha_2$ at $10^{13}$ GeV ($\alpha^{-1}\approx 42$), $\alpha_2=\alpha_3$ at $10^{17}$ GeV ($\alpha^{-1}\approx 47$) | ❌ **Not realized by SM running**—requires $\Delta b = 1.70$ beyond-SM content |
 | $\alpha_s(M_Z)$ from RGE (SM, 6 flavors) | $0.058$ | $0.118$ | ❌ **2.0× too small**—requires $\Delta b \approx 1.70$ in particle content between $M_Z$ and $M_{\text{GUT}}$ |
 
 ---
@@ -76,19 +75,22 @@ Neutrino masses are not cleanly derivable from $\varphi$ alone. The seesaw mecha
 
 ## 5. Summary
 
-### Confirmed Predictions (9)
+### Confirmed Predictions (7)
 
 | Sector | Prediction | Accuracy |
 |--------|-----------|----------|
-| EW | $\sin^2\theta_W$ (RGE from $\varphi^{-3}$ at $M_{\text{GUT}}$) | $\lesssim 1\%$ |
 | SM | $\delta_{\text{CKM}} = \pi\varphi^{-2}$ | $<1\%$ |
-| SM | $m_W/m_Z = \sqrt{1-\varphi^{-3}}$ | $0.8\%$ |
 | Cosmology | $w_0 = -0.87$, $w_a = +0.012$ (corrected 2026-07-31) | $2\sigma$ / $2.7\sigma$ tension |
 | Cosmology | $n_s = 0.9691$ (closed form, $N_e = 40$) | $1.0\sigma$ |
 | Cosmology | $r = 0.003$ | Within bound |
 | Cosmology | $H_0$: pipeline CMB-inferred ≈ 65.8 km/s/Mpc | Tension/pending—full H(z) fit pending (registry C3/T4) |
 | Atomic | He ground state (LDA, N=64) | $0.9\%$ |
 | Gravity | $v_C/v_B$ (MW rotation) | Within $2.5$-$3.0$ range |
+
+The electroweak predictions ($\sin^2\theta_W = \varphi^{-3}$: +2.1% at $m_Z$,
+exact at $\mu_* = 233$ GeV; $m_W/m_Z = 0.878$ after the $\rho$ correction:
+−0.36%) are falsifiable and pending FCC-ee—their status is in §1.1, not in
+this confirmed list.
 
 (The dwarf-spheroidal M/L row moved out of Confirmed on 2026-08-03: with the
 corrected coupling the test favors MOND (4/8 vs Cassi's 3/8) and the saturation
