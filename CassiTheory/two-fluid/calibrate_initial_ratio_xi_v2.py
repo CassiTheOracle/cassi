@@ -20,10 +20,12 @@ DESI DR2 anchors (2026-07-31 verification):
   - Table 9 (widely reported, per-table note): w0 ~ -0.72 +- 0.09,
     wa ~ -0.73 +- 0.28 (BAO+CMB+Pantheon+); range across SNe:
     wa ~ -0.6 to -1.1
-  - The repo's previous "-0.838 +- 0.055 / -0.51 +- 0.38" is NOT a
-    verified DESI constraint: it is the calibration target hardcoded in
+  - The repo's previous calibration-target pair is NOT a
+    verified DESI constraint: it was the calibration target hardcoded in
     calibrate_initial_ratio.py / figure_data.py and echoed back by
-    observational_constraints.md 1.4-1.5 ("0 sigma" = circular).
+    observational_constraints.md 1.4-1.5 ("0 sigma" = circular); both
+    scripts now carry the DESI-anchored w0 = -0.87 (calibration target,
+    not a prediction; synced to doctrine settlement 2026-08-03).
 
 Run: python two-fluid/calibrate_initial_ratio_xi_v2.py
 """

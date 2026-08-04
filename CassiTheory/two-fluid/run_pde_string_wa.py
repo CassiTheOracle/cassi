@@ -323,8 +323,8 @@ def plot_diagnostics(solver, snaps, ode_res, run_dir):
     ax.plot(aw, wp, color=YG, lw=2,
             label=f'PDE: w₀={w0p:.3f}, wa={wap:+.3f}')
     ax.axhline(y=-1.0, color=TS, ls=':', lw=1, label='Λ')
-    ax.axhline(y=-0.838, color=GN, ls=':', lw=1, alpha=0.5)  # internal calibration target, not measured DESI
-    ax.text(0.97, -0.845, 'calib. target (not DESI)', color=GN, fontsize=7, ha='right')
+    ax.axhline(y=-0.87, color=GN, ls=':', lw=1, alpha=0.5)  # calibration target (DESI-anchored, Calibrated tier — see parameter-inventory §10 fit ledger); not a prediction — synced to doctrine settlement 2026-08-03
+    ax.text(0.97, -0.877, 'calib. target (DESI-anchored, not a prediction)', color=GN, fontsize=7, ha='right')
     ax.set(xlabel='a', ylabel='w(a)',
            title='D. Dark energy equation of state')
     ax.legend(fontsize=8); ax.grid(True, alpha=0.3)
@@ -352,9 +352,9 @@ def plot_diagnostics(solver, snaps, ode_res, run_dir):
         ("─── ODE 5ch+ξ ───", 12, 'bold', YI),
         (f"w₀ = {w0o:.4f}   w_a = {wao:+.4f}", 12, 'bold', YI),
         ("", 6, 'normal', TS),
-        ("─── INTERNAL TARGET (not DESI) ───", 12, 'bold', WH),
-        ("w₀=−0.838 ± 0.055", 9, 'normal', TM),
-        ("w_a=−0.51 ± 0.38", 9, 'normal', TM),
+        ("─── CALIBRATION TARGET (DESI-anchored, not a prediction) ───", 12, 'bold', WH),
+        ("w₀=−0.87 ± 0.06", 9, 'normal', TM),
+        ("w_a=+0.012 ± 0.28", 9, 'normal', TM),
         ("", 6, 'normal', TS),
         (f"Δw_a(PDE−ODE)={wap-wao:+.4f}", 10, 'bold',
          GN if abs(wap-wao)<0.1 else RD)]
@@ -441,7 +441,7 @@ if __name__ == '__main__':
     w0p, wap = fit_w0_wa(aw, wp)
     print(f'\n  PDE:  w₀ = {w0p:.4f}  w_a = {wap:+.4f}')
     print(f'  Δw_a(PDE−ODE) = {wap-wao:+.4f}')
-    print(f'  Internal calibration target (not DESI):  w₀=−0.838±0.055  w_a=−0.51±0.38')
+    print(f'  Calibration target (DESI-anchored, not a prediction):  w₀=−0.87±0.06  w_a=+0.012±0.28  [synced to doctrine settlement 2026-08-03]')
 
     fn = snaps[-1]
     print(f'\n  Final regions: f_str={fn["frac_string"]:.3f} '
