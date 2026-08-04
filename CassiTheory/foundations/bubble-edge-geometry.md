@@ -179,7 +179,7 @@ with $n_{\text{cond}} \approx 1$ (linear condensation) to $n_{\text{cond}} \appr
 The bubble edge at $z \approx 19$ (Qi gate engagement, the "pinch") imprints on the CMB as a preferred direction. The edge is not a sharp wall—it is a gradient in $q$ and $G_{\text{eff}}$ with $\varphi$-asymmetric steepness. This gradient produces:
 
 - A scale-dependent preferred axis at $\ell < 5$ that fades at smaller scales (super-horizon boundary)
-- The $12.2^\circ$ alignment angle between the CMB dipole (Yang axis) and the quadrupole-octopole axis (bubble boundary normal), derived from the triaxial geometry in `foundations/refined-numeric-predictions.md` §2.3
+- The $12.2^\circ$ alignment angle between the CMB dipole (Yang axis) and the quadrupole-octopole axis (bubble boundary normal)—measured, calibrated from the data vectors; the bubble-boundary mechanism is a candidate whose orientation is fitted to the measured axis (Hypothesized; `foundations/refined-numeric-predictions.md` §2.3)
 
 ### 5.2 Void Ellipticity Prediction
 
