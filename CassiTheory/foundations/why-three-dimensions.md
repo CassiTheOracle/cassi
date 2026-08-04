@@ -367,10 +367,15 @@ consequences of the spheroid geometry; W4 upgrades from conditional to active.
 3. **Fluid-count uniqueness.** §2.3 grounds two fluids as the minimal
    de-resonant structure; whether three-fluid sectors are forbidden (ratio
    incompatibility) or merely unobserved remains open.
-4. **Exact spiral pitch from PDE.** The Fibonacci spiral's logarithmic pitch
-   $\ln\varphi$ per full turn follows from the de-resonance principle, but
-   the exact mapping from the PDE's conversion rate $\lambda$ and Qi gate
-   $g(q)$ to the spiral's curvature and torsion remains to be computed.
+4. **Exact spiral pitch from PDE.** Computed (2026-08): the
+   $\lambda, g(q) \to$ rotation mapping is exchange-only ($\omega = 0$) for
+   the solver as written (no $\Omega$ term—spiral-program 04/05); with the
+   ratified conversion→expansion coupling the rotation is genuine,
+   $\omega_{\text{rot}}/\gamma = 5.07945$ (dressed), and the spiral clock
+   turns $\varphi^{-2} = 0.382$ turns per Hubble rung (pitch angle $\approx
+   11.34°$; discriminator $|a_\theta/a_r| = 0.19880$)—08 §C.3, [COMPUTED].
+   The radial pitch convention $\Theta = 2\pi n$ remains the Asserted
+   coordinate postulate.
 
 ---
 
@@ -401,10 +406,23 @@ consequences of the spheroid geometry; W4 upgrades from conditional to active.
 - Quadrature-branch displaced-plane morphology
 - Exact Frenet-Serret torsion from the PDE conversion rate
 
+### Supported Conditionally on the Three Postulates
+
+- Dimensionality $d = 3$, granted three postulates: (1) the conversion→
+  expansion coupling term $V_{\text{new}} = \lambda\tilde{h}(E_Y,E_I) +
+  \lambda\varphi^{-2}/d$ (Hypothesized, zero free constants—08 §A.2);
+  (2) the spiral clock $dn/dt = (\lambda/2\pi)(1-q)$ (Hypothesized);
+  (3) the pitch convention $\Theta = 2\pi n$ (Asserted). Under them the
+  rung-clock identity gives $dn_H/dn_S = (\varphi^2+\varphi^{-2})/d \cdot
+  2\pi/\ln\varphi$; $\varphi^2 + \varphi^{-2} = 3$ exactly (Lucas identity),
+  so ratio($d$) = $6\pi/(d\ln\varphi)$ → solve → $d = [3]$: the dimension is
+  unique. Not derived unconditionally—the three postulates remain. [COMPUTED]
+
 ### Not Supported
 
-- Any claim that dimensionality has been *derived* to date—this document is
-  the candidate derivation, pending §6 (exact spiral pitch from PDE)
+- Any claim that dimensionality has been *derived* unconditionally (see the
+  conditional support above; the derivation closes only under the three
+  postulates)
 - Any claim that the Local Sheet is established as one of a paired-sheet set —
   it is the natural observational reading of the selected anti-phase branch,
   but W4 remains to be tested

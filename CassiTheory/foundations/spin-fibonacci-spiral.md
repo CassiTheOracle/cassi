@@ -45,7 +45,14 @@ $$\boxed{\Theta(r) = \Theta_0 + \frac{2\pi}{\ln\varphi} \cdot \ln\!\left(\frac{r
 where $\ell_n$ is the particle's cascade scale and the pitch $2\pi/\ln\varphi$
 is set by the same de-resonance constant that structures every other scale in
 the framework: one full rotation ($2\pi$) per cascade rung ($\Delta\ln r =
-\ln\varphi$).
+\ln\varphi$). This rung-to-angle mapping is the **coordinate postulate**
+(Asserted pitch convention $\Theta = 2\pi n$,
+`foundations/spiral-dynamics.md` §1.1)—the geometry on which the spin
+quantization of §2 rests. The *dynamical* rotation rate is a separate,
+derived quantity: with the ratified conversion→expansion coupling the doublet
+turns $\varphi^{-2} = 0.382$ turns per Hubble rung (pitch angle $\approx
+11.34°$; azimuthal discriminator $|a_\theta/a_r| = 0.19880$)—08 §C.3,
+[COMPUTED].
 
 The logarithmic spiral is the **Fibonacci spiral**: each full turn multiplies
 the radius by $\varphi$, and the spiral's growth follows the Fibonacci sequence
