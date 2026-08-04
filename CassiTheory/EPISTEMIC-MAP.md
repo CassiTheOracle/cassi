@@ -75,7 +75,7 @@ Tiers below are taken from each document's Status header. Compound headers are q
 | `foundations/quantum-measurement-derivation.md` | Derivation (result: Hypothesized w/ derived core, Q7) | Born rule from Qi selection; phase-matching factor $\mathcal{M}$ |
 | `foundations/spin-fibonacci-spiral.md` | Derivation (result: Hypothesized, Q10) | Spin as SO(2) Fibonacci winding; form-factor periodicity |
 | `foundations/baryon-asymmetry.md` | Derivation (mechanism Hypothesized, C7/Q6; η exponent Mapped—ledger) | $\eta \approx \varphi^{-44}$, within 6% of observed (C7/Q6) |
-| `foundations/refined-numeric-predictions.md` | Active derivation | Numeric predictions for the 24 Hypothesized questions |
+| `foundations/refined-numeric-predictions.md` | Active derivation (C10 CMB axis: Calibrated angle / Hypothesized mechanism—2026-08) | Numeric predictions for the 24 Hypothesized questions; C10 $12.2°$ measured (calibrated from data vectors), boundary mechanism post-hoc |
 | `foundations/three-generations.md` | Hypothesized (mechanism) / Mapped (rung placements—ledger) | $N_{\text{gen}} = 3$ from Fibonacci sub-channels (Q5) |
 | `foundations/dimensionful-constants-status.md` | Hypothesized ($c$, $\hbar$, $G$ external) / Mapped (fitted exponents—ledger) | $c$, $\hbar$, $G$ external; $N = 292$ epoch-dependent horizon rung (F5) |
 | `foundations/microcascade-mirror.md` | Hypothesized | Bidirectional cascade extension |
