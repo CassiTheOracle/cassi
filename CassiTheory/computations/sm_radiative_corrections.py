@@ -402,6 +402,86 @@ print(f"  One loop: borderline at the stability boundary; NNLO"
 print()
 
 # ----------------------------------------------------------------------
+# §5.5  Higgs-mass candidates: φ-anchored formulas and honest verdicts
+# ----------------------------------------------------------------------
+print("── §5.5  HIGGS-MASS CANDIDATES: WHAT φ GIVES FOR m_H ──")
+print()
+M_H_EXP = 125.25
+# (2) Wu-Xing route (parameter-inventory §3.1): λ_WX = 1/(2w) = 0.1, w = 5 derived;
+#     consistency check m_H²φ/(4v₀²) ≈ λ_WX  →  m_H = √(4λ_WX/φ)·v
+LAM_WX = 1 / (2 * 5)
+M_H_WX = V * sqrt(4 * LAM_WX / PHI)
+LAM_CHK = M_H_EXP**2 * PHI / (4 * V**2)
+print(f"  (2) Wu-Xing quartic: m_H²φ/(4v₀²) = λ_WX = 1/(2w) = {LAM_WX:.4f}"
+      f" (w = 5 derived)")
+print(f"      λ check: {LAM_CHK:.4f} vs 0.1 → +{100*(LAM_CHK/0.1-1):.1f}%")
+print(f"      → m_H = √(4λ_WX/φ)·v = {M_H_WX:.2f} GeV vs {M_H_EXP}"
+      f" ({100*(M_H_WX/M_H_EXP-1):+.1f}%)   [Hypothesized: in the 2–5% band,"
+      f" residual mechanism open]")
+print()
+# (3) stability boundary: bisect m_H so that λ(M_Pl) = 0 (1-loop, running y_t)
+def lam_pl_of(mh):
+    return run_higgs(M_Z, 1.0e19, mh**2/(2*V**2), YT_MZ_RUN,
+                     G1_MZ, G2_MZ, G3_MZ)[0]
+lo, hi = 100.0, 150.0
+for _ in range(35):
+    mid = (lo + hi) / 2
+    if lam_pl_of(mid) > 0:
+        hi = mid      # stable for this m_H → boundary lies below
+    else:
+        lo = mid
+M_H_BOUND = (lo + hi) / 2
+print(f"  (3) stability boundary: λ(M_Pl) = 0 → m_H = {M_H_BOUND:.1f} GeV (1-loop)")
+print(f"      NNLO boundary: 129.4 ± 1.8 GeV at m_t = 173.1 (Degrassi et al. 2012)")
+print(f"      → 129.2 at m_t = 172.69; measured {M_H_EXP} is"
+      f" {100*(M_H_EXP/M_H_BOUND-1):+.1f}% above the 1-loop line and"
+      f" {100*(M_H_EXP/129.2-1):+.1f}% ({abs(M_H_EXP-129.2)/1.81:.1f}σ) below"
+      f" the NNLO line")
+print(f"      → the measured mass lies inside the loop-order spread of the"
+      f" λ(M_Pl) = 0 line (λ(M_Pl) = −0.011 NNLO → metastable)")
+print()
+# (4) two-fluid eigenmasses at the φ-point:
+#     V = (g/4)(x+y)² + (λ/2)(x−φy)² − μ²(x+y),  x = Ψ₀², y = Ψ₁²
+#     field-space Hessian at |Ψ|²_min = v²,  g = φ⁻³,  λ = λ_WX = 0.1
+g_tf, lam_tf = PHI**(-3), LAM_WX
+mu2_tf = g_tf * V**2 / 2
+x0 = 2 * mu2_tf / (g_tf * PHI)
+y0 = 2 * mu2_tf / (g_tf * PHI**2)
+M11 = 3*g_tf*x0 + g_tf*y0 + 3*lam_tf*x0 - 2*lam_tf*PHI*y0 - 2*mu2_tf
+M22 = g_tf*x0 + 3*g_tf*y0 - 2*lam_tf*PHI*x0 + 3*lam_tf*PHI**2*y0 - 2*mu2_tf
+M12 = 2*(g_tf - 2*lam_tf*PHI) * sqrt(x0*y0)
+tr2 = (M11 + M22) / 2
+dd2 = sqrt(((M11 - M22) / 2)**2 + M12**2)
+m_hi = sqrt(max(tr2 + dd2, 0.0))
+m_lo = sqrt(max(tr2 - dd2, 0.0))
+print(f"  (4) two-fluid eigenmasses (g = φ⁻³, λ = λ_WX = 0.1, |Ψ|²_min = v²):")
+print(f"      m = {m_hi:.1f} / {m_lo:.1f} GeV — bracket m_H = 125.25"
+      f" (geometric mean {sqrt(m_hi*m_lo):.1f}, "
+      f"{100*(sqrt(m_hi*m_lo)/M_H_EXP-1):+.1f}%)   [Hypothesized structure;"
+      f" normalization convention matters at the ~20% level]")
+print()
+# (5) fractional-rung coincidences — documented, REJECTED as fits
+print("  (5) sharpest fractional-rung coincidences (no mechanism → fits,"
+      " not predictions; cf. the m_e half-step 26.5 precedent):")
+for lab, val in [
+    ("m_H = m_t·φ^(−2/3)", M_T / PHI**(2/3)),
+    ("m_H = m_Z·φ^(+2/3)", M_Z * PHI**(2/3)),
+    ("m_H = v·φ^(−7/5)",   V   / PHI**(7/5)),
+]:
+    print(f"      {lab} = {val:.2f} GeV  ({100*(val/M_H_EXP-1):+.2f}%)")
+print(f"      (m_t/m_H = φ^(2/3) at 0.03% is the sharpest known mass-ratio"
+      f" coincidence; rejected absent a mechanism — 2/3-rung offsets have"
+      f" no Cassi origin)")
+print()
+# rung placements on the M_Pl mass ladder
+MPL = 1.2209e19
+print("  Rung placements n = log_φ(M_Pl/m), M_Pl = 1.2209×10¹⁹ GeV:")
+for lab, m in [("v₀", V), ("m_t", M_T), ("m_H", M_H_EXP), ("m_Z", M_Z),
+               ("m_J/ψ", 3.0969), ("m_μ", 0.1056583755)]:
+    print(f"      {lab:6s} n = {log(MPL/m)/log(PHI):7.2f}")
+print()
+
+# ----------------------------------------------------------------------
 # §6  Summary
 # ----------------------------------------------------------------------
 print("=" * 76)
