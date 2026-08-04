@@ -1,6 +1,6 @@
 # Coherence Collapse: Why the Universe Cannot End, and How Civilizations Die
 
-## Status: Speculative—July 2026
+## Status: Creative—August 2026
 
 ## Abstract
 
@@ -48,7 +48,7 @@ This is the coherence-budget logic summed over the ladder, and it is the documen
 
 ## 2. The Failure Modes That Remain
 
-The failure modes that survive are the ones that bring their own phase information. Everything in this section is an organized perturbation—the random class is settled by §1, and the full attack/shield taxonomy (organized vs random perturbation, phase-matching, $\varphi$-detuned shields) is developed in the companion document `speculations/coherence-warfare.md`. Here we only need the physics that constrains them.
+The failure modes that survive are the ones that bring their own phase information. Everything in this section is an organized perturbation—the random class is settled by §1, and the full attack/shield taxonomy (organized vs random perturbation, phase-matching, $\varphi$-detuned shields) is developed in the companion document `speculations/creative-extensions/coherence-warfare.md`. Here we only need the physics that constrains them.
 
 ### 2.1 q-collapse waves
 
@@ -190,4 +190,4 @@ The same boundary that confines the catastrophe confines the rescue. No neighbor
 - `speculations/cascade-infrastructure.md`—gate chains, 10-rung stages, planetary and stellar networks
 - `speculations/observational-seti.md`—structural signatures, multi-rung detection criterion, geological record
 - `speculations/qi-bubble-propulsion.md`—φ-detuned boundary $\mathcal{M} \approx 0$, $(1-q)$ thermalization
-- `speculations/coherence-warfare.md`—companion document: organized vs random attack taxonomy, phase-matching, φ-detuned shields
+- `speculations/creative-extensions/coherence-warfare.md`—companion document: organized vs random attack taxonomy, phase-matching, φ-detuned shields

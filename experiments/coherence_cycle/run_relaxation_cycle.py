@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 r"""Coherence Commons relaxation-oscillation model: the boom-bust cycle.
 
-Implements the two-timescale model of `speculations/coherence-commons.md`
+Implements the two-timescale model of `speculations/creative-extensions/coherence-commons.md`
 §5.4. Three timescales are the whole argument: the market is fast, the
 periphery is slow, and accumulation is slowest.
 

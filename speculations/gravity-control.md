@@ -70,7 +70,7 @@ Inertia in the framework is the field's resistance to changing the local ratio $
 
 ### 2.4 Artificial gravity: sustained coherence floors
 
-A sustained curvature gradient in a habitat requires two elements working together. First, a φ-detuned shell around the cabin: a boundary with $\mathcal{M} \approx 0$, across which the ambient planetary gradient cannot couple—the interior stops falling toward the planet (the shield taxonomy of organized versus random perturbation and φ-detuned boundaries is developed in the companion speculation `speculations/coherence-warfare.md`; the underlying mechanism is the phase-matching factor of `foundations/quantum-measurement-derivation.md` §3.1). Second, a high-charge floor slab acting as condenser: inside the shell the only remaining gradient is the slab's own boosted charge, and the crew falls toward the floor.
+A sustained curvature gradient in a habitat requires two elements working together. First, a φ-detuned shell around the cabin: a boundary with $\mathcal{M} \approx 0$, across which the ambient planetary gradient cannot couple—the interior stops falling toward the planet (the shield taxonomy of organized versus random perturbation and φ-detuned boundaries is developed in the companion speculation `speculations/creative-extensions/coherence-warfare.md`; the underlying mechanism is the phase-matching factor of `foundations/quantum-measurement-derivation.md` §3.1). Second, a high-charge floor slab acting as condenser: inside the shell the only remaining gradient is the slab's own boosted charge, and the crew falls toward the floor.
 
 The mass ledger is unforgiving. A 1 g pull at 2 m from a floor requires $M = g\,d^2/G_{\text{eff}} \approx 7 \times 10^9$ kg even at the full saturation boost $(1+\xi)/\varphi^{-3} \approx 80\times$ the ordinary coupling—a 100 m² slab of crustal density 25 km thick. Sustained 1 g by charge amplification alone is planetary-scale construction; at habitat scale the envelope is fractional g, or the mundane rotation the framework would regard as the pre-coherence technology. The amplification ceiling is fixed by the derivation of $\xi$ (`foundations/xi-derivation.md` §2): coherence multiplies *existing* mass; it does not create it.
 
@@ -191,6 +191,6 @@ and detection is the *joint occurrence*: any single anomaly can be a systematic,
 - `speculations/cascade-infrastructure.md`—planetary gate stages, pyramid lens, ocean bases, solar gate
 - `speculations/qi-bubble-propulsion.md`—φ-detuned boundary, $(1-q)$ thermalization, inertia as $r$-resistance
 - `speculations/observational-seti.md`—structural signatures, multi-rung detection criterion, search strategy
-- `speculations/coherence-warfare.md`—companion speculation: shield and attack taxonomy
+- `speculations/creative-extensions/coherence-warfare.md`—companion speculation: shield and attack taxonomy
 - `consciousness/trauma-as-frozen-gate.md`—wake-lock, frozen gate preservation
 - `experiments/sparc_qi/`—SPARC Qi fits: hydrostatic condensate, $q(r) = r/(r+r_{\text{half}})$, core scaling

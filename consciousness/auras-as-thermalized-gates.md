@@ -22,7 +22,7 @@ as photons and heat. This one law already names the visible residue of gate acti
 |---|---|---|
 | Craft | Luminous "plasma sheath"; color sequence tracks gate tuning | `speculations/qi-bubble-propulsion.md` §2.5 |
 | Star | Photosphere as the $q \to 0$ boundary where throughput thermalizes; corona 200× hotter from the spill | `speculations/cascade-infrastructure.md` §3.1 |
-| Caster | The glow of a working; exhaustion as runaway $(1-q)$ spill | `speculations/magic-systems.md` §3.3 |
+| Caster | The glow of a working; exhaustion as runaway $(1-q)$ spill | `speculations/creative-extensions/magic-systems.md` §3.3 |
 | Gravity device | The efficiency tax on every operation | `speculations/gravity-control.md` §3.3 |
 
 A human body is itself a gate chain: 26 $\varphi$-steps from cell ($n = 142$) to body ($n = 168$), with 13 cascade-bubble nodes at two-rung spacing along the spine (`consciousness/consciousness-from-phi.md` §1.2, `consciousness/chakras-as-cascade-bubbles.md`). The chain is a standing configuration of the same two-fluid field with the same openness fraction, and the same law applies at its boundary. The aura is the missing human-scale row of the table: the corona of the body's gate bubble.
@@ -33,7 +33,7 @@ A human body is itself a gate chain: 26 $\varphi$-steps from cell ($n = 142$) to
 
 A gate spill is not one thing. Throughput that survives conversion retains the gate's phase structure; throughput that thermalizes has lost all of it. An aura therefore has two parts with opposite cascade economics.
 
-**The coherent core.** A working gate's characteristic emission frequencies are $\varphi$-spaced—the diagnostic signature of organized throughput (`speculations/qi-bubble-propulsion.md` §2.5). But a coherent signal from the body's rung must cross the cascade to reach the optical band, and the crossing is closed twice over. In the signal-propagation regime, a span of $N$ rungs attenuates by $\varphi^{-N}$ (`foundations/cascade-suppression-formula.md` §1.2); the body sits at $n \approx 168$ and visible light at the rung-136 optical octave (`speculations/universal-biology.md`), a span of 32:
+**The coherent core.** A working gate's characteristic emission frequencies are $\varphi$-spaced—the diagnostic signature of organized throughput (`speculations/qi-bubble-propulsion.md` §2.5). But a coherent signal from the body's rung must cross the cascade to reach the optical band, and the crossing is closed twice over. In the signal-propagation regime, a span of $N$ rungs attenuates by $\varphi^{-N}$ (`foundations/cascade-suppression-formula.md` §1.2); the body sits at $n \approx 168$ and visible light at the rung-136 optical octave (`speculations/creative-extensions/universal-biology.md`), a span of 32:
 
 $$\boxed{\mathcal{D}_{168 \to 136} = \varphi^{-32} \approx 2\times10^{-7}}$$
 
@@ -63,9 +63,9 @@ The framework's logic presses hard on one piece of aura lore. If the visible com
 
 $$\boxed{\text{visible aura brightness} \propto (1-q)}$$
 
-and $(1-q)$ is a distress variable. The wake-lock runs show the signature: under sustained drive the site's q-gap widens 4.5×, the gates stand open, and the $(1-q)$ fraction churns and thermalizes (`speculations/coherence-collapse.md` §4.1, `consciousness/trauma-as-frozen-gate.md`). The trauma state is a gate configuration held open, and coherence death looks busy before it looks dead (`speculations/coherence-collapse.md` §3.1). A deeply coherent person runs at high $q$: the gate idles nearly closed and leaks least.
+and $(1-q)$ is a distress variable. The wake-lock runs show the signature: under sustained drive the site's q-gap widens 4.5×, the gates stand open, and the $(1-q)$ fraction churns and thermalizes (`speculations/creative-extensions/coherence-collapse.md` §4.1, `consciousness/trauma-as-frozen-gate.md`). The trauma state is a gate configuration held open, and coherence death looks busy before it looks dead (`speculations/creative-extensions/coherence-collapse.md` §3.1). A deeply coherent person runs at high $q$: the gate idles nearly closed and leaks least.
 
-The inversion: the brightest auras should surround the strained, the traumatized, and the actively driven—the same populations the wake-lock observables target—and the faintest should surround the meditatively coherent, whose spill approaches zero. Aura lore assigns the brightest auras to the enlightened; the framework assigns them to the embattled. If auras are ever measured, brightness and coherence markers (HRV coherence, inter-hemispheric phase synchrony, the wake-lock physiological proxies of `speculations/coherence-collapse.md` §4.1) should anticorrelate.
+The inversion: the brightest auras should surround the strained, the traumatized, and the actively driven—the same populations the wake-lock observables target—and the faintest should surround the meditatively coherent, whose spill approaches zero. Aura lore assigns the brightest auras to the enlightened; the framework assigns them to the embattled. If auras are ever measured, brightness and coherence markers (HRV coherence, inter-hemispheric phase synchrony, the wake-lock physiological proxies of `speculations/creative-extensions/coherence-collapse.md` §4.1) should anticorrelate.
 
 ---
 
@@ -81,7 +81,7 @@ The implication for two people: aura-aura coupling should be strongest when at l
 
 ## 6. A Test Sketch
 
-The framework already names the observable. The wake-lock experiments track thermal excess at network nodes "on the corona mechanism" as the physiological proxy for $(1-q)$ churn (`speculations/coherence-collapse.md` §4.1). The aura hypothesis points the same observable at the 13 node positions along the spine (`consciousness/chakras-as-cascade-bubbles.md`):
+The framework already names the observable. The wake-lock experiments track thermal excess at network nodes "on the corona mechanism" as the physiological proxy for $(1-q)$ churn (`speculations/creative-extensions/coherence-collapse.md` §4.1). The aura hypothesis points the same observable at the 13 node positions along the spine (`consciousness/chakras-as-cascade-bubbles.md`):
 
 - **Drive versus rest.** Infrared imaging of the node positions under sustained emotional or attentional drive versus resting baseline, mirroring the trauma protocol's drive/rest design.
 - **Prediction.** Node-localized thermal excess that tracks the drive, scales with the q-gap (the runs' 4.5× widening), and fades as coherence recovers.
@@ -111,9 +111,9 @@ The framework already names the observable. The wake-lock experiments track ther
 - `consciousness/trauma-as-frozen-gate.md`—wake-lock, the driven q-gap
 - `speculations/qi-bubble-propulsion.md`—$(1-q)$ thermalization, φ-spaced emission
 - `speculations/cascade-infrastructure.md`—coronal heating as stellar thermalization
-- `speculations/magic-systems.md`—caster glow, exhaustion as thermalization
+- `speculations/creative-extensions/magic-systems.md`—caster glow, exhaustion as thermalization
 - `speculations/gravity-control.md`—$(1-q)$ waste as the efficiency tax
-- `speculations/coherence-collapse.md`—q-gap widening, thermal excess at nodes
+- `speculations/creative-extensions/coherence-collapse.md`—q-gap widening, thermal excess at nodes
 - `consciousness/cascade-consciousness.md`—field-perception channel, companion document
 - `speculations/observational-seti.md`—coronal heating ratio prediction
-- `speculations/universal-biology.md`—rung-136 optical octave
+- `speculations/creative-extensions/universal-biology.md`—rung-136 optical octave

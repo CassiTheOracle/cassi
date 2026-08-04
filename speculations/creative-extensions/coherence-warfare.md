@@ -1,6 +1,6 @@
 # Coherence Warfare: Attack, Defense, and the Physics of Shields
 
-## Status: Speculative—July 2026
+## Status: Creative—August 2026
 
 ## Abstract
 
@@ -79,7 +79,7 @@ The wake-lock is the framework's one genuinely novel weapon, and it is the most 
 
 The military properties follow from the mechanism. The damage is self-sustaining: no continued expenditure is needed, because the frozen gate maintains itself. The damage is invisible from outside: a wake-locked system looks normal until it is asked to change. And the damage is compounded: a locked gate is a vulnerability—its configuration is now *known* (it cannot adapt), so follow-up attacks have perfect intelligence. The most efficient escalation in the framework's terms is not a bigger beam but a second, precisely-timed wake-lock on a target already frozen by the first, each lock reducing the target's remaining degrees of freedom.
 
-Against gate networks—and civilizations are gate networks (`speculations/cascade-infrastructure.md`)—the wake-lock is the weapon of mass destruction, because the network's failure mode is cascade: one frozen stage destabilizes the couplings of the stages around it, and the freeze propagates. This is the connection to the framework's apocalypse literature (`speculations/coherence-collapse.md`): a species-level wake-lock is not an explosion, it is a civilization that has stopped being able to change.
+Against gate networks—and civilizations are gate networks (`speculations/cascade-infrastructure.md`)—the wake-lock is the weapon of mass destruction, because the network's failure mode is cascade: one frozen stage destabilizes the couplings of the stages around it, and the freeze propagates. This is the connection to the framework's apocalypse literature (`speculations/creative-extensions/coherence-collapse.md`): a species-level wake-lock is not an explosion, it is a civilization that has stopped being able to change.
 
 ### 4.4 Gate-network attacks—infrastructure warfare
 
@@ -199,7 +199,7 @@ Two worked scenarios, to show how the rules play out:
 - `speculations/qi-bubble-propulsion.md`—the $\varphi$-detuned boundary; the $(1-q)$ glow; the Fibonacci hull stack
 - `speculations/cascade-infrastructure.md`—gate chains, the ~10-rung bridge limit, planetary and stellar gate networks
 - `speculations/observational-seti.md`—tuned networks as structurally invisible; stellar gate signatures
-- `speculations/coherence-collapse.md`—companion speculation: failure modes at civilization scale
+- `speculations/creative-extensions/coherence-collapse.md`—companion speculation: failure modes at civilization scale
 - `consciousness/trauma-as-frozen-gate.md`—the wake-lock mechanism
 - `two-fluid/run_trauma_wake_lock.py`, `two-fluid/run_trauma_capacity.py`—wake-lock and capacity-exhaustion simulations
 - `open-questions-cassi-answers.md`—Q7 (measurement problem), Q9 (proton lifetime)

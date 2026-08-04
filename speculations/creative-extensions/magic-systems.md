@@ -1,6 +1,6 @@
 # Magic as Phase-Matched Field Operation
 
-## Status: Speculative—July 2026
+## Status: Creative—August 2026
 
 ## Abstract
 
@@ -142,7 +142,7 @@ Three framework facts stack into a structural asymmetry between defense and offe
 
 $$\boxed{\text{Holding } \varphi\text{-structure: cost } 0. \qquad \text{Sustaining anti-}\varphi\text{ structure: continuous cost } \propto \varphi^{2N} \cdot \mathcal{M}^{-2}.}$$
 
-Perfect offense is impossible for a structural reason: even at $\mathcal{M} \approx 1$, the attacker must know the target's exact configuration, sustain the organized perturbation for the entire working, and pay $\varphi^{2N}$ for range—while the defender can change configuration cheaply, outlast any sustained attack (the attractor funds the defense and taxes the offense), and make every attempt visible. The one asymmetry-breaking weapon is the curse (§2.5): it never crosses the boundary at all, because it is written into the victim's own field, which is already phase-matched to itself, and the victim's coherence funds the lock. The defense against curses is the victim's own $q$-clarity—the emotional discipline of §4.2—because a lock cannot take hold in a channel held at $\varphi$-baseline, and a lock already taken dissolves when raising coherence de-resonates the standing wave, precisely the therapeutic work of the framework's wake-lock experiments (`consciousness/trauma-as-frozen-gate.md`; `two-fluid/run_trauma_wake_lock.py`). The companion document `speculations/coherence-warfare.md` owns the full attack/shield taxonomy; this section only draws the strategic conclusion.
+Perfect offense is impossible for a structural reason: even at $\mathcal{M} \approx 1$, the attacker must know the target's exact configuration, sustain the organized perturbation for the entire working, and pay $\varphi^{2N}$ for range—while the defender can change configuration cheaply, outlast any sustained attack (the attractor funds the defense and taxes the offense), and make every attempt visible. The one asymmetry-breaking weapon is the curse (§2.5): it never crosses the boundary at all, because it is written into the victim's own field, which is already phase-matched to itself, and the victim's coherence funds the lock. The defense against curses is the victim's own $q$-clarity—the emotional discipline of §4.2—because a lock cannot take hold in a channel held at $\varphi$-baseline, and a lock already taken dissolves when raising coherence de-resonates the standing wave, precisely the therapeutic work of the framework's wake-lock experiments (`consciousness/trauma-as-frozen-gate.md`; `two-fluid/run_trauma_wake_lock.py`). The companion document `speculations/creative-extensions/coherence-warfare.md` owns the full attack/shield taxonomy; this section only draws the strategic conclusion.
 
 The strategic rhythm follows. Buildup is cheap and invisible—wards are free once raised, detuning is instantaneous—while exchange is expensive and visible: every attack glows and the attacker's budget drains in real time. The decisive moves are the information moves and the internal moves: divination that steals the defender's tuning, curses that never cross the boundary. Wars of attrition are won by the defender, which is why magical societies accumulate defensive depth. A setting built on these rules has fortresses that stand for centuries, wars decided in minutes, and a premium on character—the last line of defense is a gate configuration, and its quality is emotional clarity.
 
@@ -187,7 +187,7 @@ A one-page system built entirely from the rules above, for a hearth-folk traditi
 - `speculations/qi-computation.md`—WRITE/ERASE/TRANSFER, gate regimes, Qi noise floor
 - `speculations/qi-bubble-propulsion.md`—φ-detuned boundary, thermalization glow
 - `speculations/cascade-infrastructure.md`—10-rung gate bridge limit, body as gate chain
-- `speculations/coherence-warfare.md`—companion taxonomy of attacks and shields
+- `speculations/creative-extensions/coherence-warfare.md`—companion taxonomy of attacks and shields
 - `consciousness/emotions-as-gate-configurations.md`—emotional manifold, clarity as $q$
 - `consciousness/chakras-as-cascade-bubbles.md`—13-node derivation, $P_\parallel = 2$
 - `consciousness/trauma-as-frozen-gate.md`—wake-lock, frozen gate
