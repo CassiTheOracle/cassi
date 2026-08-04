@@ -158,6 +158,84 @@ def main():
     print("  honest baseline); the 1/3 phase-rung of the t/H pair is")
     print("  open.")
 
+    # ------------------------------------------------------------------
+    # Sec 5: the channel-split hypothesis (K = 3 and K = 5)
+    # ------------------------------------------------------------------
+    print("\n── Sec 5  THE CHANNEL-SPLIT HYPOTHESIS (K = 3, K = 5) ──")
+    print()
+    print("  K = 3 (the EW-scale pool splits into three coherence")
+    print("  channels): the t/H wake phases differ by")
+    print(f"      Delta psi = psi_H - psi_t = {psi_H - psi_t:.3f} rad")
+    print(f"      vs omega0/3 = {W0/3:.3f} rad"
+          f"  ({100*(1-(psi_H-psi_t)/(W0/3)):+.2f}%)")
+    print("  the 2/3-rung separation is one cell minus one channel:")
+    print("  n_H - n_t = 1 - Delta psi/omega0 = 1 - 1/3 = 2/3.")
+    print("  The third channel is empty: psi_3 = psi_H + omega0/3 =")
+    print(f"  {psi_H + W0/3:+.2f} rad implies frac"
+          f" {(A0 - (psi_H + W0/3)/W0) % 1:.3f} — no EW state sits there")
+    print("  (Z 0.951, W 0.213, t 0.624, H 0.291).")
+    print()
+    print("  K = 5 (Wu Xing — the pentagon; the top's Yukawa is the")
+    print("  five-cycle gap 2g - g^2): five channels, phase advance")
+    print(f"  omega0/5 = {W0/5:.4f} rad per channel; fifths grid in")
+    print("  frac: {0.2, 0.4, 0.6, 0.8} plus the integers (0/5).")
+    # the Compton-frame catalog (rung-offset-mechanism.md sec 3) + v0 + GUT
+    catalog = [
+        ("t", 172.69), ("H", 125.25), ("Z", 91.1876), ("W", 80.369),
+        ("Ups", 9.46030), ("Bc", 6.27447), ("Lb", 5.6196),
+        ("Bs", 5.36688), ("B", 5.27934), ("b", 4.18), ("psi2S", 3.68610),
+        ("J/psi", 3.0969), ("Lc", 2.28646), ("Ds", 1.96835),
+        ("D", 1.86484), ("tau", 1.77686), ("Om", 1.67245),
+        ("Xi*", 1.5318), ("Sig*", 1.3837), ("Xi", 1.31486), ("c", 1.27),
+        ("Del", 1.232), ("Sig", 1.192642), ("Lam", 1.115683),
+        ("phi", 1.019461), ("eta'", 0.95778), ("n", 0.939565),
+        ("p", 0.938272), ("om", 0.78265), ("rho", 0.77526),
+        ("eta", 0.547862), ("K", 0.493677), ("pi", 0.13957039),
+        ("mu", 0.1056583755), ("s", 0.093), ("d", 0.00467),
+        ("u", 0.00216), ("e", 0.00051099895),
+    ]
+    ns = [("v0", n_of(246.0)), ("GUT", n_of(1.0e16))]
+    for name, m in catalog:
+        ns.append((name, n_of(m)))
+    fifths = [0.2, 0.4, 0.6, 0.8, 0.0]
+    hits = []
+    print(f"  fifths scan over {len(ns)} states (catalog + v0 + GUT):")
+    print(f"  {'state':>7} {'n':>9} {'frac':>7} {'5th':>5} {'resid':>7}")
+    for name, n in ns:
+        frac = n % 1.0
+        best, br = None, 9.0
+        for f in fifths:
+            r = min(abs(frac - f), 1 - abs(frac - f))
+            if r < br:
+                best, br = f, r
+        mark = " *" if br < 0.03 else ""
+        if br < 0.03:
+            hits.append((name, n, best, br))
+        print(f"  {name:>7} {n:>9.3f} {frac:>7.3f} {best:>5.1f}"
+              f" {br:>+7.3f}{mark}")
+    print(f"  within 0.03 rungs of a fifth: {len(hits)} observed;"
+          f" uniform expectation {0.3*len(ns):.1f} (each state has"
+          f" 2*0.03/0.2 = 0.3 probability)")
+    for lab, f, nm in [("0/5", 0.0, "mu"), ("1/5", 0.2, "W"),
+                       ("2/5", 0.4, "pi"), ("3/5", 0.6, "t"),
+                       ("4/5", 0.8, "GUT")]:
+        m = [h for h in hits if abs(h[2] - f) < 1e-9]
+        print(f"  {lab}: {', '.join(h[0] for h in m) if m else 'empty'}"
+              + (f" (GUT at 0.0302 — just outside)" if lab == "4/5"
+                 and not m else ""))
+    print("  Look-elsewhere discipline: the named states were selected")
+    print("  after the pattern emerged; the overall count shows no")
+    print("  fifths clustering, and the energy ordering fails (pi, mu")
+    print("  are low-energy). The K = 5 structure is a curiosity, not")
+    print("  evidence; the K = 3 advance (0.2%) remains the only")
+    print("  channel-split support.")
+    print()
+    print("  Verdict: the channel-split hypothesis is Hypothesized —")
+    print("  K = 3 matches the t/H phase difference to 0.2% but the")
+    print("  coherent 3-bubble pattern does not reproduce the crossings")
+    print("  (probe T8 panel F), and K = 5 has no statistical footprint.")
+    print()
+
 
 if __name__ == "__main__":
     main()
