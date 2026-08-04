@@ -346,6 +346,30 @@ program, not yet an output of the φ-framework; the quartic
 $\lambda(m_Z) = 0.1294$ follows from the measured $m_H$, and its radiative
 corrections (running, metastability) are standard physics.
 
+### 6.2 The φ-anchored mass formulas: candidates and verdicts
+
+In the two-fluid picture the Higgs is not a particle but a mode of the broken
+condensate: the isospinor's norm and Yang/Yin imbalance modes of the
+$\varphi$-attractor potential, in the same way that quarks and leptons are
+the valid modes available once a composite state breaks. The formulas below
+are the candidate mode frequencies of the φ-point potential, tested against
+$m_H = 125.25$ GeV (`computations/sm_radiative_corrections.py` §5.5):
+
+| Formula | $m_H$ | vs 125.25 | Verdict |
+|---|---|---|---|
+| $\lambda_\varphi = (\varphi^{-2}/2)(g_2^2/8)$ | 35.1 GeV | −72% | fails ($\times 3.6$) |
+| $m_H^2\varphi/(4v_0^2) = \lambda_{\text{WX}} = 1/(2w)$, $w = 5$ | 122.4 GeV | −2.3% | Hypothesized—Wu Xing quartic derived (`foundations/wu-xing-derivation.md`); residual in the 2–5% de-resonance band, mechanism open |
+| $\lambda(M_{\text{Pl}}) = 0$ (stability line) | 124.6 (1-loop) / 129.2 GeV (NNLO) | +0.5% / −3.1% (2.2σ) | Derived line; the measured mass lies inside the loop-order spread—the φ-anchored vacuum sits on the line |
+| two-fluid eigenmodes ($g = \varphi^{-3}$, $\lambda = \lambda_{\text{WX}}$) | 157.6 / 116.6 GeV | brackets 125.25 | Hypothesized structure—mode frequencies of the φ-point potential (normalization convention matters at the ~20% level) |
+| $m_t\,\varphi^{-2/3}$, $m_Z\,\varphi^{2/3}$, $v\,\varphi^{-7/5}$ | 125.3 / 125.7 / 125.5 GeV | +0.04% / +0.34% / +0.22% | rejected as fits—no mechanism produces fractional rungs (the $m_e$ half-step 26.5 precedent, `foundations/deriving-remaining-gaps.md` §2.2) |
+
+The structural anchors bracket the measured mode frequency from below
+(122.4 GeV, Wu-Xing quartic) and above (129.2 GeV, NNLO stability line; the
+1-loop line sits at 124.6 GeV, +0.5%). The sharpest coincidence,
+$m_t/m_H = \varphi^{2/3}$ at 0.03%, is flagged as a mechanism target: a
+Cassi process producing 2/3-rung mass separations would promote it from fit
+to prediction.
+
 ---
 
 ## 7. Summary: What the Radiative Corrections Close, and What They Do Not
@@ -361,7 +385,7 @@ corrections (running, metastability) are standard physics.
 | $\alpha_{\text{em}}^{-1}(m_Z)$ from φ-boundary | §3.2 | 161 | 128.9 | ❌ +25% |
 | $\sin^2\theta_W = \varphi^{-3}$ at $m_Z$ | — | 0.23607 | 0.23122 | ❌ +2.1% (at $\mu_*$ = 233 GeV ✓) |
 | $m_W/m_Z = \sqrt{1-\varphi^{-3}}$, +$\rho$ | §5.3 | 0.8781 | 0.8813 | ❌ −0.36% |
-| $m_H$ from $\lambda_\varphi = (\varphi^{-2}/2)(g^2/8)$ | §6 | 35 GeV | 125.25 | ❌ (not a prediction; $m_H$ is an input) |
+| $m_H$ from $\lambda_\varphi = (\varphi^{-2}/2)(g^2/8)$ | §6.2 | 35 GeV | 125.25 | ❌ (not a prediction; $m_H$ is an input; structural anchors at −2.3%/+3.1% open) |
 | $\lambda(M_{\text{Pl}})$ | 1-loop / NNLO | +0.003 / −0.011 | — | metastable vacuum |
 
 The radiative corrections are derived, not hand-waved: they close every
@@ -378,7 +402,10 @@ erase—every discrepancy that does. The status of the φ-anchored predictions:
 - **$\alpha_2$, $\alpha_1$, $\alpha_{\text{em}}$:** each ~25% high in
   $\alpha^{-1}$ from the φ-boundary—documented residuals.
 - **Higgs:** the $\lambda_\varphi$ formula does not produce 125 GeV; the SM
-  λ-running (metastability at $M_{\text{Pl}}$) is derived and standard.
+  λ-running (metastability at $M_{\text{Pl}}$) is derived and standard, and
+  the structural anchors ($m_H^2\varphi/(4v_0^2) = \lambda_{\text{WX}}$ at
+  122.4 GeV; $\lambda(M_{\text{Pl}}) = 0$ line at 124.6–129.2 GeV) bracket
+  the measured value without closing it (§6.2).
 
 These residuals are the honest raw material for the next stage of the
 framework: either the φ-boundary itself must shift (e.g. the unification

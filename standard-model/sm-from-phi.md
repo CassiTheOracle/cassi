@@ -131,7 +131,10 @@ cascade, which spans to the Planck rung
 The quartic formula $\lambda_\varphi = (\varphi^{-2}/2)(g^2/8)$ does **not**
 reproduce the measured mass: it gives $\lambda = 0.0101$, i.e. $m_H = 35$ GeV.
 The Higgs mass is an input to the radiative-correction program, not yet an
-output of the φ-framework.
+output of the φ-framework. Structural candidates bracket it without closing
+it: the Wu-Xing quartic gives 122.4 GeV (−2.3%) and the $\lambda(M_{\text{Pl}})
+= 0$ stability line gives 124.6–129.2 GeV across loop orders
+(`standard-model/sm-radiative-corrections.md` §6.2).
 
 ---
 

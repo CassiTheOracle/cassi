@@ -81,20 +81,22 @@ The Lagrangian has the $\varphi$-attractor coupled to the Higgs quartic:
 
 $$V_{\text{Higgs}} = \frac{g}{4}|\Psi|^4 + \frac{\lambda}{2}(\Psi_0^2 - \varphi\Psi_1^2)^2$$
 
-At the minimum $\Psi_0^2 = \varphi\Psi_1^2 = v_0^2$, the Hessian has two eigenvalues that
-determine the physical scalar masses. They mix through the off-diagonal term
-$g/2 - \lambda\varphi$, and the two physical masses are:
+At the minimum $\Psi_0^2 = \varphi\Psi_1^2$, the field-space Hessian has two
+eigenvalues that determine the physical scalar masses; they mix through the
+off-diagonal term $g - 2\lambda\varphi$. The computation is in
+`computations/sm_radiative_corrections.py` §5.5: with the equilibrium
+$g = \varphi^{-3} \approx 0.236$ (the equilibrium Yang fraction) and
+$\lambda = \lambda_{\text{WX}} = 0.1$, the two eigenmodes of the
+$\varphi$-point potential are
 
-$$m_{1,2}^2 = \frac{v_0^2}{2}\Bigl[g + \lambda(1+\varphi^2) \pm
-              \sqrt{(g - \lambda(1-\varphi^2))^2 + 4\lambda^2\varphi^2}\Bigr]$$
+$$m = 157.6\ \text{GeV} \quad\text{and}\quad 116.6\ \text{GeV}
+  \qquad (|\Psi|^2_{\min} = v^2),$$
 
-The observed 125 GeV Higgs boson is one of these eigenstates. Solving for $\lambda$
-requires knowing $g$ and the mixing angle, which are not independently fixed by
-$\varphi$ alone. However, a CONSISTENCY check: if $g \approx \varphi^{-3} \approx 0.236$
-(the equilibrium Yang fraction), then $\lambda = 0.1$ gives two scalar masses of
-$\sim 145$ GeV and $\sim 95$ GeV—bracketing the observed 125 GeV. This is
-**not a derivation** but a nontrivial consistency check: $\lambda = 0.1$ is the
-right order of magnitude for the electroweak scale.
+bracketing the observed 125 GeV mode. This is **not a derivation** but a
+nontrivial consistency check: $\lambda = 0.1$ is the right order of
+magnitude for the electroweak scale, and the measured Higgs mass lies
+between the two φ-anchored mode frequencies
+(`standard-model/sm-radiative-corrections.md` §6.2).
 
 **Summary:** The Higgs route cannot derive $\lambda = 0.1$ without fixing $g$; the value is consistent with the Higgs mass/VEV within a factor of 2. The derivation comes from the Wu Xing route: $\lambda = 1/(2w) = 1/10$ with $w = 5$ derived (`foundations/dimensionful-constants-status.md` §2.1, `foundations/wu-xing-derivation.md`).
 
