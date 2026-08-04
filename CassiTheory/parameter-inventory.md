@@ -51,8 +51,8 @@ All dimensionless coupling constants in the Cassi framework are $\varphi$-powers
 | $\delta_{\text{CKM}}$ (CP phase) | $\pi\varphi^{-2}$ | $1.199$ rad $(68.7^\circ)$ | **D** | Via unitarity triangle from $\varphi$-scaled CKM elements |
 | $\beta$ (Bohm QP exponent) | $\varphi^{-1}/2$ | $0.309$ | **D** | Quantum potential scaling exponent |
 | $\chi_Y$ (Yang chemotaxis) | $\chi/\varphi$ | $\chi \cdot 0.618$ | **D** | Ratio fixed, absolute value calibrated ($\chi$) |
-| $w_0$ (DE equation of state) |—| $-0.87$ | **D** | From $\lambda$ and $\varphi$; 2σ from DESI $w_0 \approx -0.75 \pm 0.06$ |
-| $w_a$ (DE running) |—| $+0.012$ (with $\xi = \varphi^6$) | **D** | $\xi = \varphi^6$ in $H(a)$; verified via `two-fluid/calibrate_initial_ratio_xi_v2.py`; $2.7\sigma$ from DESI $\approx -0.73 \pm 0.28$ (tension) |
+| $w_0$ (DE equation of state) |—| $-0.87$ | **D** | From $\lambda$ and $\varphi$; 2σ baseline from DESI $w_0 \approx -0.75 \pm 0.06$ ($3.6\sigma$ at fixed $r_0$ with the ratified coupling, $r_0$ re-tuning open) |
+| $w_a$ (DE running) |—| $+0.012$ (with $\xi = \varphi^6$); $-0.38$ (with the ratified coupling, B2) | **D** | $\xi = \varphi^6$ in $H(a)$; verified via `two-fluid/calibrate_initial_ratio_xi_v2.py`; $2.7\sigma$ baseline; $1.25\sigma$ with the coupling (08 §C.6) |
 | $n_s$ (spectral index) |—| $0.9691$ | **D** | From $n_s = 1 - 2\varphi^{-1}/N_e$ with $N_e = 40$ |
 | $r$ (tensor-to-scalar) |—| $0.003$ | **D** | From inflation in Cassi framework |
 | $K_{fw}$ (Wu Xing coeff) | $\varphi^{-1}$ | $0.618$ | **D** | Water damps Fire |
@@ -410,7 +410,8 @@ The Cassi framework eliminates free parameters:
 | $\alpha_{\text{GUT}}$ | $\varphi^{-3}/(4\pi)$ | GUT unification |
 | $\delta_{\text{CKM}}$ | $\pi\varphi^{-2}$ | CP violation |
 | $\xi$ (Qi-gravity) | $\varphi^{6}$ | Modified gravity |
-| $\Lambda$ (cosmological constant) | $\lambda\varphi^{-2}/3$—**Asserted** (postulate): the 1/3 is the 3D continuity reading; $T_{00}$ at equilibrium gives 0 or $(g/4)\varphi^2$, never $\lambda\varphi^{-2}/3$; Lagrangian derivation open | Dark energy |
+| $\Lambda$ (cosmological constant) | $\lambda\varphi^{-2}/3$—**Asserted** (postulate): the 1/3 is the 3D continuity reading; $T_{00}$ at equilibrium gives 0 or $(g/4)\varphi^2$, never $\lambda\varphi^{-2}/3$; Lagrangian derivation open; the ratified conversion→expansion term's vacuum half is this same $\lambda\varphi^{-2}/d$ (08 §A.2) | Dark energy |
+| Conversion→expansion coupling $V_{\text{new}}$ | $\lambda\tilde{h}(E_Y,E_I) + \lambda\varphi^{-2}/d$—**Hypothesized—August 2026** (zero free constants; vacuum half = the Λ row above; source half = the φ-metric gradient of the explicit logarithmic potential $\tilde{h}$; not implemented in the solver; three postulates remain: the term's form, the spiral clock, the pitch convention) | Dark energy / spiral dynamics |
 | DM halo concentration | $q$-dependent $G_{\text{eff}}$ | Galaxy dynamics |
 | Inflation parameters | $n_s = 0.9691$, $r = 0.003$ | Early universe |
 
@@ -427,7 +428,7 @@ work in every sector.
 
 | Sector | $\lambda$ | $\chi$ | $c_s^2$ | $\nu$ | Validated? |
 |--------|-----------|--------|---------|-------|-----------|
-| Cosmology (DESI DR2) | $0.1$ | $1.0$ | $0.01$ | $10^{-4}$ | $w_0 = -0.87$, $w_a = +0.012$; 2σ/2.7σ tension |
+| Cosmology (DESI DR2) | $0.1$ | $1.0$ | $0.01$ | $10^{-4}$ | $w_0 = -0.87$, $w_a = +0.012$ (2σ/2.7σ baseline); with the ratified coupling: $w_a$ $1.25\sigma$ (B2), $w_0$ $3.6\sigma$ at fixed $r_0$ |
 | MW rotation curve | $0.1$ | $1.0$ | $0.01$ | $10^{-4}$ | $v_C/v_B = 2.9$–$3.1\times$ (matches $2.7\pm0.5$ within ~1.2σ) |
 | Dwarf spheroidals (8) | $0.1$ | $1.0$ | $0.01$ | $10^{-4}$ | 3/8 pass; MOND preferred (4/8); ceiling exceeded in 3/8 |
 | He DFT (LDA, N=64) | $0.1$ | $1.0$ | $0.01$ | $10^{-4}$ | 0.8% error (chemical accuracy) |
@@ -490,7 +491,7 @@ fails the quality bar. Tier definitions: `open-questions-cassi-answers.md`
 | $M_{\text{GUT}} \approx 2\times10^{16}$ GeV | "GUT rung $n = 13.33$" in the cascade table | Scale set by RGE running with the free $\Delta b = 1.70$ content; rung addresses unified at $n = 13.33$ (2026-08-03 arithmetic sweep; $2\times10^{16}$ GeV falls between integer rungs: $n = 13.33$) | Gauge-coupling running; proton-decay bound | 02-sm.md:103, 172; 01-core.md:97 | Mapped |
 | Proton-lifetime exponent ($n = 91.5$, $N = 4506$; boxed $\tau_p \approx 4\times10^{34}$ yr) | "Derived (from the coherence budget); not testable" (registry Q9) | Rung fixed to the repo's own mass ladder ($n = 91.46$, 2026-08-03 arithmetic sweep); per-rung survival $q_i = 1 - \varphi^{-i-\delta}$ is Hypothesized ("alternative scalings possible"); the boxed formula with its own inputs gives $1.3\times10^{37}$ yr, 323× the boxed number | Proton mass; Super-K bound | 02-sm.md:101-106; 01-core.md:120-122 | Mapped |
 | $r = \varphi^{-12} \approx 0.003$ | Catalog "✅ Within bound" | Exponent matched post-hoc: all three of the doc's own formulas fail ($\varphi^{-6} \neq 0.003$; $12/40^2 = 0.0075$; $(16/\pi)\xi q/\varphi^{40} = 2\times10^{-7}$) | Planck+BICEP bound $r < 0.03$ | 03-cosmo.md:59-62, 163 | Mapped |
-| $w_0$ coupling form ($-0.87$) | "Derived—2σ from DESI" (registry T1); tension labeled | ODE calibrated to the hardcoded `TARGET_W0` (synced to −0.87 on 2026-08-03; formerly −0.838) cited as "the DESI measurement"; coupling form revised toward DESI (−0.838 → −0.856 → −0.862 → −0.872 → −0.87); still 2σ/2.7σ tension | DESI DR2 ($w_0 \approx -0.75 \pm 0.06$, $w_a$) | 03-cosmo.md:18-25, 157 | Calibrated |
+| $w_0$ coupling form ($-0.87$) | "Derived—2σ from DESI" (registry T1); tension labeled | ODE calibrated to the hardcoded `TARGET_W0` (synced to −0.87 on 2026-08-03; formerly −0.838) cited as "the DESI measurement"; coupling form revised toward DESI (−0.838 → −0.856 → −0.862 → −0.872 → −0.87); still 2σ/2.7σ tension at the Calibrated baseline; with the ratified conversion→expansion coupling (Hypothesized—08): $w_a$ → $1.25\sigma$ (B2), $w_0$ → $3.6\sigma$ at fixed $r_0$ ($r_0$ re-tuning open) | DESI DR2 ($w_0 \approx -0.75 \pm 0.06$, $w_a$) | 03-cosmo.md:18-25, 157 | Calibrated |
 | $\kappa_{\text{DE}} = 3\varphi^2 H_0$ | "Calibrated" (open-questions C1); 2σ tension, not resolved | Calibrated via the $w_0$ coupling anchored to DESI (2σ tension); $3\varphi^2 = K_{md}$ is a Wu Xing coefficient (Derived), but $\kappa_{\text{DE}}$ as a whole has no independent derivation—a Calibrated fit, no free parameters beyond the anchoring | DESI DR2 ($w_0 \approx -0.75 \pm 0.06$, $w_a$) | 03-cosmo.md:18-25, 157 | Calibrated |
 | $\xi = \varphi^6 \approx 17.944$ | "Derived—ξ within 0.3% of empirical" (registry C2/G4) | Rung identity Derived ($\varphi^6 = \varphi^5 + \varphi^4$); empirical pin $\xi \approx 18$ calibrated on the Milky Way rotation curve; the MW "Already consistent" row is the calibration object re-read | Milky Way rotation curve ($r = 7$ kpc) | 04-grav.md:17-25; 01-core.md:141 | Calibrated (rung identity Derived) |
 | $v_0/M_{\text{Pl}}$ exponent $N \approx 79.7$ | "Derived" (registry Q1); inventory: "notable numerical coincidence, but not a derivation" | $N = \log_\varphi(M_{\text{Pl}}/v_0)$ is the log of the measured ratio (79.89); the suppression doc quotes $N = 72$ for the same gap (factor 45 off) | $v_0 = 246$ GeV | 01-core.md:112-114 | Mapped |

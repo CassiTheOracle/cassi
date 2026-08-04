@@ -42,7 +42,7 @@ Tiers below are taken from each document's Status header. Compound headers are q
 | `foundations/proton-coherence-budget.md` | Derivation (rung exponent Mapped—ledger; per-rung $q_i$ profile Hypothesized) | Proton lifetime $\sim \varphi^{4506}$ cycles; annihilation pathway |
 | `foundations/sector-coupling-derivation.md` | Derived scale with Hypothesized coefficient (v₀ input Calibrated, N_pde normalization Mapped—ledger) | Dirac↔two-fluid sector-coupling scale $\kappa_s = \varphi^{-6}/v_0^2$ (0.92 TeV$^{-2}$; $\kappa_s^{-1/2} \approx 1.04$ TeV) |
 | `foundations/bubble-edge-geometry.md` | Derived (structural) | Edge steepness $1.70\times$ (Derived); CMB axis $12.2°$ (measured—Calibrated; boundary mechanism Hypothesized, post-hoc) |
-| `foundations/wa-pentagon-gate.md` | Derived ($\xi = \varphi^6$) / Hypothesized (5-channel) | $w_a = +0.012$ via $\xi$: $2.7\sigma$ tension vs DESI, not resolved; 5-channel shift Hypothesized (ODE pending) |
+| `foundations/wa-pentagon-gate.md` | Derived ($\xi = \varphi^6$) / Hypothesized (5-channel) | $w_a = +0.012$ via $\xi$: $2.7\sigma$ baseline; with the ratified conversion→expansion coupling $1.25\sigma$ (B2); 5-channel shift Hypothesized (ODE pending) |
 | `principles/de-resonance-principle.md` | Derived | Why $\varphi$ is the attractor (maximally irrational) |
 | `principles/v0-hierarchy-problem.md` | Derived (step count, per registry Q1); 5.3% residual open | $v_0/M_{\text{Pl}} \approx \varphi^{-80}$ as step count (Q1) |
 | `standard-model/sm-from-phi.md` | Derived | $\sin^2\theta_W = \varphi^{-3}$; $\alpha_{\text{GUT}} = \varphi^{-3}/(4\pi)$ |
@@ -59,7 +59,7 @@ Tiers below are taken from each document's Status header. Compound headers are q
 
 | Document | Status | Summary |
 |----------|--------|---------|
-| `cosmology/observational_constraints.md` | Calibrated ($w_0$ coupling form, $\xi$ pin—ledger) / Mapped ($\alpha_{\text{halo}}$ nominal, halo $q$—ledger) | DESI DR2 fit; $w_a$ tension vs DESI ($2.7\sigma$, not resolved); rotation curves |
+| `cosmology/observational_constraints.md` | Calibrated ($w_0$ coupling form, $\xi$ pin—ledger) / Mapped ($\alpha_{\text{halo}}$ nominal, halo $q$—ledger) | DESI DR2 fit; $w_a$ tension $2.7\sigma$ baseline → $1.25\sigma$ with the ratified coupling (08); rotation curves |
 
 ## 3. Mapped
 
@@ -82,7 +82,7 @@ Tiers below are taken from each document's Status header. Compound headers are q
 | `foundations/rung-offset-mechanism.md` | Derived quantization, Hypothesized selection, Empirical catalog (μ/Jψ placements Mapped—38-state scan, ledger) | δn as two-fluid phase lag (analytic $A_0$, $B_0$); pool-cell mode quantization; sector edges at half-rungs; uniform 38-state baseline |
 | `foundations/phi-rg-formalism.md` | Hypothesized | RG flow under $\varphi$-spacing |
 | `foundations/spiral-dynamics.md` | Hypothesized | Hubble, gravity, $c$ as spiral geometry projections |
-| `foundations/why-three-dimensions.md` | Hypothesis with One Decided Fork (W1: anti-phase confirmed) | Three dimensions from the Frenet-Serret frame (G5) |
+| `foundations/why-three-dimensions.md` | Hypothesis with One Decided Fork (W1: anti-phase confirmed) | Three dimensions from the Frenet-Serret frame (G5); d = 3 supported conditionally on the three postulates (2026-08) |
 | `standard-model/gut-embedding.md` | Hypothesized | GUT embedding |
 | `standard-model/neutrino-mass.md` | Hypothesized | Neutrino mass structure |
 | `gravity/quantum-gravity.md` | Derived (σ-regularization, G1) / Hypothesized (two-fluid quantization, G2) | $\sigma$-regularized S-matrix; black-hole information (G2) |
