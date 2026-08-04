@@ -11,11 +11,100 @@ $\varphi = (1+\sqrt{5})/2$ as the universal de-resonance constant—and a
 single governing equation (the two-fluid PDE). No dark matter particles, no
 inflaton, no cosmological constant, no SUSY, no extra dimensions, no fine
 tuning. Every answer is tagged with its epistemic status: **Derived**
-(mathematical consequence of $\varphi$ + PDE), **Hypothesized** (mechanism
-proposed, test exists), or **Speculative** (framework-consistent, testing
-pending). If the concepts below are unfamiliar, the **Cassi Primer** section
-immediately following gives a self-contained explanation of every framework
-term used throughout the document.
+(a priori consequence of $\varphi$ + PDE), **Calibrated** (value anchored to
+an observation), **Mapped** (placement or exponent fitted or selected, fit
+ledgered), **Hypothesized** (mechanism proposed, test exists), **Speculative**
+(framework-consistent, testing pending), or **Creative** (exploration, not a
+claim). Full definitions: the **Epistemic Tiers** section below. If the
+concepts below are unfamiliar, the **Cassi Primer** section immediately
+following gives a self-contained explanation of every framework term used
+throughout the document.
+
+---
+
+## Epistemic Tiers
+
+Every claim in this registry carries an epistemic tier. The ladder, highest to
+lowest: **Derived > Calibrated > Mapped > Hypothesized > Speculative >
+Creative**. A stranger must be able to classify any claim from these
+definitions alone; when in doubt, use the lower tier.
+
+### Derived
+
+A priori mathematical consequence of $\varphi$ + the two-fluid PDE, with zero
+fitted or anchored constants. Every number in the claim is computed from the
+axioms—$\varphi$, the PDE, and the external unit-system constants $c$, $\hbar$,
+$G$—without consulting the datum the claim explains. A claim is not Derived if
+any of its exponents, placements, offsets, or normalizations was chosen by
+matching the data (see Mapped), if its value was pinned to an observation (see
+Calibrated), or if it rests on a constant that was. The governing equation is
+the framework's postulate: it is Derived only in the sense of
+"derived-from-the-postulate-structure," and a claim that merely restates the
+axiom—the $\varphi$-attractor as the zero of a conversion term constructed
+with $\varphi$—is the axiom, not a Derived consequence.
+
+### Calibrated
+
+The framework supplies the form, but the constant's **value** is anchored to a
+stated observation. Example: $\xi = \varphi^6$ has a Derived rung identity
+($\varphi^6 = \varphi^5 + \varphi^4$), but its empirical pin ($\xi \approx 18$
+from the Milky Way rotation curve) is Calibrated; every downstream claim that
+uses the pinned value inherits Calibrated unless independently derived.
+Reference scales and thresholds fixed by data are Calibrated too ($\mu_* = 233$
+GeV as the crossing point of the running $\sin^2\theta_W$ with $\varphi^{-3}$;
+$\theta_{\text{cond}} = 0.45$ from phenomenology). A Calibrated claim is honest
+only if the anchor is stated with the claim; a "confirmation" on the anchor
+object is a consistency check of the calibration, not an independent test.
+
+### Mapped
+
+The quantity is placed on the framework's structure—rung, exponent, offset,
+candidate, or normalization—and the **placement** was selected or fitted to
+data: search tables over exponents (η's −44), grid scans (the neutrino offsets
+$\Delta_1$, $\Delta_2$), nearest-integer logs of measured ratios
+($N = \log_\varphi(M_{\text{Pl}}/v_0) \approx 79.7$), back-solved
+normalizations ($N_{\text{pde}} \approx 2.35\times10^3$), candidate tables with
+one winner ($\delta_{\text{CKM}} = \pi\varphi^{-2}$), free parameters chosen to
+close a gap ($\Delta b = 1.70$), and look-elsewhere highlights from scans
+(muon, J/ψ rung placements). Boundary with Calibrated: Calibrated fixes a
+value read off one anchor; Mapped fixes a placement chosen to land on the
+data. **The fit MUST be recorded in the Fit-Status Ledger**
+(`parameter-inventory.md` §10). A Mapped claim describes the data it was
+fitted to; it carries no evidential weight for the framework until the
+placement is independently derived.
+
+### Hypothesized
+
+Mechanism proposed with a pinned $\varphi$-power or a testable prediction, but
+the derivation is not closed: the mechanism is identified, and the
+quantitative claim is not Derived, not anchored (Calibrated), and not fitted
+(Mapped). A claim that merely sketches a mechanism with no pinned number is
+not Hypothesized—it is Speculative.
+
+### Speculative
+
+Framework-consistent extension; mechanism sketched, prediction not yet
+pinned, testing pending. Included for completeness and as a prompt for future
+work; exempt from the falsifiability expectation of the tiers above.
+
+### Creative
+
+Reserved for `speculations/creative-extensions/` and similar exploration:
+applications of the framework's logic for exploration, worldbuilding, or
+invention. Creative documents are explicitly not claims—nothing in them may be
+cited as a Cassi prediction or derivation, and they carry no ledger duty.
+
+### Compound headers, genre words, and the ledger duty
+
+Compound headers ("Derived scale, Calibrated anchor, Mapped exponent") remain
+house style for mixed claims, with one rule: **every non-Derived component
+requires its row in the Fit-Status Ledger**. A compound header is a promise
+that each component's tier is justified. Bookkeeping words—Reference, Index,
+Synthesis, Plan, Registry, Catalog, Open problem—are genres, not epistemic
+claims, and do not sit on the ladder; "Tested" is a verification marker that
+attaches to a tier and never upgrades one. The former "near-Derived" label is
+retired: use the honest tier (Mapped, Calibrated, Hypothesized, or
+Speculative) instead.
 
 ---
 

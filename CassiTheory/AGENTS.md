@@ -19,7 +19,7 @@ Standalone **theory repository** for the Cassi "Theory of Everything": a physics
 
 The repo is a **document graph with three master registries** at the root:
 
-- `open-questions-cassi-answers.md`—epistemic master registry: 41 open questions (`Q1–Q10`, `C1–C10`, `G1–G6`, `M1–M5`, `F1–F6`, `T1–T4`), each with a `Cassi Answer | Mechanism | Epistemic | Reference` table. Epistemic tiers: **Derived / Hypothesized / Speculative**.
+- `open-questions-cassi-answers.md`—epistemic master registry: 41 open questions (`Q1–Q10`, `C1–C10`, `G1–G6`, `M1–M5`, `F1–F6`, `T1–T4`), each with a `Cassi Answer | Mechanism | Epistemic | Reference` table. Epistemic tiers: **Derived / Calibrated / Mapped / Hypothesized / Speculative / Creative** (definitions: `open-questions-cassi-answers.md` §Epistemic Tiers; every fitted or anchored claim must have a row in the Fit-Status Ledger, `parameter-inventory.md` §10).
 - `parameter-inventory.md`—parameter master registry: all ~46 parameters classified by type (F/D/C/E/I/N). **Must be updated** when a paper introduces, derives, or reclassifies a parameter.
 - `predictions/falsifiable-predictions.md`—prediction catalog: 46 numbered predictions grouped by experiment (FCC-ee, CMB-S4, LSST…), each with a `**Source:**` block. Cited elsewhere by number / `§`.
 - `cassi-physics.md`—physics guide (start here)
@@ -117,7 +117,7 @@ Docstring with run command → NumPy + Matplotlib (**Agg backend set early**) �
 
 - **Commit the script and the rendered figure.** `visual-explainers/*.png` are tracked (policy change 2026-08-01)—stage the PNG with its script so figures are reproducible and reviewable from git history. `visual-explainers/media/` (Manim output), `runs/` figures, and other generated imagery remain gitignored (`*.png` ignored except `visual-explainers/`).
 - **Check `BROKEN_REFS.md` before touching cross-references.** Legacy `theory/…` paths (e.g. in `falsifiable-predictions.md` Source blocks) are known-broken but tolerated—map via the BROKEN_REFS table if fixing. `experiments/…` and `two-fluid/…` refs resolve locally (scripts are in this repo). `../../…` refs point to the parent repo and will never resolve here—new theory code should be placed in this repo (e.g. `two-fluid/`, `computations/`) rather than referenced as parent-repo paths.
-- **Mark epistemic status accurately.** Derived / Hypothesized / Speculative labels and `audit.md` self-criticism are load-bearing conventions—never upgrade a claim's tier without the derivation.
+- **Mark epistemic status accurately.** Derived / Calibrated / Mapped / Hypothesized / Speculative labels and `audit.md` self-criticism are load-bearing conventions—never upgrade a claim's tier without the derivation. A claim whose value is anchored to an observation is **Calibrated**; a claim whose exponent, placement, or normalization was fitted or selected is **Mapped**—and a Mapped or Calibrated claim MUST carry its row in the Fit-Status Ledger (`parameter-inventory.md` §10) before it is published.
 
 </critical-rules>
 
@@ -200,8 +200,10 @@ grep -L "^## Status:" foundations/*.md cosmology/*.md gravity/*.md standard-mode
 # 5. Stale Q-numbers: any reference to a question that was renumbered or removed?
 grep -rn "Q1[0-9]\|Q2[0-9]" .               # Q-numbers beyond the current registry range
 
-# 6. Epistemic inflation: any "Derived" claim that should be "Hypothesized"?
+# 6. Epistemic inflation: any "Derived" claim that should be "Hypothesized", "Calibrated" (anchored), or "Mapped" (fitted/selected)?
 grep -rn "Derived" foundations/*.md | grep -v "Status:" | grep -v "## "
+grep -rn "Calibrated\|Mapped" . | grep -v "Status:" | grep -v "## "   # every fitted/anchored claim needs its Fit-Status Ledger row (parameter-inventory.md §10)
+grep -rn "near-Derived" .   # retired tier—replace with the honest tier
 
 # 7. Historical retrospection: any sentence about past versions or superseded claims?
 grep -rn "previously\|formerly\|withdrawn\|was corrected\|old version\|earlier version\|unlike the earlier\|after the fix\|superseded" .   # delete the sentence; the corrected claim stands alone
@@ -218,7 +220,7 @@ For each hit: fix it immediately if the fix is obvious. Flag it in the commit me
 - **New-paper bootstrap**: when creating a new foundations/ or domain paper, also (a) add its path to the relevant registry, (b) add a cross-reference from `cassi-physics.md` if it's a major result, (c) add any new parameters to `parameter-inventory.md`, (d) add a Status header with the accurate epistemic tier and date.
 - **Read before edit**: use `grep` to find every document that references a file or claim BEFORE you change it. The registries are not the only cross-referencers—domain papers cite each other heavily. A `grep` for the filename or claim text across `foundations/`, `cosmology/`, `gravity/`, `standard-model/`, `particles/`, `predictions/` catches callers that `lsp` can't (these are markdown files).
 - **House-style enforcement**: when editing an existing paper that doesn't follow the skeleton (`# Title` → `## Status` → `## Abstract` → numbered body → `## References`), add the missing sections. When editing a paper whose Status header is missing or lacks a date, add one (use the current date and the accurate epistemic tier from the paper's content).
-- **Accuracy over elegance**: the framework's epistemic integrity is its strongest asset for public release. Never make a claim sound more certain than its tier. If a paper says "derived" but only sketches a mechanism, downgrade to "Hypothesized" and explain why in the commit message. `audit.md` is the model: it documents tensions and the current status of every claim openly.
+- **Accuracy over elegance**: the framework's epistemic integrity is its strongest asset for public release. Never make a claim sound more certain than its tier. If a paper says "derived" but only sketches a mechanism, downgrade to "Hypothesized"—or to "Mapped" when the quantity is fitted or selected, recording the fit in the Fit-Status Ledger (`parameter-inventory.md` §10)—and explain why in the commit message. `audit.md` is the model: it documents tensions and the current status of every claim openly.
 - **No ghost-references to corrections.** When fixing an error in a document, remove every sentence that references the removed content—defensive framing ("it is not X"), comparisons to the old claim ("unlike the earlier version"), or mentions of experiments that the corrected claim no longer implicates. The corrected text must stand alone; a new reader should never encounter a sentence arguing against a ghost they never saw.
 
 </agent-autonomy-patterns>

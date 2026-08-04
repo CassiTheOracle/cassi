@@ -8,9 +8,17 @@ This repo's papers are claims, and claims carry tiers. This map indexes every th
 
 **Tier definitions** (as in `hypotheses/README.md`):
 
-- **Derived**—mathematical consequence of $\varphi$ + the two-fluid PDE; zero free parameters.
+- **Derived**—a priori mathematical consequence of $\varphi$ + the two-fluid PDE; zero fitted or anchored constants.
+- **Calibrated**—framework form with the constant's value anchored to a stated observation; downstream claims using the pinned value inherit the anchor.
+- **Mapped**—placement (rung, exponent, offset, candidate, normalization) selected or fitted to data; the fit is recorded in the Fit-Status Ledger (`parameter-inventory.md` §10).
 - **Hypothesized**—mechanism proposed with pinned $\varphi$-power; testable prediction exists.
 - **Speculative**—framework-consistent; mechanism sketched, prediction not yet pinned.
+- **Creative**—exploration, not a claim (`speculations/creative-extensions/`); exempt from the evidential ladder.
+
+Reference / Index / Synthesis / Plan / Registry / Catalog are genres, not
+epistemic tiers; "Tested" is a verification marker that attaches to a tier and
+never upgrades one. The former "near-Derived" label is retired—use the honest
+tier.
 
 Tiers below are taken from each document's Status header. Compound headers are quoted as written and placed under the stronger claim. Derivation papers are placed by the tier of their result per the registry.
 

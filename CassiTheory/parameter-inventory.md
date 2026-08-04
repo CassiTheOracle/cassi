@@ -342,7 +342,8 @@ RATIOS involving these constants are $\varphi$-powers:
 | $\alpha^{-1}(\text{GUT})$ | $4\pi/\varphi^{-3}$ | $53.2$ | Exact (definition) |
 | $m_{\nu_e}/m_e$ (seesaw) | $\varphi^{-11}$ | $0.013$ | Consistent |
 
-The Cassi framework's external-constant status: **6 inputs, 0 derived.**
+The Cassi framework's external-constant status: **6 inputs, 0 a-priori-derived;
+28 fitted or selected quantities are ledgered as Calibrated or Mapped in §10.**
 This matches the Standard Model (which also takes $\{G, c, \hbar, m_e, m_p,
 \Lambda_{\text{QCD}}\}$ as inputs) and is not a weakness—all dimensionful
 quantities must eventually be set by experiment in any theory that lacks a
@@ -445,15 +446,65 @@ Symbols used framework-wide that are not parameter rows above (or names for rows
 | Symbol | Canonical meaning | Value / expression | Notes |
 |---|---|---|---|
 | $\varphi$ | universal scale-separation constant | $(1+\sqrt{5})/2 = 1.618033989$ | F-class axiom (§1) |
-| $\alpha_0$ | equilibrium Yang fraction ($\pi/\rho$ at the $\varphi$-fixed point) | $\varphi^{-3} \approx 0.236$ | = $G_{\text{eff}}/G$ at fixed point; row in §2.1 |
-| $\alpha_{\text{halo}}$ | galactic/halo Yang fraction (SPARC fits) | $\approx 0.7$ | $G_{\text{eff}}/G = \alpha(1+\xi q)$; halo-regime parametrization, NOT the framework maximum ($\varphi^6 = 17.94$) |
+| $\alpha_0$ | equilibrium Yang fraction ($\pi/\rho$ at the $\varphi$-fixed point) | $\varphi^{-3} \approx 0.236$ | = $G_{\text{eff}}/G$ at fixed point; relabel—the true fixed-point Yang fraction is $\varphi^{-1}$ (ledger §10) |
+| $\alpha_{\text{halo}}$ | galactic/halo Yang fraction (SPARC fits) | $\approx 0.7$ | hardcoded nominal (path8:65); no SPARC fit of $\alpha$ in repo—real v9 fits peak at 0.17–0.53 (ledger §10) |
 | $\alpha_w$ | attractor conversion weight | $\varphi^{-1} \approx 0.618$ | = $r/(1+r)$ at $r = \varphi$ in $H_{\text{eff}}^2$; row in §2.1 |
 | $\varepsilon$ | field deviation | $\varepsilon = E_Y - \varphi E_I$ | core physics (governing-equation pair); keep $\varepsilon$ |
 | $\varepsilon_{\text{soft}}$ | Coulomb softening (numerical) | $0.02\,a_0$ | numerical (§6 row); distinct from the field deviation $\varepsilon$ |
 | $\sigma$ | regularization scale | $\ell_{\text{Pl}}/\varphi^3$ | gravity cores, UV-finite propagator; registered here |
 | $\sigma_r$ | spatial ratio dispersion | dynamic state variable | consciousness master variable (registry M4) |
-| $\theta_{\text{cond}}$ | condensation threshold | $0.45$ (at $R \approx 0.093$) | fixed point, not a free parameter (`foundations/bubble-edge-geometry.md`) |
+| $\theta_{\text{cond}}$ | condensation threshold | $0.45$ (at $R \approx 0.093$) | calibrated to phenomenology at step 285 (ledger §10); not an a-priori fixed point |
 | $\mathcal{M}$ | phase-matching factor | $\approx 1$ organized / $\approx 0$ random | quantum-measurement derivation (Q7) |
 | $g$ | Wu Xing freeze-out gap | $1 - \varphi^{-5} \approx 0.9098$ | derived identity |
 | $\Lambda_Y$, $\Lambda_I$ | wake wavelengths | $\ell_n$ and $\ell_n/\varphi$ | distinct from the conversion rate $\lambda$ (`foundations/wake-geometry.md`) |
 | $\lambda$ | conversion rate | $1/(2w) = 0.1$ | keep—do not reuse $\lambda$ for wavelengths or the C1 mechanism scale ($\kappa_{\text{DE}} = 3\varphi^2 H_0$) |
+
+---
+
+## 10. Fit-Status Ledger
+
+Every claim whose value is anchored to an observation (**Calibrated**) or whose
+placement—rung, exponent, offset, candidate, normalization—was selected or
+fitted to data (**Mapped**) must have a row here. A fitted quantity may stay in
+the framework, but it may not be labeled Derived, and its fit must be on
+record. Rows are receipts from the referee memos
+(`cassi-toe-rewrite-briefs/referee/01-core.md`, `02-sm.md`, `03-cosmo.md`,
+`04-grav.md`, `06-hyp.md`). A Mapped or Calibrated claim without its ledger row
+fails the quality bar. Tier definitions: `open-questions-cassi-answers.md`
+§Epistemic Tiers.
+
+| Quantity | Current status | Fit source | Data anchored | Referee receipt (memo:line) | Ledger tier |
+|---|---|---|---|---|---|
+| η exponent (−44) | "Derived" claimed by baryon-asymmetry.md §4; registry Hypothesized | Nearest-integer $\varphi$-power to $\eta_{\text{obs}}$ chosen from a search table over exponents 43–46 (exact log = 44.13); freeze-out step 52 = 60 − 8 assembled backwards | $\eta_{\text{obs}} \approx 6.0\times10^{-10}$ (PDG $6.104 \pm 0.058 \times 10^{-10}$) | 01-core.md:124-126; 02-sm.md:71-75; 03-cosmo.md:117-123 | Mapped |
+| $\delta_{\text{CKM}} = \pi\varphi^{-2} \approx 68.8°$ | Catalog "✅ Within MoE" | 4-candidate search table (π−arccos(φ⁻¹) = 128° No; πφ⁻³ = 42.5° No; 2πφ⁻³ = 85° Close; πφ⁻² = 68.8° **Yes**); the winner is promoted to "the Cassi prediction" | CKM phase $\sim 69.2° \pm 3.0°$ (repo anchor; PDG 2024: $65.55° \pm 1.55°$, +2.07σ) | 01-core.md:223-225; 02-sm.md:88-89 | Mapped |
+| Neutrino offsets $\Delta_1 = 1.00$, $\Delta_2 = 1.75$ | "pinned" (registry Q3) | Quarter-rung grid scan over $\Delta_1 \in \{0.25,\dots,2.0\}$, $\Delta_2 \in \{0.5,\dots,4.25\}$ sorted by $\|R_{\text{pred}} - R_{\text{obs}}\|$ ("← BEST"); script prints "match by construction"; 2 parameters, 2 data points, 0 dof; $m_1$ solved from data; $\Delta_2 = 1.75$ breaks the framework's own 2:1 rule | $\Delta m^2_{21} = 7.41\times10^{-5}$, $\Delta m^2_{31} = 2.511\times10^{-3}$ eV² | 02-sm.md:39-53, 166; 01-core.md:128-130 | Mapped |
+| $\alpha_{\text{halo}} \approx 0.7$ | Hardcoded nominal (path8:65, path9:60); registry says "(SPARC fits)" | Hardcoded `ALPHA_HALO = 0.7`; no SPARC fit of α in repo; the real v9 Yang fractions peak at 0.17–0.53 | (claimed) SPARC rotation curves | 04-grav.md:16, 160; 01-core.md:164 | Mapped |
+| Halo $q \approx 0.7$ (0.61–0.71) | $q \approx 0.67$ (registry G-series); GW row constrains $q < 0.1$–$0.3$ | $q(\rho)$ law with environment-tuned $\rho_{\text{ref}}$ (free per environment); boost $v_C/v_B = \sqrt{\alpha(1+\xi q)}$ needs $q = 0.61$–$0.71$ | MW rotation-curve boost $2.7 \pm 0.5$ | 04-grav.md:29-58, 159 | Mapped |
+| $\theta_{\text{cond}} = 0.45$ | "fixed point, not a free parameter" (§9 symbol table) | Calibrated to ~0.45 at step 285 using phenomenology; the P(k) wake-wave amplitude band (1–3%) is set by it | Bubble-edge condensation phenomenology; DESI P(k) amplitude | 01-core.md:164; 03-cosmo.md:92 | Calibrated |
+| $\chi$ (sector-coupling mobility) | C-class solver parameter ($\chi = 1.0$); "Empirical—no independent derivation" | Value set empirically (range 0.5–1.0); no derivation | PDE solver phenomenology | 01-core.md:164; 02-sm.md:148-150 | Calibrated |
+| $N_{\text{pde}} \approx 2.35\times10^3$ | Back-solved normalization | Chosen so the $\kappa_s \to \chi$ bridge lands in the calibrated band: $4.254\times10^{-4} \times 2.35\times10^3 = 0.9997$ | Calibrated $\chi$ band $[0.5, 1.0]$ | 02-sm.md:148-150 | Mapped |
+| $\Delta b = 1.70$ | "Ongoing" (catalog row 9) | Free beyond-SM particle content chosen to close the $\alpha_s$ gap: ~1 vector-like colored fermion pair + 2 colored scalars, or ~3 KK levels—three incompatible options, none chosen; the same content is reused for $M_{\text{GUT}}$, the quark-mass gaps, and the proton lifetime | $\alpha_s(M_Z) = 0.118$ | 02-sm.md:79-83; 01-core.md:110, 149 | Mapped |
+| $\mu_* = 233$ GeV | $\sin^2\theta_W$ "exact at $\mu_*$" | Matching scale chosen as the crossing point where the measured running $\sin^2\theta_W$ equals $\varphi^{-3}$; $\mu_* = F_{13}$—a re-anchoring, not a prediction | Measured running $\sin^2\theta_W(\mu)$ | 02-sm.md:11-23; 01-core.md:149 | Calibrated |
+| μ, J/ψ rung placements ($n = 96.000$, 89) | "Prediction 45 (closure-ladder mass placements)" | Discovered by the 2026-08-03 38-state mass scan; the muon's $\delta = -0.0002$ is the sharpest of ~40 draws ($P(\text{any within } \pm 0.0002) \approx 1.5\%$); $n = 96$ is not on the closure ladder | 38 measured masses (PDG) | 01-core.md:76-80; 02-sm.md:108-140 | Mapped |
+| $m_e$/$m_\mu$/$m_\tau$ rung placements | $m_e$ "Partial (~25% off)"; $m_\mu$, $m_\tau$ miss by 335×/9104× | $m_e$ exponent $n_e = 26.5$ solved from the observed mass; μ/τ placements read off measured masses | $m_e$, $m_\mu$, $m_\tau$ | 01-core.md:147, 196-212; 02-sm.md:160 | Mapped |
+| $M_{\text{GUT}} \approx 2\times10^{16}$ GeV | "GUT step 5" in the cascade table | Scale set by RGE running with the free $\Delta b = 1.70$ content; three mutually inconsistent rung addresses in one repo (5, 8, 14.8); $2\times10^{16}$ GeV is not a cascade rung ($n \approx 13.3$) | Gauge-coupling running; proton-decay bound | 02-sm.md:103, 172; 01-core.md:97 | Mapped |
+| Proton-lifetime exponent ($n = 95$, $N = 4848$; boxed $\tau_p \approx 4\times10^{34}$ yr) | "Derived (from the coherence budget); not testable" (registry Q9) | Rung 95 contradicts the repo's own mass ladder ($n = 91.46$); per-rung survival $q_i = 1 - \varphi^{-i-\delta}$ is Hypothesized ("alternative scalings possible"); the boxed formula with its own inputs gives $1.3\times10^{37}$ yr, 323× the boxed number | Proton mass; Super-K bound | 02-sm.md:101-106; 01-core.md:120-122 | Mapped |
+| $r = \varphi^{-12} \approx 0.003$ | Catalog "✅ Within bound" | Exponent matched post-hoc: all three of the doc's own formulas fail ($\varphi^{-6} \neq 0.003$; $12/40^2 = 0.0075$; $(16/\pi)\xi q/\varphi^{40} = 2\times10^{-7}$) | Planck+BICEP bound $r < 0.03$ | 03-cosmo.md:59-62, 163 | Mapped |
+| $w_0$ coupling form ($-0.87$) | "Derived—2σ from DESI" (registry T1); tension labeled | ODE calibrated to the hardcoded `TARGET_W0 = -0.838` cited as "the DESI measurement"; coupling form revised three times toward DESI (−0.838 → −0.856 → −0.862 → −0.872 → −0.87); still 2σ/2.7σ tension | DESI DR2 ($w_0 \approx -0.75 \pm 0.06$, $w_a$) | 03-cosmo.md:18-25, 157 | Calibrated |
+| $\xi = \varphi^6 \approx 17.944$ | "Derived—ξ within 0.3% of empirical" (registry C2/G4) | Rung identity Derived ($\varphi^6 = \varphi^5 + \varphi^4$); empirical pin $\xi \approx 18$ calibrated on the Milky Way rotation curve; the MW "Already consistent" row is the calibration object re-read | Milky Way rotation curve ($r = 7$ kpc) | 04-grav.md:17-25; 01-core.md:141 | Calibrated (rung identity Derived) |
+| $v_0/M_{\text{Pl}}$ exponent $N \approx 79.7$ | "Derived" (registry Q1); inventory: "notable numerical coincidence, but not a derivation" | $N = \log_\varphi(M_{\text{Pl}}/v_0)$ is the log of the measured ratio (79.89); the suppression doc quotes $N = 72$ for the same gap (factor 45 off) | $v_0 = 246$ GeV | 01-core.md:112-114 | Mapped |
+| $G_{\text{eff}}$ π/ρ ↔ $\alpha_0$ equality ($\varphi^{-3}$) | "Equilibrium Yang fraction" ($\alpha_0$) | Relabel: at the $\varphi$-fixed point the Yang fraction is $\varphi^{-1}$, not $\varphi^{-3}$; three α values (0.236, 0.618, 0.7) share one symbol | Fixed-point ratio (derived); value selected | 04-grav.md:121-125 | Mapped (relabel) |
+| $n_s$: $N_e = 40$ window | "Gate correction Closed—1.0σ from Planck" | E-fold window (steps 20–60) labeled after the fact: 40 rungs = 19.25 e-folds by the ladder's own formula; the closed form is not reproduced by the repo's own script (its §7 integrates $N_{\text{eff}} = 43.22$); $r = 12/N_e^2$ needs $N_e = 63.2$ | Planck 2018 $n_s = 0.9649 \pm 0.0042$ | 03-cosmo.md:53, 108-113; 01-core.md:182-186 | Mapped |
+| $\Omega_{\text{DM}}/\Omega_b = \varphi^3 + 1 \approx 5.24$ | "zero free parameters" (observational-seti.md) | Hand-added +1 term; combination selected from $\{\varphi^3, \xi, \varphi^2, \varphi^4, \varphi^3 \pm 1\}$ after $\varphi^3$ alone came in 21% off | $\Omega_{\text{DM}}/\Omega_b = 5.39$ (Planck) | 06-hyp.md:161-166 | Mapped |
+| CMB $C_2$ normalization | "Fibonacci ratio" in the axis pipeline | $C_2$ calibrated to the observed 200 μK² | Observed CMB power | 03-cosmo.md:81 | Calibrated |
+| $r_d$ half-step 284.5 = 150.0 Mpc | Catalog "PASS"; "an 11σ near-miss" | Half-step interpolation convention chosen after the measurement (measured rung 284.46); predicted vs observed 150.0 vs $147.1 \pm 0.26$ Mpc | BAO ruler $r_d = 147.1 \pm 0.26$ Mpc | 03-cosmo.md:101 | Mapped |
+| Milky Way bubble-edge rung $n \approx 267$ | "Bubble edge" label (dark-matter doc) | Rung number = the coordinate map of the measured size ($\ell_{267} = $ MW diameter); a label, not a prediction | Milky Way diameter | 06-hyp.md:179-180 | Mapped |
+| Dark-matter "0.1% match" ($\varphi^{-183} \approx \alpha_G$) | "Most precisely verified prediction" (dark-matter doc) | Exponent read off the measured proton mass: $\varphi^{-2n} \equiv (m_p/M_{\text{Pl}})^2 \equiv \alpha_G$ by definition; as written the value is 3.7% off $\alpha_G$ | $m_p$, $M_{\text{Pl}}$ | 06-hyp.md:168-174, 222 | Mapped |
+| Wolfenstein $A = 0.810$ | $\|V_{cb}\|$, $\|V_{ub}\|$ "Consistent" | $A$ fixed from data; $\|V_{cb}\|$, $\|V_{ub}\|$ not predicted ($\lambda = \varphi^{-3}$ assumed) | CKM magnitudes | 02-sm.md:95 | Calibrated |
+| $\sigma_8$: $\mu(k,a)$ normalization | "Slightly lower ~5%" claim; pipeline gives −43% | Plan target row labeled "target, matching observations" ($\mu = 0.980 \to -5.3\%$); free $\mu$ normalization and $q(k,a)$ machinery | Low-z weak lensing $\sigma_8$ | 03-cosmo.md:139 | Mapped |
+| GWTC-4 "coincidences" (3 near-hits) | "Worth recording" (gwtc4-mass-ladder.md) | Point-estimate near-hits selected after the fact from ~200 events (expectation of 0.03-rung hits over the catalog ≈ 12); the posterior-weighted test is null | GWTC-4 compact-object masses | 06-hyp.md:78-82 | Mapped |
+
+**Row count: 28.** A row here does not settle the quantity's physics—it settles
+its honesty. Each entry carries the tier the claim must bear (Calibrated or
+Mapped) until the fit is replaced by an independent derivation; the re-tier
+stage propagates these labels to the documents that cite the quantities.

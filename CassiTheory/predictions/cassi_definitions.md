@@ -26,6 +26,7 @@
 13. [Unification—Theory of Everything](#13-unification--the-theory-of-everything)
 14. [Observables & Predictions](#14-observables--predictions)
 15. [Code & Implementation](#15-code--implementation)
+16. [Epistemic Tiers](#16-epistemic-tiers)
 
 ---
 
@@ -127,7 +128,7 @@ Three modes of expansion:
 
 - **At r >> σ**: F → −(1+ξ·q)/r² (Newtonian with Qi enhancement).
 - **At r → 0**: F ∝ −r/(3σ³)·(1+ξ·q) (harmonic—no singularity).
-- **ξ = φ⁶ ≈ 17.944**: Derived from first principles via Fibonacci identity φ⁶ = φ⁵ + φ⁴. The sixth power represents 2 field components × 3 spatial dimensions coupling to curvature. Within 0.3% of the empirical value ≈ 18 from Milky Way rotation curves.
+- **ξ = φ⁶ ≈ 17.944**: Derived rung identity via Fibonacci identity φ⁶ = φ⁵ + φ⁴; Calibrated empirical pin (ξ ≈ 18 from Milky Way rotation curves, 0.3% residual; ledger `parameter-inventory.md` §10). The sixth power represents 2 field components × 3 spatial dimensions coupling to curvature.
 
 ### Effective Gravitational Constant
     G_eff = (π/ρ) · (1 + ξ·q) · G_N
@@ -702,11 +703,52 @@ New theory documents:
 | φ⁻¹ | 0.6180340 | Inverse golden ratio |
 | φ⁻² | 0.3819660 | Yang-Yang coupling floor |
 | φ⁻³ | 0.23606798 | Background π/ρ in vacuum |
-| ξ = φ⁶ | 17.944 | Derived Qi-gravity coupling (Fibonacci identity φ⁶ = φ⁵ + φ⁴) |
-| PHI_6 = φ⁶ | 17.944 | Derived Qi-gravity coupling constant |
+| ξ = φ⁶ | 17.944 | Qi-gravity coupling: Derived rung identity (φ⁶ = φ⁵ + φ⁴), Calibrated empirical pin (MW rotation curve) |
+| PHI_6 = φ⁶ | 17.944 | Qi-gravity coupling: Derived rung identity, Calibrated empirical pin |
 | `σ` | 0.1–1.0 (code units) | Gaussian softening scale |
 | `cosmology/cosmology-from-phi.md` | Complete Cassi cosmology (inflation, baryogenesis, DM) |
 | Qi gate threshold | q₀ ≈ φ⁻² | Conversion block at equilibrium |
+
+---
+
+---
+
+## 16. Epistemic Tiers
+
+Every claim in the framework carries an epistemic tier. The ladder, highest to
+lowest: **Derived > Calibrated > Mapped > Hypothesized > Speculative >
+Creative**. Full definitions with worked examples:
+`open-questions-cassi-answers.md` §Epistemic Tiers and
+`hypotheses/README.md` §Epistemic Tier Definitions.
+
+- **Derived**—a priori mathematical consequence of $\varphi$ + the two-fluid
+  PDE; zero fitted or anchored constants. The governing equation is the
+  framework's postulate; a claim that merely restates the axiom is the axiom,
+  not a Derived consequence.
+- **Calibrated**—the framework supplies the form; the constant's value is
+  anchored to a stated observation, and downstream claims that use the pinned
+  value inherit Calibrated unless independently derived. Example: $\xi =
+  \varphi^6$ (Derived rung identity, Calibrated empirical pin $\xi \approx 18$
+  from the Milky Way rotation curve).
+- **Mapped**—the placement (rung, exponent, offset, candidate, normalization)
+  was selected or fitted to data: search tables, grid scans, nearest-integer
+  logs of measured ratios, back-solved normalizations, candidate tables, free
+  parameters closing a gap, scan highlights. The fit MUST be recorded in the
+  Fit-Status Ledger (`parameter-inventory.md` §10). A Mapped claim carries no
+  evidential weight until the placement is independently derived.
+- **Hypothesized**—mechanism proposed with a pinned $\varphi$-power or a
+  testable prediction; derivation not closed, value not anchored and not
+  fitted.
+- **Speculative**—framework-consistent; mechanism sketched, prediction not
+  yet pinned, testing pending.
+- **Creative**—exploration, not a claim (`speculations/creative-extensions/`);
+  exempt from the evidential ladder and the ledger duty.
+
+Bookkeeping words—Reference, Index, Synthesis, Plan, Registry, Catalog, Open
+problem—are genres, not epistemic claims, and do not sit on the ladder.
+"Tested" is a verification marker that attaches to a tier and never upgrades
+one. The former "near-Derived" label is retired; use the honest tier (Mapped,
+Calibrated, Hypothesized, or Speculative).
 
 ---
 
