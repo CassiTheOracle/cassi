@@ -118,7 +118,7 @@ The intersection is unique: **5**. The pentagon is both the smallest shape that 
 
 The five-arm closure gives the framework its fundamental numbers, all **Derived**:
 
-- **The gap** $g = 1 - \varphi^{-5} \approx 0.916$: the fraction of the Yang-Yin imbalance converted in one full five-phase cycle. It sets the depth of the cascade.
+- **The gap** $g = 1 - \varphi^{-5} \approx 0.910$: the fraction of the Yang-Yin imbalance converted in one full five-phase cycle. It sets the depth of the cascade.
 - **The primordial ratio** $r_0 \approx 0.047$: at the universe's birth, Yin dominated Yang by about 21 to 1. It follows from where the five-phase cycle must begin for today's horizon to sit at rung 292 (epoch calibration).
 - **The conversion rate** $\lambda = 1/(2w) = 0.1$: with $w = 5$, one-tenth per cycle. This is the only number the equations need beyond $\varphi$ itself—derived, not measured or tuned.
 

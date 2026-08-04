@@ -361,14 +361,42 @@ $m_H = 125.25$ GeV (`computations/sm_radiative_corrections.py` §5.5):
 | $m_H^2\varphi/(4v_0^2) = \lambda_{\text{WX}} = 1/(2w)$, $w = 5$ | 122.4 GeV | −2.3% | Hypothesized—Wu Xing quartic derived (`foundations/wu-xing-derivation.md`); residual in the 2–5% de-resonance band, mechanism open |
 | $\lambda(M_{\text{Pl}}) = 0$ (stability line) | 124.6 (1-loop) / 129.2 GeV (NNLO) | +0.5% / −3.1% (2.2σ) | Derived line; the measured mass lies inside the loop-order spread—the φ-anchored vacuum sits on the line |
 | two-fluid eigenmodes ($g = \varphi^{-3}$, $\lambda = \lambda_{\text{WX}}$) | 157.6 / 116.6 GeV | brackets 125.25 | Hypothesized structure—mode frequencies of the φ-point potential (normalization convention matters at the ~20% level) |
-| $m_t\,\varphi^{-2/3}$, $m_Z\,\varphi^{2/3}$, $v\,\varphi^{-7/5}$ | 125.3 / 125.7 / 125.5 GeV | +0.04% / +0.34% / +0.22% | rejected as fits—no mechanism produces fractional rungs (the $m_e$ half-step 26.5 precedent, `foundations/deriving-remaining-gaps.md` §2.2) |
+| $m_H = v\sqrt{2(2\lambda_{\text{WX}}/\varphi)(1+\varphi^{-3}/w)}$, $w = 5$ | 125.28 GeV | +0.02% | Hypothesized—Wu-Xing quartic with the Yang-fraction-$w$ correction; mechanism open |
+| $m_H = m_t\,\varphi^{-2/3}$ (top chain) | 125.30 GeV | +0.04% | mechanism target—2/3-rung separation has no Cassi origin yet |
+| $m_H = \sqrt{2}\,y_t(m_Z)\,v\,\varphi^{-2}$ | 124.90 GeV | −0.28% | Hypothesized—top-loop pooling, $\lambda(m_Z) = y_t^2(m_Z)\varphi^{-4}$ |
+| $m_Z\,\varphi^{2/3}$, $v\,\varphi^{-7/5}$ | 125.7 / 125.5 GeV | +0.34% / +0.22% | rejected as fits—no mechanism produces fractional rungs (the $m_e$ half-step 26.5 precedent, `foundations/deriving-remaining-gaps.md` §2.2) |
 
-The structural anchors bracket the measured mode frequency from below
-(122.4 GeV, Wu-Xing quartic) and above (129.2 GeV, NNLO stability line; the
-1-loop line sits at 124.6 GeV, +0.5%). The sharpest coincidence,
-$m_t/m_H = \varphi^{2/3}$ at 0.03%, is flagged as a mechanism target: a
-Cassi process producing 2/3-rung mass separations would promote it from fit
-to prediction.
+**Collision pooling.** The measured mass is a property of the pooled collision
+zone, not of the isolated vacuum: the Higgs is produced through the top loop
+(gg→H), so its production pools the top-Yukawa structure. The scan tests this
+directly (`computations/sm_radiative_corrections.py` §5.6): no simple pooling
+law combines the two-fluid eigenmodes into the observed mass (harmonic 134.0,
+geometric 135.6, arithmetic 137.1, energy-weighted 140.2 GeV—all ≥ 7% off).
+The Higgs is not a merge of the isolated-vacuum modes; it is a new mode of
+the pooled zone. The one pooling structure that closes is the top loop
+itself: $\lambda(m_Z) = y_t^2(m_Z)\,\varphi^{-4}$ (−0.55% in λ)—the quartic
+equals the top-Yukawa pool times $\varphi^{-4}$, the imprint of the
+production process.
+
+**The top chain.** The same production path anchors the top mass itself:
+$y_t(\text{pole}) = 1 - \varphi^{-10} = 2g - g^2$ with $g = 1-\varphi^{-5}$
+the derived Wu-Xing gap (`cassi-physics.md`), i.e.
+
+$$\boxed{m_t = \frac{v}{\sqrt{2}}\,(1 - \varphi^{-10}) = 172.688\ \text{GeV}
+  \quad\text{vs}\quad 172.69(30)}$$
+
+—the sharpest coincidence in the framework (−0.001%). Its structure,
+$1-(1-g)^2$ (two-step gap survival), is the first candidate mechanism for the
+$m_t/m_H = \varphi^{2/3}$ separation that carries the chain from the top to
+the Higgs.
+
+**Look-elsewhere discipline.** Three independent candidates land within
+0.05% ($m_t$ chain 0.001%, Wu-Xing+$\varphi^{-3}/5$ 0.02%,
+$m_t\varphi^{-2/3}$ 0.04%). Per the repo standard none is a derivation until
+a mechanism produces its structure; the entries above are ranked mechanism
+targets, and the $m_t$ chain is the priority: a two-step gap (Wu Xing)
+producing $y_t = 2g - g^2$ would promote the top mass and the Higgs mass
+together from coincidence to prediction.
 
 ---
 
@@ -402,10 +430,11 @@ erase—every discrepancy that does. The status of the φ-anchored predictions:
 - **$\alpha_2$, $\alpha_1$, $\alpha_{\text{em}}$:** each ~25% high in
   $\alpha^{-1}$ from the φ-boundary—documented residuals.
 - **Higgs:** the $\lambda_\varphi$ formula does not produce 125 GeV; the SM
-  λ-running (metastability at $M_{\text{Pl}}$) is derived and standard, and
-  the structural anchors ($m_H^2\varphi/(4v_0^2) = \lambda_{\text{WX}}$ at
-  122.4 GeV; $\lambda(M_{\text{Pl}}) = 0$ line at 124.6–129.2 GeV) bracket
-  the measured value without closing it (§6.2).
+  λ-running (metastability at $M_{\text{Pl}}$) is derived and standard. The
+  φ-anchored candidates (§6.2): the Wu-Xing quartic (122.4 GeV) and the
+  $\lambda(M_{\text{Pl}}) = 0$ line (124.6–129.2 GeV) bracket the measured
+  value; three sub-0.1% candidates (top-Yukawa chain 0.001%, Wu-Xing +
+  $\varphi^{-3}/5$ 0.02%, $m_t\varphi^{-2/3}$ 0.04%) await mechanisms.
 
 These residuals are the honest raw material for the next stage of the
 framework: either the φ-boundary itself must shift (e.g. the unification
