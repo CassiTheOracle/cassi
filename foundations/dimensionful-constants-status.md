@@ -171,6 +171,18 @@ The $-159.5$ hit is a **cancellation**, not a claim: two factors have no rung st
 
 **Conclusion:** atomic unit anchors do not survive decomposition. The external list remains $\{ \ell_{\text{Pl}},\, \text{current-epoch horizon rung},\, \text{human-unit calibration} \}$. One observation survives: the EM coupling's RG running from the φ-boundary to zero momentum spans $\alpha_{\text{em}}^{-1}$: $225$ at $M_{\text{GUT}}$ (rung $11.26$, with $\sin^2\theta_W = \varphi^{-3}$) $\to$ $128.95$ at $m_Z$ $\to$ $137.04$ at zero momentum (rung $10.22$)—about one $\varphi$-rung overall; structural, but not a derivation of a unit (`standard-model/sm-radiative-corrections.md` §3–4).
 
+### 3.6 The seed units: the closest thing to a derived unit
+
+The seed arm width (`foundations/wake-geometry.md` §3b) is the framework's
+origin-unit: the coefficient is derived from the phyllotaxis (five arms tile
+the azimuth), while the dimensionful core is the single external anchor. The
+seed pentagon at rung 0 defines a consistent natural-unit trio
+(`computations/seed_arm_width.py`):
+
+$$w_{\text{seed}} = \frac{2\pi}{5}\,\ell_{\text{Pl}} \approx 2.03\times10^{-35}\ \text{m}, \qquad t_{\text{seed}} = \frac{2\pi}{5}\,t_{\text{Pl}} \approx 6.77\times10^{-44}\ \text{s}, \qquad m_{\text{seed}} = \frac{5}{2\pi}\,M_{\text{Pl}} \approx 1.73\times10^{-8}\ \text{kg}$$
+
+with $w_{\text{seed}} = c\,t_{\text{seed}}$ and $m_{\text{seed}} w_{\text{seed}} c = \hbar$ exactly—a closed unit system at the cascade's origin. This is as close as a dimensionless constant can come: $\varphi$ fixes the coefficients ($2\pi/5$ from the pentagon, $5/2\pi$ from its inverse), while the dimensionful content remains the sole external anchor $\ell_{\text{Pl}}$ (§1.1). The SI units reduce to the same anchors and fail the rung test: the second through cesium (§3.5, decomposition fails); the meter and kilogram are definitions over $c$, $h$, $\Delta\nu_{\text{Cs}}$ (no independent content); and the human-unit placements—the meter at rung 166.47 (1.5% from the half-rung 166.5, an Earth-scale coincidence), the second at 206.9, the kilogram at −36.7—are formation and definitional observations without mechanism, the epoch-observation class. The external list stands at $\{ \ell_{\text{Pl}},\, \text{current-epoch horizon rung},\, \text{human-unit calibration} \}$; what the seed units add is the geometric content of the anchor itself.
+
 ---
 
 ## 4. Derivation Pathways
