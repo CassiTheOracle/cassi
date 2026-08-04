@@ -165,11 +165,11 @@ The same coherence-budget machinery that stabilizes the proton for $\sim 10^{910
 
 ### `strong-cp-derivation.md`—Strong CP: Why $\bar{\theta} \approx 0$ from Cascade De-Resonance
 
-The QCD $\theta$-term arises as an effective parameter of the SU(3) theory that emerges from the two-fluid PDE at cascade step 95, and the $\varphi$-attractor fixed point is CP-symmetric. Any CP-violating departure originating at the GUT scale is cascade-suppressed over the 87 rungs to the QCD scale:
+The QCD $\theta$-term arises as an effective parameter of the SU(3) theory that emerges from the two-fluid PDE at cascade step 95, and the $\varphi$-attractor fixed point is CP-symmetric. Any CP-violating departure originating at the GUT scale (n ≈ 13.3) is cascade-suppressed over the ~81 rungs to the QCD scale:
 
-$$\boxed{\bar{\theta} \approx \varphi^{-87} \times \pi\varphi^{-2} = \pi\varphi^{-89} \approx 10^{-19}}$$
+$$\boxed{\bar{\theta} \approx \varphi^{-81} \times \pi\varphi^{-2} = \pi\varphi^{-83} \approx 1.4 \times 10^{-17}}$$
 
-nine orders of magnitude below the experimental bound of $10^{-10}$—a prediction, not a tuning. No axion, no Peccei-Quinn symmetry, no new particles: the smallness is the cascade doing what it always does. Status: Derivation.
+~7 orders of magnitude below the experimental bound of $10^{-10}$. The span is Mapped (its GUT-seed anchor and $\delta_{\text{CP}}$ are ledgered fits, `parameter-inventory.md` §10). No axion, no Peccei-Quinn symmetry, no new particles: the smallness is the cascade doing what it always does. Status: Derivation (span Mapped—ledger).
 
 ### `quark-confinement.md`—Quark Confinement from Qi-Gate Nonlinearity at the QCD Scale
 

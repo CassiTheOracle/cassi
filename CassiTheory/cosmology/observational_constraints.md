@@ -1,10 +1,10 @@
 # Observational Constraints—DESI DR2 Dark Energy & Milky Way Rotation Curve
 
-## Status: Derived—July 2026
+## Status: Calibrated ($w_0$ coupling form, $\xi$ pin—ledger) / Mapped ($\alpha_{\text{halo}}$ nominal, halo $q$—ledger)—August 2026
 
 ## Abstract
 
-The Cassi framework is compared against the strongest current cosmological and galactic constraints. The two-fluid dark-energy prediction ($w_0 = -0.87$, $w_a = +0.012$ with the Yang-fraction-weighted coupling) sits at $2\sigma$/$2.7\sigma$ tension with the DESI DR2 best fit ($w_0 \approx -0.75$, $w_a \approx -0.73$)—a real tension, not a resolution. The Qi-enhanced rotation-curve prediction $v_C/v_B = \sqrt{\alpha_{\text{halo}}(1+\xi q)} \approx 3.1$ matches the observed Milky Way boost $2.7 \pm 0.5$ within ~1.2σ. The CMB large-angle axis is the imprint of the triaxial bubble-boundary geometry at cascade step 285, with a predicted 12.2° dipole↔quadrupole alignment. The bubble lattice cannot bias the DESI CPL fit (`cosmology/desi-lattice-averaging.md`), and the $\sigma_8$ pipeline is planned in `cosmology/sigma8-computational-plan.md`.
+The Cassi framework is compared against the strongest current cosmological and galactic constraints. The two-fluid dark-energy prediction ($w_0 = -0.87$, $w_a = +0.012$ with the Yang-fraction-weighted coupling) sits at $2\sigma$/$2.7\sigma$ tension with the DESI DR2 best fit ($w_0 \approx -0.75$, $w_a \approx -0.73$)—a real tension, not a resolution. The Qi-enhanced rotation-curve prediction $v_C/v_B = \sqrt{\alpha_{\text{halo}}(1+\xi q)} \approx 3.1$ matches the observed Milky Way boost $2.7 \pm 0.5$ within ~1.2σ—a consistency check against the calibration object ($\xi$ pinned on the MW curve; $\alpha_{\text{halo}} = 0.7$ a hardcoded nominal, Fit-Status Ledger `parameter-inventory.md` §10), not an independent test. The CMB large-angle axis is the imprint of the triaxial bubble-boundary geometry at cascade step 285, with a predicted 12.2° dipole↔quadrupole alignment. The bubble lattice cannot bias the DESI CPL fit (`cosmology/desi-lattice-averaging.md`), and the $\sigma_8$ pipeline is planned in `cosmology/sigma8-computational-plan.md`.
 
 Sources compiled 2026-07-15 via web search and primary literature. All error bars are 68% (1σ) confidence unless noted.
 

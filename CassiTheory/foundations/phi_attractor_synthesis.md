@@ -1,6 +1,6 @@
 # phi-Attractor Steady States and the Analytical Three-Body Problem in Cassi Gravity
 
-## Status: Derived—July 2026
+## Status: Derived (attractor synthesis) / Calibrated ($\xi$ pin) / Mapped ($\alpha_{\text{halo}} = 0.7$ nominal—ledger)—August 2026
 
 ## Abstract
 

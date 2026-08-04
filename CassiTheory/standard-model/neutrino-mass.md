@@ -24,7 +24,8 @@ $$
 
 where $v_0 = 246\ \text{GeV}$ is the Higgs VEV and $y_\nu$ is the neutrino
 Yukawa coupling. The seesaw scale is fixed by the cascade: the right-handed
-neutrino sits at **cascade step 20**, between the GUT scale (steps 5–10) and
+neutrino sits at **cascade step 20**, between the GUT scale (n ≈ 13.3 for
+$M_{\text{GUT}} \approx 2\times10^{16}$ GeV) and
 the electroweak scale (step 80) (`foundations/dimensionful-cascade.md`):
 
 $$
@@ -66,8 +67,9 @@ precise spectrum requires the Fibonacci cascade partition.
 
 The canonical derivation (`foundations/neutrino-masses.md`) applies the
 three-generations Fibonacci mechanism (`foundations/three-generations.md`) to
-the **compressed** cascade span from the GUT-scale Yukawa seed (step
-$\sim 8$) to seesaw freeze-out (step 20): $N_\nu \approx 12$ rungs. The
+the **compressed** cascade span from the GUT-scale Yukawa seed (n
+$\approx 13.3$) to seesaw freeze-out (step 20): $N_\nu \approx 7$ rungs.
+The sector is Mapped per the Fit-Status Ledger (`parameter-inventory.md` §10). The
 seesaw's $y_\nu^2$ structure doubles the $\varphi$-exponent, so mass ratios
 between Fibonacci sub-rungs are
 

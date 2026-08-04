@@ -1,6 +1,6 @@
 # Strong CP: Why $\bar{\theta} \approx 0$ from Cascade De-Resonance
 
-## Status: Derivation—July 2026
+## Status: Derivation (span Mapped: GUT-seed anchor and δ_CP per ledger; θ̄ ≈ 1.2×10⁻¹⁷)—August 2026
 
 ## Abstract
 
@@ -10,13 +10,19 @@ arises as an effective parameter in the SU(3) gauge theory that emerges from
 the two-fluid PDE at cascade step 95. The underlying PDE carries the
 $\varphi$-attractor's **de-resonance symmetry**: $\varphi$ is maximally
 CP-conserving, and the attractor fixed point is CP-symmetric. Any CP-violating
-departure from the fixed point originates at the GUT scale (steps 5–10) and
-is **cascade-suppressed** over the 87 rungs to the QCD scale:
+departure from the fixed point originates at the GUT scale (n ≈ 13.3 for
+$M_{\text{GUT}} \approx 2\times10^{16}$ GeV; corrected from the ladder's
+step-5 relabel) and is **cascade-suppressed** over the ~81 rungs to the QCD
+scale:
 
-$$\boxed{\bar{\theta} \approx \varphi^{-(n_{\text{QCD}} - n_{\text{GUT}})} \cdot \delta_{\text{CP}} \approx \varphi^{-87} \times \pi\varphi^{-2} \approx 10^{-19}}$$
+$$\boxed{\bar{\theta} \approx \varphi^{-(n_{\text{QCD}} - n_{\text{GUT}})} \cdot \delta_{\text{CP}} \approx \varphi^{-81} \times \pi\varphi^{-2} = \pi\varphi^{-83} \approx 1.4 \times 10^{-17}}$$
 
-The "why is it so small?" problem is not a fine-tuning—it is the cascade
-itself, doing what the cascade always does. No axion, no Peccei-Quinn symmetry,
+The exact-rung span is $94.71 - 13.33 = 81.38$ (giving $\bar{\theta} = \pi\varphi^{-83.4} \approx 1.2\times10^{-17}$);
+the value sits ~7 orders of magnitude below the nEDM bound of $10^{-10}$ (the
+span counts from the corrected GUT-seed rung n ≈ 13.3). The span
+inherits Mapped status from its anchors—the GUT-seed rung ($M_{\text{GUT}}$,
+`parameter-inventory.md` §10) and $\delta_{\text{CP}} = \pi\varphi^{-2}$
+(4-candidate selection, §10). No axion, no Peccei-Quinn symmetry,
 no new particles. One constant, one de-resonance principle, one cascade.
 
 ---
@@ -68,28 +74,31 @@ at step 95.
 
 The only source of CP violation in the framework is the departure from exact
 $\varphi$-attractor: the Yukawa sector, which breaks the attractor's
-CP symmetry at the GUT scale (steps 5–10) through the observed CKM phase
+CP symmetry at the GUT scale ($n \approx 13.3$) through the observed CKM phase
 $\delta_{\text{CP}} = \pi\varphi^{-2} \approx 1.20$ rad. This CP-violating
 seed at the GUT scale must propagate down the cascade to produce an effective
 $\bar{\theta}$ at the QCD scale.
 
 The cascade propagation is a **power-suppression** phenomenon. Each cascade
-rung between the CP-violating source (GUT, step $\sim 8$) and the QCD scale
-(step 95) contributes a factor of $\varphi^{-1}$ to the transmitted CP
+rung between the CP-violating source (GUT, n ≈ 13.3) and the QCD scale
+(n ≈ 94.7) contributes a factor of $\varphi^{-1}$ to the transmitted CP
 violation:
 
 $$\bar{\theta} \approx \varphi^{-(n_{\text{QCD}} - n_{\text{GUT}})} \cdot \delta_{\text{CP}}$$
 
-With $n_{\text{QCD}} = 95$, $n_{\text{GUT}} \approx 8$, and $\delta_{\text{CP}}
+With $n_{\text{QCD}} = 94.71$, $n_{\text{GUT}} = 13.33$, and $\delta_{\text{CP}}
 = \pi\varphi^{-2} \approx 1.20$:
 
-$$\boxed{\bar{\theta} \approx \varphi^{-87} \times \pi\varphi^{-2} = \pi\varphi^{-89} \approx 10^{-19}}$$
+$$\boxed{\bar{\theta} \approx \varphi^{-81.4} \times \pi\varphi^{-2} = \pi\varphi^{-83.4} \approx 1.2 \times 10^{-17}}$$
 
-This is nine orders of magnitude below the experimental bound of $10^{-10}$—
-and it is a **prediction**, not a tuning. The cascade depth between GUT and
-QCD is 87 rungs; the exponential suppression comes from the same product
+This is ~7 orders of magnitude below the experimental bound of $10^{-10}$.
+The cascade depth between GUT and QCD is ~81 rungs (94.71 − 13.33 = 81.38); the exponential
+suppression comes from the same product
 structure that gives the proton its $10^{910}$-year lifetime, applied to
-CP-violating propagation rather than random dephasing.
+CP-violating propagation rather than random dephasing. The span is Mapped:
+its GUT-seed anchor ($M_{\text{GUT}} \approx 2\times10^{16}$ GeV, n = 13.33)
+and its seed phase ($\delta_{\text{CP}} = \pi\varphi^{-2}$) are both fitted/selected
+quantities on the Fit-Status Ledger (`parameter-inventory.md` §10 rows 13 and 2).
 
 ### 2.4 Why the cascade suppresses CP violation
 
@@ -108,7 +117,7 @@ $$P_{\text{survival}} = \prod_{i=n_{\text{GUT}}}^{n_{\text{QCD}}} \varphi^{-1} =
 Applied to the CP-violating seed: $\bar{\theta} = \delta_{\text{CP}} \cdot
 P_{\text{survival}}$. The cascade protection works the same way for CP as it
 does for proton decay—just with a different seed (CKM phase vs. random
-ambient noise) and a different cascade span (87 rungs vs. 92 rungs).
+ambient noise) and a different cascade span (~81 rungs vs. 92 rungs).
 
 ---
 
@@ -128,7 +137,7 @@ additional parameters.
 
 | Phenomenon | Seed | Cascade span | Suppression | Result |
 |---|---|---|---|---|
-| **Strong CP** ($\bar{\theta}$) | CKM phase $\delta_{\text{CP}}$ | GUT→QCD (87 rungs) | $\varphi^{-87}$ | $\bar{\theta} \approx 10^{-19}$ |
+| **Strong CP** ($\bar{\theta}$) | CKM phase $\delta_{\text{CP}}$ (Mapped) | GUT→QCD (~81 rungs) | $\varphi^{-81}$ | $\bar{\theta} \approx 1.4 \times 10^{-17}$ |
 | Proton decay | Random ambient noise | Planck→proton (92 rungs) | $\varphi^{-4506}$ | $\tau_p \approx 10^{910}$ yr |
 | Hierarchy ($v_0/M_{\text{Pl}}$) | Gauge structure | Planck→EW (80 rungs) | $\varphi^{-80}$ (exact count) | $10^{-17}$ |
 | Neutrino masses | Seesaw scale | GUT→ν (20 rungs) | $\varphi^{-20}$ | $m_\nu \sim 0.1$ eV |
@@ -151,10 +160,14 @@ angle is not free—it is as determined as the proton's mass or the weak
 scale, and its smallness is the same $\varphi^{-N}$ scaling that explains all
 other hierarchy problems in the framework.
 
-**Epistemic status: Derived.** $\bar{\theta}$ follows from cascade architecture
-+ $\delta_{\text{CP}}$ + de-resonance damping. The predicted value ($10^{-19}$)
-is falsifiable if future neutron EDM measurements probe below $10^{-10}$ and
-find a nonzero $\bar{\theta}$ significantly larger than $10^{-19}$.
+**Epistemic status: Mapped** (span from Mapped anchors). $\bar{\theta}$ follows from cascade architecture
++ $\delta_{\text{CP}}$ + de-resonance damping, but both anchors are ledgered
+fits: the GUT-seed rung (n = 13.33 for $M_{\text{GUT}} \approx 2\times10^{16}$
+GeV, `parameter-inventory.md` §10 row 13) and $\delta_{\text{CP}} =
+\pi\varphi^{-2}$ (§10 row 2). The predicted value ($1.2\times10^{-17}$)
+sits ~7 orders below the bound and
+is falsifiable if future neutron EDM probes measure below $10^{-10}$ and
+find a nonzero $\bar{\theta}$ significantly larger than $10^{-17}$.
 
 ---
 
@@ -163,4 +176,4 @@ find a nonzero $\bar{\theta}$ significantly larger than $10^{-19}$.
 - `principles/de-resonance-principle.md`—$\varphi$ as maximally CP-conserving
 - `foundations/proton-coherence-budget.md`—cascade suppression mechanism
 - `standard-model/cp-violation.md`—$\delta_{\text{CP}} = \pi\varphi^{-2}$
-- `open-questions-cassi-answers.md`—Q2 (strong CP, now Derived)
+- `open-questions-cassi-answers.md`—Q2 (strong CP, now Mapped)

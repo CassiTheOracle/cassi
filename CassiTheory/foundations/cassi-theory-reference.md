@@ -266,9 +266,9 @@ Pinned spectrum: $m_1 = 0.00356$, $m_2 = 0.00931$, $m_3 = 0.05019$ eV. Normal or
 
 ### 6.5 Strong CP
 
-CP phase at GUT (step 8): $\delta_{\text{CP}} = \pi\varphi^{-2}$. Signal propagation through $N = 95 - 8 = 87$ rungs:
+CP phase at GUT (n ≈ 13.3): $\delta_{\text{CP}} = \pi\varphi^{-2}$ (Mapped—ledger). Signal propagation through $N \approx 81$ rungs (94.71 − 13.33):
 
-$$\bar{\theta} \approx \varphi^{-87} \times \pi\varphi^{-2} = \pi\varphi^{-89}$$
+$$\bar{\theta} \approx \varphi^{-81.4} \times \pi\varphi^{-2} = \pi\varphi^{-83.4} \approx 1.2\times10^{-17}$$
 
 ### 6.6 Proton Stability
 

@@ -1,6 +1,6 @@
 # CP Violation from the Golden Ratio
 
-## Status: Derived—July 2026
+## Status: Derived (δ_CKM Mapped—ledger; Jarlskog invariant not reproduced)—August 2026
 
 ## Abstract
 
@@ -11,7 +11,7 @@ to $\delta_{\text{CKM}} = \pi\varphi^{-2} \approx 68.8^\circ$—within $<1\%$ of
 the measured value. The Jarlskog invariant is not reproduced by the
 $\varphi$-scaled Yukawa determinant formula: it evaluates $\approx 10^{-25}$,
 ~20 orders below the SM $J_{\text{CP}} \approx 3.2\times10^{-5}$ (§4.2). Strong CP is resolved by cascade de-resonance,
-$\bar\theta = \pi\varphi^{-89} \approx 10^{-19}$ (`foundations/strong-cp-derivation.md`),
+$\bar\theta = \pi\varphi^{-83.4} \approx 1.2\times10^{-17}$ (span ~81 rungs from the corrected GUT anchor; `foundations/strong-cp-derivation.md`),
 without an axion.
 
 ---
@@ -180,13 +180,15 @@ Why is $\theta$ so small? This is the strong CP problem.
 In Cassi, the $\varphi$-fixed point is CP-conserving: $\varphi$ is maximally
 de-resonant, and the two-fluid attractor carries no CP-violating phase. The
 only CP-violating seed is the CKM phase $\delta_{\text{CP}} = \pi\varphi^{-2}$
-at the GUT scale; propagating over the 87 rungs to the QCD scale (step 95),
+at the GUT scale; propagating over the ~81 rungs to the QCD scale
+(n ≈ 94.7; GUT seed n ≈ 13.3 for $M_{\text{GUT}} \approx 2\times10^{16}$ GeV),
 each rung attenuates the phase by $\varphi^{-1}$, so
 
-$$\bar\theta \approx \varphi^{-87}\,\delta_{\text{CP}} = \pi\varphi^{-89} \approx 10^{-19}$$
+$$\bar\theta \approx \varphi^{-81.4}\,\delta_{\text{CP}} = \pi\varphi^{-83.4} \approx 1.2\times10^{-17}$$
 
-nine orders of magnitude below the nEDM bound $10^{-10}$. The full derivation
-is in `foundations/strong-cp-derivation.md`.
+~7 orders of magnitude below the nEDM bound $10^{-10}$. The full derivation
+is in `foundations/strong-cp-derivation.md`; the span is Mapped (its GUT-seed
+anchor and $\delta_{\text{CP}}$ are ledgered fits, `parameter-inventory.md` §10).
 
 **No axion is required.** The QCD vacuum angle is not a free parameter—it is
 determined by the $\varphi$-equilibrium and the cascade span.
@@ -200,7 +202,7 @@ detection experiments (ADMX, CAST, IAXO, MADMAX) will find null results.
 - If no axion is found and $\theta < 10^{-10}$ is confirmed, Cassi's
   de-resonance resolution becomes the leading candidate.
 
-The 87-rung signal propagation occurs through the bubble lattice medium—cascade suppression IS lattice attenuation (`foundations/bubble-lattice-fabric.md` §3.3).
+The ~81-rung signal propagation occurs through the bubble lattice medium—cascade suppression IS lattice attenuation (`foundations/bubble-lattice-fabric.md` §3.3).
 
 ---
 
@@ -249,5 +251,5 @@ $\phi$-power assignment to the observable phase.
 
 - `standard-model/sm-from-phi.md`—φ-powered Yukawa and CKM pattern
 - `standard-model/su2-gauge-extension.md`—Weinberg angle and gauge structure
-- `foundations/strong-cp-derivation.md`—cascade de-resonance, $\bar\theta = \pi\varphi^{-89}$
-- `foundations/bubble-lattice-fabric.md`—lattice attenuation of the 87-rung signal
+- `foundations/strong-cp-derivation.md`—cascade de-resonance, $\bar\theta = \pi\varphi^{-83.4} \approx 1.2\times10^{-17}$
+- `foundations/bubble-lattice-fabric.md`—lattice attenuation of the 81-rung signal

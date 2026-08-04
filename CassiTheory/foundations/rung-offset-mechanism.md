@@ -1,6 +1,6 @@
 # Why Observables Sit Between Rungs: The Two-Fluid Phase Mechanism for Fractional Cascade Offsets
 
-## Status: Derived quantization, Hypothesized selection, Empirical catalog—August 2026
+## Status: Derived quantization, Hypothesized selection, Empirical catalog (μ/J/ψ placements Mapped—38-state scan, ledger)—August 2026
 
 ## Abstract
 

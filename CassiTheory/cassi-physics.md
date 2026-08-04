@@ -249,7 +249,7 @@ with the Qi-gravity coupling $\xi = \varphi^6$ entering the cosmic evolution. Th
 
 ## 11. Dark Matter
 
-Dark matter is **high-coherence two-fluid condensate**—regions locked at $\varphi$-equilibrium. Two properties follow. First, gravity is amplified in high-$q$ regions ($G_{\text{eff}}$ up to 18× via the Qi-gravity coupling $\xi = \varphi^6 \approx 17.9$), so the condensate pulls surrounding matter with more gravitational force than visible matter accounts for. Second, because the two fluids are in perfect $\varphi$-equilibrium, there is no electromagnetic interaction: the region is dark. It bends light and shapes galaxies, but cannot be seen.
+Dark matter is **high-coherence two-fluid condensate**—regions locked at $\varphi$-equilibrium. Two properties follow. First, gravity is amplified in high-$q$ regions (up to the α-free full-coherence ceiling $1+\xi \approx 18.9\times$ at $q=1$; halo-regime boosts are $2.9$–$3.1\times$ via $\sqrt{\alpha_{\text{halo}}(1+\xi q)}$ with $\xi = \varphi^6 \approx 17.9$), so the condensate pulls surrounding matter with more gravitational force than visible matter accounts for. Second, because the two fluids are in perfect $\varphi$-equilibrium, there is no electromagnetic interaction: the region is dark. It bends light and shapes galaxies, but cannot be seen.
 
 The predicted ratio of dark matter to ordinary matter follows from the same five-arm structure that sets the gap:
 
@@ -293,9 +293,9 @@ partitions each cascade span into three sub-channels. Three and only three gener
 
 ## 15. Strong CP
 
-The CP-violating phase originates at the GUT scale and is cascade-suppressed through 87 rungs to the QCD scale:
+The CP-violating phase originates at the GUT scale and is cascade-suppressed through ~81 rungs to the QCD scale:
 
-$$\bar{\theta} \approx \pi\varphi^{-89} \approx 10^{-19}$$
+$$\bar{\theta} \approx \pi\varphi^{-83.4} \approx 1.2\times10^{-17}$$
 
 The suppression is the cascade law of section 8 applied to the phase: the seed $\pi\varphi^{-2}$ at the GUT scale, attenuated by $\varphi^{-87}$ across the rungs to QCD. The result is below every current bound and below the next generation of neutron EDM experiments. See `standard-model/cp-violation.md`.
 

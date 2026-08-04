@@ -71,7 +71,7 @@ The one marginal result is the rung-fraction statistic: the event-weighted exces
 
 ## 4. Test 2: Ringdown—The Framework Predicts GR, and the Loudest Event Agrees
 
-The framework's effective gravity at compact-object densities is unmodified: the halo parameterization $q = 1/(1 + (\rho/\rho_{\text{ref}})^2)$ drives $q \to 0$ at nuclear and horizon densities, so $G_{\text{eff}} = G(1+\xi q) \to G_N$ (`cosmology/observational_constraints.md` §2.6), and the σ-regularized running of $G$ is below 1% even at the Planck scale (`gravity/quantum-gravity.md` §5.3). The prediction is therefore **GR-exact ringdown frequencies** for a given remnant mass and spin: no mass-shift, no frequency-shift, no anomalous damping.
+The framework's effective gravity at compact-object densities is unmodified: the halo parameterization $q = 1/(1 + (\rho/\rho_{\text{ref}})^2)$ drives $q \to 0$ at nuclear and horizon densities, so $G_{\text{eff}} = (\pi/\rho)(1+\xi q)G \to (\pi/\rho)G$, unamplified (GR-like) (`cosmology/observational_constraints.md` §2.6), and the σ-regularized running of $G$ is below 1% even at the Planck scale (`gravity/quantum-gravity.md` §5.3). The prediction is therefore **GR-exact ringdown frequencies** for a given remnant mass and spin: no mass-shift, no frequency-shift, no anomalous damping.
 
 GW230814_230901—the loudest event ever recorded, SNR 42.1—is precisely the event that could break this. Its single-detector analysis found a potential ringdown deviation that the collaboration explicitly could not separate from statistical noise and could not corroborate with a second facility [5]. Consistent with the framework so far; **if the deviation survives with corroborated detections, it falsifies the current $q$-density dependence** (the branch $q \to 1$ at high density, or a nonzero compact-density enhancement, would be required instead). This is a clean, binary falsifier and the most valuable contact point between GWTC-4.0 and the framework.
 
@@ -97,7 +97,7 @@ Three strengthened population results have no framework counterpart and must not
 | GR-exact ringdown | Derived (from $q\to0$ at compact density) | Consistent; GW230814_230901 hint insignificant; binary falsifier if confirmed |
 | Halo strain $\le$10$\times$ (pred. 17) | Hypothesized | No new cluster mergers; bound stands over doubled sample |
 | Breathing-mode polarization (pred. 29) | Hypothesized | Untested (single-detector loud events) |
-| Rate-$z$, spin-width-$z$, NS mass spread | — | No framework prediction; do not retrofit |
+| Rate-$z$, spin-width-$z$, NS mass spread |—| No framework prediction; do not retrofit |
 
 ---
 

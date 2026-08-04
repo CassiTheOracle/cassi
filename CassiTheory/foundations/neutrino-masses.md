@@ -1,6 +1,6 @@
 # Neutrino Masses from Fibonacci Cascade Partitioning of the Seesaw
 
-## Status: Derivation—July 2026 (from `three-generations.md` and `cascade-suppression-formula.md`)
+## Status: Derivation (offsets Mapped—ledger; result Hypothesized, Q3)—August 2026
 
 ## Abstract
 
@@ -31,7 +31,7 @@ neutrino at a high scale $M_R$ to explain the smallness of observed neutrino
 masses: $m_\nu \approx v_0^2/M_R$.
 
 In the Cassi cascade, the seesaw scale is **cascade step 20**—between the
-GUT scale (steps 5–10) and the electroweak scale (step 80):
+GUT scale (n ≈ 13.3 for $M_{\text{GUT}} \approx 2\times10^{16}$ GeV) and the electroweak scale (step 80):
 
 $$M_R \approx \ell_{\text{Pl}}^{-1} \cdot \varphi^{-20} \approx 10^{14}\ \text{GeV}$$
 
@@ -41,8 +41,12 @@ to the seesaw sector:
 $$m_\nu = v_0 \cdot \varphi^{-N_\nu}$$
 
 where $N_\nu$ is the effective cascade span from the GUT-scale Yukawa seed
-to the seesaw freeze-out at step 20. With $n_{\text{GUT}} \approx 8$ and
-$n_{\text{seesaw}} \approx 20$, the span is $N_\nu \approx 12$ cascade rungs.
+to the seesaw freeze-out at step 20. With the corrected GUT anchor
+$n_{\text{GUT}} \approx 13.3$ and
+$n_{\text{seesaw}} \approx 20$, the span is $N_\nu \approx 7$ cascade rungs.
+The sector is Mapped per the Fit-Status Ledger (`parameter-inventory.md` §10
+row 3): the offsets are grid-fit against the observed ratio, so the span is a
+coordinate label within a fitted sector, not an independent derivation.
 
 The single-rung estimate $v_0\,\varphi^{-12}$ sets the seesaw suppression
 scale; the absolute spectrum is fixed by the cascade RGE + PMNS computation
@@ -151,7 +155,7 @@ is two rungs—a 2:1 ratio in cascade offset.
 
 The full cascade RGE + PMNS computation (`computations/cascade_rge_pmns.py`,
 July 2026) pins the exact cascade-span offsets by running the discrete φ-RG
-from GUT (step 8) to seesaw (step 20) and matching the predicted
+from GUT (n ≈ 13.3) to seesaw (step 20) and matching the predicted
 $\Delta m^2_{31}/\Delta m^2_{21}$ ratio to the NuFIT 5.3 observed value
 $33.89$. The scan over quarter-rung increments yields:
 

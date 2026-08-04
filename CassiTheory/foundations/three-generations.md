@@ -1,6 +1,6 @@
 # Three Generations from Fibonacci Cascade Partitioning
 
-## Status: Hypothesized—July 2026
+## Status: Hypothesized (mechanism) / Mapped (charged-lepton rung placements—ledger)—August 2026
 
 ## Abstract
 

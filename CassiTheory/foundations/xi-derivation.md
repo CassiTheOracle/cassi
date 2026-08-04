@@ -1,10 +1,10 @@
 # Derivation of $\xi = \varphi^6$
 
-## Status: Derived—July 2026
+## Status: Derived rung identity ($\xi = \varphi^6$) / Calibrated empirical pin (Milky Way anchor—ledger)—August 2026
 
 ## Abstract
 
-The Qi-gravity force law in the Cassi framework is $\mathbf{F} = \pi\,(1 + \xi\,q)\,\nabla\Phi$, with $q$ the Qi density, $\Phi$ the gravitational potential, and $\xi$ the Qi-gravity coupling. This document derives the coupling from the golden ratio: $\xi = \varphi^6 = \varphi^5 + \varphi^4 \approx 17.944$, via the Fibonacci recurrence. The $2 \times 3 = 6$ degrees of freedom (two field components $\times$ three spatial dimensions) each contribute a factor of $\varphi$; the decomposition into $\varphi^5$ (Wu Xing five-element cycle) and $\varphi^4$ (four fundamental interactions) carries the coupling's structural meaning. The derived value agrees with the empirical rotation-curve calibration ($\xi \approx 18$) to 0.3%, closing the last empirically-calibrated dimensionless coupling.
+The Qi-gravity force law in the Cassi framework is $\mathbf{F} = \pi\,(1 + \xi\,q)\,\nabla\Phi$, with $q$ the Qi density, $\Phi$ the gravitational potential, and $\xi$ the Qi-gravity coupling. This document derives the coupling from the golden ratio: $\xi = \varphi^6 = \varphi^5 + \varphi^4 \approx 17.944$, via the Fibonacci recurrence. The $2 \times 3 = 6$ degrees of freedom (two field components $\times$ three spatial dimensions) each contribute a factor of $\varphi$; the decomposition into $\varphi^5$ (Wu Xing five-element cycle) and $\varphi^4$ (four fundamental interactions) carries the coupling's structural meaning. The derived value agrees with the empirical rotation-curve calibration ($\xi \approx 18$) to 0.3%—the 0.3% is the residual of that calibration, not an independent confirmation: the empirical pin is Calibrated (Fit-Status Ledger, `parameter-inventory.md` §10).
 
 ## 1. The Problem
 
@@ -66,7 +66,10 @@ $$
 $$
 
 The derived value $\xi = \varphi^6 \approx 17.944$ differs from the empirical value
-by only **0.3%**, well within numerical and observational uncertainty.
+by only **0.3%**—the residual of the Milky Way calibration, which is the
+Calibrated anchor of the coupling (Fit-Status Ledger, `parameter-inventory.md`
+§10). Any "confirmation" of $\xi$ on the Milky Way rotation curve is a
+consistency check of that calibration, not an independent test.
 
 The rotation curve boost ratio between derived and empirical values is:
 
@@ -82,10 +85,11 @@ stand at observational precision.
 
 ## 4. Prediction
 
-$\xi = \varphi^6$ is a **parameter-free prediction** of the Cassi framework.
-
-No adjustable constants. No fitting. The coupling is fixed by the mathematical
-structure of $\varphi$ and its Fibonacci recurrence.
+$\xi = \varphi^6$ is a **parameter-free prediction** of the Cassi framework:
+the rung identity is fixed by the mathematical
+structure of $\varphi$ and its Fibonacci recurrence. The empirical pin
+($\xi \approx 18$ from the Milky Way rotation curve) is Calibrated—it anchors
+the value to the data it was derived from (ledger §10).
 
 All Qi-gravity phenomenology follows from this single derivation:
 
@@ -104,8 +108,8 @@ parameters** among its coupling constants:
 | $\varphi$ | $(1+\sqrt{5})/2 \approx 1.618$ | Mathematical constant (golden ratio) |
 | $\xi = \varphi^6$ | $\approx 17.944$ | **Derived** |
 | Wu Xing coefficients | $\varphi^{-1}, \varphi^{-2}, \ldots$ | Derived from $\varphi$ |
-| $\sin^2\theta_W$ | $\varphi^{-3} \approx 0.236$ | Derived from VEV asymmetry |
-| $\alpha_{\text{GUT}}$ | $\varphi^{-3}/(4\pi) \approx 1/53$ | Derived from $\varphi$ |
+| $\sin^2\theta_W$ | $\varphi^{-3} \approx 0.236$ | Derived from VEV asymmetry (exact at $\mu_* = 233$ GeV, Calibrated anchor—ledger) |
+| $\alpha_{\text{GUT}}$ | $\varphi^{-3}/(4\pi) \approx 1/53$ | Derived from $\varphi$ (running needs $\Delta b = 1.70$, Mapped—ledger) |
 
 The Standard Model gauge couplings, the weak mixing angle, and the Qi-gravity coupling
 all reduce to $\varphi$ and its powers.
@@ -157,8 +161,10 @@ four fundamental forces.
 ## 7. Summary
 
 $\xi = \varphi^6$ closes the last empirically-calibrated dimensionless coupling in
-the Cassi framework. The Qi-gravity coupling is not an empirical fit but a
-mathematical consequence of the golden ratio's Fibonacci structure. The framework
+the Cassi framework. The rung identity is not an empirical fit but a
+mathematical consequence of the golden ratio's Fibonacci structure; the
+empirical pin on the Milky Way rotation curve is the Calibrated anchor that
+sets the value (Fit-Status Ledger, `parameter-inventory.md` §10). The framework
 predicts all observable phenomena—from galactic rotation curves to the weak mixing
 angle—from a single irrational number: $\varphi$.
 

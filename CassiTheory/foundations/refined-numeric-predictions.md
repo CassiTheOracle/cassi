@@ -86,10 +86,12 @@ within 6.3% of the observed value.
 | 45 | $3.94 \times 10^{-10}$ | 0.66× |
 | 46 | $2.44 \times 10^{-10}$ | 0.41× |
 
-The cascade span $N = 44$ from the GUT seed (step $\sim 8$) pins the effective
-baryon-number freeze-out to step $8 + 44 = 52$. Step 52 falls within the
-inflationary epoch (steps 20–60), consistent with sphaleron freeze-out during
-the Qi-gate slow-roll phase.
+The cascade span $N = 44$ is the ledgered fit (nearest-integer
+$\varphi$-power to the observed $\eta$; `parameter-inventory.md` §10). The
+freeze-out construction does not close with the corrected GUT anchor
+(n ≈ 13.3): the span-from-seed arithmetic gives $60 - 13.3 = 46.7$ for the
+freeze-out position and $46.7 - 13.3 = 33.4 \neq 44$ for the span—the
+freeze-out step is not derived (`foundations/baryon-asymmetry.md` §4.4).
 
 **What the $\varphi^{-44}$ means physically:** The baryon asymmetry is not a
 fundamental constant—it is the **present-epoch snapshot** of the Yang-Yin
@@ -99,9 +101,9 @@ freeze-out and the end of effective baryon-number violation. The exponent is
 set by where in the cascade the sphaleron rate drops below the Hubble rate —
 a threshold determined by the Qi gate closure profile.
 
-**To upgrade to Derived:** The specific freeze-out step (52) must be derived from
+**To upgrade to Derived:** The freeze-out step must be derived from
 the Qi gate shape and the sphaleron rate's temperature dependence, rather than
-fit from $\eta$. This requires the thermal history of the cascade through the
+fit from $\eta$ (the exponent 44 is currently the ledgered fit). This requires the thermal history of the cascade through the
 GUT epoch.
 
 ---
@@ -126,12 +128,13 @@ spacing.
 **Refined prediction: Non-uniform Fibonacci partitioning with $y_\nu^2$
 amplification.**
 
-The seesaw cascade span is $N_\nu \approx 12$ rungs (GUT step $\sim 8$ to
+The seesaw cascade span is $N_\nu \approx 7$ rungs (GUT anchor n ≈ 13.3 to
 seesaw step $\sim 20$). The Fibonacci recurrence partitions this span into
 three channels whose spacing ratios follow the Fibonacci sequence itself.
-For a span of 12, the nearest Fibonacci triple is $(5, 8, 13)$, giving
-near-equal cascade-span offsets ($\Delta_{\nu,1} \approx \Delta_{\nu,2}
-\approx 1$ rung).
+The $(5, 8, 13)$ triple quoted for the 12-rung span is illustrative: the
+partition rule for the corrected span is not re-derived here, and the sector
+is Mapped per the Fit-Status Ledger (`parameter-inventory.md` §10 row 3), so
+the offsets carry no independent evidential weight.
 
 However, two factors steepen the hierarchy:
 
