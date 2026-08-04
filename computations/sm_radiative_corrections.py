@@ -482,6 +482,63 @@ for lab, m in [("v₀", V), ("m_t", M_T), ("m_H", M_H_EXP), ("m_Z", M_Z),
 print()
 
 # ----------------------------------------------------------------------
+# §5.6  Collision pooling + the sharp Yukawa-chain candidates
+# ----------------------------------------------------------------------
+print("── §5.6  COLLISION POOLING AND THE SHARP CANDIDATES ──")
+print()
+# P: pooling laws on the two-fluid eigenmodes (m_hi, m_lo from §5.5)
+print("  Pooling of the two-fluid eigenmodes (157.6 / 116.6 GeV) → m_H?")
+for lab, val in [
+    ("harmonic mean",   2 / (1/m_hi + 1/m_lo)),
+    ("geometric mean",  sqrt(m_hi * m_lo)),
+    ("arithmetic mean", (m_hi + m_lo) / 2),
+    ("energy-weighted", (m_hi**2 + m_lo**2) / (m_hi + m_lo)),
+]:
+    print(f"      {lab:20s} = {val:.1f} GeV  ({100*(val/M_H_EXP-1):+.1f}%)")
+print("      → no simple pooling law reproduces 125.25; the observed mass is")
+print("      not a combination of the isolated-vacuum modes (or the mode")
+print("      normalization differs — the ~20% convention sensitivity of §5.5)")
+print()
+# W2: Wu-Xing quartic with the (1 + φ⁻³/w) correction (w = 5)
+LAM_W2 = (2 * LAM_WX / PHI) * (1 + PHI**(-3) / 5)
+M_H_W2 = V * sqrt(2 * LAM_W2)
+print(f"  Wu-Xing + correction: λ = (2λ_WX/φ)(1 + φ⁻³/w), w = 5:")
+print(f"      λ = {LAM_W2:.5f} vs {LAM_MZ:.5f}  "
+      f"({100*(LAM_W2/LAM_MZ-1):+.3f}%)")
+print(f"      → m_H = {M_H_W2:.3f} GeV  ({100*(M_H_W2/M_H_EXP-1):+.3f}%)"
+      f"   [correction = Yang fraction / w; mechanism open]")
+print()
+# Y1: m_t = (v/√2)(1−φ⁻¹⁰), via the derived gap g = 1−φ⁻⁵ (de-resonance)
+M_T_PRED = (V / sqrt(2)) * (1 - PHI**(-10))
+print(f"  Top Yukawa chain: y_t = 1 − φ⁻¹⁰ = 1 − (1−g)² = 2g − g², "
+      f"g = 1 − φ⁻⁵ (the derived Wu-Xing gap):")
+print(f"      y_t(pole) = {sqrt(2)*M_T/V:.6f} vs 1−φ⁻¹⁰ = {1-PHI**(-10):.6f}")
+print(f"      → m_t = (v/√2)(1−φ⁻¹⁰) = {M_T_PRED:.3f} GeV vs {M_T}"
+      f"  ({100*(M_T_PRED/M_T-1):+.4f}%)   [sharpest coincidence in the"
+      f" framework; mechanism = two-step gap survival, open]")
+print()
+# Y2: λ(m_Z) = y_t²(m_Z)·φ⁻⁴ (top-loop pooling: gg→H proceeds through the top)
+LAM_Y2 = YT_MZ_RUN**2 * PHI**(-4)
+M_H_Y2 = V * sqrt(2 * LAM_Y2)
+print(f"  Top-loop pooling: λ(m_Z) = y_t²(m_Z)·φ⁻⁴ (the gg→H top loop):")
+print(f"      λ = {LAM_Y2:.5f} vs {LAM_MZ:.5f}  "
+      f"({100*(LAM_Y2/LAM_MZ-1):+.3f}%)")
+print(f"      → m_H = {M_H_Y2:.2f} GeV  ({100*(M_H_Y2/M_H_EXP-1):+.2f}%)")
+print()
+# Y6: top-pair pool observation
+M_2T_PHI2 = 2 * M_T / PHI**2
+print(f"  Top-pair pool: 2m_t/φ² = {M_2T_PHI2:.1f} GeV  "
+      f"({100*(M_2T_PHI2/M_H_EXP-1):+.1f}%) — the same +5.3% as the v₀ rung"
+      f" correction (observation, not a prediction)")
+print()
+print("  Look-elsewhere note: three independent candidates land within 0.05%")
+print("  (m_t chain 0.0001%, Wu-Xing+φ⁻³/5 0.02%, m_t·φ^(−2/3) 0.04%). Per")
+print("  the repo standard (m_e half-step precedent) none is a derivation")
+print("  until a mechanism produces its structure; they are ranked mechanism")
+print("  targets, not predictions.")
+print()
+
+# ----------------------------------------------------------------------
 # §6  Summary
 # ----------------------------------------------------------------------
 print("=" * 76)
