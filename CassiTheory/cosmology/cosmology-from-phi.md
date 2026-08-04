@@ -40,6 +40,8 @@ where $r = \langle\psi_y\rangle/\langle\psi_i\rangle$ is the Yang/Yin ratio.
 
 **Key observation:** The comoving densities $\psi_y, \psi_i$ already absorb the $a^{-3}$ dilution. The physical densities $\rho_y = \psi_y/a^3$ would have explicit Hubble friction $-3H\rho_y$ when evolved. This is the Cassi equivalent of the slow-roll equation's $3H\dot\phi$ term—it's built into the comoving formulation.
 
+**(The H components above are asserted (postulate)—the 1/3 is this continuity reading; the Lagrangian's T₀₀ at equilibrium gives 0 or (g/4)φ², never λφ⁻²/3; derivation open.)**
+
 ---
 
 ## 2. Inflation as a $\varphi$-Driven Phase Transition

@@ -95,6 +95,8 @@ E_Y\rangle/\langle E_I\rangle$:
 
 $$\boxed{H = \frac{\lambda}{3}\frac{(\varphi - r)(1+r)}{r} + \frac{\lambda}{3}\varphi^{-2}}$$
 
+(**Asserted** (postulate)—the 1/3 is the 3D continuity reading; the $(\lambda/2\pi)(1-q)$ clock form is Hypothesized (§2.1); T₀₀ at equilibrium gives 0 or (g/4)φ², never λφ⁻²/3; Lagrangian derivation open.)
+
 This is the general form; the spiral-linearized $H \propto (1-q)$ is recovered
 as $r \to \varphi$ where $(1+r)/r \to (\varphi+1)/\varphi \approx 1.618$. Both
 forms share the same structure: $H$ is driven by deviation from

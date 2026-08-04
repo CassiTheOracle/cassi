@@ -121,7 +121,7 @@ with the discrete beta function $\beta_\varphi(g) = [g(k/\varphi) - g(k)]/\ln\va
 
 ### `spiral-dynamics.md`—Spiral Dynamics: Hubble, Gravity, and $c$ from Fibonacci Spiral Geometry
 
-Reads cosmic expansion, gravitational attraction, and the speed of light as three projections of the single Fibonacci spiral traced by the $(E_Y, E_I)$ doublet, $\Theta(n) = \Theta_0 + (2\pi/\ln\varphi)\,n$—one full turn per cascade rung. Expansion is the spiral's unwinding rate, with $H \approx (\lambda\ln\varphi/2\pi)(1-q)$ near equilibrium and the general form $H = (\lambda/3)(\varphi-r)(1+r)/r + \lambda\varphi^{-2}/3$; gravity is gradient descent along the spiral toward coherence; $c$ is the scale-invariant product of conversion rate and coherence wavelength; gravitational strength runs as $\alpha_G(n) \sim \varphi^{-2n}$. Status: Hypothesized.
+Reads cosmic expansion, gravitational attraction, and the speed of light as three projections of the single Fibonacci spiral traced by the $(E_Y, E_I)$ doublet, $\Theta(n) = \Theta_0 + (2\pi/\ln\varphi)\,n$—one full turn per cascade rung. Expansion is the spiral's unwinding rate, with $H \approx (\lambda\ln\varphi/2\pi)(1-q)$ near equilibrium and the general form $H = (\lambda/3)(\varphi-r)(1+r)/r + \lambda\varphi^{-2}/3$ (H form **asserted** (postulate)—1/3 is the 3D continuity reading; derivation open); gravity is gradient descent along the spiral toward coherence; $c$ is the scale-invariant product of conversion rate and coherence wavelength; gravitational strength runs as $\alpha_G(n) \sim \varphi^{-2n}$. Status: Hypothesized.
 
 ### `spin-fibonacci-spiral.md`—Spin as Fibonacci Spiral Winding: The SO(2) Doublet Fractal
 
