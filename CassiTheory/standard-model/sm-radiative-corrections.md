@@ -74,9 +74,11 @@ Rev. Mod. Phys. 85, 263 (2013)):
   running angle that enters grand-unification analyses.
 
 The three mixing parameters relevant here are the OS value
-$\sin^2\theta_W = 0.22290(29)$, the MS-bar value
-$\sin^2\hat\theta_W(m_Z) = 0.23122(4)$, and the effective leptonic value
-$\sin^2\theta_{\text{eff}}^{\text{lept}} = 0.23153(16)$ (Z-pole asymmetries).
+$\sin^2\theta_W = 0.22338(21)$ (from $m_W = 80.360(11)$ via
+$s^2 = 1 - m_W^2/m_Z^2$; `computations/sm_radiative_corrections.py` §4), the
+MS-bar value $\sin^2\hat\theta_W(m_Z) = 0.23122(4)$, and the effective
+leptonic value $\sin^2\theta_{\text{eff}}^{\text{lept}} = 0.23153(16)$
+(Z-pole asymmetries).
 They differ by precisely calculable loop effects; quoting one against another
 without the conversion is a scheme error.
 
@@ -107,7 +109,7 @@ $$b = \left(+\frac{41}{10},\; -\frac{19}{6},\; -7\right),$$
 
 so $\alpha_1$ grows with energy while $\alpha_2$ and $\alpha_3$ are
 asymptotically free. Below $m_t$ the top decouples:
-$b_1 = -3.36$, $b_3 = -6.33$ (in the same sign convention). For $\alpha_s$ the
+$b_1 = 3.36$, $b_3 = -6.33$ (in the same sign convention). For $\alpha_s$ the
 two-loop coefficient $b_1^{\text{QCD}} = 102 - 38n_f/3$ is included.
 
 ### 3.2 Direction A: the φ-boundary run down
@@ -260,14 +262,21 @@ $$\Delta\rho = \frac{3G_F m_t^2}{8\pi^2\sqrt{2}} = 0.00935,
   \qquad \Delta\rho^{\text{QCD}} = 0.00834,$$
 
 $$\frac{c^2}{s^2}\Delta\rho = 0.0311, \qquad
+  \frac{c^2}{s^2}\Delta\rho^{\text{QCD}} = 0.0277, \qquad
   \Delta r_{\text{rem}} = +0.0064,$$
 
-so that $\Delta r - \Delta\alpha = -0.021$: the electroweak corrections
-*beyond* the running of $\alpha$ are a measured, $26\sigma$ effect (Sirlin &
-Ferroglia 2013, §III.I)—the loop corrections are not a fudge factor, they are
-the physics. The remainder $+0.0064$ is dominated by the bosonic (W, Z, H)
-loops, whose existence is separately established at $14\sigma$ via
-$\Delta r_{\text{eff}}$.
+where the remainder is defined against the QCD-corrected product,
+$\Delta r_{\text{rem}} = \Delta r - \Delta\alpha +
+(c^2/s^2)\Delta\rho^{\text{QCD}}$ (`computations/sm_radiative_corrections.py`
+§4). The identity then closes on the FOPS value:
+$\Delta r = 0.05904 - 0.0277 + 0.0064 = 0.0377$, vs 0.0379 from the measured
+$m_W$—the 0.0002 spread is the 9 MeV $m_W$ spread of §5.2. And
+$\Delta r - \Delta\alpha = -0.021$: the electroweak corrections *beyond* the
+running of $\alpha$ are a measured effect at the 20+$\sigma$ level (26$\sigma$
+in Sirlin & Ferroglia's own analysis, §III.I)—the loop corrections are not a
+fudge factor, they are the physics. The remainder $+0.0064$ is dominated by
+the bosonic (W, Z, H) loops, whose existence is separately established at
+$14\sigma$ via $\Delta r_{\text{eff}}$ (Sirlin & Ferroglia 2013, §III.9).
 
 ### 5.2 The W-mass prediction
 
