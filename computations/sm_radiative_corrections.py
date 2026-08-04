@@ -276,6 +276,10 @@ print(f"  A₀² = πα(0)/(√2 G_F) = {A2_0:.1f} GeV²")
 print(f"  Measured: M_W = {M_W_EXP} GeV → s²c²M_Z² = "
       f"{M_W_EXP**2*(1-M_W_EXP**2/M_Z**2):.1f} GeV² → Δr = "
       f"{M_W_EXP**2*(1-M_W_EXP**2/M_Z**2)/A2_0 - 1:.5f}")
+s2_os_meas = 1 - M_W_EXP**2 / M_Z**2
+s2_os_err  = 2 * M_W_EXP * M_W_EXP_ERR / M_Z**2
+print(f"  → OS sin²θ_W = {s2_os_meas:.5f} ± {s2_os_err:.5f}"
+      f"   (S&F 2013 quote 0.22290(29) ↔ m_W = 80.385)")
 
 # FOPS compact formula (EFF scheme, PRD 65, 113002), Eqs. (13)-(14)
 S2EFF_0 = 0.231383
@@ -315,8 +319,8 @@ print(f"  Decomposition (one-loop, MS-bar angle):")
 print(f"    Δρ = 3G_F m_t²/(8√2π²) = {d_rho:.5f}   (with 2-loop QCD: {d_rho_qcd:.5f})")
 print(f"    (c²/s²)Δρ = {c2s2 * d_rho:.5f}   (QCD-corrected: {c2s2 * d_rho_qcd:.5f})")
 print(f"    Δr = Δα − (c²/s²)Δρ + Δr_rem  →  Δr_rem = {dr - DALPHA + c2s2*d_rho_qcd:+.5f}")
-print(f"    (Δr − Δα = {dr - DALPHA:+.5f} — the 26σ evidence for electroweak"
-      f" corrections beyond the running of α)")
+print(f"    (Δr − Δα = {dr - DALPHA:+.5f} — the >20σ evidence for electroweak"
+      f" corrections beyond the running of α; 26σ in S&F 2013 §III.I)")
 print()
 
 # φ-tree m_W/m_Z with the ρ correction
