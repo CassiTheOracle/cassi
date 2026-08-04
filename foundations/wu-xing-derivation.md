@@ -104,8 +104,8 @@ $$\frac{\text{diagonal}}{\text{side}} = 2\cos\left(\frac{\pi}{5}\right) = \varph
 |-----|---------|:---:|
 | 3 | Triangle | No |
 | 4 | Square | No |
-| **5** | **Pentagon** | **Yes**—$\text{diag}/\text{side} = \varphi$ |
-| 6 | Hexagon | Yes (but $w = 6$ decoheres—see §2) |
+| **5** | **Pentagon** | **Yes**—$\text{diag}/\text{side} = \varphi$, $R/r = 2/\varphi$, $R/s = 1/(2\sin 36°) \approx 0.8507$ |
+| 6 | Hexagon | No—characteristic ratios are $1$, $\sqrt{3}/2$, $\sqrt{3}$, $2$; no $\varphi$ ($w = 6$ decoheres regardless—see §2) |
 | 10 | Decagon | Yes, $R/s = \varphi$ (but decomposes into two pentagons; decoheres—see §2) |
 
 Cycles with $w \in \{1, 2, 3\}$ are cascade-coherent but not $\varphi$-structured: they cannot encode the golden ratio in their vertex distance ratios, so they cannot serve as the organizing cycle of a $\varphi$-based framework.
