@@ -14,9 +14,10 @@ Physics:
   dr/dlna = λ·gate·(φ - r)(1+r) / H
   w(a) = -1 - (2/3) d(ln H)/d(ln a)
 
-Key result: w₀ = -0.838 is the repo's internal calibration target, not
-a measured DESI constraint (corrected 2026-07-31: 2σ from
-DESI ≈ −0.75 ± 0.06 [INFERENCE]) using initial_ratio=23
+Key result: w₀ = -0.87 is the repo's calibration target (DESI-anchored,
+Mapped tier — see parameter-inventory fit ledger; not a prediction; 2σ from
+DESI ≈ −0.75 ± 0.06 [INFERENCE]; synced to doctrine settlement 2026-08-03)
+using initial_ratio=23
 (r₀ = EY/EI ≈ 0.0435 at a₀=0.01).
 
 Usage:
@@ -46,6 +47,10 @@ H_EMPTY = (LAM / 3) * PHI_INV2    # baseline expansion from vacuum energy
 # Cosmological parameters (Planck 2018)
 OMEGA_M0 = 0.315
 OMEGA_DE0 = 0.685
+# Measured inputs (SH0ES local, Planck CMB-inferred under ΛCDM) — NOT doctrine
+# constants; the doctrine value H₀ = 65.8 ("full fit pending") is not used
+# here because changing these would alter every pipeline output. Synced to
+# doctrine settlement 2026-08-03 (annotation only).
 H0_LOCAL = 73.0                   # km/s/Mpc (local measurement, SH0ES)
 H0_CMB_LCDM = 67.4                # km/s/Mpc (CMB-inferred under ΛCDM)
 
@@ -101,9 +106,9 @@ print(f"  r(a₀={A0}) = {r_ode[0]:.6f}   r(a=1) = {np.interp(1.0, a_ode, r_ode)
 print(f"  H(a₀) = {H_ode[0]:.6f}   H(a=1) = {np.interp(1.0, a_ode, H_ode):.6f}")
 print()
 print(f"  CPL fit (DESI range a∈[0.3,1.0]):")
-print(f"    w₀ = {w0_cpl:+.4f}   (internal calibration target, not DESI: -0.838 ± 0.068)")
-print(f"    wₐ = {wa_cpl:+.4f}   (internal calibration target, not DESI: -0.62 ± 0.21)")
-print(f"    w₀ vs internal target: {'0σ' if abs(w0_cpl + 0.838) < 0.068 else 'outside 1σ'}")
+print(f"    w₀ = {w0_cpl:+.4f}   (DESI-anchored calibration target, not a prediction: -0.87 ± 0.06)")
+print(f"    wₐ = {wa_cpl:+.4f}   (doctrine wₐ = +0.012, DESI-anchored; not a prediction)")
+print(f"    w₀ vs calibration target: {'0σ' if abs(w0_cpl + 0.87) < 0.06 else 'outside 1σ'}")
 print()
 
 
@@ -296,8 +301,8 @@ ax.axvspan(0.3, 1.0, alpha=0.1, color='goldenrod',
 ax.axvline(1.0, color='gray', ls=':', lw=1, alpha=0.5)
 a_fine = np.linspace(0.3, 1.0, 100)
 w_desi_mid = w0_cpl + wa_cpl * (1 - a_fine)
-ax.fill_between(a_fine, w_desi_mid - 0.068, w_desi_mid + 0.068,
-                alpha=0.08, color='goldenrod', label='internal calibration target band $\\pm$0.068 (not DESI)')
+ax.fill_between(a_fine, w_desi_mid - 0.06, w_desi_mid + 0.06,
+                alpha=0.08, color='goldenrod', label='calibration target band $\\pm$0.06 (DESI-anchored, not a prediction)')
 ax.set_xlabel('Scale factor $a$')
 ax.set_ylabel('$w(a)$')
 ax.set_title('Equation of state $w(a)$')
@@ -345,8 +350,8 @@ print("  HUBBLE PIPELINE SUMMARY")
 print("=" * 64)
 print(f"  Method:         Analytic ODE (fast, same as calibrate_initial_ratio.py)")
 print(f"  Parameters:     λ={LAM}, r₀={r0_val:.4f} (initial_ratio={INITIAL_RATIO})")
-print(f"  w₀ (CPL):       {w0_cpl:+.4f}   (internal calibration target, not DESI: -0.838)")
-print(f"  wₐ (CPL):       {wa_cpl:+.4f}   (internal calibration target, not DESI: -0.62 ± 0.21)")
+print(f"  w₀ (CPL):       {w0_cpl:+.4f}   (DESI-anchored calibration target, not a prediction: -0.87)")
+print(f"  wₐ (CPL):       {wa_cpl:+.4f}   (doctrine wₐ = +0.012, DESI-anchored; not a prediction)")
 print(f"  ⟨R(z)⟩_CMB:     {R_cmb_avg:.6f}")
 print(f"  ΔH₀:            {delta_H0:+.2f} km/s/Mpc ({delta_H0_pct:+.2f}%)")
 print(f"  Direction:       {'SAME as observed (local > CMB) ✓' if delta_H0 < 0 else 'OPPOSITE to observed'}")
