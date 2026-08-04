@@ -595,7 +595,7 @@ The clinical trauma mappings (channel-to-trauma-type, healing sequence, Fibonacc
 
 That emotions *are* only gate configurations; that the five channels exhaust emotional experience (culture, language, and social construction shape how the substrate is interpreted, expressed, and regulated); that emotional disorders are fully characterized by these parameters (they are clinical phenomena with multiple levels of description); that this framework prescribes or validates any specific therapy; that the Cassi model replaces clinical understanding of attachment, narrative, or systemic factors.
 
-The framework's discipline is its most trustworthy feature: it documents its own errors openly (`audit.md`), withdraws falsified claims (the gate-sign error, the standing-wave pinning claim), and labels every tier. The line between "the geometry says" and "the clinical layer speculates" is drawn repeatedly and deliberately throughout this document.
+The framework's discipline is its most trustworthy feature: every claim is maintained against the framework's own PDE tests (the Qi gate is open at low $q$ and closed at high $q$ — sign PDE-verified 2026-07-31 — and standing patterns do not pin), and every tier is labeled. The line between "the geometry says" and "the clinical layer speculates" is drawn repeatedly and deliberately throughout this document.
 
 ## 24. Open Questions
 
