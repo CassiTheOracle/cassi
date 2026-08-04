@@ -410,7 +410,7 @@ The Cassi framework eliminates free parameters:
 | $\alpha_{\text{GUT}}$ | $\varphi^{-3}/(4\pi)$ | GUT unification |
 | $\delta_{\text{CKM}}$ | $\pi\varphi^{-2}$ | CP violation |
 | $\xi$ (Qi-gravity) | $\varphi^{6}$ | Modified gravity |
-| $\Lambda$ (cosmological constant) | $\lambda\varphi^{-2}/3$ | Dark energy |
+| $\Lambda$ (cosmological constant) | $\lambda\varphi^{-2}/3$—**Asserted** (postulate): the 1/3 is the 3D continuity reading; $T_{00}$ at equilibrium gives 0 or $(g/4)\varphi^2$, never $\lambda\varphi^{-2}/3$; Lagrangian derivation open | Dark energy |
 | DM halo concentration | $q$-dependent $G_{\text{eff}}$ | Galaxy dynamics |
 | Inflation parameters | $n_s = 0.9691$, $r = 0.003$ | Early universe |
 
