@@ -107,9 +107,12 @@ geometric-mean identity
 $$y_e = \sqrt{\varphi^{-26} \cdot \varphi^{-27}} = \varphi^{-26.5}$$
 
 holds for any fractional exponent, so it does not select $26.5$: a mechanism
-would have to predict the half-step offset without inputting $m_e$. No
-mechanism in the Cassi framework produces half-integer $\varphi$-powers
-(`parameter-inventory.md` §4.2).
+would have to predict the half-step offset without inputting $m_e$. The
+pool-cell quantization (`foundations/rung-offset-mechanism.md` §4.1) gives
+half-integer positions a wave-mechanical status—the fundamental-mode antinode
+of the terminal cell—but it does not place the cell: why $[26, 27]$ and not
+$[25, 26]$ remains empirical, so $n_e = 26.5$ is still solved from the
+observed mass.
 
 The charged leptons do not sit on integer rungs of the $v_0/\sqrt2$ ladder at
 all. Solving $n = \ln((v_0/\sqrt2)/m)/\ln\varphi$ from the observed masses:
@@ -123,7 +126,9 @@ all. Solving $n = \ln((v_0/\sqrt2)/m)/\ln\varphi$ from the observed masses:
 Every charged lepton lands within $\pm 0.25$ steps of some half-integer, which
 is automatic for any continuous placement; the residuals (1.2%, −5.0%, −1.5%
 at the nearest half-steps) carry no ladder structure. The "truncation at the
-lightest state" story predicts nothing about where the leptons sit.
+lightest state" story predicts the position class (the half-rung, via the
+pool-cell quantization of `foundations/rung-offset-mechanism.md` §4.1) but
+nothing about where the cells sit.
 
 The sharper reference frame is the $M_{\text{Pl}}$-anchored mass ladder
 (`foundations/wake-geometry.md` §3, $n = \log_\varphi(M_{\text{Pl}}/m)$). There
@@ -151,7 +156,7 @@ the lepton hierarchy; none exists yet.
 | Aspect | Status |
 |--------|--------|
 | $m_e$ from $\varphi^{-26}$ alone | **Not derivable**—25% gap at integer rungs 26/27 |
-| $m_e$ from $\varphi^{-26.5}$ (half-step) | **Not derivable**—$n_e = 26.5$ is solved from the observed mass; no mechanism produces half-integer $\varphi$-powers; the 1.4% agreement is a fit, not a prediction |
+| $m_e$ from $\varphi^{-26.5}$ (half-step) | **Not derivable**—$n_e = 26.5$ is solved from the observed mass; the half-rung position is the pool-cell fundamental antinode (Hypothesized, `foundations/rung-offset-mechanism.md` §4.1) but the cell placement is empirical; the 1.4% agreement is a fit, not a prediction |
 | $m_e$ on the $M_{\text{Pl}}$ mass ladder | **Near-miss**—$n = 107.08$ vs rung 107 (3.9%), the rung of the reduced Compton wavelength (3.7% off); not a catalog hit |
 | $q_e = 0.5$ (Qi gate boundary) | **Hypothesized**—set to match the fit; awaits formal PDE derivation |
 
@@ -300,7 +305,7 @@ $\varphi$-cascade.
 | Parameter | Original Gap | Resolution | New Status |
 |-----------|-------------|-----------|------------|
 | $\alpha_s(M_Z)$ | $11\times$ (claimed), $2.0\times$ (actual) | RGE sign corrected; $\Delta b = 1.70$ from new physics thresholds | **Narrowed**: factor 2.0, requires particle content | 
-| $m_e/v_0$ | $25\%$ (integer exponent 26) | None—no mechanism for half-integer $\varphi$-powers; $\varphi^{-26.5}$ is fit to the observed mass; M$_{\text{Pl}}$-ladder rung 107 misses by 3.9% | **Open**: remains External (**E**) |
+| $m_e/v_0$ | $25\%$ (integer exponent 26) | Pool-cell quantization gives half-rung positions (Hypothesized mechanism, §2.2); cell placement empirical; $\varphi^{-26.5}$ fit to the observed mass; M$_{\text{Pl}}$-ladder rung 107 misses by 3.9% | **Open**: remains External (**E**) |
 | $v_0/M_{\text{Pl}}$ | $5.3\%$ (integer exponent 80) | Cascade discretization residual ($\delta n = 0.11$, EW boundary) | **Identified**: mechanism understood, exact value not derived |
 | Activated step set | No derivation | Empirical catalog of $\varphi$-powers in verified quantities | **Empirical**: not derivable, catalog of our universe |
 
@@ -312,7 +317,7 @@ None of the four assessments reclassifies a parameter. The registry
 | Parameter | Class | Rationale |
 |-----------|-------|-----------|
 | $\alpha_s(M_Z)$ | **E** | Partial: RGE from $\alpha_{\text{GUT}}$ needs particle content (§1) |
-| $m_e/v_0$ | **E** | $\varphi^{-26}$ misses by 25%; the half-step 26.5 is a fit, not a derivation (§2) |
+| $m_e/v_0$ | **E** | $\varphi^{-26}$ misses by 25%; the half-step 26.5 is a fit, not a derivation (§2; pool-cell half-rung mechanism Hypothesized, `foundations/rung-offset-mechanism.md` §4.1) |
 | $v_0/M_{\text{Pl}}$ | **E** | $\varphi^{-80}$ within 5.3% is a numerical coincidence, not a derivation |
 | $\kappa_s$ (sector coupling) | **D** | Already derived: $\varphi^{-6}/v_0^2$ (coefficient Hypothesized) |
 | Activated steps | **E** | Empirical catalog of observables that happen to be $\varphi$-powers |

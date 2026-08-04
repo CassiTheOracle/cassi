@@ -61,7 +61,7 @@ Tiers below are taken from each document's Status header. Compound headers are q
 | `foundations/three-generations.md` | Hypothesized | $N_{\text{gen}} = 3$ from Fibonacci sub-channels (Q5) |
 | `foundations/dimensionful-constants-status.md` | Hypothesized | $c$, $\hbar$, $G$ external; $N = 292$ epoch-dependent horizon rung (F5) |
 | `foundations/microcascade-mirror.md` | Hypothesized | Bidirectional cascade extension |
-| `foundations/rung-offset-mechanism.md` | Hypothesized mechanism, Empirical catalog—August 2026 | δn as two-fluid phase lag; sector edges at half-rungs; uniform 38-state baseline |
+| `foundations/rung-offset-mechanism.md` | Derived quantization, Hypothesized selection, Empirical catalog—August 2026 | δn as two-fluid phase lag (analytic $A_0$, $B_0$); pool-cell mode quantization; sector edges at half-rungs; uniform 38-state baseline |
 | `foundations/phi-rg-formalism.md` | Hypothesized | RG flow under $\varphi$-spacing |
 | `foundations/spiral-dynamics.md` | Hypothesized | Hubble, gravity, $c$ as spiral geometry projections |
 | `foundations/why-three-dimensions.md` | Hypothesis with One Decided Fork (W1: anti-phase confirmed) | Three dimensions from the Frenet-Serret frame (G5) |

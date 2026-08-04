@@ -235,8 +235,10 @@ $$n_e = -\frac{\ln(\sqrt{2}\,m_e/v_0)}{\ln\varphi}
       = -\frac{\ln(1.414\times0.511\times10^{-3}/246)}{\ln 1.618}
       = \frac{12.75}{0.481} = 26.5$$
 
-The half-integer exponent $26.5$ suggests $n_e = 26 + 1/2$. But no mechanism
-in the Cassi framework produces half-integer $\varphi$-powers. The nearest
+The half-integer exponent $26.5$ suggests $n_e = 26 + 1/2$. The pool-cell
+quantization gives half-integer positions a wave-mechanical status (the
+terminal-cell fundamental antinode, `foundations/rung-offset-mechanism.md`
+§4.1), but the cell placement is empirical. The nearest
 integer predictions:
 
 | Exponent | $y_e$ | Predicted $m_e$ | Error |
