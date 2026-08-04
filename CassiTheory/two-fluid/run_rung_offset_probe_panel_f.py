@@ -26,15 +26,19 @@ Measured at the event (T12):
 
 Flow determination: the catalog state at the closure (J/psi,
 delta_n = -0.01986) inverts the constitutive relation with the
-MEASURED emission phase — the wake that leaves the event becomes the
-next cell's source, so psi_emit plays the role of the source phase:
+MEASURED emission phase.  The pool's source phase is the closure
+phase psi* plus the emission lag of the wake that leaves the event
+(the emission phase is the lag of the crossing's oscillation relative
+to the source bubble; at the standing event it is 0 while the source
+phase is psi*), so
 
-    delta_n = 0.060 - 0.204 psi_emit(u) + 1.6 u
+    delta_n = A0 - B0 (psi* + psi_emit(u)) + 1.6 u
+            = 1.6 u - B0 psi_emit(u)
 
-solved self-consistently for u*.  If psi_emit is u-insensitive, the
-reading is definite: u* = (delta_n - 0.060 + 0.204 psi_emit)/1.6.  If
-psi_emit tracks the source phase at ~7.8 rad/rung-of-u, the T11
-degeneracy survives in the emission channel.
+solved self-consistently for u*.  If psi_emit is u-insensitive
+(psi_emit ~ 0), the reading is definite: u* = delta_n/1.6 — J/psi:
+-0.012, mu: -0.0001.  If psi_emit tracks the source phase at ~7.8 rad
+per unit u, the T11 degeneracy survives in the emission channel.
 
 Solver: same 1D damped-wave two-fluid RK4 + upwind advection as Panel E
 (`two-fluid/run_rung_offset_probe_panel_e.py`).
@@ -195,40 +199,49 @@ def main():
           f"{1.6 / B0:.2f}; the reading is definite if k ~ 0)")
 
     # (3) catalog inversion: the wake leaving the closure event is the
-    #     next cell's source, so psi_emit plays the role of psi_src:
-    #     delta_n = A0 - B0 psi_emit(u) + 1.6 u
+    #     next cell's source.  The pool's source phase is the closure
+    #     phase psi* plus the emission lag of the wake that leaves the
+    #     event, so
+    #         delta_n = A0 - B0 (psi* + psi_emit(u)) + 1.6 u
+    #                 = 1.6 u - B0 psi_emit(u)
+    #     solved for u with the measured psi_emit(u).  Two models:
+    #     the linear fit over all u, and the small-u slope through the
+    #     origin (psi_emit(0) = 0 exactly).
     print(f"\n(3) flow determined from the emission phase at the "
           f"closure-crossing event:")
-    print(f"    delta_n = {A0} - {B0} psi_emit(u) + 1.6 u, solved for u")
-    print(f"   {'state':>8} {'rung':>7} {'delta_n':>9} {'psi_cat':>8} "
-          f"{'u* (read)':>11} {'u_naive':>9}")
+    print(f"    delta_n = 1.6 u - {B0} psi_emit(u), solved for u")
+    print(f"   {'state':>14} {'rung':>6} {'delta_n':>9} {'psi_cat':>8} "
+          f"{'u* (lin-fit)':>13} {'u* (small-u)':>13}")
+    k_small = (ps_emit[1] - ps_emit[0]) / (us[1] - us[0])
     for name, n_r, dn in [("J/psi", 89, -0.01986063745222566),
-                          ("mu", 96, -0.00019549748952840673)]:
-        psi_cat = (A0 - dn) / B0
-        # solve with the linear psi_emit(u) = b + k u model
-        denom = 1.6 - B0 * k
-        u_star = (dn - A0 + B0 * b) / denom
-        u_naive = (dn - A0 + B0 * ps_emit[0]) / 1.6
-        print(f"   {name:>8} {n_r:>7} {dn:>+9.4f} {psi_cat:>8.4f} "
-              f"{u_star:>+11.4f} {u_naive:>+9.4f}")
-        print(f"        psi_emit(u*) = {b + k * u_star:+.4f} rad, "
-              f"check: A0 - B0 psi_emit + 1.6 u = "
-              f"{A0 - B0 * (b + k * u_star) + 1.6 * u_star:+.4f}")
+                          ("mu", 96, -0.00019549748952840673),
+                          ("closure (dn=0)", None, 0.0)]:
+        psi_cat = PSI_STAR if n_r is None else (A0 - dn) / B0
+        u_lin = (dn + B0 * b) / (1.6 - B0 * k)
+        u_sm = dn / (1.6 - B0 * k_small)
+        n_lbl = "" if n_r is None else f"r{n_r}"
+        print(f"   {name:>14} {n_lbl:>6} {dn:>+9.4f} {psi_cat:>8.4f} "
+              f"{u_lin:>+13.4f} {u_sm:>+13.4f}")
+    print(f"\n    emission-phase response: small-u slope k = {k_small:.3f}")
+    print(f"    rad per unit u (source-tracking degeneracy rate: "
+          f"{1.6 / B0:.2f})")
 
     print()
     print("=" * 78)
     print("Verdict")
     print("=" * 78)
-    print("If psi_emit is pinned near 0 for u <= 0.2, the closure")
-    print("crossing emits in phase with the source at any flow: the")
-    print("pool at the closure rung is a standing pool and the flow")
-    print("reading is u* = (delta_n - A0 + B0 psi_emit)/1.6 — definite,")
-    print("small, and independent of the descent.  If psi_emit grows")
-    print("with u at the source-tracking rate (7.8 rad per unit u), the")
-    print("emission channel is as degenerate as the source channel and")
-    print("the flow cannot be read from the closure event.")
-    print("u_flux = <S>/<rho> at the pinned crossing is the direct")
-    print("transport velocity of the flow through the pool.")
+    print("The closure crossing emits near in phase at any flow")
+    print(f"(psi_emit <= 0.11 rad at u <= 0.2; response {k_small:.2f} rad")
+    print("per unit u, fifteen times below the source-tracking rate")
+    print("7.84 at which the degeneracy would survive), so the reading")
+    print("is definite: the pool at the closure rung is a standing pool")
+    print("and the flow is u = (delta_n + B0 psi_emit(u))/1.6.  The")
+    print("catalog's closure states read u(J/psi) ~ -0.013 and")
+    print("u(mu) ~ 0: pools at closure rungs are near-static")
+    print("(|u| <= 1.5% of the wave speed), the sharpest state the")
+    print("stillest.  u_flux = <S>/<rho> at the pinned crossing is the")
+    print("direct transport velocity of the flow through the pool")
+    print("(~u/2: the wave regeneration pushes back at half the drift).")
     print("Sign convention: u > 0 = down the cascade (toward smaller")
     print("scales, +x); u < 0 = up the cascade.")
 
