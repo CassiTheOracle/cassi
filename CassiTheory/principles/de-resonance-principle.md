@@ -48,7 +48,7 @@ factor $\varphi$ is developed in `foundations/phi-rg-formalism.md`.
 
 | Quantity | Nearest $\varphi$-power | Measured | Correction | Mechanism | Evidence |
 |----------|------------------------|----------|------------|-----------|----------|
-| $\sin^2\theta_W$ | $\varphi^{-3} = 0.236$ | $0.23129$ | $-2.0\%$ | MSSM RGE from GUT to $m_Z$ | **Computed** |
+| $\sin^2\theta_W$ | $\varphi^{-3} = 0.236$ | $0.23122$ | $+2.1\%$ (φ⁻³ above measured) | Exact at $\mu_* = 233$ GeV; running is upward (`standard-model/sm-radiative-corrections.md`) | **Computed** |
 | $v_0/M_{\rm Pl}$ | $\varphi^{-80} = 1.91\times10^{-17}$ | $2.02\times10^{-17}$ | $+5.6\%$ | **Unidentified**—see `principles/v0-hierarchy-problem.md` (v₀ is λ-independent at equilibrium; mechanism may be threshold corrections, exact φ-attractor value, or RGE) | **Hypothesized** |
 | $m_e$ | $v_0\varphi^{-26}/\sqrt{2} = 0.64$ MeV | $0.511$ MeV | $-20\%$ | Flavor mixing from $\mu,\tau$ sector | **Speculative** |
 | $\alpha_s(M_Z)$ | $0.058$ (SM RGE) | $0.118$ | $\times 2.0$ | Needs $\Delta b = 1.70$ from ~1 vector-like colored fermion pair + 2 colored scalars, or ~3 KK levels | **Speculative** |
@@ -69,15 +69,20 @@ particle content rather than the $\varphi$-attractor) have large deviations
 ($\times 10$).
 ## 4. Physical Origin of Each Correction
 
-### 4.1 $\sin^2\theta_W$ ($-2.0\%$ correction)—**Computed**
+### 4.1 $\sin^2\theta_W$ ($+2.1\%$ correction at $m_Z$)—**Computed**
 
-The $\varphi$-attractor gives $\sin^2\theta_W = \varphi^{-3}$ at the scale
-where the two-fluid gauge structure is set (the GUT scale). The MSSM
-$\beta$-function from $M_{\rm GUT}$ to $m_Z$ shifts this by $-1.7\%$.
-GUT-scale threshold corrections of $\sim 2\%$ close the remaining gap.
+The $\varphi$-attractor gives $\sin^2\theta_W = \varphi^{-3} = 0.23607$. The
+measured MS-bar value at $m_Z$ is 0.23122 (+2.1%), and the running angle
+equals $\varphi^{-3}$ at $\mu_* \approx 233$ GeV. The angle runs **upward**
+with energy (0.43 at $2\times10^{16}$ GeV in the SM, 0.38 in the MSSM
+variant), so the correction is not closed by running from the GUT scale:
+starting from 0.236 at $2\times10^{16}$ GeV and running down gives
+$\sin^2\theta_W(m_Z) \approx 0.15$ (SM) / 0.20 (MSSM)
+(`standard-model/sm-radiative-corrections.md` §3.3).
 
 **Mechanism:** running of the gauge couplings between the matching scale
-and the $Z$-pole, plus heavy-particle thresholds at the matching scale.
+and the $Z$-pole; the φ-point value is an IR statement at $m_Z$–233 GeV,
+not a GUT-scale boundary condition.
 
 ### 4.2 $v_0/M_{\rm Pl}$ ($5.6\%$ correction)—**Hypothesized, mechanism unidentified**
 
@@ -132,11 +137,11 @@ future measurements, not descriptions of the existing pattern.
 
 The next generation of electroweak measurements (FCC-ee, ILC, CEPC) will
 measure $\sin^2\theta_W$ to $\pm 10^{-6}$ precision. The de-resonance principle
-predicts the residual shift from $\varphi^{-3}$ should be **stable under RGE
-running**—the Z-pole value should equal the LEP-2 value plus a calculable
-logarithmic correction, with no additional threshold shifts. If a new
-threshold appears in the Z-pole $\sin^2\theta_W$, the de-resonance framework
-is stressed.
+predicts the Z-pole value sits $+2.1\%$ above $\varphi^{-3}$ (the running
+angle equals $\varphi^{-3}$ at $\mu_* \approx 233$ GeV), with the residual
+shift determined by the standard RGE running and threshold corrections—no
+additional thresholds are needed, and any unexplained shift beyond the
+computed running would stress the framework.
 
 ### 5.2 New scalar discoveries
 

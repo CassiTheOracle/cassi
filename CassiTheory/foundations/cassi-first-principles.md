@@ -229,9 +229,10 @@ $$
 \sin^2\theta_W = \varphi^{-3} \approx 0.236
 $$
 
-Experimental: $\sin^2\theta_W^{\text{(run)}} = 0.23129 \pm 0.00005$ at the
-$Z$ pole. Tree-level error: $2.1\%$. With SU(2) radiative corrections:
-$<0.1\%$.
+Experimental: $\sin^2\theta_W = 0.23122(4)$ at the $Z$ pole (MS-bar). The
+φ-point value overshoots by $2.1\%$; the running MS-bar angle equals
+$\varphi^{-3}$ at $\mu_* \approx 233$ GeV, and the angle runs upward with
+energy (`standard-model/sm-radiative-corrections.md` §3.3).
 
 The GUT coupling constant:
 

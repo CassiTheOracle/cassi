@@ -163,21 +163,15 @@ $$g(\mu) \approx g_* \cdot \varphi^{(\Delta_g - 1) \cdot N}$$
 
 ### 4.2 Electroweak Mixing Angle
 
-At the GUT scale, the gauge couplings unify with $\alpha_{\text{GUT}} = \varphi^{-3}/(4\pi)$. The weak mixing angle at tree level:
+At the GUT scale, the gauge couplings would unify with $\alpha_{\text{GUT}} = \varphi^{-3}/(4\pi)$ (in the SM they do not—`standard-model/sm-radiative-corrections.md` §3.3). The weak mixing angle at tree level:
 
 $$\sin^2\theta_W = \frac{g'^2}{g^2 + g'^2}$$
 
-In the Cassi SU(2)$_L \times$ U(1)$_Y$ embedding, the ratio $g'/g$ is set by the φ-RG flow from the GUT scale. At the fixed point:
+In the Cassi SU(2)$_L \times$ U(1)$_Y$ embedding, the ratio $g'/g$ is set by the Yang/Yin VEV asymmetry:
 
-$$\left.\frac{g'^2}{g^2}\right|_{\text{GUT}} = \varphi^{-1}$$
+$$\sin^2\theta_W = \varphi^{-3} \approx 0.236$$
 
-Running to $m_Z$ via the MSSM β-functions gives:
-
-$$\sin^2\theta_W(m_Z) = \varphi^{-3} \cdot (1 - 0.017 + \delta_{\text{thresh}}) \approx 0.231$$
-
-in agreement with the measured $0.23129 \pm 0.00005$.
-
-The φ-RG interpretation: $\sin^2\theta_W$ is an IR value of the RG trajectory from the fixed point $\alpha_* = \varphi^{-1}$. The $-1.7\%$ correction is the differential running of the SU(2) and U(1) couplings, not a deviation from the fixed point.
+The measured value at $m_Z$ is $0.23122(4)$: the φ-point value overshoots by $2.1\%$, and the running MS-bar angle equals $\varphi^{-3}$ at $\mu_* \approx 233$ GeV. The angle runs **upward** with energy (toward $3/8$ at $10^{16}$–$10^{17}$ GeV), so the fixed-point value is an IR-measurement statement at $m_Z$–233 GeV, not a GUT-scale boundary condition.
 
 ### 4.3 Qi-Gravity Coupling $\xi = \varphi^6$
 

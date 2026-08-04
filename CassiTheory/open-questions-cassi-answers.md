@@ -417,12 +417,12 @@ flowchart TD
 **Visual:** SU(3), SU(2), and U(1) converge to a single coupling at the GUT spring like three rivers to one source—α_GUT = φ⁻³/(4π), with deviations from ordinary RGE running.
 
 
-The three forces of the Standard Model—electromagnetic, weak, and strong—have very different strengths at everyday energies, but when you calculate them at extremely high energies, they almost meet at a single point near $10^{16}$ GeV. This near-unification is too precise to be mere coincidence, yet too imperfect to be exact. Cassi's answer: there IS a single coupling $\alpha_{\text{GUT}} = \varphi^{-3}/(4\pi) \approx 1/53$ at the GUT scale (cascade steps 5–10), and the three Standard Model couplings emerge from it through ordinary renormalization group running. The weak mixing angle $\sin^2\theta_W$ from this scheme matches the measured value within 2%, and the mechanism requires no supersymmetry, no extra dimensions, and no exotic particles—just the …
+The three forces of the Standard Model—electromagnetic, weak, and strong—have very different strengths at everyday energies. Extrapolated to high energy with the SM renormalization group, they almost meet: $\alpha_1 = \alpha_2$ at $\sim 10^{13}$ GeV ($\alpha^{-1} \approx 42$) and $\alpha_2 = \alpha_3$ at $\sim 10^{17}$ GeV ($\alpha^{-1} \approx 47$), but there is no common intersection in the SM. Cassi's answer: there IS a single coupling $\alpha_{\text{GUT}} = \varphi^{-3}/(4\pi) \approx 1/53$ at the GUT scale (cascade steps 5–10). The full one-loop radiative corrections (`standard-model/sm-radiative-corrections.md`, `computations/sm_radiative_corrections.py`) show what this boundary implies: run down, it gives $\alpha_s(m_Z) = 0.058$–$0.061$ ($2.0\times$ low—the documented $\Delta b = 1.70$ deficit), $\alpha_1$ and $\alpha_2$ ~25% weak, and $\sin^2\theta_W = \varphi^{-3}$ +2.1% above the Z-pole value (exact at $\mu_* \approx 233$ GeV). The framework requires no supersymmetry, no extra dimensions, and no exotic particles beyond the vector-like content that rescues $\alpha_s$.
 
 | **Cassi Answer** | $\alpha_{\text{GUT}} = \varphi^{-3}/(4\pi) \approx 1/53$ at GUT scale (step 5–10) |
-| **Mechanism** | Single coupling at single scale; all SM couplings flow from it; RGE running explains deviations |
-| **Epistemic** | **Derived**—$\sin^2\theta_W$ within 2%, FCC-ee test pending |
-| **Reference** | `standard-model/sm-from-phi.md`, `standard-model/su2-gauge-extension.md` |
+| **Mechanism** | Single coupling at single scale; SM running from it gives $\alpha_s(m_Z) = 0.058$–$0.061$ ($2.0\times$ low, $\Delta b = 1.70$), $\alpha_1$, $\alpha_2$ ~25% weak, $\sin^2\theta_W = \varphi^{-3}$ exact at $\mu_* = 233$ GeV and +2.1% at $m_Z$; SM running alone has no common intersection ($\alpha_1=\alpha_2$ at $10^{13}$ GeV, $\alpha_2=\alpha_3$ at $10^{17}$ GeV) |
+| **Epistemic** | **Derived**—$\sin^2\theta_W$ within 2% (at $m_Z$), FCC-ee test pending; the coupling residuals are open (see `standard-model/sm-radiative-corrections.md`) |
+| **Reference** | `standard-model/sm-from-phi.md`, `standard-model/su2-gauge-extension.md`, `standard-model/sm-radiative-corrections.md` |
 
 ### Q5: Three generations
 

@@ -260,11 +260,14 @@ See `standard-model/su2-gauge-extension.md` for the full derivation.
 The weak interaction emerges from an SU(2) gauge symmetry on the isospinor
 doublet (ν_e, e) with U(1)_Y hypercharge coupling. The W/Z boson masses
 are set by the φ VEV (vacuum expectation value):
-    m_W / m_Z = √(1 − φ⁻³) ≈ 0.874
-    sin²θ_W = φ⁻³ ≈ 0.236 at GUT scale, running to 0.231 at m_Z
-    (falsifiable at FCC-ee with precision electroweak measurements)
+    m_W / m_Z = √(1 − φ⁻³) ≈ 0.874 (tree); 0.878 with the ρ correction
+    sin²θ_W = φ⁻³ ≈ 0.236, +2.1% above the Z-pole value; the running angle
+    equals it at μ* ≈ 233 GeV (the angle runs upward, not down)
+    (falsifiable at FCC-ee with precision electroweak measurements; see
+    `standard-model/sm-radiative-corrections.md`)
 
-**SU(3) color**: Tripled field with α_GUT = φ⁻³/(4π) running to α_s(m_Z) ≈ 0.118.
+**SU(3) color**: Tripled field with α_GUT = φ⁻³/(4π) running to
+α_s(m_Z) ≈ 0.058–0.061 (2.0× below measured 0.118; Δb = 1.70 required).
 
 ### 5.1 Electroweak Unification
 
@@ -273,11 +276,14 @@ The weak interaction emerges from an SU(2) isospinor doublet coupled to the two-
 - **Doublet**: Ψ = (ψ_Y, ψ_I)ᵀ where |ψ_Y|² = EY, |ψ_I|² = EI
 - **φ-VEV at equilibrium**: ⟨Ψ⟩ ∝ (√φ, 1)ᵀ gives ρ_Y/ρ_I = φ
 - **Weak mixing angle**: sin²θ_W = φ⁻³ from VEV asymmetry (φ−1)/(φ+1)
--  At GUT scale: sin²θ_W = φ⁻³ ≈ 0.236
--  RG running to m_Z closes the 2.1% gap to the measured 0.231
+-  sin²θ_W = φ⁻³ ≈ 0.236 is +2.1% above the measured 0.231 at m_Z; the
+   running angle equals it at μ* ≈ 233 GeV (RG running is upward—it does not
+   close the gap; see `standard-model/sm-radiative-corrections.md`)
 - **W/Z mass ratio**: m_W/m_Z = √(1 − φ⁻³) ≈ 0.874
--  0.86% below the Standard Model value; falsifiable at FCC-ee (>100σ precision)
-- **SU(3) color**: Tripled field structure; α_GUT = φ⁻³/(4π) running to α_s(m_Z) ≈ 0.118
+-  0.36% below the Standard Model value after the ρ correction
+  (0.878 vs 0.881); falsifiable at FCC-ee (>100σ precision)
+- **SU(3) color**: Tripled field structure; α_GUT = φ⁻³/(4π) running to
+  α_s(m_Z) ≈ 0.058–0.061 (2.0× low; Δb = 1.70 required)
 
 
 **Predictions**:

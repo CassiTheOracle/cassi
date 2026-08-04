@@ -39,6 +39,7 @@ Tiers below are taken from each document's Status header. Compound headers are q
 | `principles/de-resonance-principle.md` | Derived | Why $\varphi$ is the attractor (maximally irrational) |
 | `principles/v0-hierarchy-problem.md` | Derived (step count, per registry Q1); 5.3% residual open | $v_0/M_{\text{Pl}} \approx \varphi^{-80}$ as step count (Q1) |
 | `standard-model/sm-from-phi.md` | Derived | $\sin^2\theta_W = \varphi^{-3}$; $\alpha_{\text{GUT}} = \varphi^{-3}/(4\pi)$ |
+| `standard-model/sm-radiative-corrections.md` | Derived | Loop corrections from the φ-boundary: RGE, Δα, Δr → m_W, λ running; residuals ($\alpha_s$ $2\times$, $\alpha_1$/$\alpha_2$ ~25%) open |
 | `standard-model/su2-gauge-extension.md` | Derived | SU(2) gauge from two-fluid structure |
 | `standard-model/cp-violation.md` | Derived | CKM phase $\pi\varphi^{-2}$ |
 | `particles/cassi-yang-yin-particles.md` | Derived | Particles as standing-wave interference; atomic $Z = 1$–$10$ |

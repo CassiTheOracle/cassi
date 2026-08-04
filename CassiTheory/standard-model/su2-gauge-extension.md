@@ -7,11 +7,16 @@
 The two-fluid's U(1) ≅ SO(2) internal rotation is promoted to an SU(2)
 isospinor doublet whose $\varphi$-equilibrium VEV ($E_Y/E_I = \varphi$) fixes
 the Weinberg angle $\sin^2\theta_W = \varphi^{-3} \approx 0.236$ and the mass
-ratio $m_W/m_Z = \sqrt{1-\varphi^{-3}} \approx 0.874$—deviations of 2.1% and
-0.86% from the Z-pole values, testable at FCC-ee at $>100\sigma$. The document
-derives the neutral-boson mass matrix, RG running from the GUT scale, the
-SU(3) color extension, gauge-coupling unification at $\alpha_{\text{GUT}} =
-\varphi^{-3}/(4\pi) \approx 1/53$, and the $\varphi$-scaled fermion hierarchy.
+ratio $m_W/m_Z = \sqrt{1-\varphi^{-3}} \approx 0.874$—2.1% and 0.82% from the
+Z-pole values, testable at FCC-ee at $>100\sigma$. The document derives the
+neutral-boson mass matrix, the SU(3) color extension, and the
+$\varphi$-scaled fermion hierarchy. The RG running from the GUT scale is
+derived in `standard-model/sm-radiative-corrections.md`: the measured
+running angle crosses $\varphi^{-3}$ at $\mu_* \approx 233$ GeV, the
+φ-boundary $\alpha_{\text{GUT}} = \varphi^{-3}/(4\pi) \approx 1/53$ does not
+unify the SM couplings (no common intersection exists in the SM), and
+$\alpha_s$ runs to 0.058–0.061 at $m_Z$, $2.0\times$ below the measured
+value.
 
 ## 1. The SU(2) Isospinor Doublet
 
@@ -125,39 +130,46 @@ $$
 
 ### 3.3 Comparison with Experiment
 
-| Quantity | Cassi (GUT scale) | Measured (Z-pole) | Gap |
+| Quantity | Cassi (tree) | Measured (Z-pole) | Gap |
 |----------|-------------------|-------------------|-----|
-| $\sin^2\theta_W$ | $0.23607$ | $0.23122(3)$ | $+2.1\%$ |
+| $\sin^2\theta_W$ | $0.23607$ | $0.23122(4)$ | $+2.1\%$ |
 | $\tan\theta_W = g'/g$ | $0.556$ | $0.545$ | $+2.0\%$ |
-| $m_W/m_Z = \cos\theta_W$ | $0.874$ | $0.881$ | $-0.86\%$ |
+| $m_W/m_Z = \cos\theta_W$ | $0.874$ | $0.881$ | $-0.82\%$ |
 
-The 2.1% gap between the GUT-scale prediction and the Z-pole measurement is **expected from renormalization group running**.
+The weak mixing angle runs **upward** with energy, so the 2.1% gap at the
+Z-pole is *not* closed by running to lower energies—the φ-point value is
+realized at $\mu_* \approx 233$ GeV, one and a half e-folds above $m_Z$
+(`standard-model/sm-radiative-corrections.md` §3.3). The mass-ratio gap is
+partially closed by the $\rho$ radiative correction (0.874 → 0.878, −0.36%).
+Neither gap is absorbable: both are FCC-ee tests at $>100\sigma$.
 
-### 3.4 RG Running: From GUT Scale to Z-Pole
+### 3.4 RG Running: The Correct Direction
 
-In both the Standard Model and its supersymmetric extensions, the Weinberg angle runs with energy scale. The one-loop RGE for $\sin^2\theta_W$ is:
+The Weinberg angle runs with energy. With the measured MS-bar inputs at
+$m_Z$, the one-loop running (GUT-normalized couplings,
+$\sin^2\theta_W(\mu) = \alpha_Y(\mu)/(\alpha_Y(\mu)+\alpha_2(\mu))$,
+top-decoupling threshold) gives
+(`computations/sm_radiative_corrections.py` §2):
 
-$$
-\frac{d(\sin^2\theta_W)}{d\ln\mu} = \frac{b_2 - b_Y}{2\pi} \, \alpha_{\text{EM}} \, \sin^2\theta_W \cos^2\theta_W
-$$
+$$\sin^2\theta_W(10^{16}\ \text{GeV}) = 0.421, \qquad
+  \sin^2\theta_W(2\times10^{16}\ \text{GeV}) = 0.426
+  \quad \text{(SM)},$$
 
-where $b_2$ and $b_Y$ are the SU(2) and U(1)$_Y$ beta-function coefficients.
+$$\sin^2\theta_W(2\times10^{16}\ \text{GeV}) = 0.381
+  \quad \text{(MSSM variant, } b = (33/5, 1, -3) \text{)}.$$
 
-**Standard Model** ($M_{\text{GUT}} = 2\times10^{16}$ GeV → $m_Z = 91.2$ GeV):
-- $\ln(M_{\text{GUT}}/m_Z) \approx 34$
-- $\sin^2\theta_W$ runs from $\sim 0.204$ at $M_{\text{GUT}}$ to $0.231$ at $m_Z$ (SM prediction)
-- Cassi starts at $0.236$ at $M_{\text{GUT}}$ → runs to $\sim 0.267$ at $m_Z$—**too high**
+The angle increases with energy toward the unification value $3/8$; it does
+not run downward from 0.236 to 0.231. Consequently:
 
-**MSSM** (supersymmetric):
-- $\sin^2\theta_W$ runs from $\sim 0.232$ at $M_{\text{GUT}}$ to $0.231$ at $m_Z$ (almost flat)
-- Cassi starts at $0.236$ at $M_{\text{GUT}}$ → runs to $\sim 0.235$ at $m_Z$—**1.7% high**
-
-**Threshold corrections** (GUT-scale threshold, SUSY threshold, top threshold):
-- The 2.1% gap at GUT scale is consistent with $\mathcal{O}(1\%)$ threshold effects at the GUT scale
-- In typical SUSY GUTs, GUT-scale threshold corrections shift $\sin^2\theta_W$ by $1\text{--}3\%$
-- A $\sim 2\%$ threshold correction puts the Cassi prediction in exact agreement with the Z-pole measurement
-
-**Conclusion:** $\sin^2\theta_W = \varphi^{-3} = 0.236$ at $M_{\text{GUT}}$ runs via MSSM to $\sim 0.235$ at $m_Z$ ($1.7\%$ above the measured $0.231$). GUT-scale threshold corrections of $\sim 2\%$ can close the gap. The Cassi framework does not need a new free parameter—the running is the Standard Model running, and the threshold shift is consistent with typical SUSY GUTs.
+- $\sin^2\theta_W = \varphi^{-3} = 0.236$ **at $m_Z$** is 2.1% above the
+  measured 0.23122, and the running angle equals $\varphi^{-3}$ exactly at
+  $\mu_* \approx 233$ GeV—the correct statement of the φ-anchoring.
+- Starting from $\varphi^{-3}$ at $2\times10^{16}$ GeV and running *down*
+  gives $\sin^2\theta_W(m_Z) \approx 0.15$ (SM) or $\approx 0.20$ (MSSM)—
+  a 0.236 → 0.231 closure by RG running does not occur in either framework.
+- GUT-scale threshold corrections of a few percent cannot repair the
+  mismatch: the running over the full GUT→$m_Z$ span is $\mathcal{O}(0.1)$
+  in $\sin^2\theta_W$, far larger than any threshold shift.
 
 ---
 
@@ -177,14 +189,14 @@ $$
 $$
 
 **Comparison with Standard Model:**
-- SM: $m_W/m_Z = 80.377/91.188 = 0.881$
-- Cassi ($\sin^2\theta_W = \varphi^{-3}$): $m_W/m_Z = 0.874$
-- Difference: **0.86%**
+- SM: $m_W/m_Z = 80.360/91.188 = 0.8813$ (radiative-corrected prediction 80.354–80.363 GeV, `standard-model/sm-radiative-corrections.md` §5)
+- Cassi ($\sin^2\theta_W = \varphi^{-3}$): $m_W/m_Z = 0.874$ tree; **0.878** after the top-loop $\rho$ correction ($m_W = 80.07$ GeV)
+- Difference: **0.36%** after radiative corrections
 
 This is testable at future colliders:
 - FCC-ee will measure $m_W$ to 0.5 MeV ($\Delta m_W/m_W \approx 6\times 10^{-6}$)
-- The 0.86% deviation would be detected at $>100\sigma$
-- If Cassi is correct, FCC-ee would see $m_W/m_Z = 0.874$ instead of 0.881
+- The 0.36% deviation would be detected at $>100\sigma$
+- If Cassi is correct, FCC-ee would see $m_W/m_Z = 0.878$ instead of 0.881
 
 ---
 
@@ -227,16 +239,23 @@ $$
 = 2 \times 10^{16} \cdot \exp(-47.6) \approx 0.3\ \text{MeV}
 $$
 
-This is lower than the observed $\Lambda_{\text{QCD}} \approx 200$ MeV. With threshold corrections and two-loop running, the Cassi value shifts to the observed range:
+The $\Lambda_{\text{QCD}}$ estimate here uses the $\alpha_s$-at-$M_{\text{GUT}}$
+form of the pole condition; the equivalent Z-pole statement is the running
+coupling itself (`standard-model/sm-radiative-corrections.md` §3.2):
 
-| Running scheme | $b_0$ | $\alpha_s(m_Z)$ predicted | $\Lambda_{\text{QCD}}$ |
-|:--------------|:------|:-------------------------|:----------------------|
-| 1-loop SM ($n_f=6$) | 7.0 | 0.067 | 0.3 MeV |
-| 2-loop SM ($n_f=5$) |—| 0.089 | 30 MeV |
-| 2-loop SM + thresholds |—| 0.105 | 150 MeV |
-| **Measured** |—| **0.118** | **200 MeV** |
+| Running scheme | $\alpha_s(m_Z)$ predicted | vs measured 0.1180 |
+|:--------------|:--------------------------|:-------------------|
+| 1-loop SM ($n_f=6$, thresholds) | 0.058 | $2.0\times$ low |
+| 2-loop QCD + thresholds | 0.061 | $1.9\times$ low |
 
-**Cassi prediction for $\alpha_s(m_Z)$:** With two-loop running and threshold effects from the top/bottom/charm decoupling, the Cassi GUT coupling $\alpha_s = \varphi^{-3}/(4\pi)$ runs to $\alpha_s(m_Z) \approx 0.105$—$0.115$, close to the measured $0.118$. The remaining gap is within GUT-scale threshold uncertainties.
+**Cassi prediction for $\alpha_s(m_Z)$:** the φ-boundary coupling
+$\alpha_s = \varphi^{-3}/(4\pi)$ runs to $\alpha_s(m_Z) \approx 0.058$–$0.061$,
+$2.0\times$ below the measured 0.118. Closing the gap requires
+$\Delta b = 1.70$ of beyond-SM colored content between $m_Z$ and
+$M_{\text{GUT}}$ (vector-like quark doublet at the cascade Fibonacci
+precursor; `computations/cascade_gut_ew_rge.py`). Two-loop running and
+threshold corrections shift the prediction by a few percent—they do not
+close a factor of two.
 
 ### 5.3 Proton Mass from φ
 
@@ -246,7 +265,13 @@ $$
 m_p \approx 3 \Lambda_{\text{QCD}} \quad \text{(up to chiral corrections)}
 $$
 
-From the Cassi running, $\Lambda_{\text{QCD}} \approx 200$ MeV emerges naturally, giving $m_p \approx 938$ MeV. The exact value is not a Cassi prediction per se—it follows from the standard QCD RGE with the Cassi GUT coupling as boundary condition.
+The φ-boundary running ($\alpha_s(m_Z) = 0.058$–$0.061$, §5.2) gives a
+$\Lambda_{\text{QCD}}$ two orders of magnitude below 200 MeV—the same
+$2.0\times$ $\alpha_s$ deficit expressed in the scale. The standard
+derivation $m_p \approx 938$ MeV uses the *measured* $\Lambda_{\text{QCD}}
+\approx 200$ MeV as input (E-class, `parameter-inventory.md` §4); the
+φ-scaled estimate $m_p \approx \varphi^3\Lambda_{\text{QCD}} \approx 847$ MeV
+follows from that input, not from the GUT boundary.
 
 ---
 
@@ -254,17 +279,17 @@ From the Cassi running, $\Lambda_{\text{QCD}} \approx 200$ MeV emerges naturally
 
 ### 6.1 Gauge Coupling Unification at $M_{\text{GUT}}$
 
-At the Cassi GUT scale ($M_{\text{GUT}} \approx 2 \times 10^{16}$ GeV), the three gauge couplings converge:
-
-$$
-g^2(M_{\text{GUT}}) = g'^2(M_{\text{GUT}}) \cdot \frac{1-\varphi^{-3}}{\varphi^{-3}} = g_s^2(M_{\text{GUT}})
-$$
-
-with the common scale set by:
-
-$$
-\alpha_{\text{GUT}} = \frac{\varphi^{-3}}{4\pi} \approx \frac{1}{53}
-$$
+In the Standard Model the three couplings do **not** meet at a single point
+(`computations/sm_radiative_corrections.py` §2): running the measured Z-pole
+values up gives $\alpha_1 = \alpha_2$ at $\mu \approx 10^{13}$ GeV
+($\alpha^{-1} = 42.4$) and $\alpha_2 = \alpha_3$ at $\mu \approx 10^{17}$ GeV
+($\alpha^{-1} = 47.1$). The φ-boundary value $\alpha_{\text{GUT}} =
+\varphi^{-3}/4\pi \approx 1/53$ is not realized by any SM coupling at any
+scale below $M_{\text{Pl}}$, and the common value 1/53 at $2\times10^{16}$ GeV
+claimed in earlier sections is not a property of the SM running. Unification
+in Cassi therefore requires beyond-SM content—the same $\Delta b = 1.70$
+deficit that rescues $\alpha_s$—or a non-minimal embedding
+(`standard-model/gut-embedding.md`).
 
 ### 6.2 One-Loop RGEs
 
@@ -279,52 +304,41 @@ where for the Standard Model (including the Higgs doublet):
 - SU(2)$_L$: $b_2 = 19/6$ (non-SUSY) or $b_2 = 1$ (MSSM)
 - SU(3)$_c$: $b_3 = 7$ (non-SUSY, $n_f=6$) or $b_3 = -3$ (MSSM)
 
-The running from $M_{\text{GUT}}$ to $m_Z$ at one loop:
+The running from $M_{\text{GUT}}$ to $m_Z$ at one loop (φ-boundary
+$\alpha_i(M_{\text{GUT}}) = \varphi^{-3}/4\pi$ at $10^{16}$ GeV, top-decoupling
+threshold):
 
-| Coupling | $M_{\text{GUT}}$ (Cassi) | $m_Z$ (1-loop SM) | $m_Z$ (2-loop SM) | Measured |
-|:---------|:------------------------|:------------------|:------------------|:---------|
-| $\alpha_1^{-1}$ | 53 | 58.8 | 59.0 | 59.0 |
-| $\alpha_2^{-1}$ | 53 | 29.9 | 30.0 | 30.0 |
-| $\alpha_3^{-1}$ | 53 | 14.9 | 8.5 | 8.5 |
+| Coupling | $M_{\text{GUT}}$ (Cassi) | $m_Z$ (1-loop SM) | Measured |
+|:---------|:------------------------|:------------------|:---------|
+| $\alpha_1^{-1}$ | 53.2 | 74.3 | 59.0 |
+| $\alpha_2^{-1}$ | 53.2 | 36.9 | 29.6 |
+| $\alpha_3^{-1}$ | 53.2 | 17.3 | 8.47 |
 
-The key observation: **The SU(2) and U(1)$_Y$ couplings unify at $M_{\text{GUT}}$ under the Cassi framework** ($\alpha_1^{-1} = \alpha_2^{-1} = 53$), while SU(3) requires threshold corrections to fully unify.
-
-The unification is **not exact** at one loop—this is identical to the situation in minimal SU(5) GUTs, where threshold corrections at the GUT scale bring all three couplings together. The Cassi framework makes the same prediction as minimal SU(5) for the GUT-scale coupling.
+The φ-boundary does **not** unify at $m_Z$: $\alpha_1$ and $\alpha_2$ come
+out ~25% weak and $\alpha_3$ $2.0\times$ weak (the documented $\Delta b =
+1.70$ deficit).
 
 ### 6.3 Cassi RGE Prediction for $M_{\text{GUT}}$
 
-The Cassi GUT scale can be estimated by running $\alpha_2$ from $m_Z$ up to the point where $\alpha_2^{-1} = 53$:
+Running $\alpha_2$ from $m_Z$ up to the value $\alpha_2^{-1} = 53$ requires
+$\ln(M_{\text{GUT}}/m_Z) = (2\pi/b_2)(53 - \alpha_2^{-1}(m_Z)) \approx 45.7$,
+i.e. $\mu \approx 1.3\times10^{21}$ GeV—**above the Planck scale**. The
+φ-boundary weak coupling is not realized at any sub-Planck scale in the SM.
+
+The intersections that do exist (from the measured inputs) are:
 
 $$
-\ln\frac{M_{\text{GUT}}}{m_Z} = \frac{2\pi}{b_2}\left(\alpha_2^{-1}(m_Z) - 53\right)
-$$
-
-With $\alpha_2^{-1}(m_Z) \approx 30$ and $b_2 = 19/6$:
-
-$$
-\ln\frac{M_{\text{GUT}}}{m_Z} = \frac{2\pi}{19/6} \cdot (30 - 53) = \frac{12\pi}{19} \cdot (-23) \approx -45.6
-$$
-
-$$
-M_{\text{GUT}} = m_Z \cdot e^{45.6} \approx 1.3 \times 10^{21}\ \text{GeV}
-$$
-
-This is higher than the typical SUSY GUT scale of $2\times10^{16}$ GeV. In the MSSM ($b_2 = 1$):
-
-$$
-\ln\frac{M_{\text{GUT}}}{m_Z} = 2\pi \cdot (30 - 53) = -144.5
+\alpha_1 = \alpha_2: \mu = 1.0\times10^{13}\ \text{GeV} \quad (\alpha^{-1} = 42.4),
 $$
 
 $$
-M_{\text{GUT}} = m_Z \cdot e^{144.5} \approx \infty\ \text{(Planck scale exceeded)}
+\alpha_2 = \alpha_3: \mu = 1.0\times10^{17}\ \text{GeV} \quad (\alpha^{-1} = 47.1),
 $$
 
-These simple one-loop estimates do not account for:
-- GUT-scale threshold corrections (which change the matching condition)
-- Intermediate-scale thresholds (SUSY or other new physics)
-- Two-loop running (which shifts $\alpha_i(m_Z)$ by $\sim 1\%$)
-
-**Cassi GUT scale prediction:** $M_{\text{GUT}} \approx 10^{16} - 10^{17}$ GeV (consistent with proton decay bounds and gauge coupling unification).
+with $\alpha_1$ missing the $\alpha_2 = \alpha_3$ crossing by ~23%. This is
+the classic SM non-unification pattern, and it is the quantitative statement
+that replaces the earlier "one-loop estimates" paragraph: GUT-scale
+thresholds cannot move a 23% gap.
 
 ---
 
@@ -354,25 +368,25 @@ The top quark mass (173 GeV) $\approx \varphi^{-1} \cdot v_0 \approx 0.618 \time
 
 | Observable | SM Value | Cassi Prediction | Deviation | FCC-ee Sensitivity |
 |-----------|---------|-----------------|-----------|-------------------|
-| $m_W/m_Z$ | 0.881 | **0.874** | $-0.86\%$ | $>100\sigma$ |
-| $m_W$ | 80.377 GeV | **79.7 GeV** | $-0.86\%$ | 0.5 MeV |
-| $\sin^2\theta_W$ at $m_Z$ | 0.23122 | **0.235 (MSSM RGE from $\varphi^{-3}$)** | $1.7\%$ (w/o thresholds); $\lesssim 1\%$ with GUT corr. | $3\times10^{-5}$ |
+| $m_W/m_Z$ | 0.8813 | **0.878** (tree 0.874 + $\rho$ correction) | $-0.36\%$ | $>100\sigma$ |
+| $m_W$ | 80.360 GeV | **80.07 GeV** | $-0.36\%$ | 0.5 MeV |
+| $\sin^2\theta_W$ at $m_Z$ | 0.23122 | **0.236** ($\varphi^{-3}$; exact at $\mu_* = 233$ GeV) | $+2.1\%$ | $3\times10^{-5}$ |
 
 ### GUT Scale (Proton decay testable)
 
-| Observable | Current Bound | Cassi Prediction |
-|-----------|--------------|-----------------|
-| $M_{\text{GUT}}$ | $>10^{16}$ GeV | $10^{16}$–$10^{17}$ GeV |
-| $\alpha_{\text{GUT}}$ | $\sim 1/50$–$1/30$ | $1/53$ |
-| $p \to e^+\pi^0$ lifetime | $>10^{34}$ yr | Near current bound if $M_{\text{GUT}} \sim 10^{16}$ GeV |
+| Observable | SM Running | Cassi Boundary |
+|-----------|-----------|----------------|
+| Unification | $\alpha_1=\alpha_2$ at $10^{13}$ GeV ($\alpha^{-1}\approx 42$); $\alpha_2=\alpha_3$ at $10^{17}$ GeV—no common point | $\alpha_{\text{GUT}} = 1/53$ not realized by any SM coupling below $M_{\text{Pl}}$; requires $\Delta b = 1.70$ beyond-SM content |
+| $\alpha_{\text{GUT}}$ | $\sim 1/42$–$1/47$ (partial intersections) | $1/53$ |
+| $p \to e^+\pi^0$ lifetime |—| Near Hyper-K reach **if** the beyond-SM content raises $M_{\text{GUT}}$ to $\sim 10^{16}$ GeV (see `standard-model/gut-embedding.md`) |
 
 ### Strong Coupling (LHC testable)
 
 | Observable | Measured | Cassi Prediction | Status |
 |-----------|---------|-----------------|--------|
-| $\alpha_s(m_Z)$ | 0.118 | **0.105–0.115** | Within theory uncertainty |
-| $\Lambda_{\text{QCD}}$ | 200 MeV | **150–200 MeV** | Consistent |
-| $m_p$ | 938 MeV | Derived from $\Lambda_{\text{QCD}}$ | Consistent |
+| $\alpha_s(m_Z)$ | 0.118 | **0.058–0.061** (1-/2-loop) | $2.0\times$ low; $\Delta b = 1.70$ required |
+| $\Lambda_{\text{QCD}}$ | 200 MeV | order-of-magnitude low from φ-boundary | Same deficit |
+| $m_p$ | 938 MeV | $\varphi^3 \cdot \Lambda_{\text{QCD}} = 847$ MeV (measured $\Lambda$ input) | Within 10% |
 
 ### Hadron Spectrum (Lattice testable)
 
@@ -417,6 +431,7 @@ single $\phi$-power. See `standard-model/cp-violation.md` for the full derivatio
 
 ## References
 
+- `standard-model/sm-radiative-corrections.md`—full derivation of the loop corrections
 - `standard-model/cp-violation.md`—CKM phase derivation
 - `standard-model/gut-embedding.md`—SU(5)/SO(10) embedding, proton decay
 - `standard-model/neutrino-mass.md`—seesaw primer and canonical spectrum

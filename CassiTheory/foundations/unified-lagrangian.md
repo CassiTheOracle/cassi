@@ -266,19 +266,16 @@ g^2 = g'^2 \cdot \frac{1-\varphi^{-3}}{\varphi^{-3}} = g_s^2
 = 4\pi\alpha_{\text{GUT}}
 $$
 
-The Weinberg angle at $M_{\text{GUT}}$:
+The Weinberg angle:
 
 $$
-\boxed{\sin^2\theta_W = \frac{\varphi-1}{\varphi+1} = \alpha_0 = \varphi^{-3} \approx 0.236}
+\boxed{\sin^2\theta_W = \frac{\varphi-1}{\varphi+1} = \varphi^{-3} \approx 0.236}
 $$
 
-Coupling ratio:
-
-$$
-\frac{g'}{g} = \tan\theta_W = \sqrt{\frac{\varphi^{-3}}{1-\varphi^{-3}}} \approx 0.556
-$$
-
-RG running to $m_Z$ gives the measured $\sin^2\theta_W = 0.231$.
+The running angle equals this value at $\mu_* \approx 233$ GeV; at $m_Z$ the
+prediction sits 2.1% above the measured 0.23122 (the angle runs *upward* with
+energy, so the GUT-scale reading is not a boundary condition;
+`standard-model/sm-radiative-corrections.md` §3.3).
 
 ### 4.3 Covariant Derivative (Fermion Sector)
 
@@ -332,9 +329,14 @@ $$
 The SU(3) coupling runs from $\alpha_{\text{GUT}} = \varphi^{-3}/(4\pi)$ at $M_{\text{GUT}}$, giving:
 
 $$
-\alpha_s(m_Z) \approx 0.105\text{--}0.115,\qquad
-\Lambda_{\text{QCD}} \approx 150\text{--}200\ \text{MeV}
+\alpha_s(m_Z) \approx 0.058\text{--}0.061,\qquad
+\Lambda_{\text{QCD}} \ll 200\ \text{MeV}
 $$
+
+(one- and two-loop running with thresholds; the $2.0\times$ gap to the
+measured 0.118 is the documented $\Delta b = 1.70$ beyond-SM deficit—
+`standard-model/sm-radiative-corrections.md` §3.2, `parameter-inventory.md`
+§4.4.)
 
 ### 4.6 Yukawa Sector (Fermion Masses)
 
@@ -528,7 +530,7 @@ All dimensionless couplings in the action are derived; the three dimensionful co
 | $\varphi^{-2}$ | $1/\varphi^2$ | $0.381966011$ | Derived |
 | $\alpha_0 = \varphi^{-3}$ | $(\varphi-1)/(\varphi+1)$ | $0.236067978$ | Derived (equilibrium Yang fraction; VEV asymmetry) |
 | $\xi$ | $\varphi^6 = \varphi^5 + \varphi^4$ | $17.94427191$ | **Derived** |
-| $\sin^2\theta_W$ | $\varphi^{-3}$ | $0.236$ (GUT) → $0.231$ (Z-pole) | **Derived** |
+| $\sin^2\theta_W$ | $\varphi^{-3}$ | $0.236$ (at $\mu_* = 233$ GeV; +2.1% at $m_Z$) | **Derived** |
 | $\alpha_{\text{GUT}}$ | $\varphi^{-3}/(4\pi)$ | $1/53$ | **Derived** |
 | $m_W/m_Z$ | $\sqrt{1-\varphi^{-3}}$ | $0.874$ | **Prediction** |
 | $H_{\text{empty}}$ | $\lambda\varphi^{-2}/3$ |—| **Derived** (CC) |
@@ -569,11 +571,11 @@ The falsifiable predictions are:
 
 | Observable | Cassi | SM | Detectable at |
 |-----------|-------|-----|---------------|
-| $m_W/m_Z$ | $0.874$ | $0.881$ | FCC-ee ($>100\sigma$) |
-| $\sin^2\theta_W$ at $M_{\text{GUT}}$ | $0.236$ |—| Proton decay, GUT scale |
-| $\alpha_s(m_Z)$ | $0.105$–$0.115$ | $0.118$ | LHC precision |
-| $M_{\text{GUT}}$ | $10^{16}$–$10^{17}$ GeV |—| Proton lifetime |
-| $m_W$ | $79.7$ GeV | $80.377$ GeV | FCC-ee (0.5 MeV) |
+| $m_W/m_Z$ | $0.874$ tree; $0.878$ with $\rho$ correction | $0.881$ | FCC-ee ($>100\sigma$) |
+| $\sin^2\theta_W$ at $m_Z$ | $0.236$ ($\varphi^{-3}$; exact at $\mu_* = 233$ GeV) | $0.23122$ | FCC-ee |
+| $\alpha_s(m_Z)$ | $0.058$–$0.061$ | $0.118$ | LHC precision ($\Delta b = 1.70$) |
+| $M_{\text{GUT}}$ | $2 \times 10^{16}$ GeV (with beyond-SM content) | no SM intersection | Proton lifetime |
+| $m_W$ | $80.07$ GeV | $80.360$ GeV | FCC-ee (0.5 MeV) |
 | $G_{\text{eff}}$ boost | $(1+\varphi^6 q)\times$ | $1\times$ | Galaxy rotation |
 
 ---
