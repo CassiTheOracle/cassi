@@ -105,9 +105,10 @@ def q_from_C(C):
 
 
 def G_eff_from_C(C, rho_ratio=1.0):
-    """G_eff ∝ (1 + ξ·q) / ρ. Normalized to center."""
+    """G_eff ∝ (1 + (φ⁶−1)·q) / ρ (the saturation chord). Normalized
+    to center."""
     q = q_from_C(C)
-    return (1 + XI * q) / rho_ratio
+    return (1 + (XI - 1) * q) / rho_ratio
 
 
 def rho_from_C(C, theta_cond=THETA_COND, n=1.5):
@@ -531,7 +532,7 @@ axE.text(0.5, 0.20,
          "$q_{\\rm edge} = \\frac{1+\\theta_{\\rm cond}}{2}"
          f" = {(1+THETA_COND)/2:.3f}$  ·  "
          "$G_{\\rm eff}^{\\rm center}/G_{\\rm eff}^{\\rm void}"
-         f" \\approx {1+XI:.1f}$",
+         f" \\approx {XI:.1f}$",
          transform=axE.transAxes, ha="center", fontsize=8.5, color=TEXT_MAIN,
          bbox=dict(facecolor=BG, edgecolor=RING, alpha=0.85, pad=6, lw=0.8))
 
@@ -728,8 +729,8 @@ q_edge = (1 + THETA_COND) / 2
 print(f"  q_edge = (1+θ_cond)/2 = {q_edge:.3f}")
 print(f"  q_saddle = 0.5")
 print(f"  q_void = 0.0")
-print(f"  G_eff(center) / G_eff(edge) ≈ (1+ξ)/(1+q_edge·ξ) = {(1+XI)/(1+q_edge*XI):.3f}")
-print(f"  G_eff(edge) / G_eff(void) ≈ (1+q_edge·ξ) = {1+q_edge*XI:.3f}")
+print(f"  G_eff(center) / G_eff(edge) ≈ φ⁶/(1+q_edge·(φ⁶−1)) = {XI/(1+q_edge*(XI-1)):.3f}")
+print(f"  G_eff(edge) / G_eff(void) ≈ (1+q_edge·(φ⁶−1)) = {1+q_edge*(XI-1):.3f}")
 
 print(f"\n── Analytical bounds (§8.6) ──")
 R_bare = 2 * 0.001 * (ALPHA**2 + BETA**2) / 0.1

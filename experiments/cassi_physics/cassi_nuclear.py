@@ -26,7 +26,7 @@ import matplotlib.pyplot as plt
 
 PHI = (1.0 + math.sqrt(5.0)) / 2.0
 PHI_INV = 1.0 / PHI
-XI = 18.0
+XI = PHI ** 6                  # ξ = φ⁶ ≈ 17.944—derived Qi-gravity coupling
 
 # Nuclear scale
 SIGMA_NUCLEAR = 0.5  # fm (femtometers)
@@ -37,19 +37,21 @@ def cassi_force_nuclear(r, sigma=SIGMA_NUCLEAR, xi=XI):
     """Cassi force at nuclear scale.
     
     Same formula as gravity, just different σ.
-    F(r) = -(1+ξ)/r² · [erf(r/(σ√2)) - √(2/π)·(r/σ)·exp(-r²/(2σ²))]
+    F(r) = -φ⁶/r² · [erf(r/(σ√2)) - √(2/π)·(r/σ)·exp(-r²/(2σ²))]
+    (the q → 1 saturation ceiling of the chord 1+(φ⁶−1)q;
+    `foundations/xi-derivation.md`)
     """
     if r < 1e-10:
         return 0.0
     s = r / (sigma * math.sqrt(2.0))
     soft = math.erf(s) - math.sqrt(2.0/math.pi) * s * math.exp(-s*s)
-    return -(1.0 + xi) * soft / (r * r)
+    return -xi * soft / (r * r)
 
 
 def nuclear_potential(r, sigma=SIGMA_NUCLEAR, xi=XI):
     """Effective potential for nuclear interaction.
     
-    At r >> σ:  V → -(1+ξ)/r  (Coulomb-like)
+    At r >> σ:  V → -φ⁶/r  (Coulomb-like, chord saturation)
     At r << σ:  V → harmonic (no singularity)
     At r ≈ σ:  transition region (the "strong force" well)
     """

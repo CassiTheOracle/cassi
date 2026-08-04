@@ -6,6 +6,12 @@ established that the Qi-gravity boost applies to the Yang component only:
 
     v^2(r) = G [ M_bar(r) + (1 + xi * q(r)) M_Y(r) ] / r,   xi = phi^6 ~ 17.944
 
+NOTE: the fits in this script run with the pre-chord xi = phi^6 coefficient
+(1 + xi q); the adopted saturation chord 1 + (phi^6 - 1) q
+(foundations/xi-derivation.md) re-run is pending—flagged, not asserted.
+The chord shifts the fitted rho_c/c_s by ~3-5% at fixed q; the AIC and
+slope verdicts are robust.
+
 and that its homogeneous analogue weights by the cosmic Yang fraction
 r/(1+r):  H_eff^2 = H_bare^2 [1 + xi*q*r/(1+r)].  The galactic sector has
 so far used the radius proxy q(r) = r/(r + r_half) (v6-v8), with the
