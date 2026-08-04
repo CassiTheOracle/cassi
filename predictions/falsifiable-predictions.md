@@ -46,7 +46,7 @@ matches Planck at $1.0\sigma$ ($N_e = 40$). Tensor ratio $r = 12/N_e^2 = 0.003$ 
 CMB-S4 detection threshold ($\sigma_r = 0.001$).
 
 
-**CMB large-angle anomaly (bubble-boundary axis)**: triaxial bubble geometry at step 285 imprints a preferred axis at super-horizon scales ($\ell < 5$); predicted dipole↔quadrupole alignment $12.2°$ (C10). The CMB "axis of evil" (quadrupole-octopole alignment at $(l,b)=(260\degree,+60\degree)$, 5.4σ; Jones+ 2023) is a candidate. The Cassi-unique test: the anomaly must be scale-dependent (fading for $\ell > 5$), distinguishing from foreground contamination. Simons Observatory + LiteBIRD E-mode polarization data (2025+) will resolve.
+**CMB large-angle anomaly (bubble-boundary axis)**: triaxial bubble geometry at step 285 imprints a preferred axis at super-horizon scales ($\ell < 5$); predicted dipole↔quadrupole alignment $12.2°$ (C10). The CMB "axis of evil" (quadrupole-octopole alignment at $(l,b)=(260\degree,+60\degree)$, 5.4σ; Jones+ 2023) is the measured counterpart. Epistemic tiering: the $12.2°$ angle is **Calibrated** (angle from data, computed from the measured direction vectors); the bubble-boundary mechanism is **Hypothesized** (boundary orientation fit to the measured axis, post-hoc). The Cassi-unique test: the anomaly must be scale-dependent (fading for $\ell > 5$), distinguishing from foreground contamination. Simons Observatory + LiteBIRD E-mode polarization data (2025+) provide the test.
 ---
 
 ## 3. Cosmic Surveys (LSST, Roman, SKA)—Structure & Dark Energy
@@ -86,7 +86,7 @@ $2.8\%$ accuracy. The Hubble tension is pending a full $H(z)$ fit (registry C3/T
 |-----------|-----|-------|--------------|
 | GW speed $c_g/c$ | $= 1$ | **$= 1$** (vacuum) | GW170817 consistent |
 | GW polarization | $+, \times$ | **$+, \times$ + breathing mode** | LIGO search ongoing |
-| GW strain in halos | GR | **Up to ~$10\times$ GR** in halo-outskirt Qi environments ($1+(\varphi^{6}-1)q = 10$ at $q = 0.53$; α-free ceiling $\varphi^6 \approx 17.9$) | bound uncomputed (script print statement)—pending GW170817 strain-ratio recomputation |
+| GW strain in halos | GR | **Up to ~$10\times$ GR** in halo-outskirt Qi environments ($1+(\varphi^{6}-1)q = 10$ at $q = 0.53$; α-free ceiling $\varphi^6 \approx 17.9$) | **LIGO/Virgo GW170817** — inspiral amplitude precision $\varepsilon_h \approx 0.10$ ⇒ **$q_{\text{binary}} < 5.9\times10^{-3}$** at the binary's local coherence (chord law $h/h_{\text{GR}} = 1 + (\varphi^{6}-1)q$; computed in `experiments/cassi_physics/cassi_gw_q_bound.py`) — consistent with the framework's $q(r)$: field/dense-core environments have $q \leq 10^{-3}$ ($\pi/\rho$-diluted), while the rotation boost needs $q \approx 0.61$ only at halo outskirts — **consistent** |
 | BH shadow M87$^*$ | $\sim 5M$ | **GR limit ($q = 0$): $3\sqrt{3}M$** | no Cassi metric—prediction not yet derived |
 | Mercury perihelion | $43$ arcsec/cy | **42.98 arcsec/cy** | MESSENGER consistent |
 | $|q|$ at 0.39 AU | $0$ | **$<1.1\times10^{-6}$** | MESSENGER bound |
@@ -204,7 +204,7 @@ Sorted by detection likelihood (most definitive first):
 | 3 | $w_0$ (gap-derived) | Cosmic surveys | **$-0.87$** (gap-derived) | $2\sigma$ from DESI $\approx -0.75 \pm 0.06$ | **Tension** |
 | 4 | $w_a$ (DE EoS slope) | Cosmic surveys | **$+0.012$ (with $\xi = \varphi^6$)** | $2.7\sigma$ from DESI $\approx -0.73 \pm 0.28$ | **Tension** |
 | 5 | φ-periodic $P(k)$ | Cosmic surveys | **$\Delta\ln k = \ln\varphi = 0.4812$** | 0-param, orthogonal to BAO | **DESI / Euclid 2025–27** |
-| 6 | CMB bubble-boundary axis | CMB-S4 / LiteBIRD | **12.2° alignment, $\ell<5$** | Axis at 5.4σ, alignment ~1σ | **Simons Obs. 2025+** |
+| 6 | CMB bubble-boundary axis | CMB-S4 / LiteBIRD | **12.2° alignment, $\ell<5$** | **Calibrated** (12.2° angle from data; axis at 5.4σ, alignment ~1σ) / **Hypothesized** (boundary mechanism, post-hoc orientation) | **Simons Obs. 2025+** |
 | 7 | $r$ (tensor ratio) | CMB-S4 / LiteBIRD | **0.003** | $<0.032$ (Planck) | **2030s** |
 | 8 | $n_s$ | CMB-S4 | **0.9691** (closed form; $N_e = 40$ window Mapped — ledger) | $1.0\sigma$ from Planck | **Already consistent** |
 | 9 | $\alpha_s(m_Z)$ | LHC precision | **0.058–0.061** | $2.0\times$ below measured $0.118$ ($\Delta b = 1.70$) | **Ongoing** |
@@ -215,7 +215,7 @@ Sorted by detection likelihood (most definitive first):
 | 14 | Galaxy rotation curves | Galactic | **$2.8$–$3.0\times$ baryon boost** (mechanism Calibrated via the $\xi$ pin; $\alpha_{\text{halo}}$, $q$ Mapped — ledger) | MW boost $2.7\pm0.5$ is the calibration object—consistency check, not an independent test | **Calibrated / Mapped** |
 | 15 | Dwarf galaxy cored halos | Galactic | **Cored (Qi)**—3/8 pass | MOND preferred (4/8); ceiling $\sqrt{\varphi^6} = \varphi^3 = 4.2361$ exceeded in 3/8 | **Already tested** |
 | 16 | BH shadow M87$^*$ | EHT | **GR limit ($q = 0$): $3\sqrt{3}M \approx 5.2M$** | no Cassi metric exists—shadow prediction not yet derived | **Hypothesized (untested)** |
-| 17 | GW strain in halos | LIGO | **Up to ~10× GR** in halo-outskirt environments (reached at $q = 0.53$; max $\varphi^6 \approx 17.9$; $\pi/\rho$ dilutes cluster cores) | bound uncomputed (script print statement)—pending GW170817 strain-ratio recomputation | **Hypothesized** |
+| 17 | GW strain in halos | LIGO | **Up to ~10× GR** in halo-outskirt environments (reached at $q = 0.53$; max $\varphi^6 \approx 17.9$; $\pi/\rho$ dilutes cluster cores) | **GW170817 inspiral amplitude precision $\varepsilon_h \approx 0.10$ ⇒ $q_{\text{binary}} < 5.9\times10^{-3}$** (chord law $h/h_{\text{GR}} = 1+(\varphi^{6}-1)q$; `experiments/cassi_physics/cassi_gw_q_bound.py`) — consistent: field/dense-core environments have $q \leq 10^{-3}$ | **Hypothesized** |
 | 18 | Pioneer anomaly | Solar system | **$a_\varphi = 7.4\times10^{-10}$ m/s$^2$** | $1\sigma$ agreement | **Already explained** |
 | 19 | Mercury perihelion | MESSENGER | **42.98 arcsec/cy** | GR recovered ($q=0$) | **Already consistent** |
 | 20 | $0\nu\beta\beta$ decay | nEXO | **$m_{\nu_e} \sim 0.01$–$0.05$ eV** | nEXO reach $\sim 0.01$ eV | **2030s** |
