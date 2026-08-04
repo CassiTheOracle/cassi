@@ -39,17 +39,18 @@ def cassi_rhs_factory(sigma, xi):
         if u < 1e-12:
             return [du, 0.0]
         r = 1.0 / u
-        # Cassi force: softened Newtonian with Qi enhancement
+        # Cassi force: softened Newtonian with Qi enhancement at the
+        # chord saturation (q → 1: 1+(φ⁶−1)·1 = φ⁶)
         s = r / (sigma * math.sqrt(2.0))
         soft = math.erf(s) - math.sqrt(2.0/math.pi) * s * math.exp(-s*s)
-        F = (1.0 + xi) * soft / (r * r)
+        F = xi * soft / (r * r)
         # Effective GR-like term: scale Cassi force to match GR at large r
-        # At large r: soft → 1, F → (1+xi)/r²
+        # At large r: soft → 1, F → φ⁶/r² (chord saturation ceiling)
         # GR term: 3M/r² = 3M·u²
-        # Cassi term: F·u² = (1+xi)·soft·u²
+        # Cassi term: F·u² = φ⁶·soft·u²
         # For comparison, use: d²u/dθ² = -u + F_cassi · u² / (Newtonian force)
-        # Simplified: replace 3M·u² with (1+xi)·soft·u²
-        return [du, -u + (1.0 + xi) * soft * u * u]
+        # Simplified: replace 3M·u² with φ⁶·soft·u²
+        return [du, -u + xi * soft * u * u]
     return rhs
 
 
@@ -125,7 +126,7 @@ def main():
     print("=" * 60)
     
     sigma = 0.5
-    xi = 18.0
+    xi = PHI ** 6               # ξ = φ⁶ ≈ 17.944—chord saturation ceiling
     
     # Schwarzschild
     print("\nSchwarzschild (GR):")
