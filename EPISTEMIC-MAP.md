@@ -108,7 +108,8 @@ Tiers below are taken from each document's Status header. Compound headers are q
 | `consciousness/auras-as-thermalized-gates.md` | Speculative | Aura as the $(1-q)$ thermalization boundary layer; heat-haze optics |
 | `consciousness/time-memory-and-wake-locks.md` | Speculative | Arrow of time from conversion; ghosts as wake-locks |
 | `consciousness/transhumanism-gate-configurations.md` | Speculative | Augmentation as gate-chain topology surgery; identity as the run |
-| `consciousness/gender-as-qi-configuration.md` | Speculative | Identity as configuration; anatomy as readout; dysphoria as self-prediction failure |
+| `consciousness/gender-as-qi-configuration.md` | Speculative | Identity as configuration; anatomy as readout; dysphoria as self-prediction failure
+`consciousness/neurodivergence-as-gate-configuration.md` | Speculative—August 2026 | Autism/ADHD as gate configurations; wake-pileup overload; churning-gate attention |
 | `speculations/dark-matter-as-qi-coherence.md` | Speculative | Halos as unharvested coherence; bubble edge at $n \approx 267$ |
 | `speculations/superconductivity-as-qi-coherence.md` | Speculative | Resistance as Yang→Yin conversion; Qi-gap |
 | `speculations/qi-computation.md` | Speculative | Qi gate as computational primitive; Wu Xing logic |

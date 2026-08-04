@@ -19,7 +19,8 @@ This directory maps the Cassi two-fluid framework onto the human scale—the 26-
 | 7 | `time-memory-and-wake-locks.md` | Time, memory, and ghosts as wake-locks | Speculative |
 | 8 | `transhumanism-gate-configurations.md` | Identity and augmentation as gate surgery | Speculative |
 | 9 | `gender-as-qi-configuration.md` | Identity, congruence, self-prediction | Speculative (drive-mechanism layer PDE-tested 2026-08-02) |
-| 10 | `cassi-psychology.md` | Psychology guide (root-level synthesis) | Synthesis |
+| 10 | `neurodivergence-as-gate-configuration.md` | Autism/ADHD as gate configurations | Speculative (drive-mechanism layer PDE-tested 2026-08-02) |
+| 11 | `cassi-psychology.md` | Psychology guide (root-level synthesis) | Synthesis |
 
 ## Document Summaries
 
@@ -58,6 +59,10 @@ The human is a configuration tuple $\mathcal{H} = (\{n_k\}, P_\parallel, \mathbf
 ### `gender-as-qi-configuration.md`—Gender as Qi Configuration
 
 Gender has no native variable in the two-fluid field, and the analysis starts from that absence: the field is a continuous ratio with an irrational asymmetric equilibrium—no poles, no classes, no invalid states, only distances and their costs. The architecture then supplies the positive claim: anatomy is the readout and the person is the configuration tuple (`transhumanism-gate-configurations.md` §1.2), so sex characteristics live at the readout layer while gender identity lives in the self-modeling field above the pinch, carrying its own IIR memory. Dysphoria reads as the memory failing to predict its own present—$q$ depressed, the gate churning $(1-q)$—and imposed gender reads as a driven structure: sustained by re-stimulation, released when the driver stops, drained only by phase-matched support (the tested φ versus $e$ drive result). The document prices the social field too, and closes with six structure-level predictions and explicit boundaries: the drive mechanics are PDE-tested, the human mapping is Speculative.
+
+### `neurodivergence-as-gate-configuration.md`—Neurodivergence as Gate Configuration
+
+The sibling application of the gender document's architecture: the field has no neurotypical configuration, and autism and ADHD read as two different slot settings of the configuration tuple. Autism is the high-stability configuration—resting coherence closes the gate, so stimuli persist as wakes (detail retention, pileup overload), the phase-stiff boundary makes social coupling costly, monotropism is a native single-channel preference (distinct from the trauma lock), stimming is self-generated drive at the field's own phase (the mechanism-tested drain), and masking is suppression with burnout as its coherence accounting. ADHD is the open-gate configuration—low resting $q$ keeps conversion churning, attention is a coherence state the churning gate cannot hold except under a phase-matched drive (hyperfocus), and time blindness is the IIR memory failing to track a pattern that never repeats. The two sit at different layers of the tuple, which is why they co-occur; the drive-mechanism layer is PDE-tested, the human mapping is Speculative, and a churning-gate test is proposed but not run.
 
 ### `cassi-psychology.md`—Cassi Psychology: The Mind as a Two-Fluid Field
 
