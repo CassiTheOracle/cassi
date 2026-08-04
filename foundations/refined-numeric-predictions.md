@@ -1,6 +1,6 @@
 # Refined Numeric Predictions for the 24 Hypothesized Questions
 
-## Status: Active derivation—July 2026
+## Status: Active derivation (C10 CMB axis: Calibrated angle / Hypothesized mechanism)—August 2026
 
 ## Abstract
 
@@ -39,7 +39,7 @@ deliverable:
 | C6 | Horizon problem | **Structural** |—| Cascade emergence mechanism |
 | C7 | Baryon asymmetry | Cascade-span | $\eta\approx\varphi^{-44}$ | $6.38\times 10^{-10}$, within 6.3% of observed |
 | C9 | Cosmic web | **Structural** |—| Wake-wave interference morphology |
-| C10 | CMB axis | Cascade-span (geometric) | Axis at $(l,b)=(260°,+60°)$ | Alignment angle $12.2°$ from bubble geometry |
+| C10 | CMB axis | Cascade-span (geometric) | Axis at $(l,b)=(260°,+60°)$ | Alignment angle $12.2°$ (measured; calibrated from data vectors), boundary mechanism Hypothesized |
 | Q3 | Neutrino masses | Cascade-span | $m_3 \approx 0.050$ eV (computed spectrum) | Specific $\Delta_{\nu,k}$ offsets |
 | Q5 | Three generations | Cascade-span (number present) | $N_{\text{gen}}=3$ | Mass ratios per sector |
 | Q6 | Matter asymmetry | Same as C7 | $\eta\approx\varphi^{-44}$ | Same refinement as C7 |
@@ -186,25 +186,33 @@ spectral gap—not the φ-RG fixed point—governs the seesaw sector.
 
 ---
 
-### 2.3 C10—CMB Axis Alignment: $12.2°$ from Bubble Geometry
+### 2.3 C10—CMB Axis Alignment: $12.2°$ (Measured) and the Bubble-Boundary Mechanism
 
 **Current status:** The CMB quadrupole ($\ell=2$) and octopole ($\ell=3$) are
-anomalously aligned along $(l, b) = (260°, +60°)$ at 5.4σ significance. The
-Cassi prediction (`cosmology/observational_constraints.md` §4) is that the bubble
+anomalously aligned along $(l, b) = (260°, +60°)$ at 5.4σ significance
+(a-posteriori: the axis was discovered in the data; a look-elsewhere
+correction across multipoles applies). The Cassi candidate mechanism
+(`cosmology/observational_constraints.md` §4.2) is that the bubble
 boundary—the level set of the condensation field $C(x,y) = \theta_{\text{cond}}$ between adjacent identical $w=5$ bubbles in the chord lattice—imprints a preferred axis
 at super-horizon scales ($\ell < 5$). See `foundations/bubble-edge-geometry.md`.
 
-**Refined prediction: alignment angle from bubble geometry.**
+**Tier: Calibrated (12.2° angle, computed from data) / Hypothesized (boundary mechanism).**
 
 The observed angular separation between the CMB dipole (the motion direction,
 $(l, b) = (264°, +48°)$) and the quadrupole-octopole axis is:
 
 $$\boxed{\theta_{\text{align}} = 12.2°}$$
 
-This is a **geometric prediction** of the bubble-boundary model. The dipole
-direction is the Yang axis—the direction along which the $E_Y$-dominant field
-component points in the bubble. The quadrupole-octopole axis is the normal to
-the bubble boundary (the interface with an adjacent $w=5$ bubble in the chord lattice).
+The angle is a *measured* property of the CMB: the pipeline computes it from
+the measured multipole direction vectors (the dipole and the
+quadrupole-octopole axis), so the value is calibrated from the data, not
+predicted. The bubble-boundary model supplies the candidate mechanism: the
+dipole direction is the Yang axis—the direction along which the
+$E_Y$-dominant field component points in the bubble. The quadrupole-octopole
+axis is the normal to the bubble boundary (the interface with an adjacent
+$w=5$ bubble in the chord lattice). The mechanism is **Hypothesized**: its
+boundary orientation is set equal to the measured quadrupole-octopole axis,
+so it currently explains the direction post-hoc rather than predicting it.
 
 If both directions are set by the same bubble geometry (Yang axis within the
 bubble, boundary normal at the bubble edge), their angular separation is the
@@ -213,12 +221,14 @@ For a bubble at step 285 (191 Mpc comoving diameter) embedded in today's
 cascade (horizon rung 292; the rung-292 lattice length is 5.5 Gpc, while
 $R_H = 4.44$ Gpc = 14.5 Glyr at $N = 291.54$), the boundary is nearly tangent to the
 past light cone at the recombination surface, producing a small ($\sim 10°$–$15°$)
-projected angle.
+projected angle—an a priori envelope containing the datum, not a derivation
+of the 12.2° itself.
 
 **Pipeline result:** A computational pipeline
-(`two-fluid/run_cmb_lowl_pipeline.py`) computes the predicted angular power
-spectrum from the bubble-boundary geometry:
-- $\theta_{\text{align}} = 12.22°$ (verified via spherical law of cosines)
+(`two-fluid/run_cmb_lowl_pipeline.py`) computes the angular power
+spectrum from the bubble-boundary geometry; the alignment angle is computed
+from the measured vectors (calibration input):
+- $\theta_{\text{align}} = 12.22°$ (computed via spherical law of cosines from the data vectors; calibrated, not predicted)
 - $C_2 = 200$ μK² (calibrated to Planck), $C_3 = 123.6$ μK²
 - $C_3/C_2 = \varphi^{-1} \approx 0.618$—Fibonacci-suppressed octopole
 - $C_4/C_2 = \varphi^{-2} \approx 0.382$, $C_5 \approx 0$
@@ -232,9 +242,10 @@ spectrum from the bubble-boundary geometry:
 of bubble-boundary temperature pattern + predicted $C_\ell$ spectrum + 3D
 geometry schematic.
 
-**To upgrade to Derived:** The specific $12.2°$ angle must be computed from
-the bubble-boundary geometry in the full 3D PDE, mapping the Yang axis
-direction to the boundary normal of the adjacent chord-lattice bubble.
+**To elevate beyond Calibrated/Hypothesized:** The specific $12.2°$ angle and
+the boundary normal must be computed a priori from the bubble-boundary
+geometry in the full 3D PDE—the condensation field's orientation at rung 285
+relative to the galaxy/CMB frame—without taking the measured axis as input.
 ---
 
 ### 2.4 C4—Inflation: $r \approx \varphi^{-12}$ and $n_s = 0.9691$
@@ -725,7 +736,7 @@ RGE).
 | C7/Q6 (baryon asymmetry) | $\varphi^{-44}$ | $6.38 \times 10^{-10}$ (6.3% of obs.) |
 | C4 (inflation $r$) | $\varphi^{-12}$ | 0.0031 (3.5% above stated) |
 | C4 (inflation $n_s$) | $1 - 2\varphi^{-1}/N_e$ (δn_s = 2φ⁻²/N_e) | $0.950 + 0.0191 = 0.9691$ |
-| C10 (CMB axis) | $12.2°$ alignment | Geometric from bubble |
+| C10 (CMB axis) | $12.2°$ alignment (measured) | Calibrated from data vectors; boundary mechanism Hypothesized |
 | Q3 (neutrino $\Delta_\nu$) | **$\Delta_1 = 1.00$, $\Delta_2 = 1.75$ rungs (cascade RGE + PMNS pinned)** | **$\Delta m^2$ ratio $33.82$ (0.2% residual)** |
 | Q10 (spin form factor) | $\Delta(\ln q) = \ln\varphi = 0.4812$ | Zero-parameter |
 | G5 (dimensions) | 3 (Frenet-Serret) | Number IS the derivation |
