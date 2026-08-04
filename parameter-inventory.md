@@ -343,7 +343,7 @@ RATIOS involving these constants are $\varphi$-powers:
 | $m_{\nu_e}/m_e$ (seesaw) | $\varphi^{-11}$ | $0.013$ | Consistent |
 
 The Cassi framework's external-constant status: **6 inputs, 0 a-priori-derived;
-28 fitted or selected quantities are ledgered as Calibrated or Mapped in §10.**
+29 fitted or selected quantities are ledgered as Calibrated or Mapped in §10.**
 This matches the Standard Model (which also takes $\{G, c, \hbar, m_e, m_p,
 \Lambda_{\text{QCD}}\}$ as inputs) and is not a weakness—all dimensionful
 quantities must eventually be set by experiment in any theory that lacks a
@@ -491,6 +491,7 @@ fails the quality bar. Tier definitions: `open-questions-cassi-answers.md`
 | Proton-lifetime exponent ($n = 91.5$, $N = 4506$; boxed $\tau_p \approx 4\times10^{34}$ yr) | "Derived (from the coherence budget); not testable" (registry Q9) | Rung fixed to the repo's own mass ladder ($n = 91.46$, 2026-08-03 arithmetic sweep); per-rung survival $q_i = 1 - \varphi^{-i-\delta}$ is Hypothesized ("alternative scalings possible"); the boxed formula with its own inputs gives $1.3\times10^{37}$ yr, 323× the boxed number | Proton mass; Super-K bound | 02-sm.md:101-106; 01-core.md:120-122 | Mapped |
 | $r = \varphi^{-12} \approx 0.003$ | Catalog "✅ Within bound" | Exponent matched post-hoc: all three of the doc's own formulas fail ($\varphi^{-6} \neq 0.003$; $12/40^2 = 0.0075$; $(16/\pi)\xi q/\varphi^{40} = 2\times10^{-7}$) | Planck+BICEP bound $r < 0.03$ | 03-cosmo.md:59-62, 163 | Mapped |
 | $w_0$ coupling form ($-0.87$) | "Derived—2σ from DESI" (registry T1); tension labeled | ODE calibrated to the hardcoded `TARGET_W0` (synced to −0.87 on 2026-08-03; formerly −0.838) cited as "the DESI measurement"; coupling form revised toward DESI (−0.838 → −0.856 → −0.862 → −0.872 → −0.87); still 2σ/2.7σ tension | DESI DR2 ($w_0 \approx -0.75 \pm 0.06$, $w_a$) | 03-cosmo.md:18-25, 157 | Calibrated |
+| $\kappa_{\text{DE}} = 3\varphi^2 H_0$ | "Calibrated" (open-questions C1); 2σ tension, not resolved | Calibrated via the $w_0$ coupling anchored to DESI (2σ tension); $3\varphi^2 = K_{md}$ is a Wu Xing coefficient (Derived), but $\kappa_{\text{DE}}$ as a whole has no independent derivation—a Calibrated fit, no free parameters beyond the anchoring | DESI DR2 ($w_0 \approx -0.75 \pm 0.06$, $w_a$) | 03-cosmo.md:18-25, 157 | Calibrated |
 | $\xi = \varphi^6 \approx 17.944$ | "Derived—ξ within 0.3% of empirical" (registry C2/G4) | Rung identity Derived ($\varphi^6 = \varphi^5 + \varphi^4$); empirical pin $\xi \approx 18$ calibrated on the Milky Way rotation curve; the MW "Already consistent" row is the calibration object re-read | Milky Way rotation curve ($r = 7$ kpc) | 04-grav.md:17-25; 01-core.md:141 | Calibrated (rung identity Derived) |
 | $v_0/M_{\text{Pl}}$ exponent $N \approx 79.7$ | "Derived" (registry Q1); inventory: "notable numerical coincidence, but not a derivation" | $N = \log_\varphi(M_{\text{Pl}}/v_0)$ is the log of the measured ratio (79.89); the suppression doc quotes $N = 72$ for the same gap (factor 45 off) | $v_0 = 246$ GeV | 01-core.md:112-114 | Mapped |
 | $G_{\text{eff}}$ π/ρ ↔ $\alpha_0$ equality ($\varphi^{-3}$) | "Equilibrium Yang fraction" ($\alpha_0$) | Relabel: at the $\varphi$-fixed point the Yang fraction is $\varphi^{-1}$, not $\varphi^{-3}$; three α values (0.236, 0.618, 0.7) share one symbol | Fixed-point ratio (derived); value selected | 04-grav.md:121-125 | Mapped (relabel) |
@@ -504,7 +505,7 @@ fails the quality bar. Tier definitions: `open-questions-cassi-answers.md`
 | $\sigma_8$: $\mu(k,a)$ normalization | "Slightly lower ~5%" claim; pipeline gives −43% | Plan target row labeled "target, matching observations" ($\mu = 0.980 \to -5.3\%$); free $\mu$ normalization and $q(k,a)$ machinery | Low-z weak lensing $\sigma_8$ | 03-cosmo.md:139 | Mapped |
 | GWTC-4 "coincidences" (3 near-hits) | "Worth recording" (gwtc4-mass-ladder.md) | Point-estimate near-hits selected after the fact from ~200 events (expectation of 0.03-rung hits over the catalog ≈ 12); the posterior-weighted test is null | GWTC-4 compact-object masses | 06-hyp.md:78-82 | Mapped |
 
-**Row count: 28.** A row here does not settle the quantity's physics—it settles
+**Row count: 29.** A row here does not settle the quantity's physics—it settles
 its honesty. Each entry carries the tier the claim must bear (Calibrated or
 Mapped) until the fit is replaced by an independent derivation; the re-tier
 stage propagates these labels to the documents that cite the quantities.
