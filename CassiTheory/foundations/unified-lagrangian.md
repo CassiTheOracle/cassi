@@ -533,7 +533,7 @@ All dimensionless couplings in the action are derived; the three dimensionful co
 | $\sin^2\theta_W$ | $\varphi^{-3}$ | $0.236$ (at $\mu_* = 233$ GeV; +2.1% at $m_Z$) | **Derived** |
 | $\alpha_{\text{GUT}}$ | $\varphi^{-3}/(4\pi)$ | $1/53$ | **Derived** |
 | $m_W/m_Z$ | $\sqrt{1-\varphi^{-3}}$ | $0.874$ | **Prediction** |
-| $H_{\text{empty}}$ | $\lambda\varphi^{-2}/3$ |—| **Derived** (CC)—**Asserted** (postulate): the 1/3 is the 3D continuity reading; T₀₀ at equilibrium gives 0 or (g/4)φ², never λφ⁻²/3; Lagrangian derivation open |
+| $H_{\text{empty}}$ | $\lambda\varphi^{-2}/3$ |—| **Asserted** (postulate): the 1/3 is the 3D continuity reading; T₀₀ at equilibrium gives 0 or (g/4)φ², never λφ⁻²/3; Lagrangian derivation open |
 | $K_{fw}$ | $\varphi^{-1}$ | $0.618$ | **Derived** |
 | $K_{md}$ | $3\varphi^2$ | $7.85$ | **Derived** |
 | $\kappa_s$ | $\varphi^{-6}/v_0^2$ | $0.92$ TeV$^{-2}$ | **Derived** (scale) |
