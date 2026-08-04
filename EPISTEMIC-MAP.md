@@ -41,7 +41,7 @@ Tiers below are taken from each document's Status header. Compound headers are q
 | `foundations/quark-confinement.md` | Derived | QCD at step 95; Qi flux tube; $P_{\text{break}} \approx \varphi^{-4506}$ |
 | `foundations/proton-coherence-budget.md` | Derivation (rung exponent Mapped—ledger; per-rung $q_i$ profile Hypothesized) | Proton lifetime $\sim \varphi^{4506}$ cycles; annihilation pathway |
 | `foundations/sector-coupling-derivation.md` | Derived scale with Hypothesized coefficient (v₀ input Calibrated, N_pde normalization Mapped—ledger) | Dirac↔two-fluid sector-coupling scale $\kappa_s = \varphi^{-6}/v_0^2$ (0.92 TeV$^{-2}$; $\kappa_s^{-1/2} \approx 1.04$ TeV) |
-| `foundations/bubble-edge-geometry.md` | Derived (structural) | Edge steepness $1.70\times$ anisotropy; CMB axis $12.2°$ (C10) |
+| `foundations/bubble-edge-geometry.md` | Derived (structural) | Edge steepness $1.70\times$ (Derived); CMB axis $12.2°$ (measured—Calibrated; boundary mechanism Hypothesized, post-hoc) |
 | `foundations/wa-pentagon-gate.md` | Derived ($\xi = \varphi^6$) / Hypothesized (5-channel) | $w_a = +0.012$ via $\xi$: $2.7\sigma$ tension vs DESI, not resolved; 5-channel shift Hypothesized (ODE pending) |
 | `principles/de-resonance-principle.md` | Derived | Why $\varphi$ is the attractor (maximally irrational) |
 | `principles/v0-hierarchy-problem.md` | Derived (step count, per registry Q1); 5.3% residual open | $v_0/M_{\text{Pl}} \approx \varphi^{-80}$ as step count (Q1) |
