@@ -442,8 +442,8 @@ The computation reaches **Derived** status when:
 
 2. **Consistency with existing tests:** The same $\xi = \varphi^6$ and $q$ evolution reproduces:
    - MW rotation curve boost ($2.8$–$3.0\times$ predicted vs $2.7 \pm 0.5$ observed at 30 kpc)—consistent within ~0.4σ
-   - $w_0 = -0.87$ ($2\sigma$ from DESI DR2's $w_0 \approx -0.75 \pm 0.06$ [INFERENCE])
-   - $w_a = +0.012$ with $\xi$ correction ($2.7\sigma$, $2.2$–$3.2\sigma$: tension, not resolved)
+   - $w_0 = -0.87$ ($2\sigma$ baseline from DESI DR2's $w_0 \approx -0.75 \pm 0.06$ [INFERENCE]; $3.6\sigma$ at fixed $r_0$ with the ratified coupling)
+   - $w_a = +0.012$ with $\xi$ correction ($2.7\sigma$ baseline) → $-0.38$ with the ratified conversion→expansion coupling ($1.25\sigma$, B2; 08 §C.6)
 
 3. **Residual tension explained:** The $\sim 0.02\text{–}0.06$ gap between Cassi and the lowest $\sigma_8$ measurements is within the systematic uncertainty of $q(k)$ extraction at finite resolution ($N \geq 64$).
 

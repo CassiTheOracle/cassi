@@ -53,8 +53,8 @@ CMB-S4 detection threshold ($\sigma_r = 0.001$).
 
 | Observable | $\Lambda$CDM | Cassi | Test / Status |
 |-----------|---------|-------|-----------|
-| $w_0$ (DE EoS today) | $-1$ | **$-0.87$** (structural; pinned across $r_0$) | $2\sigma$ from DESI $\approx -0.75 \pm 0.06$ |
-| $w_a$ (DE EoS slope) | $0$ | **$+0.012$** (with $\xi = \varphi^6$) | $2.7\sigma$ from DESI $\approx -0.73 \pm 0.28$—tension, not resolved |
+| $w_0$ (DE EoS today) | $-1$ | **$-0.87$** (Calibrated, structural; pinned across $r_0$; $-0.97$ at fixed $r_0$ with the ratified coupling) | $2\sigma$ from DESI $\approx -0.75 \pm 0.06$ baseline; $3.6\sigma$ at fixed $r_0$ with the coupling ($r_0$ re-tuning open) |
+| $w_a$ (DE EoS slope) | $0$ | **$+0.012$** (with $\xi = \varphi^6$, Calibrated baseline); **$-0.38$** (with the ratified conversion→expansion coupling, B2) | baseline $2.7\sigma$; with the coupling $1.25\sigma$ from DESI $\approx -0.73 \pm 0.28$ (bracket $-0.61$…$-0.38$ across routes) |
 | $w(z)$ at $z > 3$ | $-1$ | **$> -1$** (no phantom crossing, structural) | LSST/Roman/SKA testable; DESI best fit crosses at $z \approx 0.5$ |
 | φ-periodic $P(k)$ modulation | None | **$\Delta(\ln k) = \ln\varphi \approx 0.4812$** | 0-param, orthogonal to BAO, DESI/Euclid testable |
 | Void ellipticity (edge gradient) | Isotropic boundaries | **1.70** (axial:diagonal steepness) | Zero-param, $C(x,y)$ gradient; SDSS/DESI void catalogs |
@@ -75,7 +75,7 @@ The φ-periodic $P(k)$ prediction is a **zero-parameter, falsifiable test** orth
 The condensation field gradient anisotropy (§5.2 of `foundations/bubble-edge-geometry.md`) further predicts that void boundaries are $1.70\times$ steeper in the Yin direction than along diagonals—a distinct zero-parameter geometric prediction from the same wake-wave mechanism, testable with void shape catalogs from SDSS/DESI.
 **Source:** `cosmology/cosmology-from-phi.md` §§3–5, `theory/five-element-pde-derivation.md` §7,
 `foundations/bubble-edge-geometry.md` §§2.2,5.2, `cosmology/observational_constraints.md` §1.4–§6,
-`cosmology/desi-lattice-averaging.md` (lattice powder lines, variance suppression, wiggle bound). The dark energy prediction is $w_0 = -0.87$ (2σ from DESI) and $w_a = +0.012$ (2.7σ from DESI)—tension, not resolved; the conversion dynamics keep $w > -1$ at all $z$ (no phantom crossing). The DM/baryon ratio is $\varphi^3+1$ with
+`cosmology/desi-lattice-averaging.md` (lattice powder lines, variance suppression, wiggle bound). The dark energy prediction is $w_0 = -0.87$ (2σ baseline; 3.6σ at fixed $r_0$ with the ratified conversion→expansion coupling, $r_0$ re-tuning open) and $w_a = +0.012$ (2.7σ baseline) shifting to $-0.38$ (1.25σ, B2) with the coupling (08 §C.6); the conversion dynamics keep $w > -1$ at all $z$ (no phantom crossing). The DM/baryon ratio is $\varphi^3+1$ with
 $2.8\%$ accuracy. The Hubble tension is pending a full $H(z)$ fit (registry C3/T4); the evolving-$\Omega_\Lambda$ expansion history gives a pipeline CMB-inferred value of ≈ 65.8 km/s/Mpc.
 
 ---
@@ -112,12 +112,18 @@ ledger §10), not an independent test. The boost ceiling
 is $\sqrt{\varphi^6} = \varphi^3 = 4.2361$ at full coherence ($q = 1$, $\alpha$-free)—exact,
 2.75% tighter than the previous $\sqrt{1+\varphi^6} = 4.3525$ ceiling.
 
-**Convention discriminator (descent law, 2026-08-03):** if gravity is descent along the
-derived internal SO(2) spiral, the gradient force carries a fixed azimuthal component
-$|F_\theta/F_r| = \ln\varphi/(2\pi) = 0.0766$ (pitch 4.38°, one turn per cascade rung); the
-posted microcascade quarter-turn spatial form would give $2\ln\varphi/\pi = 0.3063$
-(17.03°)—an exact factor-4 test of which spiral convention gravity descends (the central
-$\mathbf{F} = \Pi\nabla\Phi$ law predicts $a_\theta/a_r = 0$).
+**Convention discriminator (descent law, 2026-08-04):** the ratified theory's
+primary prediction is the fourth value: with the conversion→expansion
+coupling (Hypothesized—August 2026, zero free constants; 08 §A.2) the
+gradient force carries a fixed azimuthal component
+$|F_\theta/F_r| = \gamma\omega_{\text{rot}}/(\omega_{\text{rot}}^2 - \gamma^2/4)
+= 0.19880$ (11.24°; the dynamical pitch angle is 11.34° from $\varphi^{-2} =
+0.382$ turns per rung, $\tan = \ln\varphi/(2\pi\varphi^{-2}) = 0.2005$). The
+counterfactual forks—no term / one-turn convention / quarter-turn spatial
+form—give $0$ (central $\mathbf{F} = \Pi\nabla\Phi$ law), $\ln\varphi/(2\pi) =
+0.0766$ (pitch 4.38°, one turn per cascade rung), $2\ln\varphi/\pi = 0.3063$
+(17.03°): an exact factor test of which spiral convention gravity descends.
+[COMPUTED]
 
 ---
 
@@ -201,8 +207,8 @@ Sorted by detection likelihood (most definitive first):
 |---|-----------|---------|-----------------|----------------|-------------------|
 | 1 | $m_W/m_Z$ | FCC-ee | **0.878** (tree 0.874 + $\rho$ correction; 0.36% below SM) | $>100\sigma$ reachable | **2030s** |
 | 2 | $\sin^2\theta_W(m_Z)$ | FCC-ee | **0.236** ($\varphi^{-3}$; exact at $\mu_* = 233$ GeV) | $+2.1\%$ deviation | **2030s** |
-| 3 | $w_0$ (gap-derived) | Cosmic surveys | **$-0.87$** (gap-derived) | $2\sigma$ from DESI $\approx -0.75 \pm 0.06$ | **Tension** |
-| 4 | $w_a$ (DE EoS slope) | Cosmic surveys | **$+0.012$ (with $\xi = \varphi^6$)** | $2.7\sigma$ from DESI $\approx -0.73 \pm 0.28$ | **Tension** |
+| 3 | $w_0$ (gap-derived) | Cosmic surveys | **$-0.87$** (Calibrated baseline) | $2\sigma$ from DESI $\approx -0.75 \pm 0.06$ baseline; $3.6\sigma$ at fixed $r_0$ with the coupling | **Tension** ($r_0$ re-tuning open) |
+| 4 | $w_a$ (DE EoS slope) | Cosmic surveys | **$+0.012$ (with $\xi = \varphi^6$)** → **$-0.38$** (with the ratified coupling, B2) | baseline $2.7\sigma$; $1.25\sigma$ with the coupling | **Near-resolved** (with the coupling—08 §C.6) |
 | 5 | φ-periodic $P(k)$ | Cosmic surveys | **$\Delta\ln k = \ln\varphi = 0.4812$** | 0-param, orthogonal to BAO | **DESI / Euclid 2025–27** |
 | 6 | CMB bubble-boundary axis | CMB-S4 / LiteBIRD | **12.2° alignment, $\ell<5$** | **Calibrated** (12.2° angle from data; axis at 5.4σ, alignment ~1σ) / **Hypothesized** (boundary mechanism, post-hoc orientation) | **Simons Obs. 2025+** |
 | 7 | $r$ (tensor ratio) | CMB-S4 / LiteBIRD | **0.003** | $<0.032$ (Planck) | **2030s** |

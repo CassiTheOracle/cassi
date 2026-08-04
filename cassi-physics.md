@@ -243,7 +243,7 @@ The predicted equation of state follows from the gate dynamics:
 
 $$w_0 = -0.87, \qquad w_a = +0.012$$
 
-with the Qi-gravity coupling $\xi = \varphi^6$ entering the cosmic evolution. These are zero-parameter predictions, falsifiable with galaxy surveys. Current status: DESI DR2 finds $w_0 \approx -0.75 \pm 0.06$ [INFERENCE], $2\sigma$ from the predicted $w_0 = -0.87$; the $w_a$ deviation from $-1$ is the discriminant. See `cosmology/cosmology-from-phi.md` for the derivation and `predictions/falsifiable-predictions.md` for the test status.
+with the Qi-gravity coupling $\xi = \varphi^6$ entering the cosmic evolution. These are zero-parameter predictions, falsifiable with galaxy surveys. Current status: DESI DR2 finds $w_0 \approx -0.75 \pm 0.06$ [INFERENCE], $2\sigma$ from the predicted $w_0 = -0.87$ (Calibrated baseline; $3.6\sigma$ at fixed $r_0$ with the ratified conversion→expansion coupling, $r_0$ re-tuning open); the $w_a$ deviation from $-1$ is the discriminant ($w_a = +0.012$ baseline, $2.7\sigma$; $-0.38$ with the coupling, $1.25\sigma$—08 §C.6). See `cosmology/cosmology-from-phi.md` for the derivation and `predictions/falsifiable-predictions.md` for the test status.
 
 **Epistemic status: Hypothesized** (prediction supplied; being tested).
 
@@ -346,7 +346,7 @@ The human-scale consequences—consciousness, emotion, trauma, therapy—are dev
 | # | Prediction | Test | Status |
 |---|---|---|---|
 | 1 | $\ln\varphi$ periodicity in $P(k)$ | DESI DR2 (marginal 2–3σ); Euclid (definitive >5σ) | Being tested |
-| 2 | $w_0 = -0.87$, $w_a = +0.012$ | DESI DR2 ($w_0$: $2\sigma$ from $\approx -0.75 \pm 0.06$ [INFERENCE]) | Being tested |
+| 2 | $w_0 = -0.87$, $w_a = +0.012$ (baseline); $w_a = -0.38$ with the ratified coupling | DESI DR2 ($w_0$: $2\sigma$ baseline; $w_a$: $2.7\sigma \to 1.25\sigma$) | Being tested |
 | 3 | $\sigma_8$ reduced by $G_{\text{eff}}$ weakening in voids | KiDS/DESI | Being tested |
 | 4 | $1.70\times$ edge anisotropy at any condensate boundary | Voids, chakras, fascial planes | Not yet tested |
 | 5 | $\varphi^2$ inter-chakra spacing ratio along spine | Anatomical measurement | Not yet tested |

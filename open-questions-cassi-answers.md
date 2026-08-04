@@ -855,18 +855,18 @@ The along-string bubble period is 1 rung at cosmological scale (step 285) and 2 
 
 ```mermaid
 flowchart TD
-    A[DESI DR2: w₀ ≈ −0.75 ± 0.06] --> B[Cassi: w₀ = −0.87—2σ]
+    A[DESI DR2: w₀ ≈ −0.75 ± 0.06] --> B[Cassi: w₀ = −0.87—2σ baseline; 3.6σ at fixed r₀ with the ratified coupling]
 ```
-| **Cassi Answer** | $w_0 = -0.87$ (2σ from DESI $w_0 \approx -0.75 \pm 0.06$ [INFERENCE]); $w_a = +0.012$ with $\xi = \varphi^6$ (2.7σ, 2.2–3.2σ, from DESI $w_a \approx -0.73 \pm 0.28$ [INFERENCE])—tension, not resolved |
+| **Cassi Answer** | $w_0 = -0.87$ (2σ from DESI $w_0 \approx -0.75 \pm 0.06$ [INFERENCE] baseline); $w_a = +0.012$ with $\xi = \varphi^6$ (2.7σ, 2.2–3.2σ, baseline)—Calibrated baseline, tension not resolved. With the ratified conversion→expansion coupling (Hypothesized—August 2026, zero free constants—08 §C.6): $\Delta w_0 = -0.098$, $\Delta w_a = -0.393$ (B2; bracket $-0.61$…$-0.38$) → $w_0' = -0.97$ ($3.6\sigma$ at fixed $r_0$, re-tuning open), $w_a' = -0.38$ (**$1.25\sigma$**, same sign as DESI) |
 
-**Visual:** DESI DR2 constrains w₀ ≈ −0.75 ± 0.06 [INFERENCE]; Cassi predicts w₀ = −0.87—a 2σ offset.
+**Visual:** DESI DR2 constrains w₀ ≈ −0.75 ± 0.06 [INFERENCE]; Cassi predicts w₀ = −0.87—a 2σ offset at the Calibrated baseline (3.6σ at fixed r₀ with the ratified coupling).
 
 
 The Dark Energy Spectroscopic Instrument (DESI) recently measured how dark energy has evolved over cosmic time and found that it does not behave like a simple cosmological constant—the deviation is at 4.2 sigma, crossing the threshold for a discovery. If confirmed, this would rule out the standard $\Lambda$CDM model. Cassi's answer: $w_0 = -0.87$—$2\sigma$ from the DESI anchor $w_0 \approx -0.75 \pm 0.06$ [INFERENCE]—because $w(a)$ evolves naturally with $r(a)$ in the two-fluid model (see Primer), and the present-day value is simply a snapshot of the closing Qi gate. DESI also constrains $w_a \approx -0.73 \pm 0.28$ [INFERENCE] (Table 9; range $-0.6$ to $-1.1$ across SNe compilations). With the Qi-gravity coupling $\xi = \varphi^6$ (verified in rotation curves) in $H(a)$, the Yang-fraction-weighted form gives $w_a = +0.012$—2.7σ (2.2–3.2σ) from DESI: tension, not resolved.
 
-| **Cassi Answer** | $w_0 = -0.87$ (2σ from DESI $w_0 \approx -0.75 \pm 0.06$ [INFERENCE]); $w_a = +0.012$ with $\xi = \varphi^6$ (2.7σ, 2.2–3.2σ, from DESI $w_a \approx -0.73 \pm 0.28$ [INFERENCE])—tension, not resolved |
-| **Mechanism** | $w(a)$ evolves with $r(a)$; $w_0$ is present-epoch snapshot of closing Qi gate; $\xi = \varphi^6$ in $H(a)$ gives $w_a = +0.012$ |
-| **Epistemic** | **Calibrated** ($w_0$ coupling form, $\xi$ pin—ledger); prediction at 2.7σ (2.2–3.2σ) from DESI $w_a \approx -0.73 \pm 0.28$ [INFERENCE]—tension, not resolved |
+| **Cassi Answer** | $w_0 = -0.87$ (2σ from DESI $w_0 \approx -0.75 \pm 0.06$ [INFERENCE] baseline); $w_a = +0.012$ with $\xi = \varphi^6$ (2.7σ, 2.2–3.2σ, baseline)—Calibrated baseline, tension not resolved. With the ratified conversion→expansion coupling (Hypothesized—August 2026, zero free constants—08 §C.6): $\Delta w_0 = -0.098$, $\Delta w_a = -0.393$ (B2; bracket $-0.61$…$-0.38$) → $w_0' = -0.97$ ($3.6\sigma$ at fixed $r_0$, re-tuning open), $w_a' = -0.38$ (**$1.25\sigma$**, same sign as DESI) |
+| **Mechanism** | $w(a)$ evolves with $r(a)$; $w_0$ is present-epoch snapshot of closing Qi gate; $\xi = \varphi^6$ in $H(a)$ gives $w_a = +0.012$ (baseline); the ratified conversion→expansion coupling $V_{\text{new}} = \lambda\tilde{h} + \lambda\varphi^{-2}/d$ shifts $w_0$/$w_a$ by the §C.6 amounts (B2) |
+| **Epistemic** | **Calibrated** ($w_0$ coupling form, $\xi$ pin—ledger); baseline prediction at 2.7σ (2.2–3.2σ) from DESI $w_a \approx -0.73 \pm 0.28$ [INFERENCE]; with the ratified coupling (Hypothesized—August 2026) $1.25\sigma$ (B2); $w_0$ $3.6\sigma$ at fixed $r_0$ ($r_0$ re-tuning open) |
 | **Reference** | `two-fluid/calibrate_initial_ratio_xi.py`, `foundations/wa-pentagon-gate.md` §5 |
 
 ### T2: JWST "impossible" early galaxies
