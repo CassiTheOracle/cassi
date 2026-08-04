@@ -248,14 +248,14 @@ If detected, it is a unique Cassi signature orthogonal to perturbative QCD.
 
 | | Proton decay | Annihilation | Measurement | **Spin** |
 |---|---|---|---|---|
-| **What's attacked** | All 95 rungs, random | All 95 rungs, anti-phase | 1 rung, phase-matched | **Winding across rungs, continuous** |
+| **What's attacked** | All 92 rungs, random | All 92 rungs, anti-phase | 1 rung, phase-matched | **Winding across rungs, continuous** |
 | **What sets timescale** | Cascade product | Single-cycle | Single-cycle | **Cascade pitch $2\pi/\ln\varphi$** |
 | **What's quantized** | N/A (erosion) | N/A (binary) | Born rule $|\alpha|^2$ | **SO(2) winding $s = \Delta n$** |
 | **What persists** | Proton itself | Nothing | Post-collapse branch | **Spiral geometry of the surviving branch** |
 
 Spin is what the field does **between** the events—the geometric structure of
-the condensate that the coherence budget protects. The proton lives $10^{980}$
-years because no random perturbation finds all 95 rungs simultaneously; while
+the condensate that the coherence budget protects. The proton lives $10^{910}$
+years because no random perturbation finds all 92 rungs simultaneously; while
 it lives, its quarks carry spin-$1/2$ because the internal SO(2) doublet winds
 by $\pi$ from the QCD core to the proton boundary. Same cascade, same $\varphi$,
 three different aspects of one field.

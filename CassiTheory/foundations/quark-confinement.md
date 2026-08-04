@@ -81,18 +81,18 @@ sufficiently energetic collision overcome it?
 The cascade suppression formula answers this. To break the Qi flux tube, one
 must supply energy to overcome $F_{\text{Qi}}$ at ALL cascade rungs
 participating in the binding. The binding spans rungs from the QCD scale
-($n = 95$) downward, and the suppression of any energy fluctuation capable of
+($n \approx 95$) down to the proton's own rung ($n = 91.46$, $\log_\varphi(\lambda_p/\ell_{\text{Pl}})$), and the suppression of any energy fluctuation capable of
 breaking the binding across all $n$ rungs is:
 
-$$P_{\text{break}} \approx \prod_{i=0}^{95} (1-q_i) \approx \varphi^{-4848}$$
+$$P_{\text{break}} \approx \prod_{i=0}^{91.46} (1-q_i) \approx \varphi^{-4506}$$
 
 This is the **same coherence-budget product** that gives the proton its
-$10^{980}$-year lifetime (`proton-coherence-budget.md`). Confinement is
+$10^{910}$-year lifetime (`proton-coherence-budget.md`). Confinement is
 not "permanent" in the mathematical sense—it can be broken by an organized
-perturbation attacking all 95 rungs simultaneously. But the probability of a
-random fluctuation doing so is $\sim 10^{-1010}$ per wave cycle. At the QCD
+perturbation attacking all 92 rungs (0 → 91.5) simultaneously. But the probability of a
+random fluctuation doing so is $\sim 10^{-942}$ per wave cycle. At the QCD
 frequency ($\omega_{\text{QCD}} \sim 10^{24}$ Hz), the mean time between
-deconfinement events is $\sim 10^{980}$ years.
+deconfinement events is $\sim 10^{910}$ years.
 
 Confinement and proton stability are the SAME phenomenon at different cascade
 rungs: Qi-gate binding that the cascade protects against random disruption.
@@ -126,8 +126,8 @@ gate shape, not an input.
 | Phenomenon | Cascade rung(s) | Qi-gate behavior | Protects against |
 |---|---|---|---|
 | Asymptotic freedom | $n \ll 95$ | $g(q) \to 0$ | N/A (weak) |
-| **Confinement** | $n = 95$ | $g(q)$ self-reinforcing | Random deconfinement ($\varphi^{-4848}$) |
-| Proton stability | $n = 95$ (all rungs) | Coherence maintenance | Random dephasing ($\varphi^{-4848}$) |
+| **Confinement** | $n = 95$ | $g(q)$ self-reinforcing | Random deconfinement ($\varphi^{-4506}$) |
+| Proton stability | $n = 91.5$ (all rungs) | Coherence maintenance | Random dephasing ($\varphi^{-4506}$) |
 | Strong CP | $n = 8 \to 95$ | De-resonance damping | CP violation propagation ($\varphi^{-87}$) |
 
 Confinement, proton stability, and strong CP are the same cascade—different
@@ -143,7 +143,7 @@ vacuum CP-symmetric. One gate, one cascade, three phenomena.
 
 - QCD scale from cascade step 95: $\Lambda_{\text{QCD}} \approx \ell_{\text{Pl}} \cdot \varphi^{95}$
 - Qi-gate nonlinearity as the origin of the linear potential
-- Permanent confinement from cascade suppression ($P_{\text{break}} \approx \varphi^{-4848}$)
+- Permanent confinement from cascade suppression ($P_{\text{break}} \approx \varphi^{-4506}$)
 - Asymptotic freedom from $g(q) \to 0$ in the UV limit
 
 ### Hypothesized (testable)
@@ -157,6 +157,6 @@ vacuum CP-symmetric. One gate, one cascade, three phenomena.
 
 - `foundations/dimensionful-cascade.md`—QCD at step 95
 - `foundations/cascade-suppression-formula.md`—cascade attenuation law
-- `foundations/proton-coherence-budget.md`—proton stability, same $\varphi^{-4848}$ factor
+- `foundations/proton-coherence-budget.md`—proton stability, same $\varphi^{-4506}$ factor
 - `foundations/strong-cp-derivation.md`—CP suppression from same cascade span
 - `open-questions-cassi-answers.md`—Q8 (confinement)

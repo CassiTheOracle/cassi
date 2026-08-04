@@ -149,11 +149,11 @@ shifts the prediction to $+0.10$ ($1.6\sigma$); the 5-channel pentagonal gate (c
 
 ### `proton-coherence-budget.md`—Proton Coherence Budget: Derivation of $N_{\text{max}}$
 
-A condensed standing wave at cascade step $n = 95$ is not an isolated structure: its coherence is maintained by the entire cascade from Planck to its own rung, and dephasing requires the simultaneous loss of coherence at all $n$ supporting rungs. The coherence budget is the product of per-rung survival probabilities,
+A condensed standing wave at cascade step $n = 91.5$ ($\log_\varphi(\lambda_p/\ell_{\text{Pl}}) = 91.46$) is not an isolated structure: its coherence is maintained by the entire cascade from Planck to its own rung, and dephasing requires the simultaneous loss of coherence at all $n$ supporting rungs. The coherence budget is the product of per-rung survival probabilities,
 
 $$\boxed{N_{\text{max}} = \prod_{i=0}^{n} \frac{1}{1-q_i} \approx \varphi^{\,n(n+1)/2}}$$
 
-giving $N_{\text{max}} \approx \varphi^{4560} \approx 10^{950}$ cycles ($\varphi^{4848} \approx 10^{1010}$ with the Planck-scale $\sigma$-regularization included). The proton's effective lifetime exceeds the age of the observable universe by roughly 900 orders of magnitude—proton decay is not observed because the universe is not remotely old enough. Status: Derivation.
+giving $N_{\text{max}} \approx \varphi^{4228} \approx 10^{884}$ cycles ($\varphi^{4506} \approx 10^{942}$ with the Planck-scale $\sigma$-regularization included). The proton's effective lifetime exceeds the age of the observable universe by roughly 900 orders of magnitude—proton decay is not observed because the universe is not remotely old enough. Status: Derivation.
 
 ### `quantum-measurement-derivation.md`—Quantum Measurement as Organized Cascade Perturbation
 
@@ -161,7 +161,7 @@ Applies the coherence budget to measurement. A superposition's branches share ev
 
 $$\boxed{P(\alpha) = \frac{q_\alpha}{q_\alpha + q_\beta} = \frac{|\alpha|^2}{|\alpha|^2 + |\beta|^2}}$$
 
-The same coherence-budget machinery that stabilizes the proton for $\sim 10^{980}$ years explains why collapse happens at all. Status: Derivation.
+The same coherence-budget machinery that stabilizes the proton for $\sim 10^{910}$ years explains why collapse happens at all. Status: Derivation.
 
 ### `strong-cp-derivation.md`—Strong CP: Why $\bar{\theta} \approx 0$ from Cascade De-Resonance
 
@@ -201,7 +201,7 @@ with pinned offsets $\Delta_1 = 1.00$ and $\Delta_2 = 1.75$ rungs, and a lightes
 
 ### `baryon-asymmetry.md`—Matter-Antimatter Asymmetry from Cascade Freeze-Out and Organized Annihilation
 
-Derives $\eta = n_b/n_\gamma \approx 6 \times 10^{-10}$ from two mechanisms already derived elsewhere: organized annihilation (an antiparticle is a condensed standing wave with inverted SO(2) phase attacking all 95 cascade rungs simultaneously, so $P_{\text{annihilation}} \approx 1$ and every antimatter particle that meets matter is eliminated) and the Yang-Yin imbalance at freeze-out set by the Wu Xing gap $g = 1 - \varphi^{-5}$. The surviving matter fraction at the GUT scale is $\eta_{\text{GUT}} \approx \varphi^{-10}$, and 44 rungs of photon-producing conversion dilute it to
+Derives $\eta = n_b/n_\gamma \approx 6 \times 10^{-10}$ from two mechanisms already derived elsewhere: organized annihilation (an antiparticle is a condensed standing wave with inverted SO(2) phase attacking all 92 cascade rungs simultaneously, so $P_{\text{annihilation}} \approx 1$ and every antimatter particle that meets matter is eliminated) and the Yang-Yin imbalance at freeze-out set by the Wu Xing gap $g = 1 - \varphi^{-5}$. The surviving matter fraction at the GUT scale is $\eta_{\text{GUT}} \approx \varphi^{-10}$, and 44 rungs of photon-producing conversion dilute it to
 
 $$\boxed{\eta \approx \varphi^{-44} \approx 6.38 \times 10^{-10}}$$
 

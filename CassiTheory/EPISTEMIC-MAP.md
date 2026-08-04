@@ -38,9 +38,9 @@ Tiers below are taken from each document's Status header. Compound headers are q
 | `foundations/wu-xing-derivation.md` | Derived | $w = 5$ derived (pentagon geometry); $\lambda = 1/(2w) = 0.1$ |
 | `foundations/wu-xing-cycle-structure.md` | Derived (cycle geometry, coupling, ring algebra) / Tested (ke ring PDE 2026-07-31, WX1 gate level 2026-08-01) / Hypothesized (affinity gradient, clinical profile) | Two coherent 5-cycles (sheng/ke); control-ring algebra; 5↔13 chakra partition |
 | `foundations/xi-derivation.md` | Derived | $\xi = \varphi^6 \approx 17.944$ Qi-gravity coupling |
-| `foundations/quark-confinement.md` | Derived | QCD at step 95; Qi flux tube; $P_{\text{break}} \approx \varphi^{-4848}$ |
+| `foundations/quark-confinement.md` | Derived | QCD at step 95; Qi flux tube; $P_{\text{break}} \approx \varphi^{-4506}$ |
 | `foundations/strong-cp-derivation.md` | Derivation (result: Derived, Q2) | $\bar{\theta} \approx 10^{-19}$, cascade-suppressed |
-| `foundations/proton-coherence-budget.md` | Derivation (result: Derived, Q9) | Proton lifetime $\sim \varphi^{4848}$ cycles; annihilation pathway |
+| `foundations/proton-coherence-budget.md` | Derivation (result: Derived, Q9) | Proton lifetime $\sim \varphi^{4506}$ cycles; annihilation pathway |
 | `foundations/sector-coupling-derivation.md` | Derived scale with Hypothesized coefficient | Dirac↔two-fluid sector-coupling scale $\kappa_s = \varphi^{-6}/v_0^2$ (0.92 TeV$^{-2}$; $\kappa_s^{-1/2} \approx 1.04$ TeV) |
 | `foundations/bubble-edge-geometry.md` | Derived (structural) | Edge steepness $1.70\times$ anisotropy; CMB axis $12.2°$ (C10) |
 | `foundations/wa-pentagon-gate.md` | Derived ($\xi = \varphi^6$) / Hypothesized (5-channel) | $w_a = +0.012$ via $\xi$: $2.7\sigma$ tension vs DESI, not resolved; 5-channel shift Hypothesized (ODE pending) |

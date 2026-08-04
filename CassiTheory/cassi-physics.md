@@ -175,7 +175,7 @@ $$\boxed{\ell_n = \ell_{\text{Pl}} \times \varphi^{\,n}, \quad n \in \mathbb{Z} 
 | 20 | $2.4 \times 10^{-31}$ m | Seesaw scale: neutrino masses |
 | 40 | $3.7 \times 10^{-27}$ m | Inflationary energy scale |
 | 80 | $8.0 \times 10^{-19}$ m | Electroweak scale (246 GeV) |
-| 95 | $1.1 \times 10^{-15}$ m | QCD confinement: the proton |
+| 95 | $1.1 \times 10^{-15}$ m | QCD confinement scale ($\Lambda_{\text{QCD}}$; the proton itself sits at $n = 91.5$) |
 | 117 | $5.3 \times 10^{-11}$ m | Bohr radius: the atom |
 | 136 | $5.0 \times 10^{-7}$ m | Visible light (500 nm) |
 | 142 | $7.7 \times 10^{-6}$ m | The living cell (~8 µm) |
@@ -207,9 +207,9 @@ This single rule explains the deepest hierarchy puzzles in physics, each in one 
 | Electroweak hierarchy ($v_0/M_{\text{Pl}}$) | 72 | $\varphi^{-72}$ | $10^{-15}$ |
 | Strong CP ($\bar{\theta}$) | 87 | $\varphi^{-87}$ | $\pi\varphi^{-89} \approx 10^{-19}$ |
 | Neutrino masses ($m_\nu$) | 12–25 | $\varphi^{-12}$ to $\varphi^{-25}$ | 0.001–0.1 eV |
-| Proton lifetime | 95² (coherence) | $\varphi^{-4848}$ | $10^{980}$ yr |
+| Proton lifetime | 91.5 (coherence) | $\varphi^{-4506}$ | $10^{910}$ yr |
 
-There are two regimes. **Signal propagation** attenuates linearly in the span: $\varphi^{-N}$. **Coherence maintenance**—a structure that depends on all supporting rungs staying coherent simultaneously, like the proton across its 95 rungs—attenuates quadratically: $\varphi^{-n(n+1)/2}$. The proton's effective lifetime follows from the coherence regime; the electroweak hierarchy and strong CP follow from the propagation regime.
+There are two regimes. **Signal propagation** attenuates linearly in the span: $\varphi^{-N}$. **Coherence maintenance**—a structure that depends on all supporting rungs staying coherent simultaneously, like the proton across its 91.5 rungs—attenuates quadratically: $\varphi^{-n(n+1)/2}$. The proton's effective lifetime follows from the coherence regime; the electroweak hierarchy and strong CP follow from the propagation regime.
 
 The gap $g = 1 - \varphi^{-5}$ sets the cascade depth for the electroweak scale: $v_0/M_{\text{Pl}} = g \cdot \varphi^{-N}$ gives $N \approx 80$ rungs, matching the observed hierarchy.
 
@@ -273,11 +273,11 @@ with $\alpha_{0,i}$ the per-body Yang fraction at the $\varphi$-fixed point ($\a
 
 ## 13. Proton Stability
 
-The proton is a condensed standing wave spanning 95 cascade rungs. Its lifetime is set by the probability that all 95 rungs stay coherent simultaneously—the cascade suppression formula's coherence regime:
+The proton is a condensed standing wave spanning 91.5 cascade rungs ($\log_\varphi(\lambda_p/\ell_{\text{Pl}}) = 91.46$, with $\lambda_p = \hbar c/m_p$). Its lifetime is set by the probability that all 91.5 rungs stay coherent simultaneously—the cascade suppression formula's coherence regime:
 
-$$\tau_p \sim \varphi^{4848} \cdot \tau_{\text{Planck}} \sim 10^{980} \text{ yr}$$
+$$\tau_p = N_{\text{max}}/\omega_p \sim 10^{942}/10^{24} \sim 10^{910} \text{ yr}$$
 
-A coherence-budget analysis (`foundations/proton-coherence-budget.md`) shows why organized conversion (coherent across the full 95-rung span) is required to dismantle the proton, while random perturbation cannot do it: the coherence requirement imposes the quadratic suppression. The prediction is consistent with all null results to date and is untestable with current technology—the framework's position is that this prediction will not be directly falsified in the foreseeable future.
+A coherence-budget analysis (`foundations/proton-coherence-budget.md`) shows why organized conversion (coherent across the full 91.5-rung span) is required to dismantle the proton, while random perturbation cannot do it: the coherence requirement imposes the quadratic suppression. The prediction is consistent with all null results to date and is untestable with current technology—the framework's position is that this prediction will not be directly falsified in the foreseeable future.
 
 **Epistemic status: Derived** (from the coherence budget); **not testable**.
 
@@ -354,7 +354,7 @@ The human-scale consequences—consciousness, emotion, trauma, therapy—are dev
 | 7 | $\varphi$-periodic modulation in neural avalanche sizes | MEA recordings, >10³ events | Not yet tested |
 | 8 | No fourth fermion generation | LHC/FCC | Consistent |
 | 9 | $\bar{\theta} \approx 10^{-19}$ | Future neutron EDM | Not yet testable |
-| 10 | $\tau_p \sim 10^{980}$ yr | Untestable with current technology | Consistent with null result |
+| 10 | $\tau_p \sim 10^{910}$ yr | Untestable with current technology | Consistent with null result |
 
 Full catalog: `predictions/falsifiable-predictions.md` (46 entries). The physics-specific predictions (1–3, 8–10) are listed here; the full set including the biological and psychological predictions is in the catalog and in `cassi-psychology.md` §22.
 

@@ -55,7 +55,7 @@ The electroweak cascade depth $N \approx 80$ is robust against variations in the
 | Step $n$ | Scale (meters) | Physical Meaning | Regime |
 |----------|---------------|-------------------|--------|
 | 0 | $1.6 \times 10^{-35}$ | **Planck length**—UV cutoff | Quantum gravity |
-| 5 | $1.8 \times 10^{-34}$ | GUT scale ($M_{\text{GUT}} \sim 10^{16}$ GeV) | GUT |
+| 5 | $1.8 \times 10^{-34}$ | GUT-scale label ($M_{\text{GUT}} \approx 10^{16}$ GeV sits at $n \approx 13.3$–$14.8$, $\ell \approx 10^{-32}$ m; step 5 itself is $1.1\times10^{18}$ GeV) | GUT |
 | 10 | $2.0 \times 10^{-33}$ | Compactification / string scale | GUT |
 | 20 | $2.4 \times 10^{-31}$ | Seesaw scale ($\sim 10^{14}$ GeV, neutrino masses) | GUT/neutrino |
 | 40 | $3.7 \times 10^{-27}$ | Inflationary energy scale | Inflation |
@@ -96,13 +96,13 @@ The electroweak cascade depth $N \approx 80$ is robust against variations in the
 Key steps are verified against known physical scales:
 
 ```
-Step  80:  ℓ_Pl × φ^80  = 1.616e-35 × 4.97e16 = 8.04e-19 m  (EW scale, 246 GeV ✓)
-Step  95:  ℓ_Pl × φ^95  = 1.616e-35 × 8.16e19 = 1.32e-15 m  (Proton, 1 GeV ✓)
-Step 117:  ℓ_Pl × φ^117 = 1.616e-35 × 3.28e24 = 5.29e-11 m  (Bohr radius ✓)
-Step 220:  ℓ_Pl × φ^220 = 1.616e-35 × 9.47e45 = 1.53e11 m   (1.02 AU ✓)
-Step 267:  ℓ_Pl × φ^267 = 1.616e-35 × 6.38e55 = 1.03e21 m   (33 kpc ✓)
-Step 284:  ℓ_Pl × φ^284 = 1.616e-35 × 2.25e59 = 3.64e24 m   (118 Mpc, BAO ✓)
-Step 285:  ℓ_Pl × φ^285 = 1.616e-35 × 3.65e59 = 5.89e24 m   (191 Mpc, bubble ✓)
+Step  80:  ℓ_Pl × φ^80  = 1.616255e-35 × 5.236e16 = 8.463e-19 m  → E = ħc/ℓ = 233.2 GeV  (EW scale 233.2 GeV ✓; the 246 GeV VEV claim is −5.2% off ✗)
+Step  95:  ℓ_Pl × φ^95  = 1.616255e-35 × 7.142e19 = 1.154e-15 m  (QCD 1.0e-15 m: +15.4% ✗; proton λ_C = 2.103e-16 m sits at n = 91.46, not here; E₉₅ = 0.171 GeV ≠ 1 GeV ✗)
+Step 117:  ℓ_Pl × φ^117 = 1.616255e-35 × 2.828e24 = 4.572e-11 m  (Bohr radius 5.29e-11 m: −13.6% ✗)
+Step 220:  ℓ_Pl × φ^220 = 1.616255e-35 × 9.490e45 = 1.534e11 m   (1.02 AU ✓)
+Step 267:  ℓ_Pl × φ^267 = 1.616255e-35 × 6.305e55 = 1.019e21 m   (33 kpc ✓)
+Step 284:  ℓ_Pl × φ^284 = 1.616255e-35 × 2.252e59 = 3.639e24 m   (118 Mpc, BAO ✓)
+Step 285:  ℓ_Pl × φ^285 = 1.616255e-35 × 3.643e59 = 5.888e24 m   (191 Mpc, bubble ✓)
 ---
 
 ## 4. Cascade Zones

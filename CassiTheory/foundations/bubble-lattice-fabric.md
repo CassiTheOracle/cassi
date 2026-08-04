@@ -182,7 +182,7 @@ The ladder metaphor is correct but incomplete—it captures the along-string per
 |---|---|---|---|
 | 0 | $1.6 \times 10^{-35}$ m | Planck length | $\sigma$-regularized crossover; lattice dissolves into harmonic regime |
 | ~5 | $1.8 \times 10^{-34}$ m | GUT scale | Gauge symmetry breaking at a lattice node |
-| ~95 | $1.0 \times 10^{-15}$ m | QCD confinement | Proton as a condensed standing wave; 95-rung coherence depth |
+| ~95 | $1.0 \times 10^{-15}$ m | QCD confinement | Proton as a condensed standing wave; 92-rung coherence depth (0 → 91.5) |
 | ~117 | $5.3 \times 10^{-11}$ m | Bohr radius | Atomic bubble lattice onset; orbital shells as nested bubble surfaces |
 | ~136 | $5.0 \times 10^{-7}$ m | Visible light | One $\varphi$-step wide; 7 sub-rungs via Fibonacci partitioning |
 | 142–168 | $7.7 \times 10^{-6}$ to $1.7$ m | Human body | 26-rung nested lattice; 13 chakra nodes at $P_\parallel = 2$ |

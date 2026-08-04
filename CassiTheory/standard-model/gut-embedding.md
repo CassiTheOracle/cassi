@@ -363,4 +363,4 @@ beyond the reach of future experiments.
 - `standard-model/sm-from-phi.md`—φ-breaking chain and GUT-scale coupling
 - `standard-model/su2-gauge-extension.md`—gauge-coupling unification at $M_{\text{GUT}}$
 - `standard-model/neutrino-mass.md`—seesaw scale and canonical spectrum
-- `foundations/dimensionful-cascade.md`—GUT rung anchors (steps 5–10)
+- `foundations/dimensionful-cascade.md`—GUT rung anchors ($n \approx 13.3$ for $M_{\text{GUT}} \approx 2\times10^{16}$ GeV)

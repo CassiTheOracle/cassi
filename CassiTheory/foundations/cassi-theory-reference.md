@@ -108,7 +108,7 @@ $$\text{Coherence:}\quad \mathcal{D}_{0 \to n} = \prod_{i=0}^{n} (1-q_i) = \varp
 
 where $1-q_i = \varphi^{-i-\delta}$ is the per-rung dephasing probability, $\delta = 3$ (from $\sigma = \ell_{\text{Pl}}/\varphi^3$). Signal propagation is linear in span $N$; coherence maintenance is quadratic in depth $n$.
 
-Applications: hierarchy ($v_0/M_{\text{Pl}} \propto \varphi^{-80}$; see `principles/v0-hierarchy-problem.md`), strong CP ($\bar{\theta} \propto \varphi^{-87} \times \pi\varphi^{-2}$), neutrino masses ($m_\nu \propto v_0 \cdot \varphi^{-12}$), proton lifetime (coherence: $\varphi^{-4848}$).
+Applications: hierarchy ($v_0/M_{\text{Pl}} \propto \varphi^{-80}$; see `principles/v0-hierarchy-problem.md`), strong CP ($\bar{\theta} \propto \varphi^{-87} \times \pi\varphi^{-2}$), neutrino masses ($m_\nu \propto v_0 \cdot \varphi^{-12}$), proton lifetime (coherence: $\varphi^{-4506}$).
 
 ### 3.3 Wu Xing Cycle
 
@@ -272,15 +272,15 @@ $$\bar{\theta} \approx \varphi^{-87} \times \pi\varphi^{-2} = \pi\varphi^{-89}$$
 
 ### 6.6 Proton Stability
 
-Proton is a condensed standing wave at $n = 95$. Per-rung dephasing: $1-q_i = \varphi^{-i-\delta}$ ($\delta=3$). Cumulative:
+Proton is a condensed standing wave at $n = 91.5$ ($\log_\varphi(\lambda_p/\ell_{\text{Pl}}) = 91.46$). Per-rung dephasing: $1-q_i = \varphi^{-i-\delta}$ ($\delta=3$). Cumulative:
 
-$$P_{\text{dephase}} = \prod_{i=0}^{95} (1-q_i) = \varphi^{-4848}$$
+$$P_{\text{dephase}} = \prod_{i=0}^{91.46} (1-q_i) = \varphi^{-4506}$$
 
-$N_{\text{max}} \approx \varphi^{4848}$ wave cycles. Physical lifetime $\tau_p \approx \varphi^{4848}/\omega_p$. Matter-antimatter annihilation is the same mechanism with organized anti-phase perturbation ($P \approx 1$, one cycle).
+$N_{\text{max}} \approx \varphi^{4506}$ wave cycles. Physical lifetime $\tau_p \approx \varphi^{4506}/\omega_p \sim 10^{910}$ yr. Matter-antimatter annihilation is the same mechanism with organized anti-phase perturbation ($P \approx 1$, one cycle).
 
 ### 6.7 Quark Confinement
 
-Qi gate nonlinearity threshold at $n = 95$ produces a linear confining potential $F \propto r$ via Qi flux tube. Flux tube breaking probability $\approx \varphi^{-4848}$. Asymptotic freedom at $n \ll 95$ from $g(q) \to 0$.
+Qi gate nonlinearity threshold at $n = 95$ produces a linear confining potential $F \propto r$ via Qi flux tube. Flux tube breaking probability $\approx \varphi^{-4506}$. Asymptotic freedom at $n \ll 95$ from $g(q) \to 0$.
 
 ---
 
@@ -451,6 +451,6 @@ Mind: concentrated post-pinch field dynamics. Brain: antenna for the Qi field. A
 | $\sigma$ | $\ell_{\text{Pl}}/\varphi^3$ |—| Regularization scale |
 | $\Omega_{\text{DM}}/\Omega_b$ | $\varphi^3 + 1$ | $5.24$ | Qi condensate freeze-out |
 | $\bar{\theta}$ | $\pi\varphi^{-89}$ | $\sim 10^{-19}$ | Strong CP |
-| $\tau_p$ | $\varphi^{4848}/\omega_p$ | $\sim 10^{980}$ yr | Proton coherence budget |
+| $\tau_p$ | $\varphi^{4506}/\omega_p$ | $\sim 10^{910}$ yr | Proton coherence budget |
 
 External constants: $c$, $\hbar$, $G$ define the unit system. $\ell_{\text{Pl}} = \sqrt{\hbar G/c^3}$ is the cascade's sole dimensionful anchor.

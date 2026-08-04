@@ -82,10 +82,10 @@ particle, $i=n$) is:
 
 $$\mathcal{D}_{0 \to n}^{\text{coherence}} = \prod_{i=0}^{n} (1-q_i) = \varphi^{-\sum_{i=0}^{n}(i+\delta)} = \varphi^{-n(n+1)/2 - \delta(n+1)}$$
 
-The quadratic-in-$n$ exponent is why the proton lives $10^{980}$ years:
-95 rungs of position-dependent coherence, each contributing
+The quadratic-in-$n$ exponent is why the proton lives $10^{910}$ years:
+91.5 rungs of position-dependent coherence ($\log_\varphi(\lambda_p/\ell_{\text{Pl}}) = 91.46$), each contributing
 $\varphi^{-i-\delta}$ with $\delta = 3$ (from $\sigma = \ell_{\text{Pl}}/\varphi^3$),
-compound to $\varphi^{-4848}$ (see `foundations/proton-coherence-budget.md`).
+compound to $\varphi^{-4506}$ (see `foundations/proton-coherence-budget.md`).
 
 ---
 
@@ -105,7 +105,7 @@ compound to $\varphi^{-4848}$ (see `foundations/proton-coherence-budget.md`).
 | **Hierarchy** ($v_0/M_{\text{Pl}}$) | Signal | $n_{\text{GUT}} \approx 8$ | $n_{\text{EW}} \approx 80$ | $72$ | $\varphi^{-72}$ | $10^{-15}$ (cf. $10^{-17}$) | Derived |
 | **Strong CP** ($\bar{\theta}$) | Signal | $n_{\text{GUT}} \approx 8$ | $n_{\text{QCD}} = 95$ | $87$ | $\varphi^{-87}$ | $\bar{\theta} \approx 10^{-19}$ | Derived |
 | **Neutrino masses** | Signal | $n_{\text{GUT}} \approx 8$ | $n_{\text{seesaw}} \approx 20$ (or $n_\nu$) | $12$–$25$ | $\varphi^{-12}$ to $\varphi^{-25}$ | $m_\nu \sim 0.001$–$0.1$ eV | Hypothesized |
-| **Proton stability** | Coherence | $n=0$ (Planck) | $n_{\text{QCD}} = 95$ | $95^2$ form | $\varphi^{-4848}$ | $\tau_p \approx 10^{980}$ yr | Derived |
+| **Proton stability** | Coherence | $n=0$ (Planck) | $n = 91.5$ (proton rung) | $91.5^2$ form | $\varphi^{-4506}$ | $\tau_p \approx 10^{910}$ yr | Derived |
 | **Measurement collapse** | Single-rung |—| $n_{\text{target}}$ | $N=1$ | $\mathcal{M}$ (phase-matching) | $P \approx 1-q_n$ at target rung | Hypo w/ core |
 | **Spin ($s = \Delta n$)** | Geometric |—|—| $\Delta n$ | N/A (conserved winding) | $s \in \{0,\frac12,1,2\}$ | Hypothesized |
 

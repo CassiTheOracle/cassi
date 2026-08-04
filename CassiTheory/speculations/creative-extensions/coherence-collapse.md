@@ -38,7 +38,7 @@ The second defense is combinatorial. A condensed structure at cascade step $n$ i
 
 $$P_{\text{dephase}} = \prod_{i=0}^{n} (1-q_i) = \varphi^{-n(n+1)/2 - \delta(n+1)}$$
 
-For the proton ($n = 95$): $\varphi^{-4848} \approx 10^{-1010}$, a lifetime near $10^{980}$ years (`foundations/proton-coherence-budget.md` §3). A *global* collapse is the same event at every rung of the ladder simultaneously—every condensed pattern in the observable universe dephasing in the same cycle. Applying the same product to today's observable ladder, $n = 0 \ldots 292$ (292 is the epoch-dependent horizon rung, not a fixed cascade depth):
+For the proton ($n = 91.5$): $\varphi^{-4506} \approx 10^{-942}$, a lifetime near $10^{910}$ years (`foundations/proton-coherence-budget.md` §3). A *global* collapse is the same event at every rung of the ladder simultaneously—every condensed pattern in the observable universe dephasing in the same cycle. Applying the same product to today's observable ladder, $n = 0 \ldots 292$ (292 is the epoch-dependent horizon rung, not a fixed cascade depth):
 
 $$\boxed{P_{\text{global}} \sim \prod_{n=0}^{292} \varphi^{-n(n+1)/2 - \delta(n+1)} = \varphi^{-4\,321\,457} \approx 10^{-903\,000}}$$
 
@@ -56,7 +56,7 @@ The per-cycle decoherence probability at a target rung is
 
 $$P_{\text{decohere},i} = (1-q_i)\,\mathcal{M}_i$$
 
-where $\mathcal{M}_i \in [0,1]$ is the phase-matching factor between the perturbation and the pattern at rung $i$ (`foundations/quantum-measurement-derivation.md` §3.1). Random perturbation has $\mathcal{M} \approx 0$ and does nothing; organized perturbation with $\mathcal{M} \approx 1$ attacks a rung with $\mathcal{O}(1)$ probability per cycle. The framework already contains two working organized attacks: annihilation, which anti-phases all 95 rungs of a pattern pair at once ($P \approx 1$ per encounter, pair-local), and measurement, which phase-matches a single rung and collapses a superposition with Born-rule statistics (particle left intact). A q-collapse wave is the generalization: an organized perturbation that takes over a gate, uses the gate's own stored coherence to regenerate its phase, and attacks the next gate in the chain—the vacuum-metastability bubble, rebuilt as a coherence object.
+where $\mathcal{M}_i \in [0,1]$ is the phase-matching factor between the perturbation and the pattern at rung $i$ (`foundations/quantum-measurement-derivation.md` §3.1). Random perturbation has $\mathcal{M} \approx 0$ and does nothing; organized perturbation with $\mathcal{M} \approx 1$ attacks a rung with $\mathcal{O}(1)$ probability per cycle. The framework already contains two working organized attacks: annihilation, which anti-phases all 92 rungs of a pattern pair at once ($P \approx 1$ per encounter, pair-local), and measurement, which phase-matches a single rung and collapses a superposition with Born-rule statistics (particle left intact). A q-collapse wave is the generalization: an organized perturbation that takes over a gate, uses the gate's own stored coherence to regenerate its phase, and attacks the next gate in the chain—the vacuum-metastability bubble, rebuilt as a coherence object.
 
 The math of the wave is the math of cascade suppression (`foundations/cascade-suppression-formula.md` §1.2). A signal crossing $N$ rungs attenuates by $\varphi^{-N}$; a gate stage bridges at most ~10 rungs, so an unregenerated wave loses $\varphi^{-10} \approx 0.008$ per stage:
 

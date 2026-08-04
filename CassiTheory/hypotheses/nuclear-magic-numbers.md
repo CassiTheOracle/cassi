@@ -11,10 +11,12 @@ The Cassi framework provides a structural alternative: magic numbers are
 Fibonacci sub-channel closures within the cascade span from QCD confinement (step
 95) down to nuclear binding (steps ~80–90). The SO(2) doublet winding at each
 sub-rung produces angular momentum channels, and Fibonacci partitioning of the
-cascade determines which channels close at each rung. This yields the magic
-number sequence from $\varphi$ without a fitted spin-orbit parameter, and
-predicts a specific $\varphi$-power spacing of nuclear energy levels within each
-shell.
+cascade determines which channels close at each rung. The closure arithmetic as
+written does not close (0/7 rows, §3): the cumulative channel sums are 8, 20, 38,
+54, 78, 108, 144, not 2, 8, 20, 28, 50, 82, 126, so the sequence is not currently
+generated from $\varphi$ without adjustment. The sub-channel pattern remains
+**Hypothesized** with an open arithmetic gap; the $\varphi$-power level-spacing
+prediction (§4) is independent of the closure rows and remains testable.
 
 ---
 
@@ -56,22 +58,25 @@ $$N_{\text{magic}} = \sum_{i} \Omega_{j_i} \quad \text{for closed channels}$$
 Mapping the cascade rungs 80–95 through the Fibonacci sub-channel structure with
 the SO(2) winding rule $j = \Delta n_{\text{sub}}$:
 
-| Cascade rung | Sub-channels (j) | $\Omega_j$ | Cumulative closure | Magic number |
-|-------------|-------------------|------------|-------------------|--------------|
-| 95 (bottom) | 1/2, 1/2, 3/2 | 2 + 2 + 4 | 2 | **2** (¹He⁴-like) |
-| 94 | 1/2, 3/2, 5/2 | 2 + 4 + 6 | 8 | **8** (¹⁶O-like) |
-| 93 | 3/2, 5/2, 7/2 | 4 + 6 + 8 | 20 | **20** (⁴⁰Ca-like) |
-| 92 | 1/2, 5/2, 7/2 | 2 + 6 + 8 | 28 | **28** (⁵⁶Ni-like) |
-| 91 | 5/2, 7/2, 9/2 | 6 + 8 + 10 | 50 | **50** (¹⁰⁰Sn-like) |
-| 90 (nucleon) | 7/2, 9/2, 11/2 | 8 + 10 + 12 | 82 | **82** (²⁰⁸Pb-like) |
-| 89 | 9/2, 11/2, 13/2 | 10 + 12 + 14 | 126 | **126** (neutron closure) |
+| Cascade rung | Sub-channels (j) | $\Omega_j = 2j+1$ | Row sum | Cumulative closure (computed) | Claimed magic number | Verdict |
+|-------------|-------------------|------------|---------|---------------------------|---------------------|---------|
+| 95 (bottom) | 1/2, 1/2, 3/2 | 2 + 2 + 4 | 8 | 8 | 2 | does not close—nearest sum 8 |
+| 94 | 1/2, 3/2, 5/2 | 2 + 4 + 6 | 12 | 20 | 8 | does not close—nearest sum 20 |
+| 93 | 3/2, 5/2, 7/2 | 4 + 6 + 8 | 18 | 38 | 20 | does not close—nearest sum 38 |
+| 92 | 1/2, 5/2, 7/2 | 2 + 6 + 8 | 16 | 54 | 28 | does not close—nearest sum 54 |
+| 91 | 5/2, 7/2, 9/2 | 6 + 8 + 10 | 24 | 78 | 50 | does not close—nearest sum 78 |
+| 90 (nucleon) | 7/2, 9/2, 11/2 | 8 + 10 + 12 | 30 | 108 | 82 | does not close—nearest sum 108 |
+| 89 | 9/2, 11/2, 13/2 | 10 + 12 + 14 | 36 | 144 | 126 | does not close—nearest sum 144 |
 
-The sequence $(2, 8, 20, 28, 50, 82, 126)$ matches the observed nuclear magic
-numbers exactly. The gaps between closures follow the Fibonacci recurrence:
-$8 - 2 = 6$, $20 - 8 = 12$, $28 - 20 = 8$, $50 - 28 = 22$, $82 - 50 = 32$,
-$126 - 82 = 44$. The ratios of successive gaps ($12/6 = 2$, $22/8 = 2.75$,
-$32/22 \approx 1.45$, $44/32 \approx 1.38$) approach $\varphi$ or its Fibonacci
-convergents.
+Recomputed with the doc's own rule ($N_{\text{magic}} = \sum_i \Omega_{j_i}$,
+cumulative over closed sub-channels), **0 of 7 rows close at the claimed magic
+number**. The cumulative sums (8, 20, 38, 54, 78, 108, 144) reproduce the
+claimed closures at rows 95 and 94 only by coincidence of one-rung offsets
+(8 = row 95's sum; 20 = rows 95+94); the remaining rows fail by factors of
+1.4–1.9. The sub-channel $j$ assignments are a hypothesized pattern
+(§7) and do not, as written, generate the sequence.
+
+The gaps of the *claimed* sequence are arithmetic facts ($8 - 2 = 6$, $20 - 8 = 12$, $28 - 20 = 8$, $50 - 28 = 22$, $82 - 50 = 32$, $126 - 82 = 44$), but the successive ratios ($12/6 = 2$, $22/8 = 2.75$, $32/22 \approx 1.45$, $44/32 \approx 1.38$) do not approach $\varphi \approx 1.618$ or its Fibonacci convergents (nearest convergents: 2, 3/2, 5/3, 8/5, 13/8).
 
 ## 4. Key Prediction: $\varphi$-Power Level Spacing
 
@@ -120,9 +125,11 @@ PDE rather than inferred from the phenomenological coefficient.
    $\varphi^{-3/2}$. Testable with existing nuclear spectroscopy data—no new
    experiment needed.
 
-2. **No new magic numbers:** The cascade predicts exactly the observed sequence.
-   Any new magic number (e.g., 34, 40, 58) discovered in exotic nuclei far from
-   stability would falsify the Fibonacci closure pattern.
+2. **No new magic numbers:** The cascade was intended to predict exactly the
+   observed sequence; with the closure arithmetic open (0/7 rows, §3), this
+   test is not yet well-posed. Any new magic number (e.g., 34, 40, 58)
+   discovered in exotic nuclei far from stability would falsify the Fibonacci
+   closure pattern once the sub-channel assignments are fixed.
 
 3. **Island of stability:** The cascade predicts the next doubly-magic nucleus
    beyond $^{208}$Pb at the next Fibonacci closure: $126 + \text{Fib}(n_{\text{next}})
