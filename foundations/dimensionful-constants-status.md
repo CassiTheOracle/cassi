@@ -217,6 +217,8 @@ This calibration is provided by the Hubble formula:
 
 $$H_{\text{PDE}} = \frac{\lambda}{3}\frac{(\varphi - r)(1+r)}{r} + \frac{\lambda}{3}\varphi^{-2}$$
 
+(**Asserted** (postulate): the 1/3 is the 3D continuity reading; the Lagrangian's T₀₀ at equilibrium gives 0 or (g/4)φ², never λφ⁻²/3; derivation open.)
+
 At the current epoch ($r \to \varphi$, $q \to 1$):
 
 $$H_{\text{PDE}} = \frac{\lambda \varphi^{-2}}{3} \approx 0.0127 \text{ [PDE time units]}^{-1}$$

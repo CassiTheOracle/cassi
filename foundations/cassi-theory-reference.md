@@ -132,7 +132,7 @@ $$\lambda = 1/(2w) = 0.1 \quad\text{(PDE conversion rate)}$$
 | $K_{fw}$ | $\varphi^{-1}$ | $0.618$ | Water damps Fire |
 | $K_{fm}$ | $\lambda\varphi^2$ | $0.262$ | Fire melts Metal |
 | $K_{md}$ | $3\varphi^2$ | $7.85$ | Metal cuts Wood |
-| $H_{\text{empty}}$ | $\lambda\varphi^{-2}/3$ |—| Irreducible cosmological baseline |
+| $H_{\text{empty}}$ | $\lambda\varphi^{-2}/3$ |—| Irreducible cosmological baseline—**Asserted** (postulate): the 1/3 is the 3D continuity reading; T₀₀ at equilibrium gives 0 or (g/4)φ², never λφ⁻²/3; Lagrangian derivation open |
 | $\kappa_s$ | $\varphi^{-6}/v_0^2$ | $0.92$ TeV$^{-2}$ | Dirac↔two-fluid sector-coupling scale (rung 77) |
 
 ---

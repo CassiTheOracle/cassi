@@ -93,6 +93,8 @@ The horizon does not grow forever: the expansion law has a strictly positive flo
 
 $$H(r) = \frac{\lambda}{3}\left[\frac{(\varphi - r)(1 + r)}{r} + \varphi^{-2}\right]$$
 
+(**Asserted** (postulate): the 1/3 is the 3D continuity reading; the Lagrangian's T₀₀ at equilibrium gives 0 or (g/4)φ², never λφ⁻²/3; derivation open.)
+
 (`two-fluid/run_hubble_pipeline.py`; the Qi-gravity boost variants in `two-fluid/calibrate_initial_ratio_xi.py` and `two-fluid/calibrate_initial_ratio_xi_v2.py`). The conversion rate $\lambda$ cancels from the $r$-evolution—verified numerically for $\lambda = 0.02, 0.05, 0.1$ in the v2 script—so the trajectory's shape is $\lambda$-independent; the calibration fixes only the overall clock.
 
 **(b) The floor and the boost.** The Qi gate saturates at $q_{\max} = 0.873 < 1$, so the Qi-gravity boost factor $\sqrt{1 + (\varphi^{6}-1)q \cdot f}$ (with $f$ the sourced Yang fraction) never vanishes: every coupling convention retains a strictly positive floor, consistent with the irreducible $(1-q)$ floor $\approx 0.23$ measured in the bubble PDE (`foundations/dimensionful-constants-status.md` §3.4). The horizon saturates at
