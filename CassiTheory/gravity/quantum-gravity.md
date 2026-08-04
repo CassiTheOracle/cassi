@@ -12,29 +12,31 @@ General relativity breaks down at the Planck scale: perturbative quantization of
 
 General relativity is a classical field theory that breaks down at the Planck scale $M_{\text{Pl}} = 1.22\times10^{19}$ GeV. When quantized perturbatively, the graviton loop diagrams diverge in the ultraviolet—Newton's constant $G$ runs to infinity at high energy, and the theory loses predictivity.
 
-Every approach to quantum gravity (string theory, loop quantum gravity, asymptotic safety) introduces new structure to cure these divergences. The Cassi framework has a simpler answer: **the two-fluid fields are already the quantum degrees of freedom**, and their natural length scale $\sigma = 1/M_{\text{Pl}}$ regulates all UV divergences automatically.
+Every approach to quantum gravity (string theory, loop quantum gravity, asymptotic safety) introduces new structure to cure these divergences. The Cassi framework has a simpler answer: **the two-fluid fields are already the quantum degrees of freedom**, and their natural length scale $\sigma = \ell_{\text{Pl}}/\varphi^3$ regulates all UV divergences automatically.
 
 ---
 
 ## 2. The Fundamental Length $\sigma$
 
-In the Cassi two-fluid, the fundamental length is the **Yang/Yin separation scale**—the distance below which Yang and Yin cannot be distinguished. This is the Planck length:
+In the Cassi two-fluid, the fundamental length is the **Yang/Yin separation scale**—the distance below which Yang and Yin cannot be distinguished. Per registry G1 this is the Planck length reduced by three cascade rungs ($\delta = 3$; `foundations/cassi-theory-reference.md` §7):
 
 $$
-\boxed{\sigma = \frac{1}{M_{\text{Pl}}} \approx 8.2\times 10^{-20}\ \text{GeV}^{-1} \approx 1.6\times 10^{-35}\ \text{m}}
+\boxed{\sigma = \frac{\ell_{\text{Pl}}}{\varphi^3} \approx 1.93\times 10^{-20}\ \text{GeV}^{-1} \approx 3.82\times 10^{-36}\ \text{m}}
 $$
+
+with $\ell_{\text{Pl}} = 1.616\times10^{-35}$ m and $\varphi^3 = 4.236$: the separation scale sits at cascade rung $n = -3$, a factor $\varphi^3 \approx 4.24$ below the Planck length.
 
 The physical meaning: at distances $r \ll \sigma$, the two-fluid description breaks down because the field's paired-real structure (SO(2) doublet) loses meaning—the two components merge into a single quantum degree of freedom.
 
 In the code implementation:
 
 $$
-\sigma = \frac{1}{M_{\text{Pl}}}, \qquad \Lambda_{\text{UV}} = \frac{1}{\sigma} = M_{\text{Pl}}
+\sigma = \frac{\ell_{\text{Pl}}}{\varphi^3}, \qquad \Lambda_{\text{UV}} = \frac{1}{\sigma} = \varphi^3 M_{\text{Pl}} \approx 5.17\times 10^{19}\ \text{GeV}
 $$
 
 The two-fluid PDE already contains $\sigma$ as the grid regularization scale. When quantizing, this same scale cuts off all loop integrals.
 
-The Planck scale is the lattice's finest resolution—where the discrete bubble/void checkerboard transitions to the $\sigma$-regularized harmonic regime (`foundations/bubble-lattice-fabric.md` §6).
+The $\sigma$-scale is the lattice's finest resolution—three cascade rungs below the Planck length—where the discrete bubble/void checkerboard transitions to the $\sigma$-regularized harmonic regime (`foundations/bubble-lattice-fabric.md` §6).
 
 ---
 
@@ -76,7 +78,7 @@ $$
 \omega_k^2 = k^2 e^{k^2\sigma^2/2} + \omega_0^2\left(1 - e^{-k^2\sigma^2/2}\right)
 $$
 
-where $\omega_0 = M_{\text{Pl}}$ is the $\varphi$-resonance frequency—the maximum possible frequency in the theory.
+where $\omega_0 = M_{\text{Pl}}$ is the $\varphi$-resonance frequency (the rung-0 cascade scale)—the maximum mode frequency; the momentum cutoff is $\Lambda_{\text{UV}} = \varphi^3 M_{\text{Pl}}$ (§2).
 
 ### 4.2 Dispersion Relation
 
@@ -85,7 +87,7 @@ The dimensionless group velocity $c_{\text{eff}} = d\omega/dk$:
 | $k$ | $\omega(k)$ | $c_{\text{eff}}$ |
 |-----|-------------|-----------------|
 | $k \ll 1/\sigma$ | $\omega \approx k$ | $c_{\text{eff}} \approx 1$ (massless GR limit of the composite excitation) |
-| $k \approx 1/\sigma$ | $\omega \approx 1.1\,k$ | $c_{\text{eff}} \approx 1.08$ (superluminal? See below) |
+| $k \approx 1/\sigma$ | $\omega \approx 1.02\,k$ | $c_{\text{eff}} \approx 1.003$ (superluminal? See below) |
 | $k \gg 1/\sigma$ | $\omega \to \omega_0 = M_{\text{Pl}}$ | $c_{\text{eff}} \to 0$ (no trans-Planckian modes) |
 
 **Causality note:** The apparent $c_{\text{eff}} > 1$ near $k \sim 1/\sigma$ is not a causality violation—it's a **group velocity** in a dispersive medium. The front velocity (signal velocity) remains $\leq c$ because the dispersion relation preserves analyticity. The full Green's function $G(x)$ vanishes outside the light cone.
@@ -127,13 +129,15 @@ $$
 The integral is **manifestly UV-finite** because the Gaussian $e^{-q^2\sigma^2}$ kills all high-momentum contributions. In Euclidean 4-momentum space:
 
 $$
-I_{\text{loop}} = \int \frac{d^4q_E}{(2\pi)^4} \frac{e^{-q_E^2\sigma^2}}{(q_E^2)^2} = \frac{1}{16\pi^2} \int_0^\infty \frac{dq}{q} e^{-q^2\sigma^2}
+I_{\text{loop}} = \int \frac{d^4q_E}{(2\pi)^4} \frac{e^{-q_E^2\sigma^2}}{(q_E^2)^2} = \frac{1}{8\pi^2} \int_0^\infty \frac{dq}{q} e^{-q^2\sigma^2}
 $$
+
+(The angular factor is $\Omega_4/(2\pi)^4 = 2\pi^2/(2\pi)^4 = 1/8\pi^2$, and the radial integral is $\int_0^\infty \frac{dq}{q} e^{-q^2\sigma^2} = \tfrac12\Gamma(0,\cdot)$.)
 
 The remaining integral evaluates to a finite number involving the exponential integral:
 
 $$
-I_{\text{loop}} = \frac{1}{32\pi^2} \Gamma(0, q_{\text{IR}}^2\sigma^2)
+I_{\text{loop}} = \frac{1}{16\pi^2} \Gamma(0, q_{\text{IR}}^2\sigma^2)
 $$
 
 which is finite for any IR cutoff $q_{\text{IR}} > 0$. The physical IR cutoff is the cosmological scale $\Lambda_{\text{IR}} \sim H_0$, making the loop completely finite.
@@ -155,10 +159,12 @@ $$
 where $f(x)$ is a finite, computable function that approaches a constant at high energy:
 
 $$
-\lim_{E \to \infty} G_{\text{eff}}(E) = G \left(1 + \frac{1}{16\pi^2} \cdot \frac{M_{\text{Pl}}^2}{M_{\text{Pl}}^2} \cdot O(1) \right) \approx G (1 + 0.006)
+\lim_{E \to \infty} G_{\text{eff}}(E) = G \left(1 + \frac{1}{16\pi^2} \cdot \frac{1}{(M_{\text{Pl}}\sigma)^2} \cdot O(1) \right) = G \left(1 + \frac{\varphi^6}{16\pi^2}\,O(1) \right) \approx G (1 + 0.114)
 $$
 
-The correction is **$\mathcal{O}(1\%)$ at the Planck scale**—gravity barely runs at all. This is completely different from standard GR where $G$ diverges at the Planck scale.
+with $M_{\text{Pl}}\sigma = \varphi^{-3}$ under registry G1.
+
+The correction is **$\mathcal{O}(11\%)$ at the $\sigma$-scale** ($\varphi^6/16\pi^2 \approx 0.114$)—finite and perturbative, not a divergence. This is completely different from standard GR where $G$ diverges at the Planck scale.
 
 ---
 
@@ -200,7 +206,7 @@ This is not a computation of the Page curve—it is a **theorem about the underl
 
 Hawking's thermal spectrum derivation requires tracing over modes that are exponentially blueshifted near the horizon—modes whose frequency at formation exceeds $M_{\text{Pl}}$. These trans-Planckian modes do not exist in Cassi quantum gravity: the dispersion relation $\omega(k)$ asymptotes to $\omega_0 = M_{\text{Pl}}$, and the σ-regulator suppresses $k \gg 1/\sigma$ exponentially. The standard derivation of exactly thermal Hawking radiation therefore **does not apply** to the Cassi vacuum.
 
-The Hawking flux in Cassi will deviate from exact thermality at $\mathcal{O}(e^{-\omega^2/M_{\text{Pl}}^2})$—negligible for low-frequency modes but significant for modes with $\omega \gtrsim M_{\text{Pl}}$. Over the lifetime of an evaporating black hole, these small correlations between early and late quanta accumulate to restore a pure final state. Computing this accumulation is the Page curve calculation.
+The Hawking flux in Cassi will deviate from exact thermality at $\mathcal{O}(e^{-\omega^2/\varphi^6 M_{\text{Pl}}^2})$ (the σ-regulator scale is $1/\sigma = \varphi^3 M_{\text{Pl}}$)—negligible for low-frequency modes, reaching $e^{-\varphi^{-6}} \approx 0.95$ at the frequency cap $\omega_0 = M_{\text{Pl}}$. Over the lifetime of an evaporating black hole, these small correlations between early and late quanta accumulate to restore a pure final state. Computing this accumulation is the Page curve calculation.
 
 ### 7.4 Required Calculation: Page Curve via Two-Fluid PDE
 
@@ -281,10 +287,10 @@ $$
 
 This is $\mathcal{O}(M^2/M_{\text{Pl}}^2)$—consistent with the Bekenstein-Hawking entropy $S_{\text{BH}} = A/4G \sim M^2/M_{\text{Pl}}^2$—but here it is a **coherence capacity**, not a statistical entropy. The interior two-fluid condensate has enough coherent degrees of freedom to encode all information that fell into the black hole.
 
-**3. Trans-Planckian censorship.** Hawking's derivation of exactly thermal radiation requires modes with wavelength $\lambda \ll \ell_{\text{Pl}}$ at formation. The σ-regulator prohibits such modes. The correction to the thermal spectrum is:
+**3. Trans-Planckian censorship.** Hawking's derivation of exactly thermal radiation requires modes with formation frequencies above the Planck scale. The two-fluid dispersion caps every mode frequency at $\omega_0 = M_{\text{Pl}}$ (§4.2), and the σ-regulator suppresses momenta beyond $1/\sigma = \varphi^3 M_{\text{Pl}}$—such modes do not exist. The correction to the thermal spectrum is:
 
 $$
-\frac{\Delta N_k}{N_k^{\text{thermal}}} \sim \mathcal{O}\!\left(e^{-\omega^2/M_{\text{Pl}}^2}\right)
+\frac{\Delta N_k}{N_k^{\text{thermal}}} \sim \mathcal{O}\!\left(e^{-\omega^2/\varphi^6 M_{\text{Pl}}^2}\right)
 $$
 
 For modes with $\omega \ll M_{\text{Pl}}$ (the dominant Hawking quanta for $M \gg M_{\text{Pl}}$), this correction is exponentially small. However, these small correlations accumulate over the $M^3$ evaporation time—the integrated effect is $\mathcal{O}(M^2/M_{\text{Pl}}^2)$, comparable to the Page curve's information content. The exact Page curve requires the PDE computation in §7.4.
@@ -297,10 +303,10 @@ For modes with $\omega \ll M_{\text{Pl}}$ (the dominant Hawking quanta for $M \g
 |-----------|--------|----------|
 | Cassi QG S-matrix is unitary | **Proved** | σ-regulator is positive-definite; optical theorem holds |
 | BH information capacity matches Bekenstein-Hawking | **Derived** | Cascade coherence budget gives $\mathcal{C} \sim M^2/M_{\text{Pl}}^2$ |
-| Hawking flux is not exactly thermal | **Proved (σ-regulator)** | Trans-Planckian modes absent; $\Delta N_k/N_k \sim e^{-\omega^2/M_{\text{Pl}}^2}$ |
+| Hawking flux is not exactly thermal | **Proved (σ-regulator)** | Trans-Planckian modes absent; $\Delta N_k/N_k \sim e^{-\omega^2/\varphi^6 M_{\text{Pl}}^2}$ |
 | Page curve is unitary (final state pure) | **Hypothesized** | Follows from S-matrix unitarity + capacity bound |
 | Full Page curve from two-fluid PDE | **Requires computation** | Needs curved-spacetime PDE solver (§7.4) |
-| No firewall at horizon | **Derived** | σ-regulator caps all mode energies at $M_{\text{Pl}}$ |
+| No firewall at horizon | **Derived** | Dispersion caps mode energies at $\omega_0 = M_{\text{Pl}}$; σ-regulator caps momenta at $\varphi^3 M_{\text{Pl}}$ |
 
 **Bottom line:** The Cassi framework provides the **only known quantum gravity theory with a manifestly unitary S-matrix, a built-in UV regulator, and a concrete computational program** to compute the Page curve from first principles. The information paradox is not a paradox in Cassi—it is a calculation that has not yet been performed.
 
@@ -313,7 +319,7 @@ For modes with $\omega \ll M_{\text{Pl}}$ (the dominant Hawking quanta for $M \g
 | UV complete | ✅ Yes | ✅ Yes | ? | ✅ Yes (non-pert) |
 | Free parameters | **0** dimensionless | Many | 1 (Barbero-Immirzi) | 1 (fixed point) |
 | Graviton | Composite | Fundamental | Emergent | Fundamental |
-| Regulator | $\sigma = 1/M_{\text{Pl}}$ | Strings | Area/Volume | Nothing explicit |
+| Regulator | $\sigma = \ell_{\text{Pl}}/\varphi^3$ | Strings | Area/Volume | Nothing explicit |
 | Renormalization | **None needed** | Yes (worldsheet) | Yes (spin foam) | Yes (fixed point) |
 | Testable | ✅ Many | ? | ? | ? |
 | Unifies with SM | ✅ Gauge pillars | ✅ | ? | ? |
@@ -326,15 +332,15 @@ Cassi is the only approach with **zero free dimensionless parameters** (every di
 
 | Property | Value |
 |----------|-------|
-| Fundamental length | $\sigma = 1/M_{\text{Pl}} \approx 1.6\times10^{-35}$ m |
-| Cutoff scale | $\Lambda_{\text{UV}} = M_{\text{Pl}} \approx 1.22\times10^{19}$ GeV |
+| Fundamental length | $\sigma = \ell_{\text{Pl}}/\varphi^3 \approx 3.82\times10^{-36}$ m |
+| Cutoff scale | $\Lambda_{\text{UV}} = \varphi^3 M_{\text{Pl}} \approx 5.17\times10^{19}$ GeV |
 | Regulator type | Gaussian $e^{-k^2\sigma^2/2}$ in propagator |
 | UV behavior | All loop diagrams finite |
 | Graviton nature | Composite EY/EI excitation |
 | Graviton dispersion | $\omega^2 = k^2 e^{k^2\sigma^2/2} + M_{\text{Pl}}^2(1 - e^{-k^2\sigma^2/2})$ |
 | Low energy | $\omega \approx k$ (standard GR) |
 | High energy | $\omega \to M_{\text{Pl}}$ (no trans-Planckian modes) |
-| Running of $G$ | $< 1\%$ correction at Planck scale |
+| Running of $G$ | $\approx 11\%$ correction at the $\sigma$-scale ($\varphi^6/16\pi^2 \approx 0.114$) |
 | Renormalization | **Not needed**—theory is already UV-finite |
 | Free parameters | **Zero dimensionless** ($c$, $\hbar$, $G$ external) |
 
@@ -346,7 +352,7 @@ Cassi is the only approach with **zero free dimensionless parameters** (every di
 | GW dispersion | None ($\omega = k$) | $\omega \neq k$ near $M_{\text{Pl}}$ | LIGO high-frequency |
 | Black hole singularity | Yes ($r=0$) | No ($\sigma$-softened core) | GW ringdown |
 | Information loss | Yes (Hawking) | No (unitary S-matrix + Page curve) | Hawking evaporation endpoint / BH mass gap |
-| Planck-scale $G$ | Divergent | $< 1\%$ correction | Indirect (inflation) |
+| Planck-scale $G$ | Divergent | $\approx 11\%$ correction ($\varphi^6/16\pi^2$) | Indirect (inflation) |
 
 ---
 
