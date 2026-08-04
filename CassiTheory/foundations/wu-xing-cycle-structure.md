@@ -145,7 +145,7 @@ $$13 = F_7 = \underbrace{5}_{F_5} + \underbrace{8}_{F_6}$$
 - **The 5 channel-bearing primaries** (Root–Throat, rungs 142–158): one channel each, one complete sheng winding.
 - **The 8-node complement** (six half-channel secondaries + the wrap node at 162 + the integration node at 166): the return structure.
 
-The ratio of the two parts is the golden-ratio convergent $8{:}13 = F_6{:}F_7$, which approximates $\varphi^{-1}$ with error $\varphi^{-6}$ (the framework's strongest convergent within the window; `foundations/wu-xing-derivation.md` §2.1). The window is golden-sectioned by its own channel structure.
+The ratio of the two parts is the golden-ratio convergent $8{:}13 = F_6{:}F_7$, which approximates $\varphi^{-1}$. The error $\varphi^{-6}$ is exact in the linear form $|8\varphi - 13| = \varphi^{-6} \approx 0.0557$ (the framework's strongest convergent within the window; `foundations/wu-xing-derivation.md` §2.1); in ratio form, $|8/13 - \varphi^{-1}| = \varphi^{-7}/13 \approx 2.65\times10^{-3}$, equivalently $|13/8 - \varphi|/(13/8) = \varphi^{-6}/13 \approx 4.29\times10^{-3}$. The window is golden-sectioned by its own channel structure.
 
 ### 3.3 The channel step identity
 
