@@ -320,7 +320,7 @@ across different cascade depths (atomic, nuclear, particle).
 
 - Hubble as spiral unwinding: $H \approx (\lambda\cdot\ln\varphi/2\pi)\cdot(1-q)$
   (equilibrium limit; PDE general form confirmed to R² = 1.000)
-- Gravity as gradient descent along the spiral
+- Gravity as gradient descent along the spiral (anchored quantitatively by the rung-offset probes: at the closure rungs the flow reads $\le 1.5\%$ of the wave speed, inward for J/ψ and $\approx 0$ for μ, and the conversion term alone transports outward at $\le 0.1\%$—`foundations/rung-offset-mechanism.md` §5 T11–T13)
 - $c$ as scale-invariant product $\lambda_{\text{eff}} \cdot \ell_n$
   (algebraically confirmed; numerical value awaits unit calibration)
 - Gravitational coupling $\alpha_G \propto \varphi^{-2n}$ (confirmed to 0.1%)
@@ -343,6 +343,7 @@ across different cascade depths (atomic, nuclear, particle).
 - `foundations/dimensionful-constants-status.md`—status of $c$, $\hbar$, $G$
 - `foundations/unified-lagrangian.md`—PDE coupling constants
 - `predictions/cassi_definitions.md`—framework glossary
+- `foundations/rung-offset-mechanism.md`—rung-offset probes T11–T13: descent flow, closure-crossing emission phase, conversion-driven flux
 - `two-fluid/cassi_two_fluid_3d_gpu.py`—PDE solver with all three mechanisms
 - `two-fluid/run_pde_bubble_spiral.py`—bubble PDE test (July 2026)
 - `visual-explainers/spiral_string.py`—spiral chord string visualizer
