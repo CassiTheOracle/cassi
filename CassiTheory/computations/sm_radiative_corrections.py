@@ -172,6 +172,16 @@ for label, (ia, ba, ib, bb) in {
     inv_c = ia - ba * L / (2 * pi)
     print(f"  {label}: μ* = {mu:.2e} GeV   (α⁻¹ = {inv_c:.1f}, α = {1/inv_c:.4f})")
 
+# Minimal-SU(5)-style check: force α₃ through the α₁ = α₂ point
+mu_12, L_12 = intersec(INV1_MZ, B1_6F, INV2_MZ, B2_6F)
+inv_c12 = INV1_MZ - B1_6F * L_12 / (2 * pi)
+inv3_impl = inv_c12 + B3_6F * L_12 / (2 * pi)
+print(f"  SU(5)-style check: α₃ forced through α₁=α₂ at {mu_12:.1e} GeV "
+      f"→ α₃⁻¹(m_Z) = {inv3_impl:.1f}")
+print(f"    α_s(m_Z) = {1/inv3_impl:.4f} (1-loop) vs 0.1180 → a "
+      f"{ALPHA_S_MZ/(1/inv3_impl):.1f}× deficit, same direction as the φ-boundary "
+      f"(classic minimal-SU(5) estimate ≈ 0.07)")
+
 # couplings and sin²θ_W at 10^16 and 2×10^16
 for mg in (1.0e16, M_GUT_NOM):
     inv1 = inv_at(INV1_MZ, B1_6F, mg)

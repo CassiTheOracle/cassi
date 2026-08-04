@@ -91,8 +91,11 @@ $$\alpha_1 = \alpha_2 \;\text{at}\; \mu \approx 10^{13}\ \text{GeV}
   \quad (\alpha^{-1} = 47.1).$$
 
 The three couplings do **not** meet at a single point in the SM—the classic
-non-unification pattern (minimal SU(5) predicts $\alpha_s(m_Z) \approx 0.07$,
-equivalently a $2\times$ deficit in the other direction). The value
+non-unification pattern. The failure is generic to unification-scale boundary
+conditions: forcing $\alpha_3$ through the $\alpha_1 = \alpha_2$ point
+predicts $\alpha_s(m_Z) \approx 0.07$ (0.071 at one loop,
+`computations/sm_radiative_corrections.py` §2)—a $1.7\times$ deficit in the
+*same* direction as the $\varphi$-boundary's $2.0\times$. The value
 $\alpha_{\text{GUT}} = \varphi^{-3}/4\pi = 1/53$ is not realized by any SM
 coupling at any scale below $M_{\text{Pl}}$ (`standard-model/
 sm-radiative-corrections.md` §3.3). A common intersection near

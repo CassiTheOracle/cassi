@@ -170,9 +170,12 @@ $$\alpha_1 = \alpha_3 \;\text{at}\; \mu = 2.4 \times 10^{14}\ \text{GeV}
 
 The couplings do **not** meet at a single point: in the SM, $\alpha_1$ and
 $\alpha_2$ meet near $10^{13}$ GeV while $\alpha_2$ and $\alpha_3$ meet near
-$10^{17}$ GeV—the classic "SM unification fails" pattern (minimal SU(5)
-predicts $\alpha_s(m_Z) \approx 0.07$ vs the measured 0.118, equivalently a
-$2\times$ deficit in the other direction). The boundary
+$10^{17}$ GeV—the classic "SM unification fails" pattern. The failure is
+generic to unification-scale boundary conditions, not specific to the
+$\varphi$-boundary: forcing $\alpha_3$ through the $\alpha_1 = \alpha_2$ point
+predicts $\alpha_s(m_Z) \approx 0.07$ (0.071 at one loop;
+`computations/sm_radiative_corrections.py` §2)—a $1.7\times$ deficit in the
+*same* direction as the $\varphi$-boundary's $2.0\times$. The boundary
 $\alpha_{\text{GUT}} = \varphi^{-3}/4\pi = 1/53.2$ is realized by no SM
 coupling at any scale below $M_{\text{Pl}}$; a common intersection near
 $2 \times 10^{16}$ GeV requires beyond-SM content between $m_Z$ and
