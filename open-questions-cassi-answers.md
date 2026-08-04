@@ -176,7 +176,7 @@ There are 292 rungs from the Planck scale (step 0, the smallest meaningful dista
 
 ### Cascade Suppression
 
-When a physical effect propagates down the cascade ladder (from a high-energy rung to a lower-energy one), each rung suppresses it by roughly a factor of $\varphi^{-1} \approx 0.618$. After $N$ rungs of propagation, the net suppression is $\varphi^{-N}$. This mechanism explains why certain parameters are fantastically small without fine-tuning: the strong CP angle reaches $\sim 10^{-19}$ because it propagates through 87 rungs; the proton decay rate is suppressed by $\varphi^{-4848}$ because the proton's stability spans 95 rungs.
+When a physical effect propagates down the cascade ladder (from a high-energy rung to a lower-energy one), each rung suppresses it by roughly a factor of $\varphi^{-1} \approx 0.618$. After $N$ rungs of propagation, the net suppression is $\varphi^{-N}$. This mechanism explains why certain parameters are fantastically small without fine-tuning: the strong CP angle reaches $\sim 10^{-19}$ because it propagates through 87 rungs; the proton decay rate is suppressed by $\varphi^{-4506}$ because the proton's stability spans 91.5 rungs.
 
 ### $\xi = \varphi^6 \approx 17.944$—the Qi-Gravity Coupling
 
@@ -200,7 +200,7 @@ The ratio $r$ is not uniform across space. **$\sigma_r$** is the spatial dispers
 
 ### Coherence Budget—How Robust a Quantum State Is
 
-Every physical system has a **coherence budget**: a measure of how much organized perturbation it can withstand before it dephases. The coherence budget depends on how many cascade rungs the system spans. For the proton, the coherence spans all 95 rungs up to the QCD scale, making it extraordinarily robust—dephasing requires simultaneous disruption at every rung, which carries a staggering suppression of $\varphi^{-4848}$.
+Every physical system has a **coherence budget**: a measure of how much organized perturbation it can withstand before it dephases. The coherence budget depends on how many cascade rungs the system spans. For the proton, the coherence spans all 91.5 rungs from the Planck scale to its own rung ($\log_\varphi(\lambda_p/\ell_{\text{Pl}}) = 91.46$), making it extraordinarily robust—dephasing requires simultaneous disruption at every rung, which carries a staggering suppression of $\varphi^{-4506}$.
 
 ### The Two-Bubble Experiment
 
@@ -571,15 +571,15 @@ When a quantum system is in a superposition of states, the act of measurement se
 flowchart TD
     A[Qi gate crosses threshold at step 95] --> B[Linear potential F ∝ r]
     B --> C[Qi flux tube forms]
-    C --> D[Permanent binding: P_break = φ⁻⁴⁸⁴⁸]
+    C --> D[Permanent binding: P_break = φ⁻⁴⁵⁰⁶]
 ```
 
 **Visual:** At cascade step 95, the Qi gate crosses a nonlinearity threshold—a 292-rung ladder whose top rung produces permanent binding through a Qi flux tube.
 
 
-Quarks are the building blocks of protons and neutrons, yet no one has ever seen a free quark—they are permanently bound inside composite particles. Why nature enforces this permanent imprisonment is a deep puzzle in quantum chromodynamics. Cassi's answer: the Qi gate crosses a nonlinearity threshold at cascade step 95, producing a linear confining potential $F \propto r$—a Qi flux tube analogous to a string connecting quarks. The breaking probability of this flux tube is cascade-suppressed to $P_{\text{break}} \approx \varphi^{-4848}$, making permanent confinement a direct consequence of the same two-fluid dynamics that give the QCD scale its value. Asymptotic freedom at shorter distances ($n \ll 95$) follows from the Qi gate approaching zero at those r…
+Quarks are the building blocks of protons and neutrons, yet no one has ever seen a free quark—they are permanently bound inside composite particles. Why nature enforces this permanent imprisonment is a deep puzzle in quantum chromodynamics. Cassi's answer: the Qi gate crosses a nonlinearity threshold at cascade step 95, producing a linear confining potential $F \propto r$—a Qi flux tube analogous to a string connecting quarks. The breaking probability of this flux tube is cascade-suppressed to $P_{\text{break}} \approx \varphi^{-4506}$, making permanent confinement a direct consequence of the same two-fluid dynamics that give the QCD scale its value. Asymptotic freedom at shorter distances ($n \ll 95$) follows from the Qi gate approaching zero at those r…
 
-| **Cassi Answer** | $\Lambda_{\text{QCD}}$ at cascade step 95; Qi-gate nonlinearity produces self-reinforcing attraction ($F_{\text{Qi}} \propto r$), forming a Qi flux tube. Permanent binding from cascade suppression: $P_{\text{break}} \approx \varphi^{-4848}$—same coherence product as proton stability. Confinement and proton decay are the same phenomenon at different cascade rungs. Full derivation: `foundations/quark-confinement.md` |
+| **Cassi Answer** | $\Lambda_{\text{QCD}}$ at cascade step 95; Qi-gate nonlinearity produces self-reinforcing attraction ($F_{\text{Qi}} \propto r$), forming a Qi flux tube. Permanent binding from cascade suppression: $P_{\text{break}} \approx \varphi^{-4506}$—same coherence product as proton stability. Confinement and proton decay are the same phenomenon at different cascade rungs. Full derivation: `foundations/quark-confinement.md` |
 | **Mechanism** | Qi-gate $g(q)$ crosses nonlinearity threshold at step 95 → linear potential. Asymptotic freedom ($n \ll 95$) from $g(q) \to 0$. Qi string tension $\sigma \approx \varphi^{-95} M_{\text{Pl}}^2$. Zero free dimensionless parameters (c, ħ, G external). |
 | **Epistemic** | **Derived**—QCD scale, permanent binding, and asymptotic freedom all follow from cascade + Qi gate shape |
 | **Reference** | `foundations/quark-confinement.md` |
@@ -588,19 +588,19 @@ Quarks are the building blocks of protons and neutrons, yet no one has ever seen
 
 ```mermaid
 flowchart TD
-    A[95-rung cascade ladder] --> B[Each rung i: suppression φ⁻ⁱ]
-    B --> C[Cumulative product φ⁻⁴⁸⁴⁸]
+    A[92-rung cascade ladder] --> B[Each rung i: suppression φ⁻ⁱ]
+    B --> C[Cumulative product φ⁻⁴⁵⁰⁶]
     C --> D[Lifetime ≫ universe age—Hyper-K sees nothing]
 ```
 
-**Visual:** The proton's coherence spans all 95 cascade rungs—its lifetime is the product of each rung's suppression, like a whisper through 95 closed doors, far beyond the universe's age.
+**Visual:** The proton's coherence spans all 92 cascade rungs (0 → 91.5)—its lifetime is the product of each rung's suppression, like a whisper through 92 closed doors, far beyond the universe's age.
 
 
-Grand unified theories predict that protons should eventually decay, but experiments searching for this decay have found nothing—the proton appears stable beyond any achievable sensitivity. Cassi's answer: the proton is the most coherence-robust object in the universe. Its coherence budget (see Primer) spans all 95 cascade rungs, meaning dephasing requires simultaneous disruption at every rung. The cumulative suppression from the cascade product is $N_{\text{max}} \approx \varphi^{4848} \approx 10^{1010}$ cycles—so far beyond the age of the universe that Hyper-Kamiokande, or any conceivable experiment, will see nothing. Annihilation (which does happen instantaneously on contact with antiprotons) is the same mechanism operating through organized anti-phas…
+Grand unified theories predict that protons should eventually decay, but experiments searching for this decay have found nothing—the proton appears stable beyond any achievable sensitivity. Cassi's answer: the proton is the most coherence-robust object in the universe. Its coherence budget (see Primer) spans all 92 cascade rungs, meaning dephasing requires simultaneous disruption at every rung. The cumulative suppression from the cascade product is $N_{\text{max}} \approx \varphi^{4506} \approx 10^{942}$ cycles—so far beyond the age of the universe that Hyper-Kamiokande, or any conceivable experiment, will see nothing. Annihilation (which does happen instantaneously on contact with antiprotons) is the same mechanism operating through organized anti-phas…
 
-| **Cassi Answer** | Proton coherence budget $N_{\text{max}} = \prod_{i=0}^{95} 1/(1-q_i) \approx \varphi^{4848} \approx 10^{1010}$ cycles—far exceeding universe age. Annihilation is the same mechanism operating instantaneously via organized anti-phase perturbation ($\S5.2$) |
-| **Mechanism** | Dephasing requires simultaneous failure across ALL 95 cascade rungs; random dephasing cascade-suppressed ($\prod\varphi^{-i}$), annihilation O(1) (phase-inverted antiparticle). Full derivation in `foundations/proton-coherence-budget.md` |
-| **Epistemic** | **Derived**—predicts Hyper-K null at all achievable sensitivities; baseline exceeds experiment by >900 OOM. Nuclear $\beta$/$\alpha$ decay unaffected (barrier-penetration) |
+| **Cassi Answer** | Proton coherence budget $N_{\text{max}} = \prod_{i=0}^{91.5} 1/(1-q_i) \approx \varphi^{4506} \approx 10^{942}$ cycles—far exceeding universe age. Annihilation is the same mechanism operating instantaneously via organized anti-phase perturbation ($\S5.2$) |
+| **Mechanism** | Dephasing requires simultaneous failure across ALL 92 cascade rungs (0 → 91.5); random dephasing cascade-suppressed ($\prod\varphi^{-i}$), annihilation O(1) (phase-inverted antiparticle). Full derivation in `foundations/proton-coherence-budget.md` |
+| **Epistemic** | **Derived**—predicts Hyper-K null at all achievable sensitivities; baseline exceeds experiment by >870 OOM. Nuclear $\beta$/$\alpha$ decay unaffected (barrier-penetration) |
 | **Reference** | `foundations/proton-coherence-budget.md` |
 
 ### Q10: Spin—what is it?

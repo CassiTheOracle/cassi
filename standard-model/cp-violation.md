@@ -8,9 +8,9 @@ The Yang/Yin asymmetry $E_Y/E_I = \varphi$ is the CP-violating order parameter
 of the framework. Its chiral asymmetry $\eta = (E_Y - E_I)/(E_Y + E_I) =
 \varphi^{-3}$ seeds the CKM phase, which closes through the unitarity triangle
 to $\delta_{\text{CKM}} = \pi\varphi^{-2} \approx 68.8^\circ$—within $<1\%$ of
-the measured value. The Jarlskog invariant emerges from $\varphi$-scaled Yukawa
-eigenvalues with electroweak-scale suppression: $J_{\text{CP}} \approx
-3.2\times10^{-5}$. Strong CP is resolved by cascade de-resonance,
+the measured value. The Jarlskog invariant is not reproduced by the
+$\varphi$-scaled Yukawa determinant formula: it evaluates $\approx 10^{-25}$,
+~20 orders below the SM $J_{\text{CP}} \approx 3.2\times10^{-5}$ (§4.2). Strong CP is resolved by cascade de-resonance,
 $\bar\theta = \pi\varphi^{-89} \approx 10^{-19}$ (`foundations/strong-cp-derivation.md`),
 without an axion.
 
@@ -109,7 +109,7 @@ $|V_{us}| \gg |V_{cb}| \gg |V_{ub}|$, the unitarity triangle closure yields:
 $$\delta_{\text{CKM}} = \pi\varphi^{-2} \approx 1.199\ \text{rad} \;(68.8^\circ)$$
 
 This is the Cassi prediction, accurate to $<1\%$. See the Jarlskog invariant
-analysis in Section 4 for the full mechanism.
+analysis in Section 4.
 ## 4. The Jarlskog Invariant
 
 The Jarlskog invariant $J_{\text{CP}}$ measures the intrinsic CP violation in
@@ -131,12 +131,10 @@ The discrepancy is **three orders of magnitude**. No single $\phi$-power can
 produce $10^{-5}$; the smallest Cassi constants are $\phi^{-13} \approx 0.003$
 and $\phi^{-21} \approx 0.0007$, still far too large.
 
-### 4.2 Resolution: Yukawa structure
+### 4.2 Yukawa-determinant formula: evaluated
 
-The Jarlskog invariant is not a $\phi$-power. It is the product of four CKM
-elements, each suppressed by powers of $\alpha_s$ and the Yukawa hierarchy.
-The Cassi expression for $J_{\text{CP}}$ involves the Jarlskog determinant of
-the Yukawa matrices:
+The Jarlskog invariant is not a $\phi$-power. A candidate Cassi expression for
+$J_{\text{CP}}$ is the Jarlskog determinant of the Yukawa matrices:
 
 $$J_{\text{CP}} \approx \phi^{-3} \cdot \frac{(m_c - m_u)(m_t - m_c)(m_t - m_u)}{v^6}
                       \cdot \frac{(m_s - m_d)(m_b - m_s)(m_b - m_d)}{v^6}$$
@@ -148,24 +146,18 @@ m_u &\approx 2.2\ \text{MeV}, & m_c &\approx 1.27\ \text{GeV}, & m_t &\approx 17
 m_d &\approx 4.7\ \text{MeV}, & m_s &\approx 93\ \text{MeV}, & m_b &\approx 4.18\ \text{GeV}
 \end{aligned}$$
 
-The Cassi prediction for each mass ratio follows $\phi$-scaled Yukawa
-eigenvalues, but the **difference** structure in the Jarlskog determinant
-suppresses the result by the electroweak scale $v^6$. Evaluating:
+With these inputs the expression evaluates to
 
 $$
-J_{\text{CP}} \approx 3.2 \times 10^{-5}
+J_{\text{CP}} \approx 2.7 \times 10^{-25}
 $$
 
-This is consistent with the SM fit. The key insight: $J_{\text{CP}}$ is
-naturally $\mathcal{O}(10^{-5})$ because it involves six powers of the
-Yukawa mass insertions divided by $v^6$, each suppression of order
-$m_q/v \sim 10^{-5}$--$10^{-2}$, and the $\phi^{-3}$ prefactor from the
-chiral asymmetry sets the overall normalisation.
-
-**The CKM phase is not a naive $\phi$-power, but the Jarlskog invariant
-emerges correctly from $\phi$-scaled Yukawa eigenvalues combined with the
-standard diagonalisation procedure.** This is a nontrivial success: Cassi
-passes the Jarlskog test that naive $\phi$-scaling fails.
+—about **20 orders of magnitude below** the SM value $J_{\text{CP}}^{\text{SM}} \approx 3.2 \times 10^{-5}$
+(measured CKM fit). The formula therefore does **not** reproduce the
+Jarlskog invariant: the six Yukawa mass insertions divided by $v^6$ suppress
+the result far below the $\mathcal{O}(10^{-5})$ SM value, and no $\phi$-power
+prefactor repairs the gap. The framework's CP content is the CKM phase
+$\delta_{\text{CKM}}$ (its status is set by the fit-ledger worker).
 
 ---
 
@@ -235,9 +227,11 @@ The 87-rung signal propagation occurs through the bubble lattice medium—cascad
    closure—not as a direct $\phi$-exponent but as a derived quantity from
    the Yukawa diagonalisation.
 
-2. **The Jarlskog invariant $J_{\text{CP}} \sim 10^{-5}$ emerges correctly**
-   from $\phi$-scaled Yukawa eigenvalues combined with electroweak-scale
-   suppression. Cassi passes the Jarlskog test that naive $\phi$-scaling fails.
+2. **The Jarlskog invariant is not reproduced by the current
+   Yukawa-determinant formula**: it evaluates $\approx 2.7\times10^{-25}$,
+   ~20 orders below $J_{\text{CP}}^{\text{SM}} \approx 3.2\times10^{-5}$
+   (§4.2). The framework's CP content is the CKM phase $\delta_{\text{CKM}}$
+   (status set by the fit-ledger worker).
 
 3. **The strong CP problem is resolved by cascade de-resonance** without an
    axion—a falsifiable prediction.

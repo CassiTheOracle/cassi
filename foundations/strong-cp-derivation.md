@@ -88,7 +88,7 @@ $$\boxed{\bar{\theta} \approx \varphi^{-87} \times \pi\varphi^{-2} = \pi\varphi^
 This is nine orders of magnitude below the experimental bound of $10^{-10}$—
 and it is a **prediction**, not a tuning. The cascade depth between GUT and
 QCD is 87 rungs; the exponential suppression comes from the same product
-structure that gives the proton its $10^{980}$-year lifetime, applied to
+structure that gives the proton its $10^{910}$-year lifetime, applied to
 CP-violating propagation rather than random dephasing.
 
 ### 2.4 Why the cascade suppresses CP violation
@@ -108,7 +108,7 @@ $$P_{\text{survival}} = \prod_{i=n_{\text{GUT}}}^{n_{\text{QCD}}} \varphi^{-1} =
 Applied to the CP-violating seed: $\bar{\theta} = \delta_{\text{CP}} \cdot
 P_{\text{survival}}$. The cascade protection works the same way for CP as it
 does for proton decay—just with a different seed (CKM phase vs. random
-ambient noise) and a different cascade span (87 rungs vs. 95 rungs).
+ambient noise) and a different cascade span (87 rungs vs. 92 rungs).
 
 ---
 
@@ -129,7 +129,7 @@ additional parameters.
 | Phenomenon | Seed | Cascade span | Suppression | Result |
 |---|---|---|---|---|
 | **Strong CP** ($\bar{\theta}$) | CKM phase $\delta_{\text{CP}}$ | GUT→QCD (87 rungs) | $\varphi^{-87}$ | $\bar{\theta} \approx 10^{-19}$ |
-| Proton decay | Random ambient noise | Planck→QCD (95 rungs) | $\varphi^{-4560}$ | $\tau_p \approx 10^{980}$ yr |
+| Proton decay | Random ambient noise | Planck→proton (92 rungs) | $\varphi^{-4506}$ | $\tau_p \approx 10^{910}$ yr |
 | Hierarchy ($v_0/M_{\text{Pl}}$) | Gauge structure | Planck→EW (80 rungs) | $\varphi^{-80}$ (exact count) | $10^{-17}$ |
 | Neutrino masses | Seesaw scale | GUT→ν (20 rungs) | $\varphi^{-20}$ | $m_\nu \sim 0.1$ eV |
 

@@ -5,7 +5,8 @@
 ## Abstract
 
 The proton's stability follows directly from the cascade. As a condensed
-standing wave at cascade step $n = 95$, the proton's coherence is maintained
+standing wave at cascade step $n = 91.5$ ($\log_\varphi(\lambda_p/\ell_{\text{Pl}}) = 91.46$
+with $\lambda_p = \hbar c/m_p$), the proton's coherence is maintained
 not by a single process at the QCD scale but by the **entire cascade** from
 Planck ($n=0$) to the proton's own rung. Dephasing requires the simultaneous
 loss of coherence at all $n$ supporting rungs simultaneously—an event whose
@@ -15,9 +16,9 @@ budget of
 
 $$\boxed{N_{\text{max}} = \prod_{i=0}^{n} \frac{1}{1-q_i} \approx \varphi^{\,n(n+1)/2}}$$
 
-For $n = 95$, $N_{\text{max}} \approx \varphi^{4848} \approx 10^{1010}$ cycles.
+For $n = 91.46$, $N_{\text{max}} \approx \varphi^{4506} \approx 10^{942}$ cycles.
 The proton's effective lifetime exceeds the age of the observable universe by
-~970 orders of magnitude. Proton decay is not observed because the universe is
+~900 orders of magnitude. Proton decay is not observed because the universe is
 not remotely old enough—and no experiment, in any environment, will see it.
 
 ---
@@ -73,9 +74,9 @@ $$\frac{1}{1-q_i} = \varphi^{\,i+\delta}$$
 
 $$N_{\text{max}} = \prod_{i=0}^{n} \varphi^{\,i+\delta} = \varphi^{\,\delta(n+1) + \sum_{i=0}^{n} i} = \varphi^{\,\delta(n+1) + n(n+1)/2}$$
 
-For $\delta = 3$ (from $\sigma = \ell_{\text{Pl}}/\varphi^3$) and $n=95$ (QCD scale):
+For $\delta = 3$ (from $\sigma = \ell_{\text{Pl}}/\varphi^3$) and $n=91.46$ (the proton's own rung):
 
-$$\boxed{N_{\text{max}} = \varphi^{\,3 \times 96 + 95\times 96/2} = \varphi^{\,288 + 4560} = \varphi^{4848} \approx 10^{1010}}$$
+$$\boxed{N_{\text{max}} = \varphi^{\,3 \times 92.46 + 91.46\times 92.46/2} = \varphi^{\,277.4 + 4228.3} = \varphi^{4505.7} \approx \varphi^{4506} \approx 10^{942}}$$
 
 The dominant term is quadratic in $n$: $n(n+1)/2$. The Planck-scale
 regularization ($\delta$) contributes linearly—important at small $n$,
@@ -92,9 +93,9 @@ $$\omega_p = \frac{m_p c^2}{\hbar} \approx 1.43 \times 10^{24}\ \text{Hz}$$
 
 The physical lifetime in seconds:
 
-$$\tau_p = \frac{N_{\text{max}}}{\omega_p} \approx \frac{10^{1010}}{10^{24}} = 10^{986}\ \text{seconds}$$
+$$\tau_p = \frac{N_{\text{max}}}{\omega_p} \approx \frac{10^{942}}{10^{24}} = 10^{918}\ \text{seconds}$$
 
-In years: $\tau_p \approx 10^{978}$ years, compared to the current age of the
+In years: $\tau_p \approx 10^{910}$ years, compared to the current age of the
 universe $\sim 1.38 \times 10^{10}$ years. The proton has survived
 $N_{\text{elapsed}} \approx 6 \times 10^{41}$ cycles since the Big Bang—well
 within budget.
@@ -118,8 +119,8 @@ suppressing $q_i$ to zero for the top $m$ rungs leaves the lower rungs intact:
 $$N_{\text{max}}(m\ \text{rungs suppressed}) = \prod_{i=0}^{n-m-1} \frac{1}{1-q_i}$$
 $$= \varphi^{\,(n-m)(n-m+1)/2 + \delta(n-m+1)}$$
 
-For $m = 50$ (suppress half the proton's cascade), $N_{\text{max}} \approx
-\varphi^{45\times 46/2} = \varphi^{1035} \approx 10^{215}$—still far exceeding
+For $m = 50$ (suppress fifty of the proton's 92 rungs), $N_{\text{max}} \approx
+\varphi^{41.46\times 42.46/2} = \varphi^{880} \approx 10^{184}$—still far exceeding
 the age of the universe. The quadratic cascade structure provides a
 **coherence floor** that no physically accessible environment can breach.
 
@@ -134,7 +135,7 @@ processes are opposite limits of the same physics:
 with per-cycle probability $(1-q_i) \approx \varphi^{-i}$. The cumulative
 survival probability is the product $\prod(1-q_i)$, yielding the astronomical
 $N_{\text{max}}$ derived above. The proton lives forever because the
-suppression compounds across 95 rungs.
+suppression compounds across 91.5 rungs.
 
 **Organized anti-phase perturbation** (annihilation): an antiparticle is a
 condensed standing wave with the same cascade structure as its partner but
@@ -152,7 +153,7 @@ events.
 
 This unifies three phenomena under a single mechanism:
 
-1. **Proton stability** ($\tau_p \sim 10^{980}$ yr): random-walk dephasing,
+1. **Proton stability** ($\tau_p \sim 10^{910}$ yr): random-walk dephasing,
    exponentially suppressed by the cascade product.
 2. **Matter-antimatter annihilation** (instantaneous): organized anti-phase
    perturbation attacks all rungs simultaneously—the coherence budget is
@@ -181,7 +182,7 @@ Both experiments search for proton decay via gauge-mediated GUT processes
 (typically $p \to e^+ \pi^0$), expecting sensitivity to $\tau_p \sim 10^{34-35}$
 years. The Cassi framework predicts **null results at all achievable
 sensitivities**: the proton's coherence budget exceeds experimental reach by
-$> 900$ orders of magnitude.
+$> 870$ orders of magnitude.
 
 The standard SUSY-GUT prediction ($\tau_p \sim 10^{34-36}$ years, right at
 Hyper-K's reach) and the Cassi prediction are sharply distinguishable: the
@@ -216,7 +217,7 @@ $$N_{\text{max}}(n) = \varphi^{\,n(n+1)/2 + \delta(n+1)}$$
 | $n=20$ (GUT) | GUT-scale condensates | $\varphi^{210} \approx 10^{44}$ | $10^{20}$ s $\sim 10^{12}$ yr |
 | $n=60$ (inflation end) | Inflaton-scale patterns | $\varphi^{1830} \approx 10^{380}$ | $> 10^{350}$ yr |
 | $n=80$ (EW scale) | W/Z bosons | $\varphi^{3240} \approx 10^{675}$ | $> 10^{645}$ yr |
-| $n=95$ (QCD) | **Proton** | $\varphi^{4848} \approx 10^{1010}$ | $> 10^{980}$ yr |
+| $n=91.5$ (proton) | **Proton** | $\varphi^{4506} \approx 10^{942}$ | $> 10^{910}$ yr |
 | $n=142$ (cell) | Cellular self-condensate | $\varphi^{10153} \approx 10^{2110}$ | functionally eternal |
 | $n=168$ (human body) | Body-scale Qi pattern | $\varphi^{14196} \approx 10^{2950}$ | functionally eternal |
 
@@ -235,7 +236,7 @@ late-universe physics we inhabit.
 
 - Cascade structure $\ell_n = \ell_{\text{Pl}}\varphi^n$ and per-rung coherence
   $q_i$ scaling (from the de-resonance principle and the Qi gate analysis)
-- Proton at cascade step 95 (from `dimensionful-cascade.md` §3)
+- Proton at cascade step 91.5 ($\log_\varphi(\lambda_p/\ell_{\text{Pl}}) = 91.46$, length-based; from `dimensionful-cascade.md` §3)
 - Quadratic exponent from independent-rung product (purely combinatorial)
 
 ### Hypothesized (testable)

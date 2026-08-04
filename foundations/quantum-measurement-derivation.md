@@ -4,11 +4,11 @@
 
 ## Abstract
 
-The same coherence-budget mechanism that gives the proton its $10^{980}$-year
+The same coherence-budget mechanism that gives the proton its $10^{910}$-year
 lifetime (`foundations/proton-coherence-budget.md`) resolves the quantum
 measurement problem. A superposition is a multi-branch condensed pattern in the
 Qi field; its inter-branch coherence lives at a **single cascade rung**—the
-rung of the quantum number being superposed—not across all 95 supporting
+rung of the quantum number being superposed—not across all 92 supporting
 rungs. Measurement is organized perturbation phase-matched to that rung; its
 collapse probability per interaction is $\mathcal{O}(1)$, not cascade-suppressed.
 Environmental decoherence is random perturbation at the **same single rung**
@@ -41,7 +41,7 @@ A quantum superposition $|\psi\rangle = \alpha|0\rangle + \beta|1\rangle$
 corresponds to the Qi field hosting **two competing templates** $\phi_0(s)$ and
 $\phi_1(s)$—spatially overlapping but phase-incompatible standing-wave
 configurations. Both are condensed patterns, each stable in isolation (each has
-its own full cascade depth and the associated $10^{980}$-year stability). The
+its own full cascade depth and the associated $10^{910}$-year stability). The
 superposition persists because the **inter-branch coupling** is weak—the two
 templates are nearly orthogonal in Qi phase space, and their interaction is a
 surface term at the rung where they differ.
@@ -54,10 +54,10 @@ is therefore a **single-rung** phenomenon, not a full-cascade phenomenon.
 
 | Structure | Cascade depth of coherence | Decoherence pathway | $P_{\text{per cycle}}$ |
 |-----------|---------------------------|---------------------|------------------------|
-| Proton (single condensate) | $n = 95$ rungs | Random dephasing at all 95 rungs | $\varphi^{-4848} \approx 10^{-1010}$ |
+| Proton (single condensate) | $n = 91.5$ rungs | Random dephasing at all 92 rungs | $\varphi^{-4506} \approx 10^{-942}$ |
 | Superposition (two-branch) | **1 rung** ($n$) | Random perturbation at rung $n$ | $\varphi^{-n-3} \approx 10^{-20}$ |
 | Superposition + measurement | 1 rung ($n$) | **Organized** perturbation at rung $n$ | $\mathcal{O}(1)$ |
-| Matter-antimatter pair | $n = 95$ rungs | **Organized** anti-phase at all 95 rungs | $\mathcal{O}(1)$ |
+| Matter-antimatter pair | $n = 91.5$ rungs | **Organized** anti-phase at all 92 rungs | $\mathcal{O}(1)$ |
 
 ---
 
@@ -193,7 +193,7 @@ This completes a **trifecta** of coherence-budget phenomena:
 
 | Phenomenon | Structure | Perturbation | Rungs attacked | $P_{\text{per cycle}}$ |
 |-----------|-----------|-------------|----------------|------------------------|
-| Proton decay | Single condensate | Random | All $n$ rungs | $\varphi^{-n(n+1)/2} \approx 10^{-1010}$ |
+| Proton decay | Single condensate | Random | All $n$ rungs | $\varphi^{-(n(n+1)/2 + \delta(n+1))} \approx 10^{-942}$ |
 | Annihilation | Particle-antiparticle pair | Organized (anti-phase) | All $n$ rungs | $\mathcal{O}(1)$ |
 | **Measurement collapse** | Superposition | **Organized (phase-matched)** | **1 rung** | $\mathcal{O}(1-q_n) \approx 10^{-20}$ |
 
@@ -223,7 +223,7 @@ randomly—nothing happens on laboratory timescales.
 
 ### Derived (from $\varphi$ + PDE + cascade)
 
-- Single-rung vs full-cascade coherence architectures (§2): superposition decoherence costs one rung; proton decay costs all 95
+- Single-rung vs full-cascade coherence architectures (§2): superposition decoherence costs one rung; proton decay costs all 92 (0 → 91.5)
 - Born rule as Qi selection: $P(\alpha) = |\alpha|^2/(|\alpha|^2+|\beta|^2)$ (§4)
 
 ### Hypothesized (mechanism specified, testable)

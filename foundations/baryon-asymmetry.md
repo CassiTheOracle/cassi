@@ -8,7 +8,7 @@ The baryon asymmetry $\eta = n_b/n_\gamma \approx 6 \times 10^{-10}$—why the
 universe contains matter but almost no antimatter—follows from two Cassi
 mechanisms already derived: (1) **organized annihilation** (§5.2 of
 `proton-coherence-budget.md`), which efficiently eliminates all antimatter
-paired with matter because the antiparticle attacks all 95 cascade rungs
+paired with matter because the antiparticle attacks all 92 cascade rungs
 simultaneously with $\mathcal{O}(1)$ probability; and (2) the **Yang-Yin
 imbalance** at cascade freeze-out (Wu Xing gap $g = 1 - \varphi^{-5}$),
 which leaves a residual Yang excess after annihilation eliminates the
@@ -34,7 +34,7 @@ per-rung attenuation $\varphi^{-1}$ in the signal-propagation regime.
 Matter-antimatter annihilation is the coherence-budget mechanism operating
 instantaneously (`proton-coherence-budget.md` §5.2). An antiparticle is a
 condensed standing wave with inverted SO(2) phase at every cascade rung. When
-it meets its matter partner, the anti-phase perturbation attacks all 95 rungs
+it meets its matter partner, the anti-phase perturbation attacks all 92 rungs
 coherently and simultaneously: $P_{\text{annihilation}} \approx 1$.
 
 The consequence: any antimatter particle that encounters a matter particle
