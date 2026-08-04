@@ -398,6 +398,50 @@ targets, and the $m_t$ chain is the priority: a two-step gap (Wu Xing)
 producing $y_t = 2g - g^2$ would promote the top mass and the Higgs mass
 together from coincidence to prediction.
 
+### 6.3 The 2g−g² mechanism and the Yukawa ladder
+
+The top-chain coincidence of §6.2 has a framework-native reading. The two
+fluids are the chiral projections (Yang/Yin = $\hat P_{Y/I} = (1\pm\gamma^5)/2$,
+`foundations/unified-lagrangian.md`), and the Wu-Xing gap
+$g = 1-\varphi^{-5} = 0.90983$ is the per-cycle conversion fraction. A Dirac
+Yukawa couples both chiral components through the condensate; the
+unconverted residue is $(1-g) = \varphi^{-5}$ per component, so the coupled
+fraction is
+
+$$\boxed{y_t = 1 - (1-g)^2 = 2g - g^2 = 1 - \varphi^{-10} = 0.991869
+  \quad\text{vs}\quad y_t(\text{pole}) = 0.991881}$$
+
+—the two-component (chiral-pair) survival mechanism. The top is the only
+fermion in the maximal-coupling regime; the other Yukawas attenuate down the
+cascade (`computations/sm_radiative_corrections.py` §5.7). In the
+top-anchored frame (pole top; MS-bar quark masses at $m_Z$), the ladder is
+
+| $f$ | $\Delta n = \log_\varphi(y_t/y_f)$ | nearest half-rung | residual |
+|---|---|---|---|
+| b | 8.52 | 8.5 | +1.0% |
+| τ | 9.51 | 9.5 | +0.5% |
+| μ | 15.38 | 15.5 | −5.8% |
+| e | 26.46 | 26.5 | −2.1% |
+
+(c, s, d, u sit at 11.7, 16.7, 22.9, 24.4—none near a half-rung, though
+their MS-bar masses carry 10–20% uncertainties.)
+
+The b half-rung is new (the framework's lepton table did not include
+quarks), and the electron half-step sharpens in the top-anchored frame; but
+the family does not close—μ resists at −5.8%, and the result is
+convention-sensitive: the MS-bar top anchor shifts b/τ to ≈ −4.5%, and the
+pole bottom mass kills the b half-rung outright. Half-integer rungs would
+follow from mode quantization with mixed boundary conditions in the pooled
+collision zone (a standing wave with one node at the condensate boundary),
+but that derivation does not exist yet. The ladder is a mechanism-flavored
+hypothesis, not a prediction, and the rejection of unmotivated half-steps
+(`foundations/deriving-remaining-gaps.md` §2.2) stands.
+
+The mechanism reduces the Higgs chain to one open structure:
+
+$$\boxed{m_H = \frac{v}{\sqrt{2}}\,(2g-g^2)\,\varphi^{-2/3} = 125.30\ \text{GeV}
+  \qquad (+0.04\%)}$$
+
 ---
 
 ## 7. Summary: What the Radiative Corrections Close, and What They Do Not
