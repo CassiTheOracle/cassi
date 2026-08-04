@@ -25,7 +25,7 @@ domain is not enough—the contribution must be what Cassi *uniquely* adds.
 |---|--------|-----------|--------|----------|
 | 1 | Nuclear magic numbers | Hypothesized | Fibonacci sub-channel closure in cascade steps 80–95 | `nuclear-magic-numbers.md` |
 | 2 | Hoyle state / stellar nucleosynthesis | Hypothesized | Cascade rung resonance at $^3\alpha$ threshold | `hoyle-state-nucleosynthesis.md` |
-| 3 | Quasicrystal stability | Hypothesized (near-Derived) | De-resonance + cascade suppression against crystallization | `quasicrystal-stability.md` |
+| 3 | Quasicrystal stability | Speculative | De-resonance + cascade suppression against crystallization | `quasicrystal-stability.md` |
 | 4 | Exoplanet $\varphi$-spacing | Hypothesized | Wake-wave interference in protoplanetary disks | `exoplanet-phi-spacing.md` |
 | 5 | Neural criticality / cascade brain | Hypothesized | Cascade PDE operating at neural scales | `neural-criticality.md` |
 | 6 | Atomic shell structure / Madelung rule | Speculative | $n$ and $l$ as cascade coordinates | `periodic-table-madelung.md` |
@@ -81,7 +81,7 @@ $\boxed{\Delta E_{\text{QC} \to \text{crystal}} \propto N_{\text{unit}} \cdot \v
 a critical cooling-rate ratio $\dot{T}_{\text{crit}}^{\text{QC}}/\dot{T}_{\text{crit}}^{\text{crystal}} = \varphi^{-N_{\text{rungs}}}$
 with $N_{\text{rungs}} = 3$–$5$, and 1–3% $\varphi$-periodic modulation of
 low-temperature heat capacity at period $\ln\varphi$—testable on existing
-Al-Pd-Mn and Al-Cu-Fe data. **Epistemic tier: Hypothesized (near-Derived).**
+Al-Pd-Mn and Al-Cu-Fe data. **Epistemic tier: Speculative**—the de-resonance argument is sketched, the pinned numbers carry free parameters ($N_{\text{rungs}} = 3$–$5$, amplitude, phase), and the projection operators remain to be constructed.
 
 ### `exoplanet-phi-spacing.md`—Exoplanet Orbital Spacing from the Wake-Wave Mechanism
 
@@ -248,12 +248,21 @@ from the PDE; the anatomical mapping is the hypothesis.
 | Tier | Criterion |
 |------|-----------|
 | **Derived** | Mathematical consequence of $\varphi$ + two-fluid PDE; zero free parameters |
+| **Calibrated** | Framework form with the constant's value anchored to a stated observation; downstream claims using the pinned value inherit the anchor |
+| **Mapped** | Placement (rung, exponent, offset, candidate, normalization) selected or fitted to data; the fit is recorded in the Fit-Status Ledger (`parameter-inventory.md` §10) |
 | **Hypothesized** | Mechanism proposed with pinned $\varphi$-power; testable prediction exists |
 | **Speculative** | Framework-consistent; mechanism sketched but prediction not yet pinned |
 | **Open problem** | Bridge identified but derivation path not yet closed |
+| **Creative** | Application of the framework's logic for exploration, not a claim (`speculations/creative-extensions/`); exempt from the quality bar |
 
 Documents marked Speculative or Open problem may not yet meet the full quality
 bar—they are included for completeness and as prompts for future work.
+
+Claims tagged **Calibrated** or **Mapped** pass the quality bar only with their
+row in the Fit-Status Ledger (`parameter-inventory.md` §10); a fitted or
+anchored claim without its ledger entry is a house-style violation, not a
+passing hypothesis. The former "near-Derived" label is retired—use the honest
+tier.
 
 ---
 
