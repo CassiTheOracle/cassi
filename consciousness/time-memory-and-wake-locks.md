@@ -33,7 +33,7 @@ A second fact makes the arrow structural rather than incidental. The field carri
 
 ## 2. Memory as Field Persistence
 
-A record is any pattern of Yang-Yin imbalance that the field declines to dissolve—memory is persistence, and persistence is a matter of coherence. The psychology guide presents the same law as memory-as-cascade-depth (`cassi-psychology.md` §9).
+A record is any pattern of Yang-Yin imbalance that the field declines to dissolve—memory is persistence, and persistence is a matter of coherence. The consciousness mapping presents the same law as wake persistence (`consciousness/consciousness-from-phi.md` §2.2).
 
 Information in the Cassi framework has a physical identity: a spatial configuration of the imbalance $\Pi = E_Y - E_I$ (equivalently, of the deviation $\varepsilon = E_Y - \varphi E_I$), written into the field and held there by the gate (`speculations/qi-computation.md` §1.1). The field's default behavior is to erase: wherever $q < 1$, conversion drives the imbalance back toward the attractor at rate $2\lambda(1-q)$ (the factor of two from the antisymmetric pair), and the pattern decays. A record survives only where the gate is nearly closed—the conversion that processes the field is the same mechanism that dissolves its structure. The decay rate of an imprinted pattern is
 
@@ -139,7 +139,7 @@ $$\boxed{\begin{aligned}
 - `consciousness/trauma-as-frozen-gate.md`—wake-lock model, driver test, $q$-gap, phase-channel selectivity, $R$-matrix closure
 - `consciousness/consciousness-from-phi.md`—wake waves, consciousness as Qi gate dynamics
 - `consciousness/chakras-as-cascade-bubbles.md`—13 chakra nodes, rung positions, 26-rung human gate chain
-- `cassi-psychology.md`—psychology guide, memory as cascade depth (§9)
+- `cassi-psychology.md`—psychology reading guide: memory as persistence
 - `two-fluid/run_trauma_wake_lock.py`—wake-lock PDE test: standing vs radiating vs random vs $\varphi$-drive runs
 - `two-fluid/run_trauma_driver.py`—driver test: weak recurring trigger sustains the wake, extinction on removal
 - `two-fluid/run_trauma_drive_compare.py`—$\varphi \cdot P_0$ vs $e \cdot P_0$ drive: drain vs pump
