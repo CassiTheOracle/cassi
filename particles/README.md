@@ -12,12 +12,17 @@ This directory pairs the Cassi account of how particles emerge from field interf
 |---|----------|--------|-----------|
 | 1 | `cassi-yang-yin-particles.md` | Particle emergence | Derived |
 | 2 | `dft-benchmarks.md` | Computational chemistry | Derived |
+| 3 | `matter-organization.md` | Matter organization | Synthesis |
 
 ## Document Summaries
 
 ### `cassi-yang-yin-particles.md`—Yang-Yin Field Interference and Particle Formation
 
 Derives particle emergence from two complex scalar fields with opposite chiral bias—Yang right-moving (expansive), Yin left-moving (contractive)—each obeying a damped wave equation with a $\pm\chi$ advection term and mutually coupled sources. Their superposition creates a standing-wave intensity pattern with contrast $\rho_{\text{max}}/\rho_{\text{min}} = \varphi^6 \approx 17.94$, and adding the attractive nonlinear Schrödinger self-interaction nucleates bright solitons above the condensation threshold $\rho_{\text{peak}} = A_Y^2\varphi^2 > \theta_{\text{cond}}$. Minimizing the soliton mass $M(r) = M_0\,(1+r)^2/\sqrt{r}$ pins the Yin/Yang amplitude ratio at $A_I/A_Y = \varphi^{-1} \approx 0.618$—the golden ratio emerges as the stability condition for particle formation rather than an input. The framework maps onto the Dirac equation (a massive fermion is the superposition of right- and left-moving Weyl chiralities) and is confirmed numerically by Experiment 8v2: soliton formation from interference, elastic soliton scattering, and an amplitude-ratio scan peaking at $\varphi^{-1}$. Epistemic tier: Derived—analytic derivation plus numerical validation.
+
+### `matter-organization.md`—Matter Organization: Forces, Lattice Pools, and the Neutron–Proton–Electron Trio
+
+Synthesis (August 2026) of how matter organizes in Cassi terms: each force as a binding channel at its cascade rung (gravity at every rung, GUT at ~13–15, sector coupling at 77, electroweak at 80, QCD at 95), energy pooling on the lattice from interference to soliton to the 38-state ladder and the lattice sub-multiple law $m = m_j/k$, and the neutron–proton–electron trio—the baryon pair at rung 91.5 with the proton's coherence budget, the electron's three placements (Compton near-miss, Yukawa half-rung fit, sharpest lattice void at $e = m_{102}/11.5$)—plus an explicit inventory of what the framework does not yet say. Every claim keeps the epistemic tier of its source; the doc adds no new claims.
 
 ### `dft-benchmarks.md`—DFT Benchmarks: CassiBridgeV2 Real-Space Performance
 
