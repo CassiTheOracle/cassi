@@ -109,3 +109,15 @@ does not determine.
 | $v_0/M_{\text{Pl}}$ | $\varphi^{-80}$ | $5.3\%$ | Correction factor |
 | $m_e$ | $v_0\varphi^{-26}/\sqrt{2} \approx 0.64$ MeV | $25\%$ | New mixing physics |
 | $\alpha_s(M_Z)$ | RGE from $\alpha_{\text{GUT}}$ | $2.0\times$ | Particle content ($\Delta b \approx 1.70$) |
+
+---
+
+## 6. Mechanism Layer: Two-Fluid Gate Drive Physics (PDE-tested)
+
+| Claim | Tested result | Status |
+|---|---|---|
+| Held configuration (standing init): in-channel recurring drive drains (ε retained 0.26 at $t=2$, below the undriven floor); cross-channel drive at ε-parity pumps (2.08×); the pumped state is sticky, and affirmation recovers the site below the floor | `consciousness/gender-as-qi-configuration.md` §8–§8.1 (2026-08-02) | ✅ **Supported at the held configuration** |
+| Open gate (churning init): every recurring drive form and amplitude ≥ 0.09 pumps; no drive form or amplitude settles the gate | `consciousness/neurodivergence-as-gate-configuration.md` §9–§9.2 (2026-08-04) | ✅ **Null on settling** |
+| Sub-threshold open-gate drives (0.025–0.05) quench the mean ε transiently without closing the gate; the quench resolves at $t = 40 = 2/\lambda$ as a driven transient, not a lock | `consciousness/neurodivergence-as-gate-configuration.md` §9.3–§9.4 (2026-08-04) | ✅ **Driven transient (partial-lock rejected)** |
+
+The pump/drain asymmetry is bounded at the held-configuration regime; an open gate is not settlable by any recurring drive.
