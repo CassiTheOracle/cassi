@@ -47,8 +47,20 @@ the spiral clock turns **$\varphi^{-2} = 0.38197$ turns per Hubble rung**
 (dynamical pitch angle $\approx 11.34°$, $\tan = \ln\varphi/(2\pi\varphi^{-2}) =
 0.2005$)—not one turn per rung; the azimuthal discriminator is
 $|a_\theta/a_r| = 0.19880$ (08 §C.3). The solver as written has no $\Omega$
-term (exchange-only rotation, $\omega = 0$); the term is not implemented.
-[COMPUTED]
+term (exchange-only rotation, $\omega = 0$).
+
+**PDE winding test (09-winding-test.md, run 2026-08-04):** the rotation half
+is **PDE-verified**—the layered $\Omega$ generator rotates the doublet at the
+dressed rate in the $\varepsilon\to 0$ limit: measured **0.3868 ± 0.0001 turns
+per rung vs the dressed 0.38902**; the bare $\varphi^{-2} = 0.382$ is the
+generator ratio, never a realized winding; the asserted **1.0 is rejected as a
+dynamical claim**; measured discriminator $|a_\theta/a_r| = 0.213$ vs the
+predicted $0.19880$. The source half's **r-level content stands** (the $w_a$
+shifts of 08 §C.6 are scale-free), but its field-level realization is
+**unstable** (saddle at $(1,\varphi^{-1})$; density blow-up without Hubble
+friction; log-domain exit after 0.108 turns; the source's Hessian exactly
+cancels the $\Omega$ rotation at the fixed point)—**stable field-level
+realization open**. [COMPUTED]
 
 Crucially, this spiral lives in the **internal** $(E_Y, E_I)$ plane, not
 physical 3D space. The doublet angle $\Theta = \text{atan2}(E_I, E_Y)$ is
@@ -352,7 +364,13 @@ across different cascade depths (atomic, nuclear, particle).
   \lambda\varphi^{-2}/d$ (Hypothesized—August 2026, zero free constants; the
   vacuum half is the framework's own $\Lambda$; predicts $\varphi^{-2} = 0.382$
   turns per rung, pitch 11.34°, discriminator $|a_\theta/a_r| = 0.19880$; not
-  implemented in the solver—08 §A.2, §C.3)
+  implemented in the solver—08 §A.2, §C.3). **Winding-test verdict (09):** the
+  rotation half is PDE-verified (dressed 0.389 turns/rung realized in the
+  $\varepsilon\to 0$ limit, measured 0.3868 ± 0.0001; the bare $\varphi^{-2}$
+  is the generator ratio; 1.0 rejected); the source half's field-level
+  realization is unstable (saddle at $(1,\varphi^{-1})$, density blow-up, log-
+  domain exit at 0.108 turns; the Hessian cancels the rotation at the fixed
+  point)—r-level content stands, stable realization open
 - Gravity as gradient descent along the spiral (anchored quantitatively by the rung-offset probes: at the closure rungs the flow reads $\le 1.5\%$ of the wave speed, inward for J/ψ and $\approx 0$ for μ, and the conversion term alone transports outward at $\le 0.1\%$—`foundations/rung-offset-mechanism.md` §5 T11–T13)
 - $c$ as scale-invariant product $\lambda_{\text{eff}} \cdot \ell_n$
   (algebraically confirmed; numerical value awaits unit calibration)
