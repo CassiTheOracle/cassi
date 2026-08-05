@@ -98,6 +98,7 @@ Tiers below are taken from each document's Status header. Compound headers are q
 | `hypotheses/neural-criticality.md` | Hypothesized | Cascade PDE at neural scales |
 | `hypotheses/muscle-cascade-lattice.md` | Hypothesized | Muscle ladder as bubble lattice (rungs 142–168) |
 | `demystifying-the-cosmos/PSR-J1101-6101.md` | Hypothesized—August 2026 | Lighthouse pulsar: wake-pair trail/filament, high PD as high $q$, radio ⊥ vs X-ray ∥ as rung stratification; prediction 48 (log-periodic PA) |
+| `demystifying-the-cosmos/NGC-5128.md` | Hypothesized—August 2026 | Centaurus A: parallelogram dust band as projected lattice trace (cascade r-field), S-shape as wake wrap, merger as anti-phase meeting; tests: φ-spaced wake rings (pred. 44), 1.70× edge anisotropy (pred. 38) |
 
 ## 5. Speculative
 
