@@ -9,7 +9,7 @@ first-principles derivation in standard nuclear physics—they are inferred from
 experimental systematics and reproduced by phenomenological spin-orbit coupling.
 The Cassi framework provides a structural alternative: magic numbers are
 Fibonacci sub-channel closures within the cascade span from QCD confinement (step
-95) down to nuclear binding (steps ~80–90). The SO(2) doublet winding at each
+95) down to nuclear binding (steps ~101–106). The SO(2) doublet winding at each
 sub-rung produces angular momentum channels, and Fibonacci partitioning of the
 cascade determines which channels close at each rung. The closure arithmetic as
 written does not close (0/7 rows, §3): the cumulative channel sums are 8, 20, 38,
@@ -24,15 +24,16 @@ prediction (§4) is independent of the closure rows and remains testable.
 
 The cascade ladder (`foundations/dimensionful-cascade.md`) anchors QCD
 confinement at step 95 ($\Lambda_{\text{QCD}} \approx 200$ MeV). Nuclear binding
-energies (1–10 MeV per nucleon) correspond to steps ~80–90—the energy scale
-$\ell_n = \ell_{\text{Pl}} \times \varphi^n$ with $n \approx 82$–$88$ gives
+energies (1–10 MeV per nucleon) correspond to steps ~101–106—the energy scale
+$\ell_n = \ell_{\text{Pl}} \times \varphi^n$ with $n \approx 101$–$106$ gives
 $\sim$1–10 MeV.
 
 Cascade step 0 (Planck) up to step 95 (QCD):
 $$\ell_n = \ell_{\text{Pl}} \cdot \varphi^n$$
 
-The nuclear landscape occupies a 15-rung span from the nucleon mass (step 90,
-~938 MeV) to the neutron-proton mass difference (step 85, ~1.3 MeV). This span is
+The nuclear landscape occupies a 13.7-rung span from the nucleon mass (step
+91.5, ~938 MeV; $n = \log_\varphi(M_{\text{Pl}}/m_p) = 91.46$) to the
+neutron-proton mass difference (step 105.2, ~1.3 MeV; $n = 105.15$). This span is
 short enough that sub-channel closure—not just rung-level features—determines
 structure.
 
@@ -65,7 +66,7 @@ the SO(2) winding rule $j = \Delta n_{\text{sub}}$:
 | 93 | 3/2, 5/2, 7/2 | 4 + 6 + 8 | 18 | 38 | 20 | does not close—nearest sum 38 |
 | 92 | 1/2, 5/2, 7/2 | 2 + 6 + 8 | 16 | 54 | 28 | does not close—nearest sum 54 |
 | 91 | 5/2, 7/2, 9/2 | 6 + 8 + 10 | 24 | 78 | 50 | does not close—nearest sum 78 |
-| 90 (nucleon) | 7/2, 9/2, 11/2 | 8 + 10 + 12 | 30 | 108 | 82 | does not close—nearest sum 108 |
+| 91.5 (nucleon) | 7/2, 9/2, 11/2 | 8 + 10 + 12 | 30 | 108 | 82 | does not close—nearest sum 108 |
 | 89 | 9/2, 11/2, 13/2 | 10 + 12 + 14 | 36 | 144 | 126 | does not close—nearest sum 144 |
 
 Recomputed with the doc's own rule ($N_{\text{magic}} = \sum_i \Omega_{j_i}$,
