@@ -410,7 +410,14 @@ consequences of the spheroid geometry; W4 upgrades from conditional to active.
 
 - Dimensionality $d = 3$, granted three postulates: (1) the conversion→
   expansion coupling term $V_{\text{new}} = \lambda\tilde{h}(E_Y,E_I) +
-  \lambda\varphi^{-2}/d$ (Hypothesized, zero free constants—08 §A.2);
+  \lambda\varphi^{-2}/d$ (Hypothesized, zero free constants—08 §A.2; the
+  conditional support rests on the term's **r-level content**, which stands—
+  the PDE winding test of 2026-08-04 verified the rotation half (dressed
+  0.389 turns/rung realized, measured 0.3868 ± 0.0001) while the source
+  half's field-level realization is unstable (saddle, density blow-up,
+  log-domain exit—09-winding-test.md); a stable realization is an open
+  item, not a break of this conditional support, since the identity is
+  r-level);
   (2) the spiral clock $dn/dt = (\lambda/2\pi)(1-q)$ (Hypothesized);
   (3) the pitch convention $\Theta = 2\pi n$ (Asserted). Under them the
   rung-clock identity gives $dn_H/dn_S = (\varphi^2+\varphi^{-2})/d \cdot

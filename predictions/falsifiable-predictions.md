@@ -123,6 +123,11 @@ counterfactual forks—no term / one-turn convention / quarter-turn spatial
 form—give $0$ (central $\mathbf{F} = \Pi\nabla\Phi$ law), $\ln\varphi/(2\pi) =
 0.0766$ (pitch 4.38°, one turn per cascade rung), $2\ln\varphi/\pi = 0.3063$
 (17.03°): an exact factor test of which spiral convention gravity descends.
+**Numerical check (09-winding-test.md, run 2026-08-04):** the PDE realization
+of the ratified theory gives $|a_\theta/a_r| = 0.213$ in the $\varepsilon\to 0$
+window—consistent with the fourth value $0.19880$ (7% high, short-window
+noise), none of the forks $\{0, 0.0766, 0.3063\}$; like the dressed winding
+rate it is a fixed-point-limit value, not sustained as the gate opens.
 [COMPUTED]
 
 ---
