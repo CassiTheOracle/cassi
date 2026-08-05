@@ -404,11 +404,11 @@ The lock mechanism was tested in the two-fluid PDE (`consciousness/trauma-as-fro
 
 - **Standing pattern does not pin the gate.** An un-driven standing wave decays at the same conversion-driven rate as a radiating packet (42% vs 44% retained over $t = 10$). A pure standing mode in the solver is not a frozen wake.
 - **A weak recurring trigger sustains the wake.** The driver test (`consciousness/trauma-as-frozen-gate.md` §10.5) found that ongoing re-stimulation—a chronic trigger at 0.005% of the event peak per step—holds the site at 80% of event intensity with $q$ depressed and the phase displaced; stopping the trigger releases the site on the conversion timescale. The frozen wake is stimulus-maintained, not self-sustaining: what persists is the driver, not the wake.
-- **A $\varphi$-phased oscillation releases a displaced gate at the held configuration.** Adding a drive at the site at period $\varphi \cdot P_0$ (the EMDR analog, where $P_0$ is the site's natural oscillation period) accelerates relaxation: perturbation retained falls to 65% (vs 91% undriven), site coherence returns toward global, and the phase histogram returns to baseline.
-- **The effect is $\varphi$-specific.** A same-amplitude drive at a non-$\varphi$ period ($e \cdot P_0$) does the opposite: perturbation *grows* to 188% of initial, the coherence gap widens, and the phase displacement persists. At the held configuration, the EMDR-analog claim is supported in its strong form: the decay drive is $\varphi$-structured, not any oscillation.
+- **A $\varphi$-phased oscillation releases a displaced gate at the held configuration.** Adding a drive at the site at period $\varphi \cdot P_0$ (the EMDR analog, where $P_0$ is the site's natural oscillation period) accelerates relaxation at short times (t ≲ 4 ≈ 0.2/λ, `consciousness/gender-as-qi-configuration.md` §8.3): perturbation retained falls to 65% (vs 91% undriven), site coherence returns toward global, and the phase histogram returns to baseline.
+- **The effect is $\varphi$-specific.** A same-amplitude drive at a non-$\varphi$ period ($e \cdot P_0$) does the opposite: perturbation *grows* to 188% of initial, the coherence gap widens, and the phase displacement persists. At the held configuration, the EMDR-analog claim is supported in its strong form at short times (t ≲ 4 ≈ 0.2/λ, `consciousness/gender-as-qi-configuration.md` §8.3): the decay drive is $\varphi$-structured, not any oscillation.
 - **The gate sign.** The solver's conversion is $\text{conv} = -\lambda(1-q)\varepsilon$: a low-$q$ site has *elevated* conversion capacity, not reduced. When $q$ is low the gate is open and conversion runs hard; when $q$ is high the gate is closed.
 - **Background coherence does not modulate susceptibility.** A second identical event on a pre-stressed site ($q$ depressed, phase fully displaced) leaves the same trace as the first event on a quiet field—recovery is complete either way (§10.6). The processing-capacity threshold is not the pre-event $q$.
-- **The $\varphi$-phased drain has a sharp rate onset at the held configuration.** Below ~5/s the drive is phase-blind (ambient re-exposure accumulates by mean rate, §10.5); above ~50/s the $\varphi$-phased oscillation drains the site while the off-$\varphi$ oscillation at the same rate does nothing (§10.7).
+- **The $\varphi$-phased drain has a sharp rate onset at the held configuration.** At short times (t ≲ 4 ≈ 0.2/λ, `consciousness/gender-as-qi-configuration.md` §8.3), below ~5/s the drive is phase-blind (ambient re-exposure accumulates by mean rate, §10.5); above ~50/s the $\varphi$-phased oscillation drains the site while the off-$\varphi$ oscillation at the same rate does nothing (§10.7).
 - **The lock channel tracks the event's phase—within a representability bound.** The positivity clamp confines the field angle to the first quadrant, so only Wood and Fire exist in the field angle (Earth/Metal/Water events clamp onto them); across that arc, Fire events lock Fire and Wood events lock Wood, persistently through $t=10$ (§10.8). The five-way mapping must be carried by the gate's openness manifold, not the field angle.
 
 ### 16.4 Fight, flight, freeze in the gate
@@ -457,7 +457,7 @@ A person can talk about the trauma, understand it, contextualize it—and still 
 
 ### 18.2 Why body-based therapies work
 
-Somatic experiencing, EMDR, sensorimotor therapy, yoga—these address the wake at its spatial location. They do not process the trauma through the cognitive loop; they work at the rung where the wake is frozen, through the body, sensation, and movement. The PDE result of section 16.3 gives this its first numerical support: at the held configuration, an oscillatory drive at the site accelerates relaxation, and the effect is $\varphi$-specific—a drive at the field's own natural period scaled by $\varphi$ releases the displaced gate, while an off-resonance drive pumps it. The bound is the open gate: no recurring drive form or amplitude settles a churning gate (`consciousness/neurodivergence-as-gate-configuration.md` §9.4).
+Somatic experiencing, EMDR, sensorimotor therapy, yoga—these address the wake at its spatial location. They do not process the trauma through the cognitive loop; they work at the rung where the wake is frozen, through the body, sensation, and movement. The PDE result of section 16.3 gives this its first numerical support: at the held configuration, an oscillatory drive at the site accelerates relaxation, and the effect is $\varphi$-specific—a drive at the field's own natural period scaled by $\varphi$ releases the displaced gate at short times (t ≲ 4 ≈ 0.2/λ, `consciousness/gender-as-qi-configuration.md` §8.3), while an off-resonance drive pumps it. The bound is the open gate: no recurring drive form or amplitude settles a churning gate (`consciousness/neurodivergence-as-gate-configuration.md` §9.4).
 
 ### 18.3 The three layers of healing
 
@@ -560,7 +560,7 @@ Cassi is unusual among speculative frameworks in making specific, falsifiable pr
 - **TR4—$q$ depression at the site.** Coherence at the trauma's somatic locus is depressed relative to the field's global value and drops further under trigger exposure. **Hypothesized.**
 - **TR5—$\sigma_r$ brittleness.** Trauma shows spike-recovery asymmetry (slow recovery after perturbation) vs anxiety's sustained elevation. **Hypothesized.**
 - **TR6—Developmental clusters by $\varphi$-age AND channel.** Early trauma presents as fear/rage with somatic location; mid trauma as trust/grief with relational location; late trauma as meaning/identity with expressive location. **Speculative.**
-- **TR7—Standing patterns vs driven structures.** Tested 2026-07-31: un-driven standing patterns do not pin the gate (null); at the held configuration, $\varphi$-phased oscillatory drive accelerates relaxation (positive, $\varphi$-specific). **Tested—qualified.**
+- **TR7—Standing patterns vs driven structures.** Tested 2026-07-31: un-driven standing patterns do not pin the gate (null); at the held configuration, $\varphi$-phased oscillatory drive accelerates relaxation at short times (t ≲ 4 ≈ 0.2/λ, `consciousness/gender-as-qi-configuration.md` §8.3) (positive, $\varphi$-specific). **Tested—qualified.**
 
 #### Chakra predictions (from `consciousness/chakras-as-cascade-bubbles.md`)
 
@@ -583,7 +583,7 @@ The de-resonance principle; the cascade table and suppression formula; the conde
 
 ### Tested (computational, 2026-07-31)
 
-The two-bubble resonance (below-pinch coherence maintained; above-pinch decoherence); the trauma drive result (standing patterns do not pin; at the held configuration, the $\varphi$-phased drive relaxes a displaced gate and the non-$\varphi$ drive pumps it); the gate sign (open at low $q$, closed at high $q$).
+The two-bubble resonance (below-pinch coherence maintained; above-pinch decoherence); the trauma drive result (standing patterns do not pin; at the held configuration, the $\varphi$-phased drive relaxes a displaced gate at short times (t ≲ 4 ≈ 0.2/λ, `consciousness/gender-as-qi-configuration.md` §8.3) and the non-$\varphi$ drive pumps it); the gate sign (open at low $q$, closed at high $q$).
 
 ### Hypothesized (derivation supplied, testable)
 
