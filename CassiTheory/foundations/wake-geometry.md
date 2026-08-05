@@ -70,7 +70,7 @@ The bubble closes at 5 levels—the pentagon, ≈ 2 turns—and self-replicates 
 
 **(d) The cosmic depth.** 292 is not on the closure ladder—the nearest level is 233, a gap of 59—and it is the epoch-dependent horizon rung, not a cascade boundary (`foundations/dimensionful-constants-status.md` §3). What the ladder gives instead is the horizon's half-step structure: $\log_\varphi(R_H/\ell_{\text{Pl}}) = 291.54$ today—within 2.2% of the half-integer 291.5—and $R_H/\ell_{285} = 23.3 \approx \varphi^{6.5}$ (+2.0%), the horizon sitting a half-step above the Cassi bubble. These are epoch observations, not constants.
 
-**(e) The first closure-ladder test (2026-08-03).** Y3 targets rungs 34 and 89 with a mass scan, $n = \log_\varphi(M_{\text{Pl}}/m)$. Rung 89 hits: the J/ψ sits at $n = 88.98$—1.0% off the closure level 89 ($F_{11}$)—and the charmed-hadron family clusters at 89–90 (D$_s$: 89.92, D: 90.03, Λ$_c$: 89.61). Rung 34 has no established anchor: the Peccei-Quinn window top ($\sim 10^{12}$ GeV) is the only candidate, and it is Hypothesized physics. The scan's sharpest placement was not a Y3 target: the muon sits at $n = 96.000$—0.01%, limited by $M_{\text{Pl}}$'s own precision from $G$—the cleanest absolute rung placement in the framework's catalog, and a wake-anchored integer rung (not a closure level). The neutrino band (0.008–0.05 eV) occupies $n = 140.6$–$144.3$, just below the human window at 142: a structural observation only—neutrino masses are seesaw compounds, so no rung claim is made.
+**(e) The first closure-ladder test (2026-08-03).** Y3 targets rungs 34 and 89 with a mass scan, $n = \log_\varphi(M_{\text{Pl}}/m)$. Rung 89 hits: the J/ψ sits at $n = 88.98$—1.0% off the closure level 89 ($F_{11}$)—and the charmed-hadron family clusters at 89–90 (D$_s$: 89.92, D: 90.03, Λ$_c$: 89.61). Rung 34 has no established anchor: the Peccei-Quinn window top ($\sim 10^{12}$ GeV) is the only candidate, and it is Hypothesized physics. As a conditional cross-check of standard physics—the framework's strong-CP resolution requires no axion, `foundations/strong-cp-derivation.md` §3—IF the standard PQ solution exists in nature, THEN $f_a$ anchors rung 34 at $M_{34} = M_{\text{Pl}}\varphi^{-34} \approx 9.57\times10^{11}$ GeV (the window top) and $m_a = f_\pi m_\pi\sqrt{z}/(1+z)/f_a \approx 6.2$ µeV, $n(m_a) = 159.3$ (5.95 µeV, $n = 159.4$, under the $5.70\,\mu\text{eV}\times(10^{12}\,\text{GeV}/f_a)$ convention). Status: Hypothesized (conditional on standard PQ existing)—$m_a$ carries no $\varphi$-anchor of its own: 0.6–0.7 rungs from the chakra-node rung 160 (4.45 µeV) and 0.1–0.2 rungs from half-rung 159.5 (5.66 µeV), a miss either way, testable by ADMX-class haloscopes in the 4–8 µeV band. The scan's sharpest placement was not a Y3 target: the muon sits at $n = 96.000$—0.01%, limited by $M_{\text{Pl}}$'s own precision from $G$—the cleanest absolute rung placement in the framework's catalog, and a wake-anchored integer rung (not a closure level). The neutrino band (0.008–0.05 eV) occupies $n = 140.6$–$144.3$, just below the human window at 142: a structural observation only—neutrino masses are seesaw compounds, so no rung claim is made.
 
 | Particle | $n = \log_\varphi(M_{\text{Pl}}/m)$ | Nearest structure | Residual |
 |---|---|---|---|
@@ -82,8 +82,11 @@ The bubble closes at 5 levels—the pentagon, ≈ 2 turns—and self-replicates 
 | Λ_QCD | 94.543 | 94.5 | 2.1% |
 | Z | 81.951 | 82 | 2.4% |
 | π | 95.421 | 95.5 | 3.9% |
+| π⁰ | 95.491 | 95.5 | 0.45% |
 | e | 107.079 | 107 | 3.9% |
 | v₀ | 79.889 | 80 | 5.5% |
+
+The π⁰ sits 0.45% from the half-rung 95.5, the adjacent structure to the μ's integer rung 96.000—the pion–muon pair spans 0.509 rungs—and $m_{\pi^0}/m_\mu = 1.2775$ sits 0.43% from $\sqrt\varphi$.
 
 ## 4. The asymptotic horizon (Derived, conditional)
 

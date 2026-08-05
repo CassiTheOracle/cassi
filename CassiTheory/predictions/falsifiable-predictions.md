@@ -185,6 +185,10 @@ Seesaw analysis with $M_R = \varphi^{-3} \cdot M_{\text{GUT}}$ gives the heavies
 
 **Source:** `foundations/rung-offset-mechanism.md` §§1–5; `foundations/wake-geometry.md` §2 (envelope), §3(e) (mass scan); `principles/de-resonance-principle.md` §2 (correction posture).
 
+**Prediction 47 (conditional axion chain):** IF the standard Peccei-Quinn solution exists in nature—the framework's strong-CP resolution requires no axion, `foundations/strong-cp-derivation.md` §3—THEN $f_a$ anchors the dark closure rung 34 ($M_{34} = M_{\text{Pl}}\varphi^{-34} \approx 9.57\times10^{11}$ GeV, the top of the allowed PQ window) and $m_a = f_\pi m_\pi\sqrt{z}/(1+z)/f_a \approx 6.0 \pm 0.3$ µeV ($n \approx 159.3$–$159.4$), testable by ADMX-class haloscopes in the 4–8 µeV band. $m_a$ carries no $\varphi$-anchor of its own—0.6–0.7 rungs from the chakra-node rung 160 (4.45 µeV) and 0.1–0.2 rungs from half-rung 159.5 (5.66 µeV), a miss either way. Status: Hypothesized (conditional on standard PQ existing); the framework's own prediction is the null—no axion exists (`standard-model/cp-violation.md` §5.3).
+
+**Source:** `foundations/wake-geometry.md` §3(e); `foundations/strong-cp-derivation.md` §3 (no-axion resolution). $f_a = M_{34}$ by the rung-34 anchor; $m_a$ from the standard PQ relation $m_a f_a = f_\pi m_\pi\sqrt{z}/(1+z)$; $n(m_a) = \log_\varphi(M_{\text{Pl}}/m_a)$.
+
 
 ---
 
@@ -256,6 +260,7 @@ Sorted by detection likelihood (most definitive first):
 | 44 | Staggered checkerboard envelope | Structure | **Bubbles at $m\ell_{n+1}$, voids at $(m+\frac{1}{2})\ell_{n+1}$** | Not yet tested | **Two-bubble PDE / surveys** |
 | 45 | Closure-ladder mass placements | Particle physics | **Rung 89: J/ψ ($n = 88.98$, 1.0%); rung 96: μ ($n = 96.000$, 0.01%); rung 34 open** | Partially tested 2026-08-03 | **Catalog; rung 34 open** |
 | 46 | Rung-offset mechanism | Particle physics + PDE | **Envelope positions $1+\log_\varphi m$ / $1+\log_\varphi(m+\tfrac12)$; δn = phase lag, δn(ψ) = 0.060 − 0.204ψ; multi-rung phasor sum** | Partially tested 2026-08-03 (δn(ψ) confirmed; multi-rung superposition verified; linear + gated conversion null; closure-emission, closure-in-sum, cumulative, ψ-map structure, lattice-frame all null; energy pool pinned; closure-crossing flow read: pools near-static, u ≤ 1.5%, conversion flux outward ≤ 0.1%; 38-state baseline uniform) | **What sets the wake phase ψ per rung** |
+| 47 | Conditional axion chain (PQ cross-check) | Particle physics (haloscopes) | **IF PQ exists: $f_a$ at rung 34 ($9.57\times10^{11}$ GeV); $m_a \approx 6.0 \pm 0.3$ µeV ($n \approx 159.3$–$159.4$; no $\varphi$-anchor)** | Untested; framework predicts the null axion | **ADMX-class, 4–8 µeV** |
 
 ## 8. Universal Boundary Anisotropy—Scale-Invariant Edge Steepness
 

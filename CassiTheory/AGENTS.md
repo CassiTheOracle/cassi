@@ -21,7 +21,7 @@ The repo is a **document graph with three master registries** at the root:
 
 - `open-questions-cassi-answers.md`—epistemic master registry: 41 open questions (`Q1–Q10`, `C1–C10`, `G1–G6`, `M1–M5`, `F1–F6`, `T1–T4`), each with a `Cassi Answer | Mechanism | Epistemic | Reference` table. Epistemic tiers: **Derived / Calibrated / Mapped / Hypothesized / Speculative / Creative** (definitions: `open-questions-cassi-answers.md` §Epistemic Tiers; every fitted or anchored claim must have a row in the Fit-Status Ledger, `parameter-inventory.md` §10).
 - `parameter-inventory.md`—parameter master registry: all ~46 parameters classified by type (F/D/C/E/I/N). **Must be updated** when a paper introduces, derives, or reclassifies a parameter.
-- `predictions/falsifiable-predictions.md`—prediction catalog: 46 numbered predictions grouped by experiment (FCC-ee, CMB-S4, LSST…), each with a `**Source:**` block. Cited elsewhere by number / `§`.
+- `predictions/falsifiable-predictions.md`—prediction catalog: 47 numbered predictions grouped by experiment (FCC-ee, CMB-S4, LSST…), each with a `**Source:**` block. Cited elsewhere by number / `§`.
 - `cassi-physics.md`—physics guide (start here)
 - `audit.md`—self-critical prediction-vs-experiment audit.
 
@@ -132,7 +132,7 @@ Docstring with run command → NumPy + Matplotlib (**Agg backend set early**) �
 | `BROKEN_REFS.md` | Registry of external/broken refs—read before editing refs |
 | `open-questions-cassi-answers.md` | Epistemic registry (Q/C/G/M/F/T numbering) |
 | `parameter-inventory.md` | Parameter registry—update with parameter changes |
-| `predictions/falsifiable-predictions.md` | 46-prediction catalog |
+| `predictions/falsifiable-predictions.md` | 47-prediction catalog |
 | `predictions/cassi_definitions.md` | Framework glossary |
 | `foundations/cascade-suppression-formula.md` | Universal φ⁻ᴺ tool (wedge doc) |
 | `foundations/bubble-lattice-fabric.md` | Universal bubble lattice geometry (wedge doc) |
