@@ -103,7 +103,7 @@ compound to $\varphi^{-4506}$ (see `foundations/proton-coherence-budget.md`).
 | Phenomenon | Regime | Seed at cascade rung | Target rung | Span $N$ | $\mathcal{D}$ | Result | Status |
 |---|---|---|---|---|---|---|---|
 | **Hierarchy** ($v_0/M_{\text{Pl}}$) | Signal | $n_{\text{GUT}} \approx 8$ | $n_{\text{EW}} \approx 80$ | $72$ | $\varphi^{-72}$ | $10^{-15}$ (cf. $10^{-17}$) | Derived |
-| **Strong CP** ($\bar{\theta}$) | Signal | $n_{\text{GUT}} \approx 8$ | $n_{\text{QCD}} = 95$ | $87$ | $\varphi^{-87}$ | $\bar{\theta} \approx 10^{-19}$ | Derived |
+| **Strong CP** ($\bar{\theta}$) | Signal | $n_{\text{GUT}} \approx 13.3$ | $n_{\text{QCD}} = 94.7$ | $81.4$ | $\varphi^{-81.4}$ | $\bar{\theta} \approx 1.2\times10^{-17}$ | Derived |
 | **Neutrino masses** | Signal | $n_{\text{GUT}} \approx 8$ | $n_{\text{seesaw}} \approx 20$ (or $n_\nu$) | $12$–$25$ | $\varphi^{-12}$ to $\varphi^{-25}$ | $m_\nu \sim 0.001$–$0.1$ eV | Hypothesized |
 | **Proton stability** | Coherence | $n=0$ (Planck) | $n = 91.5$ (proton rung) | $91.5^2$ form | $\varphi^{-4506}$ | $\tau_p \approx 10^{910}$ yr | Derived |
 | **Measurement collapse** | Single-rung |—| $n_{\text{target}}$ | $N=1$ | $\mathcal{M}$ (phase-matching) | $P \approx 1-q_n$ at target rung | Hypo w/ core |
@@ -147,7 +147,7 @@ for any phenomenon with an identified source and target rung:
 
 $$\text{Prediction} = \text{Seed value} \times \varphi^{-(n_{\text{target}} - n_{\text{source}})}$$
 
-For strong CP, this gives $\bar{\theta} \approx 10^{-19}$—testable if
+For strong CP, this gives $\bar{\theta} \approx 1.2\times10^{-17}$—testable if
 future neutron EDM probes improve by several orders of magnitude.
 
 For neutrino masses, the same formula applied to the seesaw rung gives the
@@ -174,6 +174,6 @@ Together they constitute the complete scaling laws of the framework.
 
 - `foundations/dimensionful-cascade.md`—complete cascade table, $\ell_n = \ell_{\text{Pl}}\varphi^n$ (292 = today's horizon rung)
 - `foundations/proton-coherence-budget.md`—coherence maintenance, quadratic exponent
-- `foundations/strong-cp-derivation.md`—signal propagation, $\bar{\theta} = \varphi^{-87}$
+- `foundations/strong-cp-derivation.md`—signal propagation, $\bar{\theta} = \pi\varphi^{-83.4} \approx 1.2\times10^{-17}$
 - `foundations/xi-derivation.md`—$\xi = \varphi^6$ as a cascade suppression factor
 - `principles/de-resonance-principle.md`—why $\varphi^{-1}$ is the per-rung damping

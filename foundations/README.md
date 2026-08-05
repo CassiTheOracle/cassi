@@ -167,7 +167,7 @@ The same coherence-budget machinery that stabilizes the proton for $\sim 10^{910
 
 The QCD $\theta$-term arises as an effective parameter of the SU(3) theory that emerges from the two-fluid PDE at cascade step 95, and the $\varphi$-attractor fixed point is CP-symmetric. Any CP-violating departure originating at the GUT scale (n ≈ 13.3) is cascade-suppressed over the ~81 rungs to the QCD scale:
 
-$$\boxed{\bar{\theta} \approx \varphi^{-81} \times \pi\varphi^{-2} = \pi\varphi^{-83} \approx 1.4 \times 10^{-17}}$$
+$$\boxed{\bar{\theta} \approx \varphi^{-81.4} \times \pi\varphi^{-2} = \pi\varphi^{-83.4} \approx 1.2 \times 10^{-17}}$$
 
 ~7 orders of magnitude below the experimental bound of $10^{-10}$. The span is Mapped (its GUT-seed anchor and $\delta_{\text{CP}}$ are ledgered fits, `parameter-inventory.md` §10). No axion, no Peccei-Quinn symmetry, no new particles: the smallness is the cascade doing what it always does. Status: Derivation (span Mapped—ledger).
 

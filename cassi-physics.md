@@ -205,7 +205,7 @@ This single rule explains the deepest hierarchy puzzles in physics, each in one 
 | Phenomenon | Span $N$ | Suppression | Result |
 |---|---|---|---|
 | Electroweak hierarchy ($v_0/M_{\text{Pl}}$) | 72 | $\varphi^{-72}$ | $10^{-15}$ |
-| Strong CP ($\bar{\theta}$) | 87 | $\varphi^{-87}$ | $\pi\varphi^{-89} \approx 10^{-19}$ |
+| Strong CP ($\bar{\theta}$) | 81.4 | $\varphi^{-81.4}$ | $\pi\varphi^{-83.4} \approx 1.2\times10^{-17}$ |
 | Neutrino masses ($m_\nu$) | 12–25 | $\varphi^{-12}$ to $\varphi^{-25}$ | 0.001–0.1 eV |
 | Proton lifetime | 91.5 (coherence) | $\varphi^{-4506}$ | $10^{910}$ yr |
 
@@ -299,7 +299,7 @@ The CP-violating phase originates at the GUT scale and is cascade-suppressed thr
 
 $$\bar{\theta} \approx \pi\varphi^{-83.4} \approx 1.2\times10^{-17}$$
 
-The suppression is the cascade law of section 8 applied to the phase: the seed $\pi\varphi^{-2}$ at the GUT scale, attenuated by $\varphi^{-87}$ across the rungs to QCD. The result is below every current bound and below the next generation of neutron EDM experiments. See `standard-model/cp-violation.md`.
+The suppression is the cascade law of section 8 applied to the phase: the seed $\pi\varphi^{-2}$ at the GUT scale, attenuated by $\varphi^{-81.4}$ across the rungs to QCD. The result is below every current bound and below the next generation of neutron EDM experiments. See `standard-model/cp-violation.md`.
 
 **Epistemic status: Hypothesized** (derivation supplied; below current testability).
 
@@ -355,7 +355,7 @@ The human-scale consequences—consciousness, emotion, trauma, therapy—are dev
 | 6 | $\ln\varphi$ periodicity in physiological signals along spine | HRV, skin conductance, EEG | Not yet tested |
 | 7 | $\varphi$-periodic modulation in neural avalanche sizes | MEA recordings, >10³ events | Not yet tested |
 | 8 | No fourth fermion generation | LHC/FCC | Consistent |
-| 9 | $\bar{\theta} \approx 10^{-19}$ | Future neutron EDM | Not yet testable |
+| 9 | $\bar{\theta} \approx 1.2\times10^{-17}$ | Future neutron EDM | Not yet testable |
 | 10 | $\tau_p \sim 10^{910}$ yr | Untestable with current technology | Consistent with null result |
 
 Full catalog: `predictions/falsifiable-predictions.md` (47 entries). The physics-specific predictions (1–3, 8–10) are listed here; the full set including the biological and psychological predictions is in the catalog.

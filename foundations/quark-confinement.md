@@ -128,7 +128,7 @@ gate shape, not an input.
 | Asymptotic freedom | $n \ll 95$ | $g(q) \to 0$ | N/A (weak) |
 | **Confinement** | $n = 95$ | $g(q)$ self-reinforcing | Random deconfinement ($\varphi^{-4506}$) |
 | Proton stability | $n = 91.5$ (all rungs) | Coherence maintenance | Random dephasing ($\varphi^{-4506}$) |
-| Strong CP | $n = 8 \to 95$ | De-resonance damping | CP violation propagation ($\varphi^{-87}$) |
+| Strong CP | $n \approx 13.3 \to 94.7$ | De-resonance damping | CP violation propagation ($\varphi^{-81.4}$) |
 
 Confinement, proton stability, and strong CP are the same cascade—different
 aspects of the Qi gate at and below the QCD scale. Confinement binds the

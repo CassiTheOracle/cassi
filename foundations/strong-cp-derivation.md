@@ -15,9 +15,9 @@ $M_{\text{GUT}} \approx 2\times10^{16}$ GeV; corrected from the ladder's
 step-5 relabel) and is **cascade-suppressed** over the ~81 rungs to the QCD
 scale:
 
-$$\boxed{\bar{\theta} \approx \varphi^{-(n_{\text{QCD}} - n_{\text{GUT}})} \cdot \delta_{\text{CP}} \approx \varphi^{-81} \times \pi\varphi^{-2} = \pi\varphi^{-83} \approx 1.4 \times 10^{-17}}$$
+$$\boxed{\bar{\theta} \approx \varphi^{-(n_{\text{QCD}} - n_{\text{GUT}})} \cdot \delta_{\text{CP}} \approx \varphi^{-81.4} \times \pi\varphi^{-2} = \pi\varphi^{-83.4} \approx 1.2 \times 10^{-17}}$$
 
-The exact-rung span is $94.71 - 13.33 = 81.38$ (giving $\bar{\theta} = \pi\varphi^{-83.4} \approx 1.2\times10^{-17}$);
+The exact-rung span is $94.71 - 13.33 = 81.38$;
 the value sits ~7 orders of magnitude below the nEDM bound of $10^{-10}$ (the
 span counts from the corrected GUT-seed rung n ≈ 13.3). The span
 inherits Mapped status from its anchors—the GUT-seed rung ($M_{\text{GUT}}$,
@@ -127,7 +127,7 @@ The Peccei-Quinn solution to the strong CP problem introduces a new global
 U(1) symmetry and a new particle (the axion) to dynamically relax $\bar{\theta}$
 to zero. In Cassi, $\bar{\theta}$ is **already zero** at the $\varphi$-attractor,
 and the residual CP-violating contribution from CKM mixing is cascade-suppressed
-to $10^{-19}$. No new symmetry, no new particle, no new energy scale. The
+to $\pi\varphi^{-83.4} \approx 1.2\times10^{-17}$. No new symmetry, no new particle, no new energy scale. The
 cascade does what the axion was invented to do—and does it with zero
 additional parameters.
 
@@ -137,7 +137,7 @@ additional parameters.
 
 | Phenomenon | Seed | Cascade span | Suppression | Result |
 |---|---|---|---|---|
-| **Strong CP** ($\bar{\theta}$) | CKM phase $\delta_{\text{CP}}$ (Mapped) | GUT→QCD (~81 rungs) | $\varphi^{-81}$ | $\bar{\theta} \approx 1.4 \times 10^{-17}$ |
+| **Strong CP** ($\bar{\theta}$) | CKM phase $\delta_{\text{CP}}$ (Mapped) | GUT→QCD (~81 rungs) | $\varphi^{-81.4}$ | $\bar{\theta} \approx 1.2 \times 10^{-17}$ |
 | Proton decay | Random ambient noise | Planck→proton (92 rungs) | $\varphi^{-4506}$ | $\tau_p \approx 10^{910}$ yr |
 | Hierarchy ($v_0/M_{\text{Pl}}$) | Gauge structure | Planck→EW (80 rungs) | $\varphi^{-80}$ (exact count) | $10^{-17}$ |
 | Neutrino masses | Seesaw scale | GUT→ν (20 rungs) | $\varphi^{-20}$ | $m_\nu \sim 0.1$ eV |
