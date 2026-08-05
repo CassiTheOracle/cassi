@@ -252,11 +252,12 @@ appears in a **verified physical quantity**.
 | 26 | $2.7\times 10^5$ | $m_e/v_0 \approx \varphi^{-26}$ (human cascade depth) | 25% (integer rung 26); the half-step 26.5 is a fit to the observed mass, not a derivation (§2.2) |
 | 80 | $5.2\times 10^{16}$ | $v_0/M_{\text{Pl}} \approx \varphi^{-80}$ | 5.3% |
 | 89 | $3.94\times 10^{18}$ | $M_{\text{Pl}}/m_{J/\psi} \approx \varphi^{89}$ (charmonium ground state) | 1.0% (2026-08-03, closure level) |
+| 95.5 | $9.08\times 10^{19}$ | $M_{\text{Pl}}/m_{\pi^0} \approx \varphi^{95.5}$ (neutral pion; $m_{\pi^0} = m_\mu\sqrt{\varphi}$ to 0.43%) | 0.45% (2026-08-03) |
 | 96 | $1.16\times 10^{20}$ | $M_{\text{Pl}}/m_\mu \approx \varphi^{96}$ (muon mass) | 0.01% (2026-08-03, sharpest placement) |
 
 ### 4.3 Why These and Not Others?
 
-The set $\{1, 2, 3, 5, 6, 26, 80, 89, 96\}$ is **not derivable from $\varphi$**.
+The set $\{1, 2, 3, 5, 6, 26, 80, 89, 95.5, 96\}$ is **not derivable from $\varphi$**.
 It is an **empirical catalog**—the subset of $\varphi$-powers that happen to
 correspond to observable quantities in our universe.
 
@@ -267,6 +268,8 @@ measured physical couplings or scale ratios. They may correspond to:
 - Sub-dominant corrections to known quantities
 - Scales that have not been probed experimentally
 - Pure mathematical scaffolding connecting activated nodes
+
+**The lepton desert 97–106.** The band $n = 97$–$106$ (masses 65.3 MeV down to 0.86 MeV) holds no stable particle: confinement floors the hadron spectrum at the pions ($n \approx 95.4$–$95.5$), and only the electron ($n = 107.08$) and muon ($n = 96.000$) bracket it. The negative result is stated plainly—no integer-rung hit in 97–106. Its only occupants are nuclear binding energies: total binding energies span $n \approx 98.7$–$104.0$ (⁴He 28.3 MeV to the deuteron 2.22 MeV), and the binding-per-nucleon plateau (7.07–8.79 MeV/nucleon, $A = 4$–$60$) spans $n \approx 101.2$–$101.6$, astride the half-rung 101.5 (⁴He 0.12 rungs above it, ⁵⁶Fe 0.33 rungs below)—a loose structural observation, not a placement. The sharp finding sits just below the band: the neutral pion at $M_{\text{Pl}}/m_{\pi^0} = \varphi^{95.5}$ to 0.45%, with $m_{\pi^0} = m_\mu\sqrt{\varphi}$ to 0.43%. The pion–muon pair locks at (95.5 half-rung, 96.000 integer), 0.509 rungs apart; the charged pion sits 0.579 rungs from the muon (3.9% off the half), and the EM splitting separates the two pions by ~0.07 rungs—a genuine near-identity. Hypothesized: the empty band is the ladder's natural window for any new MeV-scale dark-sector particle (1–60 MeV, $n \approx 97.2$–$105.7$); masses outside the band would be ladder-disfavored.
 
 ### 4.4 Activated vs Fibonacci
 
