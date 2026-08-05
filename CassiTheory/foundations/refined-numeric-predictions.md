@@ -801,6 +801,6 @@ RGE).
 - `why-three-dimensions.md`—spiral's Frenet-Serret frame, triaxial spheroid
 - `unified-lagrangian.md`—unified action
 - `cosmology/observational_constraints.md`—CMB axis, $\sigma_8$, DESI
-- `predictions/falsifiable-predictions.md`—47-entry prediction catalog
+- `predictions/falsifiable-predictions.md`—48-entry prediction catalog
 - `open-questions-cassi-answers.md`—master catalog
 - `bubble-edge-geometry.md`—condensation field geometry, edge steepness ratio

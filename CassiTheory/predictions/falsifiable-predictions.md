@@ -189,6 +189,10 @@ Seesaw analysis with $M_R = \varphi^{-3} \cdot M_{\text{GUT}}$ gives the heavies
 
 **Source:** `foundations/wake-geometry.md` §3(e); `foundations/strong-cp-derivation.md` §3 (no-axion resolution). $f_a = M_{34}$ by the rung-34 anchor; $m_a$ from the standard PQ relation $m_a f_a = f_\pi m_\pi\sqrt{z}/(1+z)$; $n(m_a) = \log_\varphi(M_{\text{Pl}}/m_a)$.
 
+**Prediction 48 (log-periodic polarization orientation):** In pulsar wind nebulae and other synchrotron sources, the polarization position angle is log-periodic in photon energy—$\text{PA}(\nu\varphi^k) = \text{PA}(\nu)$ (mod $\pi$)—because the field orientation winds one full turn per cascade rung of emitting-particle energy, $\Theta(\nu) = \Theta_0 + (2\pi/\ln\varphi)\ln(\nu/\nu_0)$. A band pair at half-rung separation ($\nu_2/\nu_1 = \sqrt\varphi$) should show PA rotated by 90°. Test: PA in ≥3 bands spanning $\Delta(\ln\nu) \geq \ln\varphi \approx 0.4812$—radio (ATCA), X-ray (IXPE), and hard-X/γ-ray polarimetry (XL-Calibur, LEAP-class). Status: Hypothesized (newly cataloged 2026-08-05), untested.
+
+**Source:** `demystifying-the-cosmos/PSR-J1101-6101.md` §5 (IXPE Lighthouse Nebula: radio ⊥ vs X-ray ∥, >99% CL field ∥ flow, high PD); `foundations/spin-fibonacci-spiral.md` §1, §5 (spiral pitch one turn per rung; form-factor log-periodicity). Same period as the cosmological $P(k)$ modulation (prediction 5)—same $\varphi$, different probe.
+
 
 ---
 
@@ -261,6 +265,7 @@ Sorted by detection likelihood (most definitive first):
 | 45 | Closure-ladder mass placements | Particle physics | **Rung 89: J/ψ ($n = 88.98$, 1.0%); rung 96: μ ($n = 96.000$, 0.01%); rung 34 open** | Partially tested 2026-08-03 | **Catalog; rung 34 open** |
 | 46 | Rung-offset mechanism | Particle physics + PDE | **Envelope positions $1+\log_\varphi m$ / $1+\log_\varphi(m+\tfrac12)$; δn = phase lag, δn(ψ) = 0.060 − 0.204ψ; multi-rung phasor sum** | Partially tested 2026-08-03 (δn(ψ) confirmed; multi-rung superposition verified; linear + gated conversion null; closure-emission, closure-in-sum, cumulative, ψ-map structure, lattice-frame all null; energy pool pinned; closure-crossing flow read: pools near-static, u ≤ 1.5%, conversion flux outward ≤ 0.1%; 38-state baseline uniform) | **What sets the wake phase ψ per rung** |
 | 47 | Conditional axion chain (PQ cross-check) | Particle physics (haloscopes) | **IF PQ exists: $f_a$ at rung 34 ($9.57\times10^{11}$ GeV); $m_a \approx 6.0 \pm 0.3$ µeV ($n \approx 159.3$–$159.4$; no $\varphi$-anchor)** | Untested; framework predicts the null axion | **ADMX-class, 4–8 µeV** |
+| 48 | Log-periodic polarization orientation | Synchrotron polarimetry | **PA(νφᵏ) = PA(ν) (mod π); period Δ(ln ν) = ln φ ≈ 0.4812**; 90° flip at half-rung separation (ν₂/ν₁ = √φ) | Untested—Lighthouse Nebula (IXPE) consistent: radio ⊥ vs X-ray ∥, high PD | **IXPE + radio now; XL-Calibur / LEAP-class next** |
 
 ## 8. Universal Boundary Anisotropy—Scale-Invariant Edge Steepness
 

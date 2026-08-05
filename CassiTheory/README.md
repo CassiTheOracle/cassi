@@ -39,7 +39,7 @@ The present status of the field sets the bar Cassi aims at: no candidate theory 
 
 ## How it can be tested
 
-The charge against string theory is that it cannot be falsified. Cassi answers with a catalog of 47 numbered predictions, each with a concrete test design: a log-periodic modulation in the matter power spectrum at the golden-ratio period, a 1.70× edge anisotropy at any condensate boundary, the $\varphi^2$ inter-node spacing ratio of the chakra lattice, the dark-energy equation of state. Full catalog: `predictions/falsifiable-predictions.md`.
+The charge against string theory is that it cannot be falsified. Cassi answers with a catalog of 48 numbered predictions, each with a concrete test design: a log-periodic modulation in the matter power spectrum at the golden-ratio period, a 1.70× edge anisotropy at any condensate boundary, the $\varphi^2$ inter-node spacing ratio of the chakra lattice, the dark-energy equation of state. Full catalog: `predictions/falsifiable-predictions.md`.
 
 ## The arguments against
 
@@ -64,6 +64,7 @@ Cassi meets these arguments with explicit discipline. Every claim carries one of
 | `hypotheses/` | New application domains (exploratory catalog) |
 | `speculations/` | Speculative extensions |
 | `analyses/` | Data analyses of observations against the framework (GWTC-4.0 mass ladder) |
+| `demystifying-the-cosmos/` | One Cassi analysis per observed object/structure, named by codename (lighthouse pulsar first) |
 | `EPISTEMIC-MAP.md` | Every document indexed by epistemic tier |
 | `predictions/` | Falsifiable prediction catalog + `predictions/cassi_definitions.md` glossary |
 | `experiments/` | Physics experiment scripts (φ-attractor paths, SPARC rotation-curve analysis) |
