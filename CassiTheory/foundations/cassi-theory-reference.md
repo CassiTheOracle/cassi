@@ -108,7 +108,7 @@ $$\text{Coherence:}\quad \mathcal{D}_{0 \to n} = \prod_{i=0}^{n} (1-q_i) = \varp
 
 where $1-q_i = \varphi^{-i-\delta}$ is the per-rung dephasing probability, $\delta = 3$ (from $\sigma = \ell_{\text{Pl}}/\varphi^3$). Signal propagation is linear in span $N$; coherence maintenance is quadratic in depth $n$.
 
-Applications: hierarchy ($v_0/M_{\text{Pl}} \propto \varphi^{-80}$; see `principles/v0-hierarchy-problem.md`), strong CP ($\bar{\theta} \propto \varphi^{-87} \times \pi\varphi^{-2}$), neutrino masses ($m_\nu \propto v_0 \cdot \varphi^{-12}$), proton lifetime (coherence: $\varphi^{-4506}$).
+Applications: hierarchy ($v_0/M_{\text{Pl}} \propto \varphi^{-80}$; see `principles/v0-hierarchy-problem.md`), strong CP ($\bar{\theta} = \varphi^{-81.4} \times \pi\varphi^{-2} = \pi\varphi^{-83.4} \approx 1.2\times10^{-17}$), neutrino masses ($m_\nu \propto v_0 \cdot \varphi^{-12}$), proton lifetime (coherence: $\varphi^{-4506}$).
 
 ### 3.3 Wu Xing Cycle
 
@@ -454,7 +454,7 @@ Mind: concentrated post-pinch field dynamics. Brain: antenna for the Qi field. A
 | $\eta$ | $\varphi^{-44}$ | $6.4 \times 10^{-10}$ | Baryon asymmetry |
 | $\sigma$ | $\ell_{\text{Pl}}/\varphi^3$ |—| Regularization scale |
 | $\Omega_{\text{DM}}/\Omega_b$ | $\varphi^3 + 1$ | $5.24$ | Qi condensate freeze-out |
-| $\bar{\theta}$ | $\pi\varphi^{-89}$ | $\sim 10^{-19}$ | Strong CP |
+| $\bar{\theta}$ | $\pi\varphi^{-83.4}$ | $1.2\times10^{-17}$ | Strong CP |
 | $\tau_p$ | $\varphi^{4506}/\omega_p$ | $\sim 10^{910}$ yr | Proton coherence budget |
 
 External constants: $c$, $\hbar$, $G$ define the unit system. $\ell_{\text{Pl}} = \sqrt{\hbar G/c^3}$ is the cascade's sole dimensionful anchor.

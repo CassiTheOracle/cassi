@@ -215,7 +215,7 @@ The ~81-rung signal propagation occurs through the bubble lattice medium—casca
 | $|V_{cb}|$ | $\phi^{-2} \approx 0.382$ | Wolfenstein $A\lambda^2$ with $\lambda \approx \varphi^{-3}$ | $0.041$ |
 | $|V_{ub}|$ | $\phi^{-3} \approx 0.236$ | Wolfenstein $A\lambda^3(\rho-i\eta)$ with $\lambda \approx \varphi^{-3}$ | $0.004$ |
 | $J_{\text{CP}}$ | $\phi^{-6} \approx 0.056$ | $\phi^{-3} \cdot \frac{\Delta m_u \Delta m_d}{v^6} \approx 3\times 10^{-5}$ | $3.0 \times 10^{-5}$ |
-| Strong CP $\bar\theta$ |—| $\pi\varphi^{-89} \approx 10^{-19}$ (cascade de-resonance) | $< 10^{-10}$ |
+| Strong CP $\bar\theta$ |—| $\pi\varphi^{-83.4} \approx 1.2\times10^{-17}$ (cascade de-resonance) | $< 10^{-10}$ |
 | Axion |—| **Does not exist** | Undiscovered |
 
 ### Key Takeaways
