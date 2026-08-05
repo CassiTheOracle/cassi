@@ -124,7 +124,7 @@ The five-arm closure gives the framework its fundamental numbers, all **Derived*
 
 The number 5 is not free. It follows from the spiral's own phase-coherence constraints. If the universe were structured by a different irrational number, the number of coherent channels would differ; that the golden ratio produces exactly 5 is a testable consequence of the geometry.
 
-**Epistemic status: Derived** (the $w = 5$ closure). At the human scale the five channels structure emotion; that mapping is **Hypothesized** and testable (see `cassi-psychology.md` §14).
+**Epistemic status: Derived** (the $w = 5$ closure). At the human scale the five channels structure emotion; that mapping is **Hypothesized** and testable (see `consciousness/emotions-as-gate-configurations.md`).
 
 ---
 
@@ -281,6 +281,8 @@ A coherence-budget analysis (`foundations/proton-coherence-budget.md`) shows why
 
 **Epistemic status: Derived** (from the coherence budget); **not testable**.
 
+For the neutron–proton–electron trio as a whole—their rungs, sectors, and what the framework does and does not say about their differences—see `particles/matter-organization.md`.
+
 ## 14. Three Generations of Fermions
 
 The Fibonacci recurrence
@@ -339,7 +341,7 @@ The condensation field is scale-covariant: it operates in the human body's 26-ru
 
 The human-scale consequences—consciousness, emotion, trauma, therapy—are developed in full in `cassi-psychology.md`, the psychology companion to this document. The physics point here is that no new physics is invoked: the same field, the same gate, the same lattice, at a different cascade depth.
 
-**Epistemic status:** the 13-node structure is **Derived**; its identification with the chakras and with human experience is **Hypothesized** (testable via the C-predictions; see `cassi-psychology.md` §22).
+**Epistemic status:** the 13-node structure is **Derived**; its identification with the chakras and with human experience is **Hypothesized** (testable via the C-predictions; see `predictions/falsifiable-predictions.md`).
 
 ## 20. Predictions
 
@@ -402,7 +404,7 @@ The framework documents its own errors openly (`audit.md`); the gate-sign conven
 
 5. **The gigacascade and beyond.** Scale covariance implies the lattice extends upward without bound. The chord lattice at the megacascade is hypothesized. The gigacascade (5-arm spiral of megacascade bubbles) is a structural extrapolation with no direct observational signature beyond the CMB's $\ell < 5$ boundary imprint.
 
-6. **What sustains a frozen wake.** The 2026-07-31 PDE tests showed that an un-driven standing pattern decays like any other perturbation; the driver test (`consciousness/trauma-as-frozen-gate.md` §10.5) identified the sustainer as ongoing re-stimulation—a weak recurring trigger (0.005% of the event peak per step) holds the site near event intensity, and stopping the trigger releases it. The open question moves to what maintains the stimulus behaviorally (`cassi-psychology.md` §16).
+6. **What sustains a frozen wake.** The 2026-07-31 PDE tests showed that an un-driven standing pattern decays like any other perturbation; the driver test (`consciousness/trauma-as-frozen-gate.md` §10.5) identified the sustainer as ongoing re-stimulation—a weak recurring trigger (0.005% of the event peak per step) holds the site near event intensity, and stopping the trigger releases it. The open question moves to what maintains the stimulus behaviorally (§10.4–§10.5).
 
 7. **Can $q$ be externally modulated at human scale?** Whether coherence can be deliberately increased (meditation, biofeedback) is untested, and would be the framework's most consequential practical claim.
 
