@@ -356,7 +356,7 @@ The human-scale consequences—consciousness, emotion, trauma, therapy—are dev
 | 9 | $\bar{\theta} \approx 10^{-19}$ | Future neutron EDM | Not yet testable |
 | 10 | $\tau_p \sim 10^{910}$ yr | Untestable with current technology | Consistent with null result |
 
-Full catalog: `predictions/falsifiable-predictions.md` (46 entries). The physics-specific predictions (1–3, 8–10) are listed here; the full set including the biological and psychological predictions is in the catalog and in `cassi-psychology.md` §22.
+Full catalog: `predictions/falsifiable-predictions.md` (47 entries). The physics-specific predictions (1–3, 8–10) are listed here; the full set including the biological and psychological predictions is in the catalog.
 
 ## 21. Epistemic Tiers
 
@@ -428,7 +428,7 @@ The framework documents its own errors openly (`audit.md`); the gate-sign conven
 - `consciousness/consciousness-from-phi.md`—pinch point, wake waves, two-bubble experiment
 - `consciousness/trauma-as-frozen-gate.md`—the 2026-07-31 PDE tests of the gate sign and the driven-wake mechanism
 - `cassi-psychology.md`—the psychology companion: consciousness, emotion, trauma, therapy
-- `predictions/falsifiable-predictions.md`—the 46-entry prediction catalog
+- `predictions/falsifiable-predictions.md`—the 47-entry prediction catalog
 - `open-questions-cassi-answers.md`—the epistemic registry
 - `parameter-inventory.md`—parameter classification
 - `audit.md`—self-critical prediction-vs-experiment audit

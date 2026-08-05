@@ -232,5 +232,5 @@ The bubble at step 285 is bounded by adjacent bubbles at identical $w=5$ in the 
 - `parameter-inventory.md`—Complete parameter classification (46 parameters: F1/D24/C0/E7/I6/N8)
 - `cosmology/observational_constraints.md` §2.6—Rotation curve prediction ($\xi=\varphi^6$)
 - `cosmology/observational_constraints.md` §4—CMB bubble-boundary axis analysis
-- `predictions/falsifiable-predictions.md`—Full prediction catalogue (46 entries)
+- `predictions/falsifiable-predictions.md`—Full prediction catalogue (47 entries)
 - `visual-explainers/fractal_zoom.py`—fractal zoom: cascade self-similarity, φ-spaced rings
