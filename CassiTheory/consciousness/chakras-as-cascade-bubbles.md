@@ -40,7 +40,7 @@ In the human body, the string axis has a natural physical correlate: the **spina
 
 4. **Vertical orientation.** In the standing human posture, the spine is approximately vertical, aligned with the cosmological cascade direction. Bipedalism—unique among mammals—aligns the body's string axis with the universe's.
 
-The identification is structural: the spine IS the string axis in the human body, just as the Cassi bubble's along-string direction IS the string axis at the cosmological scale. The same condensation field geometry operates at both scales. The psychology guide presents this body-map for a clinical audience (`cassi-psychology.md` §13).
+The identification is structural: the spine IS the string axis in the human body, just as the Cassi bubble's along-string direction IS the string axis at the cosmological scale. The same condensation field geometry operates at both scales. The body-map is developed in §2–§6; the psychology guide presents it for a clinical audience.
 
 ---
 
@@ -434,7 +434,7 @@ The specific sub-rung that a given chakra resonates with is determined by the Fi
 
 
 - `consciousness/consciousness-from-phi.md`—human cascade span, field nodes, chakra gap
-- `cassi-psychology.md`—psychology guide, chakras as the body's coherence map (§13)
+- `cassi-psychology.md`—psychology reading guide: chakras as the body's coherence map
 - `foundations/bubble-edge-geometry.md`—condensation field, bubble geometry, edge steepness, $\theta_{\text{cond}}$
 - `foundations/why-three-dimensions.md`—Frenet-Serret frame, triaxial spheroid, anti-phase selection
 - `foundations/dimensionful-cascade.md`—complete 292-step cascade, steps 142 and 168

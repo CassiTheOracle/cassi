@@ -4,7 +4,7 @@
 
 ## Abstract
 
-The frozen-wake model (`cassi-psychology.md` §16) explains *where* trauma sits—a standing wave trapped at a cascade rung—but not *what it does* to the emotional system. The gate-configuration formalism (`consciousness/emotions-as-gate-configurations.md`) explains *how* emotions flow—channel dominance, spatial dispersion, coherence, and the deterministic adiabatic redistribution matrix $R$—but not *how they break*. Trauma is the meeting of the two: a frozen wake acts as a **perpetual stimulus**, so the channel it opened can never close, and the redistribution that normally resolves an emotion never fires. The result would be a **locked gate configuration**: one channel pinned hyper-open at the trauma site, the other four starved, Qi depressed, spatial dispersion brittle. This document derives the trauma state in the emotional manifold, maps fight/flight/freeze and trauma types onto channel locks, derives the **healing signature**—the order in which emotions return during recovery is fixed by the $R$-matrix rows, with anger as the gateway emotion after every trauma except anger-trauma itself—deepens the Fibonacci-age developmental prediction with chakra and channel content, and reports the PDE test of the lock mechanism: **the standing pattern does not pin the gate as implemented (null), but a $\varphi$-phased drive at the site does accelerate relaxation (positive)**.
+The frozen-wake model (`consciousness/trauma-as-frozen-gate.md` §1) explains *where* trauma sits—a standing wave trapped at a cascade rung—but not *what it does* to the emotional system. The gate-configuration formalism (`consciousness/emotions-as-gate-configurations.md`) explains *how* emotions flow—channel dominance, spatial dispersion, coherence, and the deterministic adiabatic redistribution matrix $R$—but not *how they break*. Trauma is the meeting of the two: a frozen wake acts as a **perpetual stimulus**, so the channel it opened can never close, and the redistribution that normally resolves an emotion never fires. The result would be a **locked gate configuration**: one channel pinned hyper-open at the trauma site, the other four starved, Qi depressed, spatial dispersion brittle. This document derives the trauma state in the emotional manifold, maps fight/flight/freeze and trauma types onto channel locks, derives the **healing signature**—the order in which emotions return during recovery is fixed by the $R$-matrix rows, with anger as the gateway emotion after every trauma except anger-trauma itself—deepens the Fibonacci-age developmental prediction with chakra and channel content, and reports the PDE test of the lock mechanism: **the standing pattern does not pin the gate as implemented (null), but a $\varphi$-phased drive at the site does accelerate relaxation (positive)**.
 
 ---
 
@@ -12,7 +12,7 @@ The frozen-wake model (`cassi-psychology.md` §16) explains *where* trauma sits�
 
 ### 1.1 The Frozen Wake (from the psychology document)
 
-`cassi-psychology.md` §16 establishes the substrate:
+`consciousness/trauma-as-frozen-gate.md` §1 establishes the substrate:
 
 - A traumatic event is a perturbation too intense for the field to absorb in real time—a spike of Yang or Yin that the conversion dynamics cannot process at the rate it arrives.
 - Normally the field dissipates perturbations: the imbalance converts into wake waves that propagate, reflect, and decay.
@@ -146,7 +146,7 @@ The chakra affinity column follows from the emotions document's cascade-position
 
 Healing requires three things, each addressing a different layer:
 
-1. **Reach the rung** (spatial layer). The frozen wake must be destabilized at its own cascade rung—body-based work, sensation, movement, EMDR's $\varphi$-structured bilateral oscillation (`cassi-psychology.md` §16). Talk cannot cross the rungs (cascade suppression); the body can.
+1. **Reach the rung** (spatial layer). The frozen wake must be destabilized at its own cascade rung—body-based work, sensation, movement, EMDR's $\varphi$-structured bilateral oscillation (`consciousness/trauma-as-frozen-gate.md` §10.4). Talk cannot cross the rungs (cascade suppression); the body can.
 
 2. **Change the phase** (semantic layer). The channel is locked at the event's phase angle. Meaning-making—narrative, insight, recontextualization—changes the phase of the stimulus representation. A phase change means the standing wave's oscillation no longer matches the channel's activation angle, weakening the lock. This is the layer talk therapy *can* reach: not the rung, but the phase.
 
@@ -192,7 +192,7 @@ The ordering—anger before bargaining before acceptance—follows from the magn
 
 ### 6.1 The Fibonacci-Age Prediction, Deepened
 
-`cassi-psychology.md` §15 already predicts that traumatic imprints cluster at Fibonacci-scaled developmental stages—ages 2, 3, 5, 8, 13, 21, 34, 55 (Fibonacci years from conception)—because they land on different cascade rungs with different wake-wave dynamics.
+TR6 (§11) predicts that traumatic imprints cluster at Fibonacci-scaled developmental stages—ages 2, 3, 5, 8, 13, 21, 34, 55 (Fibonacci years from conception)—because they land on different cascade rungs with different wake-wave dynamics.
 
 The gate formalism adds the second axis: **each age window not only lands on different rungs, it lands on different chakra nodes, and each chakra has a natural channel affinity** (emotions doc §3.4). The developmental prediction therefore has both a *depth* structure (rung → chakra → somatic vs. cognitive) and a *quality* structure (chakra → channel → fear vs. anger vs. grief vs. trust).
 
@@ -209,13 +209,13 @@ The gate formalism adds the second axis: **each age window not only lands on dif
 
 **Prediction TR6:** Retrospective developmental trauma inventories should show (a) the Fibonacci-age clustering already predicted, and (b) *channel-structured* differences between clusters—early trauma presenting with fear/rage-dominant symptom profiles and somatic location; mid trauma with trust/grief profiles and relational location; late trauma with meaning/identity profiles. The two predictions are locked together: age determines rung determines chakra determines channel.
 
-**Epistemic note:** The Fibonacci-age clustering is Speculative (per `cassi-psychology.md` §15). The channel refinement inherits that tier—it is consistent with the chakra affinity mapping (Hypothesized in the emotions document) but adds no independent confirmation.
+**Epistemic note:** The Fibonacci-age clustering is Speculative (per TR6, §11). The channel refinement inherits that tier—it is consistent with the chakra affinity mapping (Hypothesized in the emotions document) but adds no independent confirmation.
 
 ### 6.2 Why Early Trauma Is Deepest
 
 The lock at a lower rung is harder to reach for two reasons:
 
-1. **Cascade suppression**: the cognitive signal attenuates by $\varphi^{-1}$ per rung—the deeper the wake, the fainter its reachable trace and the more coherence required to reach it (`cassi-psychology.md` §5).
+1. **Cascade suppression**: the cognitive signal attenuates by $\varphi^{-1}$ per rung—the deeper the wake, the fainter its reachable trace and the more coherence required to reach it (`foundations/cascade-suppression-formula.md`).
 2. **Chakra geometry**: lower chakras are closer together ($\varphi^2$-scaled spacing—`consciousness/chakras-as-cascade-bubbles.md` §8), so early trauma locks a tighter cluster of nodes, and the lock is more distributed across the body's oldest, most somatic structures.
 
 This is why early trauma is described as "pre-verbal" and "in the body": its wake froze at rungs where the field's processing was somatic before it was symbolic—the same rungs where the self-modeling machinery (above the pinch) was not yet fully engaged.
@@ -258,7 +258,7 @@ This makes a useful diagnostic distinction: **a person with a channel locked by 
 
 ## 9. Trauma vs. Depression vs. Anxiety
 
-The psychology document (`cassi-psychology.md` §17) characterizes depression as chronic low-$q$ and anxiety as high-dispersion, high-frequency $\sigma_r$. Trauma is different in kind: **it is localized**.
+The pathology table (`consciousness/trauma-as-frozen-gate.md` §9) characterizes depression as chronic low-$q$ and anxiety as high-dispersion, high-frequency $\sigma_r$. Trauma is different in kind: **it is localized**.
 
 | Condition | $\mathbf{b}$ | $\sigma_r$ | $q$ | Spatial structure |
 |---|---|---|---|---|
@@ -416,7 +416,7 @@ Open question 2 and the foundation of the channel-to-trauma-type mapping (§4.1)
 
 ### TR6: Developmental Trauma Clusters by $\varphi$-Age AND Channel
 
-**Claim:** The Fibonacci-age clustering (`cassi-psychology.md` §15) carries channel content: early trauma (ages 2–5) presents as fear/rage with somatic location; mid trauma (8–13) as trust/grief with relational location; late trauma (21+) as meaning/identity with expressive location.
+**Claim:** The Fibonacci-age clustering (§6.1) carries channel content: early trauma (ages 2–5) presents as fear/rage with somatic location; mid trauma (8–13) as trust/grief with relational location; late trauma (21+) as meaning/identity with expressive location.
 
 **Test:** Retrospective developmental trauma inventories with multi-dimensional symptom profiles. The age-of-trauma distribution should show Fibonacci clustering, and the symptom profile should shift with age cluster as predicted.
 
@@ -484,7 +484,7 @@ Open question 2 and the foundation of the channel-to-trauma-type mapping (§4.1)
 
 5. **What is the relationship between the freeze lock and the sub-pinch excursion?** Freeze (§3.3) is described as an incomplete lock with $q$ collapse. Is freeze the same state as the psychedelic sub-pinch excursion (`consciousness/consciousness-from-phi.md` §2.3) with a different boundary condition—transient in one case, pinned in the other?
 
-6. **Does the wake's rung shift over time?** Memory consolidation moves wake waves to deeper rungs (`cassi-psychology.md` §9). Do frozen wakes also deepen—and does that explain why old trauma becomes more somatic and less verbal, and harder to reach?
+6. **Does the wake's rung shift over time?** Memory consolidation moves wake waves to deeper rungs (`consciousness/consciousness-from-phi.md` §2.2). Do frozen wakes also deepen—and does that explain why old trauma becomes more somatic and less verbal, and harder to reach?
 
 7. **What sustains a frozen wake?** **Answered at the PDE level (2026-07-31, §10.5):** ongoing re-stimulation. A weak recurring trigger (0.005% of the event peak per step) holds the site at 80% of event intensity with a 4.5× widened q-gap and a fully displaced phase; stopping the trigger releases the site on the conversion timescale. The un-driven mode, perfect confinement, and the q-sign all fail to sustain (§10.4). The question moves to the behavioral layer: what maintains the stimulus—avoidance-rehearsal loops, trigger generalization, hypervigilance? The Cassi layer predicts the wake tracks its driver; it does not generate one.
 
@@ -492,7 +492,7 @@ Open question 2 and the foundation of the channel-to-trauma-type mapping (§4.1)
 
 ## 14. References
 
-- `cassi-psychology.md`—frozen-wake trauma model (§16), depression/anxiety/psychosis (§17), empathy resonance (§20), cascade suppression (§5)
+- `cassi-psychology.md`—psychology reading guide: frozen-wake model, field pathology, empathy, cascade suppression
 - `consciousness/emotions-as-gate-configurations.md`—emotional manifold, 5-channel gate, $R$-matrix, phase-to-channel mapping, chakra affinities
 - `consciousness/consciousness-from-phi.md`—wake waves, pinch point, $\sigma_r$ altered states, two-bubble resonance
 - `consciousness/chakras-as-cascade-bubbles.md`—13 chakra nodes, rung positions, $G_{\text{eff}}$ self-reinforcement

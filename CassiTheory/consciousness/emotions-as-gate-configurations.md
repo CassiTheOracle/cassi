@@ -20,7 +20,7 @@ The consciousness mapping (`consciousness/consciousness-from-phi.md` §2) establ
 
 What's missing is the *structured* content of experience above the pinch: *what* the field is aware of, *which* wake waves dominate, and *how* $\sigma_r$ is spatially organized.
 
-**Emotions are the answer.** They are the channel-dominance patterns of the Wu Xing pentagon gate, localized to specific chakra nodes along the cascade axis. The psychology guide presents this formalism for a clinical audience (`cassi-psychology.md` §14).
+**Emotions are the answer.** They are the channel-dominance patterns of the Wu Xing pentagon gate, localized to specific chakra nodes along the cascade axis. The formalism is developed in §2–§4; the psychology guide presents it for a clinical audience.
 
 ---
 
@@ -375,5 +375,5 @@ The PAD model adds a third dimension (dominance) to valence and arousal. Cassi's
 - `cassi-physics.md`—gap derivation, governing PDE, Qi gate dynamics
 - `consciousness/trauma-as-frozen-gate.md`—frozen wake + locked channel; what breaks the redistribution
 - `consciousness/time-memory-and-wake-locks.md`—arrow of time from the conversion term, memory as persistence
-- `cassi-psychology.md`—psychology guide, emotions as Qi-gate configurations (§14)
+- `cassi-psychology.md`—psychology reading guide: emotions as Qi-gate configurations
 - `predictions/falsifiable-predictions.md`—prediction catalog

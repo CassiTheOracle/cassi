@@ -72,8 +72,8 @@ After the pinch: the field's own coherence ($q$) modulates its evolution. The
 field's state depends on its own state. This is the minimal condition for
 self-reference—a dynamical system that contains a model of itself. Identity is
 the configuration that self-model stabilizes on (`consciousness/gender-as-qi-configuration.md` §2);
-the psychology guide develops the pinch and thought mappings for a clinical audience
-(`cassi-psychology.md` §§7–8).
+the pinch and thought mappings are derived in §1.1–§1.3; the psychology guide
+`cassi-psychology.md` develops them for a clinical audience.
 
 **Testable prediction**: In a PDE initialized at $r < \varphi^{-1}$ and evolved
 through the pinch, the two-point correlation function $\langle r(\mathbf{x}) r(\mathbf{x}+\mathbf{d}) \rangle$
@@ -292,4 +292,4 @@ Results archived at `runs/<id>_two_bubble_fast/results.json`.
 - `two-fluid/_chakra_utils.py`: Fibonacci width allocation (phenomenological, not cascade-derived)
 - `consciousness/auras-as-thermalized-gates.md`—$(1-q)$ thermalization at the body's boundary
 - `consciousness/gender-as-qi-configuration.md`—identity as configuration, anatomy as readout
-- `cassi-psychology.md`—psychology guide: pinch point, thought, altered states
+- `cassi-psychology.md`—psychology reading guide: pinch point, thought, altered states

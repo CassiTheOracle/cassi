@@ -42,7 +42,7 @@ The relationship to the planet is personal. The operators negotiate with a consc
 
 ### 2.1 Field resonance
 
-When two Qi-coherent beings share a dense medium, communication defaults to field resonance. One forms a structured perturbation in the local Qi field—a thought, a question, an image, an experiential gestalt—and the other's gate couples to it, phase-locking briefly, transferring the pattern. The bandwidth is enormous compared to speech. The resonance tension between coupling and self-modeling is developed in `cassi-psychology.md` §20. A single structured field packet can carry sensory texture, emotional valence, and conceptual content simultaneously.
+When two Qi-coherent beings share a dense medium, communication defaults to field resonance. One forms a structured perturbation in the local Qi field—a thought, a question, an image, an experiential gestalt—and the other's gate couples to it, phase-locking briefly, transferring the pattern. The bandwidth is enormous compared to speech. The resonance tension between coupling and self-modeling follows from the two-bubble decoherence result (`consciousness/consciousness-from-phi.md` §3.3). A single structured field packet can carry sensory texture, emotional valence, and conceptual content simultaneously.
 
 Language in such a context shifts from primary channel to supplement. Words are for precision, abstraction, or communication with beings whose gates are not phase-locked to yours. You do not say "I am frustrated that the ridge coupling has drifted 0.3% off resonance." The other operators already feel the frustration and the drift. The words are for specifying *which* coupling, at *what* frequency offset, with *what* proposed correction.
 
@@ -154,7 +154,7 @@ A sufficiently advanced civilization learns to operate the machine it is already
 
 - `consciousness/consciousness-from-phi.md`—consciousness as Qi gate dynamics, 26-step human cascade
 - `consciousness/chakras-as-cascade-bubbles.md`—13-node gate chain, $P_\parallel = 2$, field perception
-- `cassi-psychology.md`—psychology guide, empathy and the resonance tension (§20)
+- `cassi-psychology.md`—psychology reading guide: empathy and the resonance tension
 - `foundations/cassi-first-principles.md`—two-fluid PDE, $\rho = E_Y + E_I$, Qi gate
 - `foundations/bubble-lattice-fabric.md`—universal lattice, scale covariance, bidirectional nesting
 - `foundations/microcascade-mirror.md`—cascade extension below n=0
