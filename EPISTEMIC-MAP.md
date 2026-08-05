@@ -97,6 +97,7 @@ Tiers below are taken from each document's Status header. Compound headers are q
 | `hypotheses/exoplanet-phi-spacing.md` | Hypothesized | Wake-wave interference in protoplanetary disks |
 | `hypotheses/neural-criticality.md` | Hypothesized | Cascade PDE at neural scales |
 | `hypotheses/muscle-cascade-lattice.md` | Hypothesized | Muscle ladder as bubble lattice (rungs 142–168) |
+| `demystifying-the-cosmos/PSR-J1101-6101.md` | Hypothesized—August 2026 | Lighthouse pulsar: wake-pair trail/filament, high PD as high $q$, radio ⊥ vs X-ray ∥ as rung stratification; prediction 48 (log-periodic PA) |
 
 ## 5. Speculative
 
@@ -148,7 +149,7 @@ Documents that are not claims: registries, catalogs, explainers, and plans.
 |----------|------|
 | `open-questions-cassi-answers.md` | Epistemic registry (41 questions, tier authority) |
 | `parameter-inventory.md` | Parameter registry (~46 parameters) |
-| `predictions/falsifiable-predictions.md` | 47-prediction catalog |
+| `predictions/falsifiable-predictions.md` | 48-prediction catalog |
 | `predictions/cassi_definitions.md` | Framework glossary |
 | `foundations/cassi-theory-reference.md` | Compact framework reference |
 | `foundations/deriving-remaining-gaps.md` | Four gap assessments—one narrowed, one open, one identified, one empirical |
@@ -158,6 +159,7 @@ Documents that are not claims: registries, catalogs, explainers, and plans.
 | `cassi-physics.md` | Physics guide: lattice, cascade, predictions |
 | `cassi-psychology.md` | Psychology-focused guide (consciousness, emotion, trauma, therapy) |
 | `analyses/README.md` | Analysis index (data analyses against the framework) |
+| `demystifying-the-cosmos/README.md` | Demystifying index (one doc per observed object, codename-named) |
 | `hypotheses/README.md` | Hypothesis catalog + quality bar |
 | `speculations/README.md` | Speculation index + boundary with `hypotheses/` |
 

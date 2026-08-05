@@ -21,7 +21,7 @@ The repo is a **document graph with three master registries** at the root:
 
 - `open-questions-cassi-answers.md`—epistemic master registry: 41 open questions (`Q1–Q10`, `C1–C10`, `G1–G6`, `M1–M5`, `F1–F6`, `T1–T4`), each with a `Cassi Answer | Mechanism | Epistemic | Reference` table. Epistemic tiers: **Derived / Calibrated / Mapped / Hypothesized / Speculative / Creative** (definitions: `open-questions-cassi-answers.md` §Epistemic Tiers; every fitted or anchored claim must have a row in the Fit-Status Ledger, `parameter-inventory.md` §10).
 - `parameter-inventory.md`—parameter master registry: all ~46 parameters classified by type (F/D/C/E/I/N). **Must be updated** when a paper introduces, derives, or reclassifies a parameter.
-- `predictions/falsifiable-predictions.md`—prediction catalog: 47 numbered predictions grouped by experiment (FCC-ee, CMB-S4, LSST…), each with a `**Source:**` block. Cited elsewhere by number / `§`.
+- `predictions/falsifiable-predictions.md`—prediction catalog: 48 numbered predictions grouped by experiment (FCC-ee, CMB-S4, LSST…), each with a `**Source:**` block. Cited elsewhere by number / `§`.
 - `cassi-physics.md`—physics guide (start here)
 - `audit.md`—self-critical prediction-vs-experiment audit.
 
@@ -54,6 +54,7 @@ Domain papers open with "at cascade step N", then apply the universal tool. When
 | `hypotheses/` | New application domains (exploratory catalog; `README.md` is the index) |
 | `speculations/` | Speculative extensions (dark matter, computation, propulsion) |
 | `analyses/` | Data-analysis documents: observations tested against framework claims (GWTC-4.0 mass ladder) |
+| `demystifying-the-cosmos/` | One Cassi analysis per observed object/structure, files named by alphanumeric designation (PSR J1101−6101 first) |
 | `visual-explainers/` | Standalone Python figure/simulation scripts |
 
 </key-directories>
@@ -132,7 +133,7 @@ Docstring with run command → NumPy + Matplotlib (**Agg backend set early**) �
 | `BROKEN_REFS.md` | Registry of external/broken refs—read before editing refs |
 | `open-questions-cassi-answers.md` | Epistemic registry (Q/C/G/M/F/T numbering) |
 | `parameter-inventory.md` | Parameter registry—update with parameter changes |
-| `predictions/falsifiable-predictions.md` | 47-prediction catalog |
+| `predictions/falsifiable-predictions.md` | 48-prediction catalog |
 | `predictions/cassi_definitions.md` | Framework glossary |
 | `foundations/cascade-suppression-formula.md` | Universal φ⁻ᴺ tool (wedge doc) |
 | `foundations/bubble-lattice-fabric.md` | Universal bubble lattice geometry (wedge doc) |
@@ -195,7 +196,7 @@ grep -rn '](../../' .                             # parent-repo refs—must be i
 # (experiments/ and two-fluid/ refs are local now—verify the file exists in this repo)
 
 # 4. Status headers: any paper missing one?
-grep -L "^## Status:" foundations/*.md cosmology/*.md gravity/*.md standard-model/*.md particles/*.md principles/*.md consciousness/*.md turbulence/*.md hypotheses/*.md speculations/*.md analyses/*.md
+grep -L "^## Status:" foundations/*.md cosmology/*.md gravity/*.md standard-model/*.md particles/*.md principles/*.md consciousness/*.md turbulence/*.md hypotheses/*.md speculations/*.md analyses/*.md demystifying-the-cosmos/*.md
 
 # 5. Stale Q-numbers: any reference to a question that was renumbered or removed?
 grep -rn "Q1[0-9]\|Q2[0-9]" .               # Q-numbers beyond the current registry range
