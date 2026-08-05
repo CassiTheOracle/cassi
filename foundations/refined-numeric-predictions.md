@@ -784,7 +784,7 @@ RGE).
   laws—demonstrated in separate derivations, not yet in a unified
   computation.
 - **TOE completeness (F4).** The claim is falsifiable through the prediction
-  catalog (46 entries). Confirming all 46 would constitute empirical
+  catalog (47 entries). Confirming all 47 would constitute empirical
   verification.
 
 ---
@@ -801,6 +801,6 @@ RGE).
 - `why-three-dimensions.md`—spiral's Frenet-Serret frame, triaxial spheroid
 - `unified-lagrangian.md`—unified action
 - `cosmology/observational_constraints.md`—CMB axis, $\sigma_8$, DESI
-- `predictions/falsifiable-predictions.md`—46-entry prediction catalog
+- `predictions/falsifiable-predictions.md`—47-entry prediction catalog
 - `open-questions-cassi-answers.md`—master catalog
 - `bubble-edge-geometry.md`—condensation field geometry, edge steepness ratio

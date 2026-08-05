@@ -4,7 +4,7 @@
 
 ## Abstract
 
-This directory holds the two master registries of the Cassi framework: the 46-entry catalog of falsifiable, zero-free-parameter predictions grouped by experimental frontier, and the 15-section glossary of framework symbols and definitions. `cassi_definitions.md` is where a new reader learns what $E_Y$, $E_I$, $q$, $\xi = \varphi^6$, and the $\varphi$-attractor mean; `falsifiable-predictions.md` is where every quantitative claim of the framework is listed with its test, current status, and detection timeline. Ordered alphabetically, which is also the natural reading path: glossary first, catalog second.
+This directory holds the two master registries of the Cassi framework: the 47-entry catalog of falsifiable, zero-free-parameter predictions grouped by experimental frontier, and the 15-section glossary of framework symbols and definitions. `cassi_definitions.md` is where a new reader learns what $E_Y$, $E_I$, $q$, $\xi = \varphi^6$, and the $\varphi$-attractor mean; `falsifiable-predictions.md` is where every quantitative claim of the framework is listed with its test, current status, and detection timeline. Ordered alphabetically, which is also the natural reading path: glossary first, catalog second.
 
 ## Document Index
 
