@@ -195,8 +195,8 @@ $$
 where $\Lambda_{\text{eff}}$ is determined by the Yang-Yin conversion
 dynamics. The dark energy equation of state evolves and is calibrated by:
 - **DESI DR2 baryon acoustic oscillations**: $w_0 \approx -0.75 \pm 0.06$; the Cassi ODE predicts $w_0 = -0.87$ ($2\sigma$ from the anchor)
-- **Planck 2018 CMB**: spectral index $n_s = 1 - 2\varphi^{-1}/N_e = 0.9691$ ($N_e = 40$; $1.0\sigma$ from Planck $0.9649 \pm 0.0042$)
-- **Hubble tension**: pending (registry C3/T4—full $H(z)$ fit not yet performed); the pipeline CMB-inferred value is $H_0 \approx 65.8$ km/s/Mpc from the local $73.0$, with no resolved value claimed
+- **Planck 2018 CMB**: spectral index $n_s = 1 - 2\varphi^{-1}/N_e = 0.9691$ ($N_e = 40$; $1.0\sigma$ from Planck $0.9649 \pm 0.0042$ as a closed form; the gate slow-roll trajectory does not reproduce it—$N_e$ is a start-threshold choice, Mapped—ledger, 2026-08-06 `computations/slow_roll_trajectory.py`)
+- **Hubble tension**: not resolved (registry C3/T4—full $H(z)$ fit performed 2026-08-06, `computations/hz_full_fit.py`; no resolution under the calibrated w(a)); the pipeline CMB-inferred value is $H_0 \approx 65.8$ km/s/Mpc from the local $73.0$, with no resolved value claimed
 
 The conversion term $\lambda(\Psi_0^2 - \varphi\Psi_1^2)$ sources dark energy
 as the universe evolves away from $\varphi$-equilibrium during structure

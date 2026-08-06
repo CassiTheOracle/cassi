@@ -9,8 +9,9 @@ SU(3)$_C$ × SU(2)$_L$ × U(1)$_Y$ → U(1)$_{EM}$ is embedded at the φ-fixed
 point in the two minimal grand-unified groups. SU(5) (Georgi–Glashow) unifies
 one generation in $\mathbf{\bar{5}} \oplus \mathbf{10}$ with $\alpha_{\text{GUT}}
 = \varphi^{-3}/(4\pi) \approx 1/53$ and $M_{\text{GUT}} \approx 2\times10^{16}\ \text{GeV}$,
-predicting $\tau(p \to e^+\pi^0) \approx 4\times10^{34}\ \text{yr}$—within
-Hyper-Kamiokande reach. SO(10) adds the right-handed neutrino in the
+predicting $\tau(p \to e^+\pi^0) \approx 1.3\times10^{37}\ \text{yr}$ (corrected
+arithmetic, 2026-08-05, `computations/proton_budget_closure.py`)—above
+Hyper-Kamiokande reach ($\sim 10^{35}$ yr). SO(10) adds the right-handed neutrino in the
 $\mathbf{16}$, giving a natural seesaw and a longer proton lifetime
 ($10^{35}$–$10^{36}\ \text{yr}$).
 
@@ -195,12 +196,17 @@ Inserting the Cassi φ-values:
 
 $$\boxed{\tau(p \to e^+ \pi^0) \approx
    \frac{1}{(1/53)^2} \cdot \frac{(2 \times 10^{16}\ \text{GeV})^4}
-   {(0.938\ \text{GeV})^5} \approx 4 \times 10^{34}\ \text{years}}$$
+   {(0.938\ \text{GeV})^5} \approx 1.3 \times 10^{37}\ \text{years}}$$
+
+(Arithmetic closure 2026-08-05, `computations/proton_budget_closure.py`:
+with these stated inputs the formula evaluates to $1.3\times10^{37}$ yr;
+reproducing a $4\times10^{34}$-yr result would require
+$M_{\text{GUT}} \approx 4.7\times10^{15}$ GeV—a 4.2× slip in $M^4/m^5$.)
 
 For the conservative lower end of the GUT scale range, $M_{\text{GUT}} \approx
 10^{15}\ \text{GeV}$, the lifetime decreases by $(10^{15}/2\times10^{16})^4
-\approx 6 \times 10^{-5}$, giving $\tau \sim 2 \times 10^{30}\ \text{years}$ —
-already excluded. This tension between the α_s-running estimate and the
+\approx 6.25 \times 10^{-6}$, giving $\tau \sim 8 \times 10^{31}\ \text{years}$ —
+already excluded by the Super-K bound ($> 2.4\times10^{34}$ yr). This tension between the α_s-running estimate and the
 full unification scale is **the central quantitative uncertainty** of the
 Cassi SU(5) embedding. The corrected running analysis
 (`standard-model/sm-radiative-corrections.md` §3.3) sharpens it: the SM
@@ -235,11 +241,11 @@ on the flavour structure of the GUT-scale Yukawas. In SUSY SU(5), $p \to
 |-----------|--------------------------------|--------|
 | Super-Kamiokande (2024) | $> 2.4 \times 10^{34}$ years | Current best limit |
 | Hyper-Kamiokande | $> 1 \times 10^{35}$ years | Projected (2030s) |
-| **Cassi SU(5) prediction** | $\mathbf{4 \times 10^{34}}$ **years** | **Within Hyper-K reach** |
+| **Cassi SU(5) prediction** | $\mathbf{1.3 \times 10^{37}}$ **years** (corrected arithmetic, 2026-08-05, `computations/proton_budget_closure.py`) | **Above Hyper-K reach** |
 
-The Cassi prediction of $4 \times 10^{34}$ years sits **directly between** the
-current Super-K bound and the future Hyper-K sensitivity—a hallmark of a
-testable theory.
+The Cassi prediction of $1.3 \times 10^{37}$ years sits about two orders of
+magnitude above the projected Hyper-K sensitivity—a null prediction for the
+2030s, not a discovery target.
 
 ---
 
@@ -319,8 +325,8 @@ be accessible to next-generation experiments such as DUNE and THEIA.
 | $\nu_R$ included? | No (singlet needed) | Yes (in $\mathbf{16}$) |
 | Seesaw mechanism | External $\nu_R$ | Natural via $\overline{\mathbf{126}}$ |
 | Breaking Higgs | $\mathbf{24} + \mathbf{5}$ | $\mathbf{45} + \overline{\mathbf{126}} + \mathbf{10}$ |
-| $\tau(p \to e^+ \pi^0)$ | $4 \times 10^{34}$ years | $10^{35}{-}10^{36}$ years |
-| Hyper-K reach? | **Yes** | Marginal |
+| $\tau(p \to e^+ \pi^0)$ | $1.3 \times 10^{37}$ years (corrected arithmetic, 2026-08-05) | $10^{35}{-}10^{36}$ years |
+| Hyper-K reach? | **No** (above reach) | Marginal |
 | Minimal φ-scaling | **Yes** | Needs extended Higgs sector |
 
 ---
@@ -328,18 +334,19 @@ be accessible to next-generation experiments such as DUNE and THEIA.
 ## 6. Conclusion
 
 SU(5) is the minimal GUT consistent with Cassi φ-fixed-point couplings. Its
-predicted proton lifetime of $4 \times 10^{34}$ years ($p \to e^+ \pi^0$) is
-**within reach** of Hyper-Kamiokande, with the expected sensitivity reaching
-$> 10^{35}$ years in the 2030s.
+predicted proton lifetime of $1.3 \times 10^{37}$ years ($p \to e^+ \pi^0$,
+corrected arithmetic 2026-08-05, `computations/proton_budget_closure.py`) is
+**above** Hyper-Kamiokande reach: the expected sensitivity of $> 10^{35}$
+years in the 2030s cannot probe it.
 
 The central uncertainty is the precise GUT scale: the SM running has no
 common coupling intersection ($\alpha_1 = \alpha_2$ at $10^{13}$ GeV,
 $\alpha_2 = \alpha_3$ at $10^{17}$ GeV), so the $2 \times 10^{16}$ GeV anchor
 of the proton-lifetime prediction requires the cascade's beyond-SM content
 ($\Delta b = 1.70$) to complete the unification. If it does, the predicted
-lifetime $4 \times 10^{34}$ yr is within Hyper-Kamiokande reach. A proton
-discovery at Hyper-K would simultaneously confirm both grand unification
-and the Cassi φ-fixed-point principle.
+lifetime $1.3 \times 10^{37}$ yr is beyond Hyper-Kamiokande reach; a proton
+discovery at Hyper-K would instead disfavor the SU(5) embedding at the
+$\varphi$-anchored scale.
 
 SO(10) remains viable as a larger embedding that naturally accommodates the
 right-handed neutrino and the seesaw mechanism, but it requires Higgs
@@ -354,7 +361,7 @@ beyond the reach of future experiments.
 | $\alpha_{\text{GUT}}$ | $\phi^{-3}/(4\pi) \approx 1/53$ | Same | Requires $\Delta b = 1.70$ beyond-SM content; no SM intersection |
 | $M_{\text{GUT}}$ | $2 \times 10^{16}$ GeV (with beyond-SM content) | $\gtrsim 2 \times 10^{16}$ GeV | SM running alone: $\alpha_1=\alpha_2$ at $10^{13}$ GeV |
 | $\sin^2\theta_W$ | $\phi^{-3} \approx 0.236$ at $\mu_* = 233$ GeV | Same | 2.1% above Z-pole value |
-| $\tau(p \to e^+ \pi^0)$ | $\mathbf{4 \times 10^{34}}\ \text{y}$ | $10^{35}{-}10^{36}\ \text{y}$ | Hyper-K: $\mathbf{>10^{35}}\ \text{y}$ |
+| $\tau(p \to e^+ \pi^0)$ | $\mathbf{1.3 \times 10^{37}}\ \text{y}$ (corrected arithmetic, 2026-08-05) | $10^{35}{-}10^{36}\ \text{y}$ | Hyper-K: $\mathbf{>10^{35}}\ \text{y}$ (above reach) |
 | $\nu$ masses | External seesaw | Natural seesaw | Oscillation experiments |
 
 ## References

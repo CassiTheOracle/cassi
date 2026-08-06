@@ -125,7 +125,7 @@ The bare form reaches the attractor already by $a \approx 1$ ($r = 1.59$, $\Delt
 | # | Prediction | Status |
 |---|---|---|
 | Y1 | The composite wake pair closes each rung: $\Lambda_Y + \Lambda_I = \ell_{n+1}$. Verified at 285 ($191 + 118 = 309$ Mpc $= \ell_{286}$); testable wherever two wake scales are resolvable. | Derived |
-| Y2 | The wake envelope places bubbles at $m\,\ell_{n+1}$ and voids at $(m+\frac{1}{2})\ell_{n+1}$—the staggered checkerboard. Testable in the two-bubble and chord-lattice PDE setups. | Derived (structure), test pending |
+| Y2 | The wake envelope places bubbles at $m\,\ell_{n+1}$ and voids at $(m+\frac{1}{2})\ell_{n+1}$—the staggered checkerboard. PDE-verified 2026-08-06 (`two-fluid/run_wake_structural_probes.py`): nulls at $(m+\frac{1}{2})\ell_{n+1}$ to 0.0023 grid precision, beats at $m\,\ell_{n+1}$ to 0.00015. | Derived (structure), PDE-verified |
 | Y3 | The closure ladder imprints on the cascade. First test (2026-08-03): rung 89 hosts the J/ψ ($n = 88.98$, 1.0%—closure level 89); rung 96 hosts the muon ($n = 96.000$, 0.01%); rung 34: no established hit (PQ-window candidate). Existing hits $26 = 2\times13$ and $285 = 5\times57$. | Hypothesized (partially tested) |
 
 Y1–Y3 are cataloged as predictions 43–45 in `predictions/falsifiable-predictions.md` §5.

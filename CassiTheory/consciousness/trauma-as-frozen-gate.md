@@ -494,7 +494,7 @@ Open question 2 and the foundation of the channel-to-trauma-type mapping (§4.1)
 
 - `cassi-psychology.md`—psychology reading guide: frozen-wake model, field pathology, empathy, cascade suppression
 - `consciousness/emotions-as-gate-configurations.md`—emotional manifold, 5-channel gate, $R$-matrix, phase-to-channel mapping, chakra affinities
-- `consciousness/consciousness-from-phi.md`—wake waves, pinch point, $\sigma_r$ altered states, two-bubble resonance
+- `consciousness/consciousness-from-phi.md`—wake waves, pinch point, $\sigma_r$ altered states, two-bubble correlation test
 - `consciousness/chakras-as-cascade-bubbles.md`—13 chakra nodes, rung positions, $G_{\text{eff}}$ self-reinforcement
 - `foundations/cascade-suppression-formula.md`—$\varphi^{-N}$ attenuation over $N$ rungs
 - `foundations/wa-pentagon-gate.md`—5-channel gate, adiabatic redistribution, Wu Xing control-release

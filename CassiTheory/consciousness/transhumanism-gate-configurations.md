@@ -205,7 +205,7 @@ Uploading proposes to copy the coherence string into a new substrate. The framew
 
 3. **The memory is a time integral.** The IIR average is a weighted sum of the field's entire past (`foundations/cassi-first-principles.md` §2.4); a copy's filter starts at baseline. Whatever identity is carried by history—and the trauma formalism insists history is carried, in the frozen wakes and phase structure (`consciousness/trauma-as-frozen-gate.md`)—is what a copy cannot receive.
 
-The levels compound: the copy is a new condensation with new coherence, new history, and a collapsed branch of the original's state. The two-bubble result adds the social fact: above-pinch configurations decohere with distance—self-aware fields do not φ-resonate (`consciousness/consciousness-from-phi.md` §3.3). Copies do not sync.
+The levels compound: the copy is a new condensation with new coherence, new history, and a collapsed branch of the original's state. The two-bubble correlation adds a candidate social fact: above-pinch configurations decohere with distance—self-aware fields do not φ-resonate (`consciousness/consciousness-from-phi.md` §3.3; a static-geometry protocol feature per the 2026-08-05 decisive scan, so not dynamically supported). Copies do not sync.
 
 ### 6.3 What persists
 
@@ -239,7 +239,7 @@ Identity is the trajectory of a configuration under the attractor—the $\varphi
 - `consciousness/chakras-as-cascade-bubbles.md`—13-node derivation, $P_\parallel = 2$, gate chain geometry, $G_{\text{eff}}$ self-reinforcement
 - `consciousness/emotions-as-gate-configurations.md`—emotional manifold $(\mathbf{b}, \sigma_r, q, \mathbf{c})$, pentagon channels, $R$-matrix
 - `consciousness/trauma-as-frozen-gate.md`—wake-lock formalism, locked channel, φ-phased drive, PDE tests
-- `consciousness/consciousness-from-phi.md`—pinch point, wake waves, $\sigma_r$ states, two-bubble resonance
+- `consciousness/consciousness-from-phi.md`—pinch point, wake waves, $\sigma_r$ states, two-bubble correlation test
 - `speculations/qi-computation.md`—WRITE/ERASE/TRANSFER, persistent $\Pi$ patterns, φ-spaced clocks, the brain as Qi computer
 - `speculations/cascade-infrastructure.md`—gate chain topology, 10-rung bridge limit, human chain as 26-rung stage
 - `speculations/creative-extensions/coherence-warfare.md`—attack and shield taxonomy (organized vs random perturbation, phase-matching, φ-detuned boundaries)

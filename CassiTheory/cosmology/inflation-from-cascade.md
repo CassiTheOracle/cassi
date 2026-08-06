@@ -102,6 +102,16 @@ $$\delta n_s = \frac{2}{N_e} - \frac{2\varphi^{-1}}{N_e} = \frac{2\varphi^{-2}}{
 This is consistent with Planck 2018 $n_s = 0.9649 \pm 0.0042$ at $1.0\sigma$.
 The gate correction is now a **closed $\varphi$-form**—zero free parameters.
 Computation: `computations/ns_gate_correction.py` (July 2026).
+
+**Trajectory test (2026-08-06, `computations/slow_roll_trajectory.py`):** the
+gate slow-roll trajectory does not reproduce this value at the CMB-exit
+anchor. Under the doc's own step count (1 step = 1 e-fold) the trajectory
+gives $(n_s, r) = (0.813, 0.188)$; with $N_e = 40$ read literally (1 step =
+$\ln\varphi$ physical e-folds) it gives $(0.914, 0.060)$—$n_s$ is 12–36σ
+from Planck and $r$ is excluded by the BK18 bound. $N_e = 40$ is a threshold
+choice of the start, not a derived count, and the two claimed numbers do not
+coexist on the trajectory. The closed form stands as arithmetic; its
+realization in the trajectory is not demonstrated.
 ---
 
 ## 4. Tensor-to-scalar ratio: $r \approx \varphi^{-12} \approx 0.003$
@@ -130,6 +140,14 @@ reach of next-generation CMB experiments (Simons Observatory, CMB-S4, LiteBIRD).
 
 $$\boxed{r \approx \varphi^{-12} \approx 0.0031}$$
 
+**Trajectory test (2026-08-06, `computations/slow_roll_trajectory.py`):**
+the exponent $-12$ is a Mapped fit (ledger §10), and the trajectory does not
+realize it: $r = \varphi^{-12}$ occurs only at ~135 physical e-folds before
+the window end, where $n_s = 0.9883$ (+5.6σ from Planck); at the CMB-exit
+anchor the trajectory gives $r = 0.188$ (1 step = 1 e-fold) or $0.060$
+($N_e = 40$ literal)—both excluded by the BK18 bound ($r < 0.032$). The two
+claimed numbers do not coexist on the trajectory.
+
 ---
 
 ## 5. Running of the spectral index
@@ -148,8 +166,8 @@ prediction is within 1σ and too small to be detected at current sensitivity.
 
 | Observable | Cassi prediction | Planck 2018 | Status |
 |---|---|---|---|
-| $n_s$ | $0.9691$ ($1 - 2\varphi^{-1}/N_e$) | $0.9649 \pm 0.0042$ | 1.0σ (with gate correction) |
-| $r$ | $\varphi^{-12} \approx 0.0031$ | $< 0.036$ (95% CL) | Consistent, testable with CMB-S4 |
+| $n_s$ | $0.9691$ ($1 - 2\varphi^{-1}/N_e$) | $0.9649 \pm 0.0042$ | 1.0σ as a closed form; the gate slow-roll trajectory does not reproduce it (0.813 or 0.914, 2026-08-06, `computations/slow_roll_trajectory.py`) |
+| $r$ | $\varphi^{-12} \approx 0.0031$ | $< 0.036$ (95% CL) | Mapped fit (ledger §10); the trajectory gives $r$ excluded by the BK18 bound; the two numbers do not coexist on the trajectory (2026-08-06) |
 | $\alpha_s$ | $-0.0013$ | $-0.0045 \pm 0.0067$ | Consistent (1σ) |
 | $N_e$ | $40$ e-folds | $50$–$60$ (standard $\Lambda$CDM) | Fewer e-folds—resolved by cascade emergence |
 
@@ -188,8 +206,8 @@ epochs, different Qi gate regimes, one underlying physics.
 
 ### Hypothesized (testable)
 
-- $n_s = 1 - 2\varphi^{-1}/N_e = 0.9691$ (with gate correction)—testable with improved CMB
-- $r = \varphi^{-12} \approx 0.0031$ (the §4 derivational formulas evaluate to 0.0557, $2\times10^{-7}$, 0.142—not 0.003)—testable with CMB-S4/LiteBIRD
+- $n_s = 1 - 2\varphi^{-1}/N_e = 0.9691$ (with gate correction; $N_e = 40$ is a start-threshold choice, Mapped—ledger; the gate slow-roll trajectory gives 0.813 or 0.914, not 0.9691, 2026-08-06 `computations/slow_roll_trajectory.py`)
+- $r = \varphi^{-12} \approx 0.0031$ (the §4 derivational formulas evaluate to 0.0557, $2\times10^{-7}$, 0.142—not 0.003; Mapped fit, ledger §10; the trajectory's $r$ is excluded by BK18, and $r = \varphi^{-12}$ does not coexist with $n_s = 0.9691$ on the trajectory, 2026-08-06)
 - $\alpha_s = -2/N_e^2 \approx -0.0013$—consistent, too small for current detection
 
 ---

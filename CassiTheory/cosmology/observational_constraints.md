@@ -161,7 +161,7 @@ Observed (Zhou+ 2023): $v_c(30\text{ kpc}) \approx 190 \pm 20$ km/s.
 | Observable | Cassi covers | Not covered | Decision required |
 |---|---|---|---|
 | $w_0 = -0.87$ (Calibrated; $2\sigma$ baseline; $3.6\sigma$ at fixed $r_0$ with the B2 coupling; $-1.000$ with the stable realization—12) | Tension ($w_0$; $r_0$ re-tuning closed negatively under the stable realization—12); **$w_a$: $2.7\sigma$ baseline; $1.25\sigma$ (B2, unstable); $2.61\sigma$ (stable realization: pure-Λ window—12)** | $w_a = +0.012$ (baseline) → $-0.38$ (B2, unstable) → **$(w_0, w_a) = (-1, 0)$** (stable realization—12) | **Tension** ($w_0$) / **Tension** ($w_a$; the B2 1.25σ described the unstable realization, 12) |
-| $\Omega_m$ / $H_0$ compatibility | Pipeline CMB-inferred $H_0 \approx 65.8$ km/s/Mpc | Tension with CMB | Full $H(z)$ fit pending (C3/T4) |
+| $\Omega_m$ / $H_0$ compatibility | Pipeline CMB-inferred $H_0 \approx 65.8$ km/s/Mpc | Tension with CMB | Full $H(z)$ fit performed 2026-08-06 (`computations/hz_full_fit.py`): not resolved under the calibrated w(a); the −7.2 value was an extrapolation beyond the calibrated range (C3/T4) |
 | $v_c(30\text{ kpc})$ vs baryons | $v_C/v_B = 2.8$–$3.0$ (matches $2.7\pm0.5$ observed within ~0.4σ) |—| **Consistent** |
 
 **Sources last accessed:** 2026-07-19.
@@ -209,7 +209,7 @@ The mechanism's claims:
 | Observable | Cassi covers | Not covered | Decision required |
 |---|---|---|---|
 | $w_0$ and $w_a$ | $w_0 = -0.87$ (Calibrated; 2σ baseline); $w_a = +0.012$ (baseline) → $-0.38$ (B2, unstable) → **pure-Λ $(-1, 0)$ window (stable realization—10/12)** | $w_0$: $3.6\sigma$ at fixed $r_0$ (B2); $4.17\sigma$ (stable realization); $w_a$: 5-channel/Wu-Xing shifts Hypothesized (ODE pending) | **Tension** ($w_0$) / **Tension** ($w_a$; stable realization—12; the B2 1.25σ described the unstable realization)—`two-fluid/calibrate_initial_ratio_xi_v2.py`, 08 §C.6, 12 |
-| $\Omega_m$ / $H_0$ compatibility | Pipeline CMB-inferred $H_0 \approx 65.8$ km/s/Mpc | Tension with CMB | Full $H(z)$ fit pending (C3/T4) |
+| $\Omega_m$ / $H_0$ compatibility | Pipeline CMB-inferred $H_0 \approx 65.8$ km/s/Mpc | Tension with CMB | Full $H(z)$ fit performed 2026-08-06 (`computations/hz_full_fit.py`): not resolved under the calibrated w(a); the −7.2 value was an extrapolation beyond the calibrated range (C3/T4) |
 | $v_c(30\text{ kpc})$ vs baryons | $v_C/v_B = 2.8$–$3.0$ (matches $2.7\pm0.5$ observed within ~0.4σ) |—| **Consistent** |
 | CMB axis of evil (5.4σ, a-posteriori) | Bubble-boundary triaxial axis (12.2° alignment; **Calibrated** angle, **Hypothesized** mechanism) | Scale-dependence unconfirmed; boundary orientation fitted to measured axis | Simons Obs. E-mode test |
 

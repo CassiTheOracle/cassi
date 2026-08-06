@@ -4,13 +4,13 @@
 
 ## Abstract
 
-This document is the computational plan for promoting the Cassi $\sigma_8$ prediction from Hypothesized to Derived. The mechanism is the density-dependent Qi-gravity coupling $G_{\text{eff}} = (\pi/\rho)(1+(\varphi^{6}-1)q)G_N$ with $\xi = \varphi^6$: voids see near-Newtonian gravity while filament and halo regions see an enhanced $G_{\text{eff}}$, and the cosmic-mean $q$ decreases with time, suppressing late-time growth by roughly $5$–$10\%$ relative to $\Lambda$CDM—matching the observed Planck-vs-weak-lensing $\sigma_8$ deficit. The plan runs a high-resolution two-fluid PDE, extracts $q(k, a)$ per Fourier mode, integrates it into a modified Boltzmann solver, and validates against rotation curves, cluster masses, and $f\sigma_8$.
+This document is the computational plan for promoting the Cassi $\sigma_8$ prediction from Hypothesized to Derived. The mechanism is the density-dependent Qi-gravity coupling $G_{\text{eff}} = (\pi/\rho)(1+(\varphi^{6}-1)q)G_N$ with $\xi = \varphi^6$: voids see near-Newtonian gravity while filament and halo regions see an enhanced $G_{\text{eff}}$, and the cosmic-mean $q$ decreases with time, suppressing late-time growth by roughly $5$–$10\%$ relative to $\Lambda$CDM—matching the observed Planck-vs-weak-lensing $\sigma_8$ deficit. The reconciliation (2026-08-06, `computations/sigma8_reconciliation.py`) bounds this: the pipeline's −43.5% headline is dominated by normalization and resolution, only −9.6% is mechanism-attributable ($G_{\text{eff}} = 0.9044$), and the "~5%" target is Mapped (ledger §10). The plan runs a high-resolution two-fluid PDE, extracts $q(k, a)$ per Fourier mode, integrates it into a modified Boltzmann solver, and validates against rotation curves, cluster masses, and $f\sigma_8$.
 
 ---
 
 ## 1. Objective
 
-Compute $\sigma_8(z)$ from the Cassi two-fluid framework by integrating the density-dependent Qi-gravity modification $G_{\text{eff}}(k, q)$ into a Boltzmann code. The current epistemic status is **Hypothesized** (qualitative match; quantitative computation pending). The goal is to reach **Derived** by matching the $\sim 5\%$ $\sigma_8$ suppression observed between Planck CMB and low-redshift weak-lensing probes.
+Compute $\sigma_8(z)$ from the Cassi two-fluid framework by integrating the density-dependent Qi-gravity modification $G_{\text{eff}}(k, q)$ into a Boltzmann code. The current epistemic status is **Hypothesized** (qualitative match; quantitative computation pending). The reconciliation (2026-08-06, `computations/sigma8_reconciliation.py`) established that the existing pipeline's −43.5% headline is normalization- and resolution-dominated (P(k) normalization factor 8e-5, nonlinear ICs, N=32 PDE dissipation: δ_rms falls 32% while ΛCDM linear growth rises +21%), leaving −9.6% mechanism-attributable ($G_{\text{eff}} = 0.9044$); the "~5%" $\sigma_8$ suppression is a Mapped target (μ = 0.98 → −5.3% under the plan's scaling), not a derived prediction. Reaching **Derived** requires a resolution- and normalization-controlled computation that isolates the mechanism contribution.
 
 ---
 
@@ -102,7 +102,7 @@ In the matter-dominated era where $D \propto a^p$ with $p = \frac{-1 + \sqrt{1 +
 | 0.950 (estimated effective $\mu$) | 0.970 | 87.4 | 0.865 | **-13.5%** |
 | 0.980 (target, matching observations) | 0.989 | 95.7 | 0.947 | **-5.3%** |
 
-**The target $\mu \approx 0.98$** (a 2% suppression of $G_{\text{eff}}$ on $\sigma_8$ scales relative to the initial condition) would produce the observed $\sim 5\%$ $\sigma_8$ reduction.
+**The target $\mu \approx 0.98$** (a 2% suppression of $G_{\text{eff}}$ on $\sigma_8$ scales relative to the initial condition) would produce the observed $\sim 5\%$ $\sigma_8$ reduction. This is a **Mapped target** (fit-status ledger §10), not a derived value: the reconciliation (2026-08-06, `computations/sigma8_reconciliation.py`) shows the pipeline's −43.5% headline is dominated by normalization and resolution, with −9.6% mechanism-attributable ($G_{\text{eff}} = 0.9044$); the ~5% number enters through the chosen μ, it does not emerge from the dynamics.
 
 ### 3.3 Why the Pipeline Overestimates
 
@@ -131,6 +131,8 @@ The net effect on $\sigma_8$ is the integral over all $k$ with the top-hat windo
 Using $q(z)$ from the PDE and integrating the growth equation numerically with $\mu(k,a) = (\pi/\rho(a))(1 + (\varphi^{6}-1)q(a))$, parameterizing the $k$-dependence as a smooth transition between void ($k$ small, $q \to 0$) and cluster ($k$ large, $q \to \langle q\rangle$) regimes, the estimated suppression is:
 
 $$\boxed{\frac{\sigma_8^{\text{Cassi}}}{\sigma_8^{\Lambda\text{CDM}}} \approx 0.90\text{--}0.95 \quad \Rightarrow \quad \Delta\sigma_8/\sigma_8 \approx -5\%\text{ to }-10\%}$$
+
+This estimate is the plan's target band. The reconciliation (2026-08-06, `computations/sigma8_reconciliation.py`) establishes what the current pipeline actually delivers: the −43.5% headline is dominated by the P(k) normalization factor (8e-5), nonlinear initial conditions, and N=32 dissipation (δ_rms falls 32% while ΛCDM linear growth rises +21%); the mechanism-attributable suppression is −9.6% ($G_{\text{eff}} = 0.9044$), and both numbers are normalization-sensitive. The band above is a Mapped target, not a measured suppression.
 
 This matches:
 - The qualitative expectation from `predictions/falsifiable-predictions.md` ("slightly lower, ~5%")

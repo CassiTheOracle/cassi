@@ -167,9 +167,9 @@ The channel step is the span between $\varphi^3$ and its reciprocal—an exact i
 
 A locked channel produces the ke-alternating pattern, not uniform starvation: for a Wood lock, Earth fully starved, Fire partially starved (−38% of the excess), Metal and Water *elevated* (+38%, +62%). **Gate-level result (2026-08-01):** with the solver's own ke round on synthetic single-lock states, all five lock channels pass—(i) the one-round response equals the capped ke algebra exactly; (ii) the one-lap response alternates strictly in ke order read from the locked channel, with the sign pattern of the fractions $[-0.382, -0.618, +0.382, +0.618]$; (iii) the ke target starves iff $\kappa\Delta \geq b_{j+2}$ (Wood-lock threshold $\Delta_c = \varphi^{-4}$ exact); (iv) the uniform-starvation counterfactual is rejected—the ring elevates two non-locked channels; (v) the ke round reproduces the WX3 PDE state to its own prediction error ($5.5\times10^{-4}$). Magnitudes follow the implementation caps (§2.1 note). **Test (clinical):** the P3 multi-dimensional affect instrument of the emotions document, on trauma-exposed populations (§11 TR1 of `consciousness/trauma-as-frozen-gate.md`): profile the four non-locked channels against the $\varphi^{-i}$ baseline and check the ring fractions $[-0.382, -0.618, +0.382, +0.618]$, not four equal deficits.
 
-### WX2: The damping signature
+### WX2: The damping signature—**tested, not matched (2026-08-06, `two-fluid/run_trigger_wx2_tests.py`)**
 
-The ring reduces the locked channel's own excess by $\kappa^3 = 23.6\%$. **Test:** the same instrument; the locked channel should sit *above* baseline by 0.764 of the event-scale excess, not the full excess—and the complementary elevations should exceed the naive conservation expectation.
+The ring reduces the locked channel's own excess by $\kappa^3 = 23.6\%$. **Tested result:** the magnitude is not reproduced in the solver—per-$P_0$ retention is 0.944 vs the predicted 0.764, and the gate-level mean is 0.389 vs 0.764; the ke ring adds no locked-channel damping beyond baseline ($\Delta\gamma < 0.001$). The sub-critical direction holds (the lock decays, no self-sustain). The $\kappa^3$ magnitude remains Derived algebra (`§5`); its realization in the two-fluid gate is not demonstrated. Run: `runs/20260806_001658_trigger_wx2/`.
 
 ### WX3: No driverless persistence—**tested (2026-07-31, `two-fluid/run_trauma_ke_ring.py`)**
 
@@ -201,7 +201,7 @@ The half-channel positions predict that affect profiles anchored at the secondar
 ### Hypothesized (mechanism supplied, test designed)
 
 - The affinity phase gradient 18°/rung as the structure of the chakra-channel table (reproduces 5/7 primaries exactly; the mechanism fixing the gradient is open) (§3.1)
-- The alternating-profile predictions WX2–WX4 and the clinical leg of WX1 in affect data (the gate-level pattern is verified; the P3 instrument test remains)
+- The alternating-profile predictions WX3–WX4 and the clinical leg of WX1 in affect data (the gate-level pattern is verified; the P3 instrument test remains); WX2's $\kappa^3$ magnitude is tested and not matched (2026-08-06, `two-fluid/run_trigger_wx2_tests.py`)
 
 ### Not claimed
 

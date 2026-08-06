@@ -136,18 +136,18 @@ The Wu Xing is not merely a geometric pentagon—it is a **dynamical cycle** of 
 
 The fundamental constraint is the baseline asymmetry: Metal's baseline ($\varphi^{-6} \approx 0.056$) is $8\times$ smaller than Wood's ($\varphi^{-3} \approx 0.236$). Control-release amplification ($\sim\varphi \approx 1.6\times$) partially closes the gap but does not fully overcome it. The late-time slope turns **weakly positive**, which would flip $w_a$ sign if the amplification were $\sim 2.6\times$ stronger. With current parameters, the net $\Delta$(early→late) is $+0.055$—a small but genuine increase in effective openness.
 
-**Status: Hypothesized.** The mechanism is structurally sound but quantitatively marginal. Running the ODE solver (`two-fluid/run_pde_wa_test.py`) with this gate shape would determine whether the small positive late-time slope is sufficient to flip $w_a$, or merely pushes it closer to zero.
+**Status: Hypothesized, tested at the PDE layer (2026-08-06).** The ODE-level $\Delta$(early→late) = $+0.055$ is not reproduced in the PDE realization: the measured $\Delta(1-q)$ is $\pm 0.01$ (`two-fluid/run_pde_wa_5channel.py`; see §4). The gate shape's effect on $w_a$ is real, but it comes from gate-structure dynamics, not the control-release slope.
 
 ## 4. Predictions
 
 | Tier | Prediction | Test |
 |------|-----------|------|
-| **Hypothesized** | 5-channel gate reduces $w_a$ from $+0.46$ toward zero | Re-run ODE with modified gate shape; compare $w_a$ |
+| **Hypothesized** | 5-channel gate reduces $w_a$ from $+0.46$ toward zero | **Tested 2026-08-06**: five-channel PDE gives $w_a = -0.425 \pm 0.1$ vs single-channel $-0.09 \pm 0.10$ ($-0.44 \pm 0.15$ differential toward DESI; five sits ~1.1σ from DESI $w_a = -0.73 \pm 0.28$) |
 | **Hypothesized** | Asymptotic $(1-q_{\text{eff}})$ floor at $\sim 0.35$ | Check late-time ODE behavior |
-| **Hypothesized** | Wu Xing control-release gives late-time $(1-q_{\text{eff}})$ increase ($\Delta > 0$) | Run control-release gate shape in ODE solver |
+| **Hypothesized** | Wu Xing control-release gives late-time $(1-q_{\text{eff}})$ increase ($\Delta > 0$) | **Tested 2026-08-06**: measured $\Delta(1-q) \approx \pm 0.01$, not $+0.055$—the shift comes from gate-structure dynamics, not control-release |
 |—| Pentagram resonance flips $w_a$ sign | **Ruled out** by the de-resonance principle |
 
-The Hypothesized predictions are **testable now**—they require modifying the gate shape in the ODE solver (`two-fluid/run_pde_wa_test.py`) from single-channel to 5-channel-with-redistribution and re-running the integration. The control-release model ($\Delta = +0.055$) is the most promising candidate for sign flip.
+The Hypothesized predictions are **tested** at the PDE layer (2026-08-06, `two-fluid/run_pde_wa_5channel.py`, `two-fluid/run_pde_wa_test.py`): with adaptive time-stepping the five-channel gate reaches the fit window and shifts $w_a$ by $-0.44 \pm 0.15$ in the DESI direction relative to the single-channel PDE. The shift is not produced by the control-release mechanism (measured $\Delta(1-q) \approx \pm 0.01$ vs the ODE exploration's $+0.055$). The pentagon gate is numerically unstable at the default cap (NaN at $a \approx 0.38$–$0.66$); the five_ke variant is inconclusive (NaN at $a \approx 0.66$).
 
 ---
 

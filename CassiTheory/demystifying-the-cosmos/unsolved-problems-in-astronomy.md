@@ -219,7 +219,7 @@ Standard status: flat $\Lambda$CDM is infinite; finite-topology tests are inconc
 #### 59. Cosmic Inflation
 Whether inflation occurred, what the inflaton is, and whether it is eternal are open.
 Standard status: inflation fits the data; the inflaton and the eternal regime are unknown.
-**[Framework claim]**—inflation is the cascade's own epoch: steps 20–60 with the Qi gate as the mechanism, no inflaton field, $N_e = 40$, $n_s = 0.9691$ (closed form, 1.0$\sigma$ from Planck), $r \approx \varphi^{-12} \approx 0.003$ (Mapped—the doc's own §4 formulas do not reproduce it; registry C4, mechanism **Hypothesized**); eternal inflation is not addressed.
+**[Framework claim]**—inflation is the cascade's own epoch: steps 20–60 with the Qi gate as the mechanism, no inflaton field, $N_e = 40$, $n_s = 0.9691$ (closed form, 1.0$\sigma$ from Planck; the gate slow-roll trajectory does not reproduce it—0.813/0.914, 2026-08-06 `computations/slow_roll_trajectory.py`), $r \approx \varphi^{-12} \approx 0.003$ (Mapped—the doc's own §4 formulas do not reproduce it; the trajectory's $r$ is excluded by BK18; registry C4, mechanism **Hypothesized**); eternal inflation is not addressed.
 `cosmology/inflation-from-cascade.md`.
 #### 60. Horizon Problem
 The CMB is uniform across regions that never had causal contact.
@@ -229,7 +229,7 @@ Standard status: inflation or variable-speed-of-light resolves it; the mechanism
 #### 61. Hubble Tension
 Early- and late-universe $H_0$ measurements disagree at about $5\sigma$.
 Standard status: systematic errors or new physics; unresolved.
-**[Framework claim]**—evolving $w(a)$ with $\Omega_\Lambda$ growing 0.30 → 0.50 alters the CMB extrapolation: the pipeline computes $\Delta H_0 = -7.2$ km/s/Mpc ($-9.9\%$, versus the observed 8.3% gap) with a CMB-inferred value of ≈ 65.8 km/s/Mpc—direction matches, full $H(z)$ fit pending (registry C3/T4, **Hypothesized**).
+**[Framework claim]**—evolving $w(a)$ with $\Omega_\Lambda$ growing 0.30 → 0.50 alters the CMB extrapolation: the pipeline computes $\Delta H_0 = -7.2$ km/s/Mpc ($-9.9\%$, versus the observed 8.3% gap) with a CMB-inferred value of ≈ 65.8 km/s/Mpc; the full H(z) fit (2026-08-06, `computations/hz_full_fit.py`) does not resolve the tension under the calibrated w(a), and the −7.2 value comes from an ODE extrapolation beyond the calibrated range (registry C3/T4, **Hypothesized**).
 `two-fluid/run_hubble_pipeline.py`; `foundations/refined-numeric-predictions.md` §2.8.
 #### 62. Axis of Evil
 The CMB's low multipoles align with each other and with the Solar System's motion and orientation at a level unexpected in $\Lambda$CDM.
