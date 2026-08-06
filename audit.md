@@ -141,3 +141,11 @@ Thirteen committed computational tests (`runs/` archives the outputs; scripts in
 | 11 | σ₈ magnitude | Pipeline −43.5% headline dominated by normalization + resolution (P(k) normalization 8e-5, nonlinear ICs, N=32 dissipation: δ_rms falls 32% while ΛCDM linear grows +21%); −9.6% mechanism-attributable (G_eff 0.9044); "~5%" is a Mapped target (μ = 0.98 → −5.3%) (`computations/sigma8_reconciliation.py`) | ⚠️ **Reconciled** (normalization-dominated) |
 | 12 | Full H(z) fit resolves H₀ tension | Under calibrated CPL values (w₀ = −0.87, w_a = +0.012 baseline, −0.38 coupling), Cassi w(a) does not resolve: dark energy negligible at z~1000–1100, R_cmb = 1.00000, χ² ≈ 25.1 (same as ΛCDM, anchor separation 5.0σ); ΔH₀ = −7.2 comes only from the ODE pipeline model whose w(a) is right-clamped at +0.37 (radiation-like) for z > 99—an extrapolation beyond the calibrated range (a ≥ 0.01) (`computations/hz_full_fit.py`) | ❌ **Not resolved** |
 | 13 | Slow-roll trajectory gives n_s = 0.9691, r = φ⁻¹² | (n_s, r) = (0.813, 0.188) under 1 step = 1 e-fold; (0.914, 0.060) with N_e = 40 literal (1 step = ln φ physical e-folds)—n_s 12–36σ from Planck, r excluded by BK18; the two claimed numbers do not coexist (r = φ⁻¹² only at ~135 physical e-folds before the window end, where n_s = 0.9883, +5.6σ); N_e = 40 is a start-threshold choice, not a derived count; ledger Mapped flags confirmed (`computations/slow_roll_trajectory.py`) | ❌ **Fails** (Mapped with trajectory evidence) |
+
+---
+
+## 7. Synchrotron Polarimetry
+
+| Prediction | Cassi Value | Experimental | Status |
+|-----------|-------------|--------------|--------|
+| Log-periodic polarization orientation (prediction 48) | $\text{PA}(\nu\varphi^k) = \text{PA}(\nu)$ (mod $\pi$), period $\Delta(\ln\nu) = \ln\varphi$; 90° rotation at quarter-rung separation ($\nu_2/\nu_1 = \varphi^{1/4}$); half-rung pair ($\nu_2/\nu_1 = \sqrt\varphi$) parallel (mod $\pi$) | Crab Nebula mm-band PA is constant (~138–142°) over $\Delta\ln\nu = 1.26$ (2.6 rungs); 0/10 band pairs within 3σ | ❌ **Null at face value**—prediction 48 does not fit the Crab Nebula mm-band polarization angle: the constant-PA fit beats the log-periodic spiral fit, and the spiral is excluded against a search-corrected uniform-angle null (p = 0.77) (`experiments/demystifying_cosmos/pa_logperiodic_test.py`, 2026-08-06) |
