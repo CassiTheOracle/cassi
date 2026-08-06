@@ -26,7 +26,7 @@ Reduces the Cassi two-fluid PDE (continuity, momentum, Poisson, and the Qi gate 
 ## Cross-References
 
 - `predictions/falsifiable-predictions.md`—the 47-entry prediction catalog (quantum-gravity's falsifiable table: graviton breathing mode, GW dispersion near $M_{\text{Pl}}$, no singularity)
-- `open-questions-cassi-answers.md`—the 41-entry epistemic registry (quantum-gravity cites G2, the Page curve question)
+- `open-questions-cassi-answers.md`—the 42-entry epistemic registry (quantum-gravity cites G2, the Page curve question)
 - `foundations/cassi-first-principles.md`—first-principles foundation for the two-fluid quantization
 - `foundations/dimensionful-cascade.md`—the cascade ladder that anchors $\sigma = 1/M_{\text{Pl}}$ dimensionfully
 - `foundations/cascade-suppression-formula.md`—per-rung coherence $q_i = 1 - \varphi^{-i-\delta}$ used for the black-hole capacity bound

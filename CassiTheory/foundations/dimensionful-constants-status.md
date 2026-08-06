@@ -357,7 +357,7 @@ In `open-questions-cassi-answers.md`, the F5 entry lists $\lambda = 0.1$ as **De
 - `foundations/unified-lagrangian.md`—Full Lagrangian, declares $\hbar = c = 1$, $\lambda = 0.1$
 - `foundations/cassi-first-principles.md`—two-fluid PDE, conversion rate $\lambda = 1/(2w)$
 - `foundations/dimensionful-cascade.md`—cascade table (292 = today's horizon rung), empirical $N$
-- `open-questions-cassi-answers.md`—Epistemic registry (Q1–Q10, C1–C10, G1–G6, M1–M5, F1–F6, T1–T4)
+- `open-questions-cassi-answers.md`—Epistemic registry (Q1–Q10, C1–C10, G1–G6, M1–M6, F1–F6, T1–T4)
 - `foundations/spiral-dynamics.md`—Hubble, gravity, and c from spiral geometry
 - `foundations/spin-fibonacci-spiral.md`—SO(2) doublet winding, spin quantization
 - `foundations/wu-xing-derivation.md`—$w=5$ derivation, $\lambda = 1/(2w)$

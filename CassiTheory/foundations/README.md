@@ -263,7 +263,7 @@ Derives how the five-channel gate operates as two interlaced cycles—the sheng 
 
 - `foundations/dimensionful-cascade.md`—the cascade wedge (entry point for this directory)
 - `principles/de-resonance-principle.md`—why $\varphi$ is the maximally de-resonant attractor (Derived)
-- `open-questions-cassi-answers.md`—the 41-entry epistemic registry
+- `open-questions-cassi-answers.md`—the 42-entry epistemic registry
 - `parameter-inventory.md`—parameter registry
 - `predictions/falsifiable-predictions.md`—the 48-entry prediction catalog
 - `cassi-physics.md`—framework overview and the gap $g = 1 - \varphi^{-5}$ derivation
