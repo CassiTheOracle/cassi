@@ -200,7 +200,7 @@ Standard status: particle candidates remain undetected; alternatives stay on the
 #### 55. Dark Energy
 The cause of cosmic acceleration—cosmological constant, quintessence, phantom energy, early dark energy—is unknown, along with the coincidence problem of why $\Omega_{\text{DE}} \approx \Omega_m$ today.
 Standard status: $\Lambda$CDM fits the data but has no theoretical justification; DESI is testing alternatives.
-**[Framework claim]**—the acceleration is the conversion dynamics of the two-fluid approaching the $\varphi$-attractor: no cosmological constant, $w_0 = -0.87$ (Calibrated baseline, $2\sigma$ from DESI; $w_a$ baseline $2.7\sigma \to 1.25\sigma$ with the ratified coupling), $w > -1$ at all $z$; the coincidence problem is not separately addressed in the derivation docs.
+**[Framework claim]**—the acceleration is the conversion dynamics of the two-fluid approaching the $\varphi$-attractor: no cosmological constant, $w_0 = -0.87$ (Calibrated baseline, $2\sigma$ from DESI; $w_a$ baseline $2.7\sigma$; with the ratified coupling: $1.25\sigma$ in the unstable B2 realization and the stable realization's pure-Λ window $(-1, 0)$—$4.17\sigma$/$2.61\sigma$ from DESI, 12), $w > -1$ at all $z$ (no phantom crossing; the stable realization saturates at $w = -1$); the coincidence problem is not separately addressed in the derivation docs.
 `cosmology/cosmology-from-phi.md`; registry C1/T1.
 #### 56. Baryon Asymmetry
 Why the universe contains matter but essentially no antimatter is unexplained by the Standard Model.
