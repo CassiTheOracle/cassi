@@ -29,6 +29,8 @@ The potential is a Lyapunov function: it decreases along every conversion-active
 
 A second fact makes the arrow structural rather than incidental. The field carries a causal memory filter, the IIR average $\bar{\varepsilon}^2(t) = (1-\tau)\bar{\varepsilon}^2(t-\Delta t) + \tau\,\varepsilon^2(t)$ with $\tau = \varphi^{-1}$ (`foundations/cassi-first-principles.md` §2.4). The IIR uses only past values of $\varepsilon^2$; under time reversal it would have to use future values. The field's state is a functional of its history, so the present contains a compressed trace of the past and none of the future—a second, independent breaking of time-reversal symmetry at the level of the state itself. And the direction is the direction of de-resonance: $\varphi$ is the maximally irrational ratio, the value that best preserves multi-scale structure (`principles/de-resonance-principle.md`). The arrow points toward the configuration in which the field can keep the most structure alive. Time is not a stage on which fields evolve; it is the orientation of the field's own relaxation, flowing at a rate set locally by $(1-q)$. The arrow has a strength, and the strength is a field variable.
 
+**Conditional (Speculative):** below $\varphi$, the stabilized conversion→expansion realization (`cassi-psychology.md` §12.1) makes the monotone relaxation target $r_* \approx 0.9503$, not $\varphi$—"return to $\varphi$" holds only above the watershed, and the WRITE family (organized Yang injection, §2) is the only untested reverse drive at the global-$r$ level.
+
 ---
 
 ## 2. Memory as Field Persistence
