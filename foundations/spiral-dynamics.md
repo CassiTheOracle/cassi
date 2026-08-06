@@ -60,7 +60,20 @@ shifts of 08 §C.6 are scale-free), but its field-level realization is
 **unstable** (saddle at $(1,\varphi^{-1})$; density blow-up without Hubble
 friction; log-domain exit after 0.108 turns; the source's Hessian exactly
 cancels the $\Omega$ rotation at the fixed point)—**stable field-level
-realization open**. [COMPUTED]
+realization found (10-source-stabilization.md, run 2026-08-04):** the C1
+Hubble-friction closure (the framework's own comoving-density structure,
+$H = S/(d\rho) = H_{\text{conv}}$) freezes $\rho$ at $\varphi$ exactly and
+realizes the source at the $r_*$ attractor, $r_* = 0.9502528427\ldots$ (the
+fixed-point equation is **transcendental**—the log terms vanish only at
+$r = \varphi$; 12 §1.2). The golden point $r = \varphi$ is a repeller
+($f'(\varphi) = +0.12723$ exact—12 §1.4) and a **knife-edge**: $r > \varphi$
+escapes, $r < \varphi$ drains to $r_*$. The cosmological consequence is a
+**pure-Λ DESI-window fit $(w_0, w_a) = (-1, 0)$** (4.17σ/2.61σ from DESI—12);
+the spatial test (11) confirms the ratio-field collapse is fast ($\sigma_r
+\times 0.15$ in 1.2τ) into a $\rho$-dependent band ($dr_*/d\rho \approx
+-0.38$) in which the density structure survives and amplifies; the full
+ratified term with $\Omega$ still exits the log domain on the grid ($t =
+8.07$—11 §5). [COMPUTED]
 
 Crucially, this spiral lives in the **internal** $(E_Y, E_I)$ plane, not
 physical 3D space. The doublet angle $\Theta = \text{atan2}(E_I, E_Y)$ is
@@ -370,7 +383,11 @@ across different cascade depths (atomic, nuclear, particle).
   is the generator ratio; 1.0 rejected); the source half's field-level
   realization is unstable (saddle at $(1,\varphi^{-1})$, density blow-up, log-
   domain exit at 0.108 turns; the Hessian cancels the rotation at the fixed
-  point)—r-level content stands, stable realization open
+  point)—r-level content stands; **stable realization found**: the C1
+  Hubble-friction closure (10) realizes the source at the $r_* \approx
+  0.9503$ attractor with a pure-Λ late universe (pure-Λ DESI-window fit
+  $(-1, 0)$, 4.17σ/2.61σ—12); the full term with $\Omega$ is not integrable
+  on the grid ($t = 8.07$—11 §5)
 - Gravity as gradient descent along the spiral (anchored quantitatively by the rung-offset probes: at the closure rungs the flow reads $\le 1.5\%$ of the wave speed, inward for J/ψ and $\approx 0$ for μ, and the conversion term alone transports outward at $\le 0.1\%$—`foundations/rung-offset-mechanism.md` §5 T11–T13)
 - $c$ as scale-invariant product $\lambda_{\text{eff}} \cdot \ell_n$
   (algebraically confirmed; numerical value awaits unit calibration)

@@ -49,7 +49,7 @@ deliverable:
 | F3 | Force unification | **Structural** |—| All forces from PDE at different rungs |
 | F4 | Theory of Everything | **Structural** |—| One equation, one constant |
 | F5 | Dimensionful constants | Cascade-span (numbers present) | $\lambda=0.1$ (derived), $N=291.54$ (epoch-dependent) | $c$, $\hbar$, $G$ external; $c = \lambda\ell_{\text{Pl}}$ structure |
-| T1 | DESI $w_0/w_a$ | Cascade-span (numbers present) | $w_0=-0.87$, $w_a=+0.012$ (baseline); with the ratified coupling: $w_a=-0.38$ (B2) | CPL $w(z)$ fit; 2σ / 2.7σ baseline → 3.6σ ($w_0$, fixed $r_0$) / 1.25σ ($w_a$, B2) |
+| T1 | DESI $w_0/w_a$ | Cascade-span (numbers present) | $w_0=-0.87$, $w_a=+0.012$ (baseline); with the ratified coupling: $w_a=-0.38$ (B2, unstable) / **pure-Λ $(-1, 0)$ window (stable realization—10/12)** | CPL $w(z)$ fit; 2σ / 2.7σ baseline → 3.6σ ($w_0$, fixed $r_0$, B2) / 1.25σ ($w_a$, B2, unstable); 4.17σ/2.61σ (stable realization—12) |
 | T2 | JWST galaxies | **Structural** |—| Wake-wave formation timeline |
 | T3 | $\sigma_8$ tension | Cascade-span (needs $G_{\text{eff}}$ pipeline) | $\xi=\varphi^6$ | $G_{\text{eff}}(k,q)$ integration |
 | T4 | $H_0$ tension | Same as C3 |—| Same refinement as C3 |
@@ -412,7 +412,10 @@ evolution and the CMB-inferred $H_0$ bias:
   Yang-fraction-weighted form, $\Delta -0.45$)—shift verified via the ODE
   (`two-fluid/calibrate_initial_ratio_xi_v2.py`), at 2.7σ (2.2–3.2σ) from DESI
   $w_a \approx -0.73 \pm 0.28$ [INFERENCE]; with the ratified conversion→
-  expansion coupling, **$-0.38$** (B2; $1.25\sigma$ from DESI—08 §C.6)
+  expansion coupling: **$-0.38$** (B2; $1.25\sigma$ from DESI—08 §C.6; the
+  unstable realization, density blow-up—10) or, in the term's **stable
+  realization** (C1 friction closure—10/12), the pure-Λ window fit
+  $(w_0, w_a) = (-1, 0)$—4.17σ/2.61σ from DESI
 - **$\langle R(z) \rangle_{\text{CMB}} = 1.1095$**—Cassi $H(z)$ is 10.95% higher than $\Lambda$CDM at CMB recombination ($z \approx 1000$–$1100$)
 - **$H_0^{\text{CMB-inferred}} = 65.8$ km/s/Mpc** (from $H_0^{\text{local}} = 73.0$ km/s/Mpc)
 - **$\Delta H_0 = -7.2$ km/s/Mpc ($-9.9\%$)**—CMB-inferred $H_0$ is lower than local
@@ -433,15 +436,19 @@ tension, and the magnitude is $9.9\%$ (vs observed $8.3\%$). Additional physics
 (Qi-gravity modification of the pre-recombination sound horizon, wake-wave
 effects on $r_s$) would refine the magnitude. The $w_a$ tension at the
 Calibrated baseline (2.7σ) is reduced to $1.25\sigma$ by the ratified
-conversion→expansion coupling (B2: $\Delta w_a = -0.393$; bracket
+conversion→expansion coupling's unstable B2 realization (B2: $\Delta w_a = -0.393$; bracket
 $-0.61$…$-0.38$): the Yang-fraction-weighted coupling shifts
 $w_a$ from $+0.46$ to $+0.012$ ($\Delta -0.45$), and the ratified coupling
-adds $-0.393$ (08 §C.6).
+adds $-0.393$ (08 §C.6). The term's **stable realization** (the C1 friction
+closure—10/12) instead collapses $r$ to $r_* \approx 0.9503$ by $z \approx 61$
+and gives the pure-Λ DESI-window fit $(w_0, w_a) = (-1, 0)$ exactly—4.17σ/2.61σ
+from DESI; $\Delta H_0$ at the resolved level is 0 (the late $H(z)$ is exactly
+ΛCDM), with the early transient's CMB imprint open (12 §4.2).
 
 **Existing constraints:**
 - $w_0 = -0.87$ ($2\sigma$ from DESI $w_0 \approx -0.75 \pm 0.06$ [INFERENCE])
 - $w_a$ with $\xi = \varphi^6$ (Yang-fraction-weighted form): $+0.012$ (2.7σ, 2.2–3.2σ, from DESI $w_a \approx -0.73 \pm 0.28$ [INFERENCE])
-- $w_a = +0.012$ verified with the coupling alone; with the ratified conversion→expansion coupling $-0.38$ ($1.25\sigma$, B2); 5-channel/Wu-Xing shifts Hypothesized (ODE pending). $w_0$ at fixed $r_0$: $3.6\sigma$ with the coupling ($r_0$ re-tuning open).
+- $w_a = +0.012$ verified with the coupling alone; with the ratified conversion→expansion coupling $-0.38$ ($1.25\sigma$, B2—the unstable realization) or the pure-Λ window fit $(-1, 0)$ (stable realization—10/12; $4.17\sigma$/$2.61\sigma$); 5-channel/Wu-Xing shifts Hypothesized (ODE pending). $w_0$ at fixed $r_0$: $3.6\sigma$ with the coupling (B2); $r_0$ re-tuning closed negatively under the stable realization (12 §4.1).
 
 ---
 
@@ -489,7 +496,8 @@ $N=32$ resolution.
 **Current status:** The Cassi $w(a)$ profile (bare: $w_0 = -0.856$,
 $w_a = +0.457$; with the Yang-fraction-weighted coupling $\xi = \varphi^6$:
 $w_0 = -0.87$, $w_a = +0.012$; with the ratified conversion→expansion
-coupling: $w_a = -0.38$, 08 §C.6)
+coupling: $w_a = -0.38$ (B2, the unstable realization) or the pure-Λ window
+fit $(-1, 0)$ in the stable realization—10/12, 08 §C.6)
 modifies the expansion history and the angular diameter distance to last
 scattering. The Qi transfer function modifies the growth of perturbations
 at recombination. Together, these produce distinctive signatures in the

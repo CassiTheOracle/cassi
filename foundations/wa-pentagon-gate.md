@@ -3,7 +3,7 @@
 
 ## Abstract
 
-The Cassi two-fluid PDE predicts $w_a = +0.46$ from the bare conversion dynamics ($H_{\text{bare}}$ only), while DESI DR2 constrains $w_a \approx -0.73 \pm 0.28$ [INFERENCE] (Table 9; range $-0.6$ to $-1.1$ across SNe compilations). The Qi-gravity coupling $\xi = \varphi^6$, verified in rotation curves ($v_C/v_B = 2.8$–$3.0$, ~0.4σ from the observed $2.7 \pm 0.5$), must also appear in the cosmological $H(a)$. In its Yang-fraction-weighted form $H_{\text{eff}}^2 = H_{\text{bare}}^2[1 + (\varphi^{6}-1)q \cdot \alpha_w]$, with $\alpha_w = r/(1+r) \to \varphi^{-1} \approx 0.618$ at the attractor, it shifts $w_a$ by $-0.45$, bringing the prediction to $w_a = +0.012$—2.7σ (2.2–3.2σ) from DESI: tension, not resolved. The 5-channel gate and Wu Xing control-release provide secondary shifts—Hypothesized, ODE pending.
+The Cassi two-fluid PDE predicts $w_a = +0.46$ from the bare conversion dynamics ($H_{\text{bare}}$ only), while DESI DR2 constrains $w_a \approx -0.73 \pm 0.28$ [INFERENCE] (Table 9; range $-0.6$ to $-1.1$ across SNe compilations). The Qi-gravity coupling $\xi = \varphi^6$, verified in rotation curves ($v_C/v_B = 2.8$–$3.0$, ~0.4σ from the observed $2.7 \pm 0.5$), must also appear in the cosmological $H(a)$. In its Yang-fraction-weighted form $H_{\text{eff}}^2 = H_{\text{bare}}^2[1 + (\varphi^{6}-1)q \cdot \alpha_w]$, with $\alpha_w = r/(1+r) \to \varphi^{-1} \approx 0.618$ at the attractor, it shifts $w_a$ by $-0.45$, bringing the prediction to $w_a = +0.012$—2.7σ (2.2–3.2σ) from DESI: tension, not resolved. The ratified conversion→expansion coupling's stable realization (the C1 friction closure—10/12) changes the late-time picture: $r$ freezes at $r_* \approx 0.9503$ (the collapse at $z \approx 61$) and the DESI-window fit is exactly $(w_0, w_a) = (-1, 0)$—4.17σ/2.61σ from DESI (the B2 $w_a = -0.38$/1.25σ values describe the unstable realization, 12 §4.1). The 5-channel gate and Wu Xing control-release provide secondary shifts—Hypothesized, ODE pending.
 
 ---
 
@@ -19,7 +19,7 @@ The ODE integration (`two-fluid/calibrate_initial_ratio.py`) yields the structur
 
 $$w_a = +0.457 \quad \text{(bare, } H_{\text{bare}} \text{ only)}$$
 
-DESI DR2 constrains $w_a \approx -0.73 \pm 0.28$ [INFERENCE] (Table 9; range $-0.6$ to $-1.1$ across SNe compilations). The bare prediction is at $\sim 4\sigma$ tension. With Qi-gravity $\xi = \varphi^6$ included in $H_{\text{eff}}$ (Yang-fraction-weighted form), $w_a$ shifts to $+0.012$—$2.7\sigma$ (2.2–3.2σ) from DESI at the Calibrated baseline; with the ratified conversion→expansion coupling (08 §C.6) the prediction shifts to $w_a \approx -0.38$ ($1.25\sigma$, B2; bracket $-0.61$…$-0.38$).
+DESI DR2 constrains $w_a \approx -0.73 \pm 0.28$ [INFERENCE] (Table 9; range $-0.6$ to $-1.1$ across SNe compilations). The bare prediction is at $\sim 4\sigma$ tension. With Qi-gravity $\xi = \varphi^6$ included in $H_{\text{eff}}$ (Yang-fraction-weighted form), $w_a$ shifts to $+0.012$—$2.7\sigma$ (2.2–3.2σ) from DESI at the Calibrated baseline; with the ratified conversion→expansion coupling's stable realization (the C1 friction closure—10/12) the DESI-window fit is exactly $(w_0, w_a) = (-1, 0)$—4.17σ/2.61σ from DESI (the earlier $w_a \approx -0.38$, $1.25\sigma$, B2 describes the unstable realization, whose density blows up).
 
 ### 1.1 Numerical-artifact checks
 
@@ -181,7 +181,7 @@ The ODE (`two-fluid/calibrate_initial_ratio_xi_v2.py`) integrates the Yang-fract
 | **$+\xi = \varphi^6$, Yang-fraction-weighted form** | **$-0.87$** | **$+0.012$** | $0.0472$ (gap-derived $r_0 = \varphi^{-5}/(2-\varphi^{-5})$) |
 | Shift $\Delta$ | $-0.01$ | **$-0.445$** |—|
 
-**The Yang-fraction-weighted coupling moves $w_a$ from bare $+0.46$ to $+0.012$ ($\Delta -0.45$)**—verified via the ODE (`two-fluid/calibrate_initial_ratio_xi_v2.py`). At the Calibrated baseline the residual sits at 2.7σ (2.2–3.2σ) from DESI $w_a \approx -0.73 \pm 0.28$ [INFERENCE]; with the ratified conversion→expansion coupling the residual is $1.25\sigma$ (B2: $w_a \approx -0.38$; bracket $-0.61$…$-0.38$—08 §C.6).
+**The Yang-fraction-weighted coupling moves $w_a$ from bare $+0.46$ to $+0.012$ ($\Delta -0.45$)**—verified via the ODE (`two-fluid/calibrate_initial_ratio_xi_v2.py`). At the Calibrated baseline the residual sits at 2.7σ (2.2–3.2σ) from DESI $w_a \approx -0.73 \pm 0.28$ [INFERENCE]; with the ratified conversion→expansion coupling's stable realization (the C1 friction closure—10/12) the residual is $2.61\sigma$ ($w_a = 0$ in the pure-Λ window fit $(-1, 0)$, 12 §4.1); the earlier $1.25\sigma$ (B2: $w_a \approx -0.38$; bracket $-0.61$…$-0.38$—08 §C.6) describes the unstable realization.
 
 ### 5.3 Combined mechanism: three contributions to $w_a$
 
@@ -192,21 +192,24 @@ The full $w_a$ prediction combines three independent effects, all fixed by the f
 | 1 | Bare conversion dynamics | $+0.457$ (structural) | $\lambda = 0.02$, $r_0$ (both derived) |
 | 2 | 5-channel adiabatic gate | pushes toward $0^+$ from the Calibrated $+0.012$ baseline (magnitude Hypothesized—ODE pending) | $w=5$ (derived) |
 | 3 | **Qi-gravity $\xi = \varphi^6$ in $H_{\text{eff}}$** | **$-0.445$ (verified, Yang-fraction-weighted form)** | **$\xi = \varphi^6$ (derived, verified)** |
-| 4 | **Ratified conversion→expansion coupling** (08 §A.2; exact two-field dynamics, B2) | **$-0.393$ (Hypothesized—August 2026, zero free constants)** | **$\lambda$, $\varphi$ only** |
+| 4 | **Ratified conversion→expansion coupling** (08 §A.2; exact two-field dynamics, B2—unstable; stable realization: C1 friction closure—10/12) | **$-0.393$ (Hypothesized—August 2026, zero free constants)**; stable realization: pure-Λ window $(-1, 0)$ | **$\lambda$, $\varphi$ only** |
 
 With the Yang-fraction-weighted coupling (verified) plus the ratified
 conversion→expansion coupling (Hypothesized, B2):
 
-$$\boxed{w_a^{\text{pred}} = +0.012 - 0.393 = -0.38 \quad \text{(B2; bracket $-0.61$…$-0.38$ across routes; 5-channel/Wu-Xing shifts Hypothesized, ODE pending)}}$$
+$$\boxed{w_a^{\text{pred}} = +0.012 - 0.393 = -0.38 \quad \text{(B2, the unstable realization—density blow-up, 10 §4; bracket $-0.61$…$-0.38$ across routes; 5-channel/Wu-Xing shifts Hypothesized, ODE pending)}}$$
+
+The ratified term's **stable realization** (the C1 friction closure—10/12) supersedes this box for the theory's prediction: it freezes $r$ at $r_* \approx 0.9503$ (the collapse at $z \approx 61$) and gives the pure-Λ DESI-window fit $(w_0, w_a) = (-1, 0)$ exactly—4.17σ/2.61σ from DESI (12 §4.1).
 
 which is $1.25\sigma$ from DESI $w_a \approx -0.73 \pm 0.28$ [INFERENCE] at
-the Calibrated baseline's $2.7\sigma$ (08 §C.6).
+the Calibrated baseline's $2.7\sigma$ (08 §C.6)—the unstable B2 realization;
+the stable realization (10/12) gives the pure-Λ window fit $(-1, 0)$ at $2.61\sigma$.
 
 ### 5.4 The cosmological coupling
 
 The Qi-gravity enhancement is present in the force law (rotation curves) and must propagate to the cosmological $H(a)$. The Yang-fraction-weighted form $H_{\text{eff}}^2 = H_{\text{bare}}^2[1 + (\varphi^{6}-1)q \cdot r/(1+r)]$ shifts $w_a$ from $+0.46$ to $+0.012$ ($\Delta -0.45$).
 
-**Status: Derived.** $\xi = \varphi^6$ is derived (cascade activation at step 6). The Yang-fraction-weighted coupling is parameter-free and verified against the ODE (`two-fluid/calibrate_initial_ratio_xi_v2.py`), giving $w_a = +0.012$; it is consistent with the rotation-curve prediction ($v_C/v_B = 2.8$–$3.0$, ~0.4σ). The ratified conversion→expansion coupling (Hypothesized—August 2026, zero free constants) shifts the prediction to $w_a \approx -0.38$: $1.25\sigma$ from DESI $w_a \approx -0.73 \pm 0.28$ [INFERENCE] (B2, 08 §C.6). The 5-channel gate and Wu Xing control-release provide secondary shifts—Hypothesized, ODE pending.
+**Status: Derived.** $\xi = \varphi^6$ is derived (cascade activation at step 6). The Yang-fraction-weighted coupling is parameter-free and verified against the ODE (`two-fluid/calibrate_initial_ratio_xi_v2.py`), giving $w_a = +0.012$; it is consistent with the rotation-curve prediction ($v_C/v_B = 2.8$–$3.0$, ~0.4σ). The ratified conversion→expansion coupling (Hypothesized—August 2026, zero free constants) shifts the prediction to $w_a \approx -0.38$ in its unstable B2 realization ($1.25\sigma$ from DESI $w_a \approx -0.73 \pm 0.28$ [INFERENCE], 08 §C.6); its stable realization (the C1 friction closure—10/12) gives the pure-Λ DESI-window fit $(w_0, w_a) = (-1, 0)$—4.17σ/2.61σ from DESI (12 §4.1). The 5-channel gate and Wu Xing control-release provide secondary shifts—Hypothesized, ODE pending.
 
 ---
 
