@@ -263,7 +263,7 @@ class NBodySolver3D:
 
         Each body deposits to cells within 3*sigma. The Gaussian weight is:
             w(r) = exp(-r^2 / (2*sigma^2)) / ((2*pi)^(1.5) * sigma^3 * dV)
-        This replaces both CIC and Fourier softening—the Gaussian blob IS the
+        This replaces both CIC and Fourier softening — the Gaussian blob IS the
         physical mass distribution.
 
         Performance: O(N * (6*sigma/dx)^3). Warns if N > 5000.
@@ -353,7 +353,7 @@ class NBodySolver3D:
 
         Returns:
             List of (i, j, dr) tuples where dr = pos[j] - pos[i].
-            Currently a stub—raises NotImplementedError.
+            Currently a stub — raises NotImplementedError.
         """
         raise NotImplementedError(
             "P^3M close-pair search not yet implemented. "
@@ -366,7 +366,7 @@ class NBodySolver3D:
 
         Given a set of separation vectors dr, return the PM acceleration
         that would be computed by the spectral Poisson solver for a unit
-        mass at that separation—including CIC/TSC interpolation and
+        mass at that separation — including CIC/TSC interpolation and
         Fourier softening.
 
         Args:
@@ -374,7 +374,7 @@ class NBodySolver3D:
 
         Returns:
             (M, 3) tensor of PM acceleration vectors.
-            Currently a stub—raises NotImplementedError.
+            Currently a stub — raises NotImplementedError.
         """
         raise NotImplementedError(
             "PM force lookup table not yet implemented. "
@@ -398,7 +398,7 @@ class NBodySolver3D:
 
         Returns:
             (N, 3) tensor of corrected accelerations.
-            Currently a stub—raises NotImplementedError.
+            Currently a stub — raises NotImplementedError.
         """
         raise NotImplementedError(
             "P^3M not yet implemented. "
