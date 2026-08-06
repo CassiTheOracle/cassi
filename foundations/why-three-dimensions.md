@@ -344,8 +344,8 @@ $\varphi$-scaled separation.
 | # | Prediction | Method | Expected result | Status |
 |---|-----------|--------|-----------------|--------|
 | **W1** | The $E_Y$–$E_I$ wake cross-correlation has definite sign at small lag | Two-bubble PDE runs; cross-correlate wake perturbations vs. separation | Sign selects the §4.2 branch (negative: paired-sheet) | **DECIDED: anti-phase (negative)**—confirmed by PDE structure (§4.3) and runtime maintenance of $r=-1.0000$ across 36 bubble-configuration runs |
-| **W2** | Large-scale structure is weakly anisotropic at scales approaching the bubble diameter | Tomographic $P(k)$ / void statistics vs. angle from a candidate axis | The $\ln\varphi$ wake period modulates with polar angle; anisotropy axis = bubble short axis | Testable with DESI/Euclid |
-| **W3** | The W2 anisotropy axis coincides with the CMB $\ell < 5$ preferred axis | Cross-probe: LSS anisotropy axis vs. quadrupole–octopole alignment axis | Two independent probes, one direction | Testable with existing data |
+| **W2** | Large-scale structure is weakly anisotropic at scales approaching the bubble diameter | Tomographic $P(k)$ / void statistics vs. angle from a candidate axis | The $\ln\varphi$ wake period modulates with polar angle; anisotropy axis = bubble short axis | Testable with DESI/Euclid (test statistic undefined—must be pinned before data work) |
+| **W3** | The W2 anisotropy axis coincides with the CMB $\ell < 5$ preferred axis | Cross-probe: LSS anisotropy axis vs. quadrupole–octopole alignment axis | Two independent probes, one direction | Testable with existing data (test statistic undefined—must be pinned before data work) |
 | **W4** | (Anti-phase branch now selected) A paired-sheet counterpart to the Local Sheet exists across a void | LSS catalog morphology search at $\varphi$-scaled separations | Parallel sheet at predicted separation; central void between | **Active**—search in progress |
 
 The anti-phase branch is selected by the PDE. Predictions W2–W4 are
