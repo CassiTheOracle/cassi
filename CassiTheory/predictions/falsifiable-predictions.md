@@ -193,6 +193,10 @@ Seesaw analysis with $M_R = \varphi^{-3} \cdot M_{\text{GUT}}$ gives the heavies
 
 **Source:** `demystifying-the-cosmos/PSR-J1101-6101.md` §5 (IXPE Lighthouse Nebula: radio ⊥ vs X-ray ∥, >99% CL field ∥ flow, high PD); `foundations/spin-fibonacci-spiral.md` §1, §5 (spiral pitch one turn per rung; form-factor log-periodicity). Same period as the cosmological $P(k)$ modulation (prediction 5)—same $\varphi$, different probe.
 
+**Prediction 49 (Gaussian Hawking-spectrum deviation):** In any horizon analogue whose vacuum is a two-fluid-like condensate (fibre-optic, BEC, water-wave), the emitted spectrum deviates from exact thermality by a Gaussian high-frequency suppression: $\Delta N_k/N_k^{\text{thermal}} = e^{-(\omega/\Lambda)^2/\varphi^6}$, equivalently $\ln(\Delta N_k/N_k)$ is linear in $\omega^2$ with slope $-1/(\varphi^6\Lambda^2)$. Zero parameters—the coefficient $\varphi^6 \approx 17.944$ is the rung-3 Yang/Yin coupling; $\Lambda$ is the analogue's own UV cutoff scale (for the gravitational case $\Lambda = \varphi^3 M_{\text{Pl}} \approx 5.17\times10^{19}$ GeV, the σ-regulator). At the frequency cap the deviation reaches $e^{-\varphi^{-6}} \approx 0.95$. Status: Proved within the framework (σ-regulator; `gravity/quantum-gravity.md` §7.6), untested in any analogue. Test: fit $\ln(\Delta N/N)$ vs $\omega^2$ in a Nature-style fibre-optic setup; the fit must be linear (Gaussian shape) with slope $-1/(\varphi^6\Lambda^2)$ at the known analogue cutoff—a power-law tail or inconsistent slope rejects.
+
+**Source:** `gravity/quantum-gravity.md` §7.3, §7.5–7.6 (trans-Planckian censorship, non-thermality, no-firewall); `open-questions-cassi-answers.md` G2; the Nature fibre-optic analogue study (July 2026); script `experiments/cassi_physics/cassi_hawking_spectrum.py`.
+
 
 ---
 
@@ -266,6 +270,7 @@ Sorted by detection likelihood (most definitive first):
 | 46 | Rung-offset mechanism | Particle physics + PDE | **Envelope positions $1+\log_\varphi m$ / $1+\log_\varphi(m+\tfrac12)$; δn = phase lag, δn(ψ) = 0.060 − 0.204ψ; multi-rung phasor sum** | Partially tested 2026-08-03 (δn(ψ) confirmed; multi-rung superposition verified; linear + gated conversion null; closure-emission, closure-in-sum, cumulative, ψ-map structure, lattice-frame all null; energy pool pinned; closure-crossing flow read: pools near-static, u ≤ 1.5%, conversion flux outward ≤ 0.1%; 38-state baseline uniform) | **What sets the wake phase ψ per rung** |
 | 47 | Conditional axion chain (PQ cross-check) | Particle physics (haloscopes) | **IF PQ exists: $f_a$ at rung 34 ($9.57\times10^{11}$ GeV); $m_a \approx 6.0 \pm 0.3$ µeV ($n \approx 159.3$–$159.4$; no $\varphi$-anchor)** | Untested; framework predicts the null axion | **ADMX-class, 4–8 µeV** |
 | 48 | Log-periodic polarization orientation | Synchrotron polarimetry | **PA(νφᵏ) = PA(ν) (mod π); period Δ(ln ν) = ln φ ≈ 0.4812**; 90° flip at quarter-rung separation (ν₂/ν₁ = φ^¼); half-rung pair (ν₂/ν₁ = √φ) predicts parallel PA | Tested 2026-08-06 (`experiments/demystifying_cosmos/pa_logperiodic_test.py`): NULL at face value—Crab mm-band PA constant (~138–142°; Δ ln ν = 1.26 = 2.6 rungs), 0/10 band pairs within 3σ, spiral excluded vs uniform-angle null (p = 0.77) | **Tested—null; XL-Calibur / LEAP-class next** |
+| 49 | Gaussian Hawking-spectrum deviation | Analogue horizons (fibre-optic, BEC) | **$\ln(\Delta N/N)$ linear in $\omega^2$, slope $-1/(\varphi^6\Lambda^2)$**; deviation reaches $e^{-\varphi^{-6}} \approx 0.95$ at the cap | Untested—framework-internal proof (σ-regulator); Nature 2026 analogue consistent with direct emission | **Nature-style fibre-optic spectra** |
 
 ## 8. Universal Boundary Anisotropy—Scale-Invariant Edge Steepness
 
