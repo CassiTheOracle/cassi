@@ -124,7 +124,7 @@ all. Solving $n = \ln((v_0/\sqrt2)/m)/\ln\varphi$ from the observed masses:
 | $e$ | 26.47 | 26.5 | rung 26: 0.64 MeV (+25%) |
 
 Every charged lepton lands within $\pm 0.25$ steps of some half-integer, which
-is automatic for any continuous placement; the residuals (1.2%, −5.0%, −1.5%
+is automatic for any continuous placement; the residuals (1.2%, −5.0%, −1.4%
 at the nearest half-steps) carry no ladder structure. The "truncation at the
 lightest state" story predicts the position class (the half-rung, via the
 pool-cell quantization of `foundations/rung-offset-mechanism.md` §4.1) but

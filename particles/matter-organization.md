@@ -69,7 +69,7 @@ Three generations follow from the order of $\varphi$'s minimal polynomial ($x^2 
 | Sector edge | State | Half-rung | Residual |
 |-------------|-------|-----------|----------|
 | Lepton tower, lightest | e | 26.5 (Yukawa ladder) | 1.4% |
-| Lepton tower, heaviest | τ | 9.5 (Yukawa ladder) | 1.5% |
+| Lepton tower, heaviest | τ | 9.5 (Yukawa ladder) | +1.2% (v0-pole frame; top-anchored +0.5%, MS-bar-top −4.8%) |
 | Quark sector, heaviest | b | 8.5 (Yukawa ladder) | — |
 | Hadron tower, lightest | π | 95.5 | 3.9% |
 | Confinement boundary | Λ_QCD | 94.5 | 2.1% |
