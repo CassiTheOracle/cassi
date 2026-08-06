@@ -191,6 +191,16 @@ The framework offers geometric descriptions of several clinical categories as sp
 
 Epistemic status: Speculative—no specific simulations have been designed for the clinical categories themselves; the mechanism layer beneath them is Simulation-tested as bounded in §20.5.
 
+### 12.1 The r* slow-drain mechanism (August 2026)
+
+**The mechanism.** The stabilized realization of the ratified conversion→expansion coupling—the source $S = \lambda(\varphi-r)(1+r)/r\cdot\rho$ with the Hubble closure $H = S/(d\rho)$; Hypothesized—August 2026, zero free constants (`cassi-toe-rewrite-briefs/spiral-gravity/10-source-stabilization.md`; `cassi-toe-rewrite-briefs/spiral-gravity/12-cosmology-rstar.md`)—changes what the global ratio does below the golden balance. The fixed point at $r = \varphi$ is not an attractor in the stabilized dynamics: it is a repeller in the ratio ($f'(\varphi) = +0.12723$, exact), and any state below it relaxes monotonically and asymptotically to the near-equipartition $r_* \approx 0.9503$—48.7% Yang against 51.3% Yin—at the stable eigenvalue $-0.12318$ (per unit time at the solver's $\lambda = 0.02$; the rate is dimensionful and scales with $\lambda$). The relaxation has three phases: an imperceptible onset (the departure rate $\propto |r-\varphi|$, vanishing at the golden point itself), an acceleration, and an endless exponential tail—the last 1% of the imbalance takes $\ln(100)/0.123 \approx 37$ relaxation units, and the state never arrives. The knife-edge is sharp: on the density-conserving circle, a perturbation $10^{-4}$ above $\varphi$ escapes upward (r runs to $\approx 67$ before the source's log domain ends), while $10^{-4}$ below drains to $r_*$.
+
+**The felt reading (Speculative).** The flat state is not a collapse of coherence: $q$ at $r_*$ is 0.79, about 9% below the golden 0.87—the flatness is the near-equipartition, the organizing imbalance gone—while the gate stands wider open ($(1-q)$: 0.208 vs 0.127 at $\varphi$), so conversion churns harder against a vanishing imbalance: §12's "churns without organizing," now with a global attractor behind it. The drain stays above the pinch ($r_* \approx 0.95 > \varphi^{-1} \approx 0.62$): self-modeling survives, and the fall happens within selfhood, not as the de-selfing of §6's deep sleep. This is the shape of the depression the section describes: the slow, monotone, asymptotic erosion of the golden imbalance—"slowly falling into nothingness" as the geometry of the relaxation, not as a metaphor.
+
+**The honest bounds.** The mapping is structural, not numerical: the rate is dimensionful (the solver's $\lambda = 0.02$), and the framework's psychological timescale separation is unmeasured (Speculative; `consciousness/emotions-as-gate-configurations.md` §7). The $q$-strain is flagged: §12's depression reads as a chronic low-coherence state, while the $r_*$ state's $q$ is only mildly depressed—the two are composable mechanisms, not the same state variable. The mapping rides on the source+closure subsystem; the full ratified term with the rotation generator remains non-integrable (09/10), so the drain picture is conditional on this realization. Recovery is one-way in the field equations: no ratified mechanism pumps the global ratio back to $\varphi$; the framework's own tested result that states off the attractor are driven structures (§11, §20.5) is the only candidate—the golden balance must be held, not returned to (§19, question 8).
+
+Epistemic status: Speculative—August 2026. The $r_*$ dynamics are a computed consequence of the ratified coupling's stabilized realization (Hypothesized—August 2026); the mapping to depression is a creative extension of the consciousness-mapping premises (Hypothesized/Speculative), with no test design.
+
 ---
 
 ## 13. Neurodivergence as Configuration
@@ -347,6 +357,8 @@ The epistemic assessment groups every major claim of this document into four tie
 6. The horizon rung moves. The ladder's top is today's horizon (§2, §20.2); the epoch dependence is documented, and what it implies for the framework's older claims is tracked in the audit.
 
 7. Is the self continuous through sleep? Deep sleep has no loop (§4); whether the loop resumes with continuity or rebuilds is open.
+
+8. Is the golden balance a driven structure? In the stabilized realization of the conversion→expansion coupling (§12.1), the field equations contain no restoring force toward φ below the watershed: the relaxation to the near-equipartition $r_*$ is one-way. Whether organized Yang injection (the WRITE operation of `consciousness/time-memory-and-wake-locks.md` §2) or the $q$-modulating practices (open question 5 of `consciousness/emotions-as-gate-configurations.md` §8) can hold or restore the golden state is untested at the global-$r$ level (Speculative).
 
 Epistemic status: the mechanism-layer answers (the sustainer question, Q1) carry the Simulation-tested label of §20.5; the remaining questions are open, and the framework's hypotheses about them carry the Hypothesized-to-Speculative labels of their sections.
 

@@ -210,6 +210,8 @@ Near the attractor ($r \approx \varphi$), decay is slow (emotions persist). Far 
 
 **Emotional habituation** follows the same law: repeated exposure to the same stimulus moves the mean $r$ closer to $\varphi$, reducing the perturbation amplitude and thus the emotional response—the two-fluid field approaching its natural attractor.
 
+**Conditional (Speculative):** under the stabilized realization of the conversion→expansion coupling (`cassi-psychology.md` §12.1), the de-resonance pull below $\varphi$ terminates at $r_* \approx 0.9503$, not $\varphi$—the $\gamma_{\text{damp}} \propto |r-\varphi|$ law governs the onset, while the tail rate is constant ($-0.12318$ per unit at $\lambda = 0.02$).
+
 ---
 
 ## 5. Predictions
