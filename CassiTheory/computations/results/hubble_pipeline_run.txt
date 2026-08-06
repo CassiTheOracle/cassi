@@ -1,0 +1,73 @@
+================================================================
+  Cassi Hubble Pipeline—ODE w(a) → H(z) → ΔH₀
+================================================================
+  φ = 1.618034   φ⁻¹ = 0.618034   φ⁻² = 0.381966
+  λ = 0.02   H_empty = 0.002546
+  initial_ratio (EI/EY) = 23   r₀ = 0.043478
+
+  ODE solution: 684 points, a ∈ [0.0100, 8.0]
+  r(a₀=0.01) = 0.043478   r(a=1) = 1.5894   φ = 1.6180
+  H(a₀) = 0.254475   H(a=1) = 0.002858
+
+  CPL fit (DESI range a∈[0.3,1.0]):
+    w₀ = -0.8392   (DESI-anchored calibration target, not a prediction: -0.87 ± 0.06)
+    wₐ = +0.4393   (doctrine wₐ = +0.012, DESI-anchored; not a prediction)
+    w₀ vs calibration target: 0σ
+
+  H(z) reconstruction on 5000 points, z ∈ [0, 1200]
+  H_Cassi(z=0) / H_ΛCDM(z=0) = 1.000000  (should be ~1)
+
+  ── ΔH₀ from R(z) average (Method 1, standard w→H₀ bias) ──
+    ⟨R(z)⟩ over z=1000–1100 = 1.109516
+    R > 1 → Cassi expansion faster at CMB epoch
+    H₀ (local, true)        = 73.0 km/s/Mpc
+    H₀ (CMB-inferred, ΛCDM fit to Cassi) = 65.79 km/s/Mpc
+    ΔH₀ = -7.21 km/s/Mpc = -9.87%
+
+  ── D_A method (Method 2, cross-check) ──
+    D_comoving(Cassi, H₀=73.0) = 12396 Mpc
+    D_comoving(ΛCDM, H₀=73.0)  = 12878 Mpc
+    I_ΛCDM / I_Cassi = 1.038828
+    H₀_inferred(D_A) = 75.83 km/s/Mpc
+    ΔH₀(D_A) = +2.83 km/s/Mpc
+    Note: D_A method disagrees with R(z) method because it ignores
+    the sound horizon r_s change. The R(z) method is the standard
+    approach for w(z) → H₀ bias estimation.
+
+  ── Hubble Tension Analysis ──
+    Observed: H₀(local)=73.0, H₀(CMB,ΛCDM)=67.4
+    Observed tension: ΔH₀_obs = 5.6 km/s/Mpc (local > CMB)
+    Cassi predicted CMB-inferred H₀: 65.79 km/s/Mpc
+    Cassi ΔH₀ = -7.21 km/s/Mpc
+    Cassi predicts CMB-inferred H₀ < local H₀ (-9.9% bias)
+    Direction: SAME as observed (local > CMB) ✓
+    Magnitude: Cassi predicts 9.9% vs observed 8.3%
+    Magnitude ratio: 128.7%
+
+  Saved C:\Users\Carina\workspaces\cassi-toe\two-fluid\figures\hubble_pipeline.png
+
+================================================================
+  HUBBLE PIPELINE SUMMARY
+================================================================
+  Method:         Analytic ODE (fast, same as calibrate_initial_ratio.py)
+  Parameters:     λ=0.02, r₀=0.0435 (initial_ratio=23)
+  w₀ (CPL):       -0.8392   (DESI-anchored calibration target, not a prediction: -0.87)
+  wₐ (CPL):       +0.4393   (doctrine wₐ = +0.012, DESI-anchored; not a prediction)
+  ⟨R(z)⟩_CMB:     1.109516
+  ΔH₀:            -7.21 km/s/Mpc (-9.87%)
+  Direction:       SAME as observed (local > CMB) ✓
+  Figure:          C:\Users\Carina\workspaces\cassi-toe\two-fluid\figures\hubble_pipeline.png
+
+  Interpretation:
+    Cassi w(a) profile (w₀ = -0.84, w > -1) produces a CMB-inferred
+    H₀ that is 9.9% LOWER than the true local value.
+    This is in the SAME direction as the observed Hubble tension
+    (H₀_local = 73.0 > H₀_CMB = 67.4).
+    The Cassi conversion-driven dark energy provides a qualitative
+    mechanism for the tension. The magnitude (9.9%)
+    is 129% of the observed ~8.3% tension—meaning
+    additional physics (Qi-gravity effects on pre-recombination
+    sound horizon, or the wake-wave mechanism) is needed for full
+    quantitative closure.
+================================================================
+Done.
