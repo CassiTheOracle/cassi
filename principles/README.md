@@ -26,7 +26,7 @@ An open-problem document facing the claim $v_0/M_{\rm Pl} \approx \varphi^{-80}$
 ## Cross-References
 
 - `predictions/falsifiable-predictions.md`—the 47-entry prediction catalog (the forward-looking tests of §5 belong to it)
-- `open-questions-cassi-answers.md`—the 41-entry epistemic registry (Q1, the hierarchy problem)
+- `open-questions-cassi-answers.md`—the 42-entry epistemic registry (Q1, the hierarchy problem)
 - `parameter-inventory.md`—parameter registry
 - `foundations/dimensionful-cascade.md`—the cascade ladder $\ell_n = \ell_{\rm Pl}\,\varphi^n$ that gives the $v_0/M_{\rm Pl} \sim \varphi^{-80}$ counting
 - `audit.md`—prediction vs experiment audit

@@ -25,7 +25,7 @@ The framework's central quantitative catalog: 48 numbered predictions, all param
 
 ## Cross-References
 
-- `open-questions-cassi-answers.md`—the 41-entry epistemic registry
+- `open-questions-cassi-answers.md`—the 42-entry epistemic registry
 - `parameter-inventory.md`—parameter registry
 - `audit.md`—prediction vs experiment audit with margins of error
 - `standard-model/sm-from-phi.md`—SM couplings from $\varphi$ (cited by §1)

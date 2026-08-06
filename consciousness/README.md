@@ -70,6 +70,6 @@ The root-level psychology guide (companion to `cassi-physics.md`), organized in 
 
 ## Cross-References
 
-- `open-questions-cassi-answers.md`—the 41-entry epistemic registry
+- `open-questions-cassi-answers.md`—the 42-entry epistemic registry
 - `foundations/bubble-lattice-fabric.md`—the pentagon gate operating at every cascade rung (cited by `emotions-as-gate-configurations.md` §2.1)
 - `principles/de-resonance-principle.md`—why $\varphi$ is the attractor; the de-resonance mechanism behind cascade suppression and wake trapping

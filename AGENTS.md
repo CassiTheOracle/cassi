@@ -19,7 +19,7 @@ Standalone **theory repository** for the Cassi "Theory of Everything": a physics
 
 The repo is a **document graph with three master registries** at the root:
 
-- `open-questions-cassi-answers.md`—epistemic master registry: 41 open questions (`Q1–Q10`, `C1–C10`, `G1–G6`, `M1–M5`, `F1–F6`, `T1–T4`), each with a `Cassi Answer | Mechanism | Epistemic | Reference` table. Epistemic tiers: **Derived / Calibrated / Mapped / Hypothesized / Speculative / Creative** (definitions: `open-questions-cassi-answers.md` §Epistemic Tiers; every fitted or anchored claim must have a row in the Fit-Status Ledger, `parameter-inventory.md` §10).
+- `open-questions-cassi-answers.md`—epistemic master registry: 42 open questions (`Q1–Q10`, `C1–C10`, `G1–G6`, `M1–M6`, `F1–F6`, `T1–T4`), each with a `Cassi Answer | Mechanism | Epistemic | Reference` table. Epistemic tiers: **Derived / Calibrated / Mapped / Hypothesized / Speculative / Creative** (definitions: `open-questions-cassi-answers.md` §Epistemic Tiers; every fitted or anchored claim must have a row in the Fit-Status Ledger, `parameter-inventory.md` §10).
 - `parameter-inventory.md`—parameter master registry: all ~46 parameters classified by type (F/D/C/E/I/N). **Must be updated** when a paper introduces, derives, or reclassifies a parameter.
 - `predictions/falsifiable-predictions.md`—prediction catalog: 48 numbered predictions grouped by experiment (FCC-ee, CMB-S4, LSST…), each with a `**Source:**` block. Cited elsewhere by number / `§`.
 - `cassi-physics.md`—physics guide (start here)

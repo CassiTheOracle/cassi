@@ -148,7 +148,7 @@ Documents that are not claims: registries, catalogs, explainers, and plans.
 
 | Document | Role |
 |----------|------|
-| `open-questions-cassi-answers.md` | Epistemic registry (41 questions, tier authority) |
+| `open-questions-cassi-answers.md` | Epistemic registry (42 questions, tier authority) |
 | `parameter-inventory.md` | Parameter registry (~46 parameters) |
 | `predictions/falsifiable-predictions.md` | 48-prediction catalog |
 | `predictions/cassi_definitions.md` | Framework glossary |

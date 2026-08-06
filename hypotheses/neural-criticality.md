@@ -184,4 +184,4 @@ suggesting a cascade offset of approximately one rung.
 - `turbulence/kolmogorov-from-phi.md`—$\varphi$-break in turbulence spectrum
 - `foundations/dimensionful-cascade.md`—the $\varphi$-ladder (292 = today's horizon rung)
 - `principles/de-resonance-principle.md`—$\varphi$ as attractor
-- `open-questions-cassi-answers.md`—M1–M5 (consciousness), G5 (3+1 dimensions)
+- `open-questions-cassi-answers.md`—M1–M6 (consciousness), G5 (3+1 dimensions)

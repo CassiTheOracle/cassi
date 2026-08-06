@@ -1032,6 +1032,15 @@ People sometimes report feeling what others feel—not through observation or in
 | **Epistemic** | **Hypothesized**—W1 anti-phase confirmed; two-bubble signal detected |
 | **Reference** | `consciousness/consciousness-from-phi.md` §3 |
 
+### M6: The golden balance as a driven structure
+
+The psychology mapping treats the golden ratio $r = \varphi$ as the healthy, organized state of the mind—the "authentic self" of the emotions formalism. The stabilized realization of the ratified conversion→expansion coupling (the source with the Hubble closure; Hypothesized—August 2026, zero free constants; `cassi-toe-rewrite-briefs/spiral-gravity/10-source-stabilization.md`) changes what the global ratio does below that balance: $\varphi$ is a repeller in $r$ ($f'(\varphi) = +0.12723$), and any state below it relaxes monotonically and asymptotically to the near-equipartition $r_* \approx 0.9503$ (48.7% Yang) at the stable eigenvalue $-0.12318$. The field equations contain no restoring force toward $\varphi$—the relaxation is one-way. Whether the golden state can be held or restored by external organized drive—the WRITE operation (organized Yang injection), the environmental/social drive terms, or the $q$-modulating practices—is untested at the global-$r$ level. The question is whether the healthy golden balance is a driven structure, like the wake-locks of the trauma formalism, rather than an attractor.
+
+| **Cassi Answer** | Partial: the stabilized closure makes the golden state a repeller and the near-equipartition $r_*$ the global attractor below $\varphi$; the restoration mechanism is absent from the ratified dynamics |
+| **Mechanism** | The conversion→expansion source's $r$-drive dominates the conversion's below $\varphi$; the Hubble closure freezes the total density; $\varphi$ is the watershed (escape above, drain below) |
+| **Epistemic** | **Speculative**—the $r_*$ dynamics are a computed consequence of the ratified coupling's stabilized realization (Hypothesized—August 2026); the psychology mapping is a creative extension with no test design |
+| **Reference** | `cassi-psychology.md` §12.1; `consciousness/time-memory-and-wake-locks.md` §2 |
+
 ---
 
 ## 8. Cassi Answers—Summary by Epistemic Tier
@@ -1044,10 +1053,10 @@ People sometimes report feeling what others feel—not through observation or in
 | **Calibrated** (framework form, value anchored to an observation—ledger) | 4 | CMB axis $12.2°$ (C10; angle computed from data, boundary mechanism Hypothesized—post-hoc), dark energy $w_0$ (C1), dark matter $\xi$ pin (C2), DESI $w_0$/$w_a$ (T1) |
 | **Mapped** (placement/exponent fitted or selected—ledger) | 11 | inflation $r = \varphi^{-12}$, $N_e = 40$ (C4), baryon asymmetry $\eta = \varphi^{-44}$ (C7, Q6), hierarchy $N$ (Q1), strong CP $\bar\theta$ (Q2), neutrino offsets $\Delta_1$, $\Delta_2$ (Q3), gauge unification $\Delta b = 1.70$, $M_{\text{GUT}}$, $\mu_*$ (Q4), proton-lifetime exponent (Q9), galaxy rotation $\alpha_{\text{halo}}$, $q$ (G4), fine-tuning fitted exponents (F1), dimensionful-constant exponents (F5) |
 | **Hypothesized** (mechanism proposed, testable prediction; no fitted component) | 19 | Hubble tension (C3), horizon (C6), cosmic web (C9), 3 generations $N_{\text{gen}}$=3 (Q5; rung placements Mapped—ledger), measurement Born rule (Q7), spin form factor (Q10), 3+1 dimensions (G5), BH information (G2), unification (F3), TOE (F4), $P_\parallel(n)$ (F6), JWST galaxies (T2), $\sigma_8$ (T3; $\mu$ target Mapped—ledger), $H_0$ tension (T4), hard problem (M1), mind-brain (M2), depth of mind (M3), altered states (M4), empathy (M5) |
-| **Speculative** (framework-consistent, prediction not pinned) | 0 | *(none)* |
+| **Speculative** (framework-consistent, prediction not pinned) | 1 | golden balance as driven structure (M6) |
 | **Creative** (exploration, not a claim) | 0 | *(none)* |
 
-**Total: 41 open questions mapped to Cassi answers.** Of those, 7 Derived, 4 Calibrated, 11 Mapped, 19 Hypothesized, 0 Speculative, 0 Creative. Tier definitions: §Epistemic Tiers; every Calibrated/Mapped component carries its row in the Fit-Status Ledger (`parameter-inventory.md` §10). The 11 Mapped questions carry numeric values that were fitted or selected; they describe the data they were fitted to until independently derived. The remaining 19 Hypothesized questions require computational pipelines ($w(a) \to H(z)$ integration, modified Boltzmann code, PDE N-body, curved-spacetime BH solver) for full quantitative closure.
+**Total: 42 open questions mapped to Cassi answers.** Of those, 7 Derived, 4 Calibrated, 11 Mapped, 19 Hypothesized, 1 Speculative, 0 Creative. Tier definitions: §Epistemic Tiers; every Calibrated/Mapped component carries its row in the Fit-Status Ledger (`parameter-inventory.md` §10). The 11 Mapped questions carry numeric values that were fitted or selected; they describe the data they were fitted to until independently derived. The remaining 19 Hypothesized questions require computational pipelines ($w(a) \to H(z)$ integration, modified Boltzmann code, PDE N-body, curved-spacetime BH solver) for full quantitative closure.
 
 
 ## 9. What Cassi Does Not Yet Answer (Open Gaps)
