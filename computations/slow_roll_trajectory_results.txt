@@ -1,0 +1,161 @@
+==============================================================================
+  SLOW-ROLL TRAJECTORY TEST: QI-GATE INFLATION (C4)
+==============================================================================
+
+Claim under test (cosmology/inflation-from-cascade.md, ledger C4):
+  n_s = 1 - 2*phi^-1/N_e = 0.9691  (N_e = 40; Planck 0.9649 +- 0.0042, 1.0 sigma)
+  r   ~ phi^-12 = 0.0031            (Mapped; the doc's own formulas fail)
+Gap: the gate slow-roll ODE trajectory across steps 20-60 has never been run.
+
+-- SECTION 1: STEP -> E-FOLD MAPPING (from the inflation doc, stated) --
+
+  Doc convention (inflation-from-cascade.md sec 1):
+    N_e = ln(ell_60/ell_20)/ln phi = 60 - 20 = 40 'e-folds';
+    1 cascade step = 1 e-fold;  scale factor grows by phi^40.
+  Physical e-folds (ladder's own formula, ledger flag):
+    1 step = ln phi e-folds = 0.4812;  window = 40 ln phi = 19.25 e-folds
+  CMB scales exit at step 40 (doc table, sec 1):
+    doc convention:  20 e-folds before the end (step 60)
+    physical:        9.624 e-folds before the end
+
+-- SECTION 2: SYSTEM AND END CONDITION --
+
+  Gate (doc sec 2):  g(eps) = (phi^-2 + eps^2)/(phi^2 + phi^-2 + eps^2),
+                     eps = |r - phi^-1|;  H proportional to lambda*g
+  Slow-roll ODE:     deps/dN = -g'/g  (standard single-field dictionary;
+                     the doc's closed form n_s = 1 - 2/N_eff is the
+                     quadratic-potential result of the same dictionary)
+  Dictionary:        eps_H = -d ln H/dN = (g'/g)^2
+                     eta_H = eps_H - (1/2) d ln eps_H/dN
+                     n_s = 1 + 2 eta_H - 4 eps_H = 1 - 2 eps_H - d ln eps_H/dN
+                     r   = 16 eps_H
+  End of inflation:  slow-roll break max(eps_V, |eta_V|) = 1 (eta_V binds):
+                     eps_end = 0.6417  (r = 1.2597, pinch at r = 0.6180)
+                     gate at end (1-q) = 0.2327 (doc closure value 0.127 is
+                     approached only asymptotically at the exact pinch)
+                     doc timeline check: 'eps = eta ~ 1' at inflation end
+                       eps_V(end) = 0.770,  eta_V(end) = 1.000
+
+-- SECTION 3: VERIFICATION OF THE NUMERICS --
+
+  dN =  1.000:  eps(RK4) = 1.492535   eps(analytic) = 1.492535   rel.err = 4.31e-15
+  dN =  2.000:  eps(RK4) = 1.942612   eps(analytic) = 1.942612   rel.err = 3.20e-15
+  dN =  5.000:  eps(RK4) = 2.688288   eps(analytic) = 2.688288   rel.err = 2.64e-15
+  dN =  9.625:  eps(RK4) = 3.324983   eps(analytic) = 3.324983   rel.err = 9.35e-16
+  dN = 19.250:  eps(RK4) = 4.104069   eps(analytic) = 4.104069   rel.err = 4.33e-15
+  dN = 20.000:  eps(RK4) = 4.150518   eps(analytic) = 4.150518   rel.err = 3.21e-15
+  dN = 30.000:  eps(RK4) = 4.667971   eps(analytic) = 4.667971   rel.err = 9.70e-15
+  dN = 40.000:  eps(RK4) = 5.064310   eps(analytic) = 5.064310   rel.err = 2.10e-15
+  Max relative error RK4 vs analytic integral: 9.70e-15
+  eps_H finite-difference check (max rel.err over trajectory): 1.12e-06
+
+-- SECTION 4: TRAJECTORY ACROSS THE INFLATIONARY WINDOW (steps 20-60) --
+
+  Columns: Nb = physical e-folds before the end; step = 60 - Nb/ln(phi);
+           dN_doc = doc-convention e-folds before the end (steps);
+           eps = |r - phi^-1|;  g = (1-q);  eps_H, eta_H;  n_s;  r = 16 eps_H
+  (slow-roll dictionary breaks down within ~2 e-folds of the end;
+   those rows are marked *)
+
+      Nb     step   dN_doc      eps        g     eps_H     eta_H       n_s          r
+   0.000    60.00     0.00   0.6417   0.2327 1.5394e+00    1.0000   -3.1575 2.4630e+01 *
+   0.500    58.96     1.04   1.1523   0.3951 6.6488e-01   -0.1608   -1.9811 1.0638e+01 *
+   1.000    57.92     2.08   1.4925   0.4992 3.2816e-01   -0.2704   -0.8535 5.2506e+00 *
+   2.000    55.84     4.16   1.9426   0.6135 1.3057e-01   -0.2285    0.0207 2.0891e+00  
+   3.000    53.77     6.23   2.2521   0.6757 7.1745e-02   -0.1800    0.3530 1.1479e+00  
+   5.000    49.61    10.39   2.6883   0.7440 3.2722e-02   -0.1229    0.6233 5.2355e-01  
+   7.500    44.41    15.59   3.0718   0.7895 1.7354e-02   -0.0873    0.7560 2.7767e-01  
+   9.625    40.00    20.00   3.3250   0.8137 1.1728e-02   -0.0699    0.8133 1.8765e-01  
+  12.500    34.02    25.98   3.6052   0.8363 7.7785e-03   -0.0550    0.8588 1.2446e-01  
+  15.000    28.83    31.17   3.8102   0.8505 5.8427e-03   -0.0464    0.8837 9.3483e-02  
+  17.500    23.63    36.37   3.9899   0.8616 4.5886e-03   -0.0402    0.9013 7.3417e-02  
+  19.250    20.00    40.00   4.1041   0.8681 3.9525e-03   -0.0367    0.9108 6.3240e-02  
+  20.000    18.44    41.56   4.1505   0.8706 3.7231e-03   -0.0354    0.9143 5.9569e-02  
+  25.000     8.05    51.95   4.4296   0.8843 2.6273e-03   -0.0286    0.9323 4.2037e-02  
+  30.000    -2.34    62.34   4.6680   0.8944 1.9775e-03   -0.0240    0.9442 3.1639e-02  
+  35.000   -12.73    72.73   4.8772   0.9023 1.5559e-03   -0.0206    0.9525 2.4895e-02  
+  40.000   -23.12    83.12   5.0643   0.9086 1.2646e-03   -0.0181    0.9587 2.0234e-02  
+
+-- SECTION 5: THE TWO ANCHOR POINTS --
+
+  step 40, N_e = 40 read literally as physical e-folds (step 18.4, dN_doc = 41.6):
+    eps = 4.1505   g = (1-q) = 0.8706
+    eps_H = 3.7231e-03   eta_H = -0.0354
+    n_s = 0.9143   r = 16 eps_H = 0.0596
+    n_s vs claimed 0.9691: 0.9143 (off by -0.0548)
+    n_s vs Planck 0.9649+-0.0042: -12.0 sigma
+    r vs phi^-12 = 0.0031: ratio 19.18   |  vs bound r < 0.032: EXCLUDED
+  step 40, doc's own step count (20 steps = 9.625 physical e-folds) (step 40.0, dN_doc = 20.0):
+    eps = 3.3250   g = (1-q) = 0.8137
+    eps_H = 1.1728e-02   eta_H = -0.0699
+    n_s = 0.8133   r = 16 eps_H = 0.1877
+    n_s vs claimed 0.9691: 0.8133 (off by -0.1558)
+    n_s vs Planck 0.9649+-0.0042: -36.1 sigma
+    r vs phi^-12 = 0.0031: ratio 60.42   |  vs bound r < 0.032: EXCLUDED
+
+-- SECTION 6: WHERE DO THE CLOSED-FORM NUMBERS LIVE ON THE TRAJECTORY? --
+
+  n_s = 0.9691 occurs at eps = 5.473:
+        52.8 physical e-folds before the end
+       109.8 doc-e-folds (steps) before the end  -> step -49.8
+    (window: steps 20-60; CMB exit at step 40 -> 9.6 physical / 20 doc e-folds)
+    r at that point = 0.0131  (4.23 x phi^-12)
+
+  r = phi^-12 occurs at eps = 7.059:
+       135.1 physical e-folds before the end
+       280.6 doc-e-folds (steps) before the end  -> step -220.6
+    (window: steps 20-60; CMB exit at step 40 -> 9.6 physical / 20 doc e-folds)
+    n_s at that point = 0.9883  (+5.6 sigma from Planck)
+
+  Consequence: the closed-form pair (n_s = 0.9691, r = phi^-12) does not
+  coexist on the trajectory (they sit ~53 and ~135 physical e-folds before
+  the end, respectively) and both live far outside the 20-60 window;
+  neither is the trajectory's output at the CMB-exit anchor (step 40).
+
+-- SECTION 7: TOTAL E-FOLDS THE ODE ACTUALLY PRODUCES --
+
+  Total physical e-folds from an 'open gate' start to the slow-roll break:
+    start at (1-q) = 0.90 (eps = 4.81):  N_total = 33.4 physical e-folds
+        = 69 doc-e-folds (steps); doc's claim: N_e = 40 (window 20-60)
+    start at (1-q) = 0.95 (eps = 7.03):  N_total = 132.7 physical e-folds
+        = 276 doc-e-folds (steps); doc's claim: N_e = 40 (window 20-60)
+    start at (1-q) = 0.99 (eps = 16.09):  N_total = 3282.1 physical e-folds
+        = 6821 doc-e-folds (steps); doc's claim: N_e = 40 (window 20-60)
+
+  The window 20-60 spans 19.25 physical e-folds (40 steps); the doc's N_e = 40
+  is the step count, and the trajectory needs a start at (1-q) ~ 0.91 to hit
+  40 doc-e-folds - an arbitrary 'mostly open' threshold, not a derived value.
+
+-- SECTION 8: SUMMARY VERDICT --
+
+  1. Mapping: the doc counts 1 cascade step as 1 e-fold (N_e = 40 over
+     steps 20-60); the ladder's own formula gives 40 ln(phi) = 19.25 physical
+     e-folds. Both conventions are used above; the ODE is per physical e-fold.
+
+  2. n_s at CMB exit (step 40): 0.9143 (N_e = 40 literal) / 0.8133 (step count),
+     vs claimed 0.9691 and Planck 0.9649 +- 0.0042 (-12.0 / -36.1 sigma).
+     NOT reproduced: the gate trajectory at step 40 is far more red-tilted.
+
+  3. r at CMB exit (step 40): 0.0596 (N_e = 40 literal) / 0.1877 (step count),
+     vs phi^-12 = 0.0031.  Both values: EXCLUDED by Planck (r < 0.032).
+     The trajectory does not produce phi^-12 anywhere in the window; the
+     doc's own §4 formulas fail as well (0.0557, 2e-7, 0.142 - ledger row).
+     The r = phi^-12 exponent is confirmed Mapped: no derivation produces it.
+
+  4. The closed form n_s = 1 - 2 phi^-1/N_e = 0.9691 corresponds on this
+     trajectory to CMB exit ~53 physical e-folds before the end (before step 20),
+     not at step 40; r = phi^-12 would need ~135 physical e-folds (step < 0).
+
+  5. Total e-folds from the open gate: ~33 (at (1-q) = 0.9) to ~3300
+     (at (1-q) = 0.99); N_e = 40 is a threshold choice, not a derived count.
+
+  VERDICT: the gate slow-roll trajectory does NOT reproduce n_s = 0.9691 or
+  r = phi^-12 at the CMB-exit anchor; with the doc's own formulas the honest
+  step-40 values are (n_s, r) ~ (0.914, 0.060) for N_e = 40 read literally and
+  (0.813, 0.188) under the doc's own step count - n_s ~ 12-36 sigma from
+  Planck and r excluded by the current bound.  Consistent with the ledger:
+  C4's numbers are Mapped.
+
+==============================================================================
+  Computation complete.
+==============================================================================
