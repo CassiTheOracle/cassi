@@ -232,13 +232,12 @@ def main():
           f"({M_DEG / math.log(10.0):.0f}°/decade); "
           f"period ln φ = {LN_PHI:.4f}; "
           f"half-rung (√φ) spacing = {math.sqrt(PHI):.4f}")
-    print("  Prediction text also claims a 90° flip at √φ band pairs—"
-          "note: the")
-    print("  formula gives ΔΘ = π (180°) there, i.e. PA unchanged mod π; "
-          "a 90° flip")
-    print("  would require quarter-rung spacing ν₂/ν₁ = φ^¼. "
-          "The text is internally")
-    print("  inconsistent; the formula is what is tested below.")
+    print("  Separation rule: quarter-rung spacing (ν₂/ν₁ = φ^¼) demands "
+          "ΔΘ = 90°;")
+    print("  half-rung spacing (ν₂/ν₁ = √φ) demands ΔΘ = π ≡ 0 mod π "
+          "(parallel). Both")
+    print("  follow from the winding formula, which is what is tested "
+          "below.")
 
     # main test: Crab mm band (same emission region, same B—no escape hatch)
     mm = [b for b in CRAB if "mm" in b[4]]
@@ -263,8 +262,10 @@ def main():
     - The data are consistent with PA CONSTANT (mod π) across bands
       (χ²_const ≈ dof), i.e. the headline PA(νφᵏ) = PA(ν) mod π holds only
       trivially, as any constant function would.
-    - The 90°-flip-at-√φ bullet contradicts the formula (√φ spacing ⇒
-      ΔΘ = π ≡ 0 mod π; parallel, not perpendicular).""")
+    - The separation rule is the same formula: quarter-rung spacing
+      (ν₂/ν₁ = φ^¼) demands ΔPA = 90°, half-rung spacing (ν₂/ν₁ = √φ)
+      demands ΔPA = π ≡ 0 mod π (parallel); the constant PA shows neither
+      the 90° flip nor the winding.""")
     return 0
 
 
