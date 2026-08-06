@@ -161,6 +161,7 @@ Documents that are not claims: registries, catalogs, explainers, and plans.
 | `cassi-psychology.md` | Psychology-focused guide (consciousness, emotion, trauma, therapy) |
 | `analyses/README.md` | Analysis index (data analyses against the framework) |
 | `demystifying-the-cosmos/README.md` | Demystifying index (one doc per observed object, codename-named) |
+| `demystifying-the-cosmos/unsolved-problems-in-astronomy.md` | Unsolved-problems survey: Wikipedia list → framework stances + series roadmap |
 | `hypotheses/README.md` | Hypothesis catalog + quality bar |
 | `speculations/README.md` | Speculation index + boundary with `hypotheses/` |
 

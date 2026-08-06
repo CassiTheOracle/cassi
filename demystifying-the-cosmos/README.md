@@ -4,7 +4,7 @@
 
 ## Abstract
 
-This directory collects one analysis per observed object or structure, each read through the Cassi lens: what the observation says, which framework machinery maps onto it, where the object sits on the cascade ladder, and what falsifiable test the mapping enables. Files are named after the object's alphanumeric designation (PSR J1101−6101, and so on) so unnamed structures stay identifiable as we work through the catalog. Reading order: start wherever the most recent observation is, but the series is cumulative—later entries reuse the mappings established here (wake pair, coherence $q$, rung stratification).
+This directory collects one analysis per observed object or structure, each read through the Cassi lens: what the observation says, which framework machinery maps onto it, where the object sits on the cascade ladder, and what falsifiable test the mapping enables. Files are named after the object's alphanumeric designation (PSR J1101−6101, and so on) so unnamed structures stay identifiable as we work through the catalog. Reading order: start wherever the most recent observation is, but the series is cumulative—later entries reuse the mappings established here (wake pair, coherence $q$, rung stratification). The master map for the series is `unsolved-problems-in-astronomy.md`—the Wikipedia unsolved-problems list read through the framework, with a candidate-object roadmap for future entries.
 
 The boundary with the rest of the repo: `analyses/` holds statistical data analyses against specific framework claims (verdicts recorded); this directory holds single-object explainers, tiered mappings rather than tests. Claims inside each document keep their source tiers (Derived machinery, Hypothesized applications), and each document ends with a falsifiable test and an explicit "what the framework cannot say" section.
 
@@ -14,6 +14,7 @@ The boundary with the rest of the repo: `analyses/` holds statistical data analy
 |---|----------|--------|-----------|
 | 1 | `PSR-J1101-6101.md` | Lighthouse pulsar (pulsar wind nebula, IXPE) | Hypothesized—August 2026 |
 | 2 | `NGC-5128.md` | Centaurus A (merger remnant, JWST MIRI/NIRCam) | Hypothesized—August 2026 |
+| — | `unsolved-problems-in-astronomy.md` | The Wikipedia unsolved-problems list (master map + roadmap) | Reference—August 2026 |
 
 ## Document Summaries
 
@@ -24,6 +25,10 @@ The first object in the series: NASA's IXPE measured the X-ray polarization of t
 ### `NGC-5128.md`—NGC 5128 (Centaurus A): The Warped Parallelogram Galaxy
 
 Webb's fourth-anniversary MIRI/NIRCam view of the nearest active merger remnant shows a warped parallelogram dust band across the center, an S-shaped ribbon structure, and a galaxy shaped by a 2-Gyr-old collision. The band's shape matches the cascade r-field of the string-bubble-cascade PDE (Panel E: the ratio $r = E_Y/E_I$ pinned at $\varphi$ with wake rings at $\varphi$-scaled radii), read as the condensation field's checkerboard showing through the debris: the parallelogram is a tilted lattice trace, the S is the wake wrap around the jet string, the merger is an anti-phase meeting that released the wake cascade, and the nucleus is a coherence sink whose jet is a coherent channel. The testable content is quantitative: φ-spaced radial wake rings ($r_{k+1}/r_k = \varphi$, prediction 44 applied) and the universal 1.70× edge anisotropy of the dust band (prediction 38). Status: Hypothesized—August 2026.
+
+### `unsolved-problems-in-astronomy.md`—Unsolved Problems in Astronomy Through the Cassi Lens
+
+The Wikipedia list of unsolved problems in astronomy, read through the framework: 68 problems across seven clusters, each tagged with one of four verdicts—**[Framework claim]**, **[Consistent mapping]**, **[Dissolved by construction]**, or **[No framework claim]**. Every tag traces to a repo document with its epistemic tier, and a tag never exceeds the tier of the document it cites. Most entries are [No framework claim]—the survey states plainly where the repo says nothing, adding a Speculative candidate direction only where the framework's machinery is genuinely shaped for one. A roadmap section lists candidate objects that would demystify each problem as a future entry.
 
 ## Cross-References
 
