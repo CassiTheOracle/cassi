@@ -50,7 +50,7 @@ plt.rcParams.update({
 
 # ─── CLI ─────────────────────────────────────────────────────────────────────
 N_default = 64
-steps_default = 15500
+steps_default = 3500
 if "--N" in sys.argv:
     idx = sys.argv.index("--N")
     N_default = int(sys.argv[idx + 1])
