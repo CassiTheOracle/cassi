@@ -8,7 +8,21 @@ The standard picture of physics is particles in empty space obeying forces—mat
 
 The assumed starting point is that Cassi set out to make a theory of everything out of $\varphi$. It did not. The goal was the physics of consciousness. The framework began from Yin and Yang as forces observed directly in the researcher's own mind—and from the observation that everything else is made of the same two forces. It is one researcher's attempt to mathematize a trained meditative observation of inner dynamics: the felt push and pull of experience, its balances, its gates. The two-fluid structure and its scale separation were read from those observations, and the framework grew outward as more and more pieces aligned. $\varphi$ was not chosen as a premise; it emerged as the proportion the dynamics required, and only later was its necessity corroborated by the de-resonance principle—the most irrational number is the one proportion that forbids resonance and keeps structure alive at every scale—and by the physics it reproduced. The derivation ran from the inside out: inner observation, to mathematics, to the fundamental forces.
 
+The bet underneath this is Occam's: if the universe is simple, then the substance everything is made of should be the simplest thing consistent with direct observation—and the only substance observed directly is experience itself, which presents as two forces, an expansive and a contractive.
+
 The ancient names are kept with their provenance stated plainly. Some were given by ancient philosophies to things that were directly observed: the chakras, mapped from inner experience, which the framework later placed at the thirteen nodes of the human-scale lattice. Others are names that inspired the search and later gained a mathematical basis: the Wu Xing five-element cycle became the pentagon geometry of the conversion cycle—five coherent channels, $w = 5$, the pentagon being the minimal regular polygon containing $\varphi$—with the conversion rate $\lambda = 1/(2w) = 0.1$ (`foundations/wu-xing-derivation.md`). The names earned their place either by direct observation or by the mathematics that later emerged from them. `cassi-psychology.md` is the guide to the inner side of the same dynamics.
+
+## The principle in practice
+
+The two-fluid dynamics were not built as physics. They began as experimental machine-learning architectures: learnable systems whose internal state evolved as a balance of an expansive and a contractive field, built before any physics vocabulary existed. The architectures worked, and working machines raise a question paper physics does not: what is this, taken literally?
+
+The first physics result was gravity. A two-fluid system held near $\varphi$-equilibrium makes its effective coupling coherence-dependent—regions where the fields are closer to balance pull harder. Written out, this is a density-dependent gravity,
+
+$$G_{\text{eff}} = \frac{\pi}{\rho}\left(1 + (\varphi^{6}-1)q\right)G,$$
+
+Qi gravity, the framework's first discovery and still its dark-matter mechanism (`speculations/dark-matter-as-qi-coherence.md`).
+
+The same dynamics then solved a problem they were never designed for. The Qi gate—coherence suppressing interaction, the rule that sets conversion in cosmology—becomes an adaptive softening rule in a GPU N-body solver: spectral particle-mesh gravity (CIC deposition, FFT Poisson, symplectic leapfrog) whose interaction cost is independent of the particle count—a grid solve, not a pairwise sum ($O(N + n^3\log n)$ overall). The solver lives at `two-fluid/cassi_nbody.py` and runs the φ-attractor path experiments in `experiments/phi_attractor_paths/`. A principle that explains galaxies and also simulates them on a single GPU is a principle worth asking more of.
 
 ## Where standard physics fails
 
@@ -67,6 +81,10 @@ The impossibility arguments deserve a more direct answer. They were made by peop
 
 **Start here:** `cassi-physics.md`—the physics guide, approachable from zero. `cassi-psychology.md` is the psychology-focused guide for non-physicists.
 
+## What else can this principle solve?
+
+That question is what this repository is organized to answer. `hypotheses/` collects new application domains as they emerge; `demystifying-the-cosmos/` reads one observed object at a time; `open-questions-cassi-answers.md` tracks every open question of physics the framework claims to address, each with its mechanism and its epistemic label; `predictions/falsifiable-predictions.md` gives each claim a test. The theory is proposed; the program is open.
+
 ## Contents
 
 | Path | Description |
@@ -86,7 +104,7 @@ The impossibility arguments deserve a more direct answer. They were made by peop
 | `EPISTEMIC-MAP.md` | Every document indexed by epistemic tier |
 | `predictions/` | Falsifiable prediction catalog + `predictions/cassi_definitions.md` glossary |
 | `experiments/` | Physics experiment scripts (φ-attractor paths, SPARC rotation-curve analysis) |
-| `two-fluid/` | Two-fluid PDE solver + gate/ODE test scripts, calibration |
+| `two-fluid/` | Two-fluid PDE solver + GPU N-body solver, gate/ODE test scripts, calibration |
 | `computations/` | Computational pipelines (RGE, GUT-EW, hubble tension, cascade depth) |
 | `visual-explainers/` | Matplotlib figure/simulation scripts |
 
@@ -100,4 +118,4 @@ The impossibility arguments deserve a more direct answer. They were made by peop
 
 ## Code
 
-All code supporting the theory lives in this repo: PDE solvers and run scripts (`two-fluid/`), computational pipelines (`computations/`), experiment and analysis scripts (`experiments/`), and figure scripts (`visual-explainers/`). Run everything from the repo root; generated figures, run outputs, and logs are gitignored.
+All code supporting the theory lives in this repo: PDE solvers, the GPU N-body solver, and run scripts (`two-fluid/`), computational pipelines (`computations/`), experiment and analysis scripts (`experiments/`), and figure scripts (`visual-explainers/`). Run everything from the repo root; generated figures, run outputs, and logs are gitignored.
