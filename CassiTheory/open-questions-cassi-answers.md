@@ -409,7 +409,7 @@ Map the distribution of galaxies across the sky and you see an intricate web of 
 
 | **Cassi Answer** | Wake-wave mechanism: $\varphi$-scaled wake interference; Yang dominance produces flattened, paired-sheet morphology |
 | **Mechanism** | Anti-phase conversion + Yang-dominant axis → triaxial spheroid with paired sheets |
-| **Epistemic** | **Hypothesized**—morphology matches; W1 anti-phase confirmed |
+| **Epistemic** | **Hypothesized**—morphology matches; W1 anti-phase confirmed. W2 (LSS anisotropy vs bubble axis) and W3 (axis vs CMB $\ell<5$) have no defined test statistic—the statistic must be pinned before data work; currently undefined |
 | **Reference** | `foundations/why-three-dimensions.md`, `turbulence/kolmogorov-from-phi.md` |
 
 ### C10: CMB large-angle anomalies

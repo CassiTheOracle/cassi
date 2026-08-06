@@ -101,6 +101,21 @@ Three strengthened population results have no framework counterpart and must not
 
 ---
 
+## 8. GWTC-5 Recheck (Blocked on Data, 2026-08-06)
+
+The integer-rung peak test is to be re-run on GWTC-5 (O4b). The recheck is
+blocked on data acquisition, not on code: the existing
+`experiments/gwtc4_mass_ladder/extract_samples.py` and
+`experiments/gwtc4_mass_ladder/phi_mass_search.py` run unchanged once the
+posterior samples are available.
+
+Acquisition path: IGWN GWTC-5.0 PE data release—DOI
+10.5281/zenodo.20348005 (part 1, ~46.4 GB; part 2 = 10.5281/zenodo.20348006),
+one `IGWN-GWTC5p0-29ebe06b7_25-GW*-combined_PEDataRelease.hdf5` per O4b
+event (FAR < 1/yr).
+
+---
+
 ## References
 
 - `gravity/quantum-gravity.md` §7.5—coherence-capacity rungs $N_{\text{BH}}$
