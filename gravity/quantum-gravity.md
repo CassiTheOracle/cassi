@@ -308,6 +308,8 @@ For modes with $\omega \ll M_{\text{Pl}}$ (the dominant Hawking quanta for $M \g
 | Full Page curve from two-fluid PDE | **Requires computation** | Needs curved-spacetime PDE solver (§7.4) |
 | No firewall at horizon | **Derived** | Dispersion caps mode energies at $\omega_0 = M_{\text{Pl}}$; σ-regulator caps momenta at $\varphi^3 M_{\text{Pl}}$ |
 
+This non-thermality is cataloged as prediction 49 of `predictions/falsifiable-predictions.md`, testable in analogue horizons (fibre-optic, BEC, water-wave) whose vacuum is a two-fluid-like condensate.
+
 **Bottom line:** The Cassi framework provides the **only known quantum gravity theory with a manifestly unitary S-matrix, a built-in UV regulator, and a concrete computational program** to compute the Page curve from first principles. The information paradox is not a paradox in Cassi—it is a calculation that has not yet been performed.
 
 ---
@@ -352,6 +354,7 @@ Cassi is the only approach with **zero free dimensionless parameters** (every di
 | GW dispersion | None ($\omega = k$) | $\omega \neq k$ near $M_{\text{Pl}}$ | LIGO high-frequency |
 | Black hole singularity | Yes ($r=0$) | No ($\sigma$-softened core) | GW ringdown |
 | Information loss | Yes (Hawking) | No (unitary S-matrix + Page curve) | Hawking evaporation endpoint / BH mass gap |
+| Hawking spectrum | Exactly thermal | **Gaussian-suppressed tail: $\Delta N/N = e^{-(\omega/\Lambda)^2/\varphi^6}$ (prediction 49)** | Fibre-optic analogue spectra (Nature, July 2026) |
 | Planck-scale $G$ | Divergent | $\approx 11\%$ correction ($\varphi^6/16\pi^2$) | Indirect (inflation) |
 
 ---
