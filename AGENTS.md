@@ -48,7 +48,7 @@ Domain papers open with "at cascade step N", then apply the universal tool. When
 | `consciousness/` | Consciousness as Qi-gate dynamics: core mapping, chakra anatomy, emotions, trauma, plus the identity and perception cluster (dense-medium consciousness, auras, time & memory, transhumanism, gender; moved here from `speculations/` August 2026) |
 | `turbulence/` | Kolmogorov spectrum from φ |
 | `predictions/` | Falsifiable-predictions catalog + `cassi_definitions.md` glossary |
-| `two-fluid/` | Two-fluid PDE solver (`cassi_two_fluid_3d_gpu.py`) + gate/ODE test scripts, calibration |
+| `two-fluid/` | Two-fluid PDE solver (`cassi_two_fluid_3d_gpu.py`) + GPU N-body solver (`cassi_nbody.py`) + gate/ODE test scripts, calibration |
 | `computations/` | Computational pipelines (RGE, GUT-EW, hubble tension, cascade depth) |
 | `experiments/` | Physics experiment scripts (φ-attractor paths, SPARC rotation-curve analysis, φ-periodic P(k) survey tests) |
 | `hypotheses/` | New application domains (exploratory catalog; `README.md` is the index) |
@@ -73,6 +73,7 @@ manim -pql visual-explainers/resonant_pond.py ResonantPond
 # Theory-supporting code (all lives in this repo)
 python two-fluid/calibrate_initial_ratio_xi.py    # w_a ODE with ξ = φ⁶
 python two-fluid/cassi_two_fluid_3d_gpu.py         # core two-fluid PDE solver
+python two-fluid/cassi_nbody.py                     # GPU N-body solver (spectral particle-mesh)
 python computations/<pipeline>.py                  # e.g. cascade_rge_pmns.py
 python experiments/sparc_qi/sparc_qi_analysis_v4.py   # galaxy rotation-curve analysis
 python experiments/phi_attractor_paths/path2_validation.py   # N-body path validation
