@@ -337,6 +337,8 @@ $$n_s = 1 - \frac{2\varphi^{-1}}{N_e},\qquad r \approx \varphi^{-12}$$
 
 The $\varphi^{-1}$ correction in $n_s$ comes from the Qi gate's residual transparency at closure ($N_e^{\text{eff}} = N_e \cdot \varphi$).
 
+**Trajectory status (2026-08-06, `computations/slow_roll_trajectory.py`):** the gate slow-roll trajectory does not reproduce these numbers at the CMB-exit anchor—$(n_s, r) = (0.813, 0.188)$ under 1 step = 1 e-fold, $(0.914, 0.060)$ with $N_e = 40$ literal; $N_e = 40$ is a start-threshold choice (Mapped—ledger §10); the two claimed numbers do not coexist on the trajectory, and the trajectory's $r$ is excluded by the BK18 bound.
+
 ### 8.3 Baryon Asymmetry
 
 Three mechanisms: (1) organized annihilation (§6.6), (2) Wu Xing freeze-out gap $g = 1 - \varphi^{-5}$, (3) cascade dilution through rungs 8→52:

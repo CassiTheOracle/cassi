@@ -453,7 +453,7 @@ The condensation field $B(x,y,z)$ and its checkerboard lattice are not specific 
 - `foundations/dimensionful-cascade.md`—Cassi bubble at step 285, 191 Mpc
 - `foundations/spiral-dynamics.md`—$c(r)$ profile, wave speed; $H \propto (1-q)$
 - `foundations/cassi-first-principles.md`—Qi gate $g(q) = q/(\varphi^2+q^2)$, conversion dynamics
-- `consciousness/consciousness-from-phi.md` §3—two-bubble $\varphi$-resonance
+- `consciousness/consciousness-from-phi.md` §3—two-bubble correlation test
 - `visual-explainers/string_bubble_cascade.py`—3D damped-wave two-fluid PDE: string → pinch → spheroid → cascade
 - `two-fluid/cassi_two_fluid_3d_gpu.py`—PDE solver, $D$, $\lambda$, Qi gate implementation
 - `foundations/bubble-lattice-fabric.md`—universal condensation field, checkerboard lattice, scale-covariance

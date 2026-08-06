@@ -247,7 +247,7 @@ Since 1998, physicists have known the universe's expansion is accelerating—som
 
 | **Cassi Answer** | $w(a)$ evolves with $r(a)$; $w_0 = -0.87$ from Qi gate shape; no $\Lambda$ |
 | **Mechanism** | Conversion term sets $H(a)$; Qi gate modulates; $\kappa_{\text{DE}} = 3\varphi^2 H_0$ |
-| **Epistemic** | **Calibrated**—$w_0$ coupling form anchored to the DESI measurement (ledger §10); 2σ tension, not resolved |
+| **Epistemic** | **Calibrated**—$w_0$ coupling form anchored to the DESI measurement (ledger §10); 2σ tension, not resolved. Five-channel gate PDE test 2026-08-06 (`two-fluid/run_pde_wa_5channel.py`): w_a = −0.425 ± 0.1 vs single-channel −0.09 ± 0.10 (−0.44 ± 0.15 toward DESI; ~1.1σ from DESI w_a = −0.73 ± 0.28), via gate-structure dynamics, not the control-release mechanism (Δ(1−q) ≈ ±0.01) |
 | **Reference** | `cosmology/cosmology-from-phi.md`, `calibrate_initial_ratio.py` |
 
 ### C2: Dark matter
@@ -289,7 +289,7 @@ The universe's expansion rate today, the Hubble constant $H_0$, can be measured 
 
 | **Cassi Answer** | Evolving $w(a)$ changes expansion history; H(z) not a single-parameter extrapolation |
 | **Mechanism** | $\Omega_\Lambda(a)$ decreases with lookback → higher effective $H_0$ locally |
-| **Epistemic** | **Hypothesized**—consistent with DESI, full H(z) fit pending |
+| **Epistemic** | **Hypothesized**—consistent with DESI; full H(z) fit performed 2026-08-06 (`computations/hz_full_fit.py`): not resolved under the calibrated w(a) (w₀ = −0.87, w_a = +0.012 baseline / −0.38 coupling); dark energy is negligible at z~1000–1100, R_cmb = 1.00000, χ² ≈ 25.1 (same as ΛCDM, anchor separation 5.0σ); the documented ΔH₀ = −7.2 was an extrapolation beyond the calibrated range (a ≥ 0.01) |
 | **Reference** | `cosmology/cosmology-from-phi.md` |
 
 ### C4: Inflation
@@ -306,11 +306,11 @@ flowchart TD
 **Visual:** Steps 20–60 of the 292-rung cascade ladder are the inflationary epoch, with the Qi gate providing a graceful 40 e-folds and a clean exit.
 
 
-The standard Big Bang model requires a period of impossibly fast expansion in the first split-second to explain why the cosmos is so uniform and flat. Nobody knows what drove this "inflation," why it started, or why it stopped—the usual story invokes a speculative new field (the inflaton) with an exquisitely tuned potential. Cassi's answer draws on the cascade ladder: steps 20 through 60 of the ratio's natural evolution produce 40 e-folds of expansion, with the Qi gate providing both a graceful entry at step 20 and an exit at step 60. The spectral index $n_s \approx 0.9691$ (from $n_s = 1 - 2\varphi^{-1}/N_e$ with $N_e = 40$) and tensor-to-scalar ratio $r \approx \varphi^{-12} \approx 0.003$ emerge without any free parameters, and the gate exit mechanism replaces the fine-tuned inflaton potential that plagues…
+The standard Big Bang model requires a period of impossibly fast expansion in the first split-second to explain why the cosmos is so uniform and flat. Nobody knows what drove this "inflation," why it started, or why it stopped—the usual story invokes a speculative new field (the inflaton) with an exquisitely tuned potential. Cassi's answer draws on the cascade ladder: steps 20 through 60 of the ratio's natural evolution produce 40 e-folds of expansion, with the Qi gate providing both a graceful entry at step 20 and an exit at step 60. The spectral index $n_s \approx 0.9691$ (from $n_s = 1 - 2\varphi^{-1}/N_e$ with $N_e = 40$) and tensor-to-scalar ratio $r \approx \varphi^{-12} \approx 0.003$ are closed-form claims with no free parameters in the formula; the slow-roll trajectory test (2026-08-06, `computations/slow_roll_trajectory.py`) shows the two numbers do not coexist on the trajectory, and the gate exit mechanism replaces the fine-tuned inflaton potential that plagues…
 
 | **Cassi Answer** | Cascade steps $n \approx 20$–$60$ are the inflationary epoch; Qi gate slow-roll drives expansion; gate engagement at $r = \varphi^{-1}$ (step $\sim 60$) provides graceful exit. $N_e = 40$ e-folds, $n_s = 0.950 + 0.0191 = 0.9691$, $r \approx \varphi^{-12} \approx 0.003$, $\alpha_s = -0.0013$. No inflaton. Refined predictions: `foundations/refined-numeric-predictions.md` §2.4 |
 | **Mechanism** | Qi gate $(1-q)$ modulates $H$ during ratio evolution; wake-wave mechanism imprints $\varphi$-scaled perturbations. Gate closure replaces fine-tuned inflaton potential. Zero free dimensionless parameters (c, ħ, G external). $r \approx \varphi^{-12} = \xi^{-1} \cdot \varphi^{-6}$. |
-| **Epistemic** | **Hypothesized** (mechanism) / **Mapped** ($r = \varphi^{-12}$ exponent, $N_e = 40$ window—ledger); testable with CMB-S4/LiteBIRD |
+| **Epistemic** | **Hypothesized** (mechanism) / **Mapped** ($r = \varphi^{-12}$ exponent, $N_e = 40$ window—ledger); slow-roll trajectory test 2026-08-06 (`computations/slow_roll_trajectory.py`): the two claimed numbers do not coexist on the trajectory, and $N_e = 40$ is a start-threshold choice, not a derived count—Mapped flags confirmed with trajectory evidence; testable with CMB-S4/LiteBIRD |
 | **Reference** | `cosmology/inflation-from-cascade.md`, `foundations/refined-numeric-predictions.md` |
 
 ### C5: Flatness problem
@@ -562,7 +562,7 @@ When a quantum system is in a superposition of states, the act of measurement se
 
 | **Cassi Answer** | Single-rung coherence-budget: organized ($\mathcal{M}\approx 1$) perturbation attacks inter-branch coherence at the superposed quantum number's rung; Born rule from Qi selection ($\S4$). Environmental decoherence is unphase-matched ($\mathcal{M}\approx 0$)—off-diagonal decay only, no branch selection. Measurement collapse may correspond to a single-rung lattice decoherence event—the superposition resolving to one lattice site (`foundations/bubble-lattice-fabric.md` §8.5). Full derivation: `foundations/quantum-measurement-derivation.md`, `foundations/refined-numeric-predictions.md` §2.5 |
 | **Mechanism** | Inter-branch coherence lives at ONE cascade rung; phase-matching factor $\mathcal{M}$ distinguishes measurement ($\mathcal{M}\approx 1$) from environment ($\mathcal{M}\approx 0$). Born rule $P(\alpha)=|\alpha|^2$ derived from $q \propto |\psi|^2$ |
-| **Epistemic** | **Hypothesized with derived core**—Born rule and single-rung architecture derived; $\mathcal{M}$ hypothesized. 5 predictions (M1-M5) |
+| **Epistemic** | **Hypothesized with derived core**—Born rule and single-rung architecture derived; $\mathcal{M}$ hypothesized. Mechanism PDE-tested 2026-08-06 (`two-fluid/run_coherence_budget_contrast.py`, runs/q7_coherence_budget/): NULL in the two-bubble realization—no organized drive (uniform, anti-phase, single-path) selects a branch of the symmetric two-branch superposition; equal-power random drive rectifies both branches into a same-sign phase lock; protocol caveat: the superposition has no fast coherent oscillation (P₀ an FFT artifact), so the phase-matching channel was unreachable at t = 4 |
 | **Reference** | `foundations/quantum-measurement-derivation.md`, `../../quantum-measurement-qi-appendix.md` |
 
 ### Q8: Quark confinement
@@ -600,7 +600,7 @@ Grand unified theories predict that protons should eventually decay, but experim
 
 | **Cassi Answer** | Proton coherence budget $N_{\text{max}} = \prod_{i=0}^{91.5} 1/(1-q_i) \approx \varphi^{4506} \approx 10^{942}$ cycles—far exceeding universe age. Annihilation is the same mechanism operating instantaneously via organized anti-phase perturbation ($\S5.2$) |
 | **Mechanism** | Dephasing requires simultaneous failure across ALL 92 cascade rungs (0 → 91.5); random dephasing cascade-suppressed ($\prod\varphi^{-i}$), annihilation O(1) (phase-inverted antiparticle). Full derivation in `foundations/proton-coherence-budget.md` |
-| **Epistemic** | **Mapped** (rung exponent n = 91.5—ledger) / **Hypothesized** (per-rung $q_i$ profile); predicts Hyper-K null at all achievable sensitivities; baseline exceeds experiment by >870 OOM. Nuclear $\beta$/$\alpha$ decay unaffected (barrier-penetration) |
+| **Epistemic** | **Mapped** (rung exponent n = 91.5—ledger) / **Hypothesized** (per-rung $q_i$ profile); coherence chain predicts Hyper-K null at all achievable sensitivities (baseline exceeds experiment by >870 OOM). GUT-embedding arithmetic closed 2026-08-05 (`computations/proton_budget_closure.py`): the boxed τ_p = 4×10³⁴ yr fails its own formula (4.2× slip in M⁴/m⁵; boxed number would need M_GUT ≈ 4.7×10¹⁵ GeV)—corrected τ_p = 1.29×10³⁷ yr with the stated inputs, 2.1 orders above Hyper-K reach (~10³⁵ yr), so the "within Hyper-K reach" framing does not survive; the coherence-budget chain (N_max = φ^4505.79 → τ_p = 10^910 yr) is separately self-consistent. Nuclear $\beta$/$\alpha$ decay unaffected (barrier-penetration) |
 | **Reference** | `foundations/proton-coherence-budget.md` |
 
 ### Q10: Spin—what is it?
@@ -866,7 +866,7 @@ The Dark Energy Spectroscopic Instrument (DESI) recently measured how dark energ
 
 | **Cassi Answer** | $w_0 = -0.87$ (2σ from DESI $w_0 \approx -0.75 \pm 0.06$ [INFERENCE] baseline); $w_a = +0.012$ with $\xi = \varphi^6$ (2.7σ, 2.2–3.2σ, baseline)—Calibrated baseline, tension not resolved. With the ratified conversion→expansion coupling (Hypothesized—August 2026, zero free constants—08 §C.6): $\Delta w_0 = -0.098$, $\Delta w_a = -0.393$ (B2; bracket $-0.61$…$-0.38$) → $w_0' = -0.97$ ($3.6\sigma$ at fixed $r_0$), $w_a' = -0.38$ ($1.25\sigma$)—the unstable B2 realization (density blow-up, 10 §4); the term's **stable realization** (the C1 friction closure—10/12) gives a **pure-Λ window fit $(w_0, w_a) = (-1, 0)$ exactly—4.17σ/2.61σ from DESI** ($r_0$ re-tuning closed negatively, 12 §4.1) |
 | **Mechanism** | $w(a)$ evolves with $r(a)$; $w_0$ is present-epoch snapshot of closing Qi gate; $\xi = \varphi^6$ in $H(a)$ gives $w_a = +0.012$ (baseline); the ratified conversion→expansion coupling $V_{\text{new}} = \lambda\tilde{h} + \lambda\varphi^{-2}/d$ shifts $w_0$/$w_a$ by the §C.6 amounts in the unstable B2 realization; its stable realization (C1 friction closure—10/12) freezes $r$ at $r_* \approx 0.9503$ and gives the pure-Λ window fit $(-1, 0)$ |
-| **Epistemic** | **Calibrated** ($w_0$ coupling form, $\xi$ pin—ledger); baseline prediction at 2.7σ (2.2–3.2σ) from DESI $w_a \approx -0.73 \pm 0.28$ [INFERENCE]; with the ratified coupling (Hypothesized—August 2026) $1.25\sigma$ (B2, unstable); the stable realization (10/12): pure-Λ window fit $(-1, 0)$—4.17σ/2.61σ; $w_0$ $3.6\sigma$ at fixed $r_0$ (B2); $r_0$ re-tuning closed negatively (12) |
+| **Epistemic** | **Calibrated** ($w_0$ coupling form, $\xi$ pin—ledger); baseline prediction at 2.7σ (2.2–3.2σ) from DESI $w_a \approx -0.73 \pm 0.28$ [INFERENCE]; with the ratified coupling (Hypothesized—August 2026) $1.25\sigma$ (B2, unstable); the stable realization (10/12): pure-Λ window fit $(-1, 0)$—4.17σ/2.61σ; $w_0$ $3.6\sigma$ at fixed $r_0$ (B2); $r_0$ re-tuning closed negatively (12). Five-channel gate PDE test 2026-08-06 (`two-fluid/run_pde_wa_5channel.py`): w_a = −0.425 ± 0.1 vs single-channel −0.09 ± 0.10 (−0.44 ± 0.15 toward DESI; ~1.1σ from DESI w_a = −0.73 ± 0.28), via gate-structure dynamics, not the control-release mechanism (Δ(1−q) ≈ ±0.01); pentagon-gate backgrounds NaN at a ≈ 0.38–0.66 at the default cap; five_ke inconclusive |
 | **Reference** | `two-fluid/calibrate_initial_ratio_xi.py`, `foundations/wa-pentagon-gate.md` §5 |
 
 ### T2: JWST "impossible" early galaxies
@@ -904,8 +904,8 @@ The $\sigma_8$ parameter measures how much matter clusters on large scales, and 
 
 | **Cassi Answer** | Qi-gravity ($\xi = \varphi^6$) weakens effective gravity in low-density regions (voids, outskirts) → less clustering than $\Lambda$CDM at large scales |
 | **Mechanism** | $G_{\text{eff}}$ is density-dependent; low-density regions have lower $G_{\text{eff}}$, reducing structure growth |
-| **Epistemic** | **Hypothesized** (mechanism) / **Mapped** ($\mu(k,a)$ target normalization—ledger); quantitative $\sigma_8$ computation pending |
-| **Reference** | `run_proper_sigma8.py` |
+| **Epistemic** | **Hypothesized** (mechanism) / **Mapped** ($\mu(k,a)$ target normalization—ledger); reconciliation 2026-08-06 (`computations/sigma8_reconciliation.py`): the pipeline's −43.5% headline is dominated by normalization + resolution (P(k) normalization 8e-5, nonlinear ICs, N=32 dissipation: δ_rms falls 32% while ΛCDM linear grows +21%); −9.6% is mechanism-attributable (G_eff 0.9044); the "~5%" claim is a Mapped target (μ = 0.98 → −5.3%) |
+| **Reference** | `two-fluid/run_sigma8_pipeline.py`, `computations/sigma8_reconciliation.py` |
 
 ### T4: $H_0$ tension
 
@@ -923,7 +923,7 @@ The Hubble constant measured from nearby stars and supernovae (73.0 km/s/Mpc) di
 
 | **Cassi Answer** | Evolving $w(a)$ alters expansion history; extrapolating $H_0$ from CMB using $\Lambda$CDM gives wrong answer |
 | **Mechanism** | $\Omega_\Lambda(a)$ was lower in the past → $H(z)$ evolution differs from $\Lambda$CDM → CMB-calibrated $H_0$ reconciles with local when $w(a)$ is used |
-| **Epistemic** | **Hypothesized**—consistent with DESI; full $H(z)$ fit pending |
+| **Epistemic** | **Hypothesized**—consistent with DESI; full H(z) fit performed 2026-08-06 (`computations/hz_full_fit.py`): not resolved under the calibrated w(a); the ΔH₀ = −7.2 value comes only from the ODE pipeline model whose w(a) is right-clamped at +0.37 (radiation-like) for z > 99—an extrapolation beyond the calibrated range (a ≥ 0.01) and outside the DESI window; a radiation-inclusive early-time two-fluid H(z) is required to close C3/T4 |
 | **Reference** | `run_hubble_tension.py` |
 
 ---
@@ -945,7 +945,7 @@ Why should a collection of neurons firing produce subjective experience—the fe
 
 | **Cassi Answer** | Consciousness is the experience of being a self-predicting, phi-damped, cross-chakra Qi fluid with a persistent self-condensate |
 | **Mechanism** | Qi-gate pinch at $r = \varphi^{-1}$ is self-reference; the field becomes an object to itself; phenomenal qualities ARE Qi fluid patterns |
-| **Epistemic** | **Hypothesized**—19 testable predictions; two-bubble weak-moderate signal confirmed |
+| **Epistemic** | **Hypothesized**—19 testable predictions; pinch two-point test run 2026-08-05 (`two-fluid/run_pinch_correlation.py`): NULL—no φ-scaled correlation peaks after the crossing; the two-bubble correlation is a static-geometry protocol feature (decisive scan 2026-08-05, `two-fluid/run_two_bubble_gate_scan.py`) |
 | **Reference** | `consciousness/consciousness-from-phi.md` |
 
 ### M2: Mind-brain relation
@@ -1001,11 +1001,11 @@ stateDiagram-v2
 **Visual:** Altered states are changes in the spatial ratio dispersion σ_r—waking, meditative, and psychedelic states map to different tunings of the same self-plucking guitar string.
 
 
-Psychedelics, deep meditation, and near-death experiences produce profoundly different modes of consciousness—from expanded awareness to ego dissolution. What causes these dramatic state shifts? Cassi's answer: they are changes in the spatial ratio dispersion $\sigma_r = \sqrt{\langle(r-\langle r\rangle)^2\rangle}$. Waking consciousness corresponds to moderate $\sigma_r$, meditation reduces it to access finer field structure, and psychedelics increase it with excursions below the $r = \varphi^{-1}$ pinch threshold that expose normally hidden field dynamics. This unified framework links altered states to a single parameter—the ratio dispersion—in the governing two-fluid PDE, with two-bubble experiments providing PDE-level support for the mechanism.
+Psychedelics, deep meditation, and near-death experiences produce profoundly different modes of consciousness—from expanded awareness to ego dissolution. What causes these dramatic state shifts? Cassi's answer: they are changes in the spatial ratio dispersion $\sigma_r = \sqrt{\langle(r-\langle r\rangle)^2\rangle}$. Waking consciousness corresponds to moderate $\sigma_r$, meditation reduces it to access finer field structure, and psychedelics increase it with excursions below the $r = \varphi^{-1}$ pinch threshold that expose normally hidden field dynamics. This unified framework links altered states to a single parameter—the ratio dispersion—in the governing two-fluid PDE (Hypothesized; the two-bubble correlation, a static-geometry protocol feature per the 2026-08-05 decisive scan, provides no dynamical support for the mechanism).
 
 | **Cassi Answer** | Changes in spatial ratio dispersion $\sigma_r = \sqrt{\langle(r-\langle r\rangle)^2\rangle}$ |
 | **Mechanism** | Waking: moderate $\sigma_r$; Meditation: $\sigma_r$ reduced; Psychedelic: $\sigma_r$ increased with sub-pinch excursions |
-| **Epistemic** | **Hypothesized**—two-bubble test provides PDE-level support |
+| **Epistemic** | **Hypothesized**—the two-bubble correlation is a static-geometry protocol feature (decisive gate scan 2026-08-05), so it provides no PDE-level support for a dynamical $\sigma_r$ mechanism |
 | **Reference** | `consciousness/consciousness-from-phi.md` §2.3 |
 
 ### M5: Empathy / coupling
@@ -1019,17 +1019,17 @@ sequenceDiagram
     Q->>B: φ-resonance signal
     B->>Q: Response
     Q->>A: Return
-    Note over A,B: Two-bubble φ-resonance confirmed
+    Note over A,B: Two-bubble correlation—static-geometry protocol feature (2026-08-05 scan)
 ```
 
 **Visual:** Two minds couple through the shared Qi field like tuning forks at φ-spacing—two-bubble resonance is the mechanism of empathy.
 
 
-People sometimes report feeling what others feel—not through observation or inference, but through a direct sense of connection. If minds are purely private products of individual brains, this should not be possible. Cassi's answer: the Qi field IS a shared sensory modality—minds couple through boundary residual interactions in the common field medium, like tuning forks at $\varphi$-spacing. Two-bubble $\varphi$-resonance experiments provide PDE-level confirmation of the mechanism (weak to moderate signal strength, dependent on the pinch state of each participant). The field-as-sense model predicts measurable correlations between separated individuals under controlled conditions and is the most empirically tested of the consciousness predictions.
+People sometimes report feeling what others feel—not through observation or inference, but through a direct sense of connection. If minds are purely private products of individual brains, this should not be possible. Cassi's answer: the Qi field IS a shared sensory modality—minds couple through boundary residual interactions in the common field medium, like tuning forks at $\varphi$-spacing. The two-bubble correlation reproduces (aggregate $\varphi$/control 3.83×/3.44×/2.97×), but the decisive gate-parameter scan (2026-08-05) shows it is a static-geometry feature of the protocol—gate-independent and frozen from initialization—so the dynamical resonance reading is not supported. The field-as-sense model predicts measurable correlations between separated individuals under controlled conditions (Hypothesized).
 
 | **Cassi Answer** | Field-as-sense: the Qi field is a sensory modality; no brain-to-brain mechanical link needed |
-| **Mechanism** | Boundary residual coupling through shared field medium; two-bubble $\varphi$-resonance confirmed (weak-moderate, pinch-dependent) |
-| **Epistemic** | **Hypothesized**—W1 anti-phase confirmed; two-bubble signal detected |
+| **Mechanism** | Boundary residual coupling through shared field medium; the two-bubble correlation reproduces (aggregate φ/control 3.83×/3.44×/2.97×) but is a static-geometry protocol feature—gate-independent and frozen from initialization (decisive scan 2026-08-05, `two-fluid/run_two_bubble_gate_scan.py`); dynamical resonance not demonstrated |
+| **Epistemic** | **Hypothesized**—W1 anti-phase confirmed; the two-bubble dynamical interpretation is not supported by the decisive scan (2026-08-05) |
 | **Reference** | `consciousness/consciousness-from-phi.md` §3 |
 
 ### M6: The golden balance as a driven structure

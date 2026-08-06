@@ -190,6 +190,8 @@ Each row $i$ gives the blend recipe when channel $i$ closes: the aftereffect is 
 
 The largest entry is $R_{21} = 0.567$: when joy subsides, anger receives the largest share of redistributed coherence, producing an aftereffect blend dominated by Wood-channel activation. The asymmetry is instructive: joy → anger-dominant blend (56.7% anger) is more intense than anger → joy-dominant blend (44.7% joy), because joy's closure leaves the strongest channel (Wood) in the pool to claim the largest fraction, while anger's closure removes it.
 
+**Mechanism realization (2026-08-05): partial.** The R-matrix remains Derived arithmetic whose mechanism realization in the two-fluid solver is incomplete (`two-fluid/run_rmatrix_redistribution.py`, `runs/20260805_181544_rmatrix/`): `gate_model='five'` implements the sheng redistribution only for Wood closure, allocated by ACTIVE openness $b_i w_i$ rather than baseline openness $b_i$; the measured Wood blend (0, 0, 0.5, 0.309, 0.191) matches the R-row's ordering (0, 0.447, 0.276, 0.171, 0.106) but not its proportions. Rows 2–5 have no gate term in the solver, and Earth cannot close ($w_3 \equiv 1$). The blend recipe above is the Derived target; the solver realizes only its first row, approximately.
+
 ### 4.3 Qi Coherence Evolution
 
 $q$ evolves on a slower timescale than $\mathbf{b}$. When a channel opens in response to a stimulus, $q$ initially drops (the sudden change creates temporary Yang-Yin de-resonance), then recovers toward an equilibrium value as the field adapts:

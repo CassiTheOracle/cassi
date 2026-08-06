@@ -4,7 +4,7 @@
 
 ## Abstract
 
-The same two-fluid dynamics in an expanding universe produce inflation, the baryon asymmetry, and the dark-matter budget—three open problems solved with zero new parameters. Inflation is a $\varphi$-driven phase transition of the Yang/Yin ratio toward the attractor; its scalar spectral index is $n_s = 1 - 2\varphi^{-1}/N_e \approx 0.9691$ ($N_e = 40$), within $1.0\sigma$ of Planck. The baryon-to-photon ratio follows from cascade freeze-out, $\eta = \varphi^{-44} \approx 6.38\times10^{-10}$, within 6.3% of the observed $6.0\times10^{-10}$. Dark matter is a high-Qi condensate with $\Omega_{\text{DM}}/\Omega_b = \varphi^3 + 1 \approx 5.24$ against the observed 5.39 (2.8% gap).
+The same two-fluid dynamics in an expanding universe produce inflation, the baryon asymmetry, and the dark-matter budget—three open problems solved with zero new parameters. Inflation is a $\varphi$-driven phase transition of the Yang/Yin ratio toward the attractor; its scalar spectral index is $n_s = 1 - 2\varphi^{-1}/N_e \approx 0.9691$ ($N_e = 40$; Mapped window—ledger), within $1.0\sigma$ of Planck as a closed form (the gate slow-roll trajectory does not reproduce it, 2026-08-06, `computations/slow_roll_trajectory.py`). The baryon-to-photon ratio follows from cascade freeze-out, $\eta = \varphi^{-44} \approx 6.38\times10^{-10}$, within 6.3% of the observed $6.0\times10^{-10}$. Dark matter is a high-Qi condensate with $\Omega_{\text{DM}}/\Omega_b = \varphi^3 + 1 \approx 5.24$ against the observed 5.39 (2.8% gap).
 
 ---
 
@@ -96,7 +96,7 @@ $$
 | Perturbation amplitude $\mathcal{P}_\zeta$ | $(H_{\text{inf}}^2)/(2\pi\dot\phi)^2 \approx 2\times10^{-9}$ | $2.1\times10^{-9}$ |
 | Inflation scale $M_{\text{inf}}$ | $\sqrt{\alpha_{\text{GUT}}}\,M_{\text{Pl}} \approx 3\times10^{16}$ GeV |—|
 
-The spectral index $n_s = 0.9691$ matches Planck at the $1.0\sigma$ level. The tensor ratio $r = 0.003$ is well below the current bound but detectable by future CMB-S4 and LiteBIRD experiments.
+The spectral index $n_s = 0.9691$ matches Planck at the $1.0\sigma$ level as a closed form. The gate slow-roll trajectory does not reproduce it—$(n_s, r) = (0.813, 0.188)$ under 1 step = 1 e-fold, $(0.914, 0.060)$ with $N_e = 40$ literal (2026-08-06, `computations/slow_roll_trajectory.py`); $N_e = 40$ is a start-threshold choice (Mapped, ledger §10). The tensor ratio $r = \varphi^{-12} \approx 0.003$ is a Mapped fit; the trajectory's $r$ is excluded by the BK18 bound, and the two claimed numbers do not coexist on the trajectory.
 
 ### 2.4 Reheating
 
@@ -253,8 +253,8 @@ The Qi condensate naturally produces cored profiles (from the $\varphi$-attracto
 
 | Observable | Cassi Prediction | Measurement | Gap |
 |-----------|-----------------|-------------|-----|
-| $n_s$ | $1 - 2\varphi^{-1}/N_e \approx 0.9691$ | $0.9649 \pm 0.0042$ | $1.0\sigma$ |
-| $r$ | $12/N_e^2 \approx 0.003$ | $< 0.032$ |—|
+| $n_s$ | $1 - 2\varphi^{-1}/N_e \approx 0.9691$ | $0.9649 \pm 0.0042$ | $1.0\sigma$ (closed form; trajectory not reproducing it, 2026-08-06) |
+| $r$ | $12/N_e^2 \approx 0.003$ | $< 0.032$ | Mapped fit (ledger §10); trajectory's $r$ excluded by BK18 (2026-08-06) |
 | $\mathcal{P}_\zeta$ | $\sim 2\times10^{-9}$ | $2.1\times10^{-9}$ | $5\%$ |
 | $\eta$ | $\varphi^{-44} \approx 6.38\times10^{-10}$ | $6.0\times10^{-10}$ | $6.3\%$ |
 | $\Omega_{\text{DM}}/\Omega_b$ | $\varphi^3 + 1 \approx 5.24$ | $5.39$ | $2.8\%$ |

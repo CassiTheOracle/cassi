@@ -445,10 +445,21 @@ and gives the pure-Λ DESI-window fit $(w_0, w_a) = (-1, 0)$ exactly—4.17σ/2.
 from DESI; $\Delta H_0$ at the resolved level is 0 (the late $H(z)$ is exactly
 ΛCDM), with the early transient's CMB imprint open (12 §4.2).
 
+**Full simultaneous fit (2026-08-06, `computations/hz_full_fit.py`):** under
+the calibrated CPL values ($w_0 = -0.87$, $w_a = +0.012$ baseline / $-0.38$
+coupling), the Cassi $w(a)$ does not resolve the tension: dark energy is
+negligible at $z \sim 1000$–$1100$ ($R_{\text{cmb}} = 1.00000$), the fit's
+$\chi^2 \approx 25.1$ equals $\Lambda$CDM's, and the anchor separation stays
+at $5.0\sigma$. The $\Delta H_0 = -7.2$ above comes only from the ODE
+pipeline model whose $w(a)$ is right-clamped at $+0.37$ (radiation-like) for
+$z > 99$—an extrapolation beyond the calibrated range ($a \geq 0.01$) and
+outside the DESI window. A radiation-inclusive early-time two-fluid $H(z)$
+is required to close C3/T4.
+
 **Existing constraints:**
 - $w_0 = -0.87$ ($2\sigma$ from DESI $w_0 \approx -0.75 \pm 0.06$ [INFERENCE])
 - $w_a$ with $\xi = \varphi^6$ (Yang-fraction-weighted form): $+0.012$ (2.7σ, 2.2–3.2σ, from DESI $w_a \approx -0.73 \pm 0.28$ [INFERENCE])
-- $w_a = +0.012$ verified with the coupling alone; with the ratified conversion→expansion coupling $-0.38$ ($1.25\sigma$, B2—the unstable realization) or the pure-Λ window fit $(-1, 0)$ (stable realization—10/12; $4.17\sigma$/$2.61\sigma$); 5-channel/Wu-Xing shifts Hypothesized (ODE pending). $w_0$ at fixed $r_0$: $3.6\sigma$ with the coupling (B2); $r_0$ re-tuning closed negatively under the stable realization (12 §4.1).
+- $w_a = +0.012$ verified with the coupling alone; with the ratified conversion→expansion coupling $-0.38$ ($1.25\sigma$, B2—the unstable realization) or the pure-Λ window fit $(-1, 0)$ (stable realization—10/12; $4.17\sigma$/$2.61\sigma$); 5-channel gate PDE-tested 2026-08-06 (`two-fluid/run_pde_wa_5channel.py`): $w_a = -0.425 \pm 0.1$ vs single-channel $-0.09 \pm 0.10$ ($-0.44 \pm 0.15$ toward DESI), via gate-structure dynamics, not the control-release mechanism ($\Delta(1-q) \approx \pm 0.01$). $w_0$ at fixed $r_0$: $3.6\sigma$ with the coupling (B2); $r_0$ re-tuning closed negatively under the stable realization (12 §4.1).
 
 ---
 
@@ -489,6 +500,15 @@ comparison, $G_{\text{eff}}(k)/G_N$ vs $k$, and $\sigma_8(a)$ evolution.
 modified Boltzmann code (CAMB/CLASS) with the true $q(k)$ profile from the
 PDE. The current pipeline uses scale-independent $q$ (spatial mean) at
 $N=32$ resolution.
+
+**Reconciliation (2026-08-06, `computations/sigma8_reconciliation.py`):**
+the −43.5% headline is dominated by normalization and resolution—the P(k)
+normalization factor (8e-5), nonlinear initial conditions, and N=32 PDE
+dissipation (δ_rms falls 32% while ΛCDM linear growth rises +21%); only
+−9.6% is mechanism-attributable ($G_{\text{eff}}/G_{\text{ref}} = 0.9044$),
+and the "~5%" claim is a Mapped target (μ = 0.98 → −5.3%, ledger §10), not a
+measured suppression. The mechanism direction stands; the magnitude is
+normalization-sensitive.
 
 
 ### 2.10 F3/T4—CMB Power Spectrum: $C_\ell$ Shifts from Cassi Cosmology
@@ -717,12 +737,14 @@ an object to itself.
 - M3 (depth): cascade has no floor, so introspection has no bottom
 - M4 (altered states): $\sigma_r$ dispersion changes—meditation reduces it,
   psychedelics increase it
-- M5 (empathy): field-as-sense—two-bubble $\varphi$-resonance confirmed
+- M5 (empathy): field-as-sense—the two-bubble correlation reproduces (aggregate φ/control 3.83×/3.44×/2.97×) but is a static-geometry protocol feature (decisive scan 2026-08-05, `two-fluid/run_two_bubble_gate_scan.py`); dynamical resonance not demonstrated
 
 **The numbers are in the prediction catalog:** The consciousness framework
 has **19 testable predictions** (M1; catalog entries 1–19,
 `predictions/falsifiable-predictions.md`), including the two-bubble
-$\varphi$-resonance (weak-moderate signal confirmed, pinch-dependent), EEG
+correlation (aggregate signal reproduced; gate-independent and static from
+initialization per the 2026-08-05 decisive scan—the dynamical resonance
+reading is not supported), EEG
 Qi-coherence metrics, and altered-state $\sigma_r$ signatures.
 
 ---

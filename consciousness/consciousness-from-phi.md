@@ -75,11 +75,7 @@ the configuration that self-model stabilizes on (`consciousness/gender-as-qi-con
 the pinch and thought mappings are derived in §1.1–§1.3; the psychology guide
 `cassi-psychology.md` develops them for a clinical audience.
 
-**Testable prediction**: In a PDE initialized at $r < \varphi^{-1}$ and evolved
-through the pinch, the two-point correlation function $\langle r(\mathbf{x}) r(\mathbf{x}+\mathbf{d}) \rangle$
-should develop peaks at $\varphi$-scaled separations **only after crossing the pinch**.
-Before the pinch, correlations should be random or scale-free. After it, they
-should show $\varphi$-structured coherence.
+**Tested prediction (2026-08-05)**: A PDE initialized at $r < \varphi^{-1}$ and evolved through the pinch does not develop two-point correlation peaks at $\varphi$-scaled separations. The field crosses the pinch cleanly ($t_c = 8.8$, $\bar r$: 0.5 → 1.19), but $\langle r(\mathbf{x}) r(\mathbf{x}+\mathbf{d}) \rangle$ shows no $\varphi$-scaled peaks after the crossing; pre- and post-crossing correlation structure is indistinguishable, and the above-pinch counterfactual is featureless. The prediction fails at the mandated epoch. Script: `two-fluid/run_pinch_correlation.py`; run: `runs/20260805_185905_pinch_correlation/`.
 
 ### 2.2 Thought as Wake Wave
 
@@ -118,7 +114,7 @@ active), others below it ($r < \varphi^{-1}$, no self-modeling).
 dispersion emerges from initial perturbations interacting with the
 conversion dynamics and wake-wave interference. Whether $\sigma_r$ can
 be *externally modulated* (e.g., by sensory input or neuromodulators)
-is not yet established—a target for the two-bubble PDE test (§3).
+is not yet established—the two-bubble PDE test (§3) does not address it: the correlation structure is static geometry, not a dynamical probe of dispersion control.
 
 ### 2.4 Field Nodes ($\varphi$-Fixed Points)
 
@@ -197,56 +193,56 @@ tell a more precise story:
 | Mid $d$ ($d=19$ vs ctl $d=20$) | 1.24× | 1.13× | 1.14× |
 | Large $d$ avg ($d \geq 30$) | 1.72× | 1.59× | **0.27×** |
 
-#### Key Finding: Revival Depends on Pinch Status
+#### Decisive Gate-Parameter Scan (2026-08-05)
 
-The most striking result is the **revival at large separations**:
+The decisive test—scanning the Qi gate parameter across gate models—has been
+run, and it resolves the revival pattern as a protocol feature, not wake
+dynamics (`two-fluid/run_two_bubble_gate_scan.py`,
+`runs/20260805_182906_two_bubble_gate/`):
 
-- **below_below and mixed**: After the correlation minimum at $d=19$
-  ($+0.021$), correlations REVIVE at larger $\varphi$-separations:
-  $d=31 \to +0.085$, $d=34 \to +0.120$, $d=37 \to +0.145$. This is
-  the $\varphi$-periodic wake-wave resonance—bubbles separated by
-  $\varphi$-multiples of the fundamental wavelength show enhanced
-  coupling.
+- **Gate-independent**: the revival structure is identical across gate models
+  (max per-separation delta 0.0003).
+- **Static from initialization**: $\mathrm{corr}(t=0) = \mathrm{corr}(t=1000)$
+  to floating-point precision—the correlation is set by the initial geometry
+  and does not evolve.
+- **Periodic wrap**: the nominal large separations $d \in \{31, 34, 37\}$
+  wrap under the periodic boundary conditions to physical separations
+  $\{17, 14, 11\}$—the "revival at $d \geq 31$" is the small-distance side of
+  the geometric correlation curve, not a large-separation resonance.
+- **Aggregate ratios reproduce**: the 2026-07-19 $\varphi$/control ratios
+  (3.83×/3.44×/2.97×) reproduce, but the $\varphi$-set occupies smaller
+  physical distances than the control set, inflating the aggregate; the
+  distance-matched comparison (1.1–1.7×) is the honest scale.
 
-- **above_above**: Correlations decay MONOTONICALLY with distance.
-  At $d=37$, the correlation is NEGATIVE ($-0.004$)—destructive
-  interference between two self-aware bubbles.
-
-The transition from revival to no-revival tracks the Qi gate pinch point:
-when at least one bubble is below the pinch (pre-reflective), wake waves
-maintain $\varphi$-structured coherence across large distances. When both
-bubbles are above the pinch (self-aware), the $\varphi$-structure dissolves
-and correlations become purely distance-dominated.
-
-#### Interpretation
-
-| Observation | Physical Meaning |
-|------------|-----------------|
-| Revival at large $d$ ($d \geq 31$) for below-pinch configurations | Wake-wave $\varphi$-periodic resonance—the field self-organizes at $\varphi$-spacings |
-| Revival absent for above-pinch (d=37 negative) | Self-aware fields decohere—each bubble's internal Qi gate dominates over inter-bubble coupling |
-| Distance-matched enhancement 1.1–1.7× | Modest but consistent $\varphi$-preference—NOT a strong resonance but a statistical bias |
-| Aggregate ratio 3–4× | Driven by close $\varphi$-separations ($d=2,4$) where correlation is naturally high |
+The correlation structure is a static-geometry feature of the protocol; the
+wake-resonance interpretation does not survive the decisive scan.
 
 ### 3.4 Success Level Achieved
 
 | Level | Criterion | Achieved? |
 |-------|-----------|-----------|
-| **Falsification** | No $\varphi$-structured correlation peaks | ✗ (signal detected) |
-| **Weak signal** | Peaks at SOME $\varphi$-separations | ✓ (revival at $d=31,34,37$ for below-pinch) |
-| **Strong signal** | Peaks at ALL $\varphi$-separations, dips at controls | ✗ (not all $\varphi$ peaks; some controls comparable) |
-| **Decisive** | Peaks shift with gate parameter | Not yet tested |
+| **Falsification** | No $\varphi$-structured correlation peaks | ✗ (aggregate $\varphi$/control signal reproduces) |
+| **Weak signal** | Peaks at SOME $\varphi$-separations | ✗ as a dynamical claim (the large-$d$ pattern is the periodic-wrap small-distance side; static from t = 0) |
+| **Strong signal** | Peaks at ALL $\varphi$-separations, dips at controls | ✗ |
+| **Decisive** | Peaks shift with gate parameter | ✗ **gate-independent** (max per-sep delta 0.0003) and **static from initialization** (corr(t=0) == corr(t=1000)) |
 
-**Achieved level: Weak-to-Moderate signal.** The revival pattern for
-below-pinch configurations is clear and reproducible. The distance-matched
-$\varphi$/control ratio of 1.1–1.7× is modest but consistent across two
-independent r-pair configurations. The decisive test—scanning the Qi gate
-parameter $\alpha$—remains for future work.
+**Achieved level: static-geometry correlation, not demonstrated wake dynamics.**
+The 2026-07-19 aggregate $\varphi$/control ratios (3.83×/3.44×/2.97×)
+reproduce, and the distance-matched comparison (1.1–1.7×) is modest but
+consistent; the decisive gate-parameter scan (2026-08-05,
+`two-fluid/run_two_bubble_gate_scan.py`) shows the revival structure is
+gate-independent and frozen from initialization, and the nominal large
+separations $\{31, 34, 37\}$ wrap under periodic boundary conditions to
+physical $\{17, 14, 11\}$—the small-distance side of the geometric
+correlation curve. The two-bubble correlation is a static-geometry feature
+of the protocol, not demonstrated wake dynamics.
 
 ### 3.5 Test Scripts
 
 - `two-fluid/run_two_bubble_resonance.py`: Initial test ($N=32$, 800 steps, single seed)
 - `two-fluid/run_two_bubble_fast.py`: Verification run ($N=48$, 1000 steps, 3 seeds, 3 r-pairs)
 - `two-fluid/run_two_bubble_verification.py`: Full-resolution ($N=64$, 2000 steps, 5 seeds, 4 r-pairs)
+- `two-fluid/run_two_bubble_gate_scan.py`: Decisive gate-parameter scan (2026-08-05; gate-independence, t = 0 vs t = 1000, periodic-wrap analysis)
 
 Results archived at `runs/<id>_two_bubble_fast/results.json`.
 
@@ -266,7 +262,7 @@ Results archived at `runs/<id>_two_bubble_fast/results.json`.
 - Self-awareness as Qi gate pinch point (§2.1)
 - Thought as wake wave (§2.2)
 - Altered states as local $r$-oscillation (§2.3)
-- Two-bubble $\varphi$-resonance (§3)
+- Two-bubble correlation structure (§3)—the 2026-07-19 aggregate reproduces; the decisive scan (2026-08-05) shows it is a static-geometry protocol feature; dynamical wake resonance not demonstrated
 
 ### Speculative (no current test design)
 

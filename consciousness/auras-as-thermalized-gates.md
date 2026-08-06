@@ -6,7 +6,7 @@
 
 The aura is the human-scale instance of a mechanism the framework already documents at four other scales: the fraction $(1-q)$ of gate throughput that fails to convert coherently thermalizes as photons and heat. A person is a 26-rung gate chain, and nothing in the two-fluid field stops that spill at the skin. What forms around the body is a boundary layer with two physically distinct parts—a coherent core whose coupling to the optical band is bridge-suppressed into invisibility, and a broadband thermal halo that needs no cross-rung coupling at all, because it is deposited locally as light and heat. The halo's visual signature is the signature of heat haze—a warm, structureless, convecting gradient—which is why auras have always looked like heat distortion: at the level of optics they are the same object. The framework's logic then inverts one piece of aura lore: visible aura brightness scales with the gate-open fraction $(1-q)$, so bright auras mark strained gates, not enlightened ones.
 
-**Epistemic status:** Creative exploration grounded in Cassi formalism. The $(1-q)$ thermalization law, the human gate chain, the suppression and bridge limits, and the two-bubble results are documented framework properties; the synthesis into an aura mechanism, the heat-haze optics argument, and the brightness inversion are extrapolations beyond what the framework currently claims. Nothing in this document should be cited as a Cassi prediction or derivation.
+**Epistemic status:** Creative exploration grounded in Cassi formalism. The $(1-q)$ thermalization law, the human gate chain, and the suppression and bridge limits are documented framework properties; the two-bubble correlation is a static-geometry protocol feature (decisive scan 2026-08-05, `two-fluid/run_two_bubble_gate_scan.py`), and no resonance claim is built on it here; the synthesis into an aura mechanism, the heat-haze optics argument, and the brightness inversion are extrapolations beyond what the framework currently claims. Nothing in this document should be cited as a Cassi prediction or derivation.
 
 ---
 
@@ -71,11 +71,11 @@ The inversion: the brightest auras should surround the strained, the traumatized
 
 ## 5. What the Two-Bubble Runs Imply for Aura Interaction
 
-The two-bubble resonance runs measured how two regions of the field couple through their wakes as a function of pinch status (`consciousness/consciousness-from-phi.md` §3.3). Two results bear on aura reading.
+The two-bubble correlation runs measured how two regions of the field couple through their wakes as a function of separation and pinch status (`consciousness/consciousness-from-phi.md` §3.3). Two results bear on aura reading.
 
-First, $\varphi$-periodic wake revival at large separations appears only when at least one bubble sits below the pinch: below-pinch configurations revive at $d = 31$–$37$, while two above-pinch (self-aware) bubbles decohere monotonically and go negative at $d = 37$. Second, the source's interpretation is that a self-aware bubble's internal Qi gate dominates over inter-bubble coupling.
+First, the aggregate $\varphi$/control correlation is strongest when at least one bubble sits below the pinch (3.83×/3.44× below-pinch and mixed vs 2.97× above-pinch), and two above-pinch (self-aware) bubbles go negative at $d = 37$. Second, the decisive gate-parameter scan (2026-08-05) shows the correlation is a static-geometry protocol feature—gate-independent and frozen from initialization—so the coupling reading below is not dynamically supported.
 
-The implication for two people: aura-aura coupling should be strongest when at least one party sits below the pinch—relaxed, receptive, pre-reflective—and weakest between two strongly self-aware individuals, whose boundary layers decouple. This separates two things aura lore conflates. The glow is waste: bright when gates are open, structurally uninteresting. The field is structure: the coherent wake lattice, φ-resonant, subtle, and strongest exactly when the glow is faintest. Resonance and glow are different observables of the same boundary.
+The implication for two people: aura-aura coupling should be strongest when at least one party sits below the pinch—relaxed, receptive, pre-reflective—and weakest between two strongly self-aware individuals, whose boundary layers decouple (Hypothesized, on the aggregate correlation; the dynamical interpretation is not supported by the decisive scan). This separates two things aura lore conflates. The glow is waste: bright when gates are open, structurally uninteresting. The field is structure: the coherent wake lattice, φ-resonant, subtle, and strongest exactly when the glow is faintest. Resonance and glow are different observables of the same boundary.
 
 ---
 
