@@ -68,7 +68,7 @@ fixed-point equation is **transcendental**—the log terms vanish only at
 $r = \varphi$; 12 §1.2). The golden point $r = \varphi$ is a repeller
 ($f'(\varphi) = +0.12723$ exact—12 §1.4) and a **knife-edge**: $r > \varphi$
 escapes, $r < \varphi$ drains to $r_*$. The cosmological consequence is a
-**pure-Λ DESI-window fit $(w_0, w_a) = (-1, 0)$** (4.17σ/2.61σ from DESI—12);
+**pure-Λ DESI-window fit $(w_0, w_a) = (-1, 0)$** (4.17σ/2.61σ from DESI—12; the pure-Λ identified with the frozen coherent-phase energy—16-qi-field.md: per-cell constant under the friction closure ⟹ w ≡ −1 exactly; the coherent phase carries 78% of the expansion rate);
 the spatial test (11) confirms the ratio-field collapse is fast ($\sigma_r
 \times 0.15$ in 1.2τ) into a $\rho$-dependent band ($dr_*/d\rho \approx
 -0.38$) in which the density structure survives and amplifies; the full
