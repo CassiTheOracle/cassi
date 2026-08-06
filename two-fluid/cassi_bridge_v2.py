@@ -576,7 +576,7 @@ class CassiBridgeV2:
                     q_val = 1.0 / (1.0 + delta_rms + 1e-12)
                 else:
                     q_val = 0.0
-            # G_eff(q) / G_N = 1 + (φ⁶−1)·q — max boost φ⁶ ≈ 17.94 (corrected 2026-08-03;
+            # G_eff(q) / G_N = 1 + (φ⁶−1)·q—max boost φ⁶ ≈ 17.94 (corrected 2026-08-03;
             # the withdrawn 1+(φ−1)q with max φ ≈ 1.62 is removed)
             eff_factor = 1.0 + (XI - 1.0) * q_val
             S_hat = S_hat * eff_factor

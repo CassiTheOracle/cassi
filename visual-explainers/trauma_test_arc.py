@@ -157,7 +157,7 @@ ax0.text(0.5, 0.88, "THE FROZEN WAKE—A Test Arc for Trauma as a Qi-Gate Lock",
          transform=ax0.transAxes, ha="center", fontsize=21, fontweight="bold",
          color=YANG_PEAK)
 ax0.text(0.5, 0.74,
-         r"One standing event at the site · five PDE questions · one control cycle — "
+         r"One standing event at the site · five PDE questions · one control cycle—"
          r"every curve below is solver data (ExpandingTwoFluid3DGPU, $N=48$, "
          r"$\lambda=0.1$ or $0.05$, 2026-07-31)",
          transform=ax0.transAxes, ha="center", fontsize=10.5, color=TEXT_SUB)

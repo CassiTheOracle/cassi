@@ -25,7 +25,7 @@ PHI_INV = 1.0 / PHI
 
 # Panel (a)—Dark Energy Calibration
 FIG1_DE = {
-    'w0': -0.87,                       # calibration target (DESI-anchored, Mapped tier — see parameter-inventory fit ledger); not a prediction — synced to doctrine settlement 2026-08-03
+    'w0': -0.87,                       # calibration target (DESI-anchored, Mapped tier—see parameter-inventory fit ledger); not a prediction—synced to doctrine settlement 2026-08-03
     'w0_err': 0.028,                   # unverified hardcoded placeholder, NOT a measured DESI constraint (corrected 2026-07-31)
     'r0_phi': PHI,                     # initial ratio at φ attractor
     'r0_range': np.linspace(0.5, 2.5, 200),
@@ -94,7 +94,7 @@ FIG2_DWARF = {
                             4.7, 5.0]),
     'sigma_obs': np.array([3.0, 3.5, 4.0, 4.5, 5.0, 6.0, 7.0, 8.0, 9.5,
                             11.0, 14.0]),
-    # Factor ~1.3 higher than Newtonian (superseded — withdrawn-coupling era)
+    # Factor ~1.3 higher than Newtonian (superseded—withdrawn-coupling era)
     'cassi_slope': 1.3,
     'annotation': '25/25 UFDs better fit',  # superseded
 }

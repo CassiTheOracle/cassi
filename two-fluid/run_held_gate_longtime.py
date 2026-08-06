@@ -18,7 +18,7 @@ inverting mid-run.
 Binary question at t = 40 = 2/lambda (two conversion timescales,
 1/lambda = 20 s): does sustained in-channel (affirmation) drive keep
 draining the held site, or does the re-injection accumulate and invert
-the drain — making the §8.1 "affirmation drains below the undriven
+the drain—making the §8.1 "affirmation drains below the undriven
 floor" claim a short-window effect like the churning quench was?
 
 Protocol (lambda = 0.05, dt = 0.001, N = 48, t = 40 = 40000 steps).
@@ -29,13 +29,13 @@ mutates the solver's scale factor, smoothed Hubble rate, and global
 q_mean, so a shared solver makes later arms order-dependent). P0 is
 measured in-process from a dedicated t = 4 reference run (4000 steps,
 81-point series; the load-bearing window per the churning-arc convention
-of `run_churning_gate_quench_long.py` — the t = 2 window gives P0 =
+of `run_churning_gate_quench_long.py`—the t = 2 window gives P0 =
 0.041, the t = 4 window P0 = 0.081 for the same physics, and pump
 strength is drive-period sensitive: 2.08x at P0 = 0.041 vs 4.72x at
 2P0 ~ 0.082, `gender-as-qi-configuration.md` §8.1; all drives run at
 P0 = 0.081 here). The drive itself is the §8 schedule: a mean-zero
 P0 oscillation added to the real-space field at the site before the
-rk2 step — on ey for Fire (in-channel, affirmation, amp 0.15), on ei
+rk2 step—on ey for Fire (in-channel, affirmation, amp 0.15), on ei
 for Wood (cross-channel, misgendering, amp 0.15/phi for eps-parity:
 the conversion runs on eps = EY - phi*EI, so component amplitude a on
 ei injects phi*a of eps while the same a on ey injects a).
@@ -44,7 +44,7 @@ Arms (4, fresh solver each):
   ref           standing init, no drive, t = 40 (does the held site
                 itself relax on the conversion timescale? The churning
                 ref decayed 0.87 -> 0.53; expect the standing site to
-                decay too — the "floor" is moving)
+                decay too—the "floor" is moving)
   affirmation   Fire (in-channel) drive at P0, amp 0.15, t = 40.
                 Discriminator: does eps_site stay >= 0.05 below the
                 undriven floor at t = 4/20/40 (drain sustained) or
@@ -53,13 +53,13 @@ Arms (4, fresh solver each):
   misgendering  Wood (cross-channel) drive at eps-parity (amp 0.15/phi),
                 t = 40. Does the pump plateau (bounded by clamp/
                 conversion) or keep growing? (t = 2 gave 2.08x; the
-                churning pump kept growing — does the held pump
+                churning pump kept growing—does the held pump
                 saturate?)
   affirmation-p041  Fire drive at the §8 drive period P0 = 0.041
                 (the t = 2 window value), amp 0.15, t = 40.
                 SUPPLEMENTARY arm: at the t = 4 window value
                 P0 = 0.081 the in-channel drive PUMPS the held site
-                from the start (rel 3.94 at t = 4, peak 9.7x — the
+                from the start (rel 3.94 at t = 4, peak 9.7x—the
                 §8.2 period law extended to Fire), so the drain
                 question is unanswerable at that period: the §8 drain
                 (0.261 at t = 2) exists only near P0 = 0.041. This arm
@@ -67,7 +67,7 @@ Arms (4, fresh solver each):
                 exists. Its t = 2 snapshot doubles as the fidelity check
                 against §8 (the fresh-solver value is 0.071 rel vs §8's
                 0.261: the §8 arms shared one solver, and a shared solver
-                makes later arms order-dependent — the caveat the
+                makes later arms order-dependent—the caveat the
                 canonical-init convention rules out).
 
 Diagnostics per arm (t = 4/20/40 snapshots + full series): eps_site
@@ -95,7 +95,7 @@ Checkpoint/resume (per pde-checkpoint-resume): per-arm checkpoints every
 4000 steps save (step, a, H_smooth, H, q_mean, u_hat, ey_hat, ei_hat,
 hist); --resume DIR skips completed arms (run_<tag>.json present) and
 continues unfinished arms from their last checkpoint. State restored:
-solver.a, solver._H_smooth, solver.H, solver.q_mean — the four scalars
+solver.a, solver._H_smooth, solver.H, solver.q_mean—the four scalars
 rk2_step mutates (qi_memory is off in build_solver, so eps_sq_memory is
 not carried).
 
@@ -180,7 +180,7 @@ def run_arm_long(device, tag, outdir, steps, drive_channel=None,
     mean-zero P0 oscillation added to the real-space field at the site
     before the rk2 step, on ey for Fire / ei for Wood at eps-parity).
     Mid-arm checkpointing every CKPT_EVERY steps, resume from the last
-    checkpoint (solver state a / _H_smooth / H / q_mean restored — the
+    checkpoint (solver state a / _H_smooth / H / q_mean restored—the
     four scalars rk2_step mutates). A FRESH solver is built per arm so
     no arm inherits the previous arm's state; identical schedules are
     bit-reproducible across fresh-solver arms.
@@ -586,7 +586,7 @@ def main():
         print(f"The §8-period affirmation eps series crossed above ref "
               f"by >= 0.05 at t = {cross['affirmation-p041']['crossing_time']:.1f} "
               f"and stayed: the drain is a driven transient, not a "
-              f"sustained state — the §8.1 short-window reading inverted "
+              f"sustained state—the §8.1 short-window reading inverted "
               f"at the conversion timescale.")
     elif verdicts['affirmation-p041'] == 'NO-DRAIN-AT-PERIOD':
         print("At the §8 drain period the affirmation arm sits above the "

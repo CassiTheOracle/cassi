@@ -6,24 +6,24 @@ Proton Coherence-Budget Arithmetic Closure
 Recomputes the two boxed proton-lifetime claims of the framework with their
 own stated inputs, and closes the ledgered discrepancy (parameter-inventory.md
 §10, Q9/P10 row): the boxed GUT formula, fed with its own inputs, gives
-1.3×10³⁷ yr — 323× the boxed 4×10³⁴ yr.
+1.3×10³⁷ yr—323× the boxed 4×10³⁴ yr.
 
-Claim A — GUT gauge-mediated decay, `standard-model/gut-embedding.md` §3.1:
+Claim A—GUT gauge-mediated decay, `standard-model/gut-embedding.md` §3.1:
   τ(p → e⁺π⁰) ≈ (1/α_GUT²) · (M_GUT⁴ / m_p⁵)        [boxed]
   with α_GUT = 1/53, M_GUT = 2×10¹⁶ GeV, m_p = 0.938 GeV
   boxed result printed: ≈ 4×10³⁴ yr ("within Hyper-K reach")
 
-Claim B — coherence budget, `foundations/proton-coherence-budget.md` §3:
+Claim B—coherence budget, `foundations/proton-coherence-budget.md` §3:
   N_max = Π_{i=0}^{n} 1/(1−q_i) = φ^{δ(n+1) + n(n+1)/2},  q_i = 1 − φ^{−i−δ}
   with δ = 3, n = 91.46: boxed N_max ≈ φ⁴⁵⁰⁶ ≈ 10⁹⁴² cycles → τ_p ≈ 10⁹¹⁰ yr
 
 Tier ledger (what each link rests on):
   - GUT formula: standard SU(5) dimensional estimate (formula: Derived, as
     standard physics); inputs α_GUT = φ⁻³/4π and M_GUT = 2×10¹⁶ GeV carry the
-    ledgered Δb = 1.70 beyond-SM content — Mapped (parameter-inventory.md §10).
+    ledgered Δb = 1.70 beyond-SM content—Mapped (parameter-inventory.md §10).
   - Coherence budget: product structure is combinatorial (Derived, given the
     dephasing model); per-rung profile q_i = 1 − φ^{−i−δ} is Hypothesized
-    (no derivation — doc §8); rung n = 91.46 = log_φ(λ_p/ℓ_Pl) is Mapped.
+    (no derivation—doc §8); rung n = 91.46 = log_φ(λ_p/ℓ_Pl) is Mapped.
 
 Usage: python computations/proton_budget_closure.py
 """
@@ -59,7 +59,7 @@ print("=" * 76)
 
 # ---------------------------------------------------------------------------
 print()
-print("─ CLAIM A — GUT gauge-mediated τ(p→e⁺π⁰)  (gut-embedding.md §3.1) ─")
+print("─ CLAIM A—GUT gauge-mediated τ(p→e⁺π⁰)  (gut-embedding.md §3.1) ─")
 print()
 print(f"  boxed formula:  τ ≈ (1/α_GUT²) · M_GUT⁴ / m_p⁵")
 print(f"  stated inputs:  α_GUT = 1/53,  M_GUT = {M_GUT:.0e} GeV,  m_p = {M_P} GeV")
@@ -97,7 +97,7 @@ m_p_implied = (m4 / m4m5_boxed)**0.2
 print(f"  Where the 323× enters: the printed value is not the value of the")
 print(f"  printed formula.  The stated inputs compound to {tau_yr:.3e} yr;")
 print(f"  the printed 4×10³⁴ yr would require the M⁴/m⁵ term to be")
-print(f"  {m4m5_boxed:.3e} GeV⁻¹ instead of {m4/m5:.3e} GeV⁻¹ —")
+print(f"  {m4m5_boxed:.3e} GeV⁻¹ instead of {m4/m5:.3e} GeV⁻¹—")
 print(f"  i.e. M_GUT ≈ {m_gut_implied:.2e} GeV (4.2× below the stated")
 print(f"  {M_GUT:.0e} GeV; (2×10¹⁶/4.7×10¹⁵)⁴ ≈ {ratio:.0f}×) or, equivalently,")
 print(f"  m_p ≈ {m_p_implied:.2f} GeV.  The slip enters in the M⁴/m⁵ term at")
@@ -112,7 +112,7 @@ print(f"      τ_p = {tau_yr_phi:.3e} yr   (ratio vs boxed: {tau_yr_phi/TAU_BOXE
 print()
 
 # ---------------------------------------------------------------------------
-print("─ CLAIM B — coherence budget N_max  (proton-coherence-budget.md §3) ─")
+print("─ CLAIM B—coherence budget N_max  (proton-coherence-budget.md §3) ─")
 print()
 lam_p = HBARC_GEV_M / M_P            # proton Compton wavelength [m]
 n_exact = math.log(lam_p / M_PL) / LN_PHI
@@ -141,10 +141,10 @@ print("─ CLOSED LEDGER STATEMENT ─")
 print()
 print(f"  Corrected τ_p (Claim A, stated inputs):  {tau_yr:.2e} yr")
 print(f"    (α_GUT = 1/53 as printed; {tau_yr_phi:.2e} yr with α_GUT = φ⁻³/4π)")
-print(f"  Boxed 4×10³⁴ yr: fails its own arithmetic — 323× too low.")
+print(f"  Boxed 4×10³⁴ yr: fails its own arithmetic—323× too low.")
 print(f"  Corrected value vs Super-K bound (>2.4×10³⁴ yr): consistent (null).")
 print(f"  Corrected value vs Hyper-K reach (~10³⁵ yr): {math.log10(tau_yr)-35:.1f} orders")
-print(f"    of magnitude ABOVE reach — the 'within Hyper-K reach' framing of")
+print(f"    of magnitude ABOVE reach—the 'within Hyper-K reach' framing of")
 print(f"    gut-embedding.md §3.1 does not survive the corrected arithmetic.")
 print()
 print(f"  Tier status of the closed result:")

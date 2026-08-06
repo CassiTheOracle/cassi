@@ -79,7 +79,7 @@ class GatedTwoFluid3DGPU(TwoFluid3DGPU):
     (1−q) is the canonical single-gate openness (q = M/(M + φ⁻² + ε²),
     M = (EY+EI)², ε = EY − φ·EI) used by `ExpandingTwoFluid3DGPU` and
     `run_rung_offset_probe.py`. α = 0 reproduces the ungated base solver
-    exactly — the 2026-07-19 two-bubble baseline dynamics.
+    exactly—the 2026-07-19 two-bubble baseline dynamics.
     """
 
     def __init__(self, gate_alpha=0.0, phi_inv2=PHI_INV2, **kw):

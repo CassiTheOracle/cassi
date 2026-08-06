@@ -10,12 +10,12 @@ documented pipeline result ΔH₀ = −7.2 km/s/Mpc (−9.9%,
 fixed local H₀, not a simultaneous fit of the CMB and distance-ladder
 anchors. This script performs that fit.
 
-Models (zero free parameters each — w₀, w_a fixed by calibration):
+Models (zero free parameters each—w₀, w_a fixed by calibration):
   1. ΛCDM            w₀ = −1.000, w_a =  0.000   (reference)
   2. Cassi baseline  w₀ = −0.870, w_a = +0.012   (Calibrated, DESI-anchored)
   3. Cassi coupling  w₀ = −0.870, w_a = −0.380   (ratified conversion→expansion
                      coupling, wa-pentagon-gate.md)
-  4. Cassi ODE       w(a) from the two-fluid r(a) ODE — the actual pipeline
+  4. Cassi ODE       w(a) from the two-fluid r(a) ODE—the actual pipeline
                      model behind the documented ΔH₀ = −7.2 (CPL fit over the
                      DESI window: w₀ ≈ −0.839, w_a ≈ +0.439, the bare form
                      without the ξ correction)
@@ -42,7 +42,7 @@ import numpy as np
 from scipy.integrate import solve_ivp, cumulative_trapezoid
 
 # ═════════════════════════════════════════════════════════════════════════
-# Constants — copied from two-fluid/run_hubble_pipeline.py (attribution)
+# Constants—copied from two-fluid/run_hubble_pipeline.py (attribution)
 # ═════════════════════════════════════════════════════════════════════════
 
 PHI = (1 + np.sqrt(5)) / 2
@@ -61,7 +61,7 @@ H0_SH0ES = 73.0                    # km/s/Mpc (local distance ladder)
 SIGMA_SH0ES = 1.0                  # km/s/Mpc
 
 # ═════════════════════════════════════════════════════════════════════════
-# ODE w(a) — copied from two-fluid/run_hubble_pipeline.py (attribution)
+# ODE w(a)—copied from two-fluid/run_hubble_pipeline.py (attribution)
 # ═════════════════════════════════════════════════════════════════════════
 
 def ode_system(lna, y):
@@ -95,7 +95,7 @@ def cpl_w(a, w0, wa):
 
 
 # ═════════════════════════════════════════════════════════════════════════
-# H(z) reconstruction — same machinery as run_hubble_pipeline.py
+# H(z) reconstruction—same machinery as run_hubble_pipeline.py
 # ═════════════════════════════════════════════════════════════════════════
 
 def E2_and_DEfactor(z_grid, w_z, with_radiation=False):
@@ -161,7 +161,7 @@ MODELS = [
 ]
 
 print("=" * 88)
-print("FULL H(z) SIMULTANEOUS FIT — Planck (67.4 ± 0.5) + SH0ES (73.0 ± 1.0)")
+print("FULL H(z) SIMULTANEOUS FIT—Planck (67.4 ± 0.5) + SH0ES (73.0 ± 1.0)")
 print("=" * 88)
 print(f"  z_grid: {len(z_grid)} points, z ∈ [0, 1200]; CMB window z ∈ [1000, 1100]")
 print(f"  ODE w(a): a ∈ [{a_ode[0]:.3f}, {a_ode[-1]:.1f}], "
@@ -239,7 +239,7 @@ print("""
       by the w(a) mechanism (the D_C(z*) cross-check shifts the anchor by
       ≲2 km/s/Mpc, and in the wrong direction).
     • The documented ΔH₀ = −7.2 km/s/Mpc (−9.9%) comes from the ODE model,
-      whose w(a) is clamped to +0.37 (radiation-like) at z > 99 — an
+      whose w(a) is clamped to +0.37 (radiation-like) at z > 99—an
       extrapolation beyond the ODE's calibrated range (a ≥ 0.01) and outside
       the DESI-anchored window (a ∈ [0.3, 1]). That early-time behavior, not
       the calibrated w₀ = −0.87, drives the claimed resolution.

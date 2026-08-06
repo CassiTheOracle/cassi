@@ -107,7 +107,7 @@ def main():
     states = build_states(base)
 
     print("=" * 74)
-    print("T8 — multi-rung closure superposition")
+    print("T8—multi-rung closure superposition")
     print("emission phases psi_r = omega (r - c(r)) mod 2 pi; the site")
     print("responds to the total phasor sum (T6); zero free parameters")
     print("at omega_0 = 2 pi phi ln phi = %.3f" % OMEGA_0)
@@ -233,7 +233,7 @@ def main():
               f"{best_omc:.3f} -> {best_rc:.3f} "
               f"(p = {(null1c <= best_rc).mean():.3f})")
 
-    print("\nVerdict: see doc T8 — null if the p-values are large; the")
+    print("\nVerdict: see doc T8—null if the p-values are large; the")
     print("closure-anchored emission phases then do not drive the sum.")
 
 

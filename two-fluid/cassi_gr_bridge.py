@@ -1012,7 +1012,7 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 φ-predictions:
-  G_eff(q) = G_N * (1 + (φ⁶−1)·q) for q ∈ [0,1] — max boost φ⁶ ≈ 17.94
+  G_eff(q) = G_N * (1 + (φ⁶−1)·q) for q ∈ [0,1]—max boost φ⁶ ≈ 17.94
   Mercury precession: 43 arcsec/century at q=0 (pure GR)
   Schwarzschild: ~3 km for 1 M_sun at q ≈ 0.5
         """)

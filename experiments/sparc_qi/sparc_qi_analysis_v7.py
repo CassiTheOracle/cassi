@@ -1,7 +1,7 @@
 """
 SPARC Qi Analysis v7: hydrostatic equilibrium condensate.
 
-The Yang condensate is no longer a fitted profile — it is the hydrostatic
+The Yang condensate is no longer a fitted profile—it is the hydrostatic
 equilibrium of an isothermal field (P_Y = c_s^2 rho_Y) supported against
 the total potential (baryons + its own mass), with ordinary Newtonian
 self-gravity:
@@ -21,8 +21,8 @@ self-gravity, so solar-system GR tests (q -> 0, no condensate) are
 untouched.
 
 Variants:
-  A: per-galaxy (rho_c, c_s) — 2 params, same count as NFW
-  B: global c_s shared by all galaxies — 1 param per galaxy
+  A: per-galaxy (rho_c, c_s)—2 params, same count as NFW
+  B: global c_s shared by all galaxies—1 param per galaxy
 
 Emergent quantities (not fitted):
   - core radius (half-max v_DM) and its mass scaling gamma

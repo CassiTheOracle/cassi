@@ -323,7 +323,7 @@ def plot_diagnostics(solver, snaps, ode_res, run_dir):
     ax.plot(aw, wp, color=YG, lw=2,
             label=f'PDE: w₀={w0p:.3f}, wa={wap:+.3f}')
     ax.axhline(y=-1.0, color=TS, ls=':', lw=1, label='Λ')
-    ax.axhline(y=-0.87, color=GN, ls=':', lw=1, alpha=0.5)  # calibration target (DESI-anchored, Calibrated tier — see parameter-inventory §10 fit ledger); not a prediction — synced to doctrine settlement 2026-08-03
+    ax.axhline(y=-0.87, color=GN, ls=':', lw=1, alpha=0.5)  # calibration target (DESI-anchored, Calibrated tier—see parameter-inventory §10 fit ledger); not a prediction—synced to doctrine settlement 2026-08-03
     ax.text(0.97, -0.877, 'calib. target (DESI-anchored, not a prediction)', color=GN, fontsize=7, ha='right')
     ax.set(xlabel='a', ylabel='w(a)',
            title='D. Dark energy equation of state')

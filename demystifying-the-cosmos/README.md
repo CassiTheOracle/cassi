@@ -14,7 +14,7 @@ The boundary with the rest of the repo: `analyses/` holds statistical data analy
 |---|----------|--------|-----------|
 | 1 | `PSR-J1101-6101.md` | Lighthouse pulsar (pulsar wind nebula, IXPE) | Hypothesized—August 2026 |
 | 2 | `NGC-5128.md` | Centaurus A (merger remnant, JWST MIRI/NIRCam) | Hypothesized—August 2026 |
-| — | `unsolved-problems-in-astronomy.md` | The Wikipedia unsolved-problems list (master map + roadmap) | Reference—August 2026 |
+|—| `unsolved-problems-in-astronomy.md` | The Wikipedia unsolved-problems list (master map + roadmap) | Reference—August 2026 |
 
 ## Document Summaries
 

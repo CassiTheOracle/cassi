@@ -12,7 +12,7 @@ The ODE is lambda-independent: dr/da = f(r, a) where lambda cancels
 from the ratio dr/dt / H, so the result is structural.
 
 Calibrated initial condition: r_0 at a=0.01 chosen to match the
-w_0 = -0.87 calibration target (DESI-anchored, Calibrated tier — see
+w_0 = -0.87 calibration target (DESI-anchored, Calibrated tier—see
 parameter-inventory §10 fit ledger; not a prediction; synced to doctrine
 settlement 2026-08-03).
 

@@ -10,7 +10,7 @@ mass trend. This script decomposes that scatter:
      virial sound speed of the condensate:
          c_s = v_DM,flat / sqrt(2 (1 + xi)) = v_DM,flat / 6.15
   2. Unconstrained galaxies: the curve is still rising at r_max; c_s is
-     bounded only from below (the bend must lie beyond the data) — the
+     bounded only from below (the bend must lie beyond the data)—the
      fitted value is a fit artifact, not physics.
 
 Tests:
@@ -24,7 +24,7 @@ Tests:
      2-param v7 model and vs NFW.
   D. Residual scatter: for constrained galaxies, the ratio
      r_cs = c_s / (v_DM,flat/6.15) regressed against baryon fraction,
-     Hubble type, and r_half — is the residual physical?
+     Hubble type, and r_half—is the residual physical?
 """
 import numpy as np
 import os, re, glob

@@ -18,7 +18,7 @@ that scale. This script produces the full map and tests it for structure:
   R3. quantization: psi clustered at multiples of a base angle
       (free base + offset; named candidates tested individually)
   R4. the sector-edge pattern: edge states (pi, p, n, d) vs the sharp
-      interior set (mu, J/psi, D, Sigma, Z) — do they separate in psi?
+      interior set (mu, J/psi, D, Sigma, Z)—do they separate in psi?
 
 Uncertainties: mass errors -> delta_n errors -> psi errors; the
 light-quark rows carry huge psi errors (scheme-dependent MS-bar masses),
@@ -217,7 +217,7 @@ def main():
           f"[{min(ps_s):.2f}, {max(ps_s):.2f}] rad")
     print(f"    coherent crossing sits at psi* = A0/B0 = {A0/B0:.3f} rad "
           f"(delta_n = 0); the band is")
-    print("    the selection criterion in psi units — descriptive, not a test")
+    print("    the selection criterion in psi units—descriptive, not a test")
 
     # check: does the edge set prefer half-integers over the whole catalog?
     half_edge = sum(1 for r in rows if r["name"] in EDGE

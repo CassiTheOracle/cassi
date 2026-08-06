@@ -139,7 +139,7 @@ def main():
     axC.set_title("C. Distance from integer rungs", color=TEXT_MAIN, fontsize=12)
 
     fig.suptitle(
-        f"GWTC-4.0 φ-periodic mass search — Δln L(M1−M0) = {r['lnl1'] - r['lnl0']:+.2f} "
+        f"GWTC-4.0 φ-periodic mass search—Δln L(M1−M0) = {r['lnl1'] - r['lnl0']:+.2f} "
         f"(p = {r['p_dlnl']:.2f}), no significant comb at period ln φ",
         color=TEXT_MAIN, fontsize=13, y=0.99)
 

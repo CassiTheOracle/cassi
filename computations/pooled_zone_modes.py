@@ -11,11 +11,11 @@ sits at x_max = phi/2 - psi/(4 pi) (`two-fluid/run_rung_offset_probe.py`
 Panel B).  A particle is a standing mode of the pool cell; the mode
 quantization is the closure of the wave on the cell.
 
-  Sec 1 — the pool cell and its exact special positions (Derived).
-  Sec 2 — the standing modes of the cell: the two parities (Derived).
-  Sec 3 — the catalog reading: sector edges vs interior states
+  Sec 1—the pool cell and its exact special positions (Derived).
+  Sec 2—the standing modes of the cell: the two parities (Derived).
+  Sec 3—the catalog reading: sector edges vs interior states
           (Empirical, selection Hypothesized).
-  Sec 4 — the top/Higgs 2/3-rung as a phase-rung structure (open).
+  Sec 4—the top/Higgs 2/3-rung as a phase-rung structure (open).
 """
 
 import numpy as np
@@ -66,17 +66,17 @@ def main():
     # ------------------------------------------------------------------
     print("\n── Sec 2  THE STANDING MODES (Derived) ──")
     print("  The pool cell [n, n+1] in rung space: the boundaries are the")
-    print("  voids (envelope zeros) — the overlap vanishes there, so the")
+    print("  voids (envelope zeros)—the overlap vanishes there, so the")
     print("  field closes with nodes at both cell ends.")
     print("  sine parity   psi_1(u) = sin(pi (u - n)):")
-    print("    nodes at n and n+1, antinode at the midpoint n + 1/2 —")
+    print("    nodes at n and n+1, antinode at the midpoint n + 1/2—")
     print("    the crossing/Yin phase; the sector-edge states (e, tau, b,")
     print("    pi, p/n, Lambda_QCD, d sit at the half-rung of their cell).")
     print("  cosine parity psi_2(u) = cos(pi (u - n)):")
-    print("    antinodes at the integer rungs — the bubble/Yang phase;")
+    print("    antinodes at the integer rungs—the bubble/Yang phase;")
     print("    the interior stable states (mu, J/psi, D, Sigma, Z).")
     print("  The half-rung is not a free position: it is the antinode of")
-    print("  the fundamental mode of the terminal cell — the only mode")
+    print("  the fundamental mode of the terminal cell—the only mode")
     print("  with a single antinode at the midpoint.  Higher modes")
     print("  sin(m pi (u-n)) put antinodes at n + k/m, not at the")
     print("  midpoint.")
@@ -147,7 +147,7 @@ def main():
     print(f"  -> n_H - n_t = 1 - Delta psi/omega0 = 1 - 1/3 = 2/3:")
     print(f"     the 2/3-rung separation is one full cell minus exactly")
     print(f"     one third of a phase-rung.  The 1/3 has no mechanism")
-    print(f"     yet — it is the open structure of the Higgs chain.")
+    print(f"     yet—it is the open structure of the Higgs chain.")
     print(f"  observation (not a claim): psi_t + psi_H ="
           f" {psi_t + psi_H:.3f} ~ 1 rad.")
     print()
@@ -172,10 +172,10 @@ def main():
     print("  n_H - n_t = 1 - Delta psi/omega0 = 1 - 1/3 = 2/3.")
     print("  The third channel is empty: psi_3 = psi_H + omega0/3 =")
     print(f"  {psi_H + W0/3:+.2f} rad implies frac"
-          f" {(A0 - (psi_H + W0/3)/W0) % 1:.3f} — no EW state sits there")
+          f" {(A0 - (psi_H + W0/3)/W0) % 1:.3f}—no EW state sits there")
     print("  (Z 0.951, W 0.213, t 0.624, H 0.291).")
     print()
-    print("  K = 5 (Wu Xing — the pentagon; the top's Yukawa is the")
+    print("  K = 5 (Wu Xing—the pentagon; the top's Yukawa is the")
     print("  five-cycle gap 2g - g^2): five channels, phase advance")
     print(f"  omega0/5 = {W0/5:.4f} rad per channel; fifths grid in")
     print("  frac: {0.2, 0.4, 0.6, 0.8} plus the integers (0/5).")
@@ -221,7 +221,7 @@ def main():
                        ("4/5", 0.8, "GUT")]:
         m = [h for h in hits if abs(h[2] - f) < 1e-9]
         print(f"  {lab}: {', '.join(h[0] for h in m) if m else 'empty'}"
-              + (f" (GUT at 0.0302 — just outside)" if lab == "4/5"
+              + (f" (GUT at 0.0302—just outside)" if lab == "4/5"
                  and not m else ""))
     print("  Look-elsewhere discipline: the named states were selected")
     print("  after the pattern emerged; the overall count shows no")
@@ -234,9 +234,9 @@ def main():
     print("  the EW scale is interior to the universe bubble (rung ~80 of")
     print("  285); the half-rungs (K=2 checkerboard) and the K=3 EW pool")
     print("  are interior structures.  The five-fold belongs to the")
-    print("  transitions: the top closure (the ladder starts at 5 — the")
+    print("  transitions: the top closure (the ladder starts at 5—the")
     print("  pentagon; 285 = 5x57, the Cassi bubble on a five-arm closure")
-    print("  boundary) and the bottom — the Planck transition, where a new")
+    print("  boundary) and the bottom—the Planck transition, where a new")
     print("  bubble starts down the cascade.  Transition band (rungs 0-17):")
     for name, m in [("M_Pl", 1.220890e19),
                     ("reduced M_Pl", 1.220890e19 / np.sqrt(8 * np.pi)),
@@ -249,11 +249,11 @@ def main():
         print(f"    {name:>12}: n = {nn:7.2f}, frac {frac:.3f},"
               f" nearest fifth resid {br:+.3f}")
     print("  the only fifth candidate in the band is the GUT scale at")
-    print("  14.77 = 14 + 4/5 (resid 0.0302, 1.5% in scale — borderline;")
+    print("  14.77 = 14 + 4/5 (resid 0.0302, 1.5% in scale—borderline;")
     print("  the GUT band 10^15.5-10^16.5 spans rungs 12.4-17.2, so the")
     print("  4/5 position lies inside the uncertainty band).")
     print()
-    print("  Verdict: the channel-split hypothesis is Hypothesized —")
+    print("  Verdict: the channel-split hypothesis is Hypothesized—")
     print("  K = 3 matches the t/H phase difference to 0.2% but the")
     print("  coherent 3-bubble pattern does not reproduce the crossings")
     print("  (probe T8 panel F); K = 5 has no interior footprint (10 vs")

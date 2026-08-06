@@ -480,10 +480,10 @@ $$\boxed{m_H = \frac{v}{\sqrt{2}}\,(2g-g^2)\,\varphi^{-2/3} = 125.30\ \text{GeV}
 | $\alpha_2^{-1}(m_Z)$ from φ-boundary | 1-loop + thresholds | 36.9 | 29.6 | ❌ +25% |
 | $\alpha_1^{-1}(m_Z)$ from φ-boundary | 1-loop + thresholds | 74.3 | 59.0 | ❌ +26% |
 | $\alpha_{\text{em}}^{-1}(m_Z)$ from φ-boundary | §3.2 | 161 | 128.9 | ❌ +25% |
-| $\sin^2\theta_W = \varphi^{-3}$ at $m_Z$ | — | 0.23607 | 0.23122 | ❌ +2.1% (at $\mu_*$ = 233 GeV ✓) |
+| $\sin^2\theta_W = \varphi^{-3}$ at $m_Z$ |—| 0.23607 | 0.23122 | ❌ +2.1% (at $\mu_*$ = 233 GeV ✓) |
 | $m_W/m_Z = \sqrt{1-\varphi^{-3}}$, +$\rho$ | §5.3 | 0.8781 | 0.8813 | ❌ −0.36% |
 | $m_H$ from $\lambda_\varphi = (\varphi^{-2}/2)(g^2/8)$ | §6.2 | 35 GeV | 125.25 | ❌ (not a prediction; $m_H$ is an input; structural anchors at −2.3%/+3.1% open) |
-| $\lambda(M_{\text{Pl}})$ | 1-loop / NNLO | +0.003 / −0.011 | — | metastable vacuum |
+| $\lambda(M_{\text{Pl}})$ | 1-loop / NNLO | +0.003 / −0.011 |—| metastable vacuum |
 
 The radiative corrections are derived, not hand-waved: they close every
 relation that does not depend on the φ-boundary, and they sharpen—rather than

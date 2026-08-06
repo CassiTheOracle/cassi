@@ -1,5 +1,5 @@
 """
-Path 10: Cassi saturation ceiling vs MOND — Ultra-Faint Dwarf Galaxy Test
+Path 10: Cassi saturation ceiling vs MOND—Ultra-Faint Dwarf Galaxy Test
 =========================================================================
 
 Tests the key prediction from Path 9 (`path9_cassi_vs_mond.py`):
@@ -13,7 +13,7 @@ Revised 2026-08-03: the earlier ceiling sqrt(phi) ~ 1.27 came from the
 withdrawn approximate coupling G_eff/G_N = 1 + (phi-1)q and is obsolete.
 The corrected coupling G_eff/G_N = 1 + (phi^6-1)q saturates at the derived
 max boost phi^6 ~ 17.94, i.e. a velocity ceiling sqrt(phi^6) = phi^3 ~ 4.24
-(reached only where q -> 1, i.e. rho << rho_ref — exactly the ultra-faint
+(reached only where q -> 1, i.e. rho << rho_ref—exactly the ultra-faint
 regime).
 
 Ultra-faint dwarfs (a << a0) are the decisive test case.
@@ -66,7 +66,7 @@ dwarfs = [
 results = []
 
 print("=" * 112)
-print(f"PATH 10: CASSI {CEILING:.2f}x SATURATION CEILING vs MOND — ULTRA-FAINT DWARF GALAXY TEST")
+print(f"PATH 10: CASSI {CEILING:.2f}x SATURATION CEILING vs MOND—ULTRA-FAINT DWARF GALAXY TEST")
 print("=" * 112)
 print()
 print(f"{'Galaxy':<20} {'M_bary':>10} {'sigma_v':>8} {'v_obs':>8} {'v_Newt':>8} "
@@ -163,10 +163,10 @@ print("VERDICT:")
 print("=" * 112)
 
 if n_exceed == 0:
-    verdict = (f"(a) Cassi ceiling consistent — no dwarf exceeds v_obs/v_Newt = "
+    verdict = (f"(a) Cassi ceiling consistent—no dwarf exceeds v_obs/v_Newt = "
                f"{CEILING:.2f} (the phi^3 saturation ceiling)")
 elif n_exceed < n:
-    verdict = (f"(b) Ceiling exceeded in {n_exceed}/{n} dwarfs — the Cassi "
+    verdict = (f"(b) Ceiling exceeded in {n_exceed}/{n} dwarfs—the Cassi "
                f"saturation limit sqrt(phi^6) = phi^3 ~ {CEILING:.2f} is falsified for the "
                f"lowest-mass systems; MOND's unbounded growth is preferred there")
     if n_mond > n_cassi:
@@ -174,13 +174,13 @@ elif n_exceed < n:
         verdict += ("\n  This falsifies the pure G-rescaling sector only (boost = (G_eff/G)")
         verdict += ("\n  acting on baryonic mass). The coherence-condensate sector")
         verdict += ("\n  (speculations/dark-matter-as-qi-coherence.md) carries the boost in")
-        verdict += ("\n  Yang-field mass instead: v^2 = G[M_bar + (1+xi q) M_Y]/r — no phi^3")
+        verdict += ("\n  Yang-field mass instead: v^2 = G[M_bar + (1+xi q) M_Y]/r—no phi^3")
         verdict += ("\n  ceiling there, but M_Y/M_bar ~ 15 at q -> 1 is required, four-plus")
         verdict += ("\n  decades below the SPARC calibration range (uncalibrated, not falsified).")
     else:
         verdict += f"\n  MOND fits {n_mond} galaxies vs Cassi's {n_cassi}."
 else:
-    verdict = (f"(c) Dark matter / MOND — ALL galaxies show v_obs/v_Newt beyond the "
+    verdict = (f"(c) Dark matter / MOND—ALL galaxies show v_obs/v_Newt beyond the "
                f"Cassi ceiling {CEILING:.2f}")
     if n_mond > n_cassi:
         verdict += f"\n  MOND fits {n_mond} galaxies vs Cassi's {n_cassi}."

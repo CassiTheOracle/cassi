@@ -19,12 +19,12 @@ re-initializes the churning init (seed 42), so no arm carries solver
 state from a previous arm (rk2_step mutates the solver's scale factor,
 smoothed Hubble rate, and global q_mean; sharing one solver across arms
 was the earlier scripts' convention, but it makes later arms order-
-dependent — the t=0 eps_site drifts monotonically across shared-solver
+dependent—the t=0 eps_site drifts monotonically across shared-solver
 arms at the 1e-6 level and arm endpoints differ at the 1e-2 level).
 With fresh solvers, identical schedules reproduce bit-identically.
 
 P0 is measured from a dedicated t=4 reference run (4000 steps; reports
-include the step-3999 endpoint, an 81-point series) — the same window
+include the step-3999 endpoint, an 81-point series)—the same window
 the amplitude scan used, so P0 = 0.081 exactly. The quench is
 matched-period specific: measured from an 8000-step window the FFT bins
 shift to 0.0800 and the amp-0.05 arm pumps instead of quenching, so the
@@ -40,7 +40,7 @@ Arms (lambda=0.05, N=48, churning init seed 42):
   in005-removal   in-channel at P0, amp 0.05, to t = 4, drive OFF to t = 8
   in0025-removal  in-channel at P0, amp 0.025, to t = 4, drive OFF to t = 8
   in<amp>         in-channel at P0, amps {0.025, 0.05, 0.06, 0.07, 0.08,
-                  0.09, 0.10, 0.15, 0.20, 0.30}, to t = 4 — the full
+                  0.09, 0.10, 0.15, 0.20, 0.30}, to t = 4—the full
                   amplitude set rerun at canonical init (fresh solver
                   per arm): the 0.025/0.05 rows are exact reproduction
                   anchors against the stored amplitude scan, 0.06–0.09
@@ -57,7 +57,7 @@ is D(t) = ref_eps(t) − arm_eps(t) at same-time t from the shared ref8
 run. Depth retention P = D(8)/D(4). The observation window after drive
 removal is 4 s = 0.2/lambda (20% of the conversion timescale
 1/lambda = 20 s); an arm counts as persistent if P >= 0.5 (holds ≥ 50%
-of its t = 4 depth through the window) — the memory/lock signature.
+of its t = 4 depth through the window)—the memory/lock signature.
 Snap-back onto the undriven trajectory is read as mean |arm_eps −
 ref_eps| over t in [6, 8] < 0.05 (the house 0.05 verdict margin).
 
@@ -77,7 +77,7 @@ Verdict logic:
 Clamp diagnostics per arm: ey_min_site/ei_min_site minima over the run
 and the count of report steps touching the 1e-3 positivity floor (near
 floor 1.5e-3). Every driven arm in this family touches the floor
-intermittently — magnitudes are partially clamp-affected; directions and
+intermittently—magnitudes are partially clamp-affected; directions and
 orderings are clean.
 
 Usage: python two-fluid/run_churning_gate_quench.py

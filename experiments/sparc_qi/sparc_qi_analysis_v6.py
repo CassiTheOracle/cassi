@@ -21,7 +21,7 @@ Three variants:
 
 Questions this run answers:
   1. Does the coherence envelope (A) fit SPARC as well as the uniform
-     boost with the same parameter count — but with the core coming from
+     boost with the same parameter count—but with the core coming from
      physics instead of the profile?
   2. Does the optimal scale a in variant B land at ~1, confirming that
      baryonic activity sets the decoherence scale?

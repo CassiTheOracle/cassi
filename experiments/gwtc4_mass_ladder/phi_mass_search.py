@@ -3,21 +3,21 @@
 
 The hypothesis (analyses/gwtc4-mass-ladder.md §3): if black-hole formation
 freezes out at activated cascade rungs, the intrinsic primary-mass
-distribution carries a log-periodic comb at period ln φ — equivalently,
+distribution carries a log-periodic comb at period ln φ—equivalently,
 period 1 in rung space n = log_φ(m1/M_Pl).
 
 Models (m1 ∈ [2, 200] M_sun):
   M0   smooth baseline: power law + two Gaussians (FullPop-4.0-style shape)
-  M1   M0 × (1 + A cos(2π n))              — comb at the PREDICTED period, ψ=0
-  M1ψ  M0 × (1 + A cos(2π n + ψ))          — predicted period, free phase
-  M2   M0 × (1 + A cos(2π n/T + ψ))        — free period (look-elsewhere control)
+  M1   M0 × (1 + A cos(2π n))             —comb at the PREDICTED period, ψ=0
+  M1ψ  M0 × (1 + A cos(2π n + ψ))         —predicted period, free phase
+  M2   M0 × (1 + A cos(2π n/T + ψ))       —free period (look-elsewhere control)
 
 Estimator: for each event, L_i(Λ) = mean_s p(m1_s | Λ) over the stored
 posterior samples. This is unbiased for ∫ p(d_i|m1) p(m1|Λ) dm1 for any
 positive reference prior (the PE prior cancels analytically), so no prior
 reconstruction is needed. Selection effects enter only through smooth
 multiplicative factors; the comb is (nearly) orthogonal to any smooth
-envelope — quantified numerically with VT(m) ∝ m^a, a ∈ {0,1,2}, and folded
+envelope—quantified numerically with VT(m) ∝ m^a, a ∈ {0,1,2}, and folded
 into the reported Δln L as a systematic bracket.
 
 Significance: parametric bootstrap. N_BS mock catalogs are drawn by
@@ -30,12 +30,12 @@ Usage:
   python experiments/gwtc4_mass_ladder/phi_mass_search.py [--quick]
 
 Data: experiments/gwtc4_mass_ladder/data/samples_m1.npz (from extract_samples.py)
-      — posterior samples of mass_1_source, C00:Mixed (equal-weight waveform
+     —posterior samples of mass_1_source, C00:Mixed (equal-weight waveform
       mixture), GWTC-4.0 PE data release (zenodo record 17602505).
 
 Epistemic tiers (see analyses/gwtc4-mass-ladder.md):
   rung relation N_BH = log_φ(M/M_Pl)      Derived
-  integer-rung comb hypothesis            Speculative — this script tests it
+  integer-rung comb hypothesis            Speculative—this script tests it
   GR-exact ringdown                       Derived (untested here)
 """
 
@@ -47,7 +47,7 @@ import numpy as np
 from scipy import integrate, optimize
 
 PHI = (1.0 + math.sqrt(5.0)) / 2.0
-LN_PHI = math.log(PHI)                    # 0.48121 — THE predicted log period
+LN_PHI = math.log(PHI)                    # 0.48121—THE predicted log period
 M_PL_KG = 2.176e-8
 M_SUN_KG = 1.989e30
 M_SUN_PER_M_PL = M_SUN_KG / M_PL_KG       # 9.1406e37
@@ -74,7 +74,7 @@ N_SMOOTH = 10
 # Model
 # ─────────────────────────────────────────────────────────────────────────────
 def rung(m):
-    """N_BH = log_phi(M/M_Pl) — coherence-capacity rungs (quantum-gravity §7.4)."""
+    """N_BH = log_phi(M/M_Pl)—coherence-capacity rungs (quantum-gravity §7.4)."""
     return np.log(m * M_SUN_PER_M_PL) / LN_PHI
 
 
@@ -235,7 +235,7 @@ def draw_mock(samples, theta_M0, rng, vt_a=1.5, n_draw=500):
     selection); each mock event's posterior shape is a randomly transplanted
     real posterior, shifted in ln m to the drawn true mass.  This preserves
     the real measurement widths while making the mass positions an
-    independent M0 draw — a proper null for the comb statistics."""
+    independent M0 draw—a proper null for the comb statistics."""
     n_ev = len(samples)
     p0 = _smooth_unnorm(_MG, *theta_M0[:N_SMOOTH])
     p0 /= integrate.simpson(p0 * _MG, x=_LNM)
@@ -314,7 +314,7 @@ def main():
         N_BS = int(n_bs_env)
     n_bs = N_BS
     if not os.path.exists(DATA):
-        print(f"missing {DATA} — run extract_samples.py first")
+        print(f"missing {DATA}—run extract_samples.py first")
         sys.exit(1)
     z = np.load(DATA, allow_pickle=True)
     events = z["events"]
@@ -371,7 +371,7 @@ def main():
     n_ev = len(samples)
     print()
     print("=" * 76)
-    print("GWTC-4.0 φ-PERIODIC MASS SEARCH — RESULTS")
+    print("GWTC-4.0 φ-PERIODIC MASS SEARCH—RESULTS")
     print("=" * 76)
     print(f"events: {n_ev}   samples/event (thin): {N_THIN}   "
           f"analysis range: [{M_LO}, {M_HI}] M_sun")
@@ -442,7 +442,7 @@ def main():
         print("  Marginal preference (p < 5%) for a comb at period ln φ "
               "(selection-corrected).")
     else:
-        print("  No significant comb at the predicted period ln φ — consistent "
+        print("  No significant comb at the predicted period ln φ—consistent "
               "with the face-value rung analysis (peaks at 186.4/187.9/189.0).")
     print("=" * 76)
 

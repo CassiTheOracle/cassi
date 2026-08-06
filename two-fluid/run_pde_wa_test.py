@@ -8,7 +8,7 @@ pair (w0, wa) over a in [0.3, 1.0], the same window the ODE baselines use
 Why adaptive dt: with a fixed dt the solver is diffusion-stiff at small a —
 the viscous term nu*k2/a^2 gives an RK2 stability bound dt <= 2*a^2/(nu*k2max)
 ≈ 5.2e-4 at a=0.01, so dt=0.0005 (the original default) is exactly at the
-stability edge and reaches only a ~ 0.03 after 40k steps — far short of the
+stability edge and reaches only a ~ 0.03 after 40k steps—far short of the
 fit window.  This script steps with dt = min(dt_cap, 4*a^2), which follows
 the stability bound with a 1.3x safety margin and relaxes as a grows; the
 PDE equations are untouched.

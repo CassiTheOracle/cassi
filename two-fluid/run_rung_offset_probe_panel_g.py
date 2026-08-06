@@ -20,7 +20,7 @@ Question: does the conversion generate the descent (inward, the
 spiral's gravity direction) or the unwinding (outward, the expansion
 direction)?  The probe is flat (no potential gradient), so the
 inward force F = Pi grad(Phi) of `foundations/spiral-dynamics.md`
-sec 3 is absent by construction — only the conversion's own
+sec 3 is absent by construction—only the conversion's own
 transport is visible.
 
 Solver: same 1D damped-wave two-fluid RK4 as Panels E/F.
@@ -43,7 +43,7 @@ def main():
     x = np.linspace(-x_sp, L, N)
 
     print("=" * 78)
-    print("Panel G — conversion-driven flux at the closure crossing (T13)")
+    print("Panel G—conversion-driven flux at the closure crossing (T13)")
     print("psi = psi* (coherent event), u = 0 unless stated; the probe is")
     print("flat (no grad Phi), so only the conversion's own transport is")
     print("visible; the spiral's inward descent (F = Pi grad Phi) is absent")

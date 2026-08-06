@@ -9,7 +9,7 @@ Tests Prediction 46 (`predictions/falsifiable-predictions.md`) /
   (b) the two-fluid phase difference moves the extremum continuously;
   (c) conversion lambda shifts it too, and the direction tracks energy flow.
 
-Panel A — single-bubble wake pair cos(2*pi*x) + cos(2*pi*phi*x)
+Panel A—single-bubble wake pair cos(2*pi*x) + cos(2*pi*phi*x)
   (wake-geometry.md §2). Envelope peaks at x = m*ell_{n+1} and zeros at
   (m+1/2)*ell_{n+1}; in ln-rung units u = log_phi(x/ell_n):
     peaks at u = 1 + log_phi(m), zeros at u = 1 + log_phi(m+1/2).
@@ -17,7 +17,7 @@ Panel A — single-bubble wake pair cos(2*pi*x) + cos(2*pi*phi*x)
   u = -0.440, NOT at the half-rung -0.5 (the "half-rung" reading is
   real-space language: x = ell_{n+1}/2).
 
-Panel B — two bubbles at x = 0 and x = phi (rungs n and n+1), each
+Panel B—two bubbles at x = 0 and x = phi (rungs n and n+1), each
   emitting the wake pair. With V = 0 initial conditions the fields are
   exactly standing (d'Alembert on the line, no dispersion):
 
@@ -141,7 +141,7 @@ def extremum_u(x, f, x_lo, x_hi):
 
 def panel_a():
     print("=" * 72)
-    print("Panel A — single-bubble wake pair cos(2pi x) + cos(2pi phi x)")
+    print("Panel A—single-bubble wake pair cos(2pi x) + cos(2pi phi x)")
     print("Envelope positions in ln-rung units u = log_phi(x/ell_n)")
     print("=" * 72)
     rows = []
@@ -174,7 +174,7 @@ def panel_a():
 def panel_b(L, x_sp, N, dt, t_short, t_long, psi_scan, lam_scan):
     print()
     print("=" * 72)
-    print("Panel B — two bubbles at x = 0 and x = phi (rungs n, n+1)")
+    print("Panel B—two bubbles at x = 0 and x = phi (rungs n, n+1)")
     print("Standing E_Y envelope: extremum of |E_Y|; wall round-trip time")
     print("from the window is 3.24, so all measurements at t < 3.24 are")
     print("exactly the infinite-line standing wave")
@@ -263,7 +263,7 @@ def panel_b(L, x_sp, N, dt, t_short, t_long, psi_scan, lam_scan):
 def panel_c(L, x_sp, N, dt, t_long, lam_scan, m_scan, amp_scan, psi_scan):
     print()
     print("=" * 72)
-    print("Panel C — nonlinear gate regime")
+    print("Panel C—nonlinear gate regime")
     print("conv = -lam*(1-q)*(E_Y - phi E_I),  q = M/(M + phi^-2 + eps^2)")
     print("(solver 'single' gate; M = (E_Y+E_I)^2, eps = E_Y - phi E_I)")
     print("Wall influence reaches the window at t = x + x_sp ~ "
@@ -391,10 +391,10 @@ if __name__ == "__main__":
     print("    {1 + log_phi(m+1/2)}.")
     print("(b) the relative phase psi between the two wakes moves the")
     print("    extremum: x_max = phi/2 - psi/(4 pi), i.e.")
-    print("    delta_n(psi) = 0.060 - 0.204 psi — the phase-lag")
-    print("    mechanism of the doc sec 4.2 — and the curve is")
+    print("    delta_n(psi) = 0.060 - 0.204 psi—the phase-lag")
+    print("    mechanism of the doc sec 4.2—and the curve is")
     print("    unchanged under the gate (Panel C (4)).")
-    print("(c) conversion — linear (Panel B) or gated (Panel C) — does")
+    print("(c) conversion—linear (Panel B) or gated (Panel C)—does")
     print("    NOT move the extremum in the standing pattern: pinned at")
     print("    delta_n = +0.060 for lambda up to 0.5, <1-q> up to 0.33,")
     print("    t up to 6, all densities and amplitudes. The gate sources")

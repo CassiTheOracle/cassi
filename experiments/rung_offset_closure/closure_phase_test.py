@@ -26,7 +26,7 @@ Tests:
      corrected for the search (null = random catalogs, best-omega mean
      residual).
   D. the Yukawa-ladder leptons (tau, mu, e) against closures
-     {5, 13, 26, 34} — the electron sits 0.03 rungs from the 26 = 2x13
+     {5, 13, 26, 34}—the electron sits 0.03 rungs from the 26 = 2x13
      closure half-step.
 
 The null is the honest baseline: a uniform catalog has mean circular

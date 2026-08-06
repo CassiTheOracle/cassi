@@ -10,7 +10,7 @@ Never tested before: the trauma-driver family tested organized/random drives
 on the OPEN gate and the HELD single-branch site, never on a two-branch
 superposed state.
 
-Init (the superposition — a which-path state, §3.2): two Gaussian bubbles at
+Init (the superposition—a which-path state, §3.2): two Gaussian bubbles at
 moderate separation, each a distinct branch of the superposed observable:
 
   branch A (Fire): r = EY/EI = 0.45, blend 0.50  -> eps ~ -0.65 (Yang deficit)
@@ -18,7 +18,7 @@ moderate separation, each a distinct branch of the superposed observable:
 
 Blends are tuned so the two branches have EQUAL |eps| (0.65) at equal cell
 volume: q_A = q_B (same total density M, same eps^2), so the superposition
-carries NO built-in winner — selection must be produced by the drive. The
+carries NO built-in winner—selection must be produced by the drive. The
 branch amplitude sits in the standing-test range (AMP ~ 0.8) so the 0.15
 drive is a moderate perturbation (23%), not a swamping rectification. The
 branches are phase-incompatible (anti-phase in eps): the §2 "competing
@@ -44,18 +44,18 @@ Both arms share the component, so the contrast is purely the temporal phase
 structure (periodic vs white), which is the M factor.
 
 Observables (union of the two balls = the site):
-  frac_neg  fraction of cells with eps < 0 — branch occupancy (0.5 =
+  frac_neg  fraction of cells with eps < 0—branch occupancy (0.5 =
             symmetric superposition; -> 1: Fire branch won, -> 0: Wood won)
   eps1, eps2 per-branch mean eps over each branch ball (who drains)
-  c_AB      inter-branch cross-term eps1*eps2 — the alpha*beta off-diagonal
+  c_AB      inter-branch cross-term eps1*eps2—the alpha*beta off-diagonal
             element proxy: ~ -0.085 at init, -> 0 as either branch drains;
             rho_AB = normalized sign form (anti-phase = -1); plus the
             Gaussian-overlap wake correlation (two-bubble convention)
   eps_site, q_site/q_gap, sigma_r_site, ey/ei_min_site (clamp diags)
 
-Verdict (Q7): SUPPORTED if the organized arm SELECTS — |frac_neg-0.5|
+Verdict (Q7): SUPPORTED if the organized arm SELECTS—|frac_neg-0.5|
 growing from ~0 to >= 0.35 (one branch taking over) with the cross-term
-|rho_AB| decaying by >= 0.3 — while the equal-power random arm and the
+|rho_AB| decaying by >= 0.3—while the equal-power random arm and the
 undriven reference do NOT select (frac_neg stays near 0.5). NULL otherwise.
 Reported honestly either way.
 
@@ -69,7 +69,7 @@ p0.json; the drive arms take --p0 explicitly (dominant_period window quirk:
 never re-measure across windows).
 
 Output: runs/q7_coherence_budget/{ref,organized,random}.json, p0.json,
-verdict.json, figure (runs/ is gitignored — commit the script only).
+verdict.json, figure (runs/ is gitignored—commit the script only).
 """
 
 import os
@@ -232,7 +232,7 @@ def run_case(solver, mode, p0=None, outdir=None):
             if mode == 'anti':
                 # Spatial anti-phase envelope matching the branch pattern:
                 # branch A pushed one way, branch B the opposite, at the
-                # same temporal period — the drive field is the state's own
+                # same temporal period—the drive field is the state's own
                 # spatial phase structure (the inter-branch coherence).
                 ey = ey + drive * (bA - bB)
             elif mode == 'pathA':
@@ -428,12 +428,12 @@ def print_verdict(v):
         print("*** Q7 SUPPORTED: the organized (M≈1) drive at the "
               "state's own phase collapses the two-branch superposition "
               "to one branch while the equal-power random (M≈0) drive "
-              "and the undriven reference leave it unselected — "
+              "and the undriven reference leave it unselected—"
               "measurement-like selection is phase-matching, not "
               "power. ***")
     else:
         print("Q7 NULL: no organized-vs-random selection contrast in "
-              "this PDE — see per-arm numbers above.")
+              "this PDE—see per-arm numbers above.")
     print(f"Results: {RDIR}/verdict.json")
 
 

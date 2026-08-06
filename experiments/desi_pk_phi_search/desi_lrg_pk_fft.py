@@ -94,13 +94,13 @@ def fkp_power(pos_d, w_d, pos_r, w_r, boxsize, nmesh, kmin, kmax, nkbins):
     mesh_r = paint_cic(pos_r, w_r, boxsize, nmesh)
     print(f"  Painting done ({time.time()-t0:.1f}s)")
 
-    # FKP normalization (MEASURED units — no ×18)
+    # FKP normalization (MEASURED units—no ×18)
     alpha = w_d.sum() / w_r.sum()
     I2 = (w_d**2).sum()
     shot = I2 + alpha**2 * (w_r**2).sum()
     print(f"  alpha = {alpha:.6f}, I2 = {I2:.0f}, shot = {shot:.0f}, shot/I2 = {shot/I2:.4f}")
 
-    # FFTs — one at a time, cast to complex64 to save memory
+    # FFTs—one at a time, cast to complex64 to save memory
     print(f"  FFT data...")
     FFT_d = np.fft.rfftn(mesh_d).astype(np.complex64)
     del mesh_d
@@ -240,7 +240,7 @@ def main():
     print(f"\n  Best log-period: {best_T:.4f}")
     print(f"  Cassi prediction: ln φ = {np.log(PHI):.4f} (Δ = {best_T - np.log(PHI):+.4f})")
     if abs(best_T - np.log(PHI)) < 0.03:
-        print("  ✓ Consistent with ln-φ prediction — investigate further!")
+        print("  ✓ Consistent with ln-φ prediction—investigate further!")
     else:
         print("  No ln-φ signal at the predicted period.")
     print(f"\nTotal elapsed: {time.time()-t0:.1f}s")
