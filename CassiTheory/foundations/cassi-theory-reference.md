@@ -323,8 +323,11 @@ $$w(a) = \frac{P_{\text{DE}}}{\rho_{\text{DE}}} = \frac{\dot{r}/r - 3H(1+r^{-1})
 $$w_0 = -0.87,\qquad w_a = +0.012 \; (+ \xi = \varphi^6,\ \text{Yang-fraction form})$$
 
 With the ratified conversion→expansion coupling (Hypothesized—August 2026,
-zero free constants): $w_a \approx -0.38$ (B2; $1.25\sigma$ from DESI—08
-§C.6; $w_0 \approx -0.97$ at fixed $r_0$, $3.6\sigma$, $r_0$ re-tuning open).
+zero free constants): the unstable B2 realization gives $w_a \approx -0.38$
+($1.25\sigma$ from DESI—08 §C.6; $w_0 \approx -0.97$ at fixed $r_0$,
+$3.6\sigma$); the term's **stable realization** (the C1 friction closure—
+10/12) gives a pure-Λ DESI-window fit $(w_0, w_a) = (-1, 0)$ exactly—
+4.17σ/2.61σ from DESI ($r_0$ re-tuning closed negatively).
 
 ### 8.2 Inflation
 
@@ -445,7 +448,7 @@ Mind: concentrated post-pinch field dynamics. Brain: antenna for the Qi field. A
 | $m_W/m_Z$ | $\sqrt{1-\varphi^{-3}}$ | $0.874$ | From $\sin^2\theta_W$ |
 | $\delta_{\text{CKM}}$ | $\pi\varphi^{-2}$ | $68.7^\circ$ | Yukawa diagonalisation |
 | $w_0$ | Wu Xing + $\xi$ | $-0.87$ | Two-fluid conversion |
-| $w_a$ | $\xi$ in $H(a)$; ratified conversion→expansion coupling | $+0.012$ baseline; $-0.38$ (with the coupling, B2) | Two-fluid conversion; 08 §C.6 |
+| $w_a$ | $\xi$ in $H(a)$; ratified conversion→expansion coupling | $+0.012$ baseline; $-0.38$ (B2, unstable); **$(-1, 0)$ pure-Λ window (stable realization—10/12)** | Two-fluid conversion; 08 §C.6; 12 |
 | $g$ | $1 - \varphi^{-5}$ | $0.910$ | Wu Xing gap |
 | $r_0$ | $\varphi^{-5}/(2-\varphi^{-5})$ | $0.047$ | Primordial ratio |
 | $\lambda$ | $1/(2w)$ | $0.1$ | PDE conversion rate |
