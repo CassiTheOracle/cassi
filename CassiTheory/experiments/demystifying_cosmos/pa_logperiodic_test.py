@@ -8,8 +8,10 @@ of emitting-particle energy,
     Theta(nu) = Theta0 + (2 pi / ln phi) ln(nu / nu0),   PA = Theta (mod pi),
 
 i.e. PA is log-periodic in photon frequency with period ln phi ~= 0.4812
-(equivalently PA(ν·φ^k) = PA(ν) mod π), and—per the prediction text—a
-band pair at half-rung separation (ν2/ν1 = sqrt(phi)) shows PA rotated 90°.
+(equivalently PA(ν·φ^k) = PA(ν) mod π).  Per the prediction text, a band
+pair at quarter-rung separation (ν2/ν1 = φ^¼) shows PA rotated 90°, while
+a half-rung pair (ν2/ν1 = sqrt(phi)) returns PA unchanged (mod π) — the
+field winds ΔΘ = π at half-rung, i.e. parallel.
 
 Test (CATALOG class): published tabulated polarization position angles in
 >=3 bands spanning Δ(ln ν) >= ln φ for the same source.

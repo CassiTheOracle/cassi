@@ -71,7 +71,7 @@ How core implosion becomes explosion, and which stars explode, is unresolved. Th
 #### 20. p-Nuclei
 What process makes the ~35 proton-rich isotopes bypassed by the s- and r-processes is open. The standard status: γ-process photodisintegration in supernovae is the candidate, with chronic underproduction of some nuclei. **[No framework claim]**—neither nucleosynthesis hypothesis touches the proton-rich channel. A Speculative candidate: the φ-periodic α-cluster resonance ladder of the Hoyle-state derivation is the energy structure photodisintegration yields depend on—a handle on γ-process rates. `hypotheses/hoyle-state-nucleosynthesis.md` §3–4.
 #### 21. Fast Radio Bursts
-What produces millisecond radio bursts, and why some repeat, is open. The standard status: a magnetar engine is established for one repeater, but the general mechanism is unsettled. **[No framework claim]**—no repo document addresses the FRB engine. A Speculative candidate: coherent wake/coherence-channel emission, with the log-periodic polarization-angle prediction (prediction 48, period $\ln\varphi$) directly testable on repeater polarimetry. `demystifying-the-cosmos/PSR-J1101-6101.md` §7.
+What produces millisecond radio bursts, and why some repeat, is open. The standard status: a magnetar engine is established for one repeater, but the general mechanism is unsettled. **[No framework claim]**—no repo document addresses the FRB engine. A Speculative candidate: coherent wake/coherence-channel emission, with the log-periodic polarization-angle prediction (prediction 48, period $\ln\varphi$) directly testable on repeater polarimetry. The first test of prediction 48 is a null (Crab Nebula mm-band: PA constant, 0/10 band pairs within 3σ), so the FRB application is open but inherits the null caveat. `demystifying-the-cosmos/PSR-J1101-6101.md` §7.
 #### 22. UHECRs and the GZK Cutoff
 What accelerates cosmic rays beyond the GZK cutoff is unknown. The standard status: no known source reaches $10^{20}$ eV, and propagation is limited by CMB photopion losses. **[No framework claim]**—no repo document addresses ultra-high-energy cosmic rays. A Speculative candidate: the coherence-budget distinction between random and organized perturbation supplies an organized-acceleration channel that evades random-walk limits, while $\varphi^{-N}$ attenuation bounds cross-rung propagation. `foundations/proton-coherence-budget.md` §5.2; `foundations/cascade-suppression-formula.md` §1.2.
 #### 23. Tabby's Star
@@ -271,7 +271,7 @@ Standard status: habitability criteria and biosignature interpretation are activ
 
 | Problem | Candidate object | Cassi test to run |
 |---|---|---|
-| 21 FRBs | A bright repeater (e.g. FRB 121102) | Prediction 48: log-periodic polarization angle across bands, period ln φ |
+| 21 FRBs | A bright repeater (e.g. FRB 121102) | Prediction 48: log-periodic polarization angle across bands, period ln φ (first test null: Crab, 0/10 pairs within 3σ) |
 | 23 Tabby's Star | KIC 8462852 | Tuned-star signatures: structured dimming, coronal temperature-ratio clustering (`speculations/observational-seti.md` §1.1, §2.2) |
 | 11 Coronal heating | The Sun | (1−q) thermalization layer: coronal/photospheric ratio clustering; the SO(2) solar cycle (`speculations/cascade-infrastructure.md` §3) |
 | 34 Little red dots | JWST compact red galaxies at z ≈ 5–8 | Post-pinch condensate morphology; 1.70× edge anisotropy (prediction 38) |
