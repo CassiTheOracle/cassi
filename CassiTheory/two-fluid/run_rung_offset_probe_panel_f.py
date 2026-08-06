@@ -1,4 +1,4 @@
-"""Rung-offset probe, Panel F: closure-crossing event — emission phase and flow.
+"""Rung-offset probe, Panel F: closure-crossing event—emission phase and flow.
 
 Run:  python two-fluid/run_rung_offset_probe_panel_f.py
 
@@ -13,7 +13,7 @@ delta_n = -0.0002) is the nearest-integer control.
 Measured at the event (T12):
 
   (a) the wake emission phase psi_emit: the phase lag of the crossing's
-      oscillation relative to the source bubble — the complex ratio of
+      oscillation relative to the source bubble—the complex ratio of
       the Fourier components at omega = 2 pi, over an integer number of
       periods.  Standing event (u = 0): psi_emit = 0 (in phase);
   (b) the crossing delta_n vs descent u at psi = psi* (the T11
@@ -36,7 +36,7 @@ phase is psi*), so
             = 1.6 u - B0 psi_emit(u)
 
 solved self-consistently for u*.  If psi_emit is u-insensitive
-(psi_emit ~ 0), the reading is definite: u* = delta_n/1.6 — J/psi:
+(psi_emit ~ 0), the reading is definite: u* = delta_n/1.6—J/psi:
 -0.012, mu: -0.0001.  If psi_emit tracks the source phase at ~7.8 rad
 per unit u, the T11 degeneracy survives in the emission channel.
 
@@ -142,7 +142,7 @@ def main():
     us = [0.0, 0.05, 0.1, 0.2]
 
     print("=" * 78)
-    print("Panel F — closure-crossing event (T12)")
+    print("Panel F—closure-crossing event (T12)")
     print(f"Crossing pinned at an integer rung: psi = psi* = {PSI_STAR:.4f}")
     print(f"rad, x* = {X_STAR:.4f} (u = -0.5, delta_n = 0); catalog")
     print("closure state: J/psi at n = 88.980 (rung 89, delta_n = -0.0199)")

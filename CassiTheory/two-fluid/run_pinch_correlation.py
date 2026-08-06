@@ -9,9 +9,9 @@ r(x) = EY(x)/EI(x). Before the pinch it should be random or scale-free; after
 crossing it should develop peaks at φ-scaled separations.
 
 Runs (fresh ExpandingTwoFluid3DGPU per run, qi_gate=True, seed=42):
-  A: r0 = 0.50 (sub-pinch) — crosses the pinch at measured t_c, then runs to
+  A: r0 = 0.50 (sub-pinch)—crosses the pinch at measured t_c, then runs to
      t_c + 56 (just over one conversion timescale 1/λ = 50 after crossing).
-  B: r0 = 0.75 (above pinch) — counterfactual, same duration, no crossing.
+  B: r0 = 0.75 (above pinch)—counterfactual, same duration, no crossing.
 
 Epochs (absolute-time windows, shared between A and B):
   pre/early : t in [t_cA − 2.0, t_cA − 0.4]   (5 snapshots, 0.4 apart)
@@ -24,7 +24,7 @@ midpoints round((N/4)·φ^(k+1/2)) → {6,9,15,25,40}.
 
 Statistics per snapshot:
   Δ_res = mean ε(d_φ) − mean ε(d_ctl), ε = detrended C(d) (poly-3 in ln d,
-  fit over d ≥ 3) — removes the monotone-decay confound.
+  fit over d ≥ 3)—removes the monotone-decay confound.
   Log-periodic scan (house method, fixed ω₀ = 2π/ln φ): residual power at
   T = ln φ, dAIC vs smooth-only, ω-specificity percentile p_spec.
 
@@ -67,7 +67,7 @@ NU = 0.0005
 CHI = 0.0
 SEED = 42
 AMPLITUDE = 0.05
-N_MAX_STEPS = 40000          # t = 80 — ample for crossing (~t 9–13) + post window
+N_MAX_STEPS = 40000          # t = 80—ample for crossing (~t 9–13) + post window
 POST_UNITS = 56.0            # stop at t_c + 56 (> 1/λ = 50)
 MONITOR_EVERY = 25           # steps between r_mean / clamp checks
 SNAPSHOT_EVERY = 200         # steps between C(d) snapshots (t spacing 0.4)
@@ -165,9 +165,9 @@ def snapshot_metrics(solver, u_hat, ey_hat, ei_hat):
 
     g = clip(ln r, ±6); floored cells (ey or ei < 0.01) are NaN in g_masked.
     Observables (radial C(d)):
-      C_raw  — raw g (clamp artifacts included; reference only)
-      C_mask — masked g (primary: clamp cells excluded)
-      C_s2, C_s4 — masked g, Gaussian-smoothed σ=2/4 cells (wake-scale probe)
+      C_raw —raw g (clamp artifacts included; reference only)
+      C_mask—masked g (primary: clamp cells excluded)
+      C_s2, C_s4—masked g, Gaussian-smoothed σ=2/4 cells (wake-scale probe)
     Also stores the physical mean ratio r_bar = <ey>/<ei>, u_max, floor counts.
     """
     ey = torch.fft.ifftn(ey_hat).real
@@ -470,7 +470,7 @@ def analyze(run_dir):
 
     t_c = metaA["t_c"]
     if t_c is None:
-        print("FAILED: run A never crossed the pinch — no epochs defined.")
+        print("FAILED: run A never crossed the pinch—no epochs defined.")
         return None
 
     pre = select_epoch(snapsA, t_c, "pre")
@@ -580,7 +580,7 @@ def analyze(run_dir):
           + ", ".join(f"{o}={l}" for o, l in verdict["cross_checks"].items()))
 
     results = {
-        "claim": "consciousness/consciousness-from-phi.md §2.1 — pinch-point "
+        "claim": "consciousness/consciousness-from-phi.md §2.1—pinch-point "
                  "two-point correlation test (never-run; this is the first run)",
         "params": {k: metaA[k] for k in
                    ["N", "dt", "lam", "D", "nu", "chi", "seed", "amplitude",
@@ -699,10 +699,10 @@ def make_figure(run_dir, results):
     ax.axhline(0, color="k", lw=0.8)
     ax.set_xticks(range(4)); ax.set_xticklabels(names)
     ax.set_ylabel("Δ_res = ε̄(φ-seps) − ε̄(ctl-seps)")
-    ax.set_title(f"φ-preference (95% CI) — verdict: {results['verdict']['label']}")
+    ax.set_title(f"φ-preference (95% CI)—verdict: {results['verdict']['label']}")
     ax.legend(fontsize=7); ax.grid(alpha=0.3)
 
-    fig.suptitle(f"Pinch-crossing two-point correlation — "
+    fig.suptitle(f"Pinch-crossing two-point correlation—"
                  f"t_c = {t_c:.2f}, N={results['params']['N']}",
                  fontsize=12)
     fig.tight_layout(rect=[0, 0, 1, 0.96])
@@ -717,7 +717,7 @@ def make_figure(run_dir, results):
 # ---------------------------------------------------------------------------
 def self_test():
     """Verify Δ_res and the log-periodic scan fire on a planted φ signal and
-    stay quiet on a null — house calibration habit."""
+    stay quiet on a null—house calibration habit."""
     rng = np.random.default_rng(7)
     d = D_VALS                       # full-length; detrend masks d >= 3 internally
     x = np.log(d)

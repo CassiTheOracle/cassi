@@ -26,9 +26,9 @@ rotation-curve modeling, consistent with cosmology/observational_constraints.md 
     q → 1  when  ρ << ρ_ref   (low density → G_eff → α(1+ξ)G)
 
 Halo-regime enhancement: G_eff/G → α(1+ξ) ≈ 0.7 × 18.94 ≈ 13.3 in the
-zero-density limit (α = 0.7 the halo Yang fraction) — v-boost √(α(1+ξ)) ≈ 3.6×.
+zero-density limit (α = 0.7 the halo Yang fraction)—v-boost √(α(1+ξ)) ≈ 3.6×.
 Framework saturation (corrected 2026-08-03): max boost G_eff/G = φ⁶ ≈ 17.94,
-velocity ceiling √φ⁶ = φ³ ≈ 4.24 — the α = 0.7 form is the halo-regime
+velocity ceiling √φ⁶ = φ³ ≈ 4.24—the α = 0.7 form is the halo-regime
 parametrization, not the framework maximum. This supersedes the
 earlier approximate coupling G_eff/G_N = 1 + (φ−1)·q (max v-boost
 √φ ≈ 1.27), which used the wrong equation and was withdrawn.
@@ -574,9 +574,9 @@ def main():
      The flattening ratio v(30)/v(5) = {flat_ratio:.2f} is a steep rise,
      not a flat curve, and the χ² worsens ({chi2_best:.0f} vs {chi2_newt:.0f}
      Newtonian).  The 30-kpc boost itself is now consistent with the
-     observed Milky Way boost (2.89× vs 2.7 ± 0.5, Zhou+ 2023) — the
+     observed Milky Way boost (2.89× vs 2.7 ± 0.5, Zhou+ 2023)—the
      previous failure (√φ ≈ 1.27 ceiling, cannot reach 200 km/s) is
-     gone — but the single-ρ_ref shape is wrong: interior too slow,
+     gone—but the single-ρ_ref shape is wrong: interior too slow,
      outskirts too fast.  This is the same overproduction signature
      SPARC finds: with fixed ξ = φ⁶ the Qi profile overpredicts the
      DM contribution in 111/143 galaxies (dark-matter speculation §7).
@@ -640,7 +640,7 @@ def main():
      (framework saturation: √φ⁶ = φ³ ≈ {np.sqrt(XI):.2f}×; not the withdrawn √φ ≈ 1.27
      ceiling).  At 30 kpc the model
      *overproduces*: v(30) = {v_enhanced_30:.0f} km/s vs the observed
-     190–200 km/s — the mass deficit problem of the old coupling is
+     190–200 km/s—the mass deficit problem of the old coupling is
      replaced by a mass excess.  The observed MW boost at 30 kpc
      (v_obs/v_baryon ≈ 2.7 ± 0.5) falls inside the model's allowed
      range (1.0–3.64×), but no single ρ_ref places the *whole* curve.
@@ -683,7 +683,7 @@ def main():
      30 kpc is {ratio_30:.2f}×, in line with the observed Milky Way
      boost of 2.7 ± 0.5 (Zhou+ 2023).  The old ceiling of √φ ≈ 1.27
      came from the withdrawn approximate coupling 1 + (φ−1)q and is
-     obsolete.  The model now has *enough* gravity at 30 kpc — too
+     obsolete.  The model now has *enough* gravity at 30 kpc—too
      much, in fact: the χ²-best single ρ_ref gives v(30) =
      {v_enhanced_30:.0f} km/s against the observed ~190–200.
 

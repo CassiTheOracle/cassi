@@ -39,7 +39,7 @@ N_SPAN = N_EW - N_GUT  # 72 rungs
 M_Z   = 91.1876
 
 def E(n): return M_PL * PHI**(-n)
-# Discrete-convention scale ladder: E_GUT = E(8) = 2.60×10¹⁷ GeV — NOT the
+# Discrete-convention scale ladder: E_GUT = E(8) = 2.60×10¹⁷ GeV—NOT the
 # canonical M_GUT = 10¹⁶ GeV of the continuous one-loop SM RGE (see docstring).
 
 E_GUT = E(N_GUT)
@@ -62,7 +62,7 @@ print()
 print(f"  GUT:  step {N_GUT}, E = {E_GUT:.2e} GeV, α_GUT = φ⁻³/(4π) = {alpha_GUT:.4f}")
 # NOTE: E_GUT = 2.60×10¹⁷ GeV is the discrete 72-rung convention scale; the
 # canonical M_GUT = 10¹⁶ GeV (continuous one-loop SM RGE) gives α_s(M_Z) = 0.0581,
-# Δb = 1.70 — this script's 0.0683/Δb₃ = 1.12 output is NOT canonical (06 §2).
+# Δb = 1.70—this script's 0.0683/Δb₃ = 1.12 output is NOT canonical (06 §2).
 print(f"  EW:   step {N_EW}, E = {E(N_EW):.2e} GeV, M_Z = {M_Z:.1f} GeV")
 print(f"  Span: {N_SPAN} φ-steps")
 print()

@@ -22,7 +22,7 @@ LAM = 0.02
 XI = PHI**6  # ≈ 17.944
 H_EMPTY = (LAM / 3) * PHI_INV**2
 A0 = 0.01
-TARGET_W0 = -0.87  # Calibration target (DESI-anchored, Calibrated tier — see parameter-inventory §10 fit ledger); not a prediction — synced to doctrine settlement 2026-08-03
+TARGET_W0 = -0.87  # Calibration target (DESI-anchored, Calibrated tier—see parameter-inventory §10 fit ledger); not a prediction—synced to doctrine settlement 2026-08-03
 
 
 def system(lna, y):

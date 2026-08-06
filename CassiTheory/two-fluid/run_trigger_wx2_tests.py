@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """TR3 phase-matched trigger reactivation + WX2 damping-signature tests.
 
-Part 1 — TR3 (`consciousness/trauma-as-frozen-gate.md` TR3): a locked site
+Part 1—TR3 (`consciousness/trauma-as-frozen-gate.md` TR3): a locked site
 re-activates only under a pentagon-phase-matched trigger. The RELEASE ->
 RE-DRIVE protocol (never run before): lock Fire (standing event, delta=pi,
 amp 0.8, the `run_trauma_phase_channels.py` Fire arm), release it by
@@ -22,7 +22,7 @@ every cell, so of the five pentagon channels only Wood (0 deg) and Fire
 (72 deg) exist in the field angle; Earth (144), Metal (216), Water (288)
 clamp out and are not testable. The binary tested here is Fire vs Wood.
 
-Part 2 — WX2 (`foundations/wu-xing-cycle-structure.md` §4): the ke ring's
+Part 2—WX2 (`foundations/wu-xing-cycle-structure.md` §4): the ke ring's
 sub-critical damping signature. With kappa = phi^-1 = K_fw the one-cycle
 ring gain is kappa^3 = phi^-3 = 0.236, so a driverless lock should decay
 through the gate keeping (1 - kappa^3) = 0.764 of its excess per ring lap
@@ -195,7 +195,7 @@ def main():
 
     # ══════════════ Part 1: TR3 RELEASE -> RE-DRIVE ══════════════════════
     print("\n" + "=" * 72)
-    print("PART 1 — TR3: PHASE-MATCHED TRIGGER REACTIVATION")
+    print("PART 1—TR3: PHASE-MATCHED TRIGGER REACTIVATION")
     print("=" * 72)
     fire_d, wood_d = np.pi, 1.5 * np.pi
     solver = T.build_solver(device)
@@ -296,7 +296,7 @@ def main():
 
     # ══════════════ Part 2: WX2 damping signature ════════════════════════
     print("\n" + "=" * 72)
-    print("PART 2 — WX2: DAMPING SIGNATURE OF A DRIVERLESS LOCK")
+    print("PART 2—WX2: DAMPING SIGNATURE OF A DRIVERLESS LOCK")
     print("=" * 72)
 
     # ── gate level (numpy ke round, c1_ring conventions) ─────────────────

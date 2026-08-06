@@ -3,9 +3,9 @@
 
 Runs background (Hubble-mode) expansion for the gate models of
 `foundations/wa-pentagon-gate.md` §3:
-  single   — the current single-channel Qi gate (baseline)
-  five     — 5-channel adiabatic redistribution (doc §2; late (1-q) floor)
-  five_ke  — five + ke control ring = Wu Xing control-release dynamics
+  single  —the current single-channel Qi gate (baseline)
+  five    —5-channel adiabatic redistribution (doc §2; late (1-q) floor)
+  five_ke —five + ke control ring = Wu Xing control-release dynamics
              (doc §3.3; the Delta = +0.055 sign-flip candidate)
 Fits CPL (w0, wa) from each arm's PDE expansion history over a in [0.3, 1.0]
 and prints the gate comparison: does the 5-channel gate shift w_a toward the
@@ -222,7 +222,7 @@ def print_comparison(seed):
 
     print('\n═══ GATE COMPARISON (PDE, N=32) ═══')
     if 'single' not in rows:
-        print('  (no single-channel results found — run --arms single)')
+        print('  (no single-channel results found—run --arms single)')
         return
     s = rows['single']
     print(f"  {'gate':>8s} {'w0':>8s} {'wa':>8s} {'dwa vs single':>14s} "

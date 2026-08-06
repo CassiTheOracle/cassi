@@ -1,9 +1,9 @@
-"""Rung-offset probe, Panel E: descent flow — does the energy pool move?
+"""Rung-offset probe, Panel E: descent flow—does the energy pool move?
 
 Run:  python two-fluid/run_rung_offset_probe_panel_e.py
 
 Tests the descent picture (`foundations/rung-offset-mechanism.md` §5
-T11): gravity as gradient descent down the spiral — the energy flows
+T11): gravity as gradient descent down the spiral—the energy flows
 down the cascade and pools where it deposits.  A slow initial velocity
 does NOT produce a slow drift (the wave equation has one speed c = 1;
 (E0, -v E0') splits into fast movers), so the descent must be modeled
@@ -19,8 +19,8 @@ Questions:
   (b) the pooled energy deposit D(x) = int(|EY|^2 - |EY(0)|^2): does
       its peak move away from the standing crossing as u grows?
   (c) the gated conversion deposit int (1-q) eps dt: peak vs u;
-  (d) the deposit profile's asymmetry (skew) — the descent's genuine
-      pattern-relative effect — peak vs centroid;
+  (d) the deposit profile's asymmetry (skew)—the descent's genuine
+      pattern-relative effect—peak vs centroid;
   (e) at finite phase psi, the deposit peak vs the standing curve.
 
 If the deposit peak is u-independent in the pattern frame, the descent
@@ -120,7 +120,7 @@ def main():
     m_win = (x >= x_lo) & (x <= x_hi)
 
     print("=" * 78)
-    print("Panel E — descent flow (advection speed u): does the pool")
+    print("Panel E—descent flow (advection speed u): does the pool")
     print("move with the gradient flow?  dE/dt = V - u dE/dx;")
     print(f"u = 0 restores the standing probe; t = {t} (< wall "
           f"influence {x_sp + x_lo:.2f})")

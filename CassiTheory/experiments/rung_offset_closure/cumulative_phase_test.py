@@ -107,7 +107,7 @@ def main():
     psis = np.array([s["psi"] for s in states])
 
     print("=" * 74)
-    print("T7 — cumulative phase: is the offset field a multi-rung sum?")
+    print("T7—cumulative phase: is the offset field a multi-rung sum?")
     print(f"catalog: {len(states)} states, n in "
           f"[{states[0]['n']:.2f}, {states[-1]['n']:.2f}]")
     print("=" * 74)
@@ -180,7 +180,7 @@ def main():
                   f"  ({len(ps)} states)")
 
     # ---- summary line
-    print("\nVerdict: see doc T7 — the superposition premise is verified")
+    print("\nVerdict: see doc T7—the superposition premise is verified")
     print("(Panel D); whether the catalog's offsets carry the cumulative")
     print("structure is decided by the p-values above.")
 

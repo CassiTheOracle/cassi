@@ -30,11 +30,11 @@ hypothesis (pool coherence splitting into K channels):
       Do the crossings land at delta_n = +0.124 (t) / -0.209 (H), and
       does the pair separation stay 1 - 1/3 = 2/3 under the third
       bubble's composition leverage (Panel D: -0.202 rungs/rad)?
-  G.  amplitude asymmetry at psi = 0: f = 1.0, 0.8, 0.618, 0.6 — the
+  G.  amplitude asymmetry at psi = 0: f = 1.0, 0.8, 0.618, 0.6—the
       crossing moves with f (the doc's 'locks at psi = 0' claim is
       checked against the analytic and the PDE).
 
-Method: the probe's standing-pattern trick — with V = 0 initial
+Method: the probe's standing-pattern trick—with V = 0 initial
 conditions the fields are exactly standing (d'Alembert, every term is
 the same spatial frequency 2 pi), so the extremum of |E_Y| is the
 extremum of |A| at any time; a short PDE evolution checks the pattern
@@ -143,7 +143,7 @@ def main():
     print("\n── F  THE t/H TWO-CELL PATTERN (bubbles 0, phi, 2phi) ──")
     psi_t, psi_H = -0.315, 1.312         # catalog wake phases
     print(f"  catalog Delta psi = {psi_H - psi_t:.3f} vs omega0/3 ="
-          f" {W0/3:.3f} (0.2%) — the 3-channel advance")
+          f" {W0/3:.3f} (0.2%)—the 3-channel advance")
     print(f"  {'case':>46} {'cell1 delta_n':>13} {'cell2 delta_n':>13}"
           f" {'pair diff':>10}")
     bubbles0, amps0 = [0, 1, 2], [1.0, 1.0, PHI ** -1]
@@ -192,7 +192,7 @@ def main():
     print()
     print("  Verdicts:")
     print("  (E1) the terminal-cell extremum sits where the measurement")
-    print("       says — the truncation either moves the crossing off the")
+    print("       says—the truncation either moves the crossing off the")
     print("       two-bubble value -0.440 or it does not; that position is")
     print("       the sector-edge placement the quantization must match.")
     print("  (F)  the channel-split cases show whether the 3-channel")

@@ -54,7 +54,7 @@ EPS_H_TIGHT = 0.05  # more conservative 5% precision quoted by some analyses
 
 
 def strain_ratio_chord(q):
-    """h/h_GR = 1 + (phi**6 - 1) * q — the adopted chord law."""
+    """h/h_GR = 1 + (phi**6 - 1) * q—the adopted chord law."""
     return 1.0 + DELTA * q
 
 

@@ -15,7 +15,7 @@ Physics:
   w(a) = -1 - (2/3) d(ln H)/d(ln a)
 
 Key result: w₀ = -0.87 is the repo's calibration target (DESI-anchored,
-Mapped tier — see parameter-inventory fit ledger; not a prediction; 2σ from
+Mapped tier—see parameter-inventory fit ledger; not a prediction; 2σ from
 DESI ≈ −0.75 ± 0.06 [INFERENCE]; synced to doctrine settlement 2026-08-03)
 using initial_ratio=23
 (r₀ = EY/EI ≈ 0.0435 at a₀=0.01).
@@ -47,7 +47,7 @@ H_EMPTY = (LAM / 3) * PHI_INV2    # baseline expansion from vacuum energy
 # Cosmological parameters (Planck 2018)
 OMEGA_M0 = 0.315
 OMEGA_DE0 = 0.685
-# Measured inputs (SH0ES local, Planck CMB-inferred under ΛCDM) — NOT doctrine
+# Measured inputs (SH0ES local, Planck CMB-inferred under ΛCDM)—NOT doctrine
 # constants; the doctrine value H₀ = 65.8 ("full fit pending") is not used
 # here because changing these would alter every pipeline output. Synced to
 # doctrine settlement 2026-08-03 (annotation only).

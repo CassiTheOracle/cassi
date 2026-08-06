@@ -316,7 +316,7 @@ def main():
              "the depression is the crawl back while the attractor restores the periphery",
              fontsize=8.5, color=TEXT_MAIN)
 
-    # Panel 3: the tendency — per-cycle average profit rate, bust lengthening
+    # Panel 3: the tendency—per-cycle average profit rate, bust lengthening
     ax4 = fig.add_axes([0.395, 0.09, 0.56, 0.33])
     ax4.set_title("the tendency:  per-cycle average profit falls, depressions lengthen",
                   loc="left", fontsize=11.5, fontweight="bold", color=YANG_BRIGHT)
@@ -438,10 +438,10 @@ def main():
     print(f"\nwithin the first boom (drain phase):  D strictly rising: {'PASS' if D_rises else 'FAIL'}, "
           f"r strictly falling: {'PASS' if r_falls else 'FAIL'}")
     print(f"  hoard strictly growing while the rate falls: {'PASS' if h_rises else 'FAIL'} "
-          f"(r vs H correlation {rho:+.4f}; H gains {h_gain:.2f}x over the boom) — "
+          f"(r vs H correlation {rho:+.4f}; H gains {h_gain:.2f}x over the boom)—"
           f"the rate of profit falls as the hoard grows (§4.2)")
     print(f"  the squeeze: r < 0 for the last {squeeze * 100:.1f}% of the boom before the crash "
-          f"(overproduction — the boom turns unprofitable while it is still expanding)")
+          f"(overproduction—the boom turns unprofitable while it is still expanding)")
 
 
 if __name__ == "__main__":

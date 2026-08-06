@@ -25,7 +25,7 @@ init (seed 42), per the canonical-init convention of
 scale factor, smoothed Hubble rate, and global q_mean, so a shared
 solver makes later arms order-dependent. P0 is measured in-process from
 a dedicated t = 4 reference run (4000 steps; reports include the
-step-3999 endpoint, an 81-point series) — the load-bearing window: from
+step-3999 endpoint, an 81-point series)—the load-bearing window: from
 an 8000-step window the FFT bins shift P0 to 0.0800 and the amp-0.05 arm
 pumps instead of quenching. All drives run at P0 = 0.081.
 
@@ -44,7 +44,7 @@ histogram + phase_max, eps time-variance in QUARTERS (t in [0,10),
 last third, ey/ei_min_site + floor-touch counts, sigma_r_site. Extra
 diagnostic: the site's own dominant period measured in-process over the
 second half (t in [20, 40], 401-point window) of each persist arm and of
-ref — does the quenched site's natural period drift from 0.081 while the
+ref—does the quenched site's natural period drift from 0.081 while the
 drive stays at fixed P0? (window-binned per the dominant_period caveat
 of `consciousness/gender-as-qi-configuration.md` §8.1; the cross-arm
 comparison is what matters.)
@@ -78,7 +78,7 @@ Checkpoint/resume (per pde-checkpoint-resume): per-arm checkpoints every
 4000 steps save (step, a, H_smooth, H, q_mean, u_hat, ey_hat, ei_hat,
 hist); --resume DIR skips completed arms (run_<tag>.json present) and
 continues unfinished arms from their last checkpoint. State restored:
-solver.a, solver._H_smooth, solver.H, solver.q_mean — the four scalars
+solver.a, solver._H_smooth, solver.H, solver.q_mean—the four scalars
 rk2_step mutates (qi_memory is off in build_solver, so eps_sq_memory is
 not carried).
 
@@ -162,7 +162,7 @@ def run_arm_long(device, tag, outdir, steps, drive_channel=None,
     drive schedule before the rk2 step, same report cadence) with two
     extensions: mid-arm checkpointing every CKPT_EVERY steps, and resume
     from the last checkpoint (solver state a / _H_smooth / H / q_mean are
-    restored — the four scalars rk2_step mutates). A FRESH solver is
+    restored—the four scalars rk2_step mutates). A FRESH solver is
     built per arm so no arm inherits the previous arm's state; identical
     schedules are bit-reproducible across fresh-solver arms.
     """

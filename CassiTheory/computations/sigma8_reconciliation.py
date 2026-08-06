@@ -100,13 +100,13 @@ for step in range(N_STEPS):
             'delta': delta_t.cpu().numpy().copy(),
             'q_mean': q_mean_cur,
         }
-print(f"      PDE done in {time.time() - t0:.1f}s — "
+print(f"      PDE done in {time.time() - t0:.1f}s—"
       f"a: {a_ic:.3f} → {final['a']:.3f}, "
       f"δ_rms: {delta_rms_ic:.4f} → {final['delta_rms']:.4f}, "
       f"q_mean: {q_ref:.4f} → {final['q_mean']:.4f}")
 
 # ═════════════════════════════════════════════════════════════════════════
-# 2. σ₈ values — the pipeline's own five numbers
+# 2. σ₈ values—the pipeline's own five numbers
 # ═════════════════════════════════════════════════════════════════════════
 
 print("\n[3/4] σ₈ values (pipeline definitions)...")

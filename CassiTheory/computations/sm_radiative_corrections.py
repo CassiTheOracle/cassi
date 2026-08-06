@@ -99,7 +99,7 @@ def run_down_from_boundary(m_gut):
     aem = a2 * s2
     return inv1, inv2, inv3, s2, aem
 
-print("  Direction A — φ-boundary at M_GUT, run DOWN to m_Z (SM content):")
+print("  Direction A—φ-boundary at M_GUT, run DOWN to m_Z (SM content):")
 print(f"  {'M_GUT':>10} {'α₁⁻¹(m_Z)':>10} {'α₂⁻¹(m_Z)':>10} {'α₃⁻¹(m_Z)':>10}"
       f" {'sin²θ_W':>9} {'α_em⁻¹':>9}")
 for mg in (M_GUT_CANON, M_GUT_NOM):
@@ -246,7 +246,7 @@ def run_down_from_s2(s2_0, m_gut, mssm):
 s2_down_sm   = run_down_from_s2(S2_PHI, M_GUT_NOM, False)
 s2_down_mssm = run_down_from_s2(S2_PHI, M_GUT_NOM, True)
 print(f"  Running φ⁻³ = 0.236 DOWN from 2×10¹⁶ GeV gives sin²θ_W(m_Z) ="
-      f" {s2_down_sm:.2f} (SM) / {s2_down_mssm:.2f} (MSSM) — not 0.231")
+      f" {s2_down_sm:.2f} (SM) / {s2_down_mssm:.2f} (MSSM)—not 0.231")
 print()
 
 # ----------------------------------------------------------------------
@@ -319,7 +319,7 @@ print(f"  Decomposition (one-loop, MS-bar angle):")
 print(f"    Δρ = 3G_F m_t²/(8√2π²) = {d_rho:.5f}   (with 2-loop QCD: {d_rho_qcd:.5f})")
 print(f"    (c²/s²)Δρ = {c2s2 * d_rho:.5f}   (QCD-corrected: {c2s2 * d_rho_qcd:.5f})")
 print(f"    Δr = Δα − (c²/s²)Δρ + Δr_rem  →  Δr_rem = {dr - DALPHA + c2s2*d_rho_qcd:+.5f}")
-print(f"    (Δr − Δα = {dr - DALPHA:+.5f} — the >20σ evidence for electroweak"
+print(f"    (Δr − Δα = {dr - DALPHA:+.5f}—the >20σ evidence for electroweak"
       f" corrections beyond the running of α; 26σ in S&F 2013 §III.I)")
 print()
 
@@ -346,7 +346,7 @@ print(f"  v = 1/(√2 G_F)^{{1/2}} = {V:.2f} GeV,  λ(m_Z) = m_H²/(2v²) = {LAM
 G2_MZ = sqrt(4 * pi / 29.6)   # α₂(m_Z) = 1/29.6
 LAM_PHI = (PHI**(-2) / 2) * (G2_MZ**2 / 8)
 print(f"  sm-from-phi §2.3 check: λ_φ = (φ⁻²/2)(g₂²/8) = {LAM_PHI:.5f}"
-      f" → m_H = v√(2λ_φ) = {V * sqrt(2*LAM_PHI):.1f} GeV  (NOT 125 GeV —"
+      f" → m_H = v√(2λ_φ) = {V * sqrt(2*LAM_PHI):.1f} GeV  (NOT 125 GeV—"
       f" the old formula does not reproduce m_H)")
 
 # one-loop λ RGE: dλ/dt = (1/16π²)[24λ² + 12λy_t² − 6y_t⁴
@@ -455,12 +455,12 @@ dd2 = sqrt(((M11 - M22) / 2)**2 + M12**2)
 m_hi = sqrt(max(tr2 + dd2, 0.0))
 m_lo = sqrt(max(tr2 - dd2, 0.0))
 print(f"  (4) two-fluid eigenmasses (g = φ⁻³, λ = λ_WX = 0.1, |Ψ|²_min = v²):")
-print(f"      m = {m_hi:.1f} / {m_lo:.1f} GeV — bracket m_H = 125.25"
+print(f"      m = {m_hi:.1f} / {m_lo:.1f} GeV—bracket m_H = 125.25"
       f" (geometric mean {sqrt(m_hi*m_lo):.1f}, "
       f"{100*(sqrt(m_hi*m_lo)/M_H_EXP-1):+.1f}%)   [Hypothesized structure;"
       f" normalization convention matters at the ~20% level]")
 print()
-# (5) fractional-rung coincidences — documented, REJECTED as fits
+# (5) fractional-rung coincidences—documented, REJECTED as fits
 print("  (5) sharpest fractional-rung coincidences (no mechanism → fits,"
       " not predictions; cf. the m_e half-step 26.5 precedent):")
 for lab, val in [
@@ -470,7 +470,7 @@ for lab, val in [
 ]:
     print(f"      {lab} = {val:.2f} GeV  ({100*(val/M_H_EXP-1):+.2f}%)")
 print(f"      (m_t/m_H = φ^(2/3) at 0.03% is the sharpest known mass-ratio"
-      f" coincidence; rejected absent a mechanism — 2/3-rung offsets have"
+      f" coincidence; rejected absent a mechanism—2/3-rung offsets have"
       f" no Cassi origin)")
 print()
 # rung placements on the M_Pl mass ladder
@@ -497,7 +497,7 @@ for lab, val in [
     print(f"      {lab:20s} = {val:.1f} GeV  ({100*(val/M_H_EXP-1):+.1f}%)")
 print("      → no simple pooling law reproduces 125.25; the observed mass is")
 print("      not a combination of the isolated-vacuum modes (or the mode")
-print("      normalization differs — the ~20% convention sensitivity of §5.5)")
+print("      normalization differs—the ~20% convention sensitivity of §5.5)")
 print()
 # W2: Wu-Xing quartic with the (1 + φ⁻³/w) correction (w = 5)
 LAM_W2 = (2 * LAM_WX / PHI) * (1 + PHI**(-3) / 5)
@@ -528,7 +528,7 @@ print()
 # Y6: top-pair pool observation
 M_2T_PHI2 = 2 * M_T / PHI**2
 print(f"  Top-pair pool: 2m_t/φ² = {M_2T_PHI2:.1f} GeV  "
-      f"({100*(M_2T_PHI2/M_H_EXP-1):+.1f}%) — the same +5.3% as the v₀ rung"
+      f"({100*(M_2T_PHI2/M_H_EXP-1):+.1f}%)—the same +5.3% as the v₀ rung"
       f" correction (observation, not a prediction)")
 print()
 print("  Look-elsewhere note: three independent candidates land within 0.05%")
@@ -567,7 +567,7 @@ for lab, m in [("b", 2.86), ("τ", 1.77686), ("c", 0.62), ("μ", 0.105658),
     print(f"      {lab:2s} {m:11.6g} {yf:10.6g} {dn:7.2f} {half:6.1f}"
           f" {resid:+6.1f}%")
 print(f"      (b, τ close at half-rungs +1.1% / +0.5%; e −2.0%; μ −5.7%")
-print(f"       resists; c/s/d/u masses carry MS-bar uncertainties ~10–20% —")
+print(f"       resists; c/s/d/u masses carry MS-bar uncertainties ~10–20%—")
 print(f"       the family is not closed)")
 print("  Convention sensitivity (b, τ):")
 print(f"      pole top + MS-bar quarks: Δn = 8.52 / 9.51  (b +1.1%, τ +0.5%)")
@@ -576,13 +576,13 @@ dn_t_ms = log(YT_MZ_RUN / (sqrt(2)*1.77686/V)) / log(PHI)
 print(f"      MS-bar top (y_t(m_Z) = {YT_MZ_RUN:.4f}):      Δn ="
       f" {dn_b_ms:.2f} / {dn_t_ms:.2f}  (b {100*(PHI**(dn_b_ms-8.5)-1):+.1f}%,"
       f" τ {100*(PHI**(dn_t_ms-9.5)-1):+.1f}%)")
-print(f"      pole top + pole b (4.18 GeV): Δn = 7.73 — the b half-rung")
+print(f"      pole top + pole b (4.18 GeV): Δn = 7.73—the b half-rung")
 print(f"      fails outright (mixed conventions do not rescue the ladder)")
 print()
 # combined chain
 M_H_CHAIN = (V / sqrt(2)) * Y_T_2G * PHI**(-2/3)
 print(f"  Combined chain: m_H = (v/√2)(2g−g²)·φ^(−2/3) = {M_H_CHAIN:.2f} GeV"
-      f"  ({100*(M_H_CHAIN/M_H_EXP-1):+.3f}%) — one open structure (2/3)"
+      f"  ({100*(M_H_CHAIN/M_H_EXP-1):+.3f}%)—one open structure (2/3)"
       f" + one derived constant (g)")
 print()
 
@@ -593,7 +593,7 @@ print("=" * 76)
 print("  SUMMARY: φ-BOUNDARY VS MEASURED, WITH FULL SM RADIATIVE CORRECTIONS")
 print("=" * 76)
 print()
-print("  Direction A — φ-boundary (α_GUT = φ⁻³/4π at M_GUT = 10¹⁶ GeV) run down:")
+print("  Direction A—φ-boundary (α_GUT = φ⁻³/4π at M_GUT = 10¹⁶ GeV) run down:")
 print(f"    α₁⁻¹(m_Z) = {inv1_c:.1f}  vs 59.0   ({100*(inv1_c/59.0-1):+.0f}%)")
 print(f"    α₂⁻¹(m_Z) = {inv2_c:.1f}  vs 29.6   ({100*(inv2_c/29.6-1):+.0f}%)")
 print(f"    α₃⁻¹(m_Z) = {inv3_c:.1f}  vs 8.47   ({100*(inv3_c/8.47-1):+.0f}%)"
@@ -603,7 +603,7 @@ print(f"    sin²θ_W(m_Z) = {s2_c:.4f}  vs 0.23122   "
       f"({100*(s2_c/0.23122-1):+.1f}%)")
 print(f"    α_em⁻¹(m_Z) = {1/aem_c:.0f}  vs 128.9   ({100*((1/aem_c)/128.9-1):+.0f}%)")
 print()
-print("  Direction B — measured Z-pole values run up:")
+print("  Direction B—measured Z-pole values run up:")
 print(f"    α₁ = α₂ at ~10¹³ GeV (α⁻¹ ~ 42); α₂ = α₃ at ~10¹⁷ GeV;"
       f" no exact unification in the SM")
 print(f"    sin²θ_W(2×10¹⁶) = {s2_at(M_GUT_NOM)[0]:.3f}  (φ⁻³ = 0.2361 is NOT"

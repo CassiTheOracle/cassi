@@ -14,7 +14,7 @@ Key changes from v4:
      produces (constant dispersion, cored center); the lattice is a
      small-scale modulation on top of this envelope, not the envelope
      itself.
-  2. Two free parameters (rho_c, r_c) vs NFW's two (rs, rho0) — the AIC
+  2. Two free parameters (rho_c, r_c) vs NFW's two (rs, rho0)—the AIC
      penalty is identical, so the comparison stays fair.
   3. Same full-range + inner-region AIC, core-radius scaling gamma,
      and small-r slope test as v4.

@@ -2,7 +2,7 @@
 """Calibrate initial ratio r0 with the Yang-fraction-weighted Qi coupling.
 
 Revision 2026-07-31 (v2): the coupling verified in galactic rotation
-curves (SPARC v5-v8: v^2 = G [M_bar + (1 + xi q) M_Y] / r — the boost
+curves (SPARC v5-v8: v^2 = G [M_bar + (1 + xi q) M_Y] / r—the boost
 applies to the Yang component only) has the homogeneous analogue
 
     H_eff^2 = H_bare^2 * [1 + xi q * r/(1+r)],   r = E_Y/E_I,
@@ -11,7 +11,7 @@ i.e. the boost is weighted by the Yang fraction r/(1+r), which is
 exactly phi/(1+phi) = 1/phi ~ 0.618 at the attractor r = phi. The v1
 form H_eff = H_bare * sqrt(1 + xi q) implicitly assumed pure-Yang
 sourcing (fraction = 1) and boosted H by ~2.5x already at z ~ 99 where
-r ~ 0.03 (Yin-dominated) — inconsistent with the galactic convention.
+r ~ 0.03 (Yin-dominated)—inconsistent with the galactic convention.
 
 DESI DR2 anchors (2026-07-31 verification):
   - Paper II abstract (arXiv:2503.14738): w0 > -1, wa < 0 at 3.1 sigma

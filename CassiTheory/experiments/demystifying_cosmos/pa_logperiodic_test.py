@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""P48 — Log-periodic polarization-angle test on published multi-band PA data.
+"""P48—Log-periodic polarization-angle test on published multi-band PA data.
 
 Prediction (`predictions/falsifiable-predictions.md`, P48): in synchrotron
 sources the polarization position angle winds one full turn per cascade rung
@@ -8,7 +8,7 @@ of emitting-particle energy,
     Theta(nu) = Theta0 + (2 pi / ln phi) ln(nu / nu0),   PA = Theta (mod pi),
 
 i.e. PA is log-periodic in photon frequency with period ln phi ~= 0.4812
-(equivalently PA(ν·φ^k) = PA(ν) mod π), and — per the prediction text — a
+(equivalently PA(ν·φ^k) = PA(ν) mod π), and—per the prediction text—a
 band pair at half-rung separation (ν2/ν1 = sqrt(phi)) shows PA rotated 90°.
 
 Test (CATALOG class): published tabulated polarization position angles in
@@ -21,12 +21,12 @@ Sources used (all tabulated, peer-reviewed):
     - NIKA 150 GHz, psi_eq (Ritacco+ 2018 Tab. 2, 7' aperture)
     - OSO-8 rocket 2.6/5.2 keV (Weisskopf+ 1978, quoted in Forot+ 2008)
     - IXPE 2-8 keV space-integrated nebula, PA = 145° (Bucciantini+ 2023,
-      Nat. Astron. 7, 602; no error quoted in abstract — sigma assumed 2°)
+      Nat. Astron. 7, 602; no error quoted in abstract—sigma assumed 2°)
     - INTEGRAL SPI 100 keV-1 MeV, off-pulse (Dean+ 2008, quoted in Forot+ 2008)
     - INTEGRAL IBIS 200-800 keV, off-pulse+bridge (Forot+ 2008 Tab. 2)
   Lighthouse Nebula trail (PSR J1101-6101, Dinsmore+ 2026, arXiv:2604.22914):
     - IXPE 2-8 keV trail EVPA = -24° ± 12° (LeakageLib fit)
-    - ATCA 5.5/9 GHz EVPA inferred ~66° ± 15° — the paper quotes only
+    - ATCA 5.5/9 GHz EVPA inferred ~66° ± 15°—the paper quotes only
       "nearly orthogonal to the radio polarization", so the radio point is
       marked INFERRED and the source is a 2-band pair check, not a ≥3-band
       test.
@@ -58,7 +58,7 @@ import math
 import numpy as np
 
 PHI = (1.0 + math.sqrt(5.0)) / 2.0
-LN_PHI = math.log(PHI)          # 0.48121 — the predicted log period
+LN_PHI = math.log(PHI)          # 0.48121—the predicted log period
 M_RAD = 2.0 * math.pi / LN_PHI  # spiral slope, rad per unit ln(nu)
 M_DEG = math.degrees(M_RAD)     # 748.4 deg per unit ln(nu) ~ 1723 deg/decade
 D2R = math.pi / 180.0
@@ -83,7 +83,7 @@ CRAB = [
 ]
 
 # Lighthouse trail: 2 usable bands only (radio EVPA inferred from the paper's
-# "nearly orthogonal to the radio polarization" — no tabulated radio PA).
+# "nearly orthogonal to the radio polarization"—no tabulated radio PA).
 LIGHTHOUSE = [
     ("ATCA 5.5/9 GHz (INFERRED)", 7.25e9, 66.0, 15.0),
     ("IXPE 2-8 keV trail",        4.83e17, -24.0, 12.0),
@@ -156,7 +156,7 @@ def run_source(name, bands, mc_n=2000, seed=42):
     p_d = np.mean(d_null <= d_sp)
 
     print(f"\n{'=' * 78}")
-    print(f"{name} — {n} bands, Δ(ln ν) = {math.log(nus[-1] / nus[0]):.2f} "
+    print(f"{name}—{n} bands, Δ(ln ν) = {math.log(nus[-1] / nus[0]):.2f} "
           f"(= {math.log(nus[-1] / nus[0]) / LN_PHI:.1f} rungs)")
     print(f"{'=' * 78}")
     print(f"  {'band':28s}{'ν [Hz]':>11s}{'PA [°]':>9s}{'σ [°]':>7s}")
@@ -176,7 +176,7 @@ def run_source(name, bands, mc_n=2000, seed=42):
           f"mean residual {d_null.mean():.2f}° ± {d_null.std():.2f}°  "
           f"p(observed ≤ null) = {p_d:.3f}")
 
-    print(f"\n  band pairs — predicted vs observed ΔPA (mod 180°):")
+    print(f"\n  band pairs—predicted vs observed ΔPA (mod 180°):")
     n_agree = 0
     n_pair = 0
     for i in range(n):
@@ -210,7 +210,7 @@ def lighthouse_pair(bands):
     sig = math.hypot(s1, s2)
     resid = circ_dist(dp_obs, dp_pred)
     print(f"\n{'=' * 78}")
-    print("Lighthouse Nebula trail — 2-band pair check (radio EVPA inferred)")
+    print("Lighthouse Nebula trail—2-band pair check (radio EVPA inferred)")
     print(f"{'=' * 78}")
     print(f"  {l1}: PA = {p1:+.1f}° ± {s1:.0f}°   {l2}: PA = {p2:+.1f}° ± {s2:.0f}°")
     print(f"  Δ(ln ν) = {math.log(n2 / n1):.2f} (= {math.log(n2 / n1) / LN_PHI:.1f} rungs)")
@@ -219,18 +219,18 @@ def lighthouse_pair(bands):
     print(f"  |residual| = {resid:.1f}°  ->  z = {resid / sig:.1f}")
     print(f"  (2 bands cannot test periodicity; the radio EVPA is inferred "
           f"from 'nearly orthogonal',")
-    print(f"   and radio/X-ray leptons may see different B — region caveat "
+    print(f"   and radio/X-ray leptons may see different B—region caveat "
           f"applies)")
     return dict(z=resid / sig)
 
 
 def main():
-    print("P48 — log-periodic polarization-angle test")
+    print("P48—log-periodic polarization-angle test")
     print(f"  slope m = 2π/ln φ = {M_DEG:.1f}° per unit ln ν "
           f"({M_DEG / math.log(10.0):.0f}°/decade); "
           f"period ln φ = {LN_PHI:.4f}; "
           f"half-rung (√φ) spacing = {math.sqrt(PHI):.4f}")
-    print("  Prediction text also claims a 90° flip at √φ band pairs — "
+    print("  Prediction text also claims a 90° flip at √φ band pairs—"
           "note: the")
     print("  formula gives ΔΘ = π (180°) there, i.e. PA unchanged mod π; "
           "a 90° flip")
@@ -238,13 +238,13 @@ def main():
           "The text is internally")
     print("  inconsistent; the formula is what is tested below.")
 
-    # main test: Crab mm band (same emission region, same B — no escape hatch)
+    # main test: Crab mm band (same emission region, same B—no escape hatch)
     mm = [b for b in CRAB if "mm" in b[4]]
-    run_source("CRAB NEBULA — radio/mm band (same region, B-ratio caveat "
+    run_source("CRAB NEBULA—radio/mm band (same region, B-ratio caveat "
                "inapplicable)", mm, mc_n=4000)
 
     # extended: mm + X-ray + hard-gamma (cross-region; B-ratio caveat)
-    run_source("CRAB NEBULA — all bands (radio→X→γ; region-mixing caveat)",
+    run_source("CRAB NEBULA—all bands (radio→X→γ; region-mixing caveat)",
                CRAB, mc_n=2000)
 
     # Lighthouse: pair check only

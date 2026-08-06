@@ -12,14 +12,14 @@ This script maps the GWTC-4.0 population peaks and headline events onto that
 ladder and asks two questions:
 
   1. Do the LVK primary-mass peaks (10, ~20, 35 M_sun) sit at integer cascade
-     rungs?  (Naive "activated-rung" ladder hypothesis — SPECULATIVE, no
+     rungs?  (Naive "activated-rung" ladder hypothesis—SPECULATIVE, no
      framework derivation exists for stellar-mass black holes.)
   2. Where do the mass-gap edges (5, 130 M_sun) and the headline events land?
 
 Epistemic tier
 --------------
 - N_BH = log_phi(M/M_Pl): Derived (quantum-gravity.md).
-- Stellar-BH zone rung map (182-194): NEW territory — the ladder has no
+- Stellar-BH zone rung map (182-194): NEW territory—the ladder has no
   claims there between the rung-185 and rung-200 anchors. Hypothesized.
 - The integer-rung peak hypothesis: Speculative; verdict from this script is
   the point of the analysis.
@@ -41,7 +41,7 @@ Usage
 -----
   python experiments/gwtc4_mass_ladder/gwtc4_mass_ladder.py
 
-Writes the figure next to the script (PNG is gitignored — commit the script
+Writes the figure next to the script (PNG is gitignored—commit the script
 only) and prints the verification block.
 """
 
@@ -193,7 +193,7 @@ def plot():
     for n in range(int(ZONE_LO), int(ZONE_HI) + 1):
         axA.axvline(n, color=RING, lw=0.8, zorder=1)
     # Framework anchors nearest this zone (dimensionful-cascade.md); rung 200
-    # sits outside the window — annotate the right edge instead.
+    # sits outside the window—annotate the right edge instead.
     for n, lab in [(185, "rung 185\n(Mt Everest)")]:
         axA.axvline(n, color=YIN_LIGHT, lw=1.4, ls="--", zorder=1)
         axA.text(n, 2.6, lab, color=YIN_LIGHT, ha="center", va="bottom",
@@ -281,10 +281,10 @@ def plot():
     axB.set_yticks([])
     axB.set_title("Distance from nearest integer rung", color=TEXT_MAIN, fontsize=12)
     axB.text(0.01, 0.98, "gold: peaks/events   hollow diamonds: naive $\\varphi$-grid\n"
-                         "(35/\\varphi$^k$) — where a $\\Delta n = 1$ ladder would put peaks",
+                         "(35/\\varphi$^k$)—where a $\\Delta n = 1$ ladder would put peaks",
              transform=axB.transAxes, color=TEXT_SUB, fontsize=8.5, va="top")
 
-    fig.suptitle("GWTC-4.0 on the Cassi ladder: peaks at $n$ = 186.4, 187.9, 189.0 — "
+    fig.suptitle("GWTC-4.0 on the Cassi ladder: peaks at $n$ = 186.4, 187.9, 189.0—"
                  "spacings 1.44, 1.16 rungs, not an integer grid",
                  color=TEXT_MAIN, fontsize=13, y=0.99)
 

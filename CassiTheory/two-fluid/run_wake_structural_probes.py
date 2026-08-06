@@ -10,7 +10,7 @@ realization, tested in the 1D standing-wave setup (the T1 harness
       foundations/wake-geometry.md §2): the wake pair
       cos(2 pi x) + cos(2 pi phi x) (Lambda_Y = ell_n, Lambda_I = ell_n/phi)
       has a beat envelope whose peaks sit at x = m*ell_{n+1} and whose
-      zeros sit at x = (m+1/2)*ell_{n+1} — constructive at the rung,
+      zeros sit at x = (m+1/2)*ell_{n+1}—constructive at the rung,
       destructive at the half-rung. Probe: standing pattern of a single
       wake source (two conventions: the pair in E_Y, and the pair in the
       density rho = E_Y + E_I), launch envelope recovered from the
@@ -34,7 +34,7 @@ realization, tested in the 1D standing-wave setup (the T1 harness
       solved spectrally with the k = 0 mode dropped
       (foundations/spiral-dynamics.md §3.1, cassi_two_fluid_3d_gpu.py):
       in the two-bubble standing pattern the force is quadratic in the
-      wakes, so its spectrum has four lines — the self-harmonics at
+      wakes, so its spectrum has four lines—the self-harmonics at
       k = 2 (Yang wake) and k = 2 phi (Yin wake), whose amplitude ratio
       carries the Green-function factor 1/k and must be F2/F1 = 1/phi,
       and the cross-harmonics at k = 1+phi and k = phi-1, whose
@@ -47,8 +47,8 @@ Conventions: ell_n = 1, ell_{n+1} = phi; V = 0 ICs -> exactly standing,
 BUT the wake pair has two spatial frequencies, so each tone oscillates
 at its own temporal frequency: E(x,t) = 1 + sum_k A_k cos(2 pi k x)
 cos(2 pi k t). All probes measure at t = 0.01 (whole-domain window
-clean; the wall-phase mismatch of the finite domain — the walls sit at
-non-integer phases of the two tones — is a harness-level 0.05% effect
+clean; the wall-phase mismatch of the finite domain—the walls sit at
+non-integer phases of the two tones—is a harness-level 0.05% effect
 at this time, measured and reported) and unwrap each fitted tone by
 its cos(2 pi k t) factor to recover the launch (t = 0) pattern, which
 is the envelope the claims describe.
@@ -131,7 +131,7 @@ def report_positions(indent, x_meas, expected, unit):
 def probe_1(x, dx, dt):
     print()
     print("=" * 78)
-    print("Probe 1 — P44 staggered checkerboard: envelope positions of the")
+    print("Probe 1—P44 staggered checkerboard: envelope positions of the")
     print("single wake source, in units of ell_{n+1} = phi")
     print("=" * 78)
     t = 0.01                       # standing wave; window clean everywhere
@@ -223,9 +223,9 @@ def probe_1(x, dx, dt):
     report_positions("   ", beats, (np.arange(len(beats)) + 0.5) * PHI, PHI)
 
     print("\n  Reading: the launch envelope (slow beat factor) peaks at")
-    print("  m*ell_{n+1} and nulls at (m+1/2)*ell_{n+1} to the grid scale —")
+    print("  m*ell_{n+1} and nulls at (m+1/2)*ell_{n+1} to the grid scale—")
     print("  the staggered checkerboard placement. The raw field crests sit")
-    print("  off-rung by the carrier factor — the envelope, not the raw")
+    print("  off-rung by the carrier factor—the envelope, not the raw")
     print("  crest, is the condensation site (wake-geometry.md §2(c), P46's")
     print("  special-position language u = 1 + log_phi m).")
     return
@@ -238,7 +238,7 @@ def probe_1(x, dx, dt):
 def probe_2(x, dx, dt):
     print()
     print("=" * 78)
-    print("Probe 2 — P43 composite closure: beats at m*ell_{n+1} from")
+    print("Probe 2—P43 composite closure: beats at m*ell_{n+1} from")
     print("two wake trains whose wavelengths sum to the next rung")
     print("=" * 78)
     t = 0.01
@@ -296,7 +296,7 @@ def probe_2(x, dx, dt):
 def probe_3(x, dx, dt):
     print()
     print("=" * 78)
-    print("Probe 3 — wake-force sharpening: F = Pi grad(Phi) harmonics in")
+    print("Probe 3—wake-force sharpening: F = Pi grad(Phi) harmonics in")
     print("the two-bubble standing pattern (bubbles at x = 0 and x = phi)")
     print("=" * 78)
     t = 0.01                        # whole-domain window clean (walls at
@@ -371,7 +371,7 @@ def probe_3(x, dx, dt):
           f"phi^3 = {PHI ** 3:.6f}   (PDE vs claim: "
           f"{(cx_p - PHI ** 3) / PHI ** 3 * 100:+.2f}%)")
     print(f"    (identical to the wavenumber ratio "
-          f"k(1+phi)/k(phi-1) = {(1 + PHI) / (PHI - 1):.6f} — exact by the")
+          f"k(1+phi)/k(phi-1) = {(1 + PHI) / (PHI - 1):.6f}—exact by the")
     print(f"    interference identity (1+phi)/(phi-1) = phi^3)")
 
     # windowed FFT peak scan with parabolic refinement: the lines sit at
@@ -443,13 +443,13 @@ def main():
     print("Verdicts")
     print("=" * 78)
     print("P44 (staggered checkerboard): launch-envelope nulls at")
-    print("  (m+1/2)*ell_{n+1} and beats at m*ell_{n+1} — measured to the")
+    print("  (m+1/2)*ell_{n+1} and beats at m*ell_{n+1}—measured to the")
     print("  grid scale in both conventions (pair in E_Y, pair in rho);")
     print("  the raw field crests carry the carrier-factor offset")
     print("  documented in P46. SUPPORTED.")
     print("P43 (composite closure): the beat period equals the wavelength")
     print("  sum Lambda_Y + Lambda_I = ell_{n+1} (and ell_{n+2} for the")
-    print("  scaled pair) — beats land on m*ell_{n+1} to the grid scale.")
+    print("  scaled pair)—beats land on m*ell_{n+1} to the grid scale.")
     print("  SUPPORTED.")
     print("Sharpening: F2/F1 = A(2 phi)/A(2) = 1/phi and the cross-")
     print("  harmonic amplitude ratio A(phi-1)/A(1+phi) = phi^3, both in")

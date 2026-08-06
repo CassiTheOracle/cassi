@@ -334,7 +334,7 @@ print()
 #
 # INCONSISTENT CHECK (doctrine settlement 2026-08-03): this τ-scan reuses the
 # §7 weighting model (N_eff = N_e/⟨1−q⟩), which already failed to reproduce
-# N_eff = N_e·φ, and yields n_s ≈ 0.997 — contradicting the canonical closed
+# N_eff = N_e·φ, and yields n_s ≈ 0.997—contradicting the canonical closed
 # form n_s = 1 − 2φ⁻¹/N_e = 0.9691 (§4). It is NOT a verification of §4.
 
 for tau in [1.0, 1.5, 2.0, 3.0, 5.0]:

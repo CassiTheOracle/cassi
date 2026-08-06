@@ -97,7 +97,7 @@ def main():
     x_lo, x_hi = 0.12, 1.0
 
     print("=" * 78)
-    print("Panel D — multi-rung wake superposition (T6)")
+    print("Panel D—multi-rung wake superposition (T6)")
     print("Bubbles at x = -phi (down a rung), 0, phi (up one), phi^2")
     print("(up two); the crossing must respond to the TOTAL phasor sum")
     print("if the cumulative channel is open. Wall influence reaches the")
@@ -186,7 +186,7 @@ def main():
     print("PDE = analytic phasor composition at every scan point")
     print("(|diff| < 1e-3 rungs): the crossing is a true field sum over")
     print("all rungs with the framework amplitudes. The cumulative")
-    print("channel is physically open — the catalog must decide the")
+    print("channel is physically open—the catalog must decide the")
     print("sources (T7).")
 
 

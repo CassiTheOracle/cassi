@@ -19,7 +19,7 @@ per the dominant_period window caveat of `consciousness/gender-as-qi-
 configuration.md` §8.1):
   ref        undriven
   in-0.025   in-channel at P0, amp 0.025 (below the phase-blindness
-             floor, >= 0.05 — the no-op control)
+             floor, >= 0.05—the no-op control)
   in-0.05    in-channel at P0, amp 0.05 (the phase floor)
   in-0.10    in-channel at P0, amp 0.10
   in-0.15    in-channel at P0, amp 0.15 (reproduces the known pump)

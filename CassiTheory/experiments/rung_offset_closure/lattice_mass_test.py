@@ -23,7 +23,7 @@ position set.  Tests:
   1. mean s (distance to nearest lattice position) vs same-density
      null, kmax = 2..16, with the search over kmax corrected by
      Monte Carlo.
-  2. per-state (j, k, m_pred) decomposition at kmax = 12 — the
+  2. per-state (j, k, m_pred) decomposition at kmax = 12—the
      mass-frame reading of each state.
   3. idealized-grid (integers + half-integers) vs lattice sharpness.
   4. node/void classification of the sharp placements (sector edges
@@ -75,7 +75,7 @@ def main():
     fracs = np.array([s["frac"] for s in states])
 
     print("=" * 76)
-    print("T9 — lattice-frame masses: m = m_j/k (k integer or half-integer)")
+    print("T9—lattice-frame masses: m = m_j/k (k integer or half-integer)")
     print("positions {log_phi(k), log_phi(k+1/2)} mod 1; the null must")
     print("carry the same position density (mean nearest ~ 1/(4 kmax))")
     print("=" * 76)
@@ -146,10 +146,10 @@ def main():
         print(f"   {s['name']:>10} {s['frac']:6.3f} {pval:6.3f} "
               f"{typ:>5} {k:>5.1f} {j:>4} {m_pred:>13.4g} "
               f"{s['m']:>10.4g} {resid:>6.1f}%")
-    # how many states land within X% of their lattice mass — both the
+    # how many states land within X% of their lattice mass—both the
     # observed and the null must use the SAME threshold in RUNG units
     # (a mass residual of 1% corresponds to s = log_phi(1.01) = 0.0207
-    # rungs, which is the MAXIMUM s for 24 positions — so a 1% mass
+    # rungs, which is the MAXIMUM s for 24 positions—so a 1% mass
     # threshold counts everything; the honest thresholds are smaller)
     s_all = circ_dist1(fracs[:, None], pos[None, :]).min(axis=1)
     print(f"\n   tail counts vs the same-density null "
