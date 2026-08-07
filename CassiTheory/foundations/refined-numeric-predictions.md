@@ -476,22 +476,25 @@ regions (voids, cluster outskirts).
 Eisenstein-Hu ICs, extracts the Qi coherence field $q(x)$, and computes
 the Qi-modified power spectrum and $\sigma_8$:
 
-- **$q_{\text{ref}}$ (initial) = $0.429$**, **$q_{\text{final}}$ = $0.382$**
-- **$G_{\text{eff}}/G_N$ (final) = $7.86$** (absolute Qi enhancement with $\xi = 17.94$)
-- **$G_{\text{eff}}/G_{\text{ref}} = 0.904$**—9.6% reduction in relative gravity as coherence drops
-- **$\sigma_8^{\Lambda\text{CDM}} = 0.97$** (linear growth from IC at $\sigma_8^{\text{init}} = 0.8$)
+- **$q_{\text{ref}}$ (initial) = $0.268$**, **$q_{\text{final}}$ = $0.301$** (re-run 2026-08-07 at the operational $r_0 = 1/23$)
+- **$G_{\text{eff}}/G_N$ (final) = $6.40$** (absolute Qi enhancement with $\xi = 17.94$)
+- **$G_{\text{eff}}/G_{\text{ref}} = 1.102$**—relative gravity rises as coherence grows from the deep-Yin start
+- **$\sigma_8^{\Lambda\text{CDM}} = 0.99$** (linear growth from IC at $\sigma_8^{\text{init}} = 0.8$)
 - **$\sigma_8^{\text{Cassi}} = 0.55$** (measured from PDE density field)
-- **$\Delta\sigma_8 = -0.42$ ($-43\%$)**—strong suppression relative to $\Lambda$CDM linear theory
+- **$\Delta\sigma_8 = -0.45$ ($-45\%$)**—the pipeline-state headline, normalization+resolution-dominated (≈ −9.6% mechanism-attributable on the 2026-08-06 state, ledger §10), not the framework's computed $\sigma_8$ value
 
-**Physics:** The initial high-coherence state ($q=0.429$) produces
-$G_{\text{eff}} = 8.69 G_N$—strong gravity enhancement. But as the field
-evolves toward $\varphi$-equilibrium and loses coherence ($q=0.382$),
-$G_{\text{eff}}$ drops to $7.86 G_N$. The initial boost is not sustained,
-so structure lags behind $\Lambda$CDM linear growth. The $\sigma_8$ reduction
-is consistent with the observed tension direction, though the magnitude ($-0.42$)
-is larger than the $\sim 0.05$–$0.10$ tension between Planck CMB and weak
-lensing—this may reflect the short simulation time ($a_{\text{final}} = 1.65$)
-and coarse resolution ($N=32$).
+**Physics:** The pipeline state at the operational $r_0 = 1/23$ starts
+deep-Yin ($q = 0.268$) and gains coherence as the field evolves
+($q = 0.301$ at $a = 1.82$), so the relative gravity factor rises
+($G_{\text{eff}}/G_{\text{ref}} = 1.102$). The measured-field $\sigma_8$ still
+comes out far below $\Lambda$CDM linear theory because the headline is
+dominated by the P(k) normalization and $N=32$ resolution artifacts
+(δ_rms falls 32% while ΛCDM linear growth rises +24%)—not by the mechanism;
+the pipeline state's $\mu$ history is non-doctrinal (§2.4 of the plan doc).
+The framework's computed values: **−16.6% (R = 0.834)**—the stabilized
+closure's regime-integrated growth (`cosmology/sigma8-computational-plan.md`
+§3.2)—and **−15.2%** (band-state mean-field); the "~5%" wording is not used
+(never computed—plan target only).
 
 **Figure:** `two-fluid/figures/sigma8_pipeline.png`—3-panel: $P(k)$
 comparison, $G_{\text{eff}}(k)/G_N$ vs $k$, and $\sigma_8(a)$ evolution.
@@ -502,10 +505,12 @@ PDE. The current pipeline uses scale-independent $q$ (spatial mean) at
 $N=32$ resolution.
 
 **Reconciliation (2026-08-06, `computations/sigma8_reconciliation.py`):**
-the −43.5% headline is dominated by normalization and resolution—the P(k)
+the −45.1% pipeline headline (re-run 2026-08-07 at the operational
+$r_0 = 1/23$) is dominated by normalization and resolution—the P(k)
 normalization factor (8e-5), nonlinear initial conditions, and N=32 PDE
-dissipation (δ_rms falls 32% while ΛCDM linear growth rises +21%); only
-−9.6% is mechanism-attributable ($G_{\text{eff}}/G_{\text{ref}} = 0.9044$),
+dissipation (δ_rms falls 32% while ΛCDM linear growth rises +24%); ≈
+−9.6% is mechanism-attributable on the 2026-08-06 state
+($G_{\text{eff}}/G_{\text{ref}} = 0.9044$),
 and the "~5%" claim is a Mapped target (μ = 0.98 → −5.3%, ledger §10), not a
 measured suppression. The mechanism direction stands; the magnitude is
 normalization-sensitive.

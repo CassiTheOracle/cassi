@@ -232,7 +232,7 @@ The Qi condensate naturally produces cored profiles (from the $\varphi$-attracto
 | Bullet Cluster | Collisionless DM consistent | Confirmed |
 | Weak lensing | Enhanced $G_{\text{eff}}$ in halos | LSST testable |
 | Direct detection | Null (field condensate) | All experiments null |
-| CMB $\sigma_8$ | Slightly lower ($\sim 5\%$) than $\Lambda$CDM | Within current uncertainty; pipeline plan in `cosmology/sigma8-computational-plan.md` |
+| CMB $\sigma_8$ | **−16.6% (R = 0.834) vs $\Lambda$CDM** — regime-integrated, stabilized closure, P-A reading, $r_0 = 0.0472$ (`cosmology/sigma8-computational-plan.md` §3.2; `parameter-inventory.md` §10); the "~5% lower" wording withdrawn (never computed — plan target only, `cosmology/sigma8-computational-plan.md` §3.2); the μ normalization Mapped | LSST discriminant |
 
 ---
 

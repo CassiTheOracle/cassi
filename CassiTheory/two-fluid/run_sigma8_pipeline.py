@@ -66,7 +66,10 @@ LAM = 0.1
 CHI = 1.0
 CS2 = 0.01
 HYPER_NU = 0.0
-INITIAL_RATIO = 3.0
+# r₀ = 1/INITIAL_RATIO (EI/EY): the operational doctrine value 1/23 ≈ 0.0435
+# (DESI-anchored calibration, run_hubble_pipeline.py); the derived doctrine
+# r₀ = φ⁻⁵/(2−φ⁻⁵) ≈ 0.0472 is 8.6% away and indistinguishable for σ₈.
+INITIAL_RATIO = 23
 HUBBLE_MODE = 'stress_energy'
 SIGMA8_TARGET = 0.8
 
