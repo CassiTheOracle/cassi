@@ -75,6 +75,27 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import run_two_strand_probe as P      # baseline probe, read-only
 import run_trauma_wake_lock as T
 
+# ── t=0 ridge seed (near-d0 separation series) ──────────────────────────
+# The baseline tracker finds maxima of the rho x-profile.  At sep <= 6
+# cells (SIG = 5) the two density ridges overlap into a single profile
+# bump, so the tracker cannot resolve the constructed pair at t = 0 and
+# reports one merged ridge (d_start = 0, both strands at the midpoint),
+# even though the anti-phase eps lobes sit at the constructed centers.
+# Seed only the first measurement with the constructed centers; every
+# later record uses the baseline tracker unchanged, so the evolution and
+# all t > 0 records are bit-identical to the unseeded run.
+_orig_track_ridges = P.track_ridges
+
+
+def _track_ridges_seeded(rho_prof, centers, prev):
+    ridges, merged = _orig_track_ridges(rho_prof, centers, prev)
+    if merged and prev is None and len(centers) == 2:
+        return list(centers), False
+    return ridges, merged
+
+
+P.track_ridges = _track_ridges_seeded
+
 # ── Protocol (lock timescale: t = 40 = 2/lambda) ─────────────────────────
 T.LAM = 0.05
 T.DT = 0.001
