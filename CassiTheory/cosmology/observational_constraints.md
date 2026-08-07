@@ -32,6 +32,8 @@ This is a parameter-free prediction of the two-fluid PDE conversion mechanism: t
 | Neutrino mass upper limit (ΛCDM) | $\sum m_\nu < 0.064$ eV (95% CL) | Abstract |
 | Neutrino mass upper limit ($w_0 w_a$) | $\sum m_\nu < 0.16$ eV (95% CL) | Abstract |
 
+DESI DR2 mapped 13.1 million galaxies and 1.6 million quasars; the $4.2\sigma$ deviation from $\Lambda$CDM corresponds to about one chance in 30,000 if dark energy were constant (DESI DR2).
+
 From the DESI DR2 + CMB + SNe combined analysis, the best-fit ($w_0$, $w_a$) lies in the quadrant $w_0 > -1$, $w_a < 0$. Cassi shares the $w_0 > -1$ side ($w_0 = -0.87$); the Calibrated baseline predicts $w_a > 0$ ($+0.012$)—the opposite sign of the DESI preference—but with the ratified conversion→expansion coupling's **stable realization** (the C1 friction closure—10/12) the late-time $r$ freezes at $r_* \approx 0.9503$ (the collapse at $z \approx 61$) and the DESI-window fit is exactly $(w_0, w_a) = (-1, 0)$—4.17σ/2.61σ from DESI; the earlier $w_a \approx -0.38$ (B2; $1.25\sigma$) describes the unstable realization (density blow-up), not the theory's prediction. The CPL parametrization used throughout is $w(a) = w_0 + w_a(1 - a)$.
 
 ### 1.3 Independent Analysis Paper
