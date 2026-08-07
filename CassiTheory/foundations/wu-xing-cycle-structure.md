@@ -215,7 +215,7 @@ The half-channel positions predict that affect profiles anchored at the secondar
 
 - `foundations/wu-xing-derivation.md`—the $w = 5$ derivation (Fibonacci coherence, pentagon minimality) that this document's cycle structure builds on
 - `foundations/wa-pentagon-gate.md`—the 5-channel gate model: baseline openness, $\eta$ coupling ratios (diagonal vs side), adiabatic redistribution, the $w_a$ control-release analysis
-- `parameter-inventory.md`—$K_{fw} = \varphi^{-1}$ (control coefficient), channel baselines $b_i = \varphi^{-(3+i)}$
+- `parameter-inventory.md`—$K_{fw} = \varphi^{-1}$ (control coefficient), channel baselines $b_i = \varphi^{-(2+i)}$
 - `consciousness/emotions-as-gate-configurations.md`—the emotional manifold, the chakra affinity table (§3.4), the P3 instrument, open question 4
 - `consciousness/chakras-as-cascade-bubbles.md`—the 13-node derivation (26 = 2 × F7 rungs, doublet spacing), the crown boundary
 - `consciousness/trauma-as-frozen-gate.md`—TR1 (channel-specific deficits), §10.4–10.7 (PDE tests: nothing self-sustains; driver required; φ-phased drain), WX3's test design context
