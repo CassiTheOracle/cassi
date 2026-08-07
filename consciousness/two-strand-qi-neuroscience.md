@@ -145,6 +145,117 @@ $$
 
 because anti-phase conversion is already present in the PDE. The mapping from internal anti-phase response to two physical strands remains Hypothesized.
 
+### 3.1 Polar form of the existing Qi field
+
+Write the two real components locally as
+
+$$
+\Psi_Y=R\cos\theta,
+\qquad
+\Psi_I=R\sin\theta.
+$$
+
+The existing Qi variables then give
+
+$$
+\rho=R^2,
+\qquad
+J=R^2\nabla\theta,
+$$
+
+so $J$ is already the phase current of the Yang–Yin doublet. The attractor potential becomes
+
+$$
+V_{\mathrm{attr}}(R,\theta)
+=
+\frac{\lambda R^4}{2}
+\left(\cos^2\theta-\varphi\sin^2\theta\right)^2.
+$$
+
+Its angular minima satisfy
+
+$$
+\tan^2\theta_\star=\varphi^{-1},
+\qquad
+\theta_\star=\arctan(\varphi^{-1/2})\approx38.17^\circ.
+$$
+
+At fixed amplitude, the local phase curvature is
+
+$$
+\boxed{\kappa_\theta=4\lambda\varphi R^4.}
+$$
+
+For the existing solver value $\lambda=0.1$ and $R=1$, this is $\kappa_\theta=0.6472$. This stiffness belongs to the existing Yang–Yin field; it is not a new strand coupling. A two-strand model must determine its relative-phase stiffness by projecting this field dynamics onto two localized ridges.
+
+### 3.2 Anti-phase transverse mode
+
+Take a one-dimensional transverse envelope $\chi$ for a selected Qi diagnostic, with two Gaussian ridges of width $\sigma$ and separation $d$:
+
+$$
+\chi(x)=
+\exp\!\left[-\frac{(x-d/2)^2}{2\sigma^2}\right]
++e^{i\Delta\theta}
+\exp\!\left[-\frac{(x+d/2)^2}{2\sigma^2}\right].
+$$
+
+The anti-phase branch $\Delta\theta=\pi$ gives
+
+$$
+\chi_\pi(x)=2\exp\!\left[-\frac{x^2}{2\sigma^2}-\frac{d^2}{8\sigma^2}\right]
+\sinh\!\left(\frac{xd}{2\sigma^2}\right),
+$$
+
+and therefore
+
+$$
+\chi_\pi(0)=0.
+$$
+
+The midpoint is a node while the two side ridges carry the mode. The positive-side intensity maximum obeys
+
+$$
+x_\star=\frac{d}{2}\coth\!\left(\frac{d x_\star}{2\sigma^2}\right).
+$$
+
+This establishes a mathematical route from the existing anti-phase conversion sign to a paired-ridge morphology. It does not select a preferred $d$: separation remains a dynamical question for the full PDE.
+
+### 3.3 Helical embedding on the cascade axis
+
+Let $\mathbf{N}(n)$ and $\mathbf{B}(n)$ be the local normal and binormal directions of the existing cascade curve. A minimal two-strand embedding is
+
+$$
+\boxed{
+\mathbf{R}_\pm(n)
+=
+\mathbf{R}_c(n)
+\pm\frac{d_n}{2}
+\left[
+\mathbf{N}(n)\cos\!\left(\frac{2\pi n}{P_\parallel}\right)
++
+\mathbf{B}(n)\sin\!\left(\frac{2\pi n}{P_\parallel}\right)
+\right].
+}
+$$
+
+The strands are separated by $d_n$ and close one full relative rotation after $P_\parallel$ cascade rungs. At the human scale, the existing $P_\parallel=2$ hypothesis gives a half-turn per rung and a full pair cycle every two rungs. The exact $d_n$ and the total twist after the Frenet-frame rotation remain open. The limit $d_n\to0$ returns $\mathbf{R}_c(n)$ and the current one-string geometry.
+
+### 3.4 Linearized relative dynamics
+
+If the full PDE supplies a finite equilibrium $d_0$ and an anti-phase state $\Delta\theta_0=\pi$, write $\delta d=d-d_0$ and $\eta=\Delta\theta-\pi$. A projected damped relative sector has the generic long-wavelength form
+
+$$
+\mu_d\,\ddot{\delta d}+\gamma_d\,\dot{\delta d}
++\left(K_d+T_d k^2\right)\delta d=0,
+$$
+
+$$
+\mu_\theta\,\ddot{\eta}+\gamma_\theta\,\dot{\eta}
++\left(K_\theta+T_\theta k^2\right)\eta=0.
+$$
+
+The centerline mode and the relative modes are therefore separable at linear order. The existing one-string dynamics occupy the symmetric sector; a genuine two-strand solution requires a stable relative sector with finite $d_0$ and positive restoring curvature. The coefficients must come from a projection of the two-fluid PDE. Assigning them independently would add a new model with new parameters.
+
 ---
 
 ## 4. Qi as the Shared Condensate
