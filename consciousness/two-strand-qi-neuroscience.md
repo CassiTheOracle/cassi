@@ -491,11 +491,11 @@ The $\varphi$ extension has a stricter null: alternative log periods, randomized
 - NS1–NS4 at the lock timescale (t = 40 = 2/$\lambda$), measured from the fields: NS1 null—the pair escapes (d 9.90 → 15.73 cells), no finite-separation branch under the existing PDE; NS2 null—the $d\to0$ limit is not recovered ($\rho_{\mathrm{mid}}$ residual diverges across the {0, 3, 6, 12} series); NS3 null—the antisymmetric mode responds but is not centerline-fixed (drift 3.35 cells); NS4 null—central q above flank q with no q(x) node. Records: `hypotheses/two-strand-five-channel-matter-organization.md` §3.3, `two-fluid/run_two_strand_suite.py`.
 - The pair has measurable center, separation, relative phase, and twist modes (all four measured; §7 statuses).
 - NS5–NS7 remain untested (Stage-1+ protocols).
+- The parity-odd scratch-layer twist-generation candidate is implemented and tested: $\chi_{\mathrm{circ}}=0$ is a bit-for-bit no-op on both probe arms, and the t = 4 magnitude ramp is null (max $|\Delta\mathrm{Tw}|=3.3\times10^{-4}$ over $\chi\in\{\pm0.25,\dots,\pm2\}$, no clamp engagement); the t = 40 lock leg is a pending follow-up. Records: `two-fluid/scratch_twist_chi.py`, `two-fluid/run_twist_chi_ramp.py`, `hypotheses/two-strand-five-channel-matter-organization.md` §3.2.
 
 ### Hypothesized
 
 - Bilateral neural and bodily organization provides a possible human-scale readout.
-- A scratch-layer coupling term could supply the twist generation the existing PDE lacks (TS6 second leg, `hypotheses/two-strand-five-channel-matter-organization.md` §3.2).
 
 ### Speculative
 
