@@ -196,6 +196,7 @@ these constants.
 | Proton mass | $m_p$ | $938$ MeV | **E** | Not derivable (QCD scale) |
 | Strong coupling | $\alpha_s(M_Z)$ | $0.118$ | **E** | Partial: RGE from $\alpha_{\text{GUT}}$ needs particle content |
 | Along-string bubble period | $P_\parallel(n)$ | $P_\parallel(285)=1$, $P_\parallel(142\text{–}168)=2$ | **E** | Empirically determined at two rungs; $n$-dependence not yet derived from PDE. Source: `foundations/bubble-lattice-fabric.md` §2.3 |
+| Breath coupling / frequency | $A_B$, $\omega_Y$ | Unset | **E** | External dimensionful, unset—the breath term's constants (the localization—21, Hypothesized: the phases carried by each region's rung-clock; the composite reading, 21 §2.4, would eliminate them) |
 
 ### 4.1 $G$, $c$, $\hbar$—The Unit System
 

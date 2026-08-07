@@ -145,9 +145,9 @@ All dimensionless couplings are $\varphi$-powers, with the derived rational conv
 
 ### 4.1 Two-Fluid Core $\mathcal{L}_{\text{TF}}$
 
-$$\mathcal{L}_{\text{TF}} = \frac{1}{2}(\partial_\mu\Psi_\alpha)(\partial^\mu\Psi_\alpha) - \frac{\nu}{2}(\nabla^2\Psi_\alpha)^2 - \frac{g}{4}|\Psi|^4 - \frac{\lambda}{2}(\Psi_0^2 - \varphi\Psi_1^2)^2 - \frac{\hbar^2}{2m^2}\frac{\nabla^2 M^\beta}{M^\beta}\Psi_\alpha + A_B B(t)\frac{1}{2}|\Psi|^2$$
+$$\mathcal{L}_{\text{TF}} = \frac{1}{2}(\partial_\mu\Psi_\alpha)(\partial^\mu\Psi_\alpha) - \frac{\nu}{2}(\nabla^2\Psi_\alpha)^2 - \frac{g}{4}|\Psi|^4 - \frac{\lambda}{2}(\Psi_0^2 - \varphi\Psi_1^2)^2 - \frac{\hbar^2}{2m^2}\frac{\nabla^2 M^\beta}{M^\beta}\Psi_\alpha + A_B B(x,t)\frac{1}{2}|\Psi|^2$$
 
-Terms: kinetic + gradient, hyperdiffusion, $\phi^4$, $\varphi$-attractor, Bohm quantum potential ($\beta = \varphi^{-1}/2$), breath modulation ($\omega_I = \varphi^{-1}\omega_Y$).
+Terms: kinetic + gradient, hyperdiffusion, $\phi^4$, $\varphi$-attractor, Bohm quantum potential ($\beta = \varphi^{-1}/2$), breath modulation ($\omega_I = \varphi^{-1}\omega_Y$; localized to each region's rung-clock—Hypothesized, 21).
 
 ### 4.2 Dirac Sector $\mathcal{L}_{\text{D}}$
 

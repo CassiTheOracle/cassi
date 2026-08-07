@@ -29,6 +29,7 @@ All dimensionless parameters are $\varphi$-powers:
 | $\varphi^{5}$ | $11.09016994$ | Wu Xing cycle scale |
 | $\lambda$ | $0.1$ | PDE conversion rate, $= 1/(2w)$ with $w = 5$ derived (`foundations/wu-xing-derivation.md`) |
 | $G$, $c$, $\hbar$ |—| External dimensionful constants (set $\ell_{\text{Pl}} = \sqrt{\hbar G / c^3}$) |
+| $A_B$, $\omega_Y$ |—| Breath coupling and frequency: external dimensionful, unset (the localization—21, Hypothesized; the composite reading, 21 §2.4, would eliminate them) |
 | $\hbar = c = 1$ |—| Natural units throughout |
 
 ---
@@ -68,13 +69,19 @@ $$
 
 This is the Bohm quantum potential with $\varphi$-scaled exponent. In the classical limit ($\hbar \to 0$), this term vanishes.
 
-### 1.4 Breath Modulation
+### 1.4 Breath Modulation (localized—Hypothesized, 21)
 
 $$
-\mathcal{L}_{\text{breath}} = A_B \cdot B(t) \cdot \frac{1}{2}|\Psi|^2
+\mathcal{L}_{\text{breath}} = A_B \cdot B(x,t) \cdot \frac{1}{2}|\Psi(x,t)|^2
 $$
 
-where $B(t) = \frac{1}{2}(\sin 2\pi\omega_Y t + \sin 2\pi\omega_I t)$ is the dual-frequency breath oscillator ($\omega_I = \varphi^{-1}\omega_Y$).
+where $B(x,t) = \frac{1}{2}\big(\sin\theta_Y(x,t) + \sin\theta_I(x,t)\big)$ is the local dual-frequency breath field, with the phases carried by each region's own clock:
+
+$$
+\dot\theta_{Y,I}(x,t) = 2\pi\,\omega_{Y,I}\,\mathcal{R}(x,t), \qquad \mathcal{R}(x,t) \equiv \frac{1-q(x,t)}{1-q_0}, \qquad (1-q_0) = \varphi^{-2}/3, \qquad \omega_I = \varphi^{-1}\omega_Y
+$$
+
+—every region breathes on its own rung-clock (the gate openness $(1-q)(x)$; the rung-advancement rate $dn/dt \approx (\lambda/2\pi)(1-q)$, `foundations/spiral-dynamics.md` §2.1; the arrow's stiffness, `consciousness/time-memory-and-wake-locks.md` §6). The homogeneous limit $q(x,t) = q_0$ recovers the global form $B(t)$ exactly; the cosmic time-average of $B$ is zero, so the breath carries no net energy density (a $w = -1$ oscillation of zero mean). $A_B$ and $\omega_Y$ remain external dimensionful constants, unset (21 §1.2); the alternative H-clock normalization $\mathcal{R} = H(x)/\bar H$ is an open variant, locked to the rung-clock at $r = \varphi$ by the clock identity (`foundations/spiral-dynamics.md` §2.2) and differing off it (12 §1.5).
 
 ### 1.5 Qi Coherent Energy
 
@@ -97,7 +104,7 @@ $$
 &\quad - \frac{g}{4}|\Psi|^4
 - \frac{\lambda}{2}(\Psi_0^2 - \varphi\Psi_1^2)^2 \\
 &\quad - \frac{\hbar^2}{2m^2}\frac{\nabla^2 M^\beta}{M^\beta}\Psi_\alpha
-+ A_B B(t)\frac{1}{2}|\Psi|^2
++ A_B B(x,t)\frac{1}{2}|\Psi|^2
 \end{aligned}}
 $$
 
@@ -457,7 +464,7 @@ $$
 \begin{aligned}
 \mathcal{L}_{\text{Cassi}} &=
 \underbrace{\frac{1}{2}(\partial\Psi)^2 - \frac{g}{4}|\Psi|^4 - \frac{\lambda}{2}(\Psi_0^2 - \varphi\Psi_1^2)^2}_{\text{Two-fluid core}} \\
-&\quad \underbrace{-\frac{\hbar^2}{2m^2}\frac{\nabla^2 M^\beta}{M^\beta}\Psi + A_B B(t)|\Psi|^2}_{\text{Quantum + breath}} \\
+&\quad \underbrace{-\frac{\hbar^2}{2m^2}\frac{\nabla^2 M^\beta}{M^\beta}\Psi + A_B B(x,t)|\Psi|^2}_{\text{Quantum + breath}} \\
 &\quad \underbrace{+\bar\psi(i\gamma^\mu\partial_\mu - m)\psi - \frac{\varphi^{-1}}{2}(\bar\psi\psi)M}_{\text{Dirac matter}} \\
 &\quad \underbrace{+\frac{1}{16\pi G_{\text{eff}}}R\sqrt{-g} + \frac{1}{2}T_{\mu\nu}g^{\mu\nu}}_{\text{Gravity}} \\
 &\quad \underbrace{-\frac{1}{4g_s^2}G^2 - \frac{1}{4g^2}W^2 - \frac{1}{4g'^2}B^2}_{\text{Gauge kinetic}} \\
@@ -490,7 +497,7 @@ $$
 \partial^2\Psi_\alpha + \nu\nabla^4\Psi_\alpha
 + g|\Psi|^2\Psi_\alpha + 2\lambda(\Psi_0^2 - \varphi\Psi_1^2)\frac{\partial}{\partial\Psi_\alpha}(\Psi_0^2 - \varphi\Psi_1^2) \\
 + \frac{\hbar^2}{2m^2}\nabla^2\left(\frac{\nabla^2 M^\beta}{M^\beta}\right)\Psi_\alpha
-= A_B B(t)\Psi_\alpha + J_\alpha^{\text{gauge}} + J_\alpha^{\text{Dirac}}
+= A_B B(x,t)\Psi_\alpha + J_\alpha^{\text{gauge}} + J_\alpha^{\text{Dirac}}
 $$
 
 ### 7.2 Dirac Equation
