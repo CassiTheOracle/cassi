@@ -368,7 +368,7 @@ The two theories disagree by a factor of $\sim 5.6\times$ in the deep
 low-acceleration regime. This is a **decisive, falsifiable distinction**: MOND grows
 without bound, Cassi saturates. The best-fit $\rho_{\text{ref}}$ reproduces the
 MOND RAR only to 47% RMS—Cassi's density-dependent boost (turning on at
-$\rho = \rho_{\text{ref}}$, i.e. $a_{\text{baryon}} \approx 0.99\,a_0$ for the
+$\rho = \rho_{\text{ref}}$, i.e. $a_{\text{baryon}} \approx 0.024\,a_0$ for the
 best fit) is a poorer RAR mimic, but the
 saturation-vs-growth test remains the clean discriminator.
 

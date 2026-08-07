@@ -162,46 +162,37 @@ def rho_local(R):
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-#  SPARC RAR data—representative points from McGaugh et al. (2016)
-#  PRL 117, 201101.  ~50 galaxies, one point per galaxy at ~4 scale radii.
-#  Values approximate, read from published figure + supplementary table.
+#  SPARC RAR data—the published radial acceleration relation
+#  Machine-readable table behind Fig. 2 of Lelli, McGaugh, Schombert &
+#  Pawlowski 2017, MNRAS 470, 3326 ("One Law to Rule Them All"), distributed
+#  with the SPARC database (astroweb.case.edu/SPARC/RAR.mrt, local copy
+#  sparc_rar.mrt with sha256 recorded in its header).  ~2700 points over
+#  the full SPARC sample; columns log10(gbar), e_gbar, log10(gobs), e_gobs.
 # ═══════════════════════════════════════════════════════════════════════════
 
 def get_sparc_data():
-    """Return (a_baryon, a_obs) arrays for representative SPARC galaxies.
+    """Return (a_baryon, a_obs) arrays [m/s²] from the published RAR data.
 
-    These are approximate values representative of the published RAR
-    (McGaugh, Lelli, Schombert 2016).  Each galaxy contributes 2–4
-    radial points spanning the observable dynamic range.
+    Reads the published RAR table (Lelli, McGaugh, Schombert & Pawlowski
+    2017, data behind Fig. 2) from the local copy `sparc_rar.mrt`.  The
+    table lists log10 of the baryonic and observed accelerations in m/s²;
+    this function returns them in linear units.
     """
-    # (log10(a_baryon/m/s²), log10(a_obs/m/s²))—~80 representative points
-    # Generated to match the published RAR with realistic scatter (σ ≈ 0.13 dex)
-    rng = np.random.RandomState(2016)   # McGaugh 2016 seed
-
-    data = []
-    # 20 galaxies, 4 points each = 80 points
-    galaxies = [
-        # (log_a_bar_range_inner, log_a_bar_range_outer) —dynamic range per galaxy
-        (-12.5, -10.5), (-12.2, -10.0), (-12.0, -9.8),
-        (-11.8, -9.5),  (-11.5, -9.3),  (-11.3, -9.0),
-        (-11.0, -9.2),  (-12.8, -10.8), (-11.7, -9.6),
-        (-12.3, -10.3), (-11.1, -9.1),  (-12.6, -10.6),
-        (-11.4, -9.4),  (-12.1, -10.1), (-11.9, -9.7),
-        (-12.4, -10.4), (-11.6, -9.9),  (-12.7, -10.7),
-        (-11.2, -9.0),  (-12.0, -9.5),
-    ]
-
-    for (lo, hi) in galaxies:
-        log_abar = np.linspace(lo, hi, 4)
-        # MOND-like RAR with scatter
-        a_bar = 10**log_abar
-        a_obs_true = mond_a_obs(a_bar)
-        log_aobs = np.log10(a_obs_true) + rng.normal(0, 0.06)
-        for i in range(len(log_abar)):
-            data.append((log_abar[i], log_aobs[i]))
-
-    data = np.array(data)
-    return 10**data[:, 0], 10**data[:, 1]
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sparc_rar.mrt')
+    gbar, gobs = [], []
+    with open(path) as f:
+        for l in f:
+            toks = l.split()
+            if len(toks) != 4:
+                continue
+            try:
+                gbar.append(float(toks[0]))
+                gobs.append(float(toks[2]))
+            except ValueError:
+                continue
+    gbar = np.array(gbar)
+    gobs = np.array(gobs)
+    return 10**gbar, 10**gobs
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -332,8 +323,8 @@ def make_figure(rar_data, rho_ref_list, rho_ref_best, spar_data, savepath):
     ax.set_ylabel(r'$a_{\mathrm{obs}}$ [m/s²]', fontsize=13)
     ax.set_title('Panel A: Radial Acceleration Relation', fontsize=14, fontweight='bold')
     ax.legend(fontsize=7.5, loc='lower right', ncol=1)
-    ax.set_xlim(5e-14, 5e-9)
-    ax.set_ylim(5e-14, 5e-9)
+    ax.set_xlim(5e-14, 1e-8)
+    ax.set_ylim(5e-14, 1e-8)
     ax.grid(True, alpha=0.3)
 
     # ── Panel B: Deviation from MOND ──────────────────────────────────────
@@ -380,7 +371,7 @@ def make_figure(rar_data, rho_ref_list, rho_ref_best, spar_data, savepath):
     # SPARC data
     a_bar_sparc, a_obs_sparc = spar_data
     ax.scatter(a_bar_sparc, a_obs_sparc, s=12, c='orange', alpha=0.5,
-               edgecolors='none', label='SPARC (representative)', zorder=5)
+               edgecolors='none', label='SPARC RAR (Lelli+17)', zorder=5)
 
     ax.axvline(A0, color='red', ls=':', lw=1.5, alpha=0.6, label=f'$a_0$')
 
@@ -390,8 +381,8 @@ def make_figure(rar_data, rho_ref_list, rho_ref_best, spar_data, savepath):
     ax.set_ylabel(r'$a_{\mathrm{obs}}$ [m/s²]', fontsize=13)
     ax.set_title('Panel C: RAR + SPARC Data', fontsize=14, fontweight='bold')
     ax.legend(fontsize=8, loc='lower right')
-    ax.set_xlim(5e-14, 5e-9)
-    ax.set_ylim(5e-14, 5e-9)
+    ax.set_xlim(5e-14, 1e-8)
+    ax.set_ylim(5e-14, 1e-8)
     ax.grid(True, alpha=0.3)
 
     fig.suptitle('Path 9: Cassi φ-Gravity vs MOND—Radial Acceleration Relation',
