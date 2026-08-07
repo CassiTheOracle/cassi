@@ -10,15 +10,21 @@ Cassi is a theory of everything built from one constant: the golden ratio $\varp
 
 # Part I—The Substrate
 
-## 1. The Sunflower and the Lattice
+## 1. The Fractal Lattice
 
-Look at a sunflower. Not the yellow petals: the dark center, where the seeds are. They form spirals—34 one way, 55 the other, or 55 and 89, always consecutive Fibonacci numbers. The pattern emerges from a single rule: place each seed at a turn of about 137.5 degrees from the last. That turn is the **golden angle**, which divides a full circle in the golden ratio, approximately 1.618 to 1.
+Zoom into a bubble and you find the same lattice again. A bubble is not a solid object—it is one scale of a repeating structure. Inside every bubble, more bubbles: smaller lattices, the same pattern, another turn of the spiral.
 
-The sunflower is not a metaphor. It is a photograph. The pattern it displays—spirals organized by the golden ratio—is the same pattern that, according to the Cassi framework, organizes galaxies, atoms, cells, and thoughts.
+Zoom out, and the lattice you are inside is itself a bubble of a larger lattice. The pattern repeats at every scale, in both directions—it never bottoms out and never tops out. The Cassi framework proposes that this is how reality works: a **nested lattice of bubbles**, each scale a zoom of every other.
 
-Now imagine that each seed is itself a smaller sunflower, with its own spiral arms; and that the sunflower you started with is itself a seed on a larger one. The pattern never bottoms out and never tops out. The Cassi framework proposes that this is how reality works: a **nested lattice of bubbles**, like the seed head of an infinite sunflower, spiraling through every level of magnification.
+Every bubble carries the signature of that repetition at its poles: a **five-arm Fibonacci spiral** organized by the golden angle $2\pi/\varphi^2 \approx 137.5^\circ$. Count the arms and you find consecutive Fibonacci numbers—34 one way, 55 the other—because the golden angle is the one turn that never repeats exactly, so the spiral never locks into a smaller symmetry. Sunflowers, pinecones, and nautilus shells display the same phyllotaxis at their own scale; in the Cassi framework it is the macroscopic signature of the lattice's pole geometry. A sunflower is an observed instance of the pole spiral, not the source of the pattern.
 
 The pattern needs two things: something pushing outward, something pulling inward, and a rule for how they balance. The framework identifies two tendencies that fill all of space—**Yang**, the expansive field that pushes outward and breaks symmetry, and **Yin**, the contractive field that pulls inward and restores symmetry. They are two sides of one thing, like the front and back of a spinning coin. Where they meet in the right proportion, structure condenses: a pocket of high order, a **bubble**. Where they cancel, a **void** forms: the space between the bubbles.
+
+The formation mechanism is the conversion itself. It acts like a thermostat, pushing the local ratio $r = E_Y/E_I$ toward $\varphi$—and every push generates **wake waves**, spatial interference patterns in the deviation $\varepsilon = E_Y - \varphi E_I$. Where Yang and Yin wakes interfere constructively, coherence $q$ is high and matter condenses into a bubble; where they interfere destructively, $q \to 0$ and a void forms.
+
+Coherence gates conversion: at high $q$ the gate closes and the region rests in balance—a bubble holds; at low $q$ the gate is open and the region churns—a void. Where conversion pumps enough coherence, the field locks into a self-reinforcing filament, the **condensed fluid string**—the spine around which bubbles condense (source: `foundations/bubble-lattice-fabric.md`).
+
+The result is a definite shape, not a soup. A bubble is an **oblate triaxial spheroid**—extended along Yang, contracted along Yin, with axes $\varphi : 1 : 1/\varphi$, and bounded along the string. Its Yang–Yin cross-section is a staggered checkerboard of bubble and void sites, each bubble joined to its diagonal neighbors through saddles and separated from its axial neighbors by void barriers; and because the same condensation field operates at every scale, every bubble contains the full sub-lattice of smaller scales and is itself a site in the next lattice up.
 
 The "right proportion" is $\varphi$. When the push is about 1.618 times stronger than the pull at a given point, the two are in balance. $\varphi$ is the balance point—the unique number that keeps the pattern alive at every scale simultaneously, preventing it from collapsing into one giant bubble or dissolving into random noise.
 
