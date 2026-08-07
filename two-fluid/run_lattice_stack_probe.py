@@ -43,9 +43,11 @@ gate 'five'; the t = 4 characterization records come from the same runs):
   m8_pi5   M=8   decagon step    R = 1.902 (odd-multiple interlace, sec 4.3)
   m8_pi2   M=8   quadrature      R = 0     (the excluded interlace, sec 4.3)
   m8_pi    M=8   anti-phase      R = 0     (alternating checkerboard stack)
-The four dtheta values map onto the sec 4.3 interlace branches: 2 pi/5 and pi
-are even multiples (coincident-pentagon 5-fold), pi/5 is the odd multiple
-(decagonal), pi/2 is quadrature (excluded).
+The four dtheta values map onto the sec 4.3 interlace branches: 2 pi/5 is
+the even multiple (coincident-pentagon 5-fold), pi/5 and pi are the odd
+multiples (decagonal -- pi = 5 x 36 deg, so the anti-phase arm's vertex set
+{2 pi i/5} u {2 pi i/5 + pi} is 10 points, a decagon, not coincident
+pentagons), pi/2 is quadrature (excluded).
 
 Measurements per report:
   axial coherence envelope A(z) = |S(z)| and its phase profile (helical/phase
