@@ -181,6 +181,8 @@ $\varphi$-structured field dynamics.
 | mixed (0.5, 1.2) | +0.166 | +0.048 | **3.44×** | **YES** ($+0.020 \to +0.135$) |
 | above_above (1.2, 2.0) | +0.156 | +0.053 | **2.97×** | **NO** ($+0.082 \to -0.004$) |
 
+**Stabilized-realization note:** the 3.83× revival is a short-time canonical-wake phenomenon; under the stabilized realization (the friction closure) the below-pinch precondition is dynamically evanescent—$r_* \approx 0.9503 > \varphi^{-1}$ absorbs it—so the resonance channel is closed at the attractor; the phenomenon's regime is the transient (22).
+
 The aggregate ratio is inflated by very close $\varphi$-separations ($d=2,4$).
 Distance-matched comparisons (pairing $\varphi$ and control at similar $d$)
 tell a more precise story:
