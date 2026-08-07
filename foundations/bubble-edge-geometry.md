@@ -183,13 +183,15 @@ The bubble edge at $z \approx 19$ (Qi gate engagement, the "pinch") imprints on 
 
 ### 5.2 Void Ellipticity Prediction
 
-The anisotropic edge steepness (§2.2) predicts that **void boundaries are sharper in the Yin direction and softer in the Yang direction**. In void catalog data (SDSS/DESI), this manifests as:
+The anisotropic edge steepness (§2.2) predicts that **void boundaries are sharper in the Yin direction and softer in the Yang direction**. The prediction is the boundary-**gradient** ratio $|\nabla C|_{\text{axial}}/|\nabla C|_{\text{diag}} = \sqrt{4\varphi^2/(1+\varphi^2)} = 1.70130$ (§2.2)—a steepness ratio at the same density threshold, distinct from the bubble's $\varphi$ **shape** anisotropy (axis ratio $\varphi \approx 1.618$, ellipticity $\varepsilon = 1 - \varphi^{-1} = 0.382$; §2.1). In void catalog data (SDSS/DESI), the gradient reading manifests as:
 
 - Voids are more elongated along Yang (the softer edge allows structure to extend further before dropping below threshold)
 - Voids are more sharply truncated along Yin (the steeper edge cuts off abruptly)
-- The effective void ellipticity (ratio of Yang-extent to Yin-extent at the density threshold) tracks $\varphi$—a **zero-parameter prediction** testable with existing data
+- The $\varphi$-shape reading (ratio of Yang-extent to Yin-extent at the density threshold tracking $\varphi$) is a separate observable from the 1.70 gradient ratio—a shape measurement cannot by itself test the 1.70
 
-The gradient anisotropy ratio $\sqrt{4\varphi^2/(1+\varphi^2)} \approx 1.70$ is distinct from the bubble shape ratio $\varphi \approx 1.618$. The two predictions together constrain the model: the bubble IS $\varphi$-elliptical in shape AND the edge is $1.70\times$ steeper toward voids than toward neighbors. Both follow from the condensation field with no free parameters.
+**Measured 2026-08-07** (VAST/ZOBOV SDSS DR7 + NSA volume-limited tracers, 130 voids, $R_{\text{eff}} \ge 15\,h^{-1}$Mpc): the 1.70 gradient ratio does not appear in the data—$\hat\mu = 1.005 \pm 0.221$ (99% CI [0.584, 1.753], $p_{\text{pred}} = 0.008$), NULL per the pre-registered decision tree; the T3 control fails (RSD quadrupole), so the primary is systematics-limited, and the RSD-free 2D transverse control is also NULL. The measured void shape $\varepsilon = 1 - c/a = 0.225 \pm 0.066$ (99% CI [0.210, 0.240]) excludes both the $\varphi$-shape reading 0.382 and the literal 1.70-as-shape reading 0.412. Catalog record: `predictions/falsifiable-predictions.md` §3.
+
+The gradient anisotropy ratio and the shape ratio are two distinct predictions from the same condensation field: the bubble is $\varphi$-elliptical in shape AND the edge is $1.70\times$ steeper toward voids than toward neighbors. On the DR7 sample the 1.70 gradient ratio is null and the $\varphi$-shape reading is excluded by the measured shape ellipticity.
 
 ### 5.3 Absolute Lattice Scales
 

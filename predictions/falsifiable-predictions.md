@@ -57,7 +57,7 @@ CMB-S4 detection threshold ($\sigma_r = 0.001$).
 | $w_a$ (DE EoS slope) | $0$ | **$+0.012$** (with $\xi = \varphi^6$, Calibrated baseline); **$-0.38$** (B2, unstable); **pure-Λ $(-1, 0)$ window (stable realization—10/12)** | baseline $2.7\sigma$; $1.25\sigma$ (B2, unstable); $4.17\sigma$/$2.61\sigma$ (stable realization—12) |
 | $w(z)$ at $z > 3$ | $-1$ | **$> -1$** (no phantom crossing, structural) | LSST/Roman/SKA testable; DESI best fit crosses at $z \approx 0.5$ |
 | φ-periodic $P(k)$ modulation | None | **$\Delta(\ln k) = \ln\varphi \approx 0.4812$** | 0-param, orthogonal to BAO, DESI/Euclid testable |
-| Void ellipticity (edge gradient) | Isotropic boundaries | **1.70** (axial:diagonal steepness) | Zero-param, $C(x,y)$ gradient; SDSS/DESI void catalogs |
+| Void ellipticity (edge gradient) | Isotropic boundaries | **1.70** (axial:diagonal steepness—the boundary-gradient ratio $|\nabla C|_{\text{axial}}/|\nabla C|_{\text{diag}} = \sqrt{4\varphi^2/(1+\varphi^2)} = 1.70130$, `foundations/bubble-edge-geometry.md` §2.2; distinct from the $\varphi$-shape axis ratio, $\varepsilon = 0.382$) | Measured 2026-08-07 (VAST/ZOBOV DR7 + NSA, 130 voids): the 1.70 gradient ratio does not appear in the data—$\mu = 1.005 \pm 0.221$ (99% CI [0.584, 1.753], $p_{\text{pred}} = 0.008$), NULL per the pre-registered tree; T3 control failed (RSD quadrupole)—systematics-limited; the 2D transverse control also NULL; shape $\varepsilon = 0.225 \pm 0.066$ excludes the $\varphi$-shape readings (0.382, 0.412) |
 | $\Omega_{\text{DM}}/\Omega_b$ | $\sim 5$ | **$\varphi^3 + 1 \approx 5.24$** | Observed $5.39$, gap $2.8\%$ |
 | $\sigma_8$ | $0.811$ | **−16.6% (R = 0.834) vs ΛCDM** — the stabilized closure's regime-integrated growth over $z \in [100, 0]$ (P-A relative-μ reading, $r_0 = 0.0472$; `cosmology/sigma8-computational-plan.md` §3.2); band-state mean-field −15.2%; the pipeline's −45.1% headline (r₀ = 1/23 state) is normalization+resolution-dominated, ≈ −9.6% mechanism-attributable (`parameter-inventory.md` §10); the pointwise-chord reading (the framework's pointwise-consistent form) freezes growth at the closure (−99.6% — contradicted by observation; the regime mismatch); the μ normalization remains Mapped | LSST discriminant — the computed value, not a target |
 | DM halo profiles | NFW (cuspy) | **Cored (Qi condensate)** | Dwarf galaxies |
@@ -129,6 +129,18 @@ window—consistent with the fourth value $0.19880$ (7% high, short-window
 noise), none of the forks $\{0, 0.0766, 0.3063\}$; like the dressed winding
 rate it is a fixed-point-limit value, not sustained as the gate opens.
 [COMPUTED]
+
+**Stabilized C1+Ω measurement (2026-08-07):** the stabilized system—the
+ratified term's rotation half under the C1 closure friction—realizes NONE of
+the four forks $\{0, 0.0766, 0.3063, 0.1988\}$: $|a_\theta/a_r| = 0.0527 \pm
+0.0003$ (closest: 0.0766 at 24σ). There is no band state: the Ω generator
+shifts the closure's attractor $r_* = 0.9503$ to a non-rotating saddle at
+$r = 1$ (Im = 0, eigenvalues [+0.00804, −0.15930]). The winding is
+transient-only—0.323 turns/rung in the ε→0 window, 17% below the no-friction
+dressed 0.389—and the run exits the log domain at t ≈ 10.2 after 0.083
+turns. The four fork values are friction-free fixed-point limits the
+stabilization removes; the 0.213 reading is the Ω-only (no-closure)
+realization's fixed-point-limit value. [COMPUTED]
 
 ---
 
@@ -259,7 +271,7 @@ Sorted by detection likelihood (most definitive first):
 | 35 | $\ln\varphi$ physiological spectra | Biophysics | **$\Delta(\ln f) = \ln\varphi$** | Not yet tested | **Laboratory** |
 | 36 | Chakra Qi-gate threshold | Biophysics | **$q_{\text{edge}} \approx 0.725$** | Not yet tested | **Laboratory** |
 | 37 | Chakra biophoton wavelengths | Biophysics | **$\varphi^{2/3} \approx 1.378$ spacing** | Not yet tested | **Laboratory** |
-| 38 | Edge steepness anisotropy at condensate boundary | Universal | **1.70×** (axial:diagonal)—scale-invariant, zero-free-parameter | SDSS/DESI void shape catalogs; biophoton chakra edge mapping; ultrasound fascial elastography | **Existing surveys / Laboratory** |
+| 38 | Edge steepness anisotropy at condensate boundary | Universal | **1.70×** (axial:diagonal)—scale-invariant, zero-free-parameter | Cosmic-surveys reading measured 2026-08-07—null (VAST/ZOBOV DR7; §3 row); biophoton chakra edge mapping; ultrasound fascial elastography | **Existing surveys / Laboratory** |
 | 39 | Lattice powder lines in $P(k)$ | Cosmic surveys | **Comb at $k/k_0 \in \{1, \sqrt{2}, \varphi, \ldots\}$**; period $\ln\varphi$; 1–3% amplitude | DESI LRG $A \lesssim 2.6\%$ ($p = 0.08$), no detection | **Euclid 2027** |
 | 40 | Sample-variance suppression | Cosmic surveys | **~10$\times$ reduced $k \to 0$ scatter; NGC–SGC mode correlation** | Untested | **DESI mocks** |
 | 41 | $D_A(z)$ lattice wiggle bound | Cosmic surveys | **$\delta D/D \lesssim 0.1\%$; cannot bias $w_a$** (needs $\gtrsim 20\%$ to close gap) | Consistent with DESI smoothness | **Already consistent** |
@@ -278,7 +290,7 @@ Sorted by detection likelihood (most definitive first):
 
 | Frontier | Observable | Cassi Prediction | Current Status | Detection Timeline |
 |----------|-----------|-----------------|----------------|-------------------|
-| Cosmology (SDSS/DESI) | Void boundary density profile slope in axial vs. diagonal direction | **1.70×** steepness anisotropy | Not yet tested | **Existing surveys** |
+| Cosmology (SDSS/DESI) | Void boundary density profile slope in axial vs. diagonal direction | **1.70×** steepness anisotropy | Measured 2026-08-07—null (VAST/ZOBOV DR7; catalog §3 row) | **Existing surveys** |
 | Biophysics (chakra) | Qi density gradient at chakra boundary | **1.70×** steepness anisotropy (Yin vs. diagonal) | Not yet tested | **Laboratory** |
 | Anatomy (fascial planes) | Ultrasound elastography boundary stiffness ratio | **1.70×** anisotropy at fascial plane boundaries | Not yet tested | **Laboratory** |
 
