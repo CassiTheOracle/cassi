@@ -262,7 +262,7 @@ The two master registries—the falsifiable catalog and the glossary.
 
 - `predictions/README.md`—Predictions—The Falsifiable Catalog and Framework Glossary. Index. Holds the two master registries—the falsifiable zero-free-parameter prediction catalog grouped by experimental frontier, and the framework glossary of symbols and definitions—with the reading path glossary first, catalog second.
 - `predictions/cassi_definitions.md`—Cassi Framework—Definitions. Reference. Glossary of the framework's symbols and definitions across 16 sections (φ, $E_Y$, $E_I$, $q$, $\xi = \varphi^6$, the φ-attractor, and more)—a unified field framework grounded in the φ-attractor, the Yin-Yang two-fluid, and emergent spacetime geometry (version 2026-07-16).
-- `predictions/falsifiable-predictions.md`—Cassi Falsifiable Predictions. Reference. The 49-entry catalog of zero-free-parameter predictions grouped by experimental frontier, each with its test, current status, and detection timeline.
+- `predictions/falsifiable-predictions.md`—Cassi Falsifiable Predictions. Reference. The 50-entry catalog of zero-free-parameter predictions grouped by experimental frontier, each with its test, current status, and detection timeline.
 
 ## 5. The code
 

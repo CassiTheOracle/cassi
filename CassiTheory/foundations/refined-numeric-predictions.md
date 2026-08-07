@@ -803,7 +803,7 @@ RGE).
 | Pipeline | Script | Status | Key Result |
 |----------|--------|--------|------------|
 | **$H_0$ shift (C3/T4)** | `run_hubble_pipeline.py` | ✓ Built & run | $\Delta H_0 = -7.2$ km/s/Mpc ($-9.9\%$), SAME direction as observed |
-| **$\sigma_8$ (T3)** | `run_sigma8_pipeline.py` | ✓ Built & run | $\Delta\sigma_8 = -0.42$, correct sign, magnitude needs resolution refinement |
+| **$\sigma_8$ (T3)** | `run_sigma8_pipeline.py` | ✓ Built & run | $\Delta\sigma_8 = -0.4488$ (pipeline-state headline at $r_0 = 1/23$, re-run 2026-08-07 — normalization+resolution-dominated; the doctrine rows: −16.6% regime-integrated closure, −15.2% band-state mean-field) |
 | **CMB low-$\ell$ (C10)** | `run_cmb_lowl_pipeline.py` | ✓ Built & run | $\theta_{\text{align}} = 12.22°$, $C_3/C_2 = \varphi^{-1}$ |
 | **Galaxy mass function (T2)** | `run_galaxy_mass_function.py` | ✓ Built & run | $31.2\times$ excess of $M>10^{10} M_\odot/h$ halos at $z=15$ |
 | **CMB $C_\ell$ (F3)** | `run_boltzmann_cassi.py` | ✓ Built & run | $\theta_*$ shifted $+3.8\%$, peaks to lower $\ell$, ISW $+8.6\%$ |
@@ -836,6 +836,6 @@ RGE).
 - `why-three-dimensions.md`—spiral's Frenet-Serret frame, triaxial spheroid
 - `unified-lagrangian.md`—unified action
 - `cosmology/observational_constraints.md`—CMB axis, $\sigma_8$, DESI
-- `predictions/falsifiable-predictions.md`—49-entry prediction catalog
+- `predictions/falsifiable-predictions.md`—50-entry prediction catalog
 - `open-questions-cassi-answers.md`—master catalog
 - `bubble-edge-geometry.md`—condensation field geometry, edge steepness ratio

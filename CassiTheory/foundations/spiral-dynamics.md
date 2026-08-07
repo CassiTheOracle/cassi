@@ -152,6 +152,21 @@ rates: the spiral clock turns $\ln\varphi/2\pi = 0.0766$ turns per H-rung
 0.382$ turns per rung (08). Verified July 2026: this PDE formula matches
 observed $H$ to R² = 1.000 (mean error 0.06%).
 
+**The radial/azimuthal pitch tangent (2026-08-07).** The doublet's two motions
+at the attractor have two $\varphi$-algebra rates: the radial relaxation rate
+$\gamma = \lambda(1-q_0)(1+\varphi) = \lambda/3$ (the $\varepsilon$-direction)
+and the azimuthal gate rate $\Omega_S = \lambda(1-q_0) = \lambda\varphi^{-2}/3 =
+H_{\text{empty}}$ (the spiral-clock rate; §2.3). With the gate value at the
+attractor, $(1-q_0) = \varphi^{-2}/3$ (above), the ratio is exact:
+
+$$\boxed{\tan(\text{pitch}) = \frac{\gamma}{\Omega_S} = 1 + \varphi = \varphi^2 = 2.618 \quad (69.1°)}$$
+
+(the identity $(1+\varphi) = \varphi^2$). The wake-geometry reading:
+$\gamma/\Omega_S = \ell_{n+1}/\Lambda_I$—the composite closure in Yin-wake
+units (`foundations/wake-geometry.md` §1(c)). The identity is **Derived**
+(φ-algebra on the derived rates); its realization in the winding dynamics is
+the falsifiable content (prediction 50, `predictions/falsifiable-predictions.md` §5).
+
 ### 2.3 The irreducible baseline
 
 Even at perfect $\varphi$-equilibrium ($r = \varphi$, $q = 1$), there is a

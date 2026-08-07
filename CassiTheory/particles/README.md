@@ -33,4 +33,4 @@ Benchmarks the real-space pseudospectral DFT engine in CassiBridgeV2 against exa
 - `foundations/cassi-first-principles.md`—first-principles foundation for the two-fluid fields whose interference builds particles
 - `foundations/dimensionful-cascade.md`—the cascade ladder that sets the scales of the quantized standing waves
 - `foundations/cascade-suppression-formula.md`—the coherence budget behind the soliton stability condition
-- `predictions/falsifiable-predictions.md`—the 49-entry prediction catalog (particle predictions inherit the framework's falsifiability)
+- `predictions/falsifiable-predictions.md`—the 50-entry prediction catalog (particle predictions inherit the framework's falsifiability)

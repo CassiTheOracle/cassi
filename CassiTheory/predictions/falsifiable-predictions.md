@@ -209,6 +209,39 @@ Seesaw analysis with $M_R = \varphi^{-3} \cdot M_{\text{GUT}}$ gives the heavies
 
 **Source:** `gravity/quantum-gravity.md` §7.3, §7.5–7.6 (trans-Planckian censorship, non-thermality, no-firewall); `open-questions-cassi-answers.md` G2; the Nature fibre-optic analogue study (July 2026); script `experiments/cassi_physics/cassi_hawking_spectrum.py`.
 
+**Prediction 50 (spiral pitch tangent):** The winding dynamics'
+radial/azimuthal rate ratio realizes $\tan(\text{pitch}) = \gamma/\Omega_S =
+1+\varphi = \varphi^2 = 2.618$ (pitch angle 69.1°)—the radial/azimuthal
+two-motion rate ratio: the radial rate $\gamma = \lambda(1-q_0)(1+\varphi) =
+\lambda/3$ and the azimuthal gate rate $\Omega_S = \lambda(1-q_0) =
+\lambda\varphi^{-2}/3 = H_{\text{empty}}$, both $\varphi$-algebra-derived
+(`foundations/spiral-dynamics.md` §2.2); the wake-geometry reading
+$\gamma/\Omega_S = \ell_{n+1}/\Lambda_I$—the composite closure in Yin-wake
+units (`foundations/wake-geometry.md` §1(c)). The identity is **Derived**
+(φ-algebra arithmetic); the realization in the winding dynamics is the
+falsifiable content. Matches none of the posted forks
+$\{0, 0.0766, 0.3063, 0.1988\}$ (08's ratified fourth value included)—a new
+discriminator (69.1° vs 0°, 4.38°, 17.03°, 11.24°). **Measured 2026-08-07 —
+the realization is rejected**: the measured winding rates do not realize the
+$\varphi^2$ ratio (9–11× off under every normalization)—$|\omega|/\Omega_S =
+11.04$ (measured $|\omega| = 0.0281$ vs derived $\Omega_S =
+2.55\times10^{-3}$) and $\gamma_{\text{env}} = 7.4\times10^{-4}$ vs the
+derived $\gamma = 6.67\times10^{-3}$ (9.0× below); no stated convention lands
+within ±10% of 2.618 (closest: geometric turns/rung 2.909, +11.1%, and the
+direct $|a_\theta/a_r|$ 2.986, +14.0%—both in the ε→0 window, which is not a
+clean damped rotator); $dn_S = \Omega_S/2\pi$ sits 11.04× below the measured
+winding rate under all four rung normalizations (the measured 0.323
+turns/rung is the generator's bare 0.382 friction-reduced, not the re-read
+clock). The identity stands as Derived arithmetic; the dynamical realization
+is refuted by the winding and probe data (the winding record: §4's fork
+measurement; the probe record: `foundations/rung-offset-mechanism.md`).
+
+**Source:** `foundations/spiral-dynamics.md` §2.2 (the pitch-tangent
+derivation: $\gamma = \lambda/3$, $\Omega_S = \lambda\varphi^{-2}/3 =
+H_{\text{empty}}$, the gate value $(1-q_0) = \varphi^{-2}/3$);
+`foundations/wake-geometry.md` §1(c) (the composite closure in Yin-wake units,
+$\ell_{n+1}/\Lambda_I = \varphi^2$).
+
 
 ---
 
@@ -283,6 +316,7 @@ Sorted by detection likelihood (most definitive first):
 | 47 | Conditional axion chain (PQ cross-check) | Particle physics (haloscopes) | **IF PQ exists: $f_a$ at rung 34 ($9.57\times10^{11}$ GeV); $m_a \approx 6.0 \pm 0.3$ µeV ($n \approx 159.3$–$159.4$; no $\varphi$-anchor)** | Untested; framework predicts the null axion | **ADMX-class, 4–8 µeV** |
 | 48 | Log-periodic polarization orientation | Synchrotron polarimetry | **PA(νφᵏ) = PA(ν) (mod π); period Δ(ln ν) = ln φ ≈ 0.4812**; 90° flip at quarter-rung separation (ν₂/ν₁ = φ^¼); half-rung pair (ν₂/ν₁ = √φ) predicts parallel PA | Tested 2026-08-06 (`experiments/demystifying_cosmos/pa_logperiodic_test.py`): NULL at face value—Crab mm-band PA constant (~138–142°; Δ ln ν = 1.26 = 2.6 rungs), 0/10 band pairs within 3σ, spiral excluded vs uniform-angle null (p = 0.77) | **Tested—null; XL-Calibur / LEAP-class next** |
 | 49 | Gaussian Hawking-spectrum deviation | Analogue horizons (fibre-optic, BEC) | **$\ln(\Delta N/N)$ linear in $\omega^2$, slope $-1/(\varphi^6\Lambda^2)$**; deviation reaches $e^{-\varphi^{-6}} \approx 0.95$ at the cap | Untested—framework-internal proof (σ-regulator); Nature 2026 analogue consistent with direct emission | **Nature-style fibre-optic spectra** |
+| 50 | Spiral pitch tangent | Two-fluid winding dynamics | **$\tan(\text{pitch}) = \gamma/\Omega_S = \varphi^2 = 2.618$** (69.1°)—radial/azimuthal rate ratio, both rates φ-algebra-derived; wake reading $\ell_{n+1}/\Lambda_I$; matches none of the posted forks {0, 0.0766, 0.3063, 0.1988} | Measured 2026-08-07—realization rejected: the measured winding rates do not realize φ² (9–11× off under every normalization; no convention within ±10%); the identity stands as Derived arithmetic | **Tested—rejected (identity Derived)** |
 
 ## 8. Universal Boundary Anisotropy—Scale-Invariant Edge Steepness
 
