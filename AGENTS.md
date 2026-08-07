@@ -130,6 +130,7 @@ Docstring with run command → NumPy + Matplotlib (**Agg backend set early**) �
 | File | Role |
 |------|------|
 | `cassi-physics.md` | Physics guide—read first |
+| `reading-guide.md` | Table of contents and reading paths for the whole repository |
 | `README.md` | Repo purpose & parent-repo boundary |
 | `BROKEN_REFS.md` | Registry of external/broken refs—read before editing refs |
 | `open-questions-cassi-answers.md` | Epistemic registry (Q/C/G/M/F/T numbering) |
