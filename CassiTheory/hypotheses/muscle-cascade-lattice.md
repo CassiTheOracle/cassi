@@ -62,7 +62,7 @@ The following table maps the muscle structural hierarchy to cascade rungs. **The
 | Level | Structure | Approximate scale | Cascade rung (est.) |
 |-------|-----------|-------------------|---------------------|
 | 0 | Myosin/actin filament | ~5–10 nm | ~130 |
-| 1 | Sarcomere (Z-disc to Z-disc) | ~2.5 $\mu$m | ~135 |
+| 1 | Sarcomere (Z-disc to Z-disc) | ~2.0–2.5 $\mu$m | ~139–140 |
 | 2 | Myofibril (diameter) | ~1 $\mu$m | ~133 |
 | 3 | Muscle fiber (cell, diameter) | ~50 $\mu$m | ~143 |
 | 4 | Fascicle (diameter) | ~1–5 mm | ~150–153 |
@@ -95,9 +95,9 @@ The sarcomere—the fundamental contractile unit of striated muscle—is defined
 
 **Prediction M2:** The sarcomere banding pattern is the condensation field's along-string (1D) bubble lattice, restricted to the muscle fiber axis $z$. The Z-discs are the $B = +1$ bubble maxima—the regions of highest Qi coherence where the condensation field constructively interferes. The A-band is the central high-$q$ condensate spanning the bubble interior. The I-bands are the low-$q$ void regions near the bubble boundaries. The M-line (center of the A-band) is the bubble's geometric center.
 
-This mapping gives specific structural predictions:
+This mapping gives specific structural consequences:
 
-- **Z-disc spacing** ($L_Z$) equals the along-string bubble period $P_\parallel \cdot \ell_n$ at the sarcomere's cascade rung ($n \approx 135$). For $P_\parallel = 2$ rungs and $\ell_{135} \approx 1.3\ \mu$m (from the cascade formula), the predicted Z-disc spacing is $\sim 2.6\ \mu$m—consistent with the observed 2.0–2.5 $\mu$m range in resting human skeletal muscle.
+- **Z-disc spacing** ($L_Z$) is the candidate along-string bubble period $P_\parallel \cdot \ell_n$. The canonical ladder ($\ell_n = \ell_{\text{Pl}}\varphi^n$; `foundations/dimensionful-cascade.md`) places the observed resting range $L_Z \approx 2.0$–$2.5\ \mu$m at $n \approx 139.2$–$139.7$—residuals of 0.17–0.29 rungs from the nearest special point (integer or half-integer). At rung 135 the along-string period would be $2\ell_{135} = 0.53\ \mu$m ($\ell_{135} = 0.26\ \mu$m), a factor of 4–5 below the observed spacing, so the sarcomere does not sit at rung 135. This placement is **bookkeeping (Mapped-class)**: the self-consistent reading ($P_\parallel = 1$ at the sarcomere's own rung, $L_Z = \ell_{139.4}$) carries residuals within the framework's uniform-null expectation for placements (`particles/matter-organization.md` §2.2), and $P_\parallel = 2$ would require the period to sit two rungs below the sarcomere rung ($2\ell_{138} = 2.24\ \mu$m); with $P_\parallel(n)$ not derived (`foundations/bubble-lattice-fabric.md` §8), the observed spacing selects no placement. The sarcomere period becomes a prediction only when an independent $P_\parallel(n)$ law fixes $L_Z$ at the sarcomere rung.
 
 - **A-band / I-band ratio.** The A-band occupies the central portion of the bubble where $B > \theta_{\text{cond}}$; the I-bands occupy the edges where $B$ falls below threshold. The ratio of A-band width to total sarcomere length should be $\theta_{\text{cond}}$-dependent. If $\theta_{\text{cond}} \approx 0.45$ (the cosmological value, `foundations/bubble-edge-geometry.md` §1.2), the predicted A-band fraction of the sarcomere is approximately 0.45–0.55 of the total Z-disc spacing, consistent with the observed $\sim 1.5\ \mu$m A-band in a $\sim 2.5\ \mu$m sarcomere (ratio $\sim 0.6$).
 
@@ -138,7 +138,7 @@ This suggests that the A-band's high $q$ corresponds to the dense, coherent myos
 
 - That the muscle structural hierarchy is a lattice instantiation of the condensation field at the biological cascade window—the scale covariance says the field *must* operate at these scales; that muscle's specific anatomy *is* the resulting lattice is a structural mapping requiring verification
 - That fascial planes are $C = -1$ void boundaries (follows from the checkerboard lattice geometry; the mapping of specific fascial planes to specific lattice sites is the hypothesized step)
-- That sarcomere banding (Z-disc, I-band, A-band, M-line) corresponds to the 1D along-string bubble lattice (follows from $P_\parallel = 2$ periodicity; verifying the banding ratio requires $\theta_{\text{cond}}$ calibration at the sarcomere scale)
+- That sarcomere banding (Z-disc, I-band, A-band, M-line) corresponds to the 1D along-string bubble lattice (follows from $P_\parallel = 2$ periodicity; the Z-disc *spacing* is a bookkeeping placement until $P_\parallel(n)$ is derived; verifying the banding ratio requires $\theta_{\text{cond}}$ calibration at the sarcomere scale)
 - That the $1.70\times$ edge anisotropy is measurable at fascial boundaries via ultrasound elastography (the ratio is Derived; the claim that tissue stiffness maps directly to $q$ is the hypothesized step)
 - That individual muscles occupy distinct bubble sites in a staggered checkerboard arrangement (geometrically implied by the lattice; the specific mapping of named muscles to lattice sites is not yet derived)
 
@@ -159,9 +159,9 @@ This suggests that the A-band's high $q$ corresponds to the dense, coherent myos
 
 ## 6. Open Questions
 
-1. **What sets $\theta_{\text{cond}}$ at the sarcomere scale?** The condensation threshold $\theta_{\text{cond}}$ is determined by the conversion-diffusion balance (`foundations/bubble-edge-geometry.md` §1.2). At the cosmological scale, $\theta_{\text{cond}} \approx 0.45$ is calibrated from void catalogs. At the sarcomere scale (~$n = 135$), the effective diffusion $D_{\text{eff}}$ of the condensation field in the cellular milieu is unknown. The A-band/I-band ratio ($\sim 0.6$ in human sarcomeres) can be used to infer $\theta_{\text{cond}}$ at this scale once the mapping between $q$ and protein density is established.
+1. **What sets $\theta_{\text{cond}}$ at the sarcomere scale?** The condensation threshold $\theta_{\text{cond}}$ is determined by the conversion-diffusion balance (`foundations/bubble-edge-geometry.md` §1.2). At the cosmological scale, $\theta_{\text{cond}} \approx 0.45$ is calibrated from void catalogs. At the sarcomere scale ($n \approx 139.5$), the effective diffusion $D_{\text{eff}}$ of the condensation field in the cellular milieu is unknown. The A-band/I-band ratio ($\sim 0.6$ in human sarcomeres) can be used to infer $\theta_{\text{cond}}$ at this scale once the mapping between $q$ and protein density is established.
 
-2. **How does contraction modify the lattice?** Muscle contraction shortens the sarcomere from ~2.5 $\mu$m to ~1.8 $\mu$m (in human skeletal muscle). In the bubble lattice picture, this is a compression of the along-string period. Does the lattice remain coherent under compression, or does it undergo a phase transition (bubble collapse, void widening)? The PDE at $n \approx 135$ with a time-varying boundary condition (simulating contraction) could answer this.
+2. **How does contraction modify the lattice?** Muscle contraction shortens the sarcomere from ~2.5 $\mu$m to ~1.8 $\mu$m (in human skeletal muscle). In the bubble lattice picture, this is a compression of the along-string period. Does the lattice remain coherent under compression, or does it undergo a phase transition (bubble collapse, void widening)? The PDE at the sarcomere rungs ($n \approx 139$–$140$) with a time-varying boundary condition (simulating contraction) could answer this.
 
 3. **Is the 1D sarcomere lattice coupled to the 3D fascial lattice?** The sarcomere is contained within the myofibril, which is within the fiber, which is within the fascicle. The bubble lattice at each scale is nested within the lattice at the next. How does the along-string periodicity at the sarcomere level (Z-disc spacing, $P_\parallel = 2$ rungs) relate to the transverse checkerboard at the fascicle level? Is the coupling between scales merely geometric (the nesting of `foundations/bubble-lattice-fabric.md` §3.2) or are there active PDE-driven interactions?
 
@@ -176,7 +176,7 @@ This suggests that the A-band's high $q$ corresponds to the dense, coherent myos
 | ID | Prediction | Method | Epistemic |
 |----|-----------|--------|-----------|
 | M1 | Fascial planes are $C = -1$ void boundaries; individual muscles occupy bubble sites in staggered checkerboard arrangement | Anatomical cross-section analysis; nearest-neighbor statistics of muscle belly arrangement in transverse section | Hypothesized |
-| M2 | Z-disc spacing equals $2\ell_{135} \approx 2.6\ \mu$m—the along-string bubble period at the sarcomere rung | Electron microscopy; the resting sarcomere length is a falsifiable number | Hypothesized |
+| M2 | Z-disc spacing as the along-string period: observed $2.0$–$2.5\ \mu$m maps to $n \approx 139.2$–$139.7$ (bookkeeping placement; no integer-rung/integer-$P_\parallel$ fit beyond the uniform-null residual; predicted $L_Z$ awaits an independent $P_\parallel(n)$ law) | Electron microscopy; the resting sarcomere length is the falsifiable input to the future placement law | Bookkeeping (Mapped-class) |
 | M3 | Qi density $q(z)$ follows $(1+\cos(2\pi z/P_\parallel \ell_n))/2$ along the sarcomere; M-line is a $q \to 0$ void | Protein density mapping (immuno-EM, super-resolution microscopy); the M-line should show minimum protein density among sarcomeric structures | Hypothesized |
 | M4 | Edge steepness anisotropy of $1.70\times$ at fascial boundaries | Ultrasound shear-wave elastography across fascial planes | Hypothesized (ratio Derived, tissue-$q$ mapping Hypothesized) |
 | M5 | Adjacent muscle bellies in cross-section follow staggered (checkerboard) arrangement, not random tiling | Statistical analysis of anatomical atlases or MRI cross-sections of limb musculature | Hypothesized |
