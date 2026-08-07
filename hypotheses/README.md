@@ -37,6 +37,7 @@ domain is not enough—the contribution must be what Cassi *uniquely* adds.
 | 12 | Riemann hypothesis | Speculative | De-resonance: RH as the absence of resonance in primes; φ-periodicity null test on ζ zeros | `riemann-hypothesis-de-resonance.md` |
 | 13 | Two-fluid Hilbert–Pólya program | Speculative | Scale-operator candidate for the zeros; minimal-fluctuation probes (Selberg, Gram) | `riemann-two-fluid-spectral-program.md` |
 | 14 | Two-fluid phase operator | Speculative | Step 1 executed: Bessel-index-1 scale operator; linear spectra fail R-vM; semiclassical pinning Lp = 2π | `riemann-two-fluid-phase-operator.md` |
+| 15 | Two-strand five-channel matter organization | Hypothesized | Strand-pair × Wu Xing channel traces on one Qi condensate; Z2×Z5 trace graph; first PDE probe outcome; staged matter-organization program | `two-strand-five-channel-matter-organization.md` |
 
 ---
 
@@ -241,6 +242,29 @@ $1.70\times$ edge-steepness anisotropy ($\mathbf{M4}$; the ratio
 $\sqrt{4\varphi^2/(1+\varphi^2)} \approx 1.70$ is Derived and zero-parameter).
 **Epistemic tier: Hypothesized**—the universal geometric signatures are Derived
 from the PDE; the anatomical mapping is the hypothesis.
+
+### `two-strand-five-channel-matter-organization.md`—Two-Strand Five-Channel Matter Organization: A Research Program
+
+Program statement for one Qi condensate organized as two spatial strands with
+five Wu Xing channel traces per strand. The exact content: the collective pair
+variables ($\mathbf{R}_c$, $d$, $\vartheta$, $\Omega$, $\Delta\theta$); the
+SO(2), five-sector, and P_parallel clocks kept distinct (mod-$72^\circ$
+circularity test; $10\times$ axial-gradient slope separation); the
+$\mathbb{Z}_2\times\mathbb{Z}_5$ trace graph (cycle decomposition: two 5-cycles
+plus one 2-cycle, never a 10-step walk—the w = 5 no-C10 bound preserved) and
+the two-pentagon projection theorem (decagon iff interlace is an odd multiple
+of $36^\circ$; quadrature excluded). First probe outcome (t = 4, run
+20260806_204217_two_strand, `two-fluid/run_two_strand_probe.py`): finite
+separation persisted over the characterization window only; $\Delta\theta$
+relaxed near in-phase; the NS4 central-low-q morphology was null; channel
+traces were Wood/Fire-limited by the representability clamp; the d = 0 arm
+recovered its constructed reference. Binding ($d_0$), twist, interlace
+selection, and matter-scale channel roles are open; effective coefficients are
+labeled as projection targets, not framework constants. Staged program
+TS1–TS15 (PDE gates → neural → assembloid → molecular → matter-scale), local
+labels only, no master prediction numbers. **Epistemic tier: Hypothesized**—
+the trace-graph algebra is Derived, the probe outcomes are Tested/null at
+characterization timescales, and the spatial binding sector is Open.
 
 ---
 

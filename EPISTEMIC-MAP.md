@@ -98,6 +98,7 @@ Tiers below are taken from each document's Status header. Compound headers are q
 | `hypotheses/exoplanet-phi-spacing.md` | Hypothesized | Wake-wave interference in protoplanetary disks |
 | `hypotheses/neural-criticality.md` | Hypothesized | Cascade PDE at neural scales |
 | `hypotheses/muscle-cascade-lattice.md` | Hypothesized | Muscle ladder as bubble lattice (rungs 142–168) |
+| `hypotheses/two-strand-five-channel-matter-organization.md` | Hypothesized—August 2026 (trace-graph algebra Derived; probe outcomes Tested/null at t = 4; binding/twist/interlace/matter-scale roles Open) | One condensate, two strands, five channel traces; SO(2)/five-sector/P_parallel clocks; Z2×Z5 trace graph; first probe: separation persisted (characterization only), near-in-phase Δθ, NS4 morphology null, traces Wood/Fire-limited |
 | `demystifying-the-cosmos/PSR-J1101-6101.md` | Hypothesized—August 2026 | Lighthouse pulsar: wake-pair trail/filament, high PD as high $q$, radio ⊥ vs X-ray ∥ as rung stratification; prediction 48 (log-periodic PA) |
 | `demystifying-the-cosmos/NGC-5128.md` | Hypothesized—August 2026 | Centaurus A: parallelogram dust band as projected lattice trace (cascade r-field), S-shape as wake wrap, merger as anti-phase meeting; tests: φ-spaced wake rings (pred. 44), 1.70× edge anisotropy (pred. 38) |
 
