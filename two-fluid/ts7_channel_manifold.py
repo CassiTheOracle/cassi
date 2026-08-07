@@ -46,7 +46,7 @@ Checks:
       at t = 0, 2, 4, and the resulting sheng/ke relations.
 
 Verdict: the mechanism layer is two-sector in BOTH projections (Wood,
-Fire); Earth dominance needs eps_norm > 0.815, unreachable with positive
+Fire); Earth dominance needs eps_norm > 0.809, unreachable with positive
 fields (max 0.724); Metal and Water never dominate at any imbalance, so
 even a clamp relaxation gives at most three sectors.  Missing degrees of
 freedom are documented in the verdict, not added here (TS7 stops at the
