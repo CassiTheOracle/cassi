@@ -581,9 +581,12 @@ def t2_verdict(h, h_ctrl, chi_w):
     d20 = h[200]['d'] if len(h) > 200 else h[-1]['d']
     d40 = h[-1]['d']
     turnaround = d40 < d20 - 0.3
-    # d(t) <= d_ctrl(t) + 0.5 for all t >= 20 (records at identical t)
-    over = max((d['d'] - c['d']) for d, c in zip(h, h_ctrl)
-               if d['t'] >= 20.0 - 1e-9)
+    # d(t) <= d_ctrl(t) + 0.5 for all t >= 20 (records at identical t).
+    # An arm that NaN-aborts before t=20 has no such records: the
+    # criterion cannot be satisfied -> inf (verdict null).
+    over_recs = [(d['d'] - c['d']) for d, c in zip(h, h_ctrl)
+                 if d['t'] >= 20.0 - 1e-9]
+    over = max(over_recs) if over_recs else float('inf')
     band = (s['ns1'] == 'persisted' or s['ns1'] == 'reference')
     ok_hump = th40 and frac == 1.0
     ok = ok_hump and turnaround and over <= 0.5 and band
@@ -780,7 +783,7 @@ def compute_verdicts(arms, meta, states, rdir):
                            'd(40) < d(20) - 0.3; d(t) <= d_ctrl(t) + 0.5 for '
                            't >= 20; TS1 band (back-20% mean in '
                            '[0.25 d0, 1.2 d0]); monotone-in-chi across '
-                           '{0.3, 1.0, 3.0}',
+                           f'{list(CHI_BRACKET)}',
                      'T3': 'sep0 at chi_w=1.0 == sep0 at chi_w=0 to <= 1e-20 '
                            '(max|eps| <= 1e-12)',
                      'T4': 'no floor touches, ey/ei >= 1.01e-3, mass drift '
@@ -811,7 +814,7 @@ def compute_verdicts(arms, meta, states, rdir):
         json.dump(results, f, indent=2)
 
     print("\n=== WAKE-BINDING SUITE VERDICTS (t=40, lock timescale) ===")
-    for tag in ('ctrl', 'b12_0', 'b12_03', 'b12_1', 'b12_3', 'b0_0', 'b0_1'):
+    for tag in sorted(sums):
         s = sums[tag]
         print(f"{tag:6s}: ns1={s['ns1']:>9s} d {s['d_start']:.2f}->"
               f"{s['d_end']:.2f} (back {s['d_back_mean']:.2f}) | "
