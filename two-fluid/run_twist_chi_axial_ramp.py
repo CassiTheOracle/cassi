@@ -39,8 +39,8 @@ docstring):
 Protocol (house coherence-budget regime, same as run_two_strand_twist_probe):
 fresh solver per arm (RK2 mutates solver state), N = 48, lam = 0.05,
 dt = 0.001, gate 'five', u = 0.  runs/ is gitignored -- commit scripts only.
-The broad ramp (T2-T4) is gated behind the director's review of the T0/T1
-raw output; run with `--tests 0,1` for the minimal validation.
+T0/T1 are the minimal component/no-op validation; the full matrix is
+`--tests 0,1,2,3,4`.
 
 Usage:
     python two-fluid/run_twist_chi_axial_ramp.py [--tests 0,1,2,3,4] [--bench N]
