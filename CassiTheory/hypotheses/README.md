@@ -37,7 +37,7 @@ domain is not enough—the contribution must be what Cassi *uniquely* adds.
 | 12 | Riemann hypothesis | Speculative | De-resonance: RH as the absence of resonance in primes; φ-periodicity null test on ζ zeros | `riemann-hypothesis-de-resonance.md` |
 | 13 | Two-fluid Hilbert–Pólya program | Speculative | Scale-operator candidate for the zeros; minimal-fluctuation probes (Selberg, Gram) | `riemann-two-fluid-spectral-program.md` |
 | 14 | Two-fluid phase operator | Speculative | Step 1 executed: Bessel-index-1 scale operator; linear spectra fail R-vM; semiclassical pinning Lp = 2π | `riemann-two-fluid-phase-operator.md` |
-| 15 | Two-strand five-channel matter organization | Hypothesized | Strand-pair × Wu Xing channel traces on one Qi condensate; Z2×Z5 trace graph; first PDE probe outcome; staged matter-organization program | `two-strand-five-channel-matter-organization.md` |
+| 15 | Two-strand five-channel matter organization | Hypothesized | Strand-pair × Wu Xing channel traces on one Qi condensate; Z2×Z5 trace graph; PDE probe outcomes (two-lobe pair + TS6 twist); staged matter-organization program | `two-strand-five-channel-matter-organization.md` |
 
 ---
 
@@ -258,8 +258,12 @@ of $36^\circ$; quadrature excluded). First probe outcome (t = 4, run
 separation persisted over the characterization window only; $\Delta\theta$
 relaxed near in-phase; the NS4 central-low-q morphology was null; channel
 traces were Wood/Fire-limited by the representability clamp; the d = 0 arm
-recovered its constructed reference. Binding ($d_0$), twist, interlace
-selection, and matter-scale channel roles are open; effective coefficients are
+recovered its constructed reference. The TS6 twist probe (t = 4, run
+20260806_214650_twist, `two-fluid/run_two_strand_twist_probe.py`): an
+initialized filament half-twist persisted (Tw 0.500 → 0.499), the zero-twist
+arm generated none, and no rung-periodicity relation emerged. Binding
+($d_0$), twist generation, interlace selection, and matter-scale channel
+roles are open; effective coefficients are
 labeled as projection targets, not framework constants. Staged program
 TS1–TS15 (PDE gates → neural → assembloid → molecular → matter-scale), local
 labels only, no master prediction numbers. **Epistemic tier: Hypothesized**—
