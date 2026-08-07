@@ -59,7 +59,7 @@ CMB-S4 detection threshold ($\sigma_r = 0.001$).
 | φ-periodic $P(k)$ modulation | None | **$\Delta(\ln k) = \ln\varphi \approx 0.4812$** | 0-param, orthogonal to BAO, DESI/Euclid testable |
 | Void ellipticity (edge gradient) | Isotropic boundaries | **1.70** (axial:diagonal steepness) | Zero-param, $C(x,y)$ gradient; SDSS/DESI void catalogs |
 | $\Omega_{\text{DM}}/\Omega_b$ | $\sim 5$ | **$\varphi^3 + 1 \approx 5.24$** | Observed $5.39$, gap $2.8\%$ |
-| $\sigma_8$ | $0.811$ | **Slightly lower ($\sim 5\%$)** | LSST discriminant |
+| $\sigma_8$ | $0.811$ | **−16.6% (R = 0.834) vs ΛCDM** — the stabilized closure's regime-integrated growth over $z \in [100, 0]$ (P-A relative-μ reading, $r_0 = 0.0472$; `cosmology/sigma8-computational-plan.md` §3.2); band-state mean-field −15.2%; the pipeline's −45.1% headline (r₀ = 1/23 state) is normalization+resolution-dominated, ≈ −9.6% mechanism-attributable (`parameter-inventory.md` §10); the pointwise-chord reading (the framework's pointwise-consistent form) freezes growth at the closure (−99.6% — contradicted by observation; the regime mismatch); the μ normalization remains Mapped | LSST discriminant — the computed value, not a target |
 | DM halo profiles | NFW (cuspy) | **Cored (Qi condensate)** | Dwarf galaxies |
 | Bullet Cluster | Collisionless DM | **Collisionless** | Already consistent |
 | $\eta$ (baryon/photon) | $6.0\times10^{-10}$ | **$6.38\times10^{-10}$** ($\varphi^{-44}$) | Within $6.3\%$ |
