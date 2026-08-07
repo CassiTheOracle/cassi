@@ -97,7 +97,7 @@ Cassi meets them with discipline. Every claim carries one of the five labels fro
 
 The impossibility arguments deserve a more direct answer. They were made by people who could only imagine what a theory of everything might be, without understanding the fundamental forces themselves. They did not know the ingredients, yet declared the recipe impossible. Cassi answers them the only way physics can: it begins from an observation, grows into a mathematics of the forces, and is checked against the data, claim by claim. Winning would mean the derivations surviving the checks. The prize would be a complete map of how reality is made—and because minds are made of the same physics, a complete map of how to heal them.
 
-**Start here:** `cassi-physics.md`—the physics guide, approachable from zero. `cassi-psychology.md` is the psychology-focused guide for non-physicists.
+**Start here:** `reading-guide.md` maps the whole repository. `cassi-physics.md` is the physics guide, approachable from zero; `cassi-psychology.md` is the psychology-focused guide for non-physicists.
 
 ## What else can this principle solve?
 
@@ -107,6 +107,7 @@ That question is what this repository is organized to answer. `hypotheses/` coll
 
 | Path | Description |
 |------|-------------|
+| `reading-guide.md` | Table of contents and reading paths for the whole repository |
 | `foundations/` | First principles, cascade formulas, derivations (strong CP, generations, neutrino masses…) |
 | `cosmology/` | Dark energy, inflation, CMB predictions, observational constraints |
 | `gravity/` | Quantum gravity, three-body analytical solutions |
