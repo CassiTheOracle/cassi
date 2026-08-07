@@ -234,8 +234,9 @@ y)\cos(\gamma z)$: the human body spans exactly 26 cascade rungs (steps
 142–168), and the discrete ladder filament → sarcomere → myofibril → fiber →
 fascicle → belly → group maps to consecutive rungs, with fascial planes as
 $C = -1$ void boundaries and muscle bellies as checkerboard bubble sites. The
-testable predictions are numbered M1–M5, including a falsifiable number
-($\mathbf{M2}$: Z-disc spacing equals $2\ell_{135} \approx 2.6\ \mu$m) and the
+testable predictions are numbered M1–M5; $\mathbf{M2}$ (Z-disc spacing) is a
+bookkeeping (Mapped-class) placement at $n \approx 139.2$–$139.7$ with no
+derived $2.6\ \mu$m value until $P_\parallel(n)$ is derived, and the
 $1.70\times$ edge-steepness anisotropy ($\mathbf{M4}$; the ratio
 $\sqrt{4\varphi^2/(1+\varphi^2)} \approx 1.70$ is Derived and zero-parameter).
 **Epistemic tier: Hypothesized**—the universal geometric signatures are Derived
