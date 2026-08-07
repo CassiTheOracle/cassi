@@ -37,7 +37,7 @@ domain is not enough—the contribution must be what Cassi *uniquely* adds.
 | 12 | Riemann hypothesis | Speculative | De-resonance: RH as the absence of resonance in primes; φ-periodicity null test on ζ zeros | `riemann-hypothesis-de-resonance.md` |
 | 13 | Two-fluid Hilbert–Pólya program | Speculative | Scale-operator candidate for the zeros; minimal-fluctuation probes (Selberg, Gram) | `riemann-two-fluid-spectral-program.md` |
 | 14 | Two-fluid phase operator | Speculative | Step 1 executed: Bessel-index-1 scale operator; linear spectra fail R-vM; semiclassical pinning Lp = 2π | `riemann-two-fluid-phase-operator.md` |
-| 15 | Two-strand five-channel matter organization | Hypothesized | Strand-pair × Wu Xing channel traces on one Qi condensate; Z2×Z5 trace graph; PDE probe outcomes (two-lobe pair + TS6 twist); staged matter-organization program | `two-strand-five-channel-matter-organization.md` |
+| 15 | Two-strand five-channel matter organization | Hypothesized | Strand-pair × Wu Xing channel traces on one Qi condensate; Z2×Z5 trace graph; PDE gate outcomes: TS1–TS4 null at lock timescale, TS5 5-fold coincident projection, TS6 twist persistence/no generation, TS7 two-sector bound; staged matter-organization program | `two-strand-five-channel-matter-organization.md` |
 
 ---
 
@@ -261,14 +261,23 @@ traces were Wood/Fire-limited by the representability clamp; the d = 0 arm
 recovered its constructed reference. The TS6 twist probe (t = 4, run
 20260806_214650_twist, `two-fluid/run_two_strand_twist_probe.py`): an
 initialized filament half-twist persisted (Tw 0.500 → 0.499), the zero-twist
-arm generated none, and no rung-periodicity relation emerged. Binding
-($d_0$), twist generation, interlace selection, and matter-scale channel
+arm generated none, and no rung-periodicity relation emerged. The TS1–TS5
+lock-timescale suite (t = 40, run 20260806_214032_two_strand_suite,
+`two-fluid/run_two_strand_suite.py`): TS1–TS4 null—the pair escapes (d 9.90 →
+15.73 cells), the $d\to0$ limit does not recover the one-string centerline,
+the antisymmetric mode is not centerline-fixed, central q stays above flank q
+at t = 40; TS5 passed on its observed branch (the near-in-phase endpoint
+$\Delta\theta$ = 0.042 rad realizes the coincident-pentagon 5-fold joint
+projection). Binding ($d_0$) is excluded under the existing PDE at the lock
+timescale; twist generation, interlace selection, and matter-scale channel
 roles are open; effective coefficients are
 labeled as projection targets, not framework constants. Staged program
 TS1–TS15 (PDE gates → neural → assembloid → molecular → matter-scale), local
 labels only, no master prediction numbers. **Epistemic tier: Hypothesized**—
-the trace-graph algebra is Derived, the probe outcomes are Tested/null at
-characterization timescales, and the spatial binding sector is Open.
+the trace-graph algebra is Derived, the PDE gate outcomes are Tested
+(TS1–TS4 null, TS5 5-fold coincident projection, TS6 twist
+persistence/no generation, TS7 two-sector bound), and the spatial binding
+sector is Open.
 
 ---
 

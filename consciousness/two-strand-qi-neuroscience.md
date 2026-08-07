@@ -412,6 +412,8 @@ A two-lobed or two-filament initialization in the existing two-fluid solver shou
 
 A finite-separation attractor would be the first direct mathematical support for the extension.
 
+**Status (2026-08-06):** the lock-timescale suite excludes the finite-separation branch: the two-lobe pair escapes by t = 40 = 2/$\lambda$ (d 9.90 → 15.73 cells, back-20% mean 15.00); the realized branch is separation into two unbound, fading ridges (`hypotheses/two-strand-five-channel-matter-organization.md` §3.3, TS1).
+
 ### NS2: One-string recovery
 
 As the initial separation tends to zero, the pair's centerline observables should converge to the current one-string solution:
@@ -422,13 +424,19 @@ $$
 
 Failure of this limit would indicate that the proposed pair is a separate theory rather than an extension.
 
+**Status (2026-08-06):** the limit is not recovered. Across the separation series {0, 3, 6, 12} at t = 40, $q_{\mathrm{mid}}$, $A_+$, and $q_{\mathrm{flank}}$ residuals vs the sep-0 reference are monotone in separation, but the $\rho_{\mathrm{mid}}$ residual diverges ($r_3=0.79>r_{12}=0.68$ cells): the small-separation arms resolve into a pair at $d\approx3.1$–3.7 cells with a midpoint density dip rather than the one-string ridge (TS2, §3.3).
+
 ### NS3: Relative-mode spectrum
 
 The pair should exhibit symmetric and antisymmetric perturbation modes. The antisymmetric mode should change $d$ or $\Delta\theta$ while leaving the centerline approximately fixed.
 
+**Status (2026-08-06):** the antisymmetric amplitude perturbation produces a relative-mode response ($d$ deviates from the control by up to 9.3 cells; $\Delta\theta$ by up to 0.042 rad) and the amplitude imbalance decays through zero by t $\approx$ 33, order-consistent with the gate-imbalance rate, but the centerline drifts 3.35 cells—and the unperturbed pair drifts 3.30 cells itself—so the mode is not centerline-fixed (TS3, §3.3).
+
 ### NS4: Phase-selected morphology
 
 If the pair inherits the PDE's anti-phase conversion, the preferred morphology should contain a central low-coherence region between two higher-coherence ridges. The phase relation must be measured from the fields, not inferred from the visual output.
+
+**Status (2026-08-06):** null at the lock timescale: central q 0.708094 sits above flank q 0.707795 at t = 40 with no q(x) local minimum at the midpoint—the morphology is the in-phase central-antinode branch, not the anti-phase paired-sheet form (TS4, §3.3).
 
 ### NS5: Bilateral neural signature
 
@@ -478,13 +486,16 @@ The $\varphi$ extension has a stricter null: alternative log periods, randomized
 - The cascade ladder and its biological scale anchors (`foundations/dimensionful-cascade.md` §8.1).
 - The bubble lattice and its scale-covariant functional form (`foundations/bubble-lattice-fabric.md`).
 
+### Tested (PDE)
+
+- NS1–NS4 at the lock timescale (t = 40 = 2/$\lambda$), measured from the fields: NS1 null—the pair escapes (d 9.90 → 15.73 cells), no finite-separation branch under the existing PDE; NS2 null—the $d\to0$ limit is not recovered ($\rho_{\mathrm{mid}}$ residual diverges across the {0, 3, 6, 12} series); NS3 null—the antisymmetric mode responds but is not centerline-fixed (drift 3.35 cells); NS4 null—central q above flank q with no q(x) node. Records: `hypotheses/two-strand-five-channel-matter-organization.md` §3.3, `two-fluid/run_two_strand_suite.py`.
+- The pair has measurable center, separation, relative phase, and twist modes (all four measured; §7 statuses).
+- NS5–NS7 remain untested (Stage-1+ protocols).
+
 ### Hypothesized
 
-- A single Qi condensate can sustain two spatially separated coherent ridges.
-- The one-string solution is the $d\to0$ limit of a two-strand solution.
-- The pair has measurable center, separation, relative phase, and twist modes.
 - Bilateral neural and bodily organization provides a possible human-scale readout.
-- A paired field can produce a central low-coherence region and two coherent flanks.
+- A scratch-layer coupling term could supply the twist generation the existing PDE lacks (TS6 second leg, `hypotheses/two-strand-five-channel-matter-organization.md` §3.2).
 
 ### Speculative
 
@@ -513,4 +524,6 @@ The $\varphi$ extension has a stricter null: alternative log periods, randomized
 - `consciousness/consciousness-from-phi.md`—human cascade, pinch point, wake waves, and self-modeling
 - `consciousness/chakras-as-cascade-bubbles.md`—spine-axis mapping and human-scale condensates
 - `hypotheses/neural-criticality.md`—neural-scale cascade and avalanche test program
+- `hypotheses/two-strand-five-channel-matter-organization.md`—two-strand research program: TS1–TS5 lock-timescale suite outcomes (§3.3), Z2×Z5 trace graph, staged program
+- `two-fluid/run_two_strand_suite.py`—TS1–TS5 lock-timescale suite script (NS1–NS4 statuses above; run record regenerated under runs/)
 - `cassi-psychology.md`—psychological reading of the neural substrate and field configuration
