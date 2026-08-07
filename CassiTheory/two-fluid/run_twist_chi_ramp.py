@@ -2,8 +2,11 @@
 """TS6 generation-leg validation ramp: twist-chi scratch layer, tests 1-4.
 
 Validation suite for `two-fluid/scratch_twist_chi.py` (the parity-odd
-conversion coupling conv -> -lam (1 - chi_circ (curl J)_z / J_scale) (1-q) eps
-of `hypotheses/two-strand-five-channel-matter-organization.md` sec 3.2):
+conversion coupling conv -> -lam (1 - chi_circ g / J_scale) (1-q) eps
+of `hypotheses/two-strand-five-channel-matter-organization.md` sec 3.2,
+with g = the solver-frame phase-current curl component; the canonical
+solver's wavenumber labels are cyclically permuted, so g is the box-frame
+transverse component -(curl J)_x — see the layer module docstring):
 
   T1  bit-for-bit no-op: chi = 0 vs canonical solver, both arms (twist+,
       ztwist), exact equality of (u, ey, ei) hats after every one of 4000
