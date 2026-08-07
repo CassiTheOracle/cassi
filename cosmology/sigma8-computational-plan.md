@@ -109,7 +109,7 @@ The 0.950/0.980 rows are estimated/target rows—**NOT predictions**; the comput
 
 ### 3.3 Why the Pipeline Overestimates
 
-The existing pipeline ($\Delta\sigma_8 = -0.42$, $-43\%$) overestimates because:
+The pipeline state ($\Delta\sigma_8 = -0.4488$, $-45.1\%$ at $r_0 = 1/23$, re-run 2026-08-07) overestimates because:
 
 1. **Scale-independent $q$:** Uses the spatial mean of $q$ across all modes. On $\sigma_8$ scales ($R = 8\,h^{-1}$Mpc, $k \sim 0.1$–$1\,h$/Mpc), the volume is dominated by the filament-void network where $q$ is closer to the mean field value, not the extreme core value.
 

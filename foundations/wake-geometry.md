@@ -24,7 +24,11 @@ the rung scale itself. The two wakes are the two phases of one string motion: on
 
 $$\boxed{\Lambda_Y + \Lambda_I = \ell_n\left(1+\frac{1}{\varphi}\right) = \ell_n\,\varphi = \ell_{n+1}}$$
 
-Verified at rung 285: $191 + 118 = 309$ Mpc $= \ell_{286}$.
+Verified at rung 285: $191 + 118 = 309$ Mpc $= \ell_{286}$. In wake units
+the composite is $\ell_{n+1}/\Lambda_Y = \varphi$ and $\ell_{n+1}/\Lambda_I =
+\varphi^2$—the latter is the pitch-tangent identity
+$\gamma/\Omega_S = \ell_{n+1}/\Lambda_I$ of `foundations/spiral-dynamics.md`
+§2.2 (prediction 50, `predictions/falsifiable-predictions.md` §5).
 
 **(c) The geometric mean sits at the half-step.** The waveform's midpoint,
 
