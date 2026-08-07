@@ -78,7 +78,10 @@ def gate_profile(eps_norm):
 
     Mirrors cassi_two_fluid_3d_gpu.compute_q_field 'five' branch and
     run_trauma_wake_lock.channel_openness: w1..w5 from eps_norm, baseline
-    b_i = phi^-(3+i), eta couplings, Wood-closure redistribution.
+    b_j = phi^-(3+j) with zero-based j in {0..4} (the one-based doctrine
+    is b_i = phi^-(i+2), i = 1..5, giving the same
+    {phi^-3, phi^-4, phi^-5, phi^-6, phi^-7}), eta couplings,
+    Wood-closure redistribution.
     Returns (ch_open[5], one_minus_q) as arrays over eps_norm.
     """
     en = np.atleast_1d(eps_norm).astype(float)
