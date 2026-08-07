@@ -245,6 +245,24 @@ Headline results:
 
 Status: the coherence-stacking hypothesis is realized as a **structure-retention effect**—initialization-only phase-ordered stacking with the pentagon step multiplies the two-hump envelope contrast 3–5$\times$, holds it through the lock timescale, and keeps the axial phase ramp, while the anti-phase stack cancels exactly and stays flat. The d(t) drift is measured with the caveat that the phase-rotated stacks read a single $\rho$-profile ridge from t = 0 (the rotation moves the two-hump structure into |$\delta\rho$|, where $C_{\mathrm{abs}}$ carries the read); only the near-canonical arms keep a tracked pair (m1 escapes to 15.73; m16, the R = 1 full lattice, behaves like the effective single phasor: d 9.90 → 12.10 → 14.22, escape-like). No stack arm binds a pair, so E1 (finite-$d_0$ binding) and every §8.1/TS status are untouched: this probe adds no term, no parameter, and no registry entry—it measures the existing PDE's response to phase-ordered initial structure.
 
+Reconciliation with the single-layer nulls: the program's one-layer outcomes—TS1 escape, Yin-excess coalescence, mirror coalescence, breathing no-cycle, interlaced-wake collapse—are exactly the M = 1 baseline of the stacking construction, and the stack's `m1_0` arm reproduces each of their published records. Phase-ordered stacking therefore adds a structure-retention sector—envelope contrast, axial phase ramp, coherence current—on top of an unchanged one-layer dynamics: zero new terms, zero new parameters, and no binding. E1/TS statuses remain exactly as listed above; no stack arm binds a pair, and the stacking result does not reopen any closed E1/E3 route.
+
+### 3.9 Established stacking-scale anchors (empirical hooks)
+
+The following are established physical and biological measurements, listed as one-line empirical hooks for the stacking construction's per-layer twist angle $\Delta\theta$ (the angle a stacked layer contributes to the axial phase ramp, §3.8). None of them is a Cassi mapping, a placement, or a prediction; they are the scale values a future mechanism would have to meet:
+
+- **B-DNA double helix:** ~34.3° twist per base pair, 10.5 bp per turn, 0.34 nm rise per bp.
+- **Nucleosome:** ~147 bp of DNA wrapped in ~1.7 superhelical turns around the histone octamer.
+- **Alpha-helix:** 3.6 residues per turn, ~100° per residue, 0.15 nm rise per residue.
+- **Beta-sheet:** pleat/strand spacing ~0.48 nm between adjacent strands.
+- **Neocortex:** six layers; minicolumns ~30–50 µm across.
+- **Theta–gamma coupling:** phase–amplitude coupling between theta and gamma oscillations in hippocampal and cortical recordings.
+- **Collagen:** D-period (axial stagger repeat) ~67 nm in fibrillar collagen.
+- **Cholesteric liquid crystal:** continuous director twist through the layer stack, no discrete step per layer.
+- **Myelin (CNS):** compacted repeat distance ~10.6 nm.
+
+The hook is explicit: matching any of these per-layer twist angles to $\Delta\theta$ of the stacking construction is a hypothesis hook to be tested against the PDE's own $k_z=\Delta\theta/\Delta z$ relation and the measured winding persistence—it is not a derivation, and none of the values above is registered in `parameter-inventory.md` or the prediction catalog.
+
 ---
 
 ## 4. The Z2×Z5 Trace Graph and the Two-Pentagon Projection
