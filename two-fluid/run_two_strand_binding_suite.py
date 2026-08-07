@@ -54,8 +54,8 @@ Verdicts (results.json):
       (b) turnaround d(40) < d(20) - 0.3 cells; (c) d(t) <= d_ctrl(t) + 0.5
       for all t >= 20; (d) TS1 band: back-20% mean d in [0.25 d0, 1.2 d0],
       no merge; (e) monotone-in-chi: d(40) and the dip depth move
-      monotonically across {0.3, 1.0, 3.0}.
-  T3  one-string preservation: sep0 at chi_w = 1.0 vs sep0 at chi_w = 0 --
+      monotonically across {300, 1000, 3000}.
+  T3  one-string preservation: sep0 at chi_w = 1000 vs sep0 at chi_w = 0 --
       max field diff <= 1e-20 (the layer is eps^2-sourced; the residual is
       the canonical init rounding, ~1e-16) and max|eps| <= 1e-12.
   T4  no clamp pathologies at chi*: zero floor touches, ey/ei minima >=
@@ -615,7 +615,7 @@ def ts1_outcome(t2d, s):
 
 
 def t3_verdict(h0_0, h0_1, st0_0, st0_1):
-    """One-string preservation: sep0 at chi_w = 1.0 vs chi_w = 0."""
+    """One-string preservation: sep0 at chi_w = 1000 vs chi_w = 0."""
     du, dey, dei = state_diff(st0_0, st0_1)
     hd = hist_diff(h0_0, h0_1)
     ey = torch.fft.ifftn(st0_1[1]).real
@@ -784,7 +784,7 @@ def compute_verdicts(arms, meta, states, rdir):
                            't >= 20; TS1 band (back-20% mean in '
                            '[0.25 d0, 1.2 d0]); monotone-in-chi across '
                            f'{list(CHI_BRACKET)}',
-                     'T3': 'sep0 at chi_w=1.0 == sep0 at chi_w=0 to <= 1e-20 '
+                     'T3': 'sep0 at chi_w=1000 == sep0 at chi_w=0 to <= 1e-20 '
                            '(max|eps| <= 1e-12)',
                      'T4': 'no floor touches, ey/ei >= 1.01e-3, mass drift '
                            '<= 1e-11, W bounded (max <= 10, no NaN), smooth'}},
