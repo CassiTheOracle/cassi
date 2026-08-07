@@ -414,6 +414,8 @@ A finite-separation attractor would be the first direct mathematical support for
 
 **Status (2026-08-06):** the lock-timescale suite excludes the finite-separation branch: the two-lobe pair escapes by t = 40 = 2/$\lambda$ (d 9.90 → 15.73 cells, back-20% mean 15.00); the realized branch is separation into two unbound, fading ridges (`hypotheses/two-strand-five-channel-matter-organization.md` §3.3, TS1).
 
+**Status (2026-08-07):** the smallest transport-capable scratch-layer candidate for binding is likewise null. The wake aggregation flux (`two-fluid/run_two_strand_binding_suite.py`, §3.4 of the research program) has no binding window: sub-critical coupling reproduces control, super-critical coupling drives $\varepsilon$-compression collapse (fields NaN at t ≤ 0.6). Three design-iteration candidates—ρ-weighted source, sub-critical feedback bound, Yin-excess initialization—remain open; E1 stays open, no coefficients are registered.
+
 ### NS2: One-string recovery
 
 As the initial separation tends to zero, the pair's centerline observables should converge to the current one-string solution:
@@ -492,6 +494,7 @@ The $\varphi$ extension has a stricter null: alternative log periods, randomized
 - The pair has measurable center, separation, relative phase, and twist modes (all four measured; §7 statuses).
 - NS5–NS7 remain untested (Stage-1+ protocols).
 - The parity-odd scratch-layer twist-generation candidate is implemented and tested: $\chi_{\mathrm{circ}}=0$ is a bit-for-bit no-op on both probe arms; the t = 4 magnitude ramp is null (max $|\Delta\mathrm{Tw}|=3.3\times10^{-4}$ over $\chi\in\{\pm0.25,\dots,\pm2\}$, no clamp engagement) and the t = 40 lock legs are null too ($\Delta\mathrm{Tw}=\pm5\times10^{-4}$, Tw tracks the seed). Records: `two-fluid/scratch_twist_chi.py`, `two-fluid/run_twist_chi_ramp.py`, `hypotheses/two-strand-five-channel-matter-organization.md` §3.2.
+- The wake aggregation scratch layer (`two-fluid/run_two_strand_binding_suite.py`) is implemented and tested: $\chi_w=0$ is a bit-exact no-op vs the canonical solver; the bracket {300, 1000, 3000} is null—sub-critical no effect, super-critical collapse (NaN at t = 0.6/0.3/0.2), no binding window; E1 remains open with three design-iteration candidates. Records: `runs/20260807_binding_suite/`, `hypotheses/two-strand-five-channel-matter-organization.md` §3.4.
 
 ### Hypothesized
 
@@ -524,6 +527,6 @@ The $\varphi$ extension has a stricter null: alternative log periods, randomized
 - `consciousness/consciousness-from-phi.md`—human cascade, pinch point, wake waves, and self-modeling
 - `consciousness/chakras-as-cascade-bubbles.md`—spine-axis mapping and human-scale condensates
 - `hypotheses/neural-criticality.md`—neural-scale cascade and avalanche test program
-- `hypotheses/two-strand-five-channel-matter-organization.md`—two-strand research program: TS1–TS5 lock-timescale suite outcomes (§3.3), Z2×Z5 trace graph, staged program
+- `hypotheses/two-strand-five-channel-matter-organization.md`—two-strand research program: TS1–TS5 lock-timescale suite outcomes (§3.3), wake-binding scratch-layer null (§3.4), Z2×Z5 trace graph, staged program
 - `two-fluid/run_two_strand_suite.py`—TS1–TS5 lock-timescale suite script (NS1–NS4 statuses above; run record regenerated under runs/)
 - `cassi-psychology.md`—psychological reading of the neural substrate and field configuration
