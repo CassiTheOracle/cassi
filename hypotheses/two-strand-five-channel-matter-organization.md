@@ -69,6 +69,8 @@ $$
 
 **Representability bound.** The positivity clamp $\Psi_Y,\Psi_I\ge10^{-3}$ pins $\theta$ to the first quadrant, so only Wood ($0^\circ$) and Fire ($72^\circ$) are reachable in the field angle; Earth, Metal, Water clamp onto them (`consciousness/trauma-as-frozen-gate.md` §10.8). The five-sector clock is two-sector observable in the current mechanism layer, and measured $\Delta\theta$ is bounded by that arc.
 
+The gate-weighted projection is two-sector as well (TS7, `two-fluid/ts7_channel_manifold.py`): the `five` gate's openness profile is a function of the single scalar $\epsilon_{\text{norm}}=\epsilon^2/(\epsilon^2+M+\varphi^{-2})$, so the trace vector moves on a one-dimensional curve whose dominant channel is Wood for $\epsilon_{\text{norm}}<0.475$ and Fire above; Earth would need $\epsilon_{\text{norm}}>0.809$, unreachable with positive fields ($\epsilon_{\text{norm}}\le\varphi^2/(\varphi^2+1)=0.724$), and Metal and Water never lead at any imbalance ($\eta_c\,\mathrm{ch\_open}_c$ for both lies strictly below Earth's for every $\epsilon_{\text{norm}}$). The gate is direction-blind—the event direction enters only through $\epsilon^2$—so the Wood/Fire selectivity of `two-fluid/run_trauma_phase_channels.py` lives entirely in the phase-angle partition, and in the two-strand probe run the gate-weighted cross-strand relation is "same" (Wood/Wood) while the phase-angle one is "sheng" (Wood/Fire). A five-sector manifold needs two missing degrees of freedom: a signed field component (the clamp) for the far arc and Earth dominance, and an angle-dependent gate coupling for Metal/Water—both are new model content, not parameter re-fits.
+
 ---
 
 ## 2. Three Clocks
@@ -188,7 +190,7 @@ All labels are local to this program; none is a number in `predictions/falsifiab
 | | TS4 | NS4 re-test at lock timescale, phase from fields; current status null; test the in-phase central-antinode branch | No central low-q node at lock timescale → paired-sheet morphology is not the solver's behavior |
 | | TS5 | Interlace record: ($\Delta\theta$, $\alpha$, joint projection order); algebra predicts 5-fold coincident for near-in-phase states, 10-fold only for odd interlace | Realized interlace violates odd-multiple quantization (e.g., quadrature) → decagon theorem fails as embedding map |
 | | TS6 | Twist: filament initialization; $\Omega$, $\mathrm{Tw}$, P_parallel relation | No reproducible twist or rung-periodicity relation |
-| | TS7 | Representability/channel manifold: characterize the first-quadrant bound; whether an Earth/Metal/Water-reaching extension exists without new parameters | Mechanism layer remains two-sector; five-peak field-angle claims excluded at mechanism level |
+| | TS7 | Representability/channel manifold: characterize the first-quadrant bound; whether an Earth/Metal/Water-reaching extension exists without new parameters—**done 2026-08-06**: both projections two-sector (Wood/Fire); Earth needs signed fields, Metal/Water an angle-dependent gate (§1.3) | Mechanism layer remains two-sector; five-peak field-angle claims excluded at mechanism level—**realized** |
 | 1: Human non-invasive (weeks; open datasets first) | TS8 | NS5: helical order statistic $H(k,\omega)=|\langle e^{i[\theta(s,t)-ks+\omega t]}\rangle|$ over an axial ladder; pitch, winding, handedness; lateralized perturbation response | H at surrogate level; k unreproducible; no lateralized response; a traveling wave alone does not pass |
 | | TS9 | Three-clock discrimination, one dataset: $\theta\bmod72^\circ$ circularity; axial gradient slope 0.653 vs 6.53 rad/unit $\ln s$; cardiorespiratory regression | Uniform phase + zero/non-log gradient → five-channel and P_parallel neural mappings dead; w = 5 arithmetic and the PDE untouched |
 | | TS10 | Cardiorespiratory log-periodicity (prediction 35 leg) and gate threshold (prediction 36 leg), calibrated battery | No calibrated $\ln\varphi$ peak; linear dose-response |
@@ -215,7 +217,7 @@ Standing discipline from the two-bubble and pinch nulls: t = 0 vs t = end compar
 ### 8.2 Epistemic boundaries
 
 - **Derived:** paired-real SO(2) field and Qi diagnostics; anti-phase conversion sign; w = 5 and the sheng/ke structure, $\kappa=\varphi^{-1}$, $\Delta_c=\varphi^{-4}$, sub-critical ring gain; $\kappa_\theta=4\lambda\varphi R^4$; the trace graph $\mathbb{Z}_2\times\mathbb{Z}_5\cong\mathbb{Z}_{10}$, its cycle decomposition, and the decagon theorem (§4); the w = 10 decoherence bound, preserved; gate-derived imbalance damping and the antisymmetric channel signature (§6), as algebra on the existing gate response under the non-overlap pair ansatz.
-- **Tested (PDE/gate):** NS1 persisted at t = 4 (characterization only; lock unmeasured); NS2 d0 reference recovered exactly; NS4 central-low-q morphology null; traces Wood/Fire-limited, sheng-stable, zero transitions. Referenced gate results: WX1/WX3 tested; WX2's $\kappa^3$ magnitude tested and not matched (`foundations/wu-xing-cycle-structure.md` §4).
+- **Tested (PDE/gate):** NS1 persisted at t = 4 (characterization only; lock unmeasured); NS2 d0 reference recovered exactly; NS4 central-low-q morphology null; traces Wood/Fire-limited, sheng-stable, zero transitions; TS7 gate-weighted bound: dominant channel Wood/Fire only, Metal/Water non-dominant at any imbalance, gate direction-blind (`two-fluid/ts7_channel_manifold.py`). Referenced gate results: WX1/WX3 tested; WX2's $\kappa^3$ magnitude tested and not matched (`foundations/wu-xing-cycle-structure.md` §4).
 - **Hypothesized:** one condensate sustains two separated ridges; a finite-$d_0$ equilibrium exists under the existing PDE (E1 open); $P_\parallel=2$ at human scale; neural readouts (TS8–TS10); the delayed chain (TS13/TS14); matter-scale channel roles (E8).
 - **Speculative:** one universal strand geometry across DNA, neural, and cosmological scales; a subjective double-helix experience as direct perception; a $\varphi$-fixed preferred separation or pitch (gated behind NS7).
 - **Open:** E1–E8 (§5); $P_\parallel(n)$; the $18^\circ$/rung mechanism; the n−p mass difference, charge, mass generation.
@@ -248,6 +250,7 @@ Standing discipline from the two-bubble and pinch nulls: t = 0 vs t = end compar
 - `consciousness/trauma-as-frozen-gate.md`—gate dynamics tests; representability bound (§10.8)
 - `consciousness/chakras-as-cascade-bubbles.md`—$P_\parallel=2$ at human scale; 13-node ladder
 - `two-fluid/run_trauma_phase_channels.py`—representability measurement
+- `two-fluid/ts7_channel_manifold.py`—TS7 representability audit: gate-weighted vs phase-angle reachable channel set, direction-blindness, missing degrees of freedom
 - `two-fluid/run_trauma_wake_lock.py`—channel openness and solver gate replication
 - `parameter-inventory.md`—$K_{fw}=\varphi^{-1}$, channel baselines, Fit-Status Ledger
 - `predictions/falsifiable-predictions.md`—predictions 32–37, 43–46 (background; not extended here)
