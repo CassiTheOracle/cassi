@@ -106,7 +106,7 @@ W_MAX_BOUND = 10.0           # T4 wake boundedness ceiling
 
 def tag_of(chi_w):
     """Arm tag for a coupling value: 1.0 -> 'b12_1', 0.3 -> 'b12_03'."""
-    return f"b12_{str(chi_w).rstrip('0').rstrip('.')}"
+    return f"b12_{str(chi_w).rstrip('0').rstrip('.').replace('.', '')}"
 
 CHANNELS = ['Wood', 'Fire', 'Earth', 'Metal', 'Water']
 SNAP_STEPS = (0, 4000, STEPS - 1)      # t = 0, 4, 40 q/eps snapshots
@@ -648,6 +648,8 @@ def t4_verdict(meta_star, meta_ctrl, t2_star, w_max_over_run,
 ARM_DEFS = [
     ('ctrl', 'canonical', SEP),
     ('b12_0', 'binding', SEP, 0.0),
+    (tag_of(0.3), 'binding', SEP, 0.3),   # sub-critical reference (not in
+                                          # the monotone bracket, not analyzed)
     (tag_of(300.0), 'binding', SEP, 300.0),
     (tag_of(1000.0), 'binding', SEP, 1000.0),
     (tag_of(3000.0), 'binding', SEP, 3000.0),
@@ -731,6 +733,13 @@ def main():
 
 
 def compute_verdicts(arms, meta, states, rdir):
+    required = ({'ctrl', 'b12_0', 'b0_0', 'b0_1'}
+                | {tag_of(c) for c in CHI_BRACKET})
+    missing = sorted(required - set(arms))
+    if missing:
+        print(f"[verdicts skipped: arm subset lacks {missing}; "
+              f"run the full arm set for T1-T4]")
+        return
     sums = {tag: arm_summary(h) for tag, h in arms.items()}
 
     # ── Verdicts ─────────────────────────────────────────────────────────
