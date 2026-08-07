@@ -35,7 +35,7 @@ Tiers below are taken from each document's Status header. Compound headers are q
 | `foundations/cassi-first-principles.md` | Derived | Two-fluid PDE, governing equations, conversion |
 | `foundations/unified-lagrangian.md` | Derived | Single Lagrangian; gravity as $q = 0$ Poisson limit; $\sigma$-regularization |
 | `foundations/phi_attractor_synthesis.md` | Derived (attractor synthesis) / Calibrated ($\xi$ pin) / Mapped ($\alpha_{\text{halo}} = 0.7$ nominal—ledger) | $r \to \varphi$ attractor synthesis across regimes |
-| `foundations/wu-xing-derivation.md` | Derived (w = 5, gap, r₀) / Calibrated (w₀ via the DESI-anchored coupling form—ledger) | $w = 5$ derived (pentagon geometry); $\lambda = 1/(2w) = 0.1$ |
+| `foundations/wu-xing-derivation.md` | Derived (w = 5, gap, r₀) / Calibrated (w₀ via the DESI-anchored coupling form—ledger) | $w = 5$ derived (pentagon geometry); $\lambda = 1/(2w) = 0.1$ (`cassi-physics.md`) |
 | `foundations/wu-xing-cycle-structure.md` | Derived (cycle geometry, coupling, ring algebra) / Tested (ke ring PDE 2026-07-31, WX1 gate level 2026-08-01) / Hypothesized (affinity gradient, clinical profile) | Two coherent 5-cycles (sheng/ke); control-ring algebra; 5↔13 chakra partition |
 | `foundations/xi-derivation.md` | Derived rung identity / Calibrated empirical pin (MW anchor—ledger) | $\xi = \varphi^6 \approx 17.944$ Qi-gravity coupling |
 | `foundations/quark-confinement.md` | Derived | QCD at step 95; Qi flux tube; $P_{\text{break}} \approx \varphi^{-4506}$ |
@@ -92,6 +92,7 @@ Tiers below are taken from each document's Status header. Compound headers are q
 | `consciousness/consciousness-from-phi.md` | Plausible Hypothesis with Actionable PDE Test | Consciousness as Qi-gate dynamics; two-bubble test (M1) |
 | `consciousness/emotions-as-gate-configurations.md` | Hypothesized | Emotions as gate configurations |
 | `consciousness/trauma-as-frozen-gate.md` | Tested—null pinning, drive effect supported (2026-07-31) / Speculative (clinical) | Trauma as a frozen Qi gate |
+| `consciousness/two-strand-qi-neuroscience.md` | Hypothesized (strand geometry) / Speculative (neural mapping) | Two-strand Qi condensate; centerline/separation decomposition; strand modes |
 | `hypotheses/nuclear-magic-numbers.md` | Hypothesized | Fibonacci sub-channel closure at steps 80–95 |
 | `hypotheses/hoyle-state-nucleosynthesis.md` | Hypothesized | Cascade rung resonance at the $^3\alpha$ threshold |
 | `hypotheses/exoplanet-phi-spacing.md` | Hypothesized | Wake-wave interference in protoplanetary disks |
