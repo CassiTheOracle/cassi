@@ -7,9 +7,20 @@ this module subclasses ExpandingTwoFluid3DGPU and layers the smallest
 parity-odd conversion coupling onto the returned RHS:
 
     J      = ey grad(ei) - ei grad(ey)        (derived R^2 grad(theta))
-    g      = (curl J)_z = d_x J_y - d_y J_x
+    g      = d_z J_y - d_y J_z                 (solver-frame curl component,
+                                               see frame note below)
     conv_s = -lam (1-q) eps (1 - chi_circ g / J_scale)
            = conv + T,   T = +lam chi_circ (1-q) eps g / J_scale
+
+Frame note: the canonical solver's wavenumber arrays are cyclically labeled
+(self.kz, self.ky, self.kx = torch.meshgrid(k, k, k) assigns the axis-0
+wavenumber to self.kz and the axis-2 wavenumber to self.kx).  The layer uses
+the solver's _grad helpers verbatim, so the computed g is the curl component
+along grid axis 0 -- in box-frame labeling -(curl J)_x -- rather than the
+axial (curl J)_z of the TS6 sketch.  The term remains parity-odd (any curl
+component flips under handedness reversal) and vanishes at the phi-attractor
+(J = 0 pointwise), so the validation verdicts are measurements of this
+component; the axial-component variant is the pending follow-up.
 
 chi_circ = 0 returns super().rhs() verbatim: the canonical path executes with
 zero extra operations (bit-for-bit no-op by construction).  The term is
@@ -19,8 +30,8 @@ Jacobian unchanged), and is per-cell antisymmetric in ey/ei (exact mass
 neutrality of the conv pair).
 
 J_scale: run constant.  None => computed once on the first rhs evaluation
-(which sees the t = 0 init fields) as max over the box of |(curl J)_z|.
-Measured value on all three probe inits (N = 48): 1.71816291e-01.
+(which sees the t = 0 init fields) as max over the box of |g|.
+Measured value on all three probe inits (N = 48): 6.75556293e-02.
 
 Run:  python two-fluid/run_twist_chi_ramp.py   (the validation runner)
 """
