@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Gauge-resolution wave (wave 6 of the lattice-stack program, labels g1-g12).
+"""Gauge-resolution wave (wave 6 of the lattice-stack program, labels g1-g12)
+and residue-rule falsifier wave (wave 7, labels r1-r11).
 
 Run:  python two-fluid/run_lattice_stack_gauge_wave.py
       (--steps N, --arm TAG repeatable, --init-check, --scan-rotation,
-       --rot DEG, --from-runs DIR, --fine)
+       --rot DEG, --from-runs DIR, --fine, --wave7)
 
 Reuses the committed run_lattice_stack_falsifier / run_lattice_stack2_probe
 machinery (imported read-only); same protocol: fresh solver per arm,
@@ -44,6 +45,33 @@ construction-level; |Ssin/Scos| > 0.7468 = RHO0*BETA/E_RIDGE for these
 geometries, where Scos = sum cos theta_j, Ssin = sum sin theta_j over the
 layer phases).  A global rotation preserves A_tot(0) exactly and drops the
 clamp residue to float-exact (section 3.11(c)/f7 theorem).
+
+Wave 7 (section 3.18, labels r1-r11) tests the hypothesized residue
+mechanism behind the born-full retain set: born-full init survives iff
+the twist residue res = (M*dtheta) mod 360 is 5-fold-commensurate, i.e.
+the pentagon-lattice distance d72 = min_k |res - 72k| (k = 0..5) lies in
+the pass set {0, 9, 36} against the fail band [14.4, 27], with the
+measured gap (9, 14.4) separating them.  The boxed delta-set
+{72, 135, 144, 180} and the d72 mechanism DISAGREE at delta = 136 deg
+(d72 = 8, pass gap, but 136 not in the boxed set): arm r1 is the
+headline discriminator.  All arms N = 48, t = 40, gate 'five', fresh
+solver per arm; born class at the run gauge via |Ssin/Scos| vs 0.7468.
+
+  r1:  34 deg, M = 4,  delta 136, d72 8    DISCRIMINATOR (no committed
+       verdict; pass => mechanism governs, fail => boxed set exact)
+  r2:  72 deg, M = 13, delta 144, d72 0    predict PASS (A = phi)
+  r3:  54 deg, M = 12, delta 72,  d72 0    predict PASS
+  r4:  54 deg, M = 10, delta 180, d72 36   predict PASS
+  r5:  36 deg, M = 27, delta 108, d72 36   predict PASS (A = phi^2)
+  r6:  60 deg, M = 9,  delta 180, d72 36   predict PASS
+  r7:  45 deg, M = 19, delta 135, d72 9    predict PASS (boundary value)
+  r8:  60 deg, M = 10, delta 120, d72 24   predict FAIL (death class)
+  r9:  60 deg, M = 8,  delta 120, d72 24   predict FAIL (death class;
+       runs at a clean born-full rotation, alpha ~ 248)
+  r10: 54 deg, M = 11, delta 126, d72 18   predict FAIL (fail band)
+  r11: 60 deg, M = 11, delta 60,  d72 12   GAP BOUNDARY LOCATOR (inside
+       the measured gap (9, 14.4); no committed prediction -- report and
+       classify: pass => boundary above 12, fail => boundary at/below 12)
 
 Output: runs/<rid>_lattice_stack_g/run_<arm>.json + results.json (raw;
 NO doc changes until the director reads the raw outputs).
@@ -332,15 +360,111 @@ FINE_ARMS = [
 ]
 
 
+def residue(M, dth_deg):
+    """Twist residue res = (M*dtheta) mod 360 (wave-7 mechanism input)."""
+    return (M * dth_deg) % 360.0
+
+
+def pentagon_distance(M, dth_deg):
+    """d72 = min_k |res - 72k|, k = 0..5: the 5-fold-commensurability
+    distance of the twist residue (wave-7 mechanism)."""
+    res = residue(M, dth_deg)
+    return min(abs(res - 72.0 * k) for k in range(6))
+
+
+WAVE7_ARMS = [
+    ('r1', 34.0, 4, None, 0.0,
+     {'kind': 'discriminator', 'born': 'full',
+      'A_derived': 3.17125, 'd72': 8.0,
+      'note': 'THE DISCRIMINATOR: delta=136 deg, d72=8 (pass gap) but '
+              '136 not in the boxed delta-set {72,135,144,180}. PASS => '
+              'the residue mechanism governs (136 joins the retain set); '
+              'FAIL => the boxed set is exact and the d72 gap was '
+              'coincidence. A(4,34) = |sin 68/sin 17| = 3.1712. '
+              'born-full at alpha=0 (|Ss/Sc|=1.2349); verify in '
+              'init-check; if floors >= 2% pick a clean born-full gauge'}),
+    ('r2', 72.0, 13, None, 195.0,
+     {'kind': 'predict_pass', 'born': 'full',
+      'A_derived': 1.61803, 'd72': 0.0,
+      'note': 'delta=144 (936 mod 360 = 216 -> 144), d72=0; A(13,72) = '
+              '|sin 468/sin 36| = 1.6180 = phi [D]. PREDICT PASS -- the '
+              'cleanest probe; 452 clean rotations (288 born-full, 164 '
+              'born-flat) per the scan; gauge 195 deg: clean born-full, '
+              '|Ss/Sc| = 19.08 (the brief\'s 288 is the born-full COUNT, '
+              'not the gauge -- alpha=288 is born-flat)'}),
+    ('r3', 54.0, 12, None, 0.0,
+     {'kind': 'predict_pass', 'born': 'full',
+      'A_derived': 1.29471, 'd72': 0.0,
+      'note': 'delta=72, d72=0; A(12,54) = |sin 324/sin 27| = 1.2947 [D]. '
+              'PREDICT PASS -- the 54 deg family first born-full test '
+              '(f1/f2 were born-full at clamp-touched gauges)'}),
+    ('r4', 54.0, 10, None, 0.0,
+     {'kind': 'predict_pass', 'born': 'full',
+      'A_derived': 2.20269, 'd72': 36.0,
+      'note': 'delta=180, d72=36; A(10,54) = |sin 270/sin 27| = 2.2027 '
+              '[D]. PREDICT PASS'}),
+    ('r5', 36.0, 27, None, 0.0,
+     {'kind': 'predict_pass', 'born': 'full',
+      'A_derived': 2.61803, 'd72': 36.0,
+      'note': 'delta=108, d72=36; A(27,36) = |sin 486/sin 18| = 2.6180 = '
+              'phi^2 [D]. PREDICT PASS -- the untested 5-fold complement '
+              '(108 = 36+72)'}),
+    ('r6', 60.0, 9, None, 0.0,
+     {'kind': 'predict_pass', 'born': 'full',
+      'A_derived': 2.0, 'd72': 36.0,
+      'note': 'delta=180, d72=36; A(9,60) = |sin 270/sin 30| = 2.0 [D]. '
+              'PREDICT PASS'}),
+    ('r7', 45.0, 19, None, 0.0,
+     {'kind': 'predict_pass', 'born': 'full',
+      'A_derived': 2.41421, 'd72': 9.0,
+      'note': 'delta=135, d72=9 (on the boundary); A(19,45) = |sin '
+              '427.5/sin 22.5| = 2.4142 = 1+sqrt 2 [D]. PREDICT PASS '
+              '(135 in the boxed set; d72=9 is the boundary value shared '
+              'with w7/g5b)'}),
+    ('r8', 60.0, 10, None, 0.0,
+     {'kind': 'predict_fail', 'born': 'full',
+      'A_derived': 1.73205, 'd72': 24.0,
+      'note': 'delta=120, res=240, d72=24 (fail band); A(10,60) = |sin '
+              '300/sin 30| = 1.732 = sqrt 3 [D]. PREDICT FAIL (120 deg '
+              'death class; alpha=0 floors 35 = 0.03% per the wave-6 '
+              'scan -- protocol-legal)'}),
+    ('r9', 60.0, 8, None, 248.0,
+     {'kind': 'predict_fail', 'born': 'full',
+      'A_derived': 1.73205, 'd72': 24.0,
+      'note': 'delta=120, res=120, d72=24 (fail band); A(8,60) = |sin '
+              '240/sin 30| = 1.732 = sqrt 3 [D]. PREDICT FAIL (120 deg '
+              'death class). Runs at a clean born-full rotation (alpha '
+              '~ 248; 91 clean born-full rotations per the wave-6 scan); '
+              'verify in init-check'}),
+    ('r10', 54.0, 11, None, 0.0,
+     {'kind': 'predict_fail', 'born': 'full',
+      'A_derived': 1.96261, 'd72': 18.0,
+      'note': 'delta=126, res=234, d72=18 (fail band); A(11,54) = |sin '
+              '297/sin 27| = 1.9626 [D]. PREDICT FAIL'}),
+    ('r11', 60.0, 11, None, 0.0,
+     {'kind': 'gap_boundary', 'born': 'full',
+      'A_derived': 1.0, 'd72': 12.0,
+      'note': 'GAP BOUNDARY LOCATOR: delta=60, res=300, d72=12 -- INSIDE '
+              'the measured gap (9, 14.4). NO committed prediction. PASS '
+              '=> the boundary lies above 12 (gap extends to >= 12); '
+              'FAIL => boundary at/below 12 (gap narrows toward the '
+              'measured 14.4-fail). A(11,60) = |sin 330/sin 30| = 1.0 '
+              '[D]; born-full at alpha=0 with 0 floors per the wave-6 '
+              'scan'}),
+]
+
+
 def arm_phases(arm):
     tag, dth, M, rung, rot, pred = arm
     return lin(M, math.radians(dth), math.radians(rot))
 
 
 def prepare(arms):
-    """Inject the computed stack twist delta = fold(M*dtheta mod 360) into
-    every arm's prediction dict (single source: stack_delta)."""
-    return [(t, d, M, ro, rot, {**pr, 'delta': stack_delta(M, d)})
+    """Inject the computed stack twist delta = fold(M*dtheta mod 360) and
+    the pentagon distance d72 = min_k |res - 72k| into every arm's
+    prediction dict (single source: stack_delta / pentagon_distance)."""
+    return [(t, d, M, ro, rot, {**pr, 'delta': stack_delta(M, d),
+                                'd72': pentagon_distance(M, d)})
             for t, d, M, ro, rot, pr in arms]
 
 
@@ -360,9 +484,16 @@ def finalize(runs, rdir, arms):
 
     results = {'meta': {'N': T.N, 'lam': T.LAM, 'dt': T.DT,
                         't_end': runs[0]['hist'][-1]['t'],
-                        'wave': 'gauge-resolution wave (g1-g12, + g13-g17 '
-                                'fine scans): clean-gauge re-measurement of '
-                                'the clamp-polluted death arms',
+                        'wave': ('residue-rule falsifier wave (r1-r11): '
+                                 'the d72 = min_k|res - 72k| mechanism vs '
+                                 'the boxed delta-set {72,135,144,180}; '
+                                 'r1 = the delta=136 discriminator; r11 = '
+                                 'the gap-boundary locator'
+                                 if any(r['tag'] == 'r1' for r in runs)
+                                 else 'gauge-resolution wave (g1-g12, + '
+                                      'g13-g17 fine scans): clean-gauge '
+                                      're-measurement of the '
+                                      'clamp-polluted death arms'),
                         'protocol': 'fresh solver per arm, t=40=2/lambda, '
                                     'init-only phases, canonical solver '
                                     'untouched, zero new terms'},
@@ -391,6 +522,7 @@ def finalize(runs, rdir, arms):
                 f"ratio={rt['ratio_vs_analytic']:.5f} "
                 f"ratio/A[D]={rt['ratio_vs_analytic'] / A_D:.5f} "
                 f"floors={rt['floor_ey'] + rt['floor_ei']:5d} | "
+                f"delta={pred['delta']:g} d72={pred['d72']:g} | "
                 f"born {born} (|Ss/Sc|={abs(S0 / C0) if abs(C0) > 1e-12 else float('inf'):.4f}, "
                 f"C_abs(0)={s['t0']['C_abs']:+.3f}) | "
                 f"C_abs 0/4/40 = {s['t0']['C_abs']:+.3f}/"
@@ -439,6 +571,30 @@ def finalize(runs, rdir, arms):
         elif kind == 'fine_scan':
             v = 'CONFIRMED (lean pass)' if c40(tag) >= 0.5 else \
                 'CONTRADICTED (fail)'
+        elif kind == 'discriminator':
+            v = (f"DISCRIMINATOR: delta={pred['delta']:g} (d72="
+                 f"{pred['d72']:g}, pass gap) PASSES -> the residue "
+                 f"mechanism governs; the boxed delta-set extends to "
+                 f"{pred['delta']:g} deg"
+                 if c40(tag) >= 0.5 else
+                 f"DISCRIMINATOR: delta={pred['delta']:g} (d72="
+                 f"{pred['d72']:g}, pass gap) DIES -> the boxed delta-set "
+                 f"is exact; the d72 gap was coincidence")
+        elif kind == 'predict_pass':
+            v = ('CONFIRMED (pass)' if c40(tag) >= 0.5 else
+                 'CONTRADICTED (fail)')
+        elif kind == 'predict_fail':
+            v = ('CONFIRMED (fail)' if c40(tag) < 0.5 else
+                 'CONTRADICTED (pass)')
+        elif kind == 'gap_boundary':
+            v = (f"GAP BOUNDARY: d72={pred['d72']:g} (inside the measured "
+                 f"gap (9, 14.4)) PASSES -> the boundary lies above "
+                 f"{pred['d72']:g}; the gap extends to >= {pred['d72']:g}"
+                 if c40(tag) >= 0.5 else
+                 f"GAP BOUNDARY: d72={pred['d72']:g} (inside the measured "
+                 f"gap (9, 14.4)) FAILS -> the boundary lies at or below "
+                 f"{pred['d72']:g}; the gap narrows toward the measured "
+                 f"14.4-fail")
         if pred['born'] is not None and born != pred['born']:
             v += f" [BORN-CLASS DEVIATION: expected {pred['born']}]"
         verdicts[tag] = {'prediction': pred, 'verdict': v,
@@ -485,9 +641,11 @@ def main():
     parser.add_argument('--fine', action='store_true',
                         help='run the g13-g17 fine scans instead of g1-g12 '
                              '(priority LOW)')
+    parser.add_argument('--wave7', action='store_true',
+                        help='run the r1-r11 residue-rule falsifier wave '
+                             'instead of g1-g12 (section 3.18)')
     parser.add_argument('--from-runs', default=None, metavar='DIR')
-    parser.add_argument('--rid-suffix', default='lattice_stack_g',
-                        metavar='SUFFIX')
+    parser.add_argument('--rid-suffix', default=None, metavar='SUFFIX')
     args = parser.parse_args()
 
     if args.from_runs is not None:
@@ -502,9 +660,13 @@ def main():
                          'n_layers': d['n_layers'],
                          'n_rungs': d['n_rungs']})
             runs[-1]['summary'] = L2.summarize2(runs[-1])
-        arms = ARMS + (FINE_ARMS if any(r['tag'].startswith('g1') and
-                                        r['tag'] in ('g13',) for r in runs)
-                       else ARMS)
+        if args.wave7:
+            arms = WAVE7_ARMS
+        else:
+            arms = ARMS + (FINE_ARMS if any(r['tag'].startswith('g1') and
+                                            r['tag'] in ('g13',)
+                                            for r in runs)
+                           else ARMS)
         arms = prepare(arms)
         print(f"Rebuilding from {len(runs)} preserved arms in {args.from_runs}")
         finalize(runs, args.from_runs, arms)
@@ -513,7 +675,10 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     if args.tend is not None:
         args.steps = int(round(args.tend / T.DT))
-    arms = FINE_ARMS if args.fine else ARMS
+    if args.wave7:
+        arms = WAVE7_ARMS
+    else:
+        arms = FINE_ARMS if args.fine else ARMS
     if args.arm is not None:
         arms = [a for a in arms if a[0] in args.arm]
         if not arms:
@@ -576,7 +741,9 @@ def main():
         return
 
     rid = datetime.now().strftime("%Y%m%d_%H%M%S")
-    rdir = f"runs/{rid}_{args.rid_suffix}"
+    suffix = args.rid_suffix or ('lattice_stack_r' if args.wave7
+                                 else 'lattice_stack_g')
+    rdir = f"runs/{rid}_{suffix}"
     os.makedirs(rdir, exist_ok=True)
 
     runs = []
