@@ -4,13 +4,13 @@
 
 ## Abstract
 
-This document is the computational plan for promoting the Cassi $\sigma_8$ prediction from Hypothesized to Derived. The mechanism is the density-dependent Qi-gravity coupling $G_{\text{eff}} = (\pi/\rho)(1+(\varphi^{6}-1)q)G_N$ with $\xi = \varphi^6$: voids see near-Newtonian gravity while filament and halo regions see an enhanced $G_{\text{eff}}$, suppressing late-time growth by ≈16% under the stabilized closure's regime-integrated growth (§3.2); the observed deficit is ≈5%; the μ normalization is Mapped; the plan's "target" rows are fit targets, not computations. The reconciliation (2026-08-06, `computations/sigma8_reconciliation.py`) bounds the pipeline state: the pipeline's −45.1% headline (re-run 2026-08-07 at the operational $r_0 = 1/23$) is dominated by normalization and resolution, ≈ −9.6% is mechanism-attributable ($G_{\text{eff}} = 0.9044$ on the 2026-08-06 state), and the "~5%" target is Mapped (ledger §10). The plan runs a high-resolution two-fluid PDE, extracts $q(k, a)$ per Fourier mode, integrates it into a modified Boltzmann solver, and validates against rotation curves, cluster masses, and $f\sigma_8$.
+This document is the computational plan for promoting the Cassi $\sigma_8$ prediction from Hypothesized to Derived. The mechanism is the density-dependent Qi-gravity coupling $G_{\text{eff}} = (\pi/\rho)(1+(\varphi^{6}-1)q)G_N$ with $\xi = \varphi^6$: voids see near-Newtonian gravity while filament and halo regions see an enhanced $G_{\text{eff}}$, suppressing late-time growth by ≈16% under the stabilized closure's regime-integrated growth (§3.2); the observed deficit is ≈5%; the μ normalization is Mapped; the plan's "target" rows are fit targets, not computations. The truth campaign (2026-08-07, `runs/44-truth-campaign/`) measures the pipeline's rows at the doctrine IC: the total **−20.5%** (resolution-converged N = 32/64/128, linear-P(k) IC normalization) and the mechanism-attributable **+29.7%** ($G_{\text{eff}} = 1.297$ — the doctrine $r_0$'s deep-Yin window q rises 0.30 → 0.41; r₀-dependent: +29.4% at the derived $r_0 = 0.0472$), and the "~5%" target is Mapped (ledger §10). The plan runs a high-resolution two-fluid PDE, extracts $q(k, a)$ per Fourier mode, integrates it into a modified Boltzmann solver, and validates against rotation curves, cluster masses, and $f\sigma_8$.
 
 ---
 
 ## 1. Objective
 
-Compute $\sigma_8(z)$ from the Cassi two-fluid framework by integrating the density-dependent Qi-gravity modification $G_{\text{eff}}(k, q)$ into a Boltzmann code. The current epistemic status is **Hypothesized** (qualitative match; quantitative computation pending). The reconciliation (2026-08-06, `computations/sigma8_reconciliation.py`) established that the pipeline's −45.1% headline (re-run 2026-08-07 at the operational $r_0 = 1/23$) is normalization- and resolution-dominated (P(k) normalization factor 8e-5, nonlinear ICs, N=32 PDE dissipation: δ_rms falls 32% while ΛCDM linear growth rises +24%), with ≈ −9.6% mechanism-attributable on the 2026-08-06 state ($G_{\text{eff}} = 0.9044$); the doctrine (2026-08-07) replaces the "~5%" target with the computed rows: −16.6% (closure, regime-integrated, R = 0.834) and −15.2% (band-state mean-field) under the P-A relative-μ reading at the derived $r_0 = 0.0472$ (§3.2); the μ normalization remains Mapped. Reaching **Derived** requires a resolution- and normalization-controlled computation that isolates the mechanism contribution.
+Compute $\sigma_8(z)$ from the Cassi two-fluid framework by integrating the density-dependent Qi-gravity modification $G_{\text{eff}}(k, q)$ into a Boltzmann code. The current epistemic status is **Hypothesized** (qualitative match; quantitative computation pending). The truth campaign (2026-08-07, `runs/44-truth-campaign/`) measured the pipeline's rows at the doctrine IC with the linear-P(k) normalization (pk_norm ≡ 1): the total **−20.5%** (resolution-converged N = 32/64/128; σ₈_ΛCDM 0.9917 vs σ₈_Cassi 0.7884 at a_f = 1.80) and the mechanism-attributable **+29.7%** ($G_{\text{eff}} = 1.297$ — the deep-Yin window's q rises 0.30 → 0.41, growth enhancement; r₀-dependent: +29.4% at the derived $r_0 = 0.0472$); the doctrine (2026-08-07) replaces the "~5%" target with the computed rows: −16.6% (closure, regime-integrated, R = 0.834) and −15.2% (band-state mean-field) under the P-A relative-μ reading at the derived $r_0 = 0.0472$ (§3.2); the μ normalization remains Mapped. Reaching **Derived** requires a resolution- and normalization-controlled computation that isolates the mechanism contribution.
 
 ---
 
@@ -60,12 +60,12 @@ The $\sigma_8$ tension arises because low-density regions (voids, filament edges
 
 ### 2.4 $q$ Evolution with Redshift
 
-The pipeline simulation (re-run 2026-08-07 at the operational $r_0 = 1/23$) shows the cosmic-mean $q$ **increasing** with time from a deep-Yin start:
+The pipeline simulation at the operational $r_0 = 1/23$ (the doctrine IC; the non-doctrinal orphan is $r_0 = 1/3$, 27 §2) shows the cosmic-mean $q$ **increasing** with time from a deep-Yin start (truth campaign 2026-08-07, N = 128):
 
-- $q \approx 0.268$ at $a = 1.0$ ($z \approx 0$; pipeline IC)
-- $q \approx 0.301$ at $a = 1.82$ (pipeline endpoint)
+- $q \approx 0.30$ at $a = 1.0$ ($z \approx 0$; pipeline IC)
+- $q \approx 0.41$ at $a = 1.80$ (pipeline endpoint)
 
-These are pipeline-state values: the state's $r_0 = 1/23$ IC is the operational calibration value, but the state itself is non-doctrinal—the stabilized closure's attractor ($q = 0.79$ at $r_* = 0.9503$; `cassi-psychology.md` §12) is the framework's state, with a different $\mu$ history (the computed rows of §3.2). The $q(z)$ evolution is the key input to the $\sigma_8$ pipeline: if $q$ were constant, there would be no $\sigma_8$ suppression since $\mu(k,a)$ would be time-independent and absorbed into the normalization.
+These are the doctrine-IC pipeline values: the operational $r_0 = 1/23$ and the derived $r_0 = 0.0472$ are indistinguishable for $\sigma_8$ (0.3 pp at N = 128 — 27 §2.2, verified 2026-08-07); the pipeline's run window is mid-relaxation—the stabilized closure's attractor ($q = 0.79$ at $r_* = 0.9503$; `cassi-psychology.md` §12) is the framework's settled state, reached beyond the pipeline's window, with a different $\mu$ history (the computed rows of §3.2). The $q(z)$ evolution is the key input to the $\sigma_8$ pipeline: if $q$ were constant, there would be no $\sigma_8$ shift since $\mu(k,a)$ would be time-independent and absorbed into the normalization.
 
 At very early times ($z > 1000$, prior to recombination), the universe is nearly homogeneous and $C \approx 0$, so $q \approx 0.5$ from the condensation-field parameterization. However, the PDE's $q(z)$ shows values above 0.5 in the early post-inflation era, approaching 1 at the $r \gg \varphi$ limit (pure Yang). The pipeline should use PDE-extracted $q(z)$ directly for all epochs.
 
@@ -87,35 +87,36 @@ For Cassi ($\mu \neq 1$), growth is enhanced at early times (high $q$) and suppr
 
 ### 3.2 Effective $\mu$ from the Pipeline
 
-The existing PDE pipeline (`two-fluid/run_sigma8_pipeline.py`) at $N=32$, re-run 2026-08-07 at the operational $r_0 = 1/23$, gives:
+The PDE pipeline (`two-fluid/run_sigma8_pipeline.py`) at the operational $r_0 = 1/23$ with the linear-P(k) IC normalization (the truth campaign 2026-08-07, N = 32/64/128) gives:
 
-- $q_{\text{initial}} = 0.268$, $q_{\text{final}} = 0.301$ (spatial mean)
-- $G_{\text{eff}}/G_{\text{ref}} = 1.102$ (relative gravity rises as coherence grows from the deep-Yin start)
+- $q_{\text{initial}} = 0.300$, $q_{\text{final}} = 0.405$ (spatial mean, N = 128)
+- $G_{\text{eff}}/G_{\text{ref}} = 1.297$ (the deep-Yin window's q rises — the mechanism-attributable row +29.7%; r₀-dependent: +29.4% at the derived $r_0 = 0.0472$)
+- the measured total $\Delta\sigma_8 = -20.5\%$ (resolution-converged; σ₈_ΛCDM 0.9917 vs σ₈_Cassi 0.7884 at a_f = 1.80)
 
-These are the pipeline-state values at the non-doctrinal pipeline state (§2.4); the framework's computed $\sigma_8$ rows are the band-state mean-field and the regime-integrated closure below.
+The mechanism row is resolution-converged to 0.1 pp across N ∈ {32, 64, 128}; the framework's computed $\sigma_8$ rows are the band-state mean-field and the regime-integrated closure below.
 
 In the matter-dominated era where $D \propto a^p$ with $p = \frac{-1 + \sqrt{1 + 24\mu}}{4}$ for $\mu = G_{\text{eff}}/G_N$:
 
 | $\mu$ (constant approximation) | $p$ | $D(z=0)/D(z=100)$ | $\sigma_8$ ratio vs. $\Lambda$CDM | Suppression |
 |-------|-----|-------------------|----------------------------------|-------------|
 | 1.000 ($\Lambda$CDM) | 1.000 | 101.0 | 1.000 |—|
-| 1.102 (pipeline spatial-mean $\mu$, $r_0 = 1/23$ state) | 1.060 | 133.1 | 1.318 | **+31.8%** |
+| 1.297 (pipeline spatial-mean $\mu$, doctrine $r_0 = 1/23$, N=128 campaign) | 1.167 | 218.3 | 2.162 | **+116.2%** |
 | 0.950 (estimated effective $\mu$) | 0.970 | 87.4 | 0.865 | **-13.5%** |
 | 0.980 (target, matching observations) | 0.989 | 95.7 | 0.947 | **-5.3%** |
 
-The 0.950/0.980 rows are estimated/target rows—**NOT predictions**; the computed rows: $\mu = 1.102 \to +31.8\%$ (pipeline state at the operational $r_0 = 1/23$, re-run 2026-08-07 — the state's $\mu$ history is non-doctrinal), $\mu = 0.9414 \to -15.2\%$ (band-state mean-field), and the regime-integrated closure **−16.6% (R = 0.834)** under the P-A relative-μ reading at the derived $r_0 = 0.0472$; the $\mu = 0.980$ row is a fit target, not a computation.
+The 0.950/0.980 rows are estimated/target rows—**NOT predictions**; the computed rows: $\mu = 1.297 \to +116.2\%$ (the EdS power-law reading of the pipeline's measured spatial-mean $\mu$ at the doctrine $r_0 = 1/23$ — the campaign's μ-only statistic, the reconciliation's row σ₈(P·G_eff²) = G_eff·σ₈(P), is +29.7%; the EdS power law overstates sign-changing μ histories, 45), $\mu = 0.9414 \to -15.2\%$ (band-state mean-field), and the regime-integrated closure **−16.6% (R = 0.834)** under the P-A relative-μ reading at the derived $r_0 = 0.0472$; the measured total (density field vs ΛCDM linear growth) is **−20.5%**, resolution-converged (N=32/64/128, linear-P(k) IC normalization); the $\mu = 0.980$ row is a fit target, not a computation.
 
-**The $\mu = 0.98$ row is a fit target, not a computation**—no framework computation yields $\mu = 0.98$; the stabilized closure's window mean is $\mu \approx 0.94$, whose regime-integrated growth gives −16.6% (R = 0.834, §3.2). The observed weak-lensing deficit is ≈5%; the "~5%" σ8 wording conflated that deficit with a prediction. The reconciliation (2026-08-06, `computations/sigma8_reconciliation.py`) shows the pipeline's −45.1% headline (re-run 2026-08-07) is dominated by normalization and resolution, with ≈ −9.6% mechanism-attributable on the 2026-08-06 state ($G_{\text{eff}} = 0.9044$); the ~5% number enters through the chosen μ, it does not emerge from the dynamics.
+**The $\mu = 0.98$ row is a fit target, not a computation**—no framework computation yields $\mu = 0.98$; the stabilized closure's window mean is $\mu \approx 0.94$, whose regime-integrated growth gives −16.6% (R = 0.834, §3.2). The observed weak-lensing deficit is ≈5%; the "~5%" σ8 wording conflated that deficit with a prediction. The measured rows (2026-08-07 truth campaign, linear-P(k) IC normalization, N = 32/64/128): the total **−20.5%** and the mechanism-attributable **+29.7%** ($G_{\text{eff}} = 1.297$ — the doctrine r₀'s deep-Yin window q rises 0.30 → 0.41; r₀-dependent: +29.4% at the derived r₀ = 0.0472); the ~5% number enters through the chosen μ, it does not emerge from the dynamics.
 
-### 3.3 Why the Pipeline Overestimates
+### 3.3 What the Measured Total Is
 
-The pipeline state ($\Delta\sigma_8 = -0.4488$, $-45.1\%$ at $r_0 = 1/23$, re-run 2026-08-07) overestimates because:
+The pipeline's measured total is **−20.5%** (resolution-converged at N = 32/64/128 with the linear-P(k) IC normalization) — the sum of the mechanism row (+29.7%: the deep-Yin window's rising q enhances growth) and the box's own growth deficit (δ_rms falls 15.7% at N=128 while ΛCDM linear growth rises +24% — the density fluctuations fail to grow by the linear factor; the expanding-box dynamics' H-drag/force saturation, a regime/transport property of the machinery, not a resolution artifact). The structural notes:
 
-1. **Scale-independent $q$:** Uses the spatial mean of $q$ across all modes. On $\sigma_8$ scales ($R = 8\,h^{-1}$Mpc, $k \sim 0.1$–$1\,h$/Mpc), the volume is dominated by the filament-void network where $q$ is closer to the mean field value, not the extreme core value.
+1. **Scale-independent $q$:** The mechanism row uses the spatial mean of $q$ across all modes. On $\sigma_8$ scales ($R = 8\,h^{-1}$Mpc, $k \sim 0.1$–$1\,h$/Mpc), the volume is dominated by the filament-void network where $q$ is closer to the mean field value, not the extreme core value.
 
-2. **Low resolution ($N=32$):** Only captures the largest modes. The $\sigma_8$ integral receives contributions from $k$ up to $\sim 1\,h$/Mpc, which are under-resolved by a factor of several.
+2. **Resolution:** The mechanism row is converged to 0.1 pp across N ∈ {32, 64, 128}; the absolute σ₈ levels are convention-dependent (the linear-P(k) integral is the convention), the percentage ratios are convention-robust.
 
-3. **Short evolution ($a_{\text{final}} = 1.65$):** The ratio $q_{\text{final}}/q_{\text{initial}} = 0.89$ represents only a small segment of the full $q(z)$ history. An integration from $a=0.001$ to $a=1.0$ is needed.
+3. **Run window ($a_{\text{final}} = 1.80$):** The window is mid-relaxation—q rises 0.30 → 0.41, the attractor's 0.79 not reached in the pipeline's t = 1.5 window—so +29.7% is the pipeline's run-window reading; the full z-window integration is 20/27's machinery, fed by the converged N=128 μ(t) histories.
 
 ### 3.4 Why the Suppression is Scale-Dependent
 
@@ -135,10 +136,10 @@ Using $q(z)$ from the PDE and integrating the growth equation numerically with $
 
 $$\boxed{\frac{\sigma_8^{\text{Cassi}}}{\sigma_8^{\Lambda\text{CDM}}} \approx 0.90\text{--}0.95 \quad \Rightarrow \quad \Delta\sigma_8/\sigma_8 \approx -5\%\text{ to }-10\%}$$
 
-This boxed band is an estimate, not a computation—the computed value is the regime-integrated −16.6% (R = 0.834, §3.2). The reconciliation (2026-08-06, `computations/sigma8_reconciliation.py`) establishes what the current pipeline actually delivers: the −45.1% headline (re-run 2026-08-07 at the operational $r_0 = 1/23$) is dominated by the P(k) normalization factor (8e-5), nonlinear initial conditions, and N=32 dissipation (δ_rms falls 32% while ΛCDM linear growth rises +24%); the mechanism-attributable suppression on the 2026-08-06 state is ≈ −9.6% ($G_{\text{eff}} = 0.9044$), and both numbers are normalization-sensitive. The band above is a Mapped target, not a measured suppression.
+This boxed band is an estimate, not a computation—the computed values are the regime-integrated −16.6% (R = 0.834, §3.2), the band-state mean-field −15.2%, and the pipeline's measured rows (2026-08-07 truth campaign, linear-P(k) IC normalization): the total **−20.5%** and the mechanism-attributable **+29.7%** ($G_{\text{eff}} = 1.297$, doctrine r₀, resolution-converged N=64/128). The band above is a Mapped target, not a measured suppression.
 
 This matches:
-- The computed $\sigma_8$ value in `predictions/falsifiable-predictions.md` §3: −16.6% (R = 0.834)
+- The computed $\sigma_8$ values of §3.2: −16.6% (R = 0.834, regime-integrated), −15.2% (band-state mean-field), −20.5% (the pipeline's measured total)
 - The observed Planck vs. weak-lensing tension ($\sim 5\text{–}9\%$)
 - The $f\sigma_8$ suppression seen in BOSS/eBOSS at $z \lesssim 0.5$ ($\sim 1\sigma$)
 
@@ -290,7 +291,7 @@ The output is $\sigma_8(z)$ for direct comparison with:
 | Check | Method | Expected |
 |-------|--------|----------|
 | $\mu = 1$ limit | Set $\xi = 0$ | $\Lambda$CDM $\sigma_8$ reproduced |
-| $\xi = \varphi^6$ | Full Cassi | $\sigma_8$ lower by $\sim 5\%$ |
+| $\xi = \varphi^6$ | Full Cassi | the measured rows of §3.2: total −20.5%, mechanism +29.7% |
 | $k$-independent $q$ | Set $q(k) = \langle q \rangle$ | Matches existing pipeline within 20% |
 | Resolution convergence | $N=32 \to 64 \to 128$ | $\sigma_8$ stabilizes to $\pm 2\%$ |
 | Growth rate $f\sigma_8$ | Compare with RSD data | Consistent with DESI/BOSS |
@@ -343,7 +344,7 @@ Existing data (BOSS/eBOSS) shows a mild ($\sim 1\text{–}2\sigma$) suppression 
 |-----------|-------|--------|--------|
 | $\xi$ | $\varphi^6 \approx 17.944$ | Derived (cascade activation step 6) | Fixed |
 | $q_{\text{CMB}}$ ($z\sim1100$) | $\sim 0.5$ (estimate) | PDE near recombination | Mapped (estimate) |
-| $q_{0}$ ($z=0$) | $0.30$ (pipeline endpoint, $a = 1.82$; non-doctrinal state) | PDE at $a = 1.82$ (re-run 2026-08-07) | From pipeline |
+| $q_{0}$ ($z=0$) | $0.41$ (pipeline endpoint, $a = 1.80$; doctrine $r_0 = 1/23$, N=128 campaign) | PDE at $a = 1.80$ (2026-08-07) | From pipeline |
 | $r_0$ (growth-window IC) | $0.0472$ derived ($\varphi^{-5}/(2-\varphi^{-5})$, `foundations/wu-xing-derivation.md`); $1/23$ operational (DESI-anchored); the pipeline's $1/3$ non-doctrinal | Wu Xing derivation / DESI calibration | Derived / Calibrated |
 | $q_{\text{void}}$ | $\to 0$ | Condensation field geometric limit | Fixed |
 | $\langle\pi/\rho\rangle = \alpha_0$ at mean density | $\varphi^{-3} \approx 0.236$ | Derived (equilibrium Yang fraction $\alpha_0$) | Fixed |

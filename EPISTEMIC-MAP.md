@@ -157,7 +157,7 @@ Documents that are not claims: registries, catalogs, explainers, and plans.
 | `foundations/cassi-theory-reference.md` | Compact framework reference |
 | `foundations/deriving-remaining-gaps.md` | Four gap assessments—one narrowed, one open, one identified, one empirical |
 | `particles/matter-organization.md` | Synthesis (claims keep source tiers)—forces on the cascade, lattice pools, n/p/e trio |
-| `cosmology/sigma8-computational-plan.md` | Plan (Hypothesized; doctrine 2026-08-07: reading P-A operative, IC $r_0 = 0.0472$; the computed rows −16.6%/−15.2% replace the "~5%" target) |
+| `cosmology/sigma8-computational-plan.md` | Plan (Hypothesized; doctrine 2026-08-07: reading P-A operative, IC $r_0 = 0.0472$; the truth campaign's measured rows: mechanism +29.7%, total −20.5% (doctrine-IC, resolution-converged); the settlement rows −16.6%/−15.2%; the "~5%" target Mapped) |
 | `audit.md` | Self-critical prediction-vs-experiment audit |
 | `cassi-physics.md` | Physics guide: lattice, cascade, predictions |
 | `cassi-psychology.md` | Psychology-focused guide (consciousness, emotion, trauma, therapy) |
