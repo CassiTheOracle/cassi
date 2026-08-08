@@ -927,6 +927,7 @@ class VkQiCube:
         state['_boundary_decay'] = np.array(p[12])
         state['_attention_strength'] = np.array(p[13])
         state['_sigma'] = np.array(p[14])
+        np.savez(path, **state)
         print(f'Checkpoint saved: {path}')
 
     def load_checkpoint(self, path):
