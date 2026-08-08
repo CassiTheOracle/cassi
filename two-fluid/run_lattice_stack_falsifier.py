@@ -71,6 +71,29 @@ angle; --rot DEG applies it). A global rotation preserves A_tot(0)
 float-exact (the section 3.11(c)/f7 theorem), making the t = 0 envelope
 flat: the rerun is the clean formation test.
 
+Wave 5 (anchor-rule completion, labels w1-w10; section 3.15) tests the
+post-reconciliation kernel -- passes at M* = ceil(12.63/dtheta^2), fails
+below and above, with the M = 32 window rule dist = |32 - 1080/dth_deg|
+<= 2 -- on the two untested branches (45 deg at M = 20/21/22/23, 108 deg
+at M = 4/8, 30 deg at M = 47) and the window brackets (33/35/37 deg at
+M = 32):
+
+  w1:  dtheta = 33 deg, M = 32   window low bracket (dist 0.73)   -> PASS
+  w2:  dtheta = 35 deg, M = 32   window interior probe (dist 1.14) -> PASS
+  w3:  dtheta = 37 deg, M = 32   window high bracket (dist 2.81)   -> FAIL
+  w4:  dtheta = 108 deg, M = 4   AT M* = 4 (A = tan 36 deg = 0.7265,
+       the f13 passer's envelope)                                 -> PASS
+  w5:  dtheta = 108 deg, M = 8   2*M* (A = sin 72/sin 54 = 1.1756) -> FAIL
+  w6:  dtheta = 45 deg, M = 20   sub-M* (A = 2.6131)               -> FAIL
+  w7:  dtheta = 45 deg, M = 21   AT M* = 21 (A = 1 + sqrt 2)       -> PASS
+  w8:  dtheta = 45 deg, M = 22   supra-M* (A = 1.8478)             -> FAIL
+  w9:  dtheta = 45 deg, M = 23   supra-M* (A = 1.0)                -> FAIL
+  w10: dtheta = 30 deg, M = 47   AT M* = 47, one below the 48-layer
+       null A(48, 30 deg) = 0 (A = 1.0)                            -> PASS,
+       gated: INCONCLUSIVE if no zero-floor rotation exists and the
+       init floors exceed 2% of cells (30 deg floor contact is
+       structural at M = 32, section 3.14)
+
 Output: runs/<rid>_lattice_stack_f/run_<arm>.json + results.json (raw;
 NO doc changes, NO commit until the director reads the raw outputs).
 """
@@ -105,6 +128,11 @@ DTH_60 = np.pi / 3.0                      # M0 = 6 (integer)
 DTH_30 = np.pi / 6.0                      # M0 = 12 (integer)
 DTH_108 = 3.0 * np.pi / 5.0               # M0 = 10/3 (non-integer)
 DTH_27 = 27.0 * np.pi / 180.0             # M0 = 40/3 (non-integer)
+
+# wave-5 constants (anchor-rule completion, section 3.15)
+DTH_33 = 33.0 * np.pi / 180.0             # M=32 window low bracket
+DTH_35 = 35.0 * np.pi / 180.0             # M=32 window interior
+DTH_37 = 37.0 * np.pi / 180.0             # M=32 window high bracket
 
 
 def lin(M, dth):
@@ -253,6 +281,64 @@ ARMS = [
               '(d 10.07 -> 2.57 at t=40, -> 5.39 at t=80) longer? '
               'run to t = 80 = 4/lambda; report d(t), C_abs(t), merged, '
               'floors'}),
+    # wave 5: the anchor-rule completion (section 3.15).  Kernel under
+    # test: passes at M* = ceil(12.63/dtheta^2), fails below and above;
+    # M = 32 window rule dist = |32 - 1080/dth_deg| <= 2.
+    ('w1', lin(32, DTH_33), None,
+     {'kind': 'pass', 'A_derived': round(0.73205, 4), 'dist': 0.73,
+      'note': 'M=32 window low bracket: dist = |32 - 1080/33| = 0.73 <= 2 '
+              '-> predict C_abs(40) >= 0.5'}),
+    ('w2', lin(32, DTH_35), None,
+     {'kind': 'pass', 'A_derived': round(1.13740, 4), 'dist': 1.14,
+      'note': 'M=32 window interior probe (maps the non-monotone band '
+              '34 deg -> 0.999, 34.29 deg -> 0.619, 36 deg -> 0.848): '
+              'dist = |32 - 1080/35| = 1.14 <= 2 -> predict C_abs(40) >= 0.5'}),
+    ('w3', lin(32, DTH_37), None,
+     {'kind': 'fail', 'A_derived': round(2.48352, 4), 'dist': 2.81,
+      'note': 'M=32 window high bracket: dist = |32 - 1080/37| = 2.81 > 2; '
+              'the 38 deg precedent 0.186 -> predict C_abs(40) < 0.5'}),
+    ('w4', lin(4, DTH_108), None,
+     {'kind': 'pass', 'law_Mstar': 4,
+      'A_derived': round(0.72654, 4),
+      'note': '108 deg at its M* = ceil(12.63/108^2) = 4; A(4,108 deg) = '
+              'tan 36 deg = 0.7265, the same envelope as the f13 passer; '
+              'w = 1.2 turns -> predict C_abs(40) >= 0.5'}),
+    ('w5', lin(8, DTH_108), None,
+     {'kind': 'fail', 'law_Mstar': 4,
+      'A_derived': round(1.17557, 4),
+      'note': '108 deg at 2*M*: upper-branch death precedent (5 clean '
+              'fails above M* in wave 4); A(8,108 deg) = sin 72/sin 54 = '
+              '1.1756 -> predict C_abs(40) < 0.5'}),
+    ('w6', lin(20, DTH_45), None,
+     {'kind': 'fail', 'law_Mstar': 21,
+      'A_derived': round(2.61313, 4),
+      'note': '45 deg sub-M*: M = 20 < M* = 21; A(20,45 deg) = 2.6131 '
+              '(non-null) -> predict C_abs(40) < 0.5'}),
+    ('w7', lin(21, DTH_45), None,
+     {'kind': 'pass', 'law_Mstar': 21,
+      'A_derived': round(2.41421, 4),
+      'note': '45 deg AT M* = 21, the anchor rule\'s first new-family '
+              'test; A(21,45 deg) = 1 + sqrt 2 = 2.4142, delta = 135 deg '
+              '-> predict C_abs(40) >= 0.5'}),
+    ('w8', lin(22, DTH_45), None,
+     {'kind': 'fail', 'law_Mstar': 21,
+      'A_derived': round(1.84776, 4),
+      'note': '45 deg supra-M*: M = 22 > M* = 21; A(22,45 deg) = 1.8478 '
+              '-> predict C_abs(40) < 0.5'}),
+    ('w9', lin(23, DTH_45), None,
+     {'kind': 'fail', 'law_Mstar': 21,
+      'A_derived': round(1.0, 4),
+      'note': '45 deg supra-M*: M = 23 > M* = 21; A(23,45 deg) = 1.0 '
+              '-> predict C_abs(40) < 0.5'}),
+    ('w10', lin(47, DTH_30), None,
+     {'kind': 'pass', 'law_Mstar': 47,
+      'A_derived': round(1.0, 4),
+      'note': '30 deg AT M* = 47, one below the 48-layer null A(48,30 deg) '
+              '= 0 exactly; A(47,30 deg) = 1.0 -> predict C_abs(40) >= 0.5. '
+              'Gated: run --init-check and the floor scan first; if no '
+              'zero-floor rotation exists and the init floors exceed 2% of '
+              'cells, the verdict is INCONCLUSIVE (30 deg floor contact is '
+              'structural at M = 32, section 3.14)'}),
 ]
 
 
@@ -270,11 +356,17 @@ def finalize(runs, rdir):
     results = {'meta': {'N': T.N, 'lam': T.LAM, 'dt': T.DT,
                         't_end': runs[0]['hist'][-1]['t'],
                         'wave': 'M-star law falsifier arms '
-                                '(f1-f7 + revised-law wave f8-f14, s1)',
+                                '(f1-f7 + revised-law wave f8-f14, s1 + '
+                                'anchor-rule completion w1-w10)',
                         'law_under_test': 'M*(dtheta) = ceil((32 pi^2/25)'
                                           '/dtheta^2) on integer M0; '
                                           'non-integer M0 excluded (revised '
-                                          'statement, section 3.12)'},
+                                          'statement, section 3.12); wave 5: '
+                                          'the surviving kernel -- passes at '
+                                          'M*, fails below/above -- plus the '
+                                          'M = 32 window rule '
+                                          'dist = |32 - 1080/dth_deg| <= 2 '
+                                          '(section 3.15)'},
                'arms': {}}
     for r in runs:
         results['arms'][r['tag']] = {
@@ -308,6 +400,11 @@ def finalize(runs, rdir):
                 f"A_peak(40)/A_peak(0)={s['A_peak_ratio_t40']:.3f} "
                 f"wind(40)={s['t40']['winding']:+.3f} | "
                 f"mass drift {s['mass_drift']:.2e} NaN {s['nan']}")
+        if 'A_derived' in pred:
+            line += (f" | A/A[D]="
+                     f"{rt['ratio_vs_analytic'] / pred['A_derived']:.5f}")
+        if 'dist' in pred:
+            line += f" | dist={pred['dist']:.2f}"
         v = None
         if kind == 'fail':
             v = 'CONFIRMED (fail)' if c40(tag) < 0.5 else \
@@ -344,8 +441,13 @@ def finalize(runs, rdir):
                  f"merged(40)={s['t40']['merged']} merged(80)={t80['merged']} | "
                  f"A_peak(80)/A_peak(0)="
                  f"{t80['A_peak'] / max(s['t0']['A_peak'], 1e-30):.3f} | "
-                 f"floors={rt['floor_ey'] + rt['floor_ei']} | "
-                 f"mass drift {s['mass_drift']:.2e} NaN {s['nan']}")
+                f"floors={rt['floor_ey'] + rt['floor_ei']} | "
+                f"mass drift {s['mass_drift']:.2e} NaN {s['nan']}")
+        if tag.startswith('w'):
+            n_floor = rt['floor_ey'] + rt['floor_ei']
+            if n_floor > 0.02 * T.N ** 3:
+                v = (f"INCONCLUSIVE (clamp-seeded; {n_floor} init floor "
+                     f"cells = {100.0 * n_floor / T.N ** 3:.1f}% > 2%)")
         verdicts[tag] = {'prediction': pred, 'verdict': v}
         print(line)
         print(f"     prediction [{pred['kind']}]: {pred['note']}")
@@ -377,6 +479,10 @@ def main():
                              'family instead (phases -> -phases, the '
                              'doublet mirror; A_tot invariant)')
     parser.add_argument('--from-runs', default=None, metavar='DIR')
+    parser.add_argument('--rid-suffix', default='lattice_stack_f',
+                        metavar='SUFFIX',
+                        help='run-directory suffix (wave 5 uses '
+                             'lattice_stack_w)')
     args = parser.parse_args()
 
     if args.from_runs is not None:
@@ -400,7 +506,8 @@ def main():
         args.steps = int(round(args.tend / T.DT))
     print(f"Device: {device}  N={T.N}  lam={T.LAM}  t={args.steps * T.DT}  "
           f"law under test: M*(dtheta) = ceil((32 pi^2/25)/dtheta^2) "
-          f"on integer M0; non-integer M0 excluded")
+          f"on integer M0; non-integer M0 excluded; wave 5 kernel: passes "
+          f"at M*, fails below/above + M=32 window dist rule")
     arms = ARMS
     if args.arm is not None:
         arms = [a for a in arms if a[0] in args.arm]
@@ -433,7 +540,7 @@ def main():
                 for t, ph, ro, pr in arms]
 
     rid = datetime.now().strftime("%Y%m%d_%H%M%S")
-    rdir = f"runs/{rid}_lattice_stack_f"
+    rdir = f"runs/{rid}_{args.rid_suffix}"
     os.makedirs(rdir, exist_ok=True)
 
     if args.init_check:
@@ -452,7 +559,7 @@ def main():
         return
 
     runs = []
-    for tag, phases, rung_of, pred in ARMS:
+    for tag, phases, rung_of, pred in arms:
         if args.arm is not None and tag not in args.arm:
             continue
         runs.append(run_arm(device, tag, phases, rung_of, rdir, args.steps))
