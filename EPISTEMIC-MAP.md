@@ -92,7 +92,7 @@ Tiers below are taken from each document's Status header. Compound headers are q
 | `consciousness/consciousness-from-phi.md` | Plausible Hypothesis with Actionable PDE Test | Consciousness as Qi-gate dynamics; two-bubble test (M1) |
 | `consciousness/emotions-as-gate-configurations.md` | Hypothesized | Emotions as gate configurations |
 | `consciousness/trauma-as-frozen-gate.md` | Tested—null pinning, drive effect supported (2026-07-31) / Speculative (clinical) | Trauma as a frozen Qi gate |
-| `consciousness/two-strand-qi-neuroscience.md` | Hypothesized (strand geometry) / Speculative (neural mapping) | Two-strand Qi condensate; centerline/separation decomposition; strand modes; NS1–NS4 PDE statuses (lock-timescale nulls, 2026-08-06) |
+| `consciousness/two-strand-qi-neuroscience.md` | Hypothesized (strand geometry) / Speculative (neural mapping) | Two-strand Qi condensate; centerline/separation decomposition; strand modes; NS1–NS4 PDE statuses (lock-timescale nulls, 2026-08-06); lattice-stack retention measured in the PDE (2026-08-07); NS8–NS11 stacking-grounded protocols |
 | `hypotheses/nuclear-magic-numbers.md` | Hypothesized | Fibonacci sub-channel closure at steps 80–95 |
 | `hypotheses/hoyle-state-nucleosynthesis.md` | Hypothesized | Cascade rung resonance at the $^3\alpha$ threshold |
 | `hypotheses/exoplanet-phi-spacing.md` | Hypothesized | Wake-wave interference in protoplanetary disks |
