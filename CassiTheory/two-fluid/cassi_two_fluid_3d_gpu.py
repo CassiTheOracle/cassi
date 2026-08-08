@@ -39,9 +39,20 @@ def get_device():
 
 
 class TwoFluid3DGPU:
-    """3D incompressible two-fluid solver on GPU (PyTorch)."""
+    """3D incompressible two-fluid solver on GPU (PyTorch).
 
-    def __init__(self, N=64, L=2.0 * np.pi, nu=0.001, D=0.001, lam=0.02,
+    D is the momentum-space numerical viscosity (the spectral Dk² damping of
+    the scalar fields): a solver convention, not derived physics. The default
+    D = 0 is the framework-honest, conservation-exact setting — the per-cell
+    closure's ρ̇ ≡ 0 premise holds exactly at D = 0 (the 44 truth campaign's
+    structured-IC verification: the void-edge band persists at f_band = 1.147%
+    at all epochs with f_Yang = 1.000; the canonical D = 0.001 diffusion was
+    the entire Eulerian eroder). Runs with D > 0 are the diffusion-bound
+    conservative readings. The σ₈ target sits in no branch under either
+    setting (44).
+    """
+
+    def __init__(self, N=64, L=2.0 * np.pi, nu=0.001, D=0.0, lam=0.02,
                  chi=5.0, chi_yang=None, alpha_disp=None, k0=None, v0=1.0,
                  mode='cosmos', rho_ext=None, device=None):
         self.N = N
@@ -292,7 +303,7 @@ class ExpandingTwoFluid3DGPU(TwoFluid3DGPU):
       - 'friedmann': H = H₀·√(ρ_tot/ρ_crit). Standard de Sitter-like expansion.
     """
 
-    def __init__(self, N=64, L=2.0 * np.pi, nu=0.001, D=0.001, lam=0.02,
+    def __init__(self, N=64, L=2.0 * np.pi, nu=0.001, D=0.0, lam=0.02,
                  chi=5.0, chi_yang=None, alpha_disp=None, k0=None, v0=1.0,
                  H0=1.0, a0=1.0, rho_crit=None, hubble_mode='conversion',
                  initial_ratio=None, max_H=None, h_smooth=0.1,

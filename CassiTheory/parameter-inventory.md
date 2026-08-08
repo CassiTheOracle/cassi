@@ -384,7 +384,7 @@ toward the equilibrium.
 | $\epsilon_{\text{soft}}$ (Coulomb softening) | $0.02$ a$_0$ | **N** | Removes $1/r$ singularity |
 | $\text{grav\_sigma}$ | $0.2$ | **N** | $|\nabla\Phi|$ saturation for N-body |
 | $h_{\text{smooth}}$ | $0.1$ | **N** | Hubble parameter EMA smoothing |
-| $D$ (diffusion) | $0.001$ | **N** | Can be set to zero (energy-conserving) |
+| $D$ (diffusion) | $0.0$ | **N** | Solver parameter, not a physics constant: momentum-space numerical viscosity (the spectral $Dk^2$ damping). $D=0$ is the canonical conservation-exact setting — the per-cell closure's $\dot\rho \equiv 0$ premise verified exactly on the structured IC (44, `runs/44-truth-campaign/`; the D=0.001 diffusion was the entire Eulerian eroder); $D>0$ runs are the diffusion-bound conservative readings. The $\sigma_8$ target sits in no branch under either setting (44) |
 | $\tau_{\text{qi}}$ (IIR memory) | $\varphi^{-1} \approx 0.618$ | **N** | Qi memory EMA timescale (reduced in slow regimes) |
 
 ---
