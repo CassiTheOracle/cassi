@@ -478,18 +478,16 @@ the Qi-modified power spectrum and $\sigma_8$:
 
 - **$q_{\text{ref}}$ (initial) = $0.300$**, **$q_{\text{final}}$ = $0.405$** (N = 128, operational $r_0 = 1/23$, truth campaign 2026-08-07)
 - **$G_{\text{eff}}/G_N$ (final) = $8.27$** (absolute Qi enhancement with $\xi = 17.94$)
-- **$G_{\text{eff}}/G_{\text{ref}} = 1.297$**—the mechanism-attributable row **+29.7%** (the deep-Yin window's q rises 0.30 → 0.41; r₀-dependent: +29.4% at the derived r₀ = 0.0472, N=128)
+- **$G_{\text{eff}}/G_{\text{ref}} = 1.297$**—the mechanism-attributable row **+29.7%** (the deep-Yin window's q rises 0.30 → 0.41; r₀-dependent: +29.4% at the derived r₀ = 0.0472, N=128; D-insensitive: Δμ = 0.02 pp across D ∈ {0, 0.001})
 - **$\sigma_8^{\Lambda\text{CDM}} = 0.992$** (linear growth from the $\sigma_8^{\text{Pk}} = 0.8$ IC)
-- **$\sigma_8^{\text{Cassi}} = 0.788$** (measured from the PDE density field)
-- **$\Delta\sigma_8 = -20.5\%$**—the measured total (resolution-converged: −20.4% at N=32 → −20.5% at N=64/128, linear-P(k) IC normalization, ledger §10)
+- **$\sigma_8^{\text{Cassi}} = 0.788$** (measured from the PDE density field at the campaign's D = 0.001; **0.765** at the D = 0 re-measurement, brief 63)
+- **$\Delta\sigma_8 = -22.9\%$**—the measured total at the D = 0 re-measurement (2026-08-08, brief 63, N=128, the doctrine default; σ₈_Cassi 0.7649); at the campaign's D = 0.001 the same row reads **−20.5%** (resolution-converged: −20.4% at N=32 → −20.5% at N=64/128, linear-P(k) IC normalization, ledger §10) — the totals carry the diffusion (Δ 2.37 pp)
 
 **Physics:** At the operational $r_0 = 1/23$ the pipeline starts
 deep-Yin ($q = 0.300$) and gains coherence as the field evolves
 ($q = 0.405$ at $a = 1.80$), so the relative gravity factor rises
 ($G_{\text{eff}}/G_{\text{ref}} = 1.297$—growth enhancement, +29.7%).
-The measured total (−20.5%) is the box's own growth deficit: the density
-fluctuations fail to grow by the $\Lambda$CDM linear factor (δ_rms falls
-15.7% at N=128 while ΛCDM linear growth rises +24%)—the expanding-box
+The measured total (−22.9% at D = 0, brief 63; −20.5% at the campaign's D = 0.001) is the box's own growth deficit: the density fluctuations fail to grow by the $\Lambda$CDM linear factor (at D = 0.001 δ_rms falls 15.7% at N=128 while ΛCDM linear growth rises +24%; at D = 0 δ_rms rises +64.1% — the un-damped high-k content grows — while the σ₈-window power is still suppressed)—the expanding-box
 dynamics' H-drag/force saturation, a regime/transport property of the
 machinery, not a resolution artifact; the mechanism row is
 resolution-converged (0.1 pp across N ∈ {32, 64, 128}) once the IC is
@@ -510,12 +508,15 @@ modified Boltzmann code (CAMB/CLASS) with the true $q(k)$ profile from the
 PDE. The current pipeline uses scale-independent $q$ (spatial mean) at
 $N=32$ resolution.
 
-**Measured rows (2026-08-07 truth campaign, `runs/44-truth-campaign/`):**
+**Measured rows (2026-08-07 truth campaign, `runs/44-truth-campaign/`; the D-pin re-measurement 2026-08-08, brief 63, `runs/63-sigma8-d0-rerun/`):**
 with the linear-P(k) IC normalization (the P(k)-integral is the declared
 convention; pk_norm ≡ 1) the mechanism-attributable row is **+29.7%**
 (G_eff = 1.297 — the doctrine r₀'s deep-Yin window q rises 0.30 → 0.41;
-r₀-dependent: +29.4% at the derived r₀ = 0.0472) and the total **−20.5%**
-(resolution-converged N=32/64/128; σ₈_ΛCDM 0.9917 vs σ₈_Cassi 0.7884);
+r₀-dependent: +29.4% at the derived r₀ = 0.0472; D-insensitive:
+Δμ = 0.02 pp across D ∈ {0, 0.001}) and the total **−22.9%** (D = 0, the
+doctrine default; σ₈_ΛCDM 0.9917 vs σ₈_Cassi 0.7649; the totals carry the
+diffusion — at the campaign's D = 0.001 the same row is **−20.5%**,
+resolution-converged N=32/64/128, σ₈_Cassi 0.7884);
 the μ-only row is the reconciliation's statistic
 (σ₈(P·G_eff²) = G_eff·σ₈(P), `computations/sigma8_reconciliation.py`);
 the "~5%" claim is a Mapped target (μ = 0.98 → −5.3%, ledger §10), not a
@@ -809,7 +810,7 @@ RGE).
 | Pipeline | Script | Status | Key Result |
 |----------|--------|--------|------------|
 | **$H_0$ shift (C3/T4)** | `run_hubble_pipeline.py` | ✓ Built & run | $\Delta H_0 = -7.2$ km/s/Mpc ($-9.9\%$), SAME direction as observed |
-| **$\sigma_8$ (T3)** | `run_sigma8_pipeline.py` | ✓ Built & run | $\Delta\sigma_8 = -0.205$ (total, truth campaign 2026-08-07: linear-P(k) IC normalization, N=128; resolution-converged N=32/64/128); the mechanism row +29.7% (G_eff = 1.297, doctrine r₀); the doctrine rows: −16.6% regime-integrated closure, −15.2% band-state mean-field |
+| **$\sigma_8$ (T3)** | `run_sigma8_pipeline.py` | ✓ Built & run | $\Delta\sigma_8 = -0.229$ (total, the D = 0 re-measurement 2026-08-08 brief 63: linear-P(k) IC normalization, N=128) / −0.205 (the campaign's D = 0.001; resolution-converged N=32/64/128) — the totals carry the diffusion; the mechanism row +29.7% (G_eff = 1.297, doctrine r₀, D-insensitive); the doctrine rows: −16.6% regime-integrated closure, −15.2% band-state mean-field |
 | **CMB low-$\ell$ (C10)** | `run_cmb_lowl_pipeline.py` | ✓ Built & run | $\theta_{\text{align}} = 12.22°$, $C_3/C_2 = \varphi^{-1}$ |
 | **Galaxy mass function (T2)** | `run_galaxy_mass_function.py` | ✓ Built & run | $31.2\times$ excess of $M>10^{10} M_\odot/h$ halos at $z=15$ |
 | **CMB $C_\ell$ (F3)** | `run_boltzmann_cassi.py` | ✓ Built & run | $\theta_*$ shifted $+3.8\%$, peaks to lower $\ell$, ISW $+8.6\%$ |
