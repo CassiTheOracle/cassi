@@ -8,9 +8,12 @@ extracts the density field and Qi coherence q(k), computes the Qi-gravity
 modified power spectrum G_eff(k) = G_N · (1 + ξ · q(k)), and reports
 Δσ₈ = σ₈(Cassi) - σ₈(ΛCDM).
 
-All σ₈ computations use the discrete integral formula with an empirically
-determined P(k) normalization factor that matches field-space tophat filtering,
-ensuring the P(k)-based σ₈ agrees with the directly measured field-space value.
+All σ₈ computations use the discrete P(k)-integral formula as the
+declared convention: the IC density contrast is rescaled so σ₈ from the
+LINEAR P(k) integral equals the target, and pk_norm ≡ 1 downstream (the
+former tophat-field rescale + P(k) fudge is removed — it was N-dependent:
+σ₈_field ≈ 0.0068/0.0011/0.0002 at N=32/64/128 for a σ₈_Pk = 0.8 IC; the
+percentage ratios are convention-robust, the absolute levels are not).
 
 Usage:
     cd two-fluid
@@ -59,7 +62,7 @@ DT = 0.001
 N_STEPS = 1500
 REPORT_EVERY = 100
 SEED = 42
-DEVICE = 'cpu'
+DEVICE = get_device()
 
 # Cassi two-fluid parameters
 LAM = 0.1
@@ -160,45 +163,23 @@ def eh_pk_func(k_val):
     return np.where(k_val > 0, kp ** N_S * T ** 2, 0.0)
 
 
-def compute_pk_norm_factor(delta_field, k_mag, R):
-    """Compute factor to normalize P(k) from power_spectrum so σ₈(Pk) = σ₈(field).
-    
-    The discrete FFT convention used by solver.power_spectrum()
-    produces P(k) = |FFT(δ)|² / L³, which does not satisfy the
-    continuous integral formula σ² = ∫ k² P(k) / (2π²) dk.
-    This function computes the ratio needed to reconcile them.
-    """
-    # σ₈ from direct field-space tophat (ground truth)
-    sigma8_field = sigma_R_from_field(delta_field, k_mag, R)
-
-    # σ₈ from P(k) integral
-    solver_tmp = ExpandingTwoFluid3DGPU(
-        N=N, L=L, lam=LAM, chi=CHI, cs2=CS2,
-        hubble_mode=HUBBLE_MODE, initial_ratio=INITIAL_RATIO,
-        qi_gate=True, device=DEVICE)
-    k_tmp, Pk_tmp = solver_tmp.power_spectrum(
-        torch.tensor(delta_field, device=DEVICE))
-    sigma8_pk = sigma_R_from_pk(k_tmp, Pk_tmp, R)
-
-    norm = 1.0
-    if sigma8_pk > 0:
-        norm = (sigma8_field / sigma8_pk) ** 2
-    return norm, k_tmp, Pk_tmp
-
-
 def build_normalized_ics(N, L, sigma8_target, initial_ratio,
                          fraction=0.3, seed=SEED, device=DEVICE):
-    """Build EY/EI with density contrast normalised to σ₈=target.
-    
-    Strategy:
+    """Build EY/EI with the density contrast normalised to σ₈ = target.
+
+    Convention: the LINEAR P(k) integral — sigma_R_from_pk over the
+    solver's power_spectrum (Eisenstein-Hu, seed 42) — is the σ₈
+    definition; pk_norm ≡ 1. The field-space tophat σ₈ of the same IC is
+    reported as the cross-check (the discrete-convention gap between the
+    two is N-dependent — the origin of the removed tophat rescale + fudge).
+
+    Construction:
     1. Generate Gaussian random field with EH shape
     2. Build EY/EI with anti-correlated fluctuations
-    3. Compute the density contrast δ_ρ and measure σ₈ via tophat
+    3. Compute the density contrast δ_ρ and its σ₈ via the P(k) integral
     4. Rescale δ_ρ to match target σ₈ (applied after construction,
        avoiding clamping nonlinearity)
     5. Reconstruct EY/EI from rescaled density
-    
-    Also computes the P(k) normalization factor.
     """
     k_mag = build_k_mag_3d(N, L)
 
@@ -216,17 +197,24 @@ def build_normalized_ics(N, L, sigma8_target, initial_ratio,
 
     rho = EY + EI
     delta_rho = (rho / rho.mean() - 1.0).cpu().numpy()
-    sigma8_initial = sigma_R_from_field(delta_rho, k_mag, R8_SIM)
-    print(f"  σ₈ of raw density contrast: {sigma8_initial:.4f}")
+
+    # σ₈ of the raw density contrast in the P(k)-integral convention
+    solver_tmp = ExpandingTwoFluid3DGPU(
+        N=N, L=L, lam=LAM, chi=CHI, cs2=CS2,
+        hubble_mode=HUBBLE_MODE, initial_ratio=initial_ratio,
+        qi_gate=True, device=device)
+    k_tmp, Pk_tmp = solver_tmp.power_spectrum(
+        torch.tensor(delta_rho, device=device))
+    sigma8_pk_raw = sigma_R_from_pk(k_tmp, Pk_tmp, R8_SIM)
+    print(f"  σ₈ of raw density contrast (P(k) integral): {sigma8_pk_raw:.4f}")
 
     # Rescale density field to target σ₈
-    # Apply the rescaling to δ_ρ, then reconstruct ρ, then scale EY/EI
-    scale = sigma8_target / sigma8_initial
+    scale = sigma8_target / sigma8_pk_raw if sigma8_pk_raw > 0 else 1.0
     rho_np = rho.cpu().numpy()
     rho_mean_np = float(rho_np.mean())
     delta_rho_target = delta_rho * scale  # scaled density contrast
     rho_target = rho_mean_np * (1.0 + delta_rho_target)  # scaled total density
-    rho_target_t = torch.tensor(rho_target, device=DEVICE, dtype=torch.float64)
+    rho_target_t = torch.tensor(rho_target, device=device, dtype=torch.float64)
 
     # Redistribute EY/EI proportionally to preserve the ratio field
     ratio_ey = EY / rho
@@ -237,22 +225,23 @@ def build_normalized_ics(N, L, sigma8_target, initial_ratio,
     # Recompute diagnostics
     rho_check = EY_scaled + EI_scaled
     delta_check = (rho_check / rho_check.mean() - 1.0).cpu().numpy()
-    sigma8_final = sigma_R_from_field(delta_check, k_mag, R8_SIM)
+    sigma8_pk_final = sigma_R_from_pk(k_tmp, Pk_tmp * scale ** 2, R8_SIM)
+    sigma8_f_field = sigma_R_from_field(delta_check, k_mag, R8_SIM)
 
     q_init = float(compute_q_field(EY_scaled, EI_scaled).mean().cpu())
     delta_rms_init = float(np.std(delta_check))
 
-    print(f"  σ₈ after scaling: {sigma8_final:.4f} (target={sigma8_target})")
+    print(f"  σ₈ after scaling (P(k) integral): {sigma8_pk_final:.4f} "
+          f"(target={sigma8_target})")
+    print(f"  σ₈ of the same IC, field-space tophat (cross-check): "
+          f"{sigma8_f_field:.4f}")
     print(f"  δ_rms after scaling: {delta_rms_init:.4f}")
     print(f"  q_ref: {q_init:.4f}")
 
-    # Compute P(k) normalization factor from the density field
-    pk_norm, k_tmp, Pk_tmp = compute_pk_norm_factor(delta_check, k_mag, R8_SIM)
-    print(f"  P(k) norm factor: {pk_norm:.4f}  "
-          f"(σ₈ field={sigma8_final:.4f}, σ₈ Pk raw="
-          f"{sigma8_final / np.sqrt(pk_norm):.4f})")
+    pk_norm = 1.0  # the P(k)-integral is the convention; no fudge
+    Pk_init_norm = Pk_tmp * scale ** 2
 
-    return EY_scaled, EI_scaled, k_mag, q_init, delta_check, pk_norm, k_tmp, Pk_tmp * pk_norm
+    return EY_scaled, EI_scaled, k_mag, q_init, delta_check, pk_norm, k_tmp, Pk_init_norm
 
 
 # ── Main pipeline ───────────────────────────────────────────────────────────
