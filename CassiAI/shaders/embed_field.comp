@@ -61,6 +61,17 @@ void main()
     }
 
     uint base = voxel * FIELD_DIM * 2;
+#ifdef IC_PHI_LATTICE
+    // M5 (58 §3(3)): φ-lattice IC imprint — after projection:
+    // psi *= (1+a·cos(2πh/φ))·(1+a·cos(2πh/φ²)), a=0.1, h = voxel%16
+    // (the two resolved half-rungs; cf. the 19 lattice's B1..B4 at 2φ^k)
+    uint hh = voxel % 16u;
+    float mod = (1.0 + 0.1 * cos(6.28318530718 * float(hh) / 1.61803398875))
+              * (1.0 + 0.1 * cos(6.28318530718 * float(hh) / 2.61803398875));
+    psi[base + dim * 2]     = (real_part * band_amp) * mod;
+    psi[base + dim * 2 + 1] = (imag_part * band_amp) * mod;
+#else
     psi[base + dim * 2]     = real_part * band_amp;
     psi[base + dim * 2 + 1] = imag_part * band_amp;
+#endif
 }

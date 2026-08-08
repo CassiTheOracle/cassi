@@ -79,7 +79,8 @@ class VkQiCube:
 
     def __init__(self, lam=0.01, lr=None, qi_target=0.1, dt=0.2, stride=1024,
                  stride_min=512, stride_max=4096, no_adaptive_stride=False,
-                 alpha=0.1, train_temp=0.1, rho_eps=0.95, mem_blend=0.05, sigma_max=0.0):
+                 alpha=0.1, train_temp=0.1, rho_eps=0.95, mem_blend=0.05, sigma_max=0.0,
+                 ic_phi_lattice=False, stride_policy='endpoint'):
         self.lam = lam
         if lr is None:
             self.lr_min = lam / 3.0 * PHI_INV * PHI_INV
@@ -104,6 +105,10 @@ class VkQiCube:
         self._gamma = 0.15  # input blend strength for temporal continuity
 
         self._sigma_max = sigma_max  # field-diffusion noise level (0=disabled)
+
+        # M5/M2: φ-lattice IC imprint arm; stride policy (endpoint|gated)
+        self.ic_phi_lattice = ic_phi_lattice
+        self.stride_policy = stride_policy
 
 
         # ── Rolling generation context window (maintains 4096-byte buffer for sinusoidal embedding) ──
@@ -230,7 +235,8 @@ class VkQiCube:
                  'normalize', 'qi_accum', 'self_pred_feedback', 'blend_input',
                  'embed_field', 'blend_memory', 'noise_field',
                  'breath_update', 'condensate_update', 'qi_grad',
-                 'wu_xing_modulate', 'boundary_update']
+                 'wu_xing_modulate', 'boundary_update',
+                 'embed_field_phi']
         self.spv = {}
         for name in names:
             path = base / f'{name}.spv'
@@ -620,7 +626,8 @@ class VkQiCube:
 
         # 1. Upload byte indices and dispatch embed_field to write psi on GPU
         self._upload('byte_indices', np.frombuffer(window, dtype=np.uint8).astype(np.uint32).tobytes())
-        self._dispatch('embed_field', make_push(), N_VOXELS * FIELD_DIM)
+        embed_name = 'embed_field_phi' if getattr(self, 'ic_phi_lattice', False) else 'embed_field'
+        self._dispatch(embed_name, make_push(), N_VOXELS * FIELD_DIM)
 
         # 1.5. Inject boundary residuals from previous window into psi face voxels
         self._dispatch('boundary_update', make_push(pass_val=0),
@@ -898,7 +905,8 @@ class VkQiCube:
             self._gen_window[:-1] = self._gen_window[1:]
             self._gen_window[-1] = sampled
             self._upload('byte_indices', self._gen_window.astype(np.uint32).tobytes())
-            self._dispatch('embed_field', make_push(), N_VOXELS * FIELD_DIM)
+            embed_name = 'embed_field_phi' if getattr(self, 'ic_phi_lattice', False) else 'embed_field'
+            self._dispatch(embed_name, make_push(), N_VOXELS * FIELD_DIM)
             self._gen_window[-1] = sampled
 
             # 8. Update breath phase
@@ -1117,12 +1125,16 @@ def main():
                         help='save checkpoint every N windows (0 = off)')
     parser.add_argument('--resume', type=str, default=None, metavar='PATH',
                         help='resume from checkpoint file')
+    parser.add_argument('--ic-phi-lattice', action='store_true',
+                        help='M5: imprint the φ-lattice on the embedding IC '
+                             '(embed_field_phi.spv: psi *= (1+a·cos(2πh/φ))·(1+a·cos(2πh/φ²)))')
     args = parser.parse_args()
     engine = VkQiCube(lam=args.lam, lr=args.lr, dt=args.dt, stride=args.stride,
                       stride_min=args.stride_min, stride_max=args.stride_max,
                       no_adaptive_stride=args.no_adaptive_stride,
                       alpha=args.alpha, train_temp=args.train_temp,
-                      rho_eps=args.rho_eps, mem_blend=args.mem_blend)
+                      rho_eps=args.rho_eps, mem_blend=args.mem_blend,
+                      ic_phi_lattice=args.ic_phi_lattice)
     if args.resume:
         engine.load_checkpoint(args.resume)
 
