@@ -58,6 +58,10 @@ Wave 4 tests the revised statement (section 3.12): M* = ceil((32 pi^2/25)
        phase dtheta_2 = pi/5 (A1 = 2 cos(pi/10) = 1.9021, A2 = 0 exact),
        run to t = 80 = 4/lambda: does the stack hold the f4 contraction
        (d 10.07 -> 2.57 at t = 40, turned around to 5.39 at t = 80) longer?
+       The t = 160 = 8/lambda continuation (--tend 160; run record
+       20260807_223143_lattice_stack_f) is the stacked-null discriminator:
+       d bottoms at t ~ 82 at the t = 80 minimum (7.51), then relaxes to
+       12.11 = d(0) by t = 160 (suppression reading).
 
 Clean reruns (f7 recipe): arms whose init touched the 1e-3 clamp are
 rerun with a common global phase rotation alpha chosen so that no
