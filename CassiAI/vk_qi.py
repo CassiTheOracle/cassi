@@ -1013,6 +1013,7 @@ def _ingest(engine, path, max_bytes, gen_every=0, gen_temp=0.7, gen_topk=30, sav
     offset = 0
     bytes_until_gen = gen_every
     while offset + N_VOXELS <= len(data):
+        engine._cur_offset = offset  # M4 keylog: window's data offset
         qi = engine.ingest_window(data, offset, learn=True)
         offset += engine.stride
         bytes_until_gen -= engine.stride

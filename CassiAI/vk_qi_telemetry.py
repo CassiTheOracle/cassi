@@ -57,7 +57,17 @@ def _shell_counts():
 
 
 class VkQiTelemetry:
-    """Per-window telemetry collector. Additive-only; never raises."""
+    """Per-window telemetry collector. Additive-only; never raises.
+
+    M4 Phase 1 (58 §4): when env VKQI_KEYLOG=1, also logs the ready-made
+    field-as-key — combined_state from qi_output bytes 1076-1588
+    (qi_accum.comp:307-328, 128 floats) — per window to
+    logs/vkqi_keys_<ts>.bin (130 f32 records: [step, data_offset, key[128]])
+    and generation records to logs/vkqi_gen_<ts>.jsonl. The engine's
+    _cur_offset attr (set by _ingest) records the training data offset of
+    each window for the retrieval test. Env VKQI_HEAVY_EVERY overrides the
+    K=16 psi-read cadence (0 = skip heavy reads; run-speed control only).
+    """
 
     def __init__(self, engine, out_dir='logs'):
         self.eng = engine
@@ -79,6 +89,16 @@ class VkQiTelemetry:
             self._write_header()
         except Exception:
             self._csv = None
+        # ── M4 key log (off unless VKQI_KEYLOG=1) ──
+        self._keys = None
+        self._gens = None
+        if os.environ.get('VKQI_KEYLOG') == '1':
+            try:
+                ts = time.strftime('%Y%m%d_%H%M%S')
+                self._keys = open(d / f'vkqi_keys_{ts}.bin', 'wb')
+                self._gens = open(d / f'vkqi_gen_{ts}.jsonl', 'w')
+            except Exception:
+                self._keys = self._gens = None
 
     # ── helpers ──
 
@@ -237,9 +257,24 @@ class VkQiTelemetry:
         slope_logE = float('nan')
         R_alt = 'NA'
         frac_l2 = frac_amp_cap = frac_amp_floor = float('nan')
-        if self._win % K == 0:
+        try:
+            k_eff = int(os.environ.get('VKQI_HEAVY_EVERY', str(K)))
+        except Exception:
+            k_eff = K
+        if k_eff > 0 and self._win % k_eff == 0:
             (frac_l2, frac_amp_cap, frac_amp_floor, jz_mean, fc_mean,
              fc_h, E_m, R_m, slope_logE, R_alt) = self._heavy_reads(rf, q_ratio_mean)
+
+        # ── M4 key log: combined_state (qi_output bytes 1076-1588) ──
+        if self._keys is not None:
+            try:
+                key = self._read_float('qi_output', 1076, 128 * 4)
+                if key is not None and key.size == 128:
+                    off = float(getattr(eng, '_cur_offset', -1.0))
+                    rec = np.concatenate([[float(step), off], key]).astype('<f4')
+                    self._keys.write(rec.tobytes())
+            except Exception:
+                pass
 
         row = [step, float(qi_val), q_M, q_ratio_mean, water_q,
                self.qbar, self.slope, self.s_eff]
@@ -349,12 +384,26 @@ class VkQiTelemetry:
     # ── generation hook (_ingest gen site) ──
 
     def on_generation(self, gen_bytes, step):
-        if self._csv is None:
+        if self._csv is None and self._gens is None:
             return
         try:
             gen = bytes(gen_bytes)
             printable = sum(1 for b in gen if 32 <= b < 127)
             unique = len(set(gen))
+            if self._gens is not None:
+                import json as _json
+                key = self._read_float('qi_output', 1076, 128 * 4)
+                key_hex = None
+                if key is not None and key.size == 128:
+                    key_hex = key.astype('<f4').tobytes().hex()
+                rec = {'step': int(step),
+                       'offset': float(getattr(self.eng, '_cur_offset', -1.0)),
+                       'key_hex': key_hex,
+                       'text': gen.decode('latin1'),
+                       'printable': int(printable),
+                       'unique': int(unique)}
+                self._gens.write(_json.dumps(rec) + '\n')
+                self._gens.flush()
             q_M = self.qbar  # last window's q̄ as placeholder columns
             row = [step, self.qis[-1] if self.qis else None,
                    None, None, self.waters[-1] if self.waters else None,
@@ -375,3 +424,11 @@ class VkQiTelemetry:
             except Exception:
                 pass
             self._csv = None
+        for attr in ('_keys', '_gens'):
+            f = getattr(self, attr, None)
+            if f is not None:
+                try:
+                    f.close()
+                except Exception:
+                    pass
+                setattr(self, attr, None)
