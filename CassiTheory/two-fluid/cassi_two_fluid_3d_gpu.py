@@ -650,6 +650,9 @@ class ExpandingTwoFluid3DGPU(TwoFluid3DGPU):
                 conv = -self.lam * one_minus_q * imbalance
             else:
                 conv = -self.lam * imbalance
+        else:
+            # λ=0: conversion channel frozen — conv contributes nothing.
+            conv = torch.zeros_like(ey)
 
         rhs_ey_hat = (-torch.fft.fftn(adv_ey) / a
                       - self.D * self.k2 * ey_hat / a2
