@@ -448,6 +448,35 @@ $$
 
 Status: the revised §3.12 statement is falsified on both branches—the integer-M₀ ceiling at 60° (f11) and the non-integer-M₀ exclusion at 108° (f13), the latter agreeing with §3.13's independent DNA-pitch pass—while the 45° branch is untested (both heights on the null lattice) and f8/f12/f14 are inconclusive (gauge-independent floor contact). The surviving statements are the graded M = 32 window of §3.13 (34°–36° pass, 38° fail) and the null-branch emergence class (f5/f6/f9/s1) with the phase-order contraction ordering of (g). E1/TS statuses unchanged: no stack arm binds a pair (s1: min d 7.51 at t ≈ 82, relaxing to 12.11 at t = 160, `merged` = False throughout). The wave adds no term, no parameter, and no registry entry.
 
+### 3.16 The biological pitch catalog (arithmetic hooks)
+
+The stacking-scale anchors of §3.9 are the measured values; this subsection adds the pitch arithmetic of each candidate system against the stacking construction's per-layer twist angle $\Delta\theta$ (§3.8). Each row is Derived arithmetic from the pitch $P$: $\Delta\theta = 360^\circ/P$, the per-turn multiplicity $M_0 = 2\pi/\Delta\theta$, the integer-M₀ critical height $M^\* = \lceil(32\pi^2/25)/\Delta\theta^2\rceil$ (§3.12), the exact null closures at whole numbers of turns ($M\cdot\Delta\theta = 2k\pi$, $A_{\mathrm{tot}} = 0$ exactly, §3.8), and the measured arm nearest the angle. No row claims that a biological system is explained or that a pitch is a Cassi value; each entry is a coincidence-check the measured arms of §3.12–§3.14 can speak to, and none is registered in `parameter-inventory.md` or the prediction catalog.
+
+| system | $P$ per turn | $\Delta\theta$ | $M_0$ | integer? | family | $M^\*$ if in-family | $N_{\mathrm{turn}} = M^\*/P$ | null closures | nearest anchor |
+|---|---|---|---|---|---|---|---|---|---|
+| B-DNA | 10.5 (10.4–10.6) | 34.29° | 10.5 = 21/2 | no (half) | excluded-in-law (falsified) | n/a | n/a | 21 (2 turns, $A$ = 8.3e-16), 42 | 36° decagon, 4.75% away; measured passing window [34°, 36°] at M = 32 |
+| A-DNA / RNA A-form | 11 | 32.73° | 11 | yes | in-family | 39 | 3.55 | 11, 22, 33, 44 | 36°, 9.1% away |
+| Z-DNA | 12 | 30.0° | 12 | yes | in-family | 47 | 3.92 | 12, 24, 36, 48 | 30° = the wave-4 f12 arm exactly (inconclusive) |
+| alpha-helix | 3.6 = 18/5 | 100° | 3.6 | no | n/a | n/a | n/a | 18 (5 turns), 36 | 90°, 11% away; not pentagon |
+| 3_10 / polyproline II | 3.0 | 120° | 3 | yes | in-family (degenerate) | 3 (on the null) | 1.0 | 3 (1 turn) | none (outside fitted range) |
+| pi-helix | 4.4 = 22/5 | 81.82° | 4.4 | no | n/a | n/a | n/a | 22 (5 turns), 44 | 90°, 9.1% away |
+| collagen | 10/3 = 3.33 | 108° | 10/3 | no | excluded-in-law (falsified) | n/a | n/a | 10 (3 turns), 20 | 108° = the wave-4 f13 control angle exactly (passed clean) |
+| TMV coat | 49/3 = 16.33 | 22.04° | 49/3 | no | n/a | n/a | n/a | 49 (3 turns), 98 | 27° (f14, inconclusive), 18% away |
+| microtubule | 13 protofilaments | 27.69° | 13 | yes | in-family | 55 | 4.23 | 13, 26, 39, 52 | 27° (f14, inconclusive), 2.6% away; integer-13 vs non-integer-40/3 flip across 0.69° |
+| F-actin (13/6) | 13/6 = 2.167 | 166.15° | 13/6 | no | n/a | n/a | n/a | 13 (6 turns), 26 | none close |
+| amyloid cross-beta | flat | 0° | ∞ | vacuous | control | → ∞ | n/a | none | untwisted control; real twists 1–3° per layer → $M^\*$ ≈ 5e3–4e4 |
+| nucleosome | 147 bp | n/a | n/a | n/a | n/a | n/a | n/a | 147/10.5 = 14.0 turns EXACTLY; 147 = 7×21 | B-DNA arithmetic; seven two-turn closure units |
+
+Ranked hooks (tiered; arithmetic-only):
+
+1. **Collagen 108° and Z-DNA 30° coincide with prespecified falsifier steps.** The collagen pitch 108° ($M_0$ = 10/3) is exactly the wave-4 f13 exclusion-control angle (passed clean: +0.979 on a zero-floor arm with $A_{\mathrm{tot}}$ = 0.72642·$s_{\mathrm{tot}}$ vs the derived 0.7266, §3.14), and the Z-DNA pitch 30° is exactly the wave-4 f12 arm (inconclusive, clamp-seeded, §3.14). Real polymer pitches coincide with prespecified falsifier steps on both sides of the integer-M₀ boundary—one in-family (30°, $M_0$ = 12), one excluded-in-law (108°, $M_0$ = 10/3)—so the measured verdicts transfer to those rows with zero interpolation. Derived: the coincidences are exact (108° = 3·360°/10, 30° = 360°/12); Tested: the arm verdicts; Not-claimed: any biological implication.
+2. **Nucleosome: exactly seven two-turn closure units.** 147 bp = 7 × 21 bp, and 21 layers of the 10.5 pitch close two whole turns: $A(21, 2\pi/10.5)$ = 8.3e-16 of $s_{\mathrm{tot}}$ ≈ 0 exactly (the two-turn closure null of the §3.8 array factor; the helix twin h2 measures the same closure at 8.3e-4 of $s_{\mathrm{tot}}$, the rotated-footprint grid wobble, §3.13). The nucleosome's 147-bp wrap is the count arithmetic of seven B-DNA two-turn closures; no winding or mechanism claim is made (the wrap itself is ~1.7 superhelical turns, §3.9).
+3. **Microtubule 13-fold: an in/out flip across 0.69°.** The 13-protofilament pitch (27.69°, $M_0$ = 13 integer, $M^\*$ = 55) sits 0.69° from the wave-4 27° control (f14, $M_0$ = 40/3 non-integer, direction consistent with fail): the in-family pass row and the excluded fail-direction arm are separated by 0.69°, so the family boundary for the catalog row flips across that gap pending a clean 27°-family arm (f14 is clamp-seeded, §3.14). Derived arithmetic; Not-claimed.
+4. **B-DNA 10.5: a latching pitch inside the measured window.** $\Delta\theta$ = 34.29° sits inside the measured M = 32 passing window [34°, 36°] (§3.13 d2/d3: 34.29° passes at +0.619 and 34° at +0.999 on zero-floor arms; 38° fails at +0.186) and outside the first-form branch (d6 at M = 10 is falsified, +0.940 → −0.644): the gate passes the B-DNA pitch at the critical height only. Why the measured gate's underwound edge lands at the DNA pitch is not claimed. Derived arithmetic; Tested window; Not-claimed biology.
+5. **Alpha-helix and pi-helix: no transfer.** 100° ($M_0$ = 3.6) and 81.82° ($M_0$ = 4.4) sit ~9–11% off the 90° anchor ($M^\*$ = 6, §3.12) with non-integer $M_0$ and no measured arm within the band: no verdict transfers, and the rows carry no family label. Derived; Not-claimed.
+
+Pending verdicts: the 108°-family transfer rests on the single clean f13 height (M = 16); the family boundary at $M^\*$ = 4 is spoken to by the wave-5 continuation arms w4 (108°, M = 4, derived $A$ = tan 36° = 0.7265) and w5 (108°, M = 8, derived $A$ = sin 72°/sin 54° = 1.1756), whose verdicts land in §3.15 after the runs complete. The 30° family's clean verdict is pending the floor-contact resolution: f12 is clamp-seeded (2527 floored cells, §3.14) and the wave-5 30° arm (w10, M = 47 = $M^\*$, landing in §3.15) is floor-gated.
+
 ---
 
 ## 4. The Z2×Z5 Trace Graph and the Two-Pentagon Projection
@@ -584,6 +613,7 @@ Standing discipline from the two-bubble and pinch nulls: t = 0 vs t = end compar
 - A neural or molecular correlation establishes a new force without an independent field measurement.
 - Any channel label currently organizes a matter property; the p/n pair, charge, and mass generation remain open.
 - This document supplies a diagnosis, treatment, or claim about any person's experience.
+- That any pitch in the biological catalog (§3.16) is explained by the stacking gate or is a Cassi value; the catalog rows are arithmetic coincidence-checks against the measured arms, and no biological implication is drawn.
 
 ---
 
