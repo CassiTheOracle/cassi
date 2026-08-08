@@ -763,13 +763,41 @@ class VkQiCube:
         if self.step_count % 100 == 0:
             self.qi_target = max(0.05, self.qi_target - 1e-4)
 
-        # Adaptive stride: scale with Qi density
-        if not getattr(self, 'no_adaptive_stride', False):
-            qi_ratio = qi_val / max(self.qi_target, 1e-6)
-            if qi_ratio > 2.0:
-                self.stride = max(self.stride_min, self.stride - 128)
-            elif qi_ratio < 0.5:
-                self.stride = min(self.stride_max, self.stride + 128)
+        # Adaptive stride / breath: endpoint (qi_val, current) or gated
+        # (M2, 58 §1(4): q̄_win/q_target + s_eff trajectory inputs; same
+        # constants — the rule stays unless the A/B passes).
+        policy = getattr(self, 'stride_policy', 'endpoint')
+        if policy == 'gated':
+            if not hasattr(self, '_qhist'):
+                self._qhist = []
+            self._qhist.append(float(qi_val))
+            if len(self._qhist) > 128:
+                self._qhist.pop(0)
+            qh = np.array(self._qhist, dtype=np.float64)
+            qbar_win = float(qh.mean())
+            s = 0.0
+            if len(qh) >= 2:
+                s = float(np.polyfit(np.arange(len(qh)), qh, 1)[0])
+            wq = self._read_result('qi_output', 1068, 4, 'f')
+            water_q = float(wq[0]) if len(wq) else 0.0
+            s_eff = s * abs(water_q)
+            self.breath_phase += self.lr * 0.1 * (qbar_win - self.qi_target)
+            self.breath_phase = self.breath_phase % (2 * PI)
+            if not getattr(self, 'no_adaptive_stride', False):
+                qbar_ratio = qbar_win / max(self.qi_target, 1e-6)
+                if qbar_ratio > 2.0:
+                    self.stride = max(self.stride_min, self.stride - (256 if s_eff < 0 else 128))
+                elif qbar_ratio < 0.5:
+                    self.stride = min(self.stride_max, self.stride + (256 if s_eff > 0 else 128))
+        else:
+            self.breath_phase += self.lr * 0.1 * (qi_val - self.qi_target)
+            self.breath_phase = self.breath_phase % (2 * PI)
+            if not getattr(self, 'no_adaptive_stride', False):
+                qi_ratio = qi_val / max(self.qi_target, 1e-6)
+                if qi_ratio > 2.0:
+                    self.stride = max(self.stride_min, self.stride - 128)
+                elif qi_ratio < 0.5:
+                    self.stride = min(self.stride_max, self.stride + 128)
 
         return qi_val
 
@@ -1128,13 +1156,17 @@ def main():
     parser.add_argument('--ic-phi-lattice', action='store_true',
                         help='M5: imprint the φ-lattice on the embedding IC '
                              '(embed_field_phi.spv: psi *= (1+a·cos(2πh/φ))·(1+a·cos(2πh/φ²)))')
+    parser.add_argument('--stride-policy', type=str, default='endpoint',
+                        choices=['endpoint', 'gated'],
+                        help='M2: endpoint = qi_val rule (current); gated = q̄_win/s_eff trajectory rule')
     args = parser.parse_args()
     engine = VkQiCube(lam=args.lam, lr=args.lr, dt=args.dt, stride=args.stride,
                       stride_min=args.stride_min, stride_max=args.stride_max,
                       no_adaptive_stride=args.no_adaptive_stride,
                       alpha=args.alpha, train_temp=args.train_temp,
                       rho_eps=args.rho_eps, mem_blend=args.mem_blend,
-                      ic_phi_lattice=args.ic_phi_lattice)
+                      ic_phi_lattice=args.ic_phi_lattice,
+                      stride_policy=args.stride_policy)
     if args.resume:
         engine.load_checkpoint(args.resume)
 
