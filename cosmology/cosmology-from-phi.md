@@ -232,7 +232,7 @@ The Qi condensate naturally produces cored profiles (from the $\varphi$-attracto
 | Bullet Cluster | Collisionless DM consistent | Confirmed |
 | Weak lensing | Enhanced $G_{\text{eff}}$ in halos | LSST testable |
 | Direct detection | Null (field condensate) | All experiments null |
-| CMB $\sigma_8$ | **−16.6% (R = 0.834) vs $\Lambda$CDM** — regime-integrated, stabilized closure, P-A reading, $r_0 = 0.0472$ (`cosmology/sigma8-computational-plan.md` §3.2; `parameter-inventory.md` §10); the "~5% lower" wording withdrawn (never computed — plan target only, `cosmology/sigma8-computational-plan.md` §3.2); the μ normalization Mapped | LSST discriminant |
+| CMB $\sigma_8$ | **+0.3% ± 0.5 pp vs $\Lambda$CDM (P-A, measured window $z \in [100, 61]$)** — the window-integrated per-cell mixture on the ΛCDM background (the window's content is the q-history 0.866 → 0.795, not the endpoint; mixture = mean-field); the P-C pointwise-chord reading (flagged): +24.8% ± 16.3 pp over the measured window, with the $z \in [61, 0]$ continuation the open measured item (`cassi-toe-rewrite-briefs/spiral-gravity/53-post-freeze-continuation.md`); the settlement family −16.6% (R = 0.834, regime-integrated, stabilized closure, P-A, $r_0 = 0.0472$) / −15.2% (band-state mean-field) / −11.2% (full-window hold) is the reference (`cosmology/sigma8-computational-plan.md` §3.2; `parameter-inventory.md` §10); the "~5% lower" wording is a plan fit target only, never computed; the μ normalization Mapped | LSST discriminant |
 
 ---
 
