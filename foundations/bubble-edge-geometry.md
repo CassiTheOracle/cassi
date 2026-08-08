@@ -261,7 +261,7 @@ The PDE code has three diffusion-like input parameters:
 
 | Code param | Line | Default | Role in $\theta_{\text{cond}}$ |
 |---|---|---|---|
-| `D` | 295 | 0.001 | Microscopic scalar diffusion (∇²). NOT $D_{\text{eff}}$. |
+| `D` | 295 | 0.0 | Momentum-space numerical viscosity (∇²), the conservation-exact canonical default (44). NOT $D_{\text{eff}}$; D>0 = the diffusion-bound readings. |
 | `nu` | 295 | 0.001 | Velocity viscosity (∇²). Irrelevant for condensation. |
 | `hyper_nu` | 299 | 0.0 | Hyperdiffusion (∇⁴). Disabled by default. Irrelevant. |
 
@@ -292,7 +292,7 @@ The most direct method: **seed the condensation field and measure its decay rate
    | Parameter | Value | Rationale |
    |---|---|---|
    | Grid | $64 \times 64 \times 4$ | 2D slice + thin z (minimal, only for 3D operator) |
-   | `D` | 0.001 | Default microscopic diffusion |
+   | `D` | 0.0 | Canonical default (conservation-exact, 44); D>0 = diffusion-bound |
    | `lam` | 0.1 | Derivation value $\lambda = 1/(2w)$ from `foundations/wu-xing-derivation.md` |
    | `qi_gate` | True | Qi gate active (defines $q$ from fields) |
    | `chi` | 0.0 | No chemotaxis (isolate pure reaction-diffusion) |
@@ -393,11 +393,11 @@ The phenomenologically-calibrated $\theta_{\text{cond}} = 0.45$ corresponds to $
 
 **Upper bound ($\theta_{\text{cond}} \leq 0.7$):** A bubble with $\theta_{\text{cond}} > 0.7$ would have $q_{\text{edge}} > 0.85$, meaning the edge region is nearly as coherent as the bubble center. The void-bubble density contrast would be $\rho_{\text{center}}/\rho_{\text{edge}} \lesssim 1.3$, too low to produce the observed cosmic web (void-bubble density contrasts of 10-100 are required by galaxy surveys). This gives $\theta_{\text{cond}} \leq 0.7$, $R \leq 0.215$.
 
-**Tightest bound (from $\lambda$):** The PDE conversion rate $\lambda = 0.1$ (derived, $w=5$) and microscopic $D = 0.001$ give a bare effective diffusion estimate: if advection is negligible, $D_{\text{eff}} \approx D = 0.001$. At $\Lambda_Y = 32$ grid points ($\alpha_{\text{code}} = 2\pi/32 \approx 0.196$, $\beta_{\text{code}} = 0.318$, $\alpha^2+\beta^2 \approx 0.139$):
+**Tightest bound (from $\lambda$):** The PDE conversion rate $\lambda = 0.1$ (derived, $w=5$). At the canonical default $D = 0$ (the conservation-exact setting — `parameter-inventory.md` §6; the D=0.001 diffusion was the entire Eulerian eroder, 44) the microscopic contribution to $D_{\text{eff}}$ vanishes, so the bare estimate rests entirely on advective mixing (measurable, §8.2). Under the old $D = 0.001$ default the bare estimate was $D_{\text{eff}} \approx D = 0.001$ (the diffusion-bound reading); at $\Lambda_Y = 32$ grid points ($\alpha_{\text{code}} = 2\pi/32 \approx 0.196$, $\beta_{\text{code}} = 0.318$, $\alpha^2+\beta^2 \approx 0.139$):
 
 $$R_{\text{bare}} = \frac{2 \times 0.001 \times 0.139}{0.1} = 2.78 \times 10^{-3}$$
 
-which gives $\theta_{\text{cond}} \approx 0.12$—at the lower bound. This suggests the phenomenologically-calibrated 0.45 requires $D_{\text{eff}}$ to be approximately $30\times$ larger than the microscopic $D$, likely from advective enhancement.
+which gives $\theta_{\text{cond}} \approx 0.12$—at the lower bound. This suggests the phenomenologically-calibrated 0.45 requires $D_{\text{eff}}$ to be approximately $30\times$ larger than the old microscopic $D$, likely from advective enhancement.
 
 **Testable prediction:** The PDE measurement will yield $\theta_{\text{cond}}$ in one of three regimes:
 
