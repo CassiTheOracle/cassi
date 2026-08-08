@@ -73,7 +73,39 @@ solver per arm; born class at the run gauge via |Ssin/Scos| vs 0.7468.
        the measured gap (9, 14.4); no committed prediction -- report and
        classify: pass => boundary above 12, fail => boundary at/below 12)
 
-Output: runs/<rid>_lattice_stack_g/run_<arm>.json + results.json (raw;
+Wave 8 (--wave8, labels r12-r21; section 3.19) tests the 2-point
+family-height mnemonic of section 3.18 -- FAIL iff r = c+2 with
+c = M//6, r = M mod 6 -- and the M*-vs-residue discriminator at 54 deg.
+Same protocol: N = 48, t = 40, gate 'five', fresh solver per arm; arms
+whose alpha = 0 gauge is born-flat run at a clean born-full rotation
+found by the 720-step scan (r9-style); the run gauge is recorded per arm.
+
+  r12: 60 deg, M = 13, res 60, d72 12, A = 1.0       PREDICT PASS (r=1)
+  r13: 60 deg, M = 14, res 120, d72 24, A = sqrt 3   PREDICT PASS (r=2)
+       CYCLE-2 DISCRIMINATOR: same (d,A,d72) class as M=8/10 (pass) and
+       M=16 (fail); PASS => the M=16 death is r=4-specific
+  r14: 60 deg, M = 17, res 300, d72 12, A = 1.0      PREDICT PASS (r=5)
+  r15: 60 deg, M = 12, res 0, A = 0 EXACT (2-turn    NULL-BRANCH PROBE:
+       null), born-NULL at every gauge                emergence +0.5..0.7
+       predicted (f4-class); pass => the null is a live antinode
+  r16: 60 deg, M = 16 at a clean BORN-FLAT rotation  PREDICT PASS (flip
+       control at the death height; g4/g5c logic)     control)
+  r17: 54 deg, M = 9, res 126, d72 18, A = 1.9626    PREDICT FAIL (band
+       (= r10's A)                                    A-independence)
+  r18: 54 deg, M = 13, res 342 (d 18), d72 18,       PREDICT FAIL (small-A
+       A = 0.3446 (smallest envelope)                 fail-band probe)
+  r19: 54 deg, M = 15, res 90, d72 18, A = 1.5575    M*-vs-RESIDUE
+       M* = ceil(12.6331/0.88827) = 15                DISCRIMINATOR: M*
+       rule says PASS, residue rule says FAIL
+  r20: 30 deg, M = 40, res 120, d72 24, A = 3.3461   PREDICT FAIL per
+       (sub-M*, M* = 47; floor caution: gauge-scan;  residue; a PASS
+       INCONCLUSIVE if no clean rotation and > 2%)    transfers the anomaly
+  r21: 60 deg, M = 23, res 300 (d 60), d72 12,       OPTIONAL FAR ARM
+       A = 1.0, c = 3, r = 5                          (--far): PREDICT FAIL
+       (r = c+2 encoding's first 3-cycle test); run only if the
+       r12-r20 batch finishes cleanly
+
+Output: runs/<rid>_lattice_stack_w8/run_<arm>.json + results.json (raw;
 NO doc changes until the director reads the raw outputs).
 """
 
@@ -454,6 +486,133 @@ WAVE7_ARMS = [
 ]
 
 
+WAVE8_ARMS = [
+    ('r12', 60.0, 13, None, 321.5,
+     {'kind': 'encoding_pass', 'born': 'full',
+      'A_derived': 1.0, 'd72': 12.0, 'w_turns': 2.1667, 'c': 2, 'r': 1,
+      'seam': 0.0,
+      'note': '60 deg/M=13: res=60, d=60, d72=12 (pass gap), A(13,60) = '
+              '|sin 390/sin 30| = 1.0 [D], w = 2.167 turns, c=2 r=1. '
+              'PREDICT PASS (residue rule d72=12 + r != c+2 encoding). '
+              'Born-FLAT at alpha=0 (|Ss/Sc| = 0) -> run at a clean '
+              'born-full gauge (r9-style scan); FAIL would show the r=1 '
+              'class dies at 2 cycles'}),
+    ('r13', 60.0, 14, None, 293.0,
+     {'kind': 'encoding_pass', 'born': 'full',
+      'A_derived': 1.73205, 'd72': 24.0, 'w_turns': 2.3333, 'c': 2, 'r': 2,
+      'seam': 60.0,
+      'note': '60 deg/M=14: res=120, d=120, d72=24 (fail band), A(14,60) '
+              '= |sin 420/sin 30| = sqrt 3 [D], w = 2.333 turns, c=2 r=2. '
+              'THE CYCLE-2 DISCRIMINATOR: same (d,A,d72) class as M=8/10 '
+              '(pass, below M*=12) and M=16 (fail, above); M=14 is above '
+              'M*. Born-flat at alpha=0 -> rotated gauge (NO clean '
+              'born-full rotation exists; alpha=293.0 is the lowest-floor '
+              'born-full gauge, 4 floor cells = 0.004% (exact-path)). PASS '
+              '=> the '
+              'M=16 death is r=4-specific (encoding holds); FAIL => d=120 '
+              'dies above M* regardless of r. PREDICT PASS per encoding'}),
+    ('r14', 60.0, 17, None, 0.0,
+     {'kind': 'encoding_pass', 'born': 'full',
+      'A_derived': 1.0, 'd72': 12.0, 'w_turns': 2.8333, 'c': 2, 'r': 5,
+      'seam': 240.0,
+      'note': '60 deg/M=17: res=300, d=60, d72=12 (pass gap), A(17,60) = '
+              '|sin 510/sin 30| = 1.0 [D], w = 2.833 turns, c=2 r=5. '
+              'Born-FULL at alpha=0 (|Ss/Sc| = 1.732). PREDICT PASS per '
+              'the encoding; FAIL falsifies it (r=5 dies at 2 cycles '
+              'like r=4)'}),
+    ('r15', 60.0, 12, None, 0.0,
+     {'kind': 'null_branch', 'born': None,
+      'A_derived': 0.0, 'd72': 0.0, 'w_turns': 2.0, 'c': 2, 'r': 0,
+      'seam': 0.0,
+      'note': '60 deg/M=12: res=0, d=0, d72=0, A(12,60) = |sin 360/sin '
+              '30| = 0 EXACT (2-turn null), born-NULL at every gauge. '
+              'THE NULL-BRANCH PROBE at the resonant height: f4-class '
+              'emergence prediction (born-flat nulls emerge +0.5..0.7: '
+              'f4 +0.677, f9 +0.504; d5 +0.146 and h2 +0.798 are the '
+              '36/34.29 deg analogs). Pass here means the 2-turn null is '
+              'a live antinode sitting exactly between the d=180 heights '
+              '(9,15) and the d=120 heights (8,16)'}),
+    ('r16', 60.0, 16, None, 285.0,
+     {'kind': 'flip_control', 'born': 'flat',
+      'A_derived': 1.73205, 'd72': 24.0, 'w_turns': 2.6667, 'c': 2, 'r': 4,
+      'seam': 120.0,
+      'note': '60 deg/M=16 at a CLEAN BORN-FLAT rotation (alpha=285.0; '
+              '163 clean born-flat rotations per the scan, window '
+              '(233.2, 306.8) inside [128.5, 321.5]). res=240, d=120, '
+              'd72=24, A(16,60) = |sin 480/sin 30| = sqrt 3 [D]. THE '
+              'BORN-CLASS FLIP CONTROL at the death height: g4/g5c logic '
+              'says flat passes where full fails; f10/r9 is the M=8 '
+              'mirror (flat +0.352 vs full +0.779). Pass => the M=16 '
+              'death is born-full-class-specific; fail => 60/16 dies in '
+              'both classes. PREDICT PASS'}),
+    ('r17', 54.0, 9, None, 274.0,
+     {'kind': 'band_fail', 'born': 'full',
+      'A_derived': 1.96261, 'd72': 18.0, 'w_turns': 1.35, 'c': 1, 'r': 3,
+      'seam': 72.0,
+      'note': '54 deg/M=9: res=126, d=126, d72=18 (fail band), A(9,54) = '
+              '|sin 243/sin 27| = 1.9626 [D] -- IDENTICAL to r10\'s A, '
+              'w = 1.35 turns, c=1 r=3. Born-flat at alpha=0 by a hair '
+              '(|Ss/Sc| = 0.727 < 0.7468) -> rotated gauge (NO clean '
+              'rotation exists at any class; alpha=274.0 is a '
+              'lowest-floor born-full gauge, 108 floor cells = 0.10%). '
+              'PREDICT FAIL (d72=18 band) -- tests band A-independence '
+              'and its extent below the M=10 pass'}),
+    ('r18', 54.0, 13, None, 101.0,
+     {'kind': 'band_fail', 'born': 'full',
+      'A_derived': 0.34458, 'd72': 18.0, 'w_turns': 1.95, 'c': 2, 'r': 1,
+      'seam': 288.0,
+      'note': '54 deg/M=13: res=342 (folded d=18), d72=18, A(13,54) = '
+              '|sin 351/sin 27| = 0.3446 [D] (smallest envelope in the '
+              'program\'s proposal), w = 1.95 turns, c=2 r=1. Born-flat '
+              'at alpha=0 -> rotated gauge (NO clean rotation exists; '
+              'alpha=101.0 is a lowest-floor born-full gauge, 34 floor '
+              'cells = 0.03%). PREDICT FAIL -- small-A fail-band probe'}),
+    ('r19', 54.0, 15, None, 305.0,
+     {'kind': 'mstar_discriminator', 'born': 'full',
+      'A_derived': 1.55754, 'd72': 18.0, 'w_turns': 2.25, 'c': 2, 'r': 3,
+      'seam': 36.0, 'M*': 15,
+      'note': '54 deg/M=15: res=90, d=90, d72=18 (fail band), A(15,54) = '
+              '|sin 405/sin 27| = 1.5575 [D], w = 2.25 turns, M* = '
+              'ceil(12.6331/0.88827) = 15, c=2 r=3. Born-flat at alpha=0 '
+              '(|Ss/Sc| = 0.325) -> rotated gauge (NO clean born-full '
+              'rotation exists; the 5 clean rotations at [319.5, 321.5] '
+              'are born-flat; alpha=305.0 is a lowest-floor born-full '
+              'gauge, 59 floor cells = 0.05%). THE M*-vs-RESIDUE '
+              'DISCRIMINATOR: the M* rule (passes at M* on 45/108/30 '
+              'deg) says PASS; the residue rule (d72=18 fail band) says '
+              'FAIL. At 54 deg M*=15 is NOT a null (unlike 60 deg), so '
+              'this separates the two hypotheses'}),
+    ('r20', 30.0, 40, None, 0.0,
+     {'kind': 'transfer_probe', 'born': 'full',
+      'A_derived': 3.34607, 'd72': 24.0, 'w_turns': 3.3333, 'c': 6, 'r': 4,
+      'seam': 90.0,
+      'note': '30 deg/M=40: res=120, d=120, d72=24 (fail band), A(40,30) '
+              '= |sin 600/sin 15| = 3.3461 [D], w = 3.333 turns, sub-M* '
+              '(M* = 47). Born-FULL at alpha=0 (|Ss/Sc| = 1.0). FLOOR '
+              'CAUTION: the 30 deg family had structural floor contact '
+              'at M=32 (f12) but zero floors at M=47 (w10); the 720-step '
+              'scan finds NO clean rotation for M=40 (min floor cells '
+              '443 = 0.4% at alpha ~278); alpha=0 runs with 1048 floor '
+              'cells = 0.95% < 2% -- protocol-legal, family-comparison '
+              'gauge (f12/w10 both ran at alpha=0). Verdict INCONCLUSIVE '
+              'only if floors exceed 2%. THE 60-DEG TRANSFER ARM: does '
+              '"d72=24 passes below M*" (60/8, 60/10) extend to a second '
+              'family, or does the residue rule\'s fail band hold at 30 '
+              'deg? PREDICT FAIL per residue; a PASS transfers the '
+              'anomaly'}),
+    ('r21', 60.0, 23, None, 0.0,
+     {'kind': 'encoding_fail', 'born': 'full',
+      'A_derived': 1.0, 'd72': 12.0, 'w_turns': 3.8333, 'c': 3, 'r': 5,
+      'seam': 240.0,
+      'note': 'OPTIONAL FAR ARM (run only if the batch finishes cleanly): '
+              '60 deg/M=23: c=3, r=5, res=300 (d=60), d72=12 (pass gap), '
+              'A(23,60) = |sin 690/sin 30| = 1.0 [D], w = 3.833 turns. '
+              'Born-full class at alpha=0 per the r11 pattern. PREDICT '
+              'FAIL per the encoding (r = c+2: 5 = 3+2) -- the '
+              'mnemonic\'s first 3-cycle test'}),
+]
+
+
 def arm_phases(arm):
     tag, dth, M, rung, rot, pred = arm
     return lin(M, math.radians(dth), math.radians(rot))
@@ -475,25 +634,35 @@ def run_arm(device, tag, phases, rung_of, outdir, steps):
     return r
 
 
-def finalize(runs, rdir, arms):
+def finalize(runs, rdir, arms, wave='g'):
     def arm(tag):
         return next((r for r in runs if r['tag'] == tag), None)
 
     def c40(tag):
         return arm(tag)['summary']['t40']['C_abs']
 
+    if wave == 'w8':
+        wave_str = ('wave 8 (r12-r21): the 60 deg family-height encoding '
+                    'r != c+2 at 2 cycles (r12-r14), the 2-turn null '
+                    'branch at 60/12 (r15), the born-class flip at 60/16 '
+                    '(r16), the d72=18 fail band at 54 deg (r17-r18), '
+                    'the M*-vs-residue discriminator at 54 deg (r19), '
+                    'the 30 deg transfer probe (r20), the 3-cycle far '
+                    'arm (r21)')
+    elif any(r['tag'] == 'r1' for r in runs):
+        wave_str = ('residue-rule falsifier wave (r1-r11): '
+                    'the d72 = min_k|res - 72k| mechanism vs '
+                    'the boxed delta-set {72,135,144,180}; '
+                    'r1 = the delta=136 discriminator; r11 = '
+                    'the gap-boundary locator')
+    else:
+        wave_str = ('gauge-resolution wave (g1-g12, + '
+                    'g13-g17 fine scans): clean-gauge '
+                    're-measurement of the '
+                    'clamp-polluted death arms')
     results = {'meta': {'N': T.N, 'lam': T.LAM, 'dt': T.DT,
                         't_end': runs[0]['hist'][-1]['t'],
-                        'wave': ('residue-rule falsifier wave (r1-r11): '
-                                 'the d72 = min_k|res - 72k| mechanism vs '
-                                 'the boxed delta-set {72,135,144,180}; '
-                                 'r1 = the delta=136 discriminator; r11 = '
-                                 'the gap-boundary locator'
-                                 if any(r['tag'] == 'r1' for r in runs)
-                                 else 'gauge-resolution wave (g1-g12, + '
-                                      'g13-g17 fine scans): clean-gauge '
-                                      're-measurement of the '
-                                      'clamp-polluted death arms'),
+                        'wave': wave_str,
                         'protocol': 'fresh solver per arm, t=40=2/lambda, '
                                     'init-only phases, canonical solver '
                                     'untouched, zero new terms'},
@@ -505,7 +674,7 @@ def finalize(runs, rdir, arms):
             'resonance_t0': r['resonance_t0'], 'summary': r['summary'],
             'elapsed_s': r['elapsed']}
 
-    print(f"\n=== GAUGE-RESOLUTION WAVE (t=40) ===")
+    print(f"\n=== {'M*-VS-RESIDUE WAVE' if wave == 'w8' else 'GAUGE-RESOLUTION WAVE'} (t=40) ===")
     verdicts = {}
     g5 = {}
     for tag, dth, M, rung, rot, pred in arms:
@@ -524,15 +693,29 @@ def finalize(runs, rdir, arms):
                 f"floors={rt['floor_ey'] + rt['floor_ei']:5d} | "
                 f"delta={pred['delta']:g} d72={pred['d72']:g} | "
                 f"born {born} (|Ss/Sc|={abs(S0 / C0) if abs(C0) > 1e-12 else float('inf'):.4f}, "
-                f"C_abs(0)={s['t0']['C_abs']:+.3f}) | "
-                f"C_abs 0/4/40 = {s['t0']['C_abs']:+.3f}/"
-                f"{s['t4']['C_abs']:+.3f}/{s['t40']['C_abs']:+.3f} | "
-                f"d 0/4/40 = {s['t0']['d']:.2f}/{s['t4']['d']:.2f}/"
-                f"{s['t40']['d']:.2f} dth(40)={s['t40']['delta_theta']:+.3f} "
-                f"merged(40)={s['t40']['merged']} | "
-                f"A_peak(40)/A_peak(0)={s['A_peak_ratio_t40']:.3f} "
-                f"wind(40)={s['t40']['winding']:+.3f} | "
-                f"mass drift {s['mass_drift']:.2e} NaN {s['nan']}")
+                f"C_abs(0)={s['t0']['C_abs']:+.3f}) | ")
+        if wave == 'w8':
+            h = r['hist']
+            c36 = L2.at_t(h, 36.0)['C_abs']
+            c38 = L2.at_t(h, 38.0)['C_abs']
+            line += (f"C_abs 0/4/36/38/40 = {s['t0']['C_abs']:+.3f}/"
+                     f"{s['t4']['C_abs']:+.3f}/{c36:+.3f}/{c38:+.3f}/"
+                     f"{s['t40']['C_abs']:+.3f} | "
+                     f"d 0/4/40 = {s['t0']['d']:.2f}/{s['t4']['d']:.2f}/"
+                     f"{s['t40']['d']:.2f} dth(40)={s['t40']['delta_theta']:+.3f} "
+                     f"merged(40)={s['t40']['merged']} | "
+                     f"A_peak(40)/A_peak(0)={s['A_peak_ratio_t40']:.3f} "
+                     f"wind(40)={s['t40']['winding']:+.3f} | "
+                     f"mass drift {s['mass_drift']:.2e} NaN {s['nan']}")
+        else:
+            line += (f"C_abs 0/4/40 = {s['t0']['C_abs']:+.3f}/"
+                     f"{s['t4']['C_abs']:+.3f}/{s['t40']['C_abs']:+.3f} | "
+                     f"d 0/4/40 = {s['t0']['d']:.2f}/{s['t4']['d']:.2f}/"
+                     f"{s['t40']['d']:.2f} dth(40)={s['t40']['delta_theta']:+.3f} "
+                     f"merged(40)={s['t40']['merged']} | "
+                     f"A_peak(40)/A_peak(0)={s['A_peak_ratio_t40']:.3f} "
+                     f"wind(40)={s['t40']['winding']:+.3f} | "
+                     f"mass drift {s['mass_drift']:.2e} NaN {s['nan']}")
         kind = pred['kind']
         v = None
         if kind == 'edge_test':
@@ -595,6 +778,54 @@ def finalize(runs, rdir, arms):
                  f"gap (9, 14.4)) FAILS -> the boundary lies at or below "
                  f"{pred['d72']:g}; the gap narrows toward the measured "
                  f"14.4-fail")
+        elif kind == 'encoding_pass':
+            v = (f"CONFIRMED (pass; the 60 deg r != c+2 encoding holds "
+                 f"at {pred['w_turns']:.2f} turns, r={pred['r']})"
+                 if c40(tag) >= 0.5 else
+                 f"CONTRADICTED (fail; the encoding's r={pred['r']} "
+                 f"class dies at {pred['w_turns']:.2f} turns)")
+        elif kind == 'null_branch':
+            v = (f"NULL-BRANCH EMERGENCE (pass; the 2-turn null is a "
+                 f"live antinode between the d=180 and d=120 heights)"
+                 if c40(tag) >= 0.5 else
+                 f"NULL-BRANCH NULL (no emergence; the exact 2-turn "
+                 f"null stays dead)")
+        elif kind == 'flip_control':
+            v = (f"BORN-CLASS FLIP CONFIRMED (pass; the 60/16 death is "
+                 f"born-full-class-specific; born-flat retains at the "
+                 f"death height)"
+                 if c40(tag) >= 0.5 else
+                 f"FLIP REFUTED (fail; 60/16 dies in both born classes)")
+        elif kind == 'band_fail':
+            v = (f"CONFIRMED (fail; the d72=18 band holds at this "
+                 f"height/envelope)"
+                 if c40(tag) < 0.5 else
+                 f"CONTRADICTED (pass; the d72=18 band passes at this "
+                 f"height/envelope)")
+        elif kind == 'mstar_discriminator':
+            mstar = pred.get('M*', '?')
+            v = (f"M*-RULE WINS: passes at M* = {mstar} "
+                 f"despite d72=18; the residue fail band does not govern "
+                 f"at the critical height"
+                 if c40(tag) >= 0.5 else
+                 f"RESIDUE-RULE WINS: fails at d72=18 even at M* = "
+                 f"{mstar}; the M* pass "
+                 f"rule does not transfer to the 54 deg family")
+        elif kind == 'transfer_probe':
+            n_floor = rt['floor_ey'] + rt['floor_ei']
+            if n_floor > 0.02 * T.N ** 3:
+                v = 'INCONCLUSIVE (clamp-seeded; floors > 2% at the run gauge)'
+            else:
+                v = (f"CONFIRMED (fail per the residue rule; d72=24 "
+                     f"fails at 30 deg too)"
+                     if c40(tag) < 0.5 else
+                     f"ANOMALY TRANSFERS (pass; d72=24 retains below "
+                     f"M* in the 30 deg family)")
+        elif kind == 'encoding_fail':
+            v = (f"CONFIRMED (fail; the r = c+2 encoding holds at "
+                 f"{pred['w_turns']:.2f} turns)"
+                 if c40(tag) < 0.5 else
+                 f"CONTRADICTED (pass; r=5 retains at 3 cycles)")
         if pred['born'] is not None and born != pred['born']:
             v += f" [BORN-CLASS DEVIATION: expected {pred['born']}]"
         verdicts[tag] = {'prediction': pred, 'verdict': v,
@@ -644,6 +875,13 @@ def main():
     parser.add_argument('--wave7', action='store_true',
                         help='run the r1-r11 residue-rule falsifier wave '
                              'instead of g1-g12 (section 3.18)')
+    parser.add_argument('--wave8', action='store_true',
+                        help='run the r12-r21 M*-vs-residue wave instead '
+                             'of g1-g12 (section 3.19)')
+    parser.add_argument('--far', action='store_true',
+                        help='with --wave8: include the optional far arm '
+                             'r21 (run only when the r12-r20 batch '
+                             'finishes cleanly)')
     parser.add_argument('--from-runs', default=None, metavar='DIR')
     parser.add_argument('--rid-suffix', default=None, metavar='SUFFIX')
     args = parser.parse_args()
@@ -660,7 +898,9 @@ def main():
                          'n_layers': d['n_layers'],
                          'n_rungs': d['n_rungs']})
             runs[-1]['summary'] = L2.summarize2(runs[-1])
-        if args.wave7:
+        if args.wave8:
+            arms = WAVE8_ARMS
+        elif args.wave7:
             arms = WAVE7_ARMS
         else:
             arms = ARMS + (FINE_ARMS if any(r['tag'].startswith('g1') and
@@ -669,13 +909,18 @@ def main():
                            else ARMS)
         arms = prepare(arms)
         print(f"Rebuilding from {len(runs)} preserved arms in {args.from_runs}")
-        finalize(runs, args.from_runs, arms)
+        finalize(runs, args.from_runs, arms,
+                 wave='w8' if args.wave8 else ('r' if args.wave7 else 'g'))
         return
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     if args.tend is not None:
         args.steps = int(round(args.tend / T.DT))
-    if args.wave7:
+    if args.wave8:
+        arms = WAVE8_ARMS
+        if not args.far:
+            arms = [a for a in arms if a[0] != 'r21']
+    elif args.wave7:
         arms = WAVE7_ARMS
     else:
         arms = FINE_ARMS if args.fine else ARMS
@@ -741,7 +986,8 @@ def main():
         return
 
     rid = datetime.now().strftime("%Y%m%d_%H%M%S")
-    suffix = args.rid_suffix or ('lattice_stack_r' if args.wave7
+    suffix = args.rid_suffix or ('lattice_stack_w8' if args.wave8
+                                 else 'lattice_stack_r' if args.wave7
                                  else 'lattice_stack_g')
     rdir = f"runs/{rid}_{suffix}"
     os.makedirs(rdir, exist_ok=True)
@@ -752,7 +998,7 @@ def main():
         if args.arm is not None and tag not in args.arm:
             continue
         runs.append(run_arm(device, tag, phases, rung, rdir, args.steps))
-    finalize(runs, rdir, arms)
+    finalize(runs, rdir, arms, wave='w8' if args.wave8 else ('r' if args.wave7 else 'g'))
 
 
 if __name__ == "__main__":
