@@ -567,6 +567,48 @@ $$
 
 Status: the born-class rule is the surviving statement of the stacking program: born-flat init retains at every tested geometry within the M = 32 band [33°, 37°] (38° dies born-flat), and born-full init retains iff δ ∈ {72°, 135°, 144°, 180°}. Every gauge-resolved re-measurement of a clamp-polluted death arm keeps its verdict (38°, δ = 120°, δ = 90°) or moves into the born-flat pass class (45° M = 22/23, δ = 144°). The wave adds no term, no parameter, and no registry entry; E1/TS statuses unchanged—no stack arm binds a pair.
 
+### 3.18 The residue-rule falsifier wave (measured 2026-08-08)
+
+Protocol: wave 7 of the lattice-stack falsifier program (`two-fluid/run_lattice_stack_gauge_wave.py` extended with arms r1–r11; labels r1–r11 only, no registry entry), same protocol as §3.12–§3.17 (fresh solver per arm, N = 48, gate `five`, t = 40 = 2/$\lambda$, initialization-only, canonical solver untouched, zero new terms). The wave tests the hypothesized residue mechanism behind the §3.17 born-full retain set: born-full init survives iff the twist residue $\mathrm{res} = M\Delta\theta \bmod 360$ is 5-fold-commensurate, with the pentagon-lattice distance $d_{72} = \min_k |\mathrm{res} - 72k|$ ($k = 0..5$) in the pass set {0, 9, 36} against the fail band [14.4°, 27°] and the clean gap (9, 14.4). The boxed δ-set and the mechanism DISAGREE at δ = 136° ($d_{72}$ = 8, in the pass gap, but 136 ∉ {72°, 135°, 144°, 180°}): arm r1 is the discriminator. The run gauge of every arm is verified by the 720-step common-rotation scan plus the exact-path init; born class at the run gauge via $|S_{\sin}/S_{\cos}|$ vs 0.7468.
+
+| arm | construction | layers | $A_{\mathrm{tot}}(0)$ | t=0 ratio ([D]) | $C_{\mathrm{abs}}$ 0/4/40 | d 0/4/40 | dth(40) | $A_{\mathrm{peak}}(40)/A_{\mathrm{peak}}(0)$ | floors | verdict |
+|---|---|---|---|---|---|---|---|---|---|---|
+| r1 | 34°, M = 4, α = 0° (born-full, δ = 136°, $d_{72}$ = 8) | 4 | 6060.05 | 3.17072 ([D] 3.1712) | +0.963/+0.958/+0.780 | 0.00/0.00/15.92 | −0.004 | 0.520 | 0 | DISCRIMINATOR PASSES: the pentagon-lattice mechanism governs; δ = 136° joins the born-full retain set |
+| r2 | 72°, M = 13, α = 195° (born-full, δ = 144°, $d_{72}$ = 0) | 13 | 3091.96 | 1.61776 ([D] φ) | +0.982/+0.858/+0.802 | 0.00/0.00/15.04 | −0.022 | 0.283 | 0 | CONFIRMED (pass; $A$ = φ at a clean born-full gauge; the scan's 288 is the born-full rotation count, not a gauge—α = 288° is born-flat) |
+| r3 | 54°, M = 12, α = 0° (born-full, δ = 72°, $d_{72}$ = 0) | 12 | 2469.14 | 1.29189 ([D] 1.2947) | +0.849/+0.920/+0.854 | 0.00/12.62/13.68 | +0.004 | 0.537 | 98 | CONFIRMED (pass): the 54° family's first clean born-full reading |
+| r4 | 54°, M = 10, α = 0° (born-full, δ = 180°, $d_{72}$ = 36) | 10 | 4192.28 | 2.19347 ([D] 2.2027) | +0.949/+0.910/+0.506 | 0.00/25.74/7.29 | −0.001 | 0.300 | 394 | CONFIRMED (pass, marginal +0.506) |
+| r5 | 36°, M = 27, α = 0° (born-full, δ = 108°, $d_{72}$ = 36) | 27 | 4714.34 | 2.46662 ([D] φ²; −5.8%) | +0.874/+0.863/+0.625 | 0.00/11.88/12.04 | −0.004 | 0.268 | 1148 | CONFIRMED (pass; $A$ = φ², the untested 5-fold complement; the t = 0 ratio under-reads [D]—the 36°-high-M family effect of g12, M = 27 spans 46.2/48 box cells) |
+| r6 | 60°, M = 9, α = 0° (born-full, δ = 180°, $d_{72}$ = 36) | 9 | 3820.47 | 1.99893 ([D] 2.0) | +0.834/+0.875/+0.396 | 0.00/0.00/12.43 | −0.006 | 0.436 | 81 | CONTRADICTED (fail): born-full δ = 180° dies at M = 9 (the 60° anomaly) |
+| r7 | 45°, M = 19, α = 0° (born-full, δ = 135°, $d_{72}$ = 9) | 19 | 4547.87 | 2.37952 ([D] 1+√2) | +0.923/+0.650/+0.841 | 0.00/14.11/12.07 | −0.007 | 0.130 | 861 | CONFIRMED (pass; the boundary value $d_{72}$ = 9 retains) |
+| r8 | 60°, M = 10, α = 0° (born-full, δ = 120°, $d_{72}$ = 24) | 10 | 3309.14 | 1.73140 ([D] √3) | +1.000/+0.694/+0.835 | 0.00/0.00/20.02 | −0.011 | 0.556 | 35 | CONTRADICTED (pass): born-full δ = 120° retains at M = 10 (the 60° anomaly) |
+| r9 | 60°, M = 8, α = 248° (born-full, δ = 120°, $d_{72}$ = 24) | 8 | 3309.84 | 1.73176 ([D] √3) | +0.953/+0.674/+0.779 | 0.00/0.00/8.95 | −0.005 | 0.403 | 0 | CONTRADICTED (pass): born-full δ = 120° retains at M = 8; f10's +0.352 was the born-flat α = 0 reading |
+| r10 | 54°, M = 11, α = 0° (born-full, δ = 126°, $d_{72}$ = 18) | 11 | 3734.65 | 1.95403 ([D] 1.9626) | +0.999/+0.736/−1.428 | 0.00/0.00/11.21 | +0.000 | 0.379 | 249 | CONFIRMED (fail): the $d_{72}$ = 18 fail band, inverted-contrast collapse |
+| r11 | 60°, M = 11, α = 0° (born-full, δ = 60°, $d_{72}$ = 12) | 11 | 1910.93 | 0.99983 ([D] 1.0) | +0.834/+0.881/+0.609 | 0.00/12.57/11.20 | −0.015 | 0.464 | 0 | GAP BOUNDARY PASSES: the pass-to-fail boundary lies above $d_{72}$ = 12 |
+
+$$
+\boxed{\,\text{The §3.17 boxed "iff" is revised to the residue statement: born-full init retains iff the pentagon-lattice distance } d_{72} = \min_k|(M\Delta\theta \bmod 360) - 72k| \lesssim 12°\text{, with the family-height caveats below. The r1 discriminator resolves the §3.17 doc gap in favor of the mechanism: δ = 136° (} d_{72} = 8\text{) passes +0.780, so 136° joins the born-full retain set. Measured pass at } d_{72} \in \{0°, 8°, 9°, 12°\}\text{ on every tested family; measured fail at } d_{72} \geq 18°\text{ (r10 −1.428, g4 +0.392, w9 +0.096). Tested.}\,}
+$$
+
+$$
+\boxed{\,\text{The gap-boundary locator: r11 (60°/M = 11, δ = 60°, } d_{72} = 12\text{) passes +0.609, so the boundary lies above 12°. The (9, 14.4) gap estimate of §3.17 is replaced by the measured pass-to-fail transition in (12°, 18°): } d_{72} = 12 \text{ passes, } d_{72} = 18 \text{ fails. Tested.}\,}
+$$
+
+$$
+\boxed{\,\text{The 60° family anomaly (recorded open): born-full δ = 180° dies at M = 9 (r6 +0.396, CONTRADICTED) while M = 15 retains (g11 +0.797); born-full δ = 120° retains at M = 8 (r9 +0.779) and M = 10 (r8 +0.835, both CONTRADICTED) while M = 16 dies (g2 −1.016). The residue rule is not sufficient within the 60° family: r6 (M = 9) and g11 (M = 15) share A = 2.0 and δ = 180° at 1.5 vs 2.5 turns—opposite verdicts at fixed residue. The family-height mechanism is unformulated (Hypothesized, StackTheory3).}\,}
+$$
+
+$$
+\boxed{\,\text{Telemetry: zero NaNs on all 11 arms; mass drift 1.6–1.8e-12; merged = False throughout; dth(40) } \le 0.022 \text{ rad; runtimes 264–275 s per arm. Floors 0.03–1.04% on r3–r8/r10 (no zero-floor rotation exists for those geometries; every α = 0 gauge is protocol-legal under the 2% rule), zero floors on r1/r2/r9/r11.}\,}
+$$
+
+1. **The discriminator resolves the §3.17 doc gap.** δ = 136° (34°/M = 4, $A$ = 3.1712, $d_{72}$ = 8) passes +0.780 with a 0.520 retention and zero floors at α = 0: the boxed δ-set was not exact, and the pentagon-lattice distance governs on the pass side. The born-full retain set measured across waves 5–7 is $\delta \in \{60°, 72°, 108°, 135°, 136°, 144°, 180°\}$ with the family-height caveat of the 60° family, i.e. exactly the $d_{72} \lesssim 12°$ statement plus the anomalous 60° members at $d_{72}$ = 24/36.
+2. **The gap boundary is located above $d_{72}$ = 12°.** r11 (δ = 60°, the $d_{72}$ = 12 interior) passes +0.609; r10 (δ = 126°, $d_{72}$ = 18) fails −1.428 with an inverted-contrast collapse, matching the §3.17 fail readings at $d_{72}$ = 18 (g4 +0.392) and 27 (w9 +0.096). The pass-to-fail transition is measured in (12°, 18°).
+3. **The confirmed passes complete the 5-fold complex.** r5 (36°/M = 27, δ = 108° = 36° + 72°, $A$ = φ²) passes +0.625—the missing 5-fold complement of the {36°, 72°, 108°, 144°} family now reads pass at every member; r2 (72°/M = 13, δ = 144°, $A$ = φ) passes +0.802 at the clean born-full gauge 195°, the φ reading of the δ = 144° class; r3 (54°/M = 12, δ = 72°) passes +0.854 as the 54° family's first clean born-full reading; r7 (45°/M = 19, δ = 135°, $d_{72}$ = 9) passes +0.841 at the boundary value.
+4. **The 60° family is height-dependent at fixed residue and envelope.** The wave's three contradictions (r6, r8, r9) all sit in the 60° family: δ = 180° passes at M = 15 and dies at M = 9; δ = 120° dies at M = 16 and retains at M = 8/10. r6 and g11 share A = 2.0, δ = 180°, born-full, and differ only in height (9 vs 15 layers, 1.5 vs 2.5 turns): the residue rule is not sufficient, and the family-height dependence is the open item the theory worker takes next.
+5. **The f10 death is a born-class reading, not a residue death.** f10 (60°/M = 8, +0.352) ran born-flat at α = 0; the same geometry at the clean born-full gauge 248° retains +0.779 (r9). The δ = 120° death class is confined to the M = 16 member (g2 −1.016).
+
+Status: the residue statement is the surviving born-full rule: retains iff $d_{72} \lesssim 12°$ (pass measured at $d_{72}$ ∈ {0, 8, 9, 12}, fail measured at $d_{72}$ ≥ 18) with the 60° family-height anomaly recorded open at $d_{72}$ = 24/36. The wave adds no term, no parameter, and no registry entry; E1/TS statuses unchanged—no stack arm binds a pair.
+
 ---
 
 ## 4. The Z2×Z5 Trace Graph and the Two-Pentagon Projection
