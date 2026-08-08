@@ -177,6 +177,7 @@ class VkQiCube:
             math.exp(-PHI_INV * PHI_INV * PHI_INV),  # [12] boundary_decay — φ⁻³-damped decay
             0.0,                                    # [13] attention_strength — 0=disabled
             0.0)                                    # [14] sigma — noise level for field diffusion (0=off)
+        self._upload('params', init_params)
 
         # ── Initialize new consciousness-framework buffers ──
         self._fill_buffer('self_condensate', self._buffer_sizes['self_condensate'])
@@ -945,6 +946,7 @@ class VkQiCube:
         self.breath_phase = float(state['_breath_phase'])
         self.qi_target = float(state['_qi_target'])
         self.lr = float(state['_lr'])
+        self.stride = int(state.get('_stride', self.stride))
         self.dt = float(state['_dt'])
         # Load params[7]=alpha and params[11-13] in one upload
         self._alpha = float(state.get('_alpha', PHI_INV))
