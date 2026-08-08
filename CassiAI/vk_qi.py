@@ -311,7 +311,7 @@ class VkQiCube:
             'byte_embed': V * BYTE_EMBED_DIM * 4,
             'embed_proj': 2 * d * BYTE_EMBED_DIM * 4,  # dual: Yang + Yin projections
             'byte_protos': V * 4,  # byte prototype index per byte (uint32)
-            'norm_constants': 2 * 4,
+            'norm_constants': 4 * 4,  # [2] correct/total + [2] sat_counters (gate_weight, att_mod)
             'accum': 7 * 4,
             'voxel_energy': nv * 4,
             'voxel_eps_memory': nv * 4,
@@ -637,7 +637,7 @@ class VkQiCube:
         batch = []
         # 2. Zero accumulators via vkCmdFillBuffer (no staging)
         batch.append({'type': 'fill', 'buf': 'accum', 'size': 28, 'value': 0})
-        batch.append({'type': 'fill', 'buf': 'norm_constants', 'size': 8, 'value': 0})
+        batch.append({'type': 'fill', 'buf': 'norm_constants', 'size': 16, 'value': 0})
         batch.append({'type': 'fill', 'buf': 'voxel_energy', 'size': N_VOXELS * 4, 'value': 0})
         batch.append({'type': 'fill', 'buf': 'voxel_eps_sum', 'size': N_VOXELS * 4, 'value': 0})
 
@@ -729,8 +729,20 @@ class VkQiCube:
         self._submit_batch(batch)
         t_batch = time.perf_counter() - t0
         qi_val, = self._read_result('qi_output', 0, 4, 'f')
-        counts = self._read_result('norm_constants', 0, 8, 'I')
-        correct, total = counts if len(counts) >= 2 else (0, 1)
+        counts = self._read_result('norm_constants', 0, 16, 'I')
+        correct, total = (counts[0], counts[1]) if len(counts) >= 2 else (0, 1)
+        # ── M1 telemetry hook (additive-only; never affects training) ──
+        if getattr(self, 'telemetry', None) is None:
+            try:
+                from vk_qi_telemetry import VkQiTelemetry
+                self.telemetry = VkQiTelemetry(self)
+            except Exception:
+                self.telemetry = None
+        if self.telemetry is not None:
+            try:
+                self.telemetry.on_window(self, qi_val)
+            except Exception:
+                pass
 
         # 7. Update persistent state
         self.step_count += 1
@@ -790,7 +802,7 @@ class VkQiCube:
             batch = []
             # 1. Zero accumulators
             batch.append({'type': 'fill', 'buf': 'accum', 'size': 28, 'value': 0})
-            batch.append({'type': 'fill', 'buf': 'norm_constants', 'size': 8, 'value': 0})
+            batch.append({'type': 'fill', 'buf': 'norm_constants', 'size': 16, 'value': 0})
             batch.append({'type': 'fill', 'buf': 'voxel_energy', 'size': N_VOXELS * 4, 'value': 0})
             batch.append({'type': 'fill', 'buf': 'voxel_eps_sum', 'size': N_VOXELS * 4, 'value': 0})
 
@@ -1009,6 +1021,12 @@ def _ingest(engine, path, max_bytes, gen_every=0, gen_temp=0.7, gen_topk=30, sav
         if gen_every > 0 and bytes_until_gen <= 0:
             gen = engine.generate(200, temperature=gen_temp, top_k=gen_topk)
             _show_gen(gen, f'[gen @ win={engine.step_count}]')
+            # M1 telemetry: record generation quality at this step (additive)
+            if getattr(engine, 'telemetry', None) is not None:
+                try:
+                    engine.telemetry.on_generation(gen, engine.step_count)
+                except Exception:
+                    pass
             bytes_until_gen = gen_every
 
         if engine.step_count % 1000 == 0:
