@@ -39,7 +39,7 @@ from run_sigma8_pipeline import (
     OMEGA_M, OMEGA_B, HUBBLE_H, N_S,
     L_BOX_MPC, L, R8_MPC, R8_SIM,
     N, DT, N_STEPS, SEED, DEVICE,
-    LAM, CHI, CS2, INITIAL_RATIO, HUBBLE_MODE, SIGMA8_TARGET,
+    LAM, CHI, CS2, INITIAL_RATIO, HUBBLE_MODE, SIGMA8_TARGET, DIFFUSION,
     ExpandingTwoFluid3DGPU,
     build_normalized_ics, sigma_R_from_pk, sigma_R_from_field,
     compute_q_field, compute_q_radial_profile, d_growth,
@@ -69,7 +69,7 @@ print("[2/4] Running PDE simulation...")
 solver = ExpandingTwoFluid3DGPU(
     N=N, L=L, lam=LAM, chi=CHI, cs2=CS2,
     hubble_mode=HUBBLE_MODE, initial_ratio=INITIAL_RATIO,
-    qi_gate=True, a0=1.0, device=DEVICE)
+    qi_gate=True, a0=1.0, D=DIFFUSION, device=DEVICE)
 u_hat = [torch.zeros((N, N, N), dtype=torch.complex128, device=DEVICE)
          for _ in range(3)]
 ey_hat = torch.fft.fftn(EY)

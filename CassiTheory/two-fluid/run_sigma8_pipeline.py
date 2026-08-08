@@ -69,6 +69,17 @@ LAM = 0.1
 CHI = 1.0
 CS2 = 0.01
 HYPER_NU = 0.0
+# DIFFUSION = D: the momentum-space spectral Dk² damping, pinned EXPLICITLY
+# to D = 0.001 — the value the settled σ₈ rows were measured at (the
+# 2026-08-07 truth campaign, audit.md:141 family, ran at the solver's
+# then-default D = 0.001). The doctrine default is D = 0 (the
+# conservation-exact per-cell closure setting, commit 074d12c); this pin
+# keeps the pipeline reproducing the D = 0.001 rows. The D = 0
+# re-measurement (2026-08-08, brief 63, runs/63-sigma8-d0-rerun/) moved
+# only the total: −20.5% → −22.9% (Δ 2.37 pp — the totals carry the
+# diffusion), mechanism row unchanged (+29.7%, Δμ 0.02 pp); the docs carry
+# both values. Changing this constant changes the rows.
+DIFFUSION = 0.001
 # r₀ = 1/INITIAL_RATIO (EI/EY): the operational doctrine value 1/23 ≈ 0.0435
 # (DESI-anchored calibration, run_hubble_pipeline.py); the derived doctrine
 # r₀ = φ⁻⁵/(2−φ⁻⁵) ≈ 0.0472 is 8.6% away and indistinguishable for σ₈.
@@ -202,7 +213,7 @@ def build_normalized_ics(N, L, sigma8_target, initial_ratio,
     solver_tmp = ExpandingTwoFluid3DGPU(
         N=N, L=L, lam=LAM, chi=CHI, cs2=CS2,
         hubble_mode=HUBBLE_MODE, initial_ratio=initial_ratio,
-        qi_gate=True, device=device)
+        qi_gate=True, D=DIFFUSION, device=device)
     k_tmp, Pk_tmp = solver_tmp.power_spectrum(
         torch.tensor(delta_rho, device=device))
     sigma8_pk_raw = sigma_R_from_pk(k_tmp, Pk_tmp, R8_SIM)
@@ -278,7 +289,7 @@ def main():
     solver = ExpandingTwoFluid3DGPU(
         N=N, L=L, lam=LAM, chi=CHI, cs2=CS2,
         hubble_mode=HUBBLE_MODE, initial_ratio=INITIAL_RATIO,
-        qi_gate=True, a0=1.0, device=DEVICE)
+        qi_gate=True, a0=1.0, D=DIFFUSION, device=DEVICE)
 
     u_hat = [torch.zeros((N, N, N), dtype=torch.complex128, device=DEVICE)
              for _ in range(3)]
