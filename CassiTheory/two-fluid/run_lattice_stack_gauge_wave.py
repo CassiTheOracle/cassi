@@ -105,6 +105,17 @@ found by the 720-step scan (r9-style); the run gauge is recorded per arm.
        (r = c+2 encoding's first 3-cycle test); run only if the
        r12-r20 batch finishes cleanly
 
+Wave 9 (--wave9, labels a1-a3, b1-b3, d1-d3, e1-e4, f1-f4, g1-g4,
+h1-h2; section 3.20) is the height-selection wave: gauge invariance of
+the one-sided rule (a/b at three born-full gauges), the 60 deg death
+classes at c = 3 (e1/e2) plus the 4-turn test (e4) and the 3-turn null
+(e3), the 54 deg M = 3 (mod 4) law at 6/6+4 (f1-f4), the 30 deg sub-M*
+band (g1-g4), the 45 deg above-M* continuation (h1-h2), and rule R1 at
+t = 80 (d1-d3, --tend 80 per arm via the arm's t_end).  Protocol change
+W9-i: the hist record stores the full z,y-integrated rho(x) 48-vector at
+every 0.05 report step (801 entries per t = 40 arm, 1601 per t = 80
+arm), resolving the wave-8 endpoint caveat.
+
 Output: runs/<rid>_lattice_stack_w8/run_<arm>.json + results.json (raw;
 NO doc changes until the director reads the raw outputs).
 """
@@ -613,6 +624,172 @@ WAVE8_ARMS = [
 ]
 
 
+WAVE9_ARMS = [
+    # Wave 9 (section 3.20, labels a1-a3, b1-b3, d1-d3, e1-e4, f1-f4, g1-g4,
+    # h1-h2): the height-selection wave.  Same protocol (N = 48, gate
+    # 'five', fresh solver per arm, init-only phases, canonical solver
+    # untouched) plus the W9-i protocol change: the hist record stores the
+    # full z,y-integrated rho(x) 48-vector at every 0.05 report step,
+    # resolving the wave-8 endpoint caveat (last-2-time-unit ridge-tracker
+    # snaps).  Born-full per arm verified by the 720-step scan; the seam
+    # shifts with the gauge alpha, the verdicts must not (batch 1).
+    #
+    # Batch 1 -- gauge invariance (54 deg/M=12 baseline r3 PASS +0.854,
+    # d72=0; 54 deg/M=11 baseline r10 FAIL -1.428, d72=18, M=11 = 3 mod 4):
+    ('a1', 54.0, 12, None, 0.0,
+     {'kind': 'gauge_pass', 'born': 'full', 'A_derived': 1.29471,
+      'w_turns': 1.8,
+      'note': '54 deg/M=12 (r3 baseline) at born-full gauge alpha=0 '
+              '(98 floor cells = 0.09%; no zero-floor rotation exists '
+              'for this arm): PREDICT PASS +0.6..0.95 -- '
+              'gauge-invariance row 1/3'}),
+    ('a2', 54.0, 12, None, 26.0,
+     {'kind': 'gauge_pass', 'born': 'full', 'A_derived': 1.29471,
+      'w_turns': 1.8,
+      'note': '54 deg/M=12 at alpha=26.0 (born-full island edge nearest '
+              'the intended 60 deg -- alpha=60 itself is born-flat; '
+              '90 floor cells = 0.08%): PREDICT PASS +0.6..0.95 -- '
+              'gauge-invariance row 2/3'}),
+    ('a3', 54.0, 12, None, 120.0,
+     {'kind': 'gauge_pass', 'born': 'full', 'A_derived': 1.29471,
+      'w_turns': 1.8,
+      'note': '54 deg/M=12 at alpha=120.0 (born-full island mid, 77 floor '
+              'cells = 0.07%): PREDICT PASS +0.6..0.95 -- '
+              'gauge-invariance row 3/3'}),
+    ('b1', 54.0, 11, None, 0.0,
+     {'kind': 'gauge_fail', 'born': 'full', 'A_derived': 1.96261,
+      'w_turns': 1.65,
+      'note': '54 deg/M=11 (r10 baseline) at alpha=0: PREDICT FAIL '
+              '(d72=18, M=11 = 3 mod 4 death class) -- gauge-invariance '
+              'row 1/3'}),
+    ('b2', 54.0, 11, None, 53.0,
+     {'kind': 'gauge_fail', 'born': 'full', 'A_derived': 1.96261,
+      'w_turns': 1.65,
+      'note': '54 deg/M=11 at alpha=53.0 (born-full island edge nearest '
+              'the intended 60 deg -- alpha=60 itself is born-flat; 154 '
+              'floor cells = 0.14%): PREDICT FAIL -- gauge-invariance '
+              'row 2/3'}),
+    ('b3', 54.0, 11, None, 127.0,
+     {'kind': 'gauge_fail', 'born': 'full', 'A_derived': 1.96261,
+      'w_turns': 1.65,
+      'note': '54 deg/M=11 at alpha=127.0 (born-full island edge nearest '
+              'the intended 120 deg; 192 floor cells = 0.17%): PREDICT '
+              'FAIL -- gauge-invariance row 3/3'}),
+    # Batch 2 -- 60 deg height scans (2-cycle-specificity at c=3; the
+    # one-sided rule's high-cycle test):
+    ('e1', 60.0, 21, None, 256.5,
+     {'kind': 'height_pass', 'born': 'full', 'A_derived': 2.0,
+      'w_turns': 3.5,
+      'note': '60 deg/M=21: res=180, d=180, d72=36, A=2.0 -- the M=9 '
+              'A-class at c=3, w=3.5: PREDICT PASS (the 60 deg M=9 death '
+              'must not recur at c=3); alpha=256.5 is a clean born-full '
+              'gauge (zero floors, window [256.5, 319.0], |Ss/Sc|=0.949)'}),
+    ('e2', 60.0, 22, None, 205.5,
+     {'kind': 'height_pass', 'born': 'full', 'A_derived': 1.73205,
+      'w_turns': 3.6667,
+      'note': '60 deg/M=22: res=240, d=120, d72=24, A=sqrt3 -- the M=16 '
+              'A-class at c=3, w=3.667: PREDICT PASS (the M=16 death '
+              'must not recur at c=3); alpha=205.5 is a clean born-full '
+              'gauge (zero floors, window [205.5, 305.5], |Ss/Sc|=2.10)'}),
+    ('e3', 60.0, 18, None, 0.0,
+     {'kind': 'null_probe', 'born': 'null', 'A_derived': 0.0,
+      'w_turns': 3.0,
+      'note': '60 deg/M=18: res=0, d72=0, A=0 EXACT -- the 3-turn hexagon '
+              'null: PREDICT DEAD NULL (C(40) < 0.5; r15 peaked +0.967@20 '
+              'then decayed)'}),
+    ('e4', 60.0, 25, None, 90.0,
+     {'kind': 'height_pass', 'born': 'full', 'A_derived': 1.0,
+      'w_turns': 4.1667,
+      'note': '60 deg/M=25: res=60, d=60, d72=12, A=1.0, w=4.167 -- the '
+              'one-sided rule\'s 4-turn test: PREDICT PASS; alpha=0 is '
+              'born-flat, alpha=90.0 is a clean born-full gauge (zero '
+              'floors)'}),
+    # Batch 3 -- 54 deg M = 3 (mod 4) falsifiers (the 6/6 height law):
+    ('f1', 54.0, 14, None, 332.0,
+     {'kind': 'law_pass', 'born': 'full', 'A_derived': 0.68072,
+      'w_turns': 2.1,
+      'note': '54 deg/M=14: res=36, d=36, d72=36, A=0.681, w=2.1, M=14 = '
+              '2 mod 4: PREDICT PASS; alpha=0 is born-flat, alpha=332.0 '
+              'is the lowest-floor born-full gauge (3 cells = 0.003%; no '
+              'clean rotation exists for this arm)'}),
+    ('f2', 54.0, 17, None, 241.0,
+     {'kind': 'law_pass', 'born': 'full', 'A_derived': 2.17557,
+      'w_turns': 2.55,
+      'note': '54 deg/M=17: res=198, d=162, d72=18, w=2.55, M=17 = 1 '
+              'mod 4: PREDICT PASS (d72=18 but outside the death class); '
+              'alpha=241.0 is a clean born-full gauge (zero floors, '
+              'window [241.0, 302.5], |Ss/Sc|=1.07)'}),
+    ('f3', 54.0, 19, None, 0.0,
+     {'kind': 'law_fail', 'born': 'full', 'A_derived': 1.0,
+      'w_turns': 2.85,
+      'note': '54 deg/M=19: res=306, d=54, d72=18, A=1.0, w=2.85, M=19 = '
+              '3 mod 4: PREDICT FAIL (the law continues above M*=15)'}),
+    ('f4', 54.0, 16, None, 278.0,
+     {'kind': 'clean_gauge_pass', 'born': 'full', 'A_derived': 2.09488,
+      'w_turns': 2.4,
+      'note': '54 deg/M=16 at the lowest-floor born-full gauge '
+              'alpha=278.0 (35 cells = 0.032%; the w8 alpha=0 born-full '
+              'reading was clamp-polluted with 531 floors, and no clean '
+              'zero-floor born-full rotation exists -- the 48 clean '
+              'rotations in [285.5, 309.0] are all born-flat): PREDICT '
+              'PASS (d72=0 + M=16 = 0 mod 4)'}),
+    # Batch 4 -- 30 deg sub-M* band (M* = 47; one clean born-full reading
+    # so far):
+    ('g1', 30.0, 41, None, 0.0,
+     {'kind': 'band_pass', 'born': 'full', 'A_derived': 3.73205,
+      'w_turns': 3.4167,
+      'note': '30 deg/M=41: res=150, d72=6: PREDICT PASS'}),
+    ('g2', 30.0, 43, None, 0.0,
+     {'kind': 'band_pass', 'born': 'full', 'A_derived': 3.73205,
+      'w_turns': 3.5833,
+      'note': '30 deg/M=43: res=210, d72=6: PREDICT PASS'}),
+    ('g3', 30.0, 46, None, 157.5,
+     {'kind': 'band_pass', 'born': 'full', 'A_derived': 1.93185,
+      'w_turns': 3.8333,
+      'note': '30 deg/M=46: res=300, d=60, d72=12: PREDICT PASS; '
+              'alpha=157.5 is a clean born-full gauge (zero floors, '
+              'window [157.0, 262.5], |Ss/Sc|=2.41)'}),
+    ('g4', 30.0, 44, None, 0.0,
+     {'kind': 'band_probe', 'born': 'full', 'A_derived': 3.34607,
+      'w_turns': 3.6667,
+      'note': '30 deg/M=44: res=240, d=120, d72=24, w=3.667, M-M*=-3: '
+              'NO COMMITTED PREDICTION (decides the 30 deg death-class '
+              'structure: sub-M* d72=24 band vs M=40-specific)'}),
+    # Batch 5 -- 45 deg above-M* (death continuation):
+    ('h1', 45.0, 25, None, 323.0,
+     {'kind': 'above_mstar_fail', 'born': 'full', 'A_derived': 1.0,
+      'w_turns': 3.125,
+      'note': '45 deg/M=25: res=45, d=45, d72=27, A=1.0, w=3.125: '
+              'PREDICT FAIL (above M*=21, d72 >= 18); alpha=0 is '
+              'born-flat, alpha=323.0 is a clean born-full gauge (zero '
+              'floors, window [308.0, 359.5])'}),
+    ('h2', 45.0, 26, None, 300.5,
+     {'kind': 'above_mstar_fail', 'born': 'full', 'A_derived': 1.84776,
+      'w_turns': 3.25,
+      'note': '45 deg/M=26: res=90, d=90, d72=18, w=3.25: PREDICT FAIL '
+              '(above M*=21); alpha=0 is born-flat, alpha=300.5 is the '
+              'lowest-floor born-full gauge (43 cells = 0.039%; no clean '
+              'born-full rotation exists)'}),
+    # Batch 6 -- t=80 continuations (rule R1 at 8/lambda):
+    ('d1', 34.0, 4, None, 0.0,
+     {'kind': 'continuation', 'born': 'full', 'A_derived': 3.17125,
+      'w_turns': 0.3778, 't_end': 80.0,
+      'note': 'r1 continuation (34 deg/M=4, d72=8, stationary class): '
+              'PREDICT C_abs(80) >= 0.5 with continued churn; terminal '
+              'crossing up-or-none at 80'}),
+    ('d2', 60.0, 11, None, 0.0,
+     {'kind': 'continuation', 'born': 'full', 'A_derived': 1.0,
+      'w_turns': 1.8333, 't_end': 80.0,
+      'note': 'r11 continuation (60 deg/M=11, d72=12 gap boundary): '
+              'PREDICT C_abs(80) in [0.4, 0.9] with elevated winding'}),
+    ('d3', 54.0, 11, None, 0.0,
+     {'kind': 'continuation', 'born': 'full', 'A_derived': 1.96261,
+      'w_turns': 1.65, 't_end': 80.0,
+      'note': 'r10 continuation (54 deg/M=11, d72=18 fail class): '
+              'PREDICT C_abs(80) < -1.0 (inversion stable sink)'}),
+]
+
+
 def arm_phases(arm):
     tag, dth, M, rung, rot, pred = arm
     return lin(M, math.radians(dth), math.radians(rot))
@@ -634,7 +811,287 @@ def run_arm(device, tag, phases, rung_of, outdir, steps):
     return r
 
 
+def run_arm_w9(device, tag, phases, rung_of, outdir, steps):
+    """Wave-9 arm: identical protocol to run_case2 (fresh solver, t = 40 =
+    2/lambda default, init-only phases) with the W9-i protocol change --
+    the z,y-integrated rho(x) 48-vector is stored in every 0.05 report
+    step of the hist record (full record; ~0.4 MB/arm at t = 40),
+    resolving the wave-8 endpoint caveat: the t in [36, 40] verdicts can
+    be re-read from the raw profiles instead of the ridge-tracker snaps."""
+    M = len(phases)
+    print(f"\n=== run: {tag} (layers={M}, rungs="
+          f"{max(rung_of) + 1 if rung_of else 1}) ===")
+    ey_hat, ei_hat, u_hat, zs = L2.stack_init_phases(solver :=
+                                                     T.build_solver(device),
+                                                     phases)
+    centers = [solver.N / 2.0 - L2.SEP / 2.0, solver.N / 2.0 + L2.SEP / 2.0]
+    windows = L1.layer_windows(solver.N, zs, solver.device)
+    ey0 = torch.fft.ifftn(ey_hat).real
+    ei0 = torch.fft.ifftn(ei_hat).real
+    res0 = L2.resonance_t0(solver, ey0, ei0, windows, zs, phases, 0.0, 0.0)
+    res0['min_ey'] = float(ey0.min())
+    res0['min_ei'] = float(ei0.min())
+    print(f"  t=0: A_tot={res0['A_tot']:.4f} (s_tot={res0['s_tot_analytic']:.2f}, "
+          f"ratio={res0['ratio_vs_analytic']:.5f}) | "
+          f"min fields {res0['min_ey']:.4f}/{res0['min_ei']:.4f} | "
+          f"floor cells {res0['floor_ey']}/{res0['floor_ei']}")
+
+    t0 = time.time()
+    hist = []
+    prev = None
+    profiles = {}
+    S0 = L1.slab_phasor(ey0, ei0, L2.RHO0).cpu().numpy()
+    J0, F0, _, _ = L1.current_profiles(solver, ey0, ei0, zs)
+    profiles['0.0'] = {'A': np.abs(S0).tolist(), 'arg': np.angle(S0).tolist(),
+                       'Jz': J0.tolist(), 'Fc': F0.tolist()}
+    for step in range(steps):
+        u_hat, ey_hat, ei_hat = solver.rk2_step(u_hat, ey_hat, ei_hat, T.DT)
+        if step % T.REPORT == 0 or step == steps - 1:
+            ey = torch.fft.ifftn(ey_hat).real
+            ei = torch.fft.ifftn(ei_hat).real
+            rho_prof = (ey + ei).sum(dim=(1, 2)).cpu().numpy()
+            rho_bg = L2.RHO0 if step == 0 else float((ey + ei).mean())
+            d = L2.measure2(solver, ey, ei, rho_prof, centers, prev,
+                            windows, zs, rho_bg, rung_of)
+            prev = ([d['x1'], d['x2']] if not d['merged'] else [d['x1']])
+            d.update({'step': step, 't': step * T.DT,
+                      'rho_prof': rho_prof.tolist()})
+            hist.append(d)
+            if abs(step * T.DT - 4.0) < 0.6 or abs(step * T.DT - 40.0) < 0.6 \
+                    or step == steps - 1:
+                rho_m = float((ey + ei).mean())
+                Sn = L1.slab_phasor(ey, ei, rho_m).cpu().numpy()
+                Jn, Fn, _, _ = L1.current_profiles(solver, ey, ei, zs)
+                profiles[f"{step * T.DT:.1f}"] = {
+                    'A': np.abs(Sn).tolist(), 'arg': np.angle(Sn).tolist(),
+                    'Jz': Jn.tolist(), 'Fc': Fn.tolist()}
+            if step % 1000 == 0 or step == steps - 1:
+                print(f"  t={step*T.DT:6.2f} | d={d['d']:6.3f} "
+                      f"Rc={d['Rc']:6.2f} | A_peak={d['A_peak']:7.2f} "
+                      f"C_abs={d['C_abs']:+.3f} wind={d['winding']:+6.3f} "
+                      f"|Jz|={d['Jz_abs_mean']:8.1f} | q_mid={d['q_mid']:.4f} "
+                      f"q_flank={d['q_flank']:.4f} | "
+                      f"ey_min={d['ey_min']:.4f} ei_min={d['ei_min']:.4f}")
+    elapsed = time.time() - t0
+    print(f"  [{tag}] {steps} steps in {elapsed:.1f}s")
+    if outdir:
+        with open(f"{outdir}/run_{tag}.json", "w") as f:
+            json.dump({'kind': tag, 'phases': phases,
+                       'rung_of': rung_of,
+                       'n_layers': M,
+                       'n_rungs': max(rung_of) + 1 if rung_of else 1,
+                       'zs': zs, 'steps': steps,
+                       'resonance_t0': res0, 'profiles': profiles,
+                       'hist': hist}, f, indent=1)
+    r = {'tag': tag, 'phases': phases, 'rung_of': rung_of,
+         'n_layers': M, 'n_rungs': max(rung_of) + 1 if rung_of else 1,
+         'elapsed': elapsed, 'resonance_t0': res0, 'hist': hist,
+         'profiles': profiles}
+    r['summary'] = L2.summarize2(r)
+    return r
+
+
+def finalize_w9(runs, rdir, arms):
+    """Wave-9 report: per-arm raw line (gauge, born class, A ratio vs [D],
+    C_abs 0/4/36/38/40, d 0/4/40, dth, retention, merged, floors, drift,
+    NaN, runtime), the W9-i profile-storage verification, and the verdict
+    table against the pre-registered predictions."""
+    def arm(tag):
+        return next((r for r in runs if r['tag'] == tag), None)
+
+    wave_str = ('wave 9 (a1-a3, b1-b3, d1-d3, e1-e4, f1-f4, g1-g4, h1-h2): '
+                'the height-selection wave -- gauge invariance of the '
+                'one-sided rule at 54 deg (a/b), the 60 deg death-class '
+                'non-recurrence at c=3 (e1-e2) and the 4-turn test (e4), '
+                'the 3-turn hexagon null (e3), the 54 deg M = 3 (mod 4) '
+                'height law at 6/6+4 (f1-f4), the 30 deg sub-M* band '
+                '(g1-g4), the 45 deg above-M* death continuation (h1-h2), '
+                'and rule R1 at t = 80 (d1-d3); protocol change W9-i: '
+                'full z,y-integrated rho(x) profile record at every 0.05 '
+                'step resolves the wave-8 endpoint caveat')
+    results = {'meta': {'N': T.N, 'lam': T.LAM, 'dt': T.DT,
+                        't_end': runs[0]['hist'][-1]['t'],
+                        'wave': wave_str,
+                        'protocol': 'fresh solver per arm, t=40=2/lambda '
+                                    '(t=80 for d1-d3), init-only phases, '
+                                    'canonical solver untouched, zero new '
+                                    'terms, W9-i profile record'},
+               'arms': {}}
+    verdicts = {}
+    print(f"\n=== HEIGHT-SELECTION WAVE (W9) ===")
+    for tag, dth, M, rung, rot, pred in arms:
+        r = arm(tag)
+        if r is None:
+            print(f"  {tag}: not in this run set")
+            continue
+        rt = r['resonance_t0']
+        s = r['summary']
+        h = r['hist']
+        A_D = pred['A_derived']
+        C0, S0 = sin_cos_sums(r['phases'])
+        born = born_class(C0, S0)
+        c36 = L2.at_t(h, 36.0)['C_abs']
+        c38 = L2.at_t(h, 38.0)['C_abs']
+        c_t = L2.at_t(h, pred.get('t_end', 40.0))
+        c40 = s['t40']['C_abs']
+        n_floor = rt['floor_ey'] + rt['floor_ei']
+        line = (f"  {tag} (alpha={rot:g}): A_tot(0)={rt['A_tot']:9.3f} "
+                f"ratio={rt['ratio_vs_analytic']:.5f} "
+                f"ratio/A[D]={(rt['ratio_vs_analytic'] / A_D if A_D > 1e-9 else float('inf')):.5f} "
+                f"floors={n_floor:5d} | "
+                f"res={residue(M, dth):g} d={stack_delta(M, dth):g} "
+                f"d72={pentagon_distance(M, dth):g} A[D]={A_D:g} | "
+                f"born {born} (|Ss/Sc|={abs(S0 / C0) if abs(C0) > 1e-12 else float('inf'):.4f}, "
+                f"C_abs(0)={s['t0']['C_abs']:+.3f}) | "
+                f"C_abs 0/4/36/38/{pred.get('t_end', 40.0):g} = "
+                f"{s['t0']['C_abs']:+.3f}/{s['t4']['C_abs']:+.3f}/"
+                f"{c36:+.3f}/{c38:+.3f}/{c_t['C_abs']:+.3f} | "
+                f"d 0/4/40 = {s['t0']['d']:.2f}/{s['t4']['d']:.2f}/"
+                f"{s['t40']['d']:.2f} dth(40)={s['t40']['delta_theta']:+.3f} "
+                f"merged(40)={s['t40']['merged']} | "
+                f"A_peak(40)/A_peak(0)={s['A_peak_ratio_t40']:.3f} "
+                f"wind(40)={s['t40']['winding']:+.3f} | "
+                f"mass drift {s['mass_drift']:.2e} NaN {s['nan']} | "
+                f"{r['elapsed']:.0f}s")
+        if pred.get('t_end', 40.0) > 40.0:
+            line += (f" | C_abs(80)={c_t['C_abs']:+.3f} "
+                     f"d(80)={c_t['d']:.2f} dth(80)={c_t['delta_theta']:+.3f} "
+                     f"wind(80)={c_t['winding']:+.3f}")
+        kind = pred['kind']
+        v = None
+        if kind == 'gauge_pass':
+            v = (f"GAUGE PASS CONFIRMED (C_abs(40)={c40:+.3f} in the "
+                 f"pre-registered +0.6..0.95 band)"
+                 if 0.6 <= c40 <= 0.95 else
+                 f"GAUGE PASS DEVIATION (C_abs(40)={c40:+.3f} outside "
+                 f"+0.6..0.95)" if c40 >= 0.5 else
+                 f"GAUGE PASS CONTRADICTED (C_abs(40)={c40:+.3f} < 0.5)")
+        elif kind == 'gauge_fail':
+            v = (f"GAUGE FAIL CONFIRMED (C_abs(40)={c40:+.3f} < 0.5)"
+                 if c40 < 0.5 else
+                 f"GAUGE FAIL CONTRADICTED (C_abs(40)={c40:+.3f} >= 0.5)")
+        elif kind == 'height_pass':
+            v = (f"CONFIRMED (pass; the death class does not recur at "
+                 f"c=3)" if c40 >= 0.5 else
+                 f"CONTRADICTED (fail; the death class recurs at c=3)")
+        elif kind == 'null_probe':
+            v = (f"DEAD NULL CONFIRMED (C_abs(40)={c40:+.3f} < 0.5)"
+                 if c40 < 0.5 else
+                 f"NULL EMERGENCE (C_abs(40)={c40:+.3f} >= 0.5)")
+        elif kind == 'law_pass':
+            v = (f"CONFIRMED (pass; outside the M = 3 (mod 4) death "
+                 f"class)" if c40 >= 0.5 else
+                 f"CONTRADICTED (fail)")
+        elif kind == 'law_fail':
+            v = (f"CONFIRMED (fail; the M = 3 (mod 4) law holds at "
+                 f"M=19 above M*)" if c40 < 0.5 else
+                 f"CONTRADICTED (pass; the law breaks above M*)")
+        elif kind == 'clean_gauge_pass':
+            if n_floor > 0.02 * T.N ** 3:
+                v = 'INCONCLUSIVE (clamp-seeded; floors > 2%)'
+            else:
+                v = (f"CONFIRMED (pass; clean born-full d72=0 at "
+                     f"alpha={rot:g}, {n_floor} floors)"
+                     if c40 >= 0.5 else
+                     f"CONTRADICTED (fail at the clean gauge)")
+        elif kind == 'band_pass':
+            v = (f"CONFIRMED (pass; the 30 deg sub-M* band retains)"
+                 if c40 >= 0.5 else
+                 f"CONTRADICTED (fail in the sub-M* band)")
+        elif kind == 'band_probe':
+            v = (f"NO COMMITTED PREDICTION: d72=24 at M=44 (sub-M*) "
+                 f"-> C_abs(40)={c40:+.3f} "
+                 + ('(passes: the d72=24 death is M=40-specific)'
+                    if c40 >= 0.5 else
+                    '(fails: the sub-M* d72=24 band dies at 30 deg)'))
+        elif kind == 'above_mstar_fail':
+            v = (f"CONFIRMED (fail; the 45 deg above-M* death "
+                 f"continues)" if c40 < 0.5 else
+                 f"CONTRADICTED (pass above M*=21)")
+        elif kind == 'continuation':
+            tE = pred['t_end']
+            cE = c_t['C_abs']
+            if tag == 'd1':
+                v = (f"CONFIRMED (C_abs({tE:g})={cE:+.3f} >= 0.5)"
+                     if cE >= 0.5 else
+                     f"CONTRADICTED (C_abs({tE:g})={cE:+.3f} < 0.5)")
+            elif tag == 'd2':
+                v = (f"CONFIRMED (C_abs({tE:g})={cE:+.3f} in [0.4, 0.9])"
+                     if 0.4 <= cE <= 0.9 else
+                     f"DEVIATION (C_abs({tE:g})={cE:+.3f} outside "
+                     f"[0.4, 0.9])")
+            else:
+                v = (f"CONFIRMED (C_abs({tE:g})={cE:+.3f} < -1.0, "
+                     f"inversion stable sink)"
+                     if cE < -1.0 else
+                     f"DEVIATION (C_abs({tE:g})={cE:+.3f} >= -1.0)")
+        if pred['born'] is not None and born != pred['born']:
+            v += f" [BORN-CLASS DEVIATION: expected {pred['born']}]"
+        verdicts[tag] = {'prediction': pred, 'verdict': v, 'born': born,
+                         'C_abs_t40': c40, 'floors': n_floor,
+                         'elapsed_s': r['elapsed']}
+        print(line)
+        print(f"     prediction [{kind}]: {pred['note']}")
+        print(f"     -> {v}")
+
+    # W9-i profile-storage verification (the endpoint-caveat resolution)
+    prof_ok = {}
+    for tag, dth, M, rung, rot, pred in arms:
+        r = arm(tag)
+        if r is None:
+            continue
+        h = r['hist']
+        lens = set(len(e['rho_prof']) for e in h)
+        ts = sorted(set(round(e['t'], 6) for e in h))
+        gaps = [round(b - a, 3) for a, b in zip(ts, ts[1:])]
+        # every interior report step is 0.05 apart; only the terminal
+        # snap (step == steps-1 -> t = t_end - dt) may be a partial gap
+        dense = len(gaps) < 2 or (
+            all(abs(g - 0.05) < 1e-9 for g in gaps[:-1])
+            and 0.0 < gaps[-1] <= 0.05 + 1e-9)
+        tail = [e for e in h if 36.0 <= e['t'] <= pred.get('t_end', 40.0)]
+        tg = [round(b['t'], 6) - round(a['t'], 6)
+              for a, b in zip(tail, tail[1:])]
+        tail_dense = (len(tg) < 2 or
+                      (all(abs(g - 0.05) < 1e-9 for g in tg[:-1])
+                       and 0.0 < tg[-1] <= 0.05 + 1e-9))
+        prof_ok[tag] = {'entries': len(h), 'rho_len': sorted(lens),
+                        'dense_0.05': dense, 'tail_entries': len(tail),
+                        'tail_dense': tail_dense,
+                        'tail_span': [round(tail[0]['t'], 2),
+                                      round(tail[-1]['t'], 2)] if tail
+                                      else None}
+        print(f"  [W9-i] {tag}: {len(h)} profile entries "
+              f"(len {sorted(lens)}), dense-0.05={dense}, "
+              f"tail [{prof_ok[tag]['tail_span'][0]}, "
+              f"{prof_ok[tag]['tail_span'][1]}] {len(tail)} entries "
+              f"dense={tail_dense}")
+    results['profile_record'] = prof_ok
+
+    # Composite verdicts
+    ga = [arm(t) for t in ('a1', 'a2', 'a3')]
+    gb = [arm(t) for t in ('b1', 'b2', 'b3')]
+    if all(g is not None for g in ga + gb):
+        ok = all(L2.at_t(g['hist'], 40.0)['C_abs'] >= 0.5 for g in ga) and \
+             all(L2.at_t(g['hist'], 40.0)['C_abs'] < 0.5 for g in gb)
+        verdicts['gauge_invariance'] = (
+            'GAUGE INVARIANCE CONFIRMED: all three born-full gauges pass '
+            'a1/a2/a3 and fail b1/b2/b3 -- the one-sided rule is '
+            'gauge-invariant under common rotation (seam shifts, verdicts '
+            'do not)' if ok else
+            'GAUGE INVARIANCE REFUTED: at least one verdict flips with '
+            'the gauge')
+        print(f"     composite: {verdicts['gauge_invariance']}")
+    results['verdicts'] = verdicts
+    with open(f"{rdir}/results.json", "w") as f:
+        json.dump(results, f, indent=2)
+    print(f"\nResults: {rdir}/results.json")
+
+
 def finalize(runs, rdir, arms, wave='g'):
+    if wave == 'w9':
+        return finalize_w9(runs, rdir, arms)
+
     def arm(tag):
         return next((r for r in runs if r['tag'] == tag), None)
 
@@ -878,6 +1335,11 @@ def main():
     parser.add_argument('--wave8', action='store_true',
                         help='run the r12-r21 M*-vs-residue wave instead '
                              'of g1-g12 (section 3.19)')
+    parser.add_argument('--wave9', action='store_true',
+                        help='run the W9 height-selection wave (a1-a3, '
+                             'b1-b3, d1-d3, e1-e4, f1-f4, g1-g4, h1-h2; '
+                             'section 3.20) with the W9-i full-profile '
+                             'record')
     parser.add_argument('--far', action='store_true',
                         help='with --wave8: include the optional far arm '
                              'r21 (run only when the r12-r20 batch '
@@ -898,7 +1360,9 @@ def main():
                          'n_layers': d['n_layers'],
                          'n_rungs': d['n_rungs']})
             runs[-1]['summary'] = L2.summarize2(runs[-1])
-        if args.wave8:
+        if args.wave9:
+            arms = WAVE9_ARMS
+        elif args.wave8:
             arms = WAVE8_ARMS
         elif args.wave7:
             arms = WAVE7_ARMS
@@ -910,13 +1374,18 @@ def main():
         arms = prepare(arms)
         print(f"Rebuilding from {len(runs)} preserved arms in {args.from_runs}")
         finalize(runs, args.from_runs, arms,
-                 wave='w8' if args.wave8 else ('r' if args.wave7 else 'g'))
+                 wave='w9' if args.wave9 else ('w8' if args.wave8
+                                               else ('r' if args.wave7
+                                                     else 'g')))
         return
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    if args.tend is not None:
+    if args.wave9:
+        arms = WAVE9_ARMS
+    elif args.tend is not None:
+        arms = ARMS
         args.steps = int(round(args.tend / T.DT))
-    if args.wave8:
+    elif args.wave8:
         arms = WAVE8_ARMS
         if not args.far:
             arms = [a for a in arms if a[0] != 'r21']
@@ -986,7 +1455,8 @@ def main():
         return
 
     rid = datetime.now().strftime("%Y%m%d_%H%M%S")
-    suffix = args.rid_suffix or ('lattice_stack_w8' if args.wave8
+    suffix = args.rid_suffix or ('lattice_stack_w9' if args.wave9
+                                 else 'lattice_stack_w8' if args.wave8
                                  else 'lattice_stack_r' if args.wave7
                                  else 'lattice_stack_g')
     rdir = f"runs/{rid}_{suffix}"
@@ -997,8 +1467,15 @@ def main():
         phases = arm_phases((tag, dth, M, rung, rot, pred))
         if args.arm is not None and tag not in args.arm:
             continue
-        runs.append(run_arm(device, tag, phases, rung, rdir, args.steps))
-    finalize(runs, rdir, arms, wave='w8' if args.wave8 else ('r' if args.wave7 else 'g'))
+        steps = int(round(pred.get('t_end', 40.0) / T.DT)) \
+            if args.wave9 else args.steps
+        if args.wave9:
+            runs.append(run_arm_w9(device, tag, phases, rung, rdir, steps))
+        else:
+            runs.append(run_arm(device, tag, phases, rung, rdir, steps))
+    finalize(runs, rdir, arms,
+             wave='w9' if args.wave9 else ('w8' if args.wave8
+                                           else ('r' if args.wave7 else 'g')))
 
 
 if __name__ == "__main__":
