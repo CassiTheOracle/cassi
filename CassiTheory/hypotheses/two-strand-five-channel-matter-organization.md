@@ -547,7 +547,7 @@ Fine scans of the M = 32 band interior (α = 0, run record `20260808_030222_latt
 | g17 | 37.8°, M = 32, α = 0° (born-full, δ = 129.6°) | 32 | 5253.00 | 2.74846 (clamped; [D] 2.7936) | +0.824/+0.380/+0.298 | 0.00/16.30/16.55 | −0.012 | 0.121 | 781 | FAIL: born-full at α = 0 (δ = 129.6°)—the born-class death, not a born-flat band reading |
 
 $$
-\boxed{\,\text{The clean-gauge re-measurement CONFIRMS the born-class rule: born-flat init retains at every tested geometry except the M = 32 band edge (the 38° born-flat arm fails, g1 +0.098, so the band is } [33°, 37°]\text{), and born-full init retains iff the total stack twist } \delta \in \{72°, 135°, 144°, 180°\}\text{. The rule rests on eleven clean born-full readings: pass at } \delta = 72° \text{ (f13 +0.979), 135° (w7 +0.748, g5b +0.748), 144° (m8\_72 +0.848, g8 +0.905), 180° (f5 +0.630, g5a +0.591, g11 +0.797); fail at } \delta = 45° \text{ (w9 +0.096), 90° (w8 +0.129, g4 +0.392), 120° (g2 −1.016). Tested.}\,}
+\boxed{\,\text{The clean-gauge re-measurement CONFIRMS the born-class rule: born-flat init retains at every tested geometry except the M = 32 band edge (the 38° born-flat arm fails, g1 +0.098, so the band is } [33°, 37°]\text{), and born-full init retains iff the total stack twist } \delta \in \{72°, 135°, 144°, 180°\}\text{. The rule rests on eleven clean born-full readings: pass at } \delta = 72° \text{ (f13 +0.979), 135° (w7 +0.748, g5b +0.748), 144° (m8\_72 +0.848, g8 +0.905), 180° (f5 +0.630, g5a +0.591, g11 +0.797); fail at } \delta = 45° \text{ (w9 +0.096, floor-free at every gauge), 90° (g4 +0.392; the α = 0 w8 +0.129 is its gauge-polluted twin), 120° (g2 −1.016). Tested.}\,}
 $$
 
 $$
