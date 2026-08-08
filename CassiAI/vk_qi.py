@@ -940,18 +940,37 @@ class VkQiCube:
         state['_boundary_decay'] = np.array(p[12])
         state['_attention_strength'] = np.array(p[13])
         state['_sigma'] = np.array(p[14])
+        # M3: psi through the φ-shell codec + certificate; scalars stay c64.
+        # On any codec failure the raw psi c64 path is kept (never break checkpointing).
+        try:
+            from vk_qi_codec import encode as _codec_encode
+            import json as _json
+            packet, cert = _codec_encode(state['psi'])
+            state['psi'] = np.frombuffer(packet, dtype=np.uint8)
+            state['psi_codec'] = np.array(True)
+            state['psi_codec_cert'] = np.frombuffer(
+                _json.dumps(cert).encode('utf-8'), dtype=np.uint8)
+        except Exception as e:
+            print(f'  [codec] psi kept raw c64: {e}')
         np.savez(path, **state)
         print(f'Checkpoint saved: {path}')
 
     def load_checkpoint(self, path):
         """Load persistent state from a .npz file."""
         state = np.load(path)
+        # M3: codec'd checkpoints carry psi as a packet + certificate; decode
+        # transparently. Old npz (raw psi c64) loads unchanged (acceptance iii).
+        codec_flag = bool(state['psi_codec']) if 'psi_codec' in state else False
         for name in ['psi', 'psi_prev', 'byte_embed', 'embed_proj',
                      'params', 'voxel_eps_memory', 'field_memory',
                      'self_condensate', 'band_phase', 'chakra_params',
                      'boundary_residuals']:
-            if name in state:
+            if name in state and not (codec_flag and name == 'psi'):
                 self._upload(name, state[name].tobytes())
+        if codec_flag:
+            from vk_qi_codec import decode as _codec_decode
+            psi_flat = _codec_decode(state['psi'].tobytes())
+            self._upload('psi', psi_flat.tobytes())
         self.step_count = int(state['_step_count'])
         self.readout_correct = int(state['_readout_correct'])
         self.readout_total = int(state['_readout_total'])
