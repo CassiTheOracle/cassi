@@ -38,7 +38,7 @@ domain is not enough—the contribution must be what Cassi *uniquely* adds.
 | 13 | Two-fluid Hilbert–Pólya program | Speculative | Scale-operator candidate for the zeros; minimal-fluctuation probes (Selberg, Gram) | `riemann-two-fluid-spectral-program.md` |
 | 14 | Two-fluid phase operator | Speculative | Step 1 executed: Bessel-index-1 scale operator; linear spectra fail R-vM; semiclassical pinning Lp = 2π | `riemann-two-fluid-phase-operator.md` |
 | 15 | Two-strand five-channel matter organization | Hypothesized | Strand-pair × Wu Xing channel traces on one Qi condensate; Z2×Z5 trace graph; PDE gate outcomes: TS1–TS4 null at lock timescale, TS5 5-fold coincident projection, TS6 twist persistence/no generation, TS7 two-sector bound; staged matter-organization program | `two-strand-five-channel-matter-organization.md` |
-| 16 | Gravity from flow | Hypothesized | The river law: $G_{\text{eff}} = G(\pi/\rho)(1+(\varphi^{6}-1)qf)$ flow-modulated chord; flow factor's sign confirmed at the closure, $\kappa$'s value undetermined; surge form undetermined; boundary $\lambda_{\text{gate}} \approx 0.0255$; C2 open | `gravity-from-flow.md` |
+| 16 | Gravity from flow | Hypothesized | The river law: $G_{\text{eff}} = G(\pi/\rho)(1+(\varphi^{6}-1)qf)$ flow-modulated chord; object $C = -\nabla\cdot J$ confirmed, response $dU/U = -36.05\kappa$ (linear, $\kappa$ unfitted); surge form undetermined; boundary $\lambda_{\text{gate}} = 0.0224$ ($\lambda/4$ rejected); C2 open (interior instability); P3 parity-odd channel LIVE at $\chi = \varphi^{-1}$ ($\chi$ asserted); P4 rung-sum inconclusive (reduction confirmed) | `gravity-from-flow.md` |
 
 ---
 
@@ -292,14 +292,23 @@ per-rung damping of `foundations/cascade-suppression-formula.md` §1—no free
 constant). The sign question is settled: the PDE's $\mathbf{F} = +\Pi\nabla\Phi$
 is $\Pi$-sign-following (TS1 Yang-excess escape; Yin-excess coalescence), and
 the point-particle attraction is the $-[1+(\varphi^{6}-1)q]$ sector
-convention. The probe wave (brief 68) confirms the flow factor's sign at the
-closure ($\bar f = 0.884 < 1$; $dU/U = -22.22$ with the predicted sign) while
-falsifying the linear magnitude 192×—$\kappa$'s value is undetermined; the
-surge form is undetermined on the 7-point set; the boundary is the OFF-side
-margin $\lambda_{\text{gate}} \approx 0.0255$ (candidate $\lambda/4 = 1/(8w)$,
-2% off); C2 is open. **Epistemic tier: Hypothesized**—a candidate skeleton
-with measured sign content; the quantitative claims are explicitly
-undetermined.
+convention. The probe waves (briefs 68–71) confirm the flow factor's sign at
+the closure ($\bar f = 0.884 < 1$; $dU/U = -22.22$ with the predicted sign)
+and establish the quantitative content: the object is $C = -\nabla\cdot J$
+(confirmed-object; $|C|$ violates the sign-definiteness bound on its weighted
+mean and $(1-q)C$ responds with the wrong sign), the response is linear in
+$\kappa$—$dU/U = -36.05\,\kappa$ over $[\varphi^{-2}, \varphi]$ (the linear
+magnitude stays falsified 192×; the amplification is $\kappa$-independent;
+$\kappa$ itself is never fitted)—and the boundary is measured at
+$\lambda_{\text{gate}} = 0.0224$, rejecting the $\lambda/4 = 1/(8w)$ candidate
+(10.33% outside the ±10% window). The surge form is undetermined on the
+14-point set (small-$\lambda$ dip, saturation tail visible, form not); C2 is open
+(the wall layer removed; the term is unstable on the interior content at
+$\lambda_t = 0.1$); the parity-odd channel P3 is LIVE at $\chi = \varphi^{-1}$
+with $\chi$ asserted; the rung-sum post-process P4 is inconclusive with the
+multiscale reduction confirmed. **Epistemic tier: Hypothesized**—a candidate
+skeleton whose quantitative content is the object form, the linear response
+curve, and the measured boundary; the surge form and the C2 leg remain open.
 
 ---
 
