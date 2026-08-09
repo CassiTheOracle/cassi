@@ -265,7 +265,7 @@ The framework's halo model has been fitted against SPARC galaxy rotation curves 
 
 ## 12. Gravity and the Hierarchy Problem
 
-Gravity in Cassi is **gradient descent along the spiral toward coherence**. The imbalance between Yang and Yin creates a force pointing inward, toward $\varphi$-equilibrium. The spiral winds only one way, so gravity is always attractive—there is no reverse spiral, no repulsive gravity.
+Gravity in Cassi is **gradient descent along the spiral toward coherence**. In the point-particle sector the law is the Newtonian $-\nabla\Phi$ convention—$\ddot{\mathbf{X}}_j = -\alpha_j(1+(\varphi^{6}-1)q_j)\nabla\Phi$ (`gravity/three-body-analytical.md` §2.3)—so gravity is always attractive for matter: the spiral winds only one way, and the sector's law carries the minus that keeps it so. The field-level force $\mathbf{F} = \Pi\nabla\Phi$ itself is $\Pi$-sign-following: a Yang excess repels, a Yin excess attracts (measured in the two-strand record, `hypotheses/two-strand-five-channel-matter-organization.md` §3.3, §3.5).
 
 Why is gravity so weak? Every force lives at a specific cascade rung, and every rung between the force's source and the scale of measurement attenuates its strength by $\varphi^{-1}$. The gravitational coupling for a proton is $\varphi^{-183} \approx 5.9 \times 10^{-39}$, matching the observed value to 0.1%: the proton lives 91.5 rungs deep in the cascade, and the signal loses strength at every rung it crosses.
 

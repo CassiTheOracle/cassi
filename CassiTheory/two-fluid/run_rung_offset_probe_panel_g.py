@@ -19,7 +19,7 @@ plus the emission phase psi_emit.
 Question: does the conversion generate the descent (inward, the
 spiral's gravity direction) or the unwinding (outward, the expansion
 direction)?  The probe is flat (no potential gradient), so the
-inward force F = Pi grad(Phi) of `foundations/spiral-dynamics.md`
+buoyancy force F = Pi grad(Phi) of `foundations/spiral-dynamics.md`
 sec 3 is absent by construction—only the conversion's own
 transport is visible.
 
