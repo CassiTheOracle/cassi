@@ -196,10 +196,21 @@ as a function of distance from the coherence center. The total density $\rho =
 E_Y + E_I$ peaks at the center and falls off radially, while the imbalance $\Pi
 = E_Y - E_I$ oscillates with the spiral period.
 
-The gradient $\nabla\Phi$ naturally points **inward**—toward higher $\rho$,
-toward the coherent center of the spiral. This is why gravity is always
-attractive: the spiral only winds one way. There is no "reverse spiral" to
-create repulsive gravity.
+The gradient's direction is set by the Poisson convention $\nabla^2\Phi = \rho$
+(the solver solves $\hat\Phi = -\hat\rho/k^2$), which for a point mass gives
+$\Phi = -M/(4\pi r)$: in the far field $\nabla\Phi$ points **outward** from an
+overdensity. The inward reading is the near-field statement—close to a source
+the gradient points back toward it, as measured at the closure probe
+($\nabla\Phi(x^*) = -0.0143$ with $\Pi(x^*) = +0.2834$, giving the raw force
+$F_0(x^*) = -4.04\times10^{-3}$ at $t = 0$; `hypotheses/gravity-from-flow.md` §1).
+The force $\mathbf{F} = \Pi\nabla\Phi$ is $\Pi$-sign-following, not
+unconditionally attractive: a Yang excess ($\Pi > 0$) is repelled—the TS1 pair
+escapes ($d$ 9.90 → 15.73, `hypotheses/two-strand-five-channel-matter-organization.md`
+§3.3)—and a Yin excess ($\Pi < 0$) is attracted—the exchanged pair contracts
+and coalesces ($d$ 9.90 → 7.51, §3.5). Gravity is always attractive in the
+point-particle sector, where the reduced law is the Newtonian $-\nabla\Phi$
+convention $\ddot{\mathbf{X}}_j = -\alpha_j(1+(\varphi^{6}-1)q_j)\nabla\Phi$ of
+`gravity/three-body-analytical.md` §2.3.
 
 The magnitude of the force at cascade rung $n$ is cascade-suppressed:
 

@@ -110,13 +110,16 @@ Consider $N$ well-separated Gaussian blobs indexed by $j$. For each blob:
 
 #### 2.1 The key approximation
 
-The force density on the velocity field is $\mathbf{F} = \pi\,(1+(\varphi^{6}-1)q)\,\nabla\Phi$.
+The force density on the velocity field is the field-level force $\mathbf{F} = \pi\,(1+(\varphi^{6}-1)q)\,\nabla\Phi$,
+which is $\Pi$-sign-following: a Yang excess ($\Pi > 0$) is pushed along $+\nabla\Phi$, a Yin excess against it
+(measured in the two-strand record—the Yang-excess pair escapes, the Yin-excess pair coalesces;
+`hypotheses/two-strand-five-channel-matter-organization.md` §3.3, §3.5).
 For a compact blob of size $\sigma$ separated by $r \gg \sigma$ from all other blobs,
-the potential varies slowly across the blob, so the total force on the $j$-th blob is:
+the potential varies slowly across the blob, so the field-level force on the $j$-th blob is:
 
 $$
 \begin{aligned}
-M_j\ddot{\mathbf{X}}_j &\equiv \int \mathbf{F}_j\,dV \\
+\mathbf{F}_j &\equiv \int \mathbf{F}_j\,dV \\
 &= \int \pi_j\,(1+(\varphi^{6}-1)q_j)\,\nabla\Phi\,dV \\
 &\approx \alpha_j\,(1+(\varphi^{6}-1)q_j)\,M_j \cdot \nabla\Phi(\mathbf{X}_j) \quad\text{when blob is relaxed}
 \end{aligned}
@@ -133,15 +136,25 @@ $$
 \Phi(\mathbf{x}) = -G\sum_{i=1}^N \frac{M_i}{|\mathbf{x} - \mathbf{X}_i|}
 $$
 
-Hence at $\mathbf{X}_j$:
+The gradient of $1/|\mathbf{x} - \mathbf{X}_i|$ is $-(\mathbf{x} - \mathbf{X}_i)/|\mathbf{x} - \mathbf{X}_i|^3$, so the potential's own leading minus flips the direction: at $\mathbf{X}_j$ the gradient points **outward** from each source,
 
 $$
-\nabla\Phi(\mathbf{X}_j) = -G\sum_{i\neq j} M_i\frac{\mathbf{X}_j - \mathbf{X}_i}{|\mathbf{X}_j - \mathbf{X}_i|^3}
+\nabla\Phi(\mathbf{X}_j) = +G\sum_{i\neq j} M_i\frac{\mathbf{X}_j - \mathbf{X}_i}{|\mathbf{X}_j - \mathbf{X}_i|^3}
 $$
+
+The attraction in the equation of motion below comes from the sector's own leading minus (§2.3), not from the gradient.
 
 #### 2.3 Point-particle equations of motion (PDE → ODE)
 
-Putting it together, the **three-blob ODE system** is:
+The point-particle sector adopts the **attractive convention**—the Newtonian $-\nabla\Phi$
+form of the force:
+
+$$
+\ddot{\mathbf{X}}_j = -\alpha_j\,(1+(\varphi^{6}-1)q_j)\,\nabla\Phi(\mathbf{X}_j)
+$$
+
+With the outward gradient of §2.2, $\nabla\Phi(\mathbf{X}_j) = +G\sum_{i\neq j}M_i(\mathbf{X}_j-\mathbf{X}_i)/|\mathbf{X}_j-\mathbf{X}_i|^3$,
+the sector's own leading minus inverts it, and the **three-blob ODE system** is:
 
 $$
 \boxed{
