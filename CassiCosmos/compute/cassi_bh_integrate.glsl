@@ -14,7 +14,7 @@ layout(set = 0, binding = 0, std430) readonly buffer FieldQ { float qv[]; };
 
 // bh[1].w = G_N, bh[2].y = extent, bh[4..33] = BH records (vec4[2] each, max 15)
 layout(set = 1, binding = 0, std430) buffer BHData {
-    vec4 bh[34];
+    vec4 bh[36];
 };
 
 layout(push_constant, std430) uniform PC {

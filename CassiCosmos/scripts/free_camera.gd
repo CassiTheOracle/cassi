@@ -95,6 +95,9 @@ func _process(delta: float) -> void:
 		rotate_y(key_rot * delta * 2.0)
 
 	# --- Movement input ---
+	# NOTE: SPACE and SHIFT are deliberately NOT used here — SPACE is the
+	# UI's play/pause and SHIFT is a system modifier; both would fire while
+	# the user is doing something else. Vertical movement uses Z (up) / X (down).
 	var input_dir: Vector3 = Vector3.ZERO
 	if Input.is_key_pressed(KEY_W):  input_dir.z -= 1.0
 	if Input.is_key_pressed(KEY_S):  input_dir.z += 1.0
@@ -102,8 +105,6 @@ func _process(delta: float) -> void:
 	if Input.is_key_pressed(KEY_D):  input_dir.x += 1.0
 	if Input.is_key_pressed(KEY_Z):  input_dir.y += 1.0
 	if Input.is_key_pressed(KEY_X):  input_dir.y -= 1.0
-	if Input.is_key_pressed(KEY_SPACE): input_dir.y += 1.0
-	if Input.is_key_pressed(KEY_SHIFT): input_dir.y -= 1.0
 
 	input_dir = input_dir.normalized()
 

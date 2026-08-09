@@ -1,7 +1,9 @@
 #[compute]
 #version 450
 // Cassi Two-Fluid PDE Solver — 3D finite-difference leapfrog integration.
-// Evolves EY (Yin) and EI (Yang) fields on a regular grid.
+// Evolves EY (Yang) and EI (Yin) fields on a regular grid.
+// (Naming per the theory convention: ρ = EY+EI, Π = EY−EI, ε = EY−φ·EI;
+// see hypotheses/gravity-from-flow.md §1.1 — EY is the YANG field.)
 //
 // Equations:
 //   ∂²EY/∂t² = c²·∇²EY − ω₀²·(EY − φ·EI)
@@ -22,6 +24,7 @@ layout(push_constant, std430) uniform PC {
     float N_f; float dt; float t; float phi;
     float xi; float eps2; float particle_N;
     float mode; float source_strength; float num_clusters;
+    float gravity_mode;  // unused here (nbody gravity selector)
 } pc;
 
 // ── Index helpers ─────────────────────────────────────────────────────
@@ -30,28 +33,32 @@ int idx3(int i, int j, int k) {
     return i + N * (j + N * k);
 }
 
-float laplacian(int i, int j, int k, float field[]) {
+// 7-point periodic Laplacian (inlined per field — strict GLSL rejects
+// unsized array function parameters, which silently disabled this shader
+// in earlier builds)
+float lap_ey_at(int i, int j, int k) {
     int N = int(pc.N_f);
-    int Ni = (i + 1) % N;
-    int Nj = (j + 1) % N;
-    int Nk = (k + 1) % N;
-    int Pi = (i - 1 + N) % N;
-    int Pj = (j - 1 + N) % N;
-    int Pk = (k - 1 + N) % N;
+    return (ey[idx3((i + 1) % N, j, k)] + ey[idx3((i - 1 + N) % N, j, k)]
+          + ey[idx3(i, (j + 1) % N, k)] + ey[idx3(i, (j - 1 + N) % N, k)]
+          + ey[idx3(i, j, (k + 1) % N)] + ey[idx3(i, j, (k - 1 + N) % N)]
+          - 6.0 * ey[idx3(i, j, k)]);
+}
 
-    return (field[idx3(Ni, j, k)] + field[idx3(Pi, j, k)]
-          + field[idx3(i, Nj, k)] + field[idx3(i, Pj, k)]
-          + field[idx3(i, j, Nk)] + field[idx3(i, j, Pk)]
-          - 6.0 * field[idx3(i, j, k)]);
+float lap_ei_at(int i, int j, int k) {
+    int N = int(pc.N_f);
+    return (ei[idx3((i + 1) % N, j, k)] + ei[idx3((i - 1 + N) % N, j, k)]
+          + ei[idx3(i, (j + 1) % N, k)] + ei[idx3(i, (j - 1 + N) % N, k)]
+          + ei[idx3(i, j, (k + 1) % N)] + ei[idx3(i, j, (k - 1 + N) % N)]
+          - 6.0 * ei[idx3(i, j, k)]);
 }
 
 // ── Perturbation source: Gaussian at center, or multiple seeds ────────
 float source_ey(int i, int j, int k) {
     int N = int(pc.N_f);
-    float half = float(N) * 0.5;
-    float dx = (float(i) - half) / half;
-    float dy = (float(j) - half) / half;
-    float dz = (float(k) - half) / half;
+    float halfn = float(N) * 0.5;  // 'half' is a reserved word in GLSL
+    float dx = (float(i) - halfn) / halfn;
+    float dy = (float(j) - halfn) / halfn;
+    float dz = (float(k) - halfn) / halfn;
     float r2 = dx*dx + dy*dy + dz*dz;
 	float s = pc.source_strength;
 	float mr = uintBitsToFloat(rho[idx3(i, j, k)]);
@@ -61,10 +68,10 @@ float source_ey(int i, int j, int k) {
 float source_ei(int i, int j, int k) {
     // EI source at offset position (Yin-Yang separation)
     int N = int(pc.N_f);
-    float half = float(N) * 0.5;
-    float dx = (float(i) - half * 0.7) / half;
-    float dy = (float(j) - half * 0.8) / half;
-    float dz = (float(k) - half * 0.6) / half;
+    float halfn = float(N) * 0.5;  // 'half' is a reserved word in GLSL
+    float dx = (float(i) - halfn * 0.7) / halfn;
+    float dy = (float(j) - halfn * 0.8) / halfn;
+    float dz = (float(k) - halfn * 0.6) / halfn;
     float r2 = dx*dx + dy*dy + dz*dz;
 	float s = pc.source_strength * 0.707; // 1/sqrt(2) for EI
 	float mr = uintBitsToFloat(rho[idx3(i, j, k)]) * 0.707;
@@ -86,8 +93,8 @@ void main() {
     vec4 vel_old = vel[id];
 
     // Laplacian
-    float lap_ey = laplacian(i, j, k, ey);
-    float lap_ei = laplacian(i, j, k, ei);
+    float lap_ey = lap_ey_at(i, j, k);
+    float lap_ei = lap_ei_at(i, j, k);
 
     // φ coupling terms
     float omega2 = 20.0;  // ω₀² — resonance frequency

@@ -24,6 +24,11 @@ extends Node3D
 @export var bh_acc_rate: float = 0.01                # mass growth per step from field
 @export var bh_max_age: float = 0.0                  # 0 = immortal
 
+# Gravity law selector (river law = the derived formula, default):
+#   0 = RIVER — a = −G_N·(π/ρ)·∇(g·Φ),  g = 1+(φ⁶−1)q,  ∇²Φ = ρ_mass (spectral)
+#   1 = HEURISTIC — legacy G_N·π/ρ·∇q_s arm, kept for A/B comparison only
+@export_enum("River", "Heuristic") var gravity_mode: int = 0
+
 @export_enum("Particles", "Field", "Black Hole", "Cosmology") var mode: int = 0
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -36,6 +41,10 @@ var _rd: RenderingDevice = null
 var _field_ey: RID; var _field_ei: RID
 var _field_q: RID;  var _field_vel: RID
 
+# — Poisson solver (SET 0 of cassi_poisson.glsl) —
+var _fft_buf: RID      # vec2 per cell — FFT workspace; real part = Φ after solve
+var _tel_buf: RID      # gravity telemetry: [pi_hi, pi_lo, rho_guard, q_min, q_max, pi_min, pi_max, _]
+
 # — particle buffers (SET 1) —
 var _pos_buf: RID; var _vel_buf: RID; var _acc_buf: RID
 
@@ -47,24 +56,39 @@ var _mass_density_buf: RID
 # — shaders and pipelines —
 var _two_fluid_shader: RID;  var _two_fluid_pipe: RID
 var _nbody_shader: RID;      var _nbody_pipe: RID
+var _poisson_shader: RID;    var _poisson_pipe: RID
 var _field_render_shader: RID; var _field_render_pipe: RID
 var _bh_lensing_shader: RID;  var _bh_lensing_pipe: RID
 var _mass_deposit_shader: RID; var _mass_deposit_pipe: RID
+var _shaders_ready: bool = false
+var _setup_retry_counter: int = 0
 var _us_two_0: RID; var _us_two_1: RID; var _us_two_2: RID
 var _us_mass_dep_0: RID
 var _us_nbody_0: RID; var _us_nbody_1: RID; var _us_nbody_2: RID
+var _us_poisson_0: RID
+var _us_fr_0: RID; var _us_fr_2: RID  # field-render sets (cached, no per-frame alloc)
 # — Instancer pipeline —
 var _instancer_shader: RID; var _instancer_pipe: RID
-var _cond_shader: RID; var _cond_pipe: RID; var _us_cond_0: RID
-var _bh_int_shader: RID; var _bh_int_pipe: RID; var _us_bh_int_0: RID
+var _cond_shader: RID; var _cond_pipe: RID; var _us_cond_0: RID; var _us_cond_1: RID
+var _bh_int_shader: RID; var _bh_int_pipe: RID; var _us_bh_int_0: RID; var _us_bh_int_1: RID
 var _cond_step_counter: int = 0
 var _mm_buf: RID = RID()
 var _us_inst_0: RID = RID()
 
+# — pre-allocated push-constant byte buffers (hitch-free: no per-step allocs) —
+var _pc_bytes: PackedByteArray        # shared 11-float PC (all physics shaders)
+var _md_pc_bytes: PackedByteArray     # mass deposit PC (4 floats)
+var _bh_int_pc_bytes: PackedByteArray # BH integrate PC (4 floats)
+var _cond_pc_bytes: PackedByteArray   # condensation PC (4 floats)
+var _bh_init_bytes: PackedByteArray   # BH header init (16 floats)
+var _tel_reset_bytes: PackedByteArray # gravity telemetry reset (8 floats)
+var _poisson_pc_bytes: PackedByteArray  # poisson PC (5 floats)
+var _poisson_wg: int = 1              # poisson dispatch group count
+var _pending_submit: bool = false     # local-RD: submit needs a sync before the next
+
 # — MultiMesh rendering —
 const RB_SKIP: int = 3                     # readback every 4th frame (15/sec at 60fps)
 var _mm_data_f32: PackedFloat32Array       # pre-allocated for MultiMesh (avoid GC)
-var _zero_mass_buf: PackedByteArray        # pre-allocated mass density zero buffer
 var _rb_counter: int = 0
 var _mmi: MultiMeshInstance3D; var _mm: MultiMesh
 
@@ -75,13 +99,24 @@ var _step_timer: float = 0.0
 
 # — diagnostics —
 var _q_mean: float = 0.0
+var _q_min: float = 0.0
+var _q_max: float = 0.0
+var _pi_min: float = 0.0
+var _pi_max: float = 0.0
+var _pi_sat_hi_frac: float = 0.0   # fraction of π/ρ samples pinned at 0.72
+var _pi_sat_lo_frac: float = 0.0   # fraction of π/ρ samples clamped to 0 (Yin excess)
+var _rho_guard_hits: int = 0
+var _poisson_residual: float = -1.0  # FD-Laplacian residual of the Φ solve (reported)
+var _poisson_residual_done: bool = false
 var _eps_mean: float = 0.0
 var _hubble: float = 0.0
 var _scale_factor: float = 1.0
 
 const PHI: float = 1.618033988749895
 const PHI_INV3: float = (PHI - 1.0) / (PHI + 1.0)
+const PHI_INV2: float = 0.3819660112501051  # φ⁻² — q decoherence threshold
 const PHI_6: float = PHI * PHI * PHI * PHI * PHI * PHI  # φ⁶ ≈ 17.94427191
+const PI_CLAMP_MAX: float = 0.72  # (π/ρ) upper clamp (stability; telemetry counts hits)
 
 
 # — Display textures for visualization modes —
@@ -94,7 +129,9 @@ signal bh_texture_updated(tex: Texture2D)
 # ═══════════════════════════════════════════════════════════════════════
 
 func _ready() -> void:
-	_setup_rendering_device()
+	if not _setup_rendering_device():
+		push_error("[CassiSim] Aborting startup: no RenderingDevice (headless/dummy renderer?)")
+		return
 	_setup_buffers()
 	_setup_shaders()
 	_setup_multimesh()
@@ -107,14 +144,56 @@ func _process(delta: float) -> void:
 	if not _rd:
 		return
 
-	if playing:
+	# First-run import race: on a fresh cache the .glsl imports may not have
+	# finished when _ready ran — retry until every shader compiles.
+	if not _shaders_ready:
+		_setup_retry_counter += 1
+		if _setup_retry_counter % 30 == 0:
+			_free_shaders()
+			_setup_shaders()
+
+	if playing and _shaders_ready:
 		_step_timer += delta
+		var n_steps := 0
 		while _step_timer >= dt:
 			_step_timer -= dt
-			_physics_step()
-			_step_count += 1
+			n_steps += 1
+		if n_steps > 0:
+			_run_physics_steps(n_steps)
 
 	_render_frame()
+
+
+# Run n physics steps in ONE compute list with ONE submit+sync.
+# (Local RenderingDevice contract: submit must be followed by sync before
+# the next submit — the old per-step submit() errored "device already
+# submitted" every step after the first and silently dropped the work.)
+func _run_physics_steps(n_steps: int) -> void:
+	_ensure_synced()  # local RD: the previous frame's submit must be synced first
+	# BH header (count/G_N/extent) — constant across the frame's steps;
+	# buffer_update must run BEFORE compute_list_begin.
+	_rd.buffer_update(_bh_buf, 0, _bh_init_bytes.size(), _bh_init_bytes)
+	var cl = _rd.compute_list_begin()
+	for _s in range(n_steps):
+		_step_dispatches(cl)
+	_rd.compute_list_end()
+	_rd.submit()
+	_pending_submit = true  # sync is required before the next submit
+
+
+func _ensure_synced() -> void:
+	if _pending_submit:
+		_rd.sync()
+		_pending_submit = false
+
+
+# Full memory barrier inside an open compute list. Consecutive dispatches
+# have EXECUTION ordering but no implicit MEMORY visibility — without this,
+# a later dispatch can read stale data written by an earlier one (races
+# were observed in the deposit→poisson and FFT chains). The barrier makes
+# the visibility explicit.
+func _barrier(cl: int) -> void:
+	_rd.compute_list_add_barrier(cl)
 
 
 func _exit_tree() -> void:
@@ -126,10 +205,12 @@ func _exit_tree() -> void:
 # Rendering Device setup
 # ═══════════════════════════════════════════════════════════════════════
 
-func _setup_rendering_device() -> void:
+func _setup_rendering_device() -> bool:
 	_rd = RenderingServer.create_local_rendering_device()
 	if _rd == null:
 		push_error("[CassiSim] Failed to create RenderingDevice")
+		return false
+	return true
 
 
 func _shader_from_file(path: String) -> RID:
@@ -162,6 +243,9 @@ func _setup_buffers() -> void:
 	_field_ei  = _rd.storage_buffer_create(nf)
 	_field_q   = _rd.storage_buffer_create(nf)
 	_field_vel = _rd.storage_buffer_create(nc * 16)
+	# Poisson solver: complex FFT workspace (vec2/cell) + gravity telemetry
+	_fft_buf  = _rd.storage_buffer_create(nc * 8)
+	_tel_buf  = _rd.storage_buffer_create(32)
 	# SET 1 — Particles
 	var ps = N_particles * 16
 	_pos_buf = _rd.storage_buffer_create(ps)
@@ -169,37 +253,53 @@ func _setup_buffers() -> void:
 	_acc_buf = _rd.storage_buffer_create(ps)
 
 	# SET 2 — BH data + sim globals
-	_bh_buf = _rd.storage_buffer_create(512)  # 34 vec4s: counter + G_N/extent + 16 BH records (×2 vec4s)
-	var bh_init = PackedFloat32Array([
+	# 36 vec4s = 576 bytes: 4-vec4 header (count/G_N/extent/reserved) + 15 BH
+	# records × 2 vec4s (indices 4..33). Was 512 bytes — too small: the
+	# shaders read/write up to bh[33] (slot 14), which was out of bounds.
+	_bh_buf = _rd.storage_buffer_create(576)
+	var bh_init_f = PackedFloat32Array([
 		0.0, 0.0, 0.0, float(N_particles),
 		0.0, 0.0, 0.0, 1.0,
 		cluster_radius, cluster_radius * 1.5, 0.0, 0.0,
 		0.0, 0.0, 0.0, 0.0,
 	])
-	_rd.buffer_update(_bh_buf, 0, bh_init.size() * 4, bh_init.to_byte_array())
+	_bh_init_bytes = bh_init_f.to_byte_array()
+	_rd.buffer_update(_bh_buf, 0, _bh_init_bytes.size(), _bh_init_bytes)
 	# Cluster center positions + masses (for multi-cluster gravity)
 	_cluster_buf = _rd.storage_buffer_create(20 * 4 * 4)
 	# Mass density grid (one uint per cell, stores float as bits)
 	_mass_density_buf = _rd.storage_buffer_create(nc * 4)
 	_mm_buf = _rd.storage_buffer_create(N_particles * 64)
 	# Pre-allocate zero buffer for mass density clear (reused every step)
-	_zero_mass_buf = PackedByteArray(); _zero_mass_buf.resize(grid_N * grid_N * grid_N * 4)
 	_make_render_textures()
+
+	# Pre-allocate push-constant byte buffers (hitch-free pattern)
+	_pc_bytes = PackedByteArray(); _pc_bytes.resize(11 * 4)
+	_md_pc_bytes = PackedByteArray(); _md_pc_bytes.resize(4 * 4)
+	_bh_int_pc_bytes = PackedByteArray(); _bh_int_pc_bytes.resize(4 * 4)
+	_cond_pc_bytes = PackedByteArray(); _cond_pc_bytes.resize(4 * 4)
+	_poisson_pc_bytes = PackedByteArray(); _poisson_pc_bytes.resize(5 * 4)
+	_poisson_wg = ceili(float(nc) / 64.0)
+	# Telemetry reset (kept for reference; the per-step reset runs on the GPU
+	# in the poisson clear pass so chained steps stay independent)
+	_tel_reset_bytes = PackedFloat32Array([0.0, 0.0, 0.0, INF, 0.0, INF, 0.0, 0.0]).to_byte_array()
 
 func _free_buffers() -> void:
 	for rid in [_field_ey, _field_ei, _field_q, _field_vel,
 				_pos_buf, _vel_buf, _acc_buf, _bh_buf, _mm_buf,
-				_mass_density_buf, _cluster_buf]:
+				_mass_density_buf, _cluster_buf, _fft_buf, _tel_buf]:
 		if rid.is_valid(): _rd.free_rid(rid)
 func _free_shaders() -> void:
-	for rid in [_two_fluid_shader, _two_fluid_pipe,
-				_nbody_shader, _nbody_pipe,
-				_field_render_shader, _field_render_pipe,
-				_bh_lensing_shader, _bh_lensing_pipe,
-				_instancer_shader, _instancer_pipe,
-				_mass_deposit_shader, _mass_deposit_pipe,
-				_cond_shader, _cond_pipe,
-				_bh_int_shader, _bh_int_pipe]:
+	# Pipelines before their shaders (freeing a pipeline after its shader
+	# reports "Attempted to free invalid ID" on the local RD at exit).
+	for rid in [_two_fluid_pipe, _nbody_pipe, _poisson_pipe,
+				_field_render_pipe, _bh_lensing_pipe,
+				_instancer_pipe, _mass_deposit_pipe,
+				_cond_pipe, _bh_int_pipe,
+				_two_fluid_shader, _nbody_shader, _poisson_shader,
+				_field_render_shader, _bh_lensing_shader,
+				_instancer_shader, _mass_deposit_shader,
+				_cond_shader, _bh_int_shader]:
 		if rid.is_valid(): _rd.free_rid(rid)
 
 func _setup_shaders() -> void:
@@ -214,6 +314,12 @@ func _setup_shaders() -> void:
 	if _nbody_shader.is_valid():
 		_nbody_pipe = _rd.compute_pipeline_create(_nbody_shader)
 		print("[CassiSim] N-body gravity pipeline ready")
+
+	# Spectral Poisson solver (∇²Φ = ρ_mass; river-law potential)
+	_poisson_shader = _shader_from_file("res://compute/cassi_poisson.glsl")
+	if _poisson_shader.is_valid():
+		_poisson_pipe = _rd.compute_pipeline_create(_poisson_shader)
+		print("[CassiSim] Poisson pipeline ready")
 
 	# Field rendering
 	_field_render_shader = _shader_from_file("res://compute/cassi_field_render.glsl")
@@ -252,46 +358,72 @@ func _setup_shaders() -> void:
 		print("[CassiSim] BH integration pipeline ready")
 
 	_cache_uniform_sets()
+	_shaders_ready = (
+		_two_fluid_shader.is_valid() and _nbody_shader.is_valid()
+		and _poisson_shader.is_valid() and _mass_deposit_shader.is_valid()
+		and _instancer_shader.is_valid() and _cond_shader.is_valid()
+		and _bh_int_shader.is_valid() and _field_render_shader.is_valid()
+		and _bh_lensing_shader.is_valid())
 
 
 func _cache_uniform_sets() -> void:
+	# Two-fluid PDE declares ONLY set 0 (bindings 0-4) — no sets 1/2
 	_us_two_0 = _rd.uniform_set_create([
 		_uniform_storage(0, _field_ey), _uniform_storage(1, _field_ei),
 		_uniform_storage(2, _field_q), _uniform_storage(3, _field_vel),
 		_uniform_storage(4, _mass_density_buf),
 	], _two_fluid_shader, 0)
-	_us_two_1 = _rd.uniform_set_create([
-		_uniform_storage(0, _pos_buf), _uniform_storage(1, _vel_buf),
-		_uniform_storage(2, _acc_buf),
-	], _two_fluid_shader, 1)
-	_us_two_2 = _rd.uniform_set_create([
-		_uniform_storage(0, _bh_buf),
-	], _two_fluid_shader, 2)
 
 	_us_nbody_0 = _rd.uniform_set_create([
 		_uniform_storage(0, _field_ey), _uniform_storage(1, _field_ei),
 		_uniform_storage(2, _field_q), _uniform_storage(3, _field_vel),
 		_uniform_storage(4, _mass_density_buf),
+		_uniform_storage(5, _fft_buf),
+		_uniform_storage(6, _tel_buf),
 	], _nbody_shader, 0)
 	_us_nbody_1 = _rd.uniform_set_create([
 		_uniform_storage(0, _pos_buf), _uniform_storage(1, _vel_buf),
 		_uniform_storage(2, _acc_buf),
 	], _nbody_shader, 1)
+	# Poisson solver (set 0: FFT workspace + mass density + telemetry)
+	if _poisson_shader.is_valid():
+		_us_poisson_0 = _rd.uniform_set_create([
+			_uniform_storage(0, _fft_buf),
+			_uniform_storage(1, _mass_density_buf),
+			_uniform_storage(2, _tel_buf),
+		], _poisson_shader, 0)
 	# Condensation scanner (set 0: field_q, set 1: BHData write)
 	if _cond_shader.is_valid():
 		_us_cond_0 = _rd.uniform_set_create([
 			_uniform_storage(0, _field_q),
 		], _cond_shader, 0)
-		# set 1 created inline at dispatch (BHData write)
+		_us_cond_1 = _rd.uniform_set_create([
+			_uniform_storage(0, _bh_buf),
+		], _cond_shader, 1)
 	# BH integration (set 0: field_q, set 1: BHData write)
 	if _bh_int_shader.is_valid():
 		_us_bh_int_0 = _rd.uniform_set_create([
 			_uniform_storage(0, _field_q),
 		], _bh_int_shader, 0)
-		# set 1 created inline at dispatch (BHData write)
+		_us_bh_int_1 = _rd.uniform_set_create([
+			_uniform_storage(0, _bh_buf),
+		], _bh_int_shader, 1)
 	_us_nbody_2 = _rd.uniform_set_create([
 		_uniform_storage(0, _bh_buf),
 	], _nbody_shader, 2)
+
+	# Field render (cached sets — was rebuilt every frame in _dispatch_compute)
+	# NOTE: the field-render shader declares only set 0 (fields) and set 2
+	# (image) — NO set 1; creating one errors "Desired set (1) not used".
+	if _field_render_shader.is_valid():
+		_us_fr_0 = _rd.uniform_set_create([
+			_uniform_storage(0, _field_ey), _uniform_storage(1, _field_ei),
+			_uniform_storage(2, _field_q), _uniform_storage(3, _field_vel),
+		], _field_render_shader, 0)
+		if _field_render_tex.is_valid():
+			_us_fr_2 = _rd.uniform_set_create([
+				_get_set2_image_uniform(_field_render_shader, 0, _field_render_tex),
+			], _field_render_shader, 2)
 
 	# Instancer
 	_us_inst_0 = _rd.uniform_set_create([
@@ -500,128 +632,142 @@ func _get_set2_buffer_uniform(shader: RID, binding: int, buf: RID) -> RDUniform:
 	return u
 
 
-func _dispatch_compute(shader: RID, pipeline: RID,
-		set2_uniforms: Array[RDUniform],
-		pc: PackedFloat32Array, groups: Vector3i) -> void:
-	if not _rd: return
-	if not shader.is_valid() or not pipeline.is_valid(): return
+func _render_field_slice() -> void:
+	if not _field_render_shader.is_valid(): return
+	if not _field_render_tex.is_valid():
+		_make_render_textures()
+		_cache_uniform_sets()  # re-cache sets that reference the new texture
 
-	var us0 = _rd.uniform_set_create([
-		_uniform_storage(0, _field_ey),
-		_uniform_storage(1, _field_ei),
-		_uniform_storage(2, _field_q),
-		_uniform_storage(3, _field_vel),
-	], shader, 0)
-
-	var us1 = _rd.uniform_set_create([
-		_uniform_storage(0, _pos_buf),
-		_uniform_storage(1, _vel_buf),
-		_uniform_storage(2, _acc_buf),
-	], shader, 1)
-
-	var us2 = _rd.uniform_set_create(set2_uniforms, shader, 2)
+	# Shared PC (11 floats) — reuse the pre-allocated buffer
+	_pc_bytes.encode_float(0, float(grid_N))
+	_pc_bytes.encode_float(4, dt)
+	_pc_bytes.encode_float(8, _time)
+	_pc_bytes.encode_float(12, PHI)
+	_pc_bytes.encode_float(16, xi)
+	_pc_bytes.encode_float(20, softening * softening)
+	_pc_bytes.encode_float(24, float(N_particles))
+	_pc_bytes.encode_float(28, float(mode))
+	_pc_bytes.encode_float(32, source_strength)
+	_pc_bytes.encode_float(36, float(num_clusters))
+	_pc_bytes.encode_float(40, float(gravity_mode))
+	var wg = Vector3i(ceili(_rt_size.x / 8.0), ceili(_rt_size.y / 8.0), 1)
 
 	var cl = _rd.compute_list_begin()
-	_rd.compute_list_bind_compute_pipeline(cl, pipeline)
-	_rd.compute_list_bind_uniform_set(cl, us0, 0)
-	_rd.compute_list_bind_uniform_set(cl, us1, 1)
-	_rd.compute_list_bind_uniform_set(cl, us2, 2)
-	_rd.compute_list_set_push_constant(cl, pc.to_byte_array(), pc.size() * 4)
-	_rd.compute_list_dispatch(cl, groups.x, groups.y, groups.z)
+	_rd.compute_list_bind_compute_pipeline(cl, _field_render_pipe)
+	_rd.compute_list_bind_uniform_set(cl, _us_fr_0, 0)
+	_rd.compute_list_bind_uniform_set(cl, _us_fr_2, 2)
+	_rd.compute_list_set_push_constant(cl, _pc_bytes, _pc_bytes.size())
+	_rd.compute_list_dispatch(cl, wg.x, wg.y, wg.z)
 	_rd.compute_list_end()
+	_ensure_synced()  # local RD: sync any pending physics submit first
 	_rd.submit()
 	_rd.sync()
+	_pending_submit = false  # we just synced this list ourselves
+
+	# Readback for UI display
+	var fdata = _rd.texture_get_data(_field_render_tex, 0)
+	if fdata.size() > 100:
+		var img = Image.create_from_data(_rt_size.x, _rt_size.y, false, Image.FORMAT_RGBAF, fdata)
+		if img:
+			field_display_texture = ImageTexture.create_from_image(img)
+			field_texture_updated.emit(field_display_texture)
 
 
 func _physics_step() -> void:
+	# Single-step API (verify script / external callers): wraps the step
+	# dispatches in its own list+submit+sync.
+	_run_physics_steps(1)
+
+
+func _step_dispatches(cl: int) -> void:
 	_time += dt
+	_step_count += 1
 
-	# Ensure BH buffer has correct physics params (modes may overwrite it)
-	var bh_init = PackedFloat32Array([
-		0.0, 0.0, 0.0, float(N_particles),           # pos + M_total
-		0.0, 0.0, 0.0, 1.0,                           # spin + G_N
-		cluster_radius, cluster_radius * 1.5, 0.0, 0.0, # cluster_a, grid_extent
-		0.0, 0.0, 0.0, 0.0,
-	])
-	_rd.buffer_update(_bh_buf, 0, bh_init.size() * 4, bh_init.to_byte_array())
+	# ── Pre-allocated push constants (no per-step allocations) ──────────
+	_pc_bytes.encode_float(0, float(grid_N))
+	_pc_bytes.encode_float(4, dt)
+	_pc_bytes.encode_float(8, _time)
+	_pc_bytes.encode_float(12, PHI)
+	_pc_bytes.encode_float(16, xi)
+	_pc_bytes.encode_float(20, softening * softening)
+	_pc_bytes.encode_float(24, float(N_particles))
+	_pc_bytes.encode_float(28, float(mode))
+	_pc_bytes.encode_float(32, source_strength)
+	_pc_bytes.encode_float(36, float(num_clusters))
+	_pc_bytes.encode_float(40, float(gravity_mode))
 
-	# Push constants (shared by two-fluid, nbody, instancer)
-	var pc = PackedFloat32Array([
-		float(grid_N),          # N_f
-		dt,                     # dt
-		_time,                  # t
-		PHI,                    # phi
-		xi,                     # xi
-		softening * softening,   # eps2
-		float(N_particles),     # particle_N
-		float(mode),            # mode
-		source_strength,        # source_strength
-		float(num_clusters),    # num_clusters
-	])
-	var pc_bytes = pc.to_byte_array()
-	var pc_size = pc.size() * 4
+	# Mass deposit PC: [N_f, particle_N, extent, _]
+	_md_pc_bytes.encode_float(0, float(grid_N))
+	_md_pc_bytes.encode_float(4, float(N_particles))
+	_md_pc_bytes.encode_float(8, cluster_radius * 1.5)
+	# BH integrate PC: [N_f, dt, acc_rate, max_age]
+	_bh_int_pc_bytes.encode_float(0, float(grid_N))
+	_bh_int_pc_bytes.encode_float(4, dt)
+	_bh_int_pc_bytes.encode_float(8, bh_acc_rate)
+	_bh_int_pc_bytes.encode_float(12, bh_max_age)
+	# Condensation PC: [N_f, qi_threshold, _, _]
+	_cond_pc_bytes.encode_float(0, float(grid_N))
+	_cond_pc_bytes.encode_float(4, qi_condensation_threshold)
 
-	# Push constants (mass deposit — different layout)
-	var md_pc = PackedFloat32Array([
-		float(grid_N), float(N_particles), cluster_radius * 1.5, 0.0
-	])
-	var md_pc_bytes = md_pc.to_byte_array()
+	_cond_step_counter += 1
+	if _cond_step_counter >= 100:
+		_cond_step_counter = 0
 
 	var wg = ceili(float(grid_N) / 4.0)
 	var pg = ceili(float(N_particles) / 256.0) if N_particles > 0 else 1
-	# Zero mass density buffer (BEFORE compute list — buffer_update forbidden during compute list)
-	var zc = grid_N * grid_N * grid_N
-	if _zero_mass_buf.size() != zc * 4: _zero_mass_buf.resize(zc * 4)
-	_rd.buffer_update(_mass_density_buf, 0, _zero_mass_buf.size(), _zero_mass_buf)
 
-	# Reset BH counter before compute list
-	_cond_step_counter += 1
-	if _cond_step_counter >= 100 and _cond_shader.is_valid():
-		_cond_step_counter = 0
-		var zero4 = PackedByteArray(); zero4.resize(16)
-		_rd.buffer_update(_bh_buf, 0, 16, zero4)
-
-	var cl = _rd.compute_list_begin()
+	# ── 0. GPU clear (poisson mode 3): ρ = 0, telemetry reset ─────────
+	# Must happen ON THE GPU per step: CPU buffer_update is illegal inside
+	# an open compute list, and chained steps need a clean ρ each step.
+	if _poisson_shader.is_valid():
+		_poisson_pc_bytes.encode_float(0, float(grid_N))
+		_poisson_pc_bytes.encode_float(4, 0.0)
+		_poisson_pc_bytes.encode_float(8, 0.0)
+		_poisson_pc_bytes.encode_float(12, 3.0)  # mode 3 = clear
+		_poisson_pc_bytes.encode_float(16, cluster_radius * 1.5)
+		_rd.compute_list_bind_compute_pipeline(cl, _poisson_pipe)
+		_rd.compute_list_bind_uniform_set(cl, _us_poisson_0, 0)
+		_rd.compute_list_set_push_constant(cl, _poisson_pc_bytes, _poisson_pc_bytes.size())
+		_rd.compute_list_dispatch(cl, _poisson_wg, 1, 1)
+	_barrier(cl)  # clear → deposit
 
 	# ── 1. Mass deposit: scatter particle masses → field grid (PIC) ──
 	if _mass_deposit_shader.is_valid() and N_particles > 0:
 		_rd.compute_list_bind_compute_pipeline(cl, _mass_deposit_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_mass_dep_0, 0)
-		_rd.compute_list_set_push_constant(cl, md_pc_bytes, md_pc.size() * 4)
+		_rd.compute_list_set_push_constant(cl, _md_pc_bytes, _md_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, pg, 1, 1)
+	_barrier(cl)  # deposit → poisson
+
+	# ── 1.5. Spectral Poisson solve: ∇²Φ = ρ_mass (Φ̂ = −ρ̂/k², k=0 nulled) ──
+	_dispatch_poisson(cl)
+	_barrier(cl)  # poisson → PDE
 
 	# ── 2. Two-fluid PDE ─────────────────────────────────────────────
 	if _two_fluid_shader.is_valid():
 		_rd.compute_list_bind_compute_pipeline(cl, _two_fluid_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_two_0, 0)
-		_rd.compute_list_bind_uniform_set(cl, _us_two_1, 1)
-		_rd.compute_list_bind_uniform_set(cl, _us_two_2, 2)
-		_rd.compute_list_set_push_constant(cl, pc_bytes, pc_size)
+		_rd.compute_list_set_push_constant(cl, _pc_bytes, _pc_bytes.size())
 		_rd.compute_list_dispatch(cl, wg, wg, wg)
+	_barrier(cl)  # PDE → condensation
 
 	# ── 2.5. Condensation scan (every 100 steps) ───────────────────
 	if _cond_step_counter == 0 and _cond_shader.is_valid():
-		var cond_pc = PackedFloat32Array([float(grid_N), qi_condensation_threshold, 0.0, 0.0])
-		var cond_us1 = _rd.uniform_set_create([
-			_uniform_storage(0, _bh_buf),
-		], _cond_shader, 1)
 		_rd.compute_list_bind_compute_pipeline(cl, _cond_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_cond_0, 0)
-		_rd.compute_list_bind_uniform_set(cl, cond_us1, 1)
-		_rd.compute_list_set_push_constant(cl, cond_pc.to_byte_array(), 16)
+		_rd.compute_list_bind_uniform_set(cl, _us_cond_1, 1)
+		_rd.compute_list_set_push_constant(cl, _cond_pc_bytes, _cond_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, wg, wg, wg)
+	_barrier(cl)  # condensation → BH integrate
 
 	# ── 2.6. BH integration (every step) ──────────────────────────
 	if _bh_int_shader.is_valid():
-		var bh_int_pc = PackedFloat32Array([float(grid_N), dt, bh_acc_rate, bh_max_age])
-		var bh_int_us1 = _rd.uniform_set_create([
-			_uniform_storage(0, _bh_buf),
-		], _bh_int_shader, 1)
 		_rd.compute_list_bind_compute_pipeline(cl, _bh_int_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_bh_int_0, 0)
-		_rd.compute_list_bind_uniform_set(cl, bh_int_us1, 1)
-		_rd.compute_list_set_push_constant(cl, bh_int_pc.to_byte_array(), 16)
+		_rd.compute_list_bind_uniform_set(cl, _us_bh_int_1, 1)
+		_rd.compute_list_set_push_constant(cl, _bh_int_pc_bytes, _bh_int_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, wg, wg, wg)
+	_barrier(cl)  # BH integrate → nbody
 
 	# ── 3. N-body gravity ────────────────────────────────────────────
 	if _nbody_shader.is_valid() and N_particles > 0:
@@ -629,19 +775,89 @@ func _physics_step() -> void:
 		_rd.compute_list_bind_uniform_set(cl, _us_nbody_0, 0)
 		_rd.compute_list_bind_uniform_set(cl, _us_nbody_1, 1)
 		_rd.compute_list_bind_uniform_set(cl, _us_nbody_2, 2)
-		_rd.compute_list_set_push_constant(cl, pc_bytes, pc_size)
+		_rd.compute_list_set_push_constant(cl, _pc_bytes, _pc_bytes.size())
 		_rd.compute_list_dispatch(cl, pg, 1, 1)
+	_barrier(cl)  # nbody → instancer
 
 	# ── 4. Instancer: GPU-only MultiMesh update ──────────────────────
 	if _instancer_shader.is_valid() and N_particles > 0:
 		_rd.compute_list_bind_compute_pipeline(cl, _instancer_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_inst_0, 0)
-		_rd.compute_list_set_push_constant(cl, pc_bytes, pc_size)
+		_rd.compute_list_set_push_constant(cl, _pc_bytes, _pc_bytes.size())
 		_rd.compute_list_dispatch(cl, pg, 1, 1)
+	# NOTE: the compute list is owned by the caller (_run_physics_steps);
+	# end/submit/sync happen there, once per frame.
 
-	_rd.compute_list_end()
-	_rd.submit()
-	# NO SYNC — sync only before readbacks in _render_frame()
+# ── One-time FD-Laplacian residual report for the Poisson solve ─────────
+# Checks ∇²Φ ≈ ρ (7-point stencil) on the solved potential. The spectral
+# solve inverts the CONTINUOUS Laplacian, so the residual measures the
+# discretization mismatch (expected O(h²) of the stencil), not solver error.
+func _report_poisson_residual() -> void:
+	if not _rd or not _fft_buf.is_valid(): return
+	_ensure_synced()
+	var N = grid_N
+	var phi = _rd.buffer_get_data(_fft_buf, 0, N * N * N * 8)
+	var rhob = _rd.buffer_get_data(_mass_density_buf, 0, N * N * N * 4)
+	if phi.size() < N * N * N * 8 or rhob.size() < N * N * N * 4:
+		push_error("[CassiSim] Poisson residual readback failed")
+		return
+	var pf = phi.to_float32_array()
+	var rf = rhob.to_float32_array()
+	var h = (cluster_radius * 1.5) / (float(N) * 0.5)  # cell size
+	var num = 0.0
+	var den = 0.0
+	for k in range(N):
+		for j in range(N):
+			for i in range(N):
+				var id = i + N * (j + N * k)
+				var i1 = ((i + 1) % N) + N * (j + N * k)
+				var im = ((i - 1 + N) % N) + N * (j + N * k)
+				var j1 = i + N * (((j + 1) % N) + N * k)
+				var jm = i + N * (((j - 1 + N) % N) + N * k)
+				var k1 = i + N * (j + N * ((k + 1) % N))
+				var km = i + N * (j + N * ((k - 1 + N) % N))
+				var lap = (pf[i1 * 2] + pf[im * 2] + pf[j1 * 2] + pf[jm * 2]
+					 + pf[k1 * 2] + pf[km * 2] - 6.0 * pf[id * 2]) / (h * h)
+				var rho_v = rf[id]
+				num += (lap - rho_v) * (lap - rho_v)
+				den += rho_v * rho_v
+	_poisson_residual = sqrt(num / max(den, 1e-30))
+	print("[CassiSim] Poisson residual: L2 |∇²Φ − ρ| / |ρ| = %.6f  (cells=%d, h=%.4f)" % [_poisson_residual, N * N * N, h])
+
+
+# load ρ → FFT(x) → FFT(y) → FFT(z) → Φ̂=−ρ̂/k² (k=0 nulled) → IFFT(z) → IFFT(y) → IFFT(x)
+func _dispatch_poisson(cl: int) -> void:
+	if not _poisson_shader.is_valid(): return
+	_rd.compute_list_bind_compute_pipeline(cl, _poisson_pipe)
+	_rd.compute_list_bind_uniform_set(cl, _us_poisson_0, 0)
+	# mode 0: load ρ → complex buffer
+	_poisson_pc_bytes.encode_float(0, float(grid_N)); _poisson_pc_bytes.encode_float(4, 0.0)
+	_poisson_pc_bytes.encode_float(8, 0.0); _poisson_pc_bytes.encode_float(12, 0.0)
+	_poisson_pc_bytes.encode_float(16, cluster_radius * 1.5)
+	_rd.compute_list_set_push_constant(cl, _poisson_pc_bytes, _poisson_pc_bytes.size())
+	_rd.compute_list_dispatch(cl, _poisson_wg, 1, 1)
+	_barrier(cl)  # load → fwd x
+	# mode 1: forward FFT passes x, y, z
+	for axis in range(3):
+		_poisson_pc_bytes.encode_float(4, float(axis))
+		_poisson_pc_bytes.encode_float(8, 0.0)   # forward
+		_poisson_pc_bytes.encode_float(12, 1.0)
+		_rd.compute_list_set_push_constant(cl, _poisson_pc_bytes, _poisson_pc_bytes.size())
+		_rd.compute_list_dispatch(cl, _poisson_wg, 1, 1)
+		_barrier(cl)  # FFT passes: memory visibility between stages
+	# mode 2: k-space multiply Φ̂ = −ρ̂/k²  (BETWEEN fwd and inv — required)
+	_poisson_pc_bytes.encode_float(12, 2.0)
+	_rd.compute_list_set_push_constant(cl, _poisson_pc_bytes, _poisson_pc_bytes.size())
+	_rd.compute_list_dispatch(cl, _poisson_wg, 1, 1)
+	_barrier(cl)  # fwd z → kspace
+	# mode 1: inverse FFT passes z, y, x (scaled 1/N each)
+	for axis in range(2, -1, -1):
+		_poisson_pc_bytes.encode_float(4, float(axis))
+		_poisson_pc_bytes.encode_float(8, 1.0)   # inverse
+		_poisson_pc_bytes.encode_float(12, 1.0)
+		_rd.compute_list_set_push_constant(cl, _poisson_pc_bytes, _poisson_pc_bytes.size())
+		_rd.compute_list_dispatch(cl, _poisson_wg, 1, 1)
+		_barrier(cl)  # inverse FFT passes
 
 func _make_render_textures() -> void:
 	_rt_size = Vector2i(512, 512)
@@ -682,7 +898,7 @@ func _render_frame() -> void:
 
 	# Read instance buffer from GPU to PackedFloat32Array for MultiMesh
 	if _mm_buf.is_valid() and N_particles > 0 and _rb_counter % (RB_SKIP + 1) == 0:
-		_rd.sync()  # sync only when we actually read back
+		_ensure_synced()  # sync only when we actually read back
 		var inst_data = _rd.buffer_get_data(_mm_buf, 0, N_particles * 64)
 		if inst_data.size() > 0:
 			_mm_data_f32 = inst_data.to_float32_array()
@@ -697,13 +913,30 @@ func _render_frame() -> void:
 	# Throttled diagnostics readback (every 60 steps)
 	var q_guard = (_step_count % 60 == 0)
 	if q_guard and _field_q.is_valid():
-		_rd.sync()
+		_ensure_synced()
 		var q_data = _rd.buffer_get_data(_field_q, 0, grid_N * grid_N * grid_N * 4)
 		if q_data.size() > 0:
 			var qf = q_data.to_float32_array()
 			var q_sum = 0.0
 			for v in qf: q_sum += v
 			_q_mean = q_sum / max(qf.size(), 1)
+		# Gravity telemetry: saturation counters + q/π/ρ range at particles
+		var tel = _rd.buffer_get_data(_tel_buf, 0, 32)
+		if tel.size() >= 32:
+			_pi_sat_hi_frac = tel.decode_float(0)
+			_pi_sat_lo_frac = tel.decode_float(4)
+			_rho_guard_hits = int(tel.decode_float(8))
+			_q_min = tel.decode_float(12)
+			_q_max = tel.decode_float(16)
+			_pi_min = tel.decode_float(20)
+			_pi_max = tel.decode_float(24)
+			var samples = max(2 * N_particles, 1)
+			_pi_sat_hi_frac /= samples
+			_pi_sat_lo_frac /= samples
+	# One-time Poisson residual report (FD-Laplacian check of the Φ solve)
+	if not _poisson_residual_done and _shaders_ready and _step_count >= 1:
+		_poisson_residual_done = true
+		_report_poisson_residual()
 
 	var realtime_mode = int(mode)
 
@@ -729,6 +962,7 @@ func _render_particles() -> void:
 	# MultiMesh reads from GPU buffer directly — no CPU transform updates needed.
 	# Just log the first particle position for diagnostics.
 	if _step_count > 0 and _step_count % 3000 == 0:
+		_ensure_synced()  # readback requires the device synced
 		var pos_data = _rd.buffer_get_data(_pos_buf, 0, 16)
 		if pos_data.size() >= 16:
 			var pos = pos_data.to_float32_array()
@@ -736,42 +970,23 @@ func _render_particles() -> void:
 				pos[0], pos[1], pos[2], _step_count])
 
 
-
-func _render_field_slice() -> void:
-	if not _field_render_shader.is_valid(): return
-	if not _field_render_tex.is_valid():
-		_make_render_textures()
-
-	var pc = PackedFloat32Array([
-		float(grid_N), dt, _time, PHI, xi,
-		softening * softening, float(N_particles), float(mode),
-		source_strength, 0.0,
-	])
-	var wg = Vector3i(ceili(_rt_size.x / 8.0), ceili(_rt_size.y / 8.0), 1)
-
-	_dispatch_compute(_field_render_shader, _field_render_pipe,
-		[_get_set2_image_uniform(_field_render_shader, 0, _field_render_tex)],
-		pc, wg)
-
-	# Readback for UI display
-	var fdata = _rd.texture_get_data(_field_render_tex, 0)
-	if fdata.size() > 100:
-		var img = Image.create_from_data(_rt_size.x, _rt_size.y, false, Image.FORMAT_RGBAF, fdata)
-		if img:
-			field_display_texture = ImageTexture.create_from_image(img)
-			field_texture_updated.emit(field_display_texture)
-
-
 func _render_bh_lensing() -> void:
 	if not _bh_lensing_shader.is_valid(): return
 	if not _bh_lensing_tex.is_valid():
 		_make_render_textures()
 
-	var pc = PackedFloat32Array([
-		float(grid_N), dt, _time, PHI, xi,
-		softening * softening, float(N_particles), float(mode),
-		source_strength, 0.0,
-	])
+	# Shared PC (11 floats) — pre-allocated, no per-frame allocation
+	_pc_bytes.encode_float(0, float(grid_N))
+	_pc_bytes.encode_float(4, dt)
+	_pc_bytes.encode_float(8, _time)
+	_pc_bytes.encode_float(12, PHI)
+	_pc_bytes.encode_float(16, xi)
+	_pc_bytes.encode_float(20, softening * softening)
+	_pc_bytes.encode_float(24, float(N_particles))
+	_pc_bytes.encode_float(28, float(mode))
+	_pc_bytes.encode_float(32, source_strength)
+	_pc_bytes.encode_float(36, float(num_clusters))
+	_pc_bytes.encode_float(40, float(gravity_mode))
 
 	# Write BH params: center screen, M=0.2, spin=0, G_eff=1.0
 	# (M=2.0 produced b_crit=1011px with Cassi correction — larger than 512px screen)
@@ -788,11 +1003,13 @@ func _render_bh_lensing() -> void:
 		_get_set2_image_uniform(_bh_lensing_shader, 0, _bh_lensing_tex),
 		_get_set2_buffer_uniform(_bh_lensing_shader, 1, _bh_buf),
 	], _bh_lensing_shader, 2), 2)
-	_rd.compute_list_set_push_constant(cl, pc.to_byte_array(), pc.size() * 4)
+	_rd.compute_list_set_push_constant(cl, _pc_bytes, _pc_bytes.size())
 	_rd.compute_list_dispatch(cl, wg.x, wg.y, wg.z)
 	_rd.compute_list_end()
+	_ensure_synced()  # local RD: sync any pending physics submit first
 	_rd.submit()
 	_rd.sync()
+	_pending_submit = false  # we just synced this list ourselves
 
 	# Readback for UI display
 	var bdata = _rd.texture_get_data(_bh_lensing_tex, 0)
@@ -807,16 +1024,19 @@ func _render_bh_lensing() -> void:
 # ═══════════════════════════════════════════════════════════════════════
 
 func reinit() -> void:
-	_rd.sync()
+	_ensure_synced()
 	_free_buffers()
 	_setup_buffers()
-	_init_field()
+	_cache_uniform_sets()  # CRITICAL: cached sets reference the OLD freed buffers
+	_init_field()          # without this, every dispatch after reinit is stale
 	_init_particles()
 	_step_count = 0
+	_cond_step_counter = 0
 	_time = 0.0
 	print("[CassiSim] Reinitialized")
 
 
 func get_diagnostics() -> String:
-	return "t=%.3f  q_mean=%.4f  ε²=%.6f  H=%.4f  a=%.3f  steps=%d" % [
-		_time, _q_mean, _eps_mean, _hubble, _scale_factor, _step_count]
+	var law = "RIVER" if gravity_mode == 0 else "HEURISTIC"
+	return "t=%.3f  q_mean=%.4f  ε²=%.6f  H=%.4f  sf=%.3f  steps=%d  grav=%s  φ⁶−1=%.4f" % [
+		_time, _q_mean, _eps_mean, _hubble, _scale_factor, _step_count, law, PHI_6 - 1.0]

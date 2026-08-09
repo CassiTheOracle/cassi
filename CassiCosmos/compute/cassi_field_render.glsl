@@ -33,7 +33,8 @@ layout(push_constant, std430) uniform PC {
     float particle_N;      // particle count (unused here)
     float mode;            // visualization mode (1 = field slice)
     float source_strength; // (unused here)
-    float _pad;
+    float num_clusters;    // (unused here)
+    float gravity_mode;    // (unused here)
 } pc;
 
 void main() {

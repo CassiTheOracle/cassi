@@ -14,6 +14,7 @@ var _diag_label: Label
 var _conn_label: Label
 
 var _mode_btns: Array[Button] = []
+var _grav_btns: Array[Button] = []
 var _play_btn: Button
 var _reinit_btn: Button
 
@@ -131,6 +132,11 @@ func _ready() -> void:
 
 	_build_mode_buttons(row1)
 
+	var sep0 = VSeparator.new()
+	sep0.custom_minimum_size = Vector2(4, 0)
+	row1.add_child(sep0)
+	_build_gravity_buttons(row1)
+
 	var sep1 = VSeparator.new()
 	sep1.custom_minimum_size = Vector2(4, 0)
 	row1.add_child(sep1)
@@ -186,7 +192,7 @@ func _ready() -> void:
 	var part_lbl = _make_label("Particles:", Color(0.9, 0.85, 0.5), 12)
 	part_box.add_child(part_lbl)
 	_particle_spin = SpinBox.new()
-	_particle_spin.min_value = 100; _particle_spin.max_value = 200000
+	_particle_spin.min_value = 100; _particle_spin.max_value = 5000000
 	_particle_spin.step = 1000; _particle_spin.value = 20000
 	_particle_spin.custom_minimum_size = Vector2(0, 22)
 
@@ -254,6 +260,7 @@ func _ready() -> void:
 		_particle_spin.value = sim.N_particles
 		_update_play_btn(sim.playing)
 		_set_mode_highlight(sim.mode)
+		_set_grav_highlight(sim.gravity_mode)
 
 	# Connect value_changed AFTER init to avoid spurious reinit() on startup
 	_grid_spin.value_changed.connect(_on_grid_changed)
@@ -287,6 +294,22 @@ func _build_mode_buttons(parent: HBoxContainer) -> void:
 		_mode_btns.append(btn)
 
 
+func _build_gravity_buttons(parent: HBoxContainer) -> void:
+	# Gravity law toggle: 0 = RIVER (the law, default), 1 = HEURISTIC (legacy)
+	var group = ButtonGroup.new()
+	for i in range(2):
+		var btn = Button.new()
+		btn.text = "River" if i == 0 else "Heuristic"
+		btn.toggle_mode = true
+		btn.button_group = group
+		btn.button_pressed = (i == 0)
+		btn.custom_minimum_size = Vector2(90, 30)
+		btn.focus_mode = Control.FOCUS_NONE
+		btn.pressed.connect(_on_gravity_mode_pressed.bind(i))
+		parent.add_child(btn)
+		_grav_btns.append(btn)
+
+
 func _build_slider_row(parent: HBoxContainer, label_text: String,
 		min_v: float, max_v: float, step_v: float, default_v: float,
 		callback: Callable) -> HSlider:
@@ -313,6 +336,11 @@ func _set_mode_highlight(active: int) -> void:
 		_mode_btns[i].button_pressed = (i == active)
 	# Show viz texture only in Field (1) or BH (2) mode
 	_viz_texture_rect.visible = (active == 1 or active == 2)
+
+
+func _set_grav_highlight(active: int) -> void:
+	for i in range(_grav_btns.size()):
+		_grav_btns[i].button_pressed = (i == active)
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -347,6 +375,13 @@ func _on_mode_pressed(idx: int) -> void:
 	if sim:
 		sim.mode = idx
 	_set_mode_highlight(idx)
+
+
+func _on_gravity_mode_pressed(idx: int) -> void:
+	var sim = _get_sim()
+	if sim:
+		sim.gravity_mode = idx
+	_set_grav_highlight(idx)
 
 
 func _on_xi_changed(value: float) -> void:
@@ -427,8 +462,12 @@ func _update_info() -> void:
 		_diag_label.text = \
 			"q_mean: %.4f  ε²: %.6f\n" % [sim._q_mean, sim._eps_mean] + \
 			"xi: %.1f  src: %.2f  soften: %.2f\n" % [sim.xi, sim.source_strength, sim.softening] + \
-			"a: %.3f  H: %.4f  steps: %d\n" % [sim._scale_factor, sim._hubble, sim._step_count] + \
-			"N: %s | grid: %d³ | dt: %.4f" % [p_str, sim.grid_N, sim.dt]
+			"sf: %.3f  H: %.4f  steps: %d\n" % [sim._scale_factor, sim._hubble, sim._step_count] + \
+			"N: %s | grid: %d³ | dt: %.4f\n" % [p_str, sim.grid_N, sim.dt] + \
+			"grav: %s  φ⁶−1: %.3f\n" % ["RIVER" if sim.gravity_mode == 0 else "HEURISTIC", sim.PHI_6 - 1.0] + \
+			"q∈[%.6f, %.6f]  π/ρ∈[%.4f, %.4f]  sat↑%.1f%% sat↓%.1f%%" % [
+				sim._q_min, sim._q_max, sim._pi_min, sim._pi_max,
+				sim._pi_sat_hi_frac * 100.0, sim._pi_sat_lo_frac * 100.0]
 		_conn_label.text = "Connection: Local"
 	else:
 		_info_label.text = "FPS: %.0f  |  Mode: --" % _fps_display

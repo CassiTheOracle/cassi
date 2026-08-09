@@ -39,7 +39,8 @@ layout(push_constant, std430) uniform PC {
     float particle_N;      // not used here
     float mode;            // visualization mode
     float source_strength; // not used here
-    float _pad;
+    float num_clusters;    // not used here
+    float gravity_mode;    // not used here
 } pc;
 
 // ── Constants ──────────────────────────────────────────────────────────
