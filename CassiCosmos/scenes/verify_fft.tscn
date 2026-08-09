@@ -1,14 +1,14 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://scripts/cassi_sim.gd" id="1_sim"]
-[ext_resource type="Script" path="res://scripts/verify_river_law.gd" id="2_ver"]
+[ext_resource type="Script" path="res://scripts/verify_fft.gd" id="2_ver"]
 
-[node name="VerifyRiverLaw" type="Node3D"]
+[node name="VerifyFFT" type="Node3D"]
 
 [node name="CassiSim" type="Node3D" parent="."]
 script = ExtResource("1_sim")
 grid_N = 64
-N_particles = 2
+N_particles = 1
 cluster_radius = 25.0
 playing = false
 gravity_mode = 0

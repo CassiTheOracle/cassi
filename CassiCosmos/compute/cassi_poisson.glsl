@@ -58,6 +58,25 @@ void load_main() {
 // Specialized to N = 64 (local_size 64, 6 stages); N is an export of the
 // sim and the pipeline is rebuilt on reinit, so a mismatch is impossible
 // unless grid_N is changed without reinit — guard anyway.
+//
+// This is a radix-2 DIT schedule: butterflies run over blocks that double
+// each stage, pairing elements jj and jj + halfn with twiddle ω^jj.
+// DIT REQUIRES THE INPUT IN BIT-REVERSED ORDER: the row is loaded into
+// shared memory with the local index bit-reversed (6 bits for N = 64,
+// per axis — the reversal permutes positions WITHIN the row). The same
+// reversed load is applied on the inverse side, so the transform pair
+// closes: FFT⁻¹(FFT(x)) = x. (Without this, the DIT butterfly shape
+// applied to natural-order input scrambles the spectrum — the
+// noise-like, sign-flipped Φ observed before the fix.)
+int bitrev6(int x) {
+    int r = 0;
+    for (int b = 0; b < 6; b++) {
+        r = (r << 1) | (x & 1);
+        x >>= 1;
+    }
+    return r;
+}
+
 void fft_main() {
     int N = int(pc.N_f);
     if (N != 64) return;  // FFT kernels are specialized to N = 64
@@ -79,7 +98,7 @@ void fft_main() {
     else { base = r0 + N * r1; stride = N * N; }
     int gidx = base + t * stride;
 
-    sdata[0][t] = f[gidx];
+    sdata[0][t] = f[base + bitrev6(t) * stride];
     barrier();
 
     int r = 0;

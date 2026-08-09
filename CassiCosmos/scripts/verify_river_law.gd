@@ -76,10 +76,25 @@ func _write_fields(ey: PackedFloat32Array, ei: PackedFloat32Array) -> void:
 
 
 func _set_particle(pos3: Vector3, mass: float) -> void:
-	var p = PackedFloat32Array([pos3.x, pos3.y, pos3.z, mass])
-	var v = PackedFloat32Array([0.0, 0.0, 0.0, 0.0])
-	sim._rd.buffer_update(sim._pos_buf, 0, 16, p.to_byte_array())
-	sim._rd.buffer_update(sim._vel_buf, 0, 16, v.to_byte_array())
+	# particle 1 gets ZERO mass at the same spot: no deposit, no force,
+	# keeps the buffers well-formed with N_particles = 2
+	var p = PackedFloat32Array([pos3.x, pos3.y, pos3.z, mass,
+		pos3.x, pos3.y, pos3.z, 0.0])
+	var v = PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+	sim._rd.buffer_update(sim._pos_buf, 0, 32, p.to_byte_array())
+	sim._rd.buffer_update(sim._vel_buf, 0, 32, v.to_byte_array())
+
+
+# Two-particle setup: particle 0 = the MASS (deposited into ρ), particle 1 =
+# the PROBE (tiny mass 1e-4 — its own well is negligible). A single particle
+# both sources the potential and sits at its own well's minimum, where ∇Φ ≈ 0
+# and the self-force vanishes — the force tests need a separate probe.
+func _set_two(mass_pos: Vector3, probe_pos: Vector3) -> void:
+	var p = PackedFloat32Array([mass_pos.x, mass_pos.y, mass_pos.z, 10.0,
+		probe_pos.x, probe_pos.y, probe_pos.z, 1e-4])
+	var v = PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+	sim._rd.buffer_update(sim._pos_buf, 0, 32, p.to_byte_array())
+	sim._rd.buffer_update(sim._vel_buf, 0, 32, v.to_byte_array())
 
 
 func _read_phi() -> PackedFloat32Array:
@@ -101,7 +116,9 @@ func _read_rho() -> PackedFloat32Array:
 
 func _read_acc() -> Vector3:
 	sim._ensure_synced()
-	var d = sim._rd.buffer_get_data(sim._acc_buf, 0, 16)
+	# particle 1 = the PROBE (particle 0 is the deposited mass; its acc is
+	# ~0 at its own well's minimum)
+	var d = sim._rd.buffer_get_data(sim._acc_buf, 16, 16)
 	var a = d.to_float32_array()
 	return Vector3(a[0], a[1], a[2])
 
@@ -293,8 +310,11 @@ func _test_poisson() -> void:
 		prof += "%.3f " % phi[i + N * (N / 2) + N * N * (N / 2)]
 	print("  Φ(+x profile, r=0..%.1f): %s" % [23.0 * h, prof])
 
-	# (c) r·(−Φ) constancy along +x (point-mass profile), r ∈ [4h, 16h]
-	var ref: float = NAN
+	# (c) radial FORCE profile: |∇Φ| ≈ M/(4πr²) along +x, r ∈ [4h, 16h].
+	# (r·(−Φ) is NOT constant: the 3D torus Green's function carries a
+	# box-truncated constant — Σ_{k≠0} 1/k² diverges with box size in 3D —
+	# so Φ ≈ −M·(C + 1/4πr); the constant-free gradient is the observable
+	# the river law actually consumes.)
 	var ok = true
 	var worst = 0.0
 	var ci = N / 2
@@ -302,23 +322,21 @@ func _test_poisson() -> void:
 	var ck = N / 2
 	for stepi in range(4, 17):
 		var i = ci + stepi
-		var idx = i + N * (cj + N * ck)
 		var r = float(stepi) * h
-		var rPhi = r * (-phi[idx])
-		if is_nan(ref):
-			ref = rPhi
-		else:
-			var dev = abs(rPhi - ref) / abs(ref)
-			worst = max(worst, dev)
-			if dev > 0.25:
-				ok = false
-	_check("poisson: r·Φ ≈ const (point-mass profile, ±25%)", ok,
-		"worst dev=%.1f%% at r∈[4h,16h]" % (worst * 100.0))
+		var grad = (phi[(i + 1) + N * (cj + N * ck)] - phi[(i - 1) + N * (cj + N * ck)]) / (2.0 * h)
+		var pred = 10.0 * (h * h * h) / (4.0 * PI * r * r)  # M = 10, G_N = 1, ×h³ quadrature
+		var dev = abs(grad - pred) / pred
+		worst = max(worst, dev)
+		if dev > 0.25:
+			ok = false
+	_check("poisson: |∇Φ| ≈ M/(4πr²) (radial force, ±25%)", ok,
+		"worst dev=%.1f%%" % (worst * 100.0))
 
 
 func _test_q0_limit() -> void:
 	print("── (i) q → 0 limit: a ≈ −(π/ρ)·∇Φ ──")
-	# Fluid tiny and uniform → q ≈ 1e-7, g ≈ 1. Particle off-center.
+	# Fluid tiny and uniform → q ≈ 1e-7, g ≈ 1. Mass at the origin,
+	# probe (mass 1e-4) at (8,0,0) — the probe's own well is negligible.
 	var ey = PackedFloat32Array(); ey.resize(nc)
 	var ei = PackedFloat32Array(); ei.resize(nc)
 	for i in range(nc):
@@ -326,13 +344,13 @@ func _test_q0_limit() -> void:
 		ei[i] = 0.00010
 	_write_fields(ey, ei)
 	var wp := Vector3(8.0, 0.0, 0.0)
-	_set_particle(wp, 10.0)
+	_set_two(Vector3.ZERO, wp)
 	sim.gravity_mode = 0
 	sim._physics_step()
 	var phi := _read_phi()
 	var acc := _read_acc()
 
-	# q at the particle (from the crafted fields)
+	# q at the probe (from the crafted fields)
 	var eyv := _tri(ey, wp)
 	var eiv := _tri(ei, wp)
 	var q := (eyv + eiv) * (eyv + eiv) / ((eyv + eiv) * (eyv + eiv) + PHI_INV2 + (eyv - PHI * eiv) * (eyv - PHI * eiv))
@@ -366,19 +384,24 @@ func _test_radial_profile() -> void:
 		ey[i] = 0.00012
 		ei[i] = 0.00010
 	_write_fields(ey, ei)
-	for rr in [3.0, 6.0, 12.0, 20.0]:
+	# r ∈ [3h, 12h]: beyond 12h the torus image forces exceed the tolerance
+	for rr in [3.0, 6.0, 12.0]:
 		var r: float = rr * h
-		_set_particle(Vector3(r, 0.0, 0.0), 10.0)
+		_set_two(Vector3.ZERO, Vector3(r, 0.0, 0.0))
 		sim._physics_step()
 		var acc := _read_acc()
 		var mag := acc.length()
-		# Point-mass prediction: |a| = (π/ρ)·g·M/(4πr²), G_N = 1, M = 10
+		# Point-mass prediction: |a| = (π/ρ)·g·M·h³/(4πr²), G_N = 1, M = 10.
+		# h³ = (L/N)³ is the cell-volume quadrature of the discrete Fourier
+		# Green's function: the k-space solve's Green is h³/(4πr) (the
+		# discrete delta has unit amplitude per cell, so the k-sum carries
+		# the h³ weight) — the sim's field-gravity scale is G_N·h³.
 		var eyv := _tri(ey, Vector3(r, 0, 0))
 		var eiv := _tri(ei, Vector3(r, 0, 0))
 		var q := (eyv + eiv) * (eyv + eiv) / ((eyv + eiv) * (eyv + eiv) + PHI_INV2 + (eyv - PHI * eiv) * (eyv - PHI * eiv))
 		var g: float = 1.0 + (sim.xi - 1.0) * q
 		var pi_over_rho := _clamp_pi(eyv - eiv, eyv + eiv)
-		var pred: float = pi_over_rho * g * 10.0 / (4.0 * PI * r * r)
+		var pred: float = pi_over_rho * g * 10.0 * (h * h * h) / (4.0 * PI * r * r)
 		var tol := 0.40 if rr == 3.0 else 0.25
 		var ok = abs(mag - pred) / pred < tol and acc.x < 0.0  # inward
 		_check("profile r=%.1f (%.0f%% tol)" % [r, tol * 100.0], ok,
@@ -440,15 +463,15 @@ func _test_nan_steps() -> void:
 		ey[i] = 0.00012
 		ei[i] = 0.00010
 	_write_fields(ey, ei)
-	_set_particle(Vector3(8.0, 0.0, 0.0), 10.0)
+	_set_two(Vector3.ZERO, Vector3(8.0, 0.0, 0.0))
 	var bad = false
 	for s in range(30):
 		sim._physics_step()
 		if s % 5 == 0 or s == 29:
 			sim._ensure_synced()
-			var pd = sim._rd.buffer_get_data(sim._pos_buf, 0, 16).to_float32_array()
-			var ad = sim._rd.buffer_get_data(sim._acc_buf, 0, 16).to_float32_array()
-			for v in [pd[0], pd[1], pd[2], ad[0], ad[1], ad[2]]:
+			var pd = sim._rd.buffer_get_data(sim._pos_buf, 0, 32).to_float32_array()
+			var ad = sim._rd.buffer_get_data(sim._acc_buf, 0, 32).to_float32_array()
+			for v in [pd[0], pd[1], pd[2], pd[4], pd[5], pd[6], ad[0], ad[1], ad[2], ad[4], ad[5], ad[6]]:
 				if not is_finite(v):
 					bad = true
 					print("  NaN/Inf at step %d: pos=%s acc=%s" % [s, pd, ad])
@@ -472,7 +495,7 @@ func _test_reinit() -> void:
 		ey[i] = 0.00012
 		ei[i] = 0.00010
 	_write_fields(ey, ei)
-	_set_particle(Vector3(8.0, 0.0, 0.0), 10.0)
+	_set_two(Vector3.ZERO, Vector3(8.0, 0.0, 0.0))
 	sim._physics_step()
 	var acc := _read_acc()
 	var phi := _read_phi()  # read AFTER the crafted step (fresh solve)
