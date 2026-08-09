@@ -38,6 +38,7 @@ domain is not enough—the contribution must be what Cassi *uniquely* adds.
 | 13 | Two-fluid Hilbert–Pólya program | Speculative | Scale-operator candidate for the zeros; minimal-fluctuation probes (Selberg, Gram) | `riemann-two-fluid-spectral-program.md` |
 | 14 | Two-fluid phase operator | Speculative | Step 1 executed: Bessel-index-1 scale operator; linear spectra fail R-vM; semiclassical pinning Lp = 2π | `riemann-two-fluid-phase-operator.md` |
 | 15 | Two-strand five-channel matter organization | Hypothesized | Strand-pair × Wu Xing channel traces on one Qi condensate; Z2×Z5 trace graph; PDE gate outcomes: TS1–TS4 null at lock timescale, TS5 5-fold coincident projection, TS6 twist persistence/no generation, TS7 two-sector bound; staged matter-organization program | `two-strand-five-channel-matter-organization.md` |
+| 16 | Gravity from flow | Hypothesized | The river law: $G_{\text{eff}} = G(\pi/\rho)(1+(\varphi^{6}-1)qf)$ flow-modulated chord; flow factor's sign confirmed at the closure, $\kappa$'s value undetermined; surge form undetermined; boundary $\lambda_{\text{gate}} \approx 0.0255$; C2 open | `gravity-from-flow.md` |
 
 ---
 
@@ -278,6 +279,27 @@ the trace-graph algebra is Derived, the PDE gate outcomes are Tested
 (TS1–TS4 null, TS5 5-fold coincident projection, TS6 twist
 persistence/no generation, TS7 two-sector bound), and the spatial binding
 sector is Open.
+
+### `gravity-from-flow.md`—Gravity from Flow: The River Law's Measured State
+
+Candidate law for the multiscale-coherence-flow synthesis: gravitational
+acceleration is the gradient of the flow-modulated chord
+$\boxed{G_{\text{eff}}(x) = G(\pi/\rho)(1+(\varphi^{6}-1)q(x)f(x))}$ with
+$f = 1 + \varphi^{-1}\ell^2 C/\rho$, $C = -\nabla\cdot J$, $J = \Psi_Y\nabla\Psi_I - \Psi_I\nabla\Psi_Y = \rho\nabla\theta$.
+The skeleton is derived (the $\nabla q$ coefficient from the chord law of
+`foundations/cassi-theory-reference.md` §4.3; $\kappa = \varphi^{-1}$ from the
+per-rung damping of `foundations/cascade-suppression-formula.md` §1—no free
+constant). The sign question is settled: the PDE's $\mathbf{F} = +\Pi\nabla\Phi$
+is $\Pi$-sign-following (TS1 Yang-excess escape; Yin-excess coalescence), and
+the point-particle attraction is the $-[1+(\varphi^{6}-1)q]$ sector
+convention. The probe wave (brief 68) confirms the flow factor's sign at the
+closure ($\bar f = 0.884 < 1$; $dU/U = -22.22$ with the predicted sign) while
+falsifying the linear magnitude 192×—$\kappa$'s value is undetermined; the
+surge form is undetermined on the 7-point set; the boundary is the OFF-side
+margin $\lambda_{\text{gate}} \approx 0.0255$ (candidate $\lambda/4 = 1/(8w)$,
+2% off); C2 is open. **Epistemic tier: Hypothesized**—a candidate skeleton
+with measured sign content; the quantitative claims are explicitly
+undetermined.
 
 ---
 
