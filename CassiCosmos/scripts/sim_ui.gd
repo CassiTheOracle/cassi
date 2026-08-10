@@ -180,8 +180,11 @@ func _ready() -> void:
 	var grid_lbl = _make_label("Grid N:", Color(0.9, 0.85, 0.5), 12)
 	grid_box.add_child(grid_lbl)
 	_grid_spin = SpinBox.new()
-	_grid_spin.min_value = 8; _grid_spin.max_value = 64
-	_grid_spin.step = 1; _grid_spin.value = 32
+	# Fixed at 64: the spectral Poisson FFT (cassi_poisson.glsl) is
+	# specialized to N = 64 and silently no-ops at any other resolution.
+	_grid_spin.min_value = 64; _grid_spin.max_value = 64
+	_grid_spin.step = 1; _grid_spin.value = 64
+	_grid_spin.editable = false
 	_grid_spin.custom_minimum_size = Vector2(0, 22)
 	grid_box.add_child(_grid_spin)
 
@@ -352,7 +355,7 @@ func _process(delta: float) -> void:
 	if _fps_accum >= 0.5:
 		_fps_display = _fps_count / _fps_accum
 		_fps_accum = 0.0; _fps_count = 0
-	_update_info()
+		_update_info()  # status strings change at ~2 Hz; no per-frame rebuilds
 
 
 func _input(event: InputEvent) -> void:
@@ -462,7 +465,7 @@ func _update_info() -> void:
 		_diag_label.text = \
 			"q_mean: %.4f  ε²: %.6f\n" % [sim._q_mean, sim._eps_mean] + \
 			"xi: %.1f  src: %.2f  soften: %.2f\n" % [sim.xi, sim.source_strength, sim.softening] + \
-			"sf: %.3f  H: %.4f  steps: %d\n" % [sim._scale_factor, sim._hubble, sim._step_count] + \
+			"sf: %.3f  H: %.4f  steps: %d  drop: %d\n" % [sim._scale_factor, sim._hubble, sim._step_count, sim._dropped_steps] + \
 			"N: %s | grid: %d³ | dt: %.4f\n" % [p_str, sim.grid_N, sim.dt] + \
 			"grav: %s  φ⁶−1: %.3f\n" % ["RIVER" if sim.gravity_mode == 0 else "HEURISTIC", sim.PHI_6 - 1.0] + \
 			"q∈[%.6f, %.6f]  π/ρ∈[%.4f, %.4f]  sat↑%.1f%% sat↓%.1f%%" % [

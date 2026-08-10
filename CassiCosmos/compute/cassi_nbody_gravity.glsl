@@ -41,10 +41,16 @@ layout(set = 0, binding = 3, std430) readonly buffer FieldVel { vec4 fvel[]; };
 layout(set = 0, binding = 4, std430) readonly buffer MassDensity { uint rho[]; };
 // Poisson solution buffer (complex FFT workspace; real part = Φ after solve)
 layout(set = 0, binding = 5, std430) readonly buffer PhiBuf { vec2 ph[]; };
-// Gravity telemetry (reset by host each step):
+// Gravity telemetry (cleared on the GPU each step by cassi_poisson.glsl
+// mode 3; accumulated per invocation across both KDK kicks, folded per
+// workgroup in shared memory, emitted to the global buffer once per
+// workgroup — the old code ran 28–42 contended global atomics per particle
+// per step through the 7 chord samples × 2 kicks):
 //   [0] = π/ρ upper-clamp hits   [1] = π/ρ lower-clamp hits
 //   [2] = ρ-guard hits           [3] = q_min bits   [4] = q_max bits
-//   [5] = π/ρ_min bits           [6] = π/ρ_max bits [7] = unused
+//   [5] = π/ρ_min bits           [6] = π/ρ_max bits [7] = sample count
+//         (number of chord_g_at evaluations this step; heuristic mode
+//         reports 0 — the UI derives fractions from this denominator)
 layout(set = 0, binding = 6, std430) coherent buffer Telemetry { uint tel[]; };
 
 layout(set = 1, binding = 0, std430) buffer Positions { vec4 pos[]; };
@@ -144,36 +150,58 @@ float tri_phi(vec3 wp) {
     return mix(q0, q1, fz);
 }
 
+// ── Telemetry reduction ────────────────────────────────────────────────
+// Per-invocation stats are accumulated in registers (no global atomics in
+// the hot path), folded into workgroup-shared accumulators, and emitted to
+// tel[0..7] by invocation 0 of each workgroup. The last partial workgroup
+// still reaches every barrier — no early return may precede a barrier.
+// Heuristic mode never calls chord_g_at, so it has no per-sample global atomics.
+struct TeleStats {
+    uint clamp_hi;   // π/ρ pinned at 0.72      → tel[0]
+    uint clamp_lo;   // π/ρ clamped to 0        → tel[1]
+    uint rho_guard;  // ρ < 1e-6 guard hits     → tel[2]
+    uint q_min;      // float bits              → tel[3]
+    uint q_max;      // float bits              → tel[4]
+    uint pi_min;     // float bits              → tel[5]
+    uint pi_max;     // float bits              → tel[6]
+    uint samples;    // chord_g_at evals        → tel[7]
+};
+
+shared uint s_cnt[4];  // clamp_hi, clamp_lo, rho_guard, samples
+shared uint s_min[2];  // q_min, pi_min (float bits)
+shared uint s_max[2];  // q_max, pi_max (float bits)
+
 // ── The coherence factor q and chord factor g at a point ───────────────
-float chord_g_at(vec3 wp, out float q_out, out float pi_over_rho) {
+float chord_g_at(vec3 wp, out float q_out, out float pi_over_rho, inout TeleStats st) {
     float eyv = tri_ey(wp);
     float eiv = tri_ei(wp);
     float rho_f = eyv + eiv;
     float eps = eyv - pc.phi * eiv;
     float q = (rho_f * rho_f) / (rho_f * rho_f + PHI_INV2 + eps * eps);
     q_out = q;
+    st.samples++;
+    st.q_min = min(st.q_min, floatBitsToUint(q));
+    st.q_max = max(st.q_max, floatBitsToUint(q));
     if (rho_f < 1e-6) {
         pi_over_rho = 0.0;
-        atomicAdd(tel[2], 1u);            // ρ guard hit (telemetry, not silent)
+        st.rho_guard++;            // ρ guard hit (telemetry, not silent)
     } else {
         pi_over_rho = (eyv - eiv) / rho_f;
-        if (pi_over_rho > 0.72) { atomicAdd(tel[0], 1u); pi_over_rho = 0.72; }
-        else if (pi_over_rho < 0.0) { atomicAdd(tel[1], 1u); pi_over_rho = 0.0; }
+        if (pi_over_rho > 0.72) { st.clamp_hi++; pi_over_rho = 0.72; }
+        else if (pi_over_rho < 0.0) { st.clamp_lo++; pi_over_rho = 0.0; }
     }
-    atomicMin(tel[3], floatBitsToUint(q));
-    atomicMax(tel[4], floatBitsToUint(q));
-    atomicMin(tel[5], floatBitsToUint(pi_over_rho));
-    atomicMax(tel[6], floatBitsToUint(pi_over_rho));
+    st.pi_min = min(st.pi_min, floatBitsToUint(pi_over_rho));
+    st.pi_max = max(st.pi_max, floatBitsToUint(pi_over_rho));
     return 1.0 + (pc.xi - 1.0) * q;
 }
 
 // ── The flow-modulated chord S = g·Φ at a point (river mode) ───────────
-float chord_value(vec3 wp) {
+float chord_value(vec3 wp, inout TeleStats st) {
     float q_unused; float pi_unused;
-    float g = chord_g_at(wp, q_unused, pi_unused);
+    float g = chord_g_at(wp, q_unused, pi_unused, st);
     return g * tri_phi(wp);               // g · Φ
 }
-vec3 chord_gradient(vec3 wp) {
+vec3 chord_gradient(vec3 wp, inout TeleStats st) {
     int N = int(pc.N_f);
     float hn = float(N) * 0.5;
     float h = bh[2].y / hn;               // cell size
@@ -181,16 +209,16 @@ vec3 chord_gradient(vec3 wp) {
     vec3 dy = vec3(0.0, h, 0.0);
     vec3 dz = vec3(0.0, 0.0, h);
     return vec3(
-        chord_value(wp + dx) - chord_value(wp - dx),
-        chord_value(wp + dy) - chord_value(wp - dy),
-        chord_value(wp + dz) - chord_value(wp - dz)) / (2.0 * h);
+        chord_value(wp + dx, st) - chord_value(wp - dx, st),
+        chord_value(wp + dy, st) - chord_value(wp - dy, st),
+        chord_value(wp + dz, st) - chord_value(wp - dz, st)) / (2.0 * h);
 }
 
 // ── River-mode field force: a = −G_N·(π/ρ)·∇(g·Φ) ─────────────────────
-vec3 river_field_acc(vec3 wp) {
-    vec3 gradS = chord_gradient(wp);
+vec3 river_field_acc(vec3 wp, inout TeleStats st) {
+    vec3 gradS = chord_gradient(wp, st);
     float q_unused; float pi_over_rho;
-    chord_g_at(wp, q_unused, pi_over_rho);
+    chord_g_at(wp, q_unused, pi_over_rho, st);
     float G_N = bh[1].w;
     return -G_N * pi_over_rho * gradS;
 }
@@ -274,10 +302,12 @@ vec3 bh_point_gravity(vec3 particle_pos, float eps2) {
 }
 
 // ── Total gravity at a point (mode-selected) ───────────────────────────
-vec3 gravity_at(vec3 wp) {
+// Telemetry stats flow through the river path only (heuristic mode is
+// telemetry-free by design).
+vec3 gravity_at(vec3 wp, inout TeleStats st) {
     vec3 acc = bh_point_gravity(wp, pc.eps2);
     if (pc.gravity_mode < 0.5) {
-        acc += river_field_acc(wp);       // RIVER — the law (default)
+        acc += river_field_acc(wp, st);   // RIVER — the law (default)
     } else {
         acc += heuristic_field_acc(wp);   // HEURISTIC — legacy arm
     }
@@ -288,22 +318,63 @@ vec3 gravity_at(vec3 wp) {
 void main() {
     int i = int(gl_GlobalInvocationID.x);
     int N = int(pc.particle_N);
-    if (i >= N) return;
+    int li = int(gl_LocalInvocationIndex.x);
 
-    vec3 pxyz = pos[i].xyz;
-    vec3 vxyz = vel[i].xyz;
-    float hdt = pc.dt * 0.5;
+    // Initialize shared accumulators once; every lane reaches the barrier.
+    if (li == 0) {
+        s_cnt[0] = 0u; s_cnt[1] = 0u; s_cnt[2] = 0u; s_cnt[3] = 0u;
+        s_min[0] = 0x7F800000u; s_min[1] = 0x7F800000u;  // +inf bits
+        s_max[0] = 0u; s_max[1] = 0u;
+    }
+    barrier();
 
-    // Half-step kick
-    vec3 grav_acc = gravity_at(pxyz);
-    vec3 v_half = vxyz + grav_acc * hdt;
-    vec3 p_new = pxyz + v_half * pc.dt;
+    if (i < N) {
+        TeleStats st;
+        st.clamp_hi = 0u; st.clamp_lo = 0u; st.rho_guard = 0u; st.samples = 0u;
+        st.q_min = 0x7F800000u; st.q_max = 0u;
+        st.pi_min = 0x7F800000u; st.pi_max = 0u;
 
-    // Full-step kick at updated position
-    vec3 grav_acc2 = gravity_at(p_new);
-    vec3 v_new = v_half + grav_acc2 * hdt;
+        vec3 pxyz = pos[i].xyz;
+        vec3 vxyz = vel[i].xyz;
+        float hdt = pc.dt * 0.5;
 
-    pos[i] = vec4(p_new, pos[i].w);
-    vel[i] = vec4(v_new, 0.0);
-    acc[i] = vec4(grav_acc, 0.0);
+        // Half-step kick
+        vec3 grav_acc = gravity_at(pxyz, st);
+        vec3 v_half = vxyz + grav_acc * hdt;
+        vec3 p_new = pxyz + v_half * pc.dt;
+
+        // Full-step kick at updated position
+        vec3 grav_acc2 = gravity_at(p_new, st);
+        vec3 v_new = v_half + grav_acc2 * hdt;
+
+        pos[i] = vec4(p_new, pos[i].w);
+        vel[i] = vec4(v_new, 0.0);
+        acc[i] = vec4(grav_acc, 0.0);
+
+        // Fold this invocation's stats into the workgroup accumulators
+        // (shared-memory atomics — no global traffic).
+        atomicAdd(s_cnt[0], st.clamp_hi);
+        atomicAdd(s_cnt[1], st.clamp_lo);
+        atomicAdd(s_cnt[2], st.rho_guard);
+        atomicAdd(s_cnt[3], st.samples);
+        atomicMin(s_min[0], st.q_min);
+        atomicMax(s_max[0], st.q_max);
+        atomicMin(s_min[1], st.pi_min);
+        atomicMax(s_max[1], st.pi_max);
+    }
+
+    // EVERY invocation reaches both barriers — including the last partial
+    // workgroup (threads with i >= N simply contribute nothing).
+    barrier();
+    if (li == 0) {
+        // One global emission per workgroup (8 atomics), not per particle.
+        atomicAdd(tel[0], s_cnt[0]);
+        atomicAdd(tel[1], s_cnt[1]);
+        atomicAdd(tel[2], s_cnt[2]);
+        atomicMin(tel[3], s_min[0]);
+        atomicMax(tel[4], s_max[0]);
+        atomicMin(tel[5], s_min[1]);
+        atomicMax(tel[6], s_max[1]);
+        atomicAdd(tel[7], s_cnt[3]);
+    }
 }

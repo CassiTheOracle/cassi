@@ -43,7 +43,7 @@ var _field_q: RID;  var _field_vel: RID
 
 # — Poisson solver (SET 0 of cassi_poisson.glsl) —
 var _fft_buf: RID      # vec2 per cell — FFT workspace; real part = Φ after solve
-var _tel_buf: RID      # gravity telemetry: [pi_hi, pi_lo, rho_guard, q_min, q_max, pi_min, pi_max, _]
+var _tel_buf: RID      # gravity telemetry: [pi_hi, pi_lo, rho_guard, q_min, q_max, pi_min, pi_max, samples]
 
 # — particle buffers (SET 1) —
 var _pos_buf: RID; var _vel_buf: RID; var _acc_buf: RID
@@ -51,6 +51,7 @@ var _pos_buf: RID; var _vel_buf: RID; var _acc_buf: RID
 # — auxiliary buffers (SET 2) —
 var _cluster_buf: RID
 var _bh_buf: RID
+var _bh_lens_buf: RID  # BH lensing params (4 vec4s, visual only — NOT the 36-vec4 sim header)
 var _mass_density_buf: RID
 
 # — shaders and pipelines —
@@ -67,6 +68,7 @@ var _us_mass_dep_0: RID
 var _us_nbody_0: RID; var _us_nbody_1: RID; var _us_nbody_2: RID
 var _us_poisson_0: RID
 var _us_fr_0: RID; var _us_fr_2: RID  # field-render sets (cached, no per-frame alloc)
+var _us_bh_lens_2: RID  # BH-lensing set (cached; was created per frame)
 # — Instancer pipeline —
 var _instancer_shader: RID; var _instancer_pipe: RID
 var _cond_shader: RID; var _cond_pipe: RID; var _us_cond_0: RID; var _us_cond_1: RID
@@ -87,15 +89,26 @@ var _poisson_wg: int = 1              # poisson dispatch group count
 var _pending_submit: bool = false     # local-RD: submit needs a sync before the next
 
 # — MultiMesh rendering —
-const RB_SKIP: int = 3                     # readback every 4th frame (15/sec at 60fps)
+# Visual readbacks (MultiMesh, field slice, BH lensing) are wall-time capped
+# at ~15 Hz: at uncapped FPS the old frame-counter gate (every 4th frame)
+# hit 50+ Hz and hitched on 64–160 MB readbacks. Full-q diagnostics ~3 Hz.
+const RB_HZ: float = 15.0
+const DIAG_HZ: float = 3.0
 var _mm_data_f32: PackedFloat32Array       # pre-allocated for MultiMesh (avoid GC)
-var _rb_counter: int = 0
+var _last_mm_rb_ms: int = 0                # wall-time gates (Time.get_ticks_msec)
+var _last_field_rb_ms: int = 0
+var _last_bh_rb_ms: int = 0
+var _last_diag_ms: int = 0
 var _mmi: MultiMeshInstance3D; var _mm: MultiMesh
 
 # — timing —
 var _step_count: int = 0
 var _time: float = 0.0
 var _step_timer: float = 0.0
+# Fixed-step catch-up cap: a 60 Hz frame at dt=0.001 needs exactly 16 steps;
+# a larger backlog is dropped (and counted) instead of spiraling unbounded.
+const MAX_STEPS_PER_FRAME: int = 16
+var _dropped_steps: int = 0
 
 # — diagnostics —
 var _q_mean: float = 0.0
@@ -155,9 +168,15 @@ func _process(delta: float) -> void:
 	if playing and _shaders_ready:
 		_step_timer += delta
 		var n_steps := 0
-		while _step_timer >= dt:
+		while _step_timer >= dt and n_steps < MAX_STEPS_PER_FRAME:
 			_step_timer -= dt
 			n_steps += 1
+		if _step_timer >= dt:
+			# Backlog beyond the cap: drop the excess whole steps (counted,
+			# not silent) instead of letting _step_timer grow unbounded.
+			var excess := int(_step_timer / dt)
+			_dropped_steps += excess
+			_step_timer -= float(excess) * dt
 		if n_steps > 0:
 			_run_physics_steps(n_steps)
 
@@ -197,6 +216,7 @@ func _barrier(cl: int) -> void:
 
 
 func _exit_tree() -> void:
+	_free_uniform_sets()  # sets reference buffers/shaders — release first
 	_free_buffers()
 	_free_shaders()
 
@@ -234,6 +254,11 @@ func _uniform_storage(binding: int, buf: RID) -> RDUniform:
 
 
 func _setup_buffers() -> void:
+	# The spectral Poisson FFT (cassi_poisson.glsl) is specialized to N = 64
+	# and silently no-ops at any other resolution — never run unsupported.
+	if grid_N != 64:
+		push_warning("[CassiSim] grid_N=%d unsupported (Poisson FFT specialized to N=64); forcing 64" % grid_N)
+		grid_N = 64
 	var N = grid_N
 	var nc = N * N * N
 	var nf = nc * 4
@@ -265,6 +290,10 @@ func _setup_buffers() -> void:
 	])
 	_bh_init_bytes = bh_init_f.to_byte_array()
 	_rd.buffer_update(_bh_buf, 0, _bh_init_bytes.size(), _bh_init_bytes)
+	# BH lensing params — dedicated 4-vec4 buffer. The lensing shader
+	# declares exactly 4 vec4s; never bind the 36-vec4 sim BH header to it.
+	# Params are filled by _update_bh_lens_params() in _make_render_textures.
+	_bh_lens_buf = _rd.storage_buffer_create(64)
 	# Cluster center positions + masses (for multi-cluster gravity)
 	_cluster_buf = _rd.storage_buffer_create(20 * 4 * 4)
 	# Mass density grid (one uint per cell, stores float as bits)
@@ -286,10 +315,35 @@ func _setup_buffers() -> void:
 
 func _free_buffers() -> void:
 	for rid in [_field_ey, _field_ei, _field_q, _field_vel,
-				_pos_buf, _vel_buf, _acc_buf, _bh_buf, _mm_buf,
-				_mass_density_buf, _cluster_buf, _fft_buf, _tel_buf]:
+				_pos_buf, _vel_buf, _acc_buf, _bh_buf, _bh_lens_buf, _mm_buf,
+				_mass_density_buf, _cluster_buf, _fft_buf, _tel_buf,
+				_field_render_tex, _bh_lensing_tex]:
 		if rid.is_valid(): _rd.free_rid(rid)
+	_field_render_tex = RID()
+	_bh_lensing_tex = RID()
+
+func _free_uniform_sets() -> void:
+	# Uniform sets reference buffers/shaders/textures — release them BEFORE
+	# any of those are freed (reinit, shader retry, exit). Overwriting a
+	# live set RID without freeing it leaks the set on the local RD.
+	if _rd == null: return
+	for rid in [_us_two_0, _us_two_1, _us_two_2, _us_mass_dep_0,
+				_us_nbody_0, _us_nbody_1, _us_nbody_2, _us_poisson_0,
+				_us_fr_0, _us_fr_2, _us_cond_0, _us_cond_1,
+				_us_bh_int_0, _us_bh_int_1, _us_inst_0, _us_bh_lens_2]:
+		if rid.is_valid(): _rd.free_rid(rid)
+	_us_two_0 = RID(); _us_two_1 = RID(); _us_two_2 = RID()
+	_us_mass_dep_0 = RID()
+	_us_nbody_0 = RID(); _us_nbody_1 = RID(); _us_nbody_2 = RID()
+	_us_poisson_0 = RID()
+	_us_fr_0 = RID(); _us_fr_2 = RID()
+	_us_cond_0 = RID(); _us_cond_1 = RID()
+	_us_bh_int_0 = RID(); _us_bh_int_1 = RID()
+	_us_inst_0 = RID()
+	_us_bh_lens_2 = RID()
+
 func _free_shaders() -> void:
+	_free_uniform_sets()  # sets hold shader references; release before the shaders
 	# Pipelines before their shaders (freeing a pipeline after its shader
 	# reports "Attempted to free invalid ID" on the local RD at exit).
 	for rid in [_two_fluid_pipe, _nbody_pipe, _poisson_pipe,
@@ -367,6 +421,10 @@ func _setup_shaders() -> void:
 
 
 func _cache_uniform_sets() -> void:
+	# NOTE: must only run with all cached sets already released — callers
+	# (reinit, shader-retry, startup) free them via _free_uniform_sets()
+	# first. Recreating a live set would leak its RID. Texture-only rebuilds
+	# go through _cache_render_texture_sets() instead.
 	# Two-fluid PDE declares ONLY set 0 (bindings 0-4) — no sets 1/2
 	_us_two_0 = _rd.uniform_set_create([
 		_uniform_storage(0, _field_ey), _uniform_storage(1, _field_ei),
@@ -424,6 +482,13 @@ func _cache_uniform_sets() -> void:
 			_us_fr_2 = _rd.uniform_set_create([
 				_get_set2_image_uniform(_field_render_shader, 0, _field_render_tex),
 			], _field_render_shader, 2)
+
+	# BH lensing (set 2 only: screen image + dedicated 4-vec4 params)
+	if _bh_lensing_shader.is_valid() and _bh_lensing_tex.is_valid() and _bh_lens_buf.is_valid():
+		_us_bh_lens_2 = _rd.uniform_set_create([
+			_get_set2_image_uniform(_bh_lensing_shader, 0, _bh_lensing_tex),
+			_get_set2_buffer_uniform(_bh_lensing_shader, 1, _bh_lens_buf),
+		], _bh_lensing_shader, 2)
 
 	# Instancer
 	_us_inst_0 = _rd.uniform_set_create([
@@ -634,9 +699,12 @@ func _get_set2_buffer_uniform(shader: RID, binding: int, buf: RID) -> RDUniform:
 
 func _render_field_slice() -> void:
 	if not _field_render_shader.is_valid(): return
+	var now_ms := Time.get_ticks_msec()
+	if now_ms - _last_field_rb_ms < int(1000.0 / RB_HZ): return  # ~15 Hz cap
+	_last_field_rb_ms = now_ms
 	if not _field_render_tex.is_valid():
 		_make_render_textures()
-		_cache_uniform_sets()  # re-cache sets that reference the new texture
+		_cache_render_texture_sets()  # sets referencing the new texture
 
 	# Shared PC (11 floats) — reuse the pre-allocated buffer
 	_pc_bytes.encode_float(0, float(grid_N))
@@ -664,12 +732,19 @@ func _render_field_slice() -> void:
 	_rd.sync()
 	_pending_submit = false  # we just synced this list ourselves
 
-	# Readback for UI display
+	# Readback for UI display (15 Hz — one 512² RGBAF readback per gate)
 	var fdata = _rd.texture_get_data(_field_render_tex, 0)
 	if fdata.size() > 100:
 		var img = Image.create_from_data(_rt_size.x, _rt_size.y, false, Image.FORMAT_RGBAF, fdata)
 		if img:
-			field_display_texture = ImageTexture.create_from_image(img)
+			# Reuse the ImageTexture via update() when the size matches —
+			# avoids allocating a new GPU texture every readback.
+			if field_display_texture is ImageTexture \
+					and field_display_texture.get_width() == _rt_size.x \
+					and field_display_texture.get_height() == _rt_size.y:
+				field_display_texture.update(img)
+			else:
+				field_display_texture = ImageTexture.create_from_image(img)
 			field_texture_updated.emit(field_display_texture)
 
 
@@ -861,11 +936,48 @@ func _dispatch_poisson(cl: int) -> void:
 
 func _make_render_textures() -> void:
 	_rt_size = Vector2i(512, 512)
+	# Image uniform sets reference the old textures — release them before
+	# the textures they point to.
+	if _us_fr_2.is_valid(): _rd.free_rid(_us_fr_2)
+	if _us_bh_lens_2.is_valid(): _rd.free_rid(_us_bh_lens_2)
+	_us_fr_2 = RID(); _us_bh_lens_2 = RID()
 	if _field_render_tex.is_valid(): _rd.free_rid(_field_render_tex)
 	if _bh_lensing_tex.is_valid(): _rd.free_rid(_bh_lensing_tex)
 	_field_render_tex = _make_render_texture(_rt_size.x, _rt_size.y)
 	_bh_lensing_tex = _make_render_texture(_rt_size.x, _rt_size.y)
+	_update_bh_lens_params()
 	print("[CassiSim] Render textures: %dx%d" % [_rt_size.x, _rt_size.y])
+
+
+func _cache_render_texture_sets() -> void:
+	# Rebuild ONLY the image uniform sets after _make_render_textures()
+	# recreates the textures (the old sets were freed there). The full
+	# _cache_uniform_sets() must not be used here — it would overwrite the
+	# live sets of untouched buffers and leak their RIDs.
+	if _field_render_shader.is_valid() and _field_render_tex.is_valid():
+		_us_fr_2 = _rd.uniform_set_create([
+			_get_set2_image_uniform(_field_render_shader, 0, _field_render_tex),
+		], _field_render_shader, 2)
+	if _bh_lensing_shader.is_valid() and _bh_lensing_tex.is_valid() and _bh_lens_buf.is_valid():
+		_us_bh_lens_2 = _rd.uniform_set_create([
+			_get_set2_image_uniform(_bh_lensing_shader, 0, _bh_lensing_tex),
+			_get_set2_buffer_uniform(_bh_lensing_shader, 1, _bh_lens_buf),
+		], _bh_lensing_shader, 2)
+
+
+func _update_bh_lens_params() -> void:
+	# Lens demo params (visual only): BH at screen center, M=0.2, spin=0,
+	# G_eff=1.0 — the values the old per-frame array intended but never
+	# uploaded. Live in a dedicated buffer so the 36-vec4 sim BH header is
+	# never bound to the lensing shader's 4-vec4 layout.
+	if not _bh_lens_buf.is_valid(): return
+	var p = PackedFloat32Array([
+		_rt_size.x * 0.5, _rt_size.y * 0.5, 0.0, 0.0,
+		0.2, 0.0, 1.0, 0.0,
+		0.0, 0.0, 0.0, 0.0,
+		0.0, 0.0, 0.0, 0.0,
+	])
+	_rd.buffer_update(_bh_lens_buf, 0, 64, p.to_byte_array())
 
 
 # Rendering
@@ -894,10 +1006,14 @@ func _setup_multimesh() -> void:
 
 
 func _render_frame() -> void:
-	_rb_counter += 1
+	var now_ms := Time.get_ticks_msec()
 
-	# Read instance buffer from GPU to PackedFloat32Array for MultiMesh
-	if _mm_buf.is_valid() and N_particles > 0 and _rb_counter % (RB_SKIP + 1) == 0:
+	# Read instance buffer from GPU to PackedFloat32Array for MultiMesh —
+	# wall-time capped at ~15 Hz (the old frame-counter gate ran every 4th
+	# frame, which at uncapped FPS is 50+ Hz of 64–160 MB readbacks).
+	if _mm_buf.is_valid() and N_particles > 0 \
+			and now_ms - _last_mm_rb_ms >= int(1000.0 / RB_HZ):
+		_last_mm_rb_ms = now_ms
 		_ensure_synced()  # sync only when we actually read back
 		var inst_data = _rd.buffer_get_data(_mm_buf, 0, N_particles * 64)
 		if inst_data.size() > 0:
@@ -910,9 +1026,11 @@ func _render_frame() -> void:
 						inst_idx, _mm_data_f32[b+3], _mm_data_f32[b+7], _mm_data_f32[b+11],
 						_mm_data_f32[b+12], _mm_data_f32[b+13], _mm_data_f32[b+14], _mm_data_f32[b+15]])
 
-	# Throttled diagnostics readback (every 60 steps)
-	var q_guard = (_step_count % 60 == 0)
+	# Throttled diagnostics readback (wall-time ~3 Hz; the step-count gate
+	# fired 60×/s at high FPS and drained the local device each time)
+	var q_guard = now_ms - _last_diag_ms >= int(1000.0 / DIAG_HZ)
 	if q_guard and _field_q.is_valid():
+		_last_diag_ms = now_ms
 		_ensure_synced()
 		var q_data = _rd.buffer_get_data(_field_q, 0, grid_N * grid_N * grid_N * 4)
 		if q_data.size() > 0:
@@ -923,14 +1041,17 @@ func _render_frame() -> void:
 		# Gravity telemetry: saturation counters + q/π/ρ range at particles
 		var tel = _rd.buffer_get_data(_tel_buf, 0, 32)
 		if tel.size() >= 32:
-			_pi_sat_hi_frac = tel.decode_float(0)
-			_pi_sat_lo_frac = tel.decode_float(4)
-			_rho_guard_hits = int(tel.decode_float(8))
+			_pi_sat_hi_frac = float(tel.decode_u32(0))
+			_pi_sat_lo_frac = float(tel.decode_u32(4))
+			_rho_guard_hits = int(tel.decode_u32(8))
 			_q_min = tel.decode_float(12)
 			_q_max = tel.decode_float(16)
 			_pi_min = tel.decode_float(20)
 			_pi_max = tel.decode_float(24)
-			var samples = max(2 * N_particles, 1)
+			# Sample count from the GPU (tel[7]): the shader reports the true
+			# number of chord_g_at evaluations per step (7 per river kick ×
+			# 2 KDK kicks per particle). Heuristic mode reports 0 → 1.
+			var samples = max(int(tel.decode_u32(28)), 1)
 			_pi_sat_hi_frac /= samples
 			_pi_sat_lo_frac /= samples
 	# One-time Poisson residual report (FD-Laplacian check of the Φ solve)
@@ -972,8 +1093,12 @@ func _render_particles() -> void:
 
 func _render_bh_lensing() -> void:
 	if not _bh_lensing_shader.is_valid(): return
+	var now_ms := Time.get_ticks_msec()
+	if now_ms - _last_bh_rb_ms < int(1000.0 / RB_HZ): return  # ~15 Hz cap
+	_last_bh_rb_ms = now_ms
 	if not _bh_lensing_tex.is_valid():
 		_make_render_textures()
+		_cache_render_texture_sets()  # sets referencing the new texture
 
 	# Shared PC (11 floats) — pre-allocated, no per-frame allocation
 	_pc_bytes.encode_float(0, float(grid_N))
@@ -988,21 +1113,15 @@ func _render_bh_lensing() -> void:
 	_pc_bytes.encode_float(36, float(num_clusters))
 	_pc_bytes.encode_float(40, float(gravity_mode))
 
-	# Write BH params: center screen, M=0.2, spin=0, G_eff=1.0
-	# (M=2.0 produced b_crit=1011px with Cassi correction — larger than 512px screen)
-	var bh = PackedFloat32Array([_rt_size.x*0.5, _rt_size.y*0.5, 0.0, 0.0,
-		0.2, 0.0, 1.0, 0.0,
-		0.0, 0.0, 0.0, 0.0,
-		0.0, 0.0, 0.0, 0.0])
 	var wg = Vector3i(ceili(_rt_size.x / 8.0), ceili(_rt_size.y / 8.0), 1)
 
 	var cl = _rd.compute_list_begin()
 	_rd.compute_list_bind_compute_pipeline(cl, _bh_lensing_pipe)
-	# Set 2 only — lensing shader doesn't use sets 0 or 1
-	_rd.compute_list_bind_uniform_set(cl, _rd.uniform_set_create([
-		_get_set2_image_uniform(_bh_lensing_shader, 0, _bh_lensing_tex),
-		_get_set2_buffer_uniform(_bh_lensing_shader, 1, _bh_buf),
-	], _bh_lensing_shader, 2), 2)
+	# Set 2 only — lensing shader doesn't use sets 0 or 1. The set is
+	# cached (uniform_set_create was a per-frame local-RD allocation);
+	# the params live in the dedicated 4-vec4 _bh_lens_buf, not the
+	# 36-vec4 sim BH header.
+	_rd.compute_list_bind_uniform_set(cl, _us_bh_lens_2, 2)
 	_rd.compute_list_set_push_constant(cl, _pc_bytes, _pc_bytes.size())
 	_rd.compute_list_dispatch(cl, wg.x, wg.y, wg.z)
 	_rd.compute_list_end()
@@ -1011,12 +1130,19 @@ func _render_bh_lensing() -> void:
 	_rd.sync()
 	_pending_submit = false  # we just synced this list ourselves
 
-	# Readback for UI display
+	# Readback for UI display (15 Hz — one 512² RGBAF readback per gate)
 	var bdata = _rd.texture_get_data(_bh_lensing_tex, 0)
 	if bdata.size() > 100:
 		var img = Image.create_from_data(_rt_size.x, _rt_size.y, false, Image.FORMAT_RGBAF, bdata)
 		if img:
-			bh_display_texture = ImageTexture.create_from_image(img)
+			# Reuse the ImageTexture via update() when the size matches —
+			# avoids allocating a new GPU texture every readback.
+			if bh_display_texture is ImageTexture \
+					and bh_display_texture.get_width() == _rt_size.x \
+					and bh_display_texture.get_height() == _rt_size.y:
+				bh_display_texture.update(img)
+			else:
+				bh_display_texture = ImageTexture.create_from_image(img)
 			bh_texture_updated.emit(bh_display_texture)
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -1025,6 +1151,7 @@ func _render_bh_lensing() -> void:
 
 func reinit() -> void:
 	_ensure_synced()
+	_free_uniform_sets()  # cached sets reference the buffers being freed
 	_free_buffers()
 	_setup_buffers()
 	_cache_uniform_sets()  # CRITICAL: cached sets reference the OLD freed buffers
@@ -1032,6 +1159,7 @@ func reinit() -> void:
 	_init_particles()
 	_step_count = 0
 	_cond_step_counter = 0
+	_dropped_steps = 0
 	_time = 0.0
 	print("[CassiSim] Reinitialized")
 
