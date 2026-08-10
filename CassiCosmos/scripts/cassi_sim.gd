@@ -44,6 +44,8 @@ var _field_q: RID;  var _field_vel: RID
 # — Poisson solver (SET 0 of cassi_poisson.glsl) —
 var _fft_buf: RID      # vec2 per cell — FFT workspace; real part = Φ after solve
 var _tel_buf: RID      # gravity telemetry: [pi_hi, pi_lo, rho_guard, q_min, q_max, pi_min, pi_max, samples]
+# — Cell-centered ∇(g·Φ) field (SET 0 binding 7 of cassi_nbody_gravity.glsl) —
+var _grad_buf: RID     # vec4 per cell — gradient pass output, river-arm input
 
 # — particle buffers (SET 1) —
 var _pos_buf: RID; var _vel_buf: RID; var _acc_buf: RID
@@ -78,6 +80,13 @@ var _us_inst_0: RID = RID()
 
 # — pre-allocated push-constant byte buffers (hitch-free: no per-step allocs) —
 var _pc_bytes: PackedByteArray        # shared 11-float PC (all physics shaders)
+# N-body PC is 12 floats (48 B): the nbody shader carries the
+# gradient-pass selector (pass_mode) as its 12th field. The other
+# shaders' structs are 11 floats (44 B) — Godot hard-errors on push-
+# constant size mismatch, so the nbody shader gets its OWN pre-allocated
+# 48 B buffer (the dedicated-PC precedent) instead of growing the
+# shared one.
+var _nbody_pc_bytes: PackedByteArray  # nbody PC (12 floats: 11 shared + pass_mode)
 var _md_pc_bytes: PackedByteArray     # mass deposit PC (4 floats)
 var _bh_int_pc_bytes: PackedByteArray # BH integrate PC (4 floats)
 var _cond_pc_bytes: PackedByteArray   # condensation PC (4 floats)
@@ -327,12 +336,16 @@ func _setup_buffers() -> void:
 	# Mass density grid (float per cell — float atomicAdd deposit, see
 	# cassi_mass_deposit.glsl)
 	_mass_density_buf = _rd.storage_buffer_create(nc * 4)
+	# Cell-centered ∇(g·Φ) field (vec4 per cell — river-arm gradient,
+	# rebuilt every step by the gradient pass between poisson and nbody)
+	_grad_buf = _rd.storage_buffer_create(nc * 16)
 	# NO sim-owned multimesh buffer: the instancer writes the renderer's own
 	# multimesh instance buffer (see _setup_multimesh) — GPU-direct.
 	_make_render_textures()
 
 	# Pre-allocate push-constant byte buffers (hitch-free pattern)
 	_pc_bytes = PackedByteArray(); _pc_bytes.resize(11 * 4)
+	_nbody_pc_bytes = PackedByteArray(); _nbody_pc_bytes.resize(12 * 4)
 	_md_pc_bytes = PackedByteArray(); _md_pc_bytes.resize(4 * 4)
 	_bh_int_pc_bytes = PackedByteArray(); _bh_int_pc_bytes.resize(4 * 4)
 	_cond_pc_bytes = PackedByteArray(); _cond_pc_bytes.resize(4 * 4)
@@ -350,6 +363,7 @@ func _free_buffers() -> void:
 	for rid in [_field_ey, _field_ei, _field_q, _field_vel,
 				_pos_buf, _vel_buf, _acc_buf, _bh_buf, _bh_lens_buf,
 				_mass_density_buf, _cluster_buf, _fft_buf, _tel_buf,
+				_grad_buf,
 				_field_render_tex, _bh_lensing_tex]:
 		if rid.is_valid(): _rd.free_rid(rid)
 	_field_render_tex = RID()
@@ -471,6 +485,7 @@ func _cache_uniform_sets() -> void:
 		_uniform_storage(4, _mass_density_buf),
 		_uniform_storage(5, _fft_buf),
 		_uniform_storage(6, _tel_buf),
+		_uniform_storage(7, _grad_buf),
 	], _nbody_shader, 0)
 	_us_nbody_1 = _rd.uniform_set_create([
 		_uniform_storage(0, _pos_buf), _uniform_storage(1, _vel_buf),
@@ -810,6 +825,21 @@ func _step_dispatches(cl: int) -> void:
 	_pc_bytes.encode_float(36, float(num_clusters))
 	_pc_bytes.encode_float(40, float(gravity_mode))
 
+	# N-body PC (dedicated 48 B): same 11 fields + pass_mode at float 11.
+	# pass_mode = 0 for the particle pass; the gradient pass (2.8) sets 1.
+	_nbody_pc_bytes.encode_float(0, float(grid_N))
+	_nbody_pc_bytes.encode_float(4, dt)
+	_nbody_pc_bytes.encode_float(8, _time)
+	_nbody_pc_bytes.encode_float(12, PHI)
+	_nbody_pc_bytes.encode_float(16, xi)
+	_nbody_pc_bytes.encode_float(20, softening * softening)
+	_nbody_pc_bytes.encode_float(24, float(N_particles))
+	_nbody_pc_bytes.encode_float(28, float(mode))
+	_nbody_pc_bytes.encode_float(32, source_strength)
+	_nbody_pc_bytes.encode_float(36, float(num_clusters))
+	_nbody_pc_bytes.encode_float(40, float(gravity_mode))
+	_nbody_pc_bytes.encode_float(44, 0.0)  # pass_mode = 0 (particles)
+
 	# Mass deposit PC: [N_f, particle_N, extent, _]
 	_md_pc_bytes.encode_float(0, float(grid_N))
 	_md_pc_bytes.encode_float(4, float(N_particles))
@@ -881,15 +911,38 @@ func _step_dispatches(cl: int) -> void:
 		_rd.compute_list_bind_uniform_set(cl, _us_bh_int_1, 1)
 		_rd.compute_list_set_push_constant(cl, _bh_int_pc_bytes, _bh_int_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, wg, wg, wg)
-	_barrier(cl)  # BH integrate → nbody
+	_barrier(cl)  # BH integrate → gradient
+
+	# ── 2.8. Cell-centered ∇(g·Φ) build (river-arm estimator) ──────
+	# One thread per cell; S = g·Φ at cells, central differences stored to
+	# _grad_buf. Runs AFTER the Poisson solve (needs this step's Φ) and
+	# BEFORE the N-body pass (which samples _grad_buf). Reads the same
+	# post-PDE EY/EI the nbody pass sees. 2D cells dispatch (N, N, 1) —
+	# the poisson cells convention: a 1D N³/256 dispatch caps at 65535
+	# groups at N=256. Runs regardless of gravity_mode (heuristic arm
+	# ignores the buffer; the O(N³) cost is far below the nbody pass).
+	if _nbody_shader.is_valid():
+		_nbody_pc_bytes.encode_float(44, 1.0)  # pass_mode = 1 (gradient)
+		_rd.compute_list_bind_compute_pipeline(cl, _nbody_pipe)
+		# ALL THREE sets must be bound: the pipeline rejects a dispatch with
+		# any declared set missing ("Uniforms were never supplied for set
+		# (1)") — the pass reads ey/ei/ph/grad (set 0) and bh extent (set 2);
+		# set 1 is unused by grad_main but must still be present.
+		_rd.compute_list_bind_uniform_set(cl, _us_nbody_0, 0)
+		_rd.compute_list_bind_uniform_set(cl, _us_nbody_1, 1)
+		_rd.compute_list_bind_uniform_set(cl, _us_nbody_2, 2)
+		_rd.compute_list_set_push_constant(cl, _nbody_pc_bytes, _nbody_pc_bytes.size())
+		_rd.compute_list_dispatch(cl, grid_N, grid_N, 1)
+	_barrier(cl)  # gradient → nbody
 
 	# ── 3. N-body gravity ────────────────────────────────────────────
 	if _nbody_shader.is_valid() and N_particles > 0:
+		_nbody_pc_bytes.encode_float(44, 0.0)  # pass_mode = 0 (particles)
 		_rd.compute_list_bind_compute_pipeline(cl, _nbody_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_nbody_0, 0)
 		_rd.compute_list_bind_uniform_set(cl, _us_nbody_1, 1)
 		_rd.compute_list_bind_uniform_set(cl, _us_nbody_2, 2)
-		_rd.compute_list_set_push_constant(cl, _pc_bytes, _pc_bytes.size())
+		_rd.compute_list_set_push_constant(cl, _nbody_pc_bytes, _nbody_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, pg, 1, 1)
 	_barrier(cl)  # nbody → instancer
 

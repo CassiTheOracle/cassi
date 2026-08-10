@@ -1,9 +1,20 @@
 #[compute]
 #version 450
-// Cassi Mass Deposit — trilinear (CIC) scatter of per-particle masses
-// into the field grid. Each particle spreads mass to 8 surrounding
-// cells with trilinear weights, producing a smooth density field
-// without nearest-neighbor grid aliasing.
+// Cassi Mass Deposit — TSC (triangular-shaped cloud) scatter of
+// per-particle masses into the field grid. Each particle spreads mass to
+// 27 surrounding cells with the separable quadratic-spline (B-spline)
+// weights — the "bubble-shaped" deposit: CIC's 8-cell tent convolved
+// with itself, support 1.5h per axis, second-order accurate,
+// symmetric, and an exact partition of unity (Σ w = 1 at any fractional
+// position — no per-particle normalization needed).
+//   1D weights (f = fractional offset within the base cell):
+//     w(i0−1) = ½·(½ − f)²            (u = f + 1 ∈ (1, 1.5])
+//     w(i0)   = ¾ − f²        for f ≤ ½,  else ½·(1.5 − f)²
+//     w(i0+1) = ½·(½ + f)²    for f <  ½,  else ¾ − (1−f)²
+//   This replaces the old trilinear CIC 8-cell tent (support 1h,
+//   first-order); the wider isotropic-ish footprint removes the cubic
+//   deposit anisotropy near masses and smooths the density field the
+//   spectral Poisson solve sees.
 //
 // Accumulation: hardware FLOAT atomicAdd (GL_EXT_shader_atomic_float) —
 // one atomicAdd per cell instead of the old 8-way atomic CAS loop
@@ -37,7 +48,7 @@ layout(push_constant, std430) uniform PC {
     float _pad;
 } pc;
 
-// ── Main kernel: CIC (Cloud-In-Cell) mass deposit ─────────────────────
+// ── Main kernel: TSC (triangular-shaped cloud) mass deposit ───────────
 void main() {
     uint i = gl_GlobalInvocationID.x;
     int Np = int(pc.particle_N);
@@ -60,39 +71,42 @@ void main() {
     float fy = gc.y - float(j0);
     float fz = gc.z - float(k0);
 
-    // Wrap with periodic boundary
+    // Wrap with periodic boundary — REQUIRED for the base cells too: the
+    // nbody integrator never wraps positions, so halo particles cross
+    // ±extent and gc can leave [0, N) (gc == N exactly at the wrap);
+    // an unwrapped i0 would atomicAdd out of bounds.
     i0 = ((i0 % N) + N) % N;
     j0 = ((j0 % N) + N) % N;
     k0 = ((k0 % N) + N) % N;
-    int i1 = (i0 + 1) % N;
-    int j1 = (j0 + 1) % N;
-    int k1 = (k0 + 1) % N;
 
-    // Trilinear weights
-    float w000 = (1.0 - fx) * (1.0 - fy) * (1.0 - fz);
-    float w100 = fx       * (1.0 - fy) * (1.0 - fz);
-    float w010 = (1.0 - fx) * fy       * (1.0 - fz);
-    float w110 = fx       * fy       * (1.0 - fz);
-    float w001 = (1.0 - fx) * (1.0 - fy) * fz;
-    float w101 = fx       * (1.0 - fy) * fz;
-    float w011 = (1.0 - fx) * fy       * fz;
-    float w111 = fx       * fy       * fz;
+    // TSC 1D weights (partition of unity at any f — see header)
+    float wxm = 0.5 * (0.5 - fx) * (0.5 - fx);
+    float wxp = (fx < 0.5) ? 0.5 * (0.5 + fx) * (0.5 + fx) : 0.75 - (1.0 - fx) * (1.0 - fx);
+    float wx0 = (fx < 0.5) ? 0.75 - fx * fx : 0.5 * (1.5 - fx) * (1.5 - fx);
+    float wym = 0.5 * (0.5 - fy) * (0.5 - fy);
+    float wyp = (fy < 0.5) ? 0.5 * (0.5 + fy) * (0.5 + fy) : 0.75 - (1.0 - fy) * (1.0 - fy);
+    float wy0 = (fy < 0.5) ? 0.75 - fy * fy : 0.5 * (1.5 - fy) * (1.5 - fy);
+    float wzm = 0.5 * (0.5 - fz) * (0.5 - fz);
+    float wzp = (fz < 0.5) ? 0.5 * (0.5 + fz) * (0.5 + fz) : 0.75 - (1.0 - fz) * (1.0 - fz);
+    float wz0 = (fz < 0.5) ? 0.75 - fz * fz : 0.5 * (1.5 - fz) * (1.5 - fz);
 
-    int idx000 = i0 + N * (j0 + N * k0);
-    int idx100 = i1 + N * (j0 + N * k0);
-    int idx010 = i0 + N * (j1 + N * k0);
-    int idx110 = i1 + N * (j1 + N * k0);
-    int idx001 = i0 + N * (j0 + N * k1);
-    int idx101 = i1 + N * (j0 + N * k1);
-    int idx011 = i0 + N * (j1 + N * k1);
-    int idx111 = i1 + N * (j1 + N * k1);
+    // Periodic wrap of the three-cell neighborhood
+    int im = ((i0 - 1 + N) % N), jm = ((j0 - 1 + N) % N), km = ((k0 - 1 + N) % N);
+    int i1 = (i0 + 1) % N,    j1 = (j0 + 1) % N,    k1 = (k0 + 1) % N;
 
-    atomicAdd(rho[idx000], mass * w000);
-    atomicAdd(rho[idx100], mass * w100);
-    atomicAdd(rho[idx010], mass * w010);
-    atomicAdd(rho[idx110], mass * w110);
-    atomicAdd(rho[idx001], mass * w001);
-    atomicAdd(rho[idx101], mass * w101);
-    atomicAdd(rho[idx011], mass * w011);
-    atomicAdd(rho[idx111], mass * w111);
+    // 27-cell separable deposit: w_x(i)·w_y(j)·w_z(k)
+    int idx[3] = int[](im, i0, i1);
+    int jdx[3] = int[](jm, j0, j1);
+    int kdx[3] = int[](km, k0, k1);
+    float wx[3] = float[](wxm, wx0, wxp);
+    float wy[3] = float[](wym, wy0, wyp);
+    float wz[3] = float[](wzm, wz0, wzp);
+    for (int a = 0; a < 3; a++) {
+        for (int b = 0; b < 3; b++) {
+            for (int c = 0; c < 3; c++) {
+                int id = idx[a] + N * (jdx[b] + N * kdx[c]);
+                atomicAdd(rho[id], mass * wx[a] * wy[b] * wz[c]);
+            }
+        }
+    }
 }

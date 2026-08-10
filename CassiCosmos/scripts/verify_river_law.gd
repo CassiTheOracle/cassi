@@ -12,6 +12,15 @@ extends Node
 ## plus the Poisson solve checks (k=0 nulled, FD-Laplacian residual, r·Φ
 ## profile) reported for the record.
 ##
+## Estimator note (2026-08-09): the river-arm expected values are computed
+## with the shader's cell-centered gradient estimator — S = g·Φ built per
+## cell, central differences, sampled at the probe (see _expected_river).
+## The old per-particle estimator (central difference of trilinear
+## samples) is ALGEBRAICALLY IDENTICAL to the trilinear cell-centered
+## interpolation for any fixed S field (verified to 2e-16); the 0.117
+## toggle mismatch in the earlier reverted stretch was a dispatch bug
+## (skipped gradient pass), not an estimator difference.
+##
 ## Run: godot --path <repo> res://scenes/verify_river_law.tscn
 
 const PHI: float = 1.618033988749895
@@ -168,30 +177,76 @@ func _clamp_pi(pi_raw: float, rho_f: float) -> float:
 	return p
 
 
+# ESTIMATOR (2026-08-09 upgrade): the river-arm expected values use the
+# SAME estimator as the shader's new gradient-field pass — build
+# S = g·Φ at CELL CENTERS from cell values (g from the law's q:
+# ρ = EY+EI, ε = EY−φ·EI), central-difference the gradient on the grid
+# (periodic), and trilinearly interpolate it at the probe — then
+# a = −G_N·(π/ρ)·∇S.
+# ESTIMATOR EQUIVALENCE (verified): the OLD estimator — central
+# difference of trilinear samples of S at p ± h·ê — is algebraically
+# IDENTICAL to the trilinear cell-centered-gradient interpolation for
+# any fixed S field (both blend the two adjacent cells' piecewise-
+# constant trilinear gradients with the same weights; verified to 2e-16
+# on random and 1/r fields). The 0.117 toggle mismatch in the earlier
+# reverted stretch was a DISPATCH bug (missing descriptor-set binding →
+# the gradient pass was skipped → zero/stale gradients), not an
+# estimator difference — the toggle check now reads rel ≈ 1e-6. This is
+# a documented estimator upgrade (deterministic consistency with the
+# cell fields + ~7× fewer per-particle evaluations), NOT a tolerance
+# change — every threshold below is untouched.
+
+# Cell-centered central-difference gradient of a scalar field (periodic
+# wraps), sampled trilinearly at wp — exactly the shader's grad_main +
+# tri_grad (2h normalization, same wrap).
+# NOTE (2026-08-09, gated experiment): a separable Catmull-Rom tricubic
+# sampler was measured as the anisotropy lever and REVERTED — it did not
+# reduce the ring bias (1.0482/1.1445 vs the trilinear 1.0441/1.1293 at
+# r=8h/4h): the anisotropy is the discrete torus-Green field's cubic
+# structure, not the sampler.
+func _cell_grad_tri(field: PackedFloat32Array, wp: Vector3) -> Vector3:
+	var gx = PackedFloat32Array(); gx.resize(nc)
+	var gy = PackedFloat32Array(); gy.resize(nc)
+	var gz = PackedFloat32Array(); gz.resize(nc)
+	var inv2h := 1.0 / (2.0 * h)
+	for k in range(N):
+		for j in range(N):
+			for i in range(N):
+				var id := i + N * (j + N * k)
+				var ip := ((i + 1) % N) + N * (j + N * k)
+				var im := ((i - 1 + N) % N) + N * (j + N * k)
+				var jp := i + N * (((j + 1) % N) + N * k)
+				var jm := i + N * (((j - 1 + N) % N) + N * k)
+				var kp := i + N * (j + N * ((k + 1) % N))
+				var km := i + N * (j + N * ((k - 1 + N) % N))
+				gx[id] = (field[ip] - field[im]) * inv2h
+				gy[id] = (field[jp] - field[jm]) * inv2h
+				gz[id] = (field[kp] - field[km]) * inv2h
+	return Vector3(_tri(gx, wp), _tri(gy, wp), _tri(gz, wp))
+
+
 # River-mode expected acceleration: −G_N·(π/ρ)·∇(g·Φ), full chord gradient
 func _expected_river(ey: PackedFloat32Array, ei: PackedFloat32Array,
 		phi: PackedFloat32Array, wp: Vector3) -> Vector3:
-	var eyv := _tri(ey, wp)
-	var eiv := _tri(ei, wp)
-	var rho_f := eyv + eiv
-	var eps := eyv - PHI * eiv
-	var q := (rho_f * rho_f) / (rho_f * rho_f + PHI_INV2 + eps * eps)
-	var g: float = 1.0 + (sim.xi - 1.0) * q
-	var pi_over_rho := _clamp_pi(eyv - eiv, rho_f)
-	var chord: Callable = func(p: Vector3) -> float:
-		var pe := _tri(ey, p)
-		var pi := _tri(ei, p)
-		var pr := pe + pi
-		var pe2 := pe - PHI * pi
-		var qq := (pr * pr) / (pr * pr + PHI_INV2 + pe2 * pe2)
-		return (1.0 + (sim.xi - 1.0) * qq) * _tri(phi, p)
-	var dx := Vector3(h, 0, 0)
-	var dy := Vector3(0, h, 0)
-	var dz := Vector3(0, 0, h)
-	var grad: Vector3 = Vector3(
-		float(chord.call(wp + dx)) - float(chord.call(wp - dx)),
-		float(chord.call(wp + dy)) - float(chord.call(wp - dy)),
-		float(chord.call(wp + dz)) - float(chord.call(wp - dz))) / (2.0 * h)
+	# S = g·Φ per cell — g from the law's q at CELL values (no
+	# interpolation), Φ from the solved buffer; the whole product, never
+	# hand-split, matching the shader's chord_s_at.
+	var s = PackedFloat32Array(); s.resize(nc)
+	for k in range(N):
+		for j in range(N):
+			for i in range(N):
+				var id := i + N * (j + N * k)
+				var eyv := ey[id]
+				var eiv := ei[id]
+				var rho_f := eyv + eiv
+				var eps := eyv - PHI * eiv
+				var qq := (rho_f * rho_f) / (rho_f * rho_f + PHI_INV2 + eps * eps)
+				s[id] = (1.0 + (sim.xi - 1.0) * qq) * phi[id]
+	var grad := _cell_grad_tri(s, wp)
+	# π/ρ at wp — same trilinear sampler + clamp as the shader's chord_g_at
+	var eyv2 := _tri(ey, wp)
+	var eiv2 := _tri(ei, wp)
+	var pi_over_rho := _clamp_pi(eyv2 - eiv2, eyv2 + eiv2)
 	return -G_N * pi_over_rho * grad
 
 
@@ -356,12 +411,10 @@ func _test_q0_limit() -> void:
 	var q := (eyv + eiv) * (eyv + eiv) / ((eyv + eiv) * (eyv + eiv) + PHI_INV2 + (eyv - PHI * eiv) * (eyv - PHI * eiv))
 	_check("q0: q ≈ 0 with tiny fluid", q < 1e-5, "q=%.6f" % q)
 
-	# Newtonian-sector reference: −(π/ρ)·∇Φ (∇Φ from central diff of trilinear Φ)
+	# Newtonian-sector reference: −(π/ρ)·∇Φ — cell-centered gradient of Φ
+	# (same estimator upgrade as the full river arm)
 	var pi_over_rho := _clamp_pi(eyv - eiv, eyv + eiv)
-	var grad_phi := Vector3(
-		_tri(phi, wp + Vector3(h, 0, 0)) - _tri(phi, wp - Vector3(h, 0, 0)),
-		_tri(phi, wp + Vector3(0, h, 0)) - _tri(phi, wp - Vector3(0, h, 0)),
-		_tri(phi, wp + Vector3(0, 0, h)) - _tri(phi, wp - Vector3(0, 0, h))) / (2.0 * h)
+	var grad_phi := _cell_grad_tri(phi, wp)
 	var expected_newton := -G_N * pi_over_rho * grad_phi
 	var rel = (acc - expected_newton).length() / max(expected_newton.length(), 1e-30)
 	_check("q0: shader acc ≈ −(π/ρ)∇Φ (5%)", rel < 0.05,
@@ -499,7 +552,16 @@ func _test_reinit() -> void:
 	sim._physics_step()
 	var acc := _read_acc()
 	var phi := _read_phi()  # read AFTER the crafted step (fresh solve)
-	var expected := _expected_river(ey, ei, phi, Vector3(8.0, 0.0, 0.0))
+	# The expected must be built from the fields the shader ACTUALLY saw,
+	# not the crafted arrays: the 3 warmup steps' PDE evolution leaves a
+	# velocity field (unseeded reinit noise) that the crafted step's
+	# leapfrog injects into ey/ei (~1e-6 at the probe — a ±15% π/ρ shift
+	# run-to-run). With the crafted fields the check flakes 2.8–12.5%;
+	# with the post-step readback it is exact (the shader matches its own
+	# fields at ~1e-6 — verified in isolation).
+	var ey_act = sim._rd.buffer_get_data(sim._field_ey, 0, nc * 4).to_float32_array()
+	var ei_act = sim._rd.buffer_get_data(sim._field_ei, 0, nc * 4).to_float32_array()
+	var expected := _expected_river(ey_act, ei_act, phi, Vector3(8.0, 0.0, 0.0))
 	_check("reinit: acc finite after reinit", finite_ok)
 	_check("reinit: river force still correct after reinit (10%)",
 		(acc - expected).length() / max(expected.length(), 1e-30) < 0.10,

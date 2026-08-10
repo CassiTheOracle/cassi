@@ -14,6 +14,44 @@
 //           — the Yang fraction; clamped positive-definite per the law's
 //             sign-definiteness requirement (doc §1.3); saturation counted
 //             in the telemetry buffer, not silent.
+//
+// GRADIENT ESTIMATOR (2026-08-09 upgrade): ∇(g·Φ) is now built ONCE PER
+// STEP on the grid — a dedicated pass (pass_mode == 1, one thread per
+// cell) evaluates S = g·Φ at cell centers from CELL values (no
+// interpolation; g from the law's q at the cell) and stores the central
+// differences ∇S to _grad_buf (binding 7). The per-particle river arm
+// (pass_mode == 0) then does ONE trilinear sample of _grad_buf per kick.
+// The measured "bias along grid lines" — |a|(θ) max/min = 1.0441 at
+// r = 8h and 1.1293 at r = 4h — is intrinsic to the discrete torus-Green
+// field's cubic structure, NOT the sampler: a gated separable Catmull-Rom
+// tricubic experiment did not reduce it (1.0482 / 1.1445 — reverted;
+// see the NOTE at tri_grad). The lever is the box size / grid
+// resolution.
+// ESTIMATOR EQUIVALENCE (verified, not assumed): the OLD per-particle
+// estimator — central difference of trilinear samples of S at p ± h·ê —
+// is ALGEBRAICALLY IDENTICAL to the trilinear cell-centered-gradient
+// interpolation for any fixed S field (both blend the two adjacent
+// cells' piecewise-constant trilinear gradients with the same weights
+// (1−f), f). Verified to 2e-16 on random and 1/r fields — there is NO
+// face-crossing error to remove. The upgrade's real content:
+//   (i)   the gradient is built once per step from the SAME cell values
+//         the Poisson solve and the PDE see (deterministic consistency);
+//   (ii)  7× fewer per-particle chord evaluations (telemetry samples per
+//         kick drop 7 → 1);
+//   (iii) ~3.7× lower per-step cost (58.6 → ~7.3 ms/frame at 1M/64³).
+// The earlier reverted stretch's 0.117 toggle mismatch was a DISPATCH
+// bug class — a missing descriptor-set binding made the pipeline skip
+// the gradient pass entirely (zero/stale gradients) — now fixed: the
+// toggle check reads rel = 0.0000. The product g·Φ is still computed
+// whole on the grid, never hand-split (∇(gΦ) = g∇Φ + Φ(ξ−1)∇q doctrine
+// preserved).
+//
+// HEURISTIC mode (gravity_mode == 1, legacy arm for A/B comparison):
+//   a = G_N·pi_over_rho·∇q_s,  pi_over_rho = clamp(φ⁻³ + 0.7·q_s, 0, 0.72),
+//   q_s = EY² + EI² + 0.01·ρ_mass  (the M2Q density hack — NOT the law)
+//   (unchanged: still samples the qv field per particle — pass_mode is
+//   ignored by this arm; the gradient pass runs regardless of the mode,
+//   its cost is O(N³) cells and it does not touch the heuristic path.)
 //   Units: the sim's G_N (bh[1].w) convention stays; the law's dimensionless
 //   factors multiply it.  Field units: EY/EI are the theory's linear fields
 //   (ρ = EY+EI, Π = EY−EI); φ⁻² is dimensionless, so q's denominator is in
@@ -52,6 +90,10 @@ layout(set = 0, binding = 5, std430) readonly buffer PhiBuf { vec2 ph[]; };
 //         (number of chord_g_at evaluations this step; heuristic mode
 //         reports 0 — the UI derives fractions from this denominator)
 layout(set = 0, binding = 6, std430) coherent buffer Telemetry { uint tel[]; };
+// Cell-centered ∇(g·Φ) field (vec4/cell, xyz = gradient, w unused) —
+// built by the gradient pass (pass_mode == 1) after the Poisson solve,
+// sampled trilinearly by the river arm (pass_mode == 0).
+layout(set = 0, binding = 7, std430) buffer GradBuf { vec4 grad[]; };
 
 layout(set = 1, binding = 0, std430) buffer Positions { vec4 pos[]; };
 layout(set = 1, binding = 1, std430) restrict buffer Velocities { vec4 vel[]; };
@@ -73,6 +115,7 @@ layout(push_constant, std430) uniform PC {
     float source_strength;
     float num_clusters;
     float gravity_mode;  // 0 = RIVER (default), 1 = HEURISTIC (legacy)
+    float pass_mode;     // 0 = N-body (particles), 1 = gradient-field build
 } pc;
 
 const float PHI_INV2 = 0.3819660112501051;  // φ⁻² — q decoherence threshold
@@ -117,8 +160,35 @@ float NAME(vec3 wp) { \
 
 DEFINE_TRI_SAMPLER(tri_ey, ey)
 DEFINE_TRI_SAMPLER(tri_ei, ei)
-// Φ lives in a vec2 buffer (FFT workspace); sample its real part.
-float tri_phi(vec3 wp) {
+
+// ── Cell-centered gradient field of S = g·Φ (river-mode estimator) ────
+// The gradient pass (pass_mode == 1) evaluates S at CELL CENTERS from
+// CELL values — g from the law's q (ρ = EY+EI, ε = EY−φ·EI), Φ from the
+// Poisson solve — then central differences along x/y/z with periodic
+// wraps. The per-particle river arm samples this field trilinearly.
+// This replaces the old per-particle central difference of trilinear
+// samples (O(h) face-crossing error, direction-structured — see header).
+float chord_s_at(int i, int j, int k) {
+    int id = idx3(i, j, k);
+    float eyv = ey[id];
+    float eiv = ei[id];
+    float rho_f = eyv + eiv;
+    float eps = eyv - pc.phi * eiv;
+    float q = (rho_f * rho_f) / (rho_f * rho_f + PHI_INV2 + eps * eps);
+    return (1.0 + (pc.xi - 1.0) * q) * ph[id].x;   // g · Φ — whole product
+}
+
+// Trilinear sample (periodic wrap) of the vec4 gradient buffer → vec3
+// (w unused). Same coordinate convention as the scalar samplers.
+// NOTE (2026-08-09, gated experiment): a separable Catmull-Rom tricubic
+// sampler (4×4×4 taps) was implemented and MEASURED as the "bias along
+// grid lines" lever — it did NOT reduce the ring anisotropy: |a|(θ)
+// max/min = 1.0482 at r = 8h and 1.1445 at r = 4h vs the trilinear
+// 1.0441 / 1.1293 (slightly worse — Catmull-Rom overshoot). Verdict:
+// the anisotropy is intrinsic to the discrete torus-Green field (its
+// cubic structure), not the sampler — reverted per the gate; the lever
+// is the box size / grid resolution. Trilinear stays.
+vec3 tri_grad(vec3 wp) {
     int N = int(pc.N_f);
     float hn = float(N) * 0.5;
     float extent = bh[2].y;
@@ -136,18 +206,54 @@ float tri_phi(vec3 wp) {
     i0 = ((i0 % N) + N) % N;  j0 = ((j0 % N) + N) % N;  k0 = ((k0 % N) + N) % N;
     int i1 = (i0 + 1) % N;    int j1 = (j0 + 1) % N;    int k1 = (k0 + 1) % N;
 
-    float v000 = ph[idx3(i0, j0, k0)].x;
-    float v100 = ph[idx3(i1, j0, k0)].x;
-    float v010 = ph[idx3(i0, j1, k0)].x;
-    float v110 = ph[idx3(i1, j1, k0)].x;
-    float v001 = ph[idx3(i0, j0, k1)].x;
-    float v101 = ph[idx3(i1, j0, k1)].x;
-    float v011 = ph[idx3(i0, j1, k1)].x;
-    float v111 = ph[idx3(i1, j1, k1)].x;
+    vec3 v000 = grad[idx3(i0, j0, k0)].xyz;
+    vec3 v100 = grad[idx3(i1, j0, k0)].xyz;
+    vec3 v010 = grad[idx3(i0, j1, k0)].xyz;
+    vec3 v110 = grad[idx3(i1, j1, k0)].xyz;
+    vec3 v001 = grad[idx3(i0, j0, k1)].xyz;
+    vec3 v101 = grad[idx3(i1, j0, k1)].xyz;
+    vec3 v011 = grad[idx3(i0, j1, k1)].xyz;
+    vec3 v111 = grad[idx3(i1, j1, k1)].xyz;
 
-    float q0 = mix(mix(v000, v100, fx), mix(v010, v110, fx), fy);
-    float q1 = mix(mix(v001, v101, fx), mix(v011, v111, fx), fy);
+    vec3 q0 = mix(mix(v000, v100, fx), mix(v010, v110, fx), fy);
+    vec3 q1 = mix(mix(v001, v101, fx), mix(v011, v111, fx), fy);
     return mix(q0, q1, fz);
+}
+
+// ── Gradient-field build pass (pass_mode == 1) ─────────────────────────
+// One thread per cell (2D cells dispatch, gid = x + y·N·256 — the
+// poisson cells convention; a 1D N³/256 dispatch caps at 65535 groups on
+// some devices for N=256). S is evaluated at the cell and its 6 axis
+// neighbors DIRECTLY from cell values (no interpolation), then ∇S via
+// central differences with periodic wraps, stored to _grad_buf.
+// Runs after the Poisson solve and before the N-body pass in the same
+// compute list (the nbody arm reads this buffer — see the header).
+void grad_main() {
+    int N = int(pc.N_f);
+    int nc = N * N * N;
+    uint gid = gl_GlobalInvocationID.x
+             + gl_GlobalInvocationID.y * uint(N * 256);
+    if (int(gid) >= nc) return;
+
+    int i = int(gid) % N;
+    int j = (int(gid) / N) % N;
+    int k = int(gid) / (N * N);
+
+    int ip = (i + 1) % N;     int im = (i - 1 + N) % N;
+    int jp = (j + 1) % N;     int jm = (j - 1 + N) % N;
+    int kp = (k + 1) % N;     int km = (k - 1 + N) % N;
+
+    float s00 = chord_s_at(i,  j,  k);
+    float spx = chord_s_at(ip, j,  k);  float smx = chord_s_at(im, j,  k);
+    float spy = chord_s_at(i,  jp, k);  float smy = chord_s_at(i,  jm, k);
+    float spz = chord_s_at(i,  j,  kp); float smz = chord_s_at(i,  j,  km);
+
+    float h = bh[2].y / (float(N) * 0.5);   // cell size (extent / hn)
+    grad[gid] = vec4(
+        (spx - smx) / (2.0 * h),
+        (spy - smy) / (2.0 * h),
+        (spz - smz) / (2.0 * h),
+        0.0);
 }
 
 // ── Telemetry reduction ────────────────────────────────────────────────
@@ -195,28 +301,13 @@ float chord_g_at(vec3 wp, out float q_out, out float pi_over_rho, inout TeleStat
     return 1.0 + (pc.xi - 1.0) * q;
 }
 
-// ── The flow-modulated chord S = g·Φ at a point (river mode) ───────────
-float chord_value(vec3 wp, inout TeleStats st) {
-    float q_unused; float pi_unused;
-    float g = chord_g_at(wp, q_unused, pi_unused, st);
-    return g * tri_phi(wp);               // g · Φ
-}
-vec3 chord_gradient(vec3 wp, inout TeleStats st) {
-    int N = int(pc.N_f);
-    float hn = float(N) * 0.5;
-    float h = bh[2].y / hn;               // cell size
-    vec3 dx = vec3(h, 0.0, 0.0);
-    vec3 dy = vec3(0.0, h, 0.0);
-    vec3 dz = vec3(0.0, 0.0, h);
-    return vec3(
-        chord_value(wp + dx, st) - chord_value(wp - dx, st),
-        chord_value(wp + dy, st) - chord_value(wp - dy, st),
-        chord_value(wp + dz, st) - chord_value(wp - dz, st)) / (2.0 * h);
-}
-
 // ── River-mode field force: a = −G_N·(π/ρ)·∇(g·Φ) ─────────────────────
+// ESTIMATOR: one trilinear sample of the cell-centered ∇(g·Φ) field
+// (built once per step by grad_main). g/π/ρ at p and the clamp logic
+// come from chord_g_at EXACTLY as before (telemetry-bearing). The full
+// chord product is still computed whole on the grid — never hand-split.
 vec3 river_field_acc(vec3 wp, inout TeleStats st) {
-    vec3 gradS = chord_gradient(wp, st);
+    vec3 gradS = tri_grad(wp);
     float q_unused; float pi_over_rho;
     chord_g_at(wp, q_unused, pi_over_rho, st);
     float G_N = bh[1].w;
@@ -314,8 +405,9 @@ vec3 gravity_at(vec3 wp, inout TeleStats st) {
     return acc;
 }
 
-// ── KDK leapfrog ───────────────────────────────────────────────────────
+// ── KDK leapfrog (pass_mode == 0) ─────────────────────────────────────
 void main() {
+    if (pc.pass_mode > 0.5) { grad_main(); return; }   // uniform per workgroup
     int i = int(gl_GlobalInvocationID.x);
     int N = int(pc.particle_N);
     int li = int(gl_LocalInvocationIndex.x);
