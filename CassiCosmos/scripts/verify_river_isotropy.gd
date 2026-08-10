@@ -4,11 +4,11 @@ extends Node
 ##
 ## Single point mass (direct density-buffer write: delta 10.0 at the
 ## center cell, the verify_fft _delta pattern) + 64 zero-mass probe
-## particles on rings of radius r = 8h and r = 4h in the z = 0 plane
-## (grid row 32), uniform tiny fluid (q uniform → g uniform → the
-## anisotropy lives in ∇Φ alone). One solve+gravity chain runs, then the
-## probe accelerations are compared against the gradient estimators
-## computed in GDScript on the same solved Φ:
+## particles on rings in the z = 0 plane, uniform tiny fluid (q uniform
+## → g uniform → the anisotropy lives in ∇Φ alone). One solve+gravity
+## chain runs per grid, then the probe accelerations are compared
+## against the gradient estimators computed in GDScript on the same
+## solved Φ:
 ##   NEW — trilinear interpolation of the cell-centered central-difference
 ##         gradient of S (the shader's current grad_main + tri_grad).
 ##   OLD — per-particle central difference of trilinear samples of
@@ -29,8 +29,31 @@ extends Node
 ## r = 4h vs the trilinear 1.0441 / 1.1293 (slightly worse; Catmull-Rom
 ## overshoot). The measured "bias along grid lines" is therefore
 ## intrinsic to the discrete torus-Green field's cubic structure, not
-## the sampler — the lever is the box size / grid resolution. The
-## tricubic was reverted; this test pins the trilinear baseline numbers.
+## the sampler. The tricubic was reverted; this test pins the trilinear
+## baseline numbers.
+##
+## DUAL-GRID MEASUREMENT (2026-08-10): this test now runs BOTH N=64 and
+## N=128 (same physical box L=75) with the SAME physical ring radii
+## {2.34375, 4.6875, 9.375} — 2h/4h/8h at 64³, 4h/8h/16h at 128³.
+## Findings (NumPy scratch, shader-exact chain; anchor: the 64³ GPU
+## numbers reproduce to 1e-4):
+##   • The ratio |a|max/|a|min is a function of r/h ONLY: N=64 and N=128
+##     give identical ratios at the same cell radius (1.3662@2h,
+##     1.1293@4h, 1.0441@8h, 1.0173@16h — both N).
+##   • A padded 2L solve (k-spacing halved, images at 2L) changes
+##     nothing (1.1292@4h) — the low-k shell coarseness is NOT the
+##     driver. The k_max truncation layer is NOT the driver either
+##     (zeroing the outer planes: 1.1271@4h); a sharp spherical cutoff
+##     is WORSE (1.2117@4h — the 1/k² cube-corner taper helps).
+##   • A 19-point-symbol (D19) experiment reduces the DELTA-field excess
+##     (ratio−1) by 1.9× at 4h (1.1293→1.0668) and 2.8× at 8h
+##     (1.0441→1.0157) but is a measured no-op for the sim's TSC-
+##     deposited blob field (1.0896→1.0919 at 4h — the blob's own
+##     roll-off damps exactly the modes the symbol changes). Under the
+##     ≥3× adoption gate neither the symbol change nor the padded solve
+##     was shipped; the residual is the torus-Green lattice structure at
+##     fixed r/h. Resolution only helps via r/h (N↑ at fixed physical r),
+##     which the 128³ pass of this test documents.
 ##
 ## Assertions:
 ##   (i)   shader |a|(θ) matches the NEW estimator within 1%
@@ -38,8 +61,8 @@ extends Node
 ##   (ii)  OLD matches NEW within 1% (the identity, empirically)
 ##   (iii) no NaN/Inf anywhere; force attractive at every probe
 ## Reported: anisotropy ratios (max|a|/min|a| over θ) for shader/NEW/OLD
-## at both radii — the honest quantitative answer to "the river has a
-## bias along grid lines".
+## at every ring radius and both grids — the honest quantitative answer
+## to "the river has a bias along grid lines".
 ##
 ## NOTE on the dispatch chain: the per-step GPU clear (poisson mode 3)
 ## wipes any CPU-side rho write at the start of _physics_step, so the
@@ -47,8 +70,8 @@ extends Node
 ## REAL pipeline is driven manually in one compute list — poisson solve
 ## (sim._dispatch_poisson), then the gradient pass (pass_mode = 1), then
 ## the N-body pass (pass_mode = 0) — with the same ordering, barriers and
-## push constants as _step_dispatches (2.8 gradient → 3. nbody). The 4h
-## ring re-dispatches only the N-body pass (the S field is unchanged).
+## push constants as _step_dispatches (2.8 gradient → 3. nbody). The
+## later rings re-dispatch only the N-body pass (the S field is unchanged).
 ##
 ## Run: godot --path <repo> res://scenes/verify_river_isotropy.tscn
 
@@ -57,7 +80,10 @@ const PHI_INV2: float = 0.3819660112501051
 const TWO_PI: float = 6.28318530717958647693
 const G_N: float = 1.0
 const PI_CLAMP_MAX: float = 0.72
-const PROBE_R: float = 8.0   # ring radius in cell units (h·PROBE_R)
+# Ring radii in PHYSICAL units, identical at both grids (the 128³ grid's
+# h differs, so the cell-relative radii differ: 2h/4h/8h at 64³ and
+# 4h/8h/16h at 128³). 2.34375 = 4h at 128³ — the user's operating radius.
+const PHYS_RINGS: Array[float] = [2.34375, 4.6875, 9.375]
 const NPROBE: int = 64       # probe count on the ring
 
 var sim: Node3D
@@ -315,7 +341,24 @@ func _pi_over_rho(ey: PackedFloat32Array, ei: PackedFloat32Array, wp: Vector3) -
 # ═══════════════════════════════════════════════════════════════════════
 
 func _run_all() -> void:
-	print("══════ verify_river_isotropy — N=%d, extent=%.1f, h=%.4f, rings r=4h,8h (%d probes each) ══════" % [N, extent, h, NPROBE])
+	_run_grid(64)
+	_run_grid(128)
+	print("══════ RESULT: %d/%d checks passed, %d failed ══════" % [_checks - _failures, _checks, _failures])
+
+
+# One grid pass: uniform tiny fluid, delta mass at the center, rings at
+# the PHYSICAL radii PHYS_RINGS (the same radii at both grids — the
+# anisotropy is a function of r/h, so the 128³ cell-relative radii differ).
+func _run_grid(n: int) -> void:
+	if sim.grid_N != n:
+		sim.grid_N = n
+		sim.reinit()
+		sim.playing = false  # reinit does not touch playing; keep sim paused
+	N = sim.grid_N
+	extent = sim.cluster_radius * 1.5
+	h = extent / (float(N) * 0.5)
+	nc = N * N * N
+	print("══════ verify_river_isotropy — N=%d, extent=%.1f, h=%.4f, rings %s (%d probes each) ══════" % [N, extent, h, str(PHYS_RINGS), NPROBE])
 	# Uniform tiny fluid: q uniform → g uniform → the anisotropy lives in
 	# ∇(g·Φ) alone (the sampled field's direction structure)
 	var ey = PackedFloat32Array(); ey.resize(nc)
@@ -325,32 +368,29 @@ func _run_all() -> void:
 		ei[i] = 0.00010
 	_write_fields(ey, ei)
 	_write_delta_rho()
-	_set_probes(PROBE_R)
-	_run_chain()
 
-	var phi := _read_phi()
-	var s := _build_s(ey, ei, phi)
-	var new_grad_fields := _build_new_grad(s)  # built ONCE (O(N³))
-
-	# 8h ring (the chain's own probe positions)
-	var accs8 := _read_accs()
-	_measure_ring(accs8, PROBE_R, ey, ei, s, new_grad_fields)
-
-	# 4h ring: re-place the probes and re-dispatch ONLY the N-body pass —
+	# The first ring rides the full chain (poisson → gradient → nbody);
+	# the rest re-place the probes and re-dispatch ONLY the N-body pass —
 	# the S field is unchanged, so the poisson + gradient passes need no
 	# re-run (same ordering as _step_dispatches' nbody block).
-	_set_probes(4.0)
-	var cl = sim._rd.compute_list_begin()
-	sim._rd.compute_list_bind_compute_pipeline(cl, sim._nbody_pipe)
-	sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_0, 0)
-	sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_1, 1)
-	sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_2, 2)
-	sim._rd.compute_list_set_push_constant(cl, _nbody_pc(0.0), 48)
-	sim._rd.compute_list_dispatch(cl, ceili(float(NPROBE) / 256.0), 1, 1)
-	sim._rd.compute_list_end()
-	_measure_ring(_read_accs(), 4.0, ey, ei, s, new_grad_fields)
-
-	print("══════ RESULT: %d/%d checks passed, %d failed ══════" % [_checks - _failures, _checks, _failures])
+	_set_probes(PHYS_RINGS[0] / h)
+	_run_chain()
+	var phi := _read_phi()
+	var s := _build_s(ey, ei, phi)
+	var new_grad_fields := _build_new_grad(s)  # built ONCE per grid (O(N³))
+	for rk in range(PHYS_RINGS.size()):
+		var radius_h := PHYS_RINGS[rk] / h
+		if rk > 0:
+			_set_probes(radius_h)
+			var cl = sim._rd.compute_list_begin()
+			sim._rd.compute_list_bind_compute_pipeline(cl, sim._nbody_pipe)
+			sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_0, 0)
+			sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_1, 1)
+			sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_2, 2)
+			sim._rd.compute_list_set_push_constant(cl, _nbody_pc(0.0), 48)
+			sim._rd.compute_list_dispatch(cl, ceili(float(NPROBE) / 256.0), 1, 1)
+			sim._rd.compute_list_end()
+		_measure_ring(_read_accs(), radius_h, ey, ei, s, new_grad_fields, PHYS_RINGS[rk])
 
 
 # Measure one ring: shader-vs-NEW and OLD-vs-NEW agreement + anisotropy
@@ -359,8 +399,9 @@ func _run_all() -> void:
 # the discrete torus-Green field — the tricubic-sampler gate experiment
 # did not reduce it, see the header.)
 func _measure_ring(accs: Array, radius_h: float, ey: PackedFloat32Array,
-		ei: PackedFloat32Array, s: PackedFloat32Array, new_grad_fields: Array) -> void:
-	var label := "r=%.1fh" % radius_h
+		ei: PackedFloat32Array, s: PackedFloat32Array, new_grad_fields: Array,
+		rp: float) -> void:
+	var label := "r=%.2fU (%.1fh)" % [rp, radius_h]
 	var a_new := []
 	var a_old := []
 	var r := radius_h * h
