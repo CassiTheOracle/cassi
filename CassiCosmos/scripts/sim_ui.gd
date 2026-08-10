@@ -180,11 +180,12 @@ func _ready() -> void:
 	var grid_lbl = _make_label("Grid N:", Color(0.9, 0.85, 0.5), 12)
 	grid_box.add_child(grid_lbl)
 	_grid_spin = SpinBox.new()
-	# Fixed at 64: the spectral Poisson FFT (cassi_poisson.glsl) is
-	# specialized to N = 64 and silently no-ops at any other resolution.
-	_grid_spin.min_value = 64; _grid_spin.max_value = 64
-	_grid_spin.step = 1; _grid_spin.value = 64
-	_grid_spin.editable = false
+	# Radix-2 spectral FFT: valid grids are powers of two in [64, 256];
+	# non-powers (e.g. 192) are rounded UP by the sim — the control
+	# re-syncs to the effective grid after reinit.
+	_grid_spin.min_value = 64; _grid_spin.max_value = 256
+	_grid_spin.step = 64; _grid_spin.value = 64
+	_grid_spin.editable = true
 	_grid_spin.custom_minimum_size = Vector2(0, 22)
 	grid_box.add_child(_grid_spin)
 
@@ -258,6 +259,7 @@ func _ready() -> void:
 		_nclusters_spin.value = sim.num_clusters
 		_sep_spin.value = sim.cluster_separation
 		_xi_slider.value = sim.xi
+		_xi_label.text = "xi: %.1f" % sim.xi  # label starts at the builder default otherwise
 		_src_slider.value = sim.source_strength
 		_grid_spin.value = sim.grid_N
 		_particle_spin.value = sim.N_particles
@@ -407,6 +409,9 @@ func _on_grid_changed(value: float) -> void:
 	sim.grid_N = int(value)
 	# Grid change requires reinit — buffer sizes change
 	sim.reinit()
+	# Show the EFFECTIVE grid (non-powers of two round UP in the sim,
+	# e.g. 96 → 128); set_value_no_signal avoids a second reinit.
+	_grid_spin.set_value_no_signal(sim.grid_N)
 
 
 func _on_particles_changed(value: float) -> void:
@@ -467,7 +472,7 @@ func _update_info() -> void:
 			"xi: %.1f  src: %.2f  soften: %.2f\n" % [sim.xi, sim.source_strength, sim.softening] + \
 			"sf: %.3f  H: %.4f  steps: %d  drop: %d\n" % [sim._scale_factor, sim._hubble, sim._step_count, sim._dropped_steps] + \
 			"N: %s | grid: %d³ | dt: %.4f\n" % [p_str, sim.grid_N, sim.dt] + \
-			"grav: %s  φ⁶−1: %.3f\n" % ["RIVER" if sim.gravity_mode == 0 else "HEURISTIC", sim.PHI_6 - 1.0] + \
+			"grav: %s  ξ(φ⁶): %.3f  chord ξ−1: %.3f\n" % ["RIVER" if sim.gravity_mode == 0 else "HEURISTIC", sim.xi, sim.PHI_6 - 1.0] + \
 			"q∈[%.6f, %.6f]  π/ρ∈[%.4f, %.4f]  sat↑%.1f%% sat↓%.1f%%" % [
 				sim._q_min, sim._q_max, sim._pi_min, sim._pi_max,
 				sim._pi_sat_hi_frac * 100.0, sim._pi_sat_lo_frac * 100.0]

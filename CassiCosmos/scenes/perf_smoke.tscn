@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" uid="uid://bp5bjas7jlx46" path="res://scripts/cassi_sim.gd" id="1_sim"]
+
+[node name="PerfSmoke" type="Node3D"]
+
+[node name="CassiSim" type="Node3D" parent="."]
+script = ExtResource("1_sim")
+playing = true
+grid_N = 64
+N_particles = 1000000
+cluster_radius = 25.0
+gravity_mode = 0
+mode = 0

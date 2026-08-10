@@ -38,7 +38,7 @@ layout(set = 0, binding = 0, std430) readonly buffer FieldEY { float ey[]; };
 layout(set = 0, binding = 1, std430) readonly buffer FieldEI { float ei[]; };
 layout(set = 0, binding = 2, std430) readonly buffer FieldQ  { float qv[]; };
 layout(set = 0, binding = 3, std430) readonly buffer FieldVel { vec4 fvel[]; };
-layout(set = 0, binding = 4, std430) readonly buffer MassDensity { uint rho[]; };
+layout(set = 0, binding = 4, std430) readonly buffer MassDensity { float rho[]; };
 // Poisson solution buffer (complex FFT workspace; real part = Φ after solve)
 layout(set = 0, binding = 5, std430) readonly buffer PhiBuf { vec2 ph[]; };
 // Gravity telemetry (cleared on the GPU each step by cassi_poisson.glsl
@@ -243,14 +243,14 @@ void sample_q_field(vec3 wp, out float q_val, out vec3 q_grad) {
     int i1 = (i0 + 1) % N;    int j1 = (j0 + 1) % N;    int k1 = (k0 + 1) % N;
 
     float M2Q = 0.01;
-    float r000 = uintBitsToFloat(rho[idx3(i0, j0, k0)]);
-    float r100 = uintBitsToFloat(rho[idx3(i1, j0, k0)]);
-    float r010 = uintBitsToFloat(rho[idx3(i0, j1, k0)]);
-    float r110 = uintBitsToFloat(rho[idx3(i1, j1, k0)]);
-    float r001 = uintBitsToFloat(rho[idx3(i0, j0, k1)]);
-    float r101 = uintBitsToFloat(rho[idx3(i1, j0, k1)]);
-    float r011 = uintBitsToFloat(rho[idx3(i0, j1, k1)]);
-    float r111 = uintBitsToFloat(rho[idx3(i1, j1, k1)]);
+    float r000 = rho[idx3(i0, j0, k0)];
+    float r100 = rho[idx3(i1, j0, k0)];
+    float r010 = rho[idx3(i0, j1, k0)];
+    float r110 = rho[idx3(i1, j1, k0)];
+    float r001 = rho[idx3(i0, j0, k1)];
+    float r101 = rho[idx3(i1, j0, k1)];
+    float r011 = rho[idx3(i0, j1, k1)];
+    float r111 = rho[idx3(i1, j1, k1)];
 
     float q000 = qv[idx3(i0, j0, k0)] + r000 * M2Q;
     float q100 = qv[idx3(i1, j0, k0)] + r100 * M2Q;

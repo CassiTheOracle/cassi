@@ -19,7 +19,7 @@ layout(set = 0, binding = 0, std430) restrict buffer FieldEY { float ey[]; };
 layout(set = 0, binding = 1, std430) restrict buffer FieldEI { float ei[]; };
 layout(set = 0, binding = 2, std430) buffer FieldQ { float q[]; };
 layout(set = 0, binding = 3, std430) buffer FieldVel { vec4 vel[]; };
-layout(set = 0, binding = 4, std430) coherent readonly buffer MassDensity { uint rho[]; };
+layout(set = 0, binding = 4, std430) coherent readonly buffer MassDensity { float rho[]; };
 layout(push_constant, std430) uniform PC {
     float N_f; float dt; float t; float phi;
     float xi; float eps2; float particle_N;
@@ -33,23 +33,51 @@ int idx3(int i, int j, int k) {
     return i + N * (j + N * k);
 }
 
-// 7-point periodic Laplacian (inlined per field — strict GLSL rejects
-// unsized array function parameters, which silently disabled this shader
-// in earlier builds)
+// 19-point isotropic periodic Laplacian (inlined per field — strict GLSL
+// rejects unsized array function parameters, which silently disabled this
+// shader in earlier builds). Weights: 6 axis neighbors 1/3 each, 12 face
+// diagonals 1/6 each, center −4. Symbol ω19² = k² − (1/12)(kx²+ky²+kz²)²
+// + O(k⁶): the quartic term is isotropic, so dispersion anisotropy is
+// O(h⁶) instead of the 7-point's O(h²). The 7-point's anisotropy bowed the
+// [110] front inward 2–4% with the corner-to-face gap growing linearly
+// with radius — the user's "the ring becomes a square". Max |symbol| 5.333
+// vs 12.000 (7-point): CFL bound relaxes 1.5×; dt=0.001 is far below both.
 float lap_ey_at(int i, int j, int k) {
     int N = int(pc.N_f);
-    return (ey[idx3((i + 1) % N, j, k)] + ey[idx3((i - 1 + N) % N, j, k)]
-          + ey[idx3(i, (j + 1) % N, k)] + ey[idx3(i, (j - 1 + N) % N, k)]
-          + ey[idx3(i, j, (k + 1) % N)] + ey[idx3(i, j, (k - 1 + N) % N)]
-          - 6.0 * ey[idx3(i, j, k)]);
+    int ip = (i + 1) % N; int im = (i - 1 + N) % N;
+    int jp = (j + 1) % N; int jm = (j - 1 + N) % N;
+    int kp = (k + 1) % N; int km = (k - 1 + N) % N;
+    float axis = (ey[idx3(ip, j, k)] + ey[idx3(im, j, k)]
+                + ey[idx3(i, jp, k)] + ey[idx3(i, jm, k)]
+                + ey[idx3(i, j, kp)] + ey[idx3(i, j, km)]
+                - 6.0 * ey[idx3(i, j, k)]);
+    float fd = (ey[idx3(ip, jp, k)] + ey[idx3(im, jp, k)]
+              + ey[idx3(ip, jm, k)] + ey[idx3(im, jm, k)]
+              + ey[idx3(ip, j, kp)] + ey[idx3(im, j, kp)]
+              + ey[idx3(ip, j, km)] + ey[idx3(im, j, km)]
+              + ey[idx3(i, jp, kp)] + ey[idx3(i, jm, kp)]
+              + ey[idx3(i, jp, km)] + ey[idx3(i, jm, km)]
+              - 12.0 * ey[idx3(i, j, k)]);
+    return (1.0 / 3.0) * axis + (1.0 / 6.0) * fd;
 }
 
 float lap_ei_at(int i, int j, int k) {
     int N = int(pc.N_f);
-    return (ei[idx3((i + 1) % N, j, k)] + ei[idx3((i - 1 + N) % N, j, k)]
-          + ei[idx3(i, (j + 1) % N, k)] + ei[idx3(i, (j - 1 + N) % N, k)]
-          + ei[idx3(i, j, (k + 1) % N)] + ei[idx3(i, j, (k - 1 + N) % N)]
-          - 6.0 * ei[idx3(i, j, k)]);
+    int ip = (i + 1) % N; int im = (i - 1 + N) % N;
+    int jp = (j + 1) % N; int jm = (j - 1 + N) % N;
+    int kp = (k + 1) % N; int km = (k - 1 + N) % N;
+    float axis = (ei[idx3(ip, j, k)] + ei[idx3(im, j, k)]
+                + ei[idx3(i, jp, k)] + ei[idx3(i, jm, k)]
+                + ei[idx3(i, j, kp)] + ei[idx3(i, j, km)]
+                - 6.0 * ei[idx3(i, j, k)]);
+    float fd = (ei[idx3(ip, jp, k)] + ei[idx3(im, jp, k)]
+              + ei[idx3(ip, jm, k)] + ei[idx3(im, jm, k)]
+              + ei[idx3(ip, j, kp)] + ei[idx3(im, j, kp)]
+              + ei[idx3(ip, j, km)] + ei[idx3(im, j, km)]
+              + ei[idx3(i, jp, kp)] + ei[idx3(i, jm, kp)]
+              + ei[idx3(i, jp, km)] + ei[idx3(i, jm, km)]
+              - 12.0 * ei[idx3(i, j, k)]);
+    return (1.0 / 3.0) * axis + (1.0 / 6.0) * fd;
 }
 
 // ── Perturbation source: Gaussian at center, or multiple seeds ────────
@@ -61,7 +89,7 @@ float source_ey(int i, int j, int k) {
     float dz = (float(k) - halfn) / halfn;
     float r2 = dx*dx + dy*dy + dz*dz;
 	float s = pc.source_strength;
-	float mr = uintBitsToFloat(rho[idx3(i, j, k)]);
+	float mr = rho[idx3(i, j, k)];
 	return s * exp(-r2 * 4.0) + mr * 0.001;
 }
 
@@ -74,7 +102,7 @@ float source_ei(int i, int j, int k) {
     float dz = (float(k) - halfn * 0.6) / halfn;
     float r2 = dx*dx + dy*dy + dz*dz;
 	float s = pc.source_strength * 0.707; // 1/sqrt(2) for EI
-	float mr = uintBitsToFloat(rho[idx3(i, j, k)]) * 0.707;
+	float mr = rho[idx3(i, j, k)] * 0.707;
 	return s * exp(-r2 * 4.0) + mr * 0.001;
 }
 

@@ -22,7 +22,9 @@ script = ExtResource("1_cam")
 
 [node name="CassiSim" type="Node3D" parent="." unique_id=822736192]
 script = ExtResource("2_sim")
-cluster_radius = 25.0
+grid_N = 128
+xi = 17.94427191
+particle_size = 0.1
 
 [node name="UILayer" type="CanvasLayer" parent="." unique_id=1258460337]
 

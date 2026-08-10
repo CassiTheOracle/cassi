@@ -74,7 +74,6 @@ var _instancer_shader: RID; var _instancer_pipe: RID
 var _cond_shader: RID; var _cond_pipe: RID; var _us_cond_0: RID; var _us_cond_1: RID
 var _bh_int_shader: RID; var _bh_int_pipe: RID; var _us_bh_int_0: RID; var _us_bh_int_1: RID
 var _cond_step_counter: int = 0
-var _mm_buf: RID = RID()
 var _us_inst_0: RID = RID()
 
 # — pre-allocated push-constant byte buffers (hitch-free: no per-step allocs) —
@@ -85,20 +84,27 @@ var _cond_pc_bytes: PackedByteArray   # condensation PC (4 floats)
 var _bh_init_bytes: PackedByteArray   # BH header init (16 floats)
 var _tel_reset_bytes: PackedByteArray # gravity telemetry reset (8 floats)
 var _poisson_pc_bytes: PackedByteArray  # poisson PC (5 floats)
-var _poisson_wg: int = 1              # poisson dispatch group count
-var _pending_submit: bool = false     # local-RD: submit needs a sync before the next
+# NOTE: global RD — no manual submit/sync anywhere (illegal on the main
+# instance); readbacks self-stall via buffer_get_data.
 
 # — MultiMesh rendering —
-# Visual readbacks (MultiMesh, field slice, BH lensing) are wall-time capped
-# at ~15 Hz: at uncapped FPS the old frame-counter gate (every 4th frame)
-# hit 50+ Hz and hitched on 64–160 MB readbacks. Full-q diagnostics ~3 Hz.
+# GPU-DIRECT: the instancer compute shader writes straight into the
+# renderer's OWN multimesh instance buffer (RenderingServer
+# .multimesh_get_buffer_rd_rid) — zero per-frame readbacks/CPU uploads.
+# (`MultiMesh.buffer` is PackedFloat32Array-typed in Godot 4.7; there is no
+# RID-injection property, so the reverse direction is used: compute binds
+# the renderer's buffer RID.)
+# Visual readbacks (field slice, BH lensing) stay wall-time capped at
+# ~15 Hz; full-q diagnostics ~3 Hz (each readback stalls the global RD, so
+# they are throttled hard).
 const RB_HZ: float = 15.0
 const DIAG_HZ: float = 3.0
-var _mm_data_f32: PackedFloat32Array       # pre-allocated for MultiMesh (avoid GC)
-var _last_mm_rb_ms: int = 0                # wall-time gates (Time.get_ticks_msec)
+var _mm_rd_rid: RID = RID()              # the multimesh's RD instance buffer
 var _last_field_rb_ms: int = 0
 var _last_bh_rb_ms: int = 0
 var _last_diag_ms: int = 0
+var _last_p0_rb_ms: int = 0              # wall-time gate for the p[0] debug print
+var _inst_debug_done: bool = false       # one-time inst[0..2] print
 var _mmi: MultiMeshInstance3D; var _mm: MultiMesh
 
 # — timing —
@@ -146,8 +152,8 @@ func _ready() -> void:
 		push_error("[CassiSim] Aborting startup: no RenderingDevice (headless/dummy renderer?)")
 		return
 	_setup_buffers()
-	_setup_shaders()
-	_setup_multimesh()
+	_setup_multimesh()  # BEFORE _setup_shaders: the instancer uniform set
+	_setup_shaders()    # binds the multimesh's RD buffer, which must exist
 	_init_field()
 	_init_particles()
 	print("[CassiSim] Universe ready — grid=%d³ particles=%d xi=%.5f (φ⁶=%.5f)" % [grid_N, N_particles, xi, PHI_6])
@@ -183,12 +189,12 @@ func _process(delta: float) -> void:
 	_render_frame()
 
 
-# Run n physics steps in ONE compute list with ONE submit+sync.
-# (Local RenderingDevice contract: submit must be followed by sync before
-# the next submit — the old per-step submit() errored "device already
-# submitted" every step after the first and silently dropped the work.)
+# Run n physics steps in ONE compute list per frame.
+# (Global RD contract: NO submit/sync — illegal on the main instance. The
+# list is executed by the renderer's frame machinery at frame end; any
+# buffer_get_data readback internally flushes and stalls all frames, which
+# is the only sync we need.)
 func _run_physics_steps(n_steps: int) -> void:
-	_ensure_synced()  # local RD: the previous frame's submit must be synced first
 	# BH header (count/G_N/extent) — constant across the frame's steps;
 	# buffer_update must run BEFORE compute_list_begin.
 	_rd.buffer_update(_bh_buf, 0, _bh_init_bytes.size(), _bh_init_bytes)
@@ -196,14 +202,12 @@ func _run_physics_steps(n_steps: int) -> void:
 	for _s in range(n_steps):
 		_step_dispatches(cl)
 	_rd.compute_list_end()
-	_rd.submit()
-	_pending_submit = true  # sync is required before the next submit
 
 
+# No-op on the global RD: readbacks self-stall (kept so verify scripts and
+# external callers can call it unconditionally).
 func _ensure_synced() -> void:
-	if _pending_submit:
-		_rd.sync()
-		_pending_submit = false
+	pass
 
 
 # Full memory barrier inside an open compute list. Consecutive dispatches
@@ -216,6 +220,11 @@ func _barrier(cl: int) -> void:
 
 
 func _exit_tree() -> void:
+	# Children (incl. the MultiMeshInstance3D holding the renderer's
+	# multimesh buffer) exit BEFORE this node, so the multimesh buffer RID
+	# referenced by _us_inst_0 is already gone when the sets are freed —
+	# releasing a set that referenced a freed buffer is safe on the global
+	# RD (sets are opaque). Order: sets → buffers → shaders.
 	_free_uniform_sets()  # sets reference buffers/shaders — release first
 	_free_buffers()
 	_free_shaders()
@@ -226,9 +235,19 @@ func _exit_tree() -> void:
 # ═══════════════════════════════════════════════════════════════════════
 
 func _setup_rendering_device() -> bool:
-	_rd = RenderingServer.create_local_rendering_device()
+	# GLOBAL RenderingDevice (RenderingServer.get_rendering_device()) — the
+	# main renderer's device. REQUIRED for the GPU-direct MultiMesh path:
+	# the renderer's own multimesh instance buffer (obtained via
+	# RenderingServer.multimesh_get_buffer_rd_rid) lives on this device, and
+	# a local-RD compute shader cannot bind it (different Vulkan device).
+	# Global-RD contract (Godot 4.7): submit()/sync() are FORBIDDEN on the
+	# main instance ("Only local devices can submit and sync"); recorded
+	# compute lists are executed by the renderer's frame machinery, and
+	# buffer/texture_get_data internally flushes + stalls all frames.
+	if RenderingServer.has_method("get_rendering_device"):
+		_rd = RenderingServer.get_rendering_device()
 	if _rd == null:
-		push_error("[CassiSim] Failed to create RenderingDevice")
+		push_error("[CassiSim] Failed to acquire the global RenderingDevice (headless/dummy renderer?)")
 		return false
 	return true
 
@@ -254,11 +273,20 @@ func _uniform_storage(binding: int, buf: RID) -> RDUniform:
 
 
 func _setup_buffers() -> void:
-	# The spectral Poisson FFT (cassi_poisson.glsl) is specialized to N = 64
-	# and silently no-ops at any other resolution — never run unsupported.
-	if grid_N != 64:
-		push_warning("[CassiSim] grid_N=%d unsupported (Poisson FFT specialized to N=64); forcing 64" % grid_N)
-		grid_N = 64
+	# The spectral Poisson FFT (cassi_poisson.glsl) is a radix-2 Stockham
+	# FFT: grid_N must be a power of 2 in [64, 256]. Non-power-of-2 values
+	# are rounded UP to the next power of 2 (clamped at 256) and the
+	# effective grid is written back to grid_N so the UI and dispatch
+	# counts always agree with what the shader actually runs.
+	var n2 := 64
+	while n2 < grid_N:
+		n2 *= 2
+	if n2 > 256:
+		n2 = 256
+	if n2 != grid_N:
+		var old_N := grid_N
+		grid_N = n2
+		push_warning("[CassiSim] grid_N=%d is not a power of 2 (radix-2 FFT); using %d" % [old_N, grid_N])
 	var N = grid_N
 	var nc = N * N * N
 	var nf = nc * 4
@@ -296,10 +324,11 @@ func _setup_buffers() -> void:
 	_bh_lens_buf = _rd.storage_buffer_create(64)
 	# Cluster center positions + masses (for multi-cluster gravity)
 	_cluster_buf = _rd.storage_buffer_create(20 * 4 * 4)
-	# Mass density grid (one uint per cell, stores float as bits)
+	# Mass density grid (float per cell — float atomicAdd deposit, see
+	# cassi_mass_deposit.glsl)
 	_mass_density_buf = _rd.storage_buffer_create(nc * 4)
-	_mm_buf = _rd.storage_buffer_create(N_particles * 64)
-	# Pre-allocate zero buffer for mass density clear (reused every step)
+	# NO sim-owned multimesh buffer: the instancer writes the renderer's own
+	# multimesh instance buffer (see _setup_multimesh) — GPU-direct.
 	_make_render_textures()
 
 	# Pre-allocate push-constant byte buffers (hitch-free pattern)
@@ -308,14 +337,18 @@ func _setup_buffers() -> void:
 	_bh_int_pc_bytes = PackedByteArray(); _bh_int_pc_bytes.resize(4 * 4)
 	_cond_pc_bytes = PackedByteArray(); _cond_pc_bytes.resize(4 * 4)
 	_poisson_pc_bytes = PackedByteArray(); _poisson_pc_bytes.resize(5 * 4)
-	_poisson_wg = ceili(float(nc) / 64.0)
+	# NOTE: all poisson dispatches (clear/load/kspace/FFT) are 2D (N, N, 1) —
+	# cells modes use gid = x + y·N·256 (see cassi_poisson.glsl), the FFT
+	# uses row = workgroup.x + workgroup.y·N. A 1D (N³/256, 1, 1) dispatch
+	# caps at 65535 groups on some devices and the naive x + y·N gid formula
+	# covers only N² + 255N cells — the N=256 dispatch landmine.
 	# Telemetry reset (kept for reference; the per-step reset runs on the GPU
 	# in the poisson clear pass so chained steps stay independent)
 	_tel_reset_bytes = PackedFloat32Array([0.0, 0.0, 0.0, INF, 0.0, INF, 0.0, 0.0]).to_byte_array()
 
 func _free_buffers() -> void:
 	for rid in [_field_ey, _field_ei, _field_q, _field_vel,
-				_pos_buf, _vel_buf, _acc_buf, _bh_buf, _bh_lens_buf, _mm_buf,
+				_pos_buf, _vel_buf, _acc_buf, _bh_buf, _bh_lens_buf,
 				_mass_density_buf, _cluster_buf, _fft_buf, _tel_buf,
 				_field_render_tex, _bh_lensing_tex]:
 		if rid.is_valid(): _rd.free_rid(rid)
@@ -490,12 +523,17 @@ func _cache_uniform_sets() -> void:
 			_get_set2_buffer_uniform(_bh_lensing_shader, 1, _bh_lens_buf),
 		], _bh_lensing_shader, 2)
 
-	# Instancer
-	_us_inst_0 = _rd.uniform_set_create([
-		_uniform_storage(0, _pos_buf),
-		_uniform_storage(1, _mm_buf),
-	], _instancer_shader, 0)
-	print("[CassiSim] Instancer uniform set cached")
+	# Instancer — writes DIRECTLY into the renderer's multimesh instance
+	# buffer (GPU-direct; no readback). The buffer must be valid here:
+	# _setup_multimesh runs before _setup_shaders (see _ready).
+	if not _mm_rd_rid.is_valid():
+		push_error("[CassiSim] Instancer set skipped: multimesh RD buffer unavailable")
+	else:
+		_us_inst_0 = _rd.uniform_set_create([
+			_uniform_storage(0, _pos_buf),
+			_uniform_storage(1, _mm_rd_rid),
+		], _instancer_shader, 0)
+		print("[CassiSim] Instancer uniform set cached (GPU-direct multimesh buffer)")
 
 	# Mass deposit
 	_us_mass_dep_0 = _rd.uniform_set_create([
@@ -650,7 +688,10 @@ func _init_particles() -> void:
 		var cg = lerp(0.8, 0.25, 1.0-t_c)
 		var cb = lerp(0.3, 1.0, 1.0-t_c)
 		init_inst[b+12] = cr; init_inst[b+13] = cg; init_inst[b+14] = cb; init_inst[b+15] = 0.85
-	_rd.buffer_update(_mm_buf, 0, init_inst.size() * 4, init_inst.to_byte_array())
+	# Initial instance data → the renderer's OWN multimesh buffer (one-time
+	# CPU upload at init; every subsequent frame the instancer shader writes
+	# it directly). NOTE: do NOT assign _mm.buffer again later — a CPU
+	# upload would overwrite the GPU-direct writes.
 	_mm.buffer = init_inst
 	_rd.buffer_update(_pos_buf, 0, pos.size() * 4, pos.to_byte_array())
 	_rd.buffer_update(_vel_buf, 0, vel.size() * 4, vel.to_byte_array())
@@ -727,10 +768,8 @@ func _render_field_slice() -> void:
 	_rd.compute_list_set_push_constant(cl, _pc_bytes, _pc_bytes.size())
 	_rd.compute_list_dispatch(cl, wg.x, wg.y, wg.z)
 	_rd.compute_list_end()
-	_ensure_synced()  # local RD: sync any pending physics submit first
-	_rd.submit()
-	_rd.sync()
-	_pending_submit = false  # we just synced this list ourselves
+	# Global RD: no submit/sync; texture_get_data self-stalls (executes the
+	# recorded list, then reads back).
 
 	# Readback for UI display (15 Hz — one 512² RGBAF readback per gate)
 	var fdata = _rd.texture_get_data(_field_render_tex, 0)
@@ -803,7 +842,7 @@ func _step_dispatches(cl: int) -> void:
 		_rd.compute_list_bind_compute_pipeline(cl, _poisson_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_poisson_0, 0)
 		_rd.compute_list_set_push_constant(cl, _poisson_pc_bytes, _poisson_pc_bytes.size())
-		_rd.compute_list_dispatch(cl, _poisson_wg, 1, 1)
+		_rd.compute_list_dispatch(cl, grid_N, grid_N, 1)  # 2D cells dispatch
 	_barrier(cl)  # clear → deposit
 
 	# ── 1. Mass deposit: scatter particle masses → field grid (PIC) ──
@@ -869,6 +908,9 @@ func _step_dispatches(cl: int) -> void:
 # discretization mismatch (expected O(h²) of the stencil), not solver error.
 func _report_poisson_residual() -> void:
 	if not _rd or not _fft_buf.is_valid(): return
+	if grid_N > 128:
+		print("[CassiSim] Poisson residual report skipped: grid_N=%d > 128 (full-grid CPU triple loop too slow)" % grid_N)
+		return
 	_ensure_synced()
 	var N = grid_N
 	var phi = _rd.buffer_get_data(_fft_buf, 0, N * N * N * 8)
@@ -910,7 +952,7 @@ func _dispatch_poisson(cl: int) -> void:
 	_poisson_pc_bytes.encode_float(8, 0.0); _poisson_pc_bytes.encode_float(12, 0.0)
 	_poisson_pc_bytes.encode_float(16, cluster_radius * 1.5)
 	_rd.compute_list_set_push_constant(cl, _poisson_pc_bytes, _poisson_pc_bytes.size())
-	_rd.compute_list_dispatch(cl, _poisson_wg, 1, 1)
+	_rd.compute_list_dispatch(cl, grid_N, grid_N, 1)  # 2D cells dispatch
 	_barrier(cl)  # load → fwd x
 	# mode 1: forward FFT passes x, y, z
 	for axis in range(3):
@@ -918,12 +960,12 @@ func _dispatch_poisson(cl: int) -> void:
 		_poisson_pc_bytes.encode_float(8, 0.0)   # forward
 		_poisson_pc_bytes.encode_float(12, 1.0)
 		_rd.compute_list_set_push_constant(cl, _poisson_pc_bytes, _poisson_pc_bytes.size())
-		_rd.compute_list_dispatch(cl, _poisson_wg, 1, 1)
+		_rd.compute_list_dispatch(cl, grid_N, grid_N, 1)  # 2D rows dispatch
 		_barrier(cl)  # FFT passes: memory visibility between stages
 	# mode 2: k-space multiply Φ̂ = −ρ̂/k²  (BETWEEN fwd and inv — required)
 	_poisson_pc_bytes.encode_float(12, 2.0)
 	_rd.compute_list_set_push_constant(cl, _poisson_pc_bytes, _poisson_pc_bytes.size())
-	_rd.compute_list_dispatch(cl, _poisson_wg, 1, 1)
+	_rd.compute_list_dispatch(cl, grid_N, grid_N, 1)  # 2D cells dispatch
 	_barrier(cl)  # fwd z → kspace
 	# mode 1: inverse FFT passes z, y, x (scaled 1/N each)
 	for axis in range(2, -1, -1):
@@ -931,7 +973,7 @@ func _dispatch_poisson(cl: int) -> void:
 		_poisson_pc_bytes.encode_float(8, 1.0)   # inverse
 		_poisson_pc_bytes.encode_float(12, 1.0)
 		_rd.compute_list_set_push_constant(cl, _poisson_pc_bytes, _poisson_pc_bytes.size())
-		_rd.compute_list_dispatch(cl, _poisson_wg, 1, 1)
+		_rd.compute_list_dispatch(cl, grid_N, grid_N, 1)  # 2D rows dispatch
 		_barrier(cl)  # inverse FFT passes
 
 func _make_render_textures() -> void:
@@ -999,6 +1041,15 @@ func _setup_multimesh() -> void:
 	_mmi.multimesh = _mm
 	add_child(_mmi)
 
+	# GPU-direct: grab the renderer's instance buffer RID (created by
+	# multimesh_allocate_data when instance_count was set above) — the
+	# instancer compute shader writes it every step, no readback/upload.
+	_mm_rd_rid = RenderingServer.multimesh_get_buffer_rd_rid(_mm.get_rid())
+	if _mm_rd_rid.is_valid():
+		print("[CassiSim] MultiMesh GPU-direct: renderer buffer RID acquired (%d × 64 B)" % max(N_particles, 1))
+	else:
+		push_error("[CassiSim] multimesh_get_buffer_rd_rid returned an invalid RID — instancer writes will fail")
+
 	var mat = ShaderMaterial.new()
 	mat.shader = load("res://shaders/particle_billboard.gdshader")
 	mat.render_priority = 1
@@ -1008,23 +1059,19 @@ func _setup_multimesh() -> void:
 func _render_frame() -> void:
 	var now_ms := Time.get_ticks_msec()
 
-	# Read instance buffer from GPU to PackedFloat32Array for MultiMesh —
-	# wall-time capped at ~15 Hz (the old frame-counter gate ran every 4th
-	# frame, which at uncapped FPS is 50+ Hz of 64–160 MB readbacks).
-	if _mm_buf.is_valid() and N_particles > 0 \
-			and now_ms - _last_mm_rb_ms >= int(1000.0 / RB_HZ):
-		_last_mm_rb_ms = now_ms
-		_ensure_synced()  # sync only when we actually read back
-		var inst_data = _rd.buffer_get_data(_mm_buf, 0, N_particles * 64)
-		if inst_data.size() > 0:
-			_mm_data_f32 = inst_data.to_float32_array()
-			_mm.buffer = _mm_data_f32
-			if _step_count == 1 and _mm_data_f32.size() >= 48:
-				for inst_idx in range(min(3, N_particles)):
-					var b = inst_idx * 16
-					print("[CassiSim] inst[%d] origin=(%.2f,%.2f,%.2f) color=(%.2f,%.2f,%.2f,%.2f)" % [
-						inst_idx, _mm_data_f32[b+3], _mm_data_f32[b+7], _mm_data_f32[b+11],
-						_mm_data_f32[b+12], _mm_data_f32[b+13], _mm_data_f32[b+14], _mm_data_f32[b+15]])
+	# GPU-direct MultiMesh: NO per-frame readback/upload — the instancer
+	# shader wrote the renderer's buffer this frame. One-time debug print
+	# of the first instances (single small readback, cheap).
+	if not _inst_debug_done and _mm_rd_rid.is_valid() and _step_count >= 1:
+		_inst_debug_done = true
+		var inst_data = _rd.buffer_get_data(_mm_rd_rid, 0, min(3, N_particles) * 64)
+		if inst_data.size() >= 48:
+			var mm_f32 := inst_data.to_float32_array()
+			for inst_idx in range(min(3, N_particles)):
+				var b = inst_idx * 16
+				print("[CassiSim] inst[%d] origin=(%.2f,%.2f,%.2f) color=(%.2f,%.2f,%.2f,%.2f)" % [
+					inst_idx, mm_f32[b+3], mm_f32[b+7], mm_f32[b+11],
+					mm_f32[b+12], mm_f32[b+13], mm_f32[b+14], mm_f32[b+15]])
 
 	# Throttled diagnostics readback (wall-time ~3 Hz; the step-count gate
 	# fired 60×/s at high FPS and drained the local device each time)
@@ -1081,9 +1128,11 @@ func _render_particles() -> void:
 		return
 
 	# MultiMesh reads from GPU buffer directly — no CPU transform updates needed.
-	# Just log the first particle position for diagnostics.
-	if _step_count > 0 and _step_count % 3000 == 0:
-		_ensure_synced()  # readback requires the device synced
+	# First-particle position debug print, wall-time gated (once per 10 s —
+	# each readback stalls the global RD, so no step-count spam).
+	var now_ms := Time.get_ticks_msec()
+	if _step_count > 0 and now_ms - _last_p0_rb_ms >= 10000:
+		_last_p0_rb_ms = now_ms
 		var pos_data = _rd.buffer_get_data(_pos_buf, 0, 16)
 		if pos_data.size() >= 16:
 			var pos = pos_data.to_float32_array()
@@ -1125,10 +1174,7 @@ func _render_bh_lensing() -> void:
 	_rd.compute_list_set_push_constant(cl, _pc_bytes, _pc_bytes.size())
 	_rd.compute_list_dispatch(cl, wg.x, wg.y, wg.z)
 	_rd.compute_list_end()
-	_ensure_synced()  # local RD: sync any pending physics submit first
-	_rd.submit()
-	_rd.sync()
-	_pending_submit = false  # we just synced this list ourselves
+	# Global RD: no submit/sync; texture_get_data self-stalls.
 
 	# Readback for UI display (15 Hz — one 512² RGBAF readback per gate)
 	var bdata = _rd.texture_get_data(_bh_lensing_tex, 0)
@@ -1150,7 +1196,6 @@ func _render_bh_lensing() -> void:
 # ═══════════════════════════════════════════════════════════════════════
 
 func reinit() -> void:
-	_ensure_synced()
 	_free_uniform_sets()  # cached sets reference the buffers being freed
 	_free_buffers()
 	_setup_buffers()

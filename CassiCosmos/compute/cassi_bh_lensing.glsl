@@ -3,7 +3,7 @@
 // Cassi Black Hole Gravitational Lensing — Screen-Space Post-Process
 //
 // Implements gravitational lensing from a Cassi black hole using:
-//   - Cassi-enhanced deflection: alpha = 2*r_s/b * (1 + xi*G_eff_ext)
+//   - Cassi-enhanced deflection: alpha = 2*r_s/b * (1 + (xi-1)*G_eff_ext)
 //   - BH shadow (b < b_crit): pure black
 //   - Accretion disk emission at Cassi ISCO (~3*G*M)
 //   - Gravitational redshift: color *= sqrt(1 - r_s/r)
@@ -121,7 +121,7 @@ void main() {
     // GR photon sphere critical impact parameter: b_crit = 3*sqrt(3)*M
     float b_crit_base = 3.0 * SQRT3;  // in units of M
     // Cassi correction: slight enlargement from external G_eff
-    float b_crit = b_crit_base * (1.0 + xi_val * G_eff * 0.05);
+    float b_crit = b_crit_base * (1.0 + (xi_val - 1.0) * G_eff * 0.05);
     float b_crit_pixels = b_crit * M_pixels;
 
     // ── BH Shadow: pixels within photon sphere are black ───────────────
@@ -134,7 +134,7 @@ void main() {
     // Cassi-enhanced deflection angle:
     // where b_phys is the physical impact parameter (in natural units)
     float b_phys = b;  // already in units of M
-    float deflection = 2.0 * r_s_phys / b_phys * (1.0 + xi_val * G_eff);
+    float deflection = 2.0 * r_s_phys / b_phys * (1.0 + (xi_val - 1.0) * G_eff);
 
     // Deflection direction: radially toward BH center
     vec2 defl_dir = (b_pixel > 1e-6) ? (delta / b_pixel) : vec2(0.0);

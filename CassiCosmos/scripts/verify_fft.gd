@@ -89,10 +89,15 @@ func _fft_pass(axis: float, direction: float, mode: float) -> void:
 	pc.encode_float(12, mode)
 	pc.encode_float(16, extent)
 	sim._rd.compute_list_set_push_constant(cl, pc, pc.size())
-	sim._rd.compute_list_dispatch(cl, sim._poisson_wg, 1, 1)
+	# All poisson modes dispatch 2D (N, N, 1): FFT passes = one workgroup
+	# per row (row = wg.x + wg.y·N); cells modes (load/kspace/clear) cover
+	# N³ cells via gid = x + y·N·256 (see cassi_poisson.glsl).
+	sim._rd.compute_list_dispatch(cl, N, N, 1)
 	sim._rd.compute_list_end()
-	sim._rd.submit()
-	sim._rd.sync()
+	# No submit()/sync() here: the sim runs on the GLOBAL RenderingDevice,
+	# where both are forbidden no-ops ("Only local devices can submit and
+	# sync.") — the readback path (_read_complex → buffer_get_data) already
+	# self-stalls until the pending work completes.
 
 
 func _max_abs_diff(a: PackedFloat32Array, b: PackedFloat32Array) -> float:
@@ -177,7 +182,47 @@ func _run_all() -> void:
 	_test_roundtrip()
 	_test_delta_solve()
 	_test_gaussian_solve()
+	_run_n128()
+	_run_n256()
 	print("══════ RESULT: %d/%d checks passed, %d failed ══════" % [_checks - _failures, _checks, _failures])
+
+
+# N=128 battery: reinit the sim at 128³ and re-run the round-trip and
+# delta-solve checks (same tolerance; σ stays 4 cells, the mass stays at
+# N/2 via the member N). The Gaussian FD-residual battery is 64-only — its
+# triple loop is O(N³) CPU work and the smooth-case check is resolution-
+# independent in spirit.
+func _run_n128() -> void:
+	print("══════ N=128 ══════")
+	sim.grid_N = 128
+	sim.reinit()
+	sim.playing = false  # reinit does not touch playing; keep sim paused
+	N = sim.grid_N
+	extent = sim.cluster_radius * 1.5
+	h = extent / (float(N) * 0.5)
+	nc = N * N * N
+	print("══════ verify_fft — N=%d, extent=%.1f, h=%.4f, σ=%.1f cells ══════" % [N, extent, h, sigma])
+	_test_roundtrip()
+	_test_delta_solve()
+
+
+# N=256 battery: reinit at 256³ and run the round-trip checks. This is the
+# dispatch-landmine regression: the cells/rows dispatches go 2D (N, N, 1)
+# so 256³ = 16.7M cells fit (a 1D dispatch would also blow the 65535-group
+# cap and the naive x + y·N gid covers only N² + 255N cells). Round-trip
+# only — the delta-solve CPU Green's sum is O(N³) and the sim's own
+# residual report is gated above 128.
+func _run_n256() -> void:
+	print("══════ N=256 ══════")
+	sim.grid_N = 256
+	sim.reinit()
+	sim.playing = false
+	N = sim.grid_N
+	extent = sim.cluster_radius * 1.5
+	h = extent / (float(N) * 0.5)
+	nc = N * N * N
+	print("══════ verify_fft — N=%d, extent=%.1f, h=%.4f, σ=%.1f cells ══════" % [N, extent, h, sigma])
+	_test_roundtrip()
 
 
 func _test_roundtrip() -> void:

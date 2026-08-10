@@ -22,14 +22,15 @@
 // the N-body shader samples it directly (binding 5 of its set 0).
 //
 // Modes (pc.mode):
-//   0 = load:   ρ (uint float-bits) → complex buffer (imag = 0)
+//   0 = load:   ρ (float, deposited by float-atomic CIC) → complex buffer
 //   1 = fft:    one Stockham axis pass (pc.axis 0/1/2, pc.direction 0 fwd / 1 inv)
 //   2 = kspace: Φ̂ = −ρ̂/k², k = 0 nulled  (needs pc.extent)
+//   3 = clear:  ρ = 0, telemetry reset (per-step GPU clear)
 
-layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
 layout(set = 0, binding = 0, std430) buffer FFTBuf { vec2 f[]; };
-layout(set = 0, binding = 1, std430) buffer MassDensity { uint rho[]; };
+layout(set = 0, binding = 1, std430) buffer MassDensity { float rho[]; };
 layout(set = 0, binding = 2, std430) buffer Telemetry { uint tel[]; };
 
 layout(push_constant, std430) uniform PC {
@@ -43,34 +44,48 @@ layout(push_constant, std430) uniform PC {
 const float PI = 3.14159265358979323846;
 const float TWO_PI = 6.28318530717958647693;
 
-shared vec2 sdata[2][64];
+shared vec2 sdata[2][256];
 
 // ── Mode 0: load ρ into the complex buffer ─────────────────────────────
 void load_main() {
     int nc = int(pc.N_f) * int(pc.N_f) * int(pc.N_f);
-    uint gid = gl_GlobalInvocationID.x;
+    // Cells modes dispatch (N, N, 1) with 256 threads/group: x covers one
+    // 256-thread group (N·256 threads), y walks the groups — row-major
+    // cell index = x + y·(N·256), exactly N³ cells. (The naive
+    // x + y·N covers only N² + 255N cells — the Vulkan dispatch landmine
+    // that drops every 256th group at N=256.)
+    uint gid = gl_GlobalInvocationID.x
+             + gl_GlobalInvocationID.y * uint(int(pc.N_f) * 256);
     if (int(gid) >= nc) return;
-    f[gid] = vec2(uintBitsToFloat(rho[gid]), 0.0);
+    f[gid] = vec2(rho[gid], 0.0);  // ρ is already a float (float-atomic deposit)
 }
 
 // ── Mode 1: Stockham FFT along one axis ────────────────────────────────
 // One workgroup per row: gid.x = row id, local thread t = element in row.
-// Specialized to N = 64 (local_size 64, 6 stages); N is an export of the
-// sim and the pipeline is rebuilt on reinit, so a mismatch is impossible
-// unless grid_N is changed without reinit — guard anyway.
+// N-generic radix-2: any power of 2 with 64 ≤ N ≤ 256 (local_size 256,
+// ≤ 8 stages). N is read from the push constants every pass, so the
+// pipeline does NOT need a rebuild when grid_N changes — the guard below
+// is the only N check.
 //
 // This is a radix-2 DIT schedule: butterflies run over blocks that double
 // each stage, pairing elements jj and jj + halfn with twiddle ω^jj.
 // DIT REQUIRES THE INPUT IN BIT-REVERSED ORDER: the row is loaded into
-// shared memory with the local index bit-reversed (6 bits for N = 64,
-// per axis — the reversal permutes positions WITHIN the row). The same
+// shared memory with the local index bit-reversed (log2(N) bits, per
+// axis — the reversal permutes positions WITHIN the row). The same
 // reversed load is applied on the inverse side, so the transform pair
 // closes: FFT⁻¹(FFT(x)) = x. (Without this, the DIT butterfly shape
 // applied to natural-order input scrambles the spectrum — the
 // noise-like, sign-flipped Φ observed before the fix.)
-int bitrev6(int x) {
+//
+// Barrier discipline: EVERY one of the 256 local threads must reach every
+// barrier (no early returns once the guard passes); only the data
+// movement is guarded with `if (t < N)`. The butterfly's `jj < halfn`
+// guard keeps threads with t ≥ N inside the shared array (their read
+// index is t < 256 and their write index t + halfn ≤ 255), so their
+// garbage work lands at slots ≥ N that no real element ever reads.
+int bitrev(int x, int bits) {
     int r = 0;
-    for (int b = 0; b < 6; b++) {
+    for (int b = 0; b < bits; b++) {
         r = (r << 1) | (x & 1);
         x >>= 1;
     }
@@ -79,12 +94,16 @@ int bitrev6(int x) {
 
 void fft_main() {
     int N = int(pc.N_f);
-    if (N != 64) return;  // FFT kernels are specialized to N = 64
+    if (N < 2 || (N & (N - 1)) != 0 || N > 256) return;  // radix-2, ≤ 256
+    int bits = 0;
+    for (int n = N; n > 1; n >>= 1) bits++;
     // One workgroup per row: the ROW is the workgroup index (each workgroup
-    // of 64 threads holds one row in shared memory), NOT gl_GlobalInvocationID
+    // of 256 threads holds one row in shared memory), NOT gl_GlobalInvocationID
     // (which is the cell index — wrong here: the butterflies would mix
-    // elements of 64 different rows).
-    uint row = gl_WorkGroupID.x;
+    // elements of 256 different rows). Dispatch is (N, N, 1) — one workgroup
+    // per row again, with the y-group walking N² rows in row-major order:
+    //   row = x + y·N   (x,y = gl_WorkGroupID)
+    uint row = gl_WorkGroupID.x + gl_WorkGroupID.y * uint(N);
     if (row >= uint(N * N)) return;
     int t = int(gl_LocalInvocationID.x);
 
@@ -98,12 +117,14 @@ void fft_main() {
     else { base = r0 + N * r1; stride = N * N; }
     int gidx = base + t * stride;
 
-    sdata[0][t] = f[base + bitrev6(t) * stride];
+    if (t < N) {
+        sdata[0][t] = f[base + bitrev(t, bits) * stride];
+    }
     barrier();
 
     int r = 0;
     int w = 1;
-    for (int s = 1; s <= 6; s++) {
+    for (int s = 1; s <= bits; s++) {
         int n_sub = 1 << s;
         int halfn = 1 << (s - 1);   // 'half' is a reserved word in GLSL
         int jj = t & (n_sub - 1);
@@ -125,14 +146,17 @@ void fft_main() {
     }
 
     float scale = (pc.direction > 0.5) ? 1.0 / float(N) : 1.0;
-    f[gidx] = sdata[r][t] * scale;
+    if (t < N) {
+        f[gidx] = sdata[r][t] * scale;
+    }
 }
 
 // ── Mode 2: k-space multiply Φ̂ = −ρ̂/k² (k = 0 nulled) ────────────────
 void kspace_main() {
     int N = int(pc.N_f);
     int nc = N * N * N;
-    uint gid = gl_GlobalInvocationID.x;
+    uint gid = gl_GlobalInvocationID.x
+             + gl_GlobalInvocationID.y * uint(N * 256);
     if (int(gid) >= nc) return;
 
     int i = int(gid) % N;
@@ -156,9 +180,10 @@ void kspace_main() {
 // density and telemetry state (CPU buffer_update is illegal mid-list).
 void clear_main() {
     int nc = int(pc.N_f) * int(pc.N_f) * int(pc.N_f);
-    uint gid = gl_GlobalInvocationID.x;
+    uint gid = gl_GlobalInvocationID.x
+             + gl_GlobalInvocationID.y * uint(int(pc.N_f) * 256);
     if (int(gid) >= nc) return;
-    rho[gid] = 0u;
+    rho[gid] = 0.0;  // float buffer (float-atomic deposit)
     if (gid < 8u) {
         // [0..2] saturation/guard counters → 0
         // [3] q_min → +inf, [4] q_max → 0, [5] π/ρ_min → +inf, [6] π/ρ_max → 0

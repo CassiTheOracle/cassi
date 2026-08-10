@@ -48,19 +48,40 @@ void main() {
         return;
     }
 
-    // Map pixel → grid coords.  Clamp so we never sample out of range
-    // when the render target is larger than the grid.
-    int gx = int(float(pixel.x) * float(N) / float(dims.x));
-    int gy = int(float(pixel.y) * float(N) / float(dims.y));
-    gx = clamp(gx, 0, N - 1);
-    gy = clamp(gy, 0, N - 1);
+    // Map pixel → grid coords with bilinear sampling (4 loads + fractional
+    // lerp per axis). The old nearest-neighbor truncation stair-stepped one
+    // cell = 8×8 pixels at 512² and visually sharpened the ring corners.
+    float fx = float(pixel.x) * float(N) / float(dims.x);
+    float fy = float(pixel.y) * float(N) / float(dims.y);
+    int gx = int(fx);
+    int gy = int(fy);
+    float tx = fx - float(gx);
+    float ty = fy - float(gy);
+    // Clamp so we never sample out of range when the render target is
+    // smaller than the grid (the old clamp behavior; tx/ty then saturate
+    // to the last cell).
+    gx = clamp(gx, 0, N - 2);
+    gy = clamp(gy, 0, N - 2);
+    tx = clamp(tx, 0.0, 1.0);
+    ty = clamp(ty, 0.0, 1.0);
     int gz = N / 2; // z-slice through the middle of the 3D grid
 
-    int idx = gx + N * gy + N * N * gz;
+    int i00 = gx + N * gy + N * N * gz;
+    int i10 = i00 + 1;
+    int i01 = i00 + N;
+    int i11 = i01 + 1;
 
-    float ey_val = ey[idx];
-    float ei_val = ei[idx];
-    float q_val  = q[idx];
+    float ey00 = ey[i00]; float ey10 = ey[i10];
+    float ey01 = ey[i01]; float ey11 = ey[i11];
+    float ey_val = mix(mix(ey00, ey10, tx), mix(ey01, ey11, tx), ty);
+
+    float ei00 = ei[i00]; float ei10 = ei[i10];
+    float ei01 = ei[i01]; float ei11 = ei[i11];
+    float ei_val = mix(mix(ei00, ei10, tx), mix(ei01, ei11, tx), ty);
+
+    float q00 = q[i00]; float q10 = q[i10];
+    float q01 = q[i01]; float q11 = q[i11];
+    float q_val = mix(mix(q00, q10, tx), mix(q01, q11, tx), ty);
 
     // ── Background ───────────────────────────────────────────────────
     vec3 color = vec3(0.01, 0.01, 0.02);

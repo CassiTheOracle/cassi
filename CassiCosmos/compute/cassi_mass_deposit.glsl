@@ -4,6 +4,21 @@
 // into the field grid. Each particle spreads mass to 8 surrounding
 // cells with trilinear weights, producing a smooth density field
 // without nearest-neighbor grid aliasing.
+//
+// Accumulation: hardware FLOAT atomicAdd (GL_EXT_shader_atomic_float) —
+// one atomicAdd per cell instead of the old 8-way atomic CAS loop
+// (atomicOr + atomicCompSwap retry). Verified on this rig (RX 7900 XTX,
+// Vulkan 1.4.349, Godot 4.7): the extension compiles, the pipeline builds,
+// and results are exact for representable values. Known caveats:
+//   - fp32 sequential-summation drift: long single-address chains drift by
+//     ~Σ ULP/2 (deterministic; ~1e-3 at 1024 adds/cell, ~1% only in the
+//     pathological 1M-adds-to-one-cell case). Same noise class as the old
+//     CAS loop; irrelevant at realistic occupancies (tens-hundreds/cell).
+//   - Godot's RESPV optimizer prints "OpAtomicFAddEXT is not supported yet."
+//     to stderr and skips optimizing THIS shader (harmless; the driver
+//     runs the original SPIR-V — verified non-fatal in 4.7's
+//     rendering_shader_container / rendering_device_driver_vulkan).
+#extension GL_EXT_shader_atomic_float : require
 
 layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
@@ -12,7 +27,7 @@ layout(set = 0, binding = 0, std430) restrict readonly buffer Positions {
 };
 
 layout(set = 0, binding = 1, std430) coherent buffer MassDensity {
-    uint rho[];  // float masses stored as uint for CAS
+    float rho[];  // float masses, accumulated with float atomicAdd
 };
 
 layout(push_constant, std430) uniform PC {
@@ -21,19 +36,6 @@ layout(push_constant, std430) uniform PC {
     float extent;        // grid physical half-extent
     float _pad;
 } pc;
-
-// ── Float atomic add via CAS loop ─────────────────────────────────────
-void atomic_add_float(int idx, float val) {
-    if (val == 0.0) return;
-    uint old_bits = atomicOr(rho[idx], 0u);
-    int n = 0;
-    float old_val;
-    do {
-        old_val = uintBitsToFloat(old_bits);
-        old_bits = atomicCompSwap(rho[idx], old_bits, floatBitsToUint(old_val + val));
-        n++;
-    } while (floatBitsToUint(old_val) != old_bits && n < 512);
-}
 
 // ── Main kernel: CIC (Cloud-In-Cell) mass deposit ─────────────────────
 void main() {
@@ -85,12 +87,12 @@ void main() {
     int idx011 = i0 + N * (j1 + N * k1);
     int idx111 = i1 + N * (j1 + N * k1);
 
-    atomic_add_float(idx000, mass * w000);
-    atomic_add_float(idx100, mass * w100);
-    atomic_add_float(idx010, mass * w010);
-    atomic_add_float(idx110, mass * w110);
-    atomic_add_float(idx001, mass * w001);
-    atomic_add_float(idx101, mass * w101);
-    atomic_add_float(idx011, mass * w011);
-    atomic_add_float(idx111, mass * w111);
+    atomicAdd(rho[idx000], mass * w000);
+    atomicAdd(rho[idx100], mass * w100);
+    atomicAdd(rho[idx010], mass * w010);
+    atomicAdd(rho[idx110], mass * w110);
+    atomicAdd(rho[idx001], mass * w001);
+    atomicAdd(rho[idx101], mass * w101);
+    atomicAdd(rho[idx011], mass * w011);
+    atomicAdd(rho[idx111], mass * w111);
 }
