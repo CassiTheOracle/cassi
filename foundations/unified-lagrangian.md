@@ -87,11 +87,28 @@ $$
 
 $$
 \mathbf{Q} = (E, J), \quad
-E = \frac{M^2}{M + \varphi^{-2}}, \quad
+E = q\,M, \quad
+M \equiv \rho^2 = (\Psi_0^2 + \Psi_1^2)^2, \quad
 J = \Psi_0 \nabla\Psi_1 - \Psi_1 \nabla\Psi_0
 $$
 
-These are not added to the Lagrangian as separate fields—they are **derived diagnostics** of the two-fluid state. They couple to other sectors through $\mathcal{L}_{\text{mix}}$.
+where $q$ is the canonical Qi coherence (theory-reference §2.4),
+$q = \rho^2/(\rho^2 + \varphi^{-2} + \varepsilon^2)$ with
+$\varepsilon^2 = (\Psi_0 - \varphi\Psi_1)^2$, and $M$ is the **field power**
+(the solver's $M_{qi} = (E_Y+E_I)^2$; the bare density $M = \Psi_0^2+\Psi_1^2$
+of §1.3 is a different symbol usage). At the $\varphi$-equilibrium
+($\varepsilon^2 \to 0$) the coherence reduces to $q = M/(M + \varphi^{-2})$, so
+
+$$
+E = \frac{M^2}{M + \varphi^{-2}} = \frac{\rho^4}{\rho^2 + \varphi^{-2}} = q\,M
+\qquad (\varepsilon^2 \to 0)
+$$
+
+—the coherent fraction of the field power (verified numerically,
+`computations/q_form_inventory_check.py`). The compact reference's Qi
+2-vector uses the bare density as magnitude, $\mathbf{Q} = (\rho, J)$
+(theory-reference §2.4); here the magnitude is the equilibrium-gated power
+$E = q\rho^2$. These are not added to the Lagrangian as separate fields—they are **derived diagnostics** of the two-fluid state. They couple to other sectors through $\mathcal{L}_{\text{mix}}$.
 
 ### 1.6 Full Two-Fluid Lagrangian
 
@@ -193,7 +210,7 @@ where:
 - $G$ is the bare Newton constant (set by the Planck scale)
 - $\pi$ is the local Yang/Yin pressure: $\pi = \partial\mathcal{L}_{\text{TF}}/\partial(\nabla\Psi)$
 - $\rho$ is the total energy density
-- $q$ is the Qi quality: $q = M/(M + \varphi^{-2})$
+- $q$ is the Qi quality (coherence): the $\varepsilon^2 \to 0$ equilibrium form of the canonical gate coherence $q = \rho^2/(\rho^2 + \varphi^{-2} + \varepsilon^2)$, $\varepsilon^2 = (\Psi_0 - \varphi\Psi_1)^2$ (theory-reference §2.4), with $M \equiv \rho^2 = (\Psi_0^2+\Psi_1^2)^2$ the field power (the solver's $M_{qi}$): $q = M/(M + \varphi^{-2})$, identical to the canonical form at $\varepsilon^2 = 0$ and the only approximation away from it (verified numerically, `computations/q_form_inventory_check.py`)
 - $\xi = \varphi^6 \approx 17.944$ is the **derived** Qi-gravity coupling
 
 ### 3.3 ξ = φ⁶ Derivation
@@ -428,7 +445,7 @@ The five-element coupling coefficients (derived in the PDE formalism) connect th
 | $K_{fw} = \varphi^{-1}$ | $0.618$ | Water damps Fire (coherence suppresses turbulence) |
 | $K_{fm} = \lambda\varphi^2$ | $0.262$ | Fire melts Metal (turbulence reduces conversion) |
 | $K_{md} = 3\varphi^2$ | $7.85$ | Metal cuts Wood (conversion suppresses structure) |
-| $H_{\text{empty}} = \lambda\varphi^{-2}/3$ |—| Irreducible cosmological baseline—**Asserted** (postulate): the 1/3 is the 3D continuity reading; the derived-diagnostics claim fails here—T₀₀ at equilibrium gives 0 or (g/4)φ², never λφ⁻²/3; Lagrangian derivation open |
+| $H_{\text{empty}} = \lambda\varphi^{-2}/3$ |—| Irreducible cosmological baseline—the 1/3 is **Derived** as the isotropic dimension factor $1/d$ at $d = 3$ (`cosmology/cosmology-from-phi.md` §1); the $\lambda\varphi^{-2}$ rate stays **Asserted** |
 
 These act within $\mathcal{L}_{\text{TF}}$ through the PDE source terms.
 
@@ -540,7 +557,7 @@ All dimensionless couplings in the action are derived; the three dimensionful co
 | $\sin^2\theta_W$ | $\varphi^{-3}$ | $0.236$ (at $\mu_* = 233$ GeV; +2.1% at $m_Z$) | Asserted boundary condition (realized at $\mu_*$; Calibrated—ledger row 490) |
 | $\alpha_{\text{GUT}}$ | $\varphi^{-3}/(4\pi)$ | $1/53$ | **Derived** |
 | $m_W/m_Z$ | $\sqrt{1-\varphi^{-3}}$ | $0.874$ | **Prediction** |
-| $H_{\text{empty}}$ | $\lambda\varphi^{-2}/3$ |—| **Asserted** (postulate): the 1/3 is the 3D continuity reading; T₀₀ at equilibrium gives 0 or (g/4)φ², never λφ⁻²/3; Lagrangian derivation open |
+| $H_{\text{empty}}$ | $\lambda\varphi^{-2}/3$ |—| the 1/3 is **Derived** as the isotropic dimension factor $1/d$ at $d = 3$ (`cosmology/cosmology-from-phi.md` §1); the $\lambda\varphi^{-2}$ rate stays **Asserted** |
 | $K_{fw}$ | $\varphi^{-1}$ | $0.618$ | **Derived** |
 | $K_{md}$ | $3\varphi^2$ | $7.85$ | **Derived** |
 | $\kappa_s$ | $\varphi^{-6}/v_0^2$ | $0.92$ TeV$^{-2}$ | **Derived** (scale) |

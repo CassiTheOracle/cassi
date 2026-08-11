@@ -1,6 +1,6 @@
 # The Cascade Suppression Formula: $\varphi^{-N}$ as the Universal Attenuation Law
 
-## Status: Derived—July 2026
+## Status: Derived (coherence exponent); signal exponent definitionally calibrated (per-rung $\varphi^{-1}$ = attractor Yang fraction, §4)—July 2026
 
 ## Abstract
 
@@ -21,10 +21,12 @@ cover all known applications:
 
 - **Coherence maintenance** ($d_i \approx (1-q_i) \approx \varphi^{-i-\delta}$): $\mathcal{D} = \varphi^{-n(n+1)/2 - \delta(n+1)}$—quadratic in depth. Applies to proton stability and any phenomenon requiring simultaneous coherence across all supporting rungs.
 
-The per-rung damping $d_i$ is derived from the PDE once (Section 1), applied to
+The per-rung damping $d_i$ is fixed once in the cascade medium (Section 1), applied to
 all five cases (Sections 2--4), establishing $\varphi^{-N}$ as the framework's
 universal attenuation law—the single mathematical structure behind every
-"hierarchy" or "stability" puzzle in physics.
+"hierarchy" or "stability" puzzle in physics. The signal-regime factor
+$\varphi^{-1}$ is the definitional calibration of the formula (§4); the
+coherence-regime factor $(1-q_i)$ is derived from the gate.
 
 **Bidirectional extension:** The per-rung attenuation formulas in §1 are defined for $n \geq 0$ (Planck → observable scales). For the extension to sub-Planckian scales ($n < 0$), see `foundations/microcascade-mirror.md`.
 
@@ -61,6 +63,12 @@ For all rungs $i \ge 1$ (i.e., everywhere except the Planck core), the
 $\varphi^{-1}$ term dominates, giving:
 
 $$\boxed{d_i^{\text{signal}} \approx \varphi^{-1}, \qquad i \ge 1}$$
+
+The $\varphi^{-1}$ term is the attractor Yang fraction
+$\varphi/(1+\varphi) = \varphi^{-1}$—the fixed-point amplitude split
+(§4)—and is the definitional per-rung step of the suppression formula;
+the $(1-q_i)$ term is the per-rung coherence dephasing. The two are
+independent: the first is the calibration, the second the noise.
 
 The total damping over $N$ rungs is the product:
 
@@ -121,22 +129,23 @@ formula smoothly interpolates between these limits.
 
 ## 4. Why $\varphi^{-1}$ per rung?
 
-The per-rung damping $d_i \approx \varphi^{-1}$ in the signal-propagation
-regime is not an assumption—it follows from the de-resonance principle.
-The $\varphi$-attractor is the fixed point where conversion vanishes
-($\lambda(E_Y - \varphi E_I) = 0$). A signal that departs from the
-attractor (a coupling not at its $\varphi$-power value, a phase not at
-the CP-symmetric fixed point) is **off-resonance** at every intermediate
-rung. The damping per rung is the ratio of the off-resonance amplitude
-to the on-resonance amplitude:
+The per-rung factor is the definitional calibration of the suppression formula—one rung of signal propagation is, by definition, one $\varphi$-step of attenuation—and its in-framework expression is exact: it is the Yang fraction of the two-fluid doublet at the $\varphi$-attractor.
 
-$$\frac{\text{off-resonance}}{\text{on-resonance}} = \frac{\lambda \cdot \varepsilon}{\lambda \cdot 0 + \text{kinetic}} \approx \varphi^{-1}$$
+At the fixed point $E_Y = \varphi E_I$ the Yang channel carries
 
-because the kinetic (inertial) term at each rung is $\mathcal{O}(\varphi)$
-relative to the conversion term—the same $\varphi$ ratio that gives the
-attractor its stability. One cycle of conversion damps the non-$\varphi$
-component by $\varphi^{-1}$. Over $N$ rungs, the signal must survive
-$N$ such damping events, losing a factor of $\varphi^{-1}$ each time.
+$$\frac{E_Y}{E_Y + E_I} = \frac{\varphi}{1+\varphi} = \frac{\varphi}{\varphi^2} = \varphi^{-1}$$
+
+of the amplitude (ledger rows 500/453: the fixed-point Yang fraction is $\varphi^{-1}$, and $\alpha_w = r/(1+r)$ at $r = \varphi$). The reading: at each rung the field re-locks to the $\varphi$-attractor, and the Yang (expansive, structure-carrying) channel—the one a propagating signal rides—carries fraction $\varphi^{-1}$ of the doublet; the Yin (restorative) fraction is re-absorbed by conversion. One rung of propagation is one re-locking event, so the signal survives with factor $\varphi^{-1}$ per rung, and over $N$ rungs
+
+$$\boxed{\mathcal{D}^{\text{signal}}_{m \to n} = \prod_{i=m}^{n-1} \varphi^{-1} = \varphi^{-(n-m)} = \varphi^{-N}}$$
+
+The alternative crossing models do not produce $\varphi^{-1}$, and the numbers are reported so the calibration is explicit (all computed in `computations/wake_anchor_and_suppression.py` §B):
+
+- **Impedance transmission at a rung boundary** with impedance ratio $Z_2/Z_1 = \varphi$: amplitude $T = 2\sqrt{Z_1Z_2}/(Z_1+Z_2) = 2\varphi^{-3/2} \approx 0.972$ (power $4\varphi^{-3} \approx 0.944$; amplitude reflection $(\varphi-1)/(1+\varphi) = \varphi^{-3} \approx 0.236$). A $\varphi$ impedance step transmits ~97%, not 62%.
+- **Kinetic vs conversion at the rung-wave scale**: the wave (kinetic) term $c^2k^2 = 4\pi^2$ at rung $\ell_n$ ($c = 1$, $k = 2\pi/\ell_n$) dominates the conversion term $\lambda(1-q) \le 0.1$ by a factor $\sim 4\pi^2/\lambda \approx 395$; the ratio $\lambda(1-q)/c^2k^2 \approx 2.5\times10^{-3}$ is two and a half orders below $\varphi^{-1}$. The "kinetic term is $\mathcal{O}(\varphi)$ relative to the conversion term" statement does not hold at the rung-wave scale.
+- **Gate openness at the attractor**: $(1-q_0) = \varphi^{-2}/3 \approx 0.127$ (`foundations/spiral-dynamics.md` §2.2)—not $\varphi^{-1}$.
+
+$$\boxed{\text{Inputs: (i) the }\varphi\text{-attractor fixed point } E_Y = \varphi E_I \text{ (the defining structure of the conversion term); (ii) the identification of the propagating channel with the Yang fraction (the framework's characterization of Yang as expansive, structure-carrying); (iii) the re-locking-per-rung reading. Tier: the identity } \varphi/(1+\varphi) = \varphi^{-1} \text{ is exact; the per-rung factor itself remains the definitional calibration of the suppression formula (postulate-level, like } \ell_n \text{); the re-locking reading is the framework's characterization—Hypothesized.}}$$
 
 ---
 
@@ -177,3 +186,4 @@ Together they constitute the complete scaling laws of the framework.
 - `foundations/strong-cp-derivation.md`—signal propagation, $\bar{\theta} = \pi\varphi^{-83.4} \approx 1.2\times10^{-17}$
 - `foundations/xi-derivation.md`—$\xi = \varphi^6$ as a cascade suppression factor
 - `principles/de-resonance-principle.md`—why $\varphi^{-1}$ is the per-rung damping
+- `computations/wake_anchor_and_suppression.py`—§B: impedance, kinetic-vs-conversion, and Yang-fraction readings of the per-rung factor

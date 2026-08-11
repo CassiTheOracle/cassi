@@ -18,6 +18,39 @@ generated from $\varphi$ without adjustment. The sub-channel pattern remains
 **Hypothesized** with an open arithmetic gap; the $\varphi$-power level-spacing
 prediction (§4) is independent of the closure rows and remains testable.
 
+## Origin Status
+
+**Verdict: catalog correspondence; mechanism open.** Recomputation
+(`computations/verify_hypotheses_origin_audit.py`, 2026-08-11) confirms:
+
+- **Closure arithmetic.** The doc's own rule $N_{\text{magic}} = \sum_i
+  \Omega_{j_i}$ cumulated over the §3 sub-channel row sums (8, 12, 18, 16,
+  24, 30, 36) gives 8, 20, 38, 54, 78, 108, 144 versus the claimed 2, 8, 20,
+  28, 50, 82, 126 — **0 of 7 rows close** (the abstract already states this).
+  The step "SO(2) winding
+  $\Rightarrow s = \Delta n$" $\Rightarrow$ "sub-channel capacity
+  $\Omega_j = 2j + 1$" is asserted; no dynamics selects the $j$ assignments.
+- **Ladder placement.** The magic nuclei sit at
+  $n = \log_\varphi(M_{\text{Pl}}/m)$: $^{208}$Pb 80.39, $^{90}$Zr 82.13,
+  $^{56}$Ni 83.11, $^{48}$Ca 83.43, $^{16}$O 85.72 — scattered over steps
+  80–86 with no special-point structure. These are the nuclei's masses read
+  off the ladder; the ladder itself supplies no closure rule.
+- **Island of stability.** The §6 claim "126 + Fib$(n_{\text{next}})$ = 126 +
+  58 = 184" mislabels 58 as Fibonacci: the sequence near 184 runs $\ldots, 34,
+  55, 89, 144$, and 126 + 55 = 181, 126 + 89 = 215 — neither equals 184.
+  The $N = 184$ prediction is an independent nuclear-structure result that the
+  Fibonacci closure rule does not reproduce (§6 corrected).
+- **Level spacing (§4)** remains a zero-parameter, testable prediction
+  independent of the failed closure rows; its mechanism (why the spacing
+  should be $\varphi^{-j}$) is likewise open.
+
+The magic sequence 2, 8, 20, 28, 50, 82, 126 is a real spectroscopic fact whose
+standard explanation (harmonic-oscillator shells $2n^2$ plus a fitted
+spin-orbit strength) contains no $\varphi$. Calling it a "Fibonacci
+sub-channel closure" is therefore a correspondence chosen after the fact.
+Tier stays **Hypothesized** for the §4 level-spacing prediction only; the
+closure claim is open.
+
 ---
 
 ## 1. The Cascade at Sub-QCD Scales
@@ -132,11 +165,13 @@ PDE rather than inferred from the phenomenological coefficient.
    discovered in exotic nuclei far from stability would falsify the Fibonacci
    closure pattern once the sub-channel assignments are fixed.
 
-3. **Island of stability:** The cascade predicts the next doubly-magic nucleus
-   beyond $^{208}$Pb at the next Fibonacci closure: $126 + \text{Fib}(n_{\text{next}})
-   = 126 + 58 = 184$ neutrons, with proton closure at 114 or 120 (depending on
-   proton/neutron cascade offset). This aligns with some theoretical predictions
-   for the island of stability near $Z \approx 114$–$126$, $N \approx 184$.
+3. **Island of stability:** The next doubly-magic nucleus beyond $^{208}$Pb is
+   a candidate test for the closure rule — but the Fibonacci closure as
+   written does not work: $184 - 126 = 58$, and 58 is not a Fibonacci number
+   (the sequence near 184 runs $\ldots, 34, 55, 89, 144$; $126 + 55 = 181$,
+   $126 + 89 = 215$, neither equals 184). The $N = 184$ island-of-stability
+   prediction is an independent nuclear-structure result; it cannot be cited
+   as a cascade closure until the §3 arithmetic closes.
 
 4. **Pairing gap scaling:** The pairing term $\Delta \approx 12/\sqrt{A}$ MeV
    should follow cascade suppression: $\Delta \propto \varphi^{-(95 - n_{\text{surf}})}$

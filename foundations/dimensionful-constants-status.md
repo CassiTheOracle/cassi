@@ -66,7 +66,7 @@ The PDE conversion rate couples the Yang and Yin fields:
 
 $$\partial_t E_Y \supset -\lambda(E_Y - \varphi E_I)$$
 
-The rate is set by the pentagon structure: one complete Wu Xing cycle traverses $w = 5$ vertices, with each full Yang→Yin→Yang oscillation requiring 2 conversion events. The per-event rate is therefore:
+The rate is set by the pentagon structure: one complete Wu Xing cycle traverses $w = 5$ vertices, with each full Yang→Yin→Yang oscillation requiring 2 conversion events (the doublet factor; one per channel leg — the same 2 as $\xi$'s quadratic degree). The per-event rate is therefore:
 
 $$\boxed{\lambda = \frac{1}{2w} = \frac{1}{2 \times 5} = 0.1}$$
 
@@ -74,7 +74,7 @@ With $w = 5$ derived from cascade dynamics + $\varphi$-geometry (`foundations/wu
 
 **Number-theoretic consistency:** No $\varphi$-power can equal exactly $0.1$ (proven: every $\varphi$-power combination has form $A + B\varphi$ with $A,B \in \mathbb{Z}$, which cannot equal $1/10$). This is a **feature**: if $\lambda$ were a $\varphi$-power, the conversion rate would phase-lock with specific cascade rungs, causing resonant overlap between the pentagon's 5 coherence channels. Because $\lambda = 1/10$ is rational and maximally non-resonant with the $\varphi$-spaced cascade, the 5 channels remain distinct and non-overlapping.
 
-**Status: Derived.** $\lambda = 1/(2w)$ with $w = 5$ derived.
+**Status: Derived conditional on the doublet conversion budget + one event per cycle.** $\lambda = 1/(2w)$ with $w = 5$ derived (factor-by-factor origin: `foundations/wu-xing-derivation.md` §7).
 
 ### 2.2 The Origin of $w = 5$: Derived from Cascade Dynamics
 
@@ -217,7 +217,7 @@ This calibration is provided by the Hubble formula:
 
 $$H_{\text{PDE}} = \frac{\lambda}{3}\frac{(\varphi - r)(1+r)}{r} + \frac{\lambda}{3}\varphi^{-2}$$
 
-(**Asserted** (postulate): the 1/3 is the 3D continuity reading; the Lagrangian's T₀₀ at equilibrium gives 0 or (g/4)φ², never λφ⁻²/3; derivation open.)
+(The 1/3 is **Derived** as the isotropic dimension factor $1/d$ at $d = 3$—`cosmology/cosmology-from-phi.md` §1, `computations/verify_h_form_one_third.py`; the $\lambda\varphi^{-2}$ rate stays **Asserted**; the Lagrangian's T₀₀ at equilibrium gives 0 or (g/4)φ², never λφ⁻²/3.)
 
 At the current epoch ($r \to \varphi$, $q \to 1$):
 

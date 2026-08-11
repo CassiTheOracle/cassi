@@ -1,10 +1,10 @@
 # Derivation of $\xi = \varphi^6$
 
-## Status: Rung identity conditional on the 2×3-DOF ansatz ($\xi = \varphi^6$; $d = 3$ imported, φ-per-DOF step asserted—see §2) / Calibrated empirical pin (Milky Way anchor—ledger)—August 2026
+## Status: Derived conditional on the quadratic-coupling input (imbalance inverse-square: $\xi = (\pi/\rho)^{-2} = \varphi^6$, $\pi/\rho = \varphi^{-3}$ from the attractor) / Calibrated empirical pin (Milky Way anchor—ledger row 498)—August 2026
 
 ## Abstract
 
-The Qi-gravity force law in the Cassi framework is $\mathbf{F} = \pi\,(1 + (\varphi^{6}-1)q)\,\nabla\Phi$, with $q$ the Qi density, $\Phi$ the gravitational potential, and $\xi$ the Qi-gravity coupling. This document derives the coupling from the golden ratio: $\xi = \varphi^6 = \varphi^5 + \varphi^4 \approx 17.944$, via the Fibonacci recurrence. The $2 \times 3 = 6$ degrees of freedom (two field components $\times$ three spatial dimensions) each contribute a factor of $\varphi$; the decomposition into $\varphi^5$ (Wu Xing five-element cycle) and $\varphi^4$ (four fundamental interactions) carries the coupling's structural meaning. The derived value agrees with the empirical rotation-curve calibration ($\xi \approx 18$) to 0.3%—the 0.3% is the residual of that calibration, not an independent confirmation: the empirical pin is Calibrated (Fit-Status Ledger, `parameter-inventory.md` §10).
+The Qi-gravity force law in the Cassi framework is $\mathbf{F} = \pi\,(1 + (\varphi^{6}-1)q)\,\nabla\Phi$, with $q$ the Qi density, $\Phi$ the gravitational potential, and $\xi$ the Qi-gravity coupling; equivalently $G_{\text{eff}} = G\,(\pi/\rho)(1 + (\varphi^{6}-1)q)$ (`foundations/unified-lagrangian.md` §3.2). This document derives the coupling as the inverse-square of the fixed-point imbalance: $\xi = \varphi^6 = (\pi/\rho)^{-2}$, where $\pi/\rho = (\varphi-1)/(\varphi+1) = \varphi^{-3}$ is the fractional energy imbalance $(E_Y - E_I)/(E_Y + E_I)$ at the $\varphi$-attractor fixed point. The exponent $6 = 3 \times 2$ splits into the attractor-derived imbalance exponent $3$ (from $\pi/\rho = \varphi^{-3}$) and the quadratic degree $2$ of the gravitational coupling to the doublet—the derivation's single input. The empirical rotation-curve pin ($\xi \approx 18$) agrees to 0.3%; that pin is Calibrated (Fit-Status Ledger row 498), so the agreement is a consistency check of the calibration, not an independent test.
 
 ## 1. The Problem
 
@@ -14,163 +14,134 @@ $$
 \mathbf{F} = \pi\,(1 + (\varphi^{6}-1)q)\,\nabla\Phi
 $$
 
-where $q$ is the Qi density, $\Phi$ is the gravitational potential, and $\xi$ is the
-Qi-gravity coupling constant.
+where $q$ is the Qi density, $\Phi$ is the gravitational potential, and $\xi$ is the Qi-gravity coupling constant. In the unified action the same coupling enters the effective Newton constant (`foundations/unified-lagrangian.md` §3.2):
 
-Empirical calibration to the Milky Way rotation curve gives $\xi \approx 18$. The
-derivation below fixes the same coupling from first principles.
+$$
+G_{\text{eff}} = G \cdot \frac{\pi}{\rho} \cdot (1 + (\varphi^{6}-1)q)
+$$
+
+Empirical calibration to the Milky Way rotation curve gives $\xi \approx 18$. The derivation below fixes the exponent 6 from the two-fluid attractor plus one coupling assumption; it neither imports the spatial dimension nor asserts a per-degree-of-freedom factor.
 
 ## 2. The Derivation
 
-The derivation shows that $\xi$ is determined by the golden ratio $\varphi$ via
+### 2.1 The fixed-point imbalance
+
+The two-fluid state is the paired-real SO(2) doublet $\Psi = (\Psi_0, \Psi_1)$ with energy densities
 
 $$
-\boxed{\xi = \varphi^6 = \varphi^5 + \varphi^4}
+\rho = \Psi_0^2 + \Psi_1^2, \qquad \pi = \Psi_0^2 - \Psi_1^2
 $$
 
-Numerically:
+($\rho$ total energy density; $\pi$ Yang excess). The $\varphi$-attractor potential $V = \frac{\lambda}{2}(\Psi_0^2 - \varphi\Psi_1^2)^2$ drives the system to the fixed point $\Psi_0^2 = \varphi\Psi_1^2$ (`foundations/cassi-theory-reference.md` §2.3). At the fixed point:
 
 $$
-\varphi^5 \approx 11.090, \qquad \varphi^4 \approx 6.854
+\boxed{\frac{\pi}{\rho} = \frac{\varphi - 1}{\varphi + 1} = \varphi^{-3} = 0.236067978}
 $$
 
-$$
-\xi = \varphi^6 = 11.090 + 6.854 = 17.944
-$$
+The quantity $\pi/\rho = (E_Y - E_I)/(E_Y + E_I)$ is the fractional energy imbalance—not the Yang fraction, which is $\varphi^{-1}$ at the fixed point (the "Yang fraction" label is Mapped—ledger row 500). The identity is pure attractor algebra: $\varphi^{-1} = \varphi - 1$ and $\varphi + 1 = \varphi^2$ from $\varphi^2 = \varphi + 1$, so $(\varphi-1)/(\varphi+1) = \varphi^{-1}/\varphi^2 = \varphi^{-3}$. The exponent 3 is a consequence of the two-fluid dynamics, not an input.
 
-### Physical interpretation
+### 2.2 The inverse-square law
 
-The sixth power of $\varphi$ encodes the **degrees of freedom** through which the
-Qi field couples to spacetime curvature:
-
-- **2 field components**: the EY (Yang) and EI (Yin) aspects of the Qi field
-- **3 spatial dimensions**: the three directions in which curvature propagates—an **input**, not a derivation. A candidate derivation
-  (three dimensions from the spiral's Frenet-Serret frame) is proposed in
-  `foundations/why-three-dimensions.md`; pending its validation, this is the
-  framework's last imported integer.
-- **Total**: $2 \times 3 = 6$ degrees of freedom, each contributing a factor of $\varphi$ (**asserted**—no dynamics or geometry in this document shows why each DOF contributes exactly one factor of $\varphi$; the product $2\times3$ and the per-DOF factor are the ansatz that makes the exponent 6)
-
-The Fibonacci decomposition $\varphi^6 = \varphi^5 + \varphi^4$ carries additional meaning:
-
-- $\varphi^5$: the **Wu Xing** five-element cycle (Wood, Fire, Earth, Metal, Water)
-- $\varphi^4$: the **four fundamental interactions** (gravity, electromagnetism, strong, weak)
-- Their sum: the total Qi-gravity coupling unifying matter cycles with force structure
-
-## 3. Verification
-
-The empirical calibration from the Milky Way rotation curve is $\xi \approx 18$,
-determined by the boost factor at galactic radius $r = 7$ (where $q \approx 0.67$):
+The gravitational coupling to the doublet is quadratic in the field: the source is bilinear in the doublet ($T_{\mu\nu} \propto \partial\Psi\,\partial\Psi$), the coherent factor is $q \propto \rho^2/(\rho^2 + \varphi^{-2} + \varepsilon^2)$, and the mixing term $\mathcal{L}_{qG} = (\xi q/16\pi G)R\sqrt{-g}$ multiplies those bilinears (`foundations/unified-lagrangian.md` §3.1–3.2, §5.1). The amplification of a quadratic (degree-2) coupling under a fractional imbalance $\alpha = \pi/\rho$ scales as the inverse square of the imbalance—each of the two field factors in a bilinear vertex carries one inverse power of the participating fraction. With $\alpha = \varphi^{-3}$:
 
 $$
-\text{Boost} = 1 + (\varphi^{6}-1)q
+\boxed{\xi = \varphi^6 = \left(\frac{\pi}{\rho}\right)^{-2} = (\varphi^{-3})^{-2}}
 $$
 
-The derived value $\xi = \varphi^6 \approx 17.944$ differs from the empirical value
-by only **0.3%**—the residual of the Milky Way calibration, which is the
-Calibrated anchor of the coupling (Fit-Status Ledger, `parameter-inventory.md`
-§10). Any "confirmation" of $\xi$ on the Milky Way rotation curve is a
-consistency check of that calibration, not an independent test.
+Numerically $\xi = \varphi^6 = 17.94427191$ and $\alpha_0^{-2} = (0.236067978)^{-2} = 17.94427191$—the identity is exact to machine precision (`computations/xi_imbalance_verification.py`). The Fibonacci decomposition $\varphi^6 = \varphi^5 + \varphi^4$ remains an arithmetic identity of the same number; it carries no independent structural content in this derivation.
 
-The rotation curve boost ratio between derived and empirical values is:
+**Inputs.** The derivation rests on two postulates:
+
+1. **Attractor dynamics (framework postulate).** The $\varphi$-attractor potential $V = \frac{\lambda}{2}(\Psi_0^2 - \varphi\Psi_1^2)^2$ drives $\Psi_0^2/\Psi_1^2 \to \varphi$, fixing $\pi/\rho = \varphi^{-3}$. This is the framework's own two-fluid postulate; $\pi/\rho = \varphi^{-3}$ is derived from it.
+2. **Quadratic coupling (input of this derivation).** Gravity couples to the doublet through bilinear (degree-2) forms of the field, and the full-coherence amplification of a bilinear coupling under a fractional imbalance $\alpha$ scales as $\alpha^{-2}$. The exponent $-2$ is the degree of the quadratic form.
+
+The tier is Derived conditional on input 2: the imbalance exponent 3 follows from the attractor; the inverse-square law is the stated postulate.
+
+### 2.3 Saturation structure
+
+With $\xi = (\pi/\rho)^{-2}$, the effective Newton constant at full coherence ($q \to 1$) saturates at
 
 $$
-\frac{1 + 16.944 \times 0.67}{1 + 18 \times 0.67}
-= \frac{12.353}{13.060}
-= 0.946
+G_{\text{eff,max}} = G \cdot \varphi^{-3} \cdot \varphi^6 = G \cdot \varphi^3 = 4.236067978\,G
 $$
 
-The constant-level 0.3% agreement anchors the saturation maximum. The
-$q$-coefficient itself is the saturation-anchored chord $(\varphi^6-1)$: the
-boost is exactly $1$ at $q = 0$ (Newtonian) and exactly $\varphi^6$ at $q \to 1$—
-the chord through the two exact endpoints, not a Taylor linearization of the
-exact ladder $1/(1-(1-\varphi^{-6})q)$. All Qi-gravity results (MW rotation
-curve, dwarf galaxy dynamics, MESSENGER perihelion bound, terminal attractor
-convergence) stand at observational precision.
+so the coupling's dynamic range is the reciprocal pair $\varphi^{-3}G$ (gate open, $q \to 0$) to $\varphi^{3}G$ (gate closed, $q \to 1$): the saturated value is the reciprocal of the open value, and $\xi$ is the square of the ratio between them. The $q$-coefficient is the saturation-anchored chord $(\varphi^6 - 1)$: the boost is exactly $1$ at $q = 0$ (Newtonian) and exactly $\varphi^6$ at $q \to 1$—the chord through the two exact endpoints, not a Taylor linearization of the exact ladder $1/(1-(1-\varphi^{-6})q)$.
 
-## 4. Prediction
+## 3. Consistency Checks
 
-$\xi = \varphi^6$ is a **parameter-free prediction** of the Cassi framework:
-the rung identity is fixed by the mathematical
-structure of $\varphi$ and its Fibonacci recurrence. The empirical pin
-($\xi \approx 18$ from the Milky Way rotation curve) is Calibrated—it anchors
-the value to the data it was derived from (ledger §10).
+Every computable claim below was verified from the repo root with `python computations/xi_imbalance_verification.py`; all identities hold to machine precision.
 
-All Qi-gravity phenomenology follows from this single derivation:
+| Check | Expression | Value | Status |
+|-------|-----------|-------|--------|
+| Fixed-point imbalance | $(\varphi-1)/(\varphi+1) = \varphi^{-3}$ | $0.236067978$ | identity (attractor algebra) |
+| Coupling | $(\pi/\rho)^{-2} = \varphi^6$ | $17.94427191$ | identity |
+| Saturation ceiling | $G_{\text{eff,max}}/G = \varphi^{-3}\cdot\varphi^6 = \varphi^3$ | $4.236067978$ | matches dwarf-spheroidal M/L ceiling $\varphi^3 = 4.2361$ (`audit.md` §3) |
+| Empirical pin | $\xi$ vs $18$ | residual $0.31\%$ | Calibrated anchor (ledger row 498); a consistency check of the calibration |
+| Weinberg angle | $\sin^2\theta_W = 1/(1+2\varphi) = \varphi^{-3}$ | $0.236067978$ | identity: $1+2\varphi = \varphi^3$; the angle is the same fixed-point imbalance (`foundations/cassi-theory-reference.md` §4.4; exact at $\mu_* = 233$ GeV—Calibrated, ledger row 490) |
+| GUT coupling | $\alpha_{\text{GUT}} = \varphi^{-3}/(4\pi)$ | $1/53.23$ | the imbalance over $4\pi$ |
+| Emotions gate ladder | $b_i = \varphi^{-(2+i)} = \varphi^{-2}\cdot\varphi^{-i}$ | base $\varphi^{-2} = 0.381966011$ | human-gate openness hierarchy on the same $\varphi^{-2}$ base (`consciousness/emotions-as-gate-configurations.md` §2.2) |
+| MW halo boost | $1 + (\varphi^6-1)\cdot 0.67$ | $12.3527$ | rotation-curve boost at $r = 7$ kpc, $q \approx 0.67$ |
+
+The Weinberg-angle identity: $\varphi^3 = \varphi\cdot\varphi^2 = \varphi(\varphi+1) = \varphi^2 + \varphi = 2\varphi + 1$, so $1/(1+2\varphi) = 1/\varphi^3 = \varphi^{-3}$. The same imbalance $\varphi^{-3}$ therefore appears at three sites—the gravity open-gate coupling ($G_{\text{eff}} = \varphi^{-3}G$), the weak mixing angle, and the GUT coupling—while its inverse square $\varphi^6$ sets the gravity amplification ceiling.
+
+## 4. Origin Stories Reconciled
+
+Four readings of the exponent 6 circulate in the repo. The derivation of §2 is the single dynamical origin; the others are secondary or descriptive:
+
+- **2 × 3 degrees of freedom** (2 field components × 3 spatial dimensions)—the reading in `foundations/unified-lagrangian.md` §3.3 and `foundations/cassi-theory-reference.md` §4.3/§10.2. Retained in §6 as a clearly labeled secondary geometric reading. It does not derive the exponent: $d = 3$ rests on the Frenet-Serret hypothesis (`foundations/why-three-dimensions.md`; Hypothesized—registry G5) and the φ-per-DOF factor is asserted rather than shown by the dynamics or geometry.
+- **Dimensional reduction** of the 4D two-fluid action to a 3D effective potential (`foundations/phi-rg-formalism.md` §7)—a restatement of the coupling's two fixed-point values, not an origin of the exponent.
+- **Cascade activation at step 6** (`cosmology/sigma8-computational-plan.md` §2.1, `foundations/wa-pentagon-gate.md` §5)—a shorthand label of the exponent's rung position ($\xi = \varphi^6$ sits at ladder step 6), used by consumer documents, not a derivation.
+- **Six-dimensional phase space** (`foundations/phi_attractor_synthesis.md` §2.2)—the 2 × 3 reading restated in phase-space language; same status.
+
+The exponent is $6 = 3 \times 2$: the attractor-derived imbalance exponent 3 (this document, §2.1) times the quadratic degree 2 (the input of §2.2).
+
+## 5. Prediction
+
+$\xi = \varphi^6 = (\pi/\rho)^{-2}$ is fixed by the attractor and the quadratic-coupling input. The empirical pin ($\xi \approx 18$ from the Milky Way rotation curve) is Calibrated—it anchors the value to the data it was calibrated on (Fit-Status Ledger row 498); any "confirmation" of $\xi$ on the rotation curve is a consistency check of that calibration, not an independent test.
+
+All Qi-gravity phenomenology follows from this single coupling:
 
 - Milky Way flat rotation curve without dark matter
-- Dwarf galaxy mass discrepancies
+- Dwarf galaxy mass discrepancies (ceiling $\varphi^3 = 4.2361$)
 - Solar-system bounds from planetary ephemerides
 - Terminal attractor convergence in structure formation
 
-## 5. Zero Free Dimensionless Parameters
+## 6. Secondary Geometric Reading: 2 × 3 Degrees of Freedom
 
-With $\xi = \varphi^6$ derived, the Cassi framework has **zero free dimensionless
-parameters** among its coupling constants:
+The 2 × 3 reading of the exponent—$\varphi^6 = \varphi^{2 \times 3}$ with two field components × three Frenet-Serret spatial directions ($\mathbf{T}$, $\mathbf{N}$, $\mathbf{B}$; `foundations/cassi-theory-reference.md` §10.2)—remains a geometric restatement of the same number. It is not the derivation: the spatial dimension rests on the Frenet-Serret hypothesis (`foundations/why-three-dimensions.md`; Hypothesized—registry G5), and the per-DOF factor of $\varphi$ is asserted. The imbalance inverse-square derivation of §2 is the origin of the exponent; the 2 × 3 form is retained because it organizes the coupling's alternative expressions (§8).
+
+## 7. Zero Free Dimensionless Parameters
+
+With $\xi = \varphi^6$ derived, the Cassi framework has zero free dimensionless parameters among its coupling constants:
 
 | Constant | Value | Status |
 |----------|-------|--------|
 | $\varphi$ | $(1+\sqrt{5})/2 \approx 1.618$ | Mathematical constant (golden ratio) |
-| $\xi = \varphi^6$ | $\approx 17.944$ | **Derived** |
+| $\alpha_0 = \pi/\rho$ | $\varphi^{-3} \approx 0.236$ | Derived (fixed-point imbalance, attractor) |
+| $\xi = \varphi^6 = \alpha_0^{-2}$ | $\approx 17.944$ | **Derived** (imbalance inverse-square; input: quadratic field coupling); empirical pin Calibrated (ledger row 498) |
 | Wu Xing coefficients | $\varphi^{-1}, \varphi^{-2}, \ldots$ | Derived from $\varphi$ |
-| $\sin^2\theta_W$ | $\varphi^{-3} \approx 0.236$ | Derived from VEV asymmetry (exact at $\mu_* = 233$ GeV, Calibrated anchor—ledger) |
+| $\sin^2\theta_W$ | $\varphi^{-3} \approx 0.236$ | Same imbalance; exact at $\mu_* = 233$ GeV (Calibrated anchor—ledger row 490) |
 | $\alpha_{\text{GUT}}$ | $\varphi^{-3}/(4\pi) \approx 1/53$ | Derived from $\varphi$ (running needs $\Delta b = 1.70$, Mapped—ledger) |
-
-The Standard Model gauge couplings, the weak mixing angle, and the Qi-gravity coupling
-all reduce to $\varphi$ and its powers.
 
 The PDE conversion rate $\lambda = 0.1$ and the three dimensionful constants ($c$, $\hbar$, $G$) remain external to the framework. See `foundations/dimensionful-constants-status.md` for the complete accounting.
 
-## 6. Alternative Expressions
+## 8. Alternative Expressions
 
 $\varphi^6$ admits several equivalent forms, each illuminating a different aspect:
 
-### Commensurate form (radical expression)
-
-$$
-\varphi^6 = 9 + 4\sqrt{5}
-$$
-
-This shows $\varphi^6$ as a sum of rational and irrational parts, both integers
-times powers of $\sqrt{5}$.
-
-### Linear-in-$\varphi$ form
-
-$$
-\varphi^6 = 8\varphi + 5
-$$
-
-This expresses $\varphi^6$ in the basis $\{1, \varphi\}$, useful for algebraic
-manipulations within the $\mathbb{Z}[\varphi]$ ring.
-
-### Quadratic form
-
-$$
-\varphi^6 = (\varphi^3)^2 = (\varphi^2 + \varphi)^2
-$$
-
-This shows $\varphi^6$ as the square of $\varphi^3 = \varphi^2 + \varphi = 2\varphi + 1$,
-emphasizing the cubic structure underlying the sixth power.
-
-### Fibonacci decomposition
-
-$$
-\varphi^6 = \varphi^5 + \varphi^4
-$$
-
-The defining recurrence, connecting the coupling to the five-element cycle and
-four fundamental forces.
+| Form | Expression | Content |
+|------|-----------|---------|
+| Imbalance inverse-square | $(\pi/\rho)^{-2} = (\varphi^{-3})^{-2}$ | the derivation (§2) |
+| Radical | $9 + 4\sqrt{5}$ | rational + irrational parts, both integers times powers of $\sqrt{5}$ |
+| Linear in $\varphi$ | $8\varphi + 5$ | basis $\{1, \varphi\}$, the ring $\mathbb{Z}[\varphi]$ |
+| Square | $(\varphi^3)^2 = (2\varphi + 1)^2$ | the imbalance's reciprocal, squared |
+| Fibonacci | $\varphi^5 + \varphi^4$ | arithmetic identity of the defining recurrence |
 
 ---
 
-## 7. Summary
+## 9. Summary
 
-$\xi = \varphi^6$ closes the last empirically-calibrated dimensionless coupling in
-the Cassi framework. The empirical pin on the Milky Way rotation curve is the
-Calibrated anchor that sets the value (Fit-Status Ledger, `parameter-inventory.md`
-§10). The rung identity's exponent rests on the 2×3-DOF ansatz (two field
-components × three spatial dimensions, with $d = 3$ an imported integer and the
-φ-per-DOF factor asserted); it is not an independent derivation until a
-Yin-Yang dynamic or geometric consequence selects the exponent 6.
+$\xi = \varphi^6$ is the inverse-square of the fixed-point imbalance. The attractor fixes $\pi/\rho = (\varphi-1)/(\varphi+1) = \varphi^{-3}$; the quadratic-coupling input gives $\xi = (\pi/\rho)^{-2} = \varphi^6$; and the saturation ceiling $G_{\text{eff,max}} = \varphi^3 G = 4.236068\,G$ matches the dwarf-spheroidal M/L ceiling. The exponent 6 is no longer the product of an imported dimension and an asserted per-DOF factor: its factor 3 is derived from the two-fluid attractor dynamics, and its factor 2 is the stated quadratic-coupling input. The empirical pin on the Milky Way rotation curve is the Calibrated anchor (Fit-Status Ledger row 498); its 0.3% agreement with $\varphi^6$ is a consistency check of the calibration.
 
 ---
 
@@ -178,8 +149,15 @@ Yin-Yang dynamic or geometric consequence selects the exponent 6.
 
 - `foundations/cassi-first-principles.md`—two-fluid postulate, Qi-enhanced gravity
 - `foundations/unified-lagrangian.md`—the complete action with $G_{\text{eff}} = G(\pi/\rho)(1+(\varphi^{6}-1)q)$
-- `foundations/wu-xing-derivation.md`—$w = 5$ uniqueness, five-element cycle
-- `foundations/why-three-dimensions.md`—three dimensions from the spiral's Frenet-Serret frame
+- `foundations/cassi-theory-reference.md`—attractor fixed point §2.3, constant table §12
+- `foundations/phi-rg-formalism.md`—φ-RG restatement of the coupling (dimensional-reduction reading)
+- `foundations/phi_attractor_synthesis.md`—attractor dynamics (phase-space reading)
+- `foundations/wa-pentagon-gate.md`—$w_a$ from $\xi = \varphi^6$ (cascade-step-6 label)
+- `cosmology/sigma8-computational-plan.md`—σ8 pipeline parameter table (cascade-step-6 label)
+- `foundations/why-three-dimensions.md`—three dimensions from the spiral's Frenet-Serret frame (secondary reading)
 - `foundations/dimensionful-constants-status.md`—external dimensionful constants, parameter accounting
-- `gravity/quantum-gravity.md`—σ-regularized gravity, UV-finite propagator
 - `cosmology/observational_constraints.md` §2.6—rotation-curve tests of $\xi = \varphi^6$
+- `audit.md`—dwarf-spheroidal M/L ceiling $\varphi^3 = 4.2361$
+- `consciousness/emotions-as-gate-configurations.md`—gate openness ladder $b_i = \varphi^{-(2+i)}$
+- `gravity/quantum-gravity.md`—σ-regularized gravity, UV-finite propagator
+- `computations/xi_imbalance_verification.py`—numerical verification of every identity in §2–§3

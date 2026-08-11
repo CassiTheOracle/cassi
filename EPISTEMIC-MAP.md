@@ -35,13 +35,13 @@ Tiers below are taken from each document's Status header. Compound headers are q
 | `foundations/cassi-first-principles.md` | Derived | Two-fluid PDE, governing equations, conversion |
 | `foundations/unified-lagrangian.md` | Derived | Single Lagrangian; gravity as $q = 0$ Poisson limit; $\sigma$-regularization |
 | `foundations/phi_attractor_synthesis.md` | Derived (attractor synthesis) / Calibrated ($\xi$ pin) / Mapped ($\alpha_{\text{halo}} = 0.7$ nominal—ledger) | $r \to \varphi$ attractor synthesis across regimes |
-| `foundations/wu-xing-derivation.md` | Derived (w = 5, gap, r₀) / Calibrated (w₀ via the DESI-anchored coupling form—ledger) | $w = 5$ derived (pentagon geometry); $\lambda = 1/(2w) = 0.1$ (`cassi-physics.md`) |
+| `foundations/wu-xing-derivation.md` | Derived (w = 5, gap, r₀; single input: coherence postulate—verified 2026-08-11) / Calibrated (w₀ via the DESI-anchored coupling form—ledger) | $w = 5$ derived (coherence criterion over all $w$: only $\{1,2,3,5\}$; pentagon geometry); $\lambda = 1/(2w) = 0.1$ (`cassi-physics.md`) |
 | `foundations/wu-xing-cycle-structure.md` | Derived (cycle geometry, coupling, ring algebra) / Tested (ke ring PDE 2026-07-31, WX1 gate level 2026-08-01) / Hypothesized (affinity gradient, clinical profile) | Two coherent 5-cycles (sheng/ke); control-ring algebra; 5↔13 chakra partition |
-| `foundations/xi-derivation.md` | Derived rung identity / Calibrated empirical pin (MW anchor—ledger) | $\xi = \varphi^6 \approx 17.944$ Qi-gravity coupling |
-| `foundations/quark-confinement.md` | Derived | QCD at step 95; Qi flux tube; $P_{\text{break}} \approx \varphi^{-4506}$ |
+| `foundations/xi-derivation.md` | Derived conditional on the quadratic-coupling input (imbalance inverse-square) / Calibrated empirical pin (MW anchor—ledger) | $\xi = \varphi^6 = (\pi/\rho)^{-2}$; saturation ceiling $\varphi^3 G$ |
+| `foundations/quark-confinement.md` | Derived (tube extensivity + cell quantization; $\kappa = 2\pi$ conditional on the pitch convention + winding reading; inputs: gate saturation, one-cell quantization) | QCD at step 95; saturated-gate flux tube $E(r) = \mu r$, $\mu = 2\pi(M_{\text{Pl}}/\varphi^{95})^2 = 0.1836$ GeV² (+2.0% vs measured); $P_{\text{break}} \approx \varphi^{-4506}$ |
 | `foundations/proton-coherence-budget.md` | Derivation (rung exponent Mapped—ledger; per-rung $q_i$ profile Hypothesized) | Proton lifetime $\sim \varphi^{4506}$ cycles; annihilation pathway |
-| `foundations/sector-coupling-derivation.md` | Derived scale with Hypothesized coefficient (v₀ input Calibrated, N_pde normalization Mapped—ledger) | Dirac↔two-fluid sector-coupling scale $\kappa_s = \varphi^{-6}/v_0^2$ (0.92 TeV$^{-2}$; $\kappa_s^{-1/2} \approx 1.04$ TeV) |
-| `foundations/bubble-edge-geometry.md` | Derived (structural) | Edge steepness $1.70\times$ (Derived); CMB axis $12.2°$ (measured—Calibrated; boundary mechanism Hypothesized, post-hoc) |
+| `foundations/sector-coupling-derivation.md` | Derived conditional on $\delta = 3$ (rung identity $77 = 154/2 = 80-3$) with Hypothesized coefficient (v₀ input Calibrated, N_pde normalization Mapped—ledger) | Dirac↔two-fluid sector-coupling scale $\kappa_s = \varphi^{-6}/v_0^2 = M_{\text{Pl}}^{-2}\varphi^{154}$ (0.92 TeV$^{-2}$; $\kappa_s^{-1/2} \approx 1.04$ TeV) |
+| `foundations/bubble-edge-geometry.md` | Derived (structural) | Edge steepness $1.70\times$ (Derived); CMB axis $12.2°$ (magnitude $2\pi/\varphi^7 = 12.40°$ Derived; direction Calibrated; boundary mechanism Hypothesized, post-hoc) |
 | `foundations/wa-pentagon-gate.md` | Derived ($\xi = \varphi^6$) / Hypothesized (5-channel) | $w_a = +0.012$ via $\xi$: $2.7\sigma$ baseline; with the ratified coupling $1.25\sigma$ (B2, unstable); the stable realization (10/12): pure-Λ window fit $(-1, 0)$, $4.17\sigma$/$2.61\sigma$; 5-channel shift Hypothesized (ODE pending) |
 | `principles/de-resonance-principle.md` | Derived | Why $\varphi$ is the attractor (maximally irrational) |
 | `principles/v0-hierarchy-problem.md` | Derived (step count, per registry Q1); 5.3% residual open | $v_0/M_{\text{Pl}} \approx \varphi^{-80}$ as step count (Q1) |
@@ -72,11 +72,11 @@ Tiers below are taken from each document's Status header. Compound headers are q
 | Document | Status | Summary |
 |----------|--------|---------|
 | `foundations/neutrino-masses.md` | Derivation (offsets Mapped—ledger; result Hypothesized, Q3) | Seesaw at step 20; Fibonacci offsets pinned by cascade RGE + PMNS |
-| `foundations/quantum-measurement-derivation.md` | Derivation (result: Hypothesized w/ derived core, Q7) | Born rule from Qi selection; phase-matching factor $\mathcal{M}$ |
-| `foundations/spin-fibonacci-spiral.md` | Derivation (result: Hypothesized, Q10) | Spin as SO(2) Fibonacci winding; form-factor periodicity |
+| `foundations/quantum-measurement-derivation.md` | Derivation (Born rule Derived from coherent-field statistics; outcome basis open; $\mathcal{M}$ Hypothesized, Q7) | Born rule from Poisson first-absorption; phase-matching factor $\mathcal{M}$ |
+| `foundations/spin-fibonacci-spiral.md` | Derivation (Derived conditional on the doublet postulate + pitch convention + equilibrium ratio + minimal-span principle; particle mapping Hypothesized, Q10) | Spin from the Yang/Yin doublet half-angle ($s = \Delta n/2$, minimal span $\Delta n = 1$ → $s = 1/2$; no fundamental 3/2—decomposition); $P_\parallel = 2$ unified convention; form-factor periodicity |
 | `foundations/baryon-asymmetry.md` | Derivation (mechanism Hypothesized, C7/Q6; η exponent Mapped—ledger) | $\eta \approx \varphi^{-44}$, within 6% of observed (C7/Q6) |
 | `foundations/refined-numeric-predictions.md` | Active derivation (C10 CMB axis: Calibrated angle / Hypothesized mechanism—2026-08) | Numeric predictions for the 24 Hypothesized questions; C10 $12.2°$ measured (calibrated from data vectors), boundary mechanism post-hoc |
-| `foundations/three-generations.md` | Hypothesized (mechanism) / Mapped (rung placements—ledger) | $N_{\text{gen}} = 3$ from Fibonacci sub-channels (Q5) |
+| `foundations/three-generations.md` | Hypothesized (mechanism) / Derived (2+1 counting under the propagation-channel postulate) / Mapped (rung placements—ledger) | $N_{\text{gen}} = 3 = 2$ predecessor channels + 1 direct rung (Q5) |
 | `foundations/dimensionful-constants-status.md` | Hypothesized ($c$, $\hbar$, $G$ external) / Mapped (fitted exponents—ledger) | $c$, $\hbar$, $G$ external; $N = 292$ epoch-dependent horizon rung (F5) |
 | `foundations/microcascade-mirror.md` | Hypothesized | Bidirectional cascade extension |
 | `foundations/rung-offset-mechanism.md` | Derived quantization, Hypothesized selection, Empirical catalog (μ/Jψ placements Mapped—38-state scan, ledger) | δn as two-fluid phase lag (analytic $A_0$, $B_0$); pool-cell mode quantization; sector edges at half-rungs; uniform 38-state baseline |
@@ -85,7 +85,7 @@ Tiers below are taken from each document's Status header. Compound headers are q
 | `foundations/why-three-dimensions.md` | Hypothesis with One Decided Fork (W1: anti-phase confirmed) | Three dimensions from the Frenet-Serret frame (G5); d = 3 supported conditionally on the three postulates (2026-08) |
 | `standard-model/gut-embedding.md` | Hypothesized | GUT embedding |
 | `standard-model/neutrino-mass.md` | Hypothesized | Neutrino mass structure |
-| `gravity/quantum-gravity.md` | Derived (σ-regularization, G1) / Hypothesized (two-fluid quantization, G2) | $\sigma$-regularized S-matrix; black-hole information (G2) |
+| `gravity/quantum-gravity.md` | Derived conditional on the noise–signal identification + $d = 3$ ($\sigma = \ell_{\text{Pl}}/\varphi^3$, G1) / Hypothesized (two-fluid quantization, G2) | $\sigma$-regularized S-matrix; $\delta = 3$ from the Planck-core noise–signal crossover; black-hole information (G2) |
 | `cosmology/inflation-from-cascade.md` | Derivation (mechanism Hypothesized, C4; r exponent Mapped—ledger) | Steps 20–60 as inflation; $r = \varphi^{-12}$, $n_s$ |
 | `cosmology/desi-lattice-averaging.md` | Hypothesized | Lattice powder lines in $P(k)$; variance suppression; $D_A(z)$ wiggle bound |
 | `consciousness/chakras-as-cascade-bubbles.md` | Hypothesized | 13 chakras as cascade bubbles |

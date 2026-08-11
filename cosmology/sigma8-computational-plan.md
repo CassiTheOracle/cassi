@@ -25,7 +25,7 @@ $$\boxed{G_{\text{eff}}(x) = \frac{\pi}{\rho(x)}\left(1 + (\varphi^{6}-1)q(x)\ri
 where:
 - $q \in [0, 1]$ is the Qi coherence quality (derived from the two-fluid Yang/Yin ratio)
 - $\pi/\rho$ is the geometric dilution factor from the two-fluid projection onto 3D space; at the $\varphi$-fixed point it is the imbalance $\alpha_0 = (\varphi-1)/(\varphi+1) = \varphi^{-3} \approx 0.236$ (the "equilibrium Yang fraction" label is Mapped—ledger row 500; the Yang fraction itself is $\varphi^{-1}$)
-- $\xi = \varphi^6$ is the **derived** coupling (cascade activation at step 6, see `foundations/xi-derivation.md`)
+- $\xi = \varphi^6$ is the **derived** coupling (imbalance inverse-square $\xi = (\pi/\rho)^{-2}$, `foundations/xi-derivation.md` §2; "cascade activation at step 6" is a shorthand rung label, not a derivation)
 
 ### 2.2 Density Dependence of $q$
 

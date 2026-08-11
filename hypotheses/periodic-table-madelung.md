@@ -12,8 +12,38 @@ Cassi framework suggests they are not independent—$n$ labels the cascade rung
 and $l$ labels the Fibonacci sub-channel within that rung, with the Madelung rule
 emerging from the cascade ordering. This is Speculative because the explicit
 derivation of quantum numbers from cascade geometry is not yet complete, but the
-pattern is highly suggestive and makes testable predictions for ionization
+The pattern is highly suggestive and makes testable predictions for ionization
 energies and quantum defects.
+
+## Origin Status
+
+**Verdict: catalog correspondence; mechanism open.** Recomputation
+(`computations/verify_hypotheses_origin_audit.py`, 2026-08-11) confirms:
+
+- **The shell-capacity arithmetic contains no $\varphi$.** The noble-gas
+  cumulative sequence 2, 10, 18, 36, 54, 86, 118 is *not* $2\sum k^2$ (which
+  gives 28, 60, 110 from argon on); it is twice a sum in which each square
+  $k^2$ ($k \ge 2$) appears twice, which is exactly the standard subshell
+  count $2(2l+1)$ ($2, 6, 10, 14$) in disguise. The capacity column of the
+  earlier table ($2\sum l^2$: 2, 10, 10, 28, 28, 60, 32) contradicted its own
+  cumulative arithmetic (+8, +8, +18, +18, +32, +32) in 5 of 7 rows; §2 is
+  corrected to the standard counts.
+- **The mapping $n \leftrightarrow$ rung, $l \leftrightarrow$ sub-channel
+  winding** is asserted, not derived; the Madelung $n + l$ ordering is
+  standard quantum chemistry and is not a cascade consequence.
+- **Quantum defects.** The $\varphi^{-(n+l)}$ form is not supported by the
+  doc's own table: the $p/s$ ratios drift +2%, +27%, +36% from
+  $\varphi^{-1}$, and the claimed $\varphi^{-n}$ decrease for fixed $l$ is
+  contradicted by the quoted $s$-state defects (1.35 $\to$ 2.18 $\to$ 3.13,
+  increasing). The $l$-ordering is the standard core-penetration result.
+- **Ionization ratios.** The within-shell geometric mean for oxygen is 1.59
+  (computed; 1.56 quoted) against individual ratios 2.58, 1.56, 1.41, 1.47,
+  1.21 — a few numbers whose mean happens to sit near $\varphi$ is not a
+  pinned prediction.
+
+Tier stays **Speculative**: the shell-filling arithmetic is direct
+quantum-mechanical degeneracy counting, and the $\varphi$ overlay is a
+correspondence with no dynamics selecting it.
 
 ---
 
@@ -47,29 +77,37 @@ cascade depth.
 The observed shell capacities (cumulative electron counts at noble gases):
 $$2, 10, 18, 36, 54, 86, 118$$
 
-These are twice the sum of squares:
-$$2 \times (1^2),\; 2 \times (1^2 + 2^2),\; 2 \times (1^2 + 2^2 + 2^2),\; 2 \times (1^2 + 2^2 + 3^2),\; \ldots$$
+These are twice a sum of squares, but **not** $2 \times \sum k^2$: the terms
+are $1^2, 2^2, 2^2, 3^2, 3^2, 4^2, 4^2$ — each square from $2^2$ up appears
+**twice**:
+$$2 \times 1^2,\; 2 \times (1^2 + 2^2),\; 2 \times (1^2 + 2^2 + 2^2),\; 2 \times (1^2 + 2^2 + 2^2 + 3^2),\; \ldots$$
+The plain reading $2\sum_{k=1}^{n} k^2$ gives 2, 10, 28, 60, 110, 182, 280 —
+it matches only the first two noble gases and fails from argon onward
+(28 vs 36). The doubled-squares pattern is exactly the standard subshell
+occupancy count: each subshell holds $2(2l+1)$ ($s = 2$, $p = 6$, $d = 10$,
+$f = 14$), so the per-period capacities are 2, 8, 8, 18, 18, 32, 32 and the
+cumulative noble-gas numbers follow. There is no $\varphi$ in this arithmetic.
 
-The factor of 2 comes from spin degeneracy (up/down), which in Cassi corresponds
-to the two directions of SO(2) winding (clockwise/counterclockwise).
+| Period | Subshells filled | Capacity $\sum 2(2l+1)$ (electrons) | Cumulative | Noble gas |
+|--------|------------------|--------------------------------------|------------|-----------|
+| 1 | $1s$ | 2 | **2** | He |
+| 2 | $2s, 2p$ | 2 + 6 = 8 | **10** | Ne |
+| 3 | $3s, 3p$ | 2 + 6 = 8 | **18** | Ar |
+| 4 | $4s, 3d, 4p$ | 2 + 10 + 6 = 18 | **36** | Kr |
+| 5 | $5s, 4d, 5p$ | 2 + 10 + 6 = 18 | **54** | Xe |
+| 6 | $6s, 4f, 5d, 6p$ | 2 + 14 + 10 + 6 = 32 | **86** | Rn |
+| 7 | $7s, 5f, 6d, 7p$ | 2 + 14 + 10 + 6 = 32 | **118** | Og |
 
-The sum-of-squares pattern $1^2, 1^2+2^2, 1^2+2^2+2^2, 1^2+2^2+3^2, \ldots$
-maps to the Fibonacci partitioning of each cascade rung:
+(The capacity of a period is *not* $2\sum l^2$ over its sub-channels: that
+formula gives 10 for period 3 and 28 for period 4, while the cumulative
+arithmetic needs +8 and +18 in those rows. The correct per-period capacities
+are the $2(2l+1)$ counts above.)
 
-| Period | Rung $n$ | Sub-channels | Capacity $2\sum l^2$ | Cumulative |
-|--------|---------|-------------|---------------------|------------|
-| 1 | 1 | $l=0$ | $2(0+1)^2 = 2$ | **2** (He) |
-| 2 | 2 | $l=0,1$ | $2(1^2+2^2) = 10$ | $2+8$ = **10** (Ne) |
-| 3 | 3 | $l=0,1$ (3d delayed) | $2(1^2+2^2) = 10$ | $10+8$ = **18** (Ar) |
-| 4 | 4 | $l=0,1,2$ | $2(1^2+2^2+3^2) = 28$ | $18+18$ = **36** (Kr) |
-| 5 | 5 | $l=0,1,2$ (4f delayed) | $2(1^2+2^2+3^2) = 28$ | $36+18$ = **54** (Xe) |
-| 6 | 6 | $l=0,1,2,3$ | $2(1^2+2^2+3^2+4^2) = 60$ | $54+32$ = **86** (Rn) |
-| 7 | 7 | $l=0,1,2,3$ (5f, 5g delayed) | up to $2(4^2) = 32$ | $86+32$ = **118** (Og) |
-
-The delays (3d filling after 4s, 4f after 6s, 5f after 7s) correspond to
-Fibonacci sub-channel reordering: sub-channels with higher SO(2) winding (higher
-$l$) are energetically penalized by the cascade geometry and fill only when the
-next rung's lower-$l$ sub-channels are occupied.
+The delays (3d filling after 4s, 4f after 6s, 5f after 7s) are the Madelung
+$n+l$ ordering itself; the claim that they reflect "Fibonacci sub-channel
+reordering" is an asserted correspondence, not a derivation — the ordering
+follows from the hydrogenic level ordering $E \propto -1/(n + l)^2$ in
+standard quantum mechanics.
 
 ## 3. Key Prediction: $\varphi$-Power Quantum Defects
 
@@ -90,9 +128,12 @@ This predicts:
   \delta_{nf}$ for each $n$. The ratios $\delta_{np}/\delta_{ns}$,
   $\delta_{nd}/\delta_{np}$, etc., should approximately equal
   $\varphi^{-1} \approx 0.618$.
-- For fixed $l$, $\delta_{nl}$ decreases with increasing $n$ as
-  $\varphi^{-n}$. The defects for Rydberg states ($n \gg 1$) should vanish
-  exponentially as $\varphi^{-n}$.
+- For fixed $l$, the conjectured $\varphi^{-n}$ decrease is contradicted by
+  the quoted data: the $s$-state defects *increase* with $n$ (Na 3s 1.35, K 4s
+  2.18, Rb 5s 3.13), and standard quantum-defect theory gives
+  $\delta_{nl} \to \text{const}$ as $n \to \infty$ for fixed $l$ (the Rydberg
+  series converges; it does not vanish). This leg of the prediction fails on
+  the doc's own numbers.
 
 **Test with alkali metals (single valence electron, cleanest quantum defects):**
 
@@ -108,11 +149,14 @@ This predicts:
 | Rb | 5 | $p$ | 2.64 | 0.84 |
 | Rb | 5 | $d$ | 1.35 | 0.51 |
 
-The $p/s$ ratios (0.63, 0.78, 0.84) are in the neighborhood of
-$\varphi^{-1} \approx 0.618$ but with significant scatter. The $d/p$ ratios
+The $p/s$ ratios (0.63, 0.78, 0.84) sit near
+$\varphi^{-1} \approx 0.618$ only for Na (+2%); the K and Rb ratios deviate
+by +27% and +36%, a systematic drift, not scatter about $\varphi^{-1}$. The
+$d/p$ ratios
 (0.012, 0.15, 0.51) deviate strongly—the $nd$ states are nearly hydrogenic
-for low $n$, suggesting the cascade suppression breaks down when the orbital
-angular momentum exceeds the sub-channel capacity.
+for low $n$. The ordering $\delta_s > \delta_p > \delta_d > \delta_f$ and the
+rough $l$-dependence are the standard core-penetration results of
+quantum-defect theory (Rydberg & Schuster), which contains no $\varphi$.
 
 ## 4. Ionization Energy Ratios
 

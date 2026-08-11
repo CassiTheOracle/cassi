@@ -32,8 +32,12 @@ spatial scale:
 | 6 | Resting-state network | ~5–20 cm | ~n + 4 |
 | 7 | Whole brain | ~15–20 cm | ~n + 5 |
 
-Each level is separated from the next by a factor approximately $\varphi$ in
-spatial scale (with considerable biological variability). The characteristic
+The level-to-level scale ratios in this table are 50×, 20×, 2.5–5×, 2.5–7×,
+~40×, ~1.4× — **not** $\varphi \approx 1.618$; the levels are roughly
+decade-separated. The rung offsets ($n-3 \ldots n+5$) likewise do not match
+the listed scales: the synaptic cleft (20 nm) sits at $n = 129.6$ by
+$\ell_n = \ell_{\text{Pl}}\varphi^n$, ~14 rungs below the neuron anchor
+($n \approx 144$), not 3. The characteristic
 timescale at each level scales with the spatial scale through the neural
 conduction velocity $v \approx 1$–$10$ m/s.
 
@@ -53,15 +57,15 @@ distribution follows cascade suppression:
 
 $$P(S) \propto S^{-3/2}$$
 
-The exponent $-3/2$ emerges from the same cascade dimensional analysis that
-gives the Kolmogorov $-5/3$ spectrum in turbulence
-(`turbulence/kolmogorov-from-phi.md`): the energy cascade through neural rungs
-has spectral exponent $-5/3$, and the integrated avalanche size distribution
-has exponent $-3/2 = -5/3 + 1/6$, where the $+1/6$ correction comes from the
-branching structure of the neural network.
-
-Criticality itself is generic—many models predict it. The Cassi-specific
-prediction is the $\varphi$-structure of the avalanche distribution:
+The exponent $-3/2$ is the standard mean-field critical-branching result: the
+size distribution of clusters at criticality in a branching process is
+$P(S) \propto S^{-3/2}$, derived generically in the neuronal-avalanche
+literature (e.g. Harris; Beggs & Plenz) with no Cassi input. The chain
+$-3/2 = -5/3 + 1/6$ is arithmetic only: the $+1/6$ "branching-structure
+correction" has no derivation from the two-fluid PDE, and the response
+spectrum of the linearized damped two-fluid wave equation does not give
+$-3/2$ (Origin Status). What remains Cassi-specific is the $\varphi$-structure
+on top of the generic exponent:
 
 $$\boxed{P(S) \propto S^{-3/2} \cdot \left[1 + A \cos\left(\frac{2\pi}{\ln\varphi} \ln\frac{S}{S_0} + \phi_0\right)\right]}$$
 
@@ -101,9 +105,46 @@ $$f_\varphi \approx \frac{0.1 \times 2.618}{2\pi} \times (1\text{--}10)\;\text{H
 
 The predicted break falls in the delta-to-theta band (0.04–0.4 Hz), corresponding
 to the transition between slow-wave sleep oscillations and waking
-desynchronization. This aligns with the known spectral inflection in human
-EEG—the "knee" where the spectrum transitions from approximately $1/f^2$ at
-very low frequencies to approximately $1/f$ at higher frequencies.
+desynchronization. Caveat: the assignment of $-5/3$ *below* the break and $-1$
+*above* it is asserted (an inverse-cascade reading), not derived from the PDE;
+the known EEG "knee" falls from ~$f^{-2}$ at very low frequencies to ~$f^{-1}$
+at higher frequencies, so the predicted $-5/3$ low-frequency exponent does not
+match the observed knee.
+
+## Origin Status
+
+**Verdict: catalog correspondence; mechanism open.** Recomputation
+(`computations/verify_hypotheses_origin_audit.py`, 2026-08-11):
+
+- **Avalanche exponent.** The response spectrum of the linearized damped
+  two-fluid wave system (the solver's structure: scalar relaxation via
+  $\lambda(1-q)(E_Y - \varphi E_I)$ plus a damped-wave density equation) was
+  computed numerically from the Green's function,
+  $S(\omega) \propto \int_0^\infty k^2\,dk\,|G(k,\omega)|^2$. With constant
+  damping (telegrapher), $S(\omega) \propto \omega^{-0.45}$–$\omega^{-0.47}$
+  in the low-frequency (diffusive) limit — analytically $\omega^{-1/2}$ — and
+  flat at high frequency; with solver-style $\nu k^2$ damping, the
+  intermediate-regime slope is ~$-2$. **No regime yields $\omega^{-3/2}$**.
+  The $-3/2$ avalanche exponent is the generic mean-field critical-branching
+  result, not a two-fluid-PDE consequence, and the asserted chain
+  "$-5/3 + 1/6$" supplies no derivation of the $+1/6$.
+- **Hierarchy spacing.** The doc's own table contradicts "each level separated
+  by ~$\varphi$": the listed scale ratios are 50×, 20×, 2.5–5×, 2.5–7×, ~40×,
+  1.4×. The 20 nm cleft is at rung 129.6, not ~141 (14 rungs below the neuron
+  anchor, not 3). §1 corrected.
+- **EEG break.** $f_\varphi = \lambda(1+\varphi)/(2\pi)\,f_{\text{base}}
+  \approx 0.04$–$0.4$ Hz closes arithmetically (verified), but $\lambda$ and
+  $f_{\text{base}}$ are chosen inputs, the below/above exponent assignment is
+  asserted, and the predicted $-5/3$ low-frequency leg does not match the
+  observed ~$f^{-2}$ EEG knee.
+- **Period ratios.** $1440/90 = 16$ vs $\varphi^6 = 17.94$ (ratio 0.89) is one
+  number with a free anchor; $\varphi^{18} \approx 5.8\times10^3$ and the DMN
+  $\varphi^{-9} \approx 0.0131$, $\varphi^{-10} \approx 0.0081$ verify but are
+  post-hoc placements ($N$ chosen to match, as §6 concedes).
+
+Tier stays **Hypothesized** for the pinned, testable log-periodic modulation
+at $\ln\varphi$; the $-3/2$ is generic (not Cassi-specific), and the
+"$\varphi$-spaced hierarchy" claim is corrected above.
 
 ## 4. Ultradian and Circadian Rhythms as $\varphi$-Spaced Periods
 

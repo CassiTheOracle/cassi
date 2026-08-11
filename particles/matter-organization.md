@@ -64,7 +64,7 @@ The breaking chain follows the continued-fraction truncations of $\varphi$—eac
 
 The framework explains why fermions come in three families and why the lightest member of each terminated family sits at a half-rung—both claims are Hypothesized, and the second's boundary conditions are still open.
 
-Three generations follow from the order of $\varphi$'s minimal polynomial ($x^2 - x - 1 = 0$), which gives $N_{\text{gen}} = 2 + 1 = 3$ independent Fibonacci sub-rung channels (`foundations/three-generations.md`; mechanism Hypothesized, rung placements Mapped—ledger). The catalog's boundary pattern: the lightest state of each terminated sector sits at a half-rung, while interior stable states sit at integer rungs.
+Three generations follow from the Fibonacci decomposition plus the direct rung: $\varphi^n = \varphi^{n-1} + \varphi^{n-2}$ gives two predecessor channels (2D solution space), and the propagation-channel postulate adds the direct rung — $N_{\text{gen}} = 2 + 1 = 3$ sub-rung channels (`foundations/three-generations.md` §2.3; mechanism Hypothesized, rung placements Mapped—ledger). The catalog's boundary pattern: the lightest state of each terminated sector sits at a half-rung, while interior stable states sit at integer rungs.
 
 | Sector edge | State | Half-rung | Residual |
 |-------------|-------|-----------|----------|

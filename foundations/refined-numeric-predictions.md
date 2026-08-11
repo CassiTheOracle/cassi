@@ -35,7 +35,7 @@ deliverable:
 | # | Question | Type | Existing Number | Refinement |
 |---|----------|------|----------------|------------|
 | C3 | Hubble tension | Cascade-span (needs $w(a)$ pipeline) | $w_0=-0.87$ (2σ) | $\Delta H_0$ from $w(z)$ integration |
-| C4 | Inflation | Cascade-span (numbers present) | $n_s=0.9691$, $r\approx 0.003$ | Pin $r$ to $\varphi^{-12}$, $n_s$ correction form |
+|| C4 | Inflation | Cascade-span (numbers present) | $n_s=0.9691$, $r = 12/N_e^2 = 0.0075$ ($N_e = 40$ Mapped) | $n_s$ correction form; $r$ is the closed form at the window, not a $\varphi$-power |
 | C6 | Horizon problem | **Structural** |—| Cascade emergence mechanism |
 | C7 | Baryon asymmetry | Cascade-span | $\eta\approx\varphi^{-44}$ | $6.38\times 10^{-10}$, within 6.3% of observed |
 | C9 | Cosmic web | **Structural** |—| Wake-wave interference morphology |
@@ -248,35 +248,42 @@ geometry in the full 3D PDE—the condensation field's orientation at rung 285
 relative to the galaxy/CMB frame—without taking the measured axis as input.
 ---
 
-### 2.4 C4—Inflation: $r \approx \varphi^{-12}$ and $n_s = 0.9691$
+### 2.4 C4—Inflation: $r = 12/N_e^2$ and $n_s = 0.9691$
 
 **Current status:** The inflation derivation
-(`cosmology/inflation-from-cascade.md`) gives:
-- $N_e = 40$ e-folds (cascade steps 20–60)
+(`cosmology/cosmology-from-phi.md` §2.3; `cosmology/inflation-from-cascade.md`) gives:
+- $N_e = 40$ e-folds (cascade steps 20–60; Mapped start-threshold window—ledger §10 row 501)
 - $n_s = 0.9691$ (closed form $1 - 2\varphi^{-1}/N_e$)
-- $r \approx 0.003$
+- $r = 12/N_e^2 = 0.0075$ at $N_e = 40$
 - $\alpha_s = -0.0013$
 
 The $n_s$ gate correction takes the closed φ-form $\delta n_s = 2\varphi^{-2}/N_e$;
-$r$ pins to a clean $\varphi$-power.
+$r$ is the closed form $12/N_e^2$ evaluated at the ledgered window—not a
+$\varphi$-power.
 
 **Refined prediction for $r$:**
 
-The clean $\varphi$-power matching the stated value $r \approx 0.003$ is:
+$$\boxed{r = \frac{12}{N_e^2} = \frac{12}{40^2} = 0.0075 \quad \text{at the Mapped window } N_e = 40}$$
 
-$$\boxed{r \approx \varphi^{-12} \approx 0.0031}$$
+| Reading | Value | Internal consistency | BK18 ($r < 0.032$) | CMB-S4 ($\sigma_r = 0.001$) |
+|:---|:---|:---|:---|:---|
+| **$12/N_e^2$ at $N_e = 40$ (catalog)** | **0.0075** | Formula-consistent with the ledgered window | Survives | **$7.5\sigma$—testable** |
+| $12/N_e^2$ at $N_e = 63.2$ | 0.0030 | Requires $N_e = \sqrt{12/0.003} \approx 63.2$, outside the window | Survives | $3\sigma$—marginal |
+| $\varphi^{-12} \approx 0.0031$ | 0.0031 | Mapped fit (ledger row 495); no doc formula produces it | Survives | $3.1\sigma$—marginal |
+| Trajectory at $N_e = 40$ literal | 0.060 | Trajectory value (2026-08-06, `computations/slow_roll_trajectory.py`) | **Excluded** |—|
 
-| $\varphi$-power | Value | Match to $r \approx 0.003$ |
-|:---:|:---|:---|
-| $\varphi^{-11}$ | 0.0050 | 67% high |
-| **$\varphi^{-12}$** | **0.0031** | **3.5% high** |
-| $\varphi^{-13}$ | 0.0019 | 36% low |
-
-Current bound: $r < 0.036$ (95% CL, Planck/BICEP). The Cassi prediction is
-an order of magnitude below current sensitivity—testable with CMB-S4 and
-LiteBIRD.
-
-**Status of $\varphi^{-12}$:** the exponent is a **Mapped fit** (Fit-Status Ledger row 495), not a derived consequence: all three candidate formulas in the source doc fail their own arithmetic ($\varphi^{-6} \neq 0.003$; $12/40^2 = 0.0075$; the trajectory gives $r = 0.060$ at $N_e = 40$ literal), and the trajectory test (`computations/slow_roll_trajectory.py`, 2026-08-06) excludes the value via BK18. Earlier "interpretations" of $12 = 6+6$ (inverse Qi-gravity coupling $\xi^{-1} = \varphi^{-6}$ times a tensor-damping $\varphi^{-6}$) are not supported by any dynamics assigning one factor to each and are withdrawn here; the Mapped flag is carried from `cosmology/inflation-from-cascade.md` §4.
+**Status:** the $r$ row is **Mapped at the window** (Fit-Status Ledger row 495): the
+$N_e = 40$ window is itself a Mapped start-threshold choice (row 501), so
+$r = 12/N_e^2 = 0.0075$ inherits the window's status—it is the formula-consistent
+value at the ledgered window, not a derived consequence of the gate dynamics, and
+the trajectory does not realize it (it gives $r = 0.060$ at $N_e = 40$ literal,
+excluded by BK18). The earlier $\varphi^{-12} \approx 0.0031$ reading is not
+formula-consistent: through $12/N_e^2$ it requires $N_e \approx 63.2$ (outside the
+window), and no doc formula produces it directly; earlier "interpretations" of
+$12 = 6+6$ (inverse Qi-gravity coupling $\xi^{-1} = \varphi^{-6}$ times a
+tensor-damping $\varphi^{-6}$) are not supported by any dynamics assigning one
+factor to each and are withdrawn here. The Mapped flag is carried from
+`cosmology/inflation-from-cascade.md` §4.
 
 **Refined prediction for $n_s$ (closed φ-form):**
 
@@ -343,10 +350,7 @@ interaction types by their phase-matching factor.
 
 ### 2.6 Q5—Three Generations: Mass Ratios Per Sector
 
-**Current status:** $N_{\text{gen}} = 3$ is derived from the order of
-$\varphi$'s minimal polynomial ($x^2 - x - 1 = 0$, second-order) plus one:
-$2 + 1 = 3$. The Fibonacci triple-clustering ($\{n, n-1, n-2\}$) gives three
-mass eigenstates per sector.
+**Current status:** $N_{\text{gen}} = 3$ is counted from the Fibonacci decomposition plus the direct rung: the recurrence $\varphi^n = \varphi^{n-1} + \varphi^{n-2}$ has two terms (two predecessor channels; the solution space of $x^2 - x - 1 = 0$ is exactly two-dimensional), and the propagation-channel postulate adds the direct rung: $2 + 1 = 3$. The Fibonacci triple-clustering ($\{n, n-1, n-2\}$) gives three mass eigenstates per sector.
 
 **Refined predictions per sector:**
 
@@ -378,8 +382,9 @@ scale.
 
 **Current status:** Spin is the accumulated SO(2) winding of the $(E_Y, E_I)$
 doublet along a radial Fibonacci spiral. The winding number $\Delta n$ cascade
-rungs gives $s = \Delta n$. Fibonacci subdivision allows $\Delta n \in
-\{0, \frac12, 1, 2\}$.
+rungs gives $s = \Delta n/2$. The fundamental spans are $\Delta n \in
+\{1, 2, 4\}$ (minimal adjacent-rung doublet $\Delta n = 1$ → $s = \frac12$;
+gauge $\Delta n = 2$ → $s = 1$; composite graviton $4$ → $s = 2$); $s = \frac32 = 1 + 2$ is composite.
 
 **The number IS the set $\{0, \frac12, 1, 2\}$.** These are the four
 fundamental spin values—no others are predicted. Spin-$\frac32$ does not
@@ -785,7 +790,7 @@ RGE).
 | Question | Refined $\varphi$-power | Value |
 |----------|------------------------|-------|
 | C7/Q6 (baryon asymmetry) | $\varphi^{-44}$ | $6.38 \times 10^{-10}$ (6.3% of obs.) |
-| C4 (inflation $r$) | $\varphi^{-12}$ | 0.0031 (3.5% above stated) |
+|| C4 (inflation $r$) | $12/N_e^2$ at $N_e = 40$ (Mapped window) | 0.0075 (survives BK18; $7.5\sigma$ at CMB-S4) |
 | C4 (inflation $n_s$) | $1 - 2\varphi^{-1}/N_e$ (δn_s = 2φ⁻²/N_e) | $0.950 + 0.0191 = 0.9691$ |
 | C10 (CMB axis) | $12.2°$ alignment (measured) | Calibrated from data vectors; boundary mechanism Hypothesized |
 | Q3 (neutrino $\Delta_\nu$) | **$\Delta_1 = 1.00$, $\Delta_2 = 1.75$ rungs (cascade RGE + PMNS pinned)** | **$\Delta m^2$ ratio $33.82$ (0.2% residual)** |

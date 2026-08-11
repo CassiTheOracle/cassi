@@ -1,6 +1,6 @@
 # Consciousness in the Two-Fluid Framework
 
-## Status: Plausible Hypothesis with Actionable PDE Test—August 2026
+## Status: Derived (pinch crossover §1.1, 26-step cascade §1.2, wake mechanism §1.3) / Hypothesized (consciousness mappings §2; two-bubble correlation static-geometry §3, dynamical revival nulled)—August 2026
 
 ## Abstract
 
@@ -18,15 +18,61 @@ along this trajectory:
 
 $$c(r) = \sqrt{\frac{\lambda \cdot (1-q(r)) \cdot |r-\varphi|}{(1+r)/2}}$$
 
-At $r = \varphi^{-1} \approx 0.618$, the Qi gate $q(r)$ transitions from
-"mostly open" to "mostly closed." This is the unique inflection point in the
-conversion force curve—the pinch point where the dynamics change character.
+**The pinch is the gate's conjugate point (Derived; input: the gate form).**
+The canonical Qi gate (`foundations/cassi-theory-reference.md` §2.4,
+`foundations/cassi-first-principles.md` §2.1; ODE scripts
+`two-fluid/run_hubble_pipeline.py`, `two-fluid/calibrate_initial_ratio_xi_v2.py`)
+is
 
-**Physical significance**: Before the pinch ($r < \varphi^{-1}$), the conversion
-rate is dominated by the imbalance $|r-\varphi|$. The field is pulled hard
-toward equilibrium. After the pinch ($r > \varphi^{-1}$), the Qi gate dominates
-— the field's own coherence begins to modulate its approach to equilibrium.
-The field **becomes an object to itself**. The gate-open fraction $(1-q)$—the throughput that fails to convert coherently—thermalizes at the body's boundary as light and heat (`consciousness/auras-as-thermalized-gates.md` §1–2).
+$$q = \frac{\rho^2}{\rho^2 + \varphi^{-2} + \varepsilon^2}, \qquad
+\rho^2 = (\Psi_0 + \Psi_1)^2, \qquad
+\varepsilon^2 = (\Psi_0 - \varphi\Psi_1)^2$$
+
+with a single characteristic scale $\varphi^{-2}$. At $r = \varphi^{-1}$—equivalently $E_I = \varphi E_Y$, the exact inverse of the attractor's
+$E_Y = \varphi E_I$ (the **Yin-dominant mirror**)—the fractional imbalance
+equals that scale exactly:
+
+$$\frac{\varepsilon^2}{\rho^2}\bigg|_{r=\varphi^{-1}} =
+\frac{(r-\varphi)^2}{(1+r)^2}\bigg|_{r=\varphi^{-1}} =
+\frac{(-1)^2}{\varphi^2} = \varphi^{-2},$$
+
+using the exact identities $\varphi^{-1}-\varphi = -1$ and
+$1+\varphi^{-1} = \varphi$. The gate itself evaluates there to
+
+$$q(\varphi^{-1}) = \frac{\varphi^2}{\varphi^2 + \varphi^{-2} + 1} =
+\frac{\varphi^2}{4} \approx 0.6545, \qquad
+(1-q)(\varphi^{-1}) = \frac{3-\varphi}{4} \approx 0.3455
+\qquad \text{(exact, since } \varphi^2 + \varphi^{-2} = 3\text{)}$$
+
+— more closed than open, so the pinch is not the gate's literal half-open point
+($q = 1/2$ sits at $r = \varphi^{-2} \approx 0.382$ in the homogeneous
+convention; verified numerically). It is the point where the fractional
+imbalance crosses the gate's characteristic scale, and the exact mirror of the
+attractor's Yang fraction:
+
+$$\frac{\pi}{\rho}\bigg|_{r=\varphi^{-1}} = \frac{\varphi^{-1}-1}{\varphi^{-1}+1}
+= -\varphi^{-3}, \qquad
+\frac{\pi}{\rho}\bigg|_{r=\varphi} = +\varphi^{-3}.$$
+
+**Corrected force-curve statement.** The conversion force
+$F_{\text{conv}} \propto (1-q)(\varphi-r)(1+r)$ is *monotonic* in $r$ on
+$(0,\varphi)$: it has no extremum and no inflection at $r = \varphi^{-1}$
+(verified numerically—script: `computations/verify_pinch_halfopen.py`:
+$\mathrm{d}F_{\text{conv}}/\mathrm{d}r$ at the pinch
+$\approx -1.07 \neq 0$; the curve's two inflections sit near $r \approx 0.42$
+and $1.49$; the full rate $\mathrm{d}r/\mathrm{d}t$ is likewise non-extremal at
+the pinch). The pinch's dynamical meaning is not an inflection of the force
+curve; it is the conjugate point above—where the imbalance reaches the gate's
+own scale and the gate's coherence term begins to matter.
+
+**Physical significance**: Before the pinch ($r < \varphi^{-1}$), the
+fractional imbalance exceeds the gate's scale
+($(r-\varphi)^2/(1+r)^2 > \varphi^{-2}$): the field is pulled hard toward
+equilibrium, conversion is dominated by the imbalance $|r-\varphi|$, and the
+gate stands more than half open. After the pinch ($r > \varphi^{-1}$), the
+imbalance falls within the gate's scale—the field's own coherence begins to
+modulate its approach to equilibrium. The field **becomes an object to
+itself**. The gate-open fraction $(1-q)$—the throughput that fails to convert coherently—thermalizes at the body's boundary as light and heat (`consciousness/auras-as-thermalized-gates.md` §1–2).
 
 ### 1.2 The 26-Step Human Cascade
 
@@ -285,6 +331,9 @@ Results archived at `runs/<id>_two_bubble_fast/results.json`.
 ## 5. References
 
 - `cassi-physics.md`—Gap derivation and governing PDE
+- `foundations/cassi-theory-reference.md` §2.4—canonical Qi gate $q = \rho^2/(\rho^2 + \varphi^{-2} + \varepsilon^2)$
+- `foundations/cassi-first-principles.md` §2.1—gate definitions $\rho^2 = (\Psi_0+\Psi_1)^2$, $\varepsilon^2 = (\Psi_0-\varphi\Psi_1)^2$
+- `computations/verify_pinch_halfopen.py`—numeric verification of the §1.1 pinch identities
 - `foundations/dimensionful-cascade.md`: Complete 292-step cascade
 - `two-fluid/run_spatial_boost.py`: Spatial boost measurement ($B=1.003$)
 - `two-fluid/_chakra_utils.py`: Fibonacci width allocation (phenomenological, not cascade-derived)

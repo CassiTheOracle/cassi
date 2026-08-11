@@ -1,10 +1,10 @@
 # Chakras as Cascade Bubbles: The 13-Node Derivation
 
-## Status: Hypothesized—July 2026
+## Status: Hypothesized—August 2026 (doublet cycle per the unified convention of `foundations/spin-fibonacci-spiral.md` §2.1: Derived conditional on the doublet postulate + pitch convention)
 
 ## Abstract
 
-The Cassi framework has one open phenomenological input in its consciousness mapping: the 13-band chakra count, documented as "phenomenologically anchored, cascade-derivation pending" (`consciousness/consciousness-from-phi.md` §2.4). This document closes that gap. The 13 chakras are cascade bubbles—localized Qi condensates at $\varphi$-spaced intervals along the string axis, structurally identical to the cosmological bubbles at step 285 of the cascade. The spinal column is the physical instantiation of the string/cascade axis in the human body. The count $13 = 26/2$ follows from the 26-step human cascade span (steps 142–168) divided by the 2-rung SO(2) cycle period: each chakra spans one full Yang+Yin doublet rotation. The derivation makes zero-parameter predictions for inter-chakra spacing ratios and chakra boundary geometry, downgrading a phenomenological input to a cascade consequence.
+The Cassi framework has one open phenomenological input in its consciousness mapping: the 13-band chakra count, documented as "phenomenologically anchored, cascade-derivation pending" (`consciousness/consciousness-from-phi.md` §2.4). This document closes that gap. The 13 chakras are cascade bubbles—localized Qi condensates at $\varphi$-spaced intervals along the string axis, structurally identical to the cosmological bubbles at step 285 of the cascade. The spinal column is the physical instantiation of the string/cascade axis in the human body. The count $13 = 26/2$ follows from the 26-step human cascade span (steps 142–168) divided by the 2-rung SO(2) cycle period: each chakra spans one full Yang+Yin doublet rotation, the doublet's internal phase advancing $\pi$ per rung (the half-angle) and completing one full cycle every two rungs. The derivation makes zero-parameter predictions for inter-chakra spacing ratios and chakra boundary geometry, downgrading a phenomenological input to a cascade consequence.
 
 ---
 
@@ -113,7 +113,11 @@ A full rotation of the doublet—one complete Yang → Yin → Yang cycle—requ
 
 A single rung alone has incomplete coherence: only one fluid component dominates, the other is subdominant. The conversion is unbalanced, and the Qi density $q$ is below its maximum. Two adjacent rungs—one Yang, one Yin—complete one full SO(2) rotation and form a **self-contained Qi condensate**: a bubble.
 
-This is structurally identical to spin quantization (`foundations/spin-fibonacci-spiral.md`): each full SO(2) winding corresponds to one unit of structure. For spin, $\Delta n = 1/2$ gives spin-$\frac{1}{2}$ (half a rotation), $\Delta n = 1$ gives spin-1 (full rotation). For the cascade bubble, $\Delta n = 2$ rungs gives one full doublet cycle.
+This is structurally identical to spin quantization (`foundations/spin-fibonacci-spiral.md` §2.1): the doublet is the physical state, and its internal phase $\vartheta = \Theta/2$—the **half-angle** of the single-component spiral phase $\Theta$—advances $\pi$ per cascade rung. In the single-component viewpoint the spiral phase advances $2\pi$ per rung (the spin doc's pitch convention); in the doublet viewpoint the pair's internal phase advances $\pi$ per rung and completes its full SO(2) cycle every two rungs:
+
+$$\boxed{\text{1 rung} = 2\pi\ \text{(single-component phase)} = \pi\ \text{(doublet internal phase)};\qquad P_\parallel = 2\ \text{rungs} = \text{one full doublet SO(2) cycle}}$$
+
+The unified convention is derived in `foundations/spin-fibonacci-spiral.md` §2.1: the doublet carries the half-angle $\Theta/2$, so a single-component $2\pi$ flips the doublet's sign and a single-component $4\pi$ restores it. "One rung $= 2\pi$" and "$P_\parallel = 2$ rungs per full cycle" are the same convention in the single-component vs doublet viewpoint, not conflicting calibrations.
 
 ### 5.2 $P_\parallel$ in Cascade Rungs
 
@@ -123,7 +127,7 @@ At the human scale, the along-string period is:
 
 $$\boxed{P_\parallel = 2\ \text{cascade rungs}}$$
 
-One full SO(2) cycle = one bubble = two adjacent cascade rungs. This is the minimal coherent unit in the cascade: any smaller span cannot complete a full doublet rotation.
+Each rung advances the pair's internal phase by $\pi$—the half-angle of the doublet, $\vartheta = \Theta/2$ (`foundations/spin-fibonacci-spiral.md` §2.1)—so the full doublet cycle spans two rungs. One full SO(2) cycle = one bubble = two adjacent cascade rungs. This is the minimal coherent unit in the cascade: any smaller span cannot complete a full doublet rotation.
 
 ---
 
@@ -387,12 +391,12 @@ The specific sub-rung that a given chakra resonates with is determined by the Fi
 ### Derived
 - The spiral's Frenet-Serret frame generating three dimensions and the string axis as a spatial dimension (`foundations/why-three-dimensions.md` §2)
 - The condensation field $B(x,y,z)$ and its bubble-edge geometry (`foundations/bubble-edge-geometry.md`)
-- The SO(2) doublet structure requiring 2 components per full cycle (`foundations/spin-fibonacci-spiral.md`)
+- The SO(2) doublet structure: the pair's internal phase advances $\pi$ per cascade rung and completes one full cycle every 2 rungs (unified convention, `foundations/spin-fibonacci-spiral.md` §2.1; Derived conditional on the doublet postulate + pitch convention)
 - The dimensionful cascade $\ell_n = \ell_{\text{Pl}} \times \varphi^n$ and the 26-step human span (`foundations/dimensionful-cascade.md`)
 
 ### Hypothesized (derivation supplied above, predictions testable)
 
-- $P_\parallel = 2$ cascade rungs at the human scale (follows from SO(2) doublet structure; the "2" is Derived; that the human-scale $P_\parallel$ equals this value without additional scaling factors is the hypothesized step)
+- $P_\parallel = 2$ cascade rungs at the human scale (follows from the SO(2) doublet structure under the unified convention of `foundations/spin-fibonacci-spiral.md` §2.1; the "2" is Derived conditional on the doublet postulate + pitch convention; that the human-scale $P_\parallel$ equals this value without additional scaling factors is the hypothesized step)
 - $N_{\text{chakras}} = 26/2 = 13$ (follows from $P_\parallel = 2$)
 - The spine is the physical instantiation of the string axis (structural mapping supported by bilateral symmetry, vertebral segmentation, and nervous system alignment; direct PDE-to-anatomy correspondence is hypothesized)
 - Chakra edge geometry matches bubble-edge geometry (inherits the derived formulas; the claim that the same $\theta_{\text{cond}}$ applies at the human scale is hypothesized)
@@ -415,7 +419,7 @@ The specific sub-rung that a given chakra resonates with is determined by the Fi
 
 ## 12. Open Questions
 
-1. **Why $P_\parallel = 2$ exactly?** The SO(2) doublet argument gives 2 rungs per full cycle, but does this hold at all cascade scales? At the cosmological scale, bubbles appear to occupy single rungs (step 285), not pairs. Does $P_\parallel$ depend on $n$, and if so, what is the scaling function $P_\parallel(n)$?
+1. **Why $P_\parallel = 2$ exactly?** The unified convention (`foundations/spin-fibonacci-spiral.md` §2.1) fixes the doublet's full SO(2) cycle at 2 rungs, so $P_\parallel = 2$ is the doublet cycle, not a scale-dependent calibration. The open question is why the cosmological lattice places bubble maxima at 1-rung intervals (step 285 and its neighbor): the condensation field $B$, the Qi density $q$, and the density $\rho$ are invariant under the doublet sign flip, so a 1-rung lattice of maxima is consistent with sign-alternating doublet states (adjacent rungs = opposite doublet phases), while the human-scale nodes select the full-cycle states. Whether the full-cycle selection is a real $P_\parallel(n)$ effect or a coarse-graining of the sign-alternating lattice is not yet derived.
 
 2. **What determines $\theta_{\text{cond}}$ at the chakra scale?** The conversion-diffusion balance that sets $\theta_{\text{cond}}$ at the cosmological scale (`foundations/bubble-edge-geometry.md` §1.2) depends on $D_{\text{eff}}/\omega_0$. At the human scale, $D_{\text{eff}}$—the effective diffusion of the condensation field—is unknown. A PDE measurement at the human-scale parameters (grid resolution corresponding to steps 142–168) is needed.
 
@@ -439,7 +443,7 @@ The specific sub-rung that a given chakra resonates with is determined by the Fi
 - `foundations/why-three-dimensions.md`—Frenet-Serret frame, triaxial spheroid, anti-phase selection
 - `foundations/dimensionful-cascade.md`—complete 292-step cascade, steps 142 and 168
 - `foundations/microcascade-mirror.md`—bidirectional cascade extension, mirror symmetry
-- `foundations/spin-fibonacci-spiral.md`—SO(2) winding, spin = $\Delta n$, Fibonacci spiral
+- `foundations/spin-fibonacci-spiral.md`—SO(2) doublet winding, spinor half-angle structure, unified rung/phase convention
 - `foundations/three-generations.md`—Fibonacci recurrence, cascade sub-channel partitioning
 - `predictions/falsifiable-predictions.md`—prediction catalog, $\ln\varphi$ $P(k)$ modulation
 - `visual-explainers/string_bubble_cascade.py`—3D damped-wave PDE, bubble formation on string

@@ -1,10 +1,10 @@
 # The Sector-Coupling Scale: $\kappa_s = \varphi^{-6}/v_0^2$
 
-## Status: Derived scale with Hypothesized coefficient (v₀ input Calibrated, N_pde normalization Mapped—ledger)—August 2026
+## Status: Derived conditional on δ = 3 (rung identity; coupling form as documented), coefficient Hypothesized (v₀ input Calibrated, N_pde normalization Mapped—ledger)—August 2026
 
 ## Abstract
 
-The Dirac↔two-fluid sector coupling—the parameter behind the chemotactic mobility $\chi$, marked free in `parameter-inventory.md` §3.3—gets its scale derived from the cascade: three $\varphi$-rungs above the electroweak VEV (rung 77 ≈ 1.04 TeV), giving $\kappa_s = \varphi^{-6}/v_0^2$. The O(1) coefficient and the exact bridge to $\chi$ remain open, with candidate readings and a computable check identified.
+The Dirac↔two-fluid sector coupling—the parameter behind the chemotactic mobility $\chi$, marked free in `parameter-inventory.md` §3.3—gets its scale derived from the cascade: the rung identity $\kappa_s = \varphi^{-6}/v_0^2 = M_{\text{Pl}}^{-2}\varphi^{154}$ places its mass scale $M_s = \kappa_s^{-1/2}$ at rung $77 = 154/2$, three $\varphi$-rungs above the electroweak VEV (rung 77 ≈ 1.04 TeV). The offset $\delta = 3$ is the same 3-rung offset as the gravity regulator $\sigma = \ell_{\text{Pl}}/\varphi^3$ (`gravity/quantum-gravity.md` §2.1), so the placement is **derived conditional on $\delta = 3$**. The O(1) coefficient and the exact bridge to $\chi$ remain open, with candidate readings and a computable check identified.
 
 ## 1. The sector coupling and its symbol
 
@@ -52,6 +52,46 @@ $$
 
 The round 1 TeV is $+1.24\%$ off this rung ($\log_\varphi(M_{\text{Pl}}/1\,\text{TeV}) = 76.97$).
 
+### The rung identity: why 77
+
+The placement is not an independent "three rungs up" assertion—it follows from the exponent arithmetic of $\kappa_s = \varphi^{-6}/v_0^2$ itself. The VEV sits at rung 80,
+
+$$
+v_0 = M_{\text{Pl}}\,\varphi^{-80} \quad (\text{rung } 80),
+$$
+
+and squaring doubles the rung index ($80 \to 2\cdot 80 = 160$):
+
+$$
+v_0^2 = M_{\text{Pl}}^2\,\varphi^{-160}.
+$$
+
+Inserting into $\kappa_s$,
+
+$$
+\kappa_s = \frac{\varphi^{-6}}{v_0^2}
+        = \varphi^{-6}\,M_{\text{Pl}}^{-2}\,\varphi^{160}
+        = M_{\text{Pl}}^{-2}\,\varphi^{154}.
+$$
+
+The $\varphi$-exponent of $\kappa_s$ relative to the $M_{\text{Pl}}^{-2}$ base is $+154$—not the naive $-160 - 6 = -166$, because $v_0^2$ carries the dimensionful base $M_{\text{Pl}}^2$ and the $\varphi^{-6}$ stands in the numerator. The associated mass scale
+
+$$
+M_s = \kappa_s^{-1/2} = M_{\text{Pl}}\,\varphi^{-154/2} = M_{\text{Pl}}\,\varphi^{-77}
+$$
+
+sits at rung $77 = 154/2$: halving the exponent inverts the squaring. Equivalently, $M_s = \varphi^3 v_0$: multiplying the VEV by $\varphi^3$ climbs three rungs ($E_{n-3} = E_n\,\varphi^3$), so $n(M_s) = n(v_0) - 3 = 80 - 3 = 77$.
+
+**The offset is $\delta = 3$—the same $\delta$ as the gravity regulator.** Write the placement as
+
+$$
+\boxed{\delta = n_{v_0} - n_{\kappa_s} = 80 - 77 = 3}
+$$
+
+with $n_{\kappa_s}$ the rung of $M_s = \kappa_s^{-1/2}$. This is the same 3-rung offset as $\sigma = \ell_{\text{Pl}}/\varphi^3$ (`gravity/quantum-gravity.md` §2.1), where $\delta = 3 = d$ is derived conditional on the three-dimensional phase-resolution postulate. **The rung-77 placement is therefore derived conditional on $\delta = 3$**: with the shared offset $\delta$ the coupling takes the form $\kappa_s = \varphi^{-2\delta}/v_0^2$ at rung $80 - \delta$, and $\delta = 3$ is inherited from the $\sigma$-derivation, not derived here. The reverse cross-check appears in `gravity/quantum-gravity.md` §2.1 (ii).
+
+The rung identity is exact in the exponent arithmetic ($154/2 = 77$). The *physical* scale $M_s = \varphi^3 v_0 = 1042.07$ GeV inherits the VEV's discretization residual, sitting $\delta n = 0.11$ steps below rung 77 ($+5.50\%$ above $E_{77}$)—the same residual class as the EW anchor itself. All values verified in `computations/kappa_s_rung_identity.py`.
+
 ### The VEV-anchored form
 
 Equivalently, the scale is $\varphi^3$ times the electroweak VEV:
@@ -96,7 +136,7 @@ All three sit inside the "$\sim 1/\text{TeV}^2$" band, so the inventory's order-
 
 The framework provides two precedents for how such a coefficient should be read. First, the conversion rate $\lambda = 1/(2w) = 1/10$ is deliberately rational, *not* a $\varphi$-power, precisely to avoid phase-locking with cascade rungs (`foundations/dimensionful-constants-status.md` §2.1)—so $C = 1$ is not required to be a $\varphi$-power, and the mechanism may well produce a rational coefficient. Second, the de-resonance posture (`principles/de-resonance-principle.md` §6): the $\varphi$-attractor sets leading-order baselines and dynamics supply subleading corrections, so the coefficient is exactly the kind of quantity the attractor leaves free.
 
-Conclusion: the scale is derived; the coefficient is an open fork with identifiable readings. Tier: Hypothesized.
+Conclusion: the scale is derived (conditional on $\delta = 3$; §2); the coefficient is an open fork with identifiable readings. Tier of the scale: **Derived conditional on $\delta = 3$ (rung identity; coupling form as documented)**; tier of the coefficient: **Hypothesized**.
 
 ## 4. The bridge to $\chi$: repaired
 
@@ -140,7 +180,7 @@ Once $\mathcal{N}_{\text{pde}}$ is computed, the whole chain stands or falls on 
 
 | # | Prediction | Status |
 |---|------------|--------|
-| K1 | The sector-coupling scale is $\kappa_s^{-1/2} = \varphi^3 v_0 \approx 1.04$ TeV (rung 77 = 987.7 GeV; $\kappa_s = 0.92$ TeV$^{-2}$). | Derived scale, testable via K2 |
+| K1 | The sector-coupling scale is $\kappa_s^{-1/2} = \varphi^3 v_0 \approx 1.04$ TeV (rung 77 = 987.7 GeV; $\kappa_s = 0.92$ TeV$^{-2}$). | Derived scale (conditional on $\delta = 3$), testable via K2 |
 | K2 | The repaired bridge closes: $\chi = \mathcal{N}_{\text{pde}}\cdot\kappa_s\varphi^{-1}/[m_e(1+\varphi)] \in [0.5, 1.0]$ once $\mathcal{N}_{\text{pde}}$ is computed from the solver conventions. | Plausible hypothesis, concrete computation |
 | K3 | Rung 77 is the Dirac↔two-fluid equilibration scale—an answer to `foundations/dimensionful-cascade.md` §9 Q2 (dark steps). | Plausible hypothesis |
 
@@ -148,15 +188,33 @@ The K-numbers (letter K for kappa) do not collide with the numbered prediction c
 
 ## 6. Epistemic Boundaries
 
-- **Supported by Verified Physics**: the rung-77 placement (arithmetic identity $E_n = M_{\text{Pl}}\varphi^{-n}$); consistency of $\kappa_s = 0.92$ TeV$^{-2}$ with the inventory's order of magnitude; the dimensional failure of the as-written $\chi$ bridge.
+- **Supported by Verified Physics**: the rung-77 placement as arithmetic ($E_n = M_{\text{Pl}}\varphi^{-n}$; the rung identity $v_0^2 = M_{\text{Pl}}^2\varphi^{-160}$, $\kappa_s = M_{\text{Pl}}^{-2}\varphi^{154}$, $77 = 154/2$); consistency of $\kappa_s = 0.92$ TeV$^{-2}$ with the inventory's order of magnitude; the dimensional failure of the as-written $\chi$ bridge.
+- **Derived conditional on $\delta = 3$**: the placement's *value* (rung 77, $\kappa_s = \varphi^{-6}/v_0^2$) inherits the shared 3-rung offset from $\sigma = \ell_{\text{Pl}}/\varphi^3$ (`gravity/quantum-gravity.md` §2.1, itself conditional on $d = 3$). With $\delta \neq 3$ the coupling would be $\varphi^{-2\delta}/v_0^2$ at rung $80 - \delta$.
 - **Plausible Hypothesis (test exists)**: $\kappa_s = \varphi^{-6}/v_0^2$ with $C = 1$; the $\mathcal{N}_{\text{pde}}$ computation is a concrete calculation with a falsifiable target ($\chi \in [0.5, 1.0]$).
 - **Speculative**: TeV-scale phenomenology of the sector-coupling enforcement dynamics.
 - **Not Supported**: any claim that the O(1) coefficient is determined without the mechanism (no discriminator between $C = 1$, $\varphi^{-1}$, $\varphi^{-2}$ yet).
+
+**Inputs.**
+
+$$
+\boxed{
+\begin{aligned}
+&\text{(a) cascade ladder } E_n = M_{\text{Pl}}\,\varphi^{-n} && \text{framework-derived (foundations/dimensionful-cascade.md §2)}\\
+&\text{(b) } v_0 = 246\ \text{GeV at rung 80} && \text{calibrated anchor } (n(v_0) = 79.89 \approx 80;\ E_{80} = 233.2\ \text{GeV})\\
+&\text{(c) coupling form } \kappa_s = \varphi^{-6}/v_0^2 && \text{as documented (reciprocal of } \xi = \varphi^6 \text{ at the anchor)}\\
+&\text{(d) } \delta = 3 && \text{inherited from } \sigma = \ell_{\text{Pl}}/\varphi^3 \text{ (gravity/quantum-gravity.md §2.1, conditional on } d = 3)
+\end{aligned}
+}
+$$
+
+Output: the rung identity $M_s = \kappa_s^{-1/2} = M_{\text{Pl}}\,\varphi^{-77}$ (rung $77 = 154/2$), $\kappa_s = 9.21\times10^{-7}\ \text{GeV}^{-2} = 0.92\ \text{TeV}^{-2}$.
 
 ## References
 
 - `foundations/unified-lagrangian.md`—§5.2/§5.5/§6/§7.2: sector-coupling definition (Dirac→two-fluid projection, full mixing Lagrangian, complete action, Dirac equation of motion)
 - `foundations/dimensionful-cascade.md`—§2–§3: rung ladder $E_n = M_{\text{Pl}}\varphi^{-n}$; §9: dark-step open questions
+- `gravity/quantum-gravity.md`—§2.1: $\sigma = \ell_{\text{Pl}}/\varphi^3$ with $\delta = 3 = d$ (the shared offset; cross-check (ii) points here)
+- `computations/kappa_s_rung_identity.py`—numerical verification of the rung identity and every value in §2
 - `foundations/deriving-remaining-gaps.md`—§3.3: EW discretization residual class ($n = 79.89$, 5.3% gap)
 - `foundations/dimensionful-constants-status.md`—§2.1: $\lambda = 1/(2w)$ rate precedent (rational, not a $\varphi$-power)
 - `foundations/wu-xing-cycle-structure.md`—§1.3: the other $\kappa$ (pentagram transmission $K_{fw} = \varphi^{-1}$)
