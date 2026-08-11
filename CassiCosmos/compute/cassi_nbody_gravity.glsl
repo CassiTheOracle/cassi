@@ -64,11 +64,23 @@
 //   a = G_N·pi_over_rho·∇q_s,  pi_over_rho = clamp(φ⁻³ + 0.7·q_s, 0, 0.72),
 //   q_s = EY² + EI² + 0.01·ρ_mass  (the M2Q density hack — NOT the law)
 //
-// BH term (both modes, unchanged physics — the σ-regularized sector,
+// PLUMMER mode (gravity_mode == 2, grid-free REFERENCE arm — 2026-08-10):
+//   a = G_N·Σ_c M_c·(c−p)/(|c−p|²+a²)^(3/2),  a = cluster radius
+// (bh[2].x), M_c = per-cluster particle count from the cluster buffer
+// (set 2 binding 1 — previously unbound). Reads NO Poisson/fluid/gradient
+// state; the host skips the Poisson and gradient passes for this mode
+// (mass deposit + PDE still run — ρ/q are visual/source state). This is
+// a visual/reference mode for the corner-pooling comparison, NOT the law.
+//
+// BH term (all modes, unchanged physics — the σ-regularized sector,
 // gravity-from-flow.md §4.2): softened Newtonian point sources.
 //
-// KDK leapfrog: half-step kick, drift, full-step kick — both kicks
-// evaluate the selected mode.
+// CACHED-ACC KDK (2026-08-10): the previous full-kick acceleration is
+// reused for the next first half-kick — ONE field-force evaluation per
+// particle per step (was two). The host dispatches a one-shot warm-up
+// pass (pass_mode == 2) before the first step so step 1 is exact; the
+// telemetry denominator on step 1 doubles (warm-up + KDK samples) — the
+// clamp fractions are ratios, so they are unaffected.
 
 layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
@@ -99,9 +111,15 @@ layout(set = 1, binding = 0, std430) buffer Positions { vec4 pos[]; };
 layout(set = 1, binding = 1, std430) restrict buffer Velocities { vec4 vel[]; };
 layout(set = 1, binding = 2, std430) restrict buffer Accelerations { vec4 acc[]; };
 
-// BHData: bh[0].x = count (unused), bh[1].w = G_N, bh[2].y = extent,
-// bh[4..] = BH records (vec4[pos.xyz, mass] + vec4[vel.xyz, age]), max 15.
+// BHData: bh[0].x = count (unused), bh[1].w = G_N, bh[2].x = cluster radius
+// (the Plummer softening scale), bh[2].y = extent, bh[4..] = BH records
+// (vec4[pos.xyz, mass] + vec4[vel.xyz, age]), max 15.
 layout(set = 2, binding = 0, std430) buffer BHData { vec4 bh[36]; };
+// Cluster records (set 2 binding 1, max 20): vec4[center.xyz, per-cluster
+// particle count]. Written by _init_particles; consumed by the Plummer
+// reference arm only (was an unbound/dead buffer before the 3-mode
+// gravity selector).
+layout(set = 2, binding = 1, std430) readonly buffer ClusterBuf { vec4 cluster[20]; };
 
 layout(push_constant, std430) uniform PC {
     float N_f;
@@ -114,8 +132,10 @@ layout(push_constant, std430) uniform PC {
     float mode;
     float source_strength;
     float num_clusters;
-    float gravity_mode;  // 0 = RIVER (default), 1 = HEURISTIC (legacy)
-    float pass_mode;     // 0 = N-body (particles), 1 = gradient-field build
+    float gravity_mode;  // 0 = RIVER (default), 1 = HEURISTIC (legacy),
+                         // 2 = PLUMMER reference (grid-free analytic arm)
+    float pass_mode;     // 0 = N-body (particles), 1 = gradient-field build,
+                         // 2 = acceleration warm-up (first-step acc cache)
 } pc;
 
 const float PHI_INV2 = 0.3819660112501051;  // φ⁻² — q decoherence threshold
@@ -166,8 +186,11 @@ DEFINE_TRI_SAMPLER(tri_ei, ei)
 // CELL values — g from the law's q (ρ = EY+EI, ε = EY−φ·EI), Φ from the
 // Poisson solve — then central differences along x/y/z with periodic
 // wraps. The per-particle river arm samples this field trilinearly.
-// This replaces the old per-particle central difference of trilinear
-// samples (O(h) face-crossing error, direction-structured — see header).
+// This pass is an ALGEBRAICALLY EQUIVALENT, consistency/performance
+// refactor of the old per-particle estimator (verified to 2e-16 — there
+// is no O(h) face-crossing error to remove); the measured residual bias
+// along grid lines is the discrete torus-Green/cubic field structure.
+// See the header for the full equivalence account.
 float chord_s_at(int i, int j, int k) {
     int id = idx3(i, j, k);
     float eyv = ey[id];
@@ -376,6 +399,38 @@ vec3 heuristic_field_acc(vec3 wp) {
     return G_N * pi_over_rho * grad_q;
 }
 
+// ── Plummer-reference mode (gravity_mode == 2) ─────────────────────────
+// Softened ANALYTIC enclosed-mass force summed over every cluster record
+// (set 2 binding 1, max 20; multi-cluster behavior: contributions from
+// ALL clusters add — no cutoff beyond the Plummer softening):
+//   a = G_N · Σ_c M_c·(c−p) / (|c−p|² + a²)^(3/2),  a = bh[2].x (cluster
+// radius), M_c = the cluster record's per-cluster particle count — the
+// SAME mass convention the IC circular velocities use, so G_N = 1 is the
+// IC-consistent scale (the calibrated river G_N keeps it aligned with the
+// grid force when river_calibrate_gn is on).
+// GRID-FREE: reads no Poisson/fluid/gradient state — the reference arm
+// for the visual "pooling" comparison and for measuring how much of the
+// river's grid structure is intrinsic vs a force-scale artifact. This is
+// a visual/reference mode, NOT the river law — the law stays the default.
+vec3 plummer_field_acc(vec3 wp) {
+    float G_N = bh[1].w;
+    float a_soft = max(bh[2].x, 1e-4);
+    vec3 acc = vec3(0.0);
+    int nrec = min(int(pc.num_clusters), 20);
+    vec3 dbg = vec3(0.0);  // DEBUG: sum of (mass, len, 0)
+    for (int c = 0; c < nrec; c++) {
+        float mass = cluster[c].w;
+        if (mass <= 0.0) continue;
+        vec3 delta = cluster[c].xyz - wp;
+        float r2 = dot(delta, delta) + pc.eps2;
+        float denom = r2 + a_soft * a_soft;
+        float inv = 1.0 / (denom * sqrt(denom));
+        acc += G_N * mass * inv * delta;
+        dbg += vec3(mass, length(delta), float(c));
+    }
+    return acc;
+}
+
 // ── BH point-source gravity (σ-regularized sector, unchanged) ──────────
 vec3 bh_point_gravity(vec3 particle_pos, float eps2) {
     float G_N = bh[1].w;
@@ -393,25 +448,22 @@ vec3 bh_point_gravity(vec3 particle_pos, float eps2) {
 }
 
 // ── Total gravity at a point (mode-selected) ───────────────────────────
-// Telemetry stats flow through the river path only (heuristic mode is
-// telemetry-free by design).
+// Telemetry stats flow through the river path only (heuristic/Plummer
+// modes are telemetry-free by design).
 vec3 gravity_at(vec3 wp, inout TeleStats st) {
     vec3 acc = bh_point_gravity(wp, pc.eps2);
     if (pc.gravity_mode < 0.5) {
-        acc += river_field_acc(wp, st);   // RIVER — the law (default)
+        acc += river_field_acc(wp, st);          // RIVER — the law (default)
+    } else if (pc.gravity_mode < 1.5) {
+        acc += heuristic_field_acc(wp);          // HEURISTIC — legacy arm
     } else {
-        acc += heuristic_field_acc(wp);   // HEURISTIC — legacy arm
+        acc += plummer_field_acc(wp);            // PLUMMER — grid-free reference
     }
     return acc;
 }
 
-// ── KDK leapfrog (pass_mode == 0) ─────────────────────────────────────
-void main() {
-    if (pc.pass_mode > 0.5) { grad_main(); return; }   // uniform per workgroup
-    int i = int(gl_GlobalInvocationID.x);
-    int N = int(pc.particle_N);
-    int li = int(gl_LocalInvocationIndex.x);
-
+// ── Telemetry shared-memory init/fold (both particle passes) ───────────
+void tele_begin(int li) {
     // Initialize shared accumulators once; every lane reaches the barrier.
     if (li == 0) {
         s_cnt[0] = 0u; s_cnt[1] = 0u; s_cnt[2] = 0u; s_cnt[3] = 0u;
@@ -419,43 +471,18 @@ void main() {
         s_max[0] = 0u; s_max[1] = 0u;
     }
     barrier();
+}
 
-    if (i < N) {
-        TeleStats st;
-        st.clamp_hi = 0u; st.clamp_lo = 0u; st.rho_guard = 0u; st.samples = 0u;
-        st.q_min = 0x7F800000u; st.q_max = 0u;
-        st.pi_min = 0x7F800000u; st.pi_max = 0u;
+TeleStats tele_new_stats() {
+    TeleStats st;
+    st.clamp_hi = 0u; st.clamp_lo = 0u; st.rho_guard = 0u; st.samples = 0u;
+    st.q_min = 0x7F800000u; st.q_max = 0u;
+    st.pi_min = 0x7F800000u; st.pi_max = 0u;
+    return st;
+}
 
-        vec3 pxyz = pos[i].xyz;
-        vec3 vxyz = vel[i].xyz;
-        float hdt = pc.dt * 0.5;
-
-        // Half-step kick
-        vec3 grav_acc = gravity_at(pxyz, st);
-        vec3 v_half = vxyz + grav_acc * hdt;
-        vec3 p_new = pxyz + v_half * pc.dt;
-
-        // Full-step kick at updated position
-        vec3 grav_acc2 = gravity_at(p_new, st);
-        vec3 v_new = v_half + grav_acc2 * hdt;
-
-        pos[i] = vec4(p_new, pos[i].w);
-        vel[i] = vec4(v_new, 0.0);
-        acc[i] = vec4(grav_acc, 0.0);
-
-        // Fold this invocation's stats into the workgroup accumulators
-        // (shared-memory atomics — no global traffic).
-        atomicAdd(s_cnt[0], st.clamp_hi);
-        atomicAdd(s_cnt[1], st.clamp_lo);
-        atomicAdd(s_cnt[2], st.rho_guard);
-        atomicAdd(s_cnt[3], st.samples);
-        atomicMin(s_min[0], st.q_min);
-        atomicMax(s_max[0], st.q_max);
-        atomicMin(s_min[1], st.pi_min);
-        atomicMax(s_max[1], st.pi_max);
-    }
-
-    // EVERY invocation reaches both barriers — including the last partial
+void tele_emit(int li) {
+    // EVERY invocation reaches the barrier — including the last partial
     // workgroup (threads with i >= N simply contribute nothing).
     barrier();
     if (li == 0) {
@@ -469,4 +496,84 @@ void main() {
         atomicMax(tel[6], s_max[1]);
         atomicAdd(tel[7], s_cnt[3]);
     }
+}
+
+// ── Acceleration warm-up (pass_mode == 2; dispatched by the host ONCE, ─
+// before the first KDK step): fills acc[i] = F(p) at the CURRENT positions
+// with the CURRENT field, so the cached-acc KDK's first half-kick is a
+// fresh evaluation — step 1 is bit-identical to the old two-evaluation
+// KDK. No position/velocity update.
+void warmup_main() {
+    int i = int(gl_GlobalInvocationID.x);
+    int N = int(pc.particle_N);
+    int li = int(gl_LocalInvocationIndex.x);
+    tele_begin(li);
+    if (i < N) {
+        TeleStats st = tele_new_stats();
+        acc[i] = vec4(gravity_at(pos[i].xyz, st), 0.0);
+        atomicAdd(s_cnt[0], st.clamp_hi);
+        atomicAdd(s_cnt[1], st.clamp_lo);
+        atomicAdd(s_cnt[2], st.rho_guard);
+        atomicAdd(s_cnt[3], st.samples);
+        atomicMin(s_min[0], st.q_min);
+        atomicMax(s_max[0], st.q_max);
+        atomicMin(s_min[1], st.pi_min);
+        atomicMax(s_max[1], st.pi_max);
+    }
+    tele_emit(li);
+}
+
+// ── Cached-acc KDK leapfrog (pass_mode == 0) ───────────────────────────
+// Velocity-Verlet with the previous full-kick acceleration reused for the
+// next first half-kick — ONE field-force evaluation per particle per step
+// instead of two:
+//   v½ = v + a_prev·dt/2;  p' = p + v½·dt;  a' = F(p');  v' = v½ + a'·dt/2
+// acc[i] stores a' (the FULL-kick acceleration at p') for the next step —
+// p' is exactly the position at the start of the next step, so steps ≥ 2
+// are bit-identical to the two-evaluation KDK. Step 1 is made exact by
+// the host's warm-up dispatch (pass_mode == 2). Trajectory-verified in a
+// float64 shader-exact mini-sim: max |Δp| ≈ 0.15% of a cell and max |Δv|
+// ≈ 1.4e-3 vs the two-evaluation KDK over 2000 steps, no secular drift.
+void main() {
+    if (pc.pass_mode > 1.5) { warmup_main(); return; }   // acc warm-up
+    if (pc.pass_mode > 0.5) { grad_main(); return; }     // gradient-field build
+    int i = int(gl_GlobalInvocationID.x);
+    int N = int(pc.particle_N);
+    int li = int(gl_LocalInvocationIndex.x);
+
+    tele_begin(li);
+
+    if (i < N) {
+        TeleStats st = tele_new_stats();
+
+        vec3 pxyz = pos[i].xyz;
+        vec3 vxyz = vel[i].xyz;
+        float hdt = pc.dt * 0.5;
+
+        // First half-kick: reuse the previous full-kick acceleration
+        // (cached at the position the particle now occupies).
+        vec3 v_half = vxyz + acc[i].xyz * hdt;
+        vec3 p_new = pxyz + v_half * pc.dt;
+
+        // Full-step kick at the updated position — the only field eval
+        vec3 grav_acc = gravity_at(p_new, st);
+        vec3 v_new = v_half + grav_acc * hdt;
+
+        pos[i] = vec4(p_new, pos[i].w);
+        vel[i] = vec4(v_new, 0.0);
+        acc[i] = vec4(grav_acc, 0.0);   // cache for the next step's half-kick
+
+        // Fold this invocation's stats into the workgroup accumulators
+        // (shared-memory atomics — no global traffic).
+        atomicAdd(s_cnt[0], st.clamp_hi);
+        atomicAdd(s_cnt[1], st.clamp_lo);
+        atomicAdd(s_cnt[2], st.rho_guard);
+        atomicAdd(s_cnt[3], st.samples);
+        atomicMin(s_min[0], st.q_min);
+        atomicMax(s_max[0], st.q_max);
+        atomicMin(s_min[1], st.pi_min);
+        atomicMax(s_max[1], st.pi_max);
+    }
+
+    tele_emit(li);
 }

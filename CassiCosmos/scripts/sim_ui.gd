@@ -300,11 +300,12 @@ func _build_mode_buttons(parent: HBoxContainer) -> void:
 
 
 func _build_gravity_buttons(parent: HBoxContainer) -> void:
-	# Gravity law toggle: 0 = RIVER (the law, default), 1 = HEURISTIC (legacy)
+	# Gravity law toggle: 0 = RIVER (the law, default), 1 = HEURISTIC
+	# (legacy), 2 = PLUMMER reference (grid-free analytic arm)
 	var group = ButtonGroup.new()
-	for i in range(2):
+	for i in range(3):
 		var btn = Button.new()
-		btn.text = "River" if i == 0 else "Heuristic"
+		btn.text = "River" if i == 0 else ("Heuristic" if i == 1 else "Plummer ref")
 		btn.toggle_mode = true
 		btn.button_group = group
 		btn.button_pressed = (i == 0)
@@ -467,12 +468,13 @@ func _update_info() -> void:
 			p_str = "%.1fM" % (sim.N_particles / 1e6)
 		elif sim.N_particles >= 1000:
 			p_str = "%.0fk" % (sim.N_particles / 1e3)
+		var grav_name := "RIVER" if sim.gravity_mode == 0 else ("HEURISTIC" if sim.gravity_mode == 1 else "PLUMMER")
 		_diag_label.text = \
 			"q_mean: %.4f  ε²: %.6f\n" % [sim._q_mean, sim._eps_mean] + \
 			"xi: %.1f  src: %.2f  soften: %.2f\n" % [sim.xi, sim.source_strength, sim.softening] + \
 			"sf: %.3f  H: %.4f  steps: %d  drop: %d\n" % [sim._scale_factor, sim._hubble, sim._step_count, sim._dropped_steps] + \
 			"N: %s | grid: %d³ | dt: %.4f\n" % [p_str, sim.grid_N, sim.dt] + \
-			"grav: %s  ξ(φ⁶): %.3f  chord ξ−1: %.3f\n" % ["RIVER" if sim.gravity_mode == 0 else "HEURISTIC", sim.xi, sim.PHI_6 - 1.0] + \
+			"grav: %s  G_N=%.4f  calib=%s  attr=%s  chord ξ−1: %.3f\n" % [grav_name, sim._gn_eff, "on" if sim.river_calibrate_gn else "off", "on" if sim.field_attractor_init else "off", sim.PHI_6 - 1.0] + \
 			"q∈[%.6f, %.6f]  π/ρ∈[%.4f, %.4f]  sat↑%.1f%% sat↓%.1f%%" % [
 				sim._q_min, sim._q_max, sim._pi_min, sim._pi_max,
 				sim._pi_sat_hi_frac * 100.0, sim._pi_sat_lo_frac * 100.0]

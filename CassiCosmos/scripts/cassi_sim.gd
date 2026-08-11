@@ -5,6 +5,12 @@ extends Node3D
 ## lensing, and visualization — all running in Godot compute shaders.
 ##
 
+const PHI: float = 1.618033988749895
+const PHI_INV3: float = (PHI - 1.0) / (PHI + 1.0)   # φ⁻³ = attractor π/ρ ≈ 0.236068
+const PHI_INV2: float = 0.3819660112501051  # φ⁻² — q decoherence threshold
+const PHI_6: float = PHI * PHI * PHI * PHI * PHI * PHI  # φ⁶ ≈ 17.94427191
+const PI_CLAMP_MAX: float = 0.72  # (π/ρ) upper clamp (stability; telemetry counts hits)
+
 # ═══════════════════════════════════════════════════════════════════════
 # Exports
 @export var playing: bool = true              # simulation running
@@ -27,7 +33,36 @@ extends Node3D
 # Gravity law selector (river law = the derived formula, default):
 #   0 = RIVER — a = −G_N·(π/ρ)·∇(g·Φ),  g = 1+(φ⁶−1)q,  ∇²Φ = ρ_mass (spectral)
 #   1 = HEURISTIC — legacy G_N·π/ρ·∇q_s arm, kept for A/B comparison only
-@export_enum("River", "Heuristic") var gravity_mode: int = 0
+#   2 = PLUMMER — grid-free softened analytic enclosed-mass force (cluster
+#       buffer centers/masses); a visual/reference arm, NOT the law.
+# Modes 1/2 skip the Poisson FFT chain and the river gradient pass
+# (neither consumes Φ/∇(g·Φ)); mass deposit + two-fluid PDE still run.
+@export_enum("River", "Heuristic", "Plummer reference") var gravity_mode: int = 0
+
+# ── River-law resolution calibration (opt-in; OFF keeps the exact G_N = 1
+# verification contract). When ON, G_N is recomputed after the particle
+# init from the ACTUAL deposited mean mass so the grid force matches the
+# IC circular-velocity convention (G = 1, M = per-cluster count):
+#   G_N = 4π / (π_ref · g_ref · h³ · m_mean),  h = 2·extent/N,
+#   g_ref = 1 + (ξ−1)·q_ref,  m_mean = Σ deposited mass / N_particles.
+# Written to the BH header slot bh[1].w (shared by the river arm, the BH
+# point-source term and the Plummer reference arm — they all scale with
+# the same explicit G_N).
+@export var river_calibrate_gn: bool = false
+@export var river_pi_ref: float = PHI_INV3   # reference π/ρ (φ⁻³ = attractor)
+@export var river_q_ref: float = 0.0         # reference q → g_ref = 1+(ξ−1)·q_ref
+# ── Attractor field init (opt-in; OFF keeps the legacy flat-noise field
+# for verification compatibility). EY = φ·EI + tiny controlled noise →
+# π/ρ = (EY−EI)/(EY+EI) ≈ φ⁻³ > 0 everywhere — the river law has NO
+# force-free (clamp-to-0) holes. The law's formula itself is untouched.
+@export var field_attractor_init: bool = false
+# ── Truncated-Plummer IC radius (fraction of the box half-extent):
+# every initial particle lies inside r_max = fr·extent − |center|_∞ per
+# cluster (a safe spherical radius inside the periodic cube). The Plummer
+# profile is preserved CONDITIONAL on the truncation via a rejection-free
+# inverse-CDF draw u ∈ (0.001, u_max], u_max = (x²/(1+x²))^(3/2) with
+# x = r_max/a — no coordinate clamping, no shell artifacts.
+@export var initial_radius_fraction: float = 0.9
 
 @export_enum("Particles", "Field", "Black Hole", "Cosmology") var mode: int = 0
 
@@ -139,12 +174,22 @@ var _poisson_residual_done: bool = false
 var _eps_mean: float = 0.0
 var _hubble: float = 0.0
 var _scale_factor: float = 1.0
+var _gn_eff: float = 1.0        # effective river G after calibration (= G_N·π_ref·g_ref·h³·m_mean/4π)
+var _grav_warmup: bool = false  # one-shot acc-cache warm-up before the first KDK step
 
-const PHI: float = 1.618033988749895
-const PHI_INV3: float = (PHI - 1.0) / (PHI + 1.0)
-const PHI_INV2: float = 0.3819660112501051  # φ⁻² — q decoherence threshold
-const PHI_6: float = PHI * PHI * PHI * PHI * PHI * PHI  # φ⁶ ≈ 17.94427191
-const PI_CLAMP_MAX: float = 0.72  # (π/ρ) upper clamp (stability; telemetry counts hits)
+# — Initial-condition diagnostics (filled by _init_particles) —
+var _init_max_radius: float = 0.0
+var _init_max_component: float = 0.0
+var _init_out_of_box: int = 0
+var _init_retained_fraction: float = 0.0   # min over clusters of u(r_max) — CDF retained by truncation
+var _total_init_mass: float = 0.0          # Σ Salpeter masses of the initial particles
+
+# — Perf accumulation (interactive runs; verify scenes keep playing=false) —
+var _perf_phys_us: int = 0
+var _perf_steps: int = 0
+var _perf_frames: int = 0
+var _perf_last_ms: int = 0
+var _last_occ_ms: int = 0
 
 
 # — Display textures for visualization modes —
@@ -165,6 +210,8 @@ func _ready() -> void:
 	_setup_shaders()    # binds the multimesh's RD buffer, which must exist
 	_init_field()
 	_init_particles()
+	_apply_gravity_calibration()
+	_grav_warmup = true  # fill the acc cache with a fresh force before step 1
 	print("[CassiSim] Universe ready — grid=%d³ particles=%d xi=%.5f (φ⁶=%.5f)" % [grid_N, N_particles, xi, PHI_6])
 
 
@@ -193,7 +240,11 @@ func _process(delta: float) -> void:
 			_dropped_steps += excess
 			_step_timer -= float(excess) * dt
 		if n_steps > 0:
+			var t0 := Time.get_ticks_usec()
 			_run_physics_steps(n_steps)
+			_perf_phys_us += int(Time.get_ticks_usec() - t0)
+			_perf_steps += n_steps
+	_perf_frames += 1
 
 	_render_frame()
 
@@ -325,7 +376,17 @@ func _setup_buffers() -> void:
 		cluster_radius, cluster_radius * 1.5, 0.0, 0.0,
 		0.0, 0.0, 0.0, 0.0,
 	])
-	_bh_init_bytes = bh_init_f.to_byte_array()
+	# Zero the FULL 576-byte buffer (header at the front): storage buffers
+	# are NOT zero-initialized on allocator reuse, and the nbody shader
+	# reads bh[4..] (BH records) in every gravity mode. Stale memory there
+	# produced a phantom point mass (~2×N_particles) at the origin in the
+	# verify scene — deterministic setup, then the condensation/BH-
+	# integrate passes own the records at runtime.
+	var bh_full = PackedFloat32Array()
+	bh_full.resize(576 / 4)
+	for i in range(16):
+		bh_full[i] = bh_init_f[i]
+	_bh_init_bytes = bh_full.to_byte_array()
 	_rd.buffer_update(_bh_buf, 0, _bh_init_bytes.size(), _bh_init_bytes)
 	# BH lensing params — dedicated 4-vec4 buffer. The lensing shader
 	# declares exactly 4 vec4s; never bind the 36-vec4 sim BH header to it.
@@ -516,6 +577,7 @@ func _cache_uniform_sets() -> void:
 		], _bh_int_shader, 1)
 	_us_nbody_2 = _rd.uniform_set_create([
 		_uniform_storage(0, _bh_buf),
+		_uniform_storage(1, _cluster_buf),  # Plummer reference arm (mode 2)
 	], _nbody_shader, 2)
 
 	# Field render (cached sets — was rebuilt every frame in _dispatch_compute)
@@ -581,10 +643,23 @@ func _init_field() -> void:
 				var dz = (float(k) - half) / half
 				var r2 = dx*dx + dy*dy + dz*dz
 
-				# Flat noise — no pre-existing structure (pure Cassi)
-				ey[id] = rng.randf_range(-0.01, 0.01)
-				ei[id] = rng.randf_range(-0.01, 0.01)
-				q[id] = ey[id]*ey[id] + ei[id]*ei[id]
+				if field_attractor_init:
+					# Attractor init (opt-in): EI small positive with ±10%
+					# variation, EY = φ·EI ± 1e-3 → π/ρ = (EY−EI)/(EY+EI)
+					# ∈ [0.15, 0.31] — strictly positive, no force-free
+					# (clamp-to-0) holes, mean ≈ φ⁻³. The river law's
+					# formula is untouched; this only seeds the field on
+					# the attractor (EY = φ·EI) instead of flat noise.
+					var ei_v: float = 0.01 * (1.0 + 0.1 * rng.randf_range(-1.0, 1.0))
+					var ey_v: float = PHI * ei_v + rng.randf_range(-0.001, 0.001)
+					ey[id] = ey_v
+					ei[id] = ei_v
+					q[id] = ey_v * ey_v + ei_v * ei_v
+				else:
+					# Flat noise — no pre-existing structure (pure Cassi)
+					ey[id] = rng.randf_range(-0.01, 0.01)
+					ei[id] = rng.randf_range(-0.01, 0.01)
+					q[id] = ey[id]*ey[id] + ei[id]*ei[id]
 				vel[id * 4]     = 0.0
 				vel[id * 4 + 1] = 0.0
 				vel[id * 4 + 2] = 0.0
@@ -606,6 +681,8 @@ func _init_particles() -> void:
 	var rng = RandomNumberGenerator.new()
 	var G = 1.0
 	var eps2 = softening * softening
+	var fr: float = initial_radius_fraction
+	var extent_box: float = cluster_radius * 1.5
 
 	# Pre-compute cluster centers and bulk velocities
 	var centers = []
@@ -614,6 +691,12 @@ func _init_particles() -> void:
 	var nc = max(1, num_clusters)
 	var bulk_vels = []
 	var per_cluster = N_particles / nc
+	# Truncated-Plummer bounds: per cluster, r_max = fr·extent − |center|_∞
+	# (a safe spherical radius inside the periodic cube); the retained CDF
+	# u_max = (x²/(1+x²))^{3/2} with x = r_max/a is the fraction of the
+	# Plummer profile kept — reported as _init_retained_fraction.
+	var u_max_list: Array = []
+	var retained_min: float = INF
 	for c in range(nc):
 		var angle = float(c) * PI * 2.0 / float(nc)
 		var cx = sep * cos(angle); var cy = 0.0; var cz = sep * sin(angle)
@@ -628,6 +711,14 @@ func _init_particles() -> void:
 		var bv = Vector3(-cx, -cy, -cz).normalized() * ms + \
 				  Vector3(-cz, 0.0, cx).normalized() * ms * 0.3
 		bulk_vels.append(bv)
+		var c_abs: float = maxf(absf(cx), maxf(absf(cy), absf(cz)))
+		var r_max_c: float = fr * extent_box - c_abs
+		if r_max_c < 0.0:
+			r_max_c = 0.0  # degenerate: cluster center beyond the safe radius
+		var x_max: float = r_max_c / maxf(cluster_radius, 1e-6)
+		var u_hi: float = pow(x_max * x_max / (1.0 + x_max * x_max), 1.5)
+		u_max_list.append(u_hi)
+		retained_min = minf(retained_min, u_hi)
 
 	# Upload cluster centers to GPU buffer
 	var cluster_data = PackedFloat32Array()
@@ -636,6 +727,11 @@ func _init_particles() -> void:
 		cluster_data.append(cen.x); cluster_data.append(cen.y)
 		cluster_data.append(cen.z); cluster_data.append(float(per_cluster))
 	_rd.buffer_update(_cluster_buf, 0, cluster_data.size() * 4, cluster_data.to_byte_array())
+
+	var max_r: float = 0.0
+	var max_comp: float = 0.0
+	var out_box := 0
+	var total_mass: float = 0.0
 
 	for i in range(N_particles):
 		var i4 = i * 4
@@ -648,9 +744,16 @@ func _init_particles() -> void:
 		var A = pow(0.3, exp); var B = pow(30.0, exp)
 		var m = pow(A - rng.randf() * (A - B), 1.0 / exp)
 		pos[i4 + 3] = m
+		total_mass += m
 
-		# Plummer distribution around cluster center
-		var u = rng.randf_range(0.001, 0.999)
+		# Truncated Plummer distribution around cluster center —
+		# REJECTION-FREE inverse CDF: draw u ∈ (0.001, max(u_max, 0.0011)]
+		# with u_max = (x²/(1+x²))^{3/2} for x = r_max/a. The conditional
+		# distribution of u given u ≤ u_max is uniform, so the profile is
+		# preserved exactly on the truncation; r(u_max) = r_max ⇒ every
+		# particle lies inside the safe radius (no clamping, no shell).
+		var u_hi: float = u_max_list[cidx]
+		var u = rng.randf_range(0.001, maxf(u_hi, 0.0011))
 		var r = cluster_radius / sqrt(pow(u, -2.0 / 3.0) - 1.0)
 		var th = acos(2.0 * rng.randf() - 1.0)
 		var ph = rng.randf() * PI * 2.0
@@ -660,6 +763,13 @@ func _init_particles() -> void:
 		pos[i4]     = lx + center.x
 		pos[i4 + 1] = ly + center.y
 		pos[i4 + 2] = lz + center.z
+
+		var rr: float = sqrt(lx * lx + ly * ly + lz * lz)
+		max_r = maxf(max_r, rr)
+		var mc: float = maxf(absf(pos[i4]), maxf(absf(pos[i4 + 1]), absf(pos[i4 + 2])))
+		max_comp = maxf(max_comp, mc)
+		if absf(pos[i4]) > extent_box or absf(pos[i4 + 1]) > extent_box or absf(pos[i4 + 2]) > extent_box:
+			out_box += 1
 
 		# Circular velocity around cluster center + bulk
 		var a2 = cluster_radius * cluster_radius
@@ -712,8 +822,53 @@ func _init_particles() -> void:
 	_rd.buffer_update(_vel_buf, 0, vel.size() * 4, vel.to_byte_array())
 	_rd.buffer_update(_acc_buf, 0, acc.size() * 4, acc.to_byte_array())
 
-	print("[CassiSim] Particles initialized: %d" % N_particles)
+	_init_max_radius = max_r
+	_init_max_component = max_comp
+	_init_out_of_box = out_box
+	_init_retained_fraction = retained_min if retained_min < INF else 1.0
+	_total_init_mass = total_mass
+	if out_box > 0:
+		# A cluster center beyond fr·extent − |center|_∞ (e.g. legacy scene
+		# configs with cluster_separation ≫ the small box) leaves NO in-box
+		# spherical placement — the truncation packs those particles at the
+		# center (u_max = 0); the count below is the config's consequence,
+		# not a truncation failure. The verify scenes overwrite positions.
+		push_warning("[CassiSim] IC: %d initial particles outside the box (fr=%.2f, extent=%.1f) — a cluster center sits beyond the safe radius; config-level, not a truncation failure" % [out_box, fr, extent_box])
+	print("[CassiSim] Truncated Plummer IC: retained CDF=%.4f  max_radius=%.1f  max|comp|=%.1f  out_of_box=%d (fr=%.2f, extent=%.1f)" % [
+		_init_retained_fraction, max_r, max_comp, out_box, fr, extent_box])
+	print("[CassiSim] Particles initialized: %d (Σm=%.1f, m_mean=%.4f)" % [N_particles, total_mass, total_mass / float(max(N_particles, 1))])
 
+
+
+# ── Resolution-aware river calibration (opt-in) ─────────────────────────
+# The spectral Poisson solve's field force carries an h³ cell-volume
+# factor: for a mass concentration with mean deposited mass m_mean the
+# river force on a particle is
+#   |a| = G_N·(π/ρ)·g·h³·Σm/(4π r²),  h = 2·extent/N,
+# while the IC circular velocities use the G = 1, M = per-cluster COUNT
+# convention. Setting
+#   G_N = 4π / (π_ref·g_ref·h³·m_mean),  g_ref = 1+(ξ−1)·q_ref,
+# makes |a| = M_count/r² — the grid force and the IC convention agree at
+# every resolution (the h³ factor cancels the m_mean·M_count conversion).
+# Written to the BH header slot bh[1].w (offset 7·4), which the river
+# arm, the BH point-source term and the Plummer reference arm all read —
+# one explicit shared G_N, never silently divergent.
+func _apply_gravity_calibration() -> void:
+	if _bh_init_bytes.size() < 32:
+		return
+	if not river_calibrate_gn:
+		_bh_init_bytes.encode_float(28, 1.0)
+		_gn_eff = 1.0
+		return
+	var extent_box: float = cluster_radius * 1.5
+	var h: float = 2.0 * extent_box / float(max(grid_N, 1))
+	var m_mean: float = _total_init_mass / float(max(N_particles, 1))
+	var g_ref: float = 1.0 + (xi - 1.0) * river_q_ref
+	var gn: float = 4.0 * PI / (river_pi_ref * g_ref * h * h * h * m_mean)
+	_bh_init_bytes.encode_float(28, gn)  # bh[1].w — G_N
+	_gn_eff = gn * river_pi_ref * g_ref * (h * h * h) * m_mean / (4.0 * PI)
+	print("[CassiSim] Gravity calibration: h=%.4f  m_mean=%.4f  π/ρ_ref=%.4f  g_ref=%.4f → G_N=%.4f (G_eff=%.4f)" % [
+		h, m_mean, river_pi_ref, g_ref, gn, _gn_eff])
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -884,8 +1039,13 @@ func _step_dispatches(cl: int) -> void:
 	_barrier(cl)  # deposit → poisson
 
 	# ── 1.5. Spectral Poisson solve: ∇²Φ = ρ_mass (Φ̂ = −ρ̂/k², k=0 nulled) ──
-	_dispatch_poisson(cl)
-	_barrier(cl)  # poisson → PDE
+	# RIVER MODE ONLY: the heuristic and Plummer-reference arms consume
+	# neither Φ nor ∇(g·Φ) — skipping the 7-pass FFT chain is their main
+	# step-cost win. The clear+deposit+PDE chain above still runs so ρ/q
+	# remain the visual/source state (the PDE's injection reads ρ).
+	if gravity_mode == 0:
+		_dispatch_poisson(cl)
+	_barrier(cl)  # deposit → PDE (rho visibility for the PDE source)
 
 	# ── 2. Two-fluid PDE ─────────────────────────────────────────────
 	if _two_fluid_shader.is_valid():
@@ -919,9 +1079,9 @@ func _step_dispatches(cl: int) -> void:
 	# BEFORE the N-body pass (which samples _grad_buf). Reads the same
 	# post-PDE EY/EI the nbody pass sees. 2D cells dispatch (N, N, 1) —
 	# the poisson cells convention: a 1D N³/256 dispatch caps at 65535
-	# groups at N=256. Runs regardless of gravity_mode (heuristic arm
-	# ignores the buffer; the O(N³) cost is far below the nbody pass).
-	if _nbody_shader.is_valid():
+	# groups at N=256. RIVER MODE ONLY: the heuristic/Plummer arms never
+	# sample _grad_buf, so the O(N³) pass is skipped with the FFT chain.
+	if gravity_mode == 0 and _nbody_shader.is_valid():
 		_nbody_pc_bytes.encode_float(44, 1.0)  # pass_mode = 1 (gradient)
 		_rd.compute_list_bind_compute_pipeline(cl, _nbody_pipe)
 		# ALL THREE sets must be bound: the pipeline rejects a dispatch with
@@ -934,6 +1094,21 @@ func _step_dispatches(cl: int) -> void:
 		_rd.compute_list_set_push_constant(cl, _nbody_pc_bytes, _nbody_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, grid_N, grid_N, 1)
 	_barrier(cl)  # gradient → nbody
+
+	# ── 2.9. Acceleration warm-up (ONE-TIME, before the first KDK step) ──
+	# Fills _acc_buf with the field force at the CURRENT positions with the
+	# CURRENT field, so the cached-acc KDK's first half-kick is a fresh
+	# evaluation — step 1 stays bit-identical to the two-evaluation KDK.
+	if _grav_warmup and _nbody_shader.is_valid() and N_particles > 0:
+		_grav_warmup = false
+		_nbody_pc_bytes.encode_float(44, 2.0)  # pass_mode = 2 (warmup)
+		_rd.compute_list_bind_compute_pipeline(cl, _nbody_pipe)
+		_rd.compute_list_bind_uniform_set(cl, _us_nbody_0, 0)
+		_rd.compute_list_bind_uniform_set(cl, _us_nbody_1, 1)
+		_rd.compute_list_bind_uniform_set(cl, _us_nbody_2, 2)
+		_rd.compute_list_set_push_constant(cl, _nbody_pc_bytes, _nbody_pc_bytes.size())
+		_rd.compute_list_dispatch(cl, pg, 1, 1)
+		_barrier(cl)  # warmup → nbody
 
 	# ── 3. N-body gravity ────────────────────────────────────────────
 	if _nbody_shader.is_valid() and N_particles > 0:
@@ -1154,10 +1329,26 @@ func _render_frame() -> void:
 			var samples = max(int(tel.decode_u32(28)), 1)
 			_pi_sat_hi_frac /= samples
 			_pi_sat_lo_frac /= samples
-	# One-time Poisson residual report (FD-Laplacian check of the Φ solve)
-	if not _poisson_residual_done and _shaders_ready and _step_count >= 1:
+	# One-time Poisson residual report (FD-Laplacian check of the Φ solve).
+	# River mode only: modes 1/2 skip the solve, so _fft_buf holds stale
+	# data there and the residual would be meaningless.
+	if not _poisson_residual_done and _shaders_ready and _step_count >= 1 and gravity_mode == 0:
 		_poisson_residual_done = true
 		_report_poisson_residual()
+
+	# Throttled occupancy + perf report (~2 Hz; interactive runs only —
+	# verify scenes keep playing=false and report their own numbers).
+	if playing and now_ms - _last_occ_ms >= 500:
+		_last_occ_ms = now_ms
+		if _perf_steps > 0:
+			var dt_ms: float = float(_perf_phys_us) / 1e3 / float(_perf_steps)
+			var fps: float = float(_perf_frames) * 1000.0 / float(max(now_ms - _perf_last_ms, 1))
+			print("[CassiSim] perf: fps=%.1f  physics=%.3f ms/step (%d steps, %d dropped)" % [fps, dt_ms, _perf_steps, _dropped_steps])
+		_sample_occupancy()
+		_perf_phys_us = 0
+		_perf_steps = 0
+		_perf_frames = 0
+		_perf_last_ms = now_ms
 
 	var realtime_mode = int(mode)
 
@@ -1174,6 +1365,55 @@ func _render_frame() -> void:
 			_render_particles()
 
 
+
+
+# Sampled occupancy diagnostic: read back up to 40k strided particle
+# positions and classify inner / face-edge / corner / out-of-box relative
+# to the periodic box (±extent, extent = 1.5·cluster_radius; lim = 0.85·extent).
+# "Pooling in grid corners" shows up as a growing corner fraction with
+# escaped particles stalling at the weak-field cube corners.
+func _sample_occupancy() -> void:
+	if not _pos_buf.is_valid() or N_particles <= 0:
+		return
+	_ensure_synced()
+	var n_sample := mini(N_particles, 40000)
+	var stride := maxi(1, int(N_particles / n_sample))
+	# Read the FULL position buffer, then subsample with the stride on the
+	# CPU — a head-only slice would bias toward the first particles.
+	var pd = _rd.buffer_get_data(_pos_buf, 0, N_particles * 16)
+	if pd.size() < N_particles * 16:
+		return
+	var pf = pd.to_float32_array()
+	var extent_box: float = cluster_radius * 1.5
+	var lim: float = 0.85 * extent_box
+	var in_c := 0
+	var face := 0
+	var corner := 0
+	var out_c := 0
+	for s in range(n_sample):
+		var i4 = s * stride * 4
+		var x: float = pf[i4]
+		var y: float = pf[i4 + 1]
+		var z: float = pf[i4 + 2]
+		if absf(x) > extent_box or absf(y) > extent_box or absf(z) > extent_box:
+			out_c += 1
+			continue
+		var c: float = maxf(absf(x), maxf(absf(y), absf(z)))
+		if c < lim:
+			in_c += 1
+		else:
+			var n_hi := 0
+			if absf(x) >= lim: n_hi += 1
+			if absf(y) >= lim: n_hi += 1
+			if absf(z) >= lim: n_hi += 1
+			if n_hi >= 3:
+				corner += 1
+			else:
+				face += 1
+	var tot := maxf(float(n_sample), 1.0)
+	print("[CassiSim] occ: inner=%.1f%% face/edge=%.1f%% corner=%.1f%% out=%d (n=%d, extent=%.0f)" % [
+		100.0 * float(in_c) / tot, 100.0 * float(face) / tot,
+		100.0 * float(corner) / tot, out_c, n_sample, extent_box])
 
 
 func _render_particles() -> void:
@@ -1255,14 +1495,19 @@ func reinit() -> void:
 	_cache_uniform_sets()  # CRITICAL: cached sets reference the OLD freed buffers
 	_init_field()          # without this, every dispatch after reinit is stale
 	_init_particles()
+	_apply_gravity_calibration()
+	_grav_warmup = true  # fresh acc cache for the regenerated positions
 	_step_count = 0
 	_cond_step_counter = 0
 	_dropped_steps = 0
 	_time = 0.0
+	_poisson_residual_done = false
 	print("[CassiSim] Reinitialized")
 
 
 func get_diagnostics() -> String:
-	var law = "RIVER" if gravity_mode == 0 else "HEURISTIC"
-	return "t=%.3f  q_mean=%.4f  ε²=%.6f  H=%.4f  sf=%.3f  steps=%d  grav=%s  φ⁶−1=%.4f" % [
-		_time, _q_mean, _eps_mean, _hubble, _scale_factor, _step_count, law, PHI_6 - 1.0]
+	var law := "RIVER" if gravity_mode == 0 else ("HEURISTIC" if gravity_mode == 1 else "PLUMMER")
+	return "t=%.3f  q_mean=%.4f  ε²=%.6f  H=%.4f  sf=%.3f  steps=%d  grav=%s  G_N=%.4f  calib=%s  attr=%s  φ⁶−1=%.4f" % [
+		_time, _q_mean, _eps_mean, _hubble, _scale_factor, _step_count, law,
+		_gn_eff, "on" if river_calibrate_gn else "off",
+		"on" if field_attractor_init else "off", PHI_6 - 1.0]
