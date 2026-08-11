@@ -218,34 +218,64 @@ Both derive from the linearity of the quantum sector:
 
 ### 4.5 The survival rule as a secondary reading
 
-The earlier form of this section asserted a selection rule: the lower-$q$
-branch decoheres first, and branch survival is proportional to a branch Qi
-density $q_\alpha \propto |\psi_\alpha|^2$. That rule rested on a branch-level
-$q$ distinct from the canonical gate
-$q = \rho^2/(\rho^2 + \varphi^{-2} + \varepsilon^2)$
-(`foundations/cassi-theory-reference.md` §2.4), and the survival dynamics were
-asserted, not derived. The coherent-field statistics of §4.1–4.3 replace it:
-the quadratic law follows from counting, with no survival postulate.
+A branch-level survival rule can assign lower-$q$ branches a shorter coherence
+lifetime and take $q_\alpha\propto|\psi_\alpha|^2$. The canonical gate
+$q=\rho^2/(\rho^2+\varphi^{-2}+\varepsilon^2)$ and its survival dynamics
+provide no such exact proportionality. The coherent-field statistics of
+§4.1–4.3 supply the quadratic law through first-absorption counting, with the
+branch survival rule retained only as a qualitative consistency reading.
 
-The rule survives only as a consistency reading. The canonical gate $q$ is
-monotonically increasing in field intensity $\rho^2$ at fixed self-prediction
-error $\varepsilon^2$, so the branch with larger $|\alpha|^2$ is the more
-coherent branch—a stability bias toward higher $q$ is directionally consistent
-with the $|\alpha|^2$ law. It is not its source: $q$ saturates toward 1 and is
-not proportional to $|\psi|^2$ (verified numerically, §6 of the script), so it
-cannot supply the exact quadratic statistics.
+The canonical gate $q$ is monotonically increasing in field intensity $\rho^2$
+at fixed self-prediction error $\varepsilon^2$, so the branch with larger
+$|\alpha|^2$ is the more coherent branch. This stability bias is directionally
+consistent with the $|\alpha|^2$ law. The exact quadratic statistics come from
+the counting law: $q$ saturates toward 1 and is not proportional to
+$|\psi|^2$ (verified numerically, §6 of the script).
 
 ### 4.6 Open: the outcome basis
 
-The derivation fixes the outcome *probabilities* for the gate's outcomes; it
-does not derive which observable the gate measures. In the framework's current
-form the gate opens **along the measured field direction**—the direction the
-apparatus is constructed to couple to—so the outcome basis is the **gate's
-eigenbasis** (the eigenbasis of the measured observable; a Stern-Gerlach
-gradient defines the spin quantization axis, a which-path detector the path
-basis). Which observable a given apparatus realizes is set by its construction,
-not by the field equations. **The outcome-basis selection is an input, not
-derived.**
+The derivation fixes the outcome *probabilities* for a chosen gate basis. The
+observable that a given gate measures is set by apparatus construction: the
+gate opens **along the measured field direction**, so the outcome basis is the
+gate's **eigenbasis** (a Stern-Gerlach gradient defines the spin quantization
+axis; a which-path detector defines the path basis). The field equations leave
+the outcome-basis selection as an input.
+
+The audit (`computations/outcome_basis_selection_check.py`) makes the
+distinction precise. The derivation is **basis-covariant** but supplies no
+**pointer-basis selector**:
+
+- **Basis covariance (check A).** The first-absorption law holds in *any*
+  channel basis: for a unitary change of basis $U$ the outcome law is
+  $P'(k) = |(U\psi)_k|^2/\sum_{k'}|(U\psi)_{k'}|^2$, and a detector built in
+  the rotated basis reproduces it exactly (numerically confirmed). The
+  derivation constrains the probabilities in every gate eigenbasis; it never
+  prefers one over another.
+- **Resolving channels are required for the branch form (check B).** The
+  reduction to $P(\alpha) = |\alpha|^2/(|\alpha|^2+|\beta|^2)$ holds only
+  when the detector channels *resolve the branches* (disjoint support or
+  observable-tagged channels, §4.3). For overlapping templates the same law
+  returns the interference pattern $|\psi(x)|^2$ instead (numerically
+  confirmed). Which channels a given apparatus resolves is its construction,
+  not a field equation.
+- **The Qi gate carries no axis (check C).** The canonical gate
+  $q = \rho^2/(\rho^2 + \varphi^{-2} + \varepsilon^2)$
+  (theory-reference §2.4) is a pointwise scalar of the local doublet
+  $(E_Y(x), E_I(x))$: it contains no vector or axis, so rotating the
+  apparatus frame changes no field value and $q$ is unchanged at every
+  point—the Qi dynamics cannot rank quantization axes in physical space.
+  The gate *is* sensitive to the internal phase through
+  $\varepsilon^2 = (E_Y - \varphi E_I)^2$ (it is maximized at the
+  $\varphi$-attractor ratio), but that fixes an equilibrium *ratio*, not a
+  spatial direction; the phase reference of the measured observable (axis,
+  winding sense, internal zero) remains an apparatus choice.
+
+The two-fluid geometry supplies one preferred decomposition—the spatial
+standing-wave modes of the linear sector—which anchors which-path and
+position measurements. Spin and polarization use internal winding, whose
+quantization axis is supplied by apparatus construction (§4.6). The framework
+derives the probabilities in every chosen basis; the general pointer-basis
+selector remains open.
 
 > **Inputs.** The Born rule of §4.3 is derived from: (i) the quantum sector is
 > linear (Schrödinger limit, `foundations/cassi-theory-reference.md` §5.1);
@@ -338,7 +368,7 @@ randomly—nothing happens on laboratory timescales.
 ### Open (inputs, not derived)
 
 - Coherent-state structure of the field at the detector (§4.2)
-- Outcome-basis selection: the measured observable is set by apparatus construction; the gate's eigenbasis is the outcome basis (§4.6)
+- Outcome-basis selection: the measured observable is set by apparatus construction; the gate's eigenbasis is the outcome basis (§4.6); the derivation is basis-covariant but supplies no pointer-basis selector (audited, `computations/outcome_basis_selection_check.py` §4.6)
 - Exact functional form of $\mathcal{M}_i$ at multi-rung interfaces
 
 ---
@@ -350,5 +380,6 @@ randomly—nothing happens on laboratory timescales.
 - Glauber, R. J., "Coherent and Incoherent States of the Radiation Field," *Phys. Rev.* 131, 2766 (1963)—coherent states; Poisson photon-counting statistics
 - Mandel, L. & Wolf, E., *Optical Coherence and Quantum Optics* (Cambridge University Press, 1995)—coherent-state counting statistics
 - `computations/coherent_field_born_rule.py`—numeric verification of §4.2–4.6 (Poisson step, relative-rate law, multinomial splitting, weak-coupling limit, automatic interference, canonical-$q$ monotonicity)
+- `computations/outcome_basis_selection_check.py`—audit of the §4.6 outcome-basis problem (basis covariance of the first-absorption law; resolving-channel condition for the branch form; Qi-gate axis independence)
 - `(external—see papers/consciousness-framework.md in physics repo)` §9—catalytic template and Qi-to-matter coupling
 - `open-questions-cassi-answers.md`—Q7 (measurement problem), Q9 (proton lifetime)

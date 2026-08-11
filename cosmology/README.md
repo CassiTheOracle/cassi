@@ -4,13 +4,13 @@
 
 ## Abstract
 
-This directory builds the Cassi cosmology from the two-fluid backbone: the framework-level derivation that solves inflation, baryogenesis, and dark matter from $\varphi$ alone, a dedicated analysis of inflation as the Qi-gate epoch at cascade rungs 20–60, the compiled external measurements (DESI DR2, Milky Way rotation curve) that anchor the predictions, and a computational plan to upgrade the $\sigma_8$ prediction from Hypothesized to Derived via a modified Boltzmann pipeline. Ordered for the reading path: framework derivation first, then the inflation deep-dive, the observational constraints, and finally the forward-looking computational plan.
+This directory develops the Cassi cosmology from the two-fluid backbone: inflation and structure formation are Derived/Hypothesized by sector, baryogenesis carries a Hypothesized mechanism with a Mapped $\eta$ exponent, and the dark-matter condensate has a Derived base ratio conditional on the Weinberg-angle identification with an open 21% residual. It includes the inflation analysis at cascade rungs 20–60, compiled external measurements (DESI DR2 and Milky Way rotation curves), and a computational plan to upgrade the $\sigma_8$ prediction via a modified Boltzmann pipeline. Ordered for the reading path: framework derivation first, then the inflation deep-dive, observational constraints, and finally the forward-looking computational plan.
 
 ## Document Index
 
 | # | Document | Domain | Epistemic |
 |---|----------|--------|-----------|
-| 1 | `cosmology-from-phi.md` | Inflation, baryogenesis, dark matter | Derived |
+| 1 | `cosmology-from-phi.md` | Inflation, baryogenesis, dark matter | Mixed: Derived structure / Hypothesized baryogenesis / Mapped $\eta$ / conditional DM base |
 | 2 | `inflation-from-cascade.md` | Inflation epoch, CMB predictions | Derived |
 | 3 | `observational_constraints.md` | DESI DR2, Milky Way rotation curve | Derived |
 | 4 | `sigma8-computational-plan.md` | $\sigma_8$ Boltzmann pipeline | Plan (Hypothesized) |
@@ -19,7 +19,7 @@ This directory builds the Cassi cosmology from the two-fluid backbone: the frame
 
 ### `cosmology-from-phi.md`—Cassi Cosmology: Inflation, Baryogenesis, and Dark Matter from $\varphi$
 
-The entry point for cosmology in the Cassi framework: it shows that three open problems—inflation, baryogenesis, and dark matter—follow from the same two-fluid PDE in an expanding universe, with the Hubble rate split into $H = H_{\text{empty}} + H_{\text{conv}} + H_{\text{struct}}$ and $H_{\text{empty}} = \lambda\varphi^{-2}/3$ ($H_{\text{empty}} = \lambda\varphi^{-2}/3$: the 1/3 is the isotropic dimension factor $1/d$ at $d = 3$—Derived, `cosmology/cosmology-from-phi.md` §1; the $\lambda\varphi^{-2}$ rate asserted). Inflation is a $\varphi$-driven phase transition from a Yang-dominated state ($r \gg \varphi$) toward the attractor; baryogenesis scales with the sphaleron freeze-out temperature through $\boxed{\eta = B_s \varphi^{-1} T_{\text{sph}}/M_{\text{Pl}}}$; and dark matter is a high-Qi condensate with $\boxed{\Omega_{\text{DM}}/\Omega_b = \xi/\varphi^3 = \varphi^3 \approx 4.24}$, rising to $\varphi^3 + 1 \approx 5.24$ once captured baryons are included (2.8% from the measured 5.39; base Mapped—row 502). It closes with a one-page timeline and a parameter-free prediction table ($n_s$, $r = 12/N_e^2 = 0.0075$, $\mathcal{P}_\zeta$, $\eta$)—zero new free parameters beyond $\varphi$ and the two-fluid PDE constants $(\lambda, \chi, D)$, with the Mapped anchors flagged per-row. Tier: Derived (formation, structure) / Calibrated (w₀ coupling form—ledger).
+The entry point for cosmology in the Cassi framework: it develops inflation, baryogenesis, and dark matter from the same two-fluid PDE in an expanding universe, with the Hubble rate split into $H = H_{\text{empty}} + H_{\text{conv}} + H_{\text{struct}}$ and $H_{\text{empty}} = \lambda\varphi^{-2}/3$ (the 1/3 is the isotropic dimension factor $1/d$ at $d = 3$—Derived, `cosmology/cosmology-from-phi.md` §1; the $\lambda\varphi^{-2}$ rate asserted). Inflation is a $\varphi$-driven phase transition toward the attractor; baryogenesis uses the Mapped $\eta=\varphi^{-44}$ exponent with its freeze-out endpoint open; and the dark-matter base is $\Omega_{\text{DM}}/\Omega_b=\varphi^3\approx4.24$ conditional on the Weinberg-angle identification, with the $+1$ capture term excluded by component accounting.
 
 ### `inflation-from-cascade.md`—Inflation from Cascade Steps 20–60: The Qi-Gate Epoch
 

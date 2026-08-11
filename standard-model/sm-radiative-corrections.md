@@ -1,23 +1,22 @@
 # Standard Model Radiative Corrections from the φ-Boundary
 
-## Status: Derived—August 2026
+## Status: Derived loop equations; Asserted φ-boundary inputs; Calibrated $\mu_*$ crossing—August 2026
 
 ## Abstract
 
 The Standard Model's precision program is a network of loop corrections: the
-running of the gauge couplings, the vacuum polarization of the photon, the
-electroweak corrections to $\mu$ decay that relate $m_W$ to $\alpha$, $G_F$,
-$m_Z$, $m_t$, and $m_H$, and the running of the Higgs quartic. This document
-derives each of these from the Cassi boundary conditions—$\alpha_{\text{GUT}} =
-\varphi^{-3}/4\pi$ and $\sin^2\theta_W = \varphi^{-3}$—and reports honestly
-where the numbers land. The radiative corrections close the *standard*
-relations to 0.01–0.1% ($\bar\alpha(m_Z) = 1/128.95$, $m_W = 80.36$ GeV,
-$\sin^2\theta_W^{\text{eff}} = 0.23149$), but they do **not** close the gaps
-between the φ-boundary and the measured couplings: $\alpha_s(m_Z)$ comes out
-$2\times$ too small (the documented $\Delta b = 1.70$ deficit), $\alpha_1$ and
-$\alpha_2$ come out ~25% too weak, and $\sin^2\theta_W = \varphi^{-3}$ sits
-2.1% above the Z-pole value, realized at $\mu_* \approx 233$ GeV rather than at
-the GUT scale. All statements trace to `computations/sm_radiative_corrections.py`.
+running of the gauge couplings, photon vacuum polarization, electroweak
+corrections to $\mu$ decay, and the Higgs-quartic running. The loop equations
+are Derived from the Standard Model inputs; the Cassi values
+$\alpha_{\text{GUT}}=\varphi^{-3}/4\pi$ and
+$\sin^2\theta_W=\varphi^{-3}$ are boundary assignments. The calculation
+reports the numerical status: standard relations close to 0.01–0.1%
+($\bar\alpha(m_Z)=1/128.95$, $m_W=80.36$ GeV,
+$\sin^2\theta_W^{\text{eff}}=0.23149$), while the φ-boundary comparison leaves
+$\alpha_s(m_Z)$ $2\times$ too small, $\alpha_1$ and $\alpha_2$ about 25% off,
+and the asserted $\varphi^{-3}$ value 2.1% above the Z-pole value. The crossing
+$\mu_*\approx233$ GeV is Calibrated from the measured running trajectory.
+All statements trace to `computations/sm_radiative_corrections.py`.
 
 ---
 
@@ -205,11 +204,73 @@ $$\boxed{\mu_* = 233\ \text{GeV}, \qquad \sin^2\theta_W(\mu_*) = \varphi^{-3} =
   0.23607.}$$
 
 That is, the Yang/Yin asymmetry angle is realized about one e-fold above
-the Z-pole, not at the GUT scale; at $m_Z$ itself $\varphi^{-3}$ overshoots
-the MS-bar value by 2.1%. This is the honest form of the Weinberg-angle
-prediction, and it is the number FCC-ee would test at $>100\sigma$ precision
-(a 2.1% offset is enormous on the $3\times10^{-5}$ measurement scale—the
-prediction is falsifiable).
+the Z-pole, rather than at the GUT scale; at $m_Z$ itself $\varphi^{-3}$
+overshoots the MS-bar value by 2.1%. This is the accurate form of the
+Weinberg-angle comparison, and it is the number FCC-ee would test at
+$>100\sigma$ precision (a 2.1% offset is enormous on the $3\times10^{-5}$
+measurement scale—the prediction is falsifiable).
+
+### 3.4 What fixes $\mu_*$: input provenance and the selection constraint
+
+The crossing scale is not a fit: with the measured Z-pole couplings
+$\alpha_1^{-1}(m_Z) = 59.0$, $\alpha_2^{-1}(m_Z) = 29.6$ and the one-loop SM
+β-function coefficients, the condition $\sin^2\theta_W(\mu) = \varphi^{-3}$
+reduces to a closed-form equation,
+$\sin^2\theta_W = 3\alpha_2^{-1}/(3\alpha_2^{-1} + 5\alpha_1^{-1})$, so
+
+$$\frac{\alpha_2^{-1}(\mu_*)}{\alpha_1^{-1}(\mu_*)} =
+  \frac{5\varphi^{-3}}{3(1-\varphi^{-3})} = 0.51503,$$
+
+whose solution is $\mu_* = 232.6$ GeV (analytic; 233.4 GeV on the grid of
+`computations/sm_radiative_corrections.py` §2). Every input classifies
+explicitly (`computations/mu_star_crossing_audit.py`):
+
+| Input | Value | Provenance |
+|-------|-------|------------|
+| $\alpha_1^{-1}(m_Z)$, $\alpha_2^{-1}(m_Z)$ | 59.0, 29.6 (from $\hat\alpha^{-1} = 127.955$, $\sin^2\hat\theta_W = 0.23122$) | Calibrated (measured MS-bar) |
+| β-function coefficients $b_1$, $b_2$ | 41/10, −19/6 | Derived (SM content) |
+| $\sin^2\theta_W = \varphi^{-3} = (\varphi-1)/(\varphi+1)$ | 0.23607 | Asserted boundary (blocking step: no action-level mechanism for $(g/g')^2 = 2\varphi$; `standard-model/su2-gauge-extension.md` §3.2.1) |
+| $\mu_*$ | 233 GeV | output of the RGE plus the selection—no free parameter |
+
+$\mu_* = 233$ GeV therefore follows from the RG equations in a limited sense:
+given the measured trajectory and the asserted $\varphi$ value, the scale is
+determined. It does not follow from Cassi dynamics alone. Three checks make
+the anchoring explicit:
+
+1. **Scheme sensitivity.** The value 233 sits at the low edge of the
+   convention band. Full-precision MS-bar inputs give $\mu_* = 239.7$ GeV;
+   adding the flavor-threshold treatment (5 flavors below $m_t$, 6 above)
+   gives 243.6–251.1 GeV. The band is 232.6–251.1 GeV (±8%); propagated
+   input uncertainties contribute ±1%. The 233 GeV value uses the rounded
+   inputs with six flavors everywhere above $m_Z$.
+2. **Rung placement.** The crossing sits at
+   $n(\mu_*) = \log_\varphi(M_{\text{Pl}}/\mu_*) = 79.9\text{–}80.0$: at the
+   framework's EW rung $E_{80} = M_{\text{Pl}}\varphi^{-80} = 233.2$ GeV
+   (−0.2% to +7.7% across the convention band). This is a consistency
+   cross-check, not an independent selection: rung 80 is a calibrated anchor
+   ($n(v_0) = 79.89 \approx 80$, 5.3% residual open,
+   `principles/v0-hierarchy-problem.md`; ledger row 499), and the full
+   convention band places $\mu_*$ inside the same 5%-residual class as the
+   VEV placement.
+3. **Contrast with the φ-boundary run.** The unified-boundary trajectory
+   (Direction A) has $\alpha_1^{-1}(m_Z) = 74.3$, $\alpha_2^{-1}(m_Z) = 36.9$;
+   its own $\varphi^{-3}$ crossing sits at $\mu_* = 451$ GeV. The 233 GeV
+   value is a property of the measured trajectory, not of the φ-boundary run
+   (whose couplings miss by ~25%).
+
+The unit-dependent reading of 233 as the Fibonacci closure number
+(233 ∈ {5, 13, 34, 89, 233, 610}, `foundations/wake-geometry.md` §3b) is
+rejected as a selection: the closure ladder is a dimensionless
+angular-return set, and $\mu_*$ in GeV is an artifact of human units (in
+natural units the crossing is at $1.9\times10^{-17}\,M_{\text{Pl}}$, i.e.
+rung 80).
+
+**Selection-constraint verdict.** The φ-selection $\sin^2\theta_W =
+\varphi^{-3}$ fixes a unique scale along the measured trajectory (no free
+parameter), but no two-fluid/Yin–Yang dynamics fixes that scale
+independently of the measured couplings and the asserted boundary. $\mu_*$
+remains a Calibrated output (ledger row 490): the running-angle crossing
+locates the boundary condition's realization scale; it does not derive it.
 
 ---
 
@@ -505,11 +566,10 @@ erase—every discrepancy that does. The status of the φ-anchored predictions:
   value; three sub-0.1% candidates (top-Yukawa chain 0.001%, Wu-Xing +
   $\varphi^{-3}/5$ 0.02%, $m_t\varphi^{-2/3}$ 0.04%) await mechanisms.
 
-These residuals are the honest raw material for the next stage of the
-framework: either the φ-boundary itself must shift (e.g. the unification
-reading $\alpha_1 = \alpha_2 = \alpha_3$ at $M_{\text{GUT}}$ is not realized
-in the SM at any scale), or the beyond-SM content that rescues $\alpha_s$ must
-also carry the weak sector.
+These residuals define the next stage of the framework: either the φ-boundary
+itself shifts (the unification reading $\alpha_1=\alpha_2=\alpha_3$ is not
+realized in the SM at any scale), or the beyond-SM content that rescues
+$\alpha_s$ also carries the weak sector.
 
 ---
 
@@ -526,6 +586,8 @@ also carry the weak sector.
   at NNLO*, JHEP 08 (2012) 098 [arXiv:1205.6497]—λ(M_Pl) = −0.011,
   metastability
 - `computations/sm_radiative_corrections.py`—all numbers in this document
+- `computations/mu_star_crossing_audit.py`—μ* crossing provenance, scheme
+  band, and rung-placement audit (§3.4)
 - `standard-model/sm-from-phi.md`—φ-breaking chain, GUT-scale coupling
 - `standard-model/su2-gauge-extension.md`—SU(2) extension, mixing angle
 - `standard-model/gut-embedding.md`—SU(5)/SO(10) embedding

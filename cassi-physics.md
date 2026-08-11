@@ -257,11 +257,11 @@ with the Qi-gravity coupling $\xi = \varphi^6$ entering the cosmic evolution. Th
 
 Dark matter is **high-coherence two-fluid condensate**—regions locked at $\varphi$-equilibrium. Two properties follow. First, gravity is amplified in high-$q$ regions (up to the α-free full-coherence ceiling $\varphi^6 \approx 17.94\times$ at $q=1$; halo-regime boosts are $2.8$–$3.0\times$ via $\sqrt{\alpha_{\text{halo}}(1+(\varphi^{6}-1)q)}$ with $\xi = \varphi^6 \approx 17.9$), so the condensate pulls surrounding matter with more gravitational force than visible matter accounts for. Second, because the two fluids are in perfect $\varphi$-equilibrium, there is no electromagnetic interaction: the region is dark. It bends light and shapes galaxies, but cannot be seen.
 
-The predicted ratio of dark matter to ordinary matter is **Mapped** (combination): the $\varphi^3$ base is now derived conditional on the Weinberg-angle identification — $\varphi^3 = \alpha_0^{-1} = \xi\cdot\sin^2\theta_W$, the inverse fixed-point imbalance (`cosmology/cosmology-from-phi.md` §4.2; the literal rung-gap reading fails: span $\xi$(rung 6) − $\alpha_{\text{EM}}$(10.2) = −4.2, not 3) — and the $+1$ is a hand-added baryon-capture term that is not supported by the SPARC condensate fits (bound-baryon fraction 0.27–0.40 vs the implied 0.19) and double-counts $\Omega_b$ (the observed ratio already includes bound baryons; Fit-Status Ledger row 502):
+The defensible ratio base is **Derived conditional** on the Weinberg-angle identification: $\varphi^3 = \alpha_0^{-1} = \xi\cdot\sin^2\theta_W$, the inverse fixed-point imbalance (`cosmology/cosmology-from-phi.md` §4.2; the literal rung-gap reading fails: span $\xi$(rung 6) − $\alpha_{\text{EM}}$(10.2) = −4.2, not 3). The component budget excludes the $+1$ capture term because captured baryons already belong to the observed $\Omega_b$ denominator (Fit-Status Ledger row 502).
 
-$$\Omega_{\text{DM}}/\Omega_b = \varphi^3 + 1 \approx 5.24 \qquad \text{(observed: } \approx 5.4)$$
+$$\boxed{\Omega_{\text{DM}}/\Omega_b = \varphi^3 \approx 4.24} \qquad \text{observed: } \approx 5.39$$
 
-The framework's halo model has been fitted against SPARC galaxy rotation curves (`experiments/sparc_qi/sparc_qi_analysis_v4.py`), comparing Qi profiles against NFW and Einasto with AIC. **Epistemic status: Mapped** (ratio combination fitted—ledger row 502; the condensate mechanism is Hypothesized, tested against rotation curves).
+The framework's halo model has been fitted against SPARC galaxy rotation curves (`experiments/sparc_qi/sparc_qi_analysis_v4.py`), comparing Qi profiles against NFW and Einasto with AIC. **Epistemic status: Derived conditional for the base / open 21% ratio tension** (the condensate mechanism is Hypothesized, tested against rotation curves).
 
 ## 12. Gravity and the Hierarchy Problem
 

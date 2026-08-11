@@ -87,11 +87,12 @@ therefore remains asserted; its blocking step is the action-level mechanism
 fixing $g'^2 = g^2/(2\varphi)$.
 
 The weak mixing angle runs **upward** with energy (toward the unification
-value $3/8$), so the φ-point value is realized not at the GUT scale but one
-and a half e-folds above the Z-pole: the MS-bar running angle crosses
-$\varphi^{-3}$ at $\mu_* \approx 233$ GeV. At $m_Z$ itself the prediction
-sits 2.1% above the measured 0.23122. The full derivation of the running,
-the threshold corrections, and the residual is in
+value $3/8$), so the φ-point value is realized not at the GUT scale but about
+one e-fold above the Z-pole ($\ln(233/91.2) \approx 0.94$): the MS-bar running
+angle crosses $\varphi^{-3}$ at $\mu_* \approx 233$ GeV, a Calibrated scale
+(`standard-model/sm-radiative-corrections.md` §3.4). At $m_Z$ itself the
+prediction sits 2.1% above the measured 0.23122. The full derivation of the
+running, the threshold corrections, and the residual is in
 `standard-model/sm-radiative-corrections.md` §3–4.
 
 ---

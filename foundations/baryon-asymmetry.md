@@ -1,44 +1,37 @@
 # Matter-Antimatter Asymmetry from Cascade Freeze-Out and Organized Annihilation
 
-## Status: Derivation (mechanism Hypothesized, C7/Q6; η exponent Mapped—ledger; 44-rung span open—no closure found in the 2026-08-11 sweep, §4.5)—August 2026
+## Status: Derivation (mechanism Hypothesized, C7/Q6; η exponent Mapped—ledger; 44-rung span open—no closure found in the 2026-08-11 sweeps, §4.5 and the Γ/H = 1 rate-based attempt, §4.7)—August 2026
 
 ## Abstract
 
-The baryon asymmetry $\eta = n_b/n_\gamma \approx 6 \times 10^{-10}$—why the
-universe contains matter but almost no antimatter—follows from two Cassi
-mechanisms already derived: (1) **organized annihilation** (§5.2 of
-`proton-coherence-budget.md`), which efficiently eliminates all antimatter
-paired with matter because the antiparticle attacks all 92 cascade rungs
-simultaneously with $\mathcal{O}(1)$ probability; and (2) the **Yang-Yin
-imbalance** at cascade freeze-out (Wu Xing gap $g = 1 - \varphi^{-5}$),
-which leaves a residual Yang excess after annihilation eliminates the
-paired fraction. The surviving matter fraction at the GUT scale is
-$\eta_{\text{GUT}} \approx \varphi^{-10}$, and cascade dilution through
-44 rungs of photon-producing conversion (the exponent is a ledgered fit—
-`parameter-inventory.md` §10) attenuates it to:
+The baryon asymmetry $\eta = n_b/n_\gamma \approx 6\times10^{-10}$—why the
+universe contains matter but almost no antimatter—is modeled by a candidate
+chain: organized annihilation (§5.2 of `proton-coherence-budget.md`), the
+Yang-Yin imbalance at the Wu Xing gap $g=1-\varphi^{-5}$, and cascade dilution.
+Organized annihilation is the strongest supported component; the complete
+freeze-out mechanism remains Hypothesized. The exponent
+$\log_\varphi(1/\eta_{\text{obs}})=44.09$–$44.13$ is represented by the Mapped fit
 
-$$\boxed{\eta \approx \varphi^{-44} \approx 6.38 \times 10^{-10}}$$
+$$\boxed{\eta \approx \varphi^{-44} \approx 6.38\times10^{-10}}$$
 
-matching the observed value $6.0 \times 10^{-10}$ within 6.3%. The
-freeze-out construction $52 = 60 - 8$ used the GUT seed at step
-8 (Fibonacci $F_6$) and the Qi gate pinch at step 60 ($r = \varphi^{-1}$);
-the corrected cascade ladder places the GUT scale at n ≈ 13.3 (≈ $F_7$),
-so the construction gives $60 - 13.3 = 46.7$ and a span of $33.4$—it does
-not reproduce the fitted exponent 44, and the freeze-out-step derivation is
-not closed. The exponent $-44$ remains a ledgered fit; the mechanism
-(Wu Xing gap + organized annihilation + cascade dilution) is Hypothesized.
+which lies within 6.3% of the observed $6.0\times10^{-10}$. The corrected GUT
+seed is $n\approx13.3$; the pinch-minus-seed candidate span is $46.7$, while
+the endpoint that would supply 44.13 rungs is an unanchored desert scale. The
+$\Gamma/H=1$ test supplies a unique crossing that is a thaw and a radiation-era
+crossing before the seed (§4.7). No current rate equation selects a post-seed
+freeze-out endpoint, so the exponent remains a ledgered fit and the mechanism
+remains Hypothesized.
 
-The 2026-08-11 span-closure sweep (§4.5) tested the threshold-crossing,
-endpoint, composite-gap, and factor-decomposition constructions; none
-closes. The strongest mechanism-anchored candidate—the pinch-minus-seed
-span $60 - 13.3 = 46.7$—sits 5.5% above the exact exponent
-$\log_\varphi(1/\eta_{\text{obs}}) = 44.13$ (η 3.4× low under uniform
-$\varphi^{-1}$ per-rung dilution); the span that would close (44.13) ends
-at rung 57.3, where $E = 1.3\times10^7$ GeV and no known scale or mechanism
-sits. The exact blocking step: the freeze-out threshold rung is not fixed
-by any mechanism—the $(1-q) = \varphi^{-1}$ gate crossing at $r \approx
-0.240$ maps to a cascade step only through the hand-assigned 5-phase
-boundaries, and the homogeneous ODE gives $N \approx 9$ total steps.
+Section 4.5 records the threshold-crossing, endpoint, composite-gap, and
+factor-decomposition constructions; none closes. The strongest
+mechanism-anchored candidate—the pinch-minus-seed span $60-13.3=46.7$—sits
+5.5% above the exact exponent $\log_\varphi(1/\eta_{\text{obs}})=44.13$ ($\eta$
+is 3.4× low under uniform $\varphi^{-1}$ per-rung dilution). The span that
+would close at 44.13 ends at rung 57.3, where $E=1.3\times10^7$ GeV and no
+known scale or mechanism sits. The exact blocking step is the unfixed
+freeze-out threshold rung: the $(1-q)=\varphi^{-1}$ gate crossing at
+$r\approx0.240$ maps to a cascade step only through hand-assigned 5-phase
+boundaries, and the homogeneous ODE gives $N\approx9$ total steps.
 
 ---
 
@@ -416,6 +409,54 @@ residual 6.3% discrepancy reflects:
   (the homogeneous ODE gives $N \approx 9$ total steps, undershooting the
   292-step dimensional cascade by a factor $\sim 30$)
 
+### 4.7 Dynamical freeze-out (Γ/H = 1) attempt (2026-08-11)
+
+A sixth, rate-based closure route was tested (`computations/eta_gamma_h_freezeout_check.py`):
+the standard dynamical freeze-out condition $\Gamma = H$, with the
+framework's own two-fluid rates and no free parameters. The conversion rate
+is the PDE's $\Gamma = \lambda(1-q)$ (cosmology-from-phi.md §1) and the
+homogeneous Hubble rate is $H = (\lambda/3)[\varphi^{-2} +
+(\varphi-r)(1+r)/r]$; $\lambda = 1/(2w) = 0.1$ cancels out of $\Gamma = H$
+exactly, leaving the selection constraint
+
+$$\frac{\varphi^{-2}+\varepsilon^2}{1+\varphi^{-2}+\varepsilon^2}
+  = \frac{1}{3}\left[\varphi^{-2} + \frac{(\varphi-r)(1+r)}{r}\right],
+  \qquad \varepsilon = \frac{\varphi-r}{1+r}$$
+
+The equation has a unique root $r_f = 1.3494886$ (a quartic over
+$\mathbb{Q}(\sqrt{5})$; $\log_\varphi r_f = 0.6229$—not a
+$\varphi$-power), with $\Gamma/H = 1$ by construction. The route does not
+close, for a reason distinct from §4.5(a)–(e): **the crossing is a thaw,
+not a freeze.** $\Gamma/H$ rises monotonically along the ratio trajectory,
+$0.062$ at $r_0 = 0.047$ → $0.29$–$0.39$ at the GUT seed
+($r_{\text{GUT}} \approx 0.3$–$0.5$) → $1.000$ at $r_f$ → $2.17$ at the
+attractor. The conversion rate is *sub-critical relative to expansion*
+throughout the seeded epoch and super-critical thereafter, so no
+$\Gamma = H$ freeze-out exists for the dilution of the seeded asymmetry.
+Reading the crossing as the dilution endpoint anyway, the homogeneous rung
+span from the seed is $N = 2.48$–$3.20$
+($\eta = \varphi^{-N} \approx 0.2$–$0.3$, $\sim 5\times10^{8}$× the observed
+value) versus the required 44.09–44.13—15–18 rungs short, consistent with
+the known homogeneous-depth deficit ($N_{\text{total}} \approx 9$, §6 item 2).
+The radiation-era cross-check ($\Gamma = \lambda(1-q)$ vs
+$H_{\text{rad}}(n) = 1.66\sqrt{g_*}\,E(n)^2/M_{\text{Pl}}$ with
+$E(n) = M_{\text{Pl}}\varphi^{-n}$, $\lambda$ normalized via
+$c = \lambda\ell_{\text{Pl}}$) places the crossing at $n \approx 3.3$–$6.7$
+—*before* the GUT seed ($n = 13.33$)—with $\Gamma/H \approx 9\times10^{2}$
+at the seed and $\approx 2\times10^{21}$ at the would-be endpoint
+($n = 57.33$): no normalization of $\lambda$ moves the crossing past the
+seed.
+
+**Result.** The rate-based freeze-out condition selects no dilution
+endpoint after the GUT seed in any reading; the 44-rung span remains the
+ledgered fit (`parameter-inventory.md` §10 row 481). The exact blocking
+step: the framework's own two-fluid rates produce no $\Gamma = H$ *freeze*
+for the seeded epoch (the unique crossing at $r_f = 1.3495$ is a thaw;
+the radiation-era crossing is pre-seed), and the homogeneous $r \to$ step
+map ($N_{\text{total}} \approx 9$) cannot stretch any seeded epoch to 44
+rungs—the spatial wake-wave extension of the cascade remains the unclosed
+requirement (§6 item 2).
+
 ---
 
 ## 5. Relation to CP violation and annihilation
@@ -508,13 +549,16 @@ The following gaps prevent upgrading to fully "Derived" status:
    across the Wu Xing phases as each channel opens and closes.
 
 5. **Dilution-span endpoints.** The span's endpoints are not fixed by any
-   mechanism (2026-08-11 sweep, §4.5). The seed is pinned (n ≈ 13.3), but
-   the freeze-out rung is not: the gate threshold crossing at r ≈ 0.240 has
-   no derived r → step map, the gate floor $1/(1+\varphi^2) = 0.276$
+   mechanism (2026-08-11 sweeps, §4.5, §4.7). The seed is pinned (n ≈ 13.3),
+   but the freeze-out rung is not: the gate threshold crossing at r ≈ 0.240
+   has no derived r → step map, the gate floor $1/(1+\varphi^2) = 0.276$
    prevents any $(1-q) \to 0$ freeze-out definition, and the endpoint that
    would close the fit (n = 57.3, $E = 1.3\times10^7$ GeV) is an empty
-   desert scale. The closest mechanism-anchored span, $60 - 13.3 = 46.7$,
-   misses the exact log 44.13 by 5.5% (η 3.4× low).
+   desert scale. The rate-based condition Γ = H adds no endpoint: its unique
+   crossing at r_f = 1.3495 is a thaw (Γ/H rises monotonically through 1),
+   and the radiation-era crossing sits before the seed (§4.7). The closest
+   mechanism-anchored span, $60 - 13.3 = 46.7$, misses the exact log 44.13
+   by 5.5% (η 3.4× low).
 
 ---
 
@@ -538,4 +582,8 @@ The following gaps prevent upgrading to fully "Derived" status:
 - `computations/eta_span_closure_check.py`—2026-08-11 dilution-span closure
   sweep: threshold crossings, gate floor, endpoint scan, composite gap,
   factor decompositions; no closure (§4.5)
+- `computations/eta_gamma_h_freezeout_check.py`—2026-08-11 dynamical
+  freeze-out check: Γ = H with the two-fluid rates (λ cancels); unique
+  crossing at r_f = 1.3495 is a thaw, not a freeze; homogeneous span
+  2.5–3.2 rungs, radiation-era crossing pre-seed; no closure (§4.7)
 - `open-questions-cassi-answers.md`—C7 entry, freeze-out step 52 status
