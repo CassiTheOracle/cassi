@@ -4,7 +4,7 @@
 
 ## Abstract
 
-This document compacts the Cassi framework into a single reference: the two-fluid postulate and governing PDEs, the dimensionful cascade and its suppression law, the unified action, and the quantum, particle, gravity, cosmological, turbulence, geometric, and consciousness consequences. Each section condenses a dedicated derivation paper cited inline; all dimensionless couplings are φ-powers with zero free parameters among them, and the three external dimensionful constants are $c$, $\hbar$, $G$.
+This document compacts the Cassi framework into a single reference: the two-fluid postulate and governing PDEs, the dimensionful cascade and its suppression law, the unified action, and the quantum, particle, gravity, cosmological, turbulence, geometric, and consciousness consequences. Each section condenses a dedicated derivation paper cited inline; dimensionless entries are expressed as $\varphi$-powers with individual Derived, Conditional, Asserted, Calibrated, or Mapped status, and the three external dimensionful constants are $c$, $\hbar$, $G$.
 
 ## 1. The Postulate
 
@@ -150,7 +150,7 @@ $$\lambda = 1/(2w) = 0.1 \quad\text{(PDE conversion rate)}$$
 
 $$S_{\text{Cassi}} = \int d^4x\sqrt{-g}\,(\mathcal{L}_{\text{TF}} + \mathcal{L}_{\text{D}} + \mathcal{L}_{\text{GR}} + \mathcal{L}_{\text{SM}} + \mathcal{L}_{\text{mix}})$$
 
-All dimensionless couplings are $\varphi$-powers, with the derived rational conversion rate $\lambda = 1/(2w) = 0.1$. Three external dimensionful constants ($c$, $\hbar$, $G$) set the unit system; $\ell_{\text{Pl}} = \sqrt{\hbar G/c^3}$ is the cascade's sole dimensionful anchor.
+Dimensionless couplings are expressed as $\varphi$-powers, with individual status labels and the derived rational conversion rate $\lambda = 1/(2w) = 0.1$. Three external dimensionful constants ($c$, $\hbar$, $G$) set the unit system; $\ell_{\text{Pl}} = \sqrt{\hbar G/c^3}$ is the cascade's sole dimensionful anchor.
 
 ### 4.1 Two-Fluid Core $\mathcal{L}_{\text{TF}}$
 
@@ -454,7 +454,7 @@ Mind: concentrated post-pinch field dynamics. Brain: antenna for the Qi field. A
 |-----------|-----------|-------|--------|
 | $\alpha_0$ | $\varphi^{-3} = (\varphi-1)/(\varphi+1)$ | $0.236$ | Fixed-point imbalance (the "Yang fraction" label is Mapped—ledger row 500; the Yang fraction is $\varphi^{-1}$) |
 | $\xi$ | $\varphi^6$ | $17.944$ | Imbalance inverse-square $\xi = (\pi/\rho)^{-2}$ (Derived conditional on the quadratic-coupling input; the 2×3-DOF reading is secondary—`xi-derivation.md`; empirical pin Calibrated) |
-| $\sin^2\theta_W$ | $\varphi^{-3}$ | $0.236$ | VEV asymmetry (asserted boundary condition; realized at $\mu_* = 233$ GeV—Calibrated, ledger row 490) |
+| $\sin^2\theta_W$ | $\varphi^{-3}$ | $0.236$ | Asserted coupling boundary (the VEV orientation enters the full mass matrix but does not fix the relative gauge coupling; realized at $\mu_* = 233$ GeV—Calibrated, ledger row 490) |
 | $\alpha_{\text{GUT}}$ | $\varphi^{-3}/(4\pi)$ | $1/53$ | Fixed-point imbalance / $4\pi$ (asserted boundary condition) |
 | $m_W/m_Z$ | $\sqrt{1-\varphi^{-3}}$ | $0.874$ | From $\sin^2\theta_W$ (inherits its boundary-condition status) |
 | $\delta_{\text{CKM}}$ | $\pi\varphi^{-2}$ | $68.7^\circ$ | Mapped selection (4-candidate $\varphi$-search—ledger row 482) |

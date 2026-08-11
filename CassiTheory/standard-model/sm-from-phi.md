@@ -1,17 +1,20 @@
 # Standard Model from φ
 
-## Status: Derived—July 2026
+## Status: Derived gauge chain and algebra; Hypothesized electroweak coupling mechanism with asserted Weinberg boundary—August 2026
 
 ## Abstract
 
-The Standard Model's structure follows from the Cassi golden ratio $\varphi$:
-the gauge groups arise from successive truncations of the continued fraction
-$[1; 1, 1, 1, \ldots]$, the Weinberg angle is the Yang/Yin VEV asymmetry
-$\sin^2\theta_W = \varphi^{-3} \approx 0.236$, and fermion masses follow a
-$\varphi$-powered Yukawa hierarchy. This document derives the
+The Standard Model's gauge-chain structure is organized by the Cassi golden
+ratio $\varphi$: the gauge groups arise from successive truncations of the
+continued fraction $[1; 1, 1, 1, \ldots]$, while the weak-angle identity
+$\sin^2\theta_W = \varphi^{-3} \approx 0.236$ is used as an asserted boundary
+condition. The coupling ratio $(g/g')^2 = 2\varphi$ has a tested curvature–orbit
+candidate, whose missing action-level normalization bridge is documented in
+`standard-model/su2-gauge-extension.md` §3.2.1 and
+`computations/weinberg_coupling_origin_audit.py`. The document derives the
 symmetry-breaking chain, the Higgs mechanism at the $\varphi$-point, quark
-confinement from Qi coherence, and the CKM phase, and tabulates the
-falsifiable predictions.
+confinement from Qi coherence, and the CKM phase, and tabulates the falsifiable
+predictions.
 
 ---
 
@@ -55,7 +58,8 @@ is determined by successive φ-truncations.
 
 ### 1.2 The Mixing Angle
 
-The Weinberg angle is predicted by the $\varphi$-point VEV asymmetry:
+The fixed-point imbalance supplies the exact algebraic value used for the
+Weinberg boundary:
 
 $$\sin^2\theta_W = \frac{\varphi-1}{\varphi+1} = \varphi^{-3} \approx 0.236$$
 
@@ -68,19 +72,19 @@ $$\cos^2\theta_W = 1 - \varphi^{-3} \approx 0.764$$
 | $\sin^2\theta_W$ | $\varphi^{-3} \approx 0.236$ | 0.23122 | +2.1% (at $\mu_* = 233$ GeV, exact) |
 | $\cos^2\theta_W$ | 0.764 | 0.769 | 0.993 |
 
-The origin of this prediction is the **coupling-ratio identity**
-$\sin^2\theta_W = 1/(1+2\varphi) \iff \tan^2\theta_W = 1/(2\varphi) \iff
-(g/g')^2 = 2\varphi$ (exact $\varphi$-algebra, verified in
-`computations/weinberg_phi_identity.py`); it is an **asserted boundary
-condition**, not a derived diagonalization—the VEV asymmetry
-$(\varphi-1)/(\varphi+1) = \varphi^{-3}$ sets only the off-diagonal of the
-neutral mass matrix, which has a massless photon only for off-diagonal
-coefficient $1/2$ and whose own diagonalization gives $\sin^2\theta = 0.102$
-at the framework's $g'/g = 0.556$
-(`standard-model/su2-gauge-extension.md` §3.2). The φ-value $g'/g = 0.5559$
-sits $+1.36\%$ above the measured $0.5484$; the blocking step for a full
-derivation is a two-fluid mechanism that fixes $g'^2 = g^2/(2\varphi)$ at the
-φ-boundary.
+The boundary identity is
+$\sin^2\theta_W = 1/(1+2\varphi) \iff \tan^2\theta_W = 1/(2\varphi)
+\iff (g/g')^2 = 2\varphi$ (exact $\varphi$-algebra, verified in
+The VEV asymmetry enters the complete $(W^1,W^2,W^3,B)$ matrix through
+$a=2\sqrt{\varphi}/(\varphi+1)$ and $\kappa=\varphi^{-3}$, with
+$a^2+\kappa^2=1$. The spectrum contains a massless photon and the physical
+angle remains the diagonal coupling ratio; the full calculation is in
+`standard-model/su2-gauge-extension.md` §3.1 and
+`computations/weinberg_phi_identity.py`. A curvature–orbit normalization
+attempt derives $2\varphi$ only after adding a field-space metric and an
+orbit-matching rule absent from the action (§3.2.1). The coupling boundary
+therefore remains asserted; its blocking step is the action-level mechanism
+fixing $g'^2 = g^2/(2\varphi)$.
 
 The weak mixing angle runs **upward** with energy (toward the unification
 value $3/8$), so the φ-point value is realized not at the GUT scale but one

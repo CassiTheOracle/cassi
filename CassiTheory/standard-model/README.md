@@ -4,14 +4,14 @@
 
 ## Abstract
 
-Six documents derive the Standard Model's gauge structure, couplings, loop corrections, and flavor sector from the Cassi $\varphi$-fixed point: the isospinor two-fluid field $\Psi = (\psi_Y, \psi_I)^T$ with Yang/Yin equilibrium ratio $\varphi$ fixes the symmetry-breaking chain, the Weinberg angle, the Yukawa hierarchy, the CKM phase, and the seesaw scale. The reading path is derivation order—start with `sm-from-phi.md` for the full breaking chain, then `su2-gauge-extension.md` for the gauge mechanics, `sm-radiative-corrections.md` for the loop corrections that connect the φ-boundary to the Z-pole, `gut-embedding.md` for unification, and the two flavor-sector documents `cp-violation.md` and `neutrino-mass.md`. Four documents are Derived (electroweak structure, gauge extension, radiative corrections, CP), two are Hypothesized (GUT embedding, neutrino masses), and each closes with falsifiable predictions cataloged in `predictions/falsifiable-predictions.md`.
+Six documents cover the Standard Model's gauge structure, couplings, loop corrections, and flavor sector through the Cassi $\varphi$-fixed point. The isospinor field $\Psi = (\psi_Y, \psi_I)^T$ with equilibrium ratio $\varphi$ fixes the symmetry-breaking chain and supplies the fixed-point imbalance used in the asserted Weinberg boundary; the coupling-normalization mechanism remains Hypothesized. Read `sm-from-phi.md` for the breaking chain, `su2-gauge-extension.md` for the gauge mechanics and closure audit, `sm-radiative-corrections.md` for running, `gut-embedding.md` for unification, and the flavor-sector documents for CP and neutrino masses.
 
 ## Document Index
 
 | # | Document | Domain | Epistemic |
 |---|----------|--------|-----------|
-| 1 | `sm-from-phi.md` | Electroweak breaking, gauge structure, fermion masses | Derived |
-| 2 | `su2-gauge-extension.md` | Gauge extension of the two-fluid | Derived |
+| 1 | `sm-from-phi.md` | Electroweak breaking, gauge structure, fermion masses | Derived chain; Weinberg boundary asserted |
+| 2 | `su2-gauge-extension.md` | Gauge extension of the two-fluid | Derived algebra; coupling boundary asserted |
 | 3 | `gut-embedding.md` | SU(5) / SO(10) unification, proton decay | Hypothesized |
 | 4 | `cp-violation.md` | CKM phase, Jarlskog invariant, strong CP | Derived |
 | 5 | `neutrino-mass.md` | Seesaw scale, neutrino masses | Hypothesized |
@@ -21,11 +21,11 @@ Six documents derive the Standard Model's gauge structure, couplings, loop corre
 
 ### `sm-from-phi.md`—Standard Model from φ
 
-The entry point for the directory: it derives the gauge structure $\mathrm{SU}(3)_C \times \mathrm{SU}(2)_L \times \mathrm{U}(1)_Y$ from successive truncations of the continued-fraction expansion of $\varphi$, with the Weinberg angle $\sin^2\theta_W = \varphi^{-3} \approx 0.236$ emerging from the VEV asymmetry at the $\varphi$-fixed point. It then runs the Higgs mechanism—the φ-point VEV $v_\phi$, $m_W/m_Z = \sqrt{1 - \varphi^{-3}} \approx 0.874$ against the measured 0.881 (0.878 after the $\rho$ correction), and the quartic $\lambda = 0.1294$ fixed by the measured $m_H$—derives quark confinement from the Qi coherence threshold $Q \lessgtr \varphi^{-1}$ with $\alpha_{\text{GUT}} = \varphi^{-3}/4\pi \approx 1/53$ ($\alpha_s(m_Z) = 0.058$–$0.061$, $2.0\times$ low), and predicts the proton mass $m_p \approx \varphi^3 \Lambda_{\text{QCD}} \approx 847$ MeV within ~10%. Fermion masses follow the Yukawa hierarchy $y_f \propto \varphi^{-n_f}$, with the CKM phase and neutrino sector deferred to `cp-violation.md` and `neutrino-mass.md`; the full SM-from-φ Lagrangian is boxed in §5. Status: Derived.
+The entry point for the directory: it derives the gauge structure $\mathrm{SU}(3)_C \times \mathrm{SU}(2)_L \times \mathrm{U}(1)_Y$ from successive truncations of the continued-fraction expansion of $\varphi$, and records $\sin^2\theta_W = \varphi^{-3} \approx 0.236$ as the fixed-point boundary value. The curvature–orbit normalization attempt and its action-level blocker are in `su2-gauge-extension.md` §3.2.1. The Higgs mechanism gives $m_W/m_Z = \sqrt{1-\varphi^{-3}} \approx 0.874$ before the $\rho$ correction; quark confinement follows from the Qi coherence threshold, and the CKM and Yukawa sectors are documented below.
 
 ### `su2-gauge-extension.md`—SU(2) × U(1) Gauge Extension of the Cassi Two-Fluid
 
-Takes the two-fluid's internal $\mathrm{U}(1) \cong \mathrm{SO}(2)$ Yang/Yin rotation—already identified with electromagnetism—and promotes it to an SU(2) isospinor doublet whose norm-squared components are the Yang and Yin energies, the Cassi version of the Higgs doublet with $\langle\Psi\rangle \propto (\sqrt{\varphi}, 1)^T$ at equilibrium. Diagonalizing the neutral mass matrix at the φ-point VEV boxes the first-principles Weinberg angle $\boxed{\sin^2\theta_W = \frac{\varphi-1}{\varphi+1} = \varphi^{-3} \approx 0.23607}$, then the gauge-coupling running is derived in `sm-radiative-corrections.md`: the measured running angle crosses $\varphi^{-3}$ at $\mu_* \approx 233$ GeV (the angle runs upward, so there is no GUT-scale boundary value 0.236), the SM couplings have no common intersection, and the φ-boundary gives $\alpha_s(m_Z) = 0.058$–$0.061$, $2.0\times$ below the measured value. The pattern extends to SU(3) color (φ-confinement, proton mass), with $m_t \approx \varphi^{-1} v_0 \approx 152$ GeV. It closes with a falsifiable-prediction table—$m_W/m_Z$, $\sin^2\theta_W$, proton lifetime, $\alpha_s$, and mass ratios, most testable at FCC-ee. Status: Derived.
+Takes the two-fluid's internal $\mathrm{U}(1) \cong \mathrm{SO}(2)$ Yang/Yin rotation and promotes it to an SU(2) isospinor doublet with $\langle\Psi\rangle \propto (\sqrt{\varphi},1)^T$. It derives the neutral mass matrix and records the exact identity $\sin^2\theta_W = \varphi^{-3} \iff (g/g')^2 = 2\varphi$ as an asserted boundary; §3.2.1 tests a curvature–orbit candidate and finds the missing metric and orbit-matching rule. Running and measured-scale comparisons are in `sm-radiative-corrections.md`.
 
 ### `sm-radiative-corrections.md`—Standard Model Radiative Corrections from the φ-Boundary
 

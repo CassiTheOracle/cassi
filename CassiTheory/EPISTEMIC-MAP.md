@@ -45,9 +45,9 @@ Tiers below are taken from each document's Status header. Compound headers are q
 | `foundations/wa-pentagon-gate.md` | Derived ($\xi = \varphi^6$) / Hypothesized (5-channel) | $w_a = +0.012$ via $\xi$: $2.7\sigma$ baseline; with the ratified coupling $1.25\sigma$ (B2, unstable); the stable realization (10/12): pure-Λ window fit $(-1, 0)$, $4.17\sigma$/$2.61\sigma$; 5-channel shift Hypothesized (ODE pending) |
 | `principles/de-resonance-principle.md` | Derived | Why $\varphi$ is the attractor (maximally irrational) |
 | `principles/v0-hierarchy-problem.md` | Derived (step count, per registry Q1); 5.3% residual open | $v_0/M_{\text{Pl}} \approx \varphi^{-80}$ as step count (Q1) |
-| `standard-model/sm-from-phi.md` | Derived | $\sin^2\theta_W = \varphi^{-3}$; $\alpha_{\text{GUT}} = \varphi^{-3}/(4\pi)$ |
+| `standard-model/sm-from-phi.md` | Derived chain/algebra; Weinberg boundary asserted | Gauge-chain truncation, $\sin^2\theta_W = \varphi^{-3}$ boundary, Yukawa and CKM sector |
 | `standard-model/sm-radiative-corrections.md` | Derived | Loop corrections from the φ-boundary: RGE, Δα, Δr → m_W, λ running; residuals ($\alpha_s$ $2\times$, $\alpha_1$/$\alpha_2$ ~25%) open |
-| `standard-model/su2-gauge-extension.md` | Derived | SU(2) gauge from two-fluid structure |
+| `standard-model/su2-gauge-extension.md` | Derived gauge algebra/mass matrix; coupling boundary asserted | SU(2) gauge extension, neutral mass matrix, curvature–orbit closure audit |
 | `standard-model/cp-violation.md` | Derived (δ_CKM Mapped—ledger; Jarlskog invariant not reproduced) | CKM phase $\pi\varphi^{-2}$ |
 | `particles/cassi-yang-yin-particles.md` | Derived | Particles as standing-wave interference; atomic $Z = 1$–$10$ |
 | `particles/dft-benchmarks.md` | Derived | DFT benchmark comparisons |

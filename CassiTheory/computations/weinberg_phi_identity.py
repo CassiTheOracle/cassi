@@ -1,32 +1,36 @@
 #!/usr/bin/env python3
-"""
+r"""
 Weinberg Angle: the φ⁻³ Coupling-Ratio Identity
 ================================================
 
-Verifies the exact algebraic content of the boundary condition
-sin²θ_W = φ⁻³ and the failure of the VEV-asymmetry rotation that
-`standard-model/su2-gauge-extension.md` §3.2 previously invoked.
+Verifies the exact algebraic content of the asserted boundary condition
+$\sin^2\theta_W = \varphi^{-3}$ and the full gauge-boson mass matrix for the
+fixed-point VEV $\langle\Psi\rangle \propto (\sqrt{\varphi},1)^T$.
 
-The equivalence chain (all exact, φ = (1+√5)/2):
-    sin²θ_W = φ⁻³  ⟺  tan²θ_W = φ⁻³/(1−φ⁻³) = 1/(φ³−1) = 1/(2φ)
-                 ⟺  (g/g')² = 2φ
-using φ³ − 1 = 2φ (from φ³ = 2φ + 1) and the equivalent forms
-φ⁻³ = 1/(1+2φ) = (φ−1)/(φ+1).
+The equivalence chain (all exact, $\varphi = (1+\sqrt{5})/2$):
+    $\sin^2\theta_W = \varphi^{-3}$  iff  $\tan^2\theta_W = 1/(2\varphi)$
+                                 iff  $(g/g')^2 = 2\varphi$.
 
-The neutral mass matrix from |D_μ⟨Ψ⟩|² (dividing out v²/4) is
+For $T_a = \sigma_a/2$, $Y=I/2$, define
 
-    M² = (v²/4) [[g², 2κgg'], [2κgg', g'²]],  κ = (φ−1)/(φ+1) = φ⁻³.
+    a = 2\sqrt{\varphi}/(\varphi+1),  kappa = (\varphi−1)/(\varphi+1) = \varphi^{-3}.
 
-Checks:
-  1. massless photon requires det M² = 0, i.e. κ = 1/2 — fails (κ = 0.236);
-  2. diagonalizing at the framework's own g'/g = 0.556 gives a Z-like
-     eigenvector with sin²θ ≈ 0.10, not 0.236;
-  3. the eigen-angle equals tan²θ = 1/(2φ) only for g'/g ≈ 0.749,
-     incompatible with the 0.556 the boundary condition itself implies;
-  4. measured g'/g = √(sin²θ_W(m_Z)/(1−sin²θ_W(m_Z))) = 0.5484 vs the
-     φ-value 0.5559 (+1.36%).
+The complete matrix in the $(W^1,W^2,W^3,B)$ basis, in $v^2/4$ units, is
+
+    [[g², 0, 0, a gg'], [0, g², 0, 0],
+     [0, 0, g², kappa gg'], [a gg', 0, kappa gg', g'²]].
+
+Since $a² + kappa² = 1$, its eigenvalues are
+    $g²$, $g²$, $0$, and $g²+g'²$.
+The VEV orientation therefore preserves a photon null direction and rotates
+the SU(2) axis that mixes with $B$. The physical mixing angle remains fixed
+by the diagonal coupling ratio. The coupling-ratio origin stays open.
+
+Checks include the exact identity, the full-matrix spectrum and null vector,
+and the measured comparison $g'/g = 0.5484$ versus the boundary value 0.5559.
 
 Usage: python computations/weinberg_phi_identity.py
+
 """
 
 import numpy as np
@@ -67,27 +71,29 @@ check("g'/g(m_Z) = %.5f  vs φ-value %.5f: +%.2f%%"
 check("sin²θ offset: %.2f%% above 0.23122" % (100 * (s2 / S2_ZPOLE - 1)),
       np.isclose(100 * (s2 / S2_ZPOLE - 1), 2.10, atol=0.01))
 
-print("\nMass matrix (v²/4 units): M² = [[g², 2κgg'],[2κgg', g'²]], κ = (φ−1)/(φ+1):")
+print("\nFull gauge-boson mass matrix (v²/4 units):")
 k = (PHI - 1) / (PHI + 1)
-t = gp                       # framework's own g'/g implied by sin²θ_W = φ⁻³
-M = np.array([[1.0, 2 * k * t], [2 * k * t, t * t]])
-w, V = eigh(M)
-check("κ = φ⁻³ = %.6f ≠ 1/2 → det M² ≠ 0 (photon massive)" % k,
-      not np.isclose(4 * k * k, 1.0))
-check("light eigenvalue %.4f·g²v²/4 > 0 (no massless photon)" % w[0], w[0] > 0)
-x = V[1, 1] / V[0, 1]        # heavy (Z-like) eigenvector slope
-th = np.arctan(x)
-check("Z-like eigenvector at sin²θ = %.3f (not 0.236)" % np.sin(th)**2,
-      np.isclose(np.sin(th)**2, 0.10, atol=0.01))
-# eigen-angle equals the target tan²θ = 1/(2φ) only when tan(2θ) = 4κt/(1−t²)
-# is solved for t with κ fixed:
-tan2t = 2 * np.sqrt(t2) / (1 - t2)
-roots = np.roots([tan2t, 4 * k, -tan2t])
-t_target = roots[(roots > 0) & (np.isreal(roots))][0].real
-check("eigen-angle = target needs g'/g = %.3f ≠ 0.556" % t_target,
-      not np.isclose(t_target, t, atol=0.05))
-print("  (the VEV asymmetry sets the off-diagonal coefficient; it cannot set")
-print("   the angle, which is fixed by the diagonal ratio g'²/(g²+g'²))")
+a = 2 * np.sqrt(PHI) / (PHI + 1)
+t = gp                       # framework's boundary g'/g
+M = np.array([
+    [1.0, 0.0, 0.0, a * t],
+    [0.0, 1.0, 0.0, 0.0],
+    [0.0, 0.0, 1.0, k * t],
+    [a * t, 0.0, k * t, t * t],
+])
+w, _ = eigh(M)
+expected = np.array([0.0, 1.0, 1.0, 1.0 + t * t])
+check("a² + κ² = 1", np.isclose(a * a + k * k, 1.0))
+check("full matrix has the SM spectrum with a massless photon",
+      np.allclose(np.sort(w), expected),
+      " eigenvalues = %s" % np.array2string(np.sort(w), precision=6))
+photon = np.array([t * a, 0.0, t * k, -1.0])
+check("full matrix photon null vector", np.linalg.norm(M @ photon) < 1e-12)
+check("physical mixing angle remains the diagonal coupling ratio",
+      np.isclose(t * t / (1.0 + t * t), s2))
+print("  The VEV asymmetry rotates the SU(2) axis that mixes with B;")
+print("  the relative gauge coupling remains an independent boundary input.")
 
 print("\nAll checks are algebraic identities (φ-algebra) or linear algebra on the")
-print("doc's own matrix; the boundary condition itself remains asserted (§3.2).")
+print("full gauge-boson matrix; the coupling boundary itself remains asserted")
+print("(see standard-model/su2-gauge-extension.md §3.2.1).")

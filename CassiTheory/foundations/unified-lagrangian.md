@@ -10,7 +10,7 @@ $$
 \boxed{\mathcal{L}_{\text{Cassi}} = \mathcal{L}_{\text{TF}} + \mathcal{L}_{\text{D}} + \mathcal{L}_{\text{GR}} + \mathcal{L}_{\text{SM}} + \mathcal{L}_{\text{mix}}}
 $$
 
-*All dimensionless couplings derived from $\varphi = (1+\sqrt{5})/2$, including the PDE conversion rate $\lambda = 1/(2w)$ with $w = 5$ derived (`foundations/wu-xing-derivation.md`; `foundations/dimensionful-constants-status.md` §2.1); three external dimensionful constants ($c$, $\hbar$, $G$)—see `foundations/dimensionful-constants-status.md`.*
+*Dimensionless couplings are expressed as combinations of $\varphi$ and the two-fluid inputs; the closed subset carries derived origins, while the Weinberg coupling boundary remains asserted. The PDE conversion rate $\lambda = 1/(2w)$ with $w = 5$ is derived (`foundations/wu-xing-derivation.md`); three external dimensionful constants ($c$, $\hbar$, $G$) remain external—see `foundations/dimensionful-constants-status.md`.*
 
 ---
 
@@ -283,23 +283,28 @@ $$
 \alpha_{\text{GUT}} = \frac{\varphi^{-3}}{4\pi} \approx \frac{1}{53}
 $$
 
-The gauge couplings at $M_{\text{GUT}}$ are:
+The framework assigns the gauge couplings at the chosen GUT normalization:
 
 $$
 g^2 = g'^2 \cdot \frac{1-\varphi^{-3}}{\varphi^{-3}} = g_s^2
-= 4\pi\alpha_{\text{GUT}}
+:= 4\pi\alpha_{\text{GUT}}.
 $$
 
-The Weinberg angle:
+This fixes $(g/g')^2 = 2\varphi$ as a boundary input. The current action
+contains independent SU(2) and U(1) kinetic coefficients and supplies no
+relative-normalization mechanism; the curvature–orbit candidate and its
+blockers are in `standard-model/su2-gauge-extension.md` §3.2.1.
+
+The corresponding tree-level angle is
 
 $$
-\boxed{\sin^2\theta_W = \frac{\varphi-1}{\varphi+1} = \varphi^{-3} \approx 0.236}
+\boxed{\sin^2\theta_W = \frac{\varphi-1}{\varphi+1} = \varphi^{-3} \approx 0.236}.
 $$
 
-The running angle equals this value at $\mu_* \approx 233$ GeV; at $m_Z$ the
-prediction sits 2.1% above the measured 0.23122 (the angle runs *upward* with
-energy, so the GUT-scale reading is not a boundary condition;
-`standard-model/sm-radiative-corrections.md` §3.3).
+The measured running angle crosses this value at $\mu_* \approx 233$ GeV; at
+$m_Z$ the prediction sits 2.1% above the measured 0.23122. The running angle
+increases with energy, so the $\mu_*$ crossing and the chosen GUT coupling
+assignment are distinct statements (`standard-model/sm-radiative-corrections.md` §3.3).
 
 ### 4.3 Covariant Derivative (Fermion Sector)
 
@@ -543,9 +548,9 @@ where the currents come from the fermion and Higgs covariant derivatives.
 
 ---
 
-## 8. Zero Free Dimensionless Parameters
+## Dimensionless Parameter Status
 
-All dimensionless couplings in the action are derived; the three dimensionful constants ($c$, $\hbar$, $G$) are external (see `foundations/dimensionful-constants-status.md`).
+The action contains a mixture of derived, conditional, asserted, calibrated, and mapped dimensionless quantities; the three dimensionful constants ($c$, $\hbar$, $G$) are external (see `foundations/dimensionful-constants-status.md`).
 
 | Quantity | Expression | Value | Status |
 |----------|-----------|-------|--------|
@@ -564,7 +569,7 @@ All dimensionless couplings in the action are derived; the three dimensionful co
 | $\lambda$ | $1/(2w) = 0.1$ | $0.1$ | **Derived** (rational; non-resonant by design) |
 | $G_{\text{eff}}$ | $G\cdot(\pi/\rho)\cdot(1+(\varphi^{6}-1)q)$ |—| **Derived** |
 
-**Every dimensionless constant is a $\varphi$-power, zero, or the derived rational $\lambda = 1/10$; $c$, $\hbar$, $G$ remain external.**
+**The closed dimensionless subset is fixed by the named $\varphi$ and two-fluid inputs; asserted boundaries and calibrated anchors retain their ledger status.**
 
 ---
 
@@ -581,7 +586,7 @@ where $N_f$ counts field degrees of freedom and $N_b$ counts background "binding
 - Two-fluid core: 2 fields $\times$ 1 component = $\varphi^{2}$ → $\varphi^{-1}$ damping
 - Dirac sector: 4 spinor components × 3 generations = $\varphi^{12}$ → $\varphi^{-11}$ seesaw
 - Gravity: 2 fields $\times$ 3 dimensions = $\varphi^{6}$ → $\xi = \varphi^6$
-- Gauge: 2 components $\times$ 3 generators (SU(2)) = $\varphi^{6}$ → $\varphi^{-3}$ mixing
+- Gauge sector: SU(2) has three generators, while the relative U(1) normalization required for $\sin^2\theta_W = \varphi^{-3}$ remains an asserted boundary; the curvature–orbit candidate is tested in `standard-model/su2-gauge-extension.md` §3.2.1.
 
 The $\varphi$-powers arise from the continued fraction $\varphi = [1;1,1,1,\ldots]$ and its truncations at successive depths, which correspond to the group ranks (SU(4) → SU(3) → SU(2) → U(1)) and the chiral splitting of the Dirac spinor.
 
@@ -589,7 +594,7 @@ The $\varphi$-powers arise from the continued fraction $\varphi = [1;1,1,1,\ldot
 
 ## 10. Summary
 
-The Cassi Unified Lagrangian unifies all known physics—quantum matter, spacetime curvature, gauge interactions, and the emergent two-fluid dynamics—into a single action with zero free dimensionless parameters. Every dimensionless coupling is a power of $\varphi$, determined by the $\varphi$-scale invariance of the Yang/Yin principle; the three dimensionful constants ($c$, $\hbar$, $G$) are external.
+The Cassi Unified Lagrangian assembles quantum matter, spacetime curvature, gauge interactions, and the emergent two-fluid dynamics into a single action. Its dimensionless entries are powers of $\varphi$ or derived rational factors with individual status labels; the Weinberg coupling boundary remains asserted, and the three dimensionful constants ($c$, $\hbar$, $G$) are external.
 
 The falsifiable predictions are:
 

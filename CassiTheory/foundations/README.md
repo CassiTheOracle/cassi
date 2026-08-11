@@ -65,7 +65,7 @@ Assembles every sector into a single object,
 
 $$\boxed{\mathcal{L}_{\text{Cassi}} = \mathcal{L}_{\text{TF}} + \mathcal{L}_{\text{D}} + \mathcal{L}_{\text{GR}} + \mathcal{L}_{\text{SM}} + \mathcal{L}_{\text{mix}}}$$
 
-with all dimensionless couplings $\varphi$-powers, the derived conversion rate $\lambda = 1/(2w) = 0.1$, and three external dimensionful constants ($c$, $\hbar$, $G$). The two-fluid core is a paired-real SO(2) doublet with the $\varphi$-attractor potential $(\lambda/2)(\Psi_0^2 - \varphi\Psi_1^2)^2$, a Bohm quantum potential, and the Qi diagnostics; the Dirac sector emerges from the doublet through chiral projectors ($\Psi_0^2 = \bar\psi(1+\gamma^5)\psi/2$), and gravity couples through $G_{\text{eff}} = G(\pi/\rho)(1 + (\varphi^{6}-1)q)$ with $\xi = \varphi^6$. Derives $\sin^2\theta_W = \varphi^{-3} \approx 0.236$ and the mixing-sector terms linking the sectors. Status: Derived.
+with dimensionless couplings expressed as $\varphi$-powers, the derived conversion rate $\lambda = 1/(2w) = 0.1$, and three external dimensionful constants ($c$, $\hbar$, $G$). The two-fluid core is a paired-real SO(2) doublet with the $\varphi$-attractor potential $(\lambda/2)(\Psi_0^2 - \varphi\Psi_1^2)^2$, a Bohm quantum potential, and the Qi diagnostics; the Dirac sector emerges from the doublet through chiral projectors, and gravity couples through $G_{\text{eff}} = G(\pi/\rho)(1 + (\varphi^{6}-1)q)$ with $\xi = \varphi^6$. The Standard Model section records the asserted boundary $\sin^2\theta_W = \varphi^{-3} \approx 0.236$ and the mixing-sector terms; its coupling-normalization blocker is in `standard-model/su2-gauge-extension.md` §3.2.1. Status: Derived assembly; Weinberg boundary asserted.
 
 ### `cassi-first-principles.md`—Cassi First Principles
 
@@ -77,7 +77,7 @@ as the universal scale-separation constant, with every coupling, mass ratio, and
 
 ### `cassi-theory-reference.md`—The Cassi Framework (Compact Reference)
 
-The audited compact reference: one document restating the postulate, the two-fluid PDE, Qi coherence ($q = \rho^2/(\rho^2 + \varphi^{-2} + \varepsilon^2)$), the Qi gate with its sign convention (conversion runs hard when $q \to 0$; the gate determines $w(a)$), the cascade, and the derived constants—$G_{\text{eff}} = G(\pi/\rho)(1 + (\varphi^{6}-1)q)$ with $\xi = \varphi^6$, $\sin^2\theta_W = \varphi^{-3}$, and the three spatial dimensions as the spiral's Frenet-Serret frame. The gate sign is established by the PDE tests in `consciousness/trauma-as-frozen-gate.md` §10.4. Use it as the map before reading the individual derivations. Status: Reference.
+The audited compact reference: one document restating the postulate, the two-fluid PDE, Qi coherence ($q = \rho^2/(\rho^2 + \varphi^{-2} + \varepsilon^2)$), the Qi gate with its sign convention (conversion runs hard when $q \to 0$; the gate determines $w(a)$), the cascade, and the framework constants—$G_{\text{eff}} = G(\pi/\rho)(1 + (\varphi^{6}-1)q)$ with $\xi = \varphi^6$, the asserted boundary $\sin^2\theta_W = \varphi^{-3}$, and the three spatial dimensions as the spiral's Frenet–Serret frame. The gate sign is established by the PDE tests in `consciousness/trauma-as-frozen-gate.md` §10.4. Use it as the map before reading the individual derivations. Status: Reference.
 
 ### `xi-derivation.md`—Derivation of $\xi = \varphi^6$: The Last Free Parameter
 

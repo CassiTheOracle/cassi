@@ -43,7 +43,7 @@ All dimensionless coupling constants in the Cassi framework are $\varphi$-powers
 | Parameter | Expression | Value | Class | This was a free parameter: |
 |-----------|-----------|-------|-------|--------------------------------------|
 | $\xi$ (Qi-gravity) | $\varphi^{6}$ | $17.94427191$ | **D** | MOND interpolating function / DM halo concentration |
-| $\sin^2\theta_W$ (at $m_Z$) | $\varphi^{-3}$ | $0.23607$ | **D** | Weak mixing angle (free in SM); +2.1% at $m_Z$, exact at $\mu_* = 233$ GeV (`standard-model/sm-radiative-corrections.md`) |
+| $\sin^2\theta_W$ (at $m_Z$) | $\varphi^{-3}$ (at the asserted boundary; exact at $\mu_* = 233$ GeV) | $0.23607$ | **D** | Weak mixing angle; the identity $(g/g')^2 = 2\varphi$ is asserted because the current action leaves $g$ and $g'$ independent. The curvature–orbit candidate requires an added field-space metric and orbit-matching rule; the full VEV mass matrix has a photon null direction (`standard-model/su2-gauge-extension.md` §3.2.1, `computations/weinberg_coupling_origin_audit.py`). The $\mu_*$ crossing is Calibrated (ledger row 490) |
 | $\sin^2\theta_W$ (at $\mu_* = 233$ GeV) | running MS-bar angle crosses $\varphi^{-3}$ | $0.23607$ | **D** | Where the φ-point value is realized; the angle runs upward, so the GUT scale is not the boundary |
 | $\alpha_{\text{GUT}}$ | $\varphi^{-3} / 4\pi$ | $1/53 \approx 0.01887$ | **D** | GUT coupling (free in SU(5)/SO(10)); not realized by SM running alone |
 | $m_W/m_Z$ | $\sqrt{1-\varphi^{-3}}$ | $0.874$; $0.878$ with $\rho$ | **D** | Prediction for FCC-ee |

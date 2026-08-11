@@ -470,9 +470,9 @@ class CassiSU2Bridge:
         return alpha_0 / denominator
 
     def gut_coupling(self):
-        """GUT coupling from φ: α_GUT ≈ φ⁻³/(4π) ≈ 0.00754 ≈ 1/53.
+        """GUT coupling from phi: alpha_GUT = phi^-3/(4*pi) ~ 0.01879 ~ 1/53.
 
-        Returns: α_GUT as float.
+        Returns: alpha_GUT as a float.
         """
         return PHI_INV ** 3 / (4.0 * np.pi)
     def alpha_s_at_mz(self, n_f=6):
@@ -910,13 +910,15 @@ def run_test(grid=32, steps=100, dt=0.05):
     print("Running SU(2) bridge self-test...")
     print(f"  Grid: {grid}³, Steps: {steps}, dt: {dt}")
 
-    # Create bridge with φ-predicted gauge coupling
-    # sin²θ_W = φ⁻³ ≈ 0.236 (GUT-scale boundary condition)
+    # The bridge supplies the boundary ratio as an input; its derivation remains open.
+    # alpha_GUT fixes the common code-unit normalization at the chosen boundary.
+    # sin²θ_W = φ⁻³ is exact at the asserted boundary and realized by the
+    # measured running angle at μ* ≈ 233 GeV.
     sin2_phi = PHI_INV ** 3
-    alpha_weak = PHI_INV / (4.0 * np.pi)  # φ⁻¹/(4π) ≈ 0.049
-    g = np.sqrt(4.0 * np.pi * alpha_weak / sin2_phi)
-    g_prime = np.sqrt(4.0 * np.pi * alpha_weak / (1.0 - sin2_phi))
-    # g'/g = tan θ_W with sin²θ_W = φ⁻³
+    alpha_gut = PHI_INV ** 3 / (4.0 * np.pi)
+    g = np.sqrt(4.0 * np.pi * alpha_gut / sin2_phi)
+    g_prime = np.sqrt(4.0 * np.pi * alpha_gut / (1.0 - sin2_phi))
+    # g'/g = tan θ_W is supplied by sin²θ_W = φ⁻³.
 
     bridge = CassiSU2Bridge(grid=grid, L=10.0, g=g, g_prime=g_prime)
 
@@ -960,10 +962,10 @@ if __name__ == '__main__':
         description='Cassi SU(2) Gauge Bridge—φ-Governed Weak Force',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-φ-predictions (GUT-scale boundary conditions):
-  sin²θ_W = φ⁻³ ≈ 0.236  (experiment at Z-pole: 0.231; RG running closes gap)
+φ-point boundary and measured comparison:
+  sin²θ_W = φ⁻³ ≈ 0.236  (exact at μ* ≈ 233 GeV; +2.1% at the Z-pole)
   m_W/m_Z = cos θ_W ≈ 0.874  (measured: 80.4/91.2 ≈ 0.882; FCC-ee testable)
-  α_GUT = φ⁻³/(4π) ≈ 1/53
+  α_GUT = φ⁻³/(4π) ≈ 1/53  (the bridge supplies this boundary ratio as input)
         """)
     parser.add_argument('--grid', type=int, default=32, help='Grid points per dimension')
     parser.add_argument('--steps', type=int, default=100, help='Number of time steps')
@@ -977,12 +979,12 @@ if __name__ == '__main__':
         g = args.g
         g_prime = args.g_prime if args.g_prime is not None else g * 0.5
     else:
-        # φ-scaled couplings (matching run_electroweak.py)
-        alpha_weak = PHI_INV / (4.0 * np.pi)  # φ⁻¹/(4π) ≈ 0.049
+        # φ-scaled couplings at the asserted boundary: common α_GUT normalization.
+        alpha_gut = PHI_INV ** 3 / (4.0 * np.pi)
         sin2 = PHI_INV ** 3          # sin²θ_W = φ⁻³ ≈ 0.236
         cos2 = 1.0 - sin2
-        g = np.sqrt(4.0 * np.pi * alpha_weak / sin2)
-        g_prime = np.sqrt(4.0 * np.pi * alpha_weak / cos2)
+        g = np.sqrt(4.0 * np.pi * alpha_gut / sin2)
+        g_prime = np.sqrt(4.0 * np.pi * alpha_gut / cos2)
     bridge = CassiSU2Bridge(grid=args.grid, L=10.0, g=g, g_prime=g_prime)
 
     if args.test:

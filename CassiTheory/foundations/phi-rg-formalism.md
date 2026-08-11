@@ -167,11 +167,14 @@ At the GUT scale, the gauge couplings would unify with $\alpha_{\text{GUT}} = \v
 
 $$\sin^2\theta_W = \frac{g'^2}{g^2 + g'^2}$$
 
-In the Cassi SU(2)$_L \times$ U(1)$_Y$ embedding, the ratio $g'/g$ is set by the Yang/Yin VEV asymmetry:
-
-$$\sin^2\theta_W = \varphi^{-3} \approx 0.236$$
-
-The measured value at $m_Z$ is $0.23122(4)$: the φ-point value overshoots by $2.1\%$, and the running MS-bar angle equals $\varphi^{-3}$ at $\mu_* \approx 233$ GeV. The angle runs **upward** with energy (toward $3/8$ at $10^{16}$–$10^{17}$ GeV), so the fixed-point value is an IR-measurement statement at $m_Z$–233 GeV, not a GUT-scale boundary condition.
+The value $\sin^2\theta_W = \varphi^{-3}$ is an asserted boundary assignment
+equivalent to $(g/g')^2 = 2\varphi$. The $\varphi$-attractor fixes the VEV
+component ratio, while the present gauge action leaves the two kinetic
+normalizations independent. The curvature–orbit candidate and its missing
+normalization rule are documented in
+`standard-model/su2-gauge-extension.md` §3.2.1. The measured value at $m_Z$
+is $0.23122(4)$; the running MS-bar angle crosses $\varphi^{-3}$ at
+$\mu_* \approx 233$ GeV.
 
 ### 4.3 Qi-Gravity Coupling $\xi = \varphi^6$
 

@@ -1,15 +1,16 @@
 # SU(2) × U(1) Gauge Extension of the Cassi Two-Fluid
 
-## Status: Derived—July 2026
+## Status: Derived gauge algebra and mass matrix; Hypothesized coupling-normalization candidate with asserted Weinberg boundary—August 2026
 
 ## Abstract
 
 The two-fluid's U(1) ≅ SO(2) internal rotation is promoted to an SU(2)
-isospinor doublet whose $\varphi$-equilibrium VEV ($E_Y/E_I = \varphi$) anchors
-the Weinberg angle through the coupling-ratio identity
-$\sin^2\theta_W = 1/(1+2\varphi) = \varphi^{-3} \approx 0.236$ (asserted
-boundary condition, §3.2; realized at $\mu_* = 233$ GeV) and the mass
-ratio $m_W/m_Z = \sqrt{1-\varphi^{-3}} \approx 0.874$—2.1% and 0.82% from the
+isospinor doublet whose $\varphi$-equilibrium VEV ($E_Y/E_I = \varphi$) supplies the
+fixed-point imbalance $\alpha_0 = \varphi^{-3}$. The exact identity
+$\sin^2\theta_W = 1/(1+2\varphi) = \varphi^{-3} \iff (g/g')^2 = 2\varphi$ is an
+asserted boundary condition; §3.2.1 tests the strongest curvature-orbit
+normalization candidate and identifies the missing action-level bridge. The
+mass ratio $m_W/m_Z = \sqrt{1-\varphi^{-3}} \approx 0.874$—2.1% and 0.82% from the
 Z-pole values, testable at FCC-ee at $>100\sigma$. The document derives the
 neutral-boson mass matrix, the SU(3) color extension, and the
 $\varphi$-scaled fermion hierarchy. The RG running from the GUT scale is
@@ -74,37 +75,55 @@ $$
 \langle \Psi \rangle = \frac{v}{\sqrt{\varphi+1}} \begin{pmatrix} \sqrt{\varphi} \\ 1 \end{pmatrix}
 $$
 
-The neutral gauge boson mass matrix comes from $|D_\mu \langle\Psi\rangle|^2$:
+The fixed-point VEV is written in a gauge where both $W^1$ and $W^3$ can mix
+with $B$. Let $T_a = \sigma_a/2$, $Y=I_2/2$, and
+$n = (\sqrt{\varphi},1)^T/\sqrt{\varphi+1}$. The relevant expectation values are
 
 $$
-|D_\mu \langle\Psi\rangle|^2 = \frac{v^2}{\varphi+1}\Big[
-\varphi\big(\tfrac{g}{2}W_\mu^3 + \tfrac{g'}{2}B_\mu\big)^2 +
-\big(-\tfrac{g}{2}W_\mu^3 + \tfrac{g'}{2}B_\mu\big)^2
-\Big]
+\langle T_1\rangle_n = \frac{\sqrt{\varphi}}{\varphi+1},
+\qquad \langle T_2\rangle_n = 0,
+\qquad \langle T_3\rangle_n = \frac{\varphi-1}{2(\varphi+1)}.
 $$
 
-Expanding:
+Define
 
 $$
-\begin{aligned}
-&= \frac{v^2}{\varphi+1}\Big[
-\varphi\big(\tfrac{g^2}{4}(W^3)^2 + \tfrac{g'^2}{4}B^2 + \tfrac{gg'}{2}W^3B\big) \\
-&\qquad\qquad + \big(\tfrac{g^2}{4}(W^3)^2 + \tfrac{g'^2}{4}B^2 - \tfrac{gg'}{2}W^3B\big)
-\Big] \\[4pt]
-&= v^2\Big[
-\frac{g^2}{4}(W^3)^2 + \frac{g'^2}{4}B^2 +
-\underbrace{\frac{\varphi-1}{\varphi+1}}_{\varphi^{-3}} \frac{gg'}{2}W^3B
-\Big]
-\end{aligned}
+a \equiv \frac{2\sqrt{\varphi}}{\varphi+1},
+\qquad \kappa \equiv \frac{\varphi-1}{\varphi+1} = \varphi^{-3}.
 $$
 
-The neutral mixing term is therefore:
+The complete gauge-boson mass matrix in the $(W^1,W^2,W^3,B)$ basis, in
+$v^2/4$ units, is
 
 $$
-M^2_{3B} = \frac{\varphi-1}{\varphi+1} \cdot \frac{gg' v^2}{2} = \varphi^{-3} \frac{gg' v^2}{2}
+M^2 = \frac{v^2}{4}
+\begin{pmatrix}
+g^2 & 0 & 0 & a gg' \\
+0 & g^2 & 0 & 0 \\
+0 & 0 & g^2 & \kappa gg' \\
+a gg' & 0 & \kappa gg' & g'^2
+\end{pmatrix}.
 $$
 
-The coefficient $\dfrac{\varphi-1}{\varphi+1} = \varphi^{-3}$ is the **Yang/Yin asymmetry ratio**—it measures how the VEV is split between the upper (Yang) and lower (Yin) components. It sets the off-diagonal element of the mass matrix; it does not by itself fix the mixing angle, which is determined by the diagonal ratio $g'^2/(g^2+g'^2)$ (§3.2).
+The two fixed-point coefficients satisfy
+
+$$
+a^2 + \kappa^2
+= \frac{4\varphi + (\varphi-1)^2}{(\varphi+1)^2} = 1.
+$$
+
+Consequently the spectrum is
+
+$$
+\operatorname{spec}(M^2) = \frac{v^2}{4}\{g^2,g^2,0,g^2+g'^2\}.
+$$
+
+The photon null vector is proportional to $(g'a,0,g'\kappa,-g)$, and the
+orthogonal SU(2) direction $aW^1+\kappa W^3$ mixes with $B$ through the usual
+$2\times2$ matrix. The physical angle therefore remains
+$\sin^2\theta_W = g'^2/(g^2+g'^2)$. The $\varphi$-VEV rotates the SU(2) axis
+that participates in neutral mixing; it supplies no equation for the relative
+gauge coupling.
 
 ### 3.2 The Weinberg Angle as a Coupling-Ratio Identity
 
@@ -119,16 +138,64 @@ $$
 
 The steps use the Fibonacci identity $\varphi^3 = 2\varphi + 1$ (so $\varphi^3 - 1 = 2\varphi$) and the equivalent forms $\varphi^{-3} = 1/(2\varphi+1) = (\varphi-1)/(\varphi+1)$. The boundary condition is thus the coupling-ratio identity $(g/g')^2 = 2\varphi$, equivalently $\sin^2\theta_W = 1/(1+2\varphi)$. Verified numerically (`computations/weinberg_phi_identity.py`): $\varphi^{-3} = 0.236068$, $\tan^2\theta_W = 0.309017 = \varphi^{-1}/2$, $g'/g = \sqrt{1/(2\varphi)} = 0.5559$; the measured Z-pole value $g'/g = \sqrt{0.23122/0.76878} = 0.5484$ sits $+1.36\%$ below it (equivalently $\sin^2\theta_W$ $+2.10\%$ above $0.23122$).
 
-**The VEV-asymmetry rotation does not produce this angle.** The neutral mass matrix from §3.1 is, dividing out $v^2/4$,
+The full matrix in §3.1 supplies the gauge-consistent neutral sector. Since
+$a^2+\kappa^2=1$, its spectrum is
 
 $$
-M^2 = \frac{v^2}{4}\begin{pmatrix} g^2 & 2\kappa\,gg' \\ 2\kappa\,gg' & g'^2 \end{pmatrix},
-\qquad \kappa = \frac{\varphi-1}{\varphi+1} = \varphi^{-3} \approx 0.236
+\frac{v^2}{4}\{g^2,g^2,0,g^2+g'^2\},
 $$
 
-Three checks: (1) a massless photon requires $\det M^2 = 0$, i.e. $\kappa = 1/2$; with $\kappa = \varphi^{-3}$ the light eigenstate has mass squared $0.221\,g^2 v^2/4$—the "photon" is massive; (2) diagonalizing with the framework's own $g'/g = 0.556$ gives a Z-like eigenvector at $\sin^2\theta = 0.102$, not $0.236$—the eigen-angle is a function of $\kappa$ *and* $g'/g$ together, and equals $\tan^2\theta = 1/(2\varphi)$ only for $g'/g = 0.749$, incompatible with the value $0.556$ that the boundary condition itself implies; (3) the VEV asymmetry sets the off-diagonal coefficient only—the angle is fixed by the diagonal ratio. The coefficient $\kappa = \varphi^{-3}$ of §3.1 remains the Yang/Yin asymmetry ratio; it is not the mixing angle.
+with photon null vector $(g'a,0,g'\kappa,-g)$. The SU(2) direction
+$aW^1+\kappa W^3$ is the one that mixes with $B$, and its $2\times2$ matrix
+has the usual diagonal coupling ratio. The physical angle remains
+$\sin^2\theta_W = g'^2/(g^2+g'^2)$; the VEV orientation supplies the axis
+rotation and leaves the relative coupling undetermined. The full calculation
+is verified in `computations/weinberg_phi_identity.py`.
 
-**Status: asserted boundary condition; blocking step.** The assignment $\sin^2\theta_W = \varphi^{-3}$ is an **asserted boundary condition** (parameter-inventory class D-as-definition; the realized value at $\mu_* = 233$ GeV is Calibrated—Fit-Status Ledger row 490), exactly equivalent to the coupling-ratio identity $(g/g')^2 = 2\varphi$ at the $\varphi$-boundary. The unified Lagrangian (`foundations/unified-lagrangian.md` §4.2) *assigns* $g^2 = g'^2(1-\varphi^{-3})/\varphi^{-3} = 2\varphi\,g'^2$ at $M_{\text{GUT}}$; no dynamic in the two-fluid derives it. The candidate routes do not close: (a) the Wu Xing boundary $\alpha_{\text{GUT}} = \varphi^{-3}/(4\pi)$ applies equally to every gauge group, giving $g = g'$ and $\sin^2\theta_W = 1/2$; (b) the mass-matrix diagonalization above; (c) the neutral-sector mass-splitting ratio $(m_Z^2-m_W^2)/m_W^2 = g'^2/g^2$ restates the same identity and is circular; (d) no fine-structure route exists ($\alpha_{\text{EM}}^{-1} \approx 137$ has no $\varphi$-derivation in the repository). What would close the derivation: a mechanism in the two-fluid dynamics (the $\varphi$-attractor, the Qi gate, or the cascade) that fixes the U(1)$_Y$ boundary coupling relative to SU(2) at $g'^2 = g^2/(2\varphi)$—a dynamic that distinguishes the two gauge-kinetic normalizations by the factor $2\varphi = \varphi^3-1$. The "2" (two doublet components) and "$\varphi$" (the equilibrium ratio $E_Y/E_I = \varphi$) are both present in the doublet structure (`foundations/unified-lagrangian.md` §1.1–1.2), but no framework rule maps component counting onto coupling ratios; the $\varphi$-scale-invariance pattern (unified-lagrangian §9) is a counting summary, not a derivation.
+**Status: asserted boundary condition; blocking step.** The assignment
+$\sin^2\theta_W = \varphi^{-3}$ is exactly equivalent to
+$(g/g')^2 = 2\varphi$ at the $\varphi$-boundary. The unified Lagrangian
+assigns $g^2 = 2\varphi\,g'^2$ at its chosen normalization; the current action
+contains no mechanism relating the two gauge kinetic coefficients. Equal
+Wu Xing boundary values would give $g=g'$ and $\sin^2\theta_W=1/2$. The
+curvature–orbit candidate in §3.2.1 supplies a conditional route only after
+adding a field-space metric and an orbit-matching rule. The relative coupling
+normalization remains open.
+
+### 3.2.1 A Curvature–Orbit Closure Attempt
+
+The strongest two-fluid candidate uses the attractor's local restoring stiffness to normalize gauge orbits. Write
+$\Delta = \Psi_Y^2 - \varphi\Psi_I^2$ and
+$V_{\text{attr}} = \lambda\Delta^2/2$. At the fixed point, the diagonal curvatures are
+
+$$
+K_Y = \left.\frac{\partial^2 V_{\text{attr}}}{\partial\Psi_Y^2}\right|_* = 4\lambda\Psi_{Y,*}^2,
+\qquad
+K_I = \left.\frac{\partial^2 V_{\text{attr}}}{\partial\Psi_I^2}\right|_* = 4\lambda\varphi^2\Psi_{I,*}^2,
+\qquad \frac{K_I}{K_Y} = \varphi.
+$$
+
+Use $K_r = \operatorname{diag}(1,r)$, $T_a = \sigma_a/2$ for the three SU(2) generators, $Y = I_2/2$, and the normalized fixed-point VEV $\Psi_* \propto (\sqrt{\varphi},1)^T$. The orbit-cost ratio is
+
+$$
+R(r) = \frac{\sum_{a=1}^3 (T_a\Psi_*)^\dagger K_r(T_a\Psi_*)}{(Y\Psi_*)^\dagger K_r(Y\Psi_*)}
+     = \frac{2+\varphi+r(2\varphi+1)}{\varphi+r}.
+$$
+
+The equation $R(r)=2\varphi$ selects $r=\varphi$ exactly. If one adds the matching condition
+
+$$
+\frac{S_{\mathrm{SU(2)}}(K_\varphi)}{g^2} = \frac{S_Y(K_\varphi)}{g'^2},
+$$
+
+the asserted relation follows: $\boxed{(g/g')^2 = R(\varphi) = 2\varphi}$. This is a useful candidate because its $\varphi$ factor traces to the attractor curvature and its integer factor traces to the SU(2) orbit.
+
+The current action contains the identity field-space metric (`foundations/unified-lagrangian.md` §1.1) and independent gauge coefficients $1/g^2$ and $1/g'^2$ (§4.1). Its attractor potential singles out the Yang/Yin axes, so the SU(2) promotion requires a gauge-fixed or effective-potential interpretation. With the canonical metric, the full-generator ratio is $R(1)=3$; the transverse pair gives 2; other generator or hypercharge normalizations give different values. The action supplies no selection rule for the metric, generator subset, charge normalization, or orbit-matching condition. `computations/weinberg_coupling_origin_audit.py` verifies these counterfactuals. The curvature–orbit route is therefore a **Hypothesized candidate**, not a closure of the asserted boundary.
+
+The full mass matrix resolves the photon null direction for the displayed VEV; the
+remaining blocker is the action-level origin of the relative gauge coupling. A
+gauge-equivalent choice of VEV orientation gives the usual neutral basis, while
+the fixed-point asymmetry remains a field-space orientation.
 
 The coupling ratio follows from the boundary condition:
 
@@ -444,6 +511,8 @@ single $\phi$-power. See `standard-model/cp-violation.md` for the full derivatio
 ## References
 
 - `standard-model/sm-radiative-corrections.md`—full derivation of the loop corrections
+- `computations/weinberg_phi_identity.py`—full VEV mass matrix, photon null direction, and physical mixing angle
+- `computations/weinberg_coupling_origin_audit.py`—curvature–orbit candidate and action-level underdetermination audit
 - `standard-model/cp-violation.md`—CKM phase derivation
 - `standard-model/gut-embedding.md`—SU(5)/SO(10) embedding, proton decay
 - `standard-model/neutrino-mass.md`—seesaw primer and canonical spectrum

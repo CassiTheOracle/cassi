@@ -351,8 +351,11 @@ Sorted by detection likelihood (most definitive first):
   Their tiers differ: $w_0$ is **Calibrated** (ledger row 496); $\xi$'s rung
   identity, $\eta$'s exponent, $\varphi^3+1$, $n_s$'s $N_e$, and $r$ are
   **Mapped** or conditional (ledger rows 498, 481, 502, 501, 495); only the
-  $w = 5$ / gap / $\sin^2\theta_W$ forms carry the framework's full derivation
-  chain (see the note on $\sin^2\theta_W$ in §1).
+  $w = 5$ and gap forms carry a closed framework derivation; the $\sin^2\theta_W$
+  value is an exact $\varphi$ identity with an asserted coupling boundary. The
+  missing normalization bridge is documented in
+  `standard-model/su2-gauge-extension.md` §3.2.1; the full VEV mass matrix
+  retains the standard photon null direction.
 
 - **RG running is not fitting.** The running of the couplings between the
   φ-boundary and $m_Z$ is the Standard Model renormalization group, computed

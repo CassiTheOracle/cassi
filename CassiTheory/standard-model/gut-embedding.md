@@ -118,17 +118,20 @@ The gauge coupling matching at $M_{\text{GUT}}$ determines the Weinberg angle:
 
 $$\sin^2\theta_W(M_{\text{GUT}}) = \frac{3}{8}$$
 
-for minimal SU(5). The Cassi φ-fixed-point VEV asymmetry gives instead
+for minimal SU(5). Cassi uses
 
-$$\sin^2\theta_W = \phi^{-3} \approx 0.236$$
+$$\sin^2\theta_W = \varphi^{-3} \approx 0.236$$
 
-at the Z-pole scale: the measured MS-bar angle runs **upward** with energy,
-crossing $\varphi^{-3}$ at $\mu_* \approx 233$ GeV and reaching
+as an asserted electroweak boundary value. The full fixed-point VEV mass
+matrix preserves the photon null direction and leaves the physical angle
+controlled by the relative gauge coupling; the VEV orientation supplies no
+coupling-ratio derivation (`standard-model/su2-gauge-extension.md` §3.1–3.2.1).
+The measured MS-bar angle runs **upward** with energy, crossing
+$\varphi^{-3}$ at $\mu_* \approx 233$ GeV and reaching
 $\sin^2\theta_W \approx 0.42$ at $2 \times 10^{16}$ GeV under SM running
-(`standard-model/sm-radiative-corrections.md` §3.3). The running does not
-take $\varphi^{-3} = 0.236$ *down* to 0.231—the direction is opposite. The
-φ-point value is a 2.1% statement at $m_Z$, exact at 233 GeV; it is not a
-GUT-scale boundary condition.
+(`standard-model/sm-radiative-corrections.md` §3.3). The $\mu_*$ crossing is
+the measured-scale realization; it is distinct from a GUT-scale coupling
+assignment.
 
 ### 2.3 The SU(5) φ-Lagrangian
 
