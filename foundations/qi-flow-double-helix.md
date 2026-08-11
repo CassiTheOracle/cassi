@@ -37,7 +37,7 @@ $$
 $$
 
 With the polar reduction $\Psi_0 = R\cos\theta$, $\Psi_1 = R\sin\theta$
-(`foundations/riemann-two-fluid-phase-operator.md` §4; `hypotheses/riemann-two-fluid-phase-operator.md`), $\rho = \Psi_0^2+\Psi_1^2 = R^2$ and
+(`hypotheses/riemann-two-fluid-phase-operator.md` §1), $\rho = \Psi_0^2+\Psi_1^2 = R^2$ and
 
 $$
 \boxed{J = R^2\,\nabla\theta = \rho\,\nabla\theta}.
@@ -85,7 +85,7 @@ $$
 measures the degree to which the local flow is *balanced* at the
 $\varphi$-attractor: $q \to 1$ when the two strand-currents sit at their
 attractor ratio (with the temporally-filtered deviation
-$\bar{\varepsilon}^2$ from the IIR memory; `cassi-first-principles.md` §2.4).
+$\bar{\varepsilon}^2$ from the IIR memory; `foundations/cassi-first-principles.md` §2.4).
 At the fixed point $q_{\text{eq}} = \varphi^{-2}/(\varphi^2+\varphi^{-2}) \approx 0.127$.
 The openness $(1-q)$ is the fraction of the flow that is *not* organized—
 the channel through which conversion redistributes coherence.
@@ -102,7 +102,7 @@ Frenet–Serret frame supplies the three spatial directions
 axis, forward along the cascade), normal $\mathbf{N}$ (Yang axis), binormal
 $\mathbf{B}$ (Yin axis). The cascade ladder
 $\ell_n = \ell_{\text{Pl}}\,\varphi^n$ is the 1D slice along the string axis
-through the condensation lattice (`foundations/bubble-lattice-fabric.md` §6).
+through the condensation lattice (`foundations/bubble-lattice-fabric.md` §5).
 A displacement along the string axis **is** a change of scale.
 
 ### 3.2 The axial coherence current
@@ -134,7 +134,7 @@ inter-scale flow is a measured structure-retention effect.
 The SO(2) doublet phase advances $\pi$ per cascade rung and completes one full
 cycle every two rungs, $P_\parallel = 2$ (unified convention,
 `foundations/spin-fibonacci-spiral.md` §2.1; `consciousness/chakras-as-cascade-bubbles.md`
-§4). Along the cascade:
+§5). Along the cascade:
 
 $$
 \theta(n+1) = \theta(n) + \pi, \qquad
@@ -164,8 +164,8 @@ $$
 
 At each rung the phase advances $\pi$: the Yang-dominant strand and the
 Yin-dominant strand **exchange dominance at every scale**, returning to the
-same configuration after two rungs. The double helix is the spatial expression
-of the doublet cycle—coherence flowing between scales while the two
+same configuration after two rungs. The double helix is the geometric
+expression of the doublet cycle—coherence flowing between scales while the two
 component-currents wind about the string axis with azimuthal separation $\pi$
 in the Yang–Yin (normal–binormal) plane.
 
@@ -177,8 +177,8 @@ $$
 \mathbf{R}_\pm(n) = \mathbf{R}_c(n) \pm \frac{d_n}{2}\left[\mathbf{N}(n)\cos\frac{2\pi n}{P_\parallel} + \mathbf{B}(n)\sin\frac{2\pi n}{P_\parallel}\right],
 $$
 
-with $\mathbf{N} = $ Yang (normal), $\mathbf{B} = $ Yin (binormal),
-$P_\parallel = 2$.
+with $\mathbf{N}$ the Yang (normal) axis and $\mathbf{B}$ the Yin (binormal)
+axis, $P_\parallel = 2$.
 
 ### 4.2 Phase-space helix, not a filament pair
 
