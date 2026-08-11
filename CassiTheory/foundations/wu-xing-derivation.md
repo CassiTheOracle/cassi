@@ -1,6 +1,6 @@
 # Wu Xing Number $w = 5$: Derivation from Cascade Dynamics
 
-## Status: Derived (w = 5, gap, r₀) / Calibrated (w₀ via the DESI-anchored coupling form—ledger)—August 2026
+## Status: Derived conditional on (a) cycle sizes restricted to Fibonacci numbers and (b) the coherence postulate (w = 5, gap, r₀) / Calibrated (w₀ via the DESI-anchored coupling form—ledger)—August 2026
 
 ## Abstract
 
@@ -55,7 +55,7 @@ This is the per-rung damping in the signal-propagation regime: each rung damps n
 
 ### 2.4 The Coherence Criterion
 
-For a Wu Xing cycle of $w$ vertices (where $w = F_k$, a Fibonacci number) to maintain phase coherence across one complete cycle, the accumulated phase error after $w$ steps must not exceed the cascade signal strength at rung $w$.
+For a Wu Xing cycle of $w$ vertices (where $w = F_k$, a Fibonacci number—this restriction is an **assumption**: cycle sizes are limited to Fibonacci numbers on the "Fibonacci convergent hierarchy" motivation (`computations/pinch_point_modes.py`, candidate 2), which is "physically motivated but not derived from the PDE"; non-Fibonacci $w \in \{4, 6, 7\}$ are not screened by the criterion as stated) to maintain phase coherence across one complete cycle, the accumulated phase error after $w$ steps must not exceed the cascade signal strength at rung $w$.
 
 The accumulated phase error after one full cycle is the product of the per-step error and the number of steps:
 
@@ -156,7 +156,7 @@ Equivalently: $E_I/E_Y = 1/r_0 \approx 21.2$. Yin dominates Yang by a factor of 
 - Cascade attenuation $\varphi^{-N}$ over $N$ rungs (derived from two-fluid PDE signal regime)
 - The set of coherent Fibonacci cycles: $\{w : F_k \leq k\} = \{1, 2, 3, 5\}$
 - The set of $\varphi$-containing polygons: $\{n \geq 5\}$
-- Intersection: $w = 5$ uniquely
+- Intersection: $w = 5$ uniquely (conditional on the two inputs above: the Fibonacci-only cycle restriction and the coherence postulate)
 - The gap: $g = 1 - \varphi^{-5}$
 - The primordial ratio: $r_0 = \varphi^{-5}/(2 - \varphi^{-5})$
 

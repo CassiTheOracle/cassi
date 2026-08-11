@@ -57,7 +57,7 @@ $$
 \alpha_0 \equiv \frac{\pi}{\rho} = \frac{\varphi-1}{\varphi+1} = \varphi^{-3} \approx 0.236
 $$
 
-The equilibrium Yang fraction $\alpha_0 = \varphi^{-3}$ is universal—it appears in cosmology (dark energy), particle physics (weak mixing angle), and gravity (effective coupling).
+The fixed-point imbalance $\alpha_0 = \pi/\rho = \varphi^{-3}$ is universal—it appears in cosmology (dark energy), particle physics (weak mixing angle), and gravity (effective coupling). (The "equilibrium Yang fraction" label is Mapped—ledger row 500; the Yang fraction at equilibrium is $\varphi^{-1}$.)
 
 ### 1.3 Two-fluid PDE
 
@@ -256,10 +256,10 @@ normal ordering, no sterile state; the squared-mass ratio $\Delta m^2_{31}/\Delt
 | $\varphi$ | $1.618033989$ | Golden ratio | Postulate |
 | $\varphi^{-1}$ | $0.618033989$ | $= \varphi - 1$ | |
 | $\varphi^{-2}$ | $0.381966011$ | $= 1 - \varphi^{-1}$ | |
-| $\alpha_0 = \varphi^{-3}$ | $0.236067978$ | $= (\varphi-1)/(\varphi+1)$ | Equilibrium Yang fraction ($\pi/\rho$ at the fixed point) |
+| $\alpha_0 = \varphi^{-3}$ | $0.236067978$ | $= (\varphi-1)/(\varphi+1)$ | Fixed-point imbalance ($\pi/\rho$ at the fixed point; the Yang fraction itself is $\varphi^{-1}$—label Mapped, ledger row 500) |
 | $\xi = \varphi^6$ | $17.94427191$ | $= \varphi^5 + \varphi^4$ | Qi-gravity coupling |
 | $\sin^2\theta_W$ | $\varphi^{-3}$ | VEV ratio | Weak mixing angle (tree) |
-| $\alpha_{\text{GUT}}$ | $\varphi^{-3}/(4\pi)$ | Yang fraction / $4\pi$ | GUT coupling |
+| $\alpha_{\text{GUT}}$ | $\varphi^{-3}/(4\pi)$ | Fixed-point imbalance / $4\pi$ (asserted boundary condition) | GUT coupling |
 | $w_0$ | $-0.87$ | Two-fluid ODE ($\xi$ coupling) | `two-fluid/calibrate_initial_ratio_xi_v2.py` |
 | $\delta_{\text{CP}}$ | $\pi \cdot \varphi^{-2} \approx 1.199$ | CKM hierarchy via Yukawa diagonalisation | CP phase (CKM) |
 | $\lambda$ | $0.1$ (PDE) | PDE conversion rate, $\lambda = 1/(2w)$ with $w = 5$ derived (`foundations/dimensionful-constants-status.md` §2.1, `foundations/wu-xing-derivation.md`); the cosmological dark-energy rate is the separate dimensionful constant $\kappa_{\text{DE}} = 3\varphi^2 H_0$ | **Derived** |

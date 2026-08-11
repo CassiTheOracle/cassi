@@ -8,10 +8,11 @@ The triple-alpha process—the gateway to carbon and all heavier
 elements—depends on a resonance in $^{12}$C at 7.65 MeV (the Hoyle state),
 famously
 predicted by Fred Hoyle from the anthropic principle. In the Cassi framework,
-this resonance is not anthropic but structural: the Hoyle state sits exactly one
-cascade rung above the $^3\alpha$ threshold (7.27 MeV), and the 0.38 MeV gap
-corresponds to the rung energy spacing at the nuclear scale (cascade steps
-~82–88). The same mechanism predicts $\varphi$-periodic resonances across the
+this resonance is not anthropic but structural: the Hoyle state sits $0.38$ MeV
+above the $^3\alpha$ threshold (7.27 MeV)—about $0.084$ of a nuclear rung at
+the local rung spacing (~4.5 MeV at cascade steps ~82–88), i.e. a sub-rung
+offset, **not** "exactly one cascade rung above" ($7.27 \times \varphi = 11.76$
+MeV $\neq 7.65$ MeV). The same mechanism predicts $\varphi$-periodic resonances across the
 $\alpha$-cluster spectrum of light nuclei, with specific consequences for the
 $^{16}$O$(\alpha,\gamma)^{20}$Ne reaction rate—a major uncertainty in stellar
 helium burning.

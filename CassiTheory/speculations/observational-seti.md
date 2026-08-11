@@ -125,7 +125,7 @@ These are the **formal Cassi predictions**—already cataloged in `predictions/f
 
 **Mechanism:** The megacascade boundary (from `speculations/cascade-infrastructure.md` §4.2): our observable universe is one bubble in a larger lattice. The bubble boundary imprints on the largest angular scales.
 
-**Predicted observable:** A bubble-boundary axis in CMB temperature fluctuations—the triaxial boundary geometry at step 285 imprints a preferred axis (predicted dipole↔quadrupole alignment 12.2°) at $\ell < 5$, fading at larger $\ell$. The framework also predicts the quadrupole-octopole alignment and cold spot as boundary conditions.
+**Predicted observable:** A bubble-boundary axis in CMB temperature fluctuations—the triaxial boundary geometry at step 285 imprints a preferred axis (dipole↔quadrupole alignment 12.2°) at $\ell < 5$, fading at larger $\ell$. **Tier:** the 12.2° angle is **Calibrated** (computed from the measured CMB direction vectors; Fit-Status Ledger row added 2026-08-10) and the bubble-boundary mechanism is **Hypothesized** (boundary orientation fitted to the measured axis post-hoc)—see the catalog row and registry C10. The framework also predicts the quadrupole-octopole alignment and cold spot as boundary conditions.
 
 **Current data:** The axis is observed at 5.4σ (Planck). Alignment with the framework's predicted direction is ~1σ—suggestive but not conclusive. Simons Observatory and LiteBIRD will improve polarization measurements.
 
@@ -143,15 +143,20 @@ These are the **formal Cassi predictions**—already cataloged in `predictions/f
 
 **Discriminator:** Zero-parameter geometric prediction. No conventional void model predicts a universal 1.70 anisotropy.
 
-### 4.4 Ω_DM/Ω_b = φ³ + 1 (formal prediction)
+### 4.4 Ω_DM/Ω_b = φ³ + 1 (catalog row, Mapped)
 
-**Mechanism:** The baryon-to-dark ratio is set by the condensation threshold geometry.
-
-**Predicted observable:** $\Omega_{\text{DM}}/\Omega_b = \varphi^3 + 1 \approx 5.236$.
-
-**Current data:** Observed ratio $\approx 5.39$. Gap: 2.8%. Already the closest formal prediction to observation in the catalog.
-
-**Discriminator:** The prediction is a fixed number with zero free parameters; the measurement is now precise enough that the 2.8% gap is meaningful. If the gap closes with better data (CMB-S4, Euclid), the prediction strengthens; if it widens, it fails.
+**Mechanism:** The baryon-to-dark ratio is a label-level claim; no
+condensation-geometry arithmetic producing φ³+1 is shown (the "mechanism" is a
+one-line label).
+**Predicted observable:** $\Omega_{\text{DM}}/\Omega_b = \varphi^3 + 1 \approx 5.236$
+—**Mapped** (Fit-Status Ledger row 502): the $+1$ is a hand-added baryon-capture
+term selected from $\{\varphi^3, \xi, \varphi^2, \varphi^4, \varphi^3\pm1\}$ after
+$\varphi^3$ alone came in 21% low.
+**Current data:** Observed ratio $\approx 5.39$. Gap: 2.8%.
+**Discriminator:** The cataloged value is a fixed number; the 2.8% gap is
+meaningful only as a check of the fitted combination, not of a derived
+prediction. If the gap closes with better data (CMB-S4, Euclid), the
+combination survives; if it widens, it fails.
 
 ---
 

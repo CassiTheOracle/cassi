@@ -68,8 +68,7 @@ $$\cos^2\theta_W = 1 - \varphi^{-3} \approx 0.764$$
 | $\sin^2\theta_W$ | $\varphi^{-3} \approx 0.236$ | 0.23122 | +2.1% (at $\mu_* = 233$ GeV, exact) |
 | $\cos^2\theta_W$ | 0.764 | 0.769 | 0.993 |
 
-The origin of this prediction: the neutral boson mass matrix off-diagonal is
-proportional to the VEV asymmetry $(\varphi-1)/(\varphi+1) = \varphi^{-3}$.
+The origin of this prediction is stated as the neutral boson mass matrix off-diagonal being proportional to the VEV asymmetry $(\varphi-1)/(\varphi+1) = \varphi^{-3}$; that identification is an **asserted boundary condition**, not a derived diagonalization (a massless photon requires the off-diagonal coefficient $1/2$, and the matrix's own diagonalization does not yield $\varphi^{-3}$—see `standard-model/su2-gauge-extension.md` §3.2 status note).
 
 The weak mixing angle runs **upward** with energy (toward the unification
 value $3/8$), so the φ-point value is realized not at the GUT scale but one

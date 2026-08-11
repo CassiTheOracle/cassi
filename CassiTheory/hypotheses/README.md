@@ -24,7 +24,7 @@ domain is not enough—the contribution must be what Cassi *uniquely* adds.
 | # | Domain | Epistemic | Bridge | Document |
 |---|--------|-----------|--------|----------|
 | 1 | Nuclear magic numbers | Hypothesized | Fibonacci sub-channel closure in cascade steps 80–95 | `nuclear-magic-numbers.md` |
-| 2 | Hoyle state / stellar nucleosynthesis | Hypothesized | Cascade rung resonance at $^3\alpha$ threshold | `hoyle-state-nucleosynthesis.md` |
+| 2 | Hoyle state / stellar nucleosynthesis | Hypothesized | Sub-rung offset at the $^3\alpha$ threshold (0.084 rungs, not a full rung) | `hoyle-state-nucleosynthesis.md` |
 | 3 | Quasicrystal stability | Speculative | De-resonance + cascade suppression against crystallization | `quasicrystal-stability.md` |
 | 4 | Exoplanet $\varphi$-spacing | Hypothesized | Wake-wave interference in protoplanetary disks | `exoplanet-phi-spacing.md` |
 | 5 | Neural criticality / cascade brain | Hypothesized | Cascade PDE operating at neural scales | `neural-criticality.md` |

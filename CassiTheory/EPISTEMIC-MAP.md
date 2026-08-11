@@ -51,7 +51,7 @@ Tiers below are taken from each document's Status header. Compound headers are q
 | `standard-model/cp-violation.md` | Derived (δ_CKM Mapped—ledger; Jarlskog invariant not reproduced) | CKM phase $\pi\varphi^{-2}$ |
 | `particles/cassi-yang-yin-particles.md` | Derived | Particles as standing-wave interference; atomic $Z = 1$–$10$ |
 | `particles/dft-benchmarks.md` | Derived | DFT benchmark comparisons |
-| `cosmology/cosmology-from-phi.md` | Derived | $w_0 = -0.87$; dark energy from Qi gate (C1/T1) |
+| `cosmology/cosmology-from-phi.md` | Derived (formation, structure) / Calibrated ($w_0$ coupling form—ledger row 496) | $w_0 = -0.87$ (Calibrated baseline); dark energy machinery from Qi gate (C1/T1) |
 | `gravity/three-body-analytical.md` | Derived | Body-dependent coupling; mass evolution via conversion |
 | `turbulence/kolmogorov-from-phi.md` | Derived | Kolmogorov spectrum from $\varphi$ |
 

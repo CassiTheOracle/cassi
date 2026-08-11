@@ -94,7 +94,7 @@ $$
 | Running $dn_s/d\ln k$ | $-2/N_e^2 \approx -5\times10^{-4}$ | $-0.005 \pm 0.013$ |
 | E-foldings $N_e$ | $40$ (cascade steps 20--60) | $50$--$60$ |
 | Perturbation amplitude $\mathcal{P}_\zeta$ | $(H_{\text{inf}}^2)/(2\pi\dot\phi)^2 \approx 2\times10^{-9}$ | $2.1\times10^{-9}$ |
-| Inflation scale $M_{\text{inf}}$ | $\sqrt{\alpha_{\text{GUT}}}\,M_{\text{Pl}} \approx 3\times10^{16}$ GeV |—|
+| Inflation scale $M_{\text{inf}}$ | $\sqrt{\alpha_{\text{GUT}}}\,M_{\text{Pl}} \approx 1.7\times10^{18}$ GeV (with the repo's $\alpha_{\text{GUT}} = \varphi^{-3}/4\pi \approx 1/53$; the printed $3\times10^{16}$ GeV was an evaluation error—it would need $\alpha_{\text{GUT}} \approx 6\times10^{-6}$, and $3\times10^{16}$ GeV sits at rung $\approx 12.5$, not in the steps 20–60 window) |—|
 
 The spectral index $n_s = 0.9691$ matches Planck at the $1.0\sigma$ level as a closed form. The gate slow-roll trajectory does not reproduce it—$(n_s, r) = (0.813, 0.188)$ under 1 step = 1 e-fold, $(0.914, 0.060)$ with $N_e = 40$ literal (2026-08-06, `computations/slow_roll_trajectory.py`); $N_e = 40$ is a start-threshold choice (Mapped, ledger §10). The tensor ratio $r = \varphi^{-12} \approx 0.003$ is a Mapped fit; the trajectory's $r$ is excluded by the BK18 bound, and the two claimed numbers do not coexist on the trajectory.
 
@@ -109,8 +109,10 @@ $$
 The reheating temperature:
 
 $$
-T_{\text{reh}} = \left(\frac{30}{\pi^2 g_*}\right)^{1/4}\sqrt{\Gamma_{\text{reh}} M_{\text{Pl}}}
-\approx \sqrt{\lambda\varphi^{-2}}\,M_{\text{Pl}} \approx 10^{15}\text{ GeV}
+$$T_{\text{reh}} = \left(\frac{30}{\pi^2 g_*}\right)^{1/4}\sqrt{\Gamma_{\text{reh}} M_{\text{Pl}}}
+\approx \sqrt{\lambda\varphi^{-2}}\,M_{\text{Pl}} \approx 2.4\times10^{18}\ \text{GeV}$$
+
+with $\lambda = 0.1$ and $\varphi^{-2} \approx 0.382$ (the printed $10^{15}$ GeV was an evaluation error—it would need $\lambda \approx 10^{-8}$). The $\varphi^{-2}$ factor itself is an asserted scaling (no derived origin in this document set), and the conventional GUT reheating scale $\sim 10^{15}$ GeV does not follow from the formula with the framework's own $\lambda$.
 $$
 
 This sets the initial temperature for the hot Big Bang.
@@ -146,10 +148,10 @@ $$
 B = \frac{28}{79}(B-L) \quad \text{(SM with one Higgs doublet)}
 $$
 
-The baryon-to-photon ratio is fixed by the cascade freeze-out derivation (`foundations/baryon-asymmetry.md`): the residual Yang excess after organized annihilation is attenuated through 44 rungs of photon-producing conversion (steps 8 → 52) to
+The baryon-to-photon ratio is the ledgered Mapped value (`foundations/baryon-asymmetry.md`; Fit-Status Ledger row 481): the residual Yang excess after organized annihilation is attenuated through 44 rungs of photon-producing conversion, but the freeze-out-step construction (steps 8 → 52) does not close with the corrected GUT anchor ($60 - 13.3 = 46.7$, dilution span $33.4 \neq 44$), so the exponent $-44$ is a fit to the observed value, not a derivation. The mechanism (Wu Xing gap + organized annihilation + cascade dilution) is Hypothesized:
 
 $$
-\boxed{\eta = \varphi^{-44} \approx 6.38 \times 10^{-10}}
+\boxed{\eta = \varphi^{-44} \approx 6.38 \times 10^{-10}}$$
 $$
 
 **Observed:** $\eta = 6.0 \times 10^{-10}$
@@ -183,7 +185,7 @@ No additional CP-violating phases beyond the Standard Model are needed. The $\va
 The two-fluid can form stable, coherent condensates—regions where the Qi quality $q \to 1$ and the Yang/Yin ratio is at the $\varphi$-attractor. These condensates:
 
 - **Are dark**: They are pure two-fluid field, not baryonic matter. No electromagnetic interaction.
-- **Are gravitationally active**: $G_{\text{eff}} = G\,(\pi/\rho)(1+(\varphi^{6}-1)q)$ with $\xi = \varphi^6 \approx 17.944$; at the $\varphi$-fixed point the geometric factor is the equilibrium Yang fraction $\alpha_0 = \pi/\rho = \varphi^{-3} \approx 0.236$.
+- **Are gravitationally active**: $G_{\text{eff}} = G\,(\pi/\rho)(1+(\varphi^{6}-1)q)$ with $\xi = \varphi^6 \approx 17.944$; at the $\varphi$-fixed point the geometric factor is the imbalance $\alpha_0 = \pi/\rho = (\varphi-1)/(\varphi+1) = \varphi^{-3} \approx 0.236$ (the Yang fraction at equilibrium is $\varphi^{-1}$—ledger row 500 relabel).
 - **Are stable**: The $\varphi$-attractor maintains $r = \varphi$ and the PDE's dissipative terms damp perturbations.
 - **Are collisionless**: A field condensate passes through other matter without friction—consistent with the Bullet Cluster.
 
@@ -249,7 +251,7 @@ The Qi condensate naturally produces cored profiles (from the $\varphi$-attracto
 | $t \sim 1$ Gyr | Structure formation: $z \sim 3$ | $\Omega_{\text{DM}}/\Omega_b \approx \varphi^3 + 1$ |
 | $t \sim 13.8$ Gyr | Today: terminal attractor | $q \to 1$, $\pi/\rho \to 1$, $r \to \varphi$ |
 
-### 5.2 Parameter-Free Predictions
+### 5.2 Predictions
 
 | Observable | Cassi Prediction | Measurement | Gap |
 |-----------|-----------------|-------------|-----|
@@ -262,4 +264,4 @@ The Qi condensate naturally produces cored profiles (from the $\varphi$-attracto
 | DM direct detection | Null | Null (all expts) | Consistent |
 | DM self-interaction | Collisionless | Bullet Cluster | Consistent |
 
-Every prediction comes from $\varphi$ and the two-fluid PDE parameters $(\lambda, \chi, D)$—all independently fixed from the DESI dark energy calibration and the Wu Xing cycle. **Zero new free parameters** are introduced for inflation, baryogenesis, or dark matter.
+Every prediction comes from $\varphi$ and the two-fluid PDE parameters $(\lambda, \chi, D)$—all independently fixed from the DESI dark energy calibration and the Wu Xing cycle. **No new free parameters** are introduced for inflation, baryogenesis, or dark matter beyond the ledgered anchors flagged above (r, $N_e$, $\eta$, $\Omega_{\text{DM}}/\Omega_b$ are Mapped—rows 495, 501, 481, 502; $w_0$ is Calibrated—row 496).

@@ -24,7 +24,7 @@ $$\boxed{G_{\text{eff}}(x) = \frac{\pi}{\rho(x)}\left(1 + (\varphi^{6}-1)q(x)\ri
 
 where:
 - $q \in [0, 1]$ is the Qi coherence quality (derived from the two-fluid Yang/Yin ratio)
-- $\pi/\rho$ is the geometric dilution factor from the two-fluid projection onto 3D space; at the $\varphi$-fixed point it is the equilibrium Yang fraction $\alpha_0 = \varphi^{-3} \approx 0.236$
+- $\pi/\rho$ is the geometric dilution factor from the two-fluid projection onto 3D space; at the $\varphi$-fixed point it is the imbalance $\alpha_0 = (\varphi-1)/(\varphi+1) = \varphi^{-3} \approx 0.236$ (the "equilibrium Yang fraction" label is Mapped—ledger row 500; the Yang fraction itself is $\varphi^{-1}$)
 - $\xi = \varphi^6$ is the **derived** coupling (cascade activation at step 6, see `foundations/xi-derivation.md`)
 
 ### 2.2 Density Dependence of $q$
@@ -347,7 +347,7 @@ Existing data (BOSS/eBOSS) shows a mild ($\sim 1\text{–}2\sigma$) suppression 
 | $q_{0}$ ($z=0$) | $0.41$ (pipeline endpoint, $a = 1.80$; doctrine $r_0 = 1/23$, N=128 campaign) | PDE at $a = 1.80$ (2026-08-07) | From pipeline |
 | $r_0$ (growth-window IC) | $0.0472$ derived ($\varphi^{-5}/(2-\varphi^{-5})$, `foundations/wu-xing-derivation.md`); $1/23$ operational (DESI-anchored); the pipeline's $1/3$ non-doctrinal | Wu Xing derivation / DESI calibration | Derived / Calibrated |
 | $q_{\text{void}}$ | $\to 0$ | Condensation field geometric limit | Fixed |
-| $\langle\pi/\rho\rangle = \alpha_0$ at mean density | $\varphi^{-3} \approx 0.236$ | Derived (equilibrium Yang fraction $\alpha_0$) | Fixed |
+| $\langle\pi/\rho\rangle = \alpha_0$ at mean density | $\varphi^{-3} \approx 0.236$ | Derived (fixed-point imbalance; "Yang fraction" label Mapped—ledger row 500) | Fixed |
 | $\mu(k, a)$ | $(\pi/\rho(a))(1 + (\varphi^{6}-1)q(k, a))$ | Composite | **Computed from PDE** |
 | $q_{\text{MW halo}}$ | $\sim 0.7$ | Rotation curve fit ($v_C/v_B = 2.7$) | Independent calibration check |
 

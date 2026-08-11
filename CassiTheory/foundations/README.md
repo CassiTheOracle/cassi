@@ -73,7 +73,7 @@ States the postulate:
 
 $$\boxed{\varphi = \frac{1 + \sqrt{5}}{2} \approx 1.618033989}$$
 
-as the universal scale-separation constant, with every coupling, mass ratio, and cosmological parameter a $\varphi$-power and zero free parameters. Builds the two-fluid picture—the Yang/Yin doublet, energy densities $\rho = \Psi_0^2 + \Psi_1^2$, the Yang fraction $\pi/\rho$, the attractor potential $V_{\text{attr}} = (\lambda/2)(\Psi_0^2 - \varphi\Psi_1^2)^2$—and derives the equilibrium Yang fraction $\pi/\rho = \varphi^{-3} \approx 0.236$ that reappears in cosmology, particle physics, and gravity, plus Qi as coherence from asymmetry. Ends with the four-pillar validation status against observational data. Status: Derived.
+as the universal scale-separation constant, with every coupling, mass ratio, and cosmological parameter a $\varphi$-power and zero free parameters. Builds the two-fluid picture—the Yang/Yin doublet, energy densities $\rho = \Psi_0^2 + \Psi_1^2$, the Yang fraction $\pi/\rho$, the attractor potential $V_{\text{attr}} = (\lambda/2)(\Psi_0^2 - \varphi\Psi_1^2)^2$—and derives the fixed-point imbalance $\pi/\rho = \varphi^{-3} \approx 0.236$ (the Yang fraction at equilibrium is $\varphi^{-1}$; label Mapped, ledger row 500) that reappears in cosmology, particle physics, and gravity, plus Qi as coherence from asymmetry. Ends with the four-pillar validation status against observational data. Status: Derived.
 
 ### `cassi-theory-reference.md`—The Cassi Framework (Compact Reference)
 
@@ -205,7 +205,7 @@ Derives $\eta = n_b/n_\gamma \approx 6 \times 10^{-10}$ from two mechanisms alre
 
 $$\boxed{\eta \approx \varphi^{-44} \approx 6.38 \times 10^{-10}}$$
 
-matching the observed $6.0 \times 10^{-10}$ within 6.3%; freeze-out step 52 follows from the Wu Xing cycle and the Qi gate pinch ($52 = 60 - 8$). Status: Derived.
+matching the observed $6.0 \times 10^{-10}$ within 6.3%; the freeze-out-step construction $52 = 60 - 8$ does not close with the corrected GUT anchor ($60 - 13.3 = 46.7$, span $33.4 \neq 44$), so the exponent $-44$ is a ledgered fit (row 481) and the mechanism is Hypothesized. Status: Mapped (exponent) / Hypothesized (mechanism).
 
 ### `bubble-lattice-fabric.md`—The Bubble Lattice: Universal Organizing Geometry at Every Cascade Rung
 

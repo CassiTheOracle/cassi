@@ -170,7 +170,7 @@ When a stimulus is removed, the activated channel closes. Its coherence redistri
 
 All four are present at once. The subjective experience feels like a single "next" emotion because the dominant channel (joy at 44.7%) captures attention, but the other three channels color it—the joy after anger has a pensiveness-tinged, faintly regretful quality that pure joy (from a reward stimulus) lacks. The blend is why emotional aftereffects feel more complex than the primary emotion they follow.
 
-This is a **zero-parameter prediction** of the adiabatic redistribution formula. The proportions follow purely from the pentagon geometry: each channel receives a fraction proportional to its baseline openness $b_i = \varphi^{-(2+i)}$.
+This is a **zero-parameter prediction** of the adiabatic redistribution formula *given* the openness assignment: each channel receives a fraction proportional to its baseline openness $b_i = \varphi^{-(2+i)}$. The redistribution arithmetic itself (the $R_{ij} = b_j/\sum_{k\neq i} b_k$ formula) follows from the conservation law; the **openness ladder $b_i = \varphi^{-(2+i)}$ is the asserted step**—no dynamics or geometry in this document selects the exponent shift $(2+i)$, and the doc's own mechanism-realization note (§4.2) reports the solver realizes only the first row, approximately.
 
 The full 5 × 5 redistribution matrix $R_{ij}$ (fraction of coherence from closing channel $i$ that flows into channel $j$) is:
 
@@ -186,7 +186,7 @@ $$R = \begin{pmatrix}
 0.447 & 0.276 & 0.171 & 0.106 & 0
 \end{pmatrix}$$
 
-Each row $i$ gives the blend recipe when channel $i$ closes: the aftereffect is a simultaneous mixture of the four remaining channels in these exact proportions. Rows 1 and 5 contain identical fractions (shifted by one index): removing the strongest channel (Wood) and removing the weakest (Water) leave complementary sets with the same relative proportions. Rows 2 and 4 are distinct (the complementary sets are not proportional). Row 3 is unique. The entire matrix follows from $\varphi$ alone—no fitting, no psychological parameters.
+Each row $i$ gives the blend recipe when channel $i$ closes: the aftereffect is a simultaneous mixture of the four remaining channels in these exact proportions. Rows 1 and 5 contain identical fractions (shifted by one index): removing the strongest channel (Wood) and removing the weakest (Water) leave complementary sets with the same relative proportions. Rows 2 and 4 are distinct (the complementary sets are not proportional). Row 3 is unique. The matrix entries follow from the conservation law **plus the asserted openness ladder $b_i = \varphi^{-(2+i)}$**—no psychological parameters, but the ladder itself is the undemonstrated input (the exponent's origin is not shown; only the Wood-closure row is approximately realized in the solver, §4.2).
 
 The largest entry is $R_{21} = 0.567$: when joy subsides, anger receives the largest share of redistributed coherence, producing an aftereffect blend dominated by Wood-channel activation. The asymmetry is instructive: joy → anger-dominant blend (56.7% anger) is more intense than anger → joy-dominant blend (44.7% joy), because joy's closure leaves the strongest channel (Wood) in the pool to claim the largest fraction, while anger's closure removes it.
 

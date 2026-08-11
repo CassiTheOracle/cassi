@@ -285,7 +285,7 @@ $$
 \mathcal{C}_{\text{BH}} \sim \sum_{i=0}^{N_{\text{BH}}} \varphi^i \approx \varphi^{N_{\text{BH}}+1} \approx \varphi^{181} \sim 10^{38}
 $$
 
-This is $\mathcal{O}(M^2/M_{\text{Pl}}^2)$—consistent with the Bekenstein-Hawking entropy $S_{\text{BH}} = A/4G \sim M^2/M_{\text{Pl}}^2$—but here it is a **coherence capacity**, not a statistical entropy. The interior two-fluid condensate has enough coherent degrees of freedom to encode all information that fell into the black hole.
+**Arithmetic note:** as computed, $\mathcal{C}_{\text{BH}} \sim \varphi^{N+1} \sim \varphi \cdot (M/M_{\text{Pl}})$, which is $\mathcal{O}(M/M_{\text{Pl}}) \sim 10^{38}$ for a solar-mass hole—**not** $\mathcal{O}(M^2/M_{\text{Pl}}^2) \sim 10^{76}$—so the claim "consistent with the Bekenstein-Hawking entropy $S_{\text{BH}} = A/4G \sim M^2/M_{\text{Pl}}^2$" does not follow from the computed formula. Matching $S_{\text{BH}}$ would require an extra factor of $\sim \varphi^{N}$ in the capacity (e.g., per-rung weights $\varphi^i q_i$ counted over the full squared depth); the $\mathcal{O}(M^2/M_{\text{Pl}}^2)$ claim is corrected here to $\mathcal{O}(M/M_{\text{Pl}})$ for the formula as written, with the Bekenstein-Hawking correspondence open. The interior two-fluid condensate has enough coherent degrees of freedom to encode all information that fell into the black hole.
 
 **3. Trans-Planckian censorship.** Hawking's derivation of exactly thermal radiation requires modes with formation frequencies above the Planck scale. The two-fluid dispersion caps every mode frequency at $\omega_0 = M_{\text{Pl}}$ (§4.2), and the σ-regulator suppresses momenta beyond $1/\sigma = \varphi^3 M_{\text{Pl}}$—such modes do not exist. The correction to the thermal spectrum is:
 
@@ -302,7 +302,7 @@ For modes with $\omega \ll M_{\text{Pl}}$ (the dominant Hawking quanta for $M \g
 | Statement | Status | Evidence |
 |-----------|--------|----------|
 | Cassi QG S-matrix is unitary | **Proved** | σ-regulator is positive-definite; optical theorem holds |
-| BH information capacity matches Bekenstein-Hawking | **Derived** | Cascade coherence budget gives $\mathcal{C} \sim M^2/M_{\text{Pl}}^2$ |
+| BH information capacity vs Bekenstein-Hawking | **Open (arithmetic corrected)** | The computed $\mathcal{C} \sim \varphi^{N+1} \sim M/M_{\text{Pl}}$ is not $O(M^2/M_{\text{Pl}}^2)$; the $S_{\text{BH}}$ correspondence needs an additional $\sim\varphi^N$ factor (§7.5) |
 | Hawking flux is not exactly thermal | **Proved (σ-regulator)** | Trans-Planckian modes absent; $\Delta N_k/N_k \sim e^{-\omega^2/\varphi^6 M_{\text{Pl}}^2}$ |
 | Page curve is unitary (final state pure) | **Hypothesized** | Follows from S-matrix unitarity + capacity bound |
 | Full Page curve from two-fluid PDE | **Requires computation** | Needs curved-spacetime PDE solver (§7.4) |

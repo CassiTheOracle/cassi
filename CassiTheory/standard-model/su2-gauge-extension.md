@@ -116,7 +116,7 @@ $$
 \boxed{\sin^2\theta_W = \frac{\varphi-1}{\varphi+1} = \varphi^{-3} \approx 0.23607}
 $$
 
-**Justification:** The off-diagonal term $M^2_{3B}$ in the neutral mass matrix is proportional to the VEV asymmetry. Diagonalizing the full mass matrix gives a mixing angle whose sine-squared is the asymmetry itself. This is the **gauge kinetic counterpart** of the Wu Xing coupling principle: every dimensionless ratio in the theory is a $\varphi$-power determined by the two-fluid equilibrium structure.
+**Status of the identification:** the $\varphi^{-3}$ assignment is an **asserted boundary condition** (parameter-inventory class D-as-definition), not a consequence of the displayed mass matrix. Three checks: (1) in the Standard Model the Weinberg angle is set by the *diagonal* entries' ratio, $g'^2/(g^2+g'^2)$, not by the off-diagonal; (2) the matrix above has a massless photon only if the off-diagonal coefficient equals $1/2$ (determinant zero at $\kappa = 1/2$)—with $\kappa = \varphi^{-3} \approx 0.236$ the "photon" is massive, so the diagonalization does not reproduce $\sin^2\theta_W = \varphi^{-3}$ as written (the doc's own $g'/g = 0.556$ gives $\sin^2\theta \approx 0.10$ from the same matrix); (3) the tree value $\varphi^{-3} = 0.23607$ sits $+2.1\%$ above the measured $\sin^2\theta_W(m_Z)$ and equals the measured running angle only at $\mu_* = 233$ GeV—the Calibrated re-anchoring scale, not a prediction (Fit-Status Ledger row 490). The identification is the framework's gauge-kinetic counterpart of the Wu Xing coupling principle in name; the exponent 3 has no derived dynamic or geometric origin in this document set.
 
 The coupling ratio follows:
 

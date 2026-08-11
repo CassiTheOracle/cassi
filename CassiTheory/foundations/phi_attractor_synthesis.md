@@ -22,7 +22,7 @@ The classical three-body problem has no general closed-form solution (Poincare, 
 Cassi modifies standard Newtonian gravity in three ways:
 1. **Gaussian force softening** with length scale $\sigma$, regularizing the $1/r^2$ singularity.
 2. **$\varphi$-attractor damping**: velocities are updated as $\mathbf{v} \leftarrow d \cdot \mathbf{v} + \mathbf{a} \cdot dt$, where $d = \varphi^{-1} \approx 0.618$ is the canonical damping rate.
-3. **Qi-coherence-enhanced gravity**: $G_{\text{eff}}/G = \alpha\,(1 + (\varphi^{6}-1)q)$, where $\alpha = \pi/\rho$ is the local Yang fraction ($\alpha_0 = \varphi^{-3} \approx 0.236$ at the $\varphi$-fixed point), $\xi = \varphi^6 \approx 17.944$ and $q \in [0,1]$ measures local coherence.
+3. **Qi-coherence-enhanced gravity**: $G_{\text{eff}}/G = \alpha\,(1 + (\varphi^{6}-1)q)$, where $\alpha = \pi/\rho$ is the local imbalance (the "Yang fraction" label is Mapped—ledger row 500; $\alpha_0 = \pi/\rho = (\varphi-1)/(\varphi+1) = \varphi^{-3} \approx 0.236$ at the $\varphi$-fixed point), $\xi = \varphi^6 \approx 17.944$ and $q \in [0,1]$ measures local coherence.
 
 These modifications break the scale-free structure of Newtonian gravity, potentially introducing new integrals of motion or modifying the chaotic phase space. The analytical consequences are explored systematically below.
 
@@ -73,7 +73,7 @@ $$\frac{G_{\text{eff}}}{G} = \frac{\pi}{\rho}\left(1 + (\varphi^{6}-1)q\right), 
 
 where $\pi/\rho$ is the local Yang fraction ($\alpha_0 = \pi/\rho = \varphi^{-3} \approx 0.236$ at the $\varphi$-fixed point; $\alpha_{\text{halo}} \approx 0.7$ in the galactic halo regime), $\xi = \varphi^6$ is the derived coupling constant arising from the six-dimensional phase-space structure, and $q$ is the Qi coherence factor (Section 2.3).
 
-Maximum enhancement at the $\varphi$-fixed point (equilibrium Yang fraction $\alpha_0 = \pi/\rho = \varphi^{-3} \approx 0.236$, $q \approx 0.7$):
+Maximum enhancement at the $\varphi$-fixed point (fixed-point imbalance $\alpha_0 = \pi/\rho = (\varphi-1)/(\varphi+1) = \varphi^{-3} \approx 0.236$—the "equilibrium Yang fraction" label is Mapped, ledger row 500; $q \approx 0.7$):
 
 $$\frac{G_{\text{eff}}}{G} \approx 0.236 \times (1 + 16.944 \times 0.7) \approx 3.0\times$$
 

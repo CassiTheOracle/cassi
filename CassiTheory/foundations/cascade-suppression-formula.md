@@ -102,7 +102,7 @@ compound to $\varphi^{-4506}$ (see `foundations/proton-coherence-budget.md`).
 
 | Phenomenon | Regime | Seed at cascade rung | Target rung | Span $N$ | $\mathcal{D}$ | Result | Status |
 |---|---|---|---|---|---|---|---|
-| **Hierarchy** ($v_0/M_{\text{Pl}}$) | Signal | $n_{\text{GUT}} \approx 8$ | $n_{\text{EW}} \approx 80$ | $72$ | $\varphi^{-72}$ | $10^{-15}$ (cf. $10^{-17}$) | Derived |
+| **Hierarchy** ($v_0/M_{\text{Pl}}$) | Signal | $n_{\text{GUT}} \approx 13.3$ (corrected anchor) | $n_{\text{EW}} \approx 80$ | $66.7$ | $\varphi^{-66.7}$ | $10^{-14}$ (cf. $10^{-17}$; the $N \approx 80$ consistency check of `foundations/dimensionful-cascade.md` §2.1 uses the gap factor $g$) | Derived; exponent **Mapped** (ledger row 499) |
 | **Strong CP** ($\bar{\theta}$) | Signal | $n_{\text{GUT}} \approx 13.3$ | $n_{\text{QCD}} = 94.7$ | $81.4$ | $\varphi^{-81.4}$ | $\bar{\theta} \approx 1.2\times10^{-17}$ | Derived |
 | **Neutrino masses** | Signal | $n_{\text{GUT}} \approx 8$ | $n_{\text{seesaw}} \approx 20$ (or $n_\nu$) | $12$–$25$ | $\varphi^{-12}$ to $\varphi^{-25}$ | $m_\nu \sim 0.001$–$0.1$ eV | Hypothesized |
 | **Proton stability** | Coherence | $n=0$ (Planck) | $n = 91.5$ (proton rung) | $91.5^2$ form | $\varphi^{-4506}$ | $\tau_p \approx 10^{910}$ yr | Derived |

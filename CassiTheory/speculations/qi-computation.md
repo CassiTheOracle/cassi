@@ -162,10 +162,10 @@ A cascade-spanning computer has **φ-spaced clock domains**: each rung operates 
 | 95 | QCD | $4.5 \times 10^{-24}$ | Nuclear | Ultrafast parallel processing; immense parallelism in nuclear volume |
 | 117 | Atomic | $1.8 \times 10^{-19}$ | Electronic | Conventional electronics operates here; single-rung domain |
 | 136 | Visible light | $1.7 \times 10^{-15}$ | Optical | Photonic computation; inter-chip communication |
-| 150 | Cellular | $3.7 \times 10^{-10}$ | Biological | Cellular signal processing; ~GHz effective clock |
+| 150 | Sub-millimeter ($\ell_{150} \approx 3.6\times10^{-4}$ m; cellular scale is rung 142) | $1.2 \times 10^{-12}$ | Biological | Cellular signal processing; ~GHz effective clock |
 | 168 | Human | $5.7 \times 10^{-9}$ | Neural | Conscious experience; ~100 MHz effective clock for integrated percepts |
 | 200 | Planetary | $4.4 \times 10^{-2}$ | Geophysical | Mantle convection timescale; ~Hz planetary "thought" |
-| 250 | Interstellar | $4.7 \times 10^{5}$ | Galactic | ~days; stellar gate processing |
+| 250 | Interstellar ($\ell_{250} \approx 2.9\times10^{17}$ m) | $9.6 \times 10^{8}$ (~30 yr) | Galactic | ~decades; stellar gate processing |
 | 292 | Hubble (today's horizon rung) | $5.7 \times 10^{17}$ | Cosmic | Age of the universe; one "cycle" so far |
 
 ### 4.2 Hierarchical integration

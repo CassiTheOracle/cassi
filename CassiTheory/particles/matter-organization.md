@@ -54,7 +54,7 @@ The two-fluid doublet has a U(1) ≅ SO(2) internal symmetry—rotation between 
 
 $$\langle\Psi\rangle = \frac{v_0}{\sqrt{\varphi+1}}\begin{pmatrix}\sqrt{\varphi} \\ 1\end{pmatrix},$$
 
-and the Weinberg angle is the Yang/Yin asymmetry projected onto the neutral sector:
+and the Weinberg angle is identified with the Yang/Yin asymmetry projected onto the neutral sector (asserted boundary condition, not a derived diagonalization—see `standard-model/su2-gauge-extension.md` §3.2):
 
 $$\boxed{\sin^2\theta_W = \frac{\varphi-1}{\varphi+1} = \varphi^{-3} \approx 0.236}$$
 

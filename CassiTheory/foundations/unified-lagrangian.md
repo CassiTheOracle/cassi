@@ -23,7 +23,7 @@ All dimensionless parameters are $\varphi$-powers:
 | $\varphi = (1+\sqrt{5})/2$ | $1.618033989$ | Golden ratio (mathematical constant) |
 | $\varphi^{-1}$ | $0.618033989$ | $= \varphi - 1$ |
 | $\varphi^{-2}$ | $0.381966011$ | $= 1 - \varphi^{-1}$ |
-| $\alpha_0 = \varphi^{-3}$ | $0.236067978$ | $= (\varphi-1)/(\varphi+1)$—equilibrium Yang fraction (VEV asymmetry) |
+| $\alpha_0 = \varphi^{-3}$ | $0.236067978$ | $= (\varphi-1)/(\varphi+1)$—fixed-point imbalance (the Yang fraction is $\varphi^{-1}$; label Mapped, ledger row 500) |
 | $\varphi^{6}$ | $17.94427191$ | $= \varphi^5 + \varphi^4$—Qi-gravity coupling |
 | $\varphi^{4}$ | $6.854101966$ | Four-interaction scale |
 | $\varphi^{5}$ | $11.09016994$ | Wu Xing cycle scale |
@@ -535,9 +535,9 @@ All dimensionless couplings in the action are derived; the three dimensionful co
 | $\varphi$ | $(1+\sqrt{5})/2$ | $1.618033989$ | Mathematical constant |
 | $\varphi^{-1}$ | $1/\varphi$ | $0.618033989$ | Derived |
 | $\varphi^{-2}$ | $1/\varphi^2$ | $0.381966011$ | Derived |
-| $\alpha_0 = \varphi^{-3}$ | $(\varphi-1)/(\varphi+1)$ | $0.236067978$ | Derived (equilibrium Yang fraction; VEV asymmetry) |
+| $\alpha_0 = \varphi^{-3}$ | $(\varphi-1)/(\varphi+1)$ | $0.236067978$ | Derived (fixed-point imbalance; VEV asymmetry; the "Yang fraction" label is Mapped—ledger row 500) |
 | $\xi$ | $\varphi^6 = \varphi^5 + \varphi^4$ | $17.94427191$ | **Derived** |
-| $\sin^2\theta_W$ | $\varphi^{-3}$ | $0.236$ (at $\mu_* = 233$ GeV; +2.1% at $m_Z$) | **Derived** |
+| $\sin^2\theta_W$ | $\varphi^{-3}$ | $0.236$ (at $\mu_* = 233$ GeV; +2.1% at $m_Z$) | Asserted boundary condition (realized at $\mu_*$; Calibrated—ledger row 490) |
 | $\alpha_{\text{GUT}}$ | $\varphi^{-3}/(4\pi)$ | $1/53$ | **Derived** |
 | $m_W/m_Z$ | $\sqrt{1-\varphi^{-3}}$ | $0.874$ | **Prediction** |
 | $H_{\text{empty}}$ | $\lambda\varphi^{-2}/3$ |—| **Asserted** (postulate): the 1/3 is the 3D continuity reading; T₀₀ at equilibrium gives 0 or (g/4)φ², never λφ⁻²/3; Lagrangian derivation open |

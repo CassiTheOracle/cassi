@@ -356,13 +356,16 @@ $\varphi^{-2} = 0.382$ turns per H-rung (08).
 
 ### 6.2 Gravitational coupling from cascade depth
 
-The prediction $\alpha_G \propto \varphi^{-2n}$ is verified analytically:
-for a proton ($n \approx 91.5$), $\varphi^{-183} \approx 5.9 \times 10^{-39}$
-matches the observed $\alpha_G = G m_p^2/(\hbar c) \approx 5.91 \times
-10^{-39}$ to within 0.1% (tested July 2026). This is a parameter-free
-prediction—only $\varphi$ and the cascade rung count $n$ are needed.
-The same formula should hold for any particle: the gravitational coupling
-at cascade rung $n$ is $\varphi^{-2n}$.
+The relation $\alpha_G = \varphi^{-2n}$ is the definitional identity
+$\alpha_G = (m_p/M_{\text{Pl}})^2$ with $n = \log_\varphi(M_{\text{Pl}}/m_p)$
+the proton's measured rung: for $n \approx 91.5$, $\varphi^{-183} \approx
+5.7 \times 10^{-39}$ vs the observed $\alpha_G = G m_p^2/(\hbar c) \approx
+5.91 \times 10^{-39}$—about 3.5% low (the "0.1%" phrasing holds only for the
+fractional rung 91.46, the log map of the measured mass itself; Fit-Status
+Ledger row 506, **Mapped**). It is not a parameter-free prediction of the
+hierarchy—the exponent is read off the measured mass. The same formula holds
+for any particle by the identity: the gravitational coupling at cascade rung
+$n$ is $\varphi^{-2n} = (m/M_{\text{Pl}})^2$.
 
 ### 6.3 $c$ as scale-invariant product
 

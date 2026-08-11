@@ -341,11 +341,11 @@ The $\varphi^{-1}$ correction in $n_s$ comes from the Qi gate's residual transpa
 
 ### 8.3 Baryon Asymmetry
 
-Three mechanisms: (1) organized annihilation (§6.6), (2) Wu Xing freeze-out gap $g = 1 - \varphi^{-5}$, (3) cascade dilution through rungs 8→52:
+Three mechanisms: (1) organized annihilation (§6.6), (2) Wu Xing freeze-out gap $g = 1 - \varphi^{-5}$, (3) cascade dilution through photon-producing conversion:
 
 $$\eta \approx \varphi^{-44}$$
 
-The freeze-out step $52 = 60 - 8$ follows from the structural symmetry of the Wu Xing 5-phase cycle.
+The exponent $-44$ is a **ledgered fit** (Fit-Status Ledger row 481, Mapped): the freeze-out construction $52 = 60 - 8$ used the pre-correction GUT seed at step 8, and with the corrected GUT anchor ($n \approx 13.3$) it gives $60 - 13.3 = 46.7$ and a dilution span of $33.4 \neq 44$—the construction does not close. The mechanism (Wu Xing gap + organized annihilation + cascade dilution) is Hypothesized; see `foundations/baryon-asymmetry.md` for the full status.
 
 ### 8.4 Dark Matter
 
@@ -443,22 +443,22 @@ Mind: concentrated post-pinch field dynamics. Brain: antenna for the Qi field. A
 
 | Parameter | Expression | Value | Origin |
 |-----------|-----------|-------|--------|
-| $\alpha_0$ | $\varphi^{-3} = (\varphi-1)/(\varphi+1)$ | $0.236$ | Equilibrium Yang fraction |
-| $\xi$ | $\varphi^6$ | $17.944$ | 2 fields $\times$ 3 dimensions |
-| $\sin^2\theta_W$ | $\varphi^{-3}$ | $0.236$ | VEV asymmetry |
-| $\alpha_{\text{GUT}}$ | $\varphi^{-3}/(4\pi)$ | $1/53$ | Yang fraction / $4\pi$ |
-| $m_W/m_Z$ | $\sqrt{1-\varphi^{-3}}$ | $0.874$ | From $\sin^2\theta_W$ |
-| $\delta_{\text{CKM}}$ | $\pi\varphi^{-2}$ | $68.7^\circ$ | Yukawa diagonalisation |
-| $w_0$ | Wu Xing + $\xi$ | $-0.87$ | Two-fluid conversion |
-| $w_a$ | $\xi$ in $H(a)$; ratified conversion→expansion coupling | $+0.012$ baseline; $-0.38$ (B2, unstable); **$(-1, 0)$ pure-Λ window (stable realization—10/12)** | Two-fluid conversion; 08 §C.6; 12 |
+| $\alpha_0$ | $\varphi^{-3} = (\varphi-1)/(\varphi+1)$ | $0.236$ | Fixed-point imbalance (the "Yang fraction" label is Mapped—ledger row 500; the Yang fraction is $\varphi^{-1}$) |
+| $\xi$ | $\varphi^6$ | $17.944$ | 2 fields × 3 dimensions (conditional ansatz; $d = 3$ imported, φ-per-DOF asserted—`xi-derivation.md`; empirical pin Calibrated) |
+| $\sin^2\theta_W$ | $\varphi^{-3}$ | $0.236$ | VEV asymmetry (asserted boundary condition; realized at $\mu_* = 233$ GeV—Calibrated, ledger row 490) |
+| $\alpha_{\text{GUT}}$ | $\varphi^{-3}/(4\pi)$ | $1/53$ | Fixed-point imbalance / $4\pi$ (asserted boundary condition) |
+| $m_W/m_Z$ | $\sqrt{1-\varphi^{-3}}$ | $0.874$ | From $\sin^2\theta_W$ (inherits its boundary-condition status) |
+| $\delta_{\text{CKM}}$ | $\pi\varphi^{-2}$ | $68.7^\circ$ | Mapped selection (4-candidate $\varphi$-search—ledger row 482) |
+| $w_0$ | Wu Xing + $\xi$ | $-0.87$ | Calibrated (DESI-anchored—ledger row 496) |
+| $w_a$ | $\xi$ in $H(a)$; ratified conversion→expansion coupling | $+0.012$ baseline; $-0.38$ (B2, unstable); **$(-1, 0)$ pure-Λ window (stable realization—10/12)** | Calibrated baseline (ledger row 496); coupling shifts 08 §C.6; 12 |
 | $g$ | $1 - \varphi^{-5}$ | $0.910$ | Wu Xing gap |
 | $r_0$ | $\varphi^{-5}/(2-\varphi^{-5})$ | $0.047$ | Primordial ratio |
-| $\lambda$ | $1/(2w)$ | $0.1$ | PDE conversion rate |
-| $n_s$ | $1 - 2\varphi^{-1}/N_e$ | $0.969$ | Inflation gate |
-| $r$ | $\varphi^{-12}$ | $0.003$ | Tensor ratio |
-| $\eta$ | $\varphi^{-44}$ | $6.4 \times 10^{-10}$ | Baryon asymmetry |
-| $\sigma$ | $\ell_{\text{Pl}}/\varphi^3$ |—| Regularization scale |
-| $\Omega_{\text{DM}}/\Omega_b$ | $\varphi^3 + 1$ | $5.24$ | Qi condensate freeze-out |
+| $\lambda$ | $1/(2w)$ | $0.1$ | PDE conversion rate ($w = 5$ derived; the $1/(2w)$ factor itself is asserted) |
+| $n_s$ | $1 - 2\varphi^{-1}/N_e$ | $0.969$ | Inflation gate ($N_e = 40$ Mapped—ledger row 501) |
+| $r$ | $\varphi^{-12}$ | $0.003$ | Tensor ratio (Mapped fit—ledger row 495; $12/N_e^2$ needs $N_e = 63.2$) |
+| $\eta$ | $\varphi^{-44}$ | $6.4 \times 10^{-10}$ | Baryon asymmetry (exponent **Mapped**—ledger row 481; mechanism Hypothesized) |
+| $\sigma$ | $\ell_{\text{Pl}}/\varphi^3$ |—| Regularization scale (the exponent $\delta = 3$ is asserted; derivation open) |
+| $\Omega_{\text{DM}}/\Omega_b$ | $\varphi^3 + 1$ | $5.24$ | Qi condensate freeze-out (Mapped—ledger row 502: hand-added $+1$; base $\varphi^3$ asserted) |
 | $\bar{\theta}$ | $\pi\varphi^{-83.4}$ | $1.2\times10^{-17}$ | Strong CP |
 | $\tau_p$ | $\varphi^{4506}/\omega_p$ | $\sim 10^{910}$ yr | Proton coherence budget |
 
