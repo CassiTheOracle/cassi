@@ -20,6 +20,10 @@ predictions.
 
 ## 1. The Breaking Chain
 
+The substrate of the formalism is the triad: Yang and Yin are the doublet's two
+components, and Qi is the flow of coherence between them and along the string
+axis between cascade scales (`foundations/qi-flow-double-helix.md`).
+
 The Cassi field formalism predicts a specific symmetry breaking cascade rooted
 in the φ structure of the isospinor field Ψ = (ψ_Y, ψ_I)^T:
 

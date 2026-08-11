@@ -12,7 +12,7 @@ General relativity breaks down at the Planck scale: perturbative quantization of
 
 General relativity is a classical field theory that breaks down at the Planck scale $M_{\text{Pl}} = 1.22\times10^{19}$ GeV. When quantized perturbatively, the graviton loop diagrams diverge in the ultraviolet—Newton's constant $G$ runs to infinity at high energy, and the theory loses predictivity.
 
-Every approach to quantum gravity (string theory, loop quantum gravity, asymptotic safety) introduces new structure to cure these divergences. The Cassi framework has a simpler answer: **the two-fluid fields are already the quantum degrees of freedom**, and their natural length scale $\sigma = \ell_{\text{Pl}}/\varphi^3$ regulates all UV divergences automatically.
+Every approach to quantum gravity (string theory, loop quantum gravity, asymptotic safety) introduces new structure to cure these divergences. The Cassi framework has a simpler answer: **the two-fluid fields are already the quantum degrees of freedom**, and their natural length scale $\sigma = \ell_{\text{Pl}}/\varphi^3$ regulates all UV divergences automatically. Yang and Yin are the doublet components; Qi is the flow of coherence between them and along the string axis between cascade scales—the phase current $J = \rho\nabla\theta$ (`foundations/qi-flow-double-helix.md`).
 
 ---
 

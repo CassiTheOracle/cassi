@@ -21,7 +21,7 @@
 
 ### 1.1 Governing Equations
 
-The two-fluid PDE in Cassi (`cassi-physics.md`):
+The two-fluid PDE in Cassi (`cassi-physics.md`) evolves the substrate triad—Yang and Yin, the doublet's two components, and Qi, the flow of coherence between them and along the string axis between cascade scales (`foundations/qi-flow-double-helix.md`):
 
 $$\partial_t E_Y = -\nabla\cdot(\mathbf{u}E_Y) + D\nabla^2 E_Y - \lambda(1-q)(E_Y - \varphi E_I) M - \chi_Y\nabla\cdot(E_Y\nabla\Phi)$$
 

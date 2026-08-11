@@ -33,6 +33,12 @@ $$B(x, y, z) = \cos(\alpha x)\cos(\beta y) \cdot \cos(\gamma z)$$
 - $\Lambda_I = \Lambda_Y/\varphi$: Yin wake wavelength
 - $P_\parallel$: along-string bubble period
 
+Coherence flowing along the string axis **is** coherence flowing between
+cascade scales: the axial phase current $J_z = R^2\partial_z\theta$ is the
+inter-scale flow, and the doublet's $P_\parallel = 2$ cycle winds the Yang and
+Yin strand-currents into a double helix about the string axis
+(`foundations/qi-flow-double-helix.md`).
+
 Bubbles condense where $B > \theta_{\text{cond}}$. Voids form where $B < -\theta_{\text{cond}}$. The condensation threshold $\theta_{\text{cond}}$ is determined by the conversion-diffusion balance (`foundations/bubble-edge-geometry.md` §1.2).
 
 ### 1.2 The 2D Cross-Section: Staggered Checkerboard

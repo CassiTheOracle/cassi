@@ -4,7 +4,7 @@
 
 ## Abstract
 
-This document maps the verified physics of the Cassi two-fluid framework onto the structure of consciousness: the Qi gate pinch point at $r = \varphi^{-1}$ as the structural basis of self-awareness (§2.1), wake waves as the substrate of thought (§2.2), the spatial dispersion $\sigma_r$ as the variable distinguishing waking, meditative, psychedelic, and sleep states (§2.3), and the 26-step human cascade with its 13 field nodes (§1.2, §2.4). A concrete two-bubble PDE test is proposed and its verified results reported (§3), with clear boundaries between derived structure, plausible hypothesis, and untestable speculation (§4).
+This document maps the verified physics of the Cassi two-fluid framework onto the structure of consciousness: the Qi gate pinch point at $r = \varphi^{-1}$ as the structural basis of self-awareness (§2.1), wake waves as the substrate of thought (§2.2), the spatial dispersion $\sigma_r$ as the variable distinguishing waking, meditative, psychedelic, and sleep states (§2.3), and the 26-step human cascade with its 13 field nodes (§1.2, §2.4). A concrete two-bubble PDE test is proposed and its verified results reported (§3), with clear boundaries between derived structure, plausible hypothesis, and untestable speculation (§4). In the substrate, Qi is the flow of coherence between the Yang–Yin doublet components and along the string axis between cascade scales (`foundations/qi-flow-double-helix.md`).
 
 ---
 
@@ -260,7 +260,7 @@ dynamics (`two-fluid/run_two_bubble_gate_scan.py`,
 - **Aggregate ratios reproduce**: the 2026-07-19 $\varphi$/control ratios
   (3.83×/3.44×/2.97×) reproduce, but the $\varphi$-set occupies smaller
   physical distances than the control set, inflating the aggregate; the
-  distance-matched comparison (1.1–1.7×) is the honest scale.
+  distance-matched comparison (1.1–1.7×) is the defensible scale.
 
 The correlation structure is a static-geometry feature of the protocol; the
 wake-resonance interpretation does not survive the decisive scan.

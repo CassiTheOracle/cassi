@@ -23,7 +23,7 @@ value.
 
 ## 1. The SU(2) Isospinor Doublet
 
-The two-fluid has a U(1) ≅ SO(2) internal symmetry: a rotation between Yang (E_Y) and Yin (E_I). The Cassi first-principles formalism identifies this as the electromagnetic gauge symmetry—the conserved current associated with the rotation is the electromagnetic current $j^\mu_{\text{EM}}$.
+The two-fluid has a U(1) ≅ SO(2) internal symmetry: a rotation between Yang (E_Y) and Yin (E_I). The Cassi first-principles formalism identifies this as the electromagnetic gauge symmetry—the conserved current associated with the rotation is the electromagnetic current $j^\mu_{\text{EM}}$. In the substrate triad, Yang and Yin are the doublet's two components and Qi is the flow of coherence between them and along the string axis between cascade scales (`foundations/qi-flow-double-helix.md`).
 
 To extend to the full electroweak sector, promote the U(1) doublet to an **SU(2) isospinor doublet**:
 

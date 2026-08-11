@@ -52,7 +52,7 @@ $$\varepsilon^2 = (\Psi_0 - \varphi\Psi_1)^2,\qquad q = \frac{\rho^2}{\rho^2 + \
 
 $q \to 0$: far from $\varphi$-equilibrium. $q \to 1$: perfect $\varphi$-equilibrium. At the fixed point: $q_{\text{eq}} = \varphi^{-2}/(\varphi^2 + \varphi^{-2})$.
 
-**Qi 2-vector.** $\mathbf{Q} = (\rho,\; J)$ where $J = \Psi_0\nabla\Psi_1 - \Psi_1\nabla\Psi_0$: magnitude + phase current.
+**Qi 2-vector.** $\mathbf{Q} = (\rho,\; J)$ where $J = \Psi_0\nabla\Psi_1 - \Psi_1\nabla\Psi_0$: magnitude + phase current. Qi is the third fundamental of the framework—the flow of coherence between Yang and Yin, and along the string axis between cascade scales; the scalar $q$ is the magnitude diagnostic of that flow (`foundations/qi-flow-double-helix.md`). The axial current $J_z = R^2\partial_z\theta$ is the inter-scale flow; the $P_\parallel = 2$ doublet cycle winds the Yang and Yin strand-currents into a double helix about the string axis.
 
 **Temporal coherence (IIR memory).** $\bar{\varepsilon}^2(t) = (1-\tau)\,\bar{\varepsilon}^2(t-\Delta t) + \tau\,\varepsilon^2(t)$, $\tau = \varphi^{-1}$. The field carries a memory of its own past state; smoothing $\varepsilon^2$ stabilizes $q$.
 

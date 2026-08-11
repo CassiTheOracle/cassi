@@ -5,7 +5,10 @@
 ## Abstract
 
 Cosmic inflation—the early-universe period of quasi-exponential expansion—
-corresponds to cascade steps $n \approx 20$–$60$ in the Cassi framework. The
+corresponds to cascade steps $n \approx 20$–$60$ in the Cassi framework. In the
+framework triad, Yang and Yin are the doublet components and Qi is the flow of
+coherence between them and along the string axis between cascade scales—the
+phase current $J = \rho\nabla\theta$ (`foundations/qi-flow-double-helix.md`). The
 inflationary dynamics are driven by the **Qi gate** as the ratio $r(t)$ evolves
 through these rungs: the open gate ($1-q \approx 1$) at small $r$ drives rapid
 conversion and expansion; the gate's progressive closing terminates inflation

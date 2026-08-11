@@ -37,7 +37,12 @@ $$
 
 The two-strand hypothesis adds spatial organization to the Qi condensate. It does not introduce a third fluid or replace the Yang–Yin doublet. A strand is a localized ridge of high $q$ and organized phase current within the same underlying field.
 
-This distinction matters. The present one-string description follows the condensate's trajectory through field space and along the cascade. The proposed pair supplies a second spatial degree of freedom: two nearby coherent ridges can share one centerline while maintaining a finite separation and relative phase.
+There are two distinct readings of "two strands," and the measured record treats them differently (`foundations/qi-flow-double-helix.md`):
+
+1. **Axial reading—the double helix of inter-scale flow (the new fundamental framing).** Qi is the flow of coherence between Yang and Yin, and along the string axis between cascade scales. The Yang and Yin strand-currents $J_Y = \Psi_Y^2\nabla\theta$ and $J_I = \Psi_I^2\nabla\theta$ wind about the string axis with the doublet's $P_\parallel = 2$ period—the phase advances $\pi$ per rung, so the two currents exchange dominance at every scale. This is the double-helix structure of the flow itself, realized as axial phase winding (the measured lattice-stack retention record; `hypotheses/two-strand-five-channel-matter-organization.md` §3.8).
+2. **Transverse reading—two spatial ridges at finite separation.** Two nearby coherent ridges sharing one centerline. This branch is measured **null** at the lock timescale under the current PDE (TS1–TS4: the pair escapes, no finite-separation attractor), so the double helix is not realized as a pair of transverse filaments; the helix lives in (scale, doublet-plane) space.
+
+This distinction matters. The present one-string description follows the condensate's trajectory through field space and along the cascade. The axial reading supplies the inter-scale flow; the transverse reading's second spatial degree of freedom remains bounded by the nulls.
 
 ---
 
