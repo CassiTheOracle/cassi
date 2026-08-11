@@ -23,6 +23,7 @@ var _src_slider: HSlider; var _src_label: Label
 var _grid_spin: SpinBox
 var _particle_spin: SpinBox
 var _nclusters_spin: SpinBox; var _sep_spin: SpinBox
+var _init_opt: OptionButton
 
 var _server_ip_edit: LineEdit
 var _server_port_edit: LineEdit
@@ -229,6 +230,21 @@ func _ready() -> void:
 	_sep_spin.custom_minimum_size = Vector2(0, 22)
 	sep_box.add_child(_sep_spin)
 
+	# Initial-condition profile selector
+	var init_box = VBoxContainer.new()
+	init_box.custom_minimum_size = Vector2(150, 40)
+	row3.add_child(init_box)
+	var init_lbl = _make_label("Init:", Color(0.9, 0.85, 0.5), 12)
+	init_box.add_child(init_lbl)
+	_init_opt = OptionButton.new()
+	_init_opt.add_item("Plummer")
+	_init_opt.add_item("Gaussian")
+	_init_opt.add_item("Uniform")
+	_init_opt.selected = 0
+	_init_opt.custom_minimum_size = Vector2(0, 22)
+	_init_opt.focus_mode = Control.FOCUS_NONE
+	init_box.add_child(_init_opt)
+
 	# Server (future) fields
 	var srv_box = VBoxContainer.new()
 	srv_box.custom_minimum_size = Vector2(160, 40)
@@ -266,12 +282,14 @@ func _ready() -> void:
 		_update_play_btn(sim.playing)
 		_set_mode_highlight(sim.mode)
 		_set_grav_highlight(sim.gravity_mode)
+		_init_opt.selected = sim.initial_condition
 
 	# Connect value_changed AFTER init to avoid spurious reinit() on startup
 	_grid_spin.value_changed.connect(_on_grid_changed)
 	_particle_spin.value_changed.connect(_on_particles_changed)
 	_nclusters_spin.value_changed.connect(_on_clusters_changed)
 	_sep_spin.value_changed.connect(_on_separation_changed)
+	_init_opt.item_selected.connect(_on_init_selected)
 
 	# Prevent controls from stealing WASD camera input
 	_grid_spin.focus_mode = Control.FOCUS_NONE
@@ -389,6 +407,13 @@ func _on_gravity_mode_pressed(idx: int) -> void:
 	if sim:
 		sim.gravity_mode = idx
 	_set_grav_highlight(idx)
+
+
+func _on_init_selected(idx: int) -> void:
+	var sim = _get_sim()
+	if sim == null: return
+	sim.initial_condition = idx
+	sim.reinit()  # positions regenerate with the new profile
 
 
 func _on_xi_changed(value: float) -> void:

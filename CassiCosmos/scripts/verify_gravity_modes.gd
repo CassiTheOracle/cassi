@@ -48,6 +48,14 @@ extends Node
 ##         _physics_step() calls in mode 3 leave the record UNCHANGED
 ##         (passes skipped) and 5 calls in mode 0 advance it (BH-integrate
 ##         runs — age/mass change).
+##   (vii) initial-condition profiles (0 = bounded Plummer / 1 = Gaussian
+##         ball / 2 = uniform sphere): per profile, zero out-of-box,
+##         max |component| and max radius ≤ fr·extent, retained fraction
+##         vs the profile's analytic truncation formula within 2%
+##         (Plummer u(r_max); Gaussian erf(z_max) − (2/√π)z_max·e^(−z_max²);
+##         uniform min(1,(r_max/a)³)), and a 50-step NaN-stability gate
+##         (containment is NOT asserted for the new profiles — their
+##         virial tuning is approximate; occupancy is reported).
 ##
 ## NOTE on the IC vs Plummer profile: the IC circular velocity uses the
 ## sim's enclosed-mass profile M_enc(r) = M·r²/(r²+a²) (cassi_sim.gd
@@ -72,6 +80,15 @@ var nc: int = 0
 var _failures: int = 0
 var _checks: int = 0
 var _report: Array = []
+
+
+# Abramowitz & Stegun 7.1.26 erf approximation (max |ε| < 1.5e-7 for
+# x ≥ 0 — all uses here are x = r/(√2·σ) ≥ 0). Independent copy of the
+# sim's _erf_approx: this Godot 4.7 install exposes no built-in erf().
+func _erf_approx(x: float) -> float:
+	var t: float = 1.0 / (1.0 + 0.3275911 * x)
+	var poly: float = ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t
+	return 1.0 - poly * exp(-x * x)
 
 
 func _ready() -> void:
@@ -358,6 +375,7 @@ func _run_all() -> void:
 	_test_blob_ratio()
 	_test_occupancy_modes()
 	_test_river_self_mode()
+	_test_initial_conditions()
 	print("── summary ──")
 	for line in _report:
 		print("  " + line)
@@ -677,3 +695,57 @@ func _test_river_self_mode() -> void:
 		"mass=%s age=%s" % [str(rec0[3]), str(rec0[7])])
 	_report.append("river-self: A3/A0 dev=%s  B0-material=%s  B3/A0 dev=%s | mode0 5-step rec: mass=%s age=%s" % [
 		str(dev_a), str(dev_b0), str(dev_b3), str(rec0[3]), str(rec0[7])])
+
+
+func _test_initial_conditions() -> void:
+	print("── (vii) initial-condition profiles: bounded Plummer / Gaussian ball / uniform sphere ──")
+	var fr: float = sim.initial_radius_fraction
+	var a_s: float = sim.cluster_radius
+	var r_max: float = fr * extent  # single cluster at the origin
+	# Analytic retained fractions of the UNBOUNDED profile inside r_max:
+	#   Plummer  u(r_max) = (x²/(1+x²))^{3/2},  x = r_max/a
+	#   Gaussian erf(z) − (2/√π)·z·e^(−z²),     z = r_max/(√2·σ)
+	#   Uniform  min(1, (r_max/a)³)
+	var z_max: float = r_max / (sqrt(2.0) * a_s)
+	var analytics := [
+		pow(pow(r_max / a_s, 2.0) / (1.0 + pow(r_max / a_s, 2.0)), 1.5),
+		_erf_approx(z_max) - (2.0 / sqrt(PI)) * z_max * exp(-z_max * z_max),
+		minf(1.0, pow(r_max / a_s, 3.0)),
+	]
+	var ic_names := ["Plummer", "Gaussian", "Uniform"]
+	for p in range(3):
+		sim.initial_condition = p
+		sim.field_attractor_init = true
+		sim.num_clusters = 1
+		sim.cluster_separation = 0.0
+		sim.gravity_mode = 0
+		sim.river_calibrate_gn = false
+		sim.reinit()
+		sim.playing = false
+		var lim: float = fr * extent
+		_check("IC[%s]: zero out-of-box" % ic_names[p], sim._init_out_of_box == 0,
+			"out=%d" % sim._init_out_of_box)
+		_check("IC[%s]: max |component| ≤ fr·extent" % ic_names[p], sim._init_max_component <= lim + 1e-3,
+			"max_comp=%.3f lim=%.3f" % [sim._init_max_component, lim])
+		_check("IC[%s]: max radius ≤ fr·extent" % ic_names[p], sim._init_max_radius <= lim + 1e-3,
+			"max_r=%.3f" % sim._init_max_radius)
+		var rel: float = absf(sim._init_retained_fraction - analytics[p]) / maxf(analytics[p], 1e-9)
+		_check("IC[%s]: retained fraction matches analytic (2%%)" % ic_names[p], rel < 0.02,
+			"retained=%.4f analytic=%.4f" % [sim._init_retained_fraction, analytics[p]])
+		# NaN-stability gate only — the new profiles' virial tuning is
+		# approximate, so containment is NOT asserted for them (reported).
+		var bad := false
+		for s in range(50):
+			sim._physics_step()
+			if s % 25 == 0:
+				if not _positions_finite():
+					bad = true
+		if not _positions_finite():
+			bad = true
+		var occ := _occupancy_counts()
+		print("  IC[%s]: after 50 steps — inner=%.1f%% face/edge=%.1f%% corner=%.1f%% out=%d" % [
+			ic_names[p], occ[0], occ[1], occ[2], occ[3]])
+		_check("IC[%s]: no NaN/Inf over 50 steps" % ic_names[p], not bad)
+		_report.append("IC[%s]: retained=%.4f (analytic %.4f)  max_r=%.1f  out_of_box=%d | after 50 steps: inner=%.1f%% out=%d" % [
+			ic_names[p], sim._init_retained_fraction, analytics[p], sim._init_max_radius,
+			sim._init_out_of_box, occ[0], occ[3]])

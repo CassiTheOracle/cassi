@@ -70,6 +70,20 @@ const PI_CLAMP_MAX: float = 0.72  # (π/ρ) upper clamp (stability; telemetry co
 # inverse-CDF draw u ∈ (0.001, u_max], u_max = (x²/(1+x²))^(3/2) with
 # x = r_max/a — no coordinate clamping, no shell artifacts.
 @export var initial_radius_fraction: float = 0.9
+# ── Initial-condition profile selector ──
+#   0 = BOUNDED PLUMMER (default) — the truncated inverse-CDF draw below.
+#   1 = GAUSSIAN BALL — positions ~ N(0, σ) with σ = cluster_radius,
+#       truncated to the per-cluster safe radius r_max by REJECTION
+#       (exact conditional distribution; redraws until r ≤ r_max; no
+#       clamping/shell artifact). Velocities from the Gaussian enclosed
+#       mass M(<r) = M_tot·[erf(z) − (2/√π)·z·e^(−z²)], z = r/(√2·σ).
+#   2 = UNIFORM SPHERE — radius a = cluster_radius, r = a·u^(1/3) with
+#       u drawn in (0, u_trunc], u_trunc = min(1, (r_max/a)³) — a
+#       REJECTION-FREE truncated draw (u ≤ (r_max/a)³ ⟺ r ≤ r_max).
+#       Velocities from M(<r) = M_tot·min(1, (r/a)³).
+# All profiles reuse the cluster/bulk/Salpeter machinery below and keep
+# every particle inside the per-cluster safe radius (out_of_box = 0).
+@export_enum("Bounded Plummer", "Gaussian ball", "Uniform sphere") var initial_condition: int = 0
 
 @export_enum("Particles", "Field", "Black Hole", "Cosmology") var mode: int = 0
 
@@ -680,6 +694,18 @@ func _init_field() -> void:
 	print("[CassiSim] Field initialized: %d³ = %d cells" % [N, nc])
 
 
+func _erf_approx(x: float) -> float:
+	# Abramowitz & Stegun 7.1.26 erf approximation: erf(x) =
+	# 1 − (a₁t + a₂t² + a₃t³ + a₄t⁴ + a₅t⁵)·e^(−x²), t = 1/(1 + p·x),
+	# p = 0.3275911, a = (0.254829592, −0.284496736, 1.421413741,
+	# −1.453152027, 1.061405429); max |ε| < 1.5e-7 for x ≥ 0 (every call
+	# site here has x = r/(√2·σ) ≥ 0). The Godot 4.7 GDScript API on this
+	# install exposes no built-in erf() — this is the recorded replacement.
+	var t: float = 1.0 / (1.0 + 0.3275911 * x)
+	var poly: float = ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t
+	return 1.0 - poly * exp(-x * x)
+
+
 func _init_particles() -> void:
 	var pos = PackedFloat32Array(); pos.resize(N_particles * 4)
 	var vel = PackedFloat32Array(); vel.resize(N_particles * 4)
@@ -698,11 +724,15 @@ func _init_particles() -> void:
 	var nc = max(1, num_clusters)
 	var bulk_vels = []
 	var per_cluster = N_particles / nc
-	# Truncated-Plummer bounds: per cluster, r_max = fr·extent − |center|_∞
-	# (a safe spherical radius inside the periodic cube); the retained CDF
-	# u_max = (x²/(1+x²))^{3/2} with x = r_max/a is the fraction of the
-	# Plummer profile kept — reported as _init_retained_fraction.
+	# Truncation bounds: per cluster, r_max = fr·extent − |center|_∞ (a
+	# safe spherical radius inside the periodic cube), shared by ALL
+	# initial-condition profiles below. The retained fraction reported as
+	# _init_retained_fraction is profile-specific: for the Plummer draw it
+	# is u_max = (x²/(1+x²))^{3/2} with x = r_max/a (fraction of the
+	# unbounded profile kept inside the truncation); Gaussian/uniform
+	# compute their own analytic retained mass (see the end of this func).
 	var u_max_list: Array = []
+	var r_max_list: Array = []
 	var retained_min: float = INF
 	for c in range(nc):
 		var angle = float(c) * PI * 2.0 / float(nc)
@@ -722,6 +752,7 @@ func _init_particles() -> void:
 		var r_max_c: float = fr * extent_box - c_abs
 		if r_max_c < 0.0:
 			r_max_c = 0.0  # degenerate: cluster center beyond the safe radius
+		r_max_list.append(r_max_c)
 		var x_max: float = r_max_c / maxf(cluster_radius, 1e-6)
 		var u_hi: float = pow(x_max * x_max / (1.0 + x_max * x_max), 1.5)
 		u_max_list.append(u_hi)
@@ -747,26 +778,72 @@ func _init_particles() -> void:
 		var bv = bulk_vels[cidx]
 
 		# Salpeter IMF: dN/dM ∝ M^(-2.35), range [0.3, 30.0] M☉
-		var alpha = 2.35; var exp = 1.0 - alpha
-		var A = pow(0.3, exp); var B = pow(30.0, exp)
-		var m = pow(A - rng.randf() * (A - B), 1.0 / exp)
+		# (named salp_exp so the global exp() stays callable below — the
+		# Gaussian velocity arm and the retained-fraction math use it)
+		var alpha = 2.35; var salp_exp = 1.0 - alpha
+		var A = pow(0.3, salp_exp); var B = pow(30.0, salp_exp)
+		var m = pow(A - rng.randf() * (A - B), 1.0 / salp_exp)
 		pos[i4 + 3] = m
 		total_mass += m
 
-		# Truncated Plummer distribution around cluster center —
-		# REJECTION-FREE inverse CDF: draw u ∈ (0.001, max(u_max, 0.0011)]
-		# with u_max = (x²/(1+x²))^{3/2} for x = r_max/a. The conditional
-		# distribution of u given u ≤ u_max is uniform, so the profile is
-		# preserved exactly on the truncation; r(u_max) = r_max ⇒ every
-		# particle lies inside the safe radius (no clamping, no shell).
-		var u_hi: float = u_max_list[cidx]
-		var u = rng.randf_range(0.001, maxf(u_hi, 0.0011))
-		var r = cluster_radius / sqrt(pow(u, -2.0 / 3.0) - 1.0)
-		var th = acos(2.0 * rng.randf() - 1.0)
-		var ph = rng.randf() * PI * 2.0
-		var lx = r * sin(th) * cos(ph)
-		var ly = r * sin(th) * sin(ph)
-		var lz = r * cos(th)
+		# ── Position draw (per initial-condition profile) ──
+		var lx := 0.0; var ly := 0.0; var lz := 0.0
+		var r := 0.0
+		var r_max_eff: float = r_max_list[cidx]
+		if initial_condition == 0:
+			# Truncated Plummer distribution around cluster center —
+			# REJECTION-FREE inverse CDF: draw u ∈ (0.001, max(u_max, 0.0011)]
+			# with u_max = (x²/(1+x²))^{3/2} for x = r_max/a. The conditional
+			# distribution of u given u ≤ u_max is uniform, so the profile is
+			# preserved exactly on the truncation; r(u_max) = r_max ⇒ every
+			# particle lies inside the safe radius (no clamping, no shell).
+			var u_hi: float = u_max_list[cidx]
+			var u = rng.randf_range(0.001, maxf(u_hi, 0.0011))
+			r = cluster_radius / sqrt(pow(u, -2.0 / 3.0) - 1.0)
+			var th = acos(2.0 * rng.randf() - 1.0)
+			var ph = rng.randf() * PI * 2.0
+			lx = r * sin(th) * cos(ph)
+			ly = r * sin(th) * sin(ph)
+			lz = r * cos(th)
+		elif initial_condition == 1:
+			# Gaussian ball — REJECTION-truncated N(0, σ) draw: X,Y,Z ~
+			# N(0,1) independently, r = σ·|(X,Y,Z)| (σ = cluster_radius).
+			# Redraw while r > r_max (the exact conditional distribution —
+			# no clamping, no shell artifact); the 1000-attempt cap is a
+			# degenerate fallback that clamps to r_max (never hit for any
+			# sane truncation: P(r ≤ 1.35σ) ≈ 0.39 per draw).
+			var dx := 0.0; var dy := 0.0; var dz := 0.0
+			var nrm := 0.0
+			var n_attempts := 0
+			while true:
+				dx = rng.randfn(0.0, 1.0)
+				dy = rng.randfn(0.0, 1.0)
+				dz = rng.randfn(0.0, 1.0)
+				nrm = sqrt(dx * dx + dy * dy + dz * dz)
+				r = cluster_radius * nrm
+				n_attempts += 1
+				if r <= r_max_eff or n_attempts >= 1000:
+					break
+			if r > r_max_eff:
+				r = r_max_eff  # cap-exceed clamp (degenerate fallback)
+			var inv_nrm: float = 1.0 / maxf(nrm, 1e-30)
+			lx = r * (dx * inv_nrm)  # direction from the SAME X,Y,Z
+			ly = r * (dy * inv_nrm)
+			lz = r * (dz * inv_nrm)
+		else:
+			# Uniform sphere — REJECTION-FREE truncated draw: r = a·u^(1/3)
+			# with u drawn in (0, u_trunc], u_trunc = min(1, (r_max/a)³);
+			# u ≤ u_trunc ⟺ r ≤ r_max, so every particle lands inside the
+			# safe radius. Direction via the same th/ph draw as Plummer.
+			var a_s: float = maxf(cluster_radius, 1e-6)
+			var u_trunc: float = minf(1.0, pow(r_max_eff / a_s, 3.0))
+			var u = rng.randf() * u_trunc
+			r = a_s * pow(u, 1.0 / 3.0)
+			var th = acos(2.0 * rng.randf() - 1.0)
+			var ph = rng.randf() * PI * 2.0
+			lx = r * sin(th) * cos(ph)
+			ly = r * sin(th) * sin(ph)
+			lz = r * cos(th)
 		pos[i4]     = lx + center.x
 		pos[i4 + 1] = ly + center.y
 		pos[i4 + 2] = lz + center.z
@@ -778,11 +855,27 @@ func _init_particles() -> void:
 		if absf(pos[i4]) > extent_box or absf(pos[i4 + 1]) > extent_box or absf(pos[i4 + 2]) > extent_box:
 			out_box += 1
 
-		# Circular velocity around cluster center + bulk
+		# ── Circular velocity around cluster center + bulk ──
+		# Enclosed mass M(<r) per profile, all with G = 1 and the same
+		# v_circ = 0.85·sqrt(M_enc/max(r, 0.01)) convention (r softened to
+		# sqrt(r²+ε²) inside the enclosed-mass formulas, as the Plummer arm
+		# already does via r2p).
 		var a2 = cluster_radius * cluster_radius
 		var r2p = r * r + eps2
-		var M_enc_sub = float(per_cluster) * (r2p * r) / ((r2p + a2) * sqrt(r2p + a2))
-		var v_circ = sqrt(G * M_enc_sub / max(r, 0.01)) * 0.85
+		var M_enc: float = 0.0
+		if initial_condition == 0:
+			# Plummer enclosed mass M(<r) = M·r³/(r²+a²)^(3/2)
+			M_enc = float(per_cluster) * (r2p * r) / ((r2p + a2) * sqrt(r2p + a2))
+		elif initial_condition == 1:
+			# Gaussian M(<r) = M·[erf(z) − (2/√π)·z·e^(−z²)], z = r/(√2·σ),
+			# r = the softened sqrt(r2p); erf via A&S 7.1.26 (_erf_approx —
+			# this Godot 4.7 install has no built-in erf()).
+			var z: float = sqrt(r2p) / (sqrt(2.0) * maxf(cluster_radius, 1e-6))
+			M_enc = float(per_cluster) * (_erf_approx(z) - (2.0 / sqrt(PI)) * z * exp(-z * z))
+		else:
+			# Uniform M(<r) = M·min(1, (r/a)³) (fully enclosed at r ≥ a)
+			M_enc = float(per_cluster) * minf(1.0, pow(sqrt(r2p) / maxf(cluster_radius, 1e-6), 3.0))
+		var v_circ = sqrt(G * M_enc / max(r, 0.01)) * 0.85
 		var nx = -ly; var ny = lx; var nz = 0.0
 		var nl = sqrt(nx*nx + ny*ny + nz*nz)
 		if nl > 0.001:
@@ -832,7 +925,29 @@ func _init_particles() -> void:
 	_init_max_radius = max_r
 	_init_max_component = max_comp
 	_init_out_of_box = out_box
-	_init_retained_fraction = retained_min if retained_min < INF else 1.0
+	# Retained fraction = analytic fraction of the UNBOUNDED profile kept
+	# inside the truncation, per profile (min over clusters, like the old
+	# Plummer u_max minimum):
+	#   Plummer:  u_max = (x²/(1+x²))^{3/2}, x = r_max/a
+	#   Gaussian: erf(z_max) − (2/√π)·z_max·e^(−z_max²), z_max = r_max/(√2·σ)
+	#   Uniform:  min(1, (r_max/a)³)
+	var retained: float = retained_min if retained_min < INF else 1.0
+	if initial_condition == 1:
+		var s2: float = sqrt(2.0) * maxf(cluster_radius, 1e-6)
+		var g_min: float = INF
+		for c in range(nc):
+			var z_max: float = r_max_list[c] / s2
+			var f: float = _erf_approx(z_max) - (2.0 / sqrt(PI)) * z_max * exp(-z_max * z_max)
+			g_min = minf(g_min, f)
+		retained = g_min
+	elif initial_condition == 2:
+		var a_s: float = maxf(cluster_radius, 1e-6)
+		var u_min: float = INF
+		for c in range(nc):
+			var u_tr: float = minf(1.0, pow(r_max_list[c] / a_s, 3.0))
+			u_min = minf(u_min, u_tr)
+		retained = u_min
+	_init_retained_fraction = retained
 	_total_init_mass = total_mass
 	if out_box > 0:
 		# A cluster center beyond fr·extent − |center|_∞ (e.g. legacy scene
@@ -841,8 +956,9 @@ func _init_particles() -> void:
 		# center (u_max = 0); the count below is the config's consequence,
 		# not a truncation failure. The verify scenes overwrite positions.
 		push_warning("[CassiSim] IC: %d initial particles outside the box (fr=%.2f, extent=%.1f) — a cluster center sits beyond the safe radius; config-level, not a truncation failure" % [out_box, fr, extent_box])
-	print("[CassiSim] Truncated Plummer IC: retained CDF=%.4f  max_radius=%.1f  max|comp|=%.1f  out_of_box=%d (fr=%.2f, extent=%.1f)" % [
-		_init_retained_fraction, max_r, max_comp, out_box, fr, extent_box])
+	var ic_name := "Plummer" if initial_condition == 0 else ("Gaussian" if initial_condition == 1 else "Uniform")
+	print("[CassiSim] IC [%s]: retained=%.4f  max_radius=%.1f  max|comp|=%.1f  out_of_box=%d (fr=%.2f, extent=%.1f)" % [
+		ic_name, _init_retained_fraction, max_r, max_comp, out_box, fr, extent_box])
 	print("[CassiSim] Particles initialized: %d (Σm=%.1f, m_mean=%.4f)" % [N_particles, total_mass, total_mass / float(max(N_particles, 1))])
 
 
