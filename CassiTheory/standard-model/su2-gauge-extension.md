@@ -5,8 +5,10 @@
 ## Abstract
 
 The two-fluid's U(1) ≅ SO(2) internal rotation is promoted to an SU(2)
-isospinor doublet whose $\varphi$-equilibrium VEV ($E_Y/E_I = \varphi$) fixes
-the Weinberg angle $\sin^2\theta_W = \varphi^{-3} \approx 0.236$ and the mass
+isospinor doublet whose $\varphi$-equilibrium VEV ($E_Y/E_I = \varphi$) anchors
+the Weinberg angle through the coupling-ratio identity
+$\sin^2\theta_W = 1/(1+2\varphi) = \varphi^{-3} \approx 0.236$ (asserted
+boundary condition, §3.2; realized at $\mu_* = 233$ GeV) and the mass
 ratio $m_W/m_Z = \sqrt{1-\varphi^{-3}} \approx 0.874$—2.1% and 0.82% from the
 Z-pole values, testable at FCC-ee at $>100\sigma$. The document derives the
 neutral-boson mass matrix, the SU(3) color extension, and the
@@ -96,32 +98,42 @@ $$
 \end{aligned}
 $$
 
-The key insight is the **off-diagonal mixing term**:
+The neutral mixing term is therefore:
 
 $$
 M^2_{3B} = \frac{\varphi-1}{\varphi+1} \cdot \frac{gg' v^2}{2} = \varphi^{-3} \frac{gg' v^2}{2}
 $$
 
-The coefficient $\dfrac{\varphi-1}{\varphi+1} = \varphi^{-3}$ is the **Yang/Yin asymmetry ratio**—it measures how the VEV is split between the upper (Yang) and lower (Yin) components.
+The coefficient $\dfrac{\varphi-1}{\varphi+1} = \varphi^{-3}$ is the **Yang/Yin asymmetry ratio**—it measures how the VEV is split between the upper (Yang) and lower (Yin) components. It sets the off-diagonal element of the mass matrix; it does not by itself fix the mixing angle, which is determined by the diagonal ratio $g'^2/(g^2+g'^2)$ (§3.2).
 
-### 3.2 The Asymmetry Principle
+### 3.2 The Weinberg Angle as a Coupling-Ratio Identity
 
-In the Standard Model, the Higgs VEV is $(0, v)^T$ in unitary gauge—a maximally asymmetric configuration where the upper component vanishes. The symmetry breaking is SU(2)$_L$ × U(1)$_Y$ → U(1)$_{\text{EM}}$, and the Weinberg angle is a free parameter determined by the ratio $g'/g$.
-
-In the Cassi framework, the VEV asymmetry is **not free**—it is fixed by the $\varphi$-attractor: $E_Y/E_I = \varphi$. The neutral boson mixing inherits this ratio:
-
-**Cassi Principle:** The Weinberg angle is the Yang/Yin asymmetry projected onto the neutral gauge boson sector. At the $\varphi$-equilibrium GUT scale:
+In the Standard Model the Weinberg angle is fixed by the *diagonal* ratio of the neutral mass matrix, $g'^2/(g^2+g'^2)$; the VEV asymmetry does not appear in it. The $\varphi$-anchoring $\sin^2\theta_W = \varphi^{-3}$ is therefore a statement about the *coupling ratio*, not about the rotation of the VEV-weighted matrix, and the two forms are exactly equivalent:
 
 $$
-\boxed{\sin^2\theta_W = \frac{\varphi-1}{\varphi+1} = \varphi^{-3} \approx 0.23607}
+\boxed{\sin^2\theta_W = \varphi^{-3}
+\iff \tan^2\theta_W = \frac{g'^2}{g^2} = \frac{\varphi^{-3}}{1-\varphi^{-3}}
+= \frac{1}{\varphi^3-1} = \frac{1}{2\varphi}
+\iff \left(\frac{g}{g'}\right)^2 = 2\varphi}
 $$
 
-**Status of the identification:** the $\varphi^{-3}$ assignment is an **asserted boundary condition** (parameter-inventory class D-as-definition), not a consequence of the displayed mass matrix. Three checks: (1) in the Standard Model the Weinberg angle is set by the *diagonal* entries' ratio, $g'^2/(g^2+g'^2)$, not by the off-diagonal; (2) the matrix above has a massless photon only if the off-diagonal coefficient equals $1/2$ (determinant zero at $\kappa = 1/2$)—with $\kappa = \varphi^{-3} \approx 0.236$ the "photon" is massive, so the diagonalization does not reproduce $\sin^2\theta_W = \varphi^{-3}$ as written (the doc's own $g'/g = 0.556$ gives $\sin^2\theta \approx 0.10$ from the same matrix); (3) the tree value $\varphi^{-3} = 0.23607$ sits $+2.1\%$ above the measured $\sin^2\theta_W(m_Z)$ and equals the measured running angle only at $\mu_* = 233$ GeV—the Calibrated re-anchoring scale, not a prediction (Fit-Status Ledger row 490). The identification is the framework's gauge-kinetic counterpart of the Wu Xing coupling principle in name; the exponent 3 has no derived dynamic or geometric origin in this document set.
+The steps use the Fibonacci identity $\varphi^3 = 2\varphi + 1$ (so $\varphi^3 - 1 = 2\varphi$) and the equivalent forms $\varphi^{-3} = 1/(2\varphi+1) = (\varphi-1)/(\varphi+1)$. The boundary condition is thus the coupling-ratio identity $(g/g')^2 = 2\varphi$, equivalently $\sin^2\theta_W = 1/(1+2\varphi)$. Verified numerically (`computations/weinberg_phi_identity.py`): $\varphi^{-3} = 0.236068$, $\tan^2\theta_W = 0.309017 = \varphi^{-1}/2$, $g'/g = \sqrt{1/(2\varphi)} = 0.5559$; the measured Z-pole value $g'/g = \sqrt{0.23122/0.76878} = 0.5484$ sits $+1.36\%$ below it (equivalently $\sin^2\theta_W$ $+2.10\%$ above $0.23122$).
 
-The coupling ratio follows:
+**The VEV-asymmetry rotation does not produce this angle.** The neutral mass matrix from §3.1 is, dividing out $v^2/4$,
 
 $$
-\frac{g'^2}{g^2} = \frac{\sin^2\theta_W}{1 - \sin^2\theta_W} = \frac{\varphi^{-3}}{1 - \varphi^{-3}} \approx 0.309
+M^2 = \frac{v^2}{4}\begin{pmatrix} g^2 & 2\kappa\,gg' \\ 2\kappa\,gg' & g'^2 \end{pmatrix},
+\qquad \kappa = \frac{\varphi-1}{\varphi+1} = \varphi^{-3} \approx 0.236
+$$
+
+Three checks: (1) a massless photon requires $\det M^2 = 0$, i.e. $\kappa = 1/2$; with $\kappa = \varphi^{-3}$ the light eigenstate has mass squared $0.221\,g^2 v^2/4$—the "photon" is massive; (2) diagonalizing with the framework's own $g'/g = 0.556$ gives a Z-like eigenvector at $\sin^2\theta = 0.102$, not $0.236$—the eigen-angle is a function of $\kappa$ *and* $g'/g$ together, and equals $\tan^2\theta = 1/(2\varphi)$ only for $g'/g = 0.749$, incompatible with the value $0.556$ that the boundary condition itself implies; (3) the VEV asymmetry sets the off-diagonal coefficient only—the angle is fixed by the diagonal ratio. The coefficient $\kappa = \varphi^{-3}$ of §3.1 remains the Yang/Yin asymmetry ratio; it is not the mixing angle.
+
+**Status: asserted boundary condition; blocking step.** The assignment $\sin^2\theta_W = \varphi^{-3}$ is an **asserted boundary condition** (parameter-inventory class D-as-definition; the realized value at $\mu_* = 233$ GeV is Calibrated—Fit-Status Ledger row 490), exactly equivalent to the coupling-ratio identity $(g/g')^2 = 2\varphi$ at the $\varphi$-boundary. The unified Lagrangian (`foundations/unified-lagrangian.md` §4.2) *assigns* $g^2 = g'^2(1-\varphi^{-3})/\varphi^{-3} = 2\varphi\,g'^2$ at $M_{\text{GUT}}$; no dynamic in the two-fluid derives it. The candidate routes do not close: (a) the Wu Xing boundary $\alpha_{\text{GUT}} = \varphi^{-3}/(4\pi)$ applies equally to every gauge group, giving $g = g'$ and $\sin^2\theta_W = 1/2$; (b) the mass-matrix diagonalization above; (c) the neutral-sector mass-splitting ratio $(m_Z^2-m_W^2)/m_W^2 = g'^2/g^2$ restates the same identity and is circular; (d) no fine-structure route exists ($\alpha_{\text{EM}}^{-1} \approx 137$ has no $\varphi$-derivation in the repository). What would close the derivation: a mechanism in the two-fluid dynamics (the $\varphi$-attractor, the Qi gate, or the cascade) that fixes the U(1)$_Y$ boundary coupling relative to SU(2) at $g'^2 = g^2/(2\varphi)$—a dynamic that distinguishes the two gauge-kinetic normalizations by the factor $2\varphi = \varphi^3-1$. The "2" (two doublet components) and "$\varphi$" (the equilibrium ratio $E_Y/E_I = \varphi$) are both present in the doublet structure (`foundations/unified-lagrangian.md` §1.1–1.2), but no framework rule maps component counting onto coupling ratios; the $\varphi$-scale-invariance pattern (unified-lagrangian §9) is a counting summary, not a derivation.
+
+The coupling ratio follows from the boundary condition:
+
+$$
+\frac{g'^2}{g^2} = \frac{\sin^2\theta_W}{1 - \sin^2\theta_W} = \frac{\varphi^{-3}}{1 - \varphi^{-3}} = \frac{1}{2\varphi} \approx 0.309
 $$
 
 $$
@@ -133,7 +145,7 @@ $$
 | Quantity | Cassi (tree) | Measured (Z-pole) | Gap |
 |----------|-------------------|-------------------|-----|
 | $\sin^2\theta_W$ | $0.23607$ | $0.23122(4)$ | $+2.1\%$ |
-| $\tan\theta_W = g'/g$ | $0.556$ | $0.545$ | $+2.0\%$ |
+| $\tan\theta_W = g'/g$ | $0.556$ | $0.5484$ (from $0.23122$) | $+1.4\%$ |
 | $m_W/m_Z = \cos\theta_W$ | $0.874$ | $0.881$ | $-0.82\%$ |
 
 The weak mixing angle runs **upward** with energy, so the 2.1% gap at the

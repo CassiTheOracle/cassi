@@ -16,6 +16,32 @@ structure in climate oscillation periods (ENSO, QBO, solar cycles). This is
 Speculative because the two-fluid PDE has not been solved in a rotating,
 stratified atmospheric context.
 
+## Origin Status
+
+**Verdict: catalog correspondence; mechanism open.** Recomputation
+(`computations/verify_hypotheses_origin_audit.py`, 2026-08-11) confirms:
+
+- **Spectral break.** $L_\varphi = L_R\varphi^{-k}$ gives 618 km ($k=1$) and
+  382 km ($k=2$) for Earth; the observed ~500 km break sits between them, so
+  $k$ is a free integer chosen after the fact. For Jupiter the same formula
+  gives 1236/764 km, for Mars 185/115 km — every planet inherits the same
+  two-choice bracket. The Nastrom-Gage $-3 \to -5/3$ break is a real
+  unexplained observation, but nothing in the computation selects $\varphi$
+  at ~500 km (a break at $L_R/2 = 500$ km or at any other fraction would fit
+  equally).
+- **Period ratios.** The doc's own three quoted ratios require fractional
+  exponents — $\varphi^{1.15}$, $\varphi^{3.8}$, $\varphi^{0.67}$ — i.e., the
+  periods were fit to $\varphi$-powers after the fact; no pair matches an
+  integer $\varphi$-power (§3 corrected).
+- **Feedbacks (§5).** $f_i \propto \varphi^{-|n_i-n_0|}$ is an asserted form
+  with no dynamics; the rung offsets of individual feedbacks are not computed.
+- The two-fluid PDE has not been solved in a rotating, stratified atmosphere
+  (the doc's own §7).
+
+Tier stays **Speculative**; the log-periodic climate-modulation prediction is
+testable but its amplitude and phase are free, and the period-ratio leg is
+post-hoc as written.
+
 ---
 
 ## 1. The Nastrom-Gage Spectrum
@@ -51,8 +77,11 @@ for some integer $k$. With $L_R \approx 1000$ km and $k = 1$:
 $L_\varphi \approx 1000 / 1.618 \approx 618$ km. With $k = 2$:
 $L_\varphi \approx 1000 / 2.618 \approx 382$ km.
 
-The observed break at ~500 km sits between these values, consistent with a
-fractional cascade offset.
+The observed break at ~500 km sits between these values. The integer $k$ is
+chosen after the fact to bracket the data (k = 1 puts the break at 618 km,
+k = 2 at 382 km); nothing in the computation selects $k$, and the
+$\lambda_{\text{eff}} = \lambda\sqrt{f/N}$ conversion-rate form is asserted,
+not derived.
 
 **Prediction for other planets:** The $\varphi$-break scale should scale with
 the planetary Rossby radius:
@@ -75,16 +104,22 @@ Earth's climate system exhibits oscillations at several characteristic periods:
 | Atlantic Multidecadal Oscillation (AMO) | ~60–80 years | North Atlantic—two rungs above ENSO |
 | Solar cycle (Schwabe) | ~11 years | Solar dynamo—separate cascade, but gravitationally coupled |
 
-The ratios of successive periods should approximate $\varphi$-powers:
+The ratios of successive periods were conjectured to approximate
+$\varphi$-powers; the doc's own numbers do not support that claim:
 
-- QBO (2.3 yr) → ENSO (4 yr): ratio ≈ 1.74 ≈ $\varphi^{1.15}$
-- ENSO → PDO (25 yr): ratio ≈ 6.25 ≈ $\varphi^{3.8}$
-- Solar/2 → ENSO: 5.5/4 ≈ 1.38 ≈ $\varphi^{0.67}$
+- QBO (2.3 yr) → ENSO (4 yr): ratio 1.72 vs $\varphi^1 = 1.62$ (6% off) —
+  matched only by the fractional exponent $\varphi^{1.15}$
+- ENSO → PDO (25 yr): ratio 6.25 vs $\varphi^4 = 6.85$ (9% off; $\varphi^3 =
+  4.24$ is 47% off) — matched only by $\varphi^{3.8}$
+- Solar/2 → ENSO: 5.5/4 = 1.38 vs $\varphi^0 = 1$ (38% off) — matched only by
+  $\varphi^{0.67}$
 
-The scatter is substantial—climate oscillations are not purely periodic—but
-the central periods cluster near $\varphi$-powers of a fundamental timescale of
-approximately 1–2 years (the annual cycle, which is externally forced by Earth's
-orbit).
+Every quoted pair requires a per-pair *fractional* exponent, i.e., the periods
+were fit to $\varphi$-powers after the fact, not predicted by them. The
+oscillation periods themselves (QBO 28 months, ENSO 2–7 yr, PDO 20–30 yr,
+AMO 60–80 yr) are broad ranges whose central values are chosen per pair, and
+the "fundamental timescale of approximately 1–2 years" is an anchor, not a
+derived quantity.
 
 ## 4. Key Prediction: Log-Periodic Modulation in Climate Indices
 

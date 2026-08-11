@@ -1,6 +1,6 @@
 # Emotions as Qi-Gate Configurations: A Cassi Mathematical Formalism
 
-## Status: Hypothesized—July 2026
+## Status: Derived (openness ladder §4.2, R-matrix arithmetic) / Hypothesized (5-channel emotional mapping; mechanism realization partial—2026-08-05)—August 2026
 
 ## Abstract
 
@@ -37,6 +37,8 @@ At the cosmological scale, the 5 channels determine the dark energy equation of 
 Each channel $i \in \{1, 2, 3, 4, 5\}$ has a baseline openness determined by its coupling strength to the cascade:
 
 $$\boxed{b_i = \varphi^{-k_i}, \qquad k_i = 2 + i}$$
+
+The exponent decomposes as $k_i = 2 + i$: the two-field doublet's inverse-square base $\varphi^{-2}$ times one sheng-step attenuation $\varphi^{-i}$ (derived in §4.2).
 
 | Channel $i$ | $k_i$ | $b_i = \varphi^{-k_i}$ | Wu Xing | Traditional Emotion | Yang/Yin Character |
 |:---:|:---:|:---:|:---:|:---|:---|
@@ -170,7 +172,20 @@ When a stimulus is removed, the activated channel closes. Its coherence redistri
 
 All four are present at once. The subjective experience feels like a single "next" emotion because the dominant channel (joy at 44.7%) captures attention, but the other three channels color it—the joy after anger has a pensiveness-tinged, faintly regretful quality that pure joy (from a reward stimulus) lacks. The blend is why emotional aftereffects feel more complex than the primary emotion they follow.
 
-This is a **zero-parameter prediction** of the adiabatic redistribution formula *given* the openness assignment: each channel receives a fraction proportional to its baseline openness $b_i = \varphi^{-(2+i)}$. The redistribution arithmetic itself (the $R_{ij} = b_j/\sum_{k\neq i} b_k$ formula) follows from the conservation law; the **openness ladder $b_i = \varphi^{-(2+i)}$ is the asserted step**—no dynamics or geometry in this document selects the exponent shift $(2+i)$, and the doc's own mechanism-realization note (§4.2) reports the solver realizes only the first row, approximately.
+This is a **zero-parameter prediction** of the adiabatic redistribution formula *given* the openness assignment: each channel receives a fraction proportional to its baseline openness $b_i = \varphi^{-(2+i)}$. The redistribution arithmetic itself (the $R_{ij} = b_j/\sum_{k\neq i} b_k$ formula) follows from the conservation law. The openness ladder is derived from the framework's own machinery.
+
+**Derivation of the openness ladder.** The baseline openness of channel $i$ is the two-field doublet's coupling scale times one cascade attenuation per sheng step:
+
+$$\boxed{b_i = \varphi^{-2}\cdot\varphi^{-i} = \varphi^{-(2+i)}}$$
+
+- **Base $\varphi^{-2}$—the doublet's inverse-square coupling.** The gate couples the doublet's two fields, and the doublet factor 2 enters coupling exponents as the inverse square: the same 2 that gives the Qi-gravity coupling its exponent, $\xi = \varphi^{2\times3}$ (two field components × three spatial dimensions, `foundations/xi-derivation.md` §2). The base openness is also the gate's own characteristic scale—the coherence-deficit ratio at the conjugate point, $\varepsilon^2/\rho^2 = \varphi^{-2}$ at $r = \varphi^{-1}$ (`consciousness/consciousness-from-phi.md` §1.1).
+- **Per-step $\varphi^{-i}$—sheng-cycle attenuation.** The pentagon is scale-covariant (`foundations/wu-xing-derivation.md`): the cascade signal enters the gate at the source vertex and propagates around the sheng cycle, one vertex per step. Each step is a rung-equivalent damping event in the signal-propagation regime of the suppression formula, which attenuates a coupling by $\varphi^{-1}$ per span (`foundations/cascade-suppression-formula.md` §1.2). Channel $i$ sits $i$ sheng steps from the source vertex, so its coupling carries $\varphi^{-i}$.
+
+The ladder's exact structure: adjacent channels differ by exactly $\varphi$ ($b_i/b_{i+1} = \varphi$ for all $i$); every channel satisfies $b_i\,\varphi^i = \varphi^{-2}$; the total is $B_{\text{total}} = \varphi^{-1} - \varphi^{-6} \approx 0.5623$.
+
+$$\boxed{\text{Inputs: (i) the doublet's inverse-square base } \varphi^{-2} \text{ (the factor 2 of } \xi = \varphi^{2\times3}\text{); (ii) per-step damping } \varphi^{-1} \text{ along the sheng cycle (signal-propagation regime); (iii) channel } i \text{ sits } i \text{ sheng steps from the source vertex.}}$$
+
+(i) and (ii) are framework constants; (iii) is the geometry-to-damping identification. The ladder is **Derived conditional on (iii)**; the emotional reading of the channels remains Hypothesized (§7). The mechanism-realization note below reports the solver realizes only the first row, approximately.
 
 The full 5 × 5 redistribution matrix $R_{ij}$ (fraction of coherence from closing channel $i$ that flows into channel $j$) is:
 
@@ -186,7 +201,9 @@ $$R = \begin{pmatrix}
 0.447 & 0.276 & 0.171 & 0.106 & 0
 \end{pmatrix}$$
 
-Each row $i$ gives the blend recipe when channel $i$ closes: the aftereffect is a simultaneous mixture of the four remaining channels in these exact proportions. Rows 1 and 5 contain identical fractions (shifted by one index): removing the strongest channel (Wood) and removing the weakest (Water) leave complementary sets with the same relative proportions. Rows 2 and 4 are distinct (the complementary sets are not proportional). Row 3 is unique. The matrix entries follow from the conservation law **plus the asserted openness ladder $b_i = \varphi^{-(2+i)}$**—no psychological parameters, but the ladder itself is the undemonstrated input (the exponent's origin is not shown; only the Wood-closure row is approximately realized in the solver, §4.2).
+Each row $i$ gives the blend recipe when channel $i$ closes: the aftereffect is a simultaneous mixture of the four remaining channels in these exact proportions. Rows 1 and 5 contain identical fractions (shifted by one index): removing the strongest channel (Wood) and removing the weakest (Water) leave complementary sets with the same relative proportions. Rows 2 and 4 are distinct (the complementary sets are not proportional). Row 3 is unique. The matrix entries follow from the conservation law **plus the derived openness ladder $b_i = \varphi^{-(2+i)}$** (§4.2)—no psychological parameters. Only the Wood-closure row is approximately realized in the solver (mechanism-realization note below).
+
+**Verification.** `computations/verify_pinch_ladder.py` (repo root: `python computations/verify_pinch_ladder.py`) recomputes the ladder and every printed entry: all 25 fractions reproduce exactly, row 3 is exactly $\tfrac12(1,\ \varphi^{-1},\ 0,\ \varphi^{-3},\ \varphi^{-4})$, and rows 1 and 5 are shift-identical, $R_{5j} = R_{1,j+1}$—exact identities of the geometric ladder.
 
 The largest entry is $R_{21} = 0.567$: when joy subsides, anger receives the largest share of redistributed coherence, producing an aftereffect blend dominated by Wood-channel activation. The asymmetry is instructive: joy → anger-dominant blend (56.7% anger) is more intense than anger → joy-dominant blend (44.7% joy), because joy's closure leaves the strongest channel (Wood) in the pool to claim the largest fraction, while anger's closure removes it.
 
@@ -317,7 +334,7 @@ The PAD model adds a third dimension (dominance) to valence and arousal. Cassi's
 ### Derived (from $\varphi$ and cascade dynamics)
 
 - The Wu Xing pentagon ($w = 5$) and its 5-fold rotational symmetry (`foundations/wu-xing-derivation.md`)
-- The 5-channel baseline openness hierarchy $b_i = \varphi^{-(2+i)}$ (`foundations/wa-pentagon-gate.md` §2.2)
+- The 5-channel baseline openness hierarchy $b_i = \varphi^{-(2+i)} = \varphi^{-2}\varphi^{-i}$ (derived §4.2, conditional on the source-vertex identification; `foundations/wa-pentagon-gate.md` §2.2)
 - The adiabatic redistribution formula (`foundations/wa-pentagon-gate.md` §2.3)
 - The cascade rung structure, $\sigma_r$ dynamics, and wake-wave mechanism (`consciousness/consciousness-from-phi.md`)
 - The 13 chakra nodes at 2-rung spacing (`consciousness/chakras-as-cascade-bubbles.md`)
@@ -381,3 +398,4 @@ The PAD model adds a third dimension (dominance) to valence and arousal. Cassi's
 - `consciousness/time-memory-and-wake-locks.md`—arrow of time from the conversion term, memory as persistence
 - `cassi-psychology.md`—psychology reading guide: emotions as Qi-gate configurations
 - `predictions/falsifiable-predictions.md`—prediction catalog
+- `computations/verify_pinch_ladder.py`—ladder and R-matrix verification

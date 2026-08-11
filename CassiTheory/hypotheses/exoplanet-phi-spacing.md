@@ -16,6 +16,32 @@ excess of adjacent-planet period ratios at $\varphi$ and its Fibonacci
 convergents in the Kepler/TESS multi-planet catalog—a zero-parameter,
 falsifiable test using existing data.
 
+## Origin Status
+
+**Verdict: catalog correspondence; mechanism open.** Recomputation
+(`computations/verify_hypotheses_origin_audit.py`, 2026-08-11) confirms:
+
+- **Mechanism.** The wake-wave $\to$ $\varphi$-spaced density nodes $\to$
+  planetesimal condensation chain is asserted, not derived: no two-fluid-PDE
+  calculation of a protoplanetary disk exists, and the cosmic-web wake-wave
+  (open-questions C9) is itself a framework hypothesis. Mean-motion resonances
+  are real, and 3:2 = 1.5, 5:3 = 1.667, 8:5 = 1.6 are Fibonacci convergents —
+  but their ubiquity is standard celestial mechanics (resonance trapping
+  during migration), which does not single out Fibonacci convergents over
+  other low-order ratios such as 4:3.
+- **The period-ratio prediction** $P_{\text{out}}/P_{\text{in}} =
+  \varphi^{3/2} \approx 2.06$ (verified) is a legitimate zero-parameter
+  statistical test on the Kepler/TESS catalog; it has not been run here.
+- **Solar-system fit.** The geometric mean of the doc's own six adjacent-planet
+  ratios is 1.66, not 1.73 (§1 corrected); the set is dominated by the 3.42
+  Mars/Jupiter jump. The $\varphi$-fit's mean $|\ln a|$ deviation is 0.193 as
+  slotted and 0.088 after a post-hoc remap, vs Titius-Bode's 0.084 — comparable
+  at best, not better (§4 corrected).
+
+Tier stays **Hypothesized**: the statistical prediction is pinned and
+falsifiable; the mechanism step (disk wake-wave $\to$ $\varphi$-spacing) is
+open.
+
 ---
 
 ## 1. The Titius-Bode "Law"
@@ -26,8 +52,12 @@ $$a_n = 0.4 + 0.3 \times 2^n \quad \text{(AU, for $n = -\infty, 0, 1, 2, \ldots$
 The progression factor is 2, but the actual mean spacing ratio of adjacent
 planets in our solar system varies: Venus/Earth = 0.723, Earth/Mars = 1.52,
 Mars/Jupiter = 3.42 (the asteroid belt occupies this gap), Jupiter/Saturn =
-1.83, Saturn/Uranus = 1.97, Uranus/Neptune = 1.56. The geometric mean is ~1.73,
-close to $\varphi + 0.11$.
+1.83, Saturn/Uranus = 1.97, Uranus/Neptune = 1.56. The geometric mean of these
+six ratios is 1.66 (recomputed), within 3% of $\varphi$ — but the set is
+dominated by the single 3.42 Mars/Jupiter jump, and the ratio convention
+(inner/outer vs outer/inner, Mercury included or not) moves the mean between
+1.66 and 1.75. One planetary system cannot select $\varphi$ over the
+progression factor 2 that Titius-Bode already fits.
 
 The standard interpretation is that orbital resonances (mean-motion resonances
 at period ratios like 2:1, 3:2, 5:3) sculpt planetary spacing through
@@ -97,9 +127,13 @@ With $a_0 = 0.4$ AU (Mercury): predicted $a_1 = 0.4 \times \varphi = 0.65$ AU
 = 0.4 \times \varphi^8 \approx 18.8$ AU (Uranus fit here, Neptune at 30.1—worst
 outer-planet fit).
 
-The fit is rough—the solar system is one sample—but the mean absolute
-deviation in $\ln a$ is comparable to or better than the standard Titius-Bode
-form.
+The fit is rough—the solar system is one sample. Recomputed mean absolute
+deviation in $\ln a$: 0.193 as slotted (Mercury→slot 0 through Neptune→slot 8,
+with Saturn 34% off and slot 7 matching nothing), or 0.088 after a post-hoc
+remap (Uranus→slot 8, Neptune→slot 9, slot 7 dropped). Titius-Bode's own mean
+$|\ln a|$ deviation is 0.084 — so the $\varphi$-fit is comparable at best
+after the remap and worse without it; it is not "better than" Titius-Bode,
+and the remap is chosen after the fact.
 
 ## 5. Falsifiable Tests
 

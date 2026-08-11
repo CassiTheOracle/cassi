@@ -56,6 +56,15 @@ $q \to 0$: far from $\varphi$-equilibrium. $q \to 1$: perfect $\varphi$-equilibr
 
 **Temporal coherence (IIR memory).** $\bar{\varepsilon}^2(t) = (1-\tau)\,\bar{\varepsilon}^2(t-\Delta t) + \tau\,\varepsilon^2(t)$, $\tau = \varphi^{-1}$. The field carries a memory of its own past state; smoothing $\varepsilon^2$ stabilizes $q$.
 
+**q-form inventory** (consistency sweep 2026-08-11; numeric checks in `computations/q_form_inventory_check.py`). The coherence $q$ appears in four forms:
+
+1. **Canonical (this section):** $q = \rho^2/(\rho^2 + \varphi^{-2} + \varepsilon^2)$, numerator the field power $\rho^2$. Used by `cassi-first-principles.md` §2.1, `wa-pentagon-gate.md` §1, `gravity/three-body-analytical.md`, and the two-fluid solver's single gate ($M_{qi} = (E_Y+E_I)^2 = \rho^2$, $\varepsilon^2 = (E_Y-\varphi E_I)^2$; `two-fluid/cassi_two_fluid_3d_gpu.py`, `two-fluid/run_rung_offset_probe.py`, `two-fluid/run_sigma8_pipeline.py`, `runs/_pristine_solver.py`). The fixed-point value $q_{\text{eq}} = \varphi^{-2}/(\varphi^2+\varphi^{-2}) \approx 0.127$ corresponds to the equilibrium normalization $\rho^2 = \varphi^{-6}$; $q \to 1$ is the large-scale saturation limit ($\rho^2 \gg \varphi^{-2}$). Gate closure reads $1-q \to \varphi^{-2}/(\varphi^2+\varphi^{-2})$ under the solver's $\rho^2 = \varphi^2$ normalization (`computations/ns_gate_correction.py`).
+2. **Per-rung specialization:** $q_i = 1 - \varphi^{-i-\delta}$, $\delta = 3$ (`cascade-suppression-formula.md` §1; `proton-coherence-budget.md`; `gravity/quantum-gravity.md` §2.1; `microcascade-mirror.md`; the coherence-budget consumers). Per-rung dephasing $1-q_i = \varphi^{-i-\delta}$, step $1-q_{i+1} = \varphi^{-1}(1-q_i)$. Not pointwise equal to form (1): residuals $|q_i - q_{\text{eq}}| = 0.64$–$0.85$ over $i = 0$–$5$ (reference normalization); the profiles cross only at the sub-Planckian rung $i^* = \log_\varphi(1/(1-q_{\text{eq}}))-3 \approx -2.7$ ($i^* \approx +1.3$ under the solver normalization). The two are tied by the $\delta = 3$ calibration $1-q_0 = \varphi^{-\delta} = (\pi/\rho)_{\text{eq}}$ (quantum-gravity §2.1), not by an identity; the profile's $i$-dependence is Hypothesized (proton-coherence-budget.md §8).
+3. **Equilibrium simplification ("Qi quality"):** $q = M/(M + \varphi^{-2})$ with $M \equiv \rho^2$ the field power (`unified-lagrangian.md` §1.5/§3.2, reconciled to this section). Form (1) at $\varepsilon^2 = 0$: identical at the fixed point (residual $<10^{-15}$); the omitted $\varepsilon^2$ is the only discrepancy away from equilibrium. `two-fluid/cassi_bridge_v2.py` `qi_coherence` is form (1) with $\varepsilon^2$ replaced by the temporal-memory deviation $(\rho-\rho_{\text{mem}})^2$ (cf. the $\bar\varepsilon^2$ IIR memory above).
+4. **Removed branch form:** $q_\alpha \propto |\psi_\alpha|^2$, a branch-level Qi density asserted by the measurement derivation; retracted in favor of the canonical gate (`foundations/quantum-measurement-derivation.md` §4.5), no consumers remain.
+
+Distinct-naming consumers (not the coherence $q$): `experiments/phi_attractor_paths/path8_phi_enhanced_rotation.py` uses a density-only halo $q = 1/(1+(\rho/\rho_{\text{ref}})^2)$ (inverted density dependence; documented halo-scale approximation, not the canonical form); `experiments/sparc_qi/sparc_qi_analysis_v9.py` uses $q$ as a halo mass fraction; `speculations/dark-matter-as-qi-coherence.md` and `consciousness/chakras-as-cascade-bubbles.md` use the spatial envelope $q(\mathbf{x}) = (1+B(\mathbf{x}))/2$; `standard-model/sm-from-phi.md` §3.1 uses a distinct $Q = |\Psi|^2|\varepsilon|^2$.
+
 ### 2.5 Qi Gate
 
 $$\partial_t E_Y \supset -\lambda(1-q)(E_Y - \varphi E_I),\qquad \partial_t E_I \supset +\lambda(1-q)(E_Y - \varphi E_I)/\varphi$$
@@ -132,8 +141,8 @@ $$\lambda = 1/(2w) = 0.1 \quad\text{(PDE conversion rate)}$$
 | $K_{fw}$ | $\varphi^{-1}$ | $0.618$ | Water damps Fire |
 | $K_{fm}$ | $\lambda\varphi^2$ | $0.262$ | Fire melts Metal |
 | $K_{md}$ | $3\varphi^2$ | $7.85$ | Metal cuts Wood |
-| $H_{\text{empty}}$ | $\lambda\varphi^{-2}/3$ |—| Irreducible cosmological baseline—**Asserted** (postulate): the 1/3 is the 3D continuity reading; T₀₀ at equilibrium gives 0 or (g/4)φ², never λφ⁻²/3; Lagrangian derivation open |
-| $\kappa_s$ | $\varphi^{-6}/v_0^2$ | $0.92$ TeV$^{-2}$ | Dirac↔two-fluid sector-coupling scale (rung 77) |
+| $H_{\text{empty}}$ | $\lambda\varphi^{-2}/3$ |—| Irreducible cosmological baseline—the 1/3 is **Derived** as the isotropic dimension factor $1/d$ at $d = 3$ (`cosmology/cosmology-from-phi.md` §1); the $\lambda\varphi^{-2}$ rate stays **Asserted** |
+| $\kappa_s$ | $\varphi^{-6}/v_0^2$ | $0.92$ TeV$^{-2}$ | Dirac↔two-fluid sector-coupling scale (rung $77 = 154/2 = 80 - 3$; Derived conditional on $\delta = 3$—`foundations/sector-coupling-derivation.md` §2) |
 
 ---
 
@@ -231,11 +240,11 @@ Unified coupling at GUT: $\alpha_{\text{GUT}} = \varphi^{-3}/(4\pi)$. Gauge coup
 
 ### 6.2 Three Generations
 
-Fibonacci recurrence $\varphi^n = \varphi^{n-1} + \varphi^{n-2}$ partitions each cascade span into three sub-rung channels:
+Fibonacci recurrence $\varphi^n = \varphi^{n-1} + \varphi^{n-2}$ partitions each cascade span into sub-rung channels: the decomposition has two terms (two predecessor channels; the recurrence's solution space is 2D, roots $\varphi$, $-1/\varphi$), and the propagation-channel postulate adds the direct rung:
 
-$$N_{\text{gen}} = \text{order}(\varphi\text{'s minimal polynomial } x^2 - x - 1) + 1 = 3$$
+$$N_{\text{gen}} = 2 + 1 = 3$$
 
-No fourth generation. $\varphi$-power spacing from Fibonacci sub-channel widths.
+(without the postulate the count would be 2; `foundations/three-generations.md` §2.3). No fourth generation. $\varphi$-power spacing from sub-channel widths.
 
 ### 6.3 Mass Ratios
 
@@ -280,7 +289,7 @@ $N_{\text{max}} \approx \varphi^{4506}$ wave cycles. Physical lifetime $\tau_p \
 
 ### 6.7 Quark Confinement
 
-Qi gate nonlinearity threshold at $n = 95$ produces a linear confining potential $F \propto r$ via Qi flux tube. Flux tube breaking probability $\approx \varphi^{-4506}$. Asymptotic freedom at $n \ll 95$ from $g(q) \to 0$.
+Saturated-gate flux tube at $n = 95$: the conversion channel saturates between separated color charges ($q \to 0$); the tube's energy is extensive, $E(r) = \mu r$ with $\mu = \kappa(M_{\text{Pl}}/\varphi^{95})^2 = \kappa\Lambda_{\text{QCD}}^2$, $\kappa = 2\pi$ conditional on the 2π-per-rung winding reading ($\sigma_{\text{tube}} = 0.1836$ GeV², +2.0% vs measured) — a constant force, linear potential by extensivity (independent of the gate shape). Flux tube breaking probability $\approx \varphi^{-4506}$. Asymptotic freedom at $n \ll 95$ from $g(q) \to 0$.
 
 ---
 
@@ -444,7 +453,7 @@ Mind: concentrated post-pinch field dynamics. Brain: antenna for the Qi field. A
 | Parameter | Expression | Value | Origin |
 |-----------|-----------|-------|--------|
 | $\alpha_0$ | $\varphi^{-3} = (\varphi-1)/(\varphi+1)$ | $0.236$ | Fixed-point imbalance (the "Yang fraction" label is Mapped—ledger row 500; the Yang fraction is $\varphi^{-1}$) |
-| $\xi$ | $\varphi^6$ | $17.944$ | 2 fields × 3 dimensions (conditional ansatz; $d = 3$ imported, φ-per-DOF asserted—`xi-derivation.md`; empirical pin Calibrated) |
+| $\xi$ | $\varphi^6$ | $17.944$ | Imbalance inverse-square $\xi = (\pi/\rho)^{-2}$ (Derived conditional on the quadratic-coupling input; the 2×3-DOF reading is secondary—`xi-derivation.md`; empirical pin Calibrated) |
 | $\sin^2\theta_W$ | $\varphi^{-3}$ | $0.236$ | VEV asymmetry (asserted boundary condition; realized at $\mu_* = 233$ GeV—Calibrated, ledger row 490) |
 | $\alpha_{\text{GUT}}$ | $\varphi^{-3}/(4\pi)$ | $1/53$ | Fixed-point imbalance / $4\pi$ (asserted boundary condition) |
 | $m_W/m_Z$ | $\sqrt{1-\varphi^{-3}}$ | $0.874$ | From $\sin^2\theta_W$ (inherits its boundary-condition status) |
@@ -453,12 +462,12 @@ Mind: concentrated post-pinch field dynamics. Brain: antenna for the Qi field. A
 | $w_a$ | $\xi$ in $H(a)$; ratified conversion→expansion coupling | $+0.012$ baseline; $-0.38$ (B2, unstable); **$(-1, 0)$ pure-Λ window (stable realization—10/12)** | Calibrated baseline (ledger row 496); coupling shifts 08 §C.6; 12 |
 | $g$ | $1 - \varphi^{-5}$ | $0.910$ | Wu Xing gap |
 | $r_0$ | $\varphi^{-5}/(2-\varphi^{-5})$ | $0.047$ | Primordial ratio |
-| $\lambda$ | $1/(2w)$ | $0.1$ | PDE conversion rate ($w = 5$ derived; the $1/(2w)$ factor itself is asserted) |
+| $\lambda$ | $1/(2w)$ | $0.1$ | PDE conversion rate ($w = 5$ derived; $\lambda = (1/2)(1/w)$: doublet factor $\times$ per-cycle event share—`foundations/wu-xing-derivation.md` §7; **Derived conditional on** the doublet conversion budget + one event per cycle) |
 | $n_s$ | $1 - 2\varphi^{-1}/N_e$ | $0.969$ | Inflation gate ($N_e = 40$ Mapped—ledger row 501) |
 | $r$ | $\varphi^{-12}$ | $0.003$ | Tensor ratio (Mapped fit—ledger row 495; $12/N_e^2$ needs $N_e = 63.2$) |
 | $\eta$ | $\varphi^{-44}$ | $6.4 \times 10^{-10}$ | Baryon asymmetry (exponent **Mapped**—ledger row 481; mechanism Hypothesized) |
-| $\sigma$ | $\ell_{\text{Pl}}/\varphi^3$ |—| Regularization scale (the exponent $\delta = 3$ is asserted; derivation open) |
-| $\Omega_{\text{DM}}/\Omega_b$ | $\varphi^3 + 1$ | $5.24$ | Qi condensate freeze-out (Mapped—ledger row 502: hand-added $+1$; base $\varphi^3$ asserted) |
+| $\sigma$ | $\ell_{\text{Pl}}/\varphi^3$ |—| Regularization scale ($\delta = 3$ Derived conditional on the noise–signal identification + $d = 3$: per-rung dephasing $\varphi^{-\delta}$ equals the equilibrium excess $\varphi^{-3}$—`gravity/quantum-gravity.md` §2.1) |
+| $\Omega_{\text{DM}}/\Omega_b$ | $\varphi^3 + 1$ | $5.24$ | Qi condensate freeze-out (base $\varphi^3 = \alpha_0^{-1} = \xi\sin^2\theta_W$ Derived conditional on the Weinberg-angle identification; $+1$ hand-added—ledger row 502, Mapped) |
 | $\bar{\theta}$ | $\pi\varphi^{-83.4}$ | $1.2\times10^{-17}$ | Strong CP |
 | $\tau_p$ | $\varphi^{4506}/\omega_p$ | $\sim 10^{910}$ yr | Proton coherence budget |
 

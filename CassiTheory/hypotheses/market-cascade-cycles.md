@@ -18,6 +18,32 @@ $\varphi$-adjacent scaling ratios, and Cassi offers a structural explanation for
 *why* this specific ratio appears—the de-resonance attractor in hierarchical
 information networks.
 
+## Origin Status
+
+**Verdict: catalog correspondence; mechanism open.** Recomputation
+(`computations/verify_hypotheses_origin_audit.py`, 2026-08-11) confirms:
+
+- **LPPL scaling ratio.** Empirical fits give $\lambda \approx 1.6$–$1.7$;
+  $\varphi = 1.618$ sits inside that window, but so do $\sqrt{3} \approx
+  1.73$, $\pi/2 \approx 1.57$, and other constants (§6.4 concedes this). A
+  fit window containing $\varphi$ is not a selection of $\varphi$.
+- **Angular frequency.** $\omega = 2\pi/\ln\varphi \approx 13.06$ is verified
+  arithmetic, but the empirical LPPL fits ($\omega \approx 5$–$10$) span
+  0.38–0.77 of it — the doc's "$\omega/2$–$2\omega/3$" window covers only the
+  middle, and the $\sqrt{\varphi}$/$\varphi^{2/3}$ re-readings are post-hoc
+  (no dynamics selects the effective rung spacing). §5 corrected.
+- **No PDE for markets.** The two-fluid PDE governs conserved physical fields;
+  the mapping to discrete, non-conserved, reflexive agent dynamics has not
+  been constructed (§6.1). The de-resonance argument transfers $\varphi$ to
+  information networks by analogy only.
+- **Drawdown sequence.** $\tau_k = \varphi^k$ days (1, 1.6, 2.6, 4.2, 6.8,
+  11, 18, 29, 47, 76 — verified) is a prediction in form only: the anchor
+  $\tau_0 = 1$ trading day is fitted, and no drawdown analysis has been run
+  (§4 is a proposed test).
+
+Tier stays **Speculative**; the $\varphi$-periodic market structure is a
+catalog correspondence chosen after the fact.
+
 ---
 
 ## 1. Log-Periodic Power Law (LPPL) in Finance
@@ -84,9 +110,11 @@ should show excess probability at $\varphi$-spaced timescales:
 
 $$\frac{\tau_{k+1}}{\tau_k} \approx \varphi$$
 
-**Test with S&P 500 (1928–present, daily data):** Drawdowns exceeding 5% should
-show clustering at periods of approximately 1, 1.6, 2.6, 4.2, 6.8, ... trading
-days (or calendar months, depending on the anchor).
+**Proposed test — S&P 500 (1928–present, daily data):** Drawdowns exceeding 5%
+should show clustering at periods of approximately 1, 1.6, 2.6, 4.2, 6.8, ...
+trading days (or calendar months, depending on the anchor). This analysis has
+not yet been run; the prediction is the $\varphi$-spacing between peaks, while
+the anchor $\tau_0 = 1$ trading day is a fitted input (§8).
 
 The cascade anchor timescale for equity markets is approximately 1 trading day
 (one rung above the tick level). Predicted drawdown durations: $\tau_0 = 1$ day,
@@ -113,11 +141,11 @@ $$\omega = \frac{2\pi}{\ln\varphi} \approx 13.06$$
 
 Empirically, fits to the 1987 crash give $\omega \approx 6$–$9$, to the 2000
 dot-com crash $\omega \approx 5$–$8$, and to the 2008 crash $\omega \approx
-7$–$10$. These are about $\omega/2$ to $2\omega/3$ of the $\varphi$ prediction,
-suggesting the effective log-periodic ratio in real markets is approximately
-$\sqrt{\varphi} \approx 1.27$ to $\varphi^{2/3} \approx 1.38$ rather than
-$\varphi \approx 1.618$. This could reflect the market's effective cascade
-spacing being two Fibonacci sub-rungs rather than a full rung.
+7$–$10$. These span 0.38–0.77 of the $\varphi$ prediction (5/13.06 to
+10/13.06) — the "$\omega/2$ to $2\omega/3$" window (0.5–0.67) covers only the
+middle of the observed range. The suggested effective log-periodic ratios
+$\sqrt{\varphi} \approx 1.27$ or $\varphi^{2/3} \approx 1.38$ are post-hoc
+adjustments: no dynamics selects the effective cascade spacing.
 
 The relaxation-oscillation reading of the crash (`speculations/creative-extensions/coherence-commons.md`
 §5.4) identifies the precursor window as the market's approach to the

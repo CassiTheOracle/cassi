@@ -68,7 +68,19 @@ $$\cos^2\theta_W = 1 - \varphi^{-3} \approx 0.764$$
 | $\sin^2\theta_W$ | $\varphi^{-3} \approx 0.236$ | 0.23122 | +2.1% (at $\mu_* = 233$ GeV, exact) |
 | $\cos^2\theta_W$ | 0.764 | 0.769 | 0.993 |
 
-The origin of this prediction is stated as the neutral boson mass matrix off-diagonal being proportional to the VEV asymmetry $(\varphi-1)/(\varphi+1) = \varphi^{-3}$; that identification is an **asserted boundary condition**, not a derived diagonalization (a massless photon requires the off-diagonal coefficient $1/2$, and the matrix's own diagonalization does not yield $\varphi^{-3}$—see `standard-model/su2-gauge-extension.md` §3.2 status note).
+The origin of this prediction is the **coupling-ratio identity**
+$\sin^2\theta_W = 1/(1+2\varphi) \iff \tan^2\theta_W = 1/(2\varphi) \iff
+(g/g')^2 = 2\varphi$ (exact $\varphi$-algebra, verified in
+`computations/weinberg_phi_identity.py`); it is an **asserted boundary
+condition**, not a derived diagonalization—the VEV asymmetry
+$(\varphi-1)/(\varphi+1) = \varphi^{-3}$ sets only the off-diagonal of the
+neutral mass matrix, which has a massless photon only for off-diagonal
+coefficient $1/2$ and whose own diagonalization gives $\sin^2\theta = 0.102$
+at the framework's $g'/g = 0.556$
+(`standard-model/su2-gauge-extension.md` §3.2). The φ-value $g'/g = 0.5559$
+sits $+1.36\%$ above the measured $0.5484$; the blocking step for a full
+derivation is a two-fluid mechanism that fixes $g'^2 = g^2/(2\varphi)$ at the
+φ-boundary.
 
 The weak mixing angle runs **upward** with energy (toward the unification
 value $3/8$), so the φ-point value is realized not at the GUT scale but one

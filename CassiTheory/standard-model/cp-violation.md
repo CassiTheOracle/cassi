@@ -60,9 +60,12 @@ Define the chiral asymmetry at the $\phi$-fixed point:
 
 $$\eta = \frac{E_Y - E_I}{E_Y + E_I} = \frac{\phi - 1}{\phi + 1} = \phi^{-3} \approx 0.236$$
 
-This is the same parameter that appears in the Weinberg angle
-($\sin^2\theta_W = \phi^{-3}$)—a deep connection between CP violation and
-electroweak mixing in Cassi (`standard-model/su2-gauge-extension.md` §3).
+The same value appears as the Weinberg angle only through the asserted
+boundary condition $\sin^2\theta_W = 1/(1+2\varphi) = \varphi^{-3}$—the
+coupling-ratio identity $(g/g')^2 = 2\varphi$, realized at $\mu_* = 233$ GeV
+(Calibrated, ledger row 490). The shared value $\phi^{-3}$ is a boundary
+assignment, not a derived identity between CP violation and electroweak
+mixing (`standard-model/su2-gauge-extension.md` §3.2).
 
 ---
 

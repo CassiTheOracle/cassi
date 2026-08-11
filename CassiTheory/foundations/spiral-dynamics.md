@@ -137,7 +137,7 @@ E_Y\rangle/\langle E_I\rangle$:
 
 $$\boxed{H = \frac{\lambda}{3}\frac{(\varphi - r)(1+r)}{r} + \frac{\lambda}{3}\varphi^{-2}}$$
 
-(**Asserted** (postulate)—the 1/3 is the 3D continuity reading; the $(\lambda/2\pi)(1-q)$ clock form is Hypothesized (§2.1); T₀₀ at equilibrium gives 0 or (g/4)φ², never λφ⁻²/3; Lagrangian derivation open.)
+(The 1/3 is **Derived** as the isotropic dimension factor $1/d$ at $d = 3$—`cosmology/cosmology-from-phi.md` §1; the $(\lambda/2\pi)(1-q)$ clock form is Hypothesized (§2.1); the $\lambda\varphi^{-2}$ rate stays Asserted; T₀₀ at equilibrium gives 0 or (g/4)φ², never λφ⁻²/3.)
 
 The two H forms are **two different clocks**, not one H in two limits: at the
 fixed point the PDE form gives $H = \lambda\varphi^{-2}/3$, while the

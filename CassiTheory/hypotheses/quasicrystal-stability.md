@@ -16,16 +16,19 @@ waves as its attractor state. Crystallization into a periodic lattice requires
 de-tuning from this attractor, incurring a cascade suppression penalty.
 The critical cooling rate for quasicrystal formation—the boundary between glass,
 quasicrystal, and crystal—is determined by $\varphi$-powers of the cooling
-rate, a zero-parameter prediction of the same two-fluid PDE that governs
-cosmology once the rung span of the defining cluster is read off the material
-structure.
+rate, a low-parameter prediction of the same two-fluid PDE that governs
+cosmology ($N_{\text{rungs}} = 3$–$5$ enters as a free range; the exact rung
+count of a given material's defining cluster is still open, §7).
 
 **Prior art.** The role of $\varphi$ in quasicrystal diffraction
 patterns (Penrose tilings, Fibonacci chains) is well-established since Levine &
 Steinhardt (1984) and Shechtman's Nobel-winning discovery. The Cassi contribution
-is not discovering $\varphi$ in quasicrystals—it is deriving quasicrystal
-stability from the same de-resonance PDE that produces the Standard Model and
-cosmological parameters.
+is not discovering $\varphi$ in quasicrystals—it is *proposing* to derive
+quasicrystal stability from the same de-resonance PDE that produces the Standard
+Model and cosmological parameters. The derivation is not yet closed (Origin
+Status); the $\varphi$-modular structure of quasicrystal reciprocal space is
+prior art, and the stabilization step from the two-fluid PDE has not been
+shown.
 
 ---
 
@@ -76,12 +79,41 @@ suppression is:
 
 $$\varphi^{-N_{\text{rungs}}} \sim \varphi^{-5} \approx 0.090$$
 
-This is an energy barrier of approximately 9% of the cohesive energy—large
-enough that crystallization requires thermal activation over multiple rungs,
-explaining why quasicrystals are metastable rather than unstable, and why slow
-cooling (which gives atoms time to find the global periodic minimum) produces
-crystals while rapid cooling traps the system in the $\varphi$-resonant
-quasicrystal configuration.
+This reads the dimensionless suppression factor as "approximately 9% of the
+cohesive energy" — but no derivation connects $\varphi^{-N_{\text{rungs}}}$
+(the rung-suppression factor) to a fraction of an energy; the step
+$\Delta E \propto N_{\text{unit}}\varphi^{-N_{\text{rungs}}}$ is asserted, not
+derived from the two-fluid PDE. The qualitative reading (aperiodic order is
+metastable because the crystal minimum is reached only by thermally activated
+rearrangement) is standard condensed-matter reasoning that does not require
+the $\varphi$-suppression.
+
+## Origin Status
+
+**Verdict: catalog correspondence; mechanism open.** Recomputation
+(`computations/verify_hypotheses_origin_audit.py`, 2026-08-11) confirms:
+
+- $\varphi^{-5} = 0.090$, $\varphi^{-4} = 0.146$, $\varphi^4 = 6.85$ all
+  verify. But the $\varphi$-module structure of quasicrystal reciprocal space
+  is established prior art (Penrose tilings, Fibonacci chains,
+  Levine–Steinhardt 1984) — not a Cassi result, as the "Prior art" paragraph
+  concedes.
+- **No dynamics step.** $\Delta E_{\text{QC} \to \text{crystal}} \propto
+  N_{\text{unit}}\varphi^{-N_{\text{rungs}}}$ is asserted: nothing in the
+  two-fluid PDE shows why detuning the Fourier module from $\varphi$ costs
+  $\varphi^{-N_{\text{rungs}}}$ per rung, and reading that dimensionless
+  factor as "~9% of the cohesive energy" (§2) equates a suppression factor
+  with an energy fraction without derivation.
+- **Free parameters.** $N_{\text{rungs}} = 3$–$5$ is a range (the abstract's
+  "zero-parameter" phrasing is corrected), the critical cooling-rate ratio
+  inherits it, and the $C_V$ modulation amplitude (1–3%) and phase are free;
+  §7 concedes the per-material rung count must still be computed.
+- **5D embedding.** $D = 2 + 2 + 1 = 5$ is an asserted dimension count, not a
+  derivation of the standard 5D→3D projection.
+
+Tier stays **Speculative**: $\varphi$ is genuinely present in quasicrystal
+geometry, but no dynamics selects the stabilization energy or the cooling-rate
+exponent.
 
 ## 3. The Critical Cooling Rate
 

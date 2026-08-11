@@ -37,7 +37,7 @@ GUT-scale running direction is upward, so the offset is not absorbable.
 | Observable | Planck (2018) | Cassi | CMB-S4 Reach |
 |-----------|---------------|-------|-------------|
 | $n_s$ | $0.965 \pm 0.004$ | **0.9691** | $\pm 0.002$ |
-| $r$ (tensor-to-scalar) | $<0.032$ | **0.003** | $0.001$ |
+|| $r$ (tensor-to-scalar) | $<0.032$ | **0.0075** ($12/N_e^2$ at $N_e = 40$—Mapped window, ledger §10 row 495) | $0.001$ |
 | $dn_s/d\ln k$ | $-0.005 \pm 0.013$ | **$-5\times10^{-4}$** | $\pm 0.002$ |
 | $\mathcal{P}_\zeta$ | $2.1\times10^{-9}$ | **$\sim 2\times10^{-9}$** | In-situ |
 | $N_e$ (e-foldings) | $50$–$60$ | **$40$ (start-threshold choice—Mapped, ledger §10 row 501)** | Degenerate |
@@ -45,14 +45,17 @@ GUT-scale running direction is upward, so the offset is not absorbable.
 **Source:** `cosmology/cosmology-from-phi.md` §2. Inflation is a $\varphi$-driven phase
 transition ($r \gg \varphi$ to $r = \varphi$). The spectral index $n_s = 1 - 2\varphi^{-1}/N_e = 0.9691$
 matches Planck at $1.0\sigma$ as a closed form ($N_e = 40$—Mapped window, ledger §10 row 501; the
-gate slow-roll trajectory does not reproduce it). Tensor ratio $r = 12/N_e^2$: the arithmetic does
-not close at $N_e = 40$ ($12/40^2 = 0.0075 \neq 0.003$; the value $0.003$ requires $N_e \approx 63.2$),
-and $r = \varphi^{-12}$ is a Mapped fit (ledger §10 row 495) excluded by the trajectory's BK18
-constraint—reported here as the catalog value with its Mapped status, testable at CMB-S4
-($\sigma_r = 0.001$).
+gate slow-roll trajectory does not reproduce it). Tensor ratio $r = 12/N_e^2 = 0.0075$ at the
+Mapped window $N_e = 40$ (exact arithmetic, $12/1600$; ledger §10 row 495)—the catalog value,
+Mapped with the window. The $0.003$ reading is internally inconsistent with $N_e = 40$: it needs
+$N_e = \sqrt{12/0.003} \approx 63.2$, outside the ledgered window, and its $\varphi$-power form
+$r = \varphi^{-12} \approx 0.0031$ is a Mapped fit excluded by the trajectory's BK18 constraint
+(the trajectory gives $r = 0.060$ at $N_e = 40$ literal). Decision support: $0.0075$ survives BK18
+($r < 0.032$) and is testable at CMB-S4 ($\sigma_r = 0.001$; $0.0075 = 7.5\sigma$, the $0.003$
+reading would be $3\sigma$).
 
 
-**CMB large-angle anomaly (bubble-boundary axis)**: triaxial bubble geometry at step 285 imprints a preferred axis at super-horizon scales ($\ell < 5$); predicted dipole↔quadrupole alignment $12.2°$ (C10). The CMB "axis of evil" (quadrupole-octopole alignment at $(l,b)=(260\degree,+60\degree)$, 5.4σ; Jones+ 2023) is the measured counterpart. Epistemic tiering: the $12.2°$ angle is **Calibrated** (angle from data, computed from the measured direction vectors); the bubble-boundary mechanism is **Hypothesized** (boundary orientation fit to the measured axis, post-hoc). The Cassi-unique test: the anomaly must be scale-dependent (fading for $\ell > 5$), distinguishing from foreground contamination. Simons Observatory + LiteBIRD E-mode polarization data (2025+) provide the test.
+**CMB large-angle anomaly (bubble-boundary axis)**: triaxial bubble geometry at step 285 imprints a preferred axis at super-horizon scales ($\ell < 5$); predicted dipole↔quadrupole alignment $12.2°$ (C10). The CMB "axis of evil" (quadrupole-octopole alignment at $(l,b)=(260\degree,+60\degree)$, 5.4σ; Jones+ 2023) is the measured counterpart. Epistemic tiering: the $12.2°$ magnitude is **Derived** ($2\pi/\varphi^7 = 12.40°$, the pole-spiral closure ladder's 13-seed residual — exact identity $13/\varphi^2 = 5 - 1/\varphi^7$, 1.5% from the measured $12.22°$; the closure ladder is the framework's documented sequence, no power scanned to fit); the axis **direction** is **Calibrated** (computed from the measured direction vectors); the bubble-boundary mechanism is **Hypothesized** (boundary orientation fit to the measured axis, post-hoc). The Cassi-unique test: the anomaly must be scale-dependent (fading for $\ell > 5$), distinguishing from foreground contamination. Simons Observatory + LiteBIRD E-mode polarization data (2025+) provide the test.
 ---
 
 ## 3. Cosmic Surveys (LSST, Roman, SKA)—Structure & Dark Energy
@@ -278,8 +281,8 @@ Sorted by detection likelihood (most definitive first):
 | 3 | $w_0$ (gap-derived) | Cosmic surveys | **$-0.87$** (Calibrated baseline) | $2\sigma$ from DESI $\approx -0.75 \pm 0.06$ baseline; $3.6\sigma$ at fixed $r_0$ (B2); $4.17\sigma$ (stable realization—12) | **Tension** ($r_0$ re-tuning closed negatively under the stable realization—12) |
 | 4 | $w_a$ (DE EoS slope) | Cosmic surveys | **$+0.012$ (with $\xi = \varphi^6$)** → **$-0.38$** (B2, unstable) → **pure-Λ $(-1, 0)$** (stable realization—10/12) | baseline $2.7\sigma$; $1.25\sigma$ (B2, unstable); $4.17\sigma$/$2.61\sigma$ (stable realization—12) | **Tension** (stable realization—12; the B2 near-resolution described the unstable realization) |
 | 5 | φ-periodic $P(k)$ | Cosmic surveys | **$\Delta\ln k = \ln\varphi = 0.4812$** | 0-param, orthogonal to BAO | **DESI / Euclid 2025–27** |
-| 6 | CMB bubble-boundary axis | CMB-S4 / LiteBIRD | **12.2° alignment, $\ell<5$** | **Calibrated** (12.2° angle from data; axis at 5.4σ, alignment ~1σ) / **Hypothesized** (boundary mechanism, post-hoc orientation) | **Simons Obs. 2025+** |
-| 7 | $r$ (tensor ratio) | CMB-S4 / LiteBIRD | **0.003** | Mapped fit (ledger §10); the gate slow-roll trajectory gives $r$ excluded by BK18; $r = \varphi^{-12}$ does not coexist with $n_s = 0.9691$ on the trajectory (2026-08-06, `computations/slow_roll_trajectory.py`) | **2030s** |
+| 6 | CMB bubble-boundary axis | CMB-S4 / LiteBIRD | **12.2° alignment, $\ell<5$** | **Derived** (magnitude $2\pi/\varphi^7 = 12.40°$, 1.5% from measured $12.22°$) / **Calibrated** (axis direction from data) / **Hypothesized** (boundary mechanism, post-hoc orientation) | **Simons Obs. 2025+** |
+|| 7 | $r$ (tensor ratio) | CMB-S4 / LiteBIRD | **0.0075** ($12/N_e^2$ at $N_e = 40$—Mapped window, ledger §10 row 495) | Formula-consistent at the ledgered window; survives BK18 ($r < 0.032$); testable at CMB-S4 ($7.5\sigma$, $\sigma_r = 0.001$). The $0.003$/$0.0031$ reading requires $N_e \approx 63.2$ (outside the window); its $\varphi^{-12}$ form is a Mapped fit excluded by the trajectory's BK18 constraint (2026-08-06, `computations/slow_roll_trajectory.py`) | **2030s** |
 | 8 | $n_s$ | CMB-S4 | **0.9691** (closed form; $N_e = 40$ window Mapped—ledger) | $1.0\sigma$ as a closed form; the trajectory gives 0.813 or 0.914, not 0.9691 (2026-08-06, `computations/slow_roll_trajectory.py`) | **Already consistent (formula-level)** |
 | 9 | $\alpha_s(m_Z)$ | LHC precision | **0.058–0.061** | $2.0\times$ below measured $0.118$ ($\Delta b = 1.70$) | **Ongoing** |
 | 10 | $p \to e^+\pi^0$ lifetime | Hyper-K | **$1.3\times10^{37}$ yr** (corrected arithmetic 2026-08-05, `computations/proton_budget_closure.py`) | $>1\times10^{34}$ yr bound; above Hyper-K reach (~$10^{35}$ yr) | **2030s (null expected)** |

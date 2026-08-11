@@ -4,7 +4,7 @@
 
 ## Abstract
 
-The same two-fluid dynamics in an expanding universe produce inflation, the baryon asymmetry, and the dark-matter budget—three open problems solved with zero new parameters. Inflation is a $\varphi$-driven phase transition of the Yang/Yin ratio toward the attractor; its scalar spectral index is $n_s = 1 - 2\varphi^{-1}/N_e \approx 0.9691$ ($N_e = 40$; Mapped window—ledger), within $1.0\sigma$ of Planck as a closed form (the gate slow-roll trajectory does not reproduce it, 2026-08-06, `computations/slow_roll_trajectory.py`). The baryon-to-photon ratio follows from cascade freeze-out, $\eta = \varphi^{-44} \approx 6.38\times10^{-10}$, within 6.3% of the observed $6.0\times10^{-10}$. Dark matter is a high-Qi condensate with $\Omega_{\text{DM}}/\Omega_b = \varphi^3 + 1 \approx 5.24$ against the observed 5.39 (2.8% gap).
+The same two-fluid dynamics in an expanding universe produce inflation, the baryon asymmetry, and the dark-matter budget—three open problems solved with zero new parameters. Inflation is a $\varphi$-driven phase transition of the Yang/Yin ratio toward the attractor; its scalar spectral index is $n_s = 1 - 2\varphi^{-1}/N_e \approx 0.9691$ ($N_e = 40$; Mapped window—ledger), within $1.0\sigma$ of Planck as a closed form (the gate slow-roll trajectory does not reproduce it, 2026-08-06, `computations/slow_roll_trajectory.py`). The baryon-to-photon ratio follows from cascade freeze-out, $\eta = \varphi^{-44} \approx 6.38\times10^{-10}$, within 6.3% of the observed $6.0\times10^{-10}$. Dark matter is a high-Qi condensate with $\Omega_{\text{DM}}/\Omega_b = \varphi^3 + 1 \approx 5.24$ against the observed 5.39 (2.8% gap; the $\varphi^3$ base is the inverse fixed-point imbalance $\alpha_0^{-1}$—Derived conditional on the Weinberg-angle identification, §4.2; the $+1$ is Mapped—ledger row 502).
 
 ---
 
@@ -40,7 +40,27 @@ where $r = \langle\psi_y\rangle/\langle\psi_i\rangle$ is the Yang/Yin ratio.
 
 **Key observation:** The comoving densities $\psi_y, \psi_i$ already absorb the $a^{-3}$ dilution. The physical densities $\rho_y = \psi_y/a^3$ would have explicit Hubble friction $-3H\rho_y$ when evolved. This is the Cassi equivalent of the slow-roll equation's $3H\dot\phi$ term—it's built into the comoving formulation.
 
-**(The H components above are asserted (postulate)—the 1/3 is this continuity reading; the Lagrangian's T₀₀ at equilibrium gives 0 or (g/4)φ², never λφ⁻²/3; derivation open.)**
+**The 1/3 coefficient: the isotropic dimension factor (1/d at d = 3), not a φ quantity.** Status: Derived (coefficient)—2026-08-11; the rate $\lambda\varphi^{-2}$ remains Asserted.
+
+The $1/3$ in $H_{\text{empty}} = \lambda\varphi^{-2}/3$ and in $H_{\text{conv}} = (\lambda/3)(\varphi-r)(1+r)/r$ is the $d$-dimensional isotropic continuity factor, $1/d$ at $d = 3$—the same dimension-structure factor as the $3$ in GR's $8\pi G/3$ (the analogue of the $4\pi$ in $\alpha_{\text{GUT}}$'s denominator). It is not a $\varphi$ quantity and never required a $\varphi$ derivation: no $\varphi$ power equals $1/3$ ($\varphi^{-2} = 0.382$, 15% off; $\varphi^{-3} = 0.236$, 29% off; $1/3 = \varphi^{-2.283}$).
+
+Derivation of the coefficient:
+
+1. The two-fluid PDE evolves densities on a $d = 3$ grid (`ExpandingTwoFluid3DGPU`), with an isotropic Hubble flow $\mathbf{u} = H\mathbf{x}$; the divergence is $\nabla\cdot\mathbf{u} = dH$ (verified numerically for $d = 1, 2, 3$).
+2. The physical densities satisfy the continuity equation $\dot\rho + dH\rho = s\rho$ with a source of rate $s$ per unit density; steady state requires $dH = s$, so $H = s/d$. With the vacuum rate $s = \lambda\varphi^{-2}$ this is $H_{\text{empty}} = \lambda\varphi^{-2}/d\big|_{d=3} = \lambda\varphi^{-2}/3$—exactly the flagged form (verified: without the $1/3$ the density drifts at $-2\lambda\varphi^{-2}\rho$).
+3. The same $1/3$ is the angle average of the per-axis Laplacian: $\langle\partial^2 f/\partial x^2\rangle = \tfrac13\nabla^2 f$ for spherically symmetric $f$ (verified on $f = r^2, r^4$; the plane-wave direction average $\langle k_x^2\rangle = k^2/3$ over $S^2$), and the Newtonian/GR source's volume factor: $\nabla^2\Phi = 4\pi G\rho \Rightarrow \partial_r\Phi = (4\pi G/3)\rho r$ (enclosed volume $\tfrac43\pi r^3$), and $G_{00} = 3H^2$ for flat FRW (sympy-verified) $\Rightarrow H^2 = (8\pi G/3)\rho$.
+
+The $1/3$ is therefore the GR-compatible normalization, and it falls out of the 3D geometry in which the PDE is formulated—the two-fluid shares it, it does not import it. The Lagrangian's $T_{00}$ at equilibrium gives $0$ or $(g/4)\varphi^2$; it cannot give $\lambda\varphi^{-2}/3$, because the $1/3$ is kinematic (a dimension count), not a Lagrangian quantity. The same explicit $d$ appears in the ratified conversion→expansion coupling's vacuum half $\lambda\varphi^{-2}/d$ (`parameter-inventory.md` §7, Conversion→expansion row) and in the per-axis reading $\varphi^{-\delta} = (\varphi^{-1})^d$ (`gravity/quantum-gravity.md` §(i)).
+
+What remains asserted is the **rate** $\lambda\varphi^{-2}$—the $\varphi^{-2}$ exponent and the identification of the source rate with the conversion dynamics—not the coefficient.
+
+**Coincidence note (not a derivation):** the dimension count $3$ coincides with the exact φ-algebra sum identity $\varphi^2 + \varphi^{-2} = 3$. The φ-attractor gate's open fraction at equilibrium is $(1-q_0) = \varphi^{-2}/(\varphi^2+\varphi^{-2}) = \varphi^{-2}/3$, and the radial relaxation rate at the attractor is $\gamma = \lambda(1-q_0)(1+\varphi) = \lambda(\varphi^{-2}/3)\varphi^2 = \lambda/3$ (`foundations/spiral-dynamics.md` §2.3)—the same $1/3$ via the sum, not via a single φ power. The coefficient remains the kinematic dimension factor $1/d$; the identity makes the gate's normalization numerically equal to $d = 3$, it does not make the dimension count a φ quantity (no $\varphi^n = 3$; $n = \ln 3/\ln\varphi = 2.283$).
+
+$$\boxed{H_{\text{empty}} = \frac{\lambda\varphi^{-2}}{d}\bigg|_{d=3} = \frac{\lambda\varphi^{-2}}{3}, \qquad \nabla\cdot\mathbf{u} = dH,\quad \dot\rho + dH\rho = s\rho \;\Rightarrow\; H = \frac{s}{d},\qquad \frac{1}{3} = \frac{1}{d}\bigg|_{d=3}}$$
+
+**Inputs:** $\boxed{\text{(1) } d = 3 \text{ (the PDE's spatial dimension); (2) the kinematic continuity structure } \nabla\cdot\mathbf{u} = dH; \text{ (3) the vacuum rate } s = \lambda\varphi^{-2} \text{ (Asserted—the open part).}}$
+
+Verification: `computations/verify_h_form_one_third.py` (φ-power check; $\nabla\cdot\mathbf{u} = dH$; continuity steady state; angle-averaged Laplacian; Newtonian/FRW volume factor)—all checks pass.
 
 ---
 
@@ -90,13 +110,13 @@ $$
 | Quantity | Cassi Prediction | Planck 2018 |
 |----------|-----------------|-------------|
 | Scalar spectral index $n_s$ | $1 - 2\varphi^{-1}/N_e \approx 0.9691$ | $0.9649 \pm 0.0042$ |
-| Tensor-to-scalar ratio $r$ | $12/N_e^2 \approx 0.003$ | $< 0.032$ |
+| Tensor-to-scalar ratio $r$ | $12/N_e^2 = 0.0075$ ($N_e = 40$—Mapped window) | $< 0.032$ |
 | Running $dn_s/d\ln k$ | $-2/N_e^2 \approx -5\times10^{-4}$ | $-0.005 \pm 0.013$ |
 | E-foldings $N_e$ | $40$ (cascade steps 20--60) | $50$--$60$ |
 | Perturbation amplitude $\mathcal{P}_\zeta$ | $(H_{\text{inf}}^2)/(2\pi\dot\phi)^2 \approx 2\times10^{-9}$ | $2.1\times10^{-9}$ |
 | Inflation scale $M_{\text{inf}}$ | $\sqrt{\alpha_{\text{GUT}}}\,M_{\text{Pl}} \approx 1.7\times10^{18}$ GeV (with the repo's $\alpha_{\text{GUT}} = \varphi^{-3}/4\pi \approx 1/53$; the printed $3\times10^{16}$ GeV was an evaluation error—it would need $\alpha_{\text{GUT}} \approx 6\times10^{-6}$, and $3\times10^{16}$ GeV sits at rung $\approx 12.5$, not in the steps 20–60 window) |—|
 
-The spectral index $n_s = 0.9691$ matches Planck at the $1.0\sigma$ level as a closed form. The gate slow-roll trajectory does not reproduce it—$(n_s, r) = (0.813, 0.188)$ under 1 step = 1 e-fold, $(0.914, 0.060)$ with $N_e = 40$ literal (2026-08-06, `computations/slow_roll_trajectory.py`); $N_e = 40$ is a start-threshold choice (Mapped, ledger §10). The tensor ratio $r = \varphi^{-12} \approx 0.003$ is a Mapped fit; the trajectory's $r$ is excluded by the BK18 bound, and the two claimed numbers do not coexist on the trajectory.
+The spectral index $n_s = 0.9691$ matches Planck at the $1.0\sigma$ level as a closed form. The gate slow-roll trajectory does not reproduce it—$(n_s, r) = (0.813, 0.188)$ under 1 step = 1 e-fold, $(0.914, 0.060)$ with $N_e = 40$ literal (2026-08-06, `computations/slow_roll_trajectory.py`); $N_e = 40$ is a start-threshold choice (Mapped, ledger §10). The tensor ratio is $r = 12/N_e^2 = 0.0075$ at the Mapped window (ledger row 495; the $\varphi^{-12} \approx 0.003$ reading requires $N_e = 63.2$); the trajectory's $r$ is excluded by the BK18 bound, and the two claimed numbers do not coexist on the trajectory.
 
 ### 2.4 Reheating
 
@@ -197,23 +217,39 @@ $$
 t_{\text{form}} \approx \frac{1}{\lambda H_0} \approx \text{few Gyr}
 $$
 
-The abundance relative to baryons is determined by the $\varphi$-gap between the gravitational coupling and the EM decoupling scale:
+**The $\varphi^3$ base.** The abundance relative to baryons is the ratio of the gravitational amplification to the electroweak/EM decoupling structure. The rung arithmetic closes exactly for only one identification of that structure. The repo's own rung placements ($n = \log_\varphi(\text{scale})$; `foundations/dimensionful-cascade.md` §5.2, `foundations/dimensionful-constants-status.md` §3.5):
+
+| Scale | Rung |
+|---|---|
+| $\alpha_{\text{EM}}^{-1} = 137.04$ (zero momentum) | $10.22$ |
+| $\alpha_{\text{EM}}^{-1} = 128.95$ ($m_Z$) | $10.10$ |
+| $\alpha_{\text{EM}}^{-1} = 225$ ($M_{\text{GUT}}$) | $11.26$ |
+| $\xi = \varphi^6$ (gravitational amplification) | $6$ (exact) |
+| $G_{\text{eff,max}}/G = \varphi^3$ (saturation ceiling) | $3$ (exact) |
+| $\sin^2\theta_W = \varphi^{-3} = \alpha_0$ (fixed-point imbalance) | $3$ (exact; exponent $-3$) |
+
+The span between the gravitational coupling $\xi$ (rung 6) and $\alpha_{\text{EM}}^{-1}$ (rung 10.22) is $-4.22$ rungs, not 3—the "gap between the gravitational coupling and the EM decoupling scale" does **not** close with $\alpha_{\text{EM}}$ as the decoupling scale. It closes exactly only when the EM-decoupling structure is the electroweak mixing angle $\sin^2\theta_W = \varphi^{-3} = \alpha_0$, the fixed-point imbalance (catalog step 3):
 
 $$
-\boxed{\frac{\Omega_{\text{DM}}}{\Omega_b} = \frac{\xi}{\varphi^3} = \frac{\varphi^6}{\varphi^3} = \varphi^3 = 4.2361}
+\boxed{\frac{\Omega_{\text{DM}}}{\Omega_b} = \xi \cdot \sin^2\theta_W = \varphi^6 \cdot \varphi^{-3} = \varphi^3 = 4.2361 = \alpha_0^{-1} = \frac{G_{\text{eff,max}}}{G}}
 $$
 
-However, some baryons get captured into the condensate as it forms, increasing the effective DM density:
+The base is the inverse fixed-point imbalance $\alpha_0^{-1}$—the same imbalance whose inverse square defines $\xi$ (`foundations/xi-derivation.md` §2.1–2.2)—and equals the gravity saturation ceiling (§2.3). Verified numerically to machine precision (`computations/dm_baryon_ratio_verification.py`, part A). **Tier: Derived conditional on the identification**—$\sin^2\theta_W$ is not $\alpha_{\text{EM}}$ (rung 10.2, span 4.2), and $\xi\cdot\alpha_0 = \alpha_0^{-1}$ is an algebraic identity of a single imbalance, not an independent scale-gap; the claim that condensate freeze-out realizes the saturation ceiling in the density ratio is asserted (mechanism label "Qi condensate freeze-out", `foundations/dimensionful-cascade.md` §5.2).
 
-$$
-\Omega_{\text{DM}}/\Omega_b = \varphi^3 + 1 \approx 5.24
-$$
+**Inputs ($\varphi^3$ base):** $\boxed{\text{(1) the derived coupling } \xi = \varphi^6 \text{ (`foundations/xi-derivation.md`); (2) the identification of the EM-decoupling structure with the Weinberg-angle imbalance } \sin^2\theta_W = \varphi^{-3} = \alpha_0.}$
 
-where the $+1$ accounts for baryons that become gravitationally bound to the condensate and contribute to the "dark" mass budget.
+**The $+1$ capture term.** The claim that baryons captured into the condensate add one $\Omega_b$ unit is **not supported** by the SPARC hydrostatic condensate fits (`computations/dm_baryon_ratio_verification.py`, part B; v9 machinery, 143 galaxies, envelopes A/B):
+
+- Bound-baryon fraction within the last measured radius, $f_b = M_{\text{bar}}(r_{\max})/M_{\text{tot}}(r_{\max})$: median 0.32 (dwarfs 0.28; high-$V$ 0.40; A-constrained 0.27)—not the $1/(1+\varphi^3) = 0.191$ the $+1$ implies.
+- The condensate's own mass ratio $M_Y/M_{\text{bar}}$ at $r_{\max}$: median 0.14 (envelope A) / 0.35 (envelope B)—10–30$\times$ below the $\varphi^3 = 4.24$ partition the $+1$ assumes (the naive DM is the boosted $(1+\xi q)M_Y$).
+- The data-pinned DM/baryon ratio at $r_{\max}$, median 2.1–2.7, is a lower bound (the isothermal tail beyond $r_{\max}$ is unconstrained) and lies below $\varphi^3+1$ by a factor 0.4–0.5; only 15% of galaxies sit within 30% of 5.24.
+- Accounting: $\Omega_b$ in the observed ratio is the total baryon density (BBN/CMB), which already includes baryons bound into halos; a capture term of one full $\Omega_b$ unit has no separate mass budget.
+
+The $+1$ therefore stays **Mapped** (Fit-Status Ledger row 502: hand-added after $\varphi^3$ alone came in 21% low; combination selected from $\{\varphi^3, \xi, \varphi^2, \varphi^4, \varphi^3\pm1\}$). Equivalent closed form: $\varphi^3+1 = 2\varphi^2 = 5.2361$—an arithmetic identity, not a derivation.
 
 **Observed:** $\Omega_{\text{DM}}/\Omega_b = 0.264 / 0.049 \approx 5.39$
 
-The gap of $2.8\%$ is within the uncertainty of the baryon capture fraction during structure formation.
+The 2.8% residual of $\varphi^3+1$ against the observed value is the residual of the selected combination, not an error within a derived bound.
 
 ### 4.3 Comparison with Dark Matter Candidates
 
@@ -256,12 +292,12 @@ The Qi condensate naturally produces cored profiles (from the $\varphi$-attracto
 | Observable | Cassi Prediction | Measurement | Gap |
 |-----------|-----------------|-------------|-----|
 | $n_s$ | $1 - 2\varphi^{-1}/N_e \approx 0.9691$ | $0.9649 \pm 0.0042$ | $1.0\sigma$ (closed form; trajectory not reproducing it, 2026-08-06) |
-| $r$ | $12/N_e^2 \approx 0.003$ | $< 0.032$ | Mapped fit (ledger §10); trajectory's $r$ excluded by BK18 (2026-08-06) |
+| $r$ | $12/N_e^2 = 0.0075$ ($N_e = 40$ Mapped window; 0.003 needs $N_e = 63.2$) | $< 0.032$ | Mapped (ledger §10); trajectory's $r$ excluded by BK18 (2026-08-06) |
 | $\mathcal{P}_\zeta$ | $\sim 2\times10^{-9}$ | $2.1\times10^{-9}$ | $5\%$ |
 | $\eta$ | $\varphi^{-44} \approx 6.38\times10^{-10}$ | $6.0\times10^{-10}$ | $6.3\%$ |
-| $\Omega_{\text{DM}}/\Omega_b$ | $\varphi^3 + 1 \approx 5.24$ | $5.39$ | $2.8\%$ |
+| $\Omega_{\text{DM}}/\Omega_b$ | $\varphi^3 + 1 \approx 5.24$ (base $\varphi^3 = \alpha_0^{-1}$ Derived conditional on the Weinberg-angle identification, §4.2; $+1$ Mapped—row 502) | $5.39$ | $2.8\%$ (residual of the selected combination) |
 | $T_{\text{reh}}$ | $\sim 10^{15}$ GeV |—| Consistent |
 | DM direct detection | Null | Null (all expts) | Consistent |
 | DM self-interaction | Collisionless | Bullet Cluster | Consistent |
 
-Every prediction comes from $\varphi$ and the two-fluid PDE parameters $(\lambda, \chi, D)$—all independently fixed from the DESI dark energy calibration and the Wu Xing cycle. **No new free parameters** are introduced for inflation, baryogenesis, or dark matter beyond the ledgered anchors flagged above (r, $N_e$, $\eta$, $\Omega_{\text{DM}}/\Omega_b$ are Mapped—rows 495, 501, 481, 502; $w_0$ is Calibrated—row 496).
+Every prediction comes from $\varphi$ and the two-fluid PDE parameters $(\lambda, \chi, D)$—all independently fixed from the DESI dark energy calibration and the Wu Xing cycle. **No new free parameters** are introduced for inflation, baryogenesis, or dark matter beyond the ledgered anchors flagged above (r, $N_e$, $\eta$ are Mapped—rows 495, 501, 481; $\Omega_{\text{DM}}/\Omega_b$: base $\varphi^3 = \alpha_0^{-1}$ Derived conditional on the Weinberg-angle identification (§4.2), $+1$ Mapped—row 502; $w_0$ is Calibrated—row 496).

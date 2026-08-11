@@ -1,6 +1,6 @@
 # Wake Geometry: How the Waveform Closes Each Rung
 
-## Status: Derived wake geometry with Hypothesized closure imprint—August 2026
+## Status: Derived wake geometry (anchors selected by de-resonance + composite closure; mechanical emission step open), Hypothesized closure imprint—August 2026
 
 ## Abstract
 
@@ -10,15 +10,31 @@ The primordial string's waveform is the Yang/Yin wake pair: a Yin wake at $\Lamb
 
 The wake pair that the expanding string drags through the two-fluid condensate has two wavelengths, and their sum is the wavelength of the next rung—the waveform closes each cascade step by construction.
 
-**(a) The anchors.** The Yin wake is the rung scale divided by $\varphi$:
+**(a) The anchors.** The wake pair is the adjacent-rung pair: the string's motion at rung $n$ carries the rung scale as its Yang wake and leaves the previous rung's scale as its Yin wake, and the $1/\varphi$ ratio between them is the cascade's own step, not a fitted number.
 
-$$\Lambda_I^{(n)} = \frac{\ell_n}{\varphi}$$
+The Yang wake is the condensation scale itself—the rung the string occupies:
 
-documented in `foundations/dimensionful-cascade.md` §6, where it evaluates to 117.9 Mpc at rung 285. The Yang wake is its $\varphi$-complement:
+$$\Lambda_Y = \ell_n$$
 
-$$\Lambda_Y = \varphi\,\Lambda_I^{(n)} = \ell_n$$
+(`foundations/bubble-lattice-fabric.md` §1.3). The Yin wake sits one rung below, $\Lambda_I^{(n)} = \ell_{n-1} = \ell_n/\varphi$ (117.9 Mpc at rung 285, `foundations/dimensionful-cascade.md` §6). Two framework principles select that placement, and both are consequences of the two-fluid dynamics:
 
-the rung scale itself. The two wakes are the two phases of one string motion: one period at the rung wavelength, one at the sub-rung wavelength.
+1. **De-resonance forbids a rational sub-rung scale.** A sub-rung wavelength at a rational fraction of $\ell_n$ (half, third, $\ldots$) would phase-lock the wake pair at periodic crests and concentrate energy at a single scale—the resonance collapse the $\varphi$-attractor exists to avoid (`principles/de-resonance-principle.md` §1). The sub-rung scale must stand in an irrational ratio to the rung, and the cascade's own sub-rung positions $\ell_n/\varphi^k$, $k \ge 1$, are the de-resonant candidates.
+
+2. **Composite closure fixes $k = 1$.** The wake pair's sum is the next rung—the framework's verified composite closure (P43, `two-fluid/run_wake_structural_probes.py`). A pair at $(\ell_n,\ \ell_n/\varphi^k)$ closes only for $k = 1$:
+
+$$\ell_n\left(1 + \varphi^{-k}\right) = \ell_{n+1} = \ell_n\,\varphi \iff \varphi^{-k} = \varphi - 1 = \varphi^{-1} \iff k = 1$$
+
+$$\boxed{\Lambda_I^{(n)} = \ell_{n-1} = \frac{\ell_n}{\varphi}}$$
+
+The $1/\varphi$ is the inter-rung ratio $\ell_{n-1}/\ell_n = \varphi^{-1}$ of the ladder itself, and the anchors are the unique de-resonant placement that closes the rung. Nesting: the Yin wake of rung $n$ is the Yang wake of rung $n-1$ (`cosmology/desi-lattice-averaging.md` §2), so the pair is the adjacent-rung pair and the condensation field $C = \cos(2\pi x/\Lambda_Y)\cos(2\pi y/\Lambda_I)$ is the interference product of two adjacent rungs. The two wakes are the two phases of one string motion: one period at the rung wavelength, one at the sub-rung wavelength.
+
+**What the linearized dynamics give, stated plainly.** The single-frequency emission from the two-fluid dispersion does not produce the sub-rung scale: the anti-phase (conversion) eigenmode has $\omega^2 = c^2k^2 + 2\lambda(1-q)$ against the in-phase mode's $\omega^2 = c^2k^2$, so a string oscillating at the Yang tone emits its conversion wake at
+
+$$\Lambda_\varepsilon = \frac{\Lambda_Y}{\sqrt{1 - 2\lambda(1-q)/\omega^2}} \approx 1.003\,\Lambda_Y \quad (\lambda = 0.1)$$
+
+a 0.25% correction, not a factor $\varphi$—and the beat period of the pair, $2\pi/(k_I - k_Y) = \varphi\ell_n = \ell_{n+1}$ (§2), is the envelope, not the Yin wavelength ($2\pi/k_I = \ell_n/\varphi$ is the Yin tone itself, an identity once $k_I = \varphi k_Y$ is given). Analytic and 1D-PDE measured in `computations/wake_anchor_and_suppression.py` §A. The mechanical step—how the finite-amplitude, gate-modulated string emits tones at exactly $\ell_n$ and $\ell_{n-1}$—is open; the ratio is carried by the selection above, not by the linearized wave dispersion.
+
+$$\boxed{\text{Inputs: (i) the cascade ladder } \ell_n = \ell_{\mathrm{Pl}}\varphi^n \text{ (postulate); (ii) the de-resonance principle (irrational sub-rung ratios; itself derived from the wave-physics resonance argument); (iii) the composite closure } \Lambda_Y + \Lambda_I = \ell_{n+1} \text{ (PDE-verified, P43). Tier: Derived conditional on (i)--(iii); the mechanical emission step is open.}}$$
 
 **(b) The composite closes the rung.** The wake pair's sum is the next rung, by the identity $1 + 1/\varphi = \varphi$:
 
@@ -100,7 +116,7 @@ The horizon does not grow forever: the expansion law has a strictly positive flo
 
 $$H(r) = \frac{\lambda}{3}\left[\frac{(\varphi - r)(1 + r)}{r} + \varphi^{-2}\right]$$
 
-(**Asserted** (postulate): the 1/3 is the 3D continuity reading; the Lagrangian's T₀₀ at equilibrium gives 0 or (g/4)φ², never λφ⁻²/3; derivation open.)
+(The 1/3 is **Derived** as the isotropic dimension factor $1/d$ at $d = 3$—`cosmology/cosmology-from-phi.md` §1; the $\lambda\varphi^{-2}$ rate stays Asserted; the Lagrangian's T₀₀ at equilibrium gives 0 or (g/4)φ², never λφ⁻²/3.)
 
 (`two-fluid/run_hubble_pipeline.py`; the Qi-gravity boost variants in `two-fluid/calibrate_initial_ratio_xi.py` and `two-fluid/calibrate_initial_ratio_xi_v2.py`). The conversion rate $\lambda$ cancels from the $r$-evolution—verified numerically for $\lambda = 0.02, 0.05, 0.1$ in the v2 script—so the trajectory's shape is $\lambda$-independent; the calibration fixes only the overall clock.
 
@@ -138,7 +154,8 @@ Y1–Y3 are cataloged as predictions 43–45 in `predictions/falsifiable-predict
 
 The tiers below separate what the geometry proves from what it suggests.
 
-- **Supported by Verified Physics**: the composite closure $\Lambda_Y + \Lambda_I = \ell_{n+1}$ (exact identity on documented anchors); the envelope period and checkerboard spacing; the closure ladder's Fibonacci structure; the saturation of the horizon (positive floor, $q_{\max} < 1$).
+- **Supported by Verified Physics**: the composite closure $\Lambda_Y + \Lambda_I = \ell_{n+1}$ (exact identity on documented anchors; PDE-verified P43); the envelope period and checkerboard spacing; the closure ladder's Fibonacci structure; the saturation of the horizon (positive floor, $q_{\max} < 1$).
+- **Derived conditional on the de-resonance principle and the composite closure (P43)**: the $1/\varphi$ anchor ratio—the unique de-resonant sub-rung placement whose composite closes the next rung, i.e. the inter-rung ratio $\ell_{n-1}/\ell_n$ (§1a). The mechanical emission step is open: the linearized two-fluid dispersion emits the conversion wake at $\approx 1.003\,\Lambda_Y$, not $\Lambda_Y/\varphi$ (`computations/wake_anchor_and_suppression.py` §A).
 - **Plausible Hypothesis (test exists)**: the closure-ladder imprint ($26 = 2\times13$, $285 = 5\times57$; Y3 first test: J/ψ at 88.98, muon at 96.000—catalog hits, mechanism open); the $N_\infty$ value (≈ 294.2 under the verified Yang-weighted coupling; 292–296 across documented forms).
 - **Speculative**: the rung-index ratio curiosities ($80 \approx 3\times26.5$, $292 \approx 26.5\,\varphi^5$) under the "rung number = level count" reading.
 - **Not Supported**: any claim that the current horizon rung 291.5/292 is a derivable constant—it is an epoch-dependent observation (see `foundations/dimensionful-constants-status.md` §3); exact spiral closure at any finite level ($1/\varphi^2$ is irrational).
@@ -154,3 +171,5 @@ The tiers below separate what the geometry proves from what it suggests.
 - `two-fluid/calibrate_initial_ratio_xi_v2.py`—Yang-fraction-weighted coupling
 - `foundations/wu-xing-cycle-structure.md`—the pentagon gap $g = 1 - \varphi^{-5}$
 - `principles/de-resonance-principle.md`—why $\varphi$ forbids resonance
+- `cosmology/desi-lattice-averaging.md` §2—nesting: $\Lambda_I^{(n)} = \ell_{n-1}$, the inter-rung comb
+- `computations/wake_anchor_and_suppression.py`—§A: eigenmode dispersion, beat/extremum spacings, driven emission

@@ -23,7 +23,7 @@ domain is not enough—the contribution must be what Cassi *uniquely* adds.
 
 | # | Domain | Epistemic | Bridge | Document |
 |---|--------|-----------|--------|----------|
-| 1 | Nuclear magic numbers | Hypothesized | Fibonacci sub-channel closure in cascade steps 80–95 | `nuclear-magic-numbers.md` |
+| 1 | Nuclear magic numbers | Hypothesized | Fibonacci sub-channel closure in cascade steps 80–95 (closure arithmetic open: 0/7 rows; φ-power level spacing independent) | `nuclear-magic-numbers.md` |
 | 2 | Hoyle state / stellar nucleosynthesis | Hypothesized | Sub-rung offset at the $^3\alpha$ threshold (0.084 rungs, not a full rung) | `hoyle-state-nucleosynthesis.md` |
 | 3 | Quasicrystal stability | Speculative | De-resonance + cascade suppression against crystallization | `quasicrystal-stability.md` |
 | 4 | Exoplanet $\varphi$-spacing | Hypothesized | Wake-wave interference in protoplanetary disks | `exoplanet-phi-spacing.md` |
@@ -51,13 +51,19 @@ then Speculative, with the muscle hypothesis appended last).
 
 Proposes that the shell-model magic numbers 2, 8, 20, 28, 50, 82, 126 are
 Fibonacci sub-channel closures over the cascade span from QCD confinement
-(step 95) down to nuclear binding (steps ~80–90): SO(2) doublet winding assigns
+(step 95) down to nuclear binding (steps ~101–106): SO(2) doublet winding assigns
 angular momentum to each sub-channel, giving capacity $\Omega_j = 2j + 1$, and
-the cumulative closure count reproduces the magic sequence without a fitted
-spin-orbit parameter. The pinned prediction is that level spacing within a
-shell follows $\boxed{\Delta E_{j \to j+1} \propto \varphi^{-j} \cdot \Lambda_{\text{QCD}}}$,
-a $\varphi$-power falloff in the sub-channel angular momentum $j$.
-**Epistemic tier: Hypothesized.**
+the cumulative closure count would reproduce the magic sequence without a
+fitted spin-orbit parameter. **The closure arithmetic does not close (0/7
+rows, recomputed):** the cumulative closures over the doc's own §3 row sums
+(8, 12, 18, 16, 24, 30, 36) are 8, 20, 38, 54, 78, 108, 144 vs the claimed 2,
+8, 20, 28, 50, 82, 126, and the "126 + Fib = 184" island claim mislabels 58
+(not a Fibonacci number). The pinned prediction is that level spacing within a shell follows
+$\boxed{\Delta E_{j \to j+1} \propto \varphi^{-j} \cdot \Lambda_{\text{QCD}}}$,
+a $\varphi$-power falloff in the sub-channel angular momentum $j$ — testable
+and independent of the failed closure rows, but with its own mechanism open.
+**Epistemic tier: Hypothesized** (level-spacing leg); the closure claim is
+catalog correspondence, mechanism open.
 
 ### `hoyle-state-nucleosynthesis.md`—The Hoyle State as a Cascade Rung Resonance
 
@@ -73,7 +79,7 @@ bottleneck in stellar helium burning. **Epistemic tier: Hypothesized.**
 
 ### `quasicrystal-stability.md`—Quasicrystal Stability from De-Resonance
 
-Derives quasicrystal stability from the de-resonance principle: at
+Proposes to derive quasicrystal stability from the de-resonance principle: at
 condensed-matter scales (cascade steps ~120–150) the Qi field forms
 $\varphi$-spaced density waves, and crystallization requires detuning from that
 attractor at a cascade-suppression cost—so aperiodic $\varphi$-modular order can
@@ -83,7 +89,7 @@ $\boxed{\Delta E_{\text{QC} \to \text{crystal}} \propto N_{\text{unit}} \cdot \v
 a critical cooling-rate ratio $\dot{T}_{\text{crit}}^{\text{QC}}/\dot{T}_{\text{crit}}^{\text{crystal}} = \varphi^{-N_{\text{rungs}}}$
 with $N_{\text{rungs}} = 3$–$5$, and 1–3% $\varphi$-periodic modulation of
 low-temperature heat capacity at period $\ln\varphi$—testable on existing
-Al-Pd-Mn and Al-Cu-Fe data. **Epistemic tier: Speculative**—the de-resonance argument is sketched, the pinned numbers carry free parameters ($N_{\text{rungs}} = 3$–$5$, amplitude, phase), and the projection operators remain to be constructed.
+Al-Pd-Mn and Al-Cu-Fe data. **Epistemic tier: Speculative**—the de-resonance argument is sketched, the pinned numbers carry free parameters ($N_{\text{rungs}} = 3$–$5$, amplitude, phase), the $\varphi$-modularity of quasicrystal reciprocal space is prior art rather than a Cassi result, and the projection operators remain to be constructed.
 
 ### `exoplanet-phi-spacing.md`—Exoplanet Orbital Spacing from the Wake-Wave Mechanism
 
@@ -94,7 +100,13 @@ nodes at which planetesimals preferentially condense, making Titius-Bode's
 attractor and its Fibonacci convergents. The pinned, zero-parameter prediction
 is a statistical excess of adjacent-planet period ratios at
 $\boxed{\frac{P_{\text{out}}}{P_{\text{in}}} \approx \varphi^{3/2} \approx 2.06}$
-in the Kepler/TESS multi-planet catalog. **Epistemic tier: Hypothesized.**
+in the Kepler/TESS multi-planet catalog. **Honesty notes (recomputed):** the
+mechanism step (disk wake-wave $\to$ $\varphi$-spacing) is open — no PDE
+calculation of a disk exists, and resonance ubiquity is standard celestial
+mechanics; the solar-system fit's mean $|\ln a|$ deviation is 0.193 as slotted
+(0.088 after a post-hoc remap) vs Titius-Bode's 0.084 — comparable at best,
+not better; the doc's geomean "~1.73" is 1.66 by recomputation.
+**Epistemic tier: Hypothesized** (the statistical prediction is pinned).
 
 ### `neural-criticality.md`—Neural Criticality and the Cascade Brain
 
@@ -107,8 +119,8 @@ the avalanche size distribution
 $\boxed{P(S) \propto S^{-3/2} \cdot \left[1 + A \cos\left(\frac{2\pi}{\ln\varphi} \ln\frac{S}{S_0} + \phi_0\right)\right]}$—
 the $\ln\varphi \approx 0.4812$ modulation distinguishes a cascade-driven
 avalanche from generic self-organized criticality—and a $\varphi$-break in the
-EEG/MEG power spectrum from $f^{-5/3}$ to $f^{-1}$. **Epistemic tier:
-Hypothesized.**
+EEG/MEG power spectrum from $f^{-5/3}$ to $f^{-1}$. **Honesty notes (recomputed):** the $-3/2$ exponent is the generic mean-field critical-branching result, not a two-fluid consequence — the response spectrum of the linearized damped two-fluid wave equation gives $\omega^{-1/2}$ (diffusive limit), not $\omega^{-3/2}$, and the asserted "$-5/3 + 1/6$" chain has no derived $+1/6$; the doc's own hierarchy table contradicts "each level separated by ~$\varphi$" (scale ratios 2.5–50×). **Epistemic tier:
+Hypothesized** (the $\ln\varphi$ modulation is pinned and testable).
 
 ### `periodic-table-madelung.md`—Atomic Shell Structure and the Madelung Rule from Cascade Coordinates
 
@@ -116,13 +128,17 @@ Proposes that the principal quantum number $n$ labels the cascade rung and the
 orbital angular momentum $l$ labels the SO(2) winding within its Fibonacci
 sub-channels ($l = \Delta n_{\text{sub}}$), so the Madelung $n + l$ filling
 order is filling by total cascade depth, with shell capacities $2, 10, 18,
-\ldots, 118$ from $2\sum l^2$ and spin as winding direction. The testable
+\ldots, 118$ from the standard $2(2l+1)$ subshell counts (the earlier
+"$2\sum l^2$ capacity column contradicted its own table; corrected) and spin
+as winding direction. The testable
 prediction is $\varphi$-power quantum defects,
 $\boxed{\delta_{nl} = \delta_0 \cdot \varphi^{-(n + l)} \cdot f(Z)}$ with
 $f(Z) \propto Z^{-1/3}$ from Thomas-Fermi screening, checkable against
 ionization energies and quantum-defect data. **Epistemic tier: Speculative**—the
 explicit derivation of quantum numbers from cascade geometry is not yet
-complete.
+complete; the shell-capacity arithmetic itself contains no $\varphi$, and the
+fixed-$l$ $\varphi^{-n}$ defect leg is contradicted by the doc's own table
+(δ_s increases with n: 1.35 → 2.18 → 3.13).
 
 ### `atmospheric-climate-cascade.md`—The Atmospheric Climate Cascade
 
@@ -146,9 +162,15 @@ $\sigma$-regularization that tames the gravitational singularity (open-questions
 entries C8, G3) replaces the $1/\sqrt{r}$ crack-tip divergence with a finite
 process zone $\sigma_{\text{crack}} = \ell_{\text{grain}} \cdot
 \varphi^{-N_{\text{rungs}}}$. The pinned prediction is that the Paris exponent
-is not a continuous material parameter but takes discrete $\varphi$-power values,
-$\boxed{m = 2 \cdot \varphi^{k}}$ for $k = 0, 1, 2, \ldots$—a structural
-explanation for why empirical $m$ clusters in the observed 2–4 range.
+takes discrete $\varphi$-power values,
+$\boxed{m = 2 \cdot \varphi^{k}}$ for $k = 0, 1, 2, \ldots$ (2, 3.24, 5.24).
+**Honesty notes (recomputed):** this is a catalog correspondence, mechanism
+open — no dynamics selects $k$, the factor 2 is asserted, empirical Paris
+exponents are continuously distributed ~2–10, the predicted
+$\Delta K_{\text{th}}/K_{\text{IC}} = 0.49$–$0.62$ does not overlap the
+empirical 0.1–0.3, and two arithmetic errors were corrected
+($\varphi^{-3/2} = 0.486$ not 0.39; $\zeta(b=2) = \ln 2/\ln\varphi \approx
+1.44$ not 0.48).
 **Epistemic tier: Speculative.**
 
 ### `market-cascade-cycles.md`—Market Cascade Cycles

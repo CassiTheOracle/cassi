@@ -1,10 +1,10 @@
 # Cassi Quantum Gravity: UV-Finite from $\sigma$-Regularized Two-Fluid Quantization
 
-## Status: Derived (σ = ℓ_Pl/φ³ regularization, per registry G1) / Hypothesized (two-fluid quantization, composite graviton)—August 2026
+## Status: Derived conditional on the noise–signal identification and d = 3 (σ = ℓ_Pl/φ³; noise–signal crossover at the Planck core, §2.1) / Hypothesized (two-fluid quantization, composite graviton)—August 2026
 
 ## Abstract
 
-General relativity breaks down at the Planck scale: perturbative quantization of the graviton diverges in the ultraviolet. Cassi quantum gravity resolves this at two layers. The classical layer (Derived, per registry G1) is $\sigma$-regularized Poisson emergence—gravity is not a quantum exchange force, and the Gaussian propagator $G(k^2) = e^{-k^2\sigma^2/2}/(k^2+i\epsilon)$ makes the theory UV-finite. The quantized two-fluid extension (Hypothesized) carries this further: the graviton is a composite spin-2 SO(2) excitation with the massless GR limit at $k \ll 1/\sigma$, no modes beyond $1/\sigma$, and no renormalization at any order. The information-paradox analysis (§7) and the black-hole coherence-capacity relation feed the GWTC mass-ladder analysis in `analyses/gwtc4-mass-ladder.md`.
+General relativity breaks down at the Planck scale: perturbative quantization of the graviton diverges in the ultraviolet. Cassi quantum gravity resolves this at two layers. The classical layer (Derived conditional on the noise–signal identification and d = 3; $\sigma = \ell_{\text{Pl}}/\varphi^3$ from the noise–signal crossover at the Planck core, §2.1) is $\sigma$-regularized Poisson emergence—gravity is not a quantum exchange force, and the Gaussian propagator $G(k^2) = e^{-k^2\sigma^2/2}/(k^2+i\epsilon)$ makes the theory UV-finite. The quantized two-fluid extension (Hypothesized) carries this further: the graviton is a composite spin-2 SO(2) excitation with the massless GR limit at $k \ll 1/\sigma$, no modes beyond $1/\sigma$, and no renormalization at any order. The information-paradox analysis (§7) and the black-hole coherence-capacity relation feed the GWTC mass-ladder analysis in `analyses/gwtc4-mass-ladder.md`.
 
 ---
 
@@ -18,7 +18,7 @@ Every approach to quantum gravity (string theory, loop quantum gravity, asymptot
 
 ## 2. The Fundamental Length $\sigma$
 
-In the Cassi two-fluid, the fundamental length is the **Yang/Yin separation scale**—the distance below which Yang and Yin cannot be distinguished. Per registry G1 this is the Planck length reduced by three cascade rungs ($\delta = 3$; `foundations/cassi-theory-reference.md` §7):
+In the Cassi two-fluid, the fundamental length is the **Yang/Yin separation scale**—the distance below which Yang and Yin cannot be distinguished. It is the Planck length reduced by three cascade rungs ($\delta = 3$), derived in §2.1 from the noise–signal crossover at the Planck core:
 
 $$
 \boxed{\sigma = \frac{\ell_{\text{Pl}}}{\varphi^3} \approx 1.93\times 10^{-20}\ \text{GeV}^{-1} \approx 3.82\times 10^{-36}\ \text{m}}
@@ -27,6 +27,74 @@ $$
 with $\ell_{\text{Pl}} = 1.616\times10^{-35}$ m and $\varphi^3 = 4.236$: the separation scale sits at cascade rung $n = -3$, a factor $\varphi^3 \approx 4.24$ below the Planck length.
 
 The physical meaning: at distances $r \ll \sigma$, the two-fluid description breaks down because the field's paired-real structure (SO(2) doublet) loses meaning—the two components merge into a single quantum degree of freedom.
+
+### 2.1 Derivation: The Noise–Signal Crossover at the Planck Core
+
+**Tier: Derived conditional on the noise–signal identification and $d = 3$ (geometric reading).** The separation scale is the scale at which the per-rung dephasing noise of the two-fluid equals the equilibrium Yang excess the doublet exists to maintain; at the Planck core this selects $\delta = 3$. The geometric reading $\delta = d = 3$ (one rung per spatial axis) is secondary.
+
+**What the separation scale means physically.** At cascade rung $n = 0$ the lattice cell is the Planck cell: the condensation field $B(x,y,z) = \cos(\alpha x)\cos(\beta y)\cos(\gamma z)$ with wavelengths $\Lambda_Y = \ell_{\text{Pl}}$, $\Lambda_I = \ell_{\text{Pl}}/\varphi$, $P_\parallel \sim \ell_{\text{Pl}}$ (`foundations/bubble-lattice-fabric.md` §2.2, §3.1). The cell's content is two-fluid phase structure: Yang and Yin wakes in anti-phase ($\Delta\phi = \pi$; W1-decided, `foundations/why-three-dimensions.md` §4.4), forming a staggered bubble/void checkerboard in the Yang–Yin plane bounded along the string axis. Which component of the SO(2) doublet is which at a point—the sign of $\varepsilon = E_Y - \varphi E_I$—is carried entirely by the relative phase of the two wake systems. The separation scale $\sigma$ is the scale below which that phase structure is lost: at $r \ll \sigma$ the paired-real structure of the doublet merges into a single quantum degree of freedom and the lattice's discrete bubble/void structure dissolves into the $\sigma$-regularized harmonic regime (`foundations/bubble-lattice-fabric.md` §6).
+
+**The signal: the equilibrium Yang excess.** The observable that distinguishes the two components of the paired-real doublet is the Yang excess
+
+$$\frac{\pi}{\rho} = \frac{\Psi_0^2 - \Psi_1^2}{\Psi_0^2 + \Psi_1^2}$$
+
+(the "fixed-point imbalance"; the Yang *fraction* is the Mapped relabel, $\varphi^{-1}$—`parameter-inventory.md` §10 row 500). At the $\varphi$-attractor fixed point $\Psi_0^2 = \varphi\Psi_1^2$ (`foundations/cassi-theory-reference.md` §2.3):
+
+$$
+\boxed{\left(\frac{\pi}{\rho}\right)_{\text{eq}} = \frac{\varphi - 1}{\varphi + 1} = \varphi^{-3} \approx 0.2361}
+$$
+
+This is the same fixed-point imbalance $\alpha_0$ whose inverse square is the Qi-gravity coupling, $\xi = (\pi/\rho)^{-2} = \varphi^6$ (`foundations/xi-derivation.md` §2.1).
+
+**The noise: per-rung dephasing.** A departure from the attractor is damped by the conversion term; the per-rung dephasing at rung $i$ is (`foundations/proton-coherence-budget.md` §2; `foundations/cascade-suppression-formula.md` §1):
+
+$$1 - q_i = \varphi^{-i-\delta}$$
+
+At the Planck core ($i = 0$): $1 - q_0 = \varphi^{-\delta}$.
+
+**The identification (explicit input).** The separation scale $\sigma$ is the scale below which the doublet's excess is unresolvable—the scale at which the per-rung dephasing noise equals the equilibrium excess the doublet exists to maintain. At the doublet's own reference—the Planck rung, where the two-fluid's identity is anchored and the dephasing profile is normalized—this reads:
+
+$$
+\varphi^{-\delta} = \varphi^{-3} \quad\Longrightarrow\quad \boxed{\delta = 3}, \qquad \sigma = \ell_{\text{Pl}}\,\varphi^{-3} = \frac{\ell_{\text{Pl}}}{\varphi^3}
+$$
+
+The algebra is the cascade identity $\ell_n = \ell_{\text{Pl}}\varphi^n$ at $n = -\delta = -3$ (verified numerically: $\sigma = 3.815\times10^{-36}$ m; $\log_\varphi(\sigma/\ell_{\text{Pl}}) = -3.000$).
+
+**Why the crossover sits three rungs below the reference.** The dephasing profile steps by the de-resonance damping $\varphi^{-1}$ per rung, $1 - q_{i+1} = \varphi^{-1}(1 - q_i)$ (`foundations/cascade-suppression-formula.md` §4). With the reference noise set to the excess, $1 - q_0 = \varphi^{-3}$, the dephasing reaches certainty after exactly three rungs: $\varphi^{-3}\cdot\varphi^3 = 1$ at rung $-3 = \sigma$. Immediately below the reference the noise already exceeds the excess ($1 - q_{-1} = \varphi^{-2} > \varphi^{-3}$), so the doublet's distinguishing observable is marginal at its own scale and unresolvable below it; $\sigma$ is the floor of the physical profile ($1 - q \le 1$ holds exactly on $i \ge -3$), and below it ($i \le -4$) the extrapolated profile exceeds unity—the microcascade regime change (`foundations/microcascade-mirror.md` §3). The framework's "significant coherence deficit" at the Planck scale, $q_0 = 1 - \varphi^{-3} \approx 0.764$ (`foundations/microcascade-mirror.md` §3.1), is the same statement: the reference rung sits at marginal coherence, noise = signal = $\varphi^{-3}$.
+
+**Geometric reading: $\delta = d = 3$ (secondary).** Resolving the two fluids' phases in the condensation lattice requires phase resolution in every spatial axis: the Yang axis ($x$, period $\Lambda_Y$), the Yin axis ($y$, period $\Lambda_I$), and the string axis ($z$, period $P_\parallel$). The per-axis dephasing of the 3D condensation lattice is the de-resonance damping $\varphi^{-1}$ per axis (`foundations/cascade-suppression-formula.md` §4), so the core noise floor admits the per-axis decomposition
+
+$$
+\varphi^{-\delta} = (\varphi^{-1})^{d} = \varphi^{-d},
+$$
+
+consistent with the excess, $\varphi^{-d} = (\varphi-1)/(\varphi+1) = \varphi^{-3}$, at $d = 3$: each of the three Frenet–Serret axes contributes one rung of indistinguishability depth. $\delta = d = 3$ ties the regularization depth to the framework's dimensionality input ($\xi = \varphi^{2\times 3}$; `foundations/why-three-dimensions.md`). The total reduction $\varphi^3 = 4.236$ is the cube of the per-axis factor, $\varphi^3 = \varphi\cdot\varphi\cdot\varphi$—one $\varphi$ per spatial axis.
+
+**Cross-checks.**
+
+(i) *Shared origin in the fixed-point imbalance.* The same derived constant that sets $\delta$ here—the fixed-point imbalance $\alpha_0 = (\pi/\rho)_{\text{eq}} = \varphi^{-3}$—is the base of the Qi-gravity coupling, $\xi = \alpha_0^{-2} = \varphi^6$ (`foundations/xi-derivation.md` §2.1): the attractor's excess sets both the Yang/Yin separation depth and the gravity enhancement. The three-dimensional reading of $\xi$'s exponent 6 survives only as the secondary geometric reading (`foundations/xi-derivation.md`; `foundations/why-three-dimensions.md`), and the $1/3$ in $H_{\text{empty}} = \lambda\varphi^{-2}/3$ is flagged as "the 3D continuity reading" (`foundations/cassi-theory-reference.md` §3.3; `foundations/wake-geometry.md` §4a). The $\delta = 3$ of this section is the only one of the three that is now derived from the attractor dynamics rather than imported.
+
+(ii) *The same 3-rung offset at the sector-coupling scale.* $\kappa_s = \varphi^{-6}/v_0^2$ sits at rung 77, three rungs below the electroweak VEV rung 80: $77 = 80 - 3$, with $E_{77} = M_{\text{Pl}}\varphi^{-77} = 987.7$ GeV against $E_{80} = 233.2$ GeV (`foundations/sector-coupling-derivation.md` §2). The same 3-rung offset appears there in the rung count.
+
+(iii) *Cascade-suppression arithmetic unchanged.* The coherence exponent $N(n) = n(n+1)/2 + \delta(n+1)$ with $\delta = 3$ (`foundations/cascade-suppression-formula.md` §1.3). For the proton ($n = 91.46$): $N = 4505.6$, quoted as $\varphi^{-4506}$; the $\delta$ term contributes 277.4 of the 4505.6. Recomputed with $\delta = 3$, the proton-lifetime chain is unchanged: $\tau_p \sim \varphi^{4506}/\omega_p \sim 10^{910}$ yr (`foundations/cassi-theory-reference.md` §6.6).
+
+(iv) *Wake degeneracy at the separation scale.* At $\sigma$ the framework's built-in one-rung Yang/Yin wavelength offset (Yang at rung $n$ has the wavelength of Yin at rung $n+1$; `foundations/wake-geometry.md` §1) saturates: $\Lambda_Y(-3) = \ell_{-3} = \Lambda_I(-2) = \sigma$ (verified numerically: both $= 3.815\times10^{-36}$ m). The two fluids' wakes are mutually wavelength-degenerate precisely where the distinction fails.
+
+(v) *Phase-slip structure is scale-invariant.* The relative Yang/Yin phase slip over one lattice cell (one Yang period $\Lambda_Y = \ell_n$) is $2\pi(\varphi-1)/\varphi = 2\pi/\varphi^2$—the golden angle, the framework's phyllotaxis constant (`foundations/spin-fibonacci-spiral.md` §1)—and over one Yin period it is exactly $2\pi$ (one full SO(2) turn). Because the cell is self-similar, the slip is identical at every rung: the phase-slip structure alone cannot select $\delta$, which is why the crossover requires the noise–signal boundary at the Planck core.
+
+**Inputs.**
+
+$$
+\boxed{
+\begin{aligned}
+&\text{(a) noise} = \text{signal identification} && \text{the separation scale is where per-rung dephasing noise equals the equilibrium excess—physical postulate, same status as the Wu Xing coherence criterion (foundations/wu-xing-derivation.md §6)}\\
+&\text{(b) fixed-point excess } (\pi/\rho)_{\text{eq}} = (\varphi-1)/(\varphi+1) = \varphi^{-3} && \text{Derived: phi-attractor fixed point (foundations/cassi-theory-reference.md §2.3)}\\
+&\text{(c) per-rung dephasing family } 1 - q_i = \varphi^{-i-\delta} && \text{de-resonance; the family's } i\text{-dependence remains Hypothesized (foundations/proton-coherence-budget.md §8)}\\
+&\text{(d) } d = 3 \text{ for the geometric reading } \delta = d && \text{conditional: Frenet–Serret frame, granted its three postulates (foundations/why-three-dimensions.md §7; G5, Hypothesized)}\\
+&\text{(e) two-fluid phase structure of the Planck cell} && \text{context: condensation field at rung 0, anti-phase wakes, staggered checkerboard, string bound (foundations/bubble-lattice-fabric.md §2–§5)}
+\end{aligned}
+}
+$$
 
 In the code implementation:
 
@@ -62,7 +130,7 @@ The Gaussian factor $e^{-k^2\sigma^2/2}$ is the $\sigma$-regulator:
 
 ## 4. Graviton as a Composite Excitation
 
-No fundamental graviton: gravity is not a quantum exchange force—it emerges from the $\sigma$-regularized Poisson dynamics of the two-fluid fields (Derived, per registry G1). In the quantized two-fluid extension (Hypothesized), the graviton is a composite spin-2 SO(2) excitation with the massless GR limit at $k \ll 1/\sigma$; no renormalization is ever needed.
+No fundamental graviton: gravity is not a quantum exchange force—it emerges from the $\sigma$-regularized Poisson dynamics of the two-fluid fields (Derived; $\sigma$ per §2.1). In the quantized two-fluid extension (Hypothesized), the graviton is a composite spin-2 SO(2) excitation with the massless GR limit at $k \ll 1/\sigma$; no renormalization is ever needed.
 
 ### 4.1 Field Quantization
 
@@ -162,7 +230,7 @@ $$
 \lim_{E \to \infty} G_{\text{eff}}(E) = G \left(1 + \frac{1}{16\pi^2} \cdot \frac{1}{(M_{\text{Pl}}\sigma)^2} \cdot O(1) \right) = G \left(1 + \frac{\varphi^6}{16\pi^2}\,O(1) \right) \approx G (1 + 0.114)
 $$
 
-with $M_{\text{Pl}}\sigma = \varphi^{-3}$ under registry G1.
+with $M_{\text{Pl}}\sigma = \varphi^{-3}$ (§2.1).
 
 The correction is **$\mathcal{O}(11\%)$ at the $\sigma$-scale** ($\varphi^6/16\pi^2 \approx 0.114$)—finite and perturbative, not a divergence. This is completely different from standard GR where $G$ diverges at the Planck scale.
 
@@ -279,7 +347,7 @@ $$
 
 The resulting mass-to-rung map is applied to the GWTC-4.0 compact-object catalog in `analyses/gwtc4-mass-ladder.md`.
 
-For $M = M_\odot \approx 2\times 10^{30}\ \text{kg} \approx 10^{38} M_{\text{Pl}}$: $N_{\text{BH}} \approx 180$ rungs. The per-rung coherence is $q_i = 1 - \varphi^{-i-\delta}$ (from `foundations/cascade-suppression-formula.md`), giving a total storage capacity:
+For $M = M_\odot \approx 2\times 10^{30}\ \text{kg} \approx 10^{38} M_{\text{Pl}}$: $N_{\text{BH}} \approx 180$ rungs. The per-rung coherence is $q_i = 1 - \varphi^{-i-\delta}$ with $\delta = 3$ (from `foundations/cascade-suppression-formula.md`; $\delta = 3$ derived in §2.1), giving a total storage capacity:
 
 $$
 \mathcal{C}_{\text{BH}} \sim \sum_{i=0}^{N_{\text{BH}}} \varphi^i \approx \varphi^{N_{\text{BH}}+1} \approx \varphi^{181} \sim 10^{38}
@@ -379,11 +447,15 @@ The **theory is structurally complete**; the remaining gaps are catalogued in `f
 
 ## References
 
-- `open-questions-cassi-answers.md`—epistemic registry (G1: σ-regularized Poisson emergence, Derived; G2: black-hole information paradox)
+- `open-questions-cassi-answers.md`—epistemic registry (G1: σ-regularized Poisson emergence; σ = ℓ_Pl/φ³ Derived conditional on the noise–signal identification and d = 3—§2.1; G2: black-hole information paradox)
 - `foundations/unified-lagrangian.md`—the two-fluid Lagrangian on curved backgrounds used in §7.4
 - `foundations/cassi-theory-reference.md` §7—the gravity sector and the σ-regularization
 - `foundations/dimensionful-constants-status.md`—dimensionful constants and the remaining gaps
 - `foundations/cascade-suppression-formula.md`—per-rung coherence $q_i = 1 - \varphi^{-i-\delta}$ used for the black-hole capacity bound
+- `foundations/proton-coherence-budget.md`—per-rung dephasing $1-q_i = \varphi^{-i-\delta}$, the noise side of the §2.1 derivation
+- `foundations/xi-derivation.md`—$\xi = \alpha_0^{-2}$ from the same fixed-point imbalance (cross-check (i))
+- `foundations/why-three-dimensions.md`—$d = 3$ from the spiral's Frenet–Serret frame (geometric reading, conditional)
+- `computations/sigma_delta_derivation.py`—numerical verification of §2.1: identities, crossover, saturation, phase-slip structure
 - `foundations/bubble-lattice-fabric.md` §6—the bubble/void checkerboard that becomes the σ-regularized harmonic regime
 - `analyses/gwtc4-mass-ladder.md`—the black-hole mass-to-rung map applied to the GWTC-4.0 catalog
 - `two-fluid/cassi_two_fluid_3d_gpu.py`—the existing two-fluid PDE solver (flat/FLRW backgrounds)

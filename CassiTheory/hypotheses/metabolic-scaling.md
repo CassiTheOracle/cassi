@@ -16,6 +16,21 @@ framework's usual epistemic standard. The $\varphi$-derivation of Kleiber's
 exponent is an open problem, not a solved one; metabolic scaling remains a
 Speculative application.
 
+## Origin Status
+
+**Verdict: catalog correspondence; mechanism open — stated openly in this
+document.** Recomputation (`computations/verify_hypotheses_origin_audit.py`,
+2026-08-11) confirms every number: $D_f = \ln 2/\ln\varphi = 1.440$,
+$D_f = \ln 3/\ln\varphi = 2.283$ (§2 corrected from 2.29), $\alpha = 3/2.44 =
+1.23$ and $3/3.29 = 0.91$ — both wrong for Kleiber's 3/4;
+$\varphi^2/(\varphi^2+1) = 0.724$ vs 3/4 (a 4% gap that compounds over 21
+decades of body mass); heart/resp ratio $\varphi^3 = 4.24$. The WBE 3/4
+exponent is already derived from space-filling, area-preserving,
+impedance-minimizing networks with no $\varphi$ anywhere, and no step from the
+two-fluid PDE closes the gap. The doc's own §4 verdict stands: the connection
+is correlational, not causal; the contingent predictions of §3 would become
+testable only if the derivation closed.
+
 ---
 
 ## 1. Kleiber's Law
@@ -56,13 +71,13 @@ $$D_f = \frac{\ln N_{\text{branches}}}{\ln \varphi}$$
 where $N_{\text{branches}}$ is the number of daughter branches per parent
 branch. For $N_{\text{branches}} = 2$ (binary branching): $D_f = \ln 2 /
 \ln\varphi \approx 1.44$. For $N_{\text{branches}} = 3$: $D_f = \ln 3 /
-\ln\varphi \approx 2.29$.
+\ln\varphi \approx 2.28$.
 
 The metabolic scaling exponent in $D=3$ embedding space is:
 $$\alpha = \frac{D}{D_f + 1}$$
 
 For $D_f = 1.44$: $\alpha = 3 / 2.44 \approx 1.23$—wrong (too large). For
-$D_f = 2.29$: $\alpha = 3 / 3.29 \approx 0.91$—wrong (too large, should be
+$D_f = 2.28$: $\alpha = 3 / 3.28 \approx 0.91$—wrong (too large, should be
 0.75).
 
 **This does not close.** The WBE derivation gives $\alpha = 3/4$ from

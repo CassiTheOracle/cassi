@@ -6,6 +6,39 @@
 
 The condensation field of `foundations/bubble-lattice-fabric.md`—a scale-covariant 3D staggered checkerboard of coherent condensates and empty voids that operates at every cascade rung—must at biological scales (cascade steps 142–168) produce bubble structure: $\varphi$-elliptical bubbles, the $1.70\times$ edge steepness anisotropy, and checkerboard connectivity. This document hypothesizes that **skeletal muscle's structural hierarchy is the most legible anatomical instantiation of the bubble lattice**. The muscle's discrete ladder—filament, sarcomere, myofibril, fiber, fascicle, belly, group—maps directly to consecutive cascade rungs within the 26-step human window, with fascial planes corresponding to $C = -1$ void boundaries and sarcomere banding corresponding to the 1D lattice along the muscle fiber's string axis.
 
+## Origin Status
+
+**Verdict (anatomical mapping): catalog correspondence; mechanism open.**
+The universal signatures are **Derived** — in `foundations/bubble-lattice-fabric.md`,
+not in this document: the $\varphi$-elliptical bubble (axis ratio $\varphi$),
+the $1.70\times$ edge-steepness anisotropy $\sqrt{4\varphi^2/(1+\varphi^2)} =
+1.7013$ (verified), the $q = (1+B)/2$ profile, and scale covariance. What this
+document adds is the anatomical identification, and that identification is not
+derived:
+
+- **Rung placements.** Recomputed against the doc's own ladder
+  $\ell_n = \ell_{\text{Pl}}\varphi^n$ (§3.1 corrected): filament 5–10 nm →
+  $n = 126.8$–$128.2$; sarcomere 2.0–2.5 μm → 139.2–139.7 (unchanged); myofibril
+  1 μm → 137.8; fiber 50 μm → 145.9; fascicle 1–5 mm → 152.1–155.5; belly
+  15–30 cm → 162.5–164.0; group 30–50 cm → 164.0–165.0. The fiber→belly span
+  is ~16.6 rungs, not 23–24 (§3.2 corrected). Even corrected, the fine-scale
+  placements are not monotone in rung order (myofibril 137.8 sits between
+  sarcomere 139.2–139.7 and filament 126.8–128.2), because the levels mix
+  axial and transverse dimensions — the mapping is scale-matching, not a
+  derivation.
+- **Fascial planes ↔ $C=-1$ boundaries; sarcomere banding ↔ 1D lattice;
+  checkerboard muscle arrangement.** These are structural correspondences
+  asserted from the lattice geometry; no PDE solution at biological scales
+  (steps 142–168) selects the anatomy. The M-line $q \to 0$ and the $1.70\times$
+  elastography predictions follow *if* the mapping holds — the mapping itself
+  is the open step (the doc's own §5 already labels M1–M5 Hypothesized).
+- **Z-disc placement** stays Bookkeeping (Mapped-class): $L_Z = 2.0$–$2.5$ μm
+  ↔ $n = 139.2$–$139.9$ (residuals 0.2–0.4 rungs from integer/half-integer
+  points), with no $P_\parallel(n)$ law to predict it independently.
+
+Tier stays **Hypothesized**: the signatures are Derived (in the foundations
+doc), the anatomical mapping is the hypothesis.
+
 ---
 
 ## 1. The Human Cascade Window and the Bubble Lattice
@@ -59,21 +92,27 @@ Muscle is anatomically the most legible cascade ladder in the body.
 
 The following table maps the muscle structural hierarchy to cascade rungs. **The specific rung assignments are illustrative and approximate**—they are based on order-of-magnitude scale matching, not derived from the PDE. The *pattern* of discrete hierarchical levels separated by $\varphi$-scaled intervals is the claim; the exact rung numbers are provisional.
 
-| Level | Structure | Approximate scale | Cascade rung (est.) |
+| Level | Structure | Approximate scale | Cascade rung ($n = \log_\varphi(\text{scale}/\ell_{\text{Pl}})$) |
 |-------|-----------|-------------------|---------------------|
-| 0 | Myosin/actin filament | ~5–10 nm | ~130 |
-| 1 | Sarcomere (Z-disc to Z-disc) | ~2.0–2.5 $\mu$m | ~139–140 |
-| 2 | Myofibril (diameter) | ~1 $\mu$m | ~133 |
-| 3 | Muscle fiber (cell, diameter) | ~50 $\mu$m | ~143 |
-| 4 | Fascicle (diameter) | ~1–5 mm | ~150–153 |
-| 5 | Muscle belly (e.g., biceps brachii) | ~15–30 cm | ~166–167 |
-| 6 | Muscle group (e.g., arm flexors) | ~30–50 cm | ~167–168 |
+| 0 | Myosin/actin filament | ~5–10 nm | 126.8–128.2 |
+| 1 | Sarcomere (Z-disc to Z-disc) | ~2.0–2.5 $\mu$m | 139.2–139.7 |
+| 2 | Myofibril (diameter) | ~1 $\mu$m | 137.8 |
+| 3 | Muscle fiber (cell, diameter) | ~50 $\mu$m | 145.9 |
+| 4 | Fascicle (diameter) | ~1–5 mm | 152.1–155.5 |
+| 5 | Muscle belly (e.g., biceps brachii) | ~15–30 cm | 162.5–164.0 |
+| 6 | Muscle group (e.g., arm flexors) | ~30–50 cm | 164.0–165.0 |
+
+The rung numbers are $n = \ln(\text{scale}/\ell_{\text{Pl}})/\ln\varphi$ with
+$\ell_{\text{Pl}} = 1.616255\times10^{-35}$ m — the doc's own ladder formula —
+and differ from order-of-magnitude eyeballing at the finer scales (a 5 nm
+filament is at 127, not 130; a 1 $\mu$m myofibril at 137.8, not 133; a 50
+$\mu$m fiber at 145.9, not 143; a 15 cm belly at 162.5, not 166).
 
 ### 3.2 Observations from the Table
 
 **Non-monotonicity at the finest scales.** Levels 0, 1, and 2 do not increase monotonically in rung number because they represent different spatial dimensions of the same contractile apparatus: the filament diameter (level 0, ~5–10 nm) is smaller than the myofibril diameter (level 2, ~1 $\mu$m), but the sarcomere length (level 1, ~2.5 $\mu$m) is longer than both. The sarcomere's characteristic scale is its *along-fiber* period (Z-disc spacing), while the myofibril's scale is its *cross-sectional* diameter. In the bubble lattice, the string axis ($z$, along the fiber) and the Yang-Yin plane ($x$-$y$, transverse) carry different periodicities, so a structure's dominant scale depends on which axis is being measured. This is itself a signature of the triaxial lattice geometry ($\Lambda_Y \neq \Lambda_I \neq P_\parallel$): at these fine rungs, the three axes resolve into distinct anatomical features rather than being averaged into a single morphological scale.
 
-**Scaling from fiber to whole muscle.** Levels 3 through 6 form a clean monotonic ladder: fiber (~50 $\mu$m, ~143) → fascicle (~1–5 mm, ~150–153) → muscle belly (~15–30 cm, ~166–167) → muscle group (~30–50 cm, ~167–168). The span from fiber to belly covers approximately 23–24 rungs, nearly the entire 26-rung human window. The muscle group sits near the top of the human window, extending to step ~168—the organism scale.
+**Scaling from fiber to whole muscle.** Levels 3 through 6 form a clean monotonic ladder: fiber (~50 $\mu$m, 145.9) → fascicle (~1–5 mm, 152.1–155.5) → muscle belly (~15–30 cm, 162.5–164.0) → muscle group (~30–50 cm, 164.0–165.0). The span from fiber to belly covers ~16.6 rungs (145.9 → 162.5); fiber to group ~19 rungs. The muscle group sits ~3 rungs below the organism scale (1.7 m ↔ 167.5), not at step ~168. Note the corrected placements make the ladder *not* a clean consecutive-rung sequence at the finest scales: the myofibril (137.8) falls between the sarcomere (139.2–139.7) and the filament (126.8–128.2), because levels 0–2 mix axial and transverse dimensions (the doc's own non-monotonicity discussion) — a legibility argument for muscle as a ladder, not a derivation of it.
 
 ---
 

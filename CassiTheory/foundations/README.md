@@ -15,9 +15,9 @@ This directory holds the load-bearing derivations of the Cassi framework: the di
 | 3 | `unified-lagrangian.md` | Assembled Lagrangian | Derived |
 | 4 | `cassi-first-principles.md` | Postulate and two-fluid PDE | Derived |
 | 5 | `cassi-theory-reference.md` | Compact framework reference | Reference |
-| 6 | `xi-derivation.md` | Qi-gravity coupling | Derived |
+| 6 | `xi-derivation.md` | Qi-gravity coupling | Derived conditional on the quadratic-coupling input |
 | 7 | `why-three-dimensions.md` | Spatial dimension count | Hypothesis |
-| 8 | `wu-xing-derivation.md` | Wu Xing number $w = 5$ | Derived |
+| 8 | `wu-xing-derivation.md` | Wu Xing number $w = 5$ | Derived (single input: coherence postulate) |
 | 9 | `dimensionful-constants-status.md` | $c$, $\hbar$, $G$ status | Hypothesized |
 | 10 | `phi-rg-formalism.md` | φ as RG fixed point | Hypothesized |
 | 11 | `spiral-dynamics.md` | Hubble, gravity, $c$ from spiral | Hypothesized |
@@ -27,7 +27,7 @@ This directory holds the load-bearing derivations of the Cassi framework: the di
 | 15 | `proton-coherence-budget.md` | Proton stability | Derivation |
 | 16 | `quantum-measurement-derivation.md` | Born rule | Derivation |
 | 17 | `strong-cp-derivation.md` | Strong CP | Derivation |
-| 18 | `quark-confinement.md` | Confinement | Derived |
+| 18 | `quark-confinement.md` | Confinement | Derived (tube extensivity + cell quantization) |
 | 19 | `three-generations.md` | Generation count | Hypothesized |
 | 20 | `neutrino-masses.md` | Neutrino spectrum | Derivation |
 | 21 | `baryon-asymmetry.md` | Baryogenesis | Derived |
@@ -36,7 +36,7 @@ This directory holds the load-bearing derivations of the Cassi framework: the di
 | 24 | `microcascade-mirror.md` | Sub-Planckian ladder | Hypothesized |
 | 25 | `refined-numeric-predictions.md` | Pinned φ-powers | Active derivation |
 | 26 | `deriving-remaining-gaps.md` | Residual parameters | Resolved / narrowed |
-| 27 | `sector-coupling-derivation.md` | Dirac↔two-fluid sector coupling | Derived scale w/ Hypothesized coefficient |
+| 27 | `sector-coupling-derivation.md` | Dirac↔two-fluid sector coupling | Derived conditional on $\delta = 3$ (rung identity) w/ Hypothesized coefficient |
 | 28 | `wake-geometry.md` | Wake geometry | Derived (structural) |
 | 29 | `rung-offset-mechanism.md` | Rung offsets δn | Hypothesized mechanism, Empirical catalog |
 | 30 | `wu-xing-cycle-structure.md` | Wu Xing cycles, ring algebra | Derived / Tested / Hypothesized |
@@ -83,13 +83,13 @@ The audited compact reference: one document restating the postulate, the two-flu
 
 Derives the Qi-gravity coupling, calibrated empirically to $\xi \approx 18$ from the Milky Way rotation curve, as exactly
 
-$$\boxed{\xi = \varphi^6 = \varphi^5 + \varphi^4 \approx 17.944}$$
+$$\boxed{\xi = \varphi^6 = \left(\frac{\pi}{\rho}\right)^{-2} = (\varphi^{-3})^{-2} \approx 17.944}$$
 
-The sixth power counts degrees of freedom: 2 field components × 3 spatial dimensions. The 3 remains the framework's last imported integer pending the candidate derivation in `why-three-dimensions.md`; with that resolved, every constant follows from $\varphi$ alone. Status: Derived.
+The exponent 6 is the inverse-square of the fixed-point imbalance: $\pi/\rho = (\varphi-1)/(\varphi+1) = \varphi^{-3}$ follows from the attractor ($E_Y = \varphi E_I$), and the $-2$ is the quadratic degree of the gravitational coupling. The saturation ceiling $G_{\text{eff,max}} = \varphi^3 G$ matches the dwarf-spheroidal M/L bound. The older reading (2 field components × 3 spatial dimensions) survives as a secondary geometric reading; the 3 remains conditional on the candidate derivation in `why-three-dimensions.md`. Status: Derived conditional on the quadratic-coupling input / Calibrated empirical pin.
 
 ### `why-three-dimensions.md`—Why Three Dimensions: The Spiral's Three Directions
 
-Proposes to remove the last imported integer: the string's trajectory through field space is the Fibonacci spiral, and a space curve's Frenet-Serret frame supplies exactly three orthogonal directions:
+Removes the last imported integer by overdetermination: the string's trajectory through field space is the Fibonacci spiral, and a space curve's Frenet-Serret frame supplies exactly three orthogonal directions; four further framework-internal routes (Lucas, attractor, noise–signal, rung-clock) close on $d = 3$ independently (verified 2026-08-11, `computations/why_three_dimensions_frenet.py`):
 
 $$\boxed{\text{Three spatial dimensions} = \{\mathbf{T}, \mathbf{N}, \mathbf{B}\}}$$
 
@@ -97,7 +97,7 @@ so $\xi = \varphi^{2 \times 3}$ needs no accounting for the 3. The $\varphi$-det
 
 ### `wu-xing-derivation.md`—Wu Xing Number $w = 5$: Derivation from Cascade Dynamics
 
-Derives the number of elements in the primordial generation/control cycle from two constraints. Cascade dynamics eliminate all $w \geq 6$ via a coherence criterion built on the exact Fibonacci identity $|F_k \varphi - F_{k+1}| = \varphi^{-k}$ and the signal-regime attenuation $S(N) = S(0)\,\varphi^{-N}$; $\varphi$-geometry eliminates $w < 5$ (the pentagon is the minimal regular polygon containing $\varphi$). The intersection is uniquely
+Derives the number of elements in the primordial generation/control cycle from a single physical input. The coherence criterion applied to ALL cycle sizes at once — a $w$-step cycle closes only if its accumulated phase error $E(w) = w\min_p|\varphi - p/w|$ stays at or below the cascade signal $\varphi^{-w}$ — selects exactly $\{1, 2, 3, 5\}$: continued-fraction optimality (Hurwitz) makes the Fibonacci denominators the only candidates, the exact identity $|F_k\varphi - F_{k+1}| = \varphi^{-k}$ evaluates them, and $w = 5$ passes at equality (verified exhaustively to $w = 2000$); $\varphi$-geometry eliminates $w < 5$ (the pentagon is the minimal regular polygon containing $\varphi$). The intersection is uniquely
 
 $$\boxed{w = 5}$$
 
@@ -121,7 +121,7 @@ with the discrete beta function $\beta_\varphi(g) = [g(k/\varphi) - g(k)]/\ln\va
 
 ### `spiral-dynamics.md`—Spiral Dynamics: Hubble, Gravity, and $c$ from Fibonacci Spiral Geometry
 
-Reads cosmic expansion, gravitational attraction, and the speed of light as three projections of the single Fibonacci spiral traced by the $(E_Y, E_I)$ doublet, $\Theta(n) = \Theta_0 + (2\pi/\ln\varphi)\,n$—one full turn per cascade rung. Expansion is the spiral's unwinding rate, with $H \approx (\lambda\ln\varphi/2\pi)(1-q)$ near equilibrium and the general form $H = (\lambda/3)(\varphi-r)(1+r)/r + \lambda\varphi^{-2}/3$ (H form **asserted** (postulate)—1/3 is the 3D continuity reading; derivation open); gravity is gradient descent along the spiral toward coherence; $c$ is the scale-invariant product of conversion rate and coherence wavelength; gravitational strength runs as $\alpha_G(n) \sim \varphi^{-2n}$. Status: Hypothesized.
+Reads cosmic expansion, gravitational attraction, and the speed of light as three projections of the single Fibonacci spiral traced by the $(E_Y, E_I)$ doublet, $\Theta(n) = \Theta_0 + (2\pi/\ln\varphi)\,n$—one full turn per cascade rung. Expansion is the spiral's unwinding rate, with $H \approx (\lambda\ln\varphi/2\pi)(1-q)$ near equilibrium and the general form $H = (\lambda/3)(\varphi-r)(1+r)/r + \lambda\varphi^{-2}/3$ (the 1/3 is the isotropic dimension factor $1/d$ at $d = 3$—Derived, `cosmology/cosmology-from-phi.md` §1; the $\lambda\varphi^{-2}$ rate asserted); gravity is gradient descent along the spiral toward coherence; $c$ is the scale-invariant product of conversion rate and coherence wavelength; gravitational strength runs as $\alpha_G(n) \sim \varphi^{-2n}$. Status: Hypothesized.
 
 ### `spin-fibonacci-spiral.md`—Spin as Fibonacci Spiral Winding: The SO(2) Doublet Fractal
 
@@ -171,13 +171,13 @@ $$\boxed{\bar{\theta} \approx \varphi^{-81.4} \times \pi\varphi^{-2} = \pi\varph
 
 ~7 orders of magnitude below the experimental bound of $10^{-10}$. The span is Mapped (its GUT-seed anchor and $\delta_{\text{CP}}$ are ledgered fits, `parameter-inventory.md` §10). No axion, no Peccei-Quinn symmetry, no new particles: the smallness is the cascade doing what it always does. Status: Derivation (span Mapped—ledger).
 
-### `quark-confinement.md`—Quark Confinement from Qi-Gate Nonlinearity at the QCD Scale
+### `quark-confinement.md`—Quark Confinement from the Saturated-Gate Flux Tube at the QCD Scale
 
-The QCD scale is cascade step 95 ($\Lambda_{\text{QCD}} \approx \ell_{\text{Pl}}\,\varphi^{95} \sim 200$ MeV), and confinement follows from the Qi-gate nonlinearity at that scale: pulling two color-charged condensates apart creates a Qi density gradient that strengthens the conversion-mediated attraction, a self-reinforcing feedback that produces a linear flux-tube force
+The QCD scale is cascade step 95 ($\Lambda_{\text{QCD}} = M_{\text{Pl}}\varphi^{-95} \approx 0.17$ GeV), and confinement follows from gate saturation: between two separated color charges the conversion channel saturates to the de-converted vacuum ($q \to 0$), expelling the condensate over a cross-section quantized to one condensation-lattice cell. The tube's energy is extensive in its length, so
 
-$$\boxed{F_{\text{Qi}}(r) \approx \sigma \cdot r, \qquad \sigma \approx \varphi^{-95} \cdot M_{\text{Pl}}^2}$$
+$$\boxed{E(r) = \mu r + 2E_{\text{core}}, \qquad \mu = \kappa\!\left(\frac{M_{\text{Pl}}}{\varphi^{95}}\right)^2 = \kappa\,\Lambda_{\text{QCD}}^2}$$
 
-The cascade suppression formula guarantees the binding energy exceeds all fluctuation energies at lower rungs, making confinement permanent on any physically accessible timescale. The confinement scale, string tension, and permanence all follow from $\varphi$ and the cascade with no free parameters. Status: Derived.
+with $\kappa = O(1)$ open ($\mu/\sigma_{\text{measured}} \approx 0.16$ at $\kappa = 1$). The linear potential $F = -\mu$ is geometric — tube length $\propto$ separation — independent of the gate shape. Flux-tube breaking probability $\approx \varphi^{-4506}$. Status: Derived (tube extensivity + cell quantization; inputs: gate saturation, one-cell quantization).
 
 ### `three-generations.md`—Three Generations from Fibonacci Cascade Partitioning
 
@@ -187,9 +187,9 @@ $$\boxed{\varphi^n = \varphi^{n-1} + \varphi^{n-2}}$$
 
 partitions every cascade span into three sub-rung channels—the rung itself plus its two predecessors—so Yukawa propagation from the GUT scale to the electroweak scale separates into three mass eigenstates per fermion sector, with
 
-$$\boxed{N_{\text{generations}} = \text{order of } \varphi\text{'s minimal polynomial} + 1 = 2 + 1 = 3}$$
+$$\boxed{N_{\text{generations}} = 2\ \text{decomposition terms} + 1\ \text{direct rung} = 3}$$
 
-Mass ratios across sectors are $\varphi$-power spacings with zero free parameters beyond the cascade architecture; for neutrinos the seesaw's Yukawa-squared dependence doubles the $\varphi$-exponent. Status: Hypothesized.
+Mass ratios across sectors are $\varphi$-power spacings from the three-channel spread (per-sector offsets Mapped—ledger rows 483/492); for neutrinos the seesaw's Yukawa-squared dependence doubles the $\varphi$-exponent. Status: Hypothesized (mechanism; the 2+1 counting is Derived under the propagation-channel postulate).
 
 ### `neutrino-masses.md`—Neutrino Masses from Fibonacci Cascade Partitioning of the Seesaw
 

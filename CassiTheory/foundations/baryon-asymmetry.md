@@ -1,6 +1,6 @@
 # Matter-Antimatter Asymmetry from Cascade Freeze-Out and Organized Annihilation
 
-## Status: Derivation (mechanism Hypothesized, C7/Q6; η exponent Mapped—ledger)—August 2026
+## Status: Derivation (mechanism Hypothesized, C7/Q6; η exponent Mapped—ledger; 44-rung span open—no closure found in the 2026-08-11 sweep, §4.5)—August 2026
 
 ## Abstract
 
@@ -27,6 +27,18 @@ so the construction gives $60 - 13.3 = 46.7$ and a span of $33.4$—it does
 not reproduce the fitted exponent 44, and the freeze-out-step derivation is
 not closed. The exponent $-44$ remains a ledgered fit; the mechanism
 (Wu Xing gap + organized annihilation + cascade dilution) is Hypothesized.
+
+The 2026-08-11 span-closure sweep (§4.5) tested the threshold-crossing,
+endpoint, composite-gap, and factor-decomposition constructions; none
+closes. The strongest mechanism-anchored candidate—the pinch-minus-seed
+span $60 - 13.3 = 46.7$—sits 5.5% above the exact exponent
+$\log_\varphi(1/\eta_{\text{obs}}) = 44.13$ (η 3.4× low under uniform
+$\varphi^{-1}$ per-rung dilution); the span that would close (44.13) ends
+at rung 57.3, where $E = 1.3\times10^7$ GeV and no known scale or mechanism
+sits. The exact blocking step: the freeze-out threshold rung is not fixed
+by any mechanism—the $(1-q) = \varphi^{-1}$ gate crossing at $r \approx
+0.240$ maps to a cascade step only through the hand-assigned 5-phase
+boundaries, and the homogeneous ODE gives $N \approx 9$ total steps.
 
 ---
 
@@ -283,7 +295,95 @@ With the corrected anchors the arithmetic reads $46.7 - 13.3 = 33.4$, which
 does not reproduce the observed $\eta$; $N_{\text{eff}} = 44$ stands as the
 ledgered fit, not as a derived span.
 
-### 4.5 Verification against the 5-channel gate closure
+Quantitatively, the required span is $\log_\varphi(1/\eta_{\text{obs}}) =
+44.13$ (doc convention $6.0\times10^{-10}$; $44.09$ for the PDG value
+$6.104\times10^{-10}$). The corrected pinch-minus-seed span
+$60 - 13.3 = 46.7$ is the **closest mechanism-anchored candidate**: it
+sits 5.5% above the exact log ($46.7/44.13 = 1.058$), and in the uniform
+$\varphi^{-1}$-per-rung model gives $\eta = \varphi^{-46.7} = 1.8\times
+10^{-10}$, 3.4× below the observed value ($\varphi^{2.57} = 3.44$ for the
+2.57-rung overshoot). The span that would close the fit,
+$44.13 = 57.3 - 13.3$, ends at rung 57.3—$E = 1.3\times10^7$ GeV, an empty
+desert scale—so the freeze-out endpoint is not fixed by any mechanism.
+§4.5 reports the full closure sweep.
+
+### 4.5 Attempted closures of the 44-rung span (2026-08-11 sweep)
+
+Every mechanism-anchored construction of the span $N_{\text{eff}} = 44$ was
+tested against the corrected seed (n = 13.33) and the exact required
+exponent $\log_\varphi(1/\eta_{\text{obs}}) = 44.09$–$44.13$
+(`computations/eta_span_closure_check.py`). None closes.
+
+**(a) Threshold-crossing spans.** In the coherence-budget per-rung form
+$1 - q_i = \varphi^{-i-\delta}$ (the proton budget's survival profile,
+`proton-coherence-budget.md` §3), the dilution factor crosses the
+thresholds at:
+
+| Threshold $1-q$ | Crossing $i+\delta$ | Rung $i$ (δ = 3) | Span from seed 13.3 |
+|:---:|:---:|:---:|:---:|
+| $\varphi^{-1} = 0.618$ | 1.00 | −2.0 | 15.3 |
+| 0.5 | 1.44 | −1.6 | 14.9 |
+| 0.1 | 4.79 | 1.8 | 11.6 |
+| 0.01 | 9.57 | 6.6 | 6.8 |
+
+with δ = 3 from the σ-regularization $q_0 = 1 - \varphi^{-3}$. The crossings
+all sit at or below the GUT seed: the coherence-budget form freezes the
+dilution *before* the seed, and the spans (7–15 rungs) never approach 44 or
+46.7. A span of 44 in this form would require $1 - q \approx \varphi^{-60}$
+at the endpoint—not a threshold crossing at all.
+
+**(b) Gate-model crossings.** In the doc's own gate form, $(1-q) =
+(\varphi^{-2}+\varepsilon^2)/(1+\varphi^{-2}+\varepsilon^2)$ starts at 0.72
+(r₀ = 0.047), crosses $\varphi^{-1}$ at r = 0.240 (reproducing §4.2) and
+0.5 at r = 0.466, and **never reaches 0.1 or 0.01**—the floor is
+$1/(1+\varphi^2) = 0.276$. Dilution therefore never shuts off below 0.276,
+so no freeze-out can be defined by a $(1-q) \to 0$ crossing. Identifying
+freeze-out with the $\varphi^{-1}$ sub-damping crossing at r = 0.240 places
+it at "approximately step 40" only through the hand-assigned 5-phase
+boundaries (§4.1); the span $40 - 13.3 = 26.7$ gives
+$\eta = \varphi^{-26.7} \approx 2.6\times10^{-6}$, ~4400× the observed
+value. The r → cascade-step mapping is not derived (the homogeneous ODE
+gives $N \approx 9$ total steps), so the gate alone fixes no freeze-out rung.
+
+**(c) Endpoint scan.** The span that closes the fit,
+$N_{\text{eff}} = 44.13 = n_{\text{end}} - 13.33$, ends at
+$n_{\text{end}} = 57.3$: $E(57.3) = 1.3\times10^7$ GeV. The cascade register
+near rungs 44–60 contains only rung 40 (inflationary energy scale,
+$5.3\times10^{10}$ GeV) and rung 60 (intermediate scale, $3.5\times10^6$
+GeV); rungs 44, 46.7, 52, 57.3 are all empty-desert scales
+($7.8\times10^9$, $2.1\times10^9$, $1.7\times10^8$, $1.3\times10^7$ GeV),
+and 57.3 is 2.3 rungs above the Fibonacci anchor $F_{10} = 55$. No known
+scale or structural anchor selects the endpoint.
+
+**(d) Composite gap.** The Wu Xing gap enters the product as
+$\log_\varphi(g) = -0.196$ ($g = \varphi^{-0.196}$, not $\varphi^{-1/5}$):
+$g \cdot \varphi^{-44} = 5.80\times10^{-10}$ is −5.0% vs the PDG value
+(and −3.3% vs $6.0\times10^{-10}$)—flipping the +4.5% sign of plain
+$\varphi^{-44}$ with the same magnitude (composite exponent 44.196 vs the
+exact 44.09–44.13). The gap entering the product does not close.
+
+**(e) Factor decompositions.** $44 = 4\times11 = 2\times22$: 4, 11, 22 have
+no framework anchor (the structural numbers are Fibonacci
+$\{5, 8, 13, 21, 34, 55\}$, the Wu Xing 5, and the spatial dimension 3).
+$44 = 60 - 16$ puts the seed at rung 16 ($5.5\times10^{15}$ GeV), inside
+the GUT band (12.4–17.2) but 2.7 rungs from the pinned seed 13.33
+($2\times10^{16}$ GeV) and outside both conventions (13.33; 14.77 for
+$10^{16}$ GeV)—rejected. The closest two-factor product found is
+$\varphi^{-44}\cdot(1+g)/2 = 6.09\times10^{-10}$, −0.3% vs the PDG value,
+but $(1+g)/2 = 1 - \varphi^{-5}/2$ has no dynamical role (the gap enters
+the product once, as in (d), or not at all); a second fitted factor on a
+fitted exponent is exactly the pattern the Fit-Status Ledger exists to
+catch—rejected.
+
+**Sweep result.** No construction reproduces the exact log 44.09–44.13.
+The strongest mechanism-anchored candidate is the pinch-minus-seed span
+46.7 (§4.4, 5.5% gap); the 44-rung span remains the ledgered fit
+(`parameter-inventory.md` §10 row 481). The exact blocking step: **the
+freeze-out threshold rung is not fixed by any mechanism**—the $(1-q) =
+\varphi^{-1}$ crossing at r = 0.240 has no derived r → step map, and the
+endpoint that would close the fit (57.3) sits at an empty desert scale.
+
+### 4.6 Verification against the 5-channel gate closure
 
 The 5-channel pentagonal gate model (`wa-pentagon-gate.md` §2) provides an
 independent consistency check. The effective openness $(1-q_{\text{eff}})$
@@ -387,7 +487,11 @@ The following gaps prevent upgrading to fully "Derived" status:
    add effective friction that slows the ratio evolution and multiplies the
    number of steps per unit $\Delta r$. The full 3D PDE simulation at $N \geq
    32 resolution is needed to verify that the ratio evolution maps exactly
-   44 rungs from the GUT seed to the freeze-out.
+   44 rungs from the GUT seed to the freeze-out. The 2026-08-11 closure
+   sweep (§4.5) confirms this is the blocking step: without the r → step
+   map from the spatial PDE, the $(1-q) = \varphi^{-1}$ crossing at
+   $r \approx 0.240$ pins no freeze-out rung, and the span's endpoints
+   are not fixed by any mechanism.
 
 3. **Sphaleron freeze-out temperature.** The Standard Model sphaleron
    freeze-out at $T \sim 100$ GeV (cascade step 80) is distinct from the
@@ -402,6 +506,15 @@ The following gaps prevent upgrading to fully "Derived" status:
    trajectory. The current 44-rung even-dilution model ($\varphi^{-1}$ per
    rung) is a simplifying approximation: the per-rung dilution likely varies
    across the Wu Xing phases as each channel opens and closes.
+
+5. **Dilution-span endpoints.** The span's endpoints are not fixed by any
+   mechanism (2026-08-11 sweep, §4.5). The seed is pinned (n ≈ 13.3), but
+   the freeze-out rung is not: the gate threshold crossing at r ≈ 0.240 has
+   no derived r → step map, the gate floor $1/(1+\varphi^2) = 0.276$
+   prevents any $(1-q) \to 0$ freeze-out definition, and the endpoint that
+   would close the fit (n = 57.3, $E = 1.3\times10^7$ GeV) is an empty
+   desert scale. The closest mechanism-anchored span, $60 - 13.3 = 46.7$,
+   misses the exact log 44.13 by 5.5% (η 3.4× low).
 
 ---
 
@@ -422,4 +535,7 @@ The following gaps prevent upgrading to fully "Derived" status:
   pinch at $r = \varphi^{-1}$ (step 60)
 - `computations/cascade_depth_integral.py`—homogeneous ODE gives $N \approx
   9$; spatial structure required for full 292-step cascade
+- `computations/eta_span_closure_check.py`—2026-08-11 dilution-span closure
+  sweep: threshold crossings, gate floor, endpoint scan, composite gap,
+  factor decompositions; no closure (§4.5)
 - `open-questions-cassi-answers.md`—C7 entry, freeze-out step 52 status

@@ -180,7 +180,7 @@ The ladder metaphor is correct but incomplete—it captures the along-string per
 
 | Cascade rung $n$ | Scale $\ell_n$ | Physical structure | Lattice manifestation |
 |---|---|---|---|
-| 0 | $1.6 \times 10^{-35}$ m | Planck length | $\sigma$-regularized crossover; lattice dissolves into harmonic regime |
+| 0 | $1.6 \times 10^{-35}$ m | Planck length | $\sigma$-regularized crossover; lattice dissolves into harmonic regime at $\sigma = \ell_{\text{Pl}}/\varphi^3$ (rung $-3$; noise–signal crossover at the Planck core, `gravity/quantum-gravity.md` §2.1) |
 | ~5 | $1.8 \times 10^{-34}$ m | GUT scale | Gauge symmetry breaking at a lattice node |
 | ~95 | $1.0 \times 10^{-15}$ m | QCD confinement | Proton as a condensed standing wave; 92-rung coherence depth (0 → 91.5) |
 | ~117 | $5.3 \times 10^{-11}$ m | Bohr radius | Atomic bubble lattice onset; orbital shells as nested bubble surfaces |
@@ -204,6 +204,7 @@ The ladder metaphor is correct but incomplete—it captures the along-string per
 - The Qi density profile $q = (1+B)/2$ (`foundations/bubble-edge-geometry.md` §1.1)
 - Scale covariance of the two-fluid PDE under $\varphi$-rescaling (`foundations/microcascade-mirror.md` §2)
 - That the condensation field therefore operates at every cascade rung (direct consequence of scale covariance)
+- The Planck-crossover scale: $\sigma = \ell_{\text{Pl}}/\varphi^3$ (rung $n = -3$)—the scale at which the lattice's bubble/void phase structure dissolves into the harmonic regime (noise–signal crossover at the Planck core, `gravity/quantum-gravity.md` §2.1; **Derived conditional on the noise–signal identification and $d = 3$**)
 
 ### Hypothesized (PDE-testable, predictions supplied)
 
@@ -220,11 +221,27 @@ The ladder metaphor is correct but incomplete—it captures the along-string per
 
 ## 8. Open Questions
 
+Items 1–2 and 4–5 are open; item 3 is the derived Planck-crossover scale (tier: Derived conditional on the noise–signal identification and $d = 3$).
+
 1. **What sets $P_\parallel(n)$?** The along-string bubble period is 1 rung at the cosmological scale and 2 rungs at the human scale. Does it vary continuously with $n$, discretely at octave boundaries, or via some other rule? Deriving $P_\parallel(n)$ from the PDE would close the one remaining phenomenological input in the lattice model.
 
 2. **Does $\theta_{\text{cond}}$ vary with $n$?** The conversion-diffusion balance depends on $D_{\text{eff}}/\omega_0$, and $D_{\text{eff}}$ (the effective diffusion of the condensation field) may vary with scale. The cosmological $\theta_{\text{cond}} \approx 0.45$ is calibrated phenomenologically; measuring it at other scales (e.g., biological) requires PDE simulation at those scales.
 
-3. **How does the lattice resolve at the Planck crossover?** The $\sigma$-regularization (`gravity/quantum-gravity.md`) makes the Planck scale a smooth crossover, not a hard boundary. The lattice's discrete bubble/void structure should dissolve into the continuous harmonic regime as $n \to 0$. The exact crossover profile is not yet derived.
+3. **The Planck crossover scale (derived).** The $\sigma$-regularization makes the Planck scale a smooth crossover: the lattice's discrete bubble/void structure dissolves into the continuous harmonic regime at $\sigma = \ell_{\text{Pl}}/\varphi^3$—cascade rung $n = -3$, three rungs below the Planck cell. The scale is derived by the noise–signal crossover at the Planck core (`gravity/quantum-gravity.md` §2.1): the per-rung dephasing noise of the two-fluid, $1 - q_i = \varphi^{-i-\delta}$, equals the equilibrium Yang excess $(\pi/\rho)_{\text{eq}} = (\varphi-1)/(\varphi+1) = \varphi^{-3}$ (the fixed-point imbalance $\alpha_0$ that also anchors $\xi = \alpha_0^{-2}$, `foundations/xi-derivation.md` §2.1) at the doublet's reference rung, giving $\varphi^{-\delta} = \varphi^{-3}$ and hence $\delta = 3$; because the profile steps by the de-resonance damping $\varphi^{-1}$ per rung, the dephasing reaches certainty ($1 - q \to 1$) precisely at rung $-3 = \sigma$, the floor of the physical profile (verified numerically: $\sigma = 3.815\times10^{-36}$ m; $\log_\varphi(\sigma/\ell_{\text{Pl}}) = -3.000$). The geometric reading $\delta = d = 3$—each of the three spatial axes contributing one rung of indistinguishability depth via the per-axis de-resonance damping $\varphi^{-1}$—is secondary. What remains open is the crossover *profile*—the transition shape of $B(x,y,z)$ into the harmonic regime as $n \to 0$, which requires PDE resolution at the Planck cell.
+
+**Inputs.**
+
+$$
+\boxed{
+\begin{aligned}
+&\text{(a) noise} = \text{signal identification} && \text{the separation scale is where per-rung dephasing noise equals the equilibrium excess—physical postulate, same status as the Wu Xing coherence criterion (foundations/wu-xing-derivation.md §6)}\\
+&\text{(b) fixed-point excess } (\pi/\rho)_{\text{eq}} = \varphi^{-3} && \text{Derived: phi-attractor fixed point (foundations/cassi-theory-reference.md §2.3)}\\
+&\text{(c) per-rung dephasing family } 1 - q_i = \varphi^{-i-\delta} && \text{de-resonance; the family's } i\text{-dependence remains Hypothesized (foundations/proton-coherence-budget.md §8)}\\
+&\text{(d) } d = 3 \text{ for the geometric reading } \delta = d && \text{conditional: Frenet–Serret frame, granted its three postulates (foundations/why-three-dimensions.md §7; G5, Hypothesized)}\\
+&\text{(e) two-fluid phase structure of the Planck cell} && \text{context: this document §2–§5: condensation field, staggered checkerboard, string bound at rung 0}
+\end{aligned}
+}
+$$
 
 4. **Is the lattice structure identical in the microcascade ($n < 0$)?** The microcascade mirror (`foundations/microcascade-mirror.md`) establishes bidirectional extension but notes a regime change in the Qi coherence profile at $n < 0$. Whether the condensation field maintains the same $B(x,y,z)$ functional form or transitions to something else is not yet known.
 
@@ -245,7 +262,8 @@ The ladder metaphor is correct but incomplete—it captures the along-string per
 - `foundations/three-generations.md`—Fibonacci recurrence, sub-channel partitioning
 - `consciousness/chakras-as-cascade-bubbles.md`—human-scale lattice, $P_\parallel = 2$, 13-node derivation
 - `consciousness/consciousness-from-phi.md`—26-step human cascade, pinch transition
-- `gravity/quantum-gravity.md`—$\sigma$-regularization, Planck-scale smooth crossover
+- `gravity/quantum-gravity.md`—$\sigma$-regularization, Planck-scale smooth crossover; §2.1 derives $\delta = 3$
+- `computations/sigma_delta_derivation.py`—numerical verification of the Planck-crossover derivation (identities, saturation at rung $-3$, phase-slip structure)
 - `hypotheses/neural-criticality.md`—8-level neural hierarchy as lattice at neural rungs
 - `visual-explainers/chord_lattice.py`—condensation field, staggered lattice visualization
 - `visual-explainers/string_bubble_cascade.py`—3D PDE bubble formation on string

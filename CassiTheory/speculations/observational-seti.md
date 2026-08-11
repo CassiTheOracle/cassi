@@ -125,7 +125,7 @@ These are the **formal Cassi predictions**—already cataloged in `predictions/f
 
 **Mechanism:** The megacascade boundary (from `speculations/cascade-infrastructure.md` §4.2): our observable universe is one bubble in a larger lattice. The bubble boundary imprints on the largest angular scales.
 
-**Predicted observable:** A bubble-boundary axis in CMB temperature fluctuations—the triaxial boundary geometry at step 285 imprints a preferred axis (dipole↔quadrupole alignment 12.2°) at $\ell < 5$, fading at larger $\ell$. **Tier:** the 12.2° angle is **Calibrated** (computed from the measured CMB direction vectors; Fit-Status Ledger row added 2026-08-10) and the bubble-boundary mechanism is **Hypothesized** (boundary orientation fitted to the measured axis post-hoc)—see the catalog row and registry C10. The framework also predicts the quadrupole-octopole alignment and cold spot as boundary conditions.
+**Predicted observable:** A bubble-boundary axis in CMB temperature fluctuations—the triaxial boundary geometry at step 285 imprints a preferred axis (dipole↔quadrupole alignment) at $\ell < 5$, fading at larger $\ell$. **Tier:** the alignment *magnitude* is $12.40° = 2π/φ⁷$—the golden-angle closure residual of the bubble's pole spiral (13 seeds of $2π/φ² = 137.5°$ return to within exactly $2π/φ⁷$; `foundations/wake-geometry.md` §3b)—matching the measured $12.22°$ at 1.5%; the axis *direction* is **Calibrated** (computed from the measured CMB direction vectors; Fit-Status Ledger row added 2026-08-10) and the bubble-boundary mechanism is **Hypothesized** (boundary orientation fitted to the measured axis post-hoc; the projection of the closure residual onto the CMB axes is not derived)—see the catalog row and registry C10. The framework also predicts the quadrupole-octopole alignment and cold spot as boundary conditions.
 
 **Current data:** The axis is observed at 5.4σ (Planck). Alignment with the framework's predicted direction is ~1σ—suggestive but not conclusive. Simons Observatory and LiteBIRD will improve polarization measurements.
 
@@ -253,7 +253,7 @@ Step 3 is where Cassi stops being an interesting coincidence and becomes a scien
 ### Formal Cassi predictions (already in the catalog, zero free parameters)
 
 - φ-periodic $P(k)$ modulation, $\Delta(\ln k) = \ln\varphi = 0.4812$ (prediction #5)
-- CMB bubble-boundary axis (12.2° dipole↔quadrupole alignment) at $\ell < 5$, fading (prediction #6)
+- CMB bubble-boundary axis (12.22° measured; magnitude 12.40° = 2π/φ⁷ golden-angle closure, 1.5%) at $\ell < 5$, fading (prediction #6)
 - Void ellipticity 1.70 (from `foundations/bubble-edge-geometry.md` §5.2)
 - $\Omega_{\text{DM}}/\Omega_b = \varphi^3 + 1 \approx 5.236$ (already matches to 2.8%)
 - $\ln\varphi$ periodic physiological spectral signature (prediction #35)
