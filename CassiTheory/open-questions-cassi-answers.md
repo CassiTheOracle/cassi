@@ -52,9 +52,9 @@ from the Milky Way rotation curve) is Calibrated; every downstream claim that
 uses the pinned value inherits Calibrated unless independently derived.
 Reference scales and thresholds fixed by data are Calibrated too ($\mu_* = 233$
 GeV as the crossing point of the running $\sin^2\theta_W$ with $\varphi^{-3}$;
-$\theta_{\text{cond}} = 0.45$ from phenomenology). A Calibrated claim is honest
-only if the anchor is stated with the claim; a "confirmation" on the anchor
-object is a consistency check of the calibration, not an independent test.
+$\theta_{\text{cond}}=0.45$ from phenomenology). A Calibrated claim carries its
+anchor explicitly; agreement on the anchor object is a consistency check of
+the calibration, not an independent test.
 
 ### Mapped
 
@@ -102,9 +102,9 @@ requires its row in the Fit-Status Ledger**. A compound header is a promise
 that each component's tier is justified. Bookkeeping words—Reference, Index,
 Synthesis, Plan, Registry, Catalog, Open problem—are genres, not epistemic
 claims, and do not sit on the ladder; "Tested" is a verification marker that
-attaches to a tier and never upgrades one. The former "near-Derived" label is
-retired: use the honest tier (Mapped, Calibrated, Hypothesized, or
-Speculative) instead.
+attaches to a tier and never upgrades one. Claims without a derivation use the
+accurate tier—Mapped, Calibrated, Hypothesized, or Speculative—according to
+their provenance.
 
 ---
 
@@ -257,17 +257,17 @@ flowchart TD
     A[Qi condensate] --> B[Density q]
     B --> C[G_eff = π/ρ · (1+(φ⁶−1)q)]
     C --> D[ξ = φ⁶ ≈ 17.944]
-    D --> E[Flat rotation, Ω_DM/Ω_b = φ³+1]
+    D --> E[Flat rotation, Ω_DM/Ω_b = φ³]
 ```
 
 **Visual:** The Qi condensate amplifies gravity by ξ = φ⁶ ≈ 17.944, like a gravitational dimmer switch turning up the effective pull on galactic scales.
 
 
-Galaxies spin much faster than their visible mass can explain—something invisible must be providing extra gravitational pull. For decades physicists have searched for exotic particles (WIMPs, axions, sterile neutrinos) that could supply this missing mass, but none have been found despite exquisitely sensitive experiments. Cassi's answer points in a different direction: the extra gravity is real but comes from the Qi field itself—a condensate that permeates space and amplifies gravity by a factor of $\xi = \varphi^6 \approx 17.944$ on galactic scales. No new particles are needed because the amplification is a property of the two-fluid dynamics at high Qi density, and the predicted ratio $\Omega_{\text{DM}}/\Omega_b = \varphi^3 + 1$ matches observations wi…
+Galaxies spin much faster than their visible mass can explain—something invisible must be providing extra gravitational pull. For decades physicists have searched for exotic particles (WIMPs, axions, sterile neutrinos) that could supply this missing mass, but none have been found despite exquisitely sensitive experiments. Cassi's answer points in a different direction: the extra gravity is real but comes from the Qi field itself—a condensate that permeates space and amplifies gravity by a factor of $\xi = \varphi^6 \approx 17.944$ on galactic scales. No new particles are needed because the amplification is a property of the two-fluid dynamics at high Qi density. The defensible density-ratio base is $\Omega_{\text{DM}}/\Omega_b = \varphi^3 \approx 4.24$, conditional on the Weinberg-angle identification; the observed ratio is $5.39$, leaving a 21% open tension.
 
-| **Cassi Answer** | Qi condensate; $\Omega_{\text{DM}}/\Omega_b = \varphi^3+1$; galaxy rotation from $\xi = \varphi^6$ |
-| **Mechanism** | Qi density $q$ amplifies gravity; no particles |
-| **Epistemic** | **Calibrated**—rung identity $\xi = \varphi^6$ Derived; empirical pin anchored on the Milky Way rotation curve (ledger §10) |
+| **Cassi Answer** | Qi condensate; $\Omega_{\text{DM}}/\Omega_b = \varphi^3$ base; galaxy rotation from $\xi = \varphi^6$ |
+| **Mechanism** | Qi density $q$ amplifies gravity; no particles; the component budget rejects the $+1$ capture term as a baryon double count |
+| **Epistemic** | **Derived conditional / open tension**—rung identity $\xi = \varphi^6$ Derived; density-ratio base conditional on the Weinberg-angle boundary; $+1$ capture term excluded by the component budget (ledger §10) |
 | **Reference** | `foundations/xi-derivation.md`, `run_galactic_rotation.py` |
 
 ### C3: Hubble tension
@@ -362,14 +362,14 @@ flowchart TD
     D --> E[η ≈ φ⁻⁴⁴ ≈ 6.4×10⁻¹⁰]
 ```
 
-**Visual:** Three mechanisms—organized annihilation, Wu Xing freeze-out gap, and cascade dilution—together produce the observed matter excess of η ≈ φ⁻⁴⁴.
+**Visual:** The diagram shows the proposed mechanism chain—organized annihilation, the Wu Xing freeze-out gap, and cascade dilution—for the Mapped value $\eta \approx \varphi^{-44}$. The rate-based freeze-out test leaves the endpoint open.
 
 
-The universe is overwhelmingly made of matter, not antimatter—but this should not be the case if the Big Bang created equal amounts of both. Something must have produced a slight excess, roughly one extra particle per billion. Cassi's answer combines three independently derived mechanisms: organized annihilation (a phase-inverted antiparticle attack that eliminates paired antimatter, derived from the coherence budget framework), a freeze-out gap $g = 1 - \varphi^{-5}$ from the Wu Xing five-phase cycle that leaves a residual Yang excess, and cascade expansion that dilutes the asymmetry to precisely the observed value. The result, $\eta \approx \varphi^{-44} \approx 6.4 \times 10^{-10}$, matches the observed baryon-to-photon ratio within 6% with zero free pa…
+The universe is overwhelmingly made of matter, not antimatter—but this should not be the case if the Big Bang created equal amounts of both. Something must have produced a slight excess, roughly one extra particle per billion. Cassi's candidate combines organized annihilation, a Yang-Yin imbalance at the Wu Xing gap $g = 1-\varphi^{-5}$, and cascade dilution. The value $\eta \approx \varphi^{-44} \approx 6.4\times10^{-10}$ is a Mapped fit within 6% of the observed ratio; the dynamical freeze-out endpoint remains open after the $\Gamma/H=1$ test.
 
-| **Cassi Answer** | $\eta \approx \varphi^{-44} \approx 6.4 \times 10^{-10}$ from three derived mechanisms: (1) organized annihilation ($\S5.2$ of `foundations/proton-coherence-budget.md`) eliminates paired antimatter; (2) Yang-Yin imbalance at Wu Xing freeze-out (gap $g = 1-\varphi^{-5}$) leaves residual Yang excess; (3) cascade photon-production dilution over 44 rungs (the exponent is a ledgered fit—`parameter-inventory.md` §10; the step-52 construction does not close with the corrected GUT anchor n ≈ 13.3). All three Sakharov conditions satisfied. Full derivation: `foundations/baryon-asymmetry.md` |
-| **Mechanism** | Freeze-out Yang-Yin ratio at GUT; organized annihilation probability O(1); cascade expansion dilutes to present-epoch $\eta$. $\eta \approx \varphi^{-44}$ is within 6% of observed $6.0 \times 10^{-10}$. Refined prediction in `foundations/refined-numeric-predictions.md` §2.1 |
-| **Epistemic** | **Hypothesized** (mechanism) / **Mapped** (η exponent −44—ledger) |
+| **Cassi Answer** | $\eta \approx \varphi^{-44} \approx 6.4\times10^{-10}$ as a Mapped exponent; organized annihilation, Yang-Yin imbalance, and cascade dilution form a Hypothesized mechanism chain. The corrected GUT seed and rate-based freeze-out test do not select the 44-rung endpoint. |
+| **Mechanism** | Freeze-out Yang-Yin ratio at GUT; organized annihilation probability O(1); cascade expansion dilutes the asymmetry. The endpoint selection remains open (`foundations/baryon-asymmetry.md` §4.7; `computations/eta_gamma_h_freezeout_check.py`). |
+| **Epistemic** | **Hypothesized** (mechanism) / **Mapped** ($\eta$ exponent $-44$—ledger) |
 | **Reference** | `foundations/baryon-asymmetry.md`, `foundations/refined-numeric-predictions.md` |
 
 ### C8: Big Bang singularity
@@ -427,9 +427,9 @@ flowchart TD
 
 The cosmic microwave background is mostly uniform, but its largest-scale features are strangely aligned—the quadrupole and octopole moments point in the same direction, and there is less power at very large angles than inflation predicts. These anomalies are statistically unlikely in the standard framework. Cassi explains them through the bubble lattice geometry: the chord lattice (`visual-explainers/chord_lattice.py`) arranges identical $w=5$ bubbles at $\varphi$-spaced intervals in the megacascade. The boundary between adjacent bubbles—the level set of the condensation field $C(x,y) = \theta_{\text{cond}}$—imprints a preferred direction on the CMB at super-horizon scales—the candidate mechanism for the observed $12.2^\circ$ dipole–quadrupole alignment. The $12.2°$ angle itself is measured (computed from the data vectors); the boundary orientation is fitted to the measured axis, so the mechanism is Hypothesized until the boundary normal is derived a priori from the cascade.
 
-| **Cassi Answer** | Adjacent bubbles at identical $w=5$ and $\varphi$-spaced chord lattice intervals offer a candidate mechanism imprinting a preferred axis at $\ell<5$; the $12.2°$ magnitude is the golden-angle closure residual $2\pi/\varphi^7 = 12.40°$ (13-seed closure of the pole spiral; exact identity $13/\varphi^2 = 5 - 1/\varphi^7$), matching the measured $12.22°$ at 1.5%; the axis direction is measured—calibrated from the data vectors, not predicted—and the boundary orientation is fitted to the measured axis. All bubbles share the same derived $w=5$ (`foundations/wu-xing-derivation.md`). |
-| **Mechanism** | Bubble-boundary structure at step 285; edge geometry derived from condensation field + Qi gate + cascade (`foundations/bubble-edge-geometry.md`). Yang axis + string axis give two preferred directions; the $12.2°$ magnitude is the pole-spiral closure ladder's 13-seed residual, $2\pi/\varphi^7 = 12.40°$ (`foundations/wake-geometry.md` §3b: 13 → 12.4°; the 7th power is the closure residual, $13/\varphi^2 = 5 - 1/\varphi^7$), with the boundary normal set to the measured axis—the direction remains post-hoc. Refined in `foundations/refined-numeric-predictions.md` §2.3 |
-| **Epistemic** | **Derived (magnitude**: $2\pi/\varphi^7 = 12.40°$, 1.5% from the measured $12.22°$; the closure ladder is the framework's own documented sequence, no power scanned to fit) / **Calibrated** (axis direction from data vectors; $\theta_{\text{cond}} = 0.45$ condensation threshold Calibrated—ledger §10) / **Hypothesized** (boundary mechanism; the closure→axis projection and the boundary orientation fitted to the measured axis—post-hoc). E-mode test pending (Simons Obs./LiteBIRD) |
+| **Cassi Answer** | Adjacent bubbles at identical $w=5$ and $\varphi$-spaced chord lattice intervals offer a candidate mechanism for a preferred axis at $\ell<5$; the $12.2°$ magnitude is the golden-angle closure residual $2\pi/\varphi^7 = 12.40°$ (13-seed closure, exact identity $13/\varphi^2 = 5 - 1/\varphi^7$), matching the measured $12.22°$ at 1.5%. The axis direction is Calibrated from data vectors, the absolute bubble orientation is unselected by the rotation-invariant PDE, and the observed axis is nearly ecliptic-degenerate (`computations/cmb_axis_direction_selector_check.py`). |
+| **Mechanism** | Bubble-boundary structure at step 285; edge geometry conditional on the gate (`foundations/bubble-edge-geometry.md`). Yang axis + string axis provide candidate directions, while the boundary normal and observer offset require calibration. The ecliptic/foreground alternative must be excluded before the closure magnitude can support a sky-direction prediction. |
+| **Epistemic** | **Derived (magnitude)**: $2\pi/\varphi^7 = 12.40°$; **Calibrated (direction)**: data-vector separation; **Hypothesized (boundary mechanism/projection)**: the PDE supplies no absolute orientation selector. E-mode test pending (Simons Obs./LiteBIRD) |
 | **Reference** | `cosmology/observational_constraints.md` §4, `foundations/bubble-edge-geometry.md`, `foundations/wake-geometry.md` §3b, `foundations/refined-numeric-predictions.md` |
 
 ---
@@ -535,14 +535,13 @@ The Standard Model contains three copies of the basic fermion families—up/down
 ### Q6: Matter-antimatter asymmetry
 *(See diagram at C7—the baryon asymmetry mechanism is shared between cosmology and particle physics.)*
 
-**Visual:** The same three-mechanism cascade—organized annihilation, Wu Xing freeze-out gap, and cascade photon dilution—that explains the cosmological baryon excess also explains the particle-physics matter-antimatter asymmetry: one mechanism, two domains.
+**Visual:** The proposed three-part cascade—organized annihilation, the Wu Xing freeze-out gap, and cascade photon dilution—maps the particle-physics asymmetry onto the cosmological candidate while leaving the endpoint selection open.
 
+The universe contains matter but essentially no antimatter, yet the laws of physics treat them nearly symmetrically. Satisfying the three Sakharov conditions for generating this imbalance requires new physics beyond the Standard Model. Cassi's candidate is shared with C7: organized annihilation, a Yang-Yin freeze-out gap $g = 1 - \varphi^{-5}$, and cascade dilution. The value $\eta \approx \varphi^{-44}$ is Mapped; the freeze-out endpoint is not selected by the current rate equations.
 
-The universe contains matter but essentially no antimatter, yet the laws of physics treat them nearly symmetrically. Satisfying the three Sakharov conditions for generating this imbalance requires new physics beyond the Standard Model. Cassi's answer is identical to C7: the asymmetry $\eta \approx \varphi^{-44}$ comes from three independently derived mechanisms—organized annihilation eliminating paired antimatter, a Yang-Yin freeze-out gap $g = 1 - \varphi^{-5}$ from the Wu Xing cycle, and cascade dilution—satisfying all three Sakharov conditions while producing a baryon-to-photon ratio within 6% of the observed value. The particle-physics and cosmological baryon asymmetries are not separate problems; they are the same mechanism viewed from different dom…
-
-| **Cassi Answer** | $\eta \approx \varphi^{-44} \approx 6.4 \times 10^{-10}$ from three derived mechanisms: (1) organized annihilation ($\S5.2$ of proton doc) eliminates all paired antimatter; (2) Yang-Yin imbalance at Wu Xing freeze-out (gap $g = 1-\varphi^{-5}$) leaves residual Yang excess; (3) cascade photon-production dilution over 44 rungs (ledgered fit—`parameter-inventory.md` §10; the step-52 construction does not close with the corrected GUT anchor n ≈ 13.3). All three Sakharov conditions satisfied by independently derived Cassi mechanisms. Full derivation: `foundations/baryon-asymmetry.md`; refined $\varphi^{-44}$ in `foundations/refined-numeric-predictions.md` §2.1 |
-| **Mechanism** | Same as C7. Freeze-out Yang-Yin ratio at GUT; organized annihilation probability O(1); cascade expansion dilutes to present-epoch $\eta$. $\eta \approx \varphi^{-44}$ within 6% of observed $6.0 \times 10^{-10}$. |
-| **Epistemic** | **Hypothesized** (mechanism) / **Mapped** (η exponent −44—ledger) |
+| **Cassi Answer** | $\eta \approx \varphi^{-44} \approx 6.4\times10^{-10}$ as a Mapped fit; the three-part mechanism chain is Hypothesized and the endpoint remains open. |
+| **Mechanism** | Same candidate chain as C7; the $\Gamma/H=1$ test yields a thaw crossing rather than a post-seed freeze-out. |
+| **Epistemic** | **Hypothesized** (mechanism) / **Mapped** ($\eta$ exponent $-44$—ledger) |
 | **Reference** | `foundations/baryon-asymmetry.md`, `foundations/refined-numeric-predictions.md` |
 
 ### Q7: Quantum measurement problem
@@ -1050,7 +1049,7 @@ The psychology mapping treats the golden ratio $r = \varphi$ as the healthy, org
 | Tier | Count | Questions |
 |------|-------|-----------|
 | **Derived** (a priori $\varphi$ + PDE consequence; no fitted or anchored constants) | 7 | flatness (C5), Big Bang singularity (C8), quark confinement (Q8; tube extensivity + cell quantization + $\kappa = 2\pi$ conditional on the pitch convention—inputs: gate saturation, one-cell quantization, winding reading), quantum gravity (G1; $\sigma$ exponent derived conditional on the noise–signal identification + $d = 3$), BH singularity (G3), gravity weakness (G6; $\xi$ pin Calibrated—ledger), arrow of time (F2) |
-| **Calibrated** (framework form, value anchored to an observation—ledger) | 4 | CMB axis direction (C10; the $12.2°$ magnitude is Derived—$2\pi/\varphi^7 = 12.40°$, boundary mechanism Hypothesized—post-hoc), dark energy $w_0$ (C1), dark matter $\xi$ pin (C2), DESI $w_0$/$w_a$ (T1) |
+| **Calibrated** (framework form, value anchored to an observation—ledger) | 4 | CMB axis direction (C10; magnitude Derived $2\pi/\varphi^7=12.40°$, direction Calibrated, boundary orientation Hypothesized and ecliptic-degenerate), dark energy $w_0$ (C1), dark matter $\xi$ pin (C2), DESI $w_0$/$w_a$ (T1) |
 | **Mapped** (placement/exponent fitted or selected—ledger) | 11 | inflation $r = 12/N_e^2 = 0.0075$, $N_e = 40$ (C4), baryon asymmetry $\eta = \varphi^{-44}$ (C7, Q6), hierarchy $N$ (Q1), strong CP $\bar\theta$ (Q2), neutrino offsets $\Delta_1$, $\Delta_2$ (Q3), gauge unification $\Delta b = 1.70$, $M_{\text{GUT}}$, $\mu_*$ (Q4), proton-lifetime exponent (Q9), galaxy rotation $\alpha_{\text{halo}}$, $q$ (G4), fine-tuning fitted exponents (F1), dimensionful-constant exponents (F5) |
 | **Hypothesized** (mechanism proposed, testable prediction; no fitted component) | 19 | Hubble tension (C3), horizon (C6), cosmic web (C9), 3 generations $N_{\text{gen}}$=3 (Q5; 2+1 counting Derived under the propagation-channel postulate; rung placements Mapped—ledger), measurement (Q7; Born rule Derived—coherent-field statistics; outcome basis open), spin form factor (Q10), 3+1 dimensions (G5), BH information (G2), unification (F3), TOE (F4), $P_\parallel(n)$ (F6), JWST galaxies (T2), $\sigma_8$ (T3; $\mu$ target Mapped—ledger), $H_0$ tension (T4), hard problem (M1), mind-brain (M2), depth of mind (M3), altered states (M4), self-reference (M5) |
 | **Speculative** (framework-consistent, prediction not pinned) | 1 | golden balance as driven structure (M6) |

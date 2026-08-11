@@ -360,9 +360,9 @@ The exponent $-44$ is a **ledgered fit** (Fit-Status Ledger row 481, Mapped): th
 
 High-$q$ two-fluid condensates: dark (no EM interaction), gravitationally active ($G_{\text{eff}}$ enhanced), stable ($\varphi$-attractor), collisionless.
 
-$$\frac{\Omega_{\text{DM}}}{\Omega_b} = \varphi^3 + 1$$
+$$\frac{\Omega_{\text{DM}}}{\Omega_b} = \varphi^3 = 4.2361$$
 
-The $+1$ accounts for baryons gravitationally bound to the condensate.
+The condensate base is Derived conditional on the Weinberg-angle identification; the component budget excludes a $+1$ baryon-capture term because captured baryons already belong to the observed $\Omega_b$ denominator. The observed ratio is $5.39$, leaving a 21% open tension.
 
 ### 8.5 Structure Formation
 
@@ -464,10 +464,10 @@ Mind: concentrated post-pinch field dynamics. Brain: antenna for the Qi field. A
 | $r_0$ | $\varphi^{-5}/(2-\varphi^{-5})$ | $0.047$ | Primordial ratio |
 | $\lambda$ | $1/(2w)$ | $0.1$ | PDE conversion rate ($w = 5$ derived; $\lambda = (1/2)(1/w)$: doublet factor $\times$ per-cycle event share—`foundations/wu-xing-derivation.md` §7; **Derived conditional on** the doublet conversion budget + one event per cycle) |
 | $n_s$ | $1 - 2\varphi^{-1}/N_e$ | $0.969$ | Inflation gate ($N_e = 40$ Mapped—ledger row 501) |
-| $r$ | $\varphi^{-12}$ | $0.003$ | Tensor ratio (Mapped fit—ledger row 495; $12/N_e^2$ needs $N_e = 63.2$) |
+| $r$ | $12/N_e^2$ | $0.0075$ | Tensor ratio (Mapped value at the $N_e = 40$ window—ledger row 495; the $0.003$ reading requires $N_e = 63.2$) |
 | $\eta$ | $\varphi^{-44}$ | $6.4 \times 10^{-10}$ | Baryon asymmetry (exponent **Mapped**—ledger row 481; mechanism Hypothesized) |
 | $\sigma$ | $\ell_{\text{Pl}}/\varphi^3$ |—| Regularization scale ($\delta = 3$ Derived conditional on the noise–signal identification + $d = 3$: per-rung dephasing $\varphi^{-\delta}$ equals the equilibrium excess $\varphi^{-3}$—`gravity/quantum-gravity.md` §2.1) |
-| $\Omega_{\text{DM}}/\Omega_b$ | $\varphi^3 + 1$ | $5.24$ | Qi condensate freeze-out (base $\varphi^3 = \alpha_0^{-1} = \xi\sin^2\theta_W$ Derived conditional on the Weinberg-angle identification; $+1$ hand-added—ledger row 502, Mapped) |
+| $\Omega_{\text{DM}}/\Omega_b$ | $\varphi^3$ | $4.24$ | Qi condensate base, Derived conditional on the Weinberg-angle identification; the $+1$ capture term is excluded by the component budget—ledger row 502 |
 | $\bar{\theta}$ | $\pi\varphi^{-83.4}$ | $1.2\times10^{-17}$ | Strong CP |
 | $\tau_p$ | $\varphi^{4506}/\omega_p$ | $\sim 10^{910}$ yr | Proton coherence budget |
 

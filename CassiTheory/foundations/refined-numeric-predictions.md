@@ -211,8 +211,8 @@ dipole direction is the Yang axis—the direction along which the
 $E_Y$-dominant field component points in the bubble. The quadrupole-octopole
 axis is the normal to the bubble boundary (the interface with an adjacent
 $w=5$ bubble in the chord lattice). The mechanism is **Hypothesized**: its
-boundary orientation is set equal to the measured quadrupole-octopole axis,
-so it currently explains the direction post-hoc rather than predicting it.
+boundary orientation is fitted to the measured quadrupole-octopole axis, so the
+direction remains calibrated rather than predicted.
 
 If both directions are set by the same bubble geometry (Yang axis within the
 bubble, boundary normal at the bubble edge), their angular separation is the
@@ -246,6 +246,13 @@ geometry schematic.
 the boundary normal must be computed a priori from the bubble-boundary
 geometry in the full 3D PDE—the condensation field's orientation at rung 285
 relative to the galaxy/CMB frame—without taking the measured axis as input.
+The direction-selector audit (2026-08-11, `computations/cmb_axis_direction_selector_check.py`)
+finds no bubble-lattice selector: the PDE is rotation-invariant (the absolute
+Frenet-Serret orientation is set by the string's initial orientation, a
+calibration), and the measured 12.2° is degenerate with the ecliptic frame
+(the axis lies in the ecliptic plane, $+0.8°$; the dipole is $11.4°$ out of it;
+the 12.22° separation is ~99.9% the dipole's ecliptic latitude). Elevation also
+requires excluding the ecliptic/foreground selection of the direction.
 ---
 
 ### 2.4 C4—Inflation: $r = 12/N_e^2$ and $n_s = 0.9691$
@@ -277,13 +284,12 @@ $N_e = 40$ window is itself a Mapped start-threshold choice (row 501), so
 $r = 12/N_e^2 = 0.0075$ inherits the window's status—it is the formula-consistent
 value at the ledgered window, not a derived consequence of the gate dynamics, and
 the trajectory does not realize it (it gives $r = 0.060$ at $N_e = 40$ literal,
-excluded by BK18). The earlier $\varphi^{-12} \approx 0.0031$ reading is not
+excluded by BK18). The $\varphi^{-12} \approx 0.0031$ reading is not
 formula-consistent: through $12/N_e^2$ it requires $N_e \approx 63.2$ (outside the
-window), and no doc formula produces it directly; earlier "interpretations" of
-$12 = 6+6$ (inverse Qi-gravity coupling $\xi^{-1} = \varphi^{-6}$ times a
-tensor-damping $\varphi^{-6}$) are not supported by any dynamics assigning one
-factor to each and are withdrawn here. The Mapped flag is carried from
-`cosmology/inflation-from-cascade.md` §4.
+window), and no doc formula produces it directly. The interpretation $12=6+6$
+(inverse Qi-gravity coupling $\xi^{-1} = \varphi^{-6}$ times a tensor-damping
+$\varphi^{-6}$) has no supporting dynamics assigning one factor to each. The
+Mapped flag is recorded in `cosmology/inflation-from-cascade.md` §4 and ledger row 495.
 
 **Refined prediction for $n_s$ (closed φ-form):**
 

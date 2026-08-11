@@ -1,10 +1,10 @@
 # Cassi Cosmology: Inflation, Baryogenesis, and Dark Matter from $\varphi$
 
-## Status: Derived (formation, structure) / Calibrated (w₀ coupling form—ledger)—July 2026
+## Status: Derived formation and structure / Hypothesized baryogenesis mechanism / Calibrated w₀ coupling form—August 2026
 
 ## Abstract
 
-The same two-fluid dynamics in an expanding universe produce inflation, the baryon asymmetry, and the dark-matter budget—three open problems solved with zero new parameters. Inflation is a $\varphi$-driven phase transition of the Yang/Yin ratio toward the attractor; its scalar spectral index is $n_s = 1 - 2\varphi^{-1}/N_e \approx 0.9691$ ($N_e = 40$; Mapped window—ledger), within $1.0\sigma$ of Planck as a closed form (the gate slow-roll trajectory does not reproduce it, 2026-08-06, `computations/slow_roll_trajectory.py`). The baryon-to-photon ratio follows from cascade freeze-out, $\eta = \varphi^{-44} \approx 6.38\times10^{-10}$, within 6.3% of the observed $6.0\times10^{-10}$. Dark matter is a high-Qi condensate with $\Omega_{\text{DM}}/\Omega_b = \varphi^3 + 1 \approx 5.24$ against the observed 5.39 (2.8% gap; the $\varphi^3$ base is the inverse fixed-point imbalance $\alpha_0^{-1}$—Derived conditional on the Weinberg-angle identification, §4.2; the $+1$ is Mapped—ledger row 502).
+The same two-fluid dynamics in an expanding universe organize inflation, baryogenesis, and dark matter. Inflation is a $\varphi$-driven phase transition of the Yang/Yin ratio toward the attractor; its scalar spectral index is $n_s = 1 - 2\varphi^{-1}/N_e \approx 0.9691$ ($N_e = 40$; Mapped window—ledger), within $1.0\sigma$ of Planck as a closed form (the gate slow-roll trajectory does not reproduce it, `computations/slow_roll_trajectory.py`). The baryon-to-photon ratio is the Mapped value $\eta = \varphi^{-44} \approx 6.38\times10^{-10}$; its freeze-out endpoint remains open after the rate-based $\Gamma/H=1$ test. The dark-matter base $\Omega_{\text{DM}}/\Omega_b = \varphi^3 \approx 4.24$ is Derived conditional on the Weinberg-angle identification and leaves a 21% open tension against the observed ratio; the component budget rejects the $+1$ capture term as a double count.
 
 ---
 
@@ -238,18 +238,28 @@ The base is the inverse fixed-point imbalance $\alpha_0^{-1}$—the same imbalan
 
 **Inputs ($\varphi^3$ base):** $\boxed{\text{(1) the derived coupling } \xi = \varphi^6 \text{ (`foundations/xi-derivation.md`); (2) the identification of the EM-decoupling structure with the Weinberg-angle imbalance } \sin^2\theta_W = \varphi^{-3} = \alpha_0.}$
 
-**The $+1$ capture term.** The claim that baryons captured into the condensate add one $\Omega_b$ unit is **not supported** by the SPARC hydrostatic condensate fits (`computations/dm_baryon_ratio_verification.py`, part B; v9 machinery, 143 galaxies, envelopes A/B):
+**The $+1$: component-level mass budget (2026-08-11).** The framework has three reservoirs, and only two are distinct:
 
-- Bound-baryon fraction within the last measured radius, $f_b = M_{\text{bar}}(r_{\max})/M_{\text{tot}}(r_{\max})$: median 0.32 (dwarfs 0.28; high-$V$ 0.40; A-constrained 0.27)—not the $1/(1+\varphi^3) = 0.191$ the $+1$ implies.
-- The condensate's own mass ratio $M_Y/M_{\text{bar}}$ at $r_{\max}$: median 0.14 (envelope A) / 0.35 (envelope B)—10–30$\times$ below the $\varphi^3 = 4.24$ partition the $+1$ assumes (the naive DM is the boosted $(1+\xi q)M_Y$).
-- The data-pinned DM/baryon ratio at $r_{\max}$, median 2.1–2.7, is a lower bound (the isothermal tail beyond $r_{\max}$ is unconstrained) and lies below $\varphi^3+1$ by a factor 0.4–0.5; only 15% of galaxies sit within 30% of 5.24.
-- Accounting: $\Omega_b$ in the observed ratio is the total baryon density (BBN/CMB), which already includes baryons bound into halos; a capture term of one full $\Omega_b$ unit has no separate mass budget.
+$$
+\Omega_{b,\text{total}} = \Omega_{b,\text{primordial}} = \Omega_{b,\text{free}} + \Omega_{b,\text{captured}}, \qquad \Omega_{\text{DM}} = \Omega_{\text{Qi}} = \Omega_c \ \text{(non-baryonic condensate)}
+$$
 
-The $+1$ therefore stays **Mapped** (Fit-Status Ledger row 502: hand-added after $\varphi^3$ alone came in 21% low; combination selected from $\{\varphi^3, \xi, \varphi^2, \varphi^4, \varphi^3\pm1\}$). Equivalent closed form: $\varphi^3+1 = 2\varphi^2 = 5.2361$—an arithmetic identity, not a derivation.
+The observed ratio is $\Omega_c/\Omega_b$: its numerator is baryon-free **by construction** ($\Omega_c = \Omega_m - \Omega_b$), and its denominator is the BBN/CMB-pinned **total** baryon density, which already contains every baryon captured into halos. A "$+1$ capture term" therefore has no distinct mass budget—added to the numerator it double-counts the $\Omega_b$ already in the denominator. Quantitatively (`computations/dm_baryon_component_budget.py`):
 
-**Observed:** $\Omega_{\text{DM}}/\Omega_b = 0.264 / 0.049 \approx 5.39$
+- As a capture fraction the $+1$ implies $f_{\text{cap}} = \Omega_{b,\text{captured}}/\Omega_{b,\text{total}} = 1.00$ (all baryons captured), 5–10$\times$ the external cosmic census bracket $f_{\text{cap}} \approx 0.10$–$0.20$ (stars + ISM + halo/ICM gas; Fukugita et al. 1998; Shull et al. 2012—flagged external, not framework-derived). Matching the observed 5.39 would require $f_{\text{cap}} = 1.15 > 1$—impossible.
+- The renormalized-denominator form $(\varphi^3 + f_{\text{cap}})/(1 - f_{\text{cap}})$ equals 5.39 at $f_{\text{cap}} = 0.18$, inside the census bracket—but it moves the *same* baryons from denominator to numerator; it is an accounting double count, not a comparison against the observed $\Omega_c/\Omega_{b,\text{total}}$.
+- The SPARC hydrostatic condensate fits fail the $+1$'s partition at every level (`computations/dm_baryon_ratio_verification.py`, part B; v9 machinery, 143 galaxies, envelopes A/B):
+  - Bound-baryon fraction within the last measured radius, $f_b = M_{\text{bar}}(r_{\max})/M_{\text{tot}}(r_{\max})$: median 0.32 (dwarfs 0.28; high-$V$ 0.40; A-constrained 0.27)—not the $1/(1+\varphi^3) = 0.191$ the $+1$ implies.
+  - The condensate's own mass ratio $M_Y/M_{\text{bar}}$ at $r_{\max}$: median 0.14 (envelope A) / 0.35 (envelope B)—10–30$\times$ below the $\varphi^3 = 4.24$ partition the $+1$ assumes (the naive DM is the boosted $(1+\xi q)M_Y$).
+  - The data-pinned DM/baryon ratio at $r_{\max}$, median 2.1–2.7, is a lower bound (the isothermal tail beyond $r_{\max}$ is unconstrained) and lies below $\varphi^3+1$ by a factor 0.4–0.5; only ~15% of galaxies sit within 30% of 5.24 (the data-pinned cross-check in `computations/dm_baryon_component_budget.py` reproduces these medians with the same SPARC column mapping: $f_b = 0.31$ overall (0.26 dwarfs / 0.40 high-$V$), $R_{\text{naive}} = 2.3$, 16% bracketing).
 
-The 2.8% residual of $\varphi^3+1$ against the observed value is the residual of the selected combination, not an error within a derived bound.
+**Verdict: the component budget fixes the current dark-matter prediction at the condensate base.** The capture interpretation of $+1$ is a double count of $\Omega_b$: captured baryons belong to the BBN/CMB-pinned total denominator, while the observed numerator $\Omega_c$ is baryon-free. The selected combination $\varphi^3+1=2\varphi^2$ is an arithmetic identity and has no distinct mass reservoir; Fit-Status Ledger row 502 records this calibration artifact.
+
+$$
+\boxed{\frac{\Omega_{\text{DM}}}{\Omega_b} = \varphi^3 = 4.2361} \qquad \text{observed: } \frac{\Omega_{\text{DM}}}{\Omega_b} = \frac{0.264}{0.049} \approx 5.39 \quad (-21\%)
+$$
+
+The observed ratio is $\Omega_c/\Omega_b = 0.264/0.049 \approx 5.39$ (Planck 2018 $\Omega_c h^2/\Omega_b h^2 = 0.11933/0.02242 = 5.32$). The 21% residual is an open tension; the base is Derived conditional on the Weinberg-angle identification (§4.2), and the $+1$ capture construction is excluded by the component budget.
 
 ### 4.3 Comparison with Dark Matter Candidates
 
@@ -283,8 +293,8 @@ The Qi condensate naturally produces cored profiles (from the $\varphi$-attracto
 | $t \sim 10^{-38}$ s | Inflation begins: $r \gg \varphi$ | $H \approx -\lambda/3$, $N_e = 40$ |
 | $t \sim 10^{-36}$ s | Inflation ends: $r \to \varphi$ | $\varepsilon = \eta \approx 1$ |
 | $t \sim 10^{-34}$ s | Reheating: $T \sim 10^{15}$ GeV | $\Gamma_{\text{reh}} \approx \lambda\varphi^{-2}M_{\text{Pl}}$ |
-| $t \sim 10^{-10}$ s | Electroweak phase transition: $T \sim 100$ GeV | $\eta \approx \varphi^{-44}$ |
-| $t \sim 1$ Gyr | Structure formation: $z \sim 3$ | $\Omega_{\text{DM}}/\Omega_b \approx \varphi^3 + 1$ |
+| $t \sim 10^{-10}$ s | Electroweak phase transition: $T \sim 100$ GeV | $\eta \approx \varphi^{-44}$ (Mapped; freeze-out endpoint open) |
+| $t \sim 1$ Gyr | Structure formation: $z \sim 3$ | $\Omega_{\text{DM}}/\Omega_b = \varphi^3$ (condensate freeze-out) |
 | $t \sim 13.8$ Gyr | Today: terminal attractor | $q \to 1$, $\pi/\rho \to 1$, $r \to \varphi$ |
 
 ### 5.2 Predictions
@@ -294,10 +304,10 @@ The Qi condensate naturally produces cored profiles (from the $\varphi$-attracto
 | $n_s$ | $1 - 2\varphi^{-1}/N_e \approx 0.9691$ | $0.9649 \pm 0.0042$ | $1.0\sigma$ (closed form; trajectory not reproducing it, 2026-08-06) |
 | $r$ | $12/N_e^2 = 0.0075$ ($N_e = 40$ Mapped window; 0.003 needs $N_e = 63.2$) | $< 0.032$ | Mapped (ledger §10); trajectory's $r$ excluded by BK18 (2026-08-06) |
 | $\mathcal{P}_\zeta$ | $\sim 2\times10^{-9}$ | $2.1\times10^{-9}$ | $5\%$ |
-| $\eta$ | $\varphi^{-44} \approx 6.38\times10^{-10}$ | $6.0\times10^{-10}$ | $6.3\%$ |
-| $\Omega_{\text{DM}}/\Omega_b$ | $\varphi^3 + 1 \approx 5.24$ (base $\varphi^3 = \alpha_0^{-1}$ Derived conditional on the Weinberg-angle identification, §4.2; $+1$ Mapped—row 502) | $5.39$ | $2.8\%$ (residual of the selected combination) |
+| $\eta$ | $\varphi^{-44} \approx 6.38\times10^{-10}$ (Mapped; endpoint open) | $6.0\times10^{-10}$ | 6.3% numerical proximity; no rate-based freeze-out closure |
+| $\Omega_{\text{DM}}/\Omega_b$ | $\varphi^3 \approx 4.24$ (base $\varphi^3 = \alpha_0^{-1}$ Derived conditional on the Weinberg-angle identification, §4.2) | $5.39$ | 21% (open tension) |
 | $T_{\text{reh}}$ | $\sim 10^{15}$ GeV |—| Consistent |
 | DM direct detection | Null | Null (all expts) | Consistent |
 | DM self-interaction | Collisionless | Bullet Cluster | Consistent |
 
-Every prediction comes from $\varphi$ and the two-fluid PDE parameters $(\lambda, \chi, D)$—all independently fixed from the DESI dark energy calibration and the Wu Xing cycle. **No new free parameters** are introduced for inflation, baryogenesis, or dark matter beyond the ledgered anchors flagged above (r, $N_e$, $\eta$ are Mapped—rows 495, 501, 481; $\Omega_{\text{DM}}/\Omega_b$: base $\varphi^3 = \alpha_0^{-1}$ Derived conditional on the Weinberg-angle identification (§4.2), $+1$ Mapped—row 502; $w_0$ is Calibrated—row 496).
+Every prediction comes from $\varphi$ and the two-fluid PDE parameters $(\lambda, \chi, D)$ together with the ledgered anchors. The closed structural subset introduces no new free parameters; $r$, $N_e$, and $\eta$ remain Mapped (rows 495, 501, 481), the dark-matter base is Derived conditional on the Weinberg-angle identification (§4.2), its 21% residual remains open, and $w_0$ is Calibrated (row 496).

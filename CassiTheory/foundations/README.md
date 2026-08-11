@@ -201,11 +201,11 @@ with pinned offsets $\Delta_1 = 1.00$ and $\Delta_2 = 1.75$ rungs, and a lightes
 
 ### `baryon-asymmetry.md`—Matter-Antimatter Asymmetry from Cascade Freeze-Out and Organized Annihilation
 
-Derives $\eta = n_b/n_\gamma \approx 6 \times 10^{-10}$ from two mechanisms already derived elsewhere: organized annihilation (an antiparticle is a condensed standing wave with inverted SO(2) phase attacking all 92 cascade rungs simultaneously, so $P_{\text{annihilation}} \approx 1$ and every antimatter particle that meets matter is eliminated) and the Yang-Yin imbalance at freeze-out set by the Wu Xing gap $g = 1 - \varphi^{-5}$. The surviving matter fraction at the GUT scale is $\eta_{\text{GUT}} \approx \varphi^{-10}$, and 44 rungs of photon-producing conversion dilute it to
+Analyzes $\eta = n_b/n_\gamma \approx 6\times10^{-10}$ through a candidate chain of organized annihilation, the Yang-Yin imbalance at the Wu Xing gap $g=1-\varphi^{-5}$, and cascade dilution. The exponent $\eta\approx\varphi^{-44}$ is Mapped; the $\Gamma/H=1$ freeze-out test yields a thaw crossing and leaves the endpoint open.
 
-$$\boxed{\eta \approx \varphi^{-44} \approx 6.38 \times 10^{-10}}$$
+$$\boxed{\eta \approx \varphi^{-44} \approx 6.38\times10^{-10}}$$
 
-matching the observed $6.0 \times 10^{-10}$ within 6.3%; the freeze-out-step construction $52 = 60 - 8$ does not close with the corrected GUT anchor ($60 - 13.3 = 46.7$, span $33.4 \neq 44$), so the exponent $-44$ is a ledgered fit (row 481) and the mechanism is Hypothesized. Status: Mapped (exponent) / Hypothesized (mechanism).
+matching the observed $6.0\times10^{-10}$ within 6.3% numerically; the corrected GUT anchor and rate-based test leave the exponent as a ledgered fit (row 481) and the mechanism as Hypothesized. Status: Mapped (exponent) / Hypothesized (mechanism).
 
 ### `bubble-lattice-fabric.md`—The Bubble Lattice: Universal Organizing Geometry at Every Cascade Rung
 
