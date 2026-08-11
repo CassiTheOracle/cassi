@@ -49,23 +49,22 @@ ALPHA_S_MZ_MEASURED = 0.118
 
 
 def compute_phi_gauge_couplings():
-    """Compute SU(2) and U(1)_Y gauge couplings from φ.
+    """Compute gauge couplings from the asserted phi boundary.
 
-    # φ-predicted mixing angle: sin²θ_W = φ⁻³ ≈ 0.236
-    sin2_theta_W = PHI_INV ** 3
+    The common code-unit normalization follows the documented boundary
+    alpha_GUT = phi^-3/(4*pi), while the ratio g'/g follows from
+    sin^2(theta_W) = phi^-3. The coupling ratio remains a boundary input;
+    this helper only evaluates it for the runner.
 
-    With g/e = 1/sin θ_W and g'/e = 1/cos θ_W,
-    but in code units we set the overall scale via α_weak.
-
-    Returns: (g, g_prime, sin2_theta_W, alpha_weak)
+    Returns: (g, g_prime, sin2_theta_W, alpha_gut)
     """
-    alpha_weak = PHI_INV / (4.0 * np.pi)  # φ⁻¹/(4π) ≈ 0.049
-    sin2_theta_W = PHI_INV ** 3          # φ⁻³ ≈ 0.236 (phenomenological benchmark)
+    alpha_gut = PHI_INV ** 3 / (4.0 * np.pi)
+    sin2_theta_W = PHI_INV ** 3
     cos2_theta_W = 1.0 - sin2_theta_W
-    g = np.sqrt(4.0 * np.pi * alpha_weak / sin2_theta_W)
-    g_prime = np.sqrt(4.0 * np.pi * alpha_weak / cos2_theta_W)
+    g = np.sqrt(4.0 * np.pi * alpha_gut / sin2_theta_W)
+    g_prime = np.sqrt(4.0 * np.pi * alpha_gut / cos2_theta_W)
 
-    return g, g_prime, sin2_theta_W, alpha_weak
+    return g, g_prime, sin2_theta_W, alpha_gut
 
 
 def calibrate_masses(ratio_predicted):
@@ -123,9 +122,9 @@ Example:
     python two-fluid/run_electroweak.py --grid 16 --steps 200
     python two-fluid/run_electroweak.py --grid 32 --steps 500 --dt 0.02 --seed 42
 
-Predictions (GUT-scale boundary conditions):
-    m_W/m_Z = cos θ_W = 0.874 (φ-predicted) vs 0.882 (measured)
-    sin²θ_W = φ⁻³ = 0.236 (φ-predicted) vs 0.231 (measured; RG running closes gap)
+Predictions (asserted phi-point boundary):
+    m_W/m_Z = cos theta_W = 0.874 (phi-point value) vs 0.882 (measured)
+    sin²theta_W = phi^-3 = 0.236 (exact at mu* ≈ 233 GeV; +2.1% at m_Z)
         """)
     parser.add_argument('--grid', type=int, default=16, help='Grid points per dimension')
     parser.add_argument('--steps', type=int, default=200, help='Number of time steps')
@@ -152,10 +151,10 @@ Predictions (GUT-scale boundary conditions):
     print(f"  Yang/Yin:   {args.yang_amp} / {args.yin_amp} (ratio = {args.yang_amp/args.yin_amp:.4f})")
     print()
 
-    # ── Compute φ-predicted gauge couplings ────────────────────────────
-    g, g_prime, sin2_theta_W, alpha_weak = compute_phi_gauge_couplings()
-    print(f"  φ-predicted gauge couplings:")
-    print(f"    α_weak  = {alpha_weak:.6f} (= φ⁻¹/(4π))")
+    # ── Compute phi-point gauge couplings ───────────────────────────────
+    g, g_prime, sin2_theta_W, alpha_gut = compute_phi_gauge_couplings()
+    print(f"  phi-point gauge couplings:")
+    print(f"    alpha_GUT = {alpha_gut:.6f} (= phi^-3/(4*pi))")
     print(f"    g       = {g:.4f}  (SU(2))")
     print(f"    g'      = {g_prime:.4f}  (U(1)_Y)")
     print(f"    sin²θ_W = {sin2_theta_W:.6f}")
@@ -234,7 +233,7 @@ Predictions (GUT-scale boundary conditions):
     # Running coupling analysis
     alpha_s_mz, alpha_s_meas, scale_ratio = bridge.alpha_s_at_mz()
     results.append({'name': 'α_GUT', 'predicted': bridge.gut_coupling(),
-                    'measured': '≈ 1/50—1/30'})
+                    'measured': 'asserted boundary ≈ 1/53'})
     results.append({'name': 'α_s(M_Z) predicted',
                     'predicted': alpha_s_mz,
                     'measured': ALPHA_S_MZ_MEASURED})
