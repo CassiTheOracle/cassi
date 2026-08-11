@@ -6,7 +6,7 @@ Every claim below retains the epistemic tier of its source document; this docume
 
 ## Abstract
 
-Matter in Cassi is pooled interference energy: counter-propagating Yang and Yin waves condense into standing-wave solitons whose masses sit on the $\varphi$-cascade ladder ($\ell_n = \ell_{\text{Pl}}\,\varphi^n$). The four forces enter as binding channels, each living at its own cascade rung—gravity everywhere, the GUT sector at $n \approx 13$–$15$, the sector coupling at rung 77, electroweak at rung 80, QCD at rung 95. The trio that makes ordinary matter is the baryon pair at rung 91.5—the proton as the coherence-robust baryon pool, the neutron as its neutral sibling—and the electron as the lightest charged pool, terminating the lepton tower at a lattice void.
+Matter in Cassi is pooled interference energy: counter-propagating Yang and Yin waves condense into standing-wave solitons whose masses sit on the $\varphi$-cascade ladder ($\ell_n = \ell_{\text{Pl}}\,\varphi^n$). The four forces enter as binding channels, each living at its own cascade rung—gravity everywhere, the GUT sector at $n \approx 13$–$15$, the sector coupling at rung 77, electroweak at rung 80, QCD at rung 95. The trio that makes ordinary matter is the baryon pair at rung 91.5—the proton as the coherence-robust baryon pool, the neutron as its neutral sibling—and the electron as the lightest charged pool, terminating the lepton tower at a lattice void. The substrate is the triad: Yang and Yin are the doublet's two components, and Qi is the flow of coherence between them and along the string axis between cascade scales (`foundations/qi-flow-double-helix.md`).
 
 ---
 

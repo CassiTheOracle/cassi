@@ -83,6 +83,7 @@ Tiers below are taken from each document's Status header. Compound headers are q
 | `foundations/phi-rg-formalism.md` | Hypothesized | RG flow under $\varphi$-spacing |
 | `foundations/spiral-dynamics.md` | Hypothesized | Hubble, gravity, $c$ as spiral geometry projections |
 | `foundations/why-three-dimensions.md` | Hypothesis with One Decided Fork (W1: anti-phase confirmed) | Three dimensions from the Frenet-Serret frame (G5); d = 3 supported conditionally on the three postulates (2026-08) |
+| `foundations/qi-flow-double-helix.md` | Derived (Qi as phase current; axial inter-scale flow; $P_\parallel = 2$ cycle) / Hypothesized (double-helix identification) | Yin–Yang–Qi triad; $J = \rho\nabla\theta$; $J_z$ as inter-scale flow; double helix as axial phase winding (lattice-stack record), not transverse filaments (TS1–TS4) |
 | `standard-model/gut-embedding.md` | Hypothesized | GUT embedding |
 | `standard-model/neutrino-mass.md` | Hypothesized | Neutrino mass structure |
 | `gravity/quantum-gravity.md` | Derived conditional on the noise–signal identification + $d = 3$ ($\sigma = \ell_{\text{Pl}}/\varphi^3$, G1) / Hypothesized (two-fluid quantization, G2) | $\sigma$-regularized S-matrix; $\delta = 3$ from the Planck-core noise–signal crossover; black-hole information (G2) |

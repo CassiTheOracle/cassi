@@ -13,7 +13,10 @@ three-body problem inherits classical non-integrability; away from the fixed
 point the coupling is body-dependent and the masses evolve, a non-Newtonian
 dynamics that is even less integrable. The conversion term drives every
 configuration toward the fixed point on the timescale
-$\tau_\lambda \sim 2/[\lambda(1-q)(1+\varphi)^2]$.
+$\tau_\lambda \sim 2/[\lambda(1-q)(1+\varphi)^2]$. In the framework triad,
+Yang and Yin are the doublet components and Qi is the flow of coherence between
+them and along the string axis between cascade scales—the phase current
+$J = \rho\nabla\theta$ (`foundations/qi-flow-double-helix.md`).
 
 > **Division of labor with `foundations/phi_attractor_synthesis.md`:** this document
 derives the *reduction theory*—PDE → point-particle ODEs, the φ-fixed point,

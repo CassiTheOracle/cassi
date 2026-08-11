@@ -4,7 +4,7 @@
 
 ## Abstract
 
-This directory holds the load-bearing derivations of the Cassi framework: the dimensionful cascade $\ell_n = \ell_{\text{Pl}} \times \varphi^n$ and the cascade suppression law $\mathcal{D} = \varphi^{-N}$ (the two wedge documents), the assembled unified Lagrangian and the two-fluid first principles behind it, and the derivation family—spin, the Qi-gravity coupling $\xi = \varphi^6$, the Wu Xing number $w = 5$, proton stability, measurement, strong CP, confinement, generations, neutrino masses, baryon asymmetry, and the bubble-lattice geometry that structures every rung. Reading order: start with `dimensionful-cascade.md` and `cascade-suppression-formula.md`, then `unified-lagrangian.md` and `cassi-first-principles.md` (with `cassi-theory-reference.md` as the compact map), then the structural-constant derivations, the spiral-dynamics family, the coherence-budget derivations, the particle-physics derivations, the bubble geometry, and finally the numeric-refinement and gap-closing documents. Epistemic tiers below are taken verbatim from each document's own Status header: most are Derived or Derivation, a smaller set (dimensionful constants, φ-RG, spiral dynamics, three generations, microcascade) are Hypothesized, and none are Speculative.
+This directory holds the load-bearing derivations of the Cassi framework: the dimensionful cascade $\ell_n = \ell_{\text{Pl}} \times \varphi^n$ and the cascade suppression law $\mathcal{D} = \varphi^{-N}$ (the two wedge documents), the assembled unified Lagrangian and the two-fluid first principles behind it, the Yin–Yang–Qi triad (`qi-flow-double-helix.md`), and the derivation family—spin, the Qi-gravity coupling $\xi = \varphi^6$, the Wu Xing number $w = 5$, proton stability, measurement, strong CP, confinement, generations, neutrino masses, baryon asymmetry, and the bubble-lattice geometry that structures every rung. Reading order: start with `dimensionful-cascade.md` and `cascade-suppression-formula.md`, then `unified-lagrangian.md` and `cassi-first-principles.md` (with `cassi-theory-reference.md` as the compact map), then `qi-flow-double-helix.md` for the triad, then the structural-constant derivations, the spiral-dynamics family, the coherence-budget derivations, the particle-physics derivations, the bubble geometry, and finally the numeric-refinement and gap-closing documents. Epistemic tiers below are taken verbatim from each document's own Status header: most are Derived or Derivation, a smaller set (dimensionful constants, φ-RG, spiral dynamics, three generations, microcascade) are Hypothesized, and none are Speculative.
 
 ## Document Index
 
@@ -17,29 +17,30 @@ This directory holds the load-bearing derivations of the Cassi framework: the di
 | 5 | `cassi-theory-reference.md` | Compact framework reference | Reference |
 | 6 | `xi-derivation.md` | Qi-gravity coupling | Derived conditional on the quadratic-coupling input |
 | 7 | `why-three-dimensions.md` | Spatial dimension count | Hypothesis |
-| 8 | `wu-xing-derivation.md` | Wu Xing number $w = 5$ | Derived (single input: coherence postulate) |
-| 9 | `dimensionful-constants-status.md` | $c$, $\hbar$, $G$ status | Hypothesized |
-| 10 | `phi-rg-formalism.md` | φ as RG fixed point | Hypothesized |
-| 11 | `spiral-dynamics.md` | Hubble, gravity, $c$ from spiral | Hypothesized |
-| 12 | `spin-fibonacci-spiral.md` | Spin as spiral winding | Derivation |
-| 13 | `phi_attractor_synthesis.md` | Analytical N-body paths | Derived |
-| 14 | `wa-pentagon-gate.md` | $w_a$ sign tension | Derived / Hypothesized |
-| 15 | `proton-coherence-budget.md` | Proton stability | Derivation |
-| 16 | `quantum-measurement-derivation.md` | Born rule | Derivation |
-| 17 | `strong-cp-derivation.md` | Strong CP | Derivation |
-| 18 | `quark-confinement.md` | Confinement | Derived (tube extensivity + cell quantization) |
-| 19 | `three-generations.md` | Generation count | Hypothesized |
-| 20 | `neutrino-masses.md` | Neutrino spectrum | Derivation |
-| 21 | `baryon-asymmetry.md` | Baryogenesis | Derived |
-| 22 | `bubble-lattice-fabric.md` | Universal lattice | Derived (structural) |
-| 23 | `bubble-edge-geometry.md` | Condensation boundary | Derived geometry; threshold conditional on asserted gate |
-| 24 | `microcascade-mirror.md` | Sub-Planckian ladder | Hypothesized |
-| 25 | `refined-numeric-predictions.md` | Pinned φ-powers | Active derivation |
-| 26 | `deriving-remaining-gaps.md` | Residual parameters | Resolved / narrowed |
-| 27 | `sector-coupling-derivation.md` | Dirac↔two-fluid sector coupling | Derived conditional on $\delta = 3$ (rung identity) w/ Hypothesized coefficient |
-| 28 | `wake-geometry.md` | Wake geometry | Derived (structural) |
-| 29 | `rung-offset-mechanism.md` | Rung offsets δn | Hypothesized mechanism, Empirical catalog |
-| 30 | `wu-xing-cycle-structure.md` | Wu Xing cycles, ring algebra | Derived / Tested / Hypothesized |
+| 8 | `qi-flow-double-helix.md` | Yin–Yang–Qi triad; inter-scale flow | Derived (flow) / Hypothesized (double helix) |
+| 9 | `wu-xing-derivation.md` | Wu Xing number $w = 5$ | Derived (single input: coherence postulate) |
+| 10 | `dimensionful-constants-status.md` | $c$, $\hbar$, $G$ status | Hypothesized |
+| 11 | `phi-rg-formalism.md` | φ as RG fixed point | Hypothesized |
+| 12 | `spiral-dynamics.md` | Hubble, gravity, $c$ from spiral | Hypothesized |
+| 13 | `spin-fibonacci-spiral.md` | Spin as spiral winding | Derivation |
+| 14 | `phi_attractor_synthesis.md` | Analytical N-body paths | Derived |
+| 15 | `wa-pentagon-gate.md` | $w_a$ sign tension | Derived / Hypothesized |
+| 16 | `proton-coherence-budget.md` | Proton stability | Derivation |
+| 17 | `quantum-measurement-derivation.md` | Born rule | Derivation |
+| 18 | `strong-cp-derivation.md` | Strong CP | Derivation |
+| 19 | `quark-confinement.md` | Confinement | Derived (tube extensivity + cell quantization) |
+| 20 | `three-generations.md` | Generation count | Hypothesized |
+| 21 | `neutrino-masses.md` | Neutrino spectrum | Derivation |
+| 22 | `baryon-asymmetry.md` | Baryogenesis | Derived |
+| 23 | `bubble-lattice-fabric.md` | Universal lattice | Derived (structural) |
+| 24 | `bubble-edge-geometry.md` | Condensation boundary | Derived geometry; threshold conditional on asserted gate |
+| 25 | `microcascade-mirror.md` | Sub-Planckian ladder | Hypothesized |
+| 26 | `refined-numeric-predictions.md` | Pinned φ-powers | Active derivation |
+| 27 | `deriving-remaining-gaps.md` | Residual parameters | Resolved / narrowed |
+| 28 | `sector-coupling-derivation.md` | Dirac↔two-fluid sector coupling | Derived conditional on $\delta = 3$ (rung identity) w/ Hypothesized coefficient |
+| 29 | `wake-geometry.md` | Wake geometry | Derived (structural) |
+| 30 | `rung-offset-mechanism.md` | Rung offsets δn | Hypothesized mechanism, Empirical catalog |
+| 31 | `wu-xing-cycle-structure.md` | Wu Xing cycles, ring algebra | Derived / Tested / Hypothesized |
 
 ## Document Summaries
 
@@ -94,6 +95,18 @@ Removes the last imported integer by overdetermination: the string's trajectory 
 $$\boxed{\text{Three spatial dimensions} = \{\mathbf{T}, \mathbf{N}, \mathbf{B}\}}$$
 
 so $\xi = \varphi^{2 \times 3}$ needs no accounting for the 3. The $\varphi$-determined geometry gives the universe-bubble a triaxial spheroid shape whose internal morphology is a testable fork—single central sheet vs. paired sheets flanking a central void—decided in favor of the anti-phase paired sheets by the W1 experiment, with further tests in large-scale structure morphology and the CMB axis. Status: Hypothesis with one decided fork (W1: anti-phase confirmed).
+
+### `qi-flow-double-helix.md`—Yin, Yang, and Qi: Coherence as the Flow Between Scales
+
+Elevates Qi to the third fundamental of the framework. Yang and Yin are the
+doublet components; Qi is the flow of coherence between them and along the
+string axis between cascade scales—the phase current $J = \rho\nabla\theta$.
+The axial current $J_z = R^2\partial_z\theta$ is the inter-scale flow; the
+$P_\parallel = 2$ doublet cycle winds the Yang and Yin strand-currents into a
+double helix about the string axis. The double helix is realized as axial
+phase winding (measured lattice-stack retention), not as a transverse filament
+pair (TS1–TS4 nulls). Status: Derived (flow) / Hypothesized (double helix);
+verified `computations/qi_flow_double_helix_check.py`.
 
 ### `wu-xing-derivation.md`—Wu Xing Number $w = 5$: Derivation from Cascade Dynamics
 

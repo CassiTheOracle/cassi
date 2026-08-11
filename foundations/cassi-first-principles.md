@@ -20,15 +20,16 @@ The framework expresses dimensionless coupling constants and mass ratios as $\va
 
 ---
 
-## 1. The Two Fields
+## 1. The Two Fields, and Their Flow
 
-Physical reality consists of two fields at every spacetime point:
+Physical reality consists of two fields at every spacetime point, **and the
+flow of coherence between them**. The two fields are:
 
 $$
 \Psi = \begin{pmatrix} \Psi_0 \\ \Psi_1 \end{pmatrix} \in \mathbb{R}^2
 $$
 
-where $\Psi_0$ is the **Yang** component (expansive, symmetry-breaking) and $\Psi_1$ is the **Yin** component (contractive, symmetry-restoring). The field equation is the two-fluid PDE:
+where $\Psi_0$ is the **Yang** component (expansive, symmetry-breaking) and $\Psi_1$ is the **Yin** component (contractive, symmetry-restoring). The flow between them is **Qi**: the doublet's phase current $J = \Psi_0\nabla\Psi_1 - \Psi_1\nabla\Psi_0$, the third fundamental of the framework. Qi is the flow of coherence—between Yang and Yin at a point, and along the string axis between cascade scales (`foundations/qi-flow-double-helix.md`). The field equation is the two-fluid PDE:
 
 ### 1.1 Energy densities
 
@@ -75,9 +76,14 @@ where $\mathbf{u}$ is the velocity field, $\nu$ is diffusion, and $S_{\alpha}$ a
 
 ---
 
-## 2. Qi: Coherence from Asymmetry
+## 2. Qi: Coherence as the Flow Between Scales
 
-Qi ($\mathbf{Q}$) is the local coherence measure—it quantifies how far the system is from the $\varphi$-fixed point and how that asymmetry flows.
+Qi ($\mathbf{Q}$) is the flow of coherence—between the Yang and Yin
+components at a point, and along the string axis between cascade scales. It
+quantifies how far the system is from the $\varphi$-fixed point and how that
+asymmetry flows. The scalar $q$ is the magnitude diagnostic of that flow; the
+2-vector $\mathbf{Q} = (E, J)$ is its energy-and-current decomposition; the
+flow between scales is the axial current $J_z$ (`foundations/qi-flow-double-helix.md`).
 
 ### 2.1 Qi magnitude
 
