@@ -81,7 +81,40 @@
 // is the "particle interactions only" answer: no other force machinery
 // exists in the sim (no drag/viscosity/friction).
 //
-// BH term (modes 0-2 only, unchanged physics — the σ-regularized sector,
+// REALSIM mode (gravity_mode == 4 — 2026-08-11): the river law EXACTLY as
+// mode 0 (same arm, Poisson chain, gradient pass, cached-acc KDK —
+// bit-for-bit; verified <1e-9 in verify_gravity_modes.gd) WITH the BH
+// point-source sector (mode 4 does NOT skip it: RealSim = full realism,
+// unlike mode 3), PLUS three per-particle dissipative terms representing
+// motion through the two-fluid (EY/EI) medium. All three are evaluated at
+// the particle position/velocity in the nbody particle pass and the
+// one-shot warm-up pass (mode 4 only), and ADD to the gravity
+// acceleration — never inside the river arm, never touching the telemetry
+// clamp counters. Opt-in and default-coefficient-driven: with all three
+// coefficients at 0 the mode is bit-identical to mode 0.
+//   drag      a_drag = −γ·(ρ_local/ρ_ref)·v      γ = realsim_drag (0.5, 1/time at ρ_ref)
+//             ρ_local = EY+EI trilinear at p (tri_ey/tri_ei); ρ_ref = φ⁻³ =
+//             0.236068 (the attractor). Vacuum regions (ρ → 0) coast.
+//   viscosity a_visc = −ν·(v − v_field(p))       ν = realsim_viscosity (0.3, 1/time)
+//             v_field = FieldVel (set 0 binding 3), trilinear-sampled — the
+//             two-fluid medium's own velocity. FIELD-VELOCITY DECISION
+//             (2026-08-11): the PDE genuinely evolves _field_vel to nonzero
+//             values every step (cassi_two_fluid.glsl writes
+//             vel[id] = vec4(∂EY/∂t, ∂EI/∂t, 0, ε²) each step), so the
+//             EXISTING buffer is used — zero new buffers/passes. vel.z is
+//             structurally 0 (the two-fluid wave equation evolves two scalar
+//             fields); when the medium is at rest viscosity degenerates to
+//             −ν·v (adds to drag), which is physically correct.
+//   friction  a_fric = −min(μ·|a_g|, |v|/dt)·v̂   μ = realsim_friction (0.01, dimensionless)
+//             |a_g| = the gravity magnitude (river + BH) BEFORE dissipation;
+//             the |v|/dt cap guarantees |Δv| ≤ |v| — friction NEVER reverses
+//             a particle's velocity.
+// Dissipation runs ONLY when pc.gravity_mode > 3.5: particle pass at p_new
+// with the half-kick velocity v_half; warm-up pass at the CURRENT
+// (position, velocity) — a one-step approximation (the O(dt) difference
+// affects only step 1's cached acceleration).
+//
+// BH term (modes 0-2 and 4, unchanged physics — the σ-regularized sector,
 // gravity-from-flow.md §4.2): softened Newtonian point sources.
 //
 // CACHED-ACC KDK (2026-08-10): the previous full-kick acceleration is
@@ -145,12 +178,19 @@ layout(push_constant, std430) uniform PC {
                          // 2 = PLUMMER reference (grid-free analytic arm),
                          // 3 = RIVER-SELF (river law only — BH point-source
                          // term off; the host skips the BH condensation and
-                         // integrate passes, so the BH buffer stays inert)
+                         // integrate passes, so the BH buffer stays inert),
+                         // 4 = REALSIM (river law + BH EXACTLY as mode 0,
+                         // plus the three dissipation terms below)
     float pass_mode;     // 0 = N-body (particles), 1 = gradient-field build,
                          // 2 = acceleration warm-up (first-step acc cache)
+    float realsim_drag;      // γ — RealSim drag rate (1/time at ρ_ref)
+    float realsim_viscosity; // ν — RealSim shear-coupling rate (1/time)
+    float realsim_friction;  // μ — RealSim Coulomb floor (dimensionless)
 } pc;
 
 const float PHI_INV2 = 0.3819660112501051;  // φ⁻² — q decoherence threshold
+const float PHI_INV3 = 0.2360679774997898;  // φ⁻³ — attractor density scale
+                                            // (RealSim drag reference ρ_ref)
 
 // ── Index helpers ──────────────────────────────────────────────────────
 int idx3(int i, int j, int k) {
@@ -459,14 +499,84 @@ vec3 bh_point_gravity(vec3 particle_pos, float eps2) {
     return acc;
 }
 
+// Trilinear sample (periodic wrap) of the vec4 FieldVel buffer → vec4
+// (the two-fluid medium's own velocity, RealSim viscosity input).
+// Same coordinate convention as the scalar samplers. The buffer is
+// genuinely evolved by the PDE every step (see the header's
+// FIELD-VELOCITY DECISION) — sampling it costs zero new buffers/passes.
+vec4 tri_fvel(vec3 wp) {
+    int N = int(pc.N_f);
+    float hn = float(N) * 0.5;
+    float extent = bh[2].y;
+    float inv_ext = 1.0 / max(extent, 0.0001);
+    vec3 gc = (wp * inv_ext) * hn + hn;
+
+    int i0 = int(floor(gc.x));
+    int j0 = int(floor(gc.y));
+    int k0 = int(floor(gc.z));
+
+    float fx = gc.x - float(i0);
+    float fy = gc.y - float(j0);
+    float fz = gc.z - float(k0);
+
+    i0 = ((i0 % N) + N) % N;  j0 = ((j0 % N) + N) % N;  k0 = ((k0 % N) + N) % N;
+    int i1 = (i0 + 1) % N;    int j1 = (j0 + 1) % N;    int k1 = (k0 + 1) % N;
+
+    vec4 v000 = fvel[idx3(i0, j0, k0)];
+    vec4 v100 = fvel[idx3(i1, j0, k0)];
+    vec4 v010 = fvel[idx3(i0, j1, k0)];
+    vec4 v110 = fvel[idx3(i1, j1, k0)];
+    vec4 v001 = fvel[idx3(i0, j0, k1)];
+    vec4 v101 = fvel[idx3(i1, j0, k1)];
+    vec4 v011 = fvel[idx3(i0, j1, k1)];
+    vec4 v111 = fvel[idx3(i1, j1, k1)];
+
+    vec4 q0 = mix(mix(v000, v100, fx), mix(v010, v110, fx), fy);
+    vec4 q1 = mix(mix(v001, v101, fx), mix(v011, v111, fx), fy);
+    return mix(q0, q1, fz);
+}
+
+// ── RealSim: local two-fluid density ρ = EY + EI at a point ───────────
+// Lightweight: pure trilinear sampling of the existing EY/EI buffers — NO
+// clamps, NO TeleStats (the dissipation terms are deliberately telemetry-
+// silent; only the river arm feeds the clamp counters).
+float rho_local_at(vec3 wp) {
+    return tri_ey(wp) + tri_ei(wp);
+}
+
+// ── RealSim dissipation (gravity_mode == 4 only) ──────────────────────
+// Three per-particle terms ADD to the gravity acceleration; they never
+// touch the river arm's internals or the telemetry/clamp state. Formulas
+// (documented in the header):
+//   drag      a = −γ·(ρ_local/ρ_ref)·v,        ρ_ref = φ⁻³ (0.236068)
+//   viscosity a = −ν·(v − v_field(p))
+//   friction  a = −min(μ·|a_g|, |v|/dt)·v̂      (never reverses: |Δv| ≤ |v|)
+// v_field comes from the evolved FieldVel buffer (tri_fvel); |a_g| is the
+// gravity magnitude from the river+BH acceleration BEFORE dissipation.
+vec3 realsim_dissipation(vec3 wp, vec3 v, vec3 a_g, float rho_local) {
+    vec3 a = vec3(0.0);
+    // Drag — background resistance, ρ-scaled; vacuum (ρ → 0) coasts.
+    a += -pc.realsim_drag * (rho_local / PHI_INV3) * v;
+    // Viscosity — shear coupling to the medium's own velocity.
+    a += -pc.realsim_viscosity * (v - tri_fvel(wp).xyz);
+    // Friction — Coulomb floor; the |v|/dt cap bounds the per-step kick by
+    // |v|, so it can never reverse the velocity.
+    float vlen = length(v);
+    if (vlen > 1e-12) {
+        float mag = min(pc.realsim_friction * length(a_g), vlen / pc.dt);
+        a += -mag * (v / vlen);
+    }
+    return a;
+}
+
 // ── Total gravity at a point (mode-selected) ───────────────────────────
 // Telemetry stats flow through the river path only (heuristic/Plummer
 // modes are telemetry-free by design).
 vec3 gravity_at(vec3 wp, inout TeleStats st) {
     vec3 acc = vec3(0.0);
-    if (pc.gravity_mode < 3.0) acc = bh_point_gravity(wp, pc.eps2); // BH term: modes 0-2 only
+    if (pc.gravity_mode < 3.0 || pc.gravity_mode > 3.5) acc = bh_point_gravity(wp, pc.eps2); // BH term: modes 0-2 AND 4 (mode 3 skips it; RealSim = full realism)
     if (pc.gravity_mode < 0.5 || pc.gravity_mode > 2.5) {
-        acc += river_field_acc(wp, st);          // RIVER (modes 0, 3)
+        acc += river_field_acc(wp, st);          // RIVER (modes 0, 3, 4)
     } else if (pc.gravity_mode < 1.5) {
         acc += heuristic_field_acc(wp);          // HEURISTIC (mode 1)
     } else {
@@ -523,7 +633,15 @@ void warmup_main() {
     tele_begin(li);
     if (i < N) {
         TeleStats st = tele_new_stats();
-        acc[i] = vec4(gravity_at(pos[i].xyz, st), 0.0);
+        vec3 a_w = gravity_at(pos[i].xyz, st);
+        if (pc.gravity_mode > 3.5) {
+            // RealSim: evaluate dissipation at the CURRENT (position,
+            // velocity) — a one-step approximation (the particle pass uses
+            // the half-kick velocity; the O(dt) difference affects only
+            // step 1's cached acceleration).
+            a_w += realsim_dissipation(pos[i].xyz, vel[i].xyz, a_w, rho_local_at(pos[i].xyz));
+        }
+        acc[i] = vec4(a_w, 0.0);
         atomicAdd(s_cnt[0], st.clamp_hi);
         atomicAdd(s_cnt[1], st.clamp_lo);
         atomicAdd(s_cnt[2], st.rho_guard);
@@ -570,6 +688,12 @@ void main() {
 
         // Full-step kick at the updated position — the only field eval
         vec3 grav_acc = gravity_at(p_new, st);
+        if (pc.gravity_mode > 3.5) {
+            // RealSim: dissipative terms at (p_new, v_half) — the position
+            // and velocity the particle has mid-step. Adds to the gravity
+            // acceleration; the river arm and TeleStats are untouched.
+            grav_acc += realsim_dissipation(p_new, v_half, grav_acc, rho_local_at(p_new));
+        }
         vec3 v_new = v_half + grav_acc * hdt;
 
         pos[i] = vec4(p_new, pos[i].w);

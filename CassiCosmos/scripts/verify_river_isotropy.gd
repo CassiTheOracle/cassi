@@ -180,20 +180,21 @@ func _run_chain() -> void:
 	sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_0, 0)
 	sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_1, 1)
 	sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_2, 2)
-	sim._rd.compute_list_set_push_constant(cl, _nbody_pc(1.0), 48)  # gradient pass
+	sim._rd.compute_list_set_push_constant(cl, _nbody_pc(1.0), 60)  # gradient pass
 	sim._rd.compute_list_dispatch(cl, N, N, 1)  # 2D cells dispatch
 	sim._barrier(cl)  # gradient → nbody
 	sim._rd.compute_list_bind_compute_pipeline(cl, sim._nbody_pipe)
 	sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_0, 0)
 	sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_1, 1)
 	sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_2, 2)
-	sim._rd.compute_list_set_push_constant(cl, _nbody_pc(0.0), 48)  # particle pass
+	sim._rd.compute_list_set_push_constant(cl, _nbody_pc(0.0), 60)  # particle pass
 	sim._rd.compute_list_dispatch(cl, ceili(float(NPROBE) / 256.0), 1, 1)
 	sim._rd.compute_list_end()
 
 
 func _nbody_pc(pass_mode: float) -> PackedByteArray:
-	# Same 12 fields the sim encodes into _nbody_pc_bytes per step
+	# Same 15 fields the sim encodes into _nbody_pc_bytes per step (the
+	# trailing 3 RealSim coefficients are irrelevant for modes 0/1 here)
 	var pc: PackedByteArray = sim._nbody_pc_bytes.duplicate()
 	pc.encode_float(0, float(N))
 	pc.encode_float(4, sim.dt)
@@ -387,7 +388,7 @@ func _run_grid(n: int) -> void:
 			sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_0, 0)
 			sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_1, 1)
 			sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_2, 2)
-			sim._rd.compute_list_set_push_constant(cl, _nbody_pc(0.0), 48)
+			sim._rd.compute_list_set_push_constant(cl, _nbody_pc(0.0), 60)
 			sim._rd.compute_list_dispatch(cl, ceili(float(NPROBE) / 256.0), 1, 1)
 			sim._rd.compute_list_end()
 		_measure_ring(_read_accs(), radius_h, ey, ei, s, new_grad_fields, PHYS_RINGS[rk])

@@ -41,10 +41,28 @@ const PI_CLAMP_MAX: float = 0.72  # (π/ρ) upper clamp (stability; telemetry co
 #       inert/zeroed). Everything else about mode 0 is preserved
 #       bit-for-bit — mass deposit, Poisson FFT chain, PDE, ∇(g·Φ)
 #       gradient pass, cached-acc KDK, telemetry.
+#   4 = REALSIM — the river law EXACTLY as mode 0 (bit-for-bit) WITH the
+#       BH point-source sector (full realism, unlike mode 3), PLUS three
+#       per-particle dissipative terms representing motion through the
+#       two-fluid (EY/EI) medium:
+#         drag      a = −γ·(ρ_local/ρ_ref)·v        γ = realsim_drag
+#         viscosity a = −ν·(v − v_field(p))         ν = realsim_viscosity
+#         friction  a = −min(μ·|a_g|, |v|/dt)·v̂     μ = realsim_friction
+#       (formulas + defaults in cassi_nbody_gravity.glsl header; with all
+#       three coefficients at 0, mode 4 is bit-identical to mode 0).
+#       Mode 4 keeps the full Poisson chain and gradient pass like 0/3.
 # Only modes 1/2 skip the Poisson FFT chain and the river gradient pass
-# (neither consumes Φ/∇(g·Φ)); mode 3 keeps them. Mass deposit + the
+# (neither consumes Φ/∇(g·Φ)); modes 3/4 keep them. Mass deposit + the
 # two-fluid PDE always run.
-@export_enum("River", "Heuristic", "Plummer reference", "River self") var gravity_mode: int = 0
+@export_enum("River", "Heuristic", "Plummer reference", "River self", "RealSim") var gravity_mode: int = 0
+
+# ── RealSim dissipation coefficients (gravity_mode == 4 only) ──────────
+# Units: γ and ν are rates (1/time) — at reference density γ's e-folding
+# time is 1/γ; μ is a dimensionless fraction of |a_g|. ρ_ref = φ⁻³ =
+# 0.236068 (the attractor). See the shader header for the formulas.
+@export var realsim_drag: float = 0.5        # γ — background drag rate at ρ_ref (1/time)
+@export var realsim_viscosity: float = 0.3   # ν — shear-coupling rate to the medium (1/time)
+@export var realsim_friction: float = 0.01   # μ — Coulomb floor, fraction of |a_g| (dimensionless)
 
 # ── River-law resolution calibration (opt-in; OFF keeps the exact G_N = 1
 # verification contract). When ON, G_N is recomputed after the particle
@@ -136,13 +154,13 @@ var _us_inst_0: RID = RID()
 
 # — pre-allocated push-constant byte buffers (hitch-free: no per-step allocs) —
 var _pc_bytes: PackedByteArray        # shared 11-float PC (all physics shaders)
-# N-body PC is 12 floats (48 B): the nbody shader carries the
-# gradient-pass selector (pass_mode) as its 12th field. The other
-# shaders' structs are 11 floats (44 B) — Godot hard-errors on push-
-# constant size mismatch, so the nbody shader gets its OWN pre-allocated
-# 48 B buffer (the dedicated-PC precedent) instead of growing the
-# shared one.
-var _nbody_pc_bytes: PackedByteArray  # nbody PC (12 floats: 11 shared + pass_mode)
+# N-body PC is 15 floats (60 B): the nbody shader carries the
+# gradient-pass selector (pass_mode) as its 12th field plus the three
+# RealSim dissipation coefficients (13th-15th). The other shaders'
+# structs are 11 floats (44 B) — Godot hard-errors on push-constant size
+# mismatch, so the nbody shader gets its OWN pre-allocated 60 B buffer
+# (the dedicated-PC precedent) instead of growing the shared one.
+var _nbody_pc_bytes: PackedByteArray  # nbody PC (15 floats: 11 shared + pass_mode + 3 RealSim)
 var _md_pc_bytes: PackedByteArray     # mass deposit PC (4 floats)
 var _bh_int_pc_bytes: PackedByteArray # BH integrate PC (4 floats)
 var _cond_pc_bytes: PackedByteArray   # condensation PC (4 floats)
@@ -427,7 +445,7 @@ func _setup_buffers() -> void:
 
 	# Pre-allocate push-constant byte buffers (hitch-free pattern)
 	_pc_bytes = PackedByteArray(); _pc_bytes.resize(11 * 4)
-	_nbody_pc_bytes = PackedByteArray(); _nbody_pc_bytes.resize(12 * 4)
+	_nbody_pc_bytes = PackedByteArray(); _nbody_pc_bytes.resize(15 * 4)
 	_md_pc_bytes = PackedByteArray(); _md_pc_bytes.resize(4 * 4)
 	_bh_int_pc_bytes = PackedByteArray(); _bh_int_pc_bytes.resize(4 * 4)
 	_cond_pc_bytes = PackedByteArray(); _cond_pc_bytes.resize(4 * 4)
@@ -732,6 +750,7 @@ func _init_particles() -> void:
 	# unbounded profile kept inside the truncation); Gaussian/uniform
 	# compute their own analytic retained mass (see the end of this func).
 	var u_max_list: Array = []
+	var gauss_u_max_list: Array = []
 	var r_max_list: Array = []
 	var retained_min: float = INF
 	for c in range(nc):
@@ -756,6 +775,12 @@ func _init_particles() -> void:
 		var x_max: float = r_max_c / maxf(cluster_radius, 1e-6)
 		var u_hi: float = pow(x_max * x_max / (1.0 + x_max * x_max), 1.5)
 		u_max_list.append(u_hi)
+		# Gaussian-ball truncation CDF F(z_max) = erf(z_max) −
+		# (2/√π)·z_max·e^(−z_max²), z_max = r_max/(√2·σ) — the uniform-draw
+		# ceiling for the rejection-free inverse-CDF draw in the IC==1 arm.
+		var z_max_c: float = r_max_c / (sqrt(2.0) * maxf(cluster_radius, 1e-6))
+		var g_hi: float = _erf_approx(z_max_c) - (2.0 / sqrt(PI)) * z_max_c * exp(-z_max_c * z_max_c)
+		gauss_u_max_list.append(maxf(g_hi, 0.0))
 		retained_min = minf(retained_min, u_hi)
 
 	# Upload cluster centers to GPU buffer
@@ -806,30 +831,37 @@ func _init_particles() -> void:
 			ly = r * sin(th) * sin(ph)
 			lz = r * cos(th)
 		elif initial_condition == 1:
-			# Gaussian ball — REJECTION-truncated N(0, σ) draw: X,Y,Z ~
-			# N(0,1) independently, r = σ·|(X,Y,Z)| (σ = cluster_radius).
-			# Redraw while r > r_max (the exact conditional distribution —
-			# no clamping, no shell artifact); the 1000-attempt cap is a
-			# degenerate fallback that clamps to r_max (never hit for any
-			# sane truncation: P(r ≤ 1.35σ) ≈ 0.39 per draw).
-			var dx := 0.0; var dy := 0.0; var dz := 0.0
-			var nrm := 0.0
-			var n_attempts := 0
-			while true:
-				dx = rng.randfn(0.0, 1.0)
-				dy = rng.randfn(0.0, 1.0)
-				dz = rng.randfn(0.0, 1.0)
-				nrm = sqrt(dx * dx + dy * dy + dz * dz)
-				r = cluster_radius * nrm
-				n_attempts += 1
-				if r <= r_max_eff or n_attempts >= 1000:
-					break
-			if r > r_max_eff:
-				r = r_max_eff  # cap-exceed clamp (degenerate fallback)
-			var inv_nrm: float = 1.0 / maxf(nrm, 1e-30)
-			lx = r * (dx * inv_nrm)  # direction from the SAME X,Y,Z
-			ly = r * (dy * inv_nrm)
-			lz = r * (dz * inv_nrm)
+			# Gaussian ball — REJECTION-FREE truncated N(0, σ) draw (the
+			# same exact conditional distribution as rejection sampling,
+			# but O(1) per particle for ANY σ vs r_max ratio): the radial
+			# CDF of a 3D Gaussian truncated at r_max is
+			#   F(z) = erf(z) − (2/√π)·z·e^(−z²),  z = r/(√2·σ),
+			# so a uniform u ∈ (0, F(z_max)] inverted by bisection (F
+			# strictly increasing on [0, ∞)) gives r ≤ r_max directly —
+			# no rejection retries, no attempt cap, no degenerate retry
+			# storm when r_max ≪ σ (the old sampler burned ~660 attempts
+			# per particle at r_max/σ = 0.15 → ~17 min at 2.5M particles).
+			# Radius and direction are independent for a spherically
+			# symmetric Gaussian; direction = the same uniform th/ph draw
+			# as the Plummer arm.
+			var z_max: float = r_max_eff / (sqrt(2.0) * maxf(cluster_radius, 1e-6))
+			var u: float = rng.randf() * maxf(gauss_u_max_list[cidx], 1e-30)
+			var z_lo := 0.0
+			var z_hi: float = z_max
+			for _b in range(24):
+				var z_m: float = 0.5 * (z_lo + z_hi)
+				var f_m: float = _erf_approx(z_m) - (2.0 / sqrt(PI)) * z_m * exp(-z_m * z_m)
+				if f_m < u:
+					z_lo = z_m
+				else:
+					z_hi = z_m
+			var z: float = 0.5 * (z_lo + z_hi)
+			r = sqrt(2.0) * maxf(cluster_radius, 1e-6) * z
+			var th = acos(2.0 * rng.randf() - 1.0)
+			var ph = rng.randf() * PI * 2.0
+			lx = r * sin(th) * cos(ph)
+			ly = r * sin(th) * sin(ph)
+			lz = r * cos(th)
 		else:
 			# Uniform sphere — REJECTION-FREE truncated draw: r = a·u^(1/3)
 			# with u drawn in (0, u_trunc], u_trunc = min(1, (r_max/a)³);
@@ -1117,6 +1149,9 @@ func _step_dispatches(cl: int) -> void:
 	_nbody_pc_bytes.encode_float(36, float(num_clusters))
 	_nbody_pc_bytes.encode_float(40, float(gravity_mode))
 	_nbody_pc_bytes.encode_float(44, 0.0)  # pass_mode = 0 (particles)
+	_nbody_pc_bytes.encode_float(48, realsim_drag)
+	_nbody_pc_bytes.encode_float(52, realsim_viscosity)
+	_nbody_pc_bytes.encode_float(56, realsim_friction)
 
 	# Mass deposit PC: [N_f, particle_N, extent, _]
 	_md_pc_bytes.encode_float(0, float(grid_N))
@@ -1162,11 +1197,11 @@ func _step_dispatches(cl: int) -> void:
 	_barrier(cl)  # deposit → poisson
 
 	# ── 1.5. Spectral Poisson solve: ∇²Φ = ρ_mass (Φ̂ = −ρ̂/k², k=0 nulled) ──
-	# RIVER MODES ONLY (0 and 3): the heuristic and Plummer-reference arms
+	# RIVER MODES ONLY (0, 3 and 4): the heuristic and Plummer-reference arms
 	# consume neither Φ nor ∇(g·Φ) — skipping the 7-pass FFT chain is their
 	# main step-cost win. The clear+deposit+PDE chain above still runs so
 	# ρ/q remain the visual/source state (the PDE's injection reads ρ).
-	if gravity_mode == 0 or gravity_mode == 3:
+	if gravity_mode == 0 or gravity_mode == 3 or gravity_mode == 4:
 		_dispatch_poisson(cl)
 	_barrier(cl)  # deposit → PDE (rho visibility for the PDE source)
 
@@ -1206,8 +1241,9 @@ func _step_dispatches(cl: int) -> void:
 	# the poisson cells convention: a 1D N³/256 dispatch caps at 65535
 	# groups at N=256. RIVER MODE ONLY: the heuristic/Plummer arms never
 	# sample _grad_buf, so the O(N³) pass is skipped with the FFT chain.
-	# Mode 3 (river self) samples it too — kept with mode 0.
-	if (gravity_mode == 0 or gravity_mode == 3) and _nbody_shader.is_valid():
+	# Mode 3 (river self) and mode 4 (RealSim) sample it too — kept with
+	# mode 0.
+	if (gravity_mode == 0 or gravity_mode == 3 or gravity_mode == 4) and _nbody_shader.is_valid():
 		_nbody_pc_bytes.encode_float(44, 1.0)  # pass_mode = 1 (gradient)
 		_rd.compute_list_bind_compute_pipeline(cl, _nbody_pipe)
 		# ALL THREE sets must be bound: the pipeline rejects a dispatch with
@@ -1456,9 +1492,9 @@ func _render_frame() -> void:
 			_pi_sat_hi_frac /= samples
 			_pi_sat_lo_frac /= samples
 	# One-time Poisson residual report (FD-Laplacian check of the Φ solve).
-	# River modes only (0 and 3): modes 1/2 skip the solve, so _fft_buf
+	# River modes only (0, 3 and 4): modes 1/2 skip the solve, so _fft_buf
 	# holds stale data there and the residual would be meaningless.
-	if not _poisson_residual_done and _shaders_ready and _step_count >= 1 and (gravity_mode == 0 or gravity_mode == 3):
+	if not _poisson_residual_done and _shaders_ready and _step_count >= 1 and (gravity_mode == 0 or gravity_mode == 3 or gravity_mode == 4):
 		_poisson_residual_done = true
 		_report_poisson_residual()
 
@@ -1632,7 +1668,7 @@ func reinit() -> void:
 
 
 func get_diagnostics() -> String:
-	var law := "RIVER" if gravity_mode == 0 else ("HEURISTIC" if gravity_mode == 1 else ("PLUMMER" if gravity_mode == 2 else "RIVER-SELF"))
+	var law := "RIVER" if gravity_mode == 0 else ("HEURISTIC" if gravity_mode == 1 else ("PLUMMER" if gravity_mode == 2 else ("RIVER-SELF" if gravity_mode == 3 else "REALSIM")))
 	return "t=%.3f  q_mean=%.4f  ε²=%.6f  H=%.4f  sf=%.3f  steps=%d  grav=%s  G_N=%.4f  calib=%s  attr=%s  φ⁶−1=%.4f" % [
 		_time, _q_mean, _eps_mean, _hubble, _scale_factor, _step_count, law,
 		_gn_eff, "on" if river_calibrate_gn else "off",
