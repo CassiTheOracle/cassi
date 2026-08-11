@@ -17,7 +17,7 @@ This directory holds the two master registries of the Cassi framework: the 50-en
 
 ### `cassi_definitions.md`—Cassi Framework: Definitions
 
-The framework's compact reference glossary, organized into 15 sections from Fundamentals through Unification to Code & Implementation. It fixes the meaning of the Yang field $E_Y$ (outward, radiative) and Yin field $E_I$ (inward, absorptive), the coherence $q = (E_Y - \varphi E_I)/(E_Y + \varphi E_I)$, and the attractor at $E_Y/E_I = \varphi$ where $q = 0$; the Qi gate $g(q) = q/(\varphi^2 + q^2)$ controls fluid conversion and blocks it near equilibrium. Later sections define particles and black holes as two-fluid solitons, time as the direction of Qi irreversibility, information as Qi coherence, and the unification claim: one two-fluid PDE (shown in full) from which gravity, gauge fields, quantum mechanics, and thermodynamics emerge via the four pillars, with the derived Qi-gravity coupling $\xi = \varphi^6 \approx 17.944$ (Fibonacci identity $\varphi^6 = \varphi^5 + \varphi^4$) and the Gaussian softening $\sigma$ as UV regulator. A living document: entries are added as the framework grows.
+The framework's compact reference glossary, organized into 15 sections from Fundamentals through Unification to Code & Implementation. It fixes the meaning of the Yang field $E_Y$ (outward, radiative) and Yin field $E_I$ (inward, absorptive), the canonical coherence $q = \rho^2/(\rho^2 + \varphi^{-2} + \varepsilon^2)$ with $\varepsilon^2=(\Psi_0-\varphi\Psi_1)^2$, and the $\varphi$-attractor value $q_{\text{eq}}\approx0.127$; the openness factor $(1-q)$ is canonical, while $g(q)=q/(\varphi^2+q^2)$ is an asserted single-channel transmission input.
 
 ### `falsifiable-predictions.md`—Cassi Falsifiable Predictions
 

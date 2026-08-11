@@ -89,12 +89,17 @@ def charge_density_from_qi(q_field):
     In the two-fluid, a charge is a localized gradient in q:
         ρ ∝ −∇·∇q = −∇²q
     
-    The Qi gating function controls how much EY ↔ EI conversion occurs:
+    The conversion sketch uses the asserted single-channel transmission input:
         ∂ρ/∂t = −∇·J = ∇² · g(q)
-    
-    where g(q) is the Qi gating function:
-        g(q) = q/(1 + q²)  (sigmoidal—blocks at equilibrium)
-    
+
+    where
+        g(q) = q/(φ² + q²).
+
+    The first-principles PDE derives the $(1-q)$ openness factor; it does not
+    select this additional rational transmission form. See
+    `foundations/cassi-first-principles.md` §2.5 and
+    `computations/gate_origin_audit.py`.
+
     Natural units of charge: φ⁻² ≈ 0.382 (one quantum of Qi mismatch).
     """
     return -np.gradient(np.gradient(q_field))

@@ -1,6 +1,6 @@
 # Bubble Edge Geometry: Physical Profile of the Condensation Boundary
 
-## Status: Derived (structural)—July 2026
+## Status: Derived geometry; Derived conditional threshold relation; Asserted single-channel gate form—August 2026
 
 ## Abstract
 
@@ -35,7 +35,7 @@ At the void center ($C = -1$): $q \to 0$, fully disordered.
 
 The condensation threshold $\theta_{\text{cond}}$ is not a free parameter—it is the fixed point where the conversion rate (which builds coherence) balances the effective diffusion rate (which smooths it away).
 
-**Conversion power.** The Qi gate $g(q) = q/(\varphi^2 + q^2)$ (derived in `foundations/cassi-first-principles.md` §2, from the unified Lagrangian) modulates the $\varphi$-attractor conversion efficiency. The deviation from $\varphi$-equilibrium, $(1-q)$, provides the thermodynamic driving force. The conversion energy injection per unit time is:
+**Conversion power.** The single-channel Qi transmission function is the asserted input $g(q) = q/(\varphi^2 + q^2)$ (`foundations/cassi-first-principles.md` §2.5; selection audit in `computations/gate_origin_audit.py`). The first-principles driving factor is $(1-q)$, which provides the thermodynamic distance from equilibrium. The conversion energy injection per unit time is:
 
 $$P_{\text{conv}} = \omega_0 \cdot g(q) \cdot (1-q) \cdot \rho_0, \qquad g(q) = \frac{q}{\varphi^2 + q^2}$$
 
@@ -61,11 +61,11 @@ $$\boxed{\theta_{\text{cond}}^2 (1 + \theta_{\text{cond}}) = R\left(\varphi^2 + 
 
 This equation determines $\theta_{\text{cond}}$ from the single dimensionless parameter $R$, which combines the condensation field's effective diffusion coefficient $D_{\text{eff}}$, the conversion rate $\omega_0 = \lambda = 0.1$, and the condensation field wavenumbers $\alpha = 2\pi/\Lambda_Y$, $\beta = 2\pi/\Lambda_I$.
 
-**The phase diagram.** Unlike the simplified cubic form (which would arise from a $(1-q)^2$ gate), the relation with the true gate $g(q) = q/(\varphi^2 + q^2)$ is **monotonic**: larger $R$ produces larger $\theta_{\text{cond}}$ (thicker-edge bubbles). There is no catastrophic percolation threshold—bubbles never merge spontaneously. The mapping is smooth from $\theta_{\text{cond}} \to 0$ at $R \to 0$ (infinitesimal bubbles) to $\theta_{\text{cond}} \to 1$ at $R \to 2/(\varphi^2 + 1) \approx 0.552$ (bubbles filling the entire lattice). The calibration $R \approx 0.093$ gives the phenomenologically-inferred $\theta_{\text{cond}} = 0.45$.
+**The phase diagram.** Conditional on the asserted single-channel gate $g(q) = q/(\varphi^2 + q^2)$, the relation with the true gate is **monotonic**: larger $R$ produces larger $\theta_{\text{cond}}$ (thicker-edge bubbles). There is no catastrophic percolation threshold—bubbles never merge spontaneously. The mapping is smooth from $\theta_{\text{cond}} \to 0$ at $R \to 0$ (infinitesimal bubbles) to $\theta_{\text{cond}} \to 1$ at $R \to 2/(\varphi^2 + 1) \approx 0.552$ (bubbles filling the entire lattice). The calibration $R \approx 0.093$ gives the phenomenologically-inferred $\theta_{\text{cond}} = 0.45$.
 
 **The wavenumbers.** The condensation field wavelengths are set by the bubble scale: $\Lambda_Y = \ell_{285} \approx 191$ Mpc (the Cassi bubble diameter from `foundations/dimensionful-cascade.md`), $\Lambda_I = \Lambda_Y/\varphi \approx 118$ Mpc. This gives $\alpha = 2\pi/\Lambda_Y \approx 1.07 \times 10^{-24}$ m$^{-1}$, $\beta = \varphi\alpha \approx 1.73 \times 10^{-24}$ m$^{-1}$, and $\alpha^2 + \beta^2 = \alpha^2(1+\varphi^2) \approx 4.12 \times 10^{-48}$ m$^{-2}$.
 
-**Status.** The functional form relating $\theta_{\text{cond}}$ to $R$ is **Derived** from the balance of gated conversion and diffusion. The numerical value depends on $D_{\text{eff}}/\omega_0$—the ratio of the condensation field's effective diffusion to the conversion rate, measurable from the PDE. The phenomenologically-calibrated $\theta_{\text{cond}} = 0.45$ corresponds to $R \approx 0.093$. Section 8 specifies the PDE computation to determine $R$ and $\theta_{\text{cond}}$ from first principles.
+**Status.** The functional form relating $\theta_{\text{cond}}$ to $R$ is **Derived conditional on the asserted gate form** from the balance of gated conversion and diffusion. The numerical value depends on $D_{\text{eff}}/\omega_0$—the ratio of the condensation field's effective diffusion to the conversion rate, measurable from the PDE. The phenomenologically-calibrated $\theta_{\text{cond}} = 0.45$ corresponds to $R \approx 0.093$. Section 8 specifies the PDE computation to determine $R$ and $\theta_{\text{cond}}$ from first principles.
 
 ---
 

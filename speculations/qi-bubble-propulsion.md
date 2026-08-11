@@ -60,7 +60,7 @@ At $\varphi$-equilibrium, $\Pi$ is minimized but never zero (because $\varphi$ i
 
 No gate is perfect. The fraction $(1-q)$ of the conversion throughput thermalizes as photons. At $q \approx 0.9$, roughly 10% becomes light—the characteristic "plasma sheath" reported around UAP. Color changes correspond to gate tuning: as $q$ increases, the effective boundary temperature shifts upward. The observed sequence (red → orange → white → blue-white) as craft "power up" maps to increasing $q$ → higher gate throughput → higher thermalization temperature.
 
-The Qi gate's denominator contains $\varphi^2$ (`foundations/cassi-first-principles.md` §2.2: $g(q) = q/(\varphi^2 + q^2)$), so characteristic emission frequencies are $\varphi$-spaced—a potentially diagnostic spectral signature.
+The asserted single-channel gate input has denominator $\varphi^2$ (`foundations/cassi-first-principles.md` §2.5; `computations/gate_origin_audit.py`). Any claim that this produces $\varphi$-spaced characteristic emission frequencies is **Speculative** and conditional on that denominator.
 
 ---
 

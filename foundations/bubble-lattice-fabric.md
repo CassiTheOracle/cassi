@@ -71,7 +71,7 @@ $$\partial_t E_I = -(\mathbf{u}\cdot\nabla)E_I + D\nabla^2 E_I + \lambda(E_Y - \
 
 Under the rescaling $\mathbf{x} \to \varphi\mathbf{x}$, $t \to \varphi t$, the spatial derivatives transform as $\nabla \to \varphi^{-1}\nabla$. The conversion term is invariant because $\varphi$ is dimensionless and the field combination $E_Y - \varphi E_I$ is homogeneous. The diffusion and advection terms acquire $\varphi^{-2}$ and $\varphi^{-1}$ factors respectively—their relative strengths shift with scale, but the **form** of the equations is unchanged.
 
-The PDE is **scale-covariant** under $\varphi$-rescaling, up to the Qi-gate nonlinearity $g(q) = q/(\varphi^2 + q^2)$ which introduces a scale-dependent modulation. A solution at cascade rung $n$ is a $\varphi$-rescaled solution at rung $n+1$, with the same functional form but wavelengths reduced by $\varphi$ (for upward steps) or expanded by $\varphi$ (for downward steps).
+The PDE is **scale-covariant** under $\varphi$-rescaling, up to the asserted Qi-gate transmission nonlinearity $g(q) = q/(\varphi^2 + q^2)$, which introduces a scale-dependent modulation when that application input is enabled. A solution at cascade rung $n$ is a $\varphi$-rescaled solution at rung $n+1$, with the same functional form but wavelengths reduced by $\varphi$ (for upward steps) or expanded by $\varphi$ (for downward steps).
 
 ### 2.2 The Condensation Field Inherits Scale Covariance
 

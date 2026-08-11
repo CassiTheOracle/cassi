@@ -331,17 +331,19 @@ Time is NOT a fundamental dimension. Time is the **direction of Qi irreversibili
 — the inevitable mixing of EY and EI toward the φ-equilibrium.
 
 ### Key Equations
-    S = −q·k_B·ln(φ)          (entropy = negentropy of Qi)
-    dS/dt = −dq/dt ≥ 0         (Second Law = theorem of two-fluid dynamics)
-    τ = ∫ |q| / g_eff dt       (proper time = accumulated Qi mixing rate)
+    S = −q·k_B·ln(φ)          (proposed entropy proxy)
+    dS/dt = −dq/dt             (requires a monotonicity proof for q)
+    τ = ∫ |q| / g_eff dt       (proper-time diagnostic)
 
-### Second Law as a Theorem
-The Qi gating function g(q) = q/(φ² + q²) controls EY ↔ EI conversion.
-From the two-fluid PDE:
-    dq/dt = −ω₀·g(q)²·(EY² + EI²) ≤ 0   (always true)
-Therefore dS/dt = −dq/dt·ln(φ) ≥ 0. QED.
-The Second Law is NOT a separate postulate—it follows directly from
-the Qi gating mechanism.
+### Second Law Status
+The canonical two-fluid equations define the Qi coherence and the $(1-q)$
+conversion openness. They do not supply the general identity
+$dq/dt = -\omega_0 g(q)^2(E_Y^2+E_I^2)$. The rational transmission function
+$g(q)=q/(\varphi^2+q^2)$ is an asserted application input, and a Lyapunov
+derivation for the entropy proxy remains open. The monotonicity of the
+specific gate model is checked in `computations/gate_origin_audit.py`.
+The PDE-level second-law theorem remains open; the missing step is a Lyapunov
+or monotonicity derivation for the canonical dynamics.
 
 ### What Clocks Measure
 A clock does not measure coordinate time. It measures **accumulated Qi
@@ -563,7 +565,7 @@ The Cassi framework proposes that ALL known physics—gravity, electromagnetism,
 nuclear forces, quantum mechanics, thermodynamics, consciousness, and life —
 emerges from a single two-fluid PDE:
 
-    ∂_t EY + ∇·(EY·u) = ω₀·g(q)·(EY − φ·EI) + ν·∇²EY
+    ∂_t EY + ∇·(EY·u) = ω₀·g(q)·(EY − φ·EI) + ν·∇²EY   [application form; g(q) asserted]
     ∂_t EI + ∇·(EI·u) = −ω₀·g(q)·(EY − φ·EI) + ν·∇²EI
     ∂_t u + (u·∇)u = −∇P − ∇Φ − η·u
 
@@ -571,7 +573,7 @@ where:
 - **EY**: Yang field (outward, radiative, electric-like)
 - **EI**: Yin field (inward, absorptive, magnetic-like)
 - **φ ≈ 1.618**: The universal attractor (golden ratio)
-- **g(q) = q/(φ² + q²)**: Qi gating function
+- **g(q) = q/(φ² + q²)**: asserted single-channel transmission input; selection audit in `computations/gate_origin_audit.py`
 - **σ**: The softening scale (same mechanism at all scales)
 - **ξ = φ⁶ ≈ 17.944**: Qi coupling strength (derived from Fibonacci identity φ⁶ = φ⁵ + φ⁴)
 - **ν, η**: Viscosity and damping coefficients

@@ -142,7 +142,7 @@ The most important quantity in the two-fluid dynamics is the ratio $r = E_Y / E_
 
 ### The Qi Gate—a Nonlinear Switch
 
-The two-fluid PDE includes a nonlinear **Qi gate** whose *openness* is $(1-q)$. When Qi density is low ($q \to 0$), the gate is open and conversion runs hard—the region churns, unable to settle. When Qi density is high ($q \to 1$), the gate closes and the system rests at $\varphi$-balance. The shape of this gate determines the universe's expansion history and is the source of the dark energy equation of state $w_0 = -0.87$.
+The two-fluid PDE includes a nonlinear **Qi gate** whose canonical openness is $(1-q)$. When Qi density is low ($q \to 0$), the gate is open and conversion runs hard—the region churns, unable to settle. When Qi density is high ($q \to 1$), the gate closes and the system rests at $\varphi$-balance. Application models may multiply this openness by the asserted single-channel transmission $g(q)=q/(\varphi^2+q^2)$; its selection remains open (`foundations/cassi-first-principles.md` §2.5). The cosmological $w(a)$ result is calibrated to the chosen gate implementation.
 
 ### The $\varphi$-Attractor
 
@@ -581,7 +581,7 @@ Quarks are the building blocks of protons and neutrons, yet no one has ever seen
 
 | **Cassi Answer** | $\Lambda_{\text{QCD}}$ at cascade step 95; the gate saturates between separated color charges, forming a flux tube whose energy is extensive in its length: $E(r) = \mu r$ with $\mu = \kappa(M_{\text{Pl}}/\varphi^{95})^2 = \kappa\Lambda_{\text{QCD}}^2$ and $\kappa = 2\pi$ (conditional on the 2π-per-rung winding reading: $\sigma_{\text{tube}} = 2\pi\Lambda_{\text{QCD}}^2 = 0.1836$ GeV², $+2.0\%$ vs the measured $0.18$ GeV²) — a constant force $F = -\mu$, i.e. a linear potential, by tube extensivity (not by the gate shape). Permanent binding from cascade suppression: $P_{\text{break}} \approx \varphi^{-4506}$—same coherence product as proton stability. Confinement and proton decay are the same phenomenon at different cascade rungs. Full derivation: `foundations/quark-confinement.md` |
 | **Mechanism** | Saturated-gate flux tube: between separated color charges the conversion channel saturates to the de-converted vacuum ($q \to 0$), expelling the condensate over a cross-section quantized to one condensation-lattice cell; $E(r) = \mu r + 2E_{\text{core}}$ with $\mu = \kappa\Lambda_{\text{QCD}}^2$ (one-cell area $\sim \ell_{95}^2$, $\Lambda_{\text{QCD}} = M_{\text{Pl}}/\varphi^{95} = 0.171$ GeV). Linear potential is geometric (tube length $\propto$ separation). $\mu/\sigma_{\text{measured}} \approx 0.16$ at $\kappa = 1$ (explicit, unfitted). Asymptotic freedom ($n \ll 95$) from $g(q) \to 0$. Inputs: gate saturation, one-cell quantization. |
-| **Epistemic** | **Derived (tube extensivity + cell quantization; $\kappa = 2\pi$ conditional on the pitch convention + 2π-per-rung winding reading; inputs: gate saturation, one-cell quantization)**—QCD scale and permanent binding follow; the exact $g(q)$ stays Hypothesized |
+| **Epistemic** | **Derived (tube extensivity + cell quantization; $\kappa = 2\pi$ conditional on the pitch convention + 2π-per-rung winding reading; inputs: gate saturation, one-cell quantization)**—QCD scale and permanent binding follow; the exact $g(q)$ is an **Asserted input** with selection open (`foundations/cassi-first-principles.md` §2.5) |
 | **Reference** | `foundations/quark-confinement.md` |
 
 ### Q9: Proton lifetime
