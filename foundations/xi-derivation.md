@@ -110,9 +110,10 @@ All Qi-gravity phenomenology follows from this single coupling:
 
 The 2 × 3 reading of the exponent—$\varphi^6 = \varphi^{2 \times 3}$ with two field components × three Frenet-Serret spatial directions ($\mathbf{T}$, $\mathbf{N}$, $\mathbf{B}$; `foundations/cassi-theory-reference.md` §10.2)—remains a geometric restatement of the same number. It is not the derivation: the spatial dimension rests on the Frenet-Serret hypothesis (`foundations/why-three-dimensions.md`; Hypothesized—registry G5), and the per-DOF factor of $\varphi$ is asserted. The imbalance inverse-square derivation of §2 is the origin of the exponent; the 2 × 3 form is retained because it organizes the coupling's alternative expressions (§8).
 
-## 7. Zero Free Dimensionless Parameters
+## 7. Dimensionless Parameter Status
 
-With $\xi = \varphi^6$ derived, the Cassi framework has zero free dimensionless parameters among its coupling constants:
+With $\xi = \varphi^6$ derived conditionally on the quadratic field-coupling
+input, the surrounding catalog carries individual epistemic labels:
 
 | Constant | Value | Status |
 |----------|-------|--------|
@@ -120,10 +121,12 @@ With $\xi = \varphi^6$ derived, the Cassi framework has zero free dimensionless 
 | $\alpha_0 = \pi/\rho$ | $\varphi^{-3} \approx 0.236$ | Derived (fixed-point imbalance, attractor) |
 | $\xi = \varphi^6 = \alpha_0^{-2}$ | $\approx 17.944$ | **Derived** (imbalance inverse-square; input: quadratic field coupling); empirical pin Calibrated (ledger row 498) |
 | Wu Xing coefficients | $\varphi^{-1}, \varphi^{-2}, \ldots$ | Derived from $\varphi$ |
-| $\sin^2\theta_W$ | $\varphi^{-3} \approx 0.236$ | Same imbalance; exact at $\mu_* = 233$ GeV (Calibrated anchor—ledger row 490) |
-| $\alpha_{\text{GUT}}$ | $\varphi^{-3}/(4\pi) \approx 1/53$ | Derived from $\varphi$ (running needs $\Delta b = 1.70$, Mapped—ledger) |
+| $\sin^2\theta_W$ | $\varphi^{-3} \approx 0.236$ | Asserted coupling boundary; exact at $\mu_* = 233$ GeV (Calibrated anchor—ledger row 490) |
+| $\alpha_{\text{GUT}}$ | $\varphi^{-3}/(4\pi) \approx 1/53$ | Asserted boundary assignment; running requires $\Delta b = 1.70$ (Mapped—ledger) |
 
-The PDE conversion rate $\lambda = 0.1$ and the three dimensionful constants ($c$, $\hbar$, $G$) remain external to the framework. See `foundations/dimensionful-constants-status.md` for the complete accounting.
+The PDE conversion rate $\lambda = 0.1$ is Derived, while the three
+dimensionful constants ($c$, $\hbar$, $G$) remain external. See
+`foundations/dimensionful-constants-status.md` for the complete accounting.
 
 ## 8. Alternative Expressions
 

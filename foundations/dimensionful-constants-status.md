@@ -4,13 +4,13 @@
 
 ## Abstract
 
-The Cassi framework derives all dimensionless parameters—couplings, mass ratios, mixing angles, and the PDE conversion rate $\lambda$—from the golden ratio $\varphi \approx 1.618$ and the two-fluid PDE. This document catalogues the constants that are **not yet derived**—the speed of light $c$, Planck's constant $\hbar$, and Newton's constant $G$—and clarifies the framework's parameter status.
+The Cassi framework expresses dimensionless parameters as combinations of $\varphi$ and the two-fluid PDE. Their epistemic origins differ: $\lambda$, $\xi$ under its quadratic-coupling input, and several cascade identities have closed derivations, while the Weinberg value $\sin^2\theta_W = \varphi^{-3}$ remains an asserted coupling boundary with a Calibrated crossing at $\mu_* = 233$ GeV. This document catalogues the external dimensionful constants and keeps the dimensionless status distinctions explicit.
 
 **Bottom line:**
 
 | Constant | Status | Why |
 |----------|--------|-----|
-| All dimensionless couplings ($\sin^2\theta_W$, $\alpha_{\text{GUT}}$, $\xi$, $r_0$, $w_0$, etc.) | **Derived** | $\varphi$-powers from cascade structure |
+| Dimensionless parameters (mixed status) |—| $\varphi$-powers with status set by the Fit-Status Ledger; $\sin^2\theta_W$ is an asserted boundary, $\lambda$ is Derived, and other entries are Derived, Calibrated, or Mapped |
 | $\lambda$ (PDE conversion rate) | **Derived** | $\lambda = 1/(2w) = 0.1$ with $w=5$ derived (`foundations/wu-xing-derivation.md`) |
 | $v_0/M_{\text{Pl}}$ ratio | **Derived** | $\varphi^{-80}$ from cascade depth (5.3% residual) |
 | **$c$**—geometric mechanism | **Closed** | $c = \lambda \cdot \ell_{\text{Pl}}$ (up to unit conversion); $\varphi^n$ cancellation exact, $\lambda=0.1$ derived |
@@ -38,7 +38,7 @@ This is one equation with three unknowns. The framework does not (and mathematic
 
 ### 1.2 What is derivable vs. what is structural
 
-The cascade framework has **one** dimensionful degree of freedom: the Planck length $\ell_{\text{Pl}}$. All length scales follow from $\ell_n = \ell_{\text{Pl}} \varphi^n$, and all dimensionless couplings are derived as $\varphi$-powers.
+The cascade framework has one dimensionful degree of freedom: the Planck length $\ell_{\text{Pl}}$. All length scales follow from $\ell_n = \ell_{\text{Pl}}\varphi^n$. Dimensionless quantities are frequently expressed as $\varphi$-powers, with their derivation status recorded separately.
 
 Within this structure, the three dimensionful constants $c$, $\hbar$, $G$ are **not independent**. They satisfy:
 
@@ -50,11 +50,11 @@ $$c = \lambda \cdot \ell_{\text{Pl}} \quad \text{(up to PDE-time-unit conversion
 
 These two equations link $c$, $\hbar$, $G$, and $\ell_{\text{Pl}}$ but leave one degree of freedom unfixed. The cascade framework can only determine the **combination** $\ell_{\text{Pl}} = \sqrt{\hbar G / c^3}$. Individual values of $c$, $\hbar$, and $G$ require measuring $\ell_{\text{Pl}}$ (or any one cascade rung) in physical units.
 
-This is not a failing of the framework. It is a **structural limitation** shared by any theory with a single dimensionful anchor. The Cassi framework correctly identifies $\ell_{\text{Pl}}$ as that anchor, derives all dimensionless parameters, and expresses $c$ in terms of $\ell_{\text{Pl}}$ and the derived $\lambda$.
+This is a structural limitation shared by any theory with a single dimensionful anchor. The Cassi framework identifies $\ell_{\text{Pl}}$ as that anchor and expresses $c$ in terms of $\ell_{\text{Pl}}$ and the derived $\lambda$; the status of dimensionless couplings remains governed by their individual derivation chains.
 
 ### 1.3 Status of "zero free parameters" claims
 
-All dimensionless parameters are derived from $\varphi$: couplings ($\xi$, $\sin^2\theta_W$, $\alpha_{\text{GUT}}$), cosmological initial conditions ($w_0$, $r_0$), and the PDE conversion rate ($\lambda = 1/(2w) = 0.1$). The claim "zero free parameters among dimensionless couplings" holds. Three dimensionful constants ($c$, $\hbar$, $G$) remain external—they cannot be derived from a dimensionless constant without a reference scale.
+The closed subset of dimensionless parameters is fixed by $\varphi$ and the cascade. Other $\varphi$-power quantities retain their ledger status: $\sin^2\theta_W$ is an asserted boundary, $\mu_*$ is Calibrated, and fitted exponents are Mapped. Three dimensionful constants ($c$, $\hbar$, $G$) remain external because a dimensionless constant cannot determine a reference scale.
 
 ---
 
@@ -92,15 +92,16 @@ The gap $g = 1 - \varphi^{-5}$ and the primordial ratio $r_0 = \varphi^{-5}/(2 -
 
 ### 2.3 Parameter Count
 
-With $w=5$ and $\lambda = 1/(2w)$ both derived, all dimensionless parameters are fixed by $\varphi$ and the cascade:
+With $w=5$ and $\lambda = 1/(2w)$ both derived, the parameter catalog contains a mixture of closed, conditional, calibrated, mapped, and asserted dimensionless entries:
 
-| Category | Count | Examples |
-|----------|-------|----------|
-| **$\varphi$-powers (Derived)** | ~18 dimensionless | $\xi = \varphi^6$, $\sin^2\theta_W = \varphi^{-3}$, $\lambda = 1/10$, $r_0$, $w_0$ |
-| **Cascade-span derived** | ~3 dimensionless | $v_0/M_{\text{Pl}} \approx \varphi^{-80}$, $m_e/v_0$, $\eta$ |
-| **External (Dimensionful)** | 3 | $G$, $c$, $\hbar$ |
+| Category | Status | Examples |
+|----------|--------|----------|
+| **Closed or conditional $\varphi$-relations** | Derived / conditional | $\lambda = 1/10$, $\xi = \varphi^6$ conditional on the quadratic-coupling input, $\alpha_0 = \varphi^{-3}$ |
+| **Boundary assignments and anchors** | Asserted / Calibrated | $\sin^2\theta_W = \varphi^{-3}$; $\mu_* = 233$ GeV |
+| **Cascade-span or fitted quantities** | Mapped / Calibrated | $v_0/M_{\text{Pl}} \approx \varphi^{-80}$, $m_e/v_0$, $\eta$, $w_0$ |
+| **External dimensionful constants** | External | $G$, $c$, $\hbar$ |
 
-**Zero free parameters among dimensionless couplings.** The three dimensionful constants ($c$, $\hbar$, $G$) remain external.
+The phrase “zero free parameters” applies to the closed subset after its named inputs are supplied; it does not change the status of asserted boundaries or calibrated anchors.
 
 ---
 
@@ -320,8 +321,8 @@ $\lambda = 1/(2w) = 0.1$ is **derived** (§2.1). The Wu Xing number $w = 5$ foll
 | Document | Claim | Current status |
 |----------|-------|-------------------|
 | `gravity/quantum-gravity.md` §3 | $\sigma = \ell_{\text{Pl}}/\varphi^3$ is the regularization scale | $M_{\text{Pl}}$ remains external (dimensionful); the ratio $\sigma = \ell_{\text{Pl}}/\varphi^3$ is derived |
-| `gravity/quantum-gravity.md` | "The Theory of Everything is complete" | All dimensionless parameters are derived; $c$, $\hbar$, $G$ remain external |
-| `foundations/xi-derivation.md` §5 | "zero free parameters" | Zero free parameters among dimensionless couplings (λ derived via w=5) |
+| `gravity/quantum-gravity.md` | "The Theory of Everything is complete" | The closed dimensionless subset has derived origins; $\sin^2\theta_W$ remains an asserted boundary, while $c$, $\hbar$, $G$ remain external |
+| `foundations/xi-derivation.md` §5 | "zero free parameters" | Zero free inputs within the closed subset after the quadratic-coupling condition; asserted boundaries and mapped entries retain their ledger statuses |
 | `open-questions-cassi-answers.md` F5 | $\lambda$ is fixed by the measured Hubble | $\lambda = 1/(2w) = 0.1$, derived from $w=5$ |
 
 ### 5.2 Registry status
@@ -341,7 +342,7 @@ In `open-questions-cassi-answers.md`, the F5 entry lists $\lambda = 0.1$ as **De
 
 - `parameter-inventory.md` §4 classifies $c$, $\hbar$, $G$ as External.
 - `gravity/quantum-gravity.md` uses $\sigma = \ell_{\text{Pl}}/\varphi^3$ as the regularization scale; $M_{\text{Pl}}$ external.
-- `foundations/xi-derivation.md` §5 asserts zero free parameters among dimensionless couplings.
+- `foundations/xi-derivation.md` §5 and the compact references carry the closed-subset zero-free-input claim; the Weinberg boundary is recorded as asserted.
 - `open-questions-cassi-answers.md` F5 lists $\lambda = 0.1$ as Derived.
 - `foundations/spiral-dynamics.md` §4 carries the $c$ mechanism (closed in structure).
 - `foundations/dimensionful-constants-status.md` (this document) records the derivation status above.

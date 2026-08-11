@@ -4,7 +4,7 @@
 
 ## Abstract
 
-There exists a universal constant of scale separation, $\varphi = (1+\sqrt{5})/2 \approx 1.618033989$, which governs the equilibrium ratio between two complementary aspects of physical reality—Yang (expansive, active) and Yin (contractive, receptive). This document states the postulate, derives the two-fluid PDE and its Qi coherence measure, and shows how quantum mechanics, cosmology, general relativity, and the Standard Model emerge as the four pillars of the framework. Every dimensionless coupling constant and mass ratio is a $\varphi$-power: the dimensionless sector carries zero free parameters, with $c$, $\hbar$, $G$ external (see `foundations/dimensionful-constants-status.md`).
+There exists a universal constant of scale separation, $\varphi = (1+\sqrt{5})/2 \approx 1.618033989$, which governs the equilibrium ratio between two complementary aspects of physical reality—Yang (expansive, active) and Yin (contractive, receptive). This document states the postulate, derives the two-fluid PDE and its Qi coherence measure, and maps quantum mechanics, cosmology, general relativity, and the Standard Model onto the four pillars of the framework. Dimensionless entries are expressed as $\varphi$-powers with individual status labels; $c$, $\hbar$, and $G$ remain external.
 
 ---
 
@@ -16,7 +16,7 @@ $$
 \boxed{\varphi = \frac{1 + \sqrt{5}}{2} \approx 1.618033989}
 $$
 
-which governs the equilibrium ratio between two complementary aspects of physical reality—Yang (expansive, active) and Yin (contractive, receptive). Every dimensionless coupling constant and mass ratio in the framework is a $\varphi$-power; the dimensionless couplings carry zero free parameters, with $c$, $\hbar$, $G$ external (see `foundations/dimensionful-constants-status.md`).
+The framework expresses dimensionless coupling constants and mass ratios as $\varphi$-powers. The closed subset carries zero free inputs after its named structural conditions are supplied; asserted boundaries, calibrated anchors, and mapped exponents retain their ledger status. The dimensionful constants $c$, $\hbar$, and $G$ remain external.
 
 ---
 
@@ -57,7 +57,7 @@ $$
 \alpha_0 \equiv \frac{\pi}{\rho} = \frac{\varphi-1}{\varphi+1} = \varphi^{-3} \approx 0.236
 $$
 
-The fixed-point imbalance $\alpha_0 = \pi/\rho = \varphi^{-3}$ is universal—it appears in cosmology (dark energy), particle physics (weak mixing angle), and gravity (effective coupling). (The "equilibrium Yang fraction" label is Mapped—ledger row 500; the Yang fraction at equilibrium is $\varphi^{-1}$.)
+The fixed-point imbalance $\alpha_0 = \pi/\rho = \varphi^{-3}$ is universal—it appears in cosmology (dark energy), particle physics (the asserted weak-angle boundary), and gravity (effective coupling). The equilibrium Yang fraction is $\varphi^{-1}$.
 
 ### 1.3 Two-fluid PDE
 
