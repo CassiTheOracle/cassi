@@ -1,6 +1,6 @@
 # v₀/M_Pl: The Hierarchy Problem in φ-Clothing
 
-## Status: Derived (step count N = log_φ(M_Pl/v₀) ≈ 79.7, per registry Q1); 5.3% residual open—August 2026
+## Status: Mapped (step count $N = \log_\varphi(M_{\rm Pl}/v_0) \approx 79.7$—the log of the measured ratio, per registry Q1 and ledger row 499); the 5.3% residual is open—August 2026
 
 ## The Physical Interactions at Play
 
@@ -8,8 +8,9 @@
 
 ## 1. The Question
 
-The Cassi framework derives the electroweak scale through the cascade step
-count $N = \log_\varphi(M_{\rm Pl}/v_0) \approx 79.7$ (registry Q1):
+The Cassi framework accounts for the electroweak scale through the cascade step
+count $N = \log_\varphi(M_{\rm Pl}/v_0) \approx 79.7$ (registry Q1; **Mapped**—
+the count is the log of the measured ratio, ledger row 499):
 $v_0/M_{\rm Pl} \approx \varphi^{-80}$, within $5.3\%$ of the nearest integer
 $\varphi$-power. **What is open?** The framework does not yet compute the
 $5.3\%$ correction itself—the residual between $v_0/M_{\rm Pl}$ and the
@@ -40,9 +41,10 @@ $$\frac{\partial V}{\partial u} = \frac{\mu^2}{2} + \frac{g}{2}(u+v) = 0
 term contributes to fluctuations around equilibrium, not to the VEV itself.
 
 This means: $v_0$ is set by $\mu^2$ and $g$, both of which are SM parameters
-not determined by $\varphi$. The Cassi framework derives the ratio
+not determined by $\varphi$. The Cassi framework accounts for the ratio
 $v_0/M_{\rm Pl}$ as the cascade step count $N = \log_\varphi(M_{\rm Pl}/v_0)
-\approx 79.7$ (registry Q1)—the electroweak scale sits at rung 80—but it
+\approx 79.7$ (registry Q1; Mapped—the count is the log of the measured ratio,
+ledger row 499)—the electroweak scale sits at rung 80—but it
 does not derive the exact VEV: the $5.3\%$ residual between $v_0/M_{\rm Pl}$
 and the nearest integer $\varphi$-power is open.
 

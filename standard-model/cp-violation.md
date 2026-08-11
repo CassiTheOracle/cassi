@@ -102,14 +102,7 @@ cleanly fixed. The nearest integer candidate is $\lambda \approx \varphi^{-3}
 \approx 0.236$ ($5\%$ off from $0.225$), suggesting additional running or mixing
 corrections shift the value.
 
-Importantly, the CP phase $\delta_{\text{CKM}}$ is derived from the unitarity
-triangle **independently** of the exact magnitudes. Given any hierarchy with
-$|V_{us}| \gg |V_{cb}| \gg |V_{ub}|$, the unitarity triangle closure yields:
-
-$$\delta_{\text{CKM}} = \pi\varphi^{-2} \approx 1.199\ \text{rad} \;(68.8^\circ)$$
-
-This is the Cassi prediction, accurate to $<1\%$. See the Jarlskog invariant
-analysis in Section 4.
+The value $\delta_{\text{CKM}} = \pi\varphi^{-2} \approx 68.8^\circ$ is **Mapped** (Fit-Status Ledger row 482): it was selected from a four-candidate $\varphi$-search ($\pi-\arccos(\varphi^{-1}) = 128^\circ$; $\pi\varphi^{-3} = 42.5^\circ$; $2\pi\varphi^{-3} = 85^\circ$; $\pi\varphi^{-2} = 68.8^\circ$) against the measured CKM phase (repo anchor $\sim 69.2^\circ \pm 3.0^\circ$; PDG 2024 $65.55^\circ \pm 1.55^\circ$). No unitarity-triangle closure calculation is shown in this document, and the triangle's closure depends on the side magnitudes (it cannot determine the phase "independently" of them); the Yukawa-diagonalization origin is not derived here. See the Jarlskog invariant analysis in Section 4.
 ## 4. The Jarlskog Invariant
 
 The Jarlskog invariant $J_{\text{CP}}$ measures the intrinsic CP violation in
@@ -127,9 +120,7 @@ This is wrong. The Standard Model value is:
 
 $$J_{\text{CP}}^{\text{SM}} \approx 3.0 \times 10^{-5}$$
 
-The discrepancy is **three orders of magnitude**. No single $\phi$-power can
-produce $10^{-5}$; the smallest Cassi constants are $\phi^{-13} \approx 0.003$
-and $\phi^{-21} \approx 0.0007$, still far too large.
+The discrepancy is **three orders of magnitude** from the naive $\phi^{-6}$. The smallest Cassi constants are $\phi^{-13} \approx 1.9\times10^{-3}$ and $\phi^{-21} \approx 4.1\times10^{-5}$—the latter is the **same order of magnitude** as $J_{\text{CP}}^{\text{SM}} \approx 3.2\times10^{-5}$ (within 28%), so the statement "no single $\phi$-power can produce $10^{-5}$" does not hold as written: $\phi^{-21}$ is a $J_{\text{CP}}$-adjacent $\varphi$-ladder candidate, requiring the same Mapped-candidate treatment as $\delta_{\text{CKM}}$ (Fit-Status Ledger row 482) rather than exclusion.
 
 ### 4.2 Yukawa-determinant formula: evaluated
 
@@ -214,20 +205,21 @@ The ~81-rung signal propagation occurs through the bubble lattice medium—casca
 | $|V_{us}|$ | $\phi^{-1} \approx 0.618$ | $\varphi^{-3} \approx 0.236$ ($5\%$ off) | $0.225$ |
 | $|V_{cb}|$ | $\phi^{-2} \approx 0.382$ | Wolfenstein $A\lambda^2$ with $\lambda \approx \varphi^{-3}$ | $0.041$ |
 | $|V_{ub}|$ | $\phi^{-3} \approx 0.236$ | Wolfenstein $A\lambda^3(\rho-i\eta)$ with $\lambda \approx \varphi^{-3}$ | $0.004$ |
-| $J_{\text{CP}}$ | $\phi^{-6} \approx 0.056$ | $\phi^{-3} \cdot \frac{\Delta m_u \Delta m_d}{v^6} \approx 3\times 10^{-5}$ | $3.0 \times 10^{-5}$ |
+| $J_{\text{CP}}$ | $\phi^{-6} \approx 0.056$ | $\phi^{-3} \cdot \frac{\Delta m_u \Delta m_d}{v^6} \approx 2.7\times 10^{-25}$ (does not reproduce $J_{\text{CP}}$—§4.2) | $3.0 \times 10^{-5}$ |
 | Strong CP $\bar\theta$ |—| $\pi\varphi^{-83.4} \approx 1.2\times10^{-17}$ (cascade de-resonance) | $< 10^{-10}$ |
 | Axion |—| **Does not exist** | Undiscovered |
 
 ### Key Takeaways
 
-1. **$\delta_{\text{CKM}} = \pi\phi^{-2}$ is the Cassi prediction**, accurate
-   to $<1\%$. It emerges from the $\phi$-scaled CKM element hierarchy
-   ($|V_{us}| \approx \varphi^{-3} \approx 0.236$, $5\%$ off from $0.225$;
+1. **$\delta_{\text{CKM}} = \pi\phi^{-2}$ is the cataloged Cassi value**, a
+   Mapped selection from a four-candidate $\varphi$-search (ledger §10 row 482),
+   accurate to $<1\%$ against the repo's CKM anchor. The claim that it "emerges
+   via standard unitarity triangle closure from the Yukawa diagonalisation"
+   is not shown as a derivation and is not used here: the $\phi$-scaled CKM
+   element hierarchy ($|V_{us}| \approx \varphi^{-3} \approx 0.236$, $5\%$ off from $0.225$;
    $|V_{cb}| \approx 0.041$, $|V_{ub}| \approx 0.004$ following
    Wolfenstein $|V_{cb}| \sim \lambda^2$, $|V_{ub}| \sim \lambda^3$ with
-   $\lambda \approx \varphi^{-3}$) via standard unitarity triangle
-   closure—not as a direct $\phi$-exponent but as a derived quantity from
-   the Yukawa diagonalisation.
+   $\lambda \approx \varphi^{-3}$) is itself an empirical ladder.
 
 2. **The Jarlskog invariant is not reproduced by the current
    Yukawa-determinant formula**: it evaluates $\approx 2.7\times10^{-25}$,

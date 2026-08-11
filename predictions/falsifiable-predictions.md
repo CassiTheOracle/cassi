@@ -3,9 +3,11 @@
 ## Status: Reference—August 2026
 
 Every prediction is derived from the golden ratio $\varphi = (1+\sqrt{5})/2$ and the
-two-fluid PDE with **zero free parameters**. No fitting, no fine-tuning, no hidden
-constants. All couplings are $\varphi$-powers; the last empirical parameter
-($\xi = \varphi^6$) was derived from first principles in 2026.
+two-fluid PDE. The framework's couplings are $\varphi$-powers, and no **new**
+free parameters are introduced for any prediction; the quantities whose
+placement or normalization is anchored to observation carry the Calibrated or
+Mapped flag with a Fit-Status Ledger row (`parameter-inventory.md` §10)—those
+flags are load-bearing and appear per-row below.
 
 ---
 
@@ -15,7 +17,7 @@ constants. All couplings are $\varphi$-powers; the last empirical parameter
 |-----------|---------|-------|-----------|-------------------|
 | $m_W/m_Z$ | 0.8813 | **0.878** (tree 0.874 + $\rho$ correction) | $-0.36\%$ | $>100\sigma$ |
 | $m_W$ | 80.360 GeV | **80.07 GeV** | $-0.36\%$ | 0.5 MeV |
-| $\sin^2\theta_W(m_Z)$ | 0.23122 | **0.236** ($\varphi^{-3}$; running angle equals it at $\mu_* = 233$ GeV) | $+2.1\%$ | $3\times10^{-5}$ |
+| $\sin^2\theta_W(m_Z)$ | 0.23122 | **0.236** ($\varphi^{-3}$; running angle equals it at $\mu_* = 233$ GeV—the re-anchoring scale, Calibrated, ledger §10 row 490) | $+2.1\%$ | $3\times10^{-5}$ |
 | $\alpha_{\text{EM}}^{-1}(m_Z)$ | 128.9 | **161** (RG from $\varphi^{-3}/4\pi$ at $10^{16}$ GeV) | $+25\%$ | In-situ |
 | $m_H$ | 125.2 GeV | **not predicted** ($\lambda(m_Z) = 0.1294$ from input; $\lambda_\varphi$ formula gives 35 GeV) |—| 4 MeV |
 
@@ -38,12 +40,16 @@ GUT-scale running direction is upward, so the offset is not absorbable.
 | $r$ (tensor-to-scalar) | $<0.032$ | **0.003** | $0.001$ |
 | $dn_s/d\ln k$ | $-0.005 \pm 0.013$ | **$-5\times10^{-4}$** | $\pm 0.002$ |
 | $\mathcal{P}_\zeta$ | $2.1\times10^{-9}$ | **$\sim 2\times10^{-9}$** | In-situ |
-| $N_e$ (e-foldings) | $50$–$60$ | **$60 \pm 10$** | Degenerate |
+| $N_e$ (e-foldings) | $50$–$60$ | **$40$ (start-threshold choice—Mapped, ledger §10 row 501)** | Degenerate |
 
 **Source:** `cosmology/cosmology-from-phi.md` §2. Inflation is a $\varphi$-driven phase
 transition ($r \gg \varphi$ to $r = \varphi$). The spectral index $n_s = 1 - 2\varphi^{-1}/N_e = 0.9691$
-matches Planck at $1.0\sigma$ ($N_e = 40$). Tensor ratio $r = 12/N_e^2 = 0.003$ is within
-CMB-S4 detection threshold ($\sigma_r = 0.001$).
+matches Planck at $1.0\sigma$ as a closed form ($N_e = 40$—Mapped window, ledger §10 row 501; the
+gate slow-roll trajectory does not reproduce it). Tensor ratio $r = 12/N_e^2$: the arithmetic does
+not close at $N_e = 40$ ($12/40^2 = 0.0075 \neq 0.003$; the value $0.003$ requires $N_e \approx 63.2$),
+and $r = \varphi^{-12}$ is a Mapped fit (ledger §10 row 495) excluded by the trajectory's BK18
+constraint—reported here as the catalog value with its Mapped status, testable at CMB-S4
+($\sigma_r = 0.001$).
 
 
 **CMB large-angle anomaly (bubble-boundary axis)**: triaxial bubble geometry at step 285 imprints a preferred axis at super-horizon scales ($\ell < 5$); predicted dipole↔quadrupole alignment $12.2°$ (C10). The CMB "axis of evil" (quadrupole-octopole alignment at $(l,b)=(260\degree,+60\degree)$, 5.4σ; Jones+ 2023) is the measured counterpart. Epistemic tiering: the $12.2°$ angle is **Calibrated** (angle from data, computed from the measured direction vectors); the bubble-boundary mechanism is **Hypothesized** (boundary orientation fit to the measured axis, post-hoc). The Cassi-unique test: the anomaly must be scale-dependent (fading for $\ell > 5$), distinguishing from foreground contamination. Simons Observatory + LiteBIRD E-mode polarization data (2025+) provide the test.
@@ -58,11 +64,11 @@ CMB-S4 detection threshold ($\sigma_r = 0.001$).
 | $w(z)$ at $z > 3$ | $-1$ | **$> -1$** (no phantom crossing, structural) | LSST/Roman/SKA testable; DESI best fit crosses at $z \approx 0.5$ |
 | φ-periodic $P(k)$ modulation | None | **$\Delta(\ln k) = \ln\varphi \approx 0.4812$** | 0-param, orthogonal to BAO, DESI/Euclid testable |
 | Void ellipticity (edge gradient) | Isotropic boundaries | **1.70** (axial:diagonal steepness—the boundary-gradient ratio $|\nabla C|_{\text{axial}}/|\nabla C|_{\text{diag}} = \sqrt{4\varphi^2/(1+\varphi^2)} = 1.70130$, `foundations/bubble-edge-geometry.md` §2.2; distinct from the $\varphi$-shape axis ratio, $\varepsilon = 0.382$) | Measured 2026-08-07 (VAST/ZOBOV DR7 + NSA, 130 voids): the 1.70 gradient ratio does not appear in the data—$\mu = 1.005 \pm 0.221$ (99% CI [0.584, 1.753], $p_{\text{pred}} = 0.008$), NULL per the pre-registered tree; T3 control failed (RSD quadrupole)—systematics-limited; the 2D transverse control also NULL; shape $\varepsilon = 0.225 \pm 0.066$ excludes the $\varphi$-shape readings (0.382, 0.412) |
-| $\Omega_{\text{DM}}/\Omega_b$ | $\sim 5$ | **$\varphi^3 + 1 \approx 5.24$** | Observed $5.39$, gap $2.8\%$ |
+| $\Omega_{\text{DM}}/\Omega_b$ | $\sim 5$ | **$\varphi^3 + 1 \approx 5.24$** (Mapped—ledger §10 row 502: hand-added $+1$; base $\varphi^3$ asserted) | Observed $5.39$, gap $2.8\%$ |
 | $\sigma_8$ | $0.811$ | **+0.3% ± 0.5 pp (P-A, measured window $z \in [100, 61]$)** — the window-integrated mixture of the measured per-cell μ(x,t) histories on the ΛCDM background (`cassi-toe-rewrite-briefs/spiral-gravity/45-sigma8-mixture.md`; the window's content is the q-history 0.866 → 0.795, not the endpoint; mixture = mean-field to 0.00 pp); the P-C pointwise-chord reading (flagged): **+24.8% ± 16.3 pp over the measured window** (R_mix = 1.2483, every cell ends with R > 1), then **−95.7% ± 2.4 pp over the continuation $z \in [61, 0]$** (R_mix = 0.0430 full-window; the continuation is measured from the per-cell t = 40 state — the freeze is structural in the continuation: Re p = −0.25 for every μ < −1/24, the common envelope decay, and all 262144 cells end R < 1 through z → 0; N=128 confirms both phases — +24.83% / −95.9%, resolution-converged to 4 decimals; `cassi-toe-rewrite-briefs/spiral-gravity/53-post-freeze-continuation.md`, `cassi-toe-rewrite-briefs/spiral-gravity/54-n128-mixture.md`); the settlement family (the stabilized closure's regime-integrated −16.6% (R = 0.834), the band-state mean-field −15.2%, the full-window hold −11.2%) is the reference; the pipeline's measured rows: total −20.5% and mechanism +29.7% (G_eff = 1.297, doctrine r₀, linear-P(k) normalization, resolution-converged N=64/128; r₀-dependent: +29.4% at the derived r₀ = 0.0472); the μ normalization remains Mapped | LSST discriminant — the computed values, not a target |
 | DM halo profiles | NFW (cuspy) | **Cored (Qi condensate)** | Dwarf galaxies |
 | Bullet Cluster | Collisionless DM | **Collisionless** | Already consistent |
-| $\eta$ (baryon/photon) | $6.0\times10^{-10}$ | **$6.38\times10^{-10}$** ($\varphi^{-44}$) | Within $6.3\%$ |
+| $\eta$ (baryon/photon) | $6.0\times10^{-10}$ | **$6.38\times10^{-10}$** ($\varphi^{-44}$; exponent Mapped—ledger §10 row 481) | Within $6.3\%$ |
 | BAO $\alpha_\perp(z=0.5)$ | $1$ | **0.97** ($3\%$ shift) | DESI DR2 matched |
 | BTFR slope | $\sim 4$ | **$4$** (natural) | $A_{\text{Cassi}}/A_{\text{obs}} = 0.82$ |
 | Hubble tension ($H_0$) | $5\sigma$ discrepancy | **Evolving $\Omega_\Lambda$: $0.30 \to 0.50$** | Full H(z) fit performed 2026-08-06 (`computations/hz_full_fit.py`): not resolved under the calibrated w(a); the −7.2 value was an extrapolation beyond the calibrated range (registry C3/T4); pipeline CMB-inferred ≈ 65.8 |
@@ -330,14 +336,20 @@ Sorted by detection likelihood (most definitive first):
 
 ## Notes
 
-- **All predictions are parameter-free.** Every number in the tables follows from
-  $\varphi = (1+\sqrt{5})/2$ and the two-fluid PDE structure. There is no fitting,
-  no fine-tuning, no hidden constants.
+- **No new free parameters.** Every number in the tables follows from
+  $\varphi = (1+\sqrt{5})/2$ and the two-fluid PDE structure plus the
+  Calibrated/Mapped anchors recorded in the Fit-Status Ledger
+  (`parameter-inventory.md` §10); per-row flags mark the anchored quantities.
 
 - **The same $\varphi$ governs every sector:** the weak mixing angle $\sin^2\theta_W = \varphi^{-3}$,
   the Qi-gravity coupling $\xi = \varphi^6$, the DM/baryon ratio $\varphi^3+1$,
   the dark energy equation of state $w_0 = -0.87$, the baryon asymmetry $\eta$,
   and the inflationary spectral index $n_s = 1 - 2\varphi^{-1}/N_e = 0.9691$.
+  Their tiers differ: $w_0$ is **Calibrated** (ledger row 496); $\xi$'s rung
+  identity, $\eta$'s exponent, $\varphi^3+1$, $n_s$'s $N_e$, and $r$ are
+  **Mapped** or conditional (ledger rows 498, 481, 502, 501, 495); only the
+  $w = 5$ / gap / $\sin^2\theta_W$ forms carry the framework's full derivation
+  chain (see the note on $\sin^2\theta_W$ in §1).
 
 - **RG running is not fitting.** The running of the couplings between the
   φ-boundary and $m_Z$ is the Standard Model renormalization group, computed

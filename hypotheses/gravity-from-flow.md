@@ -557,9 +557,12 @@ coefficient, not a tuning dial.
 A horizon exists for any positive $G_{\text{eff}}$: $r_s =
 2G_{\text{eff}}M/c^2$. The collapse threshold scales as
 $G_{\text{eff}}^{-3/2}$, so the chord's range
-$G_{\text{eff}}/G \in [0.236,\,4.24]$ at the equilibrium Yang fraction
-$\alpha = \varphi^{-3}$ (up to $\approx 12.6$ with a halo's $\alpha \approx
-0.7$) shifts stellar black-hole masses by roughly an order of magnitude. The
+$G_{\text{eff}}/G \in [0.236,\,4.24]$ at the fixed-point imbalance
+$\alpha = \pi/\rho = \varphi^{-3}$ (Mapped relabel—ledger row 500: the true
+Yang fraction at equilibrium is $\varphi^{-1} \approx 0.618$; up to $\approx
+12.6$ with a halo's $\alpha \approx 0.7$, which is a hardcoded nominal, not a
+SPARC fit—ledger row 484) shifts stellar black-hole masses by roughly an
+order of magnitude. The
 framework's black-hole sector itself is $\sigma$-regularized harmonic cores
 with the GR exterior (registry G3, Derived; `gravity/quantum-gravity.md` §7.1),
 so the river law's consequences act on the collapse threshold and the horizon

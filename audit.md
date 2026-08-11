@@ -12,7 +12,7 @@
 |-----------|-------------|-------------------|-----|--------|
 | $\sin^2\theta_W$ (at $m_Z$) | $0.23607 = \varphi^{-3}$ | $0.23122 \pm 0.00004$ |—| **2.1% high**—the running angle crosses $\varphi^{-3}$ at $\mu_* \approx 233$ GeV (running is upward, so the GUT-scale gap is not closed by RG; see `standard-model/sm-radiative-corrections.md` §3.3) |
 | $m_W/m_Z$ | $0.8740 = \sqrt{1-\varphi^{-3}}$; 0.878 with $\rho$-correction | $0.8813$ |—| **0.36% error** after radiative corrections (tree: 0.82%) |
-| $\delta_{\text{CKM}}$ | $68.8^\circ = 180 \cdot \varphi^{-2}$ | $69.2^\circ$ | $\pm 3.0^\circ$ | ✅ **Within MoE** |
+| $\delta_{\text{CKM}}$ | $68.8^\circ = 180 \cdot \varphi^{-2}$ | $69.2^\circ$ | $\pm 3.0^\circ$ | ⚠️ **Mapped** (4-candidate $\varphi$-search; ledger row 482; within the repo anchor's MoE, $2.1\sigma$ from the PDG 2024 value $65.55^\circ \pm 1.55^\circ$) |
 
 ### 1.2 CKM Matrix
 
@@ -21,9 +21,9 @@
 | $\|V_{us}\|$ | $\varphi^{-3} \approx 0.236$ | $0.225$ | **5% off**—nearest $\varphi$-power is close but not exact; Wolfenstein hierarchy requires additional flavor structure |
 | $\|V_{cb}\|$ | Wolfenstein $A\lambda^2$ with $\lambda \approx \varphi^{-3}$ | $0.041$ | **Consistent**—magnitude set by hierarchy, not direct $\varphi$-power |
 | $\|V_{ub}\|$ | Wolfenstein $A\lambda^3(\rho-i\eta)$ with $\lambda \approx \varphi^{-3}$ | $0.004$ | **Consistent**—magnitude set by hierarchy |
-| $\delta_{\text{CKM}}$ | $\pi\varphi^{-2} \approx 68.8^\circ$ | $\sim 68^\circ$ | ✅ **<1%**—derived from unitarity triangle closure, independent of exact CKM magnitudes |
+| $\delta_{\text{CKM}}$ | $\pi\varphi^{-2} \approx 68.8^\circ$ | $\sim 68^\circ$ | ⚠️ **Mapped** (4-candidate selection; ledger row 482)—the "unitarity triangle closure" derivation is not shown and is not the source of the value |
 
-The CKM phase is nailed. Magnitudes follow the Wolfenstein hierarchy with $\lambda \approx \varphi^{-3}$; exact $\varphi$-powers for individual elements require additional Yukawa structure. See `standard-model/cp-violation.md`.
+The CKM phase value is a Mapped selection (ledger row 482), not a derived quantity. Magnitudes follow the Wolfenstein hierarchy with $\lambda \approx \varphi^{-3}$; exact $\varphi$-powers for individual elements require additional Yukawa structure. See `standard-model/cp-violation.md`.
 
 ### 1.3 Neutrino Masses
 
@@ -55,7 +55,7 @@ Neutrino masses are not cleanly derivable from $\varphi$ alone. The seesaw mecha
 | Prediction | Cassi Value | Experimental | Status |
 |-----------|-------------|--------------|--------|
 | Mercury perihelion | $42.98''$/cy (GR) | $42.98'' \pm 0.01''$/cy | ✅ **Matches GR** |
-| $G_{\text{eff}}/G$ (fixed point) | $\varphi^{-3} \approx 0.236$ |—| ✅ **Definition** |
+| $G_{\text{eff}}/G$ (fixed point) | $\varphi^{-3} \approx 0.236$ |—| ✅ **Algebraic at the φ-fixed point** ($\pi/\rho = (\varphi-1)/(\varphi+1)$); the "equilibrium Yang fraction" label is Mapped (relabel), ledger row 500 |
 | $v_C/v_B$ (MW rotation) | $2.8$–$3.0$ (revised 2026-07-31) | $2.5-3.0$ | ✅ **Within range** |
 | Dwarf spheroidal M/L | 3/8 pass (corrected 2026-08-03) | 3/8 | ⚠️ **MOND preferred (4/8); ceiling $\varphi^3 = 4.2361$ exceeded in 3/8** |
 | MESSENGER bound $\|q\|$ | $< 1.1\times 10^{-6}$ at 0.39 AU | Satisfied | ✅ **Passes** |

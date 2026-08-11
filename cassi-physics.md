@@ -210,7 +210,7 @@ This single rule explains the deepest hierarchy puzzles in physics, each in one 
 
 | Phenomenon | Span $N$ | Suppression | Result |
 |---|---|---|---|
-| Electroweak hierarchy ($v_0/M_{\text{Pl}}$) | 72 | $\varphi^{-72}$ | $10^{-15}$ |
+| Electroweak hierarchy ($v_0/M_{\text{Pl}}$) | 66.7 (corrected GUT anchor $n \approx 13.3$) | $\varphi^{-66.7}$ | $10^{-14}$ (the $N \approx 80$ reading uses the gap factor $g$; exponent Mapped—ledger row 499) |
 | Strong CP ($\bar{\theta}$) | 81.4 | $\varphi^{-81.4}$ | $\pi\varphi^{-83.4} \approx 1.2\times10^{-17}$ |
 | Neutrino masses ($m_\nu$) | 12–25 | $\varphi^{-12}$ to $\varphi^{-25}$ | 0.001–0.1 eV |
 | Proton lifetime | 91.5 (coherence) | $\varphi^{-4506}$ | $10^{910}$ yr |
@@ -249,25 +249,25 @@ The predicted equation of state follows from the gate dynamics:
 
 $$w_0 = -0.87, \qquad w_a = +0.012$$
 
-with the Qi-gravity coupling $\xi = \varphi^6$ entering the cosmic evolution. These are zero-parameter predictions, falsifiable with galaxy surveys. Current status: DESI DR2 finds $w_0 \approx -0.75 \pm 0.06$ [INFERENCE], $2\sigma$ from the predicted $w_0 = -0.87$ (Calibrated baseline; $3.6\sigma$ at fixed $r_0$ with the B2 coupling; $r_0$ re-tuning closed negatively under the stable realization—12); the $w_a$ deviation from $-1$ is the discriminant ($w_a = +0.012$ baseline, $2.7\sigma$; the ratified coupling's unstable B2 realization gives $-0.38$ at $1.25\sigma$; its stable realization—the C1 friction closure, 10/12—gives a pure-Λ window fit $(w_0, w_a) = (-1, 0)$—4.17σ/2.61σ from DESI). See `cosmology/cosmology-from-phi.md` for the derivation and `predictions/falsifiable-predictions.md` for the test status.
+with the Qi-gravity coupling $\xi = \varphi^6$ entering the cosmic evolution. The $w_0 = -0.87$ baseline is **Calibrated**, not a zero-parameter prediction: the ODE is calibrated to the hardcoded `TARGET_W0`, and the coupling form was revised toward DESI across the 2026-08-03 doctrine settlement (Fit-Status Ledger, `parameter-inventory.md` §10 row 496). The $w_a = +0.012$ value is the Yang-fraction-weighted coupling's prediction at that Calibrated baseline. The pair is falsifiable with galaxy surveys: DESI DR2 finds $w_0 \approx -0.75 \pm 0.06$ [INFERENCE], $2\sigma$ from the Calibrated baseline ($3.6\sigma$ at fixed $r_0$ with the B2 coupling; $r_0$ re-tuning closed negatively under the stable realization—12); the $w_a$ deviation from $-1$ is the discriminant ($w_a = +0.012$ baseline, $2.7\sigma$; the ratified coupling's unstable B2 realization gives $-0.38$ at $1.25\sigma$; its stable realization—the C1 friction closure, 10/12—gives a pure-Λ window fit $(w_0, w_a) = (-1, 0)$—4.17σ/2.61σ from DESI). See `cosmology/observational_constraints.md` §1, §6 for the calibration and `two-fluid/calibrate_initial_ratio_xi_v2.py` for the ODE; `cosmology/cosmology-from-phi.md` covers the surrounding machinery.
 
-**Epistemic status: Hypothesized** (prediction supplied; being tested).
+**Epistemic status: Calibrated** ($w_0$ baseline anchored to DESI—ledger row 496); the mechanism (gate dynamics driving $w(a)$) is **Hypothesized** and being tested.
 
 ## 11. Dark Matter
 
 Dark matter is **high-coherence two-fluid condensate**—regions locked at $\varphi$-equilibrium. Two properties follow. First, gravity is amplified in high-$q$ regions (up to the α-free full-coherence ceiling $\varphi^6 \approx 17.94\times$ at $q=1$; halo-regime boosts are $2.8$–$3.0\times$ via $\sqrt{\alpha_{\text{halo}}(1+(\varphi^{6}-1)q)}$ with $\xi = \varphi^6 \approx 17.9$), so the condensate pulls surrounding matter with more gravitational force than visible matter accounts for. Second, because the two fluids are in perfect $\varphi$-equilibrium, there is no electromagnetic interaction: the region is dark. It bends light and shapes galaxies, but cannot be seen.
 
-The predicted ratio of dark matter to ordinary matter follows from the same five-arm structure that sets the gap:
+The predicted ratio of dark matter to ordinary matter is **Mapped**, not derived from the five-arm structure: the $\varphi^3$ base is the asserted ξ/φ³ "gap between the gravitational coupling and the EM decoupling scale" (`cosmology/cosmology-from-phi.md` §4.2, with no rung arithmetic shown), and the $+1$ is a hand-added baryon-capture term selected after $\varphi^3$ alone came in 21% low (Fit-Status Ledger row 502):
 
 $$\Omega_{\text{DM}}/\Omega_b = \varphi^3 + 1 \approx 5.24 \qquad \text{(observed: } \approx 5.4)$$
 
-The framework's halo model has been fitted against SPARC galaxy rotation curves (`experiments/sparc_qi/sparc_qi_analysis_v4.py`), comparing Qi profiles against NFW and Einasto with AIC. **Epistemic status: Hypothesized** (tested against rotation curves; the predicted ratio is within observational uncertainty).
+The framework's halo model has been fitted against SPARC galaxy rotation curves (`experiments/sparc_qi/sparc_qi_analysis_v4.py`), comparing Qi profiles against NFW and Einasto with AIC. **Epistemic status: Mapped** (ratio combination fitted—ledger row 502; the condensate mechanism is Hypothesized, tested against rotation curves).
 
 ## 12. Gravity and the Hierarchy Problem
 
 Gravity in Cassi is **gradient descent along the spiral toward coherence**. In the point-particle sector the law is the Newtonian $-\nabla\Phi$ convention—$\ddot{\mathbf{X}}_j = -\alpha_j(1+(\varphi^{6}-1)q_j)\nabla\Phi$ (`gravity/three-body-analytical.md` §2.3)—so gravity is always attractive for matter: the spiral winds only one way, and the sector's law carries the minus that keeps it so. The field-level force $\mathbf{F} = \Pi\nabla\Phi$ itself is $\Pi$-sign-following: a Yang excess repels, a Yin excess attracts (measured in the two-strand record, `hypotheses/two-strand-five-channel-matter-organization.md` §3.3, §3.5).
 
-Why is gravity so weak? Every force lives at a specific cascade rung, and every rung between the force's source and the scale of measurement attenuates its strength by $\varphi^{-1}$. The gravitational coupling for a proton is $\varphi^{-183} \approx 5.9 \times 10^{-39}$, matching the observed value to 0.1%: the proton lives 91.5 rungs deep in the cascade, and the signal loses strength at every rung it crosses.
+Why is gravity so weak? Every force lives at a specific cascade rung, and every rung between the force's source and the scale of measurement attenuates its strength by $\varphi^{-1}$. The proton's gravitational coupling is the identity $\alpha_G = (m_p/M_{\text{Pl}})^2 = \varphi^{-2n}$, with $n = \log_\varphi(M_{\text{Pl}}/m_p) \approx 91.5$ the proton's measured cascade rung—the exponent is read off the measured mass, not predicted (Fit-Status Ledger row 506, **Mapped**): $\varphi^{-183} \approx 5.7 \times 10^{-39}$, 3.5% from the observed $\alpha_G \approx 5.9\times10^{-39}$ (the "0.1%" match requires the fractional rung 91.46, which is the log map of the measured mass itself).
 
 The effective force law carries the Qi-gravity coupling (`cosmology/observational_constraints.md`):
 

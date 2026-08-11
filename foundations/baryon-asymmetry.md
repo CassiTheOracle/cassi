@@ -77,9 +77,7 @@ excess condenses into the Qi field as dark energy. The matter yield is:
 
 $$\eta \approx \frac{1}{2} \cdot |\eta_{\text{GUT}}| \cdot f_{\text{Yang}}$$
 
-where $f_{\text{Yang}} \approx \varphi^{-3} \approx 0.236$ is the Yang fraction
-at the $\varphi$-attractor (the fraction of total density that is Yang at
-equilibrium).
+where $f_{\text{Yang}} \approx \varphi^{-3} \approx 0.236$ is the *relative Yang excess* (the imbalance $(E_Y-E_I)/(E_Y+E_I)$ at the $\varphi$-attractor). The actual Yang fraction at equilibrium is $E_Y/(E_Y+E_I) = \varphi^{-1} \approx 0.618$; calling $\varphi^{-3}$ the "Yang fraction" is a relabel error (ledger row 500), and the $\eta_{\text{GUT}} \approx \varphi^{-6.2}$ estimate that multiplies this factor is itself disowned below as a scaling estimate.
 
 $$\eta_{\text{GUT}} \approx 0.21 \times 0.236 \approx 0.05 \approx \varphi^{-6.2}$$
 

@@ -1,6 +1,6 @@
 # Derivation of $\xi = \varphi^6$
 
-## Status: Derived rung identity ($\xi = \varphi^6$) / Calibrated empirical pin (Milky Way anchor—ledger)—August 2026
+## Status: Rung identity conditional on the 2×3-DOF ansatz ($\xi = \varphi^6$; $d = 3$ imported, φ-per-DOF step asserted—see §2) / Calibrated empirical pin (Milky Way anchor—ledger)—August 2026
 
 ## Abstract
 
@@ -48,7 +48,7 @@ Qi field couples to spacetime curvature:
   (three dimensions from the spiral's Frenet-Serret frame) is proposed in
   `foundations/why-three-dimensions.md`; pending its validation, this is the
   framework's last imported integer.
-- **Total**: $2 \times 3 = 6$ degrees of freedom, each contributing a factor of $\varphi$
+- **Total**: $2 \times 3 = 6$ degrees of freedom, each contributing a factor of $\varphi$ (**asserted**—no dynamics or geometry in this document shows why each DOF contributes exactly one factor of $\varphi$; the product $2\times3$ and the per-DOF factor are the ansatz that makes the exponent 6)
 
 The Fibonacci decomposition $\varphi^6 = \varphi^5 + \varphi^4$ carries additional meaning:
 
@@ -165,12 +165,12 @@ four fundamental forces.
 ## 7. Summary
 
 $\xi = \varphi^6$ closes the last empirically-calibrated dimensionless coupling in
-the Cassi framework. The rung identity is not an empirical fit but a
-mathematical consequence of the golden ratio's Fibonacci structure; the
-empirical pin on the Milky Way rotation curve is the Calibrated anchor that
-sets the value (Fit-Status Ledger, `parameter-inventory.md` §10). The framework
-predicts all observable phenomena—from galactic rotation curves to the weak mixing
-angle—from a single irrational number: $\varphi$.
+the Cassi framework. The empirical pin on the Milky Way rotation curve is the
+Calibrated anchor that sets the value (Fit-Status Ledger, `parameter-inventory.md`
+§10). The rung identity's exponent rests on the 2×3-DOF ansatz (two field
+components × three spatial dimensions, with $d = 3$ an imported integer and the
+φ-per-DOF factor asserted); it is not an independent derivation until a
+Yin-Yang dynamic or geometric consequence selects the exponent 6.
 
 ---
 

@@ -213,13 +213,16 @@ For a soliton formed from Yang-Yin interference with amplitude ratio $r = A_I/A_
 
 $$M(r) = M_0 \cdot \frac{(1 + r)^2}{\sqrt{r}}$$
 
-Minimizing $M(r)$ with respect to $r$:
+Differentiating and setting to zero gives $3r^2 + 2r - 1 = 0$, whose only
+positive root is $r = 1/3$—the stated functional does **not** minimize at
+$r = \varphi^{-1}$ ($M(\varphi^{-1}) \approx 3.33\,M_0 > M(1/3) \approx 3.08\,M_0$;
+the mass rises from $r = 1/3$ to its plateau near $r = 1$). The
+$r = \varphi^{-1}$ optimum is therefore an **asserted ansatz**, not the
+minimizer of $M(r)$ as written; the PDE scan of §11.1 is consistent with
+$r = \varphi^{-1}$ being a *near-maximal*-mass, structurally stable
+configuration, not the minimum-mass one.
 
-$$\frac{dM}{dr} = 0 \Rightarrow r^2 + r - 1 = 0 \Rightarrow r = \varphi^{-1} \approx 0.618$$
-
-**The most stable soliton—the one with minimum mass for given total energy—occurs when the Yin amplitude is exactly φ⁻¹ times the Yang amplitude.**
-
-This is not imposed. It is the **structural optimum** of the interference pattern. The golden ratio emerges as the stability condition for particle formation.
+This is not imposed by the equations, but it is also not the minimizer of the displayed $M(r)$: the $r = \varphi^{-1}$ optimum is a **proposed structural ansatz** (the amplitude ratio at which the interference pattern is observed to be stable in the §11.1 PDE scan), not a derived consequence of the mass functional as written. The golden ratio's role as the particle-formation stability condition is therefore **Hypothesized** pending a functional whose extremum genuinely sits at $\varphi^{-1}$.
 
 ### 7.2 The φ² Amplification
 

@@ -276,17 +276,18 @@ Current bound: $r < 0.036$ (95% CL, Planck/BICEP). The Cassi prediction is
 an order of magnitude below current sensitivity—testable with CMB-S4 and
 LiteBIRD.
 
-**Interpretation of $\varphi^{-12}$:** The exponent $12 = 6 + 6$ suggests
-$r \approx \xi^{-1} \cdot \varphi^{-6}$—the inverse Qi-gravity coupling
-($\xi^{-1} = \varphi^{-6}$) times a cascade suppression factor
-($\varphi^{-6}$). The first $\varphi^{-6}$ comes from the Qi-gravity strength
-at the inflation scale; the second from the tensor-to-scalar cascade damping.
+**Status of $\varphi^{-12}$:** the exponent is a **Mapped fit** (Fit-Status Ledger row 495), not a derived consequence: all three candidate formulas in the source doc fail their own arithmetic ($\varphi^{-6} \neq 0.003$; $12/40^2 = 0.0075$; the trajectory gives $r = 0.060$ at $N_e = 40$ literal), and the trajectory test (`computations/slow_roll_trajectory.py`, 2026-08-06) excludes the value via BK18. Earlier "interpretations" of $12 = 6+6$ (inverse Qi-gravity coupling $\xi^{-1} = \varphi^{-6}$ times a tensor-damping $\varphi^{-6}$) are not supported by any dynamics assigning one factor to each and are withdrawn here; the Mapped flag is carried from `cosmology/inflation-from-cascade.md` §4.
 
 **Refined prediction for $n_s$ (closed φ-form):**
 
-The gate transparency at closure ($1-q \to 0.127$) means the effective number
-of e-folds for the spectral index is $N_e^{\text{eff}} = N_e \cdot \varphi$,
-since $1 + \varphi^{-1} = \varphi$. The closed-form result:
+The gate transparency at closure ($1-q \to 0.127$) is claimed to give an
+effective e-fold count $N_e^{\text{eff}} = N_e \cdot \varphi$ (since
+$1 + \varphi^{-1} = \varphi$); this multiplicative step is an **assertion**,
+not a derived result—the repo's own script integrates $N_{\text{eff}} = 43.22$,
+not $40\varphi \approx 64.7$ (`computations/ns_gate_correction.py`), and the
+closed form $n_s = 1 - 2\varphi^{-1}/N_e = 0.9691$ holds at $N_e = 40$ directly
+without the extra factor. $N_e = 40$ is a **Mapped** start-threshold window
+(Fit-Status Ledger row 501). The closed-form result:
 
 $$\boxed{n_s = 1 - \frac{2\varphi^{-1}}{N_e} = 1 - \frac{2}{N_e\varphi} = 0.9691}$$
 
@@ -297,12 +298,16 @@ $$\delta n_s = n_s - \left(1 - \frac{2}{N_e}\right) = \frac{2\varphi^{-2}}{N_e} 
 This is consistent with Planck 2018 ($0.9649 \pm 0.0042$) at $1.0\sigma$.
 The computation is in `computations/ns_gate_correction.py`.
 
-**The gate correction is derived in closed φ-form.**
+**The gate correction is derived in closed φ-form** (with $N_e = 40$ Mapped; the $N_e\cdot\varphi$ transparency step is asserted—see above).
 
 **Assessment:** The result $0.9691$ sits $+0.0042$ above the Planck
 central value—$1.0\sigma$, within the gate closure-width systematic. The
-correction is a structural consequence of the Qi gate transparency at
-$r = \varphi^{-1}$, reducing to $\delta n_s = 2\varphi^{-2}/N_e$.
+$\delta n_s = 2\varphi^{-2}/N_e$ form is algebraically equivalent to the
+closed form, but the gate-transparency origin of the $\varphi^{-2}$ factor is
+asserted, not reproduced by the trajectory (`computations/slow_roll_trajectory.py`,
+2026-08-06: $(0.813, 0.188)$ under 1 step = 1 e-fold, $(0.914, 0.060)$ at
+$N_e = 40$ literal). The "1.0σ" standing is for the closed form with the
+Mapped window, not for a derived gate mechanism.
 
 ---
 

@@ -14,11 +14,11 @@ The Cassi framework replaces particle dark matter with Qi-enhanced gravity: $G_{
 
 ### 1.1 Qi-enhanced gravity
 
-The Cassi framework's most precisely verified prediction is the gravitational coupling at cascade rung $n$ (`foundations/spiral-dynamics.md` §3.3):
+The Cassi framework's most often-quoted gravitational-coupling result at cascade rung $n$ (`foundations/spiral-dynamics.md` §3.3):
 
 $$\boxed{\alpha_G(n) \sim \varphi^{-2n}}$$
 
-For a proton ($n \approx 91.5$), $\varphi^{-183} \approx 5.9 \times 10^{-39}$ matches the observed $\alpha_G = G m_p^2/(\hbar c) \approx 5.91 \times 10^{-39}$ to within 0.1%.
+For a proton ($n \approx 91.5$), $\varphi^{-183} \approx 5.7 \times 10^{-39}$ vs the observed $\alpha_G = G m_p^2/(\hbar c) \approx 5.91 \times 10^{-39}$—about 3.5% low. **Status (Mapped—ledger row 506):** the relation is the definitional identity $\alpha_G = (m_p/M_{\text{Pl}})^2 = \varphi^{-2n}$ with $n = \log_\varphi(M_{\text{Pl}}/m_p)$ read off the measured proton mass; the "within 0.1%" phrasing holds only for the fractional rung 91.46, which is the log map of the measurement itself, so it is not an independent prediction of the hierarchy.
 
 In regions of elevated Qi coherence, the effective gravitational constant is amplified:
 
@@ -26,7 +26,7 @@ $$\boxed{G_{\text{eff}} = \frac{\pi}{\rho}(1 + (\varphi^{6}-1)q)G, \qquad \xi = 
 
 (`foundations/bubble-edge-geometry.md` §4.2, `foundations/xi-derivation.md` §2)
 
-The Yang fraction $\pi/\rho$ is the local fraction of the field in the Yang component. At the $\varphi$-fixed point it is the equilibrium fraction $\alpha_0 = \varphi^{-3} \approx 0.236$, giving $G_{\text{eff}} = \varphi^{-3}G$ (the classical limit); the galactic-halo fits of §7 use the halo-regime value $\alpha_{\text{halo}} \approx 0.7$, giving the halo form $G_{\text{eff}} = \alpha_{\text{halo}}(1+(\varphi^{6}-1)q)G$; and the homogeneous cosmological analogue weights by the attractor value $\alpha_w = r/(1+r) = \varphi^{-1} \approx 0.618$.
+The Yang fraction $\pi/\rho$ is the local fraction of the field in the Yang component. At the $\varphi$-fixed point it is the imbalance $\alpha_0 = \pi/\rho = (\varphi-1)/(\varphi+1) = \varphi^{-3} \approx 0.236$ (the Yang fraction itself is $\varphi^{-1} \approx 0.618$—ledger row 500 relabel), giving $G_{\text{eff}} = \varphi^{-3}G$ (the classical limit); the galactic-halo fits of §7 use the halo-regime value $\alpha_{\text{halo}} \approx 0.7$, giving the halo form $G_{\text{eff}} = \alpha_{\text{halo}}(1+(\varphi^{6}-1)q)G$; and the homogeneous cosmological analogue weights by the attractor value $\alpha_w = r/(1+r) = \varphi^{-1} \approx 0.618$.
 
 At the full-coherence ceiling ($q \to 1$): $G_{\text{eff}} \to (\pi/\rho)\varphi^6 G \approx 17.94\,(\pi/\rho)G$—gravity amplified by up to $\varphi^6 \approx 17.94$ over the bare coupling at the saturation ceiling. Halo-regime values ($q \approx 0.6$–$0.7$ in the outskirts, $\pi/\rho \approx 0.7$) give $G_{\text{eff}} \approx 8$–$10\,G$ at galaxy outskirts; the $q \to 1$ ceiling is not reached inside screened halo cores.
 At $q \to 0$ (cosmic voids): $G_{\text{eff}} \to (\pi/\rho_{\text{void}})G$—unamplified gravity.
