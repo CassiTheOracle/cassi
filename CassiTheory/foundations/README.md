@@ -13,7 +13,7 @@ This directory holds the load-bearing derivations of the Cassi framework: the di
 | 1 | `dimensionful-cascade.md` | Scales from φ | Derived |
 | 2 | `cascade-suppression-formula.md` | Universal attenuation law | Derived |
 | 3 | `unified-lagrangian.md` | Assembled Lagrangian | Derived |
-| 4 | `cassi-first-principles.md` | Postulate and two-fluid PDE | Derived |
+| 4 | `cassi-first-principles.md` | Postulate and two-fluid PDE | Derived PDE; asserted single-channel g(q) input |
 | 5 | `cassi-theory-reference.md` | Compact framework reference | Reference |
 | 6 | `xi-derivation.md` | Qi-gravity coupling | Derived conditional on the quadratic-coupling input |
 | 7 | `why-three-dimensions.md` | Spatial dimension count | Hypothesis |
@@ -32,7 +32,7 @@ This directory holds the load-bearing derivations of the Cassi framework: the di
 | 20 | `neutrino-masses.md` | Neutrino spectrum | Derivation |
 | 21 | `baryon-asymmetry.md` | Baryogenesis | Derived |
 | 22 | `bubble-lattice-fabric.md` | Universal lattice | Derived (structural) |
-| 23 | `bubble-edge-geometry.md` | Condensation boundary | Derived (structural) |
+| 23 | `bubble-edge-geometry.md` | Condensation boundary | Derived geometry; threshold conditional on asserted gate |
 | 24 | `microcascade-mirror.md` | Sub-Planckian ladder | Hypothesized |
 | 25 | `refined-numeric-predictions.md` | Pinned φ-powers | Active derivation |
 | 26 | `deriving-remaining-gaps.md` | Residual parameters | Resolved / narrowed |
@@ -221,7 +221,7 @@ Derives the physical profile of the condensation boundary: the chord-lattice pro
 
 $$\boxed{C(x,y) = \cos\!\left(\frac{2\pi x}{\Lambda_Y}\right) \cos\!\left(\frac{2\pi y}{\Lambda_I}\right), \qquad \Lambda_Y = \varphi\,\Lambda_I}$$
 
-the Qi-density mapping $q(\mathbf{x}) = (1 + C)/2$, and the condensation threshold from the conversion-diffusion balance, $\boxed{\theta_{\text{cond}}^2 (1 + \theta_{\text{cond}}) = R(\varphi^2 + (1+\theta_{\text{cond}})^2/4)}$ with the single dimensionless parameter $R \equiv 2D_{\text{eff}}(\alpha^2+\beta^2)/\omega_0$, calibrated to $\theta_{\text{cond}} = 0.45$ at $R \approx 0.093$. Its zero-parameter prediction is the edge steepness anisotropy $\boxed{|\nabla C|_{\text{axial}}/|\nabla C|_{\text{diag}} = \sqrt{4\varphi^2/(1+\varphi^2)} \approx 1.70}$—prediction #38 of the falsifiable catalog—testable in void shape catalogs. Status: Derived (structural).
+the Qi-density mapping $q(\mathbf{x}) = (1 + C)/2$, and the condensation threshold from the conversion-diffusion balance, $\boxed{\theta_{\text{cond}}^2 (1 + \theta_{\text{cond}}) = R(\varphi^2 + (1+\theta_{\text{cond}})^2/4)}$ with the single dimensionless parameter $R \equiv 2D_{\text{eff}}(\alpha^2+\beta^2)/\omega_0$, calibrated to $\theta_{\text{cond}} = 0.45$ at $R \approx 0.093$. The threshold relation is conditional on the asserted single-channel transmission $g(q) = q/(\varphi^2+q^2)$. Its zero-parameter prediction is the edge steepness anisotropy $\boxed{|\nabla C|_{\text{axial}}/|\nabla C|_{\text{diag}} = \sqrt{4\varphi^2/(1+\varphi^2)} \approx 1.70}$—prediction #38 of the falsifiable catalog—testable in void shape catalogs. Status: Derived geometry; threshold conditional.
 
 ### `microcascade-mirror.md`—The Microcascade Mirror: Sub-Planckian Scale Extension & Bidirectional Coherence
 

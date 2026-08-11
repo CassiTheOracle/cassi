@@ -58,8 +58,7 @@ organizes the two-fluid state at every cascade rung
 (`foundations/bubble-lattice-fabric.md` §1): bubble centers carry $q \to 1$
 (condensate), void centers carry $q \to 0$ (de-converted vacuum, $B \to -1$,
 §4.3). The conversion channel is gated by the Qi coherence through the
-nonlinearity $g(q) = q/(\varphi^2 + q^2)$ (§2.1), which vanishes at $q \to 0$:
-the de-converted vacuum is inert, its conversion saturated shut.
+nonlinearity $g(q) = q/(\varphi^2 + q^2)$ (§2.1, an asserted application input; its exact form is not needed for the tube-extensivity result), which vanishes at $q \to 0$: the de-converted vacuum is inert, its conversion saturated shut.
 
 **Gate saturation.** Between two separated color charges the Yang-Yin state
 saturates to the de-converted vacuum along the entire segment joining them.

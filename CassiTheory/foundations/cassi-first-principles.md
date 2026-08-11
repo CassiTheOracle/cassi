@@ -1,6 +1,6 @@
 # Cassi First Principles
 
-## Status: Derived—July 2026
+## Status: Derived PDE and Qi definition; Asserted single-channel g(q) input—August 2026
 
 ## Abstract
 
@@ -162,6 +162,55 @@ a smaller $\tau$ is needed for the memory to have comparable inertia. The
 $\varphi^{-1}$ value is near-optimal for dynamics at the conversion timescale
 $\sim 1/\lambda$.
 
+### 2.5 Gate Transmission Function: Status and Selection Test
+
+The first-principles conversion equation supplies the openness factor $(1-q)$.
+Some application documents multiply that driving term by a separate
+transmission function,
+
+$$
+\boxed{g(q) = \frac{q}{\varphi^2 + q^2}}.
+$$
+
+This single-channel form is an **Asserted input**. The action and the Qi
+definition in §§1–2 supply the field potential, $q$, the $(1-q)$ closure, and
+the IIR memory; they contain no equation selecting the rational function above.
+Consumer documents cite this section for the status audit and input boundary,
+not as a derivation of the rational function.
+
+The available selection constraints are insufficient. Attractor consistency
+requires a finite non-negative multiplier on $0\le q\le1$ and
+$g(q)(1-q)\to0$ at $q\to1$; the family $g_A(q)=q/(A+q^2)$ satisfies these
+conditions for every $A\ge1$. The current form has
+
+$$
+\frac{d}{dq}\bigl[g(q)(1-q)\bigr]
+ = \frac{\varphi^2 - 2\varphi^2q - q^2}{(\varphi^2+q^2)^2},
+\qquad
+q_{\mathrm{power}}=\sqrt{\varphi^4+\varphi^2}-\varphi^2\approx0.4597,
+$$
+
+but the peak location is a consequence of the asserted denominator, not a
+selection rule for it. The five-channel pentagon document derives the channel
+weights $b_i=\varphi^{-(2+i)}$ and their efficiencies; it gives no equation
+that reduces those channels to this single-channel denominator.
+
+A conditional geometric construction exists. If one adds the reciprocal
+coherence duality $q\mapsto\varphi^2/q$, a minimal rational family is
+
+$$
+g_m(q)=C_m\frac{q^m}{\varphi^{2m}+q^{2m}},
+$$
+
+which is self-dual for every positive integer $m$. A linear small-$q$ response
+selects $m=1$; a further slope condition $g'(0)=\varphi^{-2}$ selects
+$C_1=1$. Both conditions are additional inputs absent from the action. The
+selection audit is reproducible in `computations/gate_origin_audit.py`.
+
+**Epistemic boundary:** qualitative gate properties and the power peak are
+Derived conditional on the asserted form; the denominator $\varphi^2+q^2$ and
+its normalization remain Asserted.
+
 ---
 
 ## 3. Emergence of the Four Pillars
@@ -321,3 +370,4 @@ Any single prediction failing excludes the framework.
 - `gravity/quantum-gravity.md`—UV-finite quantum gravity
 - `gravity/three-body-analytical.md`—three-body problem in the Cassi framework
 - `predictions/falsifiable-predictions.md`—full prediction catalog
+- `computations/gate_origin_audit.py`—selection-constraint audit for the asserted single-channel $g(q)$
