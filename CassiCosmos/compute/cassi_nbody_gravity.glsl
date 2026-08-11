@@ -72,7 +72,16 @@
 // (mass deposit + PDE still run — ρ/q are visual/source state). This is
 // a visual/reference mode for the corner-pooling comparison, NOT the law.
 //
-// BH term (all modes, unchanged physics — the σ-regularized sector,
+// RIVER-SELF mode (gravity_mode == 3 — 2026-08-11): the river law ONLY.
+// The BH point-source term is disabled (gravity_at skips bh_point_gravity
+// for mode 3) and the host skips the BH condensation + BH-integrate
+// passes entirely (the BH buffer stays inert/zeroed). The only force on
+// particles is their mutual river self-gravity — the same arm, Poisson
+// chain, gradient pass and cached-acc KDK as mode 0, bit-for-bit. This
+// is the "particle interactions only" answer: no other force machinery
+// exists in the sim (no drag/viscosity/friction).
+//
+// BH term (modes 0-2 only, unchanged physics — the σ-regularized sector,
 // gravity-from-flow.md §4.2): softened Newtonian point sources.
 //
 // CACHED-ACC KDK (2026-08-10): the previous full-kick acceleration is
@@ -133,7 +142,10 @@ layout(push_constant, std430) uniform PC {
     float source_strength;
     float num_clusters;
     float gravity_mode;  // 0 = RIVER (default), 1 = HEURISTIC (legacy),
-                         // 2 = PLUMMER reference (grid-free analytic arm)
+                         // 2 = PLUMMER reference (grid-free analytic arm),
+                         // 3 = RIVER-SELF (river law only — BH point-source
+                         // term off; the host skips the BH condensation and
+                         // integrate passes, so the BH buffer stays inert)
     float pass_mode;     // 0 = N-body (particles), 1 = gradient-field build,
                          // 2 = acceleration warm-up (first-step acc cache)
 } pc;
@@ -451,13 +463,14 @@ vec3 bh_point_gravity(vec3 particle_pos, float eps2) {
 // Telemetry stats flow through the river path only (heuristic/Plummer
 // modes are telemetry-free by design).
 vec3 gravity_at(vec3 wp, inout TeleStats st) {
-    vec3 acc = bh_point_gravity(wp, pc.eps2);
-    if (pc.gravity_mode < 0.5) {
-        acc += river_field_acc(wp, st);          // RIVER — the law (default)
+    vec3 acc = vec3(0.0);
+    if (pc.gravity_mode < 3.0) acc = bh_point_gravity(wp, pc.eps2); // BH term: modes 0-2 only
+    if (pc.gravity_mode < 0.5 || pc.gravity_mode > 2.5) {
+        acc += river_field_acc(wp, st);          // RIVER (modes 0, 3)
     } else if (pc.gravity_mode < 1.5) {
-        acc += heuristic_field_acc(wp);          // HEURISTIC — legacy arm
+        acc += heuristic_field_acc(wp);          // HEURISTIC (mode 1)
     } else {
-        acc += plummer_field_acc(wp);            // PLUMMER — grid-free reference
+        acc += plummer_field_acc(wp);            // PLUMMER (mode 2)
     }
     return acc;
 }

@@ -301,11 +301,12 @@ func _build_mode_buttons(parent: HBoxContainer) -> void:
 
 func _build_gravity_buttons(parent: HBoxContainer) -> void:
 	# Gravity law toggle: 0 = RIVER (the law, default), 1 = HEURISTIC
-	# (legacy), 2 = PLUMMER reference (grid-free analytic arm)
+	# (legacy), 2 = PLUMMER reference (grid-free analytic arm),
+	# 3 = RIVER-SELF (river law only — no BH point-source forces)
 	var group = ButtonGroup.new()
-	for i in range(3):
+	for i in range(4):
 		var btn = Button.new()
-		btn.text = "River" if i == 0 else ("Heuristic" if i == 1 else "Plummer ref")
+		btn.text = "River" if i == 0 else ("Heuristic" if i == 1 else ("Plummer ref" if i == 2 else "River self"))
 		btn.toggle_mode = true
 		btn.button_group = group
 		btn.button_pressed = (i == 0)
@@ -468,7 +469,7 @@ func _update_info() -> void:
 			p_str = "%.1fM" % (sim.N_particles / 1e6)
 		elif sim.N_particles >= 1000:
 			p_str = "%.0fk" % (sim.N_particles / 1e3)
-		var grav_name := "RIVER" if sim.gravity_mode == 0 else ("HEURISTIC" if sim.gravity_mode == 1 else "PLUMMER")
+		var grav_name := "RIVER" if sim.gravity_mode == 0 else ("HEURISTIC" if sim.gravity_mode == 1 else ("PLUMMER" if sim.gravity_mode == 2 else "RIVER-SELF"))
 		_diag_label.text = \
 			"q_mean: %.4f  ε²: %.6f\n" % [sim._q_mean, sim._eps_mean] + \
 			"xi: %.1f  src: %.2f  soften: %.2f\n" % [sim.xi, sim.source_strength, sim.softening] + \

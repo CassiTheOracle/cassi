@@ -35,9 +35,16 @@ const PI_CLAMP_MAX: float = 0.72  # (π/ρ) upper clamp (stability; telemetry co
 #   1 = HEURISTIC — legacy G_N·π/ρ·∇q_s arm, kept for A/B comparison only
 #   2 = PLUMMER — grid-free softened analytic enclosed-mass force (cluster
 #       buffer centers/masses); a visual/reference arm, NOT the law.
-# Modes 1/2 skip the Poisson FFT chain and the river gradient pass
-# (neither consumes Φ/∇(g·Φ)); mass deposit + two-fluid PDE still run.
-@export_enum("River", "Heuristic", "Plummer reference") var gravity_mode: int = 0
+#   3 = RIVER-SELF — the river law ONLY (particle interactions only):
+#       the BH point-source term is disabled and the BH condensation +
+#       BH-integrate passes are skipped entirely (the BH buffer stays
+#       inert/zeroed). Everything else about mode 0 is preserved
+#       bit-for-bit — mass deposit, Poisson FFT chain, PDE, ∇(g·Φ)
+#       gradient pass, cached-acc KDK, telemetry.
+# Only modes 1/2 skip the Poisson FFT chain and the river gradient pass
+# (neither consumes Φ/∇(g·Φ)); mode 3 keeps them. Mass deposit + the
+# two-fluid PDE always run.
+@export_enum("River", "Heuristic", "Plummer reference", "River self") var gravity_mode: int = 0
 
 # ── River-law resolution calibration (opt-in; OFF keeps the exact G_N = 1
 # verification contract). When ON, G_N is recomputed after the particle
@@ -1039,11 +1046,11 @@ func _step_dispatches(cl: int) -> void:
 	_barrier(cl)  # deposit → poisson
 
 	# ── 1.5. Spectral Poisson solve: ∇²Φ = ρ_mass (Φ̂ = −ρ̂/k², k=0 nulled) ──
-	# RIVER MODE ONLY: the heuristic and Plummer-reference arms consume
-	# neither Φ nor ∇(g·Φ) — skipping the 7-pass FFT chain is their main
-	# step-cost win. The clear+deposit+PDE chain above still runs so ρ/q
-	# remain the visual/source state (the PDE's injection reads ρ).
-	if gravity_mode == 0:
+	# RIVER MODES ONLY (0 and 3): the heuristic and Plummer-reference arms
+	# consume neither Φ nor ∇(g·Φ) — skipping the 7-pass FFT chain is their
+	# main step-cost win. The clear+deposit+PDE chain above still runs so
+	# ρ/q remain the visual/source state (the PDE's injection reads ρ).
+	if gravity_mode == 0 or gravity_mode == 3:
 		_dispatch_poisson(cl)
 	_barrier(cl)  # deposit → PDE (rho visibility for the PDE source)
 
@@ -1056,7 +1063,9 @@ func _step_dispatches(cl: int) -> void:
 	_barrier(cl)  # PDE → condensation
 
 	# ── 2.5. Condensation scan (every 100 steps) ───────────────────
-	if _cond_step_counter == 0 and _cond_shader.is_valid():
+	# Mode 3 disables the BH sector entirely (no force term, no nucleation,
+	# no integration — the records stay inert/zeroed).
+	if _cond_step_counter == 0 and _cond_shader.is_valid() and gravity_mode != 3:
 		_rd.compute_list_bind_compute_pipeline(cl, _cond_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_cond_0, 0)
 		_rd.compute_list_bind_uniform_set(cl, _us_cond_1, 1)
@@ -1065,7 +1074,7 @@ func _step_dispatches(cl: int) -> void:
 	_barrier(cl)  # condensation → BH integrate
 
 	# ── 2.6. BH integration (every step) ──────────────────────────
-	if _bh_int_shader.is_valid():
+	if _bh_int_shader.is_valid() and gravity_mode != 3:
 		_rd.compute_list_bind_compute_pipeline(cl, _bh_int_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_bh_int_0, 0)
 		_rd.compute_list_bind_uniform_set(cl, _us_bh_int_1, 1)
@@ -1081,7 +1090,8 @@ func _step_dispatches(cl: int) -> void:
 	# the poisson cells convention: a 1D N³/256 dispatch caps at 65535
 	# groups at N=256. RIVER MODE ONLY: the heuristic/Plummer arms never
 	# sample _grad_buf, so the O(N³) pass is skipped with the FFT chain.
-	if gravity_mode == 0 and _nbody_shader.is_valid():
+	# Mode 3 (river self) samples it too — kept with mode 0.
+	if (gravity_mode == 0 or gravity_mode == 3) and _nbody_shader.is_valid():
 		_nbody_pc_bytes.encode_float(44, 1.0)  # pass_mode = 1 (gradient)
 		_rd.compute_list_bind_compute_pipeline(cl, _nbody_pipe)
 		# ALL THREE sets must be bound: the pipeline rejects a dispatch with
@@ -1330,9 +1340,9 @@ func _render_frame() -> void:
 			_pi_sat_hi_frac /= samples
 			_pi_sat_lo_frac /= samples
 	# One-time Poisson residual report (FD-Laplacian check of the Φ solve).
-	# River mode only: modes 1/2 skip the solve, so _fft_buf holds stale
-	# data there and the residual would be meaningless.
-	if not _poisson_residual_done and _shaders_ready and _step_count >= 1 and gravity_mode == 0:
+	# River modes only (0 and 3): modes 1/2 skip the solve, so _fft_buf
+	# holds stale data there and the residual would be meaningless.
+	if not _poisson_residual_done and _shaders_ready and _step_count >= 1 and (gravity_mode == 0 or gravity_mode == 3):
 		_poisson_residual_done = true
 		_report_poisson_residual()
 
@@ -1506,7 +1516,7 @@ func reinit() -> void:
 
 
 func get_diagnostics() -> String:
-	var law := "RIVER" if gravity_mode == 0 else ("HEURISTIC" if gravity_mode == 1 else "PLUMMER")
+	var law := "RIVER" if gravity_mode == 0 else ("HEURISTIC" if gravity_mode == 1 else ("PLUMMER" if gravity_mode == 2 else "RIVER-SELF"))
 	return "t=%.3f  q_mean=%.4f  ε²=%.6f  H=%.4f  sf=%.3f  steps=%d  grav=%s  G_N=%.4f  calib=%s  attr=%s  φ⁶−1=%.4f" % [
 		_time, _q_mean, _eps_mean, _hubble, _scale_factor, _step_count, law,
 		_gn_eff, "on" if river_calibrate_gn else "off",

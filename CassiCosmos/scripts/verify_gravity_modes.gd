@@ -1,8 +1,8 @@
 extends Node
-## Focused verification of the 3-mode gravity selector, the bounded
+## Focused verification of the 4-mode gravity selector, the bounded
 ## (truncated-Plummer) ICs, the opt-in river calibration / attractor
-## field init, and the cached-acc KDK (cassi_sim.gd +
-## cassi_nbody_gravity.glsl).
+## field init, the cached-acc KDK, and the river self-gravity mode
+## (cassi_sim.gd + cassi_nbody_gravity.glsl).
 ##
 ## Scene: N=64, N_particles=16384, cluster_radius=50 (extent=75, h=2.34375).
 ##
@@ -33,7 +33,21 @@ extends Node
 ##         convention). Plummer and calibrated-river must hold the cluster
 ##         (zero out-of-box); heuristic is reported as weak-force. The
 ##         skip-pass (heuristic/Plummer drop the 7-pass FFT + gradient)
-##         must reduce ms/step vs river.
+##         must reduce ms/step vs river. Mode 3 (RIVER-SELF) calibrates
+##         like river, must hold the cluster, and skips the condensation +
+##         BH-integrate passes → must not be SLOWER than river (lenient
+##         1.02×; global-RD timing is noisy — reported, not tightened).
+##   (vi)  river self-gravity (mode 3) = river law ONLY, decisive proof:
+##         from an 8-mass Gaussian blob with 64 ring probes at 8h, the
+##         mode-3 acceleration must equal the mode-0 river acceleration
+##         bit-for-bit (< 1e-9) with no BH records; with a seeded phantom
+##         BH record (8 mass at 4h) the mode-0 force must change MATERIALLY
+##         (> 5% of max|A0|) while the mode-3 force must stay EXACTLY the
+##         no-BH river force (< 1e-9) — the BH point-source term is truly
+##         off. Host-side: with the phantom in _bh_init_bytes, 5
+##         _physics_step() calls in mode 3 leave the record UNCHANGED
+##         (passes skipped) and 5 calls in mode 0 advance it (BH-integrate
+##         runs — age/mass change).
 ##
 ## NOTE on the IC vs Plummer profile: the IC circular velocity uses the
 ## sim's enclosed-mass profile M_enc(r) = M·r²/(r²+a²) (cassi_sim.gd
@@ -193,6 +207,36 @@ func _read_accs(nprobe: int) -> Array:
 	return out
 
 
+# Max PER-PROBE relative deviation: max_k |Δ_k| / |a_k| (each probe's own
+# magnitude as the scale). Used for the exact-equality checks (< 1e-9).
+func _max_rel_dev(a: Array, b: Array) -> float:
+	var worst := 0.0
+	for kk in range(a.size()):
+		var mag: float = a[kk].length()
+		var dev: float = (b[kk] - a[kk]).length() / maxf(mag, 1e-30)
+		worst = maxf(worst, dev)
+	return worst
+
+
+# Global-scale deviation: max_k |Δ_k| / max_k |a_k|. Used for the
+# "material perturbation" check (the BH pull must move the max ring force
+# by > 5% of its own scale).
+func _max_dev_over_max(a: Array, b: Array) -> float:
+	var max_mag := 0.0
+	var max_dev := 0.0
+	for kk in range(a.size()):
+		max_mag = maxf(max_mag, a[kk].length())
+		max_dev = maxf(max_dev, (b[kk] - a[kk]).length())
+	return max_dev / maxf(max_mag, 1e-30)
+
+
+# Read one BH record (2 vec4s = 32 bytes): [pos.xyz, mass, vel.xyz, age].
+func _read_bh_record(slot: int) -> PackedFloat32Array:
+	sim._ensure_synced()
+	var base := 64 + slot * 32
+	return sim._rd.buffer_get_data(sim._bh_buf, base, 32).to_float32_array()
+
+
 func _read_pos_all() -> PackedFloat32Array:
 	sim._ensure_synced()
 	return sim._rd.buffer_get_data(sim._pos_buf, 0, sim.N_particles * 16).to_float32_array()
@@ -313,6 +357,7 @@ func _run_all() -> void:
 	_test_plummer_multi_cluster()
 	_test_blob_ratio()
 	_test_occupancy_modes()
+	_test_river_self_mode()
 	print("── summary ──")
 	for line in _report:
 		print("  " + line)
@@ -494,14 +539,14 @@ func _test_occupancy_modes() -> void:
 	# Identical ICs for every mode: capture after the first (river) init.
 	var pos0 := _read_pos_all()
 	var vel0 := _read_vel_all()
-	var modes: Array = [0, 1, 2]
-	var names: Array = ["RIVER(calib)", "HEURISTIC", "PLUMMER"]
+	var modes: Array = [0, 1, 2, 3]
+	var names: Array = ["RIVER(calib)", "HEURISTIC", "PLUMMER", "RIVER-SELF"]
 	var timings := {}
 	var occs := {}
 	for mi in range(modes.size()):
 		var md: int = int(modes[mi])
 		sim.gravity_mode = md
-		sim.river_calibrate_gn = (md == 0)  # river calibrated; others G_N = 1
+		sim.river_calibrate_gn = (md == 0 or md == 3)  # river modes calibrated; others G_N = 1
 		sim.reinit()
 		sim.playing = false
 		_write_pos_vel(pos0, vel0)
@@ -527,20 +572,108 @@ func _test_occupancy_modes() -> void:
 		print("  %s: %.3f ms/step | inner=%.1f%% face/edge=%.1f%% corner=%.1f%% out=%d" % [
 			names[mi], ms_per, occ[0], occ[1], occ[2], occ[3]])
 		_check("occupancy[%s]: no NaN/Inf over 200 steps" % names[mi], not bad)
-	_report.append("ms/step: river=%.3f heuristic=%.3f plummer=%.3f" % [timings[0], timings[1], timings[2]])
-	_report.append("corner%% after 200 steps: river=%.1f heuristic=%.1f plummer=%.1f | out: %d/%d/%d" % [
-		occs[0][2], occs[1][2], occs[2][2], occs[0][3], occs[1][3], occs[2][3]])
+	_report.append("ms/step: river=%.3f heuristic=%.3f plummer=%.3f river-self=%.3f" % [
+		timings[0], timings[1], timings[2], timings[3]])
+	_report.append("corner%% after 200 steps: river=%.1f heuristic=%.1f plummer=%.1f river-self=%.1f | out: %d/%d/%d/%d" % [
+		occs[0][2], occs[1][2], occs[2][2], occs[3][2],
+		occs[0][3], occs[1][3], occs[2][3], occs[3][3]])
 	_check("occupancy[PLUMMER]: zero out-of-box after 200 steps", occs[2][3] == 0,
 		"out=%d" % occs[2][3])
 	_check("occupancy[RIVER(calib)]: zero out-of-box after 200 steps", occs[0][3] == 0,
 		"out=%d" % occs[0][3])
+	_check("occupancy[RIVER-SELF]: zero out-of-box after 200 steps", occs[3][3] == 0,
+		"out=%d" % occs[3][3])
 	# Skip-pass cost win: heuristic/Plummer drop the 7-pass FFT + gradient.
 	_check("cost: heuristic ms/step < river ms/step (skip-pass)", timings[1] < timings[0] * 0.98,
 		"%.3f vs %.3f" % [timings[1], timings[0]])
 	_check("cost: plummer ms/step < river ms/step (skip-pass)", timings[2] < timings[0] * 0.98,
 		"%.3f vs %.3f" % [timings[2], timings[0]])
+	# Mode 3 skips the condensation + BH-integrate passes → must not be
+	# SLOWER than river. Lenient 1.02×: global-RD timing is noisy; report
+	# the actual ms/step rather than tightening.
+	_check("cost: river-self ms/step ≤ river ms/step (skips BH passes, lenient)", timings[3] < timings[0] * 1.02,
+		"%.3f vs %.3f" % [timings[3], timings[0]])
 	print("  CLASSIFICATION: heuristic |a| = |G_N·π/ρ·∇q_s| with q_s ≈ EY²+EI²+0.01ρ —")
 	print("  a nearly-uniform attractor field makes ∇q_s ≈ 0 → the heuristic is a")
 	print("  WEAK-FORCE result (≈ no long-range gravity), reported for reference,")
 	print("  NOT counted as a pass or a failure. Its corner/out numbers below are")
 	print("  the expected consequence, not a physics success.")
+
+
+func _test_river_self_mode() -> void:
+	print("── (vi) mode 3 = river self: BH term OFF, river arm bit-identical ──")
+	sim.gravity_mode = 0
+	sim.river_calibrate_gn = false  # G_N = 1, same convention as _test_blob_ratio
+	sim.field_attractor_init = true
+	sim.num_clusters = 1
+	sim.cluster_separation = 0.0
+	sim.reinit()
+	sim.playing = false
+	_upload_bh()
+	_write_gaussian_blob(8.0, 2.0 * h)  # total 8, σ = 2h = 4.6875
+	var NPROBE := 64
+	var r: float = 8.0 * h
+	# _set_ring_probes resets pos/vel/acc to the pristine ring BEFORE every
+	# chain — the KDK leaves the cached acc non-zero between runs, which
+	# would drift the probes and break the exact-equality checks.
+	# 1. Baseline: mode 0 with no BH records → A0.
+	_set_ring_probes(NPROBE, r, Vector3.ZERO)
+	sim.gravity_mode = 0
+	_run_river_chain()
+	var A0 := _read_accs(NPROBE)
+	# 2. Mode 3 with no BH records → A3 must equal A0 (identical operations;
+	#    the BH term contributes exactly 0 when no records exist).
+	_set_ring_probes(NPROBE, r, Vector3.ZERO)
+	sim.gravity_mode = 3
+	_run_river_chain()
+	var A3 := _read_accs(NPROBE)
+	var dev_a := _max_rel_dev(A0, A3)
+	_check("river-self: A3 == A0 without BH records (<1e-9)", dev_a < 1e-9,
+		"max rel |Δ|/|A0| = %s" % str(dev_a))
+	# 3. Seed a phantom BH record: bh[4] = (4h, 0, 0, mass 8.0) at byte
+	#    offset 64 (base = 4 + 0*2 = 4, 16 bytes/vec4). _run_river_chain
+	#    does not re-upload _bh_init_bytes, so the record survives.
+	var phantom := PackedFloat32Array([4.0 * h, 0.0, 0.0, 8.0])
+	sim._rd.buffer_update(sim._bh_buf, 64, 16, phantom.to_byte_array())
+	# 4. Mode 0 with the phantom → B0: the BH pull must be MATERIAL (the
+	#    8-mass point source at 4h clearly perturbs the 8h ring).
+	_set_ring_probes(NPROBE, r, Vector3.ZERO)
+	sim.gravity_mode = 0
+	_run_river_chain()
+	var B0 := _read_accs(NPROBE)
+	var dev_b0 := _max_dev_over_max(A0, B0)
+	_check("river-self: BH pull material in mode 0 (>5% of max|A0|)", dev_b0 > 0.05,
+		"max |B0−A0|/max|A0| = %s" % str(dev_b0))
+	# 5. Mode 3 with the phantom → B3 must equal A0: the BH term is truly OFF.
+	_set_ring_probes(NPROBE, r, Vector3.ZERO)
+	sim.gravity_mode = 3
+	_run_river_chain()
+	var B3 := _read_accs(NPROBE)
+	var dev_b3 := _max_rel_dev(A0, B3)
+	_check("river-self: B3 == A0 with phantom BH present (<1e-9)", dev_b3 < 1e-9,
+		"max rel |Δ|/|A0| = %s" % str(dev_b3))
+	# 6. Host-side proof that the BH passes are skipped: _physics_step
+	#    re-uploads _bh_init_bytes every step, so seed the phantom into it
+	#    as well. In mode 3 neither pass touches the record (unchanged);
+	#    in mode 0 the BH-integrate pass advances it (age += 1 per step,
+	#    mass += acc_rate·qi·cell_vol) → changed.
+	var phantom_full: PackedFloat32Array = sim._bh_init_bytes.to_float32_array()
+	phantom_full[16] = 4.0 * h  # bh[4].x — pos.x
+	phantom_full[19] = 8.0      # bh[4].w — mass
+	sim._bh_init_bytes = phantom_full.to_byte_array()
+	sim.gravity_mode = 3
+	for s in range(5):
+		sim._physics_step()
+	var rec3 := _read_bh_record(0)
+	var unchanged: bool = rec3[3] == 8.0 and rec3[7] == 0.0
+	_check("river-self: host skips BH passes — record unchanged after 5 steps in mode 3", unchanged,
+		"mass=%s age=%s" % [str(rec3[3]), str(rec3[7])])
+	sim.gravity_mode = 0
+	for s in range(5):
+		sim._physics_step()
+	var rec0 := _read_bh_record(0)
+	var changed: bool = rec0[7] > 0.0 or rec0[3] != 8.0
+	_check("river-self: BH-integrate runs in mode 0 — record changed after 5 steps", changed,
+		"mass=%s age=%s" % [str(rec0[3]), str(rec0[7])])
+	_report.append("river-self: A3/A0 dev=%s  B0-material=%s  B3/A0 dev=%s | mode0 5-step rec: mass=%s age=%s" % [
+		str(dev_a), str(dev_b0), str(dev_b3), str(rec0[3]), str(rec0[7])])
