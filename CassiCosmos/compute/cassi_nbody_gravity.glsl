@@ -165,11 +165,13 @@ layout(set = 1, binding = 2, std430) restrict buffer Accelerations { vec4 acc[];
 // in ANY gravity mode), bh[4..] = BH records
 // (vec4[pos.xyz, mass] + vec4[vel.xyz, age]), max 15.
 layout(set = 2, binding = 0, std430) buffer BHData { vec4 bh[36]; };
-// Cluster records (set 2 binding 1, max 20): vec4[center.xyz, per-cluster
+// Cluster records (set 2 binding 1, max 64): vec4[center.xyz, per-cluster
 // particle count]. Written by _init_particles; consumed by the Plummer
 // reference arm only (was an unbound/dead buffer before the 3-mode
-// gravity selector).
-layout(set = 2, binding = 1, std430) readonly buffer ClusterBuf { vec4 cluster[20]; };
+// gravity selector). 64-vec4 cap — keep in sync with _cluster_buf in
+// cassi_sim.gd (storage_buffer_create(64 * 4 * 4)); cluster indices
+// 0..63 are safe.
+layout(set = 2, binding = 1, std430) readonly buffer ClusterBuf { vec4 cluster[64]; };
 
 layout(push_constant, std430) uniform PC {
     float N_f;
@@ -463,7 +465,7 @@ vec3 heuristic_field_acc(vec3 wp) {
 
 // ── Plummer-reference mode (gravity_mode == 2) ─────────────────────────
 // Softened ANALYTIC enclosed-mass force summed over every cluster record
-// (set 2 binding 1, max 20; multi-cluster behavior: contributions from
+// (set 2 binding 1, max 64; multi-cluster behavior: contributions from
 // ALL clusters add — no cutoff beyond the Plummer softening):
 //   a = G_N · Σ_c M_c·(c−p) / (|c−p|² + a²)^(3/2),  a = bh[2].x (cluster
 // radius), M_c = the cluster record's per-cluster particle count — the
@@ -478,7 +480,7 @@ vec3 plummer_field_acc(vec3 wp) {
     float G_N = bh[1].w;
     float a_soft = max(bh[2].x, 1e-4);
     vec3 acc = vec3(0.0);
-    int nrec = min(int(pc.num_clusters), 20);
+    int nrec = min(int(pc.num_clusters), 64);
     vec3 dbg = vec3(0.0);  // DEBUG: sum of (mass, len, 0)
     for (int c = 0; c < nrec; c++) {
         float mass = cluster[c].w;

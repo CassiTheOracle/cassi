@@ -554,8 +554,10 @@ func _setup_buffers() -> void:
 	# declares exactly 4 vec4s; never bind the 36-vec4 sim BH header to it.
 	# Params are filled by _update_bh_lens_params() in _make_render_textures.
 	_bh_lens_buf = _rd.storage_buffer_create(64)
-	# Cluster center positions + masses (for multi-cluster gravity)
-	_cluster_buf = _rd.storage_buffer_create(20 * 4 * 4)
+	# Cluster center positions + masses (for multi-cluster gravity).
+	# 64-vec4 cap — keep in sync with ClusterBuf in cassi_nbody_gravity.glsl
+	# (set 2 binding 1); cluster indices 0..63 are safe.
+	_cluster_buf = _rd.storage_buffer_create(64 * 4 * 4)
 	# Mass density grid (float per cell — float atomicAdd deposit, see
 	# cassi_mass_deposit.glsl)
 	_mass_density_buf = _rd.storage_buffer_create(nc * 4)
@@ -969,13 +971,20 @@ func _init_particles() -> void:
 		gauss_u_max_list.append(maxf(g_hi, 0.0))
 		retained_min = minf(retained_min, u_hi)
 
-	# Upload cluster centers to GPU buffer
+	# Build the cluster records, then upload them to the GPU buffer.
+	# ClusterBuf in cassi_nbody_gravity.glsl holds 64 records; truncate
+	# loudly beyond the cap (previously the buffer was 20 vec4s and
+	# num_clusters > 20 wrote past its end — "Attempted to write buffer
+	# (16 bytes) past the end").
 	var cluster_data = PackedFloat32Array()
 	for c in range(nc):
 		var cen = centers[c]
 		cluster_data.append(cen.x); cluster_data.append(cen.y)
 		cluster_data.append(cen.z); cluster_data.append(float(per_cluster))
-	_rd.buffer_update(_cluster_buf, 0, cluster_data.size() * 4, cluster_data.to_byte_array())
+	var n_rec := mini(nc, 64)
+	if n_rec < nc:
+		push_warning("num_clusters=%d exceeds the 64-record cluster buffer cap; using %d records" % [nc, n_rec])
+	_rd.buffer_update(_cluster_buf, 0, n_rec * 4 * 4, cluster_data.to_byte_array())
 
 	var max_r: float = 0.0
 	var max_comp: float = 0.0
