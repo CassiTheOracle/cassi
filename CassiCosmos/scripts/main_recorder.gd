@@ -80,7 +80,7 @@ func _ready() -> void:
 		"bh_max_age", "black_holes_enabled", "gravity_mode", "realsim_drag", "realsim_viscosity",
 		"realsim_friction", "river_calibrate_gn", "river_pi_ref",
 		"river_q_ref", "field_attractor_init", "freeze_field", "initial_radius_fraction",
-		"initial_condition", "initial_v_circ_factor", "box_aspect", "mode",
+		"initial_condition", "initial_v_circ_factor", "box_aspect", "box_scale", "mode",
 		"auto_frame_camera_on_start",
 	]
 	var main_scene := load("res://scenes/main.tscn")
@@ -143,6 +143,13 @@ func _ready() -> void:
 					reinit_needed = true
 				else:
 					push_warning("[Recorder] --aspect needs x,y,z (e.g. 1.618,1,2.618)")
+			"--box-scale":
+				# Uniform box rescale: extent_i = box_scale·aspect_i·1.5·
+				# cluster_radius. Separates the cluster from its periodic
+				# images (image forces drop like 1/(3·box_scale−1)²) while
+				# keeping the aspect; 1.0 = legacy. Init-time, needs reinit.
+				_sim.set("box_scale", float(kv[1]))
+				reinit_needed = true
 			"--bhs":
 				# BH toggle: live export set, no reinit needed (the host
 				# re-encodes bh[3].x next frame).

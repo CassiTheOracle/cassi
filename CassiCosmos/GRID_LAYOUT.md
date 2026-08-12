@@ -165,10 +165,21 @@ is no physical reason to align the string axis with the camera orbit axis.
 With extent_base = 1.5·cluster_radius (the current single extent):
 
 ```
-extent_i = box_aspect[i] · extent_base      (half-extent per axis)
+extent_i = box_scale · box_aspect[i] · extent_base   (half-extent per axis)
 L_i      = 2 · extent_i                     (torus period per axis)
-h_i      = 2 · extent_i / N = aspect_i · h₀,   h₀ = 2·extent_base/N
+h_i      = 2 · extent_i / N = box_scale · aspect_i · h₀,   h₀ = 2·extent_base/N
 ```
+
+box_scale is a UNIFORM rescale: it multiplies every extent by the same
+factor, so all ratios — the aspect incommensurability, the anisotropic
+stencil weights (§2.5), the k-sum Green's force ratios on the three axes,
+and the resolved rung window log_φ(N/2) — are invariant. Its only physical
+effect is to separate the cluster from its periodic images (§2.8). The
+default 1.0 is the legacy geometry bit-for-bit (×1.0 is exact in fp32);
+scale ≈ 3 is the tested isolation regime. Calibration note: G_N is
+recomputed from the ACTUAL h (G_N = 4π/(π_ref·g_ref·h³·m_mean)), so the
+grid force stays ≈ M_count/r² at every box_scale (the product
+G_N·V_cell = G_N·h_x·h_y·h_z is box_scale-invariant).
 
 Concrete numbers for the (φ, 1, φ²) preset:
 
@@ -207,9 +218,14 @@ bh[2] = (cluster_radius, extent_x, extent_y, extent_z)
   "dedicated-PC precedent" (the nbody shader already has its own 60-B PC;
   Godot hard-errors on push-constant size mismatch, so the shared 11-float
   `_pc_bytes` used by field_render/instancer/lensing stays untouched).
-- `box_aspect` is an init-time export like `cluster_radius`: changing it
-  requires `reinit()` (the extents are encoded in `_bh_init_bytes` at
-  `_setup_buffers`).
+- `box_aspect` and `box_scale` are init-time exports like `cluster_radius`:
+  changing them requires `reinit()` (the extents are encoded in
+  `_bh_init_bytes` at `_setup_buffers`). Both flow through `_extents()`
+  (cassi_sim.gd) — the SINGLE geometry formula — into the bh header, the
+  Poisson/mass-deposit/two-fluid push constants, the IC truncation, the
+  calibration and the occupancy sampler; there is no second extent formula
+  anywhere in the host or the shaders (shaders read bh[2].yzw or their PC
+  extents, which the host encodes from `_extents()`).
 
 ### 2.5 The 19-point stencil with anisotropic h (the derivation)
 
@@ -298,6 +314,42 @@ the map.
 | IC safe radius | r_max = fr·extent − \|c\|_∞ | r_max = fr·min_i(extent_i) − \|c\|_∞ (conservative; keeps every IC inside the box and the retained-fraction analytics unchanged) |
 | Out-of-box / occupancy | \|x_i\| > extent | \|x_i\| > extent_i; lim_i = 0.85·extent_i |
 | Poisson residual report | (Σ6−6Φ)/h² | Σ_i (Σ2_i − 2Φ)/h_i² |
+
+### 2.8 box_scale: cluster/image separation (the isolation lever)
+
+The φ-aspect removes the box-mode DEGENERACY but keeps the cluster
+FILL FRACTION fixed: extent_i = 1.5·aspect_i·R means the cluster always
+spans 2/3 of the short axis (y), and the nearest periodic images sit at
+2·extent_y = 3R — a quarter of the self-force at the cluster edge. The
+image field is axis-ANISOTROPIC (short-axis images dominate), so at the
+(φ,1,φ²) preset the y-axis restoring force is 10–15% weaker than circular
+while x/z are 5–19% stronger (measured shader-exact: force/circular ratios
+at r = a are x 1.05, y 0.85, z 1.12 at N=128/R=12). A single IC rotational
+factor cannot balance all axes — the cluster is shredded along the short
+axis within a few orbits, which is the observed φ-aspect cluster ejection
+and (with RealSim dissipation) the corner pooling.
+
+`box_scale` scales ALL three extents uniformly, so the aspect
+incommensurability (§2.2) and every ratio in §2.7 are preserved while the
+cluster pulls away from its images. The image/self force ratio at the
+cluster edge drops like
+
+```
+F_img/F_self ~ 1/(3·box_scale − 1)²      (edge of the short axis)
+```
+
+| box_scale | extent_min | image/self at edge | y-axis deficit |
+|---|---|---|---|
+| 1 (legacy) | 1.5R | 25% | 10–15% (ejection regime) |
+| 2 | 3R | 4% | ~4% |
+| 3 (tested) | 4.5R | 1.6% | < 2% (isolated regime) |
+
+verify_phi_box check (f) pins the measured multi-axis anisotropy of the
+sphere's force below 2% at scale 3 and above 2% at scale 1 (the bracket).
+The two-fluid stencil weights (§2.5) and the calibration (§2.3) are
+uniform-rescale invariant, so scale 3 costs nothing in the physics —
+only the resolved rung window per axis is unchanged (log_φ(N/2)) while the
+cluster occupies a smaller fraction of each axis.
 
 ---
 

@@ -29,7 +29,7 @@ const PI_CLAMP_MAX: float = 0.72  # (π/ρ) upper clamp (stability; telemetry co
 ## Rendered quad size of each particle (world units); keep ≤ 0.5 for the star-cloud look.
 @export var particle_size: float = 0.3   # rendered particle size
 ## Scale radius of the initial cluster (Plummer scale a / Gaussian sigma / uniform sphere radius, per the IC profile).
-@export var cluster_radius: float = 50.0   # initial cluster size
+@export var cluster_radius: float = 100.0   # initial cluster size
 ## Number of initial clusters (placed on a ring/Fibonacci sphere).
 @export var num_clusters: int = 1           # number of galaxy clusters
 ## Distance of cluster centers from the origin; a single cluster centers at (separation, 0, 0).
@@ -153,15 +153,25 @@ const PI_CLAMP_MAX: float = 0.72  # (π/ρ) upper clamp (stability; telemetry co
 @export var initial_v_circ_factor: float = 0.85
 
 # ── Box geometry (theory-accurate grid layout — GRID_LAYOUT.md) ────────
-# Per-axis box half-extents: extent_i = aspect_i · 1.5 · cluster_radius
-# (N³ cells unchanged; h_i = 2·extent_i/N). Cube (1,1,1) = the legacy box
-# (the existing verify battery runs this). Theory preset (φ, 1, φ²) maps
-# x = Yang (extended), y = Yin (contracted), z = String/P∥ (flow): the
-# box-mode lattice becomes incommensurate — no axis-locked box modes, so
-# the straight-line lock at box scale is removed. Init-time: reinit() to
-# apply (extents are encoded in the bh header and the PCs at setup).
-## Per-axis box aspect (extent_i = aspect_i·1.5·cluster_radius). Cube (1,1,1) default; theory preset (φ,1,φ²) — see GRID_LAYOUT.md.
+# Per-axis box half-extents: extent_i = box_scale · aspect_i · 1.5 ·
+# cluster_radius (N³ cells unchanged; h_i = 2·extent_i/N). Cube (1,1,1) =
+# the legacy box (the existing verify battery runs this). Theory preset
+# (φ, 1, φ²) maps x = Yang (extended), y = Yin (contracted), z = String/
+# P∥ (flow): the box-mode lattice becomes incommensurate — no axis-locked
+# box modes, so the straight-line lock at box scale is removed. box_scale
+# is a UNIFORM rescale of all three extents: the aspect ratios (and with
+# them the box-mode de-resonance and the anisotropic stencil weights) are
+# preserved exactly, while the periodic-image forces on the cluster drop
+# like 1/(3·box_scale−1)² — scale ≈ 3 is the tested isolation regime
+# (multi-axis image-force anisotropy < 2%; the scale-1 short-axis deficit
+# is 10–30%). Init-time: reinit() to apply (extents are encoded in the bh
+# header and the PCs at setup).
+## Per-axis box aspect (extent_i = box_scale·aspect_i·1.5·cluster_radius). Cube (1,1,1) default; theory preset (φ,1,φ²) — see GRID_LAYOUT.md.
 @export var box_aspect: Vector3 = Vector3(1, 1, 1)
+## Uniform box rescale — separates the cluster from its periodic images while
+## keeping the aspect (de-resonance, stencil weights). Default 1.0 = the legacy
+## geometry, bit-identical (×1.0 is exact in fp32). See GRID_LAYOUT.md §2.8.
+@export var box_scale: float = 1.0
 
 ## Display mode: 0 = Particles, 1 = Field, 2 = Black Hole, 3 = Cosmology.
 @export_enum("Particles", "Field", "Black Hole", "Cosmology") var mode: int = 0
@@ -458,8 +468,13 @@ func _uniform_storage(binding: int, buf: RID) -> RDUniform:
 # geometry (bh[2].yzw header slots, the Poisson/mass-deposit/two-fluid
 # push constants, IC truncation, occupancy and the residual report all
 # derive from this). Cube default (1,1,1) = the legacy single-extent box.
+# box_scale multiplies ALL three extents (uniform rescale): aspect ratios,
+# box-mode de-resonance and the two-fluid stencil weights are invariant,
+# while the periodic-image forces on the cluster drop like 1/(3·box_scale−1)²
+# (GRID_LAYOUT.md §2.8). Clamped positive so a degenerate box_scale can
+# never produce zero/negative extents (h_i = 2·extent_i/N → NaN).
 func _extents() -> Vector3:
-	return Vector3(box_aspect.x, box_aspect.y, box_aspect.z) * (cluster_radius * 1.5)
+	return Vector3(box_aspect.x, box_aspect.y, box_aspect.z) * (cluster_radius * 1.5) * maxf(box_scale, 1e-3)
 
 
 func _setup_buffers() -> void:

@@ -37,6 +37,14 @@ extends Node
 ##       expected ellipsoidal dispersion of the φ-box; the leading-symbol
 ##       isotropy is the exact −h₀²k²_phys term, validated here by the
 ##       shader matching the analytic symbol).
+##   (f) box_scale regression (GRID_LAYOUT.md §2.8): reconfigured to the
+##       scan config (N=128, R=12) with a uniform-sphere rho; the shader
+##       force anisotropy at r = a/4 must be > 2% at box_scale=1 (the
+##       legacy short-axis ejection regime) and < 2% at box_scale=3 (the
+##       isolated regime), with the extents exactly proportional to
+##       box_scale (single _extents() formula). No existing tolerance is
+##       loosened; this adds the cluster/image-separation lever to the
+##       φ-aspect story.
 ##
 ## Run: godot --path <repo> res://scenes/verify_phi_box.tscn
 
@@ -102,23 +110,23 @@ func _ext() -> Vector3:
 	return sim._extents()
 
 
-func _write_fields(ey: PackedFloat32Array, ei: PackedFloat32Array) -> void:
-	sim._rd.buffer_update(sim._field_ey, 0, nc * 4, ey.to_byte_array())
-	sim._rd.buffer_update(sim._field_ei, 0, nc * 4, ei.to_byte_array())
+func _write_fields(ey: PackedFloat32Array, ei: PackedFloat32Array, count: int = nc) -> void:
+	sim._rd.buffer_update(sim._field_ey, 0, count * 4, ey.to_byte_array())
+	sim._rd.buffer_update(sim._field_ei, 0, count * 4, ei.to_byte_array())
 	var q = PackedFloat32Array()
-	q.resize(nc)
-	for i in range(nc):
+	q.resize(count)
+	for i in range(count):
 		q[i] = ey[i] * ey[i] + ei[i] * ei[i]
-	sim._rd.buffer_update(sim._field_q, 0, nc * 4, q.to_byte_array())
+	sim._rd.buffer_update(sim._field_q, 0, count * 4, q.to_byte_array())
 
 
-func _write_rho(rho: PackedFloat32Array) -> void:
-	sim._rd.buffer_update(sim._mass_density_buf, 0, nc * 4, rho.to_byte_array())
+func _write_rho(rho: PackedFloat32Array, count: int = nc) -> void:
+	sim._rd.buffer_update(sim._mass_density_buf, 0, count * 4, rho.to_byte_array())
 
 
-func _nbody_pc(pass_mode: float) -> PackedByteArray:
+func _nbody_pc(pass_mode: float, nn: int = N) -> PackedByteArray:
 	var pc: PackedByteArray = sim._nbody_pc_bytes.duplicate()
-	pc.encode_float(0, float(N))
+	pc.encode_float(0, float(nn))
 	pc.encode_float(4, sim.dt)
 	pc.encode_float(8, sim._time)
 	pc.encode_float(12, PHI)
@@ -133,7 +141,7 @@ func _nbody_pc(pass_mode: float) -> PackedByteArray:
 	return pc
 
 
-func _run_chain() -> void:
+func _run_chain(nn: int = N) -> void:
 	var cl = sim._rd.compute_list_begin()
 	sim._dispatch_poisson(cl)
 	sim._barrier(cl)  # poisson → gradient
@@ -141,14 +149,14 @@ func _run_chain() -> void:
 	sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_0, 0)
 	sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_1, 1)
 	sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_2, 2)
-	sim._rd.compute_list_set_push_constant(cl, _nbody_pc(1.0), 60)  # gradient pass
-	sim._rd.compute_list_dispatch(cl, N, N, 1)
+	sim._rd.compute_list_set_push_constant(cl, _nbody_pc(1.0, nn), 60)  # gradient pass
+	sim._rd.compute_list_dispatch(cl, nn, nn, 1)
 	sim._barrier(cl)  # gradient → nbody
 	sim._rd.compute_list_bind_compute_pipeline(cl, sim._nbody_pipe)
 	sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_0, 0)
 	sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_1, 1)
 	sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_2, 2)
-	sim._rd.compute_list_set_push_constant(cl, _nbody_pc(0.0), 60)  # particle pass
+	sim._rd.compute_list_set_push_constant(cl, _nbody_pc(0.0, nn), 60)  # particle pass
 	sim._rd.compute_list_dispatch(cl, ceili(float(sim.N_particles) / 256.0), 1, 1)
 	sim._rd.compute_list_end()
 
@@ -446,6 +454,7 @@ func _run_all() -> void:
 	_test_degeneracy()
 	_test_occupancy()
 	_test_ring_extension()
+	_test_box_scale()
 
 
 # ── (a) ∇²Φ = ρ with the anisotropic stencil ───────────────────────────
@@ -813,6 +822,90 @@ func _test_ring_extension() -> void:
 	_check("(e) shader symbol ratio matches the analytic anisotropic symbol < 1%%",
 		dev < 0.01, "meas=%.5f an=%.5f" % [meas_ratio, an_ratio])
 	_report.append("(e) φ dispersion [110]/[100] @ matched |k|: shader=%.4f analytic=%.4f" % [meas_ratio, an_ratio])
+
+
+# ── (f) box_scale: uniform rescale isolates the cluster from images ────
+func _test_box_scale() -> void:
+	print("── (f) box_scale: cluster/image separation (sphere force anisotropy at a/4) ──")
+	# Reconfigure to the cluster-ejection scan config (N=128, R=12): the
+	# probe then sits in the sphere's LINEAR interior at a resolved cell
+	# size, so the measured multi-axis anisotropy IS the image-lattice
+	# part (the cell-centered estimator is exact for the linear interior
+	# field — the (h_i/r)² floor of the delta probe does not apply here).
+	# Scale 1 is the legacy ejection regime (> 2%); scale 3 must drop the
+	# anisotropy below 2% (image/self ~ 1/(3·box_scale−1)² ≈ 1.6%).
+	sim.grid_N = 128
+	sim.cluster_radius = 12.0
+	sim.N_particles = 16384  # probes only — rho is written directly
+	sim.box_aspect = ASPECT_PHI
+	sim.river_calibrate_gn = false
+	sim.field_attractor_init = true
+	sim.box_scale = 1.0
+	sim.reinit()
+	sim.playing = false
+	var a := 12.0
+	var r := 0.25 * a  # a/4: linear-interior probe (estimator-exact)
+	var spread1 := _sphere_axis_spread(a, r)
+	sim.box_scale = 3.0
+	sim.reinit()
+	sim.playing = false
+	var ext3: Vector3 = sim._extents()
+	var ext1_ref: Vector3 = ASPECT_PHI * (1.5 * sim.cluster_radius)
+	var dev: float = (ext3 - ext1_ref * 3.0).length() / maxf((ext1_ref * 3.0).length(), 1e-30)
+	_check("(f) extents scale exactly ×3 (single _extents() formula)", dev < 1e-6,
+		"dev=%s ext3=%s" % [str(dev), str(ext3)])
+	var spread3 := _sphere_axis_spread(a, r)
+	_check("(f) scale-3 multi-axis force anisotropy < 2% (isolated regime)", spread3 < 0.02,
+		"spread3=%.4f" % spread3)
+	_check("(f) scale-1 anisotropy > 2% (legacy ejection regime, brackets the band)", spread1 > 0.02,
+		"spread1=%.4f" % spread1)
+	_report.append("(f) sphere force anisotropy @ a/4: scale1=%.1f%% scale3=%.2f%%" % [100.0 * spread1, 100.0 * spread3])
+
+
+## Uniform-sphere rho + 3 axis probes through the FULL shader chain; returns
+## the max pairwise relative deviation of |a| on (r,0,0)/(0,r,0)/(0,0,r).
+## Self-contained arrays (sized to sim.grid_N) so the (f) test can reinit
+## at a different resolution than the scene's N=64.
+func _sphere_axis_spread(a: float, r: float) -> float:
+	var nn: int = sim.grid_N
+	var ncc := nn * nn * nn
+	var ext := _ext()
+	var hx := ext.x / (float(nn) * 0.5)
+	var hy := ext.y / (float(nn) * 0.5)
+	var hz := ext.z / (float(nn) * 0.5)
+	var ey = PackedFloat32Array()
+	ey.resize(ncc)
+	var ei = PackedFloat32Array()
+	ei.resize(ncc)
+	for i in range(ncc):
+		ey[i] = 0.00012
+		ei[i] = 0.00010
+	_write_fields(ey, ei, ncc)
+	var rho = PackedFloat32Array()
+	rho.resize(ncc)
+	var a2 := a * a
+	var sum_w := 0.0
+	for k in range(nn):
+		for j in range(nn):
+			for i in range(nn):
+				var id := i + nn * (j + nn * k)
+				var x: float = (float(i) - float(nn) * 0.5) * hx
+				var y: float = (float(j) - float(nn) * 0.5) * hy
+				var z: float = (float(k) - float(nn) * 0.5) * hz
+				var w: float = 1.0 if (x * x + y * y + z * z) <= a2 else 0.0
+				rho[id] = w
+				sum_w += w
+	for i in range(ncc):
+		rho[i] /= sum_w
+	_write_rho(rho, ncc)
+	_set_point_probes([Vector3(r, 0.0, 0.0), Vector3(0.0, r, 0.0), Vector3(0.0, 0.0, r)])
+	_run_chain(nn)
+	var accs := _read_accs(3)
+	var mags := [accs[0].length(), accs[1].length(), accs[2].length()]
+	var dev_xy: float = absf(mags[0] - mags[1]) / maxf(mags[0], 1e-30)
+	var dev_xz: float = absf(mags[0] - mags[2]) / maxf(mags[0], 1e-30)
+	var dev_yz: float = absf(mags[1] - mags[2]) / maxf(mags[1], 1e-30)
+	return maxf(dev_xy, maxf(dev_xz, dev_yz))
 
 
 func _set_plane_wave(mode100: bool, m: float) -> void:

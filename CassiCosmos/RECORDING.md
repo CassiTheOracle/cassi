@@ -107,10 +107,14 @@ GPU) and `max_steps_per_frame = 60`. The recorder inherits the BH toggle
 (`black_holes_enabled`) from main.tscn like every other sim setting.
 
 Command line overrides (`--grid=… --particles=… --gravity=… --init=…
---aspect=x,y,z --v-circ=…`) are applied on top of the inherited settings
-and reinitialized before recording; `--v-circ=…` sets the IC rotational
-support factor (v_tangential = factor·√(G·M_enc/r) about z; default
-0.85); `--bhs=0/1` sets the BH toggle live (no reinit);
+--aspect=x,y,z --box-scale=… --v-circ=…`) are applied on top of the
+inherited settings and reinitialized before recording; `--v-circ=…` sets
+the IC rotational support factor (v_tangential = factor·√(G·M_enc/r) about
+z; default 0.85); `--box-scale=…` uniformly rescales the box (extent_i =
+box_scale·aspect_i·1.5·cluster_radius) — it separates the cluster from its
+periodic images (image forces drop like 1/(3·box_scale−1)²; scale ≈ 3 is
+the tested isolation regime) while preserving the aspect; `--bhs=0/1` sets
+the BH toggle live (no reinit);
 `--freeze-field=0/1` freezes the two-fluid field after init (skips the
 PDE passes; gravity/particle path unchanged; no reinit — read per step);
 `--steps=…` changes the per-frame catch-up cap;
