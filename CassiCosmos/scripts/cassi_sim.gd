@@ -10,24 +10,29 @@ const PHI_INV3: float = (PHI - 1.0) / (PHI + 1.0)   # φ⁻³ = attractor π/ρ 
 const PHI_INV2: float = 0.3819660112501051  # φ⁻² — q decoherence threshold
 const PHI_6: float = PHI * PHI * PHI * PHI * PHI * PHI  # φ⁶ ≈ 17.94427191
 const PI_CLAMP_MAX: float = 0.72  # (π/ρ) upper clamp (stability; telemetry counts hits)
-const LN2: float = 0.6931471805599453  # ln 2 — degenerate rainbow v_scale fallback (0.8·ln2)
+const LN2: float = 0.6931471805599453  # ln 2 — degenerate rainbow v_scale fallback (0.95·ln2)
 # Qi-rainbow (color_mode 2) stage-1 band — recalibrated 2026-08-12 from the
 # measured q = EY²+EI² distribution at particle positions (1M-particle diag
 # mirroring the live main.tscn config, 600 steps): typical q sits in
 # [3.4e-4, 5.7e-4] — ~1000× BELOW the old φ⁻² anchor (0.381966), which
 # pinned normal running at a hue sliver. The two-stage mapping gives the
-# whole normal band the full rainbow: Q_FLOOR = 2e-4 (just below measured
+# whole normal band the FULL hue circle: Q_FLOOR = 2e-4 (just below measured
 # p1 = 3.1e-4 → the low tail reads orange-red; q < Q_FLOOR clamps to red)
 # to Q_1 = 1e-3 (just above the late-time p99/max = 5.7e-4, so normal
 # running stays in the hue stage). h = Q_SCALE·ln(q/Q_FLOOR) with
-# Q_SCALE = 0.8/ln(Q_1/Q_FLOOR): the measured band spans h ≈ 0.26-0.52
-# (yellow-green → cyan-green; median 3.8e-4 → h = 0.8·ln(1.9)/ln(5) ≈ 0.319,
-# green). Stage 2 (q ∈ [Q_1, q_top]) pins violet and ramps lightness to
-# pure white at q_top = the live qi_condensation_threshold export (the
-# explosion point) — recomputed per PC fill, so changing the threshold
-# re-anchors the white point live (no reinit).
+# Q_SCALE = 1.0/ln(Q_1/Q_FLOOR): f = ln(q/Q_FLOOR)/ln(Q_1/Q_FLOOR) ∈ [0,1]
+# maps linearly onto the whole circle (f=0 red, f=0.5 cyan, f=1 red — the
+# magenta/pink segment 0.8-1.0 the old 0.8 cap omitted is now visible);
+# the measured band spans h ≈ 0.33-0.65 (green → cyan-blue; median 3.8e-4 →
+# h = ln(1.9)/ln(5) ≈ 0.40). Stage 2 (q ∈ [Q_1, q_top]) ramps violet at
+# Q_1 → PINK exactly at the φ⁻² decoherence gate (PHI_INV2 = 0.381966…, the
+# shader's Q_GATE) → red at q_top while lightness ramps to pure white at
+# q_top = the live qi_condensation_threshold export (the explosion point) —
+# recomputed per PC fill, so changing the threshold re-anchors the white
+# point live (no reinit). The red → violet jump at the Q_1 stage boundary
+# is the intentional 'entering the white-hot stage' marker.
 const Q_FLOOR: float = 0.0002   # Qi-rainbow stage-1 band floor (hue = 0 at/below)
-const Q_1: float = 0.001        # Qi-rainbow stage-1 band top = stage-2 white-ramp start
+const Q_1: float = 0.001        # Qi-rainbow stage-1 band top = stage-2 entry
 
 # ═══════════════════════════════════════════════════════════════════════
 # Exports
@@ -195,7 +200,7 @@ const Q_1: float = 0.001        # Qi-rainbow stage-1 band top = stage-2 white-ra
 @export_enum("Particles", "Field", "Black Hole", "Cosmology") var mode: int = 0
 
 # ── Particle color scheme ──────────────────────────────────────────────
-## 0 = the Cassi mass-temperature gradient (Salpeter blue dwarfs → red giants; default, shader path bit-identical). 1 = velocity rainbow: log-compressed, distribution-anchored hue h = min(v_scale·ln(1+|v|/v_ref), 0.8) with v_ref = mean initial |v| and v_scale = 0.8/ln(1+v_max/v_ref) — slow = red (h→0), v ≈ v_ref ≈ 0.5 (green-blue), v = v_max → 0.8 (violet); hue drifts only logarithmically as speeds grow, and growth beyond v_max saturates at violet instead of wrapping. 2 = Qi rainbow: hue from the two-fluid coherence q = EY²+EI² trilinearly sampled at the particle, a TWO-STAGE mapping: stage 1 (the normal operating band q ∈ [Q_FLOOR = 2e-4, Q_1 = 1e-3]) is a full rainbow hue ramp h = Q_SCALE·ln(q/Q_FLOOR) with Q_SCALE = 0.8/ln(Q_1/Q_FLOOR) — the measured typical band (3.4e-4…5.7e-4; the old φ⁻² anchor sat ~1000× above it and pinned normal running to a hue sliver) spans yellow-green → cyan-green, median ≈ green; stage 2 (q ∈ [Q_1, qi_condensation_threshold]) pins violet and ramps lightness 0.5 → 1.0, so elevated coherence approaching condensation washes to pure WHITE at the threshold (white-hot, not violet). 3 = Qi double rainbow: same two-stage structure with the stage-1 hue ramp DOUBLED — h = clamp(2·Q_SCALE·ln(q/Q_FLOOR), 0, 1.6) — so the normal band passes through the rainbow TWICE (f = 0 red, f = 0.25 green-cyan, f = 0.5 violet, f = 0.75 orange-yellow, f → 1 blue) for doubled gradient granularity; stage 2 (q ∈ [Q_1, qi_condensation_threshold]) is identical to mode 2 — the blue→violet jump at the stage boundary is the intentional 'entering the white-hot stage' marker, washing to pure WHITE at the threshold. Live: re-encoded into the instancer PC every physics step (no reinit); while paused the visible colors refresh immediately.
+## 0 = the Cassi mass-temperature gradient (Salpeter blue dwarfs → red giants; default, shader path bit-identical). 1 = velocity rainbow: log-compressed, distribution-anchored hue h = min(v_scale·ln(1+|v|/v_ref), 0.95) with v_ref = mean initial |v| and v_scale = 0.95/ln(1+v_max/v_ref) — slow = red (h→0), v ≈ v_ref ≈ 0.5 (green-blue), v = v_max → 0.95 (magenta-pink); hue drifts only logarithmically as speeds grow, and growth beyond v_max saturates at pink instead of wrapping. 2 = Qi rainbow: hue from the two-fluid coherence q = EY²+EI² trilinearly sampled at the particle, a TWO-STAGE mapping: stage 1 (the normal operating band q ∈ [Q_FLOOR = 2e-4, Q_1 = 1e-3]) is the FULL hue circle h = Q_SCALE·ln(q/Q_FLOOR) with Q_SCALE = 1/ln(Q_1/Q_FLOOR) — f = ln(q/Q_FLOOR)/ln(Q_1/Q_FLOOR) ∈ [0,1] maps linearly onto the whole rainbow (f = 0 red, f = 0.5 cyan, f = 1 red), magenta/pink segment included; the measured typical band (3.4e-4…5.7e-4; the old φ⁻² anchor sat ~1000× above it and pinned normal running to a hue sliver) spans green → cyan-blue, median ≈ 0.40; stage 2 (q ∈ [Q_1, qi_condensation_threshold]) ramps violet at Q_1 → PINK exactly at the φ⁻² decoherence gate q = 0.381966… → red at the threshold while lightness ramps 0.5 → 1.0, so elevated coherence approaching condensation washes to pure WHITE at the threshold (white-hot, not violet); the red → violet jump at the Q_1 boundary is the intentional stage-2 entry marker. 3 = Qi double rainbow: same two-stage structure with the stage-1 hue ramp DOUBLED — h = clamp(2·Q_SCALE·ln(q/Q_FLOOR), 0, 2.0) — so the normal band passes through the rainbow TWICE (f = 0 red, f = 0.25 cyan-green, f = 0.5 red, f = 0.75 cyan-green, f → 1 red) for doubled gradient granularity; stage 2 (q ∈ [Q_1, qi_condensation_threshold]) is identical to mode 2 — pink at the φ⁻² gate, washing to pure WHITE at the threshold. Live: re-encoded into the instancer PC every physics step (no reinit); while paused the visible colors refresh immediately.
 @export_enum("Cassi gradient", "Velocity rainbow", "Qi rainbow", "Qi double rainbow") var particle_color_mode: int = 0
 
 # ── Camera startup framing (camera-only; no physics) ──────────────────
@@ -282,11 +287,13 @@ var _poisson_pc_bytes: PackedByteArray  # poisson PC (7 floats: N, axis, dir, mo
 # instancer's extra fields get their own pre-allocated buffer. Slots 12/13
 # are the generic rainbow pair shared by modes 1/2/3: color_mode 1 =
 # v_ref/v_scale (velocity rainbow), 2/3 = Q_FLOOR/Q_SCALE (Qi-rainbow
-# stage-1 ramp: Q_SCALE = 0.8/ln(max(Q_1, Q_FLOOR·1.001)/Q_FLOOR); mode 3
+# stage-1 ramp: Q_SCALE = 1.0/ln(max(Q_1, Q_FLOOR·1.001)/Q_FLOOR); mode 3
 # doubles the hue ramp in the shader). Slots 17/18 (modes 2/3 only): Q_1
 # (stage-1 band top) and Q_TOP = the live qi_condensation_threshold (the
-# white point). The three per-axis extents feed the Qi-rainbow q-sampler's
-# cell mapping (the same _extents() values nbody reads from bh[2].yzw).
+# white point). The stage-2 gate anchors (Q_GATE = φ⁻², H_PINK = 0.93) are
+# shader constants. The three per-axis extents feed the Qi-rainbow
+# q-sampler's cell mapping (the same _extents() values nbody reads from
+# bh[2].yzw).
 var _instancer_pc_bytes: PackedByteArray  # instancer PC (19 floats: 11 shared + color_mode@11 + v_ref/v_scale@12-13 (mode 1) or Q_FLOOR/Q_SCALE@12-13 (modes 2/3) + extent_x/y/z@14-16 + Q_1@17 + Q_TOP@18 (modes 2/3))
 # NOTE: global RD — no manual submit/sync anywhere (illegal on the main
 # instance); readbacks self-stall via buffer_get_data.
@@ -312,7 +319,7 @@ var _inst_debug_done: bool = false       # one-time inst[0..2] print
 var _mmi: MultiMeshInstance3D; var _mm: MultiMesh
 var _mm_particle_size: float = -1.0  # particle_size the multimesh was built with (reinit rebuild check)
 var _rainbow_vref: float = 1.0  # rainbow speed reference: mean initial |v| (set in _init_particles; fallback 1.0)
-var _rainbow_vscale: float = 0.8 * LN2  # rainbow hue scale: 0.8/ln(1+v_max/v_ref) (set in _init_particles; degenerate fallback 0.8·ln2)
+var _rainbow_vscale: float = 0.95 * LN2  # rainbow hue scale: 0.95/ln(1+v_max/v_ref) (set in _init_particles; degenerate fallback 0.95·ln2)
 
 # — timing —
 var _step_count: int = 0
@@ -1214,11 +1221,11 @@ func _init_particles() -> void:
 			var cb: float = lerp(1.0,  0.15, log_m)
 			init_inst[b+12] = cr; init_inst[b+13] = cg; init_inst[b+14] = cb; init_inst[b+15] = 1.0
 		elif particle_color_mode == 1:
-			# Velocity rainbow: h = min(v_scale·ln(1+|v|/v_ref), 0.8),
-			# slow=red → fast=violet; growth beyond v_max saturates (no wrap).
+			# Velocity rainbow: h = min(v_scale·ln(1+|v|/v_ref), 0.95),
+			# slow=red → fast=magenta-pink; growth beyond v_max saturates (no wrap).
 			var vx: float = vel[i4]; var vy: float = vel[i4 + 1]; var vz: float = vel[i4 + 2]
 			var vs: float = sqrt(vx*vx + vy*vy + vz*vz)
-			var col: Color = _hsl_to_rgb(minf(_rainbow_vscale * log(1.0 + vs / _rainbow_vref), 0.8), 1.0, 0.5)
+			var col: Color = _hsl_to_rgb(minf(_rainbow_vscale * log(1.0 + vs / _rainbow_vref), 0.95), 1.0, 0.5)
 			init_inst[b+12] = col.r; init_inst[b+13] = col.g; init_inst[b+14] = col.b; init_inst[b+15] = 1.0
 		else:
 			# Qi rainbow (modes 2/3): PLACEHOLDER — the shader computes the q
@@ -1241,19 +1248,19 @@ func _init_particles() -> void:
 	_init_out_of_box = out_box
 	# Velocity-rainbow anchors (log-compressed, distribution-anchored):
 	#   v_ref  = mean initial |v|          (the hue mid-point: h(v_ref) ≈ 0.4-0.5)
-	#   v_scale = 0.8 / ln(1 + v_max/v_ref)  (fastest particle → h = 0.8, violet)
+	#   v_scale = 0.95 / ln(1 + v_max/v_ref)  (fastest particle → h = 0.95, magenta-pink)
 	# h = v_scale·ln(1+|v|/v_ref): slow → h→0 (red), and hue drifts only
 	# LOGARITHMICALLY under velocity growth — a speed-up no longer pins the
 	# field at the top of the ramp (the linear |v|/(|v|+v_ref) saturation bug).
-	# Degenerate zero-speed IC: v_ref = 1.0, v_scale = 0.8·ln2 (smooth small-v
+	# Degenerate zero-speed IC: v_ref = 1.0, v_scale = 0.95·ln2 (smooth small-v
 	# ramp instead of a division hazard).
 	var mean_v: float = sum_v / float(N_particles) if N_particles > 0 else 0.0
 	if max_v > 0.0 and mean_v > 0.0:
 		_rainbow_vref = mean_v
-		_rainbow_vscale = 0.8 / log(1.0 + max_v / mean_v)
+		_rainbow_vscale = 0.95 / log(1.0 + max_v / mean_v)
 	else:
 		_rainbow_vref = 1.0
-		_rainbow_vscale = 0.8 * LN2
+		_rainbow_vscale = 0.95 * LN2
 	# Retained fraction = analytic fraction of the UNBOUNDED profile kept
 	# inside the truncation, per profile (min over clusters, like the old
 	# Plummer u_max minimum):
@@ -1426,7 +1433,7 @@ func _physics_step() -> void:
 func _fill_instancer_pc() -> void:
 	# Instancer dedicated PC (19 floats): the shared 11 + color_mode (slot 11)
 	# + the generic rainbow pair slots 12/13 (mode 1: v_ref/v_scale; mode 2:
-	# Q_FLOOR/Q_SCALE, Q_SCALE = 0.8/ln(max(Q_1, Q_FLOOR·1.001)/Q_FLOOR)) +
+	# Q_FLOOR/Q_SCALE, Q_SCALE = 1.0/ln(max(Q_1, Q_FLOOR·1.001)/Q_FLOOR)) +
 	# the three per-axis box half-extents (slots 14-16, the Qi-rainbow
 	# q-sampler's cell mapping) + slots 17/18 (mode 2: Q_1 = stage-1 band
 	# top, Q_TOP = the LIVE qi_condensation_threshold — changing the
@@ -1452,14 +1459,15 @@ func _fill_instancer_pc() -> void:
 	if particle_color_mode >= 2:
 		# Qi rainbow (modes 2/3): slots 12/13 carry Q_FLOOR/Q_SCALE (stage-1
 		# band floor and hue-ramp scale), slots 17/18 carry Q_1 (band top /
-		# white-ramp start) and Q_TOP = the LIVE condensation threshold (the
+		# stage-2 entry) and Q_TOP = the LIVE condensation threshold (the
 		# physical explosion point — the white point). Mode 3 doubles the
-		# hue ramp in the shader; the PC values are identical. Guarded so a
-		# degenerate threshold/band never divides by zero (Q_1 clamped above
-		# Q_FLOOR).
+		# hue ramp in the shader; the PC values are identical. The stage-2
+		# pink anchor is the shader const Q_GATE = φ⁻² (PHI_INV2) — no PC
+		# slot. Guarded so a degenerate threshold/band never divides by zero
+		# (Q_1 clamped above Q_FLOOR).
 		var q_top: float = maxf(qi_condensation_threshold, Q_1 * 1.001)
 		_instancer_pc_bytes.encode_float(48, Q_FLOOR)
-		_instancer_pc_bytes.encode_float(52, 0.8 / log(maxf(Q_1, Q_FLOOR * 1.001) / Q_FLOOR))
+		_instancer_pc_bytes.encode_float(52, 1.0 / log(maxf(Q_1, Q_FLOOR * 1.001) / Q_FLOOR))
 		_instancer_pc_bytes.encode_float(68, Q_1)
 		_instancer_pc_bytes.encode_float(72, q_top)
 	else:

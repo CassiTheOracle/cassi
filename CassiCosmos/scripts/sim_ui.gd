@@ -263,7 +263,7 @@ func _ready() -> void:
 	_color_opt.add_item("Qi rainbow")
 	_color_opt.add_item("Qi double rainbow")
 	_color_opt.selected = 0
-	_color_opt.tooltip_text = "Cassi = mass-temperature gradient (Salpeter blue dwarfs → red giants); Velocity rainbow = hue from speed, slow=red → fast=violet; Qi rainbow = coherence q = EY²+EI², two-stage: the normal band (2e-4 → 1e-3) sweeps the rainbow (median q = green), then elevated q washes violet → pure white at the condensation threshold; Qi double rainbow = same, with the band hue ramp doubled (two rainbow passes across the normal band, doubled gradient granularity) and the same white-hot approach; live — no reinit."
+	_color_opt.tooltip_text = "Color: 0 Cassi = mass-temperature gradient (Salpeter blue dwarfs → red giants); 1 Velocity rainbow = hue from speed, slow=red → fast=magenta-pink (full hue circle, top 0.95); 2 Qi rainbow = coherence q = EY²+EI², two-stage: the normal band (2e-4 → 1e-3) sweeps the FULL hue circle (median ≈ green-cyan), then stage 2 ramps violet → PINK exactly at the φ⁻² decoherence gate (q = 0.381966) → white at the condensation threshold; 3 Qi double rainbow = same, with the band hue ramp doubled (two rainbow passes across the normal band, doubled gradient granularity) and the same stage 2; live — no reinit."
 	_color_opt.custom_minimum_size = Vector2(150, 22)
 	_color_opt.focus_mode = Control.FOCUS_NONE
 	_color_opt.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND

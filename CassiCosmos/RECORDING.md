@@ -116,25 +116,30 @@ periodic images (image forces drop like 1/(3·box_scale−1)²; scale ≈ 3 is
 the tested isolation regime) while preserving the aspect; `--bhs=0/1` sets
 the BH toggle live (no reinit);
 `--color=0/1/2/3` sets the particle color scheme (0 = Cassi mass gradient,
-1 = velocity rainbow: log-compressed hue h = min(v_scale·ln(1+|v|/v_ref), 0.8),
-v_ref = mean initial |v|, v_scale = 0.8/ln(1+v_max/v_ref) — slow red,
-v=v_ref green-blue, v=v_max violet, growth beyond v_max saturates;
+1 = velocity rainbow: log-compressed hue h = min(v_scale·ln(1+|v|/v_ref), 0.95),
+v_ref = mean initial |v|, v_scale = 0.95/ln(1+v_max/v_ref) — slow red,
+v=v_ref green-blue, v=v_max magenta-pink (0.95, the full-circle top),
+growth beyond v_max saturates pink;
 2 = Qi rainbow: hue from the two-fluid coherence q = EY²+EI² sampled at the
 particle, a two-stage mapping: stage 1 (the normal operating band q ∈
-[Q_FLOOR = 2e-4, Q_1 = 1e-3]) is a full rainbow hue ramp
-h = Q_SCALE·ln(q/Q_FLOOR), Q_SCALE = 0.8/ln(Q_1/Q_FLOOR) — the measured
+[Q_FLOOR = 2e-4, Q_1 = 1e-3]) is the FULL hue circle
+h = Q_SCALE·ln(q/Q_FLOOR), Q_SCALE = 1/ln(Q_1/Q_FLOOR) — f = ln(q/Q_FLOOR)/
+ln(Q_1/Q_FLOOR) ∈ [0,1] maps linearly onto the whole rainbow, magenta/pink
+segment included (f = 0 red, f = 0.5 cyan, f = 1 red); the measured
 typical band (3.4e-4…5.7e-4; the old φ⁻² anchor sat ~1000× above it and
-pinned normal running to a hue sliver) spans yellow-green → cyan-green with
-the median ≈ green; stage 2 (q ∈ [Q_1, qi_condensation_threshold]) pins
-violet and ramps lightness 0.5 → 1.0, so elevated coherence approaching
-condensation washes to pure WHITE at the threshold (white-hot, not violet);
+pinned normal running to a hue sliver) spans green → cyan-blue with the
+median ≈ 0.40; stage 2 (q ∈ [Q_1, qi_condensation_threshold]) ramps
+violet at Q_1 → PINK exactly at the φ⁻² decoherence gate q = 0.381966…
+(Q_GATE, the framework's qi gate) → red at the threshold, while lightness
+ramps 0.5 → 1.0, so elevated coherence approaching condensation washes to
+pure WHITE at the threshold (white-hot, not violet); the red → violet jump
+at the Q_1 boundary is the intentional stage-2 entry marker;
 3 = Qi double rainbow: same two-stage structure with the stage-1 hue ramp
-DOUBLED — h = clamp(2·Q_SCALE·ln(q/Q_FLOOR), 0, 1.6) — so the normal band
-passes through the rainbow TWICE (f = 0 red, f = 0.25 green-cyan, f = 0.5
-violet, f = 0.75 orange-yellow, f → 1 blue; f = ln(q/Q_FLOOR)/ln(Q_1/Q_FLOOR))
-for doubled gradient granularity; stage 2 identical to mode 2 — the
-blue→violet jump at the stage boundary is the intentional 'entering the
-white-hot stage' marker, washing to pure WHITE at the threshold;
+DOUBLED — h = clamp(2·Q_SCALE·ln(q/Q_FLOOR), 0, 2.0) — so the normal band
+passes through the rainbow TWICE (f = 0 red, f = 0.25 cyan-green, f = 0.5
+red, f = 0.75 cyan-green, f → 1 red; f = ln(q/Q_FLOOR)/ln(Q_1/Q_FLOOR))
+for doubled gradient granularity; stage 2 identical to mode 2 — pink at
+the φ⁻² gate, washing to pure WHITE at the threshold;
 all live, no reinit);
 `--freeze-field=0/1` freezes the two-fluid field after init (skips the
 PDE passes; gravity/particle path unchanged; no reinit — read per step);
