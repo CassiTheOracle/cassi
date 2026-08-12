@@ -200,8 +200,63 @@ const Q_1: float = 0.001        # Qi-rainbow stage-1 band top = stage-2 entry
 @export_enum("Particles", "Field", "Black Hole", "Cosmology") var mode: int = 0
 
 # ── Particle color scheme ──────────────────────────────────────────────
-## 0 = the Cassi mass-temperature gradient (Salpeter blue dwarfs → red giants; default, shader path bit-identical). 1 = velocity rainbow: log-compressed, distribution-anchored hue h = min(v_scale·ln(1+|v|/v_ref), 0.95) with v_ref = mean initial |v| and v_scale = 0.95/ln(1+v_max/v_ref) — slow = red (h→0), v ≈ v_ref ≈ 0.5 (green-blue), v = v_max → 0.95 (magenta-pink); hue drifts only logarithmically as speeds grow, and growth beyond v_max saturates at pink instead of wrapping. 2 = Qi rainbow: hue from the two-fluid coherence q = EY²+EI² trilinearly sampled at the particle, a TWO-STAGE mapping: stage 1 (the normal operating band q ∈ [Q_FLOOR = 2e-4, Q_1 = 1e-3]) is the FULL hue circle h = Q_SCALE·ln(q/Q_FLOOR) with Q_SCALE = 1/ln(Q_1/Q_FLOOR) — f = ln(q/Q_FLOOR)/ln(Q_1/Q_FLOOR) ∈ [0,1] maps linearly onto the whole rainbow (f = 0 red, f = 0.5 cyan, f = 1 red), magenta/pink segment included; the measured typical band (3.4e-4…5.7e-4; the old φ⁻² anchor sat ~1000× above it and pinned normal running to a hue sliver) spans green → cyan-blue, median ≈ 0.40; stage 2 (q ∈ [Q_1, qi_condensation_threshold]) ramps violet at Q_1 → PINK exactly at the φ⁻² decoherence gate q = 0.381966… → red at the threshold while lightness ramps 0.5 → 1.0, so elevated coherence approaching condensation washes to pure WHITE at the threshold (white-hot, not violet); the red → violet jump at the Q_1 boundary is the intentional stage-2 entry marker. 3 = Qi double rainbow: same two-stage structure with the stage-1 hue ramp DOUBLED — h = clamp(2·Q_SCALE·ln(q/Q_FLOOR), 0, 2.0) — so the normal band passes through the rainbow TWICE (f = 0 red, f = 0.25 cyan-green, f = 0.5 red, f = 0.75 cyan-green, f → 1 red) for doubled gradient granularity; stage 2 (q ∈ [Q_1, qi_condensation_threshold]) is identical to mode 2 — pink at the φ⁻² gate, washing to pure WHITE at the threshold. Live: re-encoded into the instancer PC every physics step (no reinit); while paused the visible colors refresh immediately.
+# ── Particle color scheme ──────────────────────────────────────────────
+## Legacy master selector for the particle colors (the consolidated gradient
+## engine's source/count exports below configure it): 0 = the Cassi
+## mass-temperature gradient (Salpeter blue dwarfs → red giants; default,
+## shader path bit-identical); 1 = velocity rainbow (speed |v|, cycle band
+## [0, v_max] measured at init, log progress, hue 0 → 0.95 magenta-pink at
+## v_max, held with no wrap beyond); 2 = Qi rainbow (coherence q = EY²+EI²,
+## cycle band [qi_cycle] — the FULL hue circle per pass, one pass),
+## 3 = Qi double rainbow (two passes over the cycle band — the old mode-3
+## doubling, now expressible as mode 2 + rainbow_count = 2). All rainbow
+## modes share the white-hot approach band (violet → pink at the φ⁻² gate →
+## white at qi_condensation_threshold). Live — re-encoded into the
+## instancer PC every physics step (no reinit).
 @export_enum("Cassi gradient", "Velocity rainbow", "Qi rainbow", "Qi double rainbow") var particle_color_mode: int = 0
+
+# ── Consolidated gradient engine (live exports — read per instancer PC fill) ──
+## Rainbow pass count: 0 = AUTO (mode 3 → 2 passes, modes 1/2 → 1); explicit 1-8
+## overrides. Each pass sweeps the full cycle hue budget; more passes = finer
+## gradient granularity. Live — no reinit.
+@export_range(0, 8, 1) var rainbow_count: int = 0
+## Per-segment hue shares (lo-tail, pinch, hi-tail) — normalized over the active
+## cycle segments; each pass's hue budget is split by these. The pinch segment's
+## share × its narrow log width gives the concentrated gradient where most
+## particles sit. Live — no reinit.
+@export var color_shares: Vector3 = Vector3(0.2, 0.6, 0.2)
+## Cycle progress measure: 0 = Log (multiplicative physics — the pinch band is
+## the narrowest log interval, intrinsically steepest; default), 1 = Linear.
+## Live — no reinit.
+@export_enum("Log", "Linear") var color_progress: int = 0
+## Qi cycle band [lo, hi] — the hue passes' span over the coherence q. Default
+## = the measured normal operating band (2e-4 → 1e-3); q below lo clamps to red.
+## Live — no reinit.
+@export var qi_cycle: Vector2 = Vector2(0.0002, 0.001)
+## Qi pinch split — the concentrated-gradient band inside the cycle where most
+## particles sit (measured q band [3.4e-4, 5.7e-4], median ≈ 3.8e-4). OFF iff
+## lo >= hi. Recommended preset (0.00034, 0.00057). Live — no reinit.
+@export var qi_pinch: Vector2 = Vector2(0.0, 0.0)
+## Qi white-hot approach band [entry, white point] — count-invariant: violet
+## (0.8) at the entry → PINK (0.93) exactly at the φ⁻² gate → red (1.0) at the
+## white point, lightness 0.5 → 1.0. Live — no reinit.
+@export var qi_approach: Vector2 = Vector2(0.001, 0.85)
+## White point = the LIVE qi_condensation_threshold export (re-anchors the
+## approach's white end live, no reinit).
+@export var qi_approach_tracks_threshold: bool = true
+## φ⁻² pink anchor inside the approach band (0.3819660112501051 — the framework's
+## decoherence threshold; repositionable). Live — no reinit.
+@export var qi_gate: float = 0.3819660112501051
+## Velocity cycle band; (0,0) = AUTO (init-measured v_ref → v_max). Live — no
+## reinit.
+@export var velocity_cycle: Vector2 = Vector2(0.0, 0.0)
+## Velocity pinch split; OFF iff lo >= hi. Live — no reinit.
+@export var velocity_pinch: Vector2 = Vector2(0.0, 0.0)
+## Velocity white-hot approach band; OFF iff lo >= hi. Live — no reinit.
+@export var velocity_approach: Vector2 = Vector2(0.0, 0.0)
+## Rotate the cycle start hue (adds to the cycle hue before the pass-set wrap).
+## Live — no reinit.
+@export_range(0.0, 1.0, 0.01) var color_hue_offset: float = 0.0
 
 # ── Camera startup framing (camera-only; no physics) ──────────────────
 ## On startup, frame a sibling Camera3D on the spawn region: the camera is
@@ -316,6 +371,11 @@ var _mm_particle_size: float = -1.0  # particle_size the multimesh was built wit
 var _rainbow_vref: float = 1.0  # rainbow speed reference: mean initial |v| (set in _init_particles; fallback 1.0)
 var _rainbow_vscale: float = 0.95 * LN2  # rainbow hue scale: 0.95/ln(1+v_max/v_ref) (set in _init_particles; degenerate fallback 0.95·ln2)
 var _rainbow_vmax: float = 1.0  # max initial speed — the velocity cycle's AUTO band top (set in _init_particles; fallback 1.0)
+# One-shot export-validation warnings (the derivation runs every PC fill; the
+# warnings fire once per misuse instead of spamming the console every step).
+var _warned_rainbow_count: bool = false
+var _warned_qi_cycle: bool = false
+var _warned_vel_cycle: bool = false
 
 # — timing —
 var _step_count: int = 0
@@ -1440,9 +1500,14 @@ func _fill_instancer_pc() -> void:
 	# approach is LINEAR (violet 0.8 at a_lo → pink 0.93 at the gate → red
 	# 1.0 at a_hi; lightness 0.5 → 1.0). H_CYCLE = 1.0 (Qi) / 0.95
 	# (velocity — the legacy full-circle top, held with no wrap).
-	# Derivation reads the LIVE exports (particle_color_mode,
-	# qi_condensation_threshold) + the measured velocity anchors each fill,
-	# so a UI flip applies on the next dispatch (no reinit).
+	# Derivation reads the LIVE exports (particle_color_mode, rainbow_count,
+	# color_shares, color_progress, qi_cycle/pinch/approach/gate,
+	# qi_approach_tracks_threshold, velocity_cycle/pinch/approach,
+	# color_hue_offset, qi_condensation_threshold) + the measured velocity
+	# anchors each fill, so a UI flip applies on the next dispatch (no
+	# reinit). Validation: count > 8 clamps, an inverted/empty cycle falls
+	# back to the canonical band, an inverted pinch/approach turns off
+	# (one-shot warnings per misuse).
 	var ext_pc: Vector3 = _extents()
 	_instancer_pc_bytes.encode_float(0, float(grid_N))
 	_instancer_pc_bytes.encode_float(4, dt)
@@ -1464,50 +1529,100 @@ func _fill_instancer_pc() -> void:
 		return
 	# ── engine derivation (modes 1/2/3) ──────────────────────────────
 	var is_qi: bool = particle_color_mode >= 2
-	var count: int = 2 if particle_color_mode == 3 else 1  # legacy pass count (mode 3 = double)
-	var h_cycle: float = 1.0 if is_qi else 0.95            # legacy hue budget
-	var prog: float = 0.0                                  # legacy: log progress
+	# pass count: rainbow_count 0 = AUTO (mode 3 → 2, else 1); explicit 1-8
+	var count: int = rainbow_count
+	if count > 8:
+		if not _warned_rainbow_count:
+			_warned_rainbow_count = true
+			push_warning("[CassiSim] rainbow_count=%d > 8 — clamped to 8" % count)
+		count = 8
+	if count <= 0:
+		count = 2 if particle_color_mode == 3 else 1
+	var h_cycle: float = 1.0 if is_qi else 0.95   # H_CYCLE (Qi full circle / velocity 0.95 top)
+	var prog: float = float(color_progress)       # 0 = log (default), 1 = linear
 	var ref: float = 0.0
 	var lo1: float = 0.0
 	var hi_c: float = 0.0
+	var pinch := Vector2.ZERO
 	var a_lo: float = 0.0
 	var a_hi: float = 0.0
-	var gate: float = PHI_INV2
+	var gate: float = qi_gate
 	var approach_on: float = 0.0
 	if is_qi:
-		# Legacy Qi mapping: cycle band [Q_FLOOR, Q_1], pinch off, shares
-		# (1,0,0); approach [Q_1, the LIVE condensation threshold] with the
-		# φ⁻² pink gate (PHI_INV2 — the framework's decoherence threshold).
+		# Qi: cycle band [qi_cycle] (calibrated default 2e-4 → 1e-3), pinch
+		# [qi_pinch], shares [color_shares]; approach [qi_approach] with the
+		# white point = the LIVE qi_condensation_threshold (tracks_threshold)
+		# and the φ⁻² pink gate (qi_gate, default PHI_INV2).
 		ref = 0.0
-		lo1 = Q_FLOOR
-		hi_c = Q_1
-		a_lo = Q_1
-		a_hi = maxf(qi_condensation_threshold, Q_1 * 1.001)
-		approach_on = 1.0
+		lo1 = qi_cycle.x
+		hi_c = qi_cycle.y
+		pinch = qi_pinch
+		if lo1 >= hi_c:
+			if not _warned_qi_cycle:
+				_warned_qi_cycle = true
+				push_warning("[CassiSim] qi_cycle (%g, %g) inverted/empty — using the calibrated band (2e-4, 1e-3)" % [lo1, hi_c])
+			lo1 = Q_FLOOR
+			hi_c = Q_1
+		a_lo = qi_approach.x
+		a_hi = qi_approach.y
+		if qi_approach_tracks_threshold:
+			a_hi = qi_condensation_threshold
+		if a_lo < a_hi:
+			approach_on = 1.0
+			a_hi = maxf(a_hi, a_lo * 1.001)   # verbatim guard (white point above the entry)
+			gate = clampf(qi_gate, a_lo, a_hi)
 	else:
-		# Legacy velocity mapping: cycle band [0, v_max] (measured), ref =
-		# v_ref (mean init |v|); degenerate zero-speed IC → band [0, 1.0]
-		# with ref = 1.0 (the legacy v_scale = 0.95·ln2 smooth small-v ramp).
-		# No approach band (velocity_approach default off).
+		# Velocity: cycle band [velocity_cycle] or AUTO = [0, v_max] measured at
+		# init, ref = v_ref (mean init |v|); degenerate zero-speed IC → band
+		# [0, 1.0] with ref = 1.0. Optional approach [velocity_approach].
 		ref = maxf(_rainbow_vref, 1e-6)
-		lo1 = 0.0
-		if _rainbow_vmax <= 1e-9:
-			hi_c = 1.0
-			ref = 1.0
+		pinch = velocity_pinch
+		if velocity_cycle == Vector2.ZERO:
+			lo1 = 0.0
+			if _rainbow_vmax <= 1e-9:
+				hi_c = 1.0
+				ref = 1.0
+			else:
+				hi_c = _rainbow_vmax
 		else:
-			hi_c = _rainbow_vmax
+			lo1 = velocity_cycle.x
+			hi_c = velocity_cycle.y
+			if lo1 >= hi_c:
+				if not _warned_vel_cycle:
+					_warned_vel_cycle = true
+					push_warning("[CassiSim] velocity_cycle (%g, %g) inverted/empty — using the measured auto band" % [lo1, hi_c])
+				lo1 = 0.0
+				hi_c = _rainbow_vmax if _rainbow_vmax > 1e-9 else 1.0
+		a_lo = velocity_approach.x
+		a_hi = velocity_approach.y
+		if a_lo < a_hi:
+			approach_on = 1.0
+			gate = clampf(qi_gate, a_lo, a_hi)
 	# degenerate guard: a cycle band with hiC ≤ lo1 collapses to a sliver
 	if hi_c <= lo1:
 		hi_c = lo1 * 1.001
-	# pinch OFF → single segment (shares collapse to (1, 0, 0))
+	# ── segments + shares ───────────────────────────────────────────
+	# pinch split [lo2, lo3] inside the cycle; OFF → single segment. The hue
+	# shares are clamped ≥ 0 and normalized over the active segments; a
+	# non-positive sum forces pinch OFF with (1, 0, 0).
+	var pinch_on: bool = pinch.x < pinch.y
+	var sh := Vector3(maxf(color_shares.x, 0.0), maxf(color_shares.y, 0.0), maxf(color_shares.z, 0.0))
+	if not pinch_on or sh.x + sh.y + sh.z <= 0.0:
+		pinch_on = false
+		sh = Vector3(1.0, 0.0, 0.0)
+	else:
+		var ssum: float = sh.x + sh.y + sh.z
+		sh /= ssum
 	var lo2: float = hi_c
 	var lo3: float = hi_c
-	var sh := Vector3(1.0, 0.0, 0.0)
+	if pinch_on:
+		lo2 = pinch.x
+		lo3 = pinch.y
 	var span: float = h_cycle * float(count)   # span_total = H_CYCLE·C
-	# segment widths (log mode: multiplicative physics)
-	var w1: float = log((lo2 + ref) / (lo1 + ref))
-	var w2: float = log((lo3 + ref) / (lo2 + ref))
-	var w3: float = log((hi_c + ref) / (lo3 + ref))
+	# segment widths: log mode (multiplicative physics) or linear mode
+	var w1: float = log((lo2 + ref) / (lo1 + ref)) if color_progress == 0 else lo2 - lo1
+	var w2: float = log((lo3 + ref) / (lo2 + ref)) if color_progress == 0 else lo3 - lo2
+	var w3: float = log((hi_c + ref) / (lo3 + ref)) if color_progress == 0 else hi_c - lo3
 	var slope1: float = span * sh.x / maxf(w1, 1e-9)
 	var slope2: float = span * sh.y / maxf(w2, 1e-9)
 	var slope3: float = span * sh.z / maxf(w3, 1e-9)
@@ -1533,7 +1648,7 @@ func _fill_instancer_pc() -> void:
 	_instancer_pc_bytes.encode_float(112, ext_pc.x)     # 28
 	_instancer_pc_bytes.encode_float(116, ext_pc.y)     # 29
 	_instancer_pc_bytes.encode_float(120, ext_pc.z)     # 30
-	_instancer_pc_bytes.encode_float(124, 0.0)          # 31 hue_offset (legacy: 0)
+	_instancer_pc_bytes.encode_float(124, color_hue_offset)  # 31 hue_offset (rotates the cycle start)
 
 
 func _repaint_instancer() -> void:
