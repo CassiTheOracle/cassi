@@ -245,7 +245,7 @@ const Q_1: float = 0.001        # Qi-rainbow stage-1 band top = stage-2 entry
 @export var qi_approach_tracks_threshold: bool = true
 ## φ⁻² pink anchor inside the approach band (0.3819660112501051 — the framework's
 ## decoherence threshold; repositionable). Live — no reinit.
-@export var qi_gate: float = 0.3819660112501051
+@export_range(0.0, 1.0, 0.000001) var qi_gate: float = 0.3819660112501051
 ## Velocity cycle band; (0,0) = AUTO (init-measured v_ref → v_max). Live — no
 ## reinit.
 @export var velocity_cycle: Vector2 = Vector2(0.0, 0.0)

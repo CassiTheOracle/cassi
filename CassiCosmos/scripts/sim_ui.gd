@@ -507,11 +507,11 @@ func _build_color_popup() -> void:
 
 	# ── Qi group ──
 	pv.add_child(_make_label("Qi rainbow", Color(0.75, 0.9, 1.0), 13))
-	_qi_cycle_lo = _popup_spin("QiCycleLo", 1e-5, 1.0, 1e-5, 0.0002)
-	_qi_cycle_hi = _popup_spin("QiCycleHi", 1e-5, 1.0, 1e-5, 0.001)
+	_qi_cycle_lo = _popup_spin("QiCycleLo", 1e-5, 1.0, 1e-6, 0.0002)
+	_qi_cycle_hi = _popup_spin("QiCycleHi", 1e-5, 1.0, 1e-6, 0.001)
 	_popup_spin_row(pv, "Cycle band", _qi_cycle_lo, _qi_cycle_hi, _on_qi_cycle_changed)
-	_qi_pinch_lo = _popup_spin("QiPinchLo", 0.0, 1.0, 1e-5, 0.0)
-	_qi_pinch_hi = _popup_spin("QiPinchHi", 0.0, 1.0, 1e-5, 0.0)
+	_qi_pinch_lo = _popup_spin("QiPinchLo", 0.0, 1.0, 1e-6, 0.0)
+	_qi_pinch_hi = _popup_spin("QiPinchHi", 0.0, 1.0, 1e-6, 0.0)
 	_popup_spin_row(pv, "Pinch band", _qi_pinch_lo, _qi_pinch_hi, _on_qi_pinch_changed)
 	_share_r = _popup_spin("ShareR", 0.0, 1.0, 0.01, 0.2)
 	_share_g = _popup_spin("ShareG", 0.0, 1.0, 0.01, 0.6)
@@ -524,7 +524,7 @@ func _build_color_popup() -> void:
 		s.custom_minimum_size = Vector2(58, 24)
 		s.value_changed.connect(_on_shares_changed)
 		sh_row.add_child(s)
-	_qi_gate_spin = _popup_spin("QiGate", 0.0, 1.0, 0.001, 0.3819660112501051)
+	_qi_gate_spin = _popup_spin("QiGate", 0.0, 1.0, 0.000001, 0.3819660112501051)
 	_qi_gate_spin.value_changed.connect(_on_qi_gate_changed)
 	var gate_row = HBoxContainer.new()
 	gate_row.add_theme_constant_override("separation", 6)
@@ -548,6 +548,14 @@ func _build_color_popup() -> void:
 	calib_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	calib_btn.pressed.connect(_on_reset_calib)
 	pv.add_child(calib_btn)
+	var calib_pinch_btn = Button.new()
+	calib_pinch_btn.name = "CalibPinchBtn"
+	calib_pinch_btn.text = "Calibrated pinch"
+	calib_pinch_btn.tooltip_text = "qi_pinch (3.4e-4, 5.7e-4) — the measured particle-density pinch band; most particles sit here"
+	calib_pinch_btn.focus_mode = Control.FOCUS_NONE
+	calib_pinch_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	calib_pinch_btn.pressed.connect(_on_calib_pinch)
+	pv.add_child(calib_pinch_btn)
 
 	pv.add_child(HSeparator.new())
 
@@ -830,6 +838,14 @@ func _on_reset_calib() -> void:
 	sim.qi_cycle = Vector2(0.0002, 0.001)
 	sim.qi_pinch = Vector2.ZERO
 	sim.color_shares = Vector3(0.2, 0.6, 0.2)
+	_refresh_popup_fields()
+	_repaint_if_paused(sim)
+
+
+func _on_calib_pinch() -> void:
+	var sim = _get_sim()
+	if sim == null: return
+	sim.qi_pinch = Vector2(0.00034, 0.00057)
 	_refresh_popup_fields()
 	_repaint_if_paused(sim)
 
