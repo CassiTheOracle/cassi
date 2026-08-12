@@ -281,7 +281,7 @@ var _fft_buf: RID      # vec2 per cell — FFT workspace; real part = Φ after s
 var _tel_buf: RID      # gravity telemetry: [pi_hi, pi_lo, rho_guard, q_min, q_max, pi_min, pi_max, samples]
 # — Cell-centered ∇(g·Φ) field (SET 0 binding 7 of cassi_nbody_gravity.glsl) —
 var _grad_buf: RID     # vec4 per cell — gradient pass output, river-arm input
-
+var _occ_buf: RID      # occupancy counters (5 uints — cassi_occupancy.glsl)
 # — particle buffers (SET 1) —
 var _pos_buf: RID; var _vel_buf: RID; var _acc_buf: RID
 
@@ -310,6 +310,7 @@ var _us_bh_lens_2: RID  # BH-lensing set (cached; was created per frame)
 var _instancer_shader: RID; var _instancer_pipe: RID
 var _cond_shader: RID; var _cond_pipe: RID; var _us_cond_0: RID; var _us_cond_1: RID
 var _bh_int_shader: RID; var _bh_int_pipe: RID; var _us_bh_int_0: RID; var _us_bh_int_1: RID
+var _occ_shader: RID; var _occ_pipe: RID; var _us_occ_0: RID  # occupancy sampler (diagnostic; CPU fallback)
 var _cond_step_counter: int = 0
 var _us_inst_0: RID = RID()
 
@@ -333,6 +334,8 @@ var _cond_pc_bytes: PackedByteArray   # condensation PC (4 floats)
 var _bh_init_bytes: PackedByteArray   # BH header init (16 floats)
 var _tel_reset_bytes: PackedByteArray # gravity telemetry reset (8 floats)
 var _poisson_pc_bytes: PackedByteArray  # poisson PC (7 floats: N, axis, dir, mode, extent_x/y/z)
+var _occ_pc_bytes: PackedByteArray    # occupancy PC (10 floats: np, n_sample, stride, lim_x/y/z, ext_x/y/z, pad)
+var _occ_zero_bytes: PackedByteArray  # occupancy counter reset (32 B of zeros)
 # Instancer dedicated PC (32 floats = 128 B — the AMD RDNA3 Vulkan cap;
 # EXACTLY 128, nothing more) — the consolidated gradient engine: the shared
 # 11 + color_mode@11 + prog_mode@12 + ref@13 + the up-to-3 cycle segments
@@ -681,6 +684,13 @@ func _setup_buffers() -> void:
 	# Cell-centered ∇(g·Φ) field (vec4 per cell — river-arm gradient,
 	# rebuilt every step by the gradient pass between poisson and nbody)
 	_grad_buf = _rd.storage_buffer_create(nc * 16)
+	# Occupancy counters (5 uints — cassi_occupancy.glsl). Zeroed here:
+	# storage buffers are NOT zero-initialized on allocator reuse, and the
+	# sampler atomicAdds into the live counters (the per-sample reset is a
+	# buffer_update right before each dispatch in _sample_occupancy).
+	_occ_buf = _rd.storage_buffer_create(32)
+	_occ_zero_bytes = PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]).to_byte_array()
+	_rd.buffer_update(_occ_buf, 0, _occ_zero_bytes.size(), _occ_zero_bytes)
 	# NO sim-owned multimesh buffer: the instancer writes the renderer's own
 	# multimesh instance buffer (see _setup_multimesh) — GPU-direct.
 	_make_render_textures()
@@ -696,6 +706,7 @@ func _setup_buffers() -> void:
 	_bh_int_pc_bytes = PackedByteArray(); _bh_int_pc_bytes.resize(4 * 4)
 	_cond_pc_bytes = PackedByteArray(); _cond_pc_bytes.resize(4 * 4)
 	_poisson_pc_bytes = PackedByteArray(); _poisson_pc_bytes.resize(7 * 4)
+	_occ_pc_bytes = PackedByteArray(); _occ_pc_bytes.resize(10 * 4)
 	# NOTE: all poisson dispatches (clear/load/kspace/FFT) are 2D (N, N, 1) —
 	# cells modes use gid = x + y·N·256 (see cassi_poisson.glsl), the FFT
 	# uses row = workgroup.x + workgroup.y·N. A 1D (N³/256, 1, 1) dispatch
@@ -709,7 +720,7 @@ func _free_buffers() -> void:
 	for rid in [_field_ey, _field_ei, _field_q, _field_vel,
 				_pos_buf, _vel_buf, _acc_buf, _bh_buf, _bh_lens_buf,
 				_mass_density_buf, _cluster_buf, _fft_buf, _tel_buf,
-				_grad_buf,
+				_grad_buf, _occ_buf,
 				_field_render_tex, _bh_lensing_tex]:
 		if rid.is_valid(): _rd.free_rid(rid)
 	_field_render_tex = RID()
@@ -723,7 +734,8 @@ func _free_uniform_sets() -> void:
 	for rid in [_us_two_0, _us_two_1, _us_two_2, _us_mass_dep_0,
 				_us_nbody_0, _us_nbody_1, _us_nbody_2, _us_poisson_0,
 				_us_fr_0, _us_fr_2, _us_cond_0, _us_cond_1,
-				_us_bh_int_0, _us_bh_int_1, _us_inst_0, _us_bh_lens_2]:
+				_us_bh_int_0, _us_bh_int_1, _us_inst_0, _us_bh_lens_2,
+				_us_occ_0]:
 		if rid.is_valid(): _rd.free_rid(rid)
 	_us_two_0 = RID(); _us_two_1 = RID(); _us_two_2 = RID()
 	_us_mass_dep_0 = RID()
@@ -734,6 +746,7 @@ func _free_uniform_sets() -> void:
 	_us_bh_int_0 = RID(); _us_bh_int_1 = RID()
 	_us_inst_0 = RID()
 	_us_bh_lens_2 = RID()
+	_us_occ_0 = RID()
 
 func _free_shaders() -> void:
 	_free_uniform_sets()  # sets hold shader references; release before the shaders
@@ -742,11 +755,11 @@ func _free_shaders() -> void:
 	for rid in [_two_fluid_pipe, _nbody_pipe, _poisson_pipe,
 				_field_render_pipe, _bh_lensing_pipe,
 				_instancer_pipe, _mass_deposit_pipe,
-				_cond_pipe, _bh_int_pipe,
+				_cond_pipe, _bh_int_pipe, _occ_pipe,
 				_two_fluid_shader, _nbody_shader, _poisson_shader,
 				_field_render_shader, _bh_lensing_shader,
 				_instancer_shader, _mass_deposit_shader,
-				_cond_shader, _bh_int_shader]:
+				_cond_shader, _bh_int_shader, _occ_shader]:
 		if rid.is_valid(): _rd.free_rid(rid)
 
 func _setup_shaders() -> void:
@@ -803,6 +816,14 @@ func _setup_shaders() -> void:
 	if _bh_int_shader.is_valid():
 		_bh_int_pipe = _rd.compute_pipeline_create(_bh_int_shader)
 		print("[CassiSim] BH integration pipeline ready")
+
+	# Occupancy sampler (diagnostic — GPU-side box classification; the
+	# 0.5 s occupancy readback no longer drags the full position buffer).
+	# Optional: _sample_occupancy falls back to the CPU path if invalid.
+	_occ_shader = _shader_from_file("res://compute/cassi_occupancy.glsl")
+	if _occ_shader.is_valid():
+		_occ_pipe = _rd.compute_pipeline_create(_occ_shader)
+		print("[CassiSim] Occupancy sampler pipeline ready")
 
 	_cache_uniform_sets()
 	_shaders_ready = (
@@ -905,6 +926,14 @@ func _cache_uniform_sets() -> void:
 		_uniform_storage(1, _mass_density_buf),
 	], _mass_deposit_shader, 0)
 	print("[CassiSim] Mass deposit uniform set cached")
+
+	# Occupancy sampler (diagnostic; CPU fallback if invalid — the shader
+	# is optional and excluded from _shaders_ready)
+	if _occ_shader.is_valid() and _pos_buf.is_valid() and _occ_buf.is_valid():
+		_us_occ_0 = _rd.uniform_set_create([
+			_uniform_storage(0, _pos_buf),
+			_uniform_storage(1, _occ_buf),
+		], _occ_shader, 0)
 
 # ═══════════════════════════════════════════════════════════════════════
 # Initial conditions
@@ -2090,8 +2119,13 @@ func _render_frame() -> void:
 		if q_data.size() > 0:
 			var qf = q_data.to_float32_array()
 			var q_sum = 0.0
-			for v in qf: q_sum += v
-			_q_mean = q_sum / max(qf.size(), 1)
+			# Strided sum: the full-grid GDScript reduction was the slow part
+			# of this 3 Hz readback (16.7M iterations at grid 256). A 1-in-16
+			# subsample keeps the diagnostic mean accurate for the smooth q
+			# field while cutting the loop ~16x.
+			for qi in range(0, qf.size(), 16):
+				q_sum += qf[qi]
+			_q_mean = q_sum * 16.0 / max(qf.size(), 1)
 		# Gravity telemetry: saturation counters + q/π/ρ range at particles
 		var tel = _rd.buffer_get_data(_tel_buf, 0, 32)
 		if tel.size() >= 32:
@@ -2155,17 +2189,57 @@ func _render_frame() -> void:
 func _sample_occupancy() -> void:
 	if not _pos_buf.is_valid() or N_particles <= 0:
 		return
-	_ensure_synced()
 	var n_sample := mini(N_particles, 40000)
 	var stride := maxi(1, int(N_particles / n_sample))
-	# Read the FULL position buffer, then subsample with the stride on the
-	# CPU — a head-only slice would bias toward the first particles.
+	var ext_box: Vector3 = _extents()
+	var lim := Vector3(0.85 * ext_box.x, 0.85 * ext_box.y, 0.85 * ext_box.z)
+	# GPU path: one strided classify pass into 5 atomic counters (see
+	# cassi_occupancy.glsl) — a 32-byte readback instead of the full
+	# N x 16 B position buffer (64 MB per readback at 4M particles, the
+	# 0.5 s stutter source). The CPU loop below is the fallback for when
+	# the sampler shader/import is unavailable; it classifies the SAME
+	# subsample set (pos[s x stride]).
+	var gpu_done := false
+	if _occ_shader.is_valid() and _occ_pipe.is_valid() and _us_occ_0.is_valid() \
+			and _occ_pc_bytes.size() >= 40 and _occ_zero_bytes.size() >= 32:
+		_occ_pc_bytes.encode_float(0, float(N_particles))
+		_occ_pc_bytes.encode_float(4, float(n_sample))
+		_occ_pc_bytes.encode_float(8, float(stride))
+		_occ_pc_bytes.encode_float(12, lim.x)
+		_occ_pc_bytes.encode_float(16, lim.y)
+		_occ_pc_bytes.encode_float(20, lim.z)
+		_occ_pc_bytes.encode_float(24, ext_box.x)
+		_occ_pc_bytes.encode_float(28, ext_box.y)
+		_occ_pc_bytes.encode_float(32, ext_box.z)
+		# Zero the counters BEFORE the dispatch (buffer_update outside a
+		# compute list — the BH-header contract).
+		_rd.buffer_update(_occ_buf, 0, _occ_zero_bytes.size(), _occ_zero_bytes)
+		var ocl = _rd.compute_list_begin()
+		_rd.compute_list_bind_compute_pipeline(ocl, _occ_pipe)
+		_rd.compute_list_bind_uniform_set(ocl, _us_occ_0, 0)
+		_rd.compute_list_set_push_constant(ocl, _occ_pc_bytes, _occ_pc_bytes.size())
+		_rd.compute_list_dispatch(ocl, ceili(float(n_sample) / 256.0), 1, 1)
+		_rd.compute_list_end()
+		# Global RD: no submit/sync; buffer_get_data self-stalls.
+		var od = _rd.buffer_get_data(_occ_buf, 0, 32)
+		if od.size() >= 20:
+			var g_in := int(od.decode_u32(0))
+			var g_face := int(od.decode_u32(4))
+			var g_corner := int(od.decode_u32(8))
+			var g_out := int(od.decode_u32(12))
+			var g_tot := maxi(int(od.decode_u32(16)), 1)
+			print("[CassiSim] occ: inner=%.1f%% face/edge=%.1f%% corner=%.1f%% out=%d (n=%d, aspect=%s)" % [
+				100.0 * float(g_in) / float(g_tot), 100.0 * float(g_face) / float(g_tot),
+				100.0 * float(g_corner) / float(g_tot), g_out, g_tot, str(box_aspect)])
+			gpu_done = true
+	if gpu_done:
+		return
+	# CPU fallback (legacy full-buffer readback + classification).
+	_ensure_synced()
 	var pd = _rd.buffer_get_data(_pos_buf, 0, N_particles * 16)
 	if pd.size() < N_particles * 16:
 		return
 	var pf = pd.to_float32_array()
-	var ext_box: Vector3 = _extents()
-	var lim := Vector3(0.85 * ext_box.x, 0.85 * ext_box.y, 0.85 * ext_box.z)
 	var in_c := 0
 	var face := 0
 	var corner := 0
