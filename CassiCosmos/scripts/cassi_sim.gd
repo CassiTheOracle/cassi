@@ -115,6 +115,14 @@ const PI_CLAMP_MAX: float = 0.72  # (π/ρ) upper clamp (stability; telemetry co
 # force-free (clamp-to-0) holes. The law's formula itself is untouched.
 ## Seed the field on the attractor (EY = φ·EI + noise) so π/ρ is positive everywhere — no force-free holes (river has full force coverage).
 @export var field_attractor_init: bool = false
+## Diagnostic: freeze the two-fluid field after init (skip the PDE evolution
+## passes). The initialized EY/EI stay fixed and FieldVel stays at its init
+## value (zeros) — RealSim viscosity sees a consistently frozen medium — while
+## the gravity/particle path (deposit, Poisson, ∇(g·Φ), KDK) runs unchanged.
+## Isolates the ω₀² field oscillator's π/ρ/g modulation from the orbital
+## dynamics (the v_circ-factor scan's control arm). Default false = full PDE,
+## bit-identical behavior.
+@export var freeze_field: bool = false
 # ── Truncated-Plummer IC radius (fraction of the box half-extent):
 # every initial particle lies inside r_max = fr·extent − |center|_∞ per
 # cluster (a safe spherical radius inside the periodic cube). The Plummer
@@ -138,6 +146,11 @@ const PI_CLAMP_MAX: float = 0.72  # (π/ρ) upper clamp (stability; telemetry co
 # every particle inside the per-cluster safe radius (out_of_box = 0).
 ## 0 = Bounded Plummer (default), 1 = Gaussian ball (sigma = cluster_radius), 2 = Uniform sphere (radius = cluster_radius); all truncated to the safe radius, out-of-box = 0.
 @export_enum("Bounded Plummer", "Gaussian ball", "Uniform sphere") var initial_condition: int = 0
+## Rotational support of the IC: v_tangential = factor·√(G·M_enc/r) about the
+## cluster center (z-axis). 0.85 = legacy sub-Keplerian default (bit-preserving);
+## 1.0 = full circular support for the IC convention (G = 1, M = per-cluster
+## count). Init-time: reinit() to apply.
+@export var initial_v_circ_factor: float = 0.85
 
 # ── Box geometry (theory-accurate grid layout — GRID_LAYOUT.md) ────────
 # Per-axis box half-extents: extent_i = aspect_i · 1.5 · cluster_radius
@@ -986,7 +999,7 @@ func _init_particles() -> void:
 		else:
 			# Uniform M(<r) = M·min(1, (r/a)³) (fully enclosed at r ≥ a)
 			M_enc = float(per_cluster) * minf(1.0, pow(sqrt(r2p) / maxf(cluster_radius, 1e-6), 3.0))
-		var v_circ = sqrt(G * M_enc / max(r, 0.01)) * 0.85
+		var v_circ = sqrt(G * M_enc / max(r, 0.01)) * initial_v_circ_factor
 		var nx = -ly; var ny = lx; var nz = 0.0
 		var nl = sqrt(nx*nx + ny*ny + nz*nz)
 		if nl > 0.001:
@@ -1320,7 +1333,12 @@ func _step_dispatches(cl: int) -> void:
 	_barrier(cl)  # deposit → PDE (rho visibility for the PDE source)
 
 	# ── 2. Two-fluid PDE ─────────────────────────────────────────────
-	if _two_fluid_shader.is_valid():
+	# freeze_field (diagnostic): the field is initialized once and left
+	# fixed — the PDE evolution passes are skipped while the gravity/
+	# particle path (deposit, Poisson, gradient, KDK) runs unchanged.
+	# FieldVel stays at its init value (zeros), so RealSim's viscosity
+	# sees a consistently frozen medium.
+	if _two_fluid_shader.is_valid() and not freeze_field:
 		_rd.compute_list_bind_compute_pipeline(cl, _two_fluid_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_two_0, 0)
 		_rd.compute_list_set_push_constant(cl, _two_fluid_pc_bytes, _two_fluid_pc_bytes.size())

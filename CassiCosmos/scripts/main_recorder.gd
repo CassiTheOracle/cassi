@@ -79,8 +79,8 @@ func _ready() -> void:
 		"source_strength", "qi_condensation_threshold", "bh_acc_rate",
 		"bh_max_age", "black_holes_enabled", "gravity_mode", "realsim_drag", "realsim_viscosity",
 		"realsim_friction", "river_calibrate_gn", "river_pi_ref",
-		"river_q_ref", "field_attractor_init", "initial_radius_fraction",
-		"initial_condition", "box_aspect", "mode",
+		"river_q_ref", "field_attractor_init", "freeze_field", "initial_radius_fraction",
+		"initial_condition", "initial_v_circ_factor", "box_aspect", "mode",
 	]
 	var main_scene := load("res://scenes/main.tscn")
 	if main_scene != null:
@@ -124,6 +124,15 @@ func _ready() -> void:
 			"--init":
 				_sim.set("initial_condition", int(kv[1]))
 				reinit_needed = true
+			"--v-circ":
+				# Rotational support factor of the IC (default 0.85):
+				# v_tangential = factor·√(G·M_enc/r) about z; init-time.
+				_sim.set("initial_v_circ_factor", float(kv[1]))
+				reinit_needed = true
+			"--freeze-field":
+				# Diagnostic: freeze the two-fluid field after init (skip
+				# the PDE passes; gravity/particle path unchanged).
+				_sim.set("freeze_field", int(kv[1]) != 0)
 			"--aspect":
 				# Per-axis box aspect x,y,z (e.g. 1.618,1,2.618 for the
 				# φ-aspect box — GRID_LAYOUT.md); init-time, needs reinit.
