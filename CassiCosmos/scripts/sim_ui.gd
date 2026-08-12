@@ -24,6 +24,7 @@ var _grid_spin: SpinBox
 var _particle_spin: SpinBox
 var _nclusters_spin: SpinBox; var _sep_spin: SpinBox
 var _init_opt: OptionButton
+var _no_rb_btn: CheckButton
 
 var _server_ip_edit: LineEdit
 var _server_port_edit: LineEdit
@@ -245,6 +246,16 @@ func _ready() -> void:
 	_init_opt.focus_mode = Control.FOCUS_NONE
 	init_box.add_child(_init_opt)
 
+	# CPU-readback suppression toggle: kills the ~0.5 s stutter (the
+	# throttled occupancy/perf/q-tel readbacks stall the global RD).
+	_no_rb_btn = CheckButton.new()
+	_no_rb_btn.text = "No readbacks"
+	_no_rb_btn.tooltip_text = "Suppress CPU readbacks (occupancy/perf/q diagnostics) — removes the ~0.5 s stutter; physics and rendering unchanged"
+	_no_rb_btn.custom_minimum_size = Vector2(110, 22)
+	_no_rb_btn.focus_mode = Control.FOCUS_NONE
+	_no_rb_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	row3.add_child(_no_rb_btn)
+
 	# Server (future) fields
 	var srv_box = VBoxContainer.new()
 	srv_box.custom_minimum_size = Vector2(160, 40)
@@ -283,6 +294,7 @@ func _ready() -> void:
 		_set_mode_highlight(sim.mode)
 		_set_grav_highlight(sim.gravity_mode)
 		_init_opt.selected = sim.initial_condition
+		_no_rb_btn.button_pressed = sim.suppress_readbacks
 
 	# Connect value_changed AFTER init to avoid spurious reinit() on startup
 	_grid_spin.value_changed.connect(_on_grid_changed)
@@ -290,6 +302,7 @@ func _ready() -> void:
 	_nclusters_spin.value_changed.connect(_on_clusters_changed)
 	_sep_spin.value_changed.connect(_on_separation_changed)
 	_init_opt.item_selected.connect(_on_init_selected)
+	_no_rb_btn.toggled.connect(_on_suppress_readbacks_toggled)
 
 	# Prevent controls from stealing WASD camera input
 	_grid_spin.focus_mode = Control.FOCUS_NONE
@@ -415,6 +428,12 @@ func _on_init_selected(idx: int) -> void:
 	if sim == null: return
 	sim.initial_condition = idx
 	sim.reinit()  # positions regenerate with the new profile
+
+
+func _on_suppress_readbacks_toggled(on: bool) -> void:
+	var sim = _get_sim()
+	if sim == null: return
+	sim.suppress_readbacks = on
 
 
 func _on_xi_changed(value: float) -> void:
