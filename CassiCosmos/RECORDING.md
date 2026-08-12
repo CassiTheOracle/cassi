@@ -17,12 +17,20 @@ powershell -File record.ps1 -Out myvideo.avi -Duration 60
 Raw one-liner (same thing, no wrapper):
 
 ```powershell
-& "C:/Users/Carina/AppData/Local/Microsoft/WinGet/Packages/GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe/Godot_v4.7-stable_win64_console.exe" --path . --write-movie myvideo.avi --fixed-fps 30 res://scenes/main_recorder.tscn -- --record-frames=1800 --record-fps=30
+& "C:/Users/Carina/AppData/Local/Microsoft/WinGet/Packages/GodotEngine.GodotEngine.Mono_Microsoft.Winget.Source_8wekyb3d8bbwe/Godot_v4.7.1-stable_mono_win64/Godot_v4.7.1-stable_mono_win64_console.exe" --path . --write-movie myvideo.avi --fixed-fps 30 res://scenes/main_recorder.tscn -- --record-frames=1800 --record-fps=30
 ```
 
 `record.ps1` parameters: `-Out` (default `recording.avi`), `-Fps` (30),
 `-Duration` (seconds, 30), `-Grid`, `-Particles`, `-Gravity`, `-Init`,
-`-Steps` (0 / -1 = leave the scene default), `-Scene`, `-Exe`.
+`-Steps` (0 / -1 = leave the scene default), `-Aspect` (`x,y,z` — the
+per-axis box aspect, e.g. `1.618,1,2.618` for the theory φ-aspect box;
+empty = inherit from main.tscn), `-Scene`, `-Exe`.
+
+```powershell
+# φ-aspect box recording (the theory's incommensurate bubble-lattice
+# periods — GRID_LAYOUT.md; removes the cubic box-mode straight-line lock)
+powershell -File record.ps1 -Out phi_box.avi -Duration 60 -Aspect 1.618,1,2.618
+```
 
 ## FPS and resolution (how it actually works)
 
@@ -92,10 +100,10 @@ script's export defaults. The only recorder-specific flags are
 GPU) and `max_steps_per_frame = 60`. The recorder inherits the BH toggle
 (`black_holes_enabled`) from main.tscn like every other sim setting.
 
-Command line overrides (`--grid=… --particles=… --gravity=… --init=…`)
-are applied on top of the inherited settings and reinitialized before
-recording; `--bhs=0/1` sets the BH toggle live (no reinit);
-`--steps=…` changes the per-frame catch-up cap;
+Command line overrides (`--grid=… --particles=… --gravity=… --init=…
+--aspect=x,y,z`) are applied on top of the inherited settings and
+reinitialized before recording; `--bhs=0/1` sets the BH toggle live (no
+reinit); `--steps=…` changes the per-frame catch-up cap;
 `--orbit-speed/--orbit-radius` tune the camera; `-Resolution` on the
 launcher sets the AVI size (default 1920x1080). `--record-frames` /
 `--record-fps` come from the launcher (`-Duration` × `-Fps`); bare runs

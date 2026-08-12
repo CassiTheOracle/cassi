@@ -27,9 +27,10 @@ param(
     [int]$Gravity = -1,
     [int]$Init = -1,
     [int]$Steps = 0,
+    [string]$Aspect = "",
     [string]$Resolution = "1920x1080",
     [string]$Scene = "res://scenes/main_recorder.tscn",
-    [string]$Exe = "C:/Users/Carina/AppData/Local/Microsoft/WinGet/Packages/GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe/Godot_v4.7-stable_win64_console.exe"
+    [string]$Exe = "C:/Users/Carina/AppData/Local/Microsoft/WinGet/Packages/GodotEngine.GodotEngine.Mono_Microsoft.Winget.Source_8wekyb3d8bbwe/Godot_v4.7.1-stable_mono_win64/Godot_v4.7.1-stable_mono_win64_console.exe"
 )
 
 $resParts = $Resolution.Split("x")
@@ -81,6 +82,7 @@ if ($Particles -gt 0) { $userArgs += "--particles=$Particles" }
 if ($Gravity -ge 0)   { $userArgs += "--gravity=$Gravity" }
 if ($Init -ge 0)      { $userArgs += "--init=$Init" }
 if ($Steps -gt 0)     { $userArgs += "--steps=$Steps" }
+if ($Aspect -ne "")   { $userArgs += "--aspect=$Aspect" }
 
 $argsList = @("--path", "$Pwd", "--write-movie", $Out, "--fixed-fps", "$Fps", $Scene, "--") + $userArgs
 

@@ -109,6 +109,15 @@ func _ready() -> void:
 			"--init":
 				_sim.set("initial_condition", int(kv[1]))
 				reinit_needed = true
+			"--aspect":
+				# Per-axis box aspect x,y,z (e.g. 1.618,1,2.618 for the
+				# φ-aspect box — GRID_LAYOUT.md); init-time, needs reinit.
+				var parts := (kv[1] as String).split(",")
+				if parts.size() == 3:
+					_sim.set("box_aspect", Vector3(parts[0].to_float(), parts[1].to_float(), parts[2].to_float()))
+					reinit_needed = true
+				else:
+					push_warning("[Recorder] --aspect needs x,y,z (e.g. 1.618,1,2.618)")
 			"--bhs":
 				# BH toggle: live export set, no reinit needed (the host
 				# re-encodes bh[3].x next frame).

@@ -26,6 +26,7 @@ var _nclusters_spin: SpinBox; var _sep_spin: SpinBox
 var _init_opt: OptionButton
 var _no_rb_btn: CheckButton
 var _bh_toggle_btn: CheckButton
+var _phi_box_btn: CheckButton
 
 var _server_ip_edit: LineEdit
 var _server_port_edit: LineEdit
@@ -37,6 +38,7 @@ var _fps_display: float = 0.0
 var _viz_texture_rect: TextureRect
 
 const MODE_NAMES: Array[String] = ["Particles", "Field", "Black Hole", "Cosmology"]
+const PHI: float = 1.618033988749895
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -268,6 +270,18 @@ func _ready() -> void:
 	_bh_toggle_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	row3.add_child(_bh_toggle_btn)
 
+	# φ-aspect box toggle: the theory's incommensurate bubble-lattice
+	# periods (x:y:z = φ:1:φ² — GRID_LAYOUT.md) make the box-mode lattice
+	# non-degenerate, removing the cubic straight-line lock at box scale.
+	# box_aspect is init-time — reinit() applies the new extents.
+	_phi_box_btn = CheckButton.new()
+	_phi_box_btn.text = "φ box"
+	_phi_box_btn.tooltip_text = "φ-aspect box (x:y:z = φ:1:φ²) — the theory's incommensurate bubble-lattice periods; breaks the cubic box-mode straight-line lock; applies on reinit"
+	_phi_box_btn.custom_minimum_size = Vector2(80, 22)
+	_phi_box_btn.focus_mode = Control.FOCUS_NONE
+	_phi_box_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	row3.add_child(_phi_box_btn)
+
 	# Server (future) fields
 	var srv_box = VBoxContainer.new()
 	srv_box.custom_minimum_size = Vector2(160, 40)
@@ -308,6 +322,7 @@ func _ready() -> void:
 		_init_opt.selected = sim.initial_condition
 		_no_rb_btn.button_pressed = sim.suppress_readbacks
 		_bh_toggle_btn.button_pressed = sim.black_holes_enabled
+		_phi_box_btn.button_pressed = (sim.box_aspect != Vector3(1.0, 1.0, 1.0))
 
 	# Connect value_changed AFTER init to avoid spurious reinit() on startup
 	_grid_spin.value_changed.connect(_on_grid_changed)
@@ -317,6 +332,7 @@ func _ready() -> void:
 	_init_opt.item_selected.connect(_on_init_selected)
 	_no_rb_btn.toggled.connect(_on_suppress_readbacks_toggled)
 	_bh_toggle_btn.toggled.connect(_on_black_holes_toggled)
+	_phi_box_btn.toggled.connect(_on_phi_box_toggled)
 
 	# Prevent controls from stealing WASD camera input
 	_grid_spin.focus_mode = Control.FOCUS_NONE
@@ -454,6 +470,13 @@ func _on_black_holes_toggled(on: bool) -> void:
 	var sim = _get_sim()
 	if sim == null: return
 	sim.black_holes_enabled = on  # live — the host re-encodes bh[3].x next frame (no reinit)
+
+
+func _on_phi_box_toggled(on: bool) -> void:
+	var sim = _get_sim()
+	if sim == null: return
+	sim.box_aspect = Vector3(PHI, 1.0, PHI * PHI) if on else Vector3(1.0, 1.0, 1.0)
+	sim.reinit()  # extents are init-time (bh header + PCs) — reinit applies
 
 
 func _on_xi_changed(value: float) -> void:
