@@ -13,31 +13,48 @@ const PI_CLAMP_MAX: float = 0.72  # (π/ρ) upper clamp (stability; telemetry co
 
 # ═══════════════════════════════════════════════════════════════════════
 # Exports
+## Master run/pause switch for the physics loop.
 @export var playing: bool = true              # simulation running
 
+## Field grid resolution per dimension (power of two, 64-256); non-powers round up with a warning.
 @export var grid_N: int = 64              # field grid resolution (per dim)
+## N-body particle count (rendered as a starfield/cluster; raises GPU cost).
 @export var N_particles: int = 2500000      # N-body particle count
+## Physics timestep in sim seconds per step; a rendered frame runs up to max_steps_per_frame steps.
 @export var dt: float = 0.001             # simulation timestep
+## Cassi coupling constant, xi = φ⁶ = 17.94427191; the river law's chord coefficient is xi − 1.
 @export var xi: float = 17.94427191  # φ⁶ — Cassi Qi coupling (exact: φ⁶ = φ⁵ + φ⁴)
+## Gravity softening length; used as epsilon² = softening² in the force kernels.
 @export var softening: float = 0.1        # gravity softening length
+## Rendered quad size of each particle (world units); keep ≤ 0.5 for the star-cloud look.
 @export var particle_size: float = 0.3   # rendered particle size
+## Scale radius of the initial cluster (Plummer scale a / Gaussian sigma / uniform sphere radius, per the IC profile).
 @export var cluster_radius: float = 50.0   # initial cluster size
+## Number of initial clusters (placed on a ring/Fibonacci sphere).
 @export var num_clusters: int = 1           # number of galaxy clusters
+## Distance of cluster centers from the origin; a single cluster centers at (separation, 0, 0).
 @export var cluster_separation: float = 60.0 # separation between cluster centers
+## Bulk velocity added toward the origin (cluster-merger demo).
 @export var merger_speed: float = 2.0       # bulk velocity toward merger point
+## Extra field injection from the deposited mass (0 = off).
 @export var source_strength: float = 0.0  # PIC mass deposit drives field (set >0 for extra injection)
+## Qi level above which the condensation scan nucleates a black hole record (only when black_holes_enabled).
 @export var qi_condensation_threshold: float = 0.5  # Qi density above this → BH nucleation
+## Black hole mass growth per step from the field.
 @export var bh_acc_rate: float = 0.01                # mass growth per step from field
+## Black hole record lifetime in steps (0 = immortal).
 @export var bh_max_age: float = 0.0                  # 0 = immortal
 # Suppress the throttled CPU readbacks (occupancy/perf/q-tel/p[0]/inst-debug)
 # that stall the global RD every ~0.5 s — the stutter source; useful
 # interactively AND for recording. Physics and rendering are untouched.
+## Off the throttled CPU readbacks (occupancy/perf/q diagnostics) that stall the GPU every ~0.5 s — removes the stutter; physics and rendering unchanged.
 @export var suppress_readbacks: bool = false
 # Enables the σ-regularized BH point-source sector in EVERY gravity mode:
 # the softened Newtonian point-source force (gravity_at), the condensation
 # scan (every 100 steps), and the BH-integrate pass (every step). Default
 # off — particles-only; flip on for point sources. The shader reads the
 # live toggle from bh[3].x (float 48 of the per-frame header upload).
+## Master toggle for the black hole point-source sector in any gravity mode (softened Newtonian pull + condensation + BH-integrate passes). Default off = particles only.
 @export var black_holes_enabled: bool = false
 
 # Gravity law selector (river law = the derived formula, default):
@@ -63,14 +80,18 @@ const PI_CLAMP_MAX: float = 0.72  # (π/ρ) upper clamp (stability; telemetry co
 # Only modes 1/2 skip the Poisson FFT chain and the river gradient pass
 # (neither consumes Φ/∇(g·Φ)); modes 3/4 keep them. Mass deposit + the
 # two-fluid PDE always run.
+## 0 = River (the law), 1 = Heuristic (legacy A/B arm), 2 = Plummer (grid-free analytic reference), 3 = River self (river law only; BH follows the global toggle), 4 = RealSim (river law + BH per toggle + drag/viscosity/friction).
 @export_enum("River", "Heuristic", "Plummer reference", "River self", "RealSim") var gravity_mode: int = 0
 
 # ── RealSim dissipation coefficients (gravity_mode == 4 only) ──────────
 # Units: γ and ν are rates (1/time) — at reference density γ's e-folding
 # time is 1/γ; μ is a dimensionless fraction of |a_g|. ρ_ref = φ⁻³ =
 # 0.236068 (the attractor). See the shader header for the formulas.
+## γ — background drag rate (1/time at reference density ρ_ref = φ⁻³): a = −γ(ρ/ρ_ref)·v.
 @export var realsim_drag: float = 0.5        # γ — background drag rate at ρ_ref (1/time)
+## ν — shear-coupling rate (1/time): a = −ν(v − v_field), relaxation toward the medium's own velocity.
 @export var realsim_viscosity: float = 0.3   # ν — shear-coupling rate to the medium (1/time)
+## μ — Coulomb floor (dimensionless fraction of |a_g|): a = −min(μ·|a_g|, |v|/dt)·v̂, never reverses.
 @export var realsim_friction: float = 0.01   # μ — Coulomb floor, fraction of |a_g| (dimensionless)
 
 # ── River-law resolution calibration (opt-in; OFF keeps the exact G_N = 1
@@ -82,13 +103,17 @@ const PI_CLAMP_MAX: float = 0.72  # (π/ρ) upper clamp (stability; telemetry co
 # Written to the BH header slot bh[1].w (shared by the river arm, the BH
 # point-source term and the Plummer reference arm — they all scale with
 # the same explicit G_N).
+## Recompute G_N after init so the grid force matches the IC circular-velocity convention at every resolution (G_eff = 1).
 @export var river_calibrate_gn: bool = false
+## Reference π/ρ for the calibration (default φ⁻³ attractor).
 @export var river_pi_ref: float = PHI_INV3   # reference π/ρ (φ⁻³ = attractor)
+## Reference q for the calibration → g_ref = 1 + (xi − 1)·q_ref.
 @export var river_q_ref: float = 0.0         # reference q → g_ref = 1+(ξ−1)·q_ref
 # ── Attractor field init (opt-in; OFF keeps the legacy flat-noise field
 # for verification compatibility). EY = φ·EI + tiny controlled noise →
 # π/ρ = (EY−EI)/(EY+EI) ≈ φ⁻³ > 0 everywhere — the river law has NO
 # force-free (clamp-to-0) holes. The law's formula itself is untouched.
+## Seed the field on the attractor (EY = φ·EI + noise) so π/ρ is positive everywhere — no force-free holes (river has full force coverage).
 @export var field_attractor_init: bool = false
 # ── Truncated-Plummer IC radius (fraction of the box half-extent):
 # every initial particle lies inside r_max = fr·extent − |center|_∞ per
@@ -96,6 +121,7 @@ const PI_CLAMP_MAX: float = 0.72  # (π/ρ) upper clamp (stability; telemetry co
 # profile is preserved CONDITIONAL on the truncation via a rejection-free
 # inverse-CDF draw u ∈ (0.001, u_max], u_max = (x²/(1+x²))^(3/2) with
 # x = r_max/a — no coordinate clamping, no shell artifacts.
+## Fraction of the box half-extent used as the per-cluster safe radius r_max = fr·extent − |center|_∞.
 @export var initial_radius_fraction: float = 0.9
 # ── Initial-condition profile selector ──
 #   0 = BOUNDED PLUMMER (default) — the truncated inverse-CDF draw below.
@@ -110,8 +136,10 @@ const PI_CLAMP_MAX: float = 0.72  # (π/ρ) upper clamp (stability; telemetry co
 #       Velocities from M(<r) = M_tot·min(1, (r/a)³).
 # All profiles reuse the cluster/bulk/Salpeter machinery below and keep
 # every particle inside the per-cluster safe radius (out_of_box = 0).
+## 0 = Bounded Plummer (default), 1 = Gaussian ball (sigma = cluster_radius), 2 = Uniform sphere (radius = cluster_radius); all truncated to the safe radius, out-of-box = 0.
 @export_enum("Bounded Plummer", "Gaussian ball", "Uniform sphere") var initial_condition: int = 0
 
+## Display mode: 0 = Particles, 1 = Field, 2 = Black Hole, 3 = Cosmology.
 @export_enum("Particles", "Field", "Black Hole", "Cosmology") var mode: int = 0
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -207,6 +235,7 @@ var _step_timer: float = 0.0
 # a larger backlog is dropped (and counted) instead of spiraling unbounded.
 # Exported so the recorder scene can raise it for time-lapse coverage per
 # video second (default 16 = unchanged behavior).
+## Physics catch-up cap per rendered frame (recorder raises it for time-lapse).
 @export var max_steps_per_frame: int = 16
 var _dropped_steps: int = 0
 
