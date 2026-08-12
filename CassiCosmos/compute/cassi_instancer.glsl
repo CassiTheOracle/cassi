@@ -21,7 +21,7 @@ layout(push_constant, std430) uniform PC {
     float mode; float source_strength; float num_clusters;
     float gravity_mode;  // unused here (nbody gravity selector)
     float color_mode;    // 0 = Cassi mass gradient (default, bit-identical); 1 = velocity rainbow
-    float v_ref;         // rainbow speed reference (max initial |v|); unused when color_mode = 0
+    float v_ref;         // rainbow speed reference (max initial |v| / 8); unused when color_mode = 0
 } pc;
 
 // Branchless HSL→RGB (IQ form). hue in [0,1): 0=red, 1/3=green, 2/3=blue,

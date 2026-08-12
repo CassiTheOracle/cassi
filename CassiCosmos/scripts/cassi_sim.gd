@@ -177,7 +177,7 @@ const PI_CLAMP_MAX: float = 0.72  # (π/ρ) upper clamp (stability; telemetry co
 @export_enum("Particles", "Field", "Black Hole", "Cosmology") var mode: int = 0
 
 # ── Particle color scheme ──────────────────────────────────────────────
-## 0 = the Cassi mass-temperature gradient (Salpeter blue dwarfs → red giants; default, shader path bit-identical). 1 = velocity rainbow: hue from the scale-free speed fraction |v|/(|v|+v_ref) with v_ref = max initial speed — slow = red → fast = violet. Live: re-encoded into the instancer PC every physics step (no reinit); while paused the visible colors refresh immediately.
+## 0 = the Cassi mass-temperature gradient (Salpeter blue dwarfs → red giants; default, shader path bit-identical). 1 = velocity rainbow: hue from the scale-free speed fraction |v|/(|v|+v_ref) with v_ref = max initial speed / 8 (so the fastest particle maps to hue ≈ 0.71, violet) — slow = red → fast = violet. Live: re-encoded into the instancer PC every physics step (no reinit); while paused the visible colors refresh immediately.
 @export_enum("Cassi gradient", "Velocity rainbow") var particle_color_mode: int = 0
 
 # ── Camera startup framing (camera-only; no physics) ──────────────────
@@ -285,7 +285,7 @@ var _last_p0_rb_ms: int = 0              # wall-time gate for the p[0] debug pri
 var _inst_debug_done: bool = false       # one-time inst[0..2] print
 var _mmi: MultiMeshInstance3D; var _mm: MultiMesh
 var _mm_particle_size: float = -1.0  # particle_size the multimesh was built with (reinit rebuild check)
-var _rainbow_vref: float = 1.0  # rainbow speed reference: max initial |v| (set in _init_particles; fallback 1.0)
+var _rainbow_vref: float = 1.0  # rainbow speed reference: max initial |v| / 8 (set in _init_particles; fallback 1.0)
 
 # — timing —
 var _step_count: int = 0
@@ -981,7 +981,7 @@ func _init_particles() -> void:
 	var max_comp: float = 0.0
 	var out_box := 0
 	var total_mass: float = 0.0
-	var max_v: float = 0.0  # max initial speed — rainbow v_ref anchor (velocity rainbow mode)
+	var max_v: float = 0.0  # max initial speed — rainbow v_ref anchor /8 (velocity rainbow mode)
 
 	# ── Hoisted per-particle constants ────────────────────────────────
 	# The GDScript interpreter paid for these inside the N_particles loop
@@ -1180,9 +1180,12 @@ func _init_particles() -> void:
 	_init_max_radius = max_r
 	_init_max_component = max_comp
 	_init_out_of_box = out_box
-	# Velocity-rainbow speed reference: the actual max initial |v| (scale-free
-	# anchor for |v|/(|v|+v_ref); fallback 1.0 for a degenerate zero-speed IC).
-	_rainbow_vref = max_v if max_v > 0.0 else 1.0
+	# Velocity-rainbow speed reference: max initial |v| / 8 — with v_ref =
+	# max_v the ramp would cap at hue 0.8·(v_max/(v_max+v_ref)) = 0.4 (green),
+	# making "fast = violet" unreachable; /8 maps the fastest particle to
+	# hue = 0.8/(1+1/8) ≈ 0.711 (violet) and spreads typical speeds across
+	# the mid-spectrum. Fallback 1.0 for a degenerate zero-speed IC.
+	_rainbow_vref = max_v * 0.125 if max_v > 0.0 else 1.0
 	# Retained fraction = analytic fraction of the UNBOUNDED profile kept
 	# inside the truncation, per profile (min over clusters, like the old
 	# Plummer u_max minimum):

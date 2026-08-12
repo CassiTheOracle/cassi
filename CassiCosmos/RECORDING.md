@@ -116,7 +116,8 @@ periodic images (image forces drop like 1/(3·box_scale−1)²; scale ≈ 3 is
 the tested isolation regime) while preserving the aspect; `--bhs=0/1` sets
 the BH toggle live (no reinit);
 `--color=0/1` sets the particle color scheme (0 = Cassi mass gradient,
-1 = velocity rainbow; live, no reinit);
+1 = velocity rainbow, v_ref = max initial speed / 8 so the fastest maps to
+violet; live, no reinit);
 `--freeze-field=0/1` freezes the two-fluid field after init (skips the
 PDE passes; gravity/particle path unchanged; no reinit — read per step);
 `--steps=…` changes the per-frame catch-up cap;
