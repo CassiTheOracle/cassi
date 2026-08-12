@@ -115,11 +115,14 @@ box_scale·aspect_i·1.5·cluster_radius) — it separates the cluster from its
 periodic images (image forces drop like 1/(3·box_scale−1)²; scale ≈ 3 is
 the tested isolation regime) while preserving the aspect; `--bhs=0/1` sets
 the BH toggle live (no reinit);
-`--color=0/1` sets the particle color scheme (0 = Cassi mass gradient,
+`--color=0/1/2` sets the particle color scheme (0 = Cassi mass gradient,
 1 = velocity rainbow: log-compressed hue h = min(v_scale·ln(1+|v|/v_ref), 0.8),
 v_ref = mean initial |v|, v_scale = 0.8/ln(1+v_max/v_ref) — slow red,
-v=v_ref green-blue, v=v_max violet, growth beyond v_max saturates; live,
-no reinit);
+v=v_ref green-blue, v=v_max violet, growth beyond v_max saturates;
+2 = Qi rainbow: hue from the two-fluid coherence q = EY²+EI² sampled at the
+particle, h = min(0.8·ln(1+q/φ⁻²)/ln(1+1/φ⁻²), 0.8) anchored at the φ⁻²
+decoherence threshold — low q = red, φ⁻² = green, saturated = violet, stable
+because q is bounded by the field dynamics; all live, no reinit);
 `--freeze-field=0/1` freezes the two-fluid field after init (skips the
 PDE passes; gravity/particle path unchanged; no reinit — read per step);
 `--steps=…` changes the per-frame catch-up cap;

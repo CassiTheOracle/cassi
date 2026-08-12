@@ -178,8 +178,8 @@ const LN2: float = 0.6931471805599453  # ln 2 — degenerate rainbow v_scale fal
 @export_enum("Particles", "Field", "Black Hole", "Cosmology") var mode: int = 0
 
 # ── Particle color scheme ──────────────────────────────────────────────
-## 0 = the Cassi mass-temperature gradient (Salpeter blue dwarfs → red giants; default, shader path bit-identical). 1 = velocity rainbow: log-compressed, distribution-anchored hue h = min(v_scale·ln(1+|v|/v_ref), 0.8) with v_ref = mean initial |v| and v_scale = 0.8/ln(1+v_max/v_ref) — slow = red (h→0), v ≈ v_ref ≈ 0.5 (green-blue), v = v_max → 0.8 (violet); hue drifts only logarithmically as speeds grow, and growth beyond v_max saturates at violet instead of wrapping. Live: re-encoded into the instancer PC every physics step (no reinit); while paused the visible colors refresh immediately.
-@export_enum("Cassi gradient", "Velocity rainbow") var particle_color_mode: int = 0
+## 0 = the Cassi mass-temperature gradient (Salpeter blue dwarfs → red giants; default, shader path bit-identical). 1 = velocity rainbow: log-compressed, distribution-anchored hue h = min(v_scale·ln(1+|v|/v_ref), 0.8) with v_ref = mean initial |v| and v_scale = 0.8/ln(1+v_max/v_ref) — slow = red (h→0), v ≈ v_ref ≈ 0.5 (green-blue), v = v_max → 0.8 (violet); hue drifts only logarithmically as speeds grow, and growth beyond v_max saturates at violet instead of wrapping. 2 = Qi rainbow: hue from the two-fluid coherence q = EY²+EI² trilinearly sampled at the particle — h = min(0.8·ln(1+q/φ⁻²)/ln(1+1/φ⁻²), 0.8), the log ramp anchored at the framework's φ⁻² decoherence threshold (a physical constant): q→0 = red, q = φ⁻² = green (h≈0.43), q ≥ 1 = violet (0.8); stable by construction because q is bounded by the field dynamics (ω₀² restoring toward the attractor and the condensation threshold) — the spectrum cannot drift. Live: re-encoded into the instancer PC every physics step (no reinit); while paused the visible colors refresh immediately.
+@export_enum("Cassi gradient", "Velocity rainbow", "Qi rainbow") var particle_color_mode: int = 0
 
 # ── Camera startup framing (camera-only; no physics) ──────────────────
 ## On startup, frame a sibling Camera3D on the spawn region: the camera is
@@ -257,12 +257,14 @@ var _cond_pc_bytes: PackedByteArray   # condensation PC (4 floats)
 var _bh_init_bytes: PackedByteArray   # BH header init (16 floats)
 var _tel_reset_bytes: PackedByteArray # gravity telemetry reset (8 floats)
 var _poisson_pc_bytes: PackedByteArray  # poisson PC (7 floats: N, axis, dir, mode, extent_x/y/z)
-# Instancer dedicated PC (14 floats: the shared 11 + color_mode + v_ref +
-# v_scale) — the dedicated-PC precedent (nbody 15, two-fluid 14, mass-deposit
-# 5): field_render/bh_lensing keep the shared 11-float _pc_bytes, and Godot
-# hard-errors on push-constant size mismatch, so the instancer's three
-# extra fields get their own pre-allocated buffer.
-var _instancer_pc_bytes: PackedByteArray  # instancer PC (14 floats: 11 shared + color_mode@11 + v_ref@12 + v_scale@13)
+# Instancer dedicated PC (17 floats: the shared 11 + color_mode + v_ref +
+# v_scale + extent_x/y/z) — the dedicated-PC precedent (nbody 15, two-fluid
+# 14, mass-deposit 5): field_render/bh_lensing keep the shared 11-float
+# _pc_bytes, and Godot hard-errors on push-constant size mismatch, so the
+# instancer's extra fields get their own pre-allocated buffer. The three
+# per-axis extents feed the Qi-rainbow q-sampler's cell mapping (the same
+# _extents() values nbody reads from bh[2].yzw).
+var _instancer_pc_bytes: PackedByteArray  # instancer PC (17 floats: 11 shared + color_mode@11 + v_ref@12 + v_scale@13 + extent_x/y/z@14-16)
 # NOTE: global RD — no manual submit/sync anywhere (illegal on the main
 # instance); readbacks self-stall via buffer_get_data.
 
@@ -353,6 +355,18 @@ func _ready() -> void:
 	_init_particles()
 	_apply_gravity_calibration()
 	_grav_warmup = true  # fill the acc cache with a fresh force before step 1
+	# Frame-0 / paused view for the Qi rainbow (mode 2): with playing=false
+	# the instancer never dispatches, so the CPU init_inst pass provides the
+	# visible colors — but the CPU path cannot sample the field cheaply. The
+	# one-shot GPU repaint computes the q colors from the uploaded pos/vel/q
+	# buffers instead. Safe HERE (verified ordering): _setup_shaders cached
+	# _us_inst_0, _instancer_pc_bytes is allocated (17 floats), and the
+	# pos/vel/q buffers + the multimesh RD buffer are all valid (init_field
+	# and init_particles ran; _mm.buffer = init_inst sized the renderer's
+	# buffer). If the shader import race left _us_inst_0 invalid the call
+	# no-ops and the placeholder colors stand until the retry compiles.
+	if particle_color_mode == 2:
+		_repaint_instancer()
 	print("[CassiSim] Universe ready — grid=%d³ particles=%d xi=%.5f (φ⁶=%.5f)" % [grid_N, N_particles, xi, PHI_6])
 	_auto_frame_camera()
 
@@ -577,7 +591,7 @@ func _setup_buffers() -> void:
 	# 3 per-axis extents for the anisotropic 19-point stencil (GRID_LAYOUT.md).
 	_two_fluid_pc_bytes = PackedByteArray(); _two_fluid_pc_bytes.resize(14 * 4)
 	_md_pc_bytes = PackedByteArray(); _md_pc_bytes.resize(5 * 4)
-	_instancer_pc_bytes = PackedByteArray(); _instancer_pc_bytes.resize(14 * 4)
+	_instancer_pc_bytes = PackedByteArray(); _instancer_pc_bytes.resize(17 * 4)
 	_bh_int_pc_bytes = PackedByteArray(); _bh_int_pc_bytes.resize(4 * 4)
 	_cond_pc_bytes = PackedByteArray(); _cond_pc_bytes.resize(4 * 4)
 	_poisson_pc_bytes = PackedByteArray(); _poisson_pc_bytes.resize(7 * 4)
@@ -780,6 +794,7 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(0, _pos_buf),
 			_uniform_storage(1, _mm_rd_rid),
 			_uniform_storage(2, _vel_buf),  # velocity rainbow (color_mode 1)
+			_uniform_storage(3, _field_q),  # Qi rainbow (color_mode 2): coherence q = EY²+EI² grid
 		], _instancer_shader, 0)
 		print("[CassiSim] Instancer uniform set cached (GPU-direct multimesh buffer)")
 
@@ -1175,13 +1190,20 @@ func _init_particles() -> void:
 			var cg: float = lerp(0.25, 0.6,  log_m)
 			var cb: float = lerp(1.0,  0.15, log_m)
 			init_inst[b+12] = cr; init_inst[b+13] = cg; init_inst[b+14] = cb; init_inst[b+15] = 1.0
-		else:
+		elif particle_color_mode == 1:
 			# Velocity rainbow: h = min(v_scale·ln(1+|v|/v_ref), 0.8),
 			# slow=red → fast=violet; growth beyond v_max saturates (no wrap).
 			var vx: float = vel[i4]; var vy: float = vel[i4 + 1]; var vz: float = vel[i4 + 2]
 			var vs: float = sqrt(vx*vx + vy*vy + vz*vz)
 			var col: Color = _hsl_to_rgb(minf(_rainbow_vscale * log(1.0 + vs / _rainbow_vref), 0.8), 1.0, 0.5)
 			init_inst[b+12] = col.r; init_inst[b+13] = col.g; init_inst[b+14] = col.b; init_inst[b+15] = 1.0
+		else:
+			# Qi rainbow (mode 2): PLACEHOLDER — the shader computes the q
+			# colors from the uploaded pos/vel/q buffers in the one-shot
+			# _repaint_instancer() at the end of _ready (the CPU path cannot
+			# sample the field cheaply). This buffer upload happens first, so
+			# the repaint overwrites the colors before the first frame draws.
+			init_inst[b+12] = 0.5; init_inst[b+13] = 0.5; init_inst[b+14] = 0.5; init_inst[b+15] = 1.0
 	# Initial instance data → the renderer's OWN multimesh buffer (one-time
 	# CPU upload at init; every subsequent frame the instancer shader writes
 	# it directly). NOTE: do NOT assign _mm.buffer again later — a CPU
@@ -1379,13 +1401,16 @@ func _physics_step() -> void:
 
 
 func _fill_instancer_pc() -> void:
-	# Instancer dedicated PC (14 floats): the shared 11 + color_mode (slot 11)
-	# + rainbow v_ref (slot 12) + rainbow v_scale (slot 13) — the dedicated-PC
-	# precedent (nbody 15, two-fluid 14, mass-deposit 5): field_render/
-	# bh_lensing keep the shared 11-float _pc_bytes, and Godot hard-errors on
-	# push-constant size mismatch, so the instancer's extra fields get their
-	# own buffer. Reads the LIVE particle_color_mode export so a UI flip
-	# applies on the next dispatch (no reinit).
+	# Instancer dedicated PC (17 floats): the shared 11 + color_mode (slot 11)
+	# + rainbow v_ref (slot 12) + rainbow v_scale (slot 13) + the three
+	# per-axis box half-extents (slots 14-16, the Qi-rainbow q-sampler's
+	# cell mapping) — the dedicated-PC precedent (nbody 15, two-fluid 14,
+	# mass-deposit 5): field_render/bh_lensing keep the shared 11-float
+	# _pc_bytes, and Godot hard-errors on push-constant size mismatch, so
+	# the instancer's extra fields get their own buffer. Reads the LIVE
+	# particle_color_mode export so a UI flip applies on the next dispatch
+	# (no reinit).
+	var ext_pc: Vector3 = _extents()
 	_instancer_pc_bytes.encode_float(0, float(grid_N))
 	_instancer_pc_bytes.encode_float(4, dt)
 	_instancer_pc_bytes.encode_float(8, _time)
@@ -1400,6 +1425,9 @@ func _fill_instancer_pc() -> void:
 	_instancer_pc_bytes.encode_float(44, float(particle_color_mode))
 	_instancer_pc_bytes.encode_float(48, _rainbow_vref)
 	_instancer_pc_bytes.encode_float(52, _rainbow_vscale)
+	_instancer_pc_bytes.encode_float(56, ext_pc.x)
+	_instancer_pc_bytes.encode_float(60, ext_pc.y)
+	_instancer_pc_bytes.encode_float(64, ext_pc.z)
 
 
 func _hsl_to_rgb(h: float, s: float, l: float) -> Color:
@@ -1634,8 +1662,9 @@ func _step_dispatches(cl: int) -> void:
 	if _instancer_shader.is_valid() and N_particles > 0:
 		_rd.compute_list_bind_compute_pipeline(cl, _instancer_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_inst_0, 0)
-		# Dedicated 13-float PC (the shader declares color_mode + v_ref; the
-		# shared 11-float _pc_bytes would hard-error on size mismatch).
+		# Dedicated 17-float PC (the shader declares color_mode + v_ref +
+		# v_scale + the three extents; the shared 11-float _pc_bytes would
+		# hard-error on size mismatch).
 		_rd.compute_list_set_push_constant(cl, _instancer_pc_bytes, _instancer_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, pg, 1, 1)
 	# NOTE: the compute list is owned by the caller (_run_physics_steps);
