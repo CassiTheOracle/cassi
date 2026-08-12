@@ -80,21 +80,22 @@ ffmpeg -i recording.avi -c:v libx264 -crf 18 -pix_fmt yuv420p recording.mp4
 
 (only if ffmpeg is installed).
 
-## Settings: recorder scene vs command line
+## Settings: main.tscn vs command line
 
-The scene `scenes/main_recorder.tscn` pins the high-res RealSim config:
-`grid_N = 256`, `N_particles = 2 500 000`, `gravity_mode = 4` (RealSim,
-with its 0.5/0.3/0.01 defaults), Gaussian IC (`initial_condition = 1`),
-`cluster_radius = 50`, `cluster_separation = 0` (the cluster sits at the
-origin, so the Gaussian ball keeps its full radius), `particle_size = 0.3`
-(cloud-like; the interactive 3.0 is oversized billboards),
-`recording_mode = true` (suppresses the CPU readbacks that stall the GPU),
-`max_steps_per_frame = 60`.
+The recorder no longer has its own settings copy. At launch it mirrors
+whatever is currently set on `scenes/main.tscn`'s CassiSim node — editor
+edits are written to the file, and the recorder reads the file (loading
+the scene without adding it to the tree, then copying the settings and
+reinitializing). If `main.tscn` is unreadable it falls back to the
+script's export defaults. The only recorder-specific flags are
+`suppress_readbacks = true` (suppresses the CPU readbacks that stall the
+GPU) and `max_steps_per_frame = 60`.
 
 Command line overrides (`--grid=… --particles=… --gravity=… --init=…`)
-are applied to the scene's CassiSim and reinitialized before recording;
-`--steps=…` changes the per-frame catch-up cap; `--orbit-speed/--orbit-radius`
-tune the camera; `-Resolution` on the launcher sets the AVI size (default
-1920x1080). `--record-frames` / `--record-fps` come from the launcher
-(`-Duration` × `-Fps`); bare runs without them fall back to the scene
-defaults (900 frames @ 30 fps, 1920x1080 window).
+are applied on top of the inherited settings and reinitialized before
+recording; `--steps=…` changes the per-frame catch-up cap;
+`--orbit-speed/--orbit-radius` tune the camera; `-Resolution` on the
+launcher sets the AVI size (default 1920x1080). `--record-frames` /
+`--record-fps` come from the launcher (`-Duration` × `-Fps`); bare runs
+without them fall back to the scene defaults (900 frames @ 30 fps,
+1920x1080 window).

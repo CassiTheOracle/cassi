@@ -23,17 +23,5 @@ far = 2000.0
 
 [node name="CassiSim" type="Node3D" parent="."]
 script = ExtResource("2_sim")
-grid_N = 256
-N_particles = 2500000
-particle_size = 0.3
-cluster_radius = 50.0
-cluster_separation = 0.0
-source_strength = 0.0
-gravity_mode = 4
-river_calibrate_gn = true
-field_attractor_init = true
-initial_radius_fraction = 0.9
-initial_condition = 1
-recording_mode = true
+suppress_readbacks = true
 max_steps_per_frame = 60
-playing = true

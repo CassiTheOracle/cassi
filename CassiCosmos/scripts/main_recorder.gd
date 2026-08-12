@@ -50,8 +50,43 @@ func _ready() -> void:
 	print("[Recorder] window size after apply: %dx%d (requested %dx%d)" % [
 		get_window().size.x, get_window().size.y, recording_size.x, recording_size.y])
 
-	# ── Command-line overrides (args after `--`) ──
+	# ── Inherit the current settings from scenes/main.tscn ──
+	# The recorder no longer carries its own settings copy: whatever is
+	# currently set on main.tscn's CassiSim node (editor edits are written
+	# to the file) IS the config. Load the scene WITHOUT adding it to the
+	# tree (no _ready, no GPU work), copy the curated properties, free it,
+	# then reinit so the sim's _ready-time buffers match. The recorder
+	# owns suppress_readbacks / max_steps_per_frame / playing itself.
 	var reinit_needed := false
+	var inherit_list := [
+		"grid_N", "N_particles", "dt", "xi", "softening", "particle_size",
+		"cluster_radius", "num_clusters", "cluster_separation", "merger_speed",
+		"source_strength", "qi_condensation_threshold", "bh_acc_rate",
+		"bh_max_age", "gravity_mode", "realsim_drag", "realsim_viscosity",
+		"realsim_friction", "river_calibrate_gn", "river_pi_ref",
+		"river_q_ref", "field_attractor_init", "initial_radius_fraction",
+		"initial_condition", "mode",
+	]
+	var main_scene := load("res://scenes/main.tscn")
+	if main_scene != null:
+		var inst = main_scene.instantiate()  # NOT added to the tree
+		var src = inst.get_node_or_null("CassiSim")
+		if src == null:
+			push_warning("[Recorder] main.tscn has no CassiSim node — using script defaults")
+		else:
+			for p in inherit_list:
+				var v = src.get(p)
+				if v != null:
+					_sim.set(p, v)
+			reinit_needed = true
+			print("[Recorder] inherited from main.tscn: grid=%d particles=%d grav=%d init=%d sep=%.1f" % [
+				_sim.get("grid_N"), _sim.get("N_particles"), _sim.get("gravity_mode"),
+				_sim.get("initial_condition"), _sim.get("cluster_separation")])
+		inst.free()
+	else:
+		push_warning("[Recorder] main.tscn not readable — using script defaults")
+
+	# ── Command-line overrides (args after `--`) ──
 	for a in OS.get_cmdline_user_args():
 		var kv := a.split("=", true, 1)
 		if kv.size() != 2:
@@ -81,8 +116,9 @@ func _ready() -> void:
 			"--orbit-radius":
 				orbit_radius = float(kv[1])
 
-	# The sim already ran _ready with scene defaults; reinit applies the
-	# overrides (fresh buffers/field/particles at the new sizes).
+	# The sim already ran _ready with script defaults; reinit applies the
+	# inherited settings + CLI overrides (fresh buffers/field/particles at
+	# the new sizes).
 	if reinit_needed:
 		_sim.call("reinit")
 
