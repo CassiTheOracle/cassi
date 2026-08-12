@@ -115,32 +115,39 @@ box_scale·aspect_i·1.5·cluster_radius) — it separates the cluster from its
 periodic images (image forces drop like 1/(3·box_scale−1)²; scale ≈ 3 is
 the tested isolation regime) while preserving the aspect; `--bhs=0/1` sets
 the BH toggle live (no reinit);
-`--color=0/1/2/3` sets the particle color scheme (0 = Cassi mass gradient,
-1 = velocity rainbow: log-compressed hue h = min(v_scale·ln(1+|v|/v_ref), 0.95),
-v_ref = mean initial |v|, v_scale = 0.95/ln(1+v_max/v_ref) — slow red,
-v=v_ref green-blue, v=v_max magenta-pink (0.95, the full-circle top),
-growth beyond v_max saturates pink;
-2 = Qi rainbow: hue from the two-fluid coherence q = EY²+EI² sampled at the
-particle, a two-stage mapping: stage 1 (the normal operating band q ∈
-[Q_FLOOR = 2e-4, Q_1 = 1e-3]) is the FULL hue circle
-h = Q_SCALE·ln(q/Q_FLOOR), Q_SCALE = 1/ln(Q_1/Q_FLOOR) — f = ln(q/Q_FLOOR)/
-ln(Q_1/Q_FLOOR) ∈ [0,1] maps linearly onto the whole rainbow, magenta/pink
-segment included (f = 0 red, f = 0.5 cyan, f = 1 red); the measured
-typical band (3.4e-4…5.7e-4; the old φ⁻² anchor sat ~1000× above it and
-pinned normal running to a hue sliver) spans green → cyan-blue with the
-median ≈ 0.40; stage 2 (q ∈ [Q_1, qi_condensation_threshold]) ramps
-violet at Q_1 → PINK exactly at the φ⁻² decoherence gate q = 0.381966…
-(Q_GATE, the framework's qi gate) → red at the threshold, while lightness
-ramps 0.5 → 1.0, so elevated coherence approaching condensation washes to
-pure WHITE at the threshold (white-hot, not violet); the red → violet jump
-at the Q_1 boundary is the intentional stage-2 entry marker;
-3 = Qi double rainbow: same two-stage structure with the stage-1 hue ramp
-DOUBLED — h = clamp(2·Q_SCALE·ln(q/Q_FLOOR), 0, 2.0) — so the normal band
-passes through the rainbow TWICE (f = 0 red, f = 0.25 cyan-green, f = 0.5
-red, f = 0.75 cyan-green, f → 1 red; f = ln(q/Q_FLOOR)/ln(Q_1/Q_FLOOR))
-for doubled gradient granularity; stage 2 identical to mode 2 — pink at
-the φ⁻² gate, washing to pure WHITE at the threshold;
-all live, no reinit);
+`--color=0/1/2/3` sets the particle color scheme via the legacy master
+selector, mapped onto the consolidated gradient engine:
+
+| `--color` | Mode |
+|---|---|
+| 0 | Cassi mass gradient (default) |
+| 1 | Velocity rainbow — single pass, magenta-pink top at 0.95, held with no wrap beyond |
+| 2 | Qi rainbow — single pass over the cycle band + white-hot approach |
+| 3 | Qi double rainbow — two passes over the cycle band (≡ mode 2 with `--rainbow-count=2`) |
+
+All rainbow modes share one engine: the CYCLE band (velocity: [0, v_max]
+measured at init, or `--grad-ranges`; Qi: the calibrated band [2e-4, 1e-3],
+or `--grad-ranges`) is swept by the hue circle once per pass — log
+progress per segment (multiplicative physics), hue shares 0.2/0.6/0.2 per
+segment by default (`--grad-shares`); an optional PINCH split
+(`--grad-pinch`, Qi preset 3.4e-4 → 5.7e-4 — the measured q band)
+concentrates the gradient where most particles sit (≈1.87× the default
+slope); and the count-invariant white-hot APPROACH band ramps violet →
+PINK exactly at the φ⁻² decoherence gate q = 0.381966… → pure WHITE at
+qi_condensation_threshold, so elevated coherence washes out instead of
+wrapping. All live, no reinit.
+
+Gradient exports are inherited from main.tscn like every other sim
+setting; CLI overrides on top:
+`--rainbow-count=0..8` (0 = auto: Qi 2 passes, else 1; explicit 1-8 for
+finer granularity), `--grad-ranges=lo,hi` (cycle band, validated 0 < lo <
+hi — applied to the ACTIVE source: Qi for `--color=2/3`, velocity for
+`--color=1`; set `--color` first), `--grad-pinch=lo,hi` (pinch split,
+same source rule), `--grad-shares=a,b,c` (lo/pinch/hi hue shares ≥ 0,
+positive sum), `--grad-offset=F` (cycle-start hue rotation, -1..1). The
+record.ps1 launcher mirrors these as `-RainbowCount` (1-8, 0 = inherited),
+`-GradRanges "lo,hi"`, `-GradPinch "lo,hi"`, `-GradShares "a,b,c"`,
+`-GradOffset F` (0 = inherited).
 `--freeze-field=0/1` freezes the two-fluid field after init (skips the
 PDE passes; gravity/particle path unchanged; no reinit — read per step);
 `--steps=…` changes the per-frame catch-up cap;

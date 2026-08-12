@@ -28,6 +28,11 @@ param(
     [int]$Init = -1,
     [int]$Steps = 0,
     [int]$Color = -1,
+    [int]$RainbowCount = 0,
+    [string]$GradRanges = "",
+    [string]$GradPinch = "",
+    [string]$GradShares = "",
+    [double]$GradOffset = 0.0,
     [string]$Aspect = "",
     [string]$Resolution = "1920x1080",
     [string]$Scene = "res://scenes/main_recorder.tscn",
@@ -84,6 +89,11 @@ if ($Gravity -ge 0)   { $userArgs += "--gravity=$Gravity" }
 if ($Init -ge 0)      { $userArgs += "--init=$Init" }
 if ($Steps -gt 0)     { $userArgs += "--steps=$Steps" }
 if ($Color -ge 0)     { $userArgs += "--color=$Color" }
+if ($RainbowCount -gt 0) { $userArgs += "--rainbow-count=$RainbowCount" }
+if ($GradRanges -ne "")  { $userArgs += "--grad-ranges=$GradRanges" }
+if ($GradPinch -ne "")   { $userArgs += "--grad-pinch=$GradPinch" }
+if ($GradShares -ne "")  { $userArgs += "--grad-shares=$GradShares" }
+if ($GradOffset -ne 0.0) { $userArgs += "--grad-offset=$GradOffset" }
 if ($Aspect -ne "")   { $userArgs += "--aspect=$Aspect" }
 
 $argsList = @("--path", "$Pwd", "--write-movie", $Out, "--fixed-fps", "$Fps", $Scene, "--") + $userArgs

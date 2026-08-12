@@ -81,7 +81,10 @@ func _ready() -> void:
 		"realsim_friction", "river_calibrate_gn", "river_pi_ref",
 		"river_q_ref", "field_attractor_init", "freeze_field", "initial_radius_fraction",
 		"initial_condition", "initial_v_circ_factor", "box_aspect", "box_scale", "mode",
-		"particle_color_mode",
+		"particle_color_mode", "rainbow_count", "color_shares", "color_progress",
+		"qi_cycle", "qi_pinch", "qi_approach", "qi_approach_tracks_threshold",
+		"qi_gate", "velocity_cycle", "velocity_pinch", "velocity_approach",
+		"color_hue_offset",
 		"auto_frame_camera_on_start",
 	]
 	var main_scene := load("res://scenes/main.tscn")
@@ -157,9 +160,43 @@ func _ready() -> void:
 				_sim.set("black_holes_enabled", int(kv[1]) != 0)
 			"--color":
 				# Particle color scheme: 0 = Cassi gradient (default), 1 =
-				# velocity rainbow. Live export read per physics step — no
-				# reinit needed.
+				# velocity rainbow, 2 = Qi rainbow, 3 = Qi double rainbow.
+				# Live export read per physics step — no reinit needed.
 				_sim.set("particle_color_mode", int(kv[1]))
+			"--rainbow-count":
+				# Rainbow passes over the cycle band: 0 = AUTO (mode 3 → 2,
+				# else 1), explicit 1-8. Live — no reinit.
+				var rc := int(kv[1])
+				if rc >= 0 and rc <= 8:
+					_sim.set("rainbow_count", rc)
+				else:
+					push_warning("[Recorder] --rainbow-count needs 0..8")
+			"--grad-ranges":
+				# Cycle band lo,hi for the ACTIVE source (mode >= 2 → Qi,
+				# else velocity); live, no reinit. 0 < lo < hi validated.
+				_apply_grad_pair("--grad-ranges", kv[1], "cycle")
+			"--grad-pinch":
+				_apply_grad_pair("--grad-pinch", kv[1], "pinch")
+			"--grad-shares":
+				# Per-segment hue shares a,b,c (lo, pinch, hi) for the
+				# active source; the engine clamps >= 0 and normalizes.
+				var parts3 := (kv[1] as String).split(",")
+				if parts3.size() == 3:
+					var sh := Vector3(parts3[0].to_float(), parts3[1].to_float(), parts3[2].to_float())
+					if sh.x >= 0.0 and sh.y >= 0.0 and sh.z >= 0.0 and sh.x + sh.y + sh.z > 0.0:
+						_sim.set("color_shares", sh)
+					else:
+						push_warning("[Recorder] --grad-shares needs a,b,c >= 0 with a positive sum")
+				else:
+					push_warning("[Recorder] --grad-shares needs a,b,c")
+			"--grad-offset":
+				# Cycle-start hue rotation (radians-ish -1..1; rotates the
+				# start hue). Live — no reinit.
+				var off := kv[1].to_float()
+				if is_finite(off):
+					_sim.set("color_hue_offset", off)
+				else:
+					push_warning("[Recorder] --grad-offset needs a number")
 			"--steps":
 				_sim.set("max_steps_per_frame", int(kv[1]))
 			"--orbit-speed":
@@ -189,6 +226,32 @@ func _ready() -> void:
 		_sim.get("grid_N"), _sim.get("N_particles"), _sim.get("gravity_mode"),
 		_sim.get("initial_condition"), _sim.get("max_steps_per_frame"), orbit_speed,
 		orbit_radius, _orbit_target.x, _orbit_target.y, _orbit_target.z])
+
+
+## Apply a --grad-* lo,hi pair to the ACTIVE source's band export (mode
+## >= 2 → Qi, else velocity), with 0 < lo < hi validation. Live exports —
+## no reinit. The pair applies to whichever source --color selected; set
+## --color before the --grad-* flags.
+func _apply_grad_pair(flag: String, value: String, kind: String) -> void:
+	var parts := (value as String).split(",")
+	if parts.size() != 2:
+		push_warning("[Recorder] %s needs lo,hi (got %s)" % [flag, value])
+		return
+	var lo := parts[0].to_float()
+	var hi := parts[1].to_float()
+	if not (is_finite(lo) and is_finite(hi)) or not (lo > 0.0 and lo < hi):
+		push_warning("[Recorder] %s needs 0 < lo < hi (got %s)" % [flag, value])
+		return
+	if int(_sim.get("particle_color_mode")) >= 2:
+		if kind == "cycle":
+			_sim.set("qi_cycle", Vector2(lo, hi))
+		else:
+			_sim.set("qi_pinch", Vector2(lo, hi))
+	else:
+		if kind == "cycle":
+			_sim.set("velocity_cycle", Vector2(lo, hi))
+		else:
+			_sim.set("velocity_pinch", Vector2(lo, hi))
 
 
 ## Mean of the cluster centers, mirroring cassi_sim.gd::_init_particles
