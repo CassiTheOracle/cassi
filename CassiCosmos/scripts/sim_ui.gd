@@ -314,9 +314,9 @@ func _ready() -> void:
 	color_row.add_child(_passes_spin)
 	_color_btn = Button.new()
 	_color_btn.name = "ColorBtn"
-	_color_btn.text = "⚙"
+	_color_btn.text = "Ranges ⚙"
 	_color_btn.tooltip_text = "Gradient ranges: cycle/pinch bands, hue shares, pink gate, white point, velocity band, progress measure, hue offset"
-	_color_btn.custom_minimum_size = Vector2(34, 22)
+	_color_btn.custom_minimum_size = Vector2(88, 22)
 	_color_btn.focus_mode = Control.FOCUS_NONE
 	_color_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	_color_btn.pressed.connect(_open_color_popup)
