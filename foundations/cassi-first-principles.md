@@ -62,15 +62,13 @@ The fixed-point imbalance $\alpha_0 = \pi/\rho = \varphi^{-3}$ is universal—it
 
 ### 1.3 Two-fluid PDE
 
-The complete PDE governing the two fluids in an expanding 3D space:
+The complete PDE governing the two fluids in an expanding 3D space, in the density variables $E_Y = \Psi_0^2$, $E_I = \Psi_1^2$ (the committed solver's fields):
 
-$$
-\partial_t \Psi_0 = -(\mathbf{u}\cdot\nabla)\Psi_0 + \nu\nabla^2\Psi_0 - \lambda(\Psi_0^2 - \varphi\Psi_1^2)\Psi_0 + S_0[\Psi_1,\Phi]
-$$
+$$\partial_t E_Y = -(\mathbf{u}\cdot\nabla)E_Y + \nu\nabla^2 E_Y - \lambda(1-q)(E_Y - \varphi E_I) + S_0[E_I,\Phi]$$
 
-$$
-\partial_t \Psi_1 = -(\mathbf{u}\cdot\nabla)\Psi_1 + \nu\nabla^2\Psi_1 + \lambda(\Psi_0^2 - \varphi\Psi_1^2)\Psi_1 + S_1[\Psi_0,\Phi]
-$$
+$$\partial_t E_I = -(\mathbf{u}\cdot\nabla)E_I + \nu\nabla^2 E_I + \lambda(1-q)(E_Y - \varphi E_I) + S_1[E_Y,\Phi]$$
+
+The conversion term is the gated linearized form—equal and opposite in the two channels, conserving total density exactly—with $\lambda = 1/(2w) = 0.1$ derived from $w = 5$ (`foundations/wu-xing-derivation.md` §7) and the openness $(1-q)$ the Qi gate (§2.4). Its fixed point $E_Y = \varphi E_I$ is the attractor of §1.2 ($E_Y/E_I = \Psi_0^2/\Psi_1^2 = \varphi$).
 
 where $\mathbf{u}$ is the velocity field, $\nu$ is diffusion, and $S_{\alpha}$ are source terms coupling the two fluids through the gravitational/information potential $\Phi$.
 
@@ -89,12 +87,11 @@ flow between scales is the axial current $J_z$ (`foundations/qi-flow-double-heli
 
 Qi coherence at each spacetime point is computed from the local field state:
 
-$$\varepsilon^2 = (\Psi_0 - \varphi\Psi_1)^2,\qquad
-\rho^2 = (\Psi_0 + \Psi_1)^2$$
+$$\varepsilon = E_Y - \varphi E_I,\qquad \rho = E_Y + E_I = \Psi_0^2 + \Psi_1^2$$
 
 $$q = \frac{\rho^2}{\rho^2 + \varphi^{-2} + \varepsilon^2}$$
 
-Qi ranges from $q \to 0$ (far from $\varphi$-equilibrium, large deviation $\varepsilon^2$) to $q \to 1$ (perfect $\varphi$-equilibrium, $\varepsilon^2 \to 0$). At the $\varphi$-equilibrium ($\varepsilon^2 = 0$; the solver's reference state $E_Y = 1$, $E_I = \varphi^{-1}$ gives $\rho = \varphi$), the coherence and the gate openness are:
+Qi ranges from $q \to 0$ (far from $\varphi$-equilibrium, large deviation $|\varepsilon|$) to $q \to 1$ (perfect $\varphi$-equilibrium, $\varepsilon \to 0$). At the $\varphi$-equilibrium ($\varepsilon = 0$; the solver's reference state $E_Y = 1$, $E_I = \varphi^{-1}$ gives $\rho = \varphi$), the coherence and the gate openness are:
 
 $$q_{\text{eq}} = \frac{\varphi^{2}}{\varphi^2 + \varphi^{-2}} \approx 0.873, \qquad 1 - q_{\text{eq}} = \frac{\varphi^{-2}}{\varphi^2 + \varphi^{-2}} = \frac{\varphi^{-2}}{3} \approx 0.127$$
 
@@ -218,6 +215,21 @@ Derived conditional on the asserted form; the denominator $\varphi^2+q^2$ and
 its normalization remain Asserted.
 
 ---
+
+
+### 2.6 The Winding Rate
+
+The conversion term rotates the doublet in its internal plane. With $\theta = \mathrm{atan2}(E_I, E_Y)$—the density-plane angle, twice the amplitude-plane doublet phase (one cascade rung advances $\theta$ by $2\pi$)—the rotation rate is a state function:
+
+$$\boxed{\frac{d\theta}{dt} = \lambda(1-q)\,\frac{\rho\,\varepsilon}{E_Y^2 + E_I^2}}$$
+
+The rate vanishes exactly at the $\varphi$-line ($\varepsilon = 0$) and grows with $|\varepsilon|$, gated by the openness $(1-q)$; sign: $\varepsilon > 0$ (Yang excess) rotates toward the Yin axis, $\varepsilon < 0$ the reverse. Measured in the committed solver: four homogeneous arms at $\lambda = 0.05$, $t = 4$ match the formula to per-checkpoint relative error $\le 2.2\times10^{-3}$ with 100% sign agreement (`two-fluid/run_winding_rate_probe.py`).
+
+**Relaxation winding (exact).** Since $d\varepsilon/dt = -\lambda(1+\varphi)(1-q)\varepsilon$, the conversion rate and the gate cancel in $d\theta/d\varepsilon$, and with $\rho$ conserved the density-plane angle is a function of $\varepsilon$ alone, $\theta = \mathrm{atan}((\rho-\varepsilon)/(\rho\varphi+\varepsilon))$. The total winding accumulated while a state relaxes from $\varepsilon_0$ to equilibrium is therefore
+
+$$\boxed{\Delta\vartheta = \mathrm{atan}\!\left(\frac{1}{\varphi}\right) - \mathrm{atan}\!\left(\frac{\rho-\varepsilon_0}{\rho\varphi+\varepsilon_0}\right)}$$
+
+independent of $\lambda$ and of the gate shape. Its extremes are the Yang limit $\varepsilon_0 \to \rho$ ($\Delta\vartheta \to +\mathrm{atan}(\varphi^{-1}) \approx 0.554$ rad) and the Yin limit $\varepsilon_0 \to -\rho\varphi$ ($\Delta\vartheta \to -\mathrm{atan}(\varphi) \approx -1.017$ rad)—in rung units, fractional offsets $|\delta n| \le \mathrm{atan}(\varphi)/(2\pi) \approx 0.162$; for small deviations the integral reduces to $\Delta\vartheta \approx \rho\varepsilon_0/[(1+\varphi)(E_Y^2+E_I^2)]$. Offsets of half a rung ($\delta n = 0.5$, e.g. the BAO half-step at 284.5, `foundations/dimensionful-cascade.md` §6) are one full $\pi$-advance of the density-plane angle—the doublet's per-rung step—and exceed the relaxation bound by $\sim 3\times$; they are set by the parity structure (`foundations/rung-offset-mechanism.md`), not by accumulated winding. The fixed-pitch clocks ($\varphi^{-2}$ turns per rung, the $69.1°$ pitch tangent of `foundations/spiral-dynamics.md` §2.2) belong to the Hypothesized conversion→expansion term; the canonical rotation is the $\varepsilon$-proportional state function above, which stops at the $\varphi$-line.
 
 ## 3. Emergence of the Four Pillars
 
