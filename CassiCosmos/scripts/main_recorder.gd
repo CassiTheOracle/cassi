@@ -81,6 +81,7 @@ func _ready() -> void:
 		"realsim_friction", "river_calibrate_gn", "river_pi_ref",
 		"river_q_ref", "field_attractor_init", "freeze_field", "initial_radius_fraction",
 		"initial_condition", "initial_v_circ_factor", "box_aspect", "mode",
+		"auto_frame_camera_on_start",
 	]
 	var main_scene := load("res://scenes/main.tscn")
 	if main_scene != null:

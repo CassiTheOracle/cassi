@@ -166,6 +166,15 @@ const PI_CLAMP_MAX: float = 0.72  # (π/ρ) upper clamp (stability; telemetry co
 ## Display mode: 0 = Particles, 1 = Field, 2 = Black Hole, 3 = Cosmology.
 @export_enum("Particles", "Field", "Black Hole", "Cosmology") var mode: int = 0
 
+# ── Camera startup framing (camera-only; no physics) ──────────────────
+## On startup, frame a sibling Camera3D on the spawn region: the camera is
+## moved to an oblique view of the cluster-centroid and aimed at it, so the
+## first frame shows the particles up close instead of the far scene
+## default. The free-fly camera controls (free_camera.gd) work normally
+## afterwards. Only acts when a sibling Camera3D exists (main/recorder
+## scenes); the headless verify scenes have none and are untouched.
+@export var auto_frame_camera_on_start: bool = true
+
 # ═══════════════════════════════════════════════════════════════════════
 # Internal state
 # ═══════════════════════════════════════════════════════════════════════
@@ -321,6 +330,7 @@ func _ready() -> void:
 	_apply_gravity_calibration()
 	_grav_warmup = true  # fill the acc cache with a fresh force before step 1
 	print("[CassiSim] Universe ready — grid=%d³ particles=%d xi=%.5f (φ⁶=%.5f)" % [grid_N, N_particles, xi, PHI_6])
+	_auto_frame_camera()
 
 
 func _process(delta: float) -> void:
@@ -811,6 +821,61 @@ func _erf_approx(x: float) -> float:
 	var t: float = 1.0 / (1.0 + 0.3275911 * x)
 	var poly: float = ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t
 	return 1.0 - poly * exp(-x * x)
+
+
+# ── Camera startup framing (camera-only; mirrors the placement below) ──
+## Mean of the cluster centers (the spawn region's center of mass),
+## mirroring the placement in _init_particles (ring for nc <= 8, Fibonacci
+## sphere above). A single cluster centers at (cluster_separation, 0, 0).
+func _cluster_centroid() -> Vector3:
+	var nc := maxi(1, num_clusters)
+	var sep := cluster_separation
+	var acc := Vector3.ZERO
+	for i in range(nc):
+		if nc > 8:
+			var phi := acos(1.0 - 2.0 * (float(i) + 0.5) / float(nc))
+			var th := PI * (1.0 + sqrt(5.0)) * float(i)
+			acc += Vector3(sep * sin(phi) * cos(th), sep * sin(phi) * sin(th), sep * cos(phi))
+		else:
+			var angle := float(i) * PI * 2.0 / float(nc)
+			acc += Vector3(sep * cos(angle), 0.0, sep * sin(angle))
+	return acc / float(nc)
+
+
+## Close framing distance for the startup camera: the spawn extent
+## (cluster-ring radius + per-cluster ball radius), so the region fills
+## most of the vertical FOV.
+func _camera_framing_radius() -> float:
+	var nc := maxi(1, num_clusters)
+	var ring_r: float = cluster_separation if nc > 1 else 0.0
+	return maxf(maxf(ring_r, cluster_radius) + cluster_radius, 1.0)
+
+
+## Point a sibling Camera3D at the spawn region (startup only, called from
+## _ready). The camera sits at target + (0, 0.3R, 0.95R) — an oblique view
+## at distance ≈ R with ~17° elevation — and look_at reorients it onto the
+## centroid. Free-fly controls afterwards are unaffected (free_camera.gd
+## only moves on input). No-op without a sibling Camera3D or when
+## auto_frame_camera_on_start is off.
+func _auto_frame_camera() -> void:
+	if not auto_frame_camera_on_start:
+		return
+	var parent := get_parent()
+	if parent == null:
+		return
+	var cam: Camera3D = null
+	for child in parent.get_children():
+		if child is Camera3D:
+			cam = child
+			break
+	if cam == null:
+		return
+	var target := _cluster_centroid()
+	var r := _camera_framing_radius()
+	cam.position = target + Vector3(0.0, 0.3 * r, 0.95 * r)
+	cam.look_at(target, Vector3.UP)
+	print("[CassiSim] Camera framed on spawn: target=(%.1f, %.1f, %.1f) R=%.1f pos=(%.1f, %.1f, %.1f)" % [
+		target.x, target.y, target.z, r, cam.position.x, cam.position.y, cam.position.z])
 
 
 func _init_particles() -> void:
