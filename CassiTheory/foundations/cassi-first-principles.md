@@ -94,9 +94,9 @@ $$\varepsilon^2 = (\Psi_0 - \varphi\Psi_1)^2,\qquad
 
 $$q = \frac{\rho^2}{\rho^2 + \varphi^{-2} + \varepsilon^2}$$
 
-Qi ranges from $q \to 0$ (far from $\varphi$-equilibrium, large deviation $\varepsilon^2$) to $q \to 1$ (perfect $\varphi$-equilibrium, $\varepsilon^2 \to 0$). At the $\varphi$-fixed point where $\Psi_0^2 = \varphi\Psi_1^2$ and $\varepsilon^2 = 0$, the equilibrium coherence is:
+Qi ranges from $q \to 0$ (far from $\varphi$-equilibrium, large deviation $\varepsilon^2$) to $q \to 1$ (perfect $\varphi$-equilibrium, $\varepsilon^2 \to 0$). At the $\varphi$-equilibrium ($\varepsilon^2 = 0$; the solver's reference state $E_Y = 1$, $E_I = \varphi^{-1}$ gives $\rho = \varphi$), the coherence and the gate openness are:
 
-$$q_{\text{eq}} = \frac{\varphi^{-2}}{\varphi^2 + \varphi^{-2}} \approx 0.127$$
+$$q_{\text{eq}} = \frac{\varphi^{2}}{\varphi^2 + \varphi^{-2}} \approx 0.873, \qquad 1 - q_{\text{eq}} = \frac{\varphi^{-2}}{\varphi^2 + \varphi^{-2}} = \frac{\varphi^{-2}}{3} \approx 0.127$$
 
 ### 2.2 Qi as a 2-vector
 

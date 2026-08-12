@@ -97,3 +97,17 @@ These scripts are referenced from the glossary's Key Scripts table but live only
 | `predictions/cassi_definitions.md` | `experiments/cassi_life.py` |
 | `predictions/cassi_definitions.md` | `experiments/cassi_spacetime_variable_geff.py` |
 | `predictions/cassi_definitions.md` | `experiments/cassi_accretion_disk.py` |
+
+## References to `cassi-toe-rewrite-briefs/` (external briefs tree)
+
+The numbered frontier briefs and referee memos live outside this repo and are cited by name as provenance markers:
+
+| Source Document | Reference tree |
+|----------------|----------------|
+| `foundations/spiral-dynamics.md` | `cassi-toe-rewrite-briefs/spiral-gravity/` (08 conversion→expansion coupling, 09 winding test, 10 source stabilization, 11 spatial test, 12 cosmology-r★, 16 qi-field) |
+| `foundations/parameter-inventory.md` | `cassi-toe-rewrite-briefs/referee/` (01-core, 02-sm, 03-cosmo, 04-grav, 06-hyp) |
+| `predictions/falsifiable-predictions.md` | `cassi-toe-rewrite-briefs/spiral-gravity/45-sigma8-mixture.md` |
+| `open-questions-cassi-answers.md` | `cassi-toe-rewrite-briefs/spiral-gravity/10-source-stabilization.md` |
+| `cassi-psychology.md` | `cassi-toe-rewrite-briefs/spiral-gravity/10-source-stabilization.md`, `12-cosmology-rstar.md` |
+| `cosmology/observational_constraints.md` | `cassi-toe-rewrite-briefs/spiral-gravity/` (ratified conversion→expansion coupling) |
+| `hypotheses/gravity-from-flow.md` | `cassi-toe-rewrite-briefs/` (cited by name, §run71) |

@@ -86,7 +86,7 @@ measures the degree to which the local flow is *balanced* at the
 $\varphi$-attractor: $q \to 1$ when the two strand-currents sit at their
 attractor ratio (with the temporally-filtered deviation
 $\bar{\varepsilon}^2$ from the IIR memory; `foundations/cassi-first-principles.md` §2.4).
-At the fixed point $q_{\text{eq}} = \varphi^{-2}/(\varphi^2+\varphi^{-2}) \approx 0.127$.
+At the fixed point ($\varepsilon^2 = 0$; reference state $E_Y = 1$, $E_I = \varphi^{-1}$, $\rho = \varphi$): $q_{\text{eq}} = \varphi^{2}/(\varphi^2+\varphi^{-2}) \approx 0.873$, and the openness $(1-q_{\text{eq}}) = \varphi^{-2}/(\varphi^2+\varphi^{-2}) = \varphi^{-2}/3 \approx 0.127$.
 The openness $(1-q)$ is the fraction of the flow that is *not* organized—
 the channel through which conversion redistributes coherence.
 
