@@ -11,17 +11,23 @@ const PHI_INV2: float = 0.3819660112501051  # φ⁻² — q decoherence threshol
 const PHI_6: float = PHI * PHI * PHI * PHI * PHI * PHI  # φ⁶ ≈ 17.94427191
 const PI_CLAMP_MAX: float = 0.72  # (π/ρ) upper clamp (stability; telemetry counts hits)
 const LN2: float = 0.6931471805599453  # ln 2 — degenerate rainbow v_scale fallback (0.8·ln2)
-# Qi-rainbow (color_mode 2) anchors — recalibrated 2026-08-12 from the
+# Qi-rainbow (color_mode 2) stage-1 band — recalibrated 2026-08-12 from the
 # measured q = EY²+EI² distribution at particle positions (1M-particle diag
 # mirroring the live main.tscn config, 600 steps): typical q sits in
 # [3.4e-4, 5.7e-4] — ~1000× BELOW the old φ⁻² anchor (0.381966), which
-# pinned normal running at h ≈ 0 (pure red). Q_REF = 3.6e-4 sits inside the
-# late-time [p10, p50] band (no φ⁻ⁿ falls inside: φ⁻¹⁷ = 2.80e-4 below p10,
-# φ⁻¹⁶ = 4.53e-4 above p50). The ramp TOP q_top is the live
-# qi_condensation_threshold export (the condensation/explosion point) —
-# Q_SCALE = 0.8/ln(1+q_top/Q_REF) is recomputed per PC fill, so changing
-# the threshold re-anchors the ramp live (no reinit).
-const Q_REF: float = 0.00036  # Qi-rainbow q_ref: measured typical-running band anchor
+# pinned normal running at a hue sliver. The two-stage mapping gives the
+# whole normal band the full rainbow: Q_FLOOR = 2e-4 (just below measured
+# p1 = 3.1e-4 → the low tail reads orange-red; q < Q_FLOOR clamps to red)
+# to Q_1 = 1e-3 (just above the late-time p99/max = 5.7e-4, so normal
+# running stays in the hue stage). h = Q_SCALE·ln(q/Q_FLOOR) with
+# Q_SCALE = 0.8/ln(Q_1/Q_FLOOR): the measured band spans h ≈ 0.26-0.52
+# (yellow-green → cyan-green; median 3.8e-4 → h = 0.8·ln(1.9)/ln(5) ≈ 0.319,
+# green). Stage 2 (q ∈ [Q_1, q_top]) pins violet and ramps lightness to
+# pure white at q_top = the live qi_condensation_threshold export (the
+# explosion point) — recomputed per PC fill, so changing the threshold
+# re-anchors the white point live (no reinit).
+const Q_FLOOR: float = 0.0002   # Qi-rainbow stage-1 band floor (hue = 0 at/below)
+const Q_1: float = 0.001        # Qi-rainbow stage-1 band top = stage-2 white-ramp start
 
 # ═══════════════════════════════════════════════════════════════════════
 # Exports
@@ -189,7 +195,7 @@ const Q_REF: float = 0.00036  # Qi-rainbow q_ref: measured typical-running band 
 @export_enum("Particles", "Field", "Black Hole", "Cosmology") var mode: int = 0
 
 # ── Particle color scheme ──────────────────────────────────────────────
-## 0 = the Cassi mass-temperature gradient (Salpeter blue dwarfs → red giants; default, shader path bit-identical). 1 = velocity rainbow: log-compressed, distribution-anchored hue h = min(v_scale·ln(1+|v|/v_ref), 0.8) with v_ref = mean initial |v| and v_scale = 0.8/ln(1+v_max/v_ref) — slow = red (h→0), v ≈ v_ref ≈ 0.5 (green-blue), v = v_max → 0.8 (violet); hue drifts only logarithmically as speeds grow, and growth beyond v_max saturates at violet instead of wrapping. 2 = Qi rainbow: hue from the two-fluid coherence q = EY²+EI² trilinearly sampled at the particle — h = clamp(Q_SCALE·ln(1+q/q_ref), 0, 0.8) with q_ref = 0.00036 (measured typical-running band anchor; the old φ⁻² anchor sat ~1000× above measured q and pinned normal running at pure red) and Q_SCALE = 0.8/ln(1+q_top/q_ref), q_top = the live qi_condensation_threshold export (the explosion point): q→0 = red, typical q = red-orange, and the approach to the condensation threshold sweeps the full rainbow to pure WHITE at q_top (lightness ramps up over the top quarter of the scale — white-hot, not violet). Live: re-encoded into the instancer PC every physics step (no reinit); while paused the visible colors refresh immediately.
+## 0 = the Cassi mass-temperature gradient (Salpeter blue dwarfs → red giants; default, shader path bit-identical). 1 = velocity rainbow: log-compressed, distribution-anchored hue h = min(v_scale·ln(1+|v|/v_ref), 0.8) with v_ref = mean initial |v| and v_scale = 0.8/ln(1+v_max/v_ref) — slow = red (h→0), v ≈ v_ref ≈ 0.5 (green-blue), v = v_max → 0.8 (violet); hue drifts only logarithmically as speeds grow, and growth beyond v_max saturates at violet instead of wrapping. 2 = Qi rainbow: hue from the two-fluid coherence q = EY²+EI² trilinearly sampled at the particle, a TWO-STAGE mapping: stage 1 (the normal operating band q ∈ [Q_FLOOR = 2e-4, Q_1 = 1e-3]) is a full rainbow hue ramp h = Q_SCALE·ln(q/Q_FLOOR) with Q_SCALE = 0.8/ln(Q_1/Q_FLOOR) — the measured typical band (3.4e-4…5.7e-4; the old φ⁻² anchor sat ~1000× above it and pinned normal running to a hue sliver) spans yellow-green → cyan-green, median ≈ green; stage 2 (q ∈ [Q_1, qi_condensation_threshold]) pins violet and ramps lightness 0.5 → 1.0, so elevated coherence approaching condensation washes to pure WHITE at the threshold (white-hot, not violet). Live: re-encoded into the instancer PC every physics step (no reinit); while paused the visible colors refresh immediately.
 @export_enum("Cassi gradient", "Velocity rainbow", "Qi rainbow") var particle_color_mode: int = 0
 
 # ── Camera startup framing (camera-only; no physics) ──────────────────
@@ -268,17 +274,20 @@ var _cond_pc_bytes: PackedByteArray   # condensation PC (4 floats)
 var _bh_init_bytes: PackedByteArray   # BH header init (16 floats)
 var _tel_reset_bytes: PackedByteArray # gravity telemetry reset (8 floats)
 var _poisson_pc_bytes: PackedByteArray  # poisson PC (7 floats: N, axis, dir, mode, extent_x/y/z)
-# Instancer dedicated PC (17 floats: the shared 11 + color_mode + v_ref +
-# v_scale + extent_x/y/z) — the dedicated-PC precedent (nbody 15, two-fluid
+# Instancer dedicated PC (19 floats: the shared 11 + color_mode + the
+# generic rainbow reference/scale pair + extent_x/y/z + the two Qi-rainbow
+# stage-2 anchors) — the dedicated-PC precedent (nbody 15, two-fluid
 # 14, mass-deposit 5): field_render/bh_lensing keep the shared 11-float
 # _pc_bytes, and Godot hard-errors on push-constant size mismatch, so the
 # instancer's extra fields get their own pre-allocated buffer. Slots 12/13
-# are mode-dependent: color_mode 1 = v_ref/v_scale (velocity rainbow), 2 =
-# q_ref/q_scale (Qi rainbow — q_scale = 0.8/ln(1+q_top/q_ref), q_top = the
-# live qi_condensation_threshold). The three per-axis extents feed the
-# Qi-rainbow q-sampler's cell mapping (the same _extents() values nbody
-# reads from bh[2].yzw).
-var _instancer_pc_bytes: PackedByteArray  # instancer PC (17 floats: 11 shared + color_mode@11 + v_ref/v_scale@12-13 (mode 1) or q_ref/q_scale@12-13 (mode 2) + extent_x/y/z@14-16)
+# are the generic rainbow pair shared by modes 1/2: color_mode 1 =
+# v_ref/v_scale (velocity rainbow), 2 = Q_FLOOR/Q_SCALE (Qi-rainbow stage-1
+# ramp: Q_SCALE = 0.8/ln(max(Q_1, Q_FLOOR·1.001)/Q_FLOOR)). Slots 17/18
+# (mode 2 only): Q_1 (stage-1 band top) and Q_TOP = the live
+# qi_condensation_threshold (the white point). The three per-axis extents
+# feed the Qi-rainbow q-sampler's cell mapping (the same _extents() values
+# nbody reads from bh[2].yzw).
+var _instancer_pc_bytes: PackedByteArray  # instancer PC (19 floats: 11 shared + color_mode@11 + v_ref/v_scale@12-13 (mode 1) or Q_FLOOR/Q_SCALE@12-13 (mode 2) + extent_x/y/z@14-16 + Q_1@17 + Q_TOP@18 (mode 2))
 # NOTE: global RD — no manual submit/sync anywhere (illegal on the main
 # instance); readbacks self-stall via buffer_get_data.
 
@@ -374,7 +383,7 @@ func _ready() -> void:
 	# visible colors — but the CPU path cannot sample the field cheaply. The
 	# one-shot GPU repaint computes the q colors from the uploaded pos/vel/q
 	# buffers instead. Safe HERE (verified ordering): _setup_shaders cached
-	# _us_inst_0, _instancer_pc_bytes is allocated (17 floats), and the
+	# _us_inst_0, _instancer_pc_bytes is allocated (19 floats), and the
 	# pos/vel/q buffers + the multimesh RD buffer are all valid (init_field
 	# and init_particles ran; _mm.buffer = init_inst sized the renderer's
 	# buffer). If the shader import race left _us_inst_0 invalid the call
@@ -605,7 +614,7 @@ func _setup_buffers() -> void:
 	# 3 per-axis extents for the anisotropic 19-point stencil (GRID_LAYOUT.md).
 	_two_fluid_pc_bytes = PackedByteArray(); _two_fluid_pc_bytes.resize(14 * 4)
 	_md_pc_bytes = PackedByteArray(); _md_pc_bytes.resize(5 * 4)
-	_instancer_pc_bytes = PackedByteArray(); _instancer_pc_bytes.resize(17 * 4)
+	_instancer_pc_bytes = PackedByteArray(); _instancer_pc_bytes.resize(19 * 4)
 	_bh_int_pc_bytes = PackedByteArray(); _bh_int_pc_bytes.resize(4 * 4)
 	_cond_pc_bytes = PackedByteArray(); _cond_pc_bytes.resize(4 * 4)
 	_poisson_pc_bytes = PackedByteArray(); _poisson_pc_bytes.resize(7 * 4)
@@ -1415,13 +1424,14 @@ func _physics_step() -> void:
 
 
 func _fill_instancer_pc() -> void:
-	# Instancer dedicated PC (17 floats): the shared 11 + color_mode (slot 11)
-	# + mode-dependent slots 12/13 (mode 1: v_ref/v_scale; mode 2:
-	# q_ref/q_scale, q_scale = 0.8/ln(1+q_top/q_ref) recomputed LIVE from the
-	# qi_condensation_threshold export — changing the threshold re-anchors
-	# the Qi-rainbow ramp next dispatch) + the three per-axis box
-	# half-extents (slots 14-16, the Qi-rainbow q-sampler's cell mapping) —
-	# the dedicated-PC precedent (nbody 15, two-fluid 14, mass-deposit 5):
+	# Instancer dedicated PC (19 floats): the shared 11 + color_mode (slot 11)
+	# + the generic rainbow pair slots 12/13 (mode 1: v_ref/v_scale; mode 2:
+	# Q_FLOOR/Q_SCALE, Q_SCALE = 0.8/ln(max(Q_1, Q_FLOOR·1.001)/Q_FLOOR)) +
+	# the three per-axis box half-extents (slots 14-16, the Qi-rainbow
+	# q-sampler's cell mapping) + slots 17/18 (mode 2: Q_1 = stage-1 band
+	# top, Q_TOP = the LIVE qi_condensation_threshold — changing the
+	# threshold re-anchors the white point next dispatch) — the
+	# dedicated-PC precedent (nbody 15, two-fluid 14, mass-deposit 5):
 	# field_render/bh_lensing keep the shared 11-float _pc_bytes, and Godot
 	# hard-errors on push-constant size mismatch, so the instancer's extra
 	# fields get their own buffer. Reads the LIVE particle_color_mode export
@@ -1440,16 +1450,23 @@ func _fill_instancer_pc() -> void:
 	_instancer_pc_bytes.encode_float(40, float(gravity_mode))
 	_instancer_pc_bytes.encode_float(44, float(particle_color_mode))
 	if particle_color_mode == 2:
-		# Qi rainbow: slots 12/13 carry q_ref (measured typical-band anchor)
-		# and q_scale = 0.8/ln(1+q_top/q_ref) with q_top = the LIVE
-		# condensation threshold (the physical explosion point — the ramp
-		# top). Guarded so a degenerate threshold never divides by zero.
-		var q_top: float = maxf(qi_condensation_threshold, Q_REF)
-		_instancer_pc_bytes.encode_float(48, Q_REF)
-		_instancer_pc_bytes.encode_float(52, 0.8 / log(1.0 + q_top / Q_REF))
+		# Qi rainbow: slots 12/13 carry Q_FLOOR/Q_SCALE (stage-1 band floor
+		# and hue-ramp scale), slots 17/18 carry Q_1 (band top / white-ramp
+		# start) and Q_TOP = the LIVE condensation threshold (the physical
+		# explosion point — the white point). Guarded so a degenerate
+		# threshold/band never divides by zero (Q_1 clamped above Q_FLOOR).
+		var q_top: float = maxf(qi_condensation_threshold, Q_1 * 1.001)
+		_instancer_pc_bytes.encode_float(48, Q_FLOOR)
+		_instancer_pc_bytes.encode_float(52, 0.8 / log(maxf(Q_1, Q_FLOOR * 1.001) / Q_FLOOR))
+		_instancer_pc_bytes.encode_float(68, Q_1)
+		_instancer_pc_bytes.encode_float(72, q_top)
 	else:
+		# Mode 0/1: slots 12/13 = the velocity-rainbow anchors (mode 1 reads
+		# them; mode 0 ignores them). Slots 17/18 are mode-2-only — zeroed.
 		_instancer_pc_bytes.encode_float(48, _rainbow_vref)
 		_instancer_pc_bytes.encode_float(52, _rainbow_vscale)
+		_instancer_pc_bytes.encode_float(68, 0.0)
+		_instancer_pc_bytes.encode_float(72, 0.0)
 	_instancer_pc_bytes.encode_float(56, ext_pc.x)
 	_instancer_pc_bytes.encode_float(60, ext_pc.y)
 	_instancer_pc_bytes.encode_float(64, ext_pc.z)
@@ -1687,8 +1704,9 @@ func _step_dispatches(cl: int) -> void:
 	if _instancer_shader.is_valid() and N_particles > 0:
 		_rd.compute_list_bind_compute_pipeline(cl, _instancer_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_inst_0, 0)
-		# Dedicated 17-float PC (the shader declares color_mode + v_ref +
-		# v_scale + the three extents; the shared 11-float _pc_bytes would
+		# Dedicated 19-float PC (the shader declares color_mode + the generic
+		# rainbow reference/scale pair + the three extents + the two
+		# Qi-rainbow stage-2 anchors; the shared 11-float _pc_bytes would
 		# hard-error on size mismatch).
 		_rd.compute_list_set_push_constant(cl, _instancer_pc_bytes, _instancer_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, pg, 1, 1)

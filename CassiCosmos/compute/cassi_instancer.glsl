@@ -27,14 +27,20 @@ layout(push_constant, std430) uniform PC {
     float mode; float source_strength; float num_clusters;
     float gravity_mode;  // unused here (nbody gravity selector)
     float color_mode;    // 0 = Cassi mass gradient (default, bit-identical); 1 = velocity rainbow; 2 = Qi rainbow
-    float v_ref;         // mode 1: rainbow speed reference (mean initial |v|, host-computed);
-                         // mode 2: Qi-rainbow q_ref (measured typical-band anchor, see host Q_REF)
-    float v_scale;       // mode 1: rainbow hue scale 0.8/ln(1+v_max/v_ref);
-                         // mode 2: Qi-rainbow ramp scale 0.8/ln(1+q_top/q_ref), q_top = the
-                         // scene's qi_condensation_threshold (host-computed per fill)
+    float v_ref;         // generic rainbow REFERENCE (slots 12/13 shared by modes 1/2):
+                         // mode 1 = v_ref, mean initial |v| (host-computed);
+                         // mode 2 = Q_FLOOR, the Qi-rainbow stage-1 band floor (2e-4)
+    float v_scale;       // generic rainbow SCALE:
+                         // mode 1 = 0.8/ln(1+v_max/v_ref);
+                         // mode 2 = 0.8/ln(Q_1/Q_FLOOR) — stage-1 hue ramp scale
     float extent_x;      // per-axis box half-extents (GRID_LAYOUT.md's φ-aspect
     float extent_y;      // box) — the q-sampler's cell mapping, the same
     float extent_z;      // values nbody reads from bh[2].yzw
+    float q_1;           // NEW float 17 (mode 2 only): stage-1 band top (1e-3) —
+                         // hue ramp ends / white-hot lightness ramp begins
+    float q_top;         // NEW float 18 (mode 2 only): stage-2 white point =
+                         // the scene's qi_condensation_threshold (host reads the
+                         // LIVE export each fill, so the white point tracks config)
 } pc;
 
 // Branchless HSL→RGB (IQ form). hue in [0,1): 0=red, 1/3=green, 2/3=blue,
@@ -44,14 +50,21 @@ vec3 hsl2rgb(vec3 c) {
     return c.z + c.y * (rgb - 0.5) * (1.0 - abs(2.0 * c.z - 1.0));
 }
 
-// Qi-rainbow anchors are PC-fed (slots 12/13: q_ref, q_scale — the host
-// computes q_scale = 0.8/ln(1+q_top/q_ref) per fill from the LIVE
-// qi_condensation_threshold export; see cassi_sim.gd Q_REF). Recalibrated
-// 2026-08-12: the measured q distribution at particle positions (1M-particle
-// diag mirroring main.tscn, 600 steps) sits ~1000× BELOW the old φ⁻² anchor
-// (typical q ∈ [3.4e-4, 5.7e-4] vs φ⁻² = 0.381966), which pinned normal
-// running at h ≈ 0 (pure red). q_ref = 0.00036 now sits inside the measured
-// typical band; q_top = qi_condensation_threshold (the explosion point).
+// Qi-rainbow anchors are PC-fed (slots 12/13 = Q_FLOOR/Q_SCALE, 17/18 =
+// Q_1/Q_TOP). TWO-STAGE mapping (recalibrated 2026-08-12 from the measured
+// q = EY²+EI² distribution at particle positions — a 1M-particle diag
+// mirroring main.tscn, 600 steps — typical q ∈ [3.4e-4, 5.7e-4], ~1000×
+// BELOW the old φ⁻² anchor 0.381966, which pinned normal running at h ≈ 0):
+//   STAGE 1 (q ∈ [Q_FLOOR, Q_1], the normal operating band): full rainbow
+//     hue ramp h = Q_SCALE·ln(q/Q_FLOOR) — the ENTIRE measured band spans
+//     h ≈ 0.26-0.52 (yellow-green → cyan-green; median 3.8e-4 ≈ green),
+//     so normal running shows a vivid spectrum instead of a hue sliver.
+//   STAGE 2 (q ∈ [Q_1, Q_TOP], elevated coherence approaching condensation):
+//     hue pinned at 0.8 (violet), lightness ramps 0.5 → 1.0 — pure white
+//     at q_top = the scene's qi_condensation_threshold (0.85, the physical
+//     explosion point; host reads the LIVE export each fill).
+// q < Q_FLOOR clamps to h = 0 (red). The q ≥ 0 clamp is a guard
+// (EY²+EI² cannot go negative).
 
 // ── Index helper + trilinear sample (periodic wrap) of the q field ─────
 // EXACT convention of cassi_nbody_gravity.glsl's scalar samplers: the
@@ -115,25 +128,29 @@ void main() {
     float cb = mix(1.0,  0.15, log_m);
     vec4 color = vec4(cr, cg, cb, 1.0);
     if (pc.color_mode >= 1.5) {
-        // Qi rainbow (color_mode 2): hue from the two-fluid coherence
-        // q = EY²+EI² trilinearly sampled at the particle —
-        //   h = clamp(Q_SCALE·ln(1 + q/q_ref), 0.0, 0.8)
-        // q_ref/q_scale arrive in the v_ref/v_scale PC slots (12/13): the
-        // log ramp is anchored at the MEASURED typical-running q band
-        // (q_ref = 0.00036) and topped at the scene's condensation
-        // threshold q_top (q_scale = 0.8/ln(1+q_top/q_ref)) — so typical
-        // running q (≈3.5-5.7e-4) gets a live hue response (h ≈ 0.07-0.10,
-        // red-orange) instead of being pinned at h ≈ 0 (the old φ⁻² anchor
-        // sat ~1000× above it). q→0 = red,
-        // q = q_ref ≈ red-orange (h≈0.07), and the approach to the
-        // threshold sweeps the full rainbow. WHITE-HOT TOP: lightness
-        // ramps from 0.5 (vivid) below h = 0.6 to 1.0 (pure white) at
-        // h = 0.8 = q_top — the top quarter washes to white, not violet.
-        // The q ≥ 0 clamp is a guard (EY²+EI² cannot go negative).
+        // Qi rainbow (color_mode 2) — TWO-STAGE mapping of the two-fluid
+        // coherence q = EY²+EI² trilinearly sampled at the particle:
+        //   STAGE 1 (q ∈ [Q_FLOOR, Q_1] — the normal operating band):
+        //     h = clamp(Q_SCALE·ln(q/Q_FLOOR), 0.0, 0.8), s = 1, l = 0.5 —
+        //     the full measured band (3.4e-4…5.7e-4) spans h ≈ 0.26-0.52
+        //     (yellow-green → cyan-green; median ≈ green), so normal
+        //     running shows a vivid rainbow instead of the old mapping's
+        //     h ≈ 0.07-0.10 red-orange sliver. q < Q_FLOOR clamps to red.
+        //   STAGE 2 (q ∈ [Q_1, Q_TOP] — elevated coherence approaching
+        //     condensation): hue pinned at 0.8 (violet) and lightness
+        //     ramps l = 0.5 + 0.5·(q − Q_1)/(Q_TOP − Q_1) — pure white
+        //     (l = 1) at q_top = the scene's qi_condensation_threshold.
+        //     White-hot approach, not violet saturation.
+        // Q_FLOOR/Q_SCALE arrive in the generic v_ref/v_scale PC slots
+        // (12/13, shared with mode 1); Q_1/Q_TOP in the new slots 17/18.
         float qq = max(tri_q(pos[i].xyz), 0.0);
-        float q_ref = max(pc.v_ref, 1e-9);  // slot 12 (mode 2: q_ref; guarded vs 0)
-        float h = clamp(pc.v_scale * log(1.0 + qq / q_ref), 0.0, 0.8);
-        float l = 0.5 + 0.5 * clamp((h - 0.6) / 0.2, 0.0, 1.0);  // 0.75·H_TOP=0.6, 0.25·H_TOP=0.2
+        float q_floor = max(pc.v_ref, 1e-9);          // slot 12 (mode 2: Q_FLOOR)
+        float h = clamp(pc.v_scale * log(qq / q_floor), 0.0, 0.8);  // stage 1 ramp
+        float l = 0.5;
+        if (qq >= pc.q_1) {                           // stage 2: white-hot approach
+            h = 0.8;
+            l = 0.5 + 0.5 * clamp((qq - pc.q_1) / max(pc.q_top - pc.q_1, 1e-9), 0.0, 1.0);
+        }
         color = vec4(hsl2rgb(vec3(h, 1.0, l)), 1.0);
     } else if (pc.color_mode >= 0.5) {
         // Velocity rainbow (log-compressed, distribution-anchored):

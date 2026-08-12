@@ -120,14 +120,15 @@ the BH toggle live (no reinit);
 v_ref = mean initial |v|, v_scale = 0.8/ln(1+v_max/v_ref) — slow red,
 v=v_ref green-blue, v=v_max violet, growth beyond v_max saturates;
 2 = Qi rainbow: hue from the two-fluid coherence q = EY²+EI² sampled at the
-particle, h = clamp(Q_SCALE·ln(1+q/q_ref), 0, 0.8) with q_ref = 0.00036 (the
-measured typical-running band anchor; the old φ⁻² anchor sat ~1000× above
-measured q and pinned normal running at pure red) and Q_SCALE =
-0.8/ln(1+q_top/q_ref), q_top = the scene's qi_condensation_threshold (the
-explosion point) — low q = red, typical q = red-orange, and the approach to
-the condensation threshold sweeps the full rainbow to pure WHITE at q_top
-(lightness ramps up over the top quarter of the scale — white-hot, not
-violet); all live, no reinit);
+particle, a two-stage mapping: stage 1 (the normal operating band q ∈
+[Q_FLOOR = 2e-4, Q_1 = 1e-3]) is a full rainbow hue ramp
+h = Q_SCALE·ln(q/Q_FLOOR), Q_SCALE = 0.8/ln(Q_1/Q_FLOOR) — the measured
+typical band (3.4e-4…5.7e-4; the old φ⁻² anchor sat ~1000× above it and
+pinned normal running to a hue sliver) spans yellow-green → cyan-green with
+the median ≈ green; stage 2 (q ∈ [Q_1, qi_condensation_threshold]) pins
+violet and ramps lightness 0.5 → 1.0, so elevated coherence approaching
+condensation washes to pure WHITE at the threshold (white-hot, not violet);
+all live, no reinit);
 `--freeze-field=0/1` freezes the two-fluid field after init (skips the
 PDE passes; gravity/particle path unchanged; no reinit — read per step);
 `--steps=…` changes the per-frame catch-up cap;
