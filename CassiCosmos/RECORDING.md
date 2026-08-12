@@ -89,11 +89,13 @@ the scene without adding it to the tree, then copying the settings and
 reinitializing). If `main.tscn` is unreadable it falls back to the
 script's export defaults. The only recorder-specific flags are
 `suppress_readbacks = true` (suppresses the CPU readbacks that stall the
-GPU) and `max_steps_per_frame = 60`.
+GPU) and `max_steps_per_frame = 60`. The recorder inherits the BH toggle
+(`black_holes_enabled`) from main.tscn like every other sim setting.
 
 Command line overrides (`--grid=… --particles=… --gravity=… --init=…`)
 are applied on top of the inherited settings and reinitialized before
-recording; `--steps=…` changes the per-frame catch-up cap;
+recording; `--bhs=0/1` sets the BH toggle live (no reinit);
+`--steps=…` changes the per-frame catch-up cap;
 `--orbit-speed/--orbit-radius` tune the camera; `-Resolution` on the
 launcher sets the AVI size (default 1920x1080). `--record-frames` /
 `--record-fps` come from the launcher (`-Duration` × `-Fps`); bare runs

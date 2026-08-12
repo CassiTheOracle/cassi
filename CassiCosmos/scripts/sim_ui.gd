@@ -25,6 +25,7 @@ var _particle_spin: SpinBox
 var _nclusters_spin: SpinBox; var _sep_spin: SpinBox
 var _init_opt: OptionButton
 var _no_rb_btn: CheckButton
+var _bh_toggle_btn: CheckButton
 
 var _server_ip_edit: LineEdit
 var _server_port_edit: LineEdit
@@ -256,6 +257,17 @@ func _ready() -> void:
 	_no_rb_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	row3.add_child(_no_rb_btn)
 
+	# Global BH point-source toggle: works in ANY gravity mode (the shader
+	# reads the live toggle from bh[3].x; the host gates the condensation
+	# + BH-integrate passes on the same value — no reinit needed).
+	_bh_toggle_btn = CheckButton.new()
+	_bh_toggle_btn.text = "Black holes"
+	_bh_toggle_btn.tooltip_text = "Enable the BH point-source sector (condensation + softened Newtonian pull) in any gravity mode"
+	_bh_toggle_btn.custom_minimum_size = Vector2(100, 22)
+	_bh_toggle_btn.focus_mode = Control.FOCUS_NONE
+	_bh_toggle_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	row3.add_child(_bh_toggle_btn)
+
 	# Server (future) fields
 	var srv_box = VBoxContainer.new()
 	srv_box.custom_minimum_size = Vector2(160, 40)
@@ -295,6 +307,7 @@ func _ready() -> void:
 		_set_grav_highlight(sim.gravity_mode)
 		_init_opt.selected = sim.initial_condition
 		_no_rb_btn.button_pressed = sim.suppress_readbacks
+		_bh_toggle_btn.button_pressed = sim.black_holes_enabled
 
 	# Connect value_changed AFTER init to avoid spurious reinit() on startup
 	_grid_spin.value_changed.connect(_on_grid_changed)
@@ -303,6 +316,7 @@ func _ready() -> void:
 	_sep_spin.value_changed.connect(_on_separation_changed)
 	_init_opt.item_selected.connect(_on_init_selected)
 	_no_rb_btn.toggled.connect(_on_suppress_readbacks_toggled)
+	_bh_toggle_btn.toggled.connect(_on_black_holes_toggled)
 
 	# Prevent controls from stealing WASD camera input
 	_grid_spin.focus_mode = Control.FOCUS_NONE
@@ -434,6 +448,12 @@ func _on_suppress_readbacks_toggled(on: bool) -> void:
 	var sim = _get_sim()
 	if sim == null: return
 	sim.suppress_readbacks = on
+
+
+func _on_black_holes_toggled(on: bool) -> void:
+	var sim = _get_sim()
+	if sim == null: return
+	sim.black_holes_enabled = on  # live — the host re-encodes bh[3].x next frame (no reinit)
 
 
 func _on_xi_changed(value: float) -> void:

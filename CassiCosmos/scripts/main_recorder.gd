@@ -62,7 +62,7 @@ func _ready() -> void:
 		"grid_N", "N_particles", "dt", "xi", "softening", "particle_size",
 		"cluster_radius", "num_clusters", "cluster_separation", "merger_speed",
 		"source_strength", "qi_condensation_threshold", "bh_acc_rate",
-		"bh_max_age", "gravity_mode", "realsim_drag", "realsim_viscosity",
+		"bh_max_age", "black_holes_enabled", "gravity_mode", "realsim_drag", "realsim_viscosity",
 		"realsim_friction", "river_calibrate_gn", "river_pi_ref",
 		"river_q_ref", "field_attractor_init", "initial_radius_fraction",
 		"initial_condition", "mode",
@@ -109,6 +109,10 @@ func _ready() -> void:
 			"--init":
 				_sim.set("initial_condition", int(kv[1]))
 				reinit_needed = true
+			"--bhs":
+				# BH toggle: live export set, no reinit needed (the host
+				# re-encodes bh[3].x next frame).
+				_sim.set("black_holes_enabled", int(kv[1]) != 0)
 			"--steps":
 				_sim.set("max_steps_per_frame", int(kv[1]))
 			"--orbit-speed":

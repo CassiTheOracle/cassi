@@ -33,6 +33,12 @@ const PI_CLAMP_MAX: float = 0.72  # (π/ρ) upper clamp (stability; telemetry co
 # that stall the global RD every ~0.5 s — the stutter source; useful
 # interactively AND for recording. Physics and rendering are untouched.
 @export var suppress_readbacks: bool = false
+# Enables the σ-regularized BH point-source sector in EVERY gravity mode:
+# the softened Newtonian point-source force (gravity_at), the condensation
+# scan (every 100 steps), and the BH-integrate pass (every step). Default
+# off — particles-only; flip on for point sources. The shader reads the
+# live toggle from bh[3].x (float 48 of the per-frame header upload).
+@export var black_holes_enabled: bool = false
 
 # Gravity law selector (river law = the derived formula, default):
 #   0 = RIVER — a = −G_N·(π/ρ)·∇(g·Φ),  g = 1+(φ⁶−1)q,  ∇²Φ = ρ_mass (spectral)
@@ -40,15 +46,14 @@ const PI_CLAMP_MAX: float = 0.72  # (π/ρ) upper clamp (stability; telemetry co
 #   2 = PLUMMER — grid-free softened analytic enclosed-mass force (cluster
 #       buffer centers/masses); a visual/reference arm, NOT the law.
 #   3 = RIVER-SELF — the river law ONLY (particle interactions only):
-#       the BH point-source term is disabled and the BH condensation +
-#       BH-integrate passes are skipped entirely (the BH buffer stays
-#       inert/zeroed). Everything else about mode 0 is preserved
-#       bit-for-bit — mass deposit, Poisson FFT chain, PDE, ∇(g·Φ)
-#       gradient pass, cached-acc KDK, telemetry.
-#   4 = REALSIM — the river law EXACTLY as mode 0 (bit-for-bit) WITH the
-#       BH point-source sector (full realism, unlike mode 3), PLUS three
-#       per-particle dissipative terms representing motion through the
-#       two-fluid (EY/EI) medium:
+#       the BH sector follows the global black_holes_enabled toggle
+#       (default off — particles only). Everything else about mode 0 is
+#       preserved bit-for-bit — mass deposit, Poisson FFT chain, PDE,
+#       ∇(g·Φ) gradient pass, cached-acc KDK, telemetry.
+#   4 = REALSIM — the river law EXACTLY as mode 0 (bit-for-bit); the BH
+#       sector follows the global toggle (black_holes_enabled, default
+#       off), PLUS three per-particle dissipative terms representing
+#       motion through the two-fluid (EY/EI) medium:
 #         drag      a = −γ·(ρ_local/ρ_ref)·v        γ = realsim_drag
 #         viscosity a = −ν·(v − v_field(p))         ν = realsim_viscosity
 #         friction  a = −min(μ·|a_g|, |v|/dt)·v̂     μ = realsim_friction
@@ -300,8 +305,12 @@ func _process(delta: float) -> void:
 # buffer_get_data readback internally flushes and stalls all frames, which
 # is the only sync we need.)
 func _run_physics_steps(n_steps: int) -> void:
-	# BH header (count/G_N/extent) — constant across the frame's steps;
-	# buffer_update must run BEFORE compute_list_begin.
+	# BH header (count/G_N/extent/toggle) — constant across the frame's
+	# steps; buffer_update must run BEFORE compute_list_begin.
+	# Re-encode the live BH toggle (bh[3].x, float 48) every frame so a UI
+	# flip takes effect next frame with NO reinit — the shader gates the
+	# BH force term and the host gates the BH passes on the same value.
+	_bh_init_bytes.encode_float(48, 1.0 if black_holes_enabled else 0.0)
 	_rd.buffer_update(_bh_buf, 0, _bh_init_bytes.size(), _bh_init_bytes)
 	var cl = _rd.compute_list_begin()
 	for _s in range(n_steps):
@@ -1017,6 +1026,11 @@ func _init_particles() -> void:
 func _apply_gravity_calibration() -> void:
 	if _bh_init_bytes.size() < 32:
 		return
+	# Global BH toggle → bh[3].x (float 48 of the 576-B header): the shader
+	# gates bh_point_gravity on it in ANY gravity mode. Encoded here so
+	# _ready/reinit (and verify's _upload_bh, which uploads _bh_init_bytes
+	# verbatim) always carry it.
+	_bh_init_bytes.encode_float(48, 1.0 if black_holes_enabled else 0.0)
 	if not river_calibrate_gn:
 		_bh_init_bytes.encode_float(28, 1.0)
 		_gn_eff = 1.0
@@ -1220,9 +1234,10 @@ func _step_dispatches(cl: int) -> void:
 	_barrier(cl)  # PDE → condensation
 
 	# ── 2.5. Condensation scan (every 100 steps) ───────────────────
-	# Mode 3 disables the BH sector entirely (no force term, no nucleation,
-	# no integration — the records stay inert/zeroed).
-	if _cond_step_counter == 0 and _cond_shader.is_valid() and gravity_mode != 3:
+	# The BH sector follows the global black_holes_enabled toggle (not the
+	# gravity mode): with the toggle off, no BH records are nucleated or
+	# advanced in ANY mode (the buffer stays inert/zeroed).
+	if _cond_step_counter == 0 and _cond_shader.is_valid() and black_holes_enabled:
 		_rd.compute_list_bind_compute_pipeline(cl, _cond_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_cond_0, 0)
 		_rd.compute_list_bind_uniform_set(cl, _us_cond_1, 1)
@@ -1231,7 +1246,7 @@ func _step_dispatches(cl: int) -> void:
 	_barrier(cl)  # condensation → BH integrate
 
 	# ── 2.6. BH integration (every step) ──────────────────────────
-	if _bh_int_shader.is_valid() and gravity_mode != 3:
+	if _bh_int_shader.is_valid() and black_holes_enabled:
 		_rd.compute_list_bind_compute_pipeline(cl, _bh_int_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_bh_int_0, 0)
 		_rd.compute_list_bind_uniform_set(cl, _us_bh_int_1, 1)

@@ -1,8 +1,9 @@
 extends Node
 ## Focused verification of the 5-mode gravity selector, the bounded
 ## (truncated-Plummer) ICs, the opt-in river calibration / attractor
-## field init, the cached-acc KDK, the river self-gravity mode, and the
-## RealSim dissipation mode (cassi_sim.gd + cassi_nbody_gravity.glsl).
+## field init, the cached-acc KDK, the river self-gravity mode, the
+## global black_holes_enabled BH toggle, and the RealSim dissipation
+## mode (cassi_sim.gd + cassi_nbody_gravity.glsl).
 ##
 ## Scene: N=64, N_particles=16384, cluster_radius=50 (extent=75, h=2.34375).
 ##
@@ -33,24 +34,29 @@ extends Node
 ##         convention). Plummer and calibrated-river must hold the cluster
 ##         (zero out-of-box); heuristic is reported as weak-force. The
 ##         skip-pass (heuristic/Plummer drop the 7-pass FFT + gradient)
-##         must reduce ms/step vs river. Mode 3 (RIVER-SELF) calibrates
-##         like river, must hold the cluster, and skips the condensation +
-##         BH-integrate passes → must not be SLOWER than river (lenient
-##         1.02×; global-RD timing is noisy — reported, not tightened).
-##         Mode 4 (REALSIM, defaults on) keeps the full river chain + BH
-##         passes + per-particle dissipation → no NaN, zero out-of-box like
-##         river, and ≤ 1.05× river ms/step (the terms are cheap).
-##   (vi)  river self-gravity (mode 3) = river law ONLY, decisive proof:
-##         from an 8-mass Gaussian blob with 64 ring probes at 8h, the
-##         mode-3 acceleration must equal the mode-0 river acceleration
-##         bit-for-bit (< 1e-9) with no BH records; with a seeded phantom
-##         BH record (8 mass at 4h) the mode-0 force must change MATERIALLY
-##         (> 5% of max|A0|) while the mode-3 force must stay EXACTLY the
-##         no-BH river force (< 1e-9) — the BH point-source term is truly
-##         off. Host-side: with the phantom in _bh_init_bytes, 5
-##         _physics_step() calls in mode 3 leave the record UNCHANGED
-##         (passes skipped) and 5 calls in mode 0 advance it (BH-integrate
-##         runs — age/mass change).
+##         must reduce ms/step vs river. Modes 0/3/4 (RIVER family)
+##         calibrate like river and must hold the cluster; with the
+##         black_holes_enabled toggle OFF (the default) the BH condensation
+##         + BH-integrate passes are skipped in EVERY mode, and mode 3
+##         must not be SLOWER than river (lenient 1.02×; global-RD timing
+##         is noisy — reported, not tightened). Mode 4 (REALSIM) keeps the
+##         full river chain + per-particle dissipation → no NaN, zero
+##         out-of-box like river, and ≤ 1.05× river ms/step (the terms
+##         are cheap).
+##   (vi)  black_holes_enabled toggle gates the BH sector in ANY mode:
+##         from an 8-mass Gaussian blob with 64 ring probes at 8h, mode 0
+##         with the toggle OFF equals A0 bit-for-bit (< 1e-9) even with a
+##         seeded phantom BH record (8 mass at 4h) — the BH force is
+##         gated; toggle ON the phantom perturbs mode 0 MATERIALLY (> 5%
+##         of max|A0|). The toggle works in ANY mode: mode 3 with the
+##         toggle ON equals the mode-0 toggle-ON result (< 1e-9 — same
+##         river arm + same BH term, no mode special case) and mode 3 with
+##         the toggle OFF equals A0 (< 1e-9). The A3 == A0 river-arm
+##         identity (no records) is kept. Host-side: with the phantom in
+##         _bh_init_bytes, 5 _physics_step() calls in mode 0 with the
+##         toggle OFF leave the record UNCHANGED (passes gated) and 5
+##         calls with the toggle ON advance it (BH-integrate runs — age/
+##         mass change).
 ##   (vii) initial-condition profiles (0 = bounded Plummer / 1 = Gaussian
 ##         ball / 2 = uniform sphere): per profile, zero out-of-box,
 ##         max |component| and max radius ≤ fr·extent, retained fraction
@@ -409,7 +415,7 @@ func _run_all() -> void:
 	_test_plummer_multi_cluster()
 	_test_blob_ratio()
 	_test_occupancy_modes()
-	_test_river_self_mode()
+	_test_bh_toggle()
 	_test_initial_conditions()
 	_test_gaussian_degenerate()
 	_test_realsim_mode()
@@ -645,15 +651,17 @@ func _test_occupancy_modes() -> void:
 		"%.3f vs %.3f" % [timings[1], timings[0]])
 	_check("cost: plummer ms/step < river ms/step (skip-pass)", timings[2] < timings[0] * 0.98,
 		"%.3f vs %.3f" % [timings[2], timings[0]])
-	# Mode 3 skips the condensation + BH-integrate passes → must not be
-	# SLOWER than river. Lenient 1.02×: global-RD timing is noisy; report
-	# the actual ms/step rather than tightening.
+	# Mode 3 skips the condensation + BH-integrate passes (the BH toggle is
+	# OFF — the default, so mode 0 skips them too) → must not be SLOWER
+	# than river. Lenient 1.02×: global-RD timing is noisy; report the
+	# actual ms/step rather than tightening.
 	_check("cost: river-self ms/step ≤ river ms/step (skips BH passes, lenient)", timings[3] < timings[0] * 1.02,
 		"%.3f vs %.3f" % [timings[3], timings[0]])
-	# Mode 4 (RealSim) keeps the FULL river chain (poisson + gradient +
-	# BH passes) plus the per-particle dissipation — the three terms are
-	# cheap (one extra ρ trilinear + one fvel trilinear + a few flops per
-	# particle), so mode 4 must stay within 5% of river's ms/step.
+	# Mode 4 (RealSim) keeps the FULL river chain (poisson + gradient)
+	# plus the per-particle dissipation — the three terms are cheap (one
+	# extra ρ trilinear + one fvel trilinear + a few flops per particle),
+	# so mode 4 must stay within 5% of river's ms/step. The BH passes are
+	# skipped here too (toggle off by default).
 	_check("cost: realsim ms/step ≤ river ms/step × 1.05 (cheap dissipation)", timings[4] < timings[0] * 1.05,
 		"%.3f vs %.3f" % [timings[4], timings[0]])
 	print("  CLASSIFICATION: heuristic |a| = |G_N·π/ρ·∇q_s| with q_s ≈ EY²+EI²+0.01ρ —")
@@ -663,13 +671,14 @@ func _test_occupancy_modes() -> void:
 	print("  the expected consequence, not a physics success.")
 
 
-func _test_river_self_mode() -> void:
-	print("── (vi) mode 3 = river self: BH term OFF, river arm bit-identical ──")
+func _test_bh_toggle() -> void:
+	print("── (vi) black_holes_enabled toggle: gates the BH sector in ANY mode ──")
 	sim.gravity_mode = 0
 	sim.river_calibrate_gn = false  # G_N = 1, same convention as _test_blob_ratio
 	sim.field_attractor_init = true
 	sim.num_clusters = 1
 	sim.cluster_separation = 0.0
+	sim.black_holes_enabled = false  # default — particles only; encoded by reinit
 	sim.reinit()
 	sim.playing = false
 	_upload_bh()
@@ -679,67 +688,115 @@ func _test_river_self_mode() -> void:
 	# _set_ring_probes resets pos/vel/acc to the pristine ring BEFORE every
 	# chain — the KDK leaves the cached acc non-zero between runs, which
 	# would drift the probes and break the exact-equality checks.
-	# 1. Baseline: mode 0 with no BH records → A0.
+	# 1. Baseline A0: mode 0, toggle OFF, no BH records → A0.
 	_set_ring_probes(NPROBE, r, Vector3.ZERO)
 	sim.gravity_mode = 0
 	_run_river_chain()
 	var A0 := _read_accs(NPROBE)
-	# 2. Mode 3 with no BH records → A3 must equal A0 (identical operations;
-	#    the BH term contributes exactly 0 when no records exist).
+	# 2. River-arm identity (kept from the river-self battery): mode 3 with
+	#    no BH records == A0 (<1e-9) — with the toggle off both modes are
+	#    river-only; the toggle defaults off, so this holds at the scene
+	#    default too.
 	_set_ring_probes(NPROBE, r, Vector3.ZERO)
 	sim.gravity_mode = 3
 	_run_river_chain()
 	var A3 := _read_accs(NPROBE)
-	var dev_a := _max_rel_dev(A0, A3)
-	_check("river-self: A3 == A0 without BH records (<1e-9)", dev_a < 1e-9,
-		"max rel |Δ|/|A0| = %s" % str(dev_a))
-	# 3. Seed a phantom BH record: bh[4] = (4h, 0, 0, mass 8.0) at byte
-	#    offset 64 (base = 4 + 0*2 = 4, 16 bytes/vec4). _run_river_chain
-	#    does not re-upload _bh_init_bytes, so the record survives.
+	var dev_a3 := _max_rel_dev(A0, A3)
+	_check("bh-toggle: A3 == A0 without BH records (<1e-9)", dev_a3 < 1e-9,
+		"max rel |Δ|/|A0| = %s" % str(dev_a3))
+	# 3. Toggle-off ignores a phantom: seed the phantom BH record (8 mass
+	#    at (4h,0,0), slot 0 = bytes 64..79), mode 0, toggle still off.
+	#    _run_river_chain does not re-upload _bh_init_bytes, so the record
+	#    survives; the uploaded header's bh[3].x toggle bit is 0.
 	var phantom := PackedFloat32Array([4.0 * h, 0.0, 0.0, 8.0])
 	sim._rd.buffer_update(sim._bh_buf, 64, 16, phantom.to_byte_array())
-	# 4. Mode 0 with the phantom → B0: the BH pull must be MATERIAL (the
+	_set_ring_probes(NPROBE, r, Vector3.ZERO)
+	sim.gravity_mode = 0
+	_run_river_chain()
+	var A0p := _read_accs(NPROBE)
+	var dev_a0p := _max_rel_dev(A0, A0p)
+	_check("bh-toggle: A0 == A0+phantom with toggle OFF (<1e-9) — BH force gated", dev_a0p < 1e-9,
+		"max rel |Δ|/|A0| = %s" % str(dev_a0p))
+	# 4. Toggle-on feels the phantom: re-encode bh[3].x = 1.0 into
+	#    _bh_init_bytes the SAME way _apply_gravity_calibration does (NO
+	#    reinit — reinit regenerates the attractor field noise and clears
+	#    the density blob, which would break the <1e-9 equalities below;
+	#    the reinit/calibration encode path is exercised by step 1 and the
+	#    runtime per-frame encode), then the BH pull must be MATERIAL (the
 	#    8-mass point source at 4h clearly perturbs the 8h ring).
+	sim.black_holes_enabled = true
+	sim._bh_init_bytes.encode_float(48, 1.0)
+	_upload_bh()
+	sim._rd.buffer_update(sim._bh_buf, 64, 16, phantom.to_byte_array())
 	_set_ring_probes(NPROBE, r, Vector3.ZERO)
 	sim.gravity_mode = 0
 	_run_river_chain()
 	var B0 := _read_accs(NPROBE)
 	var dev_b0 := _max_dev_over_max(A0, B0)
-	_check("river-self: BH pull material in mode 0 (>5% of max|A0|)", dev_b0 > 0.05,
+	_check("bh-toggle: BH pull material in mode 0 with toggle ON (>5% of max|A0|)", dev_b0 > 0.05,
 		"max |B0−A0|/max|A0| = %s" % str(dev_b0))
-	# 5. Mode 3 with the phantom → B3 must equal A0: the BH term is truly OFF.
+	# 5. The toggle works in ANY mode: with the phantom + toggle ON, mode 3
+	#    must equal the mode-0 toggle-ON result (<1e-9 — identical river
+	#    arm + identical BH term; mode 3 is no longer special-cased).
 	_set_ring_probes(NPROBE, r, Vector3.ZERO)
 	sim.gravity_mode = 3
 	_run_river_chain()
 	var B3 := _read_accs(NPROBE)
-	var dev_b3 := _max_rel_dev(A0, B3)
-	_check("river-self: B3 == A0 with phantom BH present (<1e-9)", dev_b3 < 1e-9,
-		"max rel |Δ|/|A0| = %s" % str(dev_b3))
-	# 6. Host-side proof that the BH passes are skipped: _physics_step
-	#    re-uploads _bh_init_bytes every step, so seed the phantom into it
-	#    as well. In mode 3 neither pass touches the record (unchanged);
-	#    in mode 0 the BH-integrate pass advances it (age += 1 per step,
-	#    mass += acc_rate·qi·cell_vol) → changed.
+	var dev_b3 := _max_rel_dev(B0, B3)
+	_check("bh-toggle: mode-3 toggle-ON == mode-0 toggle-ON (<1e-9) — no mode special case", dev_b3 < 1e-9,
+		"max rel |Δ|/|B0| = %s" % str(dev_b3))
+	# 6. Toggle OFF (re-encode bh[3].x = 0.0, no reinit — same field state
+	#    as A0/B0/B3, so the only changed input is the toggle), mode 3 with
+	#    the phantom → must equal A0: the BH term is gated by the TOGGLE,
+	#    off in mode 3 too.
+	sim.black_holes_enabled = false
+	sim._bh_init_bytes.encode_float(48, 0.0)
+	_upload_bh()
+	sim._rd.buffer_update(sim._bh_buf, 64, 16, phantom.to_byte_array())
+	_set_ring_probes(NPROBE, r, Vector3.ZERO)
+	sim.gravity_mode = 3
+	_run_river_chain()
+	var A3p := _read_accs(NPROBE)
+	var dev_a3p := _max_rel_dev(A0, A3p)
+	_check("bh-toggle: mode-3 toggle-OFF == A0 with phantom present (<1e-9)", dev_a3p < 1e-9,
+		"max rel |Δ|/|A0| = %s" % str(dev_a3p))
+	# 7. Host-skip proof (the TOGGLE gates the passes, not the mode):
+	#    _physics_step re-uploads _bh_init_bytes every step, so seed the
+	#    phantom into it (floats 16/19 = bh[4].x/.w). Toggle OFF in mode 0
+	#    → neither pass touches the record (unchanged); toggle ON (reinit
+	#    to re-encode) + re-seed → the BH-integrate pass advances it
+	#    (age += 1 per step, mass += acc_rate·qi·cell_vol).
 	var phantom_full: PackedFloat32Array = sim._bh_init_bytes.to_float32_array()
 	phantom_full[16] = 4.0 * h  # bh[4].x — pos.x
 	phantom_full[19] = 8.0      # bh[4].w — mass
 	sim._bh_init_bytes = phantom_full.to_byte_array()
-	sim.gravity_mode = 3
-	for s in range(5):
-		sim._physics_step()
-	var rec3 := _read_bh_record(0)
-	var unchanged: bool = rec3[3] == 8.0 and rec3[7] == 0.0
-	_check("river-self: host skips BH passes — record unchanged after 5 steps in mode 3", unchanged,
-		"mass=%s age=%s" % [str(rec3[3]), str(rec3[7])])
 	sim.gravity_mode = 0
 	for s in range(5):
 		sim._physics_step()
-	var rec0 := _read_bh_record(0)
-	var changed: bool = rec0[7] > 0.0 or rec0[3] != 8.0
-	_check("river-self: BH-integrate runs in mode 0 — record changed after 5 steps", changed,
-		"mass=%s age=%s" % [str(rec0[3]), str(rec0[7])])
-	_report.append("river-self: A3/A0 dev=%s  B0-material=%s  B3/A0 dev=%s | mode0 5-step rec: mass=%s age=%s" % [
-		str(dev_a), str(dev_b0), str(dev_b3), str(rec0[3]), str(rec0[7])])
+	var rec_off := _read_bh_record(0)
+	var off_unchanged: bool = rec_off[3] == 8.0 and rec_off[7] == 0.0
+	_check("bh-toggle: host skips BH passes — record unchanged after 5 steps, mode 0, toggle OFF", off_unchanged,
+		"mass=%s age=%s" % [str(rec_off[3]), str(rec_off[7])])
+	sim.black_holes_enabled = true
+	sim.reinit()  # re-encodes bh[3].x = 1.0 (and resets _bh_init_bytes)
+	sim.playing = false
+	var phantom_full2: PackedFloat32Array = sim._bh_init_bytes.to_float32_array()
+	phantom_full2[16] = 4.0 * h
+	phantom_full2[19] = 8.0
+	sim._bh_init_bytes = phantom_full2.to_byte_array()
+	sim.gravity_mode = 0
+	for s in range(5):
+		sim._physics_step()
+	var rec_on := _read_bh_record(0)
+	var on_changed: bool = rec_on[7] > 0.0 or rec_on[3] != 8.0
+	_check("bh-toggle: BH-integrate runs with toggle ON — record changed after 5 steps", on_changed,
+		"mass=%s age=%s" % [str(rec_on[3]), str(rec_on[7])])
+	# Restore the default (off) for the rest of the battery — the following
+	# tests reinit, and _apply_gravity_calibration encodes this value.
+	sim.black_holes_enabled = false
+	_report.append("bh-toggle: A3/A0 dev=%s  phantom/OFF dev=%s  B0-material=%s  B3/B0 dev=%s  mode3-OFF dev=%s | 5-step rec OFF: mass=%s age=%s  ON: mass=%s age=%s" % [
+		str(dev_a3), str(dev_a0p), str(dev_b0), str(dev_b3), str(dev_a3p),
+		str(rec_off[3]), str(rec_off[7]), str(rec_on[3]), str(rec_on[7])])
 
 
 func _test_initial_conditions() -> void:

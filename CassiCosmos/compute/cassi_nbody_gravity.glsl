@@ -73,20 +73,21 @@
 // a visual/reference mode for the corner-pooling comparison, NOT the law.
 //
 // RIVER-SELF mode (gravity_mode == 3 — 2026-08-11): the river law ONLY.
-// The BH point-source term is disabled (gravity_at skips bh_point_gravity
-// for mode 3) and the host skips the BH condensation + BH-integrate
-// passes entirely (the BH buffer stays inert/zeroed). The only force on
-// particles is their mutual river self-gravity — the same arm, Poisson
-// chain, gradient pass and cached-acc KDK as mode 0, bit-for-bit. This
-// is the "particle interactions only" answer: no other force machinery
-// exists in the sim (no drag/viscosity/friction).
+// The BH sector follows the global black_holes_enabled toggle (default
+// off — particles only): with the toggle off, the BH point-source term
+// is gated out and the host skips the BH condensation + BH-integrate
+// passes (the BH buffer stays inert/zeroed). The only force on particles
+// is their mutual river self-gravity — the same arm, Poisson chain,
+// gradient pass and cached-acc KDK as mode 0, bit-for-bit. This is the
+// "particle interactions only" answer: no other force machinery exists
+// in the sim (no drag/viscosity/friction).
 //
 // REALSIM mode (gravity_mode == 4 — 2026-08-11): the river law EXACTLY as
 // mode 0 (same arm, Poisson chain, gradient pass, cached-acc KDK —
-// bit-for-bit; verified <1e-9 in verify_gravity_modes.gd) WITH the BH
-// point-source sector (mode 4 does NOT skip it: RealSim = full realism,
-// unlike mode 3), PLUS three per-particle dissipative terms representing
-// motion through the two-fluid (EY/EI) medium. All three are evaluated at
+// bit-for-bit; verified <1e-9 in verify_gravity_modes.gd); the BH sector
+// follows the global black_holes_enabled toggle (default off — particles
+// only). PLUS three per-particle dissipative terms representing motion
+// through the two-fluid (EY/EI) medium. All three are evaluated at
 // the particle position/velocity in the nbody particle pass and the
 // one-shot warm-up pass (mode 4 only), and ADD to the gravity
 // acceleration — never inside the river arm, never touching the telemetry
@@ -114,8 +115,10 @@
 // (position, velocity) — a one-step approximation (the O(dt) difference
 // affects only step 1's cached acceleration).
 //
-// BH term (modes 0-2 and 4, unchanged physics — the σ-regularized sector,
-// gravity-from-flow.md §4.2): softened Newtonian point sources.
+// BH term (when the global black_holes_enabled toggle is on — the host
+// writes bh[3].x; in ANY mode; the σ-regularized sector,
+// gravity-from-flow.md §4.2, physics unchanged): softened Newtonian
+// point sources.
 //
 // CACHED-ACC KDK (2026-08-10): the previous full-kick acceleration is
 // reused for the next first half-kick — ONE field-force evaluation per
@@ -154,7 +157,9 @@ layout(set = 1, binding = 1, std430) restrict buffer Velocities { vec4 vel[]; };
 layout(set = 1, binding = 2, std430) restrict buffer Accelerations { vec4 acc[]; };
 
 // BHData: bh[0].x = count (unused), bh[1].w = G_N, bh[2].x = cluster radius
-// (the Plummer softening scale), bh[2].y = extent, bh[4..] = BH records
+// (the Plummer softening scale), bh[2].y = extent, bh[3].x = global
+// black_holes_enabled toggle (host writes 1.0/0.0; gates bh_point_gravity
+// in ANY gravity mode), bh[4..] = BH records
 // (vec4[pos.xyz, mass] + vec4[vel.xyz, age]), max 15.
 layout(set = 2, binding = 0, std430) buffer BHData { vec4 bh[36]; };
 // Cluster records (set 2 binding 1, max 20): vec4[center.xyz, per-cluster
@@ -176,11 +181,10 @@ layout(push_constant, std430) uniform PC {
     float num_clusters;
     float gravity_mode;  // 0 = RIVER (default), 1 = HEURISTIC (legacy),
                          // 2 = PLUMMER reference (grid-free analytic arm),
-                         // 3 = RIVER-SELF (river law only — BH point-source
-                         // term off; the host skips the BH condensation and
-                         // integrate passes, so the BH buffer stays inert),
-                         // 4 = REALSIM (river law + BH EXACTLY as mode 0,
-                         // plus the three dissipation terms below)
+                         // 3 = RIVER-SELF (river law only — the BH sector
+                         // follows the global black_holes_enabled toggle),
+                         // 4 = REALSIM (river law + the three dissipation
+                         // terms below; BH sector follows the toggle too)
     float pass_mode;     // 0 = N-body (particles), 1 = gradient-field build,
                          // 2 = acceleration warm-up (first-step acc cache)
     float realsim_drag;      // γ — RealSim drag rate (1/time at ρ_ref)
@@ -574,7 +578,7 @@ vec3 realsim_dissipation(vec3 wp, vec3 v, vec3 a_g, float rho_local) {
 // modes are telemetry-free by design).
 vec3 gravity_at(vec3 wp, inout TeleStats st) {
     vec3 acc = vec3(0.0);
-    if (pc.gravity_mode < 3.0 || pc.gravity_mode > 3.5) acc = bh_point_gravity(wp, pc.eps2); // BH term: modes 0-2 AND 4 (mode 3 skips it; RealSim = full realism)
+    if (bh[3].x > 0.5) acc = bh_point_gravity(wp, pc.eps2);   // BH sector: global black_holes_enabled toggle (bh[3].x), ANY mode
     if (pc.gravity_mode < 0.5 || pc.gravity_mode > 2.5) {
         acc += river_field_acc(wp, st);          // RIVER (modes 0, 3, 4)
     } else if (pc.gravity_mode < 1.5) {
