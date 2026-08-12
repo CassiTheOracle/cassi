@@ -176,6 +176,10 @@ const PI_CLAMP_MAX: float = 0.72  # (π/ρ) upper clamp (stability; telemetry co
 ## Display mode: 0 = Particles, 1 = Field, 2 = Black Hole, 3 = Cosmology.
 @export_enum("Particles", "Field", "Black Hole", "Cosmology") var mode: int = 0
 
+# ── Particle color scheme ──────────────────────────────────────────────
+## 0 = the Cassi mass-temperature gradient (Salpeter blue dwarfs → red giants; default, shader path bit-identical). 1 = velocity rainbow: hue from the scale-free speed fraction |v|/(|v|+v_ref) with v_ref = max initial speed — slow = red → fast = violet. Live: re-encoded into the instancer PC every physics step (no reinit); while paused the visible colors refresh immediately.
+@export_enum("Cassi gradient", "Velocity rainbow") var particle_color_mode: int = 0
+
 # ── Camera startup framing (camera-only; no physics) ──────────────────
 ## On startup, frame a sibling Camera3D on the spawn region: the camera is
 ## moved to an oblique view of the cluster-centroid and aimed at it, so the
@@ -252,6 +256,12 @@ var _cond_pc_bytes: PackedByteArray   # condensation PC (4 floats)
 var _bh_init_bytes: PackedByteArray   # BH header init (16 floats)
 var _tel_reset_bytes: PackedByteArray # gravity telemetry reset (8 floats)
 var _poisson_pc_bytes: PackedByteArray  # poisson PC (7 floats: N, axis, dir, mode, extent_x/y/z)
+# Instancer dedicated PC (13 floats: the shared 11 + color_mode + v_ref) —
+# the dedicated-PC precedent (nbody 15, two-fluid 14, mass-deposit 5):
+# field_render/bh_lensing keep the shared 11-float _pc_bytes, and Godot
+# hard-errors on push-constant size mismatch, so the instancer's two
+# extra fields get their own pre-allocated buffer.
+var _instancer_pc_bytes: PackedByteArray  # instancer PC (13 floats: 11 shared + color_mode@11 + v_ref@12)
 # NOTE: global RD — no manual submit/sync anywhere (illegal on the main
 # instance); readbacks self-stall via buffer_get_data.
 
@@ -275,6 +285,7 @@ var _last_p0_rb_ms: int = 0              # wall-time gate for the p[0] debug pri
 var _inst_debug_done: bool = false       # one-time inst[0..2] print
 var _mmi: MultiMeshInstance3D; var _mm: MultiMesh
 var _mm_particle_size: float = -1.0  # particle_size the multimesh was built with (reinit rebuild check)
+var _rainbow_vref: float = 1.0  # rainbow speed reference: max initial |v| (set in _init_particles; fallback 1.0)
 
 # — timing —
 var _step_count: int = 0
@@ -562,6 +573,7 @@ func _setup_buffers() -> void:
 	# 3 per-axis extents for the anisotropic 19-point stencil (GRID_LAYOUT.md).
 	_two_fluid_pc_bytes = PackedByteArray(); _two_fluid_pc_bytes.resize(14 * 4)
 	_md_pc_bytes = PackedByteArray(); _md_pc_bytes.resize(5 * 4)
+	_instancer_pc_bytes = PackedByteArray(); _instancer_pc_bytes.resize(13 * 4)
 	_bh_int_pc_bytes = PackedByteArray(); _bh_int_pc_bytes.resize(4 * 4)
 	_cond_pc_bytes = PackedByteArray(); _cond_pc_bytes.resize(4 * 4)
 	_poisson_pc_bytes = PackedByteArray(); _poisson_pc_bytes.resize(7 * 4)
@@ -763,6 +775,7 @@ func _cache_uniform_sets() -> void:
 		_us_inst_0 = _rd.uniform_set_create([
 			_uniform_storage(0, _pos_buf),
 			_uniform_storage(1, _mm_rd_rid),
+			_uniform_storage(2, _vel_buf),  # velocity rainbow (color_mode 1)
 		], _instancer_shader, 0)
 		print("[CassiSim] Instancer uniform set cached (GPU-direct multimesh buffer)")
 
@@ -968,6 +981,7 @@ func _init_particles() -> void:
 	var max_comp: float = 0.0
 	var out_box := 0
 	var total_mass: float = 0.0
+	var max_v: float = 0.0  # max initial speed — rainbow v_ref anchor (velocity rainbow mode)
 
 	# ── Hoisted per-particle constants ────────────────────────────────
 	# The GDScript interpreter paid for these inside the N_particles loop
@@ -1117,6 +1131,8 @@ func _init_particles() -> void:
 		vel[i4 + 1] = (ny + rng.randf_range(-pert, pert)) * v_circ + bv.y
 		vel[i4 + 2] = (nz + rng.randf_range(-pert, pert)) * v_circ + bv.z
 		vel[i4 + 3] = 0.0
+		var vs := sqrt(vel[i4]*vel[i4] + vel[i4+1]*vel[i4+1] + vel[i4+2]*vel[i4+2])
+		max_v = maxf(max_v, vs)
 
 
 	# Initialize MultiMesh instance buffer with initial positions
@@ -1131,18 +1147,27 @@ func _init_particles() -> void:
 		var i4 = i * 4
 		var b = i * 16
 		var x = pos[i4]; var y = pos[i4+1]; var z = pos[i4+2]
-		var rt = sqrt(x*x + y*y + z*z + eps2)
-		var t_c = 1.0 / (1.0 + 0.1 * rt)
 		# Transform: 3x4 row-major (each row = [basis, origin_component])
 		# Row 0 = X-axis + origin.x, Row 1 = Y-axis + origin.y, Row 2 = Z-axis + origin.z
 		init_inst[b+0] = 1.0; init_inst[b+1] = 0.0; init_inst[b+2] = 0.0; init_inst[b+3] = x
 		init_inst[b+4] = 0.0; init_inst[b+5] = 1.0; init_inst[b+6] = 0.0; init_inst[b+7] = y
 		init_inst[b+8] = 0.0; init_inst[b+9] = 0.0; init_inst[b+10] = 1.0; init_inst[b+11] = z
-		# Color: Cassi gradient
-		var cr = lerp(1.0, 0.15, 1.0-t_c)
-		var cg = lerp(0.8, 0.25, 1.0-t_c)
-		var cb = lerp(0.3, 1.0, 1.0-t_c)
-		init_inst[b+12] = cr; init_inst[b+13] = cg; init_inst[b+14] = cb; init_inst[b+15] = 0.85
+		# Color: replicate the instancer shader for the SELECTED mode so the
+		# paused (playing=false) view equals the first played frame.
+		if particle_color_mode == 0:
+			# Shader-exact Cassi mass gradient: log_m = clamp((log2(m)+2)·0.25)
+			var m: float = pos[i4 + 3]
+			var log_m: float = clampf((log(m) / log(2.0) + 2.0) * 0.25, 0.0, 1.0)
+			var cr: float = lerp(0.15, 1.0,  log_m * log_m)
+			var cg: float = lerp(0.25, 0.6,  log_m)
+			var cb: float = lerp(1.0,  0.15, log_m)
+			init_inst[b+12] = cr; init_inst[b+13] = cg; init_inst[b+14] = cb; init_inst[b+15] = 1.0
+		else:
+			# Velocity rainbow: hue = 0.8·|v|/(|v|+v_ref), slow=red → fast=violet
+			var vx: float = vel[i4]; var vy: float = vel[i4 + 1]; var vz: float = vel[i4 + 2]
+			var vs: float = sqrt(vx*vx + vy*vy + vz*vz)
+			var col: Color = _hsl_to_rgb(0.8 * vs / (vs + _rainbow_vref), 1.0, 0.5)
+			init_inst[b+12] = col.r; init_inst[b+13] = col.g; init_inst[b+14] = col.b; init_inst[b+15] = 1.0
 	# Initial instance data → the renderer's OWN multimesh buffer (one-time
 	# CPU upload at init; every subsequent frame the instancer shader writes
 	# it directly). NOTE: do NOT assign _mm.buffer again later — a CPU
@@ -1155,6 +1180,9 @@ func _init_particles() -> void:
 	_init_max_radius = max_r
 	_init_max_component = max_comp
 	_init_out_of_box = out_box
+	# Velocity-rainbow speed reference: the actual max initial |v| (scale-free
+	# anchor for |v|/(|v|+v_ref); fallback 1.0 for a degenerate zero-speed IC).
+	_rainbow_vref = max_v if max_v > 0.0 else 1.0
 	# Retained fraction = analytic fraction of the UNBOUNDED profile kept
 	# inside the truncation, per profile (min over clusters, like the old
 	# Plummer u_max minimum):
@@ -1324,6 +1352,60 @@ func _physics_step() -> void:
 	_run_physics_steps(1)
 
 
+func _fill_instancer_pc() -> void:
+	# Instancer dedicated PC (13 floats): the shared 11 + color_mode (slot 11)
+	# + rainbow v_ref (slot 12) — the dedicated-PC precedent (nbody 15,
+	# two-fluid 14, mass-deposit 5): field_render/bh_lensing keep the shared
+	# 11-float _pc_bytes, and Godot hard-errors on push-constant size
+	# mismatch, so the instancer's extra fields get their own buffer.
+	# Reads the LIVE particle_color_mode export so a UI flip applies on the
+	# next dispatch (no reinit).
+	_instancer_pc_bytes.encode_float(0, float(grid_N))
+	_instancer_pc_bytes.encode_float(4, dt)
+	_instancer_pc_bytes.encode_float(8, _time)
+	_instancer_pc_bytes.encode_float(12, PHI)
+	_instancer_pc_bytes.encode_float(16, xi)
+	_instancer_pc_bytes.encode_float(20, softening * softening)
+	_instancer_pc_bytes.encode_float(24, float(N_particles))
+	_instancer_pc_bytes.encode_float(28, float(mode))
+	_instancer_pc_bytes.encode_float(32, source_strength)
+	_instancer_pc_bytes.encode_float(36, float(num_clusters))
+	_instancer_pc_bytes.encode_float(40, float(gravity_mode))
+	_instancer_pc_bytes.encode_float(44, float(particle_color_mode))
+	_instancer_pc_bytes.encode_float(48, _rainbow_vref)
+
+
+func _hsl_to_rgb(h: float, s: float, l: float) -> Color:
+	# Branchless HSL→RGB (IQ form) — mirrors the GLSL helper in
+	# cassi_instancer.glsl (fposmod ≡ GLSL mod for positive y). Used by the
+	# frame-0 CPU color pass so the paused view equals the first played frame.
+	var r: float = clampf(absf(fposmod(h * 6.0 + 0.0, 6.0) - 3.0) - 1.0, 0.0, 1.0)
+	var g: float = clampf(absf(fposmod(h * 6.0 + 4.0, 6.0) - 3.0) - 1.0, 0.0, 1.0)
+	var b: float = clampf(absf(fposmod(h * 6.0 + 2.0, 6.0) - 3.0) - 1.0, 0.0, 1.0)
+	var k := s * (1.0 - absf(2.0 * l - 1.0))
+	return Color(l + k * (r - 0.5), l + k * (g - 0.5), l + k * (b - 0.5), 1.0)
+
+
+func _repaint_instancer() -> void:
+	# One-shot GPU repaint of the multimesh instance buffer from the CURRENT
+	# pos/vel buffers — used when paused (playing=false), where
+	# _step_dispatches never runs, so a live color-mode flip repaints the
+	# visible instances immediately. Precedent: _render_field_slice / the
+	# BH-lensing path — a standalone compute list on the global RD, no
+	# submit/sync (illegal on the main instance).
+	if _rd == null or not _instancer_shader.is_valid() or not _us_inst_0.is_valid() or N_particles <= 0:
+		return
+	if not _mm_rd_rid.is_valid(): return
+	_fill_instancer_pc()
+	var pg = ceili(float(N_particles) / 256.0)
+	var cl = _rd.compute_list_begin()
+	_rd.compute_list_bind_compute_pipeline(cl, _instancer_pipe)
+	_rd.compute_list_bind_uniform_set(cl, _us_inst_0, 0)
+	_rd.compute_list_set_push_constant(cl, _instancer_pc_bytes, _instancer_pc_bytes.size())
+	_rd.compute_list_dispatch(cl, pg, 1, 1)
+	_rd.compute_list_end()
+
+
 func _step_dispatches(cl: int) -> void:
 	_time += dt
 	_step_count += 1
@@ -1342,6 +1424,7 @@ func _step_dispatches(cl: int) -> void:
 	_pc_bytes.encode_float(32, source_strength)
 	_pc_bytes.encode_float(36, float(num_clusters))
 	_pc_bytes.encode_float(40, float(gravity_mode))
+	_fill_instancer_pc()
 
 	# Two-fluid PC (dedicated 56 B): the shared 11 fields + the 3 per-axis
 	# extents (the anisotropic 19-point stencil needs h_i = 2·extent_i/N —
@@ -1524,7 +1607,9 @@ func _step_dispatches(cl: int) -> void:
 	if _instancer_shader.is_valid() and N_particles > 0:
 		_rd.compute_list_bind_compute_pipeline(cl, _instancer_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_inst_0, 0)
-		_rd.compute_list_set_push_constant(cl, _pc_bytes, _pc_bytes.size())
+		# Dedicated 13-float PC (the shader declares color_mode + v_ref; the
+		# shared 11-float _pc_bytes would hard-error on size mismatch).
+		_rd.compute_list_set_push_constant(cl, _instancer_pc_bytes, _instancer_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, pg, 1, 1)
 	# NOTE: the compute list is owned by the caller (_run_physics_steps);
 	# end/submit/sync happen there, once per frame.

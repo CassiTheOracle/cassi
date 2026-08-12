@@ -24,6 +24,7 @@ var _grid_spin: SpinBox
 var _particle_spin: SpinBox
 var _nclusters_spin: SpinBox; var _sep_spin: SpinBox
 var _init_opt: OptionButton
+var _color_opt: OptionButton
 var _no_rb_btn: CheckButton
 var _bh_toggle_btn: CheckButton
 var _phi_box_btn: CheckButton
@@ -249,6 +250,23 @@ func _ready() -> void:
 	_init_opt.focus_mode = Control.FOCUS_NONE
 	init_box.add_child(_init_opt)
 
+	# Particle color scheme selector (live — no reinit; paused view repaints
+	# immediately via the sim's one-shot instancer repaint).
+	var color_box = VBoxContainer.new()
+	color_box.custom_minimum_size = Vector2(160, 40)
+	row3.add_child(color_box)
+	var color_lbl = _make_label("Color:", Color(0.9, 0.85, 0.5), 12)
+	color_box.add_child(color_lbl)
+	_color_opt = OptionButton.new()
+	_color_opt.add_item("Cassi gradient")
+	_color_opt.add_item("Velocity rainbow")
+	_color_opt.selected = 0
+	_color_opt.tooltip_text = "Cassi = mass-temperature gradient (Salpeter blue dwarfs → red giants); Velocity rainbow = hue from speed, slow=red → fast=violet. Live — no reinit."
+	_color_opt.custom_minimum_size = Vector2(150, 22)
+	_color_opt.focus_mode = Control.FOCUS_NONE
+	_color_opt.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	color_box.add_child(_color_opt)
+
 	# CPU-readback suppression toggle: kills the ~0.5 s stutter (the
 	# throttled occupancy/perf/q-tel readbacks stall the global RD).
 	_no_rb_btn = CheckButton.new()
@@ -320,6 +338,7 @@ func _ready() -> void:
 		_set_mode_highlight(sim.mode)
 		_set_grav_highlight(sim.gravity_mode)
 		_init_opt.selected = sim.initial_condition
+		_color_opt.selected = sim.particle_color_mode
 		_no_rb_btn.button_pressed = sim.suppress_readbacks
 		_bh_toggle_btn.button_pressed = sim.black_holes_enabled
 		_phi_box_btn.button_pressed = (sim.box_aspect != Vector3(1.0, 1.0, 1.0))
@@ -330,6 +349,7 @@ func _ready() -> void:
 	_nclusters_spin.value_changed.connect(_on_clusters_changed)
 	_sep_spin.value_changed.connect(_on_separation_changed)
 	_init_opt.item_selected.connect(_on_init_selected)
+	_color_opt.item_selected.connect(_on_color_mode_selected)
 	_no_rb_btn.toggled.connect(_on_suppress_readbacks_toggled)
 	_bh_toggle_btn.toggled.connect(_on_black_holes_toggled)
 	_phi_box_btn.toggled.connect(_on_phi_box_toggled)
@@ -458,6 +478,14 @@ func _on_init_selected(idx: int) -> void:
 	if sim == null: return
 	sim.initial_condition = idx
 	sim.reinit()  # positions regenerate with the new profile
+
+
+func _on_color_mode_selected(idx: int) -> void:
+	var sim = _get_sim()
+	if sim == null: return
+	sim.particle_color_mode = idx  # live — re-encoded into the instancer PC next physics step (no reinit)
+	if not sim.playing:
+		sim._repaint_instancer()    # paused: repaint the visible instances now
 
 
 func _on_suppress_readbacks_toggled(on: bool) -> void:

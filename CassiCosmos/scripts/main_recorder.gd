@@ -81,6 +81,7 @@ func _ready() -> void:
 		"realsim_friction", "river_calibrate_gn", "river_pi_ref",
 		"river_q_ref", "field_attractor_init", "freeze_field", "initial_radius_fraction",
 		"initial_condition", "initial_v_circ_factor", "box_aspect", "box_scale", "mode",
+		"particle_color_mode",
 		"auto_frame_camera_on_start",
 	]
 	var main_scene := load("res://scenes/main.tscn")
@@ -154,6 +155,11 @@ func _ready() -> void:
 				# BH toggle: live export set, no reinit needed (the host
 				# re-encodes bh[3].x next frame).
 				_sim.set("black_holes_enabled", int(kv[1]) != 0)
+			"--color":
+				# Particle color scheme: 0 = Cassi gradient (default), 1 =
+				# velocity rainbow. Live export read per physics step — no
+				# reinit needed.
+				_sim.set("particle_color_mode", int(kv[1]))
 			"--steps":
 				_sim.set("max_steps_per_frame", int(kv[1]))
 			"--orbit-speed":

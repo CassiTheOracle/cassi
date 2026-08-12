@@ -27,6 +27,7 @@ param(
     [int]$Gravity = -1,
     [int]$Init = -1,
     [int]$Steps = 0,
+    [int]$Color = -1,
     [string]$Aspect = "",
     [string]$Resolution = "1920x1080",
     [string]$Scene = "res://scenes/main_recorder.tscn",
@@ -82,6 +83,7 @@ if ($Particles -gt 0) { $userArgs += "--particles=$Particles" }
 if ($Gravity -ge 0)   { $userArgs += "--gravity=$Gravity" }
 if ($Init -ge 0)      { $userArgs += "--init=$Init" }
 if ($Steps -gt 0)     { $userArgs += "--steps=$Steps" }
+if ($Color -ge 0)     { $userArgs += "--color=$Color" }
 if ($Aspect -ne "")   { $userArgs += "--aspect=$Aspect" }
 
 $argsList = @("--path", "$Pwd", "--write-movie", $Out, "--fixed-fps", "$Fps", $Scene, "--") + $userArgs

@@ -13,13 +13,23 @@ layout(set = 0, binding = 0, std430) buffer Positions { vec4 pos[]; };
 layout(set = 0, binding = 1, std430) restrict buffer Instances {
     vec4 inst[];
 };
+layout(set = 0, binding = 2, std430) readonly buffer Velocities { vec4 vel[]; };
 
 layout(push_constant, std430) uniform PC {
     float N_f; float dt; float t; float phi;
     float xi; float eps2; float particle_N;
     float mode; float source_strength; float num_clusters;
     float gravity_mode;  // unused here (nbody gravity selector)
+    float color_mode;    // 0 = Cassi mass gradient (default, bit-identical); 1 = velocity rainbow
+    float v_ref;         // rainbow speed reference (max initial |v|); unused when color_mode = 0
 } pc;
+
+// Branchless HSL→RGB (IQ form). hue in [0,1): 0=red, 1/3=green, 2/3=blue,
+// ~0.8=violet; s,l in [0,1]. No per-channel if/else — works on all vendors.
+vec3 hsl2rgb(vec3 c) {
+    vec3 rgb = clamp(abs(mod(c.x * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0);
+    return c.z + c.y * (rgb - 0.5) * (1.0 - abs(2.0 * c.z - 1.0));
+}
 void main() {
     int i = int(gl_GlobalInvocationID.x);
     int N = int(pc.particle_N);
@@ -42,5 +52,13 @@ void main() {
     float cr = mix(0.15, 1.0,  log_m * log_m);                 // blue dwarf→red giant
     float cg = mix(0.25, 0.6,  log_m);
     float cb = mix(1.0,  0.15, log_m);
-    inst[base + 3] = vec4(cr, cg, cb, 1.0);
+    vec4 color = vec4(cr, cg, cb, 1.0);
+    if (pc.color_mode >= 0.5) {
+        // Velocity rainbow: slow = red (h=0) → fast = violet (h=0.8),
+        // scale-free speed fraction |v|/(|v|+v_ref).
+        float v = length(vel[i].xyz);
+        float h = 0.8 * (v / (v + pc.v_ref));
+        color = vec4(hsl2rgb(vec3(h, 1.0, 0.5)), 1.0);
+    }
+    inst[base + 3] = color;
 }
