@@ -17,7 +17,7 @@ This directory holds the two master registries of the Cassi framework: the 50-en
 
 ### `cassi_definitions.md`—Cassi Framework: Definitions
 
-The framework's compact reference glossary, organized into 15 sections from Fundamentals through Unification to Code & Implementation. It fixes the meaning of the Yang field $E_Y$ (outward, radiative) and Yin field $E_I$ (inward, absorptive), the canonical coherence $q = \rho^2/(\rho^2 + \varphi^{-2} + \varepsilon^2)$ with $\varepsilon^2=(\Psi_0-\varphi\Psi_1)^2$, and the $\varphi$-attractor coherence $q_{\text{eq}} = \varphi^2/(\varphi^2+\varphi^{-2})\approx0.873$ (gate openness $(1-q_{\text{eq}})=\varphi^{-2}/3\approx0.127$); the openness factor $(1-q)$ is canonical, while $g(q)=q/(\varphi^2+q^2)$ is an asserted single-channel transmission input.
+The framework's compact reference glossary, organized into 15 sections from Fundamentals through Unification to Code & Implementation. It fixes the meaning of the Yang field $E_Y$ (outward, radiative) and Yin field $E_I$ (inward, absorptive), the canonical coherence $q = \rho^2/(\rho^2 + \varphi^{-2} + \varepsilon^2)$ with $\rho = E_Y+E_I$ and $\varepsilon=E_Y-\varphi E_I$, and the $\varphi$-attractor coherence $q_{\text{eq}} = \varphi^2/(\varphi^2+\varphi^{-2})\approx0.873$ (gate openness $(1-q_{\text{eq}})=\varphi^{-2}/3\approx0.127$); the openness factor $(1-q)$ is canonical, while $g(q)=q/(\varphi^2+q^2)$ is an asserted single-channel transmission input.
 
 ### `falsifiable-predictions.md`—Cassi Falsifiable Predictions
 

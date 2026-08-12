@@ -48,9 +48,9 @@ The ratio $r = E_Y/E_I$ evolves monotonically toward $\varphi$.
 
 ### 2.4 Qi Coherence
 
-$$\varepsilon^2 = (\Psi_0 - \varphi\Psi_1)^2,\qquad q = \frac{\rho^2}{\rho^2 + \varphi^{-2} + \varepsilon^2}$$
+$$\varepsilon = E_Y - \varphi E_I,\qquad \rho = E_Y + E_I = \Psi_0^2 + \Psi_1^2,\qquad q = \frac{\rho^2}{\rho^2 + \varphi^{-2} + \varepsilon^2}$$
 
-$q \to 0$: far from $\varphi$-equilibrium. $q \to 1$: perfect $\varphi$-equilibrium. At the fixed point ($\varepsilon^2 = 0$; the solver's reference state $E_Y = 1$, $E_I = \varphi^{-1}$ gives $\rho = \varphi$): $q_{\text{eq}} = \varphi^{2}/(\varphi^2 + \varphi^{-2}) \approx 0.873$, and the gate openness $(1-q_{\text{eq}}) = \varphi^{-2}/(\varphi^2 + \varphi^{-2}) = \varphi^{-2}/3 \approx 0.127$ (the value item 1 below quotes as $q_{\text{eq}}$ under the $\rho^2 = \varphi^{-6}$ reference normalization).
+$q \to 0$: far from $\varphi$-equilibrium. $q \to 1$: perfect $\varphi$-equilibrium. At the fixed point ($\varepsilon = 0$; the solver's reference state $E_Y = 1$, $E_I = \varphi^{-1}$ gives $\rho = \varphi$): $q_{\text{eq}} = \varphi^{2}/(\varphi^2 + \varphi^{-2}) \approx 0.873$, and the gate openness $(1-q_{\text{eq}}) = \varphi^{-2}/(\varphi^2 + \varphi^{-2}) = \varphi^{-2}/3 \approx 0.127$ (the value item 1 below quotes as $q_{\text{eq}}$ under the $\rho^2 = \varphi^{-6}$ reference normalization).
 **Qi 2-vector.** $\mathbf{Q} = (\rho,\; J)$ where $J = \Psi_0\nabla\Psi_1 - \Psi_1\nabla\Psi_0$: magnitude + phase current. Qi is the third fundamental of the framework—the flow of coherence between Yang and Yin, and along the string axis between cascade scales; the scalar $q$ is the magnitude diagnostic of that flow (`foundations/qi-flow-double-helix.md`). The axial current $J_z = R^2\partial_z\theta$ is the inter-scale flow; the $P_\parallel = 2$ doublet cycle winds the Yang and Yin strand-currents into a double helix about the string axis.
 
 **Temporal coherence (IIR memory).** $\bar{\varepsilon}^2(t) = (1-\tau)\,\bar{\varepsilon}^2(t-\Delta t) + \tau\,\varepsilon^2(t)$, $\tau = \varphi^{-1}$. The field carries a memory of its own past state; smoothing $\varepsilon^2$ stabilizes $q$.
