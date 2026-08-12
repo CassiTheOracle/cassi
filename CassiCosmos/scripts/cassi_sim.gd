@@ -200,7 +200,6 @@ const Q_1: float = 0.001        # Qi-rainbow stage-1 band top = stage-2 entry
 @export_enum("Particles", "Field", "Black Hole", "Cosmology") var mode: int = 0
 
 # ── Particle color scheme ──────────────────────────────────────────────
-# ── Particle color scheme ──────────────────────────────────────────────
 ## Legacy master selector for the particle colors (the consolidated gradient
 ## engine's source/count exports below configure it): 0 = the Cassi
 ## mass-temperature gradient (Salpeter blue dwarfs → red giants; default,
