@@ -37,7 +37,7 @@ func _ready() -> void:
 		get_tree().quit(1)
 		return
 	N = sim.grid_N
-	extent = sim.cluster_radius * 1.5
+	extent = sim._extents().x  # the box half-extent (legacy value at aspect 1)
 	h = extent / (float(N) * 0.5)
 	nc = N * N * N
 	sim.playing = false
@@ -198,7 +198,7 @@ func _run_n128() -> void:
 	sim.reinit()
 	sim.playing = false  # reinit does not touch playing; keep sim paused
 	N = sim.grid_N
-	extent = sim.cluster_radius * 1.5
+	extent = sim._extents().x  # the box half-extent (legacy value at aspect 1)
 	h = extent / (float(N) * 0.5)
 	nc = N * N * N
 	print("══════ verify_fft — N=%d, extent=%.1f, h=%.4f, σ=%.1f cells ══════" % [N, extent, h, sigma])
@@ -218,7 +218,7 @@ func _run_n256() -> void:
 	sim.reinit()
 	sim.playing = false
 	N = sim.grid_N
-	extent = sim.cluster_radius * 1.5
+	extent = sim._extents().x  # the box half-extent (legacy value at aspect 1)
 	h = extent / (float(N) * 0.5)
 	nc = N * N * N
 	print("══════ verify_fft — N=%d, extent=%.1f, h=%.4f, σ=%.1f cells ══════" % [N, extent, h, sigma])

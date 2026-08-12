@@ -139,6 +139,17 @@ const PI_CLAMP_MAX: float = 0.72  # (π/ρ) upper clamp (stability; telemetry co
 ## 0 = Bounded Plummer (default), 1 = Gaussian ball (sigma = cluster_radius), 2 = Uniform sphere (radius = cluster_radius); all truncated to the safe radius, out-of-box = 0.
 @export_enum("Bounded Plummer", "Gaussian ball", "Uniform sphere") var initial_condition: int = 0
 
+# ── Box geometry (theory-accurate grid layout — GRID_LAYOUT.md) ────────
+# Per-axis box half-extents: extent_i = aspect_i · 1.5 · cluster_radius
+# (N³ cells unchanged; h_i = 2·extent_i/N). Cube (1,1,1) = the legacy box
+# (the existing verify battery runs this). Theory preset (φ, 1, φ²) maps
+# x = Yang (extended), y = Yin (contracted), z = String/P∥ (flow): the
+# box-mode lattice becomes incommensurate — no axis-locked box modes, so
+# the straight-line lock at box scale is removed. Init-time: reinit() to
+# apply (extents are encoded in the bh header and the PCs at setup).
+## Per-axis box aspect (extent_i = aspect_i·1.5·cluster_radius). Cube (1,1,1) default; theory preset (φ,1,φ²) — see GRID_LAYOUT.md.
+@export var box_aspect: Vector3 = Vector3(1, 1, 1)
+
 ## Display mode: 0 = Particles, 1 = Field, 2 = Black Hole, 3 = Cosmology.
 @export_enum("Particles", "Field", "Black Hole", "Cosmology") var mode: int = 0
 
@@ -198,12 +209,17 @@ var _pc_bytes: PackedByteArray        # shared 11-float PC (all physics shaders)
 # mismatch, so the nbody shader gets its OWN pre-allocated 60 B buffer
 # (the dedicated-PC precedent) instead of growing the shared one.
 var _nbody_pc_bytes: PackedByteArray  # nbody PC (15 floats: 11 shared + pass_mode + 3 RealSim)
-var _md_pc_bytes: PackedByteArray     # mass deposit PC (4 floats)
+# Two-fluid dedicated PC (14 floats: the shared 11 + the 3 per-axis
+# extents) — the dedicated-PC precedent: field_render/instancer/bh_lensing
+# share _pc_bytes (11 floats) and Godot hard-errors on push-constant size
+# mismatch, so the two-fluid's anisotropic-stencil extents get their own.
+var _two_fluid_pc_bytes: PackedByteArray  # two-fluid PC (14 floats: 11 shared + extent_x/y/z)
+var _md_pc_bytes: PackedByteArray     # mass deposit PC (5 floats: N, particle_N, extent_x/y/z)
 var _bh_int_pc_bytes: PackedByteArray # BH integrate PC (4 floats)
 var _cond_pc_bytes: PackedByteArray   # condensation PC (4 floats)
 var _bh_init_bytes: PackedByteArray   # BH header init (16 floats)
 var _tel_reset_bytes: PackedByteArray # gravity telemetry reset (8 floats)
-var _poisson_pc_bytes: PackedByteArray  # poisson PC (5 floats)
+var _poisson_pc_bytes: PackedByteArray  # poisson PC (7 floats: N, axis, dir, mode, extent_x/y/z)
 # NOTE: global RD — no manual submit/sync anywhere (illegal on the main
 # instance); readbacks self-stall via buffer_get_data.
 
@@ -415,6 +431,14 @@ func _uniform_storage(binding: int, buf: RID) -> RDUniform:
 	return u
 
 
+# Per-axis box half-extents — the single source of truth for the box
+# geometry (bh[2].yzw header slots, the Poisson/mass-deposit/two-fluid
+# push constants, IC truncation, occupancy and the residual report all
+# derive from this). Cube default (1,1,1) = the legacy single-extent box.
+func _extents() -> Vector3:
+	return Vector3(box_aspect.x, box_aspect.y, box_aspect.z) * (cluster_radius * 1.5)
+
+
 func _setup_buffers() -> void:
 	# The spectral Poisson FFT (cassi_poisson.glsl) is a radix-2 Stockham
 	# FFT: grid_N must be a power of 2 in [64, 256]. Non-power-of-2 values
@@ -449,14 +473,19 @@ func _setup_buffers() -> void:
 	_acc_buf = _rd.storage_buffer_create(ps)
 
 	# SET 2 — BH data + sim globals
-	# 36 vec4s = 576 bytes: 4-vec4 header (count/G_N/extent/reserved) + 15 BH
-	# records × 2 vec4s (indices 4..33). Was 512 bytes — too small: the
+	# 36 vec4s = 576 bytes: 4-vec4 header (count/G_N/extents/reserved) + 15
+	# BH records × 2 vec4s (indices 4..33). Was 512 bytes — too small: the
 	# shaders read/write up to bh[33] (slot 14), which was out of bounds.
+	# bh[2] = (cluster_radius, extent_x, extent_y, extent_z) — the per-axis
+	# box half-extents (GRID_LAYOUT.md); the nbody samplers/gradient pass
+	# and the BH integrate/condensation shaders read bh[2].yzw directly.
+	# At the cube aspect this equals the legacy single extent.
 	_bh_buf = _rd.storage_buffer_create(576)
+	var ext_hdr := _extents()
 	var bh_init_f = PackedFloat32Array([
 		0.0, 0.0, 0.0, float(N_particles),
 		0.0, 0.0, 0.0, 1.0,
-		cluster_radius, cluster_radius * 1.5, 0.0, 0.0,
+		cluster_radius, ext_hdr.x, ext_hdr.y, ext_hdr.z,
 		0.0, 0.0, 0.0, 0.0,
 	])
 	# Zero the FULL 576-byte buffer (header at the front): storage buffers
@@ -777,7 +806,8 @@ func _init_particles() -> void:
 	var G = 1.0
 	var eps2 = softening * softening
 	var fr: float = initial_radius_fraction
-	var extent_box: float = cluster_radius * 1.5
+	var ext_box: Vector3 = _extents()
+	var extent_min: float = minf(ext_box.x, minf(ext_box.y, ext_box.z))
 
 	# Pre-compute cluster centers and bulk velocities
 	var centers = []
@@ -786,9 +816,11 @@ func _init_particles() -> void:
 	var nc = max(1, num_clusters)
 	var bulk_vels = []
 	var per_cluster = N_particles / nc
-	# Truncation bounds: per cluster, r_max = fr·extent − |center|_∞ (a
-	# safe spherical radius inside the periodic cube), shared by ALL
-	# initial-condition profiles below. The retained fraction reported as
+	# Truncation bounds: per cluster, r_max = fr·extent_min − |center|_∞
+	# (a safe spherical radius inside the periodic box — the SHORTEST axis
+	# bounds every direction, so all ICs stay in-box at any aspect),
+	# shared by ALL initial-condition profiles below. The retained
+	# fraction reported as
 	# _init_retained_fraction is profile-specific: for the Plummer draw it
 	# is u_max = (x²/(1+x²))^{3/2} with x = r_max/a (fraction of the
 	# unbounded profile kept inside the truncation); Gaussian/uniform
@@ -812,7 +844,7 @@ func _init_particles() -> void:
 				  Vector3(-cz, 0.0, cx).normalized() * ms * 0.3
 		bulk_vels.append(bv)
 		var c_abs: float = maxf(absf(cx), maxf(absf(cy), absf(cz)))
-		var r_max_c: float = fr * extent_box - c_abs
+		var r_max_c: float = fr * extent_min - c_abs
 		if r_max_c < 0.0:
 			r_max_c = 0.0  # degenerate: cluster center beyond the safe radius
 		r_max_list.append(r_max_c)
@@ -928,7 +960,7 @@ func _init_particles() -> void:
 		max_r = maxf(max_r, rr)
 		var mc: float = maxf(absf(pos[i4]), maxf(absf(pos[i4 + 1]), absf(pos[i4 + 2])))
 		max_comp = maxf(max_comp, mc)
-		if absf(pos[i4]) > extent_box or absf(pos[i4 + 1]) > extent_box or absf(pos[i4 + 2]) > extent_box:
+		if absf(pos[i4]) > ext_box.x or absf(pos[i4 + 1]) > ext_box.y or absf(pos[i4 + 2]) > ext_box.z:
 			out_box += 1
 
 		# ── Circular velocity around cluster center + bulk ──
@@ -1026,29 +1058,32 @@ func _init_particles() -> void:
 	_init_retained_fraction = retained
 	_total_init_mass = total_mass
 	if out_box > 0:
-		# A cluster center beyond fr·extent − |center|_∞ (e.g. legacy scene
-		# configs with cluster_separation ≫ the small box) leaves NO in-box
-		# spherical placement — the truncation packs those particles at the
-		# center (u_max = 0); the count below is the config's consequence,
-		# not a truncation failure. The verify scenes overwrite positions.
-		push_warning("[CassiSim] IC: %d initial particles outside the box (fr=%.2f, extent=%.1f) — a cluster center sits beyond the safe radius; config-level, not a truncation failure" % [out_box, fr, extent_box])
+		# A cluster center beyond fr·extent_min − |center|_∞ (e.g. legacy
+		# scene configs with cluster_separation ≫ the small box) leaves NO
+		# in-box spherical placement — the truncation packs those particles
+		# at the center (u_max = 0); the count below is the config's
+		# consequence, not a truncation failure. The verify scenes
+		# overwrite positions.
+		push_warning("[CassiSim] IC: %d initial particles outside the box (fr=%.2f, extent_min=%.1f, aspect=%s) — a cluster center sits beyond the safe radius; config-level, not a truncation failure" % [out_box, fr, extent_min, str(box_aspect)])
 	var ic_name := "Plummer" if initial_condition == 0 else ("Gaussian" if initial_condition == 1 else "Uniform")
-	print("[CassiSim] IC [%s]: retained=%.4f  max_radius=%.1f  max|comp|=%.1f  out_of_box=%d (fr=%.2f, extent=%.1f)" % [
-		ic_name, _init_retained_fraction, max_r, max_comp, out_box, fr, extent_box])
+	print("[CassiSim] IC [%s]: retained=%.4f  max_radius=%.1f  max|comp|=%.1f  out_of_box=%d (fr=%.2f, extent_min=%.1f, aspect=%s)" % [
+		ic_name, _init_retained_fraction, max_r, max_comp, out_box, fr, extent_min, str(box_aspect)])
 	print("[CassiSim] Particles initialized: %d (Σm=%.1f, m_mean=%.4f)" % [N_particles, total_mass, total_mass / float(max(N_particles, 1))])
 
 
 
 # ── Resolution-aware river calibration (opt-in) ─────────────────────────
-# The spectral Poisson solve's field force carries an h³ cell-volume
-# factor: for a mass concentration with mean deposited mass m_mean the
-# river force on a particle is
-#   |a| = G_N·(π/ρ)·g·h³·Σm/(4π r²),  h = 2·extent/N,
+# The spectral Poisson solve's field force carries a cell-volume factor:
+# for a mass concentration with mean deposited mass m_mean the river force
+# on a particle is
+#   |a| = G_N·(π/ρ)·g·V_cell·Σm/(4π r²),  V_cell = h_x·h_y·h_z,
+#   h_i = 2·extent_i/N  (cube: V_cell = h³, h = 2·extent/N),
 # while the IC circular velocities use the G = 1, M = per-cluster COUNT
 # convention. Setting
-#   G_N = 4π / (π_ref·g_ref·h³·m_mean),  g_ref = 1+(ξ−1)·q_ref,
+#   G_N = 4π / (π_ref·g_ref·V_cell·m_mean),  g_ref = 1+(ξ−1)·q_ref,
 # makes |a| = M_count/r² — the grid force and the IC convention agree at
-# every resolution (the h³ factor cancels the m_mean·M_count conversion).
+# every resolution (the V_cell factor cancels the m_mean·M_count
+# conversion).
 # Written to the BH header slot bh[1].w (offset 7·4), which the river
 # arm, the BH point-source term and the Plummer reference arm all read —
 # one explicit shared G_N, never silently divergent.
@@ -1064,15 +1099,17 @@ func _apply_gravity_calibration() -> void:
 		_bh_init_bytes.encode_float(28, 1.0)
 		_gn_eff = 1.0
 		return
-	var extent_box: float = cluster_radius * 1.5
-	var h: float = 2.0 * extent_box / float(max(grid_N, 1))
+	var ext_box: Vector3 = _extents()
+	var h: float = 2.0 * ext_box.x / float(max(grid_N, 1))
+	var hy: float = 2.0 * ext_box.y / float(max(grid_N, 1))
+	var hz: float = 2.0 * ext_box.z / float(max(grid_N, 1))
 	var m_mean: float = _total_init_mass / float(max(N_particles, 1))
 	var g_ref: float = 1.0 + (xi - 1.0) * river_q_ref
-	var gn: float = 4.0 * PI / (river_pi_ref * g_ref * h * h * h * m_mean)
+	var gn: float = 4.0 * PI / (river_pi_ref * g_ref * h * hy * hz * m_mean)
 	_bh_init_bytes.encode_float(28, gn)  # bh[1].w — G_N
-	_gn_eff = gn * river_pi_ref * g_ref * (h * h * h) * m_mean / (4.0 * PI)
-	print("[CassiSim] Gravity calibration: h=%.4f  m_mean=%.4f  π/ρ_ref=%.4f  g_ref=%.4f → G_N=%.4f (G_eff=%.4f)" % [
-		h, m_mean, river_pi_ref, g_ref, gn, _gn_eff])
+	_gn_eff = gn * river_pi_ref * g_ref * (h * hy * hz) * m_mean / (4.0 * PI)
+	print("[CassiSim] Gravity calibration: h=(%.4f,%.4f,%.4f)  m_mean=%.4f  π/ρ_ref=%.4f  g_ref=%.4f → G_N=%.4f (G_eff=%.4f)" % [
+		h, hy, hz, m_mean, river_pi_ref, g_ref, gn, _gn_eff])
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -1360,7 +1397,10 @@ func _report_poisson_residual() -> void:
 		return
 	var pf = phi.to_float32_array()
 	var rf = rhob.to_float32_array()
-	var h = (cluster_radius * 1.5) / (float(N) * 0.5)  # cell size
+	var ext_r: Vector3 = _extents()
+	var hx = ext_r.x / (float(N) * 0.5)  # per-axis cell sizes
+	var hy = ext_r.y / (float(N) * 0.5)
+	var hz = ext_r.z / (float(N) * 0.5)
 	var num = 0.0
 	var den = 0.0
 	for k in range(N):
@@ -1373,13 +1413,17 @@ func _report_poisson_residual() -> void:
 				var jm = i + N * (((j - 1 + N) % N) + N * k)
 				var k1 = i + N * (j + N * ((k + 1) % N))
 				var km = i + N * (j + N * ((k - 1 + N) % N))
-				var lap = (pf[i1 * 2] + pf[im * 2] + pf[j1 * 2] + pf[jm * 2]
-					 + pf[k1 * 2] + pf[km * 2] - 6.0 * pf[id * 2]) / (h * h)
+				# Per-axis 7-point: each direction's second difference divided
+				# by its own h_i² (identical to the cube formula at aspect 1).
+				var lap_x: float = (pf[i1 * 2] + pf[im * 2] - 2.0 * pf[id * 2]) / (hx * hx)
+				var lap_y: float = (pf[j1 * 2] + pf[jm * 2] - 2.0 * pf[id * 2]) / (hy * hy)
+				var lap_z: float = (pf[k1 * 2] + pf[km * 2] - 2.0 * pf[id * 2]) / (hz * hz)
+				var lap: float = lap_x + lap_y + lap_z
 				var rho_v = rf[id]
 				num += (lap - rho_v) * (lap - rho_v)
 				den += rho_v * rho_v
 	_poisson_residual = sqrt(num / max(den, 1e-30))
-	print("[CassiSim] Poisson residual: L2 |∇²Φ − ρ| / |ρ| = %.6f  (cells=%d, h=%.4f)" % [_poisson_residual, N * N * N, h])
+	print("[CassiSim] Poisson residual: L2 |∇²Φ − ρ| / |ρ| = %.6f  (cells=%d, h=(%.4f,%.4f,%.4f))" % [_poisson_residual, N * N * N, hx, hy, hz])
 
 
 # load ρ → FFT(x) → FFT(y) → FFT(z) → Φ̂=−ρ̂/k² (k=0 nulled) → IFFT(z) → IFFT(y) → IFFT(x)
@@ -1581,9 +1625,10 @@ func _render_frame() -> void:
 
 # Sampled occupancy diagnostic: read back up to 40k strided particle
 # positions and classify inner / face-edge / corner / out-of-box relative
-# to the periodic box (±extent, extent = 1.5·cluster_radius; lim = 0.85·extent).
+# to the periodic box (per-axis ±extent_i = ±aspect_i·1.5·cluster_radius;
+# lim_i = 0.85·extent_i).
 # "Pooling in grid corners" shows up as a growing corner fraction with
-# escaped particles stalling at the weak-field cube corners.
+# escaped particles stalling at the weak-field box corners.
 func _sample_occupancy() -> void:
 	if not _pos_buf.is_valid() or N_particles <= 0:
 		return
@@ -1596,8 +1641,8 @@ func _sample_occupancy() -> void:
 	if pd.size() < N_particles * 16:
 		return
 	var pf = pd.to_float32_array()
-	var extent_box: float = cluster_radius * 1.5
-	var lim: float = 0.85 * extent_box
+	var ext_box: Vector3 = _extents()
+	var lim := Vector3(0.85 * ext_box.x, 0.85 * ext_box.y, 0.85 * ext_box.z)
 	var in_c := 0
 	var face := 0
 	var corner := 0
@@ -1607,25 +1652,28 @@ func _sample_occupancy() -> void:
 		var x: float = pf[i4]
 		var y: float = pf[i4 + 1]
 		var z: float = pf[i4 + 2]
-		if absf(x) > extent_box or absf(y) > extent_box or absf(z) > extent_box:
+		if absf(x) > ext_box.x or absf(y) > ext_box.y or absf(z) > ext_box.z:
 			out_c += 1
 			continue
-		var c: float = maxf(absf(x), maxf(absf(y), absf(z)))
-		if c < lim:
+		# Per-axis normalized distance: c = max_i |x_i|/lim_i < 1 → inner;
+		# corner = all three components beyond their own lim (identical to
+		# the cube rule at aspect 1).
+		var c: float = maxf(absf(x) / lim.x, maxf(absf(y) / lim.y, absf(z) / lim.z))
+		if c < 1.0:
 			in_c += 1
 		else:
 			var n_hi := 0
-			if absf(x) >= lim: n_hi += 1
-			if absf(y) >= lim: n_hi += 1
-			if absf(z) >= lim: n_hi += 1
+			if absf(x) >= lim.x: n_hi += 1
+			if absf(y) >= lim.y: n_hi += 1
+			if absf(z) >= lim.z: n_hi += 1
 			if n_hi >= 3:
 				corner += 1
 			else:
 				face += 1
 	var tot := maxf(float(n_sample), 1.0)
-	print("[CassiSim] occ: inner=%.1f%% face/edge=%.1f%% corner=%.1f%% out=%d (n=%d, extent=%.0f)" % [
+	print("[CassiSim] occ: inner=%.1f%% face/edge=%.1f%% corner=%.1f%% out=%d (n=%d, aspect=%s)" % [
 		100.0 * float(in_c) / tot, 100.0 * float(face) / tot,
-		100.0 * float(corner) / tot, out_c, n_sample, extent_box])
+		100.0 * float(corner) / tot, out_c, n_sample, str(box_aspect)])
 
 
 func _render_particles() -> void:

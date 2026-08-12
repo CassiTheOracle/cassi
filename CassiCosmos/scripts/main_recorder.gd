@@ -65,7 +65,7 @@ func _ready() -> void:
 		"bh_max_age", "black_holes_enabled", "gravity_mode", "realsim_drag", "realsim_viscosity",
 		"realsim_friction", "river_calibrate_gn", "river_pi_ref",
 		"river_q_ref", "field_attractor_init", "initial_radius_fraction",
-		"initial_condition", "mode",
+		"initial_condition", "box_aspect", "mode",
 	]
 	var main_scene := load("res://scenes/main.tscn")
 	if main_scene != null:

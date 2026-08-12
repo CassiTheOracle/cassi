@@ -125,7 +125,7 @@ func _ready() -> void:
 		get_tree().quit(1)
 		return
 	N = sim.grid_N
-	extent = sim.cluster_radius * 1.5
+	extent = sim._extents().x  # the box half-extent (legacy value at aspect 1)
 	h = extent / (float(N) * 0.5)
 	nc = N * N * N
 	sim.playing = false
