@@ -29,7 +29,7 @@ const PI_CLAMP_MAX: float = 0.72  # (π/ρ) upper clamp (stability; telemetry co
 ## Rendered quad size of each particle (world units); keep ≤ 0.5 for the star-cloud look.
 @export var particle_size: float = 0.3   # rendered particle size
 ## Scale radius of the initial cluster (Plummer scale a / Gaussian sigma / uniform sphere radius, per the IC profile).
-@export var cluster_radius: float = 100.0   # initial cluster size
+@export var cluster_radius: float = 50.0   # initial cluster size
 ## Number of initial clusters (placed on a ring/Fibonacci sphere).
 @export var num_clusters: int = 1           # number of galaxy clusters
 ## Distance of cluster centers from the origin; a single cluster centers at (separation, 0, 0).
