@@ -21,7 +21,8 @@ layout(push_constant, std430) uniform PC {
     float mode; float source_strength; float num_clusters;
     float gravity_mode;  // unused here (nbody gravity selector)
     float color_mode;    // 0 = Cassi mass gradient (default, bit-identical); 1 = velocity rainbow
-    float v_ref;         // rainbow speed reference (max initial |v| / 8); unused when color_mode = 0
+    float v_ref;         // rainbow speed reference: mean initial |v| (host-computed); unused when color_mode = 0
+    float v_scale;       // rainbow hue scale: 0.8/ln(1+v_max/v_ref); unused when color_mode = 0
 } pc;
 
 // Branchless HSL→RGB (IQ form). hue in [0,1): 0=red, 1/3=green, 2/3=blue,
@@ -54,10 +55,15 @@ void main() {
     float cb = mix(1.0,  0.15, log_m);
     vec4 color = vec4(cr, cg, cb, 1.0);
     if (pc.color_mode >= 0.5) {
-        // Velocity rainbow: slow = red (h=0) → fast = violet (h=0.8),
-        // scale-free speed fraction |v|/(|v|+v_ref).
+        // Velocity rainbow (log-compressed, distribution-anchored):
+        // h = v_scale·ln(1+|v|/v_ref) — slow = red (h→0), v=v_ref ≈ 0.4-0.6,
+        // v=v_max → 0.8 (violet). Hue drifts only logarithmically under
+        // velocity growth; the one-sided clamp at 0.8 keeps growth beyond
+        // v_max SATURATING at violet instead of wrapping past hue 1.0 (a
+        // discontinuous jump color). v_ref guarded against 0; the host
+        // guarantees v_scale = 0.8·ln2 in the degenerate zero-speed case.
         float v = length(vel[i].xyz);
-        float h = 0.8 * (v / (v + pc.v_ref));
+        float h = min(pc.v_scale * log(1.0 + v / max(pc.v_ref, 1e-6)), 0.8);
         color = vec4(hsl2rgb(vec3(h, 1.0, 0.5)), 1.0);
     }
     inst[base + 3] = color;

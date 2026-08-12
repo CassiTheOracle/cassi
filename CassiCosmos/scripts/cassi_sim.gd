@@ -10,6 +10,7 @@ const PHI_INV3: float = (PHI - 1.0) / (PHI + 1.0)   # φ⁻³ = attractor π/ρ 
 const PHI_INV2: float = 0.3819660112501051  # φ⁻² — q decoherence threshold
 const PHI_6: float = PHI * PHI * PHI * PHI * PHI * PHI  # φ⁶ ≈ 17.94427191
 const PI_CLAMP_MAX: float = 0.72  # (π/ρ) upper clamp (stability; telemetry counts hits)
+const LN2: float = 0.6931471805599453  # ln 2 — degenerate rainbow v_scale fallback (0.8·ln2)
 
 # ═══════════════════════════════════════════════════════════════════════
 # Exports
@@ -177,7 +178,7 @@ const PI_CLAMP_MAX: float = 0.72  # (π/ρ) upper clamp (stability; telemetry co
 @export_enum("Particles", "Field", "Black Hole", "Cosmology") var mode: int = 0
 
 # ── Particle color scheme ──────────────────────────────────────────────
-## 0 = the Cassi mass-temperature gradient (Salpeter blue dwarfs → red giants; default, shader path bit-identical). 1 = velocity rainbow: hue from the scale-free speed fraction |v|/(|v|+v_ref) with v_ref = max initial speed / 8 (so the fastest particle maps to hue ≈ 0.71, violet) — slow = red → fast = violet. Live: re-encoded into the instancer PC every physics step (no reinit); while paused the visible colors refresh immediately.
+## 0 = the Cassi mass-temperature gradient (Salpeter blue dwarfs → red giants; default, shader path bit-identical). 1 = velocity rainbow: log-compressed, distribution-anchored hue h = min(v_scale·ln(1+|v|/v_ref), 0.8) with v_ref = mean initial |v| and v_scale = 0.8/ln(1+v_max/v_ref) — slow = red (h→0), v ≈ v_ref ≈ 0.5 (green-blue), v = v_max → 0.8 (violet); hue drifts only logarithmically as speeds grow, and growth beyond v_max saturates at violet instead of wrapping. Live: re-encoded into the instancer PC every physics step (no reinit); while paused the visible colors refresh immediately.
 @export_enum("Cassi gradient", "Velocity rainbow") var particle_color_mode: int = 0
 
 # ── Camera startup framing (camera-only; no physics) ──────────────────
@@ -256,12 +257,12 @@ var _cond_pc_bytes: PackedByteArray   # condensation PC (4 floats)
 var _bh_init_bytes: PackedByteArray   # BH header init (16 floats)
 var _tel_reset_bytes: PackedByteArray # gravity telemetry reset (8 floats)
 var _poisson_pc_bytes: PackedByteArray  # poisson PC (7 floats: N, axis, dir, mode, extent_x/y/z)
-# Instancer dedicated PC (13 floats: the shared 11 + color_mode + v_ref) —
-# the dedicated-PC precedent (nbody 15, two-fluid 14, mass-deposit 5):
-# field_render/bh_lensing keep the shared 11-float _pc_bytes, and Godot
-# hard-errors on push-constant size mismatch, so the instancer's two
+# Instancer dedicated PC (14 floats: the shared 11 + color_mode + v_ref +
+# v_scale) — the dedicated-PC precedent (nbody 15, two-fluid 14, mass-deposit
+# 5): field_render/bh_lensing keep the shared 11-float _pc_bytes, and Godot
+# hard-errors on push-constant size mismatch, so the instancer's three
 # extra fields get their own pre-allocated buffer.
-var _instancer_pc_bytes: PackedByteArray  # instancer PC (13 floats: 11 shared + color_mode@11 + v_ref@12)
+var _instancer_pc_bytes: PackedByteArray  # instancer PC (14 floats: 11 shared + color_mode@11 + v_ref@12 + v_scale@13)
 # NOTE: global RD — no manual submit/sync anywhere (illegal on the main
 # instance); readbacks self-stall via buffer_get_data.
 
@@ -285,7 +286,8 @@ var _last_p0_rb_ms: int = 0              # wall-time gate for the p[0] debug pri
 var _inst_debug_done: bool = false       # one-time inst[0..2] print
 var _mmi: MultiMeshInstance3D; var _mm: MultiMesh
 var _mm_particle_size: float = -1.0  # particle_size the multimesh was built with (reinit rebuild check)
-var _rainbow_vref: float = 1.0  # rainbow speed reference: max initial |v| / 8 (set in _init_particles; fallback 1.0)
+var _rainbow_vref: float = 1.0  # rainbow speed reference: mean initial |v| (set in _init_particles; fallback 1.0)
+var _rainbow_vscale: float = 0.8 * LN2  # rainbow hue scale: 0.8/ln(1+v_max/v_ref) (set in _init_particles; degenerate fallback 0.8·ln2)
 
 # — timing —
 var _step_count: int = 0
@@ -575,7 +577,7 @@ func _setup_buffers() -> void:
 	# 3 per-axis extents for the anisotropic 19-point stencil (GRID_LAYOUT.md).
 	_two_fluid_pc_bytes = PackedByteArray(); _two_fluid_pc_bytes.resize(14 * 4)
 	_md_pc_bytes = PackedByteArray(); _md_pc_bytes.resize(5 * 4)
-	_instancer_pc_bytes = PackedByteArray(); _instancer_pc_bytes.resize(13 * 4)
+	_instancer_pc_bytes = PackedByteArray(); _instancer_pc_bytes.resize(14 * 4)
 	_bh_int_pc_bytes = PackedByteArray(); _bh_int_pc_bytes.resize(4 * 4)
 	_cond_pc_bytes = PackedByteArray(); _cond_pc_bytes.resize(4 * 4)
 	_poisson_pc_bytes = PackedByteArray(); _poisson_pc_bytes.resize(7 * 4)
@@ -990,7 +992,8 @@ func _init_particles() -> void:
 	var max_comp: float = 0.0
 	var out_box := 0
 	var total_mass: float = 0.0
-	var max_v: float = 0.0  # max initial speed — rainbow v_ref anchor /8 (velocity rainbow mode)
+	var max_v: float = 0.0  # max initial speed — rainbow anchor: v_max/mean ratio sets v_scale
+	var sum_v: float = 0.0  # Σ|v| over the IC — mean initial speed = rainbow v_ref
 
 	# ── Hoisted per-particle constants ────────────────────────────────
 	# The GDScript interpreter paid for these inside the N_particles loop
@@ -1142,6 +1145,7 @@ func _init_particles() -> void:
 		vel[i4 + 3] = 0.0
 		var vs := sqrt(vel[i4]*vel[i4] + vel[i4+1]*vel[i4+1] + vel[i4+2]*vel[i4+2])
 		max_v = maxf(max_v, vs)
+		sum_v += vs
 
 
 	# Initialize MultiMesh instance buffer with initial positions
@@ -1172,10 +1176,11 @@ func _init_particles() -> void:
 			var cb: float = lerp(1.0,  0.15, log_m)
 			init_inst[b+12] = cr; init_inst[b+13] = cg; init_inst[b+14] = cb; init_inst[b+15] = 1.0
 		else:
-			# Velocity rainbow: hue = 0.8·|v|/(|v|+v_ref), slow=red → fast=violet
+			# Velocity rainbow: h = min(v_scale·ln(1+|v|/v_ref), 0.8),
+			# slow=red → fast=violet; growth beyond v_max saturates (no wrap).
 			var vx: float = vel[i4]; var vy: float = vel[i4 + 1]; var vz: float = vel[i4 + 2]
 			var vs: float = sqrt(vx*vx + vy*vy + vz*vz)
-			var col: Color = _hsl_to_rgb(0.8 * vs / (vs + _rainbow_vref), 1.0, 0.5)
+			var col: Color = _hsl_to_rgb(minf(_rainbow_vscale * log(1.0 + vs / _rainbow_vref), 0.8), 1.0, 0.5)
 			init_inst[b+12] = col.r; init_inst[b+13] = col.g; init_inst[b+14] = col.b; init_inst[b+15] = 1.0
 	# Initial instance data → the renderer's OWN multimesh buffer (one-time
 	# CPU upload at init; every subsequent frame the instancer shader writes
@@ -1189,12 +1194,21 @@ func _init_particles() -> void:
 	_init_max_radius = max_r
 	_init_max_component = max_comp
 	_init_out_of_box = out_box
-	# Velocity-rainbow speed reference: max initial |v| / 8 — with v_ref =
-	# max_v the ramp would cap at hue 0.8·(v_max/(v_max+v_ref)) = 0.4 (green),
-	# making "fast = violet" unreachable; /8 maps the fastest particle to
-	# hue = 0.8/(1+1/8) ≈ 0.711 (violet) and spreads typical speeds across
-	# the mid-spectrum. Fallback 1.0 for a degenerate zero-speed IC.
-	_rainbow_vref = max_v * 0.125 if max_v > 0.0 else 1.0
+	# Velocity-rainbow anchors (log-compressed, distribution-anchored):
+	#   v_ref  = mean initial |v|          (the hue mid-point: h(v_ref) ≈ 0.4-0.5)
+	#   v_scale = 0.8 / ln(1 + v_max/v_ref)  (fastest particle → h = 0.8, violet)
+	# h = v_scale·ln(1+|v|/v_ref): slow → h→0 (red), and hue drifts only
+	# LOGARITHMICALLY under velocity growth — a speed-up no longer pins the
+	# field at the top of the ramp (the linear |v|/(|v|+v_ref) saturation bug).
+	# Degenerate zero-speed IC: v_ref = 1.0, v_scale = 0.8·ln2 (smooth small-v
+	# ramp instead of a division hazard).
+	var mean_v: float = sum_v / float(N_particles) if N_particles > 0 else 0.0
+	if max_v > 0.0 and mean_v > 0.0:
+		_rainbow_vref = mean_v
+		_rainbow_vscale = 0.8 / log(1.0 + max_v / mean_v)
+	else:
+		_rainbow_vref = 1.0
+		_rainbow_vscale = 0.8 * LN2
 	# Retained fraction = analytic fraction of the UNBOUNDED profile kept
 	# inside the truncation, per profile (min over clusters, like the old
 	# Plummer u_max minimum):
@@ -1365,13 +1379,13 @@ func _physics_step() -> void:
 
 
 func _fill_instancer_pc() -> void:
-	# Instancer dedicated PC (13 floats): the shared 11 + color_mode (slot 11)
-	# + rainbow v_ref (slot 12) — the dedicated-PC precedent (nbody 15,
-	# two-fluid 14, mass-deposit 5): field_render/bh_lensing keep the shared
-	# 11-float _pc_bytes, and Godot hard-errors on push-constant size
-	# mismatch, so the instancer's extra fields get their own buffer.
-	# Reads the LIVE particle_color_mode export so a UI flip applies on the
-	# next dispatch (no reinit).
+	# Instancer dedicated PC (14 floats): the shared 11 + color_mode (slot 11)
+	# + rainbow v_ref (slot 12) + rainbow v_scale (slot 13) — the dedicated-PC
+	# precedent (nbody 15, two-fluid 14, mass-deposit 5): field_render/
+	# bh_lensing keep the shared 11-float _pc_bytes, and Godot hard-errors on
+	# push-constant size mismatch, so the instancer's extra fields get their
+	# own buffer. Reads the LIVE particle_color_mode export so a UI flip
+	# applies on the next dispatch (no reinit).
 	_instancer_pc_bytes.encode_float(0, float(grid_N))
 	_instancer_pc_bytes.encode_float(4, dt)
 	_instancer_pc_bytes.encode_float(8, _time)
@@ -1385,6 +1399,7 @@ func _fill_instancer_pc() -> void:
 	_instancer_pc_bytes.encode_float(40, float(gravity_mode))
 	_instancer_pc_bytes.encode_float(44, float(particle_color_mode))
 	_instancer_pc_bytes.encode_float(48, _rainbow_vref)
+	_instancer_pc_bytes.encode_float(52, _rainbow_vscale)
 
 
 func _hsl_to_rgb(h: float, s: float, l: float) -> Color:
