@@ -29,6 +29,10 @@ const PI_CLAMP_MAX: float = 0.72  # (π/ρ) upper clamp (stability; telemetry co
 @export var qi_condensation_threshold: float = 0.5  # Qi density above this → BH nucleation
 @export var bh_acc_rate: float = 0.01                # mass growth per step from field
 @export var bh_max_age: float = 0.0                  # 0 = immortal
+# Recording mode suppresses the throttled CPU readbacks (occupancy/perf/q-tel/
+# p[0]/inst-debug) that stall the global RD every 500 ms — pure overhead for a
+# Movie Maker batch job. Physics, rendering, and Movie Maker capture are untouched.
+@export var recording_mode: bool = false
 
 # Gravity law selector (river law = the derived formula, default):
 #   0 = RIVER — a = −G_N·(π/ρ)·∇(g·Φ),  g = 1+(φ⁶−1)q,  ∇²Φ = ρ_mass (spectral)
@@ -196,7 +200,9 @@ var _time: float = 0.0
 var _step_timer: float = 0.0
 # Fixed-step catch-up cap: a 60 Hz frame at dt=0.001 needs exactly 16 steps;
 # a larger backlog is dropped (and counted) instead of spiraling unbounded.
-const MAX_STEPS_PER_FRAME: int = 16
+# Exported so the recorder scene can raise it for time-lapse coverage per
+# video second (default 16 = unchanged behavior).
+@export var max_steps_per_frame: int = 16
 var _dropped_steps: int = 0
 
 # — diagnostics —
@@ -269,7 +275,7 @@ func _process(delta: float) -> void:
 	if playing and _shaders_ready:
 		_step_timer += delta
 		var n_steps := 0
-		while _step_timer >= dt and n_steps < MAX_STEPS_PER_FRAME:
+		while _step_timer >= dt and n_steps < max_steps_per_frame:
 			_step_timer -= dt
 			n_steps += 1
 		if _step_timer >= dt:
@@ -1452,7 +1458,7 @@ func _render_frame() -> void:
 	# GPU-direct MultiMesh: NO per-frame readback/upload — the instancer
 	# shader wrote the renderer's buffer this frame. One-time debug print
 	# of the first instances (single small readback, cheap).
-	if not _inst_debug_done and _mm_rd_rid.is_valid() and _step_count >= 1:
+	if not recording_mode and not _inst_debug_done and _mm_rd_rid.is_valid() and _step_count >= 1:
 		_inst_debug_done = true
 		var inst_data = _rd.buffer_get_data(_mm_rd_rid, 0, min(3, N_particles) * 64)
 		if inst_data.size() >= 48:
@@ -1466,7 +1472,7 @@ func _render_frame() -> void:
 	# Throttled diagnostics readback (wall-time ~3 Hz; the step-count gate
 	# fired 60×/s at high FPS and drained the local device each time)
 	var q_guard = now_ms - _last_diag_ms >= int(1000.0 / DIAG_HZ)
-	if q_guard and _field_q.is_valid():
+	if q_guard and not recording_mode and _field_q.is_valid():
 		_last_diag_ms = now_ms
 		_ensure_synced()
 		var q_data = _rd.buffer_get_data(_field_q, 0, grid_N * grid_N * grid_N * 4)
@@ -1500,7 +1506,7 @@ func _render_frame() -> void:
 
 	# Throttled occupancy + perf report (~2 Hz; interactive runs only —
 	# verify scenes keep playing=false and report their own numbers).
-	if playing and now_ms - _last_occ_ms >= 500:
+	if playing and not recording_mode and now_ms - _last_occ_ms >= 500:
 		_last_occ_ms = now_ms
 		if _perf_steps > 0:
 			var dt_ms: float = float(_perf_phys_us) / 1e3 / float(_perf_steps)
@@ -1586,7 +1592,7 @@ func _render_particles() -> void:
 	# First-particle position debug print, wall-time gated (once per 10 s —
 	# each readback stalls the global RD, so no step-count spam).
 	var now_ms := Time.get_ticks_msec()
-	if _step_count > 0 and now_ms - _last_p0_rb_ms >= 10000:
+	if not recording_mode and _step_count > 0 and now_ms - _last_p0_rb_ms >= 10000:
 		_last_p0_rb_ms = now_ms
 		var pos_data = _rd.buffer_get_data(_pos_buf, 0, 16)
 		if pos_data.size() >= 16:

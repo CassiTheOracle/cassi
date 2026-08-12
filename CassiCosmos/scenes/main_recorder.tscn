@@ -1,0 +1,39 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" uid="uid://c6iyt4b83sxbh" path="res://scripts/main_recorder.gd" id="1_rec"]
+[ext_resource type="Script" uid="uid://bp5bjas7jlx46" path="res://scripts/cassi_sim.gd" id="2_sim"]
+
+[sub_resource type="Environment" id="env"]
+background_mode = 1
+tonemap_mode = 2
+glow_enabled = true
+glow_intensity = 0.8
+
+[node name="MainRecorder" type="Node3D"]
+script = ExtResource("1_rec")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("env")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 52.5, 150)
+fov = 65.0
+near = 0.1
+far = 2000.0
+
+[node name="CassiSim" type="Node3D" parent="."]
+script = ExtResource("2_sim")
+grid_N = 256
+N_particles = 2500000
+particle_size = 0.3
+cluster_radius = 50.0
+cluster_separation = 0.0
+source_strength = 0.0
+gravity_mode = 4
+river_calibrate_gn = true
+field_attractor_init = true
+initial_radius_fraction = 0.9
+initial_condition = 1
+recording_mode = true
+max_steps_per_frame = 60
+playing = true
