@@ -50,8 +50,7 @@ The ratio $r = E_Y/E_I$ evolves monotonically toward $\varphi$.
 
 $$\varepsilon^2 = (\Psi_0 - \varphi\Psi_1)^2,\qquad q = \frac{\rho^2}{\rho^2 + \varphi^{-2} + \varepsilon^2}$$
 
-$q \to 0$: far from $\varphi$-equilibrium. $q \to 1$: perfect $\varphi$-equilibrium. At the fixed point: $q_{\text{eq}} = \varphi^{-2}/(\varphi^2 + \varphi^{-2})$.
-
+$q \to 0$: far from $\varphi$-equilibrium. $q \to 1$: perfect $\varphi$-equilibrium. At the fixed point ($\varepsilon^2 = 0$; the solver's reference state $E_Y = 1$, $E_I = \varphi^{-1}$ gives $\rho = \varphi$): $q_{\text{eq}} = \varphi^{2}/(\varphi^2 + \varphi^{-2}) \approx 0.873$, and the gate openness $(1-q_{\text{eq}}) = \varphi^{-2}/(\varphi^2 + \varphi^{-2}) = \varphi^{-2}/3 \approx 0.127$ (the value item 1 below quotes as $q_{\text{eq}}$ under the $\rho^2 = \varphi^{-6}$ reference normalization).
 **Qi 2-vector.** $\mathbf{Q} = (\rho,\; J)$ where $J = \Psi_0\nabla\Psi_1 - \Psi_1\nabla\Psi_0$: magnitude + phase current. Qi is the third fundamental of the framework—the flow of coherence between Yang and Yin, and along the string axis between cascade scales; the scalar $q$ is the magnitude diagnostic of that flow (`foundations/qi-flow-double-helix.md`). The axial current $J_z = R^2\partial_z\theta$ is the inter-scale flow; the $P_\parallel = 2$ doublet cycle winds the Yang and Yin strand-currents into a double helix about the string axis.
 
 **Temporal coherence (IIR memory).** $\bar{\varepsilon}^2(t) = (1-\tau)\,\bar{\varepsilon}^2(t-\Delta t) + \tau\,\varepsilon^2(t)$, $\tau = \varphi^{-1}$. The field carries a memory of its own past state; smoothing $\varepsilon^2$ stabilizes $q$.
@@ -64,10 +63,10 @@ $q \to 0$: far from $\varphi$-equilibrium. $q \to 1$: perfect $\varphi$-equilibr
 4. **Removed branch form:** $q_\alpha \propto |\psi_\alpha|^2$, a branch-level Qi density asserted by the measurement derivation; retracted in favor of the canonical gate (`foundations/quantum-measurement-derivation.md` §4.5), no consumers remain.
 
 Distinct-naming consumers (not the coherence $q$): `experiments/phi_attractor_paths/path8_phi_enhanced_rotation.py` uses a density-only halo $q = 1/(1+(\rho/\rho_{\text{ref}})^2)$ (inverted density dependence; documented halo-scale approximation, not the canonical form); `experiments/sparc_qi/sparc_qi_analysis_v9.py` uses $q$ as a halo mass fraction; `speculations/dark-matter-as-qi-coherence.md` and `consciousness/chakras-as-cascade-bubbles.md` use the spatial envelope $q(\mathbf{x}) = (1+B(\mathbf{x}))/2$; `standard-model/sm-from-phi.md` §3.1 uses a distinct $Q = |\Psi|^2|\varepsilon|^2$.
-
 ### 2.5 Qi Gate
 
-$$\partial_t E_Y \supset -\lambda(1-q)(E_Y - \varphi E_I),\qquad \partial_t E_I \supset +\lambda(1-q)(E_Y - \varphi E_I)/\varphi$$
+$$\partial_t E_Y \supset -\lambda(1-q)(E_Y - \varphi E_I),\qquad \partial_t E_I \supset +\lambda(1-q)(E_Y - \varphi E_I)$$
+The pair is equal and opposite ($\partial_t E_Y = -\partial_t E_I$), so total density is conserved exactly—the committed solver's code form (`foundations/wu-xing-derivation.md` §7.1).
 
 The gate *openness* is $(1-q)$: $q \to 0$ means the gate is **open**—conversion runs hard, the region churns; $q \to 1$ means the gate is **closed**—the system rests at $\varphi$-balance. (Sign PDE-tested 2026-07-31 in `consciousness/trauma-as-frozen-gate.md` §10.4.) The gate determines $w(a)$; its shape follows from the $\varphi$-power structure.
 

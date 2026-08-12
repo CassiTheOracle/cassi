@@ -17,7 +17,8 @@ Checks:
      strands wind about the tangent (string axis).
   5. Cascade suppression: per-rung transfer of the inter-scale flow loses
      phi^-1, so N rungs lose phi^-N.
-  6. q at the attractor: q_eq = phi^-2/(phi^2 + phi^-2).
+  6. q at the attractor: q_eq = phi^2/(phi^2 + phi^-2) ~ 0.873; gate
+     openness (1-q_eq) = phi^-2/(phi^2 + phi^-2) = phi^-2/3 ~ 0.127.
 
 Usage: python computations/qi_flow_double_helix_check.py
 """
@@ -139,9 +140,14 @@ check("N rungs lose phi^-N (cascade suppression)",
 
 # --- 6. q at the attractor ---------------------------------------------
 print("\n6. Scalar q at the attractor")
-q_eq = PHI ** -2 / (PHI ** 2 + PHI ** -2)
-check("q_eq = phi^-2/(phi^2 + phi^-2) ~ 0.1273",
-      math.isclose(q_eq, 0.127322003750, rel_tol=1e-12), f" ({q_eq:.12f})")
+q_eq = PHI ** 2 / (PHI ** 2 + PHI ** -2)
+check("q_eq = phi^2/(phi^2 + phi^-2) ~ 0.8727",
+      math.isclose(q_eq, 0.8726779962499649, rel_tol=1e-12), f" ({q_eq:.12f})")
+openness = PHI ** -2 / (PHI ** 2 + PHI ** -2)
+check("gate openness (1-q_eq) = phi^-2/(phi^2 + phi^-2) = phi^-2/3 ~ 0.1273",
+      math.isclose(openness, 0.127322003750, rel_tol=1e-12)
+      and math.isclose(openness, PHI ** -2 / 3.0, rel_tol=1e-12),
+      f" ({openness:.12f})")
 
 print("\nVerdict")
 print("-------")

@@ -58,7 +58,7 @@ print("─ 1. Fixed-point value and normalizations of the canonical form (1) ─
 print()
 # q = rho^2/(rho^2 + phi^-2 + eps^2); at eps = 0, q_eq = phi^-2/(phi^2 + phi^-2)
 q_eq = PHI_M2 / (PHI2 + PHI_M2)
-print(f"  q_eq = phi^-2/(phi^2 + phi^-2)      = {q_eq:.12f}  (docs: ~0.127)")
+print(f"  q_eq = phi^-2/(phi^2 + phi^-2)      = {q_eq:.12f}  (reference normalization rho^2 = phi^-6; under the solver normalization rho^2 = phi^2 the same value is the gate openness (1-q_eq))")
 print(f"  => fixed-point power rho^2 = phi^-6 = {PHI ** -6:.12f}")
 print(f"  => fixed-point density  rho = phi^-3 = {PHI_M3:.12f}  (== (pi/rho)_eq)")
 print(f"  check: rho^2/(rho^2 + phi^-2) @ rho^2 = phi^-6 : "
