@@ -4,7 +4,8 @@
 //
 // Convention (identical to the repo's Python solver,
 // two-fluid/cassi_two_fluid_3d_gpu.py, `_poisson`):
-//   k_1d = 2π·fftfreq(N)/L with L = 2·extent (periodic box [−extent, +extent])
+//   k_i = 2π·fftfreq(N)/L_i, L_i = 2·extent_i (per-axis torus periods —
+//   the φ-aspect box, GRID_LAYOUT.md; cube: L = 2·extent)
 //   fftfreq labels: n ≤ N/2 → +n, n > N/2 → n − N   (Nyquist at +N/2 only)
 //   Φ̂(k=0) = 0;  Φ̂(k≠0) = −ρ̂/k²
 //
@@ -24,7 +25,7 @@
 // Modes (pc.mode):
 //   0 = load:   ρ (float, deposited by float-atomic CIC) → complex buffer
 //   1 = fft:    one Stockham axis pass (pc.axis 0/1/2, pc.direction 0 fwd / 1 inv)
-//   2 = kspace: Φ̂ = −ρ̂/k², k = 0 nulled  (needs pc.extent)
+//   2 = kspace: Φ̂ = −ρ̂/k², k = 0 nulled  (needs pc.extent_x/y/z)
 //   3 = clear:  ρ = 0, telemetry reset (per-step GPU clear)
 
 layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
@@ -38,7 +39,9 @@ layout(push_constant, std430) uniform PC {
     float axis;        // fft mode: 0 = x, 1 = y, 2 = z
     float direction;   // fft mode: 0 = forward, 1 = inverse (scaled 1/N)
     float mode;        // 0 = load, 1 = fft, 2 = kspace, 3 = clear
-    float extent;      // kspace mode: grid half-extent (L = 2·extent)
+    float extent_x;    // kspace mode: per-axis grid half-extents
+    float extent_y;    // (L_i = 2·extent_i = 2·aspect_i·1.5·cluster_radius)
+    float extent_z;
 } pc;
 
 const float PI = 3.14159265358979323846;
@@ -166,8 +169,12 @@ void kspace_main() {
     int ky = (j <= N / 2) ? j : j - N;
     int kz = (k <= N / 2) ? k : k - N;
 
-    float L = 2.0 * pc.extent;
-    float k2 = float(kx * kx + ky * ky + kz * kz) * (TWO_PI / L) * (TWO_PI / L);
+    // Per-axis torus wavenumbers: k_i = 2π·n_i/L_i, L_i = 2·extent_i.
+    // The physical Laplacian symbol Σk_i² (cube: k² = Σn²·(2π/L)²).
+    float kxw = TWO_PI * float(kx) / (2.0 * pc.extent_x);
+    float kyw = TWO_PI * float(ky) / (2.0 * pc.extent_y);
+    float kzw = TWO_PI * float(kz) / (2.0 * pc.extent_z);
+    float k2 = kxw * kxw + kyw * kyw + kzw * kzw;
     if (k2 > 0.0) {
         f[gid] = -f[gid] / k2;
     } else {

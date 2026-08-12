@@ -12,7 +12,8 @@ layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
 layout(set = 0, binding = 0, std430) readonly buffer FieldQ { float qv[]; };
 
-// bh[1].w = G_N, bh[2].y = extent, bh[4..33] = BH records (vec4[2] each, max 15)
+// bh[1].w = G_N, bh[2].yzw = per-axis box half-extents (GRID_LAYOUT.md),
+// bh[4..33] = BH records (vec4[2] each, max 15)
 layout(set = 1, binding = 0, std430) buffer BHData {
     vec4 bh[36];
 };
@@ -45,17 +46,19 @@ void main() {
     pos += vel * pc.dt;
     age += 1.0;
 
-    // Read Qi at current position for mass growth
-    float extent = bh[2].y;
+    // Read Qi at current position for mass growth (per-axis world map)
+    vec3 ext = bh[2].yzw;
     int N = int(pc.N_f);
-    vec3 gc = (pos / max(extent, 0.001)) * float(N) + float(N) * 0.5;
+    vec3 gc = (pos / max(ext, vec3(0.001))) * float(N) + float(N) * 0.5;
     int ci = clamp(int(floor(gc.x)) % N, 0, N - 1);
     int cj = clamp(int(floor(gc.y)) % N, 0, N - 1);
     int ck = clamp(int(floor(gc.z)) % N, 0, N - 1);
     float qi_local = qv[idx3(ci, cj, ck)];
 
-    // Grow mass from field density
-    float cell_vol = pow(max(extent / float(N), 0.001), 3.0);
+    // Grow mass from field density (per-axis cell volume: V = Π extent_i/N)
+    float cell_vol = max(ext.x / float(N), 0.001)
+                   * max(ext.y / float(N), 0.001)
+                   * max(ext.z / float(N), 0.001);
     mass += pc.acc_rate * qi_local * cell_vol;
 
     // Expire if too old

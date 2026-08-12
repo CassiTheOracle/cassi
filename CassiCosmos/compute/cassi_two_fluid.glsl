@@ -25,6 +25,7 @@ layout(push_constant, std430) uniform PC {
     float xi; float eps2; float particle_N;
     float mode; float source_strength; float num_clusters;
     float gravity_mode;  // unused here (nbody gravity selector)
+    float extent_x; float extent_y; float extent_z;  // per-axis box half-extents (GRID_LAYOUT.md §2.5)
 } pc;
 
 // ── Index helpers ─────────────────────────────────────────────────────
@@ -33,32 +34,58 @@ int idx3(int i, int j, int k) {
     return i + N * (j + N * k);
 }
 
-// 19-point isotropic periodic Laplacian (inlined per field — strict GLSL
-// rejects unsized array function parameters, which silently disabled this
-// shader in earlier builds). Weights: 6 axis neighbors 1/3 each, 12 face
-// diagonals 1/6 each, center −4. Symbol ω19² = k² − (1/12)(kx²+ky²+kz²)²
-// + O(k⁶): the quartic term is isotropic, so dispersion anisotropy is
-// O(h⁶) instead of the 7-point's O(h²). The 7-point's anisotropy bowed the
-// [110] front inward 2–4% with the corner-to-face gap growing linearly
-// with radius — the user's "the ring becomes a square". Max |symbol| 5.333
-// vs 12.000 (7-point): CFL bound relaxes 1.5×; dt=0.001 is far below both.
+// 19-point periodic Laplacian, ANISOTROPIC on the φ-aspect box (inlined
+// per field — strict GLSL rejects unsized array function parameters,
+// which silently disabled this shader in earlier builds). Cube weights:
+// 6 axis neighbors 1/3 each, 12 face diagonals 1/6 each, center −4.
+// Symbol ω19² = k² − (1/12)(kx²+ky²+kz²)² + O(k⁶): the quartic term is
+// isotropic, so dispersion anisotropy is O(h⁶) instead of the 7-point's
+// O(h²). The 7-point's anisotropy bowed the [110] front inward 2–4% with
+// the corner-to-face gap growing linearly with radius — the user's "the
+// ring becomes a square". Max |symbol| 5.333 vs 12.000 (7-point): CFL
+// bound relaxes 1.5×; dt=0.001 is far below both.
+//
+// PER-AXIS EXTENSION (GRID_LAYOUT.md §2.5): with h_i = 2·extent_i/N the
+// weights become
+//   b_ij = (1/3)·h₀²/(h_i²+h_j²),   a_i = (2/3)(h₀/h_i)² − Σ_{j≠i} b_ij,
+//   h₀ = 2·min(extent_i)/N  (the reference cell size — at the cube and
+//   the (φ,1,φ²) presets the min-extent axis IS the unit-aspect axis, so
+//   h₀ = 2·extent_base/N exactly; any aspect inherits uniform-rescale
+//   invariance). The leading symbol is (2/3)h₀²·k²_phys — ISOTROPIC in
+//   physical wavenumbers (matches the per-axis Poisson symbol), and the
+//   weights reduce EXACTLY to (1/3, 1/6) at unit aspect (fp32-exact:
+//   (1/3)·h02/(2·h02) = (1/3)/2 = 1/6). Max |symbol| at the (φ,1,φ²)
+//   Nyquist corner ≈ 4.07 — LOWER than the cube's 8.00 (5.33 mid-face),
+//   so the CFL bound is relaxed, not tightened.
 float lap_ey_at(int i, int j, int k) {
     int N = int(pc.N_f);
     int ip = (i + 1) % N; int im = (i - 1 + N) % N;
     int jp = (j + 1) % N; int jm = (j - 1 + N) % N;
     int kp = (k + 1) % N; int km = (k - 1 + N) % N;
-    float axis = (ey[idx3(ip, j, k)] + ey[idx3(im, j, k)]
-                + ey[idx3(i, jp, k)] + ey[idx3(i, jm, k)]
-                + ey[idx3(i, j, kp)] + ey[idx3(i, j, km)]
-                - 6.0 * ey[idx3(i, j, k)]);
-    float fd = (ey[idx3(ip, jp, k)] + ey[idx3(im, jp, k)]
-              + ey[idx3(ip, jm, k)] + ey[idx3(im, jm, k)]
-              + ey[idx3(ip, j, kp)] + ey[idx3(im, j, kp)]
-              + ey[idx3(ip, j, km)] + ey[idx3(im, j, km)]
-              + ey[idx3(i, jp, kp)] + ey[idx3(i, jm, kp)]
-              + ey[idx3(i, jp, km)] + ey[idx3(i, jm, km)]
-              - 12.0 * ey[idx3(i, j, k)]);
-    return (1.0 / 3.0) * axis + (1.0 / 6.0) * fd;
+    float hn = float(N) * 0.5;
+    float hx = pc.extent_x / hn;
+    float hy = pc.extent_y / hn;
+    float hz = pc.extent_z / hn;
+    float h0 = min(min(pc.extent_x, pc.extent_y), pc.extent_z) / hn;
+    float hx2 = hx * hx; float hy2 = hy * hy; float hz2 = hz * hz; float h02 = h0 * h0;
+    float bxy = (1.0 / 3.0) * h02 / (hx2 + hy2);
+    float bxz = (1.0 / 3.0) * h02 / (hx2 + hz2);
+    float byz = (1.0 / 3.0) * h02 / (hy2 + hz2);
+    float ax = (2.0 / 3.0) * h02 / hx2 - (bxy + bxz);
+    float ay = (2.0 / 3.0) * h02 / hy2 - (bxy + byz);
+    float az = (2.0 / 3.0) * h02 / hz2 - (bxz + byz);
+    float e = ey[idx3(i, j, k)];
+    float axis_x = ey[idx3(ip, j, k)] + ey[idx3(im, j, k)] - 2.0 * e;
+    float axis_y = ey[idx3(i, jp, k)] + ey[idx3(i, jm, k)] - 2.0 * e;
+    float axis_z = ey[idx3(i, j, kp)] + ey[idx3(i, j, km)] - 2.0 * e;
+    float fd_xy = (ey[idx3(ip, jp, k)] + ey[idx3(im, jp, k)]
+                 + ey[idx3(ip, jm, k)] + ey[idx3(im, jm, k)] - 4.0 * e);
+    float fd_xz = (ey[idx3(ip, j, kp)] + ey[idx3(im, j, kp)]
+                 + ey[idx3(ip, j, km)] + ey[idx3(im, j, km)] - 4.0 * e);
+    float fd_yz = (ey[idx3(i, jp, kp)] + ey[idx3(i, jm, kp)]
+                 + ey[idx3(i, jp, km)] + ey[idx3(i, jm, km)] - 4.0 * e);
+    return ax * axis_x + ay * axis_y + az * axis_z
+         + bxy * fd_xy + bxz * fd_xz + byz * fd_yz;
 }
 
 float lap_ei_at(int i, int j, int k) {
@@ -66,18 +93,30 @@ float lap_ei_at(int i, int j, int k) {
     int ip = (i + 1) % N; int im = (i - 1 + N) % N;
     int jp = (j + 1) % N; int jm = (j - 1 + N) % N;
     int kp = (k + 1) % N; int km = (k - 1 + N) % N;
-    float axis = (ei[idx3(ip, j, k)] + ei[idx3(im, j, k)]
-                + ei[idx3(i, jp, k)] + ei[idx3(i, jm, k)]
-                + ei[idx3(i, j, kp)] + ei[idx3(i, j, km)]
-                - 6.0 * ei[idx3(i, j, k)]);
-    float fd = (ei[idx3(ip, jp, k)] + ei[idx3(im, jp, k)]
-              + ei[idx3(ip, jm, k)] + ei[idx3(im, jm, k)]
-              + ei[idx3(ip, j, kp)] + ei[idx3(im, j, kp)]
-              + ei[idx3(ip, j, km)] + ei[idx3(im, j, km)]
-              + ei[idx3(i, jp, kp)] + ei[idx3(i, jm, kp)]
-              + ei[idx3(i, jp, km)] + ei[idx3(i, jm, km)]
-              - 12.0 * ei[idx3(i, j, k)]);
-    return (1.0 / 3.0) * axis + (1.0 / 6.0) * fd;
+    float hn = float(N) * 0.5;
+    float hx = pc.extent_x / hn;
+    float hy = pc.extent_y / hn;
+    float hz = pc.extent_z / hn;
+    float h0 = min(min(pc.extent_x, pc.extent_y), pc.extent_z) / hn;
+    float hx2 = hx * hx; float hy2 = hy * hy; float hz2 = hz * hz; float h02 = h0 * h0;
+    float bxy = (1.0 / 3.0) * h02 / (hx2 + hy2);
+    float bxz = (1.0 / 3.0) * h02 / (hx2 + hz2);
+    float byz = (1.0 / 3.0) * h02 / (hy2 + hz2);
+    float ax = (2.0 / 3.0) * h02 / hx2 - (bxy + bxz);
+    float ay = (2.0 / 3.0) * h02 / hy2 - (bxy + byz);
+    float az = (2.0 / 3.0) * h02 / hz2 - (bxz + byz);
+    float e = ei[idx3(i, j, k)];
+    float axis_x = ei[idx3(ip, j, k)] + ei[idx3(im, j, k)] - 2.0 * e;
+    float axis_y = ei[idx3(i, jp, k)] + ei[idx3(i, jm, k)] - 2.0 * e;
+    float axis_z = ei[idx3(i, j, kp)] + ei[idx3(i, j, km)] - 2.0 * e;
+    float fd_xy = (ei[idx3(ip, jp, k)] + ei[idx3(im, jp, k)]
+                 + ei[idx3(ip, jm, k)] + ei[idx3(im, jm, k)] - 4.0 * e);
+    float fd_xz = (ei[idx3(ip, j, kp)] + ei[idx3(im, j, kp)]
+                 + ei[idx3(ip, j, km)] + ei[idx3(im, j, km)] - 4.0 * e);
+    float fd_yz = (ei[idx3(i, jp, kp)] + ei[idx3(i, jm, kp)]
+                 + ei[idx3(i, jp, km)] + ei[idx3(i, jm, km)] - 4.0 * e);
+    return ax * axis_x + ay * axis_y + az * axis_z
+         + bxy * fd_xy + bxz * fd_xz + byz * fd_yz;
 }
 
 // ── Perturbation source: Gaussian at center, or multiple seeds ────────

@@ -519,10 +519,13 @@ func _setup_buffers() -> void:
 	# Pre-allocate push-constant byte buffers (hitch-free pattern)
 	_pc_bytes = PackedByteArray(); _pc_bytes.resize(11 * 4)
 	_nbody_pc_bytes = PackedByteArray(); _nbody_pc_bytes.resize(15 * 4)
-	_md_pc_bytes = PackedByteArray(); _md_pc_bytes.resize(4 * 4)
+	# Two-fluid dedicated PC (14 floats = 56 B): the shared 11 fields + the
+	# 3 per-axis extents for the anisotropic 19-point stencil (GRID_LAYOUT.md).
+	_two_fluid_pc_bytes = PackedByteArray(); _two_fluid_pc_bytes.resize(14 * 4)
+	_md_pc_bytes = PackedByteArray(); _md_pc_bytes.resize(5 * 4)
 	_bh_int_pc_bytes = PackedByteArray(); _bh_int_pc_bytes.resize(4 * 4)
 	_cond_pc_bytes = PackedByteArray(); _cond_pc_bytes.resize(4 * 4)
-	_poisson_pc_bytes = PackedByteArray(); _poisson_pc_bytes.resize(5 * 4)
+	_poisson_pc_bytes = PackedByteArray(); _poisson_pc_bytes.resize(7 * 4)
 	# NOTE: all poisson dispatches (clear/load/kspace/FFT) are 2D (N, N, 1) —
 	# cells modes use gid = x + y·N·256 (see cassi_poisson.glsl), the FFT
 	# uses row = workgroup.x + workgroup.y·N. A 1D (N³/256, 1, 1) dispatch
@@ -1208,6 +1211,8 @@ func _step_dispatches(cl: int) -> void:
 	_time += dt
 	_step_count += 1
 
+	var ext_step: Vector3 = _extents()  # per-axis box half-extents (PCs + bh header)
+
 	# ── Pre-allocated push constants (no per-step allocations) ──────────
 	_pc_bytes.encode_float(0, float(grid_N))
 	_pc_bytes.encode_float(4, dt)
@@ -1220,6 +1225,25 @@ func _step_dispatches(cl: int) -> void:
 	_pc_bytes.encode_float(32, source_strength)
 	_pc_bytes.encode_float(36, float(num_clusters))
 	_pc_bytes.encode_float(40, float(gravity_mode))
+
+	# Two-fluid PC (dedicated 56 B): the shared 11 fields + the 3 per-axis
+	# extents (the anisotropic 19-point stencil needs h_i = 2·extent_i/N —
+	# the dedicated-PC precedent: the shared _pc_bytes stays at 11 floats
+	# for field_render/instancer/bh_lensing).
+	_two_fluid_pc_bytes.encode_float(0, float(grid_N))
+	_two_fluid_pc_bytes.encode_float(4, dt)
+	_two_fluid_pc_bytes.encode_float(8, _time)
+	_two_fluid_pc_bytes.encode_float(12, PHI)
+	_two_fluid_pc_bytes.encode_float(16, xi)
+	_two_fluid_pc_bytes.encode_float(20, softening * softening)
+	_two_fluid_pc_bytes.encode_float(24, float(N_particles))
+	_two_fluid_pc_bytes.encode_float(28, float(mode))
+	_two_fluid_pc_bytes.encode_float(32, source_strength)
+	_two_fluid_pc_bytes.encode_float(36, float(num_clusters))
+	_two_fluid_pc_bytes.encode_float(40, float(gravity_mode))
+	_two_fluid_pc_bytes.encode_float(44, ext_step.x)
+	_two_fluid_pc_bytes.encode_float(48, ext_step.y)
+	_two_fluid_pc_bytes.encode_float(52, ext_step.z)
 
 	# N-body PC (dedicated 48 B): same 11 fields + pass_mode at float 11.
 	# pass_mode = 0 for the particle pass; the gradient pass (2.8) sets 1.
@@ -1239,10 +1263,12 @@ func _step_dispatches(cl: int) -> void:
 	_nbody_pc_bytes.encode_float(52, realsim_viscosity)
 	_nbody_pc_bytes.encode_float(56, realsim_friction)
 
-	# Mass deposit PC: [N_f, particle_N, extent, _]
+	# Mass deposit PC: [N_f, particle_N, extent_x, extent_y, extent_z]
 	_md_pc_bytes.encode_float(0, float(grid_N))
 	_md_pc_bytes.encode_float(4, float(N_particles))
-	_md_pc_bytes.encode_float(8, cluster_radius * 1.5)
+	_md_pc_bytes.encode_float(8, ext_step.x)
+	_md_pc_bytes.encode_float(12, ext_step.y)
+	_md_pc_bytes.encode_float(16, ext_step.z)
 	# BH integrate PC: [N_f, dt, acc_rate, max_age]
 	_bh_int_pc_bytes.encode_float(0, float(grid_N))
 	_bh_int_pc_bytes.encode_float(4, dt)
@@ -1267,7 +1293,9 @@ func _step_dispatches(cl: int) -> void:
 		_poisson_pc_bytes.encode_float(4, 0.0)
 		_poisson_pc_bytes.encode_float(8, 0.0)
 		_poisson_pc_bytes.encode_float(12, 3.0)  # mode 3 = clear
-		_poisson_pc_bytes.encode_float(16, cluster_radius * 1.5)
+		_poisson_pc_bytes.encode_float(16, ext_step.x)
+		_poisson_pc_bytes.encode_float(20, ext_step.y)
+		_poisson_pc_bytes.encode_float(24, ext_step.z)
 		_rd.compute_list_bind_compute_pipeline(cl, _poisson_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_poisson_0, 0)
 		_rd.compute_list_set_push_constant(cl, _poisson_pc_bytes, _poisson_pc_bytes.size())
@@ -1295,7 +1323,7 @@ func _step_dispatches(cl: int) -> void:
 	if _two_fluid_shader.is_valid():
 		_rd.compute_list_bind_compute_pipeline(cl, _two_fluid_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_two_0, 0)
-		_rd.compute_list_set_push_constant(cl, _pc_bytes, _pc_bytes.size())
+		_rd.compute_list_set_push_constant(cl, _two_fluid_pc_bytes, _two_fluid_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, wg, wg, wg)
 	_barrier(cl)  # PDE → condensation
 
@@ -1431,10 +1459,15 @@ func _dispatch_poisson(cl: int) -> void:
 	if not _poisson_shader.is_valid(): return
 	_rd.compute_list_bind_compute_pipeline(cl, _poisson_pipe)
 	_rd.compute_list_bind_uniform_set(cl, _us_poisson_0, 0)
-	# mode 0: load ρ → complex buffer
+	# mode 0: load ρ → complex buffer. The per-axis extents ride along for
+	# the kspace multiply — the FFT passes only touch floats 4/8/12, so the
+	# extents persist from this encode through the whole chain.
+	var ext_p: Vector3 = _extents()
 	_poisson_pc_bytes.encode_float(0, float(grid_N)); _poisson_pc_bytes.encode_float(4, 0.0)
 	_poisson_pc_bytes.encode_float(8, 0.0); _poisson_pc_bytes.encode_float(12, 0.0)
-	_poisson_pc_bytes.encode_float(16, cluster_radius * 1.5)
+	_poisson_pc_bytes.encode_float(16, ext_p.x)
+	_poisson_pc_bytes.encode_float(20, ext_p.y)
+	_poisson_pc_bytes.encode_float(24, ext_p.z)
 	_rd.compute_list_set_push_constant(cl, _poisson_pc_bytes, _poisson_pc_bytes.size())
 	_rd.compute_list_dispatch(cl, grid_N, grid_N, 1)  # 2D cells dispatch
 	_barrier(cl)  # load → fwd x

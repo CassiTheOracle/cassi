@@ -157,7 +157,10 @@ layout(set = 1, binding = 1, std430) restrict buffer Velocities { vec4 vel[]; };
 layout(set = 1, binding = 2, std430) restrict buffer Accelerations { vec4 acc[]; };
 
 // BHData: bh[0].x = count (unused), bh[1].w = G_N, bh[2].x = cluster radius
-// (the Plummer softening scale), bh[2].y = extent, bh[3].x = global
+// (the Plummer softening scale), bh[2].yzw = per-axis box half-extents
+// (extent_x, extent_y, extent_z — the φ-aspect box, GRID_LAYOUT.md; the
+// samplers and the gradient pass map world → grid with each axis's own
+// extent; cube: all three equal the legacy extent), bh[3].x = global
 // black_holes_enabled toggle (host writes 1.0/0.0; gates bh_point_gravity
 // in ANY gravity mode), bh[4..] = BH records
 // (vec4[pos.xyz, mass] + vec4[vel.xyz, age]), max 15.
@@ -210,8 +213,8 @@ int idx3(int i, int j, int k) {
 float NAME(vec3 wp) { \
     int N = int(pc.N_f); \
     float hn = float(N) * 0.5; \
-    float extent = bh[2].y; \
-    float inv_ext = 1.0 / max(extent, 0.0001); \
+    vec3 ext = bh[2].yzw; \
+    vec3 inv_ext = 1.0 / max(ext, vec3(0.0001)); \
     vec3 gc = (wp * inv_ext) * hn + hn; \
     int i0 = int(floor(gc.x)); \
     int j0 = int(floor(gc.y)); \
@@ -266,12 +269,15 @@ float chord_s_at(int i, int j, int k) {
 // 1.0441 / 1.1293 (slightly worse — Catmull-Rom overshoot). Verdict:
 // the anisotropy is intrinsic to the discrete torus-Green field (its
 // cubic structure), not the sampler — reverted per the gate; the lever
-// is the box size / grid resolution. Trilinear stays.
+// is the box geometry: the per-axis extents below (bh[2].yzw) make the
+// image lattice incommensurate at box scale (GRID_LAYOUT.md). The
+// small-scale r/h bias per direction persists; the box-scale axis lock
+// is removed. Trilinear stays.
 vec3 tri_grad(vec3 wp) {
     int N = int(pc.N_f);
     float hn = float(N) * 0.5;
-    float extent = bh[2].y;
-    float inv_ext = 1.0 / max(extent, 0.0001);
+    vec3 ext = bh[2].yzw;
+    vec3 inv_ext = 1.0 / max(ext, vec3(0.0001));
     vec3 gc = (wp * inv_ext) * hn + hn;
 
     int i0 = int(floor(gc.x));
@@ -327,11 +333,11 @@ void grad_main() {
     float spy = chord_s_at(i,  jp, k);  float smy = chord_s_at(i,  jm, k);
     float spz = chord_s_at(i,  j,  kp); float smz = chord_s_at(i,  j,  km);
 
-    float h = bh[2].y / (float(N) * 0.5);   // cell size (extent / hn)
+    vec3 h = bh[2].yzw / (float(N) * 0.5);   // per-axis cell sizes (extent_i / hn)
     grad[gid] = vec4(
-        (spx - smx) / (2.0 * h),
-        (spy - smy) / (2.0 * h),
-        (spz - smz) / (2.0 * h),
+        (spx - smx) / (2.0 * h.x),
+        (spy - smy) / (2.0 * h.y),
+        (spz - smz) / (2.0 * h.z),
         0.0);
 }
 
@@ -397,8 +403,8 @@ vec3 river_field_acc(vec3 wp, inout TeleStats st) {
 void sample_q_field(vec3 wp, out float q_val, out vec3 q_grad) {
     int N = int(pc.N_f);
     float hn = float(N) * 0.5;
-    float extent = bh[2].y;
-    float inv_ext = 1.0 / max(extent, 0.0001);
+    vec3 ext = bh[2].yzw;
+    vec3 inv_ext = 1.0 / max(ext, vec3(0.0001));
     vec3 gc = (wp * inv_ext) * hn + hn;
 
     int i0 = int(floor(gc.x));
@@ -435,7 +441,7 @@ void sample_q_field(vec3 wp, out float q_val, out vec3 q_grad) {
     float q1 = mix(mix(q001, q101, fx), mix(q011, q111, fx), fy);
     q_val = mix(q0, q1, fz);
 
-    float dx = extent / hn;
+    vec3 dx = ext / hn;   // per-axis cell sizes (gradient normalization)
     float qx_l = mix(mix(q000, q001, fz), mix(q010, q011, fz), fy);
     float qx_r = mix(mix(q100, q101, fz), mix(q110, q111, fz), fy);
     float qy_l = mix(mix(q000, q100, fx), mix(q001, q101, fx), fz);
@@ -511,8 +517,8 @@ vec3 bh_point_gravity(vec3 particle_pos, float eps2) {
 vec4 tri_fvel(vec3 wp) {
     int N = int(pc.N_f);
     float hn = float(N) * 0.5;
-    float extent = bh[2].y;
-    float inv_ext = 1.0 / max(extent, 0.0001);
+    vec3 ext = bh[2].yzw;
+    vec3 inv_ext = 1.0 / max(ext, vec3(0.0001));
     vec3 gc = (wp * inv_ext) * hn + hn;
 
     int i0 = int(floor(gc.x));

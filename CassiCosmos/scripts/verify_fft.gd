@@ -87,7 +87,11 @@ func _fft_pass(axis: float, direction: float, mode: float) -> void:
 	pc.encode_float(4, axis)
 	pc.encode_float(8, direction)
 	pc.encode_float(12, mode)
+	# Per-axis extents (the kspace multiply reads all three; at the cube
+	# aspect they are equal to the legacy single extent).
 	pc.encode_float(16, extent)
+	pc.encode_float(20, extent)
+	pc.encode_float(24, extent)
 	sim._rd.compute_list_set_push_constant(cl, pc, pc.size())
 	# All poisson modes dispatch 2D (N, N, 1): FFT passes = one workgroup
 	# per row (row = wg.x + wg.y·N); cells modes (load/kspace/clear) cover

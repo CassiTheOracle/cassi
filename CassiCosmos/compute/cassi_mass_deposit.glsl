@@ -44,8 +44,9 @@ layout(set = 0, binding = 1, std430) coherent buffer MassDensity {
 layout(push_constant, std430) uniform PC {
     float N_f;           // grid resolution per dimension
     float particle_N;    // active particle count
-    float extent;        // grid physical half-extent
-    float _pad;
+    float extent_x;      // per-axis grid physical half-extents (GRID_LAYOUT.md)
+    float extent_y;
+    float extent_z;
 } pc;
 
 // ── Main kernel: TSC (triangular-shaped cloud) mass deposit ───────────
@@ -60,7 +61,12 @@ void main() {
 
     int N = int(pc.N_f);
     float hn = float(N) * 0.5;
-    float scale = (pc.extent > 0.0) ? (hn / pc.extent) : hn;
+    // Per-axis world→grid map. The TSC kernel itself stays CELL-BASED (its
+    // weights are functions of the fractional-cell offsets only, an exact
+    // partition of unity); the per-axis physical support (1.5h_i) falls out
+    // of this map — the φ-aspect deposit needs no kernel change.
+    vec3 ext = vec3(pc.extent_x, pc.extent_y, pc.extent_z);
+    vec3 scale = (ext.x > 0.0) ? (hn / ext) : vec3(hn);
     vec3 gc = p.xyz * scale + hn;  // fractional grid coordinates
 
     int i0 = int(floor(gc.x));

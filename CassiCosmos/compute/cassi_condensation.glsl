@@ -17,9 +17,9 @@ layout(set = 0, binding = 0, std430) readonly buffer FieldQ { float qv[]; };
 // ── BH tracking buffer (write) ─────────────────────────────────────────
 // bh[0].x       = unused (was atomic counter — removed)
 // bh[1].w       = G_N (read-only, set by sim_ui)
-// bh[2].y       = extent (read-only, set by sim_ui)
+// bh[2].yzw     = per-axis box half-extents (read-only; GRID_LAYOUT.md)
 // bh[4..33]     = BH records (vec4[2] each = 32 bytes per BH, max 15)
-//   [base].xyz  = position (world coords, [−extent, +extent] box)
+//   [base].xyz  = position (world coords, [−extent_i, +extent_i] box)
 //   [base].w    = mass (Qi density × cell volume)
 //   [base+1].xy = velocity (initialized to zero)
 // Buffer is 36 vec4s (576 bytes) — matches the nbody/bh_integrate readers.
@@ -52,16 +52,16 @@ void main() {
     int base = 4 + slot * 2;
     if (base + 1 >= 36) return;  // safety
 
-    float extent = bh[2].y;
+    vec3 ext = bh[2].yzw;
     int N = int(pc.N_f);
     int cx = gid % N;
     int cy = (gid / N) % N;
     int cz = gid / (N * N);
-    // Grid cell (0..N) → world [−extent, +extent] — same convention as the
-    // mass deposit and the nbody samplers (gc = wp/extent·N/2 + N/2).
-    vec3 world_pos = ((vec3(cx, cy, cz) + 0.5) / float(N) * 2.0 - 1.0) * extent;
+    // Grid cell (0..N) → world [−extent_i, +extent_i] per axis — same
+    // convention as the mass deposit and the nbody samplers (gc = wp/extent_i·N/2 + N/2).
+    vec3 world_pos = ((vec3(cx, cy, cz) + 0.5) / float(N) * 2.0 - 1.0) * ext;
 
-    float cell_vol = pow(extent / float(N), 3.0);
+    float cell_vol = (ext.x / float(N)) * (ext.y / float(N)) * (ext.z / float(N));
     float mass = qval * cell_vol;
 
     bh[base]     = vec4(world_pos, mass);
