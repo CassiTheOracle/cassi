@@ -24,7 +24,29 @@ var _grid_spin: SpinBox
 var _particle_spin: SpinBox
 var _nclusters_spin: SpinBox; var _sep_spin: SpinBox
 var _init_opt: OptionButton
-var _color_opt: OptionButton
+var _rainbow_btn: CheckButton
+var _color_src_opt: OptionButton
+var _passes_spin: SpinBox
+var _color_btn: Button
+var _color_popup: PopupPanel
+var _qi_cycle_lo: SpinBox
+var _qi_cycle_hi: SpinBox
+var _qi_pinch_lo: SpinBox
+var _qi_pinch_hi: SpinBox
+var _share_r: SpinBox
+var _share_g: SpinBox
+var _share_b: SpinBox
+var _qi_gate_spin: SpinBox
+var _white_lbl: Label
+var _vel_auto_btn: CheckButton
+var _vel_cycle_lo: SpinBox
+var _vel_cycle_hi: SpinBox
+var _vel_pinch_lo: SpinBox
+var _vel_pinch_hi: SpinBox
+var _vel_appr_lo: SpinBox
+var _vel_appr_hi: SpinBox
+var _prog_opt: OptionButton
+var _hue_off_spin: SpinBox
 var _no_rb_btn: CheckButton
 var _bh_toggle_btn: CheckButton
 var _phi_box_btn: CheckButton
@@ -250,24 +272,56 @@ func _ready() -> void:
 	_init_opt.focus_mode = Control.FOCUS_NONE
 	init_box.add_child(_init_opt)
 
-	# Particle color scheme selector (live — no reinit; paused view repaints
-	# immediately via the sim's one-shot instancer repaint).
+	# Particle color (consolidated gradient engine): Rainbow toggle + source +
+	# pass count + the ⚙ popup with the full range/band/gate controls.
+	# Live — no reinit; a flip repaints the paused view immediately.
 	var color_box = VBoxContainer.new()
-	color_box.custom_minimum_size = Vector2(160, 40)
+	color_box.custom_minimum_size = Vector2(320, 40)
 	row3.add_child(color_box)
 	var color_lbl = _make_label("Color:", Color(0.9, 0.85, 0.5), 12)
 	color_box.add_child(color_lbl)
-	_color_opt = OptionButton.new()
-	_color_opt.add_item("Cassi gradient")
-	_color_opt.add_item("Velocity rainbow")
-	_color_opt.add_item("Qi rainbow")
-	_color_opt.add_item("Qi double rainbow")
-	_color_opt.selected = 0
-	_color_opt.tooltip_text = "Color: 0 Cassi = mass-temperature gradient (Salpeter blue dwarfs → red giants); 1 Velocity rainbow = hue from speed, slow=red → fast=magenta-pink (full hue circle, top 0.95); 2 Qi rainbow = coherence q = EY²+EI², two-stage: the normal band (2e-4 → 1e-3) sweeps the FULL hue circle (median ≈ green-cyan), then stage 2 ramps violet → PINK exactly at the φ⁻² decoherence gate (q = 0.381966) → white at the condensation threshold; 3 Qi double rainbow = same, with the band hue ramp doubled (two rainbow passes across the normal band, doubled gradient granularity) and the same stage 2; live — no reinit."
-	_color_opt.custom_minimum_size = Vector2(150, 22)
-	_color_opt.focus_mode = Control.FOCUS_NONE
-	_color_opt.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	color_box.add_child(_color_opt)
+	var color_row = HBoxContainer.new()
+	color_row.add_theme_constant_override("separation", 6)
+	color_box.add_child(color_row)
+	_rainbow_btn = CheckButton.new()
+	_rainbow_btn.name = "RainbowBtn"
+	_rainbow_btn.text = "Rainbow"
+	_rainbow_btn.tooltip_text = "Rainbow on (Velocity or Qi source) / off (Cassi mass-temperature gradient)"
+	_rainbow_btn.custom_minimum_size = Vector2(92, 22)
+	_rainbow_btn.focus_mode = Control.FOCUS_NONE
+	_rainbow_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	_rainbow_btn.toggled.connect(_on_rainbow_toggled)
+	color_row.add_child(_rainbow_btn)
+	_color_src_opt = OptionButton.new()
+	_color_src_opt.name = "ColorSrcOpt"
+	_color_src_opt.add_item("Velocity")
+	_color_src_opt.add_item("Qi")
+	_color_src_opt.selected = 1
+	_color_src_opt.tooltip_text = "Rainbow source: Velocity = hue from speed (single pass, magenta-pink top at 0.95, held beyond); Qi = coherence q = EY²+EI² (cycle band + white-hot approach through the φ⁻² pink gate)"
+	_color_src_opt.custom_minimum_size = Vector2(92, 22)
+	_color_src_opt.focus_mode = Control.FOCUS_NONE
+	_color_src_opt.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	_color_src_opt.item_selected.connect(_on_color_src_selected)
+	color_row.add_child(_color_src_opt)
+	_passes_spin = SpinBox.new()
+	_passes_spin.name = "PassesSpin"
+	_passes_spin.min_value = 1; _passes_spin.max_value = 8; _passes_spin.step = 1
+	_passes_spin.value = 1
+	_passes_spin.tooltip_text = "Rainbow passes over the cycle band (1-8; 0 = auto — Qi 2, else 1). More passes = finer gradient granularity. Velocity keeps one pass."
+	_passes_spin.custom_minimum_size = Vector2(56, 22)
+	_passes_spin.focus_mode = Control.FOCUS_NONE
+	_passes_spin.value_changed.connect(_on_passes_changed)
+	color_row.add_child(_passes_spin)
+	_color_btn = Button.new()
+	_color_btn.name = "ColorBtn"
+	_color_btn.text = "⚙"
+	_color_btn.tooltip_text = "Gradient ranges: cycle/pinch bands, hue shares, pink gate, white point, velocity band, progress measure, hue offset"
+	_color_btn.custom_minimum_size = Vector2(34, 22)
+	_color_btn.focus_mode = Control.FOCUS_NONE
+	_color_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	_color_btn.pressed.connect(_open_color_popup)
+	color_row.add_child(_color_btn)
+	_build_color_popup()
 
 	# CPU-readback suppression toggle: kills the ~0.5 s stutter (the
 	# throttled occupancy/perf/q-tel readbacks stall the global RD).
@@ -340,7 +394,7 @@ func _ready() -> void:
 		_set_mode_highlight(sim.mode)
 		_set_grav_highlight(sim.gravity_mode)
 		_init_opt.selected = sim.initial_condition
-		_color_opt.selected = sim.particle_color_mode
+		_sync_color_widgets(sim)
 		_no_rb_btn.button_pressed = sim.suppress_readbacks
 		_bh_toggle_btn.button_pressed = sim.black_holes_enabled
 		_phi_box_btn.button_pressed = (sim.box_aspect != Vector3(1.0, 1.0, 1.0))
@@ -351,7 +405,6 @@ func _ready() -> void:
 	_nclusters_spin.value_changed.connect(_on_clusters_changed)
 	_sep_spin.value_changed.connect(_on_separation_changed)
 	_init_opt.item_selected.connect(_on_init_selected)
-	_color_opt.item_selected.connect(_on_color_mode_selected)
 	_no_rb_btn.toggled.connect(_on_suppress_readbacks_toggled)
 	_bh_toggle_btn.toggled.connect(_on_black_holes_toggled)
 	_phi_box_btn.toggled.connect(_on_phi_box_toggled)
@@ -418,6 +471,189 @@ func _build_slider_row(parent: HBoxContainer, label_text: String,
 	return slider
 
 
+func _popup_spin(name: String, min_v: float, max_v: float, step_v: float, default_v: float) -> SpinBox:
+	var s = SpinBox.new()
+	s.name = name
+	s.min_value = min_v; s.max_value = max_v; s.step = step_v
+	s.value = default_v
+	s.custom_minimum_size = Vector2(92, 24)
+	s.focus_mode = Control.FOCUS_NONE
+	return s
+
+
+func _popup_spin_row(parent: VBoxContainer, label_text: String, lo: SpinBox, hi: SpinBox, callback: Callable) -> void:
+	var row = HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	parent.add_child(row)
+	var lbl = _make_label(label_text, Color(0.85, 0.9, 1.0), 12)
+	lbl.custom_minimum_size = Vector2(96, 0)
+	row.add_child(lbl)
+	lo.value_changed.connect(callback)
+	row.add_child(lo)
+	var arrow = _make_label("→", Color(0.6, 0.7, 0.9), 12)
+	row.add_child(arrow)
+	hi.value_changed.connect(callback)
+	row.add_child(hi)
+
+
+func _build_color_popup() -> void:
+	_color_popup = PopupPanel.new()
+	_color_popup.name = "ColorPopup"
+	_color_popup.about_to_popup.connect(_refresh_popup_fields)
+	add_child(_color_popup)
+	var pv = VBoxContainer.new()
+	pv.add_theme_constant_override("separation", 6)
+	_color_popup.add_child(pv)
+
+	# ── Qi group ──
+	pv.add_child(_make_label("Qi rainbow", Color(0.75, 0.9, 1.0), 13))
+	_qi_cycle_lo = _popup_spin("QiCycleLo", 1e-5, 1.0, 1e-5, 0.0002)
+	_qi_cycle_hi = _popup_spin("QiCycleHi", 1e-5, 1.0, 1e-5, 0.001)
+	_popup_spin_row(pv, "Cycle band", _qi_cycle_lo, _qi_cycle_hi, _on_qi_cycle_changed)
+	_qi_pinch_lo = _popup_spin("QiPinchLo", 0.0, 1.0, 1e-5, 0.0)
+	_qi_pinch_hi = _popup_spin("QiPinchHi", 0.0, 1.0, 1e-5, 0.0)
+	_popup_spin_row(pv, "Pinch band", _qi_pinch_lo, _qi_pinch_hi, _on_qi_pinch_changed)
+	_share_r = _popup_spin("ShareR", 0.0, 1.0, 0.01, 0.2)
+	_share_g = _popup_spin("ShareG", 0.0, 1.0, 0.01, 0.6)
+	_share_b = _popup_spin("ShareB", 0.0, 1.0, 0.01, 0.2)
+	var sh_row = HBoxContainer.new()
+	sh_row.add_theme_constant_override("separation", 6)
+	pv.add_child(sh_row)
+	sh_row.add_child(_make_label("Hue shares", Color(0.85, 0.9, 1.0), 12))
+	for s in [_share_r, _share_g, _share_b]:
+		s.custom_minimum_size = Vector2(58, 24)
+		s.value_changed.connect(_on_shares_changed)
+		sh_row.add_child(s)
+	_qi_gate_spin = _popup_spin("QiGate", 0.0, 1.0, 0.001, 0.3819660112501051)
+	_qi_gate_spin.value_changed.connect(_on_qi_gate_changed)
+	var gate_row = HBoxContainer.new()
+	gate_row.add_theme_constant_override("separation", 6)
+	pv.add_child(gate_row)
+	gate_row.add_child(_make_label("Pink gate", Color(0.85, 0.9, 1.0), 12))
+	gate_row.add_child(_qi_gate_spin)
+	_white_lbl = Label.new()
+	_white_lbl.name = "WhiteLabel"
+	_white_lbl.add_theme_color_override("font_color", Color(0.9, 0.95, 1.0))
+	_white_lbl.add_theme_font_size_override("font_size", 12)
+	var wp_row = HBoxContainer.new()
+	wp_row.add_theme_constant_override("separation", 6)
+	pv.add_child(wp_row)
+	wp_row.add_child(_make_label("White point", Color(0.85, 0.9, 1.0), 12))
+	wp_row.add_child(_white_lbl)
+	var calib_btn = Button.new()
+	calib_btn.name = "ResetCalibBtn"
+	calib_btn.text = "Reset to calibrated band"
+	calib_btn.tooltip_text = "qi_cycle (2e-4, 1e-3), pinch off, shares (0.2, 0.6, 0.2)"
+	calib_btn.focus_mode = Control.FOCUS_NONE
+	calib_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	calib_btn.pressed.connect(_on_reset_calib)
+	pv.add_child(calib_btn)
+
+	pv.add_child(HSeparator.new())
+
+	# ── Velocity group ──
+	pv.add_child(_make_label("Velocity rainbow", Color(0.75, 0.9, 1.0), 13))
+	_vel_auto_btn = CheckButton.new()
+	_vel_auto_btn.name = "VelAuto"
+	_vel_auto_btn.text = "Auto band (v_ref → v_max measured at init)"
+	_vel_auto_btn.button_pressed = true
+	_vel_auto_btn.focus_mode = Control.FOCUS_NONE
+	_vel_auto_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	_vel_auto_btn.toggled.connect(_on_vel_auto_toggled)
+	pv.add_child(_vel_auto_btn)
+	_vel_cycle_lo = _popup_spin("VelCycleLo", 0.0, 1e4, 0.1, 0.0)
+	_vel_cycle_hi = _popup_spin("VelCycleHi", 0.0, 1e4, 0.1, 1.0)
+	_popup_spin_row(pv, "Cycle band", _vel_cycle_lo, _vel_cycle_hi, _on_vel_cycle_changed)
+	_vel_pinch_lo = _popup_spin("VelPinchLo", 0.0, 1e4, 0.1, 0.0)
+	_vel_pinch_hi = _popup_spin("VelPinchHi", 0.0, 1e4, 0.1, 0.0)
+	_popup_spin_row(pv, "Pinch band", _vel_pinch_lo, _vel_pinch_hi, _on_vel_pinch_changed)
+	_vel_appr_lo = _popup_spin("VelApprLo", 0.0, 1e4, 0.01, 0.0)
+	_vel_appr_hi = _popup_spin("VelApprHi", 0.0, 1e4, 0.01, 0.0)
+	_popup_spin_row(pv, "Approach", _vel_appr_lo, _vel_appr_hi, _on_vel_appr_changed)
+
+	pv.add_child(HSeparator.new())
+
+	# ── Common ──
+	_prog_opt = OptionButton.new()
+	_prog_opt.name = "ProgOpt"
+	_prog_opt.add_item("Log")
+	_prog_opt.add_item("Linear")
+	_prog_opt.selected = 0
+	_prog_opt.focus_mode = Control.FOCUS_NONE
+	_prog_opt.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	_prog_opt.item_selected.connect(_on_prog_selected)
+	var prog_row = HBoxContainer.new()
+	prog_row.add_theme_constant_override("separation", 6)
+	pv.add_child(prog_row)
+	prog_row.add_child(_make_label("Progress", Color(0.85, 0.9, 1.0), 12))
+	prog_row.add_child(_prog_opt)
+	_hue_off_spin = _popup_spin("HueOffset", -1.0, 1.0, 0.01, 0.0)
+	_hue_off_spin.value_changed.connect(_on_hue_off_changed)
+	var hue_row = HBoxContainer.new()
+	hue_row.add_theme_constant_override("separation", 6)
+	pv.add_child(hue_row)
+	hue_row.add_child(_make_label("Hue offset", Color(0.85, 0.9, 1.0), 12))
+	hue_row.add_child(_hue_off_spin)
+	var reset_all_btn = Button.new()
+	reset_all_btn.name = "ResetAllBtn"
+	reset_all_btn.text = "Reset all"
+	reset_all_btn.tooltip_text = "All gradient exports to defaults (Cassi gradient, auto passes, calibrated bands, φ⁻² pink gate)"
+	reset_all_btn.focus_mode = Control.FOCUS_NONE
+	reset_all_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	reset_all_btn.pressed.connect(_on_reset_all)
+	pv.add_child(reset_all_btn)
+
+
+func _sync_color_widgets(sim: Node3D) -> void:
+	# Triad + popup sync from the sim's LIVE exports (used at init and after
+	# Reset all / source flips — the fields' own value_changed paths are
+	# no-signal here to avoid echoing writes back into the sim).
+	_rainbow_btn.set_pressed_no_signal(sim.particle_color_mode >= 1)
+	_color_src_opt.select(0 if sim.particle_color_mode == 1 else 1)
+	_passes_spin.set_value_no_signal(_effective_pass_count(sim))
+	_sync_color_enabled()
+	_refresh_popup_fields()
+
+
+func _effective_pass_count(sim: Node3D) -> int:
+	if sim.rainbow_count > 0:
+		return int(sim.rainbow_count)
+	return 2 if sim.particle_color_mode == 3 else 1
+
+
+func _sync_color_enabled() -> void:
+	var on: bool = _rainbow_btn.button_pressed
+	var src_qi: bool = _color_src_opt.selected == 1
+	_color_src_opt.disabled = not on
+	_passes_spin.editable = on and src_qi
+	_color_btn.disabled = not on
+
+
+func _refresh_popup_fields() -> void:
+	var sim = _get_sim()
+	if sim == null: return
+	_qi_cycle_lo.set_value_no_signal(sim.qi_cycle.x)
+	_qi_cycle_hi.set_value_no_signal(sim.qi_cycle.y)
+	_qi_pinch_lo.set_value_no_signal(sim.qi_pinch.x)
+	_qi_pinch_hi.set_value_no_signal(sim.qi_pinch.y)
+	_share_r.set_value_no_signal(sim.color_shares.x)
+	_share_g.set_value_no_signal(sim.color_shares.y)
+	_share_b.set_value_no_signal(sim.color_shares.z)
+	_qi_gate_spin.set_value_no_signal(sim.qi_gate)
+	_white_lbl.text = "%.4f %s" % [sim.qi_condensation_threshold, "(tracks threshold)" if sim.qi_approach_tracks_threshold else "(manual)"]
+	_vel_auto_btn.set_pressed_no_signal(sim.velocity_cycle == Vector2.ZERO)
+	_vel_cycle_lo.set_value_no_signal(sim.velocity_cycle.x)
+	_vel_cycle_hi.set_value_no_signal(sim.velocity_cycle.y)
+	_vel_pinch_lo.set_value_no_signal(sim.velocity_pinch.x)
+	_vel_pinch_hi.set_value_no_signal(sim.velocity_pinch.y)
+	_vel_appr_lo.set_value_no_signal(sim.velocity_approach.x)
+	_vel_appr_hi.set_value_no_signal(sim.velocity_approach.y)
+	_prog_opt.select(sim.color_progress)
+	_hue_off_spin.set_value_no_signal(sim.color_hue_offset)
+	_vel_cycle_lo.editable = not _vel_auto_btn.button_pressed
+	_vel_cycle_hi.editable = not _vel_auto_btn.button_pressed
+
+
 func _on_field_texture_updated(tex: Texture2D) -> void:
 	_viz_texture_rect.texture = tex
 
@@ -482,10 +718,144 @@ func _on_init_selected(idx: int) -> void:
 	sim.reinit()  # positions regenerate with the new profile
 
 
-func _on_color_mode_selected(idx: int) -> void:
+func _on_rainbow_toggled(on: bool) -> void:
 	var sim = _get_sim()
 	if sim == null: return
-	sim.particle_color_mode = idx  # live — re-encoded into the instancer PC next physics step (no reinit)
+	sim.particle_color_mode = (1 if _color_src_opt.selected == 0 else 2) if on else 0
+	_sync_color_widgets(sim)
+	_repaint_if_paused(sim)
+
+
+func _on_color_src_selected(idx: int) -> void:
+	var sim = _get_sim()
+	if sim == null: return
+	if _rainbow_btn.button_pressed:
+		sim.particle_color_mode = 1 if idx == 0 else 2
+	_sync_color_widgets(sim)
+	_repaint_if_paused(sim)
+
+
+func _on_passes_changed(v: float) -> void:
+	var sim = _get_sim()
+	if sim == null: return
+	sim.rainbow_count = int(v)
+	_repaint_if_paused(sim)
+
+
+func _open_color_popup() -> void:
+	_color_popup.position = _color_btn.get_global_rect().position + Vector2(0, _color_btn.size.y + 4)
+	_color_popup.popup()
+
+
+# ── popup field handlers (all live: write the export, repaint when paused) ──
+
+func _on_qi_cycle_changed(_v: float) -> void:
+	var sim = _get_sim()
+	if sim == null: return
+	sim.qi_cycle = Vector2(_qi_cycle_lo.value, _qi_cycle_hi.value)
+	_repaint_if_paused(sim)
+
+
+func _on_qi_pinch_changed(_v: float) -> void:
+	var sim = _get_sim()
+	if sim == null: return
+	sim.qi_pinch = Vector2(_qi_pinch_lo.value, _qi_pinch_hi.value)
+	_repaint_if_paused(sim)
+
+
+func _on_shares_changed(_v: float) -> void:
+	var sim = _get_sim()
+	if sim == null: return
+	sim.color_shares = Vector3(_share_r.value, _share_g.value, _share_b.value)
+	_repaint_if_paused(sim)
+
+
+func _on_qi_gate_changed(v: float) -> void:
+	var sim = _get_sim()
+	if sim == null: return
+	sim.qi_gate = v
+	_repaint_if_paused(sim)
+
+
+func _on_vel_auto_toggled(on: bool) -> void:
+	var sim = _get_sim()
+	if sim == null: return
+	sim.velocity_cycle = Vector2.ZERO if on else Vector2(_vel_cycle_lo.value, _vel_cycle_hi.value)
+	_vel_cycle_lo.editable = not on
+	_vel_cycle_hi.editable = not on
+	_repaint_if_paused(sim)
+
+
+func _on_vel_cycle_changed(_v: float) -> void:
+	var sim = _get_sim()
+	if sim == null: return
+	if _vel_auto_btn.button_pressed:
+		sim.velocity_cycle = Vector2.ZERO
+	else:
+		sim.velocity_cycle = Vector2(_vel_cycle_lo.value, _vel_cycle_hi.value)
+	_repaint_if_paused(sim)
+
+
+func _on_vel_pinch_changed(_v: float) -> void:
+	var sim = _get_sim()
+	if sim == null: return
+	sim.velocity_pinch = Vector2(_vel_pinch_lo.value, _vel_pinch_hi.value)
+	_repaint_if_paused(sim)
+
+
+func _on_vel_appr_changed(_v: float) -> void:
+	var sim = _get_sim()
+	if sim == null: return
+	sim.velocity_approach = Vector2(_vel_appr_lo.value, _vel_appr_hi.value)
+	_repaint_if_paused(sim)
+
+
+func _on_prog_selected(idx: int) -> void:
+	var sim = _get_sim()
+	if sim == null: return
+	sim.color_progress = idx
+	_repaint_if_paused(sim)
+
+
+func _on_hue_off_changed(v: float) -> void:
+	var sim = _get_sim()
+	if sim == null: return
+	sim.color_hue_offset = v
+	_repaint_if_paused(sim)
+
+
+func _on_reset_calib() -> void:
+	var sim = _get_sim()
+	if sim == null: return
+	sim.qi_cycle = Vector2(0.0002, 0.001)
+	sim.qi_pinch = Vector2.ZERO
+	sim.color_shares = Vector3(0.2, 0.6, 0.2)
+	_refresh_popup_fields()
+	_repaint_if_paused(sim)
+
+
+func _on_reset_all() -> void:
+	var sim = _get_sim()
+	if sim == null: return
+	sim.particle_color_mode = 0
+	sim.rainbow_count = 0
+	sim.color_shares = Vector3(0.2, 0.6, 0.2)
+	sim.color_progress = 0
+	sim.qi_cycle = Vector2(0.0002, 0.001)
+	sim.qi_pinch = Vector2.ZERO
+	sim.qi_approach = Vector2(0.001, 0.85)
+	sim.qi_approach_tracks_threshold = true
+	sim.qi_gate = 0.3819660112501051
+	sim.velocity_cycle = Vector2.ZERO
+	sim.velocity_pinch = Vector2.ZERO
+	sim.velocity_approach = Vector2.ZERO
+	sim.color_hue_offset = 0.0
+	_sync_color_widgets(sim)
+	_refresh_popup_fields()
+	_repaint_if_paused(sim)
+
+
+func _repaint_if_paused(sim: Node3D) -> void:
 	if not sim.playing:
 		sim._repaint_instancer()    # paused: repaint the visible instances now
 
