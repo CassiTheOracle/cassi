@@ -25,7 +25,7 @@
 // r = 8h and 1.1293 at r = 4h — is intrinsic to the discrete torus-Green
 // field's cubic structure, NOT the sampler: a gated separable Catmull-Rom
 // tricubic experiment did not reduce it (1.0482 / 1.1445 — reverted;
-// see the NOTE at tri_grad). The lever is the box size / grid
+// see the trilinear NOTE (kept with the fused sampler). The lever is the box size / grid
 // resolution.
 // ESTIMATOR EQUIVALENCE (verified, not assumed): the OLD per-particle
 // estimator — central difference of trilinear samples of S at p ± h·ê —
@@ -94,7 +94,7 @@
 // clamp counters. Opt-in and default-coefficient-driven: with all three
 // coefficients at 0 the mode is bit-identical to mode 0.
 //   drag      a_drag = −γ·(ρ_local/ρ_ref)·v      γ = realsim_drag (0.5, 1/time at ρ_ref)
-//             ρ_local = EY+EI trilinear at p (tri_ey/tri_ei); ρ_ref = φ⁻³ =
+//             ρ_local = EY+EI trilinear at p (the fused sample_fields); ρ_ref = φ⁻³ =
 //             0.236068 (the attractor). Vacuum regions (ρ → 0) coast.
 //   viscosity a_visc = −ν·(v − v_field(p))       ν = realsim_viscosity (0.3, 1/time)
 //             v_field = FieldVel (set 0 binding 3), trilinear-sampled — the
@@ -144,7 +144,7 @@ layout(set = 0, binding = 5, std430) readonly buffer PhiBuf { vec2 ph[]; };
 //   [0] = π/ρ upper-clamp hits   [1] = π/ρ lower-clamp hits
 //   [2] = ρ-guard hits           [3] = q_min bits   [4] = q_max bits
 //   [5] = π/ρ_min bits           [6] = π/ρ_max bits [7] = sample count
-//         (number of chord_g_at evaluations this step; heuristic mode
+//         (number of chord_g_from evaluations this step; heuristic mode
 //         reports 0 — the UI derives fractions from this denominator)
 layout(set = 0, binding = 6, std430) coherent buffer Telemetry { uint tel[]; };
 // Cell-centered ∇(g·Φ) field (vec4/cell, xyz = gradient, w unused) —
@@ -207,40 +207,66 @@ int idx3(int i, int j, int k) {
     return i + N * (j + N * k);
 }
 
-// ── Trilinear sample (periodic wrap) of a scalar field ─────────────────
-// Implemented via a macro that generates one function per buffer: strict
-// GLSL (glslang) rejects unsized array function parameters, so the sampler
-// body is duplicated per field at compile time.
-#define DEFINE_TRI_SAMPLER(NAME, FIELD) \
-float NAME(vec3 wp) { \
-    int N = int(pc.N_f); \
-    float hn = float(N) * 0.5; \
-    vec3 ext = bh[2].yzw; \
-    vec3 inv_ext = 1.0 / max(ext, vec3(0.0001)); \
-    vec3 gc = (wp * inv_ext) * hn + hn; \
-    int i0 = int(floor(gc.x)); \
-    int j0 = int(floor(gc.y)); \
-    int k0 = int(floor(gc.z)); \
-    float fx = gc.x - float(i0); \
-    float fy = gc.y - float(j0); \
-    float fz = gc.z - float(k0); \
-    i0 = ((i0 % N) + N) % N;  j0 = ((j0 % N) + N) % N;  k0 = ((k0 % N) + N) % N; \
-    int i1 = (i0 + 1) % N;    int j1 = (j0 + 1) % N;    int k1 = (k0 + 1) % N; \
-    float v000 = FIELD[idx3(i0, j0, k0)]; \
-    float v100 = FIELD[idx3(i1, j0, k0)]; \
-    float v010 = FIELD[idx3(i0, j1, k0)]; \
-    float v110 = FIELD[idx3(i1, j1, k0)]; \
-    float v001 = FIELD[idx3(i0, j0, k1)]; \
-    float v101 = FIELD[idx3(i1, j0, k1)]; \
-    float v011 = FIELD[idx3(i0, j1, k1)]; \
-    float v111 = FIELD[idx3(i1, j1, k1)]; \
-    float q0 = mix(mix(v000, v100, fx), mix(v010, v110, fx), fy); \
-    float q1 = mix(mix(v001, v101, fx), mix(v011, v111, fx), fy); \
-    return mix(q0, q1, fz); \
+// ── Fused field sample (river modes) ────────────────────────────────────
+// ONE neighborhood traversal at wp computes every field the river arm
+// needs — EY, EI (the chord/π/ρ inputs), the cell-centered ∇(g·Φ), and
+// (RealSim only) the medium velocity — from the SAME 8 corners with the
+// SAME trilinear weights. The previous code ran up to FIVE separate
+// trilinear samplers per particle per step in RealSim (∇(g·Φ), EY, EI,
+// then EY+EI AGAIN for ρ_local, then FieldVel): 5× the coordinate setup,
+// 5× the address math, and repeated loads of the same corners. Bit-
+// identical: each field's mix tree is EXACTLY the former sampler's
+// (same corner order, same mix(mix(mix)) tree), so this is a pure
+// constant-factor refactor of the sample pattern.
+struct FieldSmp {
+    float ey;      // EY trilinear at wp
+    float ei;      // EI trilinear at wp
+    vec3 gradS;    // ∇(g·Φ) trilinear at wp
+    vec4 fvel;     // FieldVel trilinear at wp (RealSim only; zeros otherwise)
+};
+FieldSmp sample_fields(vec3 wp) {
+    int N = int(pc.N_f);
+    float hn = float(N) * 0.5;
+    vec3 ext = bh[2].yzw;
+    vec3 inv_ext = 1.0 / max(ext, vec3(0.0001));
+    vec3 gc = (wp * inv_ext) * hn + hn;
+    int i0 = int(floor(gc.x));
+    int j0 = int(floor(gc.y));
+    int k0 = int(floor(gc.z));
+    float fx = gc.x - float(i0);
+    float fy = gc.y - float(j0);
+    float fz = gc.z - float(k0);
+    i0 = ((i0 % N) + N) % N;  j0 = ((j0 % N) + N) % N;  k0 = ((k0 % N) + N) % N;
+    int i1 = (i0 + 1) % N;    int j1 = (j0 + 1) % N;    int k1 = (k0 + 1) % N;
+    // The 8 corners — each address computed once, every field fetches it.
+    int c000 = idx3(i0, j0, k0);
+    int c100 = idx3(i1, j0, k0);
+    int c010 = idx3(i0, j1, k0);
+    int c110 = idx3(i1, j1, k0);
+    int c001 = idx3(i0, j0, k1);
+    int c101 = idx3(i1, j0, k1);
+    int c011 = idx3(i0, j1, k1);
+    int c111 = idx3(i1, j1, k1);
+    FieldSmp s;
+    // Each field is fetched and mixed IMMEDIATELY — its 8 corners die
+    // before the next field's loads, keeping register pressure at the old
+    // per-sampler level (materializing all 24+ corners up front dropped
+    // occupancy and hurt throughput).
+    s.ey = mix(mix(mix(ey[c000], ey[c100], fx), mix(ey[c010], ey[c110], fx), fy),
+               mix(mix(ey[c001], ey[c101], fx), mix(ey[c011], ey[c111], fx), fy), fz);
+    s.ei = mix(mix(mix(ei[c000], ei[c100], fx), mix(ei[c010], ei[c110], fx), fy),
+               mix(mix(ei[c001], ei[c101], fx), mix(ei[c011], ei[c111], fx), fy), fz);
+    s.gradS = mix(mix(mix(grad[c000].xyz, grad[c100].xyz, fx), mix(grad[c010].xyz, grad[c110].xyz, fx), fy),
+                  mix(mix(grad[c001].xyz, grad[c101].xyz, fx), mix(grad[c011].xyz, grad[c111].xyz, fx), fy), fz);
+    s.fvel = vec4(0.0);
+    if (pc.gravity_mode > 3.5) {
+        // FieldVel corners only for RealSim (uniform branch — skipped by
+        // modes 0/3, so their load count matches the old path).
+        s.fvel = mix(mix(mix(fvel[c000], fvel[c100], fx), mix(fvel[c010], fvel[c110], fx), fy),
+                     mix(mix(fvel[c001], fvel[c101], fx), mix(fvel[c011], fvel[c111], fx), fy), fz);
+    }
+    return s;
 }
-
-DEFINE_TRI_SAMPLER(tri_ey, ey)
-DEFINE_TRI_SAMPLER(tri_ei, ei)
 
 // ── Cell-centered gradient field of S = g·Φ (river-mode estimator) ────
 // The gradient pass (pass_mode == 1) evaluates S at CELL CENTERS from
@@ -262,8 +288,6 @@ float chord_s_at(int i, int j, int k) {
     return (1.0 + (pc.xi - 1.0) * q) * ph[id].x;   // g · Φ — whole product
 }
 
-// Trilinear sample (periodic wrap) of the vec4 gradient buffer → vec3
-// (w unused). Same coordinate convention as the scalar samplers.
 // NOTE (2026-08-09, gated experiment): a separable Catmull-Rom tricubic
 // sampler (4×4×4 taps) was implemented and MEASURED as the "bias along
 // grid lines" lever — it did NOT reduce the ring anisotropy: |a|(θ)
@@ -274,38 +298,8 @@ float chord_s_at(int i, int j, int k) {
 // is the box geometry: the per-axis extents below (bh[2].yzw) make the
 // image lattice incommensurate at box scale (GRID_LAYOUT.md). The
 // small-scale r/h bias per direction persists; the box-scale axis lock
-// is removed. Trilinear stays.
-vec3 tri_grad(vec3 wp) {
-    int N = int(pc.N_f);
-    float hn = float(N) * 0.5;
-    vec3 ext = bh[2].yzw;
-    vec3 inv_ext = 1.0 / max(ext, vec3(0.0001));
-    vec3 gc = (wp * inv_ext) * hn + hn;
-
-    int i0 = int(floor(gc.x));
-    int j0 = int(floor(gc.y));
-    int k0 = int(floor(gc.z));
-
-    float fx = gc.x - float(i0);
-    float fy = gc.y - float(j0);
-    float fz = gc.z - float(k0);
-
-    i0 = ((i0 % N) + N) % N;  j0 = ((j0 % N) + N) % N;  k0 = ((k0 % N) + N) % N;
-    int i1 = (i0 + 1) % N;    int j1 = (j0 + 1) % N;    int k1 = (k0 + 1) % N;
-
-    vec3 v000 = grad[idx3(i0, j0, k0)].xyz;
-    vec3 v100 = grad[idx3(i1, j0, k0)].xyz;
-    vec3 v010 = grad[idx3(i0, j1, k0)].xyz;
-    vec3 v110 = grad[idx3(i1, j1, k0)].xyz;
-    vec3 v001 = grad[idx3(i0, j0, k1)].xyz;
-    vec3 v101 = grad[idx3(i1, j0, k1)].xyz;
-    vec3 v011 = grad[idx3(i0, j1, k1)].xyz;
-    vec3 v111 = grad[idx3(i1, j1, k1)].xyz;
-
-    vec3 q0 = mix(mix(v000, v100, fx), mix(v010, v110, fx), fy);
-    vec3 q1 = mix(mix(v001, v101, fx), mix(v011, v111, fx), fy);
-    return mix(q0, q1, fz);
-}
+// is removed. Trilinear stays — the fused sample_fields above uses the
+// SAME trilinear weights/tree as the former per-field samplers.
 
 // ── Gradient-field build pass (pass_mode == 1) ─────────────────────────
 // One thread per cell (2D cells dispatch, gid = x + y·N·256 — the
@@ -348,7 +342,7 @@ void grad_main() {
 // the hot path), folded into workgroup-shared accumulators, and emitted to
 // tel[0..7] by invocation 0 of each workgroup. The last partial workgroup
 // still reaches every barrier — no early return may precede a barrier.
-// Heuristic mode never calls chord_g_at, so it has no per-sample global atomics.
+// Heuristic mode never calls chord_g_from, so it has no per-sample global atomics.
 struct TeleStats {
     uint clamp_hi;   // π/ρ pinned at 0.72      → tel[0]
     uint clamp_lo;   // π/ρ clamped to 0        → tel[1]
@@ -357,17 +351,18 @@ struct TeleStats {
     uint q_max;      // float bits              → tel[4]
     uint pi_min;     // float bits              → tel[5]
     uint pi_max;     // float bits              → tel[6]
-    uint samples;    // chord_g_at evals        → tel[7]
+    uint samples;    // chord_g_from evals        → tel[7]
 };
 
 shared uint s_cnt[4];  // clamp_hi, clamp_lo, rho_guard, samples
 shared uint s_min[2];  // q_min, pi_min (float bits)
 shared uint s_max[2];  // q_max, pi_max (float bits)
 
-// ── The coherence factor q and chord factor g at a point ───────────────
-float chord_g_at(vec3 wp, out float q_out, out float pi_over_rho, inout TeleStats st) {
-    float eyv = tri_ey(wp);
-    float eiv = tri_ei(wp);
+// ── The coherence factor q and chord factor g from sampled values ───────
+// (the trilinear sampling lives in sample_fields now — this keeps the
+// law's evaluation and telemetry EXACTLY as before; bit-identical inputs
+// produce bit-identical stats)
+float chord_g_from(float eyv, float eiv, out float q_out, out float pi_over_rho, inout TeleStats st) {
     float rho_f = eyv + eiv;
     float eps = eyv - pc.phi * eiv;
     float q = (rho_f * rho_f) / (rho_f * rho_f + PHI_INV2 + eps * eps);
@@ -389,16 +384,15 @@ float chord_g_at(vec3 wp, out float q_out, out float pi_over_rho, inout TeleStat
 }
 
 // ── River-mode field force: a = −G_N·(π/ρ)·∇(g·Φ) ─────────────────────
-// ESTIMATOR: one trilinear sample of the cell-centered ∇(g·Φ) field
-// (built once per step by grad_main). g/π/ρ at p and the clamp logic
-// come from chord_g_at EXACTLY as before (telemetry-bearing). The full
-// chord product is still computed whole on the grid — never hand-split.
-vec3 river_field_acc(vec3 wp, inout TeleStats st) {
-    vec3 gradS = tri_grad(wp);
+// ESTIMATOR: the cell-centered ∇(g·Φ) field (built once per step by
+// grad_main) + g/π/ρ from the fused sample's EY/EI — the same clamp logic
+// and telemetry as before. The full chord product is still computed whole
+// on the grid — never hand-split.
+vec3 river_field_acc_smp(FieldSmp fs, inout TeleStats st) {
     float q_unused; float pi_over_rho;
-    chord_g_at(wp, q_unused, pi_over_rho, st);
+    chord_g_from(fs.ey, fs.ei, q_unused, pi_over_rho, st);
     float G_N = bh[1].w;
-    return -G_N * pi_over_rho * gradS;
+    return -G_N * pi_over_rho * fs.gradS;
 }
 
 // ── Legacy heuristic: sample q_s = EY²+EI² + 0.01·ρ and its gradient ───
@@ -511,51 +505,6 @@ vec3 bh_point_gravity(vec3 particle_pos, float eps2) {
     return acc;
 }
 
-// Trilinear sample (periodic wrap) of the vec4 FieldVel buffer → vec4
-// (the two-fluid medium's own velocity, RealSim viscosity input).
-// Same coordinate convention as the scalar samplers. The buffer is
-// genuinely evolved by the PDE every step (see the header's
-// FIELD-VELOCITY DECISION) — sampling it costs zero new buffers/passes.
-vec4 tri_fvel(vec3 wp) {
-    int N = int(pc.N_f);
-    float hn = float(N) * 0.5;
-    vec3 ext = bh[2].yzw;
-    vec3 inv_ext = 1.0 / max(ext, vec3(0.0001));
-    vec3 gc = (wp * inv_ext) * hn + hn;
-
-    int i0 = int(floor(gc.x));
-    int j0 = int(floor(gc.y));
-    int k0 = int(floor(gc.z));
-
-    float fx = gc.x - float(i0);
-    float fy = gc.y - float(j0);
-    float fz = gc.z - float(k0);
-
-    i0 = ((i0 % N) + N) % N;  j0 = ((j0 % N) + N) % N;  k0 = ((k0 % N) + N) % N;
-    int i1 = (i0 + 1) % N;    int j1 = (j0 + 1) % N;    int k1 = (k0 + 1) % N;
-
-    vec4 v000 = fvel[idx3(i0, j0, k0)];
-    vec4 v100 = fvel[idx3(i1, j0, k0)];
-    vec4 v010 = fvel[idx3(i0, j1, k0)];
-    vec4 v110 = fvel[idx3(i1, j1, k0)];
-    vec4 v001 = fvel[idx3(i0, j0, k1)];
-    vec4 v101 = fvel[idx3(i1, j0, k1)];
-    vec4 v011 = fvel[idx3(i0, j1, k1)];
-    vec4 v111 = fvel[idx3(i1, j1, k1)];
-
-    vec4 q0 = mix(mix(v000, v100, fx), mix(v010, v110, fx), fy);
-    vec4 q1 = mix(mix(v001, v101, fx), mix(v011, v111, fx), fy);
-    return mix(q0, q1, fz);
-}
-
-// ── RealSim: local two-fluid density ρ = EY + EI at a point ───────────
-// Lightweight: pure trilinear sampling of the existing EY/EI buffers — NO
-// clamps, NO TeleStats (the dissipation terms are deliberately telemetry-
-// silent; only the river arm feeds the clamp counters).
-float rho_local_at(vec3 wp) {
-    return tri_ey(wp) + tri_ei(wp);
-}
-
 // ── RealSim dissipation (gravity_mode == 4 only) ──────────────────────
 // Three per-particle terms ADD to the gravity acceleration; they never
 // touch the river arm's internals or the telemetry/clamp state. Formulas
@@ -563,14 +512,17 @@ float rho_local_at(vec3 wp) {
 //   drag      a = −γ·(ρ_local/ρ_ref)·v,        ρ_ref = φ⁻³ (0.236068)
 //   viscosity a = −ν·(v − v_field(p))
 //   friction  a = −min(μ·|a_g|, |v|/dt)·v̂      (never reverses: |Δv| ≤ |v|)
-// v_field comes from the evolved FieldVel buffer (tri_fvel); |a_g| is the
-// gravity magnitude from the river+BH acceleration BEFORE dissipation.
-vec3 realsim_dissipation(vec3 wp, vec3 v, vec3 a_g, float rho_local) {
+// ρ_local and v_field come from the FUSED neighborhood sample (the same
+// corners the river arm read) — the old path resampled EY/EI a second
+// time for ρ_local and ran a separate FieldVel sampler. Lightweight and
+// deliberately telemetry-silent; only the river arm feeds the counters.
+vec3 realsim_dissipation_smp(FieldSmp fs, vec3 v, vec3 a_g) {
     vec3 a = vec3(0.0);
+    float rho_local = fs.ey + fs.ei;
     // Drag — background resistance, ρ-scaled; vacuum (ρ → 0) coasts.
     a += -pc.realsim_drag * (rho_local / PHI_INV3) * v;
     // Viscosity — shear coupling to the medium's own velocity.
-    a += -pc.realsim_viscosity * (v - tri_fvel(wp).xyz);
+    a += -pc.realsim_viscosity * (v - fs.fvel.xyz);
     // Friction — Coulomb floor; the |v|/dt cap bounds the per-step kick by
     // |v|, so it can never reverse the velocity.
     float vlen = length(v);
@@ -581,15 +533,16 @@ vec3 realsim_dissipation(vec3 wp, vec3 v, vec3 a_g, float rho_local) {
     return a;
 }
 
-// ── Total gravity at a point (mode-selected) ───────────────────────────
-// Telemetry stats flow through the river path only (heuristic/Plummer
-// modes are telemetry-free by design).
+// ── Legacy-arm gravity (HEURISTIC / PLUMMER modes only) ────────────────
+// The river arm (modes 0/3/4) routes through the fused neighborhood
+// sample in main()/warmup_main() instead — sample_fields + chord_g_from
+// share the SAME EY/EI corners with RealSim's dissipation, so the river
+// branch was removed from this selector. Telemetry stats flow through
+// the river path only (heuristic/Plummer are telemetry-free by design).
 vec3 gravity_at(vec3 wp, inout TeleStats st) {
     vec3 acc = vec3(0.0);
     if (bh[3].x > 0.5) acc = bh_point_gravity(wp, pc.eps2);   // BH sector: global black_holes_enabled toggle (bh[3].x), ANY mode
-    if (pc.gravity_mode < 0.5 || pc.gravity_mode > 2.5) {
-        acc += river_field_acc(wp, st);          // RIVER (modes 0, 3, 4)
-    } else if (pc.gravity_mode < 1.5) {
+    if (pc.gravity_mode < 1.5) {
         acc += heuristic_field_acc(wp);          // HEURISTIC (mode 1)
     } else {
         acc += plummer_field_acc(wp);            // PLUMMER (mode 2)
@@ -645,13 +598,22 @@ void warmup_main() {
     tele_begin(li);
     if (i < N) {
         TeleStats st = tele_new_stats();
-        vec3 a_w = gravity_at(pos[i].xyz, st);
-        if (pc.gravity_mode > 3.5) {
-            // RealSim: evaluate dissipation at the CURRENT (position,
-            // velocity) — a one-step approximation (the particle pass uses
-            // the half-kick velocity; the O(dt) difference affects only
-            // step 1's cached acceleration).
-            a_w += realsim_dissipation(pos[i].xyz, vel[i].xyz, a_w, rho_local_at(pos[i].xyz));
+        vec3 a_w = vec3(0.0);
+        if (pc.gravity_mode < 0.5 || pc.gravity_mode > 2.5) {
+            // River: ONE fused neighborhood sample feeds the chord force
+            // AND (RealSim) the dissipation — no re-sampling of ρ_local.
+            FieldSmp fs = sample_fields(pos[i].xyz);
+            if (bh[3].x > 0.5) a_w = bh_point_gravity(pos[i].xyz, pc.eps2);
+            a_w += river_field_acc_smp(fs, st);
+            if (pc.gravity_mode > 3.5) {
+                // RealSim: evaluate dissipation at the CURRENT (position,
+                // velocity) — a one-step approximation (the particle pass
+                // uses the half-kick velocity; the O(dt) difference affects
+                // only step 1's cached acceleration).
+                a_w += realsim_dissipation_smp(fs, vel[i].xyz, a_w);
+            }
+        } else {
+            a_w = gravity_at(pos[i].xyz, st);   // heuristic / Plummer arms
         }
         acc[i] = vec4(a_w, 0.0);
         atomicAdd(s_cnt[0], st.clamp_hi);
@@ -698,13 +660,24 @@ void main() {
         vec3 v_half = vxyz + acc[i].xyz * hdt;
         vec3 p_new = pxyz + v_half * pc.dt;
 
-        // Full-step kick at the updated position — the only field eval
-        vec3 grav_acc = gravity_at(p_new, st);
-        if (pc.gravity_mode > 3.5) {
-            // RealSim: dissipative terms at (p_new, v_half) — the position
-            // and velocity the particle has mid-step. Adds to the gravity
-            // acceleration; the river arm and TeleStats are untouched.
-            grav_acc += realsim_dissipation(p_new, v_half, grav_acc, rho_local_at(p_new));
+        // Full-step kick at the updated position — the only field eval.
+        // River modes: ONE fused neighborhood sample feeds the chord
+        // evaluation, the ∇(g·Φ) force AND (RealSim) the dissipation.
+        vec3 grav_acc;
+        if (pc.gravity_mode < 0.5 || pc.gravity_mode > 2.5) {
+            FieldSmp fs = sample_fields(p_new);
+            grav_acc = vec3(0.0);
+            if (bh[3].x > 0.5) grav_acc = bh_point_gravity(p_new, pc.eps2);
+            grav_acc += river_field_acc_smp(fs, st);
+            if (pc.gravity_mode > 3.5) {
+                // RealSim: dissipative terms at (p_new, v_half) — the
+                // position and velocity the particle has mid-step. Adds to
+                // the gravity acceleration; the river arm and TeleStats
+                // are untouched.
+                grav_acc += realsim_dissipation_smp(fs, v_half, grav_acc);
+            }
+        } else {
+            grav_acc = gravity_at(p_new, st);   // heuristic / Plummer arms
         }
         vec3 v_new = v_half + grav_acc * hdt;
 
