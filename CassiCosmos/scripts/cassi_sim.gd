@@ -506,6 +506,22 @@ func _run_physics_steps(n_steps: int) -> void:
 	var cl = _rd.compute_list_begin()
 	for _s in range(n_steps):
 		_step_dispatches(cl)
+	# ── Instancer: GPU-only MultiMesh update, ONCE PER FRAME ──────────
+	# Hoisted out of the per-step loop: only the frame's FINAL particle
+	# state is drawn, so a per-step write of the full instance buffer
+	# (N × 80 B) was max_steps_per_frame−1 redundant dispatches per
+	# frame. One dispatch after the last step writes the state the
+	# renderer actually draws. The PC fill runs here (not per step) so
+	# _time is the frame's final time. (Paused repaint:
+	# _repaint_instancer.) The last step's trailing barrier gives the
+	# pos/vel writes their memory visibility before this dispatch.
+	if _instancer_shader.is_valid() and N_particles > 0:
+		_fill_instancer_pc()
+		var ipg := ceili(float(N_particles) / 256.0)
+		_rd.compute_list_bind_compute_pipeline(cl, _instancer_pipe)
+		_rd.compute_list_bind_uniform_set(cl, _us_inst_0, 0)
+		_rd.compute_list_set_push_constant(cl, _instancer_pc_bytes, _instancer_pc_bytes.size())
+		_rd.compute_list_dispatch(cl, ipg, 1, 1)
 	_rd.compute_list_end()
 
 
@@ -1688,7 +1704,6 @@ func _step_dispatches(cl: int) -> void:
 	_pc_bytes.encode_float(32, source_strength)
 	_pc_bytes.encode_float(36, float(num_clusters))
 	_pc_bytes.encode_float(40, float(gravity_mode))
-	_fill_instancer_pc()
 
 	# Two-fluid PC (dedicated 56 B): the shared 11 fields + the 3 per-axis
 	# extents (the anisotropic 19-point stencil needs h_i = 2·extent_i/N —
@@ -1865,20 +1880,8 @@ func _step_dispatches(cl: int) -> void:
 		_rd.compute_list_bind_uniform_set(cl, _us_nbody_2, 2)
 		_rd.compute_list_set_push_constant(cl, _nbody_pc_bytes, _nbody_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, pg, 1, 1)
-	_barrier(cl)  # nbody → instancer
+	_barrier(cl)  # end-of-step visibility (nbody writes → next step / frame-end instancer)
 
-	# ── 4. Instancer: GPU-only MultiMesh update ──────────────────────
-	if _instancer_shader.is_valid() and N_particles > 0:
-		_rd.compute_list_bind_compute_pipeline(cl, _instancer_pipe)
-		_rd.compute_list_bind_uniform_set(cl, _us_inst_0, 0)
-		# Dedicated 32-float PC (128 B — the consolidated gradient engine:
-		# color_mode + prog_mode + ref + the cycle segments + span + the
-		# approach band + extents + hue_offset; the shared 11-float
-		# _pc_bytes would hard-error on size mismatch).
-		_rd.compute_list_set_push_constant(cl, _instancer_pc_bytes, _instancer_pc_bytes.size())
-		_rd.compute_list_dispatch(cl, pg, 1, 1)
-	# NOTE: the compute list is owned by the caller (_run_physics_steps);
-	# end/submit/sync happen there, once per frame.
 
 # ── One-time FD-Laplacian residual report for the Poisson solve ─────────
 # Checks ∇²Φ ≈ ρ (7-point stencil) on the solved potential. The spectral
