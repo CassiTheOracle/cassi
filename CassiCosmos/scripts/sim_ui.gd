@@ -92,6 +92,12 @@ func _make_label(text: String, color: Color = Color(0.8, 0.9, 1.0), font_size: i
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# The scene file's SimUI root can lack anchor_bottom (main.tscn is the
+	# user's live file — never edited here), which collapses the UI to zero
+	# height and clips every bottom-anchored panel off-screen. Self-frame to
+	# the full viewport before building children so the bottom bar is always
+	# visible regardless of the scene's serialized anchors.
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 	# ── Full-viewport visualization texture (behind UI panels) ──
 	_viz_texture_rect = TextureRect.new()
@@ -140,11 +146,7 @@ func _ready() -> void:
 	var control_panel = PanelContainer.new()
 	control_panel.name = "ControlPanel"
 	control_panel.add_theme_stylebox_override("panel", _make_panel_style())
-	control_panel.layout_mode = 1  # LAYOUT_MODE_ANCHORS
-	control_panel.set_anchor(SIDE_TOP, 1.0)
-	control_panel.set_anchor(SIDE_BOTTOM, 1.0)
-	control_panel.set_anchor(SIDE_LEFT, 0.0)
-	control_panel.set_anchor(SIDE_RIGHT, 1.0)
+	control_panel.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	control_panel.offset_top = -180  # accommodate 3 rows of controls
 	control_panel.offset_left = 10; control_panel.offset_right = -10
 	add_child(control_panel)
