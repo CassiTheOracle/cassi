@@ -120,9 +120,14 @@ the BH toggle live (no reinit);
 v_ref = mean initial |v|, v_scale = 0.8/ln(1+v_max/v_ref) — slow red,
 v=v_ref green-blue, v=v_max violet, growth beyond v_max saturates;
 2 = Qi rainbow: hue from the two-fluid coherence q = EY²+EI² sampled at the
-particle, h = min(0.8·ln(1+q/φ⁻²)/ln(1+1/φ⁻²), 0.8) anchored at the φ⁻²
-decoherence threshold — low q = red, φ⁻² = green, saturated = violet, stable
-because q is bounded by the field dynamics; all live, no reinit);
+particle, h = clamp(Q_SCALE·ln(1+q/q_ref), 0, 0.8) with q_ref = 0.00036 (the
+measured typical-running band anchor; the old φ⁻² anchor sat ~1000× above
+measured q and pinned normal running at pure red) and Q_SCALE =
+0.8/ln(1+q_top/q_ref), q_top = the scene's qi_condensation_threshold (the
+explosion point) — low q = red, typical q = red-orange, and the approach to
+the condensation threshold sweeps the full rainbow to pure WHITE at q_top
+(lightness ramps up over the top quarter of the scale — white-hot, not
+violet); all live, no reinit);
 `--freeze-field=0/1` freezes the two-fluid field after init (skips the
 PDE passes; gravity/particle path unchanged; no reinit — read per step);
 `--steps=…` changes the per-frame catch-up cap;

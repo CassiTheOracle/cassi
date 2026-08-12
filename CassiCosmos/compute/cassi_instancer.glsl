@@ -27,8 +27,11 @@ layout(push_constant, std430) uniform PC {
     float mode; float source_strength; float num_clusters;
     float gravity_mode;  // unused here (nbody gravity selector)
     float color_mode;    // 0 = Cassi mass gradient (default, bit-identical); 1 = velocity rainbow; 2 = Qi rainbow
-    float v_ref;         // rainbow speed reference: mean initial |v| (host-computed); unused when color_mode != 1
-    float v_scale;       // rainbow hue scale: 0.8/ln(1+v_max/v_ref); unused when color_mode != 1
+    float v_ref;         // mode 1: rainbow speed reference (mean initial |v|, host-computed);
+                         // mode 2: Qi-rainbow q_ref (measured typical-band anchor, see host Q_REF)
+    float v_scale;       // mode 1: rainbow hue scale 0.8/ln(1+v_max/v_ref);
+                         // mode 2: Qi-rainbow ramp scale 0.8/ln(1+q_top/q_ref), q_top = the
+                         // scene's qi_condensation_threshold (host-computed per fill)
     float extent_x;      // per-axis box half-extents (GRID_LAYOUT.md's φ-aspect
     float extent_y;      // box) — the q-sampler's cell mapping, the same
     float extent_z;      // values nbody reads from bh[2].yzw
@@ -41,9 +44,14 @@ vec3 hsl2rgb(vec3 c) {
     return c.z + c.y * (rgb - 0.5) * (1.0 - abs(2.0 * c.z - 1.0));
 }
 
-const float PHI_INV2 = 0.3819660112501051;  // φ⁻² — the framework's q decoherence
-                                            // threshold (the Qi-rainbow hue anchor)
-const float Q_HUE_SCALE = 0.6221174667004793;  // 0.8/ln(1+1/φ⁻²) — Qi-rainbow log-ramp scale
+// Qi-rainbow anchors are PC-fed (slots 12/13: q_ref, q_scale — the host
+// computes q_scale = 0.8/ln(1+q_top/q_ref) per fill from the LIVE
+// qi_condensation_threshold export; see cassi_sim.gd Q_REF). Recalibrated
+// 2026-08-12: the measured q distribution at particle positions (1M-particle
+// diag mirroring main.tscn, 600 steps) sits ~1000× BELOW the old φ⁻² anchor
+// (typical q ∈ [3.4e-4, 5.7e-4] vs φ⁻² = 0.381966), which pinned normal
+// running at h ≈ 0 (pure red). q_ref = 0.00036 now sits inside the measured
+// typical band; q_top = qi_condensation_threshold (the explosion point).
 
 // ── Index helper + trilinear sample (periodic wrap) of the q field ─────
 // EXACT convention of cassi_nbody_gravity.glsl's scalar samplers: the
@@ -109,17 +117,24 @@ void main() {
     if (pc.color_mode >= 1.5) {
         // Qi rainbow (color_mode 2): hue from the two-fluid coherence
         // q = EY²+EI² trilinearly sampled at the particle —
-        //   h = min(0.8·ln(1 + q/φ⁻²)/ln(1 + 1/φ⁻²), 0.8)
-        // the log ramp anchored at the framework's DECOHERENCE THRESHOLD
-        // φ⁻² (PHI_INV2 — a physical constant): q→0 = red (h→0), q = φ⁻² =
-        // green (h≈0.43), q ≥ 1 = violet (0.8). Stable by construction:
-        // q is bounded by the field dynamics (ω₀² restoring toward the
-        // attractor, the condensation threshold), so the spectrum CANNOT
-        // drift — the velocity rainbow's saturation failure mode. The
-        // q ≥ 0 clamp is a guard (EY²+EI² cannot go negative).
+        //   h = clamp(Q_SCALE·ln(1 + q/q_ref), 0.0, 0.8)
+        // q_ref/q_scale arrive in the v_ref/v_scale PC slots (12/13): the
+        // log ramp is anchored at the MEASURED typical-running q band
+        // (q_ref = 0.00036) and topped at the scene's condensation
+        // threshold q_top (q_scale = 0.8/ln(1+q_top/q_ref)) — so typical
+        // running q (≈3.5-5.7e-4) gets a live hue response (h ≈ 0.07-0.10,
+        // red-orange) instead of being pinned at h ≈ 0 (the old φ⁻² anchor
+        // sat ~1000× above it). q→0 = red,
+        // q = q_ref ≈ red-orange (h≈0.07), and the approach to the
+        // threshold sweeps the full rainbow. WHITE-HOT TOP: lightness
+        // ramps from 0.5 (vivid) below h = 0.6 to 1.0 (pure white) at
+        // h = 0.8 = q_top — the top quarter washes to white, not violet.
+        // The q ≥ 0 clamp is a guard (EY²+EI² cannot go negative).
         float qq = max(tri_q(pos[i].xyz), 0.0);
-        float h = min(Q_HUE_SCALE * log(1.0 + qq / PHI_INV2), 0.8);
-        color = vec4(hsl2rgb(vec3(h, 1.0, 0.5)), 1.0);
+        float q_ref = max(pc.v_ref, 1e-9);  // slot 12 (mode 2: q_ref; guarded vs 0)
+        float h = clamp(pc.v_scale * log(1.0 + qq / q_ref), 0.0, 0.8);
+        float l = 0.5 + 0.5 * clamp((h - 0.6) / 0.2, 0.0, 1.0);  // 0.75·H_TOP=0.6, 0.25·H_TOP=0.2
+        color = vec4(hsl2rgb(vec3(h, 1.0, l)), 1.0);
     } else if (pc.color_mode >= 0.5) {
         // Velocity rainbow (log-compressed, distribution-anchored):
         // h = v_scale·ln(1+|v|/v_ref) — slow = red (h→0), v=v_ref ≈ 0.4-0.6,

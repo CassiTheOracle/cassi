@@ -262,7 +262,7 @@ func _ready() -> void:
 	_color_opt.add_item("Velocity rainbow")
 	_color_opt.add_item("Qi rainbow")
 	_color_opt.selected = 0
-	_color_opt.tooltip_text = "Cassi = mass-temperature gradient (Salpeter blue dwarfs → red giants); Velocity rainbow = hue from speed, slow=red → fast=violet; Qi rainbow = coherence q = EY²+EI², anchored to the φ⁻² decoherence threshold — low q = red, φ⁻² = green, saturated = violet; stable because q is bounded by the field dynamics. Live — no reinit."
+	_color_opt.tooltip_text = "Cassi = mass-temperature gradient (Salpeter blue dwarfs → red giants); Velocity rainbow = hue from speed, slow=red → fast=violet; Qi rainbow = coherence q = EY²+EI², anchored to the measured typical-running q band (q_ref = 0.00036) with the top at the scene's condensation threshold — low q = red, typical q = red-orange, near-threshold sweeps to white-hot; live — no reinit."
 	_color_opt.custom_minimum_size = Vector2(150, 22)
 	_color_opt.focus_mode = Control.FOCUS_NONE
 	_color_opt.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
