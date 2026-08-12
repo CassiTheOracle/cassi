@@ -77,7 +77,13 @@ Raise `-Steps` for longer time-lapse coverage per video second.
   recording, or dismiss the prompt.
 - Progress goes to stdout: `[Recorder] frame N/M (sim t=…)` every 30
   frames, then `[Recorder] done`. Exit code 0 means the AVI finalized.
-- The camera orbits the origin at a fixed elevation; no UI nodes are in
+- The camera orbits the SPAWN REGION at a fixed elevation: the orbit center
+  is the cluster-centroid (mean of the cluster centers, mirroring
+  cassi_sim.gd's ring/Fibonacci placement — NOT the origin, so a
+  single-cluster config is framed dead-center) and the default orbit radius
+  is derived from the spawn extent (cluster-ring radius + cluster radius),
+  so the startup frame shows the particles up close and centered.
+  `--orbit-radius` overrides the auto-framed distance; no UI nodes are in
   the video.
 
 ## Converting to MP4
@@ -104,7 +110,8 @@ Command line overrides (`--grid=… --particles=… --gravity=… --init=…
 --aspect=x,y,z`) are applied on top of the inherited settings and
 reinitialized before recording; `--bhs=0/1` sets the BH toggle live (no
 reinit); `--steps=…` changes the per-frame catch-up cap;
-`--orbit-speed/--orbit-radius` tune the camera; `-Resolution` on the
+`--orbit-speed/--orbit-radius` tune the camera (radius pins the
+auto-framed distance); `-Resolution` on the
 launcher sets the AVI size (default 1920x1080). `--record-frames` /
 `--record-fps` come from the launcher (`-Duration` × `-Fps`); bare runs
 without them fall back to the scene defaults (900 frames @ 30 fps,

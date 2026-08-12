@@ -8,12 +8,20 @@ extends Node3D
 # the requested frame count is reached (Movie Maker finalizes the AVI on
 # quit). No UI nodes: the video shows only the particles; progress goes
 # to stdout.
+#
+# The camera frames the SPAWN REGION, not the origin: the orbit center is
+# the cluster-centroid (mean of the cluster centers, mirroring
+# cassi_sim.gd::_init_particles), and the default orbit radius is derived
+# from the spawn extent (cluster-ring radius + per-cluster ball radius) so
+# the startup frame shows the particles up close and dead-center — no
+# hardcoded cluster position. `--orbit-radius` still pins the distance.
 # ═══════════════════════════════════════════════════════════════════════
 
 # ── Scene defaults ──
 @export var record_frames: int = 900          # 30 s at 30 fps
 @export var record_fps: int = 30
-@export var orbit_radius: float = 150.0       # camera distance from origin
+@export var orbit_radius: float = 150.0       # camera distance from the orbit target;
+                                              # auto-framed from the spawn geometry unless --orbit-radius
 @export var orbit_elevation: float = 0.35     # fixed height angle (rad)
 @export var orbit_speed: float = 0.12         # rad/s around Y
 @export var recording_size: Vector2i = Vector2i(1920, 1080)
@@ -22,6 +30,13 @@ var _cam: Camera3D
 var _sim: Node3D
 var _frame_count: int = 0
 var _angle: float = 0.0
+# Spawn-aware framing, set in _ready once the sim config is inherited: the
+# orbit center is the cluster-centroid (NOT the origin), so single-cluster
+# configs (spawn at (cluster_separation, 0, 0)) are framed dead-center too.
+var _orbit_target: Vector3 = Vector3.ZERO
+# --orbit-radius on the command line pins the distance; otherwise the default
+# is derived from the spawn extent so the startup frame shows the particles.
+var _orbit_radius_cli := false
 
 
 func _ready() -> void:
@@ -128,6 +143,17 @@ func _ready() -> void:
 				orbit_speed = float(kv[1])
 			"--orbit-radius":
 				orbit_radius = float(kv[1])
+				_orbit_radius_cli = true
+
+	# ── Spawn-aware camera framing ──
+	# Aim the orbit at the actual spawn region and frame it: the default
+	# radius is the spawn extent (cluster-ring radius + the per-cluster
+	# ball radius), so the region fills most of the frame. --orbit-radius
+	# overrides it.
+	if not _orbit_radius_cli:
+		orbit_radius = _framing_radius()
+	_orbit_target = _spawn_centroid()
+	_apply_camera_pose()
 
 	# The sim already ran _ready with script defaults; reinit applies the
 	# inherited settings + CLI overrides (fresh buffers/field/particles at
@@ -135,22 +161,61 @@ func _ready() -> void:
 	if reinit_needed:
 		_sim.call("reinit")
 
-	print("[Recorder] frames=%d fps=%d size=%dx%d grid=%d particles=%d grav=%d init=%d steps=%d orbit=%.2f rad/s" % [
+	print("[Recorder] frames=%d fps=%d size=%dx%d grid=%d particles=%d grav=%d init=%d steps=%d orbit=%.2f rad/s cam_r=%.1f target=(%.0f, %.0f, %.0f)" % [
 		record_frames, record_fps, recording_size.x, recording_size.y,
 		_sim.get("grid_N"), _sim.get("N_particles"), _sim.get("gravity_mode"),
-		_sim.get("initial_condition"), _sim.get("max_steps_per_frame"), orbit_speed])
+		_sim.get("initial_condition"), _sim.get("max_steps_per_frame"), orbit_speed,
+		orbit_radius, _orbit_target.x, _orbit_target.y, _orbit_target.z])
 
 
-func _process(delta: float) -> void:
-	# Slow orbital camera: rotate around Y at a fixed elevation, always
-	# looking at the origin (the cluster sits there).
-	_angle += orbit_speed * delta
+## Mean of the cluster centers, mirroring cassi_sim.gd::_init_particles
+## (ring for nc <= 8, Fibonacci sphere above). This is the spawn region's
+## center of mass; the previous fixed look-at(Vector3.ZERO) missed
+## single-cluster configs by cluster_separation.
+func _spawn_centroid() -> Vector3:
+	var nc := maxi(1, int(_sim.get("num_clusters")))
+	var sep := float(_sim.get("cluster_separation"))
+	var acc := Vector3.ZERO
+	for i in range(nc):
+		if nc > 8:
+			var phi := acos(1.0 - 2.0 * (float(i) + 0.5) / float(nc))
+			var th := PI * (1.0 + sqrt(5.0)) * float(i)
+			acc += Vector3(sep * sin(phi) * cos(th), sep * sin(phi) * sin(th), sep * cos(phi))
+		else:
+			var angle := float(i) * PI * 2.0 / float(nc)
+			acc += Vector3(sep * cos(angle), 0.0, sep * sin(angle))
+	return acc / float(nc)
+
+
+## Default orbit distance: the spawn extent — the cluster-ring radius
+## (multi-cluster; a single cluster's centroid is the center itself) plus
+## the per-cluster ball radius — so the region fills most of the vertical
+## FOV and the nearest orbit pass clears the ring by at least the ball
+## radius. Kept as a plain extent sum (not a FOV division) so the startup
+## frame sits CLOSER than the old fixed 150 for typical ring configs.
+func _framing_radius() -> float:
+	var nc := maxi(1, int(_sim.get("num_clusters")))
+	var sep := float(_sim.get("cluster_separation"))
+	var cluster_r := maxf(float(_sim.get("cluster_radius")), 1e-3)
+	var ring_r: float = sep if nc > 1 else 0.0
+	return maxf(maxf(ring_r, cluster_r) + cluster_r, 1.0)
+
+
+## Place the camera at the current orbit angle around the spawn centroid.
+func _apply_camera_pose() -> void:
 	var e := orbit_elevation
-	_cam.position = Vector3(
+	_cam.position = _orbit_target + Vector3(
 		orbit_radius * cos(_angle) * cos(e),
 		orbit_radius * sin(e),
 		orbit_radius * sin(_angle) * cos(e))
-	_cam.look_at(Vector3.ZERO, Vector3.UP)
+	_cam.look_at(_orbit_target, Vector3.UP)
+
+
+func _process(delta: float) -> void:
+	# Slow orbital camera: rotate around the spawn centroid (the cluster
+	# region) at a fixed elevation, always looking at it.
+	_angle += orbit_speed * delta
+	_apply_camera_pose()
 
 	_frame_count += 1
 	if _frame_count % 30 == 0 or _frame_count == record_frames:
