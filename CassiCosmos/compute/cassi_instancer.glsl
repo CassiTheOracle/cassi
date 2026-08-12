@@ -14,43 +14,71 @@ layout(set = 0, binding = 1, std430) restrict buffer Instances {
     vec4 inst[];
 };
 layout(set = 0, binding = 2, std430) readonly buffer Velocities { vec4 vel[]; };
-// q = EY²+EI² field grid (float per cell) — the Qi-rainbow (color_mode 2)
+// q = EY²+EI² field grid (float per cell) — the Qi-rainbow (color_mode 2/3)
 // coherence input, sampled trilinearly at the particle (exact convention
 // of cassi_nbody_gravity.glsl's scalar samplers; per-axis extents from the
 // PC below — that shader reads them from bh[2].yzw, which is the same
 // _extents() source on the host).
 layout(set = 0, binding = 3, std430) readonly buffer FieldQ { float qv[]; };
 
+// ── Consolidated gradient engine PC (32 floats = 128 B — the AMD RDNA3
+// Vulkan push-constant cap; EXACTLY 128, nothing more) ──────────────────
+//   slots 0-10   = the shared 11 fields (verbatim, all physics shaders)
+//   slot 11      = color_mode (0 = Cassi mass gradient, 1 = velocity,
+//                  2/3 = Qi coherence; the pass count lives in span_total)
+//   slot 12      = prog_mode (0 = log cycle progress, 1 = linear)
+//   slot 13      = ref (velocity: v_ref, mean init |v|; Qi: 0)
+//   slots 14-21  = the up-to-3 CYCLE segments [lo1,lo2],[lo2,lo3],[lo3,hiC]:
+//                  lo1/slope1 (14/15), lo2/slope2/off2 (16/17/18),
+//                  lo3/slope3/off3 (19/20/21) — off2/off3 accumulate the
+//                  segment hue shares; pinch OFF ⇒ lo2 = lo3 = hiC and the
+//                  shares collapse to (1,0,0) (single segment)
+//   slot 22      = hiC (cycle band top)
+//   slot 23      = span_total (H_CYCLE·C — the hue budget of the pass set;
+//                  h_cyc wraps mod span_total; the one-sided clamp at the
+//                  span top holds hue instead of wrapping)
+//   slots 24-27  = the APPROACH band (count-invariant white-hot stage):
+//                  a_lo (entry), a_hi (white point), gate (pink anchor,
+//                  default φ⁻²), approach_on (0/1)
+//   slots 28-30  = per-axis box half-extents (the q-sampler's cell mapping —
+//                  the same _extents() values nbody reads from bh[2].yzw)
+//   slot 31      = hue_offset (rotates the cycle start hue mod span_total)
+// GLSL cannot runtime-index push-constant arrays — the segment fields are
+// NAMED members selected by the step() masks in the evaluator below.
 layout(push_constant, std430) uniform PC {
     float N_f; float dt; float t; float phi;
     float xi; float eps2; float particle_N;
     float mode; float source_strength; float num_clusters;
     float gravity_mode;  // unused here (nbody gravity selector)
-    float color_mode;    // 0 = Cassi mass gradient (default, bit-identical); 1 = velocity rainbow; 2 = Qi rainbow; 3 = Qi double rainbow
-    float v_ref;         // generic rainbow REFERENCE (slots 12/13 shared by modes 1/2/3):
-                         // mode 1 = v_ref, mean initial |v| (host-computed);
-                         // modes 2/3 = Q_FLOOR, the Qi-rainbow stage-1 band floor (2e-4)
-    float v_scale;       // generic rainbow SCALE:
-                         // mode 1 = 0.95/ln(1+v_max/v_ref) (v_max → h = 0.95, magenta-pink);
-                         // modes 2/3 = 1.0/ln(Q_1/Q_FLOOR) — stage-1 hue ramp scale
-                         // (full hue circle in mode 2; mode 3 doubles the ramp in the branch body)
+    float color_mode;    // 0 = Cassi mass gradient (default, bit-identical); 1 = velocity rainbow; 2/3 = Qi rainbow (the pass count is in span_total)
+    float prog_mode;     // cycle progress: 0 = log (default), 1 = linear
+    float ref;           // cycle reference: velocity = v_ref (mean init |v|); Qi = 0
+    float lo1; float slope1;            // segment 1 [lo1, lo2)
+    float lo2; float slope2; float off2;  // segment 2 [lo2, lo3)
+    float lo3; float slope3; float off3;  // segment 3 [lo3, hiC]
+    float hiC;           // cycle band top
+    float span_total;    // H_CYCLE·C — the hue budget of the pass set
+    float a_lo;          // approach entry (violet)
+    float a_hi;          // approach white point (lightness 1.0)
+    float gate;          // approach pink anchor (default φ⁻²)
+    float approach_on;   // 0 = approach off (pure cycle), 1 = on
     float extent_x;      // per-axis box half-extents (GRID_LAYOUT.md's φ-aspect
     float extent_y;      // box) — the q-sampler's cell mapping, the same
     float extent_z;      // values nbody reads from bh[2].yzw
-    float q_1;           // float 17 (modes 2/3): stage-1 band top (1e-3) — hue
-                         // ramp ends / stage-2 entry (violet; the red → violet jump)
-    float q_top;         // float 18 (modes 2/3): stage-2 white point =
-                         // the scene's qi_condensation_threshold (host reads the
-                         // LIVE export each fill, so the white point tracks config)
+    float hue_offset;    // cycle start-hue rotation (mod span_total)
 } pc;
 
-// ── Qi-rainbow stage-2 constants (modes 2/3, shader-side, zero PC growth) ──
-// Q_GATE = φ⁻² ≈ 0.3819660112501051 — the framework's DECOHERENCE THRESHOLD
-// (the qi gate; the same PHI_INV2 constant the host exports). Stage 2 is
-// anchored on it: the hue passes through PINK exactly at q = Q_GATE.
-// H_PINK = 0.93 — the pink (magenta-family) hue used at the gate.
-const float Q_GATE = 0.3819660112501051;
+// ── Consolidated-gradient constants ─────────────────────────────────────
+// H_ENTRY = 0.8 (violet) — the approach entry hue; H_PINK = 0.93 — the
+// magenta-family hue passed through EXACTLY at the approach gate (default
+// φ⁻² ≈ 0.381966 — the framework's decoherence threshold, PHI_INV2 on the
+// host); H_TOP = 1.0 (red ≡ 0) — the approach top hue at the white point.
+// LOG_GUARD keeps every log argument and every max() denominator safe
+// (never ≤ 0).
+const float H_ENTRY = 0.8;
 const float H_PINK = 0.93;
+const float H_TOP = 1.0;
+const float LOG_GUARD = 1e-9;
 
 // Branchless HSL→RGB (IQ form). hue in [0,1): 0=red, 1/3=green, 2/3=blue,
 // ~0.8=violet, ~0.93=pink; s,l in [0,1]. No per-channel if/else — works on
@@ -60,45 +88,31 @@ vec3 hsl2rgb(vec3 c) {
     return c.z + c.y * (rgb - 0.5) * (1.0 - abs(2.0 * c.z - 1.0));
 }
 
-// ── Stage-2 Qi hue/lightness (shared modes 2/3) ─────────────────────────
-// q ∈ [Q_1, Q_TOP]: violet (h = 0.8) at Q_1 → PINK (h = H_PINK) EXACTLY at
-// the framework decoherence gate q = Q_GATE = φ⁻² (the qi gate —
-// 0.3819660112501051, the same PHI_INV2 constant the host uses) → red
-// (h = 1.0 ≡ 0) at Q_TOP, with lightness ramping 0.5 → 1.0 the whole way
-// so the threshold washes to PURE WHITE (white-hot, not red-hot).
-vec2 qi_stage2(float qq) {
-    float l = 0.5 + 0.5 * clamp((qq - pc.q_1) / max(pc.q_top - pc.q_1, 1e-9), 0.0, 1.0);
-    float h;
-    if (qq < Q_GATE) {
-        // violet → pink across [Q_1, Q_GATE]
-        h = 0.8 + (H_PINK - 0.8) * clamp((qq - pc.q_1) / max(Q_GATE - pc.q_1, 1e-9), 0.0, 1.0);
-    } else {
-        // pink → red across [Q_GATE, Q_TOP]
-        h = mix(H_PINK, 1.0, clamp((qq - Q_GATE) / max(pc.q_top - Q_GATE, 1e-9), 0.0, 1.0));
-    }
-    return vec2(h, l);
-}
-
-// Qi-rainbow anchors are PC-fed (slots 12/13 = Q_FLOOR/Q_SCALE, 17/18 =
-// Q_1/Q_TOP); the stage-2 gate anchors are shader consts (Q_GATE/H_PINK
-// below). TWO-STAGE mapping (recalibrated 2026-08-12 from the measured
-// q = EY²+EI² distribution at particle positions — a 1M-particle diag
-// mirroring main.tscn, 600 steps — typical q ∈ [3.4e-4, 5.7e-4], ~1000×
-// BELOW the old φ⁻² anchor 0.381966, which pinned normal running at h ≈ 0):
-//   STAGE 1 (q ∈ [Q_FLOOR, Q_1], the normal operating band): the FULL hue
-//     circle — h = Q_SCALE·ln(q/Q_FLOOR) with Q_SCALE = 1/ln(Q_1/Q_FLOOR),
-//     so f = ln(q/Q_FLOOR)/ln(Q_1/Q_FLOOR) ∈ [0,1] maps linearly onto
-//     [0,1] (f=0 red, f=0.5 cyan, f=1 red again) — the magenta/pink
-//     segment 0.8-1.0 the old 0.8 cap omitted is now visible; the measured
-//     band spans h ≈ 0.33-0.65 (green → cyan-blue; median ≈ 0.40).
-//   STAGE 2 (q ∈ [Q_1, Q_TOP], elevated coherence approaching condensation):
-//     hue ramps violet (0.8) at Q_1 → PINK (0.93) EXACTLY at the φ⁻²
-//     decoherence gate q = Q_GATE → red (1.0) at Q_TOP, while lightness
-//     ramps 0.5 → 1.0 — pure white at q_top = the scene's
-//     qi_condensation_threshold (0.85, the physical explosion point; host
-//     reads the LIVE export each fill). The red → violet jump at Q_1 is
-//     the intentional stage-2 entry marker (white-hot approach).
-// q < Q_FLOOR clamps to h = 0 (red). The q ≥ 0 clamp is a guard
+// ── Consolidated rainbow mapping (recalibrated 2026-08-12 from the
+// measured q = EY²+EI² distribution at particle positions — a 1M-particle
+// diag mirroring main.tscn, 600 steps — typical q ∈ [3.4e-4, 5.7e-4],
+// ~1000× BELOW the old φ⁻² anchor 0.381966, which pinned normal running at
+// h ≈ 0). ONE segmented-ramp engine serves both sources (velocity mode 1,
+// Qi modes 2/3); the host composes the PC from the legacy exports + the
+// consolidated gradient exports:
+//   CYCLE — the scalar axis x (q or |v|) is partitioned into up to 3
+//     segments [lo1,lo2],[lo2,lo3],[lo3,hiC]; the pinch split concentrates
+//     hue gradient where most particles sit (the measured q band; the
+//     pinch band is the NARROWEST log interval → intrinsically steepest);
+//     pinch OFF ⇒ one segment. Per-segment hue SHARES allocate each pass's
+//     hue budget; count C = the number of hue passes over the band
+//     (span_total = H_CYCLE·C; H_CYCLE = 1.0 Qi / 0.95 velocity — the
+//     legacy velocity top, held with no wrap). Progress is LOG per segment
+//     by default (multiplicative physics; the old mapping), LINEAR
+//     optional. h_cyc wraps mod span_total (hue_offset rotates the start).
+//   APPROACH — count-invariant white-hot stage: violet (0.8) at a_lo →
+//     PINK (0.93) EXACTLY at the gate (φ⁻² = the qi gate) → red (1.0) at
+//     a_hi, lightness 0.5 → 1.0 (pure white at a_hi = the live
+//     qi_condensation_threshold — the physical explosion point; the host
+//     reads the LIVE export each fill, so the white point tracks config).
+//     The red → violet jump at a_lo is the intentional stage-2 entry
+//     marker. The approach is LINEAR (matches the legacy stage 2).
+// q < lo1 clamps to h = 0 (red). The q ≥ 0 clamp is a guard
 // (EY²+EI² cannot go negative).
 
 // ── Index helper + trilinear sample (periodic wrap) of the q field ─────
@@ -162,71 +176,47 @@ void main() {
     float cg = mix(0.25, 0.6,  log_m);
     float cb = mix(1.0,  0.15, log_m);
     vec4 color = vec4(cr, cg, cb, 1.0);
-    if (pc.color_mode >= 2.5) {
-        // Qi DOUBLE rainbow (color_mode 3): same two-stage structure as
-        // mode 2 with the stage-1 hue ramp DOUBLED —
-        //   h = clamp(2.0 · Q_SCALE · ln(q/Q_FLOOR), 0.0, 2.0)
-        // The IQ hsl2rgb hue is periodic mod 1 (mod 6 inside), so the
-        // normal band now passes through the rainbow TWICE for doubled
-        // gradient granularity: at f = ln(q/Q_FLOOR)/ln(Q_1/Q_FLOOR) ∈
-        // [0,1], h = 2·f — f=0 red, f=0.25 h=0.5 (cyan-green),
-        // f=0.5 h=1.0≡0 (red), f=0.75 h=1.5≡0.5 (cyan-green),
-        // f→1 h→2.0≡0 (red). Stage 2 (qq >= q_1) is IDENTICAL to
-        // mode 2 (shared qi_stage2: violet → pink at the φ⁻² gate → red,
-        // lightness ramps to white at q_top) — the jump from the ramp
-        // limit h≡0 (red) to h=0.8 (violet) at the stage boundary is the
-        // intentional 'entering the white-hot stage' marker. Same PC slots
-        // as mode 2 (12/13: Q_FLOOR/Q_SCALE; 17/18: Q_1/Q_TOP) — the ×2
-        // is a shader constant, zero PC growth.
-        float qq = max(tri_q(pos[i].xyz), 0.0);
-        float q_floor = max(pc.v_ref, 1e-9);          // slot 12 (modes 2/3: Q_FLOOR)
-        vec2 hsl;
-        if (qq >= pc.q_1) {
-            hsl = qi_stage2(qq);                      // stage 2 (shared with mode 2)
-        } else {
-            hsl = vec2(clamp(2.0 * pc.v_scale * log(qq / q_floor), 0.0, 2.0), 0.5);  // two full circles
-        }
-        color = vec4(hsl2rgb(vec3(hsl.x, 1.0, hsl.y)), 1.0);
-    } else if (pc.color_mode >= 1.5) {
-        // Qi rainbow (color_mode 2) — TWO-STAGE mapping of the two-fluid
-        // coherence q = EY²+EI² trilinearly sampled at the particle:
-        //   STAGE 1 (q ∈ [Q_FLOOR, Q_1] — the normal operating band):
-        //     h = clamp(Q_SCALE·ln(q/Q_FLOOR), 0.0, 1.0), s = 1, l = 0.5 —
-        //     the FULL hue circle (f = ln(q/Q_FLOOR)/ln(Q_1/Q_FLOOR) maps
-        //     linearly onto [0,1]: f=0 red, f=0.5 cyan, f=1 red again),
-        //     magenta/pink segment 0.8-1.0 included; the measured band
-        //     (3.4e-4…5.7e-4) spans h ≈ 0.33-0.65 (green → cyan-blue).
-        //     q < Q_FLOOR clamps to red.
-        //   STAGE 2 (q ∈ [Q_1, Q_TOP] — elevated coherence approaching
-        //     condensation): hue ramps violet (0.8) at Q_1 → PINK (0.93)
-        //     EXACTLY at the φ⁻² decoherence gate Q_GATE → red (1.0) at
-        //     Q_TOP, with lightness ramping 0.5 → 1.0 (pure white at
-        //     q_top = the scene's qi_condensation_threshold) — white-hot
-        //     approach. The red → violet jump at Q_1 is the intentional
-        //     stage-2 entry marker.
-        // Q_FLOOR/Q_SCALE arrive in the generic v_ref/v_scale PC slots
-        // (12/13, shared with mode 1); Q_1/Q_TOP in the new slots 17/18.
-        float qq = max(tri_q(pos[i].xyz), 0.0);
-        float q_floor = max(pc.v_ref, 1e-9);          // slot 12 (mode 2: Q_FLOOR)
-        vec2 hsl;
-        if (qq >= pc.q_1) {
-            hsl = qi_stage2(qq);                      // stage 2: violet → pink gate → white
-        } else {
-            hsl = vec2(clamp(pc.v_scale * log(qq / q_floor), 0.0, 1.0), 0.5);  // stage 1: full circle
-        }
-        color = vec4(hsl2rgb(vec3(hsl.x, 1.0, hsl.y)), 1.0);
-    } else if (pc.color_mode >= 0.5) {
-        // Velocity rainbow (log-compressed, distribution-anchored):
-        // h = v_scale·ln(1+|v|/v_ref) — slow = red (h→0), v=v_ref ≈ 0.4-0.6,
-        // v=v_max → 0.95 (magenta-pink, the full-circle top). Hue drifts
-        // only logarithmically under velocity growth; the one-sided clamp
-        // at 0.95 keeps growth beyond v_max SATURATING at pink instead of
-        // wrapping past hue 1.0 (a discontinuous jump color). v_ref guarded
-        // against 0; the host guarantees v_scale = 0.95·ln2 in the
-        // degenerate zero-speed case.
-        float v = length(vel[i].xyz);
-        float h = min(pc.v_scale * log(1.0 + v / max(pc.v_ref, 1e-6)), 0.95);
-        color = vec4(hsl2rgb(vec3(h, 1.0, 0.5)), 1.0);
+    if (pc.color_mode >= 0.5) {
+        // ── Consolidated rainbow engine (modes 1/2/3) ────────────────
+        // One branchless evaluator for both sources; every difference
+        // between the sources/modes lives in the host-composed PC.
+        float x = (pc.color_mode >= 1.5)
+            ? max(tri_q(pos[i].xyz), 0.0)     // Qi: coherence q (q ≥ 0 guard)
+            : length(vel[i].xyz);             // velocity: speed |v|
+        float lin = pc.prog_mode;             // 0 = log, 1 = linear
+        // per-segment progress (log: multiplicative physics; linear: plain)
+        float f1 = mix(log(max((x + pc.ref) / (pc.lo1 + pc.ref), LOG_GUARD)), x - pc.lo1, lin);
+        float f2 = mix(log(max((x + pc.ref) / (pc.lo2 + pc.ref), LOG_GUARD)), x - pc.lo2, lin);
+        float f3 = mix(log(max((x + pc.ref) / (pc.lo3 + pc.ref), LOG_GUARD)), x - pc.lo3, lin);
+        // segment hues: h1 starts at 0; h2/h3 start at the accumulated
+        // share offsets — the pinch band's steepness comes from its narrow
+        // log interval (the intrinsic steepest segment).
+        float h1 = pc.slope1 * f1;
+        float h2 = pc.off2 + pc.slope2 * f2;
+        float h3 = pc.off3 + pc.slope3 * f3;
+        // segment masks (pinch OFF ⇒ lo2 = lo3 = hiC ⇒ only a1 is live).
+        // The LAST segment extends past hiC (no upper step): growth beyond
+        // the cycle top saturates at the span cap instead of dropping out —
+        // the legacy velocity top (h = 0.95 at v ≥ v_max, pink) is held.
+        float a1 = step(pc.lo1, x) * (1.0 - step(pc.lo2, x));
+        float a2 = step(pc.lo2, x) * (1.0 - step(pc.lo3, x));
+        float a3 = step(pc.lo3, x);
+        float hc = clamp(a1 * h1 + a2 * h2 + a3 * h3, 0.0, pc.span_total);
+        // the offset rotates the cycle start; the wrap boundary is at least
+        // a full circle so a single-pass top (velocity span 0.95) is HELD at
+        // the cap instead of wrapping back to red (mod(x, y) = 0 for x = y).
+        float h_cyc = mod(hc + pc.hue_offset, max(pc.span_total, 1.0));
+        // approach band (count-invariant): violet 0.8 at a_lo → PINK 0.93
+        // EXACTLY at the gate → red 1.0 at a_hi; lightness 0.5 → 1.0
+        float pG = clamp((x - pc.a_lo) / max(pc.gate - pc.a_lo, LOG_GUARD), 0.0, 1.0);
+        float pT = clamp((x - pc.gate) / max(pc.a_hi - pc.gate, LOG_GUARD), 0.0, 1.0);
+        float pA = clamp((x - pc.a_lo) / max(pc.a_hi - pc.a_lo, LOG_GUARD), 0.0, 1.0);
+        float hA = mix(mix(H_ENTRY, H_PINK, pG), mix(H_PINK, H_TOP, pT), step(pc.gate, x));
+        float lA = 0.5 + 0.5 * pA;
+        float inA = pc.approach_on * step(pc.a_lo, x);
+        float h = mix(h_cyc, hA, inA);
+        float l = mix(0.5, lA, inA);
+        color = vec4(hsl2rgb(vec3(h, 1.0, l)), 1.0);
     }
     inst[base + 3] = color;
 }

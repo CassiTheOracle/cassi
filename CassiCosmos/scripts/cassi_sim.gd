@@ -279,22 +279,17 @@ var _cond_pc_bytes: PackedByteArray   # condensation PC (4 floats)
 var _bh_init_bytes: PackedByteArray   # BH header init (16 floats)
 var _tel_reset_bytes: PackedByteArray # gravity telemetry reset (8 floats)
 var _poisson_pc_bytes: PackedByteArray  # poisson PC (7 floats: N, axis, dir, mode, extent_x/y/z)
-# Instancer dedicated PC (19 floats: the shared 11 + color_mode + the
-# generic rainbow reference/scale pair + extent_x/y/z + the two Qi-rainbow
-# stage-2 anchors) — the dedicated-PC precedent (nbody 15, two-fluid
-# 14, mass-deposit 5): field_render/bh_lensing keep the shared 11-float
-# _pc_bytes, and Godot hard-errors on push-constant size mismatch, so the
-# instancer's extra fields get their own pre-allocated buffer. Slots 12/13
-# are the generic rainbow pair shared by modes 1/2/3: color_mode 1 =
-# v_ref/v_scale (velocity rainbow), 2/3 = Q_FLOOR/Q_SCALE (Qi-rainbow
-# stage-1 ramp: Q_SCALE = 1.0/ln(max(Q_1, Q_FLOOR·1.001)/Q_FLOOR); mode 3
-# doubles the hue ramp in the shader). Slots 17/18 (modes 2/3 only): Q_1
-# (stage-1 band top) and Q_TOP = the live qi_condensation_threshold (the
-# white point). The stage-2 gate anchors (Q_GATE = φ⁻², H_PINK = 0.93) are
-# shader constants. The three per-axis extents feed the Qi-rainbow
-# q-sampler's cell mapping (the same _extents() values nbody reads from
-# bh[2].yzw).
-var _instancer_pc_bytes: PackedByteArray  # instancer PC (19 floats: 11 shared + color_mode@11 + v_ref/v_scale@12-13 (mode 1) or Q_FLOOR/Q_SCALE@12-13 (modes 2/3) + extent_x/y/z@14-16 + Q_1@17 + Q_TOP@18 (modes 2/3))
+# Instancer dedicated PC (32 floats = 128 B — the AMD RDNA3 Vulkan cap;
+# EXACTLY 128, nothing more) — the consolidated gradient engine: the shared
+# 11 + color_mode@11 + prog_mode@12 + ref@13 + the up-to-3 cycle segments
+# (lo1/slope1@14-15, lo2/slope2/off2@16-18, lo3/slope3/off3@19-21) +
+# hiC@22 + span_total@23 + the approach band (a_lo@24, a_hi@25, gate@26,
+# approach_on@27) + extent_x/y/z@28-30 + hue_offset@31. The dedicated-PC
+# precedent (nbody 15, two-fluid 14, mass-deposit 5): field_render/
+# bh_lensing keep the shared 11-float _pc_bytes, and Godot hard-errors on
+# push-constant size mismatch, so the instancer's extra fields get their
+# own pre-allocated buffer.
+var _instancer_pc_bytes: PackedByteArray  # instancer PC (32 floats: 11 shared + color_mode@11 + prog_mode@12 + ref@13 + lo1/slope1@14-15 + lo2/slope2/off2@16-18 + lo3/slope3/off3@19-21 + hiC@22 + span_total@23 + a_lo/a_hi/gate/approach_on@24-27 + extent_x/y/z@28-30 + hue_offset@31)
 # NOTE: global RD — no manual submit/sync anywhere (illegal on the main
 # instance); readbacks self-stall via buffer_get_data.
 
@@ -320,6 +315,7 @@ var _mmi: MultiMeshInstance3D; var _mm: MultiMesh
 var _mm_particle_size: float = -1.0  # particle_size the multimesh was built with (reinit rebuild check)
 var _rainbow_vref: float = 1.0  # rainbow speed reference: mean initial |v| (set in _init_particles; fallback 1.0)
 var _rainbow_vscale: float = 0.95 * LN2  # rainbow hue scale: 0.95/ln(1+v_max/v_ref) (set in _init_particles; degenerate fallback 0.95·ln2)
+var _rainbow_vmax: float = 1.0  # max initial speed — the velocity cycle's AUTO band top (set in _init_particles; fallback 1.0)
 
 # — timing —
 var _step_count: int = 0
@@ -385,17 +381,17 @@ func _ready() -> void:
 	_init_particles()
 	_apply_gravity_calibration()
 	_grav_warmup = true  # fill the acc cache with a fresh force before step 1
-	# Frame-0 / paused view for the Qi rainbows (modes 2/3): with playing=false
+	# Frame-0 / paused view for the rainbow modes (1/2/3): with playing=false
 	# the instancer never dispatches, so the CPU init_inst pass provides the
 	# visible colors — but the CPU path cannot sample the field cheaply. The
-	# one-shot GPU repaint computes the q colors from the uploaded pos/vel/q
+	# one-shot GPU repaint computes the colors from the uploaded pos/vel/q
 	# buffers instead. Safe HERE (verified ordering): _setup_shaders cached
-	# _us_inst_0, _instancer_pc_bytes is allocated (19 floats), and the
+	# _us_inst_0, _instancer_pc_bytes is allocated (32 floats), and the
 	# pos/vel/q buffers + the multimesh RD buffer are all valid (init_field
 	# and init_particles ran; _mm.buffer = init_inst sized the renderer's
 	# buffer). If the shader import race left _us_inst_0 invalid the call
 	# no-ops and the placeholder colors stand until the retry compiles.
-	if particle_color_mode >= 2:
+	if particle_color_mode != 0:
 		_repaint_instancer()
 	print("[CassiSim] Universe ready — grid=%d³ particles=%d xi=%.5f (φ⁶=%.5f)" % [grid_N, N_particles, xi, PHI_6])
 	_auto_frame_camera()
@@ -621,7 +617,7 @@ func _setup_buffers() -> void:
 	# 3 per-axis extents for the anisotropic 19-point stencil (GRID_LAYOUT.md).
 	_two_fluid_pc_bytes = PackedByteArray(); _two_fluid_pc_bytes.resize(14 * 4)
 	_md_pc_bytes = PackedByteArray(); _md_pc_bytes.resize(5 * 4)
-	_instancer_pc_bytes = PackedByteArray(); _instancer_pc_bytes.resize(19 * 4)
+	_instancer_pc_bytes = PackedByteArray(); _instancer_pc_bytes.resize(32 * 4)  # consolidated gradient engine PC — 128 B (the RDNA3 Vulkan cap)
 	_bh_int_pc_bytes = PackedByteArray(); _bh_int_pc_bytes.resize(4 * 4)
 	_cond_pc_bytes = PackedByteArray(); _cond_pc_bytes.resize(4 * 4)
 	_poisson_pc_bytes = PackedByteArray(); _poisson_pc_bytes.resize(7 * 4)
@@ -1211,7 +1207,10 @@ func _init_particles() -> void:
 		init_inst[b+4] = 0.0; init_inst[b+5] = 1.0; init_inst[b+6] = 0.0; init_inst[b+7] = y
 		init_inst[b+8] = 0.0; init_inst[b+9] = 0.0; init_inst[b+10] = 1.0; init_inst[b+11] = z
 		# Color: replicate the instancer shader for the SELECTED mode so the
-		# paused (playing=false) view equals the first played frame.
+		# paused (playing=false) view equals the first played frame. Modes 1-3
+		# (the consolidated gradient engine) render frame-0 via the one-shot
+		# GPU _repaint_instancer() at the end of _ready — the CPU path cannot
+		# sample the field cheaply — so only mode 0 keeps a CPU color pass.
 		if particle_color_mode == 0:
 			# Shader-exact Cassi mass gradient: log_m = clamp((log2(m)+2)·0.25)
 			var m: float = pos[i4 + 3]
@@ -1220,15 +1219,8 @@ func _init_particles() -> void:
 			var cg: float = lerp(0.25, 0.6,  log_m)
 			var cb: float = lerp(1.0,  0.15, log_m)
 			init_inst[b+12] = cr; init_inst[b+13] = cg; init_inst[b+14] = cb; init_inst[b+15] = 1.0
-		elif particle_color_mode == 1:
-			# Velocity rainbow: h = min(v_scale·ln(1+|v|/v_ref), 0.95),
-			# slow=red → fast=magenta-pink; growth beyond v_max saturates (no wrap).
-			var vx: float = vel[i4]; var vy: float = vel[i4 + 1]; var vz: float = vel[i4 + 2]
-			var vs: float = sqrt(vx*vx + vy*vy + vz*vz)
-			var col: Color = _hsl_to_rgb(minf(_rainbow_vscale * log(1.0 + vs / _rainbow_vref), 0.95), 1.0, 0.5)
-			init_inst[b+12] = col.r; init_inst[b+13] = col.g; init_inst[b+14] = col.b; init_inst[b+15] = 1.0
 		else:
-			# Qi rainbow (modes 2/3): PLACEHOLDER — the shader computes the q
+			# Rainbow modes (1/2/3): PLACEHOLDER — the shader computes the
 			# colors from the uploaded pos/vel/q buffers in the one-shot
 			# _repaint_instancer() at the end of _ready (the CPU path cannot
 			# sample the field cheaply). This buffer upload happens first, so
@@ -1249,12 +1241,15 @@ func _init_particles() -> void:
 	# Velocity-rainbow anchors (log-compressed, distribution-anchored):
 	#   v_ref  = mean initial |v|          (the hue mid-point: h(v_ref) ≈ 0.4-0.5)
 	#   v_scale = 0.95 / ln(1 + v_max/v_ref)  (fastest particle → h = 0.95, magenta-pink)
+	#   v_max  = max initial |v| — the consolidated engine's AUTO cycle top
 	# h = v_scale·ln(1+|v|/v_ref): slow → h→0 (red), and hue drifts only
 	# LOGARITHMICALLY under velocity growth — a speed-up no longer pins the
 	# field at the top of the ramp (the linear |v|/(|v|+v_ref) saturation bug).
 	# Degenerate zero-speed IC: v_ref = 1.0, v_scale = 0.95·ln2 (smooth small-v
-	# ramp instead of a division hazard).
+	# ramp instead of a division hazard); the engine maps the degenerate
+	# v_max ≈ 0 to the band [0, 1.0] with ref = 1.0.
 	var mean_v: float = sum_v / float(N_particles) if N_particles > 0 else 0.0
+	_rainbow_vmax = max_v
 	if max_v > 0.0 and mean_v > 0.0:
 		_rainbow_vref = mean_v
 		_rainbow_vscale = 0.95 / log(1.0 + max_v / mean_v)
@@ -1431,17 +1426,22 @@ func _physics_step() -> void:
 
 
 func _fill_instancer_pc() -> void:
-	# Instancer dedicated PC (19 floats): the shared 11 + color_mode (slot 11)
-	# + the generic rainbow pair slots 12/13 (mode 1: v_ref/v_scale; mode 2:
-	# Q_FLOOR/Q_SCALE, Q_SCALE = 1.0/ln(max(Q_1, Q_FLOOR·1.001)/Q_FLOOR)) +
-	# the three per-axis box half-extents (slots 14-16, the Qi-rainbow
-	# q-sampler's cell mapping) + slots 17/18 (mode 2: Q_1 = stage-1 band
-	# top, Q_TOP = the LIVE qi_condensation_threshold — changing the
-	# threshold re-anchors the white point next dispatch) — the
-	# dedicated-PC precedent (nbody 15, two-fluid 14, mass-deposit 5):
-	# field_render/bh_lensing keep the shared 11-float _pc_bytes, and Godot
-	# hard-errors on push-constant size mismatch, so the instancer's extra
-	# fields get their own buffer. Reads the LIVE particle_color_mode export
+	# Consolidated gradient engine PC (32 floats = 128 B — see the instancer
+	# shader header for the slot map): the shared 11 + the engine block
+	# (slots 11-31). One segmented-ramp composer serves BOTH rainbow sources:
+	# the scalar axis x (velocity: speed; Qi: coherence q) is partitioned
+	# into up to 3 CYCLE segments [lo1,lo2],[lo2,lo3],[lo3,hiC] (the pinch
+	# split concentrates hue gradient where most particles sit; pinch OFF ⇒
+	# one segment) plus the APPROACH band (a_lo → gate → a_hi, the
+	# count-invariant white-hot stage). Per-segment hue SHARES allocate each
+	# pass's hue budget; count C = the number of hue passes over the cycle
+	# band. Progress is LOG per segment (multiplicative physics — the pinch
+	# band is the narrowest log interval, intrinsically steepest); the
+	# approach is LINEAR (violet 0.8 at a_lo → pink 0.93 at the gate → red
+	# 1.0 at a_hi; lightness 0.5 → 1.0). H_CYCLE = 1.0 (Qi) / 0.95
+	# (velocity — the legacy full-circle top, held with no wrap).
+	# Derivation reads the LIVE exports (particle_color_mode,
+	# qi_condensation_threshold) + the measured velocity anchors each fill,
 	# so a UI flip applies on the next dispatch (no reinit).
 	var ext_pc: Vector3 = _extents()
 	_instancer_pc_bytes.encode_float(0, float(grid_N))
@@ -1455,42 +1455,85 @@ func _fill_instancer_pc() -> void:
 	_instancer_pc_bytes.encode_float(32, source_strength)
 	_instancer_pc_bytes.encode_float(36, float(num_clusters))
 	_instancer_pc_bytes.encode_float(40, float(gravity_mode))
-	_instancer_pc_bytes.encode_float(44, float(particle_color_mode))
-	if particle_color_mode >= 2:
-		# Qi rainbow (modes 2/3): slots 12/13 carry Q_FLOOR/Q_SCALE (stage-1
-		# band floor and hue-ramp scale), slots 17/18 carry Q_1 (band top /
-		# stage-2 entry) and Q_TOP = the LIVE condensation threshold (the
-		# physical explosion point — the white point). Mode 3 doubles the
-		# hue ramp in the shader; the PC values are identical. The stage-2
-		# pink anchor is the shader const Q_GATE = φ⁻² (PHI_INV2) — no PC
-		# slot. Guarded so a degenerate threshold/band never divides by zero
-		# (Q_1 clamped above Q_FLOOR).
-		var q_top: float = maxf(qi_condensation_threshold, Q_1 * 1.001)
-		_instancer_pc_bytes.encode_float(48, Q_FLOOR)
-		_instancer_pc_bytes.encode_float(52, 1.0 / log(maxf(Q_1, Q_FLOOR * 1.001) / Q_FLOOR))
-		_instancer_pc_bytes.encode_float(68, Q_1)
-		_instancer_pc_bytes.encode_float(72, q_top)
+	_instancer_pc_bytes.encode_float(44, float(particle_color_mode))  # slot 11
+	if particle_color_mode == 0:
+		# Mode 0 = Cassi mass gradient — the shader branch is untouched; the
+		# whole engine block (slots 12-31) is zeroed (nothing reads it).
+		for slot in range(48, 128, 4):
+			_instancer_pc_bytes.encode_float(slot, 0.0)
+		return
+	# ── engine derivation (modes 1/2/3) ──────────────────────────────
+	var is_qi: bool = particle_color_mode >= 2
+	var count: int = 2 if particle_color_mode == 3 else 1  # legacy pass count (mode 3 = double)
+	var h_cycle: float = 1.0 if is_qi else 0.95            # legacy hue budget
+	var prog: float = 0.0                                  # legacy: log progress
+	var ref: float = 0.0
+	var lo1: float = 0.0
+	var hi_c: float = 0.0
+	var a_lo: float = 0.0
+	var a_hi: float = 0.0
+	var gate: float = PHI_INV2
+	var approach_on: float = 0.0
+	if is_qi:
+		# Legacy Qi mapping: cycle band [Q_FLOOR, Q_1], pinch off, shares
+		# (1,0,0); approach [Q_1, the LIVE condensation threshold] with the
+		# φ⁻² pink gate (PHI_INV2 — the framework's decoherence threshold).
+		ref = 0.0
+		lo1 = Q_FLOOR
+		hi_c = Q_1
+		a_lo = Q_1
+		a_hi = maxf(qi_condensation_threshold, Q_1 * 1.001)
+		approach_on = 1.0
 	else:
-		# Mode 0/1: slots 12/13 = the velocity-rainbow anchors (mode 1 reads
-		# them; mode 0 ignores them). Slots 17/18 are mode-2-only — zeroed.
-		_instancer_pc_bytes.encode_float(48, _rainbow_vref)
-		_instancer_pc_bytes.encode_float(52, _rainbow_vscale)
-		_instancer_pc_bytes.encode_float(68, 0.0)
-		_instancer_pc_bytes.encode_float(72, 0.0)
-	_instancer_pc_bytes.encode_float(56, ext_pc.x)
-	_instancer_pc_bytes.encode_float(60, ext_pc.y)
-	_instancer_pc_bytes.encode_float(64, ext_pc.z)
-
-
-func _hsl_to_rgb(h: float, s: float, l: float) -> Color:
-	# Branchless HSL→RGB (IQ form) — mirrors the GLSL helper in
-	# cassi_instancer.glsl (fposmod ≡ GLSL mod for positive y). Used by the
-	# frame-0 CPU color pass so the paused view equals the first played frame.
-	var r: float = clampf(absf(fposmod(h * 6.0 + 0.0, 6.0) - 3.0) - 1.0, 0.0, 1.0)
-	var g: float = clampf(absf(fposmod(h * 6.0 + 4.0, 6.0) - 3.0) - 1.0, 0.0, 1.0)
-	var b: float = clampf(absf(fposmod(h * 6.0 + 2.0, 6.0) - 3.0) - 1.0, 0.0, 1.0)
-	var k := s * (1.0 - absf(2.0 * l - 1.0))
-	return Color(l + k * (r - 0.5), l + k * (g - 0.5), l + k * (b - 0.5), 1.0)
+		# Legacy velocity mapping: cycle band [0, v_max] (measured), ref =
+		# v_ref (mean init |v|); degenerate zero-speed IC → band [0, 1.0]
+		# with ref = 1.0 (the legacy v_scale = 0.95·ln2 smooth small-v ramp).
+		# No approach band (velocity_approach default off).
+		ref = maxf(_rainbow_vref, 1e-6)
+		lo1 = 0.0
+		if _rainbow_vmax <= 1e-9:
+			hi_c = 1.0
+			ref = 1.0
+		else:
+			hi_c = _rainbow_vmax
+	# degenerate guard: a cycle band with hiC ≤ lo1 collapses to a sliver
+	if hi_c <= lo1:
+		hi_c = lo1 * 1.001
+	# pinch OFF → single segment (shares collapse to (1, 0, 0))
+	var lo2: float = hi_c
+	var lo3: float = hi_c
+	var sh := Vector3(1.0, 0.0, 0.0)
+	var span: float = h_cycle * float(count)   # span_total = H_CYCLE·C
+	# segment widths (log mode: multiplicative physics)
+	var w1: float = log((lo2 + ref) / (lo1 + ref))
+	var w2: float = log((lo3 + ref) / (lo2 + ref))
+	var w3: float = log((hi_c + ref) / (lo3 + ref))
+	var slope1: float = span * sh.x / maxf(w1, 1e-9)
+	var slope2: float = span * sh.y / maxf(w2, 1e-9)
+	var slope3: float = span * sh.z / maxf(w3, 1e-9)
+	var off2: float = span * sh.x
+	var off3: float = span * (sh.x + sh.y)
+	# ── encode slots 12-31 ──
+	_instancer_pc_bytes.encode_float(48, prog)          # 12 prog_mode
+	_instancer_pc_bytes.encode_float(52, ref)           # 13 ref
+	_instancer_pc_bytes.encode_float(56, lo1)           # 14
+	_instancer_pc_bytes.encode_float(60, slope1)        # 15
+	_instancer_pc_bytes.encode_float(64, lo2)           # 16
+	_instancer_pc_bytes.encode_float(68, slope2)        # 17
+	_instancer_pc_bytes.encode_float(72, off2)          # 18
+	_instancer_pc_bytes.encode_float(76, lo3)           # 19
+	_instancer_pc_bytes.encode_float(80, slope3)        # 20
+	_instancer_pc_bytes.encode_float(84, off3)          # 21
+	_instancer_pc_bytes.encode_float(88, hi_c)          # 22
+	_instancer_pc_bytes.encode_float(92, span)          # 23
+	_instancer_pc_bytes.encode_float(96, a_lo)          # 24
+	_instancer_pc_bytes.encode_float(100, a_hi)         # 25
+	_instancer_pc_bytes.encode_float(104, gate)         # 26
+	_instancer_pc_bytes.encode_float(108, approach_on)  # 27
+	_instancer_pc_bytes.encode_float(112, ext_pc.x)     # 28
+	_instancer_pc_bytes.encode_float(116, ext_pc.y)     # 29
+	_instancer_pc_bytes.encode_float(120, ext_pc.z)     # 30
+	_instancer_pc_bytes.encode_float(124, 0.0)          # 31 hue_offset (legacy: 0)
 
 
 func _repaint_instancer() -> void:
@@ -1714,10 +1757,10 @@ func _step_dispatches(cl: int) -> void:
 	if _instancer_shader.is_valid() and N_particles > 0:
 		_rd.compute_list_bind_compute_pipeline(cl, _instancer_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_inst_0, 0)
-		# Dedicated 19-float PC (the shader declares color_mode + the generic
-		# rainbow reference/scale pair + the three extents + the two
-		# Qi-rainbow stage-2 anchors; the shared 11-float _pc_bytes would
-		# hard-error on size mismatch).
+		# Dedicated 32-float PC (128 B — the consolidated gradient engine:
+		# color_mode + prog_mode + ref + the cycle segments + span + the
+		# approach band + extents + hue_offset; the shared 11-float
+		# _pc_bytes would hard-error on size mismatch).
 		_rd.compute_list_set_push_constant(cl, _instancer_pc_bytes, _instancer_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, pg, 1, 1)
 	# NOTE: the compute list is owned by the caller (_run_physics_steps);
