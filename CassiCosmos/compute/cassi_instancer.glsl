@@ -26,19 +26,20 @@ layout(push_constant, std430) uniform PC {
     float xi; float eps2; float particle_N;
     float mode; float source_strength; float num_clusters;
     float gravity_mode;  // unused here (nbody gravity selector)
-    float color_mode;    // 0 = Cassi mass gradient (default, bit-identical); 1 = velocity rainbow; 2 = Qi rainbow
-    float v_ref;         // generic rainbow REFERENCE (slots 12/13 shared by modes 1/2):
+    float color_mode;    // 0 = Cassi mass gradient (default, bit-identical); 1 = velocity rainbow; 2 = Qi rainbow; 3 = Qi double rainbow
+    float v_ref;         // generic rainbow REFERENCE (slots 12/13 shared by modes 1/2/3):
                          // mode 1 = v_ref, mean initial |v| (host-computed);
-                         // mode 2 = Q_FLOOR, the Qi-rainbow stage-1 band floor (2e-4)
+                         // modes 2/3 = Q_FLOOR, the Qi-rainbow stage-1 band floor (2e-4)
     float v_scale;       // generic rainbow SCALE:
                          // mode 1 = 0.8/ln(1+v_max/v_ref);
-                         // mode 2 = 0.8/ln(Q_1/Q_FLOOR) — stage-1 hue ramp scale
+                         // modes 2/3 = 0.8/ln(Q_1/Q_FLOOR) — stage-1 hue ramp scale
+                         // (mode 3 doubles the ramp in the branch body)
     float extent_x;      // per-axis box half-extents (GRID_LAYOUT.md's φ-aspect
     float extent_y;      // box) — the q-sampler's cell mapping, the same
     float extent_z;      // values nbody reads from bh[2].yzw
-    float q_1;           // NEW float 17 (mode 2 only): stage-1 band top (1e-3) —
+    float q_1;           // float 17 (modes 2/3): stage-1 band top (1e-3) —
                          // hue ramp ends / white-hot lightness ramp begins
-    float q_top;         // NEW float 18 (mode 2 only): stage-2 white point =
+    float q_top;         // float 18 (modes 2/3): stage-2 white point =
                          // the scene's qi_condensation_threshold (host reads the
                          // LIVE export each fill, so the white point tracks config)
 } pc;
@@ -127,7 +128,31 @@ void main() {
     float cg = mix(0.25, 0.6,  log_m);
     float cb = mix(1.0,  0.15, log_m);
     vec4 color = vec4(cr, cg, cb, 1.0);
-    if (pc.color_mode >= 1.5) {
+    if (pc.color_mode >= 2.5) {
+        // Qi DOUBLE rainbow (color_mode 3): same two-stage structure as
+        // mode 2 with the stage-1 hue ramp DOUBLED —
+        //   h = clamp(2.0 · Q_SCALE · ln(q/Q_FLOOR), 0.0, 1.6)
+        // The IQ hsl2rgb hue is periodic mod 1 (mod 6 inside), so the
+        // normal band now passes through the rainbow TWICE for doubled
+        // gradient granularity: at f = ln(q/Q_FLOOR)/ln(Q_1/Q_FLOOR) ∈
+        // [0,1], h = 2·0.8·f — f=0 red, f=0.25 h=0.4 (green-cyan),
+        // f=0.5 h=0.8 (violet), f=0.75 h=1.2≡0.2 (orange-yellow),
+        // f→1 h→1.6≡0.6 (blue). Stage 2 (qq >= q_1) is IDENTICAL to
+        // mode 2 (h = 0.8, lightness ramps to white at q_top) — the jump
+        // from the ramp limit h≡0.6 (blue) to h=0.8 (violet) at the stage
+        // boundary is the intentional 'entering the white-hot stage'
+        // marker. Same PC slots as mode 2 (12/13: Q_FLOOR/Q_SCALE; 17/18:
+        // Q_1/Q_TOP) — the ×2 is a shader constant, zero PC growth.
+        float qq = max(tri_q(pos[i].xyz), 0.0);
+        float q_floor = max(pc.v_ref, 1e-9);          // slot 12 (modes 2/3: Q_FLOOR)
+        float h = clamp(2.0 * pc.v_scale * log(qq / q_floor), 0.0, 1.6);  // doubled stage-1 ramp
+        float l = 0.5;
+        if (qq >= pc.q_1) {                           // stage 2: white-hot approach (same as mode 2)
+            h = 0.8;
+            l = 0.5 + 0.5 * clamp((qq - pc.q_1) / max(pc.q_top - pc.q_1, 1e-9), 0.0, 1.0);
+        }
+        color = vec4(hsl2rgb(vec3(h, 1.0, l)), 1.0);
+    } else if (pc.color_mode >= 1.5) {
         // Qi rainbow (color_mode 2) — TWO-STAGE mapping of the two-fluid
         // coherence q = EY²+EI² trilinearly sampled at the particle:
         //   STAGE 1 (q ∈ [Q_FLOOR, Q_1] — the normal operating band):

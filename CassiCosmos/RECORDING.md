@@ -115,7 +115,7 @@ box_scale·aspect_i·1.5·cluster_radius) — it separates the cluster from its
 periodic images (image forces drop like 1/(3·box_scale−1)²; scale ≈ 3 is
 the tested isolation regime) while preserving the aspect; `--bhs=0/1` sets
 the BH toggle live (no reinit);
-`--color=0/1/2` sets the particle color scheme (0 = Cassi mass gradient,
+`--color=0/1/2/3` sets the particle color scheme (0 = Cassi mass gradient,
 1 = velocity rainbow: log-compressed hue h = min(v_scale·ln(1+|v|/v_ref), 0.8),
 v_ref = mean initial |v|, v_scale = 0.8/ln(1+v_max/v_ref) — slow red,
 v=v_ref green-blue, v=v_max violet, growth beyond v_max saturates;
@@ -128,6 +128,13 @@ pinned normal running to a hue sliver) spans yellow-green → cyan-green with
 the median ≈ green; stage 2 (q ∈ [Q_1, qi_condensation_threshold]) pins
 violet and ramps lightness 0.5 → 1.0, so elevated coherence approaching
 condensation washes to pure WHITE at the threshold (white-hot, not violet);
+3 = Qi double rainbow: same two-stage structure with the stage-1 hue ramp
+DOUBLED — h = clamp(2·Q_SCALE·ln(q/Q_FLOOR), 0, 1.6) — so the normal band
+passes through the rainbow TWICE (f = 0 red, f = 0.25 green-cyan, f = 0.5
+violet, f = 0.75 orange-yellow, f → 1 blue; f = ln(q/Q_FLOOR)/ln(Q_1/Q_FLOOR))
+for doubled gradient granularity; stage 2 identical to mode 2 — the
+blue→violet jump at the stage boundary is the intentional 'entering the
+white-hot stage' marker, washing to pure WHITE at the threshold;
 all live, no reinit);
 `--freeze-field=0/1` freezes the two-fluid field after init (skips the
 PDE passes; gravity/particle path unchanged; no reinit — read per step);

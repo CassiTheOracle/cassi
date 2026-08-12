@@ -195,8 +195,8 @@ const Q_1: float = 0.001        # Qi-rainbow stage-1 band top = stage-2 white-ra
 @export_enum("Particles", "Field", "Black Hole", "Cosmology") var mode: int = 0
 
 # ── Particle color scheme ──────────────────────────────────────────────
-## 0 = the Cassi mass-temperature gradient (Salpeter blue dwarfs → red giants; default, shader path bit-identical). 1 = velocity rainbow: log-compressed, distribution-anchored hue h = min(v_scale·ln(1+|v|/v_ref), 0.8) with v_ref = mean initial |v| and v_scale = 0.8/ln(1+v_max/v_ref) — slow = red (h→0), v ≈ v_ref ≈ 0.5 (green-blue), v = v_max → 0.8 (violet); hue drifts only logarithmically as speeds grow, and growth beyond v_max saturates at violet instead of wrapping. 2 = Qi rainbow: hue from the two-fluid coherence q = EY²+EI² trilinearly sampled at the particle, a TWO-STAGE mapping: stage 1 (the normal operating band q ∈ [Q_FLOOR = 2e-4, Q_1 = 1e-3]) is a full rainbow hue ramp h = Q_SCALE·ln(q/Q_FLOOR) with Q_SCALE = 0.8/ln(Q_1/Q_FLOOR) — the measured typical band (3.4e-4…5.7e-4; the old φ⁻² anchor sat ~1000× above it and pinned normal running to a hue sliver) spans yellow-green → cyan-green, median ≈ green; stage 2 (q ∈ [Q_1, qi_condensation_threshold]) pins violet and ramps lightness 0.5 → 1.0, so elevated coherence approaching condensation washes to pure WHITE at the threshold (white-hot, not violet). Live: re-encoded into the instancer PC every physics step (no reinit); while paused the visible colors refresh immediately.
-@export_enum("Cassi gradient", "Velocity rainbow", "Qi rainbow") var particle_color_mode: int = 0
+## 0 = the Cassi mass-temperature gradient (Salpeter blue dwarfs → red giants; default, shader path bit-identical). 1 = velocity rainbow: log-compressed, distribution-anchored hue h = min(v_scale·ln(1+|v|/v_ref), 0.8) with v_ref = mean initial |v| and v_scale = 0.8/ln(1+v_max/v_ref) — slow = red (h→0), v ≈ v_ref ≈ 0.5 (green-blue), v = v_max → 0.8 (violet); hue drifts only logarithmically as speeds grow, and growth beyond v_max saturates at violet instead of wrapping. 2 = Qi rainbow: hue from the two-fluid coherence q = EY²+EI² trilinearly sampled at the particle, a TWO-STAGE mapping: stage 1 (the normal operating band q ∈ [Q_FLOOR = 2e-4, Q_1 = 1e-3]) is a full rainbow hue ramp h = Q_SCALE·ln(q/Q_FLOOR) with Q_SCALE = 0.8/ln(Q_1/Q_FLOOR) — the measured typical band (3.4e-4…5.7e-4; the old φ⁻² anchor sat ~1000× above it and pinned normal running to a hue sliver) spans yellow-green → cyan-green, median ≈ green; stage 2 (q ∈ [Q_1, qi_condensation_threshold]) pins violet and ramps lightness 0.5 → 1.0, so elevated coherence approaching condensation washes to pure WHITE at the threshold (white-hot, not violet). 3 = Qi double rainbow: same two-stage structure with the stage-1 hue ramp DOUBLED — h = clamp(2·Q_SCALE·ln(q/Q_FLOOR), 0, 1.6) — so the normal band passes through the rainbow TWICE (f = 0 red, f = 0.25 green-cyan, f = 0.5 violet, f = 0.75 orange-yellow, f → 1 blue) for doubled gradient granularity; stage 2 (q ∈ [Q_1, qi_condensation_threshold]) is identical to mode 2 — the blue→violet jump at the stage boundary is the intentional 'entering the white-hot stage' marker, washing to pure WHITE at the threshold. Live: re-encoded into the instancer PC every physics step (no reinit); while paused the visible colors refresh immediately.
+@export_enum("Cassi gradient", "Velocity rainbow", "Qi rainbow", "Qi double rainbow") var particle_color_mode: int = 0
 
 # ── Camera startup framing (camera-only; no physics) ──────────────────
 ## On startup, frame a sibling Camera3D on the spawn region: the camera is
@@ -280,14 +280,14 @@ var _poisson_pc_bytes: PackedByteArray  # poisson PC (7 floats: N, axis, dir, mo
 # 14, mass-deposit 5): field_render/bh_lensing keep the shared 11-float
 # _pc_bytes, and Godot hard-errors on push-constant size mismatch, so the
 # instancer's extra fields get their own pre-allocated buffer. Slots 12/13
-# are the generic rainbow pair shared by modes 1/2: color_mode 1 =
-# v_ref/v_scale (velocity rainbow), 2 = Q_FLOOR/Q_SCALE (Qi-rainbow stage-1
-# ramp: Q_SCALE = 0.8/ln(max(Q_1, Q_FLOOR·1.001)/Q_FLOOR)). Slots 17/18
-# (mode 2 only): Q_1 (stage-1 band top) and Q_TOP = the live
-# qi_condensation_threshold (the white point). The three per-axis extents
-# feed the Qi-rainbow q-sampler's cell mapping (the same _extents() values
-# nbody reads from bh[2].yzw).
-var _instancer_pc_bytes: PackedByteArray  # instancer PC (19 floats: 11 shared + color_mode@11 + v_ref/v_scale@12-13 (mode 1) or Q_FLOOR/Q_SCALE@12-13 (mode 2) + extent_x/y/z@14-16 + Q_1@17 + Q_TOP@18 (mode 2))
+# are the generic rainbow pair shared by modes 1/2/3: color_mode 1 =
+# v_ref/v_scale (velocity rainbow), 2/3 = Q_FLOOR/Q_SCALE (Qi-rainbow
+# stage-1 ramp: Q_SCALE = 0.8/ln(max(Q_1, Q_FLOOR·1.001)/Q_FLOOR); mode 3
+# doubles the hue ramp in the shader). Slots 17/18 (modes 2/3 only): Q_1
+# (stage-1 band top) and Q_TOP = the live qi_condensation_threshold (the
+# white point). The three per-axis extents feed the Qi-rainbow q-sampler's
+# cell mapping (the same _extents() values nbody reads from bh[2].yzw).
+var _instancer_pc_bytes: PackedByteArray  # instancer PC (19 floats: 11 shared + color_mode@11 + v_ref/v_scale@12-13 (mode 1) or Q_FLOOR/Q_SCALE@12-13 (modes 2/3) + extent_x/y/z@14-16 + Q_1@17 + Q_TOP@18 (modes 2/3))
 # NOTE: global RD — no manual submit/sync anywhere (illegal on the main
 # instance); readbacks self-stall via buffer_get_data.
 
@@ -378,7 +378,7 @@ func _ready() -> void:
 	_init_particles()
 	_apply_gravity_calibration()
 	_grav_warmup = true  # fill the acc cache with a fresh force before step 1
-	# Frame-0 / paused view for the Qi rainbow (mode 2): with playing=false
+	# Frame-0 / paused view for the Qi rainbows (modes 2/3): with playing=false
 	# the instancer never dispatches, so the CPU init_inst pass provides the
 	# visible colors — but the CPU path cannot sample the field cheaply. The
 	# one-shot GPU repaint computes the q colors from the uploaded pos/vel/q
@@ -388,7 +388,7 @@ func _ready() -> void:
 	# and init_particles ran; _mm.buffer = init_inst sized the renderer's
 	# buffer). If the shader import race left _us_inst_0 invalid the call
 	# no-ops and the placeholder colors stand until the retry compiles.
-	if particle_color_mode == 2:
+	if particle_color_mode >= 2:
 		_repaint_instancer()
 	print("[CassiSim] Universe ready — grid=%d³ particles=%d xi=%.5f (φ⁶=%.5f)" % [grid_N, N_particles, xi, PHI_6])
 	_auto_frame_camera()
@@ -1221,7 +1221,7 @@ func _init_particles() -> void:
 			var col: Color = _hsl_to_rgb(minf(_rainbow_vscale * log(1.0 + vs / _rainbow_vref), 0.8), 1.0, 0.5)
 			init_inst[b+12] = col.r; init_inst[b+13] = col.g; init_inst[b+14] = col.b; init_inst[b+15] = 1.0
 		else:
-			# Qi rainbow (mode 2): PLACEHOLDER — the shader computes the q
+			# Qi rainbow (modes 2/3): PLACEHOLDER — the shader computes the q
 			# colors from the uploaded pos/vel/q buffers in the one-shot
 			# _repaint_instancer() at the end of _ready (the CPU path cannot
 			# sample the field cheaply). This buffer upload happens first, so
@@ -1449,12 +1449,14 @@ func _fill_instancer_pc() -> void:
 	_instancer_pc_bytes.encode_float(36, float(num_clusters))
 	_instancer_pc_bytes.encode_float(40, float(gravity_mode))
 	_instancer_pc_bytes.encode_float(44, float(particle_color_mode))
-	if particle_color_mode == 2:
-		# Qi rainbow: slots 12/13 carry Q_FLOOR/Q_SCALE (stage-1 band floor
-		# and hue-ramp scale), slots 17/18 carry Q_1 (band top / white-ramp
-		# start) and Q_TOP = the LIVE condensation threshold (the physical
-		# explosion point — the white point). Guarded so a degenerate
-		# threshold/band never divides by zero (Q_1 clamped above Q_FLOOR).
+	if particle_color_mode >= 2:
+		# Qi rainbow (modes 2/3): slots 12/13 carry Q_FLOOR/Q_SCALE (stage-1
+		# band floor and hue-ramp scale), slots 17/18 carry Q_1 (band top /
+		# white-ramp start) and Q_TOP = the LIVE condensation threshold (the
+		# physical explosion point — the white point). Mode 3 doubles the
+		# hue ramp in the shader; the PC values are identical. Guarded so a
+		# degenerate threshold/band never divides by zero (Q_1 clamped above
+		# Q_FLOOR).
 		var q_top: float = maxf(qi_condensation_threshold, Q_1 * 1.001)
 		_instancer_pc_bytes.encode_float(48, Q_FLOOR)
 		_instancer_pc_bytes.encode_float(52, 0.8 / log(maxf(Q_1, Q_FLOOR * 1.001) / Q_FLOOR))
