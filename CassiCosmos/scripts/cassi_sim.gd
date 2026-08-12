@@ -274,6 +274,7 @@ var _last_diag_ms: int = 0
 var _last_p0_rb_ms: int = 0              # wall-time gate for the p[0] debug print
 var _inst_debug_done: bool = false       # one-time inst[0..2] print
 var _mmi: MultiMeshInstance3D; var _mm: MultiMesh
+var _mm_particle_size: float = -1.0  # particle_size the multimesh was built with (reinit rebuild check)
 
 # — timing —
 var _step_count: int = 0
@@ -968,18 +969,33 @@ func _init_particles() -> void:
 	var out_box := 0
 	var total_mass: float = 0.0
 
+	# ── Hoisted per-particle constants ────────────────────────────────
+	# The GDScript interpreter paid for these inside the N_particles loop
+	# on EVERY particle (pow/div/sqrt/maxf native calls). All are
+	# loop-invariant; the Salpeter draw, the IC inverse-CDF arms and the
+	# enclosed-mass formulas below reference the hoisted forms.
+	var salp_exp: float = 1.0 - 2.35
+	var salp_a: float = pow(0.3, salp_exp)
+	var salp_b: float = pow(30.0, salp_exp)
+	var salp_inv: float = 1.0 / salp_exp
+	var s2: float = sqrt(2.0) * maxf(cluster_radius, 1e-6)  # √2·σ
+	var s2_inv: float = 1.0 / s2
+	var two_over_sqrt_pi: float = 2.0 / sqrt(PI)
+	var a2: float = cluster_radius * cluster_radius
+	var a_s: float = maxf(cluster_radius, 1e-6)
+	var third: float = 1.0 / 3.0
+	var minus_two_thirds: float = -2.0 / 3.0
+
 	for i in range(N_particles):
 		var i4 = i * 4
 		var cidx = min(int(i / per_cluster), nc - 1)
 		var center = centers[cidx]
 		var bv = bulk_vels[cidx]
 
-		# Salpeter IMF: dN/dM ∝ M^(-2.35), range [0.3, 30.0] M☉
-		# (named salp_exp so the global exp() stays callable below — the
-		# Gaussian velocity arm and the retained-fraction math use it)
-		var alpha = 2.35; var salp_exp = 1.0 - alpha
-		var A = pow(0.3, salp_exp); var B = pow(30.0, salp_exp)
-		var m = pow(A - rng.randf() * (A - B), 1.0 / salp_exp)
+		# Salpeter IMF: dN/dM ∝ M^(-2.35), range [0.3, 30.0] M☉ (the two
+		# pow()s and the reciprocal exponent are hoisted above the loop —
+		# they were recomputed on every particle)
+		var m = pow(salp_a - rng.randf() * (salp_a - salp_b), salp_inv)
 		pos[i4 + 3] = m
 		total_mass += m
 
@@ -996,7 +1012,7 @@ func _init_particles() -> void:
 			# particle lies inside the safe radius (no clamping, no shell).
 			var u_hi: float = u_max_list[cidx]
 			var u = rng.randf_range(0.001, maxf(u_hi, 0.0011))
-			r = cluster_radius / sqrt(pow(u, -2.0 / 3.0) - 1.0)
+			r = cluster_radius / sqrt(pow(u, minus_two_thirds) - 1.0)
 			var th = acos(2.0 * rng.randf() - 1.0)
 			var ph = rng.randf() * PI * 2.0
 			lx = r * sin(th) * cos(ph)
@@ -1016,19 +1032,31 @@ func _init_particles() -> void:
 			# Radius and direction are independent for a spherically
 			# symmetric Gaussian; direction = the same uniform th/ph draw
 			# as the Plummer arm.
-			var z_max: float = r_max_eff / (sqrt(2.0) * maxf(cluster_radius, 1e-6))
-			var u: float = rng.randf() * maxf(gauss_u_max_list[cidx], 1e-30)
-			var z_lo := 0.0
-			var z_hi: float = z_max
-			for _b in range(24):
-				var z_m: float = 0.5 * (z_lo + z_hi)
-				var f_m: float = _erf_approx(z_m) - (2.0 / sqrt(PI)) * z_m * exp(-z_m * z_m)
-				if f_m < u:
-					z_lo = z_m
-				else:
-					z_hi = z_m
-			var z: float = 0.5 * (z_lo + z_hi)
-			r = sqrt(2.0) * maxf(cluster_radius, 1e-6) * z
+			var z_max: float = r_max_eff * s2_inv
+			if z_max <= 0.0:
+				# Empty truncated support (r_max ≤ 0 — a cluster center
+				# beyond the safe radius): every draw collapses to r = 0
+				# exactly. Skip the bisection; the old path converged
+				# z → 0 over 24 iterations of pure waste. Identical
+				# result, same th/ph direction draws below.
+				r = 0.0
+			else:
+				var u: float = rng.randf() * maxf(gauss_u_max_list[cidx], 1e-30)
+				var z_lo := 0.0
+				var z_hi: float = z_max
+				# 16 iterations → bracket 2^-16 of z_max (≈1e-5 absolute
+				# at z_max ~ 0.3) — far below any IC tolerance and ≪ the
+				# fp32 position ulp at these magnitudes; the old 24 were
+				# 2^-24 (fp32-exact) at 50% more exp() calls per particle.
+				for _b in range(16):
+					var z_m: float = 0.5 * (z_lo + z_hi)
+					var f_m: float = _erf_approx(z_m) - two_over_sqrt_pi * z_m * exp(-z_m * z_m)
+					if f_m < u:
+						z_lo = z_m
+					else:
+						z_hi = z_m
+				var z: float = 0.5 * (z_lo + z_hi)
+				r = s2 * z
 			var th = acos(2.0 * rng.randf() - 1.0)
 			var ph = rng.randf() * PI * 2.0
 			lx = r * sin(th) * cos(ph)
@@ -1039,10 +1067,9 @@ func _init_particles() -> void:
 			# with u drawn in (0, u_trunc], u_trunc = min(1, (r_max/a)³);
 			# u ≤ u_trunc ⟺ r ≤ r_max, so every particle lands inside the
 			# safe radius. Direction via the same th/ph draw as Plummer.
-			var a_s: float = maxf(cluster_radius, 1e-6)
 			var u_trunc: float = minf(1.0, pow(r_max_eff / a_s, 3.0))
 			var u = rng.randf() * u_trunc
-			r = a_s * pow(u, 1.0 / 3.0)
+			r = a_s * pow(u, third)
 			var th = acos(2.0 * rng.randf() - 1.0)
 			var ph = rng.randf() * PI * 2.0
 			lx = r * sin(th) * cos(ph)
@@ -1064,7 +1091,6 @@ func _init_particles() -> void:
 		# v_circ = 0.85·sqrt(M_enc/max(r, 0.01)) convention (r softened to
 		# sqrt(r²+ε²) inside the enclosed-mass formulas, as the Plummer arm
 		# already does via r2p).
-		var a2 = cluster_radius * cluster_radius
 		var r2p = r * r + eps2
 		var M_enc: float = 0.0
 		if initial_condition == 0:
@@ -1074,11 +1100,11 @@ func _init_particles() -> void:
 			# Gaussian M(<r) = M·[erf(z) − (2/√π)·z·e^(−z²)], z = r/(√2·σ),
 			# r = the softened sqrt(r2p); erf via A&S 7.1.26 (_erf_approx —
 			# this Godot 4.7 install has no built-in erf()).
-			var z: float = sqrt(r2p) / (sqrt(2.0) * maxf(cluster_radius, 1e-6))
-			M_enc = float(per_cluster) * (_erf_approx(z) - (2.0 / sqrt(PI)) * z * exp(-z * z))
+			var z: float = sqrt(r2p) * s2_inv
+			M_enc = float(per_cluster) * (_erf_approx(z) - two_over_sqrt_pi * z * exp(-z * z))
 		else:
 			# Uniform M(<r) = M·min(1, (r/a)³) (fully enclosed at r ≥ a)
-			M_enc = float(per_cluster) * minf(1.0, pow(sqrt(r2p) / maxf(cluster_radius, 1e-6), 3.0))
+			M_enc = float(per_cluster) * minf(1.0, pow(sqrt(r2p) / a_s, 3.0))
 		var v_circ = sqrt(G * M_enc / max(r, 0.01)) * initial_v_circ_factor
 		var nx = -ly; var ny = lx; var nz = 0.0
 		var nl = sqrt(nx*nx + ny*ny + nz*nz)
@@ -1137,15 +1163,13 @@ func _init_particles() -> void:
 	#   Uniform:  min(1, (r_max/a)³)
 	var retained: float = retained_min if retained_min < INF else 1.0
 	if initial_condition == 1:
-		var s2: float = sqrt(2.0) * maxf(cluster_radius, 1e-6)
 		var g_min: float = INF
 		for c in range(nc):
 			var z_max: float = r_max_list[c] / s2
-			var f: float = _erf_approx(z_max) - (2.0 / sqrt(PI)) * z_max * exp(-z_max * z_max)
+			var f: float = _erf_approx(z_max) - two_over_sqrt_pi * z_max * exp(-z_max * z_max)
 			g_min = minf(g_min, f)
 		retained = g_min
 	elif initial_condition == 2:
-		var a_s: float = maxf(cluster_radius, 1e-6)
 		var u_min: float = INF
 		for c in range(nc):
 			var u_tr: float = minf(1.0, pow(r_max_list[c] / a_s, 3.0))
@@ -1640,6 +1664,19 @@ func _update_bh_lens_params() -> void:
 # Rendering
 # ═══════════════════════════════════════════════════════════════════════
 
+func _free_multimesh() -> void:
+	# Release the renderer-owned instance buffer: remove and free the
+	# MultiMeshInstance3D child (its MultiMesh holds the RD buffer that
+	# _mm_rd_rid points at). Only safe with all uniform sets already freed
+	# (callers free them first — see reinit).
+	if _mmi != null and is_instance_valid(_mmi):
+		remove_child(_mmi)
+		_mmi.free()
+	_mmi = null
+	_mm = null
+	_mm_rd_rid = RID()
+
+
 func _setup_multimesh() -> void:
 	var qm = QuadMesh.new()
 	qm.size = Vector2(particle_size, particle_size)
@@ -1650,6 +1687,7 @@ func _setup_multimesh() -> void:
 	_mm.use_colors = true
 	_mm.mesh = qm
 	_mm.instance_count = max(N_particles, 1)
+	_mm_particle_size = particle_size
 	_mm.custom_aabb = AABB(Vector3(-5000, -5000, -5000), Vector3(10000, 10000, 10000))
 
 	_mmi = MultiMeshInstance3D.new()
@@ -1882,6 +1920,16 @@ func _render_bh_lensing() -> void:
 func reinit() -> void:
 	_free_uniform_sets()  # cached sets reference the buffers being freed
 	_free_buffers()
+	# The MultiMesh instance buffer is sized at _setup_multimesh from the
+	# THEN-current N_particles. When N (or particle_size) changed since,
+	# rebuild it before _init_particles: assigning a differently-sized
+	# array to _mm.buffer ERR_FAILs (Godot multimesh.cpp set_buffer size
+	# check) and the instancer dispatch then writes out-of-bounds past the
+	# stale buffer. Rebuild runs BEFORE _cache_uniform_sets because
+	# _us_inst_0 binds the (possibly new) _mm_rd_rid.
+	if _mm == null or _mm.instance_count != max(N_particles, 1) or _mm_particle_size != particle_size:
+		_free_multimesh()
+		_setup_multimesh()
 	_setup_buffers()
 	_cache_uniform_sets()  # CRITICAL: cached sets reference the OLD freed buffers
 	_init_field()          # without this, every dispatch after reinit is stale
