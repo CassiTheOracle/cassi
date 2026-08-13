@@ -1,6 +1,6 @@
 # The Kolmogorov −5/3 Spectrum in Cassi: Derivation and Novel Predictions
 
-## Status: Derived—July 2026
+## Status: Derived—August 2026
 
 ---
 

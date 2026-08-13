@@ -1,6 +1,6 @@
 # The Three-Body Problem in Cassi Two-Fluid Gravity
 
-## Status: Derived—July 2026
+## Status: Derived—August 2026
 
 ## Abstract
 

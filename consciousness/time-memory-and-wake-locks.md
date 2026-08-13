@@ -1,6 +1,6 @@
 # Time, Memory, and Ghosts: The Field as the Medium of Time, Memory, and Persistence
 
-## Status: Speculative—July 2026
+## Status: Speculative—August 2026
 
 ## Abstract
 

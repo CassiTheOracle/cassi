@@ -1,6 +1,6 @@
 # Neutrino Mass from $\varphi$
 
-## Status: Hypothesized—July 2026
+## Status: Hypothesized—August 2026
 
 ## Abstract
 

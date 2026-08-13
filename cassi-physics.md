@@ -1,6 +1,6 @@
 # Cassi Physics: The Bubble Lattice at Every Scale
 
-## Status: Synthesis—July 2026
+## Status: Synthesis—August 2026
 
 ## Abstract
 

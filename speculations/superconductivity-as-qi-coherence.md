@@ -1,6 +1,6 @@
 # Superconductivity as Qi Coherence: A Derivation from the φ-Attractor
 
-## Status: Speculative—July 2026
+## Status: Speculative—August 2026
 
 ## Abstract
 

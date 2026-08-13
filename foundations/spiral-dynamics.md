@@ -1,6 +1,6 @@
 # Spiral Dynamics: Hubble, Gravity, and $c$ from Fibonacci Spiral Geometry
 
-## Status: Hypothesized—July 2026
+## Status: Hypothesized—August 2026
 
 ## Abstract
 
