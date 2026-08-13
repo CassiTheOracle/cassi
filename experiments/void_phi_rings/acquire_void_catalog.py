@@ -16,7 +16,7 @@ bright1, bright2, lrgdim, lrgbright).
 WHY THIS CATALOG / CERTIFICATION
 --------------------------------
 The pre-registered test stack is the bubble-shell ring ladder of
-`foundations/bubble-edge-geometry.md` §3.5 / Prediction 51
+`foundations/bubble-edge-geometry.md` §3.1 / Prediction 51
 (`predictions/falsifiable-predictions.md`): stacked void radial galaxy
 density profiles should carry matter ridges at r_k = R * phi^-k with the
 successive-matter-ring ratio phi^-1 = 0.6180 vs the interleaved-null ratio

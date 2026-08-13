@@ -265,7 +265,14 @@ Hypothesized (PDE-testable) pending them:
   ($d^2E = c^2\nabla^2 E - \omega_0^2(E_Y-\varphi E_I)$) is not present in
   this solver—it belongs to the space-sim GLSL PDE. Whether realization
   requires that second-order form remains the open content; the honest
-  four-arm null is recorded.
+  four-arm null is recorded. The second-order wave-form readback in the
+  owner's space sim (Godot, $N = 128$, $\omega_0^2 = 20$, featureless
+  filled-ball seed, no source drive) also shows no persistent ladder—a
+  transient shell with one interior ridge at ratio 0.545 (marginal
+  $\varphi^{-1}$) at $t = 24$, dissipated by $t = 40$, detector self-test
+  PASS (probe `diag_bubble_rings.gd` in the owner's space-sim repo). The
+  ~10-ring ladder's dynamical realization therefore remains open in both
+  the first-order solver and the sim's wave form.
 
 **Test:** a simulated bubble should show ~10 matter ridges at
 $r_k = \ell_n\,\varphi^{-k}$ (successive matter-ring ratio $\varphi^{-1} =

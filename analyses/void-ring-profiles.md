@@ -7,7 +7,7 @@
 Prediction 51 (`predictions/falsifiable-predictions.md`) forecasts that a
 bubble shell of effective radius $R$ carries interior matter rings at
 $r_k = R\,\varphi^{-k}$ with void troughs at $R\,\varphi^{-(k+\frac12)}$
-(`foundations/bubble-edge-geometry.md` §3.5): successive matter rings are
+(`foundations/bubble-edge-geometry.md` §3.1): successive matter rings are
 separated by $\varphi^{-1} = 0.6180$, versus the interleaved-null ratio
 $\varphi^{-1/2} = 0.7862$ (`predictions/falsifiable-predictions.md`
 Prediction 51). This document runs the real-space cousin of that prediction
@@ -45,8 +45,9 @@ calibration, **not** a detection in real void data: the tier is
 ## 1. The Prediction in Real Space
 
 Prediction 51 is written for the two-fluid PDE realization of a single
-bubble shell (`foundations/bubble-edge-geometry.md` §3.5; the honest
-negative—the naive wake-sum is not the ladder—is documented there). The
+bubble shell (`foundations/bubble-edge-geometry.md` §3.1 (the ring law);
+§3.5 (the honest negative, documented there—the naive wake-sum is not the
+ladder)). The
 real-space cousin is the identical ratio test read off **stacked void radial
 galaxy-density profiles**: if a void's matter ring ladder survives
 structure formation, the mean tracer density around many stacked voids
@@ -296,8 +297,8 @@ real-data locus with its null band).
 
 - `predictions/falsifiable-predictions.md`—Prediction 51 (bubble-shell
   ring ladder, PDE/simulated) and the catalog that Prediction 52 extends
-- `foundations/bubble-edge-geometry.md` §3.5—the ring law
-  $r_k = \ell_n\,\varphi^{-k}$ and the honest negative (the naive
+- `foundations/bubble-edge-geometry.md` §3.1—the ring law
+  $r_k = \ell_n\,\varphi^{-k}$; §3.5—the honest negative (the naive
   wake-sum is not the ladder)
 - `foundations/bubble-lattice-fabric.md` §3.2–3.3—nested sub-lattice,
   the ~1% nesting floor

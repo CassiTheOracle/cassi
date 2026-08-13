@@ -111,3 +111,13 @@ The numbered frontier briefs and referee memos live outside this repo and are ci
 | `cassi-psychology.md` | `cassi-toe-rewrite-briefs/spiral-gravity/10-source-stabilization.md`, `12-cosmology-rstar.md` |
 | `cosmology/observational_constraints.md` | `cassi-toe-rewrite-briefs/spiral-gravity/` (ratified conversion→expansion coupling) |
 | `hypotheses/gravity-from-flow.md` | `cassi-toe-rewrite-briefs/` (cited by name, §run71) |
+
+## References to `physics/godot/space-sim/` (parent-repo space sim)
+
+The Cassi space sim lives in the parent repository's Godot project and is
+not copied into this repo. Its scripts are cited by name as provenance
+markers:
+
+| Source Document | Reference |
+|----------------|-----------|
+| `foundations/bubble-edge-geometry.md`; `predictions/falsifiable-predictions.md` (Prediction 51) | `physics/godot/space-sim/scripts/diag_bubble_rings.gd` (ring-ladder wave-form diagnostic; commit d4784c0 in the parent repo, local-only) |
