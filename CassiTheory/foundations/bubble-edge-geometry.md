@@ -249,9 +249,16 @@ Hypothesized (PDE-testable) pending them:
   not been applied to the interior rings; the relative ring strengths are
   open.
 - **PDE realization.** Whether the two-fluid PDE realizes all ~10 interior
-  rings from microphysics is not established; the probe
-  `two-fluid/run_bubble_ring_probe.py` (Leg C) demonstrates the analytic
-  radial envelope only. Realization of the full ladder is the open content.
+  rings from microphysics is not established. The analytic probe
+  `two-fluid/run_bubble_ring_probe.py` (Leg C) demonstrates the radial
+  envelope a simulated bubble must show; the pre-registered dynamic probe
+  `two-fluid/run_bubble_ring_dynamic_probe.py` (spherical standing-condensate
+  seed, qi-gated conversion-only dynamics: $D=0$, $\mathbf{u}=0$, $\chi=0$,
+  $c_s^2=0$) finds **NO RINGS**—the seed relaxes to a smooth monotone radial
+  profile (0 matter maxima outside the 4-cell core at every epoch), so the
+  ladder is not dynamically realized under those conditions. Whether any
+  realization (velocity/gate/gravity drives) produces the ladder remains the
+  open content; the honest null is recorded.
 
 **Test:** a simulated bubble should show ~10 matter ridges at
 $r_k = \ell_n\,\varphi^{-k}$ (successive matter-ring ratio $\varphi^{-1} =
@@ -611,4 +618,5 @@ The condensation field $B(x,y,z)$ and its checkerboard lattice are not specific 
 - `foundations/spin-fibonacci-spiral.md`—doublet $\pi$-per-rung internal advance (radial ring phase)
 - `foundations/rung-offset-mechanism.md`—pool-cell parities: cosine antinodes at integer rungs, sine antinodes at half-rungs
 - `two-fluid/run_bubble_ring_probe.py`—ring-ladder probe (Prediction 51): analytic ring law, honest negative, radial envelope
+- `two-fluid/run_bubble_ring_dynamic_probe.py`—ring-ladder dynamic-realization probe (Prediction 51): pre-registered, NO RINGS under qi-gated conversion-only dynamics
 - `predictions/falsifiable-predictions.md`—Prediction 51 (bubble-shell ring ladder)

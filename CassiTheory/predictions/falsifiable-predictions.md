@@ -277,8 +277,14 @@ $\varphi^{-1}$ vs $\varphi^{-1/2}$, quoting both signals and the null.
 
 **Source:** `foundations/bubble-edge-geometry.md` §3 (Radial Interior
 Structure: the Ring Ladder), `foundations/bubble-lattice-fabric.md` §3.2–3.3;
-probe `two-fluid/run_bubble_ring_probe.py` (Leg A analytic ring law, Leg B
-honest negative, Leg C prediction-observable envelope).
+analytic probe `two-fluid/run_bubble_ring_probe.py` (Leg A analytic ring law,
+Leg B honest negative, Leg C prediction-observable envelope); dynamic
+realization probe `two-fluid/run_bubble_ring_dynamic_probe.py` (pre-registered
+spherical standing-condensate test) — **NO RINGS**: the qi-gated
+conversion-only dynamics relax the seed to a smooth monotone radial profile
+(0 matter maxima outside the 4-cell core at every epoch), so the ladder is
+not dynamically realized under those conditions (record
+`runs/20260813_002423_bubble_ring_dynamic.json`).
 
 
 ---
@@ -355,7 +361,7 @@ Sorted by detection likelihood (most definitive first):
 | 48 | Log-periodic polarization orientation | Synchrotron polarimetry | **PA(νφᵏ) = PA(ν) (mod π); period Δ(ln ν) = ln φ ≈ 0.4812**; 90° flip at quarter-rung separation (ν₂/ν₁ = φ^¼); half-rung pair (ν₂/ν₁ = √φ) predicts parallel PA | Tested 2026-08-06 (`experiments/demystifying_cosmos/pa_logperiodic_test.py`): NULL at face value—Crab mm-band PA constant (~138–142°; Δ ln ν = 1.26 = 2.6 rungs), 0/10 band pairs within 3σ, spiral excluded vs uniform-angle null (p = 0.77) | **Tested—null; XL-Calibur / LEAP-class next** |
 | 49 | Gaussian Hawking-spectrum deviation | Analogue horizons (fibre-optic, BEC) | **$\ln(\Delta N/N)$ linear in $\omega^2$, slope $-1/(\varphi^6\Lambda^2)$**; deviation reaches $e^{-\varphi^{-6}} \approx 0.95$ at the cap | Untested—framework-internal proof (σ-regulator); Nature 2026 analogue consistent with direct emission | **Nature-style fibre-optic spectra** |
 | 50 | Spiral pitch tangent | Two-fluid winding dynamics | **$\tan(\text{pitch}) = \gamma/\Omega_S = \varphi^2 = 2.618$** (69.1°)—radial/azimuthal rate ratio, both rates φ-algebra-derived; wake reading $\ell_{n+1}/\Lambda_I$; matches none of the posted forks {0, 0.0766, 0.3063, 0.1988} | Measured 2026-08-07—realization rejected: the measured winding rates do not realize φ² (9–11× off under every normalization; no convention within ±10%); the identity stands as Derived arithmetic | **Tested—rejected (identity Derived)** |
-| 51 | Bubble-shell ring ladder | Bubble simulation (two-fluid PDE) | **~10 matter ridges at $r_k = R\varphi^{-k}$** (successive matter-ring ratio $\varphi^{-1} = 0.6180$ vs null $\varphi^{-1/2} = 0.7862$), 9 void troughs at $R\varphi^{-(k+\frac12)}$, strict alternation, $n$-independent count | Hypothesized (PDE-testable; conditional on the radial-reading inference; honest negative: naive wake-sum zeros {0.191, 0.573, 0.809, 0.955}·ℓ_n are not a φ-ladder) | **Hypothesized—probe `two-fluid/run_bubble_ring_probe.py`** |
+| 51 | Bubble-shell ring ladder | Bubble simulation (two-fluid PDE) | **~10 matter ridges at $r_k = R\varphi^{-k}$** (successive matter-ring ratio $\varphi^{-1} = 0.6180$ vs null $\varphi^{-1/2} = 0.7862$), 9 void troughs at $R\varphi^{-(k+\frac12)}$, strict alternation, $n$-independent count | Hypothesized (PDE-testable; conditional on the radial-reading inference; honest negative: naive wake-sum zeros {0.191, 0.573, 0.809, 0.955}·ℓ_n are not a φ-ladder; dynamic realization test 2026-08-13 = **NO RINGS** under qi-gated conversion-only dynamics) | **Hypothesized—analytic probe `two-fluid/run_bubble_ring_probe.py`; dynamic probe `two-fluid/run_bubble_ring_dynamic_probe.py` = null** |
 
 ## 8. Universal Boundary Anisotropy—Scale-Invariant Edge Steepness
 
