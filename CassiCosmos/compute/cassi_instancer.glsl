@@ -27,32 +27,22 @@
 // buffer is needed — when a future merge pass writes varied masses into
 // pos.w the size mode lights up for free.
 //
-// ── DEFERRED cassi_sim.gd integration (green-lit after the fmm wave) ──
-// Everything below runs on the CURRENT 4-binding uniform set + the host's
-// existing PC fill, so NOTHING here is blocked. Two OPTIONAL upgrades are
-// documented at their exact integration points and left OFF until the
-// cassi_sim.gd hooks land:
+// ── cassi_sim.gd integration (LANDED 2026-08-13, green-lit) ────────────
+// Two host hooks are wired into cassi_sim.gd (bit-identical at default-off):
 //   (1) TWO-AXIS lightness from TRUE ρ = EY+EI (mode 4): bindings 4/5 of
-//       `_us_inst_0` in cassi_sim.gd `_cache_uniform_sets()` MUST be added:
-//           _uniform_storage(4, _field_ey),  // EY (mode 4 ρ = EY+EI)
-//           _uniform_storage(5, _field_ei),  // EI
-//       and the tri_rho sampler below flipped from the q-proxy to the
-//       EY+EI trilinear read. Until then mode 4 uses q (EY²+EI²) as a
-//       monotonic ρ proxy (same EY/EI convention; a valid two-axis look).
+//       `_us_inst_0` bind `_field_ey` / `_field_ei`; the tri_rho sampler
+//       below reads EY+EI at the particle (same trilinear convention as q).
 //   (2) DEPTH_CUE from the TRUE camera distance: `_fill_instancer_pc()`
-//       MUST write the live camera world position into the 3 instancer-PC
-//       slots the instancer shader never reads for their shared meaning —
-//       byte 32 (slot 8, shared `source_strength`), byte 36 (slot 9,
-//       `num_clusters`), byte 40 (slot 10, `gravity_mode`) — each camera
-//       axis (x/y/z). sim_ui.gd has the camera reference (sibling Camera3D
-//       of CassiSim; see _find_sibling_camera). Until then the shader uses
-//       the world-origin distance as the depth proxy (identical when the
-//       host leaves those slots as the shared fill; correct for this
-//       auto-framed sim). No PC-format change: all 32 slots stay.
-//   NO other host change is required. The param SCALARS (size_k, glow
-//   thresholds, depth scale) are baked constants here so the features
-//   work before AND after the hook; the hook may later override them via
-//   the same 5 repurposable slots (see #DEFERRED slot map at the bottom).
+//       writes the live camera world position into the 3 instancer-PC
+//       slots the instancer never reads for their shared meaning — byte 32
+//       (slot 8, shared `source_strength`), byte 36 (slot 9,
+//       `num_clusters`), byte 40 (slot 10, `gravity_mode`) — per axis.
+//       Headless verify scenes leave those slots 0 → the origin depth probe.
+//   No PC-format change: all 32 slots stay (the 128 B RDNA3 cap is not
+//   exceeded); the shared values are overridden in the instancer's PRIVATE
+//   buffer only, so no other shader is affected. The baked param SCALARS
+//   (size_k, glow thresholds, depth scale) stay constant; the hook may
+//   tune them later through the same repurposable slots.
 
 layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
@@ -207,15 +197,44 @@ float tri_q(vec3 wp) {
     return mix(q0, q1, fz);
 }
 
-// ── DEFERRED (green-light): TRUE ρ = EY+EI trilinear for mode 4. This
-// sampler duplicates tri_q with bindings 4/5. It stays OFF until the host
-// adds the two bindings to `_us_inst_0` (see the header). Then uncomment,
-// bind, and swap rho_proxy() below to call tri_rho instead of the q read.
-// layout(set = 0, binding = 4, std430) readonly buffer FieldEY { float ey[]; };
-// layout(set = 0, binding = 5, std430) readonly buffer FieldEI { float ei[]; };
-// float tri_rho(vec3 wp) {
-//     return tri_q_src(wp, ey, ei);  // see the mirrored sampler below
-// }
+// ── TRUE ρ = EY+EI trilinear for mode 4 (two-axis). The host binds
+// `_field_ey` / `_field_ei` at 4/5 of `_us_inst_0` (see the header); the
+// same periodic trilinear convention as tri_q, summing the two fluid
+// fields so ρ = EY+EI drives the lightness axis.
+layout(set = 0, binding = 4, std430) readonly buffer FieldEY { float ey[]; };
+layout(set = 0, binding = 5, std430) readonly buffer FieldEI { float ei[]; };
+float tri_field_scalar(float v000, float v100, float v010, float v110,
+                       float v001, float v101, float v011, float v111,
+                       vec3 f) {
+    float q0 = mix(mix(v000, v100, f.x), mix(v010, v110, f.x), f.y);
+    float q1 = mix(mix(v001, v101, f.x), mix(v011, v111, f.x), f.y);
+    return mix(q0, q1, f.z);
+}
+// ρ = EY+EI at the particle (world → grid cell, periodic wrap, trilinear).
+float tri_rho(vec3 wp) {
+    int N = int(pc.N_f);
+    float hn = float(N) * 0.5;
+    vec3 ext = vec3(pc.extent_x, pc.extent_y, pc.extent_z);
+    vec3 inv_ext = 1.0 / max(ext, vec3(0.0001));
+    vec3 gc = (wp * inv_ext) * hn + hn;
+    int i0 = int(floor(gc.x));
+    int j0 = int(floor(gc.y));
+    int k0 = int(floor(gc.z));
+    vec3 f = gc - floor(gc);
+    i0 = ((i0 % N) + N) % N;  j0 = ((j0 % N) + N) % N;  k0 = ((k0 % N) + N) % N;
+    int i1 = (i0 + 1) % N;    int j1 = (j0 + 1) % N;    int k1 = (k0 + 1) % N;
+    float ey = tri_field_scalar(
+        ey[idx3(i0, j0, k0)], ey[idx3(i1, j0, k0)],
+        ey[idx3(i0, j1, k0)], ey[idx3(i1, j1, k0)],
+        ey[idx3(i0, j0, k1)], ey[idx3(i1, j0, k1)],
+        ey[idx3(i0, j1, k1)], ey[idx3(i1, j1, k1)], f);
+    float ei = tri_field_scalar(
+        ei[idx3(i0, j0, k0)], ei[idx3(i1, j0, k0)],
+        ei[idx3(i0, j1, k0)], ei[idx3(i1, j1, k0)],
+        ei[idx3(i0, j0, k1)], ei[idx3(i1, j0, k1)],
+        ei[idx3(i0, j1, k1)], ei[idx3(i1, j1, k1)], f);
+    return ey + ei;
+}
 
 // ── Mode/feature decoding ──────────────────────────────────────────────
 // color_mode low nibble = base mode, high nibble = feature flags, packed
@@ -227,17 +246,11 @@ const int F_SZ = 0x1;  // bit0 flag: size-by-mass
 const int F_GL = 0x2;  // bit1 flag: additive glow
 const int F_DP = 0x4;  // bit2 flag: depth cue
 
-// Local density proxy for mode 4's lightness axis. Today q = EY²+EI² (a
-// monotonic ρ proxy over the same EY/EI field); after the deferred EY/EI
-// bindings land this becomes ρ = EY+EI. Returns a [0,1]-ish normalized
-// value clamped to keep lightness in-hue.
-float rho_proxy(float q) {
-    // Normalize against the approach white point when live, else a fixed
-    // φ⁻²-referenced floor. a_hi is the live qi_condensation_threshold
-    // (> 0 when the approach band is on; the Qi default is 0.5).
+// Local density normalization for mode 4's lightness axis: ρ̂ = ρ / a_hi,
+// clamped to keep lightness in-hue. a_hi is the live approach white point.
+float rho_norm(float rho) {
     float ref = max(pc.a_hi, 0.001);
-    // clamp into a sane [0,1.5] band so RHO_GAIN never blows up lightness
-    return clamp(q / ref, 0.0, 1.5);
+    return clamp(rho / ref, 0.0, 1.5);
 }
 
 void main() {
@@ -319,7 +332,7 @@ void main() {
         // on) still dominates near the white point — the two-axis lift rides
         // under it so a condensation glow is never dimmed by a low ρ cell.
         if (bmode == 4) {
-            float rho = rho_proxy(x);
+            float rho = rho_norm(tri_rho(pos[i].xyz));   // TRUE ρ = EY+EI
             float l2 = clamp(l + RHO_GAIN * (rho - 0.5), 0.0, 1.0);
             l = mix(l, l2, 1.0 - inA);
         }
@@ -362,13 +375,11 @@ void main() {
     // camera sits a fixed oblique distance from the origin, so this is a
     // faithful fallback until the hook feeds the live camera).
     if ((flags & F_DP) != 0) {
-        // until the deferred host writes the camera, read the shared slots
-        // (which are inert in the instancer): origin == camera-at-origin
+        // Camera world position is written by the host into slots 8/9/10
+        // (shared source_strength / num_clusters / gravity_mode — none
+        // consumed by the color/size paths) every instancer PC fill;
+        // headless scenes leave them 0 → distance from the origin.
         vec3 cam = vec3(pc.source_strength, pc.num_clusters, pc.gravity_mode);
-        // pre-hook those slots hold sim values, NOT camera pos — so use the
-        // origin-probe form below until the slot map is live; the hook
-        // flips cam to read the real camera from the same slots.
-        cam = vec3(0.0, 0.0, 0.0);   // ← restore to vec3(...) above after the hook
         float d = length(pos[i].xyz - cam);
         float boxd = length(vec3(pc.extent_x, pc.extent_y, pc.extent_z));
         float dn = DEPTH_NEAR_FRAC * boxd;

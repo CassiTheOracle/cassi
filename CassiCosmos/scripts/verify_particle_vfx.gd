@@ -90,9 +90,9 @@ func _dispatch_and_read() -> PackedFloat32Array:
 func _run_all() -> void:
 	await _check_default()
 	await _check_size_flag()
-	await _check_two_axis()
 	await _check_glow()
 	await _check_depth()
+	await _check_two_axis()   # last: writes EY/EI ramps into the field
 
 
 ## [1] DEFAULT (mode 0) — bit-identical legacy size + mass-temperature color.
@@ -162,30 +162,28 @@ func _check_size_flag() -> void:
 		push_error("size: expected cbrt scaling (match=%d/%d, legacy_diff=%d)" % [match_cnt, n, legacy_diff])
 
 
-## [3] TWO-AXIS (mode 4) — hue from q + lightness modulated by ρ̂ = q/a_hi.
+## [3] TWO-AXIS (mode 4) — hue from q + lightness from TRUE ρ = EY+EI.
 func _check_two_axis() -> void:
-	# The default flat-noise field puts every particle below the Qi cycle
-	# floor, so hue (and hence ρ̂) are degenerate. Feed a linear q-ramp over
-	# the cycle band so q spans the full hue range AND the lightness axis
-	# sees real spatial variation — matching what a live condensation field
-	# (or the deferred EY+EI read) would provide.
+	# The lightness axis now samples ρ = EY+EI (the two bindings 4/5), so
+	# drive it with a real EY/EI ramp: EY = 0.1 + 0.8·(i/N), EI = 0.1 → ρ
+	# spans ~[0.2, 1.0] across X, and q = EY²+EI² varies too (hue moves).
 	var N: int = sim.grid_N
 	var nc: int = N * N * N
-	var lo: float = sim.qi_cycle.x
-	var hi: float = sim.qi_cycle.y
-	var ramp := PackedFloat32Array()
-	ramp.resize(nc)
+	var ey_a := PackedFloat32Array(); ey_a.resize(nc)
+	var ei_a := PackedFloat32Array(); ei_a.resize(nc)
 	for k in range(N):
 		for j in range(N):
 			for i in range(N):
 				var id3: int = i + N * (j + N * k)
 				var f: float = float(i) / float(maxi(N - 1, 1))
-				ramp[id3] = lo + (hi - lo) * f
-	sim._rd.buffer_update(sim._field_q, 0, ramp.size() * 4, ramp.to_byte_array())
-	# baseline: plain Qi rainbow
+				ey_a[id3] = 0.1 + 0.8 * f
+				ei_a[id3] = 0.1
+	sim._rd.buffer_update(sim._field_ey, 0, ey_a.size() * 4, ey_a.to_byte_array())
+	sim._rd.buffer_update(sim._field_ei, 0, ei_a.size() * 4, ei_a.to_byte_array())
+	# baseline: plain Qi rainbow (hue only; lightness fixed by the engine)
 	sim.particle_color_mode = 2
 	var inst_q: PackedFloat32Array = await _dispatch_and_read()
-	# two-axis: same hue engine, lightness modulated by ρ̂
+	# two-axis: same hue engine, lightness modulated by ρ = EY+EI
 	sim.particle_color_mode = 4
 	var inst_xy: PackedFloat32Array = await _dispatch_and_read()
 	if inst_q.size() < sim.N_particles * 16 or inst_xy.size() < sim.N_particles * 16:
@@ -194,11 +192,10 @@ func _check_two_axis() -> void:
 		return
 	_checks += 1
 	var n: int = sim.N_particles
-	# ρ-lightness axis must be live: the mode-4 color differs from mode 2 at
-	# the SAME q (the lightness lift rides under the engine) for most
-	# instances.
+	# ρ-lightness axis must be live: mode-4 color differs from mode 2 at the
+	# same q for most instances.
 	var differ := 0
-	# the hue/lightness must be NON-uniform across the ramp (both axes move)
+	# hue+lightness must be NON-uniform across the ramp (both axes move)
 	var nonuniform := 0
 	for i in range(n):
 		var b := i * 16

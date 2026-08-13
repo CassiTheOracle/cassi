@@ -1,8 +1,10 @@
-# Particle VFX modes (default-off) + deferred cassi_sim.gd integration
+# Particle VFX modes (default-off) + cassi_sim.gd integration
 
-Status: implemented in `compute/cassi_instancer.glsl` + `scripts/sim_ui.gd`;
-scene-based verification pending the FMM wave-3 `cassi_sim.gd` fix (it gates
-every `cassi_sim.gd`-loading scene run).
+Status: implemented in `compute/cassi_instancer.glsl` + `scripts/sim_ui.gd`,
+with the two `scripts/cassi_sim.gd` hooks LANDED (green-lit after the FMM
+wave): TRUE ρ = EY+EI for two-axis and the live camera position for depth.
+Verification: `verify_river_isotropy` 36/36 bit-identical, `verify_particle_vfx`
+smoke 5/5, `validate_sim_ui` 9/9.
 
 ## Feature encoding
 
@@ -48,13 +50,11 @@ All compose onto `particle_color_mode` via `_apply_particle_color_mode()` and
 are live (no reinit). With every VFX toggle + Rainbow off, the composed value
 is 0 — the legacy path, bit-identical.
 
-## Depth cue camera source (deferred)
+## Depth cue camera source (landed)
 
-Until the host feeds the live camera, the depth probe uses the world-origin
-distance (the auto-framed camera sits a fixed oblique distance from the
-origin, so this is a faithful fallback). To use the TRUE camera position the
-host must write the camera's world X/Y/Z into the three instancer-PC slots
-the instancer never reads for their shared meaning, each fill:
+`_fill_instancer_pc()` writes the live camera world X/Y/Z into the three
+instancer-PC slots the instancer never reads for their shared meaning each
+fill (from `_sim_cam`, the sibling `Camera3D`; headless scenes leave them 0):
 
 | byte | slot | shared meaning      | repurposed as |
 |------|------|---------------------|---------------|
@@ -62,17 +62,13 @@ the instancer never reads for their shared meaning, each fill:
 | 36   | 9    | `num_clusters`      | camera Y |
 | 40   | 10   | `gravity_mode`      | camera Z |
 
-`sim_ui.gd` has the camera (sibling `Camera3D` of `CassiSim`; see the sim's
-`_find_sibling_camera`). Then restore the shader's `cam` read (it is currently
-hard-pinned to origin with a `// ← restore` marker).
+The shader's depth path reads those slots as the camera position.
 
-## Two-axis ρ source (deferred)
+## Two-axis ρ source (landed)
 
-Mode 4's lightness axis today uses q = EY²+EI² as a monotonic ρ proxy. To use
-the TRUE ρ = EY+EI, add two bindings to `_us_inst_0` in
-`cassi_sim.gd _cache_uniform_sets()` after binding 3:
-`_uniform_storage(4, _field_ey)` and `_uniform_storage(5, _field_ei)`, then
-enable the commented `tri_rho` sampler in the shader and flip `rho_proxy()`.
+Mode 4's lightness axis reads TRUE ρ = EY+EI via bindings 4/5 of
+`_us_inst_0` (`_field_ey` + `_field_ei`), trilinear-sampled at the particle
+with the same periodic convention as q.
 
 ## Bloom (WorldEnvironment glow)
 

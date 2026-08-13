@@ -1293,7 +1293,9 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(0, _pos_buf),
 			_uniform_storage(1, _mm_rd_rid),
 			_uniform_storage(2, _vel_buf),  # velocity rainbow (color_mode 1)
-			_uniform_storage(3, _field_q),  # Qi rainbow (color_mode 2): coherence q = EY²+EI² grid
+			_uniform_storage(3, _field_q),  # Qi rainbow (color_mode 2/4): coherence q = EY²+EI² grid
+			_uniform_storage(4, _field_ey),  # two-axis (color_mode 4): ρ = EY+EI lightness axis
+			_uniform_storage(5, _field_ei),  # two-axis (color_mode 4): ρ = EY+EI
 		], _instancer_shader, 0)
 		print("[CassiSim] Instancer uniform set cached (GPU-direct multimesh buffer)")
 
@@ -2356,6 +2358,18 @@ func _fill_instancer_pc() -> void:
 	_instancer_pc_bytes.encode_float(32, source_strength)
 	_instancer_pc_bytes.encode_float(36, float(num_clusters))
 	_instancer_pc_bytes.encode_float(40, float(gravity_mode))
+	# ── DEPTH_CUE camera source (particle-VFX, default-off) ──────────
+	# The instancer shader reads slots 8/9/10 (shared source_strength /
+	# num_clusters / gravity_mode) as the CAMERA world position ONLY when
+	# the 0x40 depth flag is set — none of those shared values are consumed
+	# by the instancer's color/size paths, so repurposing them here is
+	# bit-identical at defaults. A sibling Camera3D (main/recorder) feeds
+	# the live camera; the headless verify scenes have none → origin fallback
+	# (the shader's own origin-probe when the depth flag is on).
+	var _cam_p: Vector3 = _sim_cam.global_position if _sim_cam != null else Vector3.ZERO
+	_instancer_pc_bytes.encode_float(32, _cam_p.x)
+	_instancer_pc_bytes.encode_float(36, _cam_p.y)
+	_instancer_pc_bytes.encode_float(40, _cam_p.z)
 	_instancer_pc_bytes.encode_float(44, float(particle_color_mode))  # slot 11
 	if particle_color_mode == 0:
 		# Mode 0 = Cassi mass gradient — the shader branch is untouched; the
