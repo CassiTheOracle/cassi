@@ -104,7 +104,7 @@ The question is: what is $P_\parallel$ in cascade rungs?
 
 The two-fluid field $(E_Y, E_I)$ forms an SO(2) doublet—a 2D rotational structure in field space (`foundations/why-three-dimensions.md` §2.1). The conversion term rotates the doublet:
 
-$$\partial_t E_Y \supset -\lambda(1-q)(E_Y - \varphi E_I), \qquad \partial_t E_I \supset +\lambda(1-q)(E_Y - \varphi E_I)/\varphi$$
+$$\partial_t E_Y \supset -\lambda(1-q)(E_Y - \varphi E_I), \qquad \partial_t E_I \supset +\lambda(1-q)(E_Y - \varphi E_I)$$
 
 A full rotation of the doublet—one complete Yang → Yin → Yang cycle—requires **two cascade rungs**:
 

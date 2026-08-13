@@ -114,7 +114,7 @@ Two ingredients produce the spiral:
 
 2. **Rotation.** The conversion term couples $E_Y$ and $E_I$ antisymmetrically:
    $\partial_t E_Y \supset -\lambda(1-q)(E_Y - \varphi E_I)$ and
-   $\partial_t E_I \supset +\lambda(1-q)(E_Y - \varphi E_I)/\varphi$. This is
+   $\partial_t E_I \supset +\lambda(1-q)(E_Y - \varphi E_I)$. This is
    an SO(2) rotation generator—the two fields continuously convert into one
    another with a phase shift. Without rotation, the fields would simply
    equilibrate and stop; with rotation, they spiral.
@@ -313,7 +313,7 @@ first derivation problem—and it forks the prediction.
 
 Mass-conserving conversion drives the two fields in opposite directions:
 
-$$\partial_t E_Y \supset +\,\omega_0\, g(q)\,\varepsilon, \qquad \partial_t E_I \supset -\,\omega_0\, g(q)\,\varepsilon/\varphi$$
+$$\partial_t E_Y \supset +\,\omega_0\, g(q)\,\varepsilon, \qquad \partial_t E_I \supset -\,\omega_0\, g(q)\,\varepsilon$$
 
 A positive $\varepsilon$ fluctuation feeds $E_Y$ and drains $E_I$: the two
 wakes are emitted **anti-phase** ($\Delta\phi = \pi$). Two anti-phase sources

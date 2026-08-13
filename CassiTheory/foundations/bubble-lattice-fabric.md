@@ -18,7 +18,7 @@ is derived from the two-fluid PDE (`foundations/bubble-edge-geometry.md` §2.3).
 
 The two-fluid PDE's conversion term couples Yang and Yin antisymmetrically:
 
-$$\partial_t E_Y \supset -\lambda(1-q)(E_Y - \varphi E_I), \qquad \partial_t E_I \supset +\lambda(1-q)(E_Y - \varphi E_I)/\varphi$$
+$$\partial_t E_Y \supset -\lambda(1-q)(E_Y - \varphi E_I), \qquad \partial_t E_I \supset +\lambda(1-q)(E_Y - \varphi E_I)$$
 
 This coupling generates wake waves—spatial interference patterns in the deviation $\varepsilon(\mathbf{x}) = E_Y - \varphi E_I$. Where Yang and Yin wakes constructively interfere, Qi density $q$ is high and matter condenses. Where they destructively interfere, $q \to 0$ and voids form.
 

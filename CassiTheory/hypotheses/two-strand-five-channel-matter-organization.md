@@ -26,7 +26,7 @@ q=\frac{\rho^2}{\rho^2+\varphi^{-2}+\varepsilon^2},
 J=\Psi_Y\nabla\Psi_I-\Psi_I\nabla\Psi_Y.
 $$
 
-The conversion gate is anti-phase in the doublet: $\partial_t E_Y \supset -\lambda(1-q)\varepsilon$, $\partial_t E_I \supset +\lambda(1-q)\varepsilon/\varphi$, with $\lambda=0.1$. A strand is not a third fluid; it is a localized ridge of high $q$ and organized phase current within this one condensate. The double helix is the axial (inter-scale) phase winding of that phase current, distinct from the nulled transverse-ridge branch (`foundations/qi-flow-double-helix.md` §4.2).
+The conversion gate is anti-phase in the doublet: $\partial_t E_Y \supset -\lambda(1-q)\varepsilon$, $\partial_t E_I \supset +\lambda(1-q)\varepsilon$, with $\lambda=0.1$. A strand is not a third fluid; it is a localized ridge of high $q$ and organized phase current within this one condensate. The double helix is the axial (inter-scale) phase winding of that phase current, distinct from the nulled transverse-ridge branch (`foundations/qi-flow-double-helix.md` §4.2).
 
 ### 1.2 Two spatial strands
 
