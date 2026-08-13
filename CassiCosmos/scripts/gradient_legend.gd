@@ -305,7 +305,10 @@ func _draw() -> void:
 		draw_circle(Vector2(mx, STRIP_TOP + STRIP_H + MARK_R), radius, mark_color)
 		var label: String = "%s %s" % [m.name, _fmt(m.q)]
 		var tw: float = font.get_string_size(label).x
-		draw_string(font, Vector2(clampf(mx - tw * 0.5, 0.0, maxf(size.x - tw, 0.0)), STRIP_TOP + STRIP_H + MARK_R * 2.0 + LABEL_H), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.95, 0.97, 1.0))
+		var lx: float = clampf(mx - tw * 0.5, 0.0, maxf(size.x - tw, 0.0))
+		var ly: float = STRIP_TOP + STRIP_H + MARK_R * 2.0 + LABEL_H
+		draw_string(font, Vector2(lx + 1.0, ly + 1.0), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.0, 0.0, 0.0, 0.6))
+		draw_string(font, Vector2(lx, ly), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1.0, 1.0, 1.0, 0.95))
 
 
 func _draw_placeholder(text: String) -> void:

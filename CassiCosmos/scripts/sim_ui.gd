@@ -27,6 +27,7 @@ var _init_opt: OptionButton
 var _rainbow_btn: CheckButton
 var _color_src_opt: OptionButton
 var _fit_btn: Button
+var _scale_label: Label
 var _legend: Control
 var _no_rb_btn: CheckButton
 var _bh_toggle_btn: CheckButton
@@ -220,7 +221,7 @@ func _ready() -> void:
 
 	# Cluster count spinbox
 	var nclust_box = VBoxContainer.new()
-	nclust_box.custom_minimum_size = Vector2(150, 40)
+	nclust_box.custom_minimum_size = Vector2(120, 40)
 	row3.add_child(nclust_box)
 	var nclust_lbl = _make_label("Clusters:", Color(0.8, 0.6, 0.4), 12)
 	nclust_box.add_child(nclust_lbl)
@@ -232,7 +233,7 @@ func _ready() -> void:
 
 	# Cluster separation spinbox
 	var sep_box = VBoxContainer.new()
-	sep_box.custom_minimum_size = Vector2(150, 40)
+	sep_box.custom_minimum_size = Vector2(120, 40)
 	row3.add_child(sep_box)
 	var sep_lbl = _make_label("Separation:", Color(0.4, 0.7, 0.8), 12)
 	sep_box.add_child(sep_lbl)
@@ -244,7 +245,7 @@ func _ready() -> void:
 
 	# Initial-condition profile selector
 	var init_box = VBoxContainer.new()
-	init_box.custom_minimum_size = Vector2(150, 40)
+	init_box.custom_minimum_size = Vector2(120, 40)
 	row3.add_child(init_box)
 	var init_lbl = _make_label("Init:", Color(0.9, 0.85, 0.5), 12)
 	init_box.add_child(init_lbl)
@@ -365,12 +366,23 @@ func _ready() -> void:
 	_server_port_edit.modulate = Color(0.5, 0.5, 0.6)
 	srv_hbox.add_child(_server_port_edit)
 
-	# ── Gradient legend: drag the two handles to fit the scale ──
+	# ── Gradient legend + its live numeric readout ──
+	var legend_row = HBoxContainer.new()
+	legend_row.add_theme_constant_override("separation", 8)
+	root_vbox.add_child(legend_row)
+	_scale_label = _make_label("", Color(0.95, 0.98, 1.0), 12)
+	_scale_label.name = "ScaleLabel"
+	_scale_label.custom_minimum_size = Vector2(96, 0)
+	_scale_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_scale_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_scale_label.tooltip_text = "Color scale — drag LOW and HIGH on the legend to change it"
+	legend_row.add_child(_scale_label)
 	_legend = GradientLegend.new()
 	_legend.name = "GradientLegend"
+	_legend.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_legend.tooltip_text = "Drag LOW and HIGH to fit the active quantity. WHITE marks the physical upper limit; the strip matches the particles exactly."
 	_legend.gradient_changed.connect(_on_legend_changed)
-	root_vbox.add_child(_legend)
+	legend_row.add_child(_legend)
 
 	# Init from sim if available
 	sim = _get_sim()
@@ -473,6 +485,42 @@ func _sync_color_widgets(sim: Node3D) -> void:
 	_sync_color_enabled()
 	if _legend:
 		_legend.set_sim(sim, _color_src_opt.selected == 1)
+	_update_scale_label()
+
+
+## Live numeric readout of the active color scale (the values the LOW/HIGH
+## legend handles set). Engine slots: 2 = lo1, 10 = hiC, 13 = a_hi (white
+## point), 15 = approach_on. Empty when the rainbow is off.
+func _update_scale_label() -> void:
+	var sim = _get_sim()
+	if sim == null or _scale_label == null:
+		return
+	if sim.particle_color_mode == 0 or not sim.has_method("gradient_engine"):
+		_scale_label.text = ""
+		return
+	var e: PackedFloat32Array = sim.gradient_engine()
+	if e.size() < 17 or e[11] <= 0.0:
+		_scale_label.text = ""
+		return
+	var s: String = "%s → %s" % [_fmt_scale(e[2]), _fmt_scale(e[10])]
+	_scale_label.text = s
+	if e[15] > 0.5:
+		_scale_label.tooltip_text = "%s color scale — drag LOW and HIGH on the legend to change it; WHITE is the fixed %s" % ["Qi" if _color_src_opt.selected == 1 else "Velocity", _fmt_scale(e[13])]
+	else:
+		_scale_label.tooltip_text = "%s color scale — drag LOW and HIGH on the legend to change it" % ("Qi" if _color_src_opt.selected == 1 else "Velocity")
+
+
+func _fmt_scale(v: float) -> String:
+	if v <= 0.0:
+		return "0"
+	if v >= 100.0:
+		return str(int(v))
+	var s := "%.4f" % v
+	while s.ends_with("0"):
+		s = s.substr(0, s.length() - 1)
+	if s.ends_with("."):
+		s = s.substr(0, s.length() - 1)
+	return s
 
 
 func _sync_color_enabled() -> void:
@@ -565,6 +613,7 @@ func _on_color_src_selected(idx: int) -> void:
 func _on_legend_changed() -> void:
 	var sim = _get_sim()
 	if sim == null: return
+	_update_scale_label()
 	_repaint_if_paused(sim)
 
 
