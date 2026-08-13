@@ -276,8 +276,13 @@ and a pre-registered ratio test of successive-matter spacings vs
 $\varphi^{-1}$ vs $\varphi^{-1/2}$, quoting both signals and the null. The
 canonical-solver test (`two-fluid/run_bubble_ring_dynamic_probe.py`, four
 arms, all NO RINGS) is a first-order proxy; the decisive test is the
-second-order wave form (the space sim's GLSL PDE), whose radial profile
-remains to be measured.
+second-order wave form (the space sim's GLSL PDE), whose radial readback
+has now been measured—verdict **NO RIDGES**: a transient shell plus one
+interior ridge at ratio 0.545 (marginal $\varphi^{-1}$) at $t = 24$,
+dissipated by $t = 40$; detector self-test **PASS** (recovers a planted
+φ-ladder); probe `diag_bubble_rings.gd` in the owner's space-sim repo
+(Godot, $N = 128$, $\omega_0^2 = 20$, featureless filled-ball seed, no
+source drive).
 
 **Source:** `foundations/bubble-edge-geometry.md` §3 (Radial Interior
 Structure: the Ring Ladder), `foundations/bubble-lattice-fabric.md` §3.2–3.3;
@@ -321,7 +326,8 @@ galaxy catalog unmodified.
 
 **Source:** `analyses/void-ring-profiles.md` (this analysis; real-data
 block and exact acquisition failures in §2.2, results in §4);
-`foundations/bubble-edge-geometry.md` §3.5 (the ring law);
+`foundations/bubble-edge-geometry.md` §3.1 (the ring law); §3.5 (the
+honest negative);
 `predictions/falsifiable-predictions.md` Prediction 51 (the ratio test and
 null discipline reused 1:1);
 `experiments/void_phi_rings/acquire_void_catalog.py` (catalog download +

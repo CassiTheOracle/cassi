@@ -7,7 +7,7 @@ Run from the repo root:
 
 PHYSICS / PRE-REGISTRATION
 --------------------------
-The bubble-shell ring ladder (`foundations/bubble-edge-geometry.md` §3.5;
+The bubble-shell ring ladder (`foundations/bubble-edge-geometry.md` §3.1;
 `predictions/falsifiable-predictions.md` Prediction 51) predicts that inside
 a bubble shell of effective radius R the matter density carries rings at
 
