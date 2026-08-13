@@ -114,11 +114,20 @@ $$
 G_{\text{eff}} = \frac{\pi}{\rho}\,(1 + (\varphi^{6}-1)q)\,G
 $$
 
-where $\xi = \varphi^6 \approx 17.944$ is the Qi-gravity coupling constant. At the $\varphi$-fixed point ($q=0$, $\pi/\rho = \alpha_0 = \varphi^{-3}$):
+where $\xi = \varphi^6 \approx 17.944$ is the Qi-gravity coupling constant. At the $\varphi$-fixed point the Qi boost is active at its equilibrium value: $\varepsilon = 0$ gives $q = q_{\text{eq}}(\rho) = \rho^2/(\rho^2 + \varphi^{-2})$ (density-dependent), and with $\pi/\rho = \alpha_0 = \varphi^{-3}$ the fixed-point coupling is the closed form
 
 $$
-G_{\text{eff}} = \alpha_0\,G \approx 0.236\,G
+G_{\text{eff}}(\varepsilon=0) = \varphi^{-3}\left(1 + (\varphi^{6}-1)\,q_{\text{eq}}(\rho)\right)G
+  = \varphi^{-3}\,\frac{\varphi^{8}\rho^2+1}{\varphi^{2}\rho^2+1}\,G
 $$
+
+At the reference state ($E_Y = 1$, $E_I = \varphi^{-1}$, $\rho = \varphi$) this specializes to $q_{\text{eq}} = \varphi^2/(\varphi^2+\varphi^{-2}) \approx 0.873$ and
+
+$$
+G_{\text{eff}} = \varphi^{-3}\,\frac{\varphi^{10}+1}{\varphi^4+1}\,G \approx 3.73\,G
+$$
+
+(the equilibrium boost reduces to $1+(\varphi^6-1)q_{\text{eq}} = (\varphi^{10}+1)/(\varphi^4+1) \approx 15.79$; in the dilute limit $\rho \to 0$ on the $\varphi$-line, $q \to 0$ and $G_{\text{eff}} \to \alpha_0 G \approx 0.236\,G$—the weak-field/inertial regime, §5; in the dense limit $\rho \to \infty$ the fixed-point coupling saturates at $\varphi^3 G \approx 4.236\,G$).
 
 In regions of high Qi coherence (galaxy halos, structure formation), the α-free amplification ceiling is $\varphi^6 \approx 17.94$ at $q = 1$; the halo-regime value is $\alpha_{\text{halo}}(1+(\varphi^{6}-1)q) \approx 9.0$ ($\alpha_{\text{halo}} \approx 0.7$, $q \approx 0.7$), giving velocity boosts $2.8$–$3.0\times$ via $\sqrt{\alpha_{\text{halo}}(1+(\varphi^{6}-1)q)}$; the velocity-boost ceiling is $\varphi^3 = 4.2361$.
 
@@ -128,7 +137,7 @@ Qi coherence is not only spatial but **temporal**—the field carries a memory o
 its own past state through a per-cell exponential moving average (EMA) of the
 $\varphi$-deviation:
 
-$$\varepsilon^2(t) = (\Psi_0 - \varphi\Psi_1)^2$$
+$$\varepsilon^2(t) = \left(E_Y(t) - \varphi E_I(t)\right)^2$$
 
 $$\bar{\varepsilon}^2(t) = (1-\tau)\,\bar{\varepsilon}^2(t-\Delta t) + \tau\,\varepsilon^2(t)$$
 
@@ -282,11 +291,15 @@ the Yang-Yin ratio.
 - **Rotation curves**: $v_C/v_B = \sqrt{\alpha_{\text{halo}}(1+(\varphi^{6}-1)q)} \approx 3.00\times$ ($\alpha_{\text{halo}} \approx 0.7$, $q \approx 0.7$; range 2.8–3.0) from the $G_{\text{eff}}$ boost
 - **Dwarf spheroidals**: 3/8 pass; MOND preferred (4/8); the velocity ceiling $\sqrt{\varphi^6} = \varphi^3 = 4.2361$ is exceeded in 3/8
 
-At the $\varphi$-fixed point ($q=0$), the Cassi gravitational action reduces
-to the Einstein-Hilbert action with $G_{\text{eff}} = \alpha_0 G$ ($\alpha_0 = \varphi^{-3}$).
-Deviations from GR are proportional to $q$ and thus strongest in galaxy
-halos, providing an explicit mechanism for modified gravity without
-renormalization.
+At the $\varphi$-fixed point the action keeps the Einstein-Hilbert form with
+the equilibrium-boosted coupling $G_{\text{eff}} = \varphi^{-3}\left(1+(\varphi^{6}-1)q_{\text{eq}}\right)G \approx 3.73\,G$
+($q_{\text{eq}} = \varphi^2/(\varphi^2+\varphi^{-2}) \approx 0.873$ at the reference
+density; §2.3). The GR limit $G_{\text{eff}} \to \varphi^{-3}G$ is the dilute
+$\varphi$-line ($\varepsilon = 0$, $\rho \to 0$), where $q \to 0$ and the PPN
+corrections $\mathcal{O}(\xi q^2)$ vanish—the regime of the solar-system
+tests. Deviations from GR are proportional to $q$ and thus strongest in
+high-coherence regions, providing an explicit mechanism for modified gravity
+without renormalization.
 
 ### 3.4 Standard Model (Pillar 4)
 
@@ -337,9 +350,9 @@ normal ordering, no sterile state; the squared-mass ratio $\Delta m^2_{31}/\Delt
 
 | Limit | Condition | Effective Theory |
 |-------|-----------|-----------------|
-| $q \to 0$ | $\alpha_0 \equiv \pi/\rho = \varphi^{-3}$ | General relativity with $G_{\text{eff}} = \alpha_0 G$ |
-| $q \to 0,\ \hbar \to 0$ | Classical + equilibrium | Newtonian gravity |
-| $\hbar \not\to 0,\ q \to 0$ | Quantum + equilibrium | Schrödinger equation |
+| $q \to 0$ on the $\varphi$-line (the dilute attractor limit: $\varepsilon = 0$, $\rho \to 0$; $q \to 0$ alone means $\rho \to 0$ or large $|\varepsilon|$, not equilibrium—at the reference fixed point $q = q_{\text{eq}} \approx 0.873$) | $\pi/\rho = \varphi^{-3}$, boost $\to 1$ | General relativity with $G_{\text{eff}} = \varphi^{-3}G \approx 0.236\,G$ |
+| $q \to 0$ on the $\varphi$-line, $\hbar \to 0$ | Classical + dilute equilibrium | Newtonian gravity |
+| $\hbar \not\to 0$, $q \to 0$ on the $\varphi$-line | Quantum + dilute equilibrium | Schrödinger equation |
 | $\lambda \to 0$ | No conversion | Euler-Poisson system |
 | $\xi \to 0$ | No Qi enhancement | Standard GR |
 | $\chi \to 0$ | No chemotaxis | Passive scalar advection |

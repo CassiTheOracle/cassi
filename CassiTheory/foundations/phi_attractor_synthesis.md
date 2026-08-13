@@ -73,9 +73,20 @@ $$\frac{G_{\text{eff}}}{G} = \frac{\pi}{\rho}\left(1 + (\varphi^{6}-1)q\right), 
 
 where $\pi/\rho$ is the local Yang fraction ($\alpha_0 = \pi/\rho = \varphi^{-3} \approx 0.236$ at the $\varphi$-fixed point; $\alpha_{\text{halo}} \approx 0.7$ in the galactic halo regime), $\xi = \varphi^6$ is the derived coupling constant arising from the six-dimensional phase-space structure, and $q$ is the Qi coherence factor (Section 2.3).
 
-Maximum enhancement at the $\varphi$-fixed point (fixed-point imbalance $\alpha_0 = \pi/\rho = (\varphi-1)/(\varphi+1) = \varphi^{-3} \approx 0.236$—the "equilibrium Yang fraction" label is Mapped, ledger row 500; $q \approx 0.7$):
+On the $\varphi$-line the coherence takes its equilibrium value $q_{\text{eq}}(\rho) = \rho^2/(\rho^2+\varphi^{-2})$, so the fixed-point coupling is the density-dependent closed form
 
-$$\frac{G_{\text{eff}}}{G} \approx 0.236 \times (1 + 16.944 \times 0.7) \approx 3.0\times$$
+$$\frac{G_{\text{eff}}}{G} = \varphi^{-3}\left(1 + (\varphi^{6}-1)\,q_{\text{eq}}(\rho)\right)
+  = \varphi^{-3}\,\frac{\varphi^{8}\rho^2+1}{\varphi^{2}\rho^2+1},$$
+
+which at the reference density ($\rho = \varphi$, $q_{\text{eq}} \approx 0.873$) is
+$\varphi^{-3}(\varphi^{10}+1)/(\varphi^4+1) \approx 3.73$, and in the dilute limit
+($\rho \to 0$, $q \to 0$) returns $\varphi^{-3} \approx 0.236$ (the fixed-point
+imbalance $\alpha_0 = \pi/\rho = (\varphi-1)/(\varphi+1) = \varphi^{-3}$—the
+"equilibrium Yang fraction" label is Mapped, ledger row 500). The galactic-halo
+regime instead uses $\alpha_{\text{halo}} \approx 0.7$ with $q \approx 0.7$:
+$G_{\text{eff}}/G \approx 9.0$ and a velocity boost
+$\sqrt{\alpha_{\text{halo}}(1+(\varphi^{6}-1)q)} \approx 3.0$, consistent with
+`cosmology/observational_constraints.md` §2.6.
 
 **The $G_{\text{eff}}$ formula.** Paths 8–9 use the full two-fluid coupling $G_{\text{eff}}/G = \alpha(1+(\varphi^{6}-1)q)$ with $\varphi^6 \approx 17.944$ the saturation maximum and halo Yang fraction $\alpha_{\text{halo}} \approx 0.7$, consistent with `cosmology/observational_constraints.md` §2.6 and the point-particle reduction of `gravity/three-body-analytical.md`. (The path8/9 script runs quoted below used the pre-chord $\xi = \varphi^6$ coefficient; the chord shifts their velocity boosts by ≈ −2.6%—re-run pending.) The path8 run gives a 30-kpc boost $v_{\text{enh}}/v_{\text{Newt}} \approx 2.9$—consistent with the observed Milky Way boost $2.7 \pm 0.5$ (Zhou+ 2023)—but the single-$\rho_{\text{ref}}$ model *overproduces* at the χ² best (v(30) ≈ 296 km/s vs ~190–200 observed), and its curve is U-shaped. The overproduction is a profile-shape disease, not a coupling failure: the SPARC fit with the baryon-seeded oscillatory lattice (v4) overpredicts in 111/143 galaxies, while the hydrostatic two-component condensate (pseudo-isothermal $\rho_Y$, v5) survives with the same fixed $\xi = \varphi^6$ (median $\Delta$AIC = −7.0, 90/143; see `speculations/dark-matter-as-qi-coherence.md` §7.2).
 

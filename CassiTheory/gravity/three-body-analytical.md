@@ -7,9 +7,13 @@
 The Cassi two-fluid PDE with Qi-enhanced gravity reduces, for well-separated
 blobs, to point-particle ODEs with body-dependent coupling
 $G_{\text{eff},j} = \alpha_j(1+(\varphi^{6}-1)q_j)G$ and dynamically evolving masses. At
-the $\varphi$-fixed point $\alpha_j = \varphi^{-3}$ the equations reduce
-exactly to Newtonian gravity with $G_{\text{eff}} = \varphi^{-3}G$, so the
-three-body problem inherits classical non-integrability; away from the fixed
+the $\varphi$-fixed point $\alpha_j = \varphi^{-3}$ each blob carries its
+equilibrium coherence $q_j = q_{\text{eq}}(\rho_j) = \rho_j^2/(\rho_j^2+\varphi^{-2})$
+(density-dependent), giving $G_{\text{eff},j} = \varphi^{-3}(1+(\varphi^{6}-1)q_{\text{eq}}(\rho_j))G$—
+at the reference density $\rho_j = \varphi$ this is $\approx 3.73\,G$. The
+exactly-Newtonian limit $G_{\text{eff}} = \varphi^{-3}G$ is the dilute fixed
+point ($\rho_j \to 0$, $q_j \to 0$). The
+three-body problem therefore inherits classical non-integrability; away from the fixed
 point the coupling is body-dependent and the masses evolve, a non-Newtonian
 dynamics that is even less integrable. The conversion term drives every
 configuration toward the fixed point on the timescale
@@ -81,13 +85,19 @@ $$
 
 $$
 q = \frac{\rho^2}{\rho^2 + \varphi^{-2} + \varepsilon^2},
-\qquad \varepsilon^2 = (\Psi_0 - \varphi\Psi_1)^2
+\qquad \varepsilon^2 = (E_Y - \varphi E_I)^2
 $$
 
 (the canonical coherence of `foundations/cassi-theory-reference.md` §2.4).
-$q \to 1$ at high density near $\varphi$-equilibrium; $q \to 0$ far from it.
-At the $\varphi$-fixed point the classical limit $q \to 0$ applies
-(theory-reference §2.6), giving $G_{\text{eff}} = \varphi^{-3}G$.
+$q \to 1$ at high density near $\varphi$-equilibrium; $q \to 0$ far from it
+or at low density. At the $\varphi$-fixed point ($\varepsilon = 0$) the
+coherence is the equilibrium value $q_{\text{eq}}(\rho) = \rho^2/(\rho^2+\varphi^{-2})$
+(density-dependent; $\approx 0.873$ at the reference density $\rho = \varphi$,
+theory-reference §2.4), giving
+$G_{\text{eff}} = \varphi^{-3}(1+(\varphi^{6}-1)q_{\text{eq}}(\rho))G \approx 3.73\,G$
+at the reference density;
+the GR limit $G_{\text{eff}} = \varphi^{-3}G$ is the dilute fixed point
+($\rho \to 0$, $q \to 0$).
 
 #### Parameters (dimensionless couplings; $c$, $\hbar$, $G$ external)
 
@@ -192,25 +202,34 @@ conversion and chemotaxis, unlike Newtonian gravity where masses are constant.
 
 ### 3. The $\varphi$-Fixed Point
 
-The critical equilibrium: $\alpha_j = \varphi^{-3}$ for all $j$, with the
-classical-limit coherence $q_j \to 0$ (theory-reference §2.6).
+The critical equilibrium: $\alpha_j = \varphi^{-3}$ for all $j$—equivalently
+$\varepsilon_j = 0$ (the $\varphi$-line), where each blob's coherence takes its
+equilibrium value $q_j = q_{\text{eq}}(\rho_j) = \rho_j^2/(\rho_j^2+\varphi^{-2})$
+(density-dependent).
 
 #### 3.1 What happens
 
 - The conversion term vanishes: $\lambda(1-q)(E_Y - \varphi E_I) = 0$ (because $E_Y = \varphi E_I$, independent of gate openness)
-- The Qi enhancement factor is exactly 1: $1+(\varphi^{6}-1)q = 1$ (classical limit)
-- The equation of motion reduces to:
+- The Qi enhancement factor is its equilibrium value: $1+(\varphi^{6}-1)q_{\text{eq}}(\rho_j)$, which is $\approx 15.8$ at the reference density ($q_{\text{eq}} \approx 0.873$)—not 1
+- The equation of motion keeps the Newtonian form with a density-dependent coupling:
 
 $$
-\ddot{\mathbf{X}}_j = -G\,\varphi^{-3}\sum_{i\neq j} M_i
+\ddot{\mathbf{X}}_j = -G\,\varphi^{-3}\left(1+(\varphi^{6}-1)q_{\text{eq}}(\rho_j)\right)
+                      \sum_{i\neq j} M_i
                       \frac{\mathbf{X}_j - \mathbf{X}_i}{|\mathbf{X}_j - \mathbf{X}_i|^3}
 $$
 
-**This is EXACTLY Newtonian gravity** with a rescaled gravitational constant:
+**This is Newtonian-form gravity with a rescaled, body-dependent constant** —
+$G_{\text{eff},j} = \varphi^{-3}(1+(\varphi^{6}-1)q_{\text{eq}}(\rho_j))G
+\approx 3.73\,G$ at the reference density. The exactly-Newtonian reduction with
+the single constant
 
 $$
 G_{\text{eff}} = \varphi^{-3} G \approx 0.236\,G
 $$
+
+holds in the dilute fixed-point limit $\rho_j \to 0$ ($q_j \to 0$)—the
+inertial/unorganized regime—or in the $\xi \to 0$ (no-enhancement) limit.
 
 #### 3.2 The three-body problem at the $\varphi$-fixed point
 
@@ -229,7 +248,8 @@ framework does **not** add new integration constants at the $\varphi$-fixed poin
 
 #### 3.3 Proof of reduction
 
-At $\alpha_j = \varphi^{-3}$ (classical-limit $q_j \to 0$):
+At $\alpha_j = \varphi^{-3}$ ($\varepsilon_j = 0$; equilibrium coherence
+$q_j = q_{\text{eq}}(\rho_j)$):
 
 1. **Mass evolution**: $\dot{M}_j = 0$ because $(1+\varphi)\varphi^{-3} - \varphi^{-1} = 0$.
    The gate factor $(1-q_j)$ is finite but the bracket vanishes; the conversion
@@ -247,11 +267,15 @@ At $\alpha_j = \varphi^{-3}$ (classical-limit $q_j \to 0$):
 
 2. **Yang fraction**: $\dot{\Pi}_j = 0$ by the same reasoning.
 
-3. **Momentum**: $G_{\text{eff}} = \varphi^{-3}G$ is constant and universal.
+3. **Momentum**: $G_{\text{eff},j} = \varphi^{-3}(1+(\varphi^{6}-1)q_{\text{eq}}(\rho_j))G$
+   is constant per blob (each blob's density is fixed at the fixed point);
+   it reduces to the universal $\varphi^{-3}G$ in the dilute limit $\rho_j \to 0$.
 
 **Therefore the $\varphi$-fixed point is a true fixed point of the Cassi
-two-fluid system.** At this point the three-body problem is exactly the
-classical Newtonian one.
+two-fluid system.** At this point the three-body problem is Newtonian-form
+with per-blob constant couplings; in the dilute limit ($\rho_j \to 0$) it is
+exactly the classical Newtonian problem with the single constant
+$G_{\text{eff}} = \varphi^{-3}G$.
 
 ---
 
@@ -304,8 +328,12 @@ $$
                     \alpha_j = \varphi^{-3} \;\forall j\}
 $$
 
-(with classical-limit $q_j \to 0$ on the manifold). On $\mathcal{M}_\varphi$,
-exactly Newton. Off $\mathcal{M}_\varphi$, the system relaxes to it.
+(on the manifold each blob sits at $\varepsilon_j = 0$ with its equilibrium
+coherence $q_j = q_{\text{eq}}(\rho_j)$; the exactly-Newtonian reduction holds in the
+dilute limit $\rho_j \to 0$, $q_j \to 0$). On $\mathcal{M}_\varphi$, the dynamics are
+Newtonian-form with per-blob couplings
+$G_{\text{eff},j} = \varphi^{-3}(1+(\varphi^{6}-1)q_{\text{eq}}(\rho_j))G$
+($\approx 3.73\,G$ at the reference density). Off $\mathcal{M}_\varphi$, the system relaxes to it.
 
 **Consequence**: For long times $t \gg 1/\lambda$ (more precisely
 $t \gg \tau_\lambda \sim 2/[\lambda(1-q)(1+\varphi)^2]$, §4), any three-body
@@ -325,8 +353,9 @@ When $\alpha_j > \varphi^{-3}$ (Yang-rich), $\dot{M}_j > 0$—the blob gains
 mass from the ambient field. When $\alpha_j < \varphi^{-3}$ (Yin-rich),
 $\dot{M}_j < 0$—it loses mass. Since $E_Y + E_I$ is conserved globally
 (conversion just exchanges between them), one blob's gain is another's loss.
-The gate factor $(1-q_j)$ stays near 1 (gate open, $q \to 0$ in the classical
-limit) throughout the approach to the fixed point; the mass transfer self-damps
+The gate factor $(1-q_j)$ runs from near 1 (open, far from equilibrium) down to
+$(1-q_{\text{eq}}) = \varphi^{-2}/(\varphi^2+\varphi^{-2}) = \varphi^{-2}/3 \approx 0.127$
+as the blob approaches the $\varphi$-line; the mass transfer self-damps
 because the conversion *bracket* $(1+\varphi)\alpha_j - \varphi^{-1}$ vanishes
 at $\alpha_j = \varphi^{-3}$—the same bracket cancellation proved in §3.3.
 
@@ -362,9 +391,11 @@ and the system homogenizes.
 ### 6. Verdict
 
 **The Cassi two-fluid theory does NOT make the three-body problem analytically
-integrable.** The system at the $\varphi$-fixed point reduces exactly to the
-classical Newtonian three-body problem, which is non-integrable except for
-known special solutions.
+integrable.** The system at the $\varphi$-fixed point is Newtonian-form with
+per-blob constant couplings $G_{\text{eff},j} \approx 3.73\,G$ (reference
+density), reducing to the classical Newtonian problem with the single constant
+$G_{\text{eff}} = \varphi^{-3}G$ in the dilute limit ($\rho_j \to 0$)—non-integrable
+except for known special solutions.
 
 **What IS new:**
 
@@ -378,8 +409,10 @@ known special solutions.
 
 3. **A global $\varphi$ attractor**: Any three-body configuration in the Cassi
    framework exponentially approaches $\alpha_j = \varphi^{-3}$ (all blobs at
-   Yang/Yin equilibrium), at which point the dynamics are exactly Newtonian
-   with $G_{\text{eff}} = \varphi^{-3}G$.
+   Yang/Yin equilibrium), at which point the dynamics are Newtonian-form with
+   per-blob couplings $G_{\text{eff},j} = \varphi^{-3}(1+(\varphi^{6}-1)q_{\text{eq}}(\rho_j))G$
+   ($\approx 3.73\,G$ at the reference density); the universal Newtonian value
+   $G_{\text{eff}} = \varphi^{-3}G$ is the dilute limit ($\rho_j \to 0$, $q_j \to 0$).
 
 4. **A selection principle**: The $\varphi$ attractor PREFERS certain resonant
    configurations over others. Orbits whose timescales are commensurate with
