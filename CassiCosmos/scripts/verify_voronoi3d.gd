@@ -54,7 +54,7 @@ var _lap_y: RID
 var _lap_i: RID
 var _vol: RID
 var _jfa_pc := PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-var _cell_pc := PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+var _cell_pc := PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 var _md_zero: RID
 var _sites_cpu := PackedFloat32Array()
 var _checks := 0
@@ -130,8 +130,11 @@ func _make_buffers() -> void:
 		_u_storage(0, _labels_a), _u_storage(1, _sites),
 		_u_storage(2, _psi_y), _u_storage(3, _psi_i),
 		_u_storage(4, _pi_y), _u_storage(5, _pi_i),
-		_u_storage(6, _lap_y), _u_storage(7, _lap_i), _u_storage(8, _vol),
-		_u_storage(9, _md_zero),
+		_u_storage(6, _lap_y), _u_storage(7, _lap_i),
+		_u_storage(8, _vol), _u_storage(9, _md_zero),
+		_u_storage(10, _md_zero), _u_storage(11, _md_zero),
+		_u_storage(12, _md_zero), _u_storage(13, _md_zero),
+		_u_storage(14, _md_zero), _u_storage(15, _md_zero),
 	], _cell_shader, 0)
 
 

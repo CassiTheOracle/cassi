@@ -60,7 +60,8 @@ func _check_spread() -> void:
 		print("[VerifyMeshlessStability] field finite")
 
 	# site spread: the bounding box of the sites vs the mesh world
-	var sites: PackedFloat32Array = _sim._ml_sites_cpu
+	var sites: PackedFloat32Array = _sim._rd.buffer_get_data(_sim._ml_sites, 0,
+		_sim._ml_sites_cpu.size() * 4).to_float32_array()
 	var n: int = sites.size() / 4
 	var mn := Vector3(INF, INF, INF)
 	var mx := Vector3(-INF, -INF, -INF)

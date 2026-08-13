@@ -437,11 +437,17 @@ var _ml_pi_i: RID
 var _ml_lap_y: RID
 var _ml_lap_i: RID
 var _ml_vol: RID
+var _ml_cen: RID
+var _ml_remap: RID
+var _ml_tmp_y: RID
+var _ml_tmp_i: RID
+var _ml_tmp_py: RID
+var _ml_tmp_pi: RID
 var _us_jfa_0: RID
 var _us_cell_0: RID
 var _us_raster_0: RID
 var _jfa_pc_bytes: PackedByteArray    # JFA PC (8 floats: N, jump, read_a, n_sites, h, pad×3)
-var _cell_pc_bytes: PackedByteArray   # cell PC (10 floats: mode, N, n_sites, dt, h, C2, OM2, PHI, source_s, pad)
+var _cell_pc_bytes: PackedByteArray   # cell PC (14 floats: mode, N, n_sites, dt, h, C2, OM2, PHI, source_s, rho_floor, drift_cap, kappa, lam, T_steer)
 var _raster_pc_bytes: PackedByteArray # raster PC (8 floats: N, n_sites, pad×6)
 var _ml_sites_cpu := PackedFloat32Array()
 var _ml_ready := false
@@ -899,16 +905,9 @@ func _setup_buffers() -> void:
 	# Dual-lattice ∇(g·Φ) (CASCADE_GRID.md — always allocated so dual_grid
 	# stays a LIVE toggle; written only by the shifted gradient pass).
 	_grad_buf2 = _rd.storage_buffer_create(nc * 16)
-	# Occupancy counters (5 uints — cassi_occupancy.glsl). Zeroed here:
-	# storage buffers are NOT zero-initialized on allocator reuse, and the
-	# sampler atomicAdds into the live counters (the per-sample reset is a
-	# buffer_update right before each dispatch in _sample_occupancy).
-
-	_occ_zero_bytes = PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]).to_byte_array()
-	_rd.buffer_update(_occ_buf, 0, _occ_zero_bytes.size(), _occ_zero_bytes)
-	# Meshless arm buffers (allocated always — ~2.2 MB; used only when
-	# meshless_mode is on). The JFA labels ping-pong; the per-site state
-	# carries the cell averages.
+	# Meshless arm buffers (allocated always; used only when meshless_mode
+	# is on). The JFA labels ping-pong; the per-site state carries the cell
+	# averages; the rebuild scratch (centroids/remap/temps) rides the GPU.
 	var ml_ns = 2 * ML_N1 * ML_N1 * ML_N1
 	_ml_labels_a = _rd.storage_buffer_create(grid_N * grid_N * grid_N * 4)
 	_ml_labels_b = _rd.storage_buffer_create(grid_N * grid_N * grid_N * 4)
@@ -920,12 +919,15 @@ func _setup_buffers() -> void:
 	_ml_lap_y = _rd.storage_buffer_create(ml_ns * 4)
 	_ml_lap_i = _rd.storage_buffer_create(ml_ns * 4)
 	_ml_vol = _rd.storage_buffer_create(ml_ns * 4)
+	_ml_cen = _rd.storage_buffer_create(ml_ns * 16)
+	_ml_remap = _rd.storage_buffer_create(ml_ns * 4)
+	_ml_tmp_y = _rd.storage_buffer_create(ml_ns * 4)
+	_ml_tmp_i = _rd.storage_buffer_create(ml_ns * 4)
+	_ml_tmp_py = _rd.storage_buffer_create(ml_ns * 4)
+	_ml_tmp_pi = _rd.storage_buffer_create(ml_ns * 4)
 	_jfa_pc_bytes = PackedByteArray(); _jfa_pc_bytes.resize(8 * 4)
-	_cell_pc_bytes = PackedByteArray(); _cell_pc_bytes.resize(10 * 4)
+	_cell_pc_bytes = PackedByteArray(); _cell_pc_bytes.resize(14 * 4)
 	_raster_pc_bytes = PackedByteArray(); _raster_pc_bytes.resize(8 * 4)
-	# NO sim-owned multimesh buffer: the instancer writes the renderer's own
-	# multimesh instance buffer (see _setup_multimesh) — GPU-direct.
-	_make_render_textures()
 
 	# Pre-allocate push-constant byte buffers (hitch-free pattern)
 	_pc_bytes = PackedByteArray(); _pc_bytes.resize(11 * 4)
@@ -940,7 +942,7 @@ func _setup_buffers() -> void:
 	_poisson_pc_bytes = PackedByteArray(); _poisson_pc_bytes.resize(7 * 4)
 	_occ_pc_bytes = PackedByteArray(); _occ_pc_bytes.resize(10 * 4)
 	# NOTE: all poisson dispatches (clear/load/kspace/FFT) are 2D (N, N, 1) —
-	# cells modes use gid = x + y·N·256 (see cassi_poisson.glsl), the FFT
+
 	# uses row = workgroup.x + workgroup.y·N. A 1D (N³/256, 1, 1) dispatch
 	# caps at 65535 groups on some devices and the naive x + y·N gid formula
 	# covers only N² + 255N cells — the N=256 dispatch landmine.
@@ -956,6 +958,7 @@ func _free_buffers() -> void:
 				_ml_labels_a, _ml_labels_b, _ml_sites,
 				_ml_psi_y, _ml_psi_i, _ml_pi_y, _ml_pi_i,
 				_ml_lap_y, _ml_lap_i, _ml_vol,
+				_ml_cen, _ml_remap, _ml_tmp_y, _ml_tmp_i, _ml_tmp_py, _ml_tmp_pi,
 				_field_render_tex, _bh_lensing_tex]:
 		if rid.is_valid(): _rd.free_rid(rid)
 	_field_render_tex = RID()
@@ -1203,6 +1206,9 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(4, _ml_pi_y), _uniform_storage(5, _ml_pi_i),
 			_uniform_storage(6, _ml_lap_y), _uniform_storage(7, _ml_lap_i),
 			_uniform_storage(8, _ml_vol), _uniform_storage(9, _mass_density_buf),
+			_uniform_storage(10, _ml_cen), _uniform_storage(11, _ml_remap),
+			_uniform_storage(12, _ml_tmp_y), _uniform_storage(13, _ml_tmp_i),
+			_uniform_storage(14, _ml_tmp_py), _uniform_storage(15, _ml_tmp_pi),
 		], _cell_shader, 0)
 	if _raster_shader.is_valid():
 		_us_raster_0 = _rd.uniform_set_create([
@@ -1510,14 +1516,21 @@ func _ml_volume_pass() -> void:
 	_ml_cell_dispatch(2.0, N * N * N / 64)
 
 
-func _ml_cell_dispatch(mode: float, groups: int) -> void:
+func _ml_cell_pc(mode: float) -> PackedByteArray:
+
 	var N = grid_N
 	var ml_ns = 2 * ML_N1 * ML_N1 * ML_N1
 	var h: float = 2.0 * _extent_min() / float(N)
 	var c2: float = h * h  # the grid's 19-point stencil reads h₀²∇² — match it
 	var pcb := PackedFloat32Array([mode, float(N), float(ml_ns), dt,
-		h, c2, ML_OM2, PHI, source_strength, 0.0])
-	_cell_pc_bytes = pcb.to_byte_array()
+		h, c2, ML_OM2, PHI, source_strength,
+		ML_RHO_FLOOR, ML_MAX_DRIFT, ML_KAPPA, ML_LAM,
+		dt * float(ML_REBUILD)])
+	return pcb.to_byte_array()
+
+
+func _ml_cell_dispatch(mode: float, groups: int) -> void:
+	_cell_pc_bytes = _ml_cell_pc(mode)
 	var cl := _rd.compute_list_begin()
 	_rd.compute_list_bind_compute_pipeline(cl, _cell_pipe)
 	_rd.compute_list_bind_uniform_set(cl, _us_cell_0, 0)
@@ -1527,88 +1540,76 @@ func _ml_cell_dispatch(mode: float, groups: int) -> void:
 
 
 func _mesh_rebuild() -> void:
-	# steering + ALE remap + JFA refresh (the verified Stage 2b recipe,
-	# ported into the sim: CPU-side site bookkeeping, GPU JFA/physics)
+	# The FULL GPU rebuild (the stutter fix): steering + ALE remap + JFA
+	# refresh as ONE compute list with barriers — zero readbacks, zero
+	# CPU loops, so the global RD never stalls. Chain: reset(vol+cen) →
+	# centroid(OLD mesh) → steer(new sites + remap idx) → state→tmp →
+	# tmp→state (the remap gather) → labels clear → scatter → JFA (the
+	# ping-pong passes share this list) → volume.
 	var N = grid_N
 	var ml_ns = 2 * ML_N1 * ML_N1 * ML_N1
 	var h: float = 2.0 * _extent_min() / float(N)
-	var labels := _rd.buffer_get_data(_ml_labels_a, 0, N * N * N * 4).to_int32_array()
-	var y := _rd.buffer_get_data(_ml_psi_y, 0, ml_ns * 4).to_float32_array()
-	var i_f := _rd.buffer_get_data(_ml_psi_i, 0, ml_ns * 4).to_float32_array()
-	var py := _rd.buffer_get_data(_ml_pi_y, 0, ml_ns * 4).to_float32_array()
-	var pi := _rd.buffer_get_data(_ml_pi_i, 0, ml_ns * 4).to_float32_array()
-	# wrapped centroids from the old labels
-	var cnt := PackedInt32Array()
-	cnt.resize(ml_ns)
-	var cx := PackedFloat64Array()
-	var cy := PackedFloat64Array()
-	var cz := PackedFloat64Array()
-	cx.resize(ml_ns)
-	cy.resize(ml_ns)
-	cz.resize(ml_ns)
-	for i in range(N):
-		for j in range(N):
-			for k in range(N):
-				var lab: int = labels[i * N * N + j * N + k]
-				if lab >= 0 and lab < ml_ns:
-					cnt[lab] += 1
-					cx[lab] += (float(i) + 0.5) * h
-					cy[lab] += (float(j) + 0.5) * h
-					cz[lab] += (float(k) + 0.5) * h
-	var T_steer: float = dt * float(ML_REBUILD)
-	var new_sites := PackedFloat32Array()
-	new_sites.resize(ml_ns * 4)
-	for s in range(ml_ns):
-		# the quasi-Lagrangian ride with TWO guards the live sim needs:
-		# rho = EY+EI can approach zero (the noise-scale field, the
-		# condensate) — a floor stops v = lam·(piY+piI)/rho from
-		# exploding; the drift cap (~a quarter cell) keeps the ALE remap
-		# well-posed even where the momentum is large.
-		var rho: float = max(y[s] + i_f[s], ML_RHO_FLOOR)
-		var v: float = ML_LAM * (py[s] + pi[s]) / rho
-		var drift: float = clampf(v * T_steer, -ML_MAX_DRIFT, ML_MAX_DRIFT)
-		var cc: float = max(float(cnt[s]), 1.0)
-		new_sites[s * 4] = fposmod(
-			(1.0 - ML_KAPPA) * (_ml_sites_cpu[s * 4] + drift)
-			+ ML_KAPPA * (float(cx[s]) / cc), 2.0 * _extent_min())
-		new_sites[s * 4 + 1] = fposmod(
-			(1.0 - ML_KAPPA) * (_ml_sites_cpu[s * 4 + 1] + drift)
-			+ ML_KAPPA * (float(cy[s]) / cc), 2.0 * _extent_min())
-		new_sites[s * 4 + 2] = fposmod(
-			(1.0 - ML_KAPPA) * (_ml_sites_cpu[s * 4 + 2] + drift)
-			+ ML_KAPPA * (float(cz[s]) / cc), 2.0 * _extent_min())
-	# ALE remap: the new cell takes the old cell containing its seed
-	var ny := PackedFloat32Array()
-	var ni := PackedFloat32Array()
-	var npy := PackedFloat32Array()
-	var npi := PackedFloat32Array()
-	ny.resize(ml_ns)
-	ni.resize(ml_ns)
-	npy.resize(ml_ns)
-	npi.resize(ml_ns)
-	for s in range(ml_ns):
-		var gi: int = int(floor(new_sites[s * 4] / h)) % N
-		var gj: int = int(floor(new_sites[s * 4 + 1] / h)) % N
-		var gk: int = int(floor(new_sites[s * 4 + 2] / h)) % N
-		var lab: int = labels[gi * N * N + gj * N + gk]
-		if lab < 0 or lab >= ml_ns:
-			lab = s
-		ny[s] = y[lab]
-		ni[s] = i_f[lab]
-		npy[s] = py[lab]
-		npi[s] = pi[lab]
-	_ml_sites_cpu = new_sites
-	_rd.buffer_update(_ml_sites, 0, new_sites.size() * 4, new_sites.to_byte_array())
-	_rd.buffer_update(_ml_psi_y, 0, ny.size() * 4, ny.to_byte_array())
-	_rd.buffer_update(_ml_psi_i, 0, ni.size() * 4, ni.to_byte_array())
-	_rd.buffer_update(_ml_pi_y, 0, npy.size() * 4, npy.to_byte_array())
-	_rd.buffer_update(_ml_pi_i, 0, npi.size() * 4, npi.to_byte_array())
-	var zero := PackedFloat32Array()
-	zero.resize(ml_ns)
-	_rd.buffer_update(_ml_lap_y, 0, zero.size() * 4, zero.to_byte_array())
-	_rd.buffer_update(_ml_lap_i, 0, zero.size() * 4, zero.to_byte_array())
-	_ml_scatter_and_jfa()
-	_ml_volume_pass()
+	var wg1 = N * N * N / 64
+	var wgs = int(ceil(float(ml_ns) / 64.0))
+	_cell_pc_bytes = _ml_cell_pc(7.0)
+	var cl := _rd.compute_list_begin()
+	_rd.compute_list_bind_compute_pipeline(cl, _cell_pipe)
+	_rd.compute_list_bind_uniform_set(cl, _us_cell_0, 0)
+	# 1. reset vol + cen
+	_rd.compute_list_set_push_constant(cl, _cell_pc_bytes, _cell_pc_bytes.size())
+	_rd.compute_list_dispatch(cl, wgs, 1, 1)
+	_rd.compute_list_add_barrier(cl)
+	# 2. centroid accumulate (the OLD mesh)
+	_cell_pc_bytes = _ml_cell_pc(3.0)
+	_rd.compute_list_set_push_constant(cl, _cell_pc_bytes, _cell_pc_bytes.size())
+	_rd.compute_list_dispatch(cl, wg1, 1, 1)
+	_rd.compute_list_add_barrier(cl)
+	# 3. steer: new sites + remap index (reads the OLD labels)
+	_cell_pc_bytes = _ml_cell_pc(4.0)
+	_rd.compute_list_set_push_constant(cl, _cell_pc_bytes, _cell_pc_bytes.size())
+	_rd.compute_list_dispatch(cl, wgs, 1, 1)
+	_rd.compute_list_add_barrier(cl)
+	# 4. ALE remap: state → temp → gathered state
+	_cell_pc_bytes = _ml_cell_pc(5.0)
+	_rd.compute_list_set_push_constant(cl, _cell_pc_bytes, _cell_pc_bytes.size())
+	_rd.compute_list_dispatch(cl, wgs, 1, 1)
+	_rd.compute_list_add_barrier(cl)
+	_cell_pc_bytes = _ml_cell_pc(6.0)
+	_rd.compute_list_set_push_constant(cl, _cell_pc_bytes, _cell_pc_bytes.size())
+	_rd.compute_list_dispatch(cl, wgs, 1, 1)
+	_rd.compute_list_add_barrier(cl)
+	# 5. labels clear + scatter (the NEW sites)
+	_cell_pc_bytes = _ml_cell_pc(8.0)
+	_rd.compute_list_set_push_constant(cl, _cell_pc_bytes, _cell_pc_bytes.size())
+	_rd.compute_list_dispatch(cl, wg1, 1, 1)
+	_rd.compute_list_add_barrier(cl)
+	_cell_pc_bytes = _ml_cell_pc(9.0)
+	_rd.compute_list_set_push_constant(cl, _cell_pc_bytes, _cell_pc_bytes.size())
+	_rd.compute_list_dispatch(cl, wgs, 1, 1)
+	_rd.compute_list_add_barrier(cl)
+	# 6. JFA (the ping-pong passes share this list)
+	_rd.compute_list_bind_compute_pipeline(cl, _jfa_pipe)
+	_rd.compute_list_bind_uniform_set(cl, _us_jfa_0, 0)
+	var read_a := 1
+	for jp in [1, 2, 4, 8, 16, 32, 16, 8, 4, 2, 1]:
+		_jfa_pc_bytes = PackedFloat32Array([float(N), float(jp), float(read_a),
+			float(ml_ns), h, 0.0, 0.0, 0.0]).to_byte_array()
+		_rd.compute_list_set_push_constant(cl, _jfa_pc_bytes, _jfa_pc_bytes.size())
+		_rd.compute_list_dispatch(cl, wg1, 1, 1)
+		_rd.compute_list_add_barrier(cl)
+		read_a = 1 - read_a
+	_jfa_pc_bytes = PackedFloat32Array([float(N), 0.0, 0.0,
+		float(ml_ns), h, 0.0, 0.0, 0.0]).to_byte_array()
+	_rd.compute_list_set_push_constant(cl, _jfa_pc_bytes, _jfa_pc_bytes.size())
+	_rd.compute_list_dispatch(cl, wg1, 1, 1)
+	_rd.compute_list_add_barrier(cl)
+	# 7. volume accumulate (the NEW mesh)
+	_rd.compute_list_bind_compute_pipeline(cl, _cell_pipe)
+	_rd.compute_list_bind_uniform_set(cl, _us_cell_0, 0)
+	_cell_pc_bytes = _ml_cell_pc(2.0)
+	_rd.compute_list_set_push_constant(cl, _cell_pc_bytes, _cell_pc_bytes.size())
+	_rd.compute_list_dispatch(cl, wg1, 1, 1)
+	_rd.compute_list_end()
 
 
 
@@ -2489,13 +2490,11 @@ func _step_dispatches(cl: int) -> void:
 		var wg1 = grid_N * grid_N * grid_N / 64
 		_rd.compute_list_bind_compute_pipeline(cl, _cell_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_cell_0, 0)
-		_cell_pc_bytes = PackedFloat32Array([0.0, float(grid_N), float(ml_ns),
-			dt, h, h * h, ML_OM2, PHI, source_strength, 0.0]).to_byte_array()
+		_cell_pc_bytes = _ml_cell_pc(0.0)
 		_rd.compute_list_set_push_constant(cl, _cell_pc_bytes, _cell_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, wg1, 1, 1)
 		_barrier(cl)  # lap → leapfrog
-		_cell_pc_bytes = PackedFloat32Array([1.0, float(grid_N), float(ml_ns),
-			dt, h, h * h, ML_OM2, PHI, source_strength, 0.0]).to_byte_array()
+		_cell_pc_bytes = _ml_cell_pc(1.0)
 		_rd.compute_list_set_push_constant(cl, _cell_pc_bytes, _cell_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, int(ceil(float(ml_ns) / 64.0)), 1, 1)
 		_barrier(cl)  # leapfrog → raster
