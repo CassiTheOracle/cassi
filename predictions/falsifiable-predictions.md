@@ -337,6 +337,42 @@ detection, same-density null, planted-signal power calibration); data
 `runs/20260813_142511_rings.json`. The k-space cousin is Prediction 5 /
 `experiments/phi_periodic_pk_search/run_phi_periodic_pk_test.py`.
 
+**Prediction 53 (disk-gap $\varphi$-ladder, real data):** in a protoplanetary
+disk the condensation wake plays the bubble shell, so the annular gaps
+resolved by ALMA should sit at $\varphi$-spaced radii with **successive
+(inner/outer) gap ratio** $\varphi^{-1} = 0.6180$ (signal window
+$[0.6180 \pm 0.08]$) versus the interleaved-null ratio $\varphi^{-1/2} =
+0.7862$ (window $[0.7862 \pm 0.05]$), pooled across the survey's disks (the
+test is statistical, not per-disk). **Tier: Hypothesized.** The pre-registered
+test ran on the real ALMA DSHARP sample (18 single-disk systems; gap positions
+from Huang et al. 2018 Table `tab:ringpositions`, arXiv:1812.04041; survey
+Andrews et al. 2018, arXiv:1812.04040) and returned **SUPPORTS**: 22 pooled
+successive-gap ratios, 10 in the signal window vs 3.5 expected under the
+log-uniform-in-log-radius null (3.86$\sigma$), and the null window at baseline
+(4 vs 4.2). Detection power 100% at log-normal scatter $\le 0.15$, 93.5% at
+0.2; sensitivity excluding visual `~` gaps still SUPPORTS (2.93$\sigma$).
+Caveats: planet-carving is the standard alternative (single planets open
+multiple gaps in low-viscosity disks), the ladder's dynamical realization in
+a disk is open (the two no-ring nulls), several published gap positions are
+low-precision visual estimates near the resolution limit, and the pooled
+excess is not a per-disk signature (per-disk verdicts mixed). Registered with
+the disk-gap test in `hypotheses/exoplanet-phi-spacing.md` §7.
+
+**Source:** `hypotheses/exoplanet-phi-spacing.md` §2 (the ring-ladder disk
+mechanism) and §7 (the DSHARP test: acquisition, pre-registration, numbers,
+verdict);
+`foundations/bubble-edge-geometry.md` §3.1 (the ring law), §3.5 (the honest
+negative), §3.6 (the two no-ring nulls);
+`predictions/falsifiable-predictions.md` Prediction 51 (the ratio test and
+null discipline reused 1:1) and Prediction 52 (the pooled-window discipline);
+`experiments/dsharp_phi_gaps/acquire_dsharp_gaps.py` (download + hash + table
+parse) and `experiments/dsharp_phi_gaps/stack_phi_gaps.py` (the pre-registered
+decision tree, log-uniform null, detection-power calibration); run JSON
+`experiments/dsharp_phi_gaps/data/runs/<id>_gaps.json`. Data: DSHARP, Andrews
+et al. 2018 (arXiv:1812.04040); annular substructures, Huang et al. 2018
+(arXiv:1812.04041, Table `tab:ringpositions`). Per-disk verdicts and the full
+pooled-ratio list are in `hypotheses/exoplanet-phi-spacing.md` §7.
+
 
 ---
 
@@ -414,6 +450,7 @@ Sorted by detection likelihood (most definitive first):
 | 50 | Spiral pitch tangent | Two-fluid winding dynamics | **$\tan(\text{pitch}) = \gamma/\Omega_S = \varphi^2 = 2.618$** (69.1°)—radial/azimuthal rate ratio, both rates φ-algebra-derived; wake reading $\ell_{n+1}/\Lambda_I$; matches none of the posted forks {0, 0.0766, 0.3063, 0.1988} | Measured 2026-08-07—realization rejected: the measured winding rates do not realize φ² (9–11× off under every normalization; no convention within ±10%); the identity stands as Derived arithmetic | **Tested—rejected (identity Derived)** |
 | 51 | Bubble-shell ring ladder | Bubble simulation (two-fluid PDE) | **~10 matter ridges at $r_k = R\varphi^{-k}$** (successive matter-ring ratio $\varphi^{-1} = 0.6180$ vs null $\varphi^{-1/2} = 0.7862$), 9 void troughs at $R\varphi^{-(k+\frac12)}$, strict alternation, $n$-independent count | Hypothesized (PDE-testable; conditional on the radial-reading inference; honest negative: naive wake-sum zeros {0.191, 0.573, 0.809, 0.955}·ℓ_n are not a φ-ladder; dynamic realization test 2026-08-13 = **NO RINGS on all four arms** (conversion-only/diffusion/gravity-buoyancy/cs²-pressure) to $t=40$) | **Hypothesized—analytic probe `two-fluid/run_bubble_ring_probe.py`; dynamic probe `two-fluid/run_bubble_ring_dynamic_probe.py` = four-arm null** |
 | 52 | Void radial ring profiles | Cosmic surveys (void stacking) | **Successive matter-ring ratio $\varphi^{-1} = 0.6180$ vs null $\varphi^{-1/2} = 0.7862$; first resolvable rungs at $r \approx 0.618\,R$, $0.382\,R$** | Pre-registered pipeline `experiments/void_phi_rings/stack_void_rings.py`: synthetic-φ-ladder pivot recovers the ladder at ~1% floor (SUPPORTS; power 62%/100%/0% at 1%/2–5%/0.3–0.5%); **real-galaxy stacking blocked** (no downloadable per-void galaxy-position catalog) | **Hypothesized (pipeline calibrated 2026-08-13); real-data stacking pending per-void galaxy acquisition** |
+| 53 | Disk-gap $\varphi$-ladder | Protoplanetary disks (ALMA) | **Successive gap ratio $\varphi^{-1} = 0.6180$ vs null $\varphi^{-1/2} = 0.7862$; pooled across disks** | Real-data test 2026-08-13 (DSHARP, 18 single-disk systems, 22 pooled successive ratios): **SUPPORTS** — 10 in signal window $[0.6180\pm0.08]$ vs 3.5 expected (3.86$\sigma$), null window $[0.7862\pm0.05]$ at baseline (4 vs 4.2); detection power 100% ($\sigma_{\ln r}\le0.15$), 93.5% (0.2); per-disk verdicts mixed; planet-carving is the standard alternative | **Tested—SUPPORTS (pooled); tier Hypothesized** |
 
 ## 8. Universal Boundary Anisotropy—Scale-Invariant Edge Steepness
 
