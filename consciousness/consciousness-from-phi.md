@@ -332,7 +332,7 @@ Results archived at `runs/<id>_two_bubble_fast/results.json`.
 
 - `cassi-physics.md`—Gap derivation and governing PDE
 - `foundations/cassi-theory-reference.md` §2.4—canonical Qi gate $q = \rho^2/(\rho^2 + \varphi^{-2} + \varepsilon^2)$
-- `foundations/cassi-first-principles.md` §2.1—gate definitions $\rho^2 = (\Psi_0+\Psi_1)^2$, $\varepsilon^2 = (\Psi_0-\varphi\Psi_1)^2$
+- `foundations/cassi-first-principles.md` §2.1—gate definitions $\rho = E_Y+E_I = \Psi_0^2+\Psi_1^2$, $\varepsilon = E_Y-\varphi E_I$
 - `computations/verify_pinch_halfopen.py`—numeric verification of the §1.1 pinch identities
 - `foundations/dimensionful-cascade.md`: Complete 292-step cascade
 - `two-fluid/run_spatial_boost.py`: Spatial boost measurement ($B=1.003$)

@@ -24,7 +24,7 @@ $$
 Yang and Yin are the two internal components at every point. The Qi diagnostics are derived from this state:
 
 $$
-\varepsilon=\Psi_Y-\varphi\Psi_I,
+\varepsilon=\Psi_Y^2-\varphi\Psi_I^2,
 \qquad
 q=\frac{\rho^2}{\rho^2+\varphi^{-2}+\varepsilon^2},
 $$
