@@ -28,6 +28,7 @@ var _rainbow_btn: CheckButton
 var _color_src_opt: OptionButton
 var _passes_spin: SpinBox
 var _color_btn: Button
+var _legend: Control
 var _color_popup: PopupPanel
 var _qi_cycle_lo: SpinBox
 var _qi_cycle_hi: SpinBox
@@ -62,6 +63,7 @@ var _viz_texture_rect: TextureRect
 
 const MODE_NAMES: Array[String] = ["Particles", "Field", "Black Hole", "Cosmology"]
 const PHI: float = 1.618033988749895
+const GradientLegend = preload("res://scripts/gradient_legend.gd")
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -147,7 +149,7 @@ func _ready() -> void:
 	control_panel.name = "ControlPanel"
 	control_panel.add_theme_stylebox_override("panel", _make_panel_style())
 	control_panel.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	control_panel.offset_top = -180  # accommodate 3 rows of controls
+	control_panel.offset_top = -236  # accommodate 3 control rows + the gradient legend row
 	control_panel.offset_left = 10; control_panel.offset_right = -10
 	add_child(control_panel)
 
@@ -381,6 +383,13 @@ func _ready() -> void:
 	_server_port_edit.editable = false
 	_server_port_edit.modulate = Color(0.5, 0.5, 0.6)
 	srv_hbox.add_child(_server_port_edit)
+
+	# ── Gradient legend: the live color scale with draggable anchors ──
+	_legend = GradientLegend.new()
+	_legend.name = "GradientLegend"
+	_legend.tooltip_text = "The live gradient scale — drag the handles: band edges, pinch band, pink gate, white point. Colors match the particles exactly (same engine constants)."
+	_legend.gradient_changed.connect(_on_legend_changed)
+	root_vbox.add_child(_legend)
 
 	# Init from sim if available
 	sim = _get_sim()
@@ -623,6 +632,8 @@ func _sync_color_widgets(sim: Node3D) -> void:
 	_passes_spin.set_value_no_signal(_effective_pass_count(sim))
 	_sync_color_enabled()
 	_refresh_popup_fields()
+	if _legend:
+		_legend.set_sim(sim, _color_src_opt.selected == 1)
 
 
 func _effective_pass_count(sim: Node3D) -> int:
@@ -749,6 +760,13 @@ func _on_passes_changed(v: float) -> void:
 	var sim = _get_sim()
 	if sim == null: return
 	sim.rainbow_count = int(v)
+	_repaint_if_paused(sim)
+
+
+func _on_legend_changed() -> void:
+	var sim = _get_sim()
+	if sim == null: return
+	_refresh_popup_fields()
 	_repaint_if_paused(sim)
 
 

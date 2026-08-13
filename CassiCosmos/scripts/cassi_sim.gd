@@ -1529,6 +1529,41 @@ func _physics_step() -> void:
 	_run_physics_steps(1)
 
 
+# ── Consolidated gradient engine (shared composer) ────────────────────
+# The engine constants (one segmented-ramp mapping for both rainbow
+# sources) are computed by _fill_instancer_pc each fill, persisted to
+# _engine_c, and exposed to the UI's gradient legend via gradient_engine()
+# — ONE source of truth, so the legend's strip renders EXACTLY the GPU
+# instancer colors (same composer, same evaluator math). Index map (17
+# floats; the instancer PC slots 12-27 + hue_offset).
+const E_PROG: int = 0
+const E_REF: int = 1
+const E_LO1: int = 2
+const E_SLOPE1: int = 3
+const E_LO2: int = 4
+const E_SLOPE2: int = 5
+const E_OFF2: int = 6
+const E_LO3: int = 7
+const E_SLOPE3: int = 8
+const E_OFF3: int = 9
+const E_HIC: int = 10
+const E_SPAN: int = 11
+const E_ALO: int = 12
+const E_AHI: int = 13
+const E_GATE: int = 14
+const E_APPROACH_ON: int = 15
+const E_HUE_OFF: int = 16
+var _engine_c: PackedFloat32Array = PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+
+
+## Current gradient-engine constants (17 floats; E_* indices), recomputed
+## from the live exports — the UI gradient legend renders from these so it
+## matches the GPU instancer exactly (same composer, same evaluator).
+func gradient_engine() -> PackedFloat32Array:
+	_fill_instancer_pc()   # recompute (idempotent; also re-encodes the PC bytes)
+	return _engine_c
+
+
 func _fill_instancer_pc() -> void:
 	# Consolidated gradient engine PC (32 floats = 128 B — see the instancer
 	# shader header for the slot map): the shared 11 + the engine block
@@ -1570,6 +1605,7 @@ func _fill_instancer_pc() -> void:
 		# whole engine block (slots 12-31) is zeroed (nothing reads it).
 		for slot in range(48, 128, 4):
 			_instancer_pc_bytes.encode_float(slot, 0.0)
+		_engine_c.fill(0.0)   # keep the shared engine cache consistent
 		return
 	# ── engine derivation (modes 1/2/3) ──────────────────────────────
 	var is_qi: bool = particle_color_mode >= 2
@@ -1672,27 +1708,45 @@ func _fill_instancer_pc() -> void:
 	var slope3: float = span * sh.z / maxf(w3, 1e-9)
 	var off2: float = span * sh.x
 	var off3: float = span * (sh.x + sh.y)
+	# ── persist the engine constants (shared with the UI gradient legend) ──
+	_engine_c[E_PROG] = prog
+	_engine_c[E_REF] = ref
+	_engine_c[E_LO1] = lo1
+	_engine_c[E_SLOPE1] = slope1
+	_engine_c[E_LO2] = lo2
+	_engine_c[E_SLOPE2] = slope2
+	_engine_c[E_OFF2] = off2
+	_engine_c[E_LO3] = lo3
+	_engine_c[E_SLOPE3] = slope3
+	_engine_c[E_OFF3] = off3
+	_engine_c[E_HIC] = hi_c
+	_engine_c[E_SPAN] = span
+	_engine_c[E_ALO] = a_lo
+	_engine_c[E_AHI] = a_hi
+	_engine_c[E_GATE] = gate
+	_engine_c[E_APPROACH_ON] = approach_on
+	_engine_c[E_HUE_OFF] = color_hue_offset
 	# ── encode slots 12-31 ──
-	_instancer_pc_bytes.encode_float(48, prog)          # 12 prog_mode
-	_instancer_pc_bytes.encode_float(52, ref)           # 13 ref
-	_instancer_pc_bytes.encode_float(56, lo1)           # 14
-	_instancer_pc_bytes.encode_float(60, slope1)        # 15
-	_instancer_pc_bytes.encode_float(64, lo2)           # 16
-	_instancer_pc_bytes.encode_float(68, slope2)        # 17
-	_instancer_pc_bytes.encode_float(72, off2)          # 18
-	_instancer_pc_bytes.encode_float(76, lo3)           # 19
-	_instancer_pc_bytes.encode_float(80, slope3)        # 20
-	_instancer_pc_bytes.encode_float(84, off3)          # 21
-	_instancer_pc_bytes.encode_float(88, hi_c)          # 22
-	_instancer_pc_bytes.encode_float(92, span)          # 23
-	_instancer_pc_bytes.encode_float(96, a_lo)          # 24
-	_instancer_pc_bytes.encode_float(100, a_hi)         # 25
-	_instancer_pc_bytes.encode_float(104, gate)         # 26
-	_instancer_pc_bytes.encode_float(108, approach_on)  # 27
-	_instancer_pc_bytes.encode_float(112, ext_pc.x)     # 28
-	_instancer_pc_bytes.encode_float(116, ext_pc.y)     # 29
-	_instancer_pc_bytes.encode_float(120, ext_pc.z)     # 30
-	_instancer_pc_bytes.encode_float(124, color_hue_offset)  # 31 hue_offset (rotates the cycle start)
+	_instancer_pc_bytes.encode_float(48, _engine_c[E_PROG])          # 12 prog_mode
+	_instancer_pc_bytes.encode_float(52, _engine_c[E_REF])           # 13 ref
+	_instancer_pc_bytes.encode_float(56, _engine_c[E_LO1])           # 14
+	_instancer_pc_bytes.encode_float(60, _engine_c[E_SLOPE1])        # 15
+	_instancer_pc_bytes.encode_float(64, _engine_c[E_LO2])           # 16
+	_instancer_pc_bytes.encode_float(68, _engine_c[E_SLOPE2])        # 17
+	_instancer_pc_bytes.encode_float(72, _engine_c[E_OFF2])          # 18
+	_instancer_pc_bytes.encode_float(76, _engine_c[E_LO3])           # 19
+	_instancer_pc_bytes.encode_float(80, _engine_c[E_SLOPE3])        # 20
+	_instancer_pc_bytes.encode_float(84, _engine_c[E_OFF3])          # 21
+	_instancer_pc_bytes.encode_float(88, _engine_c[E_HIC])           # 22
+	_instancer_pc_bytes.encode_float(92, _engine_c[E_SPAN])          # 23
+	_instancer_pc_bytes.encode_float(96, _engine_c[E_ALO])           # 24
+	_instancer_pc_bytes.encode_float(100, _engine_c[E_AHI])          # 25
+	_instancer_pc_bytes.encode_float(104, _engine_c[E_GATE])         # 26
+	_instancer_pc_bytes.encode_float(108, _engine_c[E_APPROACH_ON])  # 27
+	_instancer_pc_bytes.encode_float(112, ext_pc.x)                  # 28
+	_instancer_pc_bytes.encode_float(116, ext_pc.y)                  # 29
+	_instancer_pc_bytes.encode_float(120, ext_pc.z)                  # 30
+	_instancer_pc_bytes.encode_float(124, _engine_c[E_HUE_OFF])      # 31 hue_offset (rotates the cycle start)
 
 
 func _repaint_instancer() -> void:
