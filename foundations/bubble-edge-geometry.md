@@ -491,7 +491,7 @@ The most direct method: **seed the condensation field and measure its decay rate
 
 #### Method B: Emergent pattern (cross-check)
 
-As a cross-check, run from random initial conditions (`initial_amplitude=0.2`) on a $128^2 \times 64$ grid with the same parameters above (but `chi=5.0` to allow gravitational assembly). Let the wake-wave pattern emerge spontaneously. After the system reaches quasi-steady structure ($\sim$5,000 steps), extract:
+As a cross-check, run from random initial conditions (`initial_amplitude=0.2`) on a $128^2 \times 64$ grid with the same parameters above (but `chi=5.0` to allow gravitational assembly). The `chi=5.0` gravity channel drives the wake-wave pattern out of the random initial conditions—assembly is the driver, not spontaneous emergence (`two-fluid/run_bubble_ring_dynamic_probe.py`: the canonical first-order solver forms no radial structure from no-drive seeds). After the system reaches quasi-steady structure ($\sim$5,000 steps), extract:
 
 - The dominant condensation wavelength $\Lambda_Y^{(m)}$ from the Fourier power spectrum $P(k_x, k_y)$ of $q(x,y)$.
 - The measured $\theta_{\text{cond}}^{(m)}$ from the $q(C)$ scatter plot (§9.3).
