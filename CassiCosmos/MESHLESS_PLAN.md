@@ -1,9 +1,10 @@
 # MESHLESS_PLAN — The Moving-Voronoi (AREPO-Class) Cassi Universe
 
-**Status:** Research program design — no code yet. Committed as the roadmap for
-the meshless redesign.
-**Repo:** `godot/space-sim` (design lives here; theory anchors live in
-`papers/theory-of-everything/` of the parent repo).
+**Status:** COMPLETE — all four stages built and gated (Stage 0 `227148e`,
+0b `044db7c`, 1 `1cdcaeb`+`51fd078`, 2 `7052f0f`+`343dd8d`, 3 `e748a4b`).
+The verification record and the research-item resolutions live in §8.
+**Repo:** `godot/space-sim` (design + the `research/meshless/` pipeline;
+theory anchors in `papers/theory-of-everything/` of the parent repo).
 **Date:** 2026-08-13
 
 ---
@@ -180,3 +181,88 @@ Stage 0: the 2D moving-Voronoi two-fluid prototype in `_diag/` (or a new
 next work item; it is small, self-contained, and retires the largest
 physics risks (face-flux form, mesh-steering, attractor fidelity) before a
 single line of GLSL is written.
+
+---
+
+## 8. Verification record (2026-08-13, program complete)
+
+Every stage shipped with a hard gate, run against an exact-in-time
+spectral reference of the same continuum PDE:
+
+| Stage | Artifact | Gates |
+|---|---|---|
+| 0 — 2D static Voronoi FV | `research/meshless/stage0_voronoi2d.py` | V1–V4: breather Ω = √(ω₀²(1+φ)) = 7.2361, r(t), L2, spectrum — ALL PASS |
+| 0b — 2D moving + Qi-adaptive | same file | V5 moving mesh, V6 q-adapted beats uniform (28%) — ALL PASS |
+| 1 — 3D GPU Voronoi + cells | `stage1_jfa3d.py` (numpy), `compute/cassi_jfa.glsl`, `compute/cassi_voronoi_cells.glsl`, `scripts/verify_voronoi3d.gd` | G0–G4: JFA mislabel 0.0000, breather 0.95%, r(t) 0.14%, L2 2.5e-3, corr 0.9986 — ALL PASS |
+| 2 — moving + adaptive + sponge | `stage2_moving3d.py` (numpy), `scripts/verify_voronoi3d_moving.gd` | G5 moving L2 = static, G6 adapted −28%, G7 sponge 13× absorption — ALL PASS |
+| 3 — matter formation | `stage3_collapse.py` | G8 rung-aligned mass function (0.972 vs 0.594 control) — PASS |
+
+Key results to carry forward:
+
+- **The JFA construction is exact.** The jump-flooding Voronoi (doubling
+  passes 1..N/2 + halving refinement) reproduces the exact Voronoi on
+  every accelerator-grid cell, in numpy AND on the GPU (float32), on
+  pristine AND steered site configurations — the exact-GPU-Voronoi
+  research path (arXiv:2605.06408) is unnecessary for this physics.
+- **The staircase grid-face flux reproduces the Voronoi wave Laplacian**
+  to L2 = 1.5e-3 (numpy) / 2.5e-3 (GPU float32) — the accelerator grid
+  is invisible to the physics.
+- **The moving mesh is invisible to the physics** — the steering +
+  periodic ALE remap leave L2 exactly at the static value (the
+  quasi-Lagrangian ride + centroid relaxation + nearest-old-cell state
+  transfer conserve the wave solution to the remap's order).
+- **The mesh follows Qi** — (1−q_coh)^p·V re-seeding beats uniform by
+  28% in the blob core at equal budget, in 2D AND 3D.
+- **Collapse is rung-faithful** — the condensation pathway converts the
+  φ-spaced bubble seeding into a mass function ON the 3-rung ladder;
+  non-φ structure does not.
+
+## 9. Research-item resolutions
+
+- **R1 (ω₀² = 20.0 provenance):** NO derivation exists in the theory
+  docs (`parameter-inventory.md` does not list it; `cassi_definitions.md`
+  uses ω₀ symbolically). Resolution: ω₀ is a **sim-numerical
+  scale-setting constant** — it fixes the breather frequency Ω = √(ω₀²(1+φ))
+  but NOT the φ-attractor trajectory or the cascade structure (the
+  deviation-mode dynamics are scale-free in ω₀). Recorded as numerical,
+  not derived; a derivation would be a theory-side follow-up, not a
+  meshless-program blocker.
+- **D1 (swept-volume vs geometric source term):** RESOLVED for the
+  periodic prototype — the **periodic ALE remap** (rebuild + nearest-
+  old-cell state transfer) is mass-conservative to the remap order and
+  validates at L2 parity with the static mesh. The continuous geometric
+  source terms stay deferred to the open-box implementation (they only
+  matter when the mesh motion per step is large relative to the cell —
+  the rebuild cadence keeps it small).
+- **D2 (open-box boundary conditions):** RESOLVED in prototype — the
+  **sponge layer** (wall-proximity quadratic ramp damping π) absorbs
+  93% of the breather energy vs the periodic wrap control (G7, 13×).
+  The energy metric is the DIAGONAL deviation oscillator's energy —
+  a real finding: the two-fluid coupling is non-gradient (no total
+  energy functional exists), only the breather mode is a harmonic
+  oscillator.
+- **R2 (face-local Qi gate):** NOT NEEDED — the **cell-local gate
+  suffices**: every attractor-statistics gate passed with the cell-local
+  q_coh (the φ-attractor trajectory and the rung structure matched the
+  exact reference; no face-local refinement was required).
+- **R3 (collapse criterion):** RESOLVED — the **peak criterion on
+  q_field = EY²+EI²** (the sim's condensation scanner's own peak
+  detector), fired on the **peak-phase magnitude** (the windowed max:
+  the condensate breathes, and condensation happens at the peak, not at
+  an arbitrary phase). NOT q_coh — coherence is LOW at deviation peaks
+  by construction. The connected condensed core coalesces into one
+  matter particle; mass = Σ ρ·V, position = ρ-weighted centroid.
+
+## 10. What is NOT done (the integration project)
+
+The research program is complete; the **live-sim integration** is the
+deliberate next project (the plan kept the grid solver as the reference
+at every stage): wiring the JFA + cell physics + steering + condensation
+shaders into `cassi_sim.gd` as a gravity-mode arm, replacing the
+spectral Poisson with the cell-fluid dynamics, and connecting the
+collapse pass to the existing black-hole spawning. The Stage-2 gate's
+w₀/wₐ-vs-DESI comparison belongs to that integration (the cosmology ODE
+closure lives in the integrated sim, not the wave-PDE prototypes).
+Unweighted Lloyd relaxation erases seed-density adaptation — density-
+weighted Lloyd is needed when the adaptive mesh is combined with the
+moving mesh in the integrated sim.
