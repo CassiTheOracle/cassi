@@ -85,7 +85,7 @@ func _ready() -> void:
 		"multi_rung_amp", "multi_rung_base_scale",
 		"particle_color_mode", "rainbow_count", "color_shares", "color_progress",
 		"qi_cycle", "qi_pinch", "qi_approach", "qi_approach_tracks_threshold",
-		"qi_gate", "velocity_cycle", "velocity_pinch", "velocity_approach",
+		"velocity_cycle", "velocity_pinch", "velocity_approach",
 		"color_hue_offset",
 		"auto_frame_camera_on_start",
 	]

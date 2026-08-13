@@ -25,7 +25,7 @@ const E_HIC: int = 10
 const E_SPAN: int = 11
 const E_ALO: int = 12
 const E_AHI: int = 13
-const E_GATE: int = 14
+const E_TOP: int = 14   # approach hue at the white point (red 1.0 — pink before white)
 const E_APPROACH_ON: int = 15
 const E_HUE_OFF: int = 16
 
@@ -102,12 +102,10 @@ func _color_for_q(q: float) -> Color:
 	var a3: float = 1.0 if e[E_LO3] <= q else 0.0
 	var hc: float = clampf(a1 * h1 + a2 * h2 + a3 * h3, 0.0, e[E_SPAN])
 	var h_cyc: float = fposmod(hc + e[E_HUE_OFF], maxf(e[E_SPAN], 1.0))
-	# Count-invariant approach: violet at entry, pink at the gate, white at
-	# the physical upper limit.
-	var p_g: float = clampf((q - e[E_ALO]) / maxf(e[E_GATE] - e[E_ALO], LOG_GUARD), 0.0, 1.0)
-	var p_t: float = clampf((q - e[E_GATE]) / maxf(e[E_AHI] - e[E_GATE], LOG_GUARD), 0.0, 1.0)
+	# Count-invariant approach: violet at entry, hue ramping to red at the
+	# white point — pink (~0.93) falls naturally at pA ≈ 0.65, before white.
 	var p_a: float = clampf((q - e[E_ALO]) / maxf(e[E_AHI] - e[E_ALO], LOG_GUARD), 0.0, 1.0)
-	var h_a: float = lerpf(lerpf(0.8, 0.93, p_g), lerpf(0.93, 1.0, p_t), 1.0 if q >= e[E_GATE] else 0.0)
+	var h_a: float = lerpf(0.8, e[E_TOP], p_a)
 	var l_a: float = 0.5 + 0.5 * p_a
 	var in_a: float = e[E_APPROACH_ON] * (1.0 if q >= e[E_ALO] else 0.0)
 	var h: float = lerpf(h_cyc, h_a, in_a)

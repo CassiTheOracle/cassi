@@ -25,12 +25,12 @@ const LN2: float = 0.6931471805599453  # ln 2 — degenerate rainbow v_scale fal
 # magenta/pink segment 0.8-1.0 the old 0.8 cap omitted is now visible);
 # the measured band spans h ≈ 0.33-0.65 (green → cyan-blue; median 3.8e-4 →
 # h = ln(1.9)/ln(5) ≈ 0.40). Stage 2 (q ∈ [Q_1, q_top]) ramps violet at
-# Q_1 → PINK exactly at the φ⁻² decoherence gate (PHI_INV2 = 0.381966…, the
-# shader's Q_GATE) → red at q_top while lightness ramps to pure white at
-# q_top = the live qi_condensation_threshold export (the explosion point) —
-# recomputed per PC fill, so changing the threshold re-anchors the white
-# point live (no reinit). The red → violet jump at the Q_1 stage boundary
-# is the intentional 'entering the white-hot stage' marker.
+# Q_1 → pink (~0.93, naturally at the band's 65 % point) → red at q_top
+# while lightness ramps to pure white at q_top = the live
+# qi_condensation_threshold export (the explosion point) — recomputed per
+# PC fill, so changing the threshold re-anchors the white point live (no
+# reinit). The red → violet jump at the Q_1 stage boundary is the
+# intentional 'entering the white-hot stage' marker.
 const Q_FLOOR: float = 0.0002   # Qi-rainbow stage-1 band floor (hue = 0 at/below)
 const Q_1: float = 0.001        # Qi-rainbow stage-1 band top = stage-2 entry
 
@@ -258,8 +258,8 @@ var _vsync_enabled: bool = true
 ## cycle band [qi_cycle] — the FULL hue circle per pass, one pass),
 ## 3 = Qi double rainbow (two passes over the cycle band — the old mode-3
 ## doubling, now expressible as mode 2 + rainbow_count = 2). All rainbow
-## modes share the white-hot approach band (violet → pink at the φ⁻² gate →
-## white at qi_condensation_threshold). Live — re-encoded into the
+## modes share the white-hot approach band (violet → pink → white at
+## qi_condensation_threshold). Live — re-encoded into the
 ## instancer PC every physics step (no reinit).
 @export_enum("Cassi gradient", "Velocity rainbow", "Qi rainbow", "Qi double rainbow") var particle_color_mode: int = 2
 
@@ -293,9 +293,6 @@ var _vsync_enabled: bool = true
 ## White point = the LIVE qi_condensation_threshold export (re-anchors the
 ## approach's white end live, no reinit).
 @export var qi_approach_tracks_threshold: bool = false
-## φ⁻² pink anchor inside the approach band (0.3819660112501051 — the framework's
-## decoherence threshold; repositionable). Live — no reinit.
-@export_range(0.0, 1.0, 0.000001) var qi_gate: float = 0.3819660112501051
 ## Velocity cycle band; (0,0) = AUTO (init-measured v_ref → v_max). Live — no
 ## reinit.
 @export var velocity_cycle: Vector2 = Vector2(0.0, 0.0)
@@ -400,7 +397,7 @@ var _occ_zero_bytes: PackedByteArray  # occupancy counter reset (32 B of zeros)
 # EXACTLY 128, nothing more) — the consolidated gradient engine: the shared
 # 11 + color_mode@11 + prog_mode@12 + ref@13 + the up-to-3 cycle segments
 # (lo1/slope1@14-15, lo2/slope2/off2@16-18, lo3/slope3/off3@19-21) +
-# hiC@22 + span_total@23 + the approach band (a_lo@24, a_hi@25, gate@26,
+# hiC@22 + span_total@23 + the approach band (a_lo@24, a_hi@25, a_top@26,
 # approach_on@27) + extent_x/y/z@28-30 + hue_offset@31. The dedicated-PC
 # precedent (nbody 15, two-fluid 14, mass-deposit 5): field_render/
 # bh_lensing keep the shared 11-float _pc_bytes, and Godot hard-errors on
@@ -610,7 +607,6 @@ func save_color_defaults() -> void:
 	cfg.set_value("colors", "qi_approach_x", qi_approach.x)
 	cfg.set_value("colors", "qi_approach_y", qi_approach.y)
 	cfg.set_value("colors", "qi_approach_tracks_threshold", qi_approach_tracks_threshold)
-	cfg.set_value("colors", "qi_gate", qi_gate)
 	cfg.set_value("colors", "velocity_cycle_x", velocity_cycle.x)
 	cfg.set_value("colors", "velocity_cycle_y", velocity_cycle.y)
 	cfg.set_value("colors", "velocity_pinch_x", velocity_pinch.x)
@@ -645,7 +641,6 @@ func load_color_defaults() -> bool:
 		float(cfg.get_value("colors", "qi_approach_x", qi_approach.x)),
 		float(cfg.get_value("colors", "qi_approach_y", qi_approach.y)))
 	qi_approach_tracks_threshold = bool(cfg.get_value("colors", "qi_approach_tracks_threshold", qi_approach_tracks_threshold))
-	qi_gate = float(cfg.get_value("colors", "qi_gate", qi_gate))
 	velocity_cycle = Vector2(
 		float(cfg.get_value("colors", "velocity_cycle_x", velocity_cycle.x)),
 		float(cfg.get_value("colors", "velocity_cycle_y", velocity_cycle.y)))
@@ -2171,7 +2166,7 @@ const E_HIC: int = 10
 const E_SPAN: int = 11
 const E_ALO: int = 12
 const E_AHI: int = 13
-const E_GATE: int = 14
+const E_TOP: int = 14   # approach hue at the white point (red 1.0 — pink sits before it)
 const E_APPROACH_ON: int = 15
 const E_HUE_OFF: int = 16
 var _engine_c: PackedFloat32Array = PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
@@ -2197,8 +2192,9 @@ func _fill_instancer_pc() -> void:
 	# pass's hue budget; count C = the number of hue passes over the cycle
 	# band. Progress is LOG per segment (multiplicative physics — the pinch
 	# band is the narrowest log interval, intrinsically steepest); the
-	# approach is LINEAR (violet 0.8 at a_lo → pink 0.93 at the gate → red
-	# 1.0 at a_hi; lightness 0.5 → 1.0). H_CYCLE = 1.0 (Qi) / 0.95
+	# approach is LINEAR (violet 0.8 at a_lo → red 1.0 at a_hi — pink 0.93
+	# falls naturally at pA ≈ 0.65, before white; lightness 0.5 → 1.0).
+	# H_CYCLE = 1.0 (Qi) / 0.95
 	# (velocity — the legacy full-circle top, held with no wrap).
 	# Derivation reads the LIVE exports (particle_color_mode, rainbow_count,
 	# color_shares, color_progress, qi_cycle/pinch/approach/gate,
@@ -2247,13 +2243,11 @@ func _fill_instancer_pc() -> void:
 	var pinch := Vector2.ZERO
 	var a_lo: float = 0.0
 	var a_hi: float = 0.0
-	var gate: float = qi_gate
 	var approach_on: float = 0.0
 	if is_qi:
 		# Qi: cycle band [qi_cycle] (calibrated default 2e-4 → 1e-3), pinch
 		# [qi_pinch], shares [color_shares]; approach [qi_approach] with the
-		# white point = the LIVE qi_condensation_threshold (tracks_threshold)
-		# and the φ⁻² pink gate (qi_gate, default PHI_INV2).
+		# white point = the LIVE qi_condensation_threshold (tracks_threshold).
 		ref = 0.0
 		lo1 = qi_cycle.x
 		hi_c = qi_cycle.y
@@ -2271,7 +2265,6 @@ func _fill_instancer_pc() -> void:
 		if a_lo < a_hi:
 			approach_on = 1.0
 			a_hi = maxf(a_hi, a_lo * 1.001)   # verbatim guard (white point above the entry)
-			gate = clampf(qi_gate, a_lo, a_hi)
 	else:
 		# Velocity: cycle band [velocity_cycle] or AUTO = [0, v_max] measured at
 		# init, ref = v_ref (mean init |v|); degenerate zero-speed IC → band
@@ -2298,7 +2291,6 @@ func _fill_instancer_pc() -> void:
 		a_hi = velocity_approach.y
 		if a_lo < a_hi:
 			approach_on = 1.0
-			gate = clampf(qi_gate, a_lo, a_hi)
 	# degenerate guard: a cycle band with hiC ≤ lo1 collapses to a sliver
 	if hi_c <= lo1:
 		hi_c = lo1 * 1.001
@@ -2350,7 +2342,7 @@ func _fill_instancer_pc() -> void:
 	_engine_c[E_SPAN] = span
 	_engine_c[E_ALO] = a_lo
 	_engine_c[E_AHI] = a_hi
-	_engine_c[E_GATE] = gate
+	_engine_c[E_TOP] = 1.0   # approach hue at the white point (red — pink before white)
 	_engine_c[E_APPROACH_ON] = approach_on
 	_engine_c[E_HUE_OFF] = color_hue_offset
 	# ── encode slots 12-31 ──
@@ -2368,7 +2360,7 @@ func _fill_instancer_pc() -> void:
 	_instancer_pc_bytes.encode_float(92, _engine_c[E_SPAN])          # 23
 	_instancer_pc_bytes.encode_float(96, _engine_c[E_ALO])           # 24
 	_instancer_pc_bytes.encode_float(100, _engine_c[E_AHI])          # 25
-	_instancer_pc_bytes.encode_float(104, _engine_c[E_GATE])         # 26
+	_instancer_pc_bytes.encode_float(104, _engine_c[E_TOP])           # 26
 	_instancer_pc_bytes.encode_float(108, _engine_c[E_APPROACH_ON])  # 27
 	_instancer_pc_bytes.encode_float(112, ext_pc.x)                  # 28
 	_instancer_pc_bytes.encode_float(116, ext_pc.y)                  # 29

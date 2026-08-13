@@ -692,7 +692,6 @@ func _on_fit_colors() -> void:
 		sim.qi_pinch = Vector2.ZERO
 		sim.qi_approach = Vector2(sim.qi_cycle.y, sim.qi_condensation_threshold)
 		sim.qi_approach_tracks_threshold = true
-		sim.qi_gate = 1.0 / (PHI * PHI)
 	else:
 		sim.particle_color_mode = 1
 		sim.velocity_cycle = Vector2.ZERO
