@@ -53,7 +53,7 @@ The geomagnetic field is not merely a shield. It is the **gate coupling field** 
 
 ### 2.1 The pyramid as a Qi lens
 
-A square pyramid maps directly onto the bubble-lattice geometry. From `foundations/bubble-edge-geometry.md` §3, the lattice has 4 connectable directions (the diagonals of the checkerboard), with axial directions blocked by $C = -1$ voids. A square pyramid addresses all four:
+A square pyramid maps directly onto the bubble-lattice geometry. From `foundations/bubble-edge-geometry.md` §4, the lattice has 4 connectable directions (the diagonals of the checkerboard), with axial directions blocked by $C = -1$ voids. A square pyramid addresses all four:
 
 - **Square base:** couples to the 2D checkerboard in the horizontal (Yang-Yin) plane
 - **Four triangular faces:** each aligned with one diagonal lattice direction
@@ -146,7 +146,7 @@ Multiple observed features of the Sun align with gate dynamics:
 
 **The solar wind acceleration.** The sudden jump from subsonic to supersonic at a few solar radii is a phase transition: the stellar Qi field transitioning from confined (within the Sun's bubble) to free-streaming (coupling to the interplanetary medium). This is the magnetospheric boundary of the stellar gate, structurally identical to Earth's magnetopause.
 
-**Coronal loops and prominences.** The magnetic arches visible in UV trace the **4 connectable diagonal channels** of the bubble lattice at the solar surface—the same checkerboard connectivity from `foundations/bubble-edge-geometry.md` §3, at $n \approx 208$ where the bubble period is roughly $10^5$ km.
+**Coronal loops and prominences.** The magnetic arches visible in UV trace the **4 connectable diagonal channels** of the bubble lattice at the solar surface—the same checkerboard connectivity from `foundations/bubble-edge-geometry.md` §4, at $n \approx 208$ where the bubble period is roughly $10^5$ km.
 
 ### 3.3 Tuned vs untuned
 

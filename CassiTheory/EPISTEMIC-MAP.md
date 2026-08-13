@@ -41,7 +41,7 @@ Tiers below are taken from each document's Status header. Compound headers are q
 | `foundations/quark-confinement.md` | Derived (tube extensivity + cell quantization; $\kappa = 2\pi$ conditional on the pitch convention + winding reading; inputs: gate saturation, one-cell quantization) | QCD at step 95; saturated-gate flux tube $E(r) = \mu r$, $\mu = 2\pi(M_{\text{Pl}}/\varphi^{95})^2 = 0.1836$ GeV² (+2.0% vs measured); $P_{\text{break}} \approx \varphi^{-4506}$ |
 | `foundations/proton-coherence-budget.md` | Derivation (rung exponent Mapped—ledger; per-rung $q_i$ profile Hypothesized) | Proton lifetime $\sim \varphi^{4506}$ cycles; annihilation pathway |
 | `foundations/sector-coupling-derivation.md` | Derived conditional on $\delta = 3$ (rung identity $77 = 154/2 = 80-3$) with Hypothesized coefficient (v₀ input Calibrated, N_pde normalization Mapped—ledger) | Dirac↔two-fluid sector-coupling scale $\kappa_s = \varphi^{-6}/v_0^2 = M_{\text{Pl}}^{-2}\varphi^{154}$ (0.92 TeV$^{-2}$; $\kappa_s^{-1/2} \approx 1.04$ TeV) |
-| `foundations/bubble-edge-geometry.md` | Derived geometry and threshold relation conditional on asserted gate | Edge steepness $1.70\times$ (Derived); threshold relation conditional on $g(q)$; CMB axis $12.2°$ (magnitude $2\pi/\varphi^7 = 12.40°$ Derived; direction Calibrated; boundary mechanism Hypothesized, orientation fitted to measured axis) |
+| `foundations/bubble-edge-geometry.md` | Derived geometry and threshold relation conditional on asserted gate | Edge steepness $1.70\times$ (Derived); threshold relation conditional on $g(q)$; CMB axis $12.2°$ (magnitude $2\pi/\varphi^7 = 12.40°$ Derived; direction Calibrated; boundary mechanism Hypothesized, orientation fitted to measured axis); radial ring ladder §3 (matter rings $r_k = \ell_n\varphi^{-k}$, voids at $\varphi^{-(k+\frac12)}$, ~10 rings from $N = \ln100/\ln\varphi = 9.570$, cascade connection REDUCES) **Derived conditional**, with the radial-reading inference flagged |
 | `foundations/wa-pentagon-gate.md` | Derived ($\xi = \varphi^6$) / Hypothesized (5-channel) | $w_a = +0.012$ via $\xi$: $2.7\sigma$ baseline; with the ratified coupling $1.25\sigma$ (B2, unstable); the stable realization (10/12): pure-Λ window fit $(-1, 0)$, $4.17\sigma$/$2.61\sigma$; 5-channel shift Hypothesized (ODE pending) |
 | `principles/de-resonance-principle.md` | Derived | Why $\varphi$ is the attractor (maximally irrational) |
 | `principles/v0-hierarchy-problem.md` | Derived (step count, per registry Q1); 5.3% residual open | $v_0/M_{\text{Pl}} \approx \varphi^{-80}$ as step count (Q1) |
@@ -154,7 +154,7 @@ Documents that are not claims: registries, catalogs, explainers, and plans.
 |----------|------|
 | `open-questions-cassi-answers.md` | Epistemic registry (42 questions, tier authority) |
 | `parameter-inventory.md` | Parameter registry (~46 parameters) |
-| `predictions/falsifiable-predictions.md` | 50-prediction catalog |
+| `predictions/falsifiable-predictions.md` | 51-prediction catalog |
 | `predictions/cassi_definitions.md` | Framework glossary |
 | `foundations/cassi-theory-reference.md` | Compact framework reference |
 | `foundations/deriving-remaining-gaps.md` | Four gap assessments—one narrowed, one open, one identified, one empirical |

@@ -191,7 +191,7 @@ Standard status: the acceleration is robust; its cause is open.
 Whether our cosmic neighborhood is representative of the universe underpins all cosmological inference.
 Standard status: assumed; large-angle anomalies challenge it mildly.
 **[Framework claim]**—the framework's stance is a mild, scale-limited violation: the bubble boundary gives a genuine preferred direction at $\ell < 5$ (the axis is measured at 5.4$\sigma$ a-posteriori; the 12.2° angle is Calibrated, the mechanism Hypothesized), while at $\ell \geq 5$ the sky is representative.
-`foundations/bubble-edge-geometry.md` §5.1.
+`foundations/bubble-edge-geometry.md` §6.1.
 #### 54. Dark Matter
 The identity and composition of dark matter—a particle (WIMP, axion, LSP) or modified gravity—is unknown.
 Standard status: particle candidates remain undetected; alternatives stay on the table.
@@ -235,7 +235,7 @@ Standard status: systematic errors or new physics; unresolved.
 The CMB's low multipoles align with each other and with the Solar System's motion and orientation at a level unexpected in $\Lambda$CDM.
 Standard status: 5.4$\sigma$ a-posteriori; foreground or anisotropy explanations are debated.
 **[Framework claim]**—the alignment is the bubble-boundary imprint: the 12.2° dipole↔quadrupole separation is Calibrated (computed from the measured vectors), the boundary mechanism Hypothesized (orientation fitted post-hoc), and the Cassi-unique test is scale-dependence—the anomaly must fade for $\ell > 5$ (prediction 6).
-`foundations/bubble-edge-geometry.md` §5.1; `foundations/refined-numeric-predictions.md` §2.3.
+`foundations/bubble-edge-geometry.md` §6.1; `foundations/refined-numeric-predictions.md` §2.3.
 #### 63. Origin and Fate
 Why there is something rather than nothing, and whether the end is a Big Freeze, Rip, Crunch, or Bounce, are open.
 Standard status: origin unfalsified; the fate depends on the equation of state.

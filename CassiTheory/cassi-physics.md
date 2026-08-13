@@ -447,7 +447,7 @@ The framework documents its own errors openly (`audit.md`); the gate-sign conven
 - `consciousness/trauma-as-frozen-gate.md`—the 2026-07-31 PDE tests of the gate sign and the driven-wake mechanism
 - `cassi-psychology.md`—the psychology companion: consciousness, emotion, trauma, therapy
 - `demystifying-the-cosmos/README.md`—one Cassi analysis per observed object (lighthouse pulsar first)
-- `predictions/falsifiable-predictions.md`—the 50-entry prediction catalog
+- `predictions/falsifiable-predictions.md`—the 51-entry prediction catalog
 - `open-questions-cassi-answers.md`—the epistemic registry
 - `parameter-inventory.md`—parameter classification
 - `audit.md`—self-critical prediction-vs-experiment audit

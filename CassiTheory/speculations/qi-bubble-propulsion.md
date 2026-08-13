@@ -141,7 +141,7 @@ At any interface between media of different density, $E_Y - \varphi E_I$ is elev
 
 ### 5.3 Source 2: Bubble-void coherence gradient
 
-The condensation field $C(x,y) = \cos(\alpha x)\cos(\beta y)$ creates a checkerboard of bubble centers ($q \to 1$) and voids ($q \to 0$). The $G_{\text{eff}}$ gradient between them (`foundations/bubble-edge-geometry.md` §4.2) is a stored coherence potential. The craft descends from bubble center toward void in the $x$-$y$ plane, harvesting:
+The condensation field $C(x,y) = \cos(\alpha x)\cos(\beta y)$ creates a checkerboard of bubble centers ($q \to 1$) and voids ($q \to 0$). The $G_{\text{eff}}$ gradient between them (`foundations/bubble-edge-geometry.md` §5.2) is a stored coherence potential. The craft descends from bubble center toward void in the $x$-$y$ plane, harvesting:
 
 $$E_{\text{harvest}} \approx (\varphi^{6}-1) q_{\text{center}} \cdot \frac{GM}{R}$$
 

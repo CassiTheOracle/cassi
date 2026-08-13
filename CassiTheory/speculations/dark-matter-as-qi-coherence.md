@@ -24,7 +24,7 @@ In regions of elevated Qi coherence, the effective gravitational constant is amp
 
 $$\boxed{G_{\text{eff}} = \frac{\pi}{\rho}(1 + (\varphi^{6}-1)q)G, \qquad \xi = \varphi^6 \approx 17.944}$$
 
-(`foundations/bubble-edge-geometry.md` §4.2, `foundations/xi-derivation.md` §2)
+(`foundations/bubble-edge-geometry.md` §5.2, `foundations/xi-derivation.md` §2)
 
 The Yang fraction $\pi/\rho$ is the local fraction of the field in the Yang component. At the $\varphi$-fixed point it is the imbalance $\alpha_0 = \pi/\rho = (\varphi-1)/(\varphi+1) = \varphi^{-3} \approx 0.236$ (the Yang fraction itself is $\varphi^{-1} \approx 0.618$—ledger row 500 relabel), giving $G_{\text{eff}} = \varphi^{-3}G$ (the classical limit); the galactic-halo fits of §7 use the halo-regime value $\alpha_{\text{halo}} \approx 0.7$, giving the halo form $G_{\text{eff}} = \alpha_{\text{halo}}(1+(\varphi^{6}-1)q)G$; and the homogeneous cosmological analogue weights by the attractor value $\alpha_w = r/(1+r) = \varphi^{-1} \approx 0.618$.
 
@@ -125,7 +125,7 @@ The complete dark matter profile follows $q(r)$:
 
 $$\rho_{\text{DM}}^{\text{eff}}(r) \propto (1 + (\varphi^{6}-1)q(r)) \cdot \rho(r)$$
 
-where $\rho(r)$ is the condensation density from `foundations/bubble-edge-geometry.md` §4.3:
+where $\rho(r)$ is the condensation density from `foundations/bubble-edge-geometry.md` §5.3:
 
 $$\rho(r) \approx \rho_0 \cdot \max\!\left(0, \frac{C(r) - \theta_{\text{cond}}}{1 - \theta_{\text{cond}}}\right)^{n_{\text{cond}}}$$
 
@@ -182,7 +182,7 @@ This suggests a target for Cassi-specific SETI: search for galaxies with **anoma
 
 ### 5.2 Morphology as coherence
 
-Spiral galaxies are more organized than irregulars. In the Qi picture, spiral arms trace the connectable diagonal channels of the galactic-scale bubble lattice (`foundations/bubble-edge-geometry.md` §3.1). A grand-design spiral has a coherent, φ-structured Qi field. An irregular galaxy has a fragmented, low-$q$ field.
+Spiral galaxies are more organized than irregulars. In the Qi picture, spiral arms trace the connectable diagonal channels of the galactic-scale bubble lattice (`foundations/bubble-edge-geometry.md` §4.1). A grand-design spiral has a coherent, φ-structured Qi field. An irregular galaxy has a fragmented, low-$q$ field.
 
 This predicts a correlation: grand-design spirals should have systematically higher $\eta_{\text{visible}}$ than irregulars of the same baryonic mass. The morphological type is the gate network's organizational state, made visible in the distribution of stars and gas.
 
