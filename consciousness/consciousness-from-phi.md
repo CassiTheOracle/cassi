@@ -25,8 +25,8 @@ The canonical Qi gate (`foundations/cassi-theory-reference.md` §2.4,
 is
 
 $$q = \frac{\rho^2}{\rho^2 + \varphi^{-2} + \varepsilon^2}, \qquad
-\rho^2 = (\Psi_0 + \Psi_1)^2, \qquad
-\varepsilon^2 = (\Psi_0 - \varphi\Psi_1)^2$$
+\rho = \Psi_0^2 + \Psi_1^2, \qquad
+\varepsilon = \Psi_0^2 - \varphi\Psi_1^2$$
 
 with a single characteristic scale $\varphi^{-2}$. At $r = \varphi^{-1}$—equivalently $E_I = \varphi E_Y$, the exact inverse of the attractor's
 $E_Y = \varphi E_I$ (the **Yin-dominant mirror**)—the fractional imbalance

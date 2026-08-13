@@ -147,7 +147,7 @@ The same tuned node that shapes the wind can imprint the beacon: phase-coherent 
 
 ### 4.4 Extinguish and ignite: detune and retune
 
-The Qi gate controls conversion through the openness factor $(1-q)$, per the Yang equation of `speculations/qi-bubble-propulsion.md` §1.1 (the paired Yin conversion carries the reciprocal $1/\varphi$ normalization, per `foundations/cassi-theory-reference.md` §2.5):
+The Qi gate controls conversion through the openness factor $(1-q)$, per the Yang equation of `speculations/qi-bubble-propulsion.md` §1.1; the paired Yin conversion is equal and opposite (no $1/\varphi$ normalization), so the pair conserves the total density $\rho = E_Y + E_I$ exactly (`foundations/cassi-theory-reference.md` §2.5):
 
 $$\partial_t E_Y \supset -\lambda(1-q)(E_Y - \varphi E_I)$$
 
