@@ -115,14 +115,15 @@ compound to $\varphi^{-4506}$ (see `foundations/proton-coherence-budget.md`).
 | **Neutrino masses** | Signal | $n_{\text{GUT}} \approx 8$ | $n_{\text{seesaw}} \approx 20$ (or $n_\nu$) | $12$–$25$ | $\varphi^{-12}$ to $\varphi^{-25}$ | $m_\nu \sim 0.001$–$0.1$ eV | Hypothesized |
 | **Proton stability** | Coherence | $n=0$ (Planck) | $n = 91.5$ (proton rung) | $91.5^2$ form | $\varphi^{-4506}$ | $\tau_p \approx 10^{910}$ yr | Derived |
 | **Measurement collapse** | Single-rung |—| $n_{\text{target}}$ | $N=1$ | $\mathcal{M}$ (phase-matching) | $P \approx 1-q_n$ at target rung | Hypo w/ core |
-| **Spin ($s = \Delta n$)** | Geometric |—|—| $\Delta n$ | N/A (conserved winding) | $s \in \{0,\frac12,1,2\}$ | Hypothesized |
+| **Spin ($s = \Delta n/2$)** | Geometric |—|—| $\Delta n \in \{0,1,2,4\}$ | N/A (conserved winding) | $s \in \{0,\frac12,1,2\}$ | Hypothesized |
 
 The hierarchy, strong CP, and neutrino masses are all **signal propagation**
 from the GUT scale—different targets give different observed suppressions,
 all following $\varphi^{-N}$ with zero free parameters.
 
 Measurement and spin are the limiting cases: $N=1$ (single-rung coupling)
-and $\Delta n$ (conserved topological winding). The cascade suppression
+and $\Delta n$ (conserved doublet winding, $s = \Delta n/2$;
+`foundations/spin-fibonacci-spiral.md` §2.1). The cascade suppression
 formula smoothly interpolates between these limits.
 
 ---
