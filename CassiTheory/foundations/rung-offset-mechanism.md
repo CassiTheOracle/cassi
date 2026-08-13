@@ -321,7 +321,7 @@ either row to Derived; no such pin exists today.
 **The honest negative: the primordial winding.** The framework's derived
 initial condition is strongly Yin: the primordial ratio
 $r_0 = \varphi^{-5}/(2 - \varphi^{-5}) \approx 0.0472$ ($E_Y/E_I$, the Wu Xing
-gap's ratio, `foundations/wu-xing-derivation.md` §5.1), Yin-dominated by
+gap's ratio, `foundations/wu-xing-derivation.md` §5.2), Yin-dominated by
 $\sim 21:1$. Relaxing from that imbalance winds
 
 $$\Delta\vartheta = -0.970 \ \text{rad}

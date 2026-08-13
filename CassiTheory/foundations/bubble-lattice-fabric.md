@@ -1,6 +1,6 @@
 # The Bubble Lattice: Universal Organizing Geometry at Every Cascade Rung
 
-## Status: Derived (structural)—July 2026
+## Status: Derived (structural)—August 2026
 
 ## Abstract
 

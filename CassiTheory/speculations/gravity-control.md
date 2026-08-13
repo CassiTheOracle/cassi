@@ -1,6 +1,6 @@
 # Gravity Control: Engineering Spacetime Curvature Through Qi Coherence
 
-## Status: Speculative—July 2026
+## Status: Speculative—August 2026
 
 ## Abstract
 

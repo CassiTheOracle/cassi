@@ -1,6 +1,6 @@
 # Observational SETI: Signatures of Tuned Gate Networks
 
-## Status: Speculative—July 2026
+## Status: Speculative—August 2026
 
 ## Abstract
 

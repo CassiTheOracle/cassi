@@ -1,6 +1,6 @@
 # Qi Computation: Information Processing as Yang-Yin Gate Dynamics
 
-## Status: Speculative—July 2026
+## Status: Speculative—August 2026
 
 ## Abstract
 

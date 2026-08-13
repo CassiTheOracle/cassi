@@ -1,6 +1,6 @@
 # The Cascade Suppression Formula: $\varphi^{-N}$ as the Universal Attenuation Law
 
-## Status: Derived (coherence exponent); signal exponent definitionally calibrated (per-rung $\varphi^{-1}$ = attractor Yang fraction, §4)—July 2026
+## Status: Derived (coherence exponent); signal exponent definitionally calibrated (per-rung $\varphi^{-1}$ = attractor Yang fraction, §4)—August 2026
 
 ## Abstract
 
