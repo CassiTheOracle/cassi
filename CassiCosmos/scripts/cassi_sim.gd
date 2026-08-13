@@ -1682,10 +1682,16 @@ func _fill_instancer_pc() -> void:
 	if hi_c <= lo1:
 		hi_c = lo1 * 1.001
 	# ── segments + shares ───────────────────────────────────────────
-	# pinch split [lo2, lo3] inside the cycle; OFF → single segment. The hue
-	# shares are clamped ≥ 0 and normalized over the active segments; a
-	# non-positive sum forces pinch OFF with (1, 0, 0).
-	var pinch_on: bool = pinch.x < pinch.y
+	# The pinch controls are user-editable, so keep their active interval
+	# inside the cycle band before taking logarithms. A scene may specify a
+	# convenient lower bound of zero even though the Qi cycle starts at the
+	# calibrated floor; using the raw zero would create log(q / 0) = NaN and
+	# paint the entire legend black.
+	var pinch_lo: float = clampf(pinch.x, lo1, hi_c)
+	var pinch_hi: float = clampf(pinch.y, lo1, hi_c)
+	var pinch_on: bool = pinch.x < pinch.y and pinch_hi - pinch_lo > 1e-9
+	# The hue shares are clamped ≥ 0 and normalized over the active segments;
+	# a non-positive sum forces pinch OFF with (1, 0, 0).
 	var sh := Vector3(maxf(color_shares.x, 0.0), maxf(color_shares.y, 0.0), maxf(color_shares.z, 0.0))
 	if not pinch_on or sh.x + sh.y + sh.z <= 0.0:
 		pinch_on = false
@@ -1696,8 +1702,8 @@ func _fill_instancer_pc() -> void:
 	var lo2: float = hi_c
 	var lo3: float = hi_c
 	if pinch_on:
-		lo2 = pinch.x
-		lo3 = pinch.y
+		lo2 = pinch_lo
+		lo3 = pinch_hi
 	var span: float = h_cycle * float(count)   # span_total = H_CYCLE·C
 	# segment widths: log mode (multiplicative physics) or linear mode
 	var w1: float = log((lo2 + ref) / (lo1 + ref)) if color_progress == 0 else lo2 - lo1

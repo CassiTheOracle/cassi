@@ -43,6 +43,7 @@ const E_HUE_OFF: int = 16
 const STRIP_TOP: float = 6.0
 const STRIP_H: float = 18.0
 const MARK_R: float = 5.0
+const HIT_R: float = 12.0
 const LABEL_H: float = 14.0
 const LOG_GUARD: float = 1e-9
 
@@ -50,6 +51,7 @@ var sim: Node = null
 var qi_mode: bool = true          # true = Qi legend, false = velocity legend
 var _engine: PackedFloat32Array = PackedFloat32Array()
 var _drag_idx: int = -1
+var _drag_kind: int = -1
 var _markers: Array[Dictionary] = []
 
 
@@ -263,28 +265,64 @@ func _gui_input(event: InputEvent) -> void:
 	if sim == null:
 		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
-		if event.pressed:
+		var mb := event as InputEventMouseButton
+		if mb.pressed:
 			_build_markers()
-			_drag_idx = _hit_marker((event as InputEventMouseButton).position.x)
+			_drag_idx = _hit_marker(mb.position.x)
+			_drag_kind = int(_markers[_drag_idx].kind) if _drag_idx >= 0 else -1
 			if _drag_idx >= 0:
 				accept_event()
-		else:
-			_drag_idx = -1
+		elif _drag_kind >= 0:
+			_end_drag()
+			accept_event()
 	elif event is InputEventMouseMotion:
 		var mm := event as InputEventMouseMotion
-		if _drag_idx >= 0 and _drag_idx < _markers.size():
-			_set_marker(int(_markers[_drag_idx].kind), _q_from_x(mm.position.x))
+		if _drag_kind >= 0:
+			_apply_drag_x(mm.position.x)
 			accept_event()
 		else:
 			mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if _hit_marker(mm.position.x) >= 0 else Control.CURSOR_ARROW
 
 
+## Continue a drag after the pointer leaves this 54-pixel-high Control.
+## Embedded-game input otherwise stops delivering _gui_input motion events
+## as soon as the cursor crosses the strip edge.
+func _input(event: InputEvent) -> void:
+	if _drag_kind < 0:
+		return
+	if event is InputEventMouseMotion:
+		var mm := event as InputEventMouseMotion
+		var local_pos: Vector2 = get_global_transform_with_canvas().affine_inverse() * mm.global_position
+		_apply_drag_x(local_pos.x)
+		get_viewport().set_input_as_handled()
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
+		_end_drag()
+		get_viewport().set_input_as_handled()
+
+
+func _apply_drag_x(x: float) -> void:
+	if _drag_kind < 0:
+		return
+	_set_marker(_drag_kind, _q_from_x(clampf(x, 0.0, size.x)))
+	queue_redraw()
+
+
+func _end_drag() -> void:
+	_drag_idx = -1
+	_drag_kind = -1
+	mouse_default_cursor_shape = Control.CURSOR_ARROW
+
+
 func _hit_marker(x: float) -> int:
+	var best: int = -1
+	var best_dist: float = HIT_R + 1.0
 	for i in range(_markers.size()):
 		var mx: float = _x_from_q(_markers[i].q)
-		if absf(mx - x) <= MARK_R + 2.0:
-			return i
-	return -1
+		var dist: float = absf(mx - x)
+		if dist <= best_dist:
+			best = i
+			best_dist = dist
+	return best
 
 
 func _draw() -> void:
