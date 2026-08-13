@@ -507,6 +507,13 @@ var _tree_grav_pc_bytes: PackedByteArray   # walk PC (5 floats: N, theta, eps2, 
 var _ml_tree_nsrc: int = 0
 var _ml_tree_nnode: int = 0
 
+# True when the tree arm is LIVE (meshless + tree gravity). Gates the
+# _shaders_ready retry: the tree shaders/pipes/sets must be ready before
+# the sim declares itself ready, else a late-arriving tree SPIR-V leaves an
+# absent uniform set that Godot silently no-ops.
+func _ml_need_tree() -> bool:
+	return meshless_mode and meshless_gravity
+
 # — MultiMesh rendering —
 # NOTE: global RD — no manual submit/sync anywhere (illegal on the main
 # instance); readbacks self-stall via buffer_get_data.
@@ -1206,7 +1213,14 @@ func _setup_shaders() -> void:
 		and _poisson_shader.is_valid() and _mass_deposit_shader.is_valid()
 		and _instancer_shader.is_valid() and _cond_shader.is_valid()
 		and _bh_int_shader.is_valid() and _field_render_shader.is_valid()
-		and _bh_lensing_shader.is_valid())
+		and _bh_lensing_shader.is_valid()
+		# Tree arm must be genuinely ready too, else the retry loop stops
+		# while the tree uniform sets/pipes are missing (Godot silently
+		# no-ops a dispatch with an absent set).
+		and (_tree_build_pipe.is_valid() or not _ml_need_tree())
+		and (_tree_grav_pipe.is_valid() or not _ml_need_tree())
+		and (_us_tree_build.is_valid() or not _ml_need_tree())
+		and (_us_tree_grav.is_valid() or not _ml_need_tree()))
 
 
 func _cache_uniform_sets() -> void:
@@ -1354,6 +1368,8 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(10, _ml_psi_y), _uniform_storage(11, _ml_psi_i),
 			_uniform_storage(12, _ml_vol), _uniform_storage(13, _mass_density_buf),
 		], _tree_build_shader, 0)
+		if not _us_tree_build.is_valid():
+			push_error("[CassiSim] tree-build uniform set FAILED to create (bindings 0-13)")
 	if _tree_grav_shader.is_valid():
 		_us_tree_grav = _rd.uniform_set_create([
 			_uniform_storage(0, _ml_tree_src), _uniform_storage(3, _ml_tree_order),
@@ -1363,6 +1379,8 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(9, _ml_tree_grad), _uniform_storage(10, _ml_tree_icount),
 			_uniform_storage(11, _pos_buf),  # walk TargetPos — targets = N-body particles (use_tp=1)
 		], _tree_grav_shader, 0)
+		if not _us_tree_grav.is_valid():
+			push_error("[CassiSim] tree-walk uniform set FAILED to create (bindings 0,3-11)")
 # ═══════════════════════════════════════════════════════════════════════
 # Initial conditions
 # ═══════════════════════════════════════════════════════════════════════
@@ -2842,8 +2860,28 @@ func _step_dispatches(cl: int) -> void:
 #                 mode, b_k, b_j, b_m, grid_N, ext.xyz, field_floor
 #   walk (5 f)    N_f, theta, eps2, use_tp(1 = _pos_buf targets), node_cnt
 func _dispatch_tree_gravity(cl: int) -> void:
-	if _ml_tree_nsrc <= 0 or not _tree_build_pipe.is_valid() \
-			or not _tree_grav_pipe.is_valid() or not _ml_ready:
+	# LOUD guards (2026-08-13, fresh-eyes finding): Godot SILENTLY no-ops a
+	# compute dispatch whose uniform set is absent or incomplete (<-> no
+	# error), so every reason to skip here is named explicitly. Each runs
+	# once for diagnosis and keeps the skip.
+	if _ml_tree_nsrc <= 0:
+		push_error("[CassiSim] tree-gravity SKIP: _ml_tree_nsrc=%d <= 0 (no meshless sources)"
+			% int(_ml_tree_nsrc))
+		return
+	if not _tree_build_pipe.is_valid():
+		push_error("[CassiSim] tree-gravity SKIP: _tree_build_pipe invalid (tree-build shader failed to load/compile?)")
+		return
+	if not _tree_grav_pipe.is_valid():
+		push_error("[CassiSim] tree-gravity SKIP: _tree_grav_pipe invalid (tree-walk shader failed to load/compile?)")
+		return
+	if not _us_tree_build.is_valid():
+		push_error("[CassiSim] tree-gravity SKIP: _us_tree_build uniform set invalid (Godot would silently no-op this dispatch)")
+		return
+	if not _us_tree_grav.is_valid():
+		push_error("[CassiSim] tree-gravity SKIP: _us_tree_grav uniform set invalid (Godot would silently no-op the walk)")
+		return
+	if not _ml_ready:
+		push_error("[CassiSim] tree-gravity SKIP: _ml_ready false (meshless init not complete)")
 		return
 	var N_src = _ml_tree_nsrc
 	var Np = maxi(N_particles, 1)
