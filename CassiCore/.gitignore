@@ -1,0 +1,7 @@
+# Workspace root ignore — CassiCore modular workspace (C:\Users\Carina\Workspaces\CassiCore)
+
+node_modules/
+dist/
+*.log
+*.tsbuildinfo
+.DS_Store
