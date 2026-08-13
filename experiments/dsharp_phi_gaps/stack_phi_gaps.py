@@ -6,7 +6,7 @@ Run from the repo root:
 
 WHAT THIS TESTS
 ---------------
-The Cassi ring ladder (fundations/bubble-edge-geometry.md sec. 3.1) reads a
+The Cassi ring ladder (foundations/bubble-edge-geometry.md §3.1) reads a
 bubble shell of radius R as carrying matter rings at r_k = R * phi^-k with
 void troughs at R * phi^-(k+1/2); successive matter-ring ratio phi^-1 =
 0.6180, null interleaved ratio phi^-1/2 = 0.7862. In a protoplanetary disk
