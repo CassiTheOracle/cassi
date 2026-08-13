@@ -1,27 +1,16 @@
 extends Control
-## Live gradient legend: the active rainbow mapping (Qi coherence q or
-## velocity |v|) rendered as a color strip with draggable anchor markers.
-## The strip colors come from the SAME engine constants as the GPU
-## instancer (cassi_sim.gd gradient_engine() — one composer), so the legend
-## shows exactly what the particles show. Dragging a marker edits the sim's
-## gradient exports live (no reinit; sim_ui repaints the paused view).
+## Live color-scale legend. Choose Qi or velocity, click Fit scale for a
+## sensible starting range, then drag LOW and HIGH until the particles occupy
+## the colors you want. WHITE is the fixed physical upper limit.
 ##
-## Marker kinds (drag targets):
-##   CYCLE_LO — cycle band low edge      (qi_cycle.x / velocity_cycle.x)
-##   PINCH_LO / PINCH_HI — pinch band    (qi_pinch / velocity_pinch)
-##   PINCH_ADD — shown when the pinch is off; dragging creates the band
-##   CYCLE_HI — band top; for Qi ALSO moves the approach entry (linked)
-##   GATE — the φ⁻² pink anchor          (qi_gate)
-##   WHITE — the white-hot point         (qi_approach.y / velocity_approach.y)
-## The velocity legend shows the RESOLVED band (auto → v_max) and dragging
-## writes an explicit velocity_cycle (turns auto off).
+## The strip uses the same composed engine and evaluator as the GPU instancer,
+## so it is a visual readout of the particle colors rather than a second map.
 
 signal gradient_changed
 
-enum MK { CYCLE_LO, PINCH_LO, PINCH_HI, PINCH_ADD, CYCLE_HI, GATE, WHITE }
+enum MK { LOW, HIGH, FIXED_WHITE }
 
-# Engine-array indices — MIRROR cassi_sim.gd's E_* consts (keep in sync;
-# the strip colors are verified against the GPU mapping by the probe).
+# Engine-array indices — mirror cassi_sim.gd's E_* constants.
 const E_PROG: int = 0
 const E_REF: int = 1
 const E_LO1: int = 2
@@ -40,15 +29,15 @@ const E_GATE: int = 14
 const E_APPROACH_ON: int = 15
 const E_HUE_OFF: int = 16
 
-const STRIP_TOP: float = 6.0
-const STRIP_H: float = 18.0
-const MARK_R: float = 5.0
-const HIT_R: float = 12.0
+const STRIP_TOP: float = 8.0
+const STRIP_H: float = 20.0
+const MARK_R: float = 6.0
+const HIT_R: float = 14.0
 const LABEL_H: float = 14.0
 const LOG_GUARD: float = 1e-9
 
 var sim: Node = null
-var qi_mode: bool = true          # true = Qi legend, false = velocity legend
+var qi_mode: bool = true
 var _engine: PackedFloat32Array = PackedFloat32Array()
 var _drag_idx: int = -1
 var _drag_kind: int = -1
@@ -57,7 +46,7 @@ var _markers: Array[Dictionary] = []
 
 func _init() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	custom_minimum_size = Vector2(0, STRIP_TOP + STRIP_H + MARK_R * 2.0 + LABEL_H + 6.0)
+	custom_minimum_size = Vector2(0, STRIP_TOP + STRIP_H + MARK_R * 2.0 + LABEL_H + 8.0)
 
 
 func set_sim(s: Node, qi: bool) -> void:
@@ -66,24 +55,23 @@ func set_sim(s: Node, qi: bool) -> void:
 	queue_redraw()
 
 
-## Exposed for probing/tests: the legend's color at a given scalar value
-## (the same evaluator the GPU instancer uses, fed the same engine).
+## Exposed for probes/tests: the legend's color at a scalar value.
 func sample_color(q: float) -> Color:
 	_refresh_engine()
 	return _color_for_q(q)
 
 
-## Exposed for probing/tests: current marker positions (name → q).
+## Exposed for probes/tests: the two editable handles and the fixed white point.
 func marker_qs() -> Dictionary:
 	_refresh_engine()
 	_build_markers()
 	var out := {}
 	for m in _markers:
-		out[m.name] = m.q
+		out[m.name.to_lower()] = m.q
 	return out
 
 
-## Exposed for probing/tests + the drag path: set a marker by kind.
+## Exposed for probes/tests and the drag path.
 func set_marker_q(kind: int, q: float) -> void:
 	_set_marker(kind, q)
 	queue_redraw()
@@ -101,22 +89,21 @@ func _color_for_q(q: float) -> Color:
 		return Color(0.2, 0.2, 0.25, 1.0)
 	var e := _engine
 	var lin: bool = e[E_PROG] > 0.5
-	# per-segment progress (log: multiplicative physics; linear: plain)
+	# Per-segment progress. The engine still owns the optional pinch split;
+	# the simple UI exposes only the outer scale handles.
 	var f1: float = log(maxf((q + e[E_REF]) / (e[E_LO1] + e[E_REF]), LOG_GUARD)) if not lin else q - e[E_LO1]
 	var f2: float = log(maxf((q + e[E_REF]) / (e[E_LO2] + e[E_REF]), LOG_GUARD)) if not lin else q - e[E_LO2]
 	var f3: float = log(maxf((q + e[E_REF]) / (e[E_LO3] + e[E_REF]), LOG_GUARD)) if not lin else q - e[E_LO3]
 	var h1: float = e[E_SLOPE1] * f1
 	var h2: float = e[E_OFF2] + e[E_SLOPE2] * f2
 	var h3: float = e[E_OFF3] + e[E_SLOPE3] * f3
-	# segment masks; the LAST segment extends past hiC (growth saturates at
-	# the span cap instead of dropping out — the legacy velocity top held)
 	var a1: float = 1.0 if (e[E_LO1] <= q and q < e[E_LO2]) else 0.0
 	var a2: float = 1.0 if (e[E_LO2] <= q and q < e[E_LO3]) else 0.0
 	var a3: float = 1.0 if e[E_LO3] <= q else 0.0
 	var hc: float = clampf(a1 * h1 + a2 * h2 + a3 * h3, 0.0, e[E_SPAN])
 	var h_cyc: float = fposmod(hc + e[E_HUE_OFF], maxf(e[E_SPAN], 1.0))
-	# approach band (count-invariant): violet 0.8 at a_lo → PINK 0.93
-	# EXACTLY at the gate → red 1.0 at a_hi; lightness 0.5 → 1.0
+	# Count-invariant approach: violet at entry, pink at the gate, white at
+	# the physical upper limit.
 	var p_g: float = clampf((q - e[E_ALO]) / maxf(e[E_GATE] - e[E_ALO], LOG_GUARD), 0.0, 1.0)
 	var p_t: float = clampf((q - e[E_GATE]) / maxf(e[E_AHI] - e[E_GATE], LOG_GUARD), 0.0, 1.0)
 	var p_a: float = clampf((q - e[E_ALO]) / maxf(e[E_AHI] - e[E_ALO], LOG_GUARD), 0.0, 1.0)
@@ -128,8 +115,7 @@ func _color_for_q(q: float) -> Color:
 	return _hsl_to_rgb(h, 1.0, l)
 
 
-## IQ-form HSL→RGB — the exact shader formula (cassi_instancer.glsl
-## hsl2rgb), so the legend matches the GPU to the last bit.
+## IQ-form HSL→RGB — the exact shader formula.
 static func _hsl_to_rgb(h: float, s: float, l: float) -> Color:
 	var x: float = fposmod(h * 6.0 + 0.0, 6.0) - 3.0
 	var y: float = fposmod(h * 6.0 + 4.0, 6.0) - 3.0
@@ -190,72 +176,40 @@ func _build_markers() -> void:
 	_refresh_engine()
 	if sim == null or _engine.size() < 17:
 		return
-	var e := _engine
-	var lo1: float = e[E_LO1]
-	var lo2: float = e[E_LO2]
-	var lo3: float = e[E_LO3]
-	var hi_c: float = e[E_HIC]
-	var gate: float = e[E_GATE]
-	var a_hi: float = e[E_AHI]
-	var a_on: bool = e[E_APPROACH_ON] > 0.5
-	_markers.append(_mk("cycle lo", MK.CYCLE_LO, lo1))
-	if lo2 < lo3:
-		_markers.append(_mk("pinch lo", MK.PINCH_LO, lo2))
-		_markers.append(_mk("pinch hi", MK.PINCH_HI, lo3))
-	else:
-		_markers.append(_mk("pinch +", MK.PINCH_ADD, sqrt(lo1 * hi_c)))
-	_markers.append(_mk("band top", MK.CYCLE_HI, hi_c))
-	if a_on:
-		_markers.append(_mk("pink gate", MK.GATE, gate))
-		_markers.append(_mk("white", MK.WHITE, a_hi))
+	_markers.append(_mk("LOW", MK.LOW, _engine[E_LO1], true))
+	_markers.append(_mk("HIGH", MK.HIGH, _engine[E_HIC], true))
+	if _engine[E_APPROACH_ON] > 0.5:
+		_markers.append(_mk("WHITE", MK.FIXED_WHITE, _engine[E_AHI], false))
 
 
-func _mk(name: String, kind: int, q: float) -> Dictionary:
-	return {"name": name, "kind": kind, "q": q}
+func _mk(name: String, kind: int, q: float, draggable: bool) -> Dictionary:
+	return {"name": name, "kind": kind, "q": q, "draggable": draggable}
 
 
 func _set_marker(kind: int, q: float) -> void:
 	if sim == null:
 		return
-	match kind:
-		MK.CYCLE_LO:
-			if qi_mode:
-				sim.qi_cycle = Vector2(q, sim.qi_cycle.y)
-			else:
-				sim.velocity_cycle = Vector2(q, _engine[E_HIC])
-		MK.CYCLE_HI:
-			if qi_mode:
-				sim.qi_cycle = Vector2(sim.qi_cycle.x, q)
-				sim.qi_approach = Vector2(q, sim.qi_approach.y)  # linked: band top = approach entry
-			else:
-				sim.velocity_cycle = Vector2(sim.velocity_cycle.x, q)
-		MK.PINCH_LO:
-			var cur: Vector2 = sim.qi_pinch if qi_mode else sim.velocity_pinch
-			var y: float = cur.y
-			if y <= cur.x:
-				y = q * 1.5   # enabling: create the band above the grab
-			if qi_mode:
-				sim.qi_pinch = Vector2(q, y)
-			else:
-				sim.velocity_pinch = Vector2(q, y)
-		MK.PINCH_HI:
-			if qi_mode:
-				sim.qi_pinch = Vector2(sim.qi_pinch.x, q)
-			else:
-				sim.velocity_pinch = Vector2(sim.velocity_pinch.x, q)
-		MK.PINCH_ADD:
-			if qi_mode:
-				sim.qi_pinch = Vector2(q, q * 1.5)
-			else:
-				sim.velocity_pinch = Vector2(q, q * 1.5)
-		MK.GATE:
-			sim.qi_gate = q
-		MK.WHITE:
-			if qi_mode:
-				sim.qi_approach = Vector2(sim.qi_approach.x, q)
-				sim.qi_approach_tracks_threshold = false
-			else:
-				sim.velocity_approach = Vector2(sim.velocity_approach.x, q)
+	_refresh_engine()
+	if _engine.size() < 17:
+		return
+	var low: float = _engine[E_LO1]
+	var high: float = _engine[E_HIC]
+	var white: float = _engine[E_AHI]
+	var has_white: bool = _engine[E_APPROACH_ON] > 0.5 and white > low
+	if kind == MK.LOW:
+		q = clampf(q, _q_scale_min(), maxf(high * 0.999, _q_scale_min() + 1e-7))
+		if qi_mode:
+			sim.qi_cycle = Vector2(q, sim.qi_cycle.y)
+		else:
+			sim.velocity_cycle = Vector2(q, high)
+	elif kind == MK.HIGH:
+		var upper: float = white * 0.999 if has_white else _q_scale_max()
+		q = clampf(q, low * 1.001, maxf(upper, low * 1.001))
+		if qi_mode:
+			sim.qi_cycle = Vector2(sim.qi_cycle.x, q)
+			sim.qi_approach = Vector2(q, sim.qi_approach.y)
+		else:
+			sim.velocity_cycle = Vector2(sim.velocity_cycle.x, q)
 	gradient_changed.emit()
 
 
@@ -284,9 +238,7 @@ func _gui_input(event: InputEvent) -> void:
 			mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if _hit_marker(mm.position.x) >= 0 else Control.CURSOR_ARROW
 
 
-## Continue a drag after the pointer leaves this 54-pixel-high Control.
-## Embedded-game input otherwise stops delivering _gui_input motion events
-## as soon as the cursor crosses the strip edge.
+## Continue a drag after the pointer leaves the short legend control.
 func _input(event: InputEvent) -> void:
 	if _drag_kind < 0:
 		return
@@ -317,6 +269,8 @@ func _hit_marker(x: float) -> int:
 	var best: int = -1
 	var best_dist: float = HIT_R + 1.0
 	for i in range(_markers.size()):
+		if not _markers[i].draggable:
+			continue
 		var mx: float = _x_from_q(_markers[i].q)
 		var dist: float = absf(mx - x)
 		if dist <= best_dist:
@@ -330,27 +284,28 @@ func _draw() -> void:
 		_draw_placeholder("No simulation")
 		return
 	if int(sim.particle_color_mode) == 0:
-		_draw_placeholder("Rainbow off — enable Rainbow to show the Qi scale")
+		_draw_placeholder("Rainbow off — enable Rainbow to show the scale")
 		return
 	_refresh_engine()
 	_build_markers()
 	if _engine.size() < 17:
-		_draw_placeholder("…")
+		_draw_placeholder("Waiting for color scale")
 		return
-	# the strip: one pixel column per x, colors from the engine evaluator
 	for x in range(0, int(size.x)):
 		var c: Color = _color_for_q(_q_from_x(float(x) + 0.5))
 		draw_rect(Rect2(float(x), STRIP_TOP, 1.0, STRIP_H), c)
-	draw_rect(Rect2(0.0, STRIP_TOP, size.x, STRIP_H), Color(1, 1, 1, 0.25), false, 1.0)
-	# markers: line through the strip + grab handle + q label
+	draw_rect(Rect2(0.0, STRIP_TOP, size.x, STRIP_H), Color(1, 1, 1, 0.35), false, 1.0)
 	var font: Font = ThemeDB.fallback_font
 	for m in _markers:
 		var mx: float = _x_from_q(m.q)
-		draw_line(Vector2(mx, STRIP_TOP), Vector2(mx, STRIP_TOP + STRIP_H), Color(1, 1, 1, 0.7), 1.0)
-		draw_circle(Vector2(mx, STRIP_TOP + STRIP_H + MARK_R), MARK_R, Color(1, 1, 1))
-		var label: String = _fmt(m.q)
+		var draggable: bool = m.draggable
+		var mark_color := Color(1.0, 1.0, 1.0, 1.0) if draggable else Color(0.7, 0.8, 0.95, 0.9)
+		var radius: float = MARK_R if draggable else MARK_R - 1.0
+		draw_line(Vector2(mx, STRIP_TOP), Vector2(mx, STRIP_TOP + STRIP_H), mark_color, 1.0)
+		draw_circle(Vector2(mx, STRIP_TOP + STRIP_H + MARK_R), radius, mark_color)
+		var label: String = "%s %s" % [m.name, _fmt(m.q)]
 		var tw: float = font.get_string_size(label).x
-		draw_string(font, Vector2(clampf(mx - tw * 0.5, 0.0, maxf(size.x - tw, 0.0)), STRIP_TOP + STRIP_H + MARK_R * 2.0 + LABEL_H), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.95, 0.97, 1.0))
+		draw_string(font, Vector2(clampf(mx - tw * 0.5, 0.0, maxf(size.x - tw, 0.0)), STRIP_TOP + STRIP_H + MARK_R * 2.0 + LABEL_H), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.95, 0.97, 1.0))
 
 
 func _draw_placeholder(text: String) -> void:
