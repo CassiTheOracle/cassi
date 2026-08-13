@@ -167,6 +167,8 @@ units (`foundations/wake-geometry.md` §1(c)). The identity is **Derived**
 (φ-algebra on the derived rates); its realization in the winding dynamics is
 the falsifiable content (prediction 50, `predictions/falsifiable-predictions.md` §5).
 
+**Contrast with the canonical rotation.** These Hypothesized fixed-pitch clocks ($\varphi^{-2}$ turns per Hubble rung; the 69.1° pitch tangent $\gamma/\Omega_S = \varphi^2$; the $\Omega$-generator of the conversion→expansion term) keep turning at the attractor, whereas the canonical dynamical rotation of `foundations/cassi-first-principles.md` §2.6, $d\theta/dt = \lambda(1-q)\rho\varepsilon/(E_Y^2+E_I^2)$, is $\varepsilon$-proportional and vanishes exactly at the $\varphi$-line.
+
 ### 2.3 The irreducible baseline
 
 Even at perfect $\varphi$-equilibrium ($r = \varphi$, $q = 1$), there is a

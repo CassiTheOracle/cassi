@@ -1,6 +1,6 @@
 # The Cassi Framework
 
-## Status: Reference—July 2026
+## Status: Reference—August 2026
 
 ## Abstract
 
@@ -30,11 +30,13 @@ $\rho$ is total energy density. $\pi$ is Yang excess. The **Yang fraction** $\pi
 
 ### 2.2 Governing PDE
 
-$$\partial_t \Psi_0 = -(\mathbf{u}\cdot\nabla)\Psi_0 + \nu\nabla^2\Psi_0 - \lambda(\Psi_0^2 - \varphi\Psi_1^2)\Psi_0 + S_0[\Psi_1,\Phi]$$
+In the energy-density form used by the solvers, with the densities $E_Y = \Psi_0^2$, $E_I = \Psi_1^2$ (§2.1), the governing equations are
 
-$$\partial_t \Psi_1 = -(\mathbf{u}\cdot\nabla)\Psi_1 + \nu\nabla^2\Psi_1 + \lambda(\Psi_0^2 - \varphi\Psi_1^2)\Psi_1 + S_1[\Psi_0,\Phi]$$
+$$\partial_t E_Y = -(\mathbf{u}\cdot\nabla)E_Y + \nu\nabla^2 E_Y - \lambda(1-q)(E_Y - \varphi E_I) + S_Y[\Psi_I,\Phi]$$
 
-$\mathbf{u}$: velocity field. $\nu$: hyperdiffusion. $\lambda = 0.1$: conversion rate. $S_\alpha$: source terms through gravitational potential $\Phi$.
+$$\partial_t E_I = -(\mathbf{u}\cdot\nabla)E_I + \nu\nabla^2 E_I + \lambda(1-q)(E_Y - \varphi E_I) + S_I[\Psi_Y,\Phi]$$
+
+$\mathbf{u}$: velocity field. $\nu$: hyperdiffusion. $\lambda = 0.1$: conversion rate. $q$: Qi coherence (§2.4); the gate factor $(1-q)$ is the openness (§2.5). $S_\alpha$: source terms through gravitational potential $\Phi$. The conversion pair is equal and opposite, so conversion conserves total density. This gated density pair is the solver's code form (`two-fluid/cassi_two_fluid_3d_gpu.py`); the ungated amplitude form of the conversion appears only as the $\varphi$-attractor potential of the action (§2.3, §4.1), not as a governing evolution equation.
 
 ### 2.3 $\varphi$-Attractor
 
@@ -70,7 +72,19 @@ The pair is equal and opposite ($\partial_t E_Y = -\partial_t E_I$), so total de
 
 The gate *openness* is $(1-q)$: $q \to 0$ means the gate is **open**—conversion runs hard, the region churns; $q \to 1$ means the gate is **closed**—the system rests at $\varphi$-balance. (Sign PDE-tested 2026-07-31 in `consciousness/trauma-as-frozen-gate.md` §10.4.) The gate determines $w(a)$; its shape follows from the $\varphi$-power structure.
 
-### 2.6 Classical Limits
+### 2.6 Winding Rate
+
+The conversion pair rotates the doublet in its internal plane. With $\theta = \mathrm{atan2}(E_I, E_Y)$—the density-plane angle, twice the amplitude-plane doublet phase (one cascade rung advances $\theta$ by $2\pi$, the single-component pitch convention of `foundations/spin-fibonacci-spiral.md` §2.1)—the rotation rate is a state function:
+
+$$\frac{d\theta}{dt} = \lambda(1-q)\,\frac{\rho\,\varepsilon}{E_Y^2 + E_I^2}$$
+
+(`foundations/cassi-first-principles.md` §2.6). The rate vanishes exactly at the $\varphi$-line ($\varepsilon = 0$) and is gated by the openness $(1-q)$. The total winding accumulated while a state relaxes from imbalance $\varepsilon_0$ to equilibrium is exact and parameter-free (the conversion rate and the gate cancel in $d\theta/d\varepsilon$; $\rho$ conserved):
+
+$$\Delta\vartheta = \mathrm{atan}\!\left(\frac{1}{\varphi}\right) - \mathrm{atan}\!\left(\frac{\rho-\varepsilon_0}{\rho\varphi+\varepsilon_0}\right)$$
+
+with extremes the Yang limit $\varepsilon_0 \to \rho$ ($\Delta\vartheta \to +\mathrm{atan}(\varphi^{-1}) \approx 0.554$ rad) and the Yin limit $\varepsilon_0 \to -\rho\varphi$ ($\Delta\vartheta \to -\mathrm{atan}(\varphi) \approx -1.017$ rad); in rung units, relaxation offsets are bounded by $|\delta n| \le \mathrm{atan}(\varphi)/(2\pi) \approx 0.162$. A half-rung offset ($\delta n = 1/2$) is one full $\pi$-advance of the density-plane angle—the doublet's per-rung step, $\pi/\mathrm{atan}(\varphi) \approx 3.09\times$ the bound—so the half-step class is the **parity** structure of `foundations/rung-offset-mechanism.md` §7, not relaxation winding. Solver-measured: four homogeneous arms ($\lambda = 0.05$, $t = 4$) match the state-function rate to per-checkpoint relative error $\le 2.2\times10^{-3}$ with 100% sign agreement, and the equilibrium arm reads $q_{\text{eq}} \approx 0.873$ (4/4 PASS; `two-fluid/run_winding_rate_probe.py`).
+
+### 2.7 Classical Limits
 
 | Limit | Condition | Effective Theory |
 |-------|-----------|-----------------|
@@ -219,7 +233,7 @@ Spin is accumulated SO(2) winding along a nested Fibonacci spiral. Spiral polar 
 
 $$\Theta(r) = \frac{2\pi}{\ln\varphi}\ln\left(\frac{r}{\ell_n}\right)$$
 
-$s = \Delta n$ (cascade rungs traversed). Quantized: $s \in \{0, \frac{1}{2}, 1, 2\}$. No $s = \frac{3}{2}$ (fails Fibonacci closure). Spin-statistics from $(-1)^{2s}$. Form factor log-periodicity: $\Delta(\ln q) = \ln\varphi$.
+where $\Theta$ is the phase of a single doublet component (one rung = $2\pi$); the physical doublet carries the half-angle and winds $\pi$ per rung, so the spin is the doublet's internal winding in its own cycles, $s = \Delta\Theta/4\pi = \Delta n/2$ with $\Delta n$ the rung span (boxed unified convention: 1 rung = $2\pi$ single-component phase = $\pi$ doublet phase; 2 rungs = one full doublet SO(2) cycle—`foundations/spin-fibonacci-spiral.md` §2.1). Quantized: $s \in \{0, \frac{1}{2}, 1, 2\}$ (spans $\Delta n \in \{0, 1, 2, 4\}$). No fundamental $s = \frac{3}{2}$: $\Delta n = 3 = 1 + 2$ decomposes into the fermion span plus one gauge cycle, so under the minimal-span principle it is composite, not a new fundamental (`foundations/spin-fibonacci-spiral.md` §2.4). Spin-statistics from $(-1)^{2s}$. Form factor log-periodicity: $\Delta(\ln q) = \ln\varphi$.
 
 ### 5.3 Measurement
 
@@ -407,7 +421,7 @@ The ratio string $r(t)$ couples $E_Y$ and $E_I$ antisymmetrically (SO(2) rotatio
 
 $$\Theta(r) = \frac{2\pi}{\ln\varphi}\ln\left(\frac{r}{\ell_n}\right)$$
 
-One full turn per cascade rung. Expansion factor per turn: $\varphi$.
+One full turn per cascade rung in the single-component viewpoint ($\Theta$ advancing $2\pi$ per rung); the physical doublet advances $\pi$ per rung and completes one full SO(2) cycle every two rungs—the same convention in two viewpoints (boxed unified convention, `foundations/spin-fibonacci-spiral.md` §2.1). Expansion factor per turn: $\varphi$.
 
 ### 10.2 Frenet-Serret Frame
 
