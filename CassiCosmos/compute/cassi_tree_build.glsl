@@ -29,6 +29,10 @@
 //             Morton-contiguous source range [ps,pe) into ≤8 octant
 //             sub-runs (pos_axis > center_axis → bit), allocates child
 //             nodes (atomicAdd node_cnt) and writes child center/half/range.
+//   mode 9  CTR_RESET (1 dispatch)  seed ctr = [1,0,1,0,0,0,0,0] on the GPU
+//   mode 10 ROOT_SEED (1 dispatch)  write the root nodeCF + nodeR from the PC
+//             (bmin+bhalf center, half=pc.bhalf; range [0, N_f)) — replaces
+//             per-frame host buffer_update seeds (global-RD ordering).
 //   mode 6  MOMENTS   (1 dispatch)  one thread/node: W = Σ w, COM = Σ w·p/W,
 //             trace-free Q_ij = Σ w(3 ξ_i ξ_j − |ξ|² δ_ij), ξ = p−COM,
 //             from the node's [ps,pe) source range (the weighted monopole
@@ -96,7 +100,7 @@ layout(push_constant, std430) uniform PC {
     float xi;           // #7 phi⁶
     float leaf_cap;     // #8 1.0
     float max_levels;   // #9 14.0
-    float mode;         // #10 0 prep / 1 bitonic / 5 split / 6 moments / 7 gather
+    float mode;         // #10 0 prep / 1 bitonic / 5 split / 6 moments / 7 gather / 8 commit / 9 ctr-reset / 10 root-seed
     float b_k;          // #11 bitonic outer k, or (split) level_start
     float b_j;          // #12 bitonic inner j, or (split) level_count
     float b_m;          // #13 bitonic pass index (0 precount, 1..91 swap)
@@ -309,6 +313,31 @@ void commit_main() {
     ctr[2] = ctr[0];
 }
 
+// ── mode 9: CTR_RESET — seed the build counters ON THE GPU ─────────────
+// One thread, dispatched in-list as the FIRST tree pass (before gather).
+// ctr[0]=node_cnt(1), ctr[1]=unused, ctr[2]=level_end(1), ctr[3..7]=0.
+// Moving the counter seed onto the GPU removes ALL pre-list CPU buffer
+// traffic for the tree arm (the global-RD seed-race suspected in the
+// in-sim no-op: a pre-list buffer_update queued against the same buffer
+// the chain writes in-list).
+void ctr_reset_main() {
+    if (gl_GlobalInvocationID.x != 0u) return;
+    ctr[0] = 1u; ctr[1] = 0u; ctr[2] = 1u;
+    ctr[3] = 0u; ctr[4] = 0u; ctr[5] = 0u; ctr[6] = 0u; ctr[7] = 0u;
+}
+
+// ── mode 10: ROOT_SEED — write the root nodeCF + nodeR on the GPU ───────
+// One thread: root box [bmin, bmin+2·half]³ centered (bmin+bhalf) per
+// axis, half = pc.bhalf (the PC already carries bmin.xyz + bhalf); root
+// range [0, N_f), childBase −1, childCount 0 (not yet internal). Replaces
+// the per-frame host buffer_update of _ml_tree_cf/_ml_tree_r.
+void root_seed_main() {
+    if (gl_GlobalInvocationID.x != 0u) return;
+    ncf[0] = vec4(pc.bmin_x + pc.bhalf, pc.bmin_y + pc.bhalf,
+                  pc.bmin_z + pc.bhalf, pc.bhalf);
+    nr[0] = ivec4(0, int(pc.N_f), -1, 0);
+}
+
 
 // packed trace-free quadrupole accumulation helpers (node-local, mode 6)
 // Q[6] = [Qxx,Qxy,Qxz,Qyy,Qyz,Qzz]
@@ -359,6 +388,8 @@ void main() {
     else if (m == 7) gather_main();
     else if (m == 1) bitonic_main();
     else if (m == 8) commit_main();
+    else if (m == 9) ctr_reset_main();
+    else if (m == 10) root_seed_main();
     else if (m == 5) split_main();
     else moments_main();
 }

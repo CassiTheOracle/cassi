@@ -764,40 +764,33 @@ func _run_physics_steps(n_steps: int) -> void:
 	_rd.buffer_update(_bh_buf, 0, _bh_init_bytes.size(), _bh_init_bytes)
 	# ── Meshless tree gravity: build + walk INTO this frame's list, once,
 	# before the steps, so mode-5 nbody reads a fresh _ml_tree_grad
-	# (fmm_design.md Q6). Seed the self-contained split counters HERE (a
-	# buffer_update must run before compute_list_begin). All gates off by
-	# default → the default battery is bit-identical.
+	# (fmm_design.md Q6). The counters + root record are seeded ON THE GPU
+	# as build modes 9/10 (the chain's first passes) — no host buffer
+	# traffic. All gates off by default → the default battery is
+	# bit-identical.
 	#
 	# NOTE (Godot 4.7 global-RD, 2026-08-13): the tree chain is dispatched
 	# INSIDE this frame's compute list, exactly like the deposit/nbody
-	# passes. Two real integration seams found + fixed: (a) the nbody PC
-	# encoded the EXPORTED gravity_mode (0) instead of the effective tree
-	# mode, so mode-5 never ran (see _step_dispatches); (b) the walk's
-	# TargetPos binding 11 pointed at a scratch buffer instead of _pos_buf.
-	# With both fixed the mode-5 write path is correct — BUT the tree build
-	# STILL does not execute on the global RD from the _process loop: after
-	# 120 sustained frames the gather never bumps the source counter
-	# (ctr stays the seeded [1,0,1,0,0,0,0,0]) and _ml_tree_grad reads all
-	# zero, while the SAME recipe runs correctly on a local RD (validated:
-	# verify_meshless_gravity + verify_fmm gates). The local-RD tree is the
-	# validated kernel; the in-sim arm is functionally BLOCKED on getting
-	# the tree chain to execute on the global RD. Open to a director
-	# decision — do not assume the wiring is live.
+	# passes. Three real integration seams fixed: (a) the nbody PC encoded
+	# the EXPORTED gravity_mode (0) instead of the effective tree mode, so
+	# mode-5 never ran (see _step_dispatches); (b) the walk's TargetPos
+	# binding 11 pointed at a scratch buffer instead of _pos_buf; (c, this
+	# change) the build's counters + root record were CPU-seeded via
+	# pre-list buffer_update EVERY frame — the tree chain is the only chain
+	# that both CPU-seeds a buffer pre-list AND has the shaders write that
+	# SAME buffer in-list, an ordering race on the global RD. The seed is
+	# now written ON THE GPU as the chain's first passes (build modes 9/10:
+	# ctr-reset + root-seed), so the tree arm has ZERO pre-list CPU buffer
+	# traffic — identical to every working chain. (Also fixes `_ml_tree_r`
+	# whose root center was seeded on the CPU with the per-axis extents,
+	# not the Morton box center (bmin+bhalf).)
 	var tree_arm := meshless_mode and meshless_gravity and _ml_ready
 	if tree_arm:
 		_ml_tree_nsrc = 2 * ML_N1 * ML_N1 * ML_N1
-		# seed the self-contained split counters + ROOT record (bounds for
-		# the tree) BEFORE compute_list_begin — buffer_update is illegal
-		# mid-list. Root cube = [0, 2·max(extent)] ⊇ the sites ([0, 2·ext)³),
+		# Counters + root record are seeded on the GPU as build modes 9/10
+		# (the FIRST passes of _dispatch_tree_gravity) — no host buffer
+		# traffic. Root cube = [0, 2·max(extent)] ⊇ the sites ([0, 2·ext)³),
 		# root range [0, N_src). The tree chain rides the frame's ONE list.
-		var _ext = _extents()
-		var _half: float = maxf(_ext.x, maxf(_ext.y, _ext.z)) * 1.000001
-		_rd.buffer_update(_ml_tree_ctr, 0, 32,
-			PackedInt32Array([1, 0, 1, 0, 0, 0, 0, 0]).to_byte_array())
-		_rd.buffer_update(_ml_tree_cf, 0, 16,
-			PackedFloat32Array([_ext.x, _ext.y, _ext.z, _half]).to_byte_array())
-		_rd.buffer_update(_ml_tree_r, 0, 16,
-			PackedInt32Array([0, _ml_tree_nsrc, -1, 0]).to_byte_array())
 	var cl = _rd.compute_list_begin()
 	if tree_arm:
 		_dispatch_tree_gravity(cl)
@@ -2834,7 +2827,6 @@ func _step_dispatches(cl: int) -> void:
 #   build (19 f)  N_f, bmin.xyz, bhalf, eps2, phi, xi, leaf_cap, max_levels,
 #                 mode, b_k, b_j, b_m, grid_N, ext.xyz, field_floor
 #   walk (5 f)    N_f, theta, eps2, use_tp(1 = _pos_buf targets), node_cnt
-# The split counters + root record are seeded HERE (before compute_list_begin).
 func _dispatch_tree_gravity(cl: int) -> void:
 	if _ml_tree_nsrc <= 0 or not _tree_build_pipe.is_valid() \
 			or not _tree_grav_pipe.is_valid() or not _ml_ready:
@@ -2867,6 +2859,18 @@ func _dispatch_tree_gravity(cl: int) -> void:
 
 	_rd.compute_list_bind_compute_pipeline(cl, _tree_build_pipe)
 	_rd.compute_list_bind_uniform_set(cl, _us_tree_build, 0)
+
+	# 0a. root seed (mode 10) + counter reset (mode 9) ON THE GPU — replaces
+	# the removed per-frame host buffer_update of _ml_tree_ctr/cf/r. No
+	# pre-list CPU buffer traffic for the tree arm. One thread each.
+	bp.encode_float(10, 10.0)
+	_rd.compute_list_set_push_constant(cl, bp, bp.size())
+	_rd.compute_list_dispatch(cl, 1, 1, 1)
+	_rd.compute_list_add_barrier(cl)
+	bp.encode_float(10, 9.0)
+	_rd.compute_list_set_push_constant(cl, bp, bp.size())
+	_rd.compute_list_dispatch(cl, 1, 1, 1)
+	_rd.compute_list_add_barrier(cl)
 
 	# 1. gather (mode 7) — source table from the meshless sites + chord/Morton
 	bp.encode_float(10, 7.0)
