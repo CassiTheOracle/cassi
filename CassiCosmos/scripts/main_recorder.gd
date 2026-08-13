@@ -81,6 +81,8 @@ func _ready() -> void:
 		"realsim_friction", "river_calibrate_gn", "river_pi_ref",
 		"river_q_ref", "field_attractor_init", "freeze_field", "initial_radius_fraction",
 		"initial_condition", "initial_v_circ_factor", "box_aspect", "box_scale", "mode",
+		"gradient_order", "dual_grid", "multi_rung_seed", "multi_rung_count",
+		"multi_rung_amp", "multi_rung_base_scale",
 		"particle_color_mode", "rainbow_count", "color_shares", "color_progress",
 		"qi_cycle", "qi_pinch", "qi_approach", "qi_approach_tracks_threshold",
 		"qi_gate", "velocity_cycle", "velocity_pinch", "velocity_approach",

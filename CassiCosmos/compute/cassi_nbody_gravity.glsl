@@ -46,7 +46,16 @@
 // whole on the grid, never hand-split (∇(gΦ) = g∇Φ + Φ(ξ−1)∇q doctrine
 // preserved).
 //
-// HEURISTIC mode (gravity_mode == 1, legacy arm for A/B comparison):
+// CASCADE GRID (2026-08-12, CASCADE_GRID.md): the gradient order (2/4) and
+// the Yin/Yang dual (BCC) grid ride the bh header — bh[3].y = dual flag,
+// bh[3].z = gradient order, bh[1].xyz = the dual offset (h_i/2 world units;
+// the host encodes extent_i/N). Dual ON: the gradient pass runs twice —
+// pass_mode 1.0 on the base lattice (binding 7) and 1.5 on the
+// half-cell-shifted lattice (binding 8, g sampled at the SHIFTED cell
+// centers); the river arm averages the two ∇(g·Φ) trilinear samples (the
+// pair of interleaved grids is the BCC lattice). O4 = 5-point central
+// differences in the gradient pass only. Dual OFF + order 2 = the legacy
+// chain bit-for-bit.
 //   a = G_N·pi_over_rho·∇q_s,  pi_over_rho = clamp(φ⁻³ + 0.7·q_s, 0, 0.72),
 //   q_s = EY² + EI² + 0.01·ρ_mass  (the M2Q density hack — NOT the law)
 //   (unchanged: still samples the qv field per particle — pass_mode is
@@ -151,7 +160,11 @@ layout(set = 0, binding = 6, std430) coherent buffer Telemetry { uint tel[]; };
 // built by the gradient pass (pass_mode == 1) after the Poisson solve,
 // sampled trilinearly by the river arm (pass_mode == 0).
 layout(set = 0, binding = 7, std430) buffer GradBuf { vec4 grad[]; };
-
+// Dual (Yin/Yang) lattice ∇(g·Φ) — the shifted chain's gradient (built by
+// the gradient pass with pass_mode == 1.5 on the half-cell-offset lattice,
+// g sampled at the shifted cell centers); sampled trilinearly by the river
+// arm and averaged with binding 7 when bh[3].y (the dual flag) is on.
+layout(set = 0, binding = 8, std430) buffer GradBuf2 { vec4 g2[]; };
 layout(set = 1, binding = 0, std430) buffer Positions { vec4 pos[]; };
 layout(set = 1, binding = 1, std430) restrict buffer Velocities { vec4 vel[]; };
 layout(set = 1, binding = 2, std430) restrict buffer Accelerations { vec4 acc[]; };
@@ -162,7 +175,11 @@ layout(set = 1, binding = 2, std430) restrict buffer Accelerations { vec4 acc[];
 // samplers and the gradient pass map world → grid with each axis's own
 // extent; cube: all three equal the legacy extent), bh[3].x = global
 // black_holes_enabled toggle (host writes 1.0/0.0; gates bh_point_gravity
-// in ANY gravity mode), bh[4..] = BH records
+// in ANY gravity mode), bh[1].xyz = the dual-grid offset (h_i/2 world
+// units, host encodes extent_i/N; CASCADE_GRID.md), bh[3].y = dual-grid
+// flag (1.0 = the BCC partner chain runs and the river arm averages the
+// two ∇(g·Φ) samples), bh[3].z = gradient order (2 = 3-point, 4 = 5-point
+// central differences), bh[4..] = BH records
 // (vec4[pos.xyz, mass] + vec4[vel.xyz, age]), max 15.
 layout(set = 2, binding = 0, std430) buffer BHData { vec4 bh[36]; };
 // Cluster records (set 2 binding 1, max 64): vec4[center.xyz, per-cluster
@@ -221,7 +238,8 @@ int idx3(int i, int j, int k) {
 struct FieldSmp {
     float ey;      // EY trilinear at wp
     float ei;      // EI trilinear at wp
-    vec3 gradS;    // ∇(g·Φ) trilinear at wp
+    vec3 gradS;    // ∇(g·Φ) trilinear at wp (base lattice)
+    vec3 gradS2;   // ∇(g·Φ) trilinear at wp (dual lattice; zeros when dual off)
     vec4 fvel;     // FieldVel trilinear at wp (RealSim only; zeros otherwise)
 };
 FieldSmp sample_fields(vec3 wp) {
@@ -258,6 +276,33 @@ FieldSmp sample_fields(vec3 wp) {
                mix(mix(ei[c001], ei[c101], fx), mix(ei[c011], ei[c111], fx), fy), fz);
     s.gradS = mix(mix(mix(grad[c000].xyz, grad[c100].xyz, fx), mix(grad[c010].xyz, grad[c110].xyz, fx), fy),
                   mix(mix(grad[c001].xyz, grad[c101].xyz, fx), mix(grad[c011].xyz, grad[c111].xyz, fx), fy), fz);
+    s.gradS2 = vec3(0.0);
+    if (bh[3].y > 0.5) {
+        // Dual (Yin/Yang) lattice sample: the SAME world point mapped with
+        // the shifted grid's map (gc = (wp + off)·scale + hn) — the deposit
+        // and the gradient pass of the shifted chain used the identical
+        // offset, so this closes the dual chain consistently.
+        vec3 off = bh[1].xyz;
+        vec3 gc2 = (wp + off) * inv_ext * hn + hn;
+        int d0 = int(floor(gc2.x));
+        int e0 = int(floor(gc2.y));
+        int f0 = int(floor(gc2.z));
+        float fx2 = gc2.x - float(d0);
+        float fy2 = gc2.y - float(e0);
+        float fz2 = gc2.z - float(f0);
+        d0 = ((d0 % N) + N) % N;  e0 = ((e0 % N) + N) % N;  f0 = ((f0 % N) + N) % N;
+        int d1 = (d0 + 1) % N;    int e1 = (e0 + 1) % N;    int f1 = (f0 + 1) % N;
+        int d000 = idx3(d0, e0, f0);
+        int d100 = idx3(d1, e0, f0);
+        int d010 = idx3(d0, e1, f0);
+        int d110 = idx3(d1, e1, f0);
+        int d001 = idx3(d0, e0, f1);
+        int d101 = idx3(d1, e0, f1);
+        int d011 = idx3(d0, e1, f1);
+        int d111 = idx3(d1, e1, f1);
+        s.gradS2 = mix(mix(mix(g2[d000].xyz, g2[d100].xyz, fx2), mix(g2[d010].xyz, g2[d110].xyz, fx2), fy2),
+                       mix(mix(g2[d001].xyz, g2[d101].xyz, fx2), mix(g2[d011].xyz, g2[d111].xyz, fx2), fy2), fz2);
+    }
     s.fvel = vec4(0.0);
     if (pc.gravity_mode > 3.5) {
         // FieldVel corners only for RealSim (uniform branch — skipped by
@@ -288,6 +333,50 @@ float chord_s_at(int i, int j, int k) {
     return (1.0 + (pc.xi - 1.0) * q) * ph[id].x;   // g · Φ — whole product
 }
 
+// S at the dual-lattice cell center (i + 0.5 on the OFFSET lattice): the
+// cell's world position on the shifted grid, EY/EI trilinearly sampled
+// back on the base lattice (the field lives on ONE grid — the dual lattice
+// only shifts WHERE S is evaluated), Φ from the shifted deposit's solve.
+float chord_s_at_dual(int i, int j, int k) {
+    int N = int(pc.N_f);
+    float hn = float(N) * 0.5;
+    vec3 ext = bh[2].yzw;
+    vec3 off = bh[1].xyz;
+    vec3 wp = vec3(float(i) + 0.5 - hn, float(j) + 0.5 - hn, float(k) + 0.5 - hn)
+            * (ext / hn) - off;
+    vec3 inv_ext = 1.0 / max(ext, vec3(0.0001));
+    vec3 gc = wp * inv_ext * hn + hn;
+    int i0 = int(floor(gc.x));
+    int j0 = int(floor(gc.y));
+    int k0 = int(floor(gc.z));
+    float fx = gc.x - float(i0);
+    float fy = gc.y - float(j0);
+    float fz = gc.z - float(k0);
+    i0 = ((i0 % N) + N) % N;  j0 = ((j0 % N) + N) % N;  k0 = ((k0 % N) + N) % N;
+    int i1 = (i0 + 1) % N;    int j1 = (j0 + 1) % N;    int k1 = (k0 + 1) % N;
+    int c000 = idx3(i0, j0, k0);
+    int c100 = idx3(i1, j0, k0);
+    int c010 = idx3(i0, j1, k0);
+    int c110 = idx3(i1, j1, k0);
+    int c001 = idx3(i0, j0, k1);
+    int c101 = idx3(i1, j0, k1);
+    int c011 = idx3(i0, j1, k1);
+    int c111 = idx3(i1, j1, k1);
+    float eyv = mix(mix(mix(ey[c000], ey[c100], fx), mix(ey[c010], ey[c110], fx), fy),
+                    mix(mix(ey[c001], ey[c101], fx), mix(ey[c011], ey[c111], fx), fy), fz);
+    float eiv = mix(mix(mix(ei[c000], ei[c100], fx), mix(ei[c010], ei[c110], fx), fy),
+                    mix(mix(ei[c001], ei[c101], fx), mix(ei[c011], ei[c111], fx), fy), fz);
+    float rho_f = eyv + eiv;
+    float eps = eyv - pc.phi * eiv;
+    float q = (rho_f * rho_f) / (rho_f * rho_f + PHI_INV2 + eps * eps);
+    return (1.0 + (pc.xi - 1.0) * q) * ph[idx3(i, j, k)].x;
+}
+
+// Cell selector: base cell value vs dual-lattice cell-center sample.
+float s_cell(int i, int j, int k, bool d) {
+    return d ? chord_s_at_dual(i, j, k) : chord_s_at(i, j, k);
+}
+
 // NOTE (2026-08-09, gated experiment): a separable Catmull-Rom tricubic
 // sampler (4×4×4 taps) was implemented and MEASURED as the "bias along
 // grid lines" lever — it did NOT reduce the ring anisotropy: |a|(θ)
@@ -301,15 +390,17 @@ float chord_s_at(int i, int j, int k) {
 // is removed. Trilinear stays — the fused sample_fields above uses the
 // SAME trilinear weights/tree as the former per-field samplers.
 
-// ── Gradient-field build pass (pass_mode == 1) ─────────────────────────
+// ── Gradient-field build pass (pass_mode 1.0 base / 1.5 dual) ──────────
 // One thread per cell (2D cells dispatch, gid = x + y·N·256 — the
 // poisson cells convention; a 1D N³/256 dispatch caps at 65535 groups on
-// some devices for N=256). S is evaluated at the cell and its 6 axis
-// neighbors DIRECTLY from cell values (no interpolation), then ∇S via
-// central differences with periodic wraps, stored to _grad_buf.
-// Runs after the Poisson solve and before the N-body pass in the same
-// compute list (the nbody arm reads this buffer — see the header).
-void grad_main() {
+// some devices for N=256). S is evaluated at the cell and its axis
+// neighbors — base cell values (is_dual false) or shifted-cell-center
+// samples on the dual lattice (is_dual true) — then ∇S via central
+// differences with periodic wraps: 3-point (bh[3].z == 2, legacy) or
+// 5-point (bh[3].z == 4 — CASCADE_GRID.md §3.2). Stored to binding 7
+// (base) or binding 8 (dual). Runs after the Poisson solve and before the
+// N-body pass in the same compute list.
+void grad_pass(bool is_dual) {
     int N = int(pc.N_f);
     int nc = N * N * N;
     uint gid = gl_GlobalInvocationID.x
@@ -324,17 +415,32 @@ void grad_main() {
     int jp = (j + 1) % N;     int jm = (j - 1 + N) % N;
     int kp = (k + 1) % N;     int km = (k - 1 + N) % N;
 
-    float s00 = chord_s_at(i,  j,  k);
-    float spx = chord_s_at(ip, j,  k);  float smx = chord_s_at(im, j,  k);
-    float spy = chord_s_at(i,  jp, k);  float smy = chord_s_at(i,  jm, k);
-    float spz = chord_s_at(i,  j,  kp); float smz = chord_s_at(i,  j,  km);
+    float spx = s_cell(ip, j,  k, is_dual);  float smx = s_cell(im, j,  k, is_dual);
+    float spy = s_cell(i,  jp, k, is_dual);  float smy = s_cell(i,  jm, k, is_dual);
+    float spz = s_cell(i,  j,  kp, is_dual); float smz = s_cell(i,  j,  km, is_dual);
 
     vec3 h = bh[2].yzw / (float(N) * 0.5);   // per-axis cell sizes (extent_i / hn)
-    grad[gid] = vec4(
-        (spx - smx) / (2.0 * h.x),
-        (spy - smy) / (2.0 * h.y),
-        (spz - smz) / (2.0 * h.z),
-        0.0);
+    vec3 g;
+    if (bh[3].z > 3.5) {
+        int i2p = (i + 2) % N;    int i2m = (i - 2 + N) % N;
+        int j2p = (j + 2) % N;    int j2m = (j - 2 + N) % N;
+        int k2p = (k + 2) % N;    int k2m = (k - 2 + N) % N;
+        float s2px = s_cell(i2p, j, k, is_dual); float s2mx = s_cell(i2m, j, k, is_dual);
+        float s2py = s_cell(i, j2p, k, is_dual); float s2my = s_cell(i, j2m, k, is_dual);
+        float s2pz = s_cell(i, j, k2p, is_dual); float s2mz = s_cell(i, j, k2m, is_dual);
+        g = vec3((-s2px + 8.0 * spx - 8.0 * smx + s2mx) / (12.0 * h.x),
+                 (-s2py + 8.0 * spy - 8.0 * smy + s2my) / (12.0 * h.y),
+                 (-s2pz + 8.0 * spz - 8.0 * smz + s2mz) / (12.0 * h.z));
+    } else {
+        g = vec3((spx - smx) / (2.0 * h.x),
+                 (spy - smy) / (2.0 * h.y),
+                 (spz - smz) / (2.0 * h.z));
+    }
+    if (is_dual) {
+        g2[gid] = vec4(g, 0.0);
+    } else {
+        grad[gid] = vec4(g, 0.0);
+    }
 }
 
 // ── Telemetry reduction ────────────────────────────────────────────────
@@ -385,14 +491,16 @@ float chord_g_from(float eyv, float eiv, out float q_out, out float pi_over_rho,
 
 // ── River-mode field force: a = −G_N·(π/ρ)·∇(g·Φ) ─────────────────────
 // ESTIMATOR: the cell-centered ∇(g·Φ) field (built once per step by
-// grad_main) + g/π/ρ from the fused sample's EY/EI — the same clamp logic
-// and telemetry as before. The full chord product is still computed whole
-// on the grid — never hand-split.
+// grad_pass) + g/π/ρ from the fused sample's EY/EI — the same clamp logic
+// and telemetry as before. With the dual grid on (bh[3].y), the two
+// lattice samples are averaged (CASCADE_GRID.md §3.1). The full chord
+// product is still computed whole on the grid — never hand-split.
 vec3 river_field_acc_smp(FieldSmp fs, inout TeleStats st) {
     float q_unused; float pi_over_rho;
     chord_g_from(fs.ey, fs.ei, q_unused, pi_over_rho, st);
     float G_N = bh[1].w;
-    return -G_N * pi_over_rho * fs.gradS;
+    vec3 gv = (bh[3].y > 0.5) ? 0.5 * (fs.gradS + fs.gradS2) : fs.gradS;
+    return -G_N * pi_over_rho * gv;
 }
 
 // ── Legacy heuristic: sample q_s = EY²+EI² + 0.01·ρ and its gradient ───
@@ -640,8 +748,9 @@ void warmup_main() {
 // float64 shader-exact mini-sim: max |Δp| ≈ 0.15% of a cell and max |Δv|
 // ≈ 1.4e-3 vs the two-evaluation KDK over 2000 steps, no secular drift.
 void main() {
-    if (pc.pass_mode > 1.5) { warmup_main(); return; }   // acc warm-up
-    if (pc.pass_mode > 0.5) { grad_main(); return; }     // gradient-field build
+    if (pc.pass_mode > 1.5) { warmup_main(); return; }    // acc warm-up (2.0)
+    if (pc.pass_mode > 1.2) { grad_pass(true); return; }  // dual gradient (1.5)
+    if (pc.pass_mode > 0.5) { grad_pass(false); return; } // base gradient (1.0)
     int i = int(gl_GlobalInvocationID.x);
     int N = int(pc.particle_N);
     int li = int(gl_LocalInvocationIndex.x);

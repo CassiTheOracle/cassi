@@ -344,6 +344,7 @@ func _pi_over_rho(ey: PackedFloat32Array, ei: PackedFloat32Array, wp: Vector3) -
 func _run_all() -> void:
 	_run_grid(64)
 	_run_grid(128)
+	_run_cascade_pass()
 	print("══════ RESULT: %d/%d checks passed, %d failed ══════" % [_checks - _failures, _checks, _failures])
 
 
@@ -392,6 +393,229 @@ func _run_grid(n: int) -> void:
 			sim._rd.compute_list_dispatch(cl, ceili(float(NPROBE) / 256.0), 1, 1)
 			sim._rd.compute_list_end()
 		_measure_ring(_read_accs(), radius_h, ey, ei, s, new_grad_fields, PHYS_RINGS[rk])
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Cascade grid pass (CASCADE_GRID.md) — O4 gradients + the Yin/Yang dual
+# (BCC) lattice. Two sub-passes at N=64, both with a TSC-deposited mass
+# particle at the center cell (f = 0.5 — the deposit runs through the REAL
+# mass-deposit shader with the new offset slots) and SOURCE-CENTERED rings
+# (the convention of the shader-exact NumPy chain that produced the
+# anchors — the cube passes above keep their own off-center convention):
+#   (a) single lattice, O4 (bh[3].y = 0, bh[3].z = 4): 1.200/1.045/1.007
+#   (b) dual lattice, O4 (bh[3].y = 1, bh[3].z = 4): 1.133/1.034/1.005
+# Tolerances are the fp32-vs-fp64 cross-implementation band — a broken
+# dual average reproduces the single-grid O2 ratios (1.246/1.090/1.022),
+# far outside it.
+# ═══════════════════════════════════════════════════════════════════════
+
+const CASCADE_TOL: float = 0.015
+
+
+func _o4_anchor(radius_h: float, dual: bool) -> float:
+	if dual:
+		if radius_h <= 3.0: return 1.133
+		if radius_h <= 6.0: return 1.034
+		return 1.005
+	if radius_h <= 3.0: return 1.200
+	if radius_h <= 6.0: return 1.045
+	return 1.007
+
+
+func _md_pc(off: Vector3) -> PackedByteArray:
+	# 8 floats: N, particle_N, extent_x/y/z, off_x/y/z — the deposit shader's
+	# PC (cassi_mass_deposit.glsl, CASCADE_GRID.md offset slots).
+	var pc: PackedByteArray = sim._md_pc_bytes.duplicate()
+	pc.encode_float(0, float(N))
+	pc.encode_float(4, 1.0)  # only particle 0 carries mass
+	pc.encode_float(8, extent)
+	pc.encode_float(12, extent)
+	pc.encode_float(16, extent)
+	pc.encode_float(20, off.x)
+	pc.encode_float(24, off.y)
+	pc.encode_float(28, off.z)
+	return pc
+
+
+func _poisson_clear_pc() -> PackedByteArray:
+	var pc: PackedByteArray = sim._poisson_pc_bytes.duplicate()
+	pc.encode_float(0, float(N))
+	pc.encode_float(4, 0.0)
+	pc.encode_float(8, 0.0)
+	pc.encode_float(12, 3.0)  # mode 3 = clear
+	pc.encode_float(16, extent)
+	pc.encode_float(20, extent)
+	pc.encode_float(24, extent)
+	return pc
+
+
+func _dispatch_poisson_clear(cl: int) -> void:
+	sim._rd.compute_list_bind_compute_pipeline(cl, sim._poisson_pipe)
+	sim._rd.compute_list_bind_uniform_set(cl, sim._us_poisson_0, 0)
+	sim._rd.compute_list_set_push_constant(cl, _poisson_clear_pc(), _poisson_clear_pc().size())
+	sim._rd.compute_list_dispatch(cl, N, N, 1)
+
+
+func _dispatch_md(cl: int, off: Vector3) -> void:
+	sim._rd.compute_list_bind_compute_pipeline(cl, sim._mass_deposit_pipe)
+	sim._rd.compute_list_bind_uniform_set(cl, sim._us_mass_dep_0, 0)
+	var pc := _md_pc(off)
+	sim._rd.compute_list_set_push_constant(cl, pc, pc.size())
+	sim._rd.compute_list_dispatch(cl, 1, 1, 1)
+
+
+func _dispatch_grad(cl: int, pass_mode: float) -> void:
+	sim._rd.compute_list_bind_compute_pipeline(cl, sim._nbody_pipe)
+	sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_0, 0)
+	sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_1, 1)
+	sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_2, 2)
+	sim._rd.compute_list_set_push_constant(cl, _nbody_pc(pass_mode), 60)
+	sim._rd.compute_list_dispatch(cl, N, N, 1)
+
+
+func _dispatch_nbody(cl: int) -> void:
+	sim._rd.compute_list_bind_compute_pipeline(cl, sim._nbody_pipe)
+	sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_0, 0)
+	sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_1, 1)
+	sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_2, 2)
+	sim._rd.compute_list_set_push_constant(cl, _nbody_pc(0.0), 60)
+	sim._rd.compute_list_dispatch(cl, ceili(float(NPROBE + 1) / 256.0), 1, 1)
+
+
+# Mass particle (mass 10) at the center cell + 64 zero-mass probes on a
+# SOURCE-CENTERED ring in the z = src_z plane (the NumPy anchor convention).
+func _set_cascade_probes(radius_h: float, src: Vector3) -> void:
+	var pos = PackedFloat32Array()
+	pos.resize((NPROBE + 1) * 4)
+	pos[0] = src.x
+	pos[1] = src.y
+	pos[2] = src.z
+	pos[3] = 10.0  # the mass
+	var r := radius_h * h
+	for kk in range(NPROBE):
+		var th := TWO_PI * float(kk) / float(NPROBE)
+		var idx := (kk + 1) * 4
+		pos[idx] = src.x + r * cos(th)
+		pos[idx + 1] = src.y + r * sin(th)
+		pos[idx + 2] = src.z
+		pos[idx + 3] = 0.0  # zero mass
+	var vel = PackedFloat32Array()
+	vel.resize((NPROBE + 1) * 4)
+	var acc = PackedFloat32Array()
+	acc.resize((NPROBE + 1) * 4)
+	sim._rd.buffer_update(sim._pos_buf, 0, (NPROBE + 1) * 16, pos.to_byte_array())
+	sim._rd.buffer_update(sim._vel_buf, 0, (NPROBE + 1) * 16, vel.to_byte_array())
+	sim._rd.buffer_update(sim._acc_buf, 0, (NPROBE + 1) * 16, acc.to_byte_array())
+
+
+# The cascade chain in ONE compute list: clear → deposit(base) → poisson →
+# grad(1.0) → [dual: clear → deposit(off) → poisson → grad(1.5)] → nbody.
+func _run_cascade_chain(dual: bool) -> void:
+	var cl = sim._rd.compute_list_begin()
+	_dispatch_poisson_clear(cl)
+	sim._barrier(cl)
+	_dispatch_md(cl, Vector3.ZERO)
+	sim._barrier(cl)
+	sim._dispatch_poisson(cl)
+	sim._barrier(cl)
+	_dispatch_grad(cl, 1.0)
+	sim._barrier(cl)
+	if dual:
+		var off := Vector3(h * 0.5, h * 0.5, h * 0.5)
+		_dispatch_poisson_clear(cl)
+		sim._barrier(cl)
+		_dispatch_md(cl, off)
+		sim._barrier(cl)
+		sim._dispatch_poisson(cl)
+		sim._barrier(cl)
+		_dispatch_grad(cl, 1.5)
+		sim._barrier(cl)
+	_dispatch_nbody(cl)
+	sim._rd.compute_list_end()
+
+
+func _read_cascade_accs() -> Array:
+	var bytes: PackedByteArray = sim._rd.buffer_get_data(sim._acc_buf, 0, (NPROBE + 1) * 16)
+	var accs := []
+	for kk in range(NPROBE):
+		var idx := (kk + 1) * 4
+		accs.append(Vector3(
+			bytes.decode_float(idx * 4),
+			bytes.decode_float(idx * 4 + 4),
+			bytes.decode_float(idx * 4 + 8)))
+	return accs
+
+
+func _run_cascade_subpass(dual: bool, label: String) -> void:
+	# Encode the cascade config into the bh header (the sim re-encodes these
+	# per frame in _run_physics_steps; the manual chain re-encodes directly):
+	# bh[3].y = dual flag, bh[3].z = gradient order, bh[1].xyz = dual offset.
+	var bh_bytes: PackedByteArray = sim._bh_init_bytes.duplicate()
+	bh_bytes.encode_float(52, 1.0 if dual else 0.0)
+	bh_bytes.encode_float(56, 4.0)
+	bh_bytes.encode_float(16, h * 0.5)
+	bh_bytes.encode_float(20, h * 0.5)
+	bh_bytes.encode_float(24, h * 0.5)
+	sim._rd.buffer_update(sim._bh_buf, 0, bh_bytes.size(), bh_bytes)
+
+	var src := Vector3(h * 0.5, h * 0.5, h * 0.5)  # center cell (f = 0.5)
+	var radius_h := PHYS_RINGS[0] / h
+	_set_cascade_probes(radius_h, src)
+	_run_cascade_chain(dual)
+	for rk in range(PHYS_RINGS.size()):
+		var rh := PHYS_RINGS[rk] / h
+		if rk > 0:
+			_set_cascade_probes(rh, src)
+			var cl = sim._rd.compute_list_begin()
+			_dispatch_nbody(cl)
+			sim._rd.compute_list_end()
+		var accs: Array = _read_cascade_accs()
+		var mags: Array[float] = []
+		var any_nan: bool = false
+		for kk in range(NPROBE):
+			var m: float = accs[kk].length()
+			if is_nan(m) or is_inf(m):
+				any_nan = true
+			mags.append(m)
+		_checks += 1
+		if any_nan:
+			_failures += 1
+			push_error("verify_river_isotropy[%s r=%.2fU (%.1fh)]: NaN/Inf in shader accs" % [label, PHYS_RINGS[rk], rh])
+		else:
+			print("[PASS] cascade[%s r=%.2fU (%.1fh)]: no NaN/Inf in shader accs" % [label, PHYS_RINGS[rk], rh])
+		var mag_max: float = mags.max()
+		var mag_min: float = mags.min()
+		var ratio: float = mag_max / mag_min
+		var anchor: float = _o4_anchor(rh, dual)
+		_checks += 1
+		if absf(ratio - anchor) <= CASCADE_TOL:
+			print("[PASS] cascade[%s r=%.2fU (%.1fh)]: ring ratio %.4f vs anchor %.3f (±%.3f)" % [label, PHYS_RINGS[rk], rh, ratio, anchor, CASCADE_TOL])
+		else:
+			_failures += 1
+			push_error("verify_river_isotropy[%s r=%.2fU (%.1fh)]: ring ratio %.4f outside anchor %.3f ± %.3f" % [label, PHYS_RINGS[rk], rh, ratio, anchor, CASCADE_TOL])
+
+
+func _run_cascade_pass() -> void:
+	if sim.grid_N != 64 or sim.N_particles != NPROBE + 1:
+		sim.grid_N = 64
+		sim.N_particles = NPROBE + 1
+		sim.reinit()
+		sim.playing = false
+	N = sim.grid_N
+	extent = sim._extents().x
+	h = extent / (float(N) * 0.5)
+	nc = N * N * N
+	print("══════ verify_river_isotropy — cascade grid (O4, dual), N=%d, extent=%.1f, rings %s ══════" % [N, extent, str(PHYS_RINGS)])
+	# Uniform tiny fluid (same as the cube passes — g uniform → the ratio
+	# lives in the gradient chain alone).
+	var ey = PackedFloat32Array(); ey.resize(nc)
+	var ei = PackedFloat32Array(); ei.resize(nc)
+	for i in range(nc):
+		ey[i] = 0.00012
+		ei[i] = 0.00010
+	_write_fields(ey, ei)
+	_run_cascade_subpass(false, "O4")
+	_run_cascade_subpass(true, "dual-O4")
 
 
 # Measure one ring: shader-vs-NEW and OLD-vs-NEW agreement + anisotropy

@@ -34,6 +34,8 @@ var _legend: Control
 var _no_rb_btn: CheckButton
 var _bh_toggle_btn: CheckButton
 var _phi_box_btn: CheckButton
+var _dual_btn: CheckButton
+var _multirung_btn: CheckButton
 var _vsync_btn: CheckButton
 
 var _server_ip_edit: LineEdit
@@ -344,6 +346,25 @@ func _ready() -> void:
 	_vsync_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	row3.add_child(_vsync_btn)
 
+	# Cascade-grid toggles (CASCADE_GRID.md): the dual (BCC) grid is LIVE
+	# (bh[3].y re-encoded per frame — no reinit) and pairs with the O4
+	# gradient (bh[3].z); multi-rung IC seeding is init-time (reinit).
+	_dual_btn = CheckButton.new()
+	_dual_btn.text = "Dual grid"
+	_dual_btn.tooltip_text = "Yin/Yang dual (BCC) lattice gravity + 4th-order gradients — the force averages the base and half-cell-shifted lattices (placement bias ~4.6× down); live, no reinit"
+	_dual_btn.custom_minimum_size = Vector2(90, 22)
+	_dual_btn.focus_mode = Control.FOCUS_NONE
+	_dual_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	row3.add_child(_dual_btn)
+
+	_multirung_btn = CheckButton.new()
+	_multirung_btn.text = "Multi-rung"
+	_multirung_btn.tooltip_text = "Seed the initial conditions with φ-spaced density modes so bubbles condense at several cascade scales; applies on reinit"
+	_multirung_btn.custom_minimum_size = Vector2(90, 22)
+	_multirung_btn.focus_mode = Control.FOCUS_NONE
+	_multirung_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	row3.add_child(_multirung_btn)
+
 	# Server (future) fields
 	var srv_box = VBoxContainer.new()
 	srv_box.custom_minimum_size = Vector2(160, 40)
@@ -424,6 +445,8 @@ func _ready() -> void:
 		_no_rb_btn.button_pressed = sim.suppress_readbacks
 		_bh_toggle_btn.button_pressed = sim.black_holes_enabled
 		_phi_box_btn.button_pressed = (sim.box_aspect != Vector3(1.0, 1.0, 1.0))
+		_dual_btn.button_pressed = sim.dual_grid
+		_multirung_btn.button_pressed = sim.multi_rung_seed
 		_vsync_btn.button_pressed = sim.vsync_enabled
 
 	# Connect value_changed AFTER init to avoid spurious reinit() on startup
@@ -435,6 +458,8 @@ func _ready() -> void:
 	_no_rb_btn.toggled.connect(_on_suppress_readbacks_toggled)
 	_bh_toggle_btn.toggled.connect(_on_black_holes_toggled)
 	_phi_box_btn.toggled.connect(_on_phi_box_toggled)
+	_dual_btn.toggled.connect(_on_dual_grid_toggled)
+	_multirung_btn.toggled.connect(_on_multirung_toggled)
 	_vsync_btn.toggled.connect(_on_vsync_toggled)
 
 	# Prevent controls from stealing WASD camera input
@@ -709,6 +734,22 @@ func _on_phi_box_toggled(on: bool) -> void:
 	if sim == null: return
 	sim.box_aspect = Vector3(PHI, 1.0, PHI * PHI) if on else Vector3(1.0, 1.0, 1.0)
 	sim.reinit()  # extents are init-time (bh header + PCs) — reinit applies
+
+
+func _on_dual_grid_toggled(on: bool) -> void:
+	var sim = _get_sim()
+	if sim == null: return
+	sim.dual_grid = on
+	# The measured preset pairs the dual with 4th-order gradients
+	# (CASCADE_GRID.md §2) — both ride the bh header, live, no reinit.
+	sim.gradient_order = 4 if on else 2
+
+
+func _on_multirung_toggled(on: bool) -> void:
+	var sim = _get_sim()
+	if sim == null: return
+	sim.multi_rung_seed = on
+	sim.reinit()  # IC seeding is init-time (particle draw) — reinit applies
 
 
 func _on_vsync_toggled(on: bool) -> void:

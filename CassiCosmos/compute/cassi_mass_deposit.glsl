@@ -47,6 +47,9 @@ layout(push_constant, std430) uniform PC {
     float extent_x;      // per-axis grid physical half-extents (GRID_LAYOUT.md)
     float extent_y;
     float extent_z;
+    float off_x;         // dual-grid offset (CASCADE_GRID.md): the deposit
+    float off_y;         // runs once per lattice — 0 for the base chain,
+    float off_z;         // h_i/2 = extent_i/N for the shifted (BCC) chain
 } pc;
 
 // ── Main kernel: TSC (triangular-shaped cloud) mass deposit ───────────
@@ -64,10 +67,11 @@ void main() {
     // Per-axis world→grid map. The TSC kernel itself stays CELL-BASED (its
     // weights are functions of the fractional-cell offsets only, an exact
     // partition of unity); the per-axis physical support (1.5h_i) falls out
-    // of this map — the φ-aspect deposit needs no kernel change.
+    // of this map — the φ-aspect deposit needs no kernel change. The dual
+    // lattice (CASCADE_GRID.md) shifts the SAME map by the PC offset.
     vec3 ext = vec3(pc.extent_x, pc.extent_y, pc.extent_z);
     vec3 scale = (ext.x > 0.0) ? (hn / ext) : vec3(hn);
-    vec3 gc = p.xyz * scale + hn;  // fractional grid coordinates
+    vec3 gc = (p.xyz + vec3(pc.off_x, pc.off_y, pc.off_z)) * scale + hn;
 
     int i0 = int(floor(gc.x));
     int j0 = int(floor(gc.y));

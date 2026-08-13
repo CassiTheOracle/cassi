@@ -209,6 +209,35 @@ var _vsync_enabled: bool = true
 ## geometry, bit-identical (×1.0 is exact in fp32). See GRID_LAYOUT.md §2.8.
 @export var box_scale: float = 1.0
 
+# ── Cascade grid (CASCADE_GRID.md) ─────────────────────────────────────
+# Gradient order for the ∇(g·Φ) build pass (bh[3].z, live — no reinit):
+#   2 = 3-point central differences (legacy, bit-identical),
+#   4 = 5-point central differences — measured ring anisotropy
+#       1.246→1.200 @2h, 1.090→1.045 @4h (CASCADE_GRID.md §2).
+## Gradient order for the ∇(g·Φ) pass: 2 = 3-point (legacy), 4 = 5-point (O4).
+@export var gradient_order: int = 2
+# Yin/Yang dual (BCC) grid (bh[3].y, live — no reinit): the deposit → Poisson
+# → gradient chain runs on the base lattice AND the half-cell-shifted partner
+# lattice; the river arm averages the two ∇(g·Φ) samples (the interleaved pair
+# is the BCC lattice). Measured: placement bias 1.187→1.041 worst-dir @4h with
+# gradient_order = 4 — 4.6× excess reduction (CASCADE_GRID.md §2). Cost: 2×
+# deposit/solve/gradient + a second gradient sample per particle per step.
+## Yin/Yang dual (BCC) grid — the shifted partner lattice runs and the force averages both samples. Live (no reinit).
+@export var dual_grid: bool = false
+# Multi-rung IC seeding (init-time; reinit to apply): Zel'dovich displacement
+# δx = Σ_m (A/k_m)·sin(k_m·(d_m·x) + φ_m)·d_m with φ-spaced wavenumbers
+# k_m = 2π·φ^m/(base_scale·cluster_radius) and Fibonacci-sphere directions —
+# density power at several cascade rungs so bubbles condense at multiple
+# scales simultaneously (CASCADE_GRID.md §3.3).
+## Multi-rung IC seeding: φ-spaced density modes so bubbles form at several cascade scales. Init-time (reinit to apply).
+@export var multi_rung_seed: bool = false
+## Number of cascade rungs seeded (φ-spaced wavenumbers).
+@export_range(1, 6, 1) var multi_rung_count: int = 3
+## Displacement amplitude per rung (world units at the base rung; δx = A/k_m).
+@export var multi_rung_amp: float = 0.2
+## Base rung wavelength in units of cluster_radius (k_0 = 2π/(base·R)).
+@export var multi_rung_base_scale: float = 1.0
+
 ## Display mode: 0 = Particles, 1 = Field, 2 = Black Hole, 3 = Cosmology.
 @export_enum("Particles", "Field", "Black Hole", "Cosmology") var mode: int = 0
 
@@ -278,12 +307,22 @@ var _vsync_enabled: bool = true
 ## afterwards. Only acts when a sibling Camera3D exists (main/recorder
 ## scenes); the headless verify scenes have none and are untouched.
 @export var auto_frame_camera_on_start: bool = true
+## Camera zoom-in limit: the camera is pushed back out when it flies closer
+## than this distance to any cluster center (world units), so the particle
+## grid can never be lost to near-plane clipping. 0 = AUTO: each cluster's
+## particle-truncation radius + the camera near plane — the camera stops at
+## the particle cloud's edge, just inside the visibility limit.
+@export_range(0.0, 100000.0, 1.0) var camera_min_cluster_dist: float = 0.0
 
 # ═══════════════════════════════════════════════════════════════════════
 # Internal state
 # ═══════════════════════════════════════════════════════════════════════
 
 var _rd: RenderingDevice = null
+
+var _sim_cam: Camera3D = null                 # sibling camera (main/recorder); null headless
+var _cluster_centers: Array[Vector3] = []     # host mirror of the cluster records
+var _cluster_safe_radii: Array[float] = []    # per-cluster particle-truncation radius
 
 # — field grid buffers (SET 0) —
 var _field_ey: RID; var _field_ei: RID
@@ -294,6 +333,8 @@ var _fft_buf: RID      # vec2 per cell — FFT workspace; real part = Φ after s
 var _tel_buf: RID      # gravity telemetry: [pi_hi, pi_lo, rho_guard, q_min, q_max, pi_min, pi_max, samples]
 # — Cell-centered ∇(g·Φ) field (SET 0 binding 7 of cassi_nbody_gravity.glsl) —
 var _grad_buf: RID     # vec4 per cell — gradient pass output, river-arm input
+var _grad_buf2: RID    # dual-lattice ∇(g·Φ) (SET 0 binding 8 — CASCADE_GRID.md);
+					   # always allocated so dual_grid stays a LIVE toggle
 var _occ_buf: RID      # occupancy counters (5 uints — cassi_occupancy.glsl)
 # — particle buffers (SET 1) —
 var _pos_buf: RID; var _vel_buf: RID; var _acc_buf: RID
@@ -341,7 +382,7 @@ var _nbody_pc_bytes: PackedByteArray  # nbody PC (15 floats: 11 shared + pass_mo
 # share _pc_bytes (11 floats) and Godot hard-errors on push-constant size
 # mismatch, so the two-fluid's anisotropic-stencil extents get their own.
 var _two_fluid_pc_bytes: PackedByteArray  # two-fluid PC (14 floats: 11 shared + extent_x/y/z)
-var _md_pc_bytes: PackedByteArray     # mass deposit PC (5 floats: N, particle_N, extent_x/y/z)
+var _md_pc_bytes: PackedByteArray     # mass deposit PC (8 floats: N, particle_N, extent_x/y/z, off_x/y/z)
 var _bh_int_pc_bytes: PackedByteArray # BH integrate PC (4 floats)
 var _cond_pc_bytes: PackedByteArray   # condensation PC (4 floats)
 var _bh_init_bytes: PackedByteArray   # BH header init (16 floats)
@@ -479,6 +520,7 @@ func _ready() -> void:
 	if particle_color_mode != 0:
 		_repaint_instancer()
 	print("[CassiSim] Universe ready — grid=%d³ particles=%d xi=%.5f (φ⁶=%.5f)" % [grid_N, N_particles, xi, PHI_6])
+	_sim_cam = _find_sibling_camera()
 	_auto_frame_camera()
 
 
@@ -562,6 +604,7 @@ func has_color_defaults() -> bool:
 func _process(delta: float) -> void:
 	if not _rd:
 		return
+	_enforce_camera_min_distance()
 
 	# First-run import race: on a fresh cache the .glsl imports may not have
 	# finished when _ready ran — retry until every shader compiles.
@@ -599,12 +642,20 @@ func _process(delta: float) -> void:
 # buffer_get_data readback internally flushes and stalls all frames, which
 # is the only sync we need.)
 func _run_physics_steps(n_steps: int) -> void:
-	# BH header (count/G_N/extent/toggle) — constant across the frame's
+	# BH header (count/G_N/extent/toggle/dual) — constant across the frame's
 	# steps; buffer_update must run BEFORE compute_list_begin.
-	# Re-encode the live BH toggle (bh[3].x, float 48) every frame so a UI
-	# flip takes effect next frame with NO reinit — the shader gates the
-	# BH force term and the host gates the BH passes on the same value.
+	# Re-encode the live BH toggles every frame so a UI flip takes effect
+	# next frame with NO reinit: bh[3].x = black_holes_enabled (float 48),
+	# bh[3].y = dual_grid (float 52), bh[3].z = gradient_order (float 56),
+	# bh[1].xyz = the dual-grid offset h_i/2 = extent_i/N (floats 16/20/24 —
+	# CASCADE_GRID.md). The shaders gate on the same values.
 	_bh_init_bytes.encode_float(48, 1.0 if black_holes_enabled else 0.0)
+	_bh_init_bytes.encode_float(52, 1.0 if dual_grid else 0.0)
+	_bh_init_bytes.encode_float(56, float(gradient_order))
+	var _off_dual: Vector3 = _extents() / float(grid_N)
+	_bh_init_bytes.encode_float(16, _off_dual.x)
+	_bh_init_bytes.encode_float(20, _off_dual.y)
+	_bh_init_bytes.encode_float(24, _off_dual.z)
 	_rd.buffer_update(_bh_buf, 0, _bh_init_bytes.size(), _bh_init_bytes)
 	var cl = _rd.compute_list_begin()
 	for _s in range(n_steps):
@@ -784,6 +835,9 @@ func _setup_buffers() -> void:
 	# Cell-centered ∇(g·Φ) field (vec4 per cell — river-arm gradient,
 	# rebuilt every step by the gradient pass between poisson and nbody)
 	_grad_buf = _rd.storage_buffer_create(nc * 16)
+	# Dual-lattice ∇(g·Φ) (CASCADE_GRID.md — always allocated so dual_grid
+	# stays a LIVE toggle; written only by the shifted gradient pass).
+	_grad_buf2 = _rd.storage_buffer_create(nc * 16)
 	# Occupancy counters (5 uints — cassi_occupancy.glsl). Zeroed here:
 	# storage buffers are NOT zero-initialized on allocator reuse, and the
 	# sampler atomicAdds into the live counters (the per-sample reset is a
@@ -801,7 +855,7 @@ func _setup_buffers() -> void:
 	# Two-fluid dedicated PC (14 floats = 56 B): the shared 11 fields + the
 	# 3 per-axis extents for the anisotropic 19-point stencil (GRID_LAYOUT.md).
 	_two_fluid_pc_bytes = PackedByteArray(); _two_fluid_pc_bytes.resize(14 * 4)
-	_md_pc_bytes = PackedByteArray(); _md_pc_bytes.resize(5 * 4)
+	_md_pc_bytes = PackedByteArray(); _md_pc_bytes.resize(8 * 4)
 	_instancer_pc_bytes = PackedByteArray(); _instancer_pc_bytes.resize(32 * 4)  # consolidated gradient engine PC — 128 B (the RDNA3 Vulkan cap)
 	_bh_int_pc_bytes = PackedByteArray(); _bh_int_pc_bytes.resize(4 * 4)
 	_cond_pc_bytes = PackedByteArray(); _cond_pc_bytes.resize(4 * 4)
@@ -820,7 +874,7 @@ func _free_buffers() -> void:
 	for rid in [_field_ey, _field_ei, _field_q, _field_vel,
 				_pos_buf, _vel_buf, _acc_buf, _bh_buf, _bh_lens_buf,
 				_mass_density_buf, _cluster_buf, _fft_buf, _tel_buf,
-				_grad_buf, _occ_buf,
+				_grad_buf, _grad_buf2, _occ_buf,
 				_field_render_tex, _bh_lensing_tex]:
 		if rid.is_valid(): _rd.free_rid(rid)
 	_field_render_tex = RID()
@@ -953,6 +1007,7 @@ func _cache_uniform_sets() -> void:
 		_uniform_storage(5, _fft_buf),
 		_uniform_storage(6, _tel_buf),
 		_uniform_storage(7, _grad_buf),
+		_uniform_storage(8, _grad_buf2),  # dual-lattice ∇(g·Φ) (CASCADE_GRID.md)
 	], _nbody_shader, 0)
 	_us_nbody_1 = _rd.uniform_set_create([
 		_uniform_storage(0, _pos_buf), _uniform_storage(1, _vel_buf),
@@ -1120,6 +1175,15 @@ func _cluster_centroid() -> Vector3:
 	return acc / float(nc)
 
 
+## Fibonacci-sphere direction (deterministic, de-resonant — the same
+## distribution the multi-cluster placement uses; the multi-rung seeding's
+## mode directions, CASCADE_GRID.md §3.3).
+func _fib_sphere_dir(i: int, n: int) -> Vector3:
+	var p := acos(1.0 - 2.0 * (float(i) + 0.5) / float(n))
+	var t := PI * (1.0 + sqrt(5.0)) * float(i)
+	return Vector3(sin(p) * cos(t), sin(p) * sin(t), cos(p))
+
+
 ## Close framing distance for the startup camera: the spawn extent
 ## (cluster-ring radius + per-cluster ball radius), so the region fills
 ## most of the vertical FOV.
@@ -1138,14 +1202,7 @@ func _camera_framing_radius() -> float:
 func _auto_frame_camera() -> void:
 	if not auto_frame_camera_on_start:
 		return
-	var parent := get_parent()
-	if parent == null:
-		return
-	var cam: Camera3D = null
-	for child in parent.get_children():
-		if child is Camera3D:
-			cam = child
-			break
+	var cam := _find_sibling_camera()
 	if cam == null:
 		return
 	var target := _cluster_centroid()
@@ -1154,6 +1211,54 @@ func _auto_frame_camera() -> void:
 	cam.look_at(target, Vector3.UP)
 	print("[CassiSim] Camera framed on spawn: target=(%.1f, %.1f, %.1f) R=%.1f pos=(%.1f, %.1f, %.1f)" % [
 		target.x, target.y, target.z, r, cam.position.x, cam.position.y, cam.position.z])
+
+
+## The sibling Camera3D in the same node group (main/recorder scenes);
+## null in headless verify scenes. Cached once at _ready.
+func _find_sibling_camera() -> Camera3D:
+	var parent := get_parent()
+	if parent == null:
+		return null
+	for child in parent.get_children():
+		if child is Camera3D:
+			return child
+	return null
+
+
+## Zoom-in limit: when the camera flies closer to a cluster center than the
+## cluster's particle cloud extends (+ near plane), push it back out to the
+## cloud edge along the same direction. The camera therefore always stops
+## just outside the particles — the grid can never be lost to the near
+## plane. free_camera.gd's controls are untouched; this only moves the
+## camera AWAY, and only when it violates the limit.
+func _enforce_camera_min_distance() -> void:
+	if _sim_cam == null or _cluster_centers.is_empty():
+		return
+	var cam_pos := _sim_cam.global_position
+	var nearest := 0
+	var nearest_d := INF
+	for c in range(_cluster_centers.size()):
+		var d := cam_pos.distance_to(_cluster_centers[c])
+		if d < nearest_d:
+			nearest_d = d
+			nearest = c
+	var min_d := _camera_min_cluster_distance(nearest)
+	if nearest_d >= min_d or nearest_d < 1e-4:
+		return
+	_sim_cam.global_position = _cluster_centers[nearest] + (cam_pos - _cluster_centers[nearest]).normalized() * min_d
+
+
+## The closest the camera may approach cluster c. 0 (AUTO) = the cluster's
+## particle-truncation radius + the camera's near plane + a 0.5 u cushion.
+func _camera_min_cluster_distance(c: int) -> float:
+	if camera_min_cluster_dist > 0.0:
+		return camera_min_cluster_dist
+	if c < 0 or c >= _cluster_safe_radii.size():
+		return 1.0
+	var near: float = 0.1
+	if _sim_cam != null:
+		near = _sim_cam.near
+	return _cluster_safe_radii[c] + near + 0.5
 
 
 func _init_particles() -> void:
@@ -1217,6 +1322,15 @@ func _init_particles() -> void:
 		var g_hi: float = _erf_approx(z_max_c) - (2.0 / sqrt(PI)) * z_max_c * exp(-z_max_c * z_max_c)
 		gauss_u_max_list.append(maxf(g_hi, 0.0))
 		retained_min = minf(retained_min, u_hi)
+
+	# Host mirror of the cluster records for the camera zoom-in limit: the
+	# per-cluster safe radius is the particle-truncation radius (the cloud's
+	# visible edge — "just inside the visibility limit").
+	_cluster_centers.clear()
+	_cluster_safe_radii.clear()
+	for c in range(nc):
+		_cluster_centers.append(centers[c])
+		_cluster_safe_radii.append(r_max_list[c])
 
 	# Build the cluster records, then upload them to the GPU buffer.
 	# ClusterBuf in cassi_nbody_gravity.glsl holds 64 records; truncate
@@ -1349,6 +1463,31 @@ func _init_particles() -> void:
 		pos[i4]     = lx + center.x
 		pos[i4 + 1] = ly + center.y
 		pos[i4 + 2] = lz + center.z
+
+		# ── Multi-rung cascade seeding (CASCADE_GRID.md §3.3) ────────
+		# Zel'dovich displacement δx = Σ_m (A/k_m)·sin(k_m·(d_m·x) + φ_m)·d_m
+		# with φ-spaced wavenumbers k_m = 2π·φ^m/(base·R) and Fibonacci-sphere
+		# directions — linear-order density power δρ/ρ = −∇·δx at several
+		# cascade rungs, so bubbles condense at multiple scales at once.
+		# Applied in WORLD space (the modes span the whole box); the
+		# out-of-box check below uses the displaced positions.
+		if multi_rung_seed and multi_rung_count > 0:
+			var wx: float = pos[i4]
+			var wy: float = pos[i4 + 1]
+			var wz: float = pos[i4 + 2]
+			var k_base: float = TAU / (multi_rung_base_scale * maxf(cluster_radius, 1e-6))
+			for mr in range(multi_rung_count):
+				var km: float = k_base * pow(PHI, float(mr))
+				var d: Vector3 = _fib_sphere_dir(mr, multi_rung_count)
+				var ph_m: float = float(mr) * (TAU / (PHI * PHI))  # golden angle per rung
+				var s: float = sin(km * (d.x * wx + d.y * wy + d.z * wz) + ph_m)
+				var amp: float = multi_rung_amp / km
+				wx += amp * s * d.x
+				wy += amp * s * d.y
+				wz += amp * s * d.z
+			pos[i4] = wx
+			pos[i4 + 1] = wy
+			pos[i4 + 2] = wz
 
 		var rr: float = sqrt(lx * lx + ly * ly + lz * lz)
 		max_r = maxf(max_r, rr)
@@ -1931,12 +2070,17 @@ func _step_dispatches(cl: int) -> void:
 	_nbody_pc_bytes.encode_float(52, realsim_viscosity)
 	_nbody_pc_bytes.encode_float(56, realsim_friction)
 
-	# Mass deposit PC: [N_f, particle_N, extent_x, extent_y, extent_z]
+	# Mass deposit PC: [N_f, particle_N, extent_x/y/z, off_x/y/z] — the
+	# offsets are encoded per dispatch (0 for the base lattice; the dual
+	# offset h_i/2 = extent_i/N for the shifted chain, CASCADE_GRID.md).
 	_md_pc_bytes.encode_float(0, float(grid_N))
 	_md_pc_bytes.encode_float(4, float(N_particles))
 	_md_pc_bytes.encode_float(8, ext_step.x)
 	_md_pc_bytes.encode_float(12, ext_step.y)
 	_md_pc_bytes.encode_float(16, ext_step.z)
+	_md_pc_bytes.encode_float(20, 0.0)
+	_md_pc_bytes.encode_float(24, 0.0)
+	_md_pc_bytes.encode_float(28, 0.0)
 	# BH integrate PC: [N_f, dt, acc_rate, max_age]
 	_bh_int_pc_bytes.encode_float(0, float(grid_N))
 	_bh_int_pc_bytes.encode_float(4, dt)
@@ -2044,6 +2188,42 @@ func _step_dispatches(cl: int) -> void:
 		_rd.compute_list_set_push_constant(cl, _nbody_pc_bytes, _nbody_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, grid_N, grid_N, 1)
 	_barrier(cl)  # gradient → nbody
+
+	# ── 2.85. Dual (Yin/Yang) lattice chain (CASCADE_GRID.md) ──────────
+	# The SAME deposit → Poisson → gradient chain on the half-cell-shifted
+	# partner lattice; the river arm averages the two ∇(g·Φ) samples (the
+	# interleaved pair is the BCC lattice). The k-space symbol is
+	# translation-invariant, so only the deposit and gradient world maps
+	# carry the offset — the Poisson FFT chain itself is unchanged. Runs
+	# AFTER the PDE (the shifted gradient samples the same post-PDE field
+	# at shifted cell centers). River modes only, gated on dual_grid.
+	if dual_grid and (gravity_mode == 0 or gravity_mode == 3 or gravity_mode == 4) and _nbody_shader.is_valid():
+		if _poisson_shader.is_valid():
+			_poisson_pc_bytes.encode_float(12, 3.0)  # mode 3 = clear (ρ = 0)
+			_rd.compute_list_bind_compute_pipeline(cl, _poisson_pipe)
+			_rd.compute_list_bind_uniform_set(cl, _us_poisson_0, 0)
+			_rd.compute_list_set_push_constant(cl, _poisson_pc_bytes, _poisson_pc_bytes.size())
+			_rd.compute_list_dispatch(cl, grid_N, grid_N, 1)
+		_barrier(cl)  # dual clear → deposit
+		if _mass_deposit_shader.is_valid() and N_particles > 0:
+			_md_pc_bytes.encode_float(20, ext_step.x / float(grid_N))
+			_md_pc_bytes.encode_float(24, ext_step.y / float(grid_N))
+			_md_pc_bytes.encode_float(28, ext_step.z / float(grid_N))
+			_rd.compute_list_bind_compute_pipeline(cl, _mass_deposit_pipe)
+			_rd.compute_list_bind_uniform_set(cl, _us_mass_dep_0, 0)
+			_rd.compute_list_set_push_constant(cl, _md_pc_bytes, _md_pc_bytes.size())
+			_rd.compute_list_dispatch(cl, pg, 1, 1)
+		_barrier(cl)  # dual deposit → poisson
+		_dispatch_poisson(cl)
+		_barrier(cl)  # dual poisson → gradient
+		_nbody_pc_bytes.encode_float(44, 1.5)  # pass_mode = 1.5 (dual gradient)
+		_rd.compute_list_bind_compute_pipeline(cl, _nbody_pipe)
+		_rd.compute_list_bind_uniform_set(cl, _us_nbody_0, 0)
+		_rd.compute_list_bind_uniform_set(cl, _us_nbody_1, 1)
+		_rd.compute_list_bind_uniform_set(cl, _us_nbody_2, 2)
+		_rd.compute_list_set_push_constant(cl, _nbody_pc_bytes, _nbody_pc_bytes.size())
+		_rd.compute_list_dispatch(cl, grid_N, grid_N, 1)
+		_barrier(cl)  # dual gradient → nbody
 
 	# ── 2.9. Acceleration warm-up (ONE-TIME, before the first KDK step) ──
 	# Fills _acc_buf with the field force at the CURRENT positions with the
