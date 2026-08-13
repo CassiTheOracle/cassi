@@ -266,3 +266,14 @@ closure lives in the integrated sim, not the wave-PDE prototypes).
 Unweighted Lloyd relaxation erases seed-density adaptation — density-
 weighted Lloyd is needed when the adaptive mesh is combined with the
 moving mesh in the integrated sim.
+
+**UPDATE 2026-08-13 (commit 583dda0): the integration shipped.** The
+meshless arm now runs IN the sim behind the default-off `meshless_mode`
+toggle (UI checkbox, init-time): the field PDE branches to the JFA
+Voronoi + cell leapfrog + raster chain, steering + ALE remap between
+frames, the condensation→BH path inherited unchanged. Integration gates
+G9–G12 ALL PASS (both arms' breather 7.3144 vs 7.2361 analytic; the
+arms identical on the k=0 mode; cross-arm full-field L2 6.6e-3) and the
+cube battery stays bit-identical (36/36, pinned anchors). Remaining for
+the full vision: the anisotropic (φ-aspect) mesh, the FMM/tree gravity
+kernel, and density-weighted Lloyd on the adaptive+steered mesh.
