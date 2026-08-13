@@ -54,7 +54,8 @@ var _lap_y: RID
 var _lap_i: RID
 var _vol: RID
 var _jfa_pc := PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-var _cell_pc := PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+var _cell_pc := PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+var _md_zero: RID
 var _sites_cpu := PackedFloat32Array()
 var _checks := 0
 var _failures := 0
@@ -120,6 +121,8 @@ func _make_buffers() -> void:
 	_lap_y = _rd.storage_buffer_create(N_SITES * 4)
 	_lap_i = _rd.storage_buffer_create(N_SITES * 4)
 	_vol = _rd.storage_buffer_create(N_SITES * 4)
+	_md_zero = _rd.storage_buffer_create(4)
+	_rd.buffer_update(_md_zero, 0, 4, PackedByteArray([0, 0, 0, 0]))
 	_jfa_us = _rd.uniform_set_create([
 		_u_storage(0, _labels_a), _u_storage(1, _labels_b), _u_storage(2, _sites),
 	], _jfa_shader, 0)
@@ -128,6 +131,7 @@ func _make_buffers() -> void:
 		_u_storage(2, _psi_y), _u_storage(3, _psi_i),
 		_u_storage(4, _pi_y), _u_storage(5, _pi_i),
 		_u_storage(6, _lap_y), _u_storage(7, _lap_i), _u_storage(8, _vol),
+		_u_storage(9, _md_zero),
 	], _cell_shader, 0)
 
 

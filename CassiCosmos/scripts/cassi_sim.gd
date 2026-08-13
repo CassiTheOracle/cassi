@@ -417,6 +417,8 @@ const ML_N1 := 16              # BCC sublattice count → 2·16³ = 8192 sites a
 const ML_REBUILD := 25         # steering + remap + JFA-refresh cadence (steps)
 const ML_KAPPA := 0.5          # Lloyd-style centroid relaxation fraction
 const ML_LAM := 8.0            # super-Lagrangian momentum ride
+const ML_RHO_FLOOR := 0.005    # steering guard: rho = EY+EI can hit ~0 in the live field
+const ML_MAX_DRIFT := 2.0      # steering guard: cap the per-rebuild site drift (~a quarter cell)
 const ML_OM2 := 20.0           # omega_0² — the same conversion constant as the grid PDE
 const ML_INT_MAX := 2147483647
 var _jfa_shader: RID
@@ -439,7 +441,7 @@ var _us_jfa_0: RID
 var _us_cell_0: RID
 var _us_raster_0: RID
 var _jfa_pc_bytes: PackedByteArray    # JFA PC (8 floats: N, jump, read_a, n_sites, h, pad×3)
-var _cell_pc_bytes: PackedByteArray   # cell PC (8 floats: mode, N, n_sites, dt, h, C2, OM2, PHI)
+var _cell_pc_bytes: PackedByteArray   # cell PC (10 floats: mode, N, n_sites, dt, h, C2, OM2, PHI, source_s, pad)
 var _raster_pc_bytes: PackedByteArray # raster PC (8 floats: N, n_sites, pad×6)
 var _ml_sites_cpu := PackedFloat32Array()
 var _ml_ready := false
@@ -901,7 +903,7 @@ func _setup_buffers() -> void:
 	# storage buffers are NOT zero-initialized on allocator reuse, and the
 	# sampler atomicAdds into the live counters (the per-sample reset is a
 	# buffer_update right before each dispatch in _sample_occupancy).
-	_occ_buf = _rd.storage_buffer_create(32)
+
 	_occ_zero_bytes = PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]).to_byte_array()
 	_rd.buffer_update(_occ_buf, 0, _occ_zero_bytes.size(), _occ_zero_bytes)
 	# Meshless arm buffers (allocated always — ~2.2 MB; used only when
@@ -919,7 +921,7 @@ func _setup_buffers() -> void:
 	_ml_lap_i = _rd.storage_buffer_create(ml_ns * 4)
 	_ml_vol = _rd.storage_buffer_create(ml_ns * 4)
 	_jfa_pc_bytes = PackedByteArray(); _jfa_pc_bytes.resize(8 * 4)
-	_cell_pc_bytes = PackedByteArray(); _cell_pc_bytes.resize(8 * 4)
+	_cell_pc_bytes = PackedByteArray(); _cell_pc_bytes.resize(10 * 4)
 	_raster_pc_bytes = PackedByteArray(); _raster_pc_bytes.resize(8 * 4)
 	# NO sim-owned multimesh buffer: the instancer writes the renderer's own
 	# multimesh instance buffer (see _setup_multimesh) — GPU-direct.
@@ -1178,6 +1180,8 @@ func _cache_uniform_sets() -> void:
 	], _mass_deposit_shader, 0)
 	print("[CassiSim] Mass deposit uniform set cached")
 
+
+
 	# Occupancy sampler (diagnostic; CPU fallback if invalid — the shader
 	# is optional and excluded from _shaders_ready)
 	if _occ_shader.is_valid() and _pos_buf.is_valid() and _occ_buf.is_valid():
@@ -1193,13 +1197,12 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(0, _ml_labels_a), _uniform_storage(1, _ml_labels_b),
 			_uniform_storage(2, _ml_sites),
 		], _jfa_shader, 0)
-	if _cell_shader.is_valid():
 		_us_cell_0 = _rd.uniform_set_create([
 			_uniform_storage(0, _ml_labels_a), _uniform_storage(1, _ml_sites),
 			_uniform_storage(2, _ml_psi_y), _uniform_storage(3, _ml_psi_i),
 			_uniform_storage(4, _ml_pi_y), _uniform_storage(5, _ml_pi_i),
 			_uniform_storage(6, _ml_lap_y), _uniform_storage(7, _ml_lap_i),
-			_uniform_storage(8, _ml_vol),
+			_uniform_storage(8, _ml_vol), _uniform_storage(9, _mass_density_buf),
 		], _cell_shader, 0)
 	if _raster_shader.is_valid():
 		_us_raster_0 = _rd.uniform_set_create([
@@ -1513,7 +1516,7 @@ func _ml_cell_dispatch(mode: float, groups: int) -> void:
 	var h: float = 2.0 * _extent_min() / float(N)
 	var c2: float = h * h  # the grid's 19-point stencil reads h₀²∇² — match it
 	var pcb := PackedFloat32Array([mode, float(N), float(ml_ns), dt,
-		h, c2, ML_OM2, PHI])
+		h, c2, ML_OM2, PHI, source_strength, 0.0])
 	_cell_pc_bytes = pcb.to_byte_array()
 	var cl := _rd.compute_list_begin()
 	_rd.compute_list_bind_compute_pipeline(cl, _cell_pipe)
@@ -1556,17 +1559,23 @@ func _mesh_rebuild() -> void:
 	var new_sites := PackedFloat32Array()
 	new_sites.resize(ml_ns * 4)
 	for s in range(ml_ns):
-		var rho: float = y[s] + i_f[s] + 1e-12
+		# the quasi-Lagrangian ride with TWO guards the live sim needs:
+		# rho = EY+EI can approach zero (the noise-scale field, the
+		# condensate) — a floor stops v = lam·(piY+piI)/rho from
+		# exploding; the drift cap (~a quarter cell) keeps the ALE remap
+		# well-posed even where the momentum is large.
+		var rho: float = max(y[s] + i_f[s], ML_RHO_FLOOR)
 		var v: float = ML_LAM * (py[s] + pi[s]) / rho
+		var drift: float = clampf(v * T_steer, -ML_MAX_DRIFT, ML_MAX_DRIFT)
 		var cc: float = max(float(cnt[s]), 1.0)
 		new_sites[s * 4] = fposmod(
-			(1.0 - ML_KAPPA) * (_ml_sites_cpu[s * 4] + v * T_steer)
+			(1.0 - ML_KAPPA) * (_ml_sites_cpu[s * 4] + drift)
 			+ ML_KAPPA * (float(cx[s]) / cc), 2.0 * _extent_min())
 		new_sites[s * 4 + 1] = fposmod(
-			(1.0 - ML_KAPPA) * (_ml_sites_cpu[s * 4 + 1] + v * T_steer)
+			(1.0 - ML_KAPPA) * (_ml_sites_cpu[s * 4 + 1] + drift)
 			+ ML_KAPPA * (float(cy[s]) / cc), 2.0 * _extent_min())
 		new_sites[s * 4 + 2] = fposmod(
-			(1.0 - ML_KAPPA) * (_ml_sites_cpu[s * 4 + 2] + v * T_steer)
+			(1.0 - ML_KAPPA) * (_ml_sites_cpu[s * 4 + 2] + drift)
 			+ ML_KAPPA * (float(cz[s]) / cc), 2.0 * _extent_min())
 	# ALE remap: the new cell takes the old cell containing its seed
 	var ny := PackedFloat32Array()
@@ -2481,12 +2490,12 @@ func _step_dispatches(cl: int) -> void:
 		_rd.compute_list_bind_compute_pipeline(cl, _cell_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_cell_0, 0)
 		_cell_pc_bytes = PackedFloat32Array([0.0, float(grid_N), float(ml_ns),
-			dt, h, h * h, ML_OM2, PHI]).to_byte_array()
+			dt, h, h * h, ML_OM2, PHI, source_strength, 0.0]).to_byte_array()
 		_rd.compute_list_set_push_constant(cl, _cell_pc_bytes, _cell_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, wg1, 1, 1)
 		_barrier(cl)  # lap → leapfrog
 		_cell_pc_bytes = PackedFloat32Array([1.0, float(grid_N), float(ml_ns),
-			dt, h, h * h, ML_OM2, PHI]).to_byte_array()
+			dt, h, h * h, ML_OM2, PHI, source_strength, 0.0]).to_byte_array()
 		_rd.compute_list_set_push_constant(cl, _cell_pc_bytes, _cell_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, int(ceil(float(ml_ns) / 64.0)), 1, 1)
 		_barrier(cl)  # leapfrog → raster

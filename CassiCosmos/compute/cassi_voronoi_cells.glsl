@@ -14,7 +14,10 @@
 // Pass modes (PC):
 //   0 lap       — one thread per GRID cell: the three +axis faces
 //                 (each face counted once), float atomicAdd flux
-//   1 leapfrog  — one thread per SITE: kick π, drift ψ, zero lap
+//   1 leapfrog  — one thread per SITE: kick π (flux + coupling +
+//                 the mass-driven source, the grid PDE's injection
+//                 sampled at the site's own grid cell), drift ψ,
+//                 zero lap
 //   2 volume    — one thread per GRID cell: atomicAdd h³ per cell
 // The per-step chain is lap → barrier → leapfrog (the leapfrog's lap
 // reset doubles as the next step's clear — no separate zero pass).
@@ -25,14 +28,16 @@
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
 layout(push_constant, std430) uniform PC {
-    float mode;         // 0 lap, 1 leapfrog, 2 volume
-    float N_f;          // grid resolution per dimension
-    float n_sites;      // site (cell) count
-    float dt;           // leapfrog step
-    float h;            // cell spacing (L / N)
-    float C2;           // wave speed²
-    float OM2;          // omega_0²
-    float PHI;          // golden ratio
+    float mode;             // 0 lap, 1 leapfrog, 2 volume
+    float N_f;              // grid resolution per dimension
+    float n_sites;          // site (cell) count
+    float dt;               // leapfrog step
+    float h;                // cell spacing (L / N)
+    float C2;               // wave speed² (h₀² — matches the grid's D19)
+    float OM2;              // omega_0²
+    float PHI;              // golden ratio
+    float source_strength;  // field injection (the grid PDE's source_s)
+    float pad0;
 } pc;
 
 layout(set = 0, binding = 0, std430) restrict readonly buffer Labels {
@@ -61,6 +66,9 @@ layout(set = 0, binding = 7, std430) coherent buffer LapI {
 };
 layout(set = 0, binding = 8, std430) coherent buffer Vol {
     float vol[];
+};
+layout(set = 0, binding = 9, std430) restrict readonly buffer MassDensity {
+    float rho_mass[];  // the deposit's mass density per GRID cell
 };
 
 void main() {
@@ -133,8 +141,24 @@ void main() {
     int s = int(gid);
     float dev = psi_y[s] - pc.PHI * psi_i[s];
     float v = max(vol[s], 1e-12);
-    pi_y[s] += pc.dt * (pc.C2 * lap_y[s] / v - pc.OM2 * dev);
-    pi_i[s] += pc.dt * (pc.C2 * lap_i[s] / v + pc.OM2 * dev);
+
+    // the grid PDE's source, sampled at the site's own grid cell:
+    // src_y = s·exp(-r²4) + rho_mass·0.001, src_i = 0.707·(same)
+    vec4 sp = pos[s];
+    int gi = int(floor(sp.x / pc.h)) % Nn;
+    int gj = int(floor(sp.y / pc.h)) % Nn;
+    int gk = int(floor(sp.z / pc.h)) % Nn;
+    float mr = rho_mass[gi * Nn * Nn + gj * Nn + gk];
+    float halfn = float(Nn) * 0.5;
+    float dx = (sp.x / pc.h - halfn * 0.7) / halfn;
+    float dy = (sp.y / pc.h - halfn * 0.8) / halfn;
+    float dz = (sp.z / pc.h - halfn * 0.6) / halfn;
+    float r2 = dx * dx + dy * dy + dz * dz;
+    float src_y = pc.source_strength * exp(-r2 * 4.0) + mr * 0.001;
+    float src_i = pc.source_strength * 0.707 * exp(-r2 * 4.0) + mr * 0.000707;
+
+    pi_y[s] += pc.dt * (pc.C2 * lap_y[s] / v - pc.OM2 * dev + src_y);
+    pi_i[s] += pc.dt * (pc.C2 * lap_i[s] / v + pc.OM2 * dev + src_i);
     psi_y[s] += pc.dt * pi_y[s];
     psi_i[s] += pc.dt * pi_i[s];
     lap_y[s] = 0.0;
