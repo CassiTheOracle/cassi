@@ -81,9 +81,9 @@ reading would be $3\sigma$).
 
 
 The φ-periodic $P(k)$ prediction is a **zero-parameter, falsifiable test** orthogonal to BAO. Unlike BAO wiggles—which have constant period in $k$-space (one fixed scale, the sound horizon $r_s \approx 150$ Mpc)—the Cassi modulation has constant period in $\ln k$-space: $\Delta(\ln k) = \ln\varphi \approx 0.4812$. The detection pipeline: subtract the smooth+BAO $P(k)$ template, search the residual for a log-periodic signal. Predicted amplitude from wake mechanism: 1–3%. DESI DR2 sensitivity: marginal (2–3σ). Euclid (2027): definitive (>5σ).
-The condensation field gradient anisotropy (§5.2 of `foundations/bubble-edge-geometry.md`) further predicts that void boundaries are $1.70\times$ steeper in the Yin direction than along diagonals—a distinct zero-parameter geometric prediction from the same wake-wave mechanism, testable with void shape catalogs from SDSS/DESI.
+The condensation field gradient anisotropy (§6.2 of `foundations/bubble-edge-geometry.md`) further predicts that void boundaries are $1.70\times$ steeper in the Yin direction than along diagonals—a distinct zero-parameter geometric prediction from the same wake-wave mechanism, testable with void shape catalogs from SDSS/DESI.
 **Source:** `cosmology/cosmology-from-phi.md` §§3–5, `theory/five-element-pde-derivation.md` §7,
-`foundations/bubble-edge-geometry.md` §§2.2,5.2, `cosmology/observational_constraints.md` §1.4–§6,
+`foundations/bubble-edge-geometry.md` §§2.2,6.2, `cosmology/observational_constraints.md` §1.4–§6,
 `cosmology/desi-lattice-averaging.md` (lattice powder lines, variance suppression, wiggle bound). The dark energy prediction is $w_0 = -0.87$ (2σ baseline; 3.6σ at fixed $r_0$ with the B2 coupling, $r_0$ re-tuning closed negatively under the stable realization—12) and $w_a = +0.012$ (2.7σ baseline) shifting to $-0.38$ (1.25σ, B2—the unstable realization) with the coupling (08 §C.6); the term's stable realization (friction closure—10/12) gives a pure-Λ window fit $(w_0, w_a) = (-1, 0)$—4.17σ/2.61σ from DESI; the conversion dynamics keep $w > -1$ at all $z$ (no phantom crossing). The DM/baryon ratio is $\varphi^3 \approx 4.236$ (21% open tension against the observed 5.39). The Hubble tension is pending a full $H(z)$ fit (registry C3/T4); the evolving-$\Omega_\Lambda$ expansion history gives a pipeline CMB-inferred value of ≈ 65.8 km/s/Mpc.
 
 ---
@@ -250,6 +250,36 @@ H_{\text{empty}}$, the gate value $(1-q_0) = \varphi^{-2}/3$);
 `foundations/wake-geometry.md` §1(c) (the composite closure in Yin-wake units,
 $\ell_{n+1}/\Lambda_I = \varphi^2$).
 
+**Prediction 51 (bubble-shell ring ladder):** A simulated bubble shows
+**~10 matter ridges** at radii $r_k = R\,\varphi^{-k}$ ($k = 0,1,2,\ldots$,
+$R$ the bubble radius $\ell_n$), with successive matter-ring ratio
+$\varphi^{-1} = 0.6180$ against the null interleaved-ridge ratio
+$\varphi^{-1/2} = 0.7862$, **interleaved with 9 void troughs** at
+$R\,\varphi^{-(k+\frac12)}$ (strict matter/void alternation), the count
+$n$-independent (scale-covariant). The ladder is the doublet's radial phase
+$\alpha = \pi u$, $u = \log_\varphi(r/\ell_n)$ (π per rung,
+`foundations/spin-fibonacci-spiral.md` §2.1) combined with the pool-cell
+parities (`foundations/rung-offset-mechanism.md` §4.1: cosine antinodes at
+integer rungs = matter, sine antinodes at half-rungs = voids); the ~10-ring
+count follows from the ~1% nesting floor, $N = \ln100/\ln\varphi = 9.570$
+(`foundations/bubble-lattice-fabric.md` §3.3).
+**Tier: Hypothesized (PDE-testable; conditional on the radial-reading
+inference)**—the radial reading of the doublet phase is an inference resting
+on the nested-sub-lattice structure of `foundations/bubble-lattice-fabric.md`
+§3.2, not an established identity; the honest negative (the naive wake-sum
+$\cos(2\pi r/\ell_n) + \cos(2\pi\varphi r/\ell_n)$ has zeros at $\{0.191,
+0.573, 0.809, 0.955\}\,\ell_n$, not a φ-ladder) is documented in
+`foundations/bubble-edge-geometry.md` §3.5. **Null discipline** (matching
+predictions 45/46): report the ridge/trough positions against a same-density
+baseline (uniform radial-density null carrying the identical position grid)
+and a pre-registered ratio test of successive-matter spacings vs
+$\varphi^{-1}$ vs $\varphi^{-1/2}$, quoting both signals and the null.
+
+**Source:** `foundations/bubble-edge-geometry.md` §3 (Radial Interior
+Structure: the Ring Ladder), `foundations/bubble-lattice-fabric.md` §3.2–3.3;
+probe `two-fluid/run_bubble_ring_probe.py` (Leg A analytic ring law, Leg B
+honest negative, Leg C prediction-observable envelope).
+
 
 ---
 
@@ -325,6 +355,7 @@ Sorted by detection likelihood (most definitive first):
 | 48 | Log-periodic polarization orientation | Synchrotron polarimetry | **PA(νφᵏ) = PA(ν) (mod π); period Δ(ln ν) = ln φ ≈ 0.4812**; 90° flip at quarter-rung separation (ν₂/ν₁ = φ^¼); half-rung pair (ν₂/ν₁ = √φ) predicts parallel PA | Tested 2026-08-06 (`experiments/demystifying_cosmos/pa_logperiodic_test.py`): NULL at face value—Crab mm-band PA constant (~138–142°; Δ ln ν = 1.26 = 2.6 rungs), 0/10 band pairs within 3σ, spiral excluded vs uniform-angle null (p = 0.77) | **Tested—null; XL-Calibur / LEAP-class next** |
 | 49 | Gaussian Hawking-spectrum deviation | Analogue horizons (fibre-optic, BEC) | **$\ln(\Delta N/N)$ linear in $\omega^2$, slope $-1/(\varphi^6\Lambda^2)$**; deviation reaches $e^{-\varphi^{-6}} \approx 0.95$ at the cap | Untested—framework-internal proof (σ-regulator); Nature 2026 analogue consistent with direct emission | **Nature-style fibre-optic spectra** |
 | 50 | Spiral pitch tangent | Two-fluid winding dynamics | **$\tan(\text{pitch}) = \gamma/\Omega_S = \varphi^2 = 2.618$** (69.1°)—radial/azimuthal rate ratio, both rates φ-algebra-derived; wake reading $\ell_{n+1}/\Lambda_I$; matches none of the posted forks {0, 0.0766, 0.3063, 0.1988} | Measured 2026-08-07—realization rejected: the measured winding rates do not realize φ² (9–11× off under every normalization; no convention within ±10%); the identity stands as Derived arithmetic | **Tested—rejected (identity Derived)** |
+| 51 | Bubble-shell ring ladder | Bubble simulation (two-fluid PDE) | **~10 matter ridges at $r_k = R\varphi^{-k}$** (successive matter-ring ratio $\varphi^{-1} = 0.6180$ vs null $\varphi^{-1/2} = 0.7862$), 9 void troughs at $R\varphi^{-(k+\frac12)}$, strict alternation, $n$-independent count | Hypothesized (PDE-testable; conditional on the radial-reading inference; honest negative: naive wake-sum zeros {0.191, 0.573, 0.809, 0.955}·ℓ_n are not a φ-ladder) | **Hypothesized—probe `two-fluid/run_bubble_ring_probe.py`** |
 
 ## 8. Universal Boundary Anisotropy—Scale-Invariant Edge Steepness
 

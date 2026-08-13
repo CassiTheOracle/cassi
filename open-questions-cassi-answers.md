@@ -1096,7 +1096,7 @@ All Cassi theory documents are organized in the subdirectories listed above. Key
 - `standard-model/sm-from-phi.md`—SM couplings, GUT, generations
 - `standard-model/cp-violation.md`—CP, baryon asymmetry
 - `standard-model/neutrino-mass.md`—neutrino masses
-- `predictions/falsifiable-predictions.md`—complete 50-entry prediction catalog
+- `predictions/falsifiable-predictions.md`—complete 51-entry prediction catalog
 - `consciousness/consciousness-from-phi.md`—pinch, wake, two-bubble verification
 - `foundations/bubble-edge-geometry.md`—bubble edge profile, condensation threshold, anisotropic void ellipticity
 - `consciousness/consciousness-from-phi.md`—full consciousness theory

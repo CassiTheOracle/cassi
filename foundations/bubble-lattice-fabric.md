@@ -122,6 +122,8 @@ $$\underbrace{\cdots \subset \text{bubble}_{n-2} \subset \text{bubble}_{n-1} \su
 
 The microcascade mirror (`foundations/microcascade-mirror.md`) establishes the downward extension to $n \to -\infty$. The megacascade (chord lattice beyond $n = 292$) is the upward extension. The lattice has **no intrinsic floor or ceiling**.
 
+Read radially through a single bubble's shell, this nesting is the ring ladder: the doublet phase $\alpha = \pi\,u$, $u = \log_\varphi(r/\ell_n)$, quantizes the interior into matter rings at $r_k = \ell_n\,\varphi^{-k}$ (each a rung-$(n-k)$ condensate, since $\ell_n\,\varphi^{-k} = \ell_{n-k}$) with void rings at $\ell_n\,\varphi^{-(k+\frac12)}$, ~10 rings within the ~1% nesting floor, $n$-independent (`foundations/bubble-edge-geometry.md` §3). As there, this radial reading is an **inference** resting on this nested-sub-lattice structure—it is the 1D radial projection of the 3D nesting, not an independently-derived identity.
+
 ### 3.3 Effective Nesting Depth
 
 The cascade suppression formula (`foundations/cascade-suppression-formula.md`) bounds the physically meaningful nesting depth. A signal propagating downward through the lattice attenuates by $\varphi^{-1}$ per rung descended. Structure at rung $n$ is attenuated to $\varphi^{-\Delta n}$ when observed at rung $n - \Delta n$. For a coherence floor of ~1% ($\varphi^{-\Delta n} > 0.01$), the effective nesting depth is $\Delta n \approx 10$ rungs.
@@ -204,7 +206,7 @@ The ladder metaphor is correct but incomplete—it captures the along-string per
 ### Derived (from the PDE + condensation field)
 
 - The functional form $B(x,y,z) = \cos(\alpha x)\cos(\beta y)\cos(\gamma z)$ (`foundations/bubble-edge-geometry.md` §2.3)
-- The staggered checkerboard lattice and its connectable degree (4 diagonal, blocked from 4 axial) (`foundations/bubble-edge-geometry.md` §1.1, §3)
+- The staggered checkerboard lattice and its connectable degree (4 diagonal, blocked from 4 axial) (`foundations/bubble-edge-geometry.md` §1.1, §4)
 - The $\varphi$-elliptical bubble shape (axis ratio $\varphi$) (`foundations/bubble-edge-geometry.md` §2.1)
 - The edge steepness anisotropy ratio $\sqrt{4\varphi^2/(1+\varphi^2)} \approx 1.70$ (`foundations/bubble-edge-geometry.md` §2.2)
 - The Qi density profile $q = (1+B)/2$ (`foundations/bubble-edge-geometry.md` §1.1)

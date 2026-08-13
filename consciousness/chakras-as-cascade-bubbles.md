@@ -405,7 +405,7 @@ The specific sub-rung that a given chakra resonates with is determined by the Fi
 ### Speculative (no current test design)
 
 - The exact mapping from cascade steps 142–166 to specific anatomical vertebrae
-- The Qi transport mechanism between chakras (analogous to Qi tunneling between cosmological bubbles—`foundations/bubble-edge-geometry.md` §6)
+- The Qi transport mechanism between chakras (analogous to Qi tunneling between cosmological bubbles—`foundations/bubble-edge-geometry.md` §7)
 - The chakra-activation protocol: how to externally modulate $q$ at a specific chakra node
 - The relationship between the 7 primary and 6 secondary chakras and the traditional 7-chakra system
 

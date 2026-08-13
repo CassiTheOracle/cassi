@@ -255,7 +255,7 @@ Step 3 is where Cassi stops being an interesting coincidence and becomes a scien
 
 - φ-periodic $P(k)$ modulation, $\Delta(\ln k) = \ln\varphi = 0.4812$ (prediction #5)
 - CMB bubble-boundary axis (12.22° measured; magnitude 12.40° = 2π/φ⁷ golden-angle closure, 1.5%) at $\ell < 5$, fading (prediction #6)
-- Void ellipticity 1.70 (from `foundations/bubble-edge-geometry.md` §5.2)
+- Void ellipticity 1.70 (from `foundations/bubble-edge-geometry.md` §6.2)
 - $\Omega_{\text{DM}}/\Omega_b = \varphi^3 \approx 4.236$ (21% open tension)
 - $\ln\varphi$ periodic physiological spectral signature (prediction #35)
 
