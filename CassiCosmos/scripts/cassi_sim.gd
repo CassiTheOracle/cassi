@@ -254,7 +254,7 @@ var _vsync_enabled: bool = true
 ## modes share the white-hot approach band (violet → pink at the φ⁻² gate →
 ## white at qi_condensation_threshold). Live — re-encoded into the
 ## instancer PC every physics step (no reinit).
-@export_enum("Cassi gradient", "Velocity rainbow", "Qi rainbow", "Qi double rainbow") var particle_color_mode: int = 0
+@export_enum("Cassi gradient", "Velocity rainbow", "Qi rainbow", "Qi double rainbow") var particle_color_mode: int = 2
 
 # ── Consolidated gradient engine (live exports — read per instancer PC fill) ──
 ## Rainbow pass count: 0 = AUTO (mode 3 → 2 passes, modes 1/2 → 1); explicit 1-8
@@ -265,26 +265,27 @@ var _vsync_enabled: bool = true
 ## cycle segments; each pass's hue budget is split by these. The pinch segment's
 ## share × its narrow log width gives the concentrated gradient where most
 ## particles sit. Live — no reinit.
-@export var color_shares: Vector3 = Vector3(0.2, 0.6, 0.2)
+@export var color_shares: Vector3 = Vector3(0.0, 0.2, 0.8)
 ## Cycle progress measure: 0 = Log (multiplicative physics — the pinch band is
 ## the narrowest log interval, intrinsically steepest; default), 1 = Linear.
 ## Live — no reinit.
 @export_enum("Log", "Linear") var color_progress: int = 0
 ## Qi cycle band [lo, hi] — the hue passes' span over the coherence q. Default
-## = the measured normal operating band (2e-4 → 1e-3); q below lo clamps to red.
+## = the saved working band (3.64e-4 → 0.617); q below lo clamps to red.
 ## Live — no reinit.
-@export var qi_cycle: Vector2 = Vector2(0.0002, 0.001)
+@export var qi_cycle: Vector2 = Vector2(0.00036411325, 0.617382)
 ## Qi pinch split — the concentrated-gradient band inside the cycle where most
 ## particles sit (measured q band [3.4e-4, 5.7e-4], median ≈ 3.8e-4). OFF iff
-## lo >= hi. Recommended preset (0.00034, 0.00057). Live — no reinit.
-@export var qi_pinch: Vector2 = Vector2(0.0, 0.0)
+## lo >= hi. Default (0, 0.001) clamps the lo edge to the cycle lo (pinch =
+## [cycle lo, 0.001]). Live — no reinit.
+@export var qi_pinch: Vector2 = Vector2(0.0, 0.001)
 ## Qi white-hot approach band [entry, white point] — count-invariant: violet
 ## (0.8) at the entry → PINK (0.93) exactly at the φ⁻² gate → red (1.0) at the
 ## white point, lightness 0.5 → 1.0. Live — no reinit.
-@export var qi_approach: Vector2 = Vector2(0.001, 0.85)
+@export var qi_approach: Vector2 = Vector2(0.617382, 0.618)
 ## White point = the LIVE qi_condensation_threshold export (re-anchors the
 ## approach's white end live, no reinit).
-@export var qi_approach_tracks_threshold: bool = true
+@export var qi_approach_tracks_threshold: bool = false
 ## φ⁻² pink anchor inside the approach band (0.3819660112501051 — the framework's
 ## decoherence threshold; repositionable). Live — no reinit.
 @export_range(0.0, 1.0, 0.000001) var qi_gate: float = 0.3819660112501051
@@ -307,12 +308,12 @@ var _vsync_enabled: bool = true
 ## afterwards. Only acts when a sibling Camera3D exists (main/recorder
 ## scenes); the headless verify scenes have none and are untouched.
 @export var auto_frame_camera_on_start: bool = true
-## Camera zoom-in limit: the camera is pushed back out when it flies closer
-## than this distance to any cluster center (world units), so the particle
-## grid can never be lost to near-plane clipping. 0 = AUTO: each cluster's
-## particle-truncation radius + the camera near plane — the camera stops at
-## the particle cloud's edge, just inside the visibility limit.
-@export_range(0.0, 100000.0, 1.0) var camera_min_cluster_dist: float = 0.0
+## Camera far limit: the camera is pulled back when it flies farther than
+## this distance from the grid center (world units), so the particle grid
+## can never be lost to the far plane. 0 = AUTO: the camera's far plane
+## minus the grid bounding radius — the grid stays just inside the
+## visibility limit.
+@export_range(0.0, 1000000.0, 1.0) var camera_max_distance: float = 0.0
 
 # ═══════════════════════════════════════════════════════════════════════
 # Internal state
@@ -321,8 +322,6 @@ var _vsync_enabled: bool = true
 var _rd: RenderingDevice = null
 
 var _sim_cam: Camera3D = null                 # sibling camera (main/recorder); null headless
-var _cluster_centers: Array[Vector3] = []     # host mirror of the cluster records
-var _cluster_safe_radii: Array[float] = []    # per-cluster particle-truncation radius
 
 # — field grid buffers (SET 0) —
 var _field_ey: RID; var _field_ei: RID
@@ -604,7 +603,7 @@ func has_color_defaults() -> bool:
 func _process(delta: float) -> void:
 	if not _rd:
 		return
-	_enforce_camera_min_distance()
+	_enforce_camera_max_distance()
 
 	# First-run import race: on a fresh cache the .glsl imports may not have
 	# finished when _ready ran — retry until every shader compiles.
@@ -1225,40 +1224,31 @@ func _find_sibling_camera() -> Camera3D:
 	return null
 
 
-## Zoom-in limit: when the camera flies closer to a cluster center than the
-## cluster's particle cloud extends (+ near plane), push it back out to the
-## cloud edge along the same direction. The camera therefore always stops
-## just outside the particles — the grid can never be lost to the near
-## plane. free_camera.gd's controls are untouched; this only moves the
-## camera AWAY, and only when it violates the limit.
-func _enforce_camera_min_distance() -> void:
-	if _sim_cam == null or _cluster_centers.is_empty():
+## Far limit: when the camera flies farther from the grid center (the box is
+## origin-centered) than the visibility boundary, pull it back to just inside
+## — the box's farthest corner then sits exactly on the camera's far plane.
+## free_camera.gd's controls are untouched; this only moves the camera BACK,
+## and only when it violates the limit.
+func _enforce_camera_max_distance() -> void:
+	if _sim_cam == null:
 		return
-	var cam_pos := _sim_cam.global_position
-	var nearest := 0
-	var nearest_d := INF
-	for c in range(_cluster_centers.size()):
-		var d := cam_pos.distance_to(_cluster_centers[c])
-		if d < nearest_d:
-			nearest_d = d
-			nearest = c
-	var min_d := _camera_min_cluster_distance(nearest)
-	if nearest_d >= min_d or nearest_d < 1e-4:
+	var max_d := _camera_max_distance()
+	var d := _sim_cam.global_position.length()
+	if d <= max_d or d < 1e-4:
 		return
-	_sim_cam.global_position = _cluster_centers[nearest] + (cam_pos - _cluster_centers[nearest]).normalized() * min_d
+	_sim_cam.global_position = _sim_cam.global_position.normalized() * max_d
 
 
-## The closest the camera may approach cluster c. 0 (AUTO) = the cluster's
-## particle-truncation radius + the camera's near plane + a 0.5 u cushion.
-func _camera_min_cluster_distance(c: int) -> float:
-	if camera_min_cluster_dist > 0.0:
-		return camera_min_cluster_dist
-	if c < 0 or c >= _cluster_safe_radii.size():
-		return 1.0
-	var near: float = 0.1
+## 0 (AUTO) = the camera's far plane minus the grid's bounding-sphere radius
+## (half-diagonal): the whole grid stays inside the far plane — just inside
+## the visibility limit. Manual override via camera_max_distance.
+func _camera_max_distance() -> float:
+	if camera_max_distance > 0.0:
+		return camera_max_distance
+	var far: float = 4000.0
 	if _sim_cam != null:
-		near = _sim_cam.near
-	return _cluster_safe_radii[c] + near + 0.5
+		far = _sim_cam.far
+	return maxf(far - _extents().length(), 1.0)
 
 
 func _init_particles() -> void:
@@ -1322,15 +1312,6 @@ func _init_particles() -> void:
 		var g_hi: float = _erf_approx(z_max_c) - (2.0 / sqrt(PI)) * z_max_c * exp(-z_max_c * z_max_c)
 		gauss_u_max_list.append(maxf(g_hi, 0.0))
 		retained_min = minf(retained_min, u_hi)
-
-	# Host mirror of the cluster records for the camera zoom-in limit: the
-	# per-cluster safe radius is the particle-truncation radius (the cloud's
-	# visible edge — "just inside the visibility limit").
-	_cluster_centers.clear()
-	_cluster_safe_radii.clear()
-	for c in range(nc):
-		_cluster_centers.append(centers[c])
-		_cluster_safe_radii.append(r_max_list[c])
 
 	# Build the cluster records, then upload them to the GPU buffer.
 	# ClusterBuf in cassi_nbody_gravity.glsl holds 64 records; truncate
