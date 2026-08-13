@@ -292,6 +292,45 @@ diffusion, gravity-buoyancy, cs²-pressure) realizes the ladder; the solver is
 first-order in time with no second-order wave term (record
 `runs/20260813_005814_bubble_ring_dynamic.json`, arm verdicts).
 
+**Prediction 52 (void radial ring profiles, real space):** stacked void
+radial galaxy-density profiles—the real-space cousin of Prediction 51's
+PDE/simulated ring ladder—should show matter ridges at
+$r_k = R\,\varphi^{-k}$ (successive-matter-ring ratio $\varphi^{-1} =
+0.6180$ vs the null interleaved-ridge ratio $\varphi^{-1/2} = 0.7862$) in
+the shell interior, with the first few resolvable rungs at
+$r \approx 0.618\,R$ and $0.382\,R$. The pre-registered test
+(`experiments/void_phi_rings/stack_void_rings.py`, decision tree written
+before any analysis run): >= 3 significant interior ridges (2$\sigma$ vs a
+same-density masked-null) whose two successive ratios both fall in
+$[0.6180 \pm 0.08]$ and outside $[0.7862 \pm 0.05]$ = **SUPPORTS**; both in
+$[0.7862 \pm 0.05]$ and outside $[0.6180 \pm 0.08]$ = **SUPPORTS NULL**;
+else **INDETERMINATE**; < 3 significant ridges = **NO RIDGES**. **Tier:
+Hypothesized.** The real-galaxy stacking step is blocked at the data layer
+(no public catalog bundles per-void galaxy positions: Pan et al. 2012 is
+not on VizieR and its Drexel hosting is defunct; the Nadathur CDS tables
+carry per-void summaries only). The pipeline and the planted-signal
+detection-power calibration run against a synthetic φ-ladder field built
+on the real verified void geometry (Nadathur & Hotchkiss 2014 DR7,
+`J/MNRAS/440/1248`, 808 Type1 voids, Table-2 cross-checked); at the ~1%
+contrast floor the pipeline recovers the ladder (ridges at
+$r/R = \{0.377, 0.583, 0.994\}$, successive ratios $\{0.586, 0.647\}$,
+**SUPPORTS**), with detection power 62% at 1%, 100% at 2–5%, 0% at
+0.3–0.5%. No real galaxy distribution was fitted, so nothing is Mapped and
+the Fit-Status Ledger is untouched; the pipeline consumes a real per-void
+galaxy catalog unmodified.
+
+**Source:** `analyses/void-ring-profiles.md` (this analysis; real-data
+block and exact acquisition failures in §2.2, results in §4);
+`foundations/bubble-edge-geometry.md` §3.5 (the ring law);
+`predictions/falsifiable-predictions.md` Prediction 51 (the ratio test and
+null discipline reused 1:1);
+`experiments/void_phi_rings/acquire_void_catalog.py` (catalog download +
+hash + Table-2 cross-check);
+`experiments/void_phi_rings/stack_void_rings.py` (stacking, ridge
+detection, same-density null, planted-signal power calibration); data
+`runs/20260813_142511_rings.json`. The k-space cousin is Prediction 5 /
+`experiments/phi_periodic_pk_search/run_phi_periodic_pk_test.py`.
+
 
 ---
 
@@ -368,6 +407,7 @@ Sorted by detection likelihood (most definitive first):
 | 49 | Gaussian Hawking-spectrum deviation | Analogue horizons (fibre-optic, BEC) | **$\ln(\Delta N/N)$ linear in $\omega^2$, slope $-1/(\varphi^6\Lambda^2)$**; deviation reaches $e^{-\varphi^{-6}} \approx 0.95$ at the cap | Untested—framework-internal proof (σ-regulator); Nature 2026 analogue consistent with direct emission | **Nature-style fibre-optic spectra** |
 | 50 | Spiral pitch tangent | Two-fluid winding dynamics | **$\tan(\text{pitch}) = \gamma/\Omega_S = \varphi^2 = 2.618$** (69.1°)—radial/azimuthal rate ratio, both rates φ-algebra-derived; wake reading $\ell_{n+1}/\Lambda_I$; matches none of the posted forks {0, 0.0766, 0.3063, 0.1988} | Measured 2026-08-07—realization rejected: the measured winding rates do not realize φ² (9–11× off under every normalization; no convention within ±10%); the identity stands as Derived arithmetic | **Tested—rejected (identity Derived)** |
 | 51 | Bubble-shell ring ladder | Bubble simulation (two-fluid PDE) | **~10 matter ridges at $r_k = R\varphi^{-k}$** (successive matter-ring ratio $\varphi^{-1} = 0.6180$ vs null $\varphi^{-1/2} = 0.7862$), 9 void troughs at $R\varphi^{-(k+\frac12)}$, strict alternation, $n$-independent count | Hypothesized (PDE-testable; conditional on the radial-reading inference; honest negative: naive wake-sum zeros {0.191, 0.573, 0.809, 0.955}·ℓ_n are not a φ-ladder; dynamic realization test 2026-08-13 = **NO RINGS on all four arms** (conversion-only/diffusion/gravity-buoyancy/cs²-pressure) to $t=40$) | **Hypothesized—analytic probe `two-fluid/run_bubble_ring_probe.py`; dynamic probe `two-fluid/run_bubble_ring_dynamic_probe.py` = four-arm null** |
+| 52 | Void radial ring profiles | Cosmic surveys (void stacking) | **Successive matter-ring ratio $\varphi^{-1} = 0.6180$ vs null $\varphi^{-1/2} = 0.7862$; first resolvable rungs at $r \approx 0.618\,R$, $0.382\,R$** | Pre-registered pipeline `experiments/void_phi_rings/stack_void_rings.py`: synthetic-φ-ladder pivot recovers the ladder at ~1% floor (SUPPORTS; power 62%/100%/0% at 1%/2–5%/0.3–0.5%); **real-galaxy stacking blocked** (no downloadable per-void galaxy-position catalog) | **Hypothesized (pipeline calibrated 2026-08-13); real-data stacking pending per-void galaxy acquisition** |
 
 ## 8. Universal Boundary Anisotropy—Scale-Invariant Edge Steepness
 
