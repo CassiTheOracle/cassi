@@ -165,7 +165,7 @@ where $q(k)$ is the mean Qi quality at scale $k$.
 
 ### 4.2 Limiting Values
 
-**Inertial range** ($k \gg k_\varphi$, $q \to 0$):
+**Inertial range** ($k \gg k_\varphi$, $q \to 0$: the dilute $\varphi$-line, low density at the attractor ratio):
 $$G_{\text{eff}} \to \frac{\pi}{\rho} \cdot G \approx \varphi^{-3} G \approx 0.236 G$$
 
 Gravity is **weakened** by factor ~4.2 relative to Newton.

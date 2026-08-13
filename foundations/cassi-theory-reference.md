@@ -74,9 +74,9 @@ The gate *openness* is $(1-q)$: $q \to 0$ means the gate is **open**—conversio
 
 | Limit | Condition | Effective Theory |
 |-------|-----------|-----------------|
-| $q \to 0$ | $\pi/\rho = \varphi^{-3}$ | GR with $G_{\text{eff}} = \varphi^{-3}G$ |
-| $q \to 0,\ \hbar \to 0$ | Classical + equilibrium | Newtonian gravity |
-| $\hbar \not\to 0,\ q \to 0$ | Quantum + equilibrium | Schrödinger equation |
+| $q \to 0$ on the $\varphi$-line (dilute attractor: $\varepsilon = 0$, $\rho \to 0$; $q \to 0$ alone is $\rho \to 0$ or large $|\varepsilon|$, not equilibrium—at the reference fixed point $q = q_{\text{eq}} \approx 0.873$) | $\pi/\rho = \varphi^{-3}$, boost $\to 1$ | GR with $G_{\text{eff}} = \varphi^{-3}G \approx 0.236\,G$ |
+| $q \to 0$ on the $\varphi$-line, $\hbar \to 0$ | Classical + dilute equilibrium | Newtonian gravity |
+| $\hbar \not\to 0$, $q \to 0$ on the $\varphi$-line | Quantum + dilute equilibrium | Schrödinger equation |
 | $\lambda \to 0$ | No conversion | Euler-Poisson system |
 | $\xi \to 0$ | No Qi enhancement | Standard GR |
 
@@ -171,7 +171,7 @@ $$\boxed{G_{\text{eff}} = G \cdot \frac{\pi}{\rho} \cdot (1 + (\varphi^{6}-1)q)}
 
 $\xi = \varphi^6$: 2 field components $\times$ 3 spatial dimensions (Frenet-Serret frame, §10.2).
 
-At the $\varphi$-fixed point ($q=0$, $\pi/\rho = \varphi^{-3}$): $G_{\text{eff}} = \varphi^{-3}G$. In the weak-field limit, PPN parameters $\beta = 1 + \mathcal{O}(\xi q^2)$, $\gamma = 1 + \mathcal{O}(\xi q^2)$. In high-$q$ regions, $G_{\text{eff}}$ is enhanced by factor $(\varphi^{6}-1)q$.
+At the $\varphi$-fixed point ($\varepsilon = 0$, $\pi/\rho = \varphi^{-3}$) the equilibrium coherence is $q_{\text{eq}} = \varphi^2/(\varphi^2+\varphi^{-2}) \approx 0.873$ at the reference density, so $G_{\text{eff}} = \varphi^{-3}(1+(\varphi^{6}-1)q_{\text{eq}})G = \varphi^{-3}(\varphi^{10}+1)/(\varphi^4+1)\,G \approx 3.73\,G$. In the weak-field (dilute) limit $q \to 0$ on the $\varphi$-line, PPN parameters $\beta = 1 + \mathcal{O}(\xi q^2)$, $\gamma = 1 + \mathcal{O}(\xi q^2)$ return to GR with $G_{\text{eff}} = \varphi^{-3}G$. In high-$q$ regions, $G_{\text{eff}}$ is enhanced by factor $(\varphi^{6}-1)q$.
 
 ### 4.4 Gauge Sector $\mathcal{L}_{\text{SM}}$
 
@@ -316,7 +316,7 @@ Point-particle reduction of the two-fluid PDE gives:
 
 $$\ddot{\mathbf{X}}_j = -G\,\alpha_j\,(1+(\varphi^{6}-1)q_j)\,\sum_{i\neq j} M_i\frac{\mathbf{X}_j - \mathbf{X}_i}{|\mathbf{X}_j - \mathbf{X}_i|^3}$$
 
-where $\alpha_j = \Pi_j/M_j$ is the local Yang fraction. At the $\varphi$-fixed point ($\alpha_j = \varphi^{-3}$, $q_j = 0$): $G_{\text{eff}} = \varphi^{-3}G$, masses are conserved, and the system is exactly Newtonian (non-integrable except for known special solutions). Off the fixed point, masses evolve via conversion and $G_{\text{eff}}$ is body-dependent.
+where $\alpha_j = \Pi_j/M_j$ is the local Yang fraction. At the $\varphi$-fixed point ($\alpha_j = \varphi^{-3}$, $\varepsilon_j = 0$) each blob carries its equilibrium coherence $q_j = q_{\text{eq}}(\rho_j) = \rho_j^2/(\rho_j^2+\varphi^{-2})$, so $G_{\text{eff},j} = \varphi^{-3}(1+(\varphi^{6}-1)q_{\text{eq}}(\rho_j))G$ ($\approx 3.73\,G$ at the reference density), masses are conserved, and the equations of motion keep the Newtonian form with body-dependent couplings; the exactly-Newtonian limit $G_{\text{eff}} = \varphi^{-3}G$ is the dilute fixed point $\rho_j \to 0$ ($q_j \to 0$). Off the fixed point, masses evolve via conversion and $G_{\text{eff}}$ is body-dependent.
 
 ---
 
@@ -391,7 +391,7 @@ The Kolmogorov $-5/3$ spectrum emerges from the Navier-Stokes advection term emb
 
 $$k_\varphi = \varphi^3\sqrt{\lambda^3/\varepsilon_{\text{flux}}}$$
 
-**Scale-dependent gravity.** $G_{\text{eff}}(k)$ varies by factor $\varphi^6$ across the break: $\varphi^{-3}G$ in the inertial range ($q \to 0$), $(\varphi^{-3} + \varphi^3)G$ in the Qi-active range ($q \to 1$).
+**Scale-dependent gravity.** $G_{\text{eff}}(k)$ varies by factor $\varphi^6$ across the break: $\varphi^{-3}G$ in the inertial range ($q \to 0$ on the $\varphi$-line), $\varphi^{3}G$ in the Qi-active range ($q \to 1$, from $\varphi^{-3}(1+(\varphi^{6}-1)) = \varphi^3$).
 
 **$\varepsilon$-spectrum.** $E_\varepsilon(k) \propto k^{-5/3} \cdot f(k/k_\varphi)$—the deviation from $\varphi$-equilibrium has its own inertial-range scaling with a $\varphi$-determined break.
 

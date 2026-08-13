@@ -81,6 +81,14 @@ The sign is established by the PDE tests of 2026-07-31 (`consciousness/trauma-as
 
 The gate dynamics have enormous physical consequences. They control the expansion of the universe—the gate's opening and closing drives the early growth spurt and the current acceleration (section 10). They modulate the strength of gravity: in high-coherence regions, gravity is amplified up to 18 times (section 12). And at the human scale, the gate's threshold—the **pinch point** at $r = \varphi^{-1} \approx 0.618$—marks the boundary between reactive and self-aware dynamics (section 19).
 
+### Winding and parity
+
+Conversion does more than push the ratio: it **rotates** the doublet in its internal plane. The density-plane angle $\theta = \mathrm{atan2}(E_I, E_Y)$ advances $2\pi$ per cascade rung, and the conversion term rotates it at a rate set by the local imbalance,
+
+$$\frac{d\theta}{dt} = \lambda(1-q)\,\frac{\rho\,\varepsilon}{E_Y^2 + E_I^2}$$
+
+(`foundations/cassi-first-principles.md` §2.6). Because the conversion rate $\lambda$ and the gate $(1-q)$ cancel in the angle, the total winding a state accumulates while relaxing to the $\varphi$-line is a parameter-free function of its formation imbalance alone: $|\delta n| \le \mathrm{atan}(\varphi)/(2\pi) \approx 0.162$ rungs. Offsets inside that bound are **relaxation winding**; a half-rung offset ($\delta n = 1/2$) is one full $\pi$-advance of the density-plane angle—the doublet's per-rung step—and exceeds the winding bound by $\sim 3\times$, so the half-step class is the **parity** structure of `foundations/rung-offset-mechanism.md` §7 (the pool-cell fundamental's antinode), not relaxation.
+
 ### Memory
 
 Coherence has **memory**. The field carries a smoothed record of its own recent past, with a smoothing timescale set by the golden ratio itself, about 0.618 of a cycle. The field integrates over its own history—a region that was balanced a moment ago is more likely to be balanced now. Coherence is not an instantaneous measurement; it is a history. This temporal depth is what makes the field's dynamics non-Markovian at leading order and is the physical substrate of persistence in the framework's account of time.
@@ -273,7 +281,7 @@ The effective force law carries the Qi-gravity coupling (`cosmology/observationa
 
 $$\mathbf{F}_{ij} = -G\,\alpha_{0,i}(1+(\varphi^{6}-1)q_i)\,M_i M_j\frac{\mathbf{r}_{ij}}{|\mathbf{r}_{ij}|^3}, \qquad \xi = \varphi^6$$
 
-with $\alpha_{0,i}$ the per-body Yang fraction at the $\varphi$-fixed point ($\alpha_0 = \pi/\rho = \varphi^{-3} \approx 0.236$; the galactic halo fit uses the separate empirical value $\alpha_{\text{halo}} \approx 0.7$) and $q_i$ the local Qi coherence. In most of the universe ($q$ low), gravity is slightly weaker than textbook; in high-coherence regions (galaxy centers), it is amplified. This predicts a scale-dependent $\sigma_8$—structure growth reduced by weakened gravity in voids—being tested with KiDS/DESI.
+with $\alpha_{0,i}$ the per-body Yang fraction at the $\varphi$-fixed point ($\alpha_0 = \pi/\rho = \varphi^{-3} \approx 0.236$; the galactic halo fit uses the separate empirical value $\alpha_{\text{halo}} \approx 0.7$) and $q_i$ the local Qi coherence. In the dilute universe ($q \to 0$ on the $\varphi$-line) gravity sits at the diluted value $G_{\text{eff}} = \varphi^{-3}G \approx 0.236\,G$—weaker than textbook; at the reference-density fixed point the equilibrium boost gives $G_{\text{eff}} = \varphi^{-3}(1+(\varphi^{6}-1)q_{\text{eq}})G \approx 3.73\,G$ ($q_{\text{eq}} \approx 0.873$, `foundations/cassi-first-principles.md` §2.3), and in high-coherence regions it is amplified further. This predicts a scale-dependent $\sigma_8$—structure growth reduced by weakened gravity in voids—being tested with KiDS/DESI.
 
 **Epistemic status:** the coupling-strength result is **Derived** (0.1% match to the proton's gravitational coupling). The $\xi = \varphi^6$ amplification and its cosmological consequences are **Hypothesized**.
 
@@ -413,6 +421,8 @@ The framework documents its own errors openly (`audit.md`); the gate-sign conven
 6. **What sustains a frozen wake.** The 2026-07-31 PDE tests showed that an un-driven standing pattern decays like any other perturbation; the driver test (`consciousness/trauma-as-frozen-gate.md` §10.5) identified the sustainer as ongoing re-stimulation—a weak recurring trigger (0.005% of the event peak per step) holds the site near event intensity, and stopping the trigger releases it. The open question moves to what maintains the stimulus behaviorally (§10.4–§10.5).
 
 7. **Can $q$ be externally modulated at human scale?** Whether coherence can be deliberately increased (meditation, biofeedback) is untested, and would be the framework's most consequential practical claim.
+
+8. **What supplies the winding beyond the relaxation bound.** Relaxation winding is bounded at $|\delta n| \le \mathrm{atan}(\varphi)/(2\pi) \approx 0.162$ rungs (`foundations/cassi-first-principles.md` §2.6); the half-step placements (proton, electron, BAO) exceed it by $\sim 3\times$ and are assigned to the parity structure of `foundations/rung-offset-mechanism.md` §7. The structural source of that parity—the boundary condition that pins a state at the half-rung rather than winding it there—is open.
 
 ---
 

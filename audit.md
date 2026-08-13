@@ -55,7 +55,7 @@ Neutrino masses are not cleanly derivable from $\varphi$ alone. The seesaw mecha
 | Prediction | Cassi Value | Experimental | Status |
 |-----------|-------------|--------------|--------|
 | Mercury perihelion | $42.98''$/cy (GR) | $42.98'' \pm 0.01''$/cy | ✅ **Matches GR** |
-| $G_{\text{eff}}/G$ (fixed point) | $\varphi^{-3} \approx 0.236$ |—| ✅ **Algebraic at the φ-fixed point** ($\pi/\rho = (\varphi-1)/(\varphi+1)$); the "equilibrium Yang fraction" label is Mapped (relabel), ledger row 500 |
+| $G_{\text{eff}}/G$ (fixed point) | $\varphi^{-3}(1+(\varphi^{6}-1)q_{\text{eq}}) \approx 3.73$ ($q_{\text{eq}} = \varphi^2/(\varphi^2+\varphi^{-2}) \approx 0.873$ at the reference density; $\pi/\rho = \varphi^{-3}$) |—| ✅ **Algebraic at the φ-fixed point**—the equilibrium Qi boost $(\varphi^{10}+1)/(\varphi^4+1) \approx 15.79$ times the imbalance $\pi/\rho = \varphi^{-3}$; the "equilibrium Yang fraction" label is Mapped (relabel), ledger row 500; the dilute limit $q \to 0$ ($\rho \to 0$ on the $\varphi$-line) gives $\varphi^{-3} \approx 0.236$ |
 | $v_C/v_B$ (MW rotation) | $2.8$–$3.0$ (revised 2026-07-31) | $2.5-3.0$ | ✅ **Within range** |
 | Dwarf spheroidal M/L | 3/8 pass (corrected 2026-08-03) | 3/8 | ⚠️ **MOND preferred (4/8); ceiling $\varphi^3 = 4.2361$ exceeded in 3/8** |
 | MESSENGER bound $\|q\|$ | $< 1.1\times 10^{-6}$ at 0.39 AU | Satisfied | ✅ **Passes** |

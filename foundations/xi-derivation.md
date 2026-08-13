@@ -65,7 +65,7 @@ $$
 G_{\text{eff,max}} = G \cdot \varphi^{-3} \cdot \varphi^6 = G \cdot \varphi^3 = 4.236067978\,G
 $$
 
-so the coupling's dynamic range is the reciprocal pair $\varphi^{-3}G$ (gate open, $q \to 0$) to $\varphi^{3}G$ (gate closed, $q \to 1$): the saturated value is the reciprocal of the open value, and $\xi$ is the square of the ratio between them. The $q$-coefficient is the saturation-anchored chord $(\varphi^6 - 1)$: the boost is exactly $1$ at $q = 0$ (Newtonian) and exactly $\varphi^6$ at $q \to 1$—the chord through the two exact endpoints, not a Taylor linearization of the exact ladder $1/(1-(1-\varphi^{-6})q)$.
+so the coupling's dynamic range is the reciprocal pair $\varphi^{-3}G$ (gate open, $q \to 0$) to $\varphi^{3}G$ (gate closed, $q \to 1$): the saturated value is the reciprocal of the open value, and $\xi$ is the square of the ratio between them. The $q$-coefficient is the saturation-anchored chord $(\varphi^6 - 1)$: the boost is exactly $1$ at $q = 0$ (the dilute $\varphi$-line: $\varepsilon = 0$ with $\rho \to 0$, where $\pi/\rho = \varphi^{-3}$ and $G_{\text{eff}} = \varphi^{-3}G$) and exactly $\varphi^6$ at $q \to 1$—the chord through the two exact endpoints, not a Taylor linearization of the exact ladder $1/(1-(1-\varphi^{-6})q)$.
 
 ## 3. Consistency Checks
 
