@@ -221,14 +221,133 @@ transition structure with one borderline probe. The K = 3 reading has exactly on
 - **Speculative**: the dressed-rung form (§4.3); the per-sector frame choice (Yukawa vs Compton ladder); the source term of the multi-rung sum (state-density sources show no cumulative structure, T7).
 - **Not supported**: any claim that the full mass catalog clusters at special points—the 38-state scan is uniform, and only the muon placement is individually improbable (≈0.8% over the catalog); likewise the full-catalog ψ map is structureless (T5), no cumulative signature appears with state-density sources (T7), closure-anchored emission phases do not drive the phasor sum (T8), and the lattice frame's sub-multiple law adds no clustering beyond the same-density null (T9).
 
-## 7. References
+## 7. The Winding Bound: Relaxation vs Parity
+
+The winding rate of `foundations/cassi-first-principles.md` §2.6 supplies a
+parameter-free ceiling on one class of rung offsets and hands the other class
+to the parity structure. The canonical fields are densities, $E_Y = \Psi_0^2$
+and $E_I = \Psi_1^2$, and the doublet's internal angle
+$\theta = \mathrm{atan2}(E_I, E_Y)$—the density-plane angle, twice the
+amplitude-plane doublet phase—advances $2\pi$ per cascade rung. The conversion
+term rotates that angle at a rate set by the local imbalance
+$\varepsilon = E_Y - \varphi E_I$:
+
+$$\frac{d\theta}{dt} = \lambda(1-q)\,\frac{\rho\,\varepsilon}{E_Y^2 + E_I^2},
+\qquad \frac{d\varepsilon}{dt} = -\lambda(1+\varphi)(1-q)\,\varepsilon,
+\qquad \frac{d\rho}{dt} = 0$$
+
+with $\rho = E_Y + E_I$ conserved and
+$q = \rho^2/(\rho^2 + \varphi^{-2} + \varepsilon^2)$. A state that forms off
+the $\varphi$-line ($\varepsilon_0 \neq 0$) winds while it relaxes, and
+because the conversion rate $\lambda$ and the gate $(1-q)$ cancel in the
+angle, that winding is a function of the formation imbalance alone—
+parameter-free, independent of $\lambda$ and of the gate shape. The rate law
+is measured in the committed solver (`two-fluid/run_winding_rate_probe.py`):
+four arms, all four matching the formula to per-checkpoint relative error
+$\le 2.2\times10^{-3}$ with 100% sign agreement.
+
+**The boxed identity.** The exact winding accumulated while a state relaxes
+from $\varepsilon_0$ to the $\varphi$-line is
+
+$$\boxed{\Delta\vartheta = \mathrm{atan}\!\left(\frac{1}{\varphi}\right)
+- \mathrm{atan}\!\left(\frac{\rho-\varepsilon_0}{\rho\varphi+\varepsilon_0}
+\right), \qquad \delta n = \frac{\Delta\vartheta}{2\pi}}$$
+
+with the extremes at the Yang limit $\varepsilon_0 \to \rho$
+($+\mathrm{atan}(\varphi^{-1}) \approx 0.554$ rad) and the Yin limit
+$\varepsilon_0 \to -\rho\varphi$ ($-\mathrm{atan}(\varphi) \approx -1.017$
+rad). In rung units,
+
+$$\boxed{|\delta n| \le \frac{\mathrm{atan}(\varphi)}{2\pi}
+\approx 0.162 \ \text{rungs}}$$
+
+and for small formation imbalances the integral reduces to
+
+$$\Delta\vartheta \approx \frac{\rho\,\varepsilon_0}{(1+\varphi)
+\left(E_Y^2 + E_I^2\right)}.$$
+
+The bound splits every observed offset into two classes. **Relaxation
+winding** can produce only $|\delta n| \le 0.162$ rungs; reproducing a
+specific offset inside the bound requires the state's formation imbalance
+$\varepsilon_0$, a free input unless something structural fixes it.
+**Parity** produces the half-rung: $\delta n = \tfrac{1}{2} \iff
+\Delta\vartheta = \pi$, one full $\pi$-advance of the density-plane angle—
+the doublet's per-rung step (the unified $P_\parallel = 2$ convention)—which
+exceeds the winding bound by $\sim 3\times$. The half-step class is the
+parity mechanism of §4.1, not relaxation winding, which cannot reach
+$\delta n = 0.5$ (bound 0.162).
+
+**The classification.** Applying the bound to the sharp placements:
+
+| Row | Measured placement | $\delta n$ | Class | Mechanism | Tier |
+|---|---|---|---|---|---|
+| proton (p, n) | $n = 91.46$, 0.038 rungs from 91.5 | $+0.46$ | half-step | parity, $P_\parallel = 2$ (§4.1) | Mapped placement; class Derived (0.46 > 0.162 bound) |
+| muon | 96.000 | 0.000 | zero-winding closure | $\varepsilon_0 = 0$: no accumulated phase | Mapped (reading; $\varepsilon_0 = 0$ not structurally derived) |
+| J/ψ | 88.98 | $-0.02$ | within the relaxation bound | per-object formation $\varepsilon_0$ (free fit) | Mapped |
+| $m_e$ | 26.5 (Yukawa ladder) | $+0.5$ | half-step | parity (pool-cell fundamental, §4.1) | Mapped placement (fit, `foundations/deriving-remaining-gaps.md` §2); class Derived |
+| BAO | 284.5 | $+0.5$ | half-step | parity | Class Derived (exceeds bound $\sim 3\times$); placement per `foundations/dimensionful-cascade.md` §6 |
+| $\Omega_{\text{DM}}/\Omega_b$ | 5.39 vs $\varphi^3 = 4.24$ | $+0.5$ | half-rung offset | none claimed | **Observation**—$5.39 \approx \varphi^{3.5} = 5.388$ (0.03%), not a registered prediction |
+| primordial $r_0$ | $r_0 = 0.0472 \Rightarrow \Delta\vartheta = -0.970$ rad | $-0.154$ | relaxation (95% of the Yin bound) | winding, parameter-free | Derived prediction—null: matches no cataloged row |
+
+The half-step rows (proton, $m_e$, BAO) are excluded from winding by the
+bound alone: $\delta n = 0.5$ requires $\Delta\vartheta = \pi$, about three
+times the maximum relaxation can accumulate, so their mechanism is the parity
+structure of §4.1 regardless of how the placements were found. The sub-bound
+rows (muon, J/ψ) are the ones the winding channel can in principle explain—
+and the ones whose reconstruction needs a formation imbalance.
+
+**What would upgrade a row to Derived.** A sub-bound row becomes Derived only
+when its formation imbalance $\varepsilon_0$ is structurally determined
+rather than fitted. Two structural candidates exist: the pentagon gap
+$g = 1 - \varphi^{-5}$ (`foundations/wu-xing-derivation.md` §5.1), the derived
+fraction of the primordial Yang–Yin imbalance converted in one pentagon cycle,
+and the wake/golden-angle closure geometry of `foundations/wake-geometry.md`
+§3. What the existing claims already say about the two sharp sub-bound rows:
+this document's §4.1 reads the muon's integer rung as the interior-stable-
+state class (bubble parity), and the closure-ladder test Y3 of
+`foundations/wake-geometry.md` §3(e) lists the muon at 96.000 (0.01%) as a
+rung-96 hit and the J/ψ at 88.98 (1.0% off the closure level 89, $F_{11}$)
+with the mechanism open. The zero-winding reading ties to exactly this: the
+muon's placement is the coherent reading $\varepsilon_0 = 0$—a state forming
+on the $\varphi$-line winds nothing and lands exactly on its rung. That is
+consistent with the integer-rung class and the closure hit, but
+$\varepsilon_0 = 0$ is read from the datum, not derived from a structural
+pin, so the row stays Mapped. The J/ψ's $-0.02$ is inside the bound, yet
+reconstructing it requires a per-object formation $\varepsilon_0$—a free fit:
+Mapped, not Derived. A gap- or closure-anchored $\varepsilon_0$ (for example
+a formation imbalance set by $g$ at the state's birth rung) would promote
+either row to Derived; no such pin exists today.
+
+**The honest negative: the primordial winding.** The framework's derived
+initial condition is strongly Yin: the primordial ratio
+$r_0 = \varphi^{-5}/(2 - \varphi^{-5}) \approx 0.0472$ ($E_Y/E_I$, the Wu Xing
+gap's ratio, `foundations/wu-xing-derivation.md` §5.1), Yin-dominated by
+$\sim 21:1$. Relaxing from that imbalance winds
+
+$$\Delta\vartheta = -0.970 \ \text{rad}
+\quad\Longrightarrow\quad \delta n \approx -0.154 \ \text{rungs},$$
+
+95% of the Yin bound ($-1.017$ rad), with zero free parameters. No cataloged
+row sits at $\delta n \approx -0.154$: the winding predicts an offset where
+none is observed. The absence means observed fractional offsets are not
+products of the universal primordial relaxation—the winding channel
+contributes at most $\pm 0.162$ rungs on top of per-object formation
+imbalances and parity positions, and the primordial imbalance itself leaves
+no imprint on the mass catalog. The $\varphi^3$ row of
+`predictions/falsifiable-predictions.md` §3 keeps its 21% open tension; the
+$\varphi^{3.5}$ reading is an observation about that tension, not a
+framework prediction.
+
+## 8. References
 
 - `foundations/wake-geometry.md` §1–3—wake pair, envelope, half-steps, mass-scan catalog
+- `foundations/cassi-first-principles.md` §2.6—the winding rate: density-plane rotation, exact relaxation-winding identity, $\pm 0.162$-rung bound
 - `principles/de-resonance-principle.md`—why exact alignment is forbidden; correction posture
 - `foundations/dimensionful-cascade.md` §6—wake wavelengths, sound-horizon half-step
 - `foundations/deriving-remaining-gaps.md` §2—electron mass status (external, class **E**)
-- `predictions/falsifiable-predictions.md` §5—predictions 43–45 (wake closure, checkerboard, closure ladder)
+- `predictions/falsifiable-predictions.md` §3—$\Omega_{\text{DM}}/\Omega_b$ row ($\varphi^3$ vs observed 5.39, 21% open tension); §5—predictions 43–45 (wake closure, checkerboard, closure ladder)
 - `two-fluid/run_rung_offset_probe.py`—T1 probe: two-bubble standing pattern, $\delta n(\psi)$ measurement
+- `two-fluid/run_winding_rate_probe.py`—winding-rate probe: four homogeneous arms verify the rate law to $2.2\times10^{-3}$
 - `two-fluid/run_pooled_zone_probe.py`—T10: truncated tower, t/H two-cell pattern, channel-split cases, amplitude-asymmetry check
 - `computations/pooled_zone_modes.py`—pool-cell quantization: the two parities, antinode positions, catalog reading, the t/H phase-rung
 - `experiments/rung_offset_closure/closure_phase_test.py`—T4: closure-phase connection, null result
