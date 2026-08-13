@@ -394,6 +394,13 @@ incomplete, not a place where it is wrong.
    rotation boxed above, which vanishes there. Reconciling the two clocks, or
    ruling the Hypothesized term out in the solver, is open.
 
+   **Separate reconciliation verdict.** The fixed-pitch clock does not derive
+   from the canonical flow: the axial phase gradient is a static pitch—its
+   per-rung advance $(1.0,\,0.5,\,0.4812)$ never equals $0.382$, which is the
+   per-rung gradient attenuation $\varphi^{-1}-1 = -\varphi^{-2}$; the
+   rectification is null; and $\lambda(\varphi^{-2}/d) = \lambda(1-q_0)$ is a
+   re-parameterization of the gate value. $V_{\text{new}}$ stays Hypothesized.
+
 ---
 
 ## References

@@ -187,7 +187,7 @@ The lattice structure varies with the condensation dimension $P_\parallel(n)$, w
 | 285 | Cassi bubble | $P_\parallel = 1$; staggered 2D checkerboard; foreground bubble in chord lattice |
 | >292 | Megacascade | Chord lattice of $w=5$ bubbles; 5-arm Fibonacci spiral at gigacascade octave |
 
-**Note:** $P_\parallel(n)$ varies with scale—1 rung at cosmological scales, 2 rungs at human scales. The $n$-dependence of $P_\parallel$ is not yet derived from first principles.
+**Note:** $P_\parallel(n)$ varies with scale—1 rung at cosmological scales, 2 rungs at human scales. The $n$-dependence of $P_\parallel$ is not yet derived from first principles. The $P_\parallel = 1$ cosmological reading is the boundary-consistent one (tier Hypothesized): the Cassi bubble sits 6.5 rungs inside the horizon's nesting depth, the horizon cut is a half-rung, and the $P_\parallel = 1$ field reads $\approx$ void level there; the allowed set is $\{1, 2\}$ per `foundations/bubble-lattice-fabric.md` §8.1.
 
 For the full derivation, predicted signatures (φ-elliptical bubble shape, 1.70× edge anisotropy), and epistemic boundaries, see `foundations/bubble-lattice-fabric.md`.
 

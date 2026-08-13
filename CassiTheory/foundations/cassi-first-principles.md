@@ -174,6 +174,18 @@ a smaller $\tau$ is needed for the memory to have comparable inertia. The
 $\varphi^{-1}$ value is near-optimal for dynamics at the conversion timescale
 $\sim 1/\lambda$.
 
+**Kernel identity (Derived conditional on the asserted $\tau$ and the EMA
+form).** The EMA weights are exactly the odd $\varphi$-powers:
+
+$$\tau = \varphi^{-1} \iff w_k = \tau(1-\tau)^k = \varphi^{-1}\varphi^{-2k} =
+\varphi^{-(2k+1)}, \qquad k \ge 0,$$
+
+with an e-folding of $1/\ln(\varphi^2) \approx 1.04$ steps—one
+rung-crossing time—and total weight $\sum_{k\ge0}(1-\tau)^k =
+\sum_{k\ge0}\varphi^{-2k} = \varphi$. Matching the per-rung transfer
+amplitude $\varphi^{-1}$ naively would instead select $\tau = \varphi^{-2}$
+(a factor $\varphi$ off); $\tau = \varphi^{-1}$ is the asserted value.
+
 ### 2.5 Gate Transmission Function: Status and Selection Test
 
 The first-principles conversion equation supplies the openness factor $(1-q)$.
@@ -223,6 +235,30 @@ selection audit is reproducible in `computations/gate_origin_audit.py`.
 Derived conditional on the asserted form; the denominator $\varphi^2+q^2$ and
 its normalization remain Asserted.
 
+**Exact values (all Derived $\varphi$-algebra on the asserted $g$; the
+selection status of $g$ stays Asserted).** The gate's values at the
+dynamically-distinguished coherences are closed $\varphi$-algebraic forms:
+
+$$\boxed{\;q = \frac{\varphi^2}{4}\ \text{(the pinch } r = \varphi^{-1}\text{)}:
+\quad g = \frac{4}{17+\varphi} \approx 0.2148;
+\qquad
+q = q_{\text{eq}} = \frac{\varphi^2}{3}:
+\quad g = \frac{3}{10+\varphi} \approx 0.2582\;}$$
+
+$g$ is monotone on $[0,1]$ with maximum $\max g(q) = g(1) =
+1/(\varphi+2) \approx 0.276 < \tfrac12$: the transmission never reaches
+half-open, so the openness $(1-q)$ is what actually gates conversion. The
+self-duality fixed point is $g(\varphi) = \varphi^{-1}/2$—the identity
+$g(\varphi^2/q) = g(q)$ holds formally, with the dual lying outside the
+physical range $[0,1]$. The five-channel bank cannot reduce the single-channel
+form: the solver's five gate aggregates OPENNESS (the constants
+$0.438 \to 0.348$ of `foundations/wa-pentagon-gate.md` §2.3–2.5), never the
+$q$-dependent shape; the pole argument (five distinct pole pairs vs one)
+excludes proportionality; and
+$\sum_{i=0}^{4} \varphi^{-(2+i)} = 1 - \varphi^{-5}$—exactly the Wu Xing gap,
+an overall normalization only. As a bonus, $q = \tfrac12$ exactly at the rung
+$r = \varphi^{-2}$: half-coherence one rung below the pinch.
+
 ---
 
 
@@ -238,7 +274,7 @@ The rate vanishes exactly at the $\varphi$-line ($\varepsilon = 0$) and grows wi
 
 $$\boxed{\Delta\vartheta = \mathrm{atan}\!\left(\frac{1}{\varphi}\right) - \mathrm{atan}\!\left(\frac{\rho-\varepsilon_0}{\rho\varphi+\varepsilon_0}\right)}$$
 
-independent of $\lambda$ and of the gate shape. Its extremes are the Yang limit $\varepsilon_0 \to \rho$ ($\Delta\vartheta \to +\mathrm{atan}(\varphi^{-1}) \approx 0.554$ rad) and the Yin limit $\varepsilon_0 \to -\rho\varphi$ ($\Delta\vartheta \to -\mathrm{atan}(\varphi) \approx -1.017$ rad)—in rung units, fractional offsets $|\delta n| \le \mathrm{atan}(\varphi)/(2\pi) \approx 0.162$; for small deviations the integral reduces to $\Delta\vartheta \approx \rho\varepsilon_0/[(1+\varphi)(E_Y^2+E_I^2)]$. Offsets of half a rung ($\delta n = 0.5$, e.g. the BAO half-step at 284.5, `foundations/dimensionful-cascade.md` §6) are one full $\pi$-advance of the density-plane angle—the doublet's per-rung step—and exceed the relaxation bound by $\sim 3\times$; they are set by the parity structure (`foundations/rung-offset-mechanism.md`), not by accumulated winding. The fixed-pitch clocks ($\varphi^{-2}$ turns per rung, the $69.1°$ pitch tangent of `foundations/spiral-dynamics.md` §2.2) belong to the Hypothesized conversion→expansion term; the canonical rotation is the $\varepsilon$-proportional state function above, which stops at the $\varphi$-line.
+independent of $\lambda$ and of the gate shape. Its extremes are the Yang limit $\varepsilon_0 \to \rho$ ($\Delta\vartheta \to +\mathrm{atan}(\varphi^{-1}) \approx 0.554$ rad) and the Yin limit $\varepsilon_0 \to -\rho\varphi$ ($\Delta\vartheta \to -\mathrm{atan}(\varphi) \approx -1.017$ rad)—in rung units, fractional offsets $|\delta n| \le \mathrm{atan}(\varphi)/(2\pi) \approx 0.162$; for small deviations the integral reduces to $\Delta\vartheta \approx \rho\varepsilon_0/[(1+\varphi)(E_Y^2+E_I^2)]$. Offsets of half a rung ($\delta n = 0.5$, e.g. the BAO half-step at 284.5, `foundations/dimensionful-cascade.md` §6) are one full $\pi$-advance of the density-plane angle—the doublet's per-rung step—and exceed the relaxation bound by $\sim 3\times$; they are set by the parity structure (`foundations/rung-offset-mechanism.md`), not by accumulated winding. The fixed-pitch clocks ($\varphi^{-2}$ turns per rung, the $69.1°$ pitch tangent of `foundations/spiral-dynamics.md` §2.2) belong to the Hypothesized conversion→expansion term; the canonical rotation is the $\varepsilon$-proportional state function above, which stops at the $\varphi$-line. The canonical rotation's fluctuation statistics cannot produce the fixed-pitch clock: $\langle d\theta/dt\rangle = 0$ identically for symmetric fluctuations (the committed solver has no noise source), the exact even part is negative at the vacuum scale, and the phase diffusion is $0.2$–$0.6\%$ of $\Omega_S$—so no rectification path exists and the two clocks stay separate (the canonical rotation governs the $\varepsilon \neq 0$ sector; the Hypothesized fixed-pitch clock governs the background vacuum sector).
 
 ## 3. Emergence of the Four Pillars
 

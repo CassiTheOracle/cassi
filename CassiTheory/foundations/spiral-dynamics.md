@@ -43,10 +43,12 @@ conversion→expansion coupling (zero free constants;
 
 $$\boxed{V_{\text{new}} = \lambda\,\tilde{h}(E_Y,E_I) + \frac{\lambda\varphi^{-2}}{d}}$$
 
-the spiral clock turns **$\varphi^{-2} = 0.38197$ turns per Hubble rung**
-(dynamical pitch angle $\approx 11.34°$, $\tan = \ln\varphi/(2\pi\varphi^{-2}) =
+the spiral clock turns **$\ln\varphi/2\pi \approx 0.0766$ turns per Hubble
+rung** (dynamical pitch angle $\approx 11.34°$, $\tan = \ln\varphi/(2\pi\varphi^{-2}) =
 0.2005$)—not one turn per rung; the azimuthal discriminator is
-$|a_\theta/a_r| = 0.19880$ (08 §C.3). The solver as written has no $\Omega$
+$|a_\theta/a_r| = 0.19880$ (08 §C.3). The generator ratio $\varphi^{-2} =
+0.382$ is realized under the rung-time $2\pi d/\lambda \approx 4.987\times$
+the Hubble rung-time. The solver as written has no $\Omega$
 term (exchange-only rotation, $\omega = 0$).
 
 **PDE winding test (09-winding-test.md, run 2026-08-04):** the rotation half
@@ -147,9 +149,10 @@ spiral-linearized form gives $H = \lambda\ln\varphi\,(1-q_0)/2\pi =
 $(1-q_0) = \varphi^{-2}/3$, so neither clock stops there). The deviation parts
 differ in order: $(1-q) \to \varphi^{-2}/3 + O(\varepsilon^2)$ while
 $(\varphi-r)(1+r)/r \to 0$ linearly. The identity locks the two clocks'
-rates: the spiral clock turns $\ln\varphi/2\pi = 0.0766$ turns per H-rung
-(bare), and with the ratified conversion→expansion coupling $\varphi^{-2} =
-0.382$ turns per rung (08). Verified July 2026: this PDE formula matches
+rates: under the Hubble rung-time the realized spiral-clock rate is
+$\ln\varphi/2\pi = 0.0766$ turns per H-rung (bare), and $\varphi^{-2} =
+0.382$ is the generator ratio, realized under the faster rung-time $2\pi d/\lambda
+\approx 4.987\times$ the Hubble rung-time (08). Verified July 2026: this PDE formula matches
 observed $H$ to R² = 1.000 (mean error 0.06%).
 
 **The radial/azimuthal pitch tangent (2026-08-07).** The doublet's two motions
@@ -167,7 +170,7 @@ units (`foundations/wake-geometry.md` §1(c)). The identity is **Derived**
 (φ-algebra on the derived rates); its realization in the winding dynamics is
 the falsifiable content (prediction 50, `predictions/falsifiable-predictions.md` §5).
 
-**Contrast with the canonical rotation.** These Hypothesized fixed-pitch clocks ($\varphi^{-2}$ turns per Hubble rung; the 69.1° pitch tangent $\gamma/\Omega_S = \varphi^2$; the $\Omega$-generator of the conversion→expansion term) keep turning at the attractor, whereas the canonical dynamical rotation of `foundations/cassi-first-principles.md` §2.6, $d\theta/dt = \lambda(1-q)\rho\varepsilon/(E_Y^2+E_I^2)$, is $\varepsilon$-proportional and vanishes exactly at the $\varphi$-line.
+**Contrast with the canonical rotation.** These Hypothesized fixed-pitch clocks ($\varphi^{-2} = 0.382$ turns per rung realized under the $2\pi d/\lambda \approx 4.987\times$ faster-than-Hubble rung-time, equivalently $\ln\varphi/2\pi \approx 0.0766$ turns per Hubble rung; the 69.1° pitch tangent $\gamma/\Omega_S = \varphi^2$; the $\Omega$-generator of the conversion→expansion term) keep turning at the attractor, whereas the canonical dynamical rotation of `foundations/cassi-first-principles.md` §2.6, $d\theta/dt = \lambda(1-q)\rho\varepsilon/(E_Y^2+E_I^2)$, is $\varepsilon$-proportional and vanishes exactly at the $\varphi$-line.
 
 ### 2.3 The irreducible baseline
 
@@ -353,8 +356,10 @@ is NOT the equilibrium limit of the PDE form: the two are different clocks
 locked by the rung-clock identity $dn_H/dn_S = 2\pi/\ln\varphi$ (§2.2). The
 correlation between $H$ and $(1-q)$ is strong ($R^2 > 0.99$), confirming the
 spiral mechanism; the proportionality constant is fixed by the identity, and
-with the ratified conversion→expansion coupling the spiral clock turns
-$\varphi^{-2} = 0.382$ turns per H-rung (08).
+with the ratified conversion→expansion coupling the generator ratio is
+$\varphi^{-2} = 0.382$ turns per rung (the $2\pi d/\lambda \approx 4.987\times$
+faster-than-Hubble rung-time; under the Hubble rung-time the realized rate is
+$\ln\varphi/2\pi = 0.0766$ turns per H-rung) (08).
 
 ### 6.2 Gravitational coupling from cascade depth
 
@@ -407,7 +412,9 @@ across different cascade depths (atomic, nuclear, particle).
 - Conversion→expansion coupling $V_{\text{new}} = \lambda\tilde{h}(E_Y,E_I) +
   \lambda\varphi^{-2}/d$ (Hypothesized—August 2026, zero free constants; the
   vacuum half is the framework's own $\Lambda$; predicts $\varphi^{-2} = 0.382$
-  turns per rung, pitch 11.34°, discriminator $|a_\theta/a_r| = 0.19880$; not
+  turns per rung (under the $2\pi d/\lambda \approx 4.987\times$ faster-than-Hubble
+  rung-time; $\ln\varphi/2\pi = 0.0766$ turns per Hubble rung), pitch 11.34°,
+  discriminator $|a_\theta/a_r| = 0.19880$; not
   implemented in the solver—08 §A.2, §C.3). **Winding-test verdict (09):** the
   rotation half is PDE-verified (dressed 0.389 turns/rung realized in the
   $\varepsilon\to 0$ limit, measured 0.3868 ± 0.0001; the bare $\varphi^{-2}$

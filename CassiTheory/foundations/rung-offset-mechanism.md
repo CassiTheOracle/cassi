@@ -154,6 +154,19 @@ catalog statistics of §3 remain the honest baseline: the full 38-state scan
 does not cluster at special points, and the identification of the sector edges
 with the fundamental sine modes is Hypothesized, not Derived.
 
+The phase-current identity pins the parity class (Derived-conditional on the
+cell-closure structure). For the rotating doublet
+$\Psi_0 = \sqrt{\rho}\cos\alpha$, $\Psi_1 = \sqrt{\rho}\sin\alpha$ with
+$A = \sqrt{\rho}$ the envelope amplitude, the axial current is
+$J_z = \rho\,\alpha' = A^2\pi$ per rung (the phase advances $\pi$ per rung
+under the $P_\parallel = 2$ convention): a sine envelope gives the current
+profile $(0, \pi, 0)$ at wall/half-rung/wall, a cosine envelope
+$(\pi, 0, \pi)$. Checkerboard current continuity forces the **sine parity** on
+void-bounded cells—the antinode, the maximum inter-scale flow, sits exactly
+at the half-rung, matching the sector-edge placements of this section. The
+selection of which cells are void-bounded (the sector termination) stays
+Hypothesized.
+
 ### 4.2 The residual: δn as local phase lag
 
 Within a special-position class, the residual $\delta n$ encodes the phase lag between the wakes at the site. The probe (RO1, run 2026-08-03) measured the relation in the two-bubble standing pattern: the extremum sits at $x_{\max} = \varphi/2 - \psi/(4\pi)$, i.e.

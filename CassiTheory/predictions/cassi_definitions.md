@@ -335,6 +335,11 @@ Time is NOT a fundamental dimension. Time is the **direction of Qi irreversibili
     dS/dt = −dq/dt             (requires a monotonicity proof for q)
     τ = ∫ |q| / g_eff dt       (proper-time diagnostic)
 
+> **Consistency note (flag only — no convention picked).** The sign of this
+> entropy proxy is open ($S = +q\,k_B\ln\varphi$ vs $S = -q\,k_B\ln\varphi$);
+> the $I = k_B\,(1 - q)\ln\varphi$ information form of §11 conflicts with either
+> reading under the $S_{\max} - S$ arithmetic. See §11.
+
 ### Second Law Status
 The canonical two-fluid equations define the Qi coherence and the $(1-q)$
 conversion openness. They do not supply the general identity
@@ -507,6 +512,16 @@ Qi mixing entropy:
     = k_B·(1 − q)·ln(φ)   (for q_max = 1)
 
 A bit of information is a unit of EY/EI separation—a maintained q difference.
+
+> **Consistency note (flag only — no convention picked).** The $I =
+> k_B(1 - q)\ln\varphi$ form here conflicts with this glossary's §6 entropy
+> proxy $S = -q\,k_B\ln\varphi$ under the $S_{\max} - S$ arithmetic: both the sign
+> and the $q$-dependence fail (with $S_{\max} = 0$ at $q_{\max}$, $S_{\max} - S =
+> +q\,k_B\ln\varphi$, not $k_B(1 - q)\ln\varphi$). The convention pick
+> ($S = +q\,k_B\ln\varphi$ vs $S = -q\,k_B\ln\varphi$) is open. The per-event
+> content is internally consistent with the Landauer row:
+> $\ln\varphi = 0.4812$ nats $= 0.6942$ bits, giving
+> $\ln 2/\ln\varphi = 1.4404$ q-units per bit erased.
 
 ### Landauer's Principle
 Erasing one bit of information dissipates E = k_B·T·ln(2).
