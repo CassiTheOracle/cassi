@@ -61,7 +61,7 @@ def chord_weight_from_field(ey, ei):
 # contiguous pre-order particle range [ps, pe) = leaves owned by the node.
 # ─────────────────────────────────────────────────────────────────────────
 class BHOctree:
-    def __init__(self, pos, mass, g=None, leaf_cap=1, eps2=0.0):
+    def __init__(self, pos, mass, g=None, leaf_cap=1, eps2=0.0, max_depth=None):
         self.pos = np.asarray(pos, dtype=np.float64)
         self.mass = np.asarray(mass, dtype=np.float64)
         n = self.pos.shape[0]
@@ -70,6 +70,7 @@ class BHOctree:
                               else np.ones(n))
         self.eps2 = eps2
         self.leaf_cap = leaf_cap
+        self.max_depth = max_depth
         # bounding box around ALL sources (root = a cube that encloses)
         lo = self.pos.min(0)
         hi = self.pos.max(0)
@@ -91,7 +92,7 @@ class BHOctree:
 
     # ── recursive builder (pre-order: each node owns a contiguous particle
     #    range, so per-node monopole/quadrupole are slice reductions) ─────
-    def _p2n(self, ctr, half, idx):
+    def _p2n(self, ctr, half, idx, depth=0):
         """idx = sorted-by-octant source indices owned by this cell.
         Returns the new node's stored index."""
         ci = self.nc
@@ -122,6 +123,8 @@ class BHOctree:
         ])
         if len(idx) <= self.leaf_cap:
             return ci
+        if self.max_depth is not None and depth >= self.max_depth:
+            return ci   # depth cap: hold coincident/degenerate cells as a leaf
         # partition into the 8 octants (bit3=x>ctr, bit2=y>ctr, bit1=z>ctr)
         oct = ((m[:, 0] > ctr[0]).astype(np.int64) << 2) \
             | ((m[:, 1] > ctr[1]).astype(np.int64) << 1) \
@@ -149,7 +152,7 @@ class BHOctree:
                 end += 1
             if end > start:
                 child_ctr = ctr + off[b]
-                self.node_child[ci, b] = self._p2n(child_ctr, h2, cidx[start:end])
+                self.node_child[ci, b] = self._p2n(child_ctr, h2, cidx[start:end], depth + 1)
                 start = end
         return ci
 
@@ -184,7 +187,10 @@ class BHOctree:
             R = np.sqrt(ds2 + self.eps2)
             sep = np.sqrt(ds2)
             half = self.node_half[n_ids]
-            is_leaf = (self.node_ps[n_ids] + 1 >= self.node_pe[n_ids])  # 1 particle
+            # leaf = no children (a range>1 cell capped by max_depth holding
+            # coincident sources is a leaf too — matches the GPU's
+            # childCount==0 rule; never drop its mass)
+            is_leaf = (self.node_child[n_ids] < 0).all(1)
             # a node whose bounding CUBE contains the target is always opened
             # (self-exclusion + corner-safe; θ-dist-to-COM alone can accept a
             # node enclosing the target when θ > 1/√3).
