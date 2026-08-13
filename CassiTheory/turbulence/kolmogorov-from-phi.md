@@ -218,7 +218,41 @@ $$q(k) \approx 1 - \frac{E_\varepsilon(k)}{\bar{\rho}^2} + \mathcal{O}(k^{-10/3}
 
 ---
 
-## 6. What CAN Be Derived from φ vs What CANNOT
+## 6. The Real-Space Geometry of the φ-Cascade
+
+The inertial-range cascade of §2–§4 is a statement about the spectral energy budget at wavenumber $k$. The φ-cascade also has a **spatial** counterpart: the same rung structure that organizes the energy spectrum reads radially through an individual bubble shell as a nested ladder of matter and void rings—the real-space geometry of "eddies within eddies."
+
+### 6.1 The ring ladder as the cascade read radially
+
+`foundations/bubble-edge-geometry.md` §3 derives the interior structure of a rung-$n$ bubble from the doublet phase $\alpha = \pi u$, $u = \log_\varphi(r/\ell_n)$—the radial reading of the same $\pi$-per-rung internal advance that drives the spectral cascade. Matter condenses at the integer-rung radii and voids open at the half-rungs:
+
+$$\boxed{r_k^{\text{matter}} = R\,\varphi^{-k}, \qquad r_k^{\text{void}} = R\,\varphi^{-(k+\frac12)}, \qquad k = 0,1,2,\ldots}$$
+
+for a bubble shell of outer radius $R = \ell_n$. The successive matter-ring ratio is fixed:
+
+$$\frac{r_{k+1}^{\text{matter}}}{r_k^{\text{matter}}} = \varphi^{-1} \approx 0.6180$$
+
+—so **eddies nest within eddies at a spacing factor $\varphi \approx 1.618$**, the spatial reading of the same cascade step the spectral derivation splits at $k_\varphi$. This is the sharp contrast with textbook (Kolmogorov) turbulence, where self-similar eddies nest at a factor ~2 (the Richardson–Kolmogorov step): in Cassi the real-space nesting ratio is the golden ratio, not a power of two. The bubble shell is the physical object on which this real-space ladder is imprinted.
+
+### 6.2 Rings as nested condensates; the ~10-rung floor
+
+Because $\ell_{n-k} = \ell_n\,\varphi^{-k}$, matter ring $k$ is exactly a rung-$(n-k)$ condensate—the radial picture of bubbles-within-bubbles (`foundations/bubble-edge-geometry.md` §3.3). The cascade suppression floor of ~1% (`foundations/bubble-lattice-fabric.md` §3.3) bounds the physically meaningful inward descent to $\Delta n \approx 10$ rungs; the refined count is
+
+$$N = \frac{\ln 100}{\ln\varphi} = 9.570$$
+
+so a bubble shell carries **~10 matter rings** (interleaved with 9 void troughs) at the 1% coherence floor. The count is $n$-independent (scale-covariant): $N(R) = -\log_\varphi R$ over a radial span $[R\ell_n,\,\ell_n]$ depends only on the fraction $R$, not on the bubble scale $\ell_n$. In the turbulence context this is the central scale-covariance statement: the same ~10-rung real-space ladder is imprinted at every rung of the cascade, independent of which bubble scale one sits in.
+
+### 6.3 Tier: the ring law is Derived conditional; the application inherits the doc's tier
+
+The ring law is **Derived conditional** per `foundations/bubble-edge-geometry.md` §3.1—conditional on (i) the asserted pitch convention $\Theta = 2\pi n$ per rung (`foundations/spiral-dynamics.md` §1.1), (ii) the doublet's $\pi$-per-rung internal advance (`foundations/spin-fibonacci-spiral.md` §2.1), (iii) the pool-cell parities (`foundations/rung-offset-mechanism.md` §4.1), and (iv) the radial-reading inference, the identification of interior rings with nested condensates being an **inference** resting on the nested-sub-lattice structure of `foundations/bubble-lattice-fabric.md` §3.2, not an established identity. The turbulence application here adds no new physics: it reads the existing spectral cascade of §2–§4 together with the ring law, so it inherits the doc's own tier (Derived) only in the sense that it asserts nothing beyond what the spectral derivation and the ring law jointly establish—no independent load-bearing claim is added, and the ring law's conditional status is **not** upgraded.
+
+### 6.4 Honest caveat: the canonical solver does not dynamically realize the ladder
+
+The ring ladder is **not** currently dynamically realized by the canonical first-order two-fluid solver. The pre-registered dynamic probe `two-fluid/run_bubble_ring_dynamic_probe.py` runs four spatial-coupling arms—A baseline (conversion-only, $D = \mathbf{u} = \chi = c_s^2 = 0$), B diffusion ($D = 0.0002$), C gravity-buoyancy ($\nu = 0.0005$, $\chi = 0$), W wave-verify ($c_s^2 = 0.5$)—and finds **no rings on every arm at every epoch to $t = 40$** (0 matter maxima outside the 4-cell core; $u_{\text{rms}} \sim 10^{-4}$ even on C/W). None of the canonical coupling channels in this solver realizes the ladder. The wave-mode verification confirms `ExpandingTwoFluid3DGPU` is first-order in time (no $d^2E/dt^2$ wave operator; $c_s^2$ enters only as a velocity pressure force), so the full second-order ring-ladder wave form ($d^2E = c^2\nabla^2 E - \omega_0^2(E_Y - \varphi E_I)$) is not present in this solver—it belongs to the space-sim GLSL PDE. **Whether real-space realization requires that second-order wave form remains the open question**; the honest four-arm null is recorded, and the real-space ladder of this section is the radial target those future probes (φ-spacing ~0.618, ~10 rings, $n$-independent count) would test.
+
+---
+
+## 7. What CAN Be Derived from φ vs What CANNOT
 
 ### Derivable:
 
@@ -241,7 +275,7 @@ $$q(k) \approx 1 - \frac{E_\varepsilon(k)}{\bar{\rho}^2} + \mathcal{O}(k^{-10/3}
 
 ---
 
-## 7. Conclusion
+## 8. Conclusion
 
 **The Kolmogorov −5/3 spectrum is not a φ-prediction.** It is a Navier-Stokes prediction that Cassi recovers in the inertial range where the conversion term is negligible ($k \gg k_\varphi$). Cassi's contribution is:
 
