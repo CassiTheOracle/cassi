@@ -36,6 +36,7 @@ var _bh_toggle_btn: CheckButton
 var _phi_box_btn: CheckButton
 var _dual_btn: CheckButton
 var _multirung_btn: CheckButton
+var _meshless_btn: CheckButton
 var _vsync_btn: CheckButton
 
 var _server_ip_edit: LineEdit
@@ -364,6 +365,13 @@ func _ready() -> void:
 	_multirung_btn.focus_mode = Control.FOCUS_NONE
 	_multirung_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	row3.add_child(_multirung_btn)
+	_meshless_btn = CheckButton.new()
+	_meshless_btn.text = "Meshless"
+	_meshless_btn.tooltip_text = "Run the two-fluid field on the moving Voronoi cell mesh (JFA construction, steering + ALE remap); applies on reinit"
+	_meshless_btn.custom_minimum_size = Vector2(90, 22)
+	_meshless_btn.focus_mode = Control.FOCUS_NONE
+	_meshless_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	row3.add_child(_meshless_btn)
 
 	# Server (future) fields
 	var srv_box = VBoxContainer.new()
@@ -441,6 +449,9 @@ func _ready() -> void:
 		_set_mode_highlight(sim.mode)
 		_set_grav_highlight(sim.gravity_mode)
 		_init_opt.selected = sim.initial_condition
+		_multirung_btn.button_pressed = sim.multi_rung_seed
+
+		_meshless_btn.button_pressed = sim.meshless_mode
 		_sync_color_widgets(sim)
 		_no_rb_btn.button_pressed = sim.suppress_readbacks
 		_bh_toggle_btn.button_pressed = sim.black_holes_enabled
@@ -454,6 +465,7 @@ func _ready() -> void:
 	_particle_spin.value_changed.connect(_on_particles_changed)
 	_nclusters_spin.value_changed.connect(_on_clusters_changed)
 	_sep_spin.value_changed.connect(_on_separation_changed)
+	_meshless_btn.toggled.connect(_on_meshless_toggled)
 	_init_opt.item_selected.connect(_on_init_selected)
 	_no_rb_btn.toggled.connect(_on_suppress_readbacks_toggled)
 	_bh_toggle_btn.toggled.connect(_on_black_holes_toggled)
@@ -749,6 +761,11 @@ func _on_multirung_toggled(on: bool) -> void:
 	var sim = _get_sim()
 	if sim == null: return
 	sim.multi_rung_seed = on
+	sim.reinit()  # IC seeding is init-time (particle draw) — reinit applies
+func _on_meshless_toggled(on: bool) -> void:
+	var sim = _get_sim()
+	if sim == null: return
+	sim.meshless_mode = on
 	sim.reinit()  # IC seeding is init-time (particle draw) — reinit applies
 
 

@@ -236,7 +236,14 @@ var _vsync_enabled: bool = true
 ## Displacement amplitude per rung (world units at the base rung; δx = A/k_m).
 @export var multi_rung_amp: float = 0.2
 ## Base rung wavelength in units of cluster_radius (k_0 = 2π/(base·R)).
+
 @export var multi_rung_base_scale: float = 1.0
+
+## Meshless (moving-Voronoi) field arm — the two-fluid PDE runs on the
+## JFA Voronoi cell mesh (MESHLESS_PLAN.md §10) and rasterizes back to
+## the grid buffers for the render/condensation/river chain. Init-time
+## (reinit to apply); default off = the grid solver, bit-identical.
+@export var meshless_mode: bool = false
 
 ## Display mode: 0 = Particles, 1 = Field, 2 = Black Hole, 3 = Cosmology.
 @export_enum("Particles", "Field", "Black Hole", "Cosmology") var mode: int = 0
@@ -400,6 +407,45 @@ var _occ_zero_bytes: PackedByteArray  # occupancy counter reset (32 B of zeros)
 # push-constant size mismatch, so the instancer's extra fields get their
 # own pre-allocated buffer.
 var _instancer_pc_bytes: PackedByteArray  # instancer PC (32 floats: 11 shared + color_mode@11 + prog_mode@12 + ref@13 + lo1/slope1@14-15 + lo2/slope2/off2@16-18 + lo3/slope3/off3@19-21 + hiC@22 + span_total@23 + a_lo/a_hi/gate/approach_on@24-27 + extent_x/y/z@28-30 + hue_offset@31)
+# ── Meshless (moving-Voronoi) arm — MESHLESS_PLAN.md §10 integration ────
+# The field PDE runs on the JFA Voronoi cell mesh and rasterizes back to
+# the grid buffers. The accelerator grid stays a lookup accelerator; the
+# heavy physics (lap/leapfrog) and the JFA run on the GPU, the 8192-site
+# steering/remap bookkeeping is CPU-side between frames (the Stage 2b
+# division of labor). Cube-box scope: the mesh world is [0, 2·extent_min)³.
+const ML_N1 := 16              # BCC sublattice count → 2·16³ = 8192 sites at N=64
+const ML_REBUILD := 25         # steering + remap + JFA-refresh cadence (steps)
+const ML_KAPPA := 0.5          # Lloyd-style centroid relaxation fraction
+const ML_LAM := 8.0            # super-Lagrangian momentum ride
+const ML_OM2 := 20.0           # omega_0² — the same conversion constant as the grid PDE
+const ML_INT_MAX := 2147483647
+var _jfa_shader: RID
+var _jfa_pipe: RID
+var _cell_shader: RID
+var _cell_pipe: RID
+var _raster_shader: RID
+var _raster_pipe: RID
+var _ml_labels_a: RID
+var _ml_labels_b: RID
+var _ml_sites: RID
+var _ml_psi_y: RID
+var _ml_psi_i: RID
+var _ml_pi_y: RID
+var _ml_pi_i: RID
+var _ml_lap_y: RID
+var _ml_lap_i: RID
+var _ml_vol: RID
+var _us_jfa_0: RID
+var _us_cell_0: RID
+var _us_raster_0: RID
+var _jfa_pc_bytes: PackedByteArray    # JFA PC (8 floats: N, jump, read_a, n_sites, h, pad×3)
+var _cell_pc_bytes: PackedByteArray   # cell PC (8 floats: mode, N, n_sites, dt, h, C2, OM2, PHI)
+var _raster_pc_bytes: PackedByteArray # raster PC (8 floats: N, n_sites, pad×6)
+var _ml_sites_cpu := PackedFloat32Array()
+var _ml_ready := false
+var _ml_step_count := 0
+
+# — MultiMesh rendering —
 # NOTE: global RD — no manual submit/sync anywhere (illegal on the main
 # instance); readbacks self-stall via buffer_get_data.
 
@@ -677,6 +723,16 @@ func _run_physics_steps(n_steps: int) -> void:
 		_rd.compute_list_dispatch(cl, ipg, 1, 1)
 	_rd.compute_list_end()
 
+	# Meshless steering: rebuild the mesh every ML_REBUILD steps, BETWEEN
+	# frames (the CPU-side site bookkeeping — the Stage 2b division of
+	# labor). The readbacks self-stall; the JFA/volume re-dispatches are
+	# standalone compute lists, legal outside the frame list.
+	if meshless_mode and _ml_ready and not freeze_field:
+		_ml_step_count += n_steps
+		if _ml_step_count >= ML_REBUILD:
+			_ml_step_count = 0
+			_mesh_rebuild()
+
 
 # No-op on the global RD: readbacks self-stall (kept so verify scripts and
 # external callers can call it unconditionally).
@@ -757,6 +813,10 @@ func _uniform_storage(binding: int, buf: RID) -> RDUniform:
 # never produce zero/negative extents (h_i = 2·extent_i/N → NaN).
 func _extents() -> Vector3:
 	return Vector3(box_aspect.x, box_aspect.y, box_aspect.z) * (cluster_radius * 1.5) * maxf(box_scale, 1e-3)
+
+func _extent_min() -> float:
+	var e := _extents()
+	return minf(minf(e.x, e.y), e.z)
 
 
 func _setup_buffers() -> void:
@@ -844,6 +904,23 @@ func _setup_buffers() -> void:
 	_occ_buf = _rd.storage_buffer_create(32)
 	_occ_zero_bytes = PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]).to_byte_array()
 	_rd.buffer_update(_occ_buf, 0, _occ_zero_bytes.size(), _occ_zero_bytes)
+	# Meshless arm buffers (allocated always — ~2.2 MB; used only when
+	# meshless_mode is on). The JFA labels ping-pong; the per-site state
+	# carries the cell averages.
+	var ml_ns = 2 * ML_N1 * ML_N1 * ML_N1
+	_ml_labels_a = _rd.storage_buffer_create(grid_N * grid_N * grid_N * 4)
+	_ml_labels_b = _rd.storage_buffer_create(grid_N * grid_N * grid_N * 4)
+	_ml_sites = _rd.storage_buffer_create(ml_ns * 16)
+	_ml_psi_y = _rd.storage_buffer_create(ml_ns * 4)
+	_ml_psi_i = _rd.storage_buffer_create(ml_ns * 4)
+	_ml_pi_y = _rd.storage_buffer_create(ml_ns * 4)
+	_ml_pi_i = _rd.storage_buffer_create(ml_ns * 4)
+	_ml_lap_y = _rd.storage_buffer_create(ml_ns * 4)
+	_ml_lap_i = _rd.storage_buffer_create(ml_ns * 4)
+	_ml_vol = _rd.storage_buffer_create(ml_ns * 4)
+	_jfa_pc_bytes = PackedByteArray(); _jfa_pc_bytes.resize(8 * 4)
+	_cell_pc_bytes = PackedByteArray(); _cell_pc_bytes.resize(8 * 4)
+	_raster_pc_bytes = PackedByteArray(); _raster_pc_bytes.resize(8 * 4)
 	# NO sim-owned multimesh buffer: the instancer writes the renderer's own
 	# multimesh instance buffer (see _setup_multimesh) — GPU-direct.
 	_make_render_textures()
@@ -874,6 +951,9 @@ func _free_buffers() -> void:
 				_pos_buf, _vel_buf, _acc_buf, _bh_buf, _bh_lens_buf,
 				_mass_density_buf, _cluster_buf, _fft_buf, _tel_buf,
 				_grad_buf, _grad_buf2, _occ_buf,
+				_ml_labels_a, _ml_labels_b, _ml_sites,
+				_ml_psi_y, _ml_psi_i, _ml_pi_y, _ml_pi_i,
+				_ml_lap_y, _ml_lap_i, _ml_vol,
 				_field_render_tex, _bh_lensing_tex]:
 		if rid.is_valid(): _rd.free_rid(rid)
 	_field_render_tex = RID()
@@ -888,7 +968,7 @@ func _free_uniform_sets() -> void:
 				_us_nbody_0, _us_nbody_1, _us_nbody_2, _us_poisson_0,
 				_us_fr_0, _us_fr_2, _us_cond_0, _us_cond_1,
 				_us_bh_int_0, _us_bh_int_1, _us_inst_0, _us_bh_lens_2,
-				_us_occ_0]:
+				_us_occ_0, _us_jfa_0, _us_cell_0, _us_raster_0]:
 		if rid.is_valid(): _rd.free_rid(rid)
 	_us_two_0 = RID(); _us_two_1 = RID(); _us_two_2 = RID()
 	_us_mass_dep_0 = RID()
@@ -897,9 +977,9 @@ func _free_uniform_sets() -> void:
 	_us_fr_0 = RID(); _us_fr_2 = RID()
 	_us_cond_0 = RID(); _us_cond_1 = RID()
 	_us_bh_int_0 = RID(); _us_bh_int_1 = RID()
-	_us_inst_0 = RID()
-	_us_bh_lens_2 = RID()
+	_us_inst_0 = RID(); _us_bh_lens_2 = RID()
 	_us_occ_0 = RID()
+	_us_jfa_0 = RID(); _us_cell_0 = RID(); _us_raster_0 = RID()
 
 func _free_shaders() -> void:
 	_free_uniform_sets()  # sets hold shader references; release before the shaders
@@ -909,11 +989,14 @@ func _free_shaders() -> void:
 				_field_render_pipe, _bh_lensing_pipe,
 				_instancer_pipe, _mass_deposit_pipe,
 				_cond_pipe, _bh_int_pipe, _occ_pipe,
+				_jfa_pipe, _cell_pipe, _raster_pipe,
 				_two_fluid_shader, _nbody_shader, _poisson_shader,
 				_field_render_shader, _bh_lensing_shader,
 				_instancer_shader, _mass_deposit_shader,
-				_cond_shader, _bh_int_shader, _occ_shader]:
+				_cond_shader, _bh_int_shader, _occ_shader,
+				_jfa_shader, _cell_shader, _raster_shader]:
 		if rid.is_valid(): _rd.free_rid(rid)
+
 
 func _setup_shaders() -> void:
 	# Two-fluid PDE solver
@@ -977,6 +1060,20 @@ func _setup_shaders() -> void:
 	if _occ_shader.is_valid():
 		_occ_pipe = _rd.compute_pipeline_create(_occ_shader)
 		print("[CassiSim] Occupancy sampler pipeline ready")
+
+	# Meshless (Voronoi cell) arm — MESHLESS_PLAN.md §10
+	_jfa_shader = _shader_from_file("res://compute/cassi_jfa.glsl")
+	if _jfa_shader.is_valid():
+		_jfa_pipe = _rd.compute_pipeline_create(_jfa_shader)
+		print("[CassiSim] JFA Voronoi pipeline ready")
+	_cell_shader = _shader_from_file("res://compute/cassi_voronoi_cells.glsl")
+	if _cell_shader.is_valid():
+		_cell_pipe = _rd.compute_pipeline_create(_cell_shader)
+		print("[CassiSim] Voronoi cell pipeline ready")
+	_raster_shader = _shader_from_file("res://compute/cassi_voronoi_raster.glsl")
+	if _raster_shader.is_valid():
+		_raster_pipe = _rd.compute_pipeline_create(_raster_shader)
+		print("[CassiSim] Voronoi raster pipeline ready")
 
 	_cache_uniform_sets()
 	_shaders_ready = (
@@ -1089,6 +1186,27 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(1, _occ_buf),
 		], _occ_shader, 0)
 
+	# Meshless arm sets (MESHLESS_PLAN.md §10) — the JFA ping-pong labels
+	# + sites; the cell state; the raster outputs (the field grid buffers).
+	if _jfa_shader.is_valid():
+		_us_jfa_0 = _rd.uniform_set_create([
+			_uniform_storage(0, _ml_labels_a), _uniform_storage(1, _ml_labels_b),
+			_uniform_storage(2, _ml_sites),
+		], _jfa_shader, 0)
+	if _cell_shader.is_valid():
+		_us_cell_0 = _rd.uniform_set_create([
+			_uniform_storage(0, _ml_labels_a), _uniform_storage(1, _ml_sites),
+			_uniform_storage(2, _ml_psi_y), _uniform_storage(3, _ml_psi_i),
+			_uniform_storage(4, _ml_pi_y), _uniform_storage(5, _ml_pi_i),
+			_uniform_storage(6, _ml_lap_y), _uniform_storage(7, _ml_lap_i),
+			_uniform_storage(8, _ml_vol),
+		], _cell_shader, 0)
+	if _raster_shader.is_valid():
+		_us_raster_0 = _rd.uniform_set_create([
+			_uniform_storage(0, _ml_labels_a), _uniform_storage(1, _ml_psi_y),
+			_uniform_storage(2, _ml_psi_i), _uniform_storage(3, _field_ey),
+			_uniform_storage(4, _field_ei), _uniform_storage(5, _field_q),
+		], _raster_shader, 0)
 # ═══════════════════════════════════════════════════════════════════════
 # Initial conditions
 # ═══════════════════════════════════════════════════════════════════════
@@ -1141,6 +1259,9 @@ func _init_field() -> void:
 	_rd.buffer_update(_field_vel, 0, vel.size() * 4, vel.to_byte_array())
 
 	print("[CassiSim] Field initialized: %d³ = %d cells" % [N, nc])
+	_ml_ready = false
+	if meshless_mode:
+		_meshless_init()
 
 
 func _erf_approx(x: float) -> float:
@@ -1249,6 +1370,237 @@ func _camera_max_distance() -> float:
 	if _sim_cam != null:
 		far = _sim_cam.far
 	return maxf(far - _extents().length(), 1.0)
+
+
+# ── Meshless (Voronoi cell) arm — MESHLESS_PLAN.md §10 ─────────────────
+# BCC site lattice in the mesh world [0, 2·extent)³, JFA construction,
+# per-cell state sampled from the grid IC, steering + ALE remap between
+# frames, and the raster back to the field buffers (see _step_dispatches).
+# Cube-box scope: the mesh is isotropic; a φ-aspect box is interpreted as
+# a cube here (the anisotropic mesh is future work).
+func _meshless_init() -> void:
+	var N = grid_N
+	var ml_ns = 2 * ML_N1 * ML_N1 * ML_N1
+	var h: float = 2.0 * _extent_min() / float(N)
+	var L: float = h * float(N)
+	# BCC lattice: two cubic sublattices offset by half a spacing
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20260813
+	var spacing: float = L / float(ML_N1)
+	var sites := PackedFloat32Array()
+	for i in range(ML_N1):
+		for j in range(ML_N1):
+			for k in range(ML_N1):
+				sites.append_array(PackedFloat32Array([
+					float(i) * spacing + rng.randf_range(-0.2, 0.2) * spacing,
+					float(j) * spacing + rng.randf_range(-0.2, 0.2) * spacing,
+					float(k) * spacing + rng.randf_range(-0.2, 0.2) * spacing,
+					0.0]))
+				sites.append_array(PackedFloat32Array([
+					(float(i) + 0.5) * spacing + rng.randf_range(-0.2, 0.2) * spacing,
+					(float(j) + 0.5) * spacing + rng.randf_range(-0.2, 0.2) * spacing,
+					(float(k) + 0.5) * spacing + rng.randf_range(-0.2, 0.2) * spacing,
+					0.0]))
+	for m in range(sites.size() / 4):
+		sites[m * 4] = fposmod(sites[m * 4], L)
+		sites[m * 4 + 1] = fposmod(sites[m * 4 + 1], L)
+		sites[m * 4 + 2] = fposmod(sites[m * 4 + 2], L)
+	_ml_sites_cpu = sites
+	_rd.buffer_update(_ml_sites, 0, sites.size() * 4, sites.to_byte_array())
+
+	# scatter (min-index per cell — the GPU atomicMin analog) + JFA
+	_ml_scatter_and_jfa()
+	# volume pass (h³ per cell, atomic)
+	_ml_volume_pass()
+	# per-site state: trilinear sample of the grid IC (the mesh world
+	# [0, L) maps to the sim's world x = s − extent: grid coord = s/h)
+	var ey_f := _rd.buffer_get_data(_field_ey, 0, N * N * N * 4).to_float32_array()
+	var ei_f := _rd.buffer_get_data(_field_ei, 0, N * N * N * 4).to_float32_array()
+	var psi_y := PackedFloat32Array()
+	var psi_i := PackedFloat32Array()
+	psi_y.resize(ml_ns)
+	psi_i.resize(ml_ns)
+	for s in range(ml_ns):
+		var gx: float = fposmod(sites[s * 4], L) / h
+		var gy: float = fposmod(sites[s * 4 + 1], L) / h
+		var gz: float = fposmod(sites[s * 4 + 2], L) / h
+		var i0: int = int(floor(gx)) % N
+		var j0: int = int(floor(gy)) % N
+		var k0: int = int(floor(gz)) % N
+		var i1: int = (i0 + 1) % N
+		var j1: int = (j0 + 1) % N
+		var k1: int = (k0 + 1) % N
+		var fx: float = gx - floor(gx)
+		var fy: float = gy - floor(gy)
+		var fz: float = gz - floor(gz)
+		psi_y[s] = _ml_tri(ey_f, i0, j0, k0, i1, j1, k1, fx, fy, fz)
+		psi_i[s] = _ml_tri(ei_f, i0, j0, k0, i1, j1, k1, fx, fy, fz)
+	_rd.buffer_update(_ml_psi_y, 0, psi_y.size() * 4, psi_y.to_byte_array())
+	_rd.buffer_update(_ml_psi_i, 0, psi_i.size() * 4, psi_i.to_byte_array())
+	var zero := PackedFloat32Array()
+	zero.resize(ml_ns)
+	_rd.buffer_update(_ml_pi_y, 0, zero.size() * 4, zero.to_byte_array())
+	_rd.buffer_update(_ml_pi_i, 0, zero.size() * 4, zero.to_byte_array())
+	_rd.buffer_update(_ml_lap_y, 0, zero.size() * 4, zero.to_byte_array())
+	_rd.buffer_update(_ml_lap_i, 0, zero.size() * 4, zero.to_byte_array())
+	_ml_step_count = 0
+	_ml_ready = true
+	print("[CassiSim] Meshless arm ready: %d Voronoi cells on the %d³ accelerator grid"
+		% [ml_ns, N])
+
+
+func _ml_tri(a: PackedFloat32Array, i0: int, j0: int, k0: int,
+		i1: int, j1: int, k1: int, fx: float, fy: float, fz: float) -> float:
+	var N = grid_N
+	var c00 := a[i0 * N * N + j0 * N + k0] * (1.0 - fx) + a[i1 * N * N + j0 * N + k0] * fx
+	var c01 := a[i0 * N * N + j0 * N + k1] * (1.0 - fx) + a[i1 * N * N + j0 * N + k1] * fx
+	var c10 := a[i0 * N * N + j1 * N + k0] * (1.0 - fx) + a[i1 * N * N + j1 * N + k0] * fx
+	var c11 := a[i0 * N * N + j1 * N + k1] * (1.0 - fx) + a[i1 * N * N + j1 * N + k1] * fx
+	var c0 := c00 * (1.0 - fy) + c10 * fy
+	var c1 := c01 * (1.0 - fy) + c11 * fy
+	return c0 * (1.0 - fz) + c1 * fz
+
+
+func _ml_scatter_and_jfa() -> void:
+	var N = grid_N
+	var ml_ns = 2 * ML_N1 * ML_N1 * ML_N1
+	var labels := PackedInt32Array()
+	labels.resize(N * N * N)
+	labels.fill(ML_INT_MAX)
+	var h: float = 2.0 * _extent_min() / float(N)
+	for s in range(ml_ns):
+		var gi: int = int(floor(_ml_sites_cpu[s * 4] / h)) % N
+		var gj: int = int(floor(_ml_sites_cpu[s * 4 + 1] / h)) % N
+		var gk: int = int(floor(_ml_sites_cpu[s * 4 + 2] / h)) % N
+		var idx: int = gi * N * N + gj * N + gk
+		if labels[idx] > s:
+			labels[idx] = s
+	_rd.buffer_update(_ml_labels_a, 0, labels.size() * 4, labels.to_byte_array())
+	var jumps: Array[int] = [1, 2, 4, 8, 16, 32, 16, 8, 4, 2, 1]
+	var read_a := 1
+	for jp in jumps:
+		_ml_jfa_pass(jp, read_a)
+		read_a = 1 - read_a
+	_ml_jfa_pass(0, 0)  # identity copy B → A (odd pass count leaves result in B)
+
+
+func _ml_jfa_pass(jp: int, read_a: int) -> void:
+	var N = grid_N
+	var ml_ns = 2 * ML_N1 * ML_N1 * ML_N1
+	var pcb := PackedFloat32Array([float(N), float(jp), float(read_a),
+		float(ml_ns), 2.0 * _extent_min() / float(N), 0.0, 0.0, 0.0])
+	_jfa_pc_bytes = pcb.to_byte_array()
+	var cl := _rd.compute_list_begin()
+	_rd.compute_list_bind_compute_pipeline(cl, _jfa_pipe)
+	_rd.compute_list_bind_uniform_set(cl, _us_jfa_0, 0)
+	_rd.compute_list_set_push_constant(cl, _jfa_pc_bytes, _jfa_pc_bytes.size())
+	_rd.compute_list_dispatch(cl, N * N * N / 64, 1, 1)
+	_rd.compute_list_end()
+
+
+func _ml_volume_pass() -> void:
+	var N = grid_N
+	var ml_ns = 2 * ML_N1 * ML_N1 * ML_N1
+	var zero := PackedFloat32Array()
+	zero.resize(ml_ns)
+	_rd.buffer_update(_ml_vol, 0, zero.size() * 4, zero.to_byte_array())
+	_ml_cell_dispatch(2.0, N * N * N / 64)
+
+
+func _ml_cell_dispatch(mode: float, groups: int) -> void:
+	var N = grid_N
+	var ml_ns = 2 * ML_N1 * ML_N1 * ML_N1
+	var h: float = 2.0 * _extent_min() / float(N)
+	var c2: float = h * h  # the grid's 19-point stencil reads h₀²∇² — match it
+	var pcb := PackedFloat32Array([mode, float(N), float(ml_ns), dt,
+		h, c2, ML_OM2, PHI])
+	_cell_pc_bytes = pcb.to_byte_array()
+	var cl := _rd.compute_list_begin()
+	_rd.compute_list_bind_compute_pipeline(cl, _cell_pipe)
+	_rd.compute_list_bind_uniform_set(cl, _us_cell_0, 0)
+	_rd.compute_list_set_push_constant(cl, _cell_pc_bytes, _cell_pc_bytes.size())
+	_rd.compute_list_dispatch(cl, groups, 1, 1)
+	_rd.compute_list_end()
+
+
+func _mesh_rebuild() -> void:
+	# steering + ALE remap + JFA refresh (the verified Stage 2b recipe,
+	# ported into the sim: CPU-side site bookkeeping, GPU JFA/physics)
+	var N = grid_N
+	var ml_ns = 2 * ML_N1 * ML_N1 * ML_N1
+	var h: float = 2.0 * _extent_min() / float(N)
+	var labels := _rd.buffer_get_data(_ml_labels_a, 0, N * N * N * 4).to_int32_array()
+	var y := _rd.buffer_get_data(_ml_psi_y, 0, ml_ns * 4).to_float32_array()
+	var i_f := _rd.buffer_get_data(_ml_psi_i, 0, ml_ns * 4).to_float32_array()
+	var py := _rd.buffer_get_data(_ml_pi_y, 0, ml_ns * 4).to_float32_array()
+	var pi := _rd.buffer_get_data(_ml_pi_i, 0, ml_ns * 4).to_float32_array()
+	# wrapped centroids from the old labels
+	var cnt := PackedInt32Array()
+	cnt.resize(ml_ns)
+	var cx := PackedFloat64Array()
+	var cy := PackedFloat64Array()
+	var cz := PackedFloat64Array()
+	cx.resize(ml_ns)
+	cy.resize(ml_ns)
+	cz.resize(ml_ns)
+	for i in range(N):
+		for j in range(N):
+			for k in range(N):
+				var lab: int = labels[i * N * N + j * N + k]
+				if lab >= 0 and lab < ml_ns:
+					cnt[lab] += 1
+					cx[lab] += (float(i) + 0.5) * h
+					cy[lab] += (float(j) + 0.5) * h
+					cz[lab] += (float(k) + 0.5) * h
+	var T_steer: float = dt * float(ML_REBUILD)
+	var new_sites := PackedFloat32Array()
+	new_sites.resize(ml_ns * 4)
+	for s in range(ml_ns):
+		var rho: float = y[s] + i_f[s] + 1e-12
+		var v: float = ML_LAM * (py[s] + pi[s]) / rho
+		var cc: float = max(float(cnt[s]), 1.0)
+		new_sites[s * 4] = fposmod(
+			(1.0 - ML_KAPPA) * (_ml_sites_cpu[s * 4] + v * T_steer)
+			+ ML_KAPPA * (float(cx[s]) / cc), 2.0 * _extent_min())
+		new_sites[s * 4 + 1] = fposmod(
+			(1.0 - ML_KAPPA) * (_ml_sites_cpu[s * 4 + 1] + v * T_steer)
+			+ ML_KAPPA * (float(cy[s]) / cc), 2.0 * _extent_min())
+		new_sites[s * 4 + 2] = fposmod(
+			(1.0 - ML_KAPPA) * (_ml_sites_cpu[s * 4 + 2] + v * T_steer)
+			+ ML_KAPPA * (float(cz[s]) / cc), 2.0 * _extent_min())
+	# ALE remap: the new cell takes the old cell containing its seed
+	var ny := PackedFloat32Array()
+	var ni := PackedFloat32Array()
+	var npy := PackedFloat32Array()
+	var npi := PackedFloat32Array()
+	ny.resize(ml_ns)
+	ni.resize(ml_ns)
+	npy.resize(ml_ns)
+	npi.resize(ml_ns)
+	for s in range(ml_ns):
+		var gi: int = int(floor(new_sites[s * 4] / h)) % N
+		var gj: int = int(floor(new_sites[s * 4 + 1] / h)) % N
+		var gk: int = int(floor(new_sites[s * 4 + 2] / h)) % N
+		var lab: int = labels[gi * N * N + gj * N + gk]
+		if lab < 0 or lab >= ml_ns:
+			lab = s
+		ny[s] = y[lab]
+		ni[s] = i_f[lab]
+		npy[s] = py[lab]
+		npi[s] = pi[lab]
+	_ml_sites_cpu = new_sites
+	_rd.buffer_update(_ml_sites, 0, new_sites.size() * 4, new_sites.to_byte_array())
+	_rd.buffer_update(_ml_psi_y, 0, ny.size() * 4, ny.to_byte_array())
+	_rd.buffer_update(_ml_psi_i, 0, ni.size() * 4, ni.to_byte_array())
+	_rd.buffer_update(_ml_pi_y, 0, npy.size() * 4, npy.to_byte_array())
+	_rd.buffer_update(_ml_pi_i, 0, npi.size() * 4, npi.to_byte_array())
+	var zero := PackedFloat32Array()
+	zero.resize(ml_ns)
+	_rd.buffer_update(_ml_lap_y, 0, zero.size() * 4, zero.to_byte_array())
+	_rd.buffer_update(_ml_lap_i, 0, zero.size() * 4, zero.to_byte_array())
+	_ml_scatter_and_jfa()
+	_ml_volume_pass()
+
 
 
 func _init_particles() -> void:
@@ -2112,13 +2464,39 @@ func _step_dispatches(cl: int) -> void:
 		_dispatch_poisson(cl)
 	_barrier(cl)  # deposit → PDE (rho visibility for the PDE source)
 
-	# ── 2. Two-fluid PDE ─────────────────────────────────────────────
+	# ── 2. Two-fluid PDE — grid solver, or the meshless Voronoi arm ──
 	# freeze_field (diagnostic): the field is initialized once and left
 	# fixed — the PDE evolution passes are skipped while the gravity/
 	# particle path (deposit, Poisson, gradient, KDK) runs unchanged.
 	# FieldVel stays at its init value (zeros), so RealSim's viscosity
 	# sees a consistently frozen medium.
-	if _two_fluid_shader.is_valid() and not freeze_field:
+	if meshless_mode and _ml_ready and _cell_pipe.is_valid() and not freeze_field:
+		# Meshless (MESHLESS_PLAN.md §10): cell lap + leapfrog on the
+		# Voronoi mesh, then rasterize the cell state back into the grid
+		# field buffers (the render/condensation/river chain reads them
+		# unchanged). The accelerator grid is a lookup accelerator only.
+		var ml_ns = 2 * ML_N1 * ML_N1 * ML_N1
+		var h: float = 2.0 * _extent_min() / float(grid_N)
+		var wg1 = grid_N * grid_N * grid_N / 64
+		_rd.compute_list_bind_compute_pipeline(cl, _cell_pipe)
+		_rd.compute_list_bind_uniform_set(cl, _us_cell_0, 0)
+		_cell_pc_bytes = PackedFloat32Array([0.0, float(grid_N), float(ml_ns),
+			dt, h, h * h, ML_OM2, PHI]).to_byte_array()
+		_rd.compute_list_set_push_constant(cl, _cell_pc_bytes, _cell_pc_bytes.size())
+		_rd.compute_list_dispatch(cl, wg1, 1, 1)
+		_barrier(cl)  # lap → leapfrog
+		_cell_pc_bytes = PackedFloat32Array([1.0, float(grid_N), float(ml_ns),
+			dt, h, h * h, ML_OM2, PHI]).to_byte_array()
+		_rd.compute_list_set_push_constant(cl, _cell_pc_bytes, _cell_pc_bytes.size())
+		_rd.compute_list_dispatch(cl, int(ceil(float(ml_ns) / 64.0)), 1, 1)
+		_barrier(cl)  # leapfrog → raster
+		_rd.compute_list_bind_compute_pipeline(cl, _raster_pipe)
+		_rd.compute_list_bind_uniform_set(cl, _us_raster_0, 0)
+		_raster_pc_bytes = PackedFloat32Array([float(grid_N), float(ml_ns),
+			0.0, 0.0, 0.0, 0.0, 0.0, 0.0]).to_byte_array()
+		_rd.compute_list_set_push_constant(cl, _raster_pc_bytes, _raster_pc_bytes.size())
+		_rd.compute_list_dispatch(cl, wg1, 1, 1)
+	elif _two_fluid_shader.is_valid() and not freeze_field:
 		_rd.compute_list_bind_compute_pipeline(cl, _two_fluid_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_two_0, 0)
 		_rd.compute_list_set_push_constant(cl, _two_fluid_pc_bytes, _two_fluid_pc_bytes.size())
