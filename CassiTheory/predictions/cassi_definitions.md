@@ -335,10 +335,9 @@ Time is NOT a fundamental dimension. Time is the **direction of Qi irreversibili
     dS/dt = −dq/dt             (requires a monotonicity proof for q)
     τ = ∫ |q| / g_eff dt       (proper-time diagnostic)
 
-> **Consistency note (flag only — no convention picked).** The sign of this
-> entropy proxy is open ($S = +q\,k_B\ln\varphi$ vs $S = -q\,k_B\ln\varphi$);
-> the $I = k_B\,(1 - q)\ln\varphi$ information form of §11 conflicts with either
-> reading under the $S_{\max} - S$ arithmetic. See §11.
+The information content is the entropy deficit relative to the fully
+disordered state (q = 0): I = S(0) − S(q) = +q·k_B·ln(φ), maximal at q = 1
+(§11).
 
 ### Second Law Status
 The canonical two-fluid equations define the Qi coherence and the $(1-q)$
@@ -507,21 +506,20 @@ a system without decreasing its q (the Second Law as Qi theorem).
 
 ### Definition
 **Information IS Qi coherence.** The Shannon entropy of a system equals its
-Qi mixing entropy:
-    I = S_max − S = k_B·(q_max − q)·ln(φ)
-    = k_B·(1 − q)·ln(φ)   (for q_max = 1)
+Qi mixing entropy deficit relative to the fully disordered state (q = 0):
+    I = S(q=0) − S(q) = +q·k_B·ln(φ)    (maximal at q = 1)
+The entropy proxy is $S = -q\,k_B\ln\varphi$ (§6); with $S(q{=}0) = 0$ the
+arithmetic reproduces exactly $I = S(0) - S(q) = +q\,k_B\ln\varphi$—the
+entropy deficit the maintained coherence sustains.
 
 A bit of information is a unit of EY/EI separation—a maintained q difference.
+Per event the content is $\ln\varphi = 0.4812$ nats $= 0.6942$ bits, and
+erasing a bit destroys $\ln 2/\ln\varphi = 1.4404$ q-units (cross-checked
+against the Landauer row below).
 
-> **Consistency note (flag only — no convention picked).** The $I =
-> k_B(1 - q)\ln\varphi$ form here conflicts with this glossary's §6 entropy
-> proxy $S = -q\,k_B\ln\varphi$ under the $S_{\max} - S$ arithmetic: both the sign
-> and the $q$-dependence fail (with $S_{\max} = 0$ at $q_{\max}$, $S_{\max} - S =
-> +q\,k_B\ln\varphi$, not $k_B(1 - q)\ln\varphi$). The convention pick
-> ($S = +q\,k_B\ln\varphi$ vs $S = -q\,k_B\ln\varphi$) is open. The per-event
-> content is internally consistent with the Landauer row:
-> $\ln\varphi = 0.4812$ nats $= 0.6942$ bits, giving
-> $\ln 2/\ln\varphi = 1.4404$ q-units per bit erased.
+The openness $(1-q)$ belongs to the flow, not the stored stock: at a conversion
+processing rate $\lambda(1-q)$ per unit time, the information-processing rate is
+    dI_flow/dt = λ(1−q)·k_B·ln(φ)
 
 ### Landauer's Principle
 Erasing one bit of information dissipates E = k_B·T·ln(2).
