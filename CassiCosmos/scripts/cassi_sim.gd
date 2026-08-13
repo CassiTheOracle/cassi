@@ -463,6 +463,9 @@ func _ready() -> void:
 	_init_particles()
 	_apply_gravity_calibration()
 	_grav_warmup = true  # fill the acc cache with a fresh force before step 1
+	# User-saved color defaults override the scene pins (user://color_defaults.cfg
+	# — written by the bottom-bar "Save" button). No file → scene/exports stand.
+	load_color_defaults()
 	# Frame-0 / paused view for the rainbow modes (1/2/3): with playing=false
 	# the instancer never dispatches, so the CPU init_inst pass provides the
 	# visible colors — but the CPU path cannot sample the field cheaply. The
@@ -477,6 +480,83 @@ func _ready() -> void:
 		_repaint_instancer()
 	print("[CassiSim] Universe ready — grid=%d³ particles=%d xi=%.5f (φ⁶=%.5f)" % [grid_N, N_particles, xi, PHI_6])
 	_auto_frame_camera()
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Color-defaults persistence (user://color_defaults.cfg — bottom-bar Save)
+# ═══════════════════════════════════════════════════════════════════════
+const COLOR_DEFAULTS_PATH := "user://color_defaults.cfg"
+
+
+## Persist the current color-scale settings as the startup defaults.
+func save_color_defaults() -> void:
+	var cfg := ConfigFile.new()
+	cfg.set_value("colors", "particle_color_mode", particle_color_mode)
+	cfg.set_value("colors", "rainbow_count", rainbow_count)
+	cfg.set_value("colors", "color_shares_x", color_shares.x)
+	cfg.set_value("colors", "color_shares_y", color_shares.y)
+	cfg.set_value("colors", "color_shares_z", color_shares.z)
+	cfg.set_value("colors", "color_progress", color_progress)
+	cfg.set_value("colors", "color_hue_offset", color_hue_offset)
+	cfg.set_value("colors", "qi_cycle_x", qi_cycle.x)
+	cfg.set_value("colors", "qi_cycle_y", qi_cycle.y)
+	cfg.set_value("colors", "qi_pinch_x", qi_pinch.x)
+	cfg.set_value("colors", "qi_pinch_y", qi_pinch.y)
+	cfg.set_value("colors", "qi_approach_x", qi_approach.x)
+	cfg.set_value("colors", "qi_approach_y", qi_approach.y)
+	cfg.set_value("colors", "qi_approach_tracks_threshold", qi_approach_tracks_threshold)
+	cfg.set_value("colors", "qi_gate", qi_gate)
+	cfg.set_value("colors", "velocity_cycle_x", velocity_cycle.x)
+	cfg.set_value("colors", "velocity_cycle_y", velocity_cycle.y)
+	cfg.set_value("colors", "velocity_pinch_x", velocity_pinch.x)
+	cfg.set_value("colors", "velocity_pinch_y", velocity_pinch.y)
+	cfg.set_value("colors", "velocity_approach_x", velocity_approach.x)
+	cfg.set_value("colors", "velocity_approach_y", velocity_approach.y)
+	var err := cfg.save(COLOR_DEFAULTS_PATH)
+	print("[CassiSim] color defaults saved (err=", err, ")")
+
+
+## Apply the saved color defaults over the current exports. Returns false
+## when no saved file exists (the caller can fall back to a factory fit).
+func load_color_defaults() -> bool:
+	var cfg := ConfigFile.new()
+	if cfg.load(COLOR_DEFAULTS_PATH) != OK:
+		return false
+	particle_color_mode = int(cfg.get_value("colors", "particle_color_mode", particle_color_mode))
+	rainbow_count = int(cfg.get_value("colors", "rainbow_count", rainbow_count))
+	color_shares = Vector3(
+		float(cfg.get_value("colors", "color_shares_x", color_shares.x)),
+		float(cfg.get_value("colors", "color_shares_y", color_shares.y)),
+		float(cfg.get_value("colors", "color_shares_z", color_shares.z)))
+	color_progress = int(cfg.get_value("colors", "color_progress", color_progress))
+	color_hue_offset = float(cfg.get_value("colors", "color_hue_offset", color_hue_offset))
+	qi_cycle = Vector2(
+		float(cfg.get_value("colors", "qi_cycle_x", qi_cycle.x)),
+		float(cfg.get_value("colors", "qi_cycle_y", qi_cycle.y)))
+	qi_pinch = Vector2(
+		float(cfg.get_value("colors", "qi_pinch_x", qi_pinch.x)),
+		float(cfg.get_value("colors", "qi_pinch_y", qi_pinch.y)))
+	qi_approach = Vector2(
+		float(cfg.get_value("colors", "qi_approach_x", qi_approach.x)),
+		float(cfg.get_value("colors", "qi_approach_y", qi_approach.y)))
+	qi_approach_tracks_threshold = bool(cfg.get_value("colors", "qi_approach_tracks_threshold", qi_approach_tracks_threshold))
+	qi_gate = float(cfg.get_value("colors", "qi_gate", qi_gate))
+	velocity_cycle = Vector2(
+		float(cfg.get_value("colors", "velocity_cycle_x", velocity_cycle.x)),
+		float(cfg.get_value("colors", "velocity_cycle_y", velocity_cycle.y)))
+	velocity_pinch = Vector2(
+		float(cfg.get_value("colors", "velocity_pinch_x", velocity_pinch.x)),
+		float(cfg.get_value("colors", "velocity_pinch_y", velocity_pinch.y)))
+	velocity_approach = Vector2(
+		float(cfg.get_value("colors", "velocity_approach_x", velocity_approach.x)),
+		float(cfg.get_value("colors", "velocity_approach_y", velocity_approach.y)))
+	print("[CassiSim] color defaults loaded")
+	return true
+
+
+## Whether a saved color-defaults file exists.
+func has_color_defaults() -> bool:
+	return FileAccess.file_exists(COLOR_DEFAULTS_PATH)
 
 
 func _process(delta: float) -> void:

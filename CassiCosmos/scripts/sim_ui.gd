@@ -28,6 +28,8 @@ var _rainbow_btn: CheckButton
 var _color_src_opt: OptionButton
 var _fit_btn: Button
 var _scale_label: Label
+var _save_colors_btn: Button
+var _reset_colors_btn: Button
 var _legend: Control
 var _no_rb_btn: CheckButton
 var _bh_toggle_btn: CheckButton
@@ -377,6 +379,26 @@ func _ready() -> void:
 	_scale_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_scale_label.tooltip_text = "Color scale — drag LOW and HIGH on the legend to change it"
 	legend_row.add_child(_scale_label)
+	_save_colors_btn = Button.new()
+	_save_colors_btn.name = "SaveColorsBtn"
+	_save_colors_btn.text = "Save"
+	_save_colors_btn.tooltip_text = "Save the current colors as the default for future runs"
+	_save_colors_btn.custom_minimum_size = Vector2(54, 22)
+	_save_colors_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_save_colors_btn.focus_mode = Control.FOCUS_NONE
+	_save_colors_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	_save_colors_btn.pressed.connect(_on_save_colors)
+	legend_row.add_child(_save_colors_btn)
+	_reset_colors_btn = Button.new()
+	_reset_colors_btn.name = "ResetColorsBtn"
+	_reset_colors_btn.text = "Reset"
+	_reset_colors_btn.tooltip_text = "Restore the saved colors (Fit scale if none are saved)"
+	_reset_colors_btn.custom_minimum_size = Vector2(58, 22)
+	_reset_colors_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_reset_colors_btn.focus_mode = Control.FOCUS_NONE
+	_reset_colors_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	_reset_colors_btn.pressed.connect(_on_reset_colors)
+	legend_row.add_child(_reset_colors_btn)
 	_legend = GradientLegend.new()
 	_legend.name = "GradientLegend"
 	_legend.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -641,6 +663,29 @@ func _on_fit_colors() -> void:
 		sim.velocity_approach = Vector2.ZERO
 	_sync_color_widgets(sim)
 	_repaint_if_paused(sim)
+
+
+func _on_save_colors() -> void:
+	var sim = _get_sim()
+	if sim == null: return
+	if sim.has_method("save_color_defaults"):
+		sim.save_color_defaults()
+	_save_colors_btn.text = "Saved"
+	var t := get_tree().create_timer(1.5)
+	t.timeout.connect(func() -> void:
+		if is_instance_valid(_save_colors_btn):
+			_save_colors_btn.text = "Save")
+
+
+func _on_reset_colors() -> void:
+	var sim = _get_sim()
+	if sim == null: return
+	if sim.has_method("load_color_defaults") and sim.load_color_defaults():
+		_sync_color_widgets(sim)
+		_repaint_if_paused(sim)
+	else:
+		_on_fit_colors()   # nothing saved yet → the factory band
+
 
 func _repaint_if_paused(sim: Node3D) -> void:
 	if not sim.playing:
