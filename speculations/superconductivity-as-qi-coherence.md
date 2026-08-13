@@ -25,23 +25,23 @@ $$\frac{dE_Y}{dt}\bigg|_{\text{field}} = \mathbf{J} \cdot \mathbf{E} = \sigma_0 
 
 where $\sigma_0$ is the ballistic conductivity. In vacuum, this would produce unlimited acceleration. In a metal, the conversion term from the two-fluid PDE (`foundations/cassi-first-principles.md` §1.3) intervenes:
 
-$$\frac{dE_Y}{dt}\bigg|_{\text{conv}} = -\lambda(E_Y - \varphi E_I)$$
+$$\frac{dE_Y}{dt}\bigg|_{\text{conv}} = -\lambda(1-q)(E_Y - \varphi E_I)$$
 
 $$\frac{dE_I}{dt}\bigg|_{\text{conv}} = +\lambda(1-q)(E_Y - \varphi E_I)$$
 
 The steady-state current is reached when field driving balances conversion drag:
 
-$$\sigma_0 E^2 = \lambda(E_Y - \varphi E_I)$$
+$$\sigma_0 E^2 = \lambda(1-q)(E_Y - \varphi E_I)$$
 
 ### 1.2 The resistivity
 
 Solving for the steady-state Yang excess $\delta \equiv E_Y - \varphi E_I$:
 
-$$\delta = \frac{\sigma_0 E^2}{\lambda}$$
+$$\delta = \frac{\sigma_0 E^2}{\lambda(1-q)}$$
 
 The resistivity $\rho = E/J$ is proportional to the conversion rate:
 
-$$\boxed{\rho = \frac{m}{ne^2} \cdot \lambda \cdot \frac{\delta}{E_Y}}$$
+$$\boxed{\rho = \frac{m}{ne^2} \cdot \lambda(1-q) \cdot \frac{\delta}{E_Y}}$$
 
 In the Ohmic regime ($\delta \ll E_Y$), $\delta/E_Y \propto J$, giving constant resistivity. The key parameter is $\lambda$, the conversion rate—but $\lambda$ is modulated by the Qi gate.
 
