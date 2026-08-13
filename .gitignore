@@ -45,3 +45,7 @@ sparc_data/
 # Market-fold experiment sandbox (2026-08-01) — exploratory; promote to a tracked experiments/ family when it survives surrogates
 experiments/market_fold/
 experiments/gwtc4_mass_ladder/data/
+
+# Void ring-ladder data (re-downloadable; scripts are tracked)
+experiments/void_phi_rings/data/
+experiments/void_phi_rings/downloads/
