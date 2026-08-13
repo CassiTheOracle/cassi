@@ -12,8 +12,8 @@
 // default-off; the legacy color path (color_mode 0..3, flags = 0) is
 // bit-for-bit preserved. New features are selected by EXTENDING the
 // color_mode value read from the host PC: the low nibble is the base mode
-// (0..3 legacy, 4 = two-axis, 5 = glow, 6 = size-by-mass), and the high
-// nibble is a FEATURE-FLAG bitfield that any mode can carry:
+// (0..3 legacy, 4 = two-axis hue=q/lightness=ρ), and the high nibble is a
+// FEATURE-FLAG bitfield that any base mode can carry:
 //   bit0 (0x10) = SIZE_BY_MASS (basis scale ∝ cbrt(pos.w))
 //   bit1 (0x20) = ADDITIVE_GLOW (bright-core additive look + halo ramp)
 //   bit2 (0x40) = DEPTH_CUE (per-instance fade with camera distance)
@@ -73,7 +73,7 @@ layout(set = 0, binding = 3, std430) readonly buffer FieldQ { float qv[]; };
 //   slots 0-10   = the shared 11 fields (verbatim, all physics shaders)
 //   slot 11      = color_mode (0 = Cassi mass gradient, 1 = velocity,
 //                  2/3 = Qi coherence; the pass count lives in span_total)
-//                  EXTENDED (2026-08-13): low nibble = base mode (0-6),
+//                  EXTENDED (2026-08-13): low nibble = base mode (0-4),
 //                  high nibble = VFX feature flags (0x10/0x20/0x40). Base
 //                  modes + flags decode below. Bit-identical for 0..3,0.
 //   slot 12      = prog_mode (0 = log cycle progress, 1 = linear)
@@ -89,7 +89,7 @@ layout(set = 0, binding = 3, std430) readonly buffer FieldQ { float qv[]; };
 //                  span top holds hue instead of wrapping)
 //   slots 24-27  = the APPROACH band (count-invariant white-hot stage):
 //                  a_lo (entry), a_hi (white point), a_top (hue at white —
-//                  red 1.0; pink falls naturally before it), approach_on (0/1)
+//                  pink 0.93; no red at the top), approach_on (0/1)
 //   slots 28-30  = per-axis box half-extents (the q-sampler's cell mapping —
 //                  the same _extents() values nbody reads from bh[2].yzw)
 //   slot 31      = hue_offset (rotates the cycle start hue mod span_total)
@@ -110,7 +110,7 @@ layout(push_constant, std430) uniform PC {
     float span_total;    // H_CYCLE·C — the hue budget of the pass set
     float a_lo;          // approach entry (violet)
     float a_hi;          // approach white point (lightness 1.0)
-    float a_top;         // approach hue at the white point (red 1.0 — pink sits before it)
+    float a_top;         // approach hue at the white point (pink 0.93 — the top end is not red)
     float approach_on;   // 0 = approach off (pure cycle), 1 = on
     float extent_x;      // per-axis box half-extents (GRID_LAYOUT.md's φ-aspect
     float extent_y;      // box) — the q-sampler's cell mapping, the same
@@ -120,9 +120,8 @@ layout(push_constant, std430) uniform PC {
 
 // ── Consolidated-gradient constants ─────────────────────────────────────
 // H_ENTRY = 0.8 (violet) — the approach entry hue; the approach ramps to
-// pc.a_top (red 1.0) at the white point, so pink (~0.93) appears naturally
-// at pA ≈ 0.65 — simply before white. LOG_GUARD keeps every log argument
-// and every max() denominator safe (never ≤ 0).
+// pc.a_top (pink 0.93) at the white point — red never appears at high
+// coherence. LOG_GUARD keeps every log argument and every max()
 const float H_ENTRY = 0.8;
 const float LOG_GUARD = 1e-9;
 
@@ -305,8 +304,8 @@ void main() {
         // the cap instead of wrapping back to red (mod(x, y) = 0 for x = y).
         float h_cyc = mod(hc + pc.hue_offset, max(pc.span_total, 1.0));
         // approach band (count-invariant): violet 0.8 at a_lo → pc.a_top
-        // (red 1.0) at a_hi — pink (~0.93) falls naturally at pA ≈ 0.65,
-        // simply before white; lightness 0.5 → 1.0
+        // (pink 0.93) at a_hi — the lightness ramp makes it white at the
+        // top; red never appears at high coherence
         float pA = clamp((x - pc.a_lo) / max(pc.a_hi - pc.a_lo, LOG_GUARD), 0.0, 1.0);
         float hA = mix(H_ENTRY, pc.a_top, pA);
         float lA = 0.5 + 0.5 * pA;
@@ -333,13 +332,14 @@ void main() {
         float cb = mix(1.0,  0.15, log_m);
         color = vec4(cr, cg, cb, 1.0);
     }
-    // Base mode 5 (GLOW): override the color with a bright-core additive
-    // treatment — q near the white point (bright core) → lightness lifted
-    // toward white AND alpha raised so core overlap reads as additive
-    // glow; a halo ramp adds extra brightness on large instances. Works
-    // over the Qi axis (x = q) and, secondarily, the velocity axis the
-    // engine sources from x_axis.
-    if (bmode == 5) {
+    // Additive-glow (flag 0x20): bright-core additive treatment over ANY
+    // base color mode — q near the white point (bright core) → lightness
+    // lifted toward white AND alpha raised so core overlap reads as
+    // additive glow; a halo ramp adds extra brightness on large instances.
+    // Reads the engine's scalar axis (x_axis): q in the Qi modes, |v| in
+    // the velocity mode. The bright-core ramp keys on pc.a_hi (the live
+    // white point), so a condensation-heavy region glows brightest.
+    if ((flags & F_GL) != 0) {
         float x = x_axis;
         float ref = max(pc.a_hi, 0.001);
         // bright-core fraction: 0 below the onset, → 1 at the white point

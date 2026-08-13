@@ -25,8 +25,8 @@ const LN2: float = 0.6931471805599453  # ln 2 — degenerate rainbow v_scale fal
 # magenta/pink segment 0.8-1.0 the old 0.8 cap omitted is now visible);
 # the measured band spans h ≈ 0.33-0.65 (green → cyan-blue; median 3.8e-4 →
 # h = ln(1.9)/ln(5) ≈ 0.40). Stage 2 (q ∈ [Q_1, q_top]) ramps violet at
-# Q_1 → pink (~0.93, naturally at the band's 65 % point) → red at q_top
-# while lightness ramps to pure white at q_top = the live
+# Q_1 → pink at q_top (the top hue is pink — red never appears at high
+# coherence) while lightness ramps to pure white at q_top = the live
 # qi_condensation_threshold export (the explosion point) — recomputed per
 # PC fill, so changing the threshold re-anchors the white point live (no
 # reinit). The red → violet jump at the Q_1 stage boundary is the
@@ -245,6 +245,16 @@ var _vsync_enabled: bool = true
 ## (reinit to apply); default off = the grid solver, bit-identical.
 @export var meshless_mode: bool = false
 
+## Tree gravity (init-time; default off = the grid river arm, bit-identical).
+## Takes effect ONLY when meshless_mode is ALSO on — the spectral-Poisson
+## river chain is replaced by the open-boundary meshless tree gravity
+## (fmm_design.md Q6): the mass deposit + PDE still run (ρ/q source the tree
+## gather), but the Poisson FFT chain, the grid ∇(g·Φ) gradient pass and the
+## dual-lattice chain are skipped and the nbody arm samples the tree walk's
+## per-particle ∇Φ_g. Additive like dual_grid/gradient_order: with it off
+## (the default) every existing battery stays bit-identical.
+@export var meshless_gravity: bool = false
+
 ## Display mode: 0 = Particles, 1 = Field, 2 = Black Hole, 3 = Cosmology.
 @export_enum("Particles", "Field", "Black Hole", "Cosmology") var mode: int = 0
 
@@ -459,6 +469,44 @@ var _raster_pc_bytes: PackedByteArray # raster PC (8 floats: N, n_sites, pad×6)
 var _ml_sites_cpu := PackedFloat32Array()
 var _ml_ready := false
 var _ml_step_count := 0
+
+# ── Meshless TREE gravity (fmm_design.md Q6 / wave 3) ──────────────────
+# Open-boundary Barnes-Hut octree replacing the spectral-Poisson river chain
+# when `meshless_gravity && meshless_mode`. Sources = the 8192 Voronoi sites
+# (gather mode 7 → chord-weighted w=m·g); targets = the N-body particles
+# (walk writes _ml_tree_grad, which the nbody tree-river arm mode 5 reads).
+# Buffers sized for N_src=ml_ns sites (node cap 8·N_src+64) and N_particles
+# targets. Allocated ALWAYS (the codebase's meshless-buffer precedent), used
+# only when the toggle is on.
+const ML_TREE_LEAF_CAP := 1
+const ML_TREE_MAX_LEVELS := 14
+const ML_TREE_NODE_MAX_MULT := 8
+const ML_TREE_FIELD_FLOOR := 1e-6   # source-mass recipe field-density floor
+const ML_TREE_THETA := 0.5
+const ML_TREE_EPS2 := 1e-6
+const GRAVITY_MODE_TREE := 5.0       # `tree river` — gravity_mode value
+var _tree_build_shader: RID
+var _tree_build_pipe: RID
+var _tree_grav_shader: RID
+var _tree_grav_pipe: RID
+var _ml_tree_src: RID       # vec4[2·nsrc]
+var _ml_tree_srcw: RID      # float[nsrc]
+var _ml_tree_key: RID       # uint[nsrc]
+var _ml_tree_order: RID     # uint[nsrc]
+var _ml_tree_cf: RID        # vec4[M]
+var _ml_tree_w: RID         # vec4[M]
+var _ml_tree_q: RID         # vec4[2M]
+var _ml_tree_r: RID         # ivec4[M]
+var _ml_tree_ctr: RID       # uint[8]
+var _ml_tree_grad: RID      # vec4[N_particles] — per-particle tree ∇Φ_g·(−) (nbody set 1 binding 3)
+var _ml_tree_icount: RID    # uint[N_particles] — walk interaction counts (walk binding 10)
+var _ml_tree_away: RID      # uint[nsrc] — walk binding 11 (position source selector)
+var _us_tree_build: RID
+var _us_tree_grav: RID
+var _tree_build_pc_bytes: PackedByteArray  # build PC (19 floats: 14 shared + grid_N, ext_x/y/z, field_floor)
+var _tree_grav_pc_bytes: PackedByteArray   # walk PC (5 floats: N, theta, eps2, use_tp, node_cnt)
+var _ml_tree_nsrc: int = 0
+var _ml_tree_nnode: int = 0
 
 # — MultiMesh rendering —
 # NOTE: global RD — no manual submit/sync anywhere (illegal on the main
@@ -715,6 +763,11 @@ func _run_physics_steps(n_steps: int) -> void:
 	_bh_init_bytes.encode_float(20, _off_dual.y)
 	_bh_init_bytes.encode_float(24, _off_dual.z)
 	_rd.buffer_update(_bh_buf, 0, _bh_init_bytes.size(), _bh_init_bytes)
+	# ── Meshless tree gravity: build + walk ONCE per frame, BEFORE the
+	# steps, so mode-5 nbody reads a fresh _ml_tree_grad (fmm_design.md Q6).
+	# Runs as its own standalone list (self-contained split — no readbacks).
+	if meshless_mode and meshless_gravity and _ml_ready:
+		_dispatch_tree_gravity()
 	var cl = _rd.compute_list_begin()
 	for _s in range(n_steps):
 		_step_dispatches(cl)
@@ -933,6 +986,27 @@ func _setup_buffers() -> void:
 	_jfa_pc_bytes = PackedByteArray(); _jfa_pc_bytes.resize(8 * 4)
 	_cell_pc_bytes = PackedByteArray(); _cell_pc_bytes.resize(17 * 4)  # mode,N,n_sites,dt,hx,hy,hz,C2,OM2,PHI,src,rho_floor,drift_cap,kappa,lam,T_steer,lloyd_p
 	_raster_pc_bytes = PackedByteArray(); _raster_pc_bytes.resize(8 * 4)
+	# ── Tree-gravity buffers (allocated always; used when meshless_gravity) ──
+	# Sources = the Voronoi sites (ml_ns); targets = the N-body particles.
+	# Node cap NODE_MAX = ML_TREE_NODE_MAX_MULT·nsrc + slack — the octree of
+	# 8192 sites stays well under 8·8192 nodes even at leaf_cap=1.
+	_ml_tree_nsrc = ml_ns
+	var tnm: int = ML_TREE_NODE_MAX_MULT * ml_ns + 64
+	_ml_tree_src = _rd.storage_buffer_create(2 * ml_ns * 16)
+	_ml_tree_srcw = _rd.storage_buffer_create(ml_ns * 4)
+	_ml_tree_key = _rd.storage_buffer_create(ml_ns * 4)
+	_ml_tree_order = _rd.storage_buffer_create(ml_ns * 4)
+	_ml_tree_cf = _rd.storage_buffer_create(tnm * 16)
+	_ml_tree_w = _rd.storage_buffer_create(tnm * 16)
+	_ml_tree_q = _rd.storage_buffer_create(2 * tnm * 16)
+	_ml_tree_r = _rd.storage_buffer_create(tnm * 16)
+	_ml_tree_ctr = _rd.storage_buffer_create(8 * 4)
+	# per-particle tree gradient + walk counts (N_particles targets)
+	_ml_tree_grad = _rd.storage_buffer_create(N_particles * 16)
+	_ml_tree_icount = _rd.storage_buffer_create(N_particles * 4)
+	_ml_tree_away = _rd.storage_buffer_create(maxi(ml_ns, 1) * 4)  # walk binding 11 (unused when use_tp on; sized nsrc)
+	_tree_build_pc_bytes = PackedByteArray(); _tree_build_pc_bytes.resize(19 * 4)
+	_tree_grav_pc_bytes = PackedByteArray(); _tree_grav_pc_bytes.resize(5 * 4)
 
 	# Pre-allocate push-constant byte buffers (hitch-free pattern)
 	_pc_bytes = PackedByteArray(); _pc_bytes.resize(11 * 4)
@@ -964,6 +1038,9 @@ func _free_buffers() -> void:
 				_ml_psi_y, _ml_psi_i, _ml_pi_y, _ml_pi_i,
 				_ml_lap_y, _ml_lap_i, _ml_vol,
 				_ml_cen, _ml_remap, _ml_tmp_y, _ml_tmp_i, _ml_tmp_py, _ml_tmp_pi,
+				_ml_tree_src, _ml_tree_srcw, _ml_tree_key, _ml_tree_order,
+				_ml_tree_cf, _ml_tree_w, _ml_tree_q, _ml_tree_r, _ml_tree_ctr,
+				_ml_tree_grad, _ml_tree_icount, _ml_tree_away,
 				_field_render_tex, _bh_lensing_tex]:
 		if rid.is_valid(): _rd.free_rid(rid)
 	_field_render_tex = RID()
@@ -978,7 +1055,8 @@ func _free_uniform_sets() -> void:
 				_us_nbody_0, _us_nbody_1, _us_nbody_2, _us_poisson_0,
 				_us_fr_0, _us_fr_2, _us_cond_0, _us_cond_1,
 				_us_bh_int_0, _us_bh_int_1, _us_inst_0, _us_bh_lens_2,
-				_us_occ_0, _us_jfa_0, _us_cell_0, _us_raster_0]:
+				_us_occ_0, _us_jfa_0, _us_cell_0, _us_raster_0,
+				_us_tree_build, _us_tree_grav]:
 		if rid.is_valid(): _rd.free_rid(rid)
 	_us_two_0 = RID(); _us_two_1 = RID(); _us_two_2 = RID()
 	_us_mass_dep_0 = RID()
@@ -990,6 +1068,7 @@ func _free_uniform_sets() -> void:
 	_us_inst_0 = RID(); _us_bh_lens_2 = RID()
 	_us_occ_0 = RID()
 	_us_jfa_0 = RID(); _us_cell_0 = RID(); _us_raster_0 = RID()
+	_us_tree_build = RID(); _us_tree_grav = RID()
 
 func _free_shaders() -> void:
 	_free_uniform_sets()  # sets hold shader references; release before the shaders
@@ -1000,11 +1079,13 @@ func _free_shaders() -> void:
 				_instancer_pipe, _mass_deposit_pipe,
 				_cond_pipe, _bh_int_pipe, _occ_pipe,
 				_jfa_pipe, _cell_pipe, _raster_pipe,
+				_tree_build_pipe, _tree_grav_pipe,
 				_two_fluid_shader, _nbody_shader, _poisson_shader,
 				_field_render_shader, _bh_lensing_shader,
 				_instancer_shader, _mass_deposit_shader,
 				_cond_shader, _bh_int_shader, _occ_shader,
-				_jfa_shader, _cell_shader, _raster_shader]:
+				_jfa_shader, _cell_shader, _raster_shader,
+				_tree_build_shader, _tree_grav_shader]:
 		if rid.is_valid(): _rd.free_rid(rid)
 
 
@@ -1084,6 +1165,16 @@ func _setup_shaders() -> void:
 	if _raster_shader.is_valid():
 		_raster_pipe = _rd.compute_pipeline_create(_raster_shader)
 		print("[CassiSim] Voronoi raster pipeline ready")
+	# ── Tree-gravity arm (fmm_design.md; always built so meshless_gravity
+	# stays a LIVE toggle — used only when meshless_mode && meshless_gravity)
+	_tree_build_shader = _shader_from_file("res://compute/cassi_tree_build.glsl")
+	if _tree_build_shader.is_valid():
+		_tree_build_pipe = _rd.compute_pipeline_create(_tree_build_shader)
+		print("[CassiSim] tree-build pipeline ready")
+	_tree_grav_shader = _shader_from_file("res://compute/cassi_tree_gravity.glsl")
+	if _tree_grav_shader.is_valid():
+		_tree_grav_pipe = _rd.compute_pipeline_create(_tree_grav_shader)
+		print("[CassiSim] tree-walk pipeline ready")
 
 	_cache_uniform_sets()
 	_shaders_ready = (
@@ -1118,6 +1209,7 @@ func _cache_uniform_sets() -> void:
 	_us_nbody_1 = _rd.uniform_set_create([
 		_uniform_storage(0, _pos_buf), _uniform_storage(1, _vel_buf),
 		_uniform_storage(2, _acc_buf),
+		_uniform_storage(3, _ml_tree_grad),  # tree-river (mode 5): per-particle ∇Φ_g
 	], _nbody_shader, 1)
 	# Poisson solver (set 0: FFT workspace + mass density + telemetry)
 	if _poisson_shader.is_valid():
@@ -1221,6 +1313,30 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(2, _ml_psi_i), _uniform_storage(3, _field_ey),
 			_uniform_storage(4, _field_ei), _uniform_storage(5, _field_q),
 		], _raster_shader, 0)
+	# ── Tree-gravity uniform sets (fmm_design.md) ──
+	# Build shader declares bindings 0-13 (set 0): the octree buffers PLUS the
+	# meshless gather sources (9-13). Walk shader declares 0,3-8 + 9,10,11 —
+	# a SEPARATE set (Godot validates bindings against the shader's set).
+	if _tree_build_shader.is_valid():
+		_us_tree_build = _rd.uniform_set_create([
+			_uniform_storage(0, _ml_tree_src), _uniform_storage(1, _ml_tree_srcw),
+			_uniform_storage(2, _ml_tree_key), _uniform_storage(3, _ml_tree_order),
+			_uniform_storage(4, _ml_tree_cf), _uniform_storage(5, _ml_tree_w),
+			_uniform_storage(6, _ml_tree_q), _uniform_storage(7, _ml_tree_r),
+			_uniform_storage(8, _ml_tree_ctr),
+			_uniform_storage(9, _ml_sites),
+			_uniform_storage(10, _ml_psi_y), _uniform_storage(11, _ml_psi_i),
+			_uniform_storage(12, _ml_vol), _uniform_storage(13, _mass_density_buf),
+		], _tree_build_shader, 0)
+	if _tree_grav_shader.is_valid():
+		_us_tree_grav = _rd.uniform_set_create([
+			_uniform_storage(0, _ml_tree_src), _uniform_storage(3, _ml_tree_order),
+			_uniform_storage(4, _ml_tree_cf), _uniform_storage(5, _ml_tree_w),
+			_uniform_storage(6, _ml_tree_q), _uniform_storage(7, _ml_tree_r),
+			_uniform_storage(8, _ml_tree_ctr),
+			_uniform_storage(9, _ml_tree_grad), _uniform_storage(10, _ml_tree_icount),
+			_uniform_storage(11, _ml_tree_away),
+		], _tree_grav_shader, 0)
 # ═══════════════════════════════════════════════════════════════════════
 # Initial conditions
 # ═══════════════════════════════════════════════════════════════════════
@@ -2166,7 +2282,7 @@ const E_HIC: int = 10
 const E_SPAN: int = 11
 const E_ALO: int = 12
 const E_AHI: int = 13
-const E_TOP: int = 14   # approach hue at the white point (red 1.0 — pink sits before it)
+const E_TOP: int = 14   # approach hue at the white point (pink 0.93 — no red at high coherence)
 const E_APPROACH_ON: int = 15
 const E_HUE_OFF: int = 16
 var _engine_c: PackedFloat32Array = PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
@@ -2187,13 +2303,13 @@ func _fill_instancer_pc() -> void:
 	# the scalar axis x (velocity: speed; Qi: coherence q) is partitioned
 	# into up to 3 CYCLE segments [lo1,lo2],[lo2,lo3],[lo3,hiC] (the pinch
 	# split concentrates hue gradient where most particles sit; pinch OFF ⇒
-	# one segment) plus the APPROACH band (a_lo → gate → a_hi, the
+	# one segment) plus the APPROACH band (a_lo → a_hi, the
 	# count-invariant white-hot stage). Per-segment hue SHARES allocate each
 	# pass's hue budget; count C = the number of hue passes over the cycle
 	# band. Progress is LOG per segment (multiplicative physics — the pinch
 	# band is the narrowest log interval, intrinsically steepest); the
-	# approach is LINEAR (violet 0.8 at a_lo → red 1.0 at a_hi — pink 0.93
-	# falls naturally at pA ≈ 0.65, before white; lightness 0.5 → 1.0).
+	# approach is LINEAR (violet 0.8 at a_lo → pink 0.93 at a_hi — no red at
+	# high coherence; lightness 0.5 → 1.0).
 	# H_CYCLE = 1.0 (Qi) / 0.95
 	# (velocity — the legacy full-circle top, held with no wrap).
 	# Derivation reads the LIVE exports (particle_color_mode, rainbow_count,
@@ -2342,7 +2458,7 @@ func _fill_instancer_pc() -> void:
 	_engine_c[E_SPAN] = span
 	_engine_c[E_ALO] = a_lo
 	_engine_c[E_AHI] = a_hi
-	_engine_c[E_TOP] = 1.0   # approach hue at the white point (red — pink before white)
+	_engine_c[E_TOP] = 0.93  # approach top hue = pink — red never appears at high coherence
 	_engine_c[E_APPROACH_ON] = approach_on
 	_engine_c[E_HUE_OFF] = color_hue_offset
 	# ── encode slots 12-31 ──
@@ -2496,12 +2612,15 @@ func _step_dispatches(cl: int) -> void:
 		_rd.compute_list_dispatch(cl, pg, 1, 1)
 	_barrier(cl)  # deposit → poisson
 
-	# ── 1.5. Spectral Poisson solve: ∇²Φ = ρ_mass (Φ̂ = −ρ̂/k², k=0 nulled) ──
+	# 1.5. Spectral Poisson solve: ∇²Φ = ρ_mass (Φ̂ = −ρ̂/k², k=0 nulled) ──
 	# RIVER MODES ONLY (0, 3 and 4): the heuristic and Plummer-reference arms
 	# consume neither Φ nor ∇(g·Φ) — skipping the 7-pass FFT chain is their
 	# main step-cost win. The clear+deposit+PDE chain above still runs so
 	# ρ/q remain the visual/source state (the PDE's injection reads ρ).
-	if gravity_mode == 0 or gravity_mode == 3 or gravity_mode == 4:
+	# SKIPPED under tree gravity too (meshless_gravity && meshless_mode) —
+	# the octree replaces the spectral solve (fmm_design.md Q6).
+	if (gravity_mode == 0 or gravity_mode == 3 or gravity_mode == 4) \
+			and not (meshless_mode and meshless_gravity):
 		_dispatch_poisson(cl)
 	_barrier(cl)  # deposit → PDE (rho visibility for the PDE source)
 
@@ -2571,8 +2690,9 @@ func _step_dispatches(cl: int) -> void:
 	# groups at N=256. RIVER MODE ONLY: the heuristic/Plummer arms never
 	# sample _grad_buf, so the O(N³) pass is skipped with the FFT chain.
 	# Mode 3 (river self) and mode 4 (RealSim) sample it too — kept with
-	# mode 0.
-	if (gravity_mode == 0 or gravity_mode == 3 or gravity_mode == 4) and _nbody_shader.is_valid():
+	# mode 0. SKIPPED under tree gravity (the walk produces ∇Φ_g directly).
+	if (gravity_mode == 0 or gravity_mode == 3 or gravity_mode == 4) \
+			and not (meshless_mode and meshless_gravity) and _nbody_shader.is_valid():
 		_nbody_pc_bytes.encode_float(44, 1.0)  # pass_mode = 1 (gradient)
 		_rd.compute_list_bind_compute_pipeline(cl, _nbody_pipe)
 		# ALL THREE sets must be bound: the pipeline rejects a dispatch with
@@ -2593,8 +2713,10 @@ func _step_dispatches(cl: int) -> void:
 	# translation-invariant, so only the deposit and gradient world maps
 	# carry the offset — the Poisson FFT chain itself is unchanged. Runs
 	# AFTER the PDE (the shifted gradient samples the same post-PDE field
-	# at shifted cell centers). River modes only, gated on dual_grid.
-	if dual_grid and (gravity_mode == 0 or gravity_mode == 3 or gravity_mode == 4) and _nbody_shader.is_valid():
+	# at shifted cell centers). River modes only, gated on dual_grid. SKIPPED
+	# under tree gravity (the tree is already isotropic — no BCC partner).
+	if dual_grid and (gravity_mode == 0 or gravity_mode == 3 or gravity_mode == 4) \
+			and not (meshless_mode and meshless_gravity) and _nbody_shader.is_valid():
 		if _poisson_shader.is_valid():
 			_poisson_pc_bytes.encode_float(12, 3.0)  # mode 3 = clear (ρ = 0)
 			_rd.compute_list_bind_compute_pipeline(cl, _poisson_pipe)
@@ -2649,7 +2771,126 @@ func _step_dispatches(cl: int) -> void:
 	_barrier(cl)  # end-of-step visibility (nbody writes → next step / frame-end instancer)
 
 
-# ── One-time FD-Laplacian residual report for the Poisson solve ─────────
+# ── Meshless TREE gravity: standalone build + walk (fmm_design.md Q6) ────
+# The tree replaces the spectral-Poisson river chain under the
+# meshless_gravity && meshless_mode toggle. It runs as its OWN compute-list
+# cycle (gather → bitonic → BFS split → moments → walk) once per frame,
+# BEFORE the per-step loop, so mode-5 nbody reads a fresh _ml_tree_grad
+# across the frame's steps. Per-frame (not per-step) refresh is the
+# deliberate integration here: the frame loop lives in ONE global-RD
+# compute list with no CPU syncs (the codebase's stutter-fix idiom), so a
+# per-step tree trigger is impossible. The split is SELF-CONTAINED
+# (cassi_tree_build.glsl mode 5/8 — no host level readbacks), so this whole
+# chain is ONE list + a single frame-boundary submit/sync; 0 per-level
+# stalls. The sites themselves are only rebuilt every ML_REBUILD steps, so
+# a per-frame tree gradient is well matched to the mesh cadence. Ordering
+# (field → g → tree → walk, Q3): the gather reads the mesh sites' post-PDE
+# (EY,EI) + the deposit's ρ_mass; the walk runs only after the full build
+# (all barriers in-list).
+#
+# PC layouts (dedicated buffers, both ≤ 128 B):
+#   build (19 f)  N_f, bmin.xyz, bhalf, eps2, phi, xi, leaf_cap, max_levels,
+#                 mode, b_k, b_j, b_m, grid_N, ext.xyz, field_floor
+#   walk (5 f)    N_f, theta, eps2, use_tp(1 = _pos_buf targets), node_cnt
+func _dispatch_tree_gravity() -> void:
+	if _ml_tree_nsrc <= 0 or not _tree_build_pipe.is_valid() \
+			or not _tree_grav_pipe.is_valid() or not _ml_ready:
+		return
+	var N_src = _ml_tree_nsrc
+	var Np = maxi(N_particles, 1)
+	var pg_src = ceili(float(N_src) / 64.0)
+	var ext = _extents()
+	var half: float = maxf(ext.x, maxf(ext.y, ext.z)) * 1.000001
+	var bp = _tree_build_pc_bytes
+	# constant build fields
+	bp.encode_float(0, float(N_src))
+	bp.encode_float(1, -half); bp.encode_float(2, -half); bp.encode_float(3, -half)
+	bp.encode_float(4, half)
+	bp.encode_float(5, ML_TREE_EPS2)
+	bp.encode_float(6, PHI)
+	bp.encode_float(7, PHI_6)
+	bp.encode_float(8, float(ML_TREE_LEAF_CAP))
+	bp.encode_float(9, float(ML_TREE_MAX_LEVELS))
+	bp.encode_float(14, float(grid_N))
+	bp.encode_float(15, ext.x); bp.encode_float(16, ext.y); bp.encode_float(17, ext.z)
+	bp.encode_float(18, ML_TREE_FIELD_FLOOR)
+	var wp = _tree_grav_pc_bytes
+	wp.encode_float(0, float(Np))
+	wp.encode_float(1, ML_TREE_THETA)
+	wp.encode_float(2, ML_TREE_EPS2)
+	wp.encode_float(3, 1.0)  # use_tp — read particle positions (_pos_buf)
+	wp.encode_float(4, float(ML_TREE_NODE_MAX_MULT * N_src + 64))  # bound (unused by walk)
+
+	# seed the self-contained split counters: node_cnt=1 (root), front=0,
+	# level_end=1 (the root's slot). One buffer_update before the list.
+	_rd.buffer_update(_ml_tree_ctr, 0, 32, PackedInt32Array([1, 0, 1, 0, 0, 0, 0, 0]).to_byte_array())
+
+	var cl := _rd.compute_list_begin()
+	_rd.compute_list_bind_compute_pipeline(cl, _tree_build_pipe)
+	_rd.compute_list_bind_uniform_set(cl, _us_tree_build, 0)
+
+	# 1. gather (mode 7) — source table from the meshless sites + chord/Morton
+	bp.encode_float(10, 7.0)
+	_rd.compute_list_set_push_constant(cl, bp, bp.size())
+	_rd.compute_list_dispatch(cl, pg_src, 1, 1)
+	_rd.compute_list_add_barrier(cl)
+
+	# 2. bitonic sort (91 stages, in-list barriers)
+	var k := 2
+	while k <= N_src:
+		var j := k >> 1
+		while j >= 1:
+			bp.encode_float(10, 1.0)
+			bp.encode_float(11, float(k))
+			bp.encode_float(12, float(j))
+			bp.encode_float(13, 1.0)
+			_rd.compute_list_set_push_constant(cl, bp, bp.size())
+			_rd.compute_list_dispatch(cl, pg_src, 1, 1)
+			_rd.compute_list_add_barrier(cl)
+			j = j >> 1
+		k = k << 1
+	_rd.compute_list_add_barrier(cl)  # sorted order → split
+
+	# 3. self-contained BFS split: MAX_LEVELS × [mode 5 split → mode 8 commit]
+	var tnm := ML_TREE_NODE_MAX_MULT * N_src + 64
+	var pg_all = ceili(float(tnm) / 64.0)
+	for _depth in range(ML_TREE_MAX_LEVELS):
+		bp.encode_float(10, 5.0)
+		_rd.compute_list_set_push_constant(cl, bp, bp.size())
+		_rd.compute_list_dispatch(cl, pg_all, 1, 1)
+		_rd.compute_list_add_barrier(cl)
+		bp.encode_float(10, 8.0)
+		_rd.compute_list_set_push_constant(cl, bp, bp.size())
+		_rd.compute_list_dispatch(cl, 1, 1, 1)
+		_rd.compute_list_add_barrier(cl)
+
+	# 4. moments (mode 6) — self-clips to ctr[0] (no host count needed)
+	bp.encode_float(10, 6.0)
+	_rd.compute_list_set_push_constant(cl, bp, bp.size())
+	_rd.compute_list_dispatch(cl, pg_all, 1, 1)
+	_rd.compute_list_add_barrier(cl)
+
+	# 5. walk — one thread per PARTICLE (_pos_buf targets via use_tp)
+	_rd.compute_list_bind_compute_pipeline(cl, _tree_grav_pipe)
+	_rd.compute_list_bind_uniform_set(cl, _us_tree_grav, 0)
+	_rd.compute_list_set_push_constant(cl, wp, wp.size())
+	_rd.compute_list_dispatch(cl, ceili(float(Np) / 64.0), 1, 1)
+	_rd.compute_list_add_barrier(cl)
+
+	_rd.compute_list_end()
+	_rd.submit()
+	_rd.sync()
+	_ml_tree_nnode = _read_tree_counter(0)   # informational (the walk doesn't consume node_cnt)
+
+
+func _read_tree_counter(off: int) -> int:
+	var d := _rd.buffer_get_data(_ml_tree_ctr, off, 4).to_int32_array()
+	if d.size() < 1:
+		return 0
+	return d[0]
+
+
+
 # Checks ∇²Φ ≈ ρ (7-point stencil) on the solved potential. The spectral
 # solve inverts the CONTINUOUS Laplacian, so the residual measures the
 # discretization mismatch (expected O(h²) of the stencil), not solver error.
