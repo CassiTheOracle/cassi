@@ -447,7 +447,7 @@ var _us_jfa_0: RID
 var _us_cell_0: RID
 var _us_raster_0: RID
 var _jfa_pc_bytes: PackedByteArray    # JFA PC (8 floats: N, jump, read_a, n_sites, h, pad×3)
-var _cell_pc_bytes: PackedByteArray   # cell PC (14 floats: mode, N, n_sites, dt, h, C2, OM2, PHI, source_s, rho_floor, drift_cap, kappa, lam, T_steer)
+var _cell_pc_bytes: PackedByteArray   # cell PC (16 floats: mode, N, n_sites, dt, hx, hy, hz, C2, OM2, PHI, source_s, rho_floor, drift_cap, kappa, lam, T_steer)
 var _raster_pc_bytes: PackedByteArray # raster PC (8 floats: N, n_sites, pad×6)
 var _ml_sites_cpu := PackedFloat32Array()
 var _ml_ready := false
@@ -926,7 +926,7 @@ func _setup_buffers() -> void:
 	_ml_tmp_py = _rd.storage_buffer_create(ml_ns * 4)
 	_ml_tmp_pi = _rd.storage_buffer_create(ml_ns * 4)
 	_jfa_pc_bytes = PackedByteArray(); _jfa_pc_bytes.resize(8 * 4)
-	_cell_pc_bytes = PackedByteArray(); _cell_pc_bytes.resize(14 * 4)
+	_cell_pc_bytes = PackedByteArray(); _cell_pc_bytes.resize(16 * 4)  # mode,N,n_sites,dt,hx,hy,hz,C2,OM2,PHI,src,rho_floor,drift_cap,kappa,lam,T_steer
 	_raster_pc_bytes = PackedByteArray(); _raster_pc_bytes.resize(8 * 4)
 
 	# Pre-allocate push-constant byte buffers (hitch-free pattern)
@@ -1385,44 +1385,54 @@ func _camera_max_distance() -> float:
 # BCC site lattice in the mesh world [0, 2·extent)³, JFA construction,
 # per-cell state sampled from the grid IC, steering + ALE remap between
 # frames, and the raster back to the field buffers (see _step_dispatches).
-# Cube-box scope: the mesh is isotropic; a φ-aspect box is interpreted as
-# a cube here (the anisotropic mesh is future work).
+# Anisotropic box: the BCC seed lattice, the JFA accelerator grid and the
+# trilinear IC sampling all use the per-axis spacings hx/hy/hz =
+# 2·extent_i/N (the stretched box [0, 2·extent_x) × ... × [0, 2·extent_z)).
 func _meshless_init() -> void:
 	var N = grid_N
 	var ml_ns = 2 * ML_N1 * ML_N1 * ML_N1
-	var h: float = 2.0 * _extent_min() / float(N)
-	var L: float = h * float(N)
-	# BCC lattice: two cubic sublattices offset by half a spacing
+	var ext := _extents()
+	var hx: float = 2.0 * ext.x / float(N)
+	var hy: float = 2.0 * ext.y / float(N)
+	var hz: float = 2.0 * ext.z / float(N)
+	var Lx: float = hx * float(N)
+	var Ly: float = hy * float(N)
+	var Lz: float = hz * float(N)
+	# BCC lattice: two cubic sublattices offset by half a spacing, one
+	# per axis (the anisotropic analog of the cube's uniform spacing)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 20260813
-	var spacing: float = L / float(ML_N1)
+	var sx: float = Lx / float(ML_N1)
+	var sy: float = Ly / float(ML_N1)
+	var sz: float = Lz / float(ML_N1)
 	var sites := PackedFloat32Array()
 	for i in range(ML_N1):
 		for j in range(ML_N1):
 			for k in range(ML_N1):
 				sites.append_array(PackedFloat32Array([
-					float(i) * spacing + rng.randf_range(-0.2, 0.2) * spacing,
-					float(j) * spacing + rng.randf_range(-0.2, 0.2) * spacing,
-					float(k) * spacing + rng.randf_range(-0.2, 0.2) * spacing,
+					float(i) * sx + rng.randf_range(-0.2, 0.2) * sx,
+					float(j) * sy + rng.randf_range(-0.2, 0.2) * sy,
+					float(k) * sz + rng.randf_range(-0.2, 0.2) * sz,
 					0.0]))
 				sites.append_array(PackedFloat32Array([
-					(float(i) + 0.5) * spacing + rng.randf_range(-0.2, 0.2) * spacing,
-					(float(j) + 0.5) * spacing + rng.randf_range(-0.2, 0.2) * spacing,
-					(float(k) + 0.5) * spacing + rng.randf_range(-0.2, 0.2) * spacing,
+					(float(i) + 0.5) * sx + rng.randf_range(-0.2, 0.2) * sx,
+					(float(j) + 0.5) * sy + rng.randf_range(-0.2, 0.2) * sy,
+					(float(k) + 0.5) * sz + rng.randf_range(-0.2, 0.2) * sz,
 					0.0]))
 	for m in range(sites.size() / 4):
-		sites[m * 4] = fposmod(sites[m * 4], L)
-		sites[m * 4 + 1] = fposmod(sites[m * 4 + 1], L)
-		sites[m * 4 + 2] = fposmod(sites[m * 4 + 2], L)
+		sites[m * 4] = fposmod(sites[m * 4], Lx)
+		sites[m * 4 + 1] = fposmod(sites[m * 4 + 1], Ly)
+		sites[m * 4 + 2] = fposmod(sites[m * 4 + 2], Lz)
 	_ml_sites_cpu = sites
 	_rd.buffer_update(_ml_sites, 0, sites.size() * 4, sites.to_byte_array())
 
 	# scatter (min-index per cell — the GPU atomicMin analog) + JFA
 	_ml_scatter_and_jfa()
-	# volume pass (h³ per cell, atomic)
+	# volume pass (hx·hy·hz per cell, atomic)
 	_ml_volume_pass()
 	# per-site state: trilinear sample of the grid IC (the mesh world
-	# [0, L) maps to the sim's world x = s − extent: grid coord = s/h)
+	# [0, Lx)×[0, Ly)×[0, Lz) maps to the sim's world x = s − extent:
+	# grid coord = s.x/hx etc.)
 	var ey_f := _rd.buffer_get_data(_field_ey, 0, N * N * N * 4).to_float32_array()
 	var ei_f := _rd.buffer_get_data(_field_ei, 0, N * N * N * 4).to_float32_array()
 	var psi_y := PackedFloat32Array()
@@ -1430,9 +1440,9 @@ func _meshless_init() -> void:
 	psi_y.resize(ml_ns)
 	psi_i.resize(ml_ns)
 	for s in range(ml_ns):
-		var gx: float = fposmod(sites[s * 4], L) / h
-		var gy: float = fposmod(sites[s * 4 + 1], L) / h
-		var gz: float = fposmod(sites[s * 4 + 2], L) / h
+		var gx: float = fposmod(sites[s * 4], Lx) / hx
+		var gy: float = fposmod(sites[s * 4 + 1], Ly) / hy
+		var gz: float = fposmod(sites[s * 4 + 2], Lz) / hz
 		var i0: int = int(floor(gx)) % N
 		var j0: int = int(floor(gy)) % N
 		var k0: int = int(floor(gz)) % N
@@ -1476,16 +1486,26 @@ func _ml_scatter_and_jfa() -> void:
 	var labels := PackedInt32Array()
 	labels.resize(N * N * N)
 	labels.fill(ML_INT_MAX)
-	var h: float = 2.0 * _extent_min() / float(N)
+	var ext := _extents()
+	var hx: float = 2.0 * ext.x / float(N)
+	var hy: float = 2.0 * ext.y / float(N)
+	var hz: float = 2.0 * ext.z / float(N)
 	for s in range(ml_ns):
-		var gi: int = int(floor(_ml_sites_cpu[s * 4] / h)) % N
-		var gj: int = int(floor(_ml_sites_cpu[s * 4 + 1] / h)) % N
-		var gk: int = int(floor(_ml_sites_cpu[s * 4 + 2] / h)) % N
+		var gi: int = int(floor(_ml_sites_cpu[s * 4] / hx)) % N
+		var gj: int = int(floor(_ml_sites_cpu[s * 4 + 1] / hy)) % N
+		var gk: int = int(floor(_ml_sites_cpu[s * 4 + 2] / hz)) % N
 		var idx: int = gi * N * N + gj * N + gk
 		if labels[idx] > s:
 			labels[idx] = s
 	_rd.buffer_update(_ml_labels_a, 0, labels.size() * 4, labels.to_byte_array())
-	var jumps: Array[int] = [1, 2, 4, 8, 16, 32, 16, 8, 4, 2, 1]
+	# jumps: doubling 1..N/2, halving sweep, then two jump-1 refinement
+	# passes — JFA's index-space flood leaves a tiny fraction of ambiguous
+	# boundary cells on a STRETCHED box (the physical nearest site can sit
+	# just outside the reachable neighborhood); repeating the complete-graph
+	# jump-1 pass converges them to the exact Voronoi (0.0000 mislabel). At
+	# the cube it is a no-op (the 11-pass flood is already exact). Two passes
+	# keep the count odd so the identity copy B → A still re-homes the result.
+	var jumps: Array[int] = [1, 2, 4, 8, 16, 32, 16, 8, 4, 2, 1, 1, 1]
 	var read_a := 1
 	for jp in jumps:
 		_ml_jfa_pass(jp, read_a)
@@ -1496,8 +1516,10 @@ func _ml_scatter_and_jfa() -> void:
 func _ml_jfa_pass(jp: int, read_a: int) -> void:
 	var N = grid_N
 	var ml_ns = 2 * ML_N1 * ML_N1 * ML_N1
+	var ext := _extents()
 	var pcb := PackedFloat32Array([float(N), float(jp), float(read_a),
-		float(ml_ns), 2.0 * _extent_min() / float(N), 0.0, 0.0, 0.0])
+		float(ml_ns), 2.0 * ext.x / float(N), 2.0 * ext.y / float(N),
+		2.0 * ext.z / float(N), 0.0])
 	_jfa_pc_bytes = pcb.to_byte_array()
 	var cl := _rd.compute_list_begin()
 	_rd.compute_list_bind_compute_pipeline(cl, _jfa_pipe)
@@ -1520,10 +1542,14 @@ func _ml_cell_pc(mode: float) -> PackedByteArray:
 
 	var N = grid_N
 	var ml_ns = 2 * ML_N1 * ML_N1 * ML_N1
-	var h: float = 2.0 * _extent_min() / float(N)
-	var c2: float = h * h  # the grid's 19-point stencil reads h₀²∇² — match it
+	var ext := _extents()
+	var hx: float = 2.0 * ext.x / float(N)
+	var hy: float = 2.0 * ext.y / float(N)
+	var hz: float = 2.0 * ext.z / float(N)
+	var h_min: float = minf(hx, minf(hy, hz))
+	var c2: float = h_min * h_min  # the grid's 19-point stencil reads h₀²∇² — match it
 	var pcb := PackedFloat32Array([mode, float(N), float(ml_ns), dt,
-		h, c2, ML_OM2, PHI, source_strength,
+		hx, hy, hz, c2, ML_OM2, PHI, source_strength,
 		ML_RHO_FLOOR, ML_MAX_DRIFT, ML_KAPPA, ML_LAM,
 		dt * float(ML_REBUILD)])
 	return pcb.to_byte_array()
@@ -1548,7 +1574,10 @@ func _mesh_rebuild() -> void:
 	# ping-pong passes share this list) → volume.
 	var N = grid_N
 	var ml_ns = 2 * ML_N1 * ML_N1 * ML_N1
-	var h: float = 2.0 * _extent_min() / float(N)
+	var ext_rb := _extents()
+	var hx_rb: float = 2.0 * ext_rb.x / float(N)
+	var hy_rb: float = 2.0 * ext_rb.y / float(N)
+	var hz_rb: float = 2.0 * ext_rb.z / float(N)
 	var wg1 = N * N * N / 64
 	var wgs = int(ceil(float(ml_ns) / 64.0))
 	_cell_pc_bytes = _ml_cell_pc(7.0)
@@ -1591,15 +1620,15 @@ func _mesh_rebuild() -> void:
 	_rd.compute_list_bind_compute_pipeline(cl, _jfa_pipe)
 	_rd.compute_list_bind_uniform_set(cl, _us_jfa_0, 0)
 	var read_a := 1
-	for jp in [1, 2, 4, 8, 16, 32, 16, 8, 4, 2, 1]:
+	for jp in [1, 2, 4, 8, 16, 32, 16, 8, 4, 2, 1, 1, 1]:
 		_jfa_pc_bytes = PackedFloat32Array([float(N), float(jp), float(read_a),
-			float(ml_ns), h, 0.0, 0.0, 0.0]).to_byte_array()
+			float(ml_ns), hx_rb, hy_rb, hz_rb, 0.0]).to_byte_array()
 		_rd.compute_list_set_push_constant(cl, _jfa_pc_bytes, _jfa_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, wg1, 1, 1)
 		_rd.compute_list_add_barrier(cl)
 		read_a = 1 - read_a
 	_jfa_pc_bytes = PackedFloat32Array([float(N), 0.0, 0.0,
-		float(ml_ns), h, 0.0, 0.0, 0.0]).to_byte_array()
+		float(ml_ns), hx_rb, hy_rb, hz_rb, 0.0]).to_byte_array()
 	_rd.compute_list_set_push_constant(cl, _jfa_pc_bytes, _jfa_pc_bytes.size())
 	_rd.compute_list_dispatch(cl, wg1, 1, 1)
 	_rd.compute_list_add_barrier(cl)
@@ -2486,7 +2515,6 @@ func _step_dispatches(cl: int) -> void:
 		# field buffers (the render/condensation/river chain reads them
 		# unchanged). The accelerator grid is a lookup accelerator only.
 		var ml_ns = 2 * ML_N1 * ML_N1 * ML_N1
-		var h: float = 2.0 * _extent_min() / float(grid_N)
 		var wg1 = grid_N * grid_N * grid_N / 64
 		_rd.compute_list_bind_compute_pipeline(cl, _cell_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_cell_0, 0)

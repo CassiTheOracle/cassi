@@ -32,6 +32,13 @@ const OM2 := 20.0
 const C2 := 0.01
 const INT_MAX := 2147483647
 
+## Per-axis box aspect (1,1,1) = the cube battery (the Stage 2b original);
+## a stretched box exercises the ANISOTROPIC moving mesh (per-axis spacings
+## hx/hy/hz, per-axis periodic wraps in the CPU-side steer + remap, and the
+## stretched JFA refresh). Gates computed by stage2_verify.py (cube) /
+## stage1b_aniso.py (aspect).
+@export var aspect := Vector3(1, 1, 1)
+
 var _rd: RenderingDevice
 var _jfa_us: RID
 var _cell_us: RID
@@ -50,7 +57,8 @@ var _lap_y: RID
 var _lap_i: RID
 var _vol: RID
 var _jfa_pc := PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-var _cell_pc := PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+var _cell_pc := PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+	0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 var _md_zero: RID
 var _sites_cpu := PackedFloat32Array()
 var _checks := 0
@@ -153,25 +161,30 @@ func _make_sites() -> PackedFloat32Array:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 20260813
 	var n1 := 13
-	var spacing: float = L / float(n1)
+	var sx: float = L * aspect.x / float(n1)
+	var sy: float = L * aspect.y / float(n1)
+	var sz: float = L * aspect.z / float(n1)
+	var Lx: float = L * aspect.x
+	var Ly: float = L * aspect.y
+	var Lz: float = L * aspect.z
 	var out := PackedFloat32Array()
 	for i in range(n1):
 		for j in range(n1):
 			for k in range(n1):
 				out.append_array(PackedFloat32Array([
-					float(i) * spacing + rng.randf_range(-0.2, 0.2) * spacing,
-					float(j) * spacing + rng.randf_range(-0.2, 0.2) * spacing,
-					float(k) * spacing + rng.randf_range(-0.2, 0.2) * spacing,
+					float(i) * sx + rng.randf_range(-0.2, 0.2) * sx,
+					float(j) * sy + rng.randf_range(-0.2, 0.2) * sy,
+					float(k) * sz + rng.randf_range(-0.2, 0.2) * sz,
 					0.0]))
 				out.append_array(PackedFloat32Array([
-					(float(i) + 0.5) * spacing + rng.randf_range(-0.2, 0.2) * spacing,
-					(float(j) + 0.5) * spacing + rng.randf_range(-0.2, 0.2) * spacing,
-					(float(k) + 0.5) * spacing + rng.randf_range(-0.2, 0.2) * spacing,
+					(float(i) + 0.5) * sx + rng.randf_range(-0.2, 0.2) * sx,
+					(float(j) + 0.5) * sy + rng.randf_range(-0.2, 0.2) * sy,
+					(float(k) + 0.5) * sz + rng.randf_range(-0.2, 0.2) * sz,
 					0.0]))
 	for m in range(out.size() / 4):
-		out[m * 4] = fposmod(out[m * 4], L)
-		out[m * 4 + 1] = fposmod(out[m * 4 + 1], L)
-		out[m * 4 + 2] = fposmod(out[m * 4 + 2], L)
+		out[m * 4] = fposmod(out[m * 4], Lx)
+		out[m * 4 + 1] = fposmod(out[m * 4 + 1], Ly)
+		out[m * 4 + 2] = fposmod(out[m * 4 + 2], Lz)
 	return out
 
 
@@ -180,17 +193,22 @@ func _run_jfa() -> PackedInt32Array:
 	var labels := PackedInt32Array()
 	labels.resize(N * N * N)
 	labels.fill(INT_MAX)
-	var h: float = L / float(N)
+	var hx: float = L * aspect.x / float(N)
+	var hy: float = L * aspect.y / float(N)
+	var hz: float = L * aspect.z / float(N)
 	for s in range(N_SITES):
-		var gi := int(floor(_sites_cpu[s * 4] / h)) % N
-		var gj := int(floor(_sites_cpu[s * 4 + 1] / h)) % N
-		var gk := int(floor(_sites_cpu[s * 4 + 2] / h)) % N
+		var gi := int(floor(_sites_cpu[s * 4] / hx)) % N
+		var gj := int(floor(_sites_cpu[s * 4 + 1] / hy)) % N
+		var gk := int(floor(_sites_cpu[s * 4 + 2] / hz)) % N
 		var idx := gi * N * N + gj * N + gk
 		if labels[idx] > s:
 			labels[idx] = s  # min index per cell — the GPU atomicMin analog
 	_rd.buffer_update(_labels_a, 0, labels.size() * 4, labels.to_byte_array())
 
-	var jumps: Array[int] = [1, 2, 4, 8, 16, 32, 16, 8, 4, 2, 1]
+	# doubling + halving + two jump-1 refinement passes (odd → result in B);
+	# the refinement resolves the stretched-box ambiguous boundary cells to
+	# the exact Voronoi (0.0000 mislabel), a no-op at the cube.
+	var jumps: Array[int] = [1, 2, 4, 8, 16, 32, 16, 8, 4, 2, 1, 1, 1]
 	var read_a := 1
 	for jp in jumps:
 		_jfa_pass(jp, read_a)
@@ -206,7 +224,9 @@ func _jfa_pass(jp: int, read_a: int) -> void:
 	_jfa_pc[1] = float(jp)
 	_jfa_pc[2] = float(read_a)
 	_jfa_pc[3] = float(N_SITES)
-	_jfa_pc[4] = L / float(N)
+	_jfa_pc[4] = L * aspect.x / float(N)
+	_jfa_pc[5] = L * aspect.y / float(N)
+	_jfa_pc[6] = L * aspect.z / float(N)
 	var cl := _rd.compute_list_begin()
 	_rd.compute_list_bind_compute_pipeline(cl, _jfa_pipe)
 	_rd.compute_list_bind_uniform_set(cl, _jfa_us, 0)
@@ -280,11 +300,13 @@ func _sample_ics(ic: Dictionary) -> Array:
 	var psi := PackedFloat32Array()
 	psy.resize(N_SITES)
 	psi.resize(N_SITES)
-	var h: float = L / float(N)
+	var hx: float = L * aspect.x / float(N)
+	var hy: float = L * aspect.y / float(N)
+	var hz: float = L * aspect.z / float(N)
 	for s in range(N_SITES):
-		var gx: float = fposmod(_sites_cpu[s * 4], L) / h
-		var gy: float = fposmod(_sites_cpu[s * 4 + 1], L) / h
-		var gz: float = fposmod(_sites_cpu[s * 4 + 2], L) / h
+		var gx: float = fposmod(_sites_cpu[s * 4], L * aspect.x) / hx
+		var gy: float = fposmod(_sites_cpu[s * 4 + 1], L * aspect.y) / hy
+		var gz: float = fposmod(_sites_cpu[s * 4 + 2], L * aspect.z) / hz
 		var i0 := int(floor(gx)) % N
 		var j0 := int(floor(gy)) % N
 		var k0 := int(floor(gz)) % N
@@ -316,13 +338,7 @@ func _run_volume_pass() -> void:
 	zero.resize(N_SITES)
 	_rd.buffer_update(_vol, 0, zero.size() * 4, zero.to_byte_array())
 	_cell_pc[0] = 2.0
-	_cell_pc[1] = float(N)
-	_cell_pc[2] = float(N_SITES)
-	_cell_pc[3] = DT
-	_cell_pc[4] = L / float(N)
-	_cell_pc[5] = C2
-	_cell_pc[6] = OM2
-	_cell_pc[7] = PHI
+	_fill_cell_pc()
 	var cl := _rd.compute_list_begin()
 	_rd.compute_list_bind_compute_pipeline(cl, _cell_pipe)
 	_rd.compute_list_bind_uniform_set(cl, _cell_us, 0)
@@ -331,6 +347,19 @@ func _run_volume_pass() -> void:
 	_rd.compute_list_end()
 	_rd.submit()
 	_rd.sync()
+
+
+# fills [1..9]: (N, n_sites, dt, hx, hy, hz, C2, OM2, PHI)
+func _fill_cell_pc() -> void:
+	_cell_pc[1] = float(N)
+	_cell_pc[2] = float(N_SITES)
+	_cell_pc[3] = DT
+	_cell_pc[4] = L * aspect.x / float(N)
+	_cell_pc[5] = L * aspect.y / float(N)
+	_cell_pc[6] = L * aspect.z / float(N)
+	_cell_pc[7] = C2
+	_cell_pc[8] = OM2
+	_cell_pc[9] = PHI
 
 
 func _run_steps_moving(psi0: Array, labels0: PackedInt32Array) -> PackedFloat32Array:
@@ -352,12 +381,7 @@ func _run_steps_moving(psi0: Array, labels0: PackedInt32Array) -> PackedFloat32A
 	r.resize(N_STEPS + 1)
 	r[0] = _ratio(psy0, psi0_i, vol)
 
-	_cell_pc[2] = float(N_SITES)
-	_cell_pc[3] = DT
-	_cell_pc[4] = L / float(N)
-	_cell_pc[5] = C2
-	_cell_pc[6] = OM2
-	_cell_pc[7] = PHI
+	_fill_cell_pc()
 	for st in range(N_STEPS):
 		var cl := _rd.compute_list_begin()
 		_rd.compute_list_bind_compute_pipeline(cl, _cell_pipe)
@@ -392,25 +416,30 @@ func _run_steps_moving(psi0: Array, labels0: PackedInt32Array) -> PackedFloat32A
 func _count_volumes(labels: PackedInt32Array) -> PackedFloat32Array:
 	var vol := PackedFloat32Array()
 	vol.resize(N_SITES)
-	var h3: float = pow(L / float(N), 3.0)
+	var vcell: float = (L * aspect.x / float(N)) * (L * aspect.y / float(N)) * (L * aspect.z / float(N))
 	for idx in range(N * N * N):
 		var lab := labels[idx]
 		if lab >= 0 and lab < N_SITES:
-			vol[lab] += h3
+			vol[lab] += vcell
 	return vol
 
 
 # ── the mesh rebuild: steer + ALE remap + JFA refresh (Stage 2a recipe) ─
 func _mesh_rebuild() -> PackedInt32Array:
 	_n_remaps += 1
-	var h: float = L / float(N)
+	var hx: float = L * aspect.x / float(N)
+	var hy: float = L * aspect.y / float(N)
+	var hz: float = L * aspect.z / float(N)
+	var Lx: float = L * aspect.x
+	var Ly: float = L * aspect.y
+	var Lz: float = L * aspect.z
 	var labels := _rd.buffer_get_data(_labels_a, 0, N * N * N * 4).to_int32_array()
 	var y := _rd.buffer_get_data(_psi_y, 0, N_SITES * 4).to_float32_array()
 	var i_f := _rd.buffer_get_data(_psi_i, 0, N_SITES * 4).to_float32_array()
 	var py := _rd.buffer_get_data(_pi_y, 0, N_SITES * 4).to_float32_array()
 	var pi := _rd.buffer_get_data(_pi_i, 0, N_SITES * 4).to_float32_array()
 
-	# centroids (wrapped) from the old labels
+	# centroids (wrapped) from the old labels — per-axis cell centers
 	var cnt := PackedInt32Array()
 	cnt.resize(N_SITES)
 	var cx := PackedFloat64Array()
@@ -425,9 +454,9 @@ func _mesh_rebuild() -> PackedInt32Array:
 				var lab := labels[i * N * N + j * N + k]
 				if lab >= 0 and lab < N_SITES:
 					cnt[lab] += 1
-					cx[lab] += (float(i) + 0.5) * h
-					cy[lab] += (float(j) + 0.5) * h
-					cz[lab] += (float(k) + 0.5) * h
+					cx[lab] += (float(i) + 0.5) * hx
+					cy[lab] += (float(j) + 0.5) * hy
+					cz[lab] += (float(k) + 0.5) * hz
 
 	# steering: (1-kappa)(site + lam*(piY+piI)/rho * T) + kappa*centroid
 	var T_steer: float = DT * float(REBUILD)
@@ -443,9 +472,9 @@ func _mesh_rebuild() -> PackedInt32Array:
 			+ KAPPA * (float(cy[s]) / cc)
 		var sz: float = (1.0 - KAPPA) * (_sites_cpu[s * 4 + 2] + v * T_steer) \
 			+ KAPPA * (float(cz[s]) / cc)
-		new_sites[s * 4] = fposmod(sx, L)
-		new_sites[s * 4 + 1] = fposmod(sy, L)
-		new_sites[s * 4 + 2] = fposmod(sz, L)
+		new_sites[s * 4] = fposmod(sx, Lx)
+		new_sites[s * 4 + 1] = fposmod(sy, Ly)
+		new_sites[s * 4 + 2] = fposmod(sz, Lz)
 
 	# ALE remap: new cell state = old state at the new seed's old cell
 	var ny := PackedFloat32Array()
@@ -457,9 +486,9 @@ func _mesh_rebuild() -> PackedInt32Array:
 	npy.resize(N_SITES)
 	npi.resize(N_SITES)
 	for s in range(N_SITES):
-		var gi := int(floor(new_sites[s * 4] / h)) % N
-		var gj := int(floor(new_sites[s * 4 + 1] / h)) % N
-		var gk := int(floor(new_sites[s * 4 + 2] / h)) % N
+		var gi := int(floor(new_sites[s * 4] / hx)) % N
+		var gj := int(floor(new_sites[s * 4 + 1] / hy)) % N
+		var gk := int(floor(new_sites[s * 4 + 2] / hz)) % N
 		var lab := labels[gi * N * N + gj * N + gk]
 		if lab < 0 or lab >= N_SITES:
 			lab = s
@@ -516,6 +545,8 @@ func _dump_json(labels: PackedInt32Array, ic: Dictionary, psi0: Array, r: Packed
 	var d := {
 		"N": N, "L": L, "dt": DT, "n_steps": N_STEPS, "n_sites": N_SITES,
 		"rebuild": REBUILD, "kappa": KAPPA, "lam": LAM,
+		"aspect": [aspect.x, aspect.y, aspect.z],
+		"Lx": L * aspect.x, "Ly": L * aspect.y, "Lz": L * aspect.z,
 		"sites_b64": Marshalls.raw_to_base64(_sites_cpu.to_byte_array()),
 		"labels_b64": Marshalls.raw_to_base64(labels.to_byte_array()),
 		"ey0_b64": Marshalls.raw_to_base64(ic["ey"].to_byte_array()),
@@ -526,14 +557,24 @@ func _dump_json(labels: PackedInt32Array, ic: Dictionary, psi0: Array, r: Packed
 		"psi_i_b64": Marshalls.raw_to_base64(ib),
 		"r": Array(r),
 	}
-	var f := FileAccess.open("res://_diag/voronoi3d_moving_gpu.json", FileAccess.WRITE)
-	if f == null:
-		_check("JSON dump written to res://_diag/voronoi3d_moving_gpu.json", false,
-			"FileAccess failed")
-		return
-	f.store_string(JSON.stringify(d))
-	f.close()
-	_check("JSON dump written to res://_diag/voronoi3d_moving_gpu.json", true)
+	if aspect == Vector3(1, 1, 1):
+		var f := FileAccess.open("res://_diag/voronoi3d_moving_gpu.json", FileAccess.WRITE)
+		if f == null:
+			_check("JSON dump written to res://_diag/voronoi3d_moving_gpu.json", false,
+				"FileAccess failed")
+			return
+		f.store_string(JSON.stringify(d))
+		f.close()
+		_check("JSON dump written to res://_diag/voronoi3d_moving_gpu.json", true)
+	else:
+		var fa := FileAccess.open("res://_diag/voronoi3d_moving_aniso_gpu.json", FileAccess.WRITE)
+		if fa == null:
+			_check("JSON dump written to res://_diag/voronoi3d_moving_aniso_gpu.json", false,
+				"FileAccess failed")
+			return
+		fa.store_string(JSON.stringify(d))
+		fa.close()
+		_check("JSON dump written to res://_diag/voronoi3d_moving_aniso_gpu.json", true)
 
 
 func _check(name: String, ok: bool, detail: String = "") -> void:

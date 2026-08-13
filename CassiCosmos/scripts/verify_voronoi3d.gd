@@ -35,6 +35,14 @@ const OM2 := 20.0
 const C2 := 0.01
 const INT_MAX := 2147483647
 
+## Per-axis box aspect (1,1,1) = the cube battery (the Stage 1b original);
+## a stretched box (e.g. (φ,1,φ²)) exercises the ANISOTROPIC mesh: per-axis
+## grid spacings hx/hy/hz = L·aspect_i/N, the stretched JFA metric, and the
+## per-axis AREPO lap face weights. The JFA mislabel + breather gates are
+## recomputed by research/meshless/stage1b_aniso.py in the SAME stretched
+## metric (the cube dump keeps the original stage1_verify.py path).
+@export var aspect := Vector3(1, 1, 1)
+
 var _rd: RenderingDevice
 var _jfa_us: RID
 var _cell_us: RID
@@ -54,7 +62,8 @@ var _lap_y: RID
 var _lap_i: RID
 var _vol: RID
 var _jfa_pc := PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-var _cell_pc := PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+var _cell_pc := PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+	0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 var _md_zero: RID
 var _sites_cpu := PackedFloat32Array()
 var _checks := 0
@@ -152,25 +161,30 @@ func _make_sites() -> PackedFloat32Array:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 20260813
 	var n1 := 13
-	var spacing: float = L / float(n1)
+	var sx: float = L * aspect.x / float(n1)
+	var sy: float = L * aspect.y / float(n1)
+	var sz: float = L * aspect.z / float(n1)
+	var Lx: float = L * aspect.x
+	var Ly: float = L * aspect.y
+	var Lz: float = L * aspect.z
 	var out := PackedFloat32Array()
 	for i in range(n1):
 		for j in range(n1):
 			for k in range(n1):
 				out.append_array(PackedFloat32Array([
-					float(i) * spacing + rng.randf_range(-0.2, 0.2) * spacing,
-					float(j) * spacing + rng.randf_range(-0.2, 0.2) * spacing,
-					float(k) * spacing + rng.randf_range(-0.2, 0.2) * spacing,
+					float(i) * sx + rng.randf_range(-0.2, 0.2) * sx,
+					float(j) * sy + rng.randf_range(-0.2, 0.2) * sy,
+					float(k) * sz + rng.randf_range(-0.2, 0.2) * sz,
 					0.0]))
 				out.append_array(PackedFloat32Array([
-					(float(i) + 0.5) * spacing + rng.randf_range(-0.2, 0.2) * spacing,
-					(float(j) + 0.5) * spacing + rng.randf_range(-0.2, 0.2) * spacing,
-					(float(k) + 0.5) * spacing + rng.randf_range(-0.2, 0.2) * spacing,
+					(float(i) + 0.5) * sx + rng.randf_range(-0.2, 0.2) * sx,
+					(float(j) + 0.5) * sy + rng.randf_range(-0.2, 0.2) * sy,
+					(float(k) + 0.5) * sz + rng.randf_range(-0.2, 0.2) * sz,
 					0.0]))
 	for m in range(out.size() / 4):
-		out[m * 4] = fposmod(out[m * 4], L)
-		out[m * 4 + 1] = fposmod(out[m * 4 + 1], L)
-		out[m * 4 + 2] = fposmod(out[m * 4 + 2], L)
+		out[m * 4] = fposmod(out[m * 4], Lx)
+		out[m * 4 + 1] = fposmod(out[m * 4 + 1], Ly)
+		out[m * 4 + 2] = fposmod(out[m * 4 + 2], Lz)
 	return out
 
 
@@ -179,17 +193,22 @@ func _run_jfa() -> PackedInt32Array:
 	var labels := PackedInt32Array()
 	labels.resize(N * N * N)
 	labels.fill(INT_MAX)
-	var h: float = L / float(N)
+	var hx: float = L * aspect.x / float(N)
+	var hy: float = L * aspect.y / float(N)
+	var hz: float = L * aspect.z / float(N)
 	for s in range(N_SITES):
-		var gi := int(floor(_sites_cpu[s * 4] / h)) % N
-		var gj := int(floor(_sites_cpu[s * 4 + 1] / h)) % N
-		var gk := int(floor(_sites_cpu[s * 4 + 2] / h)) % N
+		var gi := int(floor(_sites_cpu[s * 4] / hx)) % N
+		var gj := int(floor(_sites_cpu[s * 4 + 1] / hy)) % N
+		var gk := int(floor(_sites_cpu[s * 4 + 2] / hz)) % N
 		var idx := gi * N * N + gj * N + gk
 		if labels[idx] > s:
 			labels[idx] = s  # min index per cell — the GPU atomicMin analog
 	_rd.buffer_update(_labels_a, 0, labels.size() * 4, labels.to_byte_array())
 
-	var jumps: Array[int] = [1, 2, 4, 8, 16, 32, 16, 8, 4, 2, 1]
+	# doubling + halving + two jump-1 refinement passes (odd → result in B);
+	# the refinement resolves the stretched-box ambiguous boundary cells to
+	# the exact Voronoi (0.0000 mislabel), a no-op at the cube.
+	var jumps: Array[int] = [1, 2, 4, 8, 16, 32, 16, 8, 4, 2, 1, 1, 1]
 	var read_a := 1
 	for jp in jumps:
 		_jfa_pass(jp, read_a)
@@ -205,7 +224,9 @@ func _jfa_pass(jp: int, read_a: int) -> void:
 	_jfa_pc[1] = float(jp)
 	_jfa_pc[2] = float(read_a)
 	_jfa_pc[3] = float(N_SITES)
-	_jfa_pc[4] = L / float(N)
+	_jfa_pc[4] = L * aspect.x / float(N)
+	_jfa_pc[5] = L * aspect.y / float(N)
+	_jfa_pc[6] = L * aspect.z / float(N)
 	var cl := _rd.compute_list_begin()
 	_rd.compute_list_bind_compute_pipeline(cl, _jfa_pipe)
 	_rd.compute_list_bind_uniform_set(cl, _jfa_us, 0)
@@ -279,11 +300,13 @@ func _sample_ics(ic: Dictionary) -> Array:
 	var psi := PackedFloat32Array()
 	psy.resize(N_SITES)
 	psi.resize(N_SITES)
-	var h: float = L / float(N)
+	var hx: float = L * aspect.x / float(N)
+	var hy: float = L * aspect.y / float(N)
+	var hz: float = L * aspect.z / float(N)
 	for s in range(N_SITES):
-		var gx: float = fposmod(_sites_cpu[s * 4], L) / h
-		var gy: float = fposmod(_sites_cpu[s * 4 + 1], L) / h
-		var gz: float = fposmod(_sites_cpu[s * 4 + 2], L) / h
+		var gx: float = fposmod(_sites_cpu[s * 4], L * aspect.x) / hx
+		var gy: float = fposmod(_sites_cpu[s * 4 + 1], L * aspect.y) / hy
+		var gz: float = fposmod(_sites_cpu[s * 4 + 2], L * aspect.z) / hz
 		var i0 := int(floor(gx)) % N
 		var j0 := int(floor(gy)) % N
 		var k0 := int(floor(gz)) % N
@@ -315,13 +338,7 @@ func _run_volume_pass() -> void:
 	zero.resize(N_SITES)
 	_rd.buffer_update(_vol, 0, zero.size() * 4, zero.to_byte_array())
 	_cell_pc[0] = 2.0
-	_cell_pc[1] = float(N)
-	_cell_pc[2] = float(N_SITES)
-	_cell_pc[3] = DT
-	_cell_pc[4] = L / float(N)
-	_cell_pc[5] = C2
-	_cell_pc[6] = OM2
-	_cell_pc[7] = PHI
+	_fill_cell_pc()
 	var cl := _rd.compute_list_begin()
 	_rd.compute_list_bind_compute_pipeline(cl, _cell_pipe)
 	_rd.compute_list_bind_uniform_set(cl, _cell_us, 0)
@@ -330,6 +347,19 @@ func _run_volume_pass() -> void:
 	_rd.compute_list_end()
 	_rd.submit()
 	_rd.sync()
+
+
+# fills [1..9]: (N, n_sites, dt, hx, hy, hz, C2, OM2, PHI)
+func _fill_cell_pc() -> void:
+	_cell_pc[1] = float(N)
+	_cell_pc[2] = float(N_SITES)
+	_cell_pc[3] = DT
+	_cell_pc[4] = L * aspect.x / float(N)
+	_cell_pc[5] = L * aspect.y / float(N)
+	_cell_pc[6] = L * aspect.z / float(N)
+	_cell_pc[7] = C2
+	_cell_pc[8] = OM2
+	_cell_pc[9] = PHI
 
 
 func _run_steps(psi0: Array, labels: PackedInt32Array) -> PackedFloat32Array:
@@ -344,26 +374,21 @@ func _run_steps(psi0: Array, labels: PackedInt32Array) -> PackedFloat32Array:
 	_rd.buffer_update(_lap_y, 0, zero.size() * 4, zero.to_byte_array())
 	_rd.buffer_update(_lap_i, 0, zero.size() * 4, zero.to_byte_array())
 
-	# CPU-side cell volumes for the r sums (bincount x h³ — the same
-	# counts the GPU volume pass accumulates)
+	# CPU-side cell volumes for the r sums (bincount x hx·hy·hz — the
+	# same per-cell physical volumes the GPU volume pass accumulates)
 	var vol := PackedFloat32Array()
 	vol.resize(N_SITES)
-	var h3: float = pow(L / float(N), 3.0)
+	var vcell: float = (L * aspect.x / float(N)) * (L * aspect.y / float(N)) * (L * aspect.z / float(N))
 	for idx in range(N * N * N):
 		var lab := labels[idx]
 		if lab >= 0 and lab < N_SITES:
-			vol[lab] += h3
+			vol[lab] += vcell
 
 	var r := PackedFloat32Array()
 	r.resize(N_STEPS + 1)
 	r[0] = _ratio(psy0, psi0_i, vol)
 
-	_cell_pc[2] = float(N_SITES)
-	_cell_pc[3] = DT
-	_cell_pc[4] = L / float(N)
-	_cell_pc[5] = C2
-	_cell_pc[6] = OM2
-	_cell_pc[7] = PHI
+	_fill_cell_pc()
 	for st in range(N_STEPS):
 		var cl := _rd.compute_list_begin()
 		_rd.compute_list_bind_compute_pipeline(cl, _cell_pipe)
@@ -428,6 +453,8 @@ func _dump_json(labels: PackedInt32Array, ic: Dictionary, psi0: Array, r: Packed
 	_check("final state: no NaN/Inf on GPU", not nan)
 	var d := {
 		"N": N, "L": L, "dt": DT, "n_steps": N_STEPS, "n_sites": N_SITES,
+		"aspect": [aspect.x, aspect.y, aspect.z],
+		"Lx": L * aspect.x, "Ly": L * aspect.y, "Lz": L * aspect.z,
 		"sites_b64": Marshalls.raw_to_base64(_sites_cpu.to_byte_array()),
 		"labels_b64": Marshalls.raw_to_base64(labels.to_byte_array()),
 		"ey0_b64": Marshalls.raw_to_base64(ic["ey"].to_byte_array()),
@@ -438,14 +465,24 @@ func _dump_json(labels: PackedInt32Array, ic: Dictionary, psi0: Array, r: Packed
 		"psi_i_b64": Marshalls.raw_to_base64(ib),
 		"r": Array(r),
 	}
-	var f := FileAccess.open("res://_diag/voronoi3d_gpu.json", FileAccess.WRITE)
-	if f == null:
-		_check("JSON dump written to res://_diag/voronoi3d_gpu.json", false,
-			"FileAccess failed")
-		return
-	f.store_string(JSON.stringify(d))
-	f.close()
-	_check("JSON dump written to res://_diag/voronoi3d_gpu.json", true)
+	if aspect == Vector3(1, 1, 1):
+		var f := FileAccess.open("res://_diag/voronoi3d_gpu.json", FileAccess.WRITE)
+		if f == null:
+			_check("JSON dump written to res://_diag/voronoi3d_gpu.json", false,
+				"FileAccess failed")
+			return
+		f.store_string(JSON.stringify(d))
+		f.close()
+		_check("JSON dump written to res://_diag/voronoi3d_gpu.json", true)
+	else:
+		var fa := FileAccess.open("res://_diag/voronoi3d_aniso_gpu.json", FileAccess.WRITE)
+		if fa == null:
+			_check("JSON dump written to res://_diag/voronoi3d_aniso_gpu.json", false,
+				"FileAccess failed")
+			return
+		fa.store_string(JSON.stringify(d))
+		fa.close()
+		_check("JSON dump written to res://_diag/voronoi3d_aniso_gpu.json", true)
 
 
 func _check(name: String, ok: bool, detail: String = "") -> void:

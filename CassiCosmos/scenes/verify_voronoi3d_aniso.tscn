@@ -1,0 +1,7 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/verify_voronoi3d.gd" id="1_ver"]
+
+[node name="VerifyVoronoi3DAniso" type="Node"]
+script = ExtResource("1_ver")
+aspect = Vector3(1.618033988749895, 1, 2.618033988749895)

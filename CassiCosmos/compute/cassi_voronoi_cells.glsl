@@ -8,19 +8,32 @@
 // approximation of the true Voronoi face. Proven in numpy
 // (research/meshless/stage1_jfa3d.py) and on the GPU (G0-G4, G9-G12).
 //
+// ANISOTROPIC METRIC: the accelerator grid maps index space onto the
+// STRETCHED box [0, 2·extent_x) × [0, 2·extent_y) × [0, 2·extent_z)
+// with per-axis spacings hx/hy/hz = 2·extent_i/N (the same mapping as
+// the JFA shader, so the labels agree). Every grid-indexed coordinate
+// (face flux, volume, centroid, scatter, source sample, steer) uses the
+// per-axis spacing; the physical box per axis is L_i = N·h_i. The lap
+// face weights become the PHYSICAL face area / physical centroid
+// distance (the AREPO two-point flux): x-face (hy·hz)/d, y-face
+// (hx·hz)/d, z-face (hx·hy)/d with d = |sn − sc| — exactly h²/d at
+// hx=hy=hz=h (the hard cube regression). C2 is the single physical
+// wave speed² = h_min² = (2·min(extent_i)/N)², matching the GRID arm's
+// D19 stencil (which reads h₀²∇²_phys with h₀ = 2·min(extent)/N).
+//
 // Pass modes (PC.mode):
 //   0 lap        — per GRID cell: the three +axis faces, float
 //                  atomicAdd flux (each face counted once)
 //   1 leapfrog   — per SITE: kick π (flux + coupling + the mass-driven
 //                  source sampled at the site's own grid cell), drift
 //                  ψ, zero lap
-//   2 volume     — per GRID cell: atomicAdd h³ per cell
-//   3 centroid   — per GRID cell: atomicAdd the cell center into
-//                  cen[lab].xyz, count into cen[lab].w (the OLD mesh)
+//   2 volume     — per GRID cell: atomicAdd hx·hy·hz per cell
+//   3 centroid   — per GRID cell: atomicAdd the (stretched) cell center
+//                  into cen[lab].xyz, count into cen[lab].w
 //   4 steer      — per SITE: the quasi-Lagrangian ride + Lloyd-style
 //                  centroid relaxation (guards: rho floor + drift cap),
-//                  writes the new site position AND the remap index
-//                  (the OLD cell containing the new position)
+//                  per-axis periodic wrap, writes the new site position
+//                  AND the remap index (the OLD cell containing the new)
 //   5 state→tmp  — per SITE: copy the state to the temp buffers
 //   6 tmp→state  — per SITE: gather the remapped state (tmp[remap_idx])
 //   7 reset      — per SITE: vol = 0, cen = (0,0,0,0)
@@ -42,8 +55,10 @@ layout(push_constant, std430) uniform PC {
     float N_f;              // grid resolution per dimension
     float n_sites;          // site (cell) count
     float dt;               // leapfrog step
-    float h;                // cell spacing (L / N)
-    float C2;               // wave speed² (h₀² — matches the grid's D19)
+    float hx;               // x cell spacing (2·extent_x / N)
+    float hy;               // y cell spacing (2·extent_y / N)
+    float hz;               // z cell spacing (2·extent_z / N)
+    float C2;               // wave speed² (h_min² — matches the grid's D19)
     float OM2;              // omega_0²
     float PHI;              // golden ratio
     float source_strength;  // field injection (the grid PDE's source_s)
@@ -109,7 +124,9 @@ void main() {
     int ns = int(pc.n_sites);
     int im = int(pc.mode);
     int total = Nn * Nn * Nn;
-    float h = pc.h;
+    float hx = pc.hx;
+    float hy = pc.hy;
+    float hz = pc.hz;
 
     if (im == 8) {  // labels clear
         if (int(gid) >= total) return;
@@ -120,9 +137,9 @@ void main() {
         if (int(gid) >= ns) return;
         int s = int(gid);
         vec4 sp = pos[s];
-        int gi = int(floor(sp.x / h)) % Nn;
-        int gj = int(floor(sp.y / h)) % Nn;
-        int gk = int(floor(sp.z / h)) % Nn;
+        int gi = int(floor(sp.x / hx)) % Nn;
+        int gj = int(floor(sp.y / hy)) % Nn;
+        int gk = int(floor(sp.z / hz)) % Nn;
         atomicMin(labels[gi * Nn * Nn + gj * Nn + gk], s);
         return;
     }
@@ -140,9 +157,9 @@ void main() {
         int rem = int(gid) - i * Nn * Nn;
         int j = rem / Nn;
         int k = rem - j * Nn;
-        atomicAdd(cen[lab].x, (float(i) + 0.5) * h);
-        atomicAdd(cen[lab].y, (float(j) + 0.5) * h);
-        atomicAdd(cen[lab].z, (float(k) + 0.5) * h);
+        atomicAdd(cen[lab].x, (float(i) + 0.5) * hx);
+        atomicAdd(cen[lab].y, (float(j) + 0.5) * hy);
+        atomicAdd(cen[lab].z, (float(k) + 0.5) * hz);
         atomicAdd(cen[lab].w, 1.0);
         return;
     }
@@ -154,16 +171,18 @@ void main() {
         float vv = pc.lam * (pi_y[s] + pi_i[s]) / rho;
         float drift = clamp(vv * pc.T_steer, -pc.drift_cap, pc.drift_cap);
         float cc = max(cen[s].w, 1.0);
-        float L = float(Nn) * h;
+        float Lx = float(Nn) * hx;
+        float Ly = float(Nn) * hy;
+        float Lz = float(Nn) * hz;
         float nx = mod((1.0 - pc.kappa) * (sp.x + drift)
-                       + pc.kappa * (cen[s].x / cc), L);
+                       + pc.kappa * (cen[s].x / cc), Lx);
         float ny = mod((1.0 - pc.kappa) * (sp.y + drift)
-                       + pc.kappa * (cen[s].y / cc), L);
+                       + pc.kappa * (cen[s].y / cc), Ly);
         float nz = mod((1.0 - pc.kappa) * (sp.z + drift)
-                       + pc.kappa * (cen[s].z / cc), L);
-        int gi = int(floor(nx / h)) % Nn;
-        int gj = int(floor(ny / h)) % Nn;
-        int gk = int(floor(nz / h)) % Nn;
+                       + pc.kappa * (cen[s].z / cc), Lz);
+        int gi = int(floor(nx / hx)) % Nn;
+        int gj = int(floor(ny / hy)) % Nn;
+        int gk = int(floor(nz / hz)) % Nn;
         int lab = labels[gi * Nn * Nn + gj * Nn + gk];
         if (lab < 0 || lab >= ns) lab = s;
         remap_idx[s] = lab;
@@ -189,11 +208,11 @@ void main() {
         pi_i[s] = tmp_pi[r];
         return;
     }
-    if (im == 2) {  // volume: h³ per grid cell, atomic
+    if (im == 2) {  // volume: hx·hy·hz per grid cell, atomic
         if (int(gid) >= total) return;
         int lab = labels[int(gid)];
         if (lab >= 0 && lab < ns) {
-            atomicAdd(vol[lab], h * h * h);
+            atomicAdd(vol[lab], hx * hy * hz);
         }
         return;
     }
@@ -213,13 +232,18 @@ void main() {
         int n3 = labels[i * Nn * Nn + j * Nn + ((k + 1) % Nn)];
 
         vec4 sc = pos[c];
-        float h2 = h * h;
+        // AREPO two-point flux: the physical face area / the physical
+        // centroid distance. x-face area hy·hz, y-face hx·hz, z-face
+        // hx·hy; at hx=hy=hz=h each weight reduces EXACTLY to h²/d.
+        float ayz = hy * hz;
+        float axz = hx * hz;
+        float axy = hx * hy;
 
         if (n1 >= 0 && n1 < ns && n1 != c) {
             vec4 sn = pos[n1];
             float d = length(sn.xyz - sc.xyz);
-            float fy = (psi_y[n1] - psi_y[c]) * h2 / max(d, 1e-12);
-            float fi = (psi_i[n1] - psi_i[c]) * h2 / max(d, 1e-12);
+            float fy = (psi_y[n1] - psi_y[c]) * ayz / max(d, 1e-12);
+            float fi = (psi_i[n1] - psi_i[c]) * ayz / max(d, 1e-12);
             atomicAdd(lap_y[c], fy);
             atomicAdd(lap_y[n1], -fy);
             atomicAdd(lap_i[c], fi);
@@ -228,8 +252,8 @@ void main() {
         if (n2 >= 0 && n2 < ns && n2 != c) {
             vec4 sn = pos[n2];
             float d = length(sn.xyz - sc.xyz);
-            float fy = (psi_y[n2] - psi_y[c]) * h2 / max(d, 1e-12);
-            float fi = (psi_i[n2] - psi_i[c]) * h2 / max(d, 1e-12);
+            float fy = (psi_y[n2] - psi_y[c]) * axz / max(d, 1e-12);
+            float fi = (psi_i[n2] - psi_i[c]) * axz / max(d, 1e-12);
             atomicAdd(lap_y[c], fy);
             atomicAdd(lap_y[n2], -fy);
             atomicAdd(lap_i[c], fi);
@@ -238,8 +262,8 @@ void main() {
         if (n3 >= 0 && n3 < ns && n3 != c) {
             vec4 sn = pos[n3];
             float d = length(sn.xyz - sc.xyz);
-            float fy = (psi_y[n3] - psi_y[c]) * h2 / max(d, 1e-12);
-            float fi = (psi_i[n3] - psi_i[c]) * h2 / max(d, 1e-12);
+            float fy = (psi_y[n3] - psi_y[c]) * axy / max(d, 1e-12);
+            float fi = (psi_i[n3] - psi_i[c]) * axy / max(d, 1e-12);
             atomicAdd(lap_y[c], fy);
             atomicAdd(lap_y[n3], -fy);
             atomicAdd(lap_i[c], fi);
@@ -257,14 +281,14 @@ void main() {
     // the grid PDE's source, sampled at the site's own grid cell:
     // src_y = s·exp(-r²4) + rho_mass·0.001, src_i = 0.707·(same)
     vec4 sp = pos[s];
-    int gi = int(floor(sp.x / h)) % Nn;
-    int gj = int(floor(sp.y / h)) % Nn;
-    int gk = int(floor(sp.z / h)) % Nn;
+    int gi = int(floor(sp.x / hx)) % Nn;
+    int gj = int(floor(sp.y / hy)) % Nn;
+    int gk = int(floor(sp.z / hz)) % Nn;
     float mr = rho_mass[gi * Nn * Nn + gj * Nn + gk];
     float halfn = float(Nn) * 0.5;
-    float dx = (sp.x / h - halfn * 0.7) / halfn;
-    float dy = (sp.y / h - halfn * 0.8) / halfn;
-    float dz = (sp.z / h - halfn * 0.6) / halfn;
+    float dx = (sp.x / hx - halfn * 0.7) / halfn;
+    float dy = (sp.y / hy - halfn * 0.8) / halfn;
+    float dz = (sp.z / hz - halfn * 0.6) / halfn;
     float r2 = dx * dx + dy * dy + dz * dz;
     float src_y = pc.source_strength * exp(-r2 * 4.0) + mr * 0.001;
     float src_i = pc.source_strength * 0.707 * exp(-r2 * 4.0) + mr * 0.000707;
