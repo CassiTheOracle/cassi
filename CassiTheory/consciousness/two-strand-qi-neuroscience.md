@@ -137,7 +137,7 @@ The existing conversion structure is anti-phase:
 $$
 \partial_t E_Y\supset-\lambda(1-q)\varepsilon,
 \qquad
-\partial_t E_I\supset+\lambda(1-q)\varepsilon/\varphi.
+\partial_t E_I\supset+\lambda(1-q)\varepsilon.
 $$
 
 This fixes the relative sign of the Yang and Yin response. It does not, by itself, prove that two spatially separated filaments exist. The spatial pair requires a separate solution with $d>0$.
