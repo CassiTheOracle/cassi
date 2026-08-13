@@ -355,7 +355,9 @@ $3.6\sigma$); the term's **stable realization** (the C1 friction closure—
 
 Cascade steps 20–60. Qi gate slow-roll drives $N_e = 40$ e-folds. Gate engages at $r = \varphi^{-1}$ (step ~60), providing graceful exit.
 
-$$n_s = 1 - \frac{2\varphi^{-1}}{N_e},\qquad r \approx \varphi^{-12}$$
+$$n_s = 1 - \frac{2\varphi^{-1}}{N_e},\qquad r = \frac{12}{N_e^2} \approx 0.0075 \quad (N_e = 40)$$
+
+($r$ at the Mapped e-fold window $N_e = 40$—ledger row 495; the $\varphi^{-12} \approx 0.003$ reading requires $N_e = \sqrt{12/0.003} \approx 63.2$, outside the ledgered window).
 
 The $\varphi^{-1}$ correction in $n_s$ comes from the Qi gate's residual transparency at closure ($N_e^{\text{eff}} = N_e \cdot \varphi$).
 
