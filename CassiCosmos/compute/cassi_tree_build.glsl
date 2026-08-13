@@ -15,6 +15,10 @@
 //   mode 0  PREPARE   (1 dispatch)  one thread/source: root-box Morton key
 //             (30 bit, 10/axis, interleaved) + chord weight w = m·g,
 //             g = 1 + (xi−1)·q_coh from the source's own (EY,EI)  → srcW
+//   mode 7  GATHER    (1 dispatch)  sim path — fills srcTable from the
+//             meshless Voronoi mesh (site pos / EY / EI / vol + the deposit's
+//             mass density at the site's grid cell, SOURCE-MASS RECIPE in
+//             gather_main), then does everything mode 0 does (chord w + key)
 //   mode 1  BITONIC   (91 dispatches)  sort srcOrder by the Morton key
 //             ascending (N=2^13 = 8192 → 13·14/2 = 91 comparator stages;
 //             deterministic exact order, no histogram/prefix stability trap).
@@ -43,6 +47,11 @@
 //   6 nodeQ     vec4[2M]  [Qxx,Qxy,Qxz,Qyy], [Qyz,Qzz,0,0]  (trace-free)
 //   7 nodeR     ivec4[M]  [ps, pe, childBase, childCount]
 //   8 counters  uint[8]   [0]=node_cnt, [1]=spare
+//   9 mlsites   vec4[N]   meshless site positions (mode 7)
+//  10 mlpsy     float[N]  meshless per-site EY (mode 7)
+//  11 mlpsi     float[N]  meshless per-site EI (mode 7)
+//  12 mlvol     float[N]  meshless per-site cell volume (mode 7)
+//  13 mlrho     float[N]  field-grid mass density (deposit; site cell lookup, mode 7)
 // Root box (host): box_cx/y/z = 0.5·(lo+hi), pc.half = 0.5·max(hi−lo)·(1+1e-6)
 // inflate so every point is strictly inside; root node = slot 0, range [0,N).
 
@@ -54,7 +63,7 @@
 
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
-layout(set = 0, binding = 0, std430) restrict readonly buffer SrcTable { vec4 src[]; };
+layout(set = 0, binding = 0, std430) buffer SrcTable { vec4 src[]; };
 layout(set = 0, binding = 1, std430) buffer SrcW { float srcw[]; };
 layout(set = 0, binding = 2, std430) buffer SrcKey { uint srckey[]; };
 layout(set = 0, binding = 3, std430) buffer SrcOrder { uint srcorder[]; };
@@ -63,9 +72,21 @@ layout(set = 0, binding = 5, std430) buffer NodeW { vec4 nw[]; };
 layout(set = 0, binding = 6, std430) buffer NodeQ { vec4 nq[]; };
 layout(set = 0, binding = 7, std430) buffer NodeR { ivec4 nr[]; };
 layout(set = 0, binding = 8, std430) coherent buffer Counters { uint ctr[]; };
+// ── mode 7 GATHER (sim path only): meshless site sources ───────────────
+// The tree's source table is filled from the meshless Voronoi mesh instead
+// of a host-supplied srcTable. One thread per SITE: reads the site position
+// and field state + the deposit's mass density at the site's grid cell and
+// writes srcTable[2s] (pos,mass), srcTable[2s+1] (EY,EI) and srcw[s]
+// (chord weight w = m·g) exactly like mode 0 PREPARE, then enters the same
+// Morton-key/order path so the bitonic/split/moments chain is unchanged.
+layout(set = 0, binding = 9, std430) restrict readonly buffer MlSites { vec4 site[]; };
+layout(set = 0, binding = 10, std430) restrict readonly buffer MlPsiY { float psy[]; };
+layout(set = 0, binding = 11, std430) restrict readonly buffer MlPsiI { float psi[]; };
+layout(set = 0, binding = 12, std430) restrict readonly buffer MlVol { float mvol[]; };
+layout(set = 0, binding = 13, std430) restrict readonly buffer MlRhoMass { float mrho[]; };
 
 layout(push_constant, std430) uniform PC {
-    float N_f;          // #0 source/target count (8192)
+    float N_f;          // #0 source count (sites, 8192)
     float bmin_x;       // #1 root box min.x
     float bmin_y;       // #2 root box min.y
     float bmin_z;       // #3 root box min.z
@@ -75,10 +96,17 @@ layout(push_constant, std430) uniform PC {
     float xi;           // #7 phi⁶
     float leaf_cap;     // #8 1.0
     float max_levels;   // #9 14.0
-    float mode;         // #10 0 prep / 1 bitonic / 5 split / 6 moments
+    float mode;         // #10 0 prep / 1 bitonic / 5 split / 6 moments / 7 gather
     float b_k;          // #11 bitonic outer k, or (split) level_start
     float b_j;          // #12 bitonic inner j, or (split) level_count
     float b_m;          // #13 bitonic pass index (0 precount, 1..91 swap)
+    // mode-7 gather extras (read only when mode == 7; the verify scene
+    // leaves 0.0 and the sim sets them for the site→grid-cell lookup):
+    float grid_N;       // #14  field grid resolution (rho_mass lookup)
+    float extent_x;     // #15  per-axis sim half-extents (h_i = 2·extent_i/N)
+    float extent_y;     // #16
+    float extent_z;     // #17
+    float field_floor;  // #18  field-mass density floor (source-mass recipe)
 } pc;
 
 const float PHI_INV2 = 0.3819660112501051;   // φ⁻² — q decoherence threshold
@@ -119,6 +147,58 @@ void prepare_main() {
     srcorder[i] = i;   // identity order (sorted in the bitonic passes)
 }
 
+// ── mode 7: GATHER — fill the source table from the meshless Voronoi mesh ─
+// One thread per SITE (N_src). Equivalent to the sim running mode 0 PREPARE
+// on a host-filled srcTable, except the source position, field state, cell
+// volume and the deposit mass density are read DIRECTLY from the meshless
+// buffers. SOURCE-MASS RECIPE (documented; the numpy gate G30 reimplements
+// the SAME recipe):
+//   m_s  = rho_mass(site cell) · V_s  +  max(rho_field · V_s, field_floor)
+//   rho_field = EY_s + EI_s  (the Qi field's mass-energy in the cell)
+//   field_floor = pc.field_floor · V_s  (see below)
+// The deposit term rho_mass·V_s is the particles' TSC-scattered mass inside
+// the site's Voronoi cell (the leapfrog's grid-cell sampling convention,
+// cassi_voronoi_cells.glsl mode 1); the field term adds the Qi field's own
+// mass-energy. field_floor is a dimensionless floor on the FIELD density
+// (default 1e-6) so a source is never EXACTLY massless where both the
+// deposit and the field are simultaneously empty — COM/quadrupole ratios in
+// mode 6 stay defined. When the deposit is nonzero the floor is moot; it
+// only guards the fully-empty case.
+void gather_main() {
+    uint s = gl_GlobalInvocationID.x;
+    if (int(s) >= int(pc.N_f)) return;
+    vec4 sp = site[s];
+    // site's grid cell (leapfrog convention: gi = floor(sp.x / hx) % N)
+    int N = int(pc.grid_N);
+    float hx = (pc.extent_x > 0.0) ? 2.0 * pc.extent_x / float(N) : 1.0;
+    float hy = (pc.extent_y > 0.0) ? 2.0 * pc.extent_y / float(N) : 1.0;
+    float hz = (pc.extent_z > 0.0) ? 2.0 * pc.extent_z / float(N) : 1.0;
+    int gi = int(floor(sp.x / hx)) % N;
+    int gj = int(floor(sp.y / hy)) % N;
+    int gk = int(floor(sp.z / hz)) % N;
+    float rho_mass = mrho[gi * N * N + gj * N + gk];
+    float ey = psy[s];
+    float ei = psi[s];
+    float V = max(mvol[s], 1e-12);
+    float rho_field = ey + ei;
+    float mfield = max(rho_field * V, pc.field_floor * V);
+    float mass = rho_mass * V + mfield;
+    src[2 * s] = vec4(sp.xyz, mass);
+    src[2 * s + 1] = vec4(ey, ei, 0.0, 0.0);
+    // chord + Morton key (identical to mode 0 prepare)
+    float rho = rho_field;
+    float eps = ey - pc.phi * ei;
+    float q = (rho * rho) / (rho * rho + PHI_INV2 + eps * eps);
+    float g = 1.0 + (pc.xi - 1.0) * q;
+    srcw[s] = mass * g;
+    float D = 2.0 * pc.bhalf;
+    uint ix = uint(clamp(floor((sp.x - pc.bmin_x) * MORT_F / D), 0.0, MORT_F - 1.0));
+    uint iy = uint(clamp(floor((sp.y - pc.bmin_y) * MORT_F / D), 0.0, MORT_F - 1.0));
+    uint iz = uint(clamp(floor((sp.z - pc.bmin_z) * MORT_F / D), 0.0, MORT_F - 1.0));
+    srckey[s] = dilate10(ix) | (dilate10(iy) << 1u) | (dilate10(iz) << 2u);
+    srcorder[s] = s;
+}
+
 // ── mode 1: bitonic sort of srcorder by srckey (ascending), N = 2^k ────
 // pc.b_m: 0 → initialize order identity (host may set it, but do it here
 // for determinism); >0 → the b_m-th comparator stage with (b_k, b_j).
@@ -147,23 +227,32 @@ void bitonic_main() {
     }
 }
 
-// ── mode 5: split one octree level's nodes into children ───────────────
-// One thread per node in [level_start, level_start + level_count). Node n's
-// source range [ps,pe) is Morton-contiguous; its children are the sub-runs
-// of distinct octants (pos_axis > center_axis → bit). A node whose range
-// ≤ leaf_cap, or at depth ≥ max_levels, stays a leaf (childCount 0).
+// ── mode 5: split one BFS level's nodes into children ──────────────────
+// SELF-CONTAINED round — no host level feedback, so the whole build runs
+// in the frame's ONE compute list (stutter-free: the codebase forbids
+// per-frame CPU syncs on the global RD). Counters (uint[8]):
+//   ctr[0] = node_cnt (produced; root=1 at init)
+//   ctr[2] = level_end — the FROZEN frontier capping this round: a thread
+//            owns node gid and splits it iff gid < ctr[2] (nodes produced
+//            by the previous round) and the node is not yet internal
+//            (nr[gid].w, the childCount, == 0). Children are allocated via
+//            atomicAdd(ctr[0], nchild) into slots ≥ ctr[2], so they are not
+//            touched this round. After the round a mode-8 COMMIT pass sets
+//            ctr[2] = ctr[0]; the next round then splits exactly the newly-
+//            produced level. Internal nodes (childCount>0) are skipped;
+//            leaf cells re-split idempotently (they stay childCount 0). The
+//            host loops MAX_LEVELS × [split → barrier → commit → barrier];
+//            once a round produces no new nodes, later rounds skip all.
 void split_main() {
     uint gid = gl_GlobalInvocationID.x;
-    int ls = int(pc.b_k);       // level_start
-    int lc = int(pc.b_j);       // level_count
-    if (int(gid) >= lc) return;
-    int n = ls + int(gid);
-    ivec4 rng = nr[n];
+    if (int(gid) >= int(ctr[2])) return;      // not in the current level block
+    ivec4 rng = nr[gid];
+    if (rng.w != 0) return;                    // already split (internal)
     int ps = rng.x;
     int pe = rng.y;
     int cnt = pe - ps;
     // child half = node half / 2; child center = center ± (node half / 2)/axis
-    vec4 cf = ncf[n];
+    vec4 cf = ncf[gid];
     float chalf = cf.w * 0.5;
 
     if (cnt > int(pc.leaf_cap)) {
@@ -195,7 +284,7 @@ void split_main() {
         }
         // allocate nchild contiguous node rows (the next level's block)
         uint base = atomicAdd(ctr[0], uint(nchild));
-        nr[n] = ivec4(ps, pe, int(base), nchild);
+        nr[gid] = ivec4(ps, pe, int(base), nchild);
         vec3 ctrv = cf.xyz;
         for (int c = 0; c < nchild; c++) {
             vec3 off;
@@ -207,9 +296,19 @@ void split_main() {
             nr[child] = ivec4(run_start[c], run_end[c], -1, 0);
         }
     } else {
-        nr[n] = ivec4(ps, pe, -1, 0);   // leaf: no children
+        nr[gid] = ivec4(ps, pe, -1, 0);   // leaf: no children
     }
 }
+
+// ── mode 8: COMMIT — advance the BFS frontier after a split round ───────
+// One thread: ctr[2] = ctr[0] (the new node count = the next level's end).
+// Runs after a barrier post-split so ctr[0]'s atomicAdds are all visible;
+// a barrier after it hands the next split round a stable level_end.
+void commit_main() {
+    if (gl_GlobalInvocationID.x != 0u) return;
+    ctr[2] = ctr[0];
+}
+
 
 // packed trace-free quadrupole accumulation helpers (node-local, mode 6)
 // Q[6] = [Qxx,Qxy,Qxz,Qyy,Qyz,Qzz]
@@ -257,7 +356,9 @@ void moments_main() {
 void main() {
     int m = int(pc.mode);
     if (m == 0) prepare_main();
+    else if (m == 7) gather_main();
     else if (m == 1) bitonic_main();
+    else if (m == 8) commit_main();
     else if (m == 5) split_main();
     else moments_main();
 }

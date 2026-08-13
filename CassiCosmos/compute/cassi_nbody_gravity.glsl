@@ -124,6 +124,20 @@
 // (position, velocity) — a one-step approximation (the O(dt) difference
 // affects only step 1's cached acceleration).
 //
+// TREE-RIVER mode (gravity_mode == 5 — fmm_design.md Q6, wave 3): the river
+// law's per-target prefactor applied to the MESHLESS TREE walk's output.
+// The meshless arm (meshless_mode && meshless_gravity) replaces the
+// spectral-Poisson river chain with an open-boundary Barnes-Hut tree
+// (cassi_tree_build.glsl + cassi_tree_gravity.glsl). The tree walk writes,
+// per particle, _ml_tree_grad[i] = a(r) = −∇Φ_g (the chord-weighted
+// potential gradient's attractive force, G absorbed; sources = the Voronoi
+// sites, w_s = m_s·g_s). This arm applies the SAME clamp + telemetry as
+// mode 0 — the ONLY change is the ∇(g·Φ) grid sample is replaced by the
+// per-particle tree value:  a = −G_N·(π/ρ)·∇Φ_g = G_N·(π/ρ)·tgrad[i].
+// The BH sector follows the global black_holes_enabled toggle (like mode
+// 0); NO dissipation (that is mode 4). Modes 0-4 are bit-identical (they
+// never read binding 3 / the tgrad value).
+//
 // BH term (when the global black_holes_enabled toggle is on — the host
 // writes bh[3].x; in ANY mode; the σ-regularized sector,
 // gravity-from-flow.md §4.2, physics unchanged): softened Newtonian
@@ -168,6 +182,10 @@ layout(set = 0, binding = 8, std430) buffer GradBuf2 { vec4 g2[]; };
 layout(set = 1, binding = 0, std430) buffer Positions { vec4 pos[]; };
 layout(set = 1, binding = 1, std430) restrict buffer Velocities { vec4 vel[]; };
 layout(set = 1, binding = 2, std430) restrict buffer Accelerations { vec4 acc[]; };
+// Per-particle tree gradient (mode 5 "tree river"): the meshless tree
+// walk's output, _ml_tree_grad[i] = a(r) = −∇Φ_g (attractive, G absorbed).
+// Written by cassi_tree_gravity.glsl; read ONLY when gravity_mode == 5.
+layout(set = 1, binding = 3, std430) restrict readonly buffer TreeGrad { vec4 tgrad[]; };
 
 // BHData: bh[0].x = count (unused), bh[1].w = G_N, bh[2].x = cluster radius
 // (the Plummer softening scale), bh[2].yzw = per-axis box half-extents
@@ -206,7 +224,11 @@ layout(push_constant, std430) uniform PC {
                          // 3 = RIVER-SELF (river law only — the BH sector
                          // follows the global black_holes_enabled toggle),
                          // 4 = REALSIM (river law + the three dissipation
-                         // terms below; BH sector follows the toggle too)
+                         // terms below; BH sector follows the toggle too),
+                         // 5 = TREE-RIVER (fmm_design.md Q6): the river
+                         // law's π/ρ prefactor applied to the meshless tree
+                         // walk's per-particle ∇Φ_g (G absorbed) — replaces
+                         // the grid ∇(g·Φ) sample; BH like mode 0, NO diss.
     float pass_mode;     // 0 = N-body (particles), 1 = gradient-field build,
                          // 2 = acceleration warm-up (first-step acc cache)
     float realsim_drag;      // γ — RealSim drag rate (1/time at ρ_ref)
@@ -503,6 +525,22 @@ vec3 river_field_acc_smp(FieldSmp fs, inout TeleStats st) {
     return -G_N * pi_over_rho * gv;
 }
 
+// ── TREE-RIVER arm (gravity_mode == 5, fmm_design.md Q6) ────────────────
+// The meshless tree walk already produced the chord-weighted potential
+// gradient's attractive force tgrad[i] = a(r) = −∇Phi_g (G absorbed). The
+// per-target river prefactor G_N·(π/ρ)_target is applied exactly as in the
+// grid arm — the SAME clamp + telemetry (chord_g_from), ONLY the ∇(g·Φ)
+// sample is replaced by the tree walk's per-particle value:
+//   a = −G_N·(π/ρ)_target·∇Phi_g  =  +G_N·(π/ρ)_target · tgrad[i]
+//      (tgrad = −∇Phi_g, so the + sign keeps it attractive toward matter)
+// BH term follows the global black_holes_enabled toggle like mode 0. NO
+// dissipation (that is RealSim mode 4's addition).
+vec3 tree_river_field_acc(FieldSmp fs, int pi, inout TeleStats st) {
+    float q_unused; float pi_over_rho;
+    chord_g_from(fs.ey, fs.ei, q_unused, pi_over_rho, st);
+    return bh[1].w * pi_over_rho * tgrad[pi].xyz;
+}
+
 // ── Legacy heuristic: sample q_s = EY²+EI² + 0.01·ρ and its gradient ───
 void sample_q_field(vec3 wp, out float q_val, out vec3 q_grad) {
     int N = int(pc.N_f);
@@ -710,14 +748,16 @@ void warmup_main() {
         if (pc.gravity_mode < 0.5 || pc.gravity_mode > 2.5) {
             // River: ONE fused neighborhood sample feeds the chord force
             // AND (RealSim) the dissipation — no re-sampling of ρ_local.
+            // Mode 5 = tree river: the tree walk's per-particle ∇Φ_g^a.
             FieldSmp fs = sample_fields(pos[i].xyz);
             if (bh[3].x > 0.5) a_w = bh_point_gravity(pos[i].xyz, pc.eps2);
-            a_w += river_field_acc_smp(fs, st);
-            if (pc.gravity_mode > 3.5) {
-                // RealSim: evaluate dissipation at the CURRENT (position,
-                // velocity) — a one-step approximation (the particle pass
-                // uses the half-kick velocity; the O(dt) difference affects
-                // only step 1's cached acceleration).
+            if (pc.gravity_mode > 4.5) a_w += tree_river_field_acc(fs, i, st);
+            else a_w += river_field_acc_smp(fs, st);
+            if (pc.gravity_mode > 3.5 && pc.gravity_mode < 4.5) {
+                // RealSim (mode 4) ONLY: dissipation at the CURRENT
+                // (position, velocity) — a one-step approximation (the
+                // particle pass uses the half-kick velocity; the O(dt)
+                // difference affects only step 1's cached acceleration).
                 a_w += realsim_dissipation_smp(fs, vel[i].xyz, a_w);
             }
         } else {
@@ -777,12 +817,18 @@ void main() {
             FieldSmp fs = sample_fields(p_new);
             grav_acc = vec3(0.0);
             if (bh[3].x > 0.5) grav_acc = bh_point_gravity(p_new, pc.eps2);
-            grav_acc += river_field_acc_smp(fs, st);
-            if (pc.gravity_mode > 3.5) {
-                // RealSim: dissipative terms at (p_new, v_half) — the
-                // position and velocity the particle has mid-step. Adds to
-                // the gravity acceleration; the river arm and TeleStats
-                // are untouched.
+            if (pc.gravity_mode > 4.5) {
+                // TREE-RIVER (mode 5): the tree walk's per-particle ∇Φ_g^a
+                // replaces the grid ∇(g·Φ) sample (fmm_design.md Q6).
+                grav_acc += tree_river_field_acc(fs, i, st);
+            } else {
+                grav_acc += river_field_acc_smp(fs, st);
+            }
+            if (pc.gravity_mode > 3.5 && pc.gravity_mode < 4.5) {
+                // RealSim (mode 4) ONLY: dissipative terms at (p_new,
+                // v_half) — the position and velocity the particle has
+                // mid-step. Adds to the gravity acceleration; the river arm
+                // and TeleStats are untouched.
                 grav_acc += realsim_dissipation_smp(fs, v_half, grav_acc);
             }
         } else {

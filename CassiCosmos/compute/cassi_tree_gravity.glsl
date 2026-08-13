@@ -3,7 +3,11 @@
 // Cassi Tree Gravity — open-boundary Barnes–Hut walk over the octree built
 // by cassi_tree_build.glsl. Evaluates the CHORD-WEIGHTED potential gradient
 //   Phi_g(r) = Σ_s w_s/|r−r_s|,   w_s = m_s·g_s   (g from the source's q_coh),
-//   a(r)     = −∇Phi_g  (monopole + quadrupole),   a_river = −G_N(π/ρ)·a
+//   a(r)     = −∇Phi_g  (monopole + quadrupole, ATTRACTIVE toward matter),
+// and the river arm then applies the per-target prefactor
+//   a_river  = −G_N·(π/ρ)_target·∇Phi_g  =  +G_N·(π/ρ)_target·a(r)
+//             (a(r) is already −∇Phi_g; G_N, π/ρ > 0 keep it attractive)
+//             = G_N·(π/ρ)_target · forceOut[i]
 // with NO periodic images (the MESHLESS_PLAN §0 promise; fmm_design.md Q5).
 //
 // One thread per TARGET with an explicit per-thread LIFO stack (fixed-size
@@ -35,8 +39,9 @@
 //   monop  = −W·d/(d²+eps2)^(3/2)
 //   quad   = ( (d²)·(Q·d) − (5/2)(d·Q·d)·d ) / (d²)^(7/2)
 //
-// Outputs per target: forceOut[i] = a (vec3, attractive; the caller applies
-// −G_N(π/ρ)), and interCount[i] = number of nodes accepted (> 0).
+// Outputs per target: forceOut[i] = a(r) (vec3, attractive; the caller's
+// tree-river arm applies the +G_N(π/ρ)_target prefactor), and interCount[i]
+// = number of nodes accepted (> 0).
 //
 // Buffers (set 0, shared with the build shader): see cassi_tree_build.glsl.
 
@@ -51,12 +56,20 @@ layout(set = 0, binding = 7, std430) readonly buffer NodeR { ivec4 nr[]; };
 layout(set = 0, binding = 8, std430) readonly buffer Counters { uint ctr[]; };
 layout(set = 0, binding = 9, std430) buffer ForceOut { vec4 acc[]; };
 layout(set = 0, binding = 10, std430) buffer InterCount { uint inter[]; };
+// Optional per-target positions (SIM path): the sim's targets are N-BODY
+// PARTICLES whose positions live in the sim's _pos_buf, NOT the mesh-source
+// table. When pc.use_tp > 0.5 the walk reads target i from tpos[i].xyz
+// (binding 11) instead of src[2i].xyz. verify_fmm leaves the flag off and
+// binds a dummy to 11 — its targets ARE the sources.
+layout(set = 0, binding = 11, std430) restrict readonly buffer TargetPos { vec4 tpos[]; };
 
 layout(push_constant, std430) uniform PC {
-    float N_f;        // #0 target count (== source count here)
+    float N_f;        // #0 target count
     float theta;      // #1 opening criterion (0.5)
     float eps2;       // #2 softening² (1e-6)
-    float phi;        // #3 (unused here; the river π/ρ prefactor is caller-side)
+    float use_tp;     // #3 target source selector: >0.5 → tpos[i].xyz
+                      //     (was an unused `phi` slot; 0 = src[2i], the
+                      //     verify/official path — unchanged)
     float node_cnt;   // #4 total octree node count
 } pc;
 
@@ -66,7 +79,7 @@ void force_main() {
     uint i = gl_GlobalInvocationID.x;
     int N = int(pc.N_f);
     if (int(i) >= N) return;
-    vec3 target = src[2 * i].xyz;
+    vec3 target = (pc.use_tp > 0.5) ? tpos[i].xyz : src[2 * i].xyz;
     float nx = 0.0, ny = 0.0, nz = 0.0;
     uint interactions = 0u;
     int nc = int(pc.node_cnt);

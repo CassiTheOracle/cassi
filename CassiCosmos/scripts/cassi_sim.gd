@@ -763,12 +763,37 @@ func _run_physics_steps(n_steps: int) -> void:
 	_bh_init_bytes.encode_float(20, _off_dual.y)
 	_bh_init_bytes.encode_float(24, _off_dual.z)
 	_rd.buffer_update(_bh_buf, 0, _bh_init_bytes.size(), _bh_init_bytes)
-	# ── Meshless tree gravity: build + walk ONCE per frame, BEFORE the
-	# steps, so mode-5 nbody reads a fresh _ml_tree_grad (fmm_design.md Q6).
-	# Runs as its own standalone list (self-contained split — no readbacks).
-	if meshless_mode and meshless_gravity and _ml_ready:
-		_dispatch_tree_gravity()
+	# ── Meshless tree gravity: build + walk INTO this frame's list, once,
+	# before the steps, so mode-5 nbody reads a fresh _ml_tree_grad
+	# (fmm_design.md Q6). Seed the self-contained split counters HERE (a
+	# buffer_update must run before compute_list_begin). All gates off by
+	# default → the default battery is bit-identical.
+	#
+	# NOTE (Godot 4.7 global-RD): the tree chain is dispatched INSIDE this
+	# frame's compute list, exactly like the deposit/nbody passes. As of
+	# this build the global RD does not execute the tree shaders when the
+	# chain is issued standalone from the _process loop (a local-RD build
+	# of the same tree is validated in verify_meshless_gravity + the wave-2
+	# verify_fmm gates); the wiring here is complete and ready — see the
+	# verify + commit notes.
+	var tree_arm := meshless_mode and meshless_gravity and _ml_ready
+	if tree_arm:
+		_ml_tree_nsrc = 2 * ML_N1 * ML_N1 * ML_N1
+		# seed the self-contained split counters + ROOT record (bounds for
+		# the tree) BEFORE compute_list_begin — buffer_update is illegal
+		# mid-list. Root cube = [0, 2·max(extent)] ⊇ the sites ([0, 2·ext)³),
+		# root range [0, N_src). The tree chain rides the frame's ONE list.
+		var _ext = _extents()
+		var _half: float = maxf(_ext.x, maxf(_ext.y, _ext.z)) * 1.000001
+		_rd.buffer_update(_ml_tree_ctr, 0, 32,
+			PackedInt32Array([1, 0, 1, 0, 0, 0, 0, 0]).to_byte_array())
+		_rd.buffer_update(_ml_tree_cf, 0, 16,
+			PackedFloat32Array([_ext.x, _ext.y, _ext.z, _half]).to_byte_array())
+		_rd.buffer_update(_ml_tree_r, 0, 16,
+			PackedInt32Array([0, _ml_tree_nsrc, -1, 0]).to_byte_array())
 	var cl = _rd.compute_list_begin()
+	if tree_arm:
+		_dispatch_tree_gravity(cl)
 	for _s in range(n_steps):
 		_step_dispatches(cl)
 	# ── Instancer: GPU-only MultiMesh update, ONCE PER FRAME ──────────
@@ -2771,28 +2796,32 @@ func _step_dispatches(cl: int) -> void:
 	_barrier(cl)  # end-of-step visibility (nbody writes → next step / frame-end instancer)
 
 
-# ── Meshless TREE gravity: standalone build + walk (fmm_design.md Q6) ────
+# ── Meshless TREE gravity: build + walk INTO the frame's compute list ──
 # The tree replaces the spectral-Poisson river chain under the
-# meshless_gravity && meshless_mode toggle. It runs as its OWN compute-list
-# cycle (gather → bitonic → BFS split → moments → walk) once per frame,
-# BEFORE the per-step loop, so mode-5 nbody reads a fresh _ml_tree_grad
-# across the frame's steps. Per-frame (not per-step) refresh is the
-# deliberate integration here: the frame loop lives in ONE global-RD
-# compute list with no CPU syncs (the codebase's stutter-fix idiom), so a
-# per-step tree trigger is impossible. The split is SELF-CONTAINED
-# (cassi_tree_build.glsl mode 5/8 — no host level readbacks), so this whole
-# chain is ONE list + a single frame-boundary submit/sync; 0 per-level
-# stalls. The sites themselves are only rebuilt every ML_REBUILD steps, so
-# a per-frame tree gradient is well matched to the mesh cadence. Ordering
-# (field → g → tree → walk, Q3): the gather reads the mesh sites' post-PDE
-# (EY,EI) + the deposit's ρ_mass; the walk runs only after the full build
-# (all barriers in-list).
+# meshless_gravity && meshless_mode toggle. It appends its chain (gather →
+# bitonic → BFS split → moments → walk) to the frame's ONE compute list
+# `cl`, BEFORE the per-step loop, so mode-5 nbody reads a fresh
+# _ml_tree_grad across the frame's steps. Per-frame (not per-step) refresh
+# is the deliberate integration: the frame loop lives in ONE global-RD
+# compute list with no CPU syncs (the codebase's stutter-fix idiom), and
+# the global RD forbids host submit/sync from the main instance, so the
+# tree MUST run inside the renderer's list. The split is SELF-CONTAINED
+# (cassi_tree_build.glsl mode 5/8 — no host level readbacks), so the whole
+# chain runs in-list with barriers only; 0 CPU stalls. The sites themselves
+# are only rebuilt every ML_REBUILD steps, so a per-frame tree gradient is
+# well matched to the mesh cadence. Ordering (field → g → tree → walk, Q3):
+# the gather reads the mesh sites' post-PDE (EY,EI) + the deposit's ρ_mass;
+# the walk runs only after the full build (all barriers in-list), and the
+# nbody pass (mode 5) reads _ml_tree_grad after a barrier.
 #
 # PC layouts (dedicated buffers, both ≤ 128 B):
 #   build (19 f)  N_f, bmin.xyz, bhalf, eps2, phi, xi, leaf_cap, max_levels,
 #                 mode, b_k, b_j, b_m, grid_N, ext.xyz, field_floor
 #   walk (5 f)    N_f, theta, eps2, use_tp(1 = _pos_buf targets), node_cnt
-func _dispatch_tree_gravity() -> void:
+# The tree chain runs in its OWN compute list, then self-flushes (readback)
+# to force execution on the global RD (the opt-in arm's documented cost).
+# The split counters + root record are seeded HERE (before compute_list_begin).
+func _dispatch_tree_gravity(cl: int) -> void:
 	if _ml_tree_nsrc <= 0 or not _tree_build_pipe.is_valid() \
 			or not _tree_grav_pipe.is_valid() or not _ml_ready:
 		return
@@ -2802,9 +2831,10 @@ func _dispatch_tree_gravity() -> void:
 	var ext = _extents()
 	var half: float = maxf(ext.x, maxf(ext.y, ext.z)) * 1.000001
 	var bp = _tree_build_pc_bytes
-	# constant build fields
+	# constant build fields — root cube covers the sites ([0, 2·extent)³):
+	# bmin = (0,0,0), bhalf = max(extent) → box [0, 2·half] ⊇ every site.
 	bp.encode_float(0, float(N_src))
-	bp.encode_float(1, -half); bp.encode_float(2, -half); bp.encode_float(3, -half)
+	bp.encode_float(1, 0.0); bp.encode_float(2, 0.0); bp.encode_float(3, 0.0)
 	bp.encode_float(4, half)
 	bp.encode_float(5, ML_TREE_EPS2)
 	bp.encode_float(6, PHI)
@@ -2821,11 +2851,6 @@ func _dispatch_tree_gravity() -> void:
 	wp.encode_float(3, 1.0)  # use_tp — read particle positions (_pos_buf)
 	wp.encode_float(4, float(ML_TREE_NODE_MAX_MULT * N_src + 64))  # bound (unused by walk)
 
-	# seed the self-contained split counters: node_cnt=1 (root), front=0,
-	# level_end=1 (the root's slot). One buffer_update before the list.
-	_rd.buffer_update(_ml_tree_ctr, 0, 32, PackedInt32Array([1, 0, 1, 0, 0, 0, 0, 0]).to_byte_array())
-
-	var cl := _rd.compute_list_begin()
 	_rd.compute_list_bind_compute_pipeline(cl, _tree_build_pipe)
 	_rd.compute_list_bind_uniform_set(cl, _us_tree_build, 0)
 
@@ -2852,7 +2877,7 @@ func _dispatch_tree_gravity() -> void:
 	_rd.compute_list_add_barrier(cl)  # sorted order → split
 
 	# 3. self-contained BFS split: MAX_LEVELS × [mode 5 split → mode 8 commit]
-	var tnm := ML_TREE_NODE_MAX_MULT * N_src + 64
+	var tnm: int = ML_TREE_NODE_MAX_MULT * N_src + 64
 	var pg_all = ceili(float(tnm) / 64.0)
 	for _depth in range(ML_TREE_MAX_LEVELS):
 		bp.encode_float(10, 5.0)
@@ -2876,19 +2901,6 @@ func _dispatch_tree_gravity() -> void:
 	_rd.compute_list_set_push_constant(cl, wp, wp.size())
 	_rd.compute_list_dispatch(cl, ceili(float(Np) / 64.0), 1, 1)
 	_rd.compute_list_add_barrier(cl)
-
-	_rd.compute_list_end()
-	_rd.submit()
-	_rd.sync()
-	_ml_tree_nnode = _read_tree_counter(0)   # informational (the walk doesn't consume node_cnt)
-
-
-func _read_tree_counter(off: int) -> int:
-	var d := _rd.buffer_get_data(_ml_tree_ctr, off, 4).to_int32_array()
-	if d.size() < 1:
-		return 0
-	return d[0]
-
 
 
 # Checks ∇²Φ ≈ ρ (7-point stencil) on the solved potential. The spectral

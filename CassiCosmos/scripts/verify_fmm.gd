@@ -56,6 +56,7 @@ var _node_r: RID
 var _ctr: RID
 var _force_out: RID
 var _inter: RID
+var _tp_dummy: RID
 
 var _build_pc := PackedFloat32Array()
 var _grav_pc := PackedFloat32Array()
@@ -125,24 +126,35 @@ func _make_buffers() -> void:
 	_ctr = _rd.storage_buffer_create(8 * 4)
 	_force_out = _rd.storage_buffer_create(N * 16)
 	_inter = _rd.storage_buffer_create(N * 4)
+	# binding 11 (TargetPos, use_tp OFF here): the walk declares it but the
+	# verify targets ARE the sources — bind a tiny dummy so the pipeline's
+	# required set is complete.
+	var _g5 := _rd.storage_buffer_create(4)  # dummy meshless gather sources (9-13)
+	var _g6 := _rd.storage_buffer_create(4)
+	var _g7 := _rd.storage_buffer_create(4)
+	var _g8 := _rd.storage_buffer_create(4)
+	var _g9 := _rd.storage_buffer_create(4)
+	_tp_dummy = _g5
 	_tree_us = _rd.uniform_set_create([
 		_u_storage(0, _src_table), _u_storage(1, _src_w),
 		_u_storage(2, _src_key), _u_storage(3, _src_order),
 		_u_storage(4, _node_cf), _u_storage(5, _node_w),
 		_u_storage(6, _node_q), _u_storage(7, _node_r),
 		_u_storage(8, _ctr),
+		_u_storage(9, _g5), _u_storage(10, _g6),
+		_u_storage(11, _g7), _u_storage(12, _g8), _u_storage(13, _g9),
 	], _build_shader, 0)
 	# The gravity shader reads subsets of the same buffers; it uses binding
-	# 0/3/4/5/6/7/8 + 9/10 — one uniform set bound to the gravity shader too.
+	# 0/3/4/5/6/7/8 + 9/10/11 — one uniform set bound to the gravity shader too.
 	_tree_us_g = _rd.uniform_set_create([
 		_u_storage(0, _src_table), _u_storage(3, _src_order),
 		_u_storage(4, _node_cf), _u_storage(5, _node_w),
 		_u_storage(6, _node_q), _u_storage(7, _node_r),
 		_u_storage(8, _ctr), _u_storage(9, _force_out),
-		_u_storage(10, _inter),
+		_u_storage(10, _inter), _u_storage(11, _tp_dummy),
 	], _grav_shader, 0)
-	# build PC (14 floats) + gravity PC (5 floats)
-	_build_pc.resize(14)
+	# build PC (19 floats) + gravity PC (5 floats)
+	_build_pc.resize(19)
 	_grav_pc.resize(5)
 
 
@@ -229,8 +241,9 @@ func _init_root(src: PackedFloat32Array, box: Dictionary) -> void:
 	_rd.buffer_update(_node_cf, 0, 16, cf)
 	var nr := PackedInt32Array([0, N, -1, 0]).to_byte_array()
 	_rd.buffer_update(_node_r, 0, 16, nr)
-	# counters: [0] = node_count = 1 (root)
-	var c := PackedInt32Array([1, 0, 0, 0, 0, 0, 0, 0]).to_byte_array()
+	# counters: [0]=node_cnt=1 (root), [1]=split front=0, [2]=level_end=1
+	# (the atomic-front/frontier split model — cassi_tree_build.glsl mode 5/8)
+	var c := PackedInt32Array([1, 0, 1, 0, 0, 0, 0, 0]).to_byte_array()
 	_rd.buffer_update(_ctr, 0, 32, c)
 
 
@@ -264,28 +277,25 @@ func _build_tree(box: Dictionary) -> void:
 	_rd.submit()
 	_rd.sync()
 
-	# level-by-level split
-	var level_start := 0
-	var level_count := 1
-	for depth in range(MAX_LEVELS):
-		var level_end := level_start + level_count
-		_rd.buffer_update(_ctr, 0, 4, PackedInt32Array([level_end]).to_byte_array())
+	# level-by-level split — SELF-CONTAINED rounds (no host readback):
+	# mode 5 (atomic front, capped by ctr[2]=level_end) → barrier → mode 8
+	# (commit: ctr[2]=ctr[0]) → barrier, MAX_LEVELS times, all in ONE list.
+	_build_pc[10] = 5.0   # round 0 splits the root; later rounds the frontier
+	var scl := _rd.compute_list_begin()
+	_rd.compute_list_bind_compute_pipeline(scl, _build_pipe)
+	_rd.compute_list_bind_uniform_set(scl, _tree_us, 0)
+	for _depth in range(MAX_LEVELS):
 		_build_pc[10] = 5.0
-		_build_pc[11] = float(level_start)
-		_build_pc[12] = float(level_count)
-		var lcl := _rd.compute_list_begin()
-		_rd.compute_list_bind_compute_pipeline(lcl, _build_pipe)
-		_rd.compute_list_bind_uniform_set(lcl, _tree_us, 0)
-		_rd.compute_list_set_push_constant(lcl, _build_pc.to_byte_array(), _build_pc.size() * 4)
-		_rd.compute_list_dispatch(lcl, int(ceil(float(level_count) / 64.0)), 1, 1)
-		_rd.compute_list_end()
-		_rd.submit()
-		_rd.sync()
-		var nc := _read_uint(_ctr, 0)
-		if nc <= level_end:
-			break
-		level_start = level_end
-		level_count = nc - level_end
+		_rd.compute_list_set_push_constant(scl, _build_pc.to_byte_array(), _build_pc.size() * 4)
+		_rd.compute_list_dispatch(scl, int(ceil(float(NODE_MAX) / 64.0)), 1, 1)
+		_rd.compute_list_add_barrier(scl)
+		_build_pc[10] = 8.0
+		_rd.compute_list_set_push_constant(scl, _build_pc.to_byte_array(), _build_pc.size() * 4)
+		_rd.compute_list_dispatch(scl, 1, 1, 1)
+		_rd.compute_list_add_barrier(scl)
+	_rd.compute_list_end()
+	_rd.submit()
+	_rd.sync()
 
 	# moments (mode 6): W / COM / quadrupole for every node
 	_build_pc[10] = 6.0
@@ -333,7 +343,7 @@ func _walk(node_count: int) -> void:
 	_grav_pc[0] = float(N)
 	_grav_pc[1] = THETA
 	_grav_pc[2] = EPS2
-	_grav_pc[3] = PHI
+	_grav_pc[3] = 0.0   # use_tp OFF — verify targets ARE the sources (src[2i])
 	_grav_pc[4] = float(node_count)
 	var cl := _rd.compute_list_begin()
 	_rd.compute_list_bind_compute_pipeline(cl, _grav_pipe)
