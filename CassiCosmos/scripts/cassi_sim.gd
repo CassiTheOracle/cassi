@@ -500,7 +500,6 @@ var _ml_tree_r: RID         # ivec4[M]
 var _ml_tree_ctr: RID       # uint[8]
 var _ml_tree_grad: RID      # vec4[N_particles] — per-particle tree ∇Φ_g·(−) (nbody set 1 binding 3)
 var _ml_tree_icount: RID    # uint[N_particles] — walk interaction counts (walk binding 10)
-var _ml_tree_away: RID      # uint[nsrc] — walk binding 11 (position source selector)
 var _us_tree_build: RID
 var _us_tree_grav: RID
 var _tree_build_pc_bytes: PackedByteArray  # build PC (19 floats: 14 shared + grid_N, ext_x/y/z, field_floor)
@@ -769,13 +768,21 @@ func _run_physics_steps(n_steps: int) -> void:
 	# buffer_update must run before compute_list_begin). All gates off by
 	# default → the default battery is bit-identical.
 	#
-	# NOTE (Godot 4.7 global-RD): the tree chain is dispatched INSIDE this
-	# frame's compute list, exactly like the deposit/nbody passes. As of
-	# this build the global RD does not execute the tree shaders when the
-	# chain is issued standalone from the _process loop (a local-RD build
-	# of the same tree is validated in verify_meshless_gravity + the wave-2
-	# verify_fmm gates); the wiring here is complete and ready — see the
-	# verify + commit notes.
+	# NOTE (Godot 4.7 global-RD, 2026-08-13): the tree chain is dispatched
+	# INSIDE this frame's compute list, exactly like the deposit/nbody
+	# passes. Two real integration seams found + fixed: (a) the nbody PC
+	# encoded the EXPORTED gravity_mode (0) instead of the effective tree
+	# mode, so mode-5 never ran (see _step_dispatches); (b) the walk's
+	# TargetPos binding 11 pointed at a scratch buffer instead of _pos_buf.
+	# With both fixed the mode-5 write path is correct — BUT the tree build
+	# STILL does not execute on the global RD from the _process loop: after
+	# 120 sustained frames the gather never bumps the source counter
+	# (ctr stays the seeded [1,0,1,0,0,0,0,0]) and _ml_tree_grad reads all
+	# zero, while the SAME recipe runs correctly on a local RD (validated:
+	# verify_meshless_gravity + verify_fmm gates). The local-RD tree is the
+	# validated kernel; the in-sim arm is functionally BLOCKED on getting
+	# the tree chain to execute on the global RD. Open to a director
+	# decision — do not assume the wiring is live.
 	var tree_arm := meshless_mode and meshless_gravity and _ml_ready
 	if tree_arm:
 		_ml_tree_nsrc = 2 * ML_N1 * ML_N1 * ML_N1
@@ -1029,7 +1036,6 @@ func _setup_buffers() -> void:
 	# per-particle tree gradient + walk counts (N_particles targets)
 	_ml_tree_grad = _rd.storage_buffer_create(N_particles * 16)
 	_ml_tree_icount = _rd.storage_buffer_create(N_particles * 4)
-	_ml_tree_away = _rd.storage_buffer_create(maxi(ml_ns, 1) * 4)  # walk binding 11 (unused when use_tp on; sized nsrc)
 	_tree_build_pc_bytes = PackedByteArray(); _tree_build_pc_bytes.resize(19 * 4)
 	_tree_grav_pc_bytes = PackedByteArray(); _tree_grav_pc_bytes.resize(5 * 4)
 
@@ -1065,7 +1071,7 @@ func _free_buffers() -> void:
 				_ml_cen, _ml_remap, _ml_tmp_y, _ml_tmp_i, _ml_tmp_py, _ml_tmp_pi,
 				_ml_tree_src, _ml_tree_srcw, _ml_tree_key, _ml_tree_order,
 				_ml_tree_cf, _ml_tree_w, _ml_tree_q, _ml_tree_r, _ml_tree_ctr,
-				_ml_tree_grad, _ml_tree_icount, _ml_tree_away,
+				_ml_tree_grad, _ml_tree_icount,
 				_field_render_tex, _bh_lensing_tex]:
 		if rid.is_valid(): _rd.free_rid(rid)
 	_field_render_tex = RID()
@@ -1360,7 +1366,7 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(6, _ml_tree_q), _uniform_storage(7, _ml_tree_r),
 			_uniform_storage(8, _ml_tree_ctr),
 			_uniform_storage(9, _ml_tree_grad), _uniform_storage(10, _ml_tree_icount),
-			_uniform_storage(11, _ml_tree_away),
+			_uniform_storage(11, _pos_buf),  # walk TargetPos — targets = N-body particles (use_tp=1)
 		], _tree_grav_shader, 0)
 # ═══════════════════════════════════════════════════════════════════════
 # Initial conditions
@@ -2579,7 +2585,17 @@ func _step_dispatches(cl: int) -> void:
 	_nbody_pc_bytes.encode_float(28, float(mode))
 	_nbody_pc_bytes.encode_float(32, source_strength)
 	_nbody_pc_bytes.encode_float(36, float(num_clusters))
-	_nbody_pc_bytes.encode_float(40, float(gravity_mode))
+	# Effective gravity mode: when the meshless TREE arm is live, force the
+	# nbody shader to the tree path (mode 5) regardless of the EXPORTED
+	# `gravity_mode` (which stays 0 for the default/battery bit-identical
+	# contract). Otherwise the shader encodes gravity_mode=0 and runs the
+	# RIVER arm sampling the (never-written, since the ∇(g·Φ) gradient pass
+	# is skipped under the tree arm) _grad_buf → zero force. The tree
+	# build/walk writes _ml_tree_grad; only this encode gates whether the
+	# nbody consumes it. nbody-only: the two-fluid/field/instancer passes do
+	# not branch on gravity_mode.
+	var eff_gmode: float = 5.0 if (meshless_mode and meshless_gravity) else float(gravity_mode)
+	_nbody_pc_bytes.encode_float(40, eff_gmode)
 	_nbody_pc_bytes.encode_float(44, 0.0)  # pass_mode = 0 (particles)
 	_nbody_pc_bytes.encode_float(48, realsim_drag)
 	_nbody_pc_bytes.encode_float(52, realsim_viscosity)
@@ -2818,8 +2834,6 @@ func _step_dispatches(cl: int) -> void:
 #   build (19 f)  N_f, bmin.xyz, bhalf, eps2, phi, xi, leaf_cap, max_levels,
 #                 mode, b_k, b_j, b_m, grid_N, ext.xyz, field_floor
 #   walk (5 f)    N_f, theta, eps2, use_tp(1 = _pos_buf targets), node_cnt
-# The tree chain runs in its OWN compute list, then self-flushes (readback)
-# to force execution on the global RD (the opt-in arm's documented cost).
 # The split counters + root record are seeded HERE (before compute_list_begin).
 func _dispatch_tree_gravity(cl: int) -> void:
 	if _ml_tree_nsrc <= 0 or not _tree_build_pipe.is_valid() \
