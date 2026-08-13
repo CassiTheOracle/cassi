@@ -28,12 +28,16 @@
 //                  source sampled at the site's own grid cell), drift
 //                  ψ, zero lap
 //   2 volume     — per GRID cell: atomicAdd hx·hy·hz per cell
-//   3 centroid   — per GRID cell: atomicAdd the (stretched) cell center
-//                  into cen[lab].xyz, count into cen[lab].w
+//   3 centroid   — per GRID cell: atomicAdd the (stretched) cell center,
+//                  MASS-weighted by w = rho_mass + LLOYD_FLOOR (the mesh
+//                  follows the deposited matter; at rho_mass == 0 the
+//                  floor cancels → exact geometric centroid)
 //   4 steer      — per SITE: the quasi-Lagrangian ride + Lloyd-style
-//                  centroid relaxation (guards: rho floor + drift cap),
-//                  per-axis periodic wrap, writes the new site position
-//                  AND the remap index (the OLD cell containing the new)
+//                  centroid relaxation with a Qi-gated strength
+//                  κ_eff = κ·(1−q)^p (q = ρ²/(ρ²+φ⁻²+ε²), the coherence
+//                  of the site's own two-fluid state), per-axis periodic
+//                  wrap, TOTAL displacement guarded to ML_MAX_DRIFT, and
+//                  the remap index (the OLD cell containing the new pos)
 //   5 state→tmp  — per SITE: copy the state to the temp buffers
 //   6 tmp→state  — per SITE: gather the remapped state (tmp[remap_idx])
 //   7 reset      — per SITE: vol = 0, cen = (0,0,0,0)
@@ -50,6 +54,13 @@
 
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
+// MUST match scripts/cassi_sim.gd ML_LLOYD_FLOOR. The density-weighting floor:
+// with rho_mass == 0 the mode-3 weight is this constant on every cell, so
+// the centroid is EXACTLY the geometric one (floor cancels in the ratio).
+// A tiny positive floor also keeps the weight from vanishing where the
+// deposited density has holes, so the centroid is never degenerate.
+const float LLOYD_FLOOR = 1e-3;
+
 layout(push_constant, std430) uniform PC {
     float mode;             // see the mode list above
     float N_f;              // grid resolution per dimension
@@ -63,10 +74,11 @@ layout(push_constant, std430) uniform PC {
     float PHI;              // golden ratio
     float source_strength;  // field injection (the grid PDE's source_s)
     float rho_floor;        // steering guard: rho = EY+EI can hit ~0
-    float drift_cap;        // steering guard: per-rebuild drift cap
-    float kappa;            // centroid relaxation fraction
+    float drift_cap;        // steering guard: per-rebuild drift cap (= ML_MAX_DRIFT)
+    float kappa;            // centroid relaxation fraction (base κ)
     float lam;              // super-Lagrangian momentum ride
     float T_steer;          // dt × rebuild cadence
+    float lloyd_p;          // Qi-gate exponent: κ_eff = κ·(1 − q)^p
 } pc;
 
 layout(set = 0, binding = 0, std430) buffer Labels {
@@ -149,7 +161,7 @@ void main() {
         cen[int(gid)] = vec4(0.0);
         return;
     }
-    if (im == 3) {  // centroid accumulate (the OLD mesh)
+    if (im == 3) {  // centroid accumulate — MASS-weighted (the OLD mesh)
         if (int(gid) >= total) return;
         int lab = labels[int(gid)];
         if (lab < 0 || lab >= ns) return;
@@ -157,36 +169,60 @@ void main() {
         int rem = int(gid) - i * Nn * Nn;
         int j = rem / Nn;
         int k = rem - j * Nn;
-        atomicAdd(cen[lab].x, (float(i) + 0.5) * hx);
-        atomicAdd(cen[lab].y, (float(j) + 0.5) * hy);
-        atomicAdd(cen[lab].z, (float(k) + 0.5) * hz);
-        atomicAdd(cen[lab].w, 1.0);
+        // per-cell weight = rho_mass + LLOYD_FLOOR. At rho_mass == 0 the
+        // constant floor cancels in the centroid (same weight every cell) —
+        // EXACTLY the geometric centroid, so the flat-noise / rho=0
+        // regression holds bit-for-bit. With deposited matter density w,
+        // the cell centroid is pulled toward the material (mesh follows Qi).
+        float w = rho_mass[int(gid)] + LLOYD_FLOOR;
+        atomicAdd(cen[lab].x, w * (float(i) + 0.5) * hx);
+        atomicAdd(cen[lab].y, w * (float(j) + 0.5) * hy);
+        atomicAdd(cen[lab].z, w * (float(k) + 0.5) * hz);
+        atomicAdd(cen[lab].w, w);
         return;
     }
-    if (im == 4) {  // steer: new sites + remap index (the OLD mesh)
+    if (im == 4) {  // steer: new sites + remap index — Qi-gated, guard-clamped
         if (int(gid) >= ns) return;
         int s = int(gid);
         vec4 sp = pos[s];
+        // coherence: q = rho^2/(rho^2 + phi^-2 + eps^2), rho=EY+EI,
+        // eps=EY-phi*EI (stage2_moving3d.q_coh, p = stage2's exponent).
         float rho = max(psi_y[s] + psi_i[s], pc.rho_floor);
+        float eps = psi_y[s] - pc.PHI * psi_i[s];
+        float rsq = rho * rho;
+        float q = rsq / (rsq + 1.0 / (pc.PHI * pc.PHI) + eps * eps);
+        // Qi-gated relaxation: structured (low-q) cells relax toward the
+        // (mass-weighted) centroid; coherent (q~1) cells ride momentum only.
+        float kappa_eff = pc.kappa * pow(1.0 - q, pc.lloyd_p);
         float vv = pc.lam * (pi_y[s] + pi_i[s]) / rho;
-        float drift = clamp(vv * pc.T_steer, -pc.drift_cap, pc.drift_cap);
-        float cc = max(cen[s].w, 1.0);
+        // momentum drift — NOT clamped here; the guard below caps the
+        // blended displacement as a whole (a distant mass centroid must
+        // never teleport a site in one rebuild).
+        float drift = vv * pc.T_steer;
+        float cc = max(cen[s].w, 1e-12);
         float Lx = float(Nn) * hx;
         float Ly = float(Nn) * hy;
         float Lz = float(Nn) * hz;
-        float nx = mod((1.0 - pc.kappa) * (sp.x + drift)
-                       + pc.kappa * (cen[s].x / cc), Lx);
-        float ny = mod((1.0 - pc.kappa) * (sp.y + drift)
-                       + pc.kappa * (cen[s].y / cc), Ly);
-        float nz = mod((1.0 - pc.kappa) * (sp.z + drift)
-                       + pc.kappa * (cen[s].z / cc), Lz);
-        int gi = int(floor(nx / hx)) % Nn;
-        int gj = int(floor(ny / hy)) % Nn;
-        int gk = int(floor(nz / hz)) % Nn;
+        vec3 blended = (1.0 - kappa_eff) * (sp.xyz + vec3(drift, drift, drift))
+                       + kappa_eff * (vec3(cen[s].x, cen[s].y, cen[s].z) / cc);
+        vec3 disp = blended - sp.xyz;
+        // GUARD: cap the TOTAL per-rebuild site displacement (momentum ride
+        // PLUS the centroid pull) to ML_MAX_DRIFT. The old code clamped only
+        // the momentum term; a distant centroid could pull a site far across
+        // the box in one steer. Clamping the blended vector length keeps the
+        // stutter-free rebuild from ever teleporting a site.
+        float dlen = length(disp);
+        if (dlen > pc.drift_cap) {
+            disp *= pc.drift_cap / dlen;
+        }
+        vec3 npos = mod(sp.xyz + disp, vec3(Lx, Ly, Lz));
+        int gi = int(floor(npos.x / hx)) % Nn;
+        int gj = int(floor(npos.y / hy)) % Nn;
+        int gk = int(floor(npos.z / hz)) % Nn;
         int lab = labels[gi * Nn * Nn + gj * Nn + gk];
         if (lab < 0 || lab >= ns) lab = s;
         remap_idx[s] = lab;
-        pos[s] = vec4(nx, ny, nz, 0.0);
+        pos[s] = vec4(npos, 0.0);
         return;
     }
     if (im == 5) {  // state → temp

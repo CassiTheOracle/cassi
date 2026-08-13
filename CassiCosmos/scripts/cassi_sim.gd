@@ -420,6 +420,16 @@ const ML_LAM := 8.0            # super-Lagrangian momentum ride
 const ML_RHO_FLOOR := 0.005    # steering guard: rho = EY+EI can hit ~0 in the live field
 const ML_MAX_DRIFT := 2.0      # steering guard: cap the per-rebuild site drift (~a quarter cell)
 const ML_OM2 := 20.0           # omega_0² — the same conversion constant as the grid PDE
+# density-weighted Lloyd on the steered mesh (stage5): the Qi-gate exponent
+# on the coherence q (the stage2_moving3d.q_coh / q_weighted_seeds3d power —
+# structure relaxes toward the mass centroid, coherent cells ride momentum)
+const ML_LLOYD_P := 4.0
+# density-weighting floor for the mode-3 centroid (MUST match the shader's
+# LLOYD_FLOOR). At rho_mass == 0 the floor makes the weighted centroid the
+# EXACT geometric centroid (it cancels in the ratio); a tiny positive value
+# keeps the weight nonzero where the deposit has holes. 1e-3 << the deposit
+# densities (O(1)) yet >> fp noise, so it is inert in the rho=0 regression.
+const ML_LLOYD_FLOOR := 1e-3
 const ML_INT_MAX := 2147483647
 var _jfa_shader: RID
 var _jfa_pipe: RID
@@ -447,7 +457,7 @@ var _us_jfa_0: RID
 var _us_cell_0: RID
 var _us_raster_0: RID
 var _jfa_pc_bytes: PackedByteArray    # JFA PC (8 floats: N, jump, read_a, n_sites, h, pad×3)
-var _cell_pc_bytes: PackedByteArray   # cell PC (16 floats: mode, N, n_sites, dt, hx, hy, hz, C2, OM2, PHI, source_s, rho_floor, drift_cap, kappa, lam, T_steer)
+var _cell_pc_bytes: PackedByteArray   # cell PC (17 floats: mode, N, n_sites, dt, hx, hy, hz, C2, OM2, PHI, source_s, rho_floor, drift_cap, kappa, lam, T_steer, lloyd_p)
 var _raster_pc_bytes: PackedByteArray # raster PC (8 floats: N, n_sites, pad×6)
 var _ml_sites_cpu := PackedFloat32Array()
 var _ml_ready := false
@@ -926,7 +936,7 @@ func _setup_buffers() -> void:
 	_ml_tmp_py = _rd.storage_buffer_create(ml_ns * 4)
 	_ml_tmp_pi = _rd.storage_buffer_create(ml_ns * 4)
 	_jfa_pc_bytes = PackedByteArray(); _jfa_pc_bytes.resize(8 * 4)
-	_cell_pc_bytes = PackedByteArray(); _cell_pc_bytes.resize(16 * 4)  # mode,N,n_sites,dt,hx,hy,hz,C2,OM2,PHI,src,rho_floor,drift_cap,kappa,lam,T_steer
+	_cell_pc_bytes = PackedByteArray(); _cell_pc_bytes.resize(17 * 4)  # mode,N,n_sites,dt,hx,hy,hz,C2,OM2,PHI,src,rho_floor,drift_cap,kappa,lam,T_steer,lloyd_p
 	_raster_pc_bytes = PackedByteArray(); _raster_pc_bytes.resize(8 * 4)
 
 	# Pre-allocate push-constant byte buffers (hitch-free pattern)
@@ -1551,7 +1561,7 @@ func _ml_cell_pc(mode: float) -> PackedByteArray:
 	var pcb := PackedFloat32Array([mode, float(N), float(ml_ns), dt,
 		hx, hy, hz, c2, ML_OM2, PHI, source_strength,
 		ML_RHO_FLOOR, ML_MAX_DRIFT, ML_KAPPA, ML_LAM,
-		dt * float(ML_REBUILD)])
+		dt * float(ML_REBUILD), ML_LLOYD_P])
 	return pcb.to_byte_array()
 
 

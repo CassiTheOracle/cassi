@@ -58,7 +58,7 @@ var _lap_i: RID
 var _vol: RID
 var _jfa_pc := PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 var _cell_pc := PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-	0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+	0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 var _md_zero: RID
 var _sites_cpu := PackedFloat32Array()
 var _checks := 0
@@ -349,7 +349,7 @@ func _run_volume_pass() -> void:
 	_rd.sync()
 
 
-# fills [1..9]: (N, n_sites, dt, hx, hy, hz, C2, OM2, PHI)
+# fills [1..9, 16]: (N, n_sites, dt, hx, hy, hz, C2, OM2, PHI, ..., lloyd_p)
 func _fill_cell_pc() -> void:
 	_cell_pc[1] = float(N)
 	_cell_pc[2] = float(N_SITES)
@@ -360,6 +360,7 @@ func _fill_cell_pc() -> void:
 	_cell_pc[7] = C2
 	_cell_pc[8] = OM2
 	_cell_pc[9] = PHI
+	_cell_pc[16] = 4.0
 
 
 func _run_steps_moving(psi0: Array, labels0: PackedInt32Array) -> PackedFloat32Array:
