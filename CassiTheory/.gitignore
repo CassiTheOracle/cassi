@@ -49,3 +49,6 @@ experiments/gwtc4_mass_ladder/data/
 # Void ring-ladder data (re-downloadable; scripts are tracked)
 experiments/void_phi_rings/data/
 experiments/void_phi_rings/downloads/
+
+# DSHARP disk-gap ring-ladder data (re-downloadable; scripts are tracked)
+experiments/dsharp_phi_gaps/data/
