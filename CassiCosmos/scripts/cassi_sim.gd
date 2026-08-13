@@ -80,6 +80,19 @@ const Q_1: float = 0.001        # Qi-rainbow stage-1 band top = stage-2 entry
 ## Master toggle for the black hole point-source sector in any gravity mode (softened Newtonian pull + condensation + BH-integrate passes). Default off = particles only.
 @export var black_holes_enabled: bool = false
 
+# Window VSync (frame pacing to the display refresh). On by default;
+# disable for uncapped frame rate (GPU benchmarks and Movie-Maker
+# recording want it off). Live — the setter applies it to the window
+# immediately; the project setting display/window/vsync/vsync_mode=1 is
+# the engine-level default this mirrors.
+var _vsync_enabled: bool = true
+@export var vsync_enabled: bool:
+	get:
+		return _vsync_enabled
+	set(value):
+		_vsync_enabled = value
+		_apply_vsync()
+
 # Gravity law selector (river law = the derived formula, default):
 #   0 = RIVER — a = −G_N·(π/ρ)·∇(g·Φ),  g = 1+(φ⁶−1)q,  ∇²Φ = ρ_mass (spectral)
 #   1 = HEURISTIC — legacy G_N·π/ρ·∇q_s arm, kept for A/B comparison only
@@ -432,7 +445,14 @@ signal bh_texture_updated(tex: Texture2D)
 # Lifecycle
 # ═══════════════════════════════════════════════════════════════════════
 
+func _apply_vsync() -> void:
+	# Live window VSync. The DisplayServer call is a no-op under the
+	# headless/dummy driver (verify scenes, import passes) — harmless.
+	DisplayServer.window_set_vsync_mode(
+		DisplayServer.VSYNC_ENABLED if _vsync_enabled else DisplayServer.VSYNC_DISABLED)
+
 func _ready() -> void:
+	_apply_vsync()  # mirror the export (scene load may have set it before ready)
 	if not _setup_rendering_device():
 		push_error("[CassiSim] Aborting startup: no RenderingDevice (headless/dummy renderer?)")
 		return

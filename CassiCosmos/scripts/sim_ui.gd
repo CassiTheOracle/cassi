@@ -31,6 +31,7 @@ var _legend: Control
 var _no_rb_btn: CheckButton
 var _bh_toggle_btn: CheckButton
 var _phi_box_btn: CheckButton
+var _vsync_btn: CheckButton
 
 var _server_ip_edit: LineEdit
 var _server_port_edit: LineEdit
@@ -330,6 +331,16 @@ func _ready() -> void:
 	_phi_box_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	row3.add_child(_phi_box_btn)
 
+	# VSync toggle: frame pacing to the display refresh. On by default;
+	# off for uncapped frame rate (GPU benchmarks, Movie-Maker recording).
+	_vsync_btn = CheckButton.new()
+	_vsync_btn.text = "VSync"
+	_vsync_btn.tooltip_text = "Frame pacing to the display refresh (on by default); off for uncapped frame rate — benchmarks and Movie-Maker recording want it off"
+	_vsync_btn.custom_minimum_size = Vector2(80, 22)
+	_vsync_btn.focus_mode = Control.FOCUS_NONE
+	_vsync_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	row3.add_child(_vsync_btn)
+
 	# Server (future) fields
 	var srv_box = VBoxContainer.new()
 	srv_box.custom_minimum_size = Vector2(160, 40)
@@ -379,6 +390,7 @@ func _ready() -> void:
 		_no_rb_btn.button_pressed = sim.suppress_readbacks
 		_bh_toggle_btn.button_pressed = sim.black_holes_enabled
 		_phi_box_btn.button_pressed = (sim.box_aspect != Vector3(1.0, 1.0, 1.0))
+		_vsync_btn.button_pressed = sim.vsync_enabled
 
 	# Connect value_changed AFTER init to avoid spurious reinit() on startup
 	_grid_spin.value_changed.connect(_on_grid_changed)
@@ -389,6 +401,7 @@ func _ready() -> void:
 	_no_rb_btn.toggled.connect(_on_suppress_readbacks_toggled)
 	_bh_toggle_btn.toggled.connect(_on_black_holes_toggled)
 	_phi_box_btn.toggled.connect(_on_phi_box_toggled)
+	_vsync_btn.toggled.connect(_on_vsync_toggled)
 
 	# Prevent controls from stealing WASD camera input
 	_grid_spin.focus_mode = Control.FOCUS_NONE
@@ -602,6 +615,12 @@ func _on_phi_box_toggled(on: bool) -> void:
 	if sim == null: return
 	sim.box_aspect = Vector3(PHI, 1.0, PHI * PHI) if on else Vector3(1.0, 1.0, 1.0)
 	sim.reinit()  # extents are init-time (bh header + PCs) — reinit applies
+
+
+func _on_vsync_toggled(on: bool) -> void:
+	var sim = _get_sim()
+	if sim == null: return
+	sim.vsync_enabled = on  # live — the property setter applies it to the window
 
 
 func _on_xi_changed(value: float) -> void:
