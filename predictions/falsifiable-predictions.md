@@ -84,8 +84,7 @@ The φ-periodic $P(k)$ prediction is a **zero-parameter, falsifiable test** orth
 The condensation field gradient anisotropy (§5.2 of `foundations/bubble-edge-geometry.md`) further predicts that void boundaries are $1.70\times$ steeper in the Yin direction than along diagonals—a distinct zero-parameter geometric prediction from the same wake-wave mechanism, testable with void shape catalogs from SDSS/DESI.
 **Source:** `cosmology/cosmology-from-phi.md` §§3–5, `theory/five-element-pde-derivation.md` §7,
 `foundations/bubble-edge-geometry.md` §§2.2,5.2, `cosmology/observational_constraints.md` §1.4–§6,
-`cosmology/desi-lattice-averaging.md` (lattice powder lines, variance suppression, wiggle bound). The dark energy prediction is $w_0 = -0.87$ (2σ baseline; 3.6σ at fixed $r_0$ with the B2 coupling, $r_0$ re-tuning closed negatively under the stable realization—12) and $w_a = +0.012$ (2.7σ baseline) shifting to $-0.38$ (1.25σ, B2—the unstable realization) with the coupling (08 §C.6); the term's stable realization (friction closure—10/12) gives a pure-Λ window fit $(w_0, w_a) = (-1, 0)$—4.17σ/2.61σ from DESI; the conversion dynamics keep $w > -1$ at all $z$ (no phantom crossing). The DM/baryon ratio is $\varphi^3+1$ with
-$2.8\%$ accuracy. The Hubble tension is pending a full $H(z)$ fit (registry C3/T4); the evolving-$\Omega_\Lambda$ expansion history gives a pipeline CMB-inferred value of ≈ 65.8 km/s/Mpc.
+`cosmology/desi-lattice-averaging.md` (lattice powder lines, variance suppression, wiggle bound). The dark energy prediction is $w_0 = -0.87$ (2σ baseline; 3.6σ at fixed $r_0$ with the B2 coupling, $r_0$ re-tuning closed negatively under the stable realization—12) and $w_a = +0.012$ (2.7σ baseline) shifting to $-0.38$ (1.25σ, B2—the unstable realization) with the coupling (08 §C.6); the term's stable realization (friction closure—10/12) gives a pure-Λ window fit $(w_0, w_a) = (-1, 0)$—4.17σ/2.61σ from DESI; the conversion dynamics keep $w > -1$ at all $z$ (no phantom crossing). The DM/baryon ratio is $\varphi^3 \approx 4.236$ (21% open tension against the observed 5.39). The Hubble tension is pending a full $H(z)$ fit (registry C3/T4); the evolving-$\Omega_\Lambda$ expansion history gives a pipeline CMB-inferred value of ≈ 65.8 km/s/Mpc.
 
 ---
 
@@ -345,11 +344,11 @@ Sorted by detection likelihood (most definitive first):
   (`parameter-inventory.md` §10); per-row flags mark the anchored quantities.
 
 - **The same $\varphi$ governs every sector:** the weak mixing angle $\sin^2\theta_W = \varphi^{-3}$,
-  the Qi-gravity coupling $\xi = \varphi^6$, the DM/baryon ratio $\varphi^3+1$,
+  the Qi-gravity coupling $\xi = \varphi^6$, the DM/baryon ratio $\varphi^3 \approx 4.236$ (21% open tension),
   the dark energy equation of state $w_0 = -0.87$, the baryon asymmetry $\eta$,
   and the inflationary spectral index $n_s = 1 - 2\varphi^{-1}/N_e = 0.9691$.
   Their tiers differ: $w_0$ is **Calibrated** (ledger row 496); $\xi$'s rung
-  identity, $\eta$'s exponent, $\varphi^3+1$, $n_s$'s $N_e$, and $r$ are
+  identity, $\eta$'s exponent, $\varphi^3$, $n_s$'s $N_e$, and $r$ are
   **Mapped** or conditional (ledger rows 498, 481, 502, 501, 495); only the
   $w = 5$ and gap forms carry a closed framework derivation; the $\sin^2\theta_W$
   value is an exact $\varphi$ identity with an asserted coupling boundary. The

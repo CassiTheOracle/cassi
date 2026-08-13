@@ -658,9 +658,9 @@ See `cosmology/cosmology-from-phi.md` for full derivations.
 
 | Phenomenon | Mechanism | Cassi Prediction | Observed | Gap |
 |-----------|----------|-----------------|----------|-----|
-| Inflation | Yang/Yin ratio $r \to \varphi$ | $n_s = 0.9691$, $r = 0.003$ | $0.9649 \pm 0.0042$ | $1.0\sigma$ |
+| Inflation | Yang/Yin ratio $r \to \varphi$ | $n_s = 0.9691$, $r = 0.0075$ ($12/N_e^2$ at $N_e = 40$—Mapped window, ledger §10 row 495) | $0.9649 \pm 0.0042$ | $1.0\sigma$ |
 | Baryogenesis | $\varphi^{-3}$ chiral asym → sphalerons | $\eta = \varphi^{-44} \approx 6.38\times10^{-10}$ | $6.0\times10^{-10}$ | Within $6.3\%$ |
-| Dark Matter | High-Qi condensate, $G_{\text{eff}}$ boost | $\Omega_{\text{DM}}/\Omega_b = 5.24$ | $5.39$ | $2.8\%$ |
+| Dark Matter | High-Qi condensate, $G_{\text{eff}}$ boost | $\Omega_{\text{DM}}/\Omega_b = \varphi^3 \approx 4.236$ | $5.39$ | 21% open tension |
 
 New theory documents:
 - `cosmology/cosmology-from-phi.md` | Inflation, baryogenesis, dark matter from $\varphi$
