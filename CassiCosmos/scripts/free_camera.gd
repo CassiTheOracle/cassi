@@ -3,15 +3,16 @@ extends Camera3D
 ##
 ## Movement modes:
 ##   - World-axis strafe (default) — WASD move along global X/Z; SHIFT/CTRL
-##     (or Z/X) move along global Y.
+##     move along global Y.
 ##   - Look-direction flight (Tab) — WASD move along the camera's local
-##     forward/right axes; SHIFT/CTRL (or Z/X) move along local up/down.
+##     forward/right axes; SHIFT/CTRL move along local up/down.
 ##
 ## Orbit: hold right-click or middle-click and drag to rotate.
 ##
-## Speed: scroll wheel adjusts logarithmically from 0.1 → 1000 u/s.
-## The base speed is additionally scaled by distance from origin so the camera
-## feels responsive at both planetary and interstellar scales.
+## Speed: scroll wheel, or Z (faster) / X (slower), adjusts logarithmically
+## from 0.1 → 1000 u/s. The base speed is additionally scaled by distance
+## from origin so the camera feels responsive at both planetary and
+## interstellar scales.
 
 # ---------------------------------------------------------------------------
 # Exports
@@ -56,6 +57,16 @@ func _unhandled_input(event: InputEvent) -> void:
 			_current_speed = clampf(_current_speed / speed_multiplier, 0.1, 1000.0)
 			get_viewport().set_input_as_handled()
 
+	# --- Z / X: speed up / slow down (same step as one wheel notch; OS key
+	# repeat is allowed so holding a key keeps stepping, like a throttle) ---
+	if event is InputEventKey and event.pressed:
+		if event.keycode == KEY_Z:
+			_current_speed = clampf(_current_speed * speed_multiplier, 0.1, 1000.0)
+			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_X:
+			_current_speed = clampf(_current_speed / speed_multiplier, 0.1, 1000.0)
+			get_viewport().set_input_as_handled()
+
 	# --- Mouse drag start ---
 	if event is InputEventMouseButton:
 		var btn: int = event.button_index
@@ -96,15 +107,15 @@ func _process(delta: float) -> void:
 		rotate_y(key_rot * delta * 2.0)
 
 	# --- Movement input ---
-	# Vertical: SHIFT = up, CTRL = down (the common flight convention), with
-	# Z / X kept as alternates. SPACE stays reserved for the UI's play/pause.
+	# Vertical: SHIFT = up, CTRL = down. SPACE stays reserved for the UI's
+	# play/pause; Z/X are the camera speed controls.
 	var input_dir: Vector3 = Vector3.ZERO
 	if Input.is_key_pressed(KEY_W):  input_dir.z -= 1.0
 	if Input.is_key_pressed(KEY_S):  input_dir.z += 1.0
 	if Input.is_key_pressed(KEY_A):  input_dir.x -= 1.0
 	if Input.is_key_pressed(KEY_D):  input_dir.x += 1.0
-	if Input.is_key_pressed(KEY_Z) or Input.is_key_pressed(KEY_SHIFT):  input_dir.y += 1.0
-	if Input.is_key_pressed(KEY_X) or Input.is_key_pressed(KEY_CTRL):   input_dir.y -= 1.0
+	if Input.is_key_pressed(KEY_SHIFT): input_dir.y += 1.0
+	if Input.is_key_pressed(KEY_CTRL):  input_dir.y -= 1.0
 
 	input_dir = input_dir.normalized()
 
