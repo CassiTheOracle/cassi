@@ -46,7 +46,7 @@ where $\mathbf{u}$ is the velocity field, $\nu$ the hyperdiffusion, $\lambda = 0
 
 In the linearized energy form used by the solvers, the conversion term is
 
-$$\boxed{\partial_t E_Y \supset -\lambda(1-q)(E_Y - \varphi E_I), \qquad \partial_t E_I \supset +\lambda(1-q)(E_Y - \varphi E_I)/\varphi}$$
+$$\boxed{\partial_t E_Y \supset -\lambda(1-q)(E_Y - \varphi E_I), \qquad \partial_t E_I \supset +\lambda(1-q)(E_Y - \varphi E_I)}$$
 
 with $q$ the Qi coherence of section 3. The two forms agree in their physics: conversion acts like a thermostat, pushing the ratio toward $\varphi$ at every point. When Yang is about 1.618 times stronger than Yin, conversion stops—locally, and only locally, because different points hold different ratios at different times.
 

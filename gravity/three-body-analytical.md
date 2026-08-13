@@ -48,7 +48,7 @@ $$
                 - \lambda(1-q)(E_Y - \varphi E_I)
                 - \chi_Y \nabla\cdot(E_Y \nabla\Phi) \\
 \partial_t E_I &= -\nabla \cdot (\mathbf{u} E_I) + D\nabla^2 E_I
-                + \lambda(1-q)(E_Y - \varphi E_I)/\varphi
+                + \lambda(1-q)(E_Y - \varphi E_I)
                 + \chi \nabla\cdot(E_I \nabla\Phi)
 \end{aligned}
 $$

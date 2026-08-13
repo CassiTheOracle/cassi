@@ -20,7 +20,7 @@ Cassi gives a concrete answer to what the program is written in: the source text
 
 A simulation needs an update rule: given the state at time $t$, compute the state at $t + \Delta t$. In Cassi the rule is the two-fluid PDE (`foundations/cassi-first-principles.md` §1.3). The state is a paired-real doublet $\Psi = (\Psi_0, \Psi_1)$ of Yang and Yin field values at every grid point, and the rule's central instruction is the conversion term:
 
-$$\partial_t E_Y \supset -\lambda(1-q)\,(E_Y - \varphi E_I), \qquad \partial_t E_I \supset +\lambda(1-q)\,(E_Y - \varphi E_I)/\varphi$$
+$$\partial_t E_Y \supset -\lambda(1-q)\,(E_Y - \varphi E_I), \qquad \partial_t E_I \supset +\lambda(1-q)\,(E_Y - \varphi E_I)$$
 
 Read it as an instruction: measure the local deviation from $\varphi$-balance, then convert Yang to Yin (or back) in proportion to the gate openness $(1-q)$. The gate function $g(q) = q/(\varphi^2 + q^2)$ makes the rule nonlinear (`speculations/qi-computation.md` §2.1): at $q \to 1$ the drive vanishes and the field rests; at intermediate $q$ small differences amplify—gain, in programmer's terms.
 

@@ -18,7 +18,7 @@ The first fact about the end of the world in this framework is that the world ca
 
 The two-fluid system converts Yang into Yin and back through the Qi gate:
 
-$$\partial_t E_Y \supset -\lambda(1-q)(E_Y - \varphi E_I), \qquad \partial_t E_I \supset +\lambda(1-q)(E_Y - \varphi E_I)/\varphi$$
+$$\partial_t E_Y \supset -\lambda(1-q)(E_Y - \varphi E_I), \qquad \partial_t E_I \supset +\lambda(1-q)(E_Y - \varphi E_I)$$
 
 with the attractor potential
 
