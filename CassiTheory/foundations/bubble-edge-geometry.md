@@ -253,12 +253,19 @@ Hypothesized (PDE-testable) pending them:
   `two-fluid/run_bubble_ring_probe.py` (Leg C) demonstrates the radial
   envelope a simulated bubble must show; the pre-registered dynamic probe
   `two-fluid/run_bubble_ring_dynamic_probe.py` (spherical standing-condensate
-  seed, qi-gated conversion-only dynamics: $D=0$, $\mathbf{u}=0$, $\chi=0$,
-  $c_s^2=0$) finds **NO RINGS**—the seed relaxes to a smooth monotone radial
-  profile (0 matter maxima outside the 4-cell core at every epoch), so the
-  ladder is not dynamically realized under those conditions. Whether any
-  realization (velocity/gate/gravity drives) produces the ladder remains the
-  open content; the honest null is recorded.
+  seed) runs four spatial-coupling arms—A baseline (conversion-only,
+  $D=\mathbf{u}=\chi=c_s^2=0$), B diffusion ($D=0.0002$), C gravity-buoyancy
+  ($\nu=0.0005$, $\chi=0$), W wave-verify ($c_s^2=0.5$)—and finds **NO RINGS
+  on every arm at every epoch to $t=40$** (0 matter maxima outside the
+  4-cell core; $u_{\text{rms}}\sim 10^{-4}$ even on C/W). None of the
+  canonical coupling channels in this solver realizes the ladder. The
+  wave-mode verification confirms `ExpandingTwoFluid3DGPU` is first-order in
+  time (no $d^2E/dt^2$ wave operator; $c_s^2$ enters only as a velocity
+  pressure force), so the full second-order ring-ladder wave form
+  ($d^2E = c^2\nabla^2 E - \omega_0^2(E_Y-\varphi E_I)$) is not present in
+  this solver—it belongs to the space-sim GLSL PDE. Whether realization
+  requires that second-order form remains the open content; the honest
+  four-arm null is recorded.
 
 **Test:** a simulated bubble should show ~10 matter ridges at
 $r_k = \ell_n\,\varphi^{-k}$ (successive matter-ring ratio $\varphi^{-1} =
@@ -618,5 +625,5 @@ The condensation field $B(x,y,z)$ and its checkerboard lattice are not specific 
 - `foundations/spin-fibonacci-spiral.md`—doublet $\pi$-per-rung internal advance (radial ring phase)
 - `foundations/rung-offset-mechanism.md`—pool-cell parities: cosine antinodes at integer rungs, sine antinodes at half-rungs
 - `two-fluid/run_bubble_ring_probe.py`—ring-ladder probe (Prediction 51): analytic ring law, honest negative, radial envelope
-- `two-fluid/run_bubble_ring_dynamic_probe.py`—ring-ladder dynamic-realization probe (Prediction 51): pre-registered, NO RINGS under qi-gated conversion-only dynamics
+- `two-fluid/run_bubble_ring_dynamic_probe.py`—ring-ladder dynamic-realization probe (Prediction 51): four spatial-coupling arms A/B/C/W, NO RINGS on all arms to $t=40$
 - `predictions/falsifiable-predictions.md`—Prediction 51 (bubble-shell ring ladder)
