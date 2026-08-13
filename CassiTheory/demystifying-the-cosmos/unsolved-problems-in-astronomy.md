@@ -219,7 +219,7 @@ Standard status: flat $\Lambda$CDM is infinite; finite-topology tests are inconc
 #### 59. Cosmic Inflation
 Whether inflation occurred, what the inflaton is, and whether it is eternal are open.
 Standard status: inflation fits the data; the inflaton and the eternal regime are unknown.
-**[Framework claim]**—inflation is the cascade's own epoch: steps 20–60 with the Qi gate as the mechanism, no inflaton field, $N_e = 40$, $n_s = 0.9691$ (closed form, 1.0$\sigma$ from Planck; the gate slow-roll trajectory does not reproduce it—0.813/0.914, 2026-08-06 `computations/slow_roll_trajectory.py`), $r \approx \varphi^{-12} \approx 0.003$ (Mapped—the doc's own §4 formulas do not reproduce it; the trajectory's $r$ is excluded by BK18; registry C4, mechanism **Hypothesized**); eternal inflation is not addressed.
+**[Framework claim]**—inflation is the cascade's own epoch: steps 20–60 with the Qi gate as the mechanism, no inflaton field, $N_e = 40$, $n_s = 0.9691$ (closed form, 1.0$\sigma$ from Planck; the gate slow-roll trajectory does not reproduce it—0.813/0.914, 2026-08-06 `computations/slow_roll_trajectory.py`), $r = 12/N_e^2 = 0.0075$ (Mapped at the $N_e = 40$ window—ledger; the trajectory's $r$ is excluded by BK18; registry C4, mechanism **Hypothesized**); eternal inflation is not addressed.
 `cosmology/inflation-from-cascade.md`.
 #### 60. Horizon Problem
 The CMB is uniform across regions that never had causal contact.
