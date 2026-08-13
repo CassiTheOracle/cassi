@@ -87,7 +87,7 @@ Tiers below are taken from each document's Status header. Compound headers are q
 | `standard-model/gut-embedding.md` | Hypothesized | GUT embedding |
 | `standard-model/neutrino-mass.md` | Hypothesized | Neutrino mass structure |
 | `gravity/quantum-gravity.md` | Derived conditional on the noise–signal identification + $d = 3$ ($\sigma = \ell_{\text{Pl}}/\varphi^3$, G1) / Hypothesized (two-fluid quantization, G2) | $\sigma$-regularized S-matrix; $\delta = 3$ from the Planck-core noise–signal crossover; black-hole information (G2) |
-| `cosmology/inflation-from-cascade.md` | Derivation (mechanism Hypothesized, C4; r exponent Mapped—ledger) | Steps 20–60 as inflation; $r = \varphi^{-12}$, $n_s$ |
+| `cosmology/inflation-from-cascade.md` | Derivation (mechanism Hypothesized, C4; r exponent Mapped—ledger) | Steps 20–60 as inflation; $r = 12/N_e^2 = 0.0075$ (Mapped window $N_e = 40$), $n_s$ |
 | `cosmology/desi-lattice-averaging.md` | Hypothesized | Lattice powder lines in $P(k)$; variance suppression; $D_A(z)$ wiggle bound |
 | `consciousness/chakras-as-cascade-bubbles.md` | Hypothesized | 13 chakras as cascade bubbles |
 | `consciousness/consciousness-from-phi.md` | Plausible Hypothesis with Actionable PDE Test | Consciousness as Qi-gate dynamics; two-bubble test (M1) |
