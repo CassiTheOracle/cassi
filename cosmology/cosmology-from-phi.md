@@ -238,22 +238,13 @@ The base is the inverse fixed-point imbalance $\alpha_0^{-1}$—the same imbalan
 
 **Inputs ($\varphi^3$ base):** $\boxed{\text{(1) the derived coupling } \xi = \varphi^6 \text{ (`foundations/xi-derivation.md`); (2) the identification of the EM-decoupling structure with the Weinberg-angle imbalance } \sin^2\theta_W = \varphi^{-3} = \alpha_0.}$
 
-**The $+1$: component-level mass budget (2026-08-11).** The framework has three reservoirs, and only two are distinct:
+**The capture construction is excluded.** The framework has three reservoirs, and only two are distinct:
 
 $$
 \Omega_{b,\text{total}} = \Omega_{b,\text{primordial}} = \Omega_{b,\text{free}} + \Omega_{b,\text{captured}}, \qquad \Omega_{\text{DM}} = \Omega_{\text{Qi}} = \Omega_c \ \text{(non-baryonic condensate)}
 $$
 
-The observed ratio is $\Omega_c/\Omega_b$: its numerator is baryon-free **by construction** ($\Omega_c = \Omega_m - \Omega_b$), and its denominator is the BBN/CMB-pinned **total** baryon density, which already contains every baryon captured into halos. A "$+1$ capture term" therefore has no distinct mass budget—added to the numerator it double-counts the $\Omega_b$ already in the denominator. Quantitatively (`computations/dm_baryon_component_budget.py`):
-
-- As a capture fraction the $+1$ implies $f_{\text{cap}} = \Omega_{b,\text{captured}}/\Omega_{b,\text{total}} = 1.00$ (all baryons captured), 5–10$\times$ the external cosmic census bracket $f_{\text{cap}} \approx 0.10$–$0.20$ (stars + ISM + halo/ICM gas; Fukugita et al. 1998; Shull et al. 2012—flagged external, not framework-derived). Matching the observed 5.39 would require $f_{\text{cap}} = 1.15 > 1$—impossible.
-- The renormalized-denominator form $(\varphi^3 + f_{\text{cap}})/(1 - f_{\text{cap}})$ equals 5.39 at $f_{\text{cap}} = 0.18$, inside the census bracket—but it moves the *same* baryons from denominator to numerator; it is an accounting double count, not a comparison against the observed $\Omega_c/\Omega_{b,\text{total}}$.
-- The SPARC hydrostatic condensate fits fail the $+1$'s partition at every level (`computations/dm_baryon_ratio_verification.py`, part B; v9 machinery, 143 galaxies, envelopes A/B):
-  - Bound-baryon fraction within the last measured radius, $f_b = M_{\text{bar}}(r_{\max})/M_{\text{tot}}(r_{\max})$: median 0.32 (dwarfs 0.28; high-$V$ 0.40; A-constrained 0.27)—not the $1/(1+\varphi^3) = 0.191$ the $+1$ implies.
-  - The condensate's own mass ratio $M_Y/M_{\text{bar}}$ at $r_{\max}$: median 0.14 (envelope A) / 0.35 (envelope B)—10–30$\times$ below the $\varphi^3 = 4.24$ partition the $+1$ assumes (the naive DM is the boosted $(1+\xi q)M_Y$).
-  - The data-pinned DM/baryon ratio at $r_{\max}$, median 2.1–2.7, is a lower bound (the isothermal tail beyond $r_{\max}$ is unconstrained) and lies below $\varphi^3+1$ by a factor 0.4–0.5; only ~15% of galaxies sit within 30% of 5.24 (the data-pinned cross-check in `computations/dm_baryon_component_budget.py` reproduces these medians with the same SPARC column mapping: $f_b = 0.31$ overall (0.26 dwarfs / 0.40 high-$V$), $R_{\text{naive}} = 2.3$, 16% bracketing).
-
-**Verdict: the component budget fixes the current dark-matter prediction at the condensate base.** The capture interpretation of $+1$ is a double count of $\Omega_b$: captured baryons belong to the BBN/CMB-pinned total denominator, while the observed numerator $\Omega_c$ is baryon-free. The selected combination $\varphi^3+1=2\varphi^2$ is an arithmetic identity and has no distinct mass reservoir; Fit-Status Ledger row 502 records this calibration artifact.
+The observed ratio is $\Omega_c/\Omega_b$: its numerator is baryon-free **by construction** ($\Omega_c = \Omega_m - \Omega_b$), and its denominator is the BBN/CMB-pinned **total** baryon density, which already contains every baryon captured into halos. A "$+1$ capture term" therefore has no distinct mass budget—added to the numerator it double-counts the $\Omega_b$ already in the denominator, and as a capture fraction it would require $f_{\text{cap}} = 1.00$ (all baryons captured), 5–10$\times$ the external cosmic census bracket $f_{\text{cap}} \approx 0.10$–$0.20$ (stars + ISM + halo/ICM gas; Fukugita et al. 1998; Shull et al. 2012—flagged external, not framework-derived). The component budget (`computations/dm_baryon_component_budget.py`) and the SPARC cross-check (`computations/dm_baryon_ratio_verification.py`) fix the prediction at the condensate base; Fit-Status Ledger row 502 records the $+1$ as a calibration artifact, excluded from the predicted value.
 
 $$
 \boxed{\frac{\Omega_{\text{DM}}}{\Omega_b} = \varphi^3 = 4.2361} \qquad \text{observed: } \frac{\Omega_{\text{DM}}}{\Omega_b} = \frac{0.264}{0.049} \approx 5.39 \quad (-21\%)

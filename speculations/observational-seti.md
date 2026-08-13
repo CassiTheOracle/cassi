@@ -27,7 +27,7 @@ The Fermi paradox dissolves: they are not hiding, not rare, and not silent. They
 
 A tuned gate network modifies the fields it manages. The modifications are:
 
-1. **Quantitative:** they involve $\varphi$-derived numbers ($\ln\varphi$, $\varphi^6$, $\varphi^3+1$) appearing where conventional physics predicts none
+1. **Quantitative:** they involve $\varphi$-derived numbers ($\ln\varphi$, $\varphi^6$, $\varphi^3 \approx 4.236$) appearing where conventional physics predicts none
 2. **Multi-rung:** the same numbers appear at stellar, galactic, and cosmic scales, because the gate chain spans rungs
 3. **Anomalous in structure, not amplitude:** a tuned star isn't dramatically different—it's subtly *too regular*, *too coherent*, *too structured* compared to the stochastic behavior of untuned systems
 
@@ -143,20 +143,21 @@ These are the **formal Cassi predictions**—already cataloged in `predictions/f
 
 **Discriminator:** Zero-parameter geometric prediction. No conventional void model predicts a universal 1.70 anisotropy.
 
-### 4.4 Ω_DM/Ω_b = φ³ + 1 (catalog row, Mapped)
+### 4.4 Ω_DM/Ω_b = φ³ (catalog row, Derived conditional)
 
-**Mechanism:** The baryon-to-dark ratio is a label-level claim; no
-condensation-geometry arithmetic producing φ³+1 is shown (the "mechanism" is a
-one-line label).
-**Predicted observable:** $\Omega_{\text{DM}}/\Omega_b = \varphi^3 + 1 \approx 5.236$
-—**Mapped** (Fit-Status Ledger row 502): the $+1$ is a hand-added baryon-capture
-term selected from $\{\varphi^3, \xi, \varphi^2, \varphi^4, \varphi^3\pm1\}$ after
-$\varphi^3$ alone came in 21% low.
-**Current data:** Observed ratio $\approx 5.39$. Gap: 2.8%.
-**Discriminator:** The cataloged value is a fixed number; the 2.8% gap is
-meaningful only as a check of the fitted combination, not of a derived
-prediction. If the gap closes with better data (CMB-S4, Euclid), the
-combination survives; if it widens, it fails.
+**Mechanism:** The baryon-to-dark ratio base $\varphi^3$ is Derived conditional
+on the Weinberg-angle identification ($\varphi^3 = \alpha_0^{-1}$;
+`cosmology/cosmology-from-phi.md` §4.2); the $+1$ capture term is a double
+count of $\Omega_b$, excluded by the component budget
+(`computations/dm_baryon_component_budget.py`; Fit-Status Ledger row 502).
+**Predicted observable:** $\Omega_{\text{DM}}/\Omega_b = \varphi^3 \approx 4.236$
+—Derived conditional (base; ledger row 502); 21% open tension against the
+observed ratio.
+**Current data:** Observed ratio $\approx 5.39$. Gap: 21% open tension.
+**Discriminator:** The predicted value is fixed; the 21% tension is
+meaningful only as a check of the derived base, not of a fitted
+combination. If the gap closes with better data (CMB-S4, Euclid), the
+base survives; if it widens, it fails.
 
 ---
 
@@ -255,7 +256,7 @@ Step 3 is where Cassi stops being an interesting coincidence and becomes a scien
 - φ-periodic $P(k)$ modulation, $\Delta(\ln k) = \ln\varphi = 0.4812$ (prediction #5)
 - CMB bubble-boundary axis (12.22° measured; magnitude 12.40° = 2π/φ⁷ golden-angle closure, 1.5%) at $\ell < 5$, fading (prediction #6)
 - Void ellipticity 1.70 (from `foundations/bubble-edge-geometry.md` §5.2)
-- $\Omega_{\text{DM}}/\Omega_b = \varphi^3 + 1 \approx 5.236$ (already matches to 2.8%)
+- $\Omega_{\text{DM}}/\Omega_b = \varphi^3 \approx 4.236$ (21% open tension)
 - $\ln\varphi$ periodic physiological spectral signature (prediction #35)
 
 ### Creative extrapolation (this document)
