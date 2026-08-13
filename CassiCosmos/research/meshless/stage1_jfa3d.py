@@ -175,8 +175,8 @@ def jfa_full(sites, N, L):
         if cur < 0:
             lab[cell] = s
         else:
-            d_cur = ((sites[cur] - cc[cell]) ** 2).sum()
-            d_new = ((sites[s] - cc[cell]) ** 2).sum()
+            d_cur = ((sites[cur] - cc[:, cell[0], cell[1], cell[2]]) ** 2).sum()
+            d_new = ((sites[s] - cc[:, cell[0], cell[1], cell[2]]) ** 2).sum()
             if d_new < d_cur:
                 lab[cell] = s
     # JFA passes
@@ -185,8 +185,6 @@ def jfa_full(sites, N, L):
     while j <= N // 2:
         jumps.append(j)
         j *= 2
-    for jj in reversed(jumps[1:]):
-        jumps.append(jj)
     for jj in jumps:
         lab = _jfa_pass(lab, sites, N, L, jj)
     return lab
