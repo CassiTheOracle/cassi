@@ -1,6 +1,6 @@
 # Cassi Answers to the Open Questions of Physics
 
-## Status: Comprehensive catalog—July 2026
+## Status: Comprehensive catalog—August 2026
 
 ## Abstract
 
@@ -118,7 +118,7 @@ Zoom into a bubble and you find the same lattice again: inside every bubble, mor
 
 ### The Two Fluids: Yang and Yin
 
-Everything in Cassi begins with two **fields** that fill all of space—continuous substances with a value at every point, like air filling a room. **Yang** ($E_Y$) is the expansive component: it pushes outward, drives change, breaks symmetry. **Yin** ($E_I$) is the contractive component: it pulls inward, restores, receives. They are two sides of one thing, like the front and back of a spinning coin, and they convert into each other continuously. Their interplay, not any particle or substance, is the substrate from which matter and energy emerge.
+Everything in Cassi begins with two **fields** that fill all of space—continuous substances with a value at every point, like air filling a room. **Yang** ($E_Y$) is the expansive component: it pushes outward, drives change, breaks symmetry. **Yin** ($E_I$) is the contractive component: it pulls inward, restores, receives. They are two sides of one thing, like the front and back of a spinning coin, and they convert into each other continuously. Their interplay, not any particle or substance, is the substrate from which matter and energy emerge. Their relative motion is itself a current—the doublet's phase current $J = \rho\nabla\theta$—which flows between the two components at each point and, along the string axis, between cascade scales, winding the two strand-currents into a double helix with one full turn every two rungs ($P_\parallel = 2$; `foundations/qi-flow-double-helix.md` §3.3).
 
 ### The Golden Ratio $\varphi$—the Universal De-Resonance Constant
 
@@ -138,7 +138,7 @@ The most important quantity in the two-fluid dynamics is the ratio $r = E_Y / E_
 
 ### Coherence: Qi
 
-**Qi** (pronounced "chee") is the coherence of the two-fluid field—a measure of how organized and correlated the Yang and Yin components are at a given point in space. When Qi is high, the two fields are tightly phase-locked; when low, they are disordered. The normalized Qi density $q$ ranges from 0 (fully disordered) to 1 (perfectly coherent). Think of Qi as how well the field has its act together at a given location: a high-$q$ region is one where Yang and Yin work in concert rather than at cross-purposes.
+**Qi** (pronounced "chee") is the coherence of the two-fluid field—a measure of how organized and correlated the Yang and Yin components are at a given point in space. When Qi is high, the two fields are tightly phase-locked; when low, they are disordered. The normalized Qi density $q$ ranges from 0 (fully disordered) to 1 (perfectly coherent). Think of Qi as how well the field has its act together at a given location: a high-$q$ region is one where Yang and Yin work in concert rather than at cross-purposes. Qi is also the third fundamental, alongside Yang and Yin: not a separate substance but the flow of coherence itself, carried by the doublet's phase current $J = \rho\nabla\theta$. That flow runs between the two components at each point and, along the string axis, between cascade scales; with the doublet completing one full turn every two rungs ($P_\parallel = 2$), the two strand-currents wind about the axis as a double helix (`foundations/qi-flow-double-helix.md`). The scalar $q$ remains the magnitude diagnostic of this flow—how fully it is organized at the $\varphi$-attractor.
 
 ### The Qi Gate—a Nonlinear Switch
 
@@ -154,7 +154,7 @@ At $r = \varphi^{-1} \approx 0.618$, the two-fluid dynamics undergo a qualitativ
 
 ### The String and the Spiral
 
-The two fields $(E_Y, E_I)$ form a 2D rotational symmetry—an SO(2) doublet. But their coupling is not static: the conversion term causes the doublet to rotate as it advances along the cascade. The combined motion—forward advance plus rotation—traces a **logarithmic spiral** through field space: the **Fibonacci spiral**, each full turn multiplying the physical scale by $\varphi$. The condensed filament at the spiral's core is the **string**, and the spiral's forward direction is the **string axis**. Where the string advances it leaves ripples—wake waves (below)—that imprint its structure on space.
+The two fields $(E_Y, E_I)$ form a 2D rotational symmetry—an SO(2) doublet. But their coupling is not static: the conversion term causes the doublet to rotate as it advances along the cascade. The combined motion—forward advance plus rotation—traces a **logarithmic spiral** through field space: the **Fibonacci spiral**, each full turn multiplying the physical scale by $\varphi$. The condensed filament at the spiral's core is the **string**, and the spiral's forward direction is the **string axis**. As the doublet advances along the axis its phase advances $\pi$ per rung—one full turn every two rungs ($P_\parallel = 2$)—and the Yang and Yin strand-currents wind about the string axis as a double helix (`foundations/qi-flow-double-helix.md` §3.3). Where the string advances it leaves ripples—wake waves (below)—that imprint its structure on space.
 
 The spiral also explains why space has three dimensions. At every point along the curve, the Frenet-Serret frame provides three orthogonal directions: tangent (forward, the cascade direction), normal (toward the center of curvature, the Yang direction), and binormal (perpendicular to both, the Yin direction). Two fields produce one spiral; one spiral produces three directions. Three is the signature of a spiral, not a coincidence.
 
@@ -840,12 +840,12 @@ The Cassi framework expresses dimensionless couplings as $\varphi$-powers with m
 
 ### F6: What sets $P_\parallel(n)$?
 
-The along-string bubble period is 1 rung at cosmological scale (step 285) and 2 rungs at human scale (steps 142–168). Does it vary continuously with $n$, discretely at octave boundaries, or is it determined by SO(2) winding at each rung? Deriving $P_\parallel(n)$ from the PDE would close the one remaining phenomenological input in the lattice model.
+The along-string bubble period is 2 rungs at human scale (steps 142–168)—the derived doublet cycle: the SO(2) doublet phase advances $\pi$ per cascade rung and completes one full turn every two rungs, $P_\parallel = 2$ (`foundations/qi-flow-double-helix.md` §3.3; `foundations/spin-fibonacci-spiral.md` §2.1). The open content is the cosmological reading, $P_\parallel = 1$ at step 285. Does the period vary continuously with $n$, discretely at octave boundaries, or is it determined by SO(2) winding at each rung? Deriving the $n$-dependence of $P_\parallel$ from the PDE would close the one remaining phenomenological input in the lattice model.
 
-| **Cassi Answer** | Unknown—$P_\parallel(285) = 1$, $P_\parallel(142\text{–}168) = 2$ observed but not derived. Mechanism: pending. |
-| **Mechanism** | Pending—the $n$-dependence is observed but not yet derived from the two-fluid PDE. |
-| **Epistemic** | **Hypothesized**—$P_\parallel$ values empirically determined at two rungs; mechanism not yet derived. |
-| **Reference** | `foundations/bubble-lattice-fabric.md` §8.1, `parameter-inventory.md` |
+| **Cassi Answer** | $P_\parallel = 2$ (steps 142–168) is the derived doublet cycle—$\pi$ of doublet phase per rung, one full turn per two rungs (`foundations/qi-flow-double-helix.md` §3.3; `foundations/spin-fibonacci-spiral.md` §2.1). The open content is $P_\parallel(285) = 1$: the cosmological period's $n$-dependence is not yet derived. |
+| **Mechanism** | Doublet cycle: the phase advances $\pi$ per rung, one full turn per two rungs ($P_\parallel = 2$). Pending: why the cosmological rung 285 reads one turn per rung. |
+| **Epistemic** | **Hypothesized**—$P_\parallel = 2$ doublet cycle derived conditional on the doublet and pitch convention; the $P_\parallel = 1$ cosmological reading and the $n$-dependence not yet derived. |
+| **Reference** | `foundations/qi-flow-double-helix.md` §3.3, `foundations/spin-fibonacci-spiral.md` §2.1, `foundations/bubble-lattice-fabric.md` §8.1, `parameter-inventory.md` |
 
 ---
 ## 6. Recent Observational Tensions
@@ -1079,7 +1079,7 @@ See `foundations/refined-numeric-predictions.md` §5 for the complete open-quest
 ---
 
 ## 10. References
-- `foundations/refined-numeric-predictions.md`—refined $\varphi$-powers for all 24 hypothesized questions
+- `foundations/refined-numeric-predictions.md`—refined $\varphi$-powers for all 19 Hypothesized questions
 
 All Cassi theory documents are organized in the subdirectories listed above. Key cross-references:
 
