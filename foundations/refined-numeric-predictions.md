@@ -1,11 +1,12 @@
-# Refined Numeric Predictions for the 24 Hypothesized Questions
+# Refined Numeric Predictions for the 19 Hypothesized Questions
 
 ## Status: Active derivation (C10 CMB axis: Calibrated angle / Hypothesized mechanism)—August 2026
 
 ## Abstract
 
-The open-questions catalog (`open-questions-cassi-answers.md`) classifies 41
-physics questions: 17 Derived, 24 Hypothesized, 0 Speculative. Each of the 24
+The open-questions catalog (`open-questions-cassi-answers.md`) classifies 42
+physics questions: 7 Derived, 4 Calibrated, 11 Mapped, 19 Hypothesized, 1
+Speculative. Each of the 19
 Hypothesized questions has a proposed Cassi mechanism and a testable prediction.
 This document refines the **specific numeric predictions** for every question
 that admits a cascade-span derivation ($\varphi^{-N}$), and tightens the
@@ -27,10 +28,12 @@ further verification looks like.
 
 ## 1. Classification: Cascade-Span vs Structural
 
-Of the 24 Hypothesized questions, 14 admit a cascade-span numeric refinement
-(either a specific $\varphi$-power or a number already present in the
+Of the registry's 19 Hypothesized questions, 7 admit a cascade-span numeric
+refinement (either a specific $\varphi$-power or a number already present in the
 derivation), and 10 are structural answers where the mechanism is the
-deliverable:
+deliverable; the remaining 2 (BH information, $P_\parallel(n)$) are not refined
+here. Entries now sitting at Mapped or Calibrated are carried for their refined
+numbers:
 
 | # | Question | Type | Existing Number | Refinement |
 |---|----------|------|----------------|------------|
@@ -781,9 +784,11 @@ Qi-coherence metrics, and altered-state $\sigma_r$ signatures.
 
 | Tier | Count | Notes |
 |------|-------|-------|
-| **Derived** | 17 | Registry §8 (open-questions-cassi-answers.md); refinements strengthen existing derivations |
-| **Hypothesized (numeric refined)** | 24 | Registry §8 (6 pinned φ-powers + 18 computational) |
-| **Speculative** | 0 |—|
+| **Derived** | 7 | Registry §8 (open-questions-cassi-answers.md); refinements strengthen existing derivations |
+| **Calibrated** | 4 | Registry §8 (CMB axis direction C10, dark energy $w_0$ C1, dark matter $\xi$ pin C2, DESI $w_0$/$w_a$ T1) |
+| **Mapped** | 11 | Registry §8 (ledgered placements/exponents: inflation C4, baryon asymmetry C7/Q6, hierarchy Q1, strong CP Q2, neutrino offsets Q3, gauge unification Q4, proton-lifetime exponent Q9, galaxy rotation G4, fine-tuning F1, dimensionful-constant exponents F5) |
+| **Hypothesized (numeric refined)** | 19 | Registry §8; the refinements in §2 pin specific numbers |
+| **Speculative** | 1 | golden balance as driven structure (M6) |
 
 A "Derived" label requires the prediction to be a mathematical consequence of
 $\varphi$ + PDE with zero freedom. The refinements in §2 pin specific numbers
