@@ -57,12 +57,6 @@ and through the seesaw, $m_\nu \approx \varphi^{-3}\,v_0^2/M_{\text{GUT}}$
 with $\varphi$-suppressed lighter generations ($m_2 \approx 0.0050$,
 $m_1 \approx 0.0019\ \text{eV}$).
 
-This single-scale candidate is **superseded** by the canonical derivation in
-Section 4. It peaks at 0.013 eV—3.9× below the canonical $m_3$—with splittings
-3–18× below the observed $\Delta m^2_{21}$ and $\Delta m^2_{31}$. It survives
-only as the order-of-magnitude statement $m_\nu \sim 0.01\ \text{eV}$; the
-precise spectrum requires the Fibonacci cascade partition.
-
 ## 4. The Canonical Derivation: Fibonacci Cascade Partition
 
 The canonical derivation (`foundations/neutrino-masses.md`) applies the

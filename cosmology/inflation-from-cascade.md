@@ -104,7 +104,9 @@ $$\delta n_s = \frac{2}{N_e} - \frac{2\varphi^{-1}}{N_e} = \frac{2\varphi^{-2}}{
 \approx 0.0191$$
 
 This is consistent with Planck 2018 $n_s = 0.9649 \pm 0.0042$ at $1.0\sigma$.
-The gate correction is now a **closed $\varphi$-form**—zero free parameters.
+The gate correction is a closed $\varphi$-form once the window $N_e = 40$ is
+fixed (Fit-Status Ledger: Mapped—`parameter-inventory.md` §10); it carries no
+free parameters beyond that mapped input.
 Computation: `computations/ns_gate_correction.py` (July 2026).
 
 **Trajectory test (2026-08-06, `computations/slow_roll_trajectory.py`):** the
