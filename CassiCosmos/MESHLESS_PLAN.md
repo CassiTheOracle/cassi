@@ -277,3 +277,18 @@ arms identical on the k=0 mode; cross-arm full-field L2 6.6e-3) and the
 cube battery stays bit-identical (36/36, pinned anchors). Remaining for
 the full vision: the anisotropic (φ-aspect) mesh, the FMM/tree gravity
 kernel, and density-weighted Lloyd on the adaptive+steered mesh.
+
+**UPDATE 2026-08-13 (FMM/tree gravity — design + prototype, no sim code
+changed):** `research/meshless/fmm_design.md` + `stage5_fmm.py` deliver
+the last gravity item — an **open-boundary Barnes–Hut quadrupole tree**
+(θ = 0.5) carrying the river law's CHORD-WEIGHTED sources
+`w_s = m_s·g_s` (`g` from the source cell's q_coh; the `∇(gΦ)` whole
+product is source-folded, never hand-split). It replaces the periodic
+spectral Poisson with `Φ_g = Σ w_s/|r−r_s|`, no periodic images — the §0
+promise. Prototype gates G13/G14/G15 all PASS (tree vs direct 7.5e-3
+median force error; open Plummer field median 1.5e-2; bound cluster
+energy drift 7.3% at θ=0.3 — the drift tracks the tree force error, the
+sim's river force is non-conservative anyway). Integration behind a new
+default-off `meshless_gravity` toggle in a later wave (Q6 in the design:
+new tree-build + tree-walk passes after the PDE, skips the spectral
+Poisson/gradient/dual passes; default battery 36/36 stays bit-identical).
