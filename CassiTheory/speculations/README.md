@@ -17,7 +17,7 @@ One test separates the two tier directories:
 
 ## Document Index
 
-All documents are **Speculative—July 2026** unless noted.
+All documents are **Speculative—July 2026** unless noted. One exception: `qi-computation.md` carries a split tier (**Hypothesized** for its information budget, an application of the ratified Derived information convention; **Speculative** for its gate-set/Wu-Xing-logic/cascade-clock extrapolations)—see its summary below.
 
 | # | Domain | Bridge | Document |
 |---|--------|--------|----------|
@@ -43,7 +43,7 @@ Resistance is modeled as Yang→Yin conversion, $\boxed{\rho = \frac{m}{ne^2} \l
 
 ### `qi-computation.md`—Qi Computation: Information as Yang-Yin Gate Dynamics
 
-Computation is recast as field dynamics: a bit is a persistent pattern of Yang-Yin imbalance Π whose decay rate $\lambda g(q)(1-q)$ approaches zero as $q \to 1$, giving a storage capacity $\boxed{I_{\text{max}} \approx N_{\text{modes}} \cdot \log_2 L \propto V \alpha^3 \log_2 (1-q)^{-1/2}}$ that diverges logarithmically at full coherence—the Qi analogue of the Bekenstein bound, but without a Planck-scale cutoff because the cascade extends below $n = 0$. The Qi gate is the computational primitive, operating in three regimes (idle at $q \to 1$, saturable amplifier at $q \approx 0.46$, locked at $q \to 0$), and three field operations—WRITE (Yang injection), ERASE (gated conversion), TRANSFER (Qi current)—form a computationally universal set. The document adds Wu Xing 5-phase logic as a logic richer than binary and a φ-spaced cascade clock spanning all 292 rungs. Speculative—July 2026.
+Computation is recast as field dynamics on the ratified information convention (`predictions/cassi_definitions.md` §11): stored information IS coherence, $\boxed{I = k_B\,q\ln\varphi}$ (entropy proxy $S = -q\,k_B\ln\varphi$), with no divergence at full coherence—the per-rung quantum is $\ln\varphi \approx 0.694$ bits and the openness $(1-q)$ sets the *flow* rate $dI_{\text{flow}}/dt = \lambda(1-q)\,k_B\ln\varphi$, not the stored amount. The Qi gate is the computational primitive, operating in three regimes (idle at $q \to 1$, saturable amplifier at $q \approx 0.46$, locked at $q \to 0$), and three field operations—WRITE (Yang injection; draws on the flow budget), ERASE (gated conversion; the Landauer row, $\Delta q = \ln 2/\ln\varphi \approx 1.44$), TRANSFER (Qi current)—form a computationally universal set. The document adds Wu Xing 5-phase logic as a logic richer than binary and a φ-spaced cascade clock spanning all 292 rungs. **Hypothesized** (information budget) / **Speculative** (gate set, Wu Xing logic, cascade clock, brain mapping)—August 2026.
 
 ### `qi-bubble-propulsion.md`—Qi Bubble Propulsion: Rung-Shifting as a Travel Mechanism
 
