@@ -227,6 +227,175 @@ measured order parameter, not a fit. No prediction-catalog numbers are added.
 
 ---
 
+## The Full Picture: Physics, Cascade, Structure
+
+Three layers make the framework one theory, and a single set of $\varphi$-powers
+runs through all three. The **physics** is the two-fluid dynamics: the Yang and
+Yin densities $E_Y = \Psi_0^2$, $E_I = \Psi_1^2$ convert into each other through
+the openness $(1-q)$ at the rate $\lambda = 1/(2w) = 0.1$, with $w = 5$ derived
+(`foundations/wu-xing-derivation.md` §7). The **cascade** is the yardstick the
+conversion climbs: the ladder of scales $\ell_n = \ell_{\text{Pl}}\varphi^n$
+(`foundations/dimensionful-cascade.md`), along which a coherence pulse
+attenuates by $\varphi^{-1}$ per rung and the doublet completes one full turn
+every two rungs. The **structure** is the winding: the doublet's phase
+geometry, whose per-rung advance, strand-current ratio, and relaxation bounds
+are all fixed by $\varphi$. The interlock is exact: the conversion rate sets
+how fast the phase winds, the cascade sets what one turn costs in scale, and
+the winding sets which fractional-rung offsets any real state can display—so
+the same powers appear as the gate closure $\varphi^{-2}/3$, the axial
+attenuation $\varphi^{-N}$, the winding bounds $\mathrm{atan}(\varphi^{\pm 1})$,
+the strand ratio $\varphi$, and the excess $\alpha_0 = \varphi^{-3}$ that
+anchors the Planck crossover below and the Qi-gravity coupling $\xi = \varphi^6$
+above.
+
+### The shared $\varphi$-powers
+
+Each row is one $\varphi$-power read at one layer: physics supplies the rates,
+the cascade the yardstick, the structure the phases—the conversion, the
+attenuation, and the winding are one motion seen from three sides.
+
+| Quantity | Value | Layer | Tier | Cross-reference |
+|---|---|---|---|---|
+| Gate closure $(1-q_{\text{eq}})$ | $\varphi^{-2}/3 \approx 0.1273$ | Physics | Derived | §2.2 |
+| Axial-flow attenuation ↔ coupling weakness | $\varphi^{-1}$ per rung traversed; $\alpha_G(n) = \varphi^{-2n}$ | Cascade | Derived | `foundations/cascade-suppression-formula.md`; `foundations/spiral-dynamics.md` §3.3 |
+| Winding bounds | $\Delta\vartheta \in [-\mathrm{atan}(\varphi),\,+\mathrm{atan}(\varphi^{-1})]$; $\lvert\delta n\rvert \le \mathrm{atan}(\varphi)/2\pi \approx 0.162$ | Structure | Derived | `foundations/cassi-first-principles.md` §2.6 |
+| Strand-current ratio | $J_0/J_1 = \varphi$ | Structure | Derived | §2.1 |
+| Doublet period | $P_\parallel = 2$ rungs per turn | Structure | Derived conditional on the doublet and pitch convention | §3.3; `foundations/spin-fibonacci-spiral.md` §2.1 |
+| Fixed-point excess | $\alpha_0 = \pi/\rho = \varphi^{-3} \approx 0.236$ | Physics | Derived | `foundations/cassi-first-principles.md` §1.2 |
+| Planck crossover (UV) | $\sigma = \ell_{\text{Pl}}/\varphi^3$ (rung $-3$) | Cascade | Derived conditional on the noise–signal identification and $d = 3$ | `foundations/bubble-lattice-fabric.md` §6 |
+| Qi-gravity coupling (IR) | $\xi = \varphi^6 = \alpha_0^{-2} \approx 17.944$ | Physics | Derived | `foundations/xi-derivation.md` |
+
+The same excess $\alpha_0 = \varphi^{-3}$ that sets the amplification ceiling
+$\xi = \varphi^6 = \alpha_0^{-2}$ at large scales also fixes the scale at which
+the lattice dissolves into the harmonic regime, $\sigma = \ell_{\text{Pl}}/
+\varphi^3$—one number at both ends of the observable ladder.
+
+### Matter as wound Qi
+
+A particle is a standing wave of the doublet plus the winding that carries its
+identity. The standing wave is the **amplitude sector**: a repeating density
+pattern $\rho = E_Y + E_I$ organized by the condensation lattice
+(`foundations/bubble-lattice-fabric.md` §3) and stabilized in time by the IIR
+memory of its own past states (`foundations/cassi-first-principles.md` §2.4).
+The winding is the **phase sector**: the internal SO(2) rotation of the doublet
+about the $\varphi$-line, with $\theta = \mathrm{atan2}(E_I, E_Y)$ the
+density-plane angle (one cascade rung advances $\theta$ by $2\pi$). The
+conversion term drives that rotation as a state function
+
+$$
+\boxed{\frac{d\theta}{dt} = \lambda(1-q)\,\frac{\rho\,\varepsilon}{E_Y^2 + E_I^2}}
+$$
+
+(Derived; measured on four of four homogeneous arms by
+`two-fluid/run_winding_rate_probe.py`; `foundations/cassi-first-principles.md`
+§2.6). The rate vanishes exactly on the $\varphi$-line ($\varepsilon = 0$) and
+grows with the excess, gated by the openness $(1-q)$.
+
+Internal winding is spin. The doublet's half-angle structure maps a rung span
+$\Delta n$ of the single-component phase to $s = \Delta n/2$
+(`foundations/spin-fibonacci-spiral.md` §2.2); the realized spans
+$\Delta n \in \{1, 2, 4\}$ are the fermion, gauge-boson, and graviton spectrum.
+Axial inter-scale winding is the double helix: the same phase advance between
+scales, one turn per two rungs ($P_\parallel = 2$, §3.3). Matter as *wound Qi*
+is the two read together—the standing wave's phase accumulates across the rungs
+the wave spans. The proton's stack is the concrete case: a $\sim 92$-rung
+coherence depth from Planck ($n = 0 \to 91.5$,
+`foundations/bubble-lattice-fabric.md` §6) at $n = 91.46$
+(`foundations/rung-offset-mechanism.md` §3) carries $91.46/2 \approx 46$
+doublet turns.
+
+The boundary is the measured record, stated plainly: the winding lives in
+(scale, doublet-plane) space, not as spatial filaments. The transverse
+two-filament branch is null at the lock timescale—the pair escapes (TS1), the
+$d \to 0$ limit does not recover the one-string centerline (TS2), the relative
+mode is not centerline-fixed (TS3), and there is no central low-$q$ node (TS4)
+(`hypotheses/two-strand-five-channel-matter-organization.md` §3.3; §4.2). The
+helix is the axial *phase* winding; a spatial filament pair at finite
+transverse separation is excluded, not assumed.
+
+### Deviations from $\varphi$-powers
+
+No observable sits exactly on a cascade rung; the fractional offsets
+$\delta n = n - \lfloor n\rfloor$ are the doublet's phase bookkeeping, in two
+classes that must not be conflated.
+
+**Parity half-steps.** A half-rung offset ($\delta n \approx 0.5$) is one full
+$\pi$-advance of the density-plane angle—the doublet's per-rung step—exceeding
+the relaxation bound below by $\sim 3\times$
+(`foundations/cassi-first-principles.md` §2.6). These are the cell parity
+classes: the sine mode (crossing; antinode at the half-rung) seats sector
+edges, the cosine mode (bubble; antinode at the integer rungs) seats interior
+stable states (`foundations/rung-offset-mechanism.md` §4.1).
+
+**Relaxation winding.** A state relaxing from an excess $\varepsilon_0$ to the
+$\varphi$-line sweeps a bounded internal angle. Since
+$d\varepsilon/dt = -\lambda(1+\varphi)(1-q)\varepsilon$, the conversion rate
+and the gate cancel in $d\theta/d\varepsilon$, and with $\rho$ conserved the
+total winding is a function of $\varepsilon_0$ alone
+
+$$
+\boxed{\Delta\vartheta = \mathrm{atan}\!\left(\frac{1}{\varphi}\right) -
+\mathrm{atan}\!\left(\frac{\rho-\varepsilon_0}{\rho\varphi+\varepsilon_0}\right)}
+$$
+
+independent of $\lambda$ and of the gate shape, with extremes
+$+\mathrm{atan}(\varphi^{-1}) \approx +0.554$ rad and
+$-\mathrm{atan}(\varphi) \approx -1.017$ rad—in rung units
+$\lvert\delta n\rvert \le \mathrm{atan}(\varphi)/2\pi \approx 0.162$—and the
+small-excess reduction $\Delta\vartheta \approx \rho\varepsilon_0/[(1+\varphi)
+(E_Y^2+E_I^2)]$ (`foundations/cassi-first-principles.md` §2.6). Relaxation
+winding can never produce a half-step; the two classes are separated by a
+factor of three in rung units.
+
+The catalog reads each state by this partition:
+
+| Object | Rung $n$ | Reading | Class | Tier |
+|---|---|---|---|---|
+| proton | 91.46 | $\approx 91.5$ half-step, sector edge | parity (crossing) | Empirical catalog; sector-edge selection Hypothesized (`foundations/rung-offset-mechanism.md` §3, §4.1) |
+| muon | 96.000 | integer rung; zero-winding coherent closure | parity (bubble) | placement Mapped—38-state scan, ledger (`foundations/rung-offset-mechanism.md` §3) |
+| J/$\psi$ | 88.98 | $\delta n = -0.02$, inside the relaxation bound | relaxation-compatible | Mapped: a per-object $\varepsilon_0$ would be a free fit, not a derivation (`foundations/rung-offset-mechanism.md` §3) |
+| $r_d$ (BAO) | 284.5 | half-step between rungs 284 and 285 | parity (crossing) | Mapped interpolation (`foundations/dimensionful-cascade.md` §6; `parameter-inventory.md` §10) |
+| electron | 26.5 (Yukawa ladder) | half-step precedent | parity (crossing) | Empirical (`foundations/rung-offset-mechanism.md` §3) |
+| $\Omega_{\text{DM}}/\Omega_b$ | — | observed $5.39 \approx \varphi^{3.5} = 5.388$ (0.03%), $\log_\varphi 5.39 \approx 3.50$—a half-rung offset from the derived exponent 3 | observation | not a registered prediction; the $\varphi^3 \approx 4.24$ row keeps its 21% open tension (`cosmology/cosmology-from-phi.md` §4.2) |
+
+**The one parameter-free winding.** The derived primordial ratio
+$r_0 = \varphi^{-5}/(2-\varphi^{-5}) \approx 0.0472$
+(`foundations/wu-xing-derivation.md` §5.2) has excess
+$\varepsilon_0/\rho = (r_0-\varphi)/(r_0+1) = -3/2$, so the relaxation identity
+above gives $\Delta\vartheta \approx -0.970$ rad, $\delta n \approx -0.154$
+rungs—inside the bound, with no fitted input. The reading is a null: no
+cataloged scale carries $\delta n \approx -0.154$, and the framework's own
+initial condition does not land on any measured row. The identity is exercised
+once, by the framework's initial state, and the answer is a negative.
+
+### What is open
+
+Three named inputs are not yet derived. Each is a place where the framework is
+incomplete, not a place where it is wrong.
+
+1. **$P_\parallel(n)$ scale-dependence.** The doublet period is two rungs per
+   turn at human scales, but the cosmological rung 285 shows $P_\parallel = 1$
+   (one turn per rung); the $n$-dependence of $P_\parallel$ has no law yet
+   (`foundations/dimensionful-cascade.md` §7;
+   `foundations/bubble-lattice-fabric.md` §2.3). The wedge claim
+   $P_\parallel = 2$ is the human/quantum reading; whether the period itself
+   varies with scale is open.
+2. **The gate shape.** The single-channel transmission
+   $g(q) = q/(\varphi^2+q^2)$ is an Asserted input: the action and the Qi
+   definition supply the openness $(1-q)$, but no equation selects the rational
+   function (`foundations/cassi-first-principles.md` §2.5). The winding
+   identities above hold for any gate shape and do not select the gate's exact
+   form.
+3. **The fixed-pitch clocks.** The Hypothesized conversion→expansion term with
+   the $\varphi^{-2}$ coupling predicts $\varphi^{-2} = 0.382$ turns per Hubble
+   rung and a pitch tangent $\tan(\text{pitch}) = \varphi^2$ ($69.1°$)
+   (`foundations/spiral-dynamics.md` §2.2)—a clock that turns even at the
+   $\varphi$-line, distinct from the canonical $\varepsilon$-proportional
+   rotation boxed above, which vanishes there. Reconciling the two clocks, or
+   ruling the Hypothesized term out in the solver, is open.
+
+---
+
 ## References
 
 - `foundations/cassi-first-principles.md`—the doublet, the PDE, Qi, the gate
