@@ -124,7 +124,12 @@ the constructive-overlap cell of the rotating wake pair
 (`foundations/wake-geometry.md` §2): the two wakes are the two phases of one
 string motion, and their overlap—the pool—pulses at the beat period
 $\ell_{n+1}/c$, so the state's standing wave must close on the cell bounded by
-the envelope zeros (the voids, where the overlap vanishes).
+the envelope zeros (the voids, where the overlap vanishes). The probe standing
+patterns that measure this parity are set up from structured initial
+conditions (two-bubble / truncated-tower seeds with $V = 0$, d'Alembert-exact
+standing waves); the canonical first-order solver does not raise them
+spontaneously from smooth no-drive seeds (`two-fluid/run_bubble_ring_dynamic_probe.py`,
+no rings in all four arms).
 
 The cell $[n, n+1]$ in rung space closes with nodes at both ends, and the two
 wake phases select the two parity classes:

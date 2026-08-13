@@ -158,7 +158,7 @@ In the Yang-Yin plane the field reduces to $C(x,y) = \cos(\alpha x)\cos(\beta y)
 
 ### The bubble's shape
 
-A bubble is not spherical. Because the Yang wavelength is $\varphi$ times the Yin wavelength, the bubble is stretched along Yang: a **triaxial spheroid** with three unequal axes, longest in the Yang direction, shortest along the string, intermediate in the Yin direction. The cross-section is an ellipse of axis ratio $\varphi \approx 1.618$. This shape has been confirmed by numerical simulation: evolve the two-fluid equations from an initial vibrating string, and a $\varphi$-ellipsoid bubble forms spontaneously.
+A bubble is not spherical. Because the Yang wavelength is $\varphi$ times the Yin wavelength, the bubble is stretched along Yang: a **triaxial spheroid** with three unequal axes, longest in the Yang direction, shortest along the string, intermediate in the Yin direction. The cross-section is an ellipse of axis ratio $\varphi \approx 1.618$. This shape has been confirmed by numerical simulation: evolve the two-fluid equations from an initial vibrating string (a structured wave seed), and a $\varphi$-ellipsoid bubble forms transiently from that wave structure (`visual-explainers/string_bubble_cascade.py`). It does not arise spontaneously from a smooth seed: the canonical first-order solver sustains no standing radial structure from no-drive smooth seeds (`two-fluid/run_bubble_ring_dynamic_probe.py`, no rings in any of the four spatial-coupling arms).
 
 The bubble's boundary—where coherence drops from high to low—is steeper toward voids than toward neighboring bubbles by exactly
 
