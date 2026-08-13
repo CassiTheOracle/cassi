@@ -268,7 +268,8 @@ void main() {
     // ── Color: legacy (bit-identical) or the consolidated engine ──────
     vec4 color;
     // The Qi/velocity scalar axis, sampled ONCE so both the engine and the
-    // mode-5 glow ramp read the same value without re-sampling the field.
+    // additive-glow ramp (flag 0x20) read the same value without re-sampling
+    // the field.
     float x_axis = 0.0;
     if (bmode == 1) {
         x_axis = length(vel[i].xyz);          // velocity: speed |v|

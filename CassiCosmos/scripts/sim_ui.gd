@@ -38,6 +38,14 @@ var _dual_btn: CheckButton
 var _multirung_btn: CheckButton
 var _meshless_btn: CheckButton
 var _vsync_btn: CheckButton
+# Particle-VFX upgrades (2026-08-13, default-off): size-by-mass, additive
+# glow, depth cue, and the two-axis hue=q/lightness=ρ color mode. These
+# OR-ONTO the existing particle_color_mode (low nibble base mode, high
+# nibble feature flags) — see compute/cassi_instancer.glsl header.
+var _vfx_size_btn: CheckButton
+var _vfx_glow_btn: CheckButton
+var _vfx_depth_btn: CheckButton
+var _vfx_twoaxis_btn: CheckButton
 
 var _server_ip_edit: LineEdit
 var _server_port_edit: LineEdit
@@ -136,7 +144,7 @@ func _ready() -> void:
 	control_panel.name = "ControlPanel"
 	control_panel.add_theme_stylebox_override("panel", _make_panel_style())
 	control_panel.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	control_panel.offset_top = -236  # accommodate 3 control rows + the gradient legend row
+	control_panel.offset_top = -272  # 4 control rows + the VFX row + the gradient legend row
 	control_panel.offset_left = 10; control_panel.offset_right = -10
 	add_child(control_panel)
 
@@ -373,6 +381,55 @@ func _ready() -> void:
 	_meshless_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	row3.add_child(_meshless_btn)
 
+	# ── Particle-VFX upgrades row (default-off; bit-identical when off) ──
+	# New instancer visuals, each an OPT-IN flag or mode overlaid on the
+	# existing color modes (see compute/cassi_instancer.glsl header for the
+	# color_mode bit encoding). All live — no reinit.
+	var row_vfx = HBoxContainer.new()
+	row_vfx.add_theme_constant_override("separation", 8)
+	root_vbox.add_child(row_vfx)
+	var vfx_lbl = _make_label("VFX:", Color(0.6, 0.95, 0.8), 12)
+	vfx_lbl.custom_minimum_size = Vector2(34, 0)
+	vfx_lbl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	vfx_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row_vfx.add_child(vfx_lbl)
+	_vfx_size_btn = CheckButton.new()
+	_vfx_size_btn.name = "VfxSizeBtn"
+	_vfx_size_btn.text = "Size∝m¹ᐟ³"
+	_vfx_size_btn.tooltip_text = "Scale each instance by cbrt(particle mass) instead of the linear mass law — the steep Salpeter count compresses so a few massive giants stay visible without swamping the dwarfs. Reads per-particle mass from pos.w (preserved by the nbody kick). Live, no reinit."
+	_vfx_size_btn.custom_minimum_size = Vector2(96, 22)
+	_vfx_size_btn.focus_mode = Control.FOCUS_NONE
+	_vfx_size_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	_vfx_size_btn.toggled.connect(_on_vfx_size_toggled)
+	row_vfx.add_child(_vfx_size_btn)
+	_vfx_glow_btn = CheckButton.new()
+	_vfx_glow_btn.name = "VfxGlowBtn"
+	_vfx_glow_btn.text = "Glow"
+	_vfx_glow_btn.tooltip_text = "Additive-glow look: bright cores (q near the white-hot point) lift toward white and raise alpha so overlapping cores read as additive glow on the dark field; large instances get an extra halo ramp. Live, no reinit."
+	_vfx_glow_btn.custom_minimum_size = Vector2(70, 22)
+	_vfx_glow_btn.focus_mode = Control.FOCUS_NONE
+	_vfx_glow_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	_vfx_glow_btn.toggled.connect(_on_vfx_glow_toggled)
+	row_vfx.add_child(_vfx_glow_btn)
+	_vfx_depth_btn = CheckButton.new()
+	_vfx_depth_btn.name = "VfxDepthBtn"
+	_vfx_depth_btn.text = "Depth fade"
+	_vfx_depth_btn.tooltip_text = "Fade instance alpha with camera distance (linear between 35% and 135% of the box diagonal). Uses the world-origin distance today; the deferred camera hook uses the live camera position. Live, no reinit."
+	_vfx_depth_btn.custom_minimum_size = Vector2(104, 22)
+	_vfx_depth_btn.focus_mode = Control.FOCUS_NONE
+	_vfx_depth_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	_vfx_depth_btn.toggled.connect(_on_vfx_depth_toggled)
+	row_vfx.add_child(_vfx_depth_btn)
+	_vfx_twoaxis_btn = CheckButton.new()
+	_vfx_twoaxis_btn.name = "VfxTwoAxisBtn"
+	_vfx_twoaxis_btn.text = "2-axis q/ρ"
+	_vfx_twoaxis_btn.tooltip_text = "Two-axis color: hue from Qi coherence (as the Qi rainbow) and lightness modulated by local density ρ = EY+EI (q-proxy today; the deferred EY/EI hook uses the true EY+EI). Requires the Rainbow toggle on."
+	_vfx_twoaxis_btn.custom_minimum_size = Vector2(96, 22)
+	_vfx_twoaxis_btn.focus_mode = Control.FOCUS_NONE
+	_vfx_twoaxis_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	_vfx_twoaxis_btn.toggled.connect(_on_vfx_twoaxis_toggled)
+	row_vfx.add_child(_vfx_twoaxis_btn)
+
 	# Server (future) fields
 	var srv_box = VBoxContainer.new()
 	srv_box.custom_minimum_size = Vector2(160, 40)
@@ -539,8 +596,15 @@ func _build_slider_row(parent: HBoxContainer, label_text: String,
 
 
 func _sync_color_widgets(sim: Node3D) -> void:
-	_rainbow_btn.set_pressed_no_signal(sim.particle_color_mode >= 1)
-	_color_src_opt.select(0 if sim.particle_color_mode == 1 else 1)
+	var cm: int = sim.particle_color_mode
+	var base: int = cm & 0xF
+	var flags: int = (cm >> 4) & 0xF
+	_rainbow_btn.set_pressed_no_signal(base >= 1)
+	_color_src_opt.select(0 if base == 1 else 1)
+	_vfx_twoaxis_btn.set_pressed_no_signal(base == 4)
+	_vfx_size_btn.set_pressed_no_signal((flags & 0x10) != 0)
+	_vfx_glow_btn.set_pressed_no_signal((flags & 0x20) != 0)
+	_vfx_depth_btn.set_pressed_no_signal((flags & 0x40) != 0)
 	_sync_color_enabled()
 	if _legend:
 		_legend.set_sim(sim, _color_src_opt.selected == 1)
@@ -655,7 +719,7 @@ func _on_init_selected(idx: int) -> void:
 func _on_rainbow_toggled(on: bool) -> void:
 	var sim = _get_sim()
 	if sim == null: return
-	sim.particle_color_mode = (1 if _color_src_opt.selected == 0 else 2) if on else 0
+	_apply_particle_color_mode(sim)
 	_sync_color_widgets(sim)
 	_repaint_if_paused(sim)
 
@@ -664,9 +728,62 @@ func _on_color_src_selected(idx: int) -> void:
 	var sim = _get_sim()
 	if sim == null: return
 	if _rainbow_btn.button_pressed:
-		sim.particle_color_mode = 1 if idx == 0 else 2
+		_apply_particle_color_mode(sim)
 	_sync_color_widgets(sim)
 	_repaint_if_paused(sim)
+
+
+func _on_vfx_size_toggled(on: bool) -> void:
+	var sim = _get_sim()
+	if sim == null: return
+	_apply_particle_color_mode(sim)
+	_repaint_if_paused(sim)
+
+
+func _on_vfx_glow_toggled(on: bool) -> void:
+	var sim = _get_sim()
+	if sim == null: return
+	_apply_particle_color_mode(sim)
+	_repaint_if_paused(sim)
+
+
+func _on_vfx_depth_toggled(on: bool) -> void:
+	var sim = _get_sim()
+	if sim == null: return
+	_apply_particle_color_mode(sim)
+	_repaint_if_paused(sim)
+
+
+func _on_vfx_twoaxis_toggled(on: bool) -> void:
+	var sim = _get_sim()
+	if sim == null: return
+	if on and not _rainbow_btn.button_pressed:
+		# two-axis rides the rainbow engine — enable it so base mode 4 lands
+		_rainbow_btn.button_pressed = true
+	_apply_particle_color_mode(sim)
+	_sync_color_widgets(sim)
+	_repaint_if_paused(sim)
+
+
+## Recompute sim.particle_color_mode from the UI state. Encoding (matches
+## compute/cassi_instancer.glsl header): low nibble = base mode (0 = Cassi
+## mass gradient, 1 = velocity, 2 = Qi, 4 = two-axis q/ρ), high nibble =
+## feature flags (0x10 size-by-mass, 0x20 additive glow, 0x40 depth cue).
+## Defaults (all VFX + rainbow off) → 0, bit-identical to the legacy path.
+func _apply_particle_color_mode(sim: Node3D) -> void:
+	var base := 0
+	if _rainbow_btn.button_pressed:
+		if _vfx_twoaxis_btn.button_pressed and _color_src_opt.selected == 1:
+			base = 4          # two-axis hue=q / lightness=ρ (Qi source only)
+		elif _color_src_opt.selected == 0:
+			base = 1          # velocity rainbow
+		else:
+			base = 2          # Qi rainbow
+	var flags := 0
+	if _vfx_size_btn.button_pressed:  flags |= 0x10  # size-by-mass
+	if _vfx_glow_btn.button_pressed:  flags |= 0x20  # additive glow
+	if _vfx_depth_btn.button_pressed: flags |= 0x40  # depth cue
+	sim.particle_color_mode = base | flags
 
 
 func _on_legend_changed() -> void:
@@ -687,16 +804,17 @@ func _on_fit_colors() -> void:
 	if qi_source:
 		# A stable, measured starting band. The two legend handles then make
 		# the final fit a direct visual operation rather than a settings hunt.
-		sim.particle_color_mode = 2
 		sim.qi_cycle = Vector2(0.0002, 0.001)
 		sim.qi_pinch = Vector2.ZERO
 		sim.qi_approach = Vector2(sim.qi_cycle.y, sim.qi_condensation_threshold)
 		sim.qi_approach_tracks_threshold = true
 	else:
-		sim.particle_color_mode = 1
 		sim.velocity_cycle = Vector2.ZERO
 		sim.velocity_pinch = Vector2.ZERO
 		sim.velocity_approach = Vector2.ZERO
+	# The VFX flags ride particle_color_mode's high nibble — recompose so a
+	# fit never silently clears size/glow/depth. Base comes from the option.
+	_apply_particle_color_mode(sim)
 	_sync_color_widgets(sim)
 	_repaint_if_paused(sim)
 
