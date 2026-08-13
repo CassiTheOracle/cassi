@@ -2,9 +2,10 @@ extends Camera3D
 ## 6-DOF free-fly camera for space-sim N-body rendering.
 ##
 ## Movement modes:
-##   - World-axis strafe (default) — WASD/Shift/Space move along global X/Z/Y.
-##   - Look-direction flight (Tab) — WASD/Shift/Space move along the camera's
-##     local forward/right/up axes.
+##   - World-axis strafe (default) — WASD move along global X/Z; SHIFT/CTRL
+##     (or Z/X) move along global Y.
+##   - Look-direction flight (Tab) — WASD move along the camera's local
+##     forward/right axes; SHIFT/CTRL (or Z/X) move along local up/down.
 ##
 ## Orbit: hold right-click or middle-click and drag to rotate.
 ##
@@ -95,16 +96,15 @@ func _process(delta: float) -> void:
 		rotate_y(key_rot * delta * 2.0)
 
 	# --- Movement input ---
-	# NOTE: SPACE and SHIFT are deliberately NOT used here — SPACE is the
-	# UI's play/pause and SHIFT is a system modifier; both would fire while
-	# the user is doing something else. Vertical movement uses Z (up) / X (down).
+	# Vertical: SHIFT = up, CTRL = down (the common flight convention), with
+	# Z / X kept as alternates. SPACE stays reserved for the UI's play/pause.
 	var input_dir: Vector3 = Vector3.ZERO
 	if Input.is_key_pressed(KEY_W):  input_dir.z -= 1.0
 	if Input.is_key_pressed(KEY_S):  input_dir.z += 1.0
 	if Input.is_key_pressed(KEY_A):  input_dir.x -= 1.0
 	if Input.is_key_pressed(KEY_D):  input_dir.x += 1.0
-	if Input.is_key_pressed(KEY_Z):  input_dir.y += 1.0
-	if Input.is_key_pressed(KEY_X):  input_dir.y -= 1.0
+	if Input.is_key_pressed(KEY_Z) or Input.is_key_pressed(KEY_SHIFT):  input_dir.y += 1.0
+	if Input.is_key_pressed(KEY_X) or Input.is_key_pressed(KEY_CTRL):   input_dir.y -= 1.0
 
 	input_dir = input_dir.normalized()
 
