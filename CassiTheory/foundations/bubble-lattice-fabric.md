@@ -73,9 +73,9 @@ an oblate triaxial spheroid—extended in Yang, contracted in Yin, bounded along
 The two-fluid PDE governing $E_Y, E_I$ is:
 
 $$\partial_t E_Y = -(\mathbf{u}\cdot\nabla)E_Y + D\nabla^2 E_Y - \lambda(E_Y - \varphi E_I) + \ldots$$
-$$\partial_t E_I = -(\mathbf{u}\cdot\nabla)E_I + D\nabla^2 E_I + \lambda(E_Y - \varphi E_I)/\varphi + \ldots$$
+$$\partial_t E_I = -(\mathbf{u}\cdot\nabla)E_I + D\nabla^2 E_I + \lambda(E_Y - \varphi E_I) + \ldots$$
 
-Under the rescaling $\mathbf{x} \to \varphi\mathbf{x}$, $t \to \varphi t$, the spatial derivatives transform as $\nabla \to \varphi^{-1}\nabla$. The conversion term is invariant because $\varphi$ is dimensionless and the field combination $E_Y - \varphi E_I$ is homogeneous. The diffusion and advection terms acquire $\varphi^{-2}$ and $\varphi^{-1}$ factors respectively—their relative strengths shift with scale, but the **form** of the equations is unchanged.
+Under the rescaling $\mathbf{x} \to \varphi\mathbf{x}$, $t \to \varphi t$, the spatial derivatives transform as $\nabla \to \varphi^{-1}\nabla$. The conversion pair is equal and opposite, so it conserves the total density $\rho = E_Y + E_I$ exactly; the conversion term is form-invariant under the rescaling because $\varphi$ is dimensionless and the field combination $E_Y - \varphi E_I$ is homogeneous. The diffusion and advection terms acquire $\varphi^{-2}$ and $\varphi^{-1}$ factors respectively—their relative strengths shift with scale, but the **form** of the equations is unchanged.
 
 The PDE is **scale-covariant** under $\varphi$-rescaling, up to the asserted Qi-gate transmission nonlinearity $g(q) = q/(\varphi^2 + q^2)$, which introduces a scale-dependent modulation when that application input is enabled. A solution at cascade rung $n$ is a $\varphi$-rescaled solution at rung $n+1$, with the same functional form but wavelengths reduced by $\varphi$ (for upward steps) or expanded by $\varphi$ (for downward steps).
 

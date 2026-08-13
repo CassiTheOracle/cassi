@@ -27,7 +27,7 @@ where $\sigma_0$ is the ballistic conductivity. In vacuum, this would produce un
 
 $$\frac{dE_Y}{dt}\bigg|_{\text{conv}} = -\lambda(E_Y - \varphi E_I)$$
 
-$$\frac{dE_I}{dt}\bigg|_{\text{conv}} = +\frac{\lambda}{\varphi}(E_Y - \varphi E_I)$$
+$$\frac{dE_I}{dt}\bigg|_{\text{conv}} = +\lambda(1-q)(E_Y - \varphi E_I)$$
 
 The steady-state current is reached when field driving balances conversion drag:
 

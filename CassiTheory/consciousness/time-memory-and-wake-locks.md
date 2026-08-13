@@ -17,9 +17,9 @@ Time's arrow is not a postulate in this framework—it falls out of the conversi
 The two-fluid dynamics contain the conversion pair (from `foundations/cassi-first-principles.md` §1.2–1.3, displayed with the sign convention verified by the PDE tests of 2026-07-31 in `consciousness/trauma-as-frozen-gate.md` §10.4 and `foundations/cassi-theory-reference.md` §2.5):
 
 $$\partial_t E_Y \supset -\lambda(1-q)(E_Y - \varphi E_I), \qquad
-\partial_t E_I \supset +\lambda(1-q)\,\frac{E_Y - \varphi E_I}{\varphi}$$
+\partial_t E_I \supset +\lambda(1-q)(E_Y - \varphi E_I)$$
 
-Here $\lambda = 0.1$ is the conversion rate and $(1-q)$ is the gate openness: the further the local field sits from $\varphi$-equilibrium, the harder conversion runs. The pair is antisymmetric—Yang excess converts into Yin, Yin excess into Yang—and the combination $E_Y + \varphi E_I$ is conserved by it. What matters for time is what the pair does to the deviation $\varepsilon = E_Y - \varphi E_I$. Writing the attractor potential as $V_{\text{attr}} = \tfrac{\lambda}{2}(E_Y - \varphi E_I)^2$, the pair gives
+Here $\lambda = 0.1$ is the conversion rate and $(1-q)$ is the gate openness: the further the local field sits from $\varphi$-equilibrium, the harder conversion runs. The pair is antisymmetric—Yang excess converts into Yin, Yin excess into Yang—so the rates are equal and opposite and the total density $\rho = E_Y + E_I$ is conserved by it exactly. What matters for time is what the pair does to the deviation $\varepsilon = E_Y - \varphi E_I$. Writing the attractor potential as $V_{\text{attr}} = \tfrac{\lambda}{2}(E_Y - \varphi E_I)^2$, the pair gives
 
 $$\frac{dV_{\text{attr}}}{dt} = -2\lambda^2(1-q)\,(E_Y - \varphi E_I)^2 \leq 0$$
 

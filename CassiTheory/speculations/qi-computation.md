@@ -52,9 +52,9 @@ As $q \to 1$, the capacity diverges logarithmically—the field can encode arbit
 
 The conversion term in the two-fluid PDE is the fundamental operation on the field:
 
-$$\partial_t \Psi_0 \supset -\lambda(\Psi_0^2 - \varphi\Psi_1^2)\Psi_0$$
+$$\partial_t E_Y \supset -\lambda(1-q)(E_Y - \varphi E_I)$$
 
-$$\partial_t \Psi_1 \supset +\frac{\lambda}{\varphi}(\Psi_0^2 - \varphi\Psi_1^2)\Psi_1$$
+$$\partial_t E_I \supset +\lambda(1-q)(E_Y - \varphi E_I)$$
 
 Given an input field state $(\Psi_0^{\text{in}}, \Psi_1^{\text{in}})$ at time $t$, the gate evolves the state for a duration $\Delta t$ to produce $(\Psi_0^{\text{out}}, \Psi_1^{\text{out}})$. This is a **continuous nonlinear transformation**—the field-space equivalent of a transistor.
 
