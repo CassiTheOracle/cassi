@@ -1,6 +1,6 @@
 # Verify battery — one-command runner
 
-Runs the whole Cassi GPU-sim verify battery (27 arms) in sequence, captures each
+Runs the whole Cassi GPU-sim verify battery (30 arms) in sequence, captures each
 arm's exit code, and exits 0 only when every arm passes.
 
 ## How to run
@@ -18,7 +18,7 @@ Godot console exe:
 - The **arms always run windowed** (`--path . res://scenes/<scene>.tscn`):
   never `--headless` an arm — this rig's global RenderingDevice has no headless
   device.
-- Exit code: `0` = all 27 passed; `1` = at least one failed.
+- Exit code: `0` = all 30 passed; `1` = at least one failed.
 - The runner prints a progress line per arm and a summary table; failed arms
   get their last 15 stdout/stderr lines printed.
 - Per-arm logs: `res://_diag/battery_logs/armNN_<name>.log` (gitignored).
@@ -58,21 +58,27 @@ Godot console exe:
 | 25 | verify_autotrack | Auto-track live-band tracker: robust-percentile match, min-span floor, damped glide (G49–G51) |
 | 26 | verify_falsify | Falsification meter: w₀ estimator port vs falsify_wo.py references, meter wiring (F1–F3) |
 | 27 | verify_mind_engine | Mind-engine no-op gate: attractor-ratio deposit stays at the fp32 floor; off-ratio evolution conserves charge |
+| 28 | verify_bh_accretion_engine | BH accretion in the standalone engine (local RD): exact mass conservation (G55), swallowed-dead/no-deposit (G56), toggle-off bit-identity (G57) |
+| 29 | verify_merge_engine | Particle merge in the standalone engine (local RD): merge count + mass conservation (G52), dead-marking/no-deposit (G53), φ⁻² low-q no-merge gate (G54) |
+| 30 | verify_multigrid_engine | Cascade-multigrid arm in the standalone engine (local RD): coarse-level Φ vs direct reference (G58), fine-dominant near-field match (G59), honest placement-bias ring metric (G60) |
 
 ## Expected runtime
 
-Measured 2026-08-14 on the RX 7900 XTX rig: **≈ 8 minutes total** (arms
-3–60 s each; the slowest are verify_fft ~35 s, verify_meshless_sim_aniso
-~25 s, verify_particle_vanish ~60 s). Arms run strictly serially because they
-share the GPU. First run after a shader change can be slower (SPIR-V
-recompile).
+Measured 2026-08-14 on the RX 7900 XTX rig: **≈ 8–9 minutes** for a fully
+passing tree (arms 1–60 s each; the slowest are verify_fft ~35 s,
+verify_meshless_sim_aniso ~25 s, verify_particle_vanish ~60–100 s). The
+same-day full 30-arm run with three arms hitting their 240 s timeout took
+17 minutes. Arms run strictly serially because they share the GPU. First run
+after a shader change can be slower (SPIR-V recompile).
 
 ## Special launch conventions (read before touching the battery)
 
 - **All arms windowed, never headless.** The sim's global RD has no headless
   device on this rig. The local-RD arms (verify_fmm, verify_merge,
   verify_synth, verify_voronoi3d, verify_voronoi3d_moving,
-  verify_meshless_reconstruct, verify_meshless_gravity, verify_mind_engine)
+  verify_meshless_reconstruct, verify_meshless_gravity, verify_mind_engine,
+  verify_bh_accretion_engine, verify_merge_engine, verify_multigrid_engine —
+  the last three instantiate the standalone physics engine on their own RD)
   create their own RenderingDevice and are display-independent
   (verify_voronoi3d's header even documents headless as acceptable), but the
   battery runs them windowed uniformly.
