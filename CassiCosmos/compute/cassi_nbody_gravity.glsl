@@ -538,7 +538,7 @@ vec3 river_field_acc_smp(FieldSmp fs, inout TeleStats st) {
 vec3 tree_river_field_acc(FieldSmp fs, int pi, inout TeleStats st) {
     float q_unused; float pi_over_rho;
     chord_g_from(fs.ey, fs.ei, q_unused, pi_over_rho, st);
-    return bh[1].w * pi_over_rho * tgrad[pi].xyz;
+    return bh[1].w * bh[3].w * pi_over_rho * tgrad[pi].xyz;
 }
 
 // ── Legacy heuristic: sample q_s = EY²+EI² + 0.01·ρ and its gradient ───
@@ -835,6 +835,21 @@ void main() {
             grav_acc = gravity_at(p_new, st);   // heuristic / Plummer arms
         }
         vec3 v_new = v_half + grav_acc * hdt;
+
+        // SAFETY GUARD (mode-5 tree arm ONLY): a bad close encounter must
+        // never eject a particle or overflow float32 (the pre-fix unsoftened
+        // tree quadrupole wiped the galaxy to |p| ~ 1e9 then NaN, 2026-08-13).
+        // Bounds are WIDE (far beyond any legitimate escape/halo orbit) so
+        // real dynamics are untouched; the river path (mode < 5) is identical.
+        if (pc.gravity_mode > 4.5) {
+            float emax = max(max(bh[2].y, bh[2].z), bh[2].w); // box half-ext max
+            float vcap = 120.0 * emax;      // |v| cap - far above v_escape
+            float vl = length(v_new);
+            if (vl > vcap) v_new *= vcap / vl;
+            float R_safe = 1e4 * emax;      // position reabsorb sphere
+            float pl = length(p_new);
+            if (pl > R_safe) p_new *= R_safe / pl;
+        }
 
         pos[i] = vec4(p_new, pos[i].w);
         vel[i] = vec4(v_new, 0.0);

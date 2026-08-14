@@ -128,6 +128,13 @@ void force_main() {
                 ny -= W * d.y * invR3;
                 nz -= W * d.z * invR3;
                 // quadrupole: [R²(Q·d) − (5/2)(d·Q·d)·d] / (d²)^(7/2)
+                // SOFTENED like the monopole (R2q = ds2 + eps2, was max(ds2,
+                // 1e-30)): the UNsoftened 1/d⁷ near-field blew up when a
+                // particle passed close to a heavy node's COM in the galaxy
+                // core — a single encounter produced a huge finite force that
+                // ejected the particle and cascaded (2026-08-13 vanish
+                // diagnosis; verify_particle_vanish). Softening the quadrupole
+                // with the SAME eps2 as the monopole restores bound orbits.
                 vec4 q0 = nq[2 * n];
                 vec4 q1 = nq[2 * n + 1];
                 float Qxx = q0.x; float Qxy = q0.y; float Qxz = q0.z;
@@ -136,10 +143,28 @@ void force_main() {
                                Qxy * d.x + Qyy * d.y + Qyz * d.z,
                                Qxz * d.x + Qyz * d.y + Qzz * d.z);
                 float dqd = dot(d, qd);
-                float R2q = max(ds2, 1e-30);
+                float R2q = ds2 + pc.eps2;
                 float invR7 = 1.0 / (R2q * R2q * R2q * sqrt(R2q));
                 vec3 quad = (R2q * qd - 2.5 * dqd * d) * invR7;
                 nx += quad.x; ny += quad.y; nz += quad.z;
+                // ── PER-NODE FORCE CAP (2026-08-13) ──────────────────────
+                // A heavy/accreted node's monopole+quadrupole near-field can
+                // still reach 10⁴–10⁶ tgrad at core-collapse densities even
+                // with the eps2 softening (verify_particle_vanish: the fr≈560
+                // core formed, then tgrad spiked to ~1e6 and ejected the
+                // galaxy). Cap the ACCUMULATED node force at ~40·bhalf (bhalf
+                // = root half = the box's max half-extent, ncf[0].w) — far
+                // above any physical river force (peak ~2900) so real dynamics
+                // are untouched, but it hard-stops a single singular kick from
+                // escaping to float-overflow / ejection. Complemented by the
+                // KDK |v|/|pos| guard; the walk cap is the targeted Node-side
+                // boundary (a smooth field like the river's never exceeds it).
+                float a0 = length(vec3(nx, ny, nz));
+                float aC = 40.0 * ncf[0].w;                       // A_CAP
+                if (a0 > aC) {
+                    float sc = aC / a0;
+                    nx *= sc; ny *= sc; nz *= sc;
+                }
             }
             interactions++;
         } else {

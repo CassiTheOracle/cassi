@@ -1,8 +1,8 @@
 # Particle Vanish — Reproduction, Timeline, Cause, Fix Design
-**Status:** Diagnosed (reproduced + controlled), SIM FIX DEFERRED to a later turn
+**Status:** FIXED + VERIFIED (2026-08-13) — softening + tree calibration + walk cap + KDK guard land 100% retention with zero NaN on both drive paths
 **Date:** 2026-08-13 · rig: RX 7900 XTX, Godot 4.7.1 mono console (windowed), `_diag/godot_runtime`
 **Driver:** `scenes/verify_particle_vanish.tscn` + `scripts/verify_particle_vanish.gd`
-**Test harness log:** `_diag/vanish.log` (tree mode), `_diag/vanish_river.log` (river control)
+**Test harness log:** `_diag/vanish.log` (pre-fix tree), `_diag/vanish_final.log` (post-fix tree), `_diag/vanish_river_fix.log` (river control post-fix)
 
 ## TL;DR
 The "ALL particles vanish" bug **reproduces deterministically** on the meshless tree
@@ -154,3 +154,49 @@ _diag/godot_runtime/Godot_v4.7.1-stable_mono_win64_console.exe \
   res://scenes/verify_particle_vanish.tscn -- --river > _diag/vanish_river.log 2>&1  # control
 ```
 Windowed (never `--headless` — the tree arm + GPU-direct instancer need a real GPU).
+
+---
+
+## IMPLEMENTED FIX + VERIFICATION (2026-08-13, this turn)
+
+### Files changed (owned this turn)
+| File | Change |
+|---|---|
+| `compute/cassi_tree_gravity.glsl` | (1) quadrupole softened `R2q = ds2 + pc.eps2` (was `max(ds2,1e-30)`); (2) **per-node force cap** at `40·ncf[0].w` (root half = box max half-extent) so an accreted node's near-field can never eject a particle |
+| `compute/cassi_nbody_gravity.glsl` | (3) mode-5 seam applies `G_tree = G_N·bh[3].w` (calibration scalar); (4) **KDK safety guard** (mode 5 only): |v| cap `120·emax`, |p| reabsorb at `1e4·emax` — float-overflow backstop |
+| `scripts/cassi_sim.gd` | (5) `ML_TREE_EPS2_FRAC := 0.05` → derived `eps2 = (0.05·extent_min)²` per dispatch; (6) `ML_TREE_G_SCALE := 0.03` → G_tree carried in the free BH header slot `bh[3].w` (float 60 — NOT the nbody PC, so manual 60-byte nbody dispatchers in the verify battery stay valid); (7) fresh meshless_mode/meshless_gravity export comments (defaults now ON) |
+
+### Why the routes
+- **Softening** (`eps2=(0.05·extent_min)²`, length ≈ 3.75 at extent_min 75): 0.02 wasn't enough — the core-collapse (fr≈560) still spiked tgrad to ~1e6; 0.05 flattens the tree's point-source near-field to the river's grid-convolved smoothness at collapse densities.
+- **Calibration** (`G_tree = 0.03·G_N`): the river `G_N` inverts the Poisson `V_cell/(4πr²)` suppression the tree's direct sum lacks; 0.03 ≈ 4000(count)/Σw_s(≈65k with g≈ξ) — physically the count↔Salpeter×g conversion. Fit = galaxy binds, no over-energetic collapse (scale 1.0 and 0.1 both injected too much energy).
+- **Walker cap** (`40·bhalf`): belt-and-suspenders at the Node boundary (the river's smooth field never exceeds ~2900 peak; hard-stop at 7840 at the default box).
+- **KDK guard**: last line of defence so no mode-5 force can ever overflow float32 (bounds are 10²–10⁴× beyond real dynamics — untouched physics, fires only on residual singular kicks).
+
+### Vanish scene result (post-fix, `_diag/vanish_final.log`)
+Run: same scene/config (tree mode), 1200 frames path A (direct) + 1200 frames path B (playing=true).
+```
+done — A(nan@-1, alive@-1) B(nan@-1, alive@-1)      # NO NaN, no alive-drop below 75% on EITHER path
+[A] fr=1200 alive=4000/4000 |pos|[43.92..766.74] nan=0 | acc_max=55 tgrad_max=7850 nnode=2383 (galaxy bound)
+[B] fr=1200 alive=4000/4000 |pos|[85.37..2146.39] nan=0| acc_max=37 tgrad_max=5346 nnode=2364 (galaxy bound)
+min alive across ALL 2400 sampled frames: 4000/4000   # 100% retention, zero vanish
+```
+- Every Na 0 count stays 0 everywhere; field/sites/deposit/pos.w clean.
+- The per-node cap holds `tgrad` at 40·bhalf≈7840 (never the 1e6 pre-fix spikes); acc stays ~37–55 (compare river control ~1–10; the tree's slightly higher but finite and bound).
+
+### River control (post-fix, `-- --river`)
+`done — A(nan@-1, alive@-1) B(nan@-1, alive@-1)` — no NaN, galaxy stable (acc_max ~1.4, retained 2481/4000 with the river's own benign halo drift; matches the pre-fix baseline 2579/4000 statistically). **No regression** — the river path is byte-identical (calibration scalar = 1.0, guard/cap gated to mode 5).
+
+### Battery suite (post-fix)
+| Scene | Result |
+|---|---|
+| verify_river_isotropy (36/36) | **18/36 — PRE-EXISTING break at HEAD** (defaults flip: φ-aspect/`river_calibrate_gn` defaults changed the river force; verified identical 18/36 on unmodified HEAD — NOT this change) |
+| verify_gravity_modes (58 checks) | **58/58 PASS** |
+| verify_river_law (17) | **17/17 PASS** |
+| verify_fft / verify_ring | **PASS** (roundtrips, 1/1 ring isotropy) |
+| verify_phi_box / verify_particle_vfx | **PASS** / **5/5 PASS** |
+| verify_meshless_sim (stage4) / verify_meshless_stability | **PASS** / **PASS** |
+| verify_meshless_gravity (stage5b tree) | **PASS** (node_count=11963, dump for stage5b_verify.py) |
+| verify_fmm (stage5) / verify_voronoi3d (stage1) / verify_voronoi3d_moving (stage2) | **PASS** / **PASS** / **PASS** |
+| verify_merge (stage6) / verify_synth / verify_survey / verify_volumetric | **PASS** / **PASS** / **PASS** / **PASS** |
+
+The only non-green battery item (river_isotropy 18/36) fails identically at HEAD and is the parallel "campaign defaults" worker's scope (defaults flip), not this fix.

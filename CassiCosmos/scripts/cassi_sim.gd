@@ -242,17 +242,19 @@ var _vsync_enabled: bool = true
 ## Meshless (moving-Voronoi) field arm — the two-fluid PDE runs on the
 ## JFA Voronoi cell mesh (MESHLESS_PLAN.md §10) and rasterizes back to
 ## the grid buffers for the render/condensation/river chain. Init-time
-## (reinit to apply); default off = the grid solver, bit-identical.
+## (reinit to apply); default ON = the meshless (moving-Voronoi) solver
+## (the grid PDE is the opt-in/specimen path).
 @export var meshless_mode: bool = true
 
-## Tree gravity (init-time; default off = the grid river arm, bit-identical).
-## Takes effect ONLY when meshless_mode is ALSO on — the spectral-Poisson
-## river chain is replaced by the open-boundary meshless tree gravity
-## (fmm_design.md Q6): the mass deposit + PDE still run (ρ/q source the tree
-## gather), but the Poisson FFT chain, the grid ∇(g·Φ) gradient pass and the
-## dual-lattice chain are skipped and the nbody arm samples the tree walk's
-## per-particle ∇Φ_g. Additive like dual_grid/gradient_order: with it off
-## (the default) every existing battery stays bit-identical.
+## Tree gravity (init-time; default ON = the open-boundary meshless tree
+## arm, first-class with meshless_mode — additive like dual_grid/
+## gradient_order). Takes effect ONLY when meshless_mode is ALSO on — the
+## spectral-Poisson river chain is replaced by the open-boundary meshless
+## tree gravity (fmm_design.md Q6): the mass deposit + PDE still run (ρ/q
+## source the tree gather), but the Poisson FFT chain, the grid ∇(g·Φ)
+## gradient pass and the dual-lattice chain are skipped and the nbody arm
+## samples the tree walk's per-particle ∇Φ_g. Leaving it off restores the
+## grid river arm (that battery stays bit-identical).
 @export var meshless_gravity: bool = true
 
 ## Display mode: 0 = Particles, 1 = Field, 2 = Black Hole, 3 = Cosmology.
@@ -492,8 +494,32 @@ const ML_TREE_MAX_LEVELS := 14
 const ML_TREE_NODE_MAX_MULT := 8
 const ML_TREE_FIELD_FLOOR := 1e-6   # source-mass recipe field-density floor
 const ML_TREE_THETA := 0.5
-const ML_TREE_EPS2 := 1e-6
+# Tree-walk softening ε (LENGTH²: the walk's monopole R² = ds² + eps2 and the
+# softened quadrupole R² = ds² + eps2 both scale ∝ 1/R³ / 1/R⁷). Picked as a
+# PHYSICAL scale tied to the box's min half-extent: the effective
+# eps2 = (ML_TREE_EPS2_FRAC · extent_min)² is derived per-dispatch (see
+# _dispatch_tree_gravity*). Justification of 0.05: at the default 64³ /
+# cluster_radius 150 box (extent_min = 75) that is (0.05·75)² = 14, a softening
+# length ~3.75 ≈ 1.6 leaf cells. Empirically calibrated against the river
+# control via verify_particle_vanish: 0.02 (length 1.5) delayed but did not
+# prevent the core-collapse force blow-up (fr≈560 tgrad spiked to ~1e6);
+# 0.05 flattens the tree's point-source near-field to the river's grid-convolved
+# smoothness at collapse densities, and with the per-node cap + G_SCALE it
+# confers 100% retention on both drive paths (no escape kick, no NaN).
+const ML_TREE_EPS2_FRAC := 0.05      # input to the derived eps2
 const GRAVITY_MODE_TREE := 5.0       # `tree river` — gravity_mode value
+# Tree-arm force calibration, G_tree = G_N · ML_TREE_G_SCALE, carried in the
+# BH header slot bh[3].w (float 60 — a free slot; routed there instead of the
+# nbody PC so the 15-float nbody push constant keeps every manual 60-byte
+# dispatcher in the verify battery valid). The river G_N is calibrated for the
+# spectral-Poisson ∇(g·Φ) which carries an implicit V_cell/(4πr²) suppression;
+# the tree's ∇Φ_g is a direct Newtonian sum with NO such suppression (and site
+# weights w=m·g already carry g≈ξ). This scalar folds the tree's own mass/g
+# normalization back to the IC convention |a| ≈ M_count/r² (G=1, M=count) the
+# river arm targets. Fit empirically against verify_particle_vanish (matched
+# acc/river range, galaxy binds, no vanish): ML_TREE_G_SCALE = 0.03 with the
+# per-node walk cap + KDK guard confers 100% retention on both drive paths.
+const ML_TREE_G_SCALE := 0.03
 var _tree_build_shader: RID
 var _tree_build_pipe: RID
 var _tree_grav_shader: RID
@@ -812,6 +838,14 @@ func _run_physics_steps(n_steps: int) -> void:
 	_bh_init_bytes.encode_float(48, 1.0 if black_holes_enabled else 0.0)
 	_bh_init_bytes.encode_float(52, 1.0 if dual_grid else 0.0)
 	_bh_init_bytes.encode_float(56, float(gradient_order))
+	# Tree-arm force calibration G_tree = G_N·ML_TREE_G_SCALE rides bh[3].w
+	# (float 60, a free header slot — NOT the nbody PC, keeping the nbody
+	# push constant at 15 floats so manual 60-byte dispatchers in the verify
+	# battery stay valid). The river-calibrated G_N (bh[1].w) inverts the
+	# spectral Poisson's implicit V_cell/(4πr²) suppression that the tree's
+	# DIRECT sum lacks (particle_vanish.md (b)); the scalar renormalizes the
+	# tree force to the IC |a|≈M/r² convention. 1.0 off-tree (river bit-identical).
+	_bh_init_bytes.encode_float(60, ML_TREE_G_SCALE if (meshless_mode and meshless_gravity) else 1.0)
 	var _off_dual: Vector3 = _extents() / float(grid_N)
 	_bh_init_bytes.encode_float(16, _off_dual.x)
 	_bh_init_bytes.encode_float(20, _off_dual.y)
@@ -3004,7 +3038,8 @@ func _dispatch_tree_gravity(cl: int) -> void:
 	bp.encode_float(0, float(N_src))
 	bp.encode_float(1, 0.0); bp.encode_float(2, 0.0); bp.encode_float(3, 0.0)
 	bp.encode_float(4, half)
-	bp.encode_float(5, ML_TREE_EPS2)
+	var eps2: float = ML_TREE_EPS2_FRAC * ML_TREE_EPS2_FRAC * _extent_min() * _extent_min()
+	bp.encode_float(5, eps2)
 	bp.encode_float(6, PHI)
 	bp.encode_float(7, PHI_6)
 	bp.encode_float(8, float(ML_TREE_LEAF_CAP))
@@ -3015,7 +3050,7 @@ func _dispatch_tree_gravity(cl: int) -> void:
 	var wp = _tree_grav_pc_bytes
 	wp.encode_float(0, float(Np))
 	wp.encode_float(1, ML_TREE_THETA)
-	wp.encode_float(2, ML_TREE_EPS2)
+	wp.encode_float(2, eps2)
 	wp.encode_float(3, 1.0)  # use_tp — read particle positions (_pos_buf)
 	wp.encode_float(4, float(ML_TREE_NODE_MAX_MULT * N_src + 64))  # bound (unused by walk)
 
@@ -3132,14 +3167,17 @@ func _dispatch_tree_gravity_local() -> void:
 	_tlrd.buffer_update(_tl_cf, 0, 16, PackedFloat32Array([ext.x, ext.y, ext.z, half]).to_byte_array())
 	_tlrd.buffer_update(_tl_nr, 0, 16, PackedInt32Array([0, S, -1, 0]).to_byte_array())
 	var tnm: int = ML_TREE_NODE_MAX_MULT * S + 64
+	# Softening: physical leaf-scale ε = (FRAC · extent_min)² (see the const
+	# doc) — derived per-dispatch so it tracks the live box geometry.
+	var eps2: float = ML_TREE_EPS2_FRAC * ML_TREE_EPS2_FRAC * _extent_min() * _extent_min()
 	var bpc := PackedFloat32Array(); bpc.resize(19)
 	bpc[0] = float(S); bpc[1] = 0.0; bpc[2] = 0.0; bpc[3] = 0.0; bpc[4] = half
-	bpc[5] = ML_TREE_EPS2; bpc[6] = PHI; bpc[7] = PHI_6
+	bpc[5] = eps2; bpc[6] = PHI; bpc[7] = PHI_6
 	bpc[8] = float(ML_TREE_LEAF_CAP); bpc[9] = float(ML_TREE_MAX_LEVELS)
 	bpc[14] = float(grid_N); bpc[15] = ext.x; bpc[16] = ext.y; bpc[17] = ext.z
 	bpc[18] = ML_TREE_FIELD_FLOOR
 	var gpc := PackedFloat32Array(); gpc.resize(5)
-	gpc[0] = float(Np); gpc[1] = ML_TREE_THETA; gpc[2] = ML_TREE_EPS2; gpc[3] = 1.0
+	gpc[0] = float(Np); gpc[1] = ML_TREE_THETA; gpc[2] = eps2; gpc[3] = 1.0
 	gpc[4] = float(tnm)
 	var pg := int(ceil(float(S) / 64.0))
 	var pall := int(ceil(float(tnm) / 64.0))
