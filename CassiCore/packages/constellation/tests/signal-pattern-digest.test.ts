@@ -7,7 +7,7 @@ import {
   type PatternEntry,
 } from '../src/signal-pattern-digest.js'
 
-import type { CognitiveSignal, SignalType } from '../src/vendor/workspace/cognitive-signal.js'
+import type { CognitiveSignal, SignalType } from '@cassicore/workspace'
 
 function makeSignal(overrides: Partial<CognitiveSignal> = {}): CognitiveSignal {
   return {

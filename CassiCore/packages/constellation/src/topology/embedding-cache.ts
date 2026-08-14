@@ -19,7 +19,7 @@
  */
 
 import type { ILogger } from '../vendor/types/interfaces.js'
-import type { EmbeddingService } from '../vendor/embeddings/embedding-service.js'
+import type { EmbeddingService } from '@cassicore/embeddings'
 
 export interface TopologyEmbeddingCacheMetrics {
   /** Number of times a cached vector was returned (text unchanged) */

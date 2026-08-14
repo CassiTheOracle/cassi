@@ -15,7 +15,7 @@
 
 import type { ILogger } from '@cassicore/foundation'
 import type { Message, ContentBlock } from '@cassicore/foundation'
-import { estimateTokens } from './vendor/core/intelligence/shared/token-estimation.js'
+import { estimateTokens } from '@cassicore/embeddings'
 
 // classifyParagraph imported below for chunk tagging
 

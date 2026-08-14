@@ -17,7 +17,7 @@
  */
 
 import type { ILogger } from '@cassicore/foundation'
-import type { CognitiveSignal } from './vendor/core/intelligence/workspace/index.js'
+import type { CognitiveSignal } from '@cassicore/workspace'
 
 
 export type HelixSparkKind =

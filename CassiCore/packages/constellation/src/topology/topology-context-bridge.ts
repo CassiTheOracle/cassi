@@ -23,7 +23,7 @@
 import type { ILogger } from '../vendor/types/interfaces.js'
 import type { ICorpusTree, BranchDigest } from '../corpus-types.js'
 import type { TopologySnapshot, TopologyLink, MergeDepth } from './topology-types.js'
-import type { GlobalWorkspace, CognitiveSignal } from '../vendor/workspace/index.js'
+import type { GlobalWorkspace, CognitiveSignal } from '@cassicore/workspace'
 
 
 export interface TopologyContextBridgeOpts {

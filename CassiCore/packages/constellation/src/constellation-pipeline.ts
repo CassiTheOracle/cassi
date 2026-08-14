@@ -67,10 +67,10 @@ import { ConstellationWorktreeIsolation } from './worktree-isolation.js'
 import { TopologyGraph } from './topology/topology-graph.js'
 import { BrainstemBridge } from './topology/brainstem-bridge.js'
 import { serializeTopologySnapshot } from './topology/topology-types.js'
-import type { EmbeddingService } from './vendor/embeddings/embedding-service.js'
+import type { EmbeddingService } from '@cassicore/embeddings'
 import { CrossSessionTopicIndex } from '@cassicore/thalamus'
 import { createConstellationGuidanceProvider } from './guidance-provider.js'
-import { scoreSpecificity } from './vendor/code-analysis/specificity-scorer.js'
+import { scoreSpecificity } from '@cassicore/workspace'
 
 // Constants
 
@@ -279,7 +279,7 @@ export interface ConstellationPipelineOpts {
    *  When provided, each branch's context injection is recorded, and after
    *  completion the files used are compared to files suggested. The Bayesian
    *  model learns which specificity/mode combinations produce useful context. */
-  contextFeedback?: import('./vendor/code-analysis/feedback-tracker.js').ContextFeedbackTracker
+  contextFeedback?: import('@cassicore/workspace').ContextFeedbackTracker
 
   /** Guidance registry shared with collect_thoughts. When provided, the pipeline
    *  creates per-branch guidance providers and registers them here so that
@@ -315,7 +315,7 @@ export interface ConstellationPipelineOpts {
    * quiescence, and (when MnemicField is also wired) milestone engrams flow
    * through HelixMnemicBridge. When unset, Helix runs its legacy channel path.
    */
-  globalWorkspace?: import('./vendor/workspace/index.js').GlobalWorkspace
+  globalWorkspace?: import('@cassicore/workspace').GlobalWorkspace
 
   /**
    * WorkflowEngine — when provided, decompositions containing any

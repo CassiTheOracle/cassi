@@ -25,7 +25,7 @@
  */
 
 import type { ILogger, IEventBus } from '@cassicore/foundation'
-import type { CognitiveSignal, GlobalWorkspace } from './vendor/core/intelligence/workspace/index.js'
+import type { CognitiveSignal, GlobalWorkspace } from '@cassicore/workspace'
 import type { HelixPosture } from './types.js'
 
 import { PostureModule } from './posture-module.js'

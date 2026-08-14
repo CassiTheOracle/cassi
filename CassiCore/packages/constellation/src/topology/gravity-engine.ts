@@ -14,7 +14,7 @@
  */
 
 import type { ILogger } from '../vendor/types/interfaces.js'
-import type { EmbeddingService } from '../vendor/embeddings/embedding-service.js'
+import type { EmbeddingService } from '@cassicore/embeddings'
 import type { BranchDigest } from '../corpus-types.js'
 import type { TopologyEmbeddingCache } from './embedding-cache.js'
 import type {

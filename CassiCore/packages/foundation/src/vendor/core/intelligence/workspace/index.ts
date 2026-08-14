@@ -4,7 +4,10 @@
  * Type-only placeholder for the Global Workspace surface consumed by the P1 live-set
  * (`base/cognitive-module.ts`): `GlobalWorkspace`, `CognitiveSignal`, `SignalType`,
  * `WorkspaceResponse`. Self-contained; builtin types only; no runtime.
- * Re-pointed to `@cassicore/lamina` (workspace) at P5.
+ * KEPT LOCAL (not re-pointed to @cassicore/workspace): foundation is the P1 shared
+ * substrate and must not declare an upward dependency on the P5 workspace package
+ * (substrate-inversion rule — see DreamerConfig fix 6694b52 / PhrasePrototypeSet 18d105c).
+ * Downstream consumers (helix/constellation) re-point to the real @cassicore/workspace.
  */
 
 /** Functional category of a cognitive signal. */
@@ -21,9 +24,29 @@ export type SignalType =
   | 'goal'
   | 'bridge'
 
-/** Trait vector of a signal's publisher. */
+/**
+ * Trait vector of a signal's publisher.
+ * Shape matches @cassicore/workspace's cognitive-signal.ts TraitVector (C-POLY-1);
+ * aligned so downstream consumers that mix real-workspace types with foundation's
+ * BaseCognitiveModule boundary types stay structurally compatible.
+ */
 export interface TraitVector {
-  [trait: string]: number
+  /** Structural: emphasis on organization, architecture, modularity */
+  structural: number
+  /** Pragmatic: emphasis on code that works, tests pass, ship it */
+  pragmatic: number
+  /** Generative: emphasis on exploration, alternatives, creativity */
+  generative: number
+  /** Analytical: emphasis on rigor, correctness, edge cases */
+  analytical: number
+  /** Collaborative: emphasis on Yang/Yin dialectic, synthesis */
+  collaborative: number
+  /** Adaptive: emphasis on flexibility, iteration, learning */
+  adaptive: number
+  /** Decisive: emphasis on choosing, committing, forward progress */
+  decisive: number
+  /** Focused: emphasis on depth, thoroughness, completeness */
+  focused: number
 }
 
 /** System-level luminance score — four-plus dimensions of salience. */

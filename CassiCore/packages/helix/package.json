@@ -28,11 +28,13 @@
   "dependencies": {
     "@cassicore/aurora": "*",
     "@cassicore/cortex-pineal-dialectic": "*",
+    "@cassicore/embeddings": "*",
     "@cassicore/foundation": "*",
     "@cassicore/lamina-locus-bridge": "*",
     "@cassicore/mini-helix": "*",
     "@cassicore/mnemic-field": "*",
     "@cassicore/thalamus": "*",
+    "@cassicore/workspace": "*",
     "better-sqlite3": "^11.0.0"
   },
   "devDependencies": {

@@ -29,7 +29,7 @@ import type { ConstellationResult, ConstellationTemplate, FlexPosture } from './
 import type { IMemory } from './vendor/types/intelligence.js'
 import type { ConstellationRegistry, ConstellationLiveState } from './constellation-injection.js'
 import type { TopologySnapshot } from './topology/topology-types.js'
-import { getEmbeddingService } from './vendor/embeddings/embedding-service.js'
+import { getEmbeddingService } from '@cassicore/embeddings'
 import type { ConstellationGuidanceRegistry } from './guidance-provider.js'
 
 
@@ -69,7 +69,7 @@ export interface ConstellationOrchestrator {
   setMemory(memory: IMemory): void
   setReasoningBank(bank: import('./vendor/reasoning-bank/index.js').ReasoningBank): void
   setMnemicField(field: import('@cassicore/mnemic-field').MnemicField): void
-  setGlobalWorkspace(workspace: import('./vendor/workspace/index.js').GlobalWorkspace): void
+  setGlobalWorkspace(workspace: import('@cassicore/workspace').GlobalWorkspace): void
   setLamina(field: import('@cassicore/lamina-locus-bridge').LaminaField): void
   setWorkflowEngine(engine: import('./vendor/workflow/engine.js').WorkflowEngine): void
   /** True when any non-meditation constellation is running or launching. */
@@ -122,7 +122,7 @@ export function createConstellationOrchestrator(
   let memory: IMemory | undefined
   let reasoningBank: import('./vendor/reasoning-bank/index.js').ReasoningBank | undefined
   let mnemicField: import('@cassicore/mnemic-field').MnemicField | undefined
-  let globalWorkspace: import('./vendor/workspace/index.js').GlobalWorkspace | undefined
+  let globalWorkspace: import('@cassicore/workspace').GlobalWorkspace | undefined
   let lamina: import('@cassicore/lamina-locus-bridge').LaminaField | undefined
   let workflowEngine: import('./vendor/workflow/engine.js').WorkflowEngine | undefined
 

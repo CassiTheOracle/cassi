@@ -19,7 +19,7 @@
  */
 
 import type { HelixPosture } from './types.js'
-import { composeSystemPrompt } from './vendor/core/intelligence/shared/posture-store.js'
+import { composeSystemPrompt } from '@cassicore/embeddings'
 import { UNITY_PRESET, YANG_PRESET, YIN_PRESET, traitDistance } from './types.js'
 
 

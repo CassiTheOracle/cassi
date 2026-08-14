@@ -3,12 +3,12 @@
   "version": "0.1.0",
   "description": "Global Workspace (GWT/blackboard) + radiance loop + code-analysis tooling extracted from CassiCore. GlobalWorkspace is the explicit-wired broadcast surface; code-analysis is batch git/schema tooling (sqlite). History-preserved import splice; depends on @cassicore/foundation and vendored runtime/type stubs pending later phases.",
   "type": "module",
-  "main": "./dist/workspace/index.js",
-  "types": "./dist/workspace/index.d.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/workspace/index.d.ts",
-      "import": "./dist/workspace/index.js"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     },
     "./workspace": {
       "types": "./dist/workspace/index.d.ts",

@@ -9,7 +9,7 @@
  * The Corpus LLM decides whether to act.
  */
 
-import type { CognitiveSignal, SignalType } from './vendor/workspace/cognitive-signal.js'
+import type { CognitiveSignal, SignalType } from '@cassicore/workspace'
 
 const DEFAULT_MAX_ENTRIES = 30
 const DEFAULT_WINDOW_MS = 60_000

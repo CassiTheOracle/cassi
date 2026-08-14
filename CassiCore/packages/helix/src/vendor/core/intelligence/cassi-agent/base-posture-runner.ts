@@ -7,9 +7,7 @@
  * Self-contained stub: imports only shared types from `@cassicore/foundation` and
  * sibling vendor modules within this tree.
  */
-import {
-  CHARS_PER_TOKEN as _CHARS_PER_TOKEN,
-} from '../shared/token-estimation.js'
+import { CHARS_PER_TOKEN as _CHARS_PER_TOKEN } from '@cassicore/embeddings'
 // Re-exported so callers get a stable constant surface.
 export const CHARS_PER_TOKEN = _CHARS_PER_TOKEN
 

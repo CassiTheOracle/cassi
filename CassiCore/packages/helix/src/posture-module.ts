@@ -15,7 +15,7 @@
  */
 
 import { BaseCognitiveModule } from '@cassicore/foundation'
-import type { CognitiveSignal, SignalType } from './vendor/core/intelligence/workspace/index.js'
+import type { CognitiveSignal, SignalType } from '@cassicore/workspace'
 import type { ILogger } from '@cassicore/foundation'
 import type { HelixPosture, HelixRole } from './types.js'
 

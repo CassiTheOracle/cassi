@@ -1,4 +1,4 @@
-import type { GlobalWorkspace } from '../vendor/workspace/global-workspace.js'
+import type { GlobalWorkspace } from '@cassicore/workspace'
 import type { SynapseType } from '@cassicore/mnemic-field'
 import { GraphAttnPropagator, type PropagatedEngram } from '@cassicore/mnemic-field'
 import type { ILogger } from '../vendor/types/interfaces.js'

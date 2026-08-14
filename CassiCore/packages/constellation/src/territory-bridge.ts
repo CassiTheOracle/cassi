@@ -10,8 +10,8 @@
  * Any change to that contract must update parseSiblingGoalEntry below.
  */
 
-import type { CognitiveSignal } from './vendor/workspace/cognitive-signal.js'
-import type { GlobalWorkspace } from './vendor/workspace/global-workspace.js'
+import type { CognitiveSignal } from '@cassicore/workspace'
+import type { GlobalWorkspace } from '@cassicore/workspace'
 import type { PhrasePrototypeSet } from '@cassicore/mnemic-field'
 import type { MnemicField } from '@cassicore/mnemic-field'
 import { extractKeywords, keywordOverlap } from './ports/workspace-luminance.js'

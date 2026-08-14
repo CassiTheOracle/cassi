@@ -23,7 +23,7 @@
 
 import type { ILogger, IEventBus } from '../types/interfaces.js'
 import type { WorkUnit } from './work-types.js'
-import type { CognitiveSignal } from '../workspace/cognitive-signal.js'
+import type { CognitiveSignal } from '@cassicore/workspace'
 import type { ICorpusTree } from '../../corpus-types.js'
 import type {
   CorpusDirective,

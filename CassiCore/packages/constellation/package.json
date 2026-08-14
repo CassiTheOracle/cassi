@@ -29,11 +29,13 @@
     "@cassicore/aurora": "*",
     "@cassicore/cortex-pineal-dialectic": "*",
     "@cassicore/dreamer-reverie-subconscious": "*",
+    "@cassicore/embeddings": "*",
     "@cassicore/foundation": "*",
     "@cassicore/helix": "*",
     "@cassicore/lamina-locus-bridge": "*",
     "@cassicore/mnemic-field": "*",
     "@cassicore/thalamus": "*",
+    "@cassicore/workspace": "*",
     "better-sqlite3": "^11.0.0",
     "uuid": "^9.0.0"
   },

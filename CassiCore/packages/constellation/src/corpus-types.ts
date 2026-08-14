@@ -1073,7 +1073,7 @@ export interface CorpusDeps {
    * WHY: GlobalWorkspace for publishing directives so the posture runner's
    * injectWorkspaceBroadcasts() delivers them to the LLM. (c-36 fix)
    */
-   globalWorkspace?: import('./vendor/workspace/index.js').GlobalWorkspace
+   globalWorkspace?: import('@cassicore/workspace').GlobalWorkspace
   /**
    * WHY: When the CorpusObserverLayer is active, it performs cross-Helix LLM
    * analysis with actual SynapseRollingSlice data (superior to BranchDigest).

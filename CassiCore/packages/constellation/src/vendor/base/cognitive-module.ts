@@ -45,7 +45,7 @@ import type { ToolExecutor } from '../tools/executor.js'
 import type { ToolRegistry } from '../tools/registry.js'
 import type { ModuleSessionRegistry } from '../module-session-registry.js'
 import type { GlobalBlackboardRegistry } from '../flux-team/global-blackboard-registry.js'
-import type { GlobalWorkspace, CognitiveSignal, SignalType, WorkspaceResponse } from '../workspace/index.js'
+import type { GlobalWorkspace, CognitiveSignal, SignalType, WorkspaceResponse } from '@cassicore/workspace'
 
 // Re-export types for backward compatibility
 export type { ModuleModelConfig } from './model-config.js'

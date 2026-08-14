@@ -37,7 +37,7 @@ import type { HelixRole, HelixPosture, HelixPostureResult, TraitVector } from '.
 import { TRAIT_AXES, UNITY_PRESET, YANG_PRESET, YIN_PRESET, traitToAttentionParams } from './types.js'
 import type { HelixBrainstem } from './brainstem.js'
 import type { PostureModule, PostureSignalOpts } from './posture-module.js'
-import type { SignalType } from './vendor/core/intelligence/workspace/index.js'
+import type { SignalType } from '@cassicore/workspace'
 import type { HelixTelemetry } from './helix-telemetry.js'
 import type { Aurora } from '@cassicore/aurora'
 import type { HelixJournal } from './helix-journal.js'
@@ -67,7 +67,7 @@ import {
 import { DriftDetector } from './drift-detector.js'
 import { TestLock } from './testlock.js'
 import type { TestLockPersistence, SealedTestSpec, TestLockVerificationStatus, TestLockVerification } from './testlock.js'
-import { estimateTokens } from './vendor/core/intelligence/shared/token-estimation.js'
+import { estimateTokens } from '@cassicore/embeddings'
 import {
   getCodeConsolidatedToolSchema,
   WEB_CONSOLIDATED_TOOL,

@@ -18,7 +18,7 @@ import type { ConvergencePoint, UnresolvedTension } from './dialectic-channel.js
 // import type { Blackboard } from '../flux-team/blackboard.js'
 import type { DyadRole } from './work-types.js'
 import type { UnityStatusThresholds } from './work-stream.js'
-import type { GlobalWorkspace } from './vendor/core/intelligence/workspace/index.js'
+import type { GlobalWorkspace } from '@cassicore/workspace'
 import type { AutoReportSection } from './brainstem-types.js'
 
 

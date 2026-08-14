@@ -59,7 +59,7 @@ import type { HelixSynapseConfig, HelixSynapseLLM } from './helix-synapse.js'
 import { PostureModule } from './posture-module.js'
 import { HelixTelemetry } from './helix-telemetry.js'
 import { HelixConductor, shouldUseConductor } from './helix-conductor.js'
-import type { GlobalWorkspace } from './vendor/core/intelligence/workspace/index.js'
+import type { GlobalWorkspace } from '@cassicore/workspace'
 import type { MnemicField } from '@cassicore/mnemic-field'
 import type { Aurora } from '@cassicore/aurora'
 
