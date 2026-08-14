@@ -13,17 +13,19 @@ var _info_label: Label
 var _diag_label: Label
 var _conn_label: Label
 
-var _mode_btns: Array[Button] = []
-var _grav_btns: Array[Button] = []
-var _play_btn: Button
-var _reinit_btn: Button
+var _mode_seg: CSegmented
+var _mode_btns: Array[CToggle] = []
+var _gravity_seg: CSegmented
+var _grav_btns: Array[CToggle] = []
+var _play_btn: CButton
+var _reinit_btn: CButton
 
-var _xi_slider: HSlider;  var _xi_label: Label
-var _src_slider: HSlider; var _src_label: Label
-var _grid_spin: SpinBox
-var _particle_spin: SpinBox
-var _nclusters_spin: SpinBox; var _sep_spin: SpinBox
-var _init_opt: OptionButton
+var _xi_slider: CParam;  var _xi_label: CLabel
+var _src_slider: CParam; var _src_label: CLabel
+var _grid_spin: CSpinParam
+var _particle_spin: CSpinParam
+var _nclusters_spin: CSpinParam; var _sep_spin: CSpinParam
+var _init_opt: COptionParam
 var _rainbow_btn: CheckButton
 var _color_src_opt: OptionButton
 var _fit_btn: Button
@@ -66,6 +68,52 @@ const GradientLegend = preload("res://scripts/gradient_legend.gd")
 ## House design-language theme (addons/cassi_ui/theme/cassi_theme.tres):
 ## the single source of truth for the UI's colors and type scale.
 const CASSI_THEME: Theme = preload("res://addons/cassi_ui/theme/cassi_theme.tres")
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Settings registry (Phase 4) — one entry per adjustable parameter. The
+# build loop in _ready() drives component construction straight from this
+# array: adding a new parameter = one Dictionary entry here (new param =
+# one dict entry is the whole contract).
+#
+# Schema:  {id, kind, caption, token, min, max, step, default, changed,
+#           group, [width]}
+#   id       — stable string; also selects the direct-ref alias below
+#              (xi→_xi_slider/_xi_label, src→_src_slider/_src_label,
+#              grid→_grid_spin, particles→_particle_spin,
+#              clusters→_nclusters_spin, separation→_sep_spin, init→_init_opt).
+#   kind     — "slider" → CParam; "spin" → CSpinParam; "option" → COptionParam.
+#   caption  — the row's caption text; token — its "Cassi" color token.
+#   min/max/step/default — control range + initial value.
+#   changed  — the handler METHOD NAME (GDScript `const` can't hold bound
+#              Callables; resolved to Callable(self, name) at build time).
+#   group    — which collapsible section owns the row (informational).
+#   width    — optional min width for spin/option rows (matches the
+#              hand-built VBox boxes; sliders use CParam's internal 180).
+#
+# NOT registry'd: the `color_src` OptionButton. It lives inside the
+# compound Color row (Rainbow + src + Fit scale) and is read in 6+ places
+# by the color pipeline (_sync_color_widgets, _apply_particle_color_mode,
+# _on_fit_colors, _update_scale_label, _legend.set_sim), so it stays
+# inline with the Color row — NOT an independent adjustable parameter.
+const PARAMS: Array[Dictionary] = [
+	{"id": "xi",         "kind": "slider", "caption": "xi:",        "token": "gold_soft", "min": 0.0,   "max": 100.0,    "step": 0.5,   "default": 18.0,   "changed": "_on_xi_changed",        "group": "Parameters"},
+	{"id": "src",        "kind": "slider", "caption": "Source:",    "token": "gold_soft", "min": 0.0,   "max": 2.0,      "step": 0.01,  "default": 0.5,    "changed": "_on_src_changed",       "group": "Parameters"},
+	{"id": "grid",       "kind": "spin",   "caption": "Grid N:",    "token": "gold",      "min": 64,    "max": 256,      "step": 64,    "default": 64,     "changed": "_on_grid_changed",      "group": "Parameters", "width": 120},
+	{"id": "particles",  "kind": "spin",   "caption": "Particles:", "token": "gold",      "min": 100,   "max": 5000000,  "step": 1000,  "default": 20000,  "changed": "_on_particles_changed", "group": "Parameters", "width": 150},
+	{"id": "clusters",   "kind": "spin",   "caption": "Clusters:",  "token": "cluster",   "min": 1,     "max": 20,       "step": 1,     "default": 1,      "changed": "_on_clusters_changed",  "group": "Parameters", "width": 120},
+	{"id": "separation", "kind": "spin",   "caption": "Separation:", "token": "sep",     "min": 10,    "max": 500,      "step": 10,    "default": 60,     "changed": "_on_separation_changed", "group": "Parameters", "width": 120},
+	{"id": "init",       "kind": "option", "caption": "Init:",      "token": "gold",      "min": 0,     "max": 2,        "step": 1,     "default": 0,      "changed": "_on_init_selected",      "group": "Parameters", "width": 120},
+]
+## Registry params belonging to the Parameters group's FIRST (row2) HBox;
+## the rest go in its second (row3) HBox — reproduces the hand-built
+## two-row arrangement exactly.
+const PARAMS_ROW2: Array[String] = ["xi", "src", "grid", "particles"]
+## Gravity-law segment labels (CSegmented options), matching the old
+## _build_gravity_buttons mapping (0=RIVER…4=REALSIM).
+const GRAVITY_NAMES: Array[String] = ["River", "Heuristic", "Plummer ref", "River self", "RealSim"]
+## Initial-condition profile choices for the Init option row.
+const INIT_CHOICES: Array[String] = ["Plummer", "Gaussian", "Uniform"]
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -229,7 +277,7 @@ func _ready() -> void:
 			sim.bh_texture_updated.connect(_on_field_texture_updated)
 
 	# ── Top-left info panel ──────────────────────────────────────
-	var info_panel = PanelContainer.new()
+	var info_panel = CPanel.new()
 	info_panel.name = "InfoPanel"
 	info_panel.set_anchors_preset(PRESET_TOP_LEFT)
 	info_panel.offset_left = 10; info_panel.offset_top = 10
@@ -258,10 +306,10 @@ func _ready() -> void:
 	info_vbox.add_child(_falsify_label)
 
 	# ── Bottom control panel ─────────────────────────────────────
-	var control_panel = PanelContainer.new()
+	var control_panel = CPanel.new()
 	control_panel.name = "ControlPanel"
 	control_panel.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	control_panel.offset_top = -296  # 4 control rows + the VFX row + the gradient legend row (+ swatch row) — content min ≈ 290
+	control_panel.offset_top = -296  # collapsed groups stack tighter; this is the max-height frame (all expanded = today's 4 rows + VFX + legend)
 	control_panel.offset_left = 10; control_panel.offset_right = -10
 	add_child(control_panel)
 
@@ -269,128 +317,81 @@ func _ready() -> void:
 	root_vbox.add_theme_constant_override("separation", 6)
 	control_panel.add_child(root_vbox)
 
-	# Row 1: mode buttons + play/pause + reinit
+	# ── Grouped sections (Phase 4) — the ControlPanel's root VBox is a
+	# stack of collapsible CGroupPanels, all DEFAULT EXPANDED (first render
+	# = today's rows plus a slim header bar per group). Each group holds the
+	# rows it did before. ──────────────────────────────────────────
+
+	# Field: mode segmented + gravity segmented + play/reinit (today's row1)
+	var field_group := CGroupPanel.new()
+	field_group.set_title("Field")
+	root_vbox.add_child(field_group)
+	var field_content := field_group.content()
+
 	var row1 = HBoxContainer.new()
 	row1.add_theme_constant_override("separation", 8)
-	root_vbox.add_child(row1)
+	field_content.add_child(row1)
 
-	_build_mode_buttons(row1)
+	_mode_seg = CSegmented.new()
+	_mode_seg.button_min_width = 100
+	_mode_seg.setup(MODE_NAMES, 0)
+	_mode_seg.set_selected_no_signal(0)
+	_mode_seg.selection_changed.connect(_on_mode_pressed)
+	_mode_btns = _mode_seg.buttons
+	row1.add_child(_mode_seg)
 
 	var sep0 = VSeparator.new()
 	sep0.custom_minimum_size = Vector2(4, 0)
 	row1.add_child(sep0)
-	_build_gravity_buttons(row1)
+
+	_gravity_seg = CSegmented.new()
+	_gravity_seg.button_min_width = 90
+	_gravity_seg.setup(GRAVITY_NAMES, 0)
+	_gravity_seg.set_selected_no_signal(0)
+	_gravity_seg.selection_changed.connect(_on_gravity_mode_pressed)
+	_grav_btns = _gravity_seg.buttons
+	row1.add_child(_gravity_seg)
 
 	var sep1 = VSeparator.new()
 	sep1.custom_minimum_size = Vector2(4, 0)
 	row1.add_child(sep1)
-	_play_btn = Button.new()
-	_play_btn.text = "⏸ Pause"
+
+	_play_btn = CButton.make("⏸ Pause", _on_play_toggled)
 	_play_btn.custom_minimum_size = Vector2(90, 30)
-	_play_btn.pressed.connect(_on_play_toggled)
 	row1.add_child(_play_btn)
 
-	_reinit_btn = Button.new()
-	_reinit_btn.text = "↻ Reinit"
+	_reinit_btn = CButton.make("↻ Reinit", _on_reinit)
 	_reinit_btn.custom_minimum_size = Vector2(90, 30)
-	_reinit_btn.pressed.connect(_on_reinit)
 	row1.add_child(_reinit_btn)
 
 	var sep2 = VSeparator.new()
 	sep2.custom_minimum_size = Vector2(4, 0)
 	row1.add_child(sep2)
 
-	# Row 2: sliders + spinboxes + server fields
+	# Parameters: registry params (xi/src/grid/particles in the first HBox,
+	# clusters/separation/init in the second) + the compound Color row +
+	# the standalone check-button cluster — all in the current row order.
+	var params_group := CGroupPanel.new()
+	params_group.set_title("Parameters")
+	root_vbox.add_child(params_group)
+	var params_content := params_group.content()
+
 	var row2 = HBoxContainer.new()
 	row2.add_theme_constant_override("separation", 12)
-	root_vbox.add_child(row2)
-
-	# Xi slider
-	_xi_slider = _build_slider_row(row2, "xi: 18.0", 0.0, 100.0, 0.5, 18.0,
-		func(v): _on_xi_changed(v))
-	_xi_label = row2.get_child(row2.get_child_count() - 1).get_child(0) as Label
-	# Re-grab: the helper returns the slider, label is first child of the VBox
-	_xi_label = (_xi_slider.get_parent() as VBoxContainer).get_child(0) as Label
-
-	# Source strength slider
-	_src_slider = _build_slider_row(row2, "Source: 0.50", 0.0, 2.0, 0.01, 0.5,
-		func(v): _on_src_changed(v))
-	_src_label = (_src_slider.get_parent() as VBoxContainer).get_child(0) as Label
-
-	# Grid resolution spinbox
-	var grid_box = VBoxContainer.new()
-	grid_box.custom_minimum_size = Vector2(120, 40)
-	row2.add_child(grid_box)
-	var grid_lbl = _make_label("Grid N:", "gold", "param")
-	grid_box.add_child(grid_lbl)
-	_grid_spin = SpinBox.new()
-	# Radix-2 spectral FFT: valid grids are powers of two in [64, 256];
-	# non-powers (e.g. 192) are rounded UP by the sim — the control
-	# re-syncs to the effective grid after reinit.
-	_grid_spin.min_value = 64; _grid_spin.max_value = 256
-	_grid_spin.step = 64; _grid_spin.value = 64
-	_grid_spin.editable = true
-	_grid_spin.custom_minimum_size = Vector2(0, 22)
-	grid_box.add_child(_grid_spin)
-
-	# Particle count spinbox
-	var part_box = VBoxContainer.new()
-	part_box.custom_minimum_size = Vector2(150, 40)
-	row2.add_child(part_box)
-	var part_lbl = _make_label("Particles:", "gold", "param")
-	part_box.add_child(part_lbl)
-	_particle_spin = SpinBox.new()
-	_particle_spin.min_value = 100; _particle_spin.max_value = 5000000
-	_particle_spin.step = 1000; _particle_spin.value = 20000
-	_particle_spin.custom_minimum_size = Vector2(0, 22)
-
-	# Row 3: cluster controls
+	params_content.add_child(row2)
 	var row3 = HBoxContainer.new()
 	row3.add_theme_constant_override("separation", 12)
-	root_vbox.add_child(row3)
+	params_content.add_child(row3)
 
-	# Cluster count spinbox
-	var nclust_box = VBoxContainer.new()
-	nclust_box.custom_minimum_size = Vector2(120, 40)
-	row3.add_child(nclust_box)
-	var nclust_lbl = _make_label("Clusters:", "cluster", "param")
-	nclust_box.add_child(nclust_lbl)
-	_nclusters_spin = SpinBox.new()
-	_nclusters_spin.min_value = 1; _nclusters_spin.max_value = 20
-	_nclusters_spin.step = 1; _nclusters_spin.value = 1
-	_nclusters_spin.custom_minimum_size = Vector2(0, 22)
-	nclust_box.add_child(_nclusters_spin)
+	for p in PARAMS:
+		var target: Control = row2 if p.id in PARAMS_ROW2 else row3
+		var row_ctrl: Control = _build_param_row(p)
+		target.add_child(row_ctrl)
 
-	# Cluster separation spinbox
-	var sep_box = VBoxContainer.new()
-	sep_box.custom_minimum_size = Vector2(120, 40)
-	row3.add_child(sep_box)
-	var sep_lbl = _make_label("Separation:", "sep", "param")
-	sep_box.add_child(sep_lbl)
-	_sep_spin = SpinBox.new()
-	_sep_spin.min_value = 10; _sep_spin.max_value = 500
-	_sep_spin.step = 10; _sep_spin.value = 60
-	_sep_spin.custom_minimum_size = Vector2(0, 22)
-	sep_box.add_child(_sep_spin)
-
-	# Initial-condition profile selector
-	var init_box = VBoxContainer.new()
-	init_box.custom_minimum_size = Vector2(120, 40)
-	row3.add_child(init_box)
-	var init_lbl = _make_label("Init:", "gold", "param")
-	init_box.add_child(init_lbl)
-	_init_opt = OptionButton.new()
-	_init_opt.add_item("Plummer")
-	_init_opt.add_item("Gaussian")
-	_init_opt.add_item("Uniform")
-	_init_opt.selected = 0
-	_init_opt.custom_minimum_size = Vector2(0, 22)
-	_init_opt.focus_mode = Control.FOCUS_NONE
-	init_box.add_child(_init_opt)
-
-	# Particle color: choose the quantity, click Fit scale for a clean
+	# Compound Color row: choose the quantity, click Fit scale for a clean
 	# starting range, then drag LOW and HIGH on the legend below. The
 	# physical white point remains visible on the legend and needs no knob.
+	# (color_src stays INLINE here, NOT in the registry — see PARAMS.)
 	var color_box = VBoxContainer.new()
 	color_box.custom_minimum_size = Vector2(280, 40)
 	row3.add_child(color_box)
@@ -502,9 +503,13 @@ func _ready() -> void:
 	# New instancer visuals, each an OPT-IN flag or mode overlaid on the
 	# existing color modes (see compute/cassi_instancer.glsl header for the
 	# color_mode bit encoding). All live — no reinit.
+	var vfx_group := CGroupPanel.new()
+	vfx_group.set_title("VFX")
+	root_vbox.add_child(vfx_group)
+	var vfx_content := vfx_group.content()
 	var row_vfx = HBoxContainer.new()
 	row_vfx.add_theme_constant_override("separation", 8)
-	root_vbox.add_child(row_vfx)
+	vfx_content.add_child(row_vfx)
 	var vfx_lbl = _make_label("VFX:", "mint", "param")
 	vfx_lbl.custom_minimum_size = Vector2(34, 0)
 	vfx_lbl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -556,36 +561,17 @@ func _ready() -> void:
 	_falsify_btn.toggled.connect(_on_falsify_toggled)
 	row_vfx.add_child(_falsify_btn)
 
-	# Server (future) fields
-	var srv_box = VBoxContainer.new()
-	srv_box.custom_minimum_size = Vector2(160, 40)
-	row2.add_child(srv_box)
-	var srv_lbl = _make_label("Server (future):", "slate", "param")
-	srv_box.add_child(srv_lbl)
-	var srv_hbox = HBoxContainer.new()
-	srv_hbox.add_theme_constant_override("separation", 4)
-	srv_box.add_child(srv_hbox)
-	_server_ip_edit = LineEdit.new()
-	_server_ip_edit.placeholder_text = "IP"
-	_server_ip_edit.text = "127.0.0.1"
-	_server_ip_edit.custom_minimum_size = Vector2(90, 22)
-	_server_ip_edit.editable = false
-	_server_ip_edit.modulate = _tok_color("disabled")
-	srv_hbox.add_child(_server_ip_edit)
-	_server_port_edit = LineEdit.new()
-	_server_port_edit.placeholder_text = "Port"
-	_server_port_edit.text = "8080"
-	_server_port_edit.custom_minimum_size = Vector2(55, 22)
-	_server_port_edit.editable = false
-	_server_port_edit.modulate = _tok_color("disabled")
-	srv_hbox.add_child(_server_port_edit)
-
-	# ── Gradient legend + its live numeric readout ──
-	# The readout + color controls stay in the LEFT half of the bottom bar;
-	# the legend control (strip + its sample-swatch row) spans the RIGHT half.
+	# ── Color Scale: the legend row + its live numeric readout ──
+	# The readout + color controls stay in the LEFT half of the group;
+	# the legend control (strip + its sample-swatch row) spans the RIGHT
+	# half (EXPAND_FILL horizontally — preserved inside this group).
+	var color_scale_group := CGroupPanel.new()
+	color_scale_group.set_title("Color Scale")
+	root_vbox.add_child(color_scale_group)
+	var color_scale_content := color_scale_group.content()
 	var legend_row = HBoxContainer.new()
 	legend_row.add_theme_constant_override("separation", 8)
-	root_vbox.add_child(legend_row)
+	color_scale_content.add_child(legend_row)
 	var legend_left = HBoxContainer.new()
 	legend_left.add_theme_constant_override("separation", 8)
 	legend_left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -645,20 +631,49 @@ func _ready() -> void:
 	_legend.manual_changed.connect(_on_legend_manual)
 	legend_row.add_child(_legend)
 
-	# Init from sim if available
+	# ── Server (future) fields — today's server row ──
+	var srv_group := CGroupPanel.new()
+	srv_group.set_title("Server")
+	root_vbox.add_child(srv_group)
+	var srv_content := srv_group.content()
+	var srv_box = VBoxContainer.new()
+	srv_box.custom_minimum_size = Vector2(160, 40)
+	srv_content.add_child(srv_box)
+	var srv_lbl = _make_label("Server (future):", "slate", "param")
+	srv_box.add_child(srv_lbl)
+	var srv_hbox = HBoxContainer.new()
+	srv_hbox.add_theme_constant_override("separation", 4)
+	srv_box.add_child(srv_hbox)
+	_server_ip_edit = LineEdit.new()
+	_server_ip_edit.placeholder_text = "IP"
+	_server_ip_edit.text = "127.0.0.1"
+	_server_ip_edit.custom_minimum_size = Vector2(90, 22)
+	_server_ip_edit.editable = false
+	_server_ip_edit.modulate = _tok_color("disabled")
+	srv_hbox.add_child(_server_ip_edit)
+	_server_port_edit = LineEdit.new()
+	_server_port_edit.placeholder_text = "Port"
+	_server_port_edit.text = "8080"
+	_server_port_edit.custom_minimum_size = Vector2(55, 22)
+	_server_port_edit.editable = false
+	_server_port_edit.modulate = _tok_color("disabled")
+	srv_hbox.add_child(_server_port_edit)
+
+	# Init from sim if available — all no-signal setters so syncing the
+	# sim's live values never fires a spurious callback/reinit on startup.
 	sim = _get_sim()
 	if sim:
-		_nclusters_spin.value = sim.num_clusters
-		_sep_spin.value = sim.cluster_separation
-		_xi_slider.value = sim.xi
-		_xi_label.text = "xi: %.1f" % sim.xi  # label starts at the builder default otherwise
-		_src_slider.value = sim.source_strength
-		_grid_spin.value = sim.grid_N
-		_particle_spin.value = sim.N_particles
+		_nclusters_spin.set_value_no_signal(sim.num_clusters)
+		_sep_spin.set_value_no_signal(sim.cluster_separation)
+		_xi_slider.set_value_no_signal(sim.xi)
+		_xi_label.text = "xi: %.1f" % sim.xi  # caption embeds the value (parity with the old row)
+		_src_slider.set_value_no_signal(sim.source_strength)
+		_grid_spin.set_value_no_signal(sim.grid_N)
+		_particle_spin.set_value_no_signal(sim.N_particles)
 		_update_play_btn(sim.playing)
 		_set_mode_highlight(sim.mode)
 		_set_grav_highlight(sim.gravity_mode)
-		_init_opt.selected = sim.initial_condition
+		_init_opt.set_value_no_signal(sim.initial_condition)
 		_multirung_btn.button_pressed = sim.multi_rung_seed
 
 		_meshless_btn.button_pressed = sim.meshless_mode
@@ -670,13 +685,11 @@ func _ready() -> void:
 		_multirung_btn.button_pressed = sim.multi_rung_seed
 		_vsync_btn.button_pressed = sim.vsync_enabled
 
-	# Connect value_changed AFTER init to avoid spurious reinit() on startup
-	_grid_spin.value_changed.connect(_on_grid_changed)
-	_particle_spin.value_changed.connect(_on_particles_changed)
-	_nclusters_spin.value_changed.connect(_on_clusters_changed)
-	_sep_spin.value_changed.connect(_on_separation_changed)
+	# Connect value_changed AFTER init to avoid spurious reinit() on startup.
+	# (Registry sliders + spins were wired at build time — their init sync
+	# above uses set_value_no_signal. The standalone toggles + the init
+	# option connect here, matching the pre-migration deferral.)
 	_meshless_btn.toggled.connect(_on_meshless_toggled)
-	_init_opt.item_selected.connect(_on_init_selected)
 	_no_rb_btn.toggled.connect(_on_suppress_readbacks_toggled)
 	_bh_toggle_btn.toggled.connect(_on_black_holes_toggled)
 	_phi_box_btn.toggled.connect(_on_phi_box_toggled)
@@ -684,68 +697,80 @@ func _ready() -> void:
 	_multirung_btn.toggled.connect(_on_multirung_toggled)
 	_vsync_btn.toggled.connect(_on_vsync_toggled)
 
-	# Prevent controls from stealing WASD camera input
-	_grid_spin.focus_mode = Control.FOCUS_NONE
-	_particle_spin.focus_mode = Control.FOCUS_NONE
-	_nclusters_spin.focus_mode = Control.FOCUS_NONE
-	_sep_spin.focus_mode = Control.FOCUS_NONE
-	_xi_slider.focus_mode = Control.FOCUS_NONE
-	_src_slider.focus_mode = Control.FOCUS_NONE
+	# Prevent controls from stealing WASD camera input. (CParam slider +
+	# CSegmented/CToggle/CButton bake FOCUS_NONE in; CSpinParam/COptionParam
+	# deliberately default to FOCUS_ALL for keyboard entry, but the
+	# pre-migration rows were FOCUS_NONE to protect the WASD camera, so we
+	# re-assert it here for zero behavior change.)
+	_grid_spin.spin.focus_mode = Control.FOCUS_NONE
+	_particle_spin.spin.focus_mode = Control.FOCUS_NONE
+	_nclusters_spin.spin.focus_mode = Control.FOCUS_NONE
+	_sep_spin.spin.focus_mode = Control.FOCUS_NONE
+	_init_opt.option.focus_mode = Control.FOCUS_NONE
 
 # ═══════════════════════════════════════════════════════════════════════
 # UI building helpers
 # ═══════════════════════════════════════════════════════════════════════
 
-func _build_mode_buttons(parent: HBoxContainer) -> void:
-	var group = ButtonGroup.new()
-	for i in range(4):
-		var btn = Button.new()
-		btn.text = MODE_NAMES[i]
-		btn.toggle_mode = true
-		btn.button_group = group
-		btn.button_pressed = (i == 0)
-		btn.custom_minimum_size = Vector2(100, 30)
-		btn.pressed.connect(_on_mode_pressed.bind(i))
-		parent.add_child(btn)
-		_mode_btns.append(btn)
-
-
-func _build_gravity_buttons(parent: HBoxContainer) -> void:
-	# Gravity law toggle: 0 = RIVER (the law, default), 1 = HEURISTIC
-	# (legacy), 2 = PLUMMER reference (grid-free analytic arm),
-	# 3 = RIVER-SELF (river law only — no BH point-source forces),
-	# 4 = REALSIM (river law + BH + drag/viscosity/friction dissipation)
-	var group = ButtonGroup.new()
-	for i in range(5):
-		var btn = Button.new()
-		btn.text = "River" if i == 0 else ("Heuristic" if i == 1 else ("Plummer ref" if i == 2 else ("River self" if i == 3 else "RealSim")))
-		btn.toggle_mode = true
-		btn.button_group = group
-		btn.button_pressed = (i == 0)
-		btn.custom_minimum_size = Vector2(90, 30)
-		btn.focus_mode = Control.FOCUS_NONE
-		btn.pressed.connect(_on_gravity_mode_pressed.bind(i))
-		parent.add_child(btn)
-		_grav_btns.append(btn)
-
-
-func _build_slider_row(parent: HBoxContainer, label_text: String,
-		min_v: float, max_v: float, step_v: float, default_v: float,
-		callback: Callable) -> HSlider:
-	var box = VBoxContainer.new()
-	box.custom_minimum_size = Vector2(180, 40)
-	parent.add_child(box)
-	var lbl = _make_label(label_text, "gold_soft", "param")
-	box.add_child(lbl)
-	var slider = HSlider.new()
-	slider.min_value = min_v; slider.max_value = max_v
-	slider.step = step_v; slider.value = default_v
-	slider.custom_minimum_size = Vector2(0, 20)
-	slider.value_changed.connect(callback)
-	box.add_child(slider)
-	return slider
-
-
+## Build one registry param's control row from a PARAMS entry: construct
+## the component, wire the changed callback, store the direct-ref alias,
+## and return the row Control for the caller to place in the right group
+## sub-row. (New params = one dict entry in PARAMS; no new code here.)
+func _build_param_row(p: Dictionary) -> Control:
+	var id: String = p.id
+	var caption: String = p.caption
+	var token: String = p.token
+	var width: float = float(p.get("width", 120))
+	match p.kind:
+		"slider":
+			# CParam = caption CLabel above HBox[HSlider + live value CLabel];
+			# FOCUS_NONE + pointing hand are baked in. The callback is wired
+			# via setup — safe here because the init sync uses
+			# set_value_no_signal (geometry: today's row shows the value in
+			# BOTH the caption and the value label — parity kept below).
+			var param := CParam.new()
+			param.setup(caption, token, p.min, p.max, p.step, p.default,
+				Callable(self, String(p.changed)))
+			if id == "xi":
+				_xi_slider = param
+				_xi_label = param.caption_label
+				# Caption embeds the live value (parity with "xi: %.1f").
+				param.caption_label.text = "%s %.1f" % [caption, p.default]
+			elif id == "src":
+				_src_slider = param
+				_src_label = param.caption_label
+				param.caption_label.text = "%s %.2f" % [caption, p.default]
+			return param
+		"spin":
+			# CSpinParam = caption CLabel above a SpinBox (added by the
+			# addons worker). Its setup wires value_changed→callback and
+			# set_value_no_signal is no-emit, so the init sync is spurious-
+			# reinit-safe. CSpinParam deliberately leaves the SpinBox
+			# FOCUS_ALL for keyboard entry, but the pre-migration rows kept
+			# FOCUS_NONE to protect the WASD camera — we re-assert it below.
+			var spin_box := CSpinParam.new()
+			spin_box.box_min_width = int(width)
+			spin_box.setup(caption, token, p.min, p.max, p.step, p.default,
+				Callable(self, String(p.changed)))
+			match id:
+				"grid":        _grid_spin = spin_box
+				"particles":   _particle_spin = spin_box
+				"clusters":    _nclusters_spin = spin_box
+				"separation":  _sep_spin = spin_box
+			return spin_box
+		"option":
+			# COptionParam = caption CLabel above an OptionButton (added by
+			# the addons worker). Its setup wires item_selected→callback and
+			# set_value_no_signal is no-emit, so the init sync is spurious-
+			# reinit-safe. Focusability handled at the call site (FOCUS_NONE
+			# to keep the WASD camera, matching the pre-migration Init row).
+			var opt_param := COptionParam.new()
+			opt_param.box_min_width = int(width)
+			opt_param.setup(caption, token, INIT_CHOICES, p.default,
+				Callable(self, String(p.changed)))
+			_init_opt = opt_param
+			return opt_param
+	return null
 
 
 func _sync_color_widgets(sim: Node3D) -> void:
@@ -811,15 +836,13 @@ func _on_field_texture_updated(tex: Texture2D) -> void:
 
 
 func _set_mode_highlight(active: int) -> void:
-	for i in range(_mode_btns.size()):
-		_mode_btns[i].button_pressed = (i == active)
+	_mode_seg.set_selected_no_signal(active)
 	# Show viz texture only in Field (1) or BH (2) mode
 	_viz_texture_rect.visible = (active == 1 or active == 2)
 
 
 func _set_grav_highlight(active: int) -> void:
-	for i in range(_grav_btns.size()):
-		_grav_btns[i].button_pressed = (i == active)
+	_gravity_seg.set_selected_no_signal(active)
 
 
 # ═══════════════════════════════════════════════════════════════════════
