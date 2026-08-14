@@ -11,6 +11,7 @@
  * `getRecentSignals(...)` (kept on the interface).
  * Self-contained; only builtin types. Re-pointed to `@cassicore/lamina` at P5.
  */
+import type { IEventBus } from '@cassicore/foundation'
 
 /** Functional category of a cognitive signal. */
 export type SignalType =
@@ -125,17 +126,110 @@ export interface GlobalWorkspaceSnapshot {
 export type Unsubscribe = () => void
 
 /** The Global Workspace engine — capacity-limited attention + broadcast. */
-export interface GlobalWorkspace {
+export interface GlobalWorkspaceConfig {
+  ignitionThreshold?: number
+  capacity?: number
+  urgencyDecayBase?: number
+  [key: string]: unknown
+}
+
+/**
+ * The Global Workspace engine — capacity-limited attention + broadcast.
+ *
+ * Faithful minimal runtime for helix's PostureModule seam: signals submitted
+ * via `submit()` are ignition-scored against the threshold and queued; an
+ * explicit `broadcast()` flushes the pending set to every `onBroadcast`
+ * subscriber (each module filters for relevance in its overridden
+ * `onWorkspaceBroadcast`). No luminance/coalition machinery — re-pointed to
+ * `@cassicore/lamina` (workspace) at P5.
+ */
+export class GlobalWorkspace {
+  private threshold: number
+  private listeners: Array<(signals: CognitiveSignal[]) => void> = []
+  private radiance: Array<{ source: string; handler: WorkspaceResponseHandler }> = []
+  private pending: CognitiveSignal[] = []
+  private slots: WorkspaceSlot[] = []
+  private eventBus?: IEventBus
+  private readonly signalIds = new Set<string>()
+  private readonly logger?: unknown
+
+  constructor(logger?: unknown, config: GlobalWorkspaceConfig = {}) {
+    this.logger = logger
+    this.threshold = config.ignitionThreshold ?? 0.5
+    this.capacity = config.capacity ?? 8
+    for (let i = 0; i < this.capacity; i++) this.slots.push({ signal: null })
+  }
+
+  private capacity: number
+
+  /** Wire an event bus for telemetry (stored; no emissions in this stub). */
+  setEventBus(bus: IEventBus): void {
+    this.eventBus = bus
+  }
+
   /** Submit a signal for competition. Returns true if it ignited. */
-  submit(signal: CognitiveSignal): boolean
+  submit(signal: CognitiveSignal): boolean {
+    if (this.signalIds.has(signal.signalId)) return false
+    this.signalIds.add(signal.signalId)
+    const score = signal.luminance?.composite ?? 0
+    const ignited = score >= this.threshold
+    if (ignited) {
+      this.pending.push(signal)
+      // Emit the ignition to the event bus so telemetry can journal it.
+      try {
+        this.eventBus?.emit({
+          type: 'workspace:ignition',
+          source: signal.source,
+          signalType: signal.type,
+          signalId: signal.signalId,
+          luminance: signal.luminance,
+        } as any)
+      } catch { /* best-effort */ }
+    }
+    return ignited
+  }
+
+  /** Flush pending signals to all broadcast subscribers. */
+  broadcast(): void {
+    const batch = this.pending
+    this.pending = []
+    if (batch.length === 0) return
+    for (const cb of this.listeners) {
+      try { cb(batch) } catch { /* best-effort */ }
+    }
+  }
+
   /** Subscribe to broadcasts. */
-  onBroadcast(handler: (signals: CognitiveSignal[]) => void): Unsubscribe
+  onBroadcast(handler: (signals: CognitiveSignal[]) => void): Unsubscribe {
+    this.listeners.push(handler)
+    return () => {
+      this.listeners = this.listeners.filter((h) => h !== handler)
+    }
+  }
+
   /** Register a radiance response handler for a source. */
-  onRadiance(source: string, handler: WorkspaceResponseHandler): Unsubscribe
+  onRadiance(source: string, handler: WorkspaceResponseHandler): Unsubscribe {
+    this.radiance.push({ source, handler })
+    return () => {
+      this.radiance = this.radiance.filter((r) => r.source !== source || r.handler !== handler)
+    }
+  }
+
   /** Snapshot the workspace's current state. */
-  getSnapshot(): GlobalWorkspaceSnapshot
-  /** Legacy direct broadcast (author + salience). */
-  broadcast(signal: { type: string; content: string; author: string; salience: number }): void
-  /** Return the most recent signals, capped at `limit`. */
-  getRecentSignals(limit: number): CognitiveSignal[]
+  getSnapshot(): GlobalWorkspaceSnapshot {
+    return {
+      slots: [...this.slots],
+      pendingCount: this.pending.length,
+      totalSubmitted: 0,
+      totalIgnited: 0,
+      ignitionRate: 0,
+      threshold: this.threshold,
+      tickCount: 0,
+    }
+  }
+
+  /** Return the most recently submitted signals, capped at `limit`. */
+  getRecentSignals(limit: number): CognitiveSignal[] {
+    return [...this.pending].slice(-limit)
+  }
 }
