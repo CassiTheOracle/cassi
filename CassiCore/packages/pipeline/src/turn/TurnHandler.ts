@@ -9,9 +9,9 @@ import { TurnProcessingError, ProviderNotFoundError } from '../session/types.js'
 import { ContextWindow } from './ContextWindow.js'
 import { MessageBuilder } from './MessageBuilder.js'
 import { ToolLoop, createSafeToolLoop } from './ToolLoop.js'
-import { CHARS_PER_TOKEN } from '../../intelligence/shared/token-estimation.js'
+import { CHARS_PER_TOKEN } from '@cassicore/embeddings'
 
-import type { IProvider } from '../../../types/runtime.js';
+import type { IProvider } from '@cassicore/foundation';
 import type {
   SessionState,
   TurnRequest,
@@ -22,7 +22,7 @@ import type {
   StreamEventCallback,
   Message,
 } from '../session/types.js';
-import type { IEventBus } from '../../../types/interfaces.js';
+import type { IEventBus } from '@cassicore/foundation';
 
 /* ------------------------------------------------------------------ */
 /*  Hook types                                                         */

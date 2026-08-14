@@ -10,7 +10,7 @@ import {
   type OnCompleteCallback
 } from './BackgroundProcessor.js';
 
-import type { IMemory } from '../../../types/intelligence.js';
+import type { IMemory } from '@cassicore/foundation';
 import type {
   SessionManager
 } from '../session/SessionManager.js';

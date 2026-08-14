@@ -18,9 +18,9 @@
 import { MCPClient } from './client.js'
 
 import type { MCPServerConfig, MCPServerStatus, MCPConnectionState } from './types.js'
-import type { ILogger } from '../../types/interfaces.js'
-import type { ToolRegistry } from '../tools/registry.js'
-import type { ToolDefinition, ToolParamSchema } from '../tools/types.js'
+import type { ILogger } from '@cassicore/foundation'
+import type { ToolRegistry } from '@cassicore/tools'
+import type { ToolDefinition, ToolParamSchema } from '@cassicore/tools'
 
 interface ServerEntry {
   config:    MCPServerConfig

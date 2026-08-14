@@ -12,7 +12,7 @@
 
 import { fork, type ChildProcess } from 'node:child_process'
 
-import { bus } from '../core/event-bus.js'
+import { bus } from '@cassicore/events'
 
 import type { IPluginHost, PluginManifest, PluginStatus, ILogger } from '../types/interfaces.js'
 

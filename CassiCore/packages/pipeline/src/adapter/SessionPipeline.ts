@@ -8,7 +8,7 @@
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
-import { buildSystemPrompt } from '../../workspace/loader.js';
+import { buildSystemPrompt } from '../../vendor/core/workspace/loader.js';
 
 
 import {
@@ -23,11 +23,11 @@ import {
   type StreamEventCallback,
   type IntelligenceContext
 } from '../index.js';
-import { getModelSpec, MODEL_DEFAULTS } from '../../config/system-settings.js';
+import { getModelSpec, MODEL_DEFAULTS } from '@cassicore/foundation';
 
-import type { IMemory } from '../../../types/intelligence.js';
-import type { IConfig, ILogger, IEventBus } from '../../../types/interfaces.js';
-import type { IProvider } from '../../../types/runtime.js';
+import type { IMemory } from '@cassicore/foundation';
+import type { IConfig, ILogger, IEventBus } from '@cassicore/foundation';
+import type { IProvider } from '@cassicore/foundation';
 
 // Intelligence module interfaces (from existing code)
 interface DialecticSystem {
@@ -115,7 +115,7 @@ export class SessionPipeline {
   private store?: SQLiteSessionStore;
 
   // GWT workspace (opt-in: enables luminance-gated injection + RadianceLoop)
-  private globalWorkspace?: import('../../intelligence/workspace/index.js').GlobalWorkspace;
+  private globalWorkspace?: import('@cassicore/workspace').GlobalWorkspace;
   private useWorkspaceForInjection = false;
 
   // State
@@ -136,7 +136,7 @@ export class SessionPipeline {
    * When enabled, the workspace assembles injections from luminance-ranked
    * signal slots instead of the static-cap aggregator.
    */
-  setGlobalWorkspace(workspace: import('../../intelligence/workspace/index.js').GlobalWorkspace, enable = false): void {
+  setGlobalWorkspace(workspace: import('@cassicore/workspace').GlobalWorkspace, enable = false): void {
     this.globalWorkspace = workspace;
     this.useWorkspaceForInjection = enable;
     this.logger.debug('GlobalWorkspace wired', { enabled: enable });

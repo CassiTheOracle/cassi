@@ -11,13 +11,13 @@
  */
 
 import { randomUUID } from 'node:crypto'
-import type { ILogger } from '../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type {
   PluginManifest,
   PluginRegistration,
   PluginCapability,
   PluginStatus,
-} from '../../types/plugin.js'
+} from '@cassicore/foundation'
 
 const HEARTBEAT_TIMEOUT_MS = 5 * 60_000
 const CLEANUP_INTERVAL_MS = 60_000

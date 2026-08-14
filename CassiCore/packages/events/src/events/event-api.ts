@@ -11,7 +11,7 @@
 import type { CassiCoreEvent } from './event-types.js';
 import type { EventBus } from '../event-bus.js';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { DEFAULT_RESOURCE_LIMITS } from '../config/resource-limits.js';
+import { DEFAULT_RESOURCE_LIMITS } from '../../vendor/core/config/resource-limits.js';
 
 // Types
 

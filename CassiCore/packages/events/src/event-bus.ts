@@ -1,7 +1,7 @@
 import { rootLogger } from './logger.js';
 
-import type { EventType, EventOf, Unsubscribe, RuntimeEvent } from "../types/events.js";
-import type { IEventBus, ILogger } from "../types/interfaces.js";
+import type { EventType, EventOf, Unsubscribe, RuntimeEvent } from "@cassicore/foundation";
+import type { IEventBus, ILogger } from "@cassicore/foundation";
 
 const logger: ILogger = rootLogger.child('event-bus');
 

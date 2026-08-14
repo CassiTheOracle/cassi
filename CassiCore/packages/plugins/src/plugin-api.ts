@@ -10,11 +10,11 @@
  * before processing. Unauthorized requests get a clear error.
  */
 
-import type { RuntimeEvent } from '../../types/events.js'
-import type { Message } from '../../types/runtime.js'
-import type { ILogger } from '../../types/interfaces.js'
+import type { RuntimeEvent } from '@cassicore/foundation'
+import type { Message } from '@cassicore/foundation'
+import type { ILogger } from '@cassicore/foundation'
 import type { PluginRegistry } from './plugin-registry.js'
-import type { PluginRegistration, PluginToCore, PluginCapability } from '../../types/plugin.js'
+import type { PluginRegistration, PluginToCore, PluginCapability } from '@cassicore/foundation'
 
 /**
  * Dependencies injected from the daemon.

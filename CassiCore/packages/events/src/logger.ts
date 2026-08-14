@@ -2,9 +2,9 @@ import { appendFileSync, closeSync, existsSync, fstatSync, mkdirSync, openSync, 
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 
-import type { LogLevel } from "../types/events.js";
-import type { ILogger } from "../types/interfaces.js";
-import type { Message } from '../types/runtime.js';
+import type { LogLevel } from "@cassicore/foundation";
+import type { ILogger } from "@cassicore/foundation";
+import type { Message } from '@cassicore/foundation';
 
 
 const RESET = "\u001b[0m";

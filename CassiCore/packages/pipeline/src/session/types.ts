@@ -4,7 +4,7 @@
  * Flattened, cleaner interfaces for session management
  */
 
-import type { ImageAttachment, ContentBlock, IProvider } from '../../../types/runtime.js';
+import type { ImageAttachment, ContentBlock, IProvider } from '@cassicore/foundation';
 
 // Core Session Types
 

@@ -4,14 +4,14 @@
  * Constructs message arrays from session state and requests
  */
 
-import type { ContentBlock } from '../../../types/runtime.js'
+import type { ContentBlock } from '@cassicore/foundation'
 import type {
   SessionState,
   TurnRequest,
   Message,
   ILogger
 } from '../session/types.js'
-import { CHARS_PER_TOKEN } from '../../intelligence/shared/token-estimation.js'
+import { CHARS_PER_TOKEN } from '@cassicore/embeddings'
 
 export interface MessageBuilderOptions {
   logger?: ILogger;

@@ -5,7 +5,7 @@
  * mid-loop context trimming, and tool filler stripping.
  */
 
-import type { IProvider, CompletionChunk, Message as ProviderMessage, ContentBlock, ImageAttachment } from '../../../types/runtime.js'
+import type { IProvider, CompletionChunk, Message as ProviderMessage, ContentBlock, ImageAttachment } from '@cassicore/foundation'
 import type {
   Message,
   ToolCall,
@@ -18,8 +18,8 @@ import type {
 } from '../session/types.js'
 
 import { ContextOverflowError, isOverflowError, reclassifyAsOverflow, stripToolFiller, hasQuestionResult, buildToolUseMapFromMessages } from './overflow.js'
-import { CHARS_PER_TOKEN } from '../../intelligence/shared/token-estimation.js'
-import { isWriteTool, isReadTool, isShellTool, shortenPath } from '../../intelligence/thalamus/classifier.js'
+import { CHARS_PER_TOKEN } from '@cassicore/embeddings'
+import { isWriteTool, isReadTool, isShellTool, shortenPath } from '@cassicore/thalamus/classifier'
 
 export interface ToolLoopOptions {
   maxRounds: number;

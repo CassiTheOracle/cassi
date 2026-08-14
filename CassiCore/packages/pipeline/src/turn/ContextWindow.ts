@@ -7,19 +7,19 @@
  */
 
 import type { Message, ILogger } from '../session/types.js'
-import { CHARS_PER_TOKEN } from '../../intelligence/shared/token-estimation.js'
+import { CHARS_PER_TOKEN } from '@cassicore/embeddings'
 
 // WHY: Lazy-load compaction module to avoid hard dependency.
 // The module may not be available in all deployment contexts,
 // and we don't want the import to block ContextWindow initialization.
-let compactionModule: typeof import('../../intelligence/layered-compaction.js') | null = null
+let compactionModule: typeof import('../vendor/core/intelligence/layered-compaction.js') | null = null
 let compactionLoadAttempted = false
 
 async function getCompactionModule() {
   if (compactionLoadAttempted) return compactionModule
   compactionLoadAttempted = true
   try {
-    compactionModule = await import('../../intelligence/layered-compaction.js')
+    compactionModule = await import('../vendor/core/intelligence/layered-compaction.js')
   } catch {
     // Compaction not available — will use FIFO trimming only
   }

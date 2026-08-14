@@ -16,9 +16,9 @@
  *   → ExternalClientCurator.curate() → ThalamusModule.curate() → scored result
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
-import type { ThalamusModule } from '../../intelligence/thalamus/index.js'
-import type { CurationConfig } from '../../intelligence/thalamus/types.js'
+import type { ILogger } from '@cassicore/foundation'
+import type { ThalamusModule } from '@cassicore/thalamus'
+import type { CurationConfig } from '@cassicore/thalamus'
 import type {
   ExternalCurateRequest,
   ExternalCurationResult,

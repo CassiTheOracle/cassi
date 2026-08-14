@@ -40,7 +40,7 @@ import type {
   TokenUsage,
   ToolDefinition,
   ToolInvokeRequest,
-} from '../../types/plugin.js'
+} from '@cassicore/foundation'
 
 export interface CassiCoreClientConfig {
   /** Path to the CassiCore admin Unix socket */
