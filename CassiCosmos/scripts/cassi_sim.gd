@@ -361,6 +361,14 @@ var _vsync_enabled: bool = true
 ## Rotate the cycle start hue (adds to the cycle hue before the pass-set wrap).
 ## Live — no reinit.
 @export_range(0.0, 1.0, 0.01) var color_hue_offset: float = 0.0
+## Color-as-LUT (Tier-2, default OFF = byte-identical legacy): bake the
+## active color curve into a 256×1 RGBA8 LUT and drop the MultiMesh instance
+## color channel (use_colors=false; custom_data carries the band position u,
+## the billboard material samples the LUT). INIT-TIME — toggling requires
+## reinit(). Requires a pure band color (base modes 0-3, no glow/depth VFX
+## flags): mode 4 (two-axis ρ) and 0x20/0x40 modulate lightness per-instance
+## and cannot be represented in a band LUT (see _lut_compatible).
+@export var color_lut_mode: bool = false
 
 # ── Camera startup framing (camera-only; no physics) ──────────────────
 ## On startup, frame a sibling Camera3D on the spawn region: the camera is
@@ -482,6 +490,21 @@ var _bh_acc_pc_bytes: PackedByteArray
 var _cond_step_counter: int = 0
 var _us_inst_0: RID = RID()
 var _us_inst_0_render: RID = RID()  # instancer set variant: position binding (0) reads _pos_render_buf
+# Color-as-LUT (Tier-2) instancer set variants: binding 6 = the LUT-mode flag
+# buffer — the legacy sets bind the static OFF buffer, the LUT sets the ON
+# buffer, so the SET SELECTION is the mode switch (no per-frame uploads).
+var _us_inst_0_lut: RID = RID()
+var _us_inst_0_lut_render: RID = RID()
+var _lut_u_buf_on: RID = RID()   # 16 B {1,0,0,0} — bound by the LUT set variants
+var _lut_u_buf_off: RID = RID()  # 16 B {0,0,0,0} — bound by the legacy set variants
+var _lut_u_on_bytes: PackedByteArray = PackedByteArray()
+var _lut_u_off_bytes: PackedByteArray = PackedByteArray()
+var _color_lut_tex: ImageTexture = null  # 256×1 RGBA8 — re-baked on band change
+var _lut_sig: PackedFloat32Array = PackedFloat32Array()  # 18 floats: 17 engine + base mode (empty = never baked)
+var _lut_bake_dirty: bool = false
+var _mm_lut_mode: bool = false   # the FORMAT the multimesh was built with (static per build)
+var _warned_lut_build_incompat: bool = false
+var _warned_lut_incompat: bool = false
 
 # — q-histogram (auto color-align; cassi_qhist.glsl) —
 var _qhist_shader: RID; var _qhist_pipe: RID; var _us_qhist_0: RID
@@ -828,6 +851,13 @@ func _ready() -> void:
 	# no-ops and the placeholder colors stand until the retry compiles.
 	if particle_color_mode != 0:
 		_repaint_instancer()
+	# Color-as-LUT: bake the real curve at startup (the placeholder stands
+	# only for LUT mode + paused + never-dispatched — normally the repaint
+	# above already filled the engine and this is the exact same bake).
+	if _mm_lut_mode:
+		_fill_instancer_pc()
+		_bake_color_lut()
+		_lut_bake_dirty = false
 	print("[CassiSim] Universe ready — grid=%d³ particles=%d xi=%.5f (φ⁶=%.5f)" % [grid_N, N_particles, xi, PHI_6])
 	_sim_cam = _find_sibling_camera()
 	_auto_frame_camera()
@@ -920,6 +950,21 @@ func _process(delta: float) -> void:
 		if _setup_retry_counter % 30 == 0:
 			_free_shaders()
 			_setup_shaders()
+
+	# Color-as-LUT (Tier-2): re-bake the 256×1 LUT when the engine band
+	# changed (auto-align publishes, manual legend drags, inspector edits,
+	# hue_offset/mode flips — all flow through _fill_instancer_pc →
+	# _update_lut_bake_sig). Must run OUTSIDE a compute list (texture
+	# update), so it happens here, before any physics dispatch.
+	if _lut_bake_dirty and _color_lut_tex != null:
+		_bake_color_lut()
+		_lut_bake_dirty = false
+	# LUT-built multimesh with a live LUT-incompatible color config (mode 4
+	# or glow/depth flipped on while the LUT format is active): the band LUT
+	# cannot carry the per-instance lightness axes — one honest warning.
+	if _mm_lut_mode and not _lut_compatible() and not _warned_lut_incompat:
+		_warned_lut_incompat = true
+		push_warning("[CassiSim] LUT format is active but the live color config is LUT-incompatible (base mode 4 / glow / depth) — those per-instance lightness axes are not applied in LUT mode. Turn color_lut_mode off + reinit to restore them.")
 
 	if playing and _shaders_ready:
 		# ── Paced fixed-dt with a TIME BUDGET (the smooth-run design) ────
@@ -1126,7 +1171,7 @@ func _run_physics_steps(n_steps: int) -> void:
 		# RENDER variant: binding 0 reads _pos_render_buf (the post-batch
 		# interpolation snapshot) — == _pos_buf while _interp_alpha == 1.0,
 		# so the rendered frame is bit-identical today.
-		_rd.compute_list_bind_uniform_set(cl, _us_inst_0_render, 0)
+		_rd.compute_list_bind_uniform_set(cl, _us_inst_0_lut_render if _lut_active() else _us_inst_0_render, 0)
 		_rd.compute_list_set_push_constant(cl, _instancer_pc_bytes, _instancer_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, ipg, 1, 1)
 	_rd.compute_list_end()
@@ -1607,7 +1652,7 @@ func _decoupled_poll_and_render() -> void:
 		_fill_instancer_pc()
 		var ipg := ceili(float(N_particles) / 256.0)
 		_rd.compute_list_bind_compute_pipeline(cl, _instancer_pipe)
-		_rd.compute_list_bind_uniform_set(cl, _us_inst_0_render, 0)
+		_rd.compute_list_bind_uniform_set(cl, _us_inst_0_lut_render if _lut_active() else _us_inst_0_render, 0)
 		_rd.compute_list_set_push_constant(cl, _instancer_pc_bytes, _instancer_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, ipg, 1, 1)
 	# ── q-histogram (auto color-align; RENDER variant reads pos_render —
@@ -1948,6 +1993,23 @@ func _setup_buffers() -> void:
 	# in the poisson clear pass so chained steps stay independent)
 	_tel_reset_bytes = PackedFloat32Array([0.0, 0.0, 0.0, INF, 0.0, INF, 0.0, 0.0]).to_byte_array()
 
+	# ── Color-as-LUT (Tier-2): two static 16-byte flag buffers (the instancer
+	# set-variant selection IS the mode switch — the shader reads the flag from
+	# whichever set is bound, never re-uploaded) + the 256×1 RGBA8 LUT texture
+	# (re-baked via update() on band changes — the RID stays stable, so the
+	# instancer sets and the material keep their references).
+	_lut_u_on_bytes = PackedFloat32Array([1.0, 0.0, 0.0, 0.0]).to_byte_array()
+	_lut_u_off_bytes = PackedFloat32Array([0.0, 0.0, 0.0, 0.0]).to_byte_array()
+	_lut_u_buf_on = _rd.storage_buffer_create(16)
+	_lut_u_buf_off = _rd.storage_buffer_create(16)
+	_rd.buffer_update(_lut_u_buf_on, 0, 16, _lut_u_on_bytes)
+	_rd.buffer_update(_lut_u_buf_off, 0, 16, _lut_u_off_bytes)
+	var lut_img := Image.create_empty(LUT_SIZE, 1, false, Image.FORMAT_RGBA8)
+	lut_img.fill(Color(0.4, 0.4, 0.5, 1.0))  # placeholder; the real bake runs in _ready
+	_color_lut_tex = ImageTexture.create_from_image(lut_img)
+	_lut_sig = PackedFloat32Array()  # sentinel: never baked → first engine fill marks dirty
+	_lut_bake_dirty = false          # set by _update_lut_bake_sig on the first fill
+
 func _free_buffers() -> void:
 	for rid in [_field_ey, _field_ei, _field_q, _field_vel, _field_scratch,
 				_pos_buf, _vel_buf, _acc_buf, _pos_prev_buf, _pos_render_buf,
@@ -1963,7 +2025,8 @@ func _free_buffers() -> void:
 				_ml_tree_src, _ml_tree_srcw, _ml_tree_key, _ml_tree_order,
 				_ml_tree_cf, _ml_tree_w, _ml_tree_q, _ml_tree_r, _ml_tree_ctr,
 				_ml_tree_grad, _ml_tree_icount,
-				_field_render_tex, _bh_lensing_tex]:
+				_field_render_tex, _bh_lensing_tex,
+				_lut_u_buf_on, _lut_u_buf_off]:
 		if rid.is_valid(): _rd.free_rid(rid)
 	for rid in [_merge_alive_buf, _merge_mass_buf, _merge_mom_buf, _merge_cen_buf,
 				_merge_best_buf, _merge_sink_buf, _merge_cc_buf, _merge_cs_buf,
@@ -1975,6 +2038,8 @@ func _free_buffers() -> void:
 	_merge_cl_buf = RID(); _merge_mc_buf = RID(); _merge_scr_buf = RID()
 	_field_render_tex = RID()
 	_bh_lensing_tex = RID()
+	_lut_u_buf_on = RID(); _lut_u_buf_off = RID()
+	_color_lut_tex = null
 	_tree_worker_stop()
 
 
@@ -1988,6 +2053,7 @@ func _free_uniform_sets() -> void:
 				_us_nbody_0, _us_nbody_1, _us_nbody_2, _us_poisson_0,
 				_us_fr_0, _us_fr_2, _us_cond_0, _us_cond_1,
 				_us_bh_int_0, _us_bh_int_1, _us_inst_0, _us_inst_0_render,
+				_us_inst_0_lut, _us_inst_0_lut_render,
 				_us_bh_lens_2, _us_blend_0, _us_blend_0_packed, _us_blend_0_velpack,
 				_us_occ_0, _us_qhist_0, _us_qhist_0_render, _us_jfa_0, _us_cell_0, _us_raster_0,
 				_us_tree_build, _us_tree_grav, _us_merge_0, _us_bh_acc_0, _us_scan_0]:
@@ -2000,6 +2066,7 @@ func _free_uniform_sets() -> void:
 	_us_cond_0 = RID(); _us_cond_1 = RID()
 	_us_bh_int_0 = RID(); _us_bh_int_1 = RID()
 	_us_inst_0 = RID(); _us_inst_0_render = RID(); _us_bh_lens_2 = RID()
+	_us_inst_0_lut = RID(); _us_inst_0_lut_render = RID()
 	_us_blend_0 = RID(); _us_blend_0_packed = RID(); _us_blend_0_velpack = RID()
 	_us_occ_0 = RID()
 	_us_qhist_0 = RID(); _us_qhist_0_render = RID()
@@ -2288,6 +2355,7 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(3, _field_q),  # Qi rainbow (color_mode 2/4): coherence q = EY²+EI² grid
 			_uniform_storage(4, _field_ey),  # two-axis (color_mode 4): ρ = EY+EI lightness axis
 			_uniform_storage(5, _field_ei),  # two-axis (color_mode 4): ρ = EY+EI
+			_uniform_storage(6, _lut_u_buf_off),  # LUT-mode flag: OFF → legacy color writes, byte-identical
 		], _instancer_shader, 0)
 		# RENDER variant — identical except binding 0 (Positions) reads the
 		# interpolated snapshot _pos_render_buf. Bound for the per-frame
@@ -2301,8 +2369,31 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(3, _field_q),
 			_uniform_storage(4, _field_ey),
 			_uniform_storage(5, _field_ei),
+			_uniform_storage(6, _lut_u_buf_off),
 		], _instancer_shader, 0)
-		print("[CassiSim] Instancer uniform set cached (GPU-direct multimesh buffer)")
+		# COLOR-AS-LUT variants (Tier-2): identical bindings except binding 6
+		# reads the ON flag buffer — the set selection IS the LUT-mode switch
+		# (the shader writes custom_data (u, m, id, 0) instead of a color and
+		# the billboard material samples the baked LUT at INSTANCE_CUSTOM.x).
+		_us_inst_0_lut = _rd.uniform_set_create([
+			_uniform_storage(0, _pos_buf),
+			_uniform_storage(1, _mm_rd_rid),
+			_uniform_storage(2, _vel_buf),
+			_uniform_storage(3, _field_q),
+			_uniform_storage(4, _field_ey),
+			_uniform_storage(5, _field_ei),
+			_uniform_storage(6, _lut_u_buf_on),
+		], _instancer_shader, 0)
+		_us_inst_0_lut_render = _rd.uniform_set_create([
+			_uniform_storage(0, _pos_render_buf),
+			_uniform_storage(1, _mm_rd_rid),
+			_uniform_storage(2, _vel_buf),
+			_uniform_storage(3, _field_q),
+			_uniform_storage(4, _field_ey),
+			_uniform_storage(5, _field_ei),
+			_uniform_storage(6, _lut_u_buf_on),
+		], _instancer_shader, 0)
+		print("[CassiSim] Instancer uniform sets cached (GPU-direct multimesh buffer; LUT variants %s)" % ("ready" if _lut_u_buf_on.is_valid() else "SKIPPED"))
 
 	# Mass deposit (set 0: positions + float rho + int64 fix accumulator)
 	_us_mass_dep_0 = _rd.uniform_set_create([
@@ -3352,6 +3443,131 @@ func _physics_step() -> void:
 	_run_physics_steps(1)
 
 
+# ═══════════════════════════════════════════════════════════════════════
+# Color-as-LUT (Tier-2): bake the active color curve into a 256×1 RGBA8 LUT
+# ═══════════════════════════════════════════════════════════════════════
+# The instancer's per-instance color math is a pure function of the
+# band-relative scalar axis (q / |v| / log-m) given the engine constants —
+# so it bakes into a 1D LUT. In LUT mode the MultiMesh drops its color
+# channel (use_colors=false), the instancer writes the band position u into
+# custom_data, and the billboard material samples the LUT at
+# INSTANCE_CUSTOM.x (material-side placement). The framing is the exact
+# inverse of the shader's band_u() (compute/cassi_instancer.glsl):
+#   cycle    u ∈ [0, 1-U_LUT_A):  h = u/(1-U_LUT_A)·span,  l = 0.5
+#   approach u ∈ [1-U_LUT_A, 1]:  pA = (u-(1-U_LUT_A))/U_LUT_A,
+#                                 h = mix(0.8, a_top, pA), l = 0.5+0.5·pA
+const LUT_SIZE := 256
+const LUT_APPROACH_ENTRY := 0.751953125  # (192.5)/256 — approach entry lands on texel 192's center (the cycle→approach color discontinuity must never sit inside a linear-filter blend interval)
+const LUT_APPROACH_TOP := 0.998046875    # (255.5)/256 — the white point lands exactly on texel 255's center
+const LUT_APPROACH_SPAN := LUT_APPROACH_TOP - LUT_APPROACH_ENTRY  # 63 texel-intervals for the white-hot stage
+
+
+func _lut_compatible() -> bool:
+	# A band LUT cannot carry per-instance lightness axes: base mode 4
+	# (two-axis ρ) and the glow/depth VFX flags (0x20/0x40) modulate color
+	# per-instance. Size-by-mass (0x10) is transform-side → compatible.
+	var base := particle_color_mode & 0xF
+	var flags := (particle_color_mode >> 4) & 0xF
+	return base <= 3 and (flags & 0x6) == 0
+
+
+func _lut_active() -> bool:
+	# The runtime behavior follows the FORMAT the multimesh was BUILT with
+	# (the buffer layout is fixed by use_colors/use_custom_data and cannot
+	# flip per-dispatch). color_lut_mode is read at build (reinit()).
+	return _mm_lut_mode
+
+
+## Exposed for probes: the baked LUT texture (256×1 RGBA8) — read via
+## get_image() for exact texel access.
+func color_lut_texture() -> ImageTexture:
+	return _color_lut_tex
+
+
+func _apply_lut_material() -> void:
+	# Push the LUT mode + texture onto the billboard material. Runs once per
+	# build (the texture RID is stable — re-bakes use update(), so the
+	# material's reference stays valid).
+	if _mmi == null or not is_instance_valid(_mmi) or _mmi.material_override == null:
+		return
+	var mat := _mmi.material_override as ShaderMaterial
+	if mat == null:
+		return
+	mat.set_shader_parameter("lut_enabled", 1.0 if _mm_lut_mode else 0.0)
+	if _color_lut_tex != null:
+		mat.set_shader_parameter("color_lut", _color_lut_tex)
+
+
+func _bake_color_lut() -> void:
+	# Bake the CURRENT color curve into the LUT (256 RGBA8 texels, u ∈ [0,1]
+	# per the framing header — the exact inverse of the shader's band_u()).
+	# Mode 0 bakes the Salpeter mass-temperature ramp keyed on the same
+	# normalized log-mass the shader uses. Call outside any compute list.
+	if _color_lut_tex == null:
+		return
+	var e := _engine_c
+	var img := Image.create_empty(LUT_SIZE, 1, false, Image.FORMAT_RGBA8)
+	if int(particle_color_mode & 0xF) == 0:
+		# Salpeter mass-temperature ramp (the shader's legacy mode-0 formula)
+		for i in range(LUT_SIZE):
+			var u := (float(i) + 0.5) / float(LUT_SIZE)
+			var log_m := u
+			var cr := lerpf(0.15, 1.0, log_m * log_m)
+			var cg := lerpf(0.25, 0.6, log_m)
+			var cb := lerpf(1.0, 0.15, log_m)
+			img.set_pixel(i, 0, Color(cr, cg, cb, 1.0))
+	else:
+		var span: float = e[E_SPAN] if e.size() >= 17 else 1.0
+		var a_top: float = e[E_TOP] if e.size() >= 17 else 0.93
+		for i in range(LUT_SIZE):
+			var u := (float(i) + 0.5) / float(LUT_SIZE)
+			var h: float
+			var l: float
+			if u < LUT_APPROACH_ENTRY:
+				h = (u / LUT_APPROACH_ENTRY) * span
+				l = 0.5
+			else:
+				var p_a := (u - LUT_APPROACH_ENTRY) / LUT_APPROACH_SPAN
+				h = lerpf(0.8, a_top, p_a)
+				l = 0.5 + 0.5 * p_a
+			img.set_pixel(i, 0, _lut_hsl_to_rgb(h, l))
+	_color_lut_tex.update(img)
+	# snapshot the bake signature (17 engine floats + base mode)
+	if _lut_sig.size() != 18:
+		_lut_sig.resize(18)
+	for k in range(17):
+		_lut_sig[k] = e[k]
+	_lut_sig[17] = float(int(particle_color_mode & 0xF))
+
+
+static func _lut_hsl_to_rgb(h: float, l: float) -> Color:
+	# IQ-form HSL→RGB with s = 1 — the exact shader formula (hsl2rgb in
+	# cassi_instancer.glsl with c.y = 1.0).
+	var r: float = clampf(absf(fposmod(h * 6.0 + 0.0, 6.0) - 3.0) - 1.0, 0.0, 1.0)
+	var g: float = clampf(absf(fposmod(h * 6.0 + 4.0, 6.0) - 3.0) - 1.0, 0.0, 1.0)
+	var b: float = clampf(absf(fposmod(h * 6.0 + 2.0, 6.0) - 3.0) - 1.0, 0.0, 1.0)
+	var f: float = 1.0 - absf(2.0 * l - 1.0)
+	return Color(l + (r - 0.5) * f, l + (g - 0.5) * f, l + (b - 0.5) * f, 1.0)
+
+
+func _update_lut_bake_sig() -> void:
+	# Dirty-track the bake from _fill_instancer_pc (runs inside the compute
+	# list — only sets the flag; the actual texture update happens in
+	# _process, outside any list). Covers EVERY band/mode change: qi_cycle/
+	# pinch/approach, hue_offset, shares, progress, rainbow_count, threshold
+	# tracking, auto-align publishes, and manual legend drags all flow
+	# through the engine constants.
+	if _lut_sig.size() != 18:
+		_lut_bake_dirty = true
+		return
+	for k in range(17):
+		if _engine_c[k] != _lut_sig[k]:
+			_lut_bake_dirty = true
+			return
+	if int(_lut_sig[17]) != int(particle_color_mode & 0xF):
+		_lut_bake_dirty = true
+
+
 # ── Consolidated gradient engine (shared composer) ────────────────────
 # The engine constants (one segmented-ramp mapping for both rainbow
 # sources) are computed by _fill_instancer_pc each fill, persisted to
@@ -3442,6 +3658,7 @@ func _fill_instancer_pc() -> void:
 		for slot in range(48, 128, 4):
 			_instancer_pc_bytes.encode_float(slot, 0.0)
 		_engine_c.fill(0.0)   # keep the shared engine cache consistent
+		_update_lut_bake_sig()
 		return
 	# ── engine derivation (modes 1/2/3) ──────────────────────────────
 	var is_qi: bool = particle_color_mode >= 2
@@ -3585,6 +3802,7 @@ func _fill_instancer_pc() -> void:
 	_instancer_pc_bytes.encode_float(116, ext_pc.y)                  # 29
 	_instancer_pc_bytes.encode_float(120, ext_pc.z)                  # 30
 	_instancer_pc_bytes.encode_float(124, _engine_c[E_HUE_OFF])      # 31 hue_offset (rotates the cycle start)
+	_update_lut_bake_sig()
 
 
 func _repaint_instancer() -> void:
@@ -3604,7 +3822,10 @@ func _repaint_instancer() -> void:
 	# Decoupled: the fp32 _pos_buf mirror is NOT maintained (packed mirrors
 	# feed pos_render via the blend), so the repaint reads the interpolated
 	# pos_render like the live path does. Inline: _pos_buf is current.
-	_rd.compute_list_bind_uniform_set(cl, _us_inst_0_render if _decoupled_active else _us_inst_0, 0)
+	if _lut_active():
+		_rd.compute_list_bind_uniform_set(cl, _us_inst_0_lut_render if _decoupled_active else _us_inst_0_lut, 0)
+	else:
+		_rd.compute_list_bind_uniform_set(cl, _us_inst_0_render if _decoupled_active else _us_inst_0, 0)
 	_rd.compute_list_set_push_constant(cl, _instancer_pc_bytes, _instancer_pc_bytes.size())
 	_rd.compute_list_dispatch(cl, pg, 1, 1)
 	_rd.compute_list_end()
@@ -4317,13 +4538,25 @@ func _free_multimesh() -> void:
 
 
 func _setup_multimesh() -> void:
+	# Color-as-LUT (Tier-2): the MultiMesh FORMAT is static per build —
+	# legacy keeps the instance color channel (16 floats/instance),
+	# LUT mode drops it (use_colors=false) and carries the band position
+	# in custom_data (still 16 floats/instance — the transform is 12 floats
+	# in Godot 4.7's MultiMesh buffer, so a per-instance channel costs the
+	# same 16 B either way; the win is the baked color math + the color
+	# channel gone). Requires a pure band color (see _lut_compatible).
+	_mm_lut_mode = color_lut_mode and _lut_compatible()
+	if color_lut_mode and not _lut_compatible() and not _warned_lut_build_incompat:
+		_warned_lut_build_incompat = true
+		push_warning("[CassiSim] color_lut_mode is on with a LUT-incompatible color config (base mode 4 or glow/depth VFX flags) — a band LUT cannot carry the per-instance lightness axes; falling back to the legacy instancer color path. Disable those features (or color_lut_mode) and reinit.")
 	var qm = QuadMesh.new()
 	qm.size = Vector2(particle_size, particle_size)
 	qm.orientation = PlaneMesh.FACE_Z
 
 	_mm = MultiMesh.new()
 	_mm.transform_format = MultiMesh.TRANSFORM_3D
-	_mm.use_colors = true
+	_mm.use_colors = not _mm_lut_mode
+	_mm.use_custom_data = _mm_lut_mode
 	_mm.mesh = qm
 	_mm.instance_count = max(N_particles, 1)
 	_mm_particle_size = particle_size
@@ -4338,7 +4571,7 @@ func _setup_multimesh() -> void:
 	# instancer compute shader writes it every step, no readback/upload.
 	_mm_rd_rid = RenderingServer.multimesh_get_buffer_rd_rid(_mm.get_rid())
 	if _mm_rd_rid.is_valid():
-		print("[CassiSim] MultiMesh GPU-direct: renderer buffer RID acquired (%d × 64 B)" % max(N_particles, 1))
+		print("[CassiSim] MultiMesh GPU-direct: renderer buffer RID acquired (%d × 16 floats = %d B/instance, colors=%s custom=%s)" % [max(N_particles, 1), 64, not _mm_lut_mode, _mm_lut_mode])
 	else:
 		push_error("[CassiSim] multimesh_get_buffer_rd_rid returned an invalid RID — instancer writes will fail")
 
@@ -4346,6 +4579,7 @@ func _setup_multimesh() -> void:
 	mat.shader = load("res://shaders/particle_billboard.gdshader")
 	mat.render_priority = 1
 	_mmi.material_override = mat
+	_apply_lut_material()
 
 
 func _render_frame() -> void:
@@ -4718,11 +4952,23 @@ func reinit() -> void:
 	# check) and the instancer dispatch then writes out-of-bounds past the
 	# stale buffer. Rebuild runs BEFORE _cache_uniform_sets because
 	# _us_inst_0 binds the (possibly new) _mm_rd_rid.
-	if _mm == null or _mm.instance_count != max(N_particles, 1) or _mm_particle_size != particle_size:
+	# Rebuild the multimesh when the FORMAT must change: N/size (legacy) or
+	# the color-as-LUT flag flipped (use_colors/use_custom_data are static
+	# per build). Rebuild runs BEFORE _cache_uniform_sets because
+	# _us_inst_0 binds the (possibly new) _mm_rd_rid.
+	var want_lut: bool = color_lut_mode and _lut_compatible()
+	if _mm == null or _mm.instance_count != max(N_particles, 1) or _mm_particle_size != particle_size or _mm_lut_mode != want_lut:
 		_free_multimesh()
 		_setup_multimesh()
 	_setup_buffers()
 	_cache_uniform_sets()  # CRITICAL: cached sets reference the OLD freed buffers
+	_apply_lut_material()  # reinit may have recreated the material (format flip)
+	# Color-as-LUT: bake the real curve immediately after any reinit (the
+	# placeholder only ever exists inside _ready→_process ordering races).
+	if _mm_lut_mode:
+		_fill_instancer_pc()
+		_bake_color_lut()
+		_lut_bake_dirty = false
 	if _decoupled_active:
 		# Restart the threaded engine with the CURRENT exports + bootstrap.
 		if _decoupled_start_engine():

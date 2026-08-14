@@ -205,6 +205,9 @@ func _setup_instancer() -> void:
 	var empty := _rd.storage_buffer_create(4)
 	var fq := _rd.storage_buffer_create(64 * 4)
 	var vel := _rd.storage_buffer_create(64 * 16)   # binding 2 vel
+	var lut_off := _rd.storage_buffer_create(16)    # binding 6 LUT flag: OFF (zero) — the instancer's color-as-LUT branch is dead
+	var zero16 := PackedByteArray(); zero16.resize(16)
+	_rd.buffer_update(lut_off, 0, 16, zero16)
 	_us_inst = _rd.uniform_set_create([
 		_us_storage(0, _inst_pos),
 		_us_storage(1, _mm_rd_rid),
@@ -212,6 +215,7 @@ func _setup_instancer() -> void:
 		_us_storage(3, fq),
 		_us_storage(4, empty),
 		_us_storage(5, empty),
+		_us_storage(6, lut_off),
 	], _inst_shader, 0)
 	var pcf := PackedFloat32Array()
 	pcf.resize(32)
@@ -298,10 +302,14 @@ func _setup_handoff_multimesh() -> void:
 		pcf[0] = 1.0
 		pcf[6] = 64.0
 		_inst_pc = pcf.to_byte_array()
+	var lut_off_g := _rd.storage_buffer_create(16)  # LUT flag OFF (zero-filled)
+	var zero16g := PackedByteArray(); zero16g.resize(16)
+	_rd.buffer_update(lut_off_g, 0, 16, zero16g)
 	_us_inst_g = _rd.uniform_set_create([
 		_us_storage(0, pos), _us_storage(1, _handoff_rid),
 		_us_storage(2, vel), _us_storage(3, fq),
 		_us_storage(4, fq), _us_storage(5, fq),
+		_us_storage(6, lut_off_g),
 	], inst_sh, 0)
 	print("[TreeGate] rung g: instancer pipe=", _inst_pipe.is_valid(),
 		" set on renderer buffer=", _us_inst_g.is_valid())

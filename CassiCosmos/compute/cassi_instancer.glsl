@@ -57,6 +57,16 @@ layout(set = 0, binding = 2, std430) readonly buffer Velocities { vec4 vel[]; };
 // PC below — that shader reads them from bh[2].yzw, which is the same
 // _extents() source on the host).
 layout(set = 0, binding = 3, std430) readonly buffer FieldQ { float qv[]; };
+// LUT-mode flag (color-as-LUT, Tier-2, 2026-08-14): a 16-byte buffer
+// {enabled, spare×3}. The sim binds a static ON (1) buffer in the LUT
+// instancer-set variants and a static OFF (0) buffer in the legacy ones —
+// the SET SELECTION is the mode switch, no per-frame upload. With the flag
+// on, the instance buffer carries NO color (the sim builds the MultiMesh
+// with use_colors=false / use_custom_data=true): this shader writes the
+// band-relative position u (+ mass + id) into custom_data instead and the
+// billboard material samples the baked 256×1 color_lut at INSTANCE_CUSTOM.x
+// (material-side placement — no HSL math here at all in LUT mode).
+layout(set = 0, binding = 6, std430) readonly buffer LutFlag { vec4 flag; };
 
 // ── Consolidated gradient engine PC (32 floats = 128 B — the AMD RDNA3
 // Vulkan push-constant cap; EXACTLY 128, nothing more) ──────────────────
@@ -253,6 +263,45 @@ float rho_norm(float rho) {
     return clamp(rho / ref, 0.0, 1.5);
 }
 
+// ── LUT band-position framing (color-as-LUT, 2026-08-14) ─────────────
+// The baked 256×1 color LUT is keyed on u ∈ [0,1]: the cycle occupies
+// u ∈ [0, U_APP_ENTRY), the approach band [U_APP_ENTRY, 1] (64 texels —
+// the count-invariant white-hot stage). U_APP_ENTRY = (192+0.5)/256 lands
+// the approach entry EXACTLY on texel 192's center, so the cycle→approach
+// color discontinuity (the engine saturates the cycle hue at the span top
+// → the approach starts at violet) never falls inside a linear-filter blend
+// interval: every u the shader produces maps to a single texel. The
+// MATERIAL samples the LUT at INSTANCE_CUSTOM.x; the CPU bake
+// (cassi_sim.gd _bake_color_lut) uses the exact inverse framing:
+//   cycle    u <  U_APP_ENTRY: h = u/U_APP_ENTRY·span_total,  l = 0.5
+//   approach u ≥  U_APP_ENTRY: pA = (u-U_APP_ENTRY)/U_APP_SPAN,
+//                            h = mix(0.8, a_top, pA), l = 0.5+0.5·pA
+// This function is the engine evaluator's hue half + the framing split —
+// identical formulas to the color path below, so a LUT-mode particle lands
+// on the SAME color the engine would have computed (parity-proven).
+const float U_LUT_A = 0.25;            // approach fraction of the LUT
+const float U_APP_ENTRY = 0.751953125; // (192.5)/256 — texel-192-center aligned
+const float U_APP_TOP = 0.998046875;   // (255.5)/256 — the white point lands EXACTLY on texel 255's center
+const float U_APP_SPAN = U_APP_TOP - U_APP_ENTRY;
+float band_u(float x) {
+    float lin = pc.prog_mode;
+    float f1 = mix(log(max((x + pc.ref) / (pc.lo1 + pc.ref), LOG_GUARD)), x - pc.lo1, lin);
+    float f2 = mix(log(max((x + pc.ref) / (pc.lo2 + pc.ref), LOG_GUARD)), x - pc.lo2, lin);
+    float f3 = mix(log(max((x + pc.ref) / (pc.lo3 + pc.ref), LOG_GUARD)), x - pc.lo3, lin);
+    float h1 = pc.slope1 * f1;
+    float h2 = pc.off2 + pc.slope2 * f2;
+    float h3 = pc.off3 + pc.slope3 * f3;
+    float a1 = step(pc.lo1, x) * (1.0 - step(pc.lo2, x));
+    float a2 = step(pc.lo2, x) * (1.0 - step(pc.lo3, x));
+    float a3 = step(pc.lo3, x);
+    float hc = clamp(a1 * h1 + a2 * h2 + a3 * h3, 0.0, pc.span_total);
+    float h_cyc = mod(hc + pc.hue_offset, max(pc.span_total, 1.0));
+    float u_cyc = (h_cyc / max(pc.span_total, 1e-9)) * U_APP_ENTRY;
+    float pA = clamp((x - pc.a_lo) / max(pc.a_hi - pc.a_lo, LOG_GUARD), 0.0, 1.0);
+    float inA = pc.approach_on * step(pc.a_lo, x);
+    return mix(u_cyc, U_APP_ENTRY + pA * U_APP_SPAN, inA);
+}
+
 void main() {
     int i = int(gl_GlobalInvocationID.x);
     int N = int(pc.particle_N);
@@ -279,7 +328,13 @@ void main() {
     inst[base + 2] = vec4(0.0, 0.0, s, p.z);
 
     // ── Color: legacy (bit-identical) or the consolidated engine ──────
-    vec4 color;
+    // COLOR-AS-LUT (Tier-2): with lut flag on the instance buffer carries
+    // NO color — custom_data = (u, m, id, 0) and the billboard material
+    // samples the baked LUT at u. The legacy branch below is UNCHANGED
+    // (byte-identical writes). The LUT is a pure band curve, so the
+    // per-instance lightness axes (mode-4 ρ, glow 0x20, depth 0x40) do not
+    // exist in LUT mode — the host gates them out (cassi_sim.gd
+    // _lut_compatible) and warns if they flip on under a LUT-built format.
     // The Qi/velocity scalar axis, sampled ONCE so both the engine and the
     // additive-glow ramp (flag 0x20) read the same value without re-sampling
     // the field.
@@ -289,104 +344,117 @@ void main() {
     } else if (bmode >= 2) {
         x_axis = max(tri_q(pos[i].xyz), 0.0); // Qi: coherence q (q ≥ 0 guard)
     }
-    if (bmode >= 1) {
-        // ── Consolidated rainbow engine (base modes 1/2/3/4) ─────────
-        // One branchless evaluator for both sources; every difference
-        // between the sources/modes lives in the host-composed PC.
-        float x = x_axis;
-        float lin = pc.prog_mode;             // 0 = log, 1 = linear
-        // per-segment progress (log: multiplicative physics; linear: plain)
-        float f1 = mix(log(max((x + pc.ref) / (pc.lo1 + pc.ref), LOG_GUARD)), x - pc.lo1, lin);
-        float f2 = mix(log(max((x + pc.ref) / (pc.lo2 + pc.ref), LOG_GUARD)), x - pc.lo2, lin);
-        float f3 = mix(log(max((x + pc.ref) / (pc.lo3 + pc.ref), LOG_GUARD)), x - pc.lo3, lin);
-        // segment hues: h1 starts at 0; h2/h3 start at the accumulated
-        // share offsets — the pinch band's steepness comes from its narrow
-        // log interval (the intrinsic steepest segment).
-        float h1 = pc.slope1 * f1;
-        float h2 = pc.off2 + pc.slope2 * f2;
-        float h3 = pc.off3 + pc.slope3 * f3;
-        // segment masks (pinch OFF ⇒ lo2 = lo3 = hiC ⇒ only a1 is live).
-        // The LAST segment extends past hiC (no upper step): growth beyond
-        // the cycle top saturates at the span cap instead of dropping out —
-        // the legacy velocity top (h = 0.95 at v ≥ v_max, pink) is held.
-        float a1 = step(pc.lo1, x) * (1.0 - step(pc.lo2, x));
-        float a2 = step(pc.lo2, x) * (1.0 - step(pc.lo3, x));
-        float a3 = step(pc.lo3, x);
-        float hc = clamp(a1 * h1 + a2 * h2 + a3 * h3, 0.0, pc.span_total);
-        // the offset rotates the cycle start; the wrap boundary is at least
-        // a full circle so a single-pass top (velocity span 0.95) is HELD at
-        // the cap instead of wrapping back to red (mod(x, y) = 0 for x = y).
-        float h_cyc = mod(hc + pc.hue_offset, max(pc.span_total, 1.0));
-        // approach band (count-invariant): violet 0.8 at a_lo → pc.a_top
-        // (pink 0.93) at a_hi — the lightness ramp makes it white at the
-        // top; red never appears at high coherence
-        float pA = clamp((x - pc.a_lo) / max(pc.a_hi - pc.a_lo, LOG_GUARD), 0.0, 1.0);
-        float hA = mix(H_ENTRY, pc.a_top, pA);
-        float lA = 0.5 + 0.5 * pA;
-        float inA = pc.approach_on * step(pc.a_lo, x);
-        float h = mix(h_cyc, hA, inA);
-        float l = mix(0.5, lA, inA);
-        // mode 4 (TWO-AXIS): the ENGINE keeps hue but modulates lightness
-        // with local density ρ. Today ρ̂ = q-proxy; after the deferred EY/EI
-        // hook this becomes the true EY+EI trilinear. The approach band (if
-        // on) still dominates near the white point — the two-axis lift rides
-        // under it so a condensation glow is never dimmed by a low ρ cell.
-        if (bmode == 4) {
-            float rho = rho_norm(tri_rho(pos[i].xyz));   // TRUE ρ = EY+EI
-            float l2 = clamp(l + RHO_GAIN * (rho - 0.5), 0.0, 1.0);
-            l = mix(l, l2, 1.0 - inA);
+    if (flag.x > 0.5) {
+        // LUT mode: no per-instance color math — bake the band position.
+        float u;
+        if (bmode == 0) {
+            // legacy mass-temperature ramp key (the LUT bakes the same curve)
+            u = clamp((log2(m) + 2.0) * 0.25, 0.0, 1.0);
+        } else {
+            u = band_u(x_axis);
         }
-        color = vec4(hsl2rgb(vec3(h, 1.0, l)), 1.0);
+        inst[base + 3] = vec4(u, m, float(i), 0.0);  // custom_data: (u, mass, id, spare)
     } else {
-        // Mass-based color temperature (Salpeter IMF: many blue dwarfs, few
-        // red giants) — the LEGACY default path, bit-identical.
-        float log_m = clamp((log2(m) + 2.0) * 0.25, 0.0, 1.0);  // 0→0.3M☉, 1→30M☉
-        float cr = mix(0.15, 1.0,  log_m * log_m);                 // blue dwarf→red giant
-        float cg = mix(0.25, 0.6,  log_m);
-        float cb = mix(1.0,  0.15, log_m);
-        color = vec4(cr, cg, cb, 1.0);
-    }
-    // Additive-glow (flag 0x20): bright-core additive treatment over ANY
-    // base color mode — q near the white point (bright core) → lightness
-    // lifted toward white AND alpha raised so core overlap reads as
-    // additive glow; a halo ramp adds extra brightness on large instances.
-    // Reads the engine's scalar axis (x_axis): q in the Qi modes, |v| in
-    // the velocity mode. The bright-core ramp keys on pc.a_hi (the live
-    // white point), so a condensation-heavy region glows brightest.
-    if ((flags & F_GL) != 0) {
-        float x = x_axis;
-        float ref = max(pc.a_hi, 0.001);
-        // bright-core fraction: 0 below the onset, → 1 at the white point
-        float fg = clamp((x / ref - GLOW_Q_FRAC) / (1.0 - GLOW_Q_FRAC), 0.0, 1.0);
-        // halo ramp on large instances (the size just computed, which the
-        // size-by-mass flag sharpened)
-        float halo = clamp((s - GLOW_S_LARGE) / max(GLOW_S_LARGE, 1e-6), 0.0, 1.0);
-        float boost = clamp(fg + GLOW_HALO_EXTRA * halo, 0.0, 1.0);
-        // lift toward pure white (additive on the dark field)
-        vec3 core = mix(color.rgb, vec3(1.0), boost * GLOW_L_BOOST);
-        color.rgb = core;
-        color.a = mix(GLOW_A_MIN, GLOW_A_MAX, boost);
-    }
-
-    // ── Feature flags applied to ANY mode ────────────────────────────
-    // Depth cue (flag 0x40): fade alpha with camera distance. Camera pos
-    // comes from the deferred PC slots when the hook lands; the current
-    // shared fill leaves them unreferenced → origin probe (the auto-framed
-    // camera sits a fixed oblique distance from the origin, so this is a
-    // faithful fallback until the hook feeds the live camera).
-    if ((flags & F_DP) != 0) {
-        // Camera world position is written by the host into slots 8/9/10
-        // (shared source_strength / num_clusters / gravity_mode — none
-        // consumed by the color/size paths) every instancer PC fill;
-        // headless scenes leave them 0 → distance from the origin.
-        vec3 cam = vec3(pc.source_strength, pc.num_clusters, pc.gravity_mode);
-        float d = length(pos[i].xyz - cam);
-        float boxd = length(vec3(pc.extent_x, pc.extent_y, pc.extent_z));
-        float dn = DEPTH_NEAR_FRAC * boxd;
-        float df = max(DEPTH_FAR_FRAC * boxd, dn + 1e-6);
-        float fade = clamp((df - d) / (df - dn), 0.0, 1.0);
-        color.a *= pow(fade, DEPTH_POW);
-    }
-
-    inst[base + 3] = color;
+        vec4 color;
+        if (bmode >= 1) {
+            // ── Consolidated rainbow engine (base modes 1/2/3/4) ─────────
+            // One branchless evaluator for both sources; every difference
+            // between the sources/modes lives in the host-composed PC.
+            float x = x_axis;
+            float lin = pc.prog_mode;             // 0 = log, 1 = linear
+            // per-segment progress (log: multiplicative physics; linear: plain)
+            float f1 = mix(log(max((x + pc.ref) / (pc.lo1 + pc.ref), LOG_GUARD)), x - pc.lo1, lin);
+            float f2 = mix(log(max((x + pc.ref) / (pc.lo2 + pc.ref), LOG_GUARD)), x - pc.lo2, lin);
+            float f3 = mix(log(max((x + pc.ref) / (pc.lo3 + pc.ref), LOG_GUARD)), x - pc.lo3, lin);
+            // segment hues: h1 starts at 0; h2/h3 start at the accumulated
+            // share offsets — the pinch band's steepness comes from its narrow
+            // log interval (the intrinsic steepest segment).
+            float h1 = pc.slope1 * f1;
+            float h2 = pc.off2 + pc.slope2 * f2;
+            float h3 = pc.off3 + pc.slope3 * f3;
+            // segment masks (pinch OFF ⇒ lo2 = lo3 = hiC ⇒ only a1 is live).
+            // The LAST segment extends past hiC (no upper step): growth beyond
+            // the cycle top saturates at the span cap instead of dropping out —
+            // the legacy velocity top (h = 0.95 at v ≥ v_max, pink) is held.
+            float a1 = step(pc.lo1, x) * (1.0 - step(pc.lo2, x));
+            float a2 = step(pc.lo2, x) * (1.0 - step(pc.lo3, x));
+            float a3 = step(pc.lo3, x);
+            float hc = clamp(a1 * h1 + a2 * h2 + a3 * h3, 0.0, pc.span_total);
+            // the offset rotates the cycle start; the wrap boundary is at least
+            // a full circle so a single-pass top (velocity span 0.95) is HELD at
+            // the cap instead of wrapping back to red (mod(x, y) = 0 for x = y).
+            float h_cyc = mod(hc + pc.hue_offset, max(pc.span_total, 1.0));
+            // approach band (count-invariant): violet 0.8 at a_lo → pc.a_top
+            // (pink 0.93) at a_hi — the lightness ramp makes it white at the
+            // top; red never appears at high coherence
+            float pA = clamp((x - pc.a_lo) / max(pc.a_hi - pc.a_lo, LOG_GUARD), 0.0, 1.0);
+            float hA = mix(H_ENTRY, pc.a_top, pA);
+            float lA = 0.5 + 0.5 * pA;
+            float inA = pc.approach_on * step(pc.a_lo, x);
+            float h = mix(h_cyc, hA, inA);
+            float l = mix(0.5, lA, inA);
+            // mode 4 (TWO-AXIS): the ENGINE keeps hue but modulates lightness
+            // with local density ρ. Today ρ̂ = q-proxy; after the deferred EY/EI
+            // hook this becomes the true EY+EI trilinear. The approach band (if
+            // on) still dominates near the white point — the two-axis lift rides
+            // under it so a condensation glow is never dimmed by a low ρ cell.
+            if (bmode == 4) {
+                float rho = rho_norm(tri_rho(pos[i].xyz));   // TRUE ρ = EY+EI
+                float l2 = clamp(l + RHO_GAIN * (rho - 0.5), 0.0, 1.0);
+                l = mix(l, l2, 1.0 - inA);
+            }
+            color = vec4(hsl2rgb(vec3(h, 1.0, l)), 1.0);
+        } else {
+            // Mass-based color temperature (Salpeter IMF: many blue dwarfs, few
+            // red giants) — the LEGACY default path, bit-identical.
+            float log_m = clamp((log2(m) + 2.0) * 0.25, 0.0, 1.0);  // 0→0.3M☉, 1→30M☉
+            float cr = mix(0.15, 1.0,  log_m * log_m);                 // blue dwarf→red giant
+            float cg = mix(0.25, 0.6,  log_m);
+            float cb = mix(1.0,  0.15, log_m);
+            color = vec4(cr, cg, cb, 1.0);
+        }
+        // Additive-glow (flag 0x20): bright-core additive treatment over ANY
+        // base color mode — q near the white point (bright core) → lightness
+        // lifted toward white AND alpha raised so core overlap reads as
+        // additive glow; a halo ramp adds extra brightness on large instances.
+        // Reads the engine's scalar axis (x_axis): q in the Qi modes, |v| in
+        // the velocity mode. The bright-core ramp keys on pc.a_hi (the live
+        // white point), so a condensation-heavy region glows brightest.
+        if ((flags & F_GL) != 0) {
+            float x = x_axis;
+            float ref = max(pc.a_hi, 0.001);
+            // bright-core fraction: 0 below the onset, → 1 at the white point
+            float fg = clamp((x / ref - GLOW_Q_FRAC) / (1.0 - GLOW_Q_FRAC), 0.0, 1.0);
+            // halo ramp on large instances (the size just computed, which the
+            // size-by-mass flag sharpened)
+            float halo = clamp((s - GLOW_S_LARGE) / max(GLOW_S_LARGE, 1e-6), 0.0, 1.0);
+            float boost = clamp(fg + GLOW_HALO_EXTRA * halo, 0.0, 1.0);
+            // lift toward pure white (additive on the dark field)
+            vec3 core = mix(color.rgb, vec3(1.0), boost * GLOW_L_BOOST);
+            color.rgb = core;
+            color.a = mix(GLOW_A_MIN, GLOW_A_MAX, boost);
+        }
+    
+        // ── Feature flags applied to ANY mode ────────────────────────────
+        // Depth cue (flag 0x40): fade alpha with camera distance. Camera pos
+        // comes from the deferred PC slots when the hook lands; the current
+        // shared fill leaves them unreferenced → origin probe (the auto-framed
+        // camera sits a fixed oblique distance from the origin, so this is a
+        // faithful fallback until the hook feeds the live camera).
+        if ((flags & F_DP) != 0) {
+            // Camera world position is written by the host into slots 8/9/10
+            // (shared source_strength / num_clusters / gravity_mode — none
+            // consumed by the color/size paths) every instancer PC fill;
+            // headless scenes leave them 0 → distance from the origin.
+            vec3 cam = vec3(pc.source_strength, pc.num_clusters, pc.gravity_mode);
+            float d = length(pos[i].xyz - cam);
+            float boxd = length(vec3(pc.extent_x, pc.extent_y, pc.extent_z));
+            float dn = DEPTH_NEAR_FRAC * boxd;
+            float df = max(DEPTH_FAR_FRAC * boxd, dn + 1e-6);
+            float fade = clamp((df - d) / (df - dn), 0.0, 1.0);
+            color.a *= pow(fade, DEPTH_POW);
+        }
+    
+        inst[base + 3] = color;
+    }  // end legacy color branch (LUT flag off)
 }
