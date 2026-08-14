@@ -14,7 +14,7 @@
  *   - Flux-specific: inspect, run, team, steer, approve, reject, pause, resume, checkpoints, tree, change_model
  */
 
-import type { ILogger } from '../../types/interfaces.js';
+import type { ILogger } from '@cassicore/foundation';
 
 import {
   executeHelixTool,

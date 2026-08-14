@@ -13,7 +13,7 @@
  * - cassicore://intelligence/activity - Cognitive state dashboard
  */
 
-import type { ILogger } from '../../types/interfaces.js';
+import type { ILogger } from '@cassicore/foundation';
 import { fetchWithTimeout, GATEWAY_VERSION } from './helpers.js';
 
 // Types

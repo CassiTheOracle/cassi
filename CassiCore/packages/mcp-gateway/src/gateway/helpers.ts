@@ -4,8 +4,8 @@
  * Common utilities used across all domain modules
  */
 
-import type { ILogger } from '../../types/interfaces.js';
-import { GATEWAY_VERSION } from '../../core/version.js';
+import type { ILogger } from '@cassicore/foundation';
+import { GATEWAY_VERSION } from '../vendor/core/version.js';
 
 // Re-export for consumers that already import from here
 export { GATEWAY_VERSION };

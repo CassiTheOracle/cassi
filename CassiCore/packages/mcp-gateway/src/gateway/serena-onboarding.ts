@@ -5,7 +5,7 @@
  * Transparently handles Serena MCP server onboarding before any Serena tool call.
  */
 
-import type { ILogger } from '../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 
 export type ToolRouter = (name: string, args: unknown) => Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: true }>
 

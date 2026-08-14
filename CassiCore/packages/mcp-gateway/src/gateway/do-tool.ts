@@ -10,10 +10,10 @@
  * @see core/intelligence/thalamus/classifier.ts — buildToolResultPrefix
  * @see core/intelligence/thalamus/slots/tool-result-slot.ts — ToolResultSlot
  */
-import type { ILogger } from '../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import { fetchWithTimeout } from './helpers.js';
 import { stripKnownPrefix } from './tool-aliases.js';
-import { buildToolResultPrefix } from '../../core/intelligence/thalamus/classifier.js';
+import { buildToolResultPrefix } from '@cassicore/thalamus/classifier';
 
 
 /** MCP tool response shape (matches what routeToolCall returns) */

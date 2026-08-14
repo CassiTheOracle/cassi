@@ -5,7 +5,7 @@
  */
 
 import { fetchWithTimeout, isConfigKeySafe } from './helpers.js';
-import type { ILogger } from '../../types/interfaces.js';
+import type { ILogger } from '@cassicore/foundation';
 
 /**
  * Tool definitions for config/admin tools

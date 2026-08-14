@@ -10,8 +10,8 @@
  */
 
 import { fetchWithTimeout, fetchIntelligence, formatJsonResponse, formatTextResponse } from './helpers.js'
-import type { ILogger } from '../../types/interfaces.js'
-import { ALL_TIER_NAMES } from '../../core/model-routing/model-directive.js'
+import type { ILogger } from '@cassicore/foundation'
+import { ALL_TIER_NAMES } from '../vendor/core/model-routing/model-directive.js'
 
 const ADMIN_BASE = 'http://localhost:7433'
 

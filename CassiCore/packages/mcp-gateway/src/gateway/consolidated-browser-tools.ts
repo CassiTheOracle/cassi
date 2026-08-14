@@ -10,7 +10,7 @@
  */
 
 import type { ToolRouter } from './serena-onboarding.js'
-import type { ILogger } from '../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 
 /**
  * Consolidated browser tool definition

@@ -6,7 +6,7 @@
  */
 
 import { SerenaAutoOnboarding, type ToolRouter } from './serena-onboarding.js'
-import type { ILogger } from '../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import {
   analyzeDeadCode,
   analyzeHotspots,
@@ -16,7 +16,7 @@ import {
   introspectSchemas,
   ensureFreshIndex,
   ensureFreshIndexBackground,
-} from '../../core/intelligence/code-analysis/index.js'
+} from '@cassicore/workspace'
 
 /**
  * Wraps a GitNexus router call so failures return a structured error object

@@ -5,7 +5,7 @@
  * Used by MCP tools and admin API endpoints.
  */
 
-import type { BlackboardChannel } from '../../types/flux-team.js'
+import type { BlackboardChannel } from '@cassicore/foundation'
 
 /**
  * Summary type matching Blackboard.getSummary() output.

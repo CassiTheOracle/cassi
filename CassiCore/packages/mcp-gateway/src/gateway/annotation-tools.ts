@@ -12,7 +12,7 @@
  */
 
 import { fetchWithTimeout } from './helpers.js'
-import type { ILogger } from '../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 
 export const ANNOTATION_TOOL_NAME = '_annotate_mnemic_fields'
 

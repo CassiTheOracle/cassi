@@ -6,7 +6,7 @@
  */
 
 import { SerenaAutoOnboarding, type ToolRouter } from './serena-onboarding.js'
-import type { ILogger } from '../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 
 // Module-level singleton for Serena onboarding
 let serenaOnboarding: SerenaAutoOnboarding | null = null

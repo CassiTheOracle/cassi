@@ -5,7 +5,7 @@
  */
 
 import { fetchIntelligence, fetchWithTimeout, resolveSessionId } from './helpers.js';
-import type { ILogger } from '../../types/interfaces.js';
+import type { ILogger } from '@cassicore/foundation';
 
 /**
  * Tool definitions for intelligence tools

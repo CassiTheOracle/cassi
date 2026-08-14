@@ -16,9 +16,9 @@
 import { executeIntelligenceTool } from './intelligence-tools.js';
 import { executeDialecticTool } from './dialectic-tools.js';
 import { fetchWithTimeout, fetchIntelligence } from './helpers.js';
-import type { ILogger } from '../../types/interfaces.js';
-import { introspectSchemas } from '../../core/intelligence/code-analysis/index.js';
-import { ContextFeedbackTracker } from '../../core/intelligence/code-analysis/index.js';
+import type { ILogger } from '@cassicore/foundation';
+import { introspectSchemas } from '@cassicore/workspace';
+import { ContextFeedbackTracker } from '@cassicore/workspace';
 
 /**
  * Consolidated intelligence tool definition

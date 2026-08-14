@@ -6,8 +6,8 @@
  * the multi-repo LocalBackend. Lazily discovers repos from the
  * global registry — works from any directory.
  */
-import { startMCPServer } from '../node_modules/gitnexus/dist/mcp/server.js';
-import { LocalBackend } from '../node_modules/gitnexus/dist/mcp/local/local-backend.js';
+import { startMCPServer } from 'gitnexus/dist/mcp/server.js';
+import { LocalBackend } from 'gitnexus/dist/mcp/local/local-backend.js';
 
 process.on('uncaughtException', (err) => {
   process.stderr.write(`GitNexus MCP uncaughtException: ${err.stack || err}\n`);

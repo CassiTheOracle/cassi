@@ -7,7 +7,7 @@
 
 import { executeCassiCoreTool } from './tool-management.js';
 import type { ToolRouter } from './serena-onboarding.js';
-import type { ILogger } from '../../types/interfaces.js';
+import type { ILogger } from '@cassicore/foundation';
 
 /**
  * Consolidated web tool definition

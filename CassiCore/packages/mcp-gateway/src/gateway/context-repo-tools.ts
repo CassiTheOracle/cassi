@@ -1,5 +1,5 @@
 import { fetchIntelligence, fetchWithTimeout } from './helpers.js'
-import type { ILogger } from '../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 
 export const CONTEXT_REPO_TOOL = {
   name: 'context_repo',

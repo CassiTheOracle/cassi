@@ -7,7 +7,7 @@
  */
 
 import { executeModelDirectiveTool } from './model-directive-tools.js';
-import type { ILogger } from '../../types/interfaces.js';
+import type { ILogger } from '@cassicore/foundation';
 
 /**
  * Consolidated model tool definition

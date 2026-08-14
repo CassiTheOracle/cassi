@@ -13,7 +13,7 @@
  * for pre-configured provider+model combos.
  */
 
-import type { ILogger } from '../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import { fetchWithTimeout } from './helpers.js'
 
 export const MODEL_DIRECTIVE_TOOLS = [

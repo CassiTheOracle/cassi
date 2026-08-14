@@ -8,7 +8,7 @@
  */
 
 import { executeSessionTool } from './session-tools.js';
-import type { ILogger } from '../../types/interfaces.js';
+import type { ILogger } from '@cassicore/foundation';
 
 /**
  * Consolidated session tool definition

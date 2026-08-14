@@ -5,7 +5,7 @@
  */
 
 import { fetchWithTimeout, formatJsonResponse } from './helpers.js';
-import type { ILogger } from '../../types/interfaces.js';
+import type { ILogger } from '@cassicore/foundation';
 
 const DEFAULT_FETCH_TIMEOUT_MS = 30_000;
 

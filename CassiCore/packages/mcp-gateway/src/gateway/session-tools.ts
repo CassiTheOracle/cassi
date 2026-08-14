@@ -5,7 +5,7 @@
  */
 
 import { fetchWithTimeout } from './helpers.js';
-import type { ILogger } from '../../types/interfaces.js';
+import type { ILogger } from '@cassicore/foundation';
 
 /**
  * Tool definitions for session tools

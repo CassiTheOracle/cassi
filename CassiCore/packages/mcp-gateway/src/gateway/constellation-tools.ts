@@ -7,7 +7,7 @@
  * Actions: project, status, cancel, jobs, sessions, watch, progress, tree, steer, blackboard, analyze
  */
 
-import type { ILogger } from '../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import { fetchWithTimeout as fetchWithTimeoutShared, watchViaSSE } from './helpers.js'
 
 

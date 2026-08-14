@@ -5,7 +5,7 @@
 
 import { fetchWithTimeout, watchViaSSE } from './helpers.js'
 import { formatBlackboardSummary, formatChannelEntries, isSummary } from './blackboard-format.js'
-import type { ILogger } from '../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 
 
 const SIGNIFICANT_HELIX_EVENTS = new Set([

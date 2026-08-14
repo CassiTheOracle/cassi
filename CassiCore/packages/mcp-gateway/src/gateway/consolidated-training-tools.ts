@@ -7,7 +7,7 @@
  */
 
 import { executeTrainingTool } from './training-tools.js';
-import type { ILogger } from '../../types/interfaces.js';
+import type { ILogger } from '@cassicore/foundation';
 
 /**
  * Consolidated training tool definition
