@@ -507,3 +507,112 @@ daemon-integration ports; functional for cheap in-memory/fs-backed ones.
 
 - Recon: `D:\carina\workspaces\cassicore\.opencode\plans\constellation-extraction-recon.md`
 - Blueprint: `C:\Users\Carina\Workspaces\CassiCore\MODULARIZATION.md`
+
+---
+
+## Part F — Deviations from source (documented repairs)
+
+`src/corpus.ts` and `src/corpus-types.ts` are NOT byte-identical to their CassiCore
+originals modulo imports. The source `corpus.ts` references a set of Corpus class
+members that are **never declared** on the class, and `corpus-types.ts` declares
+snapshot fields the implementation does not populate. The extraction worker added
+faithful implementations so the standalone package (and the source constellation
+subsystem, which is mid-refactor and already broken in CassiCore) typechecks.
+
+Every change below is a **genuine latent defect repair** — each builds a member that
+the original code references but does not declare, so the original would fail to
+compile (or emit an object missing interface-required fields). None are gratuitous:
+each is consumed either by the original `corpus.ts` itself or by already-extracted
+sibling modules (`constellation-pipeline.ts`, `constellation-injection.ts`,
+`constellation-orchestrator.ts`, `corpus-observer-layer.ts`, `constellation-store.ts`).
+
+### 1. `externalState` getter (was referenced, never declared)
+
+The original references `this.externalState.assumed` in three places but never
+declares `externalState`. Repaired as a read-only getter backed by the protocol's
+authoritative state:
+
+```ts
+// before — original: `this.externalState` used at lines 255, 353, 817, never declared
+// after — extracted:
+private get externalState(): ExternalCorpusState {
+  return this.externalProtocol.getState()
+}
+```
+
+### 2. `getExternalSnapshotInternal()` (was referenced, never declared)
+
+The original hands `getExternalSnapshot: () => this.getExternalSnapshotInternal()`
+to the `ExternalCorpusProtocol` constructor (line 208), but the method is never
+defined. Repaired as a faithful snapshot of tree + branch assessments + pending
+spawn requests + recent interventions.
+
+### 3. `sendDirectiveInternal()` (was referenced, never declared)
+
+The original passes `sendDirective: (directive) => this.sendDirectiveInternal(directive)`
+to the protocol (line 212), but the method is never defined. Repaired to dispatch
+via the existing internal `sendDirective`, stamping `timestamp`.
+
+### 4. `stopHeartbeatMonitor()` (was referenced, never declared on Corpus)
+
+The original calls `this.stopHeartbeatMonitor()` on shutdown (line 258). The method
+exists only on `ExternalCorpusProtocol` / `corpus-external.ts`, not on the `Corpus`
+class. Repaired as a Corpus-side delegation to the protocol's heartbeat cleanup.
+
+### 5. `queueSpawnForExternalDecision()` (was referenced, never declared)
+
+The original calls `this.queueSpawnForExternalDecision({...})` when an external agent
+holds the Corpus role (line 354), but the method is never defined. Repaired to queue
+the spawn request on the protocol (`queueSpawnRequest`).
+
+### 6. `locusMemoryPersistence` field + `getLocusMemoryPersistence()` (referenced by siblings)
+
+`constellation-pipeline.ts` and `constellation-store.ts` read
+`corpus.getLocusMemoryPersistence()`. The original Corpus never provided it. The
+worker hoisted `deps.store?.getLocusMemoryPersistence()` out of the `Locus`
+constructor into a private field, wired it at construction, and exposed a getter.
+
+### 7. Public external-assumption surface (consumed by siblings)
+
+`isExternallyAssumed()`, `getExternalState()`, `getExternalSnapshot()` are called by
+`constellation-injection.ts`, `constellation-orchestrator.ts`, and
+`constellation-pipeline.ts`. The original Corpus class never declared them; repaired
+to delegate to the protocol state / `getExternalSnapshotInternal()`.
+
+### 8. Locus read surface (consumed by siblings)
+
+`getLocusSnapshot()` and `getLocusMemories()` are called by `constellation-injection.ts`
+and `constellation-pipeline.ts`. Repaired to return the Locus snapshot / all memory
+entries when the locus layer is enabled, else `undefined`.
+
+### 9. `getSignalPatternDigest()` (consumed by siblings; standalone shim)
+
+`constellation-pipeline.ts` and `corpus-observer-layer.ts` call
+`corpus.getSignalPatternDigest()`. The standalone `Corpus` does not maintain a
+signal-pattern buffer, so this returns `undefined` (the observer treats `undefined`
+as "no digest"). **This is an explicitly non-functional shim**, kept only to satisfy
+the already-extracted observer/pipeline surface; behavior in a real host comes from
+the daemon's signal-pattern digest.
+
+### 10. `setCorpusObserverActive()` (consumed by siblings; acknowledgment nop)
+
+`constellation-pipeline.ts` calls it to signal that the CorpusObserverLayer owns
+cross-Helix LLM analysis. The standalone `Corpus` reads nothing further from the
+flag, so it is a lightweight in-memory acknowledgment (nop).
+
+### 11–12. Progress-snapshot completeness (interface/impl mismatch)
+
+`CorpusProgressSnapshot` already declares `llmHealthState` and `llmConsecFailures`
+in the original `corpus-types.ts`, but the original `getProgressSnapshot()` never set
+them. The worker populates both (`llmHealthState: this.llmHealthy ? 'primary' :
+'rule_based'`, `llmConsecFailures: this.llmFailureCount`) and adds an optional
+`llmFailureCount?: number` to the snapshot interface to carry the field the original
+implementation already emitted.
+
+### Net verdict
+
+No changes in `src/corpus.ts` / `src/corpus-types.ts` beyond (a) import rewrites and
+(b) the repairs above. All repairs are genuine — the source `corpus.ts` does not
+typecheck in isolation and the constellation subsystem is broken mid-refactor in
+CassiCore. Reverting any single repair breaks compilation of the standalone package.
+

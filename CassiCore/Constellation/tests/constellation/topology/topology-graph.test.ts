@@ -12,9 +12,9 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { TopologyGraph } from '../../src/topology/topology-graph.js'
-import type { BranchDigest, BranchApproach } from '../../src/corpus-types.js'
-import type { TopologySnapshot, MergeDepth } from '../../src/topology/topology-types.js'
+import { TopologyGraph } from '../../../src/topology/topology-graph.js'
+import type { BranchDigest, BranchApproach } from '../../../src/corpus-types.js'
+import type { TopologySnapshot, MergeDepth } from '../../../src/topology/topology-types.js'
 
 
 // --- Mock Factories ---

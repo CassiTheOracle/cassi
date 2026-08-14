@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { ClusterTracker } from '../../src/topology/cluster-tracker.js'
-import type { ClusterTrackerDeps } from '../../src/topology/cluster-tracker.js'
-import type { LinkManager } from '../../src/topology/link-manager.js'
-import type { GravityEngine } from '../../src/topology/gravity-engine.js'
-import type { ILogger } from '../../src/vendor/types/interfaces.js'
-import type { TopologyLink, MergeDepth } from '../../src/topology/topology-types.js'
+import { ClusterTracker } from '../../../src/topology/cluster-tracker.js'
+import type { ClusterTrackerDeps } from '../../../src/topology/cluster-tracker.js'
+import type { LinkManager } from '../../../src/topology/link-manager.js'
+import type { GravityEngine } from '../../../src/topology/gravity-engine.js'
+import type { ILogger } from '../../../src/vendor/types/interfaces.js'
+import type { TopologyLink, MergeDepth } from '../../../src/topology/topology-types.js'
 
 function makeLogger(): ILogger {
   return {

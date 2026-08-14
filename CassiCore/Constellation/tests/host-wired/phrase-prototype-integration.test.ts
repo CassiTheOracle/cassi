@@ -1,11 +1,13 @@
+// HOST-WIRED: requires CassiCore daemon runtime; excluded from default vitest run.
+
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import type { MnemicField } from '../src/vendor/mnemic-field/index.js'
-import type { PhrasePrototypeSet, ClassificationResult } from '../src/vendor/mnemic-field/edge-relators.js'
-import { TERRITORY_RELATION_PHRASES, computeTerritorialOverlapSemantic, type SiblingGoalEntry } from '../src/territory-bridge.js'
-import { SPAWN_EVALUATION_PHRASES } from '../src/vendor/phrase-prototypes.js'
-import { DecompositionTracker, type TrackedTask } from '../src/decomposition-tracker.js'
-import type { GoalDecomposition } from '../src/corpus-types.js'
-import { MessageLuminanceScorer } from '../src/vendor/thalamus/scorer.js'
+import type { MnemicField } from '../../core/intelligence/mnemic-field/index.js'
+import type { PhrasePrototypeSet, ClassificationResult } from '../../core/intelligence/mnemic-field/edge-relators.js'
+import { TERRITORY_RELATION_PHRASES, computeTerritorialOverlapSemantic, type SiblingGoalEntry } from '../../core/intelligence/constellation/territory-bridge.js'
+import { SPAWN_EVALUATION_PHRASES } from '../../core/intelligence/phrase-prototypes.js'
+import { DecompositionTracker, type TrackedTask } from '../../core/intelligence/constellation/decomposition-tracker.js'
+import type { GoalDecomposition } from '../../core/intelligence/constellation/corpus-types.js'
+import { MessageLuminanceScorer } from '../../core/intelligence/thalamus/scorer.js'
 
 function mockLogger() {
   return { child: () => mockLogger(), info: vi.fn(), warn: vi.fn(), debug: vi.fn(), error: vi.fn() }
@@ -169,7 +171,7 @@ describe('MessageLuminanceScorer.applyEpistemicBoosts', () => {
 describe('phrase prototype import integrity', () => {
   it('all phrase sets have matching labels and phrase keys', async () => {
     const { default: _ } = await import('fs')
-    const mod = await import('../src/vendor/phrase-prototypes.js')
+    const mod = await import('../../core/intelligence/phrase-prototypes.js')
     const exports = Object.entries(mod)
     for (const [name, set] of exports) {
       if (name.endsWith('_PHRASES') && typeof set === 'object' && 'labels' in set && 'phrases' in set) {
@@ -183,7 +185,7 @@ describe('phrase prototype import integrity', () => {
   })
 
   it('every phrase set has at least 3 phrases per label', async () => {
-    const mod = await import('../src/vendor/phrase-prototypes.js')
+    const mod = await import('../../core/intelligence/phrase-prototypes.js')
     const exports = Object.entries(mod)
     for (const [name, set] of exports) {
       if (name.endsWith('_PHRASES') && typeof set === 'object' && 'labels' in set && 'phrases' in set) {
@@ -196,7 +198,7 @@ describe('phrase prototype import integrity', () => {
   })
 
   it('no phrase set is empty', async () => {
-    const mod = await import('../src/vendor/phrase-prototypes.js')
+    const mod = await import('../../core/intelligence/phrase-prototypes.js')
     const exports = Object.entries(mod)
     for (const [name, set] of exports) {
       if (name.endsWith('_PHRASES') && typeof set === 'object' && 'labels' in set && 'phrases' in set) {

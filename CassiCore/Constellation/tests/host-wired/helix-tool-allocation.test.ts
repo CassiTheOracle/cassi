@@ -1,3 +1,5 @@
+// HOST-WIRED: requires CassiCore daemon runtime; excluded from default vitest run.
+
 /**
  * Helix Tool Allocation Tests
  *
@@ -8,8 +10,8 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { isReadOnlyTool, isMemoryTool } from '../core/intelligence/cassi-agent/base-posture-runner.js'
-import type { ToolAccessLevel } from '../src/types.js'
+import { isReadOnlyTool, isMemoryTool } from '../../core/intelligence/cassi-agent/base-posture-runner.js'
+import type { ToolAccessLevel } from '../../core/intelligence/constellation/types.js'
 
 
 describe('Helix Tool Allocation', () => {
@@ -181,7 +183,7 @@ describe('Helix Tool Allocation', () => {
 
   describe('Template posture toolAccess correctness', () => {
     it('standard template: unity=full, yang=read-only+memory, yin=read-only+memory', async () => {
-      const { getTemplatePostures } = await import('../src/templates.js')
+      const { getTemplatePostures } = await import('../../core/intelligence/constellation/templates.js')
       const postures = getTemplatePostures('standard')
 
       const unity = postures.find(p => p.name === 'unity')
@@ -194,7 +196,7 @@ describe('Helix Tool Allocation', () => {
     })
 
     it('implementation template: both unities get full access', async () => {
-      const { getTemplatePostures } = await import('../src/templates.js')
+      const { getTemplatePostures } = await import('../../core/intelligence/constellation/templates.js')
       const postures = getTemplatePostures('implementation')
 
       const unityPrimary = postures.find(p => p.name === 'unity-primary')
@@ -209,7 +211,7 @@ describe('Helix Tool Allocation', () => {
     })
 
     it('research template: researchers get read-only+memory', async () => {
-      const { getTemplatePostures } = await import('../src/templates.js')
+      const { getTemplatePostures } = await import('../../core/intelligence/constellation/templates.js')
       const postures = getTemplatePostures('research')
 
       const alpha = postures.find(p => p.name === 'researcher-alpha')
@@ -220,7 +222,7 @@ describe('Helix Tool Allocation', () => {
     })
 
     it('review template: all reviewers get read-only+memory', async () => {
-      const { getTemplatePostures } = await import('../src/templates.js')
+      const { getTemplatePostures } = await import('../../core/intelligence/constellation/templates.js')
       const postures = getTemplatePostures('review')
 
       const reviewers = postures.filter(p => p.energy === 'yang' || p.energy === 'yin')
@@ -230,7 +232,7 @@ describe('Helix Tool Allocation', () => {
     })
 
     it('minimal template: unity=full, reviewer=read-only+memory', async () => {
-      const { getTemplatePostures } = await import('../src/templates.js')
+      const { getTemplatePostures } = await import('../../core/intelligence/constellation/templates.js')
       const postures = getTemplatePostures('minimal')
 
       const unity = postures.find(p => p.name === 'unity')

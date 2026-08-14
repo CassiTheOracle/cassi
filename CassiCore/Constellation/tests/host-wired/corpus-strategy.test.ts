@@ -1,3 +1,5 @@
+// HOST-WIRED: requires CassiCore daemon runtime; excluded from default vitest run.
+
 /**
  * Tests for the Corpus-Workflow strategy integration:
  *   - CorpusStrategyRegistry (registration, matching, run tracking)
@@ -13,36 +15,36 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { CorpusStrategyRegistry } from '../src/corpus-strategy-registry.js'
-import { createConflictResolutionStrategy } from '../src/strategies/conflict-resolution.js'
-import { createCascadeRecoveryStrategy } from '../src/strategies/cascade-recovery.js'
-import { createConvergenceSynthesisStrategy } from '../src/strategies/convergence-synthesis.js'
-import { createStuckRedecompositionStrategy } from '../src/strategies/stuck-redecomposition.js'
-import { createRedundancyStrategy } from '../src/strategies/redundancy.js'
-import { createDivergenceStrategy } from '../src/strategies/divergence.js'
-import { createResourceImbalanceStrategy } from '../src/strategies/resource-imbalance.js'
+import { CorpusStrategyRegistry } from '../../core/intelligence/constellation/corpus-strategy-registry.js'
+import { createConflictResolutionStrategy } from '../../core/intelligence/constellation/strategies/conflict-resolution.js'
+import { createCascadeRecoveryStrategy } from '../../core/intelligence/constellation/strategies/cascade-recovery.js'
+import { createConvergenceSynthesisStrategy } from '../../core/intelligence/constellation/strategies/convergence-synthesis.js'
+import { createStuckRedecompositionStrategy } from '../../core/intelligence/constellation/strategies/stuck-redecomposition.js'
+import { createRedundancyStrategy } from '../../core/intelligence/constellation/strategies/redundancy.js'
+import { createDivergenceStrategy } from '../../core/intelligence/constellation/strategies/divergence.js'
+import { createResourceImbalanceStrategy } from '../../core/intelligence/constellation/strategies/resource-imbalance.js'
 import {
   WorkflowEngine,
   corpusDirectiveStep,
   corpusAssessStep,
   _resetNodeCounter,
-} from '../src/vendor/workflow/index.js'
+} from '../../core/workflow/index.js'
 import type {
   ICorpusDirectiveSender,
   ICorpusStateReader,
-} from '../src/vendor/workflow/steps.js'
+} from '../../core/workflow/steps.js'
 import type {
   CorpusStrategy,
   CrossHelixPattern,
   CorpusProcessedState,
   StrategyContext,
   ActiveStrategyRun,
-} from '../src/corpus-types.js'
-import { createInitialProcessedState } from '../src/corpus-types.js'
-import type { WorkflowDefinition } from '../src/vendor/types/workflow.js'
-import { createWorkflow } from '../src/vendor/workflow/builder.js'
-import type { ILogger, IEventBus } from '../src/vendor/types/interfaces.js'
-import type { RuntimeEvent } from '../src/vendor/types/events.js'
+} from '../../core/intelligence/constellation/corpus-types.js'
+import { createInitialProcessedState } from '../../core/intelligence/constellation/corpus-types.js'
+import type { WorkflowDefinition } from '../../types/workflow.js'
+import { createWorkflow } from '../../core/workflow/builder.js'
+import type { ILogger, IEventBus } from '../../types/interfaces.js'
+import type { RuntimeEvent } from '../../types/events.js'
 
 // Helpers
 

@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { LinkManager } from '../../src/topology/link-manager.js'
-import type { LinkManagerDeps } from '../../src/topology/link-manager.js'
-import type { GravityEngine } from '../../src/topology/gravity-engine.js'
-import type { ILogger } from '../../src/vendor/types/interfaces.js'
-import type { LinkConfig } from '../../src/topology/topology-types.js'
+import { LinkManager } from '../../../src/topology/link-manager.js'
+import type { LinkManagerDeps } from '../../../src/topology/link-manager.js'
+import type { GravityEngine } from '../../../src/topology/gravity-engine.js'
+import type { ILogger } from '../../../src/vendor/types/interfaces.js'
+import type { LinkConfig } from '../../../src/topology/topology-types.js'
 
 function makeLogger(): ILogger {
   return {

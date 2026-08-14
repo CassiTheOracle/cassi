@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { GravityEngine } from '../../src/topology/gravity-engine.js'
-import type { GravityEngineDeps } from '../../src/topology/gravity-engine.js'
-import type { BranchDigest } from '../../src/corpus-types.js'
-import { DEFAULT_GRAVITY_CONFIG } from '../../src/topology/topology-types.js'
+import { GravityEngine } from '../../../src/topology/gravity-engine.js'
+import type { GravityEngineDeps } from '../../../src/topology/gravity-engine.js'
+import type { BranchDigest } from '../../../src/corpus-types.js'
+import { DEFAULT_GRAVITY_CONFIG } from '../../../src/topology/topology-types.js'
 import type { EmbeddingMode } from '../../../src/vendor/embeddings/embedding-service.js'
 
 function createMockDeps(overrides?: Partial<GravityEngineDeps>): GravityEngineDeps {

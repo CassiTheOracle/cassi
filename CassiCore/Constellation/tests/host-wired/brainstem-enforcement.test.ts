@@ -1,3 +1,5 @@
+// HOST-WIRED: requires CassiCore daemon runtime; excluded from default vitest run.
+
 /**
  * Brainstem Enforcement Tests
  *
@@ -8,9 +10,9 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { HelixBrainstem, createHelixBrainstem } from '../src/vendor/helix/brainstem.js'
-import type { BrainstemDeps, BrainstemConfig } from '../src/vendor/helix/brainstem-types.js'
-import type { CorpusDirective } from '../src/corpus-types.js'
+import { HelixBrainstem, createHelixBrainstem } from '../../core/intelligence/helix/brainstem.js'
+import type { BrainstemDeps, BrainstemConfig } from '../../core/intelligence/helix/brainstem-types.js'
+import type { CorpusDirective } from '../../core/intelligence/constellation/corpus-types.js'
 
 function makeLogger(): any {
   // WHY: child() must return the same instance so we can assert on the

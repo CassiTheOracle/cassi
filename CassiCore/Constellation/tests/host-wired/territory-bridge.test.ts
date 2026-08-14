@@ -1,6 +1,8 @@
+// HOST-WIRED: requires CassiCore daemon runtime; excluded from default vitest run.
+
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { GlobalWorkspace } from '../src/vendor/workspace/global-workspace.js'
+import { GlobalWorkspace } from '../../core/intelligence/workspace/global-workspace.js'
 import {
   BridgeDedupe,
   computeConceptOverlap,
@@ -11,13 +13,13 @@ import {
   parseSiblingGoalEntry,
   renderBridgeContent,
   type SiblingGoalEntry,
-} from '../src/territory-bridge.js'
-import { extractKeywords } from '../src/vendor/workspace/luminance.js'
-import { publishHelixGoalSignal } from '../src/helix-goal-lamina.js'
+} from '../../core/intelligence/constellation/territory-bridge.js'
+import { extractKeywords } from '../../core/intelligence/workspace/luminance.js'
+import { publishHelixGoalSignal } from '../../core/intelligence/constellation/helix-goal-lamina.js'
 
-import type { CognitiveSignal } from '../src/vendor/workspace/cognitive-signal.js'
-import type { GoalSubTask } from '../src/corpus-types.js'
-import type { ILogger } from '../src/vendor/types/interfaces.js'
+import type { CognitiveSignal } from '../../core/intelligence/workspace/cognitive-signal.js'
+import type { GoalSubTask } from '../../core/intelligence/constellation/corpus-types.js'
+import type { ILogger } from '../../types/interfaces.js'
 
 function silentLogger(): ILogger {
   const make = () => () => undefined as unknown as void

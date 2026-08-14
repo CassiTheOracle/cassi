@@ -1,15 +1,17 @@
+// HOST-WIRED: requires CassiCore daemon runtime; excluded from default vitest run.
+
 /**
  * Tests for BrainstemBridge — progressive context sharing between linked Helix sessions.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { BrainstemBridge } from '../src/topology/brainstem-bridge.js'
+import { BrainstemBridge } from '../../core/intelligence/constellation/topology/brainstem-bridge.js'
 import type {
   BrainstemBridgeDeps,
   BrainstemStateAccessor,
-} from '../src/topology/brainstem-bridge.js'
-import type { BranchDigest, ICorpusTree } from '../src/corpus-types.js'
-import type { CognitiveModel, BrainstemBlackboard } from '../src/vendor/helix/brainstem-types.js'
+} from '../../core/intelligence/constellation/topology/brainstem-bridge.js'
+import type { BranchDigest, ICorpusTree } from '../../core/intelligence/constellation/corpus-types.js'
+import type { CognitiveModel, BrainstemBlackboard } from '../../core/intelligence/helix/brainstem-types.js'
 
 
 // --- Mock Helpers ---

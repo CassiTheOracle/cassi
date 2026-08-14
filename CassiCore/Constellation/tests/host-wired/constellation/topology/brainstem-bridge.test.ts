@@ -1,3 +1,5 @@
+// HOST-WIRED: requires CassiCore daemon runtime; excluded from default vitest run.
+
 /**
  * Comprehensive tests for BrainstemBridge — progressive context sharing between linked Helix sessions.
  *
@@ -12,15 +14,15 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { BrainstemBridge } from '../../src/topology/brainstem-bridge.js'
-import { TopologyGraph } from '../../src/topology/topology-graph.js'
+import { BrainstemBridge } from '../../../core/intelligence/constellation/topology/brainstem-bridge.js'
+import { TopologyGraph } from '../../../core/intelligence/constellation/topology/topology-graph.js'
 import type {
   BrainstemBridgeDeps,
   BrainstemStateAccessor,
-} from '../../src/topology/brainstem-bridge.js'
-import type { BranchDigest, ICorpusTree } from '../../src/corpus-types.js'
-import type { CognitiveModel, BrainstemBlackboard } from '../../src/vendor/helix/brainstem-types.js'
-import type { EmbeddingService } from '../../../src/vendor/embeddings/embedding-service.js'
+} from '../../../core/intelligence/constellation/topology/brainstem-bridge.js'
+import type { BranchDigest, ICorpusTree } from '../../../core/intelligence/constellation/corpus-types.js'
+import type { CognitiveModel, BrainstemBlackboard } from '../../../core/intelligence/helix/brainstem-types.js'
+import type { EmbeddingService } from '../../../core/intelligence/embeddings/embedding-service.js'
 
 
 // --- Mock EmbeddingService ---

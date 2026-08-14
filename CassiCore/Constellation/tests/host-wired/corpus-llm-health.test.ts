@@ -1,3 +1,5 @@
+// HOST-WIRED: requires CassiCore daemon runtime; excluded from default vitest run.
+
 /**
  * Corpus LLM health tracking tests (C-LLM-1).
  *
@@ -6,11 +8,11 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { CorpusTree } from '../src/corpus-tree.js'
-import { Corpus } from '../src/corpus.js'
-import type { CorpusDeps } from '../src/corpus-types.js'
-import { DEFAULT_ADAPTIVE_CADENCE_CONFIG } from '../src/corpus-types.js'
-import type { BrainstemAnnotation, WorkUnitAnnotation, DetectedPattern } from '../src/vendor/helix/brainstem-types.js'
+import { CorpusTree } from '../../core/intelligence/constellation/corpus-tree.js'
+import { Corpus } from '../../core/intelligence/constellation/corpus.js'
+import type { CorpusDeps } from '../../core/intelligence/constellation/corpus-types.js'
+import { DEFAULT_ADAPTIVE_CADENCE_CONFIG } from '../../core/intelligence/constellation/corpus-types.js'
+import type { BrainstemAnnotation, WorkUnitAnnotation, DetectedPattern } from '../../core/intelligence/helix/brainstem-types.js'
 
 const FAST_CADENCE = { ...DEFAULT_ADAPTIVE_CADENCE_CONFIG, minPollMs: 1, maxPollMs: 20 }
 

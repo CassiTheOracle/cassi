@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { TopologyEmbeddingCache } from '../../src/topology/embedding-cache.js'
+import { TopologyEmbeddingCache } from '../../../src/topology/embedding-cache.js'
 import type { EmbeddingService } from '../../../src/vendor/embeddings/embedding-service.js'
-import type { ILogger } from '../../src/vendor/types/interfaces.js'
+import type { ILogger } from '../../../src/vendor/types/interfaces.js'
 
 function makeLogger(): ILogger {
   return {

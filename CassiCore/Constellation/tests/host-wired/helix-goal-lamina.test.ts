@@ -1,13 +1,15 @@
+// HOST-WIRED: requires CassiCore daemon runtime; excluded from default vitest run.
+
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { AuditStore } from '../core/runtime/audit/index.js'
-import { LaminaField } from '../src/vendor/lamina/index.js'
-import { LaminaStore } from '../src/vendor/lamina/lamina-store.js'
-import { GlobalWorkspace } from '../src/vendor/workspace/global-workspace.js'
+import { AuditStore } from '../../core/runtime/audit/index.js'
+import { LaminaField } from '../../core/intelligence/lamina/index.js'
+import { LaminaStore } from '../../core/intelligence/lamina/lamina-store.js'
+import { GlobalWorkspace } from '../../core/intelligence/workspace/global-workspace.js'
 import {
   HELIX_GOAL_AUG_CAP,
   HELIX_GOAL_CHAR_LIMIT,
@@ -20,10 +22,10 @@ import {
   rethinkHelixGoalMidFlight,
   seedHelixGoalLamina,
   trimAugLines,
-} from '../src/helix-goal-lamina.js'
+} from '../../core/intelligence/constellation/helix-goal-lamina.js'
 
-import type { GoalSubTask } from '../src/corpus-types.js'
-import type { ILogger } from '../src/vendor/types/interfaces.js'
+import type { GoalSubTask } from '../../core/intelligence/constellation/corpus-types.js'
+import type { ILogger } from '../../types/interfaces.js'
 
 function silentLogger(): ILogger {
   const make = () => () => undefined as unknown as void
