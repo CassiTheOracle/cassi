@@ -5,6 +5,6 @@ export default defineConfig({
     environment: 'node',
     pool: 'forks',
     include: ['src/**/*.test.ts', 'tests/**/*.test.ts'],
-    exclude: ['tests/host-wired/**', 'node_modules/**'],
+    exclude: ['src/vendor/**', 'tests/host-wired/**', 'node_modules/**'],
   },
 })
