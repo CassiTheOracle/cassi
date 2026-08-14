@@ -292,6 +292,13 @@ var _vsync_enabled: bool = true
 ## path with a warning otherwise). Default OFF = the legacy inline path,
 ## bit-identical.
 @export var physics_decoupled: bool = false
+## Mirror publish cadence (decoupled mode): publish the full snapshot
+## (positions/velocities/field_q/potential readbacks) every Kth physics job
+## instead of every job — the cheap 2× on the readback-bound transfer. The
+## interpolation alpha already spans the MEASURED publish interval, so the
+## display lag stays ≤ one publish interval at any cadence. Live — passed
+## per-submit in the job dict, no reinit.
+@export_range(1, 8, 1) var mirror_publish_cadence: int = 2
 ## Fixed seed for the initial conditions (0 = the legacy random init).
 ## Applied to BOTH the inline IC generators and the decoupled engine's ICs.
 @export var ic_seed: int = 0
@@ -399,7 +406,9 @@ var _pos_render_buf: RID = RID()   # interpolated render snapshot (the instancer
 var _interp_alpha: float = 1.0     # DORMANT: alpha pinned to 1.0 → pos_render == pos bit-for-bit
 # — blend shader (position snapshot/interpolation; cassi_blend_pos.glsl) —
 var _blend_sh: RID; var _blend_pipe: RID; var _blend_pc: PackedByteArray
-var _us_blend_0: RID
+var _us_blend_0: RID            # fp32 set (inline + decoupled fp32 bootstrap)
+var _us_blend_0_packed: RID     # decoupled set: packed pos_prev/pos half-pairs → pos_render
+var _us_blend_0_velpack: RID    # decoupled set: packed vel half-pairs → fp32 _vel_buf
 # — Decoupled physics producer (the standalone engine on a worker thread) —
 var _physics_engine = null            # CassiPhysicsEngine (untyped: dynamic dispatch)
 var _decoupled_active := false        # decoupled AND meshless off (the grid path)
@@ -410,6 +419,17 @@ var _decoupled_curr_pos := PackedFloat32Array()  #  (prev = the last rendered st
 var _last_publish_ms := 0             # wall-clock gate for the interp alpha
 var _batch_ema_ms := 16.7             # EMA of publish intervals (ms) — alpha sweep scale
 var _executed_prev := 0               # previous publish's executed count (perf delta)
+# — fp16 packed mirror buffers (decoupled render side, Part 2): the engine
+# publishes pos/vel as half-pair PackedByteArrays (N×8 B per particle:
+# word0 = half(x)|half(y)<<16, word1 = half(z)|half(w)<<16); the blend
+# shader's packed modes unpack them into pos_render/_vel_buf each frame.
+# Host-side pair maintained here exactly like the fp32 pair above.
+var _dc_pos_prev_buf: RID = RID()
+var _dc_pos_buf: RID = RID()
+var _dc_vel_buf: RID = RID()
+var _dc_prev_bytes := PackedByteArray()
+var _dc_curr_bytes := PackedByteArray()
+var _dc_vel_bytes := PackedByteArray()
 
 # — auxiliary buffers (SET 2) —
 var _cluster_buf: RID
@@ -457,6 +477,7 @@ var _us_inst_0_render: RID = RID()  # instancer set variant: position binding (0
 
 # — q-histogram (auto color-align; cassi_qhist.glsl) —
 var _qhist_shader: RID; var _qhist_pipe: RID; var _us_qhist_0: RID
+var _us_qhist_0_render: RID = RID()  # qhist set variant: binding 0 reads _pos_render_buf
 var _qhist_buf: RID                 # 128 log-spaced float bins
 var _qhist_zero_bytes: PackedByteArray
 var _qhist_pc_bytes: PackedByteArray
@@ -926,7 +947,7 @@ func _process(delta: float) -> void:
 				_step_timer = backlog_cap
 			if n_steps > 0:
 				_decoupled_target += n_steps
-				_physics_engine.submit_steps(_decoupled_target)
+				_physics_engine.submit_steps(_decoupled_target, false, _decoupled_job_meta(true))
 		else:
 			# ── Paced fixed-dt with a TIME BUDGET (the smooth-run design) ────
 			# The accumulator requests delta × sim_speed / dt steps — the
@@ -978,7 +999,7 @@ func _run_physics_steps(n_steps: int) -> void:
 		if _physics_engine == null or n_steps <= 0:
 			return
 		_decoupled_target += n_steps
-		var pub: Dictionary = _physics_engine.submit_steps(_decoupled_target, true)
+		var pub: Dictionary = _physics_engine.submit_steps(_decoupled_target, true, _decoupled_job_meta(true))
 		if not pub.is_empty():
 			_apply_decoupled_publish(pub)
 		return
@@ -1033,6 +1054,7 @@ func _run_physics_steps(n_steps: int) -> void:
 	# pos write.
 	if _blend_sh.is_valid() and N_particles > 0:
 		_blend_pc.encode_float(0, 2.0)  # roll marker (> 1.0)
+		_blend_pc.encode_float(4, 0.0)  # packed mode 0 (fp32 path — bit-identical)
 		_rd.compute_list_bind_compute_pipeline(cl, _blend_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_blend_0, 0)
 		_rd.compute_list_set_push_constant(cl, _blend_pc, _blend_pc.size())
@@ -1074,6 +1096,7 @@ func _run_physics_steps(n_steps: int) -> void:
 	# execution ordering but no implicit memory visibility).
 	if _blend_sh.is_valid() and N_particles > 0:
 		_blend_pc.encode_float(0, _interp_alpha)
+		_blend_pc.encode_float(4, 0.0)  # packed mode 0 (fp32 path — bit-identical)
 		_rd.compute_list_bind_compute_pipeline(cl, _blend_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_blend_0, 0)
 		_rd.compute_list_set_push_constant(cl, _blend_pc, _blend_pc.size())
@@ -1276,6 +1299,15 @@ func _barrier(cl: int) -> void:
 # (a roll recorded after the mirror upload would capture the NEW snapshot
 # and break the interpolation).
 
+## Per-submit job meta: the mirror publish cadence (live — no reinit) and
+## the packed-mirror flag. The bootstrap submit passes packed=false so the
+## FIRST snapshot lands as fp32 (seeds _pos_buf/_pos_render_buf for the
+## frame-0 repaint and the pre-packed blend frames); every later job is
+## packed (the fp16 half-pair mirrors).
+func _decoupled_job_meta(packed: bool) -> Dictionary:
+	return {"cadence": maxi(mirror_publish_cadence, 1), "packed": packed}
+
+
 ## Build the engine cfg from the live exports (an explicit dict with the
 ## same names the engine's setup() reads — never pass the sim node), start
 ## the threaded runner and bootstrap-wait for the first snapshot, then
@@ -1341,11 +1373,14 @@ func _decoupled_start_engine() -> bool:
 	_decoupled_pending = 0
 	_decoupled_prev_pos = PackedFloat32Array()
 	_decoupled_curr_pos = PackedFloat32Array()
+	_dc_prev_bytes = PackedByteArray()
+	_dc_curr_bytes = PackedByteArray()
+	_dc_vel_bytes = PackedByteArray()
 	_last_publish_ms = 0
 	_batch_ema_ms = 16.7
 	_step_count = 0
 	_time = 0.0
-	var pub: Dictionary = _physics_engine.submit_steps(1)
+	var pub: Dictionary = _physics_engine.submit_steps(1, false, _decoupled_job_meta(false))
 	if pub.is_empty():
 		push_error("[CassiSim] decoupled bootstrap returned no snapshot")
 		_physics_engine.stop_threaded()
@@ -1356,34 +1391,16 @@ func _decoupled_start_engine() -> bool:
 
 ## Apply a fresh engine publish: shift the host-side snapshot pair, upload
 ## the mirrors, refresh time/step/telemetry and the interpolation timing.
+## The publish cadence optimization means SOME publishes carry NO snapshot
+## (the engine readbacks every Kth job only): those still update the
+## backlog bookkeeping + time/step readouts, but skip the mirror upload AND
+## the interpolation timing — the alpha keeps sweeping across the SNAPSHOT
+## interval, so the display lag stays ≤ one publish interval at any cadence.
 func _apply_decoupled_publish(pub: Dictionary) -> void:
 	var snap: Dictionary = pub.get("snapshot", {})
-	if snap.is_empty():
-		return
-	var pos: PackedFloat32Array = snap.get("pos", PackedFloat32Array())
-	if pos.size() != maxi(N_particles, 1) * 4:
-		return
-	# Host-side snapshot pair (the blend roll is NOT dispatched in the
-	# decoupled path — pos_prev is maintained here instead).
-	if _decoupled_curr_pos.size() == pos.size():
-		_decoupled_prev_pos = _decoupled_curr_pos
-	else:
-		_decoupled_prev_pos = pos   # first publish: prev = curr
-	_decoupled_curr_pos = pos
-	# Mirrors: pos_prev + pos + vel + field_q + pot.
-	var vel: PackedFloat32Array = snap.get("vel", PackedFloat32Array())
-	var fq: PackedFloat32Array = snap.get("field_q", PackedFloat32Array())
-	var pot: PackedFloat32Array = snap.get("pot", PackedFloat32Array())
-	_rd.buffer_update(_pos_prev_buf, 0, _decoupled_prev_pos.size() * 4, _decoupled_prev_pos.to_byte_array())
-	_rd.buffer_update(_pos_buf, 0, _decoupled_curr_pos.size() * 4, _decoupled_curr_pos.to_byte_array())
-	if vel.size() > 0:
-		_rd.buffer_update(_vel_buf, 0, vel.size() * 4, vel.to_byte_array())
-	if fq.size() > 0:
-		_rd.buffer_update(_field_q, 0, fq.size() * 4, fq.to_byte_array())
-	if pot.size() > 0:
-		_upload_pot_mirror(pot)
-	# Time / step / truthful backlog / telemetry.
-	_time = float(snap.get("t", _time))
+	var has_snap := not snap.is_empty()
+	# Time / step / truthful backlog on EVERY publish (snapshot or not).
+	_time = float(pub.get("t", _time))
 	_step_count = int(pub.get("step_count", _step_count))
 	_decoupled_pending = maxi(_decoupled_target - int(pub.get("executed", 0)), 0)
 	var tel: Dictionary = pub.get("telemetry", {})
@@ -1400,10 +1417,58 @@ func _apply_decoupled_publish(pub: Dictionary) -> void:
 		_hubble = float(tel.get("hubble", _hubble))
 		_scale_factor = float(tel.get("scale_factor", _scale_factor))
 		_gn_eff = float(tel.get("gn_eff", _gn_eff))
-	# Interpolation timing: alpha ≈ 0 right at each publish and sweeps to 1
-	# over one batch interval (display lags one batch — the standard
-	# one-batch-late interpolation). Perf: publish-interval wall time per
-	# executed step (the decoupled "physics ms/step" throughput number).
+	if not has_snap:
+		return
+	# ── Mirrors (snapshot publishes only) ──
+	if bool(snap.get("packed", false)):
+		# fp16 half-pair mirrors: pos/vel land as N×8-B PackedByteArrays;
+		# the blend's packed modes unpack them into pos_render/_vel_buf.
+		var pb: PackedByteArray = snap.get("pos", PackedByteArray())
+		if pb.size() != maxi(N_particles, 1) * 8:
+			return
+		if _dc_curr_bytes.size() == pb.size():
+			_dc_prev_bytes = _dc_curr_bytes
+		else:
+			_dc_prev_bytes = pb   # first publish: prev = curr
+		_dc_curr_bytes = pb
+		_rd.buffer_update(_dc_pos_prev_buf, 0, _dc_prev_bytes.size(), _dc_prev_bytes)
+		_rd.buffer_update(_dc_pos_buf, 0, _dc_curr_bytes.size(), _dc_curr_bytes)
+		var vb: PackedByteArray = snap.get("vel", PackedByteArray())
+		if vb.size() > 0:
+			_dc_vel_bytes = vb
+			_rd.buffer_update(_dc_vel_buf, 0, vb.size(), vb)
+	else:
+		# fp32 mirrors (the bootstrap publish + any engine-side fallback).
+		var pos: PackedFloat32Array = snap.get("pos", PackedFloat32Array())
+		if pos.size() != maxi(N_particles, 1) * 4:
+			return
+		# Host-side snapshot pair (the blend roll is NOT dispatched in the
+		# decoupled path — pos_prev is maintained here instead).
+		if _decoupled_curr_pos.size() == pos.size():
+			_decoupled_prev_pos = _decoupled_curr_pos
+		else:
+			_decoupled_prev_pos = pos   # first publish: prev = curr
+		_decoupled_curr_pos = pos
+		_rd.buffer_update(_pos_prev_buf, 0, _decoupled_prev_pos.size() * 4, _decoupled_prev_pos.to_byte_array())
+		_rd.buffer_update(_pos_buf, 0, _decoupled_curr_pos.size() * 4, _decoupled_curr_pos.to_byte_array())
+		# Seed pos_render with the current state too: the pre-packed blend
+		# frames and the frame-0/paused repaint path read it (decoupled).
+		_rd.buffer_update(_pos_render_buf, 0, _decoupled_curr_pos.size() * 4, _decoupled_curr_pos.to_byte_array())
+		var vel: PackedFloat32Array = snap.get("vel", PackedFloat32Array())
+		if vel.size() > 0:
+			_rd.buffer_update(_vel_buf, 0, vel.size() * 4, vel.to_byte_array())
+	# field_q + pot stay fp32 in both paths.
+	var fq: PackedFloat32Array = snap.get("field_q", PackedFloat32Array())
+	var pot: PackedFloat32Array = snap.get("pot", PackedFloat32Array())
+	if fq.size() > 0:
+		_rd.buffer_update(_field_q, 0, fq.size() * 4, fq.to_byte_array())
+	if pot.size() > 0:
+		_upload_pot_mirror(pot)
+	# Interpolation timing: alpha ≈ 0 right at each SNAPSHOT publish and
+	# sweeps to 1 over one snapshot interval (display lags one snapshot —
+	# the standard one-batch-late interpolation; at cadence K the interval
+	# is K jobs long and the EMA measures it). Perf: snapshot-interval wall
+	# time per executed step (the decoupled "physics ms/step" number).
 	var now_ms := Time.get_ticks_msec()
 	var prev_exec := int(pub.get("executed", 0))
 	if _last_publish_ms > 0:
@@ -1430,8 +1495,12 @@ func _upload_pot_mirror(pot: PackedFloat32Array) -> void:
 
 
 ## Decoupled frame path (called from _render_frame): consume the freshest
-## publish (mirror refresh), then record the render list — blend interp →
-## barrier → instancer (render variant) → qhist. NO roll dispatch.
+## publish (mirror refresh), then record the render list — [vel unpack] →
+## blend interp → barrier → instancer (render variant) → qhist. NO roll
+## dispatch. Once the first PACKED publish has landed the blend binds the
+## packed half-pair mirrors (mode 1) and a vel-unpack dispatch (mode 2)
+## keeps the fp32 _vel_buf fresh for the instancer's |v| rainbow; before
+## that (the fp32 bootstrap) the fp32 blend set is bound instead.
 func _decoupled_poll_and_render() -> void:
 	# Consume the freshest publish (newest target wins — coalescing).
 	var pub: Dictionary = _physics_engine.poll()
@@ -1443,14 +1512,27 @@ func _decoupled_poll_and_render() -> void:
 	if not playing or not _shaders_ready:
 		return
 	var cl := _rd.compute_list_begin()
+	var packed_ready := _dc_curr_bytes.size() > 0
+	var blend_set: RID = _us_blend_0_packed if packed_ready else _us_blend_0
+	var blend_mode: float = 1.0 if packed_ready else 0.0
+	# ── Velocity unpack (packed mode): dc_vel half-pairs → fp32 _vel_buf.
+	# The instancer's binding-2 read is untouched (no instancer edit). ──
+	if packed_ready:
+		_blend_pc.encode_float(0, 0.0)
+		_blend_pc.encode_float(4, 2.0)   # packed mode 2: vel unpack
+		_rd.compute_list_bind_compute_pipeline(cl, _blend_pipe)
+		_rd.compute_list_bind_uniform_set(cl, _us_blend_0_velpack, 0)
+		_rd.compute_list_set_push_constant(cl, _blend_pc, _blend_pc.size())
+		_rd.compute_list_dispatch(cl, ceili(float(N_particles) / 64.0), 1, 1)
 	# ── Interpolation dispatch: pos_render = mix(pos_prev, pos, alpha) ──
 	if _blend_sh.is_valid() and N_particles > 0:
 		_blend_pc.encode_float(0, _interp_alpha)
+		_blend_pc.encode_float(4, blend_mode)
 		_rd.compute_list_bind_compute_pipeline(cl, _blend_pipe)
-		_rd.compute_list_bind_uniform_set(cl, _us_blend_0, 0)
+		_rd.compute_list_bind_uniform_set(cl, blend_set, 0)
 		_rd.compute_list_set_push_constant(cl, _blend_pc, _blend_pc.size())
 		_rd.compute_list_dispatch(cl, ceili(float(N_particles) / 64.0), 1, 1)
-	_barrier(cl)  # blend pos_render write → instancer read
+	_barrier(cl)  # blend pos_render/vel writes → instancer read
 	# ── Instancer (render variant — binding 0 reads pos_render) ──
 	if _instancer_shader.is_valid() and N_particles > 0:
 		_fill_instancer_pc()
@@ -1459,8 +1541,9 @@ func _decoupled_poll_and_render() -> void:
 		_rd.compute_list_bind_uniform_set(cl, _us_inst_0_render, 0)
 		_rd.compute_list_set_push_constant(cl, _instancer_pc_bytes, _instancer_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, ipg, 1, 1)
-	# ── q-histogram (auto color-align; reads the mirrors — unchanged) ──
-	if _qhist_pipe.is_valid() and _us_qhist_0.is_valid() and auto_align_colors \
+	# ── q-histogram (auto color-align; RENDER variant reads pos_render —
+	# the same interpolated snapshot the instancer draws) ──
+	if _qhist_pipe.is_valid() and _us_qhist_0_render.is_valid() and auto_align_colors \
 			and particle_color_mode >= 2 and N_particles > 0:
 		var qext := _extents()
 		_qhist_pc_bytes.encode_float(0, float(grid_N))
@@ -1474,7 +1557,7 @@ func _decoupled_poll_and_render() -> void:
 		_qhist_pc_bytes.encode_float(32, qext.y)
 		_qhist_pc_bytes.encode_float(36, qext.z)
 		_rd.compute_list_bind_compute_pipeline(cl, _qhist_pipe)
-		_rd.compute_list_bind_uniform_set(cl, _us_qhist_0, 0)
+		_rd.compute_list_bind_uniform_set(cl, _us_qhist_0_render, 0)
 		_rd.compute_list_set_push_constant(cl, _qhist_pc_bytes, _qhist_pc_bytes.size())
 		var qh_threads := ceili(float(N_particles) / 16.0)
 		_rd.compute_list_dispatch(cl, ceili(qh_threads / 64.0), 1, 1)
@@ -1605,6 +1688,14 @@ func _setup_buffers() -> void:
 	# scenes (the tree-grad precedent — a 0-size buffer fails set creation).
 	_pos_prev_buf = _rd.storage_buffer_create(maxi(N_particles, 1) * 16)
 	_pos_render_buf = _rd.storage_buffer_create(maxi(N_particles, 1) * 16)
+	# fp16 packed mirror buffers (DECOUPLED render side): pos_prev/pos/vel
+	# as uvec2 half-pair buffers (N×8 B per particle). The inline path
+	# never dispatches on them — the battery bit-identity contract is
+	# untouched (they're inert mirrors, like _pos_prev_buf). The blend's
+	# packed mode unpacks them into pos_render/_vel_buf each frame.
+	_dc_pos_prev_buf = _rd.storage_buffer_create(maxi(N_particles, 1) * 8)
+	_dc_pos_buf = _rd.storage_buffer_create(maxi(N_particles, 1) * 8)
+	_dc_vel_buf = _rd.storage_buffer_create(maxi(N_particles, 1) * 8)
 
 	# SET 2 — BH data + sim globals
 	# 36 vec4s = 576 bytes: 4-vec4 header (count/G_N/extents/reserved) + 15
@@ -1768,10 +1859,10 @@ func _setup_buffers() -> void:
 	_bh_acc_pc_bytes = PackedByteArray(); _bh_acc_pc_bytes.resize(4 * 4)
 	_poisson_pc_bytes = PackedByteArray(); _poisson_pc_bytes.resize(7 * 4)
 	_occ_pc_bytes = PackedByteArray(); _occ_pc_bytes.resize(10 * 4)
-	# Blend PC (4 B = 1 float): alpha @ byte 0. Godot reflects a 1-float
-	# push-constant block as exactly 4 bytes (verified empirically — 4.7
-	# hard-errors "requires (4) bytes, supplied (16)" on any larger buffer).
-	_blend_pc = PackedByteArray(); _blend_pc.resize(4)
+	# Blend PC (8 B = 2 floats): alpha @ byte 0, packed mode @ byte 4.
+	# Godot reflects the 2-float push-constant block as exactly 8 bytes
+	# (verified empirically — 4.7 hard-errors on any size mismatch).
+	_blend_pc = PackedByteArray(); _blend_pc.resize(8)
 	# NOTE: all poisson dispatches (clear/load/kspace/FFT) are 2D (N, N, 1) —
 
 	# uses row = workgroup.x + workgroup.y·N. A 1D (N³/256, 1, 1) dispatch
@@ -1784,6 +1875,7 @@ func _setup_buffers() -> void:
 func _free_buffers() -> void:
 	for rid in [_field_ey, _field_ei, _field_q, _field_vel, _field_scratch,
 				_pos_buf, _vel_buf, _acc_buf, _pos_prev_buf, _pos_render_buf,
+				_dc_pos_prev_buf, _dc_pos_buf, _dc_vel_buf,
 				_bh_buf, _bh_lens_buf,
 				_mass_density_buf, _mass_density_fix, _cluster_buf, _fft_buf, _tel_buf,
 				_grad_buf, _grad_buf2, _occ_buf, _qhist_buf,
@@ -1820,8 +1912,8 @@ func _free_uniform_sets() -> void:
 				_us_nbody_0, _us_nbody_1, _us_nbody_2, _us_poisson_0,
 				_us_fr_0, _us_fr_2, _us_cond_0, _us_cond_1,
 				_us_bh_int_0, _us_bh_int_1, _us_inst_0, _us_inst_0_render,
-				_us_bh_lens_2, _us_blend_0,
-				_us_occ_0, _us_qhist_0, _us_jfa_0, _us_cell_0, _us_raster_0,
+				_us_bh_lens_2, _us_blend_0, _us_blend_0_packed, _us_blend_0_velpack,
+				_us_occ_0, _us_qhist_0, _us_qhist_0_render, _us_jfa_0, _us_cell_0, _us_raster_0,
 				_us_tree_build, _us_tree_grav, _us_merge_0, _us_bh_acc_0]:
 		if rid.is_valid(): _rd.free_rid(rid)
 	_us_two_0 = RID(); _us_two_1 = RID(); _us_two_2 = RID()
@@ -1832,8 +1924,9 @@ func _free_uniform_sets() -> void:
 	_us_cond_0 = RID(); _us_cond_1 = RID()
 	_us_bh_int_0 = RID(); _us_bh_int_1 = RID()
 	_us_inst_0 = RID(); _us_inst_0_render = RID(); _us_bh_lens_2 = RID()
-	_us_blend_0 = RID()
+	_us_blend_0 = RID(); _us_blend_0_packed = RID(); _us_blend_0_velpack = RID()
 	_us_occ_0 = RID()
+	_us_qhist_0 = RID(); _us_qhist_0_render = RID()
 	_us_jfa_0 = RID(); _us_cell_0 = RID(); _us_raster_0 = RID()
 	_us_tree_build = RID(); _us_tree_grav = RID()
 	_us_merge_0 = RID(); _us_bh_acc_0 = RID()
@@ -2147,6 +2240,13 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(1, _field_q),
 			_uniform_storage(2, _qhist_buf),
 		], _qhist_shader, 0)
+		# RENDER variant (decoupled): binding 0 reads the interpolated
+		# pos_render — the same snapshot the instancer draws. No shader edit.
+		_us_qhist_0_render = _rd.uniform_set_create([
+			_uniform_storage(0, _pos_render_buf),
+			_uniform_storage(1, _field_q),
+			_uniform_storage(2, _qhist_buf),
+		], _qhist_shader, 0)
 
 	# Meshless arm sets (MESHLESS_PLAN.md §10) — the JFA ping-pong labels
 	# + sites; the cell state; the raster outputs (the field grid buffers).
@@ -2217,6 +2317,24 @@ func _cache_uniform_sets() -> void:
 		], _blend_sh, 0)
 		if not _us_blend_0.is_valid():
 			push_error("[CassiSim] blend uniform set FAILED to create (bindings 0-2)")
+		# PACKED variants (decoupled render side): bindings 0/1 are the
+		# fp16 half-pair mirrors (uvec2 per particle — the shader's raw
+		# uint views reinterpret them); mode 1 blends them into the fp32
+		# pos_render, mode 2 unpacks the packed vel into the fp32 _vel_buf.
+		_us_blend_0_packed = _rd.uniform_set_create([
+			_uniform_storage(0, _dc_pos_prev_buf),
+			_uniform_storage(1, _dc_pos_buf),
+			_uniform_storage(2, _pos_render_buf),
+		], _blend_sh, 0)
+		if not _us_blend_0_packed.is_valid():
+			push_error("[CassiSim] blend PACKED uniform set FAILED to create (bindings 0-2)")
+		_us_blend_0_velpack = _rd.uniform_set_create([
+			_uniform_storage(0, _dc_vel_buf),
+			_uniform_storage(1, _dc_pos_buf),  # unused in mode 2 (descriptor required)
+			_uniform_storage(2, _vel_buf),
+		], _blend_sh, 0)
+		if not _us_blend_0_velpack.is_valid():
+			push_error("[CassiSim] blend VEL-UNPACK uniform set FAILED to create (bindings 0,1,2)")
 # ═══════════════════════════════════════════════════════════════════════
 # Initial conditions
 # ═══════════════════════════════════════════════════════════════════════
@@ -3394,7 +3512,10 @@ func _repaint_instancer() -> void:
 	var pg = ceili(float(N_particles) / 256.0)
 	var cl = _rd.compute_list_begin()
 	_rd.compute_list_bind_compute_pipeline(cl, _instancer_pipe)
-	_rd.compute_list_bind_uniform_set(cl, _us_inst_0, 0)
+	# Decoupled: the fp32 _pos_buf mirror is NOT maintained (packed mirrors
+	# feed pos_render via the blend), so the repaint reads the interpolated
+	# pos_render like the live path does. Inline: _pos_buf is current.
+	_rd.compute_list_bind_uniform_set(cl, _us_inst_0_render if _decoupled_active else _us_inst_0, 0)
 	_rd.compute_list_set_push_constant(cl, _instancer_pc_bytes, _instancer_pc_bytes.size())
 	_rd.compute_list_dispatch(cl, pg, 1, 1)
 	_rd.compute_list_end()
