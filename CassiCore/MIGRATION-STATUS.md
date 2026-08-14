@@ -1,7 +1,7 @@
 # CassiCore P7/P8 Migration Status
 
 **Date:** 2026-08-14
-**Root:** `packages/*` (31 landed packages under `@cassicore/*`)
+**Root:** `packages/*` (33 packages under `@cassicore/*`: 31 landed + P3 `mind-runtime`/`spine`)
 **Source (read-only):** `D:\carina\workspaces\cassicore` (committed `d63358da`)
 
 The P0–P8 modular migration of the CassiCore monorepo is **complete**:
@@ -9,12 +9,12 @@ foundation through the thin host, the standalone `@cassicore/ai` provider
 layer, and all 7 remaining entry-surface apps were landed; **P6 (2026-08-14,
 owner-ratified) removed the 4 UI apps + 3 external bridges**, leaving 31
 packages that typecheck **0 errors**, and every retained package's test suite
-is green. This file records the landed surface, count totals, quarantines,
-and remaining work.
+is green. **P3 (2026-08-14) added the focused mind runtime + spine** (below).
+This file records the landed surface, count totals, quarantines, and remaining work.
 
 ---
 
-## 1. Packages landed (31)
+## 1. Packages landed (31 + 2 P3 = 33)
 
 All migrated with **history-preserving import splices** (two-stage filter-repo
 `--path` → `--path-rename`; per-file flags to avoid the Windows fast-import
@@ -85,6 +85,61 @@ only; those +87 lines stay OUT (parallel session owns them).
 
 ---
 
+## 1b. Focused runtime (P3) — the spine + mind runtime
+
+P3 (CASSICORE-FOCUS-PLAN §6 P3, DONE 2026-08-14) adds **two new packages** — the
+hybrid shape plan §1.1/§4: a thin ohmypi **spine** extension wrapping a host-agnostic
+**mind runtime** always-on process.
+
+### 30. `@cassicore/mind-runtime` — the focused always-on cognitive process
+
+The retained composition from `@cassicore/host`'s daemon (plan §5 verdict 26) MINUS
+providers/sessions/CLI/ACP/admin-api. Owns `MnemicField` + the retained intelligence
+layer (`createIntelligence`), the orchestration bus + unified loop, the retained
+mind-tool deps → `registerMindTools` (the P3 retained-mind seam split from
+`registerCoreTools`, which is unchanged), and a narrow `127.0.0.1:7273` channel.
+Defines the channel-contract types (spine imports them; runtime imports zero ohmypi/spine).
+
+| area | detail |
+|---|---|
+| `src/boot.ts` | composition root (paths ports, intelligence layer, MnemicField + injections, unified loop, retained tool deps) |
+| `src/channel/server.ts` / `protocol.ts` | the 11-endpoint localhost channel (§3.2) + contract types |
+| `src/memory/backend.ts` | `MnemicMemoryAdapter` — status/search/save over MnemicField |
+| `src/session-store.ts` | `MindSessionMirror` — ohmypi session mirrors |
+| `src/run.ts` | `cassi-mind` bin |
+| tests | 22 vitest (boot + retained-tools runtime + channel contract + bearer auth) |
+
+Depends ONLY on retained mind packages + `@cassicore/host` for the retained brain
+composition. No ohmypi / spine imports.
+
+### 31. `@cassicore/spine` — the ohmypi extension
+
+The only package that touches ohmypi. Default factory `cassiSpine(pi)`:
+- registers the **13 plan §4.2 mind tools** as thin delegates (12 retained:
+  `collect_thoughts`, `graph_discover`, `list_sessions`, `list_subagents`,
+  `get_subagent_status`, `get_subagent_result`, `system_health`, `debug_session`,
+  `universal_search`, `cassandra_query_events`, `cassandra_context_inspect`,
+  `query_events` — plus `mind_complete`) with schemas rebuilt from the retained
+  `@cassicore/tools` definitions, delegating `{tool, params, sessionId}` to the runtime.
+- hidden `[SPINE-TYPES]` seam tools (`_reflect`/`_remember`/`_coordinate`/
+  `_check_peers`/`remember`/`memory_search`, `hidden:true, defaultInactive:true`).
+- `mind_complete` model-access bridge (§2.3): `ctx.models.resolve` + injectable transport.
+- lifecycle `session_start/switch/branch/compact/shutdown` → `/v1/session/mirror` +
+  `appendEntry('mind.runtime.state', …)` snapshots; `mcp_notification` → `/v1/events/push`.
+- `MnemicMemoryBackend` — memory status/search/save proxying `/v1/memory/*`.
+- **`[SPINE-TYPES]` shim** (`src/oh-my-pi-types.ts`): faithful type shim of the pinned
+  `@oh-my-pi/pi-coding-agent@17.3.4` surface so CI is self-contained (the real root's
+  native allocator fails to load headlessly). Tests stub the `ExtensionAPI` — no live ohmypi.
+
+Tests: 16 vitest (registered-tools, lifecycle-bridge, memory-backend adapter).
+
+**Retained-surface pointer:** the retained mind-tool definitions are re-exported from
+`@cassicore/tools` (barrel `implementations/mind-definitions.ts`) for spine schema
+fidelity; `registerMindTools` is the P3 retained-mind registration seam
+(DELEGATE-SURFACE §1/§4.1). `registerCoreTools` runtime behavior is unchanged.
+
+---
+
 ## 2. Test counts per package (all green)
 
 | package | files | tests |
@@ -107,12 +162,14 @@ only; those +87 lines stay OUT (parallel session owns them).
 | lamina-locus-bridge | 1 | 8 |
 | mcp | — | passWithNoTests |
 | mcp-gateway | 1 | 40 |
+| **mind-runtime** | **3** | **22** |
 | mini-helix | 1 | 21 |
 | mnemic-field | 6 | 89 |
 | model-pool | 1 | 32 |
 | pipeline | 1 | 2 |
 | plugins | — | passWithNoTests |
 | providers | 5 | 120 |
+| **spine** | **3** | **16** |
 | thalamus | 6 | 97 |
 | tools | 3 | 39 |
 | training-trust-ledger | 2 | 53 |
@@ -121,7 +178,7 @@ only; those +87 lines stay OUT (parallel session owns them).
 | workflow | — | passWithNoTests |
 | workspace | 1 | 17 |
 
-**All 31 retained packages typecheck 0 errors; all suites green.**
+**All 33 packages typecheck 0 errors; all suites green.**
 
 > **P6 (2026-08-14):** removed the 7 passWithNoTests standalone apps/bridges
 > (`cassi-tui`, `cassi-watch`, `prism`, `webui`, `claude-code-mcp`,
