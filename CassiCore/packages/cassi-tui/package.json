@@ -1,0 +1,33 @@
+{
+  "name": "@cassicore/cassi-tui",
+  "version": "0.1.0",
+  "description": "CassiCore terminal UI — Ink/React frontend for the CassiCore daemon",
+  "type": "module",
+  "main": "./dist/index.js",
+  "bin": {
+    "cassi": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/index.tsx",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "cli-highlight": "^2.1.11",
+    "ink": "^5.2.0",
+    "ink-spinner": "^5.0.0",
+    "marked": "^15.0.12",
+    "marked-terminal": "^7.3.0",
+    "react": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/marked-terminal": "^6.1.1",
+    "@types/node": "^20.11.0",
+    "@types/react": "^18.3.18",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

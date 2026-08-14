@@ -1,0 +1,95 @@
+{
+  "$comment": "Claude Code settings for CassiCore integration. Copy relevant sections to the appropriate files.",
+
+  "$comment_env": "Provider credentials are now managed in integrations/claude-code/.env — the proxy auto-migrates settings.json to set ANTHROPIC_BASE_URL=http://localhost:7435",
+
+  "mcpServers": {
+    "$comment_mcp": "Add to ~/.claude/settings.json — provides all CassiCore tools via the main MCP gateway",
+    "cassicore": {
+      "command": "npx",
+      "args": ["tsx", "__REPLACE_WITH_ABSOLUTE_PATH__/mcp/cassicore-gateway.ts"],
+      "env": {}
+    }
+  },
+
+  "hooks": {
+    "$comment_hooks": "Add to .claude/settings.json in the project — injects CassiCore intelligence into every turn. Uses a command wrapper that gracefully handles the hook server being unavailable.",
+    "SessionStart": [{
+      "hooks": [{
+        "type": "command",
+        "command": "node __REPLACE_WITH_ABSOLUTE_PATH__/integrations/claude-code/src/hook-command.cjs",
+        "timeout": 5000
+      }]
+    }],
+    "UserPromptSubmit": [{
+      "hooks": [{
+        "type": "command",
+        "command": "node __REPLACE_WITH_ABSOLUTE_PATH__/integrations/claude-code/src/hook-command.cjs",
+        "timeout": 5000
+      }]
+    }],
+    "PreToolUse": [{
+      "hooks": [{
+        "type": "command",
+        "command": "node __REPLACE_WITH_ABSOLUTE_PATH__/integrations/claude-code/src/hook-command.cjs",
+        "timeout": 3000
+      }]
+    }],
+    "PostToolUse": [{
+      "hooks": [{
+        "type": "command",
+        "command": "node __REPLACE_WITH_ABSOLUTE_PATH__/integrations/claude-code/src/hook-command.cjs",
+        "timeout": 3000
+      }]
+    }],
+    "PreCompact": [{
+      "hooks": [{
+        "type": "command",
+        "command": "node __REPLACE_WITH_ABSOLUTE_PATH__/integrations/claude-code/src/hook-command.cjs",
+        "timeout": 10000
+      }]
+    }],
+    "PostCompact": [{
+      "hooks": [{
+        "type": "command",
+        "command": "node __REPLACE_WITH_ABSOLUTE_PATH__/integrations/claude-code/src/hook-command.cjs",
+        "timeout": 5000
+      }]
+    }],
+    "Notification": [{
+      "hooks": [{
+        "type": "command",
+        "command": "node __REPLACE_WITH_ABSOLUTE_PATH__/integrations/claude-code/src/hook-command.cjs",
+        "timeout": 3000
+      }]
+    }],
+    "Stop": [{
+      "hooks": [{
+        "type": "command",
+        "command": "node __REPLACE_WITH_ABSOLUTE_PATH__/integrations/claude-code/src/hook-command.cjs",
+        "timeout": 3000
+      }]
+    }],
+    "SubagentStart": [{
+      "hooks": [{
+        "type": "command",
+        "command": "node __REPLACE_WITH_ABSOLUTE_PATH__/integrations/claude-code/src/hook-command.cjs",
+        "timeout": 3000
+      }]
+    }],
+    "SubagentStop": [{
+      "hooks": [{
+        "type": "command",
+        "command": "node __REPLACE_WITH_ABSOLUTE_PATH__/integrations/claude-code/src/hook-command.cjs",
+        "timeout": 3000
+      }]
+    }],
+    "SessionEnd": [{
+      "hooks": [{
+        "type": "command",
+        "command": "node __REPLACE_WITH_ABSOLUTE_PATH__/integrations/claude-code/src/hook-command.cjs",
+        "timeout": 3000
+      }]
+    }]
+  }
+}
