@@ -1,4 +1,14 @@
-import type { PhrasePrototypeSet } from '@cassicore/mnemic-field'
+/**
+ * PhrasePrototypeSet — a set of phrase prototypes keyed by relation label.
+ * Self-contained type (foundation is the shared substrate and must not depend
+ * on @cassicore/mnemic-field, which itself depends on foundation — a package
+ * cycle would make the workspace unbuildable). Shape matches
+ * mnemic-field/src/edge-relators.ts's PhrasePrototypeSet.
+ */
+export interface PhrasePrototypeSet {
+  phrases: Record<string, string[]>
+  labels: string[]
+}
 
 export const SPAWN_EVALUATION_PHRASES: PhrasePrototypeSet = {
   phrases: {

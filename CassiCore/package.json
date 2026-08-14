@@ -8,7 +8,7 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build --workspaces",
+    "build": "npm run build --workspace=@cassicore/foundation && npm run build --workspace=@cassicore/mnemic-field && npm run build --workspace=@cassicore/mini-helix && npm run build --workspace=@cassicore/helix && npm run build --workspace=@cassicore/constellation && npm run build --workspace=@cassicore/flux-team",
     "test": "npm run test --workspaces"
   },
   "allowScripts": {
