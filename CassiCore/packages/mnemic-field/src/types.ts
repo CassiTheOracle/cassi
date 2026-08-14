@@ -413,6 +413,8 @@ export interface KindlingOptions {
    *  and the distance warp favors engrams near the attention during spread.
    *  Provided by Helix sessions once attention infrastructure is wired. */
   attentionEmbedding?: Float32Array
+  /** Enable filament (chain) discovery during kindling. */
+  enableFilaments?: boolean
 }
 
 export const KINDLING_DEFAULTS = {

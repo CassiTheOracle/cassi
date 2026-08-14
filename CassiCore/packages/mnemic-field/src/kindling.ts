@@ -7,7 +7,7 @@ import type { AttractorManager } from './attractor.js'
 import type {
   Engram, MnemicSynapse, ChargedEngram, LuminalSet,
   KindlingOptions, KindlingTrace, TaskComplexity, SpikeOutcome,
-  NeuralKindlingConfig, ForwardRecord, ForwardTrace,
+  NeuralKindlingConfig, ForwardRecord, ForwardTrace, SynapseType,
 } from './types.js'
 
 import {
@@ -291,7 +291,7 @@ export class KindlingEngine {
     if (this.attractor) {
       const ids = [...seedMap.keys()]
       const engrams = this.cortex.getEngrams(ids)
-      for (const engram of engrams) {
+      for (const engram of engrams.values()) {
         const charge = seedMap.get(engram.id)
         if (charge === undefined) continue
         const r = (engram.metadata as any)?.r as number | undefined
@@ -391,7 +391,7 @@ export class KindlingEngine {
 
     // Phase 2: collect synapses and unique neighbor IDs
     const allSynapses: Array<{
-      sourceId: string; neighborId: string; edgeType: string; weight: number
+      sourceId: string; neighborId: string; edgeType: SynapseType; weight: number       
     }> = []
     const neighborIdSet = new Set<string>()
 
@@ -586,7 +586,7 @@ export class KindlingEngine {
 
     // Phase 2: collect synapses, neighbor IDs, and per-synapse computation data
     const allSynapses: Array<{
-      sourceId: string; neighborId: string; edgeType: string; weight: number; propagation: number
+      sourceId: string; neighborId: string; edgeType: SynapseType; weight: number; propagation: number
     }> = []
     const neighborIdSet = new Set<string>()
 

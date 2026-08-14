@@ -198,7 +198,7 @@ export class EngramDecomposer {
   getVindexVersion(): string {
     if (this._vindexVersion) return this._vindexVersion
     try {
-      const config = this.provider.getConfig()
+      const config = this.provider.getConfig()!
       const raw = `${config.numLayers}-${config.hiddenDim}-${config.vocabSize}`
       this._vindexVersion = createHash('sha256').update(raw).digest('hex').slice(0, 12)
       return this._vindexVersion

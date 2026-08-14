@@ -193,6 +193,15 @@ export const KNOWLEDGE_SYNAPSE_PROPAGATION: Record<SynapseType, number> = {
   commands: 0.3,
   expert_summary: 0.9,
   injected_for: 0.7,
+  // Remaining SynapseType keys (non-knowledge defaults, mirror SYNAPSE_PROPAGATION)
+  contains: 0.7,
+  created_in: 0.5,
+  produces: 0.85,
+  operated_on: 0.8,
+  vindex_correlation: 0.4,
+  cross_modal: 0.45,
+  activated_by: 0.7,
+  visual_similar: 0.55,
 } as const
 
 /**

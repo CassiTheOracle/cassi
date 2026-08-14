@@ -109,6 +109,7 @@ export class FeatureIndex {
       layers?: number[]
       featuresPerLayer?: number
       minScore?: number
+      embedding?: number[] | Float32Array
     },
   ): IndexResult {
     if (!this.ready || !this.gateKnn) return { action: 'indexed' }

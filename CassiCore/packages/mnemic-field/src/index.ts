@@ -270,7 +270,7 @@ export class MnemicField {
   /** Source name of the active vindex (e.g. "default", "trellis2-4b"). */
   private vindexSource: string = 'default'
   /** Feature-indexed retrieval — maps vindex features → engram IDs. */
-  readonly featureIndex: FeatureIndex
+  readonly featureIndex!: FeatureIndex
   /** HEALPix spatial index — maps engram positions to cells for region queries. */
   readonly spatialIndex: SpatialIndex
   /** Attention-based engram quality scorer (uses forward pass). */
@@ -4309,12 +4309,10 @@ class BackfillWorkerPool {
   }
 
   async initialize(): Promise<void> {
-    // Resolve worker path relative to repo root (cwd is always cassicore/).
-    // import.meta.url is unreliable under tsx — resolves to eval temp files.
-    const workerPath = path.resolve(
-      process.cwd(),
-      'core/intelligence/mnemic-field/backfill-worker.ts',
-    )
+    // Worker path is package-relative (co-located with this module), so it
+    // resolves in both tsx dev and compiled dist/ builds. cassi-larql native
+    // addon is a peer dep provided by the host at the package's node_modules.
+    const workerPath = new URL('./backfill-worker.ts', import.meta.url)
 
     const readyPromises: Promise<void>[] = []
 
