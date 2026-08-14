@@ -63,6 +63,9 @@ var _viz_texture_rect: TextureRect
 const MODE_NAMES: Array[String] = ["Particles", "Field", "Black Hole", "Cosmology"]
 const PHI: float = 1.618033988749895
 const GradientLegend = preload("res://scripts/gradient_legend.gd")
+## House design-language theme (addons/cassi_ui/theme/cassi_theme.tres):
+## the single source of truth for the UI's colors and type scale.
+const CASSI_THEME: Theme = preload("res://addons/cassi_ui/theme/cassi_theme.tres")
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -169,24 +172,24 @@ var _last_falsify_r: float = NAN
 
 
 # ═══════════════════════════════════════════════════════════════════════
-# Style
+# Style — the design-language theme
 # ═══════════════════════════════════════════════════════════════════════
+#
+# All visual tokens live in CASSI_THEME (addons/cassi_ui/theme/
+# cassi_theme.tres): colors, the type scale, and the panel stylebox.
+# PanelContainers are styled automatically by type through the inherited
+# theme; labels pull named tokens through _make_label. No literals here.
 
-func _make_panel_style() -> StyleBoxFlat:
-	var s = StyleBoxFlat.new()
-	s.bg_color = Color(0.02, 0.03, 0.1, 0.9)
-	s.border_color = Color(0.3, 0.5, 1.0, 0.5)
-	s.set_border_width_all(1)
-	s.set_corner_radius_all(6)
-	s.set_content_margin_all(10)
-	return s
+## Named color from the house theme's "Cassi" token namespace.
+func _tok_color(token: String) -> Color:
+	return CASSI_THEME.get_color(StringName(token), &"Cassi")
 
 
-func _make_label(text: String, color: Color = Color(0.8, 0.9, 1.0), font_size: int = 14) -> Label:
+func _make_label(text: String, color_token: String = "text", size_token: String = "body") -> Label:
 	var l = Label.new()
 	l.text = text
-	l.add_theme_color_override("font_color", color)
-	l.add_theme_font_size_override("font_size", font_size)
+	l.add_theme_color_override("font_color", _tok_color(color_token))
+	l.add_theme_font_size_override("font_size", CASSI_THEME.get_font_size(StringName(size_token), &"Cassi"))
 	return l
 
 
@@ -202,6 +205,9 @@ func _ready() -> void:
 	# the full viewport before building children so the bottom bar is always
 	# visible regardless of the scene's serialized anchors.
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	# House theme — every child inherits it (panels styled by type, labels
+	# via tokens). This is the ONE place the look is wired up.
+	theme = CASSI_THEME
 
 	# ── Full-viewport visualization texture (behind UI panels) ──
 	_viz_texture_rect = TextureRect.new()
@@ -225,7 +231,6 @@ func _ready() -> void:
 	# ── Top-left info panel ──────────────────────────────────────
 	var info_panel = PanelContainer.new()
 	info_panel.name = "InfoPanel"
-	info_panel.add_theme_stylebox_override("panel", _make_panel_style())
 	info_panel.set_anchors_preset(PRESET_TOP_LEFT)
 	info_panel.offset_left = 10; info_panel.offset_top = 10
 	info_panel.offset_right = 300; info_panel.offset_bottom = 215
@@ -236,17 +241,17 @@ func _ready() -> void:
 	info_vbox.add_theme_constant_override("separation", 4)
 	info_panel.add_child(info_vbox)
 
-	_info_label = _make_label("FPS: --  Mode: --", Color(0.8, 0.9, 1.0), 16)
+	_info_label = _make_label("FPS: --  Mode: --", "text", "hud")
 	info_vbox.add_child(_info_label)
 
-	_diag_label = _make_label("", Color(0.7, 0.85, 1.0), 13)
+	_diag_label = _make_label("", "text_dim", "detail")
 	_diag_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	info_vbox.add_child(_diag_label)
 
-	_conn_label = _make_label("Connection: Local", Color(0.5, 0.7, 0.9), 12)
+	_conn_label = _make_label("Connection: Local", "text_hint", "param")
 	info_vbox.add_child(_conn_label)
 
-	_falsify_label = _make_label("", Color(0.95, 0.85, 0.5), 12)
+	_falsify_label = _make_label("", "gold_bright", "param")
 	_falsify_label.name = "FalsifyLabel"
 	_falsify_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_falsify_label.visible = false
@@ -255,7 +260,6 @@ func _ready() -> void:
 	# ── Bottom control panel ─────────────────────────────────────
 	var control_panel = PanelContainer.new()
 	control_panel.name = "ControlPanel"
-	control_panel.add_theme_stylebox_override("panel", _make_panel_style())
 	control_panel.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	control_panel.offset_top = -296  # 4 control rows + the VFX row + the gradient legend row (+ swatch row) — content min ≈ 290
 	control_panel.offset_left = 10; control_panel.offset_right = -10
@@ -317,7 +321,7 @@ func _ready() -> void:
 	var grid_box = VBoxContainer.new()
 	grid_box.custom_minimum_size = Vector2(120, 40)
 	row2.add_child(grid_box)
-	var grid_lbl = _make_label("Grid N:", Color(0.9, 0.85, 0.5), 12)
+	var grid_lbl = _make_label("Grid N:", "gold", "param")
 	grid_box.add_child(grid_lbl)
 	_grid_spin = SpinBox.new()
 	# Radix-2 spectral FFT: valid grids are powers of two in [64, 256];
@@ -333,7 +337,7 @@ func _ready() -> void:
 	var part_box = VBoxContainer.new()
 	part_box.custom_minimum_size = Vector2(150, 40)
 	row2.add_child(part_box)
-	var part_lbl = _make_label("Particles:", Color(0.9, 0.85, 0.5), 12)
+	var part_lbl = _make_label("Particles:", "gold", "param")
 	part_box.add_child(part_lbl)
 	_particle_spin = SpinBox.new()
 	_particle_spin.min_value = 100; _particle_spin.max_value = 5000000
@@ -349,7 +353,7 @@ func _ready() -> void:
 	var nclust_box = VBoxContainer.new()
 	nclust_box.custom_minimum_size = Vector2(120, 40)
 	row3.add_child(nclust_box)
-	var nclust_lbl = _make_label("Clusters:", Color(0.8, 0.6, 0.4), 12)
+	var nclust_lbl = _make_label("Clusters:", "cluster", "param")
 	nclust_box.add_child(nclust_lbl)
 	_nclusters_spin = SpinBox.new()
 	_nclusters_spin.min_value = 1; _nclusters_spin.max_value = 20
@@ -361,7 +365,7 @@ func _ready() -> void:
 	var sep_box = VBoxContainer.new()
 	sep_box.custom_minimum_size = Vector2(120, 40)
 	row3.add_child(sep_box)
-	var sep_lbl = _make_label("Separation:", Color(0.4, 0.7, 0.8), 12)
+	var sep_lbl = _make_label("Separation:", "sep", "param")
 	sep_box.add_child(sep_lbl)
 	_sep_spin = SpinBox.new()
 	_sep_spin.min_value = 10; _sep_spin.max_value = 500
@@ -373,7 +377,7 @@ func _ready() -> void:
 	var init_box = VBoxContainer.new()
 	init_box.custom_minimum_size = Vector2(120, 40)
 	row3.add_child(init_box)
-	var init_lbl = _make_label("Init:", Color(0.9, 0.85, 0.5), 12)
+	var init_lbl = _make_label("Init:", "gold", "param")
 	init_box.add_child(init_lbl)
 	_init_opt = OptionButton.new()
 	_init_opt.add_item("Plummer")
@@ -390,7 +394,7 @@ func _ready() -> void:
 	var color_box = VBoxContainer.new()
 	color_box.custom_minimum_size = Vector2(280, 40)
 	row3.add_child(color_box)
-	var color_lbl = _make_label("Color:", Color(0.9, 0.85, 0.5), 12)
+	var color_lbl = _make_label("Color:", "gold", "param")
 	color_box.add_child(color_lbl)
 	var color_row = HBoxContainer.new()
 	color_row.add_theme_constant_override("separation", 6)
@@ -501,7 +505,7 @@ func _ready() -> void:
 	var row_vfx = HBoxContainer.new()
 	row_vfx.add_theme_constant_override("separation", 8)
 	root_vbox.add_child(row_vfx)
-	var vfx_lbl = _make_label("VFX:", Color(0.6, 0.95, 0.8), 12)
+	var vfx_lbl = _make_label("VFX:", "mint", "param")
 	vfx_lbl.custom_minimum_size = Vector2(34, 0)
 	vfx_lbl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	vfx_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -556,7 +560,7 @@ func _ready() -> void:
 	var srv_box = VBoxContainer.new()
 	srv_box.custom_minimum_size = Vector2(160, 40)
 	row2.add_child(srv_box)
-	var srv_lbl = _make_label("Server (future):", Color(0.4, 0.5, 0.7), 12)
+	var srv_lbl = _make_label("Server (future):", "slate", "param")
 	srv_box.add_child(srv_lbl)
 	var srv_hbox = HBoxContainer.new()
 	srv_hbox.add_theme_constant_override("separation", 4)
@@ -566,14 +570,14 @@ func _ready() -> void:
 	_server_ip_edit.text = "127.0.0.1"
 	_server_ip_edit.custom_minimum_size = Vector2(90, 22)
 	_server_ip_edit.editable = false
-	_server_ip_edit.modulate = Color(0.5, 0.5, 0.6)
+	_server_ip_edit.modulate = _tok_color("disabled")
 	srv_hbox.add_child(_server_ip_edit)
 	_server_port_edit = LineEdit.new()
 	_server_port_edit.placeholder_text = "Port"
 	_server_port_edit.text = "8080"
 	_server_port_edit.custom_minimum_size = Vector2(55, 22)
 	_server_port_edit.editable = false
-	_server_port_edit.modulate = Color(0.5, 0.5, 0.6)
+	_server_port_edit.modulate = _tok_color("disabled")
 	srv_hbox.add_child(_server_port_edit)
 
 	# ── Gradient legend + its live numeric readout ──
@@ -586,7 +590,7 @@ func _ready() -> void:
 	legend_left.add_theme_constant_override("separation", 8)
 	legend_left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	legend_row.add_child(legend_left)
-	_scale_label = _make_label("", Color(0.95, 0.98, 1.0), 12)
+	_scale_label = _make_label("", "text_bright", "param")
 	_scale_label.name = "ScaleLabel"
 	_scale_label.custom_minimum_size = Vector2(96, 0)
 	_scale_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -731,7 +735,7 @@ func _build_slider_row(parent: HBoxContainer, label_text: String,
 	var box = VBoxContainer.new()
 	box.custom_minimum_size = Vector2(180, 40)
 	parent.add_child(box)
-	var lbl = _make_label(label_text, Color(0.9, 0.8, 0.5), 12)
+	var lbl = _make_label(label_text, "gold_soft", "param")
 	box.add_child(lbl)
 	var slider = HSlider.new()
 	slider.min_value = min_v; slider.max_value = max_v
