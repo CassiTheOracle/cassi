@@ -26,8 +26,9 @@ functions, not type-only:
 - `composeSystemPrompt` (`vendor/core/intelligence/shared/posture-store.ts`) and
   `estimateTokens` (`vendor/core/intelligence/shared/token-estimation.ts`) are
   **exact pure copies** of the D: originals — they run, and are self-contained.
-- `createMiniHelixSession` (`vendor/core/intelligence/mini-helix/mini-helix-runner.ts`)
-  is a **throwing stub** (`not connected`) until `@cassicore/mini-helix` lands at P3.
+- The mini-helix runner/types stubs were **repointed at P3**: helix now imports
+  `createMiniHelixSession` and the `MiniHelix*` types from `@cassicore/mini-helix`,
+  and the `vendor/core/intelligence/mini-helix/` stub files were deleted.
 
 Do **not** vendor duplicates of foundation symbols: everything helix consumes from the
 shared substrate is re-exported by `@cassicore/foundation`'s barrel.

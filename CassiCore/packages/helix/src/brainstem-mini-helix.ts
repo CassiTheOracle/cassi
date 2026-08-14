@@ -34,8 +34,8 @@ import type {
   MiniHelixSession,
   MiniHelixDeps,
   MiniHelixConfig,
-} from './vendor/core/intelligence/mini-helix/mini-helix-types.js'
-import { createMiniHelixSession } from './vendor/core/intelligence/mini-helix/mini-helix-runner.js'
+} from '@cassicore/mini-helix'
+import { createMiniHelixSession } from '@cassicore/mini-helix'
 import {
   createBrainstemTools,
   buildBrainstemSystemPrompt,

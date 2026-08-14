@@ -22,7 +22,7 @@ import type {
   MiniHelixToolDef,
   MiniHelixToolResult,
   MiniHelixToolHandler,
-} from './vendor/core/intelligence/mini-helix/mini-helix-types.js'
+} from '@cassicore/mini-helix'
 import type { WorkUnit } from './work-types.js'
 import type {
   BrainstemAnnotation,

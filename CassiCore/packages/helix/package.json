@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "@cassicore/foundation": "*",
+    "@cassicore/mini-helix": "*",
     "better-sqlite3": "^11.0.0"
   },
   "devDependencies": {
