@@ -63,9 +63,19 @@ layout(set = 0, binding = 3, std430) readonly buffer FieldQ { float qv[]; };
 // the SET SELECTION is the mode switch, no per-frame upload. With the flag
 // on, the instance buffer carries NO color (the sim builds the MultiMesh
 // with use_colors=false / use_custom_data=true): this shader writes the
-// band-relative position u (+ mass + id) into custom_data instead and the
-// billboard material samples the baked 256×1 color_lut at INSTANCE_CUSTOM.x
-// (material-side placement — no HSL math here at all in LUT mode).
+// band-relative position u PLUS the per-instance VFX factors into
+// custom_data and the billboard material samples the baked 256×1 color_lut
+// at INSTANCE_CUSTOM.x, applying the VFX on top (material-side placement —
+// no HSL math here at all in LUT mode).
+//   custom_data = (u, glow_boost, depth_fade, spare)   (2026-08-14 layout)
+//   u           = band position into the baked LUT (material samples here)
+//   glow_boost  = additive-glow boost ∈ [0,1] (0 when the 0x20 flag is off)
+//   depth_fade  = depth-cue alpha fade ∈ [0,1] (1 when the 0x40 flag is off)
+// The OLD layout was (u, m, id, 0): nothing read custom.y/z/w (mass is
+// transform-side via pos.w — the material never needs m), so the two VFX
+// channels replaced mass/id. The legacy branch below computes the SAME
+// factors through the SHARED helpers vfx_glow_boost/vfx_depth_fade — one
+// formula source for both paths, no drift.
 layout(set = 0, binding = 6, std430) readonly buffer LutFlag { vec4 flag; };
 
 // ── Consolidated gradient engine PC (32 floats = 128 B — the AMD RDNA3
@@ -124,6 +134,12 @@ layout(push_constant, std430) uniform PC {
 // coherence. LOG_GUARD keeps every log argument and every max()
 const float H_ENTRY = 0.8;
 const float LOG_GUARD = 1e-9;
+// φ⁻² ≈ 0.382 — the coherence DECOHERENCE landmark (the merge gate / pink
+// hue landmark; matches cassi_coarse_grad.glsl PHI_INV2 and the river arm's
+// q_coh). The bounded q_coh denominator scale: q_coh = ρ²/(ρ²+φ⁻²+ε²) hits
+// exactly 0.5 when ρ² = φ⁻²+ε², and 1 as ρ→∞. The hue strategy treats φ⁻²
+// as the approach/pink entry (high-coherence saturation point).
+const float PHI_INV2 = 0.3819660112501051;
 
 // ── VFX constants (2026-08-13; feature work on the current PC/bindings) ─
 // SIZE_BY_MASS (flag 0x10): s = clamp(SIZE_K · cbrt(m), SIZE_S_MIN,
@@ -145,7 +161,11 @@ const float SIZE_S_MAX = 5.0;
 const float GLOW_Q_FRAC = 0.55;   // glow onset at 55% of the white point
 const float GLOW_A_MIN = 0.35;    // far-from-white alpha floor (default billboard)
 const float GLOW_A_MAX = 1.0;     // saturated white → fully bright halo
-const float GLOW_L_BOOST = 0.25;  // lightness lift added toward white
+const float GLOW_L_BOOST = 0.12;  // lightness lift toward GLOW_TINT (was 0.25 → softened 2026-08-14: LESS-WHITE glow)
+const vec3 GLOW_TINT = vec3(0.95, 0.90, 0.98); // soft warm pink-white glow lift — NOT pure white, keeps the Qi hue readable
+//   ⚠ MUST match the billboard material's glow_tint / glow_strength
+//   uniforms (shaders/particle_billboard.gdshader — cross-referenced
+//   both files): the LUT path applies the identical lift material-side.
 const float GLOW_S_LARGE = 1.6;   // instance scale above which the halo grows
 const float GLOW_HALO_EXTRA = 0.18; // extra lightness/alpha on large objects
 // DEPTH_CUE (flag 0x40): fade alpha with the distance from the camera
@@ -246,6 +266,42 @@ float tri_rho(vec3 wp) {
     return ey + ei;
 }
 
+// ── BOUNDED coherence q_coh = ρ²/(ρ²+φ⁻²+ε²) at the particle ─────────
+// The framework's bounded coherence (cassi_coarse_grad.glsl:72-75's exact
+// formula, mirrored by the river arm): ρ = EY+EI (order), ε = EY−φ·EI
+// (deviation from the φ-attractor alignment), φ⁻² the decoherence landmark.
+// Bounded [0,1): →0 incoherent/void, →1 saturated. Ordered (ε≈0) and noisy
+// (|ε| large) fields map to DIFFERENT q_coh at equal ρ amplitude — the hue
+// channel is order-sensitive, never just amplitude. Uses the EY/EI field
+// buffers bound at 4/5 (same convention as tri_rho).
+float tri_coherence(vec3 wp) {
+    int N = int(pc.N_f);
+    float hn = float(N) * 0.5;
+    vec3 ext = vec3(pc.extent_x, pc.extent_y, pc.extent_z);
+    vec3 inv_ext = 1.0 / max(ext, vec3(0.0001));
+    vec3 gc = (wp * inv_ext) * hn + hn;
+    int i0 = int(floor(gc.x));
+    int j0 = int(floor(gc.y));
+    int k0 = int(floor(gc.z));
+    vec3 f = gc - floor(gc);
+    i0 = ((i0 % N) + N) % N;  j0 = ((j0 % N) + N) % N;  k0 = ((k0 % N) + N) % N;
+    int i1 = (i0 + 1) % N;    int j1 = (j0 + 1) % N;    int k1 = (k0 + 1) % N;
+    float ey = tri_field_scalar(
+        ey[idx3(i0, j0, k0)], ey[idx3(i1, j0, k0)],
+        ey[idx3(i0, j1, k0)], ey[idx3(i1, j1, k0)],
+        ey[idx3(i0, j0, k1)], ey[idx3(i1, j0, k1)],
+        ey[idx3(i0, j1, k1)], ey[idx3(i1, j1, k1)], f);
+    float ei = tri_field_scalar(
+        ei[idx3(i0, j0, k0)], ei[idx3(i1, j0, k0)],
+        ei[idx3(i0, j1, k0)], ei[idx3(i1, j1, k0)],
+        ei[idx3(i0, j0, k1)], ei[idx3(i1, j0, k1)],
+        ei[idx3(i0, j1, k1)], ei[idx3(i1, j1, k1)], f);
+    float rho = ey + ei;
+    float eps = ey - pc.phi * ei;
+    float rho2 = rho * rho;
+    return rho2 / (rho2 + PHI_INV2 + eps * eps);
+}
+
 // ── Mode/feature decoding ──────────────────────────────────────────────
 // color_mode low nibble = base mode, high nibble = feature flags, packed
 // by sim_ui.gd into the particle_color_mode export (bit-identical for the
@@ -302,6 +358,35 @@ float band_u(float x) {
     return mix(u_cyc, U_APP_ENTRY + pA * U_APP_SPAN, inA);
 }
 
+// ── Shared VFX factor helpers (2026-08-14) ────────────────────────────
+// ONE formula source for BOTH the legacy color branch and the LUT branch:
+// the legacy branch applies the factors inline (below), the LUT branch
+// writes the raw factors into custom_data (u, glow_boost, depth_fade) and
+// the billboard material applies the same math on top of the LUT fetch —
+// no drift between the paths.
+float vfx_glow_boost(float x, float s) {
+    // bright-core fraction: 0 below the onset, → 1 at the white point
+    float ref = max(pc.a_hi, 0.001);
+    float fg = clamp((x / ref - GLOW_Q_FRAC) / (1.0 - GLOW_Q_FRAC), 0.0, 1.0);
+    // halo ramp on large instances (the size just computed, which the
+    // size-by-mass flag sharpened)
+    float halo = clamp((s - GLOW_S_LARGE) / max(GLOW_S_LARGE, 1e-6), 0.0, 1.0);
+    return clamp(fg + GLOW_HALO_EXTRA * halo, 0.0, 1.0);
+}
+float vfx_depth_fade(vec3 wp) {
+    // Camera world position is written by the host into slots 8/9/10
+    // (shared source_strength / num_clusters / gravity_mode — none
+    // consumed by the color/size paths) every instancer PC fill;
+    // headless scenes leave them 0 → distance from the origin.
+    vec3 cam = vec3(pc.source_strength, pc.num_clusters, pc.gravity_mode);
+    float d = length(wp - cam);
+    float boxd = length(vec3(pc.extent_x, pc.extent_y, pc.extent_z));
+    float dn = DEPTH_NEAR_FRAC * boxd;
+    float df = max(DEPTH_FAR_FRAC * boxd, dn + 1e-6);
+    float fade = clamp((df - d) / (df - dn), 0.0, 1.0);
+    return pow(fade, DEPTH_POW);
+}
+
 void main() {
     int i = int(gl_GlobalInvocationID.x);
     int N = int(pc.particle_N);
@@ -329,23 +414,31 @@ void main() {
 
     // ── Color: legacy (bit-identical) or the consolidated engine ──────
     // COLOR-AS-LUT (Tier-2): with lut flag on the instance buffer carries
-    // NO color — custom_data = (u, m, id, 0) and the billboard material
-    // samples the baked LUT at u. The legacy branch below is UNCHANGED
-    // (byte-identical writes). The LUT is a pure band curve, so the
-    // per-instance lightness axes (mode-4 ρ, glow 0x20, depth 0x40) do not
-    // exist in LUT mode — the host gates them out (cassi_sim.gd
-    // _lut_compatible) and warns if they flip on under a LUT-built format.
-    // The Qi/velocity scalar axis, sampled ONCE so both the engine and the
-    // additive-glow ramp (flag 0x20) read the same value without re-sampling
-    // the field.
+    // NO color — custom_data = (u, glow_boost, depth_fade, spare) and the
+    // billboard material samples the baked LUT at u, applying the VFX
+    // factors on top (material-side placement — the per-instance lightness
+    // axes ride the custom_data channels since 2026-08-14; only base mode
+    // 4 (two-axis ρ) remains gated by the host: cassi_sim.gd
+    // _lut_compatible). The legacy branch below is UNCHANGED except the
+    // shared-factor refactor + the tinted glow (byte-identical when flags
+    // are off). The Qi/velocity scalar axis, sampled ONCE so both the
+    // engine and the additive-glow ramp (flag 0x20) read the same value
+    // without re-sampling the field.
     float x_axis = 0.0;
     if (bmode == 1) {
         x_axis = length(vel[i].xyz);          // velocity: speed |v|
     } else if (bmode >= 2) {
-        x_axis = max(tri_q(pos[i].xyz), 0.0); // Qi: coherence q (q ≥ 0 guard)
+        // Qi: the PHYSICALLY BOUNDED coherence q_coh = ρ²/(ρ²+φ⁻²+ε²) ∈ [0,1)
+        // (ρ=EY+EI, ε=EY−φ·EI) — NOT the unbounded intensity EY²+EI². This
+        // is the fix that frees the colour band: the hue channel is bounded
+        // so the Auto-Track band and the finite hi-handle can never run away
+        // behind a growing concentration front. Sampled trilinearly at the
+        // particle (EY/EI bindings 4/5) — same convention as tri_rho/tri_q.
+        x_axis = clamp(tri_coherence(pos[i].xyz), 0.0, 1.0);
     }
     if (flag.x > 0.5) {
-        // LUT mode: no per-instance color math — bake the band position.
+        // LUT mode: no per-instance color math — bake the band position
+        // plus the shared VFX factors (0/1 when the flags are off).
         float u;
         if (bmode == 0) {
             // legacy mass-temperature ramp key (the LUT bakes the same curve)
@@ -353,7 +446,11 @@ void main() {
         } else {
             u = band_u(x_axis);
         }
-        inst[base + 3] = vec4(u, m, float(i), 0.0);  // custom_data: (u, mass, id, spare)
+        float glow_boost = 0.0;   // F_GL off → no glow (material mixes 0)
+        float depth_fade = 1.0;   // F_DP off → no depth fade (material × 1)
+        if ((flags & F_GL) != 0) { glow_boost = vfx_glow_boost(x_axis, s); }
+        if ((flags & F_DP) != 0) { depth_fade = vfx_depth_fade(pos[i].xyz); }
+        inst[base + 3] = vec4(u, glow_boost, depth_fade, 0.0);  // custom_data: (u, glow, depth, spare)
     } else {
         vec4 color;
         if (bmode >= 1) {
@@ -415,22 +512,20 @@ void main() {
         }
         // Additive-glow (flag 0x20): bright-core additive treatment over ANY
         // base color mode — q near the white point (bright core) → lightness
-        // lifted toward white AND alpha raised so core overlap reads as
+        // lifted toward GLOW_TINT AND alpha raised so core overlap reads as
         // additive glow; a halo ramp adds extra brightness on large instances.
         // Reads the engine's scalar axis (x_axis): q in the Qi modes, |v| in
         // the velocity mode. The bright-core ramp keys on pc.a_hi (the live
         // white point), so a condensation-heavy region glows brightest.
+        // The boost comes from the SHARED helper (the LUT branch writes the
+        // same value into custom_data — no drift).
         if ((flags & F_GL) != 0) {
-            float x = x_axis;
-            float ref = max(pc.a_hi, 0.001);
-            // bright-core fraction: 0 below the onset, → 1 at the white point
-            float fg = clamp((x / ref - GLOW_Q_FRAC) / (1.0 - GLOW_Q_FRAC), 0.0, 1.0);
-            // halo ramp on large instances (the size just computed, which the
-            // size-by-mass flag sharpened)
-            float halo = clamp((s - GLOW_S_LARGE) / max(GLOW_S_LARGE, 1e-6), 0.0, 1.0);
-            float boost = clamp(fg + GLOW_HALO_EXTRA * halo, 0.0, 1.0);
-            // lift toward pure white (additive on the dark field)
-            vec3 core = mix(color.rgb, vec3(1.0), boost * GLOW_L_BOOST);
+            float boost = vfx_glow_boost(x_axis, s);
+            // lift toward the soft warm-pink GLOW_TINT — NOT pure white
+            // (2026-08-14 re-tune: the Qi hue stays readable; boost scaled
+            // by GLOW_L_BOOST 0.12). The LUT-path material applies the
+            // identical mix with its glow_tint/glow_strength uniforms.
+            vec3 core = mix(color.rgb, GLOW_TINT, boost * GLOW_L_BOOST);
             color.rgb = core;
             color.a = mix(GLOW_A_MIN, GLOW_A_MAX, boost);
         }
@@ -441,18 +536,9 @@ void main() {
         // shared fill leaves them unreferenced → origin probe (the auto-framed
         // camera sits a fixed oblique distance from the origin, so this is a
         // faithful fallback until the hook feeds the live camera).
+        // Shared helper — the LUT branch writes the same fade into custom_data.
         if ((flags & F_DP) != 0) {
-            // Camera world position is written by the host into slots 8/9/10
-            // (shared source_strength / num_clusters / gravity_mode — none
-            // consumed by the color/size paths) every instancer PC fill;
-            // headless scenes leave them 0 → distance from the origin.
-            vec3 cam = vec3(pc.source_strength, pc.num_clusters, pc.gravity_mode);
-            float d = length(pos[i].xyz - cam);
-            float boxd = length(vec3(pc.extent_x, pc.extent_y, pc.extent_z));
-            float dn = DEPTH_NEAR_FRAC * boxd;
-            float df = max(DEPTH_FAR_FRAC * boxd, dn + 1e-6);
-            float fade = clamp((df - d) / (df - dn), 0.0, 1.0);
-            color.a *= pow(fade, DEPTH_POW);
+            color.a *= vfx_depth_fade(pos[i].xyz);
         }
     
         inst[base + 3] = color;

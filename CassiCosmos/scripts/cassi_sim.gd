@@ -363,11 +363,14 @@ var _vsync_enabled: bool = true
 @export_range(0.0, 1.0, 0.01) var color_hue_offset: float = 0.0
 ## Color-as-LUT (Tier-2, default OFF = byte-identical legacy): bake the
 ## active color curve into a 256×1 RGBA8 LUT and drop the MultiMesh instance
-## color channel (use_colors=false; custom_data carries the band position u,
-## the billboard material samples the LUT). INIT-TIME — toggling requires
-## reinit(). Requires a pure band color (base modes 0-3, no glow/depth VFX
-## flags): mode 4 (two-axis ρ) and 0x20/0x40 modulate lightness per-instance
-## and cannot be represented in a band LUT (see _lut_compatible).
+## color channel (use_colors=false; custom_data carries the band position u
+## + the per-instance VFX factors, the billboard material samples the LUT
+## and applies them on top). INIT-TIME — toggling requires reinit().
+## Supports base modes 0-3 with the size-by-mass/glow/depth VFX flags
+## (0x10/0x20/0x40) together since 2026-08-14 (the factors ride custom_data
+## channels — see cassi_instancer.glsl). ONLY base mode 4 (two-axis ρ)
+## stays gated: its per-instance lightness axis still cannot ride the
+## static band LUT (see _lut_compatible).
 @export var color_lut_mode: bool = false
 
 # ── Camera startup framing (camera-only; no physics) ──────────────────
@@ -959,12 +962,14 @@ func _process(delta: float) -> void:
 	if _lut_bake_dirty and _color_lut_tex != null:
 		_bake_color_lut()
 		_lut_bake_dirty = false
-	# LUT-built multimesh with a live LUT-incompatible color config (mode 4
-	# or glow/depth flipped on while the LUT format is active): the band LUT
-	# cannot carry the per-instance lightness axes — one honest warning.
+	# LUT-built multimesh with a live LUT-incompatible color config: since
+	# 2026-08-14 only base mode 4 (two-axis ρ) remains gated — its
+	# per-instance ρ-lightness axis cannot ride the static band LUT (glow/
+	# depth ride custom_data channels and ARE applied in LUT mode) — one
+	# honest warning.
 	if _mm_lut_mode and not _lut_compatible() and not _warned_lut_incompat:
 		_warned_lut_incompat = true
-		push_warning("[CassiSim] LUT format is active but the live color config is LUT-incompatible (base mode 4 / glow / depth) — those per-instance lightness axes are not applied in LUT mode. Turn color_lut_mode off + reinit to restore them.")
+		push_warning("[CassiSim] LUT format is active but the live color config is LUT-incompatible (base mode 4 — two-axis ρ lightness) — that per-instance lightness axis still cannot ride the static band LUT, so it is not applied in LUT mode. Use a base mode 0-3 (glow/depth/size VFX are supported in LUT mode) or turn color_lut_mode off + reinit.")
 
 	if playing and _shaders_ready:
 		# ── Paced fixed-dt with a TIME BUDGET (the smooth-run design) ────
@@ -2373,8 +2378,9 @@ func _cache_uniform_sets() -> void:
 		], _instancer_shader, 0)
 		# COLOR-AS-LUT variants (Tier-2): identical bindings except binding 6
 		# reads the ON flag buffer — the set selection IS the LUT-mode switch
-		# (the shader writes custom_data (u, m, id, 0) instead of a color and
-		# the billboard material samples the baked LUT at INSTANCE_CUSTOM.x).
+		# (the shader writes custom_data (u, glow_boost, depth_fade, spare)
+		# instead of a color and the billboard material samples the baked LUT
+		# at INSTANCE_CUSTOM.x, applying the VFX factors on top).
 		_us_inst_0_lut = _rd.uniform_set_create([
 			_uniform_storage(0, _pos_buf),
 			_uniform_storage(1, _mm_rd_rid),
@@ -3449,9 +3455,11 @@ func _physics_step() -> void:
 # The instancer's per-instance color math is a pure function of the
 # band-relative scalar axis (q / |v| / log-m) given the engine constants —
 # so it bakes into a 1D LUT. In LUT mode the MultiMesh drops its color
-# channel (use_colors=false), the instancer writes the band position u into
-# custom_data, and the billboard material samples the LUT at
-# INSTANCE_CUSTOM.x (material-side placement). The framing is the exact
+# channel (use_colors=false), the instancer writes the band position u plus
+# the per-instance VFX factors (glow boost, depth fade) into custom_data,
+# and the billboard material samples the LUT at INSTANCE_CUSTOM.x, applying
+# the factors on top (material-side placement — the LUT bake itself is a
+# pure band curve, unchanged). The framing is the exact
 # inverse of the shader's band_u() (compute/cassi_instancer.glsl):
 #   cycle    u ∈ [0, 1-U_LUT_A):  h = u/(1-U_LUT_A)·span,  l = 0.5
 #   approach u ∈ [1-U_LUT_A, 1]:  pA = (u-(1-U_LUT_A))/U_LUT_A,
@@ -3463,12 +3471,15 @@ const LUT_APPROACH_SPAN := LUT_APPROACH_TOP - LUT_APPROACH_ENTRY  # 63 texel-int
 
 
 func _lut_compatible() -> bool:
-	# A band LUT cannot carry per-instance lightness axes: base mode 4
-	# (two-axis ρ) and the glow/depth VFX flags (0x20/0x40) modulate color
-	# per-instance. Size-by-mass (0x10) is transform-side → compatible.
+	# A band LUT cannot carry the TWO-AXIS per-instance lightness: base mode
+	# 4 modulates lightness with ρ = EY+EI per instance (no band curve can
+	# hold it) — the ONLY remaining gate. The VFX flags are LUT-compatible
+	# since 2026-08-14: size-by-mass (0x10) is transform-side (pos.w), and
+	# glow (0x20) / depth (0x40) ride the custom_data channels
+	# (u, glow_boost, depth_fade), applied by the billboard material on top
+	# of the LUT fetch — see cassi_instancer.glsl + particle_billboard.gdshader.
 	var base := particle_color_mode & 0xF
-	var flags := (particle_color_mode >> 4) & 0xF
-	return base <= 3 and (flags & 0x6) == 0
+	return base <= 3
 
 
 func _lut_active() -> bool:
@@ -3496,6 +3507,11 @@ func _apply_lut_material() -> void:
 	mat.set_shader_parameter("lut_enabled", 1.0 if _mm_lut_mode else 0.0)
 	if _color_lut_tex != null:
 		mat.set_shader_parameter("color_lut", _color_lut_tex)
+	# Per-instance VFX uniforms: pinned to the instancer's constants
+	# (cassi_instancer.glsl GLOW_TINT / GLOW_L_BOOST). The shader defaults
+	# are the same values — cross-referenced comments in both files.
+	mat.set_shader_parameter("glow_tint", Vector3(0.95, 0.90, 0.98))
+	mat.set_shader_parameter("glow_strength", 0.12)
 
 
 func _bake_color_lut() -> void:
@@ -4540,15 +4556,17 @@ func _free_multimesh() -> void:
 func _setup_multimesh() -> void:
 	# Color-as-LUT (Tier-2): the MultiMesh FORMAT is static per build —
 	# legacy keeps the instance color channel (16 floats/instance),
-	# LUT mode drops it (use_colors=false) and carries the band position
-	# in custom_data (still 16 floats/instance — the transform is 12 floats
-	# in Godot 4.7's MultiMesh buffer, so a per-instance channel costs the
-	# same 16 B either way; the win is the baked color math + the color
-	# channel gone). Requires a pure band color (see _lut_compatible).
+	# LUT mode drops it (use_colors=false) and carries the band position +
+	# VFX factors in custom_data (still 16 floats/instance — the transform
+	# is 12 floats in Godot 4.7's MultiMesh buffer, so a per-instance
+	# channel costs the same 16 B either way; the win is the baked color
+	# math + the color channel gone). Since 2026-08-14 the VFX flags
+	# (0x10/0x20/0x40) are LUT-compatible; the ONLY remaining gate is base
+	# mode 4 (see _lut_compatible).
 	_mm_lut_mode = color_lut_mode and _lut_compatible()
 	if color_lut_mode and not _lut_compatible() and not _warned_lut_build_incompat:
 		_warned_lut_build_incompat = true
-		push_warning("[CassiSim] color_lut_mode is on with a LUT-incompatible color config (base mode 4 or glow/depth VFX flags) — a band LUT cannot carry the per-instance lightness axes; falling back to the legacy instancer color path. Disable those features (or color_lut_mode) and reinit.")
+		push_warning("[CassiSim] color_lut_mode is on with a LUT-incompatible color config (base mode 4 — two-axis ρ) — a band LUT cannot carry the per-instance ρ-lightness axis; falling back to the legacy instancer color path. Use a base mode 0-3 (glow/depth/size VFX are supported in LUT mode) or turn color_lut_mode off and reinit.")
 	var qm = QuadMesh.new()
 	qm.size = Vector2(particle_size, particle_size)
 	qm.orientation = PlaneMesh.FACE_Z
@@ -4755,10 +4773,21 @@ func _align_color_band() -> void:
 		print("[CassiSim] cascade scale-up: q-band hi %s → %s (×%.2f, Δn=%.2f φ-rungs)"
 			% [_sci(old_hi), _sci(_qhist_hi), _qhist_hi / old_hi, log(_qhist_hi / old_hi) / log(PHI)])
 	# Re-fit: p1/p99 with generous margins, blended; the approach entry
-	# follows the band top (the Fit action's convention).
+	# follows the band top (the Fit action's convention). On the BOUNDED
+	# q_coh channel (base ≥ 2 — the Qi hue is now the physically bounded
+	# q_coh ∈ [0,1), not the unbounded EY²+EI²), the aligner's writes are
+	# CLAMPED to [Q_HI_CAP] ⊂ [0,1) so the band can never re-anchor past the
+	# [0,1) anchor (the runaway-concentration fix). Its histogram samples the
+	# q buffer (EY²+EI²) — numerically ~q_coh in the live regime, but the
+	# EXACT bounded tracker is the sim_ui Auto-Track path; the aligner here
+	# is the coarse-default bounded guard.
+	var Q_HI_CAP := 0.999  # the bounded q_coh channel's hard anchor (< 1)
 	if p99 > p1 * 2.0 and p1 > 0.0:
-		qi_cycle = qi_cycle.lerp(Vector2(p1 * 0.8, p99 * 1.5), 0.5)
-		qi_approach = Vector2(qi_cycle.y, qi_approach.y)
+		var fit_lo: float = clampf(p1 * 0.8, 1e-6, Q_HI_CAP)
+		var fit_hi: float = clampf(p99 * 1.5, fit_lo, Q_HI_CAP)
+		qi_cycle = qi_cycle.lerp(Vector2(fit_lo, fit_hi), 0.5)
+		# Approach top (pink/white) pinned at the φ⁻² decoherence landmark.
+		qi_approach = Vector2(qi_cycle.y, PHI_INV2)
 	_rd.buffer_update(_qhist_buf, 0, _qhist_zero_bytes.size(), _qhist_zero_bytes)
 
 

@@ -22,7 +22,10 @@ extends Node
 ##       per-instance fixed lightness — the lightness axis is active).
 ##   [4] GLOW flag (0x20): alpha is raised toward 1.0 for bright cores and
 ##       lower elsewhere (depth-offset, additive core look present; alpha
-##       spans a > 0.35 floor with bright instances near 1.0).
+##       spans a > 0.35 floor with bright instances near 1.0). Color: the
+##       bright-core lift is toward the soft warm-pink GLOW_TINT, NOT pure
+##       white (2026-08-14 owner re-tune: GLOW_L_BOOST 0.25 → 0.12 + tint —
+##       expected constants below updated to match).
 ##   [5] DEPTH flag (0x40): alpha decreases with distance from the origin —
 ##       the near particles keep alpha while far particles fade.
 ##
@@ -33,6 +36,12 @@ const SIZE_S_MIN := 0.18
 const SIZE_S_MAX := 5.0
 const GLOW_A_MIN := 0.35
 const GLOW_A_MAX := 1.0
+# 2026-08-14: the LESS-WHITE glow — lift toward the soft warm pink-white
+# GLOW_TINT at GLOW_L_BOOST strength (was: pure-white vec3(1.0) at 0.25).
+# MUST match cassi_instancer.glsl GLOW_TINT/GLOW_L_BOOST and the material's
+# glow_tint/glow_strength (particle_billboard.gdshader).
+const GLOW_TINT := Vector3(0.95, 0.90, 0.98)
+const GLOW_L_BOOST := 0.12
 const PHI_INV2 := 0.3819660112501051  # (not used by the new color system; kept for the legacy check only)
 
 var sim: Node3D
@@ -264,11 +273,74 @@ func _check_glow() -> void:
 		a_max = maxf(a_max, a)
 	var floor_ok := a_min >= GLOW_A_MIN - 1e-3   # never below the floor
 	var ceiling_ok := a_max <= 1.0 + 1e-4        # never above opaque
-	if base_alpha_ok and below_one >= n / 2 and floor_ok and ceiling_ok:
-		print("[PASS] glow (0x20): alpha [%.2f, %.2f] — %d/%d dropped to the %.2f floor; baseline all-1.0" % [a_min, a_max, below_one, n, GLOW_A_MIN])
+	var color_ok := await _check_glow_color_lift(n)
+	if base_alpha_ok and below_one >= n / 2 and floor_ok and ceiling_ok and color_ok:
+		print("[PASS] glow (0x20): alpha [%.2f, %.2f] — %d/%d dropped to the %.2f floor; baseline all-1.0; tinted color lift GLOW_TINT×%.2f OK" % [a_min, a_max, below_one, n, GLOW_A_MIN, GLOW_L_BOOST])
 	else:
 		_failures += 1
-		push_error("glow: bad alpha signature (base_alpha_ok=%s, below_one=%d/%d, a∈[%.2f,%.2f], floor_ok=%s, ceiling_ok=%s)" % [base_alpha_ok, below_one, n, a_min, a_max, floor_ok, ceiling_ok])
+		push_error("glow: bad alpha signature (base_alpha_ok=%s, below_one=%d/%d, a∈[%.2f,%.2f], floor_ok=%s, ceiling_ok=%s, color_ok=%s)" % [base_alpha_ok, below_one, n, a_min, a_max, floor_ok, ceiling_ok, color_ok])
+
+
+## [4b] GLOW color — the 2026-08-14 LESS-WHITE tinted lift. Drive a uniform
+## field AT/ABOVE the approach white point: every particle gets fg = 1 →
+## boost = 1, base = pure white (approach top, l = 1.0), so the final color
+## MUST be mix(white, GLOW_TINT, GLOW_L_BOOST) — soft warm pink-white, NOT
+## the old pure-white vec3(1.0)·0.25 lift. Convention-agnostic: writes BOTH
+## the q field (= EY²+EI² = 20000, drives the tri_q hue) AND EY = EI = 100
+## (drives the bounded q_coh = ρ²/(ρ²+φ⁻²+ε²) ≈ 0.913 hue) — under either
+## Qi axis the white point a_hi = 0.5 is exceeded → boost saturates at 1.
+## Restores the fields + engine exports afterward (the other checks run on
+## the noise field).
+func _check_glow_color_lift(n: int) -> bool:
+	var nc: int = sim.grid_N * sim.grid_N * sim.grid_N
+	var field_backup: PackedByteArray = sim._rd.buffer_get_data(sim._field_q, 0, nc * 4)
+	var ey_backup: PackedByteArray = sim._rd.buffer_get_data(sim._field_ey, 0, nc * 4)
+	var ei_backup: PackedByteArray = sim._rd.buffer_get_data(sim._field_ei, 0, nc * 4)
+	var approach_backup: Vector2 = sim.qi_approach
+	var thresh_backup: float = sim.qi_condensation_threshold
+	# White point a_hi = 0.5 (approach (0, 0.5), threshold untracked) — well
+	# below both the q-field value (20000) and q_coh ≈ 0.913.
+	sim.qi_approach = Vector2(0.0, 0.5)
+	sim.qi_condensation_threshold = 0.5
+	var flat := PackedFloat32Array(); flat.resize(nc)
+	flat.fill(20000.0)   # EY²+EI² for the tri_q hue axis (EY=EI=100)
+	sim._rd.buffer_update(sim._field_q, 0, nc * 4, flat.to_byte_array())
+	flat.fill(100.0)     # EY = EI = 100 → q_coh ≈ 0.913 (tri_coherence axis)
+	sim._rd.buffer_update(sim._field_ey, 0, nc * 4, flat.to_byte_array())
+	sim._rd.buffer_update(sim._field_ei, 0, nc * 4, flat.to_byte_array())
+	sim.particle_color_mode = 2 | 0x20
+	var inst: PackedFloat32Array = await _dispatch_and_read()
+	# restore the noise fields + exports before evaluating (checks below
+	# depend on them being back)
+	sim._rd.buffer_update(sim._field_q, 0, nc * 4, field_backup)
+	sim._rd.buffer_update(sim._field_ey, 0, nc * 4, ey_backup)
+	sim._rd.buffer_update(sim._field_ei, 0, nc * 4, ei_backup)
+	sim.qi_approach = approach_backup
+	sim.qi_condensation_threshold = thresh_backup
+	if inst.size() < n * 16:
+		push_error("glow color: instancer returned no instances")
+		return false
+	# expected = mix(white, GLOW_TINT, GLOW_L_BOOST) at boost = 1
+	var er: float = lerpf(1.0, GLOW_TINT.x, GLOW_L_BOOST)
+	var eg: float = lerpf(1.0, GLOW_TINT.y, GLOW_L_BOOST)
+	var eb: float = lerpf(1.0, GLOW_TINT.z, GLOW_L_BOOST)
+	var bad := 0
+	var maxc := -1.0
+	for i in range(n):
+		var b := i * 16
+		var r: float = inst[b + 12]; var g: float = inst[b + 13]; var bl: float = inst[b + 14]
+		maxc = maxf(maxc, maxf(r, maxf(g, bl)))
+		if absf(r - er) > 2e-3 or absf(g - eg) > 2e-3 or absf(bl - eb) > 2e-3:
+			bad += 1
+		if absf(inst[b + 15] - 1.0) > 1e-3:
+			bad += 1
+	# the tinted lift must stay OFF pure white (old lift hit exactly 1.0;
+	# the new tint peaks at 0.9976)
+	if bad == 0 and maxc <= 0.999:
+		print("[PASS] glow color: boost=1 core = mix(white, GLOW_TINT, %.2f) = (%.3f, %.3f, %.3f), max channel %.3f — tinted, not white" % [GLOW_L_BOOST, er, eg, eb, maxc])
+		return true
+	push_error("glow color: expected (%.3f, %.3f, %.3f) ± 2e-3, maxc %.3f — %d/%d off (old pure-white lift would read 1.000)" % [er, eg, eb, maxc, bad, n])
+	return false
 
 
 ## [5] DEPTH flag (0x40) — alpha fades with camera distance.
