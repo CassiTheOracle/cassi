@@ -2161,9 +2161,12 @@ func _step_dispatches(cl: int) -> void:
 	# The exact uint64 cell sum is converted once per cell to the float
 	# mass-density grid the Poisson/PDE/tree chain reads. Deterministic
 	# (a single rounding of an exact integer sum — no float atomic order).
-	# Runs unconditionally: with no deposit (N_particles == 0) the clear
-	# left fix == 0, so rho is written 0 — the same empty state.
-	if _mass_deposit_shader.is_valid():
+	# Runs unconditionally in principle (with no deposit the clear left
+	# fix == 0, so rho is written 0 — the same empty state), but MUST be
+	# skipped when the deposit uniform set is invalid: at N_particles == 0
+	# the particle buffers are zero-size (Vk buffer-create fails → RID()),
+	# so _us_mass_dep_0 could not be created and binding it would error.
+	if _mass_deposit_shader.is_valid() and _us_mass_dep_0.is_valid():
 		_md_pc_bytes.encode_float(32, 1.0)  # mode 1 = convert
 		_rd.compute_list_bind_compute_pipeline(cl, _mass_deposit_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_mass_dep_0, 0)
@@ -2310,7 +2313,7 @@ func _step_dispatches(cl: int) -> void:
 		# dual clear → the shifted deposit accumulates fresh → convert to
 		# rho for the shifted Poisson solve (one int64 buffer, mirroring
 		# the float semantics exactly).
-		if _mass_deposit_shader.is_valid():
+		if _mass_deposit_shader.is_valid() and _us_mass_dep_0.is_valid():
 			_md_pc_bytes.encode_float(32, 1.0)  # mode 1 = convert
 			_rd.compute_list_bind_compute_pipeline(cl, _mass_deposit_pipe)
 			_rd.compute_list_bind_uniform_set(cl, _us_mass_dep_0, 0)

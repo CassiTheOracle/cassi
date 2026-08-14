@@ -61,8 +61,13 @@
 
 layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
-layout(set = 0, binding = 0, std430) restrict readonly buffer Positions {
-    vec4 pos[];  // x, y, z, mass
+layout(set = 0, binding = 0, std430) readonly buffer Positions {
+    vec4 pos[];  // x, y, z, mass — the deposit only READS positions; the
+                 // qualifier is `readonly` (not `restrict readonly`):
+                 // Godot's uniform validation rejects `restrict readonly`
+                 // when the sim binds its writable _pos_buf here
+                 // (uniform-format mismatch — the restrict is only an
+                 // aliasing hint, dropped 2026-08-14).
 };
 
 layout(set = 0, binding = 1, std430) coherent buffer MassDensity {

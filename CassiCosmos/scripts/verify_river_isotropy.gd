@@ -435,8 +435,9 @@ func _o4_anchor(radius_h: float, dual: bool) -> float:
 
 
 func _md_pc(off: Vector3) -> PackedByteArray:
-	# 8 floats: N, particle_N, extent_x/y/z, off_x/y/z — the deposit shader's
-	# PC (cassi_mass_deposit.glsl, CASCADE_GRID.md offset slots).
+	# 9 floats: N, particle_N, extent_x/y/z, off_x/y/z, mode — the deposit
+	# shader's PC (cassi_mass_deposit.glsl, CASCADE_GRID.md offset slots;
+	# mode = 0 deposit / 1 convert).
 	var pc: PackedByteArray = sim._md_pc_bytes.duplicate()
 	pc.encode_float(0, float(N))
 	pc.encode_float(4, 1.0)  # only particle 0 carries mass
@@ -468,12 +469,18 @@ func _dispatch_poisson_clear(cl: int) -> void:
 	sim._rd.compute_list_dispatch(cl, N, N, 1)
 
 
-func _dispatch_md(cl: int, off: Vector3) -> void:
+func _dispatch_md(cl: int, off: Vector3, convert: bool = false) -> void:
 	sim._rd.compute_list_bind_compute_pipeline(cl, sim._mass_deposit_pipe)
 	sim._rd.compute_list_bind_uniform_set(cl, sim._us_mass_dep_0, 0)
 	var pc := _md_pc(off)
+	pc.encode_float(32, 1.0 if convert else 0.0)  # mode: 0 = deposit, 1 = convert
 	sim._rd.compute_list_set_push_constant(cl, pc, pc.size())
-	sim._rd.compute_list_dispatch(cl, 1, 1, 1)
+	if convert:
+		# mode 1 = convert: exact digit sums -> float rho (one thread per
+		# cell, the poisson (N, N, 1) 2D dispatch convention)
+		sim._rd.compute_list_dispatch(cl, N, N, 1)
+	else:
+		sim._rd.compute_list_dispatch(cl, 1, 1, 1)
 
 
 func _dispatch_grad(cl: int, pass_mode: float) -> void:
@@ -520,13 +527,18 @@ func _set_cascade_probes(radius_h: float, src: Vector3) -> void:
 	sim._rd.buffer_update(sim._acc_buf, 0, (NPROBE + 1) * 16, acc.to_byte_array())
 
 
-# The cascade chain in ONE compute list: clear → deposit(base) → poisson →
-# grad(1.0) → [dual: clear → deposit(off) → poisson → grad(1.5)] → nbody.
+# The cascade chain in ONE compute list: clear → deposit(base) → convert →
+# poisson → grad(1.0) → [dual: clear → deposit(off) → convert → poisson →
+# grad(1.5)] → nbody. The convert (deposit mode 1) writes the float rho
+# grid from the exact digit sums — the deposit shader's new contract
+# (rho is only written by the convert pass, never by the scatter).
 func _run_cascade_chain(dual: bool) -> void:
 	var cl = sim._rd.compute_list_begin()
 	_dispatch_poisson_clear(cl)
 	sim._barrier(cl)
 	_dispatch_md(cl, Vector3.ZERO)
+	sim._barrier(cl)
+	_dispatch_md(cl, Vector3.ZERO, true)  # convert: fix → rho
 	sim._barrier(cl)
 	sim._dispatch_poisson(cl)
 	sim._barrier(cl)
@@ -537,6 +549,8 @@ func _run_cascade_chain(dual: bool) -> void:
 		_dispatch_poisson_clear(cl)
 		sim._barrier(cl)
 		_dispatch_md(cl, off)
+		sim._barrier(cl)
+		_dispatch_md(cl, off, true)  # convert: fix → rho
 		sim._barrier(cl)
 		sim._dispatch_poisson(cl)
 		sim._barrier(cl)
