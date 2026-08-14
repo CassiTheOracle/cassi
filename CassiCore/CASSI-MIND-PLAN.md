@@ -68,6 +68,8 @@ End state: a **monorepo of `@cassicore/<module>` packages** under this root, mir
 ```
 *Dependency direction: `foundation` ← everything; brain-region modules import `foundation` only (no cross-brain-region imports after porting); runtime-infra imports brain-region packages behind ports; entry surfaces bind everything. `constellation` already exists as its own package (§2 of MODULARIZATION) and links to `foundation` for its shared surface.*
 
+**Package layout:** all `@cassicore/<module>` packages live under `packages/<name>/` in the workspace root (npm workspaces: `"workspaces": ["packages/*"]`). In P0 the first extraction was moved to `packages/constellation/` (was `Constellation/`) to match this layout, and its source history was re-attached relative to that path (`packages/constellation/src`). Every later-phase import renames its D: subtree to `packages/<name>/src` (see §4.3).
+
 ### Package dependency rationale (grounded in recon-data + MODULARIZATION §d)
 - `foundation` is created FIRST (P1) because 47 dirs share `types/interfaces.js`, 18 share `base/cognitive-module`, 11 share `utils/paths`, 8 share `config/system-settings`, 6 share `phrase-prototypes` — re-vendoring those per module is the failure we avoid.
 - `helix` (P2) is the deepest module (largest runtime surface: brainstem 117 KB, posture-runner 107 KB) and depends on foundation — extract it right after.
@@ -140,7 +142,7 @@ git clone --no-checkout --no-local "D:/carina/workspaces/cassicore" "$TMP"
 cd "$TMP"
 git filter-repo --force \
   --path core/workflow \
-  --path-rename core/workflow:src \
+  --path-rename core/workflow:packages/workflow/src \
   --mailmap ../mailmap-workflow.txt \
   <keep-going-if-paths-absent>
 # NOTE: filter-repo aborts if a --path matches nothing; for fresh paths pre-create
@@ -166,7 +168,7 @@ git branch -D import/workflow && rm -rf "$TMP"
 # --- 6. SEPARATE rewrite-delta commit (import-rewrite table, ports, package.json) ---
 #   apply the MODULARIZATION §b "migration table" (mechanical .js import rewrites,
 #   insert src/ports/*, vendored deps), then:
-git add -A && git commit -m "refactor(workflow): rewire imports to @cassicore workfow; add ports"
+git add -A && git commit -m "refactor(workflow): rewire imports to @cassicore workflow; add ports"
 ```
 
 ### 4.4 What to verify after every import
@@ -179,7 +181,7 @@ git add -A && git commit -m "refactor(workflow): rewire imports to @cassicore wo
 `@cassicore/constellation` exists here WITHOUT history (extracted by plain copy earlier). To retrofit history:
 1. Identify the D: source subtree `core/intelligence/constellation` and the corresponding dest `Constellation/src`.
 2. Reconcile blobs first: `git hash-object` on both sides; for files whose hashes match, history import is clean. For files that differ (because the extraction already applied a local delta), `git diff --no-index` to enumerate the delta.
-3. Import history via §4.3 (filter-repo `--path core/intelligence/constellation --path-rename core/intelligence/constellation:src`).
+3. Import history via §4.3 (filter-repo `--path core/intelligence/constellation --path-rename core/intelligence/constellation:packages/constellation/src`).
 4. Re-apply the existing local delta as **its own commit** afterward, so no pre-existing change is attributed to the import.
 - This applies to ANY module whose plain copy already exists at the destination. Only `Constellation/` exists today, so only it is retro-imported in P0.
 
