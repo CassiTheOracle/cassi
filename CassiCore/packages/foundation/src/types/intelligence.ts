@@ -259,4 +259,4 @@ export interface IThinker {
  * Also available from core/intelligence/dreamer/types.ts (DreamerConfig).
  * This re-export here gives callers a single import path via types/intelligence.ts.
  */
-export type { DreamerConfig } from '../core/intelligence/dreamer/types.js'
+export type { DreamerConfig } from '../vendor/core/intelligence/dreamer/types.js'

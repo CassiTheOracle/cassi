@@ -1,4 +1,4 @@
-import type { PhrasePrototypeSet } from './mnemic-field/edge-relators.js'
+import type { PhrasePrototypeSet } from '../vendor/core/intelligence/mnemic-field/edge-relators.js'
 
 export const SPAWN_EVALUATION_PHRASES: PhrasePrototypeSet = {
   phrases: {

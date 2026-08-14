@@ -94,17 +94,17 @@ export interface IAgentStore {
  */
 export interface BasePostureRunnerOpts<TPosture extends BasePosture = BasePosture> {
   posture: TPosture
-  handle: import('../core/model-pool/types.js').ModelHandle
+  handle: import('../vendor/core/model-pool/types.js').ModelHandle
   logger: import('./interfaces.js').ILogger
   sessionId?: string
-  toolExecutor?: import('../core/tools/executor.js').ToolExecutor
-  toolRegistry?: import('../core/tools/registry.js').ToolRegistry
+  toolExecutor?: import('../vendor/core/tools/executor.js').ToolExecutor
+  toolRegistry?: import('../vendor/core/tools/registry.js').ToolRegistry
   store?: IAgentStore
-  planHandler?: import('../core/intelligence/flux-team/plan-handler.js').PlanHandler
-  blackboard?: import('../core/intelligence/flux-team/blackboard.js').Blackboard
+  planHandler?: import('../vendor/core/intelligence/flux-team/plan-handler.js').PlanHandler
+  blackboard?: import('../vendor/core/intelligence/flux-team/blackboard.js').Blackboard
   onActivity?: () => void
   modelDirective?: import('./model-routing.js').IModelDirective
-  handleFactory?: (config: import('./model-routing.js').ModelConfig) => Promise<import('../core/model-pool/types.js').ModelHandle>
+  handleFactory?: (config: import('./model-routing.js').ModelConfig) => Promise<import('../vendor/core/model-pool/types.js').ModelHandle>
   eventBus?: import('./interfaces.js').IEventBus
   jobId?: string
   postureSlot?: string

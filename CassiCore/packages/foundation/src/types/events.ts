@@ -4,7 +4,7 @@
  */
 
 import type { FluxTeamEvent } from './flux-team.js'
-import type { CognitiveSignal } from '../core/intelligence/thought-observer.js'
+import type { CognitiveSignal } from '../vendor/core/intelligence/thought-observer.js'
 
 export type LogLevel = "debug" | "info" | "warn" | "error";
 

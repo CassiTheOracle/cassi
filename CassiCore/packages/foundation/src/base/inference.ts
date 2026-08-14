@@ -5,8 +5,8 @@
  * or for testing inference logic in isolation.
  */
 
-import type { IProvider, Message, CompletionOpts } from '../../../types/runtime.js'
-import type { ILogger } from '../../../types/interfaces.js'
+import type { IProvider, Message, CompletionOpts } from '../../types/runtime.js'
+import type { ILogger } from '../../types/interfaces.js'
 import type { ModuleModelConfig } from './model-config.js'
 
 export interface InferenceMetrics {

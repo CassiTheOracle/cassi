@@ -11,8 +11,8 @@
  *   Dendrites — memory, signals, peers feeding into each step
  */
 
-import type { CognitiveSignal, SignalKind } from '../core/intelligence/thought-observer.js'
-import type { ResonancePattern } from '../core/intelligence/cognitive-bridge.js'
+import type { CognitiveSignal, SignalKind } from '../vendor/core/intelligence/thought-observer.js'
+import type { ResonancePattern } from '../vendor/core/intelligence/cognitive-bridge.js'
 
 
 /** The enriched result returned from each collect_thoughts tool call. */

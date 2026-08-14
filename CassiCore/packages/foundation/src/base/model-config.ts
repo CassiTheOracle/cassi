@@ -7,9 +7,9 @@
  * Extracted from BaseCognitiveModule for independent testability and reuse.
  */
 
-import { MODEL_DEFAULTS } from '../../config/system-settings.js'
+import { MODEL_DEFAULTS } from '../config/system-settings.js'
 
-import type { IConfig, ILogger } from '../../../types/interfaces.js'
+import type { IConfig, ILogger } from '../../types/interfaces.js'
 
 // Model Configuration Types
 
