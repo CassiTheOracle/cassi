@@ -158,6 +158,22 @@ export type { ConstellationOrchestrator } from './constellation-orchestrator.js'
 export { createConstellationGuidanceProvider, ConstellationGuidanceRegistry } from './guidance-provider.js'
 export type { ConstellationGuidanceProviderOpts } from './guidance-provider.js'
 
+// Observer-memory bridge — insight sink / observer insight types consumed by
+// @cassicore/aurora's Claustrum (re-point target for the former sibling import).
+export { ObserverMemoryBridge, extractConceptHints, priorityToConfidence } from './observer-memory-bridge.js'
+export type {
+  ObserverInsight,
+  ClaustrumInsightSink,
+  ObserverMemoryHit,
+  ObserverMemorySource,
+  ObserverMemoryBridgeOpts,
+} from './observer-memory-bridge.js'
+
+// Meditation style selection — affect-integrated style selection (consumed by
+// @cassicore/cortex-pineal-dialectic's cortex tests).
+export { selectStyle, STYLE_CONFIGS } from './meditation/styles.js'
+export type { MeditationStyle, StyleConfig } from './meditation/styles.js'
+
 
 
 export { DecompositionTracker } from './decomposition-tracker.js'

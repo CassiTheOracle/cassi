@@ -11,7 +11,7 @@ import {
   type RecommendedAction,
   DEFAULT_CONFIG,
 } from './welfare-aggregator.js'
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 
 
 describe('WelfareAggregator', () => {

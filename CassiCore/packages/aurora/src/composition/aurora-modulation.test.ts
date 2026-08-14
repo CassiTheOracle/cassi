@@ -12,7 +12,7 @@ import * as fs from 'fs'
 import { Aurora } from '../index.js'
 import type { AuroraConfig } from '../types.js'
 import { AURORA_DEFAULTS } from '../types.js'
-import type { Affect } from '../../mnemic-field/types.js'
+import type { Affect } from '@cassicore/mnemic-field'
 
 function makeLogger() {
   const log: any = { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} }

@@ -7,7 +7,7 @@ import { rmSync, existsSync } from 'node:fs'
 import * as path from 'node:path'
 
 import { CassiSpecChannel } from './cassi-spec-channel.js'
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 
 
 class MockLogger implements ILogger {

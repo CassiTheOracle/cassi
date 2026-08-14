@@ -1174,8 +1174,12 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
       return { text: '', tokens: [], durationMs: 0 }
     }
     const maxTokens = options?.maxTokens ?? 50
+    // Capture narrowed non-null refs before the closure (TS doesn't keep the
+    // guard's narrowing of `this.larql`/`this.handle` inside the arrow fn).
+    const larql = this.larql
+    const handle = this.handle
     const steerVectors = (options?.steers ?? []).map(s => {
-      const gv = this.larql.gateVector(this.handle!, s.layer, s.featureIndex)
+      const gv = larql.gateVector(handle, s.layer, s.featureIndex)
       return { layer: s.layer, alpha: s.alpha, vectorBytes: Buffer.from(gv.buffer, gv.byteOffset, gv.byteLength) }
     })
     return this.larql.generateWithSteering(this.handle, promptTokens, steerVectors, maxTokens)

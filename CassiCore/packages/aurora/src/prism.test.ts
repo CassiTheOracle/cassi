@@ -11,7 +11,7 @@ import Database from 'better-sqlite3'
 
 import { Prism, ALL_AFFECT_COLORS, PRISM_SCHEMA_SQL } from './prism.js'
 import type { ForkContribution } from './counterfactual-engine.js'
-import type { AffectLabel } from '../mnemic-field/types.js'
+import type { AffectLabel } from '@cassicore/mnemic-field'
 
 
 function mockLogger() {

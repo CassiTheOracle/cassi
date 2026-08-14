@@ -488,9 +488,9 @@ export class Aurora {
 
     // Self-model: Vindex→Mnemic bridge
     // Uses modelProvider (LarqlKnowledgeProvider), not knowledgeField (KnowledgeField)
-    this._selfModelKnowledgeEnabled = phase4Config.selfModelKnowledgeEnabled
-    if (phase4Config.selfModelKnowledgeEnabled && this.modelProvider) {
-      this.setupSelfModelBridge(phase4Config.selfModelKnowledgeEnabled)
+    this._selfModelKnowledgeEnabled = phase4Config.selfModelKnowledgeEnabled ?? false
+    if (this._selfModelKnowledgeEnabled && this.modelProvider) {
+      this.setupSelfModelBridge(this._selfModelKnowledgeEnabled)
     }
 
     this.logger.info('Aurora initialized', {

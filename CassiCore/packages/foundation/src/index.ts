@@ -9,7 +9,9 @@
  * type file (e.g. `PluginManifest`/`PluginStatus` in both interfaces.ts and
  * plugin.ts; `DialecticMode`/`YangBranch`/`YinCritique` in both dialectic.ts
  * and dialectic-engine.ts). They are re-exported once (see below) so the barrel
- * has a single declaration site for each; the shapes are identical by design.
+ * has a single declaration site for each. Where the shapes genuinely differ
+ * (dialectic vs dialectic-engine), the engine-flavored variant is exposed under
+ * an `Engine*` alias (see the dialectic-engine block).
  */
 
 // types/ — full surface (collision-free files)
@@ -45,7 +47,10 @@ export type {
 export * from './types/dialectic.js'
 
 // types/dialectic-engine.ts — unique members (DialecticMode/YangBranch/YinCritique
-// already re-exported via dialectic.js; identical shapes).
+// also declared in dialectic.ts but with DIFFERENT shapes — dialectic-engine adds
+// the 'consolidated' mode and a `novelty` branch field). The un-prefixed names are
+// dialectic.ts's (via the `export *` above); engine-flavored variants are exposed
+// under aliases so the dialectic RUNTIME (engine.ts) can reference them.
 export type {
   DialecticEngineConfig,
   ReasonOptions,
@@ -60,6 +65,9 @@ export type {
   DialecticEngineSignal,
   DialecticStructuredResult,
   IDialecticEngine,
+  DialecticMode as EngineDialecticMode,
+  YangBranch as EngineYangBranch,
+  YinCritique as EngineYinCritique,
 } from './types/dialectic-engine.js'
 
 // config/

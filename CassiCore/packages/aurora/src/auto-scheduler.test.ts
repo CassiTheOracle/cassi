@@ -9,7 +9,7 @@ import path from 'node:path'
 import Database from 'better-sqlite3'
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type { GapCategory, GapCandidate, GapStatus } from './gap-detector.js'
 import type { MeditationSeed } from './meditation-seeder.js'
 import { AutoScheduler } from './auto-scheduler.js'

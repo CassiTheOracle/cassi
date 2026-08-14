@@ -6,7 +6,7 @@ import { describe, it, expect } from 'vitest'
 
 import { DiversityFloor, DEFAULT_DIVERSITY_CONFIG } from './diversity-floor.js'
 import type { DiversityCategory, DiversityFloorConfig } from './diversity-floor.js'
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 
 
 

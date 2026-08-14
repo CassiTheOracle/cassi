@@ -12,7 +12,7 @@ import type {
 } from './trace-replay-types.js'
 import { DEFAULT_TRACE_REPLAY_CONFIG } from './trace-replay-types.js'
 import type { ReasoningRecord, ReasoningMomentum } from './types.js'
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 
 
 function makeLogger(): ILogger {

@@ -22,5 +22,22 @@ export const PORTAL_BRIDGE_DEFAULTS = {
   decayRate: 0.1,
 } as const
 
+/** A feature↔engram portal pair (type surface, from memory-bridge/types.js). */
+export interface FeatureEngramPortal {
+  id: string
+  feature: { layer: number; featureIndex: number; gateScore?: number; label?: string }
+  engram: { id: string; nodeType: string; contentPreview: string }
+  connectionType: 'semantic' | 'temporal' | 'causal' | 'structural'
+  strength: number
+  discoveryMethod: 'auto' | 'manual' | 'correlation'
+  correlationScore?: number
+  createdAt: string
+  lastActivatedAt?: string
+  activationCount: number
+}
+
 /** Manages feature-engram portal pairs (type surface). */
-export declare class PortalBridge {}
+export declare class PortalBridge {
+  /** Portals for an engram (by engram id). */
+  getPortalsForEngram(engramId: string): FeatureEngramPortal[]
+}

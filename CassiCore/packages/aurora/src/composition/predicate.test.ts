@@ -9,7 +9,7 @@ import { describe, it, expect } from 'vitest'
 
 import { evaluatePredicate, evaluateExpr, evaluateStrength } from './predicate.js'
 import { parseComposition } from './parser.js'
-import type { Affect } from '../../mnemic-field/types.js'
+import type { Affect } from '@cassicore/mnemic-field'
 import type { CompositionAst } from './types.js'
 
 function predOf(dsl: string) {

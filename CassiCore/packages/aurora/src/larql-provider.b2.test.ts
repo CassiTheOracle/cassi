@@ -22,8 +22,8 @@ import {
   type RetrievalPolicy,
   type AffectVector,
 } from './larql-provider.js'
-import { resolveLabel } from '../mnemic-field/affect.js'
-import type { Affect, AffectLabel } from '../mnemic-field/types.js'
+import { resolveLabel } from '@cassicore/mnemic-field'
+import type { Affect, AffectLabel } from '@cassicore/mnemic-field'
 
 function makeLogger() {
   const log: any = { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} }

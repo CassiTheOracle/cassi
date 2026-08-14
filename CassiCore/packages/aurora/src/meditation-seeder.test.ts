@@ -8,7 +8,7 @@ import path from 'node:path'
 
 import { describe, it, expect, beforeEach, afterEach, afterAll } from 'vitest'
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import { GapDetector, type GapCandidate } from './gap-detector.js'
 import { MeditationSeeder } from './meditation-seeder.js'
 

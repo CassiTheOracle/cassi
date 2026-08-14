@@ -8,7 +8,7 @@ import { randomBytes } from 'node:crypto'
 import * as path from 'node:path'
 
 import { SubstrateModificationAudit } from './modification-chain-audit.js'
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 
 
 class MockLogger implements ILogger {
