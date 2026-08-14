@@ -1,0 +1,84 @@
+{
+  "name": "@cassicore/host",
+  "version": "0.1.0",
+  "description": "The thin CassiCore host: core/entry + core/daemon.ts + core/daemon/live + core/cli + core/bridge + core/version.ts + scripts/qwen-renew-accounts.ts. Composes every landed package, wires the P7 port seams (setRootResolver / setDataDirRoot / createAdminApi mount / registerCoreTools / resolveWorker), and boots the supervisor/fork + CLI bins. History-preserved import splice of the D: host source, committed at cassicore d63358da.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./daemon": {
+      "types": "./dist/daemon/index.d.ts",
+      "import": "./dist/daemon/index.js"
+    },
+    "./entry": {
+      "types": "./dist/entry/index.d.ts",
+      "import": "./dist/entry/index.js"
+    },
+    "./cli": {
+      "types": "./dist/cli/index.d.ts",
+      "import": "./dist/cli/index.js"
+    },
+    "./version": {
+      "types": "./dist/version.d.ts",
+      "import": "./dist/version.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "bin"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "cassicore": "./bin/cassicore",
+    "cassi-acp": "./bin/cassi-acp",
+    "cassi-vindex-loader": "./src/entry/vindex-loader.ts"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
+  },
+  "dependencies": {
+    "@cassicore/foundation": "*",
+    "@cassicore/events": "*",
+    "@cassicore/utils": "*",
+    "@cassicore/commands": "*",
+    "@cassicore/workers": "*",
+    "@cassicore/providers": "*",
+    "@cassicore/mcp-gateway": "*",
+    "@cassicore/mcp": "*",
+    "@cassicore/admin-api": "*",
+    "@cassicore/tools": "*",
+    "@cassicore/plugins": "*",
+    "@cassicore/jobs": "*",
+    "@cassicore/workflow": "*",
+    "@cassicore/pipeline": "*",
+    "@cassicore/model-pool": "*",
+    "@cassicore/mnemic-field": "*",
+    "@cassicore/cortex-pineal-dialectic": "*",
+    "@cassicore/lamina-locus-bridge": "*",
+    "@cassicore/dreamer-reverie-subconscious": "*",
+    "@cassicore/helix": "*",
+    "@cassicore/flux-team": "*",
+    "@cassicore/embeddings": "*",
+    "@cassicore/constellation": "*",
+    "@cassicore/thalamus": "*",
+    "@cassicore/cognitive-feed": "*",
+    "@cassicore/mini-helix": "*",
+    "@cassicore/aurora": "*",
+    "@cassicore/training-trust-ledger": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  }
+}
