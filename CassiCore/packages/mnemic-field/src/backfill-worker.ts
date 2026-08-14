@@ -9,14 +9,30 @@
  */
 import { parentPort, workerData } from 'node:worker_threads'
 import { createRequire } from 'node:module'
-import path from 'node:path'
 
-// Resolve cassi-larql relative to the CASSICORE_ROOT env var (set by
-// the daemon and backfill-runner) or fall back to process.cwd().
-const root = process.env.CASSICORE_ROOT || process.cwd()
-const nativePath = path.resolve(root, 'node_modules/cassi-larql')
-const require = createRequire(import.meta.url)
-const native = require(nativePath)
+// cassi-larql is an OPTIONAL peer dependency of @cassicore/mnemic-field (the
+// native N-API addon; NOT shipped by this package). Resolve it package-relative
+// so the worker runs in both tsx dev and compiled dist/ builds. The host (or
+// the D: daemon at P7) provides it at the package's node_modules.
+interface CassiLarqlNative {
+  loadVindexOnly(vindexPath: string): unknown
+  getVindexConfig(handle: unknown): { numLayers: number; hiddenDim: number; vocabSize: number }
+  gateEmbed?(handle: unknown, content: string, layers: unknown, topK: unknown, minScore: unknown, patches: unknown): Buffer
+  vindexTokenize(handle: unknown, content: string): number[]
+  vindexGateKnn(handle: unknown, layer: number, tokenId: number, topK: number): Array<{ featureIndex: number; score: number }>
+  gateVector(handle: unknown, layer: number, featureIndex: number): Buffer | null
+}
+
+const requireNative = createRequire(import.meta.url)
+let native: CassiLarqlNative
+try {
+  native = requireNative('cassi-larql') as CassiLarqlNative
+} catch (err) {
+  throw new Error(
+    'backfill-worker: cassi-larql native addon not found — it is an optional peer dependency of @cassicore/mnemic-field; the host must provide it at the package node_modules',
+    { cause: err },
+  )
+}
 
 interface BatchMessage {
   type: 'batch'
