@@ -1,5 +1,5 @@
-import type { ILogger } from '../../types/interfaces.js'
-import type { TurnTrace } from '../../types/trace.js'
+import type { ILogger } from '@cassicore/foundation'
+import type { TurnTrace } from '@cassicore/foundation'
 import type http from 'node:http'
 
 export interface CycleHooksRoutesDeps {

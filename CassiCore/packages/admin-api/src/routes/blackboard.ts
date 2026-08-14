@@ -18,12 +18,12 @@
  */
 
 import type http from 'node:http'
-import type { ILogger } from '../../types/interfaces.js'
-import type { GlobalBlackboardRegistry } from '../intelligence/flux-team/global-blackboard-registry.js'
-import type { BlackboardChannel, BlackboardState } from '../../types/flux-team.js'
-import type { SearchableBoard } from '../../types/blackboard-search.js'
-import { Blackboard } from '../intelligence/flux-team/blackboard.js'
-import { decodeCursor } from '../intelligence/flux-team/blackboard-search.js'
+import type { ILogger } from '@cassicore/foundation'
+import type { GlobalBlackboardRegistry } from '@cassicore/flux-team'
+import type { BlackboardChannel, BlackboardState } from '@cassicore/foundation'
+import type { SearchableBoard } from '@cassicore/foundation'
+import { Blackboard } from '@cassicore/flux-team'
+import { decodeCursor } from '@cassicore/flux-team'
 
 const VALID_CHANNELS = new Set<BlackboardChannel>(['findings', 'concerns', 'decisions', 'artifacts', 'requests', 'bugs'])
 
@@ -39,7 +39,7 @@ let cachedRegistry: GlobalBlackboardRegistry | undefined | null = undefined
 async function getRegistry(daemon: any, logger: ILogger): Promise<GlobalBlackboardRegistry | undefined> {
   if (cachedRegistry !== undefined) return cachedRegistry ?? undefined
   try {
-    const { GlobalBlackboardRegistry: RegistryClass } = await import('../intelligence/flux-team/global-blackboard-registry.js')
+    const { GlobalBlackboardRegistry: RegistryClass } = await import('@cassicore/flux-team')
     cachedRegistry = new RegistryClass(logger.child('global-blackboard-registry'))
     await cachedRegistry.loadAll()
     return cachedRegistry

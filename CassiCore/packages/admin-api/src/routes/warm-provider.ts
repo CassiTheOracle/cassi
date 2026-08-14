@@ -14,10 +14,10 @@
  *   GET  /v1/warm/sessions      — List active warm sessions (management)
  *   DELETE /v1/warm/sessions/:id — Destroy a warm session (management)
  */
-import type { ILogger, IEventBus } from '../../types/interfaces.js'
+import type { ILogger, IEventBus } from '@cassicore/foundation'
 import type http from 'node:http'
-import type { CopilotSdkProvider } from '../providers/copilot-sdk/provider.js'
-import { WarmProviderManager } from '../providers/copilot-sdk/warm-provider-manager.js'
+import type { CopilotSdkProvider } from '@cassicore/providers'
+import { WarmProviderManager } from '@cassicore/providers'
 
 export interface WarmProviderRoutesDeps {
   daemon: any

@@ -17,7 +17,7 @@
  */
 
 import type http from 'node:http'
-import type { ILogger } from '../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 
 interface CodeStoreDeps {
   daemon: any
@@ -149,7 +149,7 @@ export async function handleCodeStoreRoutes(
     // POST /code/extract — trigger extraction + build
     if (parts[1] === 'extract' && method === 'POST') {
       const { extractAndBuild } = await import('../entry/code-extractor.js')
-      const { getRepoRoot } = await import('../utils/paths.js')
+      const { getRepoRoot } = await import('@cassicore/foundation')
       const result = extractAndBuild(getRepoRoot())
       return sendJSON(res, result.success ? 200 : 500, result), true
     }
@@ -157,7 +157,7 @@ export async function handleCodeStoreRoutes(
     // POST /code/ingest — trigger codebase ingestion
     if (parts[1] === 'ingest' && method === 'POST') {
       const { CodeIngestor } = await import('../intelligence/mnemic-field/code-ingestor.js')
-      const { getRepoRoot } = await import('../utils/paths.js')
+      const { getRepoRoot } = await import('@cassicore/foundation')
       const ingestor = new CodeIngestor(codeStore, logger)
       const result = await ingestor.ingest({ rootDir: getRepoRoot() })
       return sendJSON(res, 200, result), true
@@ -166,7 +166,7 @@ export async function handleCodeStoreRoutes(
     // POST /code/gitnexus-sync — sync GitNexus symbol graph into mnemic field synapses
     if (parts[1] === 'gitnexus-sync' && method === 'POST') {
       const { GitNexusBridge } = await import('../intelligence/mnemic-field/gitnexus-bridge.js')
-      const { getRepoRoot } = await import('../utils/paths.js')
+      const { getRepoRoot } = await import('@cassicore/foundation')
       const field = (daemon as any).__mnemicFieldForCode ?? null
       if (!field) {
         return sendJSON(res, 503, { error: 'MnemicField not available for GitNexus sync' }), true

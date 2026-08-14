@@ -15,9 +15,9 @@
  *   GET  /timeline/retention  — Get retention config
  */
 
-import type { ILogger } from '../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type http from 'node:http'
-import type { TimelineStore, TimelineQueryOptions } from '../timeline-store.js'
+import type { TimelineStore, TimelineQueryOptions } from '../vendor/core/timeline-store.js'
 
 export interface TimelineRoutesDeps {
   daemon: any

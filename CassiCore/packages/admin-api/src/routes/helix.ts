@@ -17,9 +17,9 @@
  */
 
 import type http from 'node:http'
-import type { ILogger } from '../../types/interfaces.js'
-import type { HelixResult } from '../intelligence/helix/types.js'
-import type { BlackboardChannel } from '../../types/flux-team.js'
+import type { ILogger } from '@cassicore/foundation'
+import type { HelixResult } from '@cassicore/helix'
+import type { BlackboardChannel } from '@cassicore/foundation'
 
 const VALID_CHANNELS = new Set<BlackboardChannel>(['findings', 'concerns', 'decisions', 'artifacts', 'requests', 'bugs'])
 
@@ -328,7 +328,7 @@ export async function handleHelixRoutes(
     const persisted = loadPersistedBlackboard(daemon, sessionId)
     if (persisted) {
       try {
-        const { Blackboard: BB } = require('../intelligence/flux-team/blackboard.js')
+        const { Blackboard: BB } = require('@cassicore/flux-team')
         const bb = new BB(logger.child('helix-bb-search'), sessionId)
         bb.restoreFromSnapshot(persisted)
         const boardsParam = url.searchParams.get('boards')

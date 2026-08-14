@@ -18,10 +18,10 @@
  */
 
 import type http from 'node:http'
-import type { ILogger } from '../../types/interfaces.js'
-import type { PluginRegistry } from '../plugins/plugin-registry.js'
-import type { PluginAPI } from '../plugins/plugin-api.js'
-import type { PluginManifest, PluginToCore } from '../../types/plugin.js'
+import type { ILogger } from '@cassicore/foundation'
+import type { PluginRegistry } from '@cassicore/plugins'
+import type { PluginAPI } from '@cassicore/plugins'
+import type { PluginManifest, PluginToCore } from '@cassicore/foundation'
 
 export interface PluginAPIRoutesDeps {
   logger: ILogger

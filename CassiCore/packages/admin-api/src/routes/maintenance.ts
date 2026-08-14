@@ -1,9 +1,9 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import type { ILogger } from '../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type http from 'node:http'
-import { getDataDir } from '../utils/paths.js'
+import { getDataDir } from '@cassicore/foundation'
 
 export interface MaintenanceRoutesDeps {
   daemon: any

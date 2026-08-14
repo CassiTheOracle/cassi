@@ -1,6 +1,6 @@
-import type { ILogger } from '../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type http from 'node:http'
-import { CASSICORE_VERSION, CASSICORE_BUILD, CASSICORE_BUILD_STRING } from '../daemon.js'
+import { CASSICORE_VERSION, CASSICORE_BUILD, CASSICORE_BUILD_STRING } from '../vendor/core/daemon/version.js'
 
 export interface HealthRoutesDeps {
   daemon: any

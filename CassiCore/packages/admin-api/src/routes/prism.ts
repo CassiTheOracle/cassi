@@ -1,6 +1,6 @@
-import type { ILogger } from '../../types/interfaces.js'
-import { MnemicField } from '../intelligence/mnemic-field/index.js'
-import { getDataDir } from '../utils/paths.js'
+import type { ILogger } from '@cassicore/foundation'
+import { MnemicField } from '@cassicore/mnemic-field'
+import { getDataDir } from '@cassicore/foundation'
 import path from 'node:path'
 import type http from 'node:http'
 

@@ -1,8 +1,8 @@
 import type http from 'node:http'
-import type { ILogger } from '../../types/interfaces.js'
-import type { ThalamusModule } from '../intelligence/thalamus/index.js'
-import { ExternalClientCurator } from '../plugins/external-clients/index.js'
-import type { ExternalCurateRequest } from '../plugins/external-clients/types.js'
+import type { ILogger } from '@cassicore/foundation'
+import type { ThalamusModule } from '@cassicore/thalamus'
+import { ExternalClientCurator } from '@cassicore/plugins'
+import type { ExternalCurateRequest } from '@cassicore/plugins'
 
 // 2MB — generous for even the longest conversations (2000 digests ≈ 500KB)
 const MAX_CURATION_BODY_BYTES = 2 * 1024 * 1024

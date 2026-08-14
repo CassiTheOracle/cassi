@@ -9,7 +9,7 @@
  */
 
 import type http from 'node:http'
-import type { ILogger } from '../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 
 export interface DreamerRoutesDeps {
   daemon: any

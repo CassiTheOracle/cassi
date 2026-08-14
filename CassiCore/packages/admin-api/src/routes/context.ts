@@ -1,9 +1,9 @@
-import { assembleContext } from '../intelligence/context-assembler.js'
-import { SmartCompactionEngine } from '../intelligence/smart-compaction.js'
+import { assembleContext } from '../vendor/core/intelligence/context-assembler.js'
+import { SmartCompactionEngine } from '@cassicore/thalamus'
 
 import type { AdminRuntimeFacade } from './runtime.js'
 
-import type { ILogger } from '../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type http from 'node:http'
 
 export interface ContextRoutesDeps {

@@ -1,8 +1,8 @@
-import { getModelSpec } from '../config/system-settings.js'
+import { getModelSpec } from '@cassicore/foundation'
 
 import type { AdminRuntimeFacade } from './runtime.js'
 
-import type { ILogger } from '../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type http from 'node:http'
 
 export interface ChatRoutesDeps {

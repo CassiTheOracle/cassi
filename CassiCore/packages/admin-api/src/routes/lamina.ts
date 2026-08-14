@@ -1,10 +1,10 @@
 import type http from 'node:http'
-import type { ILogger } from '../../types/interfaces.js'
-import type { LaminaField } from '../intelligence/lamina/index.js'
-import type { LaminaScope } from '../intelligence/lamina/types.js'
-import { LaminaCasConflict, LaminaOverflow, LaminaAuthorityError } from '../intelligence/lamina/types.js'
-import type { AuditStore, RunKind } from '../runtime/audit/index.js'
-import { withStep } from '../runtime/audit/index.js'
+import type { ILogger } from '@cassicore/foundation'
+import type { LaminaField } from '@cassicore/lamina-locus-bridge'
+import type { LaminaScope } from '@cassicore/lamina-locus-bridge'
+import { LaminaCasConflict, LaminaOverflow, LaminaAuthorityError } from '@cassicore/lamina-locus-bridge'
+import type { AuditStore, RunKind } from '../vendor/core/runtime/audit/index.js'
+import { withStep } from '../vendor/core/runtime/audit/index.js'
 
 interface LaminaDeps {
   daemon: any

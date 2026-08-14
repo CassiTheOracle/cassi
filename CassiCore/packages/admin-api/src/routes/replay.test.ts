@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { MnemicField } from '../intelligence/mnemic-field/index.js'
+import { MnemicField } from '@cassicore/mnemic-field'
 import { handleReplayRoutes } from './replay.js'
 
 function logger(): any {

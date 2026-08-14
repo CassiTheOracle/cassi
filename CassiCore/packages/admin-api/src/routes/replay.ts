@@ -1,7 +1,7 @@
 import type http from 'node:http'
 
-import type { ILogger } from '../../types/interfaces.js'
-import type { MnemicField } from '../intelligence/mnemic-field/index.js'
+import type { ILogger } from '@cassicore/foundation'
+import type { MnemicField } from '@cassicore/mnemic-field'
 import type { AdminRuntimeFacade } from './runtime.js'
 
 export interface ReplayRoutesDeps {

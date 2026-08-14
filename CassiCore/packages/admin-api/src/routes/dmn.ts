@@ -11,7 +11,7 @@
  *   Telemetry: attached session count + per-session fire counts.
  */
 
-import type { ILogger } from '../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type http from 'node:http'
 
 import type { AdminRuntimeFacade } from './runtime.js'

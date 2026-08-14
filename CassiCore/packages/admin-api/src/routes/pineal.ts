@@ -1,8 +1,8 @@
 import type http from 'node:http'
-import type { ILogger } from '../../types/interfaces.js'
-import type { PinealModule } from '../intelligence/pineal/index.js'
-import type { Domain } from '../intelligence/pineal/types.js'
-import { DOMAINS } from '../intelligence/pineal/types.js'
+import type { ILogger } from '@cassicore/foundation'
+import type { PinealModule } from '@cassicore/cortex-pineal-dialectic'
+import type { Domain } from '@cassicore/cortex-pineal-dialectic'
+import { DOMAINS } from '@cassicore/cortex-pineal-dialectic'
 
 interface PinealDeps {
   daemon: any

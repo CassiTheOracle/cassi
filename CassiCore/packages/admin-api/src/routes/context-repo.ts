@@ -2,8 +2,8 @@ import type http from 'node:http'
 import path from 'node:path'
 import fs from 'node:fs'
 
-import type { ILogger } from '../../types/interfaces.js'
-import type { ContextRepo } from '../intelligence/context-repo/index.js'
+import type { ILogger } from '@cassicore/foundation'
+import type { ContextRepo } from '../vendor/core/intelligence/context-repo/index.js'
 
 interface Deps {
   daemon: any

@@ -1,6 +1,6 @@
-import { assembleContext } from '../intelligence/context-assembler.js'
+import { assembleContext } from '../vendor/core/intelligence/context-assembler.js'
 
-import type { ILogger } from '../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type http from 'node:http'
 
 import type { AdminRuntimeFacade } from './runtime.js'

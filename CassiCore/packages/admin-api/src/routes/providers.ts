@@ -1,7 +1,7 @@
-import { listProviderConfigKeys } from '../providers/centralized.js'
-import type { RenewResult, AccountEntry } from '../../scripts/qwen-renew-accounts.js'
+import { listProviderConfigKeys } from '@cassicore/providers'
+import type { RenewResult, AccountEntry } from '../vendor/core/scripts/qwen-renew-accounts.js'
 
-import type { ILogger } from '../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type http from 'node:http'
 
 import type { AdminRuntimeFacade } from './runtime.js'
@@ -109,7 +109,7 @@ export async function handleProvidersRoutes(
   if (method === 'GET' && pathname === '/providers/qwen/accounts') {
     try {
       const fs = await import('fs/promises')
-      const file = (await import('../../scripts/qwen-renew-accounts.js')).defaultAccountsPath()
+      const file = (await import('../vendor/core/scripts/qwen-renew-accounts.js')).defaultAccountsPath()
       let accounts: AccountEntry[] = []
       try {
         const raw = await fs.readFile(file, 'utf-8')
@@ -139,7 +139,7 @@ export async function handleProvidersRoutes(
   if (method === 'POST' && pathname === '/providers/qwen/renew') {
     try {
       deps.logger.info('Starting Qwen account renewal')
-      const { renewAccountsFile } = await import('../../scripts/qwen-renew-accounts.js')
+      const { renewAccountsFile } = await import('../vendor/core/scripts/qwen-renew-accounts.js')
       const result: RenewResult = await renewAccountsFile()
       deps.logger.info('Qwen account renewal complete', { renewed: result.renewed, reauthenticated: result.reauthenticated, failed: result.failed })
       sendJSON(res, 200, { ok: true, ...result })

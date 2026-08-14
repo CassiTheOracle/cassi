@@ -14,9 +14,9 @@ import {
   type TurnRuntimeLike,
 } from './turn-routing.js'
 
-import type { ILogger } from '../../types/interfaces.js'
-import type { IConfig } from '../../types/interfaces.js'
-import type { RuntimeEvent } from '../../types/events.js'
+import type { ILogger } from '@cassicore/foundation'
+import type { IConfig } from '@cassicore/foundation'
+import type { RuntimeEvent } from '@cassicore/foundation'
 
 interface ProviderMetricsSnapshot {
   id: string

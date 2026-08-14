@@ -1,4 +1,4 @@
-import type { ILogger } from '../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type http from 'node:http'
 
 import type { AdminRuntimeFacade } from './runtime.js'
@@ -15,7 +15,7 @@ import {
   DO_TOOLS,
   ENRICH_TOOLS,
   TRAINING_TOOLS,
-} from '../../mcp/gateway/index.js'
+} from '@cassicore/mcp-gateway'
 
 /** Category labels for grouping tools in the catalog */
 const TOOL_CATEGORIES: Array<{ label: string; tools: readonly { name: string; description: string; inputSchema: unknown }[] }> = [

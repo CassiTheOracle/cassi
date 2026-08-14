@@ -15,14 +15,14 @@
  */
 
 import type http from 'node:http'
-import type { ILogger } from '../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import {
   getSharedHelixJournal,
   type HelixJournal,
   type HelixJournalEntry,
   type HelixJournalEventType,
-} from '../intelligence/helix/helix-journal.js'
-import { getSharedHelixSessionStore, type HelixSessionStore } from '../intelligence/helix/helix-session-store.js'
+} from '@cassicore/helix'
+import { getSharedHelixSessionStore, type HelixSessionStore } from '@cassicore/helix'
 
 
 export interface HelixSessionsDeps {

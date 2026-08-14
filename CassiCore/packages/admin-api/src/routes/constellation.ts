@@ -5,11 +5,11 @@
  */
 
 import type http from 'node:http'
-import type { ILogger } from '../../types/interfaces.js'
-import type { ConstellationResult } from '../intelligence/constellation/types.js'
-import { serializeConstellationResult } from '../intelligence/constellation/constellation-pipeline.js'
-import type { CorpusTreeSnapshot } from '../intelligence/constellation/corpus-types.js'
-import type { ConstellationSessionRow, ProgressSnapshot } from '../intelligence/constellation/constellation-store.js'
+import type { ILogger } from '@cassicore/foundation'
+import type { ConstellationResult } from '@cassicore/constellation'
+import { serializeConstellationResult } from '@cassicore/constellation'
+import type { CorpusTreeSnapshot } from '@cassicore/constellation'
+import type { ConstellationSessionRow, ProgressSnapshot } from '@cassicore/constellation'
 
 
 interface ConstellationJob {
@@ -71,7 +71,7 @@ function findJob(idOrSessionId: string): ConstellationJob | undefined {
 // WHY: Load a persisted tree snapshot from ConstellationStore for completed sessions.
 async function loadPersistedTree(daemon: any, sessionId: string): Promise<CorpusTreeSnapshot | null> {
   try {
-    const { ConstellationStore } = await import('../intelligence/constellation/constellation-store.js')
+    const { ConstellationStore } = await import('@cassicore/constellation')
     const store = ConstellationStore.open(daemon.logger.child('constellation-store-reader'))
     const tree = store.getTree(sessionId)
     store.close()
@@ -85,7 +85,7 @@ async function loadPersistedTree(daemon: any, sessionId: string): Promise<Corpus
 // WHY: Load a persisted progress snapshot from ConstellationStore for completed sessions.
 async function loadPersistedProgress(daemon: any, sessionId: string): Promise<ProgressSnapshot | null> {
   try {
-    const { ConstellationStore } = await import('../intelligence/constellation/constellation-store.js')
+    const { ConstellationStore } = await import('@cassicore/constellation')
     const store = ConstellationStore.open(daemon.logger.child('constellation-store-reader'))
     const progress = store.getProgress(sessionId)
     store.close()
@@ -98,7 +98,7 @@ async function loadPersistedProgress(daemon: any, sessionId: string): Promise<Pr
 // WHY: Load a persisted session from ConstellationStore.
 async function loadPersistedSession(daemon: any, sessionId: string): Promise<ConstellationSessionRow | undefined> {
   try {
-    const { ConstellationStore } = await import('../intelligence/constellation/constellation-store.js')
+    const { ConstellationStore } = await import('@cassicore/constellation')
     const store = ConstellationStore.open(daemon.logger.child('constellation-store-reader'))
     const session = store.getSession(sessionId)
     store.close()
@@ -111,7 +111,7 @@ async function loadPersistedSession(daemon: any, sessionId: string): Promise<Con
 // WHY: List sessions from ConstellationStore (includes archived).
 async function loadPersistedSessions(daemon: any, opts?: { limit?: number; status?: string; includeArchived?: boolean }): Promise<ConstellationSessionRow[]> {
   try {
-    const { ConstellationStore } = await import('../intelligence/constellation/constellation-store.js')
+    const { ConstellationStore } = await import('@cassicore/constellation')
     const store = ConstellationStore.open(daemon.logger.child('constellation-store-reader'))
     const sessions = store.listSessions(opts)
     store.close()
@@ -124,7 +124,7 @@ async function loadPersistedSessions(daemon: any, opts?: { limit?: number; statu
 // WHY: Get session history from ConstellationStore.
 async function loadSessionHistory(daemon: any, opts?: { limit?: number; since?: number; until?: number; status?: string }): Promise<ConstellationSessionRow[]> {
   try {
-    const { ConstellationStore } = await import('../intelligence/constellation/constellation-store.js')
+    const { ConstellationStore } = await import('@cassicore/constellation')
     const store = ConstellationStore.open(daemon.logger.child('constellation-store-reader'))
     const history = store.getHistory(opts)
     store.close()
@@ -679,7 +679,7 @@ export async function handleConstellationRoutes(
       const job = findJob(id)
       if (!job || job.status !== 'running') {
         try {
-          const { ConstellationStore } = await import('../intelligence/constellation/constellation-store.js')
+          const { ConstellationStore } = await import('@cassicore/constellation')
           const store = ConstellationStore.open(daemon.logger.child('constellation-store-reader'))
           const persistence = store.getLocusMemoryPersistence()
           const memories = persistence.loadMemories()
@@ -772,7 +772,7 @@ export async function handleConstellationRoutes(
           sendJSON(res, 200, { sessionId: id, ...trail, source: 'artifact-store' })
         } else {
           // Fallback: read events directly from ConstellationStore
-          const { ConstellationStore } = await import('../intelligence/constellation/constellation-store.js')
+          const { ConstellationStore } = await import('@cassicore/constellation')
           const store = ConstellationStore.open(daemon.logger.child('constellation-store-reader'))
           const events = store.getEvents(id)
           store.close()

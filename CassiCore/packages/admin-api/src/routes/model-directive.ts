@@ -8,7 +8,7 @@
  *   POST /model-directive/clear    — clear routing at a given scope
  */
 
-import type { ILogger } from '../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type http from 'node:http'
 
 export interface ModelDirectiveRoutesDeps {

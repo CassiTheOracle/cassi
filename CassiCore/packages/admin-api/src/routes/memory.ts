@@ -1,12 +1,12 @@
-import type { ILogger } from '../../types/interfaces.js'
-import { MnemicField } from '../intelligence/mnemic-field/index.js'
-import { assignCell, globalCellKey } from '../intelligence/mnemic-field/healpix.js'
-import { migrateMemoryAndArchives, migrateMemoryOnly } from '../intelligence/mnemic-field/migrate-memory.js'
-import { getEmbeddingService } from '../intelligence/embeddings/embedding-service.js'
-import { getDataDir } from '../utils/paths.js'
-import { cellsInSector } from '../intelligence/mnemic-field/healpix.js'
-import type { SelfModelField } from '../intelligence/mnemic-field/self-model/self-model-field.js'
-import type { InterFieldBridge } from '../intelligence/mnemic-field/self-model/inter-field-bridge.js'
+import type { ILogger } from '@cassicore/foundation'
+import { MnemicField } from '@cassicore/mnemic-field'
+import { assignCell, globalCellKey } from '@cassicore/mnemic-field'
+import { migrateMemoryAndArchives, migrateMemoryOnly } from '@cassicore/mnemic-field'
+import { getEmbeddingService } from '@cassicore/embeddings'
+import { getDataDir } from '@cassicore/foundation'
+import { cellsInSector } from '@cassicore/mnemic-field'
+import type { SelfModelField } from '@cassicore/mnemic-field'
+import type { InterFieldBridge } from '@cassicore/mnemic-field'
 import {
   findNextUnannotated,
   findByName,
@@ -16,7 +16,7 @@ import {
   buildInstruction,
   type AnnotationResponse,
   type AnnotationCandidate,
-} from '../intelligence/mnemic-field/self-model/annotation.js'
+} from '@cassicore/mnemic-field'
 import fs from 'node:fs'
 import path from 'node:path'
 import type http from 'node:http'

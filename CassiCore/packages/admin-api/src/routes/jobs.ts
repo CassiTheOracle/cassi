@@ -10,8 +10,8 @@
  */
 
 import type http from 'node:http'
-import type { ILogger } from '../../types/interfaces.js'
-import type { JobManager } from '../jobs/job-manager.js'
+import type { ILogger } from '@cassicore/foundation'
+import type { JobManager } from '@cassicore/jobs'
 
 interface JobsRouteContext {
   daemon: any

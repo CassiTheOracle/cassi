@@ -1,9 +1,9 @@
 import type http from 'node:http'
-import type { ILogger } from '../../types/interfaces.js'
-import type { CorticalField } from '../intelligence/cortex/index.js'
-import type { SignalType, SignalState } from '../intelligence/cortex/types.js'
-import { SIGNAL_TYPES } from '../intelligence/cortex/types.js'
-import { computeActivation } from '../intelligence/cortex/signal.js'
+import type { ILogger } from '@cassicore/foundation'
+import type { CorticalField } from '@cassicore/cortex-pineal-dialectic'
+import type { SignalType, SignalState } from '@cassicore/cortex-pineal-dialectic'
+import { SIGNAL_TYPES } from '@cassicore/cortex-pineal-dialectic'
+import { computeActivation } from '@cassicore/cortex-pineal-dialectic'
 
 interface CortexDeps {
   daemon: any

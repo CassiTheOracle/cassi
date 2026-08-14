@@ -10,15 +10,15 @@
  *   GET  /verify/events        Query event history with filters
  */
 
-import type { ILogger } from '../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type http from 'node:http'
 
-import { ScenarioRunner } from '../testing/verification/scenario-runner.js'
-import { LiveWorkflowHarness } from '../testing/live/live-harness.js'
-import { StateSnapshot } from '../testing/verification/state-snapshot.js'
-import { getScenario, listScenarios } from '../testing/scenarios/index.js'
-import { sessionExportToScenario } from '../testing/replay/session-replay-adapter.js'
-import { ReplayRunner } from '../testing/replay/replay-runner.js'
+import { ScenarioRunner } from '../vendor/core/testing/verification/scenario-runner.js'
+import { LiveWorkflowHarness } from '../vendor/core/testing/live/live-harness.js'
+import { StateSnapshot } from '../vendor/core/testing/verification/state-snapshot.js'
+import { getScenario, listScenarios } from '../vendor/core/testing/scenarios/index.js'
+import { sessionExportToScenario } from '../vendor/core/testing/replay/session-replay-adapter.js'
+import { ReplayRunner } from '../vendor/core/testing/replay/replay-runner.js'
 
 export interface VerificationRoutesDeps {
   daemon: any

@@ -1,6 +1,6 @@
 import type http from 'node:http'
-import type { ILogger } from '../../types/interfaces.js'
-import type { ReverieModule } from '../intelligence/reverie/index.js'
+import type { ILogger } from '@cassicore/foundation'
+import type { ReverieModule } from '@cassicore/dreamer-reverie-subconscious'
 
 interface Deps {
   daemon: any
