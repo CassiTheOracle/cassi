@@ -1,0 +1,54 @@
+{
+  "name": "@cassicore/tools",
+  "version": "0.1.0",
+  "description": "Tool registry, executor, safety/reliability, presentation, scout, hermes MCP client, and the 30+ core tool implementations (registerCoreTools) extracted from CassiCore. History-preserved import splice; depends on @cassicore/foundation and vendored runtime/type stubs pending later phases (events/utils/mcp/workflow at P6 turns 2-3, host seams at P7).",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./executor": {
+      "types": "./dist/executor.d.ts",
+      "import": "./dist/executor.js"
+    },
+    "./registry": {
+      "types": "./dist/registry.d.ts",
+      "import": "./dist/registry.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "import": "./dist/types.js"
+    },
+    "./implementations": {
+      "types": "./dist/implementations/index.d.ts",
+      "import": "./dist/implementations/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
+  },
+  "dependencies": {
+    "@cassicore/cortex-pineal-dialectic": "*",
+    "@cassicore/foundation": "*",
+    "@cassicore/mnemic-field": "*",
+    "@cassicore/training-trust-ledger": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  }
+}
