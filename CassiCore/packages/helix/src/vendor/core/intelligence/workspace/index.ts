@@ -1,77 +1,141 @@
 /**
- * VENDORED TYPE STUB — mirrors `workspace/index.js` surface: GlobalWorkspace,
- * CognitiveSignal, SignalType (the unit of competition for Global Workspace
- * Theory). Helix publishes CognitiveSignals into the GlobalWorkspace and
- * subscribes to broadcasts. Self-contained: single file.
+ * VENDORED TYPE STUB — `core/intelligence/workspace/index.ts`
+ *
+ * Faithful type surface for helix consumers: `GlobalWorkspace`, `CognitiveSignal`,
+ * `SignalType`, `TraitVector`, `SystemLuminanceScore`, `WorkspaceResponse`.
+ * The shared signal types (`SignalType`, `CognitiveSignal`, `SystemLuminanceScore`,
+ * `GlobalWorkspace`) are aligned byte-for-byte with `@cassicore/foundation`'s
+ * canonical vendored `core/intelligence/workspace/index.ts` so PostureModule's
+ * `BaseCognitiveModule` override and `setGlobalWorkspace` wiring type-check.
+ * Helix additionally publishes via the legacy `broadcast(...)` and reads
+ * `getRecentSignals(...)` (kept on the interface).
+ * Self-contained; only builtin types. Re-pointed to `@cassicore/lamina` at P5.
  */
 
+/** Functional category of a cognitive signal. */
 export type SignalType =
-  | 'observation'
-  | 'tension'
   | 'insight'
-  | 'suggestion'
+  | 'observation'
   | 'warning'
+  | 'memory'
+  | 'tension'
+  | 'convergence'
+  | 'suggestion'
+  | 'context'
+  | 'enrichment'
+  | 'goal'
   | 'bridge'
-  | 'work-unit'
-  | 'finding'
-  | 'challenge'
-  | 'concern'
-  | 'anomaly'
-  | 'decision'
-  | string
 
-/** The unit of competition for the capacity-limited broadcast medium. */
+/** Trait vector of a signal's publisher. */
+export interface TraitVector {
+  [trait: string]: number
+}
+
+/** System-level luminance score — four-plus dimensions of salience. */
+export interface SystemLuminanceScore {
+  /** 0-1: Is this information new relative to what's already in the workspace? */
+  novelty: number
+  /** 0-1: How time-sensitive? */
+  urgency: number
+  /** 0-1: How many active sessions / processing contexts benefit? */
+  relevance: number
+  /** 0-1: Track record of this source producing useful signals. */
+  sourceCredibility: number
+  /** 0-1: Alignment with current cognitive state. */
+  cognitiveResonance: number
+  /** 0-1: Enduring significance. */
+  strategicImportance: number
+  /** Weighted composite — the actual competition score. */
+  composite: number
+}
+
+/** The unit of competition in the Global Workspace. */
 export interface CognitiveSignal {
+  /** Unique identifier for this signal */
   signalId: string
-  /** Semantic kind inside the SignalType (e.g. 'work-unit', 'finding'). */
-  type: SignalType
-  /** Human-readable content. */
-  content: string
-  /** Origin module / posture id. */
+  /** Module that produced this signal (e.g. 'thinker', 'subconscious') */
   source: string
-  /** Session scope ('*' broadcasts to all sessions). */
+  /** Session this signal applies to (or '*' for global signals) */
   sessionId: string
-  /** Luminance score — composite drives ignition. */
-  luminance?: { composite?: number; [key: string]: unknown }
-  /** Extra urgency beyond the SignalType baseline (0-1). */
-  urgencyHint?: number
-  /** Creation timestamp. */
-  createdAt: number
-  /** Additional metadata merged into the published signal. */
-  metadata?: Record<string, unknown>
-  [key: string]: unknown
-}
-
-/** A signal submitted/accepted into a workspace slot. */
-export type WorkspaceSlot = CognitiveSignal | null
-
-export interface GlobalWorkspaceConfig {
-  capacity?: number
-  urgencyDecayBase?: number
-  [key: string]: unknown
-}
-
-export interface WorkspaceResponse {
+  /** Functional category */
+  type: SignalType
+  /** The actual payload — what the module wants to communicate */
   content: string
-  [key: string]: unknown
+  /** Luminance score (set by the workspace's luminance scorer) */
+  luminance: SystemLuminanceScore
+  /** Coalition IDs this signal has joined (populated by workspace) */
+  coalitionIds?: string[]
+  /** When this signal was created */
+  createdAt: number
+  /** Optional urgency hint from the module */
+  urgencyHint?: number
+  /** Module-specific metadata for downstream tracing */
+  metadata?: Record<string, unknown>
+  /** Trait vector of the signal's publisher */
+  publisherTraitVector?: TraitVector
 }
 
-/**
- * Global Workspace — the broadcast engine (Global Workspace Theory) Helix
- * postures publish into and subscribe to.
- */
+/** A slot in the workspace holding a current signal (or empty). */
+export interface WorkspaceSlot {
+  signal: CognitiveSignal | null
+}
+
+/** How a module's response relates to a broadcast. */
+export type ResponseDisposition =
+  | 'convergent'
+  | 'divergent'
+  | 'lateral'
+  | 'silent'
+
+/** A module's response to a workspace broadcast. */
+export interface WorkspaceResponse {
+  /** Which module produced this response */
+  source: string
+  /** How the module's context relates to the broadcast */
+  disposition: ResponseDisposition
+  /** The relevant context the module wants to surface */
+  content: string
+  /** Confidence in the response's relevance (0-1) */
+  confidence: number
+  /** Signal type of the returned context */
+  type: SignalType
+  /** When this response was produced */
+  respondedAt: number
+  /** Optional metadata for downstream tracing */
+  metadata?: Record<string, unknown>
+}
+
+/** Handler invoked with the broadcast signals; returns a module response (may be null). */
+export type WorkspaceResponseHandler = (
+  broadcastSignals: CognitiveSignal[],
+) => Promise<WorkspaceResponse | null> | WorkspaceResponse | null
+
+/** A snapshot of the workspace's current state. */
+export interface GlobalWorkspaceSnapshot {
+  slots: WorkspaceSlot[]
+  pendingCount: number
+  totalSubmitted: number
+  totalIgnited: number
+  ignitionRate: number
+  threshold: number
+  tickCount: number
+}
+
+/** Unsubscribe handle returned by event subscription methods. */
+export type Unsubscribe = () => void
+
+/** The Global Workspace engine — capacity-limited attention + broadcast. */
 export interface GlobalWorkspace {
-  /** Submit a signal for ignition; true if it entered the workspace. */
+  /** Submit a signal for competition. Returns true if it ignited. */
   submit(signal: CognitiveSignal): boolean
-  /** Subscribe to broadcasts; returns an unsubscribe function. */
-  onBroadcast(handler: (signals: CognitiveSignal[]) => void): () => void
-  /** Subscribe to a named radiance/observer stream. */
-  onRadiance(name: string, handler: (signals: CognitiveSignal[]) => unknown): () => void
-  /** Broadcast a signal directly (author + salience form). */
+  /** Subscribe to broadcasts. */
+  onBroadcast(handler: (signals: CognitiveSignal[]) => void): Unsubscribe
+  /** Register a radiance response handler for a source. */
+  onRadiance(source: string, handler: WorkspaceResponseHandler): Unsubscribe
+  /** Snapshot the workspace's current state. */
+  getSnapshot(): GlobalWorkspaceSnapshot
+  /** Legacy direct broadcast (author + salience). */
   broadcast(signal: { type: string; content: string; author: string; salience: number }): void
   /** Return the most recent signals, capped at `limit`. */
-  getRecentSignals(limit?: number): Array<{ type: string; content: string; author: string; timestamp: number }>
-  /** Snapshot the workspace threshold and occupied slots. */
-  getSnapshot(): { threshold: number; slots: WorkspaceSlot[] }
-  [key: string]: unknown
+  getRecentSignals(limit: number): CognitiveSignal[]
 }

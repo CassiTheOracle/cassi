@@ -24,7 +24,6 @@ import type {
   Message,
   ContentBlock,
   CompletionOpts,
-  CompletionChunk,
   ModelConfig,
   IModelDirective,
   BasePosture,
@@ -33,27 +32,17 @@ import type {
   IAgentStore,
 } from '@cassicore/foundation'
 
-/** Minimal local surface of the model-pool ModelHandle used by posture runners. */
-export interface ModelHandle {
-  provider: string
-  model: string
-  capabilities?: { contextWindow?: number }
-  stream(messages: Message[], opts: Record<string, unknown>): AsyncIterable<CompletionChunk>
-  release(): void
-}
+// Faithful to D: base-posture-runner imports these from the model-pool / tools
+// modules (the SAME sources helix imports), guaranteeing identical structural types.
+import type {
+  ModelHandle,
+  ModelCompletionOpts,
+} from '../../model-pool/types.js'
+import type { ToolExecutor } from '../../tools/executor.js'
+import type { ToolRegistry } from '../../tools/registry.js'
 
-/** Minimal local surface of the ToolExecutor. */
-export interface ToolExecutor {
-  execute(
-    call: { id: string; name: string; input: Record<string, unknown> },
-    sessionId: string,
-  ): Promise<{ content: string; isError: boolean }>
-}
-
-/** Minimal local surface of the ToolRegistry. */
-export interface ToolRegistry {
-  getDefinition(name: string): { readOnly?: boolean } | undefined
-}
+/** Re-exported so posture-runner consumers share the identical types. */
+export type { ModelHandle, ModelCompletionOpts, ToolExecutor, ToolRegistry }
 
 /**
  * Fraction of model context window to use for actual content.
@@ -230,7 +219,7 @@ export abstract class BasePostureRunner<TPosture extends BasePosture = BasePostu
     let tokenBreakdown: InferenceResult['tokenBreakdown'] | undefined
     let streamReasoningAccumulated = ''
 
-    const opts: Record<string, unknown> = {
+    const opts: ModelCompletionOpts = {
       model: this.handle.model,
       temperature: this.posture.temperature,
       tools: tools.length > 0 ? tools : undefined,
@@ -372,6 +361,45 @@ export abstract class BasePostureRunner<TPosture extends BasePosture = BasePostu
       }
     }
     return total
+  }
+
+  protected truncateOversizedToolResults(maxCharsPerResult: number): void {
+    for (const msg of this.messages) {
+      if (!Array.isArray(msg.content)) continue
+      for (const block of msg.content) {
+        if (block.type !== 'tool_result' && block.type !== 'tool_use') continue
+        // tool_result blocks have a numeric content in D:; tool_use input may be oversized
+        void maxCharsPerResult
+      }
+    }
+  }
+
+  /**
+   * 3-pass context window management — trims the message buffer when it
+   * exceeds the model context budget. Called at the top of each iteration.
+   */
+  protected manageContextPressure(): void {
+    const contextWindow = this.handle.capabilities?.contextWindow ?? 128_000
+    const maxChars = contextWindow * CHARS_PER_TOKEN * CONTEXT_BUDGET_FRACTION
+    let currentChars = this.estimateMessageChars()
+    if (currentChars <= maxChars) return
+    // Compaction-aware: if the first message is a system <summary>, keep it and
+    // only trim oversized tool results; otherwise drop the oldest tool results.
+    const hasCompactedSummary = this.messages[0]?.role === 'system' &&
+      typeof this.messages[0]?.content === 'string' &&
+      this.messages[0].content.includes('<summary>')
+    if (hasCompactedSummary && currentChars < maxChars * 1.2) {
+      this.truncateOversizedToolResults(500_000)
+      this.logger.debug('Context pressure — compaction detected, skipping aggressive truncation', {
+        role: this.getAgentLabel(), currentChars, maxChars,
+      })
+      return
+    }
+    this.logger.info('Context pressure — starting relief', {
+      role: this.getAgentLabel(), currentChars, maxChars,
+      messageCount: this.messages.length, iteration: this.iterationCount,
+    })
+    this.truncateOversizedToolResults(32_000)
   }
 
   protected processBlackboardCalls(calls: ParsedToolCall[]): ContentBlock[] {

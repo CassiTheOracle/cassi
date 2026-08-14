@@ -45,8 +45,8 @@ export const BROWSER_CONSOLIDATED_TOOL: ToolSchema = {
 export async function executeCodeConsolidatedTool(
   input: Record<string, unknown>,
   logger: ILogger,
-  routeTool?: (name: string, args: Record<string, unknown>) => Promise<unknown>,
-): Promise<unknown> {
+  routeTool?: (name: string, args: unknown) => Promise<unknown>,
+): Promise<any> {
   void input
   void logger
   void routeTool
@@ -57,8 +57,8 @@ export async function executeCodeConsolidatedTool(
 export async function executeBrowserConsolidatedTool(
   input: Record<string, unknown>,
   logger: ILogger,
-  routeTool?: (name: string, args: Record<string, unknown>) => Promise<unknown>,
-): Promise<unknown> {
+  routeTool?: (name: string, args: unknown) => Promise<unknown>,
+): Promise<any> {
   void input
   void logger
   void routeTool
@@ -70,8 +70,8 @@ export async function executeWebConsolidatedTool(
   baseUrl: string,
   input: Record<string, unknown>,
   logger: ILogger,
-  routeTool?: (name: string, args: Record<string, unknown>) => Promise<unknown>,
-): Promise<unknown> {
+  routeTool?: (name: string, args: unknown) => Promise<unknown>,
+): Promise<any> {
   void baseUrl
   void input
   void logger

@@ -110,10 +110,10 @@ export interface FieldStats {
   topEngramsByPotentiation: Array<{ id: string; content: string; potentiation: number }>
 }
 
-/** A labeled prototype set for phrase classification (edge-relators). */
+/** A set of phrase prototypes keyed by relation label (edge-relators). */
 export interface PhrasePrototypeSet {
+  phrases: Record<string, string[]>
   labels: string[]
-  [key: string]: unknown
 }
 
 export interface ClassificationResult {
