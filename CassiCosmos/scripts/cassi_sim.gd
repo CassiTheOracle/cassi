@@ -353,6 +353,13 @@ var _grad_buf2: RID    # dual-lattice ∇(g·Φ) (SET 0 binding 8 — CASCADE_GR
 var _occ_buf: RID      # occupancy counters (5 uints — cassi_occupancy.glsl)
 # — particle buffers (SET 1) —
 var _pos_buf: RID; var _vel_buf: RID; var _acc_buf: RID
+# — snapshot/interpolation buffers (decoupled physics producer seam) —
+var _pos_prev_buf: RID = RID()     # pre-batch snapshot (= the previously rendered state)
+var _pos_render_buf: RID = RID()   # interpolated render snapshot (the instancer reads this)
+var _interp_alpha: float = 1.0     # DORMANT: alpha pinned to 1.0 → pos_render == pos bit-for-bit
+# — blend shader (position snapshot/interpolation; cassi_blend_pos.glsl) —
+var _blend_sh: RID; var _blend_pipe: RID; var _blend_pc: PackedByteArray
+var _us_blend_0: RID
 
 # — auxiliary buffers (SET 2) —
 var _cluster_buf: RID
@@ -382,6 +389,7 @@ var _bh_int_shader: RID; var _bh_int_pipe: RID; var _us_bh_int_0: RID; var _us_b
 var _occ_shader: RID; var _occ_pipe: RID; var _us_occ_0: RID  # occupancy sampler (diagnostic; CPU fallback)
 var _cond_step_counter: int = 0
 var _us_inst_0: RID = RID()
+var _us_inst_0_render: RID = RID()  # instancer set variant: position binding (0) reads _pos_render_buf
 
 # — q-histogram (auto color-align; cassi_qhist.glsl) —
 var _qhist_shader: RID; var _qhist_pipe: RID; var _us_qhist_0: RID
@@ -887,6 +895,24 @@ func _run_physics_steps(n_steps: int) -> void:
 		_tree_worker_frame()
 	var cl = _rd.compute_list_begin()
 
+	# ── Snapshot roll (pre-batch): pos_prev = pos ───────────────────
+	# One blend dispatch BEFORE the step batch captures the pre-batch state
+	# (== the previously rendered state) into pos_prev, so the post-batch
+	# interpolation below can retrace the last RENDERED positions. alpha =
+	# 2.0 is the ROLL MARKER: it tells this dispatch from the post-batch
+	# one (dormant alpha == 1.0 could not — both would roll and clobber the
+	# snapshot); the shader rolls pos_prev only when alpha > 1.0 and clamps
+	# its interpolation to [0, 1], so the pos_render side-effect stays
+	# exactly pos. The first full barrier inside _step_dispatches (clear →
+	# deposit) orders this dispatch's pos reads before the batch's first
+	# pos write.
+	if _blend_sh.is_valid() and N_particles > 0:
+		_blend_pc.encode_float(0, 2.0)  # roll marker (> 1.0)
+		_rd.compute_list_bind_compute_pipeline(cl, _blend_pipe)
+		_rd.compute_list_bind_uniform_set(cl, _us_blend_0, 0)
+		_rd.compute_list_set_push_constant(cl, _blend_pc, _blend_pc.size())
+		_rd.compute_list_dispatch(cl, ceili(float(N_particles) / 64.0), 1, 1)
+
 	for _s in range(n_steps):
 		_step_dispatches(cl)
 	# ── q-histogram (auto color-align): one strided pass per frame while
@@ -912,6 +938,22 @@ func _run_physics_steps(n_steps: int) -> void:
 		_rd.compute_list_set_push_constant(cl, _qhist_pc_bytes, _qhist_pc_bytes.size())
 		var qh_threads := ceili(float(N_particles) / 16.0)
 		_rd.compute_list_dispatch(cl, ceili(qh_threads / 64.0), 1, 1)
+	# ── Interpolation dispatch (post-batch): pos_render = mix(pos_prev,
+	# pos, _interp_alpha) ──
+	# The instancer below is bound to _us_inst_0_render, which reads
+	# pos_render — the interpolated render snapshot. DORMANT:
+	# _interp_alpha = 1.0 → pos_render == pos (mix(x, y, 1.0) = y exactly),
+	# so rendering is bit-identical to today; the decoupled producer will
+	# vary alpha later. The barrier after it gives the instancer's
+	# pos_render reads their memory visibility (consecutive dispatches have
+	# execution ordering but no implicit memory visibility).
+	if _blend_sh.is_valid() and N_particles > 0:
+		_blend_pc.encode_float(0, _interp_alpha)
+		_rd.compute_list_bind_compute_pipeline(cl, _blend_pipe)
+		_rd.compute_list_bind_uniform_set(cl, _us_blend_0, 0)
+		_rd.compute_list_set_push_constant(cl, _blend_pc, _blend_pc.size())
+		_rd.compute_list_dispatch(cl, ceili(float(N_particles) / 64.0), 1, 1)
+	_barrier(cl)  # blend pos_render write → instancer read
 	# ── Instancer: GPU-only MultiMesh update, ONCE PER FRAME ──────────
 	# Hoisted out of the per-step loop: only the frame's FINAL particle
 	# state is drawn, so a per-step write of the full instance buffer
@@ -925,7 +967,10 @@ func _run_physics_steps(n_steps: int) -> void:
 		_fill_instancer_pc()
 		var ipg := ceili(float(N_particles) / 256.0)
 		_rd.compute_list_bind_compute_pipeline(cl, _instancer_pipe)
-		_rd.compute_list_bind_uniform_set(cl, _us_inst_0, 0)
+		# RENDER variant: binding 0 reads _pos_render_buf (the post-batch
+		# interpolation snapshot) — == _pos_buf while _interp_alpha == 1.0,
+		# so the rendered frame is bit-identical today.
+		_rd.compute_list_bind_uniform_set(cl, _us_inst_0_render, 0)
 		_rd.compute_list_set_push_constant(cl, _instancer_pc_bytes, _instancer_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, ipg, 1, 1)
 	_rd.compute_list_end()
@@ -1058,6 +1103,14 @@ func _setup_buffers() -> void:
 	_pos_buf = _rd.storage_buffer_create(ps)
 	_vel_buf = _rd.storage_buffer_create(ps)
 	_acc_buf = _rd.storage_buffer_create(ps)
+	# Snapshot/interpolation buffers (decoupled physics producer seam):
+	# pos_prev = the pre-batch snapshot (rolled every frame BEFORE the step
+	# batch); pos_render = the interpolated render snapshot the instancer's
+	# render-set variant reads (== pos while _interp_alpha == 1.0).
+	# maxi(N_particles, 1) keeps them nonzero-sized for N_particles=0 verify
+	# scenes (the tree-grad precedent — a 0-size buffer fails set creation).
+	_pos_prev_buf = _rd.storage_buffer_create(maxi(N_particles, 1) * 16)
+	_pos_render_buf = _rd.storage_buffer_create(maxi(N_particles, 1) * 16)
 
 	# SET 2 — BH data + sim globals
 	# 36 vec4s = 576 bytes: 4-vec4 header (count/G_N/extents/reserved) + 15
@@ -1170,6 +1223,10 @@ func _setup_buffers() -> void:
 	_cond_pc_bytes = PackedByteArray(); _cond_pc_bytes.resize(4 * 4)
 	_poisson_pc_bytes = PackedByteArray(); _poisson_pc_bytes.resize(7 * 4)
 	_occ_pc_bytes = PackedByteArray(); _occ_pc_bytes.resize(10 * 4)
+	# Blend PC (4 B = 1 float): alpha @ byte 0. Godot reflects a 1-float
+	# push-constant block as exactly 4 bytes (verified empirically — 4.7
+	# hard-errors "requires (4) bytes, supplied (16)" on any larger buffer).
+	_blend_pc = PackedByteArray(); _blend_pc.resize(4)
 	# NOTE: all poisson dispatches (clear/load/kspace/FFT) are 2D (N, N, 1) —
 
 	# uses row = workgroup.x + workgroup.y·N. A 1D (N³/256, 1, 1) dispatch
@@ -1181,7 +1238,8 @@ func _setup_buffers() -> void:
 
 func _free_buffers() -> void:
 	for rid in [_field_ey, _field_ei, _field_q, _field_vel,
-				_pos_buf, _vel_buf, _acc_buf, _bh_buf, _bh_lens_buf,
+				_pos_buf, _vel_buf, _acc_buf, _pos_prev_buf, _pos_render_buf,
+				_bh_buf, _bh_lens_buf,
 				_mass_density_buf, _cluster_buf, _fft_buf, _tel_buf,
 				_grad_buf, _grad_buf2, _occ_buf, _qhist_buf,
 				_ml_labels_a, _ml_labels_b, _ml_sites,
@@ -1208,7 +1266,8 @@ func _free_uniform_sets() -> void:
 	for rid in [_us_two_0, _us_two_1, _us_two_2, _us_mass_dep_0,
 				_us_nbody_0, _us_nbody_1, _us_nbody_2, _us_poisson_0,
 				_us_fr_0, _us_fr_2, _us_cond_0, _us_cond_1,
-				_us_bh_int_0, _us_bh_int_1, _us_inst_0, _us_bh_lens_2,
+				_us_bh_int_0, _us_bh_int_1, _us_inst_0, _us_inst_0_render,
+				_us_bh_lens_2, _us_blend_0,
 				_us_occ_0, _us_qhist_0, _us_jfa_0, _us_cell_0, _us_raster_0,
 				_us_tree_build, _us_tree_grav]:
 		if rid.is_valid(): _rd.free_rid(rid)
@@ -1219,7 +1278,8 @@ func _free_uniform_sets() -> void:
 	_us_fr_0 = RID(); _us_fr_2 = RID()
 	_us_cond_0 = RID(); _us_cond_1 = RID()
 	_us_bh_int_0 = RID(); _us_bh_int_1 = RID()
-	_us_inst_0 = RID(); _us_bh_lens_2 = RID()
+	_us_inst_0 = RID(); _us_inst_0_render = RID(); _us_bh_lens_2 = RID()
+	_us_blend_0 = RID()
 	_us_occ_0 = RID()
 	_us_jfa_0 = RID(); _us_cell_0 = RID(); _us_raster_0 = RID()
 	_us_tree_build = RID(); _us_tree_grav = RID()
@@ -1233,13 +1293,13 @@ func _free_shaders() -> void:
 				_instancer_pipe, _mass_deposit_pipe,
 				_cond_pipe, _bh_int_pipe, _occ_pipe, _qhist_pipe,
 				_jfa_pipe, _cell_pipe, _raster_pipe,
-				_tree_build_pipe, _tree_grav_pipe,
+				_tree_build_pipe, _tree_grav_pipe, _blend_pipe,
 				_two_fluid_shader, _nbody_shader, _poisson_shader,
 				_field_render_shader, _bh_lensing_shader,
 				_instancer_shader, _mass_deposit_shader,
 				_cond_shader, _bh_int_shader, _occ_shader, _qhist_shader,
 				_jfa_shader, _cell_shader, _raster_shader,
-				_tree_build_shader, _tree_grav_shader]:
+				_tree_build_shader, _tree_grav_shader, _blend_sh]:
 		if rid.is_valid(): _rd.free_rid(rid)
 
 
@@ -1338,13 +1398,23 @@ func _setup_shaders() -> void:
 		_tree_grav_pipe = _rd.compute_pipeline_create(_tree_grav_shader)
 		print("[CassiSim] tree-walk pipeline ready")
 
+	# Position blend (snapshot/interpolation seam — cassi_blend_pos.glsl).
+	# DORMANT: the host pins alpha to 1.0, so pos_render == pos bit-for-bit
+	# and rendering is identical to today; the decoupled physics producer
+	# will vary _interp_alpha later. The pipe is included in _shaders_ready
+	# (the blend dispatches gate on _blend_sh.is_valid()).
+	_blend_sh = _shader_from_file("res://compute/cassi_blend_pos.glsl")
+	if _blend_sh.is_valid():
+		_blend_pipe = _rd.compute_pipeline_create(_blend_sh)
+		print("[CassiSim] blend pipeline ready")
+
 	_cache_uniform_sets()
 	_shaders_ready = (
 		_two_fluid_shader.is_valid() and _nbody_shader.is_valid()
 		and _poisson_shader.is_valid() and _mass_deposit_shader.is_valid()
 		and _instancer_shader.is_valid() and _cond_shader.is_valid()
 		and _bh_int_shader.is_valid() and _field_render_shader.is_valid()
-		and _bh_lensing_shader.is_valid()
+		and _bh_lensing_shader.is_valid() and _blend_sh.is_valid()
 		# Tree arm must be genuinely ready too, else the retry loop stops
 		# while the tree uniform sets/pipes are missing (Godot silently
 		# no-ops a dispatch with an absent set).
@@ -1442,6 +1512,19 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(4, _field_ey),  # two-axis (color_mode 4): ρ = EY+EI lightness axis
 			_uniform_storage(5, _field_ei),  # two-axis (color_mode 4): ρ = EY+EI
 		], _instancer_shader, 0)
+		# RENDER variant — identical except binding 0 (Positions) reads the
+		# interpolated snapshot _pos_render_buf. Bound for the per-frame
+		# instancer dispatch (see _run_physics_steps) so the renderer draws
+		# pos_render; at the DORMANT alpha = 1.0 that IS pos, so rendering
+		# stays bit-identical — the whole point of the dormant seam.
+		_us_inst_0_render = _rd.uniform_set_create([
+			_uniform_storage(0, _pos_render_buf),
+			_uniform_storage(1, _mm_rd_rid),
+			_uniform_storage(2, _vel_buf),
+			_uniform_storage(3, _field_q),
+			_uniform_storage(4, _field_ey),
+			_uniform_storage(5, _field_ei),
+		], _instancer_shader, 0)
 		print("[CassiSim] Instancer uniform set cached (GPU-direct multimesh buffer)")
 
 	# Mass deposit
@@ -1527,6 +1610,17 @@ func _cache_uniform_sets() -> void:
 		], _tree_grav_shader, 0)
 		if not _us_tree_grav.is_valid():
 			push_error("[CassiSim] tree-walk uniform set FAILED to create (bindings 0,3-11)")
+	# Position blend (cassi_blend_pos.glsl, set 0): pos_prev, pos,
+	# pos_render — bindings 0, 1, 2. Created whenever the shader compiled;
+	# the buffers are always allocated (maxi(N_particles, 1) sizing).
+	if _blend_sh.is_valid():
+		_us_blend_0 = _rd.uniform_set_create([
+			_uniform_storage(0, _pos_prev_buf),
+			_uniform_storage(1, _pos_buf),
+			_uniform_storage(2, _pos_render_buf),
+		], _blend_sh, 0)
+		if not _us_blend_0.is_valid():
+			push_error("[CassiSim] blend uniform set FAILED to create (bindings 0-2)")
 # ═══════════════════════════════════════════════════════════════════════
 # Initial conditions
 # ═══════════════════════════════════════════════════════════════════════
