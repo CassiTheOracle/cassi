@@ -17,19 +17,19 @@
 
 import { v4 as uuidv4 } from "uuid";
 
-import { MODEL_DEFAULTS } from "../../config/system-settings.js";
-import { isGamingMode } from "../gaming-mode.js";
+import { MODEL_DEFAULTS } from "@cassicore/foundation";
+import { isGamingMode } from "../../vendor/core/intelligence/gaming-mode.js";
 
 import type { EventStream } from "./event-stream.js";
 import type { SystemModel } from "./system-model.js";
 import type { LLMObservation, LLMObserverConfig, StreamSummary } from "./types.js";
-import type { IMemory } from "../../../types/intelligence.js";
-import type { ILogger } from "../../../types/interfaces.js";
-import type { IProvider, Message } from "../../../types/runtime.js";
-import type { ModuleSessionRegistry } from "../module-session-registry.js";
-import type { GlobalBlackboardRegistry } from "../flux-team/global-blackboard-registry.js";
-import type { BlackboardChannel } from "../../../types/flux-team.js";
-import type { CorticalField } from "../cortex/index.js";
+import type { IMemory } from "@cassicore/foundation";
+import type { ILogger } from "@cassicore/foundation";
+import type { IProvider, Message } from "@cassicore/foundation";
+import type { ModuleSessionRegistry } from "../../vendor/core/intelligence/module-session-registry.js";
+import type { GlobalBlackboardRegistry } from "@cassicore/flux-team";
+import type { BlackboardChannel } from "@cassicore/foundation";
+import type { CorticalField } from "../../vendor/core/intelligence/cortex/index.js";
 
 
 

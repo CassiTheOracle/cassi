@@ -24,9 +24,9 @@ import type {
   Anomaly,
   LLMObservation,
 } from "./types.js";
-import type { RuntimeEvent } from "../../../types/events.js";
-import type { IMemory } from "../../../types/intelligence.js";
-import type { ILogger } from "../../../types/interfaces.js";
+import type { RuntimeEvent } from "@cassicore/foundation";
+import type { IMemory } from "@cassicore/foundation";
+import type { ILogger } from "@cassicore/foundation";
 
 
 type ProviderHealthStatus = "healthy" | "degraded" | "error" | "rate_limited";

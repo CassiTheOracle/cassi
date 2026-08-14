@@ -5,9 +5,9 @@
  * be tested in isolation without a running daemon or real LLM.
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 // REMOVED: MemoryModule import — deleted. DreamEngine now uses IMemory with optional methods.
-import type { IMemory } from '../../../types/intelligence.js'
+import type { IMemory } from '@cassicore/foundation'
 
 /** Minimal ArchiveEntry shape for dream engine */
 interface ArchiveEntry {
@@ -17,8 +17,8 @@ interface ArchiveEntry {
   createdAt: number
   metadata?: Record<string, unknown>
 }
-import type { ReasoningBank } from '../reasoning-bank/index.js'
-import type { SearchResult } from '../reasoning-bank/types.js'
+import type { ReasoningBank } from '../../vendor/core/intelligence/reasoning-bank/index.js'
+import type { SearchResult } from '../../vendor/core/intelligence/reasoning-bank/types.js'
 import {
   buildFreeAssociationPrompt,
   buildCrystallizationPrompt,

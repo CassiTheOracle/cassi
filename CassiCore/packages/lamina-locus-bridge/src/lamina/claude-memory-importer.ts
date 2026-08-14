@@ -11,11 +11,11 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 
-import { getDataDir } from '../../utils/paths.js'
-import { withStep } from '../../runtime/audit/index.js'
+import { getDataDir } from '@cassicore/foundation'
+import { withStep } from '../../vendor/core/runtime/audit/index.js'
 
-import type { ILogger } from '../../../types/interfaces.js'
-import type { AuditStore } from '../../runtime/audit/index.js'
+import type { ILogger } from '@cassicore/foundation'
+import type { AuditStore } from '../../vendor/core/runtime/audit/index.js'
 import type { LaminaField } from './lamina-field.js'
 
 export interface PinealLikeForImport {

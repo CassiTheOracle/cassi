@@ -9,9 +9,9 @@
  * Idempotent: safe to call repeatedly (e.g. after every Pineal update).
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type { LaminaField } from './lamina-field.js'
-import type { Domain, Facet } from '../pineal/types.js'
+import type { Domain, Facet } from '../../vendor/core/intelligence/pineal/types.js'
 
 export interface PinealLike {
   listFacets(query?: { active?: boolean; minConviction?: number; domain?: Domain; limit?: number }): Facet[]

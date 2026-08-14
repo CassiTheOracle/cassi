@@ -10,12 +10,12 @@
  * The underlying LaminaStore is exposed for advanced use.
  */
 
-import { resolveProvenance } from '../../runtime/audit/index.js'
+import { resolveProvenance } from '../../vendor/core/runtime/audit/index.js'
 
 import { LaminaStore, type LaminaCaller } from './lamina-store.js'
 import { DEFAULT_CHAR_LIMIT } from './types.js'
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type {
   Lamina,
   LaminaAppend,

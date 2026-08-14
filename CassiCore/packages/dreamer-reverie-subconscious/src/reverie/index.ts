@@ -7,8 +7,8 @@
  * See project_reverie_design.md for the full architectural rationale.
  */
 
-import { MODEL_DEFAULTS } from '../../config/system-settings.js'
-import { BaseCognitiveModule } from '../base/cognitive-module.js'
+import { MODEL_DEFAULTS } from '@cassicore/foundation'
+import { BaseCognitiveModule } from '@cassicore/foundation'
 
 import { buildReveriePrompt } from './prompt.js'
 import { ReverieTriggerController } from './trigger.js'
@@ -29,15 +29,15 @@ interface ToolRoundEntry {
   at: number
 }
 
-import type { ILogger } from '../../../types/interfaces.js'
-import type { LaminaField } from '../lamina/index.js'
-import type { MnemicField } from '../mnemic-field/index.js'
-import type { Engram } from '../mnemic-field/types.js'
-import type { AuditStore } from '../../runtime/audit/index.js'
-import { withStep } from '../../runtime/audit/index.js'
+import type { ILogger } from '@cassicore/foundation'
+import type { LaminaField } from '@cassicore/lamina-locus-bridge'
+import type { MnemicField } from '@cassicore/mnemic-field'
+import type { Engram } from '@cassicore/mnemic-field'
+import type { AuditStore } from '../../vendor/core/runtime/audit/index.js'
+import { withStep } from '../../vendor/core/runtime/audit/index.js'
 import { labelRetrievals, tokenize, bigrams, jaccard } from './retrieval-labeler.js'
 import type { LabelerInputs, LabelerInputRetrieval, LabelerInputCandidate, LabelerInputToolRound, RetrievalLabelTriple } from './retrieval-labeler-types.js'
-import { cosineSimilarity } from '../mnemic-field/cortex.js'
+import { cosineSimilarity } from '@cassicore/mnemic-field'
 
 let counter = 0
 function rid(): string {
@@ -297,7 +297,7 @@ export class ReverieModule extends BaseCognitiveModule {
     const signal = options.signal ?? ctrl.signal
 
     // Cast messages to the Message type from runtime types — shape is compatible at runtime
-    const castMessages = messages as import('../../../types/runtime.js').Message[]
+    const castMessages = messages as import('@cassicore/foundation').Message[]
 
     try {
       const result = await super.infer(castMessages, {

@@ -9,17 +9,17 @@
  * Priority: 15 (background — below AI Scientist, above Self Healer)
  */
 
-import { MODEL_DEFAULTS } from '../../config/system-settings.js'
-import { BaseCognitiveModule } from '../base/cognitive-module.js'
-import { isGamingMode } from '../gaming-mode.js'
+import { MODEL_DEFAULTS } from '@cassicore/foundation'
+import { BaseCognitiveModule } from '@cassicore/foundation'
+import { isGamingMode } from '../../vendor/core/intelligence/gaming-mode.js'
 // REMOVED: MemoryModule import — now uses IMemory via MemoryShim
-import type { IMemory } from '../../../types/intelligence.js'
-import type { ReasoningBank } from '../reasoning-bank/index.js'
+import type { IMemory } from '@cassicore/foundation'
+import type { ReasoningBank } from '../../vendor/core/intelligence/reasoning-bank/index.js'
 import { DreamCycleEngine } from './dream-engine.js'
 import type { DreamRecord, DreamerConfig } from './types.js'
 import { DEFAULT_DREAMER_CONFIG } from './types.js'
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 
 
 export type DreamerState =

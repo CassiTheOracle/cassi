@@ -12,7 +12,7 @@
 
 import * as path from 'node:path'
 import * as fs from 'node:fs'
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import { TrainingStore } from './training-store.js'
 import { TrainingIngest, type IngestOptions, type IngestResult } from './training-ingest.js'
 import { TrainingTagger, type TaggerLLM, type TaggerOptions, type TaggerBatchResult } from './training-tagger.js'

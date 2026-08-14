@@ -18,7 +18,7 @@
 
 import Database from 'better-sqlite3'
 import * as crypto from 'node:crypto'
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import { TrainingStore } from './training-store.js'
 import type {
   TrainingObject,

@@ -13,8 +13,8 @@
  */
 
 import * as crypto from 'node:crypto'
-import type { ILogger } from '../../../types/interfaces.js'
-import type { GlobalBlackboardRegistry } from '../flux-team/global-blackboard-registry.js'
+import type { ILogger } from '@cassicore/foundation'
+import type { GlobalBlackboardRegistry } from '@cassicore/flux-team'
 import { TrainingStore } from './training-store.js'
 import type {
   TaggerRequest,

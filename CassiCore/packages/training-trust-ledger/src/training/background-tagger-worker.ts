@@ -23,7 +23,7 @@
  * @dep module: Training
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import { SdkTagger } from './sdk-tagger.js'
 import type { SdkTaggerResult } from './sdk-tagger.js'
 import { TrainingStore } from './training-store.js'

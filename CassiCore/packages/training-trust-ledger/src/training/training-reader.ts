@@ -9,7 +9,7 @@
  * - Stats and analytics
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import { TrainingStore } from './training-store.js'
 import type {
   TrainingObject,

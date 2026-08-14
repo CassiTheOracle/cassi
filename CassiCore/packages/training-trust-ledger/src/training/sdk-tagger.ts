@@ -14,7 +14,7 @@
  * @dep module: Training
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type { TrainingObjectType } from './training-types.js'
 import { TrainingStore } from './training-store.js'
 import { TrainingTagger, type TaggerBatchResult } from './training-tagger.js'

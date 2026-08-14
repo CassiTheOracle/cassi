@@ -20,8 +20,8 @@
 import { v4 as uuidv4 } from "uuid";
 
 import type { Observation, Anomaly } from "./types.js";
-import type { RuntimeEvent } from "../../../types/events.js";
-import type { ILogger } from "../../../types/interfaces.js";
+import type { RuntimeEvent } from "@cassicore/foundation";
+import type { ILogger } from "@cassicore/foundation";
 
 
 interface ErrorBurstTracker {

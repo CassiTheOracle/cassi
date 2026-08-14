@@ -22,7 +22,7 @@
  * chains and results.
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type {
   AssembledWindow,
   AssemblyMeta,

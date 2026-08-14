@@ -40,12 +40,12 @@ import type {
   Anomaly,
   SystemModelSnapshot,
 } from "./types.js";
-import type { IMemory } from "../../../types/intelligence.js";
-import type { ILogger, IEventBus } from "../../../types/interfaces.js";
-import type { IProvider } from "../../../types/runtime.js";
-import type { SessionDigestStore } from "../session-digest.js";
-import type { ModuleSessionRegistry } from "../module-session-registry.js";
-import type { CorticalField } from "../cortex/index.js";
+import type { IMemory } from "@cassicore/foundation";
+import type { ILogger, IEventBus } from "@cassicore/foundation";
+import type { IProvider } from "@cassicore/foundation";
+import type { SessionDigestStore } from "../../vendor/core/intelligence/session-digest.js";
+import type { ModuleSessionRegistry } from "../../vendor/core/intelligence/module-session-registry.js";
+import type { CorticalField } from "../../vendor/core/intelligence/cortex/index.js";
 
 export type { SubconsciousConfig } from "./types.js";
 

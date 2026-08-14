@@ -11,7 +11,7 @@
  * zeroed luminance. The LocusBridge scores them during evaluation.
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type { BridgeSpark, BridgeSparkType, BridgeLuminanceScore } from './types.js'
 
 let sparkCounter = 0

@@ -5,7 +5,7 @@
  * first person because all LLMs are facets of Cassi, not separate agents.
  */
 
-import type { Lamina } from '../lamina/types.js'
+import type { Lamina } from '@cassicore/lamina-locus-bridge'
 
 export interface ReveriePromptInput {
   sessionId: string

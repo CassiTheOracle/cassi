@@ -18,7 +18,7 @@
  * The bridge extends this modulation beyond Constellation to the entire system.
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type {
   AssembledWindow,
   AssemblyMeta,

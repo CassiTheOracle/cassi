@@ -54,7 +54,7 @@ export interface Anomaly {
 
 
 export interface EventStreamEntry {
-  event: import("../../../types/events.js").RuntimeEvent;
+  event: import("@cassicore/foundation").RuntimeEvent;
   receivedAt: number;
 }
 

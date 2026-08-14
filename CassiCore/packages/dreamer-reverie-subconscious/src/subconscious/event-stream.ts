@@ -13,8 +13,8 @@
  */
 
 import type { EventStreamConfig, EventStreamEntry, StreamSummary } from "./types.js";
-import type { RuntimeEvent, EventType, Unsubscribe } from "../../../types/events.js";
-import type { IEventBus, ILogger } from "../../../types/interfaces.js";
+import type { RuntimeEvent, EventType, Unsubscribe } from "@cassicore/foundation";
+import type { IEventBus, ILogger } from "@cassicore/foundation";
 
 export class EventStream {
   private readonly logger: ILogger;

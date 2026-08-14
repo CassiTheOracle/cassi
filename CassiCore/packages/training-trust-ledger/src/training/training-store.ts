@@ -17,7 +17,7 @@
 import Database from 'better-sqlite3'
 import * as path from 'node:path'
 import * as fs from 'node:fs'
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type {
   TrainingObject,
   TrainingSession,

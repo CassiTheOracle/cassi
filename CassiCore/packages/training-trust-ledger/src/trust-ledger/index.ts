@@ -24,8 +24,8 @@
  *   - permission:human-response — human approval/rejection as evidence
  */
 
-import { TTLCache } from '../../utils/ttl-cache.js'
-import { BaseCognitiveModule } from '../base/cognitive-module.js'
+import { TTLCache } from '../../vendor/core/utils/ttl-cache.js'
+import { BaseCognitiveModule } from '@cassicore/foundation'
 
 import {
   DEFAULT_TRUST_LEDGER_CONFIG,
@@ -42,7 +42,7 @@ import type {
   TrustSummary,
   AutonomyLevel,
 } from './types.js'
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type Database from 'better-sqlite3'
 
 

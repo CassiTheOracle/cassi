@@ -4,8 +4,8 @@ import path from 'node:path'
 
 import Database from 'better-sqlite3'
 
-import { getDataDir } from '../../utils/paths.js'
-import { prefixedId } from '../utils/prefixed-id.js'
+import { getDataDir } from '@cassicore/foundation'
+import { prefixedId } from '../../vendor/core/intelligence/utils/prefixed-id.js'
 
 import {
   DEFAULT_CHAR_LIMIT,
@@ -14,8 +14,8 @@ import {
   LaminaOverflow,
 } from './types.js'
 
-import type { ILogger } from '../../../types/interfaces.js'
-import type { Provenance } from '../../runtime/audit/index.js'
+import type { ILogger } from '@cassicore/foundation'
+import type { Provenance } from '../../vendor/core/runtime/audit/index.js'
 import type {
   Lamina,
   LaminaAppend,
