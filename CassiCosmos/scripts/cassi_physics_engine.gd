@@ -157,6 +157,38 @@ var _gn_eff: float = 1.0        # effective river G after calibration
 var _total_init_mass: float = 0.0
 var _local_pending := false     # local RD: a list was submitted but not yet synced
 
+# — telemetry (mirrors the sim's diagnostic members; filled by
+# readback_telemetry() from the gravity telemetry buffer) —
+var _q_mean: float = 0.0
+var _q_min: float = 0.0
+var _q_max: float = 0.0
+var _pi_min: float = 0.0
+var _pi_max: float = 0.0
+var _pi_sat_hi_frac: float = 0.0
+var _pi_sat_lo_frac: float = 0.0
+var _rho_guard_hits: int = 0
+var _eps_mean: float = 0.0
+var _hubble: float = 0.0
+var _scale_factor: float = 1.0
+
+# — threaded runner (the cassi_tree_worker.gd pattern: local RD created on
+# the worker, SPIR-V loaded on the main thread, sets left to the device) —
+var _thread: Thread = null
+var _thread_started := false
+var _running := false
+var _job_sem: Semaphore = null
+var _done_sem: Semaphore = null
+var _setup_sem: Semaphore = null
+var _job_mutex: Mutex = null
+var _res_mutex: Mutex = null
+var _job: Dictionary = {}
+var _job_pending := false
+var _res_result: Dictionary = {}
+var _res_gen := 0
+var _consumed_gen := 0
+var _wait_next := true      # first submit after start blocks (fresh-bootstrap)
+var _executed := 0          # worker-side cumulative executed step count
+
 
 # ═══════════════════════════════════════════════════════════════════════
 # API
@@ -314,6 +346,231 @@ func readback_snapshot() -> Dictionary:
 	return {
 		"pos": pos, "vel": vel, "field_q": fq, "pot": pot, "t": _time,
 	}
+
+
+## The sim-UI telemetry (decoupled mode): the gravity telemetry buffer's
+## saturation counters + q/π/ρ range at particles + the strided field-q
+## mean — decoded exactly as the sim's _render_frame does — plus the
+## eps/hubble/scale-factor members (inert defaults there too) and the
+## effective river G after calibration.
+func readback_telemetry() -> Dictionary:
+	if _rd == null or not _ready:
+		return {}
+	if not _rd_global and _local_pending:
+		_rd.sync()
+		_local_pending = false
+	var tel := _rd.buffer_get_data(_tel_buf, 0, 32)
+	if tel.size() >= 32:
+		_pi_sat_hi_frac = float(tel.decode_u32(0))
+		_pi_sat_lo_frac = float(tel.decode_u32(4))
+		_rho_guard_hits = int(tel.decode_u32(8))
+		_q_min = tel.decode_float(12)
+		_q_max = tel.decode_float(16)
+		_pi_min = tel.decode_float(20)
+		_pi_max = tel.decode_float(24)
+		# Sample count from the GPU (tel[7]): the shader reports the true
+		# number of chord_g_at evaluations per step (7 per river kick ×
+		# 2 KDK kicks per particle). Heuristic mode reports 0 → 1.
+		var samples := maxi(int(tel.decode_u32(28)), 1)
+		_pi_sat_hi_frac /= samples
+		_pi_sat_lo_frac /= samples
+	var nc: int = grid_N * grid_N * grid_N
+	var q_data := _rd.buffer_get_data(_field_q, 0, nc * 4)
+	if q_data.size() > 0:
+		var qf := q_data.to_float32_array()
+		var q_sum := 0.0
+		# Strided sum — the sim's _render_frame recipe (1-in-16 subsample).
+		for qi in range(0, qf.size(), 16):
+			q_sum += qf[qi]
+		_q_mean = q_sum * 16.0 / maxf(qf.size(), 1)
+	return {
+		"q_mean": _q_mean, "q_min": _q_min, "q_max": _q_max,
+		"pi_min": _pi_min, "pi_max": _pi_max,
+		"pi_sat_hi_frac": _pi_sat_hi_frac, "pi_sat_lo_frac": _pi_sat_lo_frac,
+		"rho_guard_hits": _rho_guard_hits,
+		"eps_mean": _eps_mean, "hubble": _hubble, "scale_factor": _scale_factor,
+		"gn_eff": _gn_eff,
+	}
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Threaded runner (the cassi_tree_worker.gd pattern)
+# ═══════════════════════════════════════════════════════════════════════
+
+## Start the engine on a dedicated worker thread with its own local
+## RenderingDevice (created ON the worker — the verified Godot 4.7
+## constraint). MAIN thread: loads the 6 physics shader FILES and passes
+## the extracted SPIR-V into the worker via cfg.spirv (RDShaderFile loading
+## is not thread-safe); the worker then runs setup() ITSELF (IC generation
+## + buffer fills are thread-safe on the worker). The first submit_steps()
+## blocks on setup + completion (the bootstrap — the caller gets an
+## immediate snapshot); later submits are non-blocking with target-count
+## coalescing. stop_threaded() joins the worker, whose exit path shuts the
+## engine down on the worker (worker-side RID frees — no invalid frees).
+## Reinit = stop_threaded() + start_threaded(new cfg).
+func start_threaded(cfg: Dictionary) -> bool:
+	stop_threaded()
+	_freed = false  # allow a fresh setup() after a previous shutdown
+	# Load the physics shaders HERE (main thread): resource loading is not
+	# thread-safe; the worker receives the extracted SPIR-V.
+	var spirv := {}
+	for p in [
+			"res://compute/cassi_two_fluid.glsl",
+			"res://compute/cassi_mass_deposit.glsl",
+			"res://compute/cassi_poisson.glsl",
+			"res://compute/cassi_nbody_gravity.glsl",
+			"res://compute/cassi_condensation.glsl",
+			"res://compute/cassi_bh_integrate.glsl"]:
+		var sf := load(p) as RDShaderFile
+		if sf == null or sf.get_spirv() == null:
+			push_error("[PhysicsEngine] start_threaded: shader load failed: " + p)
+			return false
+		spirv[p] = sf.get_spirv()
+	var wcfg: Dictionary = cfg.duplicate()
+	wcfg["spirv"] = spirv
+	_job_sem = Semaphore.new()
+	_done_sem = Semaphore.new()
+	_setup_sem = Semaphore.new()
+	_job_mutex = Mutex.new()
+	_res_mutex = Mutex.new()
+	_res_result = {}
+	_res_gen = 0
+	_consumed_gen = 0
+	_job_pending = false
+	_wait_next = true
+	_executed = 0
+	_running = true
+	_thread = Thread.new()
+	_thread_started = _thread.start(_threaded_main.bind(wcfg)) == OK
+	if not _thread_started:
+		push_warning("[PhysicsEngine] thread spawn failed — threaded runner stays offline")
+		_running = false
+		return false
+	return true
+
+
+## Stage a step-count TARGET and fire-and-forget (after the bootstrap).
+## The target is CUMULATIVE: the worker executes target − (its executed so
+## far) steps, so a new job replaces a pending unconsumed one (newest
+## target wins) and steps are never silently lost. block=true waits for
+## this job's completion and returns the fresh publish (the synchronous
+## path the sim's _run_physics_steps uses). The bootstrap (first submit
+## after start) always blocks and returns the immediate snapshot.
+func submit_steps(target: int, block := false) -> Dictionary:
+	if not _thread_started:
+		return {}
+	if _wait_next:
+		# Bootstrap: block until the worker finished setup AND this job.
+		_wait_next = false
+		_setup_sem.wait()
+		if not _ready:
+			return {}
+		_job_mutex.lock()
+		_job = {"target": target}
+		_job_pending = true
+		_job_mutex.unlock()
+		_job_sem.post()
+		return _wait_executed(target)   # the bootstrap always blocks
+	_job_mutex.lock()
+	_job = {"target": target}
+	_job_pending = true
+	_job_mutex.unlock()
+	_job_sem.post()
+	if block:
+		return _wait_executed(target)
+	return {}
+
+
+## Block until a publish with executed >= target arrives and return the
+## freshest such publish. Robust against leftover done-posts from coalesced
+## async jobs: the publish is re-checked after every wakeup, so a stale
+## post just causes one extra wait round.
+func _wait_executed(target: int) -> Dictionary:
+	while true:
+		var r := _consume_latest()
+		if int(r.get("executed", -1)) >= target:
+			return r
+		_done_sem.wait()
+	return {}   # unreachable — the loop only exits via the return above
+
+
+## Non-blocking: the freshest UNCONSUMED completed publish.
+func poll() -> Dictionary:
+	return _consume_latest()
+
+
+## Stop the threaded runner (reinit / exit). MAIN thread: joins the worker,
+## whose exit path shuts the engine down on the worker (local-RD frees —
+## never uniform sets, per the threading contract).
+func stop_threaded() -> void:
+	if _thread != null and _thread_started:
+		_running = false
+		_job_sem.post()   # wake the worker so it observes _running == false
+		_thread.wait_to_finish()
+		_thread_started = false
+		_thread = null
+		_rd = null        # the worker's shutdown() already freed the device
+		_ready = false
+		_executed = 0
+
+
+## The worker thread: create the local RD, run setup() on THIS thread (IC
+## generation + buffer fills are thread-safe here), then loop on jobs.
+func _threaded_main(wcfg: Dictionary) -> void:
+	var local_rd: RenderingDevice = RenderingServer.create_local_rendering_device()
+	if local_rd == null:
+		push_error("[PhysicsEngine] worker: local RD create failed")
+		_setup_sem.post()
+		return
+	wcfg["rd"] = local_rd
+	wcfg["rd_global"] = false
+	wcfg["owns_rd"] = true
+	var ok := setup(wcfg)
+	_setup_sem.post()
+	if ok:
+		while true:
+			_job_sem.wait()
+			if not _running:
+				break
+			_job_mutex.lock()
+			var job := _job
+			_job_pending = false
+			_job_mutex.unlock()
+			_threaded_run_job(job)
+			_done_sem.post()
+	shutdown()  # worker-side: frees buffers/pipes/shaders + the local RD
+
+## One job: run up to (target − executed) steps, snapshot + telemetry, and
+## publish the cumulative executed count + the mirror data.
+func _threaded_run_job(job: Dictionary) -> void:
+	var target := int(job.get("target", _executed))
+	if target > _executed:
+		var steps := target - _executed
+		run_steps(steps, true)  # wait=true → submit+sync on the local RD
+		_executed += steps
+	var snap := readback_snapshot()
+	var tel := readback_telemetry()
+	_res_mutex.lock()
+	_res_result = {
+		"executed": _executed,
+		"snapshot": snap,
+		"telemetry": tel,
+		"t": snap.get("t", _time),
+		"step_count": _step_count,
+	}
+	_res_gen += 1
+	_res_mutex.unlock()
+
+
+func _consume_latest() -> Dictionary:
+	_res_mutex.lock()
+	var gen := _res_gen
+	var res := _res_result
+	_res_mutex.unlock()
+	if gen > _consumed_gen and not res.is_empty():
+		_consumed_gen = gen
+		return res
+	return {}
 
 
 ## Free buffers/pipes/shaders (NOT the uniform sets — see the header

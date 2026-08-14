@@ -80,6 +80,25 @@ const Q_1: float = 0.001        # Qi-rainbow stage-1 band top = stage-2 entry
 ## Master toggle for the black hole point-source sector in any gravity mode (softened Newtonian pull + condensation + BH-integrate passes). Default off = particles only.
 @export var black_holes_enabled: bool = false
 
+# Cassi particle merge — "dust -> object" (particle_merge_design.md): the
+# THEORY's matter-growth complement to BH accretion (field -> matter grows,
+# then matter -> object via THIS pass, then object -> BH). Two particles
+# within the merge radius R_m = ½·h₀ = extent/grid_N coalesce (mass +
+# momentum conserved, SINK-rule pair resolution) ONLY where the local
+# coherence q_coh = ρ²/(ρ² + φ⁻² + ε²) exceeds φ⁻² (the phi gate). The merge
+# writes merged survivor masses + dead (pos.w = 0) into pos[].w — which the
+# deposit (mass ≤ 0 skip), the nbody kick (w preserved, mass 0 deposits
+# nothing) and the instancer (size ∝ mass) all already honor, so NO other
+# pass needs to know about death. Runs OUTSIDE the frame's step list: each
+# cycle needs a host prefix-sum between the hash count→fill passes, which
+# requires CPU syncs (buffer_get_data) illegal inside an open compute list
+# on the global RD — so it is a standalone list sequence dispatched from
+# _process after the physics batch (cadence: every frame; R_m ≈ 0.586 world
+# units at the default 64³ / extent 37.5, crossed in ~586 dt=0.001 steps ≫ a
+# frame's step budget, so once-per-frame is far inside the reaction budget).
+## Two-particle merge (SINK-rule, q_coh > φ⁻² gate, R_m = extent/grid_N) grows matter from dust. Default off = particles-only. Init-time — reinit to apply.
+@export var particle_merge: bool = false
+
 # Window VSync (frame pacing to the display refresh). On by default;
 # disable for uncapped frame rate (GPU benchmarks and Movie-Maker
 # recording want it off). Live — the setter applies it to the window
@@ -257,6 +276,18 @@ var _vsync_enabled: bool = true
 ## grid river arm (that battery stays bit-identical).
 @export var meshless_gravity: bool = true
 
+## Run the physics on the standalone engine's worker thread (decoupled
+## producer: the engine owns a local RenderingDevice on its own thread and
+## publishes snapshots; this sim's global-RD buffers become mirrors + the
+## render side, with one-batch-late position interpolation). Init-time;
+## GRID path only — requires meshless_mode OFF (falls back to the inline
+## path with a warning otherwise). Default OFF = the legacy inline path,
+## bit-identical.
+@export var physics_decoupled: bool = false
+## Fixed seed for the initial conditions (0 = the legacy random init).
+## Applied to BOTH the inline IC generators and the decoupled engine's ICs.
+@export var ic_seed: int = 0
+
 ## Display mode: 0 = Particles, 1 = Field, 2 = Black Hole, 3 = Cosmology.
 @export_enum("Particles", "Field", "Black Hole", "Cosmology") var mode: int = 0
 
@@ -360,6 +391,16 @@ var _interp_alpha: float = 1.0     # DORMANT: alpha pinned to 1.0 → pos_render
 # — blend shader (position snapshot/interpolation; cassi_blend_pos.glsl) —
 var _blend_sh: RID; var _blend_pipe: RID; var _blend_pc: PackedByteArray
 var _us_blend_0: RID
+# — Decoupled physics producer (the standalone engine on a worker thread) —
+var _physics_engine = null            # CassiPhysicsEngine (untyped: dynamic dispatch)
+var _decoupled_active := false        # decoupled AND meshless off (the grid path)
+var _decoupled_target := 0            # cumulative REQUESTED steps (the job target)
+var _decoupled_pending := 0           # truthful backlog = target − executed (UI "behind X s")
+var _decoupled_prev_pos := PackedFloat32Array()  # host-side snapshot pair
+var _decoupled_curr_pos := PackedFloat32Array()  #  (prev = the last rendered state)
+var _last_publish_ms := 0             # wall-clock gate for the interp alpha
+var _batch_ema_ms := 16.7             # EMA of publish intervals (ms) — alpha sweep scale
+var _executed_prev := 0               # previous publish's executed count (perf delta)
 
 # — auxiliary buffers (SET 2) —
 var _cluster_buf: RID
@@ -387,6 +428,16 @@ var _instancer_shader: RID; var _instancer_pipe: RID
 var _cond_shader: RID; var _cond_pipe: RID; var _us_cond_0: RID; var _us_cond_1: RID
 var _bh_int_shader: RID; var _bh_int_pipe: RID; var _us_bh_int_0: RID; var _us_bh_int_1: RID
 var _occ_shader: RID; var _occ_pipe: RID; var _us_occ_0: RID  # occupancy sampler (diagnostic; CPU fallback)
+# ── Particle merge (compute/cassi_particle_merge.glsl; init-time, particle_merge) ──
+var _merge_shader: RID; var _merge_pipe: RID; var _us_merge_0: RID
+var _merge_alive_buf: RID; var _merge_mass_buf: RID; var _merge_mom_buf: RID
+var _merge_cen_buf: RID; var _merge_best_buf: RID; var _merge_sink_buf: RID
+var _merge_cc_buf: RID; var _merge_cs_buf: RID; var _merge_ch_buf: RID
+var _merge_cl_buf: RID; var _merge_mc_buf: RID
+var _merge_hash_nx: int = 1; var _merge_hash_ny: int = 1; var _merge_hash_nz: int = 1
+var _merge_hash_total: int = 1
+var _merge_cell_wx: float = 0.0; var _merge_cell_wy: float = 0.0; var _merge_cell_wz: float = 0.0
+var _merge_cycles_run: int = 0   # lifetime merge-cycle count (verify/battery diag)
 var _cond_step_counter: int = 0
 var _us_inst_0: RID = RID()
 var _us_inst_0_render: RID = RID()  # instancer set variant: position binding (0) reads _pos_render_buf
@@ -423,6 +474,7 @@ var _tel_reset_bytes: PackedByteArray # gravity telemetry reset (8 floats)
 var _poisson_pc_bytes: PackedByteArray  # poisson PC (7 floats: N, axis, dir, mode, extent_x/y/z)
 var _occ_pc_bytes: PackedByteArray    # occupancy PC (10 floats: np, n_sample, stride, lim_x/y/z, ext_x/y/z, pad)
 var _occ_zero_bytes: PackedByteArray  # occupancy counter reset (32 B of zeros)
+var _merge_pc_bytes: PackedByteArray  # merge PC (16 floats: N, phi, phi_inv2, q_th, R_m, ext.xyz, grid_N, hash_nxyz, cell_w.xyz, pass_mode)
 # Instancer dedicated PC (32 floats = 128 B — the AMD RDNA3 Vulkan cap;
 # EXACTLY 128, nothing more) — the consolidated gradient engine: the shared
 # 11 + color_mode@11 + prog_mode@12 + ref@13 + the up-to-3 cycle segments
@@ -698,10 +750,28 @@ func _ready() -> void:
 	_setup_buffers()
 	_setup_multimesh()  # BEFORE _setup_shaders: the instancer uniform set
 	_setup_shaders()    # binds the multimesh's RD buffer, which must exist
-	_init_field()
-	_init_particles()
-	_apply_gravity_calibration()
-	_grav_warmup = true  # fill the acc cache with a fresh force before step 1
+	# ── Decoupled physics producer (phase A+B): the standalone engine runs
+	# the core chain on its own worker thread/local RD; this sim's global-RD
+	# buffers become MIRRORS + the render side. GRID path only — meshless
+	# off (the meshless port is a later phase).
+	_decoupled_active = physics_decoupled and not meshless_mode
+	if physics_decoupled and meshless_mode:
+		push_warning("[CassiSim] physics_decoupled requires meshless_mode OFF (the meshless port is a later phase) — falling back to the inline path")
+	if _decoupled_active:
+		if _decoupled_start_engine():
+			print("[CassiSim] Decoupled physics producer started (worker local RD)")
+		else:
+			push_error("[CassiSim] decoupled engine failed to start — falling back to the inline path")
+			_decoupled_active = false
+			_init_field()
+			_init_particles()
+			_apply_gravity_calibration()
+			_grav_warmup = true
+	else:
+		_init_field()
+		_init_particles()
+		_apply_gravity_calibration()
+		_grav_warmup = true  # fill the acc cache with a fresh force before step 1
 	# User-saved color defaults override the scene pins (user://color_defaults.cfg
 	# — written by the bottom-bar "Save" button). No file → scene/exports stand.
 	load_color_defaults()
@@ -827,25 +897,66 @@ func _process(delta: float) -> void:
 		# how far (sim-seconds) the sim lags its requested rate.
 		_frame_us_ema = lerp(_frame_us_ema, delta * 1_000_000.0, 0.05)
 		_step_timer += delta * sim_speed
-		var budget_steps := 1_000_000_000 if physics_frame_budget <= 0.0 \
-				else int(maxf(physics_frame_budget * _frame_us_ema / maxf(_phys_us_ema, 10.0), 1.0))
-		var step_cap: int = maxi(max_steps_per_frame, int(ceili(sim_speed)) * max_steps_per_frame)
-		var n_steps := 0
-		while _step_timer >= dt and n_steps < budget_steps and n_steps < step_cap:
-			_step_timer -= dt
-			n_steps += 1
-		var backlog_cap := 2.0  # sim-seconds of carried catch-up
-		if _step_timer > backlog_cap:
-			_dropped_steps += int((_step_timer - backlog_cap) / dt)
-			_step_timer = backlog_cap
-		if n_steps > 0:
-			var t0 := Time.get_ticks_usec()
-			_run_physics_steps(n_steps)
-			var spent := int(Time.get_ticks_usec() - t0)
-			_perf_phys_us += spent
-			_perf_steps += n_steps
-			if spent > 0:
-				_phys_us_ema = lerp(_phys_us_ema, float(spent) / float(n_steps), 0.2)
+		var n_steps := 0   # shared with the post-batch merge gate below
+		if _decoupled_active:
+			# ── Decoupled pacing: NO time budget (physics is async on the
+			# engine's worker thread) — only the per-frame REQUEST ceiling
+			# and the backlog cap. The engine coalesces targets, so
+			# over-requesting costs nothing; under-requesting is the
+			# truthful backlog (_decoupled_pending).
+			var step_cap: int = maxi(max_steps_per_frame, int(ceili(sim_speed)) * max_steps_per_frame)
+			while _step_timer >= dt and n_steps < step_cap:
+				_step_timer -= dt
+				n_steps += 1
+			var backlog_cap := 2.0  # sim-seconds of carried catch-up
+			if _step_timer > backlog_cap:
+				_dropped_steps += int((_step_timer - backlog_cap) / dt)
+				_step_timer = backlog_cap
+			if n_steps > 0:
+				_decoupled_target += n_steps
+				_physics_engine.submit_steps(_decoupled_target)
+		else:
+			# ── Paced fixed-dt with a TIME BUDGET (the smooth-run design) ────
+			# The accumulator requests delta × sim_speed / dt steps — the
+			# deterministic contract the verify battery and probes rely on.
+			# The per-frame LIMIT is not a step count but a wall-clock budget:
+			# at most physics_frame_budget × the measured frame time, using the
+			# rolling per-step GPU cost — so a heavy config slows the SIM
+			# (reported truthfully as the backlog) while the frame rate stays
+			# smooth, instead of the old behavior where expensive steps first
+			# collapsed the FPS and then the step-cap silently throttled the
+			# sim with a lying drop counter. max_steps_per_frame remains a
+			# hard safety ceiling (recorder/verify pins); the backlog carries
+			# for graceful catch-up and is capped so a stall can't queue a
+			# minutes-long fast-forward. Backlog = the single truthful number:
+			# how far (sim-seconds) the sim lags its requested rate.
+			var budget_steps := 1_000_000_000 if physics_frame_budget <= 0.0 \
+					else int(maxf(physics_frame_budget * _frame_us_ema / maxf(_phys_us_ema, 10.0), 1.0))
+			var step_cap: int = maxi(max_steps_per_frame, int(ceili(sim_speed)) * max_steps_per_frame)
+			while _step_timer >= dt and n_steps < budget_steps and n_steps < step_cap:
+				_step_timer -= dt
+				n_steps += 1
+			var backlog_cap := 2.0  # sim-seconds of carried catch-up
+			if _step_timer > backlog_cap:
+				_dropped_steps += int((_step_timer - backlog_cap) / dt)
+				_step_timer = backlog_cap
+			if n_steps > 0:
+				var t0 := Time.get_ticks_usec()
+				_run_physics_steps(n_steps)
+				var spent := int(Time.get_ticks_usec() - t0)
+				_perf_phys_us += spent
+				_perf_steps += n_steps
+				if spent > 0:
+					_phys_us_ema = lerp(_phys_us_ema, float(spent) / float(n_steps), 0.2)
+		# ── Particle merge (opt-in): after the physics batch, own compute-list
+		# sequence (needs host prefix-sum syncs illegal inside a step list). Runs
+		# every frame; R_m ≈ 0.586 world units is crossed in ~586 dt=0.001 steps,
+		# ≫ a frame's step budget, so once-per-frame is far inside the reaction
+		# budget (the kernel's own cycle loop converges the pair-resolution).
+		# Decoupled: skipped — it mutates the mirrored global pos buffer, which
+		# the engine does not know about (an engine-side merge is a later phase).
+		if particle_merge and n_steps > 0 and not _decoupled_active:
+			_run_merge_pass()
 	_perf_frames += 1
 
 	_render_frame()
@@ -857,6 +968,17 @@ func _process(delta: float) -> void:
 # buffer_get_data readback internally flushes and stalls all frames, which
 # is the only sync we need.)
 func _run_physics_steps(n_steps: int) -> void:
+	if _decoupled_active:
+		# Decoupled SYNC path (probes / paused repaints / external callers):
+		# submit a blocking request to the engine and refresh the mirrors.
+		# The async frame path submits non-blocking from _process instead.
+		if _physics_engine == null or n_steps <= 0:
+			return
+		_decoupled_target += n_steps
+		var pub: Dictionary = _physics_engine.submit_steps(_decoupled_target, true)
+		if not pub.is_empty():
+			_apply_decoupled_publish(pub)
+		return
 	# BH header (count/G_N/extent/toggle/dual) — constant across the frame's
 	# steps; buffer_update must run BEFORE compute_list_begin.
 	# Re-encode the live BH toggles every frame so a UI flip takes effect
@@ -992,6 +1114,135 @@ func _ensure_synced() -> void:
 	pass
 
 
+## Cassi particle-merge pass — runs the verified merge kernel
+## (compute/cassi_particle_merge.glsl) on the live particle state, as its own
+## standalone compute-list sequence AFTER the physics batch. Returns the total
+## merges this pass (0 = none / not ready). From _process (every frame) and
+## from verify scenes that drive steps directly via _run_physics_steps.
+##
+## Why NOT inside _step_dispatches: each merge cycle needs a HOST prefix-sum
+## of the spatial-hash cell counts between the count→fill passes, which
+## requires buffer_get_data (self-stalling) — illegal inside an open compute
+## list on the global RD. So each pass mode is its own bounded list, and the
+## cycle loop reads back exactly what it must (the verify's proven pattern).
+## Every cycle ends with a readback (mc), which syncs the whole RD, so the
+## inter-list buffer updates (zero cc/mc, upload cs/ch) are correctly ordered.
+func _run_merge_pass() -> int:
+	if not particle_merge or not _merge_shader.is_valid() or not _merge_pipe.is_valid() \
+			or not _us_merge_0.is_valid() or not _merge_alive_buf.is_valid() \
+			or N_particles <= 0:
+		return 0
+	# PC is constant across the pass except pass_mode (field 15)
+	var ebox := _extents()
+	_merge_pc_bytes.encode_float(0, float(N_particles))          # N
+	_merge_pc_bytes.encode_float(1, PHI)                          # phi
+	_merge_pc_bytes.encode_float(2, PHI_INV2)                     # phi^-2 (q denom scale + default gate)
+	_merge_pc_bytes.encode_float(3, PHI_INV2)                     # q_threshold = phi^-2
+	_merge_pc_bytes.encode_float(4, _extent_min() / float(maxi(grid_N, 1)))  # R_m = ½·h₀
+	_merge_pc_bytes.encode_float(5, ebox.x)                       # extent_x
+	_merge_pc_bytes.encode_float(6, ebox.y)                       # extent_y
+	_merge_pc_bytes.encode_float(7, ebox.z)                       # extent_z
+	_merge_pc_bytes.encode_float(8, float(grid_N))                # grid_N (q_coh trilinear)
+	_merge_pc_bytes.encode_float(9, float(_merge_hash_nx))        # hash_nx
+	_merge_pc_bytes.encode_float(10, float(_merge_hash_ny))       # hash_ny
+	_merge_pc_bytes.encode_float(11, float(_merge_hash_nz))       # hash_nz
+	_merge_pc_bytes.encode_float(12, _merge_cell_wx)              # cell_wx
+	_merge_pc_bytes.encode_float(13, _merge_cell_wy)              # cell_wy
+	_merge_pc_bytes.encode_float(14, _merge_cell_wz)              # cell_wz
+	# reset in its own list, then force GPU completion via a tiny readback so
+	# the first cycle's fold is ordered (global RD: separate compute_list_end()
+	# calls do NOT guarantee cross-list memory visibility; readbacks do).
+	_zero_merge_bytes(_merge_cc_buf, _merge_hash_total)   # cc=0 before count
+	_zero_merge_bytes(_merge_mc_buf, 1)                   # mc=0 before hop
+	var cl0 := _rd.compute_list_begin()
+	_merge_bind_dispatch(cl0, 0.0)   # reset: alive=1, mass=pos.w, mom/cen=m p/m v
+	_rd.compute_list_end()
+	_merge_submit_sync()
+	var total := 0
+	for _cyc in range(MERGE_MAX_CYCLES):
+		# ONE list: fold → count (in-list barriers give pass-to-pass visibility)
+		var cl := _rd.compute_list_begin()
+		_merge_bind_dispatch(cl, 1.0)   # fold accumulated gains → canonical pos/vel
+		_rd.compute_list_add_barrier(cl)
+		_merge_bind_dispatch(cl, 2.0)   # count into cc
+		_rd.compute_list_end()
+		_merge_submit_sync()
+		# host exclusive prefix-sum: cc -> cs (then cs -> ch = fill head)
+		var cc := _read_merge_uints(_merge_cc_buf, _merge_hash_total)
+		var cs := PackedInt32Array(); cs.resize(_merge_hash_total)
+		var run := 0
+		for c in range(_merge_hash_total):
+			cs[c] = run
+			run += cc[c]
+		_rd.buffer_update(_merge_cs_buf, 0, cs.size() * 4, cs.to_byte_array())
+		_rd.buffer_update(_merge_ch_buf, 0, cs.size() * 4, cs.to_byte_array())
+		# mc was zeroed once before the loop; running mc counts across cycles
+		# (hop atomically increments it) — re-zero it before THIS cycle's hop.
+		_zero_merge_bytes(_merge_mc_buf, 1)
+		var cl2 := _rd.compute_list_begin()
+		_merge_bind_dispatch(cl2, 3.0)   # fill per-cell lists
+		_rd.compute_list_add_barrier(cl2)
+		_merge_bind_dispatch(cl2, 4.0)   # best[i], sink[i]
+		_rd.compute_list_add_barrier(cl2)
+		_merge_bind_dispatch(cl2, 5.0)   # hop (SINK rule)
+		_rd.compute_list_end()
+		_merge_submit_sync()
+		var merges := _merge_read_uint()
+		total += merges
+		_merge_cycles_run += 1
+		if merges == 0:
+			break
+	var clf := _rd.compute_list_begin()
+	_merge_bind_dispatch(clf, 6.0)   # finalize: survivor masses → pos.w / dead = 0
+	_rd.compute_list_end()
+	_merge_submit_sync()
+	if total > 0:
+		print("[CassiSim] merge pass: %d merges (%d cycles)" % [total, _merge_cycles_run])
+	return total
+
+
+const MERGE_MAX_CYCLES := 16
+
+
+## Bind the merge pipeline/set/PC and dispatch one pass mode into the open
+## compute list `cl` (N_particles threads). The caller adds barriers between
+## consecutive in-list passes and readbacks to sync across lists.
+func _merge_bind_dispatch(cl: int, pass_mode: float) -> void:
+	_merge_pc_bytes.encode_float(15, pass_mode)
+	_rd.compute_list_bind_compute_pipeline(cl, _merge_pipe)
+	_rd.compute_list_bind_uniform_set(cl, _us_merge_0, 0)
+	_rd.compute_list_set_push_constant(cl, _merge_pc_bytes, _merge_pc_bytes.size())
+	_rd.compute_list_dispatch(cl, ceili(float(N_particles) / 256.0), 1, 1)
+
+
+## Force the just-recorded merge compute list to actually execute. The global
+## RD does not submit lists from __ready/__process outside the renderer's
+## frame; a submit+sync (or a self-stalling readback) is required for the
+## merge's between-list orderings and CPU prefix-sum to be correct.
+func _merge_submit_sync() -> void:
+	_rd.submit()
+	_rd.sync()
+
+
+func _merge_read_uint() -> int:
+	var d := _rd.buffer_get_data(_merge_mc_buf, 0, 4)
+	return int(d.decode_u32(0)) if d.size() >= 4 else 0
+
+
+func _zero_merge_bytes(buf: RID, count: int) -> void:
+	var z := PackedByteArray(); z.resize(count * 4); z.fill(0)
+	_rd.buffer_update(buf, 0, z.size(), z)
+
+
+func _read_merge_uints(buf: RID, count: int) -> PackedInt32Array:
+	return _rd.buffer_get_data(buf, 0, count * 4).to_int32_array()
+
+
+func _read_merge_uint(buf: RID) -> int:
+	var d := _rd.buffer_get_data(buf, 0, 4)
+	return int(d.decode_u32(0)) if d.size() >= 4 else 0
+
+
 # Full memory barrier inside an open compute list. Consecutive dispatches
 # have EXECUTION ordering but no implicit MEMORY visibility — without this,
 # a later dispatch can read stale data written by an earlier one (races
@@ -1001,7 +1252,210 @@ func _barrier(cl: int) -> void:
 	_rd.compute_list_add_barrier(cl)
 
 
+# ═══════════════════════════════════════════════════════════════════════
+# Decoupled physics producer (the standalone engine on a worker thread)
+# ═══════════════════════════════════════════════════════════════════════
+# The engine owns a worker-created local RenderingDevice and runs the core
+# chain (deposit → Poisson → two-fluid → BH → gradient → KDK) OFF the main
+# thread; this sim's global-RD buffers become MIRRORS + the render side.
+# Every frame the sim polls the freshest publish and re-uploads the
+# mirrors; the render list then dispatches the blend interpolation
+# (pos_render = mix(pos_prev, pos, alpha), one-batch-late) + instancer +
+# qhist. NO roll dispatch here: the producer maintains pos_prev HOST-SIDE
+# (a roll recorded after the mirror upload would capture the NEW snapshot
+# and break the interpolation).
+
+## Build the engine cfg from the live exports (an explicit dict with the
+## same names the engine's setup() reads — never pass the sim node), start
+## the threaded runner and bootstrap-wait for the first snapshot, then
+## upload the mirrors.
+func _decoupled_start_engine() -> bool:
+	if _physics_engine == null:
+		_physics_engine = load("res://scripts/cassi_physics_engine.gd").new()
+	var cfg := {
+		"grid_N": grid_N, "N_particles": N_particles, "dt": dt,
+		"xi": xi, "softening": softening,
+		"cluster_radius": cluster_radius, "num_clusters": num_clusters,
+		"cluster_separation": cluster_separation, "merger_speed": merger_speed,
+		"source_strength": source_strength,
+		"qi_condensation_threshold": qi_condensation_threshold,
+		"bh_acc_rate": bh_acc_rate, "bh_max_age": bh_max_age,
+		"black_holes_enabled": black_holes_enabled,
+		"gravity_mode": gravity_mode,
+		"realsim_drag": realsim_drag, "realsim_viscosity": realsim_viscosity,
+		"realsim_friction": realsim_friction,
+		"river_calibrate_gn": river_calibrate_gn,
+		"river_pi_ref": river_pi_ref, "river_q_ref": river_q_ref,
+		"field_attractor_init": field_attractor_init,
+		"freeze_field": freeze_field,
+		"initial_radius_fraction": initial_radius_fraction,
+		"initial_condition": initial_condition,
+		"initial_v_circ_factor": initial_v_circ_factor,
+		"box_aspect": box_aspect, "box_scale": box_scale,
+		"gradient_order": gradient_order, "dual_grid": dual_grid,
+		"multi_rung_seed": multi_rung_seed, "multi_rung_count": multi_rung_count,
+		"multi_rung_amp": multi_rung_amp, "multi_rung_base_scale": multi_rung_base_scale,
+		# Decoupled v1 = the GRID path only (meshless off — enforced at _ready).
+		"meshless_mode": false, "meshless_gravity": false,
+		"mode": mode,
+	}
+	if ic_seed != 0:
+		cfg["seed"] = ic_seed
+	if not _physics_engine.start_threaded(cfg):
+		return false
+	# Bootstrap: the first submit blocks on setup + completion and returns
+	# the immediate snapshot (the tree-worker _wait_next pattern).
+	_decoupled_target = 0
+	_decoupled_pending = 0
+	_decoupled_prev_pos = PackedFloat32Array()
+	_decoupled_curr_pos = PackedFloat32Array()
+	_last_publish_ms = 0
+	_batch_ema_ms = 16.7
+	_step_count = 0
+	_time = 0.0
+	var pub: Dictionary = _physics_engine.submit_steps(1)
+	if pub.is_empty():
+		push_error("[CassiSim] decoupled bootstrap returned no snapshot")
+		_physics_engine.stop_threaded()
+		return false
+	_apply_decoupled_publish(pub)
+	return true
+
+
+## Apply a fresh engine publish: shift the host-side snapshot pair, upload
+## the mirrors, refresh time/step/telemetry and the interpolation timing.
+func _apply_decoupled_publish(pub: Dictionary) -> void:
+	var snap: Dictionary = pub.get("snapshot", {})
+	if snap.is_empty():
+		return
+	var pos: PackedFloat32Array = snap.get("pos", PackedFloat32Array())
+	if pos.size() != maxi(N_particles, 1) * 4:
+		return
+	# Host-side snapshot pair (the blend roll is NOT dispatched in the
+	# decoupled path — pos_prev is maintained here instead).
+	if _decoupled_curr_pos.size() == pos.size():
+		_decoupled_prev_pos = _decoupled_curr_pos
+	else:
+		_decoupled_prev_pos = pos   # first publish: prev = curr
+	_decoupled_curr_pos = pos
+	# Mirrors: pos_prev + pos + vel + field_q + pot.
+	var vel: PackedFloat32Array = snap.get("vel", PackedFloat32Array())
+	var fq: PackedFloat32Array = snap.get("field_q", PackedFloat32Array())
+	var pot: PackedFloat32Array = snap.get("pot", PackedFloat32Array())
+	_rd.buffer_update(_pos_prev_buf, 0, _decoupled_prev_pos.size() * 4, _decoupled_prev_pos.to_byte_array())
+	_rd.buffer_update(_pos_buf, 0, _decoupled_curr_pos.size() * 4, _decoupled_curr_pos.to_byte_array())
+	if vel.size() > 0:
+		_rd.buffer_update(_vel_buf, 0, vel.size() * 4, vel.to_byte_array())
+	if fq.size() > 0:
+		_rd.buffer_update(_field_q, 0, fq.size() * 4, fq.to_byte_array())
+	if pot.size() > 0:
+		_upload_pot_mirror(pot)
+	# Time / step / truthful backlog / telemetry.
+	_time = float(snap.get("t", _time))
+	_step_count = int(pub.get("step_count", _step_count))
+	_decoupled_pending = maxi(_decoupled_target - int(pub.get("executed", 0)), 0)
+	var tel: Dictionary = pub.get("telemetry", {})
+	if not tel.is_empty():
+		_q_mean = float(tel.get("q_mean", _q_mean))
+		_q_min = float(tel.get("q_min", _q_min))
+		_q_max = float(tel.get("q_max", _q_max))
+		_pi_min = float(tel.get("pi_min", _pi_min))
+		_pi_max = float(tel.get("pi_max", _pi_max))
+		_pi_sat_hi_frac = float(tel.get("pi_sat_hi_frac", _pi_sat_hi_frac))
+		_pi_sat_lo_frac = float(tel.get("pi_sat_lo_frac", _pi_sat_lo_frac))
+		_rho_guard_hits = int(tel.get("rho_guard_hits", _rho_guard_hits))
+		_eps_mean = float(tel.get("eps_mean", _eps_mean))
+		_hubble = float(tel.get("hubble", _hubble))
+		_scale_factor = float(tel.get("scale_factor", _scale_factor))
+		_gn_eff = float(tel.get("gn_eff", _gn_eff))
+	# Interpolation timing: alpha ≈ 0 right at each publish and sweeps to 1
+	# over one batch interval (display lags one batch — the standard
+	# one-batch-late interpolation). Perf: publish-interval wall time per
+	# executed step (the decoupled "physics ms/step" throughput number).
+	var now_ms := Time.get_ticks_msec()
+	var prev_exec := int(pub.get("executed", 0))
+	if _last_publish_ms > 0:
+		_batch_ema_ms = lerp(_batch_ema_ms, maxf(float(now_ms - _last_publish_ms), 1.0), 0.2)
+		_perf_phys_us += int(float(now_ms - _last_publish_ms) * 1000.0)
+		_perf_steps += prev_exec - _executed_prev
+	_executed_prev = prev_exec
+	_last_publish_ms = now_ms
+
+
+## The Φ mirror: snapshot.pot is the real part of the FFT workspace (nc
+## floats); the global _fft_buf is vec2 per cell — interleave the real
+## parts with zero imaginary. (No render consumer reads _fft_buf in the
+## decoupled v1; the mirror is maintained for the phase-2 render side.)
+func _upload_pot_mirror(pot: PackedFloat32Array) -> void:
+	var ncell := grid_N * grid_N * grid_N
+	var n := mini(ncell, pot.size())
+	var f32 := PackedFloat32Array()
+	f32.resize(ncell * 2)
+	for i in range(n):
+		f32[i * 2] = pot[i]
+		f32[i * 2 + 1] = 0.0
+	_rd.buffer_update(_fft_buf, 0, f32.size() * 4, f32.to_byte_array())
+
+
+## Decoupled frame path (called from _render_frame): consume the freshest
+## publish (mirror refresh), then record the render list — blend interp →
+## barrier → instancer (render variant) → qhist. NO roll dispatch.
+func _decoupled_poll_and_render() -> void:
+	# Consume the freshest publish (newest target wins — coalescing).
+	var pub: Dictionary = _physics_engine.poll()
+	if not pub.is_empty():
+		_apply_decoupled_publish(pub)
+	# Interpolation alpha: 0 right at each publish → 1 one batch later.
+	# (No publish yet → the last mirrored state renders exactly.)
+	_interp_alpha = clampf(float(Time.get_ticks_msec() - _last_publish_ms) / maxf(_batch_ema_ms, 1.0), 0.0, 1.0)
+	if not playing or not _shaders_ready:
+		return
+	var cl := _rd.compute_list_begin()
+	# ── Interpolation dispatch: pos_render = mix(pos_prev, pos, alpha) ──
+	if _blend_sh.is_valid() and N_particles > 0:
+		_blend_pc.encode_float(0, _interp_alpha)
+		_rd.compute_list_bind_compute_pipeline(cl, _blend_pipe)
+		_rd.compute_list_bind_uniform_set(cl, _us_blend_0, 0)
+		_rd.compute_list_set_push_constant(cl, _blend_pc, _blend_pc.size())
+		_rd.compute_list_dispatch(cl, ceili(float(N_particles) / 64.0), 1, 1)
+	_barrier(cl)  # blend pos_render write → instancer read
+	# ── Instancer (render variant — binding 0 reads pos_render) ──
+	if _instancer_shader.is_valid() and N_particles > 0:
+		_fill_instancer_pc()
+		var ipg := ceili(float(N_particles) / 256.0)
+		_rd.compute_list_bind_compute_pipeline(cl, _instancer_pipe)
+		_rd.compute_list_bind_uniform_set(cl, _us_inst_0_render, 0)
+		_rd.compute_list_set_push_constant(cl, _instancer_pc_bytes, _instancer_pc_bytes.size())
+		_rd.compute_list_dispatch(cl, ipg, 1, 1)
+	# ── q-histogram (auto color-align; reads the mirrors — unchanged) ──
+	if _qhist_pipe.is_valid() and _us_qhist_0.is_valid() and auto_align_colors \
+			and particle_color_mode >= 2 and N_particles > 0:
+		var qext := _extents()
+		_qhist_pc_bytes.encode_float(0, float(grid_N))
+		_qhist_pc_bytes.encode_float(4, float(N_particles))
+		_qhist_pc_bytes.encode_float(8, 16.0)               # particle stride
+		_qhist_pc_bytes.encode_float(12, _qhist_lo)
+		_qhist_pc_bytes.encode_float(16, _qhist_hi)
+		_qhist_pc_bytes.encode_float(20, 128.0)             # bins
+		_qhist_pc_bytes.encode_float(24, 1.0)               # enabled
+		_qhist_pc_bytes.encode_float(28, qext.x)
+		_qhist_pc_bytes.encode_float(32, qext.y)
+		_qhist_pc_bytes.encode_float(36, qext.z)
+		_rd.compute_list_bind_compute_pipeline(cl, _qhist_pipe)
+		_rd.compute_list_bind_uniform_set(cl, _us_qhist_0, 0)
+		_rd.compute_list_set_push_constant(cl, _qhist_pc_bytes, _qhist_pc_bytes.size())
+		var qh_threads := ceili(float(N_particles) / 16.0)
+		_rd.compute_list_dispatch(cl, ceili(qh_threads / 64.0), 1, 1)
+	_rd.compute_list_end()
+
+
 func _exit_tree() -> void:
+	# Decoupled producer: join the worker FIRST (its exit path shuts the
+	# engine down on the worker — worker-side RID frees, no invalid frees).
+	if _decoupled_active:
+		if _physics_engine != null:
+			_physics_engine.stop_threaded()
+			_physics_engine = null
 	# Children (incl. the MultiMeshInstance3D holding the renderer's
 	# multimesh buffer) exit BEFORE this node, so the multimesh buffer RID
 	# referenced by _us_inst_0 is already gone when the sets are freed —
@@ -1188,6 +1642,39 @@ func _setup_buffers() -> void:
 	_jfa_pc_bytes = PackedByteArray(); _jfa_pc_bytes.resize(8 * 4)
 	_cell_pc_bytes = PackedByteArray(); _cell_pc_bytes.resize(17 * 4)  # mode,N,n_sites,dt,hx,hy,hz,C2,OM2,PHI,src,rho_floor,drift_cap,kappa,lam,T_steer,lloyd_p
 	_raster_pc_bytes = PackedByteArray(); _raster_pc_bytes.resize(8 * 4)
+	# ── Particle-merge buffers (INIT-TIME: allocated only when particle_merge)
+	# The merge kernel's persistent per-particle state (alive/mass/mom/cen/
+	# best/sink) + the spatial-hash scratch (cc/cs/ch/cl) + the merge counter.
+	# Hash sized so each cell width ≥ R_m (the 27-neighbor pass_best provably
+	# covers every in-range pair): hash_nx_i = floor(2·extent_i / R_m), which
+	# at the default cube is exactly 2·grid_N per axis. R_m = ½·h₀ with
+	# h₀ = 2·extent_min/grid_N (the shortest-axis cube-equivalent cell —
+	# matches the verify's single-extent convention on the cubic default).
+	if particle_merge and N_particles > 0:
+		var ebox := _extents()
+		var rem: float = _extent_min() / float(maxi(grid_N, 1))  # = R_m
+		_merge_hash_nx = maxi(int(floor(2.0 * ebox.x / rem)), 8)
+		_merge_hash_ny = maxi(int(floor(2.0 * ebox.y / rem)), 8)
+		_merge_hash_nz = maxi(int(floor(2.0 * ebox.z / rem)), 8)
+		_merge_hash_total = _merge_hash_nx * _merge_hash_ny * _merge_hash_nz
+		var np1 := maxi(N_particles, 1)
+		_merge_alive_buf = _rd.storage_buffer_create(np1 * 4)
+		_merge_mass_buf = _rd.storage_buffer_create(np1 * 4)
+		_merge_mom_buf = _rd.storage_buffer_create(np1 * 16)
+		_merge_cen_buf = _rd.storage_buffer_create(np1 * 16)
+		_merge_best_buf = _rd.storage_buffer_create(np1 * 4)
+		_merge_sink_buf = _rd.storage_buffer_create(np1 * 4)
+		_merge_cl_buf = _rd.storage_buffer_create(np1 * 4)
+		_merge_cc_buf = _rd.storage_buffer_create(_merge_hash_total * 4)
+		_merge_cs_buf = _rd.storage_buffer_create(_merge_hash_total * 4)
+		_merge_ch_buf = _rd.storage_buffer_create(_merge_hash_total * 4)
+		_merge_mc_buf = _rd.storage_buffer_create(4)
+		_rd.buffer_update(_merge_mc_buf, 0, 4, PackedByteArray([0, 0, 0, 0]))
+		# Non-cubic cells: per-axis widths from the per-axis hash counts
+		_merge_cell_wx = 2.0 * ebox.x / float(_merge_hash_nx)
+		_merge_cell_wy = 2.0 * ebox.y / float(_merge_hash_ny)
+		_merge_cell_wz = 2.0 * ebox.z / float(_merge_hash_nz)
+		_merge_pc_bytes = PackedByteArray(); _merge_pc_bytes.resize(16 * 4)
 	# ── Tree-gravity buffers (allocated always; used when meshless_gravity) ──
 	# Sources = the Voronoi sites (ml_ns); targets = the N-body particles.
 	# Node cap NODE_MAX = ML_TREE_NODE_MAX_MULT·nsrc + slack — the octree of
@@ -1252,6 +1739,14 @@ func _free_buffers() -> void:
 				_ml_tree_grad, _ml_tree_icount,
 				_field_render_tex, _bh_lensing_tex]:
 		if rid.is_valid(): _rd.free_rid(rid)
+	for rid in [_merge_alive_buf, _merge_mass_buf, _merge_mom_buf, _merge_cen_buf,
+				_merge_best_buf, _merge_sink_buf, _merge_cc_buf, _merge_cs_buf,
+				_merge_ch_buf, _merge_cl_buf, _merge_mc_buf]:
+		if rid.is_valid(): _rd.free_rid(rid)
+	_merge_alive_buf = RID(); _merge_mass_buf = RID(); _merge_mom_buf = RID()
+	_merge_cen_buf = RID(); _merge_best_buf = RID(); _merge_sink_buf = RID()
+	_merge_cc_buf = RID(); _merge_cs_buf = RID(); _merge_ch_buf = RID()
+	_merge_cl_buf = RID(); _merge_mc_buf = RID()
 	_field_render_tex = RID()
 	_bh_lensing_tex = RID()
 	_tree_worker_stop()
@@ -1269,7 +1764,7 @@ func _free_uniform_sets() -> void:
 				_us_bh_int_0, _us_bh_int_1, _us_inst_0, _us_inst_0_render,
 				_us_bh_lens_2, _us_blend_0,
 				_us_occ_0, _us_qhist_0, _us_jfa_0, _us_cell_0, _us_raster_0,
-				_us_tree_build, _us_tree_grav]:
+				_us_tree_build, _us_tree_grav, _us_merge_0]:
 		if rid.is_valid(): _rd.free_rid(rid)
 	_us_two_0 = RID(); _us_two_1 = RID(); _us_two_2 = RID()
 	_us_mass_dep_0 = RID()
@@ -1283,6 +1778,7 @@ func _free_uniform_sets() -> void:
 	_us_occ_0 = RID()
 	_us_jfa_0 = RID(); _us_cell_0 = RID(); _us_raster_0 = RID()
 	_us_tree_build = RID(); _us_tree_grav = RID()
+	_us_merge_0 = RID()
 
 func _free_shaders() -> void:
 	_free_uniform_sets()  # sets hold shader references; release before the shaders
@@ -1294,12 +1790,14 @@ func _free_shaders() -> void:
 				_cond_pipe, _bh_int_pipe, _occ_pipe, _qhist_pipe,
 				_jfa_pipe, _cell_pipe, _raster_pipe,
 				_tree_build_pipe, _tree_grav_pipe, _blend_pipe,
+				_merge_pipe,
 				_two_fluid_shader, _nbody_shader, _poisson_shader,
 				_field_render_shader, _bh_lensing_shader,
 				_instancer_shader, _mass_deposit_shader,
 				_cond_shader, _bh_int_shader, _occ_shader, _qhist_shader,
 				_jfa_shader, _cell_shader, _raster_shader,
-				_tree_build_shader, _tree_grav_shader, _blend_sh]:
+				_tree_build_shader, _tree_grav_shader, _blend_sh,
+				_merge_shader]:
 		if rid.is_valid(): _rd.free_rid(rid)
 
 
@@ -1357,6 +1855,15 @@ func _setup_shaders() -> void:
 	if _bh_int_shader.is_valid():
 		_bh_int_pipe = _rd.compute_pipeline_create(_bh_int_shader)
 		print("[CassiSim] BH integration pipeline ready")
+
+	# Particle merge (only needed when particle_merge; the pipeline + set are
+	# created on the init-time toggle so the default-off battery is bit-identical)
+	if particle_merge:
+		_merge_shader = _shader_from_file("res://compute/cassi_particle_merge.glsl")
+		if _merge_shader.is_valid():
+			_merge_pipe = _rd.compute_pipeline_create(_merge_shader)
+			print("[CassiSim] particle-merge pipeline ready")
+
 
 	# Occupancy sampler (diagnostic — GPU-side box classification; the
 	# 0.5 s occupancy readback no longer drags the full position buffer).
@@ -1473,6 +1980,20 @@ func _cache_uniform_sets() -> void:
 		_us_bh_int_1 = _rd.uniform_set_create([
 			_uniform_storage(0, _bh_buf),
 		], _bh_int_shader, 1)
+	# Particle merge (set 0: all 15 bindings — pos/vel + per-particle state +
+	# EY/EI coherence field + hash scratch + merge counter). Created only when
+	# the init-time feature is on (its buffers only exist then).
+	if particle_merge and _merge_shader.is_valid() and _merge_alive_buf.is_valid():
+		_us_merge_0 = _rd.uniform_set_create([
+			_uniform_storage(0, _pos_buf), _uniform_storage(1, _vel_buf),
+			_uniform_storage(2, _merge_alive_buf), _uniform_storage(3, _merge_mass_buf),
+			_uniform_storage(4, _merge_mom_buf), _uniform_storage(5, _merge_cen_buf),
+			_uniform_storage(6, _field_ey), _uniform_storage(7, _field_ei),
+			_uniform_storage(8, _merge_best_buf), _uniform_storage(9, _merge_sink_buf),
+			_uniform_storage(10, _merge_cc_buf), _uniform_storage(11, _merge_cs_buf),
+			_uniform_storage(12, _merge_ch_buf), _uniform_storage(13, _merge_cl_buf),
+			_uniform_storage(14, _merge_mc_buf),
+		], _merge_shader, 0)
 	_us_nbody_2 = _rd.uniform_set_create([
 		_uniform_storage(0, _bh_buf),
 		_uniform_storage(1, _cluster_buf),  # Plummer reference arm (mode 2)
@@ -1635,6 +2156,8 @@ func _init_field() -> void:
 
 	var half = float(N) * 0.5
 	var rng = RandomNumberGenerator.new()
+	if ic_seed != 0:
+		rng.seed = ic_seed
 
 	for k in range(N):
 		for j in range(N):
@@ -2053,6 +2576,8 @@ func _init_particles() -> void:
 	var acc = PackedFloat32Array(); acc.resize(N_particles * 4)
 
 	var rng = RandomNumberGenerator.new()
+	if ic_seed != 0:
+		rng.seed = ic_seed
 	var G = 1.0
 	var eps2 = softening * softening
 	var fr: float = initial_radius_fraction
@@ -3483,6 +4008,12 @@ func _setup_multimesh() -> void:
 func _render_frame() -> void:
 	var now_ms := Time.get_ticks_msec()
 
+	# Decoupled producer: poll the freshest publish (mirror refresh) and
+	# record the render list (blend interp + instancer + qhist) — no
+	# physics list on the global RD in this mode.
+	if _decoupled_active:
+		_decoupled_poll_and_render()
+
 	# GPU-direct MultiMesh: NO per-frame readback/upload — the instancer
 	# shader wrote the renderer's buffer this frame. One-time debug print
 	# of the first instances (single small readback, cheap).
@@ -3498,9 +4029,11 @@ func _render_frame() -> void:
 					mm_f32[b+12], mm_f32[b+13], mm_f32[b+14], mm_f32[b+15]])
 
 	# Throttled diagnostics readback (wall-time ~3 Hz; the step-count gate
-	# fired 60×/s at high FPS and drained the local device each time)
+	# fired 60×/s at high FPS and drained the local device each time).
+	# Decoupled: the publish carries the same telemetry at publish frequency
+	# (fresher) — the global _tel_buf is never written in this mode.
 	var q_guard = now_ms - _last_diag_ms >= int(1000.0 / DIAG_HZ)
-	if q_guard and not suppress_readbacks and _field_q.is_valid():
+	if q_guard and not suppress_readbacks and _field_q.is_valid() and not _decoupled_active:
 		_last_diag_ms = now_ms
 		_ensure_synced()
 		var q_data = _rd.buffer_get_data(_field_q, 0, grid_N * grid_N * grid_N * 4)
@@ -3542,7 +4075,10 @@ func _render_frame() -> void:
 	# One-time Poisson residual report (FD-Laplacian check of the Φ solve).
 	# River modes only (0, 3 and 4): modes 1/2 skip the solve, so _fft_buf
 	# holds stale data there and the residual would be meaningless.
-	if not _poisson_residual_done and _shaders_ready and _step_count >= 1 and (gravity_mode == 0 or gravity_mode == 3 or gravity_mode == 4):
+	# Decoupled: the sim's mass-density buffer is not a mirror — skip.
+	if not _poisson_residual_done and _shaders_ready and _step_count >= 1 \
+			and (gravity_mode == 0 or gravity_mode == 3 or gravity_mode == 4) \
+			and not _decoupled_active:
 		_poisson_residual_done = true
 		_report_poisson_residual()
 
@@ -3553,7 +4089,10 @@ func _render_frame() -> void:
 		if _perf_steps > 0:
 			var dt_ms: float = float(_perf_phys_us) / 1e3 / float(_perf_steps)
 			var fps: float = float(_perf_frames) * 1000.0 / float(max(now_ms - _perf_last_ms, 1))
-			print("[CassiSim] perf: fps=%.1f  physics=%.3f ms/step (%d steps, behind %.2f s, lost %d)" % [fps, dt_ms, _perf_steps, _step_timer, _dropped_steps])
+			# Truthful backlog: decoupled = requested − executed (× dt);
+			# inline = the carried accumulator.
+			var behind: float = (_decoupled_pending * dt) if _decoupled_active else _step_timer
+			print("[CassiSim] perf: fps=%.1f  physics=%.3f ms/step (%d steps, behind %.2f s, lost %d)" % [fps, dt_ms, _perf_steps, behind, _dropped_steps])
 		_sample_occupancy()
 		_perf_phys_us = 0
 		_perf_steps = 0
@@ -3812,6 +4351,11 @@ func _render_bh_lensing() -> void:
 func reinit() -> void:
 	_free_uniform_sets()  # cached sets reference the buffers being freed
 	_free_buffers()
+	# Decoupled producer: stop the engine before rebuilding the mirrors
+	# (no in-flight publishes; the stale result slot is dropped by the
+	# restart's fresh gen counters).
+	if _decoupled_active and _physics_engine != null:
+		_physics_engine.stop_threaded()
 	# The MultiMesh instance buffer is sized at _setup_multimesh from the
 	# THEN-current N_particles. When N (or particle_size) changed since,
 	# rebuild it before _init_particles: assigning a differently-sized
@@ -3824,6 +4368,15 @@ func reinit() -> void:
 		_setup_multimesh()
 	_setup_buffers()
 	_cache_uniform_sets()  # CRITICAL: cached sets reference the OLD freed buffers
+	if _decoupled_active:
+		# Restart the threaded engine with the CURRENT exports + bootstrap.
+		if _decoupled_start_engine():
+			_cond_step_counter = 0
+			_dropped_steps = 0
+			print("[CassiSim] Reinitialized (decoupled)")
+			return
+		push_error("[CassiSim] decoupled reinit failed — falling back to the inline path")
+		_decoupled_active = false
 	_init_field()          # without this, every dispatch after reinit is stale
 	_init_particles()
 	_apply_gravity_calibration()
