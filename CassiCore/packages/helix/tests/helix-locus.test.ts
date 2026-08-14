@@ -4,7 +4,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { HelixLocus } from '../src/helix-locus.js'
-import type { CognitiveSignal } from '../src/vendor/core/intelligence/workspace/index.js'
+import type { CognitiveSignal } from '@cassicore/workspace'
 import type { ILogger } from '@cassicore/foundation'
 
 

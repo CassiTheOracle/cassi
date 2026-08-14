@@ -11,7 +11,7 @@ import { HelixMnemicBridge } from '../src/helix-mnemic-bridge.js'
 import { HelixJournal } from '../src/helix-journal.js'
 import { HelixLocus } from '../src/helix-locus.js'
 import type { ILogger } from '@cassicore/foundation'
-import type { CognitiveSignal } from '../src/vendor/core/intelligence/workspace/index.js'
+import type { CognitiveSignal } from '@cassicore/workspace'
 
 
 function createMockLogger(): ILogger {

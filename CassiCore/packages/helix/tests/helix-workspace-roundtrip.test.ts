@@ -21,7 +21,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { EventEmitter } from 'events'
 
-import { GlobalWorkspace } from '../src/vendor/core/intelligence/workspace/index.js'
+import { GlobalWorkspace } from '@cassicore/workspace'
 import { HelixJournal } from '../src/helix-journal.js'
 import { HelixTelemetry } from '../src/helix-telemetry.js'
 import { PostureModule } from '../src/posture-module.js'

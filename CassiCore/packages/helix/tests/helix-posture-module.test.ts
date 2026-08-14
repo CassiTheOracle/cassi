@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import type { CognitiveSignal } from '../src/vendor/core/intelligence/workspace/index.js'
+import type { CognitiveSignal } from '@cassicore/workspace'
 import { PostureModule } from '../src/posture-module.js'
 import { UNITY_POSTURE, YANG_POSTURE } from '../src/helix-postures.js'
 import type { ILogger } from '@cassicore/foundation'

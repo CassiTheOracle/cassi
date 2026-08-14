@@ -10,7 +10,7 @@ import { HelixConductor } from '../src/helix-conductor.js'
 import { HelixJournal } from '../src/helix-journal.js'
 import { HelixSessionStore } from '../src/helix-session-store.js'
 import { HelixTelemetry } from '../src/helix-telemetry.js'
-import type { CognitiveSignal } from '../src/vendor/core/intelligence/workspace/index.js'
+import type { CognitiveSignal } from '@cassicore/workspace'
 import type { ILogger } from '@cassicore/foundation'
 
 
