@@ -31,8 +31,7 @@
   "dependencies": {
     "@cassicore/foundation": "*",
     "@cassicore/events": "*",
-    "@cassicore/tools": "*",
-    "@cassicore/pipeline": "*"
+    "@cassicore/tools": "*"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

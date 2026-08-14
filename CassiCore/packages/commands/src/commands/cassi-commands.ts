@@ -190,7 +190,7 @@ async function handleToolInvoke(args: string[], ctx: CommandContext): Promise<Co
     }
   }
 
-  const session = new InteractiveToolSession(toolName, toolDef as ToolDefinition)
+  const session = new InteractiveToolSession(toolName, toolDef as unknown as ToolDefinition)
   const result = await session.start(Object.keys(inlineParams).length > 0 ? inlineParams : undefined)
 
   if ('prompt' in result) {

@@ -2,9 +2,10 @@
  * P8-DEFERRED type stub — @cassicore/ai provider SDK surface.
  *
  * The whole `ai/` tree stays in `D:`, migrating at P8 as `@cassicore/ai`. These
- * symbols are consumed by the providers package (`index.ts` re-export + the
- * `qwen-loadbalancer`), so this module declares a faithful consumer-facing type
- * surface for them and throws at runtime (the "not connected" pattern).
+ * symbols are consumed by the providers package (`index.ts` provider-factory +
+ * the `qwen-loadbalancer`), so this module declares a faithful consumer-facing
+ * surface (IProvider-compatible) and throws at runtime (the "not connected"
+ * pattern).
  *
  * Re-point to `@cassicore/ai` and delete this vendor at P8 (§3.b of the P7 table).
  */
@@ -21,17 +22,31 @@ function notMigrated(name: string): never {
   )
 }
 
-/** Minimal shared base for the AI provider SDK surface (type-faithful subset). */
+/**
+ * Minimal shared base for the AI provider SDK surface (type-faithful subset of
+ * `ai/providers/cassicore/openai-compatible-base.ts` — implements the
+ * IProvider-compatible members providers/index.ts and qwen-loadbalancer use).
+ */
 export abstract class OpenAICompatibleBase {
   abstract readonly id: string
   abstract readonly models: string[]
-  abstract complete(
+  constructor() {
+    notMigrated('OpenAICompatibleBase')
+  }
+  complete(
     messages: Message[],
     opts: CompletionOpts,
     attachments?: ImageAttachment[],
     signal?: AbortSignal
-  ): AsyncIterable<CompletionChunk>
-  abstract countTokens(messages: Message[]): Promise<number>
+  ): AsyncIterable<CompletionChunk> {
+    return notMigrated('OpenAICompatibleBase')
+  }
+  ping(signal?: AbortSignal): Promise<boolean> {
+    return notMigrated('OpenAICompatibleBase')
+  }
+  countTokens(messages: Message[]): Promise<number> {
+    return notMigrated('OpenAICompatibleBase')
+  }
 }
 
 /** OAuth credentials for a Qwen account. */
@@ -42,45 +57,41 @@ export interface QwenOAuthCredentials {
   enterpriseUrl?: string
 }
 
+export class OpenCodeGoProvider extends OpenAICompatibleBase {
+  readonly id = "opencode-go"
+  readonly models: string[] = []
+  constructor(apiKey?: string) { super(); notMigrated('OpenCodeGoProvider') }
+}
+
 export class AlibabaCodingProvider extends OpenAICompatibleBase {
   readonly id = "alibaba-coding"
   readonly models: string[] = []
   constructor(apiKey?: string) { super(); notMigrated('AlibabaCodingProvider') }
   getApiKey(): string { return notMigrated('AlibabaCodingProvider') }
-  complete(): AsyncIterable<CompletionChunk> { return notMigrated('AlibabaCodingProvider') }
-  countTokens(): Promise<number> { return notMigrated('AlibabaCodingProvider') }
 }
 
 export class DeepSeekProvider extends OpenAICompatibleBase {
   readonly id = "deepseek"
   readonly models: string[] = []
   constructor(apiKey?: string) { super(); notMigrated('DeepSeekProvider') }
-  complete(): AsyncIterable<CompletionChunk> { return notMigrated('DeepSeekProvider') }
-  countTokens(): Promise<number> { return notMigrated('DeepSeekProvider') }
 }
 
 export class KimiCodingProvider extends OpenAICompatibleBase {
   readonly id = "kimi-coding"
   readonly models: string[] = []
   constructor(apiKey?: string) { super(); notMigrated('KimiCodingProvider') }
-  complete(): AsyncIterable<CompletionChunk> { return notMigrated('KimiCodingProvider') }
-  countTokens(): Promise<number> { return notMigrated('KimiCodingProvider') }
 }
 
 export class OpenRouterProvider extends OpenAICompatibleBase {
   readonly id = "openrouter"
   readonly models: string[] = []
   constructor(apiKey?: string, baseUrlOrRouting?: string | unknown) { super(); notMigrated('OpenRouterProvider') }
-  complete(): AsyncIterable<CompletionChunk> { return notMigrated('OpenRouterProvider') }
-  countTokens(): Promise<number> { return notMigrated('OpenRouterProvider') }
 }
 
 export class ZaiProvider extends OpenAICompatibleBase {
   readonly id = "z-ai"
   readonly models: string[] = []
   constructor(apiKey?: string) { super(); notMigrated('ZaiProvider') }
-  complete(): AsyncIterable<CompletionChunk> { return notMigrated('ZaiProvider') }
-  countTokens(): Promise<number> { return notMigrated('ZaiProvider') }
 }
 
 export class QwenProvider extends OpenAICompatibleBase {
@@ -96,8 +107,6 @@ export class QwenProvider extends OpenAICompatibleBase {
     this.credentials = credentials
     notMigrated('QwenProvider')
   }
-  complete(): AsyncIterable<CompletionChunk> { return notMigrated('QwenProvider') }
-  countTokens(): Promise<number> { return notMigrated('QwenProvider') }
   /** OAuth: refresh the access token. */
   static refreshToken(credentials: QwenOAuthCredentials): Promise<QwenOAuthCredentials> {
     return notMigrated('QwenProvider.refreshToken')

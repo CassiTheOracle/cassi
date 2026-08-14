@@ -8,7 +8,7 @@
 // Event Bus — re-exported from core for convenience
 import { bus } from './event-bus.js';
 export { bus } from './event-bus.js';
-export { Logger, rootLogger } from './logger.js';
+export { Logger, rootLogger, writeThoughtLog, writeThoughtRequestLog, writeThoughtResultLog } from './logger.js';
 export type { EventBus } from './event-bus.js';
 
 /**

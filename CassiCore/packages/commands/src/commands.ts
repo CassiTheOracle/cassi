@@ -16,7 +16,7 @@ import { bus } from '@cassicore/events';
 
 import type { ILogger, IEventBus } from '@cassicore/foundation';
 import type { ISessionManager } from '@cassicore/foundation';
-import type { IntelligenceLayer } from '@cassicore/pipeline';
+import type { IntelligenceLayer } from './vendor/core/intelligence/index.js';
 import type { ModelDirective } from './vendor/core/model-routing/index.js';
 import '../commands/git-commands.js';
 import '../commands/tool-commands.js';
