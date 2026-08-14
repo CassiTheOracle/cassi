@@ -1,0 +1,42 @@
+{
+  "name": "@cassicore/providers",
+  "version": "0.1.0",
+  "description": "Model provider SDK clients — base provider, model router, budget tracker, cost classifier, centralized wrap, and github-copilot/qwen/google/antigravity/copilot-sdk clients extracted from CassiCore. History-preserved import splice; depends on foundation, events, utils, tools, and @cassicore/thalamus (CostClassifier canonical home, resolves P6 Open-1).",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
+  },
+  "dependencies": {
+    "@cassicore/foundation": "*",
+    "@cassicore/events": "*",
+    "@cassicore/utils": "*",
+    "@cassicore/tools": "*",
+    "@cassicore/thalamus": "*",
+    "@github/copilot-sdk": "^0.1.32",
+    "better-sqlite3": "^12.9.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/better-sqlite3": "^7.6.13",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  }
+}

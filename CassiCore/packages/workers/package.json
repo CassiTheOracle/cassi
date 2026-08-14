@@ -1,0 +1,46 @@
+{
+  "name": "@cassicore/workers",
+  "version": "0.1.0",
+  "description": "Channel workers for the CassiCore plugin host — echo channel plus cli/telegram/webchat channel workers and markdown rendering extracted from CassiCore. History-preserved import splice; depends on foundation and @cassicore/events; vendor-copies core/worker-ipc (workerPort) until a package owns it.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./echo-channel": {
+      "types": "./dist/echo-channel.d.ts",
+      "import": "./dist/echo-channel.js"
+    },
+    "./channels/*": {
+      "types": "./dist/channels/*.d.ts",
+      "import": "./dist/channels/*.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
+  },
+  "dependencies": {
+    "@cassicore/foundation": "*",
+    "@cassicore/events": "*",
+    "markdown-it": "^14.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/markdown-it": "^14.1.2",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  }
+}
