@@ -256,7 +256,8 @@ export interface IThinker {
 
 /**
  * Configuration for the Dreamer cognitive module.
- * P5 Group B: re-pointed to the owning `@cassicore/dreamer-reverie-subconscious`
- * package (the foundation vendor stub was deleted).
+ * Local self-contained type (foundation must not depend on the P5
+ * @cassicore/dreamer-reverie-subconscious — substrate inversion; see
+ * vendor/core/intelligence/dreamer/types.ts).
  */
-export type { DreamerConfig } from '@cassicore/dreamer-reverie-subconscious'
+export type { DreamerConfig } from '../vendor/core/intelligence/dreamer/types.js'
