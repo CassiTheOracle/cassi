@@ -7,6 +7,12 @@ extends Control
 ## so it is a visual readout of the particle colors rather than a second map.
 
 signal gradient_changed
+# Emitted ONLY when a handle is set by a manual drag / probe call (the
+# _set_marker path) — NOT by the per-frame band-follow redraw (_process),
+# which emits gradient_changed directly when qi_cycle moves under us via
+# auto-align or the Auto-Track tracker. The UI uses this to release
+# Auto-Track on an explicit manual edit.
+signal manual_changed
 
 enum MK { LOW, HIGH, WHITE }
 
@@ -266,6 +272,8 @@ func _set_marker(kind: int, q: float) -> void:
 	if sim != null and sim.get("auto_align_colors") != null:
 		sim.auto_align_colors = false
 	gradient_changed.emit()
+	# The UI uses this to release Auto-Track on a manual edit.
+	manual_changed.emit()
 
 
 # ── input + drawing ────────────────────────────────────────────────────
