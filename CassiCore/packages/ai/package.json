@@ -17,10 +17,19 @@
       "require": "./dist/cassicore-compat.js"
     }
   },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch --preserveWatchOutput",
-    "clean": "rm -rf dist"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.73.0",
@@ -38,8 +47,9 @@
     "zod-to-json-schema": "^3.24.6"
   },
   "devDependencies": {
-    "@types/node": "^24.3.0",
-    "typescript": "^5.7.3"
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
   },
   "keywords": [
     "ai",
@@ -48,8 +58,5 @@
     "cassicore"
   ],
   "author": "CassiCore",
-  "license": "MIT",
-  "engines": {
-    "node": ">=20.0.0"
-  }
+  "license": "MIT"
 }
