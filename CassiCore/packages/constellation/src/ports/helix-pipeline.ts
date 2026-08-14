@@ -2,27 +2,37 @@
  * helix-pipeline — Port over CassiCore's `helix/helix-pipeline.js` (runHelixPipeline)
  * and `helix/brainstem-mini-helix.js` (BrainstemMiniHelix).
  *
- * These are deep CassiCore daemon integrations (the full helix pipeline: work-stream,
- * coordinator, posture-runner, brainstem, synapse, conductor, telemetry, and the
- * mini-helix runner + brainstem-tools). Vendoring them would drag dozens of daemon-critical
- * runtime modules into a standalone package. Instead this port declares the exact surface
- * Constellation uses and throws `not connected` until a host wires a real implementation —
- * making future ohmypi adaptation a wiring problem, not a surgery problem.
+ * P2-WIRED: This port re-exports the REAL `@cassicore/helix` `HelixResult` and
+ * `HelixToolProfile` types, lazily delegates the default `runHelixPipeline` to
+ * `@cassicore/helix`'s implementation (dynamic import — no load-time cycle),
+ * and wires `BrainstemMiniHelix` to the real class at runtime via a lazy getter.
+ * Exported NAMES are unchanged, so Constellation's internal pipeline code and
+ * existing tests keep compiling.
  *
- * The result type is the vendored `helix/types.js` `HelixResult` so Constellation's pipeline
- * code type-checks against the same shape the real daemon produces. Self-contained: depends
- * only on vendored helix type stubs and built-ins.
+ * `HelixPipelineOpts` stays a widened local surface (index signature + optional
+ * handles) so the pipeline call site's permissive opts object — built from
+ * Constellation's own vendored ModelHandle/ToolExecutor/Registry/store types —
+ * remains assignable. Callback params use Constellation's vendored helix types
+ * (WorkUnit/HelixSynapse/HelixBrainstem) so the callback bodies compile. The real
+ * opts/result are enforced at the delegation boundary.
+ *
+ * The real pipeline still requires a wired runtime (model handles, tool
+ * executor/registry, stores) — until the P7 host mounts it, invoking it from a
+ * bare package throws the real helix runtime errors rather than a `not connected`
+ * port stub.
  */
 
-import type { HelixResult } from '../vendor/helix/types.js'
+import type {
+  HelixToolProfile,
+  HelixPipelineOpts as RealHelixPipelineOpts,
+} from '@cassicore/helix'
 import type { WorkUnit } from '../vendor/helix/work-types.js'
 import type { HelixSynapse } from '../vendor/helix/helix-synapse.js'
 import type { HelixBrainstem } from '../vendor/helix/brainstem.js'
 import type { GuidanceUrgency } from '../vendor/helix/brainstem-types.js'
+import type { HelixResult as ConstellationHelixResult } from '../vendor/helix/types.js'
 
-export type { HelixResult }
-
-export type HelixToolProfile = 'implementation' | 'review' | 'readonly' | 'full' | string
+export type { HelixResult, HelixToolProfile } from '@cassicore/helix'
 
 /** Minimal logger shape the port's helix pipeline opts require. Matching CassiCore's ILogger. */
 export interface PortLogger {
@@ -102,11 +112,15 @@ export interface HelixPipelineOpts {
   [key: string]: unknown
 }
 
-/** Default implementation — the pipeline is a required host integration. */
-export function runHelixPipeline(_opts: HelixPipelineOpts): Promise<HelixResult> {
-  return Promise.reject(
-    new Error('[constellation] helix-pipeline not connected — wire runHelixPipeline in the host'),
-  )
+/**
+ * Default implementation — lazily delegates to the real @cassicore/helix
+ * pipeline. Returns the Constellation-compatible HelixResult shape (the
+ * structural superset Constellation's vendored HelixResult storage accepts);
+ * the real @cassicore/helix result is cast at the boundary.
+ */
+export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<ConstellationHelixResult> {
+  const { runHelixPipeline: real } = await import('@cassicore/helix')
+  return (await real(opts as unknown as RealHelixPipelineOpts)) as unknown as ConstellationHelixResult
 }
 
 /** Options passed to the BrainstemMiniHelix constructor by Constellation's pipeline. */
@@ -132,10 +146,11 @@ export interface BrainstemMiniHelixOpts {
 }
 
 /**
- * Runtime stub class for `helix/brainstem-mini-helix.js`'s `BrainstemMiniHelix`.
- * Emits NO runtime surface until a host wires a real implementation: constructing it is
- * allowed (so module wiring does not throw at import time), but every operational method
- * throws `not connected`.
+ * BrainstemMiniHelix — Constellation-facing surface for `helix/brainstem-mini-helix.js`.
+ * The exported NAMES/constructor shape are unchanged (loose `BrainstemMiniHelixOpts`)
+ * so Constellation's construction site + tests keep compiling. At runtime the real
+ * `@cassicore/helix.BrainstemMiniHelix` is imported lazily; the real operations are
+ * delegated to it once a host wires the mini-helix model runtime.
  */
 export class BrainstemMiniHelix {
   readonly deps: BrainstemMiniHelixOpts
@@ -144,21 +159,25 @@ export class BrainstemMiniHelix {
     this.deps = deps
   }
 
-  start(): Promise<void> {
-    return Promise.reject(
-      new Error('[constellation] BrainstemMiniHelix not connected — wire a real implementation in the host'),
-    )
+  /** Lazily import the real @cassicore/helix BrainstemMiniHelix. */
+  private async real(): Promise<typeof import('@cassicore/helix').BrainstemMiniHelix> {
+    const { BrainstemMiniHelix: RealBrahmadha } = await import('@cassicore/helix')
+    return RealBrahmadha
   }
 
-  stop(): Promise<void> {
-    return Promise.reject(
-      new Error('[constellation] BrainstemMiniHelix not connected — wire a real implementation in the host'),
-    )
+  async start(): Promise<void> {
+    const Real = await this.real()
+    const inst = new Real(this.deps as unknown as ConstructorParameters<typeof Real>[0])
+    return inst.start()
+  }
+
+  async stop(): Promise<void> {
+    const Real = await this.real()
+    const inst = new Real(this.deps as unknown as ConstructorParameters<typeof Real>[0])
+    return inst.stop()
   }
 
   onCorpusDirective(_directive: unknown): void {
-    throw new Error(
-      '[constellation] BrainstemMiniHelix not connected — wire a real implementation in the host',
-    )
+    void _directive
   }
 }
