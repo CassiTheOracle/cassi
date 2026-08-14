@@ -6,7 +6,7 @@
  * tools. The Corpus (as Cassi) silently observes and synthesizes.
  */
 
-import type { RoutingTier } from '../vendor/types/model-routing.js'
+import type { RoutingTier } from '../../../../types/model-routing.js'
 import type { MeditationStyle } from './styles.js'
 
 

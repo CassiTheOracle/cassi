@@ -1,6 +1,6 @@
-import type { LaminaField } from './vendor/lamina/index.js'
-import type { GlobalWorkspace } from './vendor/workspace/global-workspace.js'
-import type { CognitiveSignal } from './vendor/workspace/cognitive-signal.js'
+import type { LaminaField } from '../lamina/index.js'
+import type { GlobalWorkspace } from '../workspace/global-workspace.js'
+import type { CognitiveSignal } from '../workspace/cognitive-signal.js'
 import type { GoalSubTask } from './corpus-types.js'
 
 export const HELIX_GOAL_LABEL = 'helix-goal'

@@ -13,7 +13,7 @@
  * implementation work" and decide whether to merge their goals.
  */
 
-import type { ILogger } from '../vendor/types/interfaces.js'
+import type { ILogger } from '../../../../types/interfaces.js'
 import type { LinkManager } from './link-manager.js'
 import type { GravityEngine } from './gravity-engine.js'
 import type {

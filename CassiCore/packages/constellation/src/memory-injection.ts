@@ -11,10 +11,10 @@
  * interface with the raw goal as the search query.
  */
 
-import type { IMemory } from './vendor/types/intelligence.js'
-import type { MnemicField, MnemicRetrievalHit } from './vendor/mnemic-field/index.js'
-import { GraphAttnPropagator } from './vendor/mnemic-field/graph-attn-propagator.js'
-import type { ILogger } from './vendor/types/interfaces.js'
+import type { IMemory } from '../../../types/intelligence.js'
+import type { MnemicField, MnemicRetrievalHit } from '../mnemic-field/index.js'
+import { GraphAttnPropagator } from '../mnemic-field/graph-attn-propagator.js'
+import type { ILogger } from '../../../types/interfaces.js'
 import type { BranchMemoryContext, InjectedMemory } from './corpus-types.js'
 
 /**

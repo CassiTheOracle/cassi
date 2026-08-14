@@ -6,7 +6,7 @@
  * and all decisions route through the external agent's MCP tool calls.
  */
 
-import type { ILogger, IEventBus } from '../vendor/types/interfaces.js'
+import type { ILogger, IEventBus } from '../../../../types/interfaces.js'
 import type {
   ExternalCorpusState,
   ExternalCorpusSnapshot,
@@ -19,7 +19,7 @@ import type {
   CorpusDeps,
 } from '../corpus-types.js'
 import { createInitialExternalCorpusState, DEFAULT_EXTERNAL_CORPUS_HEARTBEAT_MS } from '../corpus-types.js'
-import type { GuidanceUrgency } from '../vendor/helix/brainstem-types.js'
+import type { GuidanceUrgency } from '../../helix/brainstem-types.js'
 
 
 /**

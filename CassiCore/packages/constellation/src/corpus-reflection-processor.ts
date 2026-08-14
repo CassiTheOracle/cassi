@@ -46,9 +46,9 @@ import type {
   EditAuthority,
   ISelfEditStore,
 } from './self-edit-types.js'
-import type { Observation, Anomaly } from './vendor/subconscious/types.js'
-import type { BrainstemAnnotation, DetectedPattern } from './vendor/helix/brainstem-types.js'
-import type { ILogger, IEventBus } from './vendor/types/interfaces.js'
+import type { Observation, Anomaly } from '../subconscious/types.js'
+import type { BrainstemAnnotation, DetectedPattern } from '../helix/brainstem-types.js'
+import type { ILogger, IEventBus } from '../../../types/interfaces.js'
 
 
 // Configuration

@@ -16,7 +16,7 @@ import Database from 'better-sqlite3'
 import path from 'node:path'
 import fs from 'node:fs'
 
-import { getDataDir } from './ports/paths.js'
+import { getDataDir } from '../../utils/paths.js'
 
 
 // Public Types

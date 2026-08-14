@@ -11,9 +11,9 @@
  * 3. Goal alignment — whether the current thought is on-track for the branch goal
  */
 
-import type { ConstellationGuidanceProvider } from './vendor/tools/implementations/collect-thoughts.js'
+import type { ConstellationGuidanceProvider } from '../../tools/implementations/collect-thoughts.js'
 import type { CorpusTree } from './corpus-tree.js'
-import type { ILogger } from './vendor/types/interfaces.js'
+import type { ILogger } from '../../../types/interfaces.js'
 
 
 /**

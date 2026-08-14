@@ -33,10 +33,10 @@ import type {
   StrategyRetrospective,
   EffectivenessRecord,
 } from './corpus-types.js'
-import type { GuidanceUrgency } from './vendor/helix/brainstem-types.js'
+import type { GuidanceUrgency } from '../helix/brainstem-types.js'
 import type { CrossHelixDialectic } from './cross-helix-dialectic.js'
-import type { ILogger } from './vendor/types/interfaces.js'
-import type { IMemory } from './vendor/types/intelligence.js'
+import type { ILogger } from '../../../types/interfaces.js'
+import type { IMemory } from '../../../types/intelligence.js'
 
 
 // Tool Definitions (JSON Schema for LLM tool calling)
@@ -651,9 +651,9 @@ export interface CorpusToolContext {
     requestingHelixId: string
   }) => void
   /** MnemicField for meditation tools (store_insight, kindle_memory, etc.) */
-  mnemicField?: import('./vendor/mnemic-field/index.js').MnemicField
+  mnemicField?: import('../mnemic-field/index.js').MnemicField
   /** Memory system for meditation insight storage */
-  memory?: import('./vendor/types/intelligence.js').IMemory
+  memory?: import('../../../types/intelligence.js').IMemory
 }
 
 export interface ToolCallResult {
@@ -1528,7 +1528,7 @@ After each analysis cycle, I either call signal_done (if I need to keep analyzin
 
 // Mini-Helix Bridge — Convert Corpus tools to MiniHelixTool format
 
-import type { MiniHelixTool, MiniHelixToolResult } from './vendor/mini-helix/mini-helix-types.js'
+import type { MiniHelixTool, MiniHelixToolResult } from '../mini-helix/mini-helix-types.js'
 
 /**
  * Create the Corpus tool set as MiniHelixTool[] for use with the mini-Helix runner.

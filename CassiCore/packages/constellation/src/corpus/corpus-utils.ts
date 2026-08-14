@@ -6,7 +6,7 @@
  */
 
 import type { CorpusDirectiveType } from '../corpus-types.js'
-import type { GuidanceUrgency } from '../vendor/helix/brainstem-types.js'
+import type { GuidanceUrgency } from '../../helix/brainstem-types.js'
 
 
 /**

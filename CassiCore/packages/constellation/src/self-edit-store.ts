@@ -22,7 +22,7 @@ import type {
   ISelfEditStore,
   SelfEditStats,
 } from './self-edit-types.js'
-import type { ILogger } from './vendor/types/interfaces.js'
+import type { ILogger } from '../../../types/interfaces.js'
 
 type Database = import('better-sqlite3').Database
 

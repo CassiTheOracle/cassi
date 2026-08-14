@@ -19,10 +19,10 @@ import path from 'node:path'
 
 import Database from 'better-sqlite3'
 
-import type { ILogger } from '../vendor/types/interfaces.js'
+import type { ILogger } from '../../../../types/interfaces.js'
 import type { MeditationPrompt } from './types.js'
 import type { MeditationStyle } from './styles.js'
-import { getDataDir } from '../ports/paths.js'
+import { getDataDir } from '../../../utils/paths.js'
 
 
 const SCHEMA_VERSION = 5

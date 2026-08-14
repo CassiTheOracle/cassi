@@ -1,12 +1,12 @@
-import type { ILogger, IEventBus } from './vendor/types/interfaces.js'
-import type { ThinkingLevel } from './vendor/types/runtime.js'
-import type { HelixSynapse, SynapseBroadcast, SynapseRollingSlice } from './vendor/helix/helix-synapse.js'
+import type { ILogger, IEventBus } from '../../../types/interfaces.js'
+import type { ThinkingLevel } from '../../../types/runtime.js'
+import type { HelixSynapse, SynapseBroadcast, SynapseRollingSlice } from '../helix/helix-synapse.js'
 import type { TopologySnapshot } from './topology/topology-types.js'
-import type { CrossSessionTopicIndex } from './vendor/thalamus/cross-session-index.js'
+import type { CrossSessionTopicIndex } from '../thalamus/cross-session-index.js'
 import { ObserverMemoryBridge, extractConceptHints, priorityToConfidence } from './observer-memory-bridge.js'
 import type { ObserverMemorySource } from './observer-memory-bridge.js'
 import { BroadcastDedupe } from './observer-broadcast-dedupe.js'
-import { ObserverActivityScheduler, type ObserverActivityConfig, type ObserverFireReason } from './vendor/helix/observer-activity-scheduler.js'
+import { ObserverActivityScheduler, type ObserverActivityConfig, type ObserverFireReason } from '../helix/observer-activity-scheduler.js'
 
 
 export interface CorpusObserverLLM {

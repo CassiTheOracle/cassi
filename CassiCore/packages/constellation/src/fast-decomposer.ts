@@ -33,12 +33,12 @@
  * ```
  */
 
-import type { ILogger } from './vendor/types/interfaces.js'
-import type { IMemory, SearchResult } from './vendor/types/intelligence.js'
+import type { ILogger } from '../../../types/interfaces.js'
+import type { IMemory, SearchResult } from '../../../types/intelligence.js'
 import type { CorpusLLM, GoalDecomposition, GoalSubTask } from './corpus-types.js'
 import type { ConstellationTemplate } from './types.js'
-import type { PreparedContext, PrepareContextOptions } from './vendor/code-analysis/types.js'
-import { prepareContext } from './ports/code-analysis-context.js'
+import type { PreparedContext, PrepareContextOptions } from '../code-analysis/types.js'
+import { prepareContext } from '../code-analysis/context-assembler.js'
 import { listTemplateCapabilities } from './templates.js'
 
 /** Shape of the tool-call input that the LLM produces via decompose_goal. */

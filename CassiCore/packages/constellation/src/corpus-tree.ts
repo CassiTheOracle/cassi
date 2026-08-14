@@ -19,7 +19,7 @@
  * brain hemispheres, enabling coordinated thought across regions.
  */
 
-import type { ILogger } from './vendor/types/interfaces.js'
+import type { ILogger } from '../../../types/interfaces.js'
 import type {
   ICorpusTree,
   CorpusBranch,
@@ -33,7 +33,7 @@ import type {
   ElevatedPattern,
   EffectivenessRecord,
 } from './corpus-types.js'
-import type { BrainstemAnnotation } from './vendor/helix/brainstem-types.js'
+import type { BrainstemAnnotation } from '../helix/brainstem-types.js'
 
 
 /**

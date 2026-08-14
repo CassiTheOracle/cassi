@@ -15,7 +15,7 @@
  *   meditation:focused-seeding     — focused mode kindled the mnemic field
  */
 
-import type { IEventBus } from '../vendor/types/interfaces.js'
+import type { IEventBus } from '../../../../types/interfaces.js'
 import type { MeditationStyle } from './styles.js'
 
 

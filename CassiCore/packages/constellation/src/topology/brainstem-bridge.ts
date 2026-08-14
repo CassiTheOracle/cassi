@@ -22,9 +22,9 @@
  *   - pushContext() on each topology tick to inject latest context
  */
 
-import type { ILogger } from '../vendor/types/interfaces.js'
+import type { ILogger } from '../../../../types/interfaces.js'
 import type { BranchDigest, ICorpusTree } from '../corpus-types.js'
-import type { CognitiveModel, BrainstemContextSources } from '../vendor/helix/brainstem-types.js'
+import type { CognitiveModel, BrainstemContextSources } from '../../helix/brainstem-types.js'
 import type { MergeDepth } from './topology-types.js'
 
 

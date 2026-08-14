@@ -6,7 +6,7 @@
  * across multiple Helix branches.
  */
 
-import type { ILogger, IEventBus } from '../vendor/types/interfaces.js'
+import type { ILogger, IEventBus } from '../../../../types/interfaces.js'
 import type {
   ICorpusTree,
   CorpusProcessedState,
@@ -15,8 +15,8 @@ import type {
   BranchAssessment,
 } from '../corpus-types.js'
 import type { TopologyGraph } from '../topology/topology-graph.js'
-import { CORPUS_BRANCH_RELATION_PHRASES } from '../vendor/phrase-prototypes.js'
-import type { MnemicField } from '../vendor/mnemic-field/index.js'
+import { CORPUS_BRANCH_RELATION_PHRASES } from '../../phrase-prototypes.js'
+import type { MnemicField } from '../../mnemic-field/index.js'
 
 
 /**

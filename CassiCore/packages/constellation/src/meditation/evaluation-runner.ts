@@ -9,7 +9,7 @@
  * (that's the Corpus's job).
  */
 
-import type { ILogger } from '../vendor/types/interfaces.js'
+import type { ILogger } from '../../../../types/interfaces.js'
 import type { MeditationSession } from './types.js'
 import type { MeditationStore } from './meditation-store.js'
 import type { ToolCallResult } from './solo-runner.js'

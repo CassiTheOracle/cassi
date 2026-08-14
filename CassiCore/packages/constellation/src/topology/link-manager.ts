@@ -12,7 +12,7 @@
  * rapid link/unlink oscillation when two sessions hover near the boundary.
  */
 
-import type { ILogger } from '../vendor/types/interfaces.js'
+import type { ILogger } from '../../../../types/interfaces.js'
 import type { GravityEngine } from './gravity-engine.js'
 import type {
   LinkConfig,

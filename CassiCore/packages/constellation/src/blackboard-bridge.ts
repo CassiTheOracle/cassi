@@ -6,11 +6,11 @@
  * and up to the Constellation-wide board.
  */
 
-import type { ILogger } from './vendor/types/interfaces.js'
+import type { ILogger } from '../../../types/interfaces.js'
 import type {
   BlackboardChannel,
   BlackboardEntry,
-} from './vendor/types/flux-team.js'
+} from '../../../types/flux-team.js'
 import type { BlackboardBridgeConfig } from './types.js'
 
 // Types

@@ -1,5 +1,5 @@
-import type { WorkUnit } from './vendor/helix/work-types.js'
-import type { BrainstemAnnotation, SharedTreeReader } from './vendor/helix/brainstem-types.js'
+import type { WorkUnit } from '../helix/work-types.js'
+import type { BrainstemAnnotation, SharedTreeReader } from '../helix/brainstem-types.js'
 import type { BranchApproach, ICorpusTree, CorpusDirective } from './corpus-types.js'
 import type { CrossBranchDeliveryTarget } from './cross-helix-dialectic.js'
 
