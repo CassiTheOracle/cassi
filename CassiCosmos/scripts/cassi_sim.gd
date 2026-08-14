@@ -381,6 +381,7 @@ var _sim_cam: Camera3D = null                 # sibling camera (main/recorder); 
 # — field grid buffers (SET 0) —
 var _field_ey: RID; var _field_ei: RID
 var _field_q: RID;  var _field_vel: RID
+var _field_scratch: RID  # vec4 per cell — two-fluid PDE double-buffer scratch (determinism fix, cassi_two_fluid.glsl)
 
 # — Poisson solver (SET 0 of cassi_poisson.glsl) —
 var _fft_buf: RID      # vec2 per cell — FFT workspace; real part = Φ after solve
@@ -1580,6 +1581,14 @@ func _setup_buffers() -> void:
 	_field_ei  = _rd.storage_buffer_create(nf)
 	_field_q   = _rd.storage_buffer_create(nf)
 	_field_vel = _rd.storage_buffer_create(nc * 16)
+	# Two-fluid PDE double-buffer scratch (vec4 per cell — pass A writes
+	# the new field here, pass B copies to the canonical buffers; the
+	# single-pass neighbor-stencil write race made the field 1-ULP
+	# nondeterministic — see cassi_two_fluid.glsl). Fully overwritten each
+	# pass A; zeroed once for allocator-reuse hygiene.
+	_field_scratch = _rd.storage_buffer_create(nc * 16)
+	var scr_zero := PackedByteArray(); scr_zero.resize(nc * 16)
+	_rd.buffer_update(_field_scratch, 0, scr_zero.size(), scr_zero)
 	# Poisson solver: complex FFT workspace (vec2/cell) + gravity telemetry
 	_fft_buf  = _rd.storage_buffer_create(nc * 8)
 	_tel_buf  = _rd.storage_buffer_create(32)
@@ -1751,7 +1760,7 @@ func _setup_buffers() -> void:
 	_nbody_pc_bytes = PackedByteArray(); _nbody_pc_bytes.resize(15 * 4)
 	# Two-fluid dedicated PC (14 floats = 56 B): the shared 11 fields + the
 	# 3 per-axis extents for the anisotropic 19-point stencil (GRID_LAYOUT.md).
-	_two_fluid_pc_bytes = PackedByteArray(); _two_fluid_pc_bytes.resize(14 * 4)
+	_two_fluid_pc_bytes = PackedByteArray(); _two_fluid_pc_bytes.resize(15 * 4)  # + pass_sel (PDE pass A/B)
 	_md_pc_bytes = PackedByteArray(); _md_pc_bytes.resize(9 * 4)  # + mode (deposit 0 / convert 1)
 	_instancer_pc_bytes = PackedByteArray(); _instancer_pc_bytes.resize(32 * 4)  # consolidated gradient engine PC — 128 B (the RDNA3 Vulkan cap)
 	_bh_int_pc_bytes = PackedByteArray(); _bh_int_pc_bytes.resize(4 * 4)
@@ -1773,7 +1782,7 @@ func _setup_buffers() -> void:
 	_tel_reset_bytes = PackedFloat32Array([0.0, 0.0, 0.0, INF, 0.0, INF, 0.0, 0.0]).to_byte_array()
 
 func _free_buffers() -> void:
-	for rid in [_field_ey, _field_ei, _field_q, _field_vel,
+	for rid in [_field_ey, _field_ei, _field_q, _field_vel, _field_scratch,
 				_pos_buf, _vel_buf, _acc_buf, _pos_prev_buf, _pos_render_buf,
 				_bh_buf, _bh_lens_buf,
 				_mass_density_buf, _mass_density_fix, _cluster_buf, _fft_buf, _tel_buf,
@@ -1992,11 +2001,12 @@ func _cache_uniform_sets() -> void:
 	# (reinit, shader-retry, startup) free them via _free_uniform_sets()
 	# first. Recreating a live set would leak its RID. Texture-only rebuilds
 	# go through _cache_render_texture_sets() instead.
-	# Two-fluid PDE declares ONLY set 0 (bindings 0-4) — no sets 1/2
+	# Two-fluid PDE declares ONLY set 0 (bindings 0-5: fields + rho + scratch)
 	_us_two_0 = _rd.uniform_set_create([
 		_uniform_storage(0, _field_ey), _uniform_storage(1, _field_ei),
 		_uniform_storage(2, _field_q), _uniform_storage(3, _field_vel),
 		_uniform_storage(4, _mass_density_buf),
+		_uniform_storage(5, _field_scratch),
 	], _two_fluid_shader, 0)
 
 	_us_nbody_0 = _rd.uniform_set_create([
@@ -3586,6 +3596,17 @@ func _step_dispatches(cl: int) -> void:
 	elif _two_fluid_shader.is_valid() and not freeze_field:
 		_rd.compute_list_bind_compute_pipeline(cl, _two_fluid_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_two_0, 0)
+		# Two-pass double-buffered PDE (DETERMINISM fix): pass A computes
+		# the new field into the scratch buffer (reads canonical, writes
+		# scratch — no in-dispatch aliasing), pass B copies scratch to the
+		# canonical field. The old single pass read a 19-point neighbor
+		# stencil and wrote the same buffers in one dispatch — a genuine
+		# read-after-write race (1-ULP field nondeterminism run-to-run).
+		_two_fluid_pc_bytes.encode_float(56, 0.0)  # pass_sel = A
+		_rd.compute_list_set_push_constant(cl, _two_fluid_pc_bytes, _two_fluid_pc_bytes.size())
+		_rd.compute_list_dispatch(cl, wg, wg, wg)
+		_barrier(cl)  # PDE pass A → pass B (scratch visibility)
+		_two_fluid_pc_bytes.encode_float(56, 1.0)  # pass_sel = B
 		_rd.compute_list_set_push_constant(cl, _two_fluid_pc_bytes, _two_fluid_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, wg, wg, wg)
 	_barrier(cl)  # PDE → condensation

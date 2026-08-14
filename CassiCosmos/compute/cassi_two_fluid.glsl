@@ -20,12 +20,26 @@ layout(set = 0, binding = 1, std430) restrict buffer FieldEI { float ei[]; };
 layout(set = 0, binding = 2, std430) buffer FieldQ { float q[]; };
 layout(set = 0, binding = 3, std430) buffer FieldVel { vec4 vel[]; };
 layout(set = 0, binding = 4, std430) coherent readonly buffer MassDensity { float rho[]; };
+// Double-buffered PDE scratch (DETERMINISM fix, 2026-08-14): pass A
+// (pc.pass_sel == 0) computes the new field into THIS buffer (read-old /
+// write-scratch — the read and write buffers never alias within a
+// dispatch); pass B (pc.pass_sel == 1) copies scratch → the canonical
+// ey/ei/q/vel. The single-pass version wrote the field in the SAME
+// dispatch that read the 19-point neighbor stencil: a thread could read
+// a neighbor's NEW value (its write landed first) — a genuine in-dispatch
+// read-after-write race, 1-ULP field nondeterminism in ~0.04% of cells
+// per step (verified run-to-run, and it feeds the particle forces via
+// the river arm's trilinear samples — the real floor behind the old
+// ~3.8e-6 parity gap). Scratch is fully overwritten every pass A, so it
+// never needs clearing. vec4 = (ey_new, ei_new, vx_new, vy_new).
+layout(set = 0, binding = 5, std430) buffer FieldScratch { vec4 scr[]; };
 layout(push_constant, std430) uniform PC {
     float N_f; float dt; float t; float phi;
     float xi; float eps2; float particle_N;
     float mode; float source_strength; float num_clusters;
     float gravity_mode;  // unused here (nbody gravity selector)
     float extent_x; float extent_y; float extent_z;  // per-axis box half-extents (GRID_LAYOUT.md §2.5)
+    float pass_sel;      // 0 = pass A (compute → scr), 1 = pass B (scr → field)
 } pc;
 
 // ── Index helpers ─────────────────────────────────────────────────────
@@ -155,8 +169,11 @@ float source_ei(int i, int j, int k) {
 	return s * exp(-r2 * 4.0) + mr * 0.001;
 }
 
-// ── Main kernel ───────────────────────────────────────────────────────
-void main() {
+// ── Pass A (pc.pass_sel == 0): compute the new field into scratch ────
+// Reads the canonical ey/ei/vel/rho (old values) and writes ONLY scr —
+// no read/write aliasing within the dispatch, so the 19-point stencil
+// sees the OLD field deterministically (no in-dispatch race).
+void pass_a() {
     int N = int(pc.N_f);
     ivec3 gid = ivec3(gl_GlobalInvocationID);
     if (gid.x >= N || gid.y >= N || gid.z >= N) return;
@@ -193,16 +210,43 @@ void main() {
     float ey_new = ey_old + vx_new * dt + source_ey(i, j, k) * dt * dt;
     float ei_new = ei_old + vy_new * dt + source_ei(i, j, k) * dt * dt;
 
-    // Compute q = (EY² + EI²) normalized
+    scr[id] = vec4(ey_new, ei_new, vx_new, vy_new);
+}
+
+// ── Pass B (pc.pass_sel == 1): scratch → canonical field ─────────────
+// Reads ONLY scr (written by pass A, barrier-ordered); writes the
+// canonical ey/ei/q/vel. q and ε² are recomputed from the scratch values
+// — bit-identical to the single-pass formulas.
+void pass_b() {
+    int N = int(pc.N_f);
+    ivec3 gid = ivec3(gl_GlobalInvocationID);
+    if (gid.x >= N || gid.y >= N || gid.z >= N) return;
+
+    int i = gid.x, j = gid.y, k = gid.z;
+    int id = idx3(i, j, k);
+
+    vec4 s = scr[id];
+    float ey_new = s.x;
+    float ei_new = s.y;
+    float phi = pc.phi;
+
+    // q = (EY² + EI²) normalized
     float q_val = ey_new * ey_new + ei_new * ei_new;
 
-    // Compute ε² = (EY − φ·EI)²
+    // ε² = (EY − φ·EI)²
     float eps = ey_new - phi * ei_new;
     float eps2 = eps * eps;
 
-    // Write back
     ey[id] = ey_new;
     ei[id] = ei_new;
     q[id] = q_val;
-    vel[id] = vec4(vx_new, vy_new, 0.0, eps2);
+    vel[id] = vec4(s.z, s.w, 0.0, eps2);
+}
+
+void main() {
+    if (pc.pass_sel > 0.5) {
+        pass_b();
+    } else {
+        pass_a();
+    }
 }
