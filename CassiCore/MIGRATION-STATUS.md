@@ -1,17 +1,18 @@
-# CassiCore P7 Migration Status
+# CassiCore P7/P8 Migration Status
 
 **Date:** 2026-08-14
-**Root:** `packages/*` (30 landed packages under `@cassicore/*`)
+**Root:** `packages/*` (31 landed packages under `@cassicore/*`)
 **Source (read-only):** `D:\carina\workspaces\cassicore` (committed `d63358da`)
 
-The P0–P7 modular migration of the CassiCore monorepo is **complete**:
-foundation through the thin host are landed, all 30 packages typecheck **0
-errors**, and every package's test suite is green. This file records the
-landed surface, count totals, quarantines, and remaining work.
+The P0–P8 modular migration of the CassiCore monorepo is **complete**:
+foundation through the thin host and the standalone `@cassicore/ai` provider
+layer are landed, all 31 packages typecheck **0 errors**, and every package's
+test suite is green. This file records the landed surface, count totals,
+quarantines, and remaining work.
 
 ---
 
-## 1. Packages landed (30)
+## 1. Packages landed (31)
 
 All migrated with **history-preserving import splices** (two-stage filter-repo
 `--path` → `--path-rename`; per-file flags to avoid the Windows fast-import
@@ -49,6 +50,7 @@ flush `OSError [Errno 22]`). No mailmap; import merges use
 | P7 | `@cassicore/admin-api` | `core/admin-api.ts` + `core/admin-api/*` | HTTP route registry (55 files) |
 | P7 | `@cassicore/mcp-gateway` | `mcp/*` (42 files) | MCP gateway server |
 | P7 | `@cassicore/workspace` | `core/workspace/*` | workspace loader/system-prompt |
+| P8 | `@cassicore/ai` | `ai/` (46 files, standalone npm pkg) | AI provider layer (self-contained; own package.json) |
 
 ### 29. `@cassicore/host` — the thin host (turn 4, this phase)
 
@@ -79,6 +81,7 @@ only; those +87 lines stay OUT (parallel session owns them).
 | package | files | tests |
 |---|---|---|
 | admin-api | 2 | 9 |
+| **ai** | **1** | **36** |
 | aurora | 36 | 698 |
 | cognitive-feed | 1 | 97 |
 | commands | — | passWithNoTests |
@@ -109,7 +112,7 @@ only; those +87 lines stay OUT (parallel session owns them).
 | workflow | — | passWithNoTests |
 | workspace | 1 | 17 |
 
-**All 30 packages typecheck 0 errors; all suites green.**
+**All 31 packages typecheck 0 errors; all suites green.**
 
 ### Quarantined to `tests/host-wired/` (excluded from default runs)
 
@@ -136,13 +139,15 @@ default run (they test unmigrated D: internals).
 
 ## 3. Remaining work
 
-1. **P8 `@cassicore/ai`** — the whole `ai/` tree stays in `D:` until P8.
-   - `qwen-renew-accounts.ts` imports `ai/src/providers/cassicore/qwen.js`
-     (*host + admin-api carry faithful `QwenProvider` type-stubs that throw*).
-   - providers wrap `openai`/`@anthropic-ai/sdk` SDKs internally; `cassi-larql`
-     native vindex module is a `declare module` stub (host) / dynamic-require fallback.
-   - **model-pool `vendor/core/ai`** and **providers' `vendor/ai`** re-points to
-     `@cassicore/ai` — **deferred to P8, stubs LEFT in place** (not deleted).
+1. **~~P8 `@cassicore/ai`~~ — DONE (this phase).** The whole `ai/` tree landed as
+   `@cassicore/ai` (P8, turn 1); **model-pool** and **providers** now depend on
+   `@cassicore/ai` and their `src/vendor/{core/ai,ai}` throw-stubs were deleted.
+   - `qwen-renew-accounts.ts` (host + admin-api) still imports
+     `../vendor/core/ai/src/providers/cassicore/qwen.js` — those faithful
+     `QwenProvider` stubs **stay** (host/admin are the runtime and the daemon
+     vendor-holds the qwen surface). A later pass can re-point host/admin
+     qwen-renew-accounts to `@cassicore/ai` once the daemon's vendored brain is
+     slimmed (item 5).
 2. **Host-vendor stub re-points (host-turn / P8)** — tools' `vendor/core`
    `{session-store,turn-pipeline,tool-proxy-middleware,workspace-loader,
    resource-limits}` + mcp/tools `vendor/core/version` → `@cassicore/host`
@@ -164,7 +169,9 @@ default run (they test unmigrated D: internals).
 
 ---
 
-## 4. Turn-4 commit chain (this phase)
+## 4. Commit chains (this phase)
+
+### P7 host chain
 
 ```
 2a3a9116 chore(p7): scaffold @cassicore/host
@@ -176,3 +183,21 @@ f48afc62 feat(p7): host root barrel (@cassicore/host resolvable)
 b8a6e4d6 fix(p7): host vitest excludes vendored D:-only tests
 7a5a5b03 feat(p7): owning-package barrel publishes + trust-ledger exports-map fix
 ```
+
+### P8 ai chain (turn 1)
+
+```
+92c03574 chore(p8): scaffold @cassicore/ai — configs, manifest, deps
+a81ea3d4 import(ai): history from cassicore HEAD@d63358da
+538a77ae refactor(p8:ai): restore providers/cassicore bodies from own history + fix models.ts generics
+26bf30f8 feat(p8): re-point model-pool + providers to @cassicore/ai (delete vendor stubs)
+da80d65e test(p8): port ai-model-defaults suite (36 green) + align @cassicore/ai manifest
+```
+
+**NOTE providers/cassicore restore:** `ai/src/providers/cassicore/{opencode-go,
+alibaba-coding,deepseek,kimi-coding,openrouter,zai,qwen,openai-compatible-base}.
+ts` were deleted from the D: tree at `4f06418d` (leaving dangling re-exports in
+the barrel + `src/index.ts`). P8 restored all 8 byte-identical from the ai
+path's own imported history (`4f06418d^`) — fully self-contained, no D: `core/`
+deps — so `@cassicore/ai` typechecks and the providers contract (7 provider
+classes + `QwenOAuthCredentials`) is real.
