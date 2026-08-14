@@ -24,9 +24,9 @@
  *               the parent's work stream, annotate, guide, and self-organize.
  */
 
-import type { ILogger, IEventBus } from '../../../types/interfaces.js'
-import type { ModelHandle } from '../../model-pool/types.js'
-import type { Message, ContentBlock } from '../../../types/runtime.js'
+import type { ILogger, IEventBus } from '@cassicore/foundation'
+import type { ModelHandle } from './vendor/core/model-pool/types.js'
+import type { Message, ContentBlock } from '@cassicore/foundation'
 
 
 // Tool Definition (matches provider tool schema format)

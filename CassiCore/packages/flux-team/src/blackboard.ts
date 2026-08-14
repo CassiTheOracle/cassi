@@ -17,7 +17,7 @@
  */
 
 import { randomUUID } from 'crypto'
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type {
   BlackboardChannel,
   BlackboardEntry,
@@ -35,7 +35,7 @@ import type {
   ReportSectionType,
   ReportSectionStatus,
   ReportQualityMetrics,
-} from '../../../types/flux-team.js'
+} from '@cassicore/foundation'
 import type {
   PaginatedResult,
   ChannelSearchOptions,
@@ -53,7 +53,7 @@ import type {
   BoardChanges,
   BlackboardWatchResult,
   WatchSummary,
-} from '../../../types/blackboard-search.js'
+} from '@cassicore/foundation'
 import {
   compilePattern,
   matchesAny,

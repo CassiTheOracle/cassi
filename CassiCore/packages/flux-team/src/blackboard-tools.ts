@@ -28,12 +28,12 @@
  *   These legacy exports will be removed in a future cleanup pass.
  */
 
-import type { CompletionOpts } from '../../../types/runtime.js'
+import type { CompletionOpts } from '@cassicore/foundation'
 import type { Blackboard } from './blackboard.js'
 import { createHash } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
-import { COMMIT_CHANGES_TOOL, handleCommitChanges } from '../shared-tools/commit-tool.js'
+import { COMMIT_CHANGES_TOOL, handleCommitChanges } from './vendor/core/intelligence/shared-tools/commit-tool.js'
 
 type ToolSchema = NonNullable<CompletionOpts['tools']>[number]
 
@@ -1301,7 +1301,7 @@ function handleToolLog(blackboard: Blackboard, input: Record<string, unknown>): 
 // Report Implementations
 
 function handleReportAddSection(blackboard: Blackboard, input: Record<string, unknown>, author: string): string {
-  const type = String(input.type ?? 'note') as import('../../../types/flux-team.js').ReportSectionType
+  const type = String(input.type ?? 'note') as import('@cassicore/foundation').ReportSectionType
   const title = String(input.title ?? '').slice(0, 80)
   const content = String(input.content ?? '')
   const confidence = typeof input.confidence === 'number' ? input.confidence : undefined
@@ -1573,7 +1573,7 @@ function handlePlanReportProgress(blackboard: Blackboard, input: Record<string, 
  * @dep risk: MEDIUM | 6 callers, 0 flows, 1 module
  */
 
-function formatStep(step: import('../../../types/flux-team.js').PlanStep): Record<string, unknown> {
+function formatStep(step: import('@cassicore/foundation').PlanStep): Record<string, unknown> {
   const result: Record<string, unknown> = {
     id: step.id,
     title: step.title,
@@ -1602,7 +1602,7 @@ function formatStep(step: import('../../../types/flux-team.js').PlanStep): Recor
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 
-function formatPlan(plan: import('../../../types/flux-team.js').Plan): Record<string, unknown> {
+function formatPlan(plan: import('@cassicore/foundation').Plan): Record<string, unknown> {
   const sortedSteps = [...plan.steps].sort((a, b) => a.order - b.order)
   const available = plan.steps.filter(s => s.status === 'approved' && !s.assignee).length
   const claimed = plan.steps.filter(s => s.status === 'in_progress' && s.assignee).length
@@ -1636,7 +1636,7 @@ function handleBbSearch(blackboard: Blackboard, input: Record<string, unknown>):
   if (!pattern) return JSON.stringify({ error: 'pattern is required.' })
 
   const boards = Array.isArray(input.boards)
-    ? input.boards.map(String) as import('../../../types/blackboard-search.js').SearchableBoard[]
+    ? input.boards.map(String) as import('@cassicore/foundation').SearchableBoard[]
     : undefined
   const limitPerBoard = typeof input.limit_per_board === 'number' ? input.limit_per_board : undefined
   const cursor = typeof input.cursor === 'string' ? input.cursor : undefined
@@ -1659,7 +1659,7 @@ function handleBbSearch(blackboard: Blackboard, input: Record<string, unknown>):
 
 function handleBbSearchChannel(blackboard: Blackboard, input: Record<string, unknown>): string {
   const channel = typeof input.channel === 'string'
-    ? input.channel as import('../../../types/flux-team.js').BlackboardChannel
+    ? input.channel as import('@cassicore/foundation').BlackboardChannel
     : undefined
   const pattern = typeof input.pattern === 'string' ? input.pattern : undefined
   const cursor = typeof input.cursor === 'string' ? input.cursor : undefined
@@ -1692,10 +1692,10 @@ function handleBbSearchReport(blackboard: Blackboard, input: Record<string, unkn
   const cursor = typeof input.cursor === 'string' ? input.cursor : undefined
   const limit = typeof input.limit === 'number' ? input.limit : undefined
   const type = typeof input.type === 'string'
-    ? input.type as import('../../../types/flux-team.js').ReportSectionType
+    ? input.type as import('@cassicore/foundation').ReportSectionType
     : undefined
   const status = typeof input.status === 'string'
-    ? input.status as import('../../../types/flux-team.js').ReportSectionStatus
+    ? input.status as import('@cassicore/foundation').ReportSectionStatus
     : undefined
   const author = typeof input.author === 'string' ? input.author : undefined
   const since = typeof input.since === 'number' ? input.since : undefined
@@ -1718,7 +1718,7 @@ function handleBbSearchPlan(blackboard: Blackboard, input: Record<string, unknow
   const cursor = typeof input.cursor === 'string' ? input.cursor : undefined
   const limit = typeof input.limit === 'number' ? input.limit : undefined
   const status = typeof input.status === 'string'
-    ? input.status as import('../../../types/flux-team.js').PlanStepStatus
+    ? input.status as import('@cassicore/foundation').PlanStepStatus
     : undefined
   const assignee = typeof input.assignee === 'string' ? input.assignee : undefined
   const priority = typeof input.priority === 'string'

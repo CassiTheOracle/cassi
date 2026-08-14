@@ -16,8 +16,8 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { homedir } from 'node:os'
-import type { ILogger } from '../../../types/interfaces.js'
-import type { BlackboardChannel, BlackboardEntry, BlackboardState } from '../../../types/flux-team.js'
+import type { ILogger } from '@cassicore/foundation'
+import type { BlackboardChannel, BlackboardEntry, BlackboardState } from '@cassicore/foundation'
 import type {
   PaginatedResult,
   ChannelSearchOptions,
@@ -31,14 +31,14 @@ import type {
   ChangeWindow,
   BlackboardWatchResult,
   SearchableBoard,
-} from '../../../types/blackboard-search.js'
+} from '@cassicore/foundation'
 import type {
   FluxScratchpadEntry,
   FluxToolRecord,
   ArtifactEntry,
   PlanStep,
   ReportSection,
-} from '../../../types/flux-team.js'
+} from '@cassicore/foundation'
 import type { BlackboardSummary } from './blackboard.js'
 import { Blackboard } from './blackboard.js'
 

@@ -10,8 +10,8 @@
  * return JSON-formatted results.
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
-import type { Plan, PlanStep } from '../../../types/flux-team.js'
+import type { ILogger } from '@cassicore/foundation'
+import type { Plan, PlanStep } from '@cassicore/foundation'
 import type { Blackboard } from './blackboard.js'
 
 /** Posture names that can interact with the plan */

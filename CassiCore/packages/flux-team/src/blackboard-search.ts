@@ -9,19 +9,19 @@ import {
   MAX_PATTERN_LENGTH,
   DEFAULT_SEARCH_LIMIT,
   MAX_SEARCH_LIMIT,
-} from '../../../types/blackboard-search.js'
+} from '@cassicore/foundation'
 import type {
   SearchCursor,
   PaginatedResult,
   BaseSearchOptions,
-} from '../../../types/blackboard-search.js'
+} from '@cassicore/foundation'
 
 // Re-export constants for convenience
 export {
   MAX_PATTERN_LENGTH,
   DEFAULT_SEARCH_LIMIT,
   MAX_SEARCH_LIMIT,
-} from '../../../types/blackboard-search.js'
+} from '@cassicore/foundation'
 
 
 /**
