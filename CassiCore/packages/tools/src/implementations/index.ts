@@ -57,9 +57,9 @@ import { workflowDefinition, makeWorkflowHandler } from './workflow.js'
 import type { IMemory } from "@cassicore/foundation"
 import type { ISessionManager } from "@cassicore/foundation"
 import type { ToolRegistry } from '../registry.js'
-import type { TurnPipeline } from '../vendor/core/turn-pipeline.js'
+import type { TurnPipeline } from '../ports/turn-pipeline.js'
 import type { IEventBus, ILogger } from "@cassicore/foundation"
-import type { SessionStore } from '../vendor/core/session-store.js'
+import type { SessionStore } from '../ports/session-store.js'
 import type { EventHistory } from '@cassicore/events'
 
 

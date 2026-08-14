@@ -1,11 +1,12 @@
 /**
- * VENDOR RUNTIME STUB — `core/tool-proxy-middleware.ts` (host, P7).
+ * TOOLS-LOCAL — tool proxy middleware seam (shell-exec).
  *
- * Placeholder for the tool proxy middleware seam consumed by shell-exec.ts
- * (tools). Signature-faithful (`executeToolWithProxy`, `isToolProxyEnabled`);
- * no proxy endpoint configured in the stub — falls through to the native
- * executor, matching the source's "no CASSI_TOOL_PROXY_URL" path. Owned by the
- * host package (P7). Re-pointed there.
+ * Signature-faithful proxy seam for shell execution (`executeToolWithProxy`,
+ * `isToolProxyEnabled`). This is a tools-owned capability, NOT a host-vendored
+ * dependency: when `CASSI_TOOL_PROXY_URL` is unset (default) it falls through
+ * to the native executor, matching the source's "no CASSI_TOOL_PROXY_URL"
+ * path. Relocated out of `vendor/core/` (where it was mislabeled as a host
+ * stub) into the tools package proper — P1 host↔tools|mcp cycle resolution.
  */
 
 /** Proxy tool call request shape. */

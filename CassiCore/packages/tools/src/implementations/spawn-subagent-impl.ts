@@ -14,8 +14,8 @@ import { generateShortId, generateReadableId } from '../vendor/core/utils/ids.js
 
 import type { IEventBus, ILogger } from "@cassicore/foundation"
 import type { ISessionManager, Session, Message } from "@cassicore/foundation"
-import type { SessionStore } from '../vendor/core/session-store.js'
-import type { TurnPipeline } from '../vendor/core/turn-pipeline.js'
+import type { SessionStore } from '../ports/session-store.js'
+import type { TurnPipeline } from '../ports/turn-pipeline.js'
 
 interface SessionPipelineLike {
   processTurn(
