@@ -25,9 +25,9 @@
  * quietly fail on the Mnemic Field side.
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
-import type { MnemicField } from '../mnemic-field/index.js'
-import type { EngramType, SynapseType } from '../mnemic-field/types.js'
+import type { ILogger } from '@cassicore/foundation'
+import type { MnemicField } from './vendor/core/intelligence/mnemic-field/index.js'
+import type { EngramType, SynapseType } from './vendor/core/intelligence/mnemic-field/types.js'
 import type { HelixKindleEvent } from './helix-locus.js'
 import type { HelixLocus } from './helix-locus.js'
 import type { HelixJournal } from './helix-journal.js'

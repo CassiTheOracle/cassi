@@ -17,14 +17,14 @@
  * - Yin actively stress-tests, searches for edge cases, and posts challenges
  */
 
-import type { ILogger, IEventBus } from '../../../types/interfaces.js'
-import type { Message, ContentBlock, CompletionOpts } from '../../../types/runtime.js'
-import type { ModelHandle } from '../../model-pool/types.js'
-import type { IModelDirective, ModelConfig } from '../../../types/model-routing.js'
-import type { ToolExecutor } from '../../tools/executor.js'
-import type { ToolRegistry } from '../../tools/registry.js'
-import type { PlanHandler } from '../flux-team/plan-handler.js'
-import type { Blackboard } from '../flux-team/blackboard.js'
+import type { ILogger, IEventBus } from '@cassicore/foundation'
+import type { Message, ContentBlock, CompletionOpts } from '@cassicore/foundation'
+import type { ModelHandle } from './vendor/core/model-pool/types.js'
+import type { IModelDirective, ModelConfig } from '@cassicore/foundation'
+import type { ToolExecutor } from './vendor/core/tools/executor.js'
+import type { ToolRegistry } from './vendor/core/tools/registry.js'
+import type { PlanHandler } from './vendor/core/intelligence/flux-team/plan-handler.js'
+import type { Blackboard } from './vendor/core/intelligence/flux-team/blackboard.js'
 import { WorkStream } from './work-stream.js'
 import type { UnityStatusThresholds } from './work-stream.js'
 import type { DialecticChannel } from './dialectic-channel.js'
@@ -32,17 +32,17 @@ import { HelixWorkStream } from './helix-coordinator.js'
 import type { HelixStore } from './helix-store.js'
 import type { WorkUnit, FileChange, ToolCallSummary, ToolResultSummary } from './work-types.js'
 import type { Posture as LumenPostureType } from './dialectic-channel.js'
-import type { InferenceResult, ParsedToolCall } from '../../../types/cassi-agent.js'
+import type { InferenceResult, ParsedToolCall } from '@cassicore/foundation'
 import type { HelixRole, HelixPosture, HelixPostureResult, TraitVector } from './types.js'
 import { TRAIT_AXES, UNITY_PRESET, YANG_PRESET, YIN_PRESET, traitToAttentionParams } from './types.js'
 import type { HelixBrainstem } from './brainstem.js'
 import type { PostureModule, PostureSignalOpts } from './posture-module.js'
-import type { SignalType } from '../workspace/index.js'
+import type { SignalType } from './vendor/core/intelligence/workspace/index.js'
 import type { HelixTelemetry } from './helix-telemetry.js'
-import type { Aurora } from '../aurora/index.js'
+import type { Aurora } from './vendor/core/intelligence/aurora/index.js'
 import type { HelixJournal } from './helix-journal.js'
 import type { PendingGuidance } from './brainstem-types.js'
-import { appendMentorFlagLine } from '../constellation/helix-goal-lamina.js'
+import { appendMentorFlagLine } from './vendor/core/intelligence/constellation/helix-goal-lamina.js'
 import type { HelixSynapse } from './helix-synapse.js'
 import {
   isHelixMetaTool,
@@ -57,17 +57,17 @@ import {
   handleBlackboardToolCall,
   isBlackboardMetaTool,
   getBlackboardToolSchemas,
-} from '../flux-team/blackboard-tools.js'
+} from './vendor/core/intelligence/flux-team/blackboard-tools.js'
 import {
   BasePostureRunner,
   isReadOnlyTool,
   isMemoryTool,
   findLastIndex,
-} from '../cassi-agent/base-posture-runner.js'
+} from './vendor/core/intelligence/cassi-agent/base-posture-runner.js'
 import { DriftDetector } from './drift-detector.js'
 import { TestLock } from './testlock.js'
 import type { TestLockPersistence, SealedTestSpec, TestLockVerificationStatus, TestLockVerification } from './testlock.js'
-import { estimateTokens } from '../shared/token-estimation.js'
+import { estimateTokens } from './vendor/core/intelligence/shared/token-estimation.js'
 import {
   getCodeConsolidatedToolSchema,
   WEB_CONSOLIDATED_TOOL,
@@ -75,7 +75,7 @@ import {
   executeCodeConsolidatedTool,
   executeBrowserConsolidatedTool,
   executeWebConsolidatedTool,
-} from '../../../mcp/gateway/index.js'
+} from './vendor/mcp/gateway/index.js'
 
 
 
@@ -204,7 +204,7 @@ export interface HelixPostureRunnerOpts {
   jobId?: string
   postureSlot?: string
   moduleDebugSessionId?: string
-  contextBudgetCoordinator?: import('../cassi-agent/context-budget-coordinator.js').ContextBudgetCoordinator
+  contextBudgetCoordinator?: import('./vendor/core/intelligence/cassi-agent/context-budget-coordinator.js').ContextBudgetCoordinator
   /** Configurable thresholds for UnityStatus proactive signals to reviewers */
   unityStatusThresholds?: UnityStatusThresholds
   /** Brainstem — cognitive organizer (replaces Mentor) */
@@ -222,13 +222,13 @@ export interface HelixPostureRunnerOpts {
    * LaminaField — when provided, mentor flag events append a "Mentor noted: ..."
    * line to this Helix's `helix-goal` lamina. PR-2 of helix-goal-lamina spec.
    */
-  lamina?: import('../lamina/index.js').LaminaField
+  lamina?: import('./vendor/core/intelligence/lamina/index.js').LaminaField
   /** ContextChunkIndex for intelligent context management (pinning, eviction, scoring) */
   contextChunkIndex?: import('./context-chunk-index.js').ContextChunkIndex
   /** Thalamus for context curation during long-running sessions */
-  thalamus?: import('../thalamus/index.js').ThalamusModule
+  thalamus?: import('./vendor/core/intelligence/thalamus/index.js').ThalamusModule
   /** Cross-session topic index for sharing Thalamus insights across sessions */
-  crossSessionIndex?: import('../thalamus/cross-session-index.js').CrossSessionTopicIndex
+  crossSessionIndex?: import('./vendor/core/intelligence/thalamus/cross-session-index.js').CrossSessionTopicIndex
   /** Callback fired when Unity posts a work unit */
   onWorkUnit?: (wu: import('./work-types.js').WorkUnit, iteration: number) => void
   /** Callback fired during streaming with real-time token activity */
@@ -238,7 +238,7 @@ export interface HelixPostureRunnerOpts {
    * WHY: Templates define per-posture tool access (e.g., 'read-only+memory' for reviewers),
    * but the old code hardcoded `role === 'unity'`. This lets posture config drive access.
    */
-  flexToolAccess?: import('../constellation/types.js').ToolAccessLevel
+  flexToolAccess?: import('./vendor/core/intelligence/constellation/types.js').ToolAccessLevel
   /**
    * Tool filter (allow/deny lists) from Constellation or Helix pipeline.
    * Applied on top of posture-level access restrictions.
@@ -306,11 +306,11 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   private readonly traitVector?: TraitVector
   private readonly attentionParams: { attentionRadius: number; momentum: number; halfLifeTurns: number; capacity: number }
   private readonly helixSynapse?: HelixSynapse
-  private readonly lamina?: import('../lamina/index.js').LaminaField
+  private readonly lamina?: import('./vendor/core/intelligence/lamina/index.js').LaminaField
   private readonly contextChunkIndex?: import('./context-chunk-index.js').ContextChunkIndex
   private readonly onWorkUnit?: (wu: WorkUnit, iteration: number) => void
   private readonly onStreamActivity?: (event: StreamActivityEvent) => void
-  private readonly flexToolAccess?: import('../constellation/types.js').ToolAccessLevel
+  private readonly flexToolAccess?: import('./vendor/core/intelligence/constellation/types.js').ToolAccessLevel
   private readonly toolProfile?: import('./helix-pipeline.js').HelixToolProfile
   private readonly toolFilter?: { allow?: string[]; deny?: string[] }
   private readonly postureModule?: PostureModule
@@ -588,7 +588,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   /**
    * Override pushMessage to persist conversations to HelixStore for post-mortem.
    */
-  protected override pushMessage(msg: import('../../../types/runtime.js').Message): void {
+  protected override pushMessage(msg: import('@cassicore/foundation').Message): void {
     super.pushMessage(msg)
     this.helixSynapse?.appendMessage(this.role, msg)
     // Persist to HelixStore for forensic analysis

@@ -10,12 +10,12 @@
  *   Brainstem -> Postures: Guidance injection, annotations, pattern detection
  */
 
-import type { ILogger, IEventBus } from '../../../types/interfaces.js'
-import type { IModelDirective } from '../../../types/model-routing.js'
-import type { ContextDistiller } from '../context-distiller.js'
-import type { ModelPool } from '../../model-pool/index.js'
-import type { ToolExecutor } from '../../tools/executor.js'
-import type { ToolRegistry } from '../../tools/registry.js'
+import type { ILogger, IEventBus } from '@cassicore/foundation'
+import type { IModelDirective } from '@cassicore/foundation'
+import type { ContextDistiller } from './vendor/core/intelligence/context-distiller.js'
+import type { ModelPool } from './vendor/core/model-pool/index.js'
+import type { ToolExecutor } from './vendor/core/tools/executor.js'
+import type { ToolRegistry } from './vendor/core/tools/registry.js'
 import type { HelixProjectOpts, HelixResult } from './types.js'
 import type { HelixStore, TestLockRow } from './helix-store.js'
 // REMOVED: Blackboard imports — deprecated. Now uses LaminaField + GlobalWorkspace
@@ -23,7 +23,7 @@ import type { HelixStore, TestLockRow } from './helix-store.js'
 // import type { Blackboard, BlackboardSummary } from '../flux-team/blackboard.js'
 import type { WorkStream } from './work-stream.js'
 import type { DialecticChannel } from './dialectic-channel.js'
-import type { ModuleSessionRegistry } from '../module-session-registry.js'
+import type { ModuleSessionRegistry } from './vendor/core/intelligence/module-session-registry.js'
 import type { HelixSynapseLLM } from './helix-synapse.js'
 import { runHelixPipeline, SessionState } from './helix-pipeline.js'
 import { HelixWorkStream, HelixCoordinator } from './helix-coordinator.js'
@@ -146,7 +146,7 @@ export interface HelixOrchestrator {
   setToolExecutor(executor: ToolExecutor): void
   setStore(store: HelixStore): void
   setModelDirective(directive: IModelDirective): void
-  setThalamus(thalamus: import('../thalamus/index.js').ThalamusModule): void
+  setThalamus(thalamus: import('./vendor/core/intelligence/thalamus/index.js').ThalamusModule): void
   setContextDistiller(distiller: ContextDistiller): void
   setModuleRegistry(registry: ModuleSessionRegistry): void
   getHealth(): { healthy: boolean; lastRun?: Date; errorCount: number; activeSessionCount: number; modelPoolAvailable: boolean }
@@ -174,7 +174,7 @@ export function createHelix(
   let storedModelDirective: IModelDirective | undefined
   let storedContextDistiller: ContextDistiller | undefined
   let storedModuleDebugSessionId: string | undefined
-  let storedThalamus: import('../thalamus/index.js').ThalamusModule | undefined
+  let storedThalamus: import('./vendor/core/intelligence/thalamus/index.js').ThalamusModule | undefined
   const activeSessions = new Map<string, () => void>()
   const activeWorkStreams = new Map<string, WorkStream>()
   const activeDialecticChannels = new Map<string, DialecticChannel>()
@@ -262,7 +262,7 @@ export function createHelix(
       storedModuleDebugSessionId = registry.getOrCreate('helix').id
     },
 
-    setThalamus(thalamus: import('../thalamus/index.js').ThalamusModule): void {
+    setThalamus(thalamus: import('./vendor/core/intelligence/thalamus/index.js').ThalamusModule): void {
       storedThalamus = thalamus
     },
 

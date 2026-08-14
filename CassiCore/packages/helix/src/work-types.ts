@@ -5,7 +5,7 @@
  * Dyad postures work in a streaming pipeline: Yang creates, Yin refines, Apex oversees.
  */
 
-import type { Blackboard } from '../flux-team/blackboard.js'
+import type { Blackboard } from './vendor/core/intelligence/flux-team/blackboard.js'
 
 
 export type DyadRole = 'yang' | 'yin' | 'apex' | 'unity'
@@ -322,10 +322,10 @@ export interface DyadResult {
    * Incremental report built by all postures during the session.
    * Only present when a Blackboard was wired.
    */
-  report?: import('../../../types/flux-team.js').Report
+  report?: import('@cassicore/foundation').Report
   /**
    * Snapshot of the Blackboard state at session completion.
    * Contains all channels, scratchpad, plan, report, and artifact data.
    */
-  blackboard?: import('../../../types/flux-team.js').BlackboardState
+  blackboard?: import('@cassicore/foundation').BlackboardState
 }

@@ -24,8 +24,8 @@
  *   Phase F — Quiescence-based termination detection.
  */
 
-import type { ILogger, IEventBus } from '../../../types/interfaces.js'
-import type { CognitiveSignal, GlobalWorkspace } from '../workspace/index.js'
+import type { ILogger, IEventBus } from '@cassicore/foundation'
+import type { CognitiveSignal, GlobalWorkspace } from './vendor/core/intelligence/workspace/index.js'
 import type { HelixPosture } from './types.js'
 
 import { PostureModule } from './posture-module.js'
@@ -38,10 +38,10 @@ import { UNITY_POSTURE, YANG_POSTURE, YIN_POSTURE } from './helix-postures.js'
 import { HelixLocus } from './helix-locus.js'
 import type { HelixLocusOpts } from './helix-locus.js'
 import { HelixMnemicBridge } from './helix-mnemic-bridge.js'
-import type { MnemicField } from '../mnemic-field/index.js'
-import type { Aurora } from '../aurora/index.js'
-import type { LaminaField } from '../lamina/index.js'
-import { appendCoordinationLine } from '../constellation/helix-goal-lamina.js'
+import type { MnemicField } from './vendor/core/intelligence/mnemic-field/index.js'
+import type { Aurora } from './vendor/core/intelligence/aurora/index.js'
+import type { LaminaField } from './vendor/core/intelligence/lamina/index.js'
+import { appendCoordinationLine } from './vendor/core/intelligence/constellation/helix-goal-lamina.js'
 import { HelixQuiescenceDetector } from './helix-quiescence.js'
 import type { HelixQuiescenceConfig, HelixQuiescenceReport } from './helix-quiescence.js'
 

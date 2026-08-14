@@ -14,7 +14,7 @@
  * structured decisions about what to observe and how to respond.
  */
 
-import type { ILogger, IEventBus } from '../../../types/interfaces.js'
+import type { ILogger, IEventBus } from '@cassicore/foundation'
 import type { WorkUnit } from './work-types.js'
 import type {
   BrainstemAnnotation,
@@ -29,13 +29,13 @@ import {
   DEFAULT_BRAINSTEM_CONFIG,
   createInitialBrainstemState,
 } from './brainstem-types.js'
-import type { BranchApproach, CorpusDirective } from '../constellation/corpus-types.js'
+import type { BranchApproach, CorpusDirective } from './vendor/core/intelligence/constellation/corpus-types.js'
 import type {
   MiniHelixSession,
   MiniHelixDeps,
   MiniHelixConfig,
-} from '../mini-helix/mini-helix-types.js'
-import { createMiniHelixSession } from '../mini-helix/mini-helix-runner.js'
+} from './vendor/core/intelligence/mini-helix/mini-helix-types.js'
+import { createMiniHelixSession } from './vendor/core/intelligence/mini-helix/mini-helix-runner.js'
 import {
   createBrainstemTools,
   buildBrainstemSystemPrompt,

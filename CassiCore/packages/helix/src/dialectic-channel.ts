@@ -147,7 +147,7 @@ export interface EditReviewMessage {
 }
 
 
-import type { IEventBus } from '../../../types/interfaces.js'
+import type { IEventBus } from '@cassicore/foundation'
 import { DialecticReportManager } from './dialectic-report-manager.js'
 
 
@@ -1106,7 +1106,7 @@ export class DialecticChannel {
   /**
    * Initialize the report for this session.
    */
-  initReport(goal: string): import('../../../types/flux-team.js').Report {
+  initReport(goal: string): import('@cassicore/foundation').Report {
     return this.reportManager.initReport(goal)
   }
 
@@ -1114,8 +1114,8 @@ export class DialecticChannel {
    * Add a section to the report.
    */
   addReportSection(section: {
-    type: import('../../../types/flux-team.js').ReportSectionType
-    status?: import('../../../types/flux-team.js').ReportSectionStatus
+    type: import('@cassicore/foundation').ReportSectionType
+    status?: import('@cassicore/foundation').ReportSectionStatus
     title: string
     content: string
     author: string
@@ -1125,7 +1125,7 @@ export class DialecticChannel {
     respondsTo?: string
     challenges?: string
     supports?: string
-  }): import('../../../types/flux-team.js').ReportSection {
+  }): import('@cassicore/foundation').ReportSection {
     return this.reportManager.addSection(section)
   }
 
@@ -1148,7 +1148,7 @@ export class DialecticChannel {
   /**
    * Revise an existing section — creates a new active section that supersedes the original.
    */
-  reviseReportSection(sectionId: string, content: string, _reason?: string): import('../../../types/flux-team.js').ReportSection | null {
+  reviseReportSection(sectionId: string, content: string, _reason?: string): import('@cassicore/foundation').ReportSection | null {
     return this.reportManager.reviseSection(sectionId, content, _reason)
   }
 
@@ -1170,7 +1170,7 @@ export class DialecticChannel {
   /**
    * Get the current report.
    */
-  getReport(): import('../../../types/flux-team.js').Report | null {
+  getReport(): import('@cassicore/foundation').Report | null {
     return this.reportManager.getReport()
   }
 
@@ -1182,14 +1182,14 @@ export class DialecticChannel {
     filterAuthor?: string
     filterStatus?: string
     since?: number
-  }): import('../../../types/flux-team.js').ReportSection[] {
+  }): import('@cassicore/foundation').ReportSection[] {
     return this.reportManager.getView(opts)
   }
 
   /**
    * Calculate quality metrics for the report.
    */
-  getReportMetrics(): import('../../../types/flux-team.js').ReportQualityMetrics {
+  getReportMetrics(): import('@cassicore/foundation').ReportQualityMetrics {
     return this.reportManager.getMetrics()
   }
 

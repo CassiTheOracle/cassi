@@ -16,7 +16,7 @@
  * stays in the pipeline for orderly cleanup.
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type { HelixJournal, HelixJournalEntry } from './helix-journal.js'
 import type { HelixLocus, HelixLocusStats } from './helix-locus.js'
 

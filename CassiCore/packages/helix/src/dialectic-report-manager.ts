@@ -10,7 +10,7 @@
  * profile for backward compatibility.
  */
 
-import type { Report, ReportSection, ReportSectionType, ReportSectionStatus, ReportQualityMetrics } from '../../../types/flux-team.js'
+import type { Report, ReportSection, ReportSectionType, ReportSectionStatus, ReportQualityMetrics } from '@cassicore/foundation'
 
 export class DialecticReportManager {
   private report: Report | null = null

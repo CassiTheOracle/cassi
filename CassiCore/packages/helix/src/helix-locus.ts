@@ -16,8 +16,8 @@
  * views to render.
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
-import type { CognitiveSignal } from '../workspace/index.js'
+import type { ILogger } from '@cassicore/foundation'
+import type { CognitiveSignal } from './vendor/core/intelligence/workspace/index.js'
 
 
 export type HelixSparkKind =

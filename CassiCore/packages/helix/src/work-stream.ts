@@ -34,7 +34,7 @@ import type {
   FileChange,
 } from './work-types.js'
 
-import type { IEventBus } from '../../../types/interfaces.js'
+import type { IEventBus } from '@cassicore/foundation'
 
 
 

@@ -11,7 +11,7 @@
  *   - Synthesis: produce the final integrated summary
  */
 
-import type { CompletionOpts } from '../../../types/runtime.js'
+import type { CompletionOpts } from '@cassicore/foundation'
 
 type ToolSchema = NonNullable<CompletionOpts['tools']>[number]
 

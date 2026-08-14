@@ -11,7 +11,7 @@
  * `helix-` source prefix, avoiding duplicate instrumentation inside PostureModule.
  */
 
-import type { ILogger, IEventBus } from '../../../types/interfaces.js'
+import type { ILogger, IEventBus } from '@cassicore/foundation'
 import type { HelixJournal } from './helix-journal.js'
 
 

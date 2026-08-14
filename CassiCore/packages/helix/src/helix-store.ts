@@ -21,9 +21,9 @@ import path from 'node:path'
 
 import Database from 'better-sqlite3'
 
-import type { ILogger } from '../../../types/interfaces.js'
-import type { BlackboardState, Report } from '../../../types/flux-team.js'
-import { getDataDir } from '../../utils/paths.js'
+import type { ILogger } from '@cassicore/foundation'
+import type { BlackboardState, Report } from '@cassicore/foundation'
+import { getDataDir } from '@cassicore/foundation'
 
 
 const SCHEMA_VERSION = 7

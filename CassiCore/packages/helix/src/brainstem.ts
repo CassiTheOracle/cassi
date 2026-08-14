@@ -15,9 +15,9 @@
  *   Reviewers → dialectic → Brainstem → synthesis → Unity
  */
 
-import type { ILogger, IEventBus } from '../../../types/interfaces.js'
+import type { ILogger, IEventBus } from '@cassicore/foundation'
 import type { WorkUnit } from './work-types.js'
-import type { CorpusDirective } from '../constellation/corpus-types.js'
+import type { CorpusDirective } from './vendor/core/intelligence/constellation/corpus-types.js'
 import type {
   BranchDigest,
   BranchApproach,
@@ -29,7 +29,7 @@ import type {
   RetrospectiveTrigger,
   EffectivenessRecord,
   ElevatedPattern,
-} from '../constellation/corpus-types.js'
+} from './vendor/core/intelligence/constellation/corpus-types.js'
 import type {
   BrainstemConfig,
   BrainstemDeps,
@@ -69,8 +69,8 @@ interface WorkUnitQueueItem {
 import {
   WORK_UNIT_ANNOTATION_PHRASES,
   DRIFT_TYPE_PHRASES,
-} from '../phrase-prototypes.js'
-import type { MnemicField } from '../mnemic-field/index.js'
+} from '@cassicore/foundation'
+import type { MnemicField } from './vendor/core/intelligence/mnemic-field/index.js'
 
 export class HelixBrainstem {
   private deps: BrainstemDeps

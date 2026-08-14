@@ -16,12 +16,12 @@
  * Watchdog: steer-then-kill (2min warn → 4min escalate → 6min kill)
  */
 
-import type { ILogger, IEventBus } from '../../../types/interfaces.js'
-import type { ModelHandle } from '../../model-pool/types.js'
-import type { IModelDirective, ModelConfig } from '../../../types/model-routing.js'
-import type { ToolExecutor } from '../../tools/executor.js'
-import type { ToolRegistry } from '../../tools/registry.js'
-import type { PlanHandler } from '../flux-team/plan-handler.js'
+import type { ILogger, IEventBus } from '@cassicore/foundation'
+import type { ModelHandle } from './vendor/core/model-pool/types.js'
+import type { IModelDirective, ModelConfig } from '@cassicore/foundation'
+import type { ToolExecutor } from './vendor/core/tools/executor.js'
+import type { ToolRegistry } from './vendor/core/tools/registry.js'
+import type { PlanHandler } from './vendor/core/intelligence/flux-team/plan-handler.js'
 import type { HelixStore } from './helix-store.js'
 // REMOVED: Blackboard import — deprecated. Now uses LaminaField + GlobalWorkspace
 // SessionState replaces deprecated Blackboard for plan/report tracking
@@ -44,14 +44,14 @@ export class SessionState {
   }
 }
 import { WorkStream } from './work-stream.js'
-import { ContextBudgetCoordinator } from '../cassi-agent/context-budget-coordinator.js'
+import { ContextBudgetCoordinator } from './vendor/core/intelligence/cassi-agent/context-budget-coordinator.js'
 import { DialecticChannel } from './dialectic-channel.js'
 import { HelixCoordinator, HelixWorkStream, HelixDialecticMesh } from './helix-coordinator.js'
 import { HelixPostureRunner } from './helix-posture-runner.js'
 import { ContextChunkIndex } from './context-chunk-index.js'
 import { UNITY_POSTURE, YANG_REVIEWER_POSTURE, YIN_REVIEWER_POSTURE } from './helix-postures.js'
 import type { HelixResult, HelixCompletionStatus, HelixPostureResult } from './types.js'
-import { signalPromise } from '../../utils/abort.js'
+import { signalPromise } from './vendor/core/utils/abort.js'
 import { HelixBrainstem, createHelixBrainstem } from './brainstem.js'
 import type { BrainstemDeps } from './brainstem-types.js'
 import { HelixSynapse } from './helix-synapse.js'
@@ -59,9 +59,9 @@ import type { HelixSynapseConfig, HelixSynapseLLM } from './helix-synapse.js'
 import { PostureModule } from './posture-module.js'
 import { HelixTelemetry } from './helix-telemetry.js'
 import { HelixConductor, shouldUseConductor } from './helix-conductor.js'
-import type { GlobalWorkspace } from '../workspace/index.js'
-import type { MnemicField } from '../mnemic-field/index.js'
-import type { Aurora } from '../aurora/index.js'
+import type { GlobalWorkspace } from './vendor/core/intelligence/workspace/index.js'
+import type { MnemicField } from './vendor/core/intelligence/mnemic-field/index.js'
+import type { Aurora } from './vendor/core/intelligence/aurora/index.js'
 
 
 
@@ -122,10 +122,10 @@ export interface HelixPipelineOpts {
   moduleDebugSessionId?: string
 
   /** Thalamus for context curation during long-running sessions */
-  thalamus?: import('../thalamus/index.js').ThalamusModule
+  thalamus?: import('./vendor/core/intelligence/thalamus/index.js').ThalamusModule
 
   /** Cross-session topic index for sharing Thalamus insights across sessions */
-  crossSessionIndex?: import('../thalamus/cross-session-index.js').CrossSessionTopicIndex
+  crossSessionIndex?: import('./vendor/core/intelligence/thalamus/cross-session-index.js').CrossSessionTopicIndex
 
   /** Constellation ID this Helix session belongs to (for cross-session scoping) */
   constellationId?: string
@@ -136,7 +136,7 @@ export interface HelixPipelineOpts {
    * Threaded through from the Constellation; standalone Helix invocations
    * can omit it.
    */
-  lamina?: import('../lamina/index.js').LaminaField
+  lamina?: import('./vendor/core/intelligence/lamina/index.js').LaminaField
 
   /** Configurable thresholds for UnityStatus proactive signals to reviewers */
   unityStatusThresholds?: import('./work-stream.js').UnityStatusThresholds
@@ -186,9 +186,9 @@ export interface HelixPipelineOpts {
    * (e.g., read-only for meditation explorers).
    */
   toolAccessOverrides?: {
-    unity?: import('../constellation/types.js').ToolAccessLevel
-    yang?: import('../constellation/types.js').ToolAccessLevel
-    yin?: import('../constellation/types.js').ToolAccessLevel
+    unity?: import('./vendor/core/intelligence/constellation/types.js').ToolAccessLevel
+    yang?: import('./vendor/core/intelligence/constellation/types.js').ToolAccessLevel
+    yin?: import('./vendor/core/intelligence/constellation/types.js').ToolAccessLevel
   }
 
   /**
@@ -401,7 +401,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
 
   let lastActivity = Date.now()
   let watchdog: import('./inactivity-watchdog.js').InactivityWatchdog | undefined
-  let hardCapTimeout: import('../../utils/activity-timeout.js').ActivityTimeout | undefined
+  let hardCapTimeout: import('./vendor/core/utils/activity-timeout.js').ActivityTimeout | undefined
   const onActivity = () => {
     lastActivity = Date.now()
     hardCapTimeout?.touch()
@@ -643,7 +643,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
 
 
 
-  const { ActivityTimeout } = await import('../../utils/activity-timeout.js')
+  const { ActivityTimeout } = await import('./vendor/core/utils/activity-timeout.js')
   hardCapTimeout = new ActivityTimeout({
     inactivityMs: inactivityKillMs,
     label: `helix-pipeline:${sessionId}`,

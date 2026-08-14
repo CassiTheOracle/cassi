@@ -8,7 +8,7 @@
  * reading without implementation.
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 
 
 /**

@@ -19,7 +19,7 @@
  * methods) remains intact. Only the broken methods are overridden.
  */
 
-import type { ILogger, IEventBus } from '../../../types/interfaces.js'
+import type { ILogger, IEventBus } from '@cassicore/foundation'
 import type { HelixRole } from './types.js'
 import { WorkStream } from './work-stream.js'
 import { DialecticChannel } from './dialectic-channel.js'

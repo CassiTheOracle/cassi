@@ -10,7 +10,7 @@
  * - EXECUTIVE_PLAN_TOOLS: approve, reject, update, finalize (Executive only)
  */
 
-import type { CompletionOpts } from '../../../types/runtime.js'
+import type { CompletionOpts } from '@cassicore/foundation'
 
 type ToolSchema = NonNullable<CompletionOpts['tools']>[number]
 

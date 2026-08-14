@@ -13,9 +13,9 @@
  *   - Corpus: emits context_edit directives for cross-Helix coordination
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
-import type { Message, ContentBlock } from '../../../types/runtime.js'
-import { estimateTokens } from '../shared/token-estimation.js'
+import type { ILogger } from '@cassicore/foundation'
+import type { Message, ContentBlock } from '@cassicore/foundation'
+import { estimateTokens } from './vendor/core/intelligence/shared/token-estimation.js'
 
 // classifyParagraph imported below for chunk tagging
 

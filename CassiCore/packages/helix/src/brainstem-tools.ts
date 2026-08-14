@@ -22,7 +22,7 @@ import type {
   MiniHelixToolDef,
   MiniHelixToolResult,
   MiniHelixToolHandler,
-} from '../mini-helix/mini-helix-types.js'
+} from './vendor/core/intelligence/mini-helix/mini-helix-types.js'
 import type { WorkUnit } from './work-types.js'
 import type {
   BrainstemAnnotation,
@@ -36,8 +36,8 @@ import type {
   BranchApproach,
   TopicContribution,
   SelfOrgAdjustment,
-} from '../constellation/corpus-types.js'
-import type { ILogger } from '../../../types/interfaces.js'
+} from './vendor/core/intelligence/constellation/corpus-types.js'
+import type { ILogger } from '@cassicore/foundation'
 
 
 // Context — Shared mutable state across tool handlers

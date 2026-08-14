@@ -18,7 +18,7 @@ import type { ConvergencePoint, UnresolvedTension } from './dialectic-channel.js
 // import type { Blackboard } from '../flux-team/blackboard.js'
 import type { DyadRole } from './work-types.js'
 import type { UnityStatusThresholds } from './work-stream.js'
-import type { GlobalWorkspace } from '../workspace/index.js'
+import type { GlobalWorkspace } from './vendor/core/intelligence/workspace/index.js'
 import type { AutoReportSection } from './brainstem-types.js'
 
 
@@ -396,7 +396,7 @@ export interface HelixResult {
   brainstem?: import('./brainstem-types.js').BrainstemResult
 
   /** Incremental report built by all postures */
-  report?: import('../../../types/flux-team.js').Report
+  report?: import('@cassicore/foundation').Report
   /** Blackboard snapshot at completion */
   /** Session state snapshot at completion (replaces deprecated Blackboard) */
   sessionState?: { plan: unknown; report: unknown }

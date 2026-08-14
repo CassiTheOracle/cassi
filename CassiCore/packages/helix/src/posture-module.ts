@@ -14,9 +14,9 @@
  * correlation id visible in any downstream observer).
  */
 
-import { BaseCognitiveModule } from '../base/cognitive-module.js'
-import type { CognitiveSignal, SignalType } from '../workspace/index.js'
-import type { ILogger } from '../../../types/interfaces.js'
+import { BaseCognitiveModule } from '@cassicore/foundation'
+import type { CognitiveSignal, SignalType } from './vendor/core/intelligence/workspace/index.js'
+import type { ILogger } from '@cassicore/foundation'
 import type { HelixPosture, HelixRole } from './types.js'
 
 

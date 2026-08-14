@@ -1,10 +1,10 @@
-import type { ILogger, IEventBus } from '../../../types/interfaces.js'
-import type { ContentBlock, Message, ThinkingLevel } from '../../../types/runtime.js'
+import type { ILogger, IEventBus } from '@cassicore/foundation'
+import type { ContentBlock, Message, ThinkingLevel } from '@cassicore/foundation'
 import type { HelixRole } from './types.js'
-import type { CrossSessionTopicIndex } from '../thalamus/cross-session-index.js'
-import { ObserverMemoryBridge, extractConceptHints, priorityToConfidence } from '../constellation/observer-memory-bridge.js'
-import type { ObserverMemorySource } from '../constellation/observer-memory-bridge.js'
-import { BroadcastDedupe, normalizeForDedupe } from '../constellation/observer-broadcast-dedupe.js'
+import type { CrossSessionTopicIndex } from './vendor/core/intelligence/thalamus/cross-session-index.js'
+import { ObserverMemoryBridge, extractConceptHints, priorityToConfidence } from './vendor/core/intelligence/constellation/observer-memory-bridge.js'
+import type { ObserverMemorySource } from './vendor/core/intelligence/constellation/observer-memory-bridge.js'
+import { BroadcastDedupe, normalizeForDedupe } from './vendor/core/intelligence/constellation/observer-broadcast-dedupe.js'
 import { ObserverActivityScheduler, type ObserverActivityConfig, type ObserverFireReason } from './observer-activity-scheduler.js'
 
 
