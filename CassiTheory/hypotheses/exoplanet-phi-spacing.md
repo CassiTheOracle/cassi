@@ -52,9 +52,14 @@ one-dimensional wake-sum beat. Pending status:
   ridge at ratio 0.545, dissipated by $t=40$). The ladder is kinematic; its
   dynamical realization in a disk is open, and the same caveat applies to the
   disk-gap reading.
-- **The period-ratio prediction** $P_{\text{out}}/P_{\text{in}} =
-  \varphi^{3/2} \approx 2.06$ (verified arithmetic) is unchanged and remains a
-  legitimate zero-parameter statistical test on the Kepler/TESS catalog (§3).
+- **The period-ratio prediction is tested.** The $P_{\text{out}}/P_{\text{in}}
+  branch (Prediction 54) ran on the real Kepler multi-planet catalog
+  (2026-08-14): the headline window $\varphi^{3/2} \approx 2.06$ sits at
+  $+1.03\sigma$ above the folded-window null — elevated but not above the
+  pre-registered $2\sigma$ bar; the only convergent elevated at $\ge
+  2\sigma$ (3:2, $+2.39\sigma$) is a standard mean-motion resonance; the
+  non-Fibonacci controls are all at baseline. Primary verdict **INDETERMINATE**;
+  the K2/TESS cross-check shows the 2.06 window at $+2.12\sigma$ (§8).
 - **Disk-gap branch now measured.** The ALMA DSHARP pooled successive-gap
   ratio test (Prediction 53) ran on real data (2026-08-13) and returned
   **SUPPORTS** at the pre-registered 2$\sigma$ threshold (§7): 10 of 22 pooled
@@ -189,15 +194,20 @@ and the remap is chosen after the fact.
 
 ## 5. Falsifiable Tests
 
-1. **Kepler period ratio excess at $\varphi^{3/2}$:** The distribution of
-   adjacent-planet period ratios from the Kepler multi-planet catalog should
-   show a peak at $P_{\text{out}}/P_{\text{in}} \approx 2.06$. Testable with
-   existing public data (NASA Exoplanet Archive). Untested here.
+1. **Kepler period ratio excess at $\varphi^{3/2}$ (tested):** The distribution
+   of adjacent-planet period ratios from the Kepler multi-planet catalog should
+   show a peak at $P_{\text{out}}/P_{\text{in}} \approx 2.06$. Run 2026-08-14
+   (Prediction 54, §8): the headline window is at $+1.03\sigma$ (elevated but
+   not significant); verdict **INDETERMINATE**. K2/TESS cross-check $+2.12\sigma$.
 
-2. **Resonance selectivity:** Fibonacci-convergent resonances (2:1, 3:2, 5:3,
-   8:5) should be more common than non-Fibonacci resonances at similar period
-   ratios. The 4:3 resonance (not a Fibonacci convergent) should be
-   underrepresented after controlling for detection bias. Untested here.
+2. **Resonance selectivity (partially tested):** Fibonacci-convergent
+   resonances (2:1, 3:2, 5:3, 8:5) should be more common than non-Fibonacci
+   resonances at similar period ratios. The 4:3 resonance (not a Fibonacci
+   convergent) should be underrepresented after controlling for detection
+   bias. Run 2026-08-14 (§8): the non-Fibonacci control windows (4:3, 7:3,
+   5:2) sit at or below baseline in both samples, consistent with the
+   selectivity claim; but the headline 2.06 window is not significantly
+   elevated in the primary Kepler sample.
 
 3. **Log-periodic $\varphi$-spacing in disk gaps (tested).** The ring/gap
    locations of ALMA-resolved protoplanetary disks should show
@@ -363,10 +373,132 @@ profiles).
 
 ---
 
+## 8. The Kepler Period-Ratio Test (Prediction 54)
+
+### 8.1 Pre-registered design
+
+The period-ratio branch of the spacing prediction—the adjacent-planet
+$P_{\text{out}}/P_{\text{in}}$ distribution in the Kepler/TESS multi-planet
+catalog—is now tested on real data. The decision tree is pre-registered in
+the script docstring (`experiments/kepler_phi_ratios/run_phi_ratios.py`,
+written before any analysis run):
+
+- **Data:** confirmed transit-discovered planets in multi-planet systems from
+  the NASA Exoplanet Archive `ps` table (`default_flag=1`,
+  `discoverymethod='Transit'`, `disc_facility` CONTAINS `'Kepler'`); each
+  host's planets ordered by orbital period, adjacent
+  $P_{\text{out}}/P_{\text{in}}$ ratios formed and pooled. Acquisition,
+  provenance and SHA-256 hashes in
+  `experiments/kepler_phi_ratios/acquire_kepler_catalog.py` and
+  `data/raw/sha256.txt`. K2/TESS transit multi-planet systems are pulled and
+  reported as a cross-check.
+- **Windows (fixed half-width 0.05):** the clean discriminating signal is the
+  headline window $S = [\varphi^{3/2} \pm 0.05] = [2.0082, 2.1082]$ — the
+  value $P_{\text{out}}/P_{\text{in}} = \varphi^{3/2} \approx 2.06$ is *not* a
+  standard 2-body mean-motion resonance (2:1 sits at 2.0), so it separates the
+  $\varphi$ prediction from generic resonance-locking. The $\varphi$-belt
+  $[1.568, 1.668]$ captures $\varphi = 1.618$ and its tight convergent cluster
+  (8:5 = 1.6, 13/8 = 1.625, 5:3 = 1.667). The Fibonacci-convergent resonance
+  windows (3:2 = 1.5, 2:1 = 2.0) are recorded as confounded secondary evidence.
+  The non-$\varphi$, non-Fibonacci resonance controls 4:3 = 1.333, 7:3 =
+  2.333, 5:2 = 2.5 **must not** be elevated.
+- **Null (folded-window, matching predictions 45/46):** the null is the
+  distribution of counts in equal-width ($\pm 0.05$) windows placed across the
+  same $P_{\text{out}}/P_{\text{in}}$ range $[1.0, 3.0]$, never a unit
+  interval; $E$, $s$ = mean/std of these sliding-window counts (40\,001
+  centers). The significance of a target window is $(N - E)/s$. This accounts
+  for the global shape of the ratio distribution, including the Kepler
+  compact-system ("peas-in-a-pod") bias that piles counts at low ratios.
+- **Verdict:** count $N(S)$ in the headline window and $N(C_j)$ in each
+  control:
+  **SUPPORTS** if $N(S) \ge E + 2s$ and $\max_j (N(C_j)-E)/s < 2$;
+  **SUPPORTS NULL** if $N(S) < E + 2s$ and some control window
+  $\ge E + 2s$; else **INDETERMINATE**.
+
+### 8.2 Data and provenance
+
+- **Source:** NASA Exoplanet Archive (exoplanetarchive.ipac.caltech.edu,
+  TAP `/TAP/sync`, `ps` table), the confirmed multi-planet subset.
+  Acquired 2026-08-14 over HTTPS; SHA-256 of the fetched CSV bytes recorded
+  (`experiments/kepler_phi_ratios/data/raw/sha256.txt`).
+- **Kepler primary:** 507 multi-planet systems, 1286 confirmed planets, 779
+  adjacent period ratios; $n = 646$ ratios in the pre-registered sampling
+  range $[1.0, 4.0]$, median 1.951 (the compact-systems pile-up near 2:1).
+- **K2/TESS cross-check:** 202 systems, 491 planets, 236 ratios in range.
+
+### 8.3 Results
+
+**Primary (Kepler), $n = 646$ ratios:**
+
+| window | center | $N$ | $\sigma$ vs folded-window null |
+|---|---|---|---|
+| $S$ ($\varphi^{3/2}$, headline) | 2.06 | 47 | **$+1.03$** |
+| $\varphi$-belt | 1.618 | 44 | $+0.86$ |
+| 3:2 (convergent/MMR) | 1.5 | 70 | $+2.39$ |
+| 2:1 (convergent/MMR) | 2.0 | 33 | $+0.21$ |
+| 4:3 (control) | 1.333 | 24 | $-0.32$ |
+| 7:3 (control) | 2.333 | 25 | $-0.26$ |
+| 5:2 (control) | 2.5 | 21 | $-0.49$ |
+
+Folded-window null: $E = 29.4$, $s = 17.0$ (counts-per-window over
+$[1.0, 3.0]$).
+
+**Verdict (pre-registered): INDETERMINATE.** The headline
+$\varphi^{3/2} = 2.06$ window is elevated ($+1.03\sigma$, $N$=47 vs $E$=29.4)
+but sits below the pre-registered $2\sigma$ bar; the only window elevated
+$\ge 2\sigma$ (3:2 at $+2.39\sigma$) is a standard mean-motion resonance
+confounded with resonance-ubiquity; the non-Fibonacci control windows are all
+at or below baseline ($-0.3$ to $-0.5\sigma$), which is consistent with the
+selectivity claim but cannot carry the verdict alone.
+
+**K2/TESS cross-check ($n = 236$):** the headline 2.06 window is elevated at
+$+2.12\sigma$ ($N$=26 vs null mean 10.4, std 7.4), 3:2 at $+2.39\sigma$, 2:1
+at $+1.85\sigma$; controls at baseline. The primary (Kepler) sample is the
+pre-registered headline; the positive cross-check is reported but does not
+change the INDETERMINATE primary verdict.
+
+### 8.4 Detection power and selection effects
+
+- **Detection power:** a planted $\varphi^{3/2}$ excess (synthetic ratios
+  clustered at 2.06, log-normal scatter 0.02) is recovered by the decision
+  tree in 96% of realizations at 4% amplitude and 100% at $\ge 6%$ of the
+  sample (200 realizations per step). The pipeline would detect a genuine,
+  fully-realized $\varphi^{3/2}$ ladder at this sample size; the $+1.03\sigma$
+  headline reading is therefore a real non-detection, not a power-limited one.
+- **Selection effects:** the Kepler multi-planet sample is biased toward
+  compact, coplanar, short-period systems; the marginal
+  $P_{\text{out}}/P_{\text{in}}$ distribution piles up near 1.5–2.5
+  independent of any $\varphi$ physics. The folded-window null embeds the
+  observed marginal, so this bias is the comparison baseline rather than a
+  confound. Transit geometry multiplies the compactness bias but does not
+  prefer 2.06 over 2.05 or 2.10.
+- **Secondary null diagnostic (not part of the verdict):** against a
+  per-system log-uniform-reshuffle null (periods re-drawn uniform-in-log over
+  each system's span), the headline window shows a large sigma—but that null
+  does not reproduce the observed marginal ratio distribution (it suppresses
+  the real compact-system pile-up), so it is not the pre-registered baseline
+  and is reported here only as context.
+
+### 8.5 Verdict and honest reading
+
+The pre-registered decision tree on the real Kepler catalog returns
+**INDETERMINATE**. The clean, non-resonance headline prediction—an excess of
+adjacent-planet period ratios at $\varphi^{3/2} \approx 2.06$—is not
+significantly above background in the primary Kepler sample ($+1.03\sigma$),
+although the sign is in the predicted direction and the K2/TESS cross-check
+($+2.12\sigma$) is suggestive. Detection power is adequate (96–100% at
+$\ge 4\%$ amplitude), so the Kepler headline is a genuine non-detection
+rather than a weak-test artifact. The non-Fibonacci control windows (4:3,
+7:3, 5:2) are at or below baseline in both samples, consistent with (but not
+alone proof of) the selectivity claim. Tier stays **Hypothesized**; the
+branch is registered as **Prediction 54**.
+
+---
+
 ## References
 
 - `open-questions-cassi-answers.md`—C9 (cosmic web from wake-wave), G5 (3+1 dimensions)
-- `predictions/falsifiable-predictions.md`—$\varphi$-periodic $P(k)$ prediction; Prediction 51/52; **Prediction 53** (disk-gap $\varphi$-ladder)
+- `predictions/falsifiable-predictions.md`—$\varphi$-periodic $P(k)$ prediction; Prediction 51/52; **Prediction 53** (disk-gap $\varphi$-ladder); **Prediction 54** (Kepler period-ratio)
 - `foundations/bubble-edge-geometry.md` §3.1—the ring law (Derived conditional); §3.5—the honest negative; §3.6—the two no-ring nulls
 - `foundations/bubble-lattice-fabric.md` §3.2–3.3—nested sub-lattice, the ~1% nesting floor
 - `foundations/dimensionful-cascade.md`—the 292-step ladder
@@ -374,3 +506,6 @@ profiles).
 - `experiments/dsharp_phi_gaps/acquire_dsharp_gaps.py`—download + hash + parse of the DSHARP gap table
 - `experiments/dsharp_phi_gaps/stack_phi_gaps.py`—the pre-registered decision tree, null, detection power (run JSON `experiments/dsharp_phi_gaps/data/runs/<id>_gaps.json`)
 - Data: Andrews et al. 2018 (arXiv:1812.04040, DSHARP survey); Huang et al. 2018 (arXiv:1812.04041, annular substructures, Table `tab:ringpositions`)
+- `experiments/kepler_phi_ratios/acquire_kepler_catalog.py`—download + hash + parse of the NASA Exoplanet Archive multi-planet sample
+- `experiments/kepler_phi_ratios/run_phi_ratios.py`—the pre-registered decision tree, folded-window null, detection power (run JSON `experiments/kepler_phi_ratios/data/runs/<id>_phi_ratios.json`)
+- Data: NASA Exoplanet Archive `ps` (Kepler confirmed transit multi-planet; K2/TESS cross-check)

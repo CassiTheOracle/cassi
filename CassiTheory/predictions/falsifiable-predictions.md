@@ -373,6 +373,50 @@ et al. 2018 (arXiv:1812.04040); annular substructures, Huang et al. 2018
 (arXiv:1812.04041, Table `tab:ringpositions`). Per-disk verdicts and the full
 pooled-ratio list are in `hypotheses/exoplanet-phi-spacing.md` §7.
 
+**Prediction 54 (exoplanet period-ratio $\varphi$-spacing, real data):** in
+multi-planet systems the distribution of ADJACENT-planet PERIOD ratios
+$P_{\text{out}}/P_{\text{in}} = (a_{\text{out}}/a_{\text{in}})^{3/2}$ is
+enhanced at $\varphi$ and its Fibonacci convergents, with the headline clean
+signal at the $\varphi$-non-resonance value $\varphi^{3/2} \approx 2.06$
+(the discriminating window that separates the $\varphi$ prediction from
+generic mean-motion-resonance ubiquity), in the Kepler/TESS multi-planet
+catalog. **Tier: Hypothesized.** The pre-registered test
+(`experiments/kepler_phi_ratios/run_phi_ratios.py`, decision tree written
+before any analysis run; folded-window null matching predictions 45/46, the
+null being a distribution of equal-width-window counts over the same ratio
+range, never a unit interval) ran on the real NASA Exoplanet Archive Kepler
+confirmed transit multi-planet sample (507 systems, 646 in-range adjacent
+period ratios) and returned **INDETERMINATE**: the headline window
+$[2.0082, 2.1082]$ at $\varphi^{3/2} = 2.06$ holds $N$=47 vs the folded-window
+null $E = 29.4$, $s = 17.0$ ($+1.03\sigma$ — elevated but below the
+pre-registered $2\sigma$ bar); the $\varphi$-belt $[1.568,1.668]$ at $+0.86\sigma$;
+the only window elevated $\ge 2\sigma$ (3:2 at $+2.39\sigma$) is a standard
+mean-motion resonance confounded with resonance-ubiquity; and the
+non-Fibonacci control windows (4:3, 7:3, 5:2) are all at or below baseline
+($-0.3$ to $-0.5\sigma$), consistent with the selectivity claim but not alone
+decisive. K2/TESS cross-check (236 in-range ratios) shows the headline 2.06
+window at $+2.12\sigma$ (suggestive, secondary). Detection power 96% at 4%
+amplitude, 100% at $\ge 6\%$ — the pipeline would catch a genuine
+fully-realized $\varphi^{3/2}$ ladder, so the Kepler non-detection is
+power-adequate. Registered with the Kepler test in
+`hypotheses/exoplanet-phi-spacing.md` §8.
+
+**Source:** `hypotheses/exoplanet-phi-spacing.md` §3 (the period-ratio
+prediction) and §8 (the Kepler test: acquisition, pre-registration, numbers,
+verdict);
+`de-resonance-principle.md` (why orbital resonances lock to $\varphi$);
+`predictions/falsifiable-predictions.md` Prediction 51 (the ratio test and
+null discipline reused 1:1) and predictions 45/46 (the folded-window null
+discipline);
+`experiments/kepler_phi_ratios/acquire_kepler_catalog.py` (NASA Exoplanet
+Archive download + hash + parse) and
+`experiments/kepler_phi_ratios/run_phi_ratios.py` (the pre-registered decision
+tree, folded-window null, detection-power calibration); run JSON
+`experiments/kepler_phi_ratios/data/runs/<id>_phi_ratios.json`. Data: NASA
+Exoplanet Archive `ps` table (`default_flag=1`, Kepler confirmed transit
+multi-planet primary; K2/TESS cross-check), hashes in
+`experiments/kepler_phi_ratios/data/raw/sha256.txt`.
+
 
 ---
 
@@ -451,6 +495,7 @@ Sorted by detection likelihood (most definitive first):
 | 51 | Bubble-shell ring ladder | Bubble simulation (two-fluid PDE) | **~10 matter ridges at $r_k = R\varphi^{-k}$** (successive matter-ring ratio $\varphi^{-1} = 0.6180$ vs null $\varphi^{-1/2} = 0.7862$), 9 void troughs at $R\varphi^{-(k+\frac12)}$, strict alternation, $n$-independent count | Hypothesized (PDE-testable; conditional on the radial-reading inference; honest negative: naive wake-sum zeros {0.191, 0.573, 0.809, 0.955}·ℓ_n are not a φ-ladder; dynamic realization test 2026-08-13 = **NO RINGS on all four arms** (conversion-only/diffusion/gravity-buoyancy/cs²-pressure) to $t=40$) | **Hypothesized—analytic probe `two-fluid/run_bubble_ring_probe.py`; dynamic probe `two-fluid/run_bubble_ring_dynamic_probe.py` = four-arm null** |
 | 52 | Void radial ring profiles | Cosmic surveys (void stacking) | **Successive matter-ring ratio $\varphi^{-1} = 0.6180$ vs null $\varphi^{-1/2} = 0.7862$; first resolvable rungs at $r \approx 0.618\,R$, $0.382\,R$** | Pre-registered pipeline `experiments/void_phi_rings/stack_void_rings.py`: synthetic-φ-ladder pivot recovers the ladder at ~1% floor (SUPPORTS; power 62%/100%/0% at 1%/2–5%/0.3–0.5%); **real-galaxy stacking blocked** (no downloadable per-void galaxy-position catalog) | **Hypothesized (pipeline calibrated 2026-08-13); real-data stacking pending per-void galaxy acquisition** |
 | 53 | Disk-gap $\varphi$-ladder | Protoplanetary disks (ALMA) | **Successive gap ratio $\varphi^{-1} = 0.6180$ vs null $\varphi^{-1/2} = 0.7862$; pooled across disks** | Real-data test 2026-08-13 (DSHARP, 18 single-disk systems, 22 pooled successive ratios): **SUPPORTS** — 10 in signal window $[0.6180\pm0.08]$ vs 3.5 expected (3.86$\sigma$), null window $[0.7862\pm0.05]$ at baseline (4 vs 4.2); detection power 100% ($\sigma_{\ln r}\le0.15$), 93.5% (0.2); per-disk verdicts mixed; planet-carving is the standard alternative | **Tested—SUPPORTS (pooled); tier Hypothesized** |
+| 54 | Exoplanet period-ratio $\varphi$-spacing | Multi-planet catalogs (Kepler/TESS) | **Adjacent $P_{\text{out}}/P_{\text{in}}$ enhanced at $\varphi$ + Fibonacci convergents; headline clean signal at $\varphi^{3/2}=2.06$** | Real-data test 2026-08-14 (NASA Exoplanet Archive, Kepler confirmed transit multi-planet, 646 in-range ratios): **INDETERMINATE** — headline $[2.0082,2.1082]$ at $N$=47 vs folded-window null $E=29.4$ ($+1.03\sigma$, below the $2\sigma$ bar); $\varphi$-belt $+0.86\sigma$; only 3:2 (a standard MMR) $\ge 2\sigma$ ($+2.39\sigma$); non-Fibonacci controls 4:3/7:3/5:2 all at baseline; K2/TESS cross-check headline $+2.12\sigma$; detection power 96–100% at $\ge4\%$ amplitude | **Tested—INDETERMINATE (primary); tier Hypothesized** |
 
 ## 8. Universal Boundary Anisotropy—Scale-Invariant Edge Steepness
 
