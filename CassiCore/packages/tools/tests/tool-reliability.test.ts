@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest'
 import { ToolReliabilityTracker, type ReliabilityConfig } from '../src/reliability.js'
-import { rootLogger } from '../src/vendor/core/logger.js'
+import { rootLogger } from '@cassicore/events'
 
 describe('ToolReliabilityTracker', () => {
   let tracker: ToolReliabilityTracker
