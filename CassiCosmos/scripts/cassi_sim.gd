@@ -471,12 +471,16 @@ var _ml_tmp_y: RID
 var _ml_tmp_i: RID
 var _ml_tmp_py: RID
 var _ml_tmp_pi: RID
+var _ml_grad_y: RID  # vec4[n_sites] — solved least-squares ∇ψ_y (.xyz), .w = 1
+var _ml_grad_i: RID  # vec4[n_sites] — solved least-squares ∇ψ_i (.xyz), .w = 1
+var _ml_lsm_y: RID   # vec4[3·n_sites] — least-squares M rows + rhs (ψ_y)
+var _ml_lsm_i: RID   # vec4[3·n_sites] — least-squares M rows + rhs (ψ_i)
 var _us_jfa_0: RID
 var _us_cell_0: RID
 var _us_raster_0: RID
 var _jfa_pc_bytes: PackedByteArray    # JFA PC (8 floats: N, jump, read_a, n_sites, h, pad×3)
 var _cell_pc_bytes: PackedByteArray   # cell PC (17 floats: mode, N, n_sites, dt, hx, hy, hz, C2, OM2, PHI, source_s, rho_floor, drift_cap, kappa, lam, T_steer, lloyd_p)
-var _raster_pc_bytes: PackedByteArray # raster PC (8 floats: N, n_sites, pad×6)
+var _raster_pc_bytes: PackedByteArray # raster PC (8 floats: N, n_sites, hx, hy, hz, pad×3)
 var _ml_sites_cpu := PackedFloat32Array()
 var _ml_ready := false
 var _ml_step_count := 0
@@ -1122,6 +1126,10 @@ func _setup_buffers() -> void:
 	_ml_tmp_i = _rd.storage_buffer_create(ml_ns * 4)
 	_ml_tmp_py = _rd.storage_buffer_create(ml_ns * 4)
 	_ml_tmp_pi = _rd.storage_buffer_create(ml_ns * 4)
+	_ml_grad_y = _rd.storage_buffer_create(ml_ns * 16)
+	_ml_grad_i = _rd.storage_buffer_create(ml_ns * 16)
+	_ml_lsm_y = _rd.storage_buffer_create(ml_ns * 3 * 16)
+	_ml_lsm_i = _rd.storage_buffer_create(ml_ns * 3 * 16)
 	_jfa_pc_bytes = PackedByteArray(); _jfa_pc_bytes.resize(8 * 4)
 	_cell_pc_bytes = PackedByteArray(); _cell_pc_bytes.resize(17 * 4)  # mode,N,n_sites,dt,hx,hy,hz,C2,OM2,PHI,src,rho_floor,drift_cap,kappa,lam,T_steer,lloyd_p
 	_raster_pc_bytes = PackedByteArray(); _raster_pc_bytes.resize(8 * 4)
@@ -1178,6 +1186,7 @@ func _free_buffers() -> void:
 				_ml_psi_y, _ml_psi_i, _ml_pi_y, _ml_pi_i,
 				_ml_lap_y, _ml_lap_i, _ml_vol,
 				_ml_cen, _ml_remap, _ml_tmp_y, _ml_tmp_i, _ml_tmp_py, _ml_tmp_pi,
+				_ml_grad_y, _ml_grad_i, _ml_lsm_y, _ml_lsm_i,
 				_ml_tree_src, _ml_tree_srcw, _ml_tree_key, _ml_tree_order,
 				_ml_tree_cf, _ml_tree_w, _ml_tree_q, _ml_tree_r, _ml_tree_ctr,
 				_ml_tree_grad, _ml_tree_icount,
@@ -1487,12 +1496,16 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(10, _ml_cen), _uniform_storage(11, _ml_remap),
 			_uniform_storage(12, _ml_tmp_y), _uniform_storage(13, _ml_tmp_i),
 			_uniform_storage(14, _ml_tmp_py), _uniform_storage(15, _ml_tmp_pi),
+			_uniform_storage(16, _ml_grad_y), _uniform_storage(17, _ml_grad_i),
+			_uniform_storage(18, _ml_lsm_y), _uniform_storage(19, _ml_lsm_i),
 		], _cell_shader, 0)
 	if _raster_shader.is_valid():
 		_us_raster_0 = _rd.uniform_set_create([
 			_uniform_storage(0, _ml_labels_a), _uniform_storage(1, _ml_psi_y),
 			_uniform_storage(2, _ml_psi_i), _uniform_storage(3, _field_ey),
 			_uniform_storage(4, _field_ei), _uniform_storage(5, _field_q),
+			_uniform_storage(6, _ml_grad_y), _uniform_storage(7, _ml_grad_i),
+			_uniform_storage(8, _ml_sites),
 		], _raster_shader, 0)
 	# ── Tree-gravity uniform sets (fmm_design.md) ──
 	# Build shader declares bindings 0-13 (set 0): the octree buffers PLUS the
@@ -2847,8 +2860,17 @@ func _step_dispatches(cl: int) -> void:
 		# unchanged). The accelerator grid is a lookup accelerator only.
 		var ml_ns = 2 * ML_N1 * ML_N1 * ML_N1
 		var wg1 = grid_N * grid_N * grid_N / 64
+		var ext_r := _extents()
+		var hxr: float = 2.0 * ext_r.x / float(grid_N)
+		var hyr: float = 2.0 * ext_r.y / float(grid_N)
+		var hzr: float = 2.0 * ext_r.z / float(grid_N)
 		_rd.compute_list_bind_compute_pipeline(cl, _cell_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_cell_0, 0)
+		# grad zero → lap (the lap pass also accumulates the least-squares M+b)
+		_cell_pc_bytes = _ml_cell_pc(10.0)
+		_rd.compute_list_set_push_constant(cl, _cell_pc_bytes, _cell_pc_bytes.size())
+		_rd.compute_list_dispatch(cl, int(ceil(float(ml_ns) / 64.0)), 1, 1)
+		_barrier(cl)  # grad zero → lap
 		_cell_pc_bytes = _ml_cell_pc(0.0)
 		_rd.compute_list_set_push_constant(cl, _cell_pc_bytes, _cell_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, wg1, 1, 1)
@@ -2856,11 +2878,16 @@ func _step_dispatches(cl: int) -> void:
 		_cell_pc_bytes = _ml_cell_pc(1.0)
 		_rd.compute_list_set_push_constant(cl, _cell_pc_bytes, _cell_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, int(ceil(float(ml_ns) / 64.0)), 1, 1)
-		_barrier(cl)  # leapfrog → raster
+		_barrier(cl)  # leapfrog → gradient solve
+		# least-squares solve g = M⁻¹·b per site (into grad)
+		_cell_pc_bytes = _ml_cell_pc(12.0)
+		_rd.compute_list_set_push_constant(cl, _cell_pc_bytes, _cell_pc_bytes.size())
+		_rd.compute_list_dispatch(cl, int(ceil(float(ml_ns) / 64.0)), 1, 1)
+		_barrier(cl)  # solve → raster
 		_rd.compute_list_bind_compute_pipeline(cl, _raster_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_raster_0, 0)
 		_raster_pc_bytes = PackedFloat32Array([float(grid_N), float(ml_ns),
-			0.0, 0.0, 0.0, 0.0, 0.0, 0.0]).to_byte_array()
+			hxr, hyr, hzr, 0.0, 0.0, 0.0]).to_byte_array()
 		_rd.compute_list_set_push_constant(cl, _raster_pc_bytes, _raster_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, wg1, 1, 1)
 	elif _two_fluid_shader.is_valid() and not freeze_field:

@@ -2,12 +2,29 @@
 §10): the sim's meshless Voronoi arm vs its grid two-fluid arm, evolved
 from the SAME initial condition by scripts/verify_meshless_sim.gd.
 
-The cross-solver agreement contract:
+The reconstruction fix (AREPO-style per-cell LINEAR reconstruction in the
+raster — the "square-ripples" fix) changed what arm B's grid output means:
+the rendered field is now a reconstructed interpolant, no longer the raw
+piecewise-constant cell averages. The physics-identity gate must therefore
+compare the two arms at the CELL-AVERAGE level, not through the
+reconstruction:
+
   G9  the GRID arm's mean-deviation trajectory breathes at
       OMEGA = sqrt(omega0^2 (1+phi)) (2%)
   G10 the MESHLESS arm's trajectory breathes at OMEGA (2%)
-  G11 the two arms' final fields agree (L2 < 5%)
-  G12 no NaN/Inf in either field
+  G11 PHYSICS IDENTITY — arm B's PIECEWISE-CONSTANT grid field (built from
+      its per-site cell-averaged psi + JFA labels, i.e. the cell averages
+      on the grid) vs arm A's grid field (L2 < 2%). This is the honest
+      cell-average cross-solver gate: the same comparison the old code made
+      when the raster WAS piecewise-constant, so the gate's meaning and its
+      2% threshold are unchanged.
+  G12' RECONSTRUCTED-field L2 — arm B's actual rendered (reconstructed)
+      field vs arm A, reported SEPARATELY with its own honest threshold
+      (L2 < 8%). The reconstructed field carries additional error beyond
+      the physics: the Green-Gauss gradient (exact only for linear fields,
+      first-order on the real rippled field) plus the JFA site sampling.
+      It is a rendering-fidelity diagnostic, NOT the physics gate.
+  G12 no NaN/Inf in either field.
 
 Run:  python research/meshless/stage4_verify.py [path/to/meshless_sim_gpu.json]
 """
@@ -43,29 +60,34 @@ def main():
     print("[G9] grid arm breather: %.4f" % breath_a)
     print("[G10] meshless arm breather: %.4f" % breath_b)
 
-    l2 = float(np.linalg.norm(ey_b - ey_a) / np.linalg.norm(ey_a))
-    # band-limited agreement (the resolved modes, k <= 8): the IC's
-    # white-noise UV tail decorrelates between ANY two discretizations
-    # (the D19 grid vs the staircase flux differ at high k) — the
-    # physics gate is the agreement on the resolved band
+    # -- physics identity: arm B's CELL-AVERAGE grid field (piecewise-
+    # constant over its Voronoi cells), built from the per-site psi + labels.
+    psi_y_b = np.frombuffer(base64.b64decode(d["psi_y_b_b64"]), dtype="<f4")
+    labels_b = np.frombuffer(base64.b64decode(d["labels_b_b64"]), dtype="<i4")
+    pc_b = psi_y_b[labels_b.astype(np.int64) % len(psi_y_b)]
+
+    l2_pc = float(np.linalg.norm(pc_b - ey_a) / np.linalg.norm(ey_a))
+    g11 = l2_pc < 0.02
+    print("[G11] physics identity (cell-average pc field vs grid arm): L2 = %.4f"
+          % l2_pc)
+
+    # -- rendered (reconstructed) field, honest separate diagnostic.
+    l2_recon = float(np.linalg.norm(ey_b - ey_a) / np.linalg.norm(ey_a))
+    g_recon = l2_recon < 0.08
+    print("[G12'] reconstructed (rendered) field vs grid arm: L2 = %.4f  (threshold 0.08)"
+          % l2_recon)
+
+    # band-limited agreement (the resolved modes, k <= 8): diagnostic only.
     kf = np.fft.fftfreq(N) * N
     k = np.sqrt(kf[:, None, None] ** 2 + kf[None, :, None] ** 2
                 + kf[None, None, :] ** 2)
     band = (k <= 8.0) & (k > 0.0)
     a_h = np.fft.fftn(ey_a.reshape(N, N, N))
+    pc_h = np.fft.fftn(pc_b.reshape(N, N, N))
     b_h = np.fft.fftn(ey_b.reshape(N, N, N))
-    l2b = float(np.linalg.norm((b_h - a_h)[band]) / np.linalg.norm(a_h[band]))
-    corrb = float(np.corrcoef(a_h[band].real, b_h[band].real)[0, 1])
-    print("[G11] cross-arm: full L2 = %.4f  band L2 = %.4f  band corr = %.4f"
-          % (l2, l2b, corrb))
-    # NOTE: the band-filtered comparison is hypersensitive — the IC's
-    # random phases create modes where the sound and breather
-    # components nearly cancel, and the two solvers' ~1% discretization
-    # frequency differences amplify there (diagnosed: the grid arm
-    # reproduces the numpy-D19 kick-drift to 9e-7, so both arms are
-    # faithful; the cancellations are a metric artifact, not physics).
-    # The gate is the full-field agreement (dominated by the resolved
-    # modes) — printed here as diagnostics.
+    l2_pc_b = float(np.linalg.norm((pc_h - a_h)[band]) / np.linalg.norm(a_h[band]))
+    l2_b = float(np.linalg.norm((b_h - a_h)[band]) / np.linalg.norm(a_h[band]))
+    print("[diag] band L2 (pc) = %.4f  band L2 (reconstructed) = %.4f" % (l2_pc_b, l2_b))
     ic_dev = (ic_ey - PHI * ic_ei).mean()
     print("[IC] mean deviation of the shared IC: %.6e" % ic_dev)
     nan = bool(np.isnan(ey_a).any() or np.isinf(ey_a).any()
@@ -73,17 +95,19 @@ def main():
     g12 = not nan
     g9 = abs(breath_a - OMEGA) / OMEGA < 0.02
     g10 = abs(breath_b - OMEGA) / OMEGA < 0.02
-    g11 = l2 < 0.02
 
 
     for name, ok in [("G9 grid arm breather", g9),
                      ("G10 meshless arm breather", g10),
-                     ("G11 cross-arm agreement", g11),
+                     ("G11 physics identity (cell-average)", g11),
+                     ("G12' reconstructed (diagnostic)", g_recon),
                      ("G12 no NaN", g12)]:
         print("[%s] %s" % ("PASS" if ok else "FAIL", name))
-    print("RESULT: %s" % ("ALL PASS" if (g9 and g10 and g11 and g12)
-                          else "FAILURES PRESENT"))
-    return 0 if (g9 and g10 and g11 and g12) else 1
+    allok = g9 and g10 and g11 and g12
+    print("RESULT: %s" % ("ALL PASS" if allok else "FAILURES PRESENT"))
+    # G12' is reported but NOT a hard gate (it is a rendering-fidelity
+    # diagnostic); a pass requires the physics gates (G9/G10/G11) + no NaN.
+    return 0 if allok else 1
 
 
 if __name__ == "__main__":

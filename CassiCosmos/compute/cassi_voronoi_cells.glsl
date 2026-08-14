@@ -43,6 +43,8 @@
 //   7 reset      — per SITE: vol = 0, cen = (0,0,0,0)
 //   8 labels clr — per GRID cell: labels = INT_MAX
 //   9 scatter    — per SITE: atomicMin the site index into its grid cell
+//  10 grad zero  — per SITE: grad_y/grad_i and the lsm moment+rhs = 0
+//  12 ls solve   — per SITE: g = M⁻¹·b (the least-squares gradient) -> grad
 //
 // The whole rebuild is ONE compute list (barriers between modes): reset
 // → centroid → steer → remap copy → remap gather → labels clear →
@@ -129,6 +131,30 @@ layout(set = 0, binding = 14, std430) buffer TmpPY {
 layout(set = 0, binding = 15, std430) buffer TmpPI {
     float tmp_pi[];
 };
+// AREPO-style reconstruction gradients (the square-ripples fix). MODE 0
+// (the lap pass) ALSO accumulates, per site and per field, the
+// LEAST-SQUARES (face-normal) gradient: the 3×3 moment matrix M += n̂⊗n̂
+// and rhs b += (ψ_n − ψ_s)/d·n̂ over the Voronoi boundary faces (stored
+// in the lsm buffers, bindings 18/19). MODE 12 then solves the 3×3
+// system g = M⁻¹·b per site — EXACT for linear fields on ANY mesh — and
+// writes the solved gradient into grad_y/grad_i with .w = 1. The raster
+// (cassi_voronoi_raster.glsl binding 6/7) reads the solved gradient
+// directly (dividing by max(w,eps) = 1). The lap flux stays the AREPO
+// two-point flux. lsm buffers are zeroed by mode 10 before the lap.
+layout(set = 0, binding = 16, std430) buffer GradY {
+    vec4 grad_y[];  // solved ∇ψ_y (.xyz), .w = 1 after mode 12
+};
+layout(set = 0, binding = 17, std430) buffer GradI {
+    vec4 grad_i[];  // solved ∇ψ_i (.xyz), .w = 1 after mode 12
+};
+// Least-squares moment + rhs. Per site: 3 consecutive vec4 = M rows
+// (.xyz) + rhs b (.w). lsm[s*3+0].xyz = M row 0 (n̂_x·n̂), .w = b.x, etc.
+layout(set = 0, binding = 18, std430) coherent buffer LSMY {
+    vec4 lsm_y[];
+};
+layout(set = 0, binding = 19, std430) coherent buffer LSMI {
+    vec4 lsm_i[];
+};
 
 void main() {
     uint gid = gl_GlobalInvocationID.x;
@@ -153,6 +179,72 @@ void main() {
         int gj = int(floor(sp.y / hy)) % Nn;
         int gk = int(floor(sp.z / hz)) % Nn;
         atomicMin(labels[gi * Nn * Nn + gj * Nn + gk], s);
+        return;
+    }
+    if (im == 10) {  // lsm + grad zero — per SITE, before the lap accumulates
+        if (int(gid) >= ns) return;
+        grad_y[int(gid)] = vec4(0.0);
+        grad_i[int(gid)] = vec4(0.0);
+        int s3 = int(gid) * 3;
+        lsm_y[s3] = vec4(0.0);
+        lsm_y[s3 + 1] = vec4(0.0);
+        lsm_y[s3 + 2] = vec4(0.0);
+        lsm_i[s3] = vec4(0.0);
+        lsm_i[s3 + 1] = vec4(0.0);
+        lsm_i[s3 + 2] = vec4(0.0);
+        return;
+    }
+    if (im == 12) {  // least-squares solve — per SITE: g = M⁻¹·b into grad
+        if (int(gid) >= ns) return;
+        int s = int(gid);
+        int s3 = s * 3;
+        // build M (rows) + b from the accumulated lsm buffers.
+        // M row 0 = lsm_y[s3+0].xyz, row 1 = [s3+1].xyz, row 2 = [s3+2].xyz;
+        // b = (.w of each). Add a tiny diagonal regulariser so an
+        // under-constrained (near-collinear) neighbour stencil never NaNs.
+        float m00 = lsm_y[s3 + 0].x + 1e-6, m01 = lsm_y[s3 + 0].y, m02 = lsm_y[s3 + 0].z;
+        float m10 = lsm_y[s3 + 1].x, m11 = lsm_y[s3 + 1].y + 1e-6, m12 = lsm_y[s3 + 1].z;
+        float m20 = lsm_y[s3 + 2].x, m21 = lsm_y[s3 + 2].y, m22 = lsm_y[s3 + 2].z + 1e-6;
+        float bx = lsm_y[s3 + 0].w, by = lsm_y[s3 + 1].w, bz = lsm_y[s3 + 2].w;
+        // 3×3 inverse (adjugate / det) — closed form, guarded.
+        float det = m00 * (m11 * m22 - m12 * m21) - m01 * (m10 * m22 - m12 * m20)
+                  + m02 * (m10 * m21 - m11 * m20);
+        vec3 g = vec3(0.0);
+        if (abs(det) > 1e-12) {
+            float id = 1.0 / det;
+            float c00 =  (m11 * m22 - m12 * m21) * id;
+            float c01 = -(m01 * m22 - m02 * m21) * id;
+            float c02 =  (m01 * m12 - m02 * m11) * id;
+            float c10 = -(m10 * m22 - m12 * m20) * id;
+            float c11 =  (m00 * m22 - m02 * m20) * id;
+            float c12 = -(m00 * m12 - m02 * m10) * id;
+            float c20 =  (m10 * m21 - m11 * m20) * id;
+            float c21 = -(m00 * m21 - m01 * m20) * id;
+            float c22 =  (m00 * m11 - m01 * m10) * id;
+            g = vec3(c00 * bx + c01 * by + c02 * bz,
+                     c10 * bx + c11 * by + c12 * bz,
+                     c20 * bx + c21 * by + c22 * bz);
+        }
+        grad_y[s] = vec4(g, 1.0);
+        // psi_i gradient: same M (the geometry is field-independent), new b.
+        float bix = lsm_i[s3 + 0].w, biy = lsm_i[s3 + 1].w, biz = lsm_i[s3 + 2].w;
+        vec3 gi = vec3(0.0);
+        if (abs(det) > 1e-12) {
+            float id = 1.0 / det;
+            float c00 =  (m11 * m22 - m12 * m21) * id;
+            float c01 = -(m01 * m22 - m02 * m21) * id;
+            float c02 =  (m01 * m12 - m02 * m11) * id;
+            float c10 = -(m10 * m22 - m12 * m20) * id;
+            float c11 =  (m00 * m22 - m02 * m20) * id;
+            float c12 = -(m00 * m12 - m02 * m10) * id;
+            float c20 =  (m10 * m21 - m11 * m20) * id;
+            float c21 = -(m00 * m21 - m01 * m20) * id;
+            float c22 =  (m00 * m11 - m01 * m10) * id;
+            gi = vec3(c00 * bix + c01 * biy + c02 * biz,
+                      c10 * bix + c11 * biy + c12 * biz,
+                      c20 * bix + c21 * biy + c22 * biz);
+        }
+        grad_i[s] = vec4(gi, 1.0);
         return;
     }
     if (im == 7) {  // reset vol + cen
@@ -253,7 +345,7 @@ void main() {
         return;
     }
 
-    if (im == 0) {  // lap: +x/+y/+z faces of this grid cell
+    if (im == 0) {  // lap: +x/+y/+z faces of this grid cell (+ LEAST-SQUARES gradient)
         if (int(gid) >= total) return;
         int i = int(gid) / (Nn * Nn);
         int rem = int(gid) - i * Nn * Nn;
@@ -275,35 +367,135 @@ void main() {
         float axz = hx * hz;
         float axy = hx * hy;
 
+        // LEAST-SQUARES (face-normal) reconstruction gradient — the
+        // production-AREPO / Barth-Jespersen form, EXACT for LINEAR fields
+        // on ANY mesh (the naive face-flux Green-Gauss is exact only on
+        // axis-aligned cells). Per boundary face to neighbour n we use the
+        // unit n̂ = (x_n − x_s)/d and the two-point rhs (ψ_n − ψ_s)/d, and
+        // accumulate per site the 3×3 moment matrix M += n̂⊗n̂ and rhs
+        // b += (ψ_n − ψ_s)/d · n̂. Both sites across the face get the SAME
+        // dyad and rhs (for the far side the direction AND the field
+        // difference both flip, so the products are identical). For a
+        // linear field (ψ_n−ψ_s)/d = g·n̂, hence b = Σ n̂(n̂·g) = M·g, so
+        // g = M⁻¹·b is EXACT. Mode 12 solves the 3×3 per site into grad.
+        // The lap flux stays the AREPO two-point flux (ψ_n − ψ_s)·A/d.
+        // lsm_y layout per site: 3 consecutive vec4 = rows of M (.xyz) and
+        // rhs b (.w): lsm_y[s*3+0] = (M00,M01,M02 | b.x), [s*3+1] = row 1,
+        // [s*3+2] = row 2. Same for lsm_i.
         if (n1 >= 0 && n1 < ns && n1 != c) {
             vec4 sn = pos[n1];
-            float d = length(sn.xyz - sc.xyz);
-            float fy = (psi_y[n1] - psi_y[c]) * ayz / max(d, 1e-12);
-            float fi = (psi_i[n1] - psi_i[c]) * ayz / max(d, 1e-12);
+            float d = max(length(sn.xyz - sc.xyz), 1e-12);
+            float fy = (psi_y[n1] - psi_y[c]) * ayz / d;
+            float fi = (psi_i[n1] - psi_i[c]) * ayz / d;
             atomicAdd(lap_y[c], fy);
             atomicAdd(lap_y[n1], -fy);
             atomicAdd(lap_i[c], fi);
             atomicAdd(lap_i[n1], -fi);
+            vec3 nn = (sn.xyz - sc.xyz) / d;
+            float dy = (psi_y[n1] - psi_y[c]) / d;
+            float di = (psi_i[n1] - psi_i[c]) / d;
+            int c3 = c * 3, n3i = n1 * 3;
+            // +x face: M row i += n̂_i·n̂, b += rhs·n̂  (both endpoints)
+            atomicAdd(lsm_y[c3 + 0].x, nn.x * nn.x); atomicAdd(lsm_y[n3i + 0].x, nn.x * nn.x);
+            atomicAdd(lsm_y[c3 + 0].y, nn.x * nn.y); atomicAdd(lsm_y[n3i + 0].y, nn.x * nn.y);
+            atomicAdd(lsm_y[c3 + 0].z, nn.x * nn.z); atomicAdd(lsm_y[n3i + 0].z, nn.x * nn.z);
+            atomicAdd(lsm_y[c3 + 0].w, dy * nn.x);   atomicAdd(lsm_y[n3i + 0].w, dy * nn.x);
+            atomicAdd(lsm_y[c3 + 1].x, nn.y * nn.x); atomicAdd(lsm_y[n3i + 1].x, nn.y * nn.x);
+            atomicAdd(lsm_y[c3 + 1].y, nn.y * nn.y); atomicAdd(lsm_y[n3i + 1].y, nn.y * nn.y);
+            atomicAdd(lsm_y[c3 + 1].z, nn.y * nn.z); atomicAdd(lsm_y[n3i + 1].z, nn.y * nn.z);
+            atomicAdd(lsm_y[c3 + 1].w, dy * nn.y);   atomicAdd(lsm_y[n3i + 1].w, dy * nn.y);
+            atomicAdd(lsm_y[c3 + 2].x, nn.z * nn.x); atomicAdd(lsm_y[n3i + 2].x, nn.z * nn.x);
+            atomicAdd(lsm_y[c3 + 2].y, nn.z * nn.y); atomicAdd(lsm_y[n3i + 2].y, nn.z * nn.y);
+            atomicAdd(lsm_y[c3 + 2].z, nn.z * nn.z); atomicAdd(lsm_y[n3i + 2].z, nn.z * nn.z);
+            atomicAdd(lsm_y[c3 + 2].w, dy * nn.z);   atomicAdd(lsm_y[n3i + 2].w, dy * nn.z);
+            atomicAdd(lsm_i[c3 + 0].x, nn.x * nn.x); atomicAdd(lsm_i[n3i + 0].x, nn.x * nn.x);
+            atomicAdd(lsm_i[c3 + 0].y, nn.x * nn.y); atomicAdd(lsm_i[n3i + 0].y, nn.x * nn.y);
+            atomicAdd(lsm_i[c3 + 0].z, nn.x * nn.z); atomicAdd(lsm_i[n3i + 0].z, nn.x * nn.z);
+            atomicAdd(lsm_i[c3 + 0].w, di * nn.x);   atomicAdd(lsm_i[n3i + 0].w, di * nn.x);
+            atomicAdd(lsm_i[c3 + 1].x, nn.y * nn.x); atomicAdd(lsm_i[n3i + 1].x, nn.y * nn.x);
+            atomicAdd(lsm_i[c3 + 1].y, nn.y * nn.y); atomicAdd(lsm_i[n3i + 1].y, nn.y * nn.y);
+            atomicAdd(lsm_i[c3 + 1].z, nn.y * nn.z); atomicAdd(lsm_i[n3i + 1].z, nn.y * nn.z);
+            atomicAdd(lsm_i[c3 + 1].w, di * nn.y);   atomicAdd(lsm_i[n3i + 1].w, di * nn.y);
+            atomicAdd(lsm_i[c3 + 2].x, nn.z * nn.x); atomicAdd(lsm_i[n3i + 2].x, nn.z * nn.x);
+            atomicAdd(lsm_i[c3 + 2].y, nn.z * nn.y); atomicAdd(lsm_i[n3i + 2].y, nn.z * nn.y);
+            atomicAdd(lsm_i[c3 + 2].z, nn.z * nn.z); atomicAdd(lsm_i[n3i + 2].z, nn.z * nn.z);
+            atomicAdd(lsm_i[c3 + 2].w, di * nn.z);   atomicAdd(lsm_i[n3i + 2].w, di * nn.z);
         }
         if (n2 >= 0 && n2 < ns && n2 != c) {
             vec4 sn = pos[n2];
-            float d = length(sn.xyz - sc.xyz);
-            float fy = (psi_y[n2] - psi_y[c]) * axz / max(d, 1e-12);
-            float fi = (psi_i[n2] - psi_i[c]) * axz / max(d, 1e-12);
+            float d = max(length(sn.xyz - sc.xyz), 1e-12);
+            float fy = (psi_y[n2] - psi_y[c]) * axz / d;
+            float fi = (psi_i[n2] - psi_i[c]) * axz / d;
             atomicAdd(lap_y[c], fy);
             atomicAdd(lap_y[n2], -fy);
             atomicAdd(lap_i[c], fi);
             atomicAdd(lap_i[n2], -fi);
+            vec3 nn = (sn.xyz - sc.xyz) / d;
+            float dy = (psi_y[n2] - psi_y[c]) / d;
+            float di = (psi_i[n2] - psi_i[c]) / d;
+            int c3 = c * 3, n3i = n2 * 3;
+            atomicAdd(lsm_y[c3 + 0].x, nn.x * nn.x); atomicAdd(lsm_y[n3i + 0].x, nn.x * nn.x);
+            atomicAdd(lsm_y[c3 + 0].y, nn.x * nn.y); atomicAdd(lsm_y[n3i + 0].y, nn.x * nn.y);
+            atomicAdd(lsm_y[c3 + 0].z, nn.x * nn.z); atomicAdd(lsm_y[n3i + 0].z, nn.x * nn.z);
+            atomicAdd(lsm_y[c3 + 0].w, dy * nn.x);   atomicAdd(lsm_y[n3i + 0].w, dy * nn.x);
+            atomicAdd(lsm_y[c3 + 1].x, nn.y * nn.x); atomicAdd(lsm_y[n3i + 1].x, nn.y * nn.x);
+            atomicAdd(lsm_y[c3 + 1].y, nn.y * nn.y); atomicAdd(lsm_y[n3i + 1].y, nn.y * nn.y);
+            atomicAdd(lsm_y[c3 + 1].z, nn.y * nn.z); atomicAdd(lsm_y[n3i + 1].z, nn.y * nn.z);
+            atomicAdd(lsm_y[c3 + 1].w, dy * nn.y);   atomicAdd(lsm_y[n3i + 1].w, dy * nn.y);
+            atomicAdd(lsm_y[c3 + 2].x, nn.z * nn.x); atomicAdd(lsm_y[n3i + 2].x, nn.z * nn.x);
+            atomicAdd(lsm_y[c3 + 2].y, nn.z * nn.y); atomicAdd(lsm_y[n3i + 2].y, nn.z * nn.y);
+            atomicAdd(lsm_y[c3 + 2].z, nn.z * nn.z); atomicAdd(lsm_y[n3i + 2].z, nn.z * nn.z);
+            atomicAdd(lsm_y[c3 + 2].w, dy * nn.z);   atomicAdd(lsm_y[n3i + 2].w, dy * nn.z);
+            atomicAdd(lsm_i[c3 + 0].x, nn.x * nn.x); atomicAdd(lsm_i[n3i + 0].x, nn.x * nn.x);
+            atomicAdd(lsm_i[c3 + 0].y, nn.x * nn.y); atomicAdd(lsm_i[n3i + 0].y, nn.x * nn.y);
+            atomicAdd(lsm_i[c3 + 0].z, nn.x * nn.z); atomicAdd(lsm_i[n3i + 0].z, nn.x * nn.z);
+            atomicAdd(lsm_i[c3 + 0].w, di * nn.x);   atomicAdd(lsm_i[n3i + 0].w, di * nn.x);
+            atomicAdd(lsm_i[c3 + 1].x, nn.y * nn.x); atomicAdd(lsm_i[n3i + 1].x, nn.y * nn.x);
+            atomicAdd(lsm_i[c3 + 1].y, nn.y * nn.y); atomicAdd(lsm_i[n3i + 1].y, nn.y * nn.y);
+            atomicAdd(lsm_i[c3 + 1].z, nn.y * nn.z); atomicAdd(lsm_i[n3i + 1].z, nn.y * nn.z);
+            atomicAdd(lsm_i[c3 + 1].w, di * nn.y);   atomicAdd(lsm_i[n3i + 1].w, di * nn.y);
+            atomicAdd(lsm_i[c3 + 2].x, nn.z * nn.x); atomicAdd(lsm_i[n3i + 2].x, nn.z * nn.x);
+            atomicAdd(lsm_i[c3 + 2].y, nn.z * nn.y); atomicAdd(lsm_i[n3i + 2].y, nn.z * nn.y);
+            atomicAdd(lsm_i[c3 + 2].z, nn.z * nn.z); atomicAdd(lsm_i[n3i + 2].z, nn.z * nn.z);
+            atomicAdd(lsm_i[c3 + 2].w, di * nn.z);   atomicAdd(lsm_i[n3i + 2].w, di * nn.z);
         }
         if (n3 >= 0 && n3 < ns && n3 != c) {
             vec4 sn = pos[n3];
-            float d = length(sn.xyz - sc.xyz);
-            float fy = (psi_y[n3] - psi_y[c]) * axy / max(d, 1e-12);
-            float fi = (psi_i[n3] - psi_i[c]) * axy / max(d, 1e-12);
+            float d = max(length(sn.xyz - sc.xyz), 1e-12);
+            float fy = (psi_y[n3] - psi_y[c]) * axy / d;
+            float fi = (psi_i[n3] - psi_i[c]) * axy / d;
             atomicAdd(lap_y[c], fy);
             atomicAdd(lap_y[n3], -fy);
             atomicAdd(lap_i[c], fi);
             atomicAdd(lap_i[n3], -fi);
+            vec3 nn = (sn.xyz - sc.xyz) / d;
+            float dy = (psi_y[n3] - psi_y[c]) / d;
+            float di = (psi_i[n3] - psi_i[c]) / d;
+            int c3 = c * 3, n3i = n3 * 3;
+            atomicAdd(lsm_y[c3 + 0].x, nn.x * nn.x); atomicAdd(lsm_y[n3i + 0].x, nn.x * nn.x);
+            atomicAdd(lsm_y[c3 + 0].y, nn.x * nn.y); atomicAdd(lsm_y[n3i + 0].y, nn.x * nn.y);
+            atomicAdd(lsm_y[c3 + 0].z, nn.x * nn.z); atomicAdd(lsm_y[n3i + 0].z, nn.x * nn.z);
+            atomicAdd(lsm_y[c3 + 0].w, dy * nn.x);   atomicAdd(lsm_y[n3i + 0].w, dy * nn.x);
+            atomicAdd(lsm_y[c3 + 1].x, nn.y * nn.x); atomicAdd(lsm_y[n3i + 1].x, nn.y * nn.x);
+            atomicAdd(lsm_y[c3 + 1].y, nn.y * nn.y); atomicAdd(lsm_y[n3i + 1].y, nn.y * nn.y);
+            atomicAdd(lsm_y[c3 + 1].z, nn.y * nn.z); atomicAdd(lsm_y[n3i + 1].z, nn.y * nn.z);
+            atomicAdd(lsm_y[c3 + 1].w, dy * nn.y);   atomicAdd(lsm_y[n3i + 1].w, dy * nn.y);
+            atomicAdd(lsm_y[c3 + 2].x, nn.z * nn.x); atomicAdd(lsm_y[n3i + 2].x, nn.z * nn.x);
+            atomicAdd(lsm_y[c3 + 2].y, nn.z * nn.y); atomicAdd(lsm_y[n3i + 2].y, nn.z * nn.y);
+            atomicAdd(lsm_y[c3 + 2].z, nn.z * nn.z); atomicAdd(lsm_y[n3i + 2].z, nn.z * nn.z);
+            atomicAdd(lsm_y[c3 + 2].w, dy * nn.z);   atomicAdd(lsm_y[n3i + 2].w, dy * nn.z);
+            atomicAdd(lsm_i[c3 + 0].x, nn.x * nn.x); atomicAdd(lsm_i[n3i + 0].x, nn.x * nn.x);
+            atomicAdd(lsm_i[c3 + 0].y, nn.x * nn.y); atomicAdd(lsm_i[n3i + 0].y, nn.x * nn.y);
+            atomicAdd(lsm_i[c3 + 0].z, nn.x * nn.z); atomicAdd(lsm_i[n3i + 0].z, nn.x * nn.z);
+            atomicAdd(lsm_i[c3 + 0].w, di * nn.x);   atomicAdd(lsm_i[n3i + 0].w, di * nn.x);
+            atomicAdd(lsm_i[c3 + 1].x, nn.y * nn.x); atomicAdd(lsm_i[n3i + 1].x, nn.y * nn.x);
+            atomicAdd(lsm_i[c3 + 1].y, nn.y * nn.y); atomicAdd(lsm_i[n3i + 1].y, nn.y * nn.y);
+            atomicAdd(lsm_i[c3 + 1].z, nn.y * nn.z); atomicAdd(lsm_i[n3i + 1].z, nn.y * nn.z);
+            atomicAdd(lsm_i[c3 + 1].w, di * nn.y);   atomicAdd(lsm_i[n3i + 1].w, di * nn.y);
+            atomicAdd(lsm_i[c3 + 2].x, nn.z * nn.x); atomicAdd(lsm_i[n3i + 2].x, nn.z * nn.x);
+            atomicAdd(lsm_i[c3 + 2].y, nn.z * nn.y); atomicAdd(lsm_i[n3i + 2].y, nn.z * nn.y);
+            atomicAdd(lsm_i[c3 + 2].z, nn.z * nn.z); atomicAdd(lsm_i[n3i + 2].z, nn.z * nn.z);
+            atomicAdd(lsm_i[c3 + 2].w, di * nn.z);   atomicAdd(lsm_i[n3i + 2].w, di * nn.z);
         }
         return;
     }

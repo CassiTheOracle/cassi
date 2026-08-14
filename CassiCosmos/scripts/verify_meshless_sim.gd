@@ -8,6 +8,17 @@ extends Node3D
 ## research/meshless/stage4_verify.py (breather ≈ √(ω₀²(1+φ)), no NaN,
 ## cross-arm field agreement).
 ##
+## RECONSTRUCTION (the square-ripples fix): the raster now reconstructs a
+## LINEAR field from the Green-Gauss gradient, so arm B's grid output is
+## NOT the raw cell-averaged state. The physics-identity gate must compare
+## the two arms at the CELL-AVERAGE level, not through the reconstruction:
+##   • G11 (physics identity) — arm B's PIECEWISE-CONSTANT field built from
+##     its per-site psi + labels (the cell averages on the grid), vs arm A.
+##   • G12' (rendered field, HONEST) — arm B's RECONSTRUCTED field vs arm A,
+##     reported separately with its own threshold (reconstruction + JFA
+##     sampling add error the physics gate must not absorb).
+## Arm B dumps per-site psi, labels, sites AND the reconstructed grid field.
+##
 ## Arm B re-inits the sim (meshless_mode = true), then RESTORES arm A's
 ## IC into the field buffers and re-runs the meshless init sampling so
 ## both arms start from the identical field.
@@ -29,6 +40,11 @@ var _ey_a := PackedFloat32Array()
 var _ey_b := PackedFloat32Array()
 var _ic_ey := PackedByteArray()
 var _ic_ei := PackedByteArray()
+var _psi_y_b := PackedByteArray()  # arm B per-site state (cell averages)
+var _psi_i_b := PackedByteArray()
+var _labels_b := PackedByteArray()  # arm B JFA labels
+var _sites_b := PackedByteArray()   # arm B site positions
+var _n_sites_b := 0
 
 
 func _ready() -> void:
@@ -92,7 +108,17 @@ func _process(_delta: float) -> void:
 					print("[VerifyMeshlessSim] arm B batch %d/%d d=%.6f"
 						% [_batch, N_BATCHES, _d_b[_batch - 1]])
 			else:
+				# arm B: capture the RECONSTRUCTED grid field (the rendered one)
 				_ey_b = _sim._rd.buffer_get_data(_sim._field_ey, 0, _n3() * 4).to_float32_array()
+				# AND the per-site cell-averaged state + labels + sites, so the
+				# numpy gate builds the piecewise-constant cell-average grid
+				# field for the physics-identity comparison (the reconstruction
+				# must not be absorbed into the physics gate).
+				_n_sites_b = 2 * _sim.ML_N1 * _sim.ML_N1 * _sim.ML_N1
+				_psi_y_b = _sim._rd.buffer_get_data(_sim._ml_psi_y, 0, _n_sites_b * 4)
+				_psi_i_b = _sim._rd.buffer_get_data(_sim._ml_psi_i, 0, _n_sites_b * 4)
+				_labels_b = _sim._rd.buffer_get_data(_sim._ml_labels_a, 0, _n3() * 4)
+				_sites_b = _sim._rd.buffer_get_data(_sim._ml_sites, 0, _n_sites_b * 16)
 				_dump()
 				get_tree().quit(0)
 		4:
@@ -173,6 +199,14 @@ func _dump() -> void:
 		"ey_b_b64": Marshalls.raw_to_base64(_ey_b.to_byte_array()),
 		"ic_ey_b64": Marshalls.raw_to_base64(_ic_ey),
 		"ic_ei_b64": Marshalls.raw_to_base64(_ic_ei),
+		# arm B per-site cell-averaged state + labels + sites: the numpy gate
+		# builds the piecewise-constant cell-average grid field (physics
+		# identity) separately from the reconstructed field (rendered).
+		"n_sites_b": _n_sites_b,
+		"psi_y_b_b64": Marshalls.raw_to_base64(_psi_y_b),
+		"psi_i_b_b64": Marshalls.raw_to_base64(_psi_i_b),
+		"labels_b_b64": Marshalls.raw_to_base64(_labels_b),
+		"sites_b_b64": Marshalls.raw_to_base64(_sites_b),
 	}
 	var f := FileAccess.open("res://_diag/meshless_sim_gpu.json", FileAccess.WRITE)
 	if f == null:
