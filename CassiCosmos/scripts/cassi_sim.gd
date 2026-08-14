@@ -412,6 +412,8 @@ var _us_blend_0_velpack: RID    # decoupled set: packed vel half-pairs → fp32 
 # — Decoupled physics producer (the standalone engine on a worker thread) —
 var _physics_engine = null            # CassiPhysicsEngine (untyped: dynamic dispatch)
 var _decoupled_active := false        # decoupled AND meshless off (the grid path)
+var _decoupled_boot_wait := false     # FIX A: true until the first publish lands
+var _decoupled_boot_start_ms := 0     # FIX A: wall clock when boot began (timeout)
 var _decoupled_target := 0            # cumulative REQUESTED steps (the job target)
 var _decoupled_pending := 0           # truthful backlog = target − executed (UI "behind X s")
 var _decoupled_prev_pos := PackedFloat32Array()  # host-side snapshot pair
@@ -468,6 +470,12 @@ var _merge_hash_nx: int = 1; var _merge_hash_ny: int = 1; var _merge_hash_nz: in
 var _merge_hash_total: int = 1
 var _merge_cell_wx: float = 0.0; var _merge_cell_wy: float = 0.0; var _merge_cell_wz: float = 0.0
 var _merge_cycles_run: int = 0   # lifetime merge-cycle count (verify/battery diag)
+# ── On-GPU exclusive scan (compute/cassi_exclusive_scan.glsl; FIX B): replaces
+# the host CPU prefix-sum (cc readback + cs/ch uploads) with 4 GPU passes. ──
+var _scan_shader: RID; var _scan_pipe: RID; var _us_scan_0: RID
+var _merge_scr_buf: RID
+var _merge_nb1a: int = 256   # pad(L1 count to 256)
+var _merge_nb2: int = 1      # L2 count (≤256)
 # ── BH accretion (compute/cassi_bh_accretion.glsl; init-time, bh_accretion) ──
 var _bh_acc_shader: RID; var _bh_acc_pipe: RID; var _us_bh_acc_0: RID
 var _bh_acc_pc_bytes: PackedByteArray
@@ -1178,16 +1186,10 @@ func _run_merge_pass() -> int:
 		_rd.compute_list_add_barrier(cl)
 		_merge_bind_dispatch(cl, 2.0)   # count into cc
 		_rd.compute_list_end()
-		# host exclusive prefix-sum: cc -> cs (then cs -> ch = fill head).
-		# This readback syncs fold+count.
-		var cc := _read_merge_uints(_merge_cc_buf, _merge_hash_total)
-		var cs := PackedInt32Array(); cs.resize(_merge_hash_total)
-		var run := 0
-		for c in range(_merge_hash_total):
-			cs[c] = run
-			run += cc[c]
-		_rd.buffer_update(_merge_cs_buf, 0, cs.size() * 4, cs.to_byte_array())
-		_rd.buffer_update(_merge_ch_buf, 0, cs.size() * 4, cs.to_byte_array())
+		# On-GPU exclusive scan (FIX B): cs = cc-exclusive-sum; ch = cs (fill
+		# head). Replaces the host cc readback + cs/ch uploads + 8.9M-iter CPU
+		# prefix-sum. Recorded as its own list; its readback forces execution.
+		_run_merge_scan()
 		# mc was zeroed once before the loop; running mc counts across cycles
 		# (hop atomically increments it) — re-zero it before THIS cycle's hop.
 		_zero_merge_bytes(_merge_mc_buf, 1)
@@ -1252,6 +1254,50 @@ func _merge_bind_dispatch(cl: int, pass_mode: float) -> void:
 	_rd.compute_list_bind_uniform_set(cl, _us_merge_0, 0)
 	_rd.compute_list_set_push_constant(cl, _merge_pc_bytes, _merge_pc_bytes.size())
 	_rd.compute_list_dispatch(cl, ceili(float(N_particles) / 256.0), 1, 1)
+
+
+## FIX B: run the on-GPU exclusive scan (cassi_exclusive_scan.glsl) that turns
+## the spatial-hash cell counts (cc) into the exclusive prefix-sum (cs) plus the
+## per-cell fill head (ch = cs), replacing the host cc readback + cs/ch uploads
+## + CPU scan. Global RD: the scan is recorded as its own compute list and
+## forced with a self-stalling readback (the merge's existing `_merge_read_uint`
+## pattern); the four passes are intra-list (barriers) so pass-to-pass ordering
+## is explicit. If the scan pipe/set are missing, falls back to no-op (the
+## merge pipeline guard skips the pass entirely — the older host path is gone,
+## so a missing scan pipe means the merge is skipped, matching the decoupled
+## engine's guard).
+func _run_merge_scan() -> void:
+	if not _scan_pipe.is_valid() or not _us_scan_0.is_valid():
+		_zero_merge_bytes(_merge_cc_buf, _merge_hash_total)  # conservative: leave cc zeroed
+		_merge_read_uint()
+		return
+	var E := _merge_hash_total
+	var nb1 := (E + 255) / 256
+	var nb2 := _merge_nb2
+	var pc := PackedFloat32Array()
+	pc.resize(4)
+	pc[2] = float(_merge_nb1a)
+	var cl := _rd.compute_list_begin()
+	pc[0] = float(E); pc[1] = 1.0
+	_scan_dispatch(cl, pc, nb1)
+	_rd.compute_list_add_barrier(cl)
+	pc[0] = float(nb1); pc[1] = 2.0
+	_scan_dispatch(cl, pc, nb2)
+	_rd.compute_list_add_barrier(cl)
+	pc[0] = float(nb2); pc[1] = 3.0
+	_scan_dispatch(cl, pc, 1)
+	_rd.compute_list_add_barrier(cl)
+	pc[0] = float(E); pc[1] = 4.0
+	_scan_dispatch(cl, pc, nb1)
+	_rd.compute_list_end()
+	_merge_read_uint()   # forced sync → scan visible before fill
+
+
+func _scan_dispatch(cl: int, pc: PackedFloat32Array, groups: int) -> void:
+	_rd.compute_list_bind_compute_pipeline(cl, _scan_pipe)
+	_rd.compute_list_bind_uniform_set(cl, _us_scan_0, 0)
+	_rd.compute_list_set_push_constant(cl, pc.to_byte_array(), pc.size() * 4)
+	_rd.compute_list_dispatch(cl, maxi(groups, 1), 1, 1)
 
 
 ## Force the just-recorded merge compute list to actually execute. The global
@@ -1367,8 +1413,12 @@ func _decoupled_start_engine() -> bool:
 		cfg["seed"] = ic_seed
 	if not _physics_engine.start_threaded(cfg):
 		return false
-	# Bootstrap: the first submit blocks on setup + completion and returns
-	# the immediate snapshot (the tree-worker _wait_next pattern).
+	# FIX A (non-blocking bootstrap): queue the first job WITHOUT blocking the
+	# main thread on the worker's setup() (the old path froze the main thread
+	# ~3.5 s while the 2.5M-particle ICs initialized). The worker processes it
+	# right after setup(); the first snapshot lands via poll(). _decoupled_active
+	# is set true by the caller; _decoupled_boot_wait gates rendering until the
+	# first publish arrives so the sim never renders uninitialized mirrors.
 	_decoupled_target = 0
 	_decoupled_pending = 0
 	_decoupled_prev_pos = PackedFloat32Array()
@@ -1380,12 +1430,10 @@ func _decoupled_start_engine() -> bool:
 	_batch_ema_ms = 16.7
 	_step_count = 0
 	_time = 0.0
-	var pub: Dictionary = _physics_engine.submit_steps(1, false, _decoupled_job_meta(false))
-	if pub.is_empty():
-		push_error("[CassiSim] decoupled bootstrap returned no snapshot")
-		_physics_engine.stop_threaded()
-		return false
-	_apply_decoupled_publish(pub)
+	_decoupled_boot_wait = true
+	_decoupled_boot_start_ms = Time.get_ticks_msec()
+	_physics_engine.submit_steps(1, false, _decoupled_job_meta(false))
+	print("[CassiSim] decoupled bootstrap queued (non-blocking) — main thread free")
 	return true
 
 
@@ -1457,13 +1505,16 @@ func _apply_decoupled_publish(pub: Dictionary) -> void:
 		var vel: PackedFloat32Array = snap.get("vel", PackedFloat32Array())
 		if vel.size() > 0:
 			_rd.buffer_update(_vel_buf, 0, vel.size() * 4, vel.to_byte_array())
-	# field_q + pot stay fp32 in both paths.
+	# field_q stays fp32 in both paths.
 	var fq: PackedFloat32Array = snap.get("field_q", PackedFloat32Array())
-	var pot: PackedFloat32Array = snap.get("pot", PackedFloat32Array())
 	if fq.size() > 0:
 		_rd.buffer_update(_field_q, 0, fq.size() * 4, fq.to_byte_array())
-	if pot.size() > 0:
-		_upload_pot_mirror(pot)
+	# FIX C1: the pot mirror is DROPPED — no decoupled consumer reads _fft_buf
+	# (the only reader, _report_poisson_residual, is explicitly gated off the
+	# decoupled path). Skipping the interleave + upload saves the pot readback
+	# + a nc-vec2 upload per publish; the engine still carries pot in its
+	# snapshot for any phase-2 consumer that turns up (the engine-side cost is
+	# ~2 MB, negligible vs pos/vel).
 	# Interpolation timing: alpha ≈ 0 right at each SNAPSHOT publish and
 	# sweeps to 1 over one snapshot interval (display lags one snapshot —
 	# the standard one-batch-late interpolation; at cadence K the interval
@@ -1502,10 +1553,28 @@ func _upload_pot_mirror(pot: PackedFloat32Array) -> void:
 ## keeps the fp32 _vel_buf fresh for the instancer's |v| rainbow; before
 ## that (the fp32 bootstrap) the fp32 blend set is bound instead.
 func _decoupled_poll_and_render() -> void:
-	# Consume the freshest publish (newest target wins — coalescing).
+	# FIX A: during the non-blocking bootstrap, consume the first publish and
+	# clear the wait — but DON'T render until the mirrors are seeded (the
+	# worker is still building ICs; rendering empty buffers would be garbage).
 	var pub: Dictionary = _physics_engine.poll()
 	if not pub.is_empty():
 		_apply_decoupled_publish(pub)
+	if _decoupled_boot_wait:
+		if _decoupled_curr_pos.size() == 0 and _dc_curr_bytes.size() == 0:
+			# First snapshot not yet published. If the worker failed setup (no
+			# publish ever expected), fall back to the inline path so the scene
+			# isn't stuck unmoving. ~3.5s is the normal 2.5M IC build; give it
+			# generous headroom before declaring the worker lost.
+			if Time.get_ticks_msec() - _decoupled_boot_start_ms > 15000:
+				push_error("[CassiSim] decoupled bootstrap timeout (no first snapshot) — falling back to inline")
+				_physics_engine.stop_threaded()
+				_physics_engine = null
+				_decoupled_active = false
+				_decoupled_boot_wait = false
+				_init_field(); _init_particles(); _apply_gravity_calibration(); _grav_warmup = true
+			return   # skip the render list until the first snapshot lands
+		_decoupled_boot_wait = false
+		print("[CassiSim] decoupled bootstrap first snapshot applied (non-blocking)")
 	# Interpolation alpha: 0 right at each publish → 1 one batch later.
 	# (No publish yet → the last mirrored state renders exactly.)
 	_interp_alpha = clampf(float(Time.get_ticks_msec() - _last_publish_ms) / maxf(_batch_ema_ms, 1.0), 0.0, 1.0)
@@ -1818,6 +1887,13 @@ func _setup_buffers() -> void:
 		_merge_ch_buf = _rd.storage_buffer_create(_merge_hash_total * 4)
 		_merge_mc_buf = _rd.storage_buffer_create(4)
 		_rd.buffer_update(_merge_mc_buf, 0, 4, PackedByteArray([0, 0, 0, 0]))
+		# On-GPU scan scratch (FIX B): L1 block totals + L2 two-level carries.
+		var nb1 := (_merge_hash_total + 255) / 256
+		_merge_nb1a = ((nb1 + 255) / 256) * 256
+		_merge_nb2 = (nb1 + 255) / 256
+		_merge_scr_buf = _rd.storage_buffer_create((_merge_nb1a + _merge_nb2) * 4)
+		var scan_scr_zero := PackedByteArray(); scan_scr_zero.resize((_merge_nb1a + _merge_nb2) * 4)
+		_rd.buffer_update(_merge_scr_buf, 0, scan_scr_zero.size(), scan_scr_zero)
 		# Non-cubic cells: per-axis widths from the per-axis hash counts
 		_merge_cell_wx = 2.0 * ebox.x / float(_merge_hash_nx)
 		_merge_cell_wy = 2.0 * ebox.y / float(_merge_hash_ny)
@@ -1891,12 +1967,12 @@ func _free_buffers() -> void:
 		if rid.is_valid(): _rd.free_rid(rid)
 	for rid in [_merge_alive_buf, _merge_mass_buf, _merge_mom_buf, _merge_cen_buf,
 				_merge_best_buf, _merge_sink_buf, _merge_cc_buf, _merge_cs_buf,
-				_merge_ch_buf, _merge_cl_buf, _merge_mc_buf]:
+				_merge_ch_buf, _merge_cl_buf, _merge_mc_buf, _merge_scr_buf]:
 		if rid.is_valid(): _rd.free_rid(rid)
 	_merge_alive_buf = RID(); _merge_mass_buf = RID(); _merge_mom_buf = RID()
 	_merge_cen_buf = RID(); _merge_best_buf = RID(); _merge_sink_buf = RID()
 	_merge_cc_buf = RID(); _merge_cs_buf = RID(); _merge_ch_buf = RID()
-	_merge_cl_buf = RID(); _merge_mc_buf = RID()
+	_merge_cl_buf = RID(); _merge_mc_buf = RID(); _merge_scr_buf = RID()
 	_field_render_tex = RID()
 	_bh_lensing_tex = RID()
 	_tree_worker_stop()
@@ -1914,7 +1990,7 @@ func _free_uniform_sets() -> void:
 				_us_bh_int_0, _us_bh_int_1, _us_inst_0, _us_inst_0_render,
 				_us_bh_lens_2, _us_blend_0, _us_blend_0_packed, _us_blend_0_velpack,
 				_us_occ_0, _us_qhist_0, _us_qhist_0_render, _us_jfa_0, _us_cell_0, _us_raster_0,
-				_us_tree_build, _us_tree_grav, _us_merge_0, _us_bh_acc_0]:
+				_us_tree_build, _us_tree_grav, _us_merge_0, _us_bh_acc_0, _us_scan_0]:
 		if rid.is_valid(): _rd.free_rid(rid)
 	_us_two_0 = RID(); _us_two_1 = RID(); _us_two_2 = RID()
 	_us_mass_dep_0 = RID()
@@ -1929,7 +2005,7 @@ func _free_uniform_sets() -> void:
 	_us_qhist_0 = RID(); _us_qhist_0_render = RID()
 	_us_jfa_0 = RID(); _us_cell_0 = RID(); _us_raster_0 = RID()
 	_us_tree_build = RID(); _us_tree_grav = RID()
-	_us_merge_0 = RID(); _us_bh_acc_0 = RID()
+	_us_merge_0 = RID(); _us_bh_acc_0 = RID(); _us_scan_0 = RID()
 
 func _free_shaders() -> void:
 	_free_uniform_sets()  # sets hold shader references; release before the shaders
@@ -1941,14 +2017,14 @@ func _free_shaders() -> void:
 				_cond_pipe, _bh_int_pipe, _occ_pipe, _qhist_pipe,
 				_jfa_pipe, _cell_pipe, _raster_pipe,
 				_tree_build_pipe, _tree_grav_pipe, _blend_pipe,
-				_merge_pipe, _bh_acc_pipe,
+				_merge_pipe, _scan_pipe, _bh_acc_pipe,
 				_two_fluid_shader, _nbody_shader, _poisson_shader,
 				_field_render_shader, _bh_lensing_shader,
 				_instancer_shader, _mass_deposit_shader,
 				_cond_shader, _bh_int_shader, _occ_shader, _qhist_shader,
 				_jfa_shader, _cell_shader, _raster_shader,
 				_tree_build_shader, _tree_grav_shader, _blend_sh,
-				_merge_shader, _bh_acc_shader]:
+				_merge_shader, _scan_shader, _bh_acc_shader]:
 		if rid.is_valid(): _rd.free_rid(rid)
 
 
@@ -2014,6 +2090,11 @@ func _setup_shaders() -> void:
 		if _merge_shader.is_valid():
 			_merge_pipe = _rd.compute_pipeline_create(_merge_shader)
 			print("[CassiSim] particle-merge pipeline ready")
+		# On-GPU exclusive scan (FIX B) — only needed when the merge runs.
+		_scan_shader = _shader_from_file("res://compute/cassi_exclusive_scan.glsl")
+		if _scan_shader.is_valid():
+			_scan_pipe = _rd.compute_pipeline_create(_scan_shader)
+			print("[CassiSim] exclusive-scan pipeline ready")
 	# BH accretion (only when bh_accretion; the pipeline + set are created on
 	# the init-time toggle so the default-off path is bit-identical)
 	if bh_accretion:
@@ -2155,6 +2236,14 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(12, _merge_ch_buf), _uniform_storage(13, _merge_cl_buf),
 			_uniform_storage(14, _merge_mc_buf),
 		], _merge_shader, 0)
+	# On-GPU scan set (FIX B): cc(15) → cs(16) + scr(17) two-level + ch(18).
+	if particle_merge and _scan_shader.is_valid() and _merge_scr_buf.is_valid():
+		_us_scan_0 = _rd.uniform_set_create([
+			_uniform_storage(15, _merge_cc_buf),
+			_uniform_storage(16, _merge_cs_buf),
+			_uniform_storage(17, _merge_scr_buf),
+			_uniform_storage(18, _merge_ch_buf),
+		], _scan_shader, 0)
 	# BH accretion (set 0: positions + BHData write)
 	if bh_accretion and _bh_acc_shader.is_valid():
 		_us_bh_acc_0 = _rd.uniform_set_create([

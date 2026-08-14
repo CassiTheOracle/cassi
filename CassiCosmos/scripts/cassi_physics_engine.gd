@@ -247,6 +247,13 @@ var _merge_hash_nx: int = 1; var _merge_hash_ny: int = 1; var _merge_hash_nz: in
 var _merge_hash_total: int = 1
 var _merge_cell_wx: float = 0.0; var _merge_cell_wy: float = 0.0; var _merge_cell_wz: float = 0.0
 var _merge_cycles_run := 0
+# ── On-GPU exclusive scan (compute/cassi_exclusive_scan.glsl; FIX B): replaces
+# the host CPU prefix-sum (cc readback + cs/ch uploads) with 4 GPU passes. The
+# scratch buffer holds L1 block totals + L2 (two-level carry) regions. ──
+var _scan_shader: RID; var _scan_pipe: RID; var _us_scan_0: RID
+var _merge_scr_buf: RID
+var _merge_nb1a: int = 256   # pad(L1 count to 256)
+var _merge_nb2: int = 1      # L2 count (≤256)
 # ── BH accretion (compute/cassi_bh_accretion.glsl; gated on bh_accretion) ──
 var _bh_acc_shader: RID; var _bh_acc_pipe: RID; var _us_bh_acc_0: RID
 var _bh_acc_pc_bytes: PackedByteArray  # BH accretion PC (4 floats)
@@ -643,7 +650,10 @@ static func _unpack_f16_pairs(packed: PackedByteArray, n_floats: int) -> PackedF
 ## mean — decoded exactly as the sim's _render_frame does — plus the
 ## eps/hubble/scale-factor members (inert defaults there too) and the
 ## effective river G after calibration.
-func readback_telemetry() -> Dictionary:
+## FIX C2: field_q_override (the field_q the caller already read in
+## readback_snapshot, or empty to read it here) avoids a SECOND full field_q
+## readback per publish — the snapshot and telemetry used to each pull nc×4.
+func readback_telemetry(field_q_override: PackedFloat32Array = PackedFloat32Array()) -> Dictionary:
 	if _rd == null or not _ready:
 		return {}
 	if not _rd_global and _local_pending:
@@ -664,10 +674,11 @@ func readback_telemetry() -> Dictionary:
 		var samples := maxi(int(tel.decode_u32(28)), 1)
 		_pi_sat_hi_frac /= samples
 		_pi_sat_lo_frac /= samples
-	var nc: int = grid_N * grid_N * grid_N
-	var q_data := _rd.buffer_get_data(_field_q, 0, nc * 4)
-	if q_data.size() > 0:
-		var qf := q_data.to_float32_array()
+	var qf := field_q_override
+	if qf.is_empty():
+		var nc: int = grid_N * grid_N * grid_N
+		qf = _rd.buffer_get_data(_field_q, 0, nc * 4).to_float32_array()
+	if qf.size() > 0:
 		var q_sum := 0.0
 		# Strided sum — the sim's _render_frame recipe (1-in-16 subsample).
 		for qi in range(0, qf.size(), 16):
@@ -716,7 +727,8 @@ func start_threaded(cfg: Dictionary) -> bool:
 			"res://compute/cassi_voronoi_raster.glsl",
 			"res://compute/cassi_particle_merge.glsl",
 			"res://compute/cassi_bh_accretion.glsl",
-			"res://compute/cassi_pack_f16.glsl"]:
+			"res://compute/cassi_pack_f16.glsl",
+			"res://compute/cassi_exclusive_scan.glsl"]:
 		var sf := load(p) as RDShaderFile
 		if sf == null or sf.get_spirv() == null:
 			push_error("[PhysicsEngine] start_threaded: shader load failed: " + p)
@@ -751,26 +763,31 @@ func start_threaded(cfg: Dictionary) -> bool:
 ## far) steps, so a new job replaces a pending unconsumed one (newest
 ## target wins) and steps are never silently lost. block=true waits for
 ## this job's completion and returns the fresh publish (the synchronous
-## path the sim's _run_physics_steps uses). The bootstrap (first submit
-## after start) always blocks and returns the immediate snapshot.
-## job_meta rides into the job dict: "cadence" (publish every Kth job —
-## live without reinit) and "packed" (fp16 half-pair snapshot mirrors).
+## path the sim's _run_physics_steps uses).
+##
+## FIX A (non-blocking bootstrap): the FIRST submit after start NEVER blocks
+## the main thread on setup (previously it did `_setup_sem.wait()` — a ~3.5 s
+## frozen startup at 2.5M particles with no feedback). Instead it immediately
+## queues the job (the worker runs it right after setup() completes) and
+## returns {}; the caller polls `setup_ready()` / `poll()` for the first
+## publish. block=true on the first-call is IGNORED (still non-blocking) —
+## callers that need the first snapshot must poll. job_meta rides into the
+## job dict: "cadence" (publish every Kth job) and "packed" (fp16 half-pair).
 func submit_steps(target: int, block := false, job_meta: Dictionary = {}) -> Dictionary:
 	if not _thread_started:
 		return {}
 	if _wait_next:
-		# Bootstrap: block until the worker finished setup AND this job.
+		# Bootstrap (FIX A): queue immediately, never block on setup. The
+		# worker processes the job right after setup() posts _setup_sem; the
+		# publish lands in _res_result and poll()/setup_ready() observe it.
 		_wait_next = false
-		_setup_sem.wait()
-		if not _ready:
-			return {}
 		_job_mutex.lock()
 		_job = {"target": target}
 		_job.merge(job_meta)
 		_job_pending = true
 		_job_mutex.unlock()
 		_job_sem.post()
-		return _wait_executed(target)   # the bootstrap always blocks
+		return {}
 	_job_mutex.lock()
 	_job = {"target": target}
 	_job.merge(job_meta)
@@ -780,6 +797,14 @@ func submit_steps(target: int, block := false, job_meta: Dictionary = {}) -> Dic
 	if block:
 		return _wait_executed(target)
 	return {}
+
+
+## FIX A: non-blocking readiness poll — true once the worker's setup() has
+## finished (buffers/pipelines built). The bootstrap job is queued by the
+## first submit_steps BEFORE setup completes, so the caller polls this +
+## poll() until the first publish arrives; the main thread never blocks.
+func setup_ready() -> bool:
+	return _ready and _thread_started
 
 
 ## Block until a publish with executed >= target arrives and return the
@@ -867,7 +892,7 @@ func _threaded_run_job(job: Dictionary) -> void:
 	}
 	if publish:
 		var snap := readback_snapshot(bool(job.get("packed", false)))
-		var tel := readback_telemetry()
+		var tel := readback_telemetry(snap.get("field_q", PackedFloat32Array()))
 		res["snapshot"] = snap
 		res["telemetry"] = tel
 	_res_mutex.lock()
@@ -908,10 +933,10 @@ func shutdown() -> void:
 	for rid in [
 			_two_fluid_pipe, _nbody_pipe, _poisson_pipe, _mass_deposit_pipe,
 			_cond_pipe, _bh_int_pipe, _jfa_pipe, _cell_pipe, _raster_pipe,
-			_merge_pipe, _bh_acc_pipe, _pack_pipe,
+			_merge_pipe, _scan_pipe, _bh_acc_pipe, _pack_pipe,
 			_two_fluid_shader, _nbody_shader, _poisson_shader,
 			_mass_deposit_shader, _cond_shader, _bh_int_shader,
-			_jfa_shader, _cell_shader, _raster_shader, _merge_shader, _bh_acc_shader,
+			_jfa_shader, _cell_shader, _raster_shader, _merge_shader, _scan_shader, _bh_acc_shader,
 			_pack_shader,
 			_field_ey, _field_ei, _field_q, _field_vel, _field_scratch,
 			_fft_buf, _tel_buf, _grad_buf, _grad_buf2,
@@ -920,7 +945,7 @@ func shutdown() -> void:
 			_pos_packed_buf, _vel_packed_buf,
 			_merge_alive_buf, _merge_mass_buf, _merge_mom_buf, _merge_cen_buf,
 			_merge_best_buf, _merge_sink_buf, _merge_cc_buf, _merge_cs_buf,
-			_merge_ch_buf, _merge_cl_buf, _merge_mc_buf,
+			_merge_ch_buf, _merge_cl_buf, _merge_mc_buf, _merge_scr_buf,
 			_ml_labels_a, _ml_labels_b, _ml_sites,
 			_ml_psi_y, _ml_psi_i, _ml_pi_y, _ml_pi_i,
 			_ml_lap_y, _ml_lap_i, _ml_vol,
@@ -1183,6 +1208,13 @@ func _setup_buffers() -> void:
 		_merge_ch_buf = _rd.storage_buffer_create(_merge_hash_total * 4)
 		_merge_mc_buf = _rd.storage_buffer_create(4)
 		_rd.buffer_update(_merge_mc_buf, 0, 4, PackedByteArray([0, 0, 0, 0]))
+		# On-GPU scan scratch (FIX B): L1 block totals + L2 two-level carries.
+		var nb1 := (_merge_hash_total + 255) / 256
+		_merge_nb1a = ((nb1 + 255) / 256) * 256
+		_merge_nb2 = (nb1 + 255) / 256
+		_merge_scr_buf = _rd.storage_buffer_create((_merge_nb1a + _merge_nb2) * 4)
+		var scan_scr_zero := PackedByteArray(); scan_scr_zero.resize((_merge_nb1a + _merge_nb2) * 4)
+		_rd.buffer_update(_merge_scr_buf, 0, scan_scr_zero.size(), scan_scr_zero)
 		_merge_cell_wx = 2.0 * ebox.x / float(_merge_hash_nx)
 		_merge_cell_wy = 2.0 * ebox.y / float(_merge_hash_ny)
 		_merge_cell_wz = 2.0 * ebox.z / float(_merge_hash_nz)
@@ -1238,6 +1270,10 @@ func _setup_shaders() -> void:
 		_merge_shader = _shader_create("res://compute/cassi_particle_merge.glsl")
 		if _merge_shader.is_valid():
 			_merge_pipe = _rd.compute_pipeline_create(_merge_shader)
+		# On-GPU exclusive scan (FIX B) — only needed when the merge runs.
+		_scan_shader = _shader_create("res://compute/cassi_exclusive_scan.glsl")
+		if _scan_shader.is_valid():
+			_scan_pipe = _rd.compute_pipeline_create(_scan_shader)
 	# BH accretion (only when bh_accretion; the pipeline + set are created on
 	# the init-time toggle so the default-off path is bit-identical)
 	if bh_accretion:
@@ -1354,6 +1390,14 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(12, _merge_ch_buf), _uniform_storage(13, _merge_cl_buf),
 			_uniform_storage(14, _merge_mc_buf),
 		], _merge_shader, 0)
+	# On-GPU scan set (FIX B): cc(15) → cs(16) + scr(17) two-level + ch(18).
+	if particle_merge and _scan_shader.is_valid() and _merge_scr_buf.is_valid():
+		_us_scan_0 = _rd.uniform_set_create([
+			_uniform_storage(15, _merge_cc_buf),
+			_uniform_storage(16, _merge_cs_buf),
+			_uniform_storage(17, _merge_scr_buf),
+			_uniform_storage(18, _merge_ch_buf),
+		], _scan_shader, 0)
 	# BH accretion (set 0: positions + BHData write)
 	if bh_accretion and _bh_acc_shader.is_valid():
 		_us_bh_acc_0 = _rd.uniform_set_create([
@@ -2386,15 +2430,10 @@ func _run_merge_pass() -> int:
 		_merge_bind_dispatch(cl, 2.0)   # count into cc
 		_rd.compute_list_end()
 		_rd.submit(); _rd.sync()
-		# host exclusive prefix-sum: cc -> cs (then cs -> ch = fill head)
-		var cc: PackedInt32Array = _rd.buffer_get_data(_merge_cc_buf, 0, _merge_hash_total * 4).to_int32_array()
-		var cs := PackedInt32Array(); cs.resize(_merge_hash_total)
-		var run := 0
-		for c in range(_merge_hash_total):
-			cs[c] = run
-			run += cc[c]
-		_rd.buffer_update(_merge_cs_buf, 0, cs.size() * 4, cs.to_byte_array())
-		_rd.buffer_update(_merge_ch_buf, 0, cs.size() * 4, cs.to_byte_array())
+		# On-GPU exclusive scan (FIX B): cs = cc-exclusive-sum; ch = cs (the
+		# fill head). Replaces the host cc readback + cs/ch uploads + 8.9M-iter
+		# CPU prefix-sum loop (~+276 ms of the per-batch merge cost).
+		_run_merge_scan()
 		# mc was zeroed once before the loop; re-zero it before THIS cycle's hop
 		_zero_merge_bytes(_merge_mc_buf, 1)
 		var cl2 := _rd.compute_list_begin()
@@ -2460,6 +2499,49 @@ func _merge_bind_dispatch(cl: int, pass_mode: float) -> void:
 func _merge_read_uint() -> int:
 	var d := _rd.buffer_get_data(_merge_mc_buf, 0, 4)
 	return int(d.decode_u32(0)) if d.size() >= 4 else 0
+
+
+## FIX B: run the on-GPU exclusive scan (cassi_exclusive_scan.glsl) that turns
+## the spatial-hash cell counts (cc) into the exclusive prefix-sum (cs) plus the
+## per-cell fill head (ch = cs). Four passes in ONE compute list (barriers for
+## pass-to-pass visibility), one submit+sync — no host cc readback, no cs/ch
+## upload, no CPU scan. Guards: scan pipeline/set must be valid (fall back to
+## nothing — the host merge guards on a valid pipe, so a missing scan pipe
+## simply means the merge is skipped; the scan is created whenever particle_merge).
+func _run_merge_scan() -> void:
+	if not _scan_pipe.is_valid() or not _us_scan_0.is_valid():
+		return
+	var E := _merge_hash_total
+	var nb1 := (E + 255) / 256
+	var nb2 := _merge_nb2
+	var pc := PackedFloat32Array()
+	pc.resize(4)
+	pc[2] = float(_merge_nb1a)
+	var cl := _rd.compute_list_begin()
+	# pass 1: cc -> cs (block-local exclusive) + L1 totals -> scr[b]
+	pc[0] = float(E); pc[1] = 1.0
+	_scan_dispatch(cl, pc, nb1)
+	_rd.compute_list_add_barrier(cl)
+	# pass 2: scan scr(L1) in place -> loc1 + L2 totals -> scr[nb1a + bb]
+	pc[0] = float(nb1); pc[1] = 2.0
+	_scan_dispatch(cl, pc, nb2)
+	_rd.compute_list_add_barrier(cl)
+	# pass 3: single workgroup scan of L2 -> exclusive (nb2 <= 256)
+	pc[0] = float(nb2); pc[1] = 3.0
+	_scan_dispatch(cl, pc, 1)
+	_rd.compute_list_add_barrier(cl)
+	# pass 4: cs += carries; ch = cs
+	pc[0] = float(E); pc[1] = 4.0
+	_scan_dispatch(cl, pc, nb1)
+	_rd.compute_list_end()
+	_rd.submit(); _rd.sync()
+
+
+func _scan_dispatch(cl: int, pc: PackedFloat32Array, groups: int) -> void:
+	_rd.compute_list_bind_compute_pipeline(cl, _scan_pipe)
+	_rd.compute_list_bind_uniform_set(cl, _us_scan_0, 0)
+	_rd.compute_list_set_push_constant(cl, pc.to_byte_array(), pc.size() * 4)
+	_rd.compute_list_dispatch(cl, maxi(groups, 1), 1, 1)
 
 
 func _zero_merge_bytes(buf: RID, count: int) -> void:

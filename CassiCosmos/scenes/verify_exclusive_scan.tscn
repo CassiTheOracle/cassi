@@ -1,0 +1,8 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/verify_exclusive_scan.gd" id="1_scan"]
+
+[node name="VerifyExclusiveScan" type="Node"]
+
+[node name="Scan" type="Node" parent="."]
+script = ExtResource("1_scan")

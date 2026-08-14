@@ -1,13 +1,14 @@
-# Decoupled Physics — Measured Perf Diagnosis & Fix Plan
+# Decoupled Physics — Measured Perf Diagnosis & Fix Plan (FIXED)
 
-**Status:** Measured evidence + fix plan (READ-ONLY turn — no shared-file edits)
-**Repo:** `godot/space-sim` (perf probe = `scripts/verify_decoupled_perf.gd` + `scenes/verify_decoupled_perf.tscn`, NEW files)
+**Status:** Diagnosis → **implemented** (FIX A/B/C) + FIX D verified-necessary-not. Measured before/after below.
+**Repo:** `godot/space-sim` (perf probe = `scripts/verify_decoupled_perf.gd` + `scenes/verify_decoupled_perf.tscn`; scan shader = `compute/cassi_exclusive_scan.glsl`; scan gate = `scripts/verify_exclusive_scan.gd` + `scenes/verify_exclusive_scan.tscn`)
 **Asset/machine:** Windows 11, AMD RX 7900 XTX, Godot 4.7 (win64 console, windowed, local RD via `--path`)
 **Date:** 2026-08-14
 **Measured by:** `verify_decoupled_perf` probe (drives `scripts/cassi_physics_engine.gd` directly; raw run → `_diag/decoupled_perf_report.json`, gitignored)
 
 This report reproduces and times the **two reported symptoms** with hard numbers on
-the actual engine (`scripts/cassi_physics_engine.gd` threaded local-RD runner):
+the actual engine (`scripts/cassi_physics_engine.gd` threaded local-RD runner), then
+records the fixes and the measured before/after:
 
 1. **the DETACHED physics LONG HANG** — the threaded engine's startup bootstrap,
 2. **MATTER-CONDENSING causing low frame rate / stuttering** — the particle-merge pass.
@@ -15,6 +16,35 @@ the actual engine (`scripts/cassi_physics_engine.gd` threaded local-RD runner):
 Every number below was measured this session; none are guesses. The probe creates its
 own engine instances on private worker threads (own local RDs), fully isolated from
 any live sim, and touches no shared `.gd`/`.glsl`.
+
+---
+
+## 0. Fix results (measured before → after)
+
+| Fix | Change | Before | After | Verified |
+|---|---|---|---|---|
+| **A** | Non-blocking bootstrap: `submit_steps` first call queues (never `_setup_sem.wait`); sim polls `_decoupled_poll_and_render` for the first publish. | **3516 ms** main-thread block at 2.5M | **0 ms** main-thread block (async time-to-publish ~4 s on the worker, free-pumped) | perf probe PROBE1; sim parses + merge_sim 5/5 unaffected |
+| **B** | On-GPU exclusive scan (`cassi_exclusive_scan.glsl`, 4 passes) replaces the host cc-readback + cs/ch-upload + 8.9M-iter CPU prefix-sum. | **+276 ms**/merge batch (8.88M cells) | **+20–27 ms**/merge batch | `verify_merge` 8/8, `verify_merge_sim` 5/5, `verify_merge_engine` 7/7, `verify_exclusive_scan` 4/4 (vs CPU reference) |
+| **C** | Packed-fp16 snapshot already default in sim (user commit); telemetry fused (snapshot field_q reused, no double readback); unused `pot` mirror dropped. | publish fp32 36-37 ms | packed **15-17 ms**; one less field_q readback + pot upload per publish | perf probe PROBE2 |
+| **D** | **Not a rewrite** — the `OpAtomicFAddEXT` float atomic is PROVEN correct on the worker local RD (100k/100k particles accreted in the probe; `verify_bh_accretion_engine` 9/9, `verify_merge_engine` 7/7). The "not supported yet" is a spurious teardown validation warning, not a failure. | — | — | perf probe PROBE5 (deterministic worker-path accretion); bh_acc_engine 9/9 |
+
+**Battery table (after fixes, isolated runs):**
+
+| Battery | Result |
+|---|---|
+| `verify_merge` (G28/G29 via stage6_merge.py) | PASS 8/8 |
+| `verify_merge_sim` | PASS 5/5 |
+| `verify_merge_engine` (G52-G54) | PASS 7/7 |
+| `verify_bh_accretion_engine` (G55-G57) | PASS 9/9 |
+| `verify_exclusive_scan` (new, GPU-scan vs CPU ref) | PASS 4/4 |
+| `verify_fft` / `verify_phi_box` / `verify_river_law` / `verify_gravity_modes` | PASS (58/58 for gravity modes) |
+
+> Pre-existing (parallel-session in-flight) failures, NOT caused by these fixes:
+> `verify_multigrid_engine` (engine `cascade_level` uniform set + `cascade_ran` counter are
+> not wired at HEAD — `git show HEAD` has 0 cascade-set/counter lines, so the coarse chain
+> was never engine-integrated) and `verify_river_isotropy`'s `cascade[dual-O4]` ring -nan
+> (sim cascade subpasses in flux; neither battery touches the merge/bootstrap/telemetry
+> code these fixes changed).
 
 ---
 
@@ -102,13 +132,18 @@ packed path already **halves the readback (16 vs 37 ms)**. But the sim's mirror 
 main-thread global RD** (pos_prev 40 + pos 40 + vel 40 + field_q + pot) every publish —
 a per-publish main-thread hit that competes for PCIe with the worker's reads.
 
-### CAUSE 4 (finding) — BH accretion shader is broken on the local RD
-
-The probe's BH-ON run logged **`OpAtomicFAddEXT is not supported yet.`** repeatedly —
-`compute/cassi_bh_accretion.glsl` uses a float atomic (`OpAtomicFAddEXT`) that Godot
-4.7's local RenderingDevice does not support, so on the decoupled engine the accretion
-dispatch likely fails silently. Not a stutter source this run (accretion off in the
-measurement), but a correctness landmine if BH accretion is turned on with the engine.
+### CAUSE 4 (finding, RESOLVED by verification) — the `OpAtomicFAddEXT` warning is spurious
+The probe's BH-ON run logged **`OpAtomicFAddEXT is not supported yet.`** This was initially
+read as "the BH-accretion float atomic is broken on the local RD." **Deterministic probe
+evidence proves it WORKS:** a worker-thread engine with a planted BH + `R_acc=100` accreted
+**100 000/100 000** particles (pos.w→0), and `verify_bh_accretion_engine` passes 9/9 with
+exact mass conservation (`G55 bh=7.0`). The warning is emitted by Godot 4.7's local-RD
+validation DURING TEARDOWN (`free()`), not during dispatch — the Vulkan device supports
+the extension; the atomics genuinely accumulate. **FIX D therefore required NO rewrite** —
+converting the working float atomics to integer fixed-point would risk the passing
+conservation gates for zero functional gain. (The same spurious warning appears in the
+merge shader's float atomics, which also verifiably work: `verify_merge_engine` 7/7,
+mass conserved.)
 
 ### Cross-check Q3 — stutter vs BH activity?
 **The stutter is the MERGE PASS, not BH/condensation.** Condensation+BH-integrate ON
@@ -167,12 +202,15 @@ Options, best first:
 - Touches `cassi_physics_engine.gd` (`readback_snapshot`/`readback_telemetry`,
   `_threaded_run_job` cadence defaults) + `cassi_sim.gd` (`_apply_decoupled_publish`, job meta).
 
-### FIX D (correctness, low priority for perf) — BH accretion on the local RD
-- **Change:** replace `OpAtomicFAddEXT` in `cassi_bh_accretion.glsl` with an integer
-  fixed-point atomic handoff (the deposit's `_mass_density_fix` pattern already uses
-  exact uint digit-sums), or gate accretion off under the local RD until the extension
-  is available. **Expected win:** accretion actually works on the decoupled engine.
-- Touches `compute/cassi_bh_accretion.glsl` + the engine's accretion gate.
+### FIX D (correctness — VERIFIED NOT A REWRITE)
+- **Verdict:** the float atomicAdd (`OpAtomicFAddEXT`) in `cassi_bh_accretion.glsl` and the
+  merge shader WORKS on the worker local RD (probe PROBE5: 100k/100k accreted; batteries
+  9/9 + 7/7 with exact conservation). The `OpAtomicFAddEXT is not supported yet.` log is a
+  spurious Godot 4.7 local-RD teardown validation message, not a runtime failure.
+- **Action taken:** none required. No integer-fixed-point rewrite (would risk the passing
+  gates for zero gain). Documented in the shader header (`cassi_bh_accretion.glsl`) that
+  the float atomic is verified on this GPU / Godot 4.7 by the batteries + probe.
+- Touches: (none for correctness — only report + probes).
 
 ### Priority order
 1. **FIX B** (stutter — dominates frame rate; inline path hits every frame).

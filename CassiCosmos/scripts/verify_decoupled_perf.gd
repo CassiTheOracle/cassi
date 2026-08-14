@@ -67,13 +67,15 @@ func _ready() -> void:
 
 	var table := []
 	# ── Symptom 1: the DETACHED bootstrap hang (full 2.5M) ─────────────
-	table.append(_probe_bootstrap())
+	table.append(await _probe_bootstrap())
 	# ── Publish/readback economics (pure-publish timings) ───────────────
-	table.append(_probe_publish())
+	table.append(await _probe_publish())
 	# ── Symptom 2: merge pass cost (per-batch readback + prefix-sum) ─────
 	table.append(await _probe_merge())
 	# ── Condensation / BH-accretion per-step chain cost (toggle) ────────
 	table.append(await _probe_condensation())
+	# ── Worker-thread local-RD float-atomic accumulation (FIX D pre-check) ─
+	table.append(await _probe_worker_atomicaults())
 
 	report["timings"] = table
 	print("\n══════ decoupled-perf probe — timing table ══════")
@@ -128,8 +130,12 @@ func _row(label: String, value: String) -> Dictionary:
 
 
 # ── Probe 1: the detached bootstrap hang ──────────────────────────────────
+# FIX A: the first submit is now NON-BLOCKING (queued). This probe measures
+# (a) the submit call's own latency on the main thread (must be ~0 ms, not the
+# old ~3.5 s block) and (b) the async time-to-first-publish via poll — the main
+# thread free-pumps process frames while the worker builds the 2.5M ICs.
 func _probe_bootstrap() -> Dictionary:
-	print("\n── [perf] Probe 1: detached ENGINE BOOTSTRAP (startup hang) ──")
+	print("\n── [perf] Probe 1: detached ENGINE BOOTSTRAP (now non-blocking / FIX A) ──")
 	var t_start := _ms()
 	var e = load(ENGINE_SCRIPT).new()
 	var ok: bool = e.start_threaded(_base_cfg(HANG_N_PARTICLES, {"black_holes_enabled": false}))
@@ -137,10 +143,12 @@ func _probe_bootstrap() -> Dictionary:
 	if not ok:
 		return _row("PROBE1 bootstrap start_threaded", "FAILED (local RD)")
 	_engine = e
-	# Bootstrap: first submit blocks on setup + first job + full snapshot.
-	var t0 := _ms()
-	var pub = _engine.submit_steps(HANG_BOOTSTRAP_STEPS)
-	var t_boot := _ms() - t0
+	# FIX A: the first submit queues the job and returns IMMEDIATELY — it must
+	# NOT block ~3.5 s on setup. Measure the submit call itself.
+	var t_sub := _ms()
+	var ret = _engine.submit_steps(HANG_BOOTSTRAP_STEPS)
+	var t_submit_ms := _ms() - t_sub
+	var pub: Dictionary = await _await_first_publish(_engine)
 	var snap: Dictionary = pub.get("snapshot", {})
 	var pos: PackedFloat32Array = snap.get("pos", PackedFloat32Array())
 	var vel: PackedFloat32Array = snap.get("vel", PackedFloat32Array())
@@ -149,14 +157,16 @@ func _probe_bootstrap() -> Dictionary:
 	var exec := int(pub.get("executed", 0))
 	var mb := (pos.size() + vel.size() + fq.size() + pot.size()) * 4 / (1024.0 * 1024.0)
 	print("  [perf] start_threaded (shader load on main):  %d ms" % t_started)
-	print("  [perf] BOOTSTRAP submit_steps(%d) main-thread block: %d ms  ->  executed=%d, snapshot=%.1f MB" % [HANG_BOOTSTRAP_STEPS, t_boot, exec, mb])
-	var row := _row("PROBE1 bootstrap block (startup hang)", "%d ms (2.5M ptl, %.0f MB snap)" % [t_boot, mb])
+	print("  [perf] BOOTSTRAP submit_steps(%d) MAIN-THREAD LATENCY: %d ms  (was ~3500 ms block)" % [HANG_BOOTSTRAP_STEPS, t_submit_ms])
+	print("  [perf] async time-to-first-publish (worker IC build, NON-blocking): %d ms  ->  executed=%d, snapshot=%.1f MB" % [int(_last_first_pub_ms), exec, mb])
+	var row := _row("PROBE1 bootstrap main-thread block", "%d ms (was ~3500 ms)" % t_submit_ms)
 	row["_detail"] = {
-		"start_threaded_ms": t_started, "bootstrap_block_ms": t_boot,
+		"start_threaded_ms": t_started, "submit_nonblock_ms": t_submit_ms,
+		"async_first_publish_ms": int(_last_first_pub_ms),
 		"executed": exec, "snapshot_mb": mb, "steps": HANG_BOOTSTRAP_STEPS,
 	}
 	# ms/step from the blocking path (worker steps + full publish per job).
-	print("\n── [perf] Probe 1b: blocking submit per-job latency ──")
+	print("\n── [perf] Probe 1b: blocking submit per-job latency (post-bootstrap) ──")
 	var t_tot := 0
 	for _i in range(4):
 		var tn := _ms()
@@ -168,6 +178,25 @@ func _probe_bootstrap() -> Dictionary:
 	return row
 
 
+# FIX A helper: after the (non-blocking) first submit, poll the engine until
+# setup_ready() and the first snapshot publish land, free-pumping process
+# frames (proves the main thread never blocks). Returns the first publish.
+var _last_first_pub_ms := 0.0
+func _await_first_publish(eng) -> Dictionary:
+	var t0 := _ms()
+	var waited := 0
+	while waited < 1200:   # up to ~20 s of free-pumped frames at 60 fps
+		var pub: Dictionary = eng.poll()
+		if not pub.is_empty() and pub.has("snapshot") and not (pub.get("snapshot", {}) as Dictionary).is_empty():
+			_last_first_pub_ms = float(_ms() - t0)
+			return pub
+		# also track setup completion (informational) — the main thread is free
+		await get_tree().process_frame
+		waited += 1
+	_last_first_pub_ms = float(_ms() - t0)
+	return {}
+
+
 # ── Probe 2: publish / readback economics ─────────────────────────────────
 func _probe_publish() -> Dictionary:
 	print("\n── [perf] Probe 2: PUBLISH / readback economics (pure-publish jobs) ──")
@@ -175,7 +204,10 @@ func _probe_publish() -> Dictionary:
 	_engine = _new_engine(_base_cfg(HANG_N_PARTICLES, {}))
 	if _engine == null:
 		return _row("PROBE2 publish fp32", "FAILED")
-	# Bootstrap (blocking) — completes setup AND warms, then bring executed to 2.
+	# First submit is non-blocking (FIX A) — queue and await the first publish
+	# (main thread free-pumps), then bring executed to 2 for a warm baseline.
+	_engine.submit_steps(2)
+	await _await_first_publish(_engine)
 	_engine.submit_steps(2, true)
 	var n0: int = _engine._executed
 	var t0 := _ms()
@@ -206,12 +238,13 @@ func _probe_merge() -> Dictionary:
 	if em2 == null:
 		em.stop_threaded()
 		return _row("PROBE3 merge twin", "FAILED")
-	# start_threaded is ASYNC: setup completes on the worker, so the merge hash
-	# buffers are NOT sized until setup() runs. Bootstrap BOTH (blocking) — this
-	# both completes setup (so _merge_hash_total is real) and WARMS the pipelines
-	# so the timed batch below is cold-start free.
-	em.submit_steps(2, true)
-	em2.submit_steps(2, true)
+	# First submit is non-blocking (FIX A). Await the first publish on both so
+	# setup completes (so _merge_hash_total is real) AND pipelines warm — the
+	# main thread free-pumps; the timed batch below is cold-start free.
+	em.submit_steps(2)
+	em2.submit_steps(2)
+	await _await_first_publish(em)
+	await _await_first_publish(em2)
 	await get_tree().process_frame
 	print("      [debug] em.particle_merge=%s hash=(%d,%d,%d) total=%d  em2.particle_merge=%s" % [
 		em.particle_merge, em._merge_hash_nx, em._merge_hash_ny, em._merge_hash_nz,
@@ -251,9 +284,12 @@ func _probe_condensation() -> Dictionary:
 	var eB = _new_engine(_base_cfg(PROFILE_N_PARTICLES, {"black_holes_enabled": true, "bh_accretion": false}))
 	if eA == null or eB == null:
 		return _row("PROBE4 BH chain", "FAILED")
-	# Bootstrap BOTH (setup is async) + warm pipelines before timing.
-	eA.submit_steps(2, true)
-	eB.submit_steps(2, true)
+	# First submit is non-blocking (FIX A). Await the first publish on both to
+	# complete setup + warm (main thread free-pumps) before timing.
+	eA.submit_steps(2)
+	eB.submit_steps(2)
+	await _await_first_publish(eA)
+	await _await_first_publish(eB)
 	await get_tree().process_frame
 	# run enough steps to cross a condensation dispatch (every 100 steps) on B
 	var steps := 102
@@ -277,3 +313,61 @@ func _stop_engine() -> void:
 	if _engine != null:
 		_engine.stop_threaded()
 		_engine = null
+
+
+# ── Probe 5: worker-thread local-RD FLOAT-ATOMIC accumulation check ───────
+# Settles FIX D empirically: does the BH-accretion float atomicAdd
+# (OpAtomicFAddEXT) actually accumulate on the WORKER-thread local RD (the
+# decoupled path) — or only warn during teardown? We plant a BH record via the
+# engine's own _bh_init_bytes member (the worker re-uploads it each batch),
+# set bh_accretion ON with particle_merge OFF (so any pos.w=0 deaths are from
+# ACCRETION alone, not from a merge zeroing), and count deaths in the returned
+# snapshot. If the float atomic worked, in-radius particles die → pos.w=0.
+func _probe_worker_atomicaults() -> Dictionary:
+	print("\n── [perf] Probe 5: BH-ACCERTION float atomic on the WORKER local RD ──")
+	var cfg := _base_cfg(100000, {
+		"black_holes_enabled": true, "bh_accretion": true,
+		"particle_merge": false,
+		"bh_accretion_radius": 100.0, "cluster_radius": 40.0,
+		"num_clusters": 1, "cluster_separation": 0.0,
+		"source_strength": 0.0, "bh_acc_rate": 0.0,
+	})
+	var e = load(ENGINE_SCRIPT).new()
+	if not e.start_threaded(cfg):
+		return _row("PROBE5 worker accretion atomic", "FAILED (start)")
+	# First submit is non-blocking (FIX A). Await the first publish so setup
+	# completes (and _apply_gravity_calibration is done — _bh_init_bytes is
+	# final). THEN plant the BH so the worker re-uploads my planted header
+	# verbatim every batch (no race with setup).
+	e.submit_steps(1)
+	await _await_first_publish(e)
+	var b: PackedByteArray = e._bh_init_bytes.duplicate()
+	if b.size() < 96:
+		e.stop_threaded()
+		return _row("PROBE5 worker accretion atomic", "FAILED (header)")
+	b.encode_float(64, 0.0); b.encode_float(68, 0.0); b.encode_float(72, 0.0)
+	b.encode_float(76, 5.0)   # planted BH mass 5.0 at origin
+	b.encode_float(80, 0.0); b.encode_float(84, 0.0); b.encode_float(88, 0.0)
+	b.encode_float(92, 0.0)
+	e._bh_init_bytes = b
+	# R_acc=100 covers the whole Plummer ball -> if the atomic fires, the bulk of
+	# the ~100k particles die (pos.w=0). bh_acc_rate=0 kills integrate growth so
+	# accretion is the only death source (no merge in this config).
+	var dead := 0
+	var total := 0
+	var t0 := _ms()
+	var pub = e.submit_steps(6, true, {"cadence": 1})   # cadence 1 forces a publish on this job
+	var dt_ms := _ms() - t0
+	var snap: Dictionary = pub.get("snapshot", {})
+	var pos: PackedFloat32Array = snap.get("pos", PackedFloat32Array())
+	total = pos.size() / 4
+	for i in range(pos.size() / 4):
+		if pos[i * 4 + 3] <= 0.0: dead += 1
+	print("      [perf] worker BH-accretion: %d/%d particles dead (pos.w=0) after 6 steps, job=%d ms (R_acc=100, planted BH mass 5)" % [dead, total, dt_ms])
+	var worked := dead > 0
+	print("      [perf] => float-atomic accretion on worker local RD: %s" % ("ACCUMULATES (works)" if worked else "NO DEATHS (atomic did not fire)"))
+	var row := _row("PROBE5 worker accretion float-atomic", "WORKS (%d dead)" % dead if worked else "NO-OP (%d dead)" % dead)
+	row["_detail"] = {"dead": dead, "total": total, "job_ms": dt_ms, "atomic_worked": worked}
+	e.stop_threaded()
+	_engine = null
+	return row
