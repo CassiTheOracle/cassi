@@ -61,7 +61,7 @@ import { HelixTelemetry } from './helix-telemetry.js'
 import { HelixConductor, shouldUseConductor } from './helix-conductor.js'
 import type { GlobalWorkspace } from './vendor/core/intelligence/workspace/index.js'
 import type { MnemicField } from '@cassicore/mnemic-field'
-import type { Aurora } from './vendor/core/intelligence/aurora/index.js'
+import type { Aurora } from '@cassicore/aurora'
 
 
 

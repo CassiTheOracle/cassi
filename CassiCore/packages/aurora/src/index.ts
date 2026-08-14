@@ -136,6 +136,7 @@ export type {
   AuroraConfig,
   ReasoningRecord,
   ReverieInsight,
+  ReverieInferenceProvider,
 } from './types.js'
 export type {
   ChainOriginSpec,

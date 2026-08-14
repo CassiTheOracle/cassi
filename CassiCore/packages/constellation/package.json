@@ -26,6 +26,8 @@
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
   },
   "dependencies": {
+    "@cassicore/aurora": "*",
+    "@cassicore/cortex-pineal-dialectic": "*",
     "@cassicore/foundation": "*",
     "@cassicore/helix": "*",
     "@cassicore/mnemic-field": "*",

@@ -1,4 +1,4 @@
-import type { CorticalSignal, SignalType, Affect } from './vendor/core/intelligence/cortex/types.js'
+import type { CorticalSignal, SignalType, Affect } from '@cassicore/cortex-pineal-dialectic'
 import type { CognitiveSignal, SystemLuminanceScore } from './vendor/core/intelligence/workspace/cognitive-signal.js'
 import type { BridgeFocus } from './vendor/core/intelligence/locus-bridge/types.js'
 

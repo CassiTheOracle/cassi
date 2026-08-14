@@ -8,7 +8,7 @@ import { createSlots } from './slots/index.js'
 import { classifyMessage, isWriteTool, isReadTool, isShellTool, isSearchTool, extractFilePath, extractSearchTarget, extractCommand, isTestCommand, isBuildCommand, shortenPath, classifyTool, extractToolUses, extractToolResults, detectLanguage } from './classifier.js'
 import type { ThalamusStore } from './thalamus-store.js'
 import type { ILogger } from '@cassicore/foundation'
-import type { CorticalField } from './vendor/core/intelligence/cortex/index.js'
+import type { CorticalField } from '@cassicore/cortex-pineal-dialectic'
 import type { MnemicField } from '@cassicore/mnemic-field'
 import type { EngramCreate, ExpertKind, MnemicRetrievalHit } from '@cassicore/mnemic-field'
 import { cosineSimilarity } from '@cassicore/mnemic-field'
@@ -17,9 +17,9 @@ import type { SentenceFeature } from '@cassicore/mnemic-field'
 import { SIGNAL_TYPE_PHRASES, EPISTEMIC_SHIFT_PHRASES, WORK_UNIT_ANNOTATION_PHRASES } from '@cassicore/foundation'
 import type { SelfModelField } from '@cassicore/mnemic-field'
 import type { LocusBridge } from './vendor/core/intelligence/locus-bridge/index.js'
-import type { FacetManager } from './vendor/core/intelligence/pineal/facet.js'
-import type { PinealAssembler } from './vendor/core/intelligence/pineal/assembler.js'
-import type { Aurora } from './vendor/core/intelligence/aurora/index.js'
+import type { FacetManager } from '@cassicore/cortex-pineal-dialectic'
+import type { PinealAssembler } from '@cassicore/cortex-pineal-dialectic'
+import type { Aurora } from '@cassicore/aurora'
 import type {
   CurationConfig,
   CurationResult,
@@ -493,7 +493,7 @@ export class ThalamusModule extends BaseCognitiveModule {
   setReverieNoteSink(fn: (sessionId: string, recipient: string, message: string) => void): void { this.reverieNoteSink = fn }
 
   /** Wire a Reverie inference provider into Aurora for the reasoning slow path. */
-  setReverieInferenceProvider(provider: import('./vendor/core/intelligence/aurora/types.js').ReverieInferenceProvider): void {
+  setReverieInferenceProvider(provider: import('@cassicore/aurora').ReverieInferenceProvider): void {
 this.aurora?.setReverieInferenceProvider(provider)
   }
 
@@ -2697,7 +2697,7 @@ this.aurora?.setReverieInferenceProvider(provider)
    * salience, valence, and working memory state. This enables efficient
    * multi-axis scoring without repeated iteration.
    */
-  private buildCortexIndex(signals: import('./vendor/core/intelligence/cortex/types.js').CorticalSignal[], sessionId: string): CortexIndex {
+  private buildCortexIndex(signals: import('@cassicore/cortex-pineal-dialectic').CorticalSignal[], sessionId: string): CortexIndex {
     const index: CortexIndex = {
       byType: {},
       byRegion: {},
