@@ -17,8 +17,8 @@ interface ArchiveEntry {
   createdAt: number
   metadata?: Record<string, unknown>
 }
-import type { ReasoningBank } from '../../vendor/core/intelligence/reasoning-bank/index.js'
-import type { SearchResult } from '../../vendor/core/intelligence/reasoning-bank/types.js'
+import type { ReasoningBank } from '../vendor/core/intelligence/reasoning-bank/index.js'
+import type { SearchResult } from '../vendor/core/intelligence/reasoning-bank/types.js'
 import {
   buildFreeAssociationPrompt,
   buildCrystallizationPrompt,

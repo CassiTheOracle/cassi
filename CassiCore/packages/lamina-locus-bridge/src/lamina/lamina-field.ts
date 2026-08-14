@@ -10,7 +10,7 @@
  * The underlying LaminaStore is exposed for advanced use.
  */
 
-import { resolveProvenance } from '../../vendor/core/runtime/audit/index.js'
+import { resolveProvenance } from '../vendor/core/runtime/audit/index.js'
 
 import { LaminaStore, type LaminaCaller } from './lamina-store.js'
 import { DEFAULT_CHAR_LIMIT } from './types.js'

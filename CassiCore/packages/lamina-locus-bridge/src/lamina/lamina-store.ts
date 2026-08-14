@@ -5,7 +5,7 @@ import path from 'node:path'
 import Database from 'better-sqlite3'
 
 import { getDataDir } from '@cassicore/foundation'
-import { prefixedId } from '../../vendor/core/intelligence/utils/prefixed-id.js'
+import { prefixedId } from '../vendor/core/intelligence/utils/prefixed-id.js'
 
 import {
   DEFAULT_CHAR_LIMIT,
@@ -15,7 +15,7 @@ import {
 } from './types.js'
 
 import type { ILogger } from '@cassicore/foundation'
-import type { Provenance } from '../../vendor/core/runtime/audit/index.js'
+import type { Provenance } from '../vendor/core/runtime/audit/index.js'
 import type {
   Lamina,
   LaminaAppend,

@@ -2,7 +2,7 @@
  * Reverie types — ambient in-flight memory curator.
  */
 
-import type { Provenance } from '../../vendor/core/runtime/audit/index.js'
+import type { Provenance } from '../vendor/core/runtime/audit/index.js'
 import type { RetrievalLabelTriple } from './retrieval-labeler-types.js'
 
 /** Trigger source classification. */

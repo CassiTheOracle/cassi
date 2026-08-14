@@ -11,7 +11,7 @@
 
 import type { ILogger } from '@cassicore/foundation'
 import type { LaminaField } from './lamina-field.js'
-import type { Domain, Facet } from '../../vendor/core/intelligence/pineal/types.js'
+import type { Domain, Facet } from '../vendor/core/intelligence/pineal/types.js'
 
 export interface PinealLike {
   listFacets(query?: { active?: boolean; minConviction?: number; domain?: Domain; limit?: number }): Facet[]

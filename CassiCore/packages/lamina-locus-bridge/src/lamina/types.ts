@@ -11,7 +11,7 @@
  * control via content_hash (CAS).
  */
 
-import type { Provenance } from '../../vendor/core/runtime/audit/index.js'
+import type { Provenance } from '../vendor/core/runtime/audit/index.js'
 
 /** Optional scope discriminator — null means "global to all sessions". */
 export type LaminaScope =

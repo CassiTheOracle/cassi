@@ -24,7 +24,7 @@
  *   - permission:human-response — human approval/rejection as evidence
  */
 
-import { TTLCache } from '../../vendor/core/utils/ttl-cache.js'
+import { TTLCache } from '../vendor/core/utils/ttl-cache.js'
 import { BaseCognitiveModule } from '@cassicore/foundation'
 
 import {

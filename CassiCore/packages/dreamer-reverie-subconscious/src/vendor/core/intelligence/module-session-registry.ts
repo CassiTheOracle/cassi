@@ -11,6 +11,7 @@
  */
 export interface ModuleSessionRegistry {
   getSessionId(moduleKey: string): string | undefined
+  getOrCreate(moduleKey: string): { sessionId: string; [key: string]: unknown }
   appendTurn(moduleKey: string, role: 'user' | 'assistant', content: string): void
   [key: string]: unknown
 }

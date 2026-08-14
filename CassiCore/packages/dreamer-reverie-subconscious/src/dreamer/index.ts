@@ -11,10 +11,10 @@
 
 import { MODEL_DEFAULTS } from '@cassicore/foundation'
 import { BaseCognitiveModule } from '@cassicore/foundation'
-import { isGamingMode } from '../../vendor/core/intelligence/gaming-mode.js'
+import { isGamingMode } from '../vendor/core/intelligence/gaming-mode.js'
 // REMOVED: MemoryModule import — now uses IMemory via MemoryShim
 import type { IMemory } from '@cassicore/foundation'
-import type { ReasoningBank } from '../../vendor/core/intelligence/reasoning-bank/index.js'
+import type { ReasoningBank } from '../vendor/core/intelligence/reasoning-bank/index.js'
 import { DreamCycleEngine } from './dream-engine.js'
 import type { DreamRecord, DreamerConfig } from './types.js'
 import { DEFAULT_DREAMER_CONFIG } from './types.js'

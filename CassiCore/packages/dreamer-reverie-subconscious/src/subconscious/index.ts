@@ -43,9 +43,9 @@ import type {
 import type { IMemory } from "@cassicore/foundation";
 import type { ILogger, IEventBus } from "@cassicore/foundation";
 import type { IProvider } from "@cassicore/foundation";
-import type { SessionDigestStore } from "../../vendor/core/intelligence/session-digest.js";
-import type { ModuleSessionRegistry } from "../../vendor/core/intelligence/module-session-registry.js";
-import type { CorticalField } from "../../vendor/core/intelligence/cortex/index.js";
+import type { SessionDigestStore } from "../vendor/core/intelligence/session-digest.js";
+import type { ModuleSessionRegistry } from "../vendor/core/intelligence/module-session-registry.js";
+import type { CorticalField } from "../vendor/core/intelligence/cortex/index.js";
 
 export type { SubconsciousConfig } from "./types.js";
 
