@@ -1,17 +1,4 @@
 /**
- * HOST-WIRED — Mini-Helix Tests.
- *
- * Cross-package test: imports createMiniHelixSession + MiniHelix* types from
- * @cassicore/mini-helix AND createBrainstemTools/buildBrainstemSystemPrompt +
- * BrainstemToolContext from @cassicore/helix. It is a cross-package integration
- * suite quarantined here (run via `npm run test:host-wired`) and NOT counted in
- * `npm test`. It is expected to run against the real packages once the
- * @cassicore/* workspace is fully mounted. The mini-helix imports re-point to
- * @cassicore/mini-helix; the helix brainstem-tools references re-point to
- * @cassicore/helix.
- */
-
-/**
  * Mini-Helix Tests
  *
  * Tests the mini-Helix runner, Brainstem tools, and adapters.

@@ -30,6 +30,9 @@ this package's exports.
 ```sh
 npm run typecheck   # tsc --noEmit
 npm run build       # emit dist/
-npm test            # ported vitest suite (host-wired excluded)
-npm run test:host-wired  # quarantine suite; needs a host/other packages mounted
+npm test            # ported vitest suite (mini-helix runner + brainstem-tools integration, counted)
 ```
+
+The cross-package test (`tests/mini-helix.test.ts`, 21 tests) was promoted from the
+host-wired quarantine into the counted suite at P4 — it runs green against the real
+`@cassicore/mini-helix` + `@cassicore/helix` packages.
