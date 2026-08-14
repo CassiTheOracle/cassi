@@ -25,6 +25,26 @@
     "./version": {
       "types": "./dist/version.d.ts",
       "import": "./dist/version.js"
+    },
+    "./vendor/core/intelligence": {
+      "types": "./dist/vendor/core/intelligence/index.d.ts",
+      "import": "./dist/vendor/core/intelligence/index.js"
+    },
+    "./vendor/core/intelligence/unified-loop": {
+      "types": "./dist/vendor/core/intelligence/unified-loop.d.ts",
+      "import": "./dist/vendor/core/intelligence/unified-loop.js"
+    },
+    "./vendor/core/intelligence/synapse": {
+      "types": "./dist/vendor/core/intelligence/synapse/index.d.ts",
+      "import": "./dist/vendor/core/intelligence/synapse/index.js"
+    },
+    "./vendor/core/intelligence/branching-conversation/manager": {
+      "types": "./dist/vendor/core/intelligence/branching-conversation/manager.d.ts",
+      "import": "./dist/vendor/core/intelligence/branching-conversation/manager.js"
+    },
+    "./vendor/core/orchestration-bus": {
+      "types": "./dist/vendor/core/orchestration-bus.d.ts",
+      "import": "./dist/vendor/core/orchestration-bus.js"
     }
   },
   "files": [

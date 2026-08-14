@@ -23,7 +23,10 @@ import { vybitDefinition, vybitHandler } from './vybit.js'
 import { getSubagentResultDefinition, makeGetSubagentResultHandler } from './get-subagent-result.js'
 import { getSubagentStatusDefinition, makeGetSubagentStatusHandler } from './get-subagent-status.js'
 import { listSubagentsDefinition, makeListSubagentsHandler } from './list-subagents.js'
-import { rememberDefinition, makeRememberHandler } from './memory-search.js'
+import {
+  rememberDefinition, makeRememberHandler,
+  memorySearchDefinition, makeMemorySearchHandler,
+} from './memory-search.js'
 import { createQueryEventsTool, listPresetsForTool } from './query-events.js'
 import { readFileDefinition, readFileHandler } from './read-file.js'
 import { readFilesDefinition, readFilesHandler } from './read-files.js'
@@ -322,6 +325,152 @@ export function registerCoreTools(registry: ToolRegistry, deps: CoreToolDeps): v
   // Context Window Debugging Tools - CONSOLIDATED (Phase 2)
   // cassandra_context_inspect: Unified inspection (action: snapshot|history|stats)
   // Eliminates: cassandra_tail_context_window (documented alternative)
+  try {
+    registerContextWindowTools(registry, () => getContextWindowDebugger())
+  } catch (err) {
+    // Context window debugger not available, skip registration
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// registerMindTools — RETAINED MIND SLICE (CASSICORE-FOCUS §20 / DELEGATE-SURFACE)
+//
+// The P3 seam the focused mind runtime + spine mirror. Registers ONLY the retained
+// mind tools (plan §4.2) + the P5-deletion seam tools (memory/peer/cognitive),
+// against a `ToolRegistry`, with retained handler deps injected via `CoreToolDeps`
+// (the retained dep-injection seam). `registerCoreTools` above is UNTOUCHED — the
+// two coexist; the runtime calls this, the spine mirrors each tool via
+// `pi.registerTool` and forwards `{tool, params, sessionId}` over the channel.
+//
+// Retained tools registered here (faithful to registerCoreTools' retained blocks):
+//   collect_thoughts, graph_discover, _reflect, _remember, _coordinate, _check_peers,
+//   list_sessions, list_subagents, get_subagent_status, get_subagent_result,
+//   system_health, debug_session, universal_search, cassandra_query_events,
+//   cassandra_context_inspect, query_events, remember, memory_search.
+// {@link registerMindTools}
+export function registerMindTools(registry: ToolRegistry, deps: CoreToolDeps): void {
+  // list_sessions — inline (simple), mirrors §163-181.
+  registry.register(
+    {
+      name: 'list_sessions',
+      description: 'List all active CassiCore sessions with their IDs and last activity.',
+      parameters: { type: 'object', properties: {}, required: [] },
+      timeoutMs: 5_000,
+      readOnly: true,
+      category: 'debug',
+    },
+    async (_input, ctx) => {
+      if (!deps.sessionManager) return 'Session manager not available.'
+      const sessions = deps.sessionManager.list()
+      if (sessions.length === 0) return 'No active sessions.'
+      return sessions.map(s =>
+        `${s.id} | channel:${s.channelId} | turns:${s.history.length} | active:${s.lastActiveAt.toISOString()}`
+      ).join('\n')
+    }
+  )
+
+  // list_subagents / get_subagent_status / get_subagent_result — via Thinker or tracker.
+  // The pipeline's intelligence.thinker carries the unified subagent registry; it is
+  // reachable only through the non-typed pipeline shape, so narrow through unknown.
+  type ThinkerSubagentSink = {
+    listSubagents?: (status?: string) => unknown[]
+    getSubagent?: (runId: string) => { result?: string; error?: string; status?: string } | undefined
+  }
+  const pipelineIntelligence = deps.getPipeline?.() as unknown as { intelligence?: { thinker?: ThinkerSubagentSink } } | undefined
+  const thinkerRef = pipelineIntelligence?.intelligence?.thinker
+  if (deps.subagentTracker || thinkerRef) {
+    registry.register(listSubagentsDefinition, makeListSubagentsHandler(deps.subagentTracker, thinkerRef))
+    registry.register(getSubagentStatusDefinition, makeGetSubagentStatusHandler(deps.subagentTracker, thinkerRef))
+    registry.register(getSubagentResultDefinition, makeGetSubagentResultHandler(deps.subagentTracker, thinkerRef))
+  }
+
+  // query_events — event-history query tool (retained bus history seam).
+  if (deps.eventHistory) {
+    const queryTool = createQueryEventsTool(deps.eventHistory)
+    registry.register(
+      {
+        name: queryTool.name,
+        description: queryTool.description,
+        parameters: queryTool.inputSchema,
+        timeoutMs: 30_000,
+      },
+      async (input, ctx) => {
+        // QueryEventsTool.execute accepts the same `{input, ctx}` tool-call shape
+        // as the ToolHandler — pass through directly, no cast required.
+        const result = await queryTool.execute(input, ctx)
+        if (result.success) return result.result ?? 'Query completed with no results.'
+        return `Error: ${result.error ?? 'Unknown error'}`
+      }
+    )
+  }
+
+  // Cognitive tools — _reflect + _remember + graph_discover (retained seam).
+  if (deps.cognitiveToolDeps) {
+    registry.register(reflectDefinition, makeReflectHandler(deps.cognitiveToolDeps))
+    registry.register(cognitiveRememberDefinition, makeCognitiveRememberHandler(deps.cognitiveToolDeps))
+    registry.register(graphDiscoverDefinition, graphDiscoverHandler)
+  }
+
+  // Peer coordination tools — _coordinate + _check_peers (retained seam).
+  if (deps.peerToolDeps) {
+    registry.register(coordinateDefinition, makeCoordinateHandler(deps.peerToolDeps))
+    registry.register(checkPeersDefinition, makeCheckPeersHandler(deps.peerToolDeps))
+  }
+
+  // Collect Thoughts — primary structured thinking tool.
+  if (deps.collectThoughtsDeps) {
+    registry.register(collectThoughtsDefinition, makeCollectThoughtsHandler(deps.collectThoughtsDeps))
+  }
+
+  // Cassandra Event Stream — cassandra_query_events (consolidated query interface).
+  try {
+    const eventBus = getEventBus()
+    const currentSessionId = () => {
+      const sm = deps.sessionManager as unknown as { currentSessionId?: string } | undefined
+      return sm?.currentSessionId
+    }
+    registerCassandraEventTools(registry, eventBus, currentSessionId)
+  } catch (err) {
+    // Event bus not available, skip registration
+  }
+
+  // system_health — comprehensive status (retained read-only health surface).
+  // The daemon-health slice is wired by the host/runtime; absent it, the handler
+  // reports `daemon: unavailable` gracefully.
+  type MindDaemonLike = { archive?: { search: (q: string, o?: unknown) => Promise<unknown[]> } }
+  const daemon = (deps as unknown as { daemon?: MindDaemonLike }).daemon ?? undefined
+  registry.register(systemHealthDefinition, makeSystemHealthHandler({
+    daemon,
+    sessionManager: deps.sessionManager,
+    memory: deps.memory,
+  }))
+
+  // debug_session — deep session debugging.
+  if (deps.sessionManager || deps.memory) {
+    registry.register(debugSessionDefinition, makeDebugSessionHandler({
+      sessionManager: deps.sessionManager,
+      memory: deps.memory,
+      getEventBus: () => deps.bus,
+      getContextWindowDebugger: () => getContextWindowDebugger(),
+    }))
+  }
+
+  // universal_search — unified memory + archive search.
+  if (deps.memory) {
+    registry.register(universalSearchDefinition, makeUniversalSearchHandler({
+      memory: deps.memory,
+      archive: daemon?.archive || undefined,
+    }))
+  }
+
+  // Memory tools — remember + memory_search (P5-deletion seam; merge into ohmypi
+  // memory built-ins once the backend lands). Kept registered behind deps.memory.
+  if (deps.memory) {
+    registry.register(rememberDefinition, makeRememberHandler(deps.memory))
+    registry.register(memorySearchDefinition, makeMemorySearchHandler(deps.memory))
+  }
+
+  // Context Window Debugging — cassandra_context_inspect (consolidated inspection).
   try {
     registerContextWindowTools(registry, () => getContextWindowDebugger())
   } catch (err) {

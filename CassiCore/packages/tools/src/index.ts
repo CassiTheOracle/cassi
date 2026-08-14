@@ -78,6 +78,14 @@ export type {
   CoreToolDeps,
 } from './implementations/index.js'
 
+// ── registerMindTools (P3 retained mind slice) ────────────────────────────
+// The P3 spine/runtime seam: registers ONLY the retained mind tools (plan §4.2
+// + the P5-deletion seam tools) against a ToolRegistry, with retained handler
+// deps injected via CoreToolDeps. `registerCoreTools` above is untouched.
+export {
+  registerMindTools,
+} from './implementations/index.js'
+
 // ── Impl tool definitions / surfaces consumed by inbound packages ─────────
 // graph-discover (constellation-pipeline re-points setGraphDiscoverDeps runtime)
 export {
