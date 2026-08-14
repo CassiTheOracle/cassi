@@ -15,7 +15,7 @@
  *   5. Automatically deactivates exhausted triggers (maxFires reached)
  */
 
-import type { ILogger, IEventBus } from '../../types/interfaces.js'
+import type { ILogger, IEventBus } from '@cassicore/foundation'
 import type {
   WorkflowTrigger,
   IntervalTrigger,
@@ -25,7 +25,7 @@ import type {
   TriggerState,
   WorkflowDefinition,
   IWorkflowTriggerStore,
-} from '../../types/workflow.js'
+} from '@cassicore/foundation'
 import type { WorkflowEngine } from './engine.js'
 
 export interface WorkflowSchedulerConfig {

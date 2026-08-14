@@ -7,8 +7,8 @@
  * All imports use .js extensions (TypeScript ESM).
  */
 
-import type { CompletionOpts, CompletionChunk, TurnResult, Message } from '../../types/runtime.js'
-import type { ILogger, IEventBus } from '../../types/interfaces.js'
+import type { CompletionOpts, CompletionChunk, TurnResult, Message } from '@cassicore/foundation'
+import type { ILogger, IEventBus } from '@cassicore/foundation'
 
 // Model Capabilities (aligned with existing ModelCapabilitiesFetcher)
 

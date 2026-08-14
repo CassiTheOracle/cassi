@@ -12,8 +12,8 @@ import { spawn, spawnSync } from 'node:child_process'
 import { createWriteStream, mkdirSync, existsSync, unlinkSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { homedir } from 'node:os'
-import type { IEventBus } from '../../types/interfaces.js'
-import type { ILogger } from '../../types/interfaces.js'
+import type { IEventBus } from '@cassicore/foundation'
+import type { ILogger } from '@cassicore/foundation'
 import { Job, JobConfig, JobResult, JobStatus, RingBuffer } from './types.js'
 
 /** Max concurrent background jobs */

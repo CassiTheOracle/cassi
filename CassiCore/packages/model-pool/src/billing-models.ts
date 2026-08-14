@@ -12,10 +12,10 @@
  * All imports use .js extensions (TypeScript ESM).
  */
 
-import { CostClassifier, type RequestCost } from '../providers/cost-classifier.js'
+import { CostClassifier, type RequestCost } from './vendor/core/providers/cost-classifier.js'
 import { BillingModel } from './types.js'
 import type { BudgetScope, BudgetUsage } from './types.js'
-import type { ILogger } from '../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 
 // Request Counter Interface
 

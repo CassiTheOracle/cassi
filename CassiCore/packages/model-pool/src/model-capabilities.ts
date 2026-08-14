@@ -10,9 +10,9 @@
  * model across sessions.
  */
 
-import type { ILogger } from '../../types/interfaces.js'
-import type { IProvider } from '../../types/runtime.js'
-import { TTLCache } from '../utils/ttl-cache.js'
+import type { ILogger } from '@cassicore/foundation'
+import type { IProvider } from '@cassicore/foundation'
+import { TTLCache } from '@cassicore/utils'
 
 // Types
 

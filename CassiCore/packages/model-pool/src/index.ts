@@ -4,8 +4,8 @@
  * Main orchestrator for the ModelPool system.
  */
 
-import type { IProvider, TurnResult } from '../../types/runtime.js'
-import type { ILogger, IEventBus } from '../../types/interfaces.js'
+import type { IProvider, TurnResult } from '@cassicore/foundation'
+import type { ILogger, IEventBus } from '@cassicore/foundation'
 import type {
   FallbackChain,
   BudgetLimits,

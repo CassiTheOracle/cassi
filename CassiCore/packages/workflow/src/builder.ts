@@ -30,7 +30,7 @@ import type {
   TransitionAction,
   RetryPolicy,
   StepContext,
-} from '../../types/workflow.js'
+} from '@cassicore/foundation'
 
 // createStep — factory for individual steps
 

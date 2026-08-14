@@ -18,7 +18,7 @@
  *   batchEdit               — parallel batch editing with explicit file assignments
  */
 
-import type { WorkflowStep, WorkflowDefinition, StepContext } from '../../types/workflow.js'
+import type { WorkflowStep, WorkflowDefinition, StepContext } from '@cassicore/foundation'
 import type {
   IHelixRunner,
   HelixResult,

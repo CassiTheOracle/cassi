@@ -12,7 +12,7 @@
  * that the builder and engine consume without special handling.
  */
 
-import type { WorkflowStep, StepContext, RetryPolicy } from '../../types/workflow.js'
+import type { WorkflowStep, StepContext, RetryPolicy } from '@cassicore/foundation'
 
 // Service interfaces (injected at runtime, not imported directly)
 

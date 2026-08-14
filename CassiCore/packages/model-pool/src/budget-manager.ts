@@ -3,7 +3,7 @@
  */
 
 import { BillingModel, type BudgetScope, type BudgetLimits, type BudgetWarning, type BudgetTier } from './types.js'
-import type { ILogger, IEventBus } from '../../types/interfaces.js'
+import type { ILogger, IEventBus } from '@cassicore/foundation'
 
 /**
  * Result of a budget check.

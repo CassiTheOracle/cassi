@@ -3,8 +3,8 @@
  */
 
 import type { ModelHandle, ModelCompletionOpts, ModelCapabilities, BudgetScope } from './types.js'
-import type { IProvider, TurnResult, Message, CompletionChunk } from '../../types/runtime.js'
-import type { ILogger } from '../../types/interfaces.js'
+import type { IProvider, TurnResult, Message, CompletionChunk } from '@cassicore/foundation'
+import type { ILogger } from '@cassicore/foundation'
 import { BudgetManager } from './budget-manager.js'
 import { FallbackManager } from './fallback-manager.js'
 

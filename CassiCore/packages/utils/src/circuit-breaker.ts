@@ -7,7 +7,7 @@
  * Type-agnostic and reusable across tools, providers, plugins, and services.
  */
 
-import { rootLogger } from '../logger.js'
+import { rootLogger } from './vendor/core/logger.js'
 
 const logger = rootLogger.child('circuit-breaker')
 

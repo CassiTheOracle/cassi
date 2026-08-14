@@ -13,9 +13,9 @@
  */
 
 import { ModelCapabilitiesFetcher, type ModelCapabilities } from './model-capabilities.js'
-import { TTLCache } from '../utils/ttl-cache.js'
-import type { IProvider } from '../../types/runtime.js'
-import type { ILogger } from '../../types/interfaces.js'
+import { TTLCache } from '@cassicore/utils'
+import type { IProvider } from '@cassicore/foundation'
+import type { ILogger } from '@cassicore/foundation'
 import type { BillingModel } from './types.js'
 import { getCostTier, getBillingModel } from './billing-models.js'
 

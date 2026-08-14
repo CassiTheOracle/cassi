@@ -13,8 +13,8 @@
  *   engine.execute(wf, input)
  */
 
-import type { ILogger } from '../../types/interfaces.js'
-import type { WorkflowDefinition, IWorkflowRegistry } from '../../types/workflow.js'
+import type { ILogger } from '@cassicore/foundation'
+import type { WorkflowDefinition, IWorkflowRegistry } from '@cassicore/foundation'
 
 export class WorkflowRegistry implements IWorkflowRegistry {
   private readonly definitions = new Map<string, WorkflowDefinition>()

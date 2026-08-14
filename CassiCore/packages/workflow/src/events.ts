@@ -10,7 +10,7 @@
  * listener is defined later in the workflow.
  */
 
-import type { ILogger } from '../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 
 export interface WorkflowEvent {
   channel: string

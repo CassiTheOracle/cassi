@@ -114,4 +114,4 @@ export type {
   IWorkflowTriggerStore,
   WorkflowListener,
   ISuspendSignal,
-} from '../../types/workflow.js'
+} from '@cassicore/foundation'

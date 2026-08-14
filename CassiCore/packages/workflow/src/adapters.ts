@@ -12,11 +12,11 @@
  */
 
 import type { IHelixRunner, HelixResult, IToolExecutor, IConstellationOrchestrator, ConstellationResult } from './steps.js'
-import type { HelixOrchestrator } from '../intelligence/helix/index.js'
-import type { HelixResult as InternalHelixResult } from '../intelligence/helix/types.js'
-import type { ConstellationOrchestrator as InternalConstellationOrchestrator } from '../intelligence/constellation/constellation-orchestrator.js'
-import type { ConstellationResult as InternalConstellationResult } from '../intelligence/constellation/types.js'
-import type { ToolExecutor } from '../tools/executor.js'
+import type { HelixOrchestrator } from '@cassicore/helix'
+import type { HelixResult as InternalHelixResult } from '@cassicore/helix'
+import type { ConstellationOrchestrator as InternalConstellationOrchestrator } from '@cassicore/constellation'
+import type { ConstellationResult as InternalConstellationResult } from '@cassicore/constellation'
+import type { ToolExecutor } from '@cassicore/tools'
 
 /**
  * Create an IHelixRunner adapter from a HelixOrchestrator.

@@ -14,8 +14,8 @@
  */
 
 import type { ModelSlotConfig, FallbackChain } from './types.js'
-import type { ILogger, IEventBus } from '../../types/interfaces.js'
-import { CircuitBreaker, CircuitState, CircuitOpenError } from '../utils/circuit-breaker.js'
+import type { ILogger, IEventBus } from '@cassicore/foundation'
+import { CircuitBreaker, CircuitState, CircuitOpenError } from '@cassicore/utils'
 
 /**
  * Configuration for FallbackManager

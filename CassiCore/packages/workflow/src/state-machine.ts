@@ -21,8 +21,8 @@ import type {
   StepContext,
   StepTrace,
   WorkflowState,
-} from '../../types/workflow.js'
-import type { ILogger, IEventBus } from '../../types/interfaces.js'
+} from '@cassicore/foundation'
+import type { ILogger, IEventBus } from '@cassicore/foundation'
 import type { WorkflowEventBus } from './events.js'
 
 export interface StateMachineExecutorConfig {

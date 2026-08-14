@@ -17,13 +17,13 @@
 import Database from 'better-sqlite3'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
-import type { ILogger } from '../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type {
   StoredWorkflowDefinition,
   SerializedNodeGraph,
   IWorkflowDefinitionStore,
-} from '../../types/workflow.js'
-import { getDataDir } from '../utils/paths.js'
+} from '@cassicore/foundation'
+import { getDataDir } from '@cassicore/foundation'
 
 const DEF_SCHEMA_VERSION = 1
 const DB_FILENAME = 'system-state.db'
