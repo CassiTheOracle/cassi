@@ -76,7 +76,39 @@ matter-density placement rule.
 
 **Tier: Derived conditional.** Re-states the ratified condensation-field
 clumping and checkerboard parity of `foundations/bubble-lattice-fabric.md`
-§1–2 and `foundations/bubble-edge-geometry.md` §1.1.
+§1–2 and `foundations/bubble-edge-geometry.md` §1.1. The underlying
+condensation-lattice claim stands as-is; only the **emergent φ-spaced clump
+ladder in the sim's free dynamics is measured-null** (single-mode clumping,
+measured status below).
+
+**Measured status (owner's space-sim, live config).** The coherence field in
+the owner's space-sim (Godot, 128³ grid, 2.5M particles, meshless tree gravity
+ON, dual-grid ON, black holes ON, multi-rung seed ON ×6, single cluster,
+cluster_radius 50, gravity_mode 4, river calibration, φ-aspect box
+$(φ,1,φ^2)$, source_strength 0, dt 0.05) *does* clump: it condenses into a
+single dominant box-scale mode with monotonic radial power decay—theory-q
+radial fractions (shells up to 10) ≈ $1.0, 0.169, 0.0352, 0.00502, 0.00101,
+0.000618, \dots$ (color q = $E_Y^2+E_I^2$ slightly shallower: $1.0, 0.359,
+0.164, 0.0626, 0.0198$)—with dominant_mode_count = 1, ladder_ratios empty,
+and autocorr clump-lags empty. Both q conventions agree, and the
+pre-registered MIN_MODES=3 gate fails, so the reading is **NO-PHI-LADDER**:
+the clumping is a single-scale condensation, not a φ-spaced clump ladder. This
+is a genuine single-mode falsification of an *emergent φ-ladder clump
+structure in the sim's own free dynamics*. It does **not** touch the clumping
+morphology claim above: that the condensation field *is* a lattice/parity
+structure remains Derived conditional; only whether a **φ-spaced ladder of
+clump separations emerges spontaneously** in the sim is unsupported by the
+measurement. The ripple is confirmed alongside it: coherence propagates at
+$v_c \approx 0.92$ cells/unit-t, ≈ the wave speed c, while particles move at
+$v_p \approx 559$—coherence ≈ 610× slower than particles, ~900σ separation
+from equal, both q conventions—directly supporting the "coherence ripples
+differently than it moves" claim of §1.
+
+**Caveat on record (once).** The null collapsed the field radially: only a
+radial-only $|k|$-shell power analysis was run; a direction-resolved per-axis
+spectrum was **not**. Radial-only collapse can **hide** a genuine ladder if an
+ellipsoidal clump smears power across shells; it cannot **create** secondary
+modes, so the single-mode, no-φ-ladder reading stands as measured.
 
 ## 3. The ring ladder is a phase/coherence structure
 
@@ -167,6 +199,14 @@ channel principle's reading that the spacing is a phase/coherence structure:
 whether and how it imprints a given density channel (gas gaps vs a
 simulated matter field) is a separate, channel-dependent question, not a
 null of the spacing itself.
+
+A sibling sim null is now on record together with these: the coherence field
+itself clumps into a **single** dominant scale, not a φ-ladder
+(`foundations/qi-as-spatial-spacing-signal.md` §2, measured status). The
+no-ring nulls test whether the ripple organizes a *density* tracer into rings;
+the clumping null tests whether the ripple's own clump separations organize
+into a φ-spaced ladder—also negative in the sim's free dynamics, while the
+clumping *morphology* (the condensation lattice) is retained.
 
 **Tier: Hypothesized.** This sharpening of the interpretation of the
 no-ring nulls is a consequence of the Hypothesized channel principle; the

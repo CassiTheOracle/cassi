@@ -149,3 +149,29 @@ Thirteen committed computational tests (`runs/` archives the outputs; scripts in
 | Prediction | Cassi Value | Experimental | Status |
 |-----------|-------------|--------------|--------|
 | Log-periodic polarization orientation (prediction 48) | $\text{PA}(\nu\varphi^k) = \text{PA}(\nu)$ (mod $\pi$), period $\Delta(\ln\nu) = \ln\varphi$; 90° rotation at quarter-rung separation ($\nu_2/\nu_1 = \varphi^{1/4}$); half-rung pair ($\nu_2/\nu_1 = \sqrt\varphi$) parallel (mod $\pi$) | Crab Nebula mm-band PA is constant (~138–142°) over $\Delta\ln\nu = 1.26$ (2.6 rungs); 0/10 band pairs within 3σ | ❌ **Null at face value**—prediction 48 does not fit the Crab Nebula mm-band polarization angle: the constant-PA fit beats the log-periodic spiral fit, and the spiral is excluded against a search-corrected uniform-angle null (p = 0.77) (`experiments/demystifying_cosmos/pa_logperiodic_test.py`, 2026-08-06) |
+
+---
+
+## 8. Space-Sim Coherence-Field Measurement (owner's live config)
+
+Measured in the owner's space-sim (Godot; headless probe; commits af9d2f9,
+3eb605b there, not pushed) at the **true live config**: 128³ grid, 2.5M
+particles, meshless tree gravity ON, dual-grid ON, black holes ON, multi-rung
+seed ON ×6, single cluster, cluster_radius 50, gravity_mode 4, river
+calibration, φ-aspect box $(φ,1,φ^2)$, source_strength 0, dt 0.05.
+
+| Quantity | Measured | Reading |
+|----------|----------|---------|
+| Coherence ripple speed $v_c$ | ≈ 0.92 cells/unit-t ≈ the wave speed c | ✅ **Confirmed**—coherence ripples at the wave speed, distinct from particle motion ("coherence ripples differently than it moves") |
+| Particle/coherence speed ratio | $v_p \approx 559$, $v_c/v_p \approx 0.00164$, ratio ~610×, ~900σ separation from equal | ✅ **Confirmed**—coherence ≈ 610× slower than particles; both q conventions agree |
+| Clumping morphology | Single dominant box-scale mode; theory-q radial fractions (shells to 10) ≈ 1.0, 0.169, 0.0352, 0.00502, 0.00101, 0.000618, …; color q ($E_Y^2+E_I^2$) ≈ 1.0, 0.359, 0.164, 0.0626, 0.0198; dominant_mode_count = 1 | ✅ The field clumps (single-scale condensation) |
+| Emergent φ-clump ladder | ladder_ratios empty; autocorr clump-lags empty; pre-registered MIN_MODES=3 gate fails | ❌ **NO-PHI-LADDER**—single-scale clumping, not a φ-spaced clump ladder, in the sim's free dynamics; both q conventions agree |
+
+The clumping null is recorded against the *emergent φ-spaced clump ladder*
+sub-claim only; the condensation-lattice morphology claim
+(`foundations/qi-as-spatial-spacing-signal.md` §2) is untouched. Caveat on
+record: the null used radial-only $|k|$-shell collapse, which can **hide** a
+ladder if an ellipsoidal clump smears power across shells but cannot
+**create** secondary modes; a direction-resolved per-axis spectrum was not
+run. The ripple confirmation supports the two-channel (wave-phase vs
+advective) separation of the wedge doc §1.
