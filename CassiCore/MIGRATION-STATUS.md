@@ -1,18 +1,20 @@
 # CassiCore P7/P8 Migration Status
 
 **Date:** 2026-08-14
-**Root:** `packages/*` (38 landed packages under `@cassicore/*`)
+**Root:** `packages/*` (31 landed packages under `@cassicore/*`)
 **Source (read-only):** `D:\carina\workspaces\cassicore` (committed `d63358da`)
 
 The P0–P8 modular migration of the CassiCore monorepo is **complete**:
 foundation through the thin host, the standalone `@cassicore/ai` provider
-layer, and all 7 remaining entry-surface apps are landed, all 38 packages
-typecheck **0 errors**, and every package's test suite is green. This file
-records the landed surface, count totals, quarantines, and remaining work.
+layer, and all 7 remaining entry-surface apps were landed; **P6 (2026-08-14,
+owner-ratified) removed the 4 UI apps + 3 external bridges**, leaving 31
+packages that typecheck **0 errors**, and every retained package's test suite
+is green. This file records the landed surface, count totals, quarantines,
+and remaining work.
 
 ---
 
-## 1. Packages landed (38)
+## 1. Packages landed (31)
 
 All migrated with **history-preserving import splices** (two-stage filter-repo
 `--path` → `--path-rename`; per-file flags to avoid the Windows fast-import
@@ -90,9 +92,6 @@ only; those +87 lines stay OUT (parallel session owns them).
 | admin-api | 2 | 9 |
 | **ai** | **1** | **36** |
 | aurora | 36 | 698 |
-| cassi-tui | — | passWithNoTests |
-| cassi-watch | — | passWithNoTests |
-| claude-code-mcp | — | passWithNoTests |
 | cognitive-feed | 1 | 97 |
 | commands | — | passWithNoTests |
 | constellation | 25 | 568 |
@@ -103,7 +102,6 @@ only; those +87 lines stay OUT (parallel session owns them).
 | flux-team | 4 | 186 |
 | foundation | 1 | 10 |
 | helix | 9 | 75 |
-| hermes-agent-gateway | — | passWithNoTests |
 | **host** | **2** | **17** (bridge-acp 12 + acp-roundtrip 5; qwen 1 skipped) |
 | jobs | — | passWithNoTests |
 | lamina-locus-bridge | 1 | 8 |
@@ -112,21 +110,23 @@ only; those +87 lines stay OUT (parallel session owns them).
 | mini-helix | 1 | 21 |
 | mnemic-field | 6 | 89 |
 | model-pool | 1 | 32 |
-| opencode | — | passWithNoTests |
 | pipeline | 1 | 2 |
 | plugins | — | passWithNoTests |
-| prism | — | passWithNoTests |
 | providers | 5 | 120 |
 | thalamus | 6 | 97 |
 | tools | 3 | 39 |
 | training-trust-ledger | 2 | 53 |
 | utils | — | passWithNoTests |
-| webui | — | passWithNoTests |
 | workers | 2 | 97 |
 | workflow | — | passWithNoTests |
 | workspace | 1 | 17 |
 
-**All 38 packages typecheck 0 errors; all suites green.**
+**All 31 retained packages typecheck 0 errors; all suites green.**
+
+> **P6 (2026-08-14):** removed the 7 passWithNoTests standalone apps/bridges
+> (`cassi-tui`, `cassi-watch`, `prism`, `webui`, `claude-code-mcp`,
+> `hermes-agent-gateway`, `opencode`) from this table — deleted per owner
+> ratification, history-preserved in git.
 
 ### Quarantined to `tests/host-wired/` (excluded from default runs)
 
@@ -153,24 +153,12 @@ default run (they test unmigrated D: internals).
 
 ## 3. Remaining work
 
-1. **~~P8 standalone apps~~ — DONE (this phase, turn 2).** All 7 remaining
-   entry-surface apps landed as workspace members with history: `cassi-tui`,
-   `cassi-watch`, `prism`, `webui` (renamed `agent-ui`→`@cassicore/webui`),
-   `integrations/{claude-code,hermes-agent,opencode}`. Each is fully
-   self-contained (verified zero `core/`/`@cassicore` imports; webui talks to
-   the daemon over HTTP, integrations are separately-launched host adapters).
-   recon-architecture §4.3/§4.4 confirm these are **live** standalone packages
-   (the recon `deadFiles`/`uncertainFiles` for them are daemon-anchored BFS
-   artifacts, not true debt) — the full tracked trees were migrated.
-   - `@cassicore/ai` (turn 1) + model-pool/providers re-points: DONE.
-   - **External re-pointing pending owner confirmation:** the two external-facing
-     bridges (`@cassicore/claude-code-mcp`, `@cassicore/hermes-agent-gateway`)
-     keep their package.json name/bin as-is, and the opencode `install.sh`
-     symlink target is untouched. Re-pointing external tooling/hooks to the
-     new package locations requires the owner's explicit confirmation.
-   - webui `observatory/` is a **separate Vite sub-app** (own package.json/deps);
-     it is excluded from webui's root typecheck (its deps aren't hoisted) but
-     its full tree is preserved. Own tsconfig/vite config intact.
+1. **P6 surface removal DONE (owner-ratified 2026-08-14) — 4 UI apps + 3 bridges
+   deleted** from `packages/`: `cassi-tui`, `cassi-watch`, `prism`, `webui` (the
+   4 standalone operator apps) and `claude-code`, `hermes-agent`, `opencode`
+   (the 3 external-facing bridges, whose external re-pointing was the pending
+   owner-confirmation item — owner ratified full deletion). History-preserved
+   in git; lockfile regenerated; all 31 retained suites green.
 2. **Host-vendor stub re-points (host-turn / P8)** — tools' `vendor/core`
    `{session-store,turn-pipeline,tool-proxy-middleware,workspace-loader,
    resource-limits}` + mcp/tools `vendor/core/version` → `@cassicore/host`
