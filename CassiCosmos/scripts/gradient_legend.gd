@@ -29,7 +29,18 @@ const E_TOP: int = 14   # approach hue at the white point (pink 0.93 — no red 
 const E_APPROACH_ON: int = 15
 const E_HUE_OFF: int = 16
 
-const STRIP_TOP: float = 8.0
+# Sample-particle swatch row ABOVE the strip: 6 boxes sampling the CURRENT
+# cycle band at fixed fractions of the strip width, each painted with the
+# exact particle color the shader produces at that q.
+const SWATCH_TOP: float = 2.0
+const SWATCH_H: float = 18.0
+const SWATCH_GAP: float = 4.0
+const SWATCH_FONT: int = 12
+# Instance var, not const: PackedFloat32Array(...) constructors are not
+# constant expressions in GDScript. Never mutated after _init.
+var SWATCH_FRACS: PackedFloat32Array = PackedFloat32Array([0.12, 0.30, 0.47, 0.65, 0.82, 0.97])
+
+const STRIP_TOP: float = SWATCH_TOP + SWATCH_H + SWATCH_GAP
 const STRIP_H: float = 20.0
 const MARK_R: float = 6.0
 const HIT_R: float = 14.0
@@ -43,6 +54,8 @@ var _drag_idx: int = -1
 var _drag_kind: int = -1
 var _markers: Array[Dictionary] = []
 var _last_band_sig := Vector4.ZERO
+var _draw_count: int = 0
+var _swatch_box: StyleBoxFlat = null
 
 
 func _process(_delta: float) -> void:
@@ -71,7 +84,25 @@ func set_sim(s: Node, qi: bool) -> void:
 ## Exposed for probes/tests: the legend's color at a scalar value.
 func sample_color(q: float) -> Color:
 	_refresh_engine()
-	return _color_for_q(q)
+	return _color_at_q(q)
+
+
+## Exposed for probes/tests: the current sample swatches — fraction across
+## the strip, the q sampled there, the exact particle color at that q (the
+## same helper the strip's pixels use), and the compact label on the box.
+func swatch_info() -> Array[Dictionary]:
+	_refresh_engine()
+	var out: Array[Dictionary] = []
+	for f in SWATCH_FRACS:
+		var q: float = _q_from_x(f * maxf(size.x, 1.0))
+		out.append({"frac": f, "q": q, "color": _color_at_q(q), "label": _fmt_sci(q)})
+	return out
+
+
+## Exposed for probes/tests: how many times the real scale (strip +
+## swatches) has been painted (counts only the non-placeholder path).
+func draw_count() -> int:
+	return _draw_count
 
 
 ## Exposed for probes/tests: the two editable handles and the fixed white point.
@@ -97,7 +128,7 @@ func _refresh_engine() -> void:
 		_engine = sim.gradient_engine()
 
 
-func _color_for_q(q: float) -> Color:
+func _color_at_q(q: float) -> Color:
 	if _engine.size() < 17 or _engine[E_SPAN] <= 0.0:
 		return Color(0.2, 0.2, 0.25, 1.0)
 	var e := _engine
@@ -324,11 +355,29 @@ func _draw() -> void:
 	if _engine.size() < 17:
 		_draw_placeholder("Waiting for color scale")
 		return
+	_draw_count += 1
+	var font: Font = ThemeDB.fallback_font
+	# ── sample-particle swatch row (above the strip, same width) ──
+	var n: int = SWATCH_FRACS.size()
+	var gap: float = 2.0
+	var box_w: float = maxf((size.x - float(n) * gap) / float(n), 1.0)
+	for i in range(n):
+		var q: float = _q_from_x(SWATCH_FRACS[i] * size.x)
+		var c: Color = _color_at_q(q)
+		var bx: float = float(i) * (box_w + gap)
+		var brect := Rect2(bx, SWATCH_TOP, box_w, SWATCH_H)
+		draw_style_box(_swatch_style(c), brect)
+		draw_rect(brect, Color(1, 1, 1, 0.35), false, 1.0)
+		var label: String = _fmt_sci(q)
+		var tw: float = font.get_string_size(label).x
+		var lx: float = bx + (box_w - tw) * 0.5
+		var ly: float = SWATCH_TOP + SWATCH_H * 0.5 + 4.0
+		draw_string(font, Vector2(lx + 1.0, ly + 1.0), label, HORIZONTAL_ALIGNMENT_LEFT, -1, SWATCH_FONT, Color(0.0, 0.0, 0.0, 0.6))
+		draw_string(font, Vector2(lx, ly), label, HORIZONTAL_ALIGNMENT_LEFT, -1, SWATCH_FONT, Color(1.0, 1.0, 1.0, 0.95))
 	for x in range(0, int(size.x)):
-		var c: Color = _color_for_q(_q_from_x(float(x) + 0.5))
+		var c: Color = _color_at_q(_q_from_x(float(x) + 0.5))
 		draw_rect(Rect2(float(x), STRIP_TOP, 1.0, STRIP_H), c)
 	draw_rect(Rect2(0.0, STRIP_TOP, size.x, STRIP_H), Color(1, 1, 1, 0.35), false, 1.0)
-	var font: Font = ThemeDB.fallback_font
 	for m in _markers:
 		var mx: float = _x_from_q(m.q)
 		var draggable: bool = m.draggable
@@ -342,6 +391,16 @@ func _draw() -> void:
 		var ly: float = STRIP_TOP + STRIP_H + MARK_R * 2.0 + LABEL_H
 		draw_string(font, Vector2(lx + 1.0, ly + 1.0), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.0, 0.0, 0.0, 0.6))
 		draw_string(font, Vector2(lx, ly), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1.0, 1.0, 1.0, 0.95))
+
+
+## One cached rounded StyleBoxFlat re-tinted per swatch (no per-frame
+## allocation); the particle fill color is the exact shader color at that q.
+func _swatch_style(c: Color) -> StyleBoxFlat:
+	if _swatch_box == null:
+		_swatch_box = StyleBoxFlat.new()
+		_swatch_box.set_corner_radius_all(3)
+	_swatch_box.bg_color = c
+	return _swatch_box
 
 
 func _draw_placeholder(text: String) -> void:
@@ -363,3 +422,31 @@ func _fmt(v: float) -> String:
 	if v >= 1e-6:
 		return "%.7f" % v
 	return str(v)
+
+
+## Compact scientific-ish q label for the swatch boxes ("4.2e-4"):
+## readable decimals in the working band, 1-2 sig-fig exponent form below.
+func _fmt_sci(v: float) -> String:
+	if v <= 0.0:
+		return "0"
+	if v >= 100.0:
+		return str(int(v))
+	if v >= 0.001:
+		var s := "%.4f" % v
+		while s.ends_with("0"):
+			s = s.substr(0, s.length() - 1)
+		if s.ends_with("."):
+			s = s.substr(0, s.length() - 1)
+		return s
+	var mant: float = v
+	var exp: int = 0
+	while mant < 1.0:
+		mant *= 10.0
+		exp -= 1
+	while mant >= 10.0:
+		mant /= 10.0
+		exp += 1
+	var ms := "%.1f" % mant
+	if ms.ends_with(".0"):
+		ms = ms.substr(0, ms.length() - 2)
+	return "%se%d" % [ms, exp]

@@ -145,7 +145,7 @@ func _ready() -> void:
 	control_panel.name = "ControlPanel"
 	control_panel.add_theme_stylebox_override("panel", _make_panel_style())
 	control_panel.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	control_panel.offset_top = -272  # 4 control rows + the VFX row + the gradient legend row
+	control_panel.offset_top = -296  # 4 control rows + the VFX row + the gradient legend row (+ swatch row) — content min ≈ 290
 	control_panel.offset_left = 10; control_panel.offset_right = -10
 	add_child(control_panel)
 
@@ -456,16 +456,22 @@ func _ready() -> void:
 	srv_hbox.add_child(_server_port_edit)
 
 	# ── Gradient legend + its live numeric readout ──
+	# The readout + color controls stay in the LEFT half of the bottom bar;
+	# the legend control (strip + its sample-swatch row) spans the RIGHT half.
 	var legend_row = HBoxContainer.new()
 	legend_row.add_theme_constant_override("separation", 8)
 	root_vbox.add_child(legend_row)
+	var legend_left = HBoxContainer.new()
+	legend_left.add_theme_constant_override("separation", 8)
+	legend_left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	legend_row.add_child(legend_left)
 	_scale_label = _make_label("", Color(0.95, 0.98, 1.0), 12)
 	_scale_label.name = "ScaleLabel"
 	_scale_label.custom_minimum_size = Vector2(96, 0)
 	_scale_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_scale_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_scale_label.tooltip_text = "Color scale — drag LOW and HIGH on the legend to change it"
-	legend_row.add_child(_scale_label)
+	legend_left.add_child(_scale_label)
 	_auto_align_btn = CheckButton.new()
 	_auto_align_btn.name = "AutoAlignBtn"
 	_auto_align_btn.text = "Auto"
@@ -475,7 +481,7 @@ func _ready() -> void:
 	_auto_align_btn.focus_mode = Control.FOCUS_NONE
 	_auto_align_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	_auto_align_btn.toggled.connect(_on_auto_align_toggled)
-	legend_row.add_child(_auto_align_btn)
+	legend_left.add_child(_auto_align_btn)
 	_save_colors_btn = Button.new()
 	_save_colors_btn.name = "SaveColorsBtn"
 	_save_colors_btn.text = "Save"
@@ -485,7 +491,7 @@ func _ready() -> void:
 	_save_colors_btn.focus_mode = Control.FOCUS_NONE
 	_save_colors_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	_save_colors_btn.pressed.connect(_on_save_colors)
-	legend_row.add_child(_save_colors_btn)
+	legend_left.add_child(_save_colors_btn)
 	_reset_colors_btn = Button.new()
 	_reset_colors_btn.name = "ResetColorsBtn"
 	_reset_colors_btn.text = "Reset"
@@ -495,7 +501,7 @@ func _ready() -> void:
 	_reset_colors_btn.focus_mode = Control.FOCUS_NONE
 	_reset_colors_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	_reset_colors_btn.pressed.connect(_on_reset_colors)
-	legend_row.add_child(_reset_colors_btn)
+	legend_left.add_child(_reset_colors_btn)
 	_legend = GradientLegend.new()
 	_legend.name = "GradientLegend"
 	_legend.size_flags_horizontal = Control.SIZE_EXPAND_FILL
