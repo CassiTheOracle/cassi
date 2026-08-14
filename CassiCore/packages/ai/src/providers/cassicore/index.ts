@@ -9,5 +9,6 @@ export { AlibabaCodingProvider } from "./alibaba-coding.js";
 export { DeepSeekProvider } from "./deepseek.js";
 export { KimiCodingProvider } from "./kimi-coding.js";
 export { OpenRouterProvider } from "./openrouter.js";
-export { QwenProvider } from "./qwen.js";
+export { QwenProvider, QwenLoadBalancer, qwenModels, getQwenModel } from "./qwen.js";
+export type { QwenAccount, QwenOAuthCredentials, QwenModel } from "./qwen.js";
 export { ZaiProvider } from "./zai.js";

@@ -8,7 +8,7 @@ import {
   OpenRouterProvider,
   QwenProvider,
   ZaiProvider,
-} from './vendor/ai/providers/cassicore/index.js'
+} from '@cassicore/ai'
 
 import { getCassiCoreHome } from '@cassicore/foundation'
 import { CentralizedProvider, wrapProvidersWithCentralized } from './centralized.js'
@@ -28,7 +28,7 @@ export { CentralizedProvider, wrapProvidersWithCentralized }
 export { QwenLoadBalancer, createQwenLoadBalancer }
 export type { QwenAccount }
 
-export { AlibabaCodingProvider, DeepSeekProvider, KimiCodingProvider, OpenRouterProvider, QwenProvider, ZaiProvider } from './vendor/ai/providers/cassicore/index.js'
+export { AlibabaCodingProvider, DeepSeekProvider, KimiCodingProvider, OpenRouterProvider, QwenProvider, ZaiProvider } from '@cassicore/ai'
 
 export { CostClassifier, getCostClassifier, DEFAULT_COST_RULES } from './cost-classifier.js'
 export type { RequestCost, CostRule } from './cost-classifier.js'

@@ -7,7 +7,7 @@
  * - Provide failover on errors
  */
 
-import { QwenProvider, type QwenOAuthCredentials } from './vendor/ai/providers/cassicore/index.js'
+import { QwenProvider, type QwenOAuthCredentials } from '@cassicore/ai'
 
 import { BaseProvider } from './base.js'
 

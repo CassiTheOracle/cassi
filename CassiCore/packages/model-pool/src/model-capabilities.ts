@@ -98,10 +98,10 @@ export class ModelCapabilitiesFetcher {
 
   private async fromRegistry(providerId: string, modelId: string): Promise<ModelCapabilities | null> {
     try {
-      // Try to import from the ai dist barrel
-      const ai = await import('./vendor/core/ai/providers/cassicore/index.js')
+      // Tier 1: Try the @cassicore/ai model registry (models.generated.ts)
+      const ai = await import('@cassicore/ai')
       // Check for MODELS or model registry
-      const models = (ai as any).MODELS || (ai as any).models || (ai.default as any)?.MODELS
+      const models = (ai as any).MODELS || (ai as any).models || (ai as any).default?.MODELS
       const key = `${providerId}/${modelId}`
       const entry = models?.[key] || models?.[modelId]
       if (entry && entry.contextWindow) {

@@ -1,4 +1,5 @@
 import { MODELS } from "./models.generated.js";
+export { MODELS } from "./models.generated.js";
 import type { Api, KnownProvider, Model, Usage } from "./types.js";
 
 const modelRegistry: Map<string, Map<string, Model<Api>>> = new Map();
