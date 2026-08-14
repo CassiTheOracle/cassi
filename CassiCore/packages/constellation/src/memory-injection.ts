@@ -12,8 +12,8 @@
  */
 
 import type { IMemory } from './vendor/types/intelligence.js'
-import type { MnemicField, MnemicRetrievalHit } from './vendor/mnemic-field/index.js'
-import { GraphAttnPropagator } from './vendor/mnemic-field/graph-attn-propagator.js'
+import type { MnemicField, MnemicRetrievalHit } from '@cassicore/mnemic-field'
+import { GraphAttnPropagator } from '@cassicore/mnemic-field'
 import type { ILogger } from './vendor/types/interfaces.js'
 import type { BranchMemoryContext, InjectedMemory } from './corpus-types.js'
 

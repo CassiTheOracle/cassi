@@ -13,9 +13,9 @@
  *      what its siblings have discovered (driven by Corpus or a tool call)
  */
 
-import type { MnemicField } from './vendor/mnemic-field/index.js'
-import type { Engram, SynapseType } from './vendor/mnemic-field/types.js'
-import { GraphAttnPropagator } from './vendor/mnemic-field/graph-attn-propagator.js'
+import type { MnemicField } from '@cassicore/mnemic-field'
+import type { Engram, SynapseType } from '@cassicore/mnemic-field'
+import { GraphAttnPropagator } from '@cassicore/mnemic-field'
 import type { ILogger } from './vendor/types/interfaces.js'
 
 export interface SiblingDiscovery {

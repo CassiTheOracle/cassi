@@ -1,6 +1,6 @@
 import type { ILogger } from '../vendor/types/interfaces.js'
-import type { MnemicField } from '../vendor/mnemic-field/index.js'
-import type { SynapseType } from '../vendor/mnemic-field/types.js'
+import type { MnemicField } from '@cassicore/mnemic-field'
+import type { SynapseType } from '@cassicore/mnemic-field'
 import type { ConstellationNode } from '../types.js'
 
 export interface OutcomeConsolidatorConfig {

@@ -19,7 +19,7 @@
  */
 
 import type { ILogger } from '../vendor/types/interfaces.js'
-import type { MnemicField } from '../vendor/mnemic-field/index.js'
+import type { MnemicField } from '@cassicore/mnemic-field'
 import type { ToolCallResult } from './solo-runner.js'
 import type { FieldHealthAnalyzer, FieldHealthSnapshot, RegionHealth } from './field-health.js'
 import type { MeditationStore } from './meditation-store.js'

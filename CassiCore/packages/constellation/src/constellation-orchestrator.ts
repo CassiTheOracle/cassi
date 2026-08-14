@@ -68,7 +68,7 @@ export interface ConstellationOrchestrator {
   setModuleRegistry(registry: ModuleSessionRegistry): void
   setMemory(memory: IMemory): void
   setReasoningBank(bank: import('./vendor/reasoning-bank/index.js').ReasoningBank): void
-  setMnemicField(field: import('./vendor/mnemic-field/index.js').MnemicField): void
+  setMnemicField(field: import('@cassicore/mnemic-field').MnemicField): void
   setGlobalWorkspace(workspace: import('./vendor/workspace/index.js').GlobalWorkspace): void
   setLamina(field: import('./vendor/lamina/index.js').LaminaField): void
   setWorkflowEngine(engine: import('./vendor/workflow/engine.js').WorkflowEngine): void
@@ -121,7 +121,7 @@ export function createConstellationOrchestrator(
   let moduleRegistry: ModuleSessionRegistry | undefined
   let memory: IMemory | undefined
   let reasoningBank: import('./vendor/reasoning-bank/index.js').ReasoningBank | undefined
-  let mnemicField: import('./vendor/mnemic-field/index.js').MnemicField | undefined
+  let mnemicField: import('@cassicore/mnemic-field').MnemicField | undefined
   let globalWorkspace: import('./vendor/workspace/index.js').GlobalWorkspace | undefined
   let lamina: import('./vendor/lamina/index.js').LaminaField | undefined
   let workflowEngine: import('./vendor/workflow/engine.js').WorkflowEngine | undefined

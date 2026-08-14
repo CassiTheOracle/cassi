@@ -1043,7 +1043,7 @@ export interface CorpusDeps {
   /** Meditation style — controls tool set and Corpus prompt tone */
   meditationStyle?: import('./meditation/styles.js').MeditationStyle
   /** MnemicField for meditation Corpus tools */
-  mnemicField?: import('./vendor/mnemic-field/index.js').MnemicField
+  mnemicField?: import('@cassicore/mnemic-field').MnemicField
   /** Constellation session engram ID in MnemicField — for locus memory edge creation */
   constellationEngramId?: string
   /** Map of helixId → branch engram ID for locus memory edge creation */

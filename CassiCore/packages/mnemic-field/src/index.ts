@@ -204,6 +204,7 @@ export type { ProjectionResult, ProjectionState, UMAPOptions, UMAPProgressEvent 
 export type {
   Engram, EngramCreate, EngramUpdate,
   MnemicSynapse, SynapseCreate,
+  EngramType, SynapseType,
   ActivationSpike, SpikeCreate,
   Nucleus, NucleusCreate,
   SpatialQuery, EngramSearchResult, TensionPair, TensionReport, FieldStats, MnemicRetrievalHit,

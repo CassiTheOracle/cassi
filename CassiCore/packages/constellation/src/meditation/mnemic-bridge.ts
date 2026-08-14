@@ -9,7 +9,7 @@
  */
 
 import type { ILogger, IEventBus } from '../vendor/types/interfaces.js'
-import type { MnemicField, SpikeCreate } from '../vendor/mnemic-field/index.js'
+import type { MnemicField, SpikeCreate } from '@cassicore/mnemic-field'
 import type { ICorpusTree } from '../corpus-types.js'
 import type { BrainstemAnnotation } from '../vendor/helix/brainstem-types.js'
 import { SelfAwarenessDetector } from './self-awareness-detector.js'

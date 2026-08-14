@@ -14,7 +14,7 @@
  */
 
 import type { ILogger } from '../vendor/types/interfaces.js'
-import type { MnemicField } from '../vendor/mnemic-field/index.js'
+import type { MnemicField } from '@cassicore/mnemic-field'
 
 /**
  * Tracks which engrams were retrieved and which were actually used during

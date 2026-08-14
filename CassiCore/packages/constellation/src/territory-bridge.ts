@@ -12,8 +12,8 @@
 
 import type { CognitiveSignal } from './vendor/workspace/cognitive-signal.js'
 import type { GlobalWorkspace } from './vendor/workspace/global-workspace.js'
-import type { PhrasePrototypeSet } from './vendor/mnemic-field/edge-relators.js'
-import type { MnemicField } from './vendor/mnemic-field/index.js'
+import type { PhrasePrototypeSet } from '@cassicore/mnemic-field'
+import type { MnemicField } from '@cassicore/mnemic-field'
 import { extractKeywords, keywordOverlap } from './ports/workspace-luminance.js'
 
 const MIN_CONCEPT_OVERLAP = 0.25

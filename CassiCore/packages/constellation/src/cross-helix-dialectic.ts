@@ -20,7 +20,7 @@ import type { ILogger } from './vendor/types/interfaces.js'
 import type { HelixBrainstem } from './vendor/helix/brainstem.js'
 import type { CorpusDirective } from './corpus-types.js'
 import { DIALECTIC_TYPE_PHRASES, DIALECTIC_QUALITY_PHRASES } from './vendor/phrase-prototypes.js'
-import type { MnemicField } from './vendor/mnemic-field/index.js'
+import type { MnemicField } from '@cassicore/mnemic-field'
 
 
 /**

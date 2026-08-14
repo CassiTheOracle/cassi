@@ -25,6 +25,7 @@
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
   },
   "dependencies": {
+    "@cassicore/mnemic-field": "*",
     "better-sqlite3": "^11.0.0"
   },
   "devDependencies": {

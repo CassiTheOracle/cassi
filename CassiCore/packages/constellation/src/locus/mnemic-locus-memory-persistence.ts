@@ -1,4 +1,4 @@
-import type { MnemicField, Engram } from '../vendor/mnemic-field/index.js'
+import type { MnemicField, Engram } from '@cassicore/mnemic-field'
 import type { ILogger } from '../vendor/types/interfaces.js'
 import type { LocusMemoryPersistence } from './constellation-memory.js'
 import type { LocusMemoryEntry } from './memory-types.js'

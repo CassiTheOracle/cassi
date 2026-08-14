@@ -16,7 +16,7 @@ import type {
 } from '../corpus-types.js'
 import type { TopologyGraph } from '../topology/topology-graph.js'
 import { CORPUS_BRANCH_RELATION_PHRASES } from '../vendor/phrase-prototypes.js'
-import type { MnemicField } from '../vendor/mnemic-field/index.js'
+import type { MnemicField } from '@cassicore/mnemic-field'
 
 
 /**

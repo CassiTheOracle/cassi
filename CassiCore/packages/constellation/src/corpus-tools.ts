@@ -651,7 +651,7 @@ export interface CorpusToolContext {
     requestingHelixId: string
   }) => void
   /** MnemicField for meditation tools (store_insight, kindle_memory, etc.) */
-  mnemicField?: import('./vendor/mnemic-field/index.js').MnemicField
+  mnemicField?: import('@cassicore/mnemic-field').MnemicField
   /** Memory system for meditation insight storage */
   memory?: import('./vendor/types/intelligence.js').IMemory
 }

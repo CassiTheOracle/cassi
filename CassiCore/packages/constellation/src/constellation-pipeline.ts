@@ -36,7 +36,7 @@ import { CorpusTree } from './corpus-tree.js'
 import { CrossHelixDialectic } from './cross-helix-dialectic.js'
 import { CrossBranchGraphCoordinator } from './graph-coordinator.js'
 import { GraphAttentionBridge } from './locus/graph-attention-bridge.js'
-import { GraphAttnPropagator } from './vendor/mnemic-field/graph-attn-propagator.js'
+import { GraphAttnPropagator } from '@cassicore/mnemic-field'
 import { OutcomeConsolidator } from './consolidation/outcome-consolidator.js'
 import { setGraphDiscoverDeps } from './vendor/tools/implementations/graph-discover.js'
 import { readFile as fsReadFile } from 'node:fs/promises'
@@ -298,7 +298,7 @@ export interface ConstellationPipelineOpts {
   meditationStyle?: import('./meditation/styles.js').MeditationStyle
 
   /** MnemicField for meditation Corpus tools (consolidation, kindling, engram creation) */
-  mnemicField?: import('./vendor/mnemic-field/index.js').MnemicField
+  mnemicField?: import('@cassicore/mnemic-field').MnemicField
 
   /**
    * LaminaField — when provided, each spawned Helix gets a session-scoped

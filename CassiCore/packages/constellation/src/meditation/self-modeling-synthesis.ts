@@ -9,8 +9,8 @@
  */
 
 import type { ILogger } from '../vendor/types/interfaces.js'
-import type { SelfModelField } from '../vendor/mnemic-field/self-model/self-model-field.js'
-import type { InterFieldBridge } from '../vendor/mnemic-field/self-model/inter-field-bridge.js'
+import type { SelfModelField } from '@cassicore/mnemic-field'
+import type { InterFieldBridge } from '@cassicore/mnemic-field'
 import type { ToolCallResult } from './solo-runner.js'
 
 export interface SelfModelingStats {

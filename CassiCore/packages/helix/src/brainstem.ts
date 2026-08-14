@@ -70,7 +70,7 @@ import {
   WORK_UNIT_ANNOTATION_PHRASES,
   DRIFT_TYPE_PHRASES,
 } from '@cassicore/foundation'
-import type { MnemicField } from './vendor/core/intelligence/mnemic-field/index.js'
+import type { MnemicField } from '@cassicore/mnemic-field'
 
 export class HelixBrainstem {
   private deps: BrainstemDeps

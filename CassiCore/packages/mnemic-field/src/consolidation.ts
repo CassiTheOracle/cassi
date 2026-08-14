@@ -65,6 +65,8 @@ export interface ConsolidationOptions {
   mergeOnOverlapMinPotentiation?: number
   /** Skip vindex-driven quality-based pruning during consolidation. */
   skipQualityBasedPruning?: boolean
+  /** Deprecated filament API-compat — ignored post filament-removal. */
+  skipFilamentConsolidation?: boolean
   /** Minimum attention Gini score to survive quality pruning. Default 0.1 (mapped from Gini 0.5). */
   qualityPruningMinScore?: number
   /** Skip feature-overlap nuclei detection during consolidation. */

@@ -288,6 +288,8 @@ export interface FieldStats {
   nucleusCount: number
   avgPotentiation: number
   topEngramsByPotentiation: Array<{ id: string; content: string; potentiation: number }>
+  /** Deprecated filament API-compat — always undefined post filament-removal. */
+  filamentCount?: number
 }
 
 export interface MnemicRetrievalHit {
@@ -300,6 +302,8 @@ export interface MnemicRetrievalHit {
   provenance: string
   tags: string[]
   metadata: Record<string, unknown>
+  /** Deprecated filament API-compat — always undefined post filament-removal. */
+  filamentExcerpt?: string
 }
 
 export const SYNAPSE_PROPAGATION: Record<SynapseType, number> = {

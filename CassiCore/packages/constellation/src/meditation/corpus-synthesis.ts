@@ -10,8 +10,8 @@
  */
 
 import type { ILogger } from '../vendor/types/interfaces.js'
-import type { MnemicField } from '../vendor/mnemic-field/index.js'
-import type { EngramType } from '../vendor/mnemic-field/types.js'
+import type { MnemicField } from '@cassicore/mnemic-field'
+import type { EngramType } from '@cassicore/mnemic-field'
 import type { ToolCallResult } from './solo-runner.js'
 import type { CorpusPrompt } from './corpus-prompt-library.js'
 
