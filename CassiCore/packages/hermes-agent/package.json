@@ -12,7 +12,8 @@
     "dev": "npx tsx --watch src/server.ts",
     "build": "tsc",
     "type-check": "tsc --noEmit",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",

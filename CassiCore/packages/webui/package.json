@@ -12,7 +12,8 @@
     "format": "prettier --check \"**/*.{ts,tsx,mdx}\" --cache",
     "format:fix": "prettier --write \"**/*.{ts,tsx,mdx}\" --cache",
     "typecheck": "tsc --noEmit",
-    "validate": "pnpm run lint && pnpm run format && pnpm run typecheck"
+    "validate": "pnpm run lint && pnpm run format && pnpm run typecheck",
+    "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.5",

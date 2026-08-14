@@ -5,7 +5,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "install:plugin": "bash ./install.sh"
+    "install:plugin": "bash ./install.sh",
+    "test": "vitest run --passWithNoTests"
   },
   "engines": {
     "node": ">=20"
