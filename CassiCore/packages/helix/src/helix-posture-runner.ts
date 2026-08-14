@@ -75,7 +75,7 @@ import {
   executeCodeConsolidatedTool,
   executeBrowserConsolidatedTool,
   executeWebConsolidatedTool,
-} from './vendor/mcp/gateway/index.js'
+} from '@cassicore/mcp-gateway'
 
 
 
