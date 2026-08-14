@@ -13,6 +13,10 @@ cluster_radius = 25.0
 cluster_separation = 0.0
 playing = false
 gravity_mode = 0
+meshless_mode = false
+meshless_gravity = false
+box_aspect = Vector3(1, 1, 1)
+dual_grid = false
 
 [node name="Verify" type="Node" parent="."]
 script = ExtResource("2_ver")
