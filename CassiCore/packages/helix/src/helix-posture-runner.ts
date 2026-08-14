@@ -19,7 +19,7 @@
 
 import type { ILogger, IEventBus } from '@cassicore/foundation'
 import type { Message, ContentBlock, CompletionOpts } from '@cassicore/foundation'
-import type { ModelHandle } from './vendor/core/model-pool/types.js'
+import type { ModelHandle } from '@cassicore/model-pool/types'
 import type { IModelDirective, ModelConfig } from '@cassicore/foundation'
 import type { ToolExecutor } from '@cassicore/tools'
 import type { ToolRegistry } from '@cassicore/tools'

@@ -14,7 +14,7 @@
 import type { ILogger, IEventBus } from './vendor/types/interfaces.js'
 import type { IModelDirective } from './vendor/types/model-routing.js'
 import type { RoutingTier } from './vendor/types/model-routing.js'
-import type { ModelPool } from './vendor/model-pool/index.js'
+import type { ModelPool } from '@cassicore/model-pool'
 import type { ToolExecutor } from '@cassicore/tools'
 import type { ToolRegistry } from '@cassicore/tools'
 import type { HelixStore } from './vendor/helix/helix-store.js'
@@ -71,7 +71,7 @@ export interface ConstellationOrchestrator {
   setMnemicField(field: import('@cassicore/mnemic-field').MnemicField): void
   setGlobalWorkspace(workspace: import('@cassicore/workspace').GlobalWorkspace): void
   setLamina(field: import('@cassicore/lamina-locus-bridge').LaminaField): void
-  setWorkflowEngine(engine: import('./vendor/workflow/engine.js').WorkflowEngine): void
+  setWorkflowEngine(engine: import('@cassicore/workflow').WorkflowEngine): void
   /** True when any non-meditation constellation is running or launching. */
   hasActiveWork(): boolean
 
@@ -124,7 +124,7 @@ export function createConstellationOrchestrator(
   let mnemicField: import('@cassicore/mnemic-field').MnemicField | undefined
   let globalWorkspace: import('@cassicore/workspace').GlobalWorkspace | undefined
   let lamina: import('@cassicore/lamina-locus-bridge').LaminaField | undefined
-  let workflowEngine: import('./vendor/workflow/engine.js').WorkflowEngine | undefined
+  let workflowEngine: import('@cassicore/workflow').WorkflowEngine | undefined
 
   const running = new Map<string, RunningConstellation>()
 

@@ -8,7 +8,7 @@
 import type { ILogger , IEventBus } from '@cassicore/foundation';
 import type { IProvider } from '@cassicore/foundation';
 import type { ModuleSessionRegistry } from '../vendor/core/intelligence/module-session-registry.js';
-import { ActivityTimeout } from '../vendor/core/utils/activity-timeout.js';
+import { ActivityTimeout } from '@cassicore/utils';
 
 /**
  * Base configuration shared by all dialectic voices

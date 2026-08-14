@@ -35,7 +35,7 @@ import type {
 import type {
   ModelHandle,
   ModelCompletionOpts,
-} from '../../model-pool/types.js'
+} from '@cassicore/model-pool/types'
 import type { ToolExecutor } from '@cassicore/tools'
 import type { ToolRegistry } from '@cassicore/tools'
 

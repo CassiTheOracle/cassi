@@ -17,7 +17,7 @@
  */
 
 import type { ILogger, IEventBus } from '@cassicore/foundation'
-import type { ModelHandle } from './vendor/core/model-pool/types.js'
+import type { ModelHandle } from '@cassicore/model-pool/types'
 import type { IModelDirective, ModelConfig } from '@cassicore/foundation'
 import type { ToolExecutor } from '@cassicore/tools'
 import type { ToolRegistry } from '@cassicore/tools'
@@ -51,7 +51,7 @@ import { HelixPostureRunner } from './helix-posture-runner.js'
 import { ContextChunkIndex } from './context-chunk-index.js'
 import { UNITY_POSTURE, YANG_REVIEWER_POSTURE, YIN_REVIEWER_POSTURE } from './helix-postures.js'
 import type { HelixResult, HelixCompletionStatus, HelixPostureResult } from './types.js'
-import { signalPromise } from './vendor/core/utils/abort.js'
+import { signalPromise } from '@cassicore/utils'
 import { HelixBrainstem, createHelixBrainstem } from './brainstem.js'
 import type { BrainstemDeps } from './brainstem-types.js'
 import { HelixSynapse } from './helix-synapse.js'
@@ -401,7 +401,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
 
   let lastActivity = Date.now()
   let watchdog: import('./inactivity-watchdog.js').InactivityWatchdog | undefined
-  let hardCapTimeout: import('./vendor/core/utils/activity-timeout.js').ActivityTimeout | undefined
+  let hardCapTimeout: import('@cassicore/utils').ActivityTimeout | undefined
   const onActivity = () => {
     lastActivity = Date.now()
     hardCapTimeout?.touch()
@@ -643,7 +643,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
 
 
 
-  const { ActivityTimeout } = await import('./vendor/core/utils/activity-timeout.js')
+  const { ActivityTimeout } = await import('@cassicore/utils')
   hardCapTimeout = new ActivityTimeout({
     inactivityMs: inactivityKillMs,
     label: `helix-pipeline:${sessionId}`,

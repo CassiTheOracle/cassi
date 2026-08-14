@@ -13,7 +13,7 @@
 import type { ILogger, IEventBus } from '@cassicore/foundation'
 import type { IModelDirective } from '@cassicore/foundation'
 import type { ContextDistiller } from './vendor/core/intelligence/context-distiller.js'
-import type { ModelPool } from './vendor/core/model-pool/index.js'
+import type { ModelPool } from '@cassicore/model-pool'
 import type { ToolExecutor } from '@cassicore/tools'
 import type { ToolRegistry } from '@cassicore/tools'
 import type { HelixProjectOpts, HelixResult } from './types.js'

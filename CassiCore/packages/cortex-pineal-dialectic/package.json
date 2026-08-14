@@ -1,7 +1,7 @@
 {
   "name": "@cassicore/cortex-pineal-dialectic",
   "version": "0.1.0",
-  "description": "Cortex-pineal-dialectic — the six-region cortical field, the pineal identity module, and the dialectic reasoning system (one package) extracted from CassiCore.",
+  "description": "Cortex-pineal-dialectic \u2014 the six-region cortical field, the pineal identity module, and the dialectic reasoning system (one package) extracted from CassiCore.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -28,7 +28,8 @@
     "@cassicore/flux-team": "*",
     "@cassicore/foundation": "*",
     "@cassicore/mnemic-field": "*",
-    "better-sqlite3": "^11.0.0"
+    "better-sqlite3": "^11.0.0",
+    "@cassicore/utils": "*"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.0",

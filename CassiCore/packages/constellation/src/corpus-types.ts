@@ -27,7 +27,7 @@ import type {
   WorkUnitAnnotation,
 } from './vendor/helix/brainstem-types.js'
 import type { FlexPosture, ConstellationTemplate } from './types.js'
-import type { WorkflowDefinition, WorkflowRun } from './vendor/types/workflow.js'
+import type { WorkflowDefinition, WorkflowRun } from '@cassicore/workflow'
 
 
 // Corpus Tree — The shared reasoning structure

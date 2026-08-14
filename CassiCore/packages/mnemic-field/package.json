@@ -1,7 +1,7 @@
 {
   "name": "@cassicore/mnemic-field",
   "version": "0.1.0",
-  "description": "Mnemic Field — memory + synaptic / engram store subsystem extracted from CassiCore. Standalone TypeScript ESM module; depends on @cassicore/foundation.",
+  "description": "Mnemic Field \u2014 memory + synaptic / engram store subsystem extracted from CassiCore. Standalone TypeScript ESM module; depends on @cassicore/foundation.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -29,7 +29,8 @@
     "@cassicore/cortex-pineal-dialectic": "*",
     "@cassicore/foundation": "*",
     "better-sqlite3": "^11.0.0",
-    "lmdb": "^3.5.4"
+    "lmdb": "^3.5.4",
+    "@cassicore/utils": "*"
   },
   "peerDependencies": {
     "cassi-larql": "*"

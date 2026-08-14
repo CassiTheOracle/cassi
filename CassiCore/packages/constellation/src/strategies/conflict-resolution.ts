@@ -17,10 +17,10 @@
  * one receives a 'guidance' with context about the conflict.
  */
 
-import { createWorkflow } from '../vendor/workflow/builder.js'
-import { corpusAssessStep, corpusDirectiveStep } from '../vendor/workflow/steps.js'
-import type { ICorpusDirectiveSender, ICorpusStateReader } from '../vendor/workflow/steps.js'
-import type { WorkflowDefinition } from '../vendor/types/workflow.js'
+import { createWorkflow } from '@cassicore/workflow'
+import { corpusAssessStep, corpusDirectiveStep } from '@cassicore/workflow'
+import type { ICorpusDirectiveSender, ICorpusStateReader } from '@cassicore/workflow'
+import type { WorkflowDefinition } from '@cassicore/workflow'
 import type {
   CorpusStrategy,
   StrategyContext,

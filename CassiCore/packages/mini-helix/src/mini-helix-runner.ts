@@ -13,7 +13,7 @@
  */
 
 import type { ILogger, IEventBus } from '@cassicore/foundation'
-import type { ModelHandle, ModelCompletionOpts } from './vendor/core/model-pool/types.js'
+import type { ModelHandle, ModelCompletionOpts } from '@cassicore/model-pool/types'
 import type { Message, ContentBlock, CompletionChunk, CompletionOpts } from '@cassicore/foundation'
 import type {
   MiniHelixConfig,

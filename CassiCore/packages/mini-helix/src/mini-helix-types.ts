@@ -25,7 +25,7 @@
  */
 
 import type { ILogger, IEventBus } from '@cassicore/foundation'
-import type { ModelHandle } from './vendor/core/model-pool/types.js'
+import type { ModelHandle } from '@cassicore/model-pool/types'
 import type { Message, ContentBlock } from '@cassicore/foundation'
 
 

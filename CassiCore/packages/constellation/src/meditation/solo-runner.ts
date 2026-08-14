@@ -11,7 +11,7 @@
 
 import type { ILogger, IEventBus } from '../vendor/types/interfaces.js'
 import type { Message, ContentBlock, CompletionChunk } from '../vendor/types/runtime.js'
-import type { ModelHandle } from '../vendor/model-pool/types.js'
+import type { ModelHandle } from '@cassicore/model-pool/types'
 import type { ToolExecutor } from '@cassicore/tools'
 import type { ToolRegistry } from '@cassicore/tools'
 import type { ThalamusModule } from '@cassicore/thalamus'

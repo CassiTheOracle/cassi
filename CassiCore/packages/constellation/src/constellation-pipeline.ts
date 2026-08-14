@@ -13,7 +13,7 @@
  */
 
 import type { ILogger, IEventBus } from './vendor/types/interfaces.js'
-import type { ModelHandle } from './vendor/model-pool/types.js'
+import type { ModelHandle } from '@cassicore/model-pool/types'
 import type { ToolExecutor } from '@cassicore/tools'
 import type { ToolRegistry } from '@cassicore/tools'
 import type { HelixStore } from './vendor/helix/helix-store.js'
@@ -327,7 +327,7 @@ export interface ConstellationPipelineOpts {
    * complexity (multi-phase metadata then becomes a no-op rather than a
    * crash, preserving back-compat for tests + early callers).
    */
-  workflowEngine?: import('./vendor/workflow/engine.js').WorkflowEngine
+  workflowEngine?: import('@cassicore/workflow').WorkflowEngine
 }
 
 // Internal State

@@ -19,10 +19,10 @@
  * Corpus's main loop can pick up and act on during its next sweep.
  */
 
-import { createWorkflow } from '../vendor/workflow/builder.js'
-import { corpusAssessStep } from '../vendor/workflow/steps.js'
-import type { ICorpusDirectiveSender, ICorpusStateReader } from '../vendor/workflow/steps.js'
-import type { WorkflowDefinition, WorkflowStep } from '../vendor/types/workflow.js'
+import { createWorkflow } from '@cassicore/workflow'
+import { corpusAssessStep } from '@cassicore/workflow'
+import type { ICorpusDirectiveSender, ICorpusStateReader } from '@cassicore/workflow'
+import type { WorkflowDefinition, WorkflowStep } from '@cassicore/workflow'
 import type {
   CorpusStrategy,
   StrategyContext,

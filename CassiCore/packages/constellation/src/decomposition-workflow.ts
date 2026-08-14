@@ -30,10 +30,10 @@
  * parallel() wrapper would add a node layer for no behavioural reason.
  */
 
-import { createWorkflow } from './vendor/workflow/builder.js'
-import { helixBranch, type IHelixRunner } from './vendor/workflow/steps.js'
-import { featureImplementation } from './vendor/workflow/templates.js'
-import type { WorkflowDefinition, WorkflowStep } from './vendor/types/workflow.js'
+import { createWorkflow } from '@cassicore/workflow'
+import { helixBranch, type IHelixRunner } from '@cassicore/workflow'
+import { featureImplementation } from '@cassicore/workflow'
+import type { WorkflowDefinition, WorkflowStep } from '@cassicore/workflow'
 import type { ILogger } from './vendor/types/interfaces.js'
 import type { GoalDecomposition, GoalSubTask } from './corpus-types.js'
 
