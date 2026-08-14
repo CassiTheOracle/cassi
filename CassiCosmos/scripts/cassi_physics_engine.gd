@@ -117,6 +117,15 @@ var mode: int = 0                 # display mode (shared PC slot 7; render-side 
 # cycle makes the host CPU prefix-sum readback legal there); on a global-RD
 # engine instance the sim's _render_frame hook runs it instead.
 var particle_merge: bool = false
+# Cassi BH accretion — "object -> BH": particles within a BH's accretion
+# radius (bh_accretion_radius, world units — a small fraction of the BH's
+# σ softening) are marked dead (pos.w = 0, skipped by deposit/nbody/instancer)
+# and their mass is added to the BH's record (bh[base].w) atomically — exactly
+# conserved. Default off. Dispatched after the BH-integrate block in the step
+# chain (pure GPU, no readback). Only meaningful when black_holes_enabled AND
+# at least one BH record is active.
+var bh_accretion: bool = false
+var bh_accretion_radius: float = 0.1   # world units (~1× the default softening σ)
 
 # Engine plumbing (cfg keys): rd, rd_global, owns_rd, seed, spirv
 var _rd: RenderingDevice = null
@@ -213,6 +222,9 @@ var _merge_hash_nx: int = 1; var _merge_hash_ny: int = 1; var _merge_hash_nz: in
 var _merge_hash_total: int = 1
 var _merge_cell_wx: float = 0.0; var _merge_cell_wy: float = 0.0; var _merge_cell_wz: float = 0.0
 var _merge_cycles_run := 0
+# ── BH accretion (compute/cassi_bh_accretion.glsl; gated on bh_accretion) ──
+var _bh_acc_shader: RID; var _bh_acc_pipe: RID; var _us_bh_acc_0: RID
+var _bh_acc_pc_bytes: PackedByteArray  # BH accretion PC (4 floats)
 var _ready := false
 var _cond_step_counter: int = 0
 
@@ -344,6 +356,8 @@ func setup(cfg: Dictionary) -> bool:
 	meshless_gravity = bool(cfg.get("meshless_gravity", meshless_gravity))
 	mode = int(cfg.get("mode", mode))
 	particle_merge = bool(cfg.get("particle_merge", particle_merge))
+	bh_accretion = bool(cfg.get("bh_accretion", bh_accretion))
+	bh_accretion_radius = float(cfg.get("bh_accretion_radius", bh_accretion_radius))
 	# Tree-worker consumer (decoupled mode): the sim creates + starts the
 	# tree worker on the main thread and hands the object here.
 	_tree_worker = cfg.get("tree_worker", null)
@@ -531,7 +545,8 @@ func start_threaded(cfg: Dictionary) -> bool:
 			"res://compute/cassi_jfa.glsl",
 			"res://compute/cassi_voronoi_cells.glsl",
 			"res://compute/cassi_voronoi_raster.glsl",
-			"res://compute/cassi_particle_merge.glsl"]:
+			"res://compute/cassi_particle_merge.glsl",
+			"res://compute/cassi_bh_accretion.glsl"]:
 		var sf := load(p) as RDShaderFile
 		if sf == null or sf.get_spirv() == null:
 			push_error("[PhysicsEngine] start_threaded: shader load failed: " + p)
@@ -709,10 +724,10 @@ func shutdown() -> void:
 	for rid in [
 			_two_fluid_pipe, _nbody_pipe, _poisson_pipe, _mass_deposit_pipe,
 			_cond_pipe, _bh_int_pipe, _jfa_pipe, _cell_pipe, _raster_pipe,
-			_merge_pipe,
+			_merge_pipe, _bh_acc_pipe,
 			_two_fluid_shader, _nbody_shader, _poisson_shader,
 			_mass_deposit_shader, _cond_shader, _bh_int_shader,
-			_jfa_shader, _cell_shader, _raster_shader, _merge_shader,
+			_jfa_shader, _cell_shader, _raster_shader, _merge_shader, _bh_acc_shader,
 			_field_ey, _field_ei, _field_q, _field_vel,
 			_fft_buf, _tel_buf, _grad_buf, _grad_buf2,
 			_pos_buf, _vel_buf, _acc_buf, _cluster_buf, _bh_buf,
@@ -950,6 +965,7 @@ func _setup_buffers() -> void:
 	_md_pc_bytes = PackedByteArray(); _md_pc_bytes.resize(8 * 4)
 	_bh_int_pc_bytes = PackedByteArray(); _bh_int_pc_bytes.resize(4 * 4)
 	_cond_pc_bytes = PackedByteArray(); _cond_pc_bytes.resize(4 * 4)
+	_bh_acc_pc_bytes = PackedByteArray(); _bh_acc_pc_bytes.resize(4 * 4)
 	_poisson_pc_bytes = PackedByteArray(); _poisson_pc_bytes.resize(7 * 4)
 	# Telemetry reset (kept for reference; the per-step reset runs on the GPU
 	# in the poisson clear pass so chained steps stay independent)
@@ -987,6 +1003,12 @@ func _setup_shaders() -> void:
 		_merge_shader = _shader_create("res://compute/cassi_particle_merge.glsl")
 		if _merge_shader.is_valid():
 			_merge_pipe = _rd.compute_pipeline_create(_merge_shader)
+	# BH accretion (only when bh_accretion; the pipeline + set are created on
+	# the init-time toggle so the default-off path is bit-identical)
+	if bh_accretion:
+		_bh_acc_shader = _shader_create("res://compute/cassi_bh_accretion.glsl")
+		if _bh_acc_shader.is_valid():
+			_bh_acc_pipe = _rd.compute_pipeline_create(_bh_acc_shader)
 	# Meshless (Voronoi cell) arm — MESHLESS_PLAN.md §10
 	_jfa_shader = _shader_create("res://compute/cassi_jfa.glsl")
 	if _jfa_shader.is_valid():
@@ -1076,6 +1098,12 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(12, _merge_ch_buf), _uniform_storage(13, _merge_cl_buf),
 			_uniform_storage(14, _merge_mc_buf),
 		], _merge_shader, 0)
+	# BH accretion (set 0: positions + BHData write)
+	if bh_accretion and _bh_acc_shader.is_valid():
+		_us_bh_acc_0 = _rd.uniform_set_create([
+			_uniform_storage(0, _pos_buf),
+			_uniform_storage(1, _bh_buf),
+		], _bh_acc_shader, 0)
 	# Meshless arm sets (MESHLESS_PLAN.md §10) — the JFA ping-pong labels
 	# + sites; the cell state; the raster outputs (the field grid buffers).
 	if _jfa_shader.is_valid():
@@ -1790,6 +1818,10 @@ func _step_dispatches(cl: int) -> void:
 	# Condensation PC: [N_f, qi_threshold, _, _]
 	_cond_pc_bytes.encode_float(0, float(grid_N))
 	_cond_pc_bytes.encode_float(4, qi_condensation_threshold)
+	# BH accretion PC: [N_f, np, r_acc, _]
+	_bh_acc_pc_bytes.encode_float(0, float(grid_N))
+	_bh_acc_pc_bytes.encode_float(4, float(N_particles))
+	_bh_acc_pc_bytes.encode_float(8, bh_accretion_radius)
 
 	_cond_step_counter += 1
 	if _cond_step_counter >= 100:
@@ -1895,7 +1927,18 @@ func _step_dispatches(cl: int) -> void:
 		_rd.compute_list_bind_uniform_set(cl, _us_bh_int_1, 1)
 		_rd.compute_list_set_push_constant(cl, _bh_int_pc_bytes, _bh_int_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, wg, wg, wg)
-	_barrier(cl)  # BH integrate → gradient
+
+	# ── 2.65. BH accretion (every step, when enabled): particles within a BH's
+	# accretion radius are swallowed (pos.w = 0, mass Δ added atomically to the
+	# BH record). Pure GPU, no host readback — one dispatch, one thread per
+	# particle. Reads bh[4..] (written by condensation/BH-integrate above) and
+	# this step's pos; the barrier after gives the nbody pass visibility.
+	if _bh_acc_shader.is_valid() and bh_accretion and black_holes_enabled:
+		_rd.compute_list_bind_compute_pipeline(cl, _bh_acc_pipe)
+		_rd.compute_list_bind_uniform_set(cl, _us_bh_acc_0, 0)
+		_rd.compute_list_set_push_constant(cl, _bh_acc_pc_bytes, _bh_acc_pc_bytes.size())
+		_rd.compute_list_dispatch(cl, pg, 1, 1)
+	_barrier(cl)  # BH integrate/accretion → gradient
 
 	# ── 2.8. Cell-centered ∇(g·Φ) build (river-arm estimator) ──────
 	# One thread per cell; pass_mode = 1. RIVER MODE ONLY; skipped under

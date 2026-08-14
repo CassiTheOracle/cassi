@@ -99,6 +99,14 @@ const Q_1: float = 0.001        # Qi-rainbow stage-1 band top = stage-2 entry
 ## Two-particle merge (SINK-rule, q_coh > φ⁻² gate, R_m = extent/grid_N) grows matter from dust. Default off = particles-only. Init-time — reinit to apply.
 @export var particle_merge: bool = false
 
+# Object -> BH accretion: particles within a BH's accretion radius
+# (bh_accretion_radius, world units, ~1× the default softening σ) are marked
+# dead (pos.w = 0) and their mass is added atomically to the BH record — exactly
+# conserved. Default off. Wired into both the decoupled engine and the
+# non-decoupled _render_frame path.
+@export var bh_accretion: bool = false
+@export var bh_accretion_radius: float = 0.1
+
 # Window VSync (frame pacing to the display refresh). On by default;
 # disable for uncapped frame rate (GPU benchmarks and Movie-Maker
 # recording want it off). Live — the setter applies it to the window
@@ -438,6 +446,9 @@ var _merge_hash_nx: int = 1; var _merge_hash_ny: int = 1; var _merge_hash_nz: in
 var _merge_hash_total: int = 1
 var _merge_cell_wx: float = 0.0; var _merge_cell_wy: float = 0.0; var _merge_cell_wz: float = 0.0
 var _merge_cycles_run: int = 0   # lifetime merge-cycle count (verify/battery diag)
+# ── BH accretion (compute/cassi_bh_accretion.glsl; init-time, bh_accretion) ──
+var _bh_acc_shader: RID; var _bh_acc_pipe: RID; var _us_bh_acc_0: RID
+var _bh_acc_pc_bytes: PackedByteArray
 var _cond_step_counter: int = 0
 var _us_inst_0: RID = RID()
 var _us_inst_0_render: RID = RID()  # instancer set variant: position binding (0) reads _pos_render_buf
@@ -1296,6 +1307,8 @@ func _decoupled_start_engine() -> bool:
 		"meshless_mode": meshless_mode, "meshless_gravity": meshless_gravity,
 		"mode": mode,
 		"particle_merge": particle_merge,
+		"bh_accretion": bh_accretion,
+		"bh_accretion_radius": bh_accretion_radius,
 	}
 	# Tree worker (decoupled + meshless + tree): created + started HERE on
 	# the MAIN thread (start() loads the tree shaders — not thread-safe
@@ -1732,6 +1745,7 @@ func _setup_buffers() -> void:
 	_instancer_pc_bytes = PackedByteArray(); _instancer_pc_bytes.resize(32 * 4)  # consolidated gradient engine PC — 128 B (the RDNA3 Vulkan cap)
 	_bh_int_pc_bytes = PackedByteArray(); _bh_int_pc_bytes.resize(4 * 4)
 	_cond_pc_bytes = PackedByteArray(); _cond_pc_bytes.resize(4 * 4)
+	_bh_acc_pc_bytes = PackedByteArray(); _bh_acc_pc_bytes.resize(4 * 4)
 	_poisson_pc_bytes = PackedByteArray(); _poisson_pc_bytes.resize(7 * 4)
 	_occ_pc_bytes = PackedByteArray(); _occ_pc_bytes.resize(10 * 4)
 	# Blend PC (4 B = 1 float): alpha @ byte 0. Godot reflects a 1-float
@@ -1788,7 +1802,7 @@ func _free_uniform_sets() -> void:
 				_us_bh_int_0, _us_bh_int_1, _us_inst_0, _us_inst_0_render,
 				_us_bh_lens_2, _us_blend_0,
 				_us_occ_0, _us_qhist_0, _us_jfa_0, _us_cell_0, _us_raster_0,
-				_us_tree_build, _us_tree_grav, _us_merge_0]:
+				_us_tree_build, _us_tree_grav, _us_merge_0, _us_bh_acc_0]:
 		if rid.is_valid(): _rd.free_rid(rid)
 	_us_two_0 = RID(); _us_two_1 = RID(); _us_two_2 = RID()
 	_us_mass_dep_0 = RID()
@@ -1802,7 +1816,7 @@ func _free_uniform_sets() -> void:
 	_us_occ_0 = RID()
 	_us_jfa_0 = RID(); _us_cell_0 = RID(); _us_raster_0 = RID()
 	_us_tree_build = RID(); _us_tree_grav = RID()
-	_us_merge_0 = RID()
+	_us_merge_0 = RID(); _us_bh_acc_0 = RID()
 
 func _free_shaders() -> void:
 	_free_uniform_sets()  # sets hold shader references; release before the shaders
@@ -1814,14 +1828,14 @@ func _free_shaders() -> void:
 				_cond_pipe, _bh_int_pipe, _occ_pipe, _qhist_pipe,
 				_jfa_pipe, _cell_pipe, _raster_pipe,
 				_tree_build_pipe, _tree_grav_pipe, _blend_pipe,
-				_merge_pipe,
+				_merge_pipe, _bh_acc_pipe,
 				_two_fluid_shader, _nbody_shader, _poisson_shader,
 				_field_render_shader, _bh_lensing_shader,
 				_instancer_shader, _mass_deposit_shader,
 				_cond_shader, _bh_int_shader, _occ_shader, _qhist_shader,
 				_jfa_shader, _cell_shader, _raster_shader,
 				_tree_build_shader, _tree_grav_shader, _blend_sh,
-				_merge_shader]:
+				_merge_shader, _bh_acc_shader]:
 		if rid.is_valid(): _rd.free_rid(rid)
 
 
@@ -1887,6 +1901,13 @@ func _setup_shaders() -> void:
 		if _merge_shader.is_valid():
 			_merge_pipe = _rd.compute_pipeline_create(_merge_shader)
 			print("[CassiSim] particle-merge pipeline ready")
+	# BH accretion (only when bh_accretion; the pipeline + set are created on
+	# the init-time toggle so the default-off path is bit-identical)
+	if bh_accretion:
+		_bh_acc_shader = _shader_from_file("res://compute/cassi_bh_accretion.glsl")
+		if _bh_acc_shader.is_valid():
+			_bh_acc_pipe = _rd.compute_pipeline_create(_bh_acc_shader)
+			print("[CassiSim] bh-accretion pipeline ready")
 
 
 	# Occupancy sampler (diagnostic — GPU-side box classification; the
@@ -2018,6 +2039,12 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(12, _merge_ch_buf), _uniform_storage(13, _merge_cl_buf),
 			_uniform_storage(14, _merge_mc_buf),
 		], _merge_shader, 0)
+	# BH accretion (set 0: positions + BHData write)
+	if bh_accretion and _bh_acc_shader.is_valid():
+		_us_bh_acc_0 = _rd.uniform_set_create([
+			_uniform_storage(0, _pos_buf),
+			_uniform_storage(1, _bh_buf),
+		], _bh_acc_shader, 0)
 	_us_nbody_2 = _rd.uniform_set_create([
 		_uniform_storage(0, _bh_buf),
 		_uniform_storage(1, _cluster_buf),  # Plummer reference arm (mode 2)
@@ -3434,6 +3461,10 @@ func _step_dispatches(cl: int) -> void:
 	# Condensation PC: [N_f, qi_threshold, _, _]
 	_cond_pc_bytes.encode_float(0, float(grid_N))
 	_cond_pc_bytes.encode_float(4, qi_condensation_threshold)
+	# BH accretion PC: [N_f, np, r_acc, _]
+	_bh_acc_pc_bytes.encode_float(0, float(grid_N))
+	_bh_acc_pc_bytes.encode_float(4, float(N_particles))
+	_bh_acc_pc_bytes.encode_float(8, bh_accretion_radius)
 
 	_cond_step_counter += 1
 	if _cond_step_counter >= 100:
@@ -3548,6 +3579,18 @@ func _step_dispatches(cl: int) -> void:
 		_rd.compute_list_bind_uniform_set(cl, _us_bh_int_1, 1)
 		_rd.compute_list_set_push_constant(cl, _bh_int_pc_bytes, _bh_int_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, wg, wg, wg)
+
+	# ── 2.65. BH accretion (every step, when enabled): particles within a BH's
+	# accretion radius are swallowed (pos.w = 0, mass Δ added atomically to the
+	# BH record). Pure GPU, one dispatch, one thread per particle; the barrier
+	# after gives the nbody pass visibility. NOTE: this step's deposit already
+	# ran (line ~3490), so a swallowed particle still fed THIS step's ρ; the
+	# death takes effect from the NEXT step's deposit — same semantics as merge.
+	if _bh_acc_shader.is_valid() and bh_accretion and black_holes_enabled:
+		_rd.compute_list_bind_compute_pipeline(cl, _bh_acc_pipe)
+		_rd.compute_list_bind_uniform_set(cl, _us_bh_acc_0, 0)
+		_rd.compute_list_set_push_constant(cl, _bh_acc_pc_bytes, _bh_acc_pc_bytes.size())
+		_rd.compute_list_dispatch(cl, pg, 1, 1)
 	_barrier(cl)  # BH integrate → gradient
 
 	# ── 2.8. Cell-centered ∇(g·Φ) build (river-arm estimator) ──────
