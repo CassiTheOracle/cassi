@@ -14,7 +14,7 @@
  * See: docs/design/aurora-concept-arithmetic.md
  */
 
-import type { AffectLabel } from '../../mnemic-field/types.js'
+import type { AffectLabel } from '@cassicore/mnemic-field'
 
 export type CompositionAst =
   | { kind: 'gate'; label: string }

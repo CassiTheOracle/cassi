@@ -14,7 +14,7 @@
  * See: docs/design/aurora-reasoning-trace-replay.md §3–4
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type { ReasoningRecord, ReasoningShift } from './types.js'
 import type {
   SimilarityWeights,

@@ -14,7 +14,7 @@
  *   - Tension and disagreement are preserved, not smoothed over
  */
 
-import type { DialecticStructuredResult } from '../../../types/dialectic-engine.js'
+import type { DialecticStructuredResult } from '@cassicore/foundation'
 
 /**
  * Format a DialecticStructuredResult as inner-monologue prose.

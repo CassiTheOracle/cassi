@@ -13,7 +13,7 @@
  *   serious  — blocks operation unless explicitly acknowledged
  */
 
-import type { ILogger } from '../../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type { ActiveComposition, CompositionRecord } from '../composition/types.js'
 import type { MeditationSeed } from '../meditation-seeder.js'
 import {

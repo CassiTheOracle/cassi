@@ -8,7 +8,7 @@
  * content, and result history.
  */
 
-import type { ILogger } from '../../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type { EventJournal } from '../event-journal.js'
 import type {
   CalibrationProbeSet,

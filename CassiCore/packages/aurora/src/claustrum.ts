@@ -6,15 +6,15 @@
  * portal bridges, and dream discoveries into a single queryable graph.
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
-import type { Cortex } from '../mnemic-field/cortex.js'
-import type { Engram } from '../mnemic-field/types.js'
-import type { PortalBridge } from '../memory-bridge/portal-bridge.js'
-import type { DreamDiscovery } from '../memory-bridge/dream-engine.js'
+import type { ILogger } from '@cassicore/foundation'
+import type { Cortex } from '@cassicore/mnemic-field'
+import type { Engram } from '@cassicore/mnemic-field'
+import type { PortalBridge } from './vendor/core/intelligence/memory-bridge/portal-bridge.js'
+import type { DreamDiscovery } from './vendor/core/intelligence/memory-bridge/dream-engine.js'
 import type {
   ClaustrumInsightSink,
   ObserverInsight,
-} from '../constellation/observer-memory-bridge.js'
+} from '@cassicore/constellation'
 import type {
   CognitiveNode,
   CognitiveEdge,

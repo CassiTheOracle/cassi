@@ -1,4 +1,4 @@
-import type { Affect, AffectState } from '../mnemic-field/types.js'
+import type { Affect, AffectState } from '@cassicore/mnemic-field'
 
 export type { Affect, AffectState }
 

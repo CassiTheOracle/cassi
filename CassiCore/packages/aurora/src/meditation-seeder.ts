@@ -18,7 +18,7 @@ import path from 'node:path'
 
 import Database from 'better-sqlite3'
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type { GapCandidate, GapCategory } from './gap-detector.js'
 
 

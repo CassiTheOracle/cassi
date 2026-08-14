@@ -5,10 +5,10 @@
  * and dependency wiring. Voice-specific logic remains in subclasses.
  */
 
-import type { ILogger , IEventBus } from '../../../types/interfaces.js';
-import type { IProvider } from '../../../types/runtime.js';
-import type { ModuleSessionRegistry } from '../module-session-registry.js';
-import { ActivityTimeout } from '../../utils/activity-timeout.js';
+import type { ILogger , IEventBus } from '@cassicore/foundation';
+import type { IProvider } from '@cassicore/foundation';
+import type { ModuleSessionRegistry } from '../vendor/core/intelligence/module-session-registry.js';
+import { ActivityTimeout } from '../vendor/core/utils/activity-timeout.js';
 
 /**
  * Base configuration shared by all dialectic voices

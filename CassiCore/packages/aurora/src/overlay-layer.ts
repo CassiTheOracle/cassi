@@ -15,7 +15,7 @@
  * See: docs/design/aurora-bidirectional-claustrum.md
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 
 
 export type OverlayPatchOp = 'insert' | 'insert_knn'

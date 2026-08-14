@@ -1,5 +1,5 @@
 import type { CorticalSignal, ConsolidationCallback, SignalType } from './types.js'
-import type { EngramCreate, EngramType } from '../mnemic-field/types.js'
+import type { EngramCreate, EngramType } from '@cassicore/mnemic-field'
 
 const SIGNAL_TO_ENGRAM_TYPE: Record<SignalType, EngramType> = {
   perception: 'episode',

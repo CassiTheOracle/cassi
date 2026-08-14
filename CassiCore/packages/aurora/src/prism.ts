@@ -23,8 +23,8 @@ import path from 'node:path'
 import fs from 'node:fs'
 import Database from 'better-sqlite3'
 
-import type { ILogger } from '../../../types/interfaces.js'
-import type { AffectLabel } from '../mnemic-field/types.js'
+import type { ILogger } from '@cassicore/foundation'
+import type { AffectLabel } from '@cassicore/mnemic-field'
 import type { ForkContribution, Perturbation } from './counterfactual-engine.js'
 
 

@@ -10,7 +10,7 @@
  * grounded in state. No fabricated experiential claims.
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type { MentalState, AuroraConfig } from './types.js'
 
 /** A single rendered narrative clause with trace metadata. */

@@ -1,6 +1,6 @@
 import type { PinealStore } from './store.js'
 import type { Facet, SkillSummary } from './types.js'
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 
 /**
  * SkillLoader — composes praxis facets into coherent skill prompts on demand.

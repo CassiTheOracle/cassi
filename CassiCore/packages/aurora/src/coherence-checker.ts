@@ -20,10 +20,10 @@
  * See: docs/design/aurora-cross-module-coherence.md
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type { CognitiveNode } from './types.js'
-import { COHERENCE_MISMATCH_PHRASES } from '../phrase-prototypes.js'
-import type { MnemicField } from '../mnemic-field/index.js'
+import { COHERENCE_MISMATCH_PHRASES } from '@cassicore/foundation'
+import type { MnemicField } from '@cassicore/mnemic-field'
 
 
 export type CoherenceCategory =

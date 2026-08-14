@@ -24,7 +24,7 @@ import type {
   CompositionAst,
   LayerSpec,
 } from './types.js'
-import type { AffectLabel } from '../../mnemic-field/types.js'
+import type { AffectLabel } from '@cassicore/mnemic-field'
 
 const AFFECT_LABELS: ReadonlySet<AffectLabel> = new Set<AffectLabel>([
   'excited', 'delighted', 'engaged',

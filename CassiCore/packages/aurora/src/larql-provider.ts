@@ -15,7 +15,7 @@
  * This is what LARQL's DESCRIBE command does under the hood.
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type {
   ModelKnowledgeProvider,
   ModelEntity,
@@ -30,8 +30,8 @@ import type {
 } from './types.js'
 import type { ClaustrumRecorder, ClaustrumGateHit } from './claustrum-recorder.js'
 import type { OverlayLayer, OverlayFeatureHit } from './overlay-layer.js'
-import type { Affect, AffectLabel } from '../mnemic-field/types.js'
-import { affectSimilarity, resolveLabel } from '../mnemic-field/affect.js'
+import type { Affect, AffectLabel } from '@cassicore/mnemic-field'
+import { affectSimilarity, resolveLabel } from '@cassicore/mnemic-field'
 import { composeVectorProjection } from './projection/vector-projection.js'
 import { createRequire } from 'module'
 

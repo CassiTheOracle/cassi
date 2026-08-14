@@ -29,11 +29,11 @@ import type {
   ParallelDialecticResult,
   SignalType,
   Urgency,
-} from '../../../types/dialectic.js'
-import type { IMemory } from '../../../types/intelligence.js'
-import type { ILogger, IEventBus } from '../../../types/interfaces.js'
-import type { IProvider } from '../../../types/runtime.js'
-import type { ModuleSessionRegistry } from '../module-session-registry.js'
+} from '@cassicore/foundation'
+import type { IMemory } from '@cassicore/foundation'
+import type { ILogger, IEventBus } from '@cassicore/foundation'
+import type { IProvider } from '@cassicore/foundation'
+import type { ModuleSessionRegistry } from '../vendor/core/intelligence/module-session-registry.js'
 
 
 export interface ConsolidatedConfig {
@@ -479,12 +479,12 @@ Only set hasSignal=false if the input is truly empty or nonsensical.`)
       }))
       .filter((b: YinBaselineBranch) => b.content.length > 0)
 
-    const validActions: import('../../../types/dialectic.js').YinAction[] = ['surface', 'compress', 'discard']
+    const validActions: import('@cassicore/foundation').YinAction[] = ['surface', 'compress', 'discard']
     const yangBranches = yangRaw?.branches || []
     const selfCritiques: YinCritique[] = (raw.critiques || [])
       .map((c: any) => {
         const branchIdx = Number(c.yangBranchIndex) || 0
-        const action = (validActions.includes(c.action) ? c.action : 'surface') as import('../../../types/dialectic.js').YinAction
+        const action = (validActions.includes(c.action) ? c.action : 'surface') as import('@cassicore/foundation').YinAction
         return {
           yangBranchId: yangBranches[branchIdx]
             ? `consolidated-yang-${branchIdx}`

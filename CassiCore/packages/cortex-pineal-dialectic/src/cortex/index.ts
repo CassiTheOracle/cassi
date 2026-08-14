@@ -1,4 +1,4 @@
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type {
   CorticalSignal, SignalInput, SignalType, SignalState,
   RegionConfig, RegionInfo, RegionSnapshot,
@@ -16,9 +16,9 @@ import { TractEngine } from './tract.js'
 import { oscillate } from './dynamics.js'
 import { computeActivation } from './signal.js'
 import { CortexSession } from './session.js'
-import type { AffectRegister } from '../mnemic-field/affect.js'
-import { SIGNAL_TYPE_PHRASES } from '../phrase-prototypes.js'
-import type { MnemicField } from '../mnemic-field/index.js'
+import type { AffectRegister } from '@cassicore/mnemic-field'
+import { SIGNAL_TYPE_PHRASES } from '@cassicore/foundation'
+import type { MnemicField } from '@cassicore/mnemic-field'
 
 const MAX_OSCILLATION_HISTORY = 100
 

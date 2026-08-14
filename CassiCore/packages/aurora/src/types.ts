@@ -11,9 +11,9 @@
  * cognitive state that external clients perceive and participate in.
  */
 
-import type { Affect, AffectLabel, EngramType, SynapseType } from '../mnemic-field/types.js'
-import type { ResonantAffectSignal } from '../memory-bridge/resonant-affect.js'
-import type { DreamDiscovery } from '../memory-bridge/dream-engine.js'
+import type { Affect, AffectLabel, EngramType, SynapseType } from '@cassicore/mnemic-field'
+import type { ResonantAffectSignal } from './vendor/core/intelligence/memory-bridge/resonant-affect.js'
+import type { DreamDiscovery } from './vendor/core/intelligence/memory-bridge/dream-engine.js'
 
 export type CognitiveNodeSource = 'model' | 'memory' | 'knowledge' | 'observer' | 'both'
 export type CognitiveEdgeOrigin = 'model' | 'memory' | 'portal' | 'dream' | 'observer'

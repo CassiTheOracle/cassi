@@ -13,7 +13,7 @@
  *     ~500ms per pair. Preferred when available.
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type { ConceptBridge } from './self-model-knowledge.js'
 
 

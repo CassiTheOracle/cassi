@@ -5,8 +5,8 @@
  * Determines what should be surfaced to the main agent.
  */
 
-import { getModelSpec } from '../../config/system-settings.js';
-import { composeSystemPrompt } from '../shared/posture-store.js';
+import { getModelSpec } from '@cassicore/foundation';
+import { composeSystemPrompt } from '../vendor/core/intelligence/shared/posture-store.js';
 
 import { DialecticVoiceBase, type BaseDialecticConfig } from './dialectic-voice-base.js';
 import { SERENITY_SCHEMA, JSON_INSTRUCTION } from './prompt-templates.js';
@@ -19,9 +19,9 @@ import type {
   YangOutput,
   YinOutput,
   DualSynthesisInput,
-} from '../../../types/dialectic.js';
-import type { ILogger } from '../../../types/interfaces.js';
-import type { IProvider } from '../../../types/runtime.js';
+} from '@cassicore/foundation';
+import type { ILogger } from '@cassicore/foundation';
+import type { IProvider } from '@cassicore/foundation';
 
 
 

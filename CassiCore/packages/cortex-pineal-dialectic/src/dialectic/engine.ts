@@ -21,8 +21,8 @@
  *   // structured.yang, structured.yin, structured.unity, structured.output
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
-import type { IProvider } from '../../../types/runtime.js'
+import type { ILogger } from '@cassicore/foundation'
+import type { IProvider } from '@cassicore/foundation'
 import type {
   DialecticEngineConfig,
   ReasonOptions,
@@ -40,7 +40,7 @@ import type {
   UnitySelection,
   DialecticEngineSignal,
   DialecticSignalType,
-} from '../../../types/dialectic-engine.js'
+} from '@cassicore/foundation'
 
 // Default Configuration ─────────────────────────────────────────
 

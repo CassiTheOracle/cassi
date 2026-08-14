@@ -11,7 +11,7 @@
  * See: docs/design/aurora-counterfactual-exploration.md
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type {
   CognitiveNode,
   CognitiveEdge,
@@ -21,8 +21,8 @@ import type {
   ReasoningMomentum,
   MentalState,
 } from './types.js'
-import type { AffectLabel } from '../mnemic-field/types.js'
-import { resolveLabel } from '../mnemic-field/affect.js'
+import type { AffectLabel } from '@cassicore/mnemic-field'
+import { resolveLabel } from '@cassicore/mnemic-field'
 
 
 

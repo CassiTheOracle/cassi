@@ -1,7 +1,7 @@
 import type { PinealStore } from './store.js'
 import type { Facet, SkillSummary } from './types.js'
 import { channelFromSessionId } from './types.js'
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 
 /**
  * PinealAssembler — selects and formats relevant facets for context injection.

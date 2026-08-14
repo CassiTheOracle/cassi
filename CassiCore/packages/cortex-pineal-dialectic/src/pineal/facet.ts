@@ -1,9 +1,9 @@
 import type { PinealStore } from './store.js'
 import type { Facet, FacetInput, FacetUpdate, FacetQuery, Domain } from './types.js'
 import { REINFORCEMENT_RATE } from './types.js'
-import type { ILogger } from '../../../types/interfaces.js'
-import type { MnemicField } from '../mnemic-field/index.js'
-import type { Engram } from '../mnemic-field/types.js'
+import type { ILogger } from '@cassicore/foundation'
+import type { MnemicField } from '@cassicore/mnemic-field'
+import type { Engram } from '@cassicore/mnemic-field'
 import { buildPinealMetadata } from './index.js'
 
 export class FacetManager {
@@ -46,7 +46,7 @@ export class FacetManager {
       } else {
         const engram = this.mnemicField.store({
           content: facet.content,
-          nodeType: 'pineal_facet' as import('../mnemic-field/types.js').EngramType,
+          nodeType: 'pineal_facet' as import('@cassicore/mnemic-field').EngramType,
           x: 0,
           y: 0,
           provenance: `pineal:${facet.id}`,

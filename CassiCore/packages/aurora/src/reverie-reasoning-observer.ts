@@ -18,10 +18,10 @@
  * See: docs/design/aurora-reverie-escalation-tiers.md
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type { MentalState, ReverieInsight, ReverieInferenceProvider, ReasoningAnalysisInput } from './types.js'
-import { REVERIE_HAS_INSIGHT_PHRASES } from '../phrase-prototypes.js'
-import type { MnemicField } from '../mnemic-field/index.js'
+import { REVERIE_HAS_INSIGHT_PHRASES } from '@cassicore/foundation'
+import type { MnemicField } from '@cassicore/mnemic-field'
 
 /** Reverie analysis tier levels. */
 export type ReverieTier = 1 | 2 | 3

@@ -14,12 +14,12 @@
  */
 
 import path from 'node:path'
-import type { ILogger } from '../../../types/interfaces.js'
-import type { Cortex } from '../mnemic-field/cortex.js'
-import { getDataDir } from '../../utils/paths.js'
-import type { PortalBridge } from '../memory-bridge/portal-bridge.js'
-import type { ResonantAffectSignal } from '../memory-bridge/resonant-affect.js'
-import type { DreamDiscovery } from '../memory-bridge/dream-engine.js'
+import type { ILogger } from '@cassicore/foundation'
+import type { Cortex } from '@cassicore/mnemic-field'
+import { getDataDir } from '@cassicore/foundation'
+import type { PortalBridge } from './vendor/core/intelligence/memory-bridge/portal-bridge.js'
+import type { ResonantAffectSignal } from './vendor/core/intelligence/memory-bridge/resonant-affect.js'
+import type { DreamDiscovery } from './vendor/core/intelligence/memory-bridge/dream-engine.js'
 import { Claustrum, ObserverInsightCollector } from './claustrum.js'
 import type { CycleIdAware } from './larql-provider.js'
 import { StateProjector } from './state-projector.js'
@@ -78,7 +78,7 @@ import type { OverlayPatch, OverlayApplyResult, OverlayStats } from './overlay-l
 import { SelfModelKnowledgeProvider } from './self-model-knowledge.js'
 import type { SelfModelProbe } from './self-model-knowledge.js'
 import { InferenceTraceProvider } from './inference-trace.js'
-import type { MnemicField } from '../mnemic-field/index.js'
+import type { MnemicField } from '@cassicore/mnemic-field'
 import { SelfNarrativeRenderer } from './self-narrative-renderer.js'
 import type { SelfNarrative } from './self-narrative-renderer.js'
 import { CompositionStore } from './composition/store.js'
@@ -91,7 +91,7 @@ import type { CalibrationProbeSet, CalibrationResult, DriftReport, RunOptions } 
 import { parseComposition, detectSuppressive, layerSpecToString } from './composition/parser.js'
 import { evaluateInvocationRules as evaluateInvocationRulesPure } from './composition/rule-evaluator.js'
 import { evaluatePredicate, evaluateStrength } from './composition/predicate.js'
-import type { Affect, AffectLabel } from '../mnemic-field/types.js'
+import type { Affect, AffectLabel } from '@cassicore/mnemic-field'
 import {
   DEFAULT_TTL_TURNS,
   DEFAULT_MAGNITUDE_SCALE,

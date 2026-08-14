@@ -20,13 +20,13 @@
  *   bridge.ingestIntoMnemic(refreshed, mnemicField);
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type { LarqlKnowledgeProvider, FeatureHit } from './larql-provider.js'
-import type { MnemicField } from '../mnemic-field/index.js'
-import type { EngramCreate } from '../mnemic-field/types.js'
+import type { MnemicField } from '@cassicore/mnemic-field'
+import type { EngramCreate } from '@cassicore/mnemic-field'
 import { ConceptSelfAwarenessClassifier } from './concept-self-awareness.js'
 import type { ConceptAwareness } from './concept-self-awareness.js'
-import { getEmbeddingService } from '../embeddings/embedding-service.js'
+import { getEmbeddingService } from './vendor/core/intelligence/embeddings/embedding-service.js'
 
 
 /** Layer band classification for a feature hit. */

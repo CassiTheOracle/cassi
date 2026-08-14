@@ -8,7 +8,7 @@
  * See: docs/design/aurora-welfare-stress-aggregator.md
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 
 
 /**

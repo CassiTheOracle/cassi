@@ -5,15 +5,15 @@
  * Explores alternatives, edge cases, cross-domain connections, and challenges assumptions.
  */
 
-import { getModelSpec } from '../../config/system-settings.js';
-import { composeSystemPrompt } from '../shared/posture-store.js';
+import { getModelSpec } from '@cassicore/foundation';
+import { composeSystemPrompt } from '../vendor/core/intelligence/shared/posture-store.js';
 
 import { DialecticVoiceBase, type BaseDialecticConfig } from './dialectic-voice-base.js';
 import { YANG_SCHEMA, JSON_INSTRUCTION } from './prompt-templates.js';
 
-import type { IYangObserver, YangOutput, YangContext, YangBranch } from '../../../types/dialectic.js';
-import type { ILogger } from '../../../types/interfaces.js';
-import type { IProvider } from '../../../types/runtime.js';
+import type { IYangObserver, YangOutput, YangContext, YangBranch } from '@cassicore/foundation';
+import type { ILogger } from '@cassicore/foundation';
+import type { IProvider } from '@cassicore/foundation';
 
 
 

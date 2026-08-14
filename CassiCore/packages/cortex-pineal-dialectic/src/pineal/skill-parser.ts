@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import type { FacetInput } from './types.js'
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 
 interface SkillFrontmatter {
   name: string

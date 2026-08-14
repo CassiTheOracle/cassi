@@ -14,7 +14,7 @@ import Database from 'better-sqlite3';
 import { ConsolidatedDialecticProcessor } from './consolidated-processor.js';
 import { DialecticEngine } from './engine.js';
 import { formatDialecticAsThoughts } from './thought-formatter.js';
-import { getDataDir } from '../../utils/paths.js'
+import { getDataDir } from '@cassicore/foundation'
 
 import type {
   IDialecticSystem,
@@ -23,14 +23,14 @@ import type {
   YangContext,
   DialecticStreamEvent,
   DialecticSignal,
-} from '../../../types/dialectic.js';
-import type { IMemory } from '../../../types/intelligence.js';
-import type { ILogger , IEventBus } from '../../../types/interfaces.js';
+} from '@cassicore/foundation';
+import type { IMemory } from '@cassicore/foundation';
+import type { ILogger , IEventBus } from '@cassicore/foundation';
 import type { CorticalField } from '../cortex/index.js';
-import type { IProvider } from '../../../types/runtime.js';
-import type { ModuleSessionRegistry } from '../module-session-registry.js';
-import type { GlobalBlackboardRegistry } from '../flux-team/global-blackboard-registry.js';
-import type { BlackboardChannel } from '../../../types/flux-team.js';
+import type { IProvider } from '@cassicore/foundation';
+import type { ModuleSessionRegistry } from '../vendor/core/intelligence/module-session-registry.js';
+import type { GlobalBlackboardRegistry } from '@cassicore/flux-team';
+import type { BlackboardChannel } from '@cassicore/foundation';
 
 
 
@@ -49,7 +49,7 @@ export type {
   ReasonOptions,
   DialecticStructuredResult,
   IDialecticEngine,
-} from '../../../types/dialectic-engine.js';
+} from '@cassicore/foundation';
 
 export interface DialecticSystemConfig {
   enabled: boolean;

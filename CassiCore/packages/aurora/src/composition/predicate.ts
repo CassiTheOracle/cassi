@@ -9,7 +9,7 @@
  * don't pay to recompute it.
  */
 
-import type { Affect, AffectLabel } from '../../mnemic-field/types.js'
+import type { Affect, AffectLabel } from '@cassicore/mnemic-field'
 import { AFFECT_APPROX_BAND } from './types.js'
 import type { AffectExpr, AffectPredicate } from './types.js'
 

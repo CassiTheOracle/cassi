@@ -1,13 +1,13 @@
-import { BaseCognitiveModule } from '../base/cognitive-module.js'
+import { BaseCognitiveModule } from '@cassicore/foundation'
 import { PinealStore } from './store.js'
 import { FacetManager } from './facet.js'
 import { SkillLoader } from './skill-loader.js'
 import { parseAllSkillFiles } from './skill-parser.js'
 import { SEED_FACETS, CHANNEL_SEED_FACETS } from './seed.js'
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type { Facet, FacetInput, FacetUpdate, FacetQuery, Domain, DomainStats, PinealSnapshot, SkillSummary } from './types.js'
-import type { MnemicField } from '../mnemic-field/index.js'
+import type { MnemicField } from '@cassicore/mnemic-field'
 
 /** Build metadata for a Pineal facet engram — shared between seeding and CRUD sync. */
 export function buildPinealMetadata(facet: Facet): Record<string, unknown> {
@@ -227,7 +227,7 @@ export class PinealModule extends BaseCognitiveModule {
 
       this.mnemicField.store({
         content: facet.content,
-        nodeType: 'pineal_facet' as import('../mnemic-field/types.js').EngramType,
+        nodeType: 'pineal_facet' as import('@cassicore/mnemic-field').EngramType,
         x: 0,
         y: 0,
         provenance,

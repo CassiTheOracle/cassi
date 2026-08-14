@@ -12,7 +12,7 @@
  *   - First-person: written as "my" mental state, not "the system's"
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type {
   MentalState,
   CognitiveNode,

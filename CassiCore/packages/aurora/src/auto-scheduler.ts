@@ -24,10 +24,10 @@ import * as path from 'node:path'
 
 import Database from 'better-sqlite3'
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type { GapCategory, GapStatus } from './gap-detector.js'
 import type { MeditationSeed } from './meditation-seeder.js'
-import { getDataDir } from '../../utils/paths.js'
+import { getDataDir } from '@cassicore/foundation'
 
 
 
