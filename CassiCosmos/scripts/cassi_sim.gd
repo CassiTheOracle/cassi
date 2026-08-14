@@ -1295,6 +1295,7 @@ func _decoupled_start_engine() -> bool:
 		"multi_rung_amp": multi_rung_amp, "multi_rung_base_scale": multi_rung_base_scale,
 		"meshless_mode": meshless_mode, "meshless_gravity": meshless_gravity,
 		"mode": mode,
+		"particle_merge": particle_merge,
 	}
 	# Tree worker (decoupled + meshless + tree): created + started HERE on
 	# the MAIN thread (start() loads the tree shaders — not thread-safe
