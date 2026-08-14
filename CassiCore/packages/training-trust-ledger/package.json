@@ -1,0 +1,46 @@
+{
+  "name": "@cassicore/training-trust-ledger",
+  "version": "0.1.0",
+  "description": "Training warehousing + trust ledger extracted from CassiCore. TrainingWarehouse (ingest/read/store/tag over SQLite) plus the TrustLedger BaseCognitiveModule (autonomy-level trust scoring with a vendored TTL cache). History-preserved import splice; depends on @cassicore/foundation, @cassicore/flux-team and vendored runtime/type stubs pending later phases.",
+  "type": "module",
+  "main": "./dist/training/index.js",
+  "types": "./dist/training/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/training/index.d.ts",
+      "import": "./dist/training/index.js"
+    },
+    "./training": {
+      "types": "./dist/training/index.d.ts",
+      "import": "./dist/training/index.js"
+    },
+    "./trust-ledger": {
+      "types": "./dist/trust-ledger/index.d.ts",
+      "import": "./dist/trust-ledger/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
+  },
+  "dependencies": {
+    "@cassicore/foundation": "*",
+    "@cassicore/flux-team": "*",
+    "better-sqlite3": "^11.0.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  }
+}
