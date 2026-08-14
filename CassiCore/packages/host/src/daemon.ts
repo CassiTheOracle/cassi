@@ -26,6 +26,8 @@ import { createSessionDigestStore, type SessionDigestStore } from './vendor/core
 import { IntelligentContextWindow } from './vendor/core/intelligence/context-window/index.js'
 import { createSynapse } from './vendor/core/intelligence/synapse/index.js'
 import { MODEL_DEFAULTS, getModelSpec } from '@cassicore/foundation'
+import { setRootResolver } from '@cassicore/foundation'
+import { setDataDirRoot } from '@cassicore/constellation'
 import { HealthMonitor } from './vendor/core/health-monitor.js'
 import { createIntelligence } from "./vendor/core/intelligence/index.js"
 import { GlobalBlackboardRegistry } from '@cassicore/flux-team'
@@ -606,6 +608,23 @@ export class Daemon {
 
     this.config = layered
 
+    // ── P7 wiring matrix (§7): pins the paths ports to the real config home.
+    // Replaces the old --no-persist env mutation with the foundation/constellation
+    // root-resolver calls. field-encoder/mnemic store.onWrite stay UNOCCUPIED
+    // (P4 overhaul handshake) — do not wire those here.
+    try {
+      const home = (this.config.get?.('cassicore.home') as string | undefined) ?? process.env.CASSICORE_HOME ?? undefined
+      const homePath = home ?? path.join(homedir(), '.cassicore')
+      setRootResolver({
+        getCassiCoreHome: () => homePath,
+      })
+      setDataDirRoot(home ?? null)
+      this.logger.info('P7 paths ports wired (setRootResolver / setDataDirRoot)', { home: homePath })
+    } catch (err) {
+      // Non-fatal — ports fall back to env/platform defaults when unpinned.
+      this.logger.warn(`P7 paths port wiring failed (non-fatal): ${String(err)}`)
+    }
+
     // 3. Start config watcher (file-level) — enables hot-reload without restart
     try {
       baseCfg.watch()
@@ -920,12 +939,25 @@ export class Daemon {
       modules: this.intelligence?.all.length ?? 0,
     })
 
-    // Helper to resolve worker path (handles both .js and .ts)
+    // Helper to resolve worker path. Accepts package specifiers
+    // ('@cassicore/workers/channels/webchat' -> dist via import.meta.resolve)
+    // and relative paths ('.js'/'.ts' fallback).
     const __dirname = path.dirname(fileURLToPath(import.meta.url))
     const resolveWorker = (relPath: string): string | null => {
-      const jsPath = path.resolve(__dirname, `${relPath  }.js`)
+      if (relPath.startsWith('@cassicore/')) {
+        try {
+          const url = import.meta.resolve(`${relPath}.js`)
+          return fileURLToPath(url)
+        } catch {
+          try {
+            const url = import.meta.resolve(relPath)
+            return fileURLToPath(url)
+          } catch { return null }
+        }
+      }
+      const jsPath = path.resolve(__dirname, `${relPath}.js`)
       if (fs.existsSync(jsPath)) return jsPath
-      const tsPath = path.resolve(__dirname, `${relPath  }.ts`)
+      const tsPath = path.resolve(__dirname, `${relPath}.ts`)
       if (fs.existsSync(tsPath)) return tsPath
       return null
     }
@@ -934,7 +966,7 @@ export class Daemon {
     this.logger.info('── Phase 3: Channels ──────────────────────────────────')
 
     const echoEnabled = this.config.get<boolean>("channels.echo.enabled", false)
-    const echoPath = echoEnabled ? resolveWorker("../workers/echo-channel") : null
+    const echoPath = echoEnabled ? resolveWorker('@cassicore/workers/echo-channel') : null
 
     if (!echoEnabled) {
       // Silent skip — echo is a debug/test channel, not noteworthy
@@ -955,7 +987,7 @@ export class Daemon {
     }
 
     // 7. Load webchat channel worker (Phase 3)
-    const webchatPath = resolveWorker("../workers/channels/webchat")
+    const webchatPath = resolveWorker('@cassicore/workers/channels/webchat')
     if (!webchatPath) {
       this.logger.warn("webchat worker not found; skipping")
     } else {
@@ -982,7 +1014,7 @@ export class Daemon {
 
     // 7b. Load CLI channel worker (default-enabled; opt out via channels.cli.enabled=false)
     const cliEnabled = this.config.get<boolean>("channels.cli.enabled", true)
-    const cliPath = cliEnabled ? resolveWorker("../workers/channels/cli") : null
+    const cliPath = cliEnabled ? resolveWorker('@cassicore/workers/channels/cli') : null
     if (!cliEnabled) {
       this.logger.info("CLI channel disabled by config; skipping")
     } else if (!cliPath) {
@@ -1015,7 +1047,7 @@ export class Daemon {
       this.logger.info(`[primary-router] Conductor session enabled: ${this.primaryRouter.primarySessionId}`)
     }
     if (tgEnabled && tgToken) {
-      const tgPath = resolveWorker("../workers/channels/telegram")
+      const tgPath = resolveWorker('@cassicore/workers/channels/telegram')
       if (!tgPath) {
         this.logger.warn("telegram worker not found; skipping")
       } else {
@@ -1042,7 +1074,7 @@ export class Daemon {
     // 7d. Load OpenCode channel worker (optional — requires channels.opencode.enabled in config)
     const ocEnabled = this.config.get<boolean>("channels.opencode.enabled", false)
     if (ocEnabled) {
-      const ocPath = resolveWorker("../workers/channels/opencode")
+      const ocPath = resolveWorker('@cassicore/workers/channels/opencode')
       if (!ocPath) {
         this.logger.warn("opencode channel worker not found; skipping")
       } else {
