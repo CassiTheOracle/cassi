@@ -13,7 +13,7 @@
  */
 
 import { execSync } from 'node:child_process'
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type { DeadCodeResult, DeadCodeOptions } from './types.js'
 import { isIndexAvailable, ensureFreshIndexBackground, unwrapRouterResponse } from './gitnexus-bridge.js'
 

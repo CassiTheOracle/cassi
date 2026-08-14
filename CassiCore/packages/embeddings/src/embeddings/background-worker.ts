@@ -22,11 +22,11 @@ import Database from 'better-sqlite3'
 
 import { getEmbeddingService } from './embedding-service.js'
 import { getVectorIndex } from './sqlite-index.js'
-import { isGamingMode } from '../gaming-mode.js'
+import { isGamingMode } from '../vendor/core/intelligence/gaming-mode.js'
 
 import type { EmbeddingService } from './embedding-service.js'
 import type { SqliteVectorIndex } from './sqlite-index.js'
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 
 
 

@@ -12,7 +12,7 @@
  */
 
 import { execSync } from 'node:child_process'
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type { CochangeResult, CochangeOptions } from './types.js'
 
 /** In-memory cache keyed by HEAD commit hash. */

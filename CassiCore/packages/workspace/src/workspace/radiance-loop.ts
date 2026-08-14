@@ -15,9 +15,9 @@
  * Configuration: enabled via RadianceLoopConfig, defaults to off (opt-in).
  */
 
-import type { ILogger, IEventBus } from '../../../types/interfaces.js'
+import type { ILogger, IEventBus } from '@cassicore/foundation'
 import type { GlobalWorkspace } from './global-workspace.js'
-import type { CorticalField } from '../cortex/index.js'
+import type { CorticalField } from '../vendor/core/intelligence/cortex/index.js'
 import type { CognitiveSignal } from './cognitive-signal.js'
 import type {
   ResponsePattern,
@@ -28,7 +28,7 @@ import type {
 import { DEFAULT_RADIANCE_LOOP_CONFIG } from './radiance-types.js'
 import { ExpectationModel } from './expectation-model.js'
 import { buildObserverPrompt, getObserverToolSchemas, buildObserverHandlers } from './workspace-observer.js'
-import type { ToolCallResult } from '../constellation/meditation/solo-runner.js'
+import type { ToolCallResult } from '../vendor/core/intelligence/constellation/meditation/solo-runner.js'
 
 
 /**
@@ -112,13 +112,13 @@ export class RadianceLoop {
    * and release the handle when done.
    */
   setHandleFactory(
-    factory: (config: { tier: string; purpose: string; sessionId: string }) => Promise<import('../../../core/model-pool/types.js').ModelHandle>,
-    toolExecutor: import('../../../core/tools/executor.js').ToolExecutor,
-    toolRegistry: import('../../../core/tools/registry.js').ToolRegistry,
+    factory: (config: { tier: string; purpose: string; sessionId: string }) => Promise<import('../vendor/core/intelligence/constellation/meditation/solo-runner.js').ModelHandle>,
+    toolExecutor: import('../vendor/core/intelligence/constellation/meditation/solo-runner.js').ToolExecutor,
+    toolRegistry: import('../vendor/core/intelligence/constellation/meditation/solo-runner.js').ToolRegistry,
     eventBus: IEventBus,
   ): void {
     this.observerRunner = async (prompt, toolSchemas, handlers, maxIterations) => {
-      const { runSoloExplorer } = await import('../constellation/meditation/solo-runner.js')
+      const { runSoloExplorer } = await import('../vendor/core/intelligence/constellation/meditation/solo-runner.js')
 
       const handle = await factory({
         tier: this.config.observerModelTier,

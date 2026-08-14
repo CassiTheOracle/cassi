@@ -12,7 +12,7 @@ import path from 'path'
 
 import Database from 'better-sqlite3'
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 
 export interface VectorHit {
   id: string

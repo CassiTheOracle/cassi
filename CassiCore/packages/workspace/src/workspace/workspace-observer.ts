@@ -18,8 +18,8 @@
  * creating the strange loop where cause and effect become indistinguishable.
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
-import type { ToolCallResult } from '../constellation/meditation/solo-runner.js'
+import type { ILogger } from '@cassicore/foundation'
+import type { ToolCallResult } from '../vendor/core/intelligence/constellation/meditation/solo-runner.js'
 import type {
   ResponsePattern,
   SurpriseAssessment,

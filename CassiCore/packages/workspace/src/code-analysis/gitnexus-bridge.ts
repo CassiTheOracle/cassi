@@ -12,7 +12,7 @@ import { execSync, exec } from 'node:child_process'
 import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 
 const execAsync = promisify(exec)
 

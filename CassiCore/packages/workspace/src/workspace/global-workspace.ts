@@ -21,7 +21,7 @@
  * making room for fresh information.
  */
 
-import type { ILogger, IEventBus } from '../../../types/interfaces.js'
+import type { ILogger, IEventBus } from '@cassicore/foundation'
 import type {
   CognitiveSignal,
   WorkspaceSlot,

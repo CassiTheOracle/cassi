@@ -19,7 +19,7 @@
 
 import { exec } from 'node:child_process'
 import { promisify } from 'node:util'
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type { PreparedContext, PreparedFile, PrepareContextOptions } from './types.js'
 import { isIndexAvailable, ensureFreshIndexBackground, safeParseJson } from './gitnexus-bridge.js'
 

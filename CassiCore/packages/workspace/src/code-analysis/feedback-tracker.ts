@@ -12,7 +12,7 @@ import Database from 'better-sqlite3'
 import { randomUUID } from 'node:crypto'
 import { join } from 'node:path'
 import { existsSync, mkdirSync } from 'node:fs'
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type { ContextFeedbackRecord } from './types.js'
 
 /** Database file location under CassiCore data dir. */

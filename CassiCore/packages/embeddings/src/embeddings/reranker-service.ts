@@ -10,7 +10,7 @@
  * Singleton: import { getRerankerService } from './reranker-service.js'
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 
 const RERANKER_SERVER_URL = process.env.RERANKER_SERVER_URL || 'http://127.0.0.1:18821'
 // zerank-2 with GGUF on GPU: typically <50ms/doc; 30s covers worst-case batches.

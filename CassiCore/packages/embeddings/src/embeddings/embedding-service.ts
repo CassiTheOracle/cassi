@@ -9,7 +9,7 @@ import { createHash } from 'crypto'
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs'
 import { join, dirname } from 'path'
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 
 const EMBEDDING_SERVER_URL = process.env.EMBEDDING_SERVER_URL || 'http://127.0.0.1:8000'
 const EMBEDDING_MODEL_TAG = process.env.EMBEDDING_MODEL_TAG || 'Qwen/Qwen3-Embedding-0.6B'
