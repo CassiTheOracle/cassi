@@ -30,7 +30,8 @@
   },
   "dependencies": {
     "@cassicore/foundation": "*",
-    "@cassicore/utils": "*"
+    "@cassicore/utils": "*",
+    "@cassicore/providers": "*"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
