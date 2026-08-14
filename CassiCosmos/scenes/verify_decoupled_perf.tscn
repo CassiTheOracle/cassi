@@ -1,0 +1,8 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/verify_decoupled_perf.gd" id="1_perf"]
+
+[node name="VerifyDecoupledPerf" type="Node"]
+
+[node name="Perf" type="Node" parent="."]
+script = ExtResource("1_perf")
