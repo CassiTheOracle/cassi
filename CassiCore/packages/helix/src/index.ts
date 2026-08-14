@@ -528,3 +528,6 @@ export type { BrainstemToolContext } from './brainstem-tools.js'
 export type { WorkUnit } from './work-types.js'
 export type { HelixSynapse } from './helix-synapse.js'
 export type { HelixBrainstem } from './brainstem.js'
+
+export { ObserverActivityScheduler } from './observer-activity-scheduler.js'
+export type { ObserverFireReason, ObserverActivityConfig, FireFn } from './observer-activity-scheduler.js'

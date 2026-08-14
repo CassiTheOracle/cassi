@@ -247,3 +247,9 @@ export type { ToolSchema, RouteTool, ConsolidatedToolResult } from './ports/mcp-
 export type { ConstellationSessionRow, ProgressSnapshot } from './constellation-store.js'
 export { ConstellationStore } from './constellation-store.js'
 export { analyzeConstellation } from './constellation-analyzer.js'
+
+export { createMeditationController } from './meditation/index.js'
+export type { MeditationController } from './meditation/index.js'
+export { BroadcastDedupe } from './observer-broadcast-dedupe.js'
+
+export { runSoloExplorer } from './meditation/solo-runner.js'

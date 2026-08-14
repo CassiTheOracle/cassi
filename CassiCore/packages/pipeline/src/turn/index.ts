@@ -30,6 +30,7 @@ export {
   isOverflowError,
   reclassifyAsOverflow,
   stripToolFiller,
+  contentLength,
   hasQuestionResult,
   buildToolUseMapFromMessages,
 } from './overflow.js';

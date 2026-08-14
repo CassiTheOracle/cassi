@@ -474,3 +474,6 @@ export class ModelPool {
     this.activeHandles.clear()
   }
 }
+
+// Re-exported types (host + admin-api consume these)
+export type { ModelHandle, ModelCompletionOpts, ModelCapabilities, PoolStats, ModelPoolConfig } from './types.js'

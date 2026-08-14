@@ -26,3 +26,7 @@ export type {
   LaminaScope,
 } from './types.js'
 export type { LaminaCaller } from './lamina-store.js'
+
+export { PinealLaminaBridge } from './pineal-bridge.js'
+
+export { ClaudeMemoryImporter } from './claude-memory-importer.js'

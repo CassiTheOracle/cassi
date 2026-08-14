@@ -49,3 +49,4 @@ export type { GlobalBlackboardEntry } from './global-blackboard-registry.js'
 // - GENOME_TEMPLATES, createGenome, GenomeRegistry
 // - TaskAnalyzer, SkillRouter, FluxRoutingResult
 // - OutcomeLedger, OutcomeLedgerStats
+export { PlanHandler } from './plan-handler.js'

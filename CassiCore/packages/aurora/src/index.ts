@@ -2715,3 +2715,5 @@ export class Aurora {
   /** Stub — narrative update from Thalamus (not yet wired to a backing store). */
   async updateFeatureNarrative(_contextText: string): Promise<void> {}
 }
+
+export { ClaustrumRecorder } from './claustrum-recorder.js'

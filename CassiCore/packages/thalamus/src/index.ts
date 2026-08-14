@@ -4833,3 +4833,5 @@ export type {
   FileConflict,
   CrossSessionQueryOpts,
 } from './cross-session-index.js'
+
+export { ThalamusStore } from './thalamus-store.js'

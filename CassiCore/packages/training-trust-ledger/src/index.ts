@@ -9,3 +9,13 @@
 
 export * from './training/index.js'
 export * from './trust-ledger/index.js'
+export type {
+  TrustScore,
+  TrustEvidence,
+  TrustLedgerConfig,
+  TrustDomain,
+  CanonicalDomain,
+  TrustSummary,
+  AutonomyLevel,
+} from './trust-ledger/types.js'
+export { DEFAULT_TRUST_LEDGER_CONFIG, trustToAutonomyLevel, betaMean, betaVariance, betaConfidence } from './trust-ledger/types.js'

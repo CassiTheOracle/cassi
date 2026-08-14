@@ -30,6 +30,7 @@ export * from './types/session-ref.js'
 export * from './types/trace.js'
 export * from './types/worker-messages.js'
 export * from './types/events.js'
+export * from './types/execution-backend.js'
 
 // types/interfaces.ts — re-export its unique members; PluginStatus/PluginManifest
 // are provided by plugin.js (identical shapes).

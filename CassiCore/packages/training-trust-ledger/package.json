@@ -3,12 +3,12 @@
   "version": "0.1.0",
   "description": "Training warehousing + trust ledger extracted from CassiCore. TrainingWarehouse (ingest/read/store/tag over SQLite) plus the TrustLedger BaseCognitiveModule (autonomy-level trust scoring with a vendored TTL cache). History-preserved import splice; depends on @cassicore/foundation, @cassicore/flux-team and vendored runtime/type stubs pending later phases.",
   "type": "module",
-  "main": "./dist/training/index.js",
-  "types": "./dist/training/index.d.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/training/index.d.ts",
-      "import": "./dist/training/index.js"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     },
     "./training": {
       "types": "./dist/training/index.d.ts",

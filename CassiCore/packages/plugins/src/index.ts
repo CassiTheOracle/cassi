@@ -14,3 +14,5 @@ export type {
   ExternalMessageDigest,
   CurationGap,
 } from './external-clients/index.js'
+
+export { PluginHost } from './plugin-host.js'

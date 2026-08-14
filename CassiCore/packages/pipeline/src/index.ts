@@ -59,6 +59,10 @@ export {
   createSafeToolLoop,
   hasQuestionResult,
   buildToolUseMapFromMessages,
+  contentLength,
+  stripToolFiller,
+  isOverflowError,
+  ContextOverflowError,
 } from './turn/index.js';
 
 export type {

@@ -353,3 +353,5 @@ export async function initCopilotSdkProvider(
     return null
   }
 }
+
+export { RateLimitStore } from './rate-limit-store.js'

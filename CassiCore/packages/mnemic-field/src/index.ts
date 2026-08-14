@@ -4441,3 +4441,5 @@ export function slerpEmbedding(a: Float32Array, b: Float32Array, t: number): Flo
   }
   return result
 }
+
+export { KnowledgeField } from './knowledge/knowledge-field.js'

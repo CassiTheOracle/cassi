@@ -10,3 +10,5 @@
 export * from './dreamer/index.js'
 export * from './reverie/index.js'
 export * from './subconscious/index.js'
+
+export type { ConversationPhase } from './subconscious/types.js'
