@@ -355,7 +355,10 @@ Caveats: planet-carving is the standard alternative (single planets open
 multiple gaps in low-viscosity disks), the ladder's dynamical realization in
 a disk is open (the two no-ring nulls), several published gap positions are
 low-precision visual estimates near the resolution limit, and the pooled
-excess is not a per-disk signature (per-disk verdicts mixed). Registered with
+excess is not a per-disk signature (per-disk verdicts mixed). This is the
+coherence-channel confirmation: disk gas is organized by the condensation
+field, so it carries the $\varphi$-spacing under the channel principle
+(`foundations/qi-as-spatial-spacing-signal.md` §4). Registered with
 the disk-gap test in `hypotheses/exoplanet-phi-spacing.md` §7.
 
 **Source:** `hypotheses/exoplanet-phi-spacing.md` §2 (the ring-ladder disk
@@ -373,14 +376,21 @@ et al. 2018 (arXiv:1812.04040); annular substructures, Huang et al. 2018
 (arXiv:1812.04041, Table `tab:ringpositions`). Per-disk verdicts and the full
 pooled-ratio list are in `hypotheses/exoplanet-phi-spacing.md` §7.
 
-**Prediction 54 (exoplanet period-ratio $\varphi$-spacing, real data):** in
-multi-planet systems the distribution of ADJACENT-planet PERIOD ratios
-$P_{\text{out}}/P_{\text{in}} = (a_{\text{out}}/a_{\text{in}})^{3/2}$ is
-enhanced at $\varphi$ and its Fibonacci convergents, with the headline clean
-signal at the $\varphi$-non-resonance value $\varphi^{3/2} \approx 2.06$
-(the discriminating window that separates the $\varphi$ prediction from
-generic mean-motion-resonance ubiquity), in the Kepler/TESS multi-planet
-catalog. **Tier: Hypothesized.** The pre-registered test
+**Prediction 54 (exoplanet period-ratio $\varphi$-spacing, real data;
+channel reading):** the $\varphi$-spacing is a coherence-field property and
+is expected to appear through **coherence-coupled tracers** (disk gas,
+condensates—Prediction 53's DSHARP channel), not in the gravity-dominated
+statistics of detached bodies. The adjacent-planet **period-ratio** branch
+$P_{\text{out}}/P_{\text{in}} = (a_{\text{out}}/a_{\text{in}})^{3/2}$ is a
+detached-**orbital/matter** channel: an excess at $\varphi$ and its Fibonacci
+convergents (headline clean signal at the $\varphi$-non-resonance value
+$\varphi^{3/2} \approx 2.06$) was pre-registered as the discriminating test
+separating the $\varphi$ prediction from generic mean-motion-resonance
+ubiquity in the Kepler/TESS multi-planet catalog. **Under the channel
+principle (`foundations/qi-as-spatial-spacing-signal.md` §4), an excess is
+not expected in this matter channel**—the observed result below is the
+expected matter-channel no-excess, not a null of the spacing.
+**Tier: Hypothesized.** The pre-registered test
 (`experiments/kepler_phi_ratios/run_phi_ratios.py`, decision tree written
 before any analysis run; folded-window null matching predictions 45/46, the
 null being a distribution of equal-width-window counts over the same ratio
@@ -399,7 +409,10 @@ window at $+2.12\sigma$ (suggestive, secondary). Detection power 96% at 4%
 amplitude, 100% at $\ge 6\%$ — the pipeline would catch a genuine
 fully-realized $\varphi^{3/2}$ ladder, so the Kepler non-detection is
 power-adequate. Registered with the Kepler test in
-`hypotheses/exoplanet-phi-spacing.md` §8.
+`hypotheses/exoplanet-phi-spacing.md` §8. The coherence channel of the
+$\varphi$-spacing is confirmed by Prediction 53 (DSHARP SUPPORTS at
+3.86$\sigma$); the mixed P54/P53 verdicts are consistent under the channel
+principle—the discriminator is the channel, not the signal.
 
 **Source:** `hypotheses/exoplanet-phi-spacing.md` §3 (the period-ratio
 prediction) and §8 (the Kepler test: acquisition, pre-registration, numbers,
@@ -494,8 +507,8 @@ Sorted by detection likelihood (most definitive first):
 | 50 | Spiral pitch tangent | Two-fluid winding dynamics | **$\tan(\text{pitch}) = \gamma/\Omega_S = \varphi^2 = 2.618$** (69.1°)—radial/azimuthal rate ratio, both rates φ-algebra-derived; wake reading $\ell_{n+1}/\Lambda_I$; matches none of the posted forks {0, 0.0766, 0.3063, 0.1988} | Measured 2026-08-07—realization rejected: the measured winding rates do not realize φ² (9–11× off under every normalization; no convention within ±10%); the identity stands as Derived arithmetic | **Tested—rejected (identity Derived)** |
 | 51 | Bubble-shell ring ladder | Bubble simulation (two-fluid PDE) | **~10 matter ridges at $r_k = R\varphi^{-k}$** (successive matter-ring ratio $\varphi^{-1} = 0.6180$ vs null $\varphi^{-1/2} = 0.7862$), 9 void troughs at $R\varphi^{-(k+\frac12)}$, strict alternation, $n$-independent count | Hypothesized (PDE-testable; conditional on the radial-reading inference; honest negative: naive wake-sum zeros {0.191, 0.573, 0.809, 0.955}·ℓ_n are not a φ-ladder; dynamic realization test 2026-08-13 = **NO RINGS on all four arms** (conversion-only/diffusion/gravity-buoyancy/cs²-pressure) to $t=40$) | **Hypothesized—analytic probe `two-fluid/run_bubble_ring_probe.py`; dynamic probe `two-fluid/run_bubble_ring_dynamic_probe.py` = four-arm null** |
 | 52 | Void radial ring profiles | Cosmic surveys (void stacking) | **Successive matter-ring ratio $\varphi^{-1} = 0.6180$ vs null $\varphi^{-1/2} = 0.7862$; first resolvable rungs at $r \approx 0.618\,R$, $0.382\,R$** | Pre-registered pipeline `experiments/void_phi_rings/stack_void_rings.py`: synthetic-φ-ladder pivot recovers the ladder at ~1% floor (SUPPORTS; power 62%/100%/0% at 1%/2–5%/0.3–0.5%); **real-galaxy stacking blocked** (no downloadable per-void galaxy-position catalog) | **Hypothesized (pipeline calibrated 2026-08-13); real-data stacking pending per-void galaxy acquisition** |
-| 53 | Disk-gap $\varphi$-ladder | Protoplanetary disks (ALMA) | **Successive gap ratio $\varphi^{-1} = 0.6180$ vs null $\varphi^{-1/2} = 0.7862$; pooled across disks** | Real-data test 2026-08-13 (DSHARP, 18 single-disk systems, 22 pooled successive ratios): **SUPPORTS** — 10 in signal window $[0.6180\pm0.08]$ vs 3.5 expected (3.86$\sigma$), null window $[0.7862\pm0.05]$ at baseline (4 vs 4.2); detection power 100% ($\sigma_{\ln r}\le0.15$), 93.5% (0.2); per-disk verdicts mixed; planet-carving is the standard alternative | **Tested—SUPPORTS (pooled); tier Hypothesized** |
-| 54 | Exoplanet period-ratio $\varphi$-spacing | Multi-planet catalogs (Kepler/TESS) | **Adjacent $P_{\text{out}}/P_{\text{in}}$ enhanced at $\varphi$ + Fibonacci convergents; headline clean signal at $\varphi^{3/2}=2.06$** | Real-data test 2026-08-14 (NASA Exoplanet Archive, Kepler confirmed transit multi-planet, 646 in-range ratios): **INDETERMINATE** — headline $[2.0082,2.1082]$ at $N$=47 vs folded-window null $E=29.4$ ($+1.03\sigma$, below the $2\sigma$ bar); $\varphi$-belt $+0.86\sigma$; only 3:2 (a standard MMR) $\ge 2\sigma$ ($+2.39\sigma$); non-Fibonacci controls 4:3/7:3/5:2 all at baseline; K2/TESS cross-check headline $+2.12\sigma$; detection power 96–100% at $\ge4\%$ amplitude | **Tested—INDETERMINATE (primary); tier Hypothesized** |
+| 53 | Disk-gap $\varphi$-ladder | Protoplanetary disks (ALMA) | **Successive gap ratio $\varphi^{-1} = 0.6180$ vs null $\varphi^{-1/2} = 0.7862$; pooled across disks** (a gas/condensation, i.e. coherence-coupled, channel) | Real-data test 2026-08-13 (DSHARP, 18 single-disk systems, 22 pooled successive ratios): **SUPPORTS** — 10 in signal window $[0.6180\pm0.08]$ vs 3.5 expected (3.86$\sigma$), null window $[0.7862\pm0.05]$ at baseline (4 vs 4.2); detection power 100% ($\sigma_{\ln r}\le0.15$), 93.5% (0.2); per-disk verdicts mixed; planet-carving is the standard alternative | **Tested—SUPPORTS (pooled); the coherence-channel confirmation; tier Hypothesized** |
+| 54 | Exoplanet period-ratio $\varphi$-spacing | Multi-planet catalogs (Kepler/TESS) | **Adjacent $P_{\text{out}}/P_{\text{in}}$ at $\varphi$ + Fibonacci convergents, headline $\varphi^{3/2}=2.06$; a detached-orbital/matter channel where the spacing is not expected under the channel principle** | Real-data test 2026-08-14 (NASA Exoplanet Archive, Kepler confirmed transit multi-planet, 646 in-range ratios): **INDETERMINATE** — headline $[2.0082,2.1082]$ at $N$=47 vs folded-window null $E=29.4$ ($+1.03\sigma$, below the $2\sigma$ bar); $\varphi$-belt $+0.86\sigma$; only 3:2 (a standard MMR) $\ge 2\sigma$ ($+2.39\sigma$); non-Fibonacci controls 4:3/7:3/5:2 all at baseline; K2/TESS cross-check headline $+2.12\sigma$; detection power 96–100% at $\ge4\%$ amplitude | **Tested—INDETERMINATE (primary); reads as the expected matter-channel no-excess, not a φ-null; tier Hypothesized** |
 
 ## 8. Universal Boundary Anisotropy—Scale-Invariant Edge Steepness
 

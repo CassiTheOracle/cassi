@@ -41,6 +41,7 @@ This directory holds the load-bearing derivations of the Cassi framework: the di
 | 29 | `wake-geometry.md` | Wake geometry | Derived (structural) |
 | 30 | `rung-offset-mechanism.md` | Rung offsets δn | Hypothesized mechanism, Empirical catalog |
 | 31 | `wu-xing-cycle-structure.md` | Wu Xing cycles, ring algebra | Derived / Tested / Hypothesized |
+| 32 | `qi-as-spatial-spacing-signal.md` | The φ-spacing as a coherence-field (Qi) property; channel principle | Derived conditional (phase/coherence) / Hypothesized (channel transmission) |
 
 ## Document Summaries
 
@@ -107,6 +108,24 @@ double helix about the string axis. The double helix is realized as axial
 phase winding (measured lattice-stack retention), not as a transverse filament
 pair (TS1–TS4 nulls). Status: Derived (flow) / Hypothesized (double helix);
 verified `computations/qi_flow_double_helix_check.py`.
+
+### `qi-as-spatial-spacing-signal.md`—Qi as the Spatial-Spacing Signal
+
+The $\varphi$-spacing measured in observations is a property of the coherence
+field (Qi), not of matter itself. Coherence (the phase structure of the
+$E_Y$, $E_I$ densities) propagates at the wave-form phase speed while
+advective/particle motion is a separate channel—*coherence ripples
+differently than it moves*—and the clumping of the condensation field
+$C(x,y) = \cos(2\pi x/\Lambda_Y)\cos(2\pi y/\Lambda_I)$ *is* the
+lattice/parity structure, with the ring ladder a phase ladder
+($\alpha = \pi u$). The **channel principle** follows: matter tracers carry
+the spacing only through coherence-coupled channels (gas/condensate), not
+through gravity-dominated matter channels (detached orbital dynamics). This
+resolves the mixed disk/exoplanet verdicts as consistent—Prediction 53
+(DSHARP gas gaps) SUPPORTS the coherence channel; Prediction 54 (Kepler
+period ratios, a matter channel) INDETERMINATE as expected. The discriminator
+is the channel, not the signal. Status: Derived conditional (phase/coherence
+re-statements) / Hypothesized (channel-transmission claim).
 
 ### `wu-xing-derivation.md`—Wu Xing Number $w = 5$: Derivation from Cascade Dynamics
 

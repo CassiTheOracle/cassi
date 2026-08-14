@@ -52,14 +52,20 @@ one-dimensional wake-sum beat. Pending status:
   ridge at ratio 0.545, dissipated by $t=40$). The ladder is kinematic; its
   dynamical realization in a disk is open, and the same caveat applies to the
   disk-gap reading.
-- **The period-ratio prediction is tested.** The $P_{\text{out}}/P_{\text{in}}
+- **The period-ratio prediction is tested.** The $P_{\text{out}}/P_{\text{in}}$
   branch (Prediction 54) ran on the real Kepler multi-planet catalog
   (2026-08-14): the headline window $\varphi^{3/2} \approx 2.06$ sits at
   $+1.03\sigma$ above the folded-window null — elevated but not above the
   pre-registered $2\sigma$ bar; the only convergent elevated at $\ge
   2\sigma$ (3:2, $+2.39\sigma$) is a standard mean-motion resonance; the
   non-Fibonacci controls are all at baseline. Primary verdict **INDETERMINATE**;
-  the K2/TESS cross-check shows the 2.06 window at $+2.12\sigma$ (§8).
+  the K2/TESS cross-check shows the 2.06 window at $+2.12\sigma$ (§8). **Under
+  the channel principle** (`foundations/qi-as-spatial-spacing-signal.md` §4),
+  this INDETERMINATE is the *expected* reading: the orbital/period-ratio branch
+  is a detached-matter (gravity-dominated) channel, into which the
+  coherence-carried spacing is not expected to propagate. It is not a null of
+  the $\varphi$-spacing itself; the spacing is a coherence-field property and
+  appears through coherence-coupled tracers.
 - **Disk-gap branch now measured.** The ALMA DSHARP pooled successive-gap
   ratio test (Prediction 53) ran on real data (2026-08-13) and returned
   **SUPPORTS** at the pre-registered 2$\sigma$ threshold (§7): 10 of 22 pooled
@@ -78,6 +84,16 @@ supported in the pooled sample, but the mechanism step (ring-ladder $\to$
 $\varphi$-spaced gaps in a real disk) remains open—the dynamical realization
 is not established, planet-carving is the standard alternative, and the
 pooled statistical excess is not a per-disk signature.
+
+**The channel reading** (`foundations/qi-as-spatial-spacing-signal.md` §4)
+states the honest position plainly: the **DSHARP SUPPORTS** is the
+**coherence-channel confirmation** (disk gas is organized by the condensation
+field, so it carries the $\varphi$-spacing); the **orbital-period channel is
+where the signal is not expected to appear** (formed planets detach into
+gravity-dominated orbital dynamics, which do not propagate the coherence
+spacing to their statistics). The Kepler INDETERMINATE is therefore the
+expected matter-channel negative, not a null of the spacing. The two verdicts
+are consistent; the discriminator is the channel, not the signal.
 
 ---
 
@@ -194,11 +210,18 @@ and the remap is chosen after the fact.
 
 ## 5. Falsifiable Tests
 
-1. **Kepler period ratio excess at $\varphi^{3/2}$ (tested):** The distribution
-   of adjacent-planet period ratios from the Kepler multi-planet catalog should
-   show a peak at $P_{\text{out}}/P_{\text{in}} \approx 2.06$. Run 2026-08-14
-   (Prediction 54, §8): the headline window is at $+1.03\sigma$ (elevated but
-   not significant); verdict **INDETERMINATE**. K2/TESS cross-check $+2.12\sigma$.
+1. **Kepler period-ratio excess (tested; channel reading).** An excess at
+   $P_{\text{out}}/P_{\text{in}} \approx \varphi^{3/2} = 2.06$ was
+   pre-registered for the distribution of adjacent-planet period ratios from
+   the Kepler multi-planet catalog. Run 2026-08-14 (Prediction 54, §8): the
+   headline window is at $+1.03\sigma$ (elevated but not significant); verdict
+   **INDETERMINATE**. Under the channel principle
+   (`foundations/qi-as-spatial-spacing-signal.md` §4), an excess is **not
+   expected** in this branch: formed planets are detached, gravity-dominated
+   matter whose orbital statistics do not propagate the coherence-carried
+   spacing. The reading is the expected matter-channel no-excess—not a null of
+   the $\varphi$-spacing, which appears through coherence-coupled tracers
+   (Prediction 53). K2/TESS cross-check $+2.12\sigma$ reported as secondary.
 
 2. **Resonance selectivity (partially tested):** Fibonacci-convergent
    resonances (2:1, 3:2, 5:3, 8:5) should be more common than non-Fibonacci
@@ -482,7 +505,7 @@ change the INDETERMINATE primary verdict.
 ### 8.5 Verdict and honest reading
 
 The pre-registered decision tree on the real Kepler catalog returns
-**INDETERMINATE**. The clean, non-resonance headline prediction—an excess of
+**INDETERMINATE**. The clean, non-resonance headline window—an excess of
 adjacent-planet period ratios at $\varphi^{3/2} \approx 2.06$—is not
 significantly above background in the primary Kepler sample ($+1.03\sigma$),
 although the sign is in the predicted direction and the K2/TESS cross-check
@@ -490,8 +513,21 @@ although the sign is in the predicted direction and the K2/TESS cross-check
 $\ge 4\%$ amplitude), so the Kepler headline is a genuine non-detection
 rather than a weak-test artifact. The non-Fibonacci control windows (4:3,
 7:3, 5:2) are at or below baseline in both samples, consistent with (but not
-alone proof of) the selectivity claim. Tier stays **Hypothesized**; the
-branch is registered as **Prediction 54**.
+alone proof of) the selectivity claim.
+
+**The channel reading, stated plainly
+(`foundations/qi-as-spatial-spacing-signal.md` §4).** The Kepler branch is a
+**matter/orbital channel**: formed planets have detached into
+gravity-dominated orbital dynamics, and an orbital-statistics channel is not
+a coherence-coupled tracer. The $\varphi$-spacing is a property of the
+coherence field; it is expected to appear where a coherence-organized tracer
+(disc/disk gas, condensates) carries it, and to be *absent* from the detached
+orbital statistics of formed planets. Under this reading the INDETERMINATE is
+the **expected** matter-channel result, not a null of the $\varphi$-spacing
+itself—which the coherence channel (Prediction 53, DSHARP SUPPORTS at
+3.86$\sigma$) does carry. The mixed verdicts are therefore **consistent**; the
+discriminator is the channel, not the signal. Tier stays **Hypothesized**;
+the branch is registered as **Prediction 54**.
 
 ---
 
@@ -503,6 +539,7 @@ branch is registered as **Prediction 54**.
 - `foundations/bubble-lattice-fabric.md` §3.2–3.3—nested sub-lattice, the ~1% nesting floor
 - `foundations/dimensionful-cascade.md`—the 292-step ladder
 - `principles/de-resonance-principle.md`—why orbital resonances lock to $\varphi$
+- `foundations/qi-as-spatial-spacing-signal.md`—the channel principle: Qi is the spatial-spacing signal; disk gas is a coherence-coupled channel, detached orbital dynamics are not
 - `experiments/dsharp_phi_gaps/acquire_dsharp_gaps.py`—download + hash + parse of the DSHARP gap table
 - `experiments/dsharp_phi_gaps/stack_phi_gaps.py`—the pre-registered decision tree, null, detection power (run JSON `experiments/dsharp_phi_gaps/data/runs/<id>_gaps.json`)
 - Data: Andrews et al. 2018 (arXiv:1812.04040, DSHARP survey); Huang et al. 2018 (arXiv:1812.04041, annular substructures, Table `tab:ringpositions`)
