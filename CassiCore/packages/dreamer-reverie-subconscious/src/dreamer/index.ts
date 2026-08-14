@@ -21,6 +21,12 @@ import { DEFAULT_DREAMER_CONFIG } from './types.js'
 
 import type { ILogger } from '@cassicore/foundation'
 
+// Package type surface — the dreamer types file is re-exported here (and via the
+// package barrel `export *`) so consumers like foundation's DreamerConfig re-point
+// resolve from `@cassicore/dreamer-reverie-subconscious`.
+export type { DreamerConfig, DreamInsight, GardenCluster, DreamRecord, DreamRecordMeta, CrystallizeOpts, GardenOpts, DreamSampleOpts } from './types.js'
+export { DEFAULT_DREAMER_CONFIG } from './types.js'
+
 
 export type DreamerState =
   | 'idle'          // waiting for idle threshold

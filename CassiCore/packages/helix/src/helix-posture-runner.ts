@@ -222,7 +222,7 @@ export interface HelixPostureRunnerOpts {
    * LaminaField — when provided, mentor flag events append a "Mentor noted: ..."
    * line to this Helix's `helix-goal` lamina. PR-2 of helix-goal-lamina spec.
    */
-  lamina?: import('./vendor/core/intelligence/lamina/index.js').LaminaField
+  lamina?: import('@cassicore/lamina-locus-bridge').LaminaField
   /** ContextChunkIndex for intelligent context management (pinning, eviction, scoring) */
   contextChunkIndex?: import('./context-chunk-index.js').ContextChunkIndex
   /** Thalamus for context curation during long-running sessions */
@@ -306,7 +306,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   private readonly traitVector?: TraitVector
   private readonly attentionParams: { attentionRadius: number; momentum: number; halfLifeTurns: number; capacity: number }
   private readonly helixSynapse?: HelixSynapse
-  private readonly lamina?: import('./vendor/core/intelligence/lamina/index.js').LaminaField
+  private readonly lamina?: import('@cassicore/lamina-locus-bridge').LaminaField
   private readonly contextChunkIndex?: import('./context-chunk-index.js').ContextChunkIndex
   private readonly onWorkUnit?: (wu: WorkUnit, iteration: number) => void
   private readonly onStreamActivity?: (event: StreamActivityEvent) => void

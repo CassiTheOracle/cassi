@@ -306,7 +306,7 @@ export interface ConstellationPipelineOpts {
    * brainstem's prompt, and rethought on terminal status.
    * See `docs/design/cassi-proposed/pending/2026-05-06-helix-goal-lamina.md`.
    */
-  lamina?: import('./vendor/lamina/index.js').LaminaField
+  lamina?: import('@cassicore/lamina-locus-bridge').LaminaField
 
   /**
    * Global Workspace — when provided, spawned Helix sessions boot in

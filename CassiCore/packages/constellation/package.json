@@ -28,8 +28,10 @@
   "dependencies": {
     "@cassicore/aurora": "*",
     "@cassicore/cortex-pineal-dialectic": "*",
+    "@cassicore/dreamer-reverie-subconscious": "*",
     "@cassicore/foundation": "*",
     "@cassicore/helix": "*",
+    "@cassicore/lamina-locus-bridge": "*",
     "@cassicore/mnemic-field": "*",
     "@cassicore/thalamus": "*",
     "better-sqlite3": "^11.0.0",

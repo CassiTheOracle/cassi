@@ -48,6 +48,8 @@ import type { ModuleSessionRegistry } from "../vendor/core/intelligence/module-s
 import type { CorticalField } from "../vendor/core/intelligence/cortex/index.js";
 
 export type { SubconsciousConfig } from "./types.js";
+export type { Observation, Anomaly } from "./types.js";
+export type { LLMObservation, LLMObserverConfig, SessionState, SystemModelSnapshot } from "./types.js";
 
 export class Subconscious {
   readonly name = "subconscious" as const;

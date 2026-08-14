@@ -46,7 +46,7 @@ import type {
   EditAuthority,
   ISelfEditStore,
 } from './self-edit-types.js'
-import type { Observation, Anomaly } from './vendor/subconscious/types.js'
+import type { Observation, Anomaly } from '@cassicore/dreamer-reverie-subconscious'
 import type { BrainstemAnnotation, DetectedPattern } from './vendor/helix/brainstem-types.js'
 import type { ILogger, IEventBus } from './vendor/types/interfaces.js'
 

@@ -29,6 +29,7 @@
     "@cassicore/aurora": "*",
     "@cassicore/cortex-pineal-dialectic": "*",
     "@cassicore/foundation": "*",
+    "@cassicore/lamina-locus-bridge": "*",
     "@cassicore/mini-helix": "*",
     "@cassicore/mnemic-field": "*",
     "@cassicore/thalamus": "*",

@@ -256,7 +256,7 @@ export interface IThinker {
 
 /**
  * Configuration for the Dreamer cognitive module.
- * Also available from core/intelligence/dreamer/types.ts (DreamerConfig).
- * This re-export here gives callers a single import path via types/intelligence.ts.
+ * P5 Group B: re-pointed to the owning `@cassicore/dreamer-reverie-subconscious`
+ * package (the foundation vendor stub was deleted).
  */
-export type { DreamerConfig } from '../vendor/core/intelligence/dreamer/types.js'
+export type { DreamerConfig } from '@cassicore/dreamer-reverie-subconscious'

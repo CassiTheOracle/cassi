@@ -70,7 +70,7 @@ export interface ConstellationOrchestrator {
   setReasoningBank(bank: import('./vendor/reasoning-bank/index.js').ReasoningBank): void
   setMnemicField(field: import('@cassicore/mnemic-field').MnemicField): void
   setGlobalWorkspace(workspace: import('./vendor/workspace/index.js').GlobalWorkspace): void
-  setLamina(field: import('./vendor/lamina/index.js').LaminaField): void
+  setLamina(field: import('@cassicore/lamina-locus-bridge').LaminaField): void
   setWorkflowEngine(engine: import('./vendor/workflow/engine.js').WorkflowEngine): void
   /** True when any non-meditation constellation is running or launching. */
   hasActiveWork(): boolean
@@ -123,7 +123,7 @@ export function createConstellationOrchestrator(
   let reasoningBank: import('./vendor/reasoning-bank/index.js').ReasoningBank | undefined
   let mnemicField: import('@cassicore/mnemic-field').MnemicField | undefined
   let globalWorkspace: import('./vendor/workspace/index.js').GlobalWorkspace | undefined
-  let lamina: import('./vendor/lamina/index.js').LaminaField | undefined
+  let lamina: import('@cassicore/lamina-locus-bridge').LaminaField | undefined
   let workflowEngine: import('./vendor/workflow/engine.js').WorkflowEngine | undefined
 
   const running = new Map<string, RunningConstellation>()

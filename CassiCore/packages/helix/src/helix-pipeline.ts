@@ -136,7 +136,7 @@ export interface HelixPipelineOpts {
    * Threaded through from the Constellation; standalone Helix invocations
    * can omit it.
    */
-  lamina?: import('./vendor/core/intelligence/lamina/index.js').LaminaField
+  lamina?: import('@cassicore/lamina-locus-bridge').LaminaField
 
   /** Configurable thresholds for UnityStatus proactive signals to reviewers */
   unityStatusThresholds?: import('./work-stream.js').UnityStatusThresholds

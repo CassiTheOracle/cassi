@@ -23,7 +23,7 @@ const AUG_LINE_RE = /^(Coordinating with Helix |Mentor noted: )/
  * `content`/`contentHash`, and CAS-based `replace`).
  */
 export interface LaminaField {
-  read(label: string, scope: { kind: 'session'; sessionId: string }): { content: string; contentHash: string } | undefined
+  read(label: string, scope: { kind: 'session'; sessionId: string }): { content: string; contentHash: string } | null
   replace(
     label: string,
     edit: { expectedHash: string; content: string; reason: string },

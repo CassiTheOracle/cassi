@@ -1,4 +1,4 @@
-import type { LaminaField } from './vendor/lamina/index.js'
+import type { LaminaField } from '@cassicore/lamina-locus-bridge'
 import type { GlobalWorkspace } from './vendor/workspace/global-workspace.js'
 import type { CognitiveSignal } from './vendor/workspace/cognitive-signal.js'
 import type { GoalSubTask } from './corpus-types.js'
