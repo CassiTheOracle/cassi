@@ -9,7 +9,7 @@
  *  - Topic context: Infers target module from which topic the reply was sent in.
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type { TelegramMessage } from './telegram-client.js'
 import type { MessageTracker, TrackedMessage } from './message-tracker.js'
 import type { TopicManager } from './topic-manager.js'

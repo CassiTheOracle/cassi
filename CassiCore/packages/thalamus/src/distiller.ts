@@ -20,12 +20,12 @@
  * needs them. The caller passes those indices in `protectedIndices`.
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import { createHash } from 'node:crypto'
 import type { CurationConfig, RerankerCacheEntry, RerankerChunk, RerankerCompressionCache } from './types.js'
 import { classifyTool } from './classifier.js'
-import { buildToolUseMapFromMessages } from '../../pipeline/turn/overflow.js'
-import { getRerankerService } from '../embeddings/reranker-service.js'
+import { buildToolUseMapFromMessages } from './vendor/core/pipeline/turn/overflow.js'
+import { getRerankerService } from './vendor/core/intelligence/embeddings/reranker-service.js'
 
 export interface ContentChunk {
   text: string

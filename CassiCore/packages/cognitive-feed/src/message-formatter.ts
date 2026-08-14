@@ -8,7 +8,7 @@
  * Uses Telegram HTML formatting: <b>, <i>, <code>, <pre>
  */
 
-import type { RuntimeEvent } from '../../../types/events.js'
+import type { RuntimeEvent } from '@cassicore/foundation'
 import type { CuratedEvent } from './event-curator.js'
 import type { ConstellationState, ActivityEntry, HelixState, CorpusEntry } from './window-manager.js'
 

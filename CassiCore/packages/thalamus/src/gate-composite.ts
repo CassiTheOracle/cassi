@@ -1,4 +1,4 @@
-import type { SystemLuminanceScore } from '../workspace/cognitive-signal.js';
+import type { SystemLuminanceScore } from './vendor/core/intelligence/workspace/cognitive-signal.js';
 import type { BrainContext, ScoredMessage } from './types.js';
 
 /**

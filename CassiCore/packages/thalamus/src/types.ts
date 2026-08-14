@@ -1,6 +1,6 @@
-import type { CorticalSignal, SignalType, Affect } from '../cortex/types.js'
-import type { CognitiveSignal, SystemLuminanceScore } from '../workspace/cognitive-signal.js'
-import type { BridgeFocus } from '../locus-bridge/types.js'
+import type { CorticalSignal, SignalType, Affect } from './vendor/core/intelligence/cortex/types.js'
+import type { CognitiveSignal, SystemLuminanceScore } from './vendor/core/intelligence/workspace/cognitive-signal.js'
+import type { BridgeFocus } from './vendor/core/intelligence/locus-bridge/types.js'
 
 
 

@@ -10,7 +10,7 @@
  * short window, and applies exponential backoff on 429 responses.
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import { TelegramRateLimitError } from './telegram-client.js'
 
 // Types

@@ -1,7 +1,7 @@
 import type { MessageSlot, ThalamusAnnotation, SlotContext } from '../types.js'
-import type { SystemLuminanceScore } from '../../workspace/cognitive-signal.js'
+import type { SystemLuminanceScore } from '../vendor/core/intelligence/workspace/cognitive-signal.js'
 import { extractMessageContent } from '../scorer.js'
-import { hasQuestionResult } from '../../../pipeline/turn/overflow.js'
+import { hasQuestionResult } from '../vendor/core/pipeline/turn/overflow.js'
 
 /**
  * UserSlot — processes `role: 'user'` messages that carry user intent.

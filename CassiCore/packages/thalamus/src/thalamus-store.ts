@@ -13,8 +13,8 @@ import path from 'node:path'
 
 import Database from 'better-sqlite3'
 
-import type { ILogger } from '../../../types/interfaces.js'
-import { getDataDir } from '../../utils/paths.js'
+import type { ILogger } from '@cassicore/foundation'
+import { getDataDir } from '@cassicore/foundation'
 import type { DropRecord } from './types.js'
 
 

@@ -9,7 +9,7 @@
  *  - Apply per-module enable/disable toggles
  */
 
-import type { RuntimeEvent } from '../../../types/events.js'
+import type { RuntimeEvent } from '@cassicore/foundation'
 
 const TEAM_EVENT_TYPE = 'team:event'
 

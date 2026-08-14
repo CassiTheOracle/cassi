@@ -15,8 +15,8 @@
  * Constellation stops.
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
-import type { EmbeddingService } from '../embeddings/embedding-service.js'
+import type { ILogger } from '@cassicore/foundation'
+import type { EmbeddingService } from './vendor/core/intelligence/embeddings/embedding-service.js'
 import type { TopicSummary } from './types.js'
 
 

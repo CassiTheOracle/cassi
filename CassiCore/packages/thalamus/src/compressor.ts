@@ -18,10 +18,10 @@
  * clipping that frequently interleaved unrelated fragments.
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type { CompressionConfig } from './types.js'
 import { classifyTool } from './classifier.js'
-import { buildToolUseMapFromMessages } from '../../pipeline/turn/overflow.js'
+import { buildToolUseMapFromMessages } from './vendor/core/pipeline/turn/overflow.js'
 import {
   type ContentChunk,
   hashContent,
@@ -31,7 +31,7 @@ import {
   addContextLines,
   selectChunks,
 } from './distiller.js'
-import { getRerankerService } from '../embeddings/reranker-service.js'
+import { getRerankerService } from './vendor/core/intelligence/embeddings/reranker-service.js'
 
 interface CompressionResult {
   messages: any[]

@@ -13,7 +13,7 @@
  */
 
 import type { TelegramClient, TelegramMessage } from './telegram-client.js'
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 
 // Types
 

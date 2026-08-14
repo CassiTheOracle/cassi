@@ -18,7 +18,7 @@ import { join } from 'node:path'
 import { readFile, writeFile, mkdir } from 'node:fs/promises'
 
 import type { TelegramClient, ForumTopic } from './telegram-client.js'
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 
 // Topic Color Constants
 

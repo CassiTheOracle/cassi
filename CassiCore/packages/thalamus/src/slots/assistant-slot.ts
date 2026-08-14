@@ -1,5 +1,5 @@
 import type { MessageSlot, ThalamusAnnotation, SlotContext } from '../types.js'
-import type { SystemLuminanceScore } from '../../workspace/cognitive-signal.js'
+import type { SystemLuminanceScore } from '../vendor/core/intelligence/workspace/cognitive-signal.js'
 import { extractMessageContent } from '../scorer.js'
 
 const CODE_BLOCK_RE = /```[\s\S]*?```/g

@@ -1,4 +1,4 @@
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type { MessageFormatter } from './message-formatter.js'
 import { fmtDuration as fmtDur, fmtTokens as fmtTok } from './message-formatter.js'
 import type { RateLimiter } from './rate-limiter.js'

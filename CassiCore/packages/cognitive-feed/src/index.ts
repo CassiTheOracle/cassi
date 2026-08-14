@@ -17,7 +17,7 @@
  * @module cognitive-feed
  */
 
-import { BaseCognitiveModule } from '../base/cognitive-module.js'
+import { BaseCognitiveModule } from '@cassicore/foundation'
 import { TelegramClient, TelegramRateLimitError } from './telegram-client.js'
 import { TopicManager, TOPIC_DEFINITIONS } from './topic-manager.js'
 import { EventCurator } from './event-curator.js'
@@ -33,11 +33,11 @@ import { WindowManager } from './window-manager.js'
 import type { DeliveryConfig } from './delivery-types.js'
 import { DEFAULT_DELIVERY_CONFIG } from './delivery-types.js'
 import type { CuratedEvent } from './event-curator.js'
-import { InteractiveToolSession, splitForTelegram } from '../../tools/interactive-tool-session.js'
-import type { ToolDefinition } from '../../tools/interactive-tool-session.js'
-import type { ILogger } from '../../../types/interfaces.js'
-import type { RuntimeEvent } from '../../../types/events.js'
-import type { ModuleSessionRegistry } from '../module-session-registry.js'
+import { InteractiveToolSession, splitForTelegram } from './vendor/core/tools/interactive-tool-session.js'
+import type { ToolDefinition } from './vendor/core/tools/interactive-tool-session.js'
+import type { ILogger } from '@cassicore/foundation'
+import type { RuntimeEvent } from '@cassicore/foundation'
+import type { ModuleSessionRegistry } from './vendor/core/intelligence/module-session-registry.js'
 
 // Config Types
 

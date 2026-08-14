@@ -13,8 +13,8 @@
  */
 
 import type { TelegramClient, TelegramMessage } from './telegram-client.js'
-import type { ILogger } from '../../../types/interfaces.js'
-import type { ModuleSessionRegistry, ModuleRegistration } from '../module-session-registry.js'
+import type { ILogger } from '@cassicore/foundation'
+import type { ModuleSessionRegistry, ModuleRegistration } from './vendor/core/intelligence/module-session-registry.js'
 import type { TopicManager } from './topic-manager.js'
 
 interface StreamState {

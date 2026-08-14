@@ -10,7 +10,7 @@
 
 import type { ScoredMessage, ThalamusAnnotation, RerankerCompressionCache } from './types.js'
 import { isWriteTool, isReadTool, shortenPath } from './classifier.js'
-import { hasQuestionResult, buildToolUseMapFromMessages } from '../../pipeline/turn/overflow.js'
+import { hasQuestionResult, buildToolUseMapFromMessages } from './vendor/core/pipeline/turn/overflow.js'
 
 export interface TopicCluster {
   /** Short label derived from content keywords */
