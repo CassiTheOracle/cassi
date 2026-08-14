@@ -74,8 +74,11 @@ func setup(options: Array[String], selected: int, on_changed: Callable = Callabl
 		if selection_changed.is_connected(on_changed):
 			selection_changed.disconnect(on_changed)
 		selection_changed.connect(on_changed)
-	_selected_index = -1
-	selected_index = selected
+	# Apply the initial selection WITHOUT emitting: setup() runs during
+	# construction, before any consumer is wired — a callback connected
+	# via on_changed (or later `selection_changed.connect`) would otherwise
+	# fire for the builder's own initial state, not a user pick.
+	set_selected_no_signal(selected)
 
 
 ## Press the button at `i` without emitting selection_changed (used when

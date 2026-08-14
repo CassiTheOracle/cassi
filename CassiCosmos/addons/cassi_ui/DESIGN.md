@@ -110,6 +110,10 @@ migration must never hand-set these per control again.
   sim's WASD camera must keep keyboard focus. A control that takes focus
   steals the camera keys and silently breaks navigation. `SpinBox`, `HSlider`,
   `Button`, `OptionButton`, `CheckButton` all get it.
+  - **EXCEPTION: `CSpinParam.spin` and `COptionParam.option` stay
+    FOCUSABLE.** These are keyboard-entry controls — the sim wants the user
+    to type values and arrow through the dropdown — so the migration must
+    NOT set FOCUS_NONE on them. They still get the pointing-hand cursor.
 - **`mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND` on every
   clickable control** — affordance that the element reacts.
 - **`mouse_filter`:** interactive controls use `Control.MOUSE_FILTER_STOP`
@@ -201,8 +205,8 @@ Toggle-mode button with the defaults plus a gold pressed-state style
 Exclusive segmented control — an HBox of mutually-exclusive `CToggle`s
 (ButtonGroup mutex). Replaces `_build_mode_buttons` / `_build_gravity_buttons`.
 
-- `func setup(options: Array[String], selected: int, on_changed: Callable = Callable()) -> void` — builds/re-builds the button row (idempotent), sets the initial index, wires the change callback to `selection_changed`. The callback may be a method `Callable(self, "method")` or a lambda.
-- `var selected_index: int` — getter returns the live index; **setter presses the matching button** respecting the group mutex and emits `selection_changed`.
+- `func setup(options: Array[String], selected: int, on_changed: Callable = Callable()) -> void` — builds/re-builds the button row (idempotent), applies `selected` WITHOUT emitting, and wires the change callback to `selection_changed`. The initial selection never fires `selection_changed` (it is builder config, not a user pick) — use `selected_index = ...` after setup to force a change. The callback may be a method `Callable(self, "method")` or a lambda.
+- `var selected_index: int` — getter returns the live index; **setter presses the matching button** respecting the group mutex and emits `selection_changed` (unless the value is unchanged).
 - `signal selection_changed(index: int)` — emitted on user pick or on `selected_index` assignment.
 - `var buttons: Array[CToggle]` — exposed for per-button styling/tooltips after setup.
 - `var button_min_width: int = 100` — configurable segment min width (matches the sim's Mode buttons).
@@ -220,13 +224,38 @@ while the value label beside the slider updates live.
 - `func set_value_no_signal(v: float) -> void` — update slider + label without firing the callback; `func get_value() -> float` — current value.
 - The slider is FOCUS_NONE + POINTING_HAND; changes fire `changed_cb` with the new value.
 
-### 6.7 `CGroupPanel extends CPanel` — `components/cgroup_panel.gd`
+### 6.7 `CSpinParam extends Control` — `components/cspinparam.gd`
+
+Numeric spin-box parameter row: caption `CLabel` ABOVE a `SpinBox` (VBox
+separation 4, same theme lookups). Mirror of CParam for integer/stepped
+numeric inputs, but with NO separate value label — the SpinBox shows its own
+value. Restructured from the sim's Grid-N / Particles / Clusters /
+Separation boxes.
+
+- `func setup(caption: String, caption_token: String, min_v: float, max_v: float, step_v: float, value: float, changed_cb: Callable) -> void` — configure the row (idempotent).
+- Exposed members: `caption_label: CLabel`, `spin: SpinBox`.
+- `var box_min_width: int = 120` — min width applied to the row's VBox (the sim's boxes are 120/150 wide; the migration sets it per-row).
+- `func set_value_no_signal(v: float) -> void` — `spin.set_value_no_signal` (no callback); `func get_value() -> float` — current value.
+- **Focus rule:** the SpinBox is EXPLICITLY focusable — `focus_mode = FOCUS_ALL` (`SpinBox`'s own default is FOCUS_NONE; only its inner LineEdit is FOCUS_ALL). The migration must NOT set FOCUS_NONE (the sim keyboard-enters these). It gets POINTING_HAND and its text is styled via `font_color`/`font_uneditable_color`/icon token overrides for dark-theme readability.
+
+### 6.8 `COptionParam extends Control` — `components/coptionparam.gd`
+
+Enumerated option row: caption `CLabel` ABOVE an `OptionButton`. Restructured
+from the sim's Init profile selector and color-source selector.
+
+- `func setup(caption: String, caption_token: String, options: Array[String], selected: int, changed_cb: Callable) -> void` — configure the row (idempotent), adding each string as an option and selecting `selected`.
+- Exposed members: `caption_label: CLabel`, `option: OptionButton`.
+- `var box_min_width: int = 120` — min width applied to the row's VBox.
+- `func set_value_no_signal(i: int) -> void` — `option.select(i)` (no callback); `func get_value() -> int` — currently selected index.
+- **Focus rule:** the OptionButton stays FOCUSABLE (keyboard dropdown navigation) — do NOT set FOCUS_NONE. It gets POINTING_HAND and its text/boxed style come from token lookups for dark-theme readability.
+
+### 6.9 `CGroupPanel extends CPanel` — `components/cgroup_panel.gd`
 
 CPanel with a collapse header (CButton) over a content VBoxContainer.
 
-- `func set_title(t: String) -> void` — set the group title; header reads `"▸ Title"` (collapsed) / `"▾ Title"` (expanded).
+- `func set_title(t: String) -> void` — set the group title; header reads `"▸ Title"` (collapsed) / `"▾ Title"` (expanded). Safe before the tree.
 - `func content() -> VBoxContainer` — the container to fill with rows.
-- `var collapsed: bool` — default `false` (expanded). Assigning flips the header glyph and `content().visible` synchronously, and emits `toggled`.
+- `var collapsed: bool` — default `false` (expanded). Assigning flips the header glyph and `content().visible` synchronously and emits `toggled`. **Safe to assign before the panel is in the tree** (content is built in `_ready()`) — the value is stored and applied when `_ready()` builds the header + content; a pre-tree assignment does NOT emit.
 - `signal toggled(is_collapsed: bool)`.
 - Header is a `CButton` (FOCUS_NONE, pointing hand), tooltip `"collapse/expand"`. No animation (kept simple and layout-safe). `content_box: VBoxContainer` is the same container as `content()`.
 
@@ -241,9 +270,15 @@ CPanel with a collapse header (CButton) over a content VBoxContainer.
   whose buttons get min-width 100 (Mode) / 90 (Gravity).
 - Replace `_build_slider_row` + the `_xi_label = ...get_child(0)` re-grab
   gymnastics → a `CParam`; read `cparam.value_label.text` directly.
+- Replace the Grid-N / Particles / Clusters / Separation `VBox` + `SpinBox`
+  boxes → a `CSpinParam` (set `box_min_width` per row: 120/150 like the sim).
+  The SpinBox stays focusable — do not add FOCUS_NONE.
+- Replace the Init / color-source `OptionButton` boxes → a `COptionParam`.
 - `_set_mode_highlight` / `_set_grav_highlight` press-state loops →
   `segmented.selected_index = i` (or `set_selected_no_signal` when syncing
   from the sim without a callback).
+- `CSegmented.setup()` applies its initial selection WITHOUT emitting; a
+  later `seg.selected_index = i` drives the real change.
 - The `focus_mode = FOCUS_NONE` block at the end of `_ready` (for SpinBoxes
   and sliders) becomes unnecessary — components bake it in. Only standalone
   `Label`/`PanelContainer` nodes need nothing.

@@ -22,12 +22,20 @@ extends CPanel
 signal toggled(is_collapsed: bool)
 
 ## Collapsed state (default false = expanded). Assigning it flips the
-## header glyph and content visibility.
+## header glyph and content visibility. Safe to set BEFORE the panel is in
+## the tree (content_box is built in _ready()): the value is stored and
+## applied once _ready() builds the header + content. The `toggled` signal
+## fires only on an actual in-tree flip.
 var collapsed: bool = false:
 	set(v):
 		if collapsed == v:
 			return
 		collapsed = v
+		if content_box == null:
+			# Not in the tree yet (or _ready not run) — store only; the
+			# header/content don't exist to update and this is initial
+			# config, not a user flip, so no signal.
+			return
 		_update_header()
 		content_box.visible = not collapsed
 		toggled.emit(collapsed)
@@ -75,6 +83,10 @@ func _ready() -> void:
 	content_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	stack.add_child(content_box)
 
+	# Apply any collapse state assigned before entering the tree: the glyph
+	# comes from _update_header (reads `collapsed`), and the content
+	# visibility follows the stored value.
+	content_box.visible = not collapsed
 	_update_header()
 
 
