@@ -1920,7 +1920,7 @@ export class MnemicField {
       durationMs,
     })
 
-    return { nucleiPrimed, nucleiIgnored, broadcastX, broadcastY, durationMs }
+    return { nucleiPrimed, nucleiIgnored, broadcastX, broadcastY, durationMs, totalNuclei: allNuclei.length }
   }
 
   /**

@@ -910,6 +910,8 @@ export interface BroadcastResult {
   /** The broadcast centroid position (mean of luminal engram positions). */
   broadcastX: number
   broadcastY: number
+  /** Total nuclei considered in the broadcast. */
+  totalNuclei: number
   /** Duration of the broadcast computation in ms. */
   durationMs: number
 }
