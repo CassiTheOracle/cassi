@@ -285,7 +285,12 @@ export class CognitiveFeedModule extends BaseCognitiveModule {
     )
     this.moduleChat.setTopicManager(this.topicManager)
     if (this.moduleRegistry) {
-      this.moduleChat.setRegistry(this.moduleRegistry)
+      // BaseCognitiveModule types `moduleRegistry` as @cassicore/foundation's minimal
+      // vendored ModuleSessionRegistry (getOrCreate/getSessionId only). The runtime
+      // registry supplied via setModuleRegistry is always the full @cassicore/workspace
+      // surface (which also has getRegistration/getModulesForTopic/...), so this is a
+      // structural migration seam — coerce to the full type module-chat-handler needs.
+      this.moduleChat.setRegistry(this.moduleRegistry as unknown as ModuleSessionRegistry)
     }
 
     // Wire steering command handler

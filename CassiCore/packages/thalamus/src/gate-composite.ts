@@ -64,8 +64,8 @@ export class GateCompositeScorer {
     return out;
   }
 
-  /** Derived, normalized weights under a given phase-coherence. */
-  private gateWeights(pc: number): Record<keyof SystemLuminanceScore, number> {
+  /** Derived, normalized weights under a given phase-coherence (the six axes; composite is computed). */
+  private gateWeights(pc: number): Record<Exclude<keyof SystemLuminanceScore, 'composite'>, number> {
     const rel = BASE_WEIGHTS.relevance * (0.5 + pc);
     const othersTotal = BASE_WEIGHTS.novelty + BASE_WEIGHTS.urgency + BASE_WEIGHTS.sourceCredibility +
       BASE_WEIGHTS.cognitiveResonance + BASE_WEIGHTS.strategicImportance;

@@ -427,7 +427,7 @@ export function computeLineDiff(oldContent: string, newContent: string): string 
  * with a MnemicField reference can wire best-effort synapses.
  */
 export function safeConnect(
-  mnemicField: import('../mnemic-field/index.js').MnemicField | null,
+  mnemicField: import('@cassicore/mnemic-field').MnemicField | null,
   sourceId: string,
   targetId: string,
   edgeType: string,
@@ -493,7 +493,7 @@ export class ThalamusModule extends BaseCognitiveModule {
   setReverieNoteSink(fn: (sessionId: string, recipient: string, message: string) => void): void { this.reverieNoteSink = fn }
 
   /** Wire a Reverie inference provider into Aurora for the reasoning slow path. */
-  setReverieInferenceProvider(provider: import('../aurora/types.js').ReverieInferenceProvider): void {
+  setReverieInferenceProvider(provider: import('./vendor/core/intelligence/aurora/types.js').ReverieInferenceProvider): void {
 this.aurora?.setReverieInferenceProvider(provider)
   }
 
@@ -546,7 +546,7 @@ this.aurora?.setReverieInferenceProvider(provider)
             const toolInput: EngramCreate & { sessionId: string } = {
               sessionId,
               content: JSON.stringify(block.input ?? {}),
-              nodeType: 'tool' as import('../mnemic-field/types.js').EngramType,
+              nodeType: 'tool' as import('@cassicore/mnemic-field').EngramType,
               tags: ['tool', `session:${sessionId}`, `tool_name:${block.name}`],
               provenance,
               createdAt: msgCreatedAt,
@@ -564,7 +564,7 @@ this.aurora?.setReverieInferenceProvider(provider)
             const textInput: EngramCreate & { sessionId: string } = {
               sessionId,
               content: cleanEngramContent(block.text),
-              nodeType: 'message' as import('../mnemic-field/types.js').EngramType,
+              nodeType: 'message' as import('@cassicore/mnemic-field').EngramType,
               tags: ['assistant', `session:${sessionId}`],
               provenance,
               metadata: {
@@ -600,7 +600,7 @@ this.aurora?.setReverieInferenceProvider(provider)
         const input: EngramCreate & { sessionId: string } = {
           sessionId,
           content: tr.isError ? `[ERROR] ${tr.content}` : tr.content,
-          nodeType: nodeType as import('../mnemic-field/types.js').EngramType,
+          nodeType: nodeType as import('@cassicore/mnemic-field').EngramType,
           tags: [nodeType, `tool:${toolName}`, `class:${toolClass}`, `session:${sessionId}`],
           provenance,
           metadata: {
@@ -645,7 +645,7 @@ this.aurora?.setReverieInferenceProvider(provider)
     const input: EngramCreate & { sessionId: string } = {
       sessionId,
       content: cleanEngramContent(typeof content === 'string' ? content : JSON.stringify(content)),
-      nodeType: 'message' as import('../mnemic-field/types.js').EngramType,
+      nodeType: 'message' as import('@cassicore/mnemic-field').EngramType,
       tags: [slotType, `session:${sessionId}`],
       provenance,
       metadata: {
@@ -740,7 +740,7 @@ this.aurora?.setReverieInferenceProvider(provider)
         const readEngram = mf.storeForSession({
           sessionId,
           content: '',
-          nodeType: 'file_read' as import('../mnemic-field/types.js').EngramType,
+          nodeType: 'file_read' as import('@cassicore/mnemic-field').EngramType,
           tags: ['file_read', `session:${sessionId}`, `file:${filePath}`],
           provenance,
           metadata: {
@@ -791,7 +791,7 @@ this.aurora?.setReverieInferenceProvider(provider)
             // Find the immediately previous version (vN-1) for the supersedes chain.
             // With versionIndex metadata, we look for version N-1; as a fallback
             // on unversioned records, the last array entry (most recent existing) is vN-1.
-            let prevVersion: import('../mnemic-field/types.js').Engram | undefined
+            let prevVersion: import('@cassicore/mnemic-field').Engram | undefined
             for (const v of allVersions) {
               const meta = v.metadata as Record<string, unknown> | undefined
               if (meta?.versionIndex === newVersionIndex - 1) {
@@ -818,7 +818,7 @@ this.aurora?.setReverieInferenceProvider(provider)
           const versionEngram = mf.storeForSession({
             sessionId,
             content: versionContent,
-            nodeType: 'file_version' as import('../mnemic-field/types.js').EngramType,
+            nodeType: 'file_version' as import('@cassicore/mnemic-field').EngramType,
             tags: ['file_version', `file:${filePath}`, `session:${sessionId}`],
             provenance,
             metadata: {
@@ -877,7 +877,7 @@ this.aurora?.setReverieInferenceProvider(provider)
    * Uses the dedicated json_extract(metadata, '$.filePath') query on the
    * MnemicField — no JS filtering over a broad list() call.
    */
-  private getFileVersionsByPath(filePath: string): import('../mnemic-field/types.js').Engram[] {
+  private getFileVersionsByPath(filePath: string): import('@cassicore/mnemic-field').Engram[] {
     if (!this.mnemicField) return []
     return this.mnemicField.findFileVersionsByPath(filePath)
   }
@@ -894,7 +894,7 @@ this.aurora?.setReverieInferenceProvider(provider)
     checksum: string,
     now: string,
     provenance: string,
-  ): import('../mnemic-field/types.js').Engram {
+  ): import('@cassicore/mnemic-field').Engram {
     if (!this.mnemicField) {
       // Best-effort — file engrams are an optimization, never a critical path.
       // The outer caller (writeFileEngramsForTool) also guards, but we guard
@@ -923,7 +923,7 @@ this.aurora?.setReverieInferenceProvider(provider)
     const engram = this.mnemicField.storeForSession({
       sessionId,
       content: content.slice(0, 500),
-      nodeType: 'file' as import('../mnemic-field/types.js').EngramType,
+      nodeType: 'file' as import('@cassicore/mnemic-field').EngramType,
       tags: ['file', `file:${filePath}`, language, ...pathSegments.slice(0, -1)],
       provenance,
       metadata: {
@@ -1083,7 +1083,7 @@ this.aurora?.setReverieInferenceProvider(provider)
     if (!buffer || buffer.length === 0) return
     const content = JSON.stringify(buffer)
     this.mnemicField.store({
-      nodeType: 'replay_segment' as import('../mnemic-field/types.js').EngramType,
+      nodeType: 'replay_segment' as import('@cassicore/mnemic-field').EngramType,
       content,
       tags: [`session:${sessionId}`],
       provenance: 'thalamus.replay',
@@ -1096,7 +1096,7 @@ this.aurora?.setReverieInferenceProvider(provider)
     if (!this.mnemicField) return
     this.flushReplayBuffer(sessionId)
     this.mnemicField.store({
-      nodeType: 'intent_span' as import('../mnemic-field/types.js').EngramType,
+      nodeType: 'intent_span' as import('@cassicore/mnemic-field').EngramType,
       content: `Intent span ${intentSpan.id} at message ${intentSpan.anchorIndex}`,
       tags: [`session:${sessionId}`, 'intent_span'],
       provenance: 'thalamus',
@@ -2697,7 +2697,7 @@ this.aurora?.setReverieInferenceProvider(provider)
    * salience, valence, and working memory state. This enables efficient
    * multi-axis scoring without repeated iteration.
    */
-  private buildCortexIndex(signals: import('../cortex/types.js').CorticalSignal[], sessionId: string): CortexIndex {
+  private buildCortexIndex(signals: import('./vendor/core/intelligence/cortex/types.js').CorticalSignal[], sessionId: string): CortexIndex {
     const index: CortexIndex = {
       byType: {},
       byRegion: {},
