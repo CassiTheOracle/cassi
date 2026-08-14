@@ -13,7 +13,8 @@
     "start:hooks": "npx tsx src/hook-server.ts",
     "start:all": "npx tsx src/proxy.ts & npx tsx src/hook-server.ts &",
     "build": "tsc",
-    "dev": "npx tsx --watch src/server.ts"
+    "dev": "npx tsx --watch src/server.ts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",

@@ -1,6 +1,7 @@
 {
-  "name": "agent-ui",
+  "name": "@cassicore/webui",
   "version": "0.1.0",
+  "description": "CassiCore agent web portal — Next.js frontend + observatory (Vite). Talks to the daemon over HTTP. Migrated history-preserved from D: webui.",
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000",
@@ -43,8 +44,8 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
     "eslint": "^9",
     "eslint-config-next": "15.5.10",
     "postcss": "^8",

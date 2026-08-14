@@ -1,7 +1,7 @@
 'use client'
 
 import { useStore } from '@/store'
-import Messages from './Messages.js'
+import Messages from './Messages/index.js'
 import ScrollToBottom from '@/components/chat/ChatArea/ScrollToBottom'
 import { StickToBottom } from 'use-stick-to-bottom'
 

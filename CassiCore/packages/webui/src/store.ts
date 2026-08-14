@@ -33,7 +33,7 @@ interface Store {
   setMessages: (
     messages: ChatMessage[] | ((prevMessages: ChatMessage[]) => ChatMessage[])
   ) => void
-  chatInputRef: React.RefObject<HTMLTextAreaElement | null>
+  chatInputRef: React.RefObject<HTMLTextAreaElement>
   selectedEndpoint: string
   setSelectedEndpoint: (selectedEndpoint: string) => void
   authToken: string

@@ -1,0 +1,13 @@
+{
+  "name": "@cassicore/opencode",
+  "version": "0.1.0",
+  "description": "CassiCore integration plugin for opencode — in-process single-file ES module bridging opencode hooks to the CassiCore daemon. Migrated history-preserved from D: integrations/opencode.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "install:plugin": "bash ./install.sh"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
