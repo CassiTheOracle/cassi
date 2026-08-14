@@ -203,7 +203,7 @@ var _vsync_enabled: bool = true
 # is 10–30%). Init-time: reinit() to apply (extents are encoded in the bh
 # header and the PCs at setup).
 ## Per-axis box aspect (extent_i = box_scale·aspect_i·1.5·cluster_radius). Cube (1,1,1) default; theory preset (φ,1,φ²) — see GRID_LAYOUT.md.
-@export var box_aspect: Vector3 = Vector3(1, 1, 1)
+@export var box_aspect: Vector3 = Vector3(1.618, 1.0, 2.618)
 ## Uniform box rescale — separates the cluster from its periodic images while
 ## keeping the aspect (de-resonance, stencil weights). Default 1.0 = the legacy
 ## geometry, bit-identical (×1.0 is exact in fp32). See GRID_LAYOUT.md §2.8.
@@ -223,7 +223,7 @@ var _vsync_enabled: bool = true
 # gradient_order = 4 — 4.6× excess reduction (CASCADE_GRID.md §2). Cost: 2×
 # deposit/solve/gradient + a second gradient sample per particle per step.
 ## Yin/Yang dual (BCC) grid — the shifted partner lattice runs and the force averages both samples. Live (no reinit).
-@export var dual_grid: bool = false
+@export var dual_grid: bool = true
 # Multi-rung IC seeding (init-time; reinit to apply): Zel'dovich displacement
 # δx = Σ_m (A/k_m)·sin(k_m·(d_m·x) + φ_m)·d_m with φ-spaced wavenumbers
 # k_m = 2π·φ^m/(base_scale·cluster_radius) and Fibonacci-sphere directions —
@@ -243,7 +243,7 @@ var _vsync_enabled: bool = true
 ## JFA Voronoi cell mesh (MESHLESS_PLAN.md §10) and rasterizes back to
 ## the grid buffers for the render/condensation/river chain. Init-time
 ## (reinit to apply); default off = the grid solver, bit-identical.
-@export var meshless_mode: bool = false
+@export var meshless_mode: bool = true
 
 ## Tree gravity (init-time; default off = the grid river arm, bit-identical).
 ## Takes effect ONLY when meshless_mode is ALSO on — the spectral-Poisson
@@ -253,7 +253,7 @@ var _vsync_enabled: bool = true
 ## dual-lattice chain are skipped and the nbody arm samples the tree walk's
 ## per-particle ∇Φ_g. Additive like dual_grid/gradient_order: with it off
 ## (the default) every existing battery stays bit-identical.
-@export var meshless_gravity: bool = false
+@export var meshless_gravity: bool = true
 
 ## Display mode: 0 = Particles, 1 = Field, 2 = Black Hole, 3 = Cosmology.
 @export_enum("Particles", "Field", "Black Hole", "Cosmology") var mode: int = 0
