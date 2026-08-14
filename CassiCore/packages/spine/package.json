@@ -1,0 +1,41 @@
+{
+  "name": "@cassicore/spine",
+  "version": "0.1.0",
+  "description": "The ohmypi extension ('spine') that bridges the focused CassiCore mind runtime into ohmypi: registers the retained mind tools as thin delegates, the mind_complete model-access bridge, mirrors session lifecycle to the runtime, snaps mind-state, and adapts MnemicField as the ohmypi memory backend. The spine is the ONLY package that touches ohmypi.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./client": {
+      "types": "./dist/channel/client.d.ts",
+      "import": "./dist/channel/client.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
+  },
+  "dependencies": {
+    "@cassicore/mind-runtime": "*",
+    "@cassicore/tools": "*"
+  },
+  "devDependencies": {
+    "@oh-my-pi/pi-coding-agent": "17.3.4",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  }
+}

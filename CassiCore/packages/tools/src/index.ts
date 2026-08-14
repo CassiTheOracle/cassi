@@ -96,3 +96,22 @@ export {
 export type { GraphDiscoverDeps } from './implementations/graph-discover.js'
 // collect-thoughts (constellation guidance-provider re-points the type)
 export type { ConstellationGuidanceProvider } from './implementations/collect-thoughts.js'
+// Retained mind-tool definitions (P3 spine schema surface)
+export {
+  collectThoughtsDefinition,
+  reflectDefinition,
+  cognitiveRememberDefinition,
+  coordinateDefinition,
+  checkPeersDefinition,
+  memorySearchDefinition,
+  rememberDefinition,
+  listSubagentsDefinition,
+  getSubagentStatusDefinition,
+  getSubagentResultDefinition,
+  systemHealthDefinition,
+  debugSessionDefinition,
+  universalSearchDefinition,
+  cassandraQueryEventsDef,
+  cassandraContextInspectDef,
+  queryEventsDefinition,
+} from './implementations/mind-definitions.js'
