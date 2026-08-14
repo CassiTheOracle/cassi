@@ -146,7 +146,7 @@ export interface HelixOrchestrator {
   setToolExecutor(executor: ToolExecutor): void
   setStore(store: HelixStore): void
   setModelDirective(directive: IModelDirective): void
-  setThalamus(thalamus: import('./vendor/core/intelligence/thalamus/index.js').ThalamusModule): void
+  setThalamus(thalamus: import('@cassicore/thalamus').ThalamusModule): void
   setContextDistiller(distiller: ContextDistiller): void
   setModuleRegistry(registry: ModuleSessionRegistry): void
   getHealth(): { healthy: boolean; lastRun?: Date; errorCount: number; activeSessionCount: number; modelPoolAvailable: boolean }
@@ -174,7 +174,7 @@ export function createHelix(
   let storedModelDirective: IModelDirective | undefined
   let storedContextDistiller: ContextDistiller | undefined
   let storedModuleDebugSessionId: string | undefined
-  let storedThalamus: import('./vendor/core/intelligence/thalamus/index.js').ThalamusModule | undefined
+  let storedThalamus: import('@cassicore/thalamus').ThalamusModule | undefined
   const activeSessions = new Map<string, () => void>()
   const activeWorkStreams = new Map<string, WorkStream>()
   const activeDialecticChannels = new Map<string, DialecticChannel>()
@@ -262,7 +262,7 @@ export function createHelix(
       storedModuleDebugSessionId = registry.getOrCreate('helix').id
     },
 
-    setThalamus(thalamus: import('./vendor/core/intelligence/thalamus/index.js').ThalamusModule): void {
+    setThalamus(thalamus: import('@cassicore/thalamus').ThalamusModule): void {
       storedThalamus = thalamus
     },
 

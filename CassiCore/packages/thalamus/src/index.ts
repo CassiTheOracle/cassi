@@ -4823,3 +4823,13 @@ this.aurora?.setReverieInferenceProvider(provider)
     'code-store', 'cortex/claude-code',
   ])
 }
+
+// Re-export the cross-session topic-index surface the host / helix / constellation
+// re-point to (P5-A table §A1 P7 note).
+export { CrossSessionTopicIndex, DEFAULT_CROSS_SESSION_CONFIG } from './cross-session-index.js'
+export type {
+  CrossSessionTopicEntry,
+  CrossSessionIndexConfig,
+  FileConflict,
+  CrossSessionQueryOpts,
+} from './cross-session-index.js'

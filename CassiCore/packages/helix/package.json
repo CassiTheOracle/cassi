@@ -29,6 +29,7 @@
     "@cassicore/foundation": "*",
     "@cassicore/mini-helix": "*",
     "@cassicore/mnemic-field": "*",
+    "@cassicore/thalamus": "*",
     "better-sqlite3": "^11.0.0"
   },
   "devDependencies": {

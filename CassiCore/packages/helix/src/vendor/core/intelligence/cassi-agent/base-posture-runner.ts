@@ -131,9 +131,9 @@ export abstract class BasePostureRunner<TPosture extends BasePosture = BasePostu
   protected moduleDebugSessionId?: string
   protected contextBudgetCoordinator?: import('./context-budget-coordinator.js').ContextBudgetCoordinator
   /** Thalamus for context curation during long-running sessions */
-  protected thalamus?: import('../thalamus/index.js').ThalamusModule
+  protected thalamus?: import('@cassicore/thalamus').ThalamusModule
   /** Cross-session topic index for sharing Thalamus insights across sessions */
-  protected crossSessionIndex?: import('../thalamus/cross-session-index.js').CrossSessionTopicIndex
+  protected crossSessionIndex?: import('@cassicore/thalamus').CrossSessionTopicIndex
 
   protected pushMessage(msg: Message): void {
     if (this.thalamus) {
@@ -170,8 +170,8 @@ export abstract class BasePostureRunner<TPosture extends BasePosture = BasePostu
     postureSlot?: string
     moduleDebugSessionId?: string
     contextBudgetCoordinator?: import('./context-budget-coordinator.js').ContextBudgetCoordinator
-    thalamus?: import('../thalamus/index.js').ThalamusModule
-    crossSessionIndex?: import('../thalamus/cross-session-index.js').CrossSessionTopicIndex
+    thalamus?: import('@cassicore/thalamus').ThalamusModule
+    crossSessionIndex?: import('@cassicore/thalamus').CrossSessionTopicIndex
   }) {
     this.posture = opts.posture
     this.handle = opts.handle

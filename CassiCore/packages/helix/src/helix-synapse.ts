@@ -1,7 +1,7 @@
 import type { ILogger, IEventBus } from '@cassicore/foundation'
 import type { ContentBlock, Message, ThinkingLevel } from '@cassicore/foundation'
 import type { HelixRole } from './types.js'
-import type { CrossSessionTopicIndex } from './vendor/core/intelligence/thalamus/cross-session-index.js'
+import type { CrossSessionTopicIndex } from '@cassicore/thalamus'
 import { ObserverMemoryBridge, extractConceptHints, priorityToConfidence } from './vendor/core/intelligence/constellation/observer-memory-bridge.js'
 import type { ObserverMemorySource } from './vendor/core/intelligence/constellation/observer-memory-bridge.js'
 import { BroadcastDedupe, normalizeForDedupe } from './vendor/core/intelligence/constellation/observer-broadcast-dedupe.js'

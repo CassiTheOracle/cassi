@@ -68,7 +68,7 @@ import { TopologyGraph } from './topology/topology-graph.js'
 import { BrainstemBridge } from './topology/brainstem-bridge.js'
 import { serializeTopologySnapshot } from './topology/topology-types.js'
 import type { EmbeddingService } from './vendor/embeddings/embedding-service.js'
-import { CrossSessionTopicIndex } from './vendor/thalamus/cross-session-index.js'
+import { CrossSessionTopicIndex } from '@cassicore/thalamus'
 import { createConstellationGuidanceProvider } from './guidance-provider.js'
 import { scoreSpecificity } from './vendor/code-analysis/specificity-scorer.js'
 

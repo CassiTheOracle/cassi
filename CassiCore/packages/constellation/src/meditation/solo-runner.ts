@@ -14,7 +14,7 @@ import type { Message, ContentBlock, CompletionChunk } from '../vendor/types/run
 import type { ModelHandle } from '../vendor/model-pool/types.js'
 import type { ToolExecutor } from '../vendor/tools/executor.js'
 import type { ToolRegistry } from '../vendor/tools/registry.js'
-import type { ThalamusModule } from '../vendor/thalamus/index.js'
+import type { ThalamusModule } from '@cassicore/thalamus'
 
 import {
   getCodeConsolidatedToolSchema,
@@ -58,7 +58,7 @@ export interface SoloRunnerOpts {
   /** Thalamus for context curation during long-running sessions */
   thalamus?: ThalamusModule
   /** Cross-session topic index for sharing Thalamus insights across sessions */
-  crossSessionIndex?: import('../vendor/thalamus/cross-session-index.js').CrossSessionTopicIndex
+  crossSessionIndex?: import('@cassicore/thalamus').CrossSessionTopicIndex
 }
 
 export interface ToolCallResult {

@@ -226,9 +226,9 @@ export interface HelixPostureRunnerOpts {
   /** ContextChunkIndex for intelligent context management (pinning, eviction, scoring) */
   contextChunkIndex?: import('./context-chunk-index.js').ContextChunkIndex
   /** Thalamus for context curation during long-running sessions */
-  thalamus?: import('./vendor/core/intelligence/thalamus/index.js').ThalamusModule
+  thalamus?: import('@cassicore/thalamus').ThalamusModule
   /** Cross-session topic index for sharing Thalamus insights across sessions */
-  crossSessionIndex?: import('./vendor/core/intelligence/thalamus/cross-session-index.js').CrossSessionTopicIndex
+  crossSessionIndex?: import('@cassicore/thalamus').CrossSessionTopicIndex
   /** Callback fired when Unity posts a work unit */
   onWorkUnit?: (wu: import('./work-types.js').WorkUnit, iteration: number) => void
   /** Callback fired during streaming with real-time token activity */

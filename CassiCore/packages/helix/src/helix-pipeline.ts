@@ -122,10 +122,10 @@ export interface HelixPipelineOpts {
   moduleDebugSessionId?: string
 
   /** Thalamus for context curation during long-running sessions */
-  thalamus?: import('./vendor/core/intelligence/thalamus/index.js').ThalamusModule
+  thalamus?: import('@cassicore/thalamus').ThalamusModule
 
   /** Cross-session topic index for sharing Thalamus insights across sessions */
-  crossSessionIndex?: import('./vendor/core/intelligence/thalamus/cross-session-index.js').CrossSessionTopicIndex
+  crossSessionIndex?: import('@cassicore/thalamus').CrossSessionTopicIndex
 
   /** Constellation ID this Helix session belongs to (for cross-session scoping) */
   constellationId?: string
