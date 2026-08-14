@@ -2,7 +2,25 @@
  * ModelPool - Centralized Model Management
  *
  * Main orchestrator for the ModelPool system.
+ *
+ * CASSICORE-FOCUS §19 / §6 P2 split:
+ *   - RETAINED surface (mind): `ModelHandle`, `ModelCompletionOpts`,
+ *     `ModelCapabilities`, `ModelHandleImpl` + the acquire-shim factory.
+ *     Re-exported canonically from `./ports/index.js` below and mirrored here.
+ *   - DELEGATE surface (pool machinery): the `ModelPool` class, FallbackManager,
+ *     BudgetManager, CapabilityCache, billing-models, rate-limit/allowlist
+ *     wiring. Kept ALIVE now (host constructs `new ModelPool(...)`); deleted at
+ *     P4 when an ohmypi-backed shim replaces the class — see
+ *     DELEGATE-SURFACE.md.
  */
+
+// ── Retained port surface (the seam P4 preserves) ─────────────────────────
+export type {
+  ModelHandle,
+  ModelCompletionOpts,
+  ModelCapabilities,
+} from './ports/index.js'
+export { ModelHandleImpl } from './ports/index.js'
 
 import type { IProvider, TurnResult } from '@cassicore/foundation'
 import type { ILogger, IEventBus } from '@cassicore/foundation'
@@ -475,5 +493,8 @@ export class ModelPool {
   }
 }
 
-// Re-exported types (host + admin-api consume these)
-export type { ModelHandle, ModelCompletionOpts, ModelCapabilities, PoolStats, ModelPoolConfig } from './types.js'
+// Re-exported types (host + admin-api consume these).
+// Retained handle/type names come via ./ports already (see top of file);
+// here we surface the DELEGATE-adjacent pool types the host's ModelPool
+// construction / stats reads need until P4.
+export type { PoolStats, ModelPoolConfig } from './types.js'
