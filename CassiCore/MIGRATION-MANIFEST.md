@@ -104,3 +104,21 @@ each phase diffs its `--path` import set against this manifest before touching g
 
 Full per-file `rel` paths live in `recon-data.json`. This manifest is the committed baseline;
 regenerate via `node recon-analysis2.cjs` only when recon is intentionally re-run (not this phase).
+
+---
+
+## History-import infrastructure (per-phase git-temp pattern)
+
+All history-import temps live on the **D: drive** for hardlinked fast clones; nothing is ever written
+inside the live `D:\carina\workspaces\cassicore` repo itself.
+
+- **Persistent mirror (kept permanently; refreshed per phase):**
+  `D:\carina\.cassi-mirror` — `git clone --no-checkout "D:/carina/workspaces/cassicore"` (history only).
+  Refresh command: `git -C "D:/carina/.cassi-mirror" fetch origin main:main` (default branch is `main`).
+- **Phase temp (deleted at end of each phase; hardlinks → near-instant):**
+  `D:\carina\.cassi-tmp-p<phase>` — `git clone --no-checkout "D:/carina/.cassi-mirror"`.
+- **filter-repo:** `C:\Users\Carina\AppData\Local\Programs\Python\Python312\Scripts\git-filter-repo.exe`
+  (verify with `--version`; add `echo n |` + `--force` when filtering the temp clone).
+- **Import sequence:** filter-repo `--path`/`--path-rename` in the phase temp → `git fetch <temp> main:import/<pkg>`
+  → `git merge --allow-unrelated-histories --no-commit import/<pkg>` → resolve add/add by `--theirs`
+  (history-bearing side) → `git branch -D import/<pkg>` → delete phase temp (KEEP the mirror).
