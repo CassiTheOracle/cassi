@@ -1,0 +1,29 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/cassi_sim.gd" id="1_sim"]
+[ext_resource type="Script" path="res://scripts/diag_coherence_ripple.gd" id="2_probe"]
+
+[node name="DiagCoherenceRipple" type="Node3D"]
+
+[node name="CassiSim" type="Node3D" parent="."]
+script = ExtResource("1_sim")
+grid_N = 64
+N_particles = 65536
+cluster_radius = 40.0
+cluster_separation = 60.0
+playing = false
+dt = 0.05
+gravity_mode = 4
+river_calibrate_gn = true
+field_attractor_init = true
+multi_rung_seed = false
+black_holes_enabled = false
+dual_grid = false
+meshless_mode = false
+meshless_gravity = false
+source_strength = 0.0
+box_aspect = Vector3(1.618033988749895, 1.0, 2.618033988749895)
+suppress_readbacks = true
+
+[node name="Probe" type="Node" parent="."]
+script = ExtResource("2_probe")
