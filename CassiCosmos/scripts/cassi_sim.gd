@@ -750,13 +750,12 @@ func _ready() -> void:
 	_setup_buffers()
 	_setup_multimesh()  # BEFORE _setup_shaders: the instancer uniform set
 	_setup_shaders()    # binds the multimesh's RD buffer, which must exist
-	# ── Decoupled physics producer (phase A+B): the standalone engine runs
-	# the core chain on its own worker thread/local RD; this sim's global-RD
-	# buffers become MIRRORS + the render side. GRID path only — meshless
-	# off (the meshless port is a later phase).
-	_decoupled_active = physics_decoupled and not meshless_mode
-	if physics_decoupled and meshless_mode:
-		push_warning("[CassiSim] physics_decoupled requires meshless_mode OFF (the meshless port is a later phase) — falling back to the inline path")
+	# ── Decoupled physics producer (phase A+B+C): the standalone engine runs
+	# the core chain on its own worker thread/local RD — grid AND meshless
+	# (the Voronoi arm is ported; the tree worker is handed to the engine
+	# worker) — and this sim's global-RD buffers become MIRRORS + the render
+	# side.
+	_decoupled_active = physics_decoupled
 	if _decoupled_active:
 		if _decoupled_start_engine():
 			print("[CassiSim] Decoupled physics producer started (worker local RD)")
@@ -948,15 +947,6 @@ func _process(delta: float) -> void:
 				_perf_steps += n_steps
 				if spent > 0:
 					_phys_us_ema = lerp(_phys_us_ema, float(spent) / float(n_steps), 0.2)
-		# ── Particle merge (opt-in): after the physics batch, own compute-list
-		# sequence (needs host prefix-sum syncs illegal inside a step list). Runs
-		# every frame; R_m ≈ 0.586 world units is crossed in ~586 dt=0.001 steps,
-		# ≫ a frame's step budget, so once-per-frame is far inside the reaction
-		# budget (the kernel's own cycle loop converges the pair-resolution).
-		# Decoupled: skipped — it mutates the mirrored global pos buffer, which
-		# the engine does not know about (an engine-side merge is a later phase).
-		if particle_merge and n_steps > 0 and not _decoupled_active:
-			_run_merge_pass()
 	_perf_frames += 1
 
 	_render_frame()
@@ -1132,32 +1122,18 @@ func _run_merge_pass() -> int:
 			or not _us_merge_0.is_valid() or not _merge_alive_buf.is_valid() \
 			or N_particles <= 0:
 		return 0
-	# PC is constant across the pass except pass_mode (field 15)
-	var ebox := _extents()
-	_merge_pc_bytes.encode_float(0, float(N_particles))          # N
-	_merge_pc_bytes.encode_float(1, PHI)                          # phi
-	_merge_pc_bytes.encode_float(2, PHI_INV2)                     # phi^-2 (q denom scale + default gate)
-	_merge_pc_bytes.encode_float(3, PHI_INV2)                     # q_threshold = phi^-2
-	_merge_pc_bytes.encode_float(4, _extent_min() / float(maxi(grid_N, 1)))  # R_m = ½·h₀
-	_merge_pc_bytes.encode_float(5, ebox.x)                       # extent_x
-	_merge_pc_bytes.encode_float(6, ebox.y)                       # extent_y
-	_merge_pc_bytes.encode_float(7, ebox.z)                       # extent_z
-	_merge_pc_bytes.encode_float(8, float(grid_N))                # grid_N (q_coh trilinear)
-	_merge_pc_bytes.encode_float(9, float(_merge_hash_nx))        # hash_nx
-	_merge_pc_bytes.encode_float(10, float(_merge_hash_ny))       # hash_ny
-	_merge_pc_bytes.encode_float(11, float(_merge_hash_nz))       # hash_nz
-	_merge_pc_bytes.encode_float(12, _merge_cell_wx)              # cell_wx
-	_merge_pc_bytes.encode_float(13, _merge_cell_wy)              # cell_wy
-	_merge_pc_bytes.encode_float(14, _merge_cell_wz)              # cell_wz
-	# reset in its own list, then force GPU completion via a tiny readback so
-	# the first cycle's fold is ordered (global RD: separate compute_list_end()
-	# calls do NOT guarantee cross-list memory visibility; readbacks do).
+	# PC values (16 floats; pass_mode@15 filled per dispatch by
+	# _merge_bind_dispatch from _merge_pc_values()).
+	# reset in its own list; force its completion + visibility with a readback
+	# (global RD: separate compute_list_end()s don't guarantee cross-list
+	# memory visibility; buffer_get_data self-stalls and executes pending
+	# work, but ONLY from the frame context — see the _render_frame hook).
 	_zero_merge_bytes(_merge_cc_buf, _merge_hash_total)   # cc=0 before count
 	_zero_merge_bytes(_merge_mc_buf, 1)                   # mc=0 before hop
 	var cl0 := _rd.compute_list_begin()
 	_merge_bind_dispatch(cl0, 0.0)   # reset: alive=1, mass=pos.w, mom/cen=m p/m v
 	_rd.compute_list_end()
-	_merge_submit_sync()
+	_merge_read_uint()   # forced sync → reset visible
 	var total := 0
 	for _cyc in range(MERGE_MAX_CYCLES):
 		# ONE list: fold → count (in-list barriers give pass-to-pass visibility)
@@ -1166,8 +1142,8 @@ func _run_merge_pass() -> int:
 		_rd.compute_list_add_barrier(cl)
 		_merge_bind_dispatch(cl, 2.0)   # count into cc
 		_rd.compute_list_end()
-		_merge_submit_sync()
-		# host exclusive prefix-sum: cc -> cs (then cs -> ch = fill head)
+		# host exclusive prefix-sum: cc -> cs (then cs -> ch = fill head).
+		# This readback syncs fold+count.
 		var cc := _read_merge_uints(_merge_cc_buf, _merge_hash_total)
 		var cs := PackedInt32Array(); cs.resize(_merge_hash_total)
 		var run := 0
@@ -1186,8 +1162,7 @@ func _run_merge_pass() -> int:
 		_rd.compute_list_add_barrier(cl2)
 		_merge_bind_dispatch(cl2, 5.0)   # hop (SINK rule)
 		_rd.compute_list_end()
-		_merge_submit_sync()
-		var merges := _merge_read_uint()
+		var merges := _merge_read_uint()   # sync → hop visible
 		total += merges
 		_merge_cycles_run += 1
 		if merges == 0:
@@ -1195,7 +1170,6 @@ func _run_merge_pass() -> int:
 	var clf := _rd.compute_list_begin()
 	_merge_bind_dispatch(clf, 6.0)   # finalize: survivor masses → pos.w / dead = 0
 	_rd.compute_list_end()
-	_merge_submit_sync()
 	if total > 0:
 		print("[CassiSim] merge pass: %d merges (%d cycles)" % [total, _merge_cycles_run])
 	return total
@@ -1204,11 +1178,40 @@ func _run_merge_pass() -> int:
 const MERGE_MAX_CYCLES := 16
 
 
+## The merge push constant as 16 floats (shader layout: N, phi, phi_inv2,
+## q_threshold, R_m, extent.xyz, grid_N, hash_nxyz, cell_w.xyz, pass_mode@15).
+func _merge_pc_values() -> PackedFloat32Array:
+	var ebox := _extents()
+	var r_m: float = _extent_min() / float(maxi(grid_N, 1))   # ½·h₀
+	var f := PackedFloat32Array()
+	f.resize(16)
+	f[0] = float(N_particles)          # N
+	f[1] = PHI                          # phi
+	f[2] = PHI_INV2                     # phi^-2 (q denom scale + default gate)
+	f[3] = PHI_INV2                     # q_threshold = phi^-2
+	f[4] = r_m                          # R_m = ½·h₀
+	f[5] = ebox.x                       # extent_x
+	f[6] = ebox.y                       # extent_y
+	f[7] = ebox.z                       # extent_z
+	f[8] = float(grid_N)                # grid_N (q_coh trilinear)
+	f[9] = float(_merge_hash_nx)        # hash_nx
+	f[10] = float(_merge_hash_ny)       # hash_ny
+	f[11] = float(_merge_hash_nz)       # hash_nz
+	f[12] = _merge_cell_wx              # cell_wx
+	f[13] = _merge_cell_wy              # cell_wy
+	f[14] = _merge_cell_wz              # cell_wz
+	return f
+
+
 ## Bind the merge pipeline/set/PC and dispatch one pass mode into the open
-## compute list `cl` (N_particles threads). The caller adds barriers between
+## compute list `cl` (N_particles threads). Rebuilds the PC each dispatch
+## (a fresh PackedFloat32Array→bytes assignment, sidestepping any
+## encode_float-on-member quirk). The caller adds barriers between
 ## consecutive in-list passes and readbacks to sync across lists.
 func _merge_bind_dispatch(cl: int, pass_mode: float) -> void:
-	_merge_pc_bytes.encode_float(15, pass_mode)
+	var f := _merge_pc_values()
+	f[15] = pass_mode
+	_merge_pc_bytes = f.to_byte_array()
 	_rd.compute_list_bind_compute_pipeline(cl, _merge_pipe)
 	_rd.compute_list_bind_uniform_set(cl, _us_merge_0, 0)
 	_rd.compute_list_set_push_constant(cl, _merge_pc_bytes, _merge_pc_bytes.size())
@@ -1219,11 +1222,6 @@ func _merge_bind_dispatch(cl: int, pass_mode: float) -> void:
 ## RD does not submit lists from __ready/__process outside the renderer's
 ## frame; a submit+sync (or a self-stalling readback) is required for the
 ## merge's between-list orderings and CPU prefix-sum to be correct.
-func _merge_submit_sync() -> void:
-	_rd.submit()
-	_rd.sync()
-
-
 func _merge_read_uint() -> int:
 	var d := _rd.buffer_get_data(_merge_mc_buf, 0, 4)
 	return int(d.decode_u32(0)) if d.size() >= 4 else 0
@@ -1295,10 +1293,28 @@ func _decoupled_start_engine() -> bool:
 		"gradient_order": gradient_order, "dual_grid": dual_grid,
 		"multi_rung_seed": multi_rung_seed, "multi_rung_count": multi_rung_count,
 		"multi_rung_amp": multi_rung_amp, "multi_rung_base_scale": multi_rung_base_scale,
-		# Decoupled v1 = the GRID path only (meshless off — enforced at _ready).
-		"meshless_mode": false, "meshless_gravity": false,
+		"meshless_mode": meshless_mode, "meshless_gravity": meshless_gravity,
 		"mode": mode,
 	}
+	# Tree worker (decoupled + meshless + tree): created + started HERE on
+	# the MAIN thread (start() loads the tree shaders — not thread-safe
+	# off-main); the engine worker consumes it via submit()/poll(). The
+	# sim's own main-thread _tree_worker_frame orchestration is skipped in
+	# decoupled mode. If the tree worker fails to start, degrade to the
+	# river chain (meshless_gravity off) rather than run mode-5 with an
+	# empty gradient (zero force).
+	if meshless_mode and meshless_gravity:
+		_tree_worker_stop()   # restart-clean (stop-order: engine first — done by the caller)
+		var S := 2 * ML_N1 * ML_N1 * ML_N1
+		var N3 := grid_N * grid_N * grid_N
+		var w: RefCounted = load("res://scripts/cassi_tree_worker.gd").new()
+		if w.start(S, N3, N_particles):
+			_tree_worker = w
+			cfg["tree_worker"] = _tree_worker
+			cfg["tree_cadence"] = _tree_local_cadence
+		else:
+			push_warning("[CassiSim] decoupled tree worker failed to start — river fallback")
+			cfg["meshless_gravity"] = false
 	if ic_seed != 0:
 		cfg["seed"] = ic_seed
 	if not _physics_engine.start_threaded(cfg):
@@ -1605,6 +1621,13 @@ func _setup_buffers() -> void:
 	# Mass density grid (float per cell — float atomicAdd deposit, see
 	# cassi_mass_deposit.glsl)
 	_mass_density_buf = _rd.storage_buffer_create(nc * 4)
+	# Zero it once: the tree arm stages rho BEFORE the first step's GPU
+	# clear (the tree gather reads pre-deposit rho), and allocator reuse
+	# otherwise leaves garbage there — a nondeterministic step-1 tree
+	# source. Mirrored in cassi_physics_engine.gd (same commit).
+	var md_zero := PackedFloat32Array()
+	md_zero.resize(nc)
+	_rd.buffer_update(_mass_density_buf, 0, md_zero.size() * 4, md_zero.to_byte_array())
 	# Cell-centered ∇(g·Φ) field (vec4 per cell — river-arm gradient,
 	# rebuilt every step by the gradient pass between poisson and nbody)
 	_grad_buf = _rd.storage_buffer_create(nc * 16)
@@ -4082,6 +4105,17 @@ func _render_frame() -> void:
 		_poisson_residual_done = true
 		_report_poisson_residual()
 
+	# ── Cassi particle merge (opt-in): runs AFTER the physics batch + the
+	# frame's render-work recording, in the same submission context as the
+	# throttled occupancy readback below (the ONLY place global-RD compute
+	# lists + buffer_get_data readbacks reliably execute). The merge's cycle
+	# loop needs host CPU prefix-sums between its spatial-hash passes.
+	# Every frame; R_m ≈ 0.586 world units is crossed in ~586 dt=0.001 steps
+	# ≫ a frame's step budget, so once-per-frame is far inside the reaction
+	# budget. Decoupled: skipped — it mutates the mirrored pos buffer.
+	if particle_merge and _step_count > 0 and not _decoupled_active:
+		_run_merge_pass()
+
 	# Throttled occupancy + perf report (~2 Hz; interactive runs only —
 	# verify scenes keep playing=false and report their own numbers).
 	if playing and not suppress_readbacks and now_ms - _last_occ_ms >= 500:
@@ -4349,13 +4383,14 @@ func _render_bh_lensing() -> void:
 # ═══════════════════════════════════════════════════════════════════════
 
 func reinit() -> void:
-	_free_uniform_sets()  # cached sets reference the buffers being freed
-	_free_buffers()
-	# Decoupled producer: stop the engine before rebuilding the mirrors
-	# (no in-flight publishes; the stale result slot is dropped by the
-	# restart's fresh gen counters).
+	# STOP ORDER (decoupled): stop the ENGINE worker FIRST (it may be
+	# blocked inside a tree-worker submit), THEN the tree worker (via
+	# _free_buffers → _tree_worker_stop below). The engine worker must
+	# never call into a stopped tree worker.
 	if _decoupled_active and _physics_engine != null:
 		_physics_engine.stop_threaded()
+	_free_uniform_sets()  # cached sets reference the buffers being freed
+	_free_buffers()
 	# The MultiMesh instance buffer is sized at _setup_multimesh from the
 	# THEN-current N_particles. When N (or particle_size) changed since,
 	# rebuild it before _init_particles: assigning a differently-sized
