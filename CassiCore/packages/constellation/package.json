@@ -35,6 +35,7 @@
     "@cassicore/lamina-locus-bridge": "*",
     "@cassicore/mnemic-field": "*",
     "@cassicore/thalamus": "*",
+    "@cassicore/tools": "*",
     "@cassicore/workspace": "*",
     "better-sqlite3": "^11.0.0",
     "uuid": "^9.0.0"

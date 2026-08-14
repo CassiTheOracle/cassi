@@ -25,25 +25,11 @@ const DANGEROUS_TOOLS = new Set([
   'provider_config',
 ])
 
-export interface ToolDefinition {
-  name: string
-  description: string
-  inputSchema: {
-    type: string
-    properties?: Record<string, ParamSchema>
-    required?: string[]
-  }
-  category?: string
-}
+import type { ToolDefinition, ToolParamProperty } from './types.js'
 
-export interface ParamSchema {
-  type?: string
-  description?: string
-  enum?: string[]
-  default?: unknown
-  items?: unknown
-  properties?: Record<string, ParamSchema>
-}
+/** Param schema for a single tool parameter (canonical tools type). */
+export type ParamSchema = ToolParamProperty
+
 
 type SessionState = 'collecting' | 'confirming' | 'done'
 
@@ -107,14 +93,14 @@ export class InteractiveToolSession {
   async start(inlineParams?: Record<string, unknown>): Promise<SessionResult> {
     this.lastActivity = Date.now()
 
-    const schema = this.toolDef.inputSchema
+    const schema = this.toolDef.parameters
     const properties = schema.properties ?? {}
     const requiredSet = new Set(schema.required ?? [])
 
     // Apply inline params
     if (inlineParams) {
       for (const [k, v] of Object.entries(inlineParams)) {
-        this.collectedParams[k] = this.coerce(v as string, properties[k] ?? {})
+        this.collectedParams[k] = this.coerce(v as string, (properties[k] ?? {}) as ParamSchema)
       }
     }
 
@@ -230,8 +216,8 @@ export class InteractiveToolSession {
   }
 
   private buildStartPrompt(): string {
-    const props = this.toolDef.inputSchema.properties ?? {}
-    const required = new Set(this.toolDef.inputSchema.required ?? [])
+    const props = this.toolDef.parameters.properties ?? {}
+    const required = new Set(this.toolDef.parameters.required ?? [])
     const paramLines = Object.entries(props).map(([name, s]) => {
       const req = required.has(name) ? '(required)' : '(optional)'
       const desc = s.description ? ` — ${s.description}` : ''

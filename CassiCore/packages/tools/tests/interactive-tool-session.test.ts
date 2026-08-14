@@ -18,7 +18,7 @@ describe('InteractiveToolSession', () => {
     const tool: ToolDefinition = {
       name: 'memory_search',
       description: 'Search memory',
-      inputSchema: {
+      parameters: {
         type: 'object',
         properties: {
           query: { type: 'string', description: 'Search query' },
@@ -47,7 +47,7 @@ describe('InteractiveToolSession', () => {
     const tool: ToolDefinition = {
       name: 'memory_search',
       description: 'Search memory',
-      inputSchema: {
+      parameters: {
         type: 'object',
         properties: {
           query: { type: 'string' },
@@ -71,7 +71,7 @@ describe('InteractiveToolSession', () => {
     const tool: ToolDefinition = {
       name: 'bash',
       description: 'Run shell command',
-      inputSchema: {
+      parameters: {
         type: 'object',
         properties: {
           command: { type: 'string' },
@@ -99,7 +99,7 @@ describe('InteractiveToolSession', () => {
     const tool: ToolDefinition = {
       name: 'memory_search',
       description: 'Search memory',
-      inputSchema: {
+      parameters: {
         type: 'object',
         properties: {
           query: { type: 'string' },

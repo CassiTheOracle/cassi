@@ -35,7 +35,7 @@ import type {
   EffectivenessRecord,
 } from '../../corpus-types.js'
 import type { DialecticChannel } from './dialectic-channel.js'
-import type { ToolExecutor } from '../tools/executor.js'
+import type { ToolExecutor } from '@cassicore/tools'
 import type { ContextChunkIndex } from './context-chunk-index.js'
 
 

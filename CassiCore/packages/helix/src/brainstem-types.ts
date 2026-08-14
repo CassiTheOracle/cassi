@@ -460,7 +460,7 @@ export interface BrainstemDeps {
   /** Dialectic channel for processing edit proposals from Yang/Yin reviewers */
   dialecticChannel?: import('./dialectic-channel.js').DialecticChannel
   /** Tool executor for applying approved edits */
-  toolExecutor?: import('./vendor/core/tools/executor.js').ToolExecutor
+  toolExecutor?: import('@cassicore/tools').ToolExecutor
   /** Read-only file access for validating paths and grounding guidance — returns null if file not found */
   readFile?: (path: string) => Promise<string | null>
   /** ContextChunkIndex for Unity — allows brainstem to pin/evict/score context chunks */

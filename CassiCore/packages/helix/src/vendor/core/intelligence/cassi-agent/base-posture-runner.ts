@@ -36,8 +36,8 @@ import type {
   ModelHandle,
   ModelCompletionOpts,
 } from '../../model-pool/types.js'
-import type { ToolExecutor } from '../../tools/executor.js'
-import type { ToolRegistry } from '../../tools/registry.js'
+import type { ToolExecutor } from '@cassicore/tools'
+import type { ToolRegistry } from '@cassicore/tools'
 
 /** Re-exported so posture-runner consumers share the identical types. */
 export type { ModelHandle, ModelCompletionOpts, ToolExecutor, ToolRegistry }

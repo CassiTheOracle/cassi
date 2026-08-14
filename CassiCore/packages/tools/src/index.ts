@@ -77,3 +77,14 @@ export {
 export type {
   CoreToolDeps,
 } from './implementations/index.js'
+
+// ── Impl tool definitions / surfaces consumed by inbound packages ─────────
+// graph-discover (constellation-pipeline re-points setGraphDiscoverDeps runtime)
+export {
+  setGraphDiscoverDeps,
+  graphDiscoverDefinition,
+  graphDiscoverHandler,
+} from './implementations/graph-discover.js'
+export type { GraphDiscoverDeps } from './implementations/graph-discover.js'
+// collect-thoughts (constellation guidance-provider re-points the type)
+export type { ConstellationGuidanceProvider } from './implementations/collect-thoughts.js'
