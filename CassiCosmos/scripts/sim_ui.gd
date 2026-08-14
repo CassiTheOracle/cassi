@@ -30,6 +30,8 @@ var _fit_btn: Button
 var _auto_align_btn: CheckButton
 var _auto_track_btn: CheckButton
 var _scale_label: Label
+var _falsify_btn: CheckButton
+var _falsify_label: Label
 var _save_colors_btn: Button
 var _reset_colors_btn: Button
 var _legend: Control
@@ -127,6 +129,46 @@ var _autotrack_accum: float = 0.0
 
 
 # ═══════════════════════════════════════════════════════════════════════
+# Live falsification meter (w₀) — default-OFF, opt-in.
+# GDScript port of research/falsification/falsify_wo.py's SURVEY path
+# estimator (the theory's own H_conv formula + CPL fit). The meter reads
+# r = <EY>/<EI> (the volume-mean field ratio) from the sim's field buffers
+# at the same low-rate subsampled cadence as the Auto-Track tracker, feeds
+# it through this port, and shows w₀ plus its distance to DESI DR2's
+# −0.838 on a HUD line — a live falsification loop (loop_design.md).
+# ═══════════════════════════════════════════════════════════════════════
+
+## Sampling cadence for the meter: same 2.5 Hz subsampled field readback
+## as the Auto-Track tracker (no per-frame work).
+const FALSIFY_PERIOD_MS: int = 400
+## Readback subsample cap (cells): same bounded subsample policy as the
+## tracker — never full-resolution, never per-frame (the stutter lesson).
+const FALSIFY_MAX_CELLS: int = 32768
+
+# ── Estimator constants — mirror falsify_wo.py lines 48-58 ──────────────
+const FALSIFY_PHI: float = 1.618033988749895     # falsify_wo.py:48
+const FALSIFY_PHI_INV: float = 1.0 / FALSIFY_PHI # falsify_wo.py:49
+const FALSIFY_LAM: float = 0.02                  # falsify_wo.py:50
+const FALSIFY_H_EMPTY: float = (FALSIFY_LAM / 3.0) * FALSIFY_PHI_INV * FALSIFY_PHI_INV  # :51
+const FALSIFY_DESI_A_LO: float = 0.3             # :55
+const FALSIFY_DESI_A_HI: float = 1.0             # :55
+const FALSIFY_N: int = 300                       # np.linspace(0.3,1.0,300) — :231
+const FALSIFY_TARGET_W0: float = -0.838          # :54 (DESI DR2 best-fit)
+const FALSIFY_DESI_1SIGMA: float = 0.068         # loop_design.md §5 (DESI 1σ)
+const FALSIFY_ATTRACTOR_R: float = 1.5892        # calibrated r(a=1) (falsify_wo.py:270)
+# ── ODE integration (survey path, falsify_wo.py lines 64-122) ───────────
+# The ODE dr/dlna is autonomous in ln a, so a single snapshot r = r(a=1.0)
+# reconstructs r(a) over the DESI window by back-integrating to a=0.3.
+const FALSIFY_RK_STEPS: int = 20000              # dense RK4 substeps over ln a
+
+# Meter state.
+var _falsify_accum: float = 0.0
+var _last_falsify_w0: float = NAN
+var _last_falsify_wa: float = NAN
+var _last_falsify_r: float = NAN
+
+
+# ═══════════════════════════════════════════════════════════════════════
 # Style
 # ═══════════════════════════════════════════════════════════════════════
 
@@ -186,7 +228,7 @@ func _ready() -> void:
 	info_panel.add_theme_stylebox_override("panel", _make_panel_style())
 	info_panel.set_anchors_preset(PRESET_TOP_LEFT)
 	info_panel.offset_left = 10; info_panel.offset_top = 10
-	info_panel.offset_right = 300; info_panel.offset_bottom = 180
+	info_panel.offset_right = 300; info_panel.offset_bottom = 215
 	info_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(info_panel)
 
@@ -203,6 +245,12 @@ func _ready() -> void:
 
 	_conn_label = _make_label("Connection: Local", Color(0.5, 0.7, 0.9), 12)
 	info_vbox.add_child(_conn_label)
+
+	_falsify_label = _make_label("", Color(0.95, 0.85, 0.5), 12)
+	_falsify_label.name = "FalsifyLabel"
+	_falsify_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_falsify_label.visible = false
+	info_vbox.add_child(_falsify_label)
 
 	# ── Bottom control panel ─────────────────────────────────────
 	var control_panel = PanelContainer.new()
@@ -494,6 +542,15 @@ func _ready() -> void:
 	_vfx_twoaxis_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	_vfx_twoaxis_btn.toggled.connect(_on_vfx_twoaxis_toggled)
 	row_vfx.add_child(_vfx_twoaxis_btn)
+	_falsify_btn = CheckButton.new()
+	_falsify_btn.name = "FalsifyBtn"
+	_falsify_btn.text = "w₀ live"
+	_falsify_btn.tooltip_text = "LIVE falsification meter: reads r = <EY>/<EI> (volume-mean field ratio) at a low 2.5 Hz subsampled rate, runs the theory's w₀/wₐ estimator (the falsify_wo.py survey port), and shows w₀ + distance to DESI DR2's −0.838 on the info HUD. Opt-in; OFF hides the line."
+	_falsify_btn.custom_minimum_size = Vector2(76, 22)
+	_falsify_btn.focus_mode = Control.FOCUS_NONE
+	_falsify_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	_falsify_btn.toggled.connect(_on_falsify_toggled)
+	row_vfx.add_child(_falsify_btn)
 
 	# Server (future) fields
 	var srv_box = VBoxContainer.new()
@@ -915,6 +972,233 @@ func _autotrack_update(band_lo: float, band_hi: float) -> Vector2:
 
 
 # ═══════════════════════════════════════════════════════════════════════
+# Live falsification meter — the w₀ estimator (loop_design.md §2-3)
+# ═══════════════════════════════════════════════════════════════════════
+#
+# Same low-rate discipline as Auto-Track: a subsampled (bounded, capped)
+# readback of the field buffers at ~2.5 Hz, computed CPU-side. The meter
+# reads r = <EY>/<EI> (volume-mean ratio), feeds it through the GDScript
+# port of falsify_wo.py's survey-path estimator, and shows w₀, w_a, r and
+# the distance to DESI DR2's w₀ = −0.838 on the info HUD. Verdict gated
+# per loop_design.md §5 — no agreement claim until the sim reaches the
+# calibrated φ-attractor.
+
+## Per-frame cadence driver for the meter (~2.5 Hz).
+func _falsify_tick(delta: float) -> void:
+	var sim = _get_sim()
+	if sim == null or sim._rd == null:
+		return
+	if sim._field_ey == null or sim._field_ei == null:
+		return
+	if not sim._field_ey.is_valid() or not sim._field_ei.is_valid():
+		return
+	if sim.suppress_readbacks:
+		return  # reading the global RD would stall — leave the last estimate
+	_falsify_accum += delta
+	if _falsify_accum * 1000.0 < float(FALSIFY_PERIOD_MS):
+		return
+	_falsify_accum = 0.0
+	var r: float = _falsify_measure_r()
+	if is_finite(r) and r > 0.0:
+		var est: Vector2 = _falsify_w0_wa(r)   # (w0, wa) from the survey-path estimator
+		_last_falsify_r = r
+		_last_falsify_w0 = est.x
+		_last_falsify_wa = est.y
+		_update_falsify_label()
+
+
+## Measure r = <EY>/<EI> from a subsampled slice of the field buffers —
+## volume-mean ratio (loop_design.md: r = <EY>/<EI>). Returns -1 when
+## nothing measurable. Exposed for the probe (verify_falsify.gd).
+func _falsify_measure_r() -> float:
+	var sim = _get_sim()
+	if sim == null or sim._rd == null:
+		return -1.0
+	if not sim._field_ey.is_valid() or not sim._field_ei.is_valid():
+		return -1.0
+	var nc: int = sim.grid_N * sim.grid_N * sim.grid_N
+	if nc <= 0:
+		return -1.0
+	var sample_cells: int = mini(nc, FALSIFY_MAX_CELLS)
+	var offset: int = maxi((nc - sample_cells) / 2, 0)
+	var ey_d: PackedByteArray = sim._rd.buffer_get_data(sim._field_ey, offset * 4, sample_cells * 4)
+	var ei_d: PackedByteArray = sim._rd.buffer_get_data(sim._field_ei, offset * 4, sample_cells * 4)
+	if ey_d.size() < sample_cells * 4 or ei_d.size() < sample_cells * 4:
+		return -1.0
+	var ey := ey_d.to_float32_array()
+	var ei := ei_d.to_float32_array()
+	# Volume-mean: sum the positive-definite fields (EQ of the ratio of
+	# means = ratio of the spatially averaged fields, falsify_wo.py:207-209).
+	var ey_sum := 0.0
+	var ei_sum := 0.0
+	var n_ok := 0
+	for i in range(sample_cells):
+		var eyv: float = ey[i]
+		var eiv: float = ei[i]
+		if is_finite(eyv) and is_finite(eiv) and eyv > 0.0 and eiv > 0.0:
+			ey_sum += eyv
+			ei_sum += eiv
+			n_ok += 1
+	if n_ok < 64 or ei_sum <= 0.0:
+		return -1.0
+	return ey_sum / ei_sum
+
+
+## Survey-path estimator: given r = r(a=1.0) (today), reconstruct r(a) over
+## the DESI window a∈[0.3,1.0] by back-integrating the theory ODE, then
+## CPL-fit (w0, wa). Port of falsify_wo.py `w0_wa_from_r` + `_integrate_r`
+## (lines 76-148). Returns (w0, wa).
+static func _falsify_w0_wa(r: float) -> Vector2:
+	# ── 1. Build the a-grid (np.linspace(0.3,1.0,300), falsify_wo.py:231) ─
+	var a := PackedFloat32Array()
+	a.resize(FALSIFY_N)
+	var h_a: float = (FALSIFY_DESI_A_HI - FALSIFY_DESI_A_LO) / float(FALSIFY_N - 1)
+	for i in range(FALSIFY_N):
+		a[i] = FALSIFY_DESI_A_LO + float(i) * h_a
+	# ── 2. Back-integrate r(a) anchored at r(1.0) — RK4 dense over ln a ──
+	# The ODE is autonomous in t = ln a; t runs from ln(1.0)=0 down to
+	# ln(0.3) (falsify_wo.py _integrate_r below-anchor segment, :88-107).
+	var t_lo: float = log(maxf(FALSIFY_DESI_A_LO, 1e-6))
+	var t_hi: float = log(FALSIFY_DESI_A_HI)   # 0.0
+	var dt: float = (t_lo - t_hi) / float(FALSIFY_RK_STEPS)   # negative
+	# Evaluate r at each a-grid point (in descending t) via dense linear
+	# interpolation between RK4 substeps.
+	var rt := PackedFloat32Array()
+	rt.resize(FALSIFY_N)
+	rt[FALSIFY_N - 1] = r   # at a = 1.0 (t = 0)
+	var r_cur: float = r
+	var t_cur: float = t_hi
+	# Walk the grid points from a=1.0 (index N-1) down to a=0.3 (index 0).
+	var gi: int = FALSIFY_N - 2
+	for s in range(FALSIFY_RK_STEPS):
+		var t_next: float = t_cur + dt
+		var tt: float = t_cur
+		var rk1: float = _falsify_dr_dlna(r_cur)
+		var rk2: float = _falsify_dr_dlna(r_cur + 0.5 * dt * rk1)
+		var rk3: float = _falsify_dr_dlna(r_cur + 0.5 * dt * rk2)
+		var rk4: float = _falsify_dr_dlna(r_cur + dt * rk3)
+		var r_next: float = r_cur + (dt / 6.0) * (rk1 + 2.0 * rk2 + 2.0 * rk3 + rk4)
+		# Fill any a-grid points crossed in this substep (t descends: t_cur
+		# ≥ tg ≥ t_next). Linear interp between the step endpoints.
+		while gi >= 0:
+			var tg := log(maxf(a[gi], 1e-6))
+			if tg <= t_cur and tg >= t_next:
+				var f: float = (tg - t_next) / (t_cur - t_next)   # 1 at t_cur, 0 at t_next
+				rt[gi] = r_cur + (r_next - r_cur) * f
+				gi -= 1
+			else:
+				break
+		r_cur = r_next
+		t_cur = t_next
+		if gi < 0:
+			break
+	if rt[0] <= 0.0:
+		rt[0] = maxf(rt[0], 1e-12)
+	# ── 3. w(a) and the CPL fit (falsify_wo.py w0_wa_from_r, :129-147) ──
+	# H = H_EMPTY + H_conv(r); w = -1 - (2/3) d ln H / d ln a; CPL fit over
+	# the DESI window with column [1, 1-a].
+	var w := PackedFloat32Array()
+	w.resize(FALSIFY_N)
+	var dlnH := PackedFloat32Array(); dlnH.resize(FALSIFY_N)
+	var dlna := PackedFloat32Array(); dlna.resize(FALSIFY_N)
+	for i in range(FALSIFY_N):
+		var ri: float = maxf(rt[i], 1e-30)
+		var h_conv: float = (FALSIFY_LAM / 3.0) * (FALSIFY_PHI - ri) * (1.0 + ri) / (ri + 1e-30)
+		var hi: float = FALSIFY_H_EMPTY + h_conv
+		dlnH[i] = log(hi + 1e-30)
+		dlna[i] = log(maxf(a[i], 1e-30))
+	# np.gradient with uniform a-spacing h_a (central diff, one-sided edges).
+	for i in range(FALSIFY_N):
+		var dh: float
+		var da: float
+		if i == 0:
+			dh = (dlnH[1] - dlnH[0]) / h_a
+			da = (dlna[1] - dlna[0]) / h_a
+		elif i == FALSIFY_N - 1:
+			dh = (dlnH[FALSIFY_N - 1] - dlnH[FALSIFY_N - 2]) / h_a
+			da = (dlna[FALSIFY_N - 1] - dlna[FALSIFY_N - 2]) / h_a
+		else:
+			dh = (dlnH[i + 1] - dlnH[i - 1]) / (2.0 * h_a)
+			da = (dlna[i + 1] - dlna[i - 1]) / (2.0 * h_a)
+		w[i] = -1.0 - (2.0 / 3.0) * dh / maxf(da, 1e-30)
+	# Least squares: A = [1, 1-a], solve A^T А x = A^T w (2x2 normal eqs).
+	var s00 := 0.0  # A^T A [0][0] = Σ 1
+	var s01 := 0.0  # Σ (1-a)
+	var s11 := 0.0  # Σ (1-a)²
+	var s0w := 0.0  # Σ w
+	var s1w := 0.0  # Σ w·(1-a)
+	for i in range(FALSIFY_N):
+		var one_a: float = 1.0 - a[i]
+		s00 += 1.0
+		s01 += one_a
+		s11 += one_a * one_a
+		s0w += w[i]
+		s1w += w[i] * one_a
+	var det: float = s00 * s11 - s01 * s01
+	if absf(det) < 1e-30:
+		return Vector2(-1.0, -1.0)
+	var w0: float = (s11 * s0w - s01 * s1w) / det
+	var wa: float = (s00 * s1w - s01 * s0w) / det
+	return Vector2(w0, wa)
+
+
+## dr/dlna — the theory ODE (falsify_wo.py `_ode_dr_dlna`, lines 64-73).
+static func _falsify_dr_dlna(r: float) -> float:
+	var h_conv: float = (FALSIFY_LAM / 3.0) * (FALSIFY_PHI - r) * (1.0 + r) / maxf(r, 1e-12)
+	var h: float = FALSIFY_H_EMPTY + h_conv
+	var eps_sq: float = (r - FALSIFY_PHI) * (r - FALSIFY_PHI) * FALSIFY_PHI * FALSIFY_PHI \
+		/ ((1.0 + r) * (1.0 + r) + 1e-30)
+	var gate: float = (FALSIFY_PHI_INV * FALSIFY_PHI_INV + eps_sq) \
+		/ (FALSIFY_PHI * FALSIFY_PHI + FALSIFY_PHI_INV * FALSIFY_PHI_INV + eps_sq + 1e-30)
+	return FALSIFY_LAM * gate * (FALSIFY_PHI - r) * (1.0 + r) / (h + 1e-30)
+
+
+## Refresh the HUD line with the latest estimate + DESI distance. Honest
+## verdict gating per loop_design.md §5: no agreement claim until r sits
+## near the calibrated attractor.
+func _update_falsify_label() -> void:
+	if _falsify_label == null:
+		return
+	if not is_finite(_last_falsify_w0):
+		_falsify_label.text = "w₀: — (no field ratio yet)"
+		return
+	var delta_w0: float = _last_falsify_w0 - FALSIFY_TARGET_W0
+	var abs_d: float = absf(delta_w0)
+	var verdict: String
+	if abs_d <= FALSIFY_DESI_1SIGMA:
+		verdict = "WITHIN 1σ"
+	elif abs_d <= 2.0 * FALSIFY_DESI_1SIGMA:
+		verdict = "MARGINAL (1-2σ)"
+	else:
+		verdict = "FALSIFIED (>2σ)"
+	# Relaxation gate: until r is near the calibrated attractor the estimate
+	# is not falsifiable (loop_design.md §4.1, §5) — show it plainly.
+	var relaxed: bool = absf(_last_falsify_r - FALSIFY_ATTRACTOR_R) <= 0.05
+	var note: String = "" if relaxed \
+		else "  [r≠1.59 — still relaxing to φ-attractor; not yet meaningful]"
+	_falsify_label.text = \
+		("w₀=%s w_a=%s  r=<EY>/<EI>=%s (φ=%.3f)\n" \
+		 + "Δw₀ vs DESI %s = %s  [%s]%s") % [
+		_fmt_sign(_last_falsify_w0), _fmt_sign(_last_falsify_wa),
+		_fmt_sign(_last_falsify_r), FALSIFY_PHI,
+		_fmt_sign(FALSIFY_TARGET_W0), _fmt_sign(delta_w0), verdict, note]
+
+
+## Signed compact formatter for the meter (w₀/wₐ/delta can be negative —
+## the ui's _fmt_scale collapses ≤ 0 to "0").
+func _fmt_sign(v: float) -> String:
+	if not is_finite(v):
+		return "—"
+	if absf(v) >= 100.0:
+		return "%.1f" % v
+	if absf(v) >= 0.1:
+		return "%.4f" % v
+	if absf(v) >= 0.01:
+		return "%.5f" % v
+	return "%.6f" % v
+
+
+# ═══════════════════════════════════════════════════════════════════════
 # Process & input
 # ═══════════════════════════════════════════════════════════════════════
 
@@ -922,6 +1206,8 @@ func _process(delta: float) -> void:
 	_fps_accum += delta; _fps_count += 1
 	if _auto_track_btn != null and _auto_track_btn.button_pressed:
 		_autotrack_tick(delta)
+	if _falsify_btn != null and _falsify_btn.button_pressed:
+		_falsify_tick(delta)
 	if _fps_accum >= 0.5:
 		_fps_display = _fps_count / _fps_accum
 		_fps_accum = 0.0; _fps_count = 0
@@ -1102,6 +1388,13 @@ func _on_legend_manual() -> void:
 	if _auto_track_btn != null and _auto_track_btn.button_pressed:
 		_auto_track_btn.set_pressed_no_signal(false)
 	_autotrack_accum = 0.0
+
+
+func _on_falsify_toggled(on: bool) -> void:
+	if _falsify_label != null:
+		_falsify_label.visible = on
+		_falsify_label.text = "" if not on else _falsify_label.text
+	_falsify_accum = 0.0
 
 
 func _on_save_colors() -> void:
