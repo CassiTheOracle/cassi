@@ -7,10 +7,10 @@ extends Control
 ## sim_ui.gd's Init profile selector (init_box, ~120px min width) and the
 ## color-source selector.
 ##
-## Interaction rule (deliberate): the OptionButton stays FOCUSABLE so the
-## user can keyboard-navigate the dropdown — we do NOT set FOCUS_NONE (the
-## migration must not disable it). It gets the pointing-hand cursor and its
-## text is styled via the theme tokens for dark-theme readability.
+## Interaction rule: the OptionButton is FOCUS_NONE (library convention —
+## every interactive control is FOCUS_NONE so the WASD camera keys are never
+## stolen). It gets the pointing-hand cursor and its text is styled via the
+## theme tokens for dark-theme readability.
 ##
 ## Usage:
 ##   var o := COptionParam.new()
@@ -55,8 +55,9 @@ func setup(caption: String, caption_token: String, options: Array[String],
 		option.add_item(opt)
 	option.select(selected)
 	option.custom_minimum_size = Vector2(0, 22)
-	# Hand cursor affordance; keep the OptionButton focusable for keyboard
-	# navigation of the dropdown.
+	# FOCUS_NONE (library convention — the OptionButton must not steal the
+	# WASD camera keys; Button's own default is FOCUS_ALL).
+	option.focus_mode = Control.FOCUS_NONE
 	option.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	_apply_option_style()
 	box.add_child(option)

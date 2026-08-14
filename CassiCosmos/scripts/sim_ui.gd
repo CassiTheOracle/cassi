@@ -697,16 +697,9 @@ func _ready() -> void:
 	_multirung_btn.toggled.connect(_on_multirung_toggled)
 	_vsync_btn.toggled.connect(_on_vsync_toggled)
 
-	# Prevent controls from stealing WASD camera input. (CParam slider +
-	# CSegmented/CToggle/CButton bake FOCUS_NONE in; CSpinParam/COptionParam
-	# deliberately default to FOCUS_ALL for keyboard entry, but the
-	# pre-migration rows were FOCUS_NONE to protect the WASD camera, so we
-	# re-assert it here for zero behavior change.)
-	_grid_spin.spin.focus_mode = Control.FOCUS_NONE
-	_particle_spin.spin.focus_mode = Control.FOCUS_NONE
-	_nclusters_spin.spin.focus_mode = Control.FOCUS_NONE
-	_sep_spin.spin.focus_mode = Control.FOCUS_NONE
-	_init_opt.option.focus_mode = Control.FOCUS_NONE
+	# All interactive controls (CButton/CToggle/CParam slider/CSegmented +
+	# CSpinParam/COptionParam) bake FOCUS_NONE in at the component level, so
+	# the WASD camera keys are never stolen — no per-control focus lines here.
 
 # ═══════════════════════════════════════════════════════════════════════
 # UI building helpers
@@ -742,12 +735,10 @@ func _build_param_row(p: Dictionary) -> Control:
 				param.caption_label.text = "%s %.2f" % [caption, p.default]
 			return param
 		"spin":
-			# CSpinParam = caption CLabel above a SpinBox (added by the
-			# addons worker). Its setup wires value_changed→callback and
-			# set_value_no_signal is no-emit, so the init sync is spurious-
-			# reinit-safe. CSpinParam deliberately leaves the SpinBox
-			# FOCUS_ALL for keyboard entry, but the pre-migration rows kept
-			# FOCUS_NONE to protect the WASD camera — we re-assert it below.
+			# CSpinParam = caption CLabel above a SpinBox. Its setup wires
+			# value_changed→callback and set_value_no_signal is no-emit, so
+			# the init sync is spurious-reinit-safe. The SpinBox keeps the
+			# library FOCUS_NONE default (see the component).
 			var spin_box := CSpinParam.new()
 			spin_box.box_min_width = int(width)
 			spin_box.setup(caption, token, p.min, p.max, p.step, p.default,
@@ -759,11 +750,10 @@ func _build_param_row(p: Dictionary) -> Control:
 				"separation":  _sep_spin = spin_box
 			return spin_box
 		"option":
-			# COptionParam = caption CLabel above an OptionButton (added by
-			# the addons worker). Its setup wires item_selected→callback and
-			# set_value_no_signal is no-emit, so the init sync is spurious-
-			# reinit-safe. Focusability handled at the call site (FOCUS_NONE
-			# to keep the WASD camera, matching the pre-migration Init row).
+			# COptionParam = caption CLabel above an OptionButton. Its setup
+			# wires item_selected→callback and set_value_no_signal is
+			# no-emit, so the init sync is spurious-reinit-safe. The option
+			# keeps the library FOCUS_NONE default (see the component).
 			var opt_param := COptionParam.new()
 			opt_param.box_min_width = int(width)
 			opt_param.setup(caption, token, INIT_CHOICES, p.default,

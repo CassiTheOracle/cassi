@@ -8,12 +8,12 @@ extends Control
 ## Restructured from sim_ui.gd's Grid-N / Particles / Clusters / Separation
 ## boxes (VBox -> caption + SpinBox, rows of ~120–150px min width).
 ##
-## Interaction rule (deliberate): the SpinBox is EXPLICITLY focusable
-## (focus_mode = FOCUS_ALL — SpinBox's own default is FOCUS_NONE, only its
-## inner LineEdit is FOCUS_ALL). The sim lets the user keyboard-enter values
-## on these, so the migration must not set FOCUS_NONE. It gets the
-## pointing-hand cursor and its text is styled via the theme tokens for
-## dark-theme readability.
+## Interaction rule: the SpinBox keeps Godot's default focus_mode of
+## FOCUS_NONE — only its inner LineEdit is FOCUS_ALL, so clicking the text
+## area still allows keyboard entry, but the control itself never steals
+## the WASD camera keys. This matches the library convention (FOCUS_NONE
+## on every interactive control). It gets the pointing-hand cursor and its
+## text is styled via the theme tokens for dark-theme readability.
 ##
 ## Usage:
 ##   var p := CSpinParam.new()
@@ -59,11 +59,9 @@ func setup(caption: String, caption_token: String, min_v: float, max_v: float,
 	spin.step = step_v
 	spin.value = value
 	spin.custom_minimum_size = Vector2(0, 22)
-	# Keyboard-entry affordance: SpinBox's OWN focus_mode defaults to FOCUS_NONE
-	# (only its inner LineEdit is FOCUS_ALL), so explicitly enable focus here —
-	# the migration must not set FOCUS_NONE (the sim lets the user tab/type).
-	spin.focus_mode = Control.FOCUS_ALL
-	# Hand cursor affordance; keep the SpinBox focusable for keyboard entry.
+	# Keep Godot's default FOCUS_NONE on the SpinBox (only the inner LineEdit
+	# is focusable — clicking it still allows keyboard entry, but the control
+	# never steals the WASD camera keys); library convention is FOCUS_NONE.
 	spin.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	_apply_spin_style()
 	box.add_child(spin)
