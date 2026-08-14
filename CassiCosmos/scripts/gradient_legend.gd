@@ -8,7 +8,7 @@ extends Control
 
 signal gradient_changed
 
-enum MK { LOW, HIGH, FIXED_WHITE }
+enum MK { LOW, HIGH, WHITE }
 
 # Engine-array indices — mirror cassi_sim.gd's E_* constants.
 const E_PROG: int = 0
@@ -177,7 +177,7 @@ func _build_markers() -> void:
 	_markers.append(_mk("LOW", MK.LOW, _engine[E_LO1], true))
 	_markers.append(_mk("HIGH", MK.HIGH, _engine[E_HIC], true))
 	if _engine[E_APPROACH_ON] > 0.5:
-		_markers.append(_mk("WHITE", MK.FIXED_WHITE, _engine[E_AHI], false))
+		_markers.append(_mk("WHITE", MK.WHITE, _engine[E_AHI], true))
 
 
 func _mk(name: String, kind: int, q: float, draggable: bool) -> Dictionary:
@@ -208,6 +208,15 @@ func _set_marker(kind: int, q: float) -> void:
 			sim.qi_approach = Vector2(q, sim.qi_approach.y)
 		else:
 			sim.velocity_cycle = Vector2(sim.velocity_cycle.x, q)
+	elif kind == MK.WHITE:
+		# The white point: dragging it sets the approach's top edge and
+		# switches OFF threshold tracking (manual white point).
+		q = clampf(q, _engine[E_ALO] * 1.001, _q_scale_max())
+		if qi_mode:
+			sim.qi_approach = Vector2(sim.qi_approach.x, q)
+			sim.qi_approach_tracks_threshold = false
+		else:
+			sim.velocity_approach = Vector2(sim.velocity_approach.x, q)
 	gradient_changed.emit()
 
 
@@ -271,7 +280,16 @@ func _hit_marker(x: float) -> int:
 			continue
 		var mx: float = _x_from_q(_markers[i].q)
 		var dist: float = absf(mx - x)
-		if dist <= best_dist:
+		if best < 0:
+			best = i
+			best_dist = dist
+		elif _markers[i].kind == MK.WHITE and dist <= best_dist + 1.0:
+			# The white point can sit almost on top of HIGH (its own config
+			# puts the cycle top at the approach entry) — in a near-tie,
+			# grabbing near WHITE moves WHITE.
+			best = i
+			best_dist = dist
+		elif dist < best_dist - 1.0:
 			best = i
 			best_dist = dist
 	return best
