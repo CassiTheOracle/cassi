@@ -9,8 +9,8 @@ import http from 'node:http'
 import os from 'node:os'
 import path from 'node:path'
 
-import type { ILogger } from '../../types/interfaces.js'
-import type { IProvider, Message, CompletionOpts, CompletionChunk } from '../../types/runtime.js'
+import type { ILogger } from '@cassicore/foundation'
+import type { IProvider, Message, CompletionOpts, CompletionChunk } from '@cassicore/foundation'
 
 interface BridgeOptions {
   socketPath?: string

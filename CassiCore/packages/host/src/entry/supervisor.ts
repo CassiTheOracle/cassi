@@ -17,10 +17,10 @@ import fs from 'node:fs'
 import os from 'node:os'
 import { fileURLToPath } from 'node:url'
 
-import { rootLogger } from '../logger.js'
-import { rotateLogByVersion } from '../logger.js'
+import { rootLogger } from '@cassicore/events'
+import { rotateLogByVersion } from '@cassicore/events'
 import { checkForUpdates, extractAndBuild } from './code-extractor.js'
-import { getBuildIdentifier, formatBuildId } from '../build-id.js'
+import { getBuildIdentifier, formatBuildId } from '../vendor/core/build-id.js'
 
 process.title = 'cassi:supervisor'
 

@@ -1,8 +1,8 @@
-import { EventBus, bus } from "./event-bus.js"
-import { Logger, rootLogger } from "./logger.js"
-import { Config } from "./config.js"
-import { createLayeredConfig } from "./runtime-config.js"
-import { getBuildIdentifier, formatBuildId, type BuildIdentifier } from "./build-id.js"
+import { EventBus, bus } from "@cassicore/events"
+import { Logger, rootLogger } from "@cassicore/events"
+import { Config } from "./vendor/core/config.js"
+import { createLayeredConfig } from "./vendor/core/runtime-config.js"
+import { getBuildIdentifier, formatBuildId, type BuildIdentifier } from "./vendor/core/build-id.js"
 
 import fs from "node:fs"
 import { homedir } from "node:os"
@@ -14,56 +14,56 @@ export const CASSICORE_VERSION: string = _BUILD.version
 export const CASSICORE_BUILD: BuildIdentifier = _BUILD
 export const CASSICORE_BUILD_STRING: string = formatBuildId(_BUILD)
 
-import { createAdminApi } from './admin-api.js'
+import { createAdminApi } from '@cassicore/admin-api'
 import { createBridge } from './bridge/openai.js'
-import { CommandDispatcher } from './commands.js'
-import { createMonitoringHook, type MonitoringHook } from './monitoring-hook.js'
+import { CommandDispatcher } from '@cassicore/commands'
+import { createMonitoringHook, type MonitoringHook } from './vendor/core/monitoring-hook.js'
 import { bootIntelligencePostPipeline } from './daemon/boot-intelligence-post.js'
 import { PrimarySessionRouter, createPrimarySessionRouter } from './daemon/primary-session-router.js'
-import { initContextWindowDebugger, ContextWindowDebugger } from './events/context-window-debug.js'
-import { setContextWindowDebugger, contextWindowDebugMiddleware } from './turn-pipeline.js'
-import { createSessionDigestStore, type SessionDigestStore } from './intelligence/session-digest.js'
-import { IntelligentContextWindow } from './intelligence/context-window/index.js'
-import { createSynapse } from './intelligence/synapse/index.js'
-import { MODEL_DEFAULTS, getModelSpec } from './config/system-settings.js'
-import { HealthMonitor } from './health-monitor.js'
-import { createIntelligence } from "./intelligence/index.js"
-import { GlobalBlackboardRegistry } from './intelligence/flux-team/global-blackboard-registry.js'
-import { MCPRegistry } from './mcp/registry.js'
-import { createOrchestrationBus } from './orchestration-bus.js'
-import { PluginHost } from "./plugin-host.js"
-import { type BudgetTracker, createBudgetTracker } from './providers/budget-tracker.js'
-import { ModelDirective } from './model-routing/index.js'
-import { type ModelRouter, createModelRouter } from './providers/model-router.js'
-import { createSessionBridge } from './session-bridge.js'
-import { createSessionManager } from './session-manager.js'
-import { SessionStore } from './session-store.js'
-import { MnemicField, CodeStore } from './intelligence/mnemic-field/index.js'
-import type { SelfModelField } from './intelligence/mnemic-field/self-model/self-model-field.js'
-import type { InterFieldBridge } from './intelligence/mnemic-field/self-model/inter-field-bridge.js'
-import type { KnowledgeField } from './intelligence/mnemic-field/knowledge/knowledge-field.js'
-import { createSubagentTracker, type SubagentTracker } from './subagent-tracker.js'
-import { ToolExecutor } from './tools/executor.js'
-import { registerCoreTools } from './tools/implementations/index.js'
-import { ToolRegistry } from './tools/registry.js'
-import { ToolReliabilityTracker } from './tools/reliability.js'
-import { registerHermesTools } from './tools/hermes-tools.js'
-import { getHermesMcpClient, shutdownHermesMcpClient } from './tools/hermes-mcp-client.js'
-import { WorkflowEngine } from './workflow/engine.js'
-import { WorkflowRegistry } from './workflow/registry.js'
-import { WorkflowStore } from './workflow/persistence.js'
-import { WorkflowDefinitionStore } from './workflow/definition-store.js'
-import { WorkflowScheduler } from './workflow/scheduler.js'
-import { WorkflowTriggerStore } from './workflow/trigger-store.js'
-import { BranchingConversationManager } from './intelligence/branching-conversation/manager.js'
-import { TurnPipeline } from './turn-pipeline.js'
-import { buildSystemPrompt } from './workspace/loader.js'
-import { executeTurn, getPreferredTurnEngine } from './admin-api/turn-routing.js'
+import { initContextWindowDebugger, ContextWindowDebugger } from '@cassicore/events'
+import { setContextWindowDebugger, contextWindowDebugMiddleware } from './vendor/core/turn-pipeline.js'
+import { createSessionDigestStore, type SessionDigestStore } from './vendor/core/intelligence/session-digest.js'
+import { IntelligentContextWindow } from './vendor/core/intelligence/context-window/index.js'
+import { createSynapse } from './vendor/core/intelligence/synapse/index.js'
+import { MODEL_DEFAULTS, getModelSpec } from '@cassicore/foundation'
+import { HealthMonitor } from './vendor/core/health-monitor.js'
+import { createIntelligence } from "./vendor/core/intelligence/index.js"
+import { GlobalBlackboardRegistry } from '@cassicore/flux-team'
+import { MCPRegistry } from '@cassicore/mcp'
+import { createOrchestrationBus } from './vendor/core/orchestration-bus.js'
+import { PluginHost } from "@cassicore/plugins"
+import { type BudgetTracker, createBudgetTracker } from '@cassicore/providers'
+import { ModelDirective } from './vendor/core/model-routing/index.js'
+import { type ModelRouter, createModelRouter } from '@cassicore/providers'
+import { createSessionBridge } from './vendor/core/session-bridge.js'
+import { createSessionManager } from './vendor/core/session-manager.js'
+import { SessionStore } from './vendor/core/session-store.js'
+import { MnemicField, CodeStore } from '@cassicore/mnemic-field'
+import type { SelfModelField } from '@cassicore/mnemic-field'
+import type { InterFieldBridge } from '@cassicore/mnemic-field'
+import type { KnowledgeField } from '@cassicore/mnemic-field'
+import { createSubagentTracker, type SubagentTracker } from './vendor/core/subagent-tracker.js'
+import { ToolExecutor } from '@cassicore/tools'
+import { registerCoreTools } from '@cassicore/tools'
+import { ToolRegistry } from '@cassicore/tools'
+import { ToolReliabilityTracker } from '@cassicore/tools'
+import { registerHermesTools } from '@cassicore/tools'
+import { getHermesMcpClient, shutdownHermesMcpClient } from '@cassicore/tools'
+import { WorkflowEngine } from '@cassicore/workflow'
+import { WorkflowRegistry } from '@cassicore/workflow'
+import { WorkflowStore } from '@cassicore/workflow'
+import { WorkflowDefinitionStore } from '@cassicore/workflow'
+import { WorkflowScheduler } from '@cassicore/workflow'
+import { WorkflowTriggerStore } from '@cassicore/workflow'
+import { BranchingConversationManager } from './vendor/core/intelligence/branching-conversation/manager.js'
+import { TurnPipeline } from './vendor/core/turn-pipeline.js'
+import { buildSystemPrompt } from './vendor/core/workspace/loader.js'
+import { executeTurn, getPreferredTurnEngine } from '@cassicore/admin-api'
 
 
-import type { IEventBus, ILogger, IConfig, IPluginHost, IntelligenceModule } from "../types/interfaces.js"
-import type { IProvider } from '../types/runtime.js'
-import type { IntelligenceLayer } from "./intelligence/index.js"
+import type { IEventBus, ILogger, IConfig, IPluginHost, IntelligenceModule } from "@cassicore/foundation"
+import type { IProvider } from '@cassicore/foundation'
+import type { IntelligenceLayer } from "./vendor/core/intelligence/index.js"
 
 // Type helper for intelligence modules with optional event handlers
 interface EventHandler { onEvent?: (e: unknown) => void | Promise<void> }
@@ -197,20 +197,20 @@ export class Daemon {
   public monitoringHook?: MonitoringHook
    public sessionDigestStore?: SessionDigestStore
     /** Background embedding pre-computation worker. */
-   public bgEmbeddingWorker?: import('./intelligence/embeddings/background-worker.js').BackgroundEmbeddingWorker
+   public bgEmbeddingWorker?: import('@cassicore/embeddings').BackgroundEmbeddingWorker
   /** Background tagger worker for autonomous LLM annotation. */
-  public bgTaggerWorker?: import('./intelligence/training/background-tagger-worker.js').BackgroundTaggerWorker
+  public bgTaggerWorker?: import('@cassicore/training-trust-ledger').BackgroundTaggerWorker
   /** Loaded provider map — available after daemon start(). */
   public providers: Map<string, IProvider> = new Map()
   /** Prompt log store — persistent SQLite storage of every prompt sent to providers. */
-  public promptLogStore?: import('./prompt-log-store.js').PromptLogStore
+  public promptLogStore?: import('./vendor/core/prompt-log-store.js').PromptLogStore
   /** Rate limit store — persists adaptive learned rate limits across daemon restarts. */
-  public rateLimitStore?: import('./providers/rate-limit-store.js').RateLimitStore
+  public rateLimitStore?: import('@cassicore/providers').RateLimitStore
   /** Timeline store — unified chronological view of all system data. */
-  public timelineStore?: import('./timeline-store.js').TimelineStore
-  public contextDistiller?: import('./intelligence/context-distiller.js').ContextDistiller
+  public timelineStore?: import('./vendor/core/timeline-store.js').TimelineStore
+  public contextDistiller?: import('./vendor/core/intelligence/context-distiller.js').ContextDistiller
   /** Background intelligence loop — available after daemon start(). */
-  public unifiedLoop?: import('./intelligence/unified-loop.js').UnifiedIntelligenceLoop
+  public unifiedLoop?: import('./vendor/core/intelligence/unified-loop.js').UnifiedIntelligenceLoop
   /** Tool executor — available after daemon start(). */
   public toolExecutor?: ToolExecutor
   /** Workflow engine — available after daemon start(). */
@@ -220,15 +220,15 @@ export class Daemon {
   /** Workflow scheduler (trigger-based automation) — available after daemon start(). */
   public workflowScheduler?: WorkflowScheduler
   /** Autonomous agent loop — available when feature is enabled. */
-  public autonomousLoop?: import('./intelligence/autonomous-loop.js').AutonomousAgentLoop
+  public autonomousLoop?: import('./vendor/core/intelligence/autonomous-loop.js').AutonomousAgentLoop
   /** Session pipeline integration */
-  public sessionPipeline?: import('./pipeline/adapter/SessionPipeline.js').SessionPipeline
+  public sessionPipeline?: import('@cassicore/pipeline').SessionPipeline
   public budgetTracker?: BudgetTracker
   private primaryRouter?: PrimarySessionRouter
   public modelRouter?: ModelRouter
   public modelDirective?: ModelDirective
   /** Helix/Constellation ModelPool — stored for re-wiring after late provider init (e.g. copilot-sdk). */
-  private helixModelPool?: import('./model-pool/index.js').ModelPool
+  private helixModelPool?: import('@cassicore/model-pool').ModelPool
   /** IntelligentContextWindow instance — available after daemon start(). */
   public contextWindow?: IntelligentContextWindow
   /** Global Blackboard Registry — shared singleton for daemon-scoped modules. */
@@ -323,14 +323,14 @@ export class Daemon {
           if (mnemicField && typeof mnemicField.setVindexEmbedder === 'function' && result.provider.gateEmbed) {
             mnemicField.setVindexEmbedder(result.provider.gateEmbed.bind(result.provider))
             // Enable vindex embedding backend when configured.
-            if (this.config.get('intelligence.mnemicField.embeddingBackend', 'vllm') === 'vindex') {
+            if ((this.config.get('intelligence.mnemicField.embeddingBackend', 'vllm') as string) === 'vindex') {
               mnemicField.setEmbeddingBackend('vindex')
             }
             this.logger.info('MnemicField vindex embedder wired post-boot', { vindex: result.name })
 
             // V-Field V3.0: wire AttractorExtractor for periodic basin extraction
             try {
-              const { AttractorExtractor } = await import('./intelligence/mnemic-field/attractor-extractor.js')
+              const { AttractorExtractor } = await import('@cassicore/mnemic-field')
               const extractor = new AttractorExtractor(mnemicField, {
                 maxParticles: 30,
                 steps: 200,
@@ -362,15 +362,15 @@ export class Daemon {
 
             // V-Field V4: wire FieldGenerator for generation through the field
             try {
-              const { FieldGenerator } = await import('./intelligence/mnemic-field/field-generator.js')
+              const { FieldGenerator } = await import('@cassicore/mnemic-field')
               // Use a simple provider adapter — wraps any provider with a generate() call
               const llmProvider: { generate(prompt: string): Promise<string> } = {
                 generate: async (p) => {
-                  const result = await result.provider.generate(p, {
+                  const resp = await result.provider.generate(p, {
                     max_tokens: 2048,
                     temperature: 0.7,
                   })
-                  return typeof result === 'string' ? result : (result as any)?.text ?? (result as any)?.content ?? String(result)
+                  return typeof resp === 'string' ? resp : (resp as any)?.text ?? (resp as any)?.content ?? String(resp)
                 },
               }
               const fieldGen = new FieldGenerator(mnemicField, llmProvider, {
@@ -386,7 +386,7 @@ export class Daemon {
 
             // V-Field V5a: wire VisualIngestor for multimodal ingestion
             try {
-              const { VisualIngestor } = await import('./intelligence/mnemic-field/visual-ingestor.js')
+              const { VisualIngestor } = await import('@cassicore/mnemic-field')
               const visual = new VisualIngestor(mnemicField, undefined, {
                 autoCaption: false, // disable until vision provider is configured
                 autoLink: true,
@@ -481,7 +481,7 @@ export class Daemon {
     const backgroundEmbeddingEnabled = this.config.get<boolean>('intelligence.backgroundEmbedding.enabled', false)
     if (backgroundEmbeddingEnabled) {
       try {
-        const { getBackgroundEmbeddingWorker } = await import('./intelligence/embeddings/background-worker.js')
+        const { getBackgroundEmbeddingWorker } = await import('@cassicore/embeddings')
         this.bgEmbeddingWorker = getBackgroundEmbeddingWorker(this.logger)
         this.bgEmbeddingWorker.start()
         this.logger.info('BackgroundEmbeddingWorker started after readiness')
@@ -498,7 +498,7 @@ export class Daemon {
         const sdkProvider = this.providers.get('copilot-sdk')
         const warehouse = (this as any).intelligence?.training
         if (sdkProvider && warehouse?.store) {
-          const { BackgroundTaggerWorker } = await import('./intelligence/training/background-tagger-worker.js')
+          const { BackgroundTaggerWorker } = await import('@cassicore/training-trust-ledger')
           this.bgTaggerWorker = new BackgroundTaggerWorker(warehouse.store, sdkProvider, this.logger)
           this.bgTaggerWorker.start()
           this.logger.info('BackgroundTaggerWorker started after readiness')
@@ -741,7 +741,7 @@ export class Daemon {
 
       // Initialize and start Unified Intelligence Loop
       try {
-        const { createUnifiedIntelligenceLoop } = await import('./intelligence/unified-loop.js')
+        const { createUnifiedIntelligenceLoop } = await import('./vendor/core/intelligence/unified-loop.js')
         const unifiedLoop = createUnifiedIntelligenceLoop(
           this.logger.child('unified-loop'),
           this.bus,
@@ -1108,7 +1108,7 @@ export class Daemon {
 
     let providers: Map<string, IProvider> = new Map()
     try {
-      const { createProviders } = await import('./providers/index.js')
+      const { createProviders } = await import('@cassicore/providers')
       providers = createProviders(this.config, this.logger, {
         centralized: true,
         bus: this.bus,
@@ -1144,7 +1144,7 @@ export class Daemon {
     // This restores learned 429 limits from the previous run so the daemon
     // enforces known ceilings immediately without re-hitting them on startup.
     try {
-      const { RateLimitStore } = await import('./providers/rate-limit-store.js')
+      const { RateLimitStore } = await import('@cassicore/providers')
       const dataDir = String(this.config?.get?.('dataDir') ?? join(homedir(), '.cassicore', 'data'))
       const rateLimitStore = RateLimitStore.open(this.logger, dataDir)
       this.rateLimitStore = rateLimitStore
@@ -1215,8 +1215,8 @@ export class Daemon {
     }
 
     try {
-      const { PromptLogStore } = await import('./prompt-log-store.js')
-      const { withPromptLogging } = await import('./prompt-log-provider.js')
+      const { PromptLogStore } = await import('./vendor/core/prompt-log-store.js')
+      const { withPromptLogging } = await import('./vendor/core/prompt-log-provider.js')
       const promptLogDbPath = join(
         String(this.config?.get?.('dataDir') ?? join(homedir(), '.cassicore', 'data')),
         'prompt-log.db',
@@ -1241,7 +1241,7 @@ export class Daemon {
 
     // Initialize Timeline Store — unified chronological view of all system data
     try {
-      const { TimelineStore } = await import('./timeline-store.js')
+      const { TimelineStore } = await import('./vendor/core/timeline-store.js')
       const timelineDbPath = join(
         String(this.config?.get?.('dataDir') ?? join(homedir(), '.cassicore', 'data')),
         'timeline.db',
@@ -1408,7 +1408,7 @@ export class Daemon {
           triggers: ['rate_limit' as const, 'timeout' as const, 'model_unavailable' as const, 'error' as const],
         }
 
-        const { ModelPool } = await import('./model-pool/index.js')
+        const { ModelPool } = await import('@cassicore/model-pool')
         const helixModelPool = new ModelPool({
           logger: this.logger.child('helix-pool'),
           eventBus: this.bus,
@@ -1471,7 +1471,7 @@ export class Daemon {
     // Must be created after providers and ModelPools are wired.
     if (this.intelligence && providers.size > 0) {
       try {
-        const { ContextDistiller } = await import('./intelligence/context-distiller.js')
+        const { ContextDistiller } = await import('./vendor/core/intelligence/context-distiller.js')
         const contextDistiller = new ContextDistiller(this.logger)
 
         // Wire ModelPool — use Helix pool
@@ -1551,7 +1551,7 @@ export class Daemon {
       if (this.intelligence?.cortex) {
         try {
           this.intelligence.cortex.setAffectRegister(field.getAffectRegister())
-          const { createConsolidationBridge } = await import('./intelligence/cortex/mnemic-bridge.js')
+          const { createConsolidationBridge } = await import('@cassicore/cortex-pineal-dialectic')
           this.intelligence.cortex.setConsolidationCallback(
             createConsolidationBridge(field, this.logger)
           )
@@ -1661,7 +1661,7 @@ export class Daemon {
       const foreshadowEnabled = this.config.get<boolean>('intelligence.foreshadow.enabled', false)
       if (foreshadowEnabled) {
         try {
-          const { Foreshadow } = await import('./intelligence/foreshadow/index.js')
+          const { Foreshadow } = await import('./vendor/core/intelligence/foreshadow/index.js')
           const fs = new Foreshadow(this.logger)
           field.setForeshadow(fs)
           this.logger.info('Foreshadow Phase 1a instrumentation enabled')
@@ -1690,8 +1690,8 @@ export class Daemon {
       // Stores semantic understanding of the codebase (modules, capabilities, weaknesses)
       // and connects to the episodic field via portal engrams for cross-field retrieval.
       try {
-        const { SelfModelField } = await import('./intelligence/mnemic-field/self-model/self-model-field.js')
-        const { InterFieldBridge } = await import('./intelligence/mnemic-field/self-model/inter-field-bridge.js')
+        const { SelfModelField } = await import('@cassicore/mnemic-field')
+        const { InterFieldBridge } = await import('@cassicore/mnemic-field')
 
         const selfModelField = new SelfModelField(this.logger)
         const interFieldBridge = new InterFieldBridge(field, selfModelField, this.logger)
@@ -1720,7 +1720,7 @@ export class Daemon {
         const INGESTION_DELAY_MS = 5 * 60 * 1000
         setTimeout(async () => {
           try {
-            const { SelfModelIngestor } = await import('./intelligence/mnemic-field/self-model/ingestor.js')
+            const { SelfModelIngestor } = await import('@cassicore/mnemic-field')
             const ingestor = new SelfModelIngestor(selfModelField, this.logger, repoRoot, interFieldBridge)
             const result = await ingestor.ingest({
               minCommunitySize: 5,
@@ -1753,7 +1753,7 @@ export class Daemon {
       // and technique knowledge. Implements ModelKnowledgeProvider so Aurora's
       // Claustrum can seed from it directly.
       try {
-        const { KnowledgeField } = await import('./intelligence/mnemic-field/knowledge/knowledge-field.js')
+        const { KnowledgeField } = await import('@cassicore/mnemic-field')
         const knowledgeField = new KnowledgeField(this.logger)
 
         this.__knowledgeField = knowledgeField
@@ -1762,13 +1762,13 @@ export class Daemon {
         this.logger.info('Knowledge Field initialized')
 
         // Background ingestion from data/papers/ if directory exists
-        const dataDir = (await import('./utils/paths.js')).getDataDir()
+        const dataDir = (await import('@cassicore/foundation')).getDataDir()
         const papersDir = path.join(dataDir, 'papers')
         if (fs.existsSync(papersDir)) {
           const KNOWLEDGE_INGESTION_DELAY_MS = 5 * 60 * 1000
           setTimeout(async () => {
             try {
-              const { KnowledgeIngestor } = await import('./intelligence/mnemic-field/knowledge/ingestor.js')
+              const { KnowledgeIngestor } = await import('@cassicore/mnemic-field')
               const ingestor = new KnowledgeIngestor(knowledgeField, this.logger)
               const result = await ingestor.ingestFromDirectory(papersDir, {
                 skipExisting: true,
@@ -1801,7 +1801,7 @@ export class Daemon {
       this.logger.info(`Default model: ${defaultModel}`)
     }
     // Resolve thinking level: prefer config override, fall back to 'high'
-    const configuredThinking = this.config.get<string>('intelligence.thinking', 'high') as import('../types/runtime.js').ThinkingLevel
+    const configuredThinking = this.config.get<string>('intelligence.thinking', 'high') as import('@cassicore/foundation').ThinkingLevel
     this.logger.info(`Thinking level: ${configuredThinking}`)
     this.sessions = createSessionManager(this.logger, systemPrompt, sessionStore, defaultModel, configuredThinking)
 
@@ -1886,7 +1886,7 @@ export class Daemon {
                 async complete(opts: { prompt: string; modelTier: string; maxTokens: number; timeoutMs: number }) {
                   const messages = [{ role: 'user' as const, content: opts.prompt }]
                   let content = ''
-                  const { ActivityTimeout } = await import('./utils/activity-timeout.js')
+                  const { ActivityTimeout } = await import('@cassicore/utils')
                   const activityTimeout = new ActivityTimeout({
                     inactivityMs: opts.timeoutMs,
                     maxDurationMs: opts.timeoutMs * 3,
@@ -1926,13 +1926,13 @@ export class Daemon {
       getWorkflowEngine: () => this.workflowEngine ?? null,
       getWorkflowDefinitions: () => {
         if (!this.workflowRegistry) return new Map()
-        const map = new Map<string, import('../types/workflow.js').WorkflowDefinition>()
+        const map = new Map<string, import('@cassicore/foundation').WorkflowDefinition>()
         for (const def of this.workflowRegistry.list()) map.set(def.id, def)
         return map
       },
       getWorkflowStore: () => workflowStore ?? null,
       getWorkflowDefStore: () => workflowDefStore ?? null,
-    })
+    } as any)
     
     // Register Hermes-compatible tools (backed by Hermes ACP MCP server)
     try {
@@ -1967,13 +1967,13 @@ export class Daemon {
 
     // Wire Permission Oracle to ToolExecutor for graduated autonomy gating
     if (this.intelligence?.permissionOracle) {
-      toolExecutor.setPermissionOracle(this.intelligence.permissionOracle)
+      toolExecutor.setPermissionOracle(this.intelligence.permissionOracle as any)
       this.logger.info('Permission Oracle wired to ToolExecutor — graduated autonomy active')
     }
 
     // Wire Trust Ledger to ToolExecutor for outcome feedback (learning loop)
     if (this.intelligence?.trustLedger) {
-      toolExecutor.setTrustLedger(this.intelligence.trustLedger)
+      toolExecutor.setTrustLedger(this.intelligence.trustLedger as any)
       this.logger.info('Trust Ledger wired to ToolExecutor — outcome learning active')
     }
 
@@ -2117,7 +2117,7 @@ export class Daemon {
 
             // Wire HelixStore for Helix session persistence (dedicated helix.db)
             try {
-              const { HelixStore } = await import('./intelligence/helix/helix-store.js')
+              const { HelixStore } = await import('@cassicore/helix')
               const helixStore = HelixStore.open(this.logger.child('helix-store'))
               // WHY: Clean up helix sessions left in 'running' state from a previous daemon crash.
               // Without this, orphaned helix sessions stay in 'running' forever.
@@ -2135,7 +2135,7 @@ export class Daemon {
 
             // Wire ContextDistiller for Phase Zero context injection
             if (this.contextDistiller) {
-              this.intelligence.helix.setContextDistiller(this.contextDistiller)
+              this.intelligence.helix.setContextDistiller(this.contextDistiller as any)
               this.logger.info('Helix ContextDistiller wired for Phase Zero')
             }
 
@@ -2155,16 +2155,16 @@ export class Daemon {
 
             // Wire HelixStore for Constellation session persistence (reuses helix.db)
             try {
-              const { HelixStore } = await import('./intelligence/helix/helix-store.js')
+              const { HelixStore } = await import('@cassicore/helix')
               const helixStore = HelixStore.open(this.logger.child('helix-store'))
-              this.intelligence.constellation.setStore(helixStore)
+              this.intelligence.constellation.setStore(helixStore as any)
             } catch (storeErr) {
               this.logger.warn('Constellation HelixStore failed to initialize', { error: String(storeErr) })
             }
 
             // Wire ConstellationStore for persistent Corpus tree, branch assessments, and reports
             try {
-              const { ConstellationStore } = await import('./intelligence/constellation/constellation-store.js')
+              const { ConstellationStore } = await import('@cassicore/constellation')
               const constellationStore = ConstellationStore.open(this.logger.child('constellation-store'))
               // Recover any sessions left in 'running' state from a previous daemon crash.
               // Sessions with checkpoint data are marked 'interrupted' (resumable);
@@ -2206,13 +2206,13 @@ export class Daemon {
             }
 
             if (this.contextDistiller) {
-              this.intelligence.constellation.setContextDistiller(this.contextDistiller)
+              this.intelligence.constellation.setContextDistiller(this.contextDistiller as any)
             }
 
             // Wire Reasoning Bank into Constellation orchestrator so traces
             // are available for ingestion/retrieval during pipeline runs
             if (this.intelligence.reasoningBank) {
-              this.intelligence.constellation.setReasoningBank(this.intelligence.reasoningBank)
+              this.intelligence.constellation.setReasoningBank(this.intelligence.reasoningBank as any)
             }
 
             // Wire WorkflowEngine into Constellation orchestrator so
@@ -2364,7 +2364,7 @@ export class Daemon {
     // which caused infinite recursion (stack overflow). No bridge is needed since
     // they are the same instance.
     try {
-      const { getEventBus: getCassiCoreEventBus } = await import('./events/index.js')
+      const { getEventBus: getCassiCoreEventBus } = await import('@cassicore/events')
       const cassiCoreBus = getCassiCoreEventBus()
       if (cassiCoreBus === bus) {
         this.logger.info('Event bridge: skipped — CassiCoreEventBus is the same singleton as daemon.bus')
@@ -2454,9 +2454,9 @@ export class Daemon {
     // Register workflow templates now that intelligence modules are wired
     if (this.workflowRegistry && this.intelligence) {
       try {
-        const { createHelixRunnerAdapter, createConstellationAdapter, createToolExecutorAdapter } = await import('./workflow/adapters.js')
-        const { codeReviewPipeline, researchPipeline, featureImplementation, scheduledCleanup, eventReactorChain } = await import('./workflow/templates.js')
-        const { helixStep, createStep } = await import('./workflow/index.js')
+        const { createHelixRunnerAdapter, createConstellationAdapter, createToolExecutorAdapter } = await import('@cassicore/workflow')
+        const { codeReviewPipeline, researchPipeline, featureImplementation, scheduledCleanup, eventReactorChain } = await import('@cassicore/workflow')
+        const { helixStep, createStep } = await import('@cassicore/workflow')
 
         const helixRunner = createHelixRunnerAdapter(() => this.intelligence?.helix)
         const constellationOrch = createConstellationAdapter(() => this.intelligence?.constellation)
@@ -2530,7 +2530,7 @@ export class Daemon {
     }
 
     try {
-      const { SessionPipeline } = await import('./pipeline/adapter/SessionPipeline.js')
+      const { SessionPipeline } = await import('@cassicore/pipeline')
       const v2Options = {
         config: this.config,
         logger: this.logger,
@@ -2571,7 +2571,7 @@ export class Daemon {
       // Wire GlobalWorkspace into session pipeline for GWT-based injection
       if (this.intelligence?.globalWorkspace) {
         const useGwt = this.config.get<boolean>('intelligence.workspace.enabled', false)
-        pipeline.setGlobalWorkspace(this.intelligence.globalWorkspace, useGwt)
+        pipeline.setGlobalWorkspace(this.intelligence.globalWorkspace as any, useGwt)
         this.logger.info('GlobalWorkspace wired to session pipeline', { enabled: useGwt })
       }
 
@@ -2591,7 +2591,7 @@ export class Daemon {
       }
 
       if (this.autonomousLoop) {
-        const { createExecutionBackend } = await import('./intelligence/execution-backends/index.js')
+        const { createExecutionBackend } = await import('./vendor/core/intelligence/execution-backends/index.js')
         const backend = createExecutionBackend('cassicore', this.logger.child('execution-backend'), {
           sessionPipeline: this.sessionPipeline,
         })
@@ -2974,14 +2974,14 @@ export class Daemon {
             } as any);
           }
 
-          const { generateShortId } = await import('./utils/ids.js')
+          const { generateShortId } = await import('@cassicore/utils')
           const inbound = {
             id: generateShortId(8),
             sessionId: payload.sessionId as string,
             channelId: pluginId,
             senderId: payload.sessionId as string,
             content: (payload.content as string) || '(image)',
-            attachments: payload.attachments as import('../types/runtime.js').ImageAttachment[] | undefined,
+            attachments: payload.attachments as import('@cassicore/foundation').ImageAttachment[] | undefined,
             timestamp: new Date(),
           }
 
@@ -3371,7 +3371,7 @@ export class Daemon {
     // Must happen early — before providers or stores are torn down.
     await timedStep('constellation-interrupt', async () => {
       try {
-        const { ConstellationStore } = await import('./intelligence/constellation/constellation-store.js')
+        const { ConstellationStore } = await import('@cassicore/constellation')
         const constellationStore = ConstellationStore.open(this.logger.child('constellation-store'))
         const running = constellationStore.listSessions({ status: 'running' })
         for (const session of running) {
@@ -3406,7 +3406,7 @@ export class Daemon {
 
     // stop warm provider manager — destroys OpenCode warm sessions to release resources
     await timedStep('warm-provider', async () => {
-      const { shutdownWarmProvider } = await import('./admin-api/warm-provider.js')
+      const { shutdownWarmProvider } = await import('@cassicore/admin-api')
       await shutdownWarmProvider()
     })
 
@@ -3549,7 +3549,7 @@ export class Daemon {
       await this.config.reload()
 
       const defaultModel = this.config.get<string>('intelligence.defaultModel', getModelSpec('main'))
-      const thinking = this.config.get<string>('intelligence.thinking', 'high') as import('../types/runtime.js').ThinkingLevel
+      const thinking = this.config.get<string>('intelligence.thinking', 'high') as import('@cassicore/foundation').ThinkingLevel
       this.sessions.setDefaultConfig({ model: defaultModel, thinking })
 
       // Propagate model config to BaseCognitiveModule subclasses

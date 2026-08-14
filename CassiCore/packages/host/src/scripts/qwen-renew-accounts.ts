@@ -8,7 +8,7 @@
 import fs from 'fs/promises'
 import path from 'path'
 import os from 'os'
-import { QwenProvider, type QwenOAuthCredentials } from '../ai/src/providers/cassicore/qwen.js'
+import { QwenProvider, type QwenOAuthCredentials } from '../vendor/core/ai/src/providers/cassicore/qwen.js'
 
 export interface AccountEntry {
   profileId: string

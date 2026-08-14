@@ -16,7 +16,7 @@ import os from 'node:os'
 import path from 'node:path'
 
 import { Daemon } from '../daemon.js'
-import { rootLogger } from '../logger.js'
+import { rootLogger } from '@cassicore/events'
 import { CASSICORE_BUILD_STRING } from '../daemon.js'
 
 const logger = rootLogger.child('daemon-main')

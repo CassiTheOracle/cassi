@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises'
 
 import { ParsedArgs, assertNoExtraPositionals, takeCommand } from '../runtime/args.js'
 import { fetchHealth, getLocalDaemonStatus, waitForDaemonReady, ensureLaunchPrerequisites } from '../runtime/boot.js'
-import { getBuildIdentifier, type BuildIdentifier } from '../../build-id.js'
+import { getBuildIdentifier, type BuildIdentifier } from '../../vendor/core/build-id.js'
 import { getAdminUrl } from '../runtime/http.js'
 import { fail, printData, printKeyValue, printLine } from '../runtime/output.js'
 import { getPaths, runForeground, startDaemonProcess, stopDaemon } from '../runtime/process.js'

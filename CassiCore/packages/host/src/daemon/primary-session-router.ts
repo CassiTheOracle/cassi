@@ -6,7 +6,7 @@
  * future channels) can be routed to one unified session. Response fanout
  * delivers content back to the original channel/session for display.
  */
-import type { ILogger } from '../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 
 export class PrimarySessionRouter {
   readonly primarySessionId: string

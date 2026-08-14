@@ -17,7 +17,7 @@
 process.title = 'cassi:super'
 
 import { Supervisor } from './supervisor.js'
-import { rootLogger } from '../logger.js'
+import { rootLogger } from '@cassicore/events'
 
 const logger = rootLogger.child('super')
 

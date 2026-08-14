@@ -1,26 +1,26 @@
-import { AutonomousAgentLoop } from '../intelligence/autonomous-loop.js'
-import { createExecutionBackend } from '../intelligence/execution-backends/index.js'
-import { ScoutModule } from '../scout/index.js'
+import { AutonomousAgentLoop } from '../vendor/core/intelligence/autonomous-loop.js'
+import { createExecutionBackend } from '../vendor/core/intelligence/execution-backends/index.js'
+import { ScoutModule } from '../vendor/core/scout/index.js'
 // REMOVED: registerTeamTools — team-coordinator.ts deleted with TriadTeam
-import { ModuleSessionRegistry } from '../intelligence/module-session-registry.js'
-import { ModuleSessionCompactor } from '../intelligence/module-session-compactor.js'
+import { ModuleSessionRegistry } from '../vendor/core/intelligence/module-session-registry.js'
+import { ModuleSessionCompactor } from '../vendor/core/intelligence/module-session-compactor.js'
 
 // PinealInjectionSource deprecated — Thalamus now owns Pineal injection via PinealAssembler
-import { PinealAssembler } from '../intelligence/pineal/assembler.js'
-import type { PinealModule } from '../intelligence/pineal/index.js'
+import { PinealAssembler } from '@cassicore/cortex-pineal-dialectic'
+import type { PinealModule } from '@cassicore/cortex-pineal-dialectic'
 
-import type { IEventBus, IConfig, ILogger, IPluginHost } from '../../types/interfaces.js'
-import type { IntelligenceLayer } from '../intelligence/index.js'
-import type { TurnPipeline } from '../turn-pipeline.js'
-import type { ToolExecutor } from '../tools/executor.js'
-import type { ToolRegistry } from '../tools/registry.js'
-import type { SessionStore } from '../session-store.js'
-import type { SessionDigestStore } from '../intelligence/session-digest.js'
-import type { ContextDistiller } from '../intelligence/context-distiller.js'
-import type { ExecutionBackendType, OpenCodeBackendConfig } from '../../types/execution-backend.js'
-import type { SessionManager } from '../session-manager.js'
-import type { IProvider } from '../../types/runtime.js'
-import { DmnObserver, type DmnObserverLLM } from '../intelligence/dmn/observer.js'
+import type { IEventBus, IConfig, ILogger, IPluginHost } from '@cassicore/foundation'
+import type { IntelligenceLayer } from '../vendor/core/intelligence/index.js'
+import type { TurnPipeline } from '../vendor/core/turn-pipeline.js'
+import type { ToolExecutor } from '@cassicore/tools'
+import type { ToolRegistry } from '@cassicore/tools'
+import type { SessionStore } from '../vendor/core/session-store.js'
+import type { SessionDigestStore } from '../vendor/core/intelligence/session-digest.js'
+import type { ContextDistiller } from '../vendor/core/intelligence/context-distiller.js'
+import type { ExecutionBackendType, OpenCodeBackendConfig } from '@cassicore/foundation'
+import type { SessionManager } from '../vendor/core/session-manager.js'
+import type { IProvider } from '@cassicore/foundation'
+import { DmnObserver, type DmnObserverLLM } from '../vendor/core/intelligence/dmn/observer.js'
 
 function extractObservation(raw: string): string {
   const re = /<observation>[\s\S]*?<\/observation>/i
@@ -87,7 +87,7 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
       // Radiance Loop: bidirectional workspace feedback with surprise-gated observer
       const radianceEnabled = config?.get?.('intelligence.workspace.radiance.enabled') === true
       if (radianceEnabled && useGwt) {
-        const { RadianceLoop } = await import('../intelligence/workspace/radiance-loop.js')
+        const { RadianceLoop } = await import('../vendor/core/intelligence/workspace/radiance-loop.js')
         const radianceLoop = new RadianceLoop(intelligence.globalWorkspace, logger, {
           enabled: true,
           warmupCycles: 10,
@@ -138,7 +138,7 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
     try {
       // Substrate sampler: SessionManager.get is the in-memory accessor
       // — avoids an SQLite hit + JSON parse on every tick.
-      intelligence.dmn.setActivitySnapshotProvider((sessionId) => {
+      intelligence.dmn.setActivitySnapshotProvider((sessionId: string) => {
         const session = sessions.get(sessionId)
         if (!session) return null
         return { historyLength: session.history?.length ?? 0 }
@@ -381,7 +381,7 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
   // Wire Thalamus to GWT systems + secondary brain inputs
   try {
     const thalamus = intelligence.registry.get('thalamus') as
-      import('../intelligence/thalamus/index.js').ThalamusModule | undefined
+      import('@cassicore/thalamus').ThalamusModule | undefined
     if (thalamus) {
       if (intelligence.globalWorkspace) thalamus.setGlobalWorkspace(intelligence.globalWorkspace)
       if (intelligence.locusBridge) thalamus.setLocusBridge(intelligence.locusBridge)
@@ -397,7 +397,7 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
 
       // Wire Pineal FacetManager for identity/wisdom credibility and resonance
       const pineal = intelligence.registry.get('pineal') as
-        import('../intelligence/pineal/index.js').PinealModule | undefined
+        import('@cassicore/cortex-pineal-dialectic').PinealModule | undefined
       if (pineal && typeof thalamus.setPinealFacets === 'function') {
         thalamus.setPinealFacets(pineal.getFacetManager())
       }
@@ -426,7 +426,7 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
       // Wire Aurora (cognitive state loop) into Thalamus
       if (mnemicField && typeof mnemicField.getCortex === 'function') {
         try {
-          const { Aurora } = await import('../intelligence/aurora/index.js')
+          const { Aurora } = await import('@cassicore/aurora')
 
           // WHY: Vindex loading deferred — admin API starts without waiting for the
           // vindex (10s per candidate). The load function is stored on the intelligence
@@ -435,7 +435,7 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
           // aurora.setModelProvider().
           const loadVindex = async (): Promise<{ provider: any; name: string; path: string } | null> => {
             try {
-              const { LarqlKnowledgeProvider } = await import('../intelligence/aurora/larql-provider.js')
+              const { LarqlKnowledgeProvider } = await import('@cassicore/aurora')
               const { existsSync, readdirSync, statSync } = await import('node:fs')
               const { join } = await import('node:path')
               const { homedir } = await import('node:os')
@@ -515,7 +515,7 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
 
               if (chosen && modelProvider) {
                 try {
-                  const { ClaustrumRecorder } = await import('../intelligence/aurora/claustrum-recorder.js')
+                  const { ClaustrumRecorder } = await import('@cassicore/aurora')
                   const recorder = new ClaustrumRecorder(logger, chosen.path)
                   modelProvider.setRecorder(recorder)
                   logger.info('ClaustrumRecorder attached', { source: chosen.name })
@@ -537,11 +537,11 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
 
           const knowledgeField = (intelligence as any).__knowledgeField ?? null
 
-          let auroraPersistence: import('../intelligence/aurora/persistence.js').AuroraPersistence | undefined
+          let auroraPersistence: import('@cassicore/aurora').AuroraPersistence | undefined
           if (config?.get?.('intelligence.aurora.persistence.enabled') === true) {
             try {
-              const { AuroraPersistence } = await import('../intelligence/aurora/persistence.js')
-              const { getDataDir } = await import('../utils/paths.js')
+              const { AuroraPersistence } = await import('@cassicore/aurora')
+              const { getDataDir } = await import('@cassicore/foundation')
               const path = await import('node:path')
               const dbPath = path.join(getDataDir(), 'aurora.db')
               auroraPersistence = new AuroraPersistence(dbPath, logger)
@@ -553,7 +553,7 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
             }
           }
 
-          const auroraConfig: Partial<import('../intelligence/aurora/types.js').AuroraConfig> = {}
+          const auroraConfig: Partial<import('@cassicore/aurora').AuroraConfig> = {}
 
           // Self-model knowledge bridge: vindex → Mnemic architectural awareness
           if (config?.get?.('intelligence.aurora.selfModelKnowledge.enabled') === true) {
@@ -584,7 +584,7 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
           // ReverieModule exposes inferForObserver() which matches ReverieInferenceProvider.
           if (intelligence.reverie) {
             try {
-              const reverieProvider: import('../intelligence/aurora/types.js').ReverieInferenceProvider = {
+              const reverieProvider: import('@cassicore/aurora').ReverieInferenceProvider = {
                 infer: (messages, options) => intelligence.reverie!.inferForObserver(messages, options),
               }
               thalamus.setReverieInferenceProvider(reverieProvider)
@@ -642,7 +642,7 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
 
       // Wire PinealAssembler into Thalamus for identity injection
       const pinealModule = intelligence.registry.get('pineal') as
-        import('../intelligence/pineal/index.js').PinealModule | undefined
+        import('@cassicore/cortex-pineal-dialectic').PinealModule | undefined
       if (pinealModule) {
         // Wire MnemicField into Pineal for radial topology — Pineal facets
         // are stored as engrams at (0,0), anchoring the tonic center.
@@ -663,7 +663,7 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
         // Mirror Pineal facets into read-only laminae
         if (intelligence.lamina) {
           try {
-            const { PinealLaminaBridge } = await import('../intelligence/lamina/pineal-bridge.js')
+            const { PinealLaminaBridge } = await import('@cassicore/lamina-locus-bridge')
             const bridge = new PinealLaminaBridge(pinealModule, intelligence.lamina, logger.child('pineal-lamina-bridge'))
             const labels = bridge.syncOnce()
             logger.info('Pineal facets mirrored to laminae', { labels })
@@ -682,7 +682,7 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
       // Wire ThalamusStore for drop history persistence (SQLite)
       if (typeof thalamus.setStore === 'function') {
         try {
-          const { ThalamusStore } = await import('../intelligence/thalamus/thalamus-store.js')
+          const { ThalamusStore } = await import('@cassicore/thalamus')
           const thalamusStore = ThalamusStore.open(logger.child('thalamus-store'))
           thalamus.setStore(thalamusStore)
           logger.info('ThalamusStore wired (SQLite persistence)')
@@ -809,7 +809,7 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
     }
     // Orchestrators
     if (typeof intelligence.helix?.setModuleRegistry === 'function') {
-      intelligence.helix.setModuleRegistry(moduleRegistry)
+      intelligence.helix.setModuleRegistry(moduleRegistry as any)
     }
     // Triad team member sessions are created dynamically — wire registry via fleet coordinator
     if (typeof (intelligence as any).triadTeam?.setModuleRegistry === 'function') {
