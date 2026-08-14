@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process'
-import type { ILogger } from '../../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type { SelfModelField } from './self-model-field.js'
 import type { InterFieldBridge } from './inter-field-bridge.js'
 import type { ModuleMetadata, WeaknessMetadata, CapabilityMetadata } from './types.js'

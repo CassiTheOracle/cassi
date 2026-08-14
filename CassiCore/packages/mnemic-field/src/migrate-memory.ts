@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3'
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import { MnemicField } from './index.js'
 import type { EngramType, SynapseType } from './types.js'
 

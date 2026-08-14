@@ -1,6 +1,6 @@
 import path from 'node:path'
-import type { ILogger } from '../../../../types/interfaces.js'
-import { getDataDir } from '../../../utils/paths.js'
+import type { ILogger } from '@cassicore/foundation'
+import { getDataDir } from '@cassicore/foundation'
 import { MnemicField } from '../index.js'
 import type {
   Engram, EngramUpdate, MnemicRetrievalHit, KindlingOptions,
@@ -158,7 +158,7 @@ export class SelfModelField {
     // Re-embed when content or metadata changes
     if (patch.content !== undefined || patch.metadata !== undefined) {
       try {
-        const { getEmbeddingService } = await import('../../embeddings/embedding-service.js')
+        const { getEmbeddingService } = await import('../vendor/core/intelligence/embeddings/embedding-service.js')
         const embSvc = getEmbeddingService(this.logger)
         if (embSvc.available) {
           const text = result.content

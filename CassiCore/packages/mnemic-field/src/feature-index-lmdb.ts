@@ -21,7 +21,7 @@
  * gateKnn calls that previously repeated every boot.
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type { Cortex } from './cortex.js'
 import type { VindexGateKnnFn, FeatureIndexEntry } from './feature-index.js'
 import { featureKey } from './feature-index.js'

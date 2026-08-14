@@ -17,8 +17,8 @@
  * m=query features (~30-50). No forward pass needed at read time.
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
-import type { LarqlKnowledgeProvider } from '../aurora/larql-provider.js'
+import type { ILogger } from '@cassicore/foundation'
+import type { LarqlKnowledgeProvider } from './vendor/core/intelligence/aurora/larql-provider.js'
 import { splitSentences } from './llm-reranker.js'
 import { createHash } from 'node:crypto'
 

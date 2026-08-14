@@ -1,4 +1,4 @@
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import { computeSpikeImportance, computeAlpha } from './cortex.js'
 import type { Cortex } from './cortex.js'
 import type { GradientEngine } from './backpropagation.js'
@@ -8,7 +8,7 @@ import {
 } from './types.js'
 import { emotionalIntensity, resolveLabel } from './affect.js'
 import type { Affect } from './types.js'
-import type { DreamEngine, DreamResult } from '../memory-bridge/dream-engine.js'
+import type { DreamEngine, DreamResult } from './vendor/core/intelligence/memory-bridge/dream-engine.js'
 import type { IndexResult } from './feature-index-lmdb.js'
 import type { QualityScore } from './engram-quality-scorer.js'
 

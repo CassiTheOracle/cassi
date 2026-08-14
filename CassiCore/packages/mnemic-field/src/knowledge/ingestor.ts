@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import type { ILogger } from '../../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type { KnowledgeField } from './knowledge-field.js'
 import type {
   KnowledgeIngestResult,

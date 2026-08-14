@@ -1,4 +1,4 @@
-import type { ILogger } from '../../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type { MnemicField } from '../index.js'
 import type { KindlingOptions, MnemicRetrievalHit, Engram } from '../types.js'
 import type { SelfModelField } from './self-model-field.js'

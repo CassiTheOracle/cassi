@@ -1,4 +1,4 @@
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type { Cortex } from './cortex.js'
 import { affectSimilarity } from './affect.js'
 import { SpatialAttentionMapper } from './spatial-attention.js'

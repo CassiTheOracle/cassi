@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3'
 import { randomUUID } from 'node:crypto'
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import { initMnemicFieldSchema } from './schema.js'
 import { PolarQuantCodec, isPolarQuantBlob } from './polar-quant.js'
 import type {
@@ -17,7 +17,7 @@ import type {
 import type {
   RetrievalLabel,
   RetrievalLabelTriple,
-} from '../reverie/retrieval-labeler-types.js'
+} from './vendor/core/intelligence/reverie/retrieval-labeler-types.js'
 
 const FORWARD_TRACE_AUTO_PRUNE_INTERVAL = 100
 const FORWARD_TRACE_AUTO_MAX_AGE_MS = 3_600_000

@@ -1,9 +1,9 @@
-import type { ILogger } from '../../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type { Cortex } from '../cortex.js'
 import type { LightningIndexer } from '../lightning-indexer.js'
 import type { LightningRetrievalEvent, IndexerTrainingConfig } from '../types.js'
 import { INDEXER_TRAINING_DEFAULTS } from '../types.js'
-import type { RetrievalLabelTriple } from '../../reverie/retrieval-labeler-types.js'
+import type { RetrievalLabelTriple } from '../vendor/core/intelligence/reverie/retrieval-labeler-types.js'
 import {
   type IndexerDims,
   type IndexerParams,

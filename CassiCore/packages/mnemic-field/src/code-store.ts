@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto'
 import type Database from 'better-sqlite3'
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type { MnemicField } from './index.js'
 import type {
   Engram, EngramCreate,

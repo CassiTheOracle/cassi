@@ -9,7 +9,7 @@
  * designed to run asynchronously (fire-and-forget from store, or batched).
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 
 export interface QualityScore {
   /** 0-1 score; higher = better quality. */

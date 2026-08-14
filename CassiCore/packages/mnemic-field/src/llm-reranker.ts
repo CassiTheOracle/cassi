@@ -24,8 +24,8 @@
  *   - Total:         ~1-2s vs ~30s for kindling
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
-import type { IProvider, Message } from '../../../types/runtime.js'
+import type { ILogger } from '@cassicore/foundation'
+import type { IProvider, Message } from '@cassicore/foundation'
 import type { Engram, MnemicRetrievalHit } from './types.js'
 
 export interface LLMRerankerConfig {

@@ -14,7 +14,7 @@
  * ~700MB memory pressure of in-memory Maps.
  */
 import type Database from 'better-sqlite3'
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type { Cortex } from './cortex.js'
 import type { IndexResult } from './feature-index-lmdb.js'
 

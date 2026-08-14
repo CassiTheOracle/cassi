@@ -4,7 +4,7 @@
  * same identity. Re-exported here for backward compat with existing
  * imports (`from '../mnemic-field/types.js'`).
  */
-export type { RerankerMode } from '../embeddings/types.js'
+export type { RerankerMode } from './vendor/core/intelligence/embeddings/types.js'
 
 export const ENGRAM_TYPES = [
   'fact', 'episode', 'decision', 'pattern',

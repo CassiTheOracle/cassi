@@ -1,6 +1,6 @@
 import path from 'node:path'
-import type { ILogger } from '../../../../types/interfaces.js'
-import { getDataDir } from '../../../utils/paths.js'
+import type { ILogger } from '@cassicore/foundation'
+import { getDataDir } from '@cassicore/foundation'
 import { MnemicField } from '../index.js'
 import type {
   Engram, EngramUpdate, MnemicRetrievalHit, KindlingOptions,
@@ -17,7 +17,7 @@ import {
 } from './types.js'
 import type {
   ModelKnowledgeProvider, ModelEntity, ModelEdge, ModelPath,
-} from '../../aurora/types.js'
+} from '../vendor/core/intelligence/aurora/types.js'
 
 const TAG_EXTRACTORS: Record<string, (meta: Record<string, unknown>) => string[]> = {
   paper: (m) => [

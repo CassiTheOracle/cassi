@@ -15,7 +15,7 @@
  * counts are.
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import { DEFAULT_SECTOR_COUNT } from './attractor.js'
 
 export interface SectorAttentionResult {

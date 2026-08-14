@@ -14,7 +14,7 @@
 import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { execSync } from 'node:child_process'
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 import type { CodeStore } from './code-store.js'
 import type { MnemicField } from './index.js'
 

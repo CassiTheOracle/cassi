@@ -4,11 +4,11 @@ import path from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { Worker } from 'node:worker_threads'
 import { fileURLToPath } from 'node:url'
-import type { DreamEngine } from '../memory-bridge/dream-engine.js'
-import type { ILogger } from '../../../types/interfaces.js'
-import { getEmbeddingService } from '../embeddings/embedding-service.js'
-import { getRerankerService } from '../embeddings/reranker-service.js'
-import { getDataDir } from '../../utils/paths.js'
+import type { DreamEngine } from './vendor/core/intelligence/memory-bridge/dream-engine.js'
+import type { ILogger } from '@cassicore/foundation'
+import { getEmbeddingService } from './vendor/core/intelligence/embeddings/embedding-service.js'
+import { getRerankerService } from './vendor/core/intelligence/embeddings/reranker-service.js'
+import { getDataDir } from '@cassicore/foundation'
 import { Cortex, cosineSimilarity, computeSpikeImportance, computeAlpha } from './cortex.js'
 import { KindlingEngine } from './kindling.js'
 import { ConsolidationEngine } from './consolidation.js'
@@ -32,16 +32,16 @@ import {
   positionToFieldCoords,
   generateSpatialGrid,
 } from './spatial-tokenizer.js'
-import type { RetrievalLabelTriple } from '../reverie/retrieval-labeler-types.js'
-import type { LabelerInputCandidate } from '../reverie/retrieval-labeler-types.js'
-import type { CorticalField } from '../cortex/index.js'
-import type { IProvider } from '../../../types/runtime.js'
+import type { RetrievalLabelTriple } from './vendor/core/intelligence/reverie/retrieval-labeler-types.js'
+import type { LabelerInputCandidate } from './vendor/core/intelligence/reverie/retrieval-labeler-types.js'
+import type { CorticalField } from './vendor/core/intelligence/cortex/index.js'
+import type { IProvider } from '@cassicore/foundation'
 import { LLMReranker, type LLMRerankerConfig } from './llm-reranker.js'
 import { LightningIndexer } from './lightning-indexer.js'
 import { IndexerTrainer, type RunOnceResult } from './training/indexer-trainer.js'
 import { SpatialIndex } from './spatial-index.js'
 import { RELATIONAL_PHRASE_EDGE_TYPES, classifyEdge, RELATIONAL_PHRASES, classifyWithPhrases, type PhrasePrototypeSet, type ClassificationResult, EDGE_RELATORS_PHRASE_SET } from './edge-relators.js'
-import { SIGNAL_TYPE_PHRASES, EPISTEMIC_SHIFT_PHRASES, WORK_UNIT_ANNOTATION_PHRASES } from '../phrase-prototypes.js'
+import { SIGNAL_TYPE_PHRASES, EPISTEMIC_SHIFT_PHRASES, WORK_UNIT_ANNOTATION_PHRASES } from '@cassicore/foundation'
 import type {
   Engram, EngramCreate, EngramUpdate,
   MnemicSynapse, SynapseCreate,
@@ -2263,7 +2263,7 @@ export class MnemicField {
 
   async runMigrationJob(
     id: string,
-    runner: Pick<typeof import('../embeddings/embedding-service.js'), never> | null,
+    runner: Pick<typeof import('./vendor/core/intelligence/embeddings/embedding-service.js'), never> | null,
     options?: { logger?: ILogger; embeddingProvider?: (text: string) => Promise<number[] | null> },
   ): Promise<MigrationJobRecord> {
     const job = this.getMigrationJob(id)
