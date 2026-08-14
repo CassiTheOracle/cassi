@@ -17,7 +17,7 @@ import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 
 import type { ToolDefinition, ToolHandler, ToolExecutionContext } from '../types.js'
-import { getRepoRoot } from '../../utils/paths.js'
+import { getRepoRoot } from '../@cassicore/foundation'
 
 
 /**

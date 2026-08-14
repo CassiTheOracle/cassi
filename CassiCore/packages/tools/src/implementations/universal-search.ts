@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import type { ToolDefinition, ToolHandler } from '../types.js'
-import type { IMemory } from '../../../types/intelligence.js'
+import type { IMemory } from "@cassicore/foundation"
 
 export interface UniversalSearchDeps {
   memory?: IMemory

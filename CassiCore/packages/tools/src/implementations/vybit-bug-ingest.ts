@@ -16,9 +16,9 @@
  * a Constellation session for deep root-cause analysis.
  */
 
-import { getEventBus } from '../../events/index.js'
+import { getEventBus } from '../../vendor/core/events/index.js'
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from "@cassicore/foundation"
 
 // Input types (mirror VyBit's bug report structure)
 

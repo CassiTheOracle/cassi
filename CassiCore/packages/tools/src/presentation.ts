@@ -17,8 +17,8 @@ import { writeFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomBytes } from 'node:crypto'
 
-import type { ILogger } from '../../types/interfaces.js'
-import { rootLogger } from '../logger.js'
+import type { ILogger } from "@cassicore/foundation"
+import { rootLogger } from '../vendor/core/logger.js'
 
 const logger: ILogger = rootLogger.child('presentation')
 

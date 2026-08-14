@@ -1,6 +1,6 @@
 import type { ToolDefinition, ToolHandler } from '../types.js'
-import type { IMemory } from '../../../types/intelligence.js'
-import type { ISessionManager } from '../../../types/runtime.js'
+import type { IMemory } from "@cassicore/foundation"
+import type { ISessionManager } from "@cassicore/foundation"
 
 export interface SystemHealthDeps {
   daemon?: any

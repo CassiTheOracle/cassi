@@ -5,7 +5,7 @@
  * with fallback routing for resilient tool execution.
  */
 
-import type { ILogger } from '../../types/interfaces.js'
+import type { ILogger } from "@cassicore/foundation"
 
 export type CircuitState = 'closed' | 'half-open' | 'open'
 

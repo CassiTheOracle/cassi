@@ -1,4 +1,4 @@
-import type { IMemory, MemoryEntry, SearchResult } from '../../../types/intelligence.js'
+import type { IMemory, MemoryEntry, SearchResult } from "@cassicore/foundation"
 import type { ToolDefinition, ToolHandler } from '../types.js'
 
 export const memorySearchDefinition: ToolDefinition = {

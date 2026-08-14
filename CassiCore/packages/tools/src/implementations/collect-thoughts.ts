@@ -25,22 +25,22 @@
  */
 
 import type { ToolDefinition, ToolHandler } from '../types.js'
-import type { BranchingConversationManager } from '../../intelligence/branching-conversation/manager.js'
-import type { ThoughtObserver, CognitiveSignal } from '../../intelligence/thought-observer.js'
-import type { CognitiveBridge, ResonancePattern } from '../../intelligence/cognitive-bridge.js'
-import type { IMemory } from '../../../types/intelligence.js'
-import type { IEventBus, ILogger } from '../../../types/interfaces.js'
+import type { BranchingConversationManager } from '../../vendor/core/intelligence/branching-conversation/manager.js'
+import type { ThoughtObserver, CognitiveSignal } from '../../vendor/core/intelligence/thought-observer.js'
+import type { CognitiveBridge, ResonancePattern } from '../../vendor/core/intelligence/cognitive-bridge.js'
+import type { IMemory } from "@cassicore/foundation"
+import type { IEventBus, ILogger } from "@cassicore/foundation"
 import type {
   CollectThoughtsResult,
   CollectThoughtsConfig,
   CollectThoughtsInput,
   AxonSessionState,
   SynapseGuidance,
-} from '../../../types/collect-thoughts.js'
-import { DEFAULT_COLLECT_THOUGHTS_CONFIG } from '../../../types/collect-thoughts.js'
-import { generateShortId } from '../../utils/ids.js'
-import type { Synapse } from '../../intelligence/synapse/index.js'
-import type { ThinkerSession } from '../../intelligence/thinker/thinker-session.js'
+} from "@cassicore/foundation"
+import { DEFAULT_COLLECT_THOUGHTS_CONFIG } from "@cassicore/foundation"
+import { generateShortId } from '../../vendor/core/utils/ids.js'
+import type { Synapse } from '../../vendor/core/intelligence/synapse/index.js'
+import type { ThinkerSession } from '../../vendor/core/intelligence/thinker/thinker-session.js'
 
 
 /** Constellation-level guidance provider for thought enrichment.

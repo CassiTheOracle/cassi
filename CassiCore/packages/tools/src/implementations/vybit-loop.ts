@@ -21,9 +21,9 @@
 import { spawn } from 'node:child_process'
 import { readFile, writeFile, access, stat } from 'node:fs/promises'
 import { join, resolve, basename } from 'node:path'
-import { getEventBus } from '../../events/index.js'
+import { getEventBus } from '../../vendor/core/events/index.js'
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from "@cassicore/foundation"
 import type { ToolExecutionContext } from '../types.js'
 
 // State

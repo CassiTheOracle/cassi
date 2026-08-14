@@ -19,7 +19,7 @@
  */
 
 import { execFile } from 'node:child_process'
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from "@cassicore/foundation"
 
 export type HookEvent = 'PreToolUse' | 'PostToolUse'
 

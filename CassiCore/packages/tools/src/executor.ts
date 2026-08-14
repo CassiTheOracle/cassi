@@ -1,5 +1,5 @@
 import { resolveToolDomain } from '../intelligence/permission-oracle/types.js'
-import { TTLCache } from '../utils/ttl-cache.js'
+import { TTLCache } from '../vendor/core/utils/ttl-cache.js'
 import { presentForLLM } from './presentation.js'
 
 import { validateToolInput, validateToolOutput, executeToolSafe } from './safety.js'
@@ -13,7 +13,7 @@ import type { ToolRegistry } from './registry.js'
 import type { ToolCall, ToolResult, ToolExecutionContext } from './types.js'
 
 type RegistryEntry = ReturnType<ToolRegistry['get']>
-import type { IEventBus, ILogger } from '../../types/interfaces.js'
+import type { IEventBus, ILogger } from "@cassicore/foundation"
 import type { PermissionOracle } from '../intelligence/permission-oracle/index.js'
 import type { TrustLedger } from '../intelligence/trust-ledger/index.js'
 import { ToolReliabilityTracker } from './reliability.js'

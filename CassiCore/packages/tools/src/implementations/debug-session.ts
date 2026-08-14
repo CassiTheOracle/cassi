@@ -1,7 +1,7 @@
 import type { ToolDefinition, ToolHandler } from '../types.js'
-import type { ISessionManager } from '../../../types/runtime.js'
-import type { IMemory } from '../../../types/intelligence.js'
-import type { IEventBus } from '../../../types/interfaces.js'
+import type { ISessionManager } from "@cassicore/foundation"
+import type { IMemory } from "@cassicore/foundation"
+import type { IEventBus } from "@cassicore/foundation"
 
 export interface DebugSessionDeps {
   sessionManager?: ISessionManager

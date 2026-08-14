@@ -14,9 +14,9 @@
  */
 
 import type { ToolDefinition, ToolHandler } from '../types.js'
-import type { ThoughtObserver, CognitiveSignal, SignalKind } from '../../intelligence/thought-observer.js'
-import type { CognitiveBridge, ResonancePattern } from '../../intelligence/cognitive-bridge.js'
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ThoughtObserver, CognitiveSignal, SignalKind } from '../../vendor/core/intelligence/thought-observer.js'
+import type { CognitiveBridge, ResonancePattern } from '../../vendor/core/intelligence/cognitive-bridge.js'
+import type { ILogger } from "@cassicore/foundation"
 
 
 export const reflectDefinition: ToolDefinition = {

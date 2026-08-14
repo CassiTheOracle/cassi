@@ -19,8 +19,8 @@
  *   - discard_all_changes: clears the queue
  */
 
-import { MCPClient } from '../../mcp/client.js'
-import { getEventBus } from '../../events/index.js'
+import { MCPClient } from '../../vendor/core/mcp/client.js'
+import { getEventBus } from '../../vendor/core/events/index.js'
 import {
   handleDevStart, handleDevStop, handleInjectOverlay,
   handleBrowserOpen, handleSession, handleSessionStop,
@@ -29,7 +29,7 @@ import {
 import { ingestBugReport, ingestBugReports } from './vybit-bug-ingest.js'
 
 import type { ToolDefinition, ToolHandler, ToolExecutionContext } from '../types.js'
-import type { MCPServerConfig } from '../../mcp/types.js'
+import type { MCPServerConfig } from '../../vendor/core/mcp/types.js'
 
 // VyBit patch types (subset of VyBit's shared/types.ts — enough for CassiCore)
 

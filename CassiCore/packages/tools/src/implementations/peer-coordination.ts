@@ -19,8 +19,8 @@
  */
 
 import type { ToolDefinition, ToolHandler } from '../types.js'
-import type { CognitiveBridge } from '../../intelligence/cognitive-bridge.js'
-import type { ILogger } from '../../../types/interfaces.js'
+import type { CognitiveBridge } from '../../vendor/core/intelligence/cognitive-bridge.js'
+import type { ILogger } from "@cassicore/foundation"
 
 
 export const coordinateDefinition: ToolDefinition = {

@@ -1,4 +1,4 @@
-import { getEventBus, getContextWindowDebugger } from '../../events/index.js'
+import { getEventBus, getContextWindowDebugger } from '../../vendor/core/events/index.js'
 
 import { registerCassandraEventTools } from './cassandra-event.js'
 import {
@@ -54,13 +54,13 @@ import {
 } from './universal-search.js'
 import { workflowDefinition, makeWorkflowHandler } from './workflow.js'
 
-import type { IMemory } from '../../../types/intelligence.js'
-import type { ISessionManager } from '../../../types/runtime.js'
+import type { IMemory } from "@cassicore/foundation"
+import type { ISessionManager } from "@cassicore/foundation"
 import type { ToolRegistry } from '../registry.js'
-import type { TurnPipeline } from '../../turn-pipeline.js'
-import type { IEventBus, ILogger } from '../../../types/interfaces.js'
-import type { SessionStore } from '../../session-store.js'
-import type { EventHistory } from '../../event-history.js'
+import type { TurnPipeline } from '../../vendor/core/turn-pipeline.js'
+import type { IEventBus, ILogger } from "@cassicore/foundation"
+import type { SessionStore } from '../../vendor/core/session-store.js'
+import type { EventHistory } from '../../vendor/core/event-history.js'
 
 
 
@@ -91,9 +91,9 @@ export interface CoreToolDeps {
   collectThoughtsDeps?: CollectThoughtsDeps
 
   /** Lazy getter for workflow engine */
-  getWorkflowEngine?: () => import('../../workflow/engine.js').WorkflowEngine | null
+  getWorkflowEngine?: () => import('../../vendor/core/workflow/engine.js').WorkflowEngine | null
   /** Lazy getter for workflow definitions map (id -> definition) */
-  getWorkflowDefinitions?: () => Map<string, import('../../../types/workflow.js').WorkflowDefinition>
+  getWorkflowDefinitions?: () => Map<string, import("@cassicore/foundation").WorkflowDefinition>
   /** Lazy getter for workflow run store (persistence) */
   getWorkflowStore?: () => import('../../workflow/persistence.js').WorkflowStore | null
   /** Lazy getter for workflow definition store (persistence) */

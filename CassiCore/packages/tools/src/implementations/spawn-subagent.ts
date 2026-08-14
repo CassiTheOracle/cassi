@@ -1,6 +1,6 @@
-import { getModelSpec } from '../../config/system-settings.js'
+import { getModelSpec } from '../@cassicore/foundation'
 
-import type { ISessionManager } from '../../../types/runtime.js'
+import type { ISessionManager } from "@cassicore/foundation"
 import type { ToolDefinition, ToolHandler } from '../types.js'
 
 export const spawnSubagentDefinition: ToolDefinition = {

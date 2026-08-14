@@ -24,8 +24,8 @@ import type {
   StoredWorkflowDefinition,
   SerializedNodeGraph,
   IWorkflowDefinitionStore,
-} from '../../../types/workflow.js'
-import type { WorkflowEngine } from '../../workflow/engine.js'
+} from "@cassicore/foundation"
+import type { WorkflowEngine } from '../../vendor/core/workflow/engine.js'
 
 export const workflowDefinition: ToolDefinition = {
   name: 'workflow',

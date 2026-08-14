@@ -1,6 +1,6 @@
-import { rootLogger } from '../logger.js'
+import { rootLogger } from '../vendor/core/logger.js'
 
-import type { ILogger } from '../../types/interfaces.js'
+import type { ILogger } from "@cassicore/foundation"
 
 const logger: ILogger = rootLogger.child('tool-safety')
 

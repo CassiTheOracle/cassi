@@ -7,7 +7,7 @@
  * Preserves all caching behavior (SummaryCache with TTLs) from original implementation.
  */
 
-import type { ContextWindowDebugger, ContextWindowSnapshot } from '../../events/context-window-debug.js'
+import type { ContextWindowDebugger, ContextWindowSnapshot } from '../../vendor/core/events/context-window-debug.js'
 import type { ToolDefinition, ToolHandler } from '../types.js'
 
 // Constants

@@ -17,7 +17,7 @@
  */
 
 import type { ToolDefinition, ToolHandler, ToolExecutionContext } from '../types.js'
-import type { CorticalField } from '../../intelligence/cortex/index.js'
+import type { CorticalField } from '@cassicore/cortex-pineal-dialectic'
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */

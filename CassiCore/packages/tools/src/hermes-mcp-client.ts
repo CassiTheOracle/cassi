@@ -13,10 +13,10 @@
 
 import { spawn, type ChildProcess } from 'node:child_process'
 import { resolve } from 'node:path'
-import { rootLogger } from '../logger.js'
-import { CASSICORE_VERSION } from '../version.js'
+import { rootLogger } from '../vendor/core/logger.js'
+import { CASSICORE_VERSION } from '../vendor/core/version.js'
 import type { ToolDefinition } from './types.js'
-import type { ILogger } from '../../types/interfaces.js'
+import type { ILogger } from "@cassicore/foundation"
 
 const logger: ILogger = rootLogger.child('hermes-mcp-client')
 

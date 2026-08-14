@@ -9,13 +9,13 @@
  * - Returns runId and sessionKey
  */
 
-import { MODEL_DEFAULTS, getModelSpec } from '../../config/system-settings.js'
-import { generateShortId, generateReadableId } from '../../utils/ids.js'
+import { MODEL_DEFAULTS, getModelSpec } from '../@cassicore/foundation'
+import { generateShortId, generateReadableId } from '../../vendor/core/utils/ids.js'
 
-import type { IEventBus, ILogger } from '../../../types/interfaces.js'
-import type { ISessionManager, Session, Message } from '../../../types/runtime.js'
-import type { SessionStore } from '../../session-store.js'
-import type { TurnPipeline } from '../../turn-pipeline.js'
+import type { IEventBus, ILogger } from "@cassicore/foundation"
+import type { ISessionManager, Session, Message } from "@cassicore/foundation"
+import type { SessionStore } from '../../vendor/core/session-store.js'
+import type { TurnPipeline } from '../../vendor/core/turn-pipeline.js'
 
 interface SessionPipelineLike {
   processTurn(

@@ -1,5 +1,5 @@
 import type { ToolDefinition, ToolHandler } from '../types.js'
-import type { GraphAttnPropagator } from '../../intelligence/mnemic-field/graph-attn-propagator.js'
+import type { GraphAttnPropagator } from '@cassicore/mnemic-field'
 
 export interface GraphDiscoverDeps {
   getPropagator: () => GraphAttnPropagator | undefined
