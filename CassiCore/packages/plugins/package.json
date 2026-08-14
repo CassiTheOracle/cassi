@@ -1,7 +1,7 @@
 {
-  "name": "@cassicore/thalamus",
+  "name": "@cassicore/plugins",
   "version": "0.1.0",
-  "description": "Thalamus — message curation, luminance scoring, compression/distillation, and cross-session topic memory extracted from CassiCore. Registry-discovered BaseCognitiveModule.",
+  "description": "Host-side plugin system: PluginAPI, PluginRegistry, CassiCoreClient SDK, PluginHost (fork-based worker manager) and the external-client curator. Extracted from CassiCore core/plugins/* + core/plugin-host.ts. History-preserved import splice; depends on @cassicore/foundation (protocol types), @cassicore/events (bus), @cassicore/thalamus (external-clients).",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -9,10 +9,6 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    },
-    "./classifier": {
-      "types": "./dist/classifier.d.ts",
-      "import": "./dist/classifier.js"
     }
   },
   "files": [
@@ -25,18 +21,15 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --passWithNoTests",
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
   },
   "dependencies": {
-    "@cassicore/aurora": "*",
-    "@cassicore/cortex-pineal-dialectic": "*",
+    "@cassicore/events": "*",
     "@cassicore/foundation": "*",
-    "@cassicore/mnemic-field": "*",
-    "better-sqlite3": "^11.0.0"
+    "@cassicore/thalamus": "*"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.0",
     "@types/node": "^20.0.0",
     "typescript": "^5.4.0",
     "vitest": "^1.6.0"

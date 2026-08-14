@@ -1,7 +1,7 @@
 {
-  "name": "@cassicore/thalamus",
+  "name": "@cassicore/pipeline",
   "version": "0.1.0",
-  "description": "Thalamus — message curation, luminance scoring, compression/distillation, and cross-session topic memory extracted from CassiCore. Registry-discovered BaseCognitiveModule.",
+  "description": "Agent conversation pipeline: SessionPipeline adapter, intelligence layer, session manager + stores, turn processing (ContextWindow/MessageBuilder/ToolLoop/TurnHandler/overflow). Extracted from CassiCore core/pipeline/*. History-preserved import splice; depends on @cassicore/foundation, @cassicore/embeddings, @cassicore/thalamus, better-sqlite3.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -9,10 +9,6 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    },
-    "./classifier": {
-      "types": "./dist/classifier.d.ts",
-      "import": "./dist/classifier.js"
     }
   },
   "files": [
@@ -29,11 +25,10 @@
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
   },
   "dependencies": {
-    "@cassicore/aurora": "*",
-    "@cassicore/cortex-pineal-dialectic": "*",
+    "@cassicore/embeddings": "*",
     "@cassicore/foundation": "*",
-    "@cassicore/mnemic-field": "*",
-    "better-sqlite3": "^11.0.0"
+    "@cassicore/thalamus": "*",
+    "better-sqlite3": "^11.10.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.0",
