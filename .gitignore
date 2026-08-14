@@ -52,3 +52,6 @@ experiments/void_phi_rings/downloads/
 
 # DSHARP disk-gap ring-ladder data (re-downloadable; scripts are tracked)
 experiments/dsharp_phi_gaps/data/
+
+# Kepler phi-ratio multi-planet catalog data (re-downloadable; scripts are tracked)
+experiments/kepler_phi_ratios/data/
