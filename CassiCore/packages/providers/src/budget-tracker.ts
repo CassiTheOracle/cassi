@@ -20,7 +20,7 @@ import { join } from 'node:path'
 import { getCostClassifier } from './cost-classifier.js'
 
 import type { RequestCost } from './cost-classifier.js'
-import type { ILogger, IEventBus } from '../../types/interfaces.js'
+import type { ILogger, IEventBus } from '@cassicore/foundation'
 
 
 

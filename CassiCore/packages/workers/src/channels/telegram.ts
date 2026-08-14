@@ -16,7 +16,7 @@
  * memory retrieval, intelligence context — is the daemon's job.
  */
 
-import { workerPort } from '../../core/worker-ipc.js'
+import { workerPort } from '../vendor/core/worker-ipc.js'
 import * as tg from './telegram-common.js'
 
 

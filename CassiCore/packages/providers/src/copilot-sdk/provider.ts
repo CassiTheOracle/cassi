@@ -22,8 +22,8 @@ import { mapSdkEvent, createTurnState } from './event-mapper.js'
 import { WarmSessionState, buildFinishedSdkTool, buildIdleSdkTool } from './finished-tool.js'
 import type { IterationResult } from './finished-tool.js'
 
-import type { Message, CompletionOpts, CompletionChunk, TurnResult, ImageAttachment } from '../../../types/runtime.js'
-import type { ILogger, IEventBus } from '../../../types/interfaces.js'
+import type { Message, CompletionOpts, CompletionChunk, TurnResult, ImageAttachment } from '@cassicore/foundation'
+import type { ILogger, IEventBus } from '@cassicore/foundation'
 
 /** Default sendAndWait timeout: 10 minutes (tool loops can be long). */
 const SDK_TURN_TIMEOUT_MS = 600_000

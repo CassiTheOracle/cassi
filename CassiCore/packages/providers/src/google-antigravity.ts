@@ -3,11 +3,11 @@
  * Uses the Cloud Code Assist API (Internal Google API)
  */
 
-import { signalPromise } from '../utils/abort.js'
+import { signalPromise } from '@cassicore/utils'
 
 import { BaseProvider } from './base.js'
 
-import type { Message, ContentBlock, CompletionOpts, CompletionChunk, ImageAttachment } from '../../types/runtime.js'
+import type { Message, ContentBlock, CompletionOpts, CompletionChunk, ImageAttachment } from '@cassicore/foundation'
 
 const DEFAULT_ENDPOINT = 'https://cloudcode-pa.googleapis.com'
 const ANTIGRAVITY_SYSTEM_INSTRUCTION =

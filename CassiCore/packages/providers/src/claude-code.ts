@@ -5,10 +5,10 @@ import path from 'node:path'
 import readline from 'node:readline'
 
 import { BaseProvider } from './base.js'
-import { signalPromise } from '../utils/abort.js'
+import { signalPromise } from '@cassicore/utils'
 
-import type { ILogger } from '../../types/interfaces.js'
-import type { CompletionChunk, CompletionOpts, IProvider, ImageAttachment, Message } from '../../types/runtime.js'
+import type { ILogger } from '@cassicore/foundation'
+import type { CompletionChunk, CompletionOpts, IProvider, ImageAttachment, Message } from '@cassicore/foundation'
 
 const DEFAULT_MODELS = [
   'claude-sonnet-4-7',

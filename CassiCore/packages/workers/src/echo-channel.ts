@@ -1,6 +1,6 @@
-import { workerPort } from '../core/worker-ipc.js'
-import { rootLogger } from '../core/logger.js'
-import type { HostToWorkerMessage } from '../types/worker-messages.js'
+import { workerPort } from './vendor/core/worker-ipc.js'
+import { rootLogger } from '@cassicore/events'
+import type { HostToWorkerMessage } from '@cassicore/foundation'
 
 const logger = rootLogger.child('echo-channel')
 

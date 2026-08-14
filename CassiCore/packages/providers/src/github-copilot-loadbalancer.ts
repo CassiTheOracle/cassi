@@ -1,7 +1,7 @@
 import { GitHubCopilotProvider } from './github-copilot.js'
 import { BaseProvider } from './base.js'
 
-import type { Message, CompletionOpts, CompletionChunk, ImageAttachment } from '../../types/runtime.js'
+import type { Message, CompletionOpts, CompletionChunk, ImageAttachment } from '@cassicore/foundation'
 
 /**
  * GitHub Copilot account descriptor

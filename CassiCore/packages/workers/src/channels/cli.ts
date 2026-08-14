@@ -5,9 +5,9 @@
  * Handles communication between CLI clients and CassiCore intelligence layer.
  */
 
-import { workerPort } from '../../core/worker-ipc.js'
-import type { ILogger } from "../../types/interfaces.js";
-import type { HostMessage, WorkerMessage, WorkerToHostMessage } from "../../types/worker-messages.js";
+import { workerPort } from '../vendor/core/worker-ipc.js'
+import type { ILogger } from '@cassicore/foundation';
+import type { HostMessage, WorkerMessage, WorkerToHostMessage } from '@cassicore/foundation';
 
 interface CliMessage {
   type: string;

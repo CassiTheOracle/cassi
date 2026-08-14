@@ -11,7 +11,7 @@
  * @dep callers: complete (core/providers/copilot-sdk/provider.ts)
  */
 import type { Tool as SdkTool } from '@github/copilot-sdk'
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 
 
 export interface Deferred<T> {

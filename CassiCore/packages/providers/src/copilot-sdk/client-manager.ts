@@ -7,7 +7,7 @@
 import { CopilotClient, approveAll } from '@github/copilot-sdk'
 import type { CopilotClientOptions, ConnectionState, ModelInfo } from '@github/copilot-sdk'
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from '@cassicore/foundation'
 
 export interface CopilotSdkManagerOptions {
   /** GitHub OAuth token (from device flow / config) */

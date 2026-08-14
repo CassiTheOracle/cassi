@@ -1,7 +1,7 @@
 import { createServer, IncomingMessage, ServerResponse } from 'http';
-import { workerPort } from '../../core/worker-ipc.js';
+import { workerPort } from '../vendor/core/worker-ipc.js';
 import { randomUUID } from 'node:crypto';
-import type { HostMessage, WorkerMessage } from '../../types/worker-messages.js';
+import type { HostMessage, WorkerMessage } from '@cassicore/foundation';
 
 // Map sessionId -> ServerResponse (SSE connection)
 const clients = new Map<string, ServerResponse>();

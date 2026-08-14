@@ -17,8 +17,8 @@
 
 import type { CommandContext, CommandResult } from './universal-processor.js'
 import { processor } from './universal-processor.js'
-import { InteractiveToolSession, splitForTelegram } from '../core/tools/interactive-tool-session.js'
-import type { ToolDefinition } from '../core/tools/interactive-tool-session.js'
+import { InteractiveToolSession, splitForTelegram } from '@cassicore/tools'
+import type { ToolDefinition } from '@cassicore/tools'
 
 const ADMIN_BASE = 'http://localhost:7433'
 

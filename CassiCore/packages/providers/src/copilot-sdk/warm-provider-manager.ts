@@ -14,8 +14,8 @@
  *   - Manages session lifecycle (idle eviction, explicit destroy)
  */
 import type { CopilotSdkProvider } from './provider.js'
-import type { ILogger, IEventBus } from '../../../types/interfaces.js'
-import type { CompletionChunk, CompletionOpts, Message } from '../../../types/runtime.js'
+import type { ILogger, IEventBus } from '@cassicore/foundation'
+import type { CompletionChunk, CompletionOpts, Message } from '@cassicore/foundation'
 
 /** Default idle timeout: 8 hours (work-day sessions) */
 const DEFAULT_IDLE_TIMEOUT_MS = 8 * 60 * 60 * 1000

@@ -8,11 +8,11 @@
  */
 import type { Tool as SdkTool, ToolInvocation } from '@github/copilot-sdk'
 
-import type { ToolRegistry } from '../../tools/registry.js'
-import type { ToolExecutor } from '../../tools/executor.js'
-import type { ToolDefinition } from '../../tools/types.js'
-import type { ILogger, IEventBus } from '../../../types/interfaces.js'
-import { buildToolResultPrefix } from '../../intelligence/thalamus/classifier.js'
+import type { ToolRegistry } from '@cassicore/tools'
+import type { ToolExecutor } from '@cassicore/tools'
+import type { ToolDefinition } from '@cassicore/tools'
+import type { ILogger, IEventBus } from '@cassicore/foundation'
+import { buildToolResultPrefix } from '@cassicore/thalamus/classifier'
 
 /** Admin API base URL for state-card fetching */
 const DEFAULT_ADMIN_URL = 'http://127.0.0.1:7433'

@@ -2,11 +2,11 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join, dirname } from 'node:path'
 
-import { signalPromise } from '../utils/abort.js'
+import { signalPromise } from '@cassicore/utils'
 
 import { BaseProvider } from './base.js'
 
-import type { Message, ContentBlock, CompletionOpts, CompletionChunk, ImageAttachment } from '../../types/runtime.js'
+import type { Message, ContentBlock, CompletionOpts, CompletionChunk, ImageAttachment } from '@cassicore/foundation'
 
 const BASE_URL = 'https://api.individual.githubcopilot.com'
 

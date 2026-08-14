@@ -8,9 +8,9 @@ import {
   OpenRouterProvider,
   QwenProvider,
   ZaiProvider,
-} from '../../ai/dist/providers/cassicore/index.js'
+} from './vendor/ai/providers/cassicore/index.js'
 
-import { getCassiCoreHome } from '../utils/paths.js'
+import { getCassiCoreHome } from '@cassicore/foundation'
 import { CentralizedProvider, wrapProvidersWithCentralized } from './centralized.js'
 import { ClaudeCodeProvider } from './claude-code.js'
 import { GitHubCopilotProvider } from './github-copilot.js'
@@ -18,17 +18,17 @@ import { GitHubCopilotLoadBalancer, type GitHubCopilotAccount } from './github-c
 import { GoogleAntigravityProvider } from './google-antigravity.js'
 import { QwenLoadBalancer, createQwenLoadBalancer, type QwenAccount } from './qwen-loadbalancer.js'
 
-import type { IConfig, ILogger , IEventBus } from '../../types/interfaces.js'
-import type { IProvider } from '../../types/runtime.js'
-import type { ToolRegistry } from '../tools/registry.js'
-import type { ToolExecutor } from '../tools/executor.js'
+import type { IConfig, ILogger , IEventBus } from '@cassicore/foundation'
+import type { IProvider } from '@cassicore/foundation'
+import type { ToolRegistry } from '@cassicore/tools'
+import type { ToolExecutor } from '@cassicore/tools'
 
 
 export { CentralizedProvider, wrapProvidersWithCentralized }
 export { QwenLoadBalancer, createQwenLoadBalancer }
 export type { QwenAccount }
 
-export { AlibabaCodingProvider, DeepSeekProvider, KimiCodingProvider, OpenRouterProvider, QwenProvider, ZaiProvider } from '../../ai/dist/providers/cassicore/index.js'
+export { AlibabaCodingProvider, DeepSeekProvider, KimiCodingProvider, OpenRouterProvider, QwenProvider, ZaiProvider } from './vendor/ai/providers/cassicore/index.js'
 
 export { CostClassifier, getCostClassifier, DEFAULT_COST_RULES } from './cost-classifier.js'
 export type { RequestCost, CostRule } from './cost-classifier.js'

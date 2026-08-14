@@ -6,7 +6,7 @@
  */
 import type { SessionEvent } from '@github/copilot-sdk'
 
-import type { IEventBus } from '../../../types/interfaces.js'
+import type { IEventBus } from '@cassicore/foundation'
 
 /** Context health snapshot captured from SDK session events. */
 export interface SdkContextHealth {

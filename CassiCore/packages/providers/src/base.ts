@@ -1,4 +1,4 @@
-import type { IProvider, Message, CompletionOpts, CompletionChunk, ImageAttachment } from '../../types/runtime.js'
+import type { IProvider, Message, CompletionOpts, CompletionChunk, ImageAttachment } from '@cassicore/foundation'
 
 export abstract class BaseProvider implements IProvider {
   abstract readonly id: string

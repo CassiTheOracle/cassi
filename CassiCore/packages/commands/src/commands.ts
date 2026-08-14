@@ -8,16 +8,16 @@
  * across all channels (Telegram, Chat, TUI, API, Web, CLI)
  */
 
-import { processor, type CommandContext as UniversalContext } from '../commands/universal-processor.js';
-import { activeSessions } from '../commands/cassi-commands.js';
-import { splitForTelegram, type ExecutionResult } from './tools/interactive-tool-session.js';
+import { processor, type CommandContext as UniversalContext } from './commands/universal-processor.js';
+import { activeSessions } from './commands/cassi-commands.js';
+import { splitForTelegram, type ExecutionResult } from '@cassicore/tools';
 
-import { bus } from './event-bus.js';
+import { bus } from '@cassicore/events';
 
-import type { ILogger, IEventBus } from '../types/interfaces.js';
-import type { ISessionManager } from '../types/runtime.js';
-import type { IntelligenceLayer } from './intelligence/index.js';
-import type { ModelDirective } from './model-routing/index.js';
+import type { ILogger, IEventBus } from '@cassicore/foundation';
+import type { ISessionManager } from '@cassicore/foundation';
+import type { IntelligenceLayer } from '@cassicore/pipeline';
+import type { ModelDirective } from './vendor/core/model-routing/index.js';
 import '../commands/git-commands.js';
 import '../commands/tool-commands.js';
 import '../commands/cassi-commands.js';
