@@ -1,7 +1,7 @@
 import type { ILogger } from '@cassicore/foundation'
 import type { SystemLuminanceScore } from './vendor/core/intelligence/workspace/cognitive-signal.js'
 import type { BrainContext, ScoredMessage } from './types.js'
-import { hasQuestionResult, buildToolUseMapFromMessages } from './vendor/core/pipeline/turn/overflow.js'
+import { hasQuestionResult, buildToolUseMapFromMessages } from '@cassicore/pipeline'
 import { EPISTEMIC_SHIFT_PHRASES } from '@cassicore/foundation'
 import type { MnemicField } from '@cassicore/mnemic-field'
 

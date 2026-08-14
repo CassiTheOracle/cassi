@@ -1,5 +1,5 @@
 import type { MessageSlotType } from './types.js'
-import { hasQuestionResult } from './vendor/core/pipeline/turn/overflow.js'
+import { hasQuestionResult } from '@cassicore/pipeline'
 
 /**
  * Tool class map — classifies tool names into high-level categories.

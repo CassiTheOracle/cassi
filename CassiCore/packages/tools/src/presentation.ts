@@ -18,7 +18,7 @@ import { join } from 'node:path'
 import { randomBytes } from 'node:crypto'
 
 import type { ILogger } from "@cassicore/foundation"
-import { rootLogger } from './vendor/core/logger.js'
+import { rootLogger } from '@cassicore/events'
 
 const logger: ILogger = rootLogger.child('presentation')
 

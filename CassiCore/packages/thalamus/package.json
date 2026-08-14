@@ -1,7 +1,7 @@
 {
   "name": "@cassicore/thalamus",
   "version": "0.1.0",
-  "description": "Thalamus — message curation, luminance scoring, compression/distillation, and cross-session topic memory extracted from CassiCore. Registry-discovered BaseCognitiveModule.",
+  "description": "Thalamus \u2014 message curation, luminance scoring, compression/distillation, and cross-session topic memory extracted from CassiCore. Registry-discovered BaseCognitiveModule.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -37,7 +37,8 @@
     "@cassicore/cortex-pineal-dialectic": "*",
     "@cassicore/foundation": "*",
     "@cassicore/mnemic-field": "*",
-    "better-sqlite3": "^11.0.0"
+    "better-sqlite3": "^11.0.0",
+    "@cassicore/pipeline": "*"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.0",

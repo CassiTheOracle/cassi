@@ -1,4 +1,4 @@
-import { getEventBus, getContextWindowDebugger } from '../vendor/core/events/index.js'
+import { getEventBus, getContextWindowDebugger } from '@cassicore/events'
 
 import { registerCassandraEventTools } from './cassandra-event.js'
 import {
@@ -60,7 +60,7 @@ import type { ToolRegistry } from '../registry.js'
 import type { TurnPipeline } from '../vendor/core/turn-pipeline.js'
 import type { IEventBus, ILogger } from "@cassicore/foundation"
 import type { SessionStore } from '../vendor/core/session-store.js'
-import type { EventHistory } from '../vendor/core/event-history.js'
+import type { EventHistory } from '@cassicore/events'
 
 
 

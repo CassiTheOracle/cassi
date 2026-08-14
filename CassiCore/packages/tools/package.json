@@ -44,7 +44,8 @@
     "@cassicore/cortex-pineal-dialectic": "*",
     "@cassicore/foundation": "*",
     "@cassicore/mnemic-field": "*",
-    "@cassicore/training-trust-ledger": "*"
+    "@cassicore/training-trust-ledger": "*",
+    "@cassicore/events": "*"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

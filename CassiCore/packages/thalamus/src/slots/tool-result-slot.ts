@@ -1,7 +1,7 @@
 import type { MessageSlot, ThalamusAnnotation, SlotContext } from '../types.js'
 import type { SystemLuminanceScore } from '../vendor/core/intelligence/workspace/cognitive-signal.js'
 import { classifyTool, extractToolResults } from '../classifier.js'
-import { hasQuestionResult } from '../vendor/core/pipeline/turn/overflow.js'
+import { hasQuestionResult } from '@cassicore/pipeline'
 
 /**
  * ToolResultSlot — processes `role: 'user'` messages containing tool_result blocks.

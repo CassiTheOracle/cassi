@@ -1,4 +1,4 @@
-import { rootLogger } from './vendor/core/logger.js'
+import { rootLogger } from '@cassicore/events'
 
 import type { ILogger } from "@cassicore/foundation"
 

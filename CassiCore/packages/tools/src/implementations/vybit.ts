@@ -20,7 +20,7 @@
  */
 
 import { MCPClient } from '../vendor/core/mcp/client.js'
-import { getEventBus } from '../vendor/core/events/index.js'
+import { getEventBus } from '@cassicore/events'
 import {
   handleDevStart, handleDevStop, handleInjectOverlay,
   handleBrowserOpen, handleSession, handleSessionStop,

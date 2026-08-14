@@ -24,6 +24,9 @@ export function resetEventBus(): void {
   bus.clear();
 }
 
+// Event History
+export { EventHistory, getEventHistory, setEventHistory } from './event-history.js';
+
 // Event Types (CLI ↔ daemon protocol types)
 export type {
   BaseEvent,

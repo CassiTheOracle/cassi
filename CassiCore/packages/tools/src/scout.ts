@@ -23,7 +23,7 @@
 import { readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { getHermesMcpClient } from './hermes-mcp-client.js'
-import { rootLogger } from './vendor/core/logger.js'
+import { rootLogger } from '@cassicore/events'
 import type { ILogger } from "@cassicore/foundation"
 
 const logger: ILogger = rootLogger.child('scout')

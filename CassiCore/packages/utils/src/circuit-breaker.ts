@@ -7,7 +7,7 @@
  * Type-agnostic and reusable across tools, providers, plugins, and services.
  */
 
-import { rootLogger } from './vendor/core/logger.js'
+import { rootLogger } from '@cassicore/events'
 
 const logger = rootLogger.child('circuit-breaker')
 

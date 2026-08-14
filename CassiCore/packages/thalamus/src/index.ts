@@ -42,7 +42,7 @@ import type {
 } from './types.js'
 import { DEFAULT_CURATION_CONFIG, SIGNAL_TYPE_WEIGHTS, REGION_WEIGHTS, DEFAULT_SLOT_BUDGETS, parseThoughtCommands } from './types.js'
 import { buildDropReceipt, type DropReceipt } from './drop-receipt.js'
-import { hasQuestionResult, buildToolUseMapFromMessages } from './vendor/core/pipeline/turn/overflow.js'
+import { hasQuestionResult, buildToolUseMapFromMessages } from '@cassicore/pipeline'
 
 /**
  * Deep clone a message to prevent in-place mutations from leaking

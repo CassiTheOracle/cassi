@@ -56,7 +56,9 @@ export {
   createTurnHandler,
   createSafeTurnHandler,
   createSafeContextWindow,
-  createSafeToolLoop
+  createSafeToolLoop,
+  hasQuestionResult,
+  buildToolUseMapFromMessages,
 } from './turn/index.js';
 
 export type {
