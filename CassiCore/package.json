@@ -1,0 +1,14 @@
+{
+  "name": "cassicore-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CassiCore modular workspace — standalone @cassicore/* packages extracted with history preservation.",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspaces"
+  }
+}
