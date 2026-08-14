@@ -1,41 +1,107 @@
 # @cassicore/ai
 
-CassiCore's standalone AI provider layer (forked from pi-ai for tight
-integration). Migrated (history-preserved) from the D: `ai/` npm package,
-committed at cassicore `d63358da`.
+Tightly integrated AI provider layer for CassiCore, forked from pi-ai.
 
-## What lives here
+## Overview
 
-The whole D: `ai/` tree — 46 tracked files — lands under `src/` with full
-provenance:
+This module replaces CassiCore's custom provider implementations with a unified,
+tightly integrated provider system based on pi-ai. It provides:
 
-| source (D:) | dest (here) | note |
-|---|---|---|
-| `ai/src/index.ts` | `src/index.ts` | package barrel (re-exports providers + oauth + models) |
-| `ai/src/cli.ts` | `src/cli.ts` | CLI entry |
-| `ai/src/models.generated.ts` | `src/models.generated.ts` | 325 KB auto-generated model registry (`MODELS`) |
-| `ai/src/providers/*` | `src/providers/` | SDK provider clients (openai, anthropic, google, bedrock, gemini-cli, vertex, codex, completions, responses) |
-| `ai/src/providers/cassicore/*` | `src/providers/cassicore/` | CassiCore-specific providers (opencode-go, qwen, alibaba, deepseek, kimi, openrouter, zai + openai-compatible base) |
-| `ai/src/utils/*` | `src/utils/` | oauth flows, event-stream, http-proxy, overflow, validation, typebox helpers |
-| `ai/src/cassicore-types/*` | `src/cassicore-types/` | shared local type layer |
-| `ai/src/api-registry.ts` | `src/api-registry.ts` | API provider registry |
-| `ai/src/env-api-keys.ts` | `src/env-api-keys.ts` | env key resolution |
-| `ai/package.json` | `package.json` | own manifest (renamed to `@cassicore/ai`) |
-| `ai/tsconfig.json` | `tsconfig.json` | NodeNext / strict |
+- **Unified API**: Single interface for all LLM providers (Anthropic, OpenAI, Google, etc.)
+- **CassiCore Integration**: Direct compatibility with CassiCore's `IProvider` interface
+- **Custom Providers**: Extended support for Kimi, Qwen, and OpenRouter
+- **Type Safety**: Full TypeScript support with shared type definitions
 
-The package keeps its **own package.json and tsconfig**; it is a full workspace
-member so model-pool and providers can depend on it.
+## Structure
 
-## Provider SDK surface
+```
+ai/
+├── src/
+│   ├── cassicore-compat.ts         # Main integration layer
+│   ├── cassicore-types/            # CassiCore type definitions
+│   │   ├── runtime.ts              # IProvider, Message, etc.
+│   │   └── interfaces.ts           # ILogger, IConfig, etc.
+│   ├── providers/
+│   │   ├── anthropic.ts            # Anthropic provider (from pi-ai)
+│   │   ├── openai-completions.ts   # OpenAI provider (from pi-ai)
+│   │   ├── google*.ts              # Google providers (from pi-ai)
+│   │   └── cassicore/              # CassiCore-specific providers
+│   │       ├── kimi-coding.ts      # Moonshot Kimi models
+│   │       ├── qwen.ts             # Alibaba Qwen models
+│   │       └── openrouter.ts       # OpenRouter gateway
+│   ├── types.ts                    # Core pi-ai types
+│   └── index.ts                    # Public exports
+├── dist/                           # Compiled output
+├── package.json
+└── tsconfig.json
+```
 
-Exposes the CassiCore provider classes the daemon and providers package wire at
-boot: `OpenCodeGoProvider`, `AlibabaCodingProvider`, `DeepSeekProvider`,
-`KimiCodingProvider`, `OpenRouterProvider`, `ZaiProvider`, `QwenProvider`
-(+ `QwenOAuthCredentials`, `QwenAccount`, `QwenLoadBalancer`), backed by
-`OpenAICompatibleBase`.
+## Usage
 
-`ai/src/providers/cassicore/{opencode-go,alibaba-coding,deepseek,kimi-coding,
-openrouter,zai,qwen,openai-compatible-base}.ts` were deleted from the D: tree at
-`4f06418d` (moved out of the ai path) leaving dangling re-exports; P8 restores
-them **from the ai path's own imported history** (self-contained, no D:
-`core/` deps) so the barrel resolves and the provider contract is real.
+### In CassiCore
+
+```typescript
+import { createProviders } from '@cassicore/ai';
+
+const providers = createProviders(config, logger);
+
+// Use like any CassiCore provider
+const provider = providers.get('kimi-coding/k2.5');
+for await (const chunk of provider.complete(messages, opts)) {
+  // Handle chunks
+}
+```
+
+### Supported Providers
+
+| Provider | Environment Variable | Models |
+|----------|---------------------|--------|
+| kimi-coding | `KIMI_API_KEY` | k2.5, k2.5-long, k2.5-vision |
+| qwen | `QWEN_API_KEY` or `DASHSCOPE_API_KEY` | qwen3-coder-plus, qwen3-coder-flash, qwen3-vl-plus, qwen-max |
+| openrouter | `OPENROUTER_API_KEY` | Various (Claude, GPT, Gemini, etc.) |
+| anthropic | `ANTHROPIC_API_KEY` | Claude models |
+| google-gemini-cli | `GEMINI_API_KEY` | Gemini models |
+| openai-completions | `OPENAI_API_KEY` | GPT models |
+
+## Architecture
+
+### CassiCoreProviderAdapter
+
+The `CassiCoreProviderAdapter` class bridges pi-ai's streaming API with CassiCore's `IProvider` interface:
+
+- Converts CassiCore `Message` format to pi-ai `Context`
+- Maps `CompletionOpts` to pi-ai `SimpleStreamOptions`
+- Transforms pi-ai `AssistantMessageEvent` to CassiCore `CompletionChunk`
+- Handles thinking levels, tool calls, and error events
+
+### Type Mapping
+
+| CassiCore | pi-ai |
+|-----------|-------|
+| `IProvider.complete()` | `streamSimple*()` functions |
+| `Message` | `Context.messages` |
+| `CompletionOpts` | `SimpleStreamOptions` |
+| `CompletionChunk` | `AssistantMessageEvent` |
+| `ThinkingLevel` | `ThinkingLevel` |
+
+## Building
+
+```bash
+# Build ai module only
+npm run build --workspace=ai
+
+# Build all (ai + cassicore)
+npm run build
+```
+
+## Future Work
+
+- [ ] GitHub Copilot provider integration
+- [ ] Qwen multi-account load balancer
+- [ ] Provider health checking and failover
+- [ ] Token counting per provider
+- [ ] Cost tracking and optimization
+
+## License
+
+MIT (same as pi-ai)

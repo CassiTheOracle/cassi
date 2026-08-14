@@ -1,0 +1,65 @@
+import type { Api, Model, SimpleStreamOptions, StreamOptions, ThinkingBudgets, ThinkingLevel } from "../types.js";
+
+/**
+ * @dep callers: streamSimpleOpenAICompletions (ai/src/providers/openai-completions.ts), streamSimpleOpenAIResponses (ai/src/providers/openai-responses.ts), streamSimpleBedrock (ai/src/providers/amazon-bedrock.ts), streamSimpleAnthropic (ai/src/providers/anthropic.ts), streamSimpleAzureOpenAIResponses (ai/src/providers/azure-openai-responses.ts) [+4]
+ * @dep module: Providers
+ * @dep risk: HIGH | 9 callers, 0 flows, 1 module
+ */
+
+export function buildBaseOptions(model: Model<Api>, options?: SimpleStreamOptions, apiKey?: string): StreamOptions {
+	return {
+		temperature: options?.temperature,
+		maxTokens: options?.maxTokens || Math.min(model.maxTokens, 32000),
+		signal: options?.signal,
+		apiKey: apiKey || options?.apiKey,
+		cacheRetention: options?.cacheRetention,
+		sessionId: options?.sessionId,
+		headers: options?.headers,
+		onPayload: options?.onPayload,
+		maxRetryDelayMs: options?.maxRetryDelayMs,
+		metadata: options?.metadata,
+	};
+}
+
+/**
+ * @dep callers: streamSimpleOpenAICompletions (ai/src/providers/openai-completions.ts), streamSimpleOpenAIResponses (ai/src/providers/openai-responses.ts), adjustMaxTokensForThinking (ai/src/providers/simple-options.ts), streamSimpleBedrock (ai/src/providers/amazon-bedrock.ts), streamSimpleAzureOpenAIResponses (ai/src/providers/azure-openai-responses.ts) [+4]
+ * @dep module: Providers
+ * @dep risk: HIGH | 9 callers, 0 flows, 1 module
+ */
+
+export function clampReasoning(effort: ThinkingLevel | undefined): Exclude<ThinkingLevel, "xhigh"> | undefined {
+	return effort === "xhigh" ? "high" : effort;
+}
+
+/**
+ * @dep callers: streamSimpleBedrock (ai/src/providers/amazon-bedrock.ts), streamSimpleAnthropic (ai/src/providers/anthropic.ts)
+ * @dep calls: clampReasoning
+ * @dep module: Providers
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
+
+export function adjustMaxTokensForThinking(
+	baseMaxTokens: number,
+	modelMaxTokens: number,
+	reasoningLevel: ThinkingLevel,
+	customBudgets?: ThinkingBudgets,
+): { maxTokens: number; thinkingBudget: number } {
+	const defaultBudgets: ThinkingBudgets = {
+		minimal: 1024,
+		low: 2048,
+		medium: 8192,
+		high: 16384,
+	};
+	const budgets = { ...defaultBudgets, ...customBudgets };
+
+	const minOutputTokens = 1024;
+	const level = clampReasoning(reasoningLevel)!;
+	let thinkingBudget = budgets[level]!;
+	const maxTokens = Math.min(baseMaxTokens + thinkingBudget, modelMaxTokens);
+
+	if (maxTokens <= thinkingBudget) {
+		thinkingBudget = Math.max(0, maxTokens - minOutputTokens);
+	}
+
+	return { maxTokens, thinkingBudget };
+}

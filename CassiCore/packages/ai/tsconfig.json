@@ -14,9 +14,8 @@
     "declarationMap": true,
     "sourceMap": true,
     "resolveJsonModule": true,
-    "allowSyntheticDefaultImports": true,
-    "types": ["node"]
+    "allowSyntheticDefaultImports": true
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+  "exclude": ["node_modules", "dist"]
 }

@@ -1,7 +1,7 @@
 {
   "name": "@cassicore/ai",
   "version": "0.7.0",
-  "description": "CassiCore AI provider layer - forked from pi-ai for tight integration. History-preserved import splice from the D: `ai/` standalone npm package; self-contained provider SDK clients (openai, anthropic, google, bedrock, cassicore providers).",
+  "description": "CassiCore AI provider layer - forked from pi-ai for tight integration",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -17,18 +17,10 @@
       "require": "./dist/cassicore-compat.js"
     }
   },
-  "files": [
-    "dist",
-    "src"
-  ],
-  "engines": {
-    "node": ">=20"
-  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch --preserveWatchOutput",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
+    "clean": "rm -rf dist"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.73.0",
@@ -46,9 +38,8 @@
     "zod-to-json-schema": "^3.24.6"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "typescript": "^5.4.0",
-    "vitest": "^1.6.0"
+    "@types/node": "^24.3.0",
+    "typescript": "^5.7.3"
   },
   "keywords": [
     "ai",
@@ -57,5 +48,8 @@
     "cassicore"
   ],
   "author": "CassiCore",
-  "license": "MIT"
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  }
 }
