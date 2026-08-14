@@ -34,7 +34,7 @@ import {
 } from './spatial-tokenizer.js'
 import type { RetrievalLabelTriple } from './vendor/core/intelligence/reverie/retrieval-labeler-types.js'
 import type { LabelerInputCandidate } from './vendor/core/intelligence/reverie/retrieval-labeler-types.js'
-import type { CorticalField } from './vendor/core/intelligence/cortex/index.js'
+import type { CorticalField } from '@cassicore/cortex-pineal-dialectic'
 import type { IProvider } from '@cassicore/foundation'
 import { LLMReranker, type LLMRerankerConfig } from './llm-reranker.js'
 import { LightningIndexer } from './lightning-indexer.js'

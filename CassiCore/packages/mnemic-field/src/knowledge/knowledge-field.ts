@@ -17,7 +17,7 @@ import {
 } from './types.js'
 import type {
   ModelKnowledgeProvider, ModelEntity, ModelEdge, ModelPath,
-} from '../vendor/core/intelligence/aurora/types.js'
+} from '@cassicore/aurora'
 
 const TAG_EXTRACTORS: Record<string, (meta: Record<string, unknown>) => string[]> = {
   paper: (m) => [

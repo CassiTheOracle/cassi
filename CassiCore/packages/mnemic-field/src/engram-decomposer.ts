@@ -18,7 +18,7 @@
  */
 
 import type { ILogger } from '@cassicore/foundation'
-import type { LarqlKnowledgeProvider } from './vendor/core/intelligence/aurora/larql-provider.js'
+import type { LarqlKnowledgeProvider } from '@cassicore/aurora'
 import { splitSentences } from './llm-reranker.js'
 import { createHash } from 'node:crypto'
 
