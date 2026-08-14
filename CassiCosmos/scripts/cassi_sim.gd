@@ -511,14 +511,32 @@ var _ml_tree_grad: RID      # vec4[N_particles] — per-particle tree ∇Φ_g·(
 var _ml_tree_icount: RID    # uint[N_particles] — walk interaction counts (walk binding 10)
 var _us_tree_build: RID
 var _us_tree_grav: RID
-var _tree_creator_build_rid: RID = RID()  # TEMP instrument: RID at creation
-var _tree_creator_grav_rid: RID = RID()
 var _tree_build_pc_bytes: PackedByteArray  # build PC (19 floats: 14 shared + grid_N, ext_x/y/z, field_floor)
 var _tree_grav_pc_bytes: PackedByteArray   # walk PC (5 floats: N, theta, eps2, use_tp, node_cnt)
 var _ml_tree_nsrc: int = 0
 var _ml_tree_nnode: int = 0
-var _perf_misc_frame: int = 0  # TEMP instrument
-var _raw_probe_done: bool = false  # TEMP instrument
+# ── Tree-gravity LOCAL-RD fallback (2026-08-13) ─────────────────────────
+# The global RD (RenderingServer) does NOT execute the tree shaders from
+# cassi_sim's _process loop on this build (verified extensively: even a raw
+# self-contained mode-10 dispatch with a fresh shader/pipe/set no-ops, while
+# the SAME dispatch runs in a bare-Node scene and on any local RD). So the
+# in-sim tree arm builds + walks the tree on a LOCAL RenderingDevice
+# (proven: verify_meshless_gravity, node_count=11963, G30/G31 pass), reads
+# the per-particle gradient back, and re-uploads to the global `_ml_tree_grad`
+# via buffer_update for the mode-5 nbody arm. Cost: ~1 HOST round trip per
+# frame (readback + upload, ~3×(nsrc×16) + Np×16 + N³×4 ≈ 800 KB@N=64 /
+# 150 KB@N=32) — acceptable for the toggle-on arm; see `_tree_local_cadence`.
+var _tlrd: RenderingDevice
+var _tl_bld_sh: RID; var _tl_bld_pipe: RID
+var _tl_grv_sh: RID; var _tl_grv_pipe: RID
+var _tl_us_b: RID; var _tl_us_g: RID
+var _tl_src: RID; var _tl_srcw: RID; var _tl_key: RID; var _tl_order: RID
+var _tl_cf: RID; var _tl_nw: RID; var _tl_nq: RID; var _tl_nr: RID; var _tl_ctr: RID
+var _tl_sites: RID; var _tl_psy: RID; var _tl_psi: RID; var _tl_vol: RID; var _tl_rho: RID
+var _tl_tgrad: RID; var _tl_tic: RID; var _tl_tpos: RID
+var _tl_local_ready := false
+var _tl_frame := 0
+var _tree_local_cadence := 1  # rebuild+walk on the local RD every N frames
 
 # True when the tree arm is LIVE (meshless + tree gravity). Gates the
 # _shaders_ready retry: the tree shaders/pipes/sets must be ready before
@@ -799,38 +817,36 @@ func _run_physics_steps(n_steps: int) -> void:
 	_bh_init_bytes.encode_float(20, _off_dual.y)
 	_bh_init_bytes.encode_float(24, _off_dual.z)
 	_rd.buffer_update(_bh_buf, 0, _bh_init_bytes.size(), _bh_init_bytes)
-	# ── Meshless tree gravity: build + walk INTO this frame's list, once,
+	# ── Meshless tree gravity: build + walk, once per frame (cadence),
 	# before the steps, so mode-5 nbody reads a fresh _ml_tree_grad
-	# (fmm_design.md Q6). The counters + root record are seeded ON THE GPU
-	# as build modes 9/10 (the chain's first passes) — no host buffer
-	# traffic. All gates off by default → the default battery is
+	# (fmm_design.md Q6). All gates off by default → the default battery is
 	# bit-identical.
 	#
-	# NOTE (Godot 4.7 global-RD, 2026-08-13): the tree chain is dispatched
-	# INSIDE this frame's compute list, exactly like the deposit/nbody
-	# passes. Three real integration seams fixed: (a) the nbody PC encoded
-	# the EXPORTED gravity_mode (0) instead of the effective tree mode, so
-	# mode-5 never ran (see _step_dispatches); (b) the walk's TargetPos
-	# binding 11 pointed at a scratch buffer instead of _pos_buf; (c, this
-	# change) the build's counters + root record were CPU-seeded via
-	# pre-list buffer_update EVERY frame — the tree chain is the only chain
-	# that both CPU-seeds a buffer pre-list AND has the shaders write that
-	# SAME buffer in-list, an ordering race on the global RD. The seed is
-	# now written ON THE GPU as the chain's first passes (build modes 9/10:
-	# ctr-reset + root-seed), so the tree arm has ZERO pre-list CPU buffer
-	# traffic — identical to every working chain. (Also fixes `_ml_tree_r`
-	# whose root center was seeded on the CPU with the per-axis extents,
-	# not the Morton box center (bmin+bhalf).)
+	# NOTE (Godot 4.7, 2026-08-13): the global RD does NOT execute the tree
+	# shaders from the sim's _process loop on this build — verified to the
+	# last rung (even a raw self-contained mode-10 dispatch with a fresh
+	# shader/pipe/set no-ops in the sim while the same dispatch runs in a
+	# bare-Node scene and on any local RD). The in-sim tree arm therefore
+	# builds + walks the tree on a LOCAL RenderingDevice (the
+	# verify_meshless_gravity-proven path: node_count=11963, G30/G31 PASS),
+	# reads the gradient back, and re-uploads to the global `_ml_tree_grad`
+	# via buffer_update — so the mode-5 nbody arm reads a fresh gradient.
+	# Cost: one host round trip per cadence frame (~800 KB upload+readback
+	# split @N=64, ~150 KB @N=32) — acceptable for the toggle-on arm; see
+	# `_tree_local_cadence` (currently every frame = 1). The global tree
+	# shaders/pipes/sets remain allocated (and are PROVEN correct on a
+	# local RD); they are simply not dispatched on the global RD.
+	#
+	# The nbody mode-5 seam + walk TargetPos-binding fixes (earlier commits)
+	# remain: _step_dispatches encodes the effective mode 5.0, and the walk
+	# reads _pos_buf for targets — both still required for the local-RD
+	# gradient to reach the particles.
 	var tree_arm := meshless_mode and meshless_gravity and _ml_ready
 	if tree_arm:
 		_ml_tree_nsrc = 2 * ML_N1 * ML_N1 * ML_N1
-		# Counters + root record are seeded on the GPU as build modes 9/10
-		# (the FIRST passes of _dispatch_tree_gravity) — no host buffer
-		# traffic. Root cube = [0, 2·max(extent)] ⊇ the sites ([0, 2·ext)³),
-		# root range [0, N_src). The tree chain rides the frame's ONE list.
+		_dispatch_tree_gravity_local()
 	var cl = _rd.compute_list_begin()
-	if tree_arm:
-		_dispatch_tree_gravity(cl)
+
 	for _s in range(n_steps):
 		_step_dispatches(cl)
 	# ── q-histogram (auto color-align): one strided pass per frame while
@@ -1090,9 +1106,11 @@ func _setup_buffers() -> void:
 	_ml_tree_q = _rd.storage_buffer_create(2 * tnm * 16)
 	_ml_tree_r = _rd.storage_buffer_create(tnm * 16)
 	_ml_tree_ctr = _rd.storage_buffer_create(8 * 4)
-	# per-particle tree gradient + walk counts (N_particles targets)
-	_ml_tree_grad = _rd.storage_buffer_create(N_particles * 16)
-	_ml_tree_icount = _rd.storage_buffer_create(N_particles * 4)
+	# per-particle tree gradient + walk counts (N_particles targets;
+	# a minimum of 1 keeps the buffers non-zero-sized even for N_particles=0
+	# verify scenes, so the walk uniform set never fails to bind)
+	_ml_tree_grad = _rd.storage_buffer_create(maxi(N_particles, 1) * 16)
+	_ml_tree_icount = _rd.storage_buffer_create(maxi(N_particles, 1) * 4)
 	_tree_build_pc_bytes = PackedByteArray(); _tree_build_pc_bytes.resize(19 * 4)
 	_tree_grav_pc_bytes = PackedByteArray(); _tree_grav_pc_bytes.resize(5 * 4)
 
@@ -1133,6 +1151,22 @@ func _free_buffers() -> void:
 		if rid.is_valid(): _rd.free_rid(rid)
 	_field_render_tex = RID()
 	_bh_lensing_tex = RID()
+	_tree_local_free()
+
+
+# Free the local-RD tree buffers/shader/pipe/set + the local RenderingDevice
+# itself (a separate device from the sim's global RD).
+func _tree_local_free() -> void:
+	if _tlrd == null:
+		return
+	for rid in [_tl_src, _tl_srcw, _tl_key, _tl_order, _tl_cf, _tl_nw, _tl_nq,
+				_tl_nr, _tl_ctr, _tl_sites, _tl_psy, _tl_psi, _tl_vol, _tl_rho,
+				_tl_tgrad, _tl_tic, _tl_tpos, _tl_us_b, _tl_us_g,
+				_tl_bld_pipe, _tl_bld_sh, _tl_grv_pipe, _tl_grv_sh]:
+		if rid.is_valid(): _tlrd.free_rid(rid)
+	_tlrd.free()
+	_tlrd = null
+	_tl_local_ready = false
 
 func _free_uniform_sets() -> void:
 	# Uniform sets reference buffers/shaders/textures — release them BEFORE
@@ -1430,7 +1464,10 @@ func _cache_uniform_sets() -> void:
 	# Build shader declares bindings 0-13 (set 0): the octree buffers PLUS the
 	# meshless gather sources (9-13). Walk shader declares 0,3-8 + 9,10,11 —
 	# a SEPARATE set (Godot validates bindings against the shader's set).
-	if _tree_build_shader.is_valid():
+	# Created ONLY when the tree arm is live (meshless_mode + meshless_gravity):
+	# the walk set binds _pos_buf, which is 0-size for N_particles=0 verify
+	# scenes → a set created there would fail and push a false error.
+	if _tree_build_shader.is_valid() and _ml_need_tree():
 		_us_tree_build = _rd.uniform_set_create([
 			_uniform_storage(0, _ml_tree_src), _uniform_storage(1, _ml_tree_srcw),
 			_uniform_storage(2, _ml_tree_key), _uniform_storage(3, _ml_tree_order),
@@ -1443,7 +1480,7 @@ func _cache_uniform_sets() -> void:
 		], _tree_build_shader, 0)
 		if not _us_tree_build.is_valid():
 			push_error("[CassiSim] tree-build uniform set FAILED to create (bindings 0-13)")
-	if _tree_grav_shader.is_valid():
+	if _tree_grav_shader.is_valid() and _ml_need_tree():
 		_us_tree_grav = _rd.uniform_set_create([
 			_uniform_storage(0, _ml_tree_src), _uniform_storage(3, _ml_tree_order),
 			_uniform_storage(4, _ml_tree_cf), _uniform_storage(5, _ml_tree_w),
@@ -1454,10 +1491,6 @@ func _cache_uniform_sets() -> void:
 		], _tree_grav_shader, 0)
 		if not _us_tree_grav.is_valid():
 			push_error("[CassiSim] tree-walk uniform set FAILED to create (bindings 0,3-11)")
-	# TEMP instrument: creator-side RID record.
-	_tree_creator_build_rid = _us_tree_build
-	_tree_creator_grav_rid = _us_tree_grav
-	print("[TreeArm] created build_set=%s grav_set=%s" % [_us_tree_build, _us_tree_grav])
 # ═══════════════════════════════════════════════════════════════════════
 # Initial conditions
 # ═══════════════════════════════════════════════════════════════════════
@@ -2962,17 +2995,6 @@ func _dispatch_tree_gravity(cl: int) -> void:
 		return
 	var N_src = _ml_tree_nsrc
 	var Np = maxi(N_particles, 1)
-	# TEMP instrument: every 60 frames print the sim-side state vs the
-	# creator-side RIDs + readiness, and fire a RAW one-time mode-10 sentinel
-	# (standalone list, full build PC, ctr readback) that BYPASSES this
-	# function's exact dispatch sequence.
-	_perf_misc_frame += 1
-	if _perf_misc_frame % 60 == 0:
-		print("[TreeArm@%d] build_set=%s(creator %s) grav_set=%s(creator %s) bp=%s gp=%s ready=%s retry=%d ml=%s nsrc=%d"
-			% [_perf_frames, _us_tree_build, _tree_creator_build_rid, _us_tree_grav,
-				_tree_creator_grav_rid, _tree_build_pipe, _tree_grav_pipe,
-				_shaders_ready, _setup_retry_counter, _ml_ready, N_src])
-	_probe_raw_mode10()
 	var pg_src = ceili(float(N_src) / 64.0)
 	var ext = _extents()
 	var half: float = maxf(ext.x, maxf(ext.y, ext.z)) * 1.000001
@@ -3061,47 +3083,177 @@ func _dispatch_tree_gravity(cl: int) -> void:
 	_rd.compute_list_add_barrier(cl)
 
 
-# TEMP instrument: a RAW, self-contained mode-10 (root-seed) dispatch into a
-# fresh sentinel ctr, standalone list, BYPASSING _dispatch_tree_gravity's
-# exact call sequence. One-shot. If the raw dispatch lands (ctr[0]!=0) while
-# the sim's own chain doesn't, the defect is inside the function's sequence.
-func _probe_raw_mode10() -> void:
-	if _raw_probe_done:
+# ── TREE-GRAVITY LOCAL-RD FALLBACK (2026-08-13) ─────────────────────────
+# The in-sim tree arm. The global RD won't execute the tree shaders from the
+# sim's _process loop (verified to the last rung), so we build + walk the
+# tree on a LOCAL RenderingDevice — the path verify_meshless_gravity PROVES
+# works (node_count=11963, G30 med=1.22e-5 / G31 PASS) — then read the
+# per-particle gradient back and re-upload it to the global `_ml_tree_grad`
+# for the mode-5 nbody arm.
+#
+# Cost (documented): one host round trip per cadence frame — read nsrc×16
+# (sites) + nsrc×4 (ψy, ψi, vol) + N³×4 (ρ) + Np×16 (pos) from the global RD,
+# upload them to the local RD, submit+sync the build+walk, read back Np×16
+# (gradient), upload to the global `_ml_tree_grad`. ~800 KB/frame @N=64 /
+# ~150 KB @N=32. `_tree_local_cadence` (default 1 = every frame) can throttle
+# to every other frame for cheaper but temporally-coarser forces.
+func _dispatch_tree_gravity_local() -> void:
+	if not _ml_ready or _ml_tree_nsrc <= 0:
 		return
-	_raw_probe_done = true
-	var sf: RDShaderFile = load("res://compute/cassi_tree_build.glsl")
-	if sf == null or sf.get_spirv() == null:
-		print("[RawProbe] shader load failed")
+	if not _tl_local_ready:
+		_tree_local_setup()
+		if not _tl_local_ready:
+			push_error("[CassiSim] tree local-RD setup failed")
+			return
+	_tl_frame += 1
+	if _tree_local_cadence > 1 and _tl_frame % _tree_local_cadence != 1:
+		return  # skip this frame (stale-but-recent gradient is fine for 1/K)
+	var S := _ml_tree_nsrc
+	var N3 := grid_N * grid_N * grid_N
+	var Np: int = N_particles
+	var ext := _extents()
+	var half: float = maxf(ext.x, maxf(ext.y, maxf(ext.z, ext.z))) * 1.000001
+	# ── host round trip #1: pull the sim's CURRENT meshless source state ──
+	var sites: PackedFloat32Array = _rd.buffer_get_data(_ml_sites, 0, S * 16).to_float32_array()
+	var psy: PackedFloat32Array = _rd.buffer_get_data(_ml_psi_y, 0, S * 4).to_float32_array()
+	var psi: PackedFloat32Array = _rd.buffer_get_data(_ml_psi_i, 0, S * 4).to_float32_array()
+	var vol: PackedFloat32Array = _rd.buffer_get_data(_ml_vol, 0, S * 4).to_float32_array()
+	var rho: PackedFloat32Array = _rd.buffer_get_data(_mass_density_buf, 0, N3 * 4).to_float32_array()
+	var pos: PackedFloat32Array = _rd.buffer_get_data(_pos_buf, 0, Np * 16).to_float32_array()
+	_tlrd.buffer_update(_tl_sites, 0, sites.size() * 4, sites.to_byte_array())
+	_tlrd.buffer_update(_tl_psy, 0, psy.size() * 4, psy.to_byte_array())
+	_tlrd.buffer_update(_tl_psi, 0, psi.size() * 4, psi.to_byte_array())
+	_tlrd.buffer_update(_tl_vol, 0, vol.size() * 4, vol.to_byte_array())
+	_tlrd.buffer_update(_tl_rho, 0, rho.size() * 4, rho.to_byte_array())
+	_tlrd.buffer_update(_tl_tpos, 0, pos.size() * 4, pos.to_byte_array())
+	# seed the self-contained counters + root (host seed is FINE on the
+	# local RD — no global-RD cross-list race here)
+	_tlrd.buffer_update(_tl_ctr, 0, 32, PackedInt32Array([1, 0, 1, 0, 0, 0, 0, 0]).to_byte_array())
+	_tlrd.buffer_update(_tl_cf, 0, 16, PackedFloat32Array([ext.x, ext.y, ext.z, half]).to_byte_array())
+	_tlrd.buffer_update(_tl_nr, 0, 16, PackedInt32Array([0, S, -1, 0]).to_byte_array())
+	var tnm: int = ML_TREE_NODE_MAX_MULT * S + 64
+	var bpc := PackedFloat32Array(); bpc.resize(19)
+	bpc[0] = float(S); bpc[1] = 0.0; bpc[2] = 0.0; bpc[3] = 0.0; bpc[4] = half
+	bpc[5] = ML_TREE_EPS2; bpc[6] = PHI; bpc[7] = PHI_6
+	bpc[8] = float(ML_TREE_LEAF_CAP); bpc[9] = float(ML_TREE_MAX_LEVELS)
+	bpc[14] = float(grid_N); bpc[15] = ext.x; bpc[16] = ext.y; bpc[17] = ext.z
+	bpc[18] = ML_TREE_FIELD_FLOOR
+	var gpc := PackedFloat32Array(); gpc.resize(5)
+	gpc[0] = float(Np); gpc[1] = ML_TREE_THETA; gpc[2] = ML_TREE_EPS2; gpc[3] = 1.0
+	gpc[4] = float(tnm)
+	var pg := int(ceil(float(S) / 64.0))
+	var pall := int(ceil(float(tnm) / 64.0))
+	var cl := _tlrd.compute_list_begin()
+	_tlrd.compute_list_bind_compute_pipeline(cl, _tl_bld_pipe)
+	_tlrd.compute_list_bind_uniform_set(cl, _tl_us_b, 0)
+	# gather (mode 7) + bitonic (91) + BFS split (14×) + moments (6)
+	bpc[10] = 7.0
+	_tlrd.compute_list_set_push_constant(cl, bpc.to_byte_array(), bpc.size() * 4)
+	_tlrd.compute_list_dispatch(cl, pg, 1, 1)
+	_tlrd.compute_list_add_barrier(cl)
+	var k := 2
+	while k <= S:
+		var j := k >> 1
+		while j >= 1:
+			bpc[10] = 1.0; bpc[11] = float(k); bpc[12] = float(j); bpc[13] = 1.0
+			_tlrd.compute_list_set_push_constant(cl, bpc.to_byte_array(), bpc.size() * 4)
+			_tlrd.compute_list_dispatch(cl, pg, 1, 1)
+			_tlrd.compute_list_add_barrier(cl)
+			j = j >> 1
+		k = k << 1
+	_tlrd.compute_list_add_barrier(cl)
+	for _d in range(ML_TREE_MAX_LEVELS):
+		bpc[10] = 5.0
+		_tlrd.compute_list_set_push_constant(cl, bpc.to_byte_array(), bpc.size() * 4)
+		_tlrd.compute_list_dispatch(cl, pall, 1, 1)
+		_tlrd.compute_list_add_barrier(cl)
+		bpc[10] = 8.0
+		_tlrd.compute_list_set_push_constant(cl, bpc.to_byte_array(), bpc.size() * 4)
+		_tlrd.compute_list_dispatch(cl, 1, 1, 1)
+		_tlrd.compute_list_add_barrier(cl)
+	bpc[10] = 6.0
+	_tlrd.compute_list_set_push_constant(cl, bpc.to_byte_array(), bpc.size() * 4)
+	_tlrd.compute_list_dispatch(cl, pall, 1, 1)
+	_tlrd.compute_list_add_barrier(cl)
+	# walk — reads _tl_tpos (the sim's particle positions), writes _tl_tgrad
+	_tlrd.compute_list_bind_compute_pipeline(cl, _tl_grv_pipe)
+	_tlrd.compute_list_bind_uniform_set(cl, _tl_us_g, 0)
+	_tlrd.compute_list_set_push_constant(cl, gpc.to_byte_array(), gpc.size() * 4)
+	_tlrd.compute_list_dispatch(cl, int(ceil(float(Np) / 64.0)), 1, 1)
+	_tlrd.compute_list_end()
+	_tlrd.submit()
+	_tlrd.sync()
+	# host round trip #2: pull the gradient, record node count, re-upload
+	# to the GLOBAL _ml_tree_grad for the mode-5 nbody arm.
+	var grad := _tlrd.buffer_get_data(_tl_tgrad, 0, Np * 16).to_float32_array()
+	var nc := _tlrd.buffer_get_data(_tl_ctr, 0, 4).to_int32_array()
+	_ml_tree_nnode = nc[0] if nc.size() else 0
+	_rd.buffer_update(_ml_tree_grad, 0, grad.size() * 4, grad.to_byte_array())
+
+
+# Create the LOCAL RenderingDevice + tree build/walk buffers, shaders,
+# pipelines and uniform sets — mirroring the verified verify_meshless_gravity
+# recipe. Called once, lazily, on first tree-arm frame.
+func _tree_local_setup() -> void:
+	if _ml_tree_nsrc <= 0:
 		return
-	var sh := _rd.shader_create_from_spirv(sf.get_spirv())
-	var pipe := _rd.compute_pipeline_create(sh)
-	var sent := _rd.storage_buffer_create(8 * 4)
-	var zeros := PackedInt32Array([0, 0, 0, 0, 0, 0, 0, 0]).to_byte_array()
-	_rd.buffer_update(sent, 0, zeros.size(), zeros)
-	var dset := _rd.uniform_set_create([
-		_uniform_storage(0, _ml_tree_src), _uniform_storage(1, _ml_tree_srcw),
-		_uniform_storage(2, _ml_tree_key), _uniform_storage(3, _ml_tree_order),
-		_uniform_storage(4, _ml_tree_cf), _uniform_storage(5, _ml_tree_w),
-		_uniform_storage(6, _ml_tree_q), _uniform_storage(7, _ml_tree_r),
-		_uniform_storage(8, sent),
-		_uniform_storage(9, _ml_sites),
-		_uniform_storage(10, _ml_psi_y), _uniform_storage(11, _ml_psi_i),
-		_uniform_storage(12, _ml_vol), _uniform_storage(13, _mass_density_buf),
-	], sh, 0)
-	var pcp := PackedByteArray(); pcp.resize(_tree_build_pc_bytes.size())
-	pcp.encode_float(0, float(_ml_tree_nsrc))
-	pcp.encode_float(10, 10.0)  # mode 10 ROOT_SEED — writes ncf[0]/nr[0], bumps nothing
-	var cl := _rd.compute_list_begin()
-	_rd.compute_list_bind_compute_pipeline(cl, pipe)
-	_rd.compute_list_bind_uniform_set(cl, dset, 0)
-	_rd.compute_list_set_push_constant(cl, pcp, pcp.size())
-	_rd.compute_list_dispatch(cl, 1, 1, 1)
-	_rd.compute_list_end()
-	var v = _rd.buffer_get_data(sent, 0, 32)
-	print("[RawProbe] raw standalone mode10 sent ctr=%s (sh=%s pipe=%s set=%s)" % [v.to_int32_array(), sh.is_valid(), pipe.is_valid(), dset.is_valid()])
-	# Also read back the REAL root ncf/nr to see if mode 10 wrote them.
-	var r0 = _rd.buffer_get_data(_ml_tree_r, 0, 16)
-	print("[RawProbe] _ml_tree_r[0]=%s" % [r0.to_int32_array()])
+	_tlrd = RenderingServer.create_local_rendering_device()
+	if _tlrd == null:
+		push_error("[CassiSim] tree local-RD create failed")
+		return
+	var S := _ml_tree_nsrc
+	var N3 := grid_N * grid_N * grid_N
+	var Np: int = N_particles
+	var tnm: int = ML_TREE_NODE_MAX_MULT * S + 64
+	_tl_src = _tlrd.storage_buffer_create(2 * S * 16)
+	_tl_srcw = _tlrd.storage_buffer_create(S * 4)
+	_tl_key = _tlrd.storage_buffer_create(S * 4)
+	_tl_order = _tlrd.storage_buffer_create(S * 4)
+	_tl_cf = _tlrd.storage_buffer_create(tnm * 16)
+	_tl_nw = _tlrd.storage_buffer_create(tnm * 16)
+	_tl_nq = _tlrd.storage_buffer_create(2 * tnm * 16)
+	_tl_nr = _tlrd.storage_buffer_create(tnm * 16)
+	_tl_ctr = _tlrd.storage_buffer_create(8 * 4)
+	_tl_sites = _tlrd.storage_buffer_create(S * 16)
+	_tl_psy = _tlrd.storage_buffer_create(S * 4)
+	_tl_psi = _tlrd.storage_buffer_create(S * 4)
+	_tl_vol = _tlrd.storage_buffer_create(S * 4)
+	_tl_rho = _tlrd.storage_buffer_create(N3 * 4)
+	_tl_tgrad = _tlrd.storage_buffer_create(maxi(Np, 1) * 16)
+	_tl_tic = _tlrd.storage_buffer_create(maxi(Np, 1) * 4)
+	_tl_tpos = _tlrd.storage_buffer_create(maxi(Np, 1) * 16)
+	var bsf := load("res://compute/cassi_tree_build.glsl") as RDShaderFile
+	var gsf := load("res://compute/cassi_tree_gravity.glsl") as RDShaderFile
+	if bsf == null or gsf == null or bsf.get_spirv() == null or gsf.get_spirv() == null:
+		push_error("[CassiSim] tree local-RD shaders failed to load")
+		return
+	_tl_bld_sh = _tlrd.shader_create_from_spirv(bsf.get_spirv())
+	_tl_bld_pipe = _tlrd.compute_pipeline_create(_tl_bld_sh)
+	_tl_grv_sh = _tlrd.shader_create_from_spirv(gsf.get_spirv())
+	_tl_grv_pipe = _tlrd.compute_pipeline_create(_tl_grv_sh)
+	_tl_us_b = _tlrd.uniform_set_create([
+		_stor_tl(0, _tl_src), _stor_tl(1, _tl_srcw), _stor_tl(2, _tl_key), _stor_tl(3, _tl_order),
+		_stor_tl(4, _tl_cf), _stor_tl(5, _tl_nw), _stor_tl(6, _tl_nq), _stor_tl(7, _tl_nr), _stor_tl(8, _tl_ctr),
+		_stor_tl(9, _tl_sites), _stor_tl(10, _tl_psy), _stor_tl(11, _tl_psi), _stor_tl(12, _tl_vol), _stor_tl(13, _tl_rho),
+	], _tl_bld_sh, 0)
+	_tl_us_g = _tlrd.uniform_set_create([
+		_stor_tl(0, _tl_src), _stor_tl(3, _tl_order), _stor_tl(4, _tl_cf), _stor_tl(5, _tl_nw),
+		_stor_tl(6, _tl_nq), _stor_tl(7, _tl_nr), _stor_tl(8, _tl_ctr), _stor_tl(9, _tl_tgrad),
+		_stor_tl(10, _tl_tic), _stor_tl(11, _tl_tpos),
+	], _tl_grv_sh, 0)
+	_tl_local_ready = _tl_bld_pipe.is_valid() and _tl_grv_pipe.is_valid() \
+		and _tl_us_b.is_valid() and _tl_us_g.is_valid()
+	print("[CassiSim] tree local-RD ready: pipes(b=%s,g=%s) sets(b=%s,g=%s)"
+		% [_tl_bld_pipe.is_valid(), _tl_grv_pipe.is_valid(), _tl_us_b.is_valid(), _tl_us_g.is_valid()])
+
+
+# LOCAL-RD uniform-storage helper (RDUniform for a storage buffer).
+func _stor_tl(bind: int, r: RID) -> RDUniform:
+	var u := RDUniform.new()
+	u.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	u.binding = bind
+	u.add_id(r)
+	return u
 
 
 # Checks ∇²Φ ≈ ρ (7-point stencil) on the solved potential. The spectral
