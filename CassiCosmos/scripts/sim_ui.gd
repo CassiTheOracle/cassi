@@ -62,6 +62,16 @@ var _fps_display: float = 0.0
 
 var _viz_texture_rect: TextureRect
 
+## The bottom control panel + its content VBox — refs kept so the panel can
+## be (re)sized to its content after the group build (it grows upward from
+## the bottom edge to fit all five expanded groups).
+var _control_panel: CPanel
+var _control_root: VBoxContainer
+## Extra vertical headroom above the panel content (the panel's stylebox
+## content margins are 10px; add a little breathing room below the top
+## HUD). Kept small so the panel hugs its content.
+const CONTROL_PANEL_TOP_MARGIN: int = 8
+
 const MODE_NAMES: Array[String] = ["Particles", "Field", "Black Hole", "Cosmology"]
 const PHI: float = 1.618033988749895
 const GradientLegend = preload("res://scripts/gradient_legend.gd")
@@ -309,13 +319,18 @@ func _ready() -> void:
 	var control_panel = CPanel.new()
 	control_panel.name = "ControlPanel"
 	control_panel.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	control_panel.offset_top = -296  # collapsed groups stack tighter; this is the max-height frame (all expanded = today's 4 rows + VFX + legend)
+	# Placeholder height; the real height is fit to the content below. Keep
+	# it non-zero so a pre-layout frame (or the deferred fit being skipped)
+	# renders something sane rather than a full-height panel.
+	control_panel.offset_top = -296
 	control_panel.offset_left = 10; control_panel.offset_right = -10
 	add_child(control_panel)
+	_control_panel = control_panel
 
 	var root_vbox = VBoxContainer.new()
 	root_vbox.add_theme_constant_override("separation", 6)
 	control_panel.add_child(root_vbox)
+	_control_root = root_vbox
 
 	# ── Grouped sections (Phase 4) — the ControlPanel's root VBox is a
 	# stack of collapsible CGroupPanels, all DEFAULT EXPANDED (first render
@@ -325,6 +340,7 @@ func _ready() -> void:
 	# Field: mode segmented + gravity segmented + play/reinit (today's row1)
 	var field_group := CGroupPanel.new()
 	field_group.set_title("Field")
+	field_group.toggled.connect(_on_group_toggled)
 	root_vbox.add_child(field_group)
 	var field_content := field_group.content()
 
@@ -373,6 +389,7 @@ func _ready() -> void:
 	# the standalone check-button cluster — all in the current row order.
 	var params_group := CGroupPanel.new()
 	params_group.set_title("Parameters")
+	params_group.toggled.connect(_on_group_toggled)
 	root_vbox.add_child(params_group)
 	var params_content := params_group.content()
 
@@ -505,6 +522,7 @@ func _ready() -> void:
 	# color_mode bit encoding). All live — no reinit.
 	var vfx_group := CGroupPanel.new()
 	vfx_group.set_title("VFX")
+	vfx_group.toggled.connect(_on_group_toggled)
 	root_vbox.add_child(vfx_group)
 	var vfx_content := vfx_group.content()
 	var row_vfx = HBoxContainer.new()
@@ -567,6 +585,7 @@ func _ready() -> void:
 	# half (EXPAND_FILL horizontally — preserved inside this group).
 	var color_scale_group := CGroupPanel.new()
 	color_scale_group.set_title("Color Scale")
+	color_scale_group.toggled.connect(_on_group_toggled)
 	root_vbox.add_child(color_scale_group)
 	var color_scale_content := color_scale_group.content()
 	var legend_row = HBoxContainer.new()
@@ -634,6 +653,7 @@ func _ready() -> void:
 	# ── Server (future) fields — today's server row ──
 	var srv_group := CGroupPanel.new()
 	srv_group.set_title("Server")
+	srv_group.toggled.connect(_on_group_toggled)
 	root_vbox.add_child(srv_group)
 	var srv_content := srv_group.content()
 	var srv_box = VBoxContainer.new()
@@ -658,6 +678,11 @@ func _ready() -> void:
 	_server_port_edit.editable = false
 	_server_port_edit.modulate = _tok_color("disabled")
 	srv_hbox.add_child(_server_port_edit)
+
+	# Grow the panel to fit all five expanded groups (it is bottom-anchored,
+	# so it extends upward). Deferred so the containers have completed their
+	# first layout pass and the combined minimum size is final.
+	call_deferred("_fit_control_panel")
 
 	# Init from sim if available — all no-signal setters so syncing the
 	# sim's live values never fires a spurious callback/reinit on startup.
@@ -700,6 +725,36 @@ func _ready() -> void:
 	# All interactive controls (CButton/CToggle/CParam slider/CSegmented +
 	# CSpinParam/COptionParam) bake FOCUS_NONE in at the component level, so
 	# the WASD camera keys are never stolen — no per-control focus lines here.
+
+
+## Size the bottom control panel to its content so all five expanded groups
+## are fully visible. The panel is bottom-anchored (BOTTOM_WIDE), so growing
+## its height extends it UPWARD: offset_top = -(needed + margin). Previously
+## it was a fixed −296px frame, but the five expanded groups need ~530px, so
+## the content overflowed past the panel (and off the window) — groups below
+## the first two were clipped/cut off, and the collapsed-column interplay
+## made rows overlap. Called deferred after the group build, and on any
+## collapse/expand so the panel hugs the currently-visible groups.
+func _fit_control_panel() -> void:
+	if _control_panel == null or _control_root == null or not is_inside_tree():
+		return
+	var needed: float = _control_root.get_combined_minimum_size().y
+	# The panel's StyleBoxFlat carries 10px content margins top + bottom
+	# (cassi_theme.tres), so the chrome is 20px taller than its content.
+	var chrome := 20.0
+	# Clamp to the available viewport (window) height so the panel never
+	# overruns the top of the screen even on unusually short windows.
+	var vh: float = get_viewport_rect().size.y if get_viewport() != null else needed
+	var top: float = clampf(-(needed + chrome + CONTROL_PANEL_TOP_MARGIN), -maxf(vh - 24.0, 1.0), 0.0)
+	_control_panel.offset_top = top
+
+
+## Re-fit the panel when a group collapses/expands — the visible height
+## changes, so the panel hugs the currently-expanded groups. (Not tied to
+## WHICH group; the panel always sizes to the sum of visible content.)
+func _on_group_toggled(_is_collapsed: bool) -> void:
+	call_deferred("_fit_control_panel")
+
 
 # ═══════════════════════════════════════════════════════════════════════
 # UI building helpers

@@ -35,6 +35,26 @@ var box_min_width: int = 120
 var _changed_cb: Callable = Callable()
 
 
+## Report the wrapped content's minimum size as our own so a parent
+## Container allocates proper space (see CParam — a plain Control does not
+## propagate child min sizes, which otherwise collapses the row to ~0 and
+## stacks its content over the next control).
+func _get_minimum_size() -> Vector2:
+	if get_child_count() > 0:
+		return get_child(0).get_combined_minimum_size()
+	return custom_minimum_size
+
+
+func _ready() -> void:
+	_fit_child()
+
+
+## Anchor the wrapped box to fill this Control's rectangle (tracks resizes).
+func _fit_child() -> void:
+	if get_child_count() > 0:
+		(get_child(0) as Control).set_anchors_and_offsets_preset(PRESET_FULL_RECT)
+
+
 ## Configure the row: `caption` + its color token, the SpinBox range/step/
 ## initial value, and a callback fired on every value change. Idempotent.
 func setup(caption: String, caption_token: String, min_v: float, max_v: float,

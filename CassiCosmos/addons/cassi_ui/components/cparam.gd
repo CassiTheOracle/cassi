@@ -30,6 +30,30 @@ var _step: float = 1.0
 var _changed_cb: Callable = Callable()
 
 
+## Report the wrapped content's minimum size as our own so a parent
+## Container allocates proper space. A plain Control does not propagate its
+## children's min sizes — without this override the row reports (0,0), and
+## a parent HBox/VBox gives it zero room while the wrapped box still draws
+## at (0,0), overlapping the next control (the stacked-button bug).
+func _get_minimum_size() -> Vector2:
+	if get_child_count() > 0:
+		return get_child(0).get_combined_minimum_size()
+	return custom_minimum_size
+
+
+func _ready() -> void:
+	# Keep the wrapped content filling our rect so its layout matches the
+	# space the parent allocated (anchored full-rect = tracks our size).
+	_fit_child()
+
+
+## Anchor the single wrapped container to fill this Control's rectangle.
+## Safe to call before/after setup(): no child yet is a no-op.
+func _fit_child() -> void:
+	if get_child_count() > 0:
+		(get_child(0) as Control).set_anchors_and_offsets_preset(PRESET_FULL_RECT)
+
+
 ## Configure the row: `caption` + its color token (gold_soft is the
 ## default the sim's slider captions use), the slider range/step/initial
 ## value, and a callback fired on every value change (the sim's

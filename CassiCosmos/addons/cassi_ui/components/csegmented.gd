@@ -62,6 +62,7 @@ func setup(options: Array[String], selected: int, on_changed: Callable = Callabl
 	_hbox = HBoxContainer.new()
 	_hbox.add_theme_constant_override("separation", 6)
 	add_child(_hbox)
+	_fit_child()  # the built row fills our rect even if _ready already ran
 	for i in range(options.size()):
 		var t := CToggle.new()
 		t.text = options[i]
@@ -109,3 +110,20 @@ func _ready() -> void:
 	# carry the interaction defaults. Keep the container transparent to
 	# input so it never swallows camera events.
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_fit_child()
+
+
+## Report the button row's minimum width so a parent HBox gives this
+## segment real space. A plain Control does not propagate child min sizes —
+## without this the segment reports ~0 width, its buttons draw at (0,0),
+## and overlap the controls to its right (the stacked-button bug).
+func _get_minimum_size() -> Vector2:
+	if _hbox != null:
+		return _hbox.get_combined_minimum_size()
+	return custom_minimum_size
+
+
+## Anchor the button row to fill this Control's rectangle (tracks resizes).
+func _fit_child() -> void:
+	if _hbox != null:
+		_hbox.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
