@@ -1,5 +1,5 @@
-import { bus } from '../vendor/core/event-bus.js'
-import { rootLogger } from '../vendor/core/logger.js'
+import { bus } from './vendor/core/event-bus.js'
+import { rootLogger } from './vendor/core/logger.js'
 
 import type { ToolDefinition, ToolHandler, ToolCategory } from './types.js'
 import type { ILogger } from "@cassicore/foundation"

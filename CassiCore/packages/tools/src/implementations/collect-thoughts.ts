@@ -25,9 +25,9 @@
  */
 
 import type { ToolDefinition, ToolHandler } from '../types.js'
-import type { BranchingConversationManager } from '../../vendor/core/intelligence/branching-conversation/manager.js'
-import type { ThoughtObserver, CognitiveSignal } from '../../vendor/core/intelligence/thought-observer.js'
-import type { CognitiveBridge, ResonancePattern } from '../../vendor/core/intelligence/cognitive-bridge.js'
+import type { BranchingConversationManager } from '../vendor/core/intelligence/branching-conversation/manager.js'
+import type { ThoughtObserver, CognitiveSignal } from '../vendor/core/intelligence/thought-observer.js'
+import type { CognitiveBridge, ResonancePattern } from '../vendor/core/intelligence/cognitive-bridge.js'
 import type { IMemory } from "@cassicore/foundation"
 import type { IEventBus, ILogger } from "@cassicore/foundation"
 import type {
@@ -38,9 +38,9 @@ import type {
   SynapseGuidance,
 } from "@cassicore/foundation"
 import { DEFAULT_COLLECT_THOUGHTS_CONFIG } from "@cassicore/foundation"
-import { generateShortId } from '../../vendor/core/utils/ids.js'
-import type { Synapse } from '../../vendor/core/intelligence/synapse/index.js'
-import type { ThinkerSession } from '../../vendor/core/intelligence/thinker/thinker-session.js'
+import { generateShortId } from '../vendor/core/utils/ids.js'
+import type { Synapse } from '../vendor/core/intelligence/synapse/index.js'
+import type { ThinkerSession } from '../vendor/core/intelligence/thinker/thinker-session.js'
 
 
 /** Constellation-level guidance provider for thought enrichment.
@@ -69,14 +69,14 @@ export interface CollectThoughtsDeps {
   config?: Partial<CollectThoughtsConfig>
   synapse?: Synapse
   /** Reasoning Bank for injecting past successful reasoning traces */
-  reasoningBank?: import('../../intelligence/reasoning-bank/index.js').ReasoningBank
+  reasoningBank?: import('../vendor/core/intelligence/reasoning-bank/index.js').ReasoningBank
   /** Constellation guidance provider — returns strategic context from the Corpus
    *  for the current thought step. Set by the Constellation pipeline when running
    *  inside a Helix branch. Returns null if no relevant guidance exists. */
   constellationProvider?: ConstellationGuidanceProvider
   /** Session-scoped registry of guidance providers. The Constellation pipeline
    *  registers per-branch providers here; collect_thoughts looks up by sessionId. */
-  constellationGuidanceRegistry?: import('../../intelligence/constellation/guidance-provider.js').ConstellationGuidanceRegistry
+  constellationGuidanceRegistry?: import('../vendor/core/intelligence/constellation/guidance-provider.js').ConstellationGuidanceRegistry
   /** Resolve the parallel Thinker session for the current host session. */
   getThinkerSession?: (sessionId: string) => ThinkerSession | undefined
 }

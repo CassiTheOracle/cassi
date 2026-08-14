@@ -2,7 +2,8 @@
  * VENDOR TYPE STUB — `core/workflow/engine.ts` (`WorkflowEngine`).
  *
  * Type placeholder for the workflow engine surface consumed by tools workflow.ts
- * (`getEngine: () => WorkflowEngine | null` + engine methods). Owned by
+ * (`getEngine: () => WorkflowEngine | null` + engine methods execute/getRun/
+ * resume/cancel/listRuns). Mirrors the source signatures. Owned by
  * `@cassicore/workflow` (P6); re-pointed there.
  */
 import type { WorkflowDefinition, WorkflowRun, WorkflowState } from '@cassicore/foundation'
@@ -26,8 +27,12 @@ export interface WorkflowEngine {
     input?: unknown,
     opts?: { runId?: string; initialState?: WorkflowState },
   ): Promise<WorkflowRun>
+  resume(
+    definition: WorkflowDefinition,
+    runId: string,
+    resumeInput?: unknown,
+  ): Promise<WorkflowRun>
   cancel(runId: string, reason: string): Promise<void>
   getRun(runId: string): WorkflowRun | undefined
   listRuns(): WorkflowRun[]
-  resume(runId: string, input?: unknown, opts?: { initialState?: WorkflowState }): Promise<WorkflowRun>
 }

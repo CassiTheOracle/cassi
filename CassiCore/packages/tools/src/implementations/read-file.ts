@@ -14,7 +14,7 @@ import { open, stat, readdir } from 'node:fs/promises'
 import { resolve, dirname, basename, relative } from 'node:path'
 
 import type { ToolDefinition, ToolHandler, ToolExecutionContext } from '../types.js'
-import { getRepoRoot } from '../@cassicore/foundation'
+import { getRepoRoot } from '@cassicore/foundation'
 
 const MAX_BYTES = 1024 * 1024  // 1MB max
 const MAX_LINES_BUFFER = 10_000  // Max lines to buffer in memory

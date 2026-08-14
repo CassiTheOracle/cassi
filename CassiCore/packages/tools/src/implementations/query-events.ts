@@ -5,9 +5,9 @@
  * Supports both complex structured queries and simple natural language queries.
  */
 
-import { type EventHistory } from "../../vendor/core/event-history.js";
-import { parseSimpleQuery, getQuerySuggestions } from "../../vendor/core/event-query-parser.js";
-import { getPreset, getAllPresets, getCategories, executePreset } from "../../vendor/core/event-query-presets.js";
+import { type EventHistory } from "../vendor/core/event-history.js";
+import { parseSimpleQuery, getQuerySuggestions } from "../vendor/core/event-query-parser.js";
+import { getPreset, getAllPresets, getCategories, executePreset } from "../vendor/core/event-query-presets.js";
 
 import type {
   EventQuery,

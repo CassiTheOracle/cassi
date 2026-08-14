@@ -16,7 +16,7 @@
  * a Constellation session for deep root-cause analysis.
  */
 
-import { getEventBus } from '../../vendor/core/events/index.js'
+import { getEventBus } from '../vendor/core/events/index.js'
 
 import type { ILogger } from "@cassicore/foundation"
 

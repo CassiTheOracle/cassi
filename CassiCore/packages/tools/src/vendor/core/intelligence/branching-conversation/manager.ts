@@ -8,7 +8,7 @@
  * - Tree traversal and serialization
  */
 
-import { generateShortId } from '../utils/ids.js'
+import { generateShortId } from '../../utils/ids.js'
 import type { Message } from "@cassicore/foundation"
 import type {
   BranchingMessage,

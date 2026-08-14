@@ -40,7 +40,7 @@ export const waitJobDefinition: ToolDefinition = {
  */
 
 export function makeWaitJobHandler(
-  getJobManager: () => import('../../jobs/job-manager.js').JobManager | undefined
+  getJobManager: () => import('../vendor/core/jobs/job-manager.js').JobManager | undefined
 ): ToolHandler {
   return async (input) => {
     const jm = getJobManager()

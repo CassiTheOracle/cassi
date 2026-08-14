@@ -50,7 +50,7 @@ export const runBackgroundDefinition: ToolDefinition = {
  * @dep risk: LOW | 1 caller, 1 flow, 1 module
  */
 export function makeRunBackgroundHandler(
-  getJobManager: () => import('../../jobs/job-manager.js').JobManager | undefined
+  getJobManager: () => import('../vendor/core/jobs/job-manager.js').JobManager | undefined
 ): ToolHandler {
   return async (input, ctx) => {
     const jm = getJobManager()

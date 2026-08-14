@@ -1,21 +1,21 @@
-import { resolveToolDomain } from '../intelligence/permission-oracle/types.js'
-import { TTLCache } from '../vendor/core/utils/ttl-cache.js'
+import { resolveToolDomain } from './vendor/core/intelligence/permission-oracle/types.js'
+import { TTLCache } from './vendor/core/utils/ttl-cache.js'
 import { presentForLLM } from './presentation.js'
 
 import { validateToolInput, validateToolOutput, executeToolSafe } from './safety.js'
 import { ExternalHookRunner, mergeHookFeedback, EMPTY_HOOK_CONFIG } from './hooks/external-hook-runner.js'
 import type { ExternalHookConfig } from './hooks/external-hook-runner.js'
 
-import type { CorticalField } from '../intelligence/cortex/index.js'
-import type { SignalType } from '../intelligence/cortex/types.js'
+import type { CorticalField } from '@cassicore/cortex-pineal-dialectic'
+import type { SignalType } from '@cassicore/cortex-pineal-dialectic'
 
 import type { ToolRegistry } from './registry.js'
 import type { ToolCall, ToolResult, ToolExecutionContext } from './types.js'
 
 type RegistryEntry = ReturnType<ToolRegistry['get']>
 import type { IEventBus, ILogger } from "@cassicore/foundation"
-import type { PermissionOracle } from '../intelligence/permission-oracle/index.js'
-import type { TrustLedger } from '../intelligence/trust-ledger/index.js'
+import type { PermissionOracle } from './vendor/core/intelligence/permission-oracle/index.js'
+import type { TrustLedger } from './vendor/core/intelligence/trust-ledger/index.js'
 import { ToolReliabilityTracker } from './reliability.js'
 // REMOVED: ToolCallOrchestrator import — deprecated TriadTeam deleted
 

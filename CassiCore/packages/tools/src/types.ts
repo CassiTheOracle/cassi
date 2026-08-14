@@ -84,11 +84,11 @@ export interface ToolExecutionContext {
   logger: import("@cassicore/foundation").ILogger;
   registry?: import('./registry.js').ToolRegistry;
   /** Code store for CassiCore source files in the mnemic field */
-  _codeStore?: import('../intelligence/mnemic-field/code-store.js').CodeStore;
+  _codeStore?: import('@cassicore/mnemic-field').CodeStore;
   /** Global blackboard registry — injected by daemon for cross-session todo/plan sharing */
-  _globalBlackboardRegistry?: import('../intelligence/flux-team/global-blackboard-registry.js').GlobalBlackboardRegistry;
+  _globalBlackboardRegistry?: import('@cassicore/flux-team').GlobalBlackboardRegistry;
   /** Cortical field — injected by daemon for working memory integration */
-  _cortex?: import('../intelligence/cortex/index.js').CorticalField;
+  _cortex?: import('@cassicore/cortex-pineal-dialectic').CorticalField;
   /** Memory module — injected by daemon for episodic persistence */
   _memory?: import("@cassicore/foundation").IMemory;
   /** Auto-resolved artifact namespace for this session (e.g., 'dyad:{id}', 'team:{id}') */

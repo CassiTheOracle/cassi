@@ -25,7 +25,7 @@ import type {
   SerializedNodeGraph,
   IWorkflowDefinitionStore,
 } from "@cassicore/foundation"
-import type { WorkflowEngine } from '../../vendor/core/workflow/engine.js'
+import type { WorkflowEngine } from '../vendor/core/workflow/engine.js'
 
 export const workflowDefinition: ToolDefinition = {
   name: 'workflow',

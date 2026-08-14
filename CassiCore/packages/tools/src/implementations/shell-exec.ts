@@ -1,4 +1,4 @@
-import { executeToolWithProxy } from '../../vendor/core/tool-proxy-middleware.js';
+import { executeToolWithProxy } from '../vendor/core/tool-proxy-middleware.js';
 
 import type { ToolDefinition, ToolHandler, ToolExecutionContext } from '../types.js';
 

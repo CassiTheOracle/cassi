@@ -19,7 +19,7 @@
  */
 
 import type { ToolDefinition, ToolHandler } from '../types.js'
-import type { CognitiveBridge } from '../../vendor/core/intelligence/cognitive-bridge.js'
+import type { CognitiveBridge } from '../vendor/core/intelligence/cognitive-bridge.js'
 import type { ILogger } from "@cassicore/foundation"
 
 

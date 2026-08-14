@@ -17,7 +17,7 @@ import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 
 import type { ToolDefinition, ToolHandler, ToolExecutionContext } from '../types.js'
-import { getRepoRoot } from '../@cassicore/foundation'
+import { getRepoRoot } from '@cassicore/foundation'
 
 
 /**
@@ -139,7 +139,7 @@ function writeToCodeStore(
  * Commit the active changeset for a session. Called when a batch of changes
  * is complete (e.g., end of turn or explicit commit).
  */
-export function commitSessionChangeset(sessionId: string, codeStore: import('../../intelligence/mnemic-field/code-store.js').CodeStore): string | null {
+export function commitSessionChangeset(sessionId: string, codeStore: import('@cassicore/mnemic-field').CodeStore): string | null {
   const changesetId = activeChangesets.get(sessionId)
   if (!changesetId) return null
 

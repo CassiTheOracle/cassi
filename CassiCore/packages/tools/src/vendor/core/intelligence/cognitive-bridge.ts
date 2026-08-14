@@ -3,8 +3,8 @@
  *
  * Type-placeholder for the cross-session cognitive bridge surface consumed by
  * the tools (cognitive-tools.ts, collect-thoughts.ts, peer-coordination.ts).
- * Tools hold it as a typed dep and call `getFusedSignals`/`getResonancePatterns`/
- * `routeSignals`/`getLinkedPeers`/`isLinked`/`linkSessions`; tests mock it.
+ * Mirrors the source signatures (`getFusedSignals`/`getResonancePatterns`/
+ * `routeSignals`/`getLinkedPeers`/`isLinked`/`linkSessions`). Tests mock it.
  * Owned by the P5 brain package; re-pointed when it lands (Open-6).
  */
 
@@ -19,6 +19,13 @@ export interface SessionLink {
   sessionIdB: string
   mode: LinkMode
   projectedAt: number
+}
+
+/** A linked peer summary returned by `getLinkedPeers`. */
+export interface LinkedPeer {
+  peerId: string
+  mode: LinkMode
+  linkedAt: number
 }
 
 /** Shape of a cognitive signal as referenced by a resonance pattern. */
@@ -50,11 +57,14 @@ export interface CognitiveBridgeStats {
  * resonance patterns across linked sessions.
  */
 export interface CognitiveBridge {
+  linkSessions(sessionA: string, sessionB: string, mode: LinkMode): boolean
+  unlinkSessions(sessionA: string, sessionB: string): boolean
+  isLinked(sessionA: string, sessionB: string): boolean
+  getLinkedPeers(sessionId: string): Array<LinkedPeer>
+  routeSignals(sourceSessionId: string, signals: CognitiveSignal[]): void
   getFusedSignals(sessionId: string): CognitiveSignal[]
   getResonancePatterns(sessionId: string): ResonancePattern[]
-  routeSignals(sessionId: string, signals: CognitiveSignal[]): void
-  getLinkedPeers(sessionId: string): string[]
-  isLinked(sessionIdA: string, sessionIdB: string): boolean
-  linkSessions(sessionIdA: string, sessionIdB: string, mode?: LinkMode): void
+  onEventBus(bus: unknown): void
   getStats(): CognitiveBridgeStats
+  cleanup(): void
 }

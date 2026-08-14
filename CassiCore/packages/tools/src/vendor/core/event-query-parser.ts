@@ -18,9 +18,9 @@ export interface ParsedQuery {
 
 /** A single query suggestion row. */
 export interface QuerySuggestion {
-  label: string
   query: string
-  category?: string
+  description: string
+  example: string
 }
 
 /** A registered NL query pattern. */

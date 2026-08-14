@@ -7,7 +7,7 @@
  * Preserves all caching behavior (StateCache with TTLs) from original implementation.
  */
 
-import type { EventBus } from '../../vendor/core/event-bus.js'
+import type { EventBus } from '../vendor/core/event-bus.js'
 import type { ToolDefinition, ToolHandler } from '../types.js'
 
 // Constants

@@ -1,4 +1,4 @@
-import { getModelSpec } from '../@cassicore/foundation'
+import { getModelSpec } from '@cassicore/foundation'
 
 import type { ISessionManager } from "@cassicore/foundation"
 import type { ToolDefinition, ToolHandler } from '../types.js'
