@@ -27,8 +27,30 @@ Starting point: the WORKING probe rung-G construction (modes 10→9, full 14-bin
 | abcde | + TWO `compute_list_begin/end` pairs per `_process` (list interleave: tree list, then instancer list, then voronoi list) | — | **PASS** ctr[0]=1 |
 | abcdef | + free+recreate tree shader/pipeline/set every 30 frames while dispatching every frame (the sim's `_shaders_ready` retry pattern) | — | **PASS** ctr[0]=1 |
 | p    | + per-frame global-RD `buffer_update` immediately before `compute_list_begin` (sim's bh-header pattern, `_run_physics_steps` line 771) | — | **PASS** ctr[0]=1 |
+| g    | RD-buffer HANDOFF: renderer DRAWS a global-RD multimesh buffer every frame (`multimesh_get_buffer_rd_rid` → MeshInstance3D + `particle_billboard`), written via the GPU-direct instancer compute each frame | — | **PASS** ctr[0]=1 |
+| h    | DISPATCH VOLUME: tree chain FIRST, then ~240 dummy voronoi-mode-7 dispatches in the SAME list, then a `_render_frame`-style second list; settle 120 frames | — | **PASS** ctr[0]=1 |
+| i    | PER-FRAME BUFFER_UPDATE: 6 `buffer_update` calls on other buffers BEFORE `compute_list_begin` each frame; settle 120 frames | — | **PASS** ctr[0]=1 |
+| w    | FULL CHAIN: the sim's ENTIRE `_dispatch_tree_gravity` (modes 10/9/7, bitonic 21/91, split/commit 14×2, moments, WALK on a 2nd pipeline+set) in ONE open list, with the sim's in-place PC mutation on a persistent `_tree_build_pc_bytes` | — | **PASS** ctr[0]=1 |
+| wih  | MAX FIDELITY: buffer_updates before (i), full sim tree chain incl. walk in one open list (w), ~240 dispatches continuing that SAME list (h), second repaint list; settle 120 frames | — | **PASS** ctr[0]=1 |
 
-Every rung landed. None of the six protocol ingredients (a–f) nor the pre-list `buffer_update` reproduces the no-op when assembled, faithful to the sim's scene graph and frame structure, in a bare-Node reproduction.
+### Rung-g note (RD-buffer handoff)
+
+The rung-spec's `RenderingServer.multimesh_set_buffer(multimesh_rid, rd_rid)` is **not a valid Godot 4.7 call** — that API takes a `PackedFloat32Array`, not an RID (the parser rejected the RID form). The sim's ACTUAL handoff — and the only valid "renderer consumes a global-RD buffer" form — is the reverse: the renderer allocates the instance buffer from `instance_count`, we grab its RD RID via `RenderingServer.multimesh_get_buffer_rd_rid`, bind it in the instancer set, and DRAw it via MeshInstance3D + a material every frame. Rung g implements exactly that: the renderer consumed a global-RD buffer all 40 frames while the tree modes 10→9 landed.
+
+```                                                            
+[TreeGate] active rungs: ["g"]                                
+[TreeGate] rung g: renderer buffer RD RID=true drawn via MeshInstance3D + particle_billboard every frame
+[TreeGate] rung g: instancer pipe=true set on renderer buffer=true
+[TreeGate] rungs active: g | sentinel LANDED (ctr[0]=1) | first-fail-frame=-1
+[TreeGate] active rungs: ["w","i","h"]                        
+[TreeGate] rung i: 6 per-frame-update buffers created         
+[TreeGate] rung w: walk pipe=true walk set=true               
+[TreeGate] rungs active: wih | sentinel LANDED (ctr[0]=1) | first-fail-frame=-1
+```
+
+Every rung (base, a–f, g, h, i, w, wih) landed. None of the protocol ingredients, the pre-list `buffer_update`, the renderer-drawn global-RD buffer, the per-frame dispatch volume, the full tree chain with walk, OR the max-fidelity combined frame reproduces the no-op when assembled, faithful to the sim's scene graph and frame structure, in a bare-Node reproduction.
+
+The probe writeup (`research/meshless/tree_grd_probe.md`) already isolated the ONLY reproducible Godot-ism that produces this exact symptom shape — **pristine-zeroed counters, no GPU execution, no shader error** — a uniform set that does not fully/validly cover the bound pipeline's declared set-0 bindings: rungs A/B/C (partial or absent tree set) fail with a silent no-op, rungs D/E/G (complete 14-binding set) land `ctr[0]=1` on the global RD. The verify script `scripts/verify_meshless_gravity.gd` independently documents the sim-side symptom (lines 8–10): the tree list "does not execute" from the sim's `_process` loop on the global RD, which is why that verify consigns the tree to a LOCAL RD.
 
 Key log lines (representative; full verdicts in `_diag/tree_sim_gate_*.log`):
 
@@ -62,12 +84,14 @@ frame   1  ctr[0]=1  PASS
 The controlled negative result above is decisive for what the no-op is **not**:
 
 - not the scene node graph (Camera/Light/WorldEnvironment);
-- not the renderer-owned MultiMesh buffer being written via the RD every frame;
+- not the renderer-owned MultiMesh buffer being written via the RD every frame (the sim's ACTUAL `multimesh_get_buffer_rd_rid` handoff, drawn every frame);
 - not the presence of extra global-RD compute chains;
 - not the resource scale (dozens of buffers/pipelines);
 - not multiple `compute_list_begin/end` pairs per `_process`;
 - not a free+recreate of the tree shader/pipeline/set;
-- not a per-frame pre-list `buffer_update`.
+- not a per-frame pre-list `buffer_update`;
+- not the sim's full dispatch-volume per frame (~360 dispatches, tree in head-of-list);
+- **not the sim's ENTIRE tree chain** (modes 10/9/7, bitonic, split/commit, moments, and the WALK on a second pipeline+set, with the sim's in-place PC mutation) — rung `w` and the combined `wih` land it in a bare Node.
 
 The probe writeup (`research/meshless/tree_grd_probe.md`) already isolated the ONLY reproducible Godot-ism that produces this exact symptom shape — **pristine-zeroed counters, no GPU execution, no shader error** — a uniform set that does not fully/validly cover the bound pipeline's declared set-0 bindings: rungs A/B/C (partial or absent tree set) fail with a silent no-op, rungs D/E/G (complete 14-binding set) land `ctr[0]=1` on the global RD. The verify script `scripts/verify_meshless_gravity.gd` independently documents the sim-side symptom (lines 8–10): the tree list "does not execute" from the sim's `_process` loop on the global RD, which is why that verify consigns the tree to a LOCAL RD.
 
@@ -85,6 +109,24 @@ Evidence that eliminates the alternatives:
 Evidence that supports it:
 - The sim-side symptom (pristine counts, no error) is byte-for-byte the incomplete/stale-set no-op signature the probe already isolated.
 - `_shaders_ready` is the only thing standing between "arm dispatches" and "arm silently skipped"; its AND-chain includes `_us_tree_build.is_valid()`/`_us_tree_grav.is_valid()` (a *valid* RID can still reference a freed/partial set — `RID.is_valid()` stays true for freed RIDs, so the guard can pass while the set is stale). This is precisely the class of failure the probe's A/B/C mechanism names.
+
+## Line-by-line diff: the gate's landing full-chain vs `cassi_sim.gd _dispatch_tree_gravity`
+
+Because rungs g/h/i/w — including the faithful full chain with walk and the max-fidelity `wih` frame — ALL land in a bare Node, the remaining variable is the sim's own call sequence. `scripts/tree_sim_gate.gd _dispatch_full_tree_chain` (rung w) is a structural byte-copy of `cassi_sim.gd:2929-3040`. Every difference found:
+
+| # | cassi_sim.gd `_dispatch_tree_gravity` | gate rung-w `_dispatch_full_tree_chain` | effect on dispatched GPU sequence |
+|---|----------------------------------------|------------------------------------------|-----------------------------------|
+| 1 | loud guards (nsrc/pipe/set/`_ml_ready`, lines 2930–2952) | none (always runs) | none — guards only gate whether anything is recorded |
+| 2 | `N_src = _ml_tree_nsrc` = 8192; `pg_src = ceil(8192/64)=128` | `N_src=64`; `pg_src=1` | bitonic runs 91 stages (sim) vs 21 (gate); split/commit 14×2 both |
+| 3 | `Np = N_particles` (=2000 main / 2000 verify); walk `dispatch(ceil(Np/64))` | `Np=64`; walk `dispatch(1,1,1)` | same structure, fewer threads |
+| 4 | PC encode: `bp.encode_float(0,N_src); 1-3 bmin=(0,0,0); 4 half; 5 eps2; 6 PHI; 7 PHI_6; 8 leaf_cap; 9 max_levels; 10 mode; 11-13 bitonic; 14 grid_N; 15-17 ext; 18 field_floor` — **in place on persistent `_tree_build_pc_bytes`** | identical field order, identical in-place mutation on `_tree_build_pc_bytes` | **identical** (gate replicates exactly) |
+| 5 | bind `_tree_build_pipe` + `_us_tree_build` to `cl` | bind `_build_pipe` + `_us_tree` to `cl` | identical |
+| 6 | modes: 10→barrier→9→barrier→7→barrier→ bitonic(91)→barrier→ [5→barrier→8→barrier]×14 →6→barrier → bind `_tree_grav_pipe`+`_us_tree_grav`→walk→barrier | identical order (21-stage bitonic, 14× [5/8]) | **identical** |
+| 7 | **caller**: `_run_physics_steps` opens ONE list (`cl`, line 801), calls `_dispatch_tree_gravity(cl)` (line 803), then continues the SAME open `cl` with `_step_dispatches` (deposit/nbody/PDE) + instancer, then `compute_list_end` (line 822) | rung-w branch: opens ONE list, calls `_dispatch_full_tree_chain(cw)`, continues with `h` volume dispatches, then `compute_list_end` | **identical shape** (the list continues past the walk; tested by `wih`) |
+| 8 | set `_us_tree_build` binds the SIM's real buffers (`_ml_tree_src` 256 KB, `_ml_tree_q` 2 MB, `_mass_density_buf` 1–8 MB, …) | set binds small dummies (≤ 8 KB) | buffer SIZE differs, but resource-scale rungs `d`/`a` plus the probe's dummy-set D/G land — size is not the trigger |
+| 9 | `_us_tree_grav` walk set binds `_ml_tree_grad`/`_ml_tree_icount`/`_pos_buf` (N_particles-sized) | walk set binds 64-element grad/icount/pos | same bindings, smaller arrays |
+
+**Difference that survives every elimination — and the last remaining candidate:** none of the 9 rows changes the *recorded GPU command stream* in a way a bare-Node reproduction can't now reproduce (rows 1–7 are structurally identical; rows 8–9 differ only in buffer SIZE, which resource-scale + the probe's dummy-set rungs exonerated). Since the byte-identical sequence lands in a bare Node, the no-op can only be produced by **sim-internal state that is not a visible argument to `compute_list_*`**: i.e. the `_us_tree_build`/`_us_tree_grav` SETS themselves being freed-but-`is_valid()` (stale) or partially-covering at dispatch time on the sim's frame — the probe's rung-A/B/C silent-no-op mechanism — induced by the sim's own resource lifecycle (retry/reinit/`_setup_buffers` order) that no external scene can reproduce while building a guaranteed-fresh set.
 
 ## Minimal fix recommendation (design-only — NO file edited)
 
