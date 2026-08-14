@@ -74,7 +74,7 @@ func _ready() -> void:
 	# owns suppress_readbacks / max_steps_per_frame / playing itself.
 	var reinit_needed := false
 	var inherit_list := [
-		"grid_N", "N_particles", "dt", "xi", "softening", "particle_size",
+		"grid_N", "N_particles", "dt", "sim_speed", "xi", "softening", "particle_size",
 		"cluster_radius", "num_clusters", "cluster_separation", "merger_speed",
 		"source_strength", "qi_condensation_threshold", "bh_acc_rate",
 		"bh_max_age", "black_holes_enabled", "gravity_mode", "realsim_drag", "realsim_viscosity",

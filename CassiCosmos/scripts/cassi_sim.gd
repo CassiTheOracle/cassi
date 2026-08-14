@@ -557,6 +557,10 @@ var _step_timer: float = 0.0
 # video second (default 16 = unchanged behavior).
 ## Physics catch-up cap per rendered frame (recorder raises it for time-lapse).
 @export var max_steps_per_frame: int = 16
+## Simulation time-scale: 1 = real time (default), 0.5 = half speed,
+## 2 = 2× time-lapse, etc. The per-frame step cap scales with it, so
+## fast-forward stays smooth at any frame rate. Live — no reinit.
+@export_range(0.05, 10.0, 0.05) var sim_speed: float = 1.0
 var _dropped_steps: int = 0
 
 # — diagnostics —
@@ -727,17 +731,24 @@ func _process(delta: float) -> void:
 			_setup_shaders()
 
 	if playing and _shaders_ready:
-		_step_timer += delta
+		# Fixed-dt accumulator with a BOUNDED CARRY: steps/frame = accumulated
+		# real time (× sim_speed) / dt, capped. A brief hitch carries at most
+		# one frame's worth of backlog into the next frame (graceful catch-up
+		# — the sim keeps real-time instead of falling into slow-motion);
+		# only pathological stalls drop steps, counted in _dropped_steps. The
+		# cap scales with sim_speed so time-lapse works at any frame rate
+		# (max_steps_per_frame stays the floor).
+		var step_cap: int = maxi(max_steps_per_frame, int(ceili(sim_speed)) * max_steps_per_frame)
+		_step_timer += delta * sim_speed
 		var n_steps := 0
-		while _step_timer >= dt and n_steps < max_steps_per_frame:
+		while _step_timer >= dt and n_steps < step_cap:
 			_step_timer -= dt
 			n_steps += 1
 		if _step_timer >= dt:
-			# Backlog beyond the cap: drop the excess whole steps (counted,
-			# not silent) instead of letting _step_timer grow unbounded.
+			var carry_max := float(step_cap) * dt
 			var excess := int(_step_timer / dt)
-			_dropped_steps += excess
-			_step_timer -= float(excess) * dt
+			_dropped_steps += maxi(excess - step_cap, 0)
+			_step_timer = minf(_step_timer, carry_max)
 		if n_steps > 0:
 			var t0 := Time.get_ticks_usec()
 			_run_physics_steps(n_steps)
