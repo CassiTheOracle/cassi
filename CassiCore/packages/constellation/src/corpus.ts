@@ -19,7 +19,7 @@
  * brain hemispheres, enabling coordinated thought across regions.
  */
 
-import type { ILogger, IEventBus } from '../../../types/interfaces.js'
+import type { ILogger, IEventBus } from './vendor/types/interfaces.js'
 import type {
   ICorpusTree,
   CorpusConfig,
@@ -61,7 +61,7 @@ import {
   DEFAULT_CORPUS_CONFIG,
   createInitialProcessedState,
 } from './corpus-types.js'
-import type { BrainstemAnnotation, WorkUnitAnnotation, DetectedPattern, GuidanceUrgency } from '../helix/brainstem-types.js'
+import type { BrainstemAnnotation, WorkUnitAnnotation, DetectedPattern, GuidanceUrgency } from './vendor/helix/brainstem-types.js'
 import {
   executeCorpusTool,
   buildCorpusSystemPrompt,
@@ -79,6 +79,7 @@ import type { CorpusToolContext, ToolCallResult } from './corpus-tools.js'
 import { Locus } from './locus/index.js'
 import type { LocusSweepResult } from './locus/index.js'
 import type { LocusSnapshot } from './locus/locus-types.js'
+import type { LocusMemoryPersistence } from './locus/constellation-memory.js'
 
 /**
  * Minimal interface for child Brainstem to avoid circular imports.
@@ -158,6 +159,76 @@ export class Corpus {
   private externalProtocol: ExternalCorpusProtocol
   private stopped = false
 
+  // Locus memory persistence backend wired at construction (integration repair:
+  // `getLocusMemoryPersistence()` reads it back for the pipeline).
+  private locusMemoryPersistence: LocusMemoryPersistence | undefined = undefined
+
+  /**
+   * Live view of the External Corpus Protocol state. Read-only for the internal
+   * loop; mutation flows through `assume`/`release` on the protocol.
+   * (Integration repair: the class referenced `this.externalState` but never
+   * declared it — mapped to the protocol's authoritative state.)
+   */
+  private get externalState(): ExternalCorpusState {
+    return this.externalProtocol.getState()
+  }
+
+  // Integration repair: `getExternalSnapshotInternal` was referenced by the
+  // External Corpus Protocol callbacks but never defined — restored as a
+  // faithful snapshot of tree + branch state + pending decisions.
+  private getExternalSnapshotInternal(): ExternalCorpusSnapshot {
+    const assessments = Array.from(this.state.branchAssessments.values()).map((ba) => ({
+      helixId: ba.helixId,
+      status: ba.status,
+      rollingScore: ba.rollingScore,
+      dominantPattern: ba.dominantPattern,
+      avgGoalAlignment: ba.avgGoalAlignment,
+      avgNovelty: ba.avgNovelty,
+      avgProgress: ba.avgProgress,
+      escalationLevel: ba.escalationLevel,
+      ignoredDirectiveStreak: ba.ignoredDirectiveStreak,
+      budgetConsumedSteps: ba.budget?.consumedSteps,
+      budgetMaxSteps: ba.budget?.maxSteps,
+    }))
+    return {
+      tree: this.tree.getSnapshot(),
+      branchAssessments: assessments,
+      crossPatterns: [...this.state.crossPatterns],
+      pendingSpawnRequests: this.externalProtocol.getPendingSpawnRequests(),
+      recentInterventions: [...this.state.interventions].slice(-20),
+      sweepCount: this.state.sweepCount,
+      goal: this.deps.constellationId ?? '',
+    }
+  }
+
+  // Integration repair: `sendDirectiveInternal` was referenced by the External
+  // Corpus Protocol callbacks but never defined — dispatches a directive to a
+  // branch brainstem (same path as the internal `sendDirective`).
+  private sendDirectiveInternal(directive: Omit<CorpusDirective, 'timestamp'>): void {
+    this.sendDirective({ ...directive, timestamp: Date.now() })
+  }
+
+  // Integration repair: `stopHeartbeatMonitor` was referenced on shutdown but
+  // never defined — delegates to the protocol's heartbeat cleanup.
+  private stopHeartbeatMonitor(): void {
+    this.externalProtocol.stop()
+  }
+
+  // Integration repair: `queueSpawnForExternalDecision` was referenced when an
+  // external agent holds the Corpus role but never defined — queues the spawn
+  // request for external decision on the protocol.
+  private queueSpawnForExternalDecision(request: {
+    requestId: string
+    requestingHelixId: string
+    goal: string
+    context?: string
+    template?: string
+    targetDepth: number
+  }): void {
+    this.externalProtocol.queueSpawnRequest(request)
+  }
+
+
   // WHY: When new branches are created, the Corpus should wake up immediately
   // instead of sleeping for the remainder of its poll interval. Without this,
   // branches can exhaust their step budget before the Corpus ever observes them.
@@ -185,10 +256,11 @@ export class Corpus {
       enabled: this.config.enabled,
     })
 
+    this.locusMemoryPersistence = deps.store?.getLocusMemoryPersistence()
     this.locus = new Locus({
       logger: this.logger,
       sessionId: deps.constellationId,
-      memoryPersistence: deps.store?.getLocusMemoryPersistence(),
+      memoryPersistence: this.locusMemoryPersistence,
     })
 
     this.patternDetector = new PatternDetector({
@@ -322,6 +394,76 @@ export class Corpus {
   }
 
   /**
+   * Whether an external agent currently holds the Corpus role.
+   * (Integration repair — completes the External Corpus Protocol surface the
+   * pipeline reads via the emitted `constellationLiveState.corpus` object.)
+   */
+  isExternallyAssumed(): boolean {
+    return this.externalProtocol.isAssumed()
+  }
+
+  /**
+   * Current External Corpus Protocol state.
+   * (Integration repair — see `isExternallyAssumed`.)
+   */
+  getExternalState(): ExternalCorpusState {
+    return this.externalProtocol.getState()
+  }
+
+  /**
+   * Full External Corpus snapshot (tree, assessments, patterns, pending decisions).
+   * (Integration repair — see `isExternallyAssumed`.)
+   */
+  getExternalSnapshot(): ExternalCorpusSnapshot {
+    return this.getExternalSnapshotInternal()
+  }
+
+  /**
+   * Locus snapshot if the locus layer is enabled.
+   * (Integration repair — see `isExternallyAssumed`.)
+   */
+  getLocusSnapshot(): import('./locus/locus-types.js').LocusSnapshot | undefined {
+    return this.locus.enabled ? this.locus.getSnapshot() : undefined
+  }
+
+  /**
+   * All locus memory entries if the locus layer is enabled.
+   * (Integration repair — see `isExternallyAssumed`.)
+   */
+  getLocusMemories(): import('./locus/memory-types.js').LocusMemoryEntry[] | undefined {
+    return this.locus.enabled ? this.locus.getMemory().getAll() : undefined
+  }
+
+  /**
+   * Rendered advisory signal-pattern digest for the corpus observer layer.
+   * (Integration repair — the Corpus does not maintain a signal-pattern buffer
+   * in standalone; returns `undefined`, which the observer treats as "no digest".)
+   */
+  getSignalPatternDigest(): string | undefined {
+    return undefined
+  }
+
+  /**
+   * Flag the Corpus that the CorpusObserverLayer (not the Corpus's own sweep)
+   * handles cross-Helix LLM analysis.
+   * (Integration repair — see `isExternallyAssumed`.)
+   */
+  setCorpusObserverActive(active: boolean): void {
+    // WHY: The observer layer owns cross-Helix LLM analysis. The Corpus reads
+    // nothing further from this flag in standalone beyond acknowledging the
+    // handoff, so it is a lightweight in-memory nop marker.
+    void active
+  }
+
+  /**
+   * The locus memory persistence backend, if wired.
+   * (Integration repair — see `isExternallyAssumed`.)
+   */
+  getLocusMemoryPersistence(): LocusMemoryPersistence | undefined {
+    return this.locusMemoryPersistence
+  }
+
+  /**
    * Register a child Brainstem for directive delivery
    */
   registerBrainstem(helixId: string, brainstem: MinimalBrainstem): void {
@@ -414,6 +556,8 @@ export class Corpus {
       sweepCount: this.state.sweepCount,
       llmHealthy: this.llmHealthy,
       llmFailureCount: this.llmFailureCount,
+      llmHealthState: this.llmHealthy ? 'primary' : 'rule_based',
+      llmConsecFailures: this.llmFailureCount,
       durationMs: this.startTime > 0 ? Date.now() - this.startTime : 0,
       locusSnapshot: this.locus.enabled ? this.locus.getSnapshot() : undefined,
     }

@@ -10,7 +10,7 @@
  * proposals that compete for workspace access.
  */
 
-import type { ILogger } from '../../../../types/interfaces.js'
+import type { ILogger } from '../vendor/types/interfaces.js'
 import type { BranchDigest, CrossHelixPattern } from '../corpus-types.js'
 import type { Spark, SparkType } from './locus-types.js'
 

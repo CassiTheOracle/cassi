@@ -1,4 +1,4 @@
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from './vendor/types/interfaces.js'
 
 
 /**

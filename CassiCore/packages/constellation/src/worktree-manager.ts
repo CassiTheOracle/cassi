@@ -19,7 +19,7 @@ import { execSync, type ExecSyncOptions } from 'node:child_process'
 import { existsSync, mkdirSync, rmSync, readFileSync, appendFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from './vendor/types/interfaces.js'
 
 // Configuration
 

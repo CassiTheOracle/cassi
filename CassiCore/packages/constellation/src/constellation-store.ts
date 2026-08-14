@@ -23,12 +23,12 @@ import path from 'node:path'
 
 import Database from 'better-sqlite3'
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from './vendor/types/interfaces.js'
 import type { CorpusTreeSnapshot, BranchAssessment, CrossHelixPattern, CorpusIntervention, ElevatedPattern } from './corpus-types.js'
 import type { ConstellationResult, SpawnRequest } from './types.js'
 import type { LocusMemoryEntry } from './locus/memory-types.js'
 import type { LocusMemoryPersistence } from './locus/constellation-memory.js'
-import { getDataDir } from '../../utils/paths.js'
+import { getDataDir } from './ports/paths.js'
 
 
 const SCHEMA_VERSION = 6  // v6: meditation_mode, meditation_style, cost_effective columns

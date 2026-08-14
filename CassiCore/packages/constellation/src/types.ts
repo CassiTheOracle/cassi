@@ -18,9 +18,9 @@
  * the stellar metaphor (Helix = double helix of binary stars).
  */
 
-import type { ConvergencePoint, UnresolvedTension } from '../helix/dialectic-channel.js'
-import type { BlackboardState, Report } from '../../../types/flux-team.js'
-import type { RoutingTier } from '../../../types/model-routing.js'
+import type { ConvergencePoint, UnresolvedTension } from './vendor/helix/dialectic-channel.js'
+import type { BlackboardState, Report } from './vendor/types/flux-team.js'
+import type { RoutingTier } from './vendor/types/model-routing.js'
 
 
 // FlexPosture — The atomic unit of agency
@@ -124,7 +124,7 @@ export interface FlexPosture {
    *   - 'review': Audit-focused (~12 tools) — read-only + dialectic + signal_conclusion
    *   - 'exploration': Research-focused (~8 tools) — file, web, collect_thoughts
    */
-  toolProfile?: import('../helix/helix-pipeline.js').HelixToolProfile
+  toolProfile?: import('./ports/helix-pipeline.js').HelixToolProfile
 
   /** Can this posture spawn new child Helix instances? */
   canSpawnHelix?: boolean

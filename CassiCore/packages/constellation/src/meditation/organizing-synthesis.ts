@@ -18,8 +18,8 @@
  * The Corpus observes the organizing results and stores structural insights.
  */
 
-import type { ILogger } from '../../../../types/interfaces.js'
-import type { MnemicField } from '../../mnemic-field/index.js'
+import type { ILogger } from '../vendor/types/interfaces.js'
+import type { MnemicField } from '../vendor/mnemic-field/index.js'
 import type { ToolCallResult } from './solo-runner.js'
 import type { FieldHealthAnalyzer, FieldHealthSnapshot, RegionHealth } from './field-health.js'
 import type { MeditationStore } from './meditation-store.js'

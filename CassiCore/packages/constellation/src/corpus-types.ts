@@ -19,15 +19,15 @@
  * brain hemispheres, enabling coordinated thought across regions.
  */
 
-import type { ILogger, IEventBus } from '../../../types/interfaces.js'
+import type { ILogger, IEventBus } from './vendor/types/interfaces.js'
 import type {
   BrainstemAnnotation,
   DetectedPattern,
   GuidanceUrgency,
   WorkUnitAnnotation,
-} from '../helix/brainstem-types.js'
+} from './vendor/helix/brainstem-types.js'
 import type { FlexPosture, ConstellationTemplate } from './types.js'
-import type { WorkflowDefinition, WorkflowRun } from '../../../types/workflow.js'
+import type { WorkflowDefinition, WorkflowRun } from './vendor/types/workflow.js'
 
 
 // Corpus Tree — The shared reasoning structure
@@ -1036,20 +1036,20 @@ export interface CorpusDeps {
   pauseHelix?: (helixId: string) => boolean
   resumeHelix?: (helixId: string) => void
   killHelix?: (helixId: string) => void
-  injectGuidance?: (helixId: string, content: string, urgency: import('../helix/brainstem-types.js').GuidanceUrgency) => void
+  injectGuidance?: (helixId: string, content: string, urgency: import('./vendor/helix/brainstem-types.js').GuidanceUrgency) => void
   runCommand?: (command: string, timeoutMs?: number) => Promise<{ exitCode: number; stdout: string; stderr: string }>
   /** Meditation mode — Corpus observes silently as Cassi, never sends directives */
   meditationMode?: boolean
   /** Meditation style — controls tool set and Corpus prompt tone */
   meditationStyle?: import('./meditation/styles.js').MeditationStyle
   /** MnemicField for meditation Corpus tools */
-  mnemicField?: import('../mnemic-field/index.js').MnemicField
+  mnemicField?: import('./vendor/mnemic-field/index.js').MnemicField
   /** Constellation session engram ID in MnemicField — for locus memory edge creation */
   constellationEngramId?: string
   /** Map of helixId → branch engram ID for locus memory edge creation */
   branchEngramIds?: Map<string, string>
   /** Memory system for meditation insight storage */
-  memory?: import('../../../types/intelligence.js').IMemory
+  memory?: import('./vendor/types/intelligence.js').IMemory
   getHelixTemplate?: (helixId: string) => ConstellationTemplate | undefined
   persistEvent?: (type: string, entity: string | null, message: string, data?: unknown) => void
   store?: import('./constellation-store.js').ConstellationStore
@@ -1073,7 +1073,7 @@ export interface CorpusDeps {
    * WHY: GlobalWorkspace for publishing directives so the posture runner's
    * injectWorkspaceBroadcasts() delivers them to the LLM. (c-36 fix)
    */
-   globalWorkspace?: import('../workspace/index.js').GlobalWorkspace
+   globalWorkspace?: import('./vendor/workspace/index.js').GlobalWorkspace
   /**
    * WHY: When the CorpusObserverLayer is active, it performs cross-Helix LLM
    * analysis with actual SynapseRollingSlice data (superior to BranchDigest).
@@ -1137,6 +1137,7 @@ export interface CorpusResult {
   llmHealthy: boolean
   llmHealthState: LLMHealthState
   llmConsecFailures: number
+  llmFailureCount?: number
   durationMs: number
   /** Dual-ledger final state (post-mortem analysis) */
   taskLedger?: TaskLedger

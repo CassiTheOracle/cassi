@@ -13,7 +13,7 @@
  * the broadcast. This creates a feedback loop for training.
  */
 
-import type { ILogger } from '../../../../types/interfaces.js'
+import type { ILogger } from '../vendor/types/interfaces.js'
 import type { BranchDigest, BranchAssessment } from '../corpus-types.js'
 import type {
   KindlingEvent,

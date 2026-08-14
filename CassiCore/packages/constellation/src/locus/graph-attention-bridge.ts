@@ -1,7 +1,7 @@
-import type { GlobalWorkspace } from '../../workspace/global-workspace.js'
-import type { SynapseType } from '../../mnemic-field/types.js'
-import { GraphAttnPropagator, type PropagatedEngram } from '../../mnemic-field/graph-attn-propagator.js'
-import type { ILogger } from '../../../../types/interfaces.js'
+import type { GlobalWorkspace } from '../vendor/workspace/global-workspace.js'
+import type { SynapseType } from '../vendor/mnemic-field/types.js'
+import { GraphAttnPropagator, type PropagatedEngram } from '../vendor/mnemic-field/graph-attn-propagator.js'
+import type { ILogger } from '../vendor/types/interfaces.js'
 
 export const DEFAULT_ATTENTION_BRIDGE_CONFIG = {
   cacheTTLMs: 15_000,

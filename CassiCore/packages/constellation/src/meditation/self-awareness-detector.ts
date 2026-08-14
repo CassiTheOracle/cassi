@@ -26,9 +26,9 @@
  * live meditation endpoints.
  */
 
-import type { ILogger, IEventBus } from '../../../../types/interfaces.js'
+import type { ILogger, IEventBus } from '../vendor/types/interfaces.js'
 import type { ICorpusTree } from '../corpus-types.js'
-import type { BrainstemAnnotation } from '../../helix/brainstem-types.js'
+import type { BrainstemAnnotation } from '../vendor/helix/brainstem-types.js'
 import { emitMeditationEvent } from './meditation-events.js'
 import type { MeditationSelfAwarenessEvent } from './meditation-events.js'
 

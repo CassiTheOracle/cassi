@@ -19,7 +19,7 @@
  * attention and arousal across the entire cortex.
  */
 
-import type { ILogger } from '../../../../types/interfaces.js'
+import type { ILogger } from '../vendor/types/interfaces.js'
 import type { BranchDigest, BranchAssessment, CrossHelixPattern } from '../corpus-types.js'
 import type {
   LocusConfig,

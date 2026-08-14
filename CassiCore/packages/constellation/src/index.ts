@@ -181,3 +181,49 @@ export type { PostureCapabilities, TemplateCapabilities } from './types.js'
 
 
 // REMOVED: Constellation Audit Trail — wrote to FileArtifactStore which is gone.
+
+// =============================================================================
+// HOST WIRING PORTS
+// -----------------------------------------------------------------------------
+// Constellation is standalone: every deep CassiCore host integration (helix
+// pipeline, code-analysis context assembly, model-pool, filesystem paths,
+// gaming-mode flagging, luminance keyword helpers, and the consolidated code/
+// filesystem/web tool surfaces) is exposed through a typed PORT instead of a
+// runtime import. Each port ships a default `not connected` implementation so
+// the package loads and type-checks on its own; a host wires the functions it
+// needs before running a constellation pipeline. See src/ports/*.ts.
+// =============================================================================
+
+// Helix pipeline + BrainstemMiniHelix (deep daemon integration)
+export { runHelixPipeline, BrainstemMiniHelix } from './ports/helix-pipeline.js'
+export type {
+  HelixResult,
+  HelixPipelineOpts,
+  HelixToolProfile,
+  BrainstemMiniHelixOpts,
+  BrainstemMiniHelixDeps,
+} from './ports/helix-pipeline.js'
+
+// Code-analysis context assembly (prepareContext — git-nexus backed in the host)
+export { prepareContext } from './ports/code-analysis-context.js'
+export type { PreparedContext, PreparedContextFile, PrepareContextOptions } from './ports/code-analysis-context.js'
+
+// Filesystem/data-directory helpers
+export { getCassiCoreHome, getDataDir, setDataDirRoot } from './ports/paths.js'
+
+// Gaming-mode flag (host-provided mode detection)
+export { isGamingMode, setGamingMode, isGamingModeAutoManaged } from './ports/gaming-mode.js'
+
+// Workspace luminance / keyword helpers
+export { extractKeywords, keywordOverlap } from './ports/workspace-luminance.js'
+
+// Consolidated code / filesystem / web tool surfaces
+export {
+  getCodeConsolidatedToolSchema,
+  getFilesystemConsolidatedToolSchema,
+  WEB_CONSOLIDATED_TOOL,
+  executeCodeConsolidatedTool,
+  executeFilesystemConsolidatedTool,
+  executeWebConsolidatedTool,
+} from './ports/mcp-consolidated-tools.js'
+export type { ToolSchema, RouteTool, ConsolidatedToolResult } from './ports/mcp-consolidated-tools.js'

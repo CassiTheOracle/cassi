@@ -20,7 +20,7 @@
 import { execSync } from 'node:child_process'
 
 import { WorktreeManager } from './worktree-manager.js'
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from './vendor/types/interfaces.js'
 
 
 /** Isolation mode for Constellation branches */

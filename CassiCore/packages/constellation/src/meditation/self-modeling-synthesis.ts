@@ -8,9 +8,9 @@
  * and crystallizing explicit principles, patterns, and weaknesses.
  */
 
-import type { ILogger } from '../../../../types/interfaces.js'
-import type { SelfModelField } from '../../mnemic-field/self-model/self-model-field.js'
-import type { InterFieldBridge } from '../../mnemic-field/self-model/inter-field-bridge.js'
+import type { ILogger } from '../vendor/types/interfaces.js'
+import type { SelfModelField } from '../vendor/mnemic-field/self-model/self-model-field.js'
+import type { InterFieldBridge } from '../vendor/mnemic-field/self-model/inter-field-bridge.js'
 import type { ToolCallResult } from './solo-runner.js'
 
 export interface SelfModelingStats {

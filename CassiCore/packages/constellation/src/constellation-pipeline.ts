@@ -12,33 +12,33 @@
  * the stellar metaphor (Helix = double helix of binary stars).
  */
 
-import type { ILogger, IEventBus } from '../../../types/interfaces.js'
-import type { ModelHandle } from '../../model-pool/types.js'
-import type { ToolExecutor } from '../../tools/executor.js'
-import type { ToolRegistry } from '../../tools/registry.js'
-import type { HelixStore } from '../helix/helix-store.js'
-import type { HelixResult } from '../helix/types.js'
+import type { ILogger, IEventBus } from './vendor/types/interfaces.js'
+import type { ModelHandle } from './vendor/model-pool/types.js'
+import type { ToolExecutor } from './vendor/tools/executor.js'
+import type { ToolRegistry } from './vendor/tools/registry.js'
+import type { HelixStore } from './vendor/helix/helix-store.js'
+import type { HelixResult } from './vendor/helix/types.js'
 import type { ConstellationStore, ProgressSnapshot } from './constellation-store.js'
-import type { BrainstemDeps, BrainstemAnnotation, SharedTreeReader } from '../helix/brainstem-types.js'
-import type { HelixBrainstem } from '../helix/brainstem.js'
-import type { HelixSynapse } from '../helix/helix-synapse.js'
-import { BrainstemMiniHelix } from '../helix/brainstem-mini-helix.js'
+import type { BrainstemDeps, BrainstemAnnotation, SharedTreeReader } from './vendor/helix/brainstem-types.js'
+import type { HelixBrainstem } from './vendor/helix/brainstem.js'
+import type { HelixSynapse } from './vendor/helix/helix-synapse.js'
+import { BrainstemMiniHelix } from './ports/helix-pipeline.js'
 import { CorpusMiniHelix } from './corpus-mini-helix.js'
 import { ClusterObserverLayer } from './cluster-observer-layer.js'
 import { CorpusObserverLayer } from './corpus-observer-layer.js'
 import { ObserverBranchState } from './observer-branch-state.js'
 import { TopologyContextBridge } from './topology/topology-context-bridge.js'
-import { runHelixPipeline } from '../helix/helix-pipeline.js'
-import { Blackboard } from '../flux-team/blackboard.js'
+import { runHelixPipeline } from './ports/helix-pipeline.js'
+import { Blackboard } from './vendor/flux-team/blackboard.js'
 import { BlackboardBridge } from './blackboard-bridge.js'
 import { Corpus } from './corpus.js'
 import { CorpusTree } from './corpus-tree.js'
 import { CrossHelixDialectic } from './cross-helix-dialectic.js'
 import { CrossBranchGraphCoordinator } from './graph-coordinator.js'
 import { GraphAttentionBridge } from './locus/graph-attention-bridge.js'
-import { GraphAttnPropagator } from '../mnemic-field/graph-attn-propagator.js'
+import { GraphAttnPropagator } from './vendor/mnemic-field/graph-attn-propagator.js'
 import { OutcomeConsolidator } from './consolidation/outcome-consolidator.js'
-import { setGraphDiscoverDeps } from '../../tools/implementations/graph-discover.js'
+import { setGraphDiscoverDeps } from './vendor/tools/implementations/graph-discover.js'
 import { readFile as fsReadFile } from 'node:fs/promises'
 import { resolve as pathResolve } from 'node:path'
 import type { CorpusLLM } from './corpus-types.js'
@@ -49,7 +49,7 @@ import {
   rethinkHelixGoalMidFlight,
   publishHelixGoalSignal,
 } from './helix-goal-lamina.js'
-import type { IMemory, SearchResult } from '../../../types/intelligence.js'
+import type { IMemory, SearchResult } from './vendor/types/intelligence.js'
 import { MemoryInjectionService } from './memory-injection.js'
 import type {
   FlexPosture,
@@ -67,10 +67,10 @@ import { ConstellationWorktreeIsolation } from './worktree-isolation.js'
 import { TopologyGraph } from './topology/topology-graph.js'
 import { BrainstemBridge } from './topology/brainstem-bridge.js'
 import { serializeTopologySnapshot } from './topology/topology-types.js'
-import type { EmbeddingService } from '../embeddings/embedding-service.js'
-import { CrossSessionTopicIndex } from '../thalamus/cross-session-index.js'
+import type { EmbeddingService } from './vendor/embeddings/embedding-service.js'
+import { CrossSessionTopicIndex } from './vendor/thalamus/cross-session-index.js'
 import { createConstellationGuidanceProvider } from './guidance-provider.js'
-import { scoreSpecificity } from '../code-analysis/specificity-scorer.js'
+import { scoreSpecificity } from './vendor/code-analysis/specificity-scorer.js'
 
 // Constants
 
@@ -273,13 +273,13 @@ export interface ConstellationPipelineOpts {
   /** Reasoning Bank for caching and retrieving successful reasoning traces.
    *  When provided, completed Helix sessions with sufficient quality scores
    *  are ingested, and new branches receive relevant past reasoning. */
-  reasoningBank?: import('../reasoning-bank/index.js').ReasoningBank
+  reasoningBank?: import('./vendor/reasoning-bank/index.js').ReasoningBank
 
   /** Context feedback tracker for learning which context injections help.
    *  When provided, each branch's context injection is recorded, and after
    *  completion the files used are compared to files suggested. The Bayesian
    *  model learns which specificity/mode combinations produce useful context. */
-  contextFeedback?: import('../code-analysis/feedback-tracker.js').ContextFeedbackTracker
+  contextFeedback?: import('./vendor/code-analysis/feedback-tracker.js').ContextFeedbackTracker
 
   /** Guidance registry shared with collect_thoughts. When provided, the pipeline
    *  creates per-branch guidance providers and registers them here so that
@@ -298,7 +298,7 @@ export interface ConstellationPipelineOpts {
   meditationStyle?: import('./meditation/styles.js').MeditationStyle
 
   /** MnemicField for meditation Corpus tools (consolidation, kindling, engram creation) */
-  mnemicField?: import('../mnemic-field/index.js').MnemicField
+  mnemicField?: import('./vendor/mnemic-field/index.js').MnemicField
 
   /**
    * LaminaField — when provided, each spawned Helix gets a session-scoped
@@ -306,7 +306,7 @@ export interface ConstellationPipelineOpts {
    * brainstem's prompt, and rethought on terminal status.
    * See `docs/design/cassi-proposed/pending/2026-05-06-helix-goal-lamina.md`.
    */
-  lamina?: import('../lamina/index.js').LaminaField
+  lamina?: import('./vendor/lamina/index.js').LaminaField
 
   /**
    * Global Workspace — when provided, spawned Helix sessions boot in
@@ -315,7 +315,7 @@ export interface ConstellationPipelineOpts {
    * quiescence, and (when MnemicField is also wired) milestone engrams flow
    * through HelixMnemicBridge. When unset, Helix runs its legacy channel path.
    */
-  globalWorkspace?: import('../workspace/index.js').GlobalWorkspace
+  globalWorkspace?: import('./vendor/workspace/index.js').GlobalWorkspace
 
   /**
    * WorkflowEngine — when provided, decompositions containing any
@@ -327,7 +327,7 @@ export interface ConstellationPipelineOpts {
    * complexity (multi-phase metadata then becomes a no-op rather than a
    * crash, preserving back-compat for tests + early callers).
    */
-  workflowEngine?: import('../../workflow/engine.js').WorkflowEngine
+  workflowEngine?: import('./vendor/workflow/engine.js').WorkflowEngine
 }
 
 // Internal State
@@ -1739,7 +1739,7 @@ export async function runConstellationPipeline(
             onInjectGuidance: (content, urgency) => {
               // The mini-Helix brainstem injects guidance through the legacy brainstem's
               // pending guidance queue — this gets consumed by Unity on the next iteration
-              const guidance: import('../helix/brainstem-types.js').PendingGuidance = {
+              const guidance: import('./vendor/helix/brainstem-types.js').PendingGuidance = {
                 text: content,
                 urgency,
                 fromStep: 0,
@@ -2195,7 +2195,7 @@ export async function runConstellationPipeline(
     const rh = runningHelixes.get(helixId)
     if (!rh?.brainstem) return
     try {
-      const guidance: import('../helix/brainstem-types.js').PendingGuidance = {
+      const guidance: import('./vendor/helix/brainstem-types.js').PendingGuidance = {
         text: reason,
         urgency: 'medium',
         fromStep: 0,

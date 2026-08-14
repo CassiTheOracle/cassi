@@ -20,9 +20,9 @@
  *   - The analyzer recommends which regions to prioritize next
  */
 
-import type { MnemicField } from '../../mnemic-field/index.js'
+import type { MnemicField } from '../vendor/mnemic-field/index.js'
 import type { MeditationStore } from './meditation-store.js'
-import type { ILogger } from '../../../../types/interfaces.js'
+import type { ILogger } from '../vendor/types/interfaces.js'
 
 
 export interface FieldHealthSnapshot {

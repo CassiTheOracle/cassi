@@ -8,10 +8,10 @@
  * for sibling Helixes — cross-pollination through spatial memory.
  */
 
-import type { ILogger, IEventBus } from '../../../../types/interfaces.js'
-import type { MnemicField, SpikeCreate } from '../../mnemic-field/index.js'
+import type { ILogger, IEventBus } from '../vendor/types/interfaces.js'
+import type { MnemicField, SpikeCreate } from '../vendor/mnemic-field/index.js'
 import type { ICorpusTree } from '../corpus-types.js'
-import type { BrainstemAnnotation } from '../../helix/brainstem-types.js'
+import type { BrainstemAnnotation } from '../vendor/helix/brainstem-types.js'
 import { SelfAwarenessDetector } from './self-awareness-detector.js'
 import type { SelfAwarenessDetection } from './self-awareness-detector.js'
 

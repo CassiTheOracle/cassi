@@ -20,10 +20,10 @@
  *   - deep: + full reasoning chain via liveStreamSnippet
  */
 
-import type { ILogger } from '../../../../types/interfaces.js'
+import type { ILogger } from '../vendor/types/interfaces.js'
 import type { ICorpusTree, BranchDigest } from '../corpus-types.js'
 import type { TopologySnapshot, TopologyLink, MergeDepth } from './topology-types.js'
-import type { GlobalWorkspace, CognitiveSignal } from '../../workspace/index.js'
+import type { GlobalWorkspace, CognitiveSignal } from '../vendor/workspace/index.js'
 
 
 export interface TopologyContextBridgeOpts {

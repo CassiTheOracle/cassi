@@ -13,8 +13,8 @@
  * It only maintains positions and computes distances.
  */
 
-import type { ILogger } from '../../../../types/interfaces.js'
-import type { EmbeddingService } from '../../embeddings/embedding-service.js'
+import type { ILogger } from '../vendor/types/interfaces.js'
+import type { EmbeddingService } from '../vendor/embeddings/embedding-service.js'
 import type { BranchDigest } from '../corpus-types.js'
 import type { TopologyEmbeddingCache } from './embedding-cache.js'
 import type {

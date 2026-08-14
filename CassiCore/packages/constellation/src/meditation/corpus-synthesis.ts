@@ -9,9 +9,9 @@
  * The Corpus never directs or intervenes — it only watches, reflects, and remembers.
  */
 
-import type { ILogger } from '../../../../types/interfaces.js'
-import type { MnemicField } from '../../mnemic-field/index.js'
-import type { EngramType } from '../../mnemic-field/types.js'
+import type { ILogger } from '../vendor/types/interfaces.js'
+import type { MnemicField } from '../vendor/mnemic-field/index.js'
+import type { EngramType } from '../vendor/mnemic-field/types.js'
 import type { ToolCallResult } from './solo-runner.js'
 import type { CorpusPrompt } from './corpus-prompt-library.js'
 

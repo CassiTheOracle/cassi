@@ -18,9 +18,9 @@
  * Priority: 16 (background — just above Dreamer at 15)
  */
 
-import { BaseCognitiveModule } from '../../base/cognitive-module.js'
-import { MODEL_DEFAULTS } from '../../../config/system-settings.js'
-import { isGamingMode } from '../../gaming-mode.js'
+import { BaseCognitiveModule } from '../vendor/base/cognitive-module.js'
+import { MODEL_DEFAULTS } from '../vendor/config/system-settings.js'
+import { isGamingMode } from '../ports/gaming-mode.js'
 import { MnemicBridge } from './mnemic-bridge.js'
 import type { MeditationConfig, MeditationState, MeditationSession } from './types.js'
 import { DEFAULT_MEDITATION_CONFIG, MEDITATION_PROMPTS, pickMeditationPrompt } from './types.js'
@@ -31,7 +31,7 @@ import { MeditationStore } from './meditation-store.js'
 import { pickPromptsThompson } from './thompson.js'
 import { runFocusedSeeding } from './focused-seeding.js'
 import { emitMeditationEvent } from './meditation-events.js'
-import type { MiniHelixDeps } from '../../mini-helix/mini-helix-types.js'
+import type { MiniHelixDeps } from '../vendor/mini-helix/mini-helix-types.js'
 import { buildCorpusCyclePrompt, getCorpusToolSchemas, buildCorpusHandlers } from './corpus-synthesis.js'
 import { DEFAULT_CORPUS_PROMPTS, pickCorpusPromptThompson } from './corpus-prompt-library.js'
 import type { CorpusPrompt } from './corpus-prompt-library.js'
@@ -46,14 +46,14 @@ import { MeditationFeedbackTracker } from './meditation-feedback.js'
 
 import type { ConstellationOrchestrator } from '../constellation-orchestrator.js'
 import type { ConstellationRegistry } from '../constellation-injection.js'
-import type { MnemicField } from '../../mnemic-field/index.js'
-import type { SelfModelField } from '../../mnemic-field/self-model/self-model-field.js'
-import type { InterFieldBridge } from '../../mnemic-field/self-model/inter-field-bridge.js'
-import type { ILogger } from '../../../../types/interfaces.js'
-import type { CorticalField } from '../../cortex/index.js'
+import type { MnemicField } from '../vendor/mnemic-field/index.js'
+import type { SelfModelField } from '../vendor/mnemic-field/self-model/self-model-field.js'
+import type { InterFieldBridge } from '../vendor/mnemic-field/self-model/inter-field-bridge.js'
+import type { ILogger } from '../vendor/types/interfaces.js'
+import type { CorticalField } from '../vendor/cortex/index.js'
 import type { ICorpusTree } from '../corpus-types.js'
-import type { ThalamusModule } from '../../thalamus/index.js'
-import type { Aurora } from '../../aurora/index.js'
+import type { ThalamusModule } from '../vendor/thalamus/index.js'
+import type { Aurora } from '../vendor/aurora/index.js'
 import { runSoloExplorer } from './solo-runner.js'
 import type { SoloRunnerResult } from './solo-runner.js'
 
@@ -146,7 +146,7 @@ export class MeditationController extends BaseCognitiveModule {
    * MnemicReader interface for ContextRepo projection.
    * Returns engrams above the given potentiation threshold, newest first.
    */
-  listForProjection(opts: { limit: number; minPotentiation: number }): import('../../context-repo/projection.js').EngramLike[] {
+  listForProjection(opts: { limit: number; minPotentiation: number }): import('../vendor/context-repo/projection.js').EngramLike[] {
     if (!this.mnemicField) return []
     const all = this.mnemicField.list(opts.limit * 2)
     return all

@@ -22,8 +22,8 @@ import type {
   ToolAccessLevel,
   ConstellationTemplate,
 } from './types.js'
-import { getBaseIdentity } from '../shared/posture-store.js'
-import type { PostureName } from '../shared/posture-store.js'
+import { getBaseIdentity } from './vendor/shared/posture-store.js'
+import type { PostureName } from './vendor/shared/posture-store.js'
 
 
 // Validation

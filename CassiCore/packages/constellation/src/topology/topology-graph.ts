@@ -13,8 +13,8 @@
  * The Corpus reads the latest snapshot during its sweep loop.
  */
 
-import type { ILogger, IEventBus } from '../../../../types/interfaces.js'
-import type { EmbeddingService } from '../../embeddings/embedding-service.js'
+import type { ILogger, IEventBus } from '../vendor/types/interfaces.js'
+import type { EmbeddingService } from '../vendor/embeddings/embedding-service.js'
 import type { BranchDigest } from '../corpus-types.js'
 import { GravityEngine } from './gravity-engine.js'
 import { LinkManager } from './link-manager.js'

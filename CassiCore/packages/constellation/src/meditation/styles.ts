@@ -1,5 +1,5 @@
 import type { MeditationPrompt } from './types.js'
-import type { Affect } from '../../mnemic-field/types.js'
+import type { Affect } from '../vendor/mnemic-field/types.js'
 
 export type MeditationStyle = 'passive' | 'active' | 'focused' | 'reflective' | 'organizing' | 'self-modeling'
 

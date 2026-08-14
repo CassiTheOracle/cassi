@@ -15,7 +15,7 @@
  * The cache loads on construction and is maintained in sync with the DB.
  */
 
-import type { ILogger } from '../../../../types/interfaces.js'
+import type { ILogger } from '../vendor/types/interfaces.js'
 import type { Spark, KindlingEvent, RadianceResponse } from './locus-types.js'
 import type {
   LocusMemoryEntry,

@@ -1,5 +1,5 @@
-import type { MnemicField, Engram } from '../../mnemic-field/index.js'
-import type { ILogger } from '../../../../types/interfaces.js'
+import type { MnemicField, Engram } from '../vendor/mnemic-field/index.js'
+import type { ILogger } from '../vendor/types/interfaces.js'
 import type { LocusMemoryPersistence } from './constellation-memory.js'
 import type { LocusMemoryEntry } from './memory-types.js'
 

@@ -11,10 +11,10 @@
  * The unified cell supports both strategies simultaneously.
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
-import type { HelixSession, HelixSessionConfig, HelixResult } from '../helix/unified-session.js'
-import type { Blackboard, BlackboardSummary } from '../flux-team/blackboard.js'
-import type { BlackboardState } from '../../../types/flux-team.js'
+import type { ILogger } from './vendor/types/interfaces.js'
+import type { HelixSession, HelixSessionConfig, HelixResult } from './vendor/helix/unified-session.js'
+import type { Blackboard, BlackboardSummary } from './vendor/flux-team/blackboard.js'
+import type { BlackboardState } from './vendor/types/flux-team.js'
 
 // Hierarchy types (from Triad)
 export interface HierarchyMessage {
@@ -124,7 +124,7 @@ export type CellStatus = 'idle' | 'running' | 'paused' | 'completed' | 'cancelle
 export interface CellProgress {
   status: CellStatus
   currentPhase: string
-  helixProgress?: import('../helix/unified-session.js').HelixProgress
+  helixProgress?: import('./vendor/helix/unified-session.js').HelixProgress
   childrenProgress?: Map<string, CellProgress>
   durationMs: number
   tokenUsage: number

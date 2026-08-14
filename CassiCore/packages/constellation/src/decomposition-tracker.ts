@@ -11,10 +11,10 @@
  */
 
 import { randomBytes } from 'crypto'
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from './vendor/types/interfaces.js'
 import type { GoalDecomposition, GoalSubTask } from './corpus-types.js'
-import { DEVIATION_REASON_PHRASES } from '../phrase-prototypes.js'
-import type { MnemicField } from '../mnemic-field/index.js'
+import { DEVIATION_REASON_PHRASES } from './vendor/phrase-prototypes.js'
+import type { MnemicField } from './vendor/mnemic-field/index.js'
 
 export type TaskStatus = 'planned' | 'assigned' | 'in-progress' | 'completed' | 'failed' | 'cancelled' | 'split'
 

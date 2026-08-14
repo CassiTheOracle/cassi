@@ -16,10 +16,10 @@
  *   - healthy: receive gentle throttle to prevent further cascade
  */
 
-import { createWorkflow } from '../../../workflow/builder.js'
-import { corpusAssessStep, corpusDirectiveStep } from '../../../workflow/steps.js'
-import type { ICorpusDirectiveSender, ICorpusStateReader } from '../../../workflow/steps.js'
-import type { WorkflowDefinition, WorkflowStep } from '../../../../types/workflow.js'
+import { createWorkflow } from '../vendor/workflow/builder.js'
+import { corpusAssessStep, corpusDirectiveStep } from '../vendor/workflow/steps.js'
+import type { ICorpusDirectiveSender, ICorpusStateReader } from '../vendor/workflow/steps.js'
+import type { WorkflowDefinition, WorkflowStep } from '../vendor/types/workflow.js'
 import type {
   CorpusStrategy,
   StrategyContext,

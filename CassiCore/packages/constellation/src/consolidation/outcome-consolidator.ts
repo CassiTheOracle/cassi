@@ -1,6 +1,6 @@
-import type { ILogger } from '../../../../types/interfaces.js'
-import type { MnemicField } from '../../mnemic-field/index.js'
-import type { SynapseType } from '../../mnemic-field/types.js'
+import type { ILogger } from '../vendor/types/interfaces.js'
+import type { MnemicField } from '../vendor/mnemic-field/index.js'
+import type { SynapseType } from '../vendor/mnemic-field/types.js'
 import type { ConstellationNode } from '../types.js'
 
 export interface OutcomeConsolidatorConfig {

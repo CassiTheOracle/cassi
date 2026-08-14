@@ -11,25 +11,25 @@
  * automatically picks up live Corpus tree state.
  */
 
-import type { ILogger, IEventBus } from '../../../types/interfaces.js'
-import type { IModelDirective } from '../../../types/model-routing.js'
-import type { RoutingTier } from '../../../types/model-routing.js'
-import type { ModelPool } from '../../model-pool/index.js'
-import type { ToolExecutor } from '../../tools/executor.js'
-import type { ToolRegistry } from '../../tools/registry.js'
-import type { HelixStore } from '../helix/helix-store.js'
+import type { ILogger, IEventBus } from './vendor/types/interfaces.js'
+import type { IModelDirective } from './vendor/types/model-routing.js'
+import type { RoutingTier } from './vendor/types/model-routing.js'
+import type { ModelPool } from './vendor/model-pool/index.js'
+import type { ToolExecutor } from './vendor/tools/executor.js'
+import type { ToolRegistry } from './vendor/tools/registry.js'
+import type { HelixStore } from './vendor/helix/helix-store.js'
 import type { ConstellationStore } from './constellation-store.js'
-import type { ContextDistiller } from '../context-distiller.js'
-import type { ModuleSessionRegistry } from '../module-session-registry.js'
+import type { ContextDistiller } from './vendor/context-distiller.js'
+import type { ModuleSessionRegistry } from './vendor/module-session-registry.js'
 import type { CorpusLLM } from './corpus-types.js'
 import type { CorpusTreeSnapshot, ExternalCorpusState, ExternalCorpusSnapshot, CorpusDirective, CorpusDirectiveType } from './corpus-types.js'
 import { runConstellationPipeline } from './constellation-pipeline.js'
 import type { ConstellationPipelineOpts } from './constellation-pipeline.js'
 import type { ConstellationResult, ConstellationTemplate, FlexPosture } from './types.js'
-import type { IMemory } from '../../../types/intelligence.js'
+import type { IMemory } from './vendor/types/intelligence.js'
 import type { ConstellationRegistry, ConstellationLiveState } from './constellation-injection.js'
 import type { TopologySnapshot } from './topology/topology-types.js'
-import { getEmbeddingService } from '../embeddings/embedding-service.js'
+import { getEmbeddingService } from './vendor/embeddings/embedding-service.js'
 import type { ConstellationGuidanceRegistry } from './guidance-provider.js'
 
 
@@ -67,11 +67,11 @@ export interface ConstellationOrchestrator {
   setContextDistiller(distiller: ContextDistiller): void
   setModuleRegistry(registry: ModuleSessionRegistry): void
   setMemory(memory: IMemory): void
-  setReasoningBank(bank: import('../reasoning-bank/index.js').ReasoningBank): void
-  setMnemicField(field: import('../mnemic-field/index.js').MnemicField): void
-  setGlobalWorkspace(workspace: import('../workspace/index.js').GlobalWorkspace): void
-  setLamina(field: import('../lamina/index.js').LaminaField): void
-  setWorkflowEngine(engine: import('../../workflow/engine.js').WorkflowEngine): void
+  setReasoningBank(bank: import('./vendor/reasoning-bank/index.js').ReasoningBank): void
+  setMnemicField(field: import('./vendor/mnemic-field/index.js').MnemicField): void
+  setGlobalWorkspace(workspace: import('./vendor/workspace/index.js').GlobalWorkspace): void
+  setLamina(field: import('./vendor/lamina/index.js').LaminaField): void
+  setWorkflowEngine(engine: import('./vendor/workflow/engine.js').WorkflowEngine): void
   /** True when any non-meditation constellation is running or launching. */
   hasActiveWork(): boolean
 
@@ -120,11 +120,11 @@ export function createConstellationOrchestrator(
   let contextDistiller: ContextDistiller | undefined
   let moduleRegistry: ModuleSessionRegistry | undefined
   let memory: IMemory | undefined
-  let reasoningBank: import('../reasoning-bank/index.js').ReasoningBank | undefined
-  let mnemicField: import('../mnemic-field/index.js').MnemicField | undefined
-  let globalWorkspace: import('../workspace/index.js').GlobalWorkspace | undefined
-  let lamina: import('../lamina/index.js').LaminaField | undefined
-  let workflowEngine: import('../../workflow/engine.js').WorkflowEngine | undefined
+  let reasoningBank: import('./vendor/reasoning-bank/index.js').ReasoningBank | undefined
+  let mnemicField: import('./vendor/mnemic-field/index.js').MnemicField | undefined
+  let globalWorkspace: import('./vendor/workspace/index.js').GlobalWorkspace | undefined
+  let lamina: import('./vendor/lamina/index.js').LaminaField | undefined
+  let workflowEngine: import('./vendor/workflow/engine.js').WorkflowEngine | undefined
 
   const running = new Map<string, RunningConstellation>()
 

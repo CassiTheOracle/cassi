@@ -10,7 +10,7 @@
  * returns it. The Corpus then builds and executes the strategy's workflow.
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger } from './vendor/types/interfaces.js'
 import type {
   CorpusStrategy,
   CrossHelixPattern,

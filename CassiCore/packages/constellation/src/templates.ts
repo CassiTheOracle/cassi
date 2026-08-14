@@ -355,7 +355,7 @@ export function getTemplateCapabilities(template: ConstellationTemplate): Templa
     if (count > maxCount) { dominantTier = tier; maxCount = count }
   }
 
-  return TEMPLATE_CAPABILITIES[template](postures.length, [...allPrimary], dominantTier as import('../../../types/model-routing.js').RoutingTier)
+  return TEMPLATE_CAPABILITIES[template](postures.length, [...allPrimary], dominantTier as import('./vendor/types/model-routing.js').RoutingTier)
 }
 
 /** List capabilities for all templates. */
@@ -370,7 +370,7 @@ export function listTemplateCapabilities(): TemplateCapabilities[] {
   return listTemplates().map(getTemplateCapabilities)
 }
 
-type CapabilityFactory = (postureCount: number, primaryDomains: string[], dominantModelTier: import('../../../types/model-routing.js').RoutingTier) => TemplateCapabilities
+type CapabilityFactory = (postureCount: number, primaryDomains: string[], dominantModelTier: import('./vendor/types/model-routing.js').RoutingTier) => TemplateCapabilities
 
 const TEMPLATE_CAPABILITIES: Record<ConstellationTemplate, CapabilityFactory> = {
   standard: (postureCount, primaryDomains, dominantModelTier) => ({

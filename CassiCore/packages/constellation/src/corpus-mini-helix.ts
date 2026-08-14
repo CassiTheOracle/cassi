@@ -16,7 +16,7 @@
  * the legacy runToolBasedAnalysis / runLegacyLLMAnalysis paths.
  */
 
-import type { ILogger, IEventBus } from '../../../types/interfaces.js'
+import type { ILogger, IEventBus } from './vendor/types/interfaces.js'
 import type {
   ICorpusTree,
   CorpusConfig,
@@ -32,8 +32,8 @@ import {
 } from './corpus-tools.js'
 import type { CorpusToolContext } from './corpus-tools.js'
 import type { CrossHelixDialectic } from './cross-helix-dialectic.js'
-import { createMiniHelixSession } from '../mini-helix/mini-helix-runner.js'
-import type { MiniHelixSession, MiniHelixDeps, MiniHelixConfig } from '../mini-helix/mini-helix-types.js'
+import { createMiniHelixSession } from './vendor/mini-helix/mini-helix-runner.js'
+import type { MiniHelixSession, MiniHelixDeps, MiniHelixConfig } from './vendor/mini-helix/mini-helix-types.js'
 
 /**
  * Minimal interface for child Brainstems to avoid circular imports.

@@ -10,11 +10,11 @@
  * Any change to that contract must update parseSiblingGoalEntry below.
  */
 
-import type { CognitiveSignal } from '../workspace/cognitive-signal.js'
-import type { GlobalWorkspace } from '../workspace/global-workspace.js'
-import type { PhrasePrototypeSet } from '../mnemic-field/edge-relators.js'
-import type { MnemicField } from '../mnemic-field/index.js'
-import { extractKeywords, keywordOverlap } from '../workspace/luminance.js'
+import type { CognitiveSignal } from './vendor/workspace/cognitive-signal.js'
+import type { GlobalWorkspace } from './vendor/workspace/global-workspace.js'
+import type { PhrasePrototypeSet } from './vendor/mnemic-field/edge-relators.js'
+import type { MnemicField } from './vendor/mnemic-field/index.js'
+import { extractKeywords, keywordOverlap } from './ports/workspace-luminance.js'
 
 const MIN_CONCEPT_OVERLAP = 0.25
 const MIN_SHARED_KEYWORDS = 3

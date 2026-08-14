@@ -9,12 +9,12 @@
  * Brainstem) even though meditation explorers should be solitary.
  */
 
-import type { ILogger, IEventBus } from '../../../../types/interfaces.js'
-import type { Message, ContentBlock, CompletionChunk } from '../../../../types/runtime.js'
-import type { ModelHandle } from '../../../model-pool/types.js'
-import type { ToolExecutor } from '../../../tools/executor.js'
-import type { ToolRegistry } from '../../../tools/registry.js'
-import type { ThalamusModule } from '../../thalamus/index.js'
+import type { ILogger, IEventBus } from '../vendor/types/interfaces.js'
+import type { Message, ContentBlock, CompletionChunk } from '../vendor/types/runtime.js'
+import type { ModelHandle } from '../vendor/model-pool/types.js'
+import type { ToolExecutor } from '../vendor/tools/executor.js'
+import type { ToolRegistry } from '../vendor/tools/registry.js'
+import type { ThalamusModule } from '../vendor/thalamus/index.js'
 
 import {
   getCodeConsolidatedToolSchema,
@@ -23,7 +23,7 @@ import {
   executeCodeConsolidatedTool,
   executeFilesystemConsolidatedTool,
   executeWebConsolidatedTool,
-} from '../../../../mcp/gateway/index.js'
+} from '../ports/mcp-consolidated-tools.js'
 
 
 export interface SoloRunnerOpts {
@@ -58,7 +58,7 @@ export interface SoloRunnerOpts {
   /** Thalamus for context curation during long-running sessions */
   thalamus?: ThalamusModule
   /** Cross-session topic index for sharing Thalamus insights across sessions */
-  crossSessionIndex?: import('../../thalamus/cross-session-index.js').CrossSessionTopicIndex
+  crossSessionIndex?: import('../vendor/thalamus/cross-session-index.js').CrossSessionTopicIndex
 }
 
 export interface ToolCallResult {

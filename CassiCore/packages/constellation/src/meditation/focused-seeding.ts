@@ -12,11 +12,11 @@
  * them knowing they're being directed.
  */
 
-import type { ILogger, IEventBus } from '../../../../types/interfaces.js'
-import type { MiniHelixDeps, MiniHelixConfig, MiniHelixTool, MiniHelixToolDef } from '../../mini-helix/mini-helix-types.js'
-import { createMiniHelixSession } from '../../mini-helix/mini-helix-runner.js'
-import type { MnemicField } from '../../mnemic-field/index.js'
-import type { IMemory } from '../../../../types/intelligence.js'
+import type { ILogger, IEventBus } from '../vendor/types/interfaces.js'
+import type { MiniHelixDeps, MiniHelixConfig, MiniHelixTool, MiniHelixToolDef } from '../vendor/mini-helix/mini-helix-types.js'
+import { createMiniHelixSession } from '../vendor/mini-helix/mini-helix-runner.js'
+import type { MnemicField } from '../vendor/mnemic-field/index.js'
+import type { IMemory } from '../vendor/types/intelligence.js'
 
 
 export interface SeedingResult {
