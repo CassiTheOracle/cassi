@@ -17,7 +17,7 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 
 import type { MCPServerConfig, MCPToolInfo } from './types.js'
 import type { ILogger } from '@cassicore/foundation'
-import { CASSICORE_VERSION } from './vendor/core/version.js'
+import { CASSICORE_VERSION } from '@cassicore/foundation'
 
 const CLIENT_NAME = 'CassiCore'
 

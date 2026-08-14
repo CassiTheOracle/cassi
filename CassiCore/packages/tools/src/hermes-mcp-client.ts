@@ -14,7 +14,7 @@
 import { spawn, type ChildProcess } from 'node:child_process'
 import { resolve } from 'node:path'
 import { rootLogger } from '@cassicore/events'
-import { CASSICORE_VERSION } from './vendor/core/version.js'
+import { CASSICORE_VERSION } from '@cassicore/foundation'
 import type { ToolDefinition } from './types.js'
 import type { ILogger } from "@cassicore/foundation"
 

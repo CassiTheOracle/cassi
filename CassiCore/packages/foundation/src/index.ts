@@ -73,6 +73,7 @@ export type {
 
 // config/
 export * from './config/system-settings.js'
+export * from './config/version.js'
 
 // phrases/
 export * from './phrases/phrase-prototypes.js'

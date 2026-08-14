@@ -1,10 +1,16 @@
 /**
- * VENDOR RUNTIME STUB — `core/version.ts` (pure constants).
+ * @cassicore/foundation — Version metadata (pure constants).
  *
- * Faithful pure-constant surface (avoiding the execSync/git describe used by
- * the source). Owned home `[OPEN]` (a tiny `@cassicore/version` or folded into
- * foundation at P7 — plan Open-4). Consumed by `hermes-mcp-client.ts`
- * (CASSICORE_VERSION) and `@cassicore/mcp` later.
+ * Substrate-safe home for the reported CassiCore release/build constants,
+ * migrated from the tools/mcp `vendor/core/version.ts` stubs (P1 cycle fix).
+ *
+ * The host remains the single source of truth for the ACTUAL build identity
+ * (`packages/host/src/version.ts` derives it from git/package.json at boot);
+ * these constants are the STATIC REPORTING values that retained packages
+ * (tools' hermes-mcp-client, mcp client) use for client-info labels. Hosted in
+ * foundation (not the host) so tools/mcp/mcp-gateway can consume them with
+ * zero `tools/mcp → host` dependency edge — resolving the host↔tools|mcp cycle
+ * without a new injection seam for what is static metadata.
  */
 
 /** Release version of this build. */
