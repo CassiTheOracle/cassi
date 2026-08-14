@@ -27,6 +27,7 @@ var _init_opt: OptionButton
 var _rainbow_btn: CheckButton
 var _color_src_opt: OptionButton
 var _fit_btn: Button
+var _auto_align_btn: CheckButton
 var _scale_label: Label
 var _save_colors_btn: Button
 var _reset_colors_btn: Button
@@ -465,6 +466,16 @@ func _ready() -> void:
 	_scale_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_scale_label.tooltip_text = "Color scale — drag LOW and HIGH on the legend to change it"
 	legend_row.add_child(_scale_label)
+	_auto_align_btn = CheckButton.new()
+	_auto_align_btn.name = "AutoAlignBtn"
+	_auto_align_btn.text = "Auto"
+	_auto_align_btn.tooltip_text = "Keep the Qi color band aligned to the live coherence distribution (Meshless gravity grows q fast). Dragging a handle or Fit takes over manually."
+	_auto_align_btn.custom_minimum_size = Vector2(56, 22)
+	_auto_align_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_auto_align_btn.focus_mode = Control.FOCUS_NONE
+	_auto_align_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	_auto_align_btn.toggled.connect(_on_auto_align_toggled)
+	legend_row.add_child(_auto_align_btn)
 	_save_colors_btn = Button.new()
 	_save_colors_btn.name = "SaveColorsBtn"
 	_save_colors_btn.text = "Save"
@@ -601,6 +612,7 @@ func _sync_color_widgets(sim: Node3D) -> void:
 	var flags: int = (cm >> 4) & 0xF
 	_rainbow_btn.set_pressed_no_signal(base >= 1)
 	_color_src_opt.select(0 if base == 1 else 1)
+	_auto_align_btn.set_pressed_no_signal(sim.auto_align_colors)
 	_vfx_twoaxis_btn.set_pressed_no_signal(base == 4)
 	_vfx_size_btn.set_pressed_no_signal((flags & 0x10) != 0)
 	_vfx_glow_btn.set_pressed_no_signal((flags & 0x20) != 0)
@@ -790,12 +802,15 @@ func _on_legend_changed() -> void:
 	var sim = _get_sim()
 	if sim == null: return
 	_update_scale_label()
+	_auto_align_btn.set_pressed_no_signal(sim.auto_align_colors)
 	_repaint_if_paused(sim)
 
 
 func _on_fit_colors() -> void:
 	var sim = _get_sim()
 	if sim == null: return
+	sim.auto_align_colors = false
+	_auto_align_btn.set_pressed_no_signal(false)
 	var qi_source: bool = _color_src_opt.selected == 1
 	sim.rainbow_count = 1
 	sim.color_shares = Vector3(1.0, 0.0, 0.0)
@@ -817,6 +832,12 @@ func _on_fit_colors() -> void:
 	_apply_particle_color_mode(sim)
 	_sync_color_widgets(sim)
 	_repaint_if_paused(sim)
+
+
+func _on_auto_align_toggled(on: bool) -> void:
+	var sim = _get_sim()
+	if sim == null: return
+	sim.auto_align_colors = on
 
 
 func _on_save_colors() -> void:

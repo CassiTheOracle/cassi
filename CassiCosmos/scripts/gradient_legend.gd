@@ -42,6 +42,19 @@ var _engine: PackedFloat32Array = PackedFloat32Array()
 var _drag_idx: int = -1
 var _drag_kind: int = -1
 var _markers: Array[Dictionary] = []
+var _last_band_sig := Vector4.ZERO
+
+
+func _process(_delta: float) -> void:
+	# Follow external band changes (auto-align, inspector edits): redraw and
+	# refresh the readout when the Qi band moves under us.
+	if sim == null or int(sim.particle_color_mode) == 0:
+		return
+	var sig := Vector4(sim.qi_cycle.x, sim.qi_cycle.y, sim.qi_approach.x, sim.qi_approach.y)
+	if sig != _last_band_sig:
+		_last_band_sig = sig
+		queue_redraw()
+		gradient_changed.emit()
 
 
 func _init() -> void:
@@ -217,6 +230,10 @@ func _set_marker(kind: int, q: float) -> void:
 			sim.qi_approach_tracks_threshold = false
 		else:
 			sim.velocity_approach = Vector2(sim.velocity_approach.x, q)
+	# Any manual handle drag takes over from auto-align (set BEFORE the
+	# signal so the sync handler reads the final state).
+	if sim != null and sim.get("auto_align_colors") != null:
+		sim.auto_align_colors = false
 	gradient_changed.emit()
 
 

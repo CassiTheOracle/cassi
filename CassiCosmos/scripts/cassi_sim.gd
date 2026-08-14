@@ -381,6 +381,15 @@ var _occ_shader: RID; var _occ_pipe: RID; var _us_occ_0: RID  # occupancy sample
 var _cond_step_counter: int = 0
 var _us_inst_0: RID = RID()
 
+# — q-histogram (auto color-align; cassi_qhist.glsl) —
+var _qhist_shader: RID; var _qhist_pipe: RID; var _us_qhist_0: RID
+var _qhist_buf: RID                 # 128 log-spaced float bins
+var _qhist_zero_bytes: PackedByteArray
+var _qhist_pc_bytes: PackedByteArray
+var _qhist_lo: float = 1e-6         # adaptive log range (growth-tolerant)
+var _qhist_hi: float = 1.0
+var _last_align_ms: int = 0
+
 # — pre-allocated push-constant byte buffers (hitch-free: no per-step allocs) —
 var _pc_bytes: PackedByteArray        # shared 11-float PC (all physics shaders)
 # N-body PC is 15 floats (60 B): the nbody shader carries the
@@ -502,10 +511,14 @@ var _ml_tree_grad: RID      # vec4[N_particles] — per-particle tree ∇Φ_g·(
 var _ml_tree_icount: RID    # uint[N_particles] — walk interaction counts (walk binding 10)
 var _us_tree_build: RID
 var _us_tree_grav: RID
+var _tree_creator_build_rid: RID = RID()  # TEMP instrument: RID at creation
+var _tree_creator_grav_rid: RID = RID()
 var _tree_build_pc_bytes: PackedByteArray  # build PC (19 floats: 14 shared + grid_N, ext_x/y/z, field_floor)
 var _tree_grav_pc_bytes: PackedByteArray   # walk PC (5 floats: N, theta, eps2, use_tp, node_cnt)
 var _ml_tree_nsrc: int = 0
 var _ml_tree_nnode: int = 0
+var _perf_misc_frame: int = 0  # TEMP instrument
+var _raw_probe_done: bool = false  # TEMP instrument
 
 # True when the tree arm is LIVE (meshless + tree gravity). Gates the
 # _shaders_ready retry: the tree shaders/pipes/sets must be ready before
@@ -561,6 +574,12 @@ var _step_timer: float = 0.0
 ## 2 = 2× time-lapse, etc. The per-frame step cap scales with it, so
 ## fast-forward stays smooth at any frame rate. Live — no reinit.
 @export_range(0.05, 10.0, 0.05) var sim_speed: float = 1.0
+## Auto color-align: every ~1.5 s, re-fit the Qi color band to the live
+## coherence distribution AT the particles (p1/p99 of a GPU q-histogram),
+## so the colors stay spread across the rainbow when the coherence grows
+## fast (e.g. the Meshless gravity mode). Dragging a legend handle or
+## clicking Fit turns it off — manual takes over. Live — no reinit.
+@export var auto_align_colors: bool = true
 var _dropped_steps: int = 0
 
 # — diagnostics —
@@ -814,6 +833,29 @@ func _run_physics_steps(n_steps: int) -> void:
 		_dispatch_tree_gravity(cl)
 	for _s in range(n_steps):
 		_step_dispatches(cl)
+	# ── q-histogram (auto color-align): one strided pass per frame while
+	# auto_align_colors is on and the Qi rainbow is the active source. The
+	# field's barrier from the last step gives the q reads visibility.
+	# Runs even under suppress_readbacks: its 512 B readback every 1.5 s is
+	# negligible next to the multi-MB diagnostics that toggle suppresses. ──
+	if _qhist_pipe.is_valid() and _us_qhist_0.is_valid() and auto_align_colors \
+			and particle_color_mode >= 2 and N_particles > 0:
+		var qext := _extents()
+		_qhist_pc_bytes.encode_float(0, float(grid_N))
+		_qhist_pc_bytes.encode_float(4, float(N_particles))
+		_qhist_pc_bytes.encode_float(8, 16.0)               # particle stride
+		_qhist_pc_bytes.encode_float(12, _qhist_lo)
+		_qhist_pc_bytes.encode_float(16, _qhist_hi)
+		_qhist_pc_bytes.encode_float(20, 128.0)             # bins
+		_qhist_pc_bytes.encode_float(24, 1.0)               # enabled
+		_qhist_pc_bytes.encode_float(28, qext.x)
+		_qhist_pc_bytes.encode_float(32, qext.y)
+		_qhist_pc_bytes.encode_float(36, qext.z)
+		_rd.compute_list_bind_compute_pipeline(cl, _qhist_pipe)
+		_rd.compute_list_bind_uniform_set(cl, _us_qhist_0, 0)
+		_rd.compute_list_set_push_constant(cl, _qhist_pc_bytes, _qhist_pc_bytes.size())
+		var qh_threads := ceili(float(N_particles) / 16.0)
+		_rd.compute_list_dispatch(cl, ceili(qh_threads / 64.0), 1, 1)
 	# ── Instancer: GPU-only MultiMesh update, ONCE PER FRAME ──────────
 	# Hoisted out of the per-step loop: only the frame's FINAL particle
 	# state is drawn, so a per-step write of the full instance buffer
@@ -1006,6 +1048,10 @@ func _setup_buffers() -> void:
 	# Dual-lattice ∇(g·Φ) (CASCADE_GRID.md — always allocated so dual_grid
 	# stays a LIVE toggle; written only by the shifted gradient pass).
 	_grad_buf2 = _rd.storage_buffer_create(nc * 16)
+	# q-histogram for auto color-align (cassi_qhist.glsl): 128 log-spaced bins
+	_qhist_buf = _rd.storage_buffer_create(128 * 4)
+	_qhist_zero_bytes = PackedByteArray(); _qhist_zero_bytes.resize(128 * 4)
+	_qhist_pc_bytes = PackedByteArray(); _qhist_pc_bytes.resize(10 * 4)
 	# Meshless arm buffers (allocated always; used only when meshless_mode
 	# is on). The JFA labels ping-pong; the per-site state carries the cell
 	# averages; the rebuild scratch (centroids/remap/temps) rides the GPU.
@@ -1075,7 +1121,7 @@ func _free_buffers() -> void:
 	for rid in [_field_ey, _field_ei, _field_q, _field_vel,
 				_pos_buf, _vel_buf, _acc_buf, _bh_buf, _bh_lens_buf,
 				_mass_density_buf, _cluster_buf, _fft_buf, _tel_buf,
-				_grad_buf, _grad_buf2, _occ_buf,
+				_grad_buf, _grad_buf2, _occ_buf, _qhist_buf,
 				_ml_labels_a, _ml_labels_b, _ml_sites,
 				_ml_psi_y, _ml_psi_i, _ml_pi_y, _ml_pi_i,
 				_ml_lap_y, _ml_lap_i, _ml_vol,
@@ -1097,7 +1143,7 @@ func _free_uniform_sets() -> void:
 				_us_nbody_0, _us_nbody_1, _us_nbody_2, _us_poisson_0,
 				_us_fr_0, _us_fr_2, _us_cond_0, _us_cond_1,
 				_us_bh_int_0, _us_bh_int_1, _us_inst_0, _us_bh_lens_2,
-				_us_occ_0, _us_jfa_0, _us_cell_0, _us_raster_0,
+				_us_occ_0, _us_qhist_0, _us_jfa_0, _us_cell_0, _us_raster_0,
 				_us_tree_build, _us_tree_grav]:
 		if rid.is_valid(): _rd.free_rid(rid)
 	_us_two_0 = RID(); _us_two_1 = RID(); _us_two_2 = RID()
@@ -1119,13 +1165,13 @@ func _free_shaders() -> void:
 	for rid in [_two_fluid_pipe, _nbody_pipe, _poisson_pipe,
 				_field_render_pipe, _bh_lensing_pipe,
 				_instancer_pipe, _mass_deposit_pipe,
-				_cond_pipe, _bh_int_pipe, _occ_pipe,
+				_cond_pipe, _bh_int_pipe, _occ_pipe, _qhist_pipe,
 				_jfa_pipe, _cell_pipe, _raster_pipe,
 				_tree_build_pipe, _tree_grav_pipe,
 				_two_fluid_shader, _nbody_shader, _poisson_shader,
 				_field_render_shader, _bh_lensing_shader,
 				_instancer_shader, _mass_deposit_shader,
-				_cond_shader, _bh_int_shader, _occ_shader,
+				_cond_shader, _bh_int_shader, _occ_shader, _qhist_shader,
 				_jfa_shader, _cell_shader, _raster_shader,
 				_tree_build_shader, _tree_grav_shader]:
 		if rid.is_valid(): _rd.free_rid(rid)
@@ -1193,6 +1239,14 @@ func _setup_shaders() -> void:
 	if _occ_shader.is_valid():
 		_occ_pipe = _rd.compute_pipeline_create(_occ_shader)
 		print("[CassiSim] Occupancy sampler pipeline ready")
+
+	# q-histogram sampler (auto color-align; optional like the occupancy
+	# sampler — excluded from _shaders_ready, so a missing import just
+	# leaves the color band manual).
+	_qhist_shader = _shader_from_file("res://compute/cassi_qhist.glsl")
+	if _qhist_shader.is_valid():
+		_qhist_pipe = _rd.compute_pipeline_create(_qhist_shader)
+		print("[CassiSim] q-histogram sampler pipeline ready")
 
 	# Meshless (Voronoi cell) arm — MESHLESS_PLAN.md §10
 	_jfa_shader = _shader_from_file("res://compute/cassi_jfa.glsl")
@@ -1341,6 +1395,14 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(1, _occ_buf),
 		], _occ_shader, 0)
 
+	# q-histogram sampler (auto color-align; optional like occupancy)
+	if _qhist_shader.is_valid() and _pos_buf.is_valid() and _field_q.is_valid() and _qhist_buf.is_valid():
+		_us_qhist_0 = _rd.uniform_set_create([
+			_uniform_storage(0, _pos_buf),
+			_uniform_storage(1, _field_q),
+			_uniform_storage(2, _qhist_buf),
+		], _qhist_shader, 0)
+
 	# Meshless arm sets (MESHLESS_PLAN.md §10) — the JFA ping-pong labels
 	# + sites; the cell state; the raster outputs (the field grid buffers).
 	if _jfa_shader.is_valid():
@@ -1392,6 +1454,10 @@ func _cache_uniform_sets() -> void:
 		], _tree_grav_shader, 0)
 		if not _us_tree_grav.is_valid():
 			push_error("[CassiSim] tree-walk uniform set FAILED to create (bindings 0,3-11)")
+	# TEMP instrument: creator-side RID record.
+	_tree_creator_build_rid = _us_tree_build
+	_tree_creator_grav_rid = _us_tree_grav
+	print("[TreeArm] created build_set=%s grav_set=%s" % [_us_tree_build, _us_tree_grav])
 # ═══════════════════════════════════════════════════════════════════════
 # Initial conditions
 # ═══════════════════════════════════════════════════════════════════════
@@ -2896,6 +2962,17 @@ func _dispatch_tree_gravity(cl: int) -> void:
 		return
 	var N_src = _ml_tree_nsrc
 	var Np = maxi(N_particles, 1)
+	# TEMP instrument: every 60 frames print the sim-side state vs the
+	# creator-side RIDs + readiness, and fire a RAW one-time mode-10 sentinel
+	# (standalone list, full build PC, ctr readback) that BYPASSES this
+	# function's exact dispatch sequence.
+	_perf_misc_frame += 1
+	if _perf_misc_frame % 60 == 0:
+		print("[TreeArm@%d] build_set=%s(creator %s) grav_set=%s(creator %s) bp=%s gp=%s ready=%s retry=%d ml=%s nsrc=%d"
+			% [_perf_frames, _us_tree_build, _tree_creator_build_rid, _us_tree_grav,
+				_tree_creator_grav_rid, _tree_build_pipe, _tree_grav_pipe,
+				_shaders_ready, _setup_retry_counter, _ml_ready, N_src])
+	_probe_raw_mode10()
 	var pg_src = ceili(float(N_src) / 64.0)
 	var ext = _extents()
 	var half: float = maxf(ext.x, maxf(ext.y, ext.z)) * 1.000001
@@ -2982,6 +3059,49 @@ func _dispatch_tree_gravity(cl: int) -> void:
 	_rd.compute_list_set_push_constant(cl, wp, wp.size())
 	_rd.compute_list_dispatch(cl, ceili(float(Np) / 64.0), 1, 1)
 	_rd.compute_list_add_barrier(cl)
+
+
+# TEMP instrument: a RAW, self-contained mode-10 (root-seed) dispatch into a
+# fresh sentinel ctr, standalone list, BYPASSING _dispatch_tree_gravity's
+# exact call sequence. One-shot. If the raw dispatch lands (ctr[0]!=0) while
+# the sim's own chain doesn't, the defect is inside the function's sequence.
+func _probe_raw_mode10() -> void:
+	if _raw_probe_done:
+		return
+	_raw_probe_done = true
+	var sf: RDShaderFile = load("res://compute/cassi_tree_build.glsl")
+	if sf == null or sf.get_spirv() == null:
+		print("[RawProbe] shader load failed")
+		return
+	var sh := _rd.shader_create_from_spirv(sf.get_spirv())
+	var pipe := _rd.compute_pipeline_create(sh)
+	var sent := _rd.storage_buffer_create(8 * 4)
+	var zeros := PackedInt32Array([0, 0, 0, 0, 0, 0, 0, 0]).to_byte_array()
+	_rd.buffer_update(sent, 0, zeros.size(), zeros)
+	var dset := _rd.uniform_set_create([
+		_uniform_storage(0, _ml_tree_src), _uniform_storage(1, _ml_tree_srcw),
+		_uniform_storage(2, _ml_tree_key), _uniform_storage(3, _ml_tree_order),
+		_uniform_storage(4, _ml_tree_cf), _uniform_storage(5, _ml_tree_w),
+		_uniform_storage(6, _ml_tree_q), _uniform_storage(7, _ml_tree_r),
+		_uniform_storage(8, sent),
+		_uniform_storage(9, _ml_sites),
+		_uniform_storage(10, _ml_psi_y), _uniform_storage(11, _ml_psi_i),
+		_uniform_storage(12, _ml_vol), _uniform_storage(13, _mass_density_buf),
+	], sh, 0)
+	var pcp := PackedByteArray(); pcp.resize(_tree_build_pc_bytes.size())
+	pcp.encode_float(0, float(_ml_tree_nsrc))
+	pcp.encode_float(10, 10.0)  # mode 10 ROOT_SEED — writes ncf[0]/nr[0], bumps nothing
+	var cl := _rd.compute_list_begin()
+	_rd.compute_list_bind_compute_pipeline(cl, pipe)
+	_rd.compute_list_bind_uniform_set(cl, dset, 0)
+	_rd.compute_list_set_push_constant(cl, pcp, pcp.size())
+	_rd.compute_list_dispatch(cl, 1, 1, 1)
+	_rd.compute_list_end()
+	var v = _rd.buffer_get_data(sent, 0, 32)
+	print("[RawProbe] raw standalone mode10 sent ctr=%s (sh=%s pipe=%s set=%s)" % [v.to_int32_array(), sh.is_valid(), pipe.is_valid(), dset.is_valid()])
+	# Also read back the REAL root ncf/nr to see if mode 10 wrote them.
+	var r0 = _rd.buffer_get_data(_ml_tree_r, 0, 16)
+	print("[RawProbe] _ml_tree_r[0]=%s" % [r0.to_int32_array()])
 
 
 # Checks ∇²Φ ≈ ρ (7-point stencil) on the solved potential. The spectral
@@ -3213,6 +3333,14 @@ func _render_frame() -> void:
 			var samples = max(int(tel.decode_u32(28)), 1)
 			_pi_sat_hi_frac /= samples
 			_pi_sat_lo_frac /= samples
+	# Auto color-align cadence: re-fit the Qi band to the live q histogram
+	# at the particles (~1.5 s — the Meshless mode grows q by orders of
+	# magnitude and the fixed band would saturate). Independent of
+	# suppress_readbacks (512 B readback, negligible).
+	if auto_align_colors and particle_color_mode >= 2 \
+			and _qhist_buf.is_valid() and _step_count > 0 and now_ms - _last_align_ms >= 1500:
+		_last_align_ms = now_ms
+		_align_color_band()
 	# One-time Poisson residual report (FD-Laplacian check of the Φ solve).
 	# River modes only (0, 3 and 4): modes 1/2 skip the solve, so _fft_buf
 	# holds stale data there and the residual would be meaningless.
@@ -3251,7 +3379,57 @@ func _render_frame() -> void:
 
 
 
-# Sampled occupancy diagnostic: read back up to 40k strided particle
+## Auto-align: read the particle-q histogram, re-fit the Qi cycle band to
+## the live p1/p99 spread (blended toward the current band so the colors
+## track smoothly as the coherence grows — e.g. the Meshless gravity mode),
+## adapt the histogram range to the growth, and reset the bins for the next
+## window. Manual legend drags and Fit disable auto_align_colors, so the
+## manual band then stands.
+func _align_color_band() -> void:
+	if _rd == null or not _qhist_buf.is_valid():
+		return
+	var data := _rd.buffer_get_data(_qhist_buf, 0, 512)
+	if data.size() < 512:
+		return
+	var bins := data.to_float32_array()
+	var total := 0.0
+	for b in bins:
+		total += b
+	if total < 200.0:   # too few samples yet — reset and wait
+		_rd.buffer_update(_qhist_buf, 0, _qhist_zero_bytes.size(), _qhist_zero_bytes)
+		return
+	var span_l := log(maxf(_qhist_hi / _qhist_lo, 1.001))
+	var p1 := _qhist_lo
+	var p99 := _qhist_hi
+	var cum := 0.0
+	for b in range(128):
+		var prev := cum
+		cum += bins[b]
+		if prev < 0.01 * total and cum >= 0.01 * total:
+			p1 = _qhist_lo * pow(_qhist_hi / _qhist_lo, float(b) / 127.0)
+		if prev < 0.99 * total and cum >= 0.99 * total:
+			p99 = _qhist_lo * pow(_qhist_hi / _qhist_lo, float(b) / 127.0)
+	# Range adaptation: keep the window a few decades wide around the live
+	# spread so the next measurement stays well-resolved under growth.
+	var top_frac := bins[127] / total
+	var bot_frac := bins[0] / total
+	if top_frac > 0.03:
+		_qhist_hi *= 8.0
+	elif p99 < _qhist_hi * 0.25:
+		_qhist_hi = maxf(p99 * 8.0, _qhist_hi * 0.25)
+	if bot_frac > 0.1:
+		_qhist_lo = maxf(_qhist_lo * 0.01, 1e-9)
+	elif p1 > _qhist_lo * 4.0:
+		_qhist_lo = maxf(p1 * 0.25, 1e-9)
+	# Re-fit: p1/p99 with generous margins, blended; the approach entry
+	# follows the band top (the Fit action's convention).
+	if p99 > p1 * 2.0 and p1 > 0.0:
+		qi_cycle = qi_cycle.lerp(Vector2(p1 * 0.8, p99 * 1.5), 0.5)
+		qi_approach = Vector2(qi_cycle.y, qi_approach.y)
+	_rd.buffer_update(_qhist_buf, 0, _qhist_zero_bytes.size(), _qhist_zero_bytes)
+
+
+## Sampled occupancy diagnostic: read back up to 40k strided particle
 # positions and classify inner / face-edge / corner / out-of-box relative
 # to the periodic box (per-axis ±extent_i = ±aspect_i·1.5·cluster_radius;
 # lim_i = 0.85·extent_i).
