@@ -117,6 +117,19 @@ var mode: int = 0                 # display mode (shared PC slot 7; render-side 
 # cycle makes the host CPU prefix-sum readback legal there); on a global-RD
 # engine instance the sim's _render_frame hook runs it instead.
 var particle_merge: bool = false
+# Cascade-multigrid arm (research/cascade_multigrid/multigrid_design.md): a
+# coarse long-range Poisson level at N_c = grid_N/2 (the radix-2 Stockham
+# constraint — the φ-ideal N_c = round(N_f/φ)=40 is NOT radix-2; see the
+# design §(a) resonance consequence: N=32 re-locks the coarse/fine cell
+# phase, losing the φ de-resonation, placement bias 0.56 vs 0.47 — the
+# honest integer fallback documented, not the physical optimum). The coarse
+# is its own periodic solve on the FULL box (no boundary data), solved ONCE
+# per run_steps batch (moves slowly); the nbody river arm blends it with the
+# fine ∇(g·Φ) by the radial window w(r): w=1 (r≤4·h_c, fine-exact bubble),
+# 0 (r≥7·h_c), smoothstep between, volume-renormalized by (N_c/N_f)³. Default
+# off -> the coarse chain never dispatches and the nbody blend branch never
+# runs -> bit-identical battery.
+var cascade_level: bool = false
 # Cassi BH accretion — "object -> BH": particles within a BH's accretion
 # radius (bh_accretion_radius, world units — a small fraction of the BH's
 # σ softening) are marked dead (pos.w = 0, skipped by deposit/nbody/instancer)
@@ -154,6 +167,7 @@ var _pos_buf: RID; var _vel_buf: RID; var _acc_buf: RID
 var _cluster_buf: RID
 var _bh_buf: RID
 var _mass_density_buf: RID
+var _mass_density_fix: RID  # uvec4 per cell — exact fixed-point digit-sum deposit accumulator (determinism fix, cassi_mass_deposit.glsl)
 # — mode-5 tree seam: nbody SET 1 binding 3 (the buffer the nbody reads) —
 var _tree_grad: RID    # vec4[max(N_particles,1)] — per-particle tree ∇Φ_g (uploaded via run_steps)
 # — meshless (moving-Voronoi) arm buffers (allocated always; used when meshless_mode) —
@@ -225,6 +239,16 @@ var _merge_cycles_run := 0
 # ── BH accretion (compute/cassi_bh_accretion.glsl; gated on bh_accretion) ──
 var _bh_acc_shader: RID; var _bh_acc_pipe: RID; var _us_bh_acc_0: RID
 var _bh_acc_pc_bytes: PackedByteArray  # BH accretion PC (4 floats)
+# ── Cascade multigrid (compute/cassi_coarse_grad.glsl; gated on cascade_level) ──
+var _cf_grad_shader: RID; var _cf_grad_pipe: RID; var _us_cf_grad_0: RID
+var _cf_density_buf: RID   # coarse ρ (N_c³ float)
+var _cf_fft_buf: RID       # coarse Φ (N_c³ vec2 complex)
+var _cf_grad_buf: RID      # coarse ∇(g·Φ) (N_c³ vec4)
+var _us_poisson_c: RID     # coarse poisson set (cf_fft + cf_density + tel)
+var _us_mass_dep_c: RID    # coarse deposit set (pos + cf_density)
+var _cascade_nc: int = 0   # coarse N (grid_N/2 when enabled)
+var _cf_grad_pc_bytes: PackedByteArray  # coarse-gradient PC (8 floats)
+var _cascade_ran := 0      # lifetime coarse-solve count (verify/battery diag)
 var _ready := false
 var _cond_step_counter: int = 0
 
@@ -356,6 +380,7 @@ func setup(cfg: Dictionary) -> bool:
 	meshless_gravity = bool(cfg.get("meshless_gravity", meshless_gravity))
 	mode = int(cfg.get("mode", mode))
 	particle_merge = bool(cfg.get("particle_merge", particle_merge))
+	cascade_level = bool(cfg.get("cascade_level", cascade_level))
 	bh_accretion = bool(cfg.get("bh_accretion", bh_accretion))
 	bh_accretion_radius = float(cfg.get("bh_accretion_radius", bh_accretion_radius))
 	# Tree-worker consumer (decoupled mode): the sim creates + starts the
@@ -731,7 +756,7 @@ func shutdown() -> void:
 			_field_ey, _field_ei, _field_q, _field_vel,
 			_fft_buf, _tel_buf, _grad_buf, _grad_buf2,
 			_pos_buf, _vel_buf, _acc_buf, _cluster_buf, _bh_buf,
-			_mass_density_buf, _tree_grad,
+			_mass_density_buf, _mass_density_fix, _tree_grad,
 			_merge_alive_buf, _merge_mass_buf, _merge_mom_buf, _merge_cen_buf,
 			_merge_best_buf, _merge_sink_buf, _merge_cc_buf, _merge_cs_buf,
 			_merge_ch_buf, _merge_cl_buf, _merge_mc_buf,
@@ -876,7 +901,8 @@ func _setup_buffers() -> void:
 	# Cluster center positions + masses (64-vec4 cap — keep in sync with
 	# ClusterBuf in cassi_nbody_gravity.glsl, set 2 binding 1).
 	_cluster_buf = _rd.storage_buffer_create(64 * 4 * 4)
-	# Mass density grid (float per cell — float atomicAdd deposit)
+	# Mass density grid (float per cell — written by the deposit's convert
+	# pass; see cassi_mass_deposit.glsl)
 	_mass_density_buf = _rd.storage_buffer_create(nc * 4)
 	# Zero it once: the tree arm stages rho BEFORE the first step's GPU
 	# clear (the tree gather reads pre-deposit rho), and allocator reuse
@@ -885,10 +911,34 @@ func _setup_buffers() -> void:
 	var md_zero := PackedFloat32Array()
 	md_zero.resize(nc)
 	_rd.buffer_update(_mass_density_buf, 0, md_zero.size() * 4, md_zero.to_byte_array())
+	# Fixed-point deposit accumulator (uvec4 per cell = 4×uint8-digit sums
+	# of the SCALE = 2^24 fixed-point deposits — the DETERMINISM fix: the
+	# digit sums are exact under ANY atomic ordering, so the deposited
+	# cell sums are bit-identical run-to-run; see cassi_mass_deposit.glsl).
+	# Zeroed once here (same tree-arm reason); the per-step poisson clear
+	# (mode 3) zeroes it every step WITH the float rho grid.
+	_mass_density_fix = _rd.storage_buffer_create(nc * 16)
+	var mdf_zero := PackedByteArray()
+	mdf_zero.resize(nc * 16)
+	_rd.buffer_update(_mass_density_fix, 0, mdf_zero.size(), mdf_zero)
 	# Cell-centered ∇(g·Φ) field (vec4 per cell — rebuilt every step)
 	_grad_buf = _rd.storage_buffer_create(nc * 16)
 	# Dual-lattice ∇(g·Φ) (always allocated so dual_grid stays a LIVE toggle)
 	_grad_buf2 = _rd.storage_buffer_create(nc * 16)
+	# ── Cascade-multigrid coarse buffers (ALWAYS allocated so the nbody set-0
+	# binding 9 is valid in every dispatch; the coarse CHAIN only dispatches
+	# when cascade_level, and the nbody blend branch only runs on bh[0].x>0.5
+	# — so the default-off path is numerically bit-identical). N_c = grid_N/2
+	# (radix-2 Stockham constraint; see multigrid_design.md §(a)).
+	_cascade_nc = grid_N / 2
+	var cnc: int = _cascade_nc
+	var cn3: int = cnc * cnc * cnc
+	_cf_density_buf = _rd.storage_buffer_create(cn3 * 4)
+	_cf_fft_buf = _rd.storage_buffer_create(cn3 * 8)
+	_cf_grad_buf = _rd.storage_buffer_create(cn3 * 16)
+	var cf_zero := PackedFloat32Array(); cf_zero.resize(cn3 * 4); cf_zero.fill(0.0)
+	_rd.buffer_update(_cf_grad_buf, 0, cn3 * 16, cf_zero.to_byte_array())
+	_cf_grad_pc_bytes = PackedByteArray(); _cf_grad_pc_bytes.resize(8 * 4)
 	# Mode-5 tree seam: per-particle tree gradient (nbody set 1 binding 3).
 	# Zeroed once at setup so an unused seam reads zero force instead of
 	# stale allocator memory; run_steps uploads when a gradient is supplied.
@@ -962,7 +1012,7 @@ func _setup_buffers() -> void:
 	_pc_bytes = PackedByteArray(); _pc_bytes.resize(11 * 4)
 	_nbody_pc_bytes = PackedByteArray(); _nbody_pc_bytes.resize(15 * 4)
 	_two_fluid_pc_bytes = PackedByteArray(); _two_fluid_pc_bytes.resize(14 * 4)
-	_md_pc_bytes = PackedByteArray(); _md_pc_bytes.resize(8 * 4)
+	_md_pc_bytes = PackedByteArray(); _md_pc_bytes.resize(9 * 4)  # + mode (deposit 0 / convert 1)
 	_bh_int_pc_bytes = PackedByteArray(); _bh_int_pc_bytes.resize(4 * 4)
 	_cond_pc_bytes = PackedByteArray(); _cond_pc_bytes.resize(4 * 4)
 	_bh_acc_pc_bytes = PackedByteArray(); _bh_acc_pc_bytes.resize(4 * 4)
@@ -1009,6 +1059,12 @@ func _setup_shaders() -> void:
 		_bh_acc_shader = _shader_create("res://compute/cassi_bh_accretion.glsl")
 		if _bh_acc_shader.is_valid():
 			_bh_acc_pipe = _rd.compute_pipeline_create(_bh_acc_shader)
+	# Cascade coarse-gradient (only when cascade_level; pipeline + set created
+	# on the init-time toggle so the default-off path never loads the shader)
+	if cascade_level:
+		_cf_grad_shader = _shader_create("res://compute/cassi_coarse_grad.glsl")
+		if _cf_grad_shader.is_valid():
+			_cf_grad_pipe = _rd.compute_pipeline_create(_cf_grad_shader)
 	# Meshless (Voronoi cell) arm — MESHLESS_PLAN.md §10
 	_jfa_shader = _shader_create("res://compute/cassi_jfa.glsl")
 	if _jfa_shader.is_valid():
@@ -1045,6 +1101,7 @@ func _cache_uniform_sets() -> void:
 		_uniform_storage(6, _tel_buf),
 		_uniform_storage(7, _grad_buf),
 		_uniform_storage(8, _grad_buf2),  # dual-lattice ∇(g·Φ)
+		_uniform_storage(9, _cf_grad_buf),  # cascade coarse ∇(g·Φ)
 	], _nbody_shader, 0)
 	_us_nbody_1 = _rd.uniform_set_create([
 		_uniform_storage(0, _pos_buf), _uniform_storage(1, _vel_buf),
@@ -1055,18 +1112,21 @@ func _cache_uniform_sets() -> void:
 		_uniform_storage(0, _bh_buf),
 		_uniform_storage(1, _cluster_buf),  # Plummer reference arm (mode 2)
 	], _nbody_shader, 2)
-	# Poisson solver (set 0: FFT workspace + mass density + telemetry)
+	# Poisson solver (set 0: FFT workspace + mass density + telemetry +
+	# the int64 fixed-point accumulator the clear pass zeroes)
 	if _poisson_shader.is_valid():
 		_us_poisson_0 = _rd.uniform_set_create([
 			_uniform_storage(0, _fft_buf),
 			_uniform_storage(1, _mass_density_buf),
 			_uniform_storage(2, _tel_buf),
+			_uniform_storage(3, _mass_density_fix),
 		], _poisson_shader, 0)
-	# Mass deposit (set 0: positions + mass density)
+	# Mass deposit (set 0: positions + float rho + int64 fix accumulator)
 	if _mass_deposit_shader.is_valid():
 		_us_mass_dep_0 = _rd.uniform_set_create([
 			_uniform_storage(0, _pos_buf),
 			_uniform_storage(1, _mass_density_buf),
+			_uniform_storage(2, _mass_density_fix),
 		], _mass_deposit_shader, 0)
 	# Condensation scanner (set 0: field_q, set 1: BHData write)
 	if _cond_shader.is_valid():
@@ -1810,6 +1870,7 @@ func _step_dispatches(cl: int) -> void:
 	_md_pc_bytes.encode_float(20, 0.0)
 	_md_pc_bytes.encode_float(24, 0.0)
 	_md_pc_bytes.encode_float(28, 0.0)
+	_md_pc_bytes.encode_float(32, 0.0)  # mode 0 = deposit (1 = convert)
 	# BH integrate PC: [N_f, dt, acc_rate, max_age]
 	_bh_int_pc_bytes.encode_float(0, float(grid_N))
 	_bh_int_pc_bytes.encode_float(4, dt)
@@ -1847,13 +1908,28 @@ func _step_dispatches(cl: int) -> void:
 		_rd.compute_list_dispatch(cl, grid_N, grid_N, 1)  # 2D cells dispatch
 	_barrier(cl)  # clear → deposit
 
-	# ── 1. Mass deposit: scatter particle masses → field grid (PIC) ──
+	# ── 1. Mass deposit: scatter particle masses → int64 fixed-point grid ──
 	if _mass_deposit_shader.is_valid() and N_particles > 0:
+		_md_pc_bytes.encode_float(32, 0.0)  # mode 0 = deposit
 		_rd.compute_list_bind_compute_pipeline(cl, _mass_deposit_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_mass_dep_0, 0)
 		_rd.compute_list_set_push_constant(cl, _md_pc_bytes, _md_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, pg, 1, 1)
-	_barrier(cl)  # deposit → poisson
+	_barrier(cl)  # deposit → convert (int64 atomic visibility)
+
+	# ── 1.2. Fixed-point → float convert: rho = fix / SCALE ──────────
+	# The exact uint64 cell sum is converted once per cell to the float
+	# mass-density grid the Poisson/PDE/tree chain reads. Deterministic
+	# (a single rounding of an exact integer sum — no float atomic order).
+	# Runs unconditionally: with no deposit (N_particles == 0) the clear
+	# left fix == 0, so rho is written 0 — the same empty state.
+	if _mass_deposit_shader.is_valid():
+		_md_pc_bytes.encode_float(32, 1.0)  # mode 1 = convert
+		_rd.compute_list_bind_compute_pipeline(cl, _mass_deposit_pipe)
+		_rd.compute_list_bind_uniform_set(cl, _us_mass_dep_0, 0)
+		_rd.compute_list_set_push_constant(cl, _md_pc_bytes, _md_pc_bytes.size())
+		_rd.compute_list_dispatch(cl, grid_N, grid_N, 1)  # 2D cells dispatch
+	_barrier(cl)  # convert → poisson (float rho visibility)
 
 	# ── 1.5. Spectral Poisson solve: ∇²Φ = ρ_mass ─────────────────────
 	# RIVER MODES ONLY (0, 3 and 4); SKIPPED under tree gravity
@@ -1973,11 +2049,23 @@ func _step_dispatches(cl: int) -> void:
 			_md_pc_bytes.encode_float(20, ext_step.x / float(grid_N))
 			_md_pc_bytes.encode_float(24, ext_step.y / float(grid_N))
 			_md_pc_bytes.encode_float(28, ext_step.z / float(grid_N))
+			_md_pc_bytes.encode_float(32, 0.0)  # mode 0 = deposit
 			_rd.compute_list_bind_compute_pipeline(cl, _mass_deposit_pipe)
 			_rd.compute_list_bind_uniform_set(cl, _us_mass_dep_0, 0)
 			_rd.compute_list_set_push_constant(cl, _md_pc_bytes, _md_pc_bytes.size())
 			_rd.compute_list_dispatch(cl, pg, 1, 1)
-		_barrier(cl)  # dual deposit → poisson
+		_barrier(cl)  # dual deposit → convert
+		# Dual-lattice convert: the SAME fix buffer was re-cleared by the
+		# dual clear → the shifted deposit accumulates fresh → convert to
+		# rho for the shifted Poisson solve (one int64 buffer, mirroring
+		# the float semantics exactly).
+		if _mass_deposit_shader.is_valid():
+			_md_pc_bytes.encode_float(32, 1.0)  # mode 1 = convert
+			_rd.compute_list_bind_compute_pipeline(cl, _mass_deposit_pipe)
+			_rd.compute_list_bind_uniform_set(cl, _us_mass_dep_0, 0)
+			_rd.compute_list_set_push_constant(cl, _md_pc_bytes, _md_pc_bytes.size())
+			_rd.compute_list_dispatch(cl, grid_N, grid_N, 1)
+		_barrier(cl)  # dual convert → poisson
 		_dispatch_poisson(cl)
 		_barrier(cl)  # dual poisson → gradient
 		_nbody_pc_bytes.encode_float(44, 1.5)  # pass_mode = 1.5 (dual gradient)

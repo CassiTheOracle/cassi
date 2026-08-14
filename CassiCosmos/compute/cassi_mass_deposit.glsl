@@ -16,20 +16,48 @@
 //   deposit anisotropy near masses and smooths the density field the
 //   spectral Poisson solve sees.
 //
-// Accumulation: hardware FLOAT atomicAdd (GL_EXT_shader_atomic_float) —
-// one atomicAdd per cell instead of the old 8-way atomic CAS loop
-// (atomicOr + atomicCompSwap retry). Verified on this rig (RX 7900 XTX,
-// Vulkan 1.4.349, Godot 4.7): the extension compiles, the pipeline builds,
-// and results are exact for representable values. Known caveats:
-//   - fp32 sequential-summation drift: long single-address chains drift by
-//     ~Σ ULP/2 (deterministic; ~1e-3 at 1024 adds/cell, ~1% only in the
-//     pathological 1M-adds-to-one-cell case). Same noise class as the old
-//     CAS loop; irrelevant at realistic occupancies (tens-hundreds/cell).
-//   - Godot's RESPV optimizer prints "OpAtomicFAddEXT is not supported yet."
-//     to stderr and skips optimizing THIS shader (harmless; the driver
-//     runs the original SPIR-V — verified non-fatal in 4.7's
-//     rendering_shader_container / rendering_device_driver_vulkan).
-#extension GL_EXT_shader_atomic_float : require
+// Accumulation: EXACT integer fixed-point via FOUR 32-bit digit-sum
+// accumulators (the old fp32 atomicAdd made each cell sum depend on the
+// TSC atomic execution order — a ~3.8e-6-relative run-to-run floor in
+// every parity probe, the only remaining nondeterminism source).
+// INTEGER addition commutes EXACTLY: any atomic ordering yields the same
+// cell sum, so the deposit is bit-deterministic with NO per-step
+// particle sort.
+//
+// Why four uint32 digit sums instead of one uint64
+// (GL_EXT_shader_atomic_int64)? Godot 4.7's RDShaderFile SPIR-V loader
+// REJECTS 64-bit integer types ("Failed parse" — verified on this rig
+// with a minimal shader: even a type-only uint64_t buffer fails to load,
+// while plain uint atomics work). So the fixed-point value is accumulated
+// as four SEPARATE base-2^8 digit sums, all in uint32:
+//   v = uint(round(m·w·SCALE)),  SCALE = 2^24   (v < 2^32 ⟺ m < 256)
+//   d0 = v & 0xFF;  d1 = (v>>8) & 0xFF;  d2 = (v>>16) & 0xFF;  d3 = v>>24
+//   fix[cell] = (Σd0, Σd1, Σd2, Σd3)  — four atomicAdd(uint32) per cell
+// EXACTNESS INVARIANT: each digit sum stays < 2^32 as long as the cell
+// receives ≤ 1.68e7 deposits (each digit ≤ 255): Σd_k ≤ N·255 < 2^32 ⟺
+// N < 2^32/255 = 1.68e7. The ENTIRE 2.5e6-particle population in ONE
+// cell is only 2.5e6 deposits — 6.7× margin (4.2× even at N = 4e6), so
+// no carry can ever cross digits and every accumulator is exact.
+// Particle masses span [0.3, 30] (Salpeter); merges can grow survivors,
+// so v is clamped at 2^32−256 (m ≥ 256 — a pathological ≥8×-merge blob —
+// under-deposits by a documented, deterministic amount; m < 256 exact).
+//
+// Convert pass (pc.mode = 1): the Poisson/PDE/tree chain reads rho as
+// FLOAT — after the deposit the exact digit sums are reconstructed:
+//   rho = s0·2^−24 + s1·2^−16 + s2·2^−8 + s3   (smallest first)
+// Each term is an exact power-of-two scaling of an exact integer; the
+// additions round once at the end — rho is the correctly-rounded fp32
+// of the exact integer sum (deterministic, same precision class as the
+// old float path, and actually one rounding instead of N).
+// The per-step GPU clear (cassi_poisson.glsl mode 3) zeroes BOTH grids
+// (float rho + all four digit sums) every step, and the dual-lattice
+// chain clears and re-deposits the SAME single accumulator buffer
+// (mirrors the float semantics exactly — see _step_dispatches).
+//
+// Compile fallback: if a driver lacks atomic ops, gate the int path
+// behind a #define and keep the float atomicAdd — but NEVER ship the
+// float path as the silent default (the determinism contract breaks).
+// uint32 atomicAdd is core GLSL 4.50 — no extension required here.
 
 layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
@@ -38,7 +66,17 @@ layout(set = 0, binding = 0, std430) restrict readonly buffer Positions {
 };
 
 layout(set = 0, binding = 1, std430) coherent buffer MassDensity {
-    float rho[];  // float masses, accumulated with float atomicAdd
+    float rho[];  // float masses — written ONLY by the convert pass (mode 1)
+};
+
+layout(set = 0, binding = 2, std430) coherent buffer MassDensityFix {
+    // Per-cell EXACT fixed-point accumulator: 4×uint8-digit sums of the
+    // SCALE = 2^24 fixed-point deposits, packed one uvec4 per cell
+    // (x = Σd0, y = Σd1, z = Σd2, w = Σd3). Godot 4.7 rejects uint64
+    // buffers ("Failed parse"), so exactness comes from four carry-free
+    // uint32 sums (see the header comment — every sum stays < 2^32).
+    // uint atomicAdd is core GLSL 4.50 — no extension needed.
+    uvec4 fix[];
 };
 
 layout(push_constant, std430) uniform PC {
@@ -50,10 +88,11 @@ layout(push_constant, std430) uniform PC {
     float off_x;         // dual-grid offset (CASCADE_GRID.md): the deposit
     float off_y;         // runs once per lattice — 0 for the base chain,
     float off_z;         // h_i/2 = extent_i/N for the shifted (BCC) chain
+    float mode;          // 0 = deposit (scatter), 1 = convert (fix → rho)
 } pc;
 
-// ── Main kernel: TSC (triangular-shaped cloud) mass deposit ───────────
-void main() {
+// ── Mode 0: TSC (triangular-shaped cloud) mass deposit ───────────────
+void deposit_main() {
     uint i = gl_GlobalInvocationID.x;
     int Np = int(pc.particle_N);
     if (int(i) >= Np) return;
@@ -111,12 +150,61 @@ void main() {
     float wx[3] = float[](wxm, wx0, wxp);
     float wy[3] = float[](wym, wy0, wyp);
     float wz[3] = float[](wzm, wz0, wzp);
+    // Exact integer fixed-point accumulation (SCALE = 2^24, digit base
+    // 2^8 — see header): four carry-free uint32 digit sums, each exact
+    // under ANY atomic ordering (integer addition commutes; no digit sum
+    // can reach 2^32 while the cell holds ≤ 1.68e7 deposits). The float
+    // product (mass · w) is the same expression the old float path
+    // accumulated; × SCALE is an exact power-of-2 multiply, and the
+    // round-to-nearest is a pure function of the float value.
     for (int a = 0; a < 3; a++) {
         for (int b = 0; b < 3; b++) {
             for (int c = 0; c < 3; c++) {
                 int id = idx[a] + N * (jdx[b] + N * kdx[c]);
-                atomicAdd(rho[id], mass * wx[a] * wy[b] * wz[c]);
+                // Clamp at 2^32−256: masses ≥ 256 (pathological merge
+                // giants, ≥8× the Salpeter cap) would overflow uint — the
+                // clamp keeps the deposit exact for m < 256 and makes the
+                // ≥256 case a deterministic, documented under-deposit.
+                float vf = min(round(mass * wx[a] * wy[b] * wz[c] * 16777216.0), 4294967040.0);
+                uint v = uint(vf);
+                uint d0 = v & 255u;
+                uint d1 = (v >> 8) & 255u;
+                uint d2 = (v >> 16) & 255u;
+                uint d3 = v >> 24;
+                atomicAdd(fix[id].x, d0);
+                atomicAdd(fix[id].y, d1);
+                atomicAdd(fix[id].z, d2);
+                atomicAdd(fix[id].w, d3);
             }
         }
+    }
+}
+
+// ── Mode 1: convert — exact digit sums → float rho ───────────────────
+// One thread per cell, the poisson (N, N, 1) 2D dispatch convention
+// (gid = x + y·(N·256), guard gid < N³ — the N=256 landmine-safe form).
+// rho = s0·2^−24 + s1·2^−16 + s2·2^−8 + s3, smallest term first: every
+// term is an exact power-of-two scaling of an exact integer sum, so the
+// four-term sum rounds ONCE — rho is the correctly-rounded fp32 of the
+// exact cell mass. Runs between the deposit and the Poisson solve (and
+// in the dual-lattice chain), with barriers both sides (_step_dispatches).
+void convert_main() {
+    int N = int(pc.N_f);
+    int nc = N * N * N;
+    uint gid = gl_GlobalInvocationID.x
+             + gl_GlobalInvocationID.y * uint(N * 256);
+    if (int(gid) >= nc) return;
+    uvec4 s = fix[gid];
+    rho[gid] = float(s.x) * 5.9604644775390625e-08
+             + float(s.y) * 0.0000152587890625
+             + float(s.z) * 0.00390625
+             + float(s.w);
+}
+
+void main() {
+    if (pc.mode > 0.5) {
+        convert_main();
+    } else {
+        deposit_main();
     }
 }

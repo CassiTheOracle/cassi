@@ -1,5 +1,10 @@
 #[compute]
 #version 450
+// The mass-deposit fixed-point accumulator (cassi_mass_deposit.glsl
+// binding 2, SCALE = 2^24, 4×uint8-digit sums packed as uvec4 per cell):
+// mode 3 (clear) zeroes it WITH rho every step so the deposit never
+// accumulates stale digits and the convert pass reflects only this step.
+// Plain uvec4 stores — no extension needed.
 // Cassi Spectral Poisson Solver — ∇²Φ = ρ_mass, Φ̂ = −ρ̂/k², k = 0 nulled.
 //
 // Convention (identical to the repo's Python solver,
@@ -33,6 +38,12 @@ layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 layout(set = 0, binding = 0, std430) buffer FFTBuf { vec2 f[]; };
 layout(set = 0, binding = 1, std430) buffer MassDensity { float rho[]; };
 layout(set = 0, binding = 2, std430) buffer Telemetry { uint tel[]; };
+// The mass-deposit fixed-point accumulator (see the note at the top):
+// mode 3 (clear) zeroes it WITH rho every step so the deposit never
+// accumulates stale digits and the convert pass reflects only this step.
+layout(set = 0, binding = 3, std430) coherent buffer MassDensityFix {
+    uvec4 fix[];
+};
 
 layout(push_constant, std430) uniform PC {
     float N_f;
@@ -190,7 +201,9 @@ void clear_main() {
     uint gid = gl_GlobalInvocationID.x
              + gl_GlobalInvocationID.y * uint(int(pc.N_f) * 256);
     if (int(gid) >= nc) return;
-    rho[gid] = 0.0;  // float buffer (float-atomic deposit)
+    rho[gid] = 0.0;      // float buffer (written by the deposit convert)
+    fix[gid] = uvec4(0);  // digit-sum accumulator — zeroed WITH rho so the
+                          // convert never accumulates stale digits
     if (gid < 8u) {
         // [0..2] saturation/guard counters → 0
         // [3] q_min → +inf, [4] q_max → 0, [5] π/ρ_min → +inf, [6] π/ρ_max → 0
