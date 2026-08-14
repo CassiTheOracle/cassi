@@ -9,6 +9,14 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./interfaces": {
+      "types": "./dist/types/interfaces.d.ts",
+      "import": "./dist/types/interfaces.js"
+    },
+    "./plugin": {
+      "types": "./dist/types/plugin.d.ts",
+      "import": "./dist/types/plugin.js"
     }
   },
   "files": [

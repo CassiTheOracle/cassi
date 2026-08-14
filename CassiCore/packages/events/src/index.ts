@@ -6,8 +6,10 @@
  */
 
 // Event Bus — re-exported from core for convenience
-import { bus } from '../event-bus.js';
-export type { EventBus } from '../event-bus.js';
+import { bus } from './event-bus.js';
+export { bus } from './event-bus.js';
+export { Logger, rootLogger } from './logger.js';
+export type { EventBus } from './event-bus.js';
 
 /**
  * Get the shared EventBus singleton.
@@ -47,13 +49,13 @@ export type {
   CompactionStartEvent,
   CompactionEndEvent,
   ErrorEvent,
-} from './event-types.js';
+} from './events/event-types.js';
 
 // Event API
 export {
   EventAPI,
   SSEConnectionManager,
-} from './event-api.js';
+} from './events/event-api.js';
 
 export type {
   IngestRequest,
@@ -62,20 +64,20 @@ export type {
   HistoryResponse,
   StateSnapshotRequest,
   StateSnapshot,
-} from './event-api.js';
+} from './events/event-api.js';
 
 // Cassandra Event Client
 export {
   CassandraEventClient,
   createEventClient,
-} from './cassandra-event-client.js';
+} from './events/cassandra-event-client.js';
 
 export type {
   CassandraEventClientOptions,
   CassandraState,
   ActiveToolCall,
   EventType,
-} from './cassandra-event-client.js';
+} from './events/cassandra-event-client.js';
 
 // Context Window Debugging
 export {
@@ -83,9 +85,9 @@ export {
   initContextWindowDebugger,
   getContextWindowDebugger,
   resetContextWindowDebugger,
-} from './context-window-debug.js';
+} from './events/context-window-debug.js';
 
 export type {
   ContextWindowSnapshot,
   ContextWindowDiff,
-} from './context-window-debug.js';
+} from './events/context-window-debug.js';

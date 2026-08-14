@@ -14,7 +14,7 @@ import { fork, type ChildProcess } from 'node:child_process'
 
 import { bus } from '@cassicore/events'
 
-import type { IPluginHost, PluginManifest, PluginStatus, ILogger } from '../types/interfaces.js'
+import type { IPluginHost, PluginManifest, PluginStatus, ILogger } from '@cassicore/foundation/interfaces'
 
 
 /** Messages sent from daemon to worker */

@@ -8,7 +8,7 @@
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
-import { buildSystemPrompt } from '../../vendor/core/workspace/loader.js';
+import { buildSystemPrompt } from '../vendor/core/workspace/loader.js';
 
 
 import {

@@ -18,7 +18,7 @@
 
 import type { ILogger } from '@cassicore/foundation'
 import type { ThalamusModule } from '@cassicore/thalamus'
-import type { CurationConfig } from '@cassicore/thalamus'
+import type { CurationConfig } from '@cassicore/thalamus/types'
 import type {
   ExternalCurateRequest,
   ExternalCurationResult,
@@ -282,6 +282,8 @@ export class ExternalClientCurator {
         dropped: 0,
         gapNotes: 0,
         durationMs: 0,
+        distilled: 0,
+        cacheInvalidated: false,
         skipped: true,
         reason,
         applied: false,

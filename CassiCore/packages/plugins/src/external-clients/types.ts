@@ -6,7 +6,7 @@
  * for thalamus-based context curation.
  */
 
-import type { CurationConfig, CurationMeta } from '@cassicore/thalamus'
+import type { CurationConfig, CurationMeta } from '@cassicore/thalamus/types'
 
 /** Lightweight message digest for index-only curation (preserves AI SDK types). */
 export interface ExternalMessageDigest {
