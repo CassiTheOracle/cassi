@@ -727,9 +727,15 @@ func _write_report() -> void:
 	var out_dir := "res://_diag"
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(out_dir))
 	var json := JSON.stringify(report, "\t")
-	var seed_tag := "seed" if sim.multi_rung_seed else "noseed"
-	var f := FileAccess.open(out_dir + "/coherence_ripple_report_%s.json" % seed_tag, FileAccess.WRITE)
+	# Config-tagged filename so distinct arms (emergent / seed / live 128³) each
+	# get their own report instead of clobbering one another.
+	var tag := "%dx%d_%dp_%s%s%s" % [
+		sim.grid_N, sim.grid_N, sim.N_particles,
+		("mesh" if sim.meshless_mode else "grid"),
+		("_dual" if sim.dual_grid else ""),
+		("_seed" if sim.multi_rung_seed else "_noseed")]
+	var f := FileAccess.open(out_dir + "/coherence_ripple_report_%s.json" % tag, FileAccess.WRITE)
 	if f:
 		f.store_string(json)
 		f.close()
-		print("[diag-cr] report written to res://_diag/coherence_ripple_report_%s.json" % seed_tag)
+		print("[diag-cr] report written to res://_diag/coherence_ripple_report_%s.json" % tag)
