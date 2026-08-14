@@ -163,6 +163,7 @@ Documents that are not claims: registries, catalogs, explainers, and plans.
 | `cosmology/sigma8-computational-plan.md` | Plan (Hypothesized; doctrine 2026-08-07: reading P-A operative, IC $r_0 = 0.0472$; the truth campaign's measured rows: mechanism +29.7% (D-insensitive), total −20.5% (D=0.001 campaign) / −22.9% (D=0 doctrine default, brief 63 — the totals carry the diffusion) (doctrine-IC, resolution-converged); the settlement rows −16.6%/−15.2%; the "~5%" target Mapped) |
 | `audit.md` | Self-critical prediction-vs-experiment audit |
 | `cassi-physics.md` | Physics guide: lattice, cascade, predictions |
+| `UNIFICATION.md` | Plan (speculative architecture; grounded present-state map) | Cross-repo unification proposal: the field as the shared substrate across CassiCore, Cassi AI, the theory, and the space-sim |
 | `cassi-psychology.md` | Psychology-focused guide (consciousness, emotion, trauma, therapy) |
 | `analyses/README.md` | Analysis index (data analyses against the framework) |
 | `demystifying-the-cosmos/README.md` | Demystifying index (one doc per observed object, codename-named) |
