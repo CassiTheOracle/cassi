@@ -24,4 +24,5 @@ far = 2000.0
 [node name="CassiSim" type="Node3D" parent="."]
 script = ExtResource("2_sim")
 suppress_readbacks = true
+physics_frame_budget = 0.0
 max_steps_per_frame = 60

@@ -612,9 +612,9 @@ var _warned_vel_cycle: bool = false
 var _step_count: int = 0
 var _time: float = 0.0
 var _step_timer: float = 0.0
-# Fixed-step catch-up cap: a 60 Hz frame at dt=0.001 needs exactly 16 steps;
-# a larger backlog is dropped (and counted) instead of spiraling unbounded.
-# Exported so the recorder scene can raise it for time-lapse coverage per
+# Fixed-step hard ceiling: the paced loop (see _process) runs at most this
+# many steps per frame regardless of the time budget — a safety rail, not
+# the throttle. The recorder scene raises it for time-lapse coverage per
 # video second (default 16 = unchanged behavior).
 ## Physics catch-up cap per rendered frame (recorder raises it for time-lapse).
 @export var max_steps_per_frame: int = 16
@@ -622,12 +622,21 @@ var _step_timer: float = 0.0
 ## 2 = 2× time-lapse, etc. The per-frame step cap scales with it, so
 ## fast-forward stays smooth at any frame rate. Live — no reinit.
 @export_range(0.05, 10.0, 0.05) var sim_speed: float = 1.0
+## Wall-clock budget for physics per rendered frame: the frame runs at
+## most this fraction of the MEASURED frame time in physics (using the
+## rolling per-step cost), so a heavy config slows the SIM — reported
+## truthfully as the backlog — instead of collapsing the frame rate.
+## 0.6 = physics ≤ 60% of each frame (the smooth-run design). 0 = off —
+## no budget, the old cap-only behavior (recorder style). Live — no reinit.
+@export_range(0.0, 1.0, 0.05) var physics_frame_budget: float = 0.6
 ## Auto color-align: every ~1.5 s, re-fit the Qi color band to the live
 ## coherence distribution AT the particles (p1/p99 of a GPU q-histogram),
 ## so the colors stay spread across the rainbow when the coherence grows
 ## fast (e.g. the Meshless gravity mode). Dragging a legend handle or
 ## clicking Fit turns it off — manual takes over. Live — no reinit.
 @export var auto_align_colors: bool = true
+var _phys_us_ema: float = 500.0      # rolling per-step GPU cost (us; budget input)
+var _frame_us_ema: float = 16667.0   # rolling frame time (us; budget input)
 var _dropped_steps: int = 0
 
 # — diagnostics —
@@ -798,29 +807,41 @@ func _process(delta: float) -> void:
 			_setup_shaders()
 
 	if playing and _shaders_ready:
-		# Fixed-dt accumulator with a BOUNDED CARRY: steps/frame = accumulated
-		# real time (× sim_speed) / dt, capped. A brief hitch carries at most
-		# one frame's worth of backlog into the next frame (graceful catch-up
-		# — the sim keeps real-time instead of falling into slow-motion);
-		# only pathological stalls drop steps, counted in _dropped_steps. The
-		# cap scales with sim_speed so time-lapse works at any frame rate
-		# (max_steps_per_frame stays the floor).
-		var step_cap: int = maxi(max_steps_per_frame, int(ceili(sim_speed)) * max_steps_per_frame)
+		# ── Paced fixed-dt with a TIME BUDGET (the smooth-run design) ────
+		# The accumulator requests delta × sim_speed / dt steps — the
+		# deterministic contract the verify battery and probes rely on.
+		# The per-frame LIMIT is not a step count but a wall-clock budget:
+		# at most physics_frame_budget × the measured frame time, using the
+		# rolling per-step GPU cost — so a heavy config slows the SIM
+		# (reported truthfully as the backlog) while the frame rate stays
+		# smooth, instead of the old behavior where expensive steps first
+		# collapsed the FPS and then the step-cap silently throttled the
+		# sim with a lying drop counter. max_steps_per_frame remains a
+		# hard safety ceiling (recorder/verify pins); the backlog carries
+		# for graceful catch-up and is capped so a stall can't queue a
+		# minutes-long fast-forward. Backlog = the single truthful number:
+		# how far (sim-seconds) the sim lags its requested rate.
+		_frame_us_ema = lerp(_frame_us_ema, delta * 1_000_000.0, 0.05)
 		_step_timer += delta * sim_speed
+		var budget_steps := 1_000_000_000 if physics_frame_budget <= 0.0 \
+				else int(maxf(physics_frame_budget * _frame_us_ema / maxf(_phys_us_ema, 10.0), 1.0))
+		var step_cap: int = maxi(max_steps_per_frame, int(ceili(sim_speed)) * max_steps_per_frame)
 		var n_steps := 0
-		while _step_timer >= dt and n_steps < step_cap:
+		while _step_timer >= dt and n_steps < budget_steps and n_steps < step_cap:
 			_step_timer -= dt
 			n_steps += 1
-		if _step_timer >= dt:
-			var carry_max := float(step_cap) * dt
-			var excess := int(_step_timer / dt)
-			_dropped_steps += maxi(excess - step_cap, 0)
-			_step_timer = minf(_step_timer, carry_max)
+		var backlog_cap := 2.0  # sim-seconds of carried catch-up
+		if _step_timer > backlog_cap:
+			_dropped_steps += int((_step_timer - backlog_cap) / dt)
+			_step_timer = backlog_cap
 		if n_steps > 0:
 			var t0 := Time.get_ticks_usec()
 			_run_physics_steps(n_steps)
-			_perf_phys_us += int(Time.get_ticks_usec() - t0)
+			var spent := int(Time.get_ticks_usec() - t0)
+			_perf_phys_us += spent
 			_perf_steps += n_steps
+			if spent > 0:
+				_phys_us_ema = lerp(_phys_us_ema, float(spent) / float(n_steps), 0.2)
 	_perf_frames += 1
 
 	_render_frame()
@@ -3572,7 +3593,7 @@ func _render_frame() -> void:
 		if _perf_steps > 0:
 			var dt_ms: float = float(_perf_phys_us) / 1e3 / float(_perf_steps)
 			var fps: float = float(_perf_frames) * 1000.0 / float(max(now_ms - _perf_last_ms, 1))
-			print("[CassiSim] perf: fps=%.1f  physics=%.3f ms/step (%d steps, %d dropped)" % [fps, dt_ms, _perf_steps, _dropped_steps])
+			print("[CassiSim] perf: fps=%.1f  physics=%.3f ms/step (%d steps, behind %.2f s, lost %d)" % [fps, dt_ms, _perf_steps, _step_timer, _dropped_steps])
 		_sample_occupancy()
 		_perf_phys_us = 0
 		_perf_steps = 0
