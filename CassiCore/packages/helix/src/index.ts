@@ -501,7 +501,7 @@ export { HelixPostureRunner } from './helix-posture-runner.js'
 /** @deprecated Use HelixPostureRunner — postures are not agents, they are behavioral modes */
 export { HelixPostureRunner as HelixAgentSession } from './helix-posture-runner.js'
 export { runHelixPipeline } from './helix-pipeline.js'
-export type { HelixPipelineOpts } from './helix-pipeline.js'
+export type { HelixPipelineOpts, HelixToolProfile } from './helix-pipeline.js'
 
 export { TestLock } from './testlock.js'
 export type { SealedTestSpec, TestLockVerification, TestLockSeverity, TestLockVerificationStatus, TestLockPersistence } from './testlock.js'
@@ -519,3 +519,7 @@ export type { BrainstemMiniHelixConfig } from './brainstem-mini-helix.js'
 
 export { createBrainstemTools, buildBrainstemSystemPrompt } from './brainstem-tools.js'
 export type { BrainstemToolContext } from './brainstem-tools.js'
+
+export type { WorkUnit } from './work-types.js'
+export type { HelixSynapse } from './helix-synapse.js'
+export type { HelixBrainstem } from './brainstem.js'
