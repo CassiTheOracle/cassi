@@ -56,6 +56,14 @@ var _gpc := PackedFloat32Array()
 
 func _ready() -> void:
 	_sim = $CassiSim
+	# PIN the tree-gravity battery to the CUBE meshless config (the tree
+	# sources are the sim's Voronoi sites; stage5b_verify.py recomputes
+	# the prototype on the same cube-planted sources). meshless_mode +
+	# meshless_gravity are already true via the scene.
+	_sim.box_aspect = Vector3(1.0, 1.0, 1.0)
+	_sim.dual_grid = false
+	_sim.reinit()  # rebuild the meshless sites at the cube extents
+	_sim.playing = false
 
 
 func _process(_delta: float) -> void:

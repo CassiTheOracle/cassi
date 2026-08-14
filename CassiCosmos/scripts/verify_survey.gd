@@ -30,6 +30,16 @@ var _survey_dir := ""
 func _ready() -> void:
 	_sim = $CassiSim
 	_survey = $CassiSurvey
+	# PIN the survey battery's grid/CUBE state against the campaign
+	# defaults (meshless/tree/φ-aspect/dual now default on): the snapshot
+	# round-trip (G24) is arm-agnostic but the battery steps the sim from
+	# the deterministic CUBE single-lattice grid field it writes.
+	_sim.meshless_mode = false
+	_sim.meshless_gravity = false
+	_sim.box_aspect = Vector3(1.0, 1.0, 1.0)
+	_sim.dual_grid = false
+	_sim.reinit()
+	_sim.playing = false
 
 
 func _process(_delta: float) -> void:

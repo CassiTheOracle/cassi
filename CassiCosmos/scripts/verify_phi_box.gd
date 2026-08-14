@@ -72,6 +72,13 @@ func _ready() -> void:
 		push_error("verify_phi_box: CassiSim not found in scene")
 		get_tree().quit(1)
 		return
+	# PIN the battery to the grid solver (meshless/tree/dual now default
+	# on): every per-axis stencil/gradient gate here drives the CUBE or
+	# φ-aspect spectral-Poisson chain and must not run the meshless tree
+	# or the dual-lattice gradient. box_aspect is managed per-test below.
+	sim.meshless_mode = false
+	sim.meshless_gravity = false
+	sim.dual_grid = false
 	N = sim.grid_N
 	extent_base = 1.5 * sim.cluster_radius
 	h0 = 2.0 * extent_base / float(N)

@@ -33,6 +33,16 @@ var _ic_ei := PackedByteArray()
 
 func _ready() -> void:
 	_sim = $CassiSim
+	# PIN the cross-arm agreement battery against the campaign defaults
+	# (meshless/tree/φ-aspect/dual now default on): Arm A must run the
+	# GRID solver on the CUBE single-lattice field (Arm B flips to
+	# meshless at line 69 below), and neither arm runs tree gravity.
+	_sim.meshless_mode = false
+	_sim.meshless_gravity = false
+	_sim.box_aspect = Vector3(1.0, 1.0, 1.0)
+	_sim.dual_grid = false
+	_sim.reinit()  # re-materialize the cube grid / meshless-off state for Arm A
+	_sim.playing = false
 
 
 func _process(_delta: float) -> void:

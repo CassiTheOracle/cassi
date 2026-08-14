@@ -52,6 +52,14 @@ func _ready() -> void:
 	sim.gravity_mode = 0
 	sim.N_particles = 256
 	sim.grid_N = 64
+	# PIN the grid/CUBE field-render + instancer battery against the
+	# campaign defaults (meshless/tree/φ-aspect/dual now default on): the
+	# bit-identical legacy color formula and the two-axis hue engine run
+	# on the single-lattice CUBE grid field.
+	sim.meshless_mode = false
+	sim.meshless_gravity = false
+	sim.box_aspect = Vector3(1.0, 1.0, 1.0)
+	sim.dual_grid = false
 	sim.reinit()
 	sim.playing = false
 	# Wait for the shader import race to settle (mirrors verify_river_isotropy).

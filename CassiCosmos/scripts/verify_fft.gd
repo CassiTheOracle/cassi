@@ -36,6 +36,14 @@ func _ready() -> void:
 		push_error("verify_fft: CassiSim not found in scene")
 		get_tree().quit(1)
 		return
+	# PIN the grid FFT/Poisson battery against the campaign defaults
+	# (meshless/tree/φ-aspect/dual now default on): the round-trip and
+	# solve gates run the CUBE single-lattice spectral-Poisson chain.
+	# Set before the extent read; reinit after shaders settle.
+	sim.meshless_mode = false
+	sim.meshless_gravity = false
+	sim.box_aspect = Vector3(1.0, 1.0, 1.0)
+	sim.dual_grid = false
 	N = sim.grid_N
 	extent = sim._extents().x  # the box half-extent (legacy value at aspect 1)
 	h = extent / (float(N) * 0.5)
@@ -53,6 +61,8 @@ func _ready() -> void:
 		get_tree().quit(1)
 		return
 	print("verify_fft: shaders ready after %d extra frames" % waited)
+	sim.reinit()  # re-materialize the cube grid / single-lattice / meshless-off state
+	sim.playing = false
 	_run_all()
 	get_tree().quit(0 if _failures == 0 else 1)
 

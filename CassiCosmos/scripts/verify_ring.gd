@@ -63,6 +63,13 @@ func _ready() -> void:
 		push_error("verify_ring: CassiSim not found in scene")
 		get_tree().quit(1)
 		return
+	# PIN the grid stencil battery against the campaign defaults
+	# (meshless/tree/φ-aspect/dual now default on): the dispersion
+	# anisotropy gate runs the CUBE single-lattice two-fluid PDE.
+	sim.meshless_mode = false
+	sim.meshless_gravity = false
+	sim.box_aspect = Vector3(1.0, 1.0, 1.0)
+	sim.dual_grid = false
 	sim.playing = false
 	sim.gravity_mode = 0
 	sim.mode = 1
@@ -79,6 +86,8 @@ func _ready() -> void:
 		get_tree().quit(1)
 		return
 	print("verify_ring: shaders ready after %d extra frames" % waited)
+	sim.reinit()  # re-materialize the cube grid / single-lattice / meshless-off state
+	sim.playing = false
 	# Zero both particle masses — no mass-coupling source (rho = 0)
 	var pos = PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 	sim._rd.buffer_update(sim._pos_buf, 0, 32, pos.to_byte_array())

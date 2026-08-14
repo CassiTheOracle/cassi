@@ -124,6 +124,15 @@ func _ready() -> void:
 		push_error("verify_gravity_modes: CassiSim not found in scene")
 		get_tree().quit(1)
 		return
+	# PIN the grid-river battery against the campaign defaults (meshless/
+	# tree/φ-aspect/dual now default on): every gravity mode here runs the
+	# CUBE spectral-Poisson river chain and its analytic references. Set
+	# BEFORE the extent read so N/h/extent reflect the cube, and reinit
+	# (after shaders settle) so the sim's IC/extents are cube too.
+	sim.meshless_mode = false
+	sim.meshless_gravity = false
+	sim.box_aspect = Vector3(1.0, 1.0, 1.0)
+	sim.dual_grid = false
 	N = sim.grid_N
 	extent = sim._extents().x  # the box half-extent (legacy value at aspect 1)
 	h = extent / (float(N) * 0.5)
@@ -141,6 +150,8 @@ func _ready() -> void:
 		get_tree().quit(1)
 		return
 	print("verify_gravity_modes: shaders ready after %d extra frames" % waited)
+	sim.reinit()  # re-materialize the cube grid / single-lattice / meshless-off state
+	sim.playing = false
 	_run_all()
 	get_tree().quit(0 if _failures == 0 else 1)
 

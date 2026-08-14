@@ -20,6 +20,15 @@ var _frames := 0
 
 func _ready() -> void:
 	_sim = $CassiSim
+	# PIN the meshless stability battery to its CUBE single-lattice mesh
+	# (meshless_mode is already true via the scene; the campaign defaults
+	# flipped tree-gravity/φ-aspect/dual on, which this battery does not
+	# exercise — it gates the Voronoi spread, not tree gravity).
+	_sim.meshless_gravity = false
+	_sim.box_aspect = Vector3(1.0, 1.0, 1.0)
+	_sim.dual_grid = false
+	_sim.reinit()  # build the meshless sites at the cube extents
+	_sim.playing = false
 
 
 func _process(_delta: float) -> void:

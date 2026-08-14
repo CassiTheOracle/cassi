@@ -102,6 +102,16 @@ func _ready() -> void:
 		push_error("verify_river_isotropy: CassiSim not found in scene")
 		get_tree().quit(1)
 		return
+	# PIN the bit-identical river-grid contract against the campaign
+	# defaults (meshless_mode/meshless_gravity now default true, box
+	# φ-aspect, dual_grid): this battery measures the CUBE grid-river
+	# Poisson/gradient chain and must not run the meshless/tree/φ-box.
+	# Set BEFORE the extent read so N/h/extent reflect the cube, and
+	# reinit (after shaders settle) to materialize cube geometry.
+	sim.meshless_mode = false
+	sim.meshless_gravity = false
+	sim.box_aspect = Vector3(1.0, 1.0, 1.0)
+	sim.dual_grid = false
 	N = sim.grid_N
 	extent = sim._extents().x  # the box half-extent (legacy value at aspect 1)
 	h = extent / (float(N) * 0.5)
@@ -119,6 +129,8 @@ func _ready() -> void:
 		get_tree().quit(1)
 		return
 	print("verify_river_isotropy: shaders ready after %d extra frames" % waited)
+	sim.reinit()  # re-materialize the cube grid / single-lattice / meshless-off state
+	sim.playing = false
 	_run_all()
 	get_tree().quit(0 if _failures == 0 else 1)
 
