@@ -18,6 +18,8 @@
 
 // Blackboard core
 export { Blackboard } from './blackboard.js'
+// Blackboard search cursor decode (consumed by @cassicore/admin-api)
+export { decodeCursor } from './blackboard-search.js'
 
 // Blackboard tools (used by Helix postures)
 export {

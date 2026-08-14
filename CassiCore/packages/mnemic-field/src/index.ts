@@ -170,6 +170,16 @@ export { CodeStore } from './code-store.js'
 export { CodeIngestor } from './code-ingestor.js'
 export { GitNexusBridge } from './gitnexus-bridge.js'
 export { SelfModelField, InterFieldBridge, SelfModelIngestor } from './self-model/index.js'
+// P7 admin-api: healpix / migrate-memory / annotation sub-module surfaces
+export { assignCell, globalCellKey, cellsInSector } from './healpix.js'
+export { migrateMemoryOnly, migrateMemoryAndArchives } from './migrate-memory.js'
+export { countUnannotated, buildInstruction, findNextUnannotated, findByName, annotateEngram, skipEngram } from './self-model/annotation.js'
+export type { AnnotationResponse, AnnotationCandidate } from './self-model/annotation.js'
+// P7 admin-api: ingestor/analyzer class surfaces (memory route dynamic imports)
+export { VisualIngestor } from './visual-ingestor.js'
+export { AttractorExtractor } from './attractor-extractor.js'
+export { FieldGenerator } from './field-generator.js'
+export { KnowledgeIngestor } from './knowledge/ingestor.js'
 export type {
   ModuleMetadata, CapabilityMetadata, PatternMetadata,
   WeaknessMetadata, EvolutionMetadata, PortalMetadata,

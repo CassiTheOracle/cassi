@@ -279,7 +279,7 @@ export async function handleBlackboardRoutes(
           return sendJSON(res, 200, result), true
         }
 
-        const { HelixStore } = await import('../intelligence/helix/helix-store.js').catch(() => ({ HelixStore: null }))
+        const { HelixStore } = await import('@cassicore/helix').catch(() => ({ HelixStore: null }))
         if (HelixStore) {
           const store = (HelixStore as any).open(logger.child('helix-store-search'))
           const session = store?.getSession?.(sessionId)
@@ -324,7 +324,7 @@ export async function handleBlackboardRoutes(
         if (snapshot) return sendJSON(res, 200, snapshot), true
       }
 
-      const { HelixStore } = await import('../intelligence/helix/helix-store.js').catch(() => ({ HelixStore: null }))
+      const { HelixStore } = await import('@cassicore/helix').catch(() => ({ HelixStore: null }))
       if (HelixStore) {
         const store = (HelixStore as any).open(logger.child('helix-store-bb'))
         const session = store?.getSession?.(sessionId)
@@ -360,7 +360,7 @@ export async function handleBlackboardRoutes(
           return sendJSON(res, 200, result), true
         }
 
-        const { HelixStore } = await import('../intelligence/helix/helix-store.js').catch(() => ({ HelixStore: null }))
+        const { HelixStore } = await import('@cassicore/helix').catch(() => ({ HelixStore: null }))
         if (HelixStore) {
           const store = (HelixStore as any).open(logger.child('helix-store-search'))
           const session = store?.getSession?.(sessionId)
@@ -405,7 +405,7 @@ export async function handleBlackboardRoutes(
         if (snapshot) return sendJSON(res, 200, snapshot), true
       }
 
-      const { HelixStore } = await import('../intelligence/helix/helix-store.js').catch(() => ({ HelixStore: null }))
+      const { HelixStore } = await import('@cassicore/helix').catch(() => ({ HelixStore: null }))
       if (HelixStore) {
         const store = (HelixStore as any).open(logger.child('helix-store-bb'))
         const session = store?.getSession?.(sessionId)

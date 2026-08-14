@@ -36,7 +36,7 @@ export async function handleDebugRoutes(
     }
 
     try {
-      const { getContextWindowDebugger } = await import('../events/index.js')
+      const { getContextWindowDebugger } = await import('@cassicore/events')
       const ctxDebugger = getContextWindowDebugger()
 
       if (!ctxDebugger) {
@@ -67,7 +67,7 @@ export async function handleDebugRoutes(
     }
 
     try {
-      const { getContextWindowDebugger } = await import('../events/index.js')
+      const { getContextWindowDebugger } = await import('@cassicore/events')
       const ctxDebugger = getContextWindowDebugger()
 
       if (!ctxDebugger) {
@@ -102,7 +102,7 @@ export async function handleDebugRoutes(
     }
 
     try {
-      const { getEventBus, getContextWindowDebugger } = await import('../events/index.js')
+      const { getEventBus, getContextWindowDebugger } = await import('@cassicore/events')
       const eventBus = getEventBus()
       const ctxDebugger = getContextWindowDebugger()
 
@@ -172,7 +172,7 @@ export async function handleDebugRoutes(
     }
 
     try {
-      const { getContextWindowDebugger } = await import('../events/index.js')
+      const { getContextWindowDebugger } = await import('@cassicore/events')
       const ctxDebugger = getContextWindowDebugger()
 
       if (!ctxDebugger) {
@@ -200,7 +200,7 @@ export async function handleDebugRoutes(
         return true
       }
 
-      const { getContextWindowDebugger } = await import('../events/index.js')
+      const { getContextWindowDebugger } = await import('@cassicore/events')
       const ctxDebugger = getContextWindowDebugger()
 
       if (!ctxDebugger) {

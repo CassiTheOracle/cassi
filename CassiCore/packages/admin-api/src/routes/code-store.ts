@@ -26,7 +26,7 @@ interface CodeStoreDeps {
   parseBody: (req: http.IncomingMessage) => Promise<any>
 }
 
-function getCodeStore(daemon: any): import('../intelligence/mnemic-field/code-store.js').CodeStore | null {
+function getCodeStore(daemon: any): import('@cassicore/mnemic-field').CodeStore | null {
   // The code store is injected into the ToolExecutor's defaultContext
   // Access via the daemon's toolExecutor reference (set during daemon startup)
   return daemon?.toolExecutor?.defaultContext?._codeStore
@@ -148,7 +148,7 @@ export async function handleCodeStoreRoutes(
 
     // POST /code/extract — trigger extraction + build
     if (parts[1] === 'extract' && method === 'POST') {
-      const { extractAndBuild } = await import('../entry/code-extractor.js')
+      const { extractAndBuild } = await import('../vendor/core/entry/code-extractor.js')
       const { getRepoRoot } = await import('@cassicore/foundation')
       const result = extractAndBuild(getRepoRoot())
       return sendJSON(res, result.success ? 200 : 500, result), true
@@ -156,7 +156,7 @@ export async function handleCodeStoreRoutes(
 
     // POST /code/ingest — trigger codebase ingestion
     if (parts[1] === 'ingest' && method === 'POST') {
-      const { CodeIngestor } = await import('../intelligence/mnemic-field/code-ingestor.js')
+      const { CodeIngestor } = await import('@cassicore/mnemic-field')
       const { getRepoRoot } = await import('@cassicore/foundation')
       const ingestor = new CodeIngestor(codeStore, logger)
       const result = await ingestor.ingest({ rootDir: getRepoRoot() })
@@ -165,7 +165,7 @@ export async function handleCodeStoreRoutes(
 
     // POST /code/gitnexus-sync — sync GitNexus symbol graph into mnemic field synapses
     if (parts[1] === 'gitnexus-sync' && method === 'POST') {
-      const { GitNexusBridge } = await import('../intelligence/mnemic-field/gitnexus-bridge.js')
+      const { GitNexusBridge } = await import('@cassicore/mnemic-field')
       const { getRepoRoot } = await import('@cassicore/foundation')
       const field = (daemon as any).__mnemicFieldForCode ?? null
       if (!field) {

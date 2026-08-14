@@ -80,7 +80,7 @@ function loadPersistedBlackboard(daemon: any, sessionId: string): unknown | unde
   try {
     // Access the HelixStore via the wired helix orchestrator's internal state
     // The daemon doesn't expose the store directly, so we try dynamic import + open
-    const { HelixStore } = require('../intelligence/helix/helix-store.js')
+    const { HelixStore } = require('@cassicore/helix')
     const store = HelixStore.open(daemon.logger.child('helix-store-reader'))
     const session = store.getSession(sessionId)
     store.close()
@@ -96,7 +96,7 @@ function loadPersistedBlackboard(daemon: any, sessionId: string): unknown | unde
  */
 function loadPersistedProgress(daemon: any, sessionId: string): Record<string, unknown> | undefined {
   try {
-    const { HelixStore } = require('../intelligence/helix/helix-store.js')
+    const { HelixStore } = require('@cassicore/helix')
     const store = HelixStore.open(daemon.logger.child('helix-store-reader'))
     const session = store.getSession(sessionId)
     store.close()

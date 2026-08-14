@@ -747,7 +747,7 @@ export async function handleSessionsRoutes(
     try {
       // Import processor directly — CommandDispatcher.handle() sends via EventBus
       // which doesn't return the result. We need the return value for HTTP.
-      const { processor } = await import('../../commands/universal-processor.js')
+      const { processor } = await import('@cassicore/commands/commands')
       if (!processor || typeof processor.process !== 'function') {
         sendJSON(res, 503, { error: 'command processor not available' })
         return true

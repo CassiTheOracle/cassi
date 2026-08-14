@@ -201,7 +201,7 @@ export async function handleVerificationRoutes(
       const eventTypes = typesParam ? typesParam.split(',') : []
 
       // Fetch from event bus via internal import
-      const { getEventBus } = await import('../events/index.js')
+      const { getEventBus } = await import('@cassicore/events')
       const eventBus = getEventBus()
 
       let events = eventBus.getEventsSince(sessionId, since)

@@ -1,5 +1,5 @@
 import { assembleContext } from '../vendor/core/intelligence/context-assembler.js'
-import { SmartCompactionEngine } from '@cassicore/thalamus'
+import { SmartCompactionEngine } from '../vendor/core/intelligence/smart-compaction.js'
 
 import type { AdminRuntimeFacade } from './runtime.js'
 

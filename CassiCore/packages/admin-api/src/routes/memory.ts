@@ -146,7 +146,7 @@ export async function handleMemoryRoutes(
   if (parts[1] === 'attractors' && method === 'GET') {
     try {
       const extractor = (daemon?.intelligence as any)?.__attractorExtractor as
-        import('../intelligence/mnemic-field/attractor-extractor.js').AttractorExtractor | undefined
+        import('@cassicore/mnemic-field').AttractorExtractor | undefined
       if (!extractor) { sendJSON(res, 503, { error: 'AttractorExtractor not available' }); return true }
 
       const attractors = extractor.getAttractors()
@@ -173,7 +173,7 @@ export async function handleMemoryRoutes(
   if (parts[1] === 'attractors' && parts[2] && method === 'GET') {
     try {
       const extractor = (daemon?.intelligence as any)?.__attractorExtractor as
-        import('../intelligence/mnemic-field/attractor-extractor.js').AttractorExtractor | undefined
+        import('@cassicore/mnemic-field').AttractorExtractor | undefined
       if (!extractor) { sendJSON(res, 503, { error: 'AttractorExtractor not available' }); return true }
 
       const attr = extractor.getAttractor(parts[2])
@@ -198,7 +198,7 @@ export async function handleMemoryRoutes(
   if (parts[1] === 'attractors' && parts[2] && parts[3] === 'basin' && method === 'GET') {
     try {
       const extractor = (daemon?.intelligence as any)?.__attractorExtractor as
-        import('../intelligence/mnemic-field/attractor-extractor.js').AttractorExtractor | undefined
+        import('@cassicore/mnemic-field').AttractorExtractor | undefined
       if (!extractor) { sendJSON(res, 503, { error: 'AttractorExtractor not available' }); return true }
 
       const ids = extractor.getBasinEngramIds(parts[2])
@@ -212,7 +212,7 @@ export async function handleMemoryRoutes(
   if (parts[1] === 'generate' && method === 'POST') {
     try {
       const gen = (daemon?.intelligence as any)?.__fieldGenerator as
-        import('../intelligence/mnemic-field/field-generator.js').FieldGenerator | undefined
+        import('@cassicore/mnemic-field').FieldGenerator | undefined
       if (!gen) { sendJSON(res, 503, { error: 'FieldGenerator not available' }); return true }
 
       const body = await parseBody(req).catch(() => ({}))
@@ -288,7 +288,7 @@ export async function handleMemoryRoutes(
   if (parts[1] === 'visual' && parts[2] === 'ingest' && method === 'POST') {
     try {
       const visual = (daemon?.intelligence as any)?.__visualIngestor as
-        import('../intelligence/mnemic-field/visual-ingestor.js').VisualIngestor | undefined
+        import('@cassicore/mnemic-field').VisualIngestor | undefined
       if (!visual) { sendJSON(res, 503, { error: 'VisualIngestor not available' }); return true }
 
       const body = await parseBody(req).catch(() => ({}))
@@ -321,7 +321,7 @@ export async function handleMemoryRoutes(
   if (parts[1] === 'visual' && !parts[2] && method === 'GET') {
     try {
       const visual = (daemon?.intelligence as any)?.__visualIngestor as
-        import('../intelligence/mnemic-field/visual-ingestor.js').VisualIngestor | undefined
+        import('@cassicore/mnemic-field').VisualIngestor | undefined
       if (!visual) { sendJSON(res, 503, { error: 'VisualIngestor not available' }); return true }
 
       const limit = parseInt(url.searchParams.get('limit') ?? '20', 10)
@@ -335,7 +335,7 @@ export async function handleMemoryRoutes(
   if (parts[1] === 'visual' && parts[2] && method === 'GET') {
     try {
       const visual = (daemon?.intelligence as any)?.__visualIngestor as
-        import('../intelligence/mnemic-field/visual-ingestor.js').VisualIngestor | undefined
+        import('@cassicore/mnemic-field').VisualIngestor | undefined
       if (!visual) { sendJSON(res, 503, { error: 'VisualIngestor not available' }); return true }
 
       const memory = visual.getVisualMemory(parts[2])
@@ -1798,7 +1798,7 @@ export async function handleMemoryRoutes(
     try {
       const body = await parseBody(req).catch(() => ({}))
       const bridge = getInterFieldBridge(daemon)
-      const { SelfModelIngestor } = await import('../intelligence/mnemic-field/self-model/ingestor.js')
+      const { SelfModelIngestor } = await import('@cassicore/mnemic-field')
       const ingestor = new SelfModelIngestor(smf, logger, process.cwd(), bridge ?? undefined)
       const result = await ingestor.ingest({
         minCommunitySize: body?.minCommunitySize ?? 5,
@@ -2510,7 +2510,7 @@ export async function handleMemoryRoutes(
         sendJSON(res, 400, { error: 'dir is required' })
         return true
       }
-      const { KnowledgeIngestor } = await import('../intelligence/mnemic-field/knowledge/ingestor.js')
+      const { KnowledgeIngestor } = await import('@cassicore/mnemic-field')
       const ingestor = new KnowledgeIngestor(kf, logger)
       const result = await ingestor.ingestFromDirectory(dir, {
         skipExisting: body?.skipExisting !== false,

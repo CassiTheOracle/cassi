@@ -28,6 +28,7 @@ export type {
 export {
   SYSTEM_REGIONS, SYSTEM_TRACTS, ACTIVATION_DEFAULTS,
   CONSOLIDATION_DEFAULTS, SESSION_DEFAULTS, COMMISSURE_DEFAULTS,
+  SIGNAL_TYPES,
 } from './cortex/types.js'
 export type { Affect, AffectState } from './cortex/types.js'
 

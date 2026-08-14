@@ -59,9 +59,9 @@ import { assembleContext } from './vendor/core/intelligence/context-assembler.js
 import { createToolsApi } from './vendor/core/tools-api.js'
 import { PluginAPI, PluginRegistry } from '@cassicore/plugins'
 
-import type { DialecticStreamEvent } from '../types/dialectic.js'
-import type { ILogger } from '../types/interfaces.js'
-import type { Message } from '../types/runtime.js'
+import type { DialecticStreamEvent } from '@cassicore/foundation'
+import type { ILogger } from '@cassicore/foundation'
+import type { Message } from '@cassicore/foundation'
 
 interface WSConnection {
   socket: any
@@ -787,7 +787,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
       }
     }
 
-    const { SmartCompactionEngine } = await import('./intelligence/smart-compaction.js')
+    const { SmartCompactionEngine } = await import('./vendor/core/intelligence/smart-compaction.js')
     const COMPACTION_MODEL = 'gpt-5-mini'
     const COMPACTION_PROVIDER = 'github-copilot'
     let summarizer: ((content: string, instruction: string) => Promise<string>) | undefined

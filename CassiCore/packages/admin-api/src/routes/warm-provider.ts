@@ -77,7 +77,7 @@ async function buildDefaultSystemPrompt(daemon: any): Promise<string> {
 
   // Discover instruction files from ancestor directory chain
   try {
-    const { discoverAndRenderInstructions } = await import('../workspace/instruction-discovery.js')
+    const { discoverAndRenderInstructions } = await import('../vendor/core/workspace/instruction-discovery.js')
     const result = discoverAndRenderInstructions(process.cwd())
     if (result.rendered) {
       parts.push(result.rendered)

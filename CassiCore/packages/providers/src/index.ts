@@ -258,6 +258,10 @@ export function createProviders(
 
 
 export type { CopilotSdkManagerOptions } from './copilot-sdk/client-manager.js'
+// P7 admin-api: provider surfaces consumed by routes
+export { CopilotSdkProvider } from './copilot-sdk/provider.js'
+export { WarmProviderManager } from './copilot-sdk/warm-provider-manager.js'
+export { listProviderConfigKeys } from './centralized.js'
 
 /**
  * Initialize the Copilot SDK provider (async — requires starting the CLI process).

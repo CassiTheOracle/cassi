@@ -792,7 +792,7 @@ export async function handleConstellationRoutes(
     if (method === 'GET' && subAction === 'analyze') {
       const depth = (url.searchParams?.get?.('depth') ?? 'summary') as 'summary' | 'timeline' | 'full'
       try {
-        const { analyzeConstellation } = await import('../intelligence/constellation/constellation-analyzer.js')
+        const { analyzeConstellation } = await import('@cassicore/constellation')
         const analysis = await analyzeConstellation(id, depth)
         sendJSON(res, 200, analysis)
       } catch (err) {

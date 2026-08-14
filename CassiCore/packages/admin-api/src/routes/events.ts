@@ -40,7 +40,7 @@ export async function handleEventsRoutes(
         return true
       }
 
-      const { getEventBus } = await import('../events/index.js')
+      const { getEventBus } = await import('@cassicore/events')
       const eventBus = getEventBus()
 
       let ingested = 0
@@ -88,7 +88,7 @@ export async function handleEventsRoutes(
     }
 
     try {
-      const { getEventBus } = await import('../events/index.js')
+      const { getEventBus } = await import('@cassicore/events')
       const eventBus = getEventBus()
 
       const sinceParam = url.searchParams.get('since') ?? '0'
@@ -142,7 +142,7 @@ export async function handleEventsRoutes(
     }
 
     try {
-      const { getEventBus } = await import('../events/index.js')
+      const { getEventBus } = await import('@cassicore/events')
       const eventBus = getEventBus()
 
       const events = eventBus.getAllEvents(sessionId)
@@ -162,7 +162,7 @@ export async function handleEventsRoutes(
     const globalStream = !sessionId || sessionId === '*'
 
     try {
-      const { getEventBus } = await import('../events/index.js')
+      const { getEventBus } = await import('@cassicore/events')
       const eventBus = getEventBus()
 
       const lastEventId = url.searchParams.get('lastEventId')

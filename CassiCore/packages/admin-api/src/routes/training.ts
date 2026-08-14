@@ -190,7 +190,7 @@ export async function handleTrainingRoutes(
           return true
         }
 
-        const { SdkTagger } = await import('../intelligence/training/sdk-tagger.js')
+        const { SdkTagger } = await import('@cassicore/training-trust-ledger')
         const sdkTagger = new SdkTagger(warehouse.store, deps.logger)
         const sdkModel = body?.model || 'claude-sonnet-4.5'
         sdkTagger.setProvenance(sdkModel, 'copilot-sdk')
@@ -268,7 +268,7 @@ export async function handleTrainingRoutes(
           sendJSON(res, 503, { error: 'Missing copilot-sdk provider or training warehouse' })
           return true
         }
-        const { BackgroundTaggerWorker } = await import('../intelligence/training/background-tagger-worker.js')
+        const { BackgroundTaggerWorker } = await import('@cassicore/training-trust-ledger')
         daemon.bgTaggerWorker = new BackgroundTaggerWorker(warehouse.store, sdkProvider, deps.logger)
         daemon.bgTaggerWorker.start()
         sendJSON(res, 200, { message: 'Background tagger worker created and started' })
@@ -304,7 +304,7 @@ export async function handleTrainingRoutes(
           sendJSON(res, 503, { error: 'Missing copilot-sdk provider or training warehouse' })
           return true
         }
-        const { BackgroundTaggerWorker } = await import('../intelligence/training/background-tagger-worker.js')
+        const { BackgroundTaggerWorker } = await import('@cassicore/training-trust-ledger')
         worker = new BackgroundTaggerWorker(warehouse.store, sdkProvider, deps.logger)
         // WHY: Start temporarily so triggerSession passes, then the loop will idle
         worker.start()

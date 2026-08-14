@@ -243,3 +243,7 @@ export {
   executeWebConsolidatedTool,
 } from './ports/mcp-consolidated-tools.js'
 export type { ToolSchema, RouteTool, ConsolidatedToolResult } from './ports/mcp-consolidated-tools.js'
+// P7 admin-api: constellation-store row/progress types
+export type { ConstellationSessionRow, ProgressSnapshot } from './constellation-store.js'
+export { ConstellationStore } from './constellation-store.js'
+export { analyzeConstellation } from './constellation-analyzer.js'

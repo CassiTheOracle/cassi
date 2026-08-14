@@ -502,6 +502,11 @@ export { HelixPostureRunner } from './helix-posture-runner.js'
 export { HelixPostureRunner as HelixAgentSession } from './helix-posture-runner.js'
 export { runHelixPipeline } from './helix-pipeline.js'
 export type { HelixPipelineOpts, HelixToolProfile } from './helix-pipeline.js'
+// P7 admin-api: shared helix session store + helix journal
+export { HelixSessionStore, getSharedHelixSessionStore } from './helix-session-store.js'
+export { HelixStore } from './helix-store.js'
+export { getSharedHelixJournal } from './helix-journal.js'
+export type { HelixJournal, HelixJournalEntry, HelixJournalEventType } from './helix-journal.js'
 
 export { TestLock } from './testlock.js'
 export type { SealedTestSpec, TestLockVerification, TestLockSeverity, TestLockVerificationStatus, TestLockPersistence } from './testlock.js'
