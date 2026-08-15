@@ -1,5 +1,5 @@
 /**
- * @cassicore/model-pool — RETAINED PORT SURFACE (CASSICORE-FOCUS §19 / §6 P2)
+ * @cassicore/model-pool — RETAINED PORT SURFACE (CASSICORE-FOCUS §19 / §6 P4)
  *
  * The mind-facing seam that survives P4. In the focused shape, ohmypi owns
  * providers + routing; the retained `ModelHandle` is the *mind's cast* over
@@ -7,20 +7,19 @@
  * ports/ module is the canonical retained surface; the pool machinery it
  * does NOT re-export (FallbackManager, BudgetManager, CapabilityCache,
  * billing-models, rate-limit/blocked/allowlist wiring, the provider-map
- * pool) is DELEGATE and deleted at P4 — see DELEGATE-SURFACE.md.
+ * pool, ModelPoolConfig/PoolStats) was DELETED at P4 — see DELEGATE-SURFACE.md.
  *
  * Mind consumers (helix, constellation, mini-helix, host radiance-loop)
  * import ONLY what is re-exported here: `ModelHandle`, `ModelCompletionOpts`,
- * `ModelCapabilities`, `ModelHandleImpl`, and the acquire-shim factory
+ * `ModelCapabilities`, `ModelHandleImpl`, and the acquire-shim factory type
  * `ModelPool` (the retained `acquire/release` contract the mind drives via
- * `setModelPool`).
+ * `setModelPool`). The P4 host builds the acquirer with
+ * `createMindCompleteAcquirer({ transport, logger })`.
  */
 
 // ── Retained handle types ──────────────────────────────────────────────────
 // Only the retained subset of ../types.js is re-exported. Budget/billing/
-// fallback machinery types (BillingModel, BudgetScope, FallbackChain, PoolEvent,
-// ModelSlotConfig, ModelPoolConfig, PoolStats, …) are intentionally NOT part of
-// the retained surface — they die with the delegate pool at P4.
+// fallback machinery types were deleted at P4 with the delegate pool.
 export type {
   ModelHandle,
   ModelCompletionOpts,
@@ -28,18 +27,15 @@ export type {
 } from '../types.js'
 
 // ── Retained handle runtime ────────────────────────────────────────────────
-// ModelHandleImpl is the retained completion runtime. Today it calls
-// providerInstance.complete() and tracks budget via BudgetManager; at P4 its
-// provider calls are retargeted to `mind_complete` / task-agents and the
-// budget/fallback tie-ins are stripped. Kept exported here as the retained
-// handle impl the retained factory returns.
+// ModelHandleImpl is the retained completion runtime, now retargeted to an
+// injected `mind_complete` transport (ohmypi owns providers/routing). Budget
+// and fallback tie-ins were stripped at P4.
 export { ModelHandleImpl } from '../model-handle.js'
 
 // ── Retained acquire-shim factory ──────────────────────────────────────────
 // The mind injects an acquirer via setModelPool() and calls
 //   pool.acquire(slot, template, sessionId, override?) -> Promise<ModelHandle>
-// Today the injected value is the delegate `ModelPool` class (exported from the
-// barrel for the host to construct). The retained surface treats `ModelPool` as
-// a type-only acquire-shim contract; at P4 the class is replaced by an
-// ohmypi-backed shim satisfying this same acquire/release shape.
+// At P4 the delegate `ModelPool` class was replaced by `createMindCompleteAcquirer`
+// (an ohmypi-backed shim satisfying this same acquire/release shape). The
+// retained surface treats `ModelPool` as a type-only acquire-shim contract.
 export type { ModelPool } from '../index.js'

@@ -1,86 +1,80 @@
 /**
- * ModelHandle - Lightweight Model Reference with Lifecycle Management
+ * @cassicore/model-pool — retained ModelHandleImpl (CASSICORE-FOCUS §19 / §6 P4)
+ *
+ * The retained completion runtime. At P4 the provider/budget/fallback tie-ins
+ * were stripped and `complete()`/`stream()` retarget the retained seam to a
+ * `mind_complete`-shaped transport (injected; ohmypi owns providers + routing).
+ *
+ * `stream()` is a single-shot adaptation: the retained `mind_complete`
+ * transport returns the full completion text, so the shim yields one `token`
+ * chunk (the full text) then a `done` chunk. Token-level streaming and
+ * `tool_use` chunks route through ohmypi task-agents (plan §2.3 option A) —
+ * not through this raw-completion shim. Consumers that need agentic tool loops
+ * should launch task agents; this handle is the raw-completion cast.
  */
 
-import type { ModelHandle, ModelCompletionOpts, ModelCapabilities, BudgetScope } from './types.js'
-import type { IProvider, TurnResult, Message, CompletionChunk } from '@cassicore/foundation'
+import type { ModelHandle, ModelCompletionOpts, ModelCapabilities } from './types.js'
+import type { TurnResult, Message, CompletionChunk } from '@cassicore/foundation'
 import type { ILogger } from '@cassicore/foundation'
-import { BudgetManager } from './budget-manager.js'
-import { FallbackManager } from './fallback-manager.js'
+import type { MindCompleteTransport } from './mind-complete.js'
 
-/**
- * Internal state for ModelHandle
- */
+/** Internal state for the retained handle. */
 interface ModelHandleState {
   released: boolean
   totalTokens: number
   requestCount: number
 }
 
+/** Constructor options for the retained, mind_complete-backed handle. */
+export interface ModelHandleImplOpts {
+  provider: string
+  model: string
+  capabilities: ModelCapabilities
+  transport: MindCompleteTransport
+  logger: ILogger
+  slotName: string
+  onRelease?: (handle: ModelHandleImpl) => void
+}
+
 /**
- * ModelHandle implementation
+ * ModelHandle implementation — retained completion runtime over an injected
+ * `mind_complete` transport.
  */
 export class ModelHandleImpl implements ModelHandle {
   readonly provider: string
   readonly model: string
   readonly capabilities: ModelCapabilities
-  readonly budgetScope?: BudgetScope
 
-  private readonly providerInstance: IProvider
-  private readonly budgetManager: BudgetManager
-  private readonly fallbackManager: FallbackManager
+  private readonly transport: MindCompleteTransport
   private readonly logger: ILogger
   readonly slotName: string
-  private readonly onRelease: (handle: ModelHandleImpl) => void
+  private readonly onRelease?: (handle: ModelHandleImpl) => void
   private state: ModelHandleState
 
-  constructor(
-    provider: string,
-    model: string,
-    capabilities: ModelCapabilities,
-    providerInstance: IProvider,
-    budgetManager: BudgetManager,
-    budgetScopeId: string | undefined,
-    logger: ILogger,
-    slotName: string,
-    onRelease: (handle: ModelHandleImpl) => void,
-    fallbackManager: FallbackManager,
-  ) {
-    this.provider = provider
-    this.model = model
-    this.capabilities = capabilities
-    this.providerInstance = providerInstance
-    this.budgetManager = budgetManager
-    this.fallbackManager = fallbackManager
-    this.logger = logger.child(`ModelHandle:${slotName}`)
-    this.slotName = slotName
-    this.onRelease = onRelease
+  constructor(opts: ModelHandleImplOpts) {
+    this.provider = opts.provider
+    this.model = opts.model
+    this.capabilities = opts.capabilities
+    this.transport = opts.transport
+    this.logger = opts.logger.child(`ModelHandle:${opts.slotName}`)
+    this.slotName = opts.slotName
+    this.onRelease = opts.onRelease
     this.state = {
       released: false,
       totalTokens: 0,
       requestCount: 0,
     }
 
-    if (budgetScopeId) {
-      const scope = this.budgetManager.getScope(budgetScopeId)
-      if (scope) {
-        this.budgetScope = scope
-      }
-    }
-
-    this.logger.debug('ModelHandle created', {
-      provider,
-      model,
-      capabilities: {
-        contextWindow: capabilities.contextWindow,
-        supportsTools: capabilities.supportsTools,
-        costTier: capabilities.costTier,
-      },
+    this.logger.debug('ModelHandle created (mind_complete-backed)', {
+      provider: opts.provider,
+      model: opts.model,
+      slotName: opts.slotName,
     })
   }
 
   /**
-   * Execute a completion request with the model.
+   * Execute a completion request with the model — routed through the retained
+   * `mind_complete` transport.
    */
   async complete(messages: Message[], opts: ModelCompletionOpts): Promise<TurnResult> {
     if (this.state.released) {
@@ -89,50 +83,31 @@ export class ModelHandleImpl implements ModelHandle {
       throw error
     }
 
-    if (this.budgetScope) {
-      const status = this.budgetManager.checkBudget(this.budgetScope.id)
-
-      if (!status.allowed) {
-        this.logger.warn('Budget exceeded — continuing execution (tracking only)', {
-          scopeId: this.budgetScope.id,
-          reason: status.reason,
-        })
-      }
-    }
-
     this.state.requestCount++
     const startTime = Date.now()
 
     try {
-      let content = ''
-      let totalTokens = 0
-
-      for await (const chunk of this.providerInstance.complete(
-        this.normalizeMessages(messages),
+      const resolved = { id: `${this.provider}/${this.model}` }
+      const { content, usage, model } = await this.transport(
+        resolved,
+        this.serializeMessages(messages),
         {
-          ...opts,
+          effort: undefined,
+          temperature: opts.temperature,
           model: this.model,
         },
-      )) {
-        if (chunk.type === 'token' || chunk.type === 'thinking') {
-          content += chunk.text ?? ''
-        }
+      )
 
-        if (chunk.tokensUsed) {
-          totalTokens += chunk.tokensUsed
-        }
-      }
-
+      const totalTokens = this.extractUsageTokens(usage)
+      this.state.totalTokens += totalTokens
       const durationMs = Date.now() - startTime
 
       const result: TurnResult = {
         response: content,
         tokensUsed: totalTokens,
-        model: this.model,
+        model: model ?? this.model,
         durationMs,
       }
-
-      await this.trackUsage(result)
 
       this.logger.debug('Completion successful', {
         model: this.model,
@@ -146,107 +121,72 @@ export class ModelHandleImpl implements ModelHandle {
         model: this.model,
         error: error instanceof Error ? error.message : String(error),
       })
-
-      // Auto-report failure to fallback manager
-      const failureReason = this.determineFailureReason(error)
-      this.fallbackManager.reportFailure(
-        this.slotName,
-        this.provider,
-        this.model,
-        failureReason,
-      )
-
       throw error
     }
   }
 
   /**
-   * Stream a completion request, yielding chunks for agentic tool loops.
-   * Provides the same budget checks and failure reporting as complete(),
-   * but exposes the raw chunk stream instead of aggregating.
+   * Stream a completion request — single-shot `mind_complete` adaptation:
+   * yields the full text as one `token` chunk followed by a `done` chunk.
    */
   async *stream(messages: Message[], opts: ModelCompletionOpts): AsyncIterable<CompletionChunk> {
     if (this.state.released) {
       throw new Error('ModelHandle has been released')
     }
 
-    if (this.budgetScope) {
-      const status = this.budgetManager.checkBudget(this.budgetScope.id)
-      if (!status.allowed) {
-        this.logger.warn('Budget exceeded — continuing execution (tracking only)', {
-          scopeId: this.budgetScope.id,
-          reason: status.reason,
-        })
-      }
-    }
-
     this.state.requestCount++
-    let totalTokens = 0
     const startTime = Date.now()
+    let totalTokens = 0
 
     try {
-      for await (const chunk of this.providerInstance.complete(
-        this.normalizeMessages(messages),
+      const resolved = { id: `${this.provider}/${this.model}` }
+      const { content, usage, model } = await this.transport(
+        resolved,
+        this.serializeMessages(messages),
         {
-          ...opts,
+          effort: undefined,
+          temperature: opts.temperature,
           model: this.model,
         },
-      )) {
-        if (chunk.tokensUsed) {
-          totalTokens += chunk.tokensUsed
+      )
+
+      totalTokens = this.extractUsageTokens(usage)
+
+      if (content) {
+        yield {
+          type: 'token',
+          text: content,
+          tokensUsed: totalTokens,
         }
-        yield chunk
       }
 
-      // Track usage on successful completion
-      const durationMs = Date.now() - startTime
       this.state.totalTokens += totalTokens
-      if (this.budgetScope) {
-        await this.budgetManager.trackUsage(this.budgetScope.id, {
-          inputTokens: 0,
-          outputTokens: totalTokens,
-          requests: 1,
-        })
+      const durationMs = Date.now() - startTime
+      this.logger.debug('Stream completed (single-shot)', {
+        model: this.model,
+        tokens: totalTokens,
+        durationMs,
+      })
+
+      yield {
+        type: 'done',
+        tokensUsed: totalTokens,
+        model: model ?? this.model,
       }
-      this.logger.debug('Stream completed', { model: this.model, tokens: totalTokens, durationMs })
     } catch (error) {
       this.logger.error('Stream failed', {
         model: this.model,
         error: error instanceof Error ? error.message : String(error),
       })
-      const failureReason = this.determineFailureReason(error)
-      this.fallbackManager.reportFailure(this.slotName, this.provider, this.model, failureReason)
-      throw error
+      yield {
+        type: 'error',
+        error: error instanceof Error ? error.message : String(error),
+      }
     }
   }
 
   /**
-   * Determine the failure reason from an error.
-   */
-  private determineFailureReason(error: unknown): 'rate_limit' | 'timeout' | 'model_unavailable' | 'budget_exceeded' | 'circuit_open' | 'error' {
-    if (error instanceof Error) {
-      const err = error as any
-      const status = err.status || err.response?.status
-      
-      if (status === 429) return 'rate_limit'
-      if (status === 408 || status === 504) return 'timeout'
-      if (status === 503) return 'model_unavailable'
-      if (status >= 500) return 'error'
-      
-      // Check error message for hints
-      const message = err.message?.toLowerCase() || ''
-      if (message.includes('rate limit')) return 'rate_limit'
-      if (message.includes('timeout')) return 'timeout'
-      if (message.includes('unavailable')) return 'model_unavailable'
-      if (message.includes('budget')) return 'budget_exceeded'
-      if (message.includes('circuit')) return 'circuit_open'
-    }
-    
-    return 'error'
-  }
-
-  /**
-   * Release the model back to the pool.
+   * Release the model back to the pool (no-op bookkeeping; ohmypi owns the pool).
    */
   release(): void {
     if (this.state.released) {
@@ -262,7 +202,7 @@ export class ModelHandleImpl implements ModelHandle {
       requestCount: this.state.requestCount,
     })
 
-    this.onRelease(this)
+    this.onRelease?.(this)
   }
 
   /**
@@ -276,7 +216,7 @@ export class ModelHandleImpl implements ModelHandle {
   }
 
   /**
-   * Get current usage statistics.
+   * Get current usage statistics (retained for compatibility).
    */
   getStats(): {
     totalTokens: number
@@ -288,31 +228,35 @@ export class ModelHandleImpl implements ModelHandle {
     return {
       totalTokens: this.state.totalTokens,
       totalInputTokens: 0,
-      totalOutputTokens: 0,
+      totalOutputTokens: this.state.totalTokens,
       requestCount: this.state.requestCount,
       released: this.state.released,
     }
   }
 
-  /**
-   * Normalize messages for the provider.
-   */
-  private normalizeMessages(messages: Message[]): Message[] {
-    return messages
+  /** Flatten foundation Messages (string | ContentBlock[]) to text for transport. */
+  private serializeMessages(messages: Message[]): Array<{ role: string; content: string }> {
+    return messages.map((m) => ({
+      role: m.role,
+      content:
+        typeof m.content === 'string'
+          ? m.content
+          : Array.isArray(m.content)
+            ? m.content
+                .map((b) => (b && typeof b === 'object' && 'text' in b && typeof (b as any).text === 'string' ? (b as any).text : ''))
+                .filter(Boolean)
+                .join('\n')
+            : String(m.content),
+    }))
   }
 
-  /**
-   * Track token usage in the budget manager.
-   */
-  private async trackUsage(result: TurnResult): Promise<void> {
-    if (!this.budgetScope) return
-
-    this.state.totalTokens += result.tokensUsed
-
-    await this.budgetManager.trackUsage(this.budgetScope.id, {
-      inputTokens: 0,
-      outputTokens: result.tokensUsed,
-      requests: 1,
-    })
+  /** Extract a token count from the transport's usage payload when surfaced. */
+  private extractUsageTokens(usage: unknown): number {
+    if (!usage || typeof usage !== 'object') return 0
+    const u = usage as Record<string, unknown>
+    if (typeof u.totalTokens === 'number') return u.totalTokens
+    if (typeof u.outputTokens === 'number') return u.outputTokens
+    if (typeof u.total_tokens === 'number') return u.total_tokens
+    return 0
   }
 }

@@ -7,13 +7,14 @@
 
 ---
 
-## Bottom line for the P4 executor
+## Bottom line
 
 The mind keeps ONLY the `ModelHandle` cast + a shim of `acquire/release` that
 produces an **ohmypi-backed** handle (calls `mind_complete` or spawns a task
 agent). Budget/billing/fallback/centralized routing is dropped — ohmypi owns
-routing. **This phase only restructures and documents; the machinery is still
-wired by the host and MUST stay alive until P4 cuts it over.** No deletion here.
+routing. **Executed at P4 (2026-08-14):** the delegate machinery + host provider
+pool were deleted and replaced by `createMindCompleteAcquirer(...)`. Full checklist
+in §4 below.
 
 ---
 
@@ -114,22 +115,48 @@ both routes; at P4 its runtime (currently `ModelHandleImpl` over
 
 ---
 
-## 4. P4 executor checklist
+## 4. P4 executor checklist — **DONE (2026-08-14, P4 model-access cutover)**
 
-1. `git rm` (history-preserving) or gut: `fallback-manager.ts`, `budget-manager.ts`,
+> **Status: COMPLETE.** Model-access cutover executed in P4. The retained `ModelHandle`
+> seam now routes through an injected `mind_complete` transport
+> (`src/mind-complete.ts`, mirroring the spine bridge); the `ModelPool` class was
+> replaced by `createMindCompleteAcquirer(...)` — a thin ohmypi-backed acquirer
+> keeping the `acquire/release → ModelHandle` contract. Host + model-pool no
+> longer import `@cassicore/providers`/`@cassicore/ai` (zero importers; both
+> packages deleted). Pool-machinery suites died (model-pool 32 → 10 retained-handle
+> tests).
+
+1. ✅ `git rm` (history-preserving): `fallback-manager.ts`, `budget-manager.ts`,
    `capability-cache.ts`, `model-capabilities.ts`, `billing-models.ts` and the
    delegate types in `types.ts`.
-2. Strip budget/fallback fields from `ModelHandleImpl` + `ModelHandle`
-   (`budgetScope?`), and drop `determineFailureReason`.
-3. Replace `ModelPool` class in `index.ts` with a thin ohmypi-backed acquirer
-   (keeps `acquire`/`release` returning `ModelHandle`) — OR delete the class and
-   make host inject the shim directly.
-4. Delete `ModelPoolConfig`/`PoolStats`/`fallbackChains`/`budgetScopes` wiring from
-   the host (`daemon.ts` §1443-1470).
-5. Delete `@cassicore/providers` dep from the package manifest (`billing-models.ts`
-   was its only consumer).
-6. Re-run retained mind suites (helix 75, constellation 568, mini-helix 21) +
-   host 17. model-pool's own 32 tests (pool machinery) die with the class.
+2. ✅ Stripped budget/fallback fields from `ModelHandleImpl` + `ModelHandle`
+   (`budgetScope?`), and dropped `determineFailureReason` — the retained handle
+   is a `mind_complete`-backed cast (`src/model-handle.ts`).
+3. ✅ Replaced the `ModelPool` class in `index.ts` with a thin ohmypi-backed
+   acquirer — `createMindCompleteAcquirer({ transport, logger })` keeps
+   `acquire`/`release` returning a retained `ModelHandle` (interface `ModelPool`
+   retained for `setModelPool`).
+4. ✅ Deleted `ModelPoolConfig`/`PoolStats`/`fallbackChains`/`budgetScopes` wiring
+   from the host (`daemon.ts` §1443-1470 → `createMindCompleteAcquirer(...)`).
+5. ✅ Deleted `@cassicore/providers` dep from the package manifest
+   (`billing-models.ts` was its only consumer); `@cassicore/ai` dep also removed.
+6. ✅ Re-ran retained mind suites (helix 75, constellation 568, mini-helix 21) +
+   host 17. model-pool's own 32 tests (pool machinery) died with the class;
+   replaced by 10 retained-handle tests.
+
+**Shim design (the retained acquire contract):**
+```ts
+createMindCompleteAcquirer({ transport, logger })
+  .acquire(slot, template?, sessionId?, override?) → Promise<ModelHandle>
+```
+Each handle is a `ModelHandleImpl` bound to `transport` (a `MindCompleteTransport`,
+mirroring the spine `mind_complete` bridge). `complete()` returns one `TurnResult`;
+`stream()` is a single-shot adaptation (one `token` chunk + `done`). The default
+transport throws a documented 'not wired' error — the transitional P4 state until
+the spine/ohmypi path is live (P5/P6).
+
+---
+
 
 **Test impact (P2):** no tests deleted — model-pool 32 still green; machinery kept.
 
