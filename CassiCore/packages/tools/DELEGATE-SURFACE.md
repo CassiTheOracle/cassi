@@ -80,14 +80,19 @@ Retained mind tools (name → file → registration today):
 
 **Test files (mind slice):** retained tests live under `packages/tools/tests/host-wired/`
 (quarantined from the default run — they exercise the retained handlers):
-`cognitive-tools.test.ts`, `collect-thoughts.test.ts`, `tool-executor.test.ts`,
-`tool-presentation.test.ts`. Plus shared `tool-registry.test.ts` /
-`interactive-tool-session.test.ts` (retained type surface).
+`collect-thoughts.test.ts`, `tool-executor.test.ts`, `tool-presentation.test.ts`.
+Plus shared `tool-registry.test.ts` / `interactive-tool-session.test.ts` (retained
+type surface). `cognitive-tools.test.ts` was **deleted at P5** with the handlers it
+tested.
 
-**Redundancy note (P5):** per focus-plan §3.3/§7.5, `_reflect`/`_remember`/`remember`
-merge into ohmypi memory built-ins over the shared MnemicField once the memory
-backend lands, and are DELETED. Their registration seam (`cognitiveToolDeps`) is
-kept until then.
+**Redundancy note (P5 — DONE 2026-08-14):** per focus-plan §3.3/§7.5, `_reflect`/
+`_remember`/`remember`/`memory_search` merged into ohmypi memory built-ins over the
+shared MnemicField and were DELETED (`cognitive-tools.ts` + `memory-search.ts` removed;
+registration + the `cognitiveToolDeps` seam removed from `registerCoreTools`/
+`registerMindTools`). KEPT: `collect_thoughts` + `graph_discover` (cognitive ops on the
+field's structure, not memory read/write). The retained consolidated mind-tool schemas
+extracted from `@cassicore/mcp-gateway` now live at `packages/tools/src/schemas/
+mcp-consolidated/` (§28; helix consumer repointed to `@cassicore/tools/schemas`).
 
 ---
 

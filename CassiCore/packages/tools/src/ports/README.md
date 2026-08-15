@@ -63,7 +63,6 @@ fallback centralized routing is dropped (ohmypi owns routing).
 |---|---|---|
 | `CollectThoughtsDeps` | `tools/src/implementations/collect-thoughts.ts` | `CoreToolDeps.collectThoughtsDeps`; registered via `makeCollectThoughtsHandler` |
 | `GraphDiscoverDeps` (+ `setGraphDiscoverDeps` runtime) | `tools/src/implementations/graph-discover.ts` | constellation-pipeline re-points `setGraphDiscoverDeps` at runtime |
-| `CognitiveToolDeps` | `tools/src/implementations/cognitive-tools.ts` | `CoreToolDeps.cognitiveToolDeps`; `_reflect`/`_remember` (P5-redundant, kept seam) |
 | `PeerToolDeps` | `tools/src/implementations/peer-coordination.ts` | `CoreToolDeps.peerToolDeps`; `_coordinate`/`_check_peers` |
 
 ### Host-injected seam types (new in P1) — `tools/src/ports/`

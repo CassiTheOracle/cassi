@@ -7,15 +7,16 @@
 The P0–P8 modular migration of the CassiCore monorepo is **complete**:
 foundation through the thin host, the standalone `@cassicore/ai` provider
 layer, and all 7 remaining entry-surface apps were landed; **P6 (2026-08-14,
-owner-ratified) removed the 4 UI apps + 3 external bridges**, leaving 31
-packages that typecheck **0 errors**, and every retained package's test suite
-is green. **P3 (2026-08-14) added the focused mind runtime + spine** (below).
-**P4 (2026-08-14) executed the model-access cutover** — slimmed
-`@cassicore/model-pool` to the retained `ModelHandle` shim + a `mind_complete`
-acquirer, deleted `@cassicore/providers` + `@cassicore/ai`, and re-pointed the
-host's provider pool to the retained shim (transitional; no provider/ai
-importer remains). This file records the landed surface, count totals,
-quarantines, and remaining work.
+owner-ratified) removed the 4 UI apps + 3 external bridges**; **P4 (2026-08-14)
+executed the model-access cutover** (slimmed `@cassicore/model-pool`, deleted
+`@cassicore/providers` + `@cassicore/ai`); **P5 (2026-08-14) executed the
+sessions cutover + memory backend** — the retained brain + host composition
+folded into `@cassicore/mind-runtime`, the admin mind-health read slice folded
+into `mind-runtime/src/health`, the mcp-gateway consolidated schemas re-homed
+into `@cassicore/tools/schemas`, and the standalone host/session/tool-surface
+packages (`host` surface, `pipeline`, `commands`, `workers`, `plugins`, `jobs`,
+`mcp`, `admin-api`, `mcp-gateway`) retired. All remaining packages typecheck
+**0 errors** and every retained suite is green.
 
 ---
 
@@ -179,7 +180,7 @@ fidelity; `registerMindTools` is the P3 retained-mind registration seam
 | workflow | — | passWithNoTests |
 | workspace | 1 | 17 |
 
-**All 31 packages typecheck 0 errors; all suites green.**
+**23 retained packages typecheck 0 errors; all retained suites green (2336 tests).**
 
 > **P6 (2026-08-14):** removed the 7 passWithNoTests standalone apps/bridges
 > (`cassi-tui`, `cassi-watch`, `prism`, `webui`, `claude-code-mcp`,
@@ -195,6 +196,24 @@ fidelity; `registerMindTools` is the P3 retained-mind registration seam
 > model-pool 10, admin-api 9, …) is green. The host's provider pool was
 > replaced by the retained `mind_complete` acquirer (transitional — completions
 > ride the shim until the spine/ohmypi path is live, P5/P6).
+>
+> **P5 (2026-08-14) sessions cutover — test-gate relaunch:**
+> deleted the standalone host surface (`host` → empty-shell placeholder), the
+> session/tool-surface packages (`pipeline`, `commands`, `workers`, `plugins`,
+> `jobs`, `mcp`, `admin-api`, `mcp-gateway`), and the redundant memory mind
+> tools (`_reflect`/`_remember`/`remember`/`memory_search`). The retained brain
+> (`createIntelligence` + vendored `core/intelligence/**`) moved into
+> `@cassicore/mind-runtime` (`src/vendor/`); the admin mind-health read slice
+> folded into `mind-runtime/src/health` (+4 tests); the mcp-gateway consolidated
+> schemas re-homed into `@cassicore/tools/schemas`; the pipeline overflow/
+> classification helpers moved to `@cassicore/utils`. **New total: 2336 passed
+> (from 2498)** — dropped: host 17, admin-api 9, mcp-gateway 40, pipeline 2,
+> workers 97, commands/plugins/jobs/mcp passWithNoTests, + the 4 deleted memory
+> tools' coverage. Added: mind-runtime health (+4, 22 → 25). Every retained
+> suite (helix 75, constellation 568, aurora 698, mnemic-field 89, tools 39,
+> spine 16, mind-runtime 25, …) stays green. Zero-import guard clean: no
+> retained package imports `@cassicore/pipeline|commands|workers|plugins|jobs|
+> mcp|admin-api|mcp-gateway|host`.
 
 ### Quarantined to `tests/host-wired/` (excluded from default runs)
 
