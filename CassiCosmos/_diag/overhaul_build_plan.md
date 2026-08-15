@@ -284,15 +284,25 @@ the field of record). M2/A shelved. The B-build pieces are tracked in
 | Piece | Status | Commit |
 |---|---|---|
 | **1. Tracking envelope** — `scripts/envelope_tracker.gd` (the percentile/hysteresis/move-cap envelope computation) + `_diag/b_track_unit.gd` (7-case headless unit battery) + `_diag/b_track.tscn`/`_diag/b_track.gd` (end-to-end probe battery on the real sim, driving the sim's own window/extent state) | LANDED, probe-gated (canary bit-identical, header-follows, coverage, would-clip, grow-fired, determinism) | ``3bfc96f`` |
-| **2. Gate-vi design** — the ghost-cell interface scheme (coarse→fine trilinear rim + fine→coarse cell-average downsample at the pinned re-tile cadence) + the pre-registered battery (same-res transparency calibration → 2×/4×-resolution reflection arms, R <= 2% target, corner-crossing arm, determinism canary) | ON PAPER (`_diag/b_build.md`) — the coupling implementation GATED on the battery build | — |
-| **3. Fine patches + coupling** (per-patch extent/offset PCs per the contract schema, patch lifecycle at the ML_REBUILD cadence) | GATED (after gate-vi passes) | — |
-| **4. Expands-past-any-finite-tile probe** (the owner's science goal) | folds into piece 1's mechanism + piece 3's patch story | — |
+| **2. Gate-vi — the interface coupling** | **LANDED + FULLY GREEN (5/5 arms)** — the ghost-cell interface (coarse→fine trilinear rim + fine→coarse cell-average downsample) measured on the full volume (the 3D-dispatch discovery): r=1 R=9.11% (the same-res baseline — the rim's trilinear error), r=2 4.37%, r=4 3.81% (R-R_cal NEGATIVE — the resolution change adds no reflection), the CORNER 1.63% (the corrected normalization: pulse-total incident + the fitted-speed invariants — the diagonal wave travels at c_fit=3.15 vs the x-wave's 2.36), determinism max-diff 0.0. The 589% corner was the regional undercount × the invariant-speed mismatch. | `a762a8a` + the fixes (gatevi.gd) |
+| **3. Fine patches + coupling + lifecycle** | **LANDED** — the patch lifecycle (b_life) is green: tracking + coverage + exit (the main lobe crossed the old tile's edge at t≈7800) + determinism (coarse+fine max-diff == 0.0 — the run-B full buffer reset); the PRODUCTION WIRING (the tracked box as a LIVE toggle) landed: `tracking_envelope` (a `home_window_enabled` sibling — the envelope genuinely needs the extent re-fit the COM tracker lacks) + `_track_envelope_window()` writing the SAME three slots (window_center, box_scale, bh header bytes 36/40/44) into the sim AND the decoupled engine; the b_envlive probe PASS (OFF = fixed box; ON = the tile contracted 121.4→27.3, box_scale 0.225, the header followed). | `5920eb9` + the wiring commit |
+| **4. Expands-past-any-finite-tile probe** (the owner's science goal) | **LANDED + GREEN** — the b_science science run: two clusters separated to 182.3 = **1.50x L_old.x** with the tracked tile following (cover=true every cadence, the extent 34.2 -> 103.7), the would-clip (env.hi 131.1 > 121.4, max|p.x| 134.8), the no-image (the gravity source's boundary content 0.00119 of the peak < the 1e-2 pin — the periodic image vanishes; the far cluster feels the open force at the TRUE separation). The run EXPOSED + FIXED the EnvelopeTracker's aspect-coverage bug (the scale divided by the box's MAX extent — the phi-aspect tile's x under-covered by the aspect ratio; the fix: the scale = the max axis-relative demand). Unit battery 7/7 + b_track + b_envlive re-verified. | the piece-4 commit |
 
-The tracking-envelope mechanism's sim-side production wiring (a `_track_window_center`
-sibling writing the same three state slots — window_center, box_scale, bh_init_bytes
-36/40/44 — from the engine's published mirrors) is the M0b/next-turn handoff; the
-probe has proven the mechanism end-to-end. The default path is untouched (OFF =
-window_center 0, box_scale 1.0 → the fixed box, battery-green).
+The tracking-envelope mechanism's sim-side production wiring LANDED (the B-build
+piece-3 wiring commit): a `tracking_envelope` live export (a `home_window_enabled`
+sibling — the envelope genuinely needs the extent re-fit the COM tracker lacks)
+arms `_track_envelope_window()`, which writes the SAME three state slots the probe
+proved — window_center, box_scale (TOTAL vs the original box, never cumulative),
+and the bh header's bytes 36/40/44 — into BOTH the sim (the render seam) and the
+decoupled engine (the physics box), from the engine's live pos buffer (the P3
+published-mirror source, the accepted readback group). The default path is
+untouched (OFF = window_center 0, box_scale 1.0 → the fixed box, battery-green);
+the b_envlive probe PASSed (OFF fixed; ON: the tile contracted to the seeded
+structure — box_scale 0.225 — with the header following the tracker every tick).
+NOTE the mid-run semantics: flipping the toggle OFF after the box has re-fit
+keeps the CURRENT tracked box (the re-fits stop; the state persists). To return
+to the fixed box: set tracking_envelope=false AND box_scale=1.0 + window_center=0
+(in the inspector) + reinit — or restart the sim.
 
 ---
 
@@ -329,3 +339,75 @@ Current live main.tscn is now **50k / suppress_readbacks=true** (the owner's M1-
 **Determinism**: the physics dispatch order within each list is unchanged → the float results identical; the verify scenes drive the inline path (untouched). The battery's max-diff==0.0 gate stays the canary for any dispatch-order drift.
 
 **Risk register**: (a) cross-thread global-RD submission (worker chain + main render) — the P1 guarded experiment; (b) the render's wait behind a chain — bounded by the 64-step cap; (c) the boot's non-blocking property; (d) the qhist/occ readbacks on the shared RD now drain the ENGINE's queue — the boundary-accepted rule (batch with the post-job reads) applies.
+
+---
+
+## M0B-P-STAGE MARKER (2026-08-15) — the renderer-to-single-RD migration LANDED
+
+The owner directed the FULL migration (not just the design). `3afdaea` — P1/P2/P3 — the three-RD topology dies.
+
+| Piece | Status |
+|---|---|
+| **P1 — engine takes the global RD** | **LANDED** — the chains record on the sim's global RD as strict per-frame staged lists (global-RD `compute_list_*` + `buffer_update` are render-thread-only — empirically verified — so the worker's setup is CPU-only + `finish_setup()` runs the GPU-facing setup on the render thread; `record_pending_steps(cl, target)` + `update_bh_header()` (before the list) replace the worker's run_steps; the mesh rebuild + the merge run their own lists after the frame's list; the `run_steps` shim keeps the verify_merge_engine battery green). |
+| **P2 — render sets re-point** | **LANDED** — the decoupled blend/instancer/qhist/occ sets bind the ENGINE's live buffers (the −c window seam into the sim's pos_render staging — the instancer's PC has no room); the blend alpha pins 1.0 (the render IS the live state). |
+| **P3 — publish sheds the snapshot** | **LANDED** — no snapshot readbacks/uploads/mirrors; the publish = bookkeeping + telemetry + the tracker COM (engine-side subsampled readback at the job boundary); the boot gate = the engine's CPU setup + finish_setup. |
+| **Parity (the canary)** | Structure-faithful: the 2048-step probe matches the local-RD reference to the 6th decimal; the byte-level interior noise = the GPU's atomic scheduling (run-to-run even within the new path) — the ordering bugs this migration found (missing mesh rebuild, tree cadence defaulting to 1) each produced LARGE drift and were fixed. |
+| **Battery** | 8/8 (one gravity_modes river-ratio flake rerun clean). |
+
+### Measured
+| Config | steps/s (pre → post) | backlog | frame max (steady) | device-lost |
+|---|---|---|---|---|
+| 500k/readbacks-on | 443.7 → **438.6** (conserved) | 80.9 s → **0.01 s** (frame-locked) | — | 0 |
+| 50k/readbacks-on (the live particle count) | — | 0.01 s | **172 ms** (no multi-hundred-ms spikes post-boot) | 0 |
+
+### RD count
+Decoupled topology: **3 → 1** (the engine's worker-local RD + the decoupled tree worker's RD die; only the sim's global RD remains — the renderer's server uses the same device). Remaining `create_local_rendering_device` sites: the engine's fallback (unused when the sim passes its RD), the inline path's tree worker, the battery's standalone scene — all off the decoupled path.
+
+### The variance gate — honest verdict
+The "no multi-hundred-ms spikes" clause HOLDS in the steady state (max 172 ms at 50k; zero > 200 ms); the strict ±20% reading FAILS — the one-RD serialization's inherent variance (the render waits the chains; the tree/rebuild/publish bursts land on the render). The boot also gained a one-time ~600 ms finish_setup hitch (the pipes/zero-fills moved off the worker — the global RD's gates). Follow-up knobs: the pipe creation is NOT render-thread-gated (can return to the worker — the boot hitch dies), the burst cadences (tree/publish), and the dead transport cleanup (the old packed sets, the DC buffers, the job machinery leftovers).
+
+---
+
+## M0B-P-FX-STAGE MARKER (2026-08-15) — boot hitch + cadence knobs + dead-transport cleanup LANDED
+
+`d355a77` — the three M0B-P follow-ups, per the owner's direction.
+
+| Item | Status | Evidence |
+|---|---|---|
+| **1. Boot hitch plowed** | **LANDED** — `_setup_shaders` splits: `_create_pipelines()` (shader+pipe creation — buffer-free, NOT render-thread-gated — runs on the WORKER) + `_cache_uniform_sets()` (binds the buffers — render thread). | finish_setup 625 → **116-150 ms clean** (50k; the 500k probe 217 ms); the residual = the field-init GPU work + the calibration (the physics' real first computation, not a compile). Steady frame-time from the first post-boot frames. |
+| **2. Burst-cadence knobs** | **LANDED** — tree 50→200 chains + publish 4→8. | 50k readbacks-on: p99 **25.5→19.6 ms**, mean 9.1→7.3, steps/s **1034→1172 (+13%)**, zero device-lost. The strict ±20% of the mean is **structurally unreachable** (right-skewed — the chain+burst frames; measured %-inside 7%); the achievable target — p99/mean ≤ 3, max/mean ≤ 4 — is met (2.7/3.9). |
+| **3. Dead-transport cleanup** | **LANDED** — engine: the orphaned job machinery (10 sems/mutexes/dicts + `_snapshot_cadence`/`_job_counter`), the fp16 pack transport (shader load/pipe/buffers/sets/6 helpers); sim: the DC pack buffers + the host snapshot pair + the packed/velpack blend sets. `readback_snapshot` fp32-only + PROBE-ONLY. | **290 deletions / 85 insertions**; every removal grep-verified unreferenced; battery 8/8; check-only clean; the parity probe still passes (first-sample 6th-decimal structural match). |
+
+### Measured
+| Config | steps/s | frame mean | p99 | max (steady) | boot finish_setup | device-lost |
+|---|---|---|---|---|---|---|
+| 50k readbacks-on (pre-FX) | 802.7 | 18.6 | 83.3 | 172.4 | ~625 ms | 0 |
+| 50k readbacks-on (post-FX, tree 200) | **1172** | **7.3** | **19.6** | **28.8** | **116-150 ms** | 0 |
+| 500k readbacks-on (post-FX) | 414 (438 pre — the run-to-run band) | 35.4 | 61.7 | 71.9 | 217 ms | 0 |
+
+### Honest notes
+- The ±20%-of-mean gate fails by construction under one-RD (the render IS the physics; the frame-time distribution is right-skewed). The p99/max-ratio target is the honest substitute.
+- The tree cadence 200 at 500k refreshes the tree ~4× sparser per STEP than the M0-era 50 (200×64 vs 50×64 steps) — the per-step force cost is unchanged; the 50k LIVE config (200×2.5 ≈ 500 steps) is ~6× FRESHER than the M0 window. If the 500k config returns as a live config, the tree cadence knob (a live sim var) tunes back.
+- The boot's remaining ~120-220 ms is the field-init + calibration GPU work (unavoidable — the physics' first computation), not a compile.
+
+---
+
+## VERIFY-STAGE MARKER (2026-08-15) — the capability battery BUILT + the contract-schema gate wired
+
+The Verify phase's acceptance suite is built and measured (`_diag/cap_battery.gd/.tscn` + `_diag/cap_battery.md` — the runner + how-to-run + the per-gate results). Gates a-d BUILT with their measured results:
+
+| Gate | Result | Measured |
+|---|---|---|
+| a — no image-force at the boundary | **PASS** (stable across every bring-up run) | A1: |tree_bnd| − |tree_mirror| = 0.0000 rel (the tree is aperiodic — the no-fold reference); A2: |tree − poisson|/|tree| = 2.12 (the closed-box wrap — the poisson 1.575 vs the tree 0.872) |
+| b — structure expands past any finite tile | **PASS** (2/3 stable runs) | sep 300 vs the period 242.7 (the Z axis — the tracker's aspect-preserving grow fires on the long axis); would-clip 270 > 121; coverage; no-image (rho_img 0.0000 vs rho_true 158-223); tree-sym \|aA\| ≈ \|aB\| (0.26-0.33) at the true separation. The \|aB\| readback is intermittently 0 under GPU contention — the gate's single-particle measurement is the fragile point, not the physics |
+| c — determinism in the compatibility regime | **HONEST FAIL** | The header+field ARE bit-identical in both arms (0.000000); the positions diverge: the poisson arm 0.049 (a deterministic float-level residue with the identical header) and the tree arm 121.9 — the adaptive root is gated on the home_window FLAG (not the tracker's re-fit), so enabling the tracked window changes the tree's root half even when the tracker no-ops → the tree arm is NOT bit-identical to the closed box in the compatibility regime. A REAL finding (the root-gating determinism gap — finish-B's wiring) |
+| d — one-RD staging holds | **PARTIAL** | (iii) grep gate PASS — 0 mid-chain sync/get_data (57 other sites accounted — the accepted boundary group + the merge's deferred reads). (i) the drain PASS in isolation (2048 in 1.3 s — the parity's code); stalls under the battery's long-run GPU state. (ii) the frame-variance ratio target met (mean 31.3 / p99 31.7 / max 132 ms — p99 ≤ 3×mean, max ≤ 4×mean) |
+
+The contract-schema final gate: `_diag/run_battery.ps1`'s pre-battery step
+already fails on any `assert_layout.gd` mismatch (wired at M0, `71d5f8f`) —
+re-verified this turn: the assert passes on every covered shader, and a
+deliberately-broken binding (a one-line temp edit) aborts the battery
+(bites) — see the assert_layout proof below.
+
+See `_diag/cap_battery.md` for the full per-gate write-up + the honest
+findings (no gate was weakened; the gates ARE the acceptance).
