@@ -1,7 +1,7 @@
 # CassiCore P7/P8 Migration Status
 
 **Date:** 2026-08-14
-**Root:** `packages/*` (33 packages under `@cassicore/*`: 31 landed + P3 `mind-runtime`/`spine`)
+**Root:** `packages/*` (31 packages under `@cassicore/*`: 29 landed + P3 `mind-runtime`/`spine`)
 **Source (read-only):** `D:\carina\workspaces\cassicore` (committed `d63358da`)
 
 The P0–P8 modular migration of the CassiCore monorepo is **complete**:
@@ -10,11 +10,16 @@ layer, and all 7 remaining entry-surface apps were landed; **P6 (2026-08-14,
 owner-ratified) removed the 4 UI apps + 3 external bridges**, leaving 31
 packages that typecheck **0 errors**, and every retained package's test suite
 is green. **P3 (2026-08-14) added the focused mind runtime + spine** (below).
-This file records the landed surface, count totals, quarantines, and remaining work.
+**P4 (2026-08-14) executed the model-access cutover** — slimmed
+`@cassicore/model-pool` to the retained `ModelHandle` shim + a `mind_complete`
+acquirer, deleted `@cassicore/providers` + `@cassicore/ai`, and re-pointed the
+host's provider pool to the retained shim (transitional; no provider/ai
+importer remains). This file records the landed surface, count totals,
+quarantines, and remaining work.
 
 ---
 
-## 1. Packages landed (31 + 2 P3 = 33)
+## 1. Packages landed (29 + 2 P3 = 31; P4 deleted providers + ai)
 
 All migrated with **history-preserving import splices** (two-stage filter-repo
 `--path` → `--path-rename`; per-file flags to avoid the Windows fast-import
@@ -33,7 +38,7 @@ flush `OSError [Errno 22]`). No mailmap; import merges use
 | P2 | `@cassicore/workflow` | `core/workflow/*` | WorkflowEngine/Registry |
 | P3 | `@cassicore/pipeline` | `core/session-pipeline/*`, `core/pipeline/*` | TurnPipeline + SessionPipeline |
 | P3 | `@cassicore/mcp` | `core/mcp/*` | MCP client/registry |
-| P3 | `@cassicore/model-pool` | `core/model-pool/*` | ModelPool |
+| P3 | `@cassicore/model-pool` | `core/model-pool/*` | ModelPool — **P4 slimmed to retained `ModelHandle` shim + `mind_complete` acquirer** |
 | P4 | `@cassicore/mnemic-field` | `core/intelligence/mnemic-field/*` | MnemicField |
 | P4 | `@cassicore/cortex-pineal-dialectic` | `core/intelligence/{cortex,dialectic,dmn,pineal}/*` | CPD |
 | P4 | `@cassicore/lamina-locus-bridge` | `core/intelligence/{lamina,locus-bridge}/*` | lamina + locus-bridge |
@@ -48,11 +53,9 @@ flush `OSError [Errno 22]`). No mailmap; import merges use
 | P5 | `@cassicore/mini-helix` | `core/intelligence/mini-helix/*` | Mini-Helix |
 | P5 | `@cassicore/training-trust-ledger` | `core/intelligence/{training,trust-ledger}/*` | Training + trust ledger |
 | P6 | `@cassicore/tools` | `core/tools/*` | ToolExecutor/ToolRegistry |
-| P7 | `@cassicore/providers` | `core/providers/*` (live) | model provider SDK clients |
 | P7 | `@cassicore/admin-api` | `core/admin-api.ts` + `core/admin-api/*` | HTTP route registry (55 files) |
 | P7 | `@cassicore/mcp-gateway` | `mcp/*` (42 files) | MCP gateway server |
 | P7 | `@cassicore/workspace` | `core/workspace/*` | workspace loader/system-prompt |
-| P8 | `@cassicore/ai` | `ai/` (46 files, standalone npm pkg) | AI provider layer (self-contained; own package.json) |
 | P8 | `@cassicore/cassi-tui` | `cassi-tui/` (30) | Ink/React terminal UI (own manifest + bin `cassi`) |
 | P8 | `@cassicore/cassi-watch` | `cassi-watch/` (12) | Ink/React watch app (bin `cassicore-watch`) |
 | P8 | `@cassicore/prism` | `prism/` (24) | Three.js/WebGL field visualizer (Vite) |
@@ -145,7 +148,6 @@ fidelity; `registerMindTools` is the P3 retained-mind registration seam
 | package | files | tests |
 |---|---|---|
 | admin-api | 2 | 9 |
-| **ai** | **1** | **36** |
 | aurora | 36 | 698 |
 | cognitive-feed | 1 | 97 |
 | commands | — | passWithNoTests |
@@ -165,10 +167,9 @@ fidelity; `registerMindTools` is the P3 retained-mind registration seam
 | **mind-runtime** | **3** | **22** |
 | mini-helix | 1 | 21 |
 | mnemic-field | 6 | 89 |
-| model-pool | 1 | 32 |
+| model-pool | 1 | 10 (retained-handle/acquire-shim; pool machinery deleted) |
 | pipeline | 1 | 2 |
 | plugins | — | passWithNoTests |
-| providers | 5 | 120 |
 | **spine** | **3** | **16** |
 | thalamus | 6 | 97 |
 | tools | 3 | 39 |
@@ -178,12 +179,22 @@ fidelity; `registerMindTools` is the P3 retained-mind registration seam
 | workflow | — | passWithNoTests |
 | workspace | 1 | 17 |
 
-**All 33 packages typecheck 0 errors; all suites green.**
+**All 31 packages typecheck 0 errors; all suites green.**
 
 > **P6 (2026-08-14):** removed the 7 passWithNoTests standalone apps/bridges
 > (`cassi-tui`, `cassi-watch`, `prism`, `webui`, `claude-code-mcp`,
 > `hermes-agent-gateway`, `opencode`) from this table — deleted per owner
 > ratification, history-preserved in git.
+>
+> **P4 (2026-08-14) model-access cutover — test-gate relaunch:**
+> deleted `@cassicore/providers` (120) + `@cassicore/ai` (36) and the
+> model-pool pool-machinery suite (32 → 10 retained-handle). **New total:
+> 2498 passed (from 2676)** — the only drops are `providers` 120 + `ai` 36 +
+> model-pool's 22 pool-machinery tests; every retained suite (helix 75,
+> constellation 568, mini-helix 21, host 17, mind-runtime 22, spine 16,
+> model-pool 10, admin-api 9, …) is green. The host's provider pool was
+> replaced by the retained `mind_complete` acquirer (transitional — completions
+> ride the shim until the spine/ohmypi path is live, P5/P6).
 
 ### Quarantined to `tests/host-wired/` (excluded from default runs)
 
@@ -199,7 +210,6 @@ kept UNCHANGED; re-pointed imports; house headers):
 | helix | 1 |
 | mcp-gateway | 1 |
 | mnemic-field | 2 |
-| providers | 1 |
 | thalamus | 2 |
 | tools | 6 |
 
