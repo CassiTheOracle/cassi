@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""gates_m2.py — the M2 stage-gate harness (G47–G50).
+"""gates_m2.py — the M2 stage-gate harness (G47–G52).
 
 Each gate in the repo's PASS/FAIL console style, measured on the REAL M2
 cascade tree:
@@ -18,6 +18,17 @@ cascade tree:
               levels with the CALIBRATED null discipline (linear cos/sin
               basis, ω-specificity percentile). Reports ΔAIC + p_spec per
               level, and records the honest presence-or-absence verdict.
+  G51 (M2.5)  R5 MULTI-LEVEL P(k) CONCATENATION: stitch the per-level P(k)
+              bands into one combined spectrum (overlapping windows, φ⁴
+              k-spacing), run the SAME calibrated null. Discriminates the
+              stitching artifact (4th harmonic of the φ⁴ level-spacing equals
+              ω₀) by ALSO reporting the band-detrended RESIDUAL test — the
+              honest cross-level signal survives band detrending, the artifact
+              does not.
+  G52 (M2.6)  THE FARM: the sibling-branch parallel executor runs independent
+              nodes concurrently; report wall-clock vs serial, and confirm the
+              farmed survey output is BYTE-IDENTICAL to the serial chain's
+              (same seeds — replayability holds under parallelism).
 
 Run:   python research/cascade_machine/gates_m2.py
        (assumes `run_cascade_tree.py` has produced the cascade_tree/)
@@ -240,6 +251,126 @@ def g50_pk_logperiodicity(levels=3):
     return True   # the gate is that the SEARCH ran with honest reporting
 
 
+def g51_r5_multilevel_pk(levels=None):
+    """R5 multi-level P(k) concatenation — the decisive log-periodicity test.
+
+    Builds the combined spectrum from consecutive levels' P(k) bands
+    (overlapping windows at φ⁴ k-spacing), then runs the SAME calibrated null
+    at Δln k = ln φ on (a) the raw stitched spectrum and (b) the band-
+    detrended residual — the honest discriminator. A real cross-level signal
+    survives band detrending; the stitching artifact (4th harmonic of the φ⁴
+    level-spacing == ω₀) does not. The gate PASSES iff the honest (detrended)
+    test is run and reported — the verdict (null or detection) is the result.
+    """
+    if levels is None:
+        reg = json.loads((TREE / "tree_registry.json").read_text())
+        levels = int(reg["n_levels"])
+    res = cl.concatenate_pk(TREE, levels)
+    rt = res["raw_test"]
+    dt = res["detrended_test"]
+    oa = res["overlap_agreement"]
+    print("[R5] multi-level P(k): %d bins spanning %.1f φ-rungs of k from "
+          "%d level bands (stitch=%s)" % (len(res["k"]), res["k_span_rungs"],
+                                          res["bands"], res["stitch_mode"]))
+    print("  overlap (adjacent-level |Δln P|): n=%d mean=%.3f" % (
+        len(oa), sum(oa.values()) / len(oa) if oa else 0.0))
+    print("[R5] RAW stitched        : ΔAIC=%+7.2f  ω-spec p=%.3f  amp=%.2e"
+          % (rt["daic"], rt["p_spec"], rt["amp"]))
+    print("[R5] DETRENDED residual  : ΔAIC=%+7.2f  ω-spec p=%.3f  amp=%.2e  "
+          "%s" % (dt["daic"], dt["p_spec"], dt["amp"],
+                  "SIGNIFICANT" if dt["significant"] else "null (honest)"))
+    # the honest verdict: the detrended residual is the cross-level signal.
+    # A raw-only 'hit' that vanishes on detrending is the R5 artifact.
+    honest_null = not dt["significant"]
+    artifact = (rt["daic"] < -2.0 and rt["p_spec"] < 0.05 and honest_null)
+    note = ("detrended residual null at Δln k = ln φ → NO physical "
+            "cross-level period; the raw stitched 'hit' (if any) is the "
+            "φ⁴-level-spacing 4th-harmonic artifact (R5)")
+    if artifact:
+        note += " — CONFIRMED: raw appears but detrended null = artifact"
+    gate_notes(True, "G51 (M2.5) R5 multi-level P(k) concatenation",
+               "raw ΔAIC=%+.1f/p=%.3f; detrended ΔAIC=%+.1f/p=%.3f → %s"
+               % (rt["daic"], rt["p_spec"], dt["daic"], dt["p_spec"],
+                  "honest null" if honest_null else "real signal"))
+    return True   # the gate is that the concatenation + discriminator ran
+
+
+def g52_farm_byte_identity(levels=None):
+    """The FARM: exercise the sibling-branch parallel executor (D5) on a
+    GENUINE sibling fan — one parent condenses several cores, and each core is
+    an independent child branch (§2.3 many-to-many). Run the fan serially AND
+    in parallel (same seeds), compare the wall-clock, and confirm the farmed
+    surveys are BYTE-IDENTICAL to the serial ones (replayability under
+    parallelism).
+
+    The shipped chain is a linear 1-child ladder, so the widest genuine
+    sibling fan is at the ROOT: its C condensed cores → C parallel child
+    branches. K = min(2, C) children of the root are fanned."""
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    import shutil
+    serial_root = _HERE / "_g52_serial"
+    farm_root = _HERE / "_g52_farm"
+    for r in (serial_root, farm_root):
+        if r.exists():
+            shutil.rmtree(r)
+    specs = orch.build_specs()
+    root = specs[0]
+    # build the root serially (both trees share the same root bytes)
+    st0 = orch.run_level(root, None, serial_root)
+    # root survey is the parent for the sibling fan
+    root_dir = orch.node_dir(serial_root, 0, root["rung"])
+    child_L = root["L"] / cl.PHI ** cl.R         # one level finer
+    child_radii = cl.level_radii(child_L)
+    root_meta, *_ = cl.read_survey(root_dir)
+    n_cores = int(root_meta["particle_count"])
+    K = min(2, n_cores)
+
+    def one(core_idx, tree_root):
+        node_out = tree_root / ("branch_core%d" % core_idx)
+        return orch.run_sibling_level(root_dir, child_L, child_radii,
+                                      20260814 + core_idx * 31, core_idx,
+                                      node_out), node_out
+
+    # ── SERIAL reference ────────────────────────────────────────────────
+    t0 = time.time()
+    serial_states = {}
+    for ci in range(K):
+        serial_states[ci], _ = one(ci, serial_root)
+    t_serial = time.time() - t0
+
+    # ── FARMED: the K sibling branches in parallel (2+ workers) ─────────
+    t0 = time.time()
+    farm_states = {}
+    with ThreadPoolExecutor(max_workers=max(2, K)) as ex:
+        futs = {ex.submit(one, ci, farm_root): ci for ci in range(K)}
+        for fut in as_completed(futs):
+            ci = futs[fut]
+            farm_states[ci], _ = fut.result()
+    t_farm = time.time() - t0
+
+    # byte-identity: serial vs farmed, same seeds
+    all_ok = True
+    n = 0
+    for ci in range(K):
+        hA = cl.byte_hash(serial_root / ("branch_core%d" % ci))
+        hB = cl.byte_hash(farm_root / ("branch_core%d" % ci))
+        bh_ok = hA == hB
+        all_ok = all_ok and bh_ok
+        n += 1
+        print("  [farm branch%d] byte-identical=%s serial_rung=%.3f "
+              "farm_rung=%.3f" % (
+                  ci, bh_ok, serial_states[ci]["rung_score"],
+                  farm_states[ci]["rung_score"]))
+    ratio = t_serial / max(t_farm, 1e-9)
+    gate_notes(all_ok and n == K, "G52 (M2.6) sibling-branch farm + byte "
+               "identity",
+               "%d sibling branches of the root fanned; serial=%.1fs "
+               "parallel=%.1fs (ratio %.2fx); farmed surveys byte-identical "
+               "to serial = %s (replayability holds under parallelism)"
+               % (n, t_serial, t_farm, ratio, all_ok))
+    return all_ok and n == K
+
+
 def main():
     import argparse
     ap = argparse.ArgumentParser(description=__doc__)
@@ -251,7 +382,7 @@ def main():
         reg = json.loads((TREE / "tree_registry.json").read_text())
         args.levels = int(reg["n_levels"])
     print("=" * 70)
-    print("M2 STAGE GATES (G47–G50) — offline φ-cascade tree (%d levels)"
+    print("M2 STAGE GATES (G47–G52) — offline φ-cascade tree (%d levels)"
           % args.levels)
     print("closure slot: no-op (R1, wave-2 honest negative) — rung-integrity")
     print("runs WITHOUT the closure, per MACHINE_PLAN §8 and the M2 brief.")
@@ -261,6 +392,8 @@ def main():
     res["G48"] = g48_replayability()
     res["G49"] = g49_rung_integrity(levels=args.levels)
     res["G50"] = g50_pk_logperiodicity(levels=args.levels)
+    res["G51"] = g51_r5_multilevel_pk(levels=args.levels)
+    res["G52"] = g52_farm_byte_identity()
     print("\n---- gate table (cascade tree: %d levels) ----" % args.levels)
     for nm, ok in res.items():
         print("[%s] %s" % ("PASS" if ok else "FAIL", nm))

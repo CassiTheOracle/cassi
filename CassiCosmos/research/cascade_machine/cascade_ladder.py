@@ -272,11 +272,12 @@ def anchor_support(sites, L, radii):
     return float((g * fv.vol).sum())
 
 
-def build_child_ic(parent_survey_dir, child_L, child_radii, seed):
+def build_child_ic(parent_survey_dir, child_L, child_radii, seed, core_idx=None):
     """Build the child level's IC from the parent's survey dir.
 
-    The child zooms the parent's MOST-MASSIVE condensed core (the single-core
-    zoom, M1's honest limitation), placing a φ-spaced blob shell centered on
+    The child zooms a parent condensed core (the MOST-MASSIVE by default, or
+    `core_idx` for a sibling fan — each parent core is one child seed, the
+    plan's many-to-many tree §2.3), placing a φ-spaced blob shell centered on
     that core's child-frame position. The handed core MASS is conserved on the
     deposition remap (≤1e-6, M1 G42). `anchor_support_B1` (the parent's
     anchor-gaussian support, calibrated during the parent run) is read from
@@ -287,13 +288,14 @@ def build_child_ic(parent_survey_dir, child_L, child_radii, seed):
     B1, B2 (the child's integrated absolute excitation), pcore_child."""
     meta, ey, ei, q, pos, mass = read_survey(parent_survey_dir)
     parent_L = float(meta["extents"]["x"])
-    mP = survey_abs_mass(meta, mass)          # absolute fluid mass (any encoding)
+    mP = survey_abs_mass(meta, mass)
     if len(mP) == 0:
         raise RuntimeError("parent survey has no condensed cores — cannot hand off")
     B1 = float(meta.get("anchor_support_B1", 0.0))
     if B1 <= 0:
         raise RuntimeError("parent survey missing anchor_support_B1 (re-run parent)")
-    tgt = int(np.argmax(mP))
+    tgt = int(np.argmax(mP)) if core_idx is None else \
+        int(np.argsort(mP)[-1 - int(core_idx)])
     m_handed = float(mP[tgt])
     # M1 zoom map: child_coord = (parent_coord − parent_centre)·φ^R + child
     # centre (mod child box).  zoom = child_L/parent_L == φ^−R (R=4).
@@ -315,7 +317,7 @@ def build_child_ic(parent_survey_dir, child_L, child_radii, seed):
     return {"centers": centers, "A_cons": float(A_cons), "m_handed": m_handed,
             "dM": float(dM), "B1": float(B1), "B2": float(B2),
             "pcore_child": pcore_child, "parent_L": float(parent_L),
-            "exc_support": float(B2)}
+            "core_idx": tgt, "exc_support": float(B2)}
 
 
 # ── P(k) log-periodicity (calibrated null discipline, logperiodicity skill) ──
@@ -393,6 +395,156 @@ def pk_logperiodic(k, P, ln_phi=LN_PHI):
     amp = float(np.hypot(c2[2], c2[3]))
     return {"daic": float(daic0), "p_spec": p_spec, "amp": amp,
             "omega0": float(om0), "ln_phi": float(ln_phi), "n_bins": n}
+
+
+# ── R5: the MULTI-LEVEL P(k) concatenation (MACHINE_PLAN §7 §R5) ─────────
+def concatenate_pk(tree_root, n_levels, max_workers=4, mode="finest"):
+    """Stitch the per-level P(k) bands into ONE combined spectrum across the
+    ladder, then report both the scale-free overlap consistency and the
+    concatenated spectrum (for the R5 log-periodicity test).
+
+    Stitching (documented, plan §7-R5 'overlapping windows vs adjacent'):
+      - Each level j contributes its own spectral band, k ∈ [2π/L_j, πN/L_j]
+        (a 7.2-rung window). Consecutive levels shift by 4 rungs in k
+        (box ×φ⁴), so consecutive bands overlap by ~3.2 rungs — a genuine
+        overlapping-window stitch.
+      - Normalization: all levels are N=64 at the SAME physical density basis
+        (ρ = psiY+psiI baseline 2.5). The (N_c/N_f)³ per-level-normalization
+        discipline (D2/G41) is satisfied BY CONSTRUCTION (no N_c≠N_f between
+        these levels), and confirmed empirically by the scale-free P collapse
+        in the overlap (level j and j+1 agree in reduced-k within ~few %).
+      - `mode='finest'`: each absolute-k point is taken from the FINEST level
+        whose band contains it (best-resolved at that k). Adjacent levels join
+        continuously because their overlap P agrees (scale-free). This avoids
+        artificial blending and double counting.
+    Returns a dict with the concatenated k,P, the per-band map, and the
+    overlap-consistency metric.
+    """
+    import concurrent.futures as cf
+    specs = _build_specs_range(n_levels)
+
+    def _band(lev):
+        sp = specs[lev]
+        d = Path(tree_root) / ("level_%02d_r%d" % (sp["lev"], sp["rung"]))
+        meta, ey, ei, q, pos, mass = read_survey(d)
+        L = float(meta["extents"]["x"])
+        return lev, L, *pk_from_field(ey, ei, L)
+
+    bands = {}
+    with cf.ThreadPoolExecutor(max_workers=max_workers) as ex:
+        for lev, L, k, P in ex.map(_band, (spec["lev"] for spec in specs)):
+            bands[lev] = (L, np.asarray(k), np.asarray(P))
+
+    # scale-free overlap consistency: in reduced-k (k·h), the levels' P curve
+    # should agree where they overlap (the multi-level self-similarity check).
+    h = {lev: L / N for lev, (L, _, _) in bands.items()}
+    red = {lev: k * h[lev] for lev, (_, k, _) in bands.items()}
+    overlap_agree = {}
+    for lev in range(1, n_levels):
+        kp, Pp = red[lev - 1], bands[lev - 1][2]
+        kn, Pn = red[lev], bands[lev][2]
+        # overlap in reduced-k (both bands span ~[0.1, 3.1] /cell on the scale-
+        # free curve)
+        lo = max(kp.min(), kn.min())
+        hi = min(kp.max(), kn.max())
+        mskp = (kp >= lo) & (kp <= hi)
+        mskn = (kn >= lo) & (kn <= hi)
+        if mskp.any() and mskn.any():
+            # compare log-P on a shared reduced-k grid (linear interp)
+            xg = np.linspace(lo, hi, 12)
+            Pp_i = np.interp(xg, kp[mskp], np.log(Pp[mskp]))
+            Pn_i = np.interp(xg, kn[mskn], np.log(Pn[mskn]))
+            # relative log-difference (0.05 = ~5%)
+            overlap_agree[lev] = float(np.mean(np.abs(Pp_i - Pn_i)))
+
+    if mode == "finest":
+        # build a common absolute-k axis = the union of all band k-bins
+        allk = np.concatenate([bands[lev][1] for lev in range(n_levels)])
+        k_con = np.sort(np.unique(np.round(allk, 12)))
+        klo = {lev: bands[lev][1].min() for lev in range(n_levels)}
+        khi = {lev: bands[lev][1].max() for lev in range(n_levels)}
+        P_con = np.zeros_like(k_con)
+        band_map = np.zeros_like(k_con, dtype=int)
+        for i, kk in enumerate(k_con):
+            # finest level whose band contains kk
+            for lev in range(n_levels - 1, -1, -1):
+                if klo[lev] <= kk <= khi[lev]:
+                    P_con[i] = np.interp(kk, bands[lev][1], bands[lev][2])
+                    band_map[i] = lev
+                    break
+    else:  # pragma: no cover - only 'finest' shipped
+        raise ValueError("mode must be 'finest'")
+
+    valid = np.isfinite(P_con) & (P_con > 0)
+
+    # ── the honest R5 discriminator: detrend each band internally, then test
+    # the concatenated RESIDUAL. The raw stitch can show a spurious ln-phi
+    # period because 49 scale-free band-shapes repeat at phi^4 k-spacing
+    # (whose 4th harmonic is exactly omega0 = 2pi/lnphi — the R5 artifact).
+    # Removing each level's own smooth band-envelope leaves only a genuine
+    # cross-level ln-phi modulation, so the residual test is the honest one.
+    resid_alls = []
+    resid_allk = []
+    for lev in range(n_levels):
+        L, kk, PP = bands[lev]
+        xx = np.log(kk)
+        yy = np.log(PP)
+        cc = np.polyfit(xx, yy, min(6, len(xx) - 2))
+        smooth = np.exp(np.polyval(cc, xx))
+        resid_alls.append(PP / smooth - 1.0)
+        resid_allk.append(kk)
+    ka = np.concatenate(resid_allk)
+    ra = np.concatenate(resid_alls)
+    o = np.argsort(ka)
+    resid_k, resid_r = ka[o], ra[o]
+    resid_test = _pk_logperiodic_residual(resid_k, resid_r)
+
+    return {"k": k_con[valid], "P": P_con[valid],
+            "band_map": band_map[valid], "bands": n_levels,
+            "overlap_agreement": {int(k): float(v) for k, v in overlap_agree.items()},
+            "stitch_mode": mode,
+            "raw_test": pk_logperiodic(k_con[valid], P_con[valid]),
+            "detrended_test": resid_test,
+            "k_span_rungs": float((np.log(k_con[valid][-1] / k_con[valid][0])
+                                   / LN_PHI)) if valid.any() else 0.0}
+
+
+def _pk_logperiodic_residual(x, r, ln_phi=LN_PHI):
+    """Calibrated log-periodicity test on a band-detrended RESIDUAL series
+    (y = P/smooth − 1, not log P). Same discipline: linear cos/sin basis at
+    ω₀ = 2π/ln φ, ω-specificity percentile over probe frequencies."""
+    x = np.asarray(x)
+    r = np.asarray(r)
+    om0 = 2 * np.pi / ln_phi
+    n = len(r)
+    rss1 = float(((r - np.mean(r)) ** 2).sum())
+    aic1 = n * np.log(rss1 / n) + 2 * 1
+    A2 = np.column_stack([np.ones_like(x), np.cos(om0 * x), np.sin(om0 * x)])
+    c2, *_ = np.linalg.lstsq(A2, r, rcond=None)
+    rss2 = float(((r - A2 @ c2) ** 2).sum())
+    aic2 = n * np.log(rss2 / n) + 2 * 3
+    daic0 = aic2 - aic1
+    om_grid = np.geomspace(0.5, 20.0, 200)
+    om_grid = om_grid[(om_grid < om0 - 2) | (om_grid > om0 + 2)]
+    dgs = []
+    for om in om_grid:
+        A3 = np.column_stack([np.ones_like(x), np.cos(om * x), np.sin(om * x)])
+        c3, *_ = np.linalg.lstsq(A3, r, rcond=None)
+        rss3 = float(((r - A3 @ c3) ** 2).sum())
+        dgs.append(n * np.log(rss3 / n) + 2 * 3 - aic1)
+    p_spec = float((np.array(dgs) <= daic0).mean())
+    amp = float(np.hypot(c2[1], c2[2]))
+    return {"daic": float(daic0), "p_spec": p_spec, "amp": amp,
+            "omega0": float(om0), "ln_phi": float(ln_phi), "n_bins": n,
+            "significant": bool(daic0 < -2.0 and p_spec < 0.05)}
+
+
+# ── internal helper: build_specs used by concatenate_pk ─────────────────
+def _build_specs_range(n_levels):
+    return [{"lev": lev, "rung": N_SUPERCLUSTER - R * lev,
+             "L": box_side(N_SUPERCLUSTER - R * lev),
+             "radii": level_radii(box_side(N_SUPERCLUSTER - R * lev)),
+             "seed": 20260814 + lev * 7919} for lev in range(n_levels)]
 
 
 if __name__ == "__main__":

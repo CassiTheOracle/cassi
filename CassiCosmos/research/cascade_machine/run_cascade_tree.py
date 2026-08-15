@@ -220,6 +220,62 @@ def run_level(spec, parent_survey_dir, tree_root, force=False):
     return state
 
 
+def run_sibling_level(parent_survey_dir, child_L, child_radii, seed, core_idx,
+                      node_out):
+    """Run ONE sibling child of a parent — a branch of the tree (plan §2.3:
+    one parent structure may form several child seeds). The child zooms the
+    parent survey's `core_idx`-th largest condensed core into its φ⁴-finer box
+    and runs its own periodic solve. Deterministic in `seed`+`core_idx`, so a
+    sibling re-run (serial or parallel) reproduces byte-identical survey out.
+
+    This is the machine's many-to-many edge: a parent with C cores can fan out
+    to up to C child branches, run in parallel by the farm (D5 — parallelism
+    across the tree, never inside a single level's solve)."""
+    L = child_L
+    radii = child_radii
+    seed = int(seed)
+    t0 = time.time()
+    handoff = cl.build_child_ic(parent_survey_dir, L, radii, seed,
+                                core_idx=core_idx)
+    rng = np.random.default_rng(seed)
+    sites = cl.bcc_seeds(cl.NCELL, L, rng)
+    dt = cl.DT * min(1.0, L / 10.0)
+    res = cl.run_condensation(sites, L, radii, cl.A_PARENT, dt=dt, seed=seed,
+                              centers=handoff["centers"])
+    m_cell = res["m_cell"]
+    masses = res["masses"].astype(np.float64)
+    score = cl.rung_score(masses, m_cell) if len(masses) else 0.0
+    r_end = float(res["r_traj"][-1]) if len(res["r_traj"]) else 0.0
+    ey_g = res["fv"].rasterize(res["psiY"])
+    ei_g = res["fv"].rasterize(res["psiI"])
+    q_g = res["fv"].rasterize(res["qf_max"])
+    b1 = cl.anchor_support(sites, L, radii)
+    os.makedirs(node_out, exist_ok=True)
+    n_abs_store = (np.log(np.maximum(masses, 1e-30) / m_cell) / cl.LN_PHI) \
+        if len(masses) else np.array([])
+    cl.dump_survey(node_out, cl.N, L, ey_g, ei_g, q_g, res["pos"], n_abs_store,
+                   meta_extra={
+                       "level": None, "sibling_core": int(core_idx),
+                       "seed": int(seed),
+                       "parent": Path(parent_survey_dir).name,
+                       "closure_slot": None,
+                       "anchor_support_B1": float(b1),
+                       "rung_score": float(score),
+                       "attractor_r": float(r_end),
+                       "mass_encoding": "log_rung log_phi(m/m_cell)",
+                       "m_cell": float(m_cell),
+                   })
+    t_tot = time.time() - t0
+    state = {"sibling_core": int(core_idx), "seed": int(seed),
+             "done": True, "cores": int(len(masses)),
+             "rung_score": float(score), "attractor_r": float(r_end),
+             "m_handed": float(handoff["m_handed"]),
+             "dM_handoff": float(handoff["dM"]),
+             "t_total_s": float(t_tot)}
+    (node_out / "run_state.json").write_text(json.dumps(state, indent=2))
+    return state
+
+
 # ── the tree registry ────────────────────────────────────────────────────
 def write_registry(tree_root, specs, states):
     nodes = []

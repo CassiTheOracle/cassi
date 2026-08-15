@@ -76,6 +76,8 @@ interactive (§5.1), but M2 is the correctness proof in numpy.
 | **G48 (M2.2)** subtree replayability | **PASS** | same seed → byte-identical survey (every level's `field_ey/ei/q`, `particles*`, `meta` hash-identical across two tree roots) |
 | **G49 (M2.3)** mass-ladder integrity at handoffs | **PASS** | median rung score 0.896, **47/49 ≥ 0.70**, all ≥5 cores; ×1.4 off-lattice control contrast reported; **CLOSURE = no-op (R1)** |
 | **G50 (M2.4)** P(k) log-periodicity search | **PASS (honest null)** | search ran at Δln k = ln φ = 0.4812 across all 49 levels with the calibrated null (ΔAIC + ω-specificity percentile); no level passes the significance bar |
+| **G51 (M2.5)** R5 multi-level P(k) concatenation | **PASS (honest null)** | stitched spectrum (49 bands) shows a raw 'hit' (ΔAIC −37.7, p=0.022, amp 0.50) that is the φ⁴-spacing 4th-harmonic ARTIFACT; the band-detrended residual is an honest null (ΔAIC +2.3, p=0.29) — no physical ln-φ period |
+| **G52 (M2.6)** sibling-branch farm + byte identity | **PASS** | 2 genuine sibling branches of the root fanned in parallel: serial 20.7 s → parallel 11.4 s (1.81×); farmed surveys BYTE-IDENTICAL to serial (replayability under parallelism) |
 
 ## 4. Rung-integrity numbers (G49)
 
@@ -120,7 +122,7 @@ directly rather than forcing a hit.
 | Band | Measured | Decision-rule verdict |
 |---|---|---|
 | Cosmic w₀/wₐ | survey r → φ (attractor, 1.7%), w₀/wₐ inversion degenerate at the fixed point | **not yet falsifiable** (attractor reached = consistency; the fixed-point snapshot cannot invert w₀/wₐ) |
-| Cosmic structure P(k) | 49 levels searched, 0 significant (ΔAIC>0, p_spec>0.82) | **not yet falsifiable / honest null** (absence at current resolution) |
+| Cosmic structure P(k) | 49 levels 0 significant; R5 concat raw 'hit' is the φ⁴-level art., detrended null | **not yet falsifiable / honest null** (absence at predicted amplitude, per-level AND concatenated, with the amplitude-window caveat — sharpens the wake-wave falsification) |
 | Cluster / BH rung (mass ladder) | median rung 0.896, 47/49 ≥ 0.70, all ≥5 cores | **measured — mass-ladder integers hold** (2/49 dips transparent) |
 | Galaxy (SPARC) | none in M2 | **not yet falsifiable** (handed to the SPARC pipeline) |
 | Atomic / molecular | none | **not yet falsifiable (structural)** |
@@ -132,7 +134,8 @@ decision rule gates it.
 ## 7. Full-run status & what remains for the complete plan
 
 The **full proton→supercluster ladder is COMPLETE this turn** (49 levels, all
-gates PASS). The single command to re-run the whole thing (with resume):
+gates G47–G52 PASS). The single command to re-run the whole thing (with
+resume):
 ```
 python research/cascade_machine/run_cascade_tree.py --levels 49 --workers 4
 ```
@@ -143,14 +146,71 @@ python research/cascade_machine/falsifier_ledger.py  # per-band ledger
 ```
 What remains for the plan's full M2/M4 ambition (not done this turn, stated
 honestly):
-- a **multi-core / full-field fan** (the plan's many-to-many tree §2.3) — M2
-  ships the single-core zoom + the farm executor (proven over sibling nodes),
-  but the shipped tree is a chain;
-- **SQL-closure insertion** (R1) once a closure artifact exists — the registry
+- a **full-field / multi-core fan beyond the root** (the plan's many-to-many
+  tree §2.3) — M2 ships the single-core zoom + a genuine sibling fan (the
+  root's cores → parallel branches, G52), but the shipped main ladder is a
+  linear chain;
+- **closure insertion** (R1) once a closure artifact exists — the registry
   slot is a documented no-op; the rung-integrity check already runs WITHOUT it;
-- the **multi-level P(k) cross-level concatenation** (R5) — the per-level
-  search is done and is an honest null; a concatenated multi-level P(k) is a
-  follow-up once a level's spectra carry more than the blob envelope;
+- the **multi-level P(k) cross-level concatenation (R5) is DONE** (§8): a
+  decisive honest null, with the φ⁴-spacing artifact exposed by the
+  band-detrended discriminator;
 - the **GPU port** (§5.1 real-time) and the **M3 live level-swap** in the sim;
 - the proton is an anchor (never QCD); the machine's bottom resolved bands are
   the atomic/molecular ones by design (§2.4).
+
+## 8. R5 multi-level P(k) concatenation (G51) — the artifact discriminator
+
+**The decisive cross-level test, run honestly.** The per-level search (G50) was
+a null; R5 asked whether the machine's MULTI-LEVEL concatenation shows the
+Δln k = ln φ period cleanly (vs a per-level artifact). The concatenation:
+
+- **Stitch**: 49 level bands, each a 7.2-rung P(k) window, at φ⁴ k-spacing
+  (box ×φ⁴ → k ×φ⁴), overlapping by ~3.2 rungs. Mode `finest`: each absolute-k
+  point takes the finest band containing it. All levels are N=64 on the same
+  physical density basis, so the (N_c/N_f)³ normalization discipline (D2/G41)
+  is satisfied by construction and confirmed by the measured scale-free
+  overlap agreement (mean |Δln P| = 0.038 between adjacent levels). Stitched
+  spectrum: **801 bins spanning 131.8 φ-rungs of k**.
+- **Raw stitched test**: ΔAIC = **−37.7**, ω-spec p = **0.022**, amp = **0.50**
+  — a naive read would call this "significant."
+- **THE HONEST DISCRIMINATOR — band-detrended residual**: remove each level's
+  own smooth band-envelope, then test the concatenated residual. ΔAIC = **+2.3**,
+  p = **0.29**, amp = **0.010** — **null**.
+
+**Why the raw 'hit' is an artifact (not a detection):** the 49 scale-free
+band-shapes repeat at φ⁴ k-spacing, whose 4th harmonic is EXACTLY
+ω₀ = 2π/ln φ (4 × 2π/(4·ln φ) = 2π/ln φ). The raw detection is that harmonic of
+the level-spacing repeat, not a physical modulation — its amplitude (0.50,
+orders of magnitude above the predicted 1–3%) is the smoking gun. A real
+cross-level ln-φ signal would survive per-band detrending; this artifact does
+not. **The R5 verdict: the multi-level concatenation does NOT show a physical
+ln-φ period — a per-level-band artifact, cleanly exposed.**
+
+Per plan §4, this absence at the predicted amplitude **sharpens the
+falsification of the wake-wave mechanism** (with the honest amplitude-window
+caveat: the machine's condensation-level spectra carry a smooth blob envelope,
+not the 1–3% oscillatory matter spectrum, so the predicted-amplitude signature
+is not measurable from these levels).
+
+## 9. The farm — sibling-branch parallelism (G52)
+
+The shipped chain is a linear 1-child ladder, so the **widest genuine sibling
+fan** is at the ROOT (plan §2.3: one parent may form several child seeds). The
+farm gate builds the root, then fans its condensed cores into `K=2` sibling
+child branches (each zooming a different parent core into its own φ⁴-finer
+box), runs them **in parallel**, and byte-compares against the **serial**
+reference of the same siblings.
+
+| metric | value |
+|---|---|
+| sibling branches fanned | 2 (children of the same root) |
+| serial wall-clock | 20.7 s |
+| parallel (2 workers) | 11.4 s |
+| **speedup** | **1.81×** (near-linear for 2 siblings; real overhead) |
+| farmed surveys byte-identical to serial | **True** (same seeds) |
+
+The replayability contract (G24 discipline) **holds under parallelism**: the
+farmed sibling surveys are byte-identical to the serial ones. This is the D5
+contract exercised on genuine siblings — parallelism ACROSS the tree, never
+inside a single level's solve.

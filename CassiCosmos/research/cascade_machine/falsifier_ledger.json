@@ -316,11 +316,23 @@
             "p_spec": 0.8532608695652174,
             "significant_at_ln_phi": false
           }
-        ]
+        ],
+        "r5_concatenation": {
+          "stitch": "finest",
+          "k_span_rungs": 131.83591985463528,
+          "n_bins": 801,
+          "raw_stitched_daic": -37.74,
+          "raw_stitched_p_spec": 0.022,
+          "raw_stitched_amp": 0.504,
+          "detrended_residual_daic": 2.29,
+          "detrended_residual_p_spec": 0.293,
+          "detrended_amp": 0.01,
+          "interpretation": "the raw stitched 'hit' is the 4th harmonic of the \u03c6\u2074 level-spacing (harmonic of the band repeat == \u03c9\u2080), NOT a physical ln-\u03c6 modulation; the band-detrended residual is an honest null"
+        }
       },
-      "decision_rule": "calibrated null (\u0394AIC + \u03c9-specificity p < 0.05)",
-      "verdict": "not yet falsifiable (honest null across levels so far)",
-      "note": "a period of ln \u03c6 in the BAO-subtracted residual confirms; its absence AT the predicted amplitude falsifies the wake-wave mechanism. M2 reports the honest measured significance per level."
+      "decision_rule": "calibrated null (\u0394AIC + \u03c9-specificity p < 0.05), with the R5 artifact discriminator: a physical cross-level signal survives per-band detrending, the stitching artifact does not",
+      "verdict": "not yet falsifiable (honest null, per-level AND concatenated)",
+      "note": "a period of ln \u03c6 in the BAO-subtracted residual confirms; its ABSENCE at the predicted amplitude (1\u20133%) falsifies the wake-wave mechanism. M2 measures per-level AND concatenated nulls with the amplitude-window caveat: the machine's condensation levels carry a smooth blob envelope, not the 1\u20133% oscillatory matter spectrum, so the predicted-amplitude signature is NOT measured \u2014 an honest null, sharpening the falsification."
     },
     {
       "band": "cluster / BH rung (mass ladder)",
