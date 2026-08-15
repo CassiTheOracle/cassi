@@ -67,8 +67,8 @@ layout(set = 0, binding = 0, std430) restrict buffer Positions { vec4 pos[]; }; 
 layout(set = 0, binding = 1, std430) restrict buffer Velocities { vec4 vel[]; };  // xyz
 layout(set = 0, binding = 2, std430) coherent buffer Alive   { float alive[]; };  // 1 / 0
 layout(set = 0, binding = 3, std430) coherent buffer Mass    { float mass[]; };   // canonical mass
-layout(set = 0, binding = 4, std430) coherent buffer Mom     { vec4 mom[]; };     // xyz=Sigma m v, w=receive-count
-layout(set = 0, binding = 5, std430) coherent buffer Cen     { vec4 cen[]; };     // xyz=Sigma m p
+layout(set = 0, binding = 4, std430) coherent buffer Mom     { vec4 mom[]; };     // xyz=Sigma m v, w=spare (F6: receive-counter removed)
+layout(set = 0, binding = 5, std430) coherent buffer Cen     { vec4 cen[]; };     // xyz=Sigma m p, w=spare
 layout(set = 0, binding = 6, std430) readonly buffer FieldEY { float ey[]; };     // coherence source
 layout(set = 0, binding = 7, std430) readonly buffer FieldEI { float ei[]; };
 layout(set = 0, binding = 8, std430) coherent buffer BestBuf { int best[]; };     // chosen target (sink machinery)
@@ -219,6 +219,11 @@ bool virialized(int j) {
     float mj = mass[j];
     if (mj <= 0.0) return false;
     float Rj = clamp(SIZE_K * pow(mj, 1.0 / 3.0), SIZE_S_MIN, SIZE_S_MAX);
+    // NOTE (F11): spin[j] is as-of-the-last HOP (fold→hop each cycle merges
+    // new orbital L into spin only in pass_hop). The one-cycle lag is
+    // intentional for the "self-supporting snapshot" heuristic: a target is
+    // judged from the spin it carried into this hop, not spin that arrives
+    // this same cycle — no thread-supplied post-increment sees its own gain.
     vec3 Lj = spin[j].xyz;
     vec3 dv = vel[j].xyz - flow_at(pos[j].xyz);
     float K = 0.5 * dot(Lj, Lj) / (mj * Rj * Rj) + 0.5 * mj * dot(dv, dv);
@@ -235,12 +240,21 @@ vec3 sep(vec3 a, vec3 b) {
     return d;
 }
 
-// ── spatial-hash cell of a world point (mass-deposit world->grid map) ───
+// ── spatial-hash cell of a world point (mass-deposit world->grid map).
+// WRAP-AWARE (F4): each axis wraps, ((int(floor(...)) % n) + n) % n, so a pair
+// within R_m across opposite box faces maps into the wrapped 27-neighbor
+// window — sep() uses periodic min-image, so the OLD clamped cell_of could
+// miss in-range pairs at the box faces. The wrapped index is always in
+// [0, n), hence in-bounds; hash buffer sizes are unchanged. A particle exactly
+// at +extent wraps to cell 0, consistent with sep's min-image (0 separation).
 int cell_of(vec3 wp) {
     int nx = int(pc.hash_nx), ny = int(pc.hash_ny), nz = int(pc.hash_nz);
-    int cx = int(clamp(floor((wp.x + pc.extent_x) / pc.cell_wx), 0.0, float(nx - 1)));
-    int cy = int(clamp(floor((wp.y + pc.extent_y) / pc.cell_wy), 0.0, float(ny - 1)));
-    int cz = int(clamp(floor((wp.z + pc.extent_z) / pc.cell_wz), 0.0, float(nz - 1)));
+    int cx = int(floor((wp.x + pc.extent_x) / pc.cell_wx));
+    int cy = int(floor((wp.y + pc.extent_y) / pc.cell_wy));
+    int cz = int(floor((wp.z + pc.extent_z) / pc.cell_wz));
+    cx = ((cx % nx) + nx) % nx;
+    cy = ((cy % ny) + ny) % ny;
+    cz = ((cz % nz) + nz) % nz;
     return cx + nx * (cy + ny * cz);
 }
 
@@ -256,7 +270,7 @@ void pass_reset() {
     spin[i] = vec4(0.0);
     best[i] = int(i);
     sink[i] = 1.0;
-    if (i == 0u) { for (int k = 0; k < 16; k++) mc[k] = 0u; }
+    if (i == 0u) { for (int k = 0; k < 16; k++) mc[k] = 0u; cc[0] = 0u; }
 }
 
 // ── pass 1: fold accumulated gains into canonical pos/vel (identity on
@@ -303,26 +317,31 @@ void pass_fill() {
 }
 
 // ── pass 4: best[i] = min index over qualified alive neighbors; sink[i] =
-// (best[i] == i). Scans the 27-cell neighborhood (cells sized >= R_m so it
-// provably covers every in-range pair). Qualified = distance ∧ q_sel gate ∧
-// gravitational binding ∧ (subsonic inflow) ∧ (target not virialised). ───
+// (best[i] == i). Scans the WRAP-AWARE 27-cell neighborhood (cells sized >= R_m
+// so it provably covers every in-range pair, including pairs straddling the
+// periodic box faces — the F4 wrap-aware cell_of/neighborhood closes that
+// coverage hole). Qualified = distance ∧ q_sel gate ∧ gravitational binding ∧
+// (subsonic inflow) ∧ (target not virialised). ───
 void pass_best() {
     uint i = gl_GlobalInvocationID.x;
     if (int(i) >= int(pc.N)) return;
     if (alive[i] < 0.5) { sink[i] = 0.0; best[i] = int(i); return; }
     int nx = int(pc.hash_nx), ny = int(pc.hash_ny), nz = int(pc.hash_nz);
-    int ci = int(clamp(floor((pos[i].x + pc.extent_x) / pc.cell_wx), 0.0, float(nx - 1)));
-    int cj = int(clamp(floor((pos[i].y + pc.extent_y) / pc.cell_wy), 0.0, float(ny - 1)));
-    int ck = int(clamp(floor((pos[i].z + pc.extent_z) / pc.cell_wz), 0.0, float(nz - 1)));
+    // own cell via the SAME wrapped formula as cell_of (F4) — decompose the
+    // packed wrapped index so the neighborhood below wraps per axis too.
+    int cself = cell_of(pos[i].xyz);
+    int ci = cself % nx;
+    int cj = (cself / nx) % ny;
+    int ck = cself / (nx * ny);
     int ibest = int(i);
     vec3 pi = pos[i].xyz;
     float mi = mass[i];
     for (int dx = -1; dx <= 1; dx++) {
         for (int dy = -1; dy <= 1; dy++) {
             for (int dz = -1; dz <= 1; dz++) {
-                int cx = clamp(ci + dx, 0, nx - 1);
-                int cy = clamp(cj + dy, 0, ny - 1);
-                int cz = clamp(ck + dz, 0, nz - 1);
+                int cx = (ci + dx + nx) % nx;
+                int cy = (cj + dy + ny) % ny;
+                int cz = (ck + dz + nz) % nz;
                 int c = cx + nx * (cy + ny * cz);
                 int ncnt = int(cc[c]);
                 int base = int(cs[c]);
@@ -334,7 +353,15 @@ void pass_best() {
                     float d = length(dsep);
                     if (d <= 0.0 || d > pc.R_m) continue;
                     vec3 mid = (pi + pj) * 0.5;
+                    // F5 (perf): gate on the cheap q_coh first. Since q_ord <= 1,
+                    // if q_coh <= threshold the order-selective product can never
+                    // pass — skip the expensive qord_at (~32 trilinear fetches).
                     float qm = qcoh_at(mid);
+                    if (qm <= pc.q_threshold) continue;
+                    // KEEP the qg check: with f_order ON, q_ord < 1 can pull
+                    // qm·q_ord below threshold even when qm exceeds it — so this
+                    // second gate is NOT redundant (only the f_order-off branch
+                    // re-checks an already-passing qm, harmlessly).
                     float qg = qm;
                     if (f_order_on()) qg = qm * qord_at(mid);
                     if (qg <= pc.q_threshold) continue;
@@ -379,7 +406,9 @@ void pass_hop() {
     atomicAdd(mom[b].x, mv.x);
     atomicAdd(mom[b].y, mv.y);
     atomicAdd(mom[b].z, mv.z);
-    atomicAdd(mom[b].w, 1.0);
+    // mom/best .w and cen .w are SPARE (never read anywhere — F6 removed the
+    // old mom[b].w receive-counter atomicAdd). The vec4 slots are kept so the
+    // buffer/PC layout needs no renumbering.
     vec3 mp = mass[i] * pos[i].xyz;
     atomicAdd(cen[b].x, mp.x);
     atomicAdd(cen[b].y, mp.y);
@@ -412,6 +441,29 @@ void pass_zerocc() {
     for (uint c = i; c < ht; c += n) cc[c] = 0u;
 }
 
+// ── pass 8: ANY-CANDIDATE early-out (perf-decomp 2026-08-15, STEP 1) —
+// ONE dispatch, no hash, no scan: cc[0] = 1 iff ANY alive mass>0 particle
+// sits at q_coh(pos) > q_threshold (φ⁻²). The pair gate requires q_sel(mid)
+// > q_threshold and qord <= 1, so q_coh(mid) > φ⁻² is NECESSARY for any
+// merge; the host reads cc[0] (4 B) and, on 0, skips the whole
+// fold→zero-cc→count→scan→fill→best→hop chain + the per-cycle count
+// readbacks — the ~40-dispatch burst that starves the shared three-RD GPU
+// on near-empty (diffuse) passes. cc[0] is borrowed: pass_zerocc clears it
+// before any count, pass_reset zeroes it, and nothing else reads it here.
+// Exactness: a skipped pass only DELAYS a merge (state is untouched) — the
+// next cadenced pass re-tests. (Sub-cell ε-cancellation could theoretically
+// raise the pair-midpoint q above both particles' own q; the worst case is
+// one pass of delay, never corruption.)
+void pass_anyq() {
+    uint i = gl_GlobalInvocationID.x;
+    if (int(i) >= int(pc.N)) return;
+    if (alive[i] < 0.5) return;   // dead particles never merge
+    if (mass[i] <= 0.0) return;   // zero-mass cannot bind
+    if (qcoh_at(pos[i].xyz) > pc.q_threshold) {
+        atomicOr(cc[0], 1u);
+    }
+}
+
 // ── pass 6: finalize — write survivor masses into pos.w (0 = dead) so the
 // deposit/instancer/nbody pick up the merged state with NO further edits. ─
 void pass_finalize() {
@@ -435,4 +487,5 @@ void main() {
     if (m == 5) { pass_hop(); return; }
     if (m == 6) { pass_finalize(); return; }
     if (m == 7) { pass_zerocc(); return; }
+    if (m == 8) { pass_anyq(); return; }
 }

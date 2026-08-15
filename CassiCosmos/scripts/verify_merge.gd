@@ -72,6 +72,9 @@ var _ch_buf: RID
 var _cl_buf: RID
 var _mc_buf: RID
 
+# Push-constant layout (24 floats, 96 B; indices 0..23, incl. cyc_slot@23)
+# — MUST match the GLSL push-constant block in
+# compute/cassi_particle_merge.glsl. Field order: see _fill_pc below.
 var _pc := PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
 	0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 

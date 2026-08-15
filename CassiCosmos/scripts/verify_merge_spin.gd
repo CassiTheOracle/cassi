@@ -4,16 +4,20 @@ extends Node
 ## §3d falsifiable test #4).
 ##
 ## A single gravitationally-bound pair with TANGENTIAL relative motion:
-##   p0 = (5, 0, 0), v0 = (0, +5, 0)   mass 10
-##   p1 = (5.4, 0, 0), v1 = (0, −5, 0) mass 10   (p1 = lower index = survivor)
+##   p0 = (5, 0, 0), v0 = (0, +4, 0)   mass 10
+##   p1 = (5.4, 0, 0), v1 = (0, −6, 0) mass 10   (p1 = lower index = survivor)
 ## d = (−0.4,0,0), v_rel = (0,10,0) → the pair's internal L about its COM is
 ## μ·d×v_rel = 5·(−0.4,0,0)×(0,10,0) = (0,0,−20). The survivor must acquire
 ## spin[1] ≈ (0,0,−20), and the TOTAL angular momentum about the origin
-## (Σ m·p×v + Σ spin) must be conserved across the merge.
+## (Σ m·p×v + Σ spin) must be conserved across the merge. The asymmetric
+## ±velocities give the pair a nonzero COM velocity (p0.y = 10·4+10·(−6) =
+## −20 ≠ 0) so G-S4's momentum tolerance is meaningful; the merge physics
+## (v_rel, internal L, binding) is unchanged.
 ##
-## Checked BEFORE merge: L = m0·p0×v0 + m1·p1×v1 = (0,0,−20) (v_c = 0 at the
-## centroid, so the merged body's orbital term vanishes and its spin carries
-## the whole −20z — exact conservation).
+## Checked BEFORE merge: L = m0·p0×v0 + m1·p1×v1 = (0,0,−20) about the origin
+## (the merged body's spin carries the whole pair-internal −20z; the COM now
+## moves, so total L about the origin is the sum of internal spin plus the
+## orbital term of the moving COM — still exactly conserved).
 ##
 ## Gates:
 ##   G-S1  pair merges (alive loss == 1)
@@ -181,6 +185,7 @@ func _dispatch(pass_mode: float) -> void:
 
 ## One bound pair with tangential orbital motion: L_internal = μ·d×v_rel
 ## = 5·(−0.4,0,0)×(0,10,0) = (0,0,−20). Binding: ½μ|v_rel|²·d = 100 < 1800 ✓.
+## Asymmetric v0/v1 (0,±) → nonzero COM velocity; v_rel kept (0,10,0).
 func _build_input() -> void:
 	_input_mass = PackedFloat32Array([10.0, 10.0])
 	_input_pos = PackedFloat32Array([
@@ -188,8 +193,8 @@ func _build_input() -> void:
 		5.4, 0.0, 0.0, 0.0,
 	])
 	_input_vel = PackedFloat32Array([
-		0.0, 5.0, 0.0, 0.0,
-		0.0, -5.0, 0.0, 0.0,
+		0.0, 4.0, 0.0, 0.0,
+		0.0, -6.0, 0.0, 0.0,
 	])
 	for i in range(N):
 		_input_pos[i * 4 + 3] = _input_mass[i]
@@ -269,14 +274,24 @@ func _check_gates(merges: int) -> void:
 	var lrel := (l1 - l0).length() / maxf(l0.length(), 1e-30)
 	_check("G-S2: total L about origin conserved (≤1e-3)", lrel <= 1e-3,
 		"rel=%.8f L0=%s L1=%s" % [lrel, l0, l1])
-	# G-S3: survivor spin == its pre-merge internal L (the survivor is the
-	# lowest bound index = 1 here; its spin must equal the pair's μ·d×v_rel)
+	# G-S3: survivor spin == the pair's pre-merge INTERNAL L about the pair
+	# COM. With a nonzero COM velocity the origin-frame L0 no longer equals
+	# the spin target, so compare against the analytic constant of the test
+	# data: L_int = μ·d×v_rel (a conserved internal quantity, independent of
+	# the COM translation added for G-S4). μ = m0·m1/(m0+m1) = 5,
+	# d = p0−p1, v_rel = v0−v1 → L_int = 5·(−0.4,0,0)×(0,10,0) = (0,0,−20).
+	var mu: float = _input_mass[0] * _input_mass[1] / (_input_mass[0] + _input_mass[1])
+	var pv0 := Vector3(_input_pos[0], _input_pos[1], _input_pos[2])
+	var pv1 := Vector3(_input_pos[4], _input_pos[5], _input_pos[6])
+	var vv0 := Vector3(_input_vel[0], _input_vel[1], _input_vel[2])
+	var vv1 := Vector3(_input_vel[4], _input_vel[5], _input_vel[6])
+	var l_int: Vector3 = mu * (pv0 - pv1).cross(vv0 - vv1)
 	for i in range(N):
 		if al[i] > 0.5:
 			var sl := Vector3(sp[i * 4], sp[i * 4 + 1], sp[i * 4 + 2])
-			var srel := (sl - l0).length() / maxf(l0.length(), 1e-30)
-			_check("G-S3: survivor spin == pre-merge pair L (≤1e-3)", srel <= 1e-3,
-				"rel=%.8f spin=%s L0=%s" % [srel, sl, l0])
+			var srel := (sl - l_int).length() / maxf(l_int.length(), 1e-30)
+			_check("G-S3: survivor spin == pair internal L (≤1e-3)", srel <= 1e-3,
+				"rel=%.8f spin=%s L_int=%s" % [srel, sl, l_int])
 	# G-S4: momentum
 	var p0 := Vector3.ZERO
 	var p1v := Vector3.ZERO

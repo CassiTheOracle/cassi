@@ -58,14 +58,19 @@ static func load_level(dir_path: String) -> Dictionary:
 		res["error"] = "field_ey/field_ei missing or size != %d³ in %s" % [N, dir_path]
 		return res
 	res["q"] = _read_raw_floats(_join(dir_path, "field_q.raw"), nc)  # possibly empty
-	# Particles: positions (xyz) optional; masses optional.
+	# Particles: positions (xyz) optional; masses optional. F9: warn (not just
+	# silently degrade) when particle_count>0 but pos/mass are missing/short;
+	# particle_count==0 (field-only levels) stays legitimate — pos/mass empty.
 	var np: int = res["particle_count"]
 	if np > 0:
 		res["pos_xyz"] = _read_raw_floats(_join(dir_path, "particles.raw"), np * 3)
 		if res["pos_xyz"].size() != np * 3:
+			push_warning("[CassiLevelSwap] %s: particle_count=%d but particles.raw missing/short — level rejected" % [dir_path, np])
 			res["error"] = "particles.raw missing or != %d*3 in %s" % [np, dir_path]
 			return res
 		res["masses"] = _read_raw_floats(_join(dir_path, "particles_mass.raw"), np)  # optional
+		if res["masses"].size() != np:
+			push_warning("[CassiLevelSwap] %s: particle_count=%d but particles_mass.raw missing/short — masses default to the Salpeter draw" % [dir_path, np])
 	res["ok"] = true
 	return res
 
@@ -96,18 +101,17 @@ static func _read_extents(meta: Dictionary) -> Vector3:
 
 
 static func _read_raw_floats(path: String, expect_floats: int) -> PackedFloat32Array:
-	var out := PackedFloat32Array()
 	if not FileAccess.file_exists(ProjectSettings.globalize_path(path)):
-		return out
+		return PackedFloat32Array()
 	var f := FileAccess.open(ProjectSettings.globalize_path(path), FileAccess.READ)
 	if f == null:
-		return out
+		return PackedFloat32Array()
 	if f.get_length() < expect_floats * 4:
 		f.close()
-		return out
-	out.resize(expect_floats)
-	for i in range(expect_floats):
-		out[i] = f.get_float()
+		return PackedFloat32Array()
+	# F9 (perf): read in ONE go and decode as PackedFloat32Array — the old
+	# per-float get_float() loop was O(262k) interpreter calls on a full level.
+	var out := f.get_buffer(expect_floats * 4).to_float32_array()
 	f.close()
 	return out
 

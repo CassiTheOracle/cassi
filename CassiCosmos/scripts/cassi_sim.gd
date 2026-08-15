@@ -1239,6 +1239,10 @@ func _ensure_synced() -> void:
 ## standalone compute-list sequence AFTER the physics batch. Returns the total
 ## merges this pass (0 = none / not ready). From _process (every frame) and
 ## from verify scenes that drive steps directly via _run_physics_steps.
+## NOTE: keep the merge-cycle logic here in sync with the twin
+## `_run_merge_pass` in cassi_physics_engine.gd (same batched chain, same
+## per-cycle in-list cc zero). The two differ only in sync style (this sim:
+## readback self-stall; engine: explicit submit+sync).
 ##
 ## FIX 1 (perf-decomp 2026-08-14): cycles execute in BATCHES of
 ## MERGE_BATCH_CYCLES — every cycle's fold→zero-cc→count→scan→fill→best→hop
@@ -1262,12 +1266,30 @@ func _run_merge_pass() -> int:
 	# (global RD: separate compute_list_end()s don't guarantee cross-list
 	# memory visibility; buffer_get_data self-stalls and executes pending
 	# work, but ONLY from the frame context — see the _render_frame hook).
-	_zero_merge_bytes(_merge_cc_buf, _merge_hash_total)   # cc=0 before count
+	# F1: cc is re-zeroed ON-GPU per cycle (mode 7 at the top of the cycle
+	# batch, before every count) — NO pre-loop host zero needed; the old
+	# pre-loop cc zero was redundant with the batched mode-7 zero and is gone.
 	_zero_merge_bytes(_merge_mc_buf, MERGE_MAX_CYCLES)    # all count slots 0
 	var cl0 := _rd.compute_list_begin()
 	_merge_bind_dispatch(cl0, 0.0)   # reset: alive=1, mass=pos.w, mom/cen=m p/m v
 	_rd.compute_list_end()
 	_merge_read_uint()   # forced sync → reset visible
+	# STEP 1 (perf-decomp 2026-08-15): GPU any-candidate early-out — ONE
+	# dispatch (mode 8) sets cc[0] iff ANY alive mass>0 particle sits at
+	# q_coh > q_threshold; ONE 4 B self-stall readback decides. On 0: this
+	# pass CANNOT merge (q_sel(mid) > φ⁻² with qord ≤ 1 requires
+	# q_coh(mid) > φ⁻², so the per-particle q gate is a necessary condition)
+	# — skip the whole fold/count/scan/fill/best/hop chain AND the per-cycle
+	# count readbacks, i.e. the ~40-dispatch burst that starved the shared
+	# three-RD GPU on near-empty passes (the measured TDR trigger). cc[0] is
+	# borrowed: reset zeroed it, pass_zerocc clears it before the first
+	# count, and nothing else reads it here. Skipping with a false-negative
+	# flag only DELAYS a merge (pos/vel untouched), never corrupts.
+	var cla := _rd.compute_list_begin()
+	_merge_bind_dispatch(cla, 8.0)
+	_rd.compute_list_end()
+	if int(_rd.buffer_get_data(_merge_cc_buf, 0, 4).decode_u32(0)) == 0:
+		return 0
 	var total := 0
 	var cyc := 0
 	while cyc < MERGE_MAX_CYCLES:
@@ -1329,51 +1351,39 @@ const MERGE_BATCH_CYCLES := 4
 ## The merge push constant as 24 floats (shader layout: N, phi, phi_inv2,
 ## q_threshold, R_m, extent.xyz, grid_N, hash_nxyz, cell_w.xyz, pass_mode@15,
 ## g_n, xi, h0, dt, f_subsonic, f_virial, f_order, cyc_slot@23 — the §3
-## redesign + the batched-merge cycle slot).
+## redesign + the batched-merge cycle slot). Deduped via CassiMergeCommon so
+## the engine twin cannot drift (the F1-class divergence guard).
 func _merge_pc_values() -> PackedFloat32Array:
+	return CassiMergeCommon.merge_pc_values(_merge_pc_dict())
+
+
+## The merge PC inputs as a Dictionary (shared helper's key set).
+func _merge_pc_dict() -> Dictionary:
 	var ebox := _extents()
 	var r_m: float = _extent_min() / float(maxi(grid_N, 1))   # ½·h₀
-	var f := PackedFloat32Array()
-	f.resize(24)
-	f[0] = float(N_particles)          # N
-	f[1] = PHI                          # phi
-	f[2] = PHI_INV2                     # phi^-2 (q denom scale + default gate)
-	f[3] = PHI_INV2                     # q_threshold = phi^-2
-	f[4] = r_m                          # R_m = ½·h₀
-	f[5] = ebox.x                       # extent_x
-	f[6] = ebox.y                       # extent_y
-	f[7] = ebox.z                       # extent_z
-	f[8] = float(grid_N)                # grid_N (q_coh trilinear)
-	f[9] = float(_merge_hash_nx)        # hash_nx
-	f[10] = float(_merge_hash_ny)       # hash_ny
-	f[11] = float(_merge_hash_nz)       # hash_nz
-	f[12] = _merge_cell_wx              # cell_wx
-	f[13] = _merge_cell_wy              # cell_wy
-	f[14] = _merge_cell_wz              # cell_wz
-	# §3 redesign fields: g_n = the calibrated Newton G (bh[1].w, the same
-	# G_N the nbody force uses — single source of truth), ξ = φ⁶, h0 = 2·R_m,
-	# dt, and the hypothesis-tier feature flags.
-	f[16] = _bh_init_bytes.decode_float(28)   # G_N (bh[1].w)
-	f[17] = xi                                # φ⁶ coupling
-	f[18] = 2.0 * r_m                         # h₀ = 2·R_m (reference cell)
-	f[19] = dt                                # timestep (c_s = h0/dt)
-	f[20] = 1.0 if merge_subsonic else 0.0    # subsonic-inflow criterion
-	f[21] = 1.0 if merge_virial else 0.0      # virial stopping scale
-	f[22] = 1.0 if merge_sel_gate else 0.0    # order-selective q_sel gate
-	f[23] = 0.0                               # cyc_slot (batched hop slot; set per dispatch)
-	return f
+	return {
+		"n_particles": float(N_particles),
+		"phi": PHI, "phi_inv2": PHI_INV2,
+		"r_m": r_m, "extent": ebox, "grid_n": float(grid_N),
+		"hash_nx": _merge_hash_nx, "hash_ny": _merge_hash_ny, "hash_nz": _merge_hash_nz,
+		"cell_wx": _merge_cell_wx, "cell_wy": _merge_cell_wy, "cell_wz": _merge_cell_wz,
+		"g_n": _bh_init_bytes.decode_float(28),   # G_N (bh[1].w) — single source of truth
+		"xi": xi, "dt": dt,
+		"subsonic": merge_subsonic, "virial": merge_virial, "order": merge_sel_gate,
+	}
 
 
 ## Bind the merge pipeline/set/PC and dispatch one pass mode into the open
-## compute list `cl` (N_particles threads). Rebuilds the PC each dispatch
-## (a fresh PackedFloat32Array→bytes assignment, sidestepping any
-## encode_float-on-member quirk). The caller adds barriers between
+## compute list `cl` (N_particles threads). F8: the PC is ENCODED INTO the
+## pre-sized `_merge_pc_bytes` member (24 floats = 96 B) — never reassigned —
+## so the dispatches stay hitch-free. The caller adds barriers between
 ## consecutive in-list passes and readbacks to sync across lists.
 func _merge_bind_dispatch(cl: int, pass_mode: float, cyc_slot := 0) -> void:
 	var f := _merge_pc_values()
 	f[15] = pass_mode
 	f[23] = float(cyc_slot)
-	_merge_pc_bytes = f.to_byte_array()
+	for i in range(24):
+		_merge_pc_bytes.encode_float(i * 4, f[i])
 	_rd.compute_list_bind_compute_pipeline(cl, _merge_pipe)
 	_rd.compute_list_bind_uniform_set(cl, _us_merge_0, 0)
 	_rd.compute_list_set_push_constant(cl, _merge_pc_bytes, _merge_pc_bytes.size())
@@ -2011,12 +2021,13 @@ func _setup_buffers() -> void:
 	# h₀ = 2·extent_min/grid_N (the shortest-axis cube-equivalent cell —
 	# matches the verify's single-extent convention on the cubic default).
 	if particle_merge and N_particles > 0:
-		var ebox := _extents()
-		var rem: float = _extent_min() / float(maxi(grid_N, 1))  # = R_m
-		_merge_hash_nx = maxi(int(floor(2.0 * ebox.x / rem)), 8)
-		_merge_hash_ny = maxi(int(floor(2.0 * ebox.y / rem)), 8)
-		_merge_hash_nz = maxi(int(floor(2.0 * ebox.z / rem)), 8)
-		_merge_hash_total = _merge_hash_nx * _merge_hash_ny * _merge_hash_nz
+		# Hash geometry via the shared helper (dedup — identical to the engine
+		# twin; see CassiMergeCommon.hash_geometry).
+		var geom := CassiMergeCommon.hash_geometry(_extents(), _extent_min() / float(maxi(grid_N, 1)))
+		_merge_hash_nx = geom["nx"]
+		_merge_hash_ny = geom["ny"]
+		_merge_hash_nz = geom["nz"]
+		_merge_hash_total = geom["total"]
 		var np1 := maxi(N_particles, 1)
 		_merge_alive_buf = _rd.storage_buffer_create(np1 * 4)
 		_merge_mass_buf = _rd.storage_buffer_create(np1 * 4)
@@ -2041,10 +2052,10 @@ func _setup_buffers() -> void:
 		var scan_scr_zero := PackedByteArray(); scan_scr_zero.resize((_merge_nb1a + _merge_nb2) * 4)
 		_rd.buffer_update(_merge_scr_buf, 0, scan_scr_zero.size(), scan_scr_zero)
 		# Non-cubic cells: per-axis widths from the per-axis hash counts
-		_merge_cell_wx = 2.0 * ebox.x / float(_merge_hash_nx)
-		_merge_cell_wy = 2.0 * ebox.y / float(_merge_hash_ny)
-		_merge_cell_wz = 2.0 * ebox.z / float(_merge_hash_nz)
-		_merge_pc_bytes = PackedByteArray(); _merge_pc_bytes.resize(23 * 4)
+		_merge_cell_wx = geom["cell_wx"]
+		_merge_cell_wy = geom["cell_wy"]
+		_merge_cell_wz = geom["cell_wz"]
+		_merge_pc_bytes = PackedByteArray(); _merge_pc_bytes.resize(24 * 4)   # 24 floats = 96 B (cyc_slot@23) — F8: pre-sized, never reassigned
 	# ── Tree-gravity buffers (allocated always; used when meshless_gravity) ──
 	# Sources = the Voronoi sites (ml_ns); targets = the N-body particles.
 	# Node cap NODE_MAX = ML_TREE_NODE_MAX_MULT·nsrc + slack — the octree of
@@ -5182,10 +5193,34 @@ func apply_level(dir_path: String) -> bool:
 	# Record the PRE-swap attractor-r (volume avg) for the continuity check.
 	_level_prev_r = _volume_avg_r()
 	# Adopt the level's physical box extents (cubic in the tree → aspect 1).
+	var pre_extent := _extents()
 	var ext: Vector3 = lv.get("extents", Vector3.ZERO)
 	if ext.x > 0.0:
 		box_aspect = Vector3.ONE
 		box_scale = (ext.x as float) / maxf(_extents().x * 1.0, 1e-30)
+	# Particles: realloc at the level's count if it differs, then upload.
+	var np := int(lv.get("particle_count", 0))
+	var count_changed: bool = np != N_particles
+	var ext_changed: bool = not pre_extent.is_equal_approx(_extents())
+	# F2/F3: a count change reallocates the per-particle buffers (nbody +
+	# merge state) and a count OR extents change invalidates the merge hash
+	# geometry; BOTH leave the cached uniform sets stale (they bind the freed
+	# RIDs). Rebuild everything here, exactly once, BETWEEN frames (apply_level
+	# runs off the render/compute list), then re-cache the sets. Default-off:
+	# with particle_merge off, _rebuild_merge_geometry is a no-op and the sets
+	# still need rebinding only when count changed (pos/vel/acc realloc'd).
+	if count_changed or ext_changed:
+		_free_uniform_sets()
+		if count_changed:
+			# The MultiMesh instance buffer is count-scaled and bound by the
+			# instancer sets — rebuild it when N changes (mirror reinit).
+			if _mm == null or _mm.instance_count != max(np, 1):
+				_free_multimesh()
+				_setup_multimesh()
+			_realloc_particle_buffers(np)
+			N_particles = np
+		_rebuild_merge_geometry()
+		_cache_uniform_sets()
 	# Upload the field (ey/ei; q recomputed when absent).
 	var nc: int = grid_N * grid_N * grid_N
 	var ey: PackedFloat32Array = lv["ey"]
@@ -5200,11 +5235,6 @@ func apply_level(dir_path: String) -> bool:
 	_rd.buffer_update(_field_q, 0, qarr.size() * 4, qarr.to_byte_array())
 	var velz := PackedFloat32Array(); velz.resize(nc * 4); velz.fill(0.0)
 	_rd.buffer_update(_field_vel, 0, velz.size() * 4, velz.to_byte_array())
-	# Particles: realloc at the level's count if it differs, then upload.
-	var np := int(lv.get("particle_count", 0))
-	if np != N_particles:
-		_realloc_particle_buffers(np)
-		N_particles = np
 	var posxyz: PackedFloat32Array = lv.get("pos_xyz", PackedFloat32Array())
 	var masses: PackedFloat32Array = lv.get("masses", PackedFloat32Array())
 	var pos := PackedFloat32Array(); pos.resize(np * 4)
@@ -5230,10 +5260,18 @@ func apply_level(dir_path: String) -> bool:
 	return true
 
 
-## Realloc the particle position/velocity/acc buffers at a new count. The
-## MultiMesh render buffer is NOT touched here (render-side; the instancer
-## re-sizes at the next render) — this is the lightweight M3 path that avoids
-## the full reinit() teardown (no multimesh rebuild → no reload-hang).
+## Realloc the per-particle buffers (nbody pos/vel/acc AND, when
+## particle_merge is on, the merge kernel's per-particle state — alive/mass/
+## mom/cen/best/sink/spin/mprev/cl) at a new count. The spatial-hash buffers
+## (cc/cs/ch/scr) are NOT touched here (they are hash-sized, not N-sized —
+## see _rebuild_merge_geometry); the MultiMesh render buffer is also NOT
+## touched here (render-side; apply_level rebuilds it when N changes).
+##
+## F10 — CALL-SITE TIMING: only safe BETWEEN frames and OUTSIDE any open
+## compute list (it frees + recreates RIDs that cached uniform sets bind, so
+## callers must _free_uniform_sets() before and _cache_uniform_sets() after).
+## In decoupled mode, sync/stop the engine worker first so it cannot be mid-
+## submit on buffers this frees.
 func _realloc_particle_buffers(n: int) -> void:
 	var np1 := maxi(n, 1)
 	for rid in [_pos_buf, _vel_buf, _acc_buf]:
@@ -5242,6 +5280,64 @@ func _realloc_particle_buffers(n: int) -> void:
 	_pos_buf = _rd.storage_buffer_create(np1 * 16)
 	_vel_buf = _rd.storage_buffer_create(np1 * 16)
 	_acc_buf = _rd.storage_buffer_create(np1 * 16)
+	# Merge per-particle buffers (only exist when particle_merge) — recreate
+	# them here so the cached uniform sets never bind freed RIDs after a count
+	# change (F2/F3; _setup_buffers sizes these from N_particles).
+	if particle_merge:
+		for rid in [_merge_alive_buf, _merge_mass_buf, _merge_mom_buf, _merge_cen_buf,
+				_merge_best_buf, _merge_sink_buf, _merge_spin_buf, _merge_mprev_buf, _merge_cl_buf]:
+			if rid.is_valid():
+				_rd.free_rid(rid)
+		_merge_alive_buf = _rd.storage_buffer_create(np1 * 4)
+		_merge_mass_buf = _rd.storage_buffer_create(np1 * 4)
+		_merge_mom_buf = _rd.storage_buffer_create(np1 * 16)
+		_merge_cen_buf = _rd.storage_buffer_create(np1 * 16)
+		_merge_best_buf = _rd.storage_buffer_create(np1 * 4)
+		_merge_sink_buf = _rd.storage_buffer_create(np1 * 4)
+		_merge_spin_buf = _rd.storage_buffer_create(np1 * 16)
+		_merge_mprev_buf = _rd.storage_buffer_create(np1 * 4)
+		_merge_cl_buf = _rd.storage_buffer_create(np1 * 4)
+		# F8: the PC byte buffer must stay sized (24 floats) so _merge_bind_dispatch's
+		# encode-in-place never targets an empty buffer (covers init N=0 → swap N>0).
+		if _merge_pc_bytes.size() != 24 * 4:
+			_merge_pc_bytes = PackedByteArray(); _merge_pc_bytes.resize(24 * 4)
+
+
+## Recompute the merge spatial-hash geometry from the CURRENT extents/R_m and
+## recreate the hash-sized buffers (cc/cs/ch + the on-GPU scan scrub). Called
+## by apply_level when a level swap changes box_aspect/box_scale (the hash
+## geometry and the cc/cs/ch buffer sizes would otherwise go stale → wrong
+## neighbor coverage / OOB). Must run with the uniform sets already freed
+## (sets bind the old cc/cs/ch RIDs) and before _cache_uniform_sets. F2/F3.
+func _rebuild_merge_geometry() -> void:
+	if not particle_merge:
+		return
+	var r_m: float = _extent_min() / float(maxi(grid_N, 1))
+	var geom := CassiMergeCommon.hash_geometry(_extents(), r_m)
+	_merge_hash_nx = geom["nx"]
+	_merge_hash_ny = geom["ny"]
+	_merge_hash_nz = geom["nz"]
+	_merge_hash_total = geom["total"]
+	_merge_cell_wx = geom["cell_wx"]
+	_merge_cell_wy = geom["cell_wy"]
+	_merge_cell_wz = geom["cell_wz"]
+	for rid in [_merge_cc_buf, _merge_cs_buf, _merge_ch_buf, _merge_scr_buf]:
+		if rid.is_valid(): _rd.free_rid(rid)
+	_merge_cc_buf = _rd.storage_buffer_create(_merge_hash_total * 4)
+	_merge_cs_buf = _rd.storage_buffer_create(_merge_hash_total * 4)
+	_merge_ch_buf = _rd.storage_buffer_create(_merge_hash_total * 4)
+	var nb1 := (_merge_hash_total + 255) / 256
+	_merge_nb1a = ((nb1 + 255) / 256) * 256
+	_merge_nb2 = (nb1 + 255) / 256
+	_merge_scr_buf = _rd.storage_buffer_create((_merge_nb1a + _merge_nb2) * 4)
+	var hz := PackedByteArray(); hz.resize(_merge_hash_total * 4); hz.fill(0)
+	_rd.buffer_update(_merge_cc_buf, 0, hz.size(), hz)
+	_rd.buffer_update(_merge_cs_buf, 0, hz.size(), hz)
+	_rd.buffer_update(_merge_ch_buf, 0, hz.size(), hz)
+	var sz := PackedByteArray(); sz.resize((_merge_nb1a + _merge_nb2) * 4); sz.fill(0)
+	_rd.buffer_update(_merge_scr_buf, 0, sz.size(), sz)
+	var mc_zero := PackedByteArray(); mc_zero.resize(MERGE_MAX_CYCLES * 4); mc_zero.fill(0)
+	_rd.buffer_update(_merge_mc_buf, 0, mc_zero.size(), mc_zero)
 
 
 ## Volume-average attractor ratio r = ⟨(EY−EI)/(EY+EI)⟩ over the live field

@@ -199,7 +199,15 @@ func _check_g50() -> void:
 	# Saturated blob: uniform q_coh ≈ 0.87 (rho such that q_coh = 0.87).
 	var qc_blob := 0.87
 	_fill_ordered(qc_blob)
+	# RAW band from _autotrack_measure (already margined+clamped into
+	# [LO_CAP, HI_CAP]: for a uniform blob at qc=0.87 it returns
+	# clamp(qc·MARGIN=1.131, −, HI_CAP) = 0.999). Assert the RAW hi edge
+	# actually tracks the blob's TRUE q_coh — a broken _autotrack_measure
+	# returning e.g. 0.1 must FAIL here even though the settled band hides
+	# it behind the tracker's own clamp.
 	var band_b: Vector2 = ui._autotrack_measure()
+	var raw_hi_b := band_b.y
+	var raw_ok_b: bool = raw_hi_b >= 0.5 * qc_blob and raw_hi_b <= 1.25 * qc_blob
 	var settled_b := Vector2.ZERO
 	if band_b.x > 0.0:
 		for _s in range(60):
@@ -209,16 +217,22 @@ func _check_g50() -> void:
 	# 0.999 anchor by more than fp noise".
 	var blob_hi_ok: bool = band_b.x <= 0.0 or (settled_b.y <= HI_CAP + 1e-6 and settled_b.x >= LO_CAP)
 	_checks += 1
-	if blob_hi_ok:
-		print("[PASS] G50 (saturated blob): settled band %s→%s — hi %.5f ≤ HI_CAP %.3f (never re-anchors past 1)" % [
-			_sci(settled_b.x), _sci(settled_b.y), settled_b.y, HI_CAP])
+	if band_b.x > 0.0 and raw_ok_b and blob_hi_ok:
+		print("[PASS] G50 (saturated blob): raw hi %.4f ∈ [%.3f, %.3f]·qc tracks blob; settled band %s→%s — hi %.5f ≤ HI_CAP %.3f" % [
+			raw_hi_b, 0.5 * qc_blob, 1.25 * qc_blob, _sci(settled_b.x), _sci(settled_b.y), settled_b.y, HI_CAP])
 	else:
 		_failures += 1
-		push_error("G50 (blob): band hi %.9f (<= cap+1e-9=%s) lo %.9f (>=LO_CAP=%s) — old floor's runaway?" % [settled_b.y, str(settled_b.y <= HI_CAP + 1e-9), settled_b.x, str(settled_b.x >= LO_CAP)])
+		push_error("G50 (blob): raw hi %.9f (want ∈ [%.3g, %.3g]) or settled hi %.9f (<=cap %s) lo %.9f (>=LO_CAP=%s)" % [raw_hi_b, 0.5 * qc_blob, 1.25 * qc_blob, settled_b.y, str(settled_b.y <= HI_CAP + 1e-9), settled_b.x, str(settled_b.x >= LO_CAP)])
 	# Degenerate: uniform tiny q_coh → percentiles collapse → the log-ratio
-	# floor holds a full decade of hue (never collapses), hi ≤ HI_CAP.
-	_fill_ordered(0.002)
+	# floor holds a full decade of hue (never collapses), hi ≤ HI_CAP. Also
+	# assert the RAW hi edge tracks the degenerate q_coh (qc_d = 0.002;
+	# measure returns clamp(0.002·1.3, −, 0.999) = 0.0026) — a broken measure
+	# returning e.g. 0.5 would slip past the settled floor check alone.
+	var qc_d := 0.002
+	_fill_ordered(qc_d)
 	var band_d: Vector2 = ui._autotrack_measure()
+	var raw_hi_d := band_d.y
+	var raw_ok_d: bool = raw_hi_d >= 0.5 * qc_d and raw_hi_d <= 2.0 * qc_d
 	var settled_d := Vector2.ZERO
 	if band_d.x > 0.0:
 		for _s in range(60):
@@ -226,12 +240,12 @@ func _check_g50() -> void:
 	var log_ratio_d: float = log(settled_d.y / maxf(settled_d.x, LO_CAP)) / log(10.0)
 	var degen_ok: bool = band_d.x <= 0.0 or (log_ratio_d >= log(MIN_SPAN) / log(10.0) - 1e-9 and settled_d.y <= HI_CAP + 1e-9)
 	_checks += 1
-	if degen_ok:
-		print("[PASS] G50 (degenerate): band %s→%s spans %.2f decades ≥ floor %.1f, hi %.4f ≤ %.3f" % [
-			_sci(settled_d.x), _sci(settled_d.y), log_ratio_d, MIN_SPAN, settled_d.y, HI_CAP])
+	if band_d.x > 0.0 and raw_ok_d and degen_ok:
+		print("[PASS] G50 (degenerate): raw hi %.4f ∈ [%.3f, %.3f]·qc tracks degen; settled band %s→%s spans %.2f decades ≥ floor %.1f, hi %.4f ≤ %.3f" % [
+			raw_hi_d, 0.5 * qc_d, 2.0 * qc_d, _sci(settled_d.x), _sci(settled_d.y), log_ratio_d, MIN_SPAN, settled_d.y, HI_CAP])
 	else:
 		_failures += 1
-		push_error("G50 (degenerate): log span %.2f < floor %d or hi %.4f > %.3f" % [log_ratio_d, MIN_SPAN, settled_d.y, HI_CAP])
+		push_error("G50 (degenerate): raw hi %.9f (want ∈ [%.3g, %.3g]) or log span %.2f < floor %d or hi %.4f > %.3f" % [raw_hi_d, 0.5 * qc_d, 2.0 * qc_d, log_ratio_d, MIN_SPAN, settled_d.y, HI_CAP])
 
 
 ## G51 — the band GLIDES (damped, monotone, hi < 1) tracking a moving q_coh.

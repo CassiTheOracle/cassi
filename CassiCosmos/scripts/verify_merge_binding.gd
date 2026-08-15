@@ -194,7 +194,11 @@ func _dispatch(pass_mode: float) -> void:
 
 
 ## pair 0-1 (bound): masses 10/10 near x=5, v_rel = 0.
-## pair 2-3 (unbound): same geometry/masses near x=10, v_rel = (50,0,0).
+## pair 2-3 (unbound): same geometry/masses near x=10, v_rel = (50,0,0)
+## (asymmetric ±velocities (-20,+30) → |v_rel|=50 unchanged, so the unbound
+## physics is identical: ½μv²d = 2500 ≥ G_eff·m₁m₂ ≈ 1894 still fails to
+## bind). Net p0.x = 10·(-20)+10·30 = 100 ≠ 0 → G-B3's relative tolerance
+## is meaningful rather than an exact-zero check.
 func _build_input() -> void:
 	_input_mass = PackedFloat32Array([10.0, 10.0, 10.0, 10.0])
 	_input_pos = PackedFloat32Array([
@@ -206,8 +210,8 @@ func _build_input() -> void:
 	_input_vel = PackedFloat32Array([
 		0.0, 0.0, 0.0, 0.0,
 		0.0, 0.0, 0.0, 0.0,
-		-25.0, 0.0, 0.0, 0.0,
-		25.0, 0.0, 0.0, 0.0,
+		-20.0, 0.0, 0.0, 0.0,
+		30.0, 0.0, 0.0, 0.0,
 	])
 	for i in range(N):
 		_input_pos[i * 4 + 3] = _input_mass[i]
