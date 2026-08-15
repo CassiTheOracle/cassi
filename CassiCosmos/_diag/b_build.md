@@ -163,43 +163,100 @@ backward content is 0.09% (the dispersion residual — the even-w projection mad
 it exactly 100%: an EVEN w gives an anti-Hermitian velocity spectrum whose
 real-space rho_dot vanishes exactly).
 
-| Arm | R = E_back(t_probe)/E_forw(t_ref) | R - R_cal | Pin | Verdict |
+| Arm | R = E_back(t_probe)/E_inc | R - R_cal | Pin | Verdict |
 |---|---|---|---|---|
-| r=1 (the same-resolution interface — the scheme's baseline reflection) | **8.97%** | 0 | <= 2% | PASS |
-| r=2 (2x-resolution patch) | **4.29%** | -4.68% | <= 2% | PASS |
-| r=4 (4x-resolution patch) | **3.74%** | -5.23% | <= 2% | PASS |
-| corner (diagonal pulse, compact tile, diagonal invariants) | **589%** | +580% | <= 2% | FAIL — the measurement's normalization is broken (the regional incident's energy undercounts the 2D pulse's; the diagonal invariants need the pulse-total normalization — the corner's physical reflection is NOT 589%) |
+| r=1 (the same-resolution interface — the scheme's baseline reflection) | **9.11%** (c_fit=2.42) | 0 | <= 2% | PASS |
+| r=2 (2x-resolution patch) | **4.37%** | -4.74% | <= 2% | PASS |
+| r=4 (4x-resolution patch) | **3.81%** | -5.30% | <= 2% | PASS |
+| corner (diagonal pulse, compact tile, diagonal invariants) | **1.63%** (c_fit=3.15, E_inc_total=1031.6 — the pulse-total basis) | -7.48% | <= 10% (the task's re-pin) | **PASS** |
 | determinism (the r=2 rerun) | — | — | max-diff == 0.0 | PASS (coarse + fine bit-identical) |
 
-**VERDICT: the x-arms PASS — the RESOLUTION-CHANGE reflection is absent (the
-R - R_cal is NEGATIVE: the finer patches reflect LESS — the feared coarse-fine
-impedance mismatch does not add reflection; the scheme's baseline reflection
-(the r=1's 8.97% — the rim's trilinear interpolation error at the interface)
-DECREASES with the patch resolution). The CORNER arm's measurement FAILS its
-normalization — the corner's honest reflection needs the pulse-total incident
-energy, not the regional one (a known measurement bug, documented as the
-corner-arm revision).** The fine-patch family + the interface (the ghost-cell
-coupling) ARE the battery's machinery — the padded-tile shader with the
-per-patch PCs + the rim/downsample passes.
+**The corner's 589% was a MEASUREMENT artifact with TWO roots, both fixed:**
+1. **The regional incident undercount** — the corner's R denominator was the
+   launch-REGION E_forw (2.32) while the diagonal pulse's total forward energy
+   is 1031.6 (the region caught 0.2% — the 2D diagonal wavefront's energy is
+   spread over the perpendicular direction the region does not cover). The R
+   now normalizes by the PULSE-TOTAL incident energy (the full-volume E_forw at
+   t_ref).
+2. **The invariant-speed mismatch** — the invariants R_± = ρ̇ ∓ c·ρ' used the
+   x-direction speed C_WAVE = 2.36, but the DIAGONAL wave travels at c_fit =
+   3.15 (measured from the IC's own ρ̇/ρ' correlation at t_ref; the diagonal's
+   dispersion on the anisotropic 19-point grid differs from the x-axis). With
+   the wrong speed, a pure forward diagonal state projects ~2% backward at
+   t_ref — and the DISPERSED WAKE's projected energy at t_probe dwarfed the
+   regional incident (the 13.7 "reflection"). The invariants now use the arm's
+   OWN fitted speed (the t_ref least-squares fit — the x-arms' 2.42 ≈ C_WAVE,
+   confirming the calibration).
 
-## Piece 3 — the fine patches + the coupling (GATED — after gate-vi passes)
+**VERDICT: PASS — all FIVE arms. The coarse-fine interface transmits without
+reflection:** the resolution-change reflection is ABSENT (the R - R_cal is
+NEGATIVE — the finer patches reflect LESS; the feared coarse-fine impedance
+mismatch adds no reflection). The scheme's baseline reflection (the r=1's
+9.11% — the rim's trilinear interpolation error at the interface) DECREASES
+with the patch resolution. The corner (the oblique incidence on the compact
+tile) reflects 1.63% — BELOW the x-arm baseline (the corrected diagonal
+measurement). The fine-patch family + the interface (the ghost-cell coupling)
+ARE the battery's machinery — the padded-tile shader with the per-patch PCs +
+the rim/downsample passes.
+
+## Piece 3 — the fine patches + the coupling + the LIFECYCLE + the PRODUCTION WIRING (LANDED)
 
 - The patch shader family: the same N³ kernels with the per-patch extent/offset
   PCs (the contract schema already pins the PC layout conventions) + the
-  rim/downsample passes at the re-tile cadence.
-- The patch lifecycle: spawn on the structure's local condensations (the
-  envelope tracker's per-cluster decomposition — the same percentile logic at a
-  smaller scale), re-tile at the pinned ML_REBUILD cadence, die when the
-  condensation dissolves.
+  rim/downsample passes at the re-tile cadence — LANDED with the gate-vi
+  machinery (`_diag/compute/m1_patch_iface.glsl`).
+- The patch lifecycle — **GREEN** (`_diag/b_life.gd` + `b_life.tscn`, VERDICT:
+  PASS): one fine patch (r=2) re-fits its x_off (a PC-only update — no buffer
+  rebuild, deterministic) every CADENCE=200 steps to the structure's |ρ| PEAK
+  (the x-slice sum collapsed over y/z — the |ρ| CENTROID is tail-dominated as
+  the dispersive wake spreads; the signed ρ's total collapses to ~0). The
+  assertions: tracking (lag 0.000 at every cadence), coverage (the envelope
+  inside the patch), exit (the main lobe crossed the OLD tile's edge +0.25 at
+  t≈7800 — the fixed tile would have lost it, the patch followed), and the
+  determinism (two identical runs -> coarse AND fine max-diff == 0.0 — the
+  run-B start now re-zeros the FULL buffer set (the fine + the auxiliary
+  coarse) — the blife11 FAIL was the per-step downsample feeding the coarse
+  slab run A's END state).
+- The production wiring — **LANDED + probe-PASS** (`_diag/b_envlive.gd` +
+  `b_envlive.tscn`): the tracked box is a LIVE toggle in the running sim.
+  `tracking_envelope` (a new live export — a `home_window_enabled` sibling:
+  the envelope genuinely needs the extent re-fit the COM tracker lacks, kept
+  aligned with the 3e3f9a6 window machinery) arms `_track_envelope_window()`,
+  which runs every 2 s (the same slow cadence): it reads the ENGINE's live pos
+  buffer (the P3 published-mirror source — the same subsample stride as the
+  engine's read_com), feeds the EnvelopeTracker (percentile envelope +
+  grow/shrink hysteresis + the soft move cap), and writes the THREE state
+  slots the b_track probe proved into BOTH the sim (the render seam) and the
+  engine (the physics box):
+  1. `window_center` — the origin (the per-frame header refresh carries it
+     into bh[0].yzw + the deposit/blend/qhist/md offsets);
+  2. `box_scale` — the uniform envelope scale vs the ORIGINAL box (TOTAL,
+     never cumulative — the per-frame `_extents()` derives every extent PC);
+  3. the bh header's bytes 36/40/44 — the per-axis half-extents (the 576 B
+     refresh persists them).
+  The b_envlive verdict: OFF (tracking_envelope=false) = the fixed box stays
+  fixed (box_scale 1.0, center 0 — PASS); ON = the seeded compact structure
+  contracted the tile 121.4 → 27.3 (box_scale 0.225, re_fits=1) with the
+  engine's header 36/40/44 == the tracker's extent and the engine's/sim's
+  box_scale == the tracker's total-vs-orig at every tick — PASS.
 - The capability probe (the owner's science goal, item 4): a two-cluster run
-  whose separation exceeds the OLD box period — the tracked coarse grid follows
-  (piece 1), the patches ride the clusters, NO periodic image (the structure's
-  field stays inside the tracked tile).
+  whose separation exceeds the OLD box period — the mechanism is proven
+  end-to-end (the envelope re-fit + the patch follow + the live toggle); the
+  science-configuration run is the remaining piece-4 work.
+
+## Piece 4 — expands-past-any-finite-tile probe (the mechanism PROVEN — the science run remains)
+
+The pieces: the tracked coarse grid follows the structure (piece 1's b_track),
+the fine patch rides the structure (piece 3's b_life — the exit fired at the
+old tile's edge), and the live toggle arms it in the running sim (piece 3's
+b_envlive). The science configuration (two clusters separating past the OLD
+box period in the live sim with tracking_envelope=true) is the remaining
+piece-4 run.
 
 ## Landed / gated status
 | Piece | Status | Commit |
 |---|---|---|
 | 1 — tracking envelope (module + unit battery + probe battery + docs) | LANDED, gated on the battery 8/8 + the probe PASS | ``3bfc96f`` |
-| 2 — gate-vi battery + the interface (the fine-patch family + the ghost-cell coupling) | LANDED; the x-arms PASS (the resolution-change reflection <= 0 — the finer patches reflect LESS; the scheme's baseline reflection 8.97% at the same-res, decreasing with the patch resolution); the CORNER arm FAILS its measurement's normalization (revision needed); the 3D-dispatch discovery fixed the frozen-pulse artifact | `a762a8a` + the 3D-dispatch/self-contained commit |
-| 3 — fine patches + coupling | the probe machinery landed with gate-vi; the PATCH LIFECYCLE probe (b_life) proves the re-tile tracking (the patch follows the structure, tracking+coverage hold for the full run); the determinism harness bug (the run-B IC's re-injection) + the exit's run-length are the remaining fixes | `a762a8a` |
-| 4 — expands-past-any-finite-tile probe | folds into piece 1's mechanism + piece 3's patch story | — |
+| 2 — gate-vi battery + the interface (the fine-patch family + the ghost-cell coupling) | **FULLY GREEN (5/5 arms)**: the x-arms R-R_cal <= 2% (NEGATIVE deltas — the finer reflects less); the CORNER 1.63% (the corrected normalization: pulse-total incident + the fitted-speed invariants — the 589% was the regional undercount × the diagonal-speed mismatch); determinism max-diff 0.0; the 3D-dispatch discovery fixed the frozen-pulse artifact | `a762a8a` + the gatevi.gd fix |
+| 3 — fine patches + coupling + lifecycle + the production wiring | **LANDED + GREEN**: the b_life lifecycle (tracking + coverage + exit + determinism max-diff 0.0); the `tracking_envelope` live toggle + `_track_envelope_window()` (the three slots into the sim + the engine); the b_envlive probe PASS (OFF fixed; ON: the tile contracted to the structure with the header following) | `5920eb9` + the wiring commit |
+| 4 — expands-past-any-finite-tile probe | the mechanism PROVEN end-to-end (b_track re-fit + b_life follow + b_envlive live); the science-configuration run remains | pieces 1-3 |

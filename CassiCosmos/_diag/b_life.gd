@@ -20,7 +20,7 @@ extends Node
 const COARSE_N := 64
 const DT := 0.01
 const CADENCE := 200
-const STEPS_TOTAL := 9000
+const STEPS_TOTAL := 16000   # the main lobe crosses +0.25 at ~5200-8100; margin for the full-run determinism
 const R := 2
 const PHI := 1.618033988749895
 const XI := 1.0
@@ -109,6 +109,10 @@ func _finish_run() -> void:
 		_fill_fine_pc(R)   # reset the patch to the start
 		_inject_ic()
 		_zero_density()
+		_reset_all()   # the FINE + the auxiliary buffers: run A started
+		# from zeros (the _make_* setup); run B MUST start from the same
+		# zeros — the per-step downsample otherwise feeds the coarse slab
+		# run A's END state and the fields diverge (the blife11 FAIL).
 	else:
 		var det := _snapshot()
 		var md := _max_diff(det["ey"], _run_ref["ey"])
@@ -120,28 +124,28 @@ func _finish_run() -> void:
 		_phase = 2
 
 
-## The re-tile: measure the pulse's centroid from the coarse field, re-fit
-## the patch's x_off, assert the tracking + the coverage.
+## The re-tile: measure the structure's position from the coarse field,
+## re-fit the patch's x_off, assert the tracking + the coverage.
 func _retile() -> void:
 	var n := COARSE_N
 	var ey: PackedFloat32Array = _rd.buffer_get_data(_b_cey, 0, n * n * n * 4).to_float32_array()
 	var ei: PackedFloat32Array = _rd.buffer_get_data(_b_cei, 0, n * n * n * 4).to_float32_array()
-	var sw := 0.0
-	var sx := 0.0
+	# The structure position = the |rho| PEAK (the x-slice sum collapsed
+	# over y/z): the |rho| CENTROID is tail-dominated as the dispersive
+	# wake spreads (the blife11 centroid stalled at +0.13 while the main
+	# lobe crossed +0.25); the peak tracks the main lobe cleanly, and the
+	# signed rho's total collapses to ~0 (the oscillatory tail).
+	var peak_x := 0.0
+	var peak_s := -1.0
 	for i in range(n):
-		var xn := (float(i) + 0.5) / float(n) * 2.0 - 1.0
+		var s := 0.0
 		for j in range(n):
 			for k in range(n):
-				# the |rho| centroid: with the pure-wave run (omega2 = 0) the
-				# checkerboard never forms, so the absolute rho tracks the
-				# structure (the signed rho's total collapses to ~0 as the
-				# wave's oscillatory tail cancels it).
-				var w := absf(ey[i + n * (j + n * k)] + ei[i + n * (j + n * k)])
-				sw += w
-				sx += w * xn
-	var c := 0.0
-	if sw > 1e-9:
-		c = sx / sw
+				s += absf(ey[i + n * (j + n * k)] + ei[i + n * (j + n * k)])
+		if s > peak_s:
+			peak_s = s
+			peak_x = (float(i) + 0.5) / float(n) * 2.0 - 1.0
+	var c := peak_x
 	_x_off = clampf(c, -0.95, 0.95)
 	_fine_pc.encode_float(56, _x_off)
 	# a. the tracking lag
@@ -399,6 +403,33 @@ func _zero_density() -> void:
 	var z := PackedFloat32Array()
 	z.resize(n3)
 	_rd.buffer_update(_b_crho, 0, n3 * 4, z.to_byte_array())
+
+
+## Re-queue the FULL zero initialization of the fine + the auxiliary
+## buffers (the exact _ready() state) so the run-B start is bit-identical
+## to run A's. The coarse ey/ei/vel are overwritten by _inject_ic; the
+## pass-A scratch is fully written each step (the initial garbage never
+## read), but zero it anyway for the byte-identical determinism.
+func _reset_all() -> void:
+	var n3 := COARSE_N * COARSE_N * COARSE_N
+	var z := PackedFloat32Array()
+	z.resize(n3)
+	_rd.buffer_update(_b_cq, 0, n3 * 4, z.to_byte_array())
+	_rd.buffer_update(_b_crho, 0, n3 * 4, z.to_byte_array())
+	var zs := PackedFloat32Array()
+	zs.resize(n3 * 4)
+	_rd.buffer_update(_b_cscr, 0, n3 * 16, zs.to_byte_array())
+	var nf := _padx * _pady * _padz
+	var zf := PackedFloat32Array()
+	zf.resize(nf)
+	_rd.buffer_update(_b_fey, 0, nf * 4, zf.to_byte_array())
+	_rd.buffer_update(_b_fei, 0, nf * 4, zf.to_byte_array())
+	_rd.buffer_update(_b_fq, 0, nf * 4, zf.to_byte_array())
+	_rd.buffer_update(_b_frho, 0, nf * 4, zf.to_byte_array())
+	var zfv := PackedFloat32Array()
+	zfv.resize(nf * 4)
+	_rd.buffer_update(_b_fvel, 0, nf * 16, zfv.to_byte_array())
+	_rd.buffer_update(_b_fscr, 0, nf * 16, zfv.to_byte_array())
 
 
 func _run_batch() -> void:

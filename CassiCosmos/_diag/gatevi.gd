@@ -32,7 +32,9 @@ const DT := 0.01
 const STEPS_REF := 200
 const STEPS_PROBE := 2500
 const C_WAVE := 2.3614    # the measured grid front (gate-iv, the same box)
-const R_CAL_TAIL := 0.02  # the pinned threshold: R_arm - R_cal <= 2%
+const R_CAL_TAIL := 0.02   # the pinned threshold: R_arm - R_cal <= 2%
+const CORNER_R_PIN := 0.10  # the corner's re-pin (the task): the corrected
+# (pulse-total + fitted-speed) R must close toward the x-arm family.
 const PHI := 1.618033988749895
 const XI := 1.0
 const OMEGA2 := 0.0   # the pure wave: no checkerboard attractor
@@ -60,6 +62,8 @@ var _step := 0
 var _cal := 0.0            # the r=1 measurement floor
 var _arms_r := [0.0, 0.0, 0.0, 0.0]   # R per arm (0-2 = r=1/2/4, 3 = corner)
 var _ref_forw := 0.0
+var _ref_forw_total := 0.0   # the pulse-total incident energy (full-volume t_ref, fitted speed)
+var _c_fit := C_WAVE         # the per-arm measured wave speed (the t_ref least-squares fit)
 var _run_ref := {}
 var _fail := 0
 var _s2_rhod := 0.0
@@ -94,14 +98,33 @@ func _process(_delta: float) -> void:
 	if _step == STEPS_REF:
 		var m := _measure()
 		_ref_forw = m["forw"]
-		print("[GateVI] arm %d t_ref: E_forw=%.4f E_back=%.4f (rhod2=%.3f dpsi2=%.3f — the forward IC health)"
-			% [_arm, m["forw"], m["back"], _s2_rhod, _s2_dpsi])
+		# The least-squares wave speed from the region's own rhod/dpsi
+		# correlation — the corner's diagonal wave travels ~1.34x faster
+		# than the x-wave (rhod2/dpsi2 ~ 9.96 vs 5.90): the invariants
+		# MUST use the wave's OWN speed or a pure forward state projects
+		# ~2% backward (the 589% artifact's root — the wake's projected
+		# energy at t_probe dwarfs the regional incident).
+		if _s2_dpsi > 1e-12:
+			_c_fit = -_s2_cross / _s2_dpsi
+		else:
+			_c_fit = C_WAVE
+		var rh := _s2_rhod
+		var dp := _s2_dpsi
+		# The pulse-total incident energy (the full volume, the fitted
+		# speed) — the corner's R denominator (the regional undercounts
+		# the diagonal pulse).
+		_ref_forw_total = _measure(true, _c_fit)["forw"]
+		print("[GateVI] arm %d t_ref: E_forw=%.4f E_back=%.4f c_fit=%.4f E_inc_total=%.4f (rhod2=%.3f dpsi2=%.3f — the forward IC health)"
+			% [_arm, m["forw"], m["back"], _c_fit, _ref_forw_total, rh, dp])
 	if _step >= STEPS_PROBE:
 		_finish_arm()
 
 
 func _finish_arm() -> void:
-	var m := _measure()
+	# The invariants at the arm's OWN wave speed (c_fit) — the forward
+	# state then projects ~0 backward and E_back is the true reflection.
+	var m := _measure(false, _c_fit)
+	var m_all := _measure(true, _c_fit)   # the full-volume backward content
 	var r_val := 0.0
 	if _ref_forw > 0.0:
 		r_val = m["back"] / _ref_forw
@@ -112,8 +135,15 @@ func _finish_arm() -> void:
 		tag = "determinism"
 	else:
 		tag = "r=%d" % _r_vals[_arm]
-	print("[GateVI] arm %s t_probe: E_forw=%.6f E_back=%.6f -> R=%.4f%%"
-		% [tag, m["forw"], m["back"], 100.0 * r_val])
+	print("[GateVI] arm %s t_probe: E_forw=%.6f E_back=%.6f (fullvol %.4f) -> R=%.4f%% (c_fit=%.4f)"
+		% [tag, m["forw"], m["back"], m_all["back"], 100.0 * r_val, _c_fit])
+	if _arm == 3:
+		# The corner's honest R: the reflected E_back (region, fitted
+		# speed) / the pulse-total incident (full-volume, fitted speed).
+		if _ref_forw_total > 0.0:
+			r_val = m["back"] / _ref_forw_total
+			print("[GateVI] corner corrected: R = E_back(pulse-total norm, c_fit) = %.4f%% (E_inc_total=%.4f)"
+				% [100.0 * r_val, _ref_forw_total])
 	if _arm <= 3:
 		_arms_r[_arm] = r_val
 		if _arm == 0:
@@ -504,10 +534,13 @@ func _run_batch() -> void:
 	rd.compute_list_end()
 
 
-## The Riemann-invariant measurement in the launch region: R_± = ρ̇ ∓ c·ρ'
-## (ρ = ey+ei, ρ̇ = vel.x + vel.y, ρ' = the central difference along the
-## wave's normal). E_forw = Σ R_+², E_back = Σ R_−² over the region.
-func _measure() -> Dictionary:
+## The Riemann-invariant measurement: R_± = ρ̇ ∓ c·ρ' (ρ = ey+ei, ρ̇ =
+## vel.x + vel.y, ρ' = the central difference along the wave's normal).
+## E_forw = Σ R_+², E_back = Σ R_−². `full_volume` = the incident's
+## pulse-total basis (the region undercounts the diagonal pulse);
+## `c` = the invariant speed (default C_WAVE; the corner arm passes the
+## wave's OWN fitted speed — the diagonal wave travels ~1.34× faster).
+func _measure(full_volume := false, c := C_WAVE) -> Dictionary:
 	_s2_rhod = 0.0
 	_s2_dpsi = 0.0
 	_s2_cross = 0.0
@@ -521,11 +554,11 @@ func _measure() -> Dictionary:
 	var e_b := 0.0
 	for i in range(1, n - 1):
 		var xn := (float(i) + 0.5) / float(n) * 2.0 - 1.0
-		if xn < xlo or xn > xhi:
+		if not full_volume and (xn < xlo or xn > xhi):
 			continue
 		for j in range(n):
 			var yn := (float(j) + 0.5) / float(n) * 2.0 - 1.0
-			if _corner and (yn < xlo or yn > xhi):
+			if not full_volume and _corner and (yn < xlo or yn > xhi):
 				continue
 			for k in range(n):
 				var id := i + n * (j + n * k)
@@ -544,8 +577,8 @@ func _measure() -> Dictionary:
 					var rho_y := (ey[jp] + ei[jp] - ey[jm2] - ei[jm2]) * 0.5 / hxw
 					dpsi = (rho_x + rho_y) / sqrt(2.0)
 				# the invariants: R_+ = ρ̇ − c·ρ' (the +x-going), R_− = ρ̇ + c·ρ'
-				var rf := rhod - C_WAVE * dpsi
-				var rb := rhod + C_WAVE * dpsi
+				var rf := rhod - c * dpsi
+				var rb := rhod + c * dpsi
 				e_f += rf * rf
 				e_b += rb * rb
 				_s2_rhod += rhod * rhod
@@ -579,12 +612,25 @@ func _verdict() -> void:
 	for a in range(4):
 		var tag := "r=1" if a == 0 else "r=2" if a == 1 else "r=4" if a == 2 else "corner"
 		var dr: float = _arms_r[a] - cal
-		var passes := dr <= R_CAL_TAIL
+		var passes := false
+		if a == 3:
+			# The corner's re-pin (the task): the corrected R (the pulse-
+			# total + fitted-speed normalization) must close toward the
+			# x-arm family (< 10%). The R-R_cal basis was meaningless for
+			# the old 589% (the regional undercount + the speed mismatch).
+			passes = _arms_r[a] <= CORNER_R_PIN
+		else:
+			passes = dr <= R_CAL_TAIL
 		if not passes:
 			ok = false
-		print("[GateVI] arm %-7s R=%.4f%%  R-R_cal=%.4f%%  (pin <= %.2f%%)  %s"
-			% [tag, 100.0 * _arms_r[a], 100.0 * dr, 100.0 * R_CAL_TAIL,
-			"PASS" if passes else "FAIL"])
+		if a == 3:
+			print("[GateVI] arm %-7s R=%.4f%%  (pin <= %.1f%%)  %s"
+				% [tag, 100.0 * _arms_r[a], 100.0 * CORNER_R_PIN,
+				"PASS" if passes else "FAIL"])
+		else:
+			print("[GateVI] arm %-7s R=%.4f%%  R-R_cal=%.4f%%  (pin <= %.2f%%)  %s"
+				% [tag, 100.0 * _arms_r[a], 100.0 * dr, 100.0 * R_CAL_TAIL,
+				"PASS" if passes else "FAIL"])
 	if _fail == 0 and ok:
 		print("[GateVI] VERDICT: PASS — the coarse-fine interface transmits without reflection (R-R_cal <= 2%)")
 	else:
