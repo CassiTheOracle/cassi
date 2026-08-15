@@ -25,6 +25,10 @@
     "./implementations": {
       "types": "./dist/implementations/index.d.ts",
       "import": "./dist/implementations/index.js"
+    },
+    "./schemas": {
+      "types": "./dist/schemas/mcp-consolidated/index.d.ts",
+      "import": "./dist/schemas/mcp-consolidated/index.js"
     }
   },
   "files": [

@@ -75,7 +75,7 @@ import {
   executeCodeConsolidatedTool,
   executeBrowserConsolidatedTool,
   executeWebConsolidatedTool,
-} from '@cassicore/mcp-gateway'
+} from '@cassicore/tools/schemas'
 
 
 

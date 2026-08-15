@@ -5,7 +5,7 @@
  */
 
 import type { ILogger } from '@cassicore/foundation';
-import { GATEWAY_VERSION } from '../vendor/core/version.js';
+import { GATEWAY_VERSION } from '@cassicore/foundation';
 
 // Re-export for consumers that already import from here
 export { GATEWAY_VERSION };
