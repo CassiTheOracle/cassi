@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""gates_m2.py — the M2 stage-gate harness (G47–G54).
+"""gates_m2.py — the M2 stage-gate harness (G47–G55).
 
 Each gate in the repo's PASS/FAIL console style, measured on the REAL M2
 cascade tree:
@@ -44,6 +44,16 @@ cascade tree:
               stable+finite, the cosmic band REACHES A DECISION (w0 vs DESI
               1σ); if it is ALSO degenerate, the verdict stays 'not yet
               falsifiable (fixed-point degeneracy)'.
+  G55 (M4)    THE SPARC GALAXY BAND: cored Qi-condensate vs cuspy NFW AIC
+              falsifier (MACHINE_PLAN §4). REUSES the shipped v3–v9 SPARC
+              pipeline in CassiTheory (never edited) + the authentic
+              sparc_data (zip hash-verified). Reports the machine→SPARC
+              handoff GAP honestly (machine galaxy cores are discrete rung
+              masses, not observed rotation curves — no fabricated RCs), runs
+              the shipped v9 Qi-vs-NFW AIC comparison on the 143 authentic
+              galaxies, and writes the band verdict: cored Qi wins on median
+              ΔAIC → NOT FALSIFIED; NFW wins → FALSIFIED; pipeline unavailable
+              → BLOCKED (honest FAIL path).
 
 Run:   python research/cascade_machine/gates_m2.py
        (assumes `run_cascade_tree.py` has produced the cascade_tree/)
@@ -67,6 +77,7 @@ from stage1_jfa3d import bcc_seeds            # noqa: E402
 from stage3_collapse import rung_score as rs  # noqa: E402
 import run_cascade_tree as orch               # noqa: E402
 import g54_wo_degeneracy as g54d              # noqa: E402
+import g55_sparc_band as g55s                 # noqa: E402
 
 TREE = _HERE / "cascade_tree"
 RUNG_BAR = 0.70         # the M1 G43 bar for an arm's uniform-baseline rung score
@@ -508,7 +519,7 @@ def main():
         reg = json.loads((TREE / "tree_registry.json").read_text())
         args.levels = int(reg["n_levels"])
     print("=" * 70)
-    print("M2 STAGE GATES (G47–G54) — offline φ-cascade tree (%d levels)"
+    print("M2 STAGE GATES (G47–G55) — offline φ-cascade tree (%d levels)"
           % args.levels)
     print("closure slot: no-op (R1, wave-2 honest negative) — rung-integrity")
     print("runs WITHOUT the closure, per MACHINE_PLAN §8 and the M2 brief.")
@@ -522,6 +533,7 @@ def main():
     res["G52"] = g52_farm_byte_identity()
     res["G53"] = g53_rung_dip_correction()
     res["G54"] = g54d.g54()
+    res["G55"] = g55s.g55()[0]
     print("\n---- gate table (cascade tree: %d levels) ----" % args.levels)
     for nm, ok in res.items():
         print("[%s] %s" % ("PASS" if ok else "FAIL", nm))

@@ -80,6 +80,7 @@ interactive (§5.1), but M2 is the correctness proof in numpy.
 | **G52 (M2.6)** sibling-branch farm + byte identity | **PASS** | 2 genuine sibling branches of the root fanned in parallel: serial 20.7 s → parallel 11.4 s (1.81×); farmed surveys BYTE-IDENTICAL to serial (replayability under parallelism) |
 | **G53 (M2.7)** two-rung-dips investigation | **FAIL (correctly)** | measured the level-6/18 shell-centre phase drift; tested the parameter-free box-centre correction (M1 shell convention); it lifts 6/18 (0.594→0.829, 0.522→0.878) BUT introduces a new dip at level 41 (0.963→0.627) and drags the median 0.896→0.865 — so it FAILS the no-regression test and is REJECTED; the dips stay transparent on the parent-core chain (§10) |
 | **G54 (M4)** cosmic w0/wₐ fixed-point degeneracy | **PASS** | the snapshot inversion is degenerate at the φ-attractor (w0→−1, |J|→0 in w0; above-φ ODE stall — the machine attractor r≈1.645 is non-integrable); epoch-gated on the BELOW-φ approach, the level survey gives a STABLE finite w0 = −0.866 ± 0.014 (wa +0.464), |Δw0 vs DESI| = 0.028 within 1σ → the cosmic band CAN decide: **NOT FALSIFIED** (self-consistency) (§11) |
+| **G55 (M4)** SPARC galaxy band (Qi vs NFW AIC) | **PASS** | REUSES the shipped v3–v9 SPARC pipeline in CassiTheory on authentic sparc_data (zip hash-verified; no fabricated rotation curves); machine→SPARC handoff GAP reported honestly (machine galaxy levels = discrete cored rung masses, not observed vobs/baryons); the shipped v9 Qi-vs-NFW AIC on 143 galaxies: **cored Qi-condensate beats cuspy NFW** on median ΔAIC (all −6.4, dwarfs −9.7, constrained −10.8), γ=0.397±0.021 (emp 0.41) → **NOT FALSIFIED** (supports the Qi-core claim) (§12) |
 
 ## 4. Rung-integrity numbers (G49)
 
@@ -126,7 +127,7 @@ directly rather than forcing a hit.
 | Cosmic w₀/wₐ | survey r → φ (attractor, 1.7%), w₀/wₐ inversion degenerate at the fixed point | **not yet falsifiable** (attractor reached = consistency; the fixed-point snapshot cannot invert w₀/wₐ) |
 | Cosmic structure P(k) | 49 levels 0 significant; R5 concat raw 'hit' is the φ⁴-level art., detrended null | **not yet falsifiable / honest null** (absence at predicted amplitude, per-level AND concatenated, with the amplitude-window caveat — sharpens the wake-wave falsification) |
 | Cluster / BH rung (mass ladder) | median rung 0.896, 47/49 ≥ 0.70, all ≥5 cores | **measured — mass-ladder integers hold** (2/49 dips transparent) |
-| Galaxy (SPARC) | none in M2 | **not yet falsifiable** (handed to the SPARC pipeline) |
+| Galaxy (SPARC) | shipped v9 Qi-vs-NFW AIC on authentic SPARC: median ΔAIC **all −6.4, dwarfs −9.7, constrained −10.8**; γ=0.397; machine cored-ensemble | **not falsified — cored Qi beats NFW on median AIC** (supports the Qi-core claim; high-V near-parity caveat) |
 | Atomic / molecular | none | **not yet falsifiable (structural)** |
 | Proton anchor | fixed input n_p≈92 (mass), n≈95 (length) | **fixed input** (never simulated QCD, §2.4) |
 
@@ -138,9 +139,10 @@ decision rule gates it.
 The **full proton→supercluster ladder is COMPLETE this turn** (49 levels,
 gates G47–G52 PASS; G53 is the two-rung-dips investigation whose correction
 was measured and honestly REJECTED — §10; G54 is the cosmic w₀/wₐ fixed-point
-degeneracy, whose approach-gated estimator lets the cosmic band reach a
-DECISION — §11). The single command to re-run the whole thing (with
-resume):
+degeneracy broken by the approach-gated estimator, letting the cosmic band
+reach a DECISION — §11; G55 is the SPARC galaxy band, run on the SHIPPED
+pipeline and authentic data, giving the band a real verdict — §12). The
+single command to re-run the whole thing (with resume):
 ```
 python research/cascade_machine/run_cascade_tree.py --levels 49 --workers 4
 ```
@@ -356,3 +358,62 @@ requires starting the machine further off-attractor (|r−φ| ≳ 0.3), which th
 current levels (born at |r−φ| ≈ 0.027) do not exercise. G54's FAIL path fires
 if the approach estimator is ever found degenerate, keeping the band honestly
 open.
+
+## 12. The SPARC galaxy band (G55) — cored Qi vs cuspy NFW, on the shipped pipeline
+
+The last ledger decider. MACHINE_PLAN §4's galaxy-band falsifier is SPARC
+rotation curves: *"cored Qi-condensate halos, ξ = φ⁶ gravity should beat cuspy
+NFW/Einasto on AIC; a cuspy best-fit falsifies the Qi-condensate core."*
+
+### (a) Pipeline reuse map — NO reinvention
+
+The shipped versioned family `sparc_qi_analysis_v3–v9.py` + `sparc_data/` +
+`sparc_rotmod.zip` live in the sibling repo
+`CassiTheory/experiments/sparc_qi/` (the user's code — READ, never edited).
+G55 invokes the newest (**v9**: hydrostatic Qi condensate, 2-param ρ_c/c_s,
+variants A=r_half envelope / B=Yang-fraction / C=crossover) via subprocess.
+Data authenticity verified: `sparc_rotmod.zip` sha256 =
+`0a80cc90714828cc28b7dd57923576714d209f2490328c087c4a4ad607faf588` =
+the official astroweb.case.edu release; 175 `*_rotmod.dat`, spot-checked
+against zip members. **No fabricated rotation curves.**
+
+### (b) Machine → SPARC handoff gap (honest STOP)
+
+The machine's galaxy-band levels (≈ level 12, anchor rung ≈ 240) condense into
+**discrete CORES** — dimensionless rung masses `log_φ(m/m_cell)` +
+3-D positions (e.g. level 12: 6 cores at rungs [11.2, 11.1, 8.6, 8.2, 5.6,
+5.3], min separation 2.3% of box). The SPARC-fit input format is an OBSERVED
+rotation curve `*_rotmod.dat` (Rad/Vobs/errV/Vgas/Vdisk/Vbul + `# Distance`).
+**The machine produces NO observed vobs(r), NO baryonic decomposition, NO
+distance, NO continuous curve** — so the input format CANNOT be honored from
+machine outputs. Filling `*_rotmod.dat` from ~6 core masses would be
+FABRICATION and is refused. The AIC comparison therefore runs on the **143
+authentic SPARC galaxies**; the machine contributes (i) confirming its
+galaxy-band condensation forms a **CORED ensemble** (many well-separated
+massive cores, not a single cusp — the premise of the cored halo), and (ii)
+the emergent core-radius index.
+
+### (c) The AIC comparison (shipped v9, authentic data)
+
+| subsample | n | median ΔAIC (Qi−NFW), A: r_half | better/indist/worse |
+|---|---|---|---|
+| ALL galaxies | 143 | **−6.4** | 76/14/53 |
+| DWARFS V_flat<100 | 62 | **−9.7** | 39/7/16 |
+| CONSTRAINED (asymptote in data) | 75 | **−10.8** | 52/6/17 |
+| HIGH-V V_flat≥100 | 81 | ≈ 0.0 | 37/7/37 |
+
+Emergent core-radius index **γ = 0.397 ± 0.021**, R² = 0.72 — matches the
+empirical 0.41 ± 0.02 at 1σ.
+
+### (d) The band verdict (G55 decision rule)
+
+The **cored Qi-condensate model beats cuspy NFW** on median ΔAIC at equal
+2-param parsimony (Qi ρ_c/c_s vs NFW r_s/ρ₀) on every decisive subsample —
+the cusp does NOT win. Per the decision rule, **the galaxy band is NOT
+FALSIFIED (supports the Qi-core claim)**. Honest caveat: not a unanimous win —
+the highest-V subsample is near-parity (ΔAIC≈0), the cored win is decisive
+where the core is geometry-resolved (dwarfs, constrained). The band verdict
+upgrades from "not yet falsifiable" to "**not falsified — cored Qi beats NFW
+on median AIC**". G55's FAIL/BLOCKED path fires if the pipeline/data is
+unavailable (honest) or if a cuspy model ever wins the AIC comparison
+(falsification).

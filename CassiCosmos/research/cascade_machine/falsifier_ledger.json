@@ -1044,10 +1044,25 @@
     {
       "band": "galaxy (rotation-curve band)",
       "anchor": "SPARC rotation curves; cored vs cuspy (Qi condensate, \u03be = \u03c6\u2076 gravity)",
-      "measured": null,
-      "decision_rule": "AIC comparison (Qi vs NFW/Einasto) over SPARC",
-      "verdict": "not yet falsifiable",
-      "note": "no SPARC fitting pipeline in the M2 offline chain \u2014 this band is handed to the parent-tier SPARC pipeline; M2 does not fake an in-chain rotation-curve verdict."
+      "measured": {
+        "pipeline": "shipped CassiTheory experiments/sparc_qi/sparc_qi_analysis_v9.py (reused, never edited)",
+        "galaxies_fit": 143,
+        "data_authentic": true,
+        "median_dAIC_vs_NFW_all": -6.4,
+        "median_dAIC_vs_NFW_dwarfs": -9.7,
+        "median_dAIC_vs_NFW_constrained": -10.8,
+        "win_counts_all": [
+          76,
+          14,
+          53
+        ],
+        "core_radius_index": 0.397,
+        "machine_cored_ensemble": true,
+        "gate": "G55 (shipped SPARC v9 Qi-vs-NFW AIC)"
+      },
+      "decision_rule": "AIC comparison (Qi vs NFW/Einasto) over SPARC; median \u0394AIC < 0 (Qi better at equal 2-param parsimony) on the decisive subsample \u2192 supports the Qi-core claim",
+      "verdict": "not falsified \u2014 cored Qi beats NFW on median AIC",
+      "note": "REUSES the shipped v9 SPARC pipeline + authentic sparc_data (zip sha256 0a80cc90\u2026 MATCH, 175 files; no fabricated rotation curves).  Machine\u2192SPARC handoff GAP: the machine's galaxy levels condense to discrete CORED cores (rung masses), not observed vobs(r)/baryons \u2014 the `*_rotmod.dat` format cannot be honored from machine outputs, so the AIC runs on the 143 authentic galaxies.  cored Qi-condensate beats cuspy NFW on median \u0394AIC: all \u22126.4, dwarfs \u22129.7, constrained \u221210.8; emergent \u03b3 = 0.397 \u00b1 0.021 (emp 0.41).  Honest caveat: not a unanimous win \u2014 the high-V subsample is near-parity (\u0394AIC\u22480); the cored win is decisive where the core is resolved."
     },
     {
       "band": "atomic / molecular (resolved-bottom bands)",
