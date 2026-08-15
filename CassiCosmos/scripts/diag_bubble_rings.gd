@@ -1,7 +1,7 @@
 extends Node
 ## ───────────────────────────────────────────────────────────────────────────
 ## diag_bubble_rings — NUMERICAL radial-readback test of the Cassi bubble-shell
-## ring ladder (Prediction 51, cassi-toe foundations/bubble-edge-geometry.md §3)
+## ring ladder (Prediction 51, CassiTheory foundations/bubble-edge-geometry.md §3)
 ## on the SPACE-SIM second-order GLSL two-fluid PDE.
 ##
 ##   d²EY/dt² = c²∇²EY − ω₀²(EY − φ·EI)      (c² = 1 in the shader, ω₀² = 20)
@@ -12,7 +12,7 @@ extends Node
 ## r_k = ℓ_n·φ^{−k}, void troughs at ℓ_n·φ^{−(k+½)} (k = 0,1,2,…). Successive
 ## matter-ring radius ratio = φ^{−1} = 0.6180; the null (interleaved/void
 ## spacing) would give φ^{−1/2} = 0.7862. ~10 rings are expected at the 1%
-## contrast floor, n-independent. The cassi-toe FIRST-ORDER solver found
+## contrast floor, n-independent. The CassiTheory FIRST-ORDER solver found
 ## NO RINGS on all four arms to t=40 (bubble-edge-geometry.md §3.6); that doc
 ## explicitly flags that the full SECOND-ORDER form "belongs to the
 ## space-sim GLSL PDE" — i.e. THIS solver is the operator the ladder was

@@ -1,7 +1,7 @@
 # GRID_LAYOUT — Theory-Accurate Box Aspect for the Cassi Space Sim
 
 **Status:** Design + implementation plan (no code changed this turn; this file is new and uncommitted)
-**Repo:** `godot/space-sim` (inside the gitignored `godot/` subtree of `C:/Users/Carina/workspaces/physics`). The cassi-toe theory repo is read-only input.
+**Repo:** `CassiCosmos` — this repo, extracted from the physics repo's `godot/space-sim` subtree with full git history. The CassiTheory repo is read-only input.
 **Date:** 2026-08-11
 
 ---
@@ -39,7 +39,7 @@ torus Green's function survive — only the cell aspect becomes anisotropic
 
 ---
 
-## 1. Theory grounding (quotes from cassi-toe)
+## 1. Theory grounding (quotes from CassiTheory)
 
 ### 1.1 The three lattice periods
 

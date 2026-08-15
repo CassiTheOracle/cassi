@@ -1,7 +1,7 @@
 # CASCADE_GRID — A φ-Theoretic Grid Method for the Cassi Space Sim
 
 **Status:** Design + measurements (shader-exact NumPy chain; no sim code changed this turn)
-**Repo:** `godot/space-sim` (the cassi-toe theory repo is read-only input)
+**Repo:** `CassiCosmos` — extracted from the physics repo's `godot/space-sim` subtree with full git history (the CassiTheory repo is read-only input)
 **Date:** 2026-08-12
 
 ---

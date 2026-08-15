@@ -26,7 +26,7 @@ and the CPL fit (w0, wa) over a in [0.3, 1.0].  These are the exact formulas
 from papers/theory-of-everything/cosmology/cosmology-from-phi.md §1 and the
 DESI calibration in two-fluid/calibrate_initial_ratio.py.
 
-NOTE on reimplementation: the parent repo's `cassi` package (workspaces/cassi/)
+NOTE on reimplementation: the parent repo's `cassi` package (CassiAI/)
 was checked and does not export a cosmology/two-fluid ODE — it is the neural/ML
 package.  The authoritative cosmology ODE lives in
 two-fluid/calibrate_initial_ratio.py, which this script reimplements verbatim

@@ -3,7 +3,7 @@ extends Node
 ## diag_coherence_ripple — two-quantity headless test of the Cassi coherence
 ## claims against the SPACE-SIM field (scripts/cassi_sim.gd + compute/).
 ##
-## BACKGROUND (cassi-toe foundations/qi-flow-double-helix.md, parallel
+## BACKGROUND (CassiTheory foundations/qi-flow-double-helix.md, parallel
 ## reframing): the φ-spatial-spacing signal is a property of the COHERENCE
 ## field (Qi), not of matter. Two falsifiable, quantitative claims:
 ##   (A) CLUMPING — coherence clumps at φ-scaled spatial periods of the

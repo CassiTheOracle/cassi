@@ -147,10 +147,10 @@ over-force. River control `acc_max` (~2870 peak, bounded) vs tree `acc_max`/`tgr
 ## Re-run instructions
 ```
 _diag/godot_runtime/Godot_v4.7.1-stable_mono_win64_console.exe \
-  --path C:/Users/Carina/workspaces/physics/godot/space-sim \
+  --path C:/Users/Carina/workspaces/Cassi/CassiCosmos \
   res://scenes/verify_particle_vanish.tscn > _diag/vanish.log 2>&1     # tree mode (buggy)
 _diag/godot_runtime/Godot_v4.7.1-stable_mono_win64_console.exe \
-  --path C:/Users/Carina/workspaces/physics/godot/space-sim \
+  --path C:/Users/Carina/workspaces/Cassi/CassiCosmos \
   res://scenes/verify_particle_vanish.tscn -- --river > _diag/vanish_river.log 2>&1  # control
 ```
 Windowed (never `--headless` — the tree arm + GPU-direct instancer need a real GPU).
