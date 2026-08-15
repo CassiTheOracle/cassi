@@ -22,9 +22,27 @@ script = ExtResource("1_cam")
 
 [node name="CassiSim" type="Node3D" parent="." unique_id=822736192]
 script = ExtResource("2_sim")
-grid_N = 128
-xi = 17.94427191
-particle_size = 0.1
+N_particles = 2000000
+dt = 0.05
+particle_size = 1.5
+cluster_radius = 120.0
+num_clusters = 10
+cluster_separation = 130.0
+merger_speed = 0.0
+suppress_readbacks = true
+black_holes_enabled = true
+particle_merge = true
+bh_accretion = true
+vsync_enabled = true
+gravity_mode = 4
+river_calibrate_gn = true
+field_attractor_init = true
+multi_rung_seed = true
+multi_rung_count = 6
+physics_decoupled = true
+qi_cycle = Vector2(0.005, 1)
+qi_approach = Vector2(0.8, 1)
+color_lut_mode = true
 
 [node name="UILayer" type="CanvasLayer" parent="." unique_id=1258460337]
 
