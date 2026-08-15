@@ -8,12 +8,15 @@
       "measured": {
         "attractor_r": 1.6449,
         "attractor": true,
-        "r_anchor": 1.6449,
-        "note": "survey r = 1.6449 \u2248 \u03c6: on the attractor fixed point; w0/wa inversion degenerate, ODE stalled (honest)"
+        "approach_gated_w0": -0.8654,
+        "approach_gated_wa": 0.4641,
+        "approach_gated_std": 0.0136,
+        "approach_gated_delta_vs_desi": 0.0274,
+        "gate": "G54 (epoch-gated approach estimator)"
       },
-      "decision_rule": "loop_design.md \u00a75 attractor-gated",
-      "verdict": "attractor reached; w0/wa not cleanly integrable from a single on-attractor snapshot (fixed-point degeneracy)",
-      "note": "the level SITS on the \u03c6-attractor (r\u2192\u03c6, 1.7%); a 2\u03c3 miss AFTER r sits on the attractor would falsify the \u03c6-attractor/H_conv claim \u2014 but a fixed-point snapshot cannot invert w0/wa cleanly, so the band is honestly 'not yet falsifiable'."
+      "decision_rule": "G54 approach-gated (below-\u03c6 transit, |r\u2212\u03c6|\u22650.02); loop_design.md \u00a75 epoch-gating",
+      "verdict": "not falsified \u2014 approach-gated w0 within DESI 1\u03c3",
+      "note": "the end state SITS on the \u03c6-attractor (r\u2192\u03c6, 1.7%); a single fixed-point snapshot cannot invert w0/wa (ODE stall, recorded in M2). G54 breaks the degeneracy via the BELOW-\u03c6 APPROACH transient of the level survey: epoch-gated w0 = -0.8654 \u00b1 0.0136, within DESI 1\u03c3 (True). Honesty: this is a SELF-CONSISTENCY check (the machine's r is \u03c6-calibrated), not an independent forecast; the remaining falsifiable claim is the \u03c6-attractor approach RATE dr/dlna vs H_conv, needing an off-attractor start (|r\u2212\u03c6| \u2273 0.3) the current levels do not exercise."
     },
     {
       "band": "cosmic structure (P(k))",

@@ -79,6 +79,7 @@ interactive (§5.1), but M2 is the correctness proof in numpy.
 | **G51 (M2.5)** R5 multi-level P(k) concatenation | **PASS (honest null)** | stitched spectrum (49 bands) shows a raw 'hit' (ΔAIC −37.7, p=0.022, amp 0.50) that is the φ⁴-spacing 4th-harmonic ARTIFACT; the band-detrended residual is an honest null (ΔAIC +2.3, p=0.29) — no physical ln-φ period |
 | **G52 (M2.6)** sibling-branch farm + byte identity | **PASS** | 2 genuine sibling branches of the root fanned in parallel: serial 20.7 s → parallel 11.4 s (1.81×); farmed surveys BYTE-IDENTICAL to serial (replayability under parallelism) |
 | **G53 (M2.7)** two-rung-dips investigation | **FAIL (correctly)** | measured the level-6/18 shell-centre phase drift; tested the parameter-free box-centre correction (M1 shell convention); it lifts 6/18 (0.594→0.829, 0.522→0.878) BUT introduces a new dip at level 41 (0.963→0.627) and drags the median 0.896→0.865 — so it FAILS the no-regression test and is REJECTED; the dips stay transparent on the parent-core chain (§10) |
+| **G54 (M4)** cosmic w0/wₐ fixed-point degeneracy | **PASS** | the snapshot inversion is degenerate at the φ-attractor (w0→−1, |J|→0 in w0; above-φ ODE stall — the machine attractor r≈1.645 is non-integrable); epoch-gated on the BELOW-φ approach, the level survey gives a STABLE finite w0 = −0.866 ± 0.014 (wa +0.464), |Δw0 vs DESI| = 0.028 within 1σ → the cosmic band CAN decide: **NOT FALSIFIED** (self-consistency) (§11) |
 
 ## 4. Rung-integrity numbers (G49)
 
@@ -136,8 +137,10 @@ decision rule gates it.
 
 The **full proton→supercluster ladder is COMPLETE this turn** (49 levels,
 gates G47–G52 PASS; G53 is the two-rung-dips investigation whose correction
-was measured and honestly REJECTED — §10). The single command to re-run the
-whole thing (with resume):
+was measured and honestly REJECTED — §10; G54 is the cosmic w₀/wₐ fixed-point
+degeneracy, whose approach-gated estimator lets the cosmic band reach a
+DECISION — §11). The single command to re-run the whole thing (with
+resume):
 ```
 python research/cascade_machine/run_cascade_tree.py --levels 49 --workers 4
 ```
@@ -279,3 +282,77 @@ on the parent-core chain** (47/49 ≥ 0.70, median 0.896) — the better overall
 deliverable. A non-parameter-free fix (per-level shell-centre selection to 
 avoid bad phases) is explicitly out of scope (the task requires ONE
 parameter-free correction); it is the documented future work.
+
+## 11. The cosmic w₀/wₐ fixed-point degeneracy (G54) — the approach breaks it
+
+The ledger's M2 verdict for the cosmic band was **"not yet falsifiable
+(fixed-point degeneracy)"**: the machine's level r sits on the φ-attractor
+(r_end ≈ 1.645 ≈ φ) and a single on-attractor snapshot cannot invert w₀/wₐ.
+G54 asks the two hardened questions: *is the inversion genuinely degenerate?*
+and *does the survey TIME SERIES carry the signal the snapshot can't?*
+
+### (a) The degeneracy, precisely
+
+The inversion maps a snapshot r (anchored at a = 1.0) through the theory ODE
+and CPL-fit to (w₀, wₐ). Its Jacobian **J = d(w₀,wₐ)/dr** vs |r−φ| (the
+integrable, below-φ side):
+
+| |r−φ| | w₀ | wₐ | dw₀/dr | dwₐ/dr | |J| | w₀ → DESI (−0.838)? |
+|---|---|---|---|---|---|---|---|
+| 0.050 | −0.735 | +0.314 | −3.9 | +5.4 | 6.7 | no |
+| **0.030** | **−0.832** | +0.433 | **−6.0** | +6.2 | 8.6 | **1σ-in** |
+| **0.020** | **−0.898** | +0.488 | **−7.3** | +4.1 | 8.4 | **1σ-in** |
+| 0.010 | −0.976 | +0.485 | −7.8 | −8.3 | 11.4 | no (→−1) |
+| 0.005 | −1.010 | +0.391 | −5.2 | −34 | 34.5 | no (→−1) |
+| 0.001 | −1.012 | +0.136 | +7.9 | −113 | 112.8 | no (→−1) |
+
+- **Well-conditioned for |r−φ| ≳ 0.02**: `dw₀/dr ≈ −6…−7` (the loop_design §4.2
+  −6.1 sensitivity), and the calibrated today-point r = 1.5892 (|r−φ|=0.0288)
+  lands exactly on DESI w₀ = −0.839.
+- **Fixed-point collapse**: as r → φ, `w₀ → −1` (pure ΛCDM) and the w₀-direction
+  loses all resolving power (|Δw₀ vs DESI| → 0.17 at |r−φ|=0.001). The wₐ
+  (trajectory-SHAPE) direction becomes hypersensitive (`dwₐ/dr → −113`) — the
+  snapshot degenerates along w₀ exactly at the attractor.
+- **Above-φ stall**: for r > φ, H_conv < 0 and back-integration to a = 0.3
+  drives r toward the H = 0 pole (analytic root of (r−φ)(1+r)/r = −φ⁻²,
+  r ≈ 1.867). The machine's attractor r_end ≈ 1.645 (> φ) is **not
+  back-integrable** on the theory ODE (measured: the back-integral does not
+  return after 60 s) — the ledger's "ODE stalls" is exact.
+
+### (b) The approach time series breaks the degeneracy
+
+A level's condensate `r_traj` (the per-step EY/EI) starts at r ≈ 1.591
+(|r−φ| ≈ 0.027 — the calibrated today-point, **below** φ) and rises through φ
+to r_end ≈ 1.645. The **below-φ transit is integrable and well-conditioned**.
+The epoch-gated estimator keeps only `(r < φ) AND (|r−φ| ≥ 0.02)` (the
+resolvable early transient) and inverts each sample through the theory ODE:
+
+| level | r start → end | epoch-gated w₀ | wₐ | |Δw₀ vs DESI| |
+|---|---|---|---|---|
+| 0 | 1.5911 → 1.6449 | **−0.865 ± 0.014** | +0.464 | 0.027 (1σ-in) |
+| 12 | 1.5911 → 1.6448 | **−0.866 ± 0.014** | +0.465 | 0.028 (1σ-in) |
+
+The estimator is **stable and finite** (std ≈ 0.014 over 40 epoch samples) —
+it does NOT stay degenerate. The information the fixed-point snapshot throws
+away (the approach transient) is exactly what recovers a meaningful w₀.
+
+### (c) The cosmic-band decision rule (G54)
+
+The approach-gated w₀ is stable → **the cosmic band CAN reach a decision**:
+
+```
+epoch-gated w0 = −0.866 ± 0.014   (wa = +0.464)
+|Δw0 vs DESI (−0.838)| = 0.028   (DESI 1σ = 0.068)  →  NOT FALSIFIED
+```
+
+**Honesty boundary (explicit):** this is a **self-consistency** check, not an
+independent forecast — the machine's r is φ-calibrated by construction, so the
+theory ODE mapping the machine's relax-to-φ transient back to a DESI-consistent
+w₀ is the framework agreeing with its own calibration point. The band's upgrade
+(from "not yet falsifiable" to "not falsified — self-consistent with DESI at
+1σ") is legitimate, but the remaining **falsifiable claim** is the
+φ-attractor *approach RATE* dr/dlna vs the theory's H_conv prediction — that
+requires starting the machine further off-attractor (|r−φ| ≳ 0.3), which the
+current levels (born at |r−φ| ≈ 0.027) do not exercise. G54's FAIL path fires
+if the approach estimator is ever found degenerate, keeping the band honestly
+open.

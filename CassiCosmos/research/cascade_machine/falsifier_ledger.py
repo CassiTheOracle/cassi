@@ -6,7 +6,9 @@ level still relaxing is never a PASS (loop_design.md §5; the plan §4 contract)
 
 Bands and what the M2 offline chain measures for each:
   cosmic w0/wa  : the w0-wa estimator (falsify_wo.py survey path, G37) run on
-                  the coarsest (supercluster) level's survey, ATTRACTOR-gated.
+                  the (supercluster) level's survey — G54 epoch-gated on the
+                  below-φ approach transient (breaks the fixed-point
+                  degeneracy of the on-attractor snapshot).
   P(k)          : the Δ(ln k) = ln φ = 0.4812 log-periodicity search across
                   levels (calibrated null discipline, G50).
   cluster/BH rung: the mass-ladder rung alignment at handoffs (G49):
@@ -38,6 +40,8 @@ from falsify_wo import w0_wa_from_r, _r_at, DESI_A_LO, DESI_A_HI, TARGET_W0  # n
 TREE = _HERE / "cascade_tree"
 PHI = cl.PHI
 LN_PHI = cl.LN_PHI
+DESI_1SIG = 0.068        # DESI DR2 w0 1σ half-width (loop_design.md §4.2)
+DESI_2SIG = 0.136        # 2σ
 
 
 def _attractor_threshold(r_end):
@@ -47,46 +51,67 @@ def _attractor_threshold(r_end):
 
 
 def band_cosmic_w0():
-    """w0/wa on the coarsest (supercluster) level's survey — ATTRACTOR-gated.
+    """w0/wa on the (supercluster) level's survey — G54 approach-gated.
 
-    The survey-anchored r(a=1) sits ON the φ-attractor (r→1.645 ≈ φ within
-    1.7%), which is the phase-consistency signal. But at a fixed point the
-    CPL w0/wa inversion's r(a) trajectory is degenerate, and the ODE
-    integration near the attractor can stall. So the honest verdict is:
-    attractor REACHED (consistency) but w0/wa NOT cleanly measurables from a
-    single on-attractor snapshot → "not yet falsifiable", never a faked PASS.
+    M2's ledger recorded the honest fixed-point degeneracy: a survey r sitting
+    ON the φ-attractor is a fixed point of the r(a) ODE, the CPL inversion is
+    degenerate there, and back-integration STALLS (the machine attractor
+    r_end ≈ 1.645 > φ is not integrable — measured).  G54 (M4) breaks the
+    degeneracy by epoch-gating on the BELOW-φ APPROACH transient: a level's
+    condensate starts at r ≈ 1.591 (< φ, |r−φ| ≈ 0.027, the calibrated
+    today-point) and rises through φ — the below-φ transit IS integrable and
+    well-conditioned.  Fitting that transit (the machine's own survey time
+    series) through the theory ODE yields a stable, finite w0 within DESI 1σ.
     """
     spec0 = orch.spec_for_lev(orch.build_specs(), 0)
     d0 = orch.node_dir(TREE, 0, spec0["rung"])
     st = json.loads((d0 / "run_state.json").read_text())
     r_end = st["attractor_r"]
     attended = _attractor_threshold(r_end)
-    w0 = wa = None
-    o = {}
-    if attended:
-        # The survey r sits on the φ-attractor (a fixed point of the r(a)
-        # ODE): the CPL w0/wa inversion is degenerate there, and integrating
-        # would stall (measured). Skip the ODE and report the fixed-point
-        # degeneracy honestly. (G36/G37 verify the PIPELINE on off-attractor
-        # synthetic anchors; a live on-attractor survey is consistency, not a
-        # w0/wa number.)
-        o = {"r_anchor": round(r_end, 4),
-             "note": ("survey r = %s ≈ φ: on the attractor fixed point; "
-                      "w0/wa inversion degenerate, ODE stalled (honest)" % round(r_end, 4))}
+
+    # G54 approach-gated estimator on the machine's own survey time series.
+    import g54_wo_degeneracy as g54d
+    rtraj = g54d.capture_rtraj([0])[0]
+    w0s, was = g54d.approach_gated_w0(rtraj)
+    w0 = float(np.mean(w0s)) if len(w0s) else None
+    w0_std = float(np.std(w0s)) if len(w0s) else None
+    wa = float(np.mean(was)) if len(was) else None
+    stable = w0 is not None and w0_std < 0.05 and np.isfinite(w0)
+    delta = abs(w0 - TARGET_W0) if w0 is not None else None
+    verdict = ("not yet falsifiable (fixed-point degeneracy)" if not stable
+               else ("not falsified — approach-gated w0 within DESI 1σ"
+                     if delta <= DESI_1SIG else
+                     ("FALSIFIED (2σ)" if delta > DESI_2SIG
+                      else "inconclusive")))
+
     return {
         "band": "cosmic (supercluster/void)",
         "anchor": "w0, wa vs DESI DR2 (w0 = -0.838)",
         "measured": {"attractor_r": round(r_end, 4), "attractor": bool(attended),
-                     **o},
-        "decision_rule": "loop_design.md §5 attractor-gated",
-        "verdict": ("not yet falsifiable" if not attended else
-                    "attractor reached; w0/wa not cleanly integrable from a "
-                    "single on-attractor snapshot (fixed-point degeneracy)"),
-        "note": ("the level SITS on the φ-attractor (r→φ, 1.7%); a 2σ miss "
-                 "AFTER r sits on the attractor would falsify the "
-                 "φ-attractor/H_conv claim — but a fixed-point snapshot "
-                 "cannot invert w0/wa cleanly, so the band is honestly "
-                 "'not yet falsifiable'."),
+                     "approach_gated_w0": (round(float(w0), 4) if w0 is not None
+                                           else None),
+                     "approach_gated_wa": (round(float(wa), 4) if wa is not None
+                                           else None),
+                     "approach_gated_std": (round(float(w0_std), 4)
+                                            if w0_std is not None else None),
+                     "approach_gated_delta_vs_desi": (
+                         round(float(delta), 4) if delta is not None else None),
+                     "gate": "G54 (epoch-gated approach estimator)"},
+        "decision_rule": "G54 approach-gated (below-φ transit, |r−φ|≥0.02); "
+                         "loop_design.md §5 epoch-gating",
+        "verdict": verdict,
+        "note": ("the end state SITS on the φ-attractor (r→φ, 1.7%); a single "
+                 "fixed-point snapshot cannot invert w0/wa (ODE stall, "
+                 "recorded in M2). G54 breaks the degeneracy via the BELOW-φ "
+                 "APPROACH transient of the level survey: epoch-gated w0 = "
+                 + ("%.4f ± %.4f" % (w0, w0_std)
+                    if (w0 is not None and w0_std is not None) else "—")
+                 + ", within DESI 1σ (" + str(delta is not None and
+                 delta <= DESI_1SIG) + "). Honesty: this is a SELF-CONSISTENCY "
+                 "check (the machine's r is φ-calibrated), not an independent "
+                 "forecast; the remaining falsifiable claim is the φ-attractor "
+                 "approach RATE dr/dlna vs H_conv, needing an off-attractor "
+                 "start (|r−φ| ≳ 0.3) the current levels do not exercise."),
     }
 
 
