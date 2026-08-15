@@ -1,4 +1,5 @@
 #[compute]
+// canonical layout: scripts/contracts/layout.gd §PC — 8 floats (32 B); set 0: bindings 0-3
 #version 450
 // Cassi Coarse-Gradient — the cascade-multigrid coarse level's ∇(g·Φ) build
 // (research/cascade_multigrid/multigrid_design.md §(d), stage7_multigrid.py).

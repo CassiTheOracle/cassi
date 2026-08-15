@@ -1,4 +1,5 @@
 #[compute]
+// canonical layout: scripts/contracts/layout.gd §PC — 17 floats (68 B); set 0: bindings 0-19
 #version 450
 // Cassi Voronoi Cells — the per-cell two-fluid wave system on the JFA
 // Voronoi mesh (MESHLESS_PLAN.md Stage 1 + the §10 sim integration).

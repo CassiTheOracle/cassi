@@ -1,4 +1,5 @@
 #[compute]
+// canonical layout: scripts/contracts/layout.gd §PC — 32 floats (128 B — the RDNA3 Vulkan cap); set 0: bindings 0-6
 #version 450
 // Cassi Particle Instancer — writes to MultiMesh buffer (16 floats/instance):
 //   3x4 row-major transform + 4 color (as confirmed by Godot issue #76884):

@@ -1,4 +1,5 @@
 #[compute]
+// canonical layout: scripts/contracts/layout.gd §PC — 11 floats (44 B); sets 0 (0-3), 2 (0)
 #version 450
 // Cassi Field Visualization — renders a 2D slice (z = N/2) of the
 // two-fluid field (EY, EI, Q) as a color image.

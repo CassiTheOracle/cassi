@@ -1,4 +1,5 @@
 #[compute]
+// canonical layout: scripts/contracts/layout.gd §PC — 10 floats (40 B); set 0: bindings 0-1
 #version 450
 // Cassi Occupancy Sampler — GPU-side particle-box occupancy classification.
 //

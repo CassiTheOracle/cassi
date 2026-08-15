@@ -1,4 +1,5 @@
 #[compute]
+// canonical layout: scripts/contracts/layout.gd §PC — 5 floats (20 B); set 0: bindings 0,3-11
 #version 450
 // Cassi Tree Gravity — open-boundary Barnes–Hut walk over the octree built
 // by cassi_tree_build.glsl. Evaluates the CHORD-WEIGHTED potential gradient

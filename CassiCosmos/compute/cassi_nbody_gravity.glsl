@@ -1,4 +1,5 @@
 #[compute]
+// canonical layout: scripts/contracts/layout.gd §PC — 15 floats (60 B); sets 0 (0-8), 1 (0-3), 2 (0-1)
 #version 450
 // Cassi N-body Gravity — river-law chord-gradient force (DEFAULT) +
 // legacy coherence-gradient heuristic (A/B toggle) + BH point sources.

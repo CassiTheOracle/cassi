@@ -1,4 +1,5 @@
 #[compute]
+// canonical layout: scripts/contracts/layout.gd §PC — 13 floats (52 B); set 0: bindings 0-2
 #version 450
 // Cassi q-histogram — the AUTO-ALIGN sampler. Bins the coherence q sampled
 // AT PARTICLE POSITIONS (the exact periodic trilinear convention of

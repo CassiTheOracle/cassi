@@ -1,4 +1,5 @@
 #[compute]
+// canonical layout: scripts/contracts/layout.gd §PC — 19 floats (76 B); set 0: bindings 0-13
 #version 450
 // Cassi Tree Build — level-by-level octree construction for the open-boundary
 // FMM/tree gravity arm (research/meshless/fmm_design.md Q2; stage5_fmm.py).

@@ -1,4 +1,5 @@
 #[compute]
+// canonical layout: scripts/contracts/layout.gd §PC — 7 floats (28 B); set 0: bindings 0-3
 #version 450
 // The mass-deposit fixed-point accumulator (cassi_mass_deposit.glsl
 // binding 2, SCALE = 2^24, 4×uint8-digit sums packed as uvec4 per cell):

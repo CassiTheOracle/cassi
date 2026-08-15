@@ -1,4 +1,5 @@
 #[compute]
+// canonical layout: scripts/contracts/layout.gd §PC — 8 floats (32 B); set 0: bindings 0-2
 #version 450
 // Cassi JFA — jump-flooding Voronoi construction on the N³ accelerator
 // grid (MESHLESS_PLAN.md Stage 1). The grid is a lookup accelerator

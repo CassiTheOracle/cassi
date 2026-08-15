@@ -1,4 +1,5 @@
 #[compute]
+// canonical layout: scripts/contracts/layout.gd §PC — 9 floats (36 B); set 0: bindings 0-2
 #version 450
 // Cassi Mass Deposit — TSC (triangular-shaped cloud) scatter of
 // per-particle masses into the field grid. Each particle spreads mass to

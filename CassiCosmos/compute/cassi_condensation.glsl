@@ -1,4 +1,5 @@
 #[compute]
+// canonical layout: scripts/contracts/layout.gd §PC — 4 floats (16 B); sets 0 (0), 1 (0)
 #version 450
 // Cassi Condensation Scanner — finds Qi peaks, nucleates black holes
 //

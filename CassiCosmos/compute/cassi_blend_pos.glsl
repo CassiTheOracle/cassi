@@ -1,4 +1,5 @@
 #[compute]
+// canonical layout: scripts/contracts/layout.gd §PC — 5 floats (20 B); set 0: bindings 0-2
 #version 450
 // Cassi position blend — snapshot/interpolation seam for the DECOUPLED
 // PHYSICS PRODUCER. Three modes, one shader, selected by the `packed`

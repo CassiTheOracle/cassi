@@ -1,4 +1,5 @@
 #[compute]
+// canonical layout: scripts/contracts/layout.gd §PC — 24 floats (96 B); set 0: bindings 0-17
 #version 450
 // Cassi Particle Merge — "dust -> object": two particles within a merge
 // radius R_m coalesce (mass + total momentum conserved, survivor = mass-

@@ -1,4 +1,5 @@
 #[compute]
+// canonical layout: scripts/contracts/layout.gd §PC — 16 floats (64 B); set 0: bindings 0-5
 #version 450
 // Cassi Two-Fluid PDE Solver — 3D finite-difference leapfrog integration.
 // Evolves EY (Yang) and EI (Yin) fields on a regular grid.
