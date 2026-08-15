@@ -1671,10 +1671,18 @@ func _apply_decoupled_publish(pub: Dictionary) -> void:
 			return
 		if _dc_curr_bytes.size() == pb.size():
 			_dc_prev_bytes = _dc_curr_bytes
+			# M0b: the steady-state prev-mirror shuffle is a GPU-side copy
+			# queued BEFORE the curr upload — the snapshot upload drops from
+			# 12 MB to 8 MB (the 4 MB prev copy no longer crosses the host).
+			# The copy reads the CURRENT buffer (the last publish's state) →
+			# prev; the upload then overwrites curr. The FIRST packed publish
+			# keeps the host upload below (prev = curr, so the blend's
+			# alpha≈0 first interval renders the snapshot, not zeros).
+			_rd.buffer_copy(_dc_pos_buf, _dc_pos_prev_buf, 0, 0, pb.size())
 		else:
-			_dc_prev_bytes = pb   # first publish: prev = curr
+			_dc_prev_bytes = pb   # first publish: prev = curr (uploaded below)
+			_rd.buffer_update(_dc_pos_prev_buf, 0, pb.size(), pb)
 		_dc_curr_bytes = pb
-		_rd.buffer_update(_dc_pos_prev_buf, 0, _dc_prev_bytes.size(), _dc_prev_bytes)
 		_rd.buffer_update(_dc_pos_buf, 0, _dc_curr_bytes.size(), _dc_curr_bytes)
 		var vb: PackedByteArray = snap.get("vel", PackedByteArray())
 		if vb.size() > 0:
@@ -4852,7 +4860,16 @@ func _setup_multimesh() -> void:
 
 func _render_frame() -> void:
 	var now_ms := Time.get_ticks_msec()
-	_align_ran_this_frame = false
+	# M0b (perf-decomp 2026-08-15): the color-band refit is deferred to the
+	# boundary-accepted occupancy drain (the 2 Hz block below) so its 512 B
+	# qhist readback adds no separate global-RD self-stall between the render
+	# list recording and its submission. The flag gates the merge off on
+	# align frames (FIX 2: never share a frame between the merge burst and
+	# the align's device drain) — set from the DUE state, not after the run.
+	var align_due := auto_align_colors and particle_color_mode >= 2 \
+			and _qhist_buf.is_valid() and _step_count > 0 \
+			and now_ms - _last_align_ms >= 1500
+	_align_ran_this_frame = align_due
 
 	# Decoupled producer: poll the freshest publish (mirror refresh) and
 	# record the render list (blend interp + instancer + qhist) — no
@@ -4911,17 +4928,12 @@ func _render_frame() -> void:
 			_pi_sat_hi_frac /= samples
 			_pi_sat_lo_frac /= samples
 	# Auto color-align cadence: re-fit the Qi band to the live q histogram
-	# at the particles. Independent of suppress_readbacks (512 B readback,
-	# negligible). Saturated and normal bands share the ~1.5 s cadence
+	# at the particles. Saturated and normal bands share the ~1.5 s cadence
 	# (perf-decomp 2026-08-15: the saturated 0.5 s rate hammered the shared
 	# global RD during cascade scale-ups — it is a visual nicety that must
 	# not add readback pressure; FIX 2 had already cut it 0.2 s → 0.5 s).
-	if auto_align_colors and particle_color_mode >= 2 \
-			and _qhist_buf.is_valid() and _step_count > 0 \
-			and now_ms - _last_align_ms >= 1500:
-		_last_align_ms = now_ms
-		_align_color_band()
-		_align_ran_this_frame = true
+	# M0b: the refit itself runs in the 2 Hz occupancy block below — its
+	# 512 B qhist read rides that block's already-accepted device drain.
 	# One-time Poisson residual report (FD-Laplacian check of the Φ solve).
 	# River modes only (0, 3 and 4): modes 1/2 skip the solve, so _fft_buf
 	# holds stale data there and the residual would be meaningless.
@@ -4951,6 +4963,15 @@ func _render_frame() -> void:
 			and _merge_step_counter >= _merge_cadence_eff():
 		_merge_step_counter = 0
 		_run_merge_pass()
+	# M0b: verify/headless scenes (playing=false or suppress_readbacks) never
+	# reach the occupancy drain, so the deferred align would latch the
+	# merge gate off forever (auto_align_colors defaults true). Run it
+	# STANDALONE here instead — the old mid-frame position, but only in the
+	# gate-off cases — so the 1.5 s cadence advances and the FIX-2 pair
+	# (the merge block above already skipped align frames) holds.
+	if align_due and (not playing or suppress_readbacks):
+		_last_align_ms = now_ms
+		_align_color_band()
 
 	# Throttled occupancy + perf report (~2 Hz; interactive runs only —
 	# verify scenes keep playing=false and report their own numbers).
@@ -4964,6 +4985,12 @@ func _render_frame() -> void:
 			var behind: float = (_decoupled_pending * dt) if _decoupled_active else _step_timer
 			print("[CassiSim] perf: fps=%.1f  physics=%.3f ms/step (%d steps, behind %.2f s, lost %d)" % [fps, dt_ms, _perf_steps, behind, _dropped_steps])
 		_sample_occupancy()
+		# M0b: the color-band refit rides this block's already-accepted drain
+		# (the occupancy dispatch + 32 B read self-stall serve the 512 B
+		# qhist read too — one device sync instead of two mid-frame drains).
+		if align_due:
+			_last_align_ms = now_ms
+			_align_color_band()
 		_perf_phys_us = 0
 		_perf_steps = 0
 		_perf_frames = 0
