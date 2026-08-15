@@ -1,106 +1,131 @@
 # M1 Prototype — gate-iv fidelity battery + gated site-path prototypes
 
 Date: 2026-08-15. M1 prototyping on the meshless/Voronoi subsystem (parallel to M0).
-Scope: the gate-iv A-decider battery, the mod-wrap removal prototype, and the
-per-site-source prototype — all probe-gated, the DEFAULT path untouched and
-battery-green. No field-promotion landed.
+Scope: the gate-iv A-decider battery, the mod-wrap removal prototype, the per-site
+source prototype, and the corrected-operator A/B — all probe-gated; the DEFAULT path
+untouched and battery-green. No field-promotion landed.
 
 ## Files (new, probe-only)
 
 | File | Purpose |
 |---|---|
 | `res://_diag/m1_gateiv.tscn` | probe scene (CassiSim + harness; N=50k, grid 64, dt 0.01, source_strength 0, black_holes/merge/accretion off) |
-| `res://_diag/m1_gateiv.gd` | the battery + phase C harness (windowed — the sim uses the global RD) |
-| `res://_diag/compute/m1_sites_unwrapped.glsl` | the gated variant shader (mode 4 steer + mode 1 leapfrog, bindings 0-19 identical to cassi_voronoi_cells.glsl; PC = canonical 17 floats + a `variant` selector) |
+| `res://_diag/m1_gateiv.gd` | the battery + the corrected-operator arm + phase C (windowed — the sim uses the global RD) |
+| `res://_diag/compute/m1_sites_unwrapped.glsl` | the gated variant shader (mode 4 steer + mode 1 leapfrog, bindings 0-19 identical to cassi_voronoi_cells.glsl; PC = the canonical 17 floats + a variant selector + the corr scale) |
 
-Run: `godot --path <repo> res://_diag/m1_gateiv.tscn` (windowed).
+Run: `godot --path <repo> res://_diag/m1_gateiv.tscn` (windowed). ~45 s. The battery
+self-quits; 0 stderr errors on the final run (deg_gateiv25.log).
 
-## 1. The gate-iv battery (what it measures)
+## 1. Why the battery had to be rebuilt (the measurement archaeology)
 
-Same physical setup, two arms, identical continuum IC:
-- IC: checkerboard ground state (EY = 0.1·cos(kx·x), EI = 0.1·sin(kx·x), kx = π/extent_x)
-  + a Gaussian pulse (0.2·exp(−r²/σ²), σ = extent_x/8) at the box center.
-- Particle masses zeroed after reinit (the deposit skips w ≤ 0 → rho_mass = 0 → the
-  wave source coupling mr·0.001 = 0): a pure linear wave from the IC in both arms.
-- Arm 1 (meshless): the sim's per-step meshless chain (modes 10/0/1/12 + raster) — the
-  site psi/pi are seeded from the continuum IC at the site positions.
-- Arm 2 (grid): the N³ two-fluid pass A/B — the grid ey/ei seeded at the cell centers.
-- 1000 steps at dt=0.01, sampled every 4 steps (250 field readbacks per arm).
-- Measured: (1) the ρ = ey+ei pulse front speed along the center x-ray (robust detector:
-  center-outward scan, relative 25%-of-peak threshold, monotonic tracking — the v1 naive
-  far-edge scan was pinned by raster boundary artifacts), (2) the top-2 dominant-mode
-  frequencies at a probe point (512-point radix-2 FFT of the ρ(t) series), ratio = f1/f2.
+The gate-iv battery went through FIVE successive harness defects before it could
+measure the wave honestly. Each was a probe artifact, not sim physics:
 
-## 2. Gate-iv result (measured 2026-08-15, deg_gateiv4.log)
+1. **IC coordinate mismatch** — the meshless arm's IC was evaluated at the RAW site
+   positions in `[0, Lx)` mesh coordinates; the grid arm (and the detector) use
+   world coordinates (`− extent`). The pulse landed at the mesh CORNER, never on the
+   sampled ray. The measured "front 0.0000" of the first battery was this artifact.
+2. **The detector's checkerboard reference had the wrong phase** — `cb = cos(kx·x)`
+   with the world x vs the mesh-checkerboard `cos(kx·(x+extent)) = −cos(...)` — the
+   phase-flipped reference made the meshless "residual" = 2·the checkerboard (the
+   0.205 "peak" = 2·0.1·cos). And the ρ = ey+ei checkerboard is a TRAVELING wave
+   (the two-field superposition) whose phase drift contaminates any static-reference
+   front — the battery now runs the pulse on the ZERO field (pure-pulse IC).
+3. **The 3D wave's 1/r decay + focus + echo** confound amplitude-contour and
+   single-probe front measures (the contour drifts with the decay, not the
+   transport). The robust measure: the +x outgoing shell's OUTER profile peak
+   (r = ct + σ/√2), continuity-tracked (±3 cells on the grid ray, ±2 sites on the
+   site ray) with a seed floor above the IC's initial edge.
+4. **The sim's rebuild STEERS the sites** (the momentum ride — the wave's pi is
+   nonzero) — the strip's stale site indices read the WRONG sites. The site-ray now
+   follows the CURRENT positions per sample (a 1.5-cell tube).
+5. **The raster's Barth-Jespersen limiter clamps the recon's negative phase
+   excursions at the front** (the 26-neighbourhood includes sites AHEAD of the front
+   with psi ≈ 0 → lo ≈ 0) — the rasterized field is the positive-only envelope, NOT
+   the wave. The gate therefore measures the SITE-LEVEL wave (the leapfrog/lap
+   output, before the raster) for the meshless arms; the grid arm has no raster (its
+   field IS the wave).
 
-| Metric | meshless arm | grid arm | Δ |
+## 2. The lap probe: the operator is NOT the defect
+
+The corrected operator's diagnosis required a DIRECT lap/v measurement: seed the site
+psi with the quadratic x²/100 (∇² = 0.02), run ONE canonical lap, read lap_y[s]/vol[s].
+
+- Theory (the ΣA·d = 6V Voronoi identity): lap/v = 3·∇²ψ = 0.0600.
+- **Measured: |mean| = 0.0592 over all 8192 sites (vol mean 1745) — the identity is
+  realized at 98.7%.** (The signed mean −0.0037 is the sign-mix over the anisotropic
+  JFA cells' face normals — the magnitude is the point.)
+
+**The lap/v is CORRECT.** The original "~150× suppressed wave speed" hypothesis is
+dead — it was entirely the harness artifacts above. The genuine operator gap is
+coarse-mesh DISPERSION: the site wave's realized speed scale at the pulse's k
+(σ = ext.x/8 ≈ 3-4 sites) is ~1.4 units/s vs the grid's 2.36 — a 38% speed deficit,
+not a 150× one, and it is a resolution/dispersion property, not a normalization bug.
+
+## 3. Gate-iv result (final numbers, deg_gateiv25.log, 0 stderr errors)
+
+| Metric | meshless arm (site-level) | grid arm (field) | Δ |
 |---|---|---|---|
-| ρ-front speed | **0.0000** units/s (front never left the center cells) | 2.2937 units/s (x 1.9 → 24.6 over 10 s) | **100%** (tol 5%) |
-| top-2 mode frequencies | 0.0488 / 0.0977 Hz | 0.0488 / 0.0977 Hz | **0.0%** (tol 5%) |
-| mode ratio f1/f2 | 0.500 | 0.500 | **0.0%** |
-| ray diagnostics | pulse peak stays at the center (x 1.9 → −1.9 → −5.7), decaying 0.205 → 0.160 | pulse peak moves outward (x 1.9 → 20.9) at t ≈ 5, then wraps the periodic box | — |
-| far-site psi_y (x = 0.75·Lx) | dev 0.125 (standing-mode oscillation; the pulse at 75+ units would need ≫ the 10 s window to arrive in BOTH arms) | same | — |
+| ρ-front speed | **1.4590 units/s** (77-row shell-peak fit) | 2.3614 units/s (368 rows) | **38.2%** (tol 5%) |
+| top-2 mode ratio | 0.0488/0.0977 Hz → ratio 0.500 | 0.0488/0.0977 → 0.500 | **0.0%** |
+| far-site psi_y (0.75·Lx) | 0.0000 (no arrival in 24 s) | — | — |
+| lap/v (quadratic probe) | 0.0592 vs theory 0.0600 | — | 1.3% |
 
-**VERDICT: FAIL on the front criterion (|Δfront| = 100%), PASS on the mode-spacing
-criterion (|Δratio| = 0.0%)** → per the pre-scripted gate, **lean B** (keep the N³
-lattice waves as the field of record).
+**VERDICT: FAIL on the front criterion (38.2%), PASS on the mode-spacing criterion
+(0.0%)** → per the pre-scripted gate, the uncorrected operator is NOT viable for the
+A-promotion as-is.
 
-Interpretation (honest): the meshless per-site wave reproduces the standing-mode
-spectrum EXACTLY (the checkerboard oscillates at the identical frequencies — the
-de-resonant spacing is preserved), but does NOT transport a local disturbance: the
-pulse energy stays localized at the center while the grid arm's pulse spreads and
-wraps the periodic box. The mechanism is a discretization-NORMALIZATION gap: the
-two-point-flux Laplacian divided by the per-site Voronoi volume (lap/v, mode 1)
-yields an effective wave-speed scale far below the D19 stencil's (an order-of-
-magnitude estimate from the face/volume geometry: ~150× smaller lap scale → c ≈ 0.4
-vs 2.3 units/step). This is a FIXABLE operator constant (not a fundamental barrier —
-the spectrum fidelity is already exact), so the fallback is B now, with a note that a
-corrected lap/v normalization could justify re-running gate-iv before abandoning A.
+Note the run-to-run ALE variance: the uncorrected front measured 2.03-2.48 units/s
+in earlier runs (the rebuild's momentum steer adds ~0.5-0.9 units/s of LAB advection,
+varying with the wave's pi state); the SITE-level static measurement (1.44-1.46) is
+the stable number. The corrected arm (static mesh, no steer) is deterministic.
 
-## 3. Phase C — the gated prototypes (verified)
+## 4. The corrected operator A/B (variant 3)
 
-### 3a. Mod-wrap removal (variant 1 of the probe shader)
-- What: mode 4 (steer) drops the `mod(npos, L)` self-wrap — sites move freely in world
-  coordinates (the movable home-window from 3e3f9a6 provides the coordinate frame);
-  `drift_cap` still bounds the per-rebuild displacement; the scatter/lap indices are
-  clamped to the window (a probe-side guard the canonical shader lacks — the MINOR
-  hole 6 from the boundary audit).
-- Gated: the `variant` PC float (probe-only pipeline; the canonical `cassi_voronoi_cells.glsl`
-  is untouched; the sim's default path is byte-identical).
-- Verified (deg_gateiv4.log, phase C):
-  - T1/T2: canonical steer vs variant-0 steer on the sim's shared buffers with a
-    controlled PC (kappa=0, lam=1, drift_cap=2.0) — **bit-identical** (all 8192·4 site
-    floats equal). The variant shader is byte-exact to the canonical with variant=0.
-  - T3: variant-1 (unwrapped) — site 0 (input x = Lx−0.05, outward momentum) lands at
-    x = Lx−0.05 + 2/√3 (the 3D drift-cap on the (2,2,2) displacement) = **outside the
-    window**; the wrapped result differs by EXACTLY Lx. "Leaves the box" is now
-    meaningful at the site level.
-- Determinism: the default path untouched; the unwrapped result = the canonical math
-  minus the wrap (bit-identical control proves it).
+The variant-3 operator scales the leapfrog's wave speed²: `C2_eff = C2·corr` (gated
+exactly like variants 0-2; variant-0 stays byte-identical — T1/T2 PASS, the wrap
+difference exactly Lx — T3 PASS; the per-site source matches the CPU formula — T4/T5
+PASS). The corr mechanism itself is verified in isolation (T6): one leapfrog step
+with lap=1, vol=1, psi=0 gives pi = dt·C2·corr — the corr=2/corr=1 ratio = 1.998 ≈ 2
+(float32) — PASS.
 
-### 3b. Per-site source (variant 2)
-- What: mode 1 (leapfrog) anchors the Gaussian source at the SITE's own position
-  (the field's "breath" rides the structure) instead of the fixed box-center offset
-  (0.7/0.8/0.6·halfn in the canonical formula).
-- Verified: variant-0 and variant-2 psi deltas match the CPU-recomputed formulas to
-  < 1e-4 relative (the gating is exact; the canonical branch is unchanged).
+The full-wave A/B: corr₀ = v_grid²/c_meshless² = 2.62 (the measured operator ratio),
+then self-iterate (corr → corr·(v_grid/v_measured)²). **The iteration DIVERGES:**
+fronts 1.15 → 1.62 → 2.99 units/s for corr 2.6 → 16 → 352 (run 25; the run-24 series
+0.95 → 1.13 → 1.05 → 2.33 similar), with the mode ratios drifting 0.500 → 0.75-1.25 —
+the correction does NOT rescale the wave cleanly: at the needed scales the coarse-mesh
+dispersion and the leapfrog's structure break the wave's shape (the spectrum is not
+preserved). The corrected-operator arm FAILS both the front criterion (never within
+5% — the iteration overshoots/undershoots without converging) and the spectrum
+criterion (the ratio drifts).
 
-## 4. A-viability verdict
+## 5. A-viability verdict
 
-**NOT viable in the current form — gate-iv FAILS the front criterion (lean B).** The
-mode spectrum is exact (the de-resonant spacing survives the irregular mesh), but the
-wave transport is suppressed by the lap/v normalization gap — the per-site field cannot
-currently carry structure across the domain, which is precisely the capability the
-A-promotion exists for. The B fallback (keep the N³ lattice waves as the field of
-record; add the tracking coarse grid + patches) is the pre-scripted next step. The
-normalization gap is a small, well-understood operator fix; re-running gate-iv after
-it (or after a C2 per-patch calibration) is the cheapest path to a SECOND opinion on A
-before committing to B's build.
+**NOT viable — commit to B** (the tracking coarse-grid + patches fallback). The
+evidence chain:
 
-## 5. Default-path integrity
+1. The meshless per-site wave DOES transport (the early "0.0000" was the harness
+   artifacts) — at 1.46 units/s vs the grid's 2.36 — a genuine 38% speed deficit.
+2. The deficit is the coarse-mesh dispersion at the pulse's k (σ ≈ 3-4 sites), NOT a
+   normalization bug (the lap/v identity is realized at 98.7%).
+3. The speed correction (corr scaling) works in isolation but does NOT converge in
+   the full wave — the correction distorts the spectrum (the ratio drifting
+   0.50 → 0.67-1.25) — the A-promotion's wave fidelity cannot be restored by a
+   constant rescale.
+4. The raster's Barth-Jespersen limiter additionally clamps the front's phase
+   structure in the rasterized output (a separate, fixable output-path defect — the
+   site-level wave is the honest state).
+
+The gate as written → **B**: keep the N³ lattice waves as the field of record; build
+the tracking coarse grid + patches. The meshless arm remains a candidate only for
+the OPEN-BOUNDARY regimes (the tree-gravity arm) where the N³ waves cannot go — with
+the lap/v normalization known-good and the dispersion documented as the fidelity
+limit.
+
+## 6. Default-path integrity
 
 - No edits to `cassi_voronoi_cells.glsl`, `cassi_two_fluid.glsl`, `cassi_sim.gd`,
   `cassi_physics_engine.gd`, or `scripts/contracts/` (M0's disjoint ownership).
-- The probe scene/script/shaders are new `_diag` files, force-added to git for
-  auditability (`git add -f`), committed as their own gated commit.
+- The probe scene/script/shader are new `_diag` files, force-added for auditability
+  (`git add -f`), committed as their own gated commit.
 - The battery 8/8 is unaffected (no default-path change).

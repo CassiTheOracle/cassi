@@ -18,10 +18,19 @@
 //   variant == 2  PER-SITE SOURCE: mode 1 anchors the Gaussian source at the
 //                 SITE's own position (the field rides the structure) instead
 //                 of the box center (the M1 per-site injection prototype).
+//   variant == 3  CORRECTED OPERATOR (gate-iv A/B): mode 1 scales the wave
+//                 speed² by `corr` — C2_eff = C2·corr — so the Voronoi
+//                 two-point flux's continuum limit (lap/v -> 3·∇²ψ in 3D,
+//                 the ΣA·d = 6V identity) matches the D19 stencil's
+//                 (s·h₀²·∇²ψ, s·h₀² = v_grid²/C2 measured from the reference
+//                 arm). corr = (v_grid²/C2)/3 ≈ 0.319. Used ONLY by the
+//                 gate-iv corrected arm; variants 0-2 never touch corr
+//                 (bit-identical to the canonical pipe preserved).
 //
 // Bindings 0-19 mirror cassi_voronoi_cells.glsl EXACTLY (the probe reuses
 // the sim's _us_cell_0 uniform set). The PC is the canonical 17 floats PLUS
-// a variant selector at float 17 (the probe builds its own 72-byte PC).
+// a variant selector at float 17 PLUS the corr scale at float 18 (the probe
+// builds its own 76-byte PC).
 
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
@@ -64,7 +73,8 @@ layout(push_constant, std430) uniform PC {
     float lam;              // momentum ride
     float T_steer;          // dt × rebuild cadence
     float lloyd_p;          // Qi-gate exponent
-    float variant;          // 0 = canonical, 1 = unwrapped steer, 2 = per-site source
+    float variant;          // 0 = canonical, 1 = unwrapped steer, 2 = per-site source, 3 = corrected operator
+    float corr;             // variant 3 only: C2 scale (the D19/Voronoi lap-scale ratio)
 } pc;
 
 void main() {
@@ -152,8 +162,9 @@ void main() {
         float r2 = dx * dx + dy * dy + dz * dz;
         float src_y = pc.source_strength * exp(-r2 * 4.0) + mr * 0.001;
         float src_i = pc.source_strength * 0.707 * exp(-r2 * 4.0) + mr * 0.000707;
-        pi_y[s] += pc.dt * (pc.C2 * lap_y[s] / v - pc.OM2 * dev + src_y);
-        pi_i[s] += pc.dt * (pc.C2 * lap_i[s] / v + pc.OM2 * dev + src_i);
+        float c2e = pc.C2 * (pc.variant > 2.5 ? pc.corr : 1.0);
+        pi_y[s] += pc.dt * (c2e * lap_y[s] / v - pc.OM2 * dev + src_y);
+        pi_i[s] += pc.dt * (c2e * lap_i[s] / v + pc.OM2 * dev + src_i);
         psi_y[s] += pc.dt * pi_y[s];
         psi_i[s] += pc.dt * pi_i[s];
         lap_y[s] = 0.0;

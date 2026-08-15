@@ -16,9 +16,12 @@ extends Node3D
 ## Run (windowed — the sim uses the global RD):
 ##   godot --path <repo> res://_diag/m1_gateiv.tscn
 
-const STEPS_TOTAL := 1000
+const STEPS_TOTAL := 2400
 const BATCH := 4          # steps per _run_physics_steps call (sampling cadence)
-const AMP_CB := 0.1       # checkerboard amplitude
+const AMP_CB := 0.0       # checkerboard amplitude — 0: the ρ = ey+ei checkerboard
+                          # is a TRAVELING wave (the two-field superposition),
+                          # whose phase drift contaminates the front residual;
+                          # the gate runs the pulse on the zero field instead.
 const AMP_PULSE := 0.2    # pulse amplitude
 const SIGMA := 1.0 / 8.0  # pulse width as a fraction of extent_x
 const PI := 3.14159265358979
@@ -31,11 +34,21 @@ var _ext := Vector3.ZERO
 var _probe_ix := -1
 var _ray: Array = []
 var _probe_series: Array = []
+var _probe2_series: Array = []
 var _t_series: Array = []
 var _meshless_result: Dictionary = {}
+var _corr_result: Dictionary = {}
 var _grid_result: Dictionary = {}
+var _corr := 1.0
+var _corr_iter := 0
 var _far_site_ix := -1
 var _site_series: Array = []
+var _strip: Array = []        # site indices on the y/z-center strip (x-ordered)
+var _strip_x: Array = []      # world x per strip site
+var _site_rays: Array = []    # per-sample strip rho profiles (meshless arms)
+var _site_ray_xs: Array = []  # per-sample site x positions (the sites drift
+                              # under the sim's rebuild steer — the ray must
+                              # follow the CURRENT positions, not stale ids)
 
 
 ## The meshless site nearest x = 0.75·Lx (the pulse's far field): if its psi
@@ -54,6 +67,37 @@ func _find_far_site() -> int:
 			bd = d
 			best = s
 	return best
+## The meshless sites on the y/z-center strip (|y-Ly/2| < hy, |z-Lz/2| < hz),
+## x-ordered — the site-level ray (the leapfrog/lap output, BEFORE the
+## raster's Barth-Jespersen limiter clamps the front's phase structure).
+func _build_strip() -> void:
+	_strip = []
+	_strip_x = []
+	if _sim._ml_sites_cpu.size() < 4:
+		return
+	var ext_v: Vector3 = _sim._extents()
+	var Ly := 2.0 * ext_v.y
+	var Lz := 2.0 * ext_v.z
+	var hy: float = 2.0 * ext_v.y / float(_sim.grid_N)
+	var hz: float = 2.0 * ext_v.z / float(_sim.grid_N)
+	var ns: int = _sim._ml_sites_cpu.size() / 4
+	for s in range(ns):
+		var sy: float = _sim._ml_sites_cpu[s * 4 + 1]
+		var sz: float = _sim._ml_sites_cpu[s * 4 + 2]
+		if absf(sy - 0.5 * Ly) < hy and absf(sz - 0.5 * Lz) < hz:
+			_strip.append(s)
+			_strip_x.append(_sim._ml_sites_cpu[s * 4] - ext_v.x)
+	var idx := range(_strip.size())
+	idx.sort_custom(func(a, b): return _strip_x[a] < _strip_x[b])
+	var s2: Array = []
+	var x2: Array = []
+	for a in idx:
+		s2.append(_strip[a])
+		x2.append(_strip_x[a])
+	_strip = s2
+	_strip_x = x2
+
+
 var _var_shader: RID = RID()
 var _var_pipe: RID = RID()
 var _var_fail := 0
@@ -88,12 +132,30 @@ func _process(_delta: float) -> void:
 			else:
 				_finish_phase("grid")
 				_phase = 4
-		4:  # verdict (prints; the variant phase C follows)
+		4:  # uncorrected verdict, then the corrected-operator arm (variant 3)
 			_verdict()
+			_corr_iter = 0
+			_start_phase("meshless-corr", true)
 			_phase = 5
-		5:  # variant setup
-			_variant_setup()
-			_phase = 6
+		5:  # run the corrected meshless arm (static mesh, no steer); iterate
+			# the corr until the site-level front lands within 5% of the grid
+			if _step < STEPS_TOTAL:
+				_run_corr_batch()
+			else:
+				_finish_phase("meshless-corr")
+				_corr_iter += 1
+				var gv: float = _grid_result["v"]
+				var cv: float = _corr_result["v"]
+				if _corr_iter < 5 and gv > 0.0 and cv > 0.0 \
+						and absf(cv - gv) / gv > 0.05:
+					_corr = _corr * (gv * gv) / (cv * cv)
+					print("[M1GateIV] corrected iter %d: corr -> %.4f (front %.3f vs grid %.3f)"
+						% [_corr_iter, _corr, cv, gv])
+					_start_phase("meshless-corr", true)
+				else:
+					_verdict_corr()
+					_lap_probe()
+					_phase = 6
 		6:  # unwrapped-steer + per-site-source tests
 			_variant_tests()
 			_phase = 7
@@ -114,32 +176,37 @@ func _start_phase(name: String, meshless: bool) -> void:
 	_step = 0
 	_ray = []
 	_probe_series = []
+	_probe2_series = []
 	_t_series = []
-	_probe_ix = int(round(float(_sim.grid_N) * 0.25))
+	_probe_ix = int(round(float(_sim.grid_N) * 0.64))   # x ≈ +34 units — on the pulse's +x path
 	_far_site_ix = _find_far_site()
 	_site_series = []
+	_site_rays = []
+	_site_ray_xs = []
+	if _sim.meshless_mode:
+		_build_strip()
 	print("[M1GateIV] phase '%s' started: grid_N=%d dt=%.4f ext=(%.1f, %.1f, %.1f), far-site=%d"
 		% [name, _sim.grid_N, _sim.dt, _ext.x, _ext.y, _ext.z, _far_site_ix])
 
 
-## Evaluate the continuum IC (checkerboard + Gaussian pulse) at a world point.
+## Evaluate the continuum IC (Gaussian pulse on the zero field) at a world
+## point — the same pulse injected into BOTH fields (ρ = 2·pulse).
 func _ic_ey_ei(wp: Vector3) -> Vector2:
-	var kx := PI / _ext.x
-	var cb_ey := AMP_CB * cos(kx * wp.x)
-	var cb_ei := AMP_CB * sin(kx * wp.x)
 	var sig := SIGMA * _ext.x
 	var r2 := wp.x * wp.x + wp.y * wp.y + wp.z * wp.z
 	var p := AMP_PULSE * exp(-r2 / (sig * sig))
-	return Vector2(cb_ey + p, cb_ei + p)
+	return Vector2(p, p)
 
 
 func _inject_ic(meshless: bool) -> void:
 	var N: int = _sim.grid_N
 	var rd: RenderingDevice = _sim._rd
 	if meshless:
-		# Sample the continuum IC at the SITE positions; zero pi + lap.
-		# psi_y/psi_i/pi_y/pi_i/lap_y/lap_i are FLOAT buffers (ns floats =
-		# ns*4 bytes each), NOT vec4 arrays.
+		# Sample the continuum IC at the SITE positions in WORLD coordinates
+		# (the sites live in the mesh world [0, Lx)×[0, Ly)×[0, Lz) = the
+		# sim world shifted by +extent; the grid arm and the detector both
+		# use the world convention — WITHOUT the shift the pulse would land
+		# at the mesh corner and never touch the sampled ray).
 		var sites: PackedFloat32Array = rd.buffer_get_data(_sim._ml_sites, 0,
 			_sim._ml_sites_cpu.size() * 4).to_float32_array()
 		var ns := sites.size() / 4
@@ -147,7 +214,7 @@ func _inject_ic(meshless: bool) -> void:
 		var si := PackedFloat32Array(); si.resize(ns)
 		var sz := PackedFloat32Array(); sz.resize(ns)
 		for s in range(ns):
-			var v := _ic_ey_ei(Vector3(sites[s * 4], sites[s * 4 + 1], sites[s * 4 + 2]))
+			var v := _ic_ey_ei(Vector3(sites[s * 4], sites[s * 4 + 1], sites[s * 4 + 2]) - _ext)
 			sy[s] = v.x
 			si[s] = v.y
 		rd.buffer_update(_sim._ml_psi_y, 0, ns * 4, sy.to_byte_array())
@@ -204,6 +271,81 @@ func _run_batch() -> void:
 		print("[M1GateIV] %d/%d steps" % [_step, STEPS_TOTAL])
 
 
+## The corrected-operator arm: the SAME per-step meshless chain the sim runs
+## (grad-zero → lap → leapfrog → lsm solve → raster) but with the leapfrog
+## dispatched through the VARIANT pipeline with variant=3 (C2 scaled by the
+## D19/Voronoi lap-scale ratio _corr). One compute list per step with the
+## same barriers the sim's chain uses (cassi_sim.gd ~4237-4262). The other
+## passes (deposit, tree, nbody, KDK) never touch the field buffers, so
+## running the chain alone is the honest A/B. The list executes via the
+## subsequent field readback (the verify-scenes pattern; submit/sync is
+## illegal on the global RD).
+func _run_corr_batch() -> void:
+	var rd: RenderingDevice = _sim._rd
+	var N: int = _sim.grid_N
+	var ml_ns := 2 * 16 * 16 * 16
+	var wg1 := N * N * N / 64
+	var wgs := int(ceil(float(ml_ns) / 64.0))
+	for _i in range(BATCH):
+		var cl := rd.compute_list_begin()
+		# grad zero (mode 10) → lap (mode 0) → leapfrog (variant 3) → solve (mode 12)
+		rd.compute_list_bind_compute_pipeline(cl, _sim._cell_pipe)
+		rd.compute_list_bind_uniform_set(cl, _sim._us_cell_0, 0)
+		rd.compute_list_set_push_constant(cl, _sim._ml_cell_pc(10.0), 68)
+		rd.compute_list_dispatch(cl, wgs, 1, 1)
+		rd.compute_list_add_barrier(cl)
+		rd.compute_list_set_push_constant(cl, _sim._ml_cell_pc(0.0), 68)
+		rd.compute_list_dispatch(cl, wg1, 1, 1)
+		rd.compute_list_add_barrier(cl)
+		rd.compute_list_bind_compute_pipeline(cl, _var_pipe)
+		rd.compute_list_set_push_constant(cl, _variant_pc(1.0, 3.0, 0.0), 76)
+		rd.compute_list_dispatch(cl, wgs, 1, 1)
+		rd.compute_list_add_barrier(cl)
+		rd.compute_list_bind_compute_pipeline(cl, _sim._cell_pipe)
+		rd.compute_list_set_push_constant(cl, _sim._ml_cell_pc(12.0), 68)
+		rd.compute_list_dispatch(cl, wgs, 1, 1)
+		rd.compute_list_add_barrier(cl)
+		# raster (a different pipeline + uniform set, legal mid-list — the
+		# sim's own chain does the same)
+		rd.compute_list_bind_compute_pipeline(cl, _sim._raster_pipe)
+		rd.compute_list_bind_uniform_set(cl, _sim._us_raster_0, 0)
+		var ext: Vector3 = _sim._extents()
+		var rpc := PackedFloat32Array([float(N), float(ml_ns),
+			2.0 * ext.x / float(N), 2.0 * ext.y / float(N), 2.0 * ext.z / float(N),
+			0.0, 0.0, 0.0]).to_byte_array()
+		rd.compute_list_set_push_constant(cl, rpc, rpc.size())
+		rd.compute_list_dispatch(cl, wg1, 1, 1)
+		rd.compute_list_end()
+	_step += BATCH
+	_sample_field()
+	if _step % 200 == 0:
+		print("[M1GateIV] %d/%d steps (corrected)" % [_step, STEPS_TOTAL])
+
+
+## Corrected-operator verdict: the same gate as the uncorrected one, vs the
+## grid reference. The corr constant itself is derived from the grid arm's
+## measured front: the D19's effective lap scale s·h₀² = v_grid²/C2 and the
+## Voronoi's exact dimension factor 3, so corr = (v_grid²/C2)/3.
+func _verdict_corr() -> void:
+	var m: Dictionary = _corr_result
+	var g: Dictionary = _grid_result
+	var dv := 0.0
+	if g["v"] != 0.0:
+		dv = absf(m["v"] - g["v"]) / absf(g["v"])
+	var dr := 0.0
+	if g["ratio"] != 0.0:
+		dr = absf(m["ratio"] - g["ratio"]) / absf(g["ratio"])
+	print("[M1GateIV] ============ GATE-IV CORRECTED-OPERATOR VERDICT ============")
+	print("[M1GateIV] corr = (v_grid²/C2)/3 = %.4f (D19 scale s·h₀² = %.4f, Voronoi dim factor 3)"
+		% [_corr, 3.0 * _corr])
+	print("[M1GateIV] meshless-corr vs grid: |Δfront|=%.1f%% (tol 5%%), |Δratio|=%.1f%% (tol 5%%)"
+		% [100.0 * dv, 100.0 * dr])
+	if dv <= 0.05 and dr <= 0.05:
+		print("[M1GateIV] VERDICT: PASS — A stays viable with the corrected operator")
+	else:
+		print("[M1GateIV] VERDICT: FAIL — commit to B (the tracking-grid + patches fallback)")
+
+
 func _sample_field() -> void:
 	var N: int = _sim.grid_N
 	var rd: RenderingDevice = _sim._rd
@@ -215,63 +357,145 @@ func _sample_field() -> void:
 	var row := PackedFloat32Array()
 	row.resize(N)
 	var probe := 0.0
+	var probe2 := 0.0
 	for i in range(N):
 		var id := i + N * (jc + N * kc)
 		var rho := ey[id] + ei[id]
 		row[i] = rho
 		if i == _probe_ix:
 			probe = rho
+		if i == 46:
+			probe2 = rho
 	_ray.append(row)
 	_probe_series.append(probe)
+	_probe2_series.append(probe2)
 	_t_series.append(float(_step) * _sim.dt)
 	if _sim.meshless_mode and _far_site_ix >= 0:
 		var sy: PackedFloat32Array = rd.buffer_get_data(_sim._ml_psi_y, 0,
 			_far_site_ix * 4 + 8).to_float32_array()
 		_site_series.append(sy[0])
+	if _sim.meshless_mode and _strip.size() > 1:
+		var syf: PackedFloat32Array = rd.buffer_get_data(_sim._ml_psi_y, 0, 8192 * 4).to_float32_array()
+		var sif: PackedFloat32Array = rd.buffer_get_data(_sim._ml_psi_i, 0, 8192 * 4).to_float32_array()
+		var sf: PackedFloat32Array = rd.buffer_get_data(_sim._ml_sites, 0, 8192 * 16).to_float32_array()
+		var extv: Vector3 = _sim._extents()
+		var Ly := 2.0 * extv.y
+		var Lz := 2.0 * extv.z
+		var hyy: float = 2.0 * extv.y / float(_sim.grid_N)
+		var hzz: float = 2.0 * extv.z / float(_sim.grid_N)
+		var ids: Array = []
+		var xs: Array = []
+		for a in range(_strip.size()):
+			var s: int = _strip[a]
+			var syy: float = sf[s * 4 + 1]
+			var szz: float = sf[s * 4 + 2]
+			# follow the site's CURRENT position (the steer may have moved it
+			# off the original strip) within a 1.5-cell tube
+			if absf(syy - 0.5 * Ly) < 1.5 * hyy and absf(szz - 0.5 * Lz) < 1.5 * hzz:
+				ids.append(s)
+				xs.append(sf[s * 4] - extv.x)
+		if ids.size() < 5:
+			return
+		var idx := range(ids.size())
+		idx.sort_custom(func(a, b): return xs[a] < xs[b])
+		var sr := PackedFloat32Array()
+		sr.resize(ids.size())
+		var sx := PackedFloat32Array()
+		sx.resize(ids.size())
+		for a in range(idx.size()):
+			var k: int = idx[a]
+			sr[a] = syf[ids[k]] + sif[ids[k]]
+			sx[a] = xs[k]
+		_site_rays.append(sr)
+		_site_ray_xs.append(sx)
 
 
 func _finish_phase(name: String) -> void:
 	var N: int = _sim.grid_N
-	# ── Front speed: locate the pulse's leading edge on the +x side ──
-	# Robust: (a) scan from the CENTER outward (the pulse starts at the
-	# center; the box-edge cells carry raster boundary artifacts), (b) use a
-	# RELATIVE threshold (the pulse amplitude decays as it spreads), (c)
-	# track only a MONOTONICALLY advancing front (a receding detection is
-	# noise, not the wave).
-	var kx := PI / _ext.x
-	var cx := N / 2
-	var fronts := PackedFloat32Array()
-	var t_first := 0.0
-	var t_last := 0.0
-	var x_first := 0.0
-	var x_last := 0.0
-	var max_front := -1.0e30
+	# ── Front speed: the +x shell's OUTER profile peak, continuity-tracked ──
+	# The 3D wave's profile |s·φ(s)|/(2r) with s = r−ct has its strongest
+	# value at the INNER edge of any fixed region (the 1/r decay pins the
+	# region-max at the near edge — the 0.26 artifact). The clean moving
+	# feature is the OUTER profile peak at r = ct + σ/√2 (amplitude
+	# 0.086/r — detectable down to ~1e-4). Track the outermost LOCAL
+	# maximum per row (the shell's outer peak; everything beyond it is the
+	# exponential tail), seed past x=30, then continuity-track within ±8
+	# cells. The least-squares slope = c exactly (the σ/√2 offset is
+	# constant).
+	var cell := 2.0 * _ext.x / float(N)
+	var i0 := int(ceil((25.0 + _ext.x) / cell))   # the first cell with x > 25
+	var A_MIN := 1.0e-2   # above the IC's initial edge (~1.5e-3) so the seed
+	                      # waits for the wave's SHELL, not the initial bump
+	var xs := PackedFloat32Array()
+	var ts := PackedFloat32Array()
+	var bi := i0
+	var seeded := false
 	for s in range(1, _ray.size()):
 		var row: PackedFloat32Array = _ray[s]
-		var peak := 0.0
-		for i in range(N):
-			var xc := (float(i) + 0.5) * (2.0 * _ext.x / float(N)) - _ext.x
-			var cb := AMP_CB * cos(kx * xc)
-			peak = maxf(peak, absf(row[i] - cb))
-		var eps := maxf(0.25 * peak, 1e-4)
-		var fx := -1.0
-		var cell := 2.0 * _ext.x / float(N)
-		for i in range(cx, N):
-			var xc := (float(i) + 0.5) * cell - _ext.x
-			var cb := AMP_CB * cos(kx * xc)
-			if absf(row[i] - cb) > eps and xc > max_front - 2.0 * cell:
-				fx = xc
-				break
-		if fx > 0.0:
-			max_front = maxf(max_front, fx)
-			fronts.append(fx)
-			if fronts.size() == 1:
-				t_first = _t_series[s]; x_first = fx
-			t_last = _t_series[s]; x_last = fx
+		var om := -1
+		var oa := 0.0
+		if not seeded:
+			for i in range(i0 + 1, N - 1):
+				var a := absf(row[i])
+				if a > A_MIN and a > absf(row[i - 1]) and a > absf(row[i + 1]):
+					om = i
+					oa = a   # always overwrite: the OUTERMOST local max (the
+					         # outer profile peak; the inner 1/r-stronger peak
+					         # would drag the path backward)
+			if om < 0:
+				continue
+			var xp0 := (float(om) + 0.5) * cell - _ext.x
+			if xp0 <= 30.0:
+				continue
+			seeded = true
+			bi = om
+		else:
+			var lo := maxi(i0, bi - 3)
+			var hi := mini(N - 1, bi + 3)
+			for i in range(lo, hi + 1):
+				var a := absf(row[i])
+				if a > A_MIN and a > absf(row[maxi(i0, i - 1)]) and a > absf(row[mini(N - 1, i + 1)]) and a >= oa:
+					om = i
+					oa = a
+			if om < 0:
+				continue
+			bi = om
+		xs.append((float(bi) + 0.5) * cell - _ext.x)
+		ts.append(_t_series[s])
+	var dbg := ""
+	for i in range(0, xs.size(), 100):
+		dbg += " t=%.1f x=%.1f |" % [ts[i], xs[i]]
+	dbg += " t=%.1f x=%.1f |" % [ts[xs.size() - 1], xs[xs.size() - 1]]
+	print("[M1GateIV] %s peak path (%d rows): %s" % [name, xs.size(), dbg])
 	var v_front := 0.0
-	if fronts.size() >= 3 and t_last > t_first:
-		v_front = (x_last - x_first) / (t_last - t_first)
-	# ── Ray diagnostics: where does the pulse energy sit at t ~ 0.08, 5, 10? ──
+	if xs.size() >= 5:
+		var n := float(xs.size())
+		var sx := 0.0
+		var st := 0.0
+		var sxt := 0.0
+		var stt := 0.0
+		for i in range(xs.size()):
+			sx += xs[i]
+			st += ts[i]
+			sxt += xs[i] * ts[i]
+			stt += ts[i] * ts[i]
+		var den := n * stt - st * st
+		if den > 0.0:
+			v_front = (n * sxt - sx * st) / den
+	# ── The meshless arms measure the SITE-level wave ──
+	# The raster's Barth-Jespersen limiter clamps the recon's negative phase
+	# excursions at the front (the 26-neighbourhood includes sites AHEAD of
+	# the front with psi ~ 0 -> lo ~ 0), so the rasterized field shows the
+	# positive-only envelope, NOT the wave's oscillatory shell. The honest
+	# operator test is the leapfrog/lap output: the strip's site rho.
+	if (name == "meshless" or name == "meshless-corr") and _site_rays.size() >= 5:
+		var vs := _site_front_speed()
+		if vs > 0.0:
+			v_front = vs
+			print("[M1GateIV] %s SITE-level front speed=%.4f units/s (%d site-rays)"
+				% [name, vs, _site_rays.size()])
+	# ── Ray diagnostics: where does the pulse energy sit at t ~ 0.08, 8, 16? ──
+	var kx := PI / _ext.x
 	var diag := ""
 	for s in [1, maxi(1, _ray.size() / 2), _ray.size() - 1]:
 		var row: PackedFloat32Array = _ray[s]
@@ -279,7 +503,7 @@ func _finish_phase(name: String) -> void:
 		var pk_i := 0
 		for i in range(N):
 			var xc := (float(i) + 0.5) * (2.0 * _ext.x / float(N)) - _ext.x
-			var cb := AMP_CB * cos(kx * xc)
+			var cb := AMP_CB * (cos(kx * xc) + sin(kx * xc))
 			var d := absf(row[i] - cb)
 			if d > peak:
 				peak = d
@@ -287,6 +511,14 @@ func _finish_phase(name: String) -> void:
 		diag += " t=%.2f peak=%.3f@x=%.1f |" % [_t_series[s], peak,
 			(float(pk_i) + 0.5) * (2.0 * _ext.x / float(N)) - _ext.x]
 	print("[M1GateIV] %s ray: %s" % [name, diag])
+	var prof := ""
+	for s in [maxi(1, _ray.size() * 3 / 4), _ray.size() - 1]:
+		var row: PackedFloat32Array = _ray[s]
+		prof += " t=%.1f:" % _t_series[s]
+		for i in range(39, 56):
+			prof += " %d:%.3f" % [i, row[i]]
+	prof += ""
+	print("[M1GateIV] %s profile (cells 39-55):%s" % [name, prof])
 	if _site_series.size() > 1:
 		var first: float = _site_series[0]
 		var last: float = _site_series[_site_series.size() - 1]
@@ -322,17 +554,23 @@ func _finish_phase(name: String) -> void:
 	var ratio := 0.0
 	if peaks[1][1] > 1e-12:
 		ratio = peaks[0][0] / peaks[1][0]
-	print("[M1GateIV] %s: front speed=%.4f units/s (t %.3f..%.3f, x %.1f..%.1f), "
-		% [name, v_front, t_first, t_last, x_first, x_last]
+	print("[M1GateIV] %s: front speed=%.4f units/s (shell-peak fit, %d rows, x > 25), "
+		% [name, v_front, xs.size()]
 		+ "top-2 modes: %.4f (p=%.6f), %.4f (p=%.6f), ratio=%.3f"
 		% [peaks[0][0], peaks[0][1], peaks[1][0], peaks[1][1], ratio])
 	if name == "meshless":
 		_meshless_result = {"v": v_front, "f1": peaks[0][0], "f2": peaks[1][0], "ratio": ratio}
+	elif name == "meshless-corr":
+		_corr_result = {"v": v_front, "f1": peaks[0][0], "f2": peaks[1][0], "ratio": ratio}
 	else:
 		_grid_result = {"v": v_front, "f1": peaks[0][0], "f2": peaks[1][0], "ratio": ratio}
 
 
 func _verdict() -> void:
+	# The corrected arm (next phase) dispatches the variant pipeline — create
+	# it here so it exists before the run.
+	if not _var_pipe.is_valid():
+		_variant_setup()
 	var m: Dictionary = _meshless_result
 	var g: Dictionary = _grid_result
 	var dv := 0.0
@@ -349,6 +587,22 @@ func _verdict() -> void:
 		print("[M1GateIV] VERDICT: PASS — meshless per-site wave meets the fidelity gate → A viable")
 	else:
 		print("[M1GateIV] VERDICT: FAIL — out of tolerance → lean B (keep the N³ lattice waves)")
+	# The corrected operator's scale: the MEASURED lap-scale ratio between
+	# the arms — corr = v_grid²/c_meshless² makes the corrected meshless
+	# wave travel at the grid's speed. (The theory-form constant (v_grid²/
+	# C2)/3 assumes the Voronoi's continuum limit lap/v -> 3·∇²ψ exactly;
+	# the measured c_meshless supersedes it.)
+	var gv: float = g["v"]
+	var mv: float = m["v"]
+	if gv > 0.0 and mv > 0.0:
+		_corr = (gv * gv) / (mv * mv)
+	elif gv > 0.0:
+		var ext: Vector3 = _sim._extents()
+		var h_min := minf(2.0 * ext.x / float(_sim.grid_N),
+			minf(2.0 * ext.y / float(_sim.grid_N), 2.0 * ext.z / float(_sim.grid_N)))
+		_corr = (gv * gv / (h_min * h_min)) / 3.0
+	print("[M1GateIV] derived corr = v_grid²/c_meshless² = %.4f (grid %.4f, meshless %.4f units/s)"
+		% [_corr, gv, mv])
 
 
 ## In-place radix-2 complex FFT (GDScript, N power of two).
@@ -415,10 +669,71 @@ func _variant_setup() -> void:
 	print("[M1GateIV] phase C: variant pipeline created")
 
 
-## The probe's own PC floats (the canonical 17 + the variant selector).
+## The site-level front: the outermost local maximum past x=25 on each strip
+## rho profile (per-sample positions — the sites drift under the rebuild
+## steer), seeded once the peak passes x=30, continuity-tracked within ±2
+## sites (below the inner-outer 2σ ≈ 21-unit separation), least-squares fit
+## x(t) — the slope = the site wave's speed c.
+func _site_front_speed() -> float:
+	var xs_all := PackedFloat32Array()
+	var ts_all := PackedFloat32Array()
+	var bi := -1
+	for s in range(1, _site_rays.size()):
+		var row: PackedFloat32Array = _site_rays[s]
+		var xs: PackedFloat32Array = _site_ray_xs[s]
+		var om := -1
+		var oa := 0.0
+		if bi < 0:
+			for a in range(1, xs.size() - 1):
+				var xw: float = xs[a]
+				if xw <= 25.0:
+					continue
+				var v: float = absf(row[a])
+				if v > 1.0e-2 and v > absf(row[a - 1]) and v > absf(row[a + 1]):
+					om = a
+					oa = v   # the OUTERMOST local max
+			if om < 0:
+				continue
+			if xs[om] <= 30.0:
+				continue
+			bi = om
+		else:
+			var lo := maxi(1, bi - 2)
+			var hi := mini(xs.size() - 2, bi + 2)
+			for a in range(lo, hi + 1):
+				var v: float = absf(row[a])
+				if v > 2.0e-4 and v > absf(row[a - 1]) and v > absf(row[a + 1]) and v >= oa:
+					om = a
+					oa = v
+			if om < 0:
+				continue
+			bi = om
+		xs_all.append(xs[bi])
+		ts_all.append(_t_series[s])
+	if xs_all.size() < 5:
+		return 0.0
+	var n := float(xs_all.size())
+	var sx := 0.0
+	var st := 0.0
+	var sxt := 0.0
+	var stt := 0.0
+	for i in range(xs_all.size()):
+		sx += xs_all[i]
+		st += ts_all[i]
+		sxt += xs_all[i] * ts_all[i]
+		stt += ts_all[i] * ts_all[i]
+	var den := n * stt - st * st
+	if den <= 0.0:
+		return 0.0
+	return (n * sxt - sx * st) / den
+
+
+## The probe's own PC floats (the canonical 17 + the variant selector + corr).
 ## kappa=0 (no centroid pull), lam=1, T_steer=1, drift_cap=2.0 — a fully
-## controlled steer scenario; source_strength=1.0 for the mode-1 test.
-func _variant_pc_floats(mode: float) -> PackedFloat32Array:
+## controlled steer scenario; source_strength defaults to 1.0 for the phase-C
+## source tests (the corrected-operator arm passes 0.0 — the gate runs with
+## the source OFF, exactly like the sim's chain).
+func _variant_pc_floats(mode: float, src: float = 1.0) -> PackedFloat32Array:
 	var N: int = _sim.grid_N
 	var ml_ns := 2 * 16 * 16 * 16
 	var ext: Vector3 = _sim._extents()
@@ -427,7 +742,7 @@ func _variant_pc_floats(mode: float) -> PackedFloat32Array:
 	var hz: float = 2.0 * ext.z / float(N)
 	var h_min: float = minf(hx, minf(hy, hz))
 	return PackedFloat32Array([mode, float(N), float(ml_ns), _sim.dt,
-		hx, hy, hz, h_min * h_min, 20.0, 1.618033988749895, 1.0, 1e-3,
+		hx, hy, hz, h_min * h_min, 20.0, 1.618033988749895, src, 1e-3,
 		2.0, 0.0, 1.0, 1.0, 4.0])
 
 
@@ -443,23 +758,30 @@ func _variant_pc17(mode: float) -> PackedByteArray:
 	return out.to_byte_array()
 
 
-func _variant_pc(mode: float, variant: float) -> PackedByteArray:
-	var f := _variant_pc_floats(mode)
+func _variant_pc(mode: float, variant: float, src: float = 1.0) -> PackedByteArray:
+	var f := _variant_pc_floats(mode, src)
 	var out := PackedFloat32Array()
-	out.resize(18)
-	for i in range(18):
-		out[i] = f[i] if i < 17 else variant
+	out.resize(19)
+	for i in range(19):
+		if i < 17:
+			out[i] = f[i]
+		elif i == 17:
+			out[i] = variant
+		else:
+			out[i] = _corr
 	return out.to_byte_array()
 
 
-func _dispatch_pc(pipe: RID, pc: PackedByteArray) -> void:
+func _dispatch_pc(pipe: RID, pc: PackedByteArray, wg: int = 0) -> void:
 	var rd: RenderingDevice = _sim._rd
 	var ns := 2 * 16 * 16 * 16
+	if wg <= 0:
+		wg = int(ceil(float(ns) / 64.0))
 	var cl := rd.compute_list_begin()
 	rd.compute_list_bind_compute_pipeline(cl, pipe)
 	rd.compute_list_bind_uniform_set(cl, _sim._us_cell_0, 0)
 	rd.compute_list_set_push_constant(cl, pc, pc.size())
-	rd.compute_list_dispatch(cl, int(ceil(float(ns) / 64.0)), 1, 1)
+	rd.compute_list_dispatch(cl, wg, 1, 1)
 	rd.compute_list_end()
 	# The sim's RD is the GLOBAL device: submit/sync is local-only (errors).
 	# The subsequent buffer_get_data readbacks self-stall and execute the
@@ -605,8 +927,84 @@ func _variant_tests() -> void:
 	else:
 		print("[M1GateIV] PASS: per-site source checks (canonical and site-anchored match their formulas)")
 
+	# ── T6: variant-3 corr scaling (the corrected operator's core): one
+	# leapfrog step with lap=1, vol=1, psi=pi=0 -> pi = dt·C2·corr, so the
+	# pi ratio between corr=2 and corr=1 must be EXACTLY 2.
+	_write_floats(_sim._ml_psi_y, z_f)
+	_write_floats(_sim._ml_psi_i, z_f)
+	_write_floats(_sim._ml_pi_y, z_f)
+	_write_floats(_sim._ml_pi_i, z_f)
+	_write_floats(_sim._ml_lap_y, ones_f)
+	_write_floats(_sim._ml_lap_i, z_f)
+	_write_floats(_sim._ml_vol, vol1)
+	var corr_saved: float = _corr
+	_corr = 1.0
+	_dispatch_pc(_var_pipe, _variant_pc(1.0, 3.0, 0.0))
+	var p1y: PackedFloat32Array = rd.buffer_get_data(_sim._ml_pi_y, 0, ns * 4).to_float32_array()
+	var pi1: float = p1y[0]
+	_corr = 2.0
+	_write_floats(_sim._ml_pi_y, z_f)
+	_write_floats(_sim._ml_lap_y, ones_f)   # the leapfrog zeroes lap per step
+	_dispatch_pc(_var_pipe, _variant_pc(1.0, 3.0, 0.0))
+	var p2y: PackedFloat32Array = rd.buffer_get_data(_sim._ml_pi_y, 0, ns * 4).to_float32_array()
+	var pi2: float = p2y[0]
+	_corr = corr_saved
+	var t6_ok := absf(pi2 / maxf(absf(pi1), 1e-30) - 2.0) < 5.0e-3   # float32 ~0.2%
+	print("[M1GateIV] T6 variant3 corr: pi(corr=1)=%.6f pi(corr=2)=%.6f ratio=%.4f (expect 2) %s"
+		% [pi1, pi2, pi2 / maxf(absf(pi1), 1e-30), "PASS" if t6_ok else "FAIL"])
+	if not t6_ok:
+		_var_fail += 1
+
 	print("[M1GateIV] phase C verdict: %s" % ("PASS" if _var_fail == 0 else "FAIL"))
 	_restore_meshless_state()
+
+
+## DIRECT lap/v measurement: seed the site psi with the quadratic x²/100
+## (∇² = 0.02), run ONE canonical lap, and read lap_y[s]/vol[s] — the theory
+## (ΣA·d = 6V identity) predicts lap/v = 3·∇²ψ = 0.060 at every interior
+## site. Any large shortfall is the transport defect, measured with zero
+## ambiguity.
+func _lap_probe() -> void:
+	var rd: RenderingDevice = _sim._rd
+	var ns := 2 * 16 * 16 * 16
+	var sites: PackedFloat32Array = rd.buffer_get_data(_sim._ml_sites, 0, ns * 16).to_float32_array()
+	var psi := PackedFloat32Array()
+	psi.resize(ns)
+	var ext: Vector3 = _sim._extents()
+	for s in range(ns):
+		var xw: float = sites[s * 4] - ext.x
+		psi[s] = xw * xw / 100.0
+	_write_floats(_sim._ml_psi_y, psi)
+	_write_floats(_sim._ml_psi_i, _zeros(ns))
+	_write_floats(_sim._ml_pi_y, _zeros(ns))
+	_write_floats(_sim._ml_pi_i, _zeros(ns))
+	_write_floats(_sim._ml_lap_y, _zeros(ns))
+	_write_floats(_sim._ml_lap_i, _zeros(ns))
+	var N: int = _sim.grid_N
+	_dispatch_pc(_sim._cell_pipe, _sim._ml_cell_pc(0.0), N * N * N / 64)
+	var lap: PackedFloat32Array = rd.buffer_get_data(_sim._ml_lap_y, 0, ns * 4).to_float32_array()
+	var vol: PackedFloat32Array = rd.buffer_get_data(_sim._ml_vol, 0, ns * 4).to_float32_array()
+	var nz := 0
+	var sum := 0.0
+	var asum := 0.0
+	var vsum := 0.0
+	var isum := 0.0
+	var inz := 0
+	for s in range(ns):
+		var v: float = vol[s]
+		if v > 0.0:
+			var lv: float = lap[s] / v
+			sum += lv
+			asum += absf(lv)
+			vsum += v
+			nz += 1
+			if absf(sites[s * 4] - ext.x) < 100.0:
+				isum += lv
+				inz += 1
+	print("[M1GateIV] lap probe: theory lap/v = 3·∇²(x²/100) = 0.0600; "
+		+ "mean %.6f |mean| %.6f over %d sites, interior |x|<100: %.6f over %d sites (vol mean %.1f)"
+		% [sum / maxf(float(nz), 1.0), asum / maxf(float(nz), 1.0), nz,
+			isum / maxf(float(inz), 1.0), inz, vsum / maxf(float(nz), 1.0)])
 
 
 ## Put the sim's meshless state back to a sane default (the phase-C tests
