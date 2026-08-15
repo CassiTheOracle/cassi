@@ -5,6 +5,34 @@ extends Control
 ##
 ## The strip uses the same composed engine and evaluator as the GPU instancer,
 ## so it is a visual readout of the particle colors rather than a second map.
+##
+## ═══ BOUNDED-COHERENCE CHANNEL (2026-08-14) ═══════════════════════════
+## The Qi hue axis is the PHYSICALLY BOUNDED coherence
+##   q_coh = ρ² / (ρ² + φ⁻² + ε²) ∈ [0,1),   ρ = EY+EI,  ε = EY − φ·EI
+## NOT the unbounded intensity EY²+EI². This is the fix that stops the colour
+## band from chasing a growing concentration front: the band lives in [0,1)
+## and can never re-anchor past 1.
+##
+## MAPPING + TRADEOFF (the honest design point):
+##  • Landmarks: q_coh → 0 (incoherent/void) sits at the cycle's low end;
+##    q_coh = φ⁻² ≈ 0.382 is the DECOHERENCE landmark — the approach/pink
+##    hue entry (the merge gate), kept fixed (Auto-Track never moves it);
+##    q_coh → 1 is pure saturation (the approach white point). "Pink stays
+##    at φ⁻²" is enforced by anchoring the engine's approach a_lo at φ⁻².
+##  • At live amplitudes q_coh sits in a NARROW band (~0.001–0.006), far
+##    below φ⁻². The engine's cycle band [LOW, HIGH] is LOG-spaced, so the
+##    tracker's tight q_coh band still spans a full hue circle across those
+##    decades — informative without an unbounded anchor. The cost of a
+##    bounded channel is that the φ⁻² pink landmark lies ~2 orders above the
+##    normal band: normal running reads pure rainbow-hue, and the pink/white
+##    approach only appears as real coherent saturation is approached. That
+##    is the honest tradeoff of a bounded scale: amplitude can NEVER blow the
+##    anchor, and "how far from the φ⁻² gate" is read from hue position in
+##    the cycle, not from a runaway hi handle.
+##  • The band hi handle is clamped ≤ AUTO_TRACK_HI_CAP (0.999), and the
+##    tracker's min-span floor is a bounded linear width in [0,1) — so a
+##    saturated blob can never widen the band past its [0,1) anchor.
+## ═══════════════════════════════════════════════════════════════════════
 
 signal gradient_changed
 # Emitted ONLY when a handle is set by a manual drag / probe call (the
@@ -386,6 +414,10 @@ func _draw() -> void:
 		var c: Color = _color_at_q(_q_from_x(float(x) + 0.5))
 		draw_rect(Rect2(float(x), STRIP_TOP, 1.0, STRIP_H), c)
 	draw_rect(Rect2(0.0, STRIP_TOP, size.x, STRIP_H), Color(1, 1, 1, 0.35), false, 1.0)
+	# Draw marker geometry first, then pack the text labels as one row. The
+	# old per-marker clamping let HIGH and WHITE occupy the same pixels when
+	# their handles were close together (common near the physical cap).
+	var label_items: Array[Dictionary] = []
 	for m in _markers:
 		var mx: float = _x_from_q(m.q)
 		var draggable: bool = m.draggable
@@ -394,11 +426,21 @@ func _draw() -> void:
 		draw_line(Vector2(mx, STRIP_TOP), Vector2(mx, STRIP_TOP + STRIP_H), mark_color, 1.0)
 		draw_circle(Vector2(mx, STRIP_TOP + STRIP_H + MARK_R), radius, mark_color)
 		var label: String = "%s %s" % [m.name, _fmt(m.q)]
-		var tw: float = font.get_string_size(label).x
-		var lx: float = clampf(mx - tw * 0.5, 0.0, maxf(size.x - tw, 0.0))
-		var ly: float = STRIP_TOP + STRIP_H + MARK_R * 2.0 + LABEL_H
-		draw_string(font, Vector2(lx + 1.0, ly + 1.0), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.0, 0.0, 0.0, 0.6))
-		draw_string(font, Vector2(lx, ly), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1.0, 1.0, 1.0, 0.95))
+		label_items.append({"mx": mx, "label": label, "width": font.get_string_size(label).x})
+	var label_gap: float = 4.0
+	var total_width: float = 0.0
+	for item in label_items:
+		total_width += float(item["width"])
+	total_width += label_gap * float(maxi(label_items.size() - 1, 0))
+	var first: Dictionary = label_items[0] if not label_items.is_empty() else {}
+	var first_hint: float = 0.0 if first.is_empty() else float(first["mx"]) - float(first["width"]) * 0.5
+	var label_x: float = clampf(first_hint, 0.0, maxf(size.x - total_width, 0.0))
+	var label_y: float = STRIP_TOP + STRIP_H + MARK_R * 2.0 + LABEL_H
+	for item in label_items:
+		var label: String = String(item["label"])
+		draw_string(font, Vector2(label_x + 1.0, label_y + 1.0), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.0, 0.0, 0.0, 0.6))
+		draw_string(font, Vector2(label_x, label_y), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1.0, 1.0, 1.0, 0.95))
+		label_x += float(item["width"]) + label_gap
 
 
 ## One cached rounded StyleBoxFlat re-tinted per swatch (no per-frame

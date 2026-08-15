@@ -12,10 +12,27 @@ extends Control
 var _info_label: Label
 var _diag_label: Label
 var _conn_label: Label
+## The floating status panel + its content VBox (used by _update_layout to
+## size it to its children and position it beside / over the rail).
+var _info_panel: CPanel
+var _info_vbox: VBoxContainer
+## Stashed refs for the generic backed-settings controls (EXTRA_PARAMS /
+## EXTRA_TOGGLES), keyed by entry id so _sync_extra_params can push the
+## sim's live values and the no-signal setters can target them. Built in
+## _build_setup_page / _build_system_page before _sync_extra_params runs.
+var _extra_spins: Dictionary = {}         # id -> CSpinParam
+var _extra_sliders: Dictionary = {}       # id -> CParam
+var _extra_toggles: Dictionary = {}       # id -> CheckButton
+## Cached param rows (registry + extra) keyed by id — built once on first
+## _ensure_param call so the init sync's set_value_no_signal targets the
+## same controls the pages display.
+var _param_rows: Dictionary = {}
+## EXTRA_TOGGLES entries by id (for the generic toggle setter).
+var _extra_toggle_ids: Dictionary = {}
 
-var _mode_seg: CSegmented
+var _mode_seg: CSegmentedV
 var _mode_btns: Array[CToggle] = []
-var _gravity_seg: CSegmented
+var _gravity_seg: COptionParam
 var _grav_btns: Array[CToggle] = []
 var _play_btn: CButton
 var _reinit_btn: CButton
@@ -62,15 +79,42 @@ var _fps_display: float = 0.0
 
 var _viz_texture_rect: TextureRect
 
-## The bottom control panel + its content VBox — refs kept so the panel can
-## be (re)sized to its content after the group build (it grows upward from
-## the bottom edge to fit all five expanded groups).
+## Left operator rail — a fixed full-height CPanel (viewport-first rewrite,
+## 2026-08-14). Replaces the old bottom panel: a compact header + tab bar
+## (Setup/Visuals/System), an always-visible Run card, a ScrollContainer for
+## the active tab, and a fixed footer holding the live scale readout and the
+## interactive GradientLegend (outside the scroll body so its MOUSE_FILTER_STOP
+## can never swallow scroll events).
 var _control_panel: CPanel
+## The rail's root VBox (header + tabs + run + scroll + footer).
 var _control_root: VBoxContainer
-## Extra vertical headroom above the panel content (the panel's stylebox
-## content margins are 10px; add a little breathing room below the top
-## HUD). Kept small so the panel hugs its content.
-const CONTROL_PANEL_TOP_MARGIN: int = 8
+## Horizontal tab bar: Setup | Visuals | System.
+var _tab_bar: CSegmented
+## Rail collapse button (hides the rail), + the small reopen button that
+## reappears at the left edge when the rail is collapsed. Session-local;
+## no persistence.
+var _rail_collapse_btn: CButton
+var _rail_reopen_btn: CButton
+var _rail_collapsed: bool = false
+## Scroll container for the active tab's content.
+var _scroll: ScrollContainer
+## The tab pages (one VBoxContainer each, visibility-switched by tab).
+var _setup_page: VBoxContainer
+var _visuals_page: VBoxContainer
+var _system_page: VBoxContainer
+## Content VBoxes holding the already-built page roots (fed by the rail
+## build helpers). `_rail_root_vbox` fills the scroll body width.
+var _tab_stack: VBoxContainer
+## Falsify lives in System/Diagnostics (it stays status-visible on the info
+## panel only while its toggle is on — see _on_falsify_toggled).
+## Rail width (px): 320 at and above 960-wide viewports, else the panel
+## takes ~all of the width (leaving 16px) so a compact window never overflows.
+const RAIL_WIDTH: float = 320.0
+## Rail widths below 960-wide viewports (the panel is viewport-16 wide).
+const RAIL_WIDTH_NARROW: float = 280.0
+## Minimum remaining viewport space (px) required to float the status panel
+## to the RIGHT of the rail; below this it sits top-left over the viewport.
+const STATUS_MIN_SIDE_SPACE: float = 360.0
 
 const MODE_NAMES: Array[String] = ["Particles", "Field", "Black Hole", "Cosmology"]
 const PHI: float = 1.618033988749895
@@ -115,15 +159,63 @@ const PARAMS: Array[Dictionary] = [
 	{"id": "separation", "kind": "spin",   "caption": "Separation:", "token": "sep",     "min": 10,    "max": 500,      "step": 10,    "default": 60,     "changed": "_on_separation_changed", "group": "Parameters", "width": 120},
 	{"id": "init",       "kind": "option", "caption": "Init:",      "token": "gold",      "min": 0,     "max": 2,        "step": 1,     "default": 0,      "changed": "_on_init_selected",      "group": "Parameters", "width": 120},
 ]
-## Registry params belonging to the Parameters group's FIRST (row2) HBox;
-## the rest go in its second (row3) HBox — reproduces the hand-built
-## two-row arrangement exactly.
-const PARAMS_ROW2: Array[String] = ["xi", "src", "grid", "particles"]
 ## Gravity-law segment labels (CSegmented options), matching the old
 ## _build_gravity_buttons mapping (0=RIVER…4=REALSIM).
 const GRAVITY_NAMES: Array[String] = ["River", "Heuristic", "Plummer ref", "River self", "RealSim"]
 ## Initial-condition profile choices for the Init option row.
 const INIT_CHOICES: Array[String] = ["Plummer", "Gaussian", "Uniform"]
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Backed settings registry (2026-08-14) — UI-only exposure of existing
+# CassiSim exported properties the sim UI previously never surfaced. One
+# entry per adjustable property; built AFTER the sim is available using
+# sim.get(name)/sim.set(name, value) with explicit casts, and reinit()
+# called only for entries marked reinit. These are ADDITIVE to PARAMS —
+# generic no-signal setters, never replacing the specific PARAMS callbacks.
+#
+# Schema:  {id, prop, caption, token, min, max, step, reinit, tooltip}
+#   id     — stable string (route key for the tab builder).
+#   prop   — the CassiSim property name (sim.get/sim.set target).
+#   reinit — true → call sim.reinit() after setting (init-time / MultiMesh
+#            rebuild side effects); false → LIVE, applied next frame.
+# Backed toggles ride the generic toggle table (see EXTRA_TOGGLES below).
+const EXTRA_PARAMS: Array[Dictionary] = [
+	# ── Setup / Initial state (all reinit — they shape the IC draw) ──────
+	{"id": "cluster_radius",           "prop": "cluster_radius",           "caption": "Cluster radius:",   "token": "cluster", "min": 1.0,   "max": 500.0,     "step": 1.0,    "reinit": true,  "tooltip": "Initial sphere radius the cluster(s) are seeded within (world units)."},
+	{"id": "merger_speed",             "prop": "merger_speed",             "caption": "Merger speed:",     "token": "cluster", "min": 0.0,   "max": 20.0,      "step": 0.1,    "reinit": true,  "tooltip": "Bulk velocity toward the merger point (2=default). Reinit regenerates the velocities."},
+	{"id": "initial_radius_fraction",  "prop": "initial_radius_fraction",  "caption": "Init radius fr.:",  "token": "gold",    "min": 0.25,  "max": 1.0,       "step": 0.05,   "reinit": true,  "tooltip": "Fraction of the cluster radius where new particles are spawned (0.9 default)."},
+	{"id": "initial_v_circ_factor",    "prop": "initial_v_circ_factor",    "caption": "Circular support:", "token": "gold",    "min": 0.0,   "max": 2.0,       "step": 0.05,   "reinit": true,  "tooltip": "Fraction of circular velocity given to the ICs (0.85 default ≈ virialized; 0 = free-fall collapse)."},
+	{"id": "ic_seed",                  "prop": "ic_seed",                  "caption": "Seed:",             "token": "gold",    "min": 0.0,   "max": 1000000000.0, "step": 1.0,  "reinit": true, "tooltip": "Initial-condition RNG seed; 0 = random. Set non-zero for reproducible runs (reinit redraws)."},
+	# ── Setup / Runtime scales ───────────────────────────────────────────
+	{"id": "dt",                       "prop": "dt",                       "caption": "dt:",               "token": "sep",     "min": 0.0001, "max": 0.01,   "step": 0.0001, "reinit": false, "tooltip": "Fixed physics timestep (s). LOW = stable, accurate, slow; HIGH = fast but coarse."},
+	{"id": "softening",                "prop": "softening",                "caption": "Softening:",        "token": "sep",     "min": 0.001, "max": 5.0,    "step": 0.001,  "reinit": false, "tooltip": "Gray softening length; epsilon² = softening² in the force kernels."},
+	{"id": "particle_size",            "prop": "particle_size",            "caption": "Particle size:",    "token": "sep",     "min": 0.05,  "max": 2.0,    "step": 0.05,   "reinit": true,  "tooltip": "Rendered particle size (px). Changing it rebuilds the MultiMesh — reinit applies."},
+	{"id": "sim_speed",                "prop": "sim_speed",                "caption": "Sim speed ×:",      "token": "sep",     "min": 0.05,  "max": 10.0,   "step": 0.05,   "reinit": false, "tooltip": "Simulation time-rate multiplier (1.0 = real time). Live; changes the step accumulator rate."},
+	{"id": "physics_frame_budget",     "prop": "physics_frame_budget",     "caption": "Frame budget:",     "token": "sep",     "min": 0.0,   "max": 1.0,    "step": 0.05,   "reinit": false, "tooltip": "Fraction of measured frame time budgeted to physics steps per frame (0 = unlimited, default 0.6)."},
+	# ── Physics / color numeric ──────────────────────────────────────────
+	{"id": "qi_condensation_threshold","prop": "qi_condensation_threshold","caption": "Condensation:",    "token": "mint",    "min": 0.001, "max": 10.0,   "step": 0.001,  "reinit": false, "tooltip": "Qi density above which BH nucleation triggers (the white point when the approach tracks the threshold)."},
+	{"id": "bh_acc_rate",              "prop": "bh_acc_rate",              "caption": "BH acc. rate:",     "token": "mint",    "min": 0.0,   "max": 1.0,    "step": 0.001,  "reinit": false, "tooltip": "Black-hole mass growth per step from the field (0.01 default). Live."},
+	{"id": "bh_max_age",               "prop": "bh_max_age",               "caption": "BH max age:",       "token": "mint",    "min": 0.0,   "max": 1000000.0, "step": 100.0, "reinit": false, "tooltip": "Black-hole lifetime (steps); 0 = immortal. Live."},
+	{"id": "bh_accretion_radius",      "prop": "bh_accretion_radius",      "caption": "Accretion radius:", "token": "mint",    "min": 0.001, "max": 10.0,   "step": 0.001,  "reinit": false, "tooltip": "World-unit radius at which falling matter is marked for accretion (≈1× default softening). Live."},
+	{"id": "box_scale",                "prop": "box_scale",                "caption": "Box scale:",        "token": "gold",    "min": 0.25,  "max": 5.0,    "step": 0.05,   "reinit": true,  "tooltip": "Uniform rescale of all three box extents (aspect preserved). Reinit applies the new box extents."},
+	{"id": "realsim_drag",             "prop": "realsim_drag",             "caption": "RealSim γ:",        "token": "sep",     "min": 0.0,   "max": 5.0,    "step": 0.05,   "reinit": false, "tooltip": "RealSim background drag rate a=−γ·(ρ/ρ_ref)·v (γ=0.5 default). Live."},
+	{"id": "realsim_viscosity",        "prop": "realsim_viscosity",        "caption": "RealSim ν:",        "token": "sep",     "min": 0.0,   "max": 5.0,    "step": 0.05,   "reinit": false, "tooltip": "RealSim shear-coupling rate to the medium a=−ν·(v−v_field) (ν=0.3 default). Live."},
+	{"id": "realsim_friction",         "prop": "realsim_friction",         "caption": "RealSim μ:",        "token": "sep",     "min": 0.0,   "max": 1.0,    "step": 0.01,   "reinit": false, "tooltip": "RealSim Coulomb floor a=−min(μ·|a_g|,|v|/dt)·v̂, never reverses (μ=0.01 default). Live."},
+]
+## Generic backed TOGGLES — existing CassiSim boolean exports the UI now
+## exposes. reinit=true ones call sim.reinit() after setting; live ones
+## apply next frame (the sim re-encodes its PC/bh header from the property).
+const EXTRA_TOGGLES: Array[Dictionary] = [
+	{"id": "particle_merge",        "prop": "particle_merge",        "reinit": true,  "caption": "Particle merge", "tooltip": "Dust→object particle merging (init-time buffers — applies on reinit)."},
+	{"id": "bh_accretion",          "prop": "bh_accretion",          "reinit": false, "caption": "BH accretion",   "tooltip": "Black-hole mass accretion from the field (init-time shader — live once built)."},
+	{"id": "meshless_gravity",      "prop": "meshless_gravity",      "reinit": false, "caption": "Meshless gravity","tooltip": "Tree-walk gravity on the moving Voronoi mesh (live; works when Meshless mode is on)."},
+	{"id": "river_calibrate_gn",    "prop": "river_calibrate_gn",    "reinit": true,  "caption": "River G-calib",   "tooltip": "Calibrate G_N to the River gravity chain (init-time — applies on reinit)."},
+	{"id": "field_attractor_init",  "prop": "field_attractor_init",  "reinit": true,  "caption": "Field attractor", "tooltip": "Seed the initial field near the φ-attractor (init-time — applies on reinit)."},
+	{"id": "freeze_field",          "prop": "freeze_field",          "reinit": false, "caption": "Freeze field",    "tooltip": "Diagnostic: initialize the two-fluid field once and leave it frozen (live tick)."},
+]
+## Horizontal tab-bar labels in order (0=Setup, 1=Visuals, 2=System).
+const TAB_NAMES: Array[String] = ["Setup", "Visuals", "System"]
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -179,10 +271,37 @@ const AUTO_TRACK_RELEASE: float = 0.08
 ## edge (|ln(target/edge)| < 0.1), DON'T move that edge that tick — kills
 ## per-sample jitter from measurement noise around a stable band.
 const AUTO_TRACK_DEADBAND: float = 0.10
-## Minimum span floor (log, ratio): the tracked band must always cover at
-## least this log length (10×). A static or degenerate field collapses the
-## measured percentiles toward a point — without this floor the band would
-## collapse to zero contrast; the floor guarantees a full decade of hue.
+## ═══ BOUNDED-COHERENCE CHANNEL (2026-08-14) ════════════════════════════
+## The primary hue axis is now the physically BOUNDED coherence
+## q_coh = ρ²/(ρ²+φ⁻²+ε²) ∈ [0,1) (ρ=EY+EI, ε=EY−φ·EI), NOT the unbounded
+## intensity EY²+EI². So the tracked band lives in [0,1) and can never run
+## away behind a growing concentration front. The old ratio-span floor
+## (mid·√10) is UNBOUNDED upward and provably pushed a saturated blob
+## (mid≈0.87) to hi≈2.75 > 1 — so the floor is redesigned for the bounded
+## channel: a LINEAR-width minimum in [0,1) coordinate space, applied
+## around the geometric mid and ALWAYS clamped inside [LO_CAP, HI_CAP],
+## so the band never re-anchors past the [0,1) anchor.
+## The hard upper anchor: a q_coh "1" is pure saturation (white); the band's
+## hi handle must never exceed this (drawn slightly under 1 so the approach
+## white point / φ⁻² pink stays reachable).
+const AUTO_TRACK_HI_CAP: float = 0.999
+## The hard lower clamp (q_coh < 2⁻²³ is numerically void; keep band edges
+## strictly positive so the engine's log mapping stays finite).
+const AUTO_TRACK_LO_CAP: float = 1e-6
+## φ⁻² ≈ 0.382 — the coherence DECOHERENCE landmark (the merge gate). The
+## pink hue landmark: q_coh at φ⁻² is the approach entry (high-coherence
+## saturation point). "Pink stays at φ⁻²" is guaranteed by the shader/engine
+## approach band being anchored at this value; the tracker never moves it.
+const AUTO_TRACK_PHI_INV2: float = 0.3819660112501051
+## Minimum band SPAN (LOG ratio): a static or degenerate field collapses
+## the measured percentiles toward a point — without a floor the band would
+## have zero hue contrast. A ratio of 10 keeps a full decade of log-hue,
+## and — unlike a linear-width floor — does NOT override the natural tight
+## band of a low-amplitude (near-zero) q_coh field (whose linear width is
+## tiny though its log span is large). The floor is applied around the
+## geometric mid and ALWAYS CLAMPED inside [LO_CAP, HI_CAP], so it can never
+## push an edge past the [0,1) anchor (a genuinely saturated blob near HI_CAP
+## keeps a sub-1 band — inherently low-contrast, but anchored).
 const AUTO_TRACK_MIN_SPAN: float = 10.0
 
 # Tracker state.
@@ -286,403 +405,64 @@ func _ready() -> void:
 		if sim.has_signal("bh_texture_updated"):
 			sim.bh_texture_updated.connect(_on_field_texture_updated)
 
-	# ── Top-left info panel ──────────────────────────────────────
+	# ── Floating status panel (top-left / right of the rail) ────
+	# Compact: FPS/Mode line, connection line, and the (hidden-until-on)
+	# falsification meter. The full diagnostics multi-line label lives in
+	# System/Diagnostics (built in _build_rail below), NOT here — the rail
+	# keeps this panel genuinely compact.
 	var info_panel = CPanel.new()
 	info_panel.name = "InfoPanel"
 	info_panel.set_anchors_preset(PRESET_TOP_LEFT)
-	info_panel.offset_left = 10; info_panel.offset_top = 10
-	info_panel.offset_right = 300; info_panel.offset_bottom = 215
 	info_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(info_panel)
+	_info_panel = info_panel
 
 	var info_vbox = VBoxContainer.new()
 	info_vbox.add_theme_constant_override("separation", 4)
 	info_panel.add_child(info_vbox)
+	_info_vbox = info_vbox
 
 	_info_label = _make_label("FPS: --  Mode: --", "text", "hud")
+	_info_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	info_vbox.add_child(_info_label)
 
-	_diag_label = _make_label("", "text_dim", "detail")
-	_diag_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	info_vbox.add_child(_diag_label)
-
 	_conn_label = _make_label("Connection: Local", "text_hint", "param")
+	_conn_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	info_vbox.add_child(_conn_label)
 
 	_falsify_label = _make_label("", "gold_bright", "param")
 	_falsify_label.name = "FalsifyLabel"
 	_falsify_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_falsify_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_falsify_label.visible = false
 	info_vbox.add_child(_falsify_label)
 
-	# ── Bottom control panel ─────────────────────────────────────
-	var control_panel = CPanel.new()
-	control_panel.name = "ControlPanel"
-	control_panel.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	# Placeholder height; the real height is fit to the content below. Keep
-	# it non-zero so a pre-layout frame (or the deferred fit being skipped)
-	# renders something sane rather than a full-height panel.
-	control_panel.offset_top = -296
-	control_panel.offset_left = 10; control_panel.offset_right = -10
-	add_child(control_panel)
-	_control_panel = control_panel
+	# ── Left operator rail (viewport-first console rewrite) ─────
+	# A fixed full-height CPanel (name ControlPanel preserved — probes and
+	# docs reference it). Header + tab bar + Run card + a ScrollContainer
+	# per-tab body + a fixed footer (scale label + GradientLegend). The
+	# rail is built from helper methods below so the tab pages are compact.
+	_build_rail()
 
-	var root_vbox = VBoxContainer.new()
-	root_vbox.add_theme_constant_override("separation", 6)
-	control_panel.add_child(root_vbox)
-	_control_root = root_vbox
+	# Build the three tab pages (Setup / Visuals / System) and their
+	# sections. These place the existing control-object construction
+	# (PARAMS rows, color controls, VFX, toggles, server fields) into the
+	# new per-tab section containers.
+	_build_setup_page()
+	_build_visuals_page()
+	_build_system_page()
+	_sync_extra_params()
+	_tab_bar.set_selected_no_signal(0)
+	_show_tab(0)
 
-	# ── Grouped sections (Phase 4) — the ControlPanel's root VBox is a
-	# stack of collapsible CGroupPanels, all DEFAULT EXPANDED (first render
-	# = today's rows plus a slim header bar per group). Each group holds the
-	# rows it did before. ──────────────────────────────────────────
+	# The three tab pages were already built by the _build_setup_page /
+	# _build_visuals_page / _build_system_page calls above (they construct
+	# ALL of the controls: PARAMS rows, color row, toggles, VFX, the
+	# GradientLegend in the footer, and the server fields). Layout is
+	# settled after the first frame so the status panel sizes to its content.
+	resized.connect(_update_layout)
+	call_deferred("_update_layout")
 
-	# Field: mode segmented + gravity segmented + play/reinit (today's row1)
-	var field_group := CGroupPanel.new()
-	field_group.set_title("Field")
-	field_group.toggled.connect(_on_group_toggled)
-	root_vbox.add_child(field_group)
-	var field_content := field_group.content()
-
-	var row1 = HBoxContainer.new()
-	row1.add_theme_constant_override("separation", 8)
-	field_content.add_child(row1)
-
-	_mode_seg = CSegmented.new()
-	_mode_seg.button_min_width = 100
-	_mode_seg.setup(MODE_NAMES, 0)
-	_mode_seg.set_selected_no_signal(0)
-	_mode_seg.selection_changed.connect(_on_mode_pressed)
-	_mode_btns = _mode_seg.buttons
-	row1.add_child(_mode_seg)
-
-	var sep0 = VSeparator.new()
-	sep0.custom_minimum_size = Vector2(4, 0)
-	row1.add_child(sep0)
-
-	_gravity_seg = CSegmented.new()
-	_gravity_seg.button_min_width = 90
-	_gravity_seg.setup(GRAVITY_NAMES, 0)
-	_gravity_seg.set_selected_no_signal(0)
-	_gravity_seg.selection_changed.connect(_on_gravity_mode_pressed)
-	_grav_btns = _gravity_seg.buttons
-	row1.add_child(_gravity_seg)
-
-	var sep1 = VSeparator.new()
-	sep1.custom_minimum_size = Vector2(4, 0)
-	row1.add_child(sep1)
-
-	_play_btn = CButton.make("⏸ Pause", _on_play_toggled)
-	_play_btn.custom_minimum_size = Vector2(90, 30)
-	row1.add_child(_play_btn)
-
-	_reinit_btn = CButton.make("↻ Reinit", _on_reinit)
-	_reinit_btn.custom_minimum_size = Vector2(90, 30)
-	row1.add_child(_reinit_btn)
-
-	var sep2 = VSeparator.new()
-	sep2.custom_minimum_size = Vector2(4, 0)
-	row1.add_child(sep2)
-
-	# Parameters: registry params (xi/src/grid/particles in the first HBox,
-	# clusters/separation/init in the second) + the compound Color row +
-	# the standalone check-button cluster — all in the current row order.
-	var params_group := CGroupPanel.new()
-	params_group.set_title("Parameters")
-	params_group.toggled.connect(_on_group_toggled)
-	root_vbox.add_child(params_group)
-	var params_content := params_group.content()
-
-	var row2 = HBoxContainer.new()
-	row2.add_theme_constant_override("separation", 12)
-	params_content.add_child(row2)
-	var row3 = HBoxContainer.new()
-	row3.add_theme_constant_override("separation", 12)
-	params_content.add_child(row3)
-
-	for p in PARAMS:
-		var target: Control = row2 if p.id in PARAMS_ROW2 else row3
-		var row_ctrl: Control = _build_param_row(p)
-		target.add_child(row_ctrl)
-
-	# Compound Color row: choose the quantity, click Fit scale for a clean
-	# starting range, then drag LOW and HIGH on the legend below. The
-	# physical white point remains visible on the legend and needs no knob.
-	# (color_src stays INLINE here, NOT in the registry — see PARAMS.)
-	var color_box = VBoxContainer.new()
-	color_box.custom_minimum_size = Vector2(280, 40)
-	row3.add_child(color_box)
-	var color_lbl = _make_label("Color:", "gold", "param")
-	color_box.add_child(color_lbl)
-	var color_row = HBoxContainer.new()
-	color_row.add_theme_constant_override("separation", 6)
-	color_box.add_child(color_row)
-	_rainbow_btn = CheckButton.new()
-	_rainbow_btn.name = "RainbowBtn"
-	_rainbow_btn.text = "Rainbow"
-	_rainbow_btn.tooltip_text = "Use the rainbow scale instead of the Cassi mass-temperature colors"
-	_rainbow_btn.custom_minimum_size = Vector2(92, 22)
-	_rainbow_btn.focus_mode = Control.FOCUS_NONE
-	_rainbow_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	_rainbow_btn.toggled.connect(_on_rainbow_toggled)
-	color_row.add_child(_rainbow_btn)
-	_color_src_opt = OptionButton.new()
-	_color_src_opt.name = "ColorSrcOpt"
-	_color_src_opt.add_item("Velocity")
-	_color_src_opt.add_item("Qi")
-	_color_src_opt.selected = 1
-	_color_src_opt.tooltip_text = "Choose the quantity mapped to color; drag LOW and HIGH on the legend to fit its scale"
-	_color_src_opt.custom_minimum_size = Vector2(76, 22)
-	_color_src_opt.focus_mode = Control.FOCUS_NONE
-	_color_src_opt.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	_color_src_opt.item_selected.connect(_on_color_src_selected)
-	color_row.add_child(_color_src_opt)
-	_fit_btn = Button.new()
-	_fit_btn.name = "FitColorsBtn"
-	_fit_btn.text = "Fit scale"
-	_fit_btn.tooltip_text = "Reset the active source to a simple one-pass scale; then drag LOW and HIGH on the legend"
-	_fit_btn.custom_minimum_size = Vector2(78, 22)
-	_fit_btn.focus_mode = Control.FOCUS_NONE
-	_fit_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	_fit_btn.pressed.connect(_on_fit_colors)
-	color_row.add_child(_fit_btn)
-
-	# CPU-readback suppression toggle: kills the ~0.5 s stutter (the
-	# throttled occupancy/perf/q-tel readbacks stall the global RD).
-	_no_rb_btn = CheckButton.new()
-	_no_rb_btn.text = "No readbacks"
-	_no_rb_btn.tooltip_text = "Suppress CPU readbacks (occupancy/perf/q diagnostics) — removes the ~0.5 s stutter; physics and rendering unchanged"
-	_no_rb_btn.custom_minimum_size = Vector2(110, 22)
-	_no_rb_btn.focus_mode = Control.FOCUS_NONE
-	_no_rb_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	row3.add_child(_no_rb_btn)
-
-	# Global BH point-source toggle: works in ANY gravity mode (the shader
-	# reads the live toggle from bh[3].x; the host gates the condensation
-	# + BH-integrate passes on the same value — no reinit needed).
-	_bh_toggle_btn = CheckButton.new()
-	_bh_toggle_btn.text = "Black holes"
-	_bh_toggle_btn.tooltip_text = "Enable the BH point-source sector (condensation + softened Newtonian pull) in any gravity mode"
-	_bh_toggle_btn.custom_minimum_size = Vector2(100, 22)
-	_bh_toggle_btn.focus_mode = Control.FOCUS_NONE
-	_bh_toggle_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	row3.add_child(_bh_toggle_btn)
-
-	# φ-aspect box toggle: the theory's incommensurate bubble-lattice
-	# periods (x:y:z = φ:1:φ² — GRID_LAYOUT.md) make the box-mode lattice
-	# non-degenerate, removing the cubic straight-line lock at box scale.
-	# box_aspect is init-time — reinit() applies the new extents.
-	_phi_box_btn = CheckButton.new()
-	_phi_box_btn.text = "φ box"
-	_phi_box_btn.tooltip_text = "φ-aspect box (x:y:z = φ:1:φ²) — the theory's incommensurate bubble-lattice periods; breaks the cubic box-mode straight-line lock; applies on reinit"
-	_phi_box_btn.custom_minimum_size = Vector2(80, 22)
-	_phi_box_btn.focus_mode = Control.FOCUS_NONE
-	_phi_box_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	row3.add_child(_phi_box_btn)
-
-	# VSync toggle: frame pacing to the display refresh. On by default;
-	# off for uncapped frame rate (GPU benchmarks, Movie-Maker recording).
-	_vsync_btn = CheckButton.new()
-	_vsync_btn.text = "VSync"
-	_vsync_btn.tooltip_text = "Frame pacing to the display refresh (on by default); off for uncapped frame rate — benchmarks and Movie-Maker recording want it off"
-	_vsync_btn.custom_minimum_size = Vector2(80, 22)
-	_vsync_btn.focus_mode = Control.FOCUS_NONE
-	_vsync_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	row3.add_child(_vsync_btn)
-
-	# Cascade-grid toggles (CASCADE_GRID.md): the dual (BCC) grid is LIVE
-	# (bh[3].y re-encoded per frame — no reinit) and pairs with the O4
-	# gradient (bh[3].z); multi-rung IC seeding is init-time (reinit).
-	_dual_btn = CheckButton.new()
-	_dual_btn.text = "Dual grid"
-	_dual_btn.tooltip_text = "Yin/Yang dual (BCC) lattice gravity + 4th-order gradients — the force averages the base and half-cell-shifted lattices (placement bias ~4.6× down); live, no reinit"
-	_dual_btn.custom_minimum_size = Vector2(90, 22)
-	_dual_btn.focus_mode = Control.FOCUS_NONE
-	_dual_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	row3.add_child(_dual_btn)
-
-	_multirung_btn = CheckButton.new()
-	_multirung_btn.text = "Multi-rung"
-	_multirung_btn.tooltip_text = "Seed the initial conditions with φ-spaced density modes so bubbles condense at several cascade scales; applies on reinit"
-	_multirung_btn.custom_minimum_size = Vector2(90, 22)
-	_multirung_btn.focus_mode = Control.FOCUS_NONE
-	_multirung_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	row3.add_child(_multirung_btn)
-	_meshless_btn = CheckButton.new()
-	_meshless_btn.text = "Meshless"
-	_meshless_btn.tooltip_text = "Run the two-fluid field on the moving Voronoi cell mesh (JFA construction, steering + ALE remap); applies on reinit"
-	_meshless_btn.custom_minimum_size = Vector2(90, 22)
-	_meshless_btn.focus_mode = Control.FOCUS_NONE
-	_meshless_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	row3.add_child(_meshless_btn)
-
-	# ── Particle-VFX upgrades row (default-off; bit-identical when off) ──
-	# New instancer visuals, each an OPT-IN flag or mode overlaid on the
-	# existing color modes (see compute/cassi_instancer.glsl header for the
-	# color_mode bit encoding). All live — no reinit.
-	var vfx_group := CGroupPanel.new()
-	vfx_group.set_title("VFX")
-	vfx_group.toggled.connect(_on_group_toggled)
-	root_vbox.add_child(vfx_group)
-	var vfx_content := vfx_group.content()
-	var row_vfx = HBoxContainer.new()
-	row_vfx.add_theme_constant_override("separation", 8)
-	vfx_content.add_child(row_vfx)
-	var vfx_lbl = _make_label("VFX:", "mint", "param")
-	vfx_lbl.custom_minimum_size = Vector2(34, 0)
-	vfx_lbl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	vfx_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row_vfx.add_child(vfx_lbl)
-	_vfx_size_btn = CheckButton.new()
-	_vfx_size_btn.name = "VfxSizeBtn"
-	_vfx_size_btn.text = "Size∝m¹ᐟ³"
-	_vfx_size_btn.tooltip_text = "Scale each instance by cbrt(particle mass) instead of the linear mass law — the steep Salpeter count compresses so a few massive giants stay visible without swamping the dwarfs. Reads per-particle mass from pos.w (preserved by the nbody kick). Live, no reinit."
-	_vfx_size_btn.custom_minimum_size = Vector2(96, 22)
-	_vfx_size_btn.focus_mode = Control.FOCUS_NONE
-	_vfx_size_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	_vfx_size_btn.toggled.connect(_on_vfx_size_toggled)
-	row_vfx.add_child(_vfx_size_btn)
-	_vfx_glow_btn = CheckButton.new()
-	_vfx_glow_btn.name = "VfxGlowBtn"
-	_vfx_glow_btn.text = "Glow"
-	_vfx_glow_btn.tooltip_text = "Additive-glow look: bright cores (q near the white-hot point) lift toward white and raise alpha so overlapping cores read as additive glow on the dark field; large instances get an extra halo ramp. Live, no reinit."
-	_vfx_glow_btn.custom_minimum_size = Vector2(70, 22)
-	_vfx_glow_btn.focus_mode = Control.FOCUS_NONE
-	_vfx_glow_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	_vfx_glow_btn.toggled.connect(_on_vfx_glow_toggled)
-	row_vfx.add_child(_vfx_glow_btn)
-	_vfx_depth_btn = CheckButton.new()
-	_vfx_depth_btn.name = "VfxDepthBtn"
-	_vfx_depth_btn.text = "Depth fade"
-	_vfx_depth_btn.tooltip_text = "Fade instance alpha with camera distance (linear between 35% and 135% of the box diagonal). Uses the world-origin distance today; the deferred camera hook uses the live camera position. Live, no reinit."
-	_vfx_depth_btn.custom_minimum_size = Vector2(104, 22)
-	_vfx_depth_btn.focus_mode = Control.FOCUS_NONE
-	_vfx_depth_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	_vfx_depth_btn.toggled.connect(_on_vfx_depth_toggled)
-	row_vfx.add_child(_vfx_depth_btn)
-	_vfx_twoaxis_btn = CheckButton.new()
-	_vfx_twoaxis_btn.name = "VfxTwoAxisBtn"
-	_vfx_twoaxis_btn.text = "2-axis q/ρ"
-	_vfx_twoaxis_btn.tooltip_text = "Two-axis color: hue from Qi coherence (as the Qi rainbow) and lightness modulated by local density ρ = EY+EI (q-proxy today; the deferred EY/EI hook uses the true EY+EI). Requires the Rainbow toggle on."
-	_vfx_twoaxis_btn.custom_minimum_size = Vector2(96, 22)
-	_vfx_twoaxis_btn.focus_mode = Control.FOCUS_NONE
-	_vfx_twoaxis_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	_vfx_twoaxis_btn.toggled.connect(_on_vfx_twoaxis_toggled)
-	row_vfx.add_child(_vfx_twoaxis_btn)
-	_falsify_btn = CheckButton.new()
-	_falsify_btn.name = "FalsifyBtn"
-	_falsify_btn.text = "w₀ live"
-	_falsify_btn.tooltip_text = "LIVE falsification meter: reads r = <EY>/<EI> (volume-mean field ratio) at a low 2.5 Hz subsampled rate, runs the theory's w₀/wₐ estimator (the falsify_wo.py survey port), and shows w₀ + distance to DESI DR2's −0.838 on the info HUD. Opt-in; OFF hides the line."
-	_falsify_btn.custom_minimum_size = Vector2(76, 22)
-	_falsify_btn.focus_mode = Control.FOCUS_NONE
-	_falsify_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	_falsify_btn.toggled.connect(_on_falsify_toggled)
-	row_vfx.add_child(_falsify_btn)
-
-	# ── Color Scale: the legend row + its live numeric readout ──
-	# The readout + color controls stay in the LEFT half of the group;
-	# the legend control (strip + its sample-swatch row) spans the RIGHT
-	# half (EXPAND_FILL horizontally — preserved inside this group).
-	var color_scale_group := CGroupPanel.new()
-	color_scale_group.set_title("Color Scale")
-	color_scale_group.toggled.connect(_on_group_toggled)
-	root_vbox.add_child(color_scale_group)
-	var color_scale_content := color_scale_group.content()
-	var legend_row = HBoxContainer.new()
-	legend_row.add_theme_constant_override("separation", 8)
-	color_scale_content.add_child(legend_row)
-	var legend_left = HBoxContainer.new()
-	legend_left.add_theme_constant_override("separation", 8)
-	legend_left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	legend_row.add_child(legend_left)
-	_scale_label = _make_label("", "text_bright", "param")
-	_scale_label.name = "ScaleLabel"
-	_scale_label.custom_minimum_size = Vector2(96, 0)
-	_scale_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_scale_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_scale_label.tooltip_text = "Color scale — drag LOW and HIGH on the legend to change it"
-	legend_left.add_child(_scale_label)
-	_auto_align_btn = CheckButton.new()
-	_auto_align_btn.name = "AutoAlignBtn"
-	_auto_align_btn.text = "Auto"
-	_auto_align_btn.tooltip_text = "Keep the Qi color band aligned to the live coherence distribution (Meshless gravity grows q fast). Dragging a handle or Fit takes over manually."
-	_auto_align_btn.custom_minimum_size = Vector2(56, 22)
-	_auto_align_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_auto_align_btn.focus_mode = Control.FOCUS_NONE
-	_auto_align_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	_auto_align_btn.toggled.connect(_on_auto_align_toggled)
-	legend_left.add_child(_auto_align_btn)
-	_auto_track_btn = CheckButton.new()
-	_auto_track_btn.name = "AutoTrackBtn"
-	_auto_track_btn.text = "Auto-Track"
-	_auto_track_btn.tooltip_text = "LIVE band tracker: subsampled 2-4 Hz readback of the active quantity's field, robust 2nd-98th percentiles, EMA-glided band with a min-span floor — the color band hugs and follows the live coherence scale (high contrast, no fixed anchors). Manual legend drag or Fit takes over. Opt-in; OFF = existing scale untouched."
-	_auto_track_btn.custom_minimum_size = Vector2(90, 22)
-	_auto_track_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_auto_track_btn.focus_mode = Control.FOCUS_NONE
-	_auto_track_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	_auto_track_btn.toggled.connect(_on_auto_track_toggled)
-	legend_left.add_child(_auto_track_btn)
-	_save_colors_btn = Button.new()
-	_save_colors_btn.name = "SaveColorsBtn"
-	_save_colors_btn.text = "Save"
-	_save_colors_btn.tooltip_text = "Save the current colors as the default for future runs"
-	_save_colors_btn.custom_minimum_size = Vector2(54, 22)
-	_save_colors_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_save_colors_btn.focus_mode = Control.FOCUS_NONE
-	_save_colors_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	_save_colors_btn.pressed.connect(_on_save_colors)
-	legend_left.add_child(_save_colors_btn)
-	_reset_colors_btn = Button.new()
-	_reset_colors_btn.name = "ResetColorsBtn"
-	_reset_colors_btn.text = "Reset"
-	_reset_colors_btn.tooltip_text = "Restore the saved colors (Fit scale if none are saved)"
-	_reset_colors_btn.custom_minimum_size = Vector2(58, 22)
-	_reset_colors_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_reset_colors_btn.focus_mode = Control.FOCUS_NONE
-	_reset_colors_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	_reset_colors_btn.pressed.connect(_on_reset_colors)
-	legend_left.add_child(_reset_colors_btn)
-	_legend = GradientLegend.new()
-	_legend.name = "GradientLegend"
-	_legend.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_legend.tooltip_text = "Drag LOW and HIGH to fit the active quantity. WHITE marks the physical upper limit; the strip matches the particles exactly."
-	_legend.gradient_changed.connect(_on_legend_changed)
-	_legend.manual_changed.connect(_on_legend_manual)
-	legend_row.add_child(_legend)
-
-	# ── Server (future) fields — today's server row ──
-	var srv_group := CGroupPanel.new()
-	srv_group.set_title("Server")
-	srv_group.toggled.connect(_on_group_toggled)
-	root_vbox.add_child(srv_group)
-	var srv_content := srv_group.content()
-	var srv_box = VBoxContainer.new()
-	srv_box.custom_minimum_size = Vector2(160, 40)
-	srv_content.add_child(srv_box)
-	var srv_lbl = _make_label("Server (future):", "slate", "param")
-	srv_box.add_child(srv_lbl)
-	var srv_hbox = HBoxContainer.new()
-	srv_hbox.add_theme_constant_override("separation", 4)
-	srv_box.add_child(srv_hbox)
-	_server_ip_edit = LineEdit.new()
-	_server_ip_edit.placeholder_text = "IP"
-	_server_ip_edit.text = "127.0.0.1"
-	_server_ip_edit.custom_minimum_size = Vector2(90, 22)
-	_server_ip_edit.editable = false
-	_server_ip_edit.modulate = _tok_color("disabled")
-	srv_hbox.add_child(_server_ip_edit)
-	_server_port_edit = LineEdit.new()
-	_server_port_edit.placeholder_text = "Port"
-	_server_port_edit.text = "8080"
-	_server_port_edit.custom_minimum_size = Vector2(55, 22)
-	_server_port_edit.editable = false
-	_server_port_edit.modulate = _tok_color("disabled")
-	srv_hbox.add_child(_server_port_edit)
-
-	# Grow the panel to fit all five expanded groups (it is bottom-anchored,
-	# so it extends upward). Deferred so the containers have completed their
-	# first layout pass and the combined minimum size is final.
-	call_deferred("_fit_control_panel")
 
 	# Init from sim if available — all no-signal setters so syncing the
 	# sim's live values never fires a spurious callback/reinit on startup.
@@ -727,33 +507,713 @@ func _ready() -> void:
 	# the WASD camera keys are never stolen — no per-control focus lines here.
 
 
-## Size the bottom control panel to its content so all five expanded groups
-## are fully visible. The panel is bottom-anchored (BOTTOM_WIDE), so growing
-## its height extends it UPWARD: offset_top = -(needed + margin). Previously
-## it was a fixed −296px frame, but the five expanded groups need ~530px, so
-## the content overflowed past the panel (and off the window) — groups below
-## the first two were clipped/cut off, and the collapsed-column interplay
-## made rows overlap. Called deferred after the group build, and on any
-## collapse/expand so the panel hugs the currently-visible groups.
-func _fit_control_panel() -> void:
-	if _control_panel == null or _control_root == null or not is_inside_tree():
+## Recompute the layout after build, on viewport resize, on rail toggle, on
+## tab switch, and after the falsify meter's visibility flips. Anchors the
+## left rail to full height with its responsive width, positions the status
+## panel, sizes it to its children, and shows/hides the reopen button.
+func _update_layout() -> void:
+	if not is_inside_tree():
 		return
-	var needed: float = _control_root.get_combined_minimum_size().y
-	# The panel's StyleBoxFlat carries 10px content margins top + bottom
-	# (cassi_theme.tres), so the chrome is 20px taller than its content.
-	var chrome := 20.0
-	# Clamp to the available viewport (window) height so the panel never
-	# overruns the top of the screen even on unusually short windows.
-	var vh: float = get_viewport_rect().size.y if get_viewport() != null else needed
-	var top: float = clampf(-(needed + chrome + CONTROL_PANEL_TOP_MARGIN), -maxf(vh - 24.0, 1.0), 0.0)
-	_control_panel.offset_top = top
+	var vw: float = get_viewport_rect().size.x if get_viewport() != null else RAIL_WIDTH
+	var rail_w: float = RAIL_WIDTH if vw >= 960.0 else maxf(RAIL_WIDTH_NARROW, vw - 16.0)
+	if _control_panel != null:
+		_control_panel.visible = not _rail_collapsed
+		if not _rail_collapsed:
+			_control_panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+			_control_panel.offset_left = 0
+			_control_panel.offset_top = 0
+			_control_panel.offset_right = rail_w
+			_control_panel.offset_bottom = get_viewport_rect().size.y if get_viewport() != null else 0
+	# Small reopen button pinned to the left edge when the rail is hidden.
+	if _rail_reopen_btn != null:
+		_rail_reopen_btn.visible = _rail_collapsed
+		if _rail_collapsed:
+			_rail_reopen_btn.offset_left = 6
+			_rail_reopen_btn.offset_top = 6
+			_rail_reopen_btn.offset_right = 6.0 + _rail_reopen_btn.custom_minimum_size.x
+			_rail_reopen_btn.offset_bottom = 6.0 + _rail_reopen_btn.custom_minimum_size.y
+	# Status panel: to the right of the rail when open and there's room,
+	# else floating top-left over the viewport.
+	if _info_panel != null:
+		_info_panel.set_anchors_preset(PRESET_TOP_LEFT)
+		var side_room: float = vw - rail_w
+		var side: bool = (not _rail_collapsed) and side_room >= STATUS_MIN_SIDE_SPACE
+		_info_panel.offset_left = (rail_w + 12.0) if side else 10.0
+		_info_panel.offset_top = 10.0
+		var want_w: float = minf(440.0, maxf(vw - _info_panel.offset_left - 12.0, 120.0))
+		_info_panel.offset_right = _info_panel.offset_left + want_w
+		var h: float = 24.0
+		if _info_vbox != null:
+			var kid: float = _info_vbox.get_combined_minimum_size().y
+			if kid > 0.0:
+				h = kid + 24.0
+		_info_panel.offset_bottom = _info_panel.offset_top + maxf(h, 56.0)
 
 
-## Re-fit the panel when a group collapses/expands — the visible height
-## changes, so the panel hugs the currently-expanded groups. (Not tied to
-## WHICH group; the panel always sizes to the sum of visible content.)
+## Rail collapse toggle — hides the full-height left rail and repositions
+## the status panel to top-left (session-local only; no persistence).
+func _on_rail_collapse_toggled() -> void:
+	_rail_collapsed = not _rail_collapsed
+	_update_layout()
+
+
+## Reopen the rail from the collapsed left-edge button.
+func _on_rail_reopen_pressed() -> void:
+	_rail_collapsed = false
+	_update_layout()
+
+
+## View switching is visibility-only — never calls simulation callbacks.
+## The active page's ScrollContainer scroll is reset to the top so each tab
+## opens at its section start.
+func _on_tab_selected(index: int) -> void:
+	_show_tab(index)
+	call_deferred("_update_layout")
+
+
+func _show_tab(index: int) -> void:
+	if _setup_page:
+		_setup_page.visible = (index == 0)
+	if _visuals_page:
+		_visuals_page.visible = (index == 1)
+	if _system_page:
+		_system_page.visible = (index == 2)
+	if _scroll != null:
+		_scroll.scroll_vertical = 0
+
+
+## Re-fit the panel when a group collapses/expands — the active page's
+## height changes, so the status panel re-sizes to its children.
 func _on_group_toggled(_is_collapsed: bool) -> void:
-	call_deferred("_fit_control_panel")
+	call_deferred("_update_layout")
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Rail construction — the fixed full-height left operator rail
+# ═══════════════════════════════════════════════════════════════════════
+
+## Build the rail's chrome shell: header (CASSI + collapse), horizontal
+## tab bar, always-visible Run card, the scroll body holding the tab pages,
+## and the fixed footer (scale label + GradientLegend).
+func _build_rail() -> void:
+	var control_panel = CPanel.new()
+	control_panel.name = "ControlPanel"
+	control_panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	add_child(control_panel)
+	_control_panel = control_panel
+
+	var root_vbox = VBoxContainer.new()
+	root_vbox.add_theme_constant_override("separation", 6)
+	control_panel.add_child(root_vbox)
+	_control_root = root_vbox
+
+	# ── Header row: CASSI title + rail collapse button ──────────
+	var header = HBoxContainer.new()
+	header.add_theme_constant_override("separation", 6)
+	root_vbox.add_child(header)
+	var title = _make_label("CASSI", "gold_bright", "hud")
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	header.add_child(title)
+	var header_spacer = Control.new()
+	header_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(header_spacer)
+	_rail_collapse_btn = CButton.make("–")
+	_rail_collapse_btn.tooltip_text = "Hide the operator rail"
+	_rail_collapse_btn.custom_minimum_size = Vector2(30, 26)
+	_rail_collapse_btn.pressed.connect(_on_rail_collapse_toggled)
+	header.add_child(_rail_collapse_btn)
+
+	# ── Horizontal tab bar: Setup | Visuals | System ────────────
+	_tab_bar = CSegmented.new()
+	_tab_bar.button_min_width = 0
+	_tab_bar.setup(TAB_NAMES, 0)
+	_tab_bar.set_selected_no_signal(0)
+	_tab_bar.selection_changed.connect(_on_tab_selected)
+	# Equal thirds of the rail width.
+	for b in _tab_bar.buttons:
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	root_vbox.add_child(_tab_bar)
+
+	# ── Run card — always visible (transport + mode/gravity) ───
+	var run_card := CGroupPanel.new()
+	run_card.set_title("Run")
+	run_card.toggled.connect(_on_group_toggled)
+	root_vbox.add_child(run_card)
+	var run_content := run_card.content()
+	var transport = HBoxContainer.new()
+	transport.add_theme_constant_override("separation", 8)
+	run_content.add_child(transport)
+	_play_btn = CButton.make("⏸ Pause", _on_play_toggled)
+	_play_btn.custom_minimum_size = Vector2(0, 30)
+	_play_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	transport.add_child(_play_btn)
+	_reinit_btn = CButton.make("↻ Reinit", _on_reinit)
+	_reinit_btn.custom_minimum_size = Vector2(0, 30)
+	_reinit_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	transport.add_child(_reinit_btn)
+	# Mode + Gravity as vertical exclusive lists (all choices visible).
+	var mode_lbl = _make_label("Mode", "gold", "param")
+	mode_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mode_lbl.custom_minimum_size = Vector2(0, 4)
+	run_content.add_child(mode_lbl)
+	_mode_seg = CSegmentedV.new()
+	_mode_seg.button_min_height = 24
+	_mode_seg.setup(MODE_NAMES, 0)
+	_mode_seg.set_selected_no_signal(0)
+	_mode_seg.selection_changed.connect(_on_mode_pressed)
+	_mode_btns = _mode_seg.buttons
+	run_content.add_child(_mode_seg)
+	_gravity_seg = COptionParam.new()
+	_gravity_seg.box_min_width = 0
+	_gravity_seg.setup("Gravity", "gold", GRAVITY_NAMES, 0,
+		Callable(self, "_on_gravity_mode_pressed"))
+	_gravity_seg.tooltip_text = "Select the gravity law used by the particle solver."
+	run_content.add_child(_gravity_seg)
+
+	# ── Scroll body — holds the three tab pages (one visible) ──
+	_scroll = ScrollContainer.new()
+	_scroll.custom_minimum_size = Vector2(0, 0)
+	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	_scroll.mouse_filter = Control.MOUSE_FILTER_PASS
+	root_vbox.add_child(_scroll)
+
+	_tab_stack = VBoxContainer.new()
+	_tab_stack.add_theme_constant_override("separation", 8)
+	_tab_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_scroll.add_child(_tab_stack)
+
+	_setup_page = VBoxContainer.new()
+	_setup_page.add_theme_constant_override("separation", 8)
+	_setup_page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_tab_stack.add_child(_setup_page)
+
+	_visuals_page = VBoxContainer.new()
+	_visuals_page.add_theme_constant_override("separation", 8)
+	_visuals_page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_tab_stack.add_child(_visuals_page)
+
+	_system_page = VBoxContainer.new()
+	_system_page.add_theme_constant_override("separation", 8)
+	_system_page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_tab_stack.add_child(_system_page)
+
+	# ── Fixed footer (outside the scroll body): scale + legend ─
+	# The GradientLegend is MOUSE_FILTER_STOP, so it lives here — its
+	# MOUSE_FILTER_STOP can never swallow the ScrollContainer's wheel events.
+	var footer = VBoxContainer.new()
+	footer.add_theme_constant_override("separation", 6)
+	root_vbox.add_child(footer)
+	_scale_label = _make_label("", "text_bright", "param")
+	_scale_label.name = "ScaleLabel"
+	_scale_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_scale_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_scale_label.tooltip_text = "Color scale — drag LOW and HIGH on the legend to change it"
+	footer.add_child(_scale_label)
+	_legend = GradientLegend.new()
+	_legend.name = "GradientLegend"
+	_legend.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_legend.tooltip_text = "Drag LOW and HIGH to fit the active quantity. WHITE marks the physical upper limit; the strip matches the particles exactly."
+	_legend.gradient_changed.connect(_on_legend_changed)
+	_legend.manual_changed.connect(_on_legend_manual)
+	footer.add_child(_legend)
+
+	# ── Small reopen button (left edge, only while collapsed) ──
+	_rail_reopen_btn = CButton.make("◀")
+	_rail_reopen_btn.name = "RailReopenButton"
+	_rail_reopen_btn.tooltip_text = "Reopen the operator rail"
+	_rail_reopen_btn.custom_minimum_size = Vector2(30, 44)
+	_rail_reopen_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_rail_reopen_btn.visible = false
+	_rail_reopen_btn.pressed.connect(_on_rail_reopen_pressed)
+	add_child(_rail_reopen_btn)
+
+
+## A one-line section semantics hint (LIVE vs REINIT) alongside a heading.
+## Returns the CLabel so callers can add it to a heading row.
+func _make_semantics_label(mode: String) -> Label:
+	var lab := _make_label(mode, "text_hint", "param")
+	lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lab.tooltip_text = ("Applied LIVE on the next frame — no reinit.") if mode == "LIVE" \
+		else ("Init-time parameter — sim.reinit() applies the new value.")
+	return lab
+
+
+## Build a titled collapsible section inside a tab page, returning its
+## content VBox. `hint` (optional) is a LIVE/REINIT semantics tag placed
+## in the section header so the live-vs-reinit contract is always visible.
+func _add_section(page: VBoxContainer, title: String, hint: String = "") -> VBoxContainer:
+	var g := CGroupPanel.new()
+	g.set_title(title)
+	g.toggled.connect(_on_group_toggled)
+	page.add_child(g)
+	var content := g.content()
+	# A small LIVE/REINIT semantics tag at the top of the section content so
+	# the apply-contract is visible without hunting for per-row tooltips.
+	if hint != "":
+		var tip = _make_semantics_label(hint)
+		tip.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		content.add_child(tip)
+	return content
+
+
+## Build the Setup page: Initial state, Runtime scales, Compute budget.
+func _build_setup_page() -> void:
+	# ── Initial state ───────────────────────────────────────────
+	var init_sec := _add_section(_setup_page, "Initial state", "REINIT")
+	var init_grid := GridContainer.new()
+	init_grid.columns = 2
+	init_grid.add_theme_constant_override("h_separation", 10)
+	init_grid.add_theme_constant_override("v_separation", 6)
+	init_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	init_sec.add_child(init_grid)
+	# Init profile (registry option) + the extra initial-state numerics.
+	_init_spin_row(init_grid, "init")
+	_init_spin_row(init_grid, "cluster_radius")
+	_init_spin_row(init_grid, "clusters")
+	_init_spin_row(init_grid, "separation")
+	_init_spin_row(init_grid, "merger_speed")
+	_init_spin_row(init_grid, "initial_radius_fraction")
+	_init_spin_row(init_grid, "initial_v_circ_factor")
+	_init_spin_row(init_grid, "ic_seed")
+
+	# ── Runtime scales ──────────────────────────────────────────
+	var rt_sec := _add_section(_setup_page, "Runtime scales", "LIVE")
+	# xi + Source are sliders (CParam's internal 180 min width) — stack them
+	# full-width; the narrow spin rows go in a 2-column grid below.
+	rt_sec.add_child(_ensure_param("xi"))
+	rt_sec.add_child(_ensure_param("src"))
+	var rt_grid := GridContainer.new()
+	rt_grid.columns = 2
+	rt_grid.add_theme_constant_override("h_separation", 10)
+	rt_grid.add_theme_constant_override("v_separation", 6)
+	rt_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rt_sec.add_child(rt_grid)
+	_init_spin_row(rt_grid, "dt")
+	_init_spin_row(rt_grid, "softening")
+	_init_spin_row(rt_grid, "particle_size")
+	_init_spin_row(rt_grid, "box_scale")
+
+	# ── Compute budget ──────────────────────────────────────────
+	var cb_sec := _add_section(_setup_page, "Compute budget", "LIVE")
+	var cb_grid := GridContainer.new()
+	cb_grid.columns = 2
+	cb_grid.add_theme_constant_override("h_separation", 10)
+	cb_grid.add_theme_constant_override("v_separation", 6)
+	cb_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cb_sec.add_child(cb_grid)
+	_init_spin_row(cb_grid, "grid")
+	_init_spin_row(cb_grid, "particles")
+	_init_spin_row(cb_grid, "sim_speed")
+	_init_spin_row(cb_grid, "physics_frame_budget")
+
+
+## Look up a PARAMS registry entry by id.
+func _param_by_id(id: String) -> Dictionary:
+	for p in PARAMS:
+		if p.id == id:
+			return p
+	return {}
+
+
+## Add a single param (registry or extra) as a cell; the GridContainer
+## flows them two per row automatically.
+func _init_spin_row(grid: GridContainer, id: String) -> void:
+	var ctl: Control = _ensure_param(id)
+	grid.add_child(ctl)
+
+
+## Construct (once) a param control for id. Registry params use the exact
+## existing _build_param_row path (aliases xi/src/grid/particles/...);
+## extra params use the generic backed-settings builder. Returns the row
+## Control, cached so rebuilds reuse it.
+func _ensure_param(id: String) -> Control:
+	if _param_rows.has(id):
+		return _param_rows[id]
+	var ctl: Control = null
+	if _is_registry_id(id):
+		ctl = _build_param_row(_param_by_id(id))
+	else:
+		for e in EXTRA_PARAMS:
+			if e.id == id:
+				ctl = _build_extra_spin(e)
+				break
+	if ctl != null:
+		_param_rows[id] = ctl
+	return ctl
+
+
+func _is_registry_id(id: String) -> bool:
+	for p in PARAMS:
+		if p.id == id:
+			return true
+	return false
+
+
+## Build one backed-numeric setting as a CSpinParam (caption + SpinBox) from
+## its EXTRA_PARAMS entry. The spin is built ONCE and cached in _extra_spins;
+## values sync via set_value_no_signal in _sync_extra_params.
+func _build_extra_spin(e: Dictionary) -> Control:
+	var id: String = e.id
+	if _extra_spins.has(id):
+		return _extra_spins[id]
+	var spin := CSpinParam.new()
+	spin.box_min_width = ROW_WIDTH
+	var token: String = e.get("token", "text")
+	spin.setup(String(e.caption), token, float(e.min), float(e.max), float(e.step),
+		float(e.get("default", 0.0)), Callable(self, "_on_extra_param_changed").bind(id))
+	spin.spin.tooltip_text = e.get("tooltip", "")
+	_extra_spins[id] = spin
+	return spin
+
+
+## Generic no-signal setter for the backed numerics: writes the value into
+## the sim and reinit()s only for reinit-marked entries. Never replaces the
+## specific PARAMS callbacks (xi/src/grid/... keep their own handlers).
+func _on_extra_param_changed(value: float, id: String) -> void:
+	var sim = _get_sim()
+	if sim == null:
+		return
+	for e in EXTRA_PARAMS:
+		if e.id != id:
+			continue
+		if e.get("reinit", false):
+			sim.set(String(e.prop), _cast_extra(value, e))
+			sim.reinit()
+		else:
+			sim.set(String(e.prop), _cast_extra(value, e))
+		break
+
+
+# (aliases preservation is comment-documented above the registry; the
+#  EXTRA_PARAMS entries carry their own captions/tooltips.)
+
+
+## Cast a numeric SpinBox value to the property's native type (ints for
+## ic_seed / counts; floats otherwise).
+func _cast_extra(value: float, e: Dictionary) -> Variant:
+	var p: String = String(e.prop)
+	if p == "ic_seed":
+		return int(value)
+	return float(value)
+
+
+## The generic backed-toggle builder + no-signal setter.
+func _build_extra_toggle(e: Dictionary) -> CheckButton:
+	var id: String = e.id
+	if _extra_toggles.has(id):
+		return _extra_toggles[id]
+	var t := CheckButton.new()
+	t.name = "%sToggle" % id
+	t.text = String(e.caption)
+	t.tooltip_text = e.get("tooltip", "")
+	t.custom_minimum_size = Vector2(0, 22)
+	t.focus_mode = Control.FOCUS_NONE
+	t.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	# connect AFTER the init sync — the init sync uses set_pressed_no_signal.
+	_extra_toggles[id] = t
+	_extra_toggle_ids[id] = e
+	return t
+
+
+func _on_extra_toggle_changed(on: bool, id: String) -> void:
+	var sim = _get_sim()
+	if sim == null:
+		return
+	var e: Dictionary = _extra_toggle_ids.get(id, {})
+	if e.is_empty():
+		return
+	if e.get("reinit", false):
+		sim.set(String(e.prop), on)
+		sim.reinit()
+	else:
+		sim.set(String(e.prop), on)
+
+
+const ROW_WIDTH: int = 132
+
+
+## Build the Visuals page: Color mapping (rainbow/source/fit + auto/save/
+## reset) and the Particle appearance grid of the four VFX toggles. The
+## large GradientLegend lives in the rail footer (not per-tab).
+func _build_visuals_page() -> void:
+	# ── Color mapping ───────────────────────────────────────────
+	var color_sec := _add_section(_visuals_page, "Color mapping", "LIVE")
+	var cm_row := HBoxContainer.new()
+	cm_row.add_theme_constant_override("separation", 6)
+	color_sec.add_child(cm_row)
+	_rainbow_btn = CheckButton.new()
+	_rainbow_btn.name = "RainbowBtn"
+	_rainbow_btn.text = "Rainbow"
+	_rainbow_btn.tooltip_text = "Use the rainbow scale instead of the Cassi mass-temperature colors"
+	_rainbow_btn.custom_minimum_size = Vector2(88, 22)
+	_rainbow_btn.focus_mode = Control.FOCUS_NONE
+	_rainbow_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	_rainbow_btn.toggled.connect(_on_rainbow_toggled)
+	cm_row.add_child(_rainbow_btn)
+	_color_src_opt = OptionButton.new()
+	_color_src_opt.name = "ColorSrcOpt"
+	_color_src_opt.add_item("Velocity")
+	_color_src_opt.add_item("Qi")
+	_color_src_opt.selected = 1
+	_color_src_opt.tooltip_text = "Choose the quantity mapped to color; drag LOW and HIGH on the legend to fit its scale"
+	_color_src_opt.custom_minimum_size = Vector2(76, 22)
+	_color_src_opt.focus_mode = Control.FOCUS_NONE
+	_color_src_opt.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	_color_src_opt.item_selected.connect(_on_color_src_selected)
+	cm_row.add_child(_color_src_opt)
+	_fit_btn = Button.new()
+	_fit_btn.name = "FitColorsBtn"
+	_fit_btn.text = "Fit scale"
+	_fit_btn.tooltip_text = "Reset the active source to a simple one-pass scale; then drag LOW and HIGH on the legend"
+	_fit_btn.custom_minimum_size = Vector2(78, 22)
+	_fit_btn.focus_mode = Control.FOCUS_NONE
+	_fit_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	_fit_btn.pressed.connect(_on_fit_colors)
+	cm_row.add_child(_fit_btn)
+
+	var cm_auto := HBoxContainer.new()
+	cm_auto.add_theme_constant_override("separation", 6)
+	color_sec.add_child(cm_auto)
+	_auto_align_btn = CheckButton.new()
+	_auto_align_btn.name = "AutoAlignBtn"
+	_auto_align_btn.text = "Auto"
+	_auto_align_btn.tooltip_text = "Keep the Qi color band aligned to the live coherence distribution (Meshless gravity grows q fast). Dragging a handle or Fit takes over manually."
+	_auto_align_btn.custom_minimum_size = Vector2(56, 22)
+	_auto_align_btn.focus_mode = Control.FOCUS_NONE
+	_auto_align_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	_auto_align_btn.toggled.connect(_on_auto_align_toggled)
+	cm_auto.add_child(_auto_align_btn)
+	_auto_track_btn = CheckButton.new()
+	_auto_track_btn.name = "AutoTrackBtn"
+	_auto_track_btn.text = "Auto-Track"
+	_auto_track_btn.tooltip_text = "LIVE band tracker: subsampled 2-4 Hz readback of the active quantity's field, robust 2nd-98th percentiles, EMA-glided band with a min-span floor — the color band hugs and follows the live coherence scale (high contrast, no fixed anchors). Manual legend drag or Fit takes over. Opt-in; OFF = existing scale untouched."
+	_auto_track_btn.custom_minimum_size = Vector2(90, 22)
+	_auto_track_btn.focus_mode = Control.FOCUS_NONE
+	_auto_track_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	_auto_track_btn.toggled.connect(_on_auto_track_toggled)
+	cm_auto.add_child(_auto_track_btn)
+	_save_colors_btn = Button.new()
+	_save_colors_btn.name = "SaveColorsBtn"
+	_save_colors_btn.text = "Save"
+	_save_colors_btn.tooltip_text = "Save the current colors as the default for future runs"
+	_save_colors_btn.custom_minimum_size = Vector2(54, 22)
+	_save_colors_btn.focus_mode = Control.FOCUS_NONE
+	_save_colors_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	_save_colors_btn.pressed.connect(_on_save_colors)
+	cm_auto.add_child(_save_colors_btn)
+	_reset_colors_btn = Button.new()
+	_reset_colors_btn.name = "ResetColorsBtn"
+	_reset_colors_btn.text = "Reset"
+	_reset_colors_btn.tooltip_text = "Restore the saved colors (Fit scale if none are saved)"
+	_reset_colors_btn.custom_minimum_size = Vector2(58, 22)
+	_reset_colors_btn.focus_mode = Control.FOCUS_NONE
+	_reset_colors_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	_reset_colors_btn.pressed.connect(_on_reset_colors)
+	cm_auto.add_child(_reset_colors_btn)
+	# The live scale readout complements the legend (footer) — keep it
+	# visible here too so a collapsed section still telegraphs the band.
+	# (`_scale_label` is created in the footer; this is the readout text.)
+
+	# ── Particle appearance (four VFX flags; live, default-off) ─
+	var vfx_sec := _add_section(_visuals_page, "Particle appearance", "LIVE")
+	var vfx_grid := GridContainer.new()
+	vfx_grid.columns = 2
+	vfx_grid.add_theme_constant_override("h_separation", 10)
+	vfx_grid.add_theme_constant_override("v_separation", 6)
+	vfx_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vfx_sec.add_child(vfx_grid)
+	_vfx_size_btn = _build_vfx_toggle("VfxSizeBtn", "Size∝m¹ᐟ³",
+		"Scale each instance by cbrt(particle mass) instead of the linear mass law — the steep Salpeter count compresses so a few massive giants stay visible without swamping the dwarfs. Reads per-particle mass from pos.w (preserved by the nbody kick). Live, no reinit.",
+		_on_vfx_size_toggled)
+	vfx_grid.add_child(_vfx_size_btn)
+	_vfx_glow_btn = _build_vfx_toggle("VfxGlowBtn", "Glow",
+		"Additive-glow look: bright cores (q near the white-hot point) lift toward white and raise alpha so overlapping cores read as additive glow on the dark field; large instances get an extra halo ramp. Live, no reinit.",
+		_on_vfx_glow_toggled)
+	vfx_grid.add_child(_vfx_glow_btn)
+	_vfx_depth_btn = _build_vfx_toggle("VfxDepthBtn", "Depth fade",
+		"Fade instance alpha with camera distance (linear between 35% and 135% of the box diagonal). Uses the world-origin distance today; the deferred camera hook uses the live camera position. Live, no reinit.",
+		_on_vfx_depth_toggled)
+	vfx_grid.add_child(_vfx_depth_btn)
+	_vfx_twoaxis_btn = _build_vfx_toggle("VfxTwoAxisBtn", "2-axis q/ρ",
+		"Two-axis color: hue from Qi coherence (as the Qi rainbow) and lightness modulated by local density ρ = EY+EI (q-proxy today; the deferred EY/EI hook uses the true EY+EI). Requires the Rainbow toggle on.",
+		_on_vfx_twoaxis_toggled)
+	vfx_grid.add_child(_vfx_twoaxis_btn)
+
+
+## Build one VFX CheckButton with the house interaction defaults.
+func _build_vfx_toggle(name: String, text: String, tip: String, cb: Callable) -> CheckButton:
+	var t := CheckButton.new()
+	t.name = name
+	t.text = text
+	t.tooltip_text = tip
+	t.custom_minimum_size = Vector2(0, 22)
+	t.focus_mode = Control.FOCUS_NONE
+	t.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	t.toggled.connect(cb)
+	return t
+
+
+## Build the System page: Physics & lattice, Performance, RealSim, black
+## hole thresholds, Diagnostics (the full _diag_label + falsify meter), and
+## the disabled Server (future) fields.
+func _build_system_page() -> void:
+	# ── Physics & lattice toggles ───────────────────────────────
+	var phys_sec := _add_section(_system_page, "Physics & lattice", "LIVE")
+	var phys_grid := GridContainer.new()
+	phys_grid.columns = 2
+	phys_grid.add_theme_constant_override("h_separation", 10)
+	phys_grid.add_theme_constant_override("v_separation", 6)
+	phys_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	phys_sec.add_child(phys_grid)
+
+	_bh_toggle_btn = _build_system_toggle("Black holes",
+		"Enable the BH point-source sector (condensation + softened Newtonian pull) in any gravity mode", _on_black_holes_toggled, false)
+	phys_grid.add_child(_bh_toggle_btn)
+	_phi_box_btn = _build_system_toggle("φ box",
+		"φ-aspect box (x:y:z = φ:1:φ²) — the theory's incommensurate bubble-lattice periods; breaks the cubic box-mode straight-line lock; applies on reinit", _on_phi_box_toggled, false)
+	phys_grid.add_child(_phi_box_btn)
+	_dual_btn = _build_system_toggle("Dual grid",
+		"Yin/Yang dual (BCC) lattice gravity + 4th-order gradients — the force averages the base and half-cell-shifted lattices (placement bias ~4.6× down); live, no reinit", _on_dual_grid_toggled, false)
+	phys_grid.add_child(_dual_btn)
+	_multirung_btn = _build_system_toggle("Multi-rung",
+		"Seed the initial conditions with φ-spaced density modes so bubbles condense at several cascade scales; applies on reinit", _on_multirung_toggled, false)
+	phys_grid.add_child(_multirung_btn)
+	_meshless_btn = _build_system_toggle("Meshless",
+		"Run the two-fluid field on the moving Voronoi cell mesh (JFA construction, steering + ALE remap); applies on reinit", _on_meshless_toggled, false)
+	phys_grid.add_child(_meshless_btn)
+	# Generic backed toggles (meshless gravity, particle merge, BH
+	# accretion, River calibration, field attractor, freeze field).
+	for e in EXTRA_TOGGLES:
+		var t := _build_extra_toggle(e)
+		phys_grid.add_child(t)
+
+	# ── Performance ─────────────────────────────────────────────
+	var perf_sec := _add_section(_system_page, "Performance", "LIVE")
+	var perf_row := HBoxContainer.new()
+	perf_row.add_theme_constant_override("separation", 8)
+	perf_sec.add_child(perf_row)
+	_no_rb_btn = _build_system_toggle("No readbacks",
+		"Suppress CPU readbacks (occupancy/perf/q diagnostics) — removes the ~0.5 s stutter; physics and rendering unchanged", _on_suppress_readbacks_toggled, false)
+	perf_row.add_child(_no_rb_btn)
+	_vsync_btn = _build_system_toggle("VSync",
+		"Frame pacing to the display refresh (on by default); off for uncapped frame rate — benchmarks and Movie-Maker recording want it off", _on_vsync_toggled, false)
+	perf_row.add_child(_vsync_btn)
+
+	# ── RealSim coefficients ────────────────────────────────────
+	var rs_sec := _add_section(_system_page, "RealSim", "LIVE")
+	var rs_grid := GridContainer.new()
+	rs_grid.columns = 2
+	rs_grid.add_theme_constant_override("h_separation", 10)
+	rs_grid.add_theme_constant_override("v_separation", 6)
+	rs_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rs_sec.add_child(rs_grid)
+	_init_spin_row(rs_grid, "realsim_drag")
+	_init_spin_row(rs_grid, "realsim_viscosity")
+	_init_spin_row(rs_grid, "realsim_friction")
+
+	# ── Black-hole thresholds ───────────────────────────────────
+	var bh_sec := _add_section(_system_page, "Black-hole thresholds", "LIVE")
+	var bh_grid := GridContainer.new()
+	bh_grid.columns = 2
+	bh_grid.add_theme_constant_override("h_separation", 10)
+	bh_grid.add_theme_constant_override("v_separation", 6)
+	bh_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bh_sec.add_child(bh_grid)
+	_init_spin_row(bh_grid, "qi_condensation_threshold")
+	_init_spin_row(bh_grid, "bh_acc_rate")
+	_init_spin_row(bh_grid, "bh_max_age")
+	_init_spin_row(bh_grid, "bh_accretion_radius")
+
+	# ── Diagnostics: full field readout + falsification meter ──
+	var diag_sec := _add_section(_system_page, "Diagnostics", "")
+	var diag_label2 = _make_label("", "text_dim", "detail")
+	diag_label2.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	diag_label2.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	diag_sec.add_child(diag_label2)
+	_diag_label = diag_label2
+	var falsify_row := HBoxContainer.new()
+	falsify_row.add_theme_constant_override("separation", 6)
+	diag_sec.add_child(falsify_row)
+	_falsify_btn = CheckButton.new()
+	_falsify_btn.name = "FalsifyBtn"
+	_falsify_btn.text = "w₀ live"
+	_falsify_btn.tooltip_text = "LIVE falsification meter: reads r = <EY>/<EI> (volume-mean field ratio) at a low 2.5 Hz subsampled rate, runs the theory's w₀/wₐ estimator (the falsify_wo.py survey port), and shows w₀ + distance to DESI DR2's −0.838 on the info HUD. Opt-in; OFF hides the line."
+	_falsify_btn.custom_minimum_size = Vector2(76, 22)
+	_falsify_btn.focus_mode = Control.FOCUS_NONE
+	_falsify_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	_falsify_btn.toggled.connect(_on_falsify_toggled)
+	falsify_row.add_child(_falsify_btn)
+
+	# ── Server (future) fields — today's server row ─────────────
+	var srv_sec := _add_section(_system_page, "Server (future)", "")
+	var srv_row := HBoxContainer.new()
+	srv_row.add_theme_constant_override("separation", 4)
+	srv_sec.add_child(srv_row)
+	_server_ip_edit = LineEdit.new()
+	_server_ip_edit.placeholder_text = "IP"
+	_server_ip_edit.text = "127.0.0.1"
+	_server_ip_edit.custom_minimum_size = Vector2(90, 22)
+	_server_ip_edit.editable = false
+	_server_ip_edit.modulate = _tok_color("disabled")
+	srv_row.add_child(_server_ip_edit)
+	_server_port_edit = LineEdit.new()
+	_server_port_edit.placeholder_text = "Port"
+	_server_port_edit.text = "8080"
+	_server_port_edit.custom_minimum_size = Vector2(55, 22)
+	_server_port_edit.editable = false
+	_server_port_edit.modulate = _tok_color("disabled")
+	srv_row.add_child(_server_port_edit)
+
+
+## Build one System-page CheckButton with the house interaction defaults.
+## NOTE: the callback is NOT connected here — these toggles are
+## direct-assigned by the init sync (e.g. `_multirung_btn.button_pressed =
+## sim.multi_rung_seed`) and connecting at build would make that assignment
+## spuriously fire a reinit() on startup. The preserved connect-after-init
+## block in _ready() wires them after the sim values are synced.
+func _build_system_toggle(text: String, tip: String, _cb: Callable, _pressed: bool) -> CheckButton:
+	var t := CheckButton.new()
+	t.text = text
+	t.tooltip_text = tip
+	t.custom_minimum_size = Vector2(0, 22)
+	t.focus_mode = Control.FOCUS_NONE
+	t.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	return t
+
+
+## Push the sim's live values into every backed setting (no-signal setters
+## so syncing never fires a spurious callback/reinit on startup), and wire
+## the backed toggles' signals AFTER that init sync.
+func _sync_extra_params() -> void:
+	var sim = _get_sim()
+	if sim == null:
+		# No sim yet — leave the generic controls at their schema defaults;
+		# the callbacks remain unwired (defensive, never crash).
+		for id in _extra_toggles.keys():
+			_extra_toggles[id].toggled.connect(_on_extra_toggle_changed.bind(id))
+		return
+	for id in _extra_spins.keys():
+		var spin: CSpinParam = _extra_spins[id]
+		# Find the entry to read the native property.
+		for e in EXTRA_PARAMS:
+			if e.id != id:
+				continue
+			var v: Variant = sim.get(String(e.prop))
+			if v is int:
+				spin.set_value_no_signal(float(v))
+			else:
+				spin.set_value_no_signal(float(v))
+			break
+	for id in _extra_toggles.keys():
+		var t: CheckButton = _extra_toggles[id]
+		var e: Dictionary = _extra_toggle_ids.get(id, {})
+		if not e.is_empty():
+			var b: Variant = sim.get(String(e.prop))
+			t.set_pressed_no_signal(bool(b))
+		t.toggled.connect(_on_extra_toggle_changed.bind(id))
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -887,7 +1347,7 @@ func _set_mode_highlight(active: int) -> void:
 
 
 func _set_grav_highlight(active: int) -> void:
-	_gravity_seg.set_selected_no_signal(active)
+	_gravity_seg.set_value_no_signal(active)
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -919,9 +1379,11 @@ func _set_grav_highlight(active: int) -> void:
 ## at ~2.5 Hz while the Auto-Track button is active.
 func _autotrack_tick(delta: float) -> void:
 	var sim = _get_sim()
-	if sim == null or sim._rd == null or sim._field_q == null:
+	if sim == null or sim._rd == null:
 		return
-	if not sim._field_q.is_valid():
+	if sim._field_ey == null or sim._field_ei == null:
+		return
+	if not sim._field_ey.is_valid() or not sim._field_ei.is_valid():
 		return
 	if sim.suppress_readbacks:
 		return  # reading the global RD would stall — leave the band frozen
@@ -937,6 +1399,11 @@ func _autotrack_tick(delta: float) -> void:
 ## Measure the active quantity's distribution and return the target band
 ## (lo, hi) for the tracker — or (-1, -1) when nothing is measurable.
 ## Exposed for the probe scene (verify_autotrack.gd).
+##
+## The tracked quantity is the BOUNDED coherence q_coh = ρ²/(ρ²+φ⁻²+ε²)
+## (ρ=EY+EI, ε=EY−φ·EI), which the shader now maps to the hue axis — so the
+## band, robust percentiles, EMA glide, and floor all live in [0,1) and can
+## never run away behind a growing concentration front.
 func _autotrack_measure() -> Vector2:
 	var sim = _get_sim()
 	if sim == null or sim._rd == null:
@@ -944,10 +1411,7 @@ func _autotrack_measure() -> Vector2:
 	var base: int = sim.particle_color_mode & 0xF
 	if base < 2:
 		return Vector2(-1.0, -1.0)  # velocity/mass modes: no field quantity
-	var two_axis: bool = base == 4
-	if not sim._field_q.is_valid():
-		return Vector2(-1.0, -1.0)
-	if two_axis and (not sim._field_ey.is_valid() or not sim._field_ei.is_valid()):
+	if not sim._field_ey.is_valid() or not sim._field_ei.is_valid():
 		return Vector2(-1.0, -1.0)
 	var nc: int = sim.grid_N * sim.grid_N * sim.grid_N
 	if nc <= 0:
@@ -957,46 +1421,46 @@ func _autotrack_measure() -> Vector2:
 	# (x-fastest), spanning all three axes' middle — the region the active
 	# coherence occupies. Cheap, low-rate, not full-resolution.
 	var offset: int = maxi((nc - sample_cells) / 2, 0)
-	var data: PackedByteArray = sim._rd.buffer_get_data(sim._field_q, offset * 4, sample_cells * 4)
-	if data.size() < sample_cells * 4:
+	var ey_d: PackedByteArray = sim._rd.buffer_get_data(sim._field_ey, offset * 4, sample_cells * 4)
+	var ei_d: PackedByteArray = sim._rd.buffer_get_data(sim._field_ei, offset * 4, sample_cells * 4)
+	if ey_d.size() < sample_cells * 4 or ei_d.size() < sample_cells * 4:
 		return Vector2(-1.0, -1.0)
-	var vals: PackedFloat32Array = data.to_float32_array()
-	if two_axis:
-		# Two-axis: the band tracks ρ = EY+EI (the lightness axis).
-		var ey_d: PackedByteArray = sim._rd.buffer_get_data(sim._field_ey, offset * 4, sample_cells * 4)
-		var ei_d: PackedByteArray = sim._rd.buffer_get_data(sim._field_ei, offset * 4, sample_cells * 4)
-		if ey_d.size() < sample_cells * 4 or ei_d.size() < sample_cells * 4:
-			return Vector2(-1.0, -1.0)
-		var ey: PackedFloat32Array = ey_d.to_float32_array()
-		var ei: PackedFloat32Array = ei_d.to_float32_array()
-		for i in range(sample_cells):
-			vals[i] = maxf(ey[i] + ei[i], 0.0)
-	# Robust percentiles CPU-side: collect only positive, finite samples
-	# (background/void → q ≤ 0 reads the floor) and sort.
+	var ey := ey_d.to_float32_array()
+	var ei := ei_d.to_float32_array()
+	# Robust percentiles CPU-side: collect q_coh over the subsample. The
+	# coherence is bounded — keep every finite, non-negative sample (q_coh=0
+	# is the incoherent/void floor, a VALID band edge, unlike the old q
+	# which had to be positive).
 	var clean: PackedFloat32Array = PackedFloat32Array()
-	var vmin := INF
-	var vmax := -INF
+	var vin := false
 	for i in range(sample_cells):
-		var v := vals[i]
-		if v > 0.0 and is_finite(v):
-			clean.append(v)
-			vmin = minf(vmin, v)
-			vmax = maxf(vmax, v)
-	if clean.size() < 64:
+		var eyv := ey[i]
+		var eiv := ei[i]
+		if not is_finite(eyv) or not is_finite(eiv):
+			continue
+		var rho: float = eyv + eiv
+		var eps: float = eyv - PHI * eiv
+		var rho2: float = rho * rho
+		var qc: float = rho2 / (rho2 + AUTO_TRACK_PHI_INV2 + eps * eps)
+		if qc < 0.0 or qc > 1.0 or not is_finite(qc):
+			continue
+		clean.append(qc)
+		vin = true
+	if not vin or clean.size() < 64:
 		return Vector2(-1.0, -1.0)  # too few valid samples this tick
 	clean.sort()
 	var lo_idx: int = clampi(int(round(float(clean.size() - 1) * AUTO_TRACK_P_LO)), 0, clean.size() - 1)
 	var hi_idx: int = clampi(int(round(float(clean.size() - 1) * AUTO_TRACK_P_HI)), 0, clean.size() - 1)
 	var p_lo := clean[lo_idx]
 	var p_hi := clean[hi_idx]
-	if p_hi <= p_lo * 1.001:
-		p_hi = p_lo * 1.001
-	# Margins (±AUTO_TRACK_MARGIN in log), clamped STRICTLY to the observed
-	# field [min, max] so the band never exceeds the full range (G50) — the
-	# margin only yields headroom when the robust percentiles sit inside the
-	# observed span (the normal, tight-central-mass case).
-	var band_lo: float = clampf(p_lo / AUTO_TRACK_MARGIN, vmin, vmax)
-	var band_hi: float = clampf(p_hi * AUTO_TRACK_MARGIN, vmin, vmax)
+	# Margins (±AUTO_TRACK_MARGIN in log), clamped STRICTLY into the bounded
+	# [LO_CAP, HI_CAP] channel so the band never re-anchors past the [0,1)
+	# anchor (the unbounded-chasing bug). The margin only yields headroom
+	# when the robust percentiles sit inside the observed span.
+	var band_lo: float = clampf(p_lo / AUTO_TRACK_MARGIN, AUTO_TRACK_LO_CAP, AUTO_TRACK_HI_CAP)
+	var band_hi: float = clampf(p_hi * AUTO_TRACK_MARGIN, AUTO_TRACK_LO_CAP, AUTO_TRACK_HI_CAP)
+	if band_hi <= band_lo:
+		band_hi = band_lo * 1.001
 	return Vector2(band_lo, band_hi)
 
 
@@ -1015,31 +1479,56 @@ func _autotrack_glide_edge(current: float, target: float, expanding: bool) -> fl
 
 
 ## Apply a measured (lo, hi) band to the tracked qi_cycle/qi_approach with
-## EMA glide, the hysteresis deadband, and the min-span floor. Returns the
-## applied (lo, hi) for probes. Exposed for verify_autotrack.gd.
+## EMA glide, the hysteresis deadband, and the BOUNDED min-span floor —
+## always clamped inside [LO_CAP, HI_CAP] ⊂ [0,1) so the band can never
+## re-anchor past the coherence channel's [0,1) anchor (the unbounded-chasing
+## fix). Returns the applied (lo, hi) for probes.
 func _autotrack_update(band_lo: float, band_hi: float) -> Vector2:
 	var sim = _get_sim()
 	if sim == null:
 		return Vector2(-1.0, -1.0)
-	var lo := maxf(band_lo, 1e-12)
-	var hi := maxf(band_hi, lo * 1.001)
-	var c_lo := maxf(sim.qi_cycle.x, 1e-12)
-	var c_hi := maxf(sim.qi_cycle.y, c_lo * 1.001)
+	var lo := clampf(band_lo, AUTO_TRACK_LO_CAP, AUTO_TRACK_HI_CAP)
+	var hi := clampf(band_hi, AUTO_TRACK_LO_CAP, AUTO_TRACK_HI_CAP)
+	if hi <= lo:
+		hi = lo * 1.001
+	var c_lo := clampf(sim.qi_cycle.x, AUTO_TRACK_LO_CAP, AUTO_TRACK_HI_CAP)
+	var c_hi := clampf(sim.qi_cycle.y, c_lo, AUTO_TRACK_HI_CAP)
 	# Per-edge attack/release: expanding (span grows) uses the fast attack;
 	# contracting (span shrinks) uses the slow release.
 	var n_lo := _autotrack_glide_edge(c_lo, lo, lo < c_lo)
 	var n_hi := _autotrack_glide_edge(c_hi, hi, hi > c_hi)
-	# Min-span floor: a static/degenerate field must not collapse the band
-	# to zero contrast — widen to the floor around the geometric mid.
+	# Re-clamp the glided edges to the bounded channel (the glide keeps them
+	# inside [LO_CAP, HI_CAP] by construction, but be explicit/defensive).
+	n_lo = clampf(n_lo, AUTO_TRACK_LO_CAP, AUTO_TRACK_HI_CAP)
+	n_hi = clampf(n_hi, n_lo, AUTO_TRACK_HI_CAP)
+	# BOUNDED min-span floor (LOG ratio): broaden to ~one decade of hue
+	# around the geometric mid, CLAMPED inside [LO_CAP, HI_CAP] so the band
+	# can never re-anchor past the [0,1) coherence anchor. For a band pinned
+	# near the top (saturated blob, mid→HI_CAP) the clamp reduces the floor
+	# below one decade — the honest, anchored result: it keeps a sub-1 band
+	# and non-zero contrast instead of widening past 1 (the old floor's bug).
 	if log(n_hi / n_lo) < log(AUTO_TRACK_MIN_SPAN):
-		var mid := sqrt(n_lo * n_hi)
+		var mid := clampf(sqrt(n_lo * n_hi), AUTO_TRACK_LO_CAP, AUTO_TRACK_HI_CAP)
 		var half := sqrt(AUTO_TRACK_MIN_SPAN)
-		n_lo = mid / half
-		n_hi = mid * half
+		var f_lo := mid / half
+		var f_hi := mid * half
+		if f_hi > AUTO_TRACK_HI_CAP:
+			f_hi = AUTO_TRACK_HI_CAP
+			f_lo = minf(f_lo, AUTO_TRACK_HI_CAP / half)
+		if f_lo < AUTO_TRACK_LO_CAP:
+			f_lo = AUTO_TRACK_LO_CAP
+			f_hi = maxf(f_hi, AUTO_TRACK_LO_CAP * half)
+		n_lo = clampf(f_lo, AUTO_TRACK_LO_CAP, AUTO_TRACK_HI_CAP)
+		n_hi = clampf(maxf(f_hi, n_lo), n_lo, AUTO_TRACK_HI_CAP)
 	# Write the SAME vectors the GPU aligner / legend / instancer consume.
 	sim.qi_cycle = Vector2(n_lo, n_hi)
-	if sim.qi_approach.x != n_hi:
-		sim.qi_approach = Vector2(n_hi, sim.qi_approach.y)
+	# Pin the APPROACH TOP (pink/white point) at φ⁻² — the decoherence /
+	# merge-gate landmark. The approach spans [cycle_hi, φ⁻²]: normal running
+	# (q_coh ≪ φ⁻²) reads the cycle hue; q_coh reaching φ⁻² reads the PINK /
+	# WHITE landmark ("pink stays at φ⁻²"); q_coh above φ⁻² is saturated
+	# (white → the →1 anchor). When the cycle hi itself exceeds φ⁻² (already
+	# saturated), the engine turns the approach off (a_lo ≥ a_hi).
+	sim.qi_approach = Vector2(n_hi, AUTO_TRACK_PHI_INV2)
 	return Vector2(n_lo, n_hi)
 
 
@@ -1413,12 +1902,16 @@ func _on_fit_colors() -> void:
 	sim.color_progress = 0
 	sim.color_hue_offset = 0.0
 	if qi_source:
-		# A stable, measured starting band. The two legend handles then make
-		# the final fit a direct visual operation rather than a settings hunt.
-		sim.qi_cycle = Vector2(0.0002, 0.001)
+		# A stable, measured starting band on the BOUNDED q_coh channel
+		# q_coh = ρ²/(ρ²+φ⁻²+ε²) ∈ [0,1). Default brackets the live regime's
+		# narrow q_coh (~0.001–0.006, median ≈ 0.0018 — coherence_merge_rnd.md)
+		# in log space. The approach top (pink/white) is pinned at φ⁻² (the
+		# decoherence / merge-gate landmark); the two legend handles then make
+		# the final fit a direct visual operation.
+		sim.qi_cycle = Vector2(0.0008, 0.006)
 		sim.qi_pinch = Vector2.ZERO
-		sim.qi_approach = Vector2(sim.qi_cycle.y, sim.qi_condensation_threshold)
-		sim.qi_approach_tracks_threshold = true
+		sim.qi_approach = Vector2(sim.qi_cycle.y, AUTO_TRACK_PHI_INV2)
+		sim.qi_approach_tracks_threshold = false
 	else:
 		sim.velocity_cycle = Vector2.ZERO
 		sim.velocity_pinch = Vector2.ZERO
@@ -1467,6 +1960,8 @@ func _on_falsify_toggled(on: bool) -> void:
 		_falsify_label.visible = on
 		_falsify_label.text = "" if not on else _falsify_label.text
 	_falsify_accum = 0.0
+	# The status panel's height changes with the 4-line meter — re-size it.
+	call_deferred("_update_layout")
 
 
 func _on_save_colors() -> void:
