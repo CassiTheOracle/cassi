@@ -236,7 +236,9 @@ the rim/downsample passes.
      refresh persists them).
   The b_envlive verdict: OFF (tracking_envelope=false) = the fixed box stays
   fixed (box_scale 1.0, center 0 — PASS); ON = the seeded compact structure
-  contracted the tile 121.4 → 27.3 (box_scale 0.225, re_fits=1) with the
+  contracted the tile to the seeded structure (the shrink 121.4 → 44.1,
+  box_scale 0.364 — the correct cluster-envelope shrink after the aspect fix,
+  re_fits=1) with the
   engine's header 36/40/44 == the tracker's extent and the engine's/sim's
   box_scale == the tracker's total-vs-orig at every tick — PASS.
 - The capability probe (the owner's science goal, item 4): a two-cluster run
@@ -244,14 +246,51 @@ the rim/downsample passes.
   end-to-end (the envelope re-fit + the patch follow + the live toggle); the
   science-configuration run is the remaining piece-4 work.
 
-## Piece 4 — expands-past-any-finite-tile probe (the mechanism PROVEN — the science run remains)
+## Piece 4 — expands-past-any-finite-tile probe (LANDED — the SCIENCE run is green)
 
 The pieces: the tracked coarse grid follows the structure (piece 1's b_track),
 the fine patch rides the structure (piece 3's b_life — the exit fired at the
 old tile's edge), and the live toggle arms it in the running sim (piece 3's
-b_envlive). The science configuration (two clusters separating past the OLD
-box period in the live sim with tracking_envelope=true) is the remaining
-piece-4 run.
+b_envlive). The SCIENCE configuration run (`_diag/b_science.tscn` + `b_science.gd`,
+bscience5.log, 0 stderr errors, ~48 s wall) demonstrates "the box stops being
+the limiter" in the LIVE sim:
+
+- **Config**: tracking_envelope=true (the production wiring), the two-cluster
+  IC (compact ±28, σ=2, zero velocities, the masses at the 1% scale — the
+  low-merger-energy config: the drift dominates the two-cluster attraction,
+  the separation is drift-driven — the task's sanctioned fast convergent
+  setup), drifted A −30 / B +110 over 10 cadences.
+- **The separation vs L_old**: 56.0 → 182.3 units = **1.50× the ORIGINAL x
+  half-extent** (121.4) — the structure separates PAST the old box's period.
+- **The tracked tile re-fits + follows**: cover=true at EVERY cadence (the
+  percentile envelope ⊆ the tile within the tracker's grow hysteresis); the
+  tile extent 34.2 → 103.7 (the tile grows with the structure — the final
+  tile [−68, 140] ⊇ the envelope [−58.5, 131.1] with the margin).
+- **The would-clip**: the structure's envelope crosses L_old.x at the final
+  cadence (env.hi 131.1 > 121.4) and max |p.x| = 134.8 — the OLD fixed box
+  WOULD have clipped/wrapped the structure at 121.4 while the tracked tile
+  covered it.
+- **NO periodic image**: the gravity source's (the mass density's) content in
+  the tracked tile's outer 2% boundary zone = **0.001188 of the peak** (the
+  1e-2 pin) — the periodic Poisson's image contribution vanishes because the
+  source never reaches the tile's boundary → the far cluster feels the OPEN
+  force at the TRUE separation. (The sim's meshless TREE arm — mode 5 — is
+  the literal open direct-sum force; the plan's gate-a covers it separately;
+  the b_science's source-boundary content is the direct no-image evidence.)
+- **VERDICT: PASS** — the box stops being the limiter.
+
+### The aspect-coverage bug the science run exposed (and the tracker fix)
+The b_science's first runs showed cover=false everywhere: the EnvelopeTracker's
+aspect-preserving scale divided the ABSOLUTE demand by the box's MAX extent
+(the φ-aspect box's tall z = 196.4), so the tile's x under-covered the x-demand
+by the aspect ratio (tile.x = 0.618·demand). The fix: the required uniform
+scale = the max of the AXIS-RELATIVE demands (each axis's demand ÷ that axis's
+extent) — the tile now genuinely covers the envelope on every axis. The unit
+battery (7/7, the cube cases unchanged — the bug is invisible at the cube) +
+the b_track re-run (PASS — the grow-a extent now (105.47, 65.19, 170.66) — the
+x = the demand, the coverage actually true) + the b_envlive re-run (PASS — the
+shrink now (44.1, 27.3, 71.4), box_scale 0.364 — the correct cluster-envelope
+shrink) all re-verified.
 
 ## Landed / gated status
 | Piece | Status | Commit |
@@ -259,4 +298,4 @@ piece-4 run.
 | 1 — tracking envelope (module + unit battery + probe battery + docs) | LANDED, gated on the battery 8/8 + the probe PASS | ``3bfc96f`` |
 | 2 — gate-vi battery + the interface (the fine-patch family + the ghost-cell coupling) | **FULLY GREEN (5/5 arms)**: the x-arms R-R_cal <= 2% (NEGATIVE deltas — the finer reflects less); the CORNER 1.63% (the corrected normalization: pulse-total incident + the fitted-speed invariants — the 589% was the regional undercount × the diagonal-speed mismatch); determinism max-diff 0.0; the 3D-dispatch discovery fixed the frozen-pulse artifact | `a762a8a` + the gatevi.gd fix |
 | 3 — fine patches + coupling + lifecycle + the production wiring | **LANDED + GREEN**: the b_life lifecycle (tracking + coverage + exit + determinism max-diff 0.0); the `tracking_envelope` live toggle + `_track_envelope_window()` (the three slots into the sim + the engine); the b_envlive probe PASS (OFF fixed; ON: the tile contracted to the structure with the header following) | `5920eb9` + the wiring commit |
-| 4 — expands-past-any-finite-tile probe | the mechanism PROVEN end-to-end (b_track re-fit + b_life follow + b_envlive live); the science-configuration run remains | pieces 1-3 |
+| 4 — expands-past-any-finite-tile probe | **LANDED + GREEN**: the b_science science run — two clusters separated to 182.3 = **1.50× L_old.x**, the tracked tile followed (cover=true every cadence, the extent 34.2 → 103.7), the would-clip (env.hi 131.1 > 121.4, max\|p.x\| 134.8), the no-image (the boundary source content 0.00119 of the peak < the 1e-2 pin) — VERDICT PASS. The EnvelopeTracker's aspect-coverage bug (the scale divided by the max extent — the φ-aspect tile's x under-covered by 0.618) was found + fixed (the scale = the max axis-relative demand); the unit battery 7/7 + the b_track + the b_envlive re-verified | the piece-4 commit |

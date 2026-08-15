@@ -66,15 +66,23 @@ func compute(samples: PackedFloat32Array, stride := 3, step := 1,
 	for a in range(3):
 		last_demand = maxf(last_demand, absf(env_mid[a] - center[a]) + env_ext[a])
 	last_demand *= pad
-	var ext_max := 0.0
+	# The required UNIFORM scale (the box_scale path): the tile = extent *
+	# scale must cover the demand on EVERY axis — the max of the axis-
+	# RELATIVE demands. (The original demand/ext_max divided by the box's
+	# MAX extent — the phi-aspect box's tall z — so the x-demand was
+	# under-covered by the aspect ratio: the tile's x = 0.618 x the demand.
+	# The b_science run exposed it: the tile never covered the envelope.)
+	var scale_req := 0.0
 	for a in range(3):
-		ext_max = maxf(ext_max, extent[a])
+		scale_req = maxf(scale_req,
+			(absf(env_mid[a] - center[a]) + env_ext[a]) * pad / maxf(extent[a], 1e-30))
+	var ext_min := minf(minf(extent.x, extent.y), extent.z)
 	var scale := 1.0
-	if last_demand > ext_max * grow_thresh:
-		scale = last_demand / ext_max
+	if scale_req > grow_thresh:
+		scale = scale_req
 		re_fits += 1
-	elif last_demand < ext_max * shrink_thresh:
-		scale = maxf(last_demand, min_extent) / ext_max
+	elif scale_req < shrink_thresh:
+		scale = maxf(scale_req, min_extent / maxf(ext_min, 1e-30))
 		re_fits += 1
 	if scale != 1.0:
 		extent = extent * scale   # aspect-preserving: the box_scale path
