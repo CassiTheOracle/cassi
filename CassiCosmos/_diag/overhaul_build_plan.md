@@ -283,7 +283,7 @@ the field of record). M2/A shelved. The B-build pieces are tracked in
 
 | Piece | Status | Commit |
 |---|---|---|
-| **1. Tracking envelope** — `scripts/envelope_tracker.gd` (the percentile/hysteresis/move-cap envelope computation) + `_diag/b_track_unit.gd` (7-case headless unit battery) + `_diag/b_track.tscn`/`_diag/b_track.gd` (end-to-end probe battery on the real sim, driving the sim's own window/extent state) | LANDED, probe-gated (canary bit-identical, header-follows, coverage, would-clip, grow-fired, determinism) | `<pending>` |
+| **1. Tracking envelope** — `scripts/envelope_tracker.gd` (the percentile/hysteresis/move-cap envelope computation) + `_diag/b_track_unit.gd` (7-case headless unit battery) + `_diag/b_track.tscn`/`_diag/b_track.gd` (end-to-end probe battery on the real sim, driving the sim's own window/extent state) | LANDED, probe-gated (canary bit-identical, header-follows, coverage, would-clip, grow-fired, determinism) | ``3bfc96f`` |
 | **2. Gate-vi design** — the ghost-cell interface scheme (coarse→fine trilinear rim + fine→coarse cell-average downsample at the pinned re-tile cadence) + the pre-registered battery (same-res transparency calibration → 2×/4×-resolution reflection arms, R <= 2% target, corner-crossing arm, determinism canary) | ON PAPER (`_diag/b_build.md`) — the coupling implementation GATED on the battery build | — |
 | **3. Fine patches + coupling** (per-patch extent/offset PCs per the contract schema, patch lifecycle at the ML_REBUILD cadence) | GATED (after gate-vi passes) | — |
 | **4. Expands-past-any-finite-tile probe** (the owner's science goal) | folds into piece 1's mechanism + piece 3's patch story | — |

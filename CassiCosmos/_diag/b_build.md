@@ -13,7 +13,7 @@ the COM tracker with the 0.25·min-extent move cap).
 
 ## Piece 1 — the tracking envelope (the "box stops being fixed" capability) — LANDED
 
-**Commit: `<pending>`**
+**Commit: ``3bfc96f``**
 
 ### What landed
 - `scripts/envelope_tracker.gd` (NEW, mine) — the tracking-envelope COMPUTATION:
@@ -149,7 +149,7 @@ coarse h vs fine h), which the gate measures.
 ## Landed / gated status
 | Piece | Status | Commit |
 |---|---|---|
-| 1 — tracking envelope (module + unit battery + probe battery + docs) | LANDED, gated on the battery 8/8 + the probe PASS | `<pending>` |
+| 1 — tracking envelope (module + unit battery + probe battery + docs) | LANDED, gated on the battery 8/8 + the probe PASS | ``3bfc96f`` |
 | 2 — gate-vi design (interface scheme + battery + threshold) | ON PAPER (this doc) — the coupling implementation GATED on the battery build | — |
 | 3 — fine patches + coupling | GATED (after gate-vi passes) | — |
 | 4 — expands-past-any-finite-tile probe | folds into piece 1's mechanism + piece 3's patch story | — |
