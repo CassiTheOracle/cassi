@@ -1,0 +1,20 @@
+<Project Sdk="Godot.NET.Sdk/4.7.1">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <Nullable>disable</Nullable>
+    <RootNamespace>SpaceSim</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="com.IvanMurzak.ReflectorNet" Version="5.3.2" />
+    <PackageReference Include="com.IvanMurzak.McpPlugin" Version="7.0.0" />
+  </ItemGroup>
+
+  <!-- Embed the extension catalog so the Extensions panel populates -->
+  <ItemGroup>
+    <EmbeddedResource Include="addons/godot_mcp/extensions.catalog.json" LogicalName="Godot-MCP.extensions.catalog.json" />
+  </ItemGroup>
+
+</Project>
