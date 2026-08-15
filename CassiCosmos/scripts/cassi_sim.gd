@@ -337,6 +337,23 @@ var _vsync_enabled: bool = true
 var _window_center := Vector3.ZERO        # the field grid's world-origin offset
 var _win_track_last_ms: int = 0           # slow-cadence COM tracker (2 s)
 var _pub_com: Vector3 = Vector3.INF       # P3: engine-published COM (window tracker source)
+## TRACKING ENVELOPE (B-build piece 3): when ON, the tracked box RE-FITS
+## to the structure's percentile envelope (the EnvelopeTracker: the
+## aspect-preserving extent with the grow/shrink hysteresis + the soft
+## move cap) instead of the COM-only home-window. Writes the SAME three
+## state slots the b_track probe proved: window_center (the origin),
+## box_scale (the uniform envelope scale vs the ORIGINAL box — the
+## per-frame _extents() derives every extent PC from it) and the bh
+## header's per-axis half-extents (bytes 36/40/44 = bh[2].yzw — the
+## per-frame 576 B refresh persists them). In the decoupled mode the
+## ENGINE's state is written too (the engine owns the physics box); the
+## sim's mirrors stay aligned (the render seam). Live: a toggle arms it
+## at the next 2 s tick — no reinit. OFF (default) = the fixed box,
+## bit-identical (every offset term exactly 0.0, box_scale 1.0).
+@export var tracking_envelope: bool = false
+var _env_tracker = null               # EnvelopeTracker (lazy: EnvelopeTracker.new())
+var _env_orig_box := Vector3.ONE      # the fixed box at box_scale = 1.0 (the tracker's start extent)
+var _env_track_last_ms: int = 0       # the same slow cadence as the COM tracker (2 s)
 ## Fixed seed for the initial conditions (0 = the legacy random init).
 ## Applied to BOTH the inline IC generators and the decoupled engine's ICs.
 @export var ic_seed: int = 0
@@ -1729,6 +1746,84 @@ func _track_window_center() -> void:
 	_window_center += d
 	print("[CassiSim] window -> (%.1f, %.1f, %.1f)  COM (%.1f, %.1f, %.1f)  t=%.1f s"
 			% [_window_center.x, _window_center.y, _window_center.z, com.x, com.y, com.z, float(now) / 1000.0])
+
+
+## TRACKING-ENVELOPE tracker (B-build piece 3 — the "box stops being
+## fixed" for the LIVE sim): every ~2 s, when tracking_envelope and
+## decoupled, run the EnvelopeTracker on a subsample of the ENGINE's live
+## position buffer (the P3 published-mirror source — the same readback
+## group as the engine's read_com) and write the THREE state slots the
+## b_track probe proved: the window origin, the uniform box_scale (=
+## tracker.extent.x / the ORIGINAL box x — TOTAL vs original, never
+## cumulative), and the bh header's per-axis half-extents (bytes 36/40/44
+## — the per-frame 576 B refresh persists them). The ENGINE's state is
+## written too (the decoupled engine owns the physics box: its own
+## box_scale/_window_center/_bh_init_bytes — the engine's update_bh_header
+## + its per-step PC fills pick the new values up before the frame's
+## list); the sim's mirrors stay aligned for the render seam. OFF: the
+## whole path is gated — the fixed box, bit-identical.
+func _track_envelope_window() -> void:
+	if not tracking_envelope or not _decoupled_active or _physics_engine == null:
+		return
+	var now := Time.get_ticks_msec()
+	if now - _env_track_last_ms < 2000:
+		return
+	_env_track_last_ms = now
+	if _env_tracker == null:
+		_env_tracker = EnvelopeTracker.new()
+		_env_orig_box = Vector3(box_aspect.x, box_aspect.y, box_aspect.z) * (cluster_radius * 1.5)
+		_env_tracker.extent = _env_orig_box
+	var eng: Object = _physics_engine
+	if not eng._pos_buf.is_valid():
+		return
+	var np1 := maxi(int(eng.N_particles), 1)
+	var posf: PackedFloat32Array = _rd.buffer_get_data(eng._pos_buf, 0, np1 * 16).to_float32_array()
+	# The same subsample stride as the engine's read_com (every 32nd
+	# particle) — the accepted job-boundary readback group.
+	var s := PackedFloat32Array()
+	s.resize((np1 / 32) * 4)
+	var cnt := 0
+	var i := 0
+	while i + 2 < posf.size() and cnt < s.size() / 4:
+		s[cnt * 4] = posf[i]
+		s[cnt * 4 + 1] = posf[i + 1]
+		s[cnt * 4 + 2] = posf[i + 2]
+		s[cnt * 4 + 3] = 0.0
+		cnt += 1
+		i += 32 * 4
+	if cnt == 0:
+		return
+	s.resize(cnt * 4)
+	_env_tracker.compute(s, 4, 1)
+	# Slot 1: the window origin (the per-frame header refresh carries it
+	# into bh[0].yzw + the deposit/blend/qhist/md offsets).
+	_window_center = _env_tracker.center
+	# Slot 2: the uniform envelope scale vs the ORIGINAL box (the sim's
+	# and the engine's _extents() = original * box_scale — never cumulative).
+	var scl: float = _env_tracker.extent.x / maxf(_env_orig_box.x, 1e-30)
+	box_scale = maxf(scl, 1e-3)
+	# Slot 3: the per-axis half-extents in the header byte array (the
+	# single source of the per-frame 576 B refresh — the 36/40/44 persist
+	# from here; the refresh re-encodes only 4/8/12, 16/20/24, 48-60).
+	var hb: PackedByteArray = _bh_init_bytes
+	hb.encode_float(36, _env_tracker.extent.x)
+	hb.encode_float(40, _env_tracker.extent.y)
+	hb.encode_float(44, _env_tracker.extent.z)
+	_bh_init_bytes = hb   # PackedByteArray is COW — reassign the member
+	# The ENGINE's state (the decoupled physics box): its own members +
+	# its own header bytes — the engine's update_bh_header + the per-step
+	# PC fills read them before the frame's list.
+	eng._window_center = _window_center
+	eng.box_scale = box_scale
+	var ehb: PackedByteArray = eng._bh_init_bytes
+	ehb.encode_float(36, _env_tracker.extent.x)
+	ehb.encode_float(40, _env_tracker.extent.y)
+	ehb.encode_float(44, _env_tracker.extent.z)
+	eng._bh_init_bytes = ehb
+	print("[CassiSim] envelope -> center (%.1f, %.1f, %.1f)  extent (%.1f, %.1f, %.1f)  box_scale %.3f  re_fits=%d"
+			% [_window_center.x, _window_center.y, _window_center.z,
+			_env_tracker.extent.x, _env_tracker.extent.y, _env_tracker.extent.z,
+			box_scale, _env_tracker.re_fits])
 
 
 ## One decoupled frame: consume the freshest engine publish, then record
@@ -4856,7 +4951,10 @@ func _render_frame() -> void:
 	# record the render list (blend interp + instancer + qhist) — no
 	# physics list on the global RD in this mode.
 	if _decoupled_active:
-		_track_window_center()   # movable home-window: slow-cadence COM follow
+		if tracking_envelope:
+			_track_envelope_window()   # the tracked box: envelope re-fit (center + extent)
+		else:
+			_track_window_center()     # movable home-window: slow-cadence COM follow
 		_decoupled_poll_and_render()
 
 	# GPU-direct MultiMesh: NO per-frame readback/upload — the instancer
