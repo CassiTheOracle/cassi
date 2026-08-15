@@ -438,6 +438,7 @@ var _physics_engine = null            # CassiPhysicsEngine (untyped: dynamic dis
 var _decoupled_active := false        # decoupled AND meshless off (the grid path)
 var _decoupled_boot_wait := false     # FIX A: true until the first publish lands
 var _decoupled_boot_start_ms := 0     # FIX A: wall clock when boot began (timeout)
+var _decoupled_boot_last_progress_ms := 0  # FIX A: wall clock of the last bootstrap progress print
 var _decoupled_target := 0            # cumulative REQUESTED steps (the job target)
 var _decoupled_pending := 0           # truthful backlog = target − executed (UI "behind X s")
 var _decoupled_prev_pos := PackedFloat32Array()  # host-side snapshot pair
@@ -1511,6 +1512,7 @@ func _decoupled_start_engine() -> bool:
 	_time = 0.0
 	_decoupled_boot_wait = true
 	_decoupled_boot_start_ms = Time.get_ticks_msec()
+	_decoupled_boot_last_progress_ms = 0
 	_physics_engine.submit_steps(1, false, _decoupled_job_meta(false))
 	print("[CassiSim] decoupled bootstrap queued (non-blocking) — main thread free")
 	return true
@@ -1642,9 +1644,16 @@ func _decoupled_poll_and_render() -> void:
 		if _decoupled_curr_pos.size() == 0 and _dc_curr_bytes.size() == 0:
 			# First snapshot not yet published. If the worker failed setup (no
 			# publish ever expected), fall back to the inline path so the scene
-			# isn't stuck unmoving. ~3.5s is the normal 2.5M IC build; give it
-			# generous headroom before declaring the worker lost.
-			if Time.get_ticks_msec() - _decoupled_boot_start_ms > 15000:
+			# isn't stuck unmoving. The all-extras 2M-particle IC build takes
+			# ~13.5 s of worker CPU (and more under GPU/CPU contention), so the
+			# deadline is generous (45 s); a progress line prints every ~5 s so
+			# a slow-but-healthy boot is visible instead of a silent stall.
+			var boot_elapsed := Time.get_ticks_msec() - _decoupled_boot_start_ms
+			if boot_elapsed - _decoupled_boot_last_progress_ms >= 5000:
+				_decoupled_boot_last_progress_ms = boot_elapsed
+				print("[CassiSim] decoupled bootstrap: waiting for first snapshot... %d s (IC init of %d particles takes ~13.5 s CPU on the worker)"
+						% [int(boot_elapsed / 1000), N_particles])
+			if boot_elapsed > 45000:
 				push_error("[CassiSim] decoupled bootstrap timeout (no first snapshot) — falling back to inline")
 				_physics_engine.stop_threaded()
 				_physics_engine = null
