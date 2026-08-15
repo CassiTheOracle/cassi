@@ -315,6 +315,16 @@ var _cascade_nc: int = 0   # coarse N (grid_N/2 when enabled)
 var _cf_grad_pc_bytes: PackedByteArray  # coarse-gradient PC (8 floats)
 var _cascade_ran := 0      # lifetime coarse-solve count (verify/battery diag)
 var _ready := false
+var _setup_done := false            # M0b-P: the worker's CPU-side setup complete
+var _setup_compute_done := false    # M0b-P: finish_setup ran (the GPU-facing setup)
+# M0b-P: the IC host arrays — the worker generates them (CPU); the main
+# thread uploads them in finish_setup (global-RD buffer_update is
+# render-thread-only).
+var _host_pos := PackedFloat32Array()
+var _host_vel := PackedFloat32Array()
+var _host_acc := PackedFloat32Array()
+var _host_cluster := PackedFloat32Array()
+var _host_cluster_recs := 0
 var _cond_step_counter: int = 0
 
 # — pre-allocated push-constant byte buffers (hitch-free: no per-step allocs) —
@@ -469,6 +479,22 @@ func setup(cfg: Dictionary) -> bool:
 	_snapshot_cadence = maxi(int(cfg.get("snapshot_cadence", 2)), 1)
 	_job_counter = 0
 	# ── build the chain ──
+	if _rd_global:
+		# M0b-P (one-RD): the worker's setup is CPU-only — the global RD's
+		# buffer_update AND compute lists are render-thread-only (empirically
+		# verified 2026-08-15). The GPU-facing setup (_setup_buffers +
+		# _setup_shaders + the IC uploads + the initial compute dispatches)
+		# runs on the main thread via finish_setup(); the expensive CPU-side
+		# IC generation stays on the worker (the FIX A non-blocking boot).
+		_init_particles_cpu()
+		_setup_done = true
+		print("[PhysicsEngine] setup done (worker CPU side) — grid=%d^3 particles=%d xi=%.5f (phi6=%.5f) rd_global=%s" % [
+			grid_N, N_particles, xi, PHI_6, "true" if _rd_global else "false"])
+		return true
+	# Local-RD standalone path (the verify_merge_engine battery + external
+	# local-RD consumers): the FULL setup on the caller's thread — the
+	# render-thread gate is global-RD-only; the local RD records/updates
+	# freely (the legacy behavior).
 	_setup_buffers()
 	_setup_shaders()
 	if not _ready:
@@ -481,13 +507,36 @@ func setup(cfg: Dictionary) -> bool:
 		if not _bh_int_pipe.is_valid(): missing.append("bh_integrate")
 		push_error("[PhysicsEngine] setup failed: pipes missing = %s (spirv dict size=%d)" % [str(missing), _cfg_spirv.size()])
 		return false
+	_init_particles_cpu()
+	_upload_particles()
 	_init_field()
-	_init_particles()
 	_apply_gravity_calibration()
 	_grav_warmup = true  # fill the acc cache with a fresh force before step 1
-	print("[PhysicsEngine] ready — grid=%d^3 particles=%d xi=%.5f (phi6=%.5f) rd_global=%s" % [
-		grid_N, N_particles, xi, PHI_6, "true" if _rd_global else "false"])
+	_setup_compute_done = true   # the local path defers nothing
+	_setup_done = true
+	print("[PhysicsEngine] setup done (local RD) — grid=%d^3 particles=%d xi=%.5f (phi6=%.5f)" % [
+		grid_N, N_particles, xi, PHI_6])
 	return true
+
+
+## Main-thread (render thread): the GPU-facing setup + the deferred initial
+## compute dispatches — the global RD's buffer_update + compute lists are
+## render-thread-only, so the worker's setup cannot run them. The sim calls
+## this once setup_ready() is true, before the first frame's chain.
+## Idempotent.
+func finish_setup() -> void:
+	if _setup_compute_done:
+		return
+	_setup_compute_done = true
+	_setup_buffers()
+	_setup_shaders()
+	if not _ready:
+		push_error("[PhysicsEngine] finish_setup: pipes missing (spirv dict size=%d)" % [_cfg_spirv.size()])
+		return
+	_upload_particles()
+	_init_field()
+	_apply_gravity_calibration()
+	_grav_warmup = true  # fill the acc cache with a fresh force before step 1
 
 
 ## Record the full per-step chain n times. On a global RD the list is
@@ -502,21 +551,80 @@ func setup(cfg: Dictionary) -> bool:
 ## buffers (mode-7 gather) and writing _tree_grad directly; the steps below
 ## then read a fresh gradient (the old bootstrap semantics — no staging
 ## readbacks, no 32 MB seam upload, no tree worker on this path).
+## M0b-P (one-RD): record the pending steps (target − executed, capped) into
+## the OPEN list — the render thread's frame list ("strict per-frame staged
+## command list": the sim opens the list, calls update_bh_header() BEFORE
+## the begin, records the chain here, records the render passes, ends; the
+## renderer's frame machinery submits). The engine's accounting
+## (executed/step_count/time) advances here; the readbacks (telemetry/COM)
+## are the sim's job-boundary accepted group. Returns the recorded count.
+func record_pending_steps(cl: int, target: int) -> int:
+	if _rd == null or not _ready:
+		return 0
+	var steps := target - _executed
+	if steps <= 0:
+		return 0
+	var tree_job := _tree_job_due()
+	if tree_job:
+		steps = mini(steps, TREE_JOB_STEP_CAP)
+	else:
+		steps = mini(steps, JOB_STEP_CAP)
+	if tree_job:
+		_tree_run_in_list(cl)   # the tree build+walk in THIS list (live buffers)
+	for _s in range(steps):
+		_step_dispatches(cl)
+	_executed += steps
+	if particle_merge and steps > 0 and N_particles > 0:
+		_merge_step_counter += steps
+	return steps
+
+
+## M0b-P: the local-RD standalone run-a-batch form — the legacy API the
+## verify_merge_engine battery drives (a main-thread local RD + submit/sync
+## per call, the merge's per-cycle prefix-sum readbacks). The decoupled/
+## one-RD path never calls this (the render thread records the frame's
+## list); the local-RD path records its own list + submit/syncs here.
 func run_steps(n: int, wait := true, tree_in_list := false) -> void:
+	if _rd == null or not _ready or _rd_global:
+		return
+	update_bh_header()
+	var cl := _rd.compute_list_begin()
+	record_pending_steps(cl, _executed + n)
+	_rd.compute_list_end()
+	_rd.submit()
+	_local_pending = true
+	if wait:
+		_rd.sync()
+		_local_pending = false
+	if mesh_rebuild_due():
+		_mesh_rebuild()
+	run_merge_if_due()
+
+
+## M0b-P: the merge's step-cadence gate — the caller (the local-RD
+## standalone path) runs the merge AFTER the list ends (the merge records
+## its own lists + prefix-sum readbacks — illegal inside an open list).
+func merge_due() -> bool:
+	return particle_merge and _step_count > 0 and _merge_step_counter >= _merge_cadence_eff()
+
+
+func run_merge_if_due() -> void:
+	if merge_due():
+		_merge_step_counter = 0
+		_run_merge_pass()
+
+
+## M0b-P: the BH header (count/G_N/extent/toggle/dual + the window origin)
+## — constant across the frame's steps; the buffer_update MUST run BEFORE
+## the frame's compute_list_begin (the header contract — an update inside
+## the open list would land after the chain's dispatches).
+func update_bh_header() -> void:
 	if _rd == null or not _ready:
 		return
-	# BH header (count/G_N/extent/toggle/dual) — constant across the
-	# frame's steps; buffer_update must run BEFORE compute_list_begin.
-	# bh[3].x = black_holes_enabled (float 48), bh[3].y = dual_grid (52),
-	# bh[3].z = gradient_order (56), bh[3].w = tree G_SCALE (60),
-	# bh[1].xyz = the dual-grid offset extent_i/N (floats 16/20/24).
 	_bh_init_bytes.encode_float(48, 1.0 if black_holes_enabled else 0.0)
 	_bh_init_bytes.encode_float(52, 1.0 if dual_grid else 0.0)
 	_bh_init_bytes.encode_float(56, float(gradient_order))
 	_bh_init_bytes.encode_float(60, ML_TREE_G_SCALE if (meshless_mode and meshless_gravity) else 1.0)
-	# Movable home-window: bh[0].yzw = the field grid's world-origin offset
-	# (floats 4/8/12 — zero = the fixed-origin box, bit-identical); the
-	# nbody samplers subtract it in the world→grid map.
 	_bh_init_bytes.encode_float(4, _window_center.x)
 	_bh_init_bytes.encode_float(8, _window_center.y)
 	_bh_init_bytes.encode_float(12, _window_center.z)
@@ -525,41 +633,35 @@ func run_steps(n: int, wait := true, tree_in_list := false) -> void:
 	_bh_init_bytes.encode_float(20, off_dual.y)
 	_bh_init_bytes.encode_float(24, off_dual.z)
 	_rd.buffer_update(_bh_buf, 0, _bh_init_bytes.size(), _bh_init_bytes)
-	var cl := _rd.compute_list_begin()
-	if tree_in_list:
-		_tree_run_in_list(cl)   # M0: the tree build+walk in THIS list (live buffers)
-	for _s in range(n):
-		_step_dispatches(cl)
-	_rd.compute_list_end()
-	if not _rd_global:
-		_rd.submit()
-		_local_pending = true
-		if wait:
-			_rd.sync()
-			_local_pending = false
-		# ── Cassi particle merge (opt-in, LOCAL-RD engine only): runs AFTER
-		# the step list, on the worker's local RD where submit()+sync() per
-		# cycle is legal (global RD cannot submit — "Only local devices can
-		# submit and sync."). The merge's cycle loop needs a host CPU
-		# prefix-sum (buffer_get_data) between its spatial-hash passes; the
-		# local RD makes those readbacks synchronous here. On a global-RD
-		# engine instance this is skipped — the sim's _render_frame hook
-		# drives it. Cadence: per run_steps batch (R_m ≈ 0.586 world units is
-		# crossed in ~586 dt=0.001 steps ≫ a batch, so per-batch is far inside
-		# the reaction budget).
-		if particle_merge and n > 0 and N_particles > 0:
-			_merge_step_counter += n
-			if _merge_step_counter >= _merge_cadence_eff():
-				_merge_step_counter = 0
-				_run_merge_pass()
-	# Meshless steering: rebuild the mesh every ML_REBUILD steps on a fixed
-	# residue (13 mod 25) — de-correlated from the tree job's job-counter
-	# residue (1 mod tree_cadence) so the two burst classes never stack on
-	# one pulse (perf-decomp 2026-08-15). The rebuild is a standalone
-	# compute list + readbacks — on a local RD it stalls only THIS engine's
-	# physics (the decoupling win); on the global RD the readbacks self-stall.
-	if meshless_mode and _ml_ready and not freeze_field and _step_count % ML_REBUILD == 13:
-		_mesh_rebuild()
+
+
+## M0b-P: the meshless rebuild cadence (residue 13 mod 25) — the sim calls
+## mesh_rebuild() AFTER the frame's list ends (the rebuild records its own
+## list + readbacks — illegal inside the open frame list).
+func mesh_rebuild_due() -> bool:
+	return meshless_mode and _ml_ready and not freeze_field and _step_count % ML_REBUILD == 13
+
+
+## M0b-P: the subsampled center of mass of the live pos buffer — the window
+## tracker's source (the host-side mirror is gone with the snapshots).
+## Main-thread readback; the accepted job-boundary group.
+func read_com() -> Array:
+	if _rd == null or not _ready:
+		return []
+	var np1 := maxi(N_particles, 1)
+	var posf: PackedFloat32Array = _rd.buffer_get_data(_pos_buf, 0, np1 * 16).to_float32_array()
+	var com := Vector3.ZERO
+	var cnt := 0
+	var i := 0
+	while i < posf.size():
+		com.x += posf[i]
+		com.y += posf[i + 1]
+		com.z += posf[i + 2]
+		cnt += 1
+		i += 32 * 4
+	if cnt <= 0:
+		return []
+	return [com.x / float(cnt), com.y / float(cnt), com.z / float(cnt)]
 
 
 ## The mirror state the render side will consume (phase 2): positions,
@@ -839,156 +941,60 @@ func start_threaded(cfg: Dictionary) -> bool:
 ## publish. block=true on the first-call is IGNORED (still non-blocking) —
 ## callers that need the first snapshot must poll. job_meta rides into the
 ## job dict: "cadence" (publish every Kth job) and "packed" (fp16 half-pair).
-func submit_steps(target: int, block := false, job_meta: Dictionary = {}) -> Dictionary:
-	if not _thread_started:
-		return {}
-	if _wait_next:
-		# Bootstrap (FIX A): queue immediately, never block on setup. The
-		# worker processes the job right after setup() posts _setup_sem; the
-		# publish lands in _res_result and poll()/setup_ready() observe it.
-		_wait_next = false
-		_job_mutex.lock()
-		_job = {"target": target}
-		_job.merge(job_meta)
-		_job_pending = true
-		_job_mutex.unlock()
-		_job_sem.post()
-		return {}
-	_job_mutex.lock()
-	_job = {"target": target}
-	_job.merge(job_meta)
-	_job_pending = true
-	_job_mutex.unlock()
-	_job_sem.post()
-	if block:
-		return _wait_executed(target)
-	return {}
-
-
-## FIX A: non-blocking readiness poll — true once the worker's setup() has
-## finished (buffers/pipelines built). The bootstrap job is queued by the
-## first submit_steps BEFORE setup completes, so the caller polls this +
-## poll() until the first publish arrives; the main thread never blocks.
+## FIX A: non-blocking readiness poll — true once the worker's CPU-side
+## setup has finished (the config read + the IC generation into the host
+## arrays). The caller then runs finish_setup() on the render thread (the
+## GPU-facing setup + the initial compute dispatches) before the first
+## frame's chain.
 func setup_ready() -> bool:
-	return _ready and _thread_started
+	return _setup_done and _thread_started
 
 
-## Block until a publish with executed >= target arrives and return the
-## freshest such publish. Robust against leftover done-posts from coalesced
-## async jobs: the publish is re-checked after every wakeup, so a stale
-## post just causes one extra wait round.
-func _wait_executed(target: int) -> Dictionary:
-	while true:
-		var r := _consume_latest()
-		if int(r.get("executed", -1)) >= target:
-			return r
-		_done_sem.wait()
-	return {}   # unreachable — the loop only exits via the return above
-
-
-## Non-blocking: the freshest UNCONSUMED completed publish.
-func poll() -> Dictionary:
-	return _consume_latest()
-
-
-## Stop the threaded runner (reinit / exit). MAIN thread: joins the worker,
-## whose exit path shuts the engine down on the worker (local-RD frees —
-## never uniform sets, per the threading contract).
+## Stop the threaded runner (reinit / exit). MAIN thread: joins the worker
+## (already exited after its CPU-side setup — the one-RD model has no job
+## loop), then frees the engine's RIDs on the main thread. The global RD is
+## the sim's — never freed here (owns_rd false).
 func stop_threaded() -> void:
 	if _thread != null and _thread_started:
 		_running = false
-		_job_sem.post()   # wake the worker so it observes _running == false
 		_thread.wait_to_finish()
 		_thread_started = false
 		_thread = null
-		_rd = null        # the worker's shutdown() already freed the device
-		_ready = false
-		_executed = 0
+	shutdown()
+	_rd = null        # the shutdown freed the RIDs; the RD itself is the sim's
+	_ready = false
+	_executed = 0
 
 
-## The worker thread: create the local RD, run setup() on THIS thread (IC
-## generation + buffer fills are thread-safe here), then loop on jobs.
+## The worker thread: run setup() on THIS thread (IC generation + buffer
+## fills are thread-safe here), then loop on jobs. The RD comes from the
+## cfg when the consumer passes its global device (the M0b-P one-RD
+## migration — the engine records its chains into the consumer's queue and
+## the renderer's frame machinery submits; "Only local devices can submit
+## and sync", so rd_global chains never submit/sync here). Without a passed
+## RD the worker falls back to its own local RenderingDevice.
 func _threaded_main(wcfg: Dictionary) -> void:
-	var local_rd: RenderingDevice = RenderingServer.create_local_rendering_device()
-	if local_rd == null:
-		push_error("[PhysicsEngine] worker: local RD create failed")
+	var rd: RenderingDevice = wcfg.get("rd") as RenderingDevice
+	var own_rd := false
+	if rd == null or not bool(wcfg.get("rd_global", false)):
+		rd = RenderingServer.create_local_rendering_device()
+		own_rd = true
+	if rd == null:
+		push_error("[PhysicsEngine] worker: RD create/get failed")
 		_setup_sem.post()
 		return
-	wcfg["rd"] = local_rd
-	wcfg["rd_global"] = false
-	wcfg["owns_rd"] = true
+	wcfg["rd"] = rd
+	wcfg["rd_global"] = not own_rd
+	wcfg["owns_rd"] = own_rd
 	var ok := setup(wcfg)
 	_setup_sem.post()
-	if ok:
-		while true:
-			_job_sem.wait()
-			if not _running:
-				break
-			_job_mutex.lock()
-			var job := _job
-			_job_pending = false
-			_job_mutex.unlock()
-			_threaded_run_job(job)
-			_done_sem.post()
-	shutdown()  # worker-side: frees buffers/pipes/shaders + the local RD
-
-## One job: run up to (target − executed) steps, then publish. The
-## snapshot + telemetry readbacks run every Kth job (job "cadence", cfg
-## snapshot_cadence default) — the publish cadence optimization: non-publish
-## jobs carry ONLY {executed, step_count, t}, and the sim skips the mirror
-## upload while still tracking the backlog/readouts. The first job always
-## publishes (the bootstrap needs the immediate snapshot).
-func _threaded_run_job(job: Dictionary) -> void:
-	var target := int(job.get("target", _executed))
-	if target > _executed:
-		var steps := target - _executed
-		# Movable home-window: pick up the sim's current center per job (the
-		# sim tracks the structure COM on a 2 s cadence and ships it in the
-		# job dict; the bh header + deposit PC below encode it this job).
-		_window_center = Vector3(job.get("window_center", _window_center))
-		_home_window = bool(job.get("home_window", _home_window))
-		# Tree consumer: stage the pre-batch meshless/pos state and submit a
-		# tree job (cadence-gated); the freshest completed gradient then
-		# feeds the batch's mode-5 nbody via run_steps(tree_grad). On a
-		# tree-cadence job the staging readbacks (32 MB pos + rho + sites)
-		# drain THIS engine's RD — cap the job's step budget so the drain
-		# stays short even under a large backlog (perf-decomp 2026-08-15:
-		# the freeze duration must stop growing with the run length).
-		var tree_job := _tree_job_due()
-		if tree_job:
-			steps = mini(steps, TREE_JOB_STEP_CAP)
-		else:
-			steps = mini(steps, JOB_STEP_CAP)
-		run_steps(steps, true, tree_job)  # wait=true → submit+sync; tree dispatches in-list on cadence jobs
-		_executed += steps
-	var cadence := maxi(int(job.get("cadence", _snapshot_cadence)), 1)
-	var publish := (_job_counter % cadence) == 0
-	_job_counter += 1
-	var res: Dictionary = {
-		"executed": _executed,
-		"step_count": _step_count,
-		"t": _time,
-	}
-	if publish:
-		var snap := readback_snapshot(bool(job.get("packed", false)))
-		var tel := readback_telemetry(snap.get("field_q", PackedFloat32Array()))
-		res["snapshot"] = snap
-		res["telemetry"] = tel
-	_res_mutex.lock()
-	_res_result = res
-	_res_gen += 1
-	_res_mutex.unlock()
-
-
-func _consume_latest() -> Dictionary:
-	_res_mutex.lock()
-	var gen := _res_gen
-	var res := _res_result
-	_res_mutex.unlock()
-	if gen > _consumed_gen and not res.is_empty():
-		_consumed_gen = gen
-		return res
-	return {}
+	# M0b-P (one-RD): the chains are recorded by the RENDER thread — global-RD
+	# compute lists are render-thread-only (empirically verified 2026-08-15).
+	# The worker's job loop is GONE: it exits after the CPU-side setup; the
+	# sim drives the accounting + the chain recording per frame (the
+	# renderer's frame machinery submits) and owns the shutdown
+	# (stop_threaded frees the engine's RIDs on the main thread).
+	return
 
 
 ## Free buffers/pipes/shaders (NOT the uniform sets — see the header
@@ -1584,10 +1590,16 @@ func _init_field() -> void:
 		_meshless_init()
 
 
-func _init_particles() -> void:
-	var pos := PackedFloat32Array(); pos.resize(N_particles * 4)
-	var vel := PackedFloat32Array(); vel.resize(N_particles * 4)
-	var acc := PackedFloat32Array(); acc.resize(N_particles * 4)
+func _init_particles_cpu() -> void:
+	# M0b-P: the CPU-side IC generation into the HOST arrays (the worker's
+	# setup — no GPU calls; the uploads are the main thread's job in
+	# finish_setup). The stat prints are the same as the legacy path.
+	_host_pos = PackedFloat32Array(); _host_pos.resize(N_particles * 4)
+	_host_vel = PackedFloat32Array(); _host_vel.resize(N_particles * 4)
+	_host_acc = PackedFloat32Array(); _host_acc.resize(N_particles * 4)
+	var pos := _host_pos
+	var vel := _host_vel
+	var acc := _host_acc
 	var rng := RandomNumberGenerator.new()
 	if _seed_set:
 		rng.seed = _seed
@@ -1648,7 +1660,8 @@ func _init_particles() -> void:
 	var n_rec := mini(nc, 64)
 	if n_rec < nc:
 		push_warning("num_clusters=%d exceeds the 64-record cluster buffer cap; using %d records" % [nc, n_rec])
-	_rd.buffer_update(_cluster_buf, 0, n_rec * 4 * 4, cluster_data.to_byte_array())
+	_host_cluster = cluster_data
+	_host_cluster_recs = n_rec
 
 	var max_r: float = 0.0
 	var max_comp: float = 0.0
@@ -1779,9 +1792,12 @@ func _init_particles() -> void:
 		vel[i4 + 2] = (nz + rng.randf_range(-pert, pert)) * v_circ + bv.z
 		vel[i4 + 3] = 0.0
 
-	_rd.buffer_update(_pos_buf, 0, pos.size() * 4, pos.to_byte_array())
-	_rd.buffer_update(_vel_buf, 0, vel.size() * 4, vel.to_byte_array())
-	_rd.buffer_update(_acc_buf, 0, acc.size() * 4, acc.to_byte_array())
+	# M0b-P: the IC arrays stay HOST-side (the worker cannot buffer_update
+	# the global RD — render-thread-only); finish_setup's _upload_particles
+	# ships them.
+	_host_pos = pos
+	_host_vel = vel
+	_host_acc = acc
 
 	# Retained fraction (analytic, per profile — min over clusters)
 	var retained: float = retained_min if retained_min < INF else 1.0
@@ -1805,6 +1821,24 @@ func _init_particles() -> void:
 	print("[PhysicsEngine] IC [%s]: retained=%.4f  max_radius=%.1f  max|comp|=%.1f  out_of_box=%d (fr=%.2f, extent_min=%.1f, aspect=%s)" % [
 		ic_name, retained, max_r, max_comp, out_box, fr, extent_min, str(box_aspect)])
 	print("[PhysicsEngine] Particles initialized: %d (Σm=%.1f, m_mean=%.4f)" % [N_particles, total_mass, total_mass / float(maxi(N_particles, 1))])
+
+
+## M0b-P: the IC host arrays → the GPU buffers. MAIN THREAD (the global
+## RD's buffer_update is render-thread-only — the worker's CPU-side
+## _init_particles_cpu can only stash). Called by finish_setup.
+func _upload_particles() -> void:
+	if _host_cluster.size() > 0:
+		_rd.buffer_update(_cluster_buf, 0, _host_cluster_recs * 4 * 4, _host_cluster.to_byte_array())
+	if _host_pos.size() > 0:
+		_rd.buffer_update(_pos_buf, 0, _host_pos.size() * 4, _host_pos.to_byte_array())
+	if _host_vel.size() > 0:
+		_rd.buffer_update(_vel_buf, 0, _host_vel.size() * 4, _host_vel.to_byte_array())
+	if _host_acc.size() > 0:
+		_rd.buffer_update(_acc_buf, 0, _host_acc.size() * 4, _host_acc.to_byte_array())
+	_host_pos = PackedFloat32Array()
+	_host_vel = PackedFloat32Array()
+	_host_acc = PackedFloat32Array()
+	_host_cluster = PackedFloat32Array()
 
 
 # ── Resolution-aware river calibration (opt-in; ported verbatim) ────────

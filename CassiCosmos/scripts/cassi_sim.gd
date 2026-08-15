@@ -336,6 +336,7 @@ var _vsync_enabled: bool = true
 @export var home_window_enabled: bool = false
 var _window_center := Vector3.ZERO        # the field grid's world-origin offset
 var _win_track_last_ms: int = 0           # slow-cadence COM tracker (2 s)
+var _pub_com: Vector3 = Vector3.INF       # P3: engine-published COM (window tracker source)
 ## Fixed seed for the initial conditions (0 = the legacy random init).
 ## Applied to BOTH the inline IC generators and the decoupled engine's ICs.
 @export var ic_seed: int = 0
@@ -457,6 +458,11 @@ var _blend_sh: RID; var _blend_pipe: RID; var _blend_pc: PackedByteArray
 var _us_blend_0: RID            # fp32 set (inline + decoupled fp32 bootstrap)
 var _us_blend_0_packed: RID     # decoupled set: packed pos_prev/pos half-pairs → pos_render
 var _us_blend_0_velpack: RID    # decoupled set: packed vel half-pairs → fp32 _vel_buf
+var _us_blend_0_dc: RID         # P3 one-RD set: the ENGINE's live fp32 pos → pos_render (−c seam)
+var _us_inst_0_render_dc: RID   # P3 one-RD instancer set: pos_render + the ENGINE's vel/fields
+var _us_inst_0_lut_render_dc: RID
+var _us_qhist_0_render_dc: RID  # P3 one-RD qhist set: pos_render + the ENGINE's field_q
+var _us_occ_0_dc: RID           # P3 one-RD occupancy set: the ENGINE's pos
 # — Decoupled physics producer (the standalone engine on a worker thread) —
 var _physics_engine = null            # CassiPhysicsEngine (untyped: dynamic dispatch)
 var _decoupled_active := false        # decoupled AND meshless off (the grid path)
@@ -464,6 +470,7 @@ var _decoupled_boot_wait := false     # FIX A: true until the first publish land
 var _decoupled_boot_start_ms := 0     # FIX A: wall clock when boot began (timeout)
 var _decoupled_boot_last_progress_ms := 0  # FIX A: wall clock of the last bootstrap progress print
 var _decoupled_target := 0            # cumulative REQUESTED steps (the job target)
+var _pub_counter := 0                 # M0b-P: publish cadence counter (the frame-path jobs)
 var _decoupled_pending := 0           # truthful backlog = target − executed (UI "behind X s")
 var _decoupled_prev_pos := PackedFloat32Array()  # host-side snapshot pair
 var _decoupled_curr_pos := PackedFloat32Array()  #  (prev = the last rendered state)
@@ -1031,20 +1038,19 @@ func _process(delta: float) -> void:
 		_step_timer += delta * sim_speed
 		var n_steps := 0   # shared with the post-batch merge gate below
 		if _decoupled_active:
-			# ── Decoupled pacing: NO time budget (physics is async on the
-			# engine's worker thread) — only the per-frame REQUEST ceiling
-			# and the backlog cap. The engine coalesces targets, so
-			# over-requesting costs nothing; under-requesting is the
-			# truthful backlog (_decoupled_pending).
+			# ── Decoupled pacing: only the per-frame REQUEST ceiling and the
+			# backlog cap. The target accumulates; the ENGINE's
+			# record_pending_steps (called from _render_frame) consumes the
+			# pending (target − executed) in the frame's list — under-requesting
+			# is the truthful backlog (_decoupled_pending).
 			# BOOT GATE: during the decoupled bootstrap the engine is still
 			# building ICs on its worker thread. Requesting steps then would
-			# accumulate _decoupled_target, and the engine coalesces targets
-			# (newest wins), so the queued boot job (target 1) would be
-			# replaced by the accumulated target — the first snapshot would
-			# arrive already hundreds of steps advanced (the "particles pop in
-			# already evolved" artifact). Hold the pacing timer at 0 during
-			# boot so the first post-boot request is ~1 step and the first
-			# snapshot shows the freshly-initialized cluster near t = 0.
+			# accumulate _decoupled_target, and the first chain after boot
+			# would execute the whole accumulated target at once (the
+			# "particles pop in already evolved" artifact). Hold the pacing
+			# timer at 0 during boot so the first post-boot request is ~1
+			# step and the first chain shows the freshly-initialized cluster
+			# near t = 0.
 			if _decoupled_boot_wait:
 				_step_timer = 0.0
 			else:
@@ -1058,7 +1064,6 @@ func _process(delta: float) -> void:
 					_step_timer = backlog_cap
 				if n_steps > 0:
 					_decoupled_target += n_steps
-					_physics_engine.submit_steps(_decoupled_target, false, _decoupled_job_meta(true))
 		else:
 			# ── Paced fixed-dt with a TIME BUDGET (the smooth-run design) ────
 			# The accumulator requests delta × sim_speed / dt steps — the
@@ -1105,14 +1110,21 @@ func _process(delta: float) -> void:
 func _run_physics_steps(n_steps: int) -> void:
 	if _decoupled_active:
 		# Decoupled SYNC path (probes / paused repaints / external callers):
-		# submit a blocking request to the engine and refresh the mirrors.
-		# The async frame path submits non-blocking from _process instead.
+		# the chain records on the render thread; the readbacks self-stall =
+		# the sync. The async frame path records from _render_frame instead.
 		if _physics_engine == null or n_steps <= 0:
 			return
 		_decoupled_target += n_steps
-		var pub: Dictionary = _physics_engine.submit_steps(_decoupled_target, true, _decoupled_job_meta(true))
-		if not pub.is_empty():
-			_apply_decoupled_publish(pub)
+		if not _physics_engine.setup_ready():
+			return
+		_physics_engine.update_bh_header()
+		var cl := _rd.compute_list_begin()
+		var executed: int = _physics_engine.record_pending_steps(cl, _decoupled_target)
+		_rd.compute_list_end()
+		if executed > 0:
+			if _physics_engine.mesh_rebuild_due():
+				_physics_engine._mesh_rebuild()
+			_apply_decoupled_publish(_engine_read_publish(true))
 		return
 	# BH header (count/G_N/extent/toggle/dual) — constant across the frame's
 	# steps; buffer_update must run BEFORE compute_list_begin.
@@ -1529,9 +1541,20 @@ func _barrier(cl: int) -> void:
 ## FIRST snapshot lands as fp32 (seeds _pos_buf/_pos_render_buf for the
 ## frame-0 repaint and the pre-packed blend frames); every later job is
 ## packed (the fp16 half-pair mirrors).
-func _decoupled_job_meta(packed: bool) -> Dictionary:
-	return {"cadence": maxi(mirror_publish_cadence, 1), "packed": packed,
-			"window_center": _window_center, "home_window": home_window_enabled}
+## P3 (M0b-P): build the publish dict at the job boundary — the readbacks
+## (telemetry + the tracker COM) are the accepted group; the snapshots are
+## gone (the render reads the engine's live buffers). force_telemetry:
+## the sync path always reads; the frame path reads at the cadence.
+func _engine_read_publish(force_telemetry: bool) -> Dictionary:
+	var eng: Object = _physics_engine
+	var pub := {"executed": eng._executed, "step_count": eng._step_count, "t": eng._time}
+	if force_telemetry:
+		pub["telemetry"] = eng.readback_telemetry()
+		if home_window_enabled and Time.get_ticks_msec() - _win_track_last_ms >= 2000:
+			var c: Array = eng.read_com()
+			if not c.is_empty():
+				pub["com"] = c
+	return pub
 
 
 ## Build the engine cfg from the live exports (an explicit dict with the
@@ -1576,25 +1599,20 @@ func _decoupled_start_engine() -> bool:
 		"bh_accretion": bh_accretion,
 		"bh_accretion_radius": bh_accretion_radius,
 	}
-	# Tree worker (decoupled + meshless + tree): created + started HERE on
-	# the MAIN thread (start() loads the tree shaders — not thread-safe
-	# off-main); the engine worker consumes it via submit()/poll(). The
-	# sim's own main-thread _tree_worker_frame orchestration is skipped in
-	# decoupled mode. If the tree worker fails to start, degrade to the
-	# river chain (meshless_gravity off) rather than run mode-5 with an
-	# empty gradient (zero force).
-	if meshless_mode and meshless_gravity:
-		_tree_worker_stop()   # restart-clean (stop-order: engine first — done by the caller)
-		var S := 2 * ML_N1 * ML_N1 * ML_N1
-		var N3 := grid_N * grid_N * grid_N
-		var w: RefCounted = load("res://scripts/cassi_tree_worker.gd").new()
-		if w.start(S, N3, N_particles):
-			_tree_worker = w
-			cfg["tree_worker"] = _tree_worker
-			cfg["tree_cadence"] = _tree_local_cadence
-		else:
-			push_warning("[CassiSim] decoupled tree worker failed to start — river fallback")
-			cfg["meshless_gravity"] = false
+	# M0b-P (one-RD): the engine runs its chains on THIS sim's global RD —
+	# no worker-local device, no mirrors (P3). The worker records into the
+	# shared queue; the renderer's frame machinery submits; the engine
+	# never submit/syncs (the "Only local devices can submit and sync"
+	# contract — the engine's rd_global branch already implements it).
+	cfg["rd"] = _rd
+	cfg["rd_global"] = true
+	cfg["owns_rd"] = false
+	# M0b-P: the tree worker is NOT created in decoupled mode — the tree
+	# build+walk runs in the engine's own list (M0) on the shared RD; the
+	# worker's local RD was the third device in the topology (and its boot
+	# cost ~1 s). The tree CADENCE still ships (the engine's in-list gate —
+	# the engine's default would otherwise be every chain).
+	cfg["tree_cadence"] = _tree_local_cadence
 	if ic_seed != 0:
 		cfg["seed"] = ic_seed
 	if not _physics_engine.start_threaded(cfg):
@@ -1627,7 +1645,6 @@ func _decoupled_start_engine() -> bool:
 	# (both the first-snapshot path and the timeout→inline fallback).
 	if _mmi != null:
 		_mmi.visible = false
-	_physics_engine.submit_steps(1, false, _decoupled_job_meta(false))
 	print("[CassiSim] decoupled bootstrap queued (non-blocking) — main thread free")
 	return true
 
@@ -1640,8 +1657,6 @@ func _decoupled_start_engine() -> bool:
 ## the interpolation timing — the alpha keeps sweeping across the SNAPSHOT
 ## interval, so the display lag stays ≤ one publish interval at any cadence.
 func _apply_decoupled_publish(pub: Dictionary) -> void:
-	var snap: Dictionary = pub.get("snapshot", {})
-	var has_snap := not snap.is_empty()
 	# Time / step / truthful backlog on EVERY publish (snapshot or not).
 	_time = float(pub.get("t", _time))
 	_step_count = int(pub.get("step_count", _step_count))
@@ -1660,69 +1675,17 @@ func _apply_decoupled_publish(pub: Dictionary) -> void:
 		_hubble = float(tel.get("hubble", _hubble))
 		_scale_factor = float(tel.get("scale_factor", _scale_factor))
 		_gn_eff = float(tel.get("gn_eff", _gn_eff))
-	if not has_snap:
-		return
-	# ── Mirrors (snapshot publishes only) ──
-	if bool(snap.get("packed", false)):
-		# fp16 half-pair mirrors: pos/vel land as N×8-B PackedByteArrays;
-		# the blend's packed modes unpack them into pos_render/_vel_buf.
-		var pb: PackedByteArray = snap.get("pos", PackedByteArray())
-		if pb.size() != maxi(N_particles, 1) * 8:
-			return
-		if _dc_curr_bytes.size() == pb.size():
-			_dc_prev_bytes = _dc_curr_bytes
-			# M0b: the steady-state prev-mirror shuffle is a GPU-side copy
-			# queued BEFORE the curr upload — the snapshot upload drops from
-			# 12 MB to 8 MB (the 4 MB prev copy no longer crosses the host).
-			# The copy reads the CURRENT buffer (the last publish's state) →
-			# prev; the upload then overwrites curr. The FIRST packed publish
-			# keeps the host upload below (prev = curr, so the blend's
-			# alpha≈0 first interval renders the snapshot, not zeros).
-			_rd.buffer_copy(_dc_pos_buf, _dc_pos_prev_buf, 0, 0, pb.size())
-		else:
-			_dc_prev_bytes = pb   # first publish: prev = curr (uploaded below)
-			_rd.buffer_update(_dc_pos_prev_buf, 0, pb.size(), pb)
-		_dc_curr_bytes = pb
-		_rd.buffer_update(_dc_pos_buf, 0, _dc_curr_bytes.size(), _dc_curr_bytes)
-		var vb: PackedByteArray = snap.get("vel", PackedByteArray())
-		if vb.size() > 0:
-			_dc_vel_bytes = vb
-			_rd.buffer_update(_dc_vel_buf, 0, vb.size(), vb)
-	else:
-		# fp32 mirrors (the bootstrap publish + any engine-side fallback).
-		var pos: PackedFloat32Array = snap.get("pos", PackedFloat32Array())
-		if pos.size() != maxi(N_particles, 1) * 4:
-			return
-		# Host-side snapshot pair (the blend roll is NOT dispatched in the
-		# decoupled path — pos_prev is maintained here instead).
-		if _decoupled_curr_pos.size() == pos.size():
-			_decoupled_prev_pos = _decoupled_curr_pos
-		else:
-			_decoupled_prev_pos = pos   # first publish: prev = curr
-		_decoupled_curr_pos = pos
-		_rd.buffer_update(_pos_prev_buf, 0, _decoupled_prev_pos.size() * 4, _decoupled_prev_pos.to_byte_array())
-		_rd.buffer_update(_pos_buf, 0, _decoupled_curr_pos.size() * 4, _decoupled_curr_pos.to_byte_array())
-		# Seed pos_render with the current state too: the pre-packed blend
-		# frames and the frame-0/paused repaint path read it (decoupled).
-		_rd.buffer_update(_pos_render_buf, 0, _decoupled_curr_pos.size() * 4, _decoupled_curr_pos.to_byte_array())
-		var vel: PackedFloat32Array = snap.get("vel", PackedFloat32Array())
-		if vel.size() > 0:
-			_rd.buffer_update(_vel_buf, 0, vel.size() * 4, vel.to_byte_array())
-	# field_q stays fp32 in both paths.
-	var fq: PackedFloat32Array = snap.get("field_q", PackedFloat32Array())
-	if fq.size() > 0:
-		_rd.buffer_update(_field_q, 0, fq.size() * 4, fq.to_byte_array())
-	# FIX C1: the pot mirror is DROPPED — no decoupled consumer reads _fft_buf
-	# (the only reader, _report_poisson_residual, is explicitly gated off the
-	# decoupled path). Skipping the interleave + upload saves the pot readback
-	# + a nc-vec2 upload per publish; the engine still carries pot in its
-	# snapshot for any phase-2 consumer that turns up (the engine-side cost is
-	# ~2 MB, negligible vs pos/vel).
-	# Interpolation timing: alpha ≈ 0 right at each SNAPSHOT publish and
-	# sweeps to 1 over one snapshot interval (display lags one snapshot —
-	# the standard one-batch-late interpolation; at cadence K the interval
-	# is K jobs long and the EMA measures it). Perf: snapshot-interval wall
-	# time per executed step (the decoupled "physics ms/step" number).
+	# P3 (M0b-P one-RD): the publish carries NO snapshot — the render reads
+	# the ENGINE's live buffers directly (the render sets re-point on the
+	# shared RD); the mirrors + 12 MB uploads + the pot mirror are gone.
+	# The COM (the window tracker's source) ships when the tracker is due.
+	if pub.has("com"):
+		var c: Array = pub["com"]
+		_pub_com = Vector3(float(c[0]), float(c[1]), float(c[2]))
+	# Interpolation timing: publish-interval wall time per executed step
+	# (the decoupled "physics ms/step" number). The blend's alpha is pinned
+	# at 1.0 — the render list executes AFTER the chain in the shared queue,
+	# so the render IS the live engine state (no interp lag to smooth).
 	var now_ms := Time.get_ticks_msec()
 	var prev_exec := int(pub.get("executed", 0))
 	if _last_publish_ms > 0:
@@ -1770,56 +1733,47 @@ func _track_window_center() -> void:
 	if now - _win_track_last_ms < 2000:
 		return
 	_win_track_last_ms = now
-	var pos: PackedFloat32Array = _decoupled_curr_pos
-	var n := pos.size() / 4
-	if n <= 0:
-		return
-	var com := Vector3.ZERO
-	var cnt := 0
-	var i := 0
-	while i < n * 4:
-		com.x += pos[i]
-		com.y += pos[i + 1]
-		com.z += pos[i + 2]
-		cnt += 1
-		i += 32 * 4
-	if cnt > 0:
-		com /= float(cnt)
-		var ext := _extents()
-		var max_move: float = 0.25 * minf(minf(ext.x, ext.y), ext.z)
-		var d := com - _window_center
-		var dist := d.length()
-		if dist > max_move:
-			d = d.normalized() * max_move
-		_window_center += d
-		print("[CassiSim] window -> (%.1f, %.1f, %.1f)  COM (%.1f, %.1f, %.1f)  t=%.1f s"
-				% [_window_center.x, _window_center.y, _window_center.z, com.x, com.y, com.z, float(now) / 1000.0])
+	# P3 (M0b-P one-RD): the host-side position mirror is gone — the ENGINE
+	# computes the subsampled COM at its job boundary (track_window meta)
+	# and ships it in the publish; this tracker consumes it.
+	if not _pub_com.is_finite():
+		return   # no COM published yet (engine still booting)
+	var com := _pub_com
+	var ext := _extents()
+	var max_move: float = 0.25 * minf(minf(ext.x, ext.y), ext.z)
+	var d := com - _window_center
+	var dist := d.length()
+	if dist > max_move:
+		d = d.normalized() * max_move
+	_window_center += d
+	print("[CassiSim] window -> (%.1f, %.1f, %.1f)  COM (%.1f, %.1f, %.1f)  t=%.1f s"
+			% [_window_center.x, _window_center.y, _window_center.z, com.x, com.y, com.z, float(now) / 1000.0])
 
 
 ## One decoupled frame: consume the freshest engine publish, then record
 ## the render list (blend → instancer → …).
 func _decoupled_poll_and_render() -> void:
-	# FIX A: during the non-blocking bootstrap, consume the first publish and
-	# clear the wait — but DON'T render until the mirrors are seeded (the
-	# worker is still building ICs; rendering empty buffers would be garbage).
-	var pub: Dictionary = _physics_engine.poll()
-	if not pub.is_empty():
-		_apply_decoupled_publish(pub)
+	# M0b-P (one-RD): the frame records the pending steps + the render
+	# passes into ONE list (the "strict per-frame staged command list") —
+	# global-RD compute lists are render-thread-only, so the chain cannot
+	# be recorded by the engine's worker. The renderer's frame machinery
+	# submits; the readbacks + the publish follow at the job boundary.
 	if _decoupled_boot_wait:
-		if _decoupled_curr_pos.size() == 0 and _dc_curr_bytes.size() == 0:
-			# First snapshot not yet published. If the worker failed setup (no
-			# publish ever expected), fall back to the inline path so the scene
-			# isn't stuck unmoving. The all-extras 2M-particle IC build takes
-			# ~13.5 s of worker CPU (and more under GPU/CPU contention), so the
-			# deadline is generous (45 s); a progress line prints every ~5 s so
-			# a slow-but-healthy boot is visible instead of a silent stall.
+		# P3 (M0b-P one-RD): the ENGINE's buffers hold the initialized IC —
+		# the render can start as soon as the engine's setup is ready (the
+		# mirrors are gone; the publish carries no snapshot).
+		if not _physics_engine.setup_ready():
+			# The all-extras 2M-particle IC build takes ~13.5 s of worker CPU
+			# (and more under GPU/CPU contention), so the deadline is
+			# generous (45 s); a progress line prints every ~5 s so a
+			# slow-but-healthy boot is visible instead of a silent stall.
 			var boot_elapsed := Time.get_ticks_msec() - _decoupled_boot_start_ms
 			if boot_elapsed - _decoupled_boot_last_progress_ms >= 5000:
 				_decoupled_boot_last_progress_ms = boot_elapsed
-				print("[CassiSim] decoupled bootstrap: waiting for first snapshot... %d s (IC init of %d particles takes ~13.5 s CPU on the worker)"
+				print("[CassiSim] decoupled bootstrap: waiting for engine setup... %d s (IC init of %d particles takes ~13.5 s CPU on the worker)"
 						% [int(boot_elapsed / 1000), N_particles])
 			if boot_elapsed > 45000:
-				push_error("[CassiSim] decoupled bootstrap timeout (no first snapshot) — falling back to inline")
+				push_error("[CassiSim] decoupled bootstrap timeout (engine setup) — falling back to inline")
 				_physics_engine.stop_threaded()
 				_physics_engine = null
 				_decoupled_active = false
@@ -1827,52 +1781,50 @@ func _decoupled_poll_and_render() -> void:
 				if _mmi != null:
 					_mmi.visible = true   # the inline path draws the particles now
 				_init_field(); _init_particles(); _apply_gravity_calibration(); _grav_warmup = true
-			return   # skip the render list until the first snapshot lands
+			return   # skip the render list until the engine's setup is ready
+		_physics_engine.finish_setup()   # the deferred render-thread compute init
 		_decoupled_boot_wait = false
-		print("[CassiSim] decoupled bootstrap first snapshot applied (non-blocking)")
+		print("[CassiSim] decoupled bootstrap complete (non-blocking)")
 		if _mmi != null:
-			_mmi.visible = true   # first real positions are in the mirrors
-	# Interpolation alpha: 0 right at each publish → 1 one batch later.
-	# (No publish yet → the last mirrored state renders exactly.)
-	_interp_alpha = clampf(float(Time.get_ticks_msec() - _last_publish_ms) / maxf(_batch_ema_ms, 1.0), 0.0, 1.0)
+			_mmi.visible = true   # the engine's IC state is in its live buffers
 	if not playing or not _shaders_ready:
 		return
+	_physics_engine.update_bh_header()   # BEFORE the list (the header contract)
 	var cl := _rd.compute_list_begin()
-	var packed_ready := _dc_curr_bytes.size() > 0
-	var blend_set: RID = _us_blend_0_packed if packed_ready else _us_blend_0
-	var blend_mode: float = 1.0 if packed_ready else 0.0
-	# ── Velocity unpack (packed mode): dc_vel half-pairs → fp32 _vel_buf.
-	# The instancer's binding-2 read is untouched (no instancer edit). ──
-	if packed_ready:
-		_blend_pc.encode_float(0, 0.0)
-		_blend_pc.encode_float(4, 2.0)   # packed mode 2: vel unpack
-		_rd.compute_list_bind_compute_pipeline(cl, _blend_pipe)
-		_rd.compute_list_bind_uniform_set(cl, _us_blend_0_velpack, 0)
-		_rd.compute_list_set_push_constant(cl, _blend_pc, _blend_pc.size())
-		_rd.compute_list_dispatch(cl, ceili(float(N_particles) / 64.0), 1, 1)
-	# ── Interpolation dispatch: pos_render = mix(pos_prev, pos, alpha) ──
-	if _blend_sh.is_valid() and N_particles > 0:
-		_blend_pc.encode_float(0, _interp_alpha)
-		_blend_pc.encode_float(4, blend_mode)
+	var executed: int = _physics_engine.record_pending_steps(cl, _decoupled_target)
+	# P3 (M0b-P one-RD): the decoupled render sets bind the ENGINE's live
+	# buffers — build them on the first frame the engine's setup is ready.
+	if not _us_blend_0_dc.is_valid():
+		_build_dc_sets()
+	# ── Window-seam blend (the ONLY staging — the instancer's PC has no
+	# room for the window center): the engine's live fp32 pos → pos_render
+	# − c. Alpha pinned at 1.0 — the render list executes AFTER the chain
+	# in the shared queue, so the render IS the live engine state (no
+	# interp lag to smooth, no prev/curr pair). No vel-unpack — the
+	# instancer's DC set reads the engine's fp32 vel directly. ──
+	if _blend_sh.is_valid() and N_particles > 0 and _us_blend_0_dc.is_valid():
+		_blend_pc.encode_float(0, 1.0)   # alpha — the live state
+		_blend_pc.encode_float(4, 0.0)   # mode 0 — raw copy + the −c seam
 		_blend_pc.encode_float(8, -_window_center.x)
 		_blend_pc.encode_float(12, -_window_center.y)
 		_blend_pc.encode_float(16, -_window_center.z)
 		_rd.compute_list_bind_compute_pipeline(cl, _blend_pipe)
-		_rd.compute_list_bind_uniform_set(cl, blend_set, 0)
+		_rd.compute_list_bind_uniform_set(cl, _us_blend_0_dc, 0)
 		_rd.compute_list_set_push_constant(cl, _blend_pc, _blend_pc.size())
 		_rd.compute_list_dispatch(cl, ceili(float(N_particles) / 64.0), 1, 1)
-	_barrier(cl)  # blend pos_render/vel writes → instancer read
-	# ── Instancer (render variant — binding 0 reads pos_render) ──
-	if _instancer_shader.is_valid() and N_particles > 0:
+	_barrier(cl)  # blend pos_render writes → instancer read
+	# ── Instancer (render variant — binding 0 reads pos_render; the DC
+	# set reads the ENGINE's vel + field buffers directly) ──
+	if _instancer_shader.is_valid() and N_particles > 0 and _us_inst_0_render_dc.is_valid():
 		_fill_instancer_pc()
 		var ipg := ceili(float(N_particles) / 256.0)
 		_rd.compute_list_bind_compute_pipeline(cl, _instancer_pipe)
-		_rd.compute_list_bind_uniform_set(cl, _us_inst_0_lut_render if _lut_active() else _us_inst_0_render, 0)
+		_rd.compute_list_bind_uniform_set(cl, _us_inst_0_lut_render_dc if _lut_active() else _us_inst_0_render_dc, 0)
 		_rd.compute_list_set_push_constant(cl, _instancer_pc_bytes, _instancer_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, ipg, 1, 1)
 	# ── q-histogram (auto color-align; RENDER variant reads pos_render —
-	# the same interpolated snapshot the instancer draws) ──
-	if _qhist_pipe.is_valid() and _us_qhist_0_render.is_valid() and auto_align_colors \
+	# the same snapshot the instancer draws — + the ENGINE's field_q) ──
+	if _qhist_pipe.is_valid() and _us_qhist_0_render_dc.is_valid() and auto_align_colors \
 			and particle_color_mode >= 2 and N_particles > 0:
 		var qext := _extents()
 		_qhist_pc_bytes.encode_float(0, float(grid_N))
@@ -1889,11 +1841,73 @@ func _decoupled_poll_and_render() -> void:
 		_qhist_pc_bytes.encode_float(44, -_window_center.y)
 		_qhist_pc_bytes.encode_float(48, -_window_center.z)
 		_rd.compute_list_bind_compute_pipeline(cl, _qhist_pipe)
-		_rd.compute_list_bind_uniform_set(cl, _us_qhist_0_render, 0)
+		_rd.compute_list_bind_uniform_set(cl, _us_qhist_0_render_dc, 0)
 		_rd.compute_list_set_push_constant(cl, _qhist_pc_bytes, _qhist_pc_bytes.size())
 		var qh_threads := ceili(float(N_particles) / 16.0)
 		_rd.compute_list_dispatch(cl, ceili(qh_threads / 64.0), 1, 1)
 	_rd.compute_list_end()
+	# M0b-P: the meshless rebuild cadence runs its OWN list AFTER the frame
+	# list (its readbacks are illegal inside the open list).
+	if executed > 0 and _physics_engine.mesh_rebuild_due():
+		_physics_engine._mesh_rebuild()
+	# Publish at the cadence — the readbacks (telemetry + the tracker COM)
+	# are the accepted job-boundary group; the bookkeeping rides every frame.
+	_pub_counter += 1 if executed > 0 else 0
+	var pub: Dictionary = {"executed": _physics_engine._executed,
+			"step_count": _physics_engine._step_count, "t": _physics_engine._time}
+	if _pub_counter == 1 or _pub_counter % maxi(mirror_publish_cadence, 1) == 0:
+		pub = _engine_read_publish(true)
+	_apply_decoupled_publish(pub)
+
+
+## P3 (M0b-P one-RD): the decoupled render sets bind the ENGINE's live
+## buffers — no mirrors, no copies, no uploads. The engine's RIDs exist on
+## the shared global RD after its worker setup; built lazily on the first
+## frame the engine is ready. The blend keeps the sim's pos_render staging
+## (the −c window seam — the instancer's PC has no room for the center);
+## the instancer/qhist/occ read the engine's vel/fields/pos directly.
+func _build_dc_sets() -> void:
+	var eng: Object = _physics_engine
+	if eng == null or not _blend_sh.is_valid():
+		return
+	if not eng._pos_buf.is_valid():
+		return
+	_us_blend_0_dc = _rd.uniform_set_create([
+		_uniform_storage(0, eng._pos_buf),
+		_uniform_storage(1, eng._pos_buf),
+		_uniform_storage(2, _pos_render_buf),
+	], _blend_sh, 0)
+	if _instancer_shader.is_valid() and _mm_rd_rid.is_valid():
+		_us_inst_0_render_dc = _rd.uniform_set_create([
+			_uniform_storage(0, _pos_render_buf),
+			_uniform_storage(1, _mm_rd_rid),
+			_uniform_storage(2, eng._vel_buf),
+			_uniform_storage(3, eng._field_q),
+			_uniform_storage(4, eng._field_ey),
+			_uniform_storage(5, eng._field_ei),
+			_uniform_storage(6, _lut_u_buf_off),
+		], _instancer_shader, 0)
+		_us_inst_0_lut_render_dc = _rd.uniform_set_create([
+			_uniform_storage(0, _pos_render_buf),
+			_uniform_storage(1, _mm_rd_rid),
+			_uniform_storage(2, eng._vel_buf),
+			_uniform_storage(3, eng._field_q),
+			_uniform_storage(4, eng._field_ey),
+			_uniform_storage(5, eng._field_ei),
+			_uniform_storage(6, _lut_u_buf_on),
+		], _instancer_shader, 0)
+	if _qhist_shader.is_valid() and _pos_render_buf.is_valid():
+		_us_qhist_0_render_dc = _rd.uniform_set_create([
+			_uniform_storage(0, _pos_render_buf),
+			_uniform_storage(1, eng._field_q),
+			_uniform_storage(2, _qhist_buf),
+		], _qhist_shader, 0)
+	if _occ_shader.is_valid() and _occ_buf.is_valid():
+		_us_occ_0_dc = _rd.uniform_set_create([
+			_uniform_storage(0, eng._pos_buf),
+			_uniform_storage(1, _occ_buf),
+		], _occ_shader, 0)
+	print("[CassiSim] P3 one-RD render sets bound to the engine's live buffers")
 
 
 func _exit_tree() -> void:
@@ -2278,6 +2292,8 @@ func _free_uniform_sets() -> void:
 				_us_bh_int_0, _us_bh_int_1, _us_inst_0, _us_inst_0_render,
 				_us_inst_0_lut, _us_inst_0_lut_render,
 				_us_bh_lens_2, _us_blend_0, _us_blend_0_packed, _us_blend_0_velpack,
+				_us_blend_0_dc, _us_inst_0_render_dc, _us_inst_0_lut_render_dc,
+				_us_qhist_0_render_dc, _us_occ_0_dc,
 				_us_occ_0, _us_qhist_0, _us_qhist_0_render, _us_jfa_0, _us_cell_0, _us_raster_0,
 				_us_tree_build, _us_tree_grav, _us_merge_0, _us_bh_acc_0, _us_scan_0]:
 		if rid.is_valid(): _rd.free_rid(rid)
@@ -2291,6 +2307,8 @@ func _free_uniform_sets() -> void:
 	_us_inst_0 = RID(); _us_inst_0_render = RID(); _us_bh_lens_2 = RID()
 	_us_inst_0_lut = RID(); _us_inst_0_lut_render = RID()
 	_us_blend_0 = RID(); _us_blend_0_packed = RID(); _us_blend_0_velpack = RID()
+	_us_blend_0_dc = RID(); _us_inst_0_render_dc = RID(); _us_inst_0_lut_render_dc = RID()
+	_us_qhist_0_render_dc = RID(); _us_occ_0_dc = RID()
 	_us_occ_0 = RID()
 	_us_qhist_0 = RID(); _us_qhist_0_render = RID()
 	_us_jfa_0 = RID(); _us_cell_0 = RID(); _us_raster_0 = RID()
@@ -4057,10 +4075,18 @@ func _repaint_instancer() -> void:
 	# Decoupled: the fp32 _pos_buf mirror is NOT maintained (packed mirrors
 	# feed pos_render via the blend), so the repaint reads the interpolated
 	# pos_render like the live path does. Inline: _pos_buf is current.
-	if _lut_active():
-		_rd.compute_list_bind_uniform_set(cl, _us_inst_0_lut_render if _decoupled_active else _us_inst_0_lut, 0)
+	# P3 one-RD: the decoupled repaint binds the DC sets (the engine's
+	# vel/fields); the inline path keeps its physics-buffer sets.
+	if _decoupled_active:
+		if _lut_active():
+			if _us_inst_0_lut_render_dc.is_valid():
+				_rd.compute_list_bind_uniform_set(cl, _us_inst_0_lut_render_dc, 0)
+		elif _us_inst_0_render_dc.is_valid():
+			_rd.compute_list_bind_uniform_set(cl, _us_inst_0_render_dc, 0)
+	elif _lut_active():
+		_rd.compute_list_bind_uniform_set(cl, _us_inst_0_lut, 0)
 	else:
-		_rd.compute_list_bind_uniform_set(cl, _us_inst_0_render if _decoupled_active else _us_inst_0, 0)
+		_rd.compute_list_bind_uniform_set(cl, _us_inst_0, 0)
 	_rd.compute_list_set_push_constant(cl, _instancer_pc_bytes, _instancer_pc_bytes.size())
 	_rd.compute_list_dispatch(cl, pg, 1, 1)
 	_rd.compute_list_end()
@@ -5111,7 +5137,8 @@ func _sample_occupancy() -> void:
 	# the sampler shader/import is unavailable; it classifies the SAME
 	# subsample set (pos[s x stride]).
 	var gpu_done := false
-	if _occ_shader.is_valid() and _occ_pipe.is_valid() and _us_occ_0.is_valid() \
+	var occ_set: RID = _us_occ_0_dc if (_decoupled_active and _us_occ_0_dc.is_valid()) else _us_occ_0
+	if _occ_shader.is_valid() and _occ_pipe.is_valid() and occ_set.is_valid() \
 			and _occ_pc_bytes.size() >= 40 and _occ_zero_bytes.size() >= 32:
 		_occ_pc_bytes.encode_float(0, float(N_particles))
 		_occ_pc_bytes.encode_float(4, float(n_sample))
@@ -5127,7 +5154,7 @@ func _sample_occupancy() -> void:
 		_rd.buffer_update(_occ_buf, 0, _occ_zero_bytes.size(), _occ_zero_bytes)
 		var ocl = _rd.compute_list_begin()
 		_rd.compute_list_bind_compute_pipeline(ocl, _occ_pipe)
-		_rd.compute_list_bind_uniform_set(ocl, _us_occ_0, 0)
+		_rd.compute_list_bind_uniform_set(ocl, occ_set, 0)
 		_rd.compute_list_set_push_constant(ocl, _occ_pc_bytes, _occ_pc_bytes.size())
 		_rd.compute_list_dispatch(ocl, ceili(float(n_sample) / 256.0), 1, 1)
 		_rd.compute_list_end()
