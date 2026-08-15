@@ -78,6 +78,7 @@ interactive (§5.1), but M2 is the correctness proof in numpy.
 | **G50 (M2.4)** P(k) log-periodicity search | **PASS (honest null)** | search ran at Δln k = ln φ = 0.4812 across all 49 levels with the calibrated null (ΔAIC + ω-specificity percentile); no level passes the significance bar |
 | **G51 (M2.5)** R5 multi-level P(k) concatenation | **PASS (honest null)** | stitched spectrum (49 bands) shows a raw 'hit' (ΔAIC −37.7, p=0.022, amp 0.50) that is the φ⁴-spacing 4th-harmonic ARTIFACT; the band-detrended residual is an honest null (ΔAIC +2.3, p=0.29) — no physical ln-φ period |
 | **G52 (M2.6)** sibling-branch farm + byte identity | **PASS** | 2 genuine sibling branches of the root fanned in parallel: serial 20.7 s → parallel 11.4 s (1.81×); farmed surveys BYTE-IDENTICAL to serial (replayability under parallelism) |
+| **G53 (M2.7)** two-rung-dips investigation | **FAIL (correctly)** | measured the level-6/18 shell-centre phase drift; tested the parameter-free box-centre correction (M1 shell convention); it lifts 6/18 (0.594→0.829, 0.522→0.878) BUT introduces a new dip at level 41 (0.963→0.627) and drags the median 0.896→0.865 — so it FAILS the no-regression test and is REJECTED; the dips stay transparent on the parent-core chain (§10) |
 
 ## 4. Rung-integrity numbers (G49)
 
@@ -133,9 +134,10 @@ decision rule gates it.
 
 ## 7. Full-run status & what remains for the complete plan
 
-The **full proton→supercluster ladder is COMPLETE this turn** (49 levels, all
-gates G47–G52 PASS). The single command to re-run the whole thing (with
-resume):
+The **full proton→supercluster ladder is COMPLETE this turn** (49 levels,
+gates G47–G52 PASS; G53 is the two-rung-dips investigation whose correction
+was measured and honestly REJECTED — §10). The single command to re-run the
+whole thing (with resume):
 ```
 python research/cascade_machine/run_cascade_tree.py --levels 49 --workers 4
 ```
@@ -214,3 +216,66 @@ The replayability contract (G24 discipline) **holds under parallelism**: the
 farmed sibling surveys are byte-identical to the serial ones. This is the D5
 contract exercised on genuine siblings — parallelism ACROSS the tree, never
 inside a single level's solve.
+
+## 10. The two-rung-dips investigation (G53) — levels 6 & 18
+
+The only below-bar handoffs in the 49-level tree are level 6 (rung 0.594) and
+level 18 (0.522). The G53 investigation measured the drift, tested one
+parameter-free correction, and — because it regresses others — **reported the
+dips as staying transparent**. The parent-core chain is the shipped M2 result.
+
+### (a) The drift measurement — what actually degrades
+
+The deposited shell is a **perfect φ-spaced symmetric shell at every level**
+(shell-radius std/dev = 0.000; min pairwise blob separation constant at 20.48
+cells; never a merged blob). The masses still land on the 3-rung ladder — the
+dip is a merged **double-pair** (level 6 n=[4.5,5.1,8.2,11.2,11.8] instead of
+[5.4,5.5,8.2,11.2,11.7]). The ONLY geometric variance is the shell **centre**:
+
+| level | rung | shell-centre offset | shell-radius std |
+|---|---|---|---|
+| 6 | 0.594 | 1.7 cells from box centre | 0.000 (symmetric) |
+| 18 | 0.522 | 21.7 cells from box centre | 0.000 (symmetric) |
+
+A shell-centre **phase sweep** at level-6's box gives rung 0.82–0.96 at almost
+every position — but the specific parent-core-mapped position (a ≈1.6-cell
+offset) drops it to 0.594. So the degradation is a **razor-sharp shell-vs-BCC
+mesh phase resonance** at those two boxes, NOT a structure or shell-shape flaw.
+
+### (b) Level-local artifact of R=4, not a structural weakness
+
+The degradation MOVES when the centring convention changes — proof it is
+level-local (a property of where a given shell in cells phases against that
+box's seed lattice), not a structural handoff failure: the masses stay on the
+ladder (double-pair = one merged band), only the median rung statistic dips.
+It is R=4-spacing-sensitive in the sense that the specific box sizes picked by
+the φ⁴ ladder land the shell at bad phases at levels 6 & 18.
+
+### (c) The parameter-free correction tried (and rejected)
+
+**Box-centre shell (the M1 convention `c2 = L/2`)**: the child's shell is the
+ideal symmetric shell at the box centre; the handoff is carried by the
+CONSERVED MASS (M1 G42) rather than by the geometric position. No fitting to
+levels 6/18; fully symmetric at every level.
+
+### (d) The honest before/after — the correction FAILS the no-regression test
+
+| measure | original (parent-core) | corrected (box-centre) |
+|---|---|---|
+| below-bar levels | 2 (6, 18) | 2 (18 gone, but 41 joins: 0.963→0.627) |
+| level 6 | 0.594 | **0.829** ↑ |
+| level 18 | 0.522 | **0.878** ↑ |
+| level 41 | 0.963 | **0.627** ↓ (NEW dip) |
+| median rung score | **0.896** | 0.865 ↓ |
+| good-level regression | — | many levels drop 0.07–0.34 |
+
+The box-centre correction lifts 6 & 18 but **introduces a new below-bar at
+level 41 and drags the median down 0.896→0.865** — it fails the "must not
+regress the 47 good levels" test. This is the decisive honest finding: **no
+single parameter-free shell-centring convention removes the R=4 phase dip
+everywhere** — the box-centre mode simply relocates the bad phase to a
+different level. **The correction is REJECTED; the two dips stay transparent
+on the parent-core chain** (47/49 ≥ 0.70, median 0.896) — the better overall
+deliverable. A non-parameter-free fix (per-level shell-centre selection to 
+avoid bad phases) is explicitly out of scope (the task requires ONE
+parameter-free correction); it is the documented future work.

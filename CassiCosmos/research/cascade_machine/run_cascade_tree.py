@@ -236,7 +236,7 @@ def run_sibling_level(parent_survey_dir, child_L, child_radii, seed, core_idx,
     seed = int(seed)
     t0 = time.time()
     handoff = cl.build_child_ic(parent_survey_dir, L, radii, seed,
-                                core_idx=core_idx)
+                                core_idx=core_idx, center_mode="parent_core")
     rng = np.random.default_rng(seed)
     sites = cl.bcc_seeds(cl.NCELL, L, rng)
     dt = cl.DT * min(1.0, L / 10.0)

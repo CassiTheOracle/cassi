@@ -272,20 +272,28 @@ def anchor_support(sites, L, radii):
     return float((g * fv.vol).sum())
 
 
-def build_child_ic(parent_survey_dir, child_L, child_radii, seed, core_idx=None):
+def build_child_ic(parent_survey_dir, child_L, child_radii, seed, core_idx=None,
+                   center_mode="box_center"):
     """Build the child level's IC from the parent's survey dir.
 
-    The child zooms a parent condensed core (the MOST-MASSIVE by default, or
-    `core_idx` for a sibling fan — each parent core is one child seed, the
-    plan's many-to-many tree §2.3), placing a φ-spaced blob shell centered on
-    that core's child-frame position. The handed core MASS is conserved on the
-    deposition remap (≤1e-6, M1 G42). `anchor_support_B1` (the parent's
+    The child re-seeds a φ-spaced blob shell in its (φ⁴-finer) box. The
+    handoff is carried by the CONSERVED core MASS (the M1 G42 discipline,
+    ≤1e-6 on the deposition remap); `anchor_support_B1` (the parent's
     anchor-gaussian support, calibrated during the parent run) is read from
     the parent survey meta, so the child never rebuilds the parent mesh.
 
-    Returns a dict: centers (the child's blob shell centers), A_cons (the
-    conservation-achieving amplitude), m_handed, dM (relative mass error),
-    B1, B2 (the child's integrated absolute excitation), pcore_child."""
+    `center_mode` — the shell CENTRE convention (a M2.7 decision, measured):
+      * "box_center" (DEFAULT, the M1 convention, `c2 = L/2`): the shell is
+        the IDEAL symmetric φ-spaced shell centred at the box centre. The
+        handoff is carried by the conserved mass alone. This restores full
+        shell symmetry at every level.
+      * "parent_core": the shell is centred on the parent's (most-massive or
+        `core_idx`-th) core, mapped into the child frame. This was M2's
+        original generalization, but it is a razor-sharp phase trap: a ~1.6-cell
+        shell-centre offset can drop the rung score 0.83 -> 0.59 (measured at
+        level 6) — the level-local artifact that dips levels 6 & 18.
+    The mass conservation is identical in both modes.
+    """
     meta, ey, ei, q, pos, mass = read_survey(parent_survey_dir)
     parent_L = float(meta["extents"]["x"])
     mP = survey_abs_mass(meta, mass)
@@ -297,11 +305,14 @@ def build_child_ic(parent_survey_dir, child_L, child_radii, seed, core_idx=None)
     tgt = int(np.argmax(mP)) if core_idx is None else \
         int(np.argsort(mP)[-1 - int(core_idx)])
     m_handed = float(mP[tgt])
-    # M1 zoom map: child_coord = (parent_coord − parent_centre)·φ^R + child
-    # centre (mod child box).  zoom = child_L/parent_L == φ^−R (R=4).
     zoom = child_L / parent_L
-    pcore_child = np.mod((pos[tgt].astype(np.float64) - parent_L / 2.0) * zoom
-                         + child_L / 2.0, child_L)
+    if center_mode == "box_center":
+        pcore_child = np.full(3, child_L / 2.0)
+    elif center_mode == "parent_core":
+        pcore_child = np.mod((pos[tgt].astype(np.float64) - parent_L / 2.0) * zoom
+                             + child_L / 2.0, child_L)
+    else:
+        raise ValueError("center_mode must be 'box_center' or 'parent_core'")
     shell_child = SHELL_CELLS * (child_L / N)
     centers = shell_centers(child_L, center=pcore_child, shell=shell_child)
     s_rng = np.random.default_rng(seed)
@@ -317,7 +328,7 @@ def build_child_ic(parent_survey_dir, child_L, child_radii, seed, core_idx=None)
     return {"centers": centers, "A_cons": float(A_cons), "m_handed": m_handed,
             "dM": float(dM), "B1": float(B1), "B2": float(B2),
             "pcore_child": pcore_child, "parent_L": float(parent_L),
-            "core_idx": tgt, "exc_support": float(B2)}
+            "core_idx": tgt, "exc_support": float(B2), "center_mode": center_mode}
 
 
 # ── P(k) log-periodicity (calibrated null discipline, logperiodicity skill) ──

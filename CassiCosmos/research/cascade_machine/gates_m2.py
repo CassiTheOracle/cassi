@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""gates_m2.py — the M2 stage-gate harness (G47–G52).
+"""gates_m2.py — the M2 stage-gate harness (G47–G53).
 
 Each gate in the repo's PASS/FAIL console style, measured on the REAL M2
 cascade tree:
@@ -29,12 +29,19 @@ cascade tree:
               nodes concurrently; report wall-clock vs serial, and confirm the
               farmed survey output is BYTE-IDENTICAL to the serial chain's
               (same seeds — replayability holds under parallelism).
+  G53 (M2.7)  THE TWO-RUNG DIPS: levels 6 & 18 (rung 0.594 / 0.522). Measure
+              the deposited-shell drift (the shell-centre phase sensitivity),
+              apply the parameter-free box-centre correction (the M1 shell
+              convention, handoff carried by conserved mass), and report the
+              FULL before/after 49-level rung table (the correction must lift
+              the dips AND not push any good level below the bar).
 
 Run:   python research/cascade_machine/gates_m2.py
        (assumes `run_cascade_tree.py` has produced the cascade_tree/)
 """
 import json
 import os
+import glob
 import subprocess
 import sys
 import time
@@ -371,6 +378,115 @@ def g52_farm_byte_identity(levels=None):
     return all_ok and n == K
 
 
+# ── the two-rung-dips investigation (levels 6 & 18) — correction G53 ────
+CORRECTED_TREE = _HERE / "cascade_tree_boxcenter"   # box-center shell convention
+
+
+def _level_scores(root):
+    """Load (lev, rung_score) for every level dir under `root`."""
+    rows = []
+    for d in sorted(glob.glob(str((root / "level_*")))):
+        p = Path(d)
+        if not (p / "rung_score.json").exists():
+            continue
+        st = json.loads((p / "rung_score.json").read_text())
+        lev = int(p.name.split("_")[1])
+        rows.append((lev, st["rung_score"], st["n_cores"]))
+    rows.sort()
+    return rows
+
+
+def _deposited_shell_metrics(lev, center_mode):
+    """Measure the deposited IC shell geometry at a level: shell centre
+    offset from the box centre (in cells) and the per-axis fractional cell
+    position of the shell centre — the measured drift that motivated G53."""
+    sp = orch.spec_for_lev(orch.build_specs(), lev)
+    L = sp["L"]
+    pcore = np.full(3, L / 2.0)
+    if center_mode == "parent_core" and lev > 0:
+        pspec = orch.spec_for_lev(orch.build_specs(), lev - 1)
+        pd = orch.node_dir(TREE, lev - 1, pspec["rung"])
+        meta, ey, ei, q, pos, mass = cl.read_survey(pd)
+        Lp = float(meta["extents"]["x"])
+        mP = cl.survey_abs_mass(meta, mass)
+        tgt = int(np.argmax(mP))
+        zoom = L / Lp
+        pcore = np.mod((pos[tgt].astype(float) - Lp / 2) * zoom + L / 2, L)
+    h = L / cl.N
+    offset_cells = np.linalg.norm(pcore - np.full(3, L / 2.0)) / h
+    frac = (pcore / h) % 1.0
+    return {"center_offset_cells": float(offset_cells),
+            "frac_cell": [float(f) for f in frac]}
+
+
+def g53_rung_dip_correction():
+    """The two-rung-dips (levels 6 & 18) investigation and correction (G53).
+
+    MEASURED DRIFT (why 6 & 18 dip): the child's IC shell is internally a
+    perfect φ-spaced symmetric shell at every level (shell radius std/dev =
+    0.000; min blob separation constant 20.48 cells). The ONLY geometric
+    variance is the shell CENTRE: M2's original 'parent_core' convention placed
+    it at the parent's most-massive core, which is razor-sharp phase-sensitive —
+    a ~1.6-cell offset tips level 6 from rung 0.829 (box-centre) to 0.594, level
+    18 from 0.878 to 0.522. It is a LEVEL-LOCAL artifact of the R=4 handoff
+    centre convention, not a structural handoff weakness (the masses stay on
+    the ladder; a merged pair just drops the median).
+
+    PARAMETER-FREE CORRECTION (D-M2-7): restore the M1 convention — centre the
+    child's shell at the BOX CENTRE (M1's own `c2 = L2/2`), carrying the handoff
+    by the CONSERVED MASS (M1 G42) rather than by the geometric position. No
+    fitting to levels 6/18; fully symmetric shell at every level.
+
+    HONEST TEST: the correction must lift 6 & 18 above the bar AND not push any
+    previously-good level below it. The full before/after 49-level table is
+    reported; if it regresses good levels, that is reported honestly."""
+    orig = _level_scores(TREE)
+    if not (CORRECTED_TREE / "tree_registry.json").exists():
+        gate_notes(False, "G53 (M2.7) rung-dip correction",
+                   "corrected tree not built (run run_cascade_tree.py "
+                   "--tree cascade_tree_boxcenter)")
+        return False
+    corr = _level_scores(CORRECTED_TREE)
+    if len(corr) != len(orig):
+        gate_notes(False, "G53 (M2.7) rung-dip correction",
+                   "corrected tree incomplete (%d vs %d levels)" % (
+                       len(corr), len(orig)))
+        return False
+    d_orig = {l: r for l, r, _ in orig}
+    d_corr = {l: r for l, r, _ in corr}
+    alllev = sorted(d_orig)
+    print("  level   orig(parent-core)   corr(box-center)   delta")
+    n_below_orig = 0
+    n_below_corr = 0
+    n_pushed_down = 0
+    for lev in alllev:
+        o, c = d_orig[lev], d_corr[lev]
+        if o < 0.70:
+            n_below_orig += 1
+        if c < 0.70:
+            n_below_corr += 1
+        if o >= 0.70 and c < 0.70:
+            n_pushed_down += 1
+        print("  %3d      %9.3f          %9.3f        %+6.3f"
+              % (lev, o, c, c - o))
+    oarr = np.array([d_orig[l] for l in alllev])
+    carr = np.array([d_corr[l] for l in alllev])
+    # drift measurement for the two dip levels (documented, part a)
+    drift6 = _deposited_shell_metrics(6, "parent_core")
+    drift18 = _deposited_shell_metrics(18, "parent_core")
+    ok = (n_below_corr == 0 and n_pushed_down == 0
+          and np.median(carr) >= 0.70)
+    gate_notes(ok, "G53 (M2.7) rung-dip correction",
+               "dips lev6 %.3f->%.3f, lev18 %.3f->%.3f; below-bar %d->%d; "
+               "good-levels pushed below bar %d; median %.3f->%.3f; "
+               "drift lev6 ctr-offset=%.1f cells, lev18 =%.1f cells"
+               % (d_orig[6], d_corr[6], d_orig[18], d_corr[18],
+                  n_below_orig, n_below_corr, n_pushed_down,
+                  np.median(oarr), np.median(carr),
+                  drift6["center_offset_cells"], drift18["center_offset_cells"]))
+    return ok
+
+
 def main():
     import argparse
     ap = argparse.ArgumentParser(description=__doc__)
@@ -382,7 +498,7 @@ def main():
         reg = json.loads((TREE / "tree_registry.json").read_text())
         args.levels = int(reg["n_levels"])
     print("=" * 70)
-    print("M2 STAGE GATES (G47–G52) — offline φ-cascade tree (%d levels)"
+    print("M2 STAGE GATES (G47–G53) — offline φ-cascade tree (%d levels)"
           % args.levels)
     print("closure slot: no-op (R1, wave-2 honest negative) — rung-integrity")
     print("runs WITHOUT the closure, per MACHINE_PLAN §8 and the M2 brief.")
@@ -394,6 +510,7 @@ def main():
     res["G50"] = g50_pk_logperiodicity(levels=args.levels)
     res["G51"] = g51_r5_multilevel_pk(levels=args.levels)
     res["G52"] = g52_farm_byte_identity()
+    res["G53"] = g53_rung_dip_correction()
     print("\n---- gate table (cascade tree: %d levels) ----" % args.levels)
     for nm, ok in res.items():
         print("[%s] %s" % ("PASS" if ok else "FAIL", nm))
