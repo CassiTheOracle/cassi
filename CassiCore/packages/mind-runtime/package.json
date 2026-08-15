@@ -62,7 +62,9 @@
     "@cassicore/tools": "*",
     "@cassicore/training-trust-ledger": "*",
     "@cassicore/utils": "*",
-    "@cassicore/workflow": "*"
+    "@cassicore/workflow": "*",
+    "ajv": "^8.20.0",
+    "yaml": "^2.9.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
