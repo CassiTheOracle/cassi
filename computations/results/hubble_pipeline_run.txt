@@ -44,7 +44,7 @@
     Magnitude: Cassi predicts 9.9% vs observed 8.3%
     Magnitude ratio: 128.7%
 
-  Saved C:\Users\Carina\workspaces\cassi-toe\two-fluid\figures\hubble_pipeline.png
+  Saved C:\Users\Carina\workspaces\Cassi\CassiTheory\two-fluid\figures\hubble_pipeline.png
 
 ================================================================
   HUBBLE PIPELINE SUMMARY
@@ -56,7 +56,7 @@
   ⟨R(z)⟩_CMB:     1.109516
   ΔH₀:            -7.21 km/s/Mpc (-9.87%)
   Direction:       SAME as observed (local > CMB) ✓
-  Figure:          C:\Users\Carina\workspaces\cassi-toe\two-fluid\figures\hubble_pipeline.png
+  Figure:          C:\Users\Carina\workspaces\Cassi\CassiTheory\two-fluid\figures\hubble_pipeline.png
 
   Interpretation:
     Cassi w(a) profile (w₀ = -0.84, w > -1) produces a CMB-inferred

@@ -1201,7 +1201,7 @@ The GPU version is therefore roughly **5–10× faster** at 64³ and becomes
 increasingly advantageous at larger grids because the FFT work is offloaded
 to the GPU.
 """
-    out = Path('/home/valerie/workspaces/physics/docs') / 'cassi-two-fluid-3d-gpu-benchmark.md'
+    out = Path('C:/Users/Carina/workspaces/physics/docs') / 'cassi-two-fluid-3d-gpu-benchmark.md'
     out.write_text(md)
     print(f'  Saved {out}')
 
@@ -1622,7 +1622,7 @@ def main():
     args = parser.parse_args()
     print(f'[DIAG] chi={args.chi:.4f}  cs2={args.cs2:.4f}  hubble={args.hubble_mode}')
 
-    fig_dir = Path('/home/valerie/workspaces/physics/figures')
+    fig_dir = Path('C:/Users/Carina/workspaces/physics/figures')
     fig_dir.mkdir(parents=True, exist_ok=True)
 
     if args.mode == 'benchmark':

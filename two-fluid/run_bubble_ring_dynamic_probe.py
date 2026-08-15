@@ -52,7 +52,7 @@ d^2 E = c^2 grad^2 E - w0^2 (E_Y - phi E_I), which carries the phi-anchored
 resonance and is what actually produces the observed radial rings) is NOT in
 this committed solver; Arm W below tests the closest available proxy (cs2
 pressure-driven velocity), and the full second-order realization belongs to
-the space-sim's GLSL PDE (physics/godot/space-sim), not to this file.
+the space-sim's GLSL PDE (CassiCosmos), not to this file.
 
 Tier Hypothesized: the ring law is kinematic -- doublet radial phase
 alpha = pi*log_phi(r/l_n) + pool-cell parities (matter rings at integer
@@ -596,7 +596,7 @@ def main():
                            'd^2E = c^2.Laplace E - w0^2 (E_Y - phi E_I) with '
                            'the phi-anchored resonance) is NOT in this '
                            'solver; it belongs to the space-sim GLSL PDE '
-                           '(physics/godot/space-sim). Arm W tests the '
+                           '(CassiCosmos). Arm W tests the '
                            'closest first-order proxy (cs2 pressure-driven '
                            'velocity).',
         },

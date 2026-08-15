@@ -112,12 +112,13 @@ The numbered frontier briefs and referee memos live outside this repo and are ci
 | `cosmology/observational_constraints.md` | `cassi-toe-rewrite-briefs/spiral-gravity/` (ratified conversion→expansion coupling) |
 | `hypotheses/gravity-from-flow.md` | `cassi-toe-rewrite-briefs/` (cited by name, §run71) |
 
-## References to `physics/godot/space-sim/` (parent-repo space sim)
+## References to `CassiCosmos/` (the space sim, in the unified workspace)
 
-The Cassi space sim lives in the parent repository's Godot project and is
-not copied into this repo. Its scripts are cited by name as provenance
-markers:
+The Cassi space sim was extracted from the physics repo's `godot/space-sim`
+subtree into the unified workspace at `C:/Users/Carina/workspaces/Cassi/CassiCosmos`
+(full git history preserved; the physics repo retains the pre-extraction history).
+Its scripts are cited by name as provenance markers:
 
 | Source Document | Reference |
 |----------------|-----------|
-| `foundations/bubble-edge-geometry.md`; `predictions/falsifiable-predictions.md` (Prediction 51) | `physics/godot/space-sim/scripts/diag_bubble_rings.gd` (ring-ladder wave-form diagnostic; commit d4784c0 in the parent repo, local-only) |
+| `foundations/bubble-edge-geometry.md`; `predictions/falsifiable-predictions.md` (Prediction 51) | `CassiCosmos/scripts/diag_bubble_rings.gd` (ring-ladder wave-form diagnostic; commit d4784c0 in the physics repo history, local-only) |
