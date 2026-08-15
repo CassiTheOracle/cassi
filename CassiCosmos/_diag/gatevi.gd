@@ -35,7 +35,7 @@ const C_WAVE := 2.3614    # the measured grid front (gate-iv, the same box)
 const R_CAL_TAIL := 0.02  # the pinned threshold: R_arm - R_cal <= 2%
 const PHI := 1.618033988749895
 const XI := 1.0
-const OMEGA2 := 20.0
+const OMEGA2 := 0.0   # the pure wave: no checkerboard attractor
 const PULSE_AMP := 0.2
 const PULSE_X0 := -0.35    # normalized launch
 const PULSE_SIG := 0.125   # normalized sigma
@@ -458,42 +458,49 @@ func _zero_density() -> void:
 func _run_batch() -> void:
 	var rd := _rd
 	var cl := rd.compute_list_begin()
-	var wg_c := int(ceil(pow(float(COARSE_N), 3.0) / 64.0))
-	var wg_f := int(ceil(float(_n_fx * _n_fy * _n_fz) / 64.0))
-	var wg_pad := int(ceil(float(_padx * _pady * _padz) / 64.0))
-	var wg_ds := int(ceil(float(_ncov * COARSE_N * COARSE_N) / 64.0))
+	# The local size is 4^3: the dispatches must be 3D (a 1D dispatch
+	# covers only a 4-thread-wide slab of the volume — the pulse froze).
+	var wg_c := int(ceil(float(COARSE_N) / 4.0))
+	var wg_fx := int(ceil(float(_n_fx) / 4.0))
+	var wg_fy := int(ceil(float(_n_fy) / 4.0))
+	var wg_fz := int(ceil(float(_n_fz) / 4.0))
+	var wg_px := int(ceil(float(_padx) / 4.0))
+	var wg_py := int(ceil(float(_pady) / 4.0))
+	var wg_pz := int(ceil(float(_padz) / 4.0))
+	var wg_ds := int(ceil(float(_ncov) / 4.0))
+	var wg_dy := int(ceil(float(COARSE_N) / 4.0))
 	# (1) the coarse step (the sim's canonical two-fluid, passes A/B)
 	rd.compute_list_bind_compute_pipeline(cl, _sim._two_fluid_pipe)
 	rd.compute_list_bind_uniform_set(cl, _sim._us_two_0, 0)
 	_coarse_pc.encode_float(56, 0.0)
 	rd.compute_list_set_push_constant(cl, _coarse_pc, 64)
-	rd.compute_list_dispatch(cl, wg_c, 1, 1)
+	rd.compute_list_dispatch(cl, wg_c, wg_c, wg_c)
 	rd.compute_list_add_barrier(cl)
 	_coarse_pc.encode_float(56, 1.0)
 	rd.compute_list_set_push_constant(cl, _coarse_pc, 64)
-	rd.compute_list_dispatch(cl, wg_c, 1, 1)
+	rd.compute_list_dispatch(cl, wg_c, wg_c, wg_c)
 	rd.compute_list_add_barrier(cl)
 	# (2) the rim: the coarse -> the fine shell
 	rd.compute_list_bind_compute_pipeline(cl, _fine_pipe)
 	rd.compute_list_bind_uniform_set(cl, _fine_set, 0)
 	_fine_pc.encode_float(36, 0.0)
 	rd.compute_list_set_push_constant(cl, _fine_pc, 88)
-	rd.compute_list_dispatch(cl, wg_pad, 1, 1)
+	rd.compute_list_dispatch(cl, wg_px, wg_py, wg_pz)
 	rd.compute_list_add_barrier(cl)
 	# (3) the fine pass A
 	_fine_pc.encode_float(36, 1.0)
 	rd.compute_list_set_push_constant(cl, _fine_pc, 88)
-	rd.compute_list_dispatch(cl, wg_f, 1, 1)
+	rd.compute_list_dispatch(cl, wg_fx, wg_fy, wg_fz)
 	rd.compute_list_add_barrier(cl)
 	# (4) the fine pass B
 	_fine_pc.encode_float(36, 2.0)
 	rd.compute_list_set_push_constant(cl, _fine_pc, 88)
-	rd.compute_list_dispatch(cl, wg_f, 1, 1)
+	rd.compute_list_dispatch(cl, wg_fx, wg_fy, wg_fz)
 	rd.compute_list_add_barrier(cl)
 	# (5) the downsample: the fine -> the coarse slab
 	_fine_pc.encode_float(36, 3.0)
 	rd.compute_list_set_push_constant(cl, _fine_pc, 88)
-	rd.compute_list_dispatch(cl, wg_ds, 1, 1)
+	rd.compute_list_dispatch(cl, wg_ds, wg_dy, wg_dy)
 	rd.compute_list_end()
 
 

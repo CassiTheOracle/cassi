@@ -246,12 +246,13 @@ void downsample() {
     int cx1 = int(floor((hi + 1.0) * pc.N_c * 0.5)) - 1;
     int ncx = cx1 - cx0 + 1;
     if (ncx <= 0) return;
+    // 3D dispatch: the threads cover (ncx, N, N) directly — the local
+    // size is 4^3, so a 1D dispatch would cover only a 4-thread-wide slab.
     ivec3 gid = ivec3(gl_GlobalInvocationID);
-    int total = ncx * N * N;
-    if (gid.x >= total) return;
-    int cx = cx0 + gid.x % ncx;
-    int cy = (gid.x / ncx) % N;
-    int cz = gid.x / (ncx * N);
+    if (gid.x >= ncx || gid.y >= N || gid.z >= N) return;
+    int cx = cx0 + gid.x;
+    int cy = gid.y;
+    int cz = gid.z;
     int fx0 = (cx - cx0) * r;
     float acc_ey = 0.0;
     float acc_ei = 0.0;

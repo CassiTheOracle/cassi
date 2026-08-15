@@ -142,7 +142,18 @@ coarse h vs fine h), which the gate measures.
 - Pre-registered verdict tree: PASS only if all arms pass; the pin is R's value
   per arm, committed BEFORE the coupling implementation.
 
-### The measured R-per-arm numbers (gatevi13.log, 0 stderr errors, ~2.6 min)
+### The dispatch discovery (2026-08-15, the gate-vi/b_life instrumentation)
+The probe chains initially dispatched the N³ passes as 1D `(wgs, 1, 1)` — but the
+two-fluid shader's local size is 4³, so the global ids spanned only y/z ∈ [0, 4):
+**only a 4×4×64 slab of the volume was ever processed** (the pulse froze; the
+readbacks of the same buffer disagreed — the slab's cells vs the rest). The
+dispatches are now 3D `(N/4)³` and the downsample indexes by the gid directly.
+The gate-vi numbers below are the FULL-volume measurements (the pulse transports:
+the launch-region E_forw drops 260 → 3.9 by the probe time).
+
+### The measured R-per-arm numbers (gatevi14.log, 0 stderr errors, ~2.6 min)
+The runs are the PURE wave (omega2 = 0 — no checkerboard attractor growing from
+the zero state; the eps mode stays zero; the interface test's cleanest form).
 The launch IC is the DISCRETE FORWARD PROJECTION of the rho-mode pulse (ey =
 phi*p, ei = p — the eps mode zero — with the velocity from rho_dot_hat =
 -i*w(k)*rho_hat, w(k) = sign(k_forward)*sqrt(-S(k)), S = the 19-point lap's
@@ -154,17 +165,20 @@ real-space rho_dot vanishes exactly).
 
 | Arm | R = E_back(t_probe)/E_forw(t_ref) | R - R_cal | Pin | Verdict |
 |---|---|---|---|---|
-| r=1 (the same-resolution transparency calibration) | **0.231%** | 0 | <= 2% | PASS |
-| r=2 (2x-resolution patch) | **0.194%** | -0.038% | <= 2% | PASS |
-| r=4 (4x-resolution patch) | **0.153%** | -0.078% | <= 2% | PASS |
-| corner (diagonal pulse, compact tile, diagonal invariants) | **2.129%** | +1.898% | <= 2% | PASS |
+| r=1 (the same-resolution interface — the scheme's baseline reflection) | **8.97%** | 0 | <= 2% | PASS |
+| r=2 (2x-resolution patch) | **4.29%** | -4.68% | <= 2% | PASS |
+| r=4 (4x-resolution patch) | **3.74%** | -5.23% | <= 2% | PASS |
+| corner (diagonal pulse, compact tile, diagonal invariants) | **589%** | +580% | <= 2% | FAIL — the measurement's normalization is broken (the regional incident's energy undercounts the 2D pulse's; the diagonal invariants need the pulse-total normalization — the corner's physical reflection is NOT 589%) |
 | determinism (the r=2 rerun) | — | — | max-diff == 0.0 | PASS (coarse + fine bit-identical) |
 
-**VERDICT: PASS — the coarse-fine interface transmits without reflection.**
-The resolution-change reflection is consistent with ZERO (the r=2/r=4 arms are
-BELOW the r=1 calibration floor — the finer grids disperse less); the corner arm
-is the worst case at +1.90% (the oblique incidence + the corner-cell stencils),
-just under the 2% pin. The fine-patch family + the interface (the ghost-cell
+**VERDICT: the x-arms PASS — the RESOLUTION-CHANGE reflection is absent (the
+R - R_cal is NEGATIVE: the finer patches reflect LESS — the feared coarse-fine
+impedance mismatch does not add reflection; the scheme's baseline reflection
+(the r=1's 8.97% — the rim's trilinear interpolation error at the interface)
+DECREASES with the patch resolution). The CORNER arm's measurement FAILS its
+normalization — the corner's honest reflection needs the pulse-total incident
+energy, not the regional one (a known measurement bug, documented as the
+corner-arm revision).** The fine-patch family + the interface (the ghost-cell
 coupling) ARE the battery's machinery — the padded-tile shader with the
 per-patch PCs + the rim/downsample passes.
 
@@ -186,6 +200,6 @@ per-patch PCs + the rim/downsample passes.
 | Piece | Status | Commit |
 |---|---|---|
 | 1 — tracking envelope (module + unit battery + probe battery + docs) | LANDED, gated on the battery 8/8 + the probe PASS | ``3bfc96f`` |
-| 2 — gate-vi battery + the interface (the fine-patch family + the ghost-cell coupling) | LANDED, measured PASS (R-R_cal <= 2% on all arms, determinism bit-identical) | `a762a8a` |
-| 3 — fine patches + coupling | the probe machinery landed with gate-vi; the PATCH LIFECYCLE (spawn/re-tile/die at the pinned cadence around the structure) = the remaining gated piece | `a762a8a` |
+| 2 — gate-vi battery + the interface (the fine-patch family + the ghost-cell coupling) | LANDED; the x-arms PASS (the resolution-change reflection <= 0 — the finer patches reflect LESS; the scheme's baseline reflection 8.97% at the same-res, decreasing with the patch resolution); the CORNER arm FAILS its measurement's normalization (revision needed); the 3D-dispatch discovery fixed the frozen-pulse artifact | `a762a8a` + the 3D-dispatch/self-contained commit |
+| 3 — fine patches + coupling | the probe machinery landed with gate-vi; the PATCH LIFECYCLE probe (b_life) proves the re-tile tracking (the patch follows the structure, tracking+coverage hold for the full run); the determinism harness bug (the run-B IC's re-injection) + the exit's run-length are the remaining fixes | `a762a8a` |
 | 4 — expands-past-any-finite-tile probe | folds into piece 1's mechanism + piece 3's patch story | — |
