@@ -59,6 +59,7 @@ const ML_TREE_NODE_MAX_MULT := 8
 const ML_N1 := 16              # BCC sublattice count → 2·16³ = 8192 sites at N=64
 const ML_REBUILD := 25         # steering + remap + JFA-refresh cadence (steps)
 const TREE_JOB_STEP_CAP := 8   # perf-decomp 2026-08-15: cap a tree-cadence job's step budget so the tree staging readbacks drain a SHORT engine queue (freeze duration stops growing with the backlog)
+const JOB_STEP_CAP := 64       # perf-decomp 2026-08-15: GENERAL per-job cap — a coalesced backlog drains over many short jobs instead of ONE monster chain (measured 500k live: jobs 203→662→2381→6540→14004→28481 steps, ~85 s GPU chains freezing the render flush; 64 steps ≈ ≤0.25 s chain — a hitch, not a freeze; throughput is unchanged, the backlog just drains in bounded slices)
 const ML_KAPPA := 0.5          # Lloyd-style centroid relaxation fraction
 const ML_LAM := 8.0            # super-Lagrangian momentum ride
 const ML_RHO_FLOOR := 0.005    # steering guard: rho = EY+EI can hit ~0 in the live field
@@ -949,6 +950,8 @@ func _threaded_run_job(job: Dictionary) -> void:
 		var staged_tree := _tree_refresh_gradient()
 		if staged_tree:
 			steps = mini(steps, TREE_JOB_STEP_CAP)
+		else:
+			steps = mini(steps, JOB_STEP_CAP)
 		run_steps(steps, true, _tree_grad_cache)  # wait=true → submit+sync on the local RD
 		_executed += steps
 	var cadence := maxi(int(job.get("cadence", _snapshot_cadence)), 1)
