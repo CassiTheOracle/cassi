@@ -34,9 +34,7 @@ import { GlobalBlackboardRegistry } from '@cassicore/flux-team'
 import { MCPRegistry } from '@cassicore/mcp'
 import { createOrchestrationBus } from './vendor/core/orchestration-bus.js'
 import { PluginHost } from "@cassicore/plugins"
-import { type BudgetTracker, createBudgetTracker } from '@cassicore/providers'
 import { ModelDirective } from './vendor/core/model-routing/index.js'
-import { type ModelRouter, createModelRouter } from '@cassicore/providers'
 import { createSessionBridge } from './vendor/core/session-bridge.js'
 import { createSessionManager } from './vendor/core/session-manager.js'
 import { SessionStore } from './vendor/core/session-store.js'
@@ -206,8 +204,6 @@ export class Daemon {
   public providers: Map<string, IProvider> = new Map()
   /** Prompt log store — persistent SQLite storage of every prompt sent to providers. */
   public promptLogStore?: import('./vendor/core/prompt-log-store.js').PromptLogStore
-  /** Rate limit store — persists adaptive learned rate limits across daemon restarts. */
-  public rateLimitStore?: import('@cassicore/providers').RateLimitStore
   /** Timeline store — unified chronological view of all system data. */
   public timelineStore?: import('./vendor/core/timeline-store.js').TimelineStore
   public contextDistiller?: import('./vendor/core/intelligence/context-distiller.js').ContextDistiller
@@ -225,11 +221,11 @@ export class Daemon {
   public autonomousLoop?: import('./vendor/core/intelligence/autonomous-loop.js').AutonomousAgentLoop
   /** Session pipeline integration */
   public sessionPipeline?: import('@cassicore/pipeline').SessionPipeline
-  public budgetTracker?: BudgetTracker
   private primaryRouter?: PrimarySessionRouter
-  public modelRouter?: ModelRouter
   public modelDirective?: ModelDirective
-  /** Helix/Constellation ModelPool — stored for re-wiring after late provider init (e.g. copilot-sdk). */
+  /** Retained ModelHandle acquire-shim — the retained mind's completion seam (P4). */
+  public retainedModelPool?: import('@cassicore/model-pool').ModelPool
+  /** Helix/Constellation ModelPool — retained acquire-cast (mind_complete-backed at P4). */
   private helixModelPool?: import('@cassicore/model-pool').ModelPool
   /** IntelligentContextWindow instance — available after daemon start(). */
   public contextWindow?: IntelligentContextWindow
@@ -1116,86 +1112,35 @@ export class Daemon {
 
     this.logger.info('── Phase 4: Providers & Wiring ────────────────────────')
 
-    // Must be created before providers so CentralizedProvider can record usage
-    let budgetTracker: BudgetTracker | undefined
-    let modelRouter: ModelRouter | undefined
-    try {
-      const budgetConfig = this.config.get<Record<string, { monthlyLimit: number }>>('budget.providers', {})
-      const budgets: Record<string, { monthlyLimit: number }> = {}
-      for (const [id, cfg] of Object.entries(budgetConfig)) {
-        if (cfg?.monthlyLimit) budgets[id] = { monthlyLimit: cfg.monthlyLimit }
-      }
-      budgetTracker = createBudgetTracker(this.logger, Object.keys(budgets).length > 0 ? budgets : undefined)
-      budgetTracker.wire(this.bus)
-      await budgetTracker.loadFromDisk()
-      this.budgetTracker = budgetTracker
-      this.logger.info('BudgetTracker initialized and wired to EventBus')
+    // CASSICORE-FOCUS P4 (model-access cutover): ohmypi owns providers, routing,
+    // quota and fallback. The daemon no longer boots a CassiCore provider stack
+    // (createProviders/createBudgetTracker/createModelRouter/RateLimitStore were
+    // deleted with @cassicore/providers). The retained `providers` map is left
+    // EMPTY — the retained mind's completions resolve through the mind_complete
+    // acquire-shim below (transitional: real completions return once the
+    // spine/ohmypi path is live, plan P5/P6). Downstream `providers.size > 0`
+    // guards degrade gracefully.
+    const providers: Map<string, IProvider> = new Map()
+    this.providers = providers
 
-      modelRouter = createModelRouter(this.logger, budgetTracker)
-      this.modelRouter = modelRouter
-      this.logger.info('ModelRouter initialized')
-    } catch (err) {
-      this.logger.warn('Failed to initialize BudgetTracker/ModelRouter', { error: String(err) })
-    }
-
-    let providers: Map<string, IProvider> = new Map()
+    // Retained ModelHandle acquire-shim — the retained mind's completion seam.
+    // Built unconditionally (independent of the provider map) so helix /
+    // constellation / mini-helix can still be wired via setModelPool. The
+    // default 'not wired' transport throws a documented error until the spine
+    // ohmypi path is live; consumers inject a real transport (P5).
     try {
-      const { createProviders } = await import('@cassicore/providers')
-      providers = createProviders(this.config, this.logger, {
-        centralized: true,
-        bus: this.bus,
+      const { createMindCompleteAcquirer, defaultMindCompleteTransport } = await import('@cassicore/model-pool')
+      this.retainedModelPool = createMindCompleteAcquirer({
+        logger: this.logger.child('mind-complete'),
+        transport: defaultMindCompleteTransport,
+        defaultModel: {
+          provider: 'opencode-go',
+          model: 'deepseek-v4-pro',
+        },
       })
-        // Store providers on daemon instance for admin API access
-        ; this.providers = providers
-      // Log provider summary
-      if (providers.size > 0) {
-        const providerSummary = Array.from(providers.entries())
-          .map(([id, p]) => `${id}(${(p as any).model ?? '?'})`)
-          .join(', ')
-        this.logger.info(`${providers.size} provider(s) ready: ${providerSummary}`)
-      }
+      this.logger.info('MindComplete acquirer ready (transitional — transport not wired until spine/ohmypi path live)')
     } catch (err) {
-      this.logger.warn('Providers not loaded — run Phase 3 providers build')
-    }
-
-    // Wire BudgetTracker into all CentralizedProvider instances
-    interface ProviderWithBudgetTracker {
-      setBudgetTracker?(tracker: BudgetTracker): void
-    }
-    if (budgetTracker && providers.size > 0) {
-      for (const [id, p] of providers) {
-        const provider = p as ProviderWithBudgetTracker
-        if (typeof provider.setBudgetTracker === 'function') {
-          provider.setBudgetTracker(budgetTracker)
-        }
-      }
-      this.logger.info('BudgetTracker wired to CentralizedProvider instances')
-    }
-
-    // Open RateLimitStore and wire into all CentralizedProvider instances.
-    // This restores learned 429 limits from the previous run so the daemon
-    // enforces known ceilings immediately without re-hitting them on startup.
-    try {
-      const { RateLimitStore } = await import('@cassicore/providers')
-      const dataDir = String(this.config?.get?.('dataDir') ?? join(homedir(), '.cassicore', 'data'))
-      const rateLimitStore = RateLimitStore.open(this.logger, dataDir)
-      this.rateLimitStore = rateLimitStore
-      if (providers.size > 0) {
-        interface ProviderWithRateLimitStore {
-          setRateLimitStore?(store: typeof rateLimitStore): void
-        }
-        let wired = 0
-        for (const [, p] of providers) {
-          const provider = p as ProviderWithRateLimitStore
-          if (typeof provider.setRateLimitStore === 'function') {
-            provider.setRateLimitStore(rateLimitStore)
-            wired++
-          }
-        }
-        this.logger.info('RateLimitStore wired to CentralizedProvider instances', { wired })
-      }
-    } catch (err) {
-      this.logger.warn('RateLimitStore: failed to open, adaptive limits will not be persisted', { error: String(err) })
+      this.logger.warn('Failed to build mind_complete acquirer', { error: String(err) })
     }
 
     try {
@@ -1309,7 +1254,6 @@ export class Daemon {
     interface ThinkerWithProvider {
       setProvider?(provider: IProvider): void
       setConfig?(config: IConfig): void
-      setModelRouter?(router: ModelRouter): void
       init?(): Promise<void>
     }
     if (this.intelligence?.thinker) {
@@ -1324,11 +1268,6 @@ export class Daemon {
       }
       // Wire config and run BaseCognitiveModule lifecycle
       thinker.setConfig?.(this.config)
-      // Wire model router for budget-aware model selection
-      if (modelRouter) {
-        thinker.setModelRouter?.(modelRouter)
-        this.logger.info('Thinker model router wired')
-      }
       await thinker.init?.()
     }
 
@@ -1365,26 +1304,12 @@ export class Daemon {
       }
     }
 
-    // Wire ModelRouter into Memory/Archivist for budget-aware archival model selection
-    interface MemoryWithModelRouter {
-      setModelRouter?(router: ModelRouter): void
-    }
-    if (modelRouter && this.intelligence?.memory) {
-      try {
-        const memory = this.intelligence.memory as MemoryWithModelRouter
-        if (typeof memory.setModelRouter === 'function') {
-          memory.setModelRouter(modelRouter)
-          this.logger.info('Memory/Archivist model router wired')
-        }
-      } catch (err) {
-        this.logger.warn('Failed to wire model router to Memory/Archivist', { error: String(err) })
-      }
-    }
-
-    // Wire Helix + Constellation with a dedicated ModelPool.
-    // copilot-sdk warm sessions return 400 for Helix's tool-heavy multi-posture prompts,
-    // so this pool routes directly to configured providers without copilot-sdk.
-    if ((this.intelligence?.helix || this.intelligence?.constellation) && providers.size > 0) {
+    // Wire the retained mind-complete acquirer into Helix + Constellation.
+    // CASSICORE-FOCUS P4: ohmypi owns providers/routing; the retained pool is
+    // the mind_complete-backed acquirer built in Phase 4 (transitional — not
+    // wired to a live transport until P5/P6). Wired regardless of the (now empty)
+    // provider map so the retained setModelPool seam stays live.
+    if (this.intelligence?.helix || this.intelligence?.constellation) {
       try {
         const directive = this.modelDirective
         const defaultRouting = directive
@@ -1393,115 +1318,48 @@ export class Daemon {
               provider: this.config.get<string>('intelligence.helix.provider', 'opencode-go'),
               model: this.config.get<string>('intelligence.helix.model', 'deepseek-v4-pro'),
             }
-        const helixBlockedProviders = this.config.get<string[]>('intelligence.helix.blockedProviders', ['github-copilot-lb'])
-        const helixAllowedModels = this.config.get<Record<string, string[]>>('intelligence.helix.allowedModels', {
-          'github-copilot': ['gpt-4o', 'gpt-4.1', 'gpt-5-mini'],
-        })
 
-        const kimiConfig = directive ? directive.resolveTier('kimi')    : { provider: 'opencode-go', model: 'kimi-k2.5' }
-        const glmConfig  = directive ? directive.resolveTier('glm')     : { provider: 'opencode-go', model: 'glm-5.1' }
-        const qwenMaxCfg = directive ? directive.resolveTier('qwenMax') : { provider: 'opencode-go', model: 'deepseek-v4-pro' }
-        const qwenPlusCfg= directive ? directive.resolveTier('qwenPlus'): { provider: 'opencode-go', model: 'deepseek-v4-flash' }
-        const bgConfig   = directive ? directive.resolveTier('background'): { provider: 'opencode-go', model: 'deepseek-v4-flash' }
-        const claudeHaikuCfg  = directive ? directive.resolveTier('background') : { provider: 'opencode-go', model: 'deepseek-v4-flash' }
+        const helixModelPool = this.retainedModelPool
+        if (!helixModelPool) {
+          this.logger.warn('Retained mind-complete acquirer not available — Helix/Constellation model seam not wired')
+        } else if (this.intelligence?.helix || this.intelligence?.constellation) {
+          this.helixModelPool = helixModelPool
 
-
-        const makeHelixChain = (slot: string, tierCfg: { provider: string; model: string }) => ({
-          slotName: slot,
-          chain: [
-            { role: slot, provider: tierCfg.provider, model: tierCfg.model, priority: 10 },
-            { role: slot, provider: bgConfig.provider, model: bgConfig.model, priority: 5 },
-          ],
-          triggers: ['rate_limit' as const, 'timeout' as const, 'model_unavailable' as const, 'error' as const],
-        })
-
-        const brainstemChain = {
-          slotName: 'brainstem',
-          chain: [
-            { role: 'brainstem', provider: claudeHaikuCfg.provider, model: claudeHaikuCfg.model, priority: 10 },
-            { role: 'brainstem', provider: bgConfig.provider, model: bgConfig.model, priority: 5 },
-          ],
-          triggers: ['rate_limit' as const, 'timeout' as const, 'model_unavailable' as const, 'error' as const],
-        }
-        const miniHelixCorpusChain = {
-          slotName: 'mini-helix:corpus',
-          chain: [
-            { role: 'mini-helix:corpus', provider: 'opencode-go', model: 'deepseek-v4-pro', priority: 10 },
-            { role: 'mini-helix:corpus', provider: bgConfig.provider, model: bgConfig.model, priority: 5 },
-          ],
-          triggers: ['rate_limit' as const, 'timeout' as const, 'model_unavailable' as const, 'error' as const],
-        }
-        const miniHelixBrainstemChain = {
-          slotName: 'mini-helix:brainstem',
-          chain: [
-            { role: 'mini-helix:brainstem', provider: claudeHaikuCfg.provider, model: claudeHaikuCfg.model, priority: 10 },
-            { role: 'mini-helix:brainstem', provider: bgConfig.provider, model: bgConfig.model, priority: 5 },
-          ],
-          triggers: ['rate_limit' as const, 'timeout' as const, 'model_unavailable' as const, 'error' as const],
-        }
-
-        const { ModelPool } = await import('@cassicore/model-pool')
-        const helixModelPool = new ModelPool({
-          logger: this.logger.child('helix-pool'),
-          eventBus: this.bus,
-          fallbackChains: [
-            makeHelixChain('yang', { provider: 'opencode-go', model: 'deepseek-v4-pro' }),
-            makeHelixChain('yin', { provider: 'opencode-go', model: 'deepseek-v4-pro' }),
-            makeHelixChain('apex', { provider: 'opencode-go', model: 'deepseek-v4-pro' }),
-            makeHelixChain('unity', { provider: 'opencode-go', model: 'deepseek-v4-pro' }),
-            makeHelixChain('helix', { provider: 'opencode-go', model: 'deepseek-v4-pro' }),
-            {
-              slotName: 'dmn-observer',
-              chain: [
-                { role: 'dmn-observer', provider: bgConfig.provider, model: bgConfig.model, priority: 10 },
-              ],
-              triggers: ['rate_limit' as const, 'timeout' as const, 'model_unavailable' as const, 'error' as const],
-            },
-            brainstemChain,
-            miniHelixCorpusChain,
-            miniHelixBrainstemChain,
-          ],
-          budgetScopes: [],
-          defaultTimeoutMs: this.config.get<number>('intelligence.helix.timeoutMs', 600000),
-          auditEnabled: false,
-          blockedProviders: helixBlockedProviders,
-          allowedModels: helixAllowedModels,
-        })
-        helixModelPool.setProviders(providers)
-        this.helixModelPool = helixModelPool
-
-        if (this.intelligence?.helix) {
-          this.intelligence.helix.setModelPool(helixModelPool)
-          if (directive && typeof (this.intelligence.helix as any).setModelDirective === 'function') {
-            (this.intelligence.helix as any).setModelDirective(directive)
+          if (this.intelligence?.helix) {
+            this.intelligence.helix.setModelPool(helixModelPool)
+            if (directive && typeof (this.intelligence.helix as any).setModelDirective === 'function') {
+              (this.intelligence.helix as any).setModelDirective(directive)
+            }
+            this.logger.info('Helix ModelPool wired (mind_complete acquirer)', { provider: defaultRouting.provider, model: defaultRouting.model })
           }
-          this.logger.info('Helix ModelPool wired', { provider: defaultRouting.provider, model: defaultRouting.model })
-        }
 
-        if (this.intelligence?.constellation) {
-          this.intelligence.constellation.setModelPool(helixModelPool)
-          if (directive) {
-            this.intelligence.constellation.setModelDirective(directive)
+          if (this.intelligence?.constellation) {
+            this.intelligence.constellation.setModelPool(helixModelPool)
+            if (directive) {
+              this.intelligence.constellation.setModelDirective(directive)
+            }
+            this.logger.info('Constellation ModelPool wired (mind_complete acquirer)', { provider: defaultRouting.provider, model: defaultRouting.model })
           }
-          this.logger.info('Constellation ModelPool wired (shared with Helix)', { provider: defaultRouting.provider, model: defaultRouting.model })
-        }
 
-        // Wire Meditation handleFactory so SoloRunners can acquire model handles
-        // Use 'unity' slot — meditation explorers share the same model tier as Helix unity agents
-        if (this.intelligence?.setMeditationHandleFactory) {
-          this.intelligence.setMeditationHandleFactory(
-            (config) => helixModelPool.acquire('unity', config.tier, config.sessionId),
-          )
-          this.logger.info('Meditation handleFactory wired (shared ModelPool)')
+          // Wire Meditation handleFactory so SoloRunners can acquire model handles
+          if (this.intelligence?.setMeditationHandleFactory) {
+            this.intelligence.setMeditationHandleFactory(
+              (config) => helixModelPool.acquire('unity', config.tier, config.sessionId),
+            )
+            this.logger.info('Meditation handleFactory wired (mind_complete acquirer)')
+          }
         }
       } catch (err) {
         this.logger.warn('Failed to wire Helix/Constellation ModelPool', { error: String(err) })
       }
     }
 
+
     // Create shared ContextDistiller — Phase Zero context injection for teams/helix.
-    // Must be created after providers and ModelPools are wired.
-    if (this.intelligence && providers.size > 0) {
+    // Create shared ContextDistiller — Phase Zero context injection for teams/helix.
+    // CASSICORE-FOCUS P4: wired regardless of the (now empty) provider map; the
+    // retained mind-complete acquirer is the pool it receives.
+    if (this.intelligence) {
       try {
         const { ContextDistiller } = await import('./vendor/core/intelligence/context-distiller.js')
         const contextDistiller = new ContextDistiller(this.logger)
@@ -1551,8 +1409,7 @@ export class Daemon {
 
     completePhase('providers-routing', {
       providers: providers.size,
-      budgetTracker: !!budgetTracker,
-      modelRouter: !!modelRouter,
+      retainedPool: !!this.retainedModelPool,
     })
 
     // Create sessions and turn pipeline
@@ -3530,10 +3387,6 @@ export class Daemon {
     try {
       this.promptLogStore?.close()
     } catch { /* ignore */ }
-    // Close rate limit store
-    try {
-      this.rateLimitStore?.close()
-    } catch { /* ignore */ }
     // Close timeline store
     try {
       if (this.timelineStore) {
@@ -3560,12 +3413,8 @@ export class Daemon {
       }
     })
 
-    // persist budget tracker state
-    await timedStep('budget-save', async () => {
-      if (this.budgetTracker) {
-        await this.budgetTracker.saveToDisk()
-      }
-    })
+    // NOTE: BudgetTracker/ModelRouter persistence removed at P4 — ohmypi owns
+    // provider quota; the retained mind's budget seams were deleted with the pool.
 
     this.running = false
     this.logger.info("Goodbye.")

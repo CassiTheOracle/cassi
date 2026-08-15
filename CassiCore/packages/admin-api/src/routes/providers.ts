@@ -1,4 +1,3 @@
-import { listProviderConfigKeys } from '@cassicore/providers'
 import type { RenewResult, AccountEntry } from '../vendor/core/scripts/qwen-renew-accounts.js'
 
 import type { ILogger } from '@cassicore/foundation'
@@ -186,7 +185,14 @@ export async function handleProvidersRoutes(
   // GET /providers/config/keys
   if (method === 'GET' && pathname === '/providers/config/keys') {
     try {
-      const keys = listProviderConfigKeys()
+      // CASSICORE-FOCUS P4: @cassicore/providers deleted — ohmypi owns provider
+      // config. Only the global timeout key remains as a minimal read surface.
+      const keys = {
+        globalKeys: {
+          'providers.global.timeoutMs': { default: 60_000, description: 'Default per-request timeout in milliseconds' },
+        },
+        providerSpecific: {},
+      }
       sendJSON(res, 200, { keys })
       return true
     } catch (err) {

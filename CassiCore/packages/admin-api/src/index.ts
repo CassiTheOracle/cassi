@@ -9,5 +9,4 @@
 export { createAdminApi } from './admin-api.js'
 export { createAdminRuntimeFacade, type AdminRuntimeFacade } from './routes/runtime.js'
 export { executeTurn, getPreferredTurnEngine } from './routes/turn-routing.js'
-export { shutdownWarmProvider } from './routes/warm-provider.js'
 export type { ILogger } from '@cassicore/foundation'

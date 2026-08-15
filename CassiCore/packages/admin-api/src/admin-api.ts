@@ -50,7 +50,6 @@ import { handleThalamusRoutes } from './routes/thalamus.js'
 import { handleTrainingRoutes } from './routes/training.js'
 import { handlePromptLogRoutes } from './routes/prompt-log.js'
 import { handleTimelineRoutes } from './routes/timeline.js'
-import { handleWarmProviderRoutes, shutdownWarmProvider } from './routes/warm-provider.js'
 import { handlePrismRoutes } from './routes/prism.js'
 import { handleMaintenanceRoutes, startPeriodicCheckpoint } from './routes/maintenance.js'
 import { createAdminRuntimeFacade } from './routes/runtime.js'
@@ -2339,8 +2338,8 @@ export function createAdminApi(daemon: any, logger: ILogger) {
       }
 
       const routeHandlers = [
-        // OpenAI-compatible warm provider endpoint — checked first since /v1/* is a distinct prefix
-        () => handleWarmProviderRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method, pathname),
+        // NOTE: warm-provider /v1/* endpoints removed at P4 — the copilot-sdk provider
+        // stack was deleted with @cassicore/providers (ohmypi owns providers).
         () => handleHealthRoutes({ daemon, logger, sendJSON }, req, res, method, pathname),
         () => handleConfigRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method, pathname, parts),
         () => handleChannelsRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method, pathname),

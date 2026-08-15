@@ -30,7 +30,6 @@
   },
   "dependencies": {
     "@cassicore/foundation": "*",
-    "@cassicore/providers": "*",
     "@cassicore/plugins": "*",
     "@cassicore/jobs": "*",
     "@cassicore/mcp-gateway": "*",
