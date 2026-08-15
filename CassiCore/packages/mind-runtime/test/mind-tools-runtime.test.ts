@@ -37,7 +37,6 @@ describe('retained mind tools execute in the runtime', () => {
   it.each([
     ['list_sessions', {}],
     ['system_health', {}],
-    ['_reflect', {}],
     ['graph_discover', {}],
     ['cassandra_query_events', { sessionId: 'none' }],
   ])('tool %s returns a non-empty string without throwing', async (tool, params) => {
@@ -56,10 +55,18 @@ describe('retained mind tools execute in the runtime', () => {
     expect(parsed.step.recorded).toBe(true)
   })
 
-  it('memory tools operate on the shared field', async () => {
-    const saved = await rt.executeTool('remember', { note: 'a fact to keep' })
-    expect(saved.result).toContain('Stored memory')
-    const found = await rt.executeTool('memory_search', { query: 'fact to keep' })
-    expect(found.result.length).toBeGreaterThan(0)
+  it('P5-deleted memory mind tools are gone; the shared MnemicField still works via the backend', async () => {
+    // _reflect / _remember / remember / memory_search merged into ohmypi memory
+    // built-ins (CASSICORE-FOCUS §3.3 / §7.5) — no longer registered tools.
+    const names = rt.registry.list({ includeHidden: true }).map(t => t.name)
+    for (const gone of ['_reflect', '_remember', 'remember', 'memory_search']) {
+      expect(names).not.toContain(gone)
+    }
+    // The shared field backend (MnemicMemoryAdapter) remains the retained memory path.
+    const id = rt.memory.save({ content: 'a fact to keep', type: 'fact' })
+    expect(id).toBeTypeOf('string')
+    const hits = await rt.memory.search('fact to keep')
+    expect(Array.isArray(hits)).toBe(true)
+    expect(hits.length).toBeGreaterThan(0)
   })
 })

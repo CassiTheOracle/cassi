@@ -9,7 +9,7 @@
  * watcher, .env secrets loader, budget tracker, ModelDirective. The retained core
  * HERE is: paths ports, the intelligence layer (createIntelligence), the orchestration
  * bus, MnemicField + its injections, the unified intelligence loop, and the retained
- * mind-tool deps (collectThoughtsDeps / cognitiveToolDeps / peerToolDeps) wired into
+ * mind-tool deps (collectThoughtsDeps / peerToolDeps) wired into
  * `registerMindTools` (the P3 retained-mind seam from @cassicore/tools).
  *
  * Model access (P4 boundary): this phase boots the retained mind with NO live LLM
@@ -267,13 +267,6 @@ export async function createMindRuntime(opts: MindRuntimeOptions = {}): Promise<
     logger: logger.child('mind-tools'),
     subagentTracker: undefined,
     eventHistory,
-    cognitiveToolDeps: {
-      thoughtObserver: intelligenceAny.thoughtObserver,
-      cognitiveBridge: intelligenceAny.cognitiveBridge,
-      contextManager: intelligenceAny.contextManager,
-      subconscious: intelligenceAny.subconscious,
-      logger: logger.child('_cognitive'),
-    } as never as CoreToolDeps['cognitiveToolDeps'],
     peerToolDeps: {
       memory: intelligence.memory,
       cognitiveBridge: intelligenceAny.cognitiveBridge,

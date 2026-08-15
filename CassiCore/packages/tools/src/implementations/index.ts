@@ -1,11 +1,6 @@
 import { getEventBus, getContextWindowDebugger } from '@cassicore/events'
 
 import { registerCassandraEventTools } from './cassandra-event.js'
-import {
-  reflectDefinition, makeReflectHandler,
-  cognitiveRememberDefinition, makeCognitiveRememberHandler,
-  type CognitiveToolDeps,
-} from './cognitive-tools.js'
 import { listToolsDefinition, listToolsHandler } from './list-tools.js'
 import {
   coordinateDefinition, makeCoordinateHandler,
@@ -23,10 +18,6 @@ import { vybitDefinition, vybitHandler } from './vybit.js'
 import { getSubagentResultDefinition, makeGetSubagentResultHandler } from './get-subagent-result.js'
 import { getSubagentStatusDefinition, makeGetSubagentStatusHandler } from './get-subagent-status.js'
 import { listSubagentsDefinition, makeListSubagentsHandler } from './list-subagents.js'
-import {
-  rememberDefinition, makeRememberHandler,
-  memorySearchDefinition, makeMemorySearchHandler,
-} from './memory-search.js'
 import { createQueryEventsTool, listPresetsForTool } from './query-events.js'
 import { readFileDefinition, readFileHandler } from './read-file.js'
 import { readFilesDefinition, readFilesHandler } from './read-files.js'
@@ -84,8 +75,6 @@ export interface CoreToolDeps {
   }
   /** Event history store for query_events tool */
   eventHistory?: EventHistory
-  /** Dependencies for cognitive tools (_reflect, _remember) */
-  cognitiveToolDeps?: CognitiveToolDeps
   /** Dependencies for peer coordination tools (_coordinate, _check_peers) */
   peerToolDeps?: PeerToolDeps
   /** Lazy getter for the background job manager */
@@ -156,11 +145,6 @@ export function registerCoreTools(registry: ToolRegistry, deps: CoreToolDeps): v
     registry.register(runBackgroundDefinition, makeRunBackgroundHandler(deps.getJobManager))
     registry.register(checkJobDefinition, makeCheckJobHandler(deps.getJobManager))
     registry.register(waitJobDefinition, makeWaitJobHandler(deps.getJobManager))
-  }
-
-  // Memory tools (requires memory module)
-  if (deps.memory) {
-    registry.register(rememberDefinition, makeRememberHandler(deps.memory))
   }
 
   // list_sessions — inline (simple)
@@ -244,14 +228,11 @@ export function registerCoreTools(registry: ToolRegistry, deps: CoreToolDeps): v
     )
   }
 
-  // Cognitive tools — _reflect + _remember
-  // These exploit the free tool loop in request-based billing providers.
-  // They execute locally (instant) and route signals to the intelligence layer.
-  if (deps.cognitiveToolDeps) {
-    registry.register(reflectDefinition, makeReflectHandler(deps.cognitiveToolDeps))
-    registry.register(cognitiveRememberDefinition, makeCognitiveRememberHandler(deps.cognitiveToolDeps))
-    registry.register(graphDiscoverDefinition, graphDiscoverHandler)
-  }
+  // Retained cognitive tool — graph_discover (field-structure discovery).
+  // _reflect / _remember were P5-deleted (merge into ohmypi memory built-ins,
+  // CASSICORE-FOCUS §3.3 / §7.5). graph_discover is a cognitive operation on the
+  // field's structure, not a memory read/write, so it stays.
+  registry.register(graphDiscoverDefinition, graphDiscoverHandler)
 
   // Peer coordination tools — CONSOLIDATED (Phase 1)
   // _coordinate: Unified tool for signal, broadcast, shared_note, link_brain actions
@@ -405,11 +386,11 @@ export function registerMindTools(registry: ToolRegistry, deps: CoreToolDeps): v
   }
 
   // Cognitive tools — _reflect + _remember + graph_discover (retained seam).
-  if (deps.cognitiveToolDeps) {
-    registry.register(reflectDefinition, makeReflectHandler(deps.cognitiveToolDeps))
-    registry.register(cognitiveRememberDefinition, makeCognitiveRememberHandler(deps.cognitiveToolDeps))
-    registry.register(graphDiscoverDefinition, graphDiscoverHandler)
-  }
+  // Cognitive tool — graph_discover (retained; field-structure discovery).
+  // _reflect / _remember were P5-deleted (merge into ohmypi memory built-ins,
+  // CASSICORE-FOCUS §3.3 / §7.5); graph_discover is a cognitive operation on the
+  // field's structure, not a memory read/write, so it stays.
+  registry.register(graphDiscoverDefinition, graphDiscoverHandler)
 
   // Peer coordination tools — _coordinate + _check_peers (retained seam).
   if (deps.peerToolDeps) {
@@ -461,13 +442,6 @@ export function registerMindTools(registry: ToolRegistry, deps: CoreToolDeps): v
       memory: deps.memory,
       archive: daemon?.archive || undefined,
     }))
-  }
-
-  // Memory tools — remember + memory_search (P5-deletion seam; merge into ohmypi
-  // memory built-ins once the backend lands). Kept registered behind deps.memory.
-  if (deps.memory) {
-    registry.register(rememberDefinition, makeRememberHandler(deps.memory))
-    registry.register(memorySearchDefinition, makeMemorySearchHandler(deps.memory))
   }
 
   // Context Window Debugging — cassandra_context_inspect (consolidated inspection).

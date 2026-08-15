@@ -63,11 +63,15 @@ describe('spine factory registers retained mind tools', () => {
       expect(t!.hidden).toBeFalsy()
       expect(t!.defaultInactive).toBeFalsy()
     }
-    for (const seam of ['_reflect', '_remember', '_coordinate', '_check_peers', 'remember', 'memory_search']) {
+    for (const seam of ['_coordinate', '_check_peers']) {
       const t = stub.registered.find(r => r.name === seam)
       expect(t, `seam tool ${seam}`).toBeDefined()
       expect(t!.hidden).toBe(true)
       expect(t!.defaultInactive).toBe(true)
+    }
+    // P5-deleted redundant memory mind tools (merge into ohmypi memory built-ins) — absent.
+    for (const gone of ['_reflect', '_remember', 'remember', 'memory_search']) {
+      expect(stub.registered.find(r => r.name === gone), `${gone} should be deleted`).toBeUndefined()
     }
   })
 

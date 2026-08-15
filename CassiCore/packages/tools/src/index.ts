@@ -97,14 +97,12 @@ export type { GraphDiscoverDeps } from './implementations/graph-discover.js'
 // collect-thoughts (constellation guidance-provider re-points the type)
 export type { ConstellationGuidanceProvider } from './implementations/collect-thoughts.js'
 // Retained mind-tool definitions (P3 spine schema surface)
+// _reflect / _remember / remember / memory_search were P5-deleted (merge into
+// ohmypi memory built-ins over the shared field, CASSICORE-FOCUS §3.3 / §7.5).
 export {
   collectThoughtsDefinition,
-  reflectDefinition,
-  cognitiveRememberDefinition,
   coordinateDefinition,
   checkPeersDefinition,
-  memorySearchDefinition,
-  rememberDefinition,
   listSubagentsDefinition,
   getSubagentStatusDefinition,
   getSubagentResultDefinition,

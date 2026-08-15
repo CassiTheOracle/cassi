@@ -13,9 +13,7 @@
 
 export { collectThoughtsDefinition } from './collect-thoughts.js'
 export { graphDiscoverDefinition } from './graph-discover.js'
-export { reflectDefinition, cognitiveRememberDefinition } from './cognitive-tools.js'
 export { coordinateDefinition, checkPeersDefinition } from './peer-coordination.js'
-export { memorySearchDefinition, rememberDefinition } from './memory-search.js'
 export { listSubagentsDefinition } from './list-subagents.js'
 export { getSubagentStatusDefinition } from './get-subagent-status.js'
 export { getSubagentResultDefinition } from './get-subagent-result.js'

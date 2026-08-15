@@ -46,15 +46,18 @@ describe('mind-runtime boot (retained core, no providers)', () => {
     expect(rt.field.stats).toBeTypeOf('function')
   })
 
-  it('registers the retained mind tools', () => {
+  it('registers the retained mind tools (P5: _reflect/_remember/remember/memory_search deleted)', () => {
     const names = rt.registry.list({ includeHidden: true }).map(t => t.name)
     for (const name of [
       'collect_thoughts', 'graph_discover', 'list_sessions', 'system_health',
       'debug_session', 'universal_search', 'cassandra_query_events',
-      'cassandra_context_inspect', 'query_events', '_reflect', '_remember',
-      '_coordinate', '_check_peers', 'remember', 'memory_search',
+      'cassandra_context_inspect', 'query_events', '_coordinate', '_check_peers',
     ]) {
       expect(names).toContain(name)
+    }
+    // P5-deleted redundant memory mind tools (merge into ohmypi memory built-ins).
+    for (const gone of ['_reflect', '_remember', 'remember', 'memory_search']) {
+      expect(names).not.toContain(gone)
     }
     // list_subagents family is conditional (needs tracker/thinker) — confirm absent w/o one.
     expect(names).not.toContain('list_subagents')

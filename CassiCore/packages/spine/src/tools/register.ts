@@ -13,22 +13,19 @@
  *    universal_search, cassandra_query_events, cassandra_context_inspect, query_events.
  *    (12 retained + mind_complete = the 13 plan §4.2 tools; mind_complete is registered
  *    separately in tools/mind-complete.ts.)
- *  - SEAM (`hidden: true, defaultInactive: true`): _reflect / _remember / _coordinate /
- *    _check_peers / remember / memory_search — P5-deletion seam; kept registered but
- *    inactive until the ratified deletion lands (§7.5). Their execute still delegates
- *    to the runtime (the retained handlers are registered there too).
+ *  - SEAM (`hidden: true, defaultInactive: true`): _coordinate / _check_peers —
+ *    the retained peer-coordination seam. `_reflect`/`_remember`/`remember`/
+ *    `memory_search` were P5-deleted (merge into ohmypi memory built-ins over the
+ *    shared MnemicField, §7.5); collect_thoughts + graph_discover are retained
+ *    cognitive operations registered visible above.
  */
 
 import type { ToolDefinition as CassiToolDefinition } from '@cassicore/tools'
 import {
   collectThoughtsDefinition,
   graphDiscoverDefinition,
-  reflectDefinition,
-  cognitiveRememberDefinition,
   coordinateDefinition,
   checkPeersDefinition,
-  memorySearchDefinition,
-  rememberDefinition,
   listSubagentsDefinition,
   getSubagentStatusDefinition,
   getSubagentResultDefinition,
@@ -66,12 +63,8 @@ const RETAINED_TOOLS: RetainedRegistration[] = [
 ]
 
 const SEAM_TOOLS: RetainedRegistration[] = [
-  { definition: reflectDefinition, seam: true },
-  { definition: cognitiveRememberDefinition, seam: true },
   { definition: coordinateDefinition, seam: true },
   { definition: checkPeersDefinition, seam: true },
-  { definition: rememberDefinition, seam: true },
-  { definition: memorySearchDefinition, seam: true },
 ]
 
 // ── Factory shape helpers ──────────────────────────────────────────────────
