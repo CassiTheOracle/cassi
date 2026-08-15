@@ -397,6 +397,33 @@ void main() {
     int bmode = cm_base();
     int flags = cm_flags();
 
+    // ── Periodic fold (perf-decomp 2026-08-15): the nbody KDK integrator
+    // NEVER wraps stored positions, so escaped particles can hold
+    // |pos| ≫ extent while their physics stays periodic-correct (the mass
+    // deposit and the nbody field samplers wrap the GRID INDEX instead —
+    // cassi_mass_deposit.glsl L128-134, cassi_nbody_gravity.glsl L279). The
+    // RENDERED transform must fold into the box too: otherwise a crossed
+    // particle draws thousands of units offscreen and "leaves the box and
+    // disappears" while its physics re-enters unseen from the far side.
+    //   pf = p − 2·ext·round(p/(2·ext)) — the periodic identity: maps ANY
+    //   finite p into [−ext, ext] (round of a fraction in (−0.5, 0.5) is 0
+    //   → pf = p for every in-box particle — byte-identical battery); at
+    //   exactly |p| = ext the fold lands on the periodic seam image
+    //   (±ext ↔ ∓ext — the same image the deposit's index wrap produces
+    //   for gc == N). A NaN/inf position (force blow-up) folds to NaN →
+    //   the isfinite guard snaps it to 0.0 (in-box): a NaN transform
+    //   would render an invisible quad.
+    vec3 ext3 = vec3(pc.extent_x, pc.extent_y, pc.extent_z);
+    vec3 span = max(2.0 * ext3, vec3(1e-9));
+    vec3 pf = p.xyz - span * round(p.xyz / span);
+    // Guard: NaN (an inf round folds to NaN) or an absurd magnitude (a
+    // force blow-up) → harmless in-box origin 0.0 (a NaN transform would
+    // render an invisible quad). equal(x,x) is false iff x is NaN;
+    // |pf| > 1e20 cannot be a real box coordinate. (No bvec bitwise-or in
+    // GLSL 450 — the two guards chain.)
+    pf = mix(pf, vec3(0.0), vec3(not(equal(pf, pf))));
+    pf = mix(pf, vec3(0.0), vec3(greaterThan(abs(pf), vec3(1e20))));
+
     // ── Size: legacy (bit-identical) or size-by-mass (flag 0x10) ──────
     float m = p.w;                                   // per-particle Salpeter mass
     float s = clamp(0.5 + m * 0.12, 0.4, 5.0);       // legacy linear (DEFAULT)
@@ -407,10 +434,12 @@ void main() {
         s = clamp(SIZE_K * pow(m, 0.3333333), SIZE_S_MIN, SIZE_S_MAX);
     }
 
-    // Row-major 3x4: scale basis by mass-derived size
-    inst[base]     = vec4(s, 0.0, 0.0, p.x);
-    inst[base + 1] = vec4(0.0, s, 0.0, p.y);
-    inst[base + 2] = vec4(0.0, 0.0, s, p.z);
+    // Row-major 3x4: scale basis by mass-derived size. Origin = the FOLDED
+    // (periodic-image) position — the transform must never carry a raw
+    // escaped coordinate (see the fold note above).
+    inst[base]     = vec4(s, 0.0, 0.0, pf.x);
+    inst[base + 1] = vec4(0.0, s, 0.0, pf.y);
+    inst[base + 2] = vec4(0.0, 0.0, s, pf.z);
 
     // ── Color: legacy (bit-identical) or the consolidated engine ──────
     // COLOR-AS-LUT (Tier-2): with lut flag on the instance buffer carries
@@ -449,7 +478,7 @@ void main() {
         float glow_boost = 0.0;   // F_GL off → no glow (material mixes 0)
         float depth_fade = 1.0;   // F_DP off → no depth fade (material × 1)
         if ((flags & F_GL) != 0) { glow_boost = vfx_glow_boost(x_axis, s); }
-        if ((flags & F_DP) != 0) { depth_fade = vfx_depth_fade(pos[i].xyz); }
+        if ((flags & F_DP) != 0) { depth_fade = vfx_depth_fade(pf); }
         inst[base + 3] = vec4(u, glow_boost, depth_fade, 0.0);  // custom_data: (u, glow, depth, spare)
     } else {
         vec4 color;
@@ -538,7 +567,7 @@ void main() {
         // faithful fallback until the hook feeds the live camera).
         // Shared helper — the LUT branch writes the same fade into custom_data.
         if ((flags & F_DP) != 0) {
-            color.a *= vfx_depth_fade(pos[i].xyz);
+            color.a *= vfx_depth_fade(pf);
         }
     
         inst[base + 3] = color;
