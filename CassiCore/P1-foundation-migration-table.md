@@ -1,9 +1,9 @@
 # P1 — `@cassicore/foundation` — Migration Table (Planning Deliverable)
 
 **Source (READ-ONLY):** `D:\carina\workspaces\cassicore\`
-**Destination:** `C:\Users\Carina\Workspaces\CassiCore\packages\foundation\src\`
-**Recon:** `C:\Users\Carina\Workspaces\CassiCore\recon-data.json`
-**Plan:** `C:\Users\Carina\Workspaces\CassiCore\CASSI-MIND-PLAN.md` §5-P1, §4
+**Destination:** `C:\Users\Carina\workspaces\Cassi\CassiCore\packages\foundation\src\`
+**Recon:** `C:\Users\Carina\workspaces\Cassi\CassiCore\recon-data.json`
+**Plan:** `C:\Users\Carina\workspaces\Cassi\CassiCore\CASSI-MIND-PLAN.md` §5-P1, §4
 **Date:** 2026-08-13
 **Status:** PLANNING — executor applies rules verbatim in a later wave. Nothing migrated, nothing committed.
 

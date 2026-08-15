@@ -1,9 +1,9 @@
 # P4 — `@cassicore/mnemic-field` — Migration Table (Planning Deliverable)
 
 **Source (READ-ONLY, D:):** `D:\carina\workspaces\cassicore\core\intelligence\mnemic-field\` (incl. subdirs `training/`, `self-model/`, `knowledge/`)
-**Destination:** `C:\Users\Carina\Workspaces\CassiCore\packages\mnemic-field\src\` (MIRRORING the source subdir structure)
-**Recon:** `C:\Users\Carina\Workspaces\CassiCore\recon-data.json`
-**Plan:** `C:\Users\Carina\Workspaces\CassiCore\CASSI-MIND-PLAN.md` §5-P4, §4, §7 (coordination)
+**Destination:** `C:\Users\Carina\workspaces\Cassi\CassiCore\packages\mnemic-field\src\` (MIRRORING the source subdir structure)
+**Recon:** `C:\Users\Carina\workspaces\Cassi\CassiCore\recon-data.json`
+**Plan:** `C:\Users\Carina\workspaces\Cassi\CassiCore\CASSI-MIND-PLAN.md` §5-P4, §4, §7 (coordination)
 **Exemplars (house format):** `P1-foundation-migration-table.md`, `P2-helix-migration-table.md`, `P3-flux-team-mini-helix-migration-table.md`
 **Date:** 2026-08-13
 **Status:** PLANNING — executor applies rules verbatim in a later wave. Nothing migrated, nothing committed.

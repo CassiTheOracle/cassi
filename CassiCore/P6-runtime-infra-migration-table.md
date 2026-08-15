@@ -3,9 +3,9 @@
 **Sources (READ-ONLY, D:):** `core/tools/`, `core/model-pool/`, `core/workflow/`, `core/jobs/`, `core/events/`,
 `core/mcp/`, `core/plugins/` (+ `core/plugin-host.ts`), `core/pipeline/`, `core/utils/` — under
 `D:\carina\workspaces\cassicore\`
-**Destinations:** `C:\Users\Carina\Workspaces\CassiCore\packages\{tools,model-pool,workflow,jobs,events,mcp,plugins,pipeline,utils}\src\`
-**Recon:** `C:\Users\Carina\Workspaces\CassiCore\recon-data.json`
-**Plan:** `C:\Users\Carina\Workspaces\CassiCore\CASSI-MIND-PLAN.md` §5-P6, §4, §3e.1/§3e.4 (registry + registerCoreTools seams)
+**Destinations:** `C:\Users\Carina\workspaces\Cassi\CassiCore\packages\{tools,model-pool,workflow,jobs,events,mcp,plugins,pipeline,utils}\src\`
+**Recon:** `C:\Users\Carina\workspaces\Cassi\CassiCore\recon-data.json`
+**Plan:** `C:\Users\Carina\workspaces\Cassi\CassiCore\CASSI-MIND-PLAN.md` §5-P6, §4, §3e.1/§3e.4 (registry + registerCoreTools seams)
 **Exemplars (house format):** `P1-foundation-migration-table.md`, `P2-helix-migration-table.md`,
 `P3-flux-team-mini-helix-migration-table.md`, `P4-mnemic-field-migration-table.md`, `P5a-…`, `P5b-…`
 **Date:** 2026-08-14

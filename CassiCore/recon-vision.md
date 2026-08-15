@@ -13,7 +13,7 @@
 The "simulated-consciousness mind over a software brain" is not an aspiration the repo is missing — **there is a complete, load-bearing design document already written and a working Stage-0 field engine already built and GPU-verified**:
 
 - Design: `.opencode/plans/cassi-mind-plugin.md` — "Cassi Mind Over Brain — OhMyPi Plugin Program".
-- Working code: `mind-plugin/` (`@cassi-mind`, an **OhMyPi/omp extension**), which boots a Godot GPU two-fluid engine (`mind_engine.tscn` on loopback TCP 7599) as the "mind" sidecar, plus `cassi_mind_engine.gd` and `verify_mind_engine.gd` in the `physics/godot/space-sim` repo, verified **16/16 gates PASS on the RX 7900 XTX**.
+- Working code: `mind-plugin/` (`@cassi-mind`, an **OhMyPi/omp extension**), which boots a Godot GPU two-fluid engine (`mind_engine.tscn` on loopback TCP 7599) as the "mind" sidecar, plus `cassi_mind_engine.gd` and `verify_mind_engine.gd` in the `CassiCosmos` repo, verified **16/16 gates PASS on the RX 7900 XTX**.
 
 The vision is doubly grounded: (a) the **brain** is already built as brain-region-inspired subsystems inside `core/intelligence/`, and (b) the **mind-as-field** is already designed, partially built, and empirically verified. The migration plan's job is to make each brain region a plugin and wire the field engine as the substrate — which `cassi-mind-plugin.md` already scopes stage-by-stage.
 
@@ -120,10 +120,10 @@ Legend: **BUILT** (real compiled/running code verified in tree) · **PARTIAL** (
 > "The field is the **state of truth**. The brain's SQLite/LMDB layers become a *journal* (write-ahead log for crash recovery), not the store. Every brain write is a field deposition; every read is a field projection."
 
 That plan's grounding section ties the whole stack together:
-- **Theory** → `C:\Users\Carina\Workspaces\cassi-toe` (derived constants λ = 1/(2w), κ = φ⁻¹, cascade ℓₙ = ℓ_Pl·φⁿ, gate closure φ⁻²/3)
-- **Field substrate** → `C:\Users\Carina\Workspaces\cassi` (QiFluid, Vulkan Qi shaders, physics cache)
+- **Theory** → `C:\Users\Carina\workspaces\Cassi\CassiTheory` (derived constants λ = 1/(2w), κ = φ⁻¹, cascade ℓₙ = ℓ_Pl·φⁿ, gate closure φ⁻²/3)
+- **Field substrate** → `C:\Users\Carina\workspaces\Cassi\CassiAI` (QiFluid, Vulkan Qi shaders, physics cache)
 - **Brain** → `D:\carina\workspaces\cassicore` (Constellation, Mnemic Field, Thalamus)
-- **GPU engine** → `C:\Users\Carina\Workspaces\physics\godot\space-sim` (2.5M-particle two-fluid PDE shader)
+- **GPU engine** → `C:\Users\Carina\workspaces\Cassi\CassiCosmos` (2.5M-particle two-fluid PDE shader)
 
 The **transceiver-brain doc** is the conceptual bridge from the wave physics to brain neurons:
 
@@ -137,7 +137,7 @@ And Qi is defined as **phase coherence** in that doc ("Qi = phase coherence... h
 
 > "The core theory's computational model: **inputs perturb the field; the field relaxes toward the φ-attractor; the answer is read from the attractor configuration.**"
 
-Verified primitives to integrate (all grounded in the cassi-toe theory): ke-ring algebra (correctness-proven, ≤6×10⁻⁴), winding arithmetic (merge-compatibility as phase bookkeeping, no diffing), cascade suppression (coherence budget as capacity law), kindling/ignition, closure-crossing detection, Qi states. It carries a **hard discipline**: the applicability litmus — "Qi computation only where the task genuinely spans multiple cascade rungs. Single-rung tasks use conventional computation." The spin-glass honest negative is the governing precedent.
+Verified primitives to integrate (all grounded in the CassiTheory theory): ke-ring algebra (correctness-proven, ≤6×10⁻⁴), winding arithmetic (merge-compatibility as phase bookkeeping, no diffing), cascade suppression (coherence budget as capacity law), kindling/ignition, closure-crossing detection, Qi states. It carries a **hard discipline**: the applicability litmus — "Qi computation only where the task genuinely spans multiple cascade rungs. Single-rung tasks use conventional computation." The spin-glass honest negative is the governing precedent.
 
 ### 3.3 Vulkan / GPU as the compute substrate
 
@@ -145,7 +145,7 @@ Verified primitives to integrate (all grounded in the cassi-toe theory): ke-ring
 
 ### 3.4 The honest gap
 
-The `training/` Python tree (turbulence, N-body, two-fluid cosmology, QiField scripts) and the daemon (`core/`) are **two disconnected worlds right now**. `training/cassi/qi-field-cassi-v4.py` and the two-fluid PDE scripts are self-contained experiments; `qi_field.py`/FluidCord as named objects are **not present in this repo tree** (they live in the referenced `C:\Users\Carina\Workspaces\cassi` workspace). The only live runtime link to the field is the **mind-plugin → Godot engine** path. The migration's central engineering problem is exactly this seam: the brain writes to SQLite (`MnemicField.store`), and the field-deposition hooks must be added so the field becomes authoritative.
+The `training/` Python tree (turbulence, N-body, two-fluid cosmology, QiField scripts) and the daemon (`core/`) are **two disconnected worlds right now**. `training/cassi/qi-field-cassi-v4.py` and the two-fluid PDE scripts are self-contained experiments; `qi_field.py`/FluidCord as named objects are **not present in this repo tree** (they live in the referenced `C:\Users\Carina\workspaces\Cassi\CassiAI` workspace). The only live runtime link to the field is the **mind-plugin → Godot engine** path. The migration's central engineering problem is exactly this seam: the brain writes to SQLite (`MnemicField.store`), and the field-deposition hooks must be added so the field becomes authoritative.
 
 ---
 
@@ -190,7 +190,7 @@ The migration must keep the brain bit-identical during change. Every stage has a
 > Grounding: "Staged path with pre-registered gates" — Stage 0 fork+channel+engine; Stage 1 shadow bridge (parity); Stage 2 first reorganization (A/B); Stage 3 memory-as-field (retrieval metrics); Stage 4 read loop (Constellation A/B); Stage 5 mind-native training (plateau bypass). — `cassi-mind-plugin.md` §5.
 
 ### C10. Framework/Runtime substrate to adopt from the theory workspace
-The plan names the concrete external repos the overhaul consumes: `cassi-toe` (theory), `cassi` (QiFluid, Vulkan Qi shaders), `physics/godot/space-sim` (GPU engine). The migration should treat these as **consumed substrate**, not rebuilds.
+The plan names the concrete external repos the overhaul consumes: `CassiTheory` (theory), `CassiAI` (QiFluid, Vulkan Qi shaders), `CassiCosmos` (GPU engine). The migration should treat these as **consumed substrate**, not rebuilds.
 
 ---
 
@@ -216,4 +216,4 @@ The plan names the concrete external repos the overhaul consumes: `cassi-toe` (t
   1. **Memory becomes a field; SQLite becomes a journal** — brain writes deposit into the GPU two-fluid field via `MindFieldEncoder` hooks; the field is the state of truth (biggest single transform).
   2. **The daemon becomes a thin host; brain-regions become plugins** — each `core/intelligence/*` module extracts to `@cassicore/*` with `src/ports/*` seams, and the omp/extensions pattern already proven by `cassi-mind` becomes the template.
   3. **Adopt, don't rebuild, the GPU field engine** — the Godot two-fluid sidecar (loopback TCP 7599) is built & verified; the migration wires it in behind a no-op-parity gate and applies pre-registered A/B gates for every reorganization (Thalamus luminance→q/ke-ring first).
-- **Report file written:** `C:\Users\Carina\Workspaces\CassiCore\recon-vision.md`.
+- **Report file written:** `C:\Users\Carina\workspaces\Cassi\CassiCore\recon-vision.md`.

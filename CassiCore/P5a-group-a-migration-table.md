@@ -1,9 +1,9 @@
 # P5-A — `@cassicore/thalamus` + `@cassicore/aurora` + `@cassicore/cortex-pineal-dialectic` + `@cassicore/cognitive-feed` — Migration Table (Planning Deliverable)
 
 **Sources (READ-ONLY, D:):** `core/intelligence/{thalamus,aurora,cortex,pineal,dialectic,cognitive-feed}/`
-**Destinations:** `C:\Users\Carina\Workspaces\CassiCore\packages\{thalamus,aurora,cortex-pineal-dialectic,cognitive-feed}\src\`
-**Recon:** `C:\Users\Carina\Workspaces\CassiCore\recon-data.json`
-**Plan:** `C:\Users\Carina\Workspaces\CassiCore\CASSI-MIND-PLAN.md` §5-P5, §4, §7
+**Destinations:** `C:\Users\Carina\workspaces\Cassi\CassiCore\packages\{thalamus,aurora,cortex-pineal-dialectic,cognitive-feed}\src\`
+**Recon:** `C:\Users\Carina\workspaces\Cassi\CassiCore\recon-data.json`
+**Plan:** `C:\Users\Carina\workspaces\Cassi\CassiCore\CASSI-MIND-PLAN.md` §5-P5, §4, §7
 **Exemplars (house format):** `P1-foundation-migration-table.md`, `P2-helix-migration-table.md`, `P3-flux-team-mini-helix-migration-table.md`, `P4-mnemic-field-migration-table.md`
 **Date:** 2026-08-13
 **Status:** PLANNING — executor applies rules verbatim in a later wave. Nothing migrated, nothing committed.

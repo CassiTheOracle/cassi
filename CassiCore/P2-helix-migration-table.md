@@ -1,10 +1,10 @@
 # P2 — `@cassicore/helix` — Migration Table (Planning Deliverable)
 
 **Source (READ-ONLY):** `D:\carina\workspaces\cassicore\core\intelligence\helix\`
-**Destination:** `C:\Users\Carina\Workspaces\CassiCore\packages\helix\src\`
-**Recon:** `C:\Users\Carina\Workspaces\CassiCore\recon-data.json`
-**Plan:** `C:\Users\Carina\Workspaces\CassiCore\CASSI-MIND-PLAN.md` §5-P2, §4
-**Exemplar (house format):** `C:\Users\Carina\Workspaces\CassiCore\P1-foundation-migration-table.md`
+**Destination:** `C:\Users\Carina\workspaces\Cassi\CassiCore\packages\helix\src\`
+**Recon:** `C:\Users\Carina\workspaces\Cassi\CassiCore\recon-data.json`
+**Plan:** `C:\Users\Carina\workspaces\Cassi\CassiCore\CASSI-MIND-PLAN.md` §5-P2, §4
+**Exemplar (house format):** `C:\Users\Carina\workspaces\Cassi\CassiCore\P1-foundation-migration-table.md`
 **Date:** 2026-08-13
 **Status:** PLANNING — executor applies rules verbatim in a later wave. Nothing migrated, nothing committed.
 

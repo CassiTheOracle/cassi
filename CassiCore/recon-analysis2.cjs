@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = 'D:/carina/workspaces/cassicore';
-const OUT = 'C:/Users/Carina/Workspaces/CassiCore';
+const OUT = 'C:/Users/Carina/workspaces/Cassi/CassiCore';
 
 const SUBSYS = {
   'core': 'core',

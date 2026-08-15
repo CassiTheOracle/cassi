@@ -1,6 +1,6 @@
 # CASSI-MIND — Master Migration Plan
 
-**Root:** `C:\Users\Carina\Workspaces\CassiCore\` (the "workspace" — target)
+**Root:** `C:\Users\Carina\workspaces\Cassi\CassiCore\` (the "workspace" — target)
 **Source:** `D:\carina\workspaces\cassicore` (the "D: repo" — READ-ONLY this session)
 **Status:** PLANNING deliverable. Do NOT execute migration steps. Do NOT run git operations in D:.
 **Date:** 2026-08-13
@@ -131,7 +131,7 @@ Run in a **bash** shell (git-bash). The D: repo is NEVER touched; only the temp 
 
 ```bash
 # --- 0. Prereq: workspace is the target repo ---
-cd "C:/Users/Carina/Workspaces/CassiCore"
+cd "C:/Users/Carina/workspaces/Cassi/CassiCore"
 git rev-parse --is-inside-work-tree          # must be true
 
 # --- 1. Temp clone of D: (history-only; D: left untouched) ---
@@ -150,7 +150,7 @@ git filter-repo --force \
 # then drop the .keep from the import with a follow-up path exclusion if unwanted.
 
 # --- 3. Fetch the filtered fragment into the workspace ---
-cd "C:/Users/Carina/Workspaces/CassiCore"
+cd "C:/Users/Carina/workspaces/Cassi/CassiCore"
 git fetch "$TMP" main:import/workflow           # branch import/workflow
 
 # --- 4. Splice: merge with unrelated history (expect add/add) ---
@@ -342,7 +342,7 @@ Other remaining siblings not listed (e.g. `error-learner`, `reflex`, `smart-rule
 
 **They own (do NOT touch, do NOT copy, do NOT migrate):**
 - `mind-plugin/` (the `@cassi-mind` omp extension) and its Stages 1–5 roadmap in `.opencode/plans/cassi-mind-plugin.md`.
-- The GPU field engine (`physics/godot/space-sim` Godot sidecar) and the field's loopback TCP 7599 bridge.
+- The GPU field engine (`CassiCosmos` Godot sidecar) and the field's loopback TCP 7599 bridge.
 - Any `MindFieldEncoder`-style write-gate hooks in `MnemicField.store`, `Thalamus.writeMessageEngram/curate`, `Constellation.insertBranch/appendEvent`, `GlobalWorkspace.submit/broadcast`, and the "SQLite as journal, field as state of truth" transform.
 
 **What migration must NOT touch:** any D: path they are mid-rewiring at the time of a phase; the `core/intelligence/base/registry.ts` discovery contract they depend on for module registration; the `core/plugins` `ExtensionAPI`-shaped client-sdk/plugin-api surface their plugin will consume; `mind-plugin/` (3 untracked files — NOT ours to migrate; if ever needed, plain-copy + `HISTORY: none (untracked)` and only with their sign-off).
@@ -350,7 +350,7 @@ Other remaining siblings not listed (e.g. `error-learner`, `reflex`, `smart-rule
 **Handshake points:**
 - **P4 (mnemic-field):** explicit check before starting. If they are rewiring mnemic-field (journal/hooks), either (a) we land `@cassicore/mnemic-field` first and they add hooks behind our `store` port, or (b) they rewire in D: and we import the rewired shape. **Agree: "package publishes before their rewiring"** is the recommended default (keeps our history import stable), unless they already have uncommitted rewire in that subtree — then swap order. Record the agreed outcome in P4's DONE.
 - **P7 (host wiring):** their Stage-N gates target `core/intelligence/*` paths we migrate. Agree the same "package publishes before rewiring" rule so our P7 import doesn't swallow their in-flight edits. If they need to run a Stage gate against a live module we've already extracted, they may consume our package via `npm link` (see below).
-- **The two-session rule:** they write to `D:`; we write to `C:\Users\Carina\Workspaces\CassiCore` (this workspace). **Different repos — no shared working-tree collisions.** The ONLY cross-over: they may consume our published packages via `npm link` (e.g. `@cassicore/foundation`, `@cassicore/mnemic-field`, `@cassicore/plugins`) when their plan needs the extracted boundary. We never write into D:; they consume our artifacts read-only.
+- **The two-session rule:** they write to `D:`; we write to `C:\Users\Carina\workspaces\Cassi\CassiCore` (this workspace). **Different repos — no shared working-tree collisions.** The ONLY cross-over: they may consume our published packages via `npm link` (e.g. `@cassicore/foundation`, `@cassicore/mnemic-field`, `@cassicore/plugins`) when their plan needs the extracted boundary. We never write into D:; they consume our artifacts read-only.
 
 ---
 

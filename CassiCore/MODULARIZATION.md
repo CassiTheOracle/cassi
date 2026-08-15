@@ -1,7 +1,7 @@
 # CassiCore Modularization — Workspace Blueprint
 
 **Status:** In progress — first module (Constellation) extracted; the rest slated to follow.
-**Root:** `C:\Users\Carina\Workspaces\CassiCore\`
+**Root:** `C:\Users\Carina\workspaces\Cassi\CassiCore\`
 **Date:** 2026-08-13
 
 ---
@@ -181,7 +181,7 @@ Recorded here so future wiring work doesn't rediscover them. Do NOT act on them 
 ## How to run the received package
 
 ```bash
-cd C:\Users\Carina\Workspaces\CassiCore\Constellation
+cd C:\Users\Carina\workspaces\Cassi\CassiCore\Constellation
 npm install              # after reviewer/wiring completes
 npm run build            # tsc → dist/
 npm test                 # vitest run

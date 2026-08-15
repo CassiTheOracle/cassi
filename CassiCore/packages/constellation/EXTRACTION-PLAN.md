@@ -1,7 +1,7 @@
 # @cassicore/constellation — Extraction Plan (Decision + Migration)
 
 **Source:** `D:\carina\workspaces\cassicore\core\intelligence\constellation\` (87 `.ts` files, ~2.5 MB)
-**Destination:** `C:\Users\Carina\Workspaces\CassiCore\Constellation\src\`
+**Destination:** `C:\Users\Carina\workspaces\Cassi\CassiCore\Constellation\src\`
 **Recon:** `D:\carina\workspaces\cassicore\.opencode\plans\constellation-extraction-recon.md`
 **Date:** 2026-08-13
 **Phase status:** DESIGN COMPLETE — executable. Source files are NOT yet copied (that is a later parallel wave).
@@ -506,7 +506,7 @@ daemon-integration ports; functional for cheap in-memory/fs-backed ones.
 ## Part E — Reference docs
 
 - Recon: `D:\carina\workspaces\cassicore\.opencode\plans\constellation-extraction-recon.md`
-- Blueprint: `C:\Users\Carina\Workspaces\CassiCore\MODULARIZATION.md`
+- Blueprint: `C:\Users\Carina\workspaces\Cassi\CassiCore\MODULARIZATION.md`
 
 ---
 

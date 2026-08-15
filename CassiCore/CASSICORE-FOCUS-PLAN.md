@@ -1,6 +1,6 @@
 # CASSICORE-FOCUS — The Focused CassiCore Design
 
-**Root:** `C:\Users\Carina\Workspaces\CassiCore\`
+**Root:** `C:\Users\Carina\workspaces\Cassi\CassiCore\`
 **Type:** DESIGN deliverable + P6 execution record.
 **Date:** 2026-08-14
 **Status:** RATIFIED (owner 2026-08-14) — P6 surface removal DONE (4 UI apps + 3 external bridges deleted).

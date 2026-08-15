@@ -1,9 +1,9 @@
 # P5 — Group B (`@cassicore/dreamer-reverie-subconscious`, `@cassicore/lamina-locus-bridge`, `@cassicore/training-trust-ledger`, `@cassicore/workspace`, `@cassicore/embeddings`) — Migration Table (Planning Deliverable)
 
 **Sources (READ-ONLY, D:):** `core/intelligence/{dreamer,reverie,subconscious}`, `{lamina,locus-bridge}`, `{training,trust-ledger}`, `{workspace,code-analysis}`, `{embeddings,shared}` — all under `D:\carina\workspaces\cassicore\core\intelligence\`
-**Destinations:** `C:\Users\Carina\Workspaces\CassiCore\packages\{dreamer-reverie-subconscious,lamina-locus-bridge,training-trust-ledger,workspace,embeddings}\src\`
-**Recon:** `C:\Users\Carina\Workspaces\CassiCore\recon-data.json`
-**Plan:** `C:\Users\Carina\Workspaces\CassiCore\CASSI-MIND-PLAN.md` §5-P5 (Group B), §4, §3e.1 (registry seam)
+**Destinations:** `C:\Users\Carina\workspaces\Cassi\CassiCore\packages\{dreamer-reverie-subconscious,lamina-locus-bridge,training-trust-ledger,workspace,embeddings}\src\`
+**Recon:** `C:\Users\Carina\workspaces\Cassi\CassiCore\recon-data.json`
+**Plan:** `C:\Users\Carina\workspaces\Cassi\CassiCore\CASSI-MIND-PLAN.md` §5-P5 (Group B), §4, §3e.1 (registry seam)
 **Exemplars (house format):** `P1-foundation-migration-table.md`, `P2-helix-migration-table.md`, `P3-flux-team-mini-helix-migration-table.md`, `P4-mnemic-field-migration-table.md`
 **Date:** 2026-08-13
 **Status:** PLANNING — executor applies rules verbatim in a later wave. Nothing migrated, nothing committed.

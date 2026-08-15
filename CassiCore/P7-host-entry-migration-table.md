@@ -5,9 +5,9 @@
 (live only), `core/bridge/`, `core/observability/`, `core/unified/` (live only), `core/ingestion/` (live only),
 `core/adapters/` (live only), `core/version.ts`, `bin/`, `scripts/*.ts` (live only) — under
 `D:\carina\workspaces\cassicore\`
-**Destinations:** `C:\Users\Carina\Workspaces\CassiCore\packages\{admin-api,mcp-gateway,commands,workers,providers,host}\src\`
-**Recon:** `C:\Users\Carina\Workspaces\CassiCore\recon-data.json`
-**Plan:** `C:\Users\Carina\Workspaces\CassiCore\CASSI-MIND-PLAN.md` §5-P7, §4, §3e (seams registry-discovery /
+**Destinations:** `C:\Users\Carina\workspaces\Cassi\CassiCore\packages\{admin-api,mcp-gateway,commands,workers,providers,host}\src\`
+**Recon:** `C:\Users\Carina\workspaces\Cassi\CassiCore\recon-data.json`
+**Plan:** `C:\Users\Carina\workspaces\Cassi\CassiCore\CASSI-MIND-PLAN.md` §5-P7, §4, §3e (seams registry-discovery /
 resolveWorker / admin+mcp route contracts / registerCoreTools / standalone entries), §7 (overhaul handshake)
 **Exemplars (house format):** `P1-foundation-migration-table.md`, `P6-runtime-infra-migration-table.md`,
 `P5a-…`, `P5b-…`

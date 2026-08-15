@@ -1,9 +1,9 @@
 # P3 — `@cassicore/flux-team` + `@cassicore/mini-helix` — Migration Table (Planning Deliverable)
 
 **Sources (READ-ONLY, D:):** `core/intelligence/flux-team/` + `core/intelligence/mini-helix/`
-**Destinations:** `C:\Users\Carina\Workspaces\CassiCore\packages\flux-team\src\` and `packages\mini-helix\src\`
-**Recon:** `C:\Users\Carina\Workspaces\CassiCore\recon-data.json`
-**Plan:** `C:\Users\Carina\Workspaces\CassiCore\CASSI-MIND-PLAN.md` §5-P3, §4
+**Destinations:** `C:\Users\Carina\workspaces\Cassi\CassiCore\packages\flux-team\src\` and `packages\mini-helix\src\`
+**Recon:** `C:\Users\Carina\workspaces\Cassi\CassiCore\recon-data.json`
+**Plan:** `C:\Users\Carina\workspaces\Cassi\CassiCore\CASSI-MIND-PLAN.md` §5-P3, §4
 **Exemplars (house format):** `P1-foundation-migration-table.md`, `P2-helix-migration-table.md`
 **Date:** 2026-08-13
 **Status:** PLANNING — executor applies rules verbatim in a later wave. Nothing migrated, nothing committed.
@@ -30,7 +30,7 @@
 # PART A — `@cassicore/flux-team`
 
 **Source (READ-ONLY):** `D:\carina\workspaces\cassicore\core\intelligence\flux-team\`
-**Destination:** `C:\Users\Carina\Workspaces\CassiCore\packages\flux-team\src\`
+**Destination:** `C:\Users\Carina\workspaces\Cassi\CassiCore\packages\flux-team\src\`
 
 ## A1. Live-set (files to migrate)
 
@@ -271,7 +271,7 @@ other Part A vendor (flux-team's own tree) has no further runtime stubs.
 # PART B — `@cassicore/mini-helix`
 
 **Source (READ-ONLY):** `D:\carina\workspaces\cassicore\core\intelligence\mini-helix\`
-**Destination:** `C:\Users\Carina\Workspaces\CassiCore\packages\mini-helix\src\`
+**Destination:** `C:\Users\Carina\workspaces\Cassi\CassiCore\packages\mini-helix\src\`
 
 ## B1. Live-set (files to migrate)
 
