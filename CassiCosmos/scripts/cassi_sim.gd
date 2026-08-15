@@ -98,12 +98,6 @@ const Q_1: float = 0.001        # Qi-rainbow stage-1 band top = stage-2 entry
 # frame's step budget, so once-per-frame is far inside the reaction budget).
 ## Two-particle merge (SINK-rule, q_coh > φ⁻² gate, R_m = extent/grid_N) grows matter from dust. Default off = particles-only. Init-time — reinit to apply.
 @export var particle_merge: bool = false
-# Perf-decomp probe gates (2026-08-15, PROBE-ONLY — reverted after the
-# dominant-pass measurement; NOT part of any commit): AND-ed into the
-# two-fluid PDE and nbody kick dispatch gates so a probe can isolate their
-# per-step shares. Default true = no behavior change.
-@export var two_fluid_enabled: bool = true
-@export var nbody_enabled: bool = true
 ## Merge cadence in accumulated STEPS (live): 0 = AUTO = 1/2 of the R_m
 ## reaction budget (R_m/(v·dt) with v = 1.0 world-units/s — the design's
 ## closing speed: R_m=0.586 crossed in ~586 dt=0.001 steps; at the owner
@@ -332,7 +326,7 @@ var _vsync_enabled: bool = true
 ## interpolation alpha already spans the MEASURED publish interval, so the
 ## display lag stays ≤ one publish interval at any cadence. Live — passed
 ## per-submit in the job dict, no reinit.
-@export_range(1, 8, 1) var mirror_publish_cadence: int = 2
+@export_range(1, 8, 1) var mirror_publish_cadence: int = 4  # perf-decomp 2026-08-15: 2→4 halves the ~0.5-0.8 GB/s sustained publish traffic that amplifies every burst's drain
 ## Fixed seed for the initial conditions (0 = the legacy random init).
 ## Applied to BOTH the inline IC generators and the decoupled engine's ICs.
 @export var ic_seed: int = 0
@@ -728,7 +722,7 @@ var _ml_tree_nnode: int = 0
 # semantics as the cadence skip). See cassi_tree_worker.gd for the contract.
 var _tree_worker: RefCounted = null   # CassiTreeWorker (lazy, recreated on reinit)
 var _tl_frame := 0
-var _tree_local_cadence := 25  # tree refresh every 25th physics job/frame (perf-decomp: de-correlates the tree rebuild+walk+32 MB upload burst from the merge pass burst on the same GPU — aligns with ML_REBUILD's 25-step site-move cadence via the engine's job-counter gate; between refreshes the last gradient stands, the design's blessed freshness semantics — verify scenes drive the tree worker directly and are unaffected)
+var _tree_local_cadence := 50  # tree refresh every 50th physics job/frame (perf-decomp 2026-08-15: raised 25→50 — a 1-2-job-old gradient is inside the design's blessed freshness window; the 32 MB drain burst now fires half as often and on residue 1 mod 50, de-correlated from the meshless rebuild's step-residue 13; verify scenes drive the tree worker directly and are unaffected)
 
 # True when the tree arm is LIVE (meshless + tree gravity). Gates the
 # _shaders_ready retry: the tree shaders/pipes/sets must be ready before
@@ -1547,8 +1541,6 @@ func _decoupled_start_engine() -> bool:
 		"meshless_mode": meshless_mode, "meshless_gravity": meshless_gravity,
 		"mode": mode,
 		"particle_merge": particle_merge,
-		"two_fluid_enabled": two_fluid_enabled,
-		"nbody_enabled": nbody_enabled,
 		"merge_cadence_steps": merge_cadence_steps,
 		"merge_subsonic": merge_subsonic,
 		"merge_virial": merge_virial,
@@ -4187,7 +4179,7 @@ func _step_dispatches(cl: int) -> void:
 			hxr, hyr, hzr, 0.0, 0.0, 0.0]).to_byte_array()
 		_rd.compute_list_set_push_constant(cl, _raster_pc_bytes, _raster_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, wg1, 1, 1)
-	elif _two_fluid_shader.is_valid() and not freeze_field and two_fluid_enabled:
+	elif _two_fluid_shader.is_valid() and not freeze_field:
 		_rd.compute_list_bind_compute_pipeline(cl, _two_fluid_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_two_0, 0)
 		# Two-pass double-buffered PDE (DETERMINISM fix): pass A computes
@@ -4329,7 +4321,7 @@ func _step_dispatches(cl: int) -> void:
 		_barrier(cl)  # warmup → nbody
 
 	# ── 3. N-body gravity ────────────────────────────────────────────
-	if _nbody_shader.is_valid() and N_particles > 0 and nbody_enabled:
+	if _nbody_shader.is_valid() and N_particles > 0:
 		_nbody_pc_bytes.encode_float(44, 0.0)  # pass_mode = 0 (particles)
 		_rd.compute_list_bind_compute_pipeline(cl, _nbody_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_nbody_0, 0)
@@ -4816,13 +4808,13 @@ func _render_frame() -> void:
 			_pi_sat_lo_frac /= samples
 	# Auto color-align cadence: re-fit the Qi band to the live q histogram
 	# at the particles. Independent of suppress_readbacks (512 B readback,
-	# negligible). Saturated (a scale-jump underway) → re-fit every ~0.5 s
-	# (FIX 2: raised from 0.2 s to cut the global-RD self-stall readback rate
-	# 2.5× — it is a visual nicety that must not hammer the shared GPU);
-	# otherwise the normal ~1.5 s.
+	# negligible). Saturated and normal bands share the ~1.5 s cadence
+	# (perf-decomp 2026-08-15: the saturated 0.5 s rate hammered the shared
+	# global RD during cascade scale-ups — it is a visual nicety that must
+	# not add readback pressure; FIX 2 had already cut it 0.2 s → 0.5 s).
 	if auto_align_colors and particle_color_mode >= 2 \
 			and _qhist_buf.is_valid() and _step_count > 0 \
-			and now_ms - _last_align_ms >= (500 if _qhist_saturated else 1500):
+			and now_ms - _last_align_ms >= 1500:
 		_last_align_ms = now_ms
 		_align_color_band()
 		_align_ran_this_frame = true

@@ -58,6 +58,7 @@ const ML_TREE_NODE_MAX_MULT := 8
 # ── Meshless (moving-Voronoi) arm — MESHLESS_PLAN.md §10 (ported verbatim) ──
 const ML_N1 := 16              # BCC sublattice count → 2·16³ = 8192 sites at N=64
 const ML_REBUILD := 25         # steering + remap + JFA-refresh cadence (steps)
+const TREE_JOB_STEP_CAP := 8   # perf-decomp 2026-08-15: cap a tree-cadence job's step budget so the tree staging readbacks drain a SHORT engine queue (freeze duration stops growing with the backlog)
 const ML_KAPPA := 0.5          # Lloyd-style centroid relaxation fraction
 const ML_LAM := 8.0            # super-Lagrangian momentum ride
 const ML_RHO_FLOOR := 0.005    # steering guard: rho = EY+EI can hit ~0 in the live field
@@ -165,12 +166,7 @@ var cascade_level: bool = false
 # at least one BH record is active.
 var bh_accretion: bool = false
 var bh_accretion_radius: float = 0.1   # world units (~1× the default softening σ)
-# Perf-decomp probe gates (2026-08-15, PROBE-ONLY — reverted after the
-# dominant-pass measurement; NOT part of any commit): AND-ed into the
-# two-fluid PDE and nbody kick dispatch gates so a probe can isolate their
-# per-step shares. Default true = no behavior change.
-var two_fluid_enabled: bool = true
-var nbody_enabled: bool = true
+# Tree-worker consumer (decoupled mode): the sim creates + starts the
 
 # Engine plumbing (cfg keys): rd, rd_global, owns_rd, seed, spirv
 var _rd: RenderingDevice = null
@@ -245,7 +241,6 @@ var _cell_pc_bytes: PackedByteArray   # cell PC (17 floats: mode, N, n_sites, dt
 var _raster_pc_bytes: PackedByteArray # raster PC (8 floats: N, n_sites, hx, hy, hz, pad×3)
 var _ml_sites_cpu := PackedFloat32Array()
 var _ml_ready := false
-var _ml_step_count := 0
 var _ml_tree_nsrc := 0
 # — tree-worker CONSUMER (decoupled mode: the engine worker drives the sim's
 # cassi_tree_worker.gd instance). The sim creates + starts the tree worker on
@@ -316,7 +311,7 @@ var _cond_pc_bytes: PackedByteArray   # condensation PC (4 floats)
 var _poisson_pc_bytes: PackedByteArray  # poisson PC (7 floats: N, axis, dir, mode, extent_x/y/z)
 var _bh_init_bytes: PackedByteArray   # BH header init (36 vec4s = 576 B)
 var _tel_reset_bytes: PackedByteArray # gravity telemetry reset (kept for reference; the per-step
-                                      #  reset runs on the GPU in the poisson clear pass)
+									  #  reset runs on the GPU in the poisson clear pass)
 
 # — step state —
 var _time: float = 0.0
@@ -450,9 +445,6 @@ func setup(cfg: Dictionary) -> bool:
 	cascade_level = bool(cfg.get("cascade_level", cascade_level))
 	bh_accretion = bool(cfg.get("bh_accretion", bh_accretion))
 	bh_accretion_radius = float(cfg.get("bh_accretion_radius", bh_accretion_radius))
-	# Perf-decomp probe gates (PROBE-ONLY — reverted after measurement).
-	two_fluid_enabled = bool(cfg.get("two_fluid_enabled", two_fluid_enabled))
-	nbody_enabled = bool(cfg.get("nbody_enabled", nbody_enabled))
 	# Tree-worker consumer (decoupled mode): the sim creates + starts the
 	# tree worker on the main thread and hands the object here.
 	_tree_worker = cfg.get("tree_worker", null)
@@ -540,15 +532,14 @@ func run_steps(n: int, wait := true, tree_grad: PackedFloat32Array = PackedFloat
 			if _merge_step_counter >= _merge_cadence_eff():
 				_merge_step_counter = 0
 				_run_merge_pass()
-	# Meshless steering: rebuild the mesh every ML_REBUILD steps (the sim's
-	# cadence). The rebuild is a standalone compute list + readbacks — on a
-	# local RD it stalls only THIS engine's physics (the decoupling win);
-	# on the global RD the readbacks self-stall.
-	if meshless_mode and _ml_ready and not freeze_field:
-		_ml_step_count += n
-		if _ml_step_count >= ML_REBUILD:
-			_ml_step_count = 0
-			_mesh_rebuild()
+	# Meshless steering: rebuild the mesh every ML_REBUILD steps on a fixed
+	# residue (13 mod 25) — de-correlated from the tree job's job-counter
+	# residue (1 mod tree_cadence) so the two burst classes never stack on
+	# one pulse (perf-decomp 2026-08-15). The rebuild is a standalone
+	# compute list + readbacks — on a local RD it stalls only THIS engine's
+	# physics (the decoupling win); on the global RD the readbacks self-stall.
+	if meshless_mode and _ml_ready and not freeze_field and _step_count % ML_REBUILD == 13:
+		_mesh_rebuild()
 
 
 ## The mirror state the render side will consume (phase 2): positions,
@@ -931,8 +922,14 @@ func _threaded_run_job(job: Dictionary) -> void:
 		var steps := target - _executed
 		# Tree consumer: stage the pre-batch meshless/pos state and submit a
 		# tree job (cadence-gated); the freshest completed gradient then
-		# feeds the batch's mode-5 nbody via run_steps(tree_grad).
-		_tree_refresh_gradient()
+		# feeds the batch's mode-5 nbody via run_steps(tree_grad). On a
+		# tree-cadence job the staging readbacks (32 MB pos + rho + sites)
+		# drain THIS engine's RD — cap the job's step budget so the drain
+		# stays short even under a large backlog (perf-decomp 2026-08-15:
+		# the freeze duration must stop growing with the run length).
+		var staged_tree := _tree_refresh_gradient()
+		if staged_tree:
+			steps = mini(steps, TREE_JOB_STEP_CAP)
 		run_steps(steps, true, _tree_grad_cache)  # wait=true → submit+sync on the local RD
 		_executed += steps
 	var cadence := maxi(int(job.get("cadence", _snapshot_cadence)), 1)
@@ -1246,7 +1243,6 @@ func _setup_buffers() -> void:
 	_cell_pc_bytes = PackedByteArray(); _cell_pc_bytes.resize(17 * 4)
 	_raster_pc_bytes = PackedByteArray(); _raster_pc_bytes.resize(8 * 4)
 	_ml_ready = false
-	_ml_step_count = 0
 
 	# ── Particle-merge buffers (INIT-TIME: allocated only when particle_merge)
 	# The merge kernel's persistent per-particle state (alive/mass/mom/cen/
@@ -1878,7 +1874,6 @@ func _meshless_init() -> void:
 	_rd.buffer_update(_ml_pi_i, 0, zero.size() * 4, zero.to_byte_array())
 	_rd.buffer_update(_ml_lap_y, 0, zero.size() * 4, zero.to_byte_array())
 	_rd.buffer_update(_ml_lap_i, 0, zero.size() * 4, zero.to_byte_array())
-	_ml_step_count = 0
 	_ml_ready = true
 	print("[PhysicsEngine] Meshless arm ready: %d Voronoi cells on the %d^3 accelerator grid"
 		% [ml_ns, N])
@@ -2069,14 +2064,16 @@ func _mesh_rebuild() -> void:
 
 ## Stage + submit a tree job and refresh the gradient cache (cadence-gated:
 ## the sim's _tree_local_cadence semantics — default 1 = every physics job).
-func _tree_refresh_gradient() -> void:
+## Returns true when THIS job staged a tree job (the caller caps the step
+## budget on such jobs so the staging readbacks drain a short queue).
+func _tree_refresh_gradient() -> bool:
 	if not meshless_mode or not meshless_gravity or _tree_worker == null or not _ml_ready:
-		return
+		return false
 	if _ml_tree_nsrc <= 0:
-		return
+		return false
 	_tree_job_counter += 1
 	if _tree_cadence > 1 and _tree_job_counter % _tree_cadence != 1:
-		return  # skip this job (stale-but-recent gradient is fine for 1/K)
+		return false  # skip this job (stale-but-recent gradient is fine for 1/K)
 	var S := _ml_tree_nsrc
 	var N3 := grid_N * grid_N * grid_N
 	var Np: int = N_particles
@@ -2108,6 +2105,7 @@ func _tree_refresh_gradient() -> void:
 		if grad.size() == Np * 4:
 			_tree_grad_cache = grad
 			_tree_grad_dirty = true
+	return true
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -2299,7 +2297,7 @@ func _step_dispatches(cl: int) -> void:
 			hxr, hyr, hzr, 0.0, 0.0, 0.0]).to_byte_array()
 		_rd.compute_list_set_push_constant(cl, _raster_pc_bytes, _raster_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, wg1, 1, 1)
-	elif _two_fluid_shader.is_valid() and not freeze_field and two_fluid_enabled:
+	elif _two_fluid_shader.is_valid() and not freeze_field:
 		_rd.compute_list_bind_compute_pipeline(cl, _two_fluid_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_two_0, 0)
 		# Two-pass double-buffered PDE (DETERMINISM fix): pass A computes
@@ -2420,7 +2418,7 @@ func _step_dispatches(cl: int) -> void:
 		_barrier(cl)  # warmup → nbody
 
 	# ── 3. N-body gravity (cached-acc KDK) ─────────────────────────
-	if _nbody_shader.is_valid() and N_particles > 0 and nbody_enabled:
+	if _nbody_shader.is_valid() and N_particles > 0:
 		_nbody_pc_bytes.encode_float(44, 0.0)  # pass_mode = 0 (particles)
 		_rd.compute_list_bind_compute_pipeline(cl, _nbody_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_nbody_0, 0)
