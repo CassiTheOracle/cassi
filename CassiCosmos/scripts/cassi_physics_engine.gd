@@ -250,6 +250,12 @@ var _ml_tree_nsrc := 0
 var _tree_worker = null          # CassiTreeWorker (owned by the sim — never freed here)
 var _tree_cadence := 1           # submit a tree job every N physics jobs (sim's cadence semantics)
 var _tree_job_counter := 0
+# MOVABLE HOME-WINDOW (perf-decomp 2026-08-15, overhaul migration): the
+# field grid's world-origin offset (bh[0].yzw + the deposit PC off terms).
+# Zero = the legacy fixed-origin box, bit-identical. Updated per job from
+# the sim's job dict (the sim's slow-cadence COM tracker owns the value).
+var _window_center := Vector3.ZERO
+var _home_window := false
 var _tree_grad_cache := PackedFloat32Array()   # freshest completed gradient (feeds run_steps)
 var _tree_grad_dirty := true   # cache changed since the last 32 MB _tree_grad upload
 # — shaders and pipelines (physics side only) —
@@ -450,6 +456,8 @@ func setup(cfg: Dictionary) -> bool:
 	_tree_worker = cfg.get("tree_worker", null)
 	_tree_cadence = int(cfg.get("tree_cadence", 1))
 	_tree_job_counter = 0
+	_home_window = bool(cfg.get("home_window", false))
+	_window_center = Vector3(cfg.get("window_center", Vector3.ZERO))
 	_tree_grad_cache = PackedFloat32Array()
 	_tree_grad_dirty = true
 	_snapshot_cadence = maxi(int(cfg.get("snapshot_cadence", 2)), 1)
@@ -493,6 +501,12 @@ func run_steps(n: int, wait := true, tree_grad: PackedFloat32Array = PackedFloat
 	_bh_init_bytes.encode_float(52, 1.0 if dual_grid else 0.0)
 	_bh_init_bytes.encode_float(56, float(gradient_order))
 	_bh_init_bytes.encode_float(60, ML_TREE_G_SCALE if (meshless_mode and meshless_gravity) else 1.0)
+	# Movable home-window: bh[0].yzw = the field grid's world-origin offset
+	# (floats 4/8/12 — zero = the fixed-origin box, bit-identical); the
+	# nbody samplers subtract it in the world→grid map.
+	_bh_init_bytes.encode_float(4, _window_center.x)
+	_bh_init_bytes.encode_float(8, _window_center.y)
+	_bh_init_bytes.encode_float(12, _window_center.z)
 	var off_dual: Vector3 = _extents() / float(grid_N)
 	_bh_init_bytes.encode_float(16, off_dual.x)
 	_bh_init_bytes.encode_float(20, off_dual.y)
@@ -920,6 +934,11 @@ func _threaded_run_job(job: Dictionary) -> void:
 	var target := int(job.get("target", _executed))
 	if target > _executed:
 		var steps := target - _executed
+		# Movable home-window: pick up the sim's current center per job (the
+		# sim tracks the structure COM on a 2 s cadence and ships it in the
+		# job dict; the bh header + deposit PC below encode it this job).
+		_window_center = Vector3(job.get("window_center", _window_center))
+		_home_window = bool(job.get("home_window", _home_window))
 		# Tree consumer: stage the pre-batch meshless/pos state and submit a
 		# tree job (cadence-gated); the freshest completed gradient then
 		# feeds the batch's mode-5 nbody via run_steps(tree_grad). On a
@@ -1591,7 +1610,11 @@ func _init_particles() -> void:
 				+ Vector3(-cz, 0.0, cx).normalized() * ms * 0.3
 		bulk_vels.append(bv)
 		var c_abs: float = maxf(absf(cx), maxf(absf(cy), absf(cz)))
-		var r_max_c: float = fr * extent_min - c_abs
+		# IC-truncation ceiling: home-window OFF = the legacy box ceiling
+		# (fr·min(extent)); ON = the cluster's own scale (fr·cluster_radius)
+		# — the box ceases to bound the initial structure (perf-decomp
+		# 2026-08-15, overhaul migration).
+		var r_max_c: float = fr * (cluster_radius if _home_window else extent_min) - c_abs
 		if r_max_c < 0.0:
 			r_max_c = 0.0  # degenerate: cluster center beyond the safe radius
 		r_max_list.append(r_max_c)
@@ -2078,18 +2101,40 @@ func _tree_refresh_gradient() -> bool:
 	var N3 := grid_N * grid_N * grid_N
 	var Np: int = N_particles
 	var ext := _extents()
-	var half: float = maxf(ext.x, maxf(ext.y, maxf(ext.z, ext.z))) * 1.000001
 	# Stage the CURRENT meshless source state from THIS engine's RD (the
 	# worker consumes copies — no shared buffers with the sim).
+	var sites := _rd.buffer_get_data(_ml_sites, 0, S * 16).to_float32_array()
+	# ADAPTIVE TREE ROOT (perf-decomp 2026-08-15, overhaul migration): seed
+	# the root cube from the tracked structure's bounding box (the staged
+	# sites) instead of the fixed box origin — the tree's box anchor goes
+	# away; the walk's resolution follows the structure. bmin = structure
+	# min corner, half = 0.5·max(hi−lo) inflated; a degenerate/empty site
+	# set falls back to the legacy box cube (bmin = −half·ones).
+	var bmin := Vector3.INF
+	var bmax := -Vector3.INF
+	for si in range(S):
+		bmin.x = minf(bmin.x, sites[si * 4]); bmin.y = minf(bmin.y, sites[si * 4 + 1]); bmin.z = minf(bmin.z, sites[si * 4 + 2])
+		bmax.x = maxf(bmax.x, sites[si * 4]); bmax.y = maxf(bmax.y, sites[si * 4 + 1]); bmax.z = maxf(bmax.z, sites[si * 4 + 2])
+	var box_half: float = maxf(ext.x, maxf(ext.y, maxf(ext.z, ext.z))) * 1.000001
+	# Gated on the home-window toggle: OFF (default) must stay bit-identical
+	# — the legacy box root (bmin = −half·ones). ON = the structure-rooted cube.
+	if not _home_window:
+		bmin = -Vector3.ONE * box_half
+		bmax = Vector3.ONE * box_half
+	elif bmin.x <= -1.0e30 or bmin.x == INF or not (bmin.x == bmin.x):
+		bmin = -Vector3.ONE * box_half
+		bmax = Vector3.ONE * box_half
+	var bhalf: float = 0.5 * maxf(bmax.x - bmin.x, maxf(bmax.y - bmin.y, bmax.z - bmin.z)) * 1.000001 + 1e-6
 	var job := {
-		"sites": _rd.buffer_get_data(_ml_sites, 0, S * 16).to_float32_array(),
+		"sites": sites,
 		"psy": _rd.buffer_get_data(_ml_psi_y, 0, S * 4).to_float32_array(),
 		"psi": _rd.buffer_get_data(_ml_psi_i, 0, S * 4).to_float32_array(),
 		"vol": _rd.buffer_get_data(_ml_vol, 0, S * 4).to_float32_array(),
 		"rho": _rd.buffer_get_data(_mass_density_buf, 0, N3 * 4).to_float32_array(),
 		"pos": _rd.buffer_get_data(_pos_buf, 0, Np * 16).to_float32_array(),
+		"bmin": bmin,
+		"half": bhalf,
 		"ext": ext,
-		"half": half,
 		"S": S,
 		"N3": N3,
 		"Np": Np,
@@ -2181,9 +2226,11 @@ func _step_dispatches(cl: int) -> void:
 	_md_pc_bytes.encode_float(8, ext_step.x)
 	_md_pc_bytes.encode_float(12, ext_step.y)
 	_md_pc_bytes.encode_float(16, ext_step.z)
-	_md_pc_bytes.encode_float(20, 0.0)
-	_md_pc_bytes.encode_float(24, 0.0)
-	_md_pc_bytes.encode_float(28, 0.0)
+	# Movable home-window: off = −c (the shader maps [c−ext, c+ext] →
+	# [0, N]; at c = 0 it is exactly the legacy 0.0, bit-identical).
+	_md_pc_bytes.encode_float(20, -_window_center.x)
+	_md_pc_bytes.encode_float(24, -_window_center.y)
+	_md_pc_bytes.encode_float(28, -_window_center.z)
 	_md_pc_bytes.encode_float(32, 0.0)  # mode 0 = deposit (1 = convert)
 	# BH integrate PC: [N_f, dt, acc_rate, max_age]
 	_bh_int_pc_bytes.encode_float(0, float(grid_N))
@@ -2374,9 +2421,9 @@ func _step_dispatches(cl: int) -> void:
 			_rd.compute_list_dispatch(cl, grid_N, grid_N / 2, 1)  # 2D cells dispatch (2 cells/thread)
 		_barrier(cl)  # dual clear → deposit
 		if _mass_deposit_shader.is_valid() and N_particles > 0:
-			_md_pc_bytes.encode_float(20, ext_step.x / float(grid_N))
-			_md_pc_bytes.encode_float(24, ext_step.y / float(grid_N))
-			_md_pc_bytes.encode_float(28, ext_step.z / float(grid_N))
+			_md_pc_bytes.encode_float(20, ext_step.x / float(grid_N) - _window_center.x)
+			_md_pc_bytes.encode_float(24, ext_step.y / float(grid_N) - _window_center.y)
+			_md_pc_bytes.encode_float(28, ext_step.z / float(grid_N) - _window_center.z)
 			_md_pc_bytes.encode_float(32, 0.0)  # mode 0 = deposit
 			_rd.compute_list_bind_compute_pipeline(cl, _mass_deposit_pipe)
 			_rd.compute_list_bind_uniform_set(cl, _us_mass_dep_0, 0)

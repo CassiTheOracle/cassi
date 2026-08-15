@@ -269,7 +269,12 @@ FieldSmp sample_fields(vec3 wp) {
     float hn = float(N) * 0.5;
     vec3 ext = bh[2].yzw;
     vec3 inv_ext = 1.0 / max(ext, vec3(0.0001));
-    vec3 gc = (wp * inv_ext) * hn + hn;
+    // Movable home-window (perf-decomp 2026-08-15): bh[0].yzw = the field
+    // grid's world-origin offset — the world→grid map becomes window-
+    // relative. Zero = the fixed-origin box, bit-identical. The dual-
+    // lattice cell↔cell map (chord_s_at_dual) is translation-invariant
+    // and intentionally unchanged.
+    vec3 gc = ((wp - bh[0].yzw) * inv_ext) * hn + hn;
     int i0 = int(floor(gc.x));
     int j0 = int(floor(gc.y));
     int k0 = int(floor(gc.z));
@@ -547,7 +552,12 @@ void sample_q_field(vec3 wp, out float q_val, out vec3 q_grad) {
     float hn = float(N) * 0.5;
     vec3 ext = bh[2].yzw;
     vec3 inv_ext = 1.0 / max(ext, vec3(0.0001));
-    vec3 gc = (wp * inv_ext) * hn + hn;
+    // Movable home-window (perf-decomp 2026-08-15): bh[0].yzw = the field
+    // grid's world-origin offset — the world→grid map becomes window-
+    // relative. Zero = the fixed-origin box, bit-identical. The dual-
+    // lattice cell↔cell map (chord_s_at_dual) is translation-invariant
+    // and intentionally unchanged.
+    vec3 gc = ((wp - bh[0].yzw) * inv_ext) * hn + hn;
 
     int i0 = int(floor(gc.x));
     int j0 = int(floor(gc.y));

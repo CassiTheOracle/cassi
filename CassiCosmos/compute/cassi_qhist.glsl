@@ -34,6 +34,9 @@ layout(push_constant, std430) uniform PC {
     float extent_x; // per-axis box half-extents — the instancer's mapping
     float extent_y;
     float extent_z;
+    float win_x;    // movable home-window origin (perf-decomp 2026-08-15):
+    float win_y;    // subtracted in the world→grid map; zero = legacy box
+    float win_z;
 } pc;
 
 const float LOG_GUARD = 1e-9;
@@ -48,7 +51,8 @@ float tri_q(vec3 wp) {
     float hn = float(N) * 0.5;
     vec3 ext = vec3(pc.extent_x, pc.extent_y, pc.extent_z);
     vec3 inv_ext = 1.0 / max(ext, vec3(0.0001));
-    vec3 gc = (wp * inv_ext) * hn + hn;
+    vec3 win = vec3(pc.win_x, pc.win_y, pc.win_z);
+    vec3 gc = ((wp - win) * inv_ext) * hn + hn;
     int i0 = int(floor(gc.x));
     int j0 = int(floor(gc.y));
     int k0 = int(floor(gc.z));

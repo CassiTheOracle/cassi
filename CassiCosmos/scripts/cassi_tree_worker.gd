@@ -263,6 +263,11 @@ func _run_job(job: Dictionary) -> void:
 		return
 	var ext: Vector3 = job.get("ext", Vector3.ONE)
 	var half: float = job.get("half", 1.0)
+	# ADAPTIVE TREE ROOT (perf-decomp 2026-08-15, overhaul migration): the
+	# root cube's min corner comes from the tracked structure's bounding box
+	# (job.bmin); absent (verify scenes driving the worker with their own
+	# job dicts) → the legacy box cube centered at the origin — bit-identical.
+	var bmin: Vector3 = job.get("bmin", -Vector3.ONE * half)
 	var eps2: float = job.get("eps2", 0.0025)
 	var tnm: int = int(job.get("tnm", 0))
 	_tlrd.buffer_update(_tl_sites, 0, (job["sites"] as PackedFloat32Array).size() * 4, (job["sites"] as PackedFloat32Array).to_byte_array())
@@ -272,16 +277,18 @@ func _run_job(job: Dictionary) -> void:
 	_tlrd.buffer_update(_tl_rho, 0, (job["rho"] as PackedFloat32Array).size() * 4, (job["rho"] as PackedFloat32Array).to_byte_array())
 	_tlrd.buffer_update(_tl_tpos, 0, (job["pos"] as PackedFloat32Array).size() * 4, (job["pos"] as PackedFloat32Array).to_byte_array())
 	# seed the self-contained counters + root (host seed is fine on the
-	# local RD — no global-RD cross-list race here)
+	# local RD — no global-RD cross-list race here). The root nodeCF is
+	# authoritative from mode-10 ROOT_SEED (bmin+bhalf); the _tl_cf seed
+	# mirrors the same root center (bmin + half) for consistency.
 	_tlrd.buffer_update(_tl_ctr, 0, 32, PackedInt32Array([1, 0, 1, 0, 0, 0, 0, 0]).to_byte_array())
-	_tlrd.buffer_update(_tl_cf, 0, 16, PackedFloat32Array([ext.x, ext.y, ext.z, half]).to_byte_array())
+	_tlrd.buffer_update(_tl_cf, 0, 16, PackedFloat32Array([bmin.x + half, bmin.y + half, bmin.z + half, half]).to_byte_array())
 	_tlrd.buffer_update(_tl_nr, 0, 16, PackedInt32Array([0, S, -1, 0]).to_byte_array())
 	var bpc := PackedFloat32Array()
 	bpc.resize(19)
 	bpc[0] = float(S)
-	bpc[1] = 0.0
-	bpc[2] = 0.0
-	bpc[3] = 0.0
+	bpc[1] = bmin.x
+	bpc[2] = bmin.y
+	bpc[3] = bmin.z
 	bpc[4] = half
 	bpc[5] = eps2
 	bpc[6] = PHI

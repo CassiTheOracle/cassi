@@ -42,15 +42,20 @@
 // mix(x, y, 1.0) = y exactly in fp32, so at alpha = 1.0 pos_render is a
 // byte-identical copy of pos (the whole point of the dormant seam).
 //
-// Push constant: two floats — alpha (offset 0), packed (offset 4). Godot
-// reflects the 2-float block as exactly 8 bytes — the host passes an
-// 8-byte PC.
+// Push constant: five floats — alpha (offset 0), packed (offset 4), and
+// the movable home-window origin (win @8/12/16 — subtracted from the
+// RENDER snapshot only; the pos_prev roll stays raw physics so the next
+// interpolation blends true positions. win = 0 → exactly the legacy
+// output, bit-identical).
 
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
 layout(push_constant, std430) uniform Params {
     float alpha;
     float packed;
+    float win_x;
+    float win_y;
+    float win_z;
 } params;
 
 // Raw uint views of bindings 0/1: the fp32 buffers are N×16 B (vec4 per
@@ -84,7 +89,7 @@ void main() {
         uint c0 = cur_raw[i * 2];
         uint c1 = cur_raw[i * 2 + 1];
         vec4 cur = vec4(unpackHalf2x16(c0), unpackHalf2x16(c1));
-        out_data[i] = mix(prev, cur, clamp(a, 0.0, 1.0));
+        out_data[i] = mix(prev, cur, clamp(a, 0.0, 1.0)) - vec4(params.win_x, params.win_y, params.win_z, 0.0);
         return;
     }
 
@@ -110,5 +115,6 @@ void main() {
                            uintBitsToFloat(cur_raw[i * 4 + 1]),
                            uintBitsToFloat(cur_raw[i * 4 + 2]),
                            uintBitsToFloat(cur_raw[i * 4 + 3])),
-                      clamp(a, 0.0, 1.0));
+                      clamp(a, 0.0, 1.0))
+                  - vec4(params.win_x, params.win_y, params.win_z, 0.0);
 }

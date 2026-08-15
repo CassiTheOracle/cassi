@@ -59,7 +59,10 @@ void main() {
     int cz = gid / (N * N);
     // Grid cell (0..N) → world [−extent_i, +extent_i] per axis — same
     // convention as the mass deposit and the nbody samplers (gc = wp/extent_i·N/2 + N/2).
-    vec3 world_pos = ((vec3(cx, cy, cz) + 0.5) / float(N) * 2.0 - 1.0) * ext;
+    // Movable home-window (perf-decomp 2026-08-15): the grid is window-
+    // relative, so the world spawn adds the window origin bh[0].yzw
+    // (zero = the fixed-origin box, bit-identical).
+    vec3 world_pos = ((vec3(cx, cy, cz) + 0.5) / float(N) * 2.0 - 1.0) * ext + bh[0].yzw;
 
     float cell_vol = (ext.x / float(N)) * (ext.y / float(N)) * (ext.z / float(N));
     float mass = qval * cell_vol;

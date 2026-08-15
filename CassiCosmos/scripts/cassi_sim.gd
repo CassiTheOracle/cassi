@@ -327,6 +327,15 @@ var _vsync_enabled: bool = true
 ## display lag stays ≤ one publish interval at any cadence. Live — passed
 ## per-submit in the job dict, no reinit.
 @export_range(1, 8, 1) var mirror_publish_cadence: int = 4  # perf-decomp 2026-08-15: 2→4 halves the ~0.5-0.8 GB/s sustained publish traffic that amplifies every burst's drain
+## MOVABLE HOME-WINDOW (perf-decomp 2026-08-15, overhaul migration): when
+## ON, the field grid's origin slowly follows the structure's center of
+## mass instead of the fixed box origin — "expansion hits the wall" becomes
+## "expansion outruns the window" (a tracking-capacity issue, not a
+## topology issue). Reinit to apply. OFF (default) = the legacy fixed-origin
+## box, bit-identical (every offset term is exactly 0.0).
+@export var home_window_enabled: bool = false
+var _window_center := Vector3.ZERO        # the field grid's world-origin offset
+var _win_track_last_ms: int = 0           # slow-cadence COM tracker (2 s)
 ## Fixed seed for the initial conditions (0 = the legacy random init).
 ## Applied to BOTH the inline IC generators and the decoupled engine's ICs.
 @export var ic_seed: int = 0
@@ -1115,6 +1124,13 @@ func _run_physics_steps(n_steps: int) -> void:
 	_bh_init_bytes.encode_float(48, 1.0 if black_holes_enabled else 0.0)
 	_bh_init_bytes.encode_float(52, 1.0 if dual_grid else 0.0)
 	_bh_init_bytes.encode_float(56, float(gradient_order))
+	# Movable home-window: bh[0].yzw = the field grid's world-origin offset
+	# (floats 4/8/12 — zero = the fixed-origin box, bit-identical). The
+	# nbody samplers subtract it in the world→grid map; the dual-lattice
+	# cell↔cell map is translation-invariant and needs no change.
+	_bh_init_bytes.encode_float(4, _window_center.x)
+	_bh_init_bytes.encode_float(8, _window_center.y)
+	_bh_init_bytes.encode_float(12, _window_center.z)
 	# Tree-arm force calibration G_tree = G_N·ML_TREE_G_SCALE rides bh[3].w
 	# (float 60, a free header slot — NOT the nbody PC, keeping the nbody
 	# push constant at 15 floats so manual 60-byte dispatchers in the verify
@@ -1157,6 +1173,9 @@ func _run_physics_steps(n_steps: int) -> void:
 	if _blend_sh.is_valid() and N_particles > 0:
 		_blend_pc.encode_float(0, 2.0)  # roll marker (> 1.0)
 		_blend_pc.encode_float(4, 0.0)  # packed mode 0 (fp32 path — bit-identical)
+		_blend_pc.encode_float(8, -_window_center.x)
+		_blend_pc.encode_float(12, -_window_center.y)
+		_blend_pc.encode_float(16, -_window_center.z)
 		_rd.compute_list_bind_compute_pipeline(cl, _blend_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_blend_0, 0)
 		_rd.compute_list_set_push_constant(cl, _blend_pc, _blend_pc.size())
@@ -1182,6 +1201,9 @@ func _run_physics_steps(n_steps: int) -> void:
 		_qhist_pc_bytes.encode_float(28, qext.x)
 		_qhist_pc_bytes.encode_float(32, qext.y)
 		_qhist_pc_bytes.encode_float(36, qext.z)
+		_qhist_pc_bytes.encode_float(40, -_window_center.x)
+		_qhist_pc_bytes.encode_float(44, -_window_center.y)
+		_qhist_pc_bytes.encode_float(48, -_window_center.z)
 		_rd.compute_list_bind_compute_pipeline(cl, _qhist_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_qhist_0, 0)
 		_rd.compute_list_set_push_constant(cl, _qhist_pc_bytes, _qhist_pc_bytes.size())
@@ -1199,6 +1221,9 @@ func _run_physics_steps(n_steps: int) -> void:
 	if _blend_sh.is_valid() and N_particles > 0:
 		_blend_pc.encode_float(0, _interp_alpha)
 		_blend_pc.encode_float(4, 0.0)  # packed mode 0 (fp32 path — bit-identical)
+		_blend_pc.encode_float(8, -_window_center.x)
+		_blend_pc.encode_float(12, -_window_center.y)
+		_blend_pc.encode_float(16, -_window_center.z)
 		_rd.compute_list_bind_compute_pipeline(cl, _blend_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_blend_0, 0)
 		_rd.compute_list_set_push_constant(cl, _blend_pc, _blend_pc.size())
@@ -1505,7 +1530,8 @@ func _barrier(cl: int) -> void:
 ## frame-0 repaint and the pre-packed blend frames); every later job is
 ## packed (the fp16 half-pair mirrors).
 func _decoupled_job_meta(packed: bool) -> Dictionary:
-	return {"cadence": maxi(mirror_publish_cadence, 1), "packed": packed}
+	return {"cadence": maxi(mirror_publish_cadence, 1), "packed": packed,
+			"window_center": _window_center, "home_window": home_window_enabled}
 
 
 ## Build the engine cfg from the live exports (an explicit dict with the
@@ -1531,6 +1557,8 @@ func _decoupled_start_engine() -> bool:
 		"river_pi_ref": river_pi_ref, "river_q_ref": river_q_ref,
 		"field_attractor_init": field_attractor_init,
 		"freeze_field": freeze_field,
+		"home_window": home_window_enabled,
+		"window_center": _window_center,
 		"initial_radius_fraction": initial_radius_fraction,
 		"initial_condition": initial_condition,
 		"initial_v_circ_factor": initial_v_circ_factor,
@@ -1718,7 +1746,50 @@ func _upload_pot_mirror(pot: PackedFloat32Array) -> void:
 ## dispatch. Once the first PACKED publish has landed the blend binds the
 ## packed half-pair mirrors (mode 1) and a vel-unpack dispatch (mode 2)
 ## keeps the fp32 _vel_buf fresh for the instancer's |v| rainbow; before
-## that (the fp32 bootstrap) the fp32 blend set is bound instead.
+## MOVABLE HOME-WINDOW tracker (perf-decomp 2026-08-15): every ~2 s, when
+## home_window_enabled and decoupled, compute the structure's center of
+## mass over a subsample of the published position mirror and nudge the
+## field-grid origin toward it (soft speed limit: ≤ 0.25·min_extent per
+## tick — the grid never jerks). The offset flows into the bh header
+## (bh[0].yzw), the deposit PC (off = −c / h/2 − c), the blend render seam
+## (pos_render − c) and the qhist PC — every world→grid map becomes
+## window-relative; at c = 0 all terms vanish and behavior is bit-identical
+## to the fixed-origin box.
+func _track_window_center() -> void:
+	if not home_window_enabled or not _decoupled_active:
+		return
+	var now := Time.get_ticks_msec()
+	if now - _win_track_last_ms < 2000:
+		return
+	_win_track_last_ms = now
+	var pos: PackedFloat32Array = _decoupled_curr_pos
+	var n := pos.size() / 4
+	if n <= 0:
+		return
+	var com := Vector3.ZERO
+	var cnt := 0
+	var i := 0
+	while i < n * 4:
+		com.x += pos[i]
+		com.y += pos[i + 1]
+		com.z += pos[i + 2]
+		cnt += 1
+		i += 32 * 4
+	if cnt > 0:
+		com /= float(cnt)
+		var ext := _extents()
+		var max_move: float = 0.25 * minf(minf(ext.x, ext.y), ext.z)
+		var d := com - _window_center
+		var dist := d.length()
+		if dist > max_move:
+			d = d.normalized() * max_move
+		_window_center += d
+		print("[CassiSim] window -> (%.1f, %.1f, %.1f)  COM (%.1f, %.1f, %.1f)  t=%.1f s"
+				% [_window_center.x, _window_center.y, _window_center.z, com.x, com.y, com.z, float(now) / 1000.0])
+
+
+## One decoupled frame: consume the freshest engine publish, then record
+## the render list (blend → instancer → …).
 func _decoupled_poll_and_render() -> void:
 	# FIX A: during the non-blocking bootstrap, consume the first publish and
 	# clear the wait — but DON'T render until the mirrors are seeded (the
@@ -1775,6 +1846,9 @@ func _decoupled_poll_and_render() -> void:
 	if _blend_sh.is_valid() and N_particles > 0:
 		_blend_pc.encode_float(0, _interp_alpha)
 		_blend_pc.encode_float(4, blend_mode)
+		_blend_pc.encode_float(8, -_window_center.x)
+		_blend_pc.encode_float(12, -_window_center.y)
+		_blend_pc.encode_float(16, -_window_center.z)
 		_rd.compute_list_bind_compute_pipeline(cl, _blend_pipe)
 		_rd.compute_list_bind_uniform_set(cl, blend_set, 0)
 		_rd.compute_list_set_push_constant(cl, _blend_pc, _blend_pc.size())
@@ -1803,6 +1877,9 @@ func _decoupled_poll_and_render() -> void:
 		_qhist_pc_bytes.encode_float(28, qext.x)
 		_qhist_pc_bytes.encode_float(32, qext.y)
 		_qhist_pc_bytes.encode_float(36, qext.z)
+		_qhist_pc_bytes.encode_float(40, -_window_center.x)
+		_qhist_pc_bytes.encode_float(44, -_window_center.y)
+		_qhist_pc_bytes.encode_float(48, -_window_center.z)
 		_rd.compute_list_bind_compute_pipeline(cl, _qhist_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_qhist_0_render, 0)
 		_rd.compute_list_set_push_constant(cl, _qhist_pc_bytes, _qhist_pc_bytes.size())
@@ -2009,7 +2086,7 @@ func _setup_buffers() -> void:
 	# q-histogram for auto color-align (cassi_qhist.glsl): 128 log-spaced bins
 	_qhist_buf = _rd.storage_buffer_create(128 * 4)
 	_qhist_zero_bytes = PackedByteArray(); _qhist_zero_bytes.resize(128 * 4)
-	_qhist_pc_bytes = PackedByteArray(); _qhist_pc_bytes.resize(10 * 4)
+	_qhist_pc_bytes = PackedByteArray(); _qhist_pc_bytes.resize(13 * 4)  # + win@10-12 (movable home-window)
 	# Meshless arm buffers (allocated always; used only when meshless_mode
 	# is on). The JFA labels ping-pong; the per-site state carries the cell
 	# averages; the rebuild scratch (centroids/remap/temps) rides the GPU.
@@ -2120,7 +2197,7 @@ func _setup_buffers() -> void:
 	# Blend PC (8 B = 2 floats): alpha @ byte 0, packed mode @ byte 4.
 	# Godot reflects the 2-float push-constant block as exactly 8 bytes
 	# (verified empirically — 4.7 hard-errors on any size mismatch).
-	_blend_pc = PackedByteArray(); _blend_pc.resize(8)
+	_blend_pc = PackedByteArray(); _blend_pc.resize(20)  # alpha@0, packed@4, win@8/12/16 (movable home-window)
 	# NOTE: all poisson dispatches (clear/load/kspace/FFT) are 2D (N, N, 1) —
 
 	# uses row = workgroup.x + workgroup.y·N. A 1D (N³/256, 1, 1) dispatch
@@ -4057,9 +4134,13 @@ func _step_dispatches(cl: int) -> void:
 	_md_pc_bytes.encode_float(8, ext_step.x)
 	_md_pc_bytes.encode_float(12, ext_step.y)
 	_md_pc_bytes.encode_float(16, ext_step.z)
-	_md_pc_bytes.encode_float(20, 0.0)
-	_md_pc_bytes.encode_float(24, 0.0)
-	_md_pc_bytes.encode_float(28, 0.0)
+	# Movable home-window: off = −c (the shader maps [c−ext, c+ext] →
+	# [0, N] via gc = (p + off)·scale + hn — the +hn provides the −ext
+	# shift, so off is a pure frame translation; at c = 0 it is exactly
+	# the legacy 0.0, bit-identical).
+	_md_pc_bytes.encode_float(20, -_window_center.x)
+	_md_pc_bytes.encode_float(24, -_window_center.y)
+	_md_pc_bytes.encode_float(28, -_window_center.z)
 	_md_pc_bytes.encode_float(32, 0.0)  # mode 0 = deposit (1 = convert)
 	# BH integrate PC: [N_f, dt, acc_rate, max_age]
 	_bh_int_pc_bytes.encode_float(0, float(grid_N))
@@ -4274,9 +4355,9 @@ func _step_dispatches(cl: int) -> void:
 			_rd.compute_list_dispatch(cl, grid_N, grid_N / 2, 1)  # 2D cells dispatch (2 cells/thread)
 		_barrier(cl)  # dual clear → deposit
 		if _mass_deposit_shader.is_valid() and N_particles > 0:
-			_md_pc_bytes.encode_float(20, ext_step.x / float(grid_N))
-			_md_pc_bytes.encode_float(24, ext_step.y / float(grid_N))
-			_md_pc_bytes.encode_float(28, ext_step.z / float(grid_N))
+			_md_pc_bytes.encode_float(20, ext_step.x / float(grid_N) - _window_center.x)
+			_md_pc_bytes.encode_float(24, ext_step.y / float(grid_N) - _window_center.y)
+			_md_pc_bytes.encode_float(28, ext_step.z / float(grid_N) - _window_center.z)
 			_md_pc_bytes.encode_float(32, 0.0)  # mode 0 = deposit
 			_rd.compute_list_bind_compute_pipeline(cl, _mass_deposit_pipe)
 			_rd.compute_list_bind_uniform_set(cl, _us_mass_dep_0, 0)
@@ -4512,19 +4593,41 @@ func _tree_worker_frame() -> void:
 			push_error("[CassiSim] tree worker failed to start")
 			return
 	var ext := _extents()
-	var half: float = maxf(ext.x, maxf(ext.y, maxf(ext.z, ext.z))) * 1.000001
 	# Host round trip #1: pull the sim's CURRENT meshless source state from
 	# the global RD (main-thread-only reads; the same reads the old sync
 	# path performed). The worker consumes these copies — no shared buffers.
+	var sites := _rd.buffer_get_data(_ml_sites, 0, S * 16).to_float32_array()
+	# ADAPTIVE TREE ROOT (perf-decomp 2026-08-15, overhaul migration): seed
+	# the root cube from the tracked structure's bounding box (the staged
+	# sites — the structure's own scale) instead of the fixed box origin.
+	# The walk's resolution then follows the structure; the box-anchored
+	# root is gone. bmin = structure min corner, half = 0.5·max(hi−lo)
+	# inflated; the default (no bmin in the job) stays the legacy box cube.
+	var bmin := Vector3.INF
+	var bmax := -Vector3.INF
+	for si in range(S):
+		bmin.x = minf(bmin.x, sites[si * 4]); bmin.y = minf(bmin.y, sites[si * 4 + 1]); bmin.z = minf(bmin.z, sites[si * 4 + 2])
+		bmax.x = maxf(bmax.x, sites[si * 4]); bmax.y = maxf(bmax.y, sites[si * 4 + 1]); bmax.z = maxf(bmax.z, sites[si * 4 + 2])
+	var half: float = maxf(ext.x, maxf(ext.y, maxf(ext.z, ext.z))) * 1.000001   # box-cube fallback
+	# Gated on home_window_enabled: OFF (default) must stay bit-identical —
+	# the legacy box root (bmin = −half·ones). ON = the structure-rooted cube.
+	if not home_window_enabled:
+		bmin = -Vector3.ONE * half
+		bmax = Vector3.ONE * half
+	elif bmin.x <= -1.0e30 or bmin.x == INF or not (bmin.x == bmin.x):
+		bmin = -Vector3.ONE * half
+		bmax = Vector3.ONE * half
+	var bhalf: float = 0.5 * maxf(bmax.x - bmin.x, maxf(bmax.y - bmin.y, bmax.z - bmin.z)) * 1.000001 + 1e-6
 	var job := {
-		"sites": _rd.buffer_get_data(_ml_sites, 0, S * 16).to_float32_array(),
+		"sites": sites,
 		"psy": _rd.buffer_get_data(_ml_psi_y, 0, S * 4).to_float32_array(),
 		"psi": _rd.buffer_get_data(_ml_psi_i, 0, S * 4).to_float32_array(),
 		"vol": _rd.buffer_get_data(_ml_vol, 0, S * 4).to_float32_array(),
 		"rho": _rd.buffer_get_data(_mass_density_buf, 0, N3 * 4).to_float32_array(),
 		"pos": _rd.buffer_get_data(_pos_buf, 0, Np * 16).to_float32_array(),
+		"bmin": bmin,
+		"half": bhalf,
 		"ext": ext,
-		"half": half,
 		"S": S,
 		"N3": N3,
 		"Np": Np,
@@ -4755,6 +4858,7 @@ func _render_frame() -> void:
 	# record the render list (blend interp + instancer + qhist) — no
 	# physics list on the global RD in this mode.
 	if _decoupled_active:
+		_track_window_center()   # movable home-window: slow-cadence COM follow
 		_decoupled_poll_and_render()
 
 	# GPU-direct MultiMesh: NO per-frame readback/upload — the instancer
