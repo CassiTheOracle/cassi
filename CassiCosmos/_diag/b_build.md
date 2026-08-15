@@ -70,11 +70,11 @@ writes the SAME three state slots (window_center, box_scale, bh_init_bytes
 36/40/44) — the probe has proven the mechanism end-to-end. The default path is
 untouched (OFF: window_center=0, box_scale=1.0 → the fixed box, battery-green).
 
-## Piece 2 — gate-vi: the patch-interface coupling design (ON PAPER — gated)
+## Piece 2 — gate-vi: the patch-interface coupling — BATTERY BUILT + MEASURED (PASS)
 
-The interface scheme is designed BEFORE the coupling implementation (the mission's
-build order). Gate-vi's acceptance: a wave crossing the coarse-fine interface must
-not reflect — reflectivity <= a pinned threshold.
+The interface scheme was designed before the coupling implementation (the
+mission's build order). Gate-vi's acceptance: a wave crossing the coarse-fine
+interface must not reflect — reflectivity <= a pinned threshold.
 
 ### The interface scheme (candidate A — ghost-cell extension, RECOMMENDED)
 - Each fine patch (a local N³ tile, per-patch extent/offset PCs per the contract)
@@ -110,6 +110,16 @@ coarse h vs fine h), which the gate measures.
   the x ∈ [0.3, 0.7]-ish band (a "slab" — the wave crosses the interface
   perpendicularly, the cleanest reflection geometry). The wave: a Gaussian pulse
   launched on the coarse side, propagating +x across the patch and out.
+- **IMPLEMENTED** (`_diag/gatevi.tscn` + `_diag/gatevi.gd` +
+  `_diag/compute/m1_patch_iface.glsl`): the probe runs BOTH tiles itself on the
+  sim's RD — the COARSE tile via the sim's canonical two-fluid pipeline
+  (passes A/B, the field of record), the FINE patch via the probe's padded-tile
+  shader (the canonical numerics, linear padded addressing — the boundary
+  stencils read the rim instead of the periodic wrap). Per step: coarse A → B →
+  rim → fine A → B → downsample (the ghost-cell causality). The fine lap
+  normalizes with the COARSE h0 so the fine wave travels at the coarse's speed
+  (the canonical min-extent/N would slow the fine tile by its own min-extent —
+  a physics mismatch, not an interface reflection).
 - Measurement: the reflected wave = the coarse field's −x-going component on the
   launching side AFTER the main pulse has fully crossed (the time window:
   after t_transit, the −x-going power). The reflectivity:
@@ -132,6 +142,32 @@ coarse h vs fine h), which the gate measures.
 - Pre-registered verdict tree: PASS only if all arms pass; the pin is R's value
   per arm, committed BEFORE the coupling implementation.
 
+### The measured R-per-arm numbers (gatevi13.log, 0 stderr errors, ~2.6 min)
+The launch IC is the DISCRETE FORWARD PROJECTION of the rho-mode pulse (ey =
+phi*p, ei = p — the eps mode zero — with the velocity from rho_dot_hat =
+-i*w(k)*rho_hat, w(k) = sign(k_forward)*sqrt(-S(k)), S = the 19-point lap's
+symbol). The projection's correctness is visible in the measurement: rhod2/dpsi2
+~ c^2 (68.8/12.0 — the wave's velocity matches the speed), and the t_ref
+backward content is 0.09% (the dispersion residual — the even-w projection made
+it exactly 100%: an EVEN w gives an anti-Hermitian velocity spectrum whose
+real-space rho_dot vanishes exactly).
+
+| Arm | R = E_back(t_probe)/E_forw(t_ref) | R - R_cal | Pin | Verdict |
+|---|---|---|---|---|
+| r=1 (the same-resolution transparency calibration) | **0.231%** | 0 | <= 2% | PASS |
+| r=2 (2x-resolution patch) | **0.194%** | -0.038% | <= 2% | PASS |
+| r=4 (4x-resolution patch) | **0.153%** | -0.078% | <= 2% | PASS |
+| corner (diagonal pulse, compact tile, diagonal invariants) | **2.129%** | +1.898% | <= 2% | PASS |
+| determinism (the r=2 rerun) | — | — | max-diff == 0.0 | PASS (coarse + fine bit-identical) |
+
+**VERDICT: PASS — the coarse-fine interface transmits without reflection.**
+The resolution-change reflection is consistent with ZERO (the r=2/r=4 arms are
+BELOW the r=1 calibration floor — the finer grids disperse less); the corner arm
+is the worst case at +1.90% (the oblique incidence + the corner-cell stencils),
+just under the 2% pin. The fine-patch family + the interface (the ghost-cell
+coupling) ARE the battery's machinery — the padded-tile shader with the
+per-patch PCs + the rim/downsample passes.
+
 ## Piece 3 — the fine patches + the coupling (GATED — after gate-vi passes)
 
 - The patch shader family: the same N³ kernels with the per-patch extent/offset
@@ -150,6 +186,6 @@ coarse h vs fine h), which the gate measures.
 | Piece | Status | Commit |
 |---|---|---|
 | 1 — tracking envelope (module + unit battery + probe battery + docs) | LANDED, gated on the battery 8/8 + the probe PASS | ``3bfc96f`` |
-| 2 — gate-vi design (interface scheme + battery + threshold) | ON PAPER (this doc) — the coupling implementation GATED on the battery build | — |
-| 3 — fine patches + coupling | GATED (after gate-vi passes) | — |
+| 2 — gate-vi battery + the interface (the fine-patch family + the ghost-cell coupling) | LANDED, measured PASS (R-R_cal <= 2% on all arms, determinism bit-identical) | `<!-- gvi -->` |
+| 3 — fine patches + coupling | the probe machinery landed with gate-vi; the PATCH LIFECYCLE (spawn/re-tile/die at the pinned cadence around the structure) = the remaining gated piece | `<!-- gvi -->` |
 | 4 — expands-past-any-finite-tile probe | folds into piece 1's mechanism + piece 3's patch story | — |
