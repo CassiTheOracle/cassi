@@ -1033,17 +1033,29 @@ func _process(delta: float) -> void:
 			# and the backlog cap. The engine coalesces targets, so
 			# over-requesting costs nothing; under-requesting is the
 			# truthful backlog (_decoupled_pending).
-			var step_cap: int = maxi(max_steps_per_frame, int(ceili(sim_speed)) * max_steps_per_frame)
-			while _step_timer >= dt and n_steps < step_cap:
-				_step_timer -= dt
-				n_steps += 1
-			var backlog_cap := 2.0  # sim-seconds of carried catch-up
-			if _step_timer > backlog_cap:
-				_dropped_steps += int((_step_timer - backlog_cap) / dt)
-				_step_timer = backlog_cap
-			if n_steps > 0:
-				_decoupled_target += n_steps
-				_physics_engine.submit_steps(_decoupled_target, false, _decoupled_job_meta(true))
+			# BOOT GATE: during the decoupled bootstrap the engine is still
+			# building ICs on its worker thread. Requesting steps then would
+			# accumulate _decoupled_target, and the engine coalesces targets
+			# (newest wins), so the queued boot job (target 1) would be
+			# replaced by the accumulated target — the first snapshot would
+			# arrive already hundreds of steps advanced (the "particles pop in
+			# already evolved" artifact). Hold the pacing timer at 0 during
+			# boot so the first post-boot request is ~1 step and the first
+			# snapshot shows the freshly-initialized cluster near t = 0.
+			if _decoupled_boot_wait:
+				_step_timer = 0.0
+			else:
+				var step_cap: int = maxi(max_steps_per_frame, int(ceili(sim_speed)) * max_steps_per_frame)
+				while _step_timer >= dt and n_steps < step_cap:
+					_step_timer -= dt
+					n_steps += 1
+				var backlog_cap := 2.0  # sim-seconds of carried catch-up
+				if _step_timer > backlog_cap:
+					_dropped_steps += int((_step_timer - backlog_cap) / dt)
+					_step_timer = backlog_cap
+				if n_steps > 0:
+					_decoupled_target += n_steps
+					_physics_engine.submit_steps(_decoupled_target, false, _decoupled_job_meta(true))
 		else:
 			# ── Paced fixed-dt with a TIME BUDGET (the smooth-run design) ────
 			# The accumulator requests delta × sim_speed / dt steps — the
@@ -1588,6 +1600,13 @@ func _decoupled_start_engine() -> bool:
 	_decoupled_boot_wait = true
 	_decoupled_boot_start_ms = Time.get_ticks_msec()
 	_decoupled_boot_last_progress_ms = 0
+	# Hide the particle MultiMesh during the IC init: the instance buffer is
+	# still its initial zeroed state, so without this all N instances render
+	# piled at the origin (the "single square at origin" startup artifact).
+	# _decoupled_poll_and_render restores visibility when the boot clears
+	# (both the first-snapshot path and the timeout→inline fallback).
+	if _mmi != null:
+		_mmi.visible = false
 	_physics_engine.submit_steps(1, false, _decoupled_job_meta(false))
 	print("[CassiSim] decoupled bootstrap queued (non-blocking) — main thread free")
 	return true
@@ -1734,10 +1753,14 @@ func _decoupled_poll_and_render() -> void:
 				_physics_engine = null
 				_decoupled_active = false
 				_decoupled_boot_wait = false
+				if _mmi != null:
+					_mmi.visible = true   # the inline path draws the particles now
 				_init_field(); _init_particles(); _apply_gravity_calibration(); _grav_warmup = true
 			return   # skip the render list until the first snapshot lands
 		_decoupled_boot_wait = false
 		print("[CassiSim] decoupled bootstrap first snapshot applied (non-blocking)")
+		if _mmi != null:
+			_mmi.visible = true   # first real positions are in the mirrors
 	# Interpolation alpha: 0 right at each publish → 1 one batch later.
 	# (No publish yet → the last mirrored state renders exactly.)
 	_interp_alpha = clampf(float(Time.get_ticks_msec() - _last_publish_ms) / maxf(_batch_ema_ms, 1.0), 0.0, 1.0)
