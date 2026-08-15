@@ -40,6 +40,7 @@ layout(push_constant, std430) uniform PC {
     float gravity_mode;  // unused here (nbody gravity selector)
     float extent_x; float extent_y; float extent_z;  // per-axis box half-extents (GRID_LAYOUT.md §2.5)
     float pass_sel;      // 0 = pass A (compute → scr), 1 = pass B (scr → field)
+    float omega2;       // ω₀² — resonance frequency (default 20.0)
 } pc;
 
 // ── Index helpers ─────────────────────────────────────────────────────
@@ -191,7 +192,7 @@ void pass_a() {
     float lap_ei = lap_ei_at(i, j, k);
 
     // φ coupling terms
-    float omega2 = 20.0;  // ω₀² — resonance frequency
+    float omega2 = pc.omega2;  // ω₀² — resonance frequency (default 20.0)
     float phi = pc.phi;
     float ey_ei_diff = ey_old - phi * ei_old;
 

@@ -1,7 +1,7 @@
 extends SceneTree
 ## Cassi space-sim verify battery runner — "run the whole battery" in one command.
 ##
-## Launches the 30 verify scenes IN SEQUENCE as standalone windowed project
+## Launches the 34 verify scenes IN SEQUENCE as standalone windowed project
 ## runs of the Godot console exe (each arm needs the real RenderingDevice;
 ## NEVER --headless for the arms — this rig's global RD has no headless
 ## device), captures each arm's exit code (0 = PASS, non-zero = FAIL — every
@@ -10,7 +10,7 @@ extends SceneTree
 ## arm's log file, enforces a per-arm timeout that kills a hung arm
 ## (taskkill /T /F — the console exe is a wrapper that spawns the real
 ## Godot process, so the process TREE must be killed), and quits with exit
-## code 0 only when all 30 pass.
+## code 0 only when all 34 pass.
 ##
 ## The runner itself never touches a RenderingDevice, so IT may run headless;
 ## the arms it spawns always run windowed.
@@ -84,6 +84,10 @@ const ARMS := [
 	"verify_bh_accretion_engine",
 	"verify_merge_engine",
 	"verify_multigrid_engine",
+	"verify_rho_front",
+	"verify_eps_gap",
+	"verify_subsonic_step",
+	"verify_omega_invariant",
 ]
 
 var _idx := 0            # index of the arm being run (or next to launch)

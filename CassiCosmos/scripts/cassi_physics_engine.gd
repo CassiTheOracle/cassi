@@ -165,6 +165,12 @@ var cascade_level: bool = false
 # at least one BH record is active.
 var bh_accretion: bool = false
 var bh_accretion_radius: float = 0.1   # world units (~1× the default softening σ)
+# Perf-decomp probe gates (2026-08-15, PROBE-ONLY — reverted after the
+# dominant-pass measurement; NOT part of any commit): AND-ed into the
+# two-fluid PDE and nbody kick dispatch gates so a probe can isolate their
+# per-step shares. Default true = no behavior change.
+var two_fluid_enabled: bool = true
+var nbody_enabled: bool = true
 
 # Engine plumbing (cfg keys): rd, rd_global, owns_rd, seed, spirv
 var _rd: RenderingDevice = null
@@ -303,7 +309,7 @@ var _cond_step_counter: int = 0
 # — pre-allocated push-constant byte buffers (hitch-free: no per-step allocs) —
 var _pc_bytes: PackedByteArray        # shared 11-float PC (kept for verbatim fidelity)
 var _nbody_pc_bytes: PackedByteArray  # nbody PC (15 floats: 11 shared + pass_mode + 3 RealSim)
-var _two_fluid_pc_bytes: PackedByteArray  # two-fluid PC (14 floats: 11 shared + extent_x/y/z)
+var _two_fluid_pc_bytes: PackedByteArray  # two-fluid PC (16 floats: 11 shared + extent_x/y/z + pass_sel + omega2)
 var _md_pc_bytes: PackedByteArray     # mass deposit PC (8 floats: N, particle_N, extent_x/y/z, off_x/y/z)
 var _bh_int_pc_bytes: PackedByteArray # BH integrate PC (4 floats)
 var _cond_pc_bytes: PackedByteArray   # condensation PC (4 floats)
@@ -444,6 +450,9 @@ func setup(cfg: Dictionary) -> bool:
 	cascade_level = bool(cfg.get("cascade_level", cascade_level))
 	bh_accretion = bool(cfg.get("bh_accretion", bh_accretion))
 	bh_accretion_radius = float(cfg.get("bh_accretion_radius", bh_accretion_radius))
+	# Perf-decomp probe gates (PROBE-ONLY — reverted after measurement).
+	two_fluid_enabled = bool(cfg.get("two_fluid_enabled", two_fluid_enabled))
+	nbody_enabled = bool(cfg.get("nbody_enabled", nbody_enabled))
 	# Tree-worker consumer (decoupled mode): the sim creates + starts the
 	# tree worker on the main thread and hands the object here.
 	_tree_worker = cfg.get("tree_worker", null)
@@ -1285,7 +1294,7 @@ func _setup_buffers() -> void:
 	# Pre-allocate push-constant byte buffers (hitch-free pattern)
 	_pc_bytes = PackedByteArray(); _pc_bytes.resize(11 * 4)
 	_nbody_pc_bytes = PackedByteArray(); _nbody_pc_bytes.resize(15 * 4)
-	_two_fluid_pc_bytes = PackedByteArray(); _two_fluid_pc_bytes.resize(15 * 4)  # + pass_sel (PDE pass A/B)
+	_two_fluid_pc_bytes = PackedByteArray(); _two_fluid_pc_bytes.resize(16 * 4)  # + pass_sel (PDE pass A/B) + omega2 (ω₀²)
 	_md_pc_bytes = PackedByteArray(); _md_pc_bytes.resize(9 * 4)  # + mode (deposit 0 / convert 1)
 	_bh_int_pc_bytes = PackedByteArray(); _bh_int_pc_bytes.resize(4 * 4)
 	_cond_pc_bytes = PackedByteArray(); _cond_pc_bytes.resize(4 * 4)
@@ -2124,7 +2133,8 @@ func _step_dispatches(cl: int) -> void:
 	_pc_bytes.encode_float(36, float(num_clusters))
 	_pc_bytes.encode_float(40, float(gravity_mode))
 
-	# Two-fluid PC (dedicated 56 B): shared 11 fields + 3 per-axis extents
+	# Two-fluid PC (dedicated 64 B): shared 11 fields + 3 per-axis extents
+	# + pass_sel (float 14) + omega2 (float 15)
 	_two_fluid_pc_bytes.encode_float(0, float(grid_N))
 	_two_fluid_pc_bytes.encode_float(4, dt)
 	_two_fluid_pc_bytes.encode_float(8, _time)
@@ -2139,6 +2149,7 @@ func _step_dispatches(cl: int) -> void:
 	_two_fluid_pc_bytes.encode_float(44, ext_step.x)
 	_two_fluid_pc_bytes.encode_float(48, ext_step.y)
 	_two_fluid_pc_bytes.encode_float(52, ext_step.z)
+	_two_fluid_pc_bytes.encode_float(60, 20.0)  # omega2 = ω₀² (the two-fluid resonance; default 20.0 — bit-identical to the pre-PC hardcode)
 
 	# N-body PC (dedicated 60 B): shared 11 fields + pass_mode at float 11
 	# (0 = particles; 1/1.5 = gradient/dual-gradient; 2 = warmup) + the
@@ -2288,7 +2299,7 @@ func _step_dispatches(cl: int) -> void:
 			hxr, hyr, hzr, 0.0, 0.0, 0.0]).to_byte_array()
 		_rd.compute_list_set_push_constant(cl, _raster_pc_bytes, _raster_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, wg1, 1, 1)
-	elif _two_fluid_shader.is_valid() and not freeze_field:
+	elif _two_fluid_shader.is_valid() and not freeze_field and two_fluid_enabled:
 		_rd.compute_list_bind_compute_pipeline(cl, _two_fluid_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_two_0, 0)
 		# Two-pass double-buffered PDE (DETERMINISM fix): pass A computes
@@ -2409,7 +2420,7 @@ func _step_dispatches(cl: int) -> void:
 		_barrier(cl)  # warmup → nbody
 
 	# ── 3. N-body gravity (cached-acc KDK) ─────────────────────────
-	if _nbody_shader.is_valid() and N_particles > 0:
+	if _nbody_shader.is_valid() and N_particles > 0 and nbody_enabled:
 		_nbody_pc_bytes.encode_float(44, 0.0)  # pass_mode = 0 (particles)
 		_rd.compute_list_bind_compute_pipeline(cl, _nbody_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_nbody_0, 0)

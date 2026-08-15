@@ -244,6 +244,7 @@ func _tf_pc(pass_sel: float, t: float) -> PackedFloat32Array:
 	p.append(0.0); p.append(0.0); p.append(0.0)                  # source..gravity
 	p.append(EXTENT); p.append(EXTENT); p.append(EXTENT)         # extent xyz
 	p.append(pass_sel)                                           # 0=A 1=B
+	p.append(20.0)                                               # omega2 = ω₀² (default 20.0 — bit-identical)
 	return p
 
 

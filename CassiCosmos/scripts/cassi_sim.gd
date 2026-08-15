@@ -98,6 +98,12 @@ const Q_1: float = 0.001        # Qi-rainbow stage-1 band top = stage-2 entry
 # frame's step budget, so once-per-frame is far inside the reaction budget).
 ## Two-particle merge (SINK-rule, q_coh > φ⁻² gate, R_m = extent/grid_N) grows matter from dust. Default off = particles-only. Init-time — reinit to apply.
 @export var particle_merge: bool = false
+# Perf-decomp probe gates (2026-08-15, PROBE-ONLY — reverted after the
+# dominant-pass measurement; NOT part of any commit): AND-ed into the
+# two-fluid PDE and nbody kick dispatch gates so a probe can isolate their
+# per-step shares. Default true = no behavior change.
+@export var two_fluid_enabled: bool = true
+@export var nbody_enabled: bool = true
 ## Merge cadence in accumulated STEPS (live): 0 = AUTO = 1/2 of the R_m
 ## reaction budget (R_m/(v·dt) with v = 1.0 world-units/s — the design's
 ## closing speed: R_m=0.586 crossed in ~586 dt=0.001 steps; at the owner
@@ -565,7 +571,7 @@ var _nbody_pc_bytes: PackedByteArray  # nbody PC (15 floats: 11 shared + pass_mo
 # extents) — the dedicated-PC precedent: field_render/instancer/bh_lensing
 # share _pc_bytes (11 floats) and Godot hard-errors on push-constant size
 # mismatch, so the two-fluid's anisotropic-stencil extents get their own.
-var _two_fluid_pc_bytes: PackedByteArray  # two-fluid PC (14 floats: 11 shared + extent_x/y/z)
+var _two_fluid_pc_bytes: PackedByteArray  # two-fluid PC (16 floats: 11 shared + extent_x/y/z + pass_sel + omega2)
 var _md_pc_bytes: PackedByteArray     # mass deposit PC (8 floats: N, particle_N, extent_x/y/z, off_x/y/z)
 var _bh_int_pc_bytes: PackedByteArray # BH integrate PC (4 floats)
 var _cond_pc_bytes: PackedByteArray   # condensation PC (4 floats)
@@ -1529,6 +1535,8 @@ func _decoupled_start_engine() -> bool:
 		"meshless_mode": meshless_mode, "meshless_gravity": meshless_gravity,
 		"mode": mode,
 		"particle_merge": particle_merge,
+		"two_fluid_enabled": two_fluid_enabled,
+		"nbody_enabled": nbody_enabled,
 		"merge_cadence_steps": merge_cadence_steps,
 		"merge_subsonic": merge_subsonic,
 		"merge_virial": merge_virial,
@@ -2086,7 +2094,7 @@ func _setup_buffers() -> void:
 	_nbody_pc_bytes = PackedByteArray(); _nbody_pc_bytes.resize(15 * 4)
 	# Two-fluid dedicated PC (14 floats = 56 B): the shared 11 fields + the
 	# 3 per-axis extents for the anisotropic 19-point stencil (GRID_LAYOUT.md).
-	_two_fluid_pc_bytes = PackedByteArray(); _two_fluid_pc_bytes.resize(15 * 4)  # + pass_sel (PDE pass A/B)
+	_two_fluid_pc_bytes = PackedByteArray(); _two_fluid_pc_bytes.resize(16 * 4)  # + pass_sel (PDE pass A/B) + omega2 (ω₀²)
 	_md_pc_bytes = PackedByteArray(); _md_pc_bytes.resize(9 * 4)  # + mode (deposit 0 / convert 1)
 	_instancer_pc_bytes = PackedByteArray(); _instancer_pc_bytes.resize(32 * 4)  # consolidated gradient engine PC — 128 B (the RDNA3 Vulkan cap)
 	_bh_int_pc_bytes = PackedByteArray(); _bh_int_pc_bytes.resize(4 * 4)
@@ -3977,10 +3985,11 @@ func _step_dispatches(cl: int) -> void:
 	_pc_bytes.encode_float(36, float(num_clusters))
 	_pc_bytes.encode_float(40, float(gravity_mode))
 
-	# Two-fluid PC (dedicated 56 B): the shared 11 fields + the 3 per-axis
+	# Two-fluid PC (dedicated 64 B): the shared 11 fields + the 3 per-axis
 	# extents (the anisotropic 19-point stencil needs h_i = 2·extent_i/N —
 	# the dedicated-PC precedent: the shared _pc_bytes stays at 11 floats
-	# for field_render/instancer/bh_lensing).
+	# for field_render/instancer/bh_lensing) + pass_sel (float 14)
+	# + omega2 (float 15).
 	_two_fluid_pc_bytes.encode_float(0, float(grid_N))
 	_two_fluid_pc_bytes.encode_float(4, dt)
 	_two_fluid_pc_bytes.encode_float(8, _time)
@@ -3995,6 +4004,7 @@ func _step_dispatches(cl: int) -> void:
 	_two_fluid_pc_bytes.encode_float(44, ext_step.x)
 	_two_fluid_pc_bytes.encode_float(48, ext_step.y)
 	_two_fluid_pc_bytes.encode_float(52, ext_step.z)
+	_two_fluid_pc_bytes.encode_float(60, 20.0)  # omega2 = ω₀² (the two-fluid resonance; default 20.0 — bit-identical to the pre-PC hardcode)
 
 	# N-body PC (dedicated 48 B): same 11 fields + pass_mode at float 11.
 	# pass_mode = 0 for the particle pass; the gradient pass (2.8) sets 1.
@@ -4154,7 +4164,7 @@ func _step_dispatches(cl: int) -> void:
 			hxr, hyr, hzr, 0.0, 0.0, 0.0]).to_byte_array()
 		_rd.compute_list_set_push_constant(cl, _raster_pc_bytes, _raster_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, wg1, 1, 1)
-	elif _two_fluid_shader.is_valid() and not freeze_field:
+	elif _two_fluid_shader.is_valid() and not freeze_field and two_fluid_enabled:
 		_rd.compute_list_bind_compute_pipeline(cl, _two_fluid_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_two_0, 0)
 		# Two-pass double-buffered PDE (DETERMINISM fix): pass A computes
@@ -4296,7 +4306,7 @@ func _step_dispatches(cl: int) -> void:
 		_barrier(cl)  # warmup → nbody
 
 	# ── 3. N-body gravity ────────────────────────────────────────────
-	if _nbody_shader.is_valid() and N_particles > 0:
+	if _nbody_shader.is_valid() and N_particles > 0 and nbody_enabled:
 		_nbody_pc_bytes.encode_float(44, 0.0)  # pass_mode = 0 (particles)
 		_rd.compute_list_bind_compute_pipeline(cl, _nbody_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_nbody_0, 0)

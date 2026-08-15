@@ -227,6 +227,11 @@ Key results to carry forward:
   deviation-mode dynamics are scale-free in ω₀). Recorded as numerical,
   not derived; a derivation would be a theory-side follow-up, not a
   meshless-program blocker.
+  2026-08-15 (research/sound_coherence_note.md §7.2): the breather Ω = √(ω₀²(1+φ)) =
+  7.2361 now has a spectral home — it is the ε = EY−φ·EI mode at its gap (the optical
+  branch). ω₀² = 20 itself remains without provenance: log_φ(20) = 6.225, not a ladder
+  rung; the exact structural fact is the ratio ω_gap = φ·ω₀ (one clean φ-rung step,
+  since 1+φ = φ²). Still open.
 - **D1 (swept-volume vs geometric source term):** RESOLVED for the
   periodic prototype — the **periodic ALE remap** (rebuild + nearest-
   old-cell state transfer) is mass-conservative to the remap order and

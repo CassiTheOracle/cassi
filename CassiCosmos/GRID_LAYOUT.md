@@ -382,7 +382,8 @@ Per-site change + risk. Line numbers as of 2026-08-11.
   pattern (macro or a `gc_from_wp` function).
 
 ### 3.3 `compute/cassi_two_fluid.glsl`
-- **PC (23–28):** +3 floats (extent_x/y/z) — becomes the dedicated 14-float PC.
+- **PC (23–28):** +3 floats (extent_x/y/z) — becomes the dedicated 14-float PC;
+  +1 float (pass_sel, pass A/B) → 15; +1 float (omega2 = ω₀², default 20.0) → 16 floats = 64 B.
 - **lap_ey_at / lap_ei_at (45–81):** constant (1/3, 1/6) weights → §2.5
   per-axis weights (computed from the PC extents).
   Risks: (i) CFL — max|symbol| ≈ 4.07 vs cube 5.333, verify dt=0.001 stays

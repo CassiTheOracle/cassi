@@ -16,7 +16,8 @@
 //      G_eff = G_N·(1+ξ·q_mid), q_mid = q_coh at the pair midpoint,
 //      ξ = φ⁶. Unbound pairs never merge — no artificial cooling.
 //   4. SUBSONIC INFLOW (§3b, hypothesis; flag f_subsonic): |v_t| < c_s,
-//      v_t = v_rel − (v_rel·d̂)d̂, c_s = h₀/dt (the two-fluid phase speed).
+//      v_t = v_rel − (v_rel·d̂)d̂, c_s = h₀/dt — the ρ-wave (coherence) phase
+//      speed: sound is waves of coherence (see research/sound_coherence_note.md §2).
 //      Supersonic transverse fly-bys do not merge.
 //   plus the VIRIAL STOPPING SCALE (§3c, hypothesis; flag f_virial): a
 //      target with 2·K ≥ |W| — K = ½L²/(mR²) + ½m|v−v_flow|² (v_flow =
@@ -103,6 +104,8 @@ layout(push_constant, std430) uniform PC {
     float xi;            // φ⁶ — Qi coupling enhancement
     float h0;            // reference cell = 2·R_m (c_s = h0/dt)
     float dt;            // timestep (c_s = h0/dt)
+    //    c_s = h0/dt is the ρ-wave (coherence) phase speed: sound is waves of
+    //    coherence (see research/sound_coherence_note.md §2).
     float f_subsonic;    // flag: subsonic-inflow criterion on (>= 1)
     float f_virial;      // flag: virial stopping scale on (>= 1)
     float f_order;       // flag: order-selective gate q_sel = q_coh·q_ord on (>= 1)
