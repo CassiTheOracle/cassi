@@ -705,7 +705,7 @@ New theory documents:
 | `two-fluid/cassi_su2_bridge.py` | SU(2) gauge bridge with φ-governed weak force |
 | `two-fluid/run_electroweak.py` | Electroweak runner—W/Z mass prediction |
 | `foundations/xi-derivation.md` | ξ = φ⁶ first-principles derivation |
-| `godot/space-sim/` | Real-time universe simulator |
+| `CassiCosmos/` | Real-time universe simulator |
 ### Managed Skills
 | Skill | Purpose |
 |-------|---------|

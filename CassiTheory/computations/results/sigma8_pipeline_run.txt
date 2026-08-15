@@ -54,7 +54,7 @@ CASSI σ₈ PIPELINE
   Δσ₈ (Pk):            -0.4226
 
 [5/5] Plotting results...
-  Saved C:\Users\Carina\workspaces\cassi-toe\two-fluid\figures\sigma8_pipeline.png
+  Saved C:\Users\Carina\workspaces\Cassi\CassiTheory\two-fluid\figures\sigma8_pipeline.png
 
 =================================================================
 σ₈ PIPELINE RESULTS
