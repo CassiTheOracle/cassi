@@ -104,12 +104,14 @@ const Q_1: float = 0.001        # Qi-rainbow stage-1 band top = stage-2 entry
 ## config 180/64/0.05 → budget 56 → cadence 28, i.e. every ~2 of the
 ## ~16-20-step jobs); any positive value = an explicit step cadence. Gates
 ## BOTH the decoupled engine merge (passed via cfg) and the inline
-## _render_frame hook. Validated: T1/T2 sweeps (2026-08-14) showed cadence
-## >= 28 flattens the +109-135% ms/step slope (progressive slowdown) to
-## 0-4% at flat fps. Bound pairs linger within R_m for many dials (the
-## virial/binding gate rejects fast fly-bys), so halving the pass rate does
-## not change merge physics.
-@export_range(0, 200, 1) var merge_cadence_steps: int = 0
+## _render_frame hook. DEFAULT = 1 (per job): the STEP-1 any-candidate
+## early-out (mode 8) makes 0-candidate passes ~2 dispatches, so per-job
+## cadence is affordable AND catches the job-1 IC-overlap coalesce — the
+## pre-registered A/B (2026-08-15, S1A/S1B vs S2A/S2B) showed per-job:
+## no TDR over 60 s ×2, merges printing at job 1 (1+33 / 2+29), flat
+## ~50 ms/step; AUTO (28): 0 merge prints (coalesce missed), same TDR
+## survival. AUTO stays for users who want the coarser cadence.
+@export_range(0, 200, 1) var merge_cadence_steps: int = 1
 var _merge_step_counter := 0
 # Physical-merge redesign (coherence_merge_rnd.md §3, 2026-08-15): which of
 # the four layer criteria apply when the merge is on. Default on = the
@@ -1332,9 +1334,9 @@ const MERGE_MAX_CYCLES := 16
 
 ## Effective merge cadence in STEPS: the explicit export, else AUTO = 1/2
 ## of the R_m reaction budget (see the merge_cadence_steps export comment).
-## The measured job size is ~16-20 steps, so the cadence MUST exceed it to
-## cut pass frequency: 1/2 budget (28 at the owner config) lands every ~2
-## jobs. Cheap: a few multiplies, called once per gate check.
+## Default 1 = per job — the STEP-1 early-out made frequent passes cheap
+## and catches the job-1 IC-overlap coalesce (validated A/B, 2026-08-15).
+## Cheap: a few multiplies, called once per gate check.
 func _merge_cadence_eff() -> int:
 	if merge_cadence_steps > 0:
 		return merge_cadence_steps

@@ -127,9 +127,14 @@ var particle_merge: bool = false
 # reduce pass frequency); any positive value = explicit step cadence.
 # Bound pairs linger within R_m for many dials (the virial/binding gate
 # rejects fast fly-bys), so halving the pass rate does not change merge
-# physics. Validated: T1/T2 sweeps showed cadence >= 28 flattens the
-# +109-135% ms/step slope (progressive slowdown) to 0-4%.
-var merge_cadence_steps: int = 0
+# physics. Validated: T1/T2 sweeps (2026-08-14) showed cadence >= 28
+# flattens the +109-135% ms/step slope (progressive slowdown) to 0-4%;
+# the STEP-1 any-candidate early-out (2026-08-15) makes that moot — the
+# pre-registered A/B (per-job vs AUTO) showed per-job (1) survives 60 s
+# with no TDR ×2 AND catches the job-1 IC-overlap coalesce (1+33 merges
+# at job 1), so the sim now defaults to 1 (per job) and AUTO stays for
+# coarser-cadence users.
+var merge_cadence_steps: int = 1
 var _merge_step_counter := 0
 # Physical-merge redesign (coherence_merge_rnd.md §3, 2026-08-15): when the
 # merge is on, these gate which of the four layer criteria apply. Default on
