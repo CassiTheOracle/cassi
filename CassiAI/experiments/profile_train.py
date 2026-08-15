@@ -3,7 +3,7 @@ import torch
 import torch.nn.functional as F
 import time
 import sys
-sys.path.insert(0, '/home/valerie/workspaces/cassi')
+sys.path.insert(0, 'C:/Users/Carina/workspaces/Cassi/CassiAI')
 
 from cassi.harmony_brain import HarmonyBrain
 

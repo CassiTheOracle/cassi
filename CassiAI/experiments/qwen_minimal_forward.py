@@ -533,7 +533,7 @@ def demo():
     print(f"Device: {device}")
 
     # Load model
-    model_path = Path('/home/valerie/workspaces/cassi/qwen_models/Qwen3.5-0.8B')
+    model_path = Path('C:/Users/Carina/workspaces/Cassi/CassiAI/qwen_models/Qwen3.5-0.8B')
     print(f"\nLoading model from {model_path}...")
 
     state_dict = load_file(str(model_path / 'model.safetensors-00001-of-00001.safetensors'))

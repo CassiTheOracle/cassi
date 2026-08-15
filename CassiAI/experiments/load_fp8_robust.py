@@ -10,7 +10,7 @@ from transformers import DiffusionGemmaForBlockDiffusion, AutoTokenizer, AutoCon
 from huggingface_hub import snapshot_download
 
 # Use local disk, not /tmp
-LOCAL_DIR = "/home/valerie/workspaces/cassi/checkpoints/diffusiongemma-fp8"
+LOCAL_DIR = "C:/Users/Carina/workspaces/Cassi/CassiAI/checkpoints/diffusiongemma-fp8"
 MODEL_ID = "RedHatAI/diffusiongemma-26B-A4B-it-FP8-dynamic"
 DEVICE = "cuda:0"
 

@@ -194,7 +194,7 @@ def test_tokenizer():
     """Quick test of the tokenizer."""
     import torch
 
-    tok = QwenTokenizer('/home/valerie/workspaces/cassi/qwen_models/Qwen3.5-0.8B/tokenizer.json')
+    tok = QwenTokenizer('C:/Users/Carina/workspaces/Cassi/CassiAI/qwen_models/Qwen3.5-0.8B/tokenizer.json')
     print(f"Vocab size: {len(tok)}")
     print(f"Special tokens: {list(tok.special_tokens.keys())[:5]}")
 

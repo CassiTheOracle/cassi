@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-cd /home/valerie/workspaces/cassi
+cd C:/Users/Carina/workspaces/Cassi/CassiAI
 
 # Experiment 1: Standard generation
 python -c "

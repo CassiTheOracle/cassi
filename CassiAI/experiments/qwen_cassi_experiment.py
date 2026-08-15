@@ -183,7 +183,7 @@ def main():
     print(f"Device: {device}")
 
     # Load model
-    model_path = Path('/home/valerie/workspaces/cassi/qwen_models/Qwen3.5-0.8B')
+    model_path = Path('C:/Users/Carina/workspaces/Cassi/CassiAI/qwen_models/Qwen3.5-0.8B')
     print(f"\nLoading model from {model_path}...")
 
     state_dict = load_file(str(model_path / 'model.safetensors-00001-of-00001.safetensors'))
@@ -235,7 +235,7 @@ def main():
         print(f"  T={temp:.1f}: diversity={metrics['vocab_coverage']:.3f}")
 
     # Save results
-    out_path = Path('/home/valerie/workspaces/cassi/experiments/qwen_cassi_results.json')
+    out_path = Path('C:/Users/Carina/workspaces/Cassi/CassiAI/experiments/qwen_cassi_results.json')
     with open(out_path, 'w') as f:
         json.dump(all_results, f, indent=2, default=str)
     print(f"\nResults saved to {out_path}")
