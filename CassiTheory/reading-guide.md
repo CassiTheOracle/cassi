@@ -52,12 +52,6 @@ The exploratory catalogs and the figure scripts show where the framework reaches
 
 `hypotheses/README.md` → `analyses/README.md` → `demystifying-the-cosmos/README.md` → `speculations/README.md` → `visual-explainers/` (figures).
 
-### The systems integrator (the four-project unification)
-
-The four Cassi projects—CassiCore (TypeScript orchestration platform), Cassi AI (neural-field training), this theory repo, and the Godot space-sim—each implement the two-fluid field in a different substrate. The unification proposal maps the seams and the phased path to one field-as-AI substrate; its present-state sections are grounded in the cited files, its architecture is explicitly speculative.
-
-`UNIFICATION.md` (the map, the seams, the phases) → the cited engine files under the space-sim (`cassi_physics_engine.gd`, `cassi_mind_engine.gd`) → the cited AI files under Cassi AI (`qi_field.py`, `physics_field_model.py`, `build_physics_cache.py`) → `research/neural_closure/closure_design.md` (the one measured field-AI closed loop).
-
 ## 3. The registries and when to consult them
 
 The registries are the load-bearing indexes of the repository; consult each by what it answers.
@@ -90,7 +84,6 @@ The pitch, the two guides, and the master registries live here.
 - `parameter-inventory.md`—Cassi Parameter Inventory. no Status line. Parameter registry classifying all 46 framework parameters (Fundamental axiom, Derived, PDE convention, External, Initial condition, Numerical) with counts and the fit-status ledger.
 - `README.md`—Cassi: A Theory of Everything from a Single Constant. no Status line. Public pitch: the repo as the scoreboard of a research program deriving a TOE from a single constant, φ ≈ 1.618, the scale-separation constant of a two-fluid Yang/Yin field.
 - `reading-guide.md`—this document: the table of contents and reading paths.
-- `UNIFICATION.md`—Cassi Unification: The Field as the Shared Substrate. Plan. Cross-repo proposal spanning CassiCore (the TypeScript orchestration platform), Cassi AI (the neural-field training project), this theory repo, and the Godot space-sim: the present-state map of the four projects, the measured integration seams (engine state vs training-cache format, the four dialects of the two-fluid operator, the shared gate/chakra/breath vocabulary, the existing bridges), a phased architecture for a field-as-AI closed loop, and the measured risks (the neural closure's closed-loop instability; the self-surprise-vs-next-frame tension).
 
 ### foundations/
 
