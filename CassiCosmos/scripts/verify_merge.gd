@@ -73,7 +73,7 @@ var _cl_buf: RID
 var _mc_buf: RID
 
 var _pc := PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-	0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+	0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
 var _input_pos := PackedFloat32Array()
 var _input_vel := PackedFloat32Array()
@@ -140,9 +140,9 @@ func _make_buffers() -> void:
 	_cs_buf = _rd.storage_buffer_create(HASH_TOTAL * 4)
 	_ch_buf = _rd.storage_buffer_create(HASH_TOTAL * 4)
 	_cl_buf = _rd.storage_buffer_create(N * 4)
-	_mc_buf = _rd.storage_buffer_create(4)
-	var zero := PackedByteArray([0, 0, 0, 0])
-	_rd.buffer_update(_mc_buf, 0, 4, zero)
+	_mc_buf = _rd.storage_buffer_create(64)   # uint mc[16] — per-cycle merge-count slots
+	var zero := PackedByteArray(); zero.resize(64); zero.fill(0)
+	_rd.buffer_update(_mc_buf, 0, 64, zero)
 	_us = _rd.uniform_set_create([
 		_u_storage(0, _pos_buf), _u_storage(1, _vel_buf),
 		_u_storage(2, _alive_buf), _u_storage(3, _mass_buf),
@@ -188,6 +188,7 @@ func _fill_pc(pass_mode: float) -> void:
 	_pc[20] = 1.0                   # f_subsonic (hypothesis criterion on)
 	_pc[21] = 1.0                   # f_virial (hypothesis criterion on)
 	_pc[22] = 1.0                   # f_order (order-selective gate on)
+	_pc[23] = 0.0                   # cyc_slot (batched hop slot; the raw-pass test uses slot 0)
 
 
 func _dispatch(pass_mode: float) -> void:

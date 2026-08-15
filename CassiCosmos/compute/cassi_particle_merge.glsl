@@ -77,7 +77,7 @@ layout(set = 0, binding = 10, std430) coherent buffer CellCount { uint cc[]; }; 
 layout(set = 0, binding = 11, std430) readonly buffer CellStart { uint cs[]; };
 layout(set = 0, binding = 12, std430) coherent buffer CellHead  { uint ch[]; };   // running fill index
 layout(set = 0, binding = 13, std430) coherent buffer CellList  { uint cl[]; };
-layout(set = 0, binding = 14, std430) coherent buffer MergeCount { uint mc; };
+layout(set = 0, binding = 14, std430) coherent buffer MergeCount { uint mc[16]; }; // per-cycle merge counts (16 slots = MERGE_MAX_CYCLES)
 layout(set = 0, binding = 15, std430) coherent buffer SpinBuf { vec4 spin[]; };   // xyz = accumulated spin (angular momentum), w spare
 layout(set = 0, binding = 16, std430) readonly buffer FieldVel { vec4 fvel[]; }; // xyz = flow velocity (two-fluid per-cell vec4), w = eps2
 layout(set = 0, binding = 17, std430) buffer MassPrev { float mprev[]; }; // pre-hop canonical mass (stashed by pass_fold, read by hop)
@@ -106,6 +106,7 @@ layout(push_constant, std430) uniform PC {
     float f_subsonic;    // flag: subsonic-inflow criterion on (>= 1)
     float f_virial;      // flag: virial stopping scale on (>= 1)
     float f_order;       // flag: order-selective gate q_sel = q_coh·q_ord on (>= 1)
+    float cyc_slot;      // batched passes: which mc[] slot this cycle's hop increments (0..15)
 } pc;
 
 const float PHI_INV2 = 0.3819660112501051;
@@ -255,7 +256,7 @@ void pass_reset() {
     spin[i] = vec4(0.0);
     best[i] = int(i);
     sink[i] = 1.0;
-    if (i == 0u) mc = 0u;
+    if (i == 0u) { for (int k = 0; k < 16; k++) mc[k] = 0u; }
 }
 
 // ── pass 1: fold accumulated gains into canonical pos/vel (identity on
@@ -396,7 +397,19 @@ void pass_hop() {
     atomicAdd(spin[b].y, dL.y);
     atomicAdd(spin[b].z, dL.z);
     alive[i] = 0.0;
-    atomicAdd(mc, 1u);
+    atomicAdd(mc[clamp(int(pc.cyc_slot + 0.5), 0, 15)], 1u);
+}
+
+// ── pass 7: zero the spatial-hash cell counts (cc) for THIS cycle. The
+// batched merge runs several cycles in ONE compute list (per-cycle barriers
+// give visibility), so the host can no longer re-zero cc between cycles —
+// the zero moves on-GPU. N_particles threads stride over the hash (each
+// thread zeroes ceil(hash_total / N_particles) cells worst-case).
+void pass_zerocc() {
+    uint i = gl_GlobalInvocationID.x;
+    uint ht = uint(pc.hash_nx * pc.hash_ny * pc.hash_nz);
+    uint n = uint(max(int(pc.N), 1));
+    for (uint c = i; c < ht; c += n) cc[c] = 0u;
 }
 
 // ── pass 6: finalize — write survivor masses into pos.w (0 = dead) so the
@@ -421,4 +434,5 @@ void main() {
     if (m == 4) { pass_best(); return; }
     if (m == 5) { pass_hop(); return; }
     if (m == 6) { pass_finalize(); return; }
+    if (m == 7) { pass_zerocc(); return; }
 }

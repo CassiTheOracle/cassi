@@ -129,9 +129,9 @@ func _make_buffers() -> void:
 	_cs_buf = _rd.storage_buffer_create(HASH_TOTAL * 4)
 	_ch_buf = _rd.storage_buffer_create(HASH_TOTAL * 4)
 	_cl_buf = _rd.storage_buffer_create(N * 4)
-	_mc_buf = _rd.storage_buffer_create(4)
-	var zero := PackedByteArray([0, 0, 0, 0])
-	_rd.buffer_update(_mc_buf, 0, 4, zero)
+	_mc_buf = _rd.storage_buffer_create(64)   # uint mc[16] per-cycle slots
+	var zero := PackedByteArray(); zero.resize(64); zero.fill(0)
+	_rd.buffer_update(_mc_buf, 0, 64, zero)
 	_us = _rd.uniform_set_create([
 		_u_storage(0, _pos_buf), _u_storage(1, _vel_buf),
 		_u_storage(2, _alive_buf), _u_storage(3, _mass_buf),
@@ -154,7 +154,7 @@ func _u_storage(binding: int, buf: RID) -> RDUniform:
 
 
 func _fill_pc(pass_mode: float) -> void:
-	_pc.resize(23)
+	_pc.resize(24)   # 24 floats: + cyc_slot@23 (batched hop slot; raw-pass test uses slot 0)
 	_pc[0] = float(N); _pc[1] = PHI; _pc[2] = PHI_INV2; _pc[3] = Q_TH
 	_pc[4] = R_M; _pc[5] = EXTENT; _pc[6] = EXTENT; _pc[7] = EXTENT
 	_pc[8] = float(N_GRID); _pc[9] = float(HASH_NX); _pc[10] = float(HASH_NY); _pc[11] = float(HASH_NZ)
@@ -164,6 +164,7 @@ func _fill_pc(pass_mode: float) -> void:
 	_pc[20] = 1.0   # f_subsonic
 	_pc[21] = 1.0   # f_virial
 	_pc[22] = 1.0   # f_order
+	_pc[23] = 0.0   # cyc_slot (batched hop slot; the raw-pass test uses slot 0)
 
 
 func _dispatch(pass_mode: float) -> void:

@@ -1220,8 +1220,9 @@ func _setup_buffers() -> void:
 		_merge_cc_buf = _rd.storage_buffer_create(_merge_hash_total * 4)
 		_merge_cs_buf = _rd.storage_buffer_create(_merge_hash_total * 4)
 		_merge_ch_buf = _rd.storage_buffer_create(_merge_hash_total * 4)
-		_merge_mc_buf = _rd.storage_buffer_create(4)
-		_rd.buffer_update(_merge_mc_buf, 0, 4, PackedByteArray([0, 0, 0, 0]))
+		_merge_mc_buf = _rd.storage_buffer_create(MERGE_MAX_CYCLES * 4)
+		var mc_zero := PackedByteArray(); mc_zero.resize(MERGE_MAX_CYCLES * 4); mc_zero.fill(0)
+		_rd.buffer_update(_merge_mc_buf, 0, mc_zero.size(), mc_zero)
 		# On-GPU scan scratch (FIX B): L1 block totals + L2 two-level carries.
 		var nb1 := (_merge_hash_total + 255) / 256
 		_merge_nb1a = ((nb1 + 255) / 256) * 256
@@ -2429,56 +2430,78 @@ func _dispatch_poisson(cl: int) -> void:
 # (the global RD cannot submit — see merge_wiring_notes.md §2).
 # ═══════════════════════════════════════════════════════════════════════
 const MERGE_MAX_CYCLES := 16
+## How many merge cycles run per compute-list batch (FIX 1, perf-decomp
+## 2026-08-14): each cycle's fold→zero-cc→count→scan→fill→best→hop chain is
+## recorded into ONE list with intra-list barriers, and the batch ends with
+## ONE submit+sync + ONE 64 B count readback — vs the old 3 submits + 1
+## device-sync readback + 1 host update PER CYCLE. The old per-cycle drain
+## is the TDR trigger on the shared three-RD GPU (device-lost backtraces
+## land in _merge_read_uint); batching collapses ~5 drains/cycle into 1.
+## Results are identical (a 0-merge cycle is a deterministic no-op: fold is
+## idempotent after re-basing, so the batch's last-zero count stops the
+## loop with exactly the per-cycle early-exit semantics). Tune 2..8.
+const MERGE_BATCH_CYCLES := 4
 
 
-## Run one merge pass (returns the total merges). Each cycle ends with a
-## submit+sync on the local RD; the PC is rebuilt per dispatch via
-## PackedFloat32Array→to_byte_array (Trap T1: encode_float on a re-used
-## member no-ops). Boundary: a zero/mc buffer_update + the cc readback are
-## ordered by the per-cycle submit+sync, so between-list memory visibility
-## is guaranteed (the same guarantee the sim's _render_frame hook provides
-## on the global RD via readbacks).
+## Run one merge pass (returns the total merges). FIX 1 (perf-decomp
+## 2026-08-14): cycles execute in BATCHES of MERGE_BATCH_CYCLES — every
+## cycle's fold→zero-cc→count→scan→fill→best→hop chain is recorded into ONE
+## compute list with intra-list barriers (visibility identical to the old
+## per-cycle submit+sync), ending with ONE submit+sync + ONE 64 B count
+## readback. The old per-cycle flow did 3 submits + 1 device-sync readback +
+## 1 host buffer_update PER CYCLE — that drain burst is the TDR trigger on
+## the shared three-RD GPU (device-lost backtraces land in _merge_read_uint).
+## Results are bit-identical: a 0-merge cycle is a deterministic no-op (the
+## fold re-bases mom/cen onto the canonical state, so it is idempotent), so
+## the batch's last cycle reading 0 stops the loop with exactly the old
+## per-cycle early-exit semantics. The scan is folded into the batch list
+## (its 4 passes barrier internally); cc is re-zeroed ON-GPU per cycle (mode
+## 7) — the old flow zeroed cc once per pass, which left cc dirty (2x counts)
+## for multi-cycle passes; the batched flow is exact.
 func _run_merge_pass() -> int:
 	if not particle_merge or not _merge_shader.is_valid() or not _merge_pipe.is_valid() \
 			or not _us_merge_0.is_valid() or not _merge_alive_buf.is_valid() \
+			or not _scan_pipe.is_valid() or not _us_scan_0.is_valid() \
 			or N_particles <= 0:
 		return 0
 	# reset in its own list + submit/sync (its per-particle state writes must
 	# be visible to the first cycle's fold)
 	_zero_merge_bytes(_merge_cc_buf, _merge_hash_total)
-	_zero_merge_bytes(_merge_mc_buf, 1)
+	_zero_merge_bytes(_merge_mc_buf, MERGE_MAX_CYCLES)
 	var cl0 := _rd.compute_list_begin()
 	_merge_bind_dispatch(cl0, 0.0)   # reset: alive=1, mass=pos.w, mom/cen=m p/m v
 	_rd.compute_list_end()
 	_rd.submit(); _rd.sync()
 	var total := 0
-	for _cyc in range(MERGE_MAX_CYCLES):
-		# fold → count in ONE list (barrier gives pass-to-pass visibility)
+	var cyc := 0
+	while cyc < MERGE_MAX_CYCLES:
+		var ncyc := mini(MERGE_BATCH_CYCLES, MERGE_MAX_CYCLES - cyc)
 		var cl := _rd.compute_list_begin()
-		_merge_bind_dispatch(cl, 1.0)   # fold accumulated gains → canonical pos/vel
-		_rd.compute_list_add_barrier(cl)
-		_merge_bind_dispatch(cl, 2.0)   # count into cc
+		for c in range(ncyc):
+			_merge_bind_dispatch(cl, 1.0)              # fold → canonical pos/vel
+			_rd.compute_list_add_barrier(cl)
+			_merge_bind_dispatch(cl, 7.0)              # zero cc (per-cycle, in-list)
+			_rd.compute_list_add_barrier(cl)
+			_merge_bind_dispatch(cl, 2.0)              # count into cc
+			_rd.compute_list_add_barrier(cl)
+			_merge_scan_into(cl)                       # 4 scan passes (barriers inside)
+			_merge_bind_dispatch(cl, 3.0)              # fill per-cell lists
+			_rd.compute_list_add_barrier(cl)
+			_merge_bind_dispatch(cl, 4.0)              # best[i], sink[i]
+			_rd.compute_list_add_barrier(cl)
+			_merge_bind_dispatch(cl, 5.0, cyc + c)     # hop → mc[cyc+c]
+			_rd.compute_list_add_barrier(cl)           # next cycle's fold sees this hop
 		_rd.compute_list_end()
 		_rd.submit(); _rd.sync()
-		# On-GPU exclusive scan (FIX B): cs = cc-exclusive-sum; ch = cs (the
-		# fill head). Replaces the host cc readback + cs/ch uploads + 8.9M-iter
-		# CPU prefix-sum loop (~+276 ms of the per-batch merge cost).
-		_run_merge_scan()
-		# mc was zeroed once before the loop; re-zero it before THIS cycle's hop
-		_zero_merge_bytes(_merge_mc_buf, 1)
-		var cl2 := _rd.compute_list_begin()
-		_merge_bind_dispatch(cl2, 3.0)   # fill per-cell lists
-		_rd.compute_list_add_barrier(cl2)
-		_merge_bind_dispatch(cl2, 4.0)   # best[i], sink[i]
-		_rd.compute_list_add_barrier(cl2)
-		_merge_bind_dispatch(cl2, 5.0)   # hop (SINK rule)
-		_rd.compute_list_end()
-		_rd.submit(); _rd.sync()
-		var merges := _merge_read_uint()
-		total += merges
-		_merge_cycles_run += 1
-		if merges == 0:
-			break
+		var counts := _merge_read_counts()
+		var batch_merges := 0
+		for c in range(ncyc):
+			batch_merges += counts[c]
+		total += batch_merges
+		_merge_cycles_run += ncyc
+		cyc += ncyc
+		if counts[ncyc - 1] == 0:
+			break   # last cycle no-op → all later cycles are deterministic no-ops
 	var clf := _rd.compute_list_begin()
 	_merge_bind_dispatch(clf, 6.0)   # finalize: survivor masses → pos.w / dead = 0
 	_rd.compute_list_end()
@@ -2488,14 +2511,15 @@ func _run_merge_pass() -> int:
 	return total
 
 
-## The merge push constant as 23 floats (shader layout: N, phi, phi_inv2,
+## The merge push constant as 24 floats (shader layout: N, phi, phi_inv2,
 ## q_threshold, R_m, extent.xyz, grid_N, hash_nxyz, cell_w.xyz, pass_mode@15,
-## g_n, xi, h0, dt, f_subsonic, f_virial, f_order — the §3 redesign).
+## g_n, xi, h0, dt, f_subsonic, f_virial, f_order, cyc_slot@23 — the §3
+## redesign + the batched-merge cycle slot).
 func _merge_pc_values() -> PackedFloat32Array:
 	var ebox := _extents()
 	var r_m: float = _extent_min() / float(maxi(grid_N, 1))   # ½·h₀
 	var f := PackedFloat32Array()
-	f.resize(23)
+	f.resize(24)
 	f[0] = float(N_particles)          # N
 	f[1] = PHI                          # phi
 	f[2] = PHI_INV2                     # phi^-2 (q denom scale + default gate)
@@ -2521,15 +2545,17 @@ func _merge_pc_values() -> PackedFloat32Array:
 	f[20] = 1.0 if merge_subsonic else 0.0    # subsonic-inflow criterion
 	f[21] = 1.0 if merge_virial else 0.0      # virial stopping scale
 	f[22] = 1.0 if merge_sel_gate else 0.0    # order-selective q_sel gate
+	f[23] = 0.0                               # cyc_slot (batched hop slot; set per dispatch)
 	return f
 
 
 ## Bind the merge pipeline/set/PC and dispatch one pass mode into the open
 ## list `cl`. Rebuilds the PC each dispatch (Trap T1 safe). The caller adds
 ## barriers between consecutive in-list passes and submit+sync across lists.
-func _merge_bind_dispatch(cl: int, pass_mode: float) -> void:
+func _merge_bind_dispatch(cl: int, pass_mode: float, cyc_slot := 0) -> void:
 	var pf := _merge_pc_values()
 	pf[15] = pass_mode
+	pf[23] = float(cyc_slot)
 	var pc_bytes := pf.to_byte_array()
 	_rd.compute_list_bind_compute_pipeline(cl, _merge_pipe)
 	_rd.compute_list_bind_uniform_set(cl, _us_merge_0, 0)
@@ -2537,28 +2563,29 @@ func _merge_bind_dispatch(cl: int, pass_mode: float) -> void:
 	_rd.compute_list_dispatch(cl, ceili(float(N_particles) / 256.0), 1, 1)
 
 
-func _merge_read_uint() -> int:
-	var d := _rd.buffer_get_data(_merge_mc_buf, 0, 4)
-	return int(d.decode_u32(0)) if d.size() >= 4 else 0
+func _merge_read_counts() -> PackedInt32Array:
+	var d := _rd.buffer_get_data(_merge_mc_buf, 0, MERGE_MAX_CYCLES * 4)
+	var out := PackedInt32Array()
+	out.resize(MERGE_MAX_CYCLES)
+	if d.size() >= MERGE_MAX_CYCLES * 4:
+		for k in range(MERGE_MAX_CYCLES):
+			out[k] = int(d.decode_u32(k * 4))
+	return out
 
 
-## FIX B: run the on-GPU exclusive scan (cassi_exclusive_scan.glsl) that turns
-## the spatial-hash cell counts (cc) into the exclusive prefix-sum (cs) plus the
-## per-cell fill head (ch = cs). Four passes in ONE compute list (barriers for
-## pass-to-pass visibility), one submit+sync — no host cc readback, no cs/ch
-## upload, no CPU scan. Guards: scan pipeline/set must be valid (fall back to
-## nothing — the host merge guards on a valid pipe, so a missing scan pipe
-## simply means the merge is skipped; the scan is created whenever particle_merge).
-func _run_merge_scan() -> void:
-	if not _scan_pipe.is_valid() or not _us_scan_0.is_valid():
-		return
+## FIX B (batched): record the 4 on-GPU exclusive-scan passes into the OPEN
+## compute list `cl` (cassi_exclusive_scan.glsl): cc -> cs (exclusive), ch =
+## cs (the per-cell fill head). Intra-list barriers for pass-to-pass
+## visibility; the CALLER owns list begin/end/submit — the batched merge
+## folds the scan into the batch list so the whole batch is ONE submit+sync
+## (the scan reads cc, which the batch zeroed per cycle just before).
+func _merge_scan_into(cl: int) -> void:
 	var E := _merge_hash_total
 	var nb1 := (E + 255) / 256
 	var nb2 := _merge_nb2
 	var pc := PackedFloat32Array()
 	pc.resize(4)
 	pc[2] = float(_merge_nb1a)
-	var cl := _rd.compute_list_begin()
 	# pass 1: cc -> cs (block-local exclusive) + L1 totals -> scr[b]
 	pc[0] = float(E); pc[1] = 1.0
 	_scan_dispatch(cl, pc, nb1)
@@ -2574,8 +2601,7 @@ func _run_merge_scan() -> void:
 	# pass 4: cs += carries; ch = cs
 	pc[0] = float(E); pc[1] = 4.0
 	_scan_dispatch(cl, pc, nb1)
-	_rd.compute_list_end()
-	_rd.submit(); _rd.sync()
+	_rd.compute_list_add_barrier(cl)
 
 
 func _scan_dispatch(cl: int, pc: PackedFloat32Array, groups: int) -> void:
