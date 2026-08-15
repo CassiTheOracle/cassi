@@ -1,0 +1,25 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/cassi_sim.gd" id="1_sim"]
+[ext_resource type="Script" path="res://scripts/verify_level_swap.gd" id="2_ver"]
+
+[node name="VerifyLevelSwap" type="Node3D"]
+script = ExtResource("2_ver")
+
+[node name="CassiSim" type="Node3D" parent="."]
+script = ExtResource("1_sim")
+playing = false
+N_particles = 300
+suppress_readbacks = true
+auto_frame_camera_on_start = false
+grid_N = 64
+cluster_radius = 25.0
+box_aspect = Vector3(1, 1, 1)
+field_attractor_init = true
+source_strength = 0.0
+gravity_mode = 2
+black_holes_enabled = false
+dual_grid = false
+meshless_mode = false
+meshless_gravity = false
+level_swap = true

@@ -5060,6 +5060,132 @@ func reinit() -> void:
 	print("[CassiSim] Reinitialized")
 
 
+## M3 live level-swap (MACHINE_PLAN.md §6 M3): hot-swap the box/extents/
+## field/particle ICs from a cascade-tree level directory (the M2 offline
+## tree's survey format; loaded by CassiLevelSwap) — box/extents/ICs from the
+## registry instead of a restart. Additive: a no-op unless `level_swap` is on
+## (default-off → default live path bit-identical). Returns true on a swap;
+## false (with a push_warning) when off, unloadable, or mis-sized.
+##
+## Contract vs the offline tree: the level's grid_N must match the sim's
+## (the M2 tree is uniformly 64³ per D6). The level's physical box extents
+## are adopted via box_aspect/box_scale so its particle positions stay
+## in-box. r-continuity: the volume-average attractor-r before and after the
+## swap is recorded into `_level_swap_r_delta`/`_level_prev_r` for the
+## acceptance check (measured, not assumed).
+func apply_level(dir_path: String) -> bool:
+	if not level_swap or dir_path.is_empty():
+		if level_swap:
+			push_warning("[CassiSim] apply_level: empty dir — no swap")
+		return false
+	# Clean stop order (mirrors reinit): stop the physics engine worker BEFORE
+	# touching the buffers it owns, so a decoupled run swaps consistently.
+	if _decoupled_active and _physics_engine != null:
+		_physics_engine.stop_threaded()
+		_decoupled_active = false
+	# Lazy-load the level reader (class-scope preload would force a top-level
+	# dependency; this keeps the default live path free of any loader cost).
+	var loader: GDScript = load("res://scripts/cassi_level_swap.gd") as GDScript
+	if loader == null:
+		push_warning("[CassiSim] apply_level: level-swap loader missing")
+		return false
+	var lv: Dictionary = loader.load_level(dir_path)
+	if not lv.get("ok", false):
+		push_warning("[CassiSim] apply_level: %s" % lv.get("error", "load failed"))
+		return false
+	var nl := int(lv.get("grid_N", 0))
+	if nl != grid_N:
+		push_warning("[CassiSim] apply_level: level grid_N=%d != sim grid_N=%d — swap refused (M3 contract)" % [nl, grid_N])
+		return false
+	# Record the PRE-swap attractor-r (volume avg) for the continuity check.
+	_level_prev_r = _volume_avg_r()
+	# Adopt the level's physical box extents (cubic in the tree → aspect 1).
+	var ext: Vector3 = lv.get("extents", Vector3.ZERO)
+	if ext.x > 0.0:
+		box_aspect = Vector3.ONE
+		box_scale = (ext.x as float) / maxf(_extents().x * 1.0, 1e-30)
+	# Upload the field (ey/ei; q recomputed when absent).
+	var nc: int = grid_N * grid_N * grid_N
+	var ey: PackedFloat32Array = lv["ey"]
+	var ei: PackedFloat32Array = lv["ei"]
+	_rd.buffer_update(_field_ey, 0, ey.size() * 4, ey.to_byte_array())
+	_rd.buffer_update(_field_ei, 0, ei.size() * 4, ei.to_byte_array())
+	var qarr: PackedFloat32Array = lv.get("q", PackedFloat32Array())
+	if qarr.is_empty() or qarr.size() != nc:
+		qarr = PackedFloat32Array(); qarr.resize(nc)
+		for i in range(nc):
+			qarr[i] = ey[i] * ey[i] + ei[i] * ei[i]
+	_rd.buffer_update(_field_q, 0, qarr.size() * 4, qarr.to_byte_array())
+	var velz := PackedFloat32Array(); velz.resize(nc * 4); velz.fill(0.0)
+	_rd.buffer_update(_field_vel, 0, velz.size() * 4, velz.to_byte_array())
+	# Particles: realloc at the level's count if it differs, then upload.
+	var np := int(lv.get("particle_count", 0))
+	if np != N_particles:
+		_realloc_particle_buffers(np)
+		N_particles = np
+	var posxyz: PackedFloat32Array = lv.get("pos_xyz", PackedFloat32Array())
+	var masses: PackedFloat32Array = lv.get("masses", PackedFloat32Array())
+	var pos := PackedFloat32Array(); pos.resize(np * 4)
+	var vel := PackedFloat32Array(); vel.resize(max(np, 1) * 4)
+	for i in range(np):
+		pos[i * 4] = posxyz[i * 3]; pos[i * 4 + 1] = posxyz[i * 3 + 1]; pos[i * 4 + 2] = posxyz[i * 3 + 2]
+		pos[i * 4 + 3] = (masses[i] if i < masses.size() else 1.0)
+		vel[i * 4] = 0.0; vel[i * 4 + 1] = 0.0; vel[i * 4 + 2] = 0.0; vel[i * 4 + 3] = 0.0
+	_rd.buffer_update(_pos_buf, 0, pos.size() * 4, pos.to_byte_array())
+	_rd.buffer_update(_vel_buf, 0, vel.size() * 4, vel.to_byte_array())
+	_apply_gravity_calibration()
+	_cond_step_counter = 0
+	_step_count = 0
+	_dropped_steps = 0
+	_time = 0.0
+	_level = int(lv.get("level", -1))
+	_rung_anchor = int(lv.get("rung_anchor", -1))
+	_level_rung_score = float(lv.get("rung_score", 0.0))
+	_level_swap_r_delta = absf(_volume_avg_r() - _level_prev_r)
+	print("[CassiSim] apply_level: level=%d rung=%d np=%d r_delta=%.6f"
+		% [_level, _rung_anchor, np, _level_swap_r_delta])
+	return true
+
+
+## Realloc the particle position/velocity/acc buffers at a new count. The
+## MultiMesh render buffer is NOT touched here (render-side; the instancer
+## re-sizes at the next render) — this is the lightweight M3 path that avoids
+## the full reinit() teardown (no multimesh rebuild → no reload-hang).
+func _realloc_particle_buffers(n: int) -> void:
+	var np1 := maxi(n, 1)
+	for rid in [_pos_buf, _vel_buf, _acc_buf]:
+		if rid.is_valid():
+			_rd.free_rid(rid)
+	_pos_buf = _rd.storage_buffer_create(np1 * 16)
+	_vel_buf = _rd.storage_buffer_create(np1 * 16)
+	_acc_buf = _rd.storage_buffer_create(np1 * 16)
+
+
+## Volume-average attractor ratio r = ⟨(EY−EI)/(EY+EI)⟩ over the live field
+## (the sim's usual r telemetry source), for the M3 level-swap continuity
+## check. No readback when freeze or unready.
+func _volume_avg_r() -> float:
+	if _rd == null or not _field_ey.is_valid():
+		return 0.0
+	var nc: int = grid_N * grid_N * grid_N
+	var ey := _rd.buffer_get_data(_field_ey, 0, nc * 4).to_float32_array()
+	var ei := _rd.buffer_get_data(_field_ei, 0, nc * 4).to_float32_array()
+	var num := 0.0
+	var den := 0.0
+	for i in range(nc):
+		var e0 := ey[i]; var e1 := ei[i]
+		num += e0 - e1
+		den += e0 + e1
+	return num / maxf(den, 1e-30)
+
+
+var _level_prev_r: float = 0.0       # volume-average r before the last level swap
+var _level_swap_r_delta: float = 0.0 # |r_after − r_before| across the last swap (continuity)
+var _level: int = -1                 # current cascade-tree level (after apply_level)
+var _rung_anchor: int = -1
+var _level_rung_score: float = 0.0
+
+
 func get_diagnostics() -> String:
 	var law := "RIVER" if gravity_mode == 0 else ("HEURISTIC" if gravity_mode == 1 else ("PLUMMER" if gravity_mode == 2 else ("RIVER-SELF" if gravity_mode == 3 else "REALSIM")))
 	return "t=%.3f  q_mean=%.4f  ε²=%.6f  H=%.4f  sf=%.3f  steps=%d  grav=%s  G_N=%.4f  calib=%s  attr=%s  φ⁶−1=%.4f" % [
