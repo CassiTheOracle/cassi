@@ -1,0 +1,5 @@
+# The four project directories keep their own git repos (no submodules).
+CassiAI/
+CassiCore/
+CassiTheory/
+CassiCosmos/
