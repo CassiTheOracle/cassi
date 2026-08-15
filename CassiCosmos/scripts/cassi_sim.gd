@@ -98,6 +98,19 @@ const Q_1: float = 0.001        # Qi-rainbow stage-1 band top = stage-2 entry
 # frame's step budget, so once-per-frame is far inside the reaction budget).
 ## Two-particle merge (SINK-rule, q_coh > φ⁻² gate, R_m = extent/grid_N) grows matter from dust. Default off = particles-only. Init-time — reinit to apply.
 @export var particle_merge: bool = false
+# Physical-merge redesign (coherence_merge_rnd.md §3, 2026-08-15): which of
+# the four layer criteria apply when the merge is on. Default on = the
+# realistic merge; off recreates the legacy (distance + q_coh only) for the
+# §3d falsifier A/B tests. These are persistent flags (not init-time — read
+# per dispatch, so they toggle live).
+@export var merge_subsonic: bool = true   # hypothesis: |v_t| < c_s (no fly-by merges)
+@export var merge_virial: bool = true     # hypothesis: virialised targets stop accreting
+@export var merge_sel_gate: bool = true   # doctrine: order-selective q_sel = q_coh·q_ord
+# M3 live level-swap (MACHINE_PLAN.md §6 M3): when true, apply_level(dir) can
+# hot-swap the box/extents/field/particle ICs from a cascade-tree level dir
+# instead of a full restart. Default OFF → apply_level is a no-op and the
+# default live path is bit-identical (the battery regression contract).
+@export var level_swap: bool = false
 
 # Object -> BH accretion: particles within a BH's accretion radius
 # (bh_accretion_radius, world units, ~1× the default softening σ) are marked
@@ -477,6 +490,8 @@ var _merge_alive_buf: RID; var _merge_mass_buf: RID; var _merge_mom_buf: RID
 var _merge_cen_buf: RID; var _merge_best_buf: RID; var _merge_sink_buf: RID
 var _merge_cc_buf: RID; var _merge_cs_buf: RID; var _merge_ch_buf: RID
 var _merge_cl_buf: RID; var _merge_mc_buf: RID
+var _merge_spin_buf: RID   # vec4[N] — per-object spin accumulator (§3c, coherence_merge_rnd.md)
+var _merge_mprev_buf: RID  # float[N] — pre-hop canonical mass (pass_fold stash; exact μ for spin)
 var _merge_hash_nx: int = 1; var _merge_hash_ny: int = 1; var _merge_hash_nz: int = 1
 var _merge_hash_total: int = 1
 var _merge_cell_wx: float = 0.0; var _merge_cell_wy: float = 0.0; var _merge_cell_wz: float = 0.0
@@ -1266,13 +1281,14 @@ func _run_merge_pass() -> int:
 const MERGE_MAX_CYCLES := 16
 
 
-## The merge push constant as 16 floats (shader layout: N, phi, phi_inv2,
-## q_threshold, R_m, extent.xyz, grid_N, hash_nxyz, cell_w.xyz, pass_mode@15).
+## The merge push constant as 23 floats (shader layout: N, phi, phi_inv2,
+## q_threshold, R_m, extent.xyz, grid_N, hash_nxyz, cell_w.xyz, pass_mode@15,
+## g_n, xi, h0, dt, f_subsonic, f_virial, f_order — the §3 redesign).
 func _merge_pc_values() -> PackedFloat32Array:
 	var ebox := _extents()
 	var r_m: float = _extent_min() / float(maxi(grid_N, 1))   # ½·h₀
 	var f := PackedFloat32Array()
-	f.resize(16)
+	f.resize(23)
 	f[0] = float(N_particles)          # N
 	f[1] = PHI                          # phi
 	f[2] = PHI_INV2                     # phi^-2 (q denom scale + default gate)
@@ -1288,6 +1304,16 @@ func _merge_pc_values() -> PackedFloat32Array:
 	f[12] = _merge_cell_wx              # cell_wx
 	f[13] = _merge_cell_wy              # cell_wy
 	f[14] = _merge_cell_wz              # cell_wz
+	# §3 redesign fields: g_n = the calibrated Newton G (bh[1].w, the same
+	# G_N the nbody force uses — single source of truth), ξ = φ⁶, h0 = 2·R_m,
+	# dt, and the hypothesis-tier feature flags.
+	f[16] = _bh_init_bytes.decode_float(28)   # G_N (bh[1].w)
+	f[17] = xi                                # φ⁶ coupling
+	f[18] = 2.0 * r_m                         # h₀ = 2·R_m (reference cell)
+	f[19] = dt                                # timestep (c_s = h0/dt)
+	f[20] = 1.0 if merge_subsonic else 0.0    # subsonic-inflow criterion
+	f[21] = 1.0 if merge_virial else 0.0      # virial stopping scale
+	f[22] = 1.0 if merge_sel_gate else 0.0    # order-selective q_sel gate
 	return f
 
 
@@ -1931,6 +1957,8 @@ func _setup_buffers() -> void:
 		_merge_cen_buf = _rd.storage_buffer_create(np1 * 16)
 		_merge_best_buf = _rd.storage_buffer_create(np1 * 4)
 		_merge_sink_buf = _rd.storage_buffer_create(np1 * 4)
+		_merge_spin_buf = _rd.storage_buffer_create(np1 * 16)
+		_merge_mprev_buf = _rd.storage_buffer_create(np1 * 4)
 		_merge_cl_buf = _rd.storage_buffer_create(np1 * 4)
 		_merge_cc_buf = _rd.storage_buffer_create(_merge_hash_total * 4)
 		_merge_cs_buf = _rd.storage_buffer_create(_merge_hash_total * 4)
@@ -1948,7 +1976,7 @@ func _setup_buffers() -> void:
 		_merge_cell_wx = 2.0 * ebox.x / float(_merge_hash_nx)
 		_merge_cell_wy = 2.0 * ebox.y / float(_merge_hash_ny)
 		_merge_cell_wz = 2.0 * ebox.z / float(_merge_hash_nz)
-		_merge_pc_bytes = PackedByteArray(); _merge_pc_bytes.resize(16 * 4)
+		_merge_pc_bytes = PackedByteArray(); _merge_pc_bytes.resize(23 * 4)
 	# ── Tree-gravity buffers (allocated always; used when meshless_gravity) ──
 	# Sources = the Voronoi sites (ml_ns); targets = the N-body particles.
 	# Node cap NODE_MAX = ML_TREE_NODE_MAX_MULT·nsrc + slack — the octree of
@@ -2034,13 +2062,14 @@ func _free_buffers() -> void:
 				_lut_u_buf_on, _lut_u_buf_off]:
 		if rid.is_valid(): _rd.free_rid(rid)
 	for rid in [_merge_alive_buf, _merge_mass_buf, _merge_mom_buf, _merge_cen_buf,
-				_merge_best_buf, _merge_sink_buf, _merge_cc_buf, _merge_cs_buf,
+				_merge_best_buf, _merge_sink_buf, _merge_spin_buf, _merge_mprev_buf, _merge_cc_buf, _merge_cs_buf,
 				_merge_ch_buf, _merge_cl_buf, _merge_mc_buf, _merge_scr_buf]:
 		if rid.is_valid(): _rd.free_rid(rid)
 	_merge_alive_buf = RID(); _merge_mass_buf = RID(); _merge_mom_buf = RID()
 	_merge_cen_buf = RID(); _merge_best_buf = RID(); _merge_sink_buf = RID()
 	_merge_cc_buf = RID(); _merge_cs_buf = RID(); _merge_ch_buf = RID()
 	_merge_cl_buf = RID(); _merge_mc_buf = RID(); _merge_scr_buf = RID()
+	_merge_spin_buf = RID(); _merge_mprev_buf = RID()
 	_field_render_tex = RID()
 	_bh_lensing_tex = RID()
 	_lut_u_buf_on = RID(); _lut_u_buf_off = RID()
@@ -2306,7 +2335,8 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(8, _merge_best_buf), _uniform_storage(9, _merge_sink_buf),
 			_uniform_storage(10, _merge_cc_buf), _uniform_storage(11, _merge_cs_buf),
 			_uniform_storage(12, _merge_ch_buf), _uniform_storage(13, _merge_cl_buf),
-			_uniform_storage(14, _merge_mc_buf),
+			_uniform_storage(14, _merge_mc_buf), _uniform_storage(15, _merge_spin_buf),
+			_uniform_storage(16, _field_vel), _uniform_storage(17, _merge_mprev_buf),
 		], _merge_shader, 0)
 	# On-GPU scan set (FIX B): cc(15) → cs(16) + scr(17) two-level + ch(18).
 	if particle_merge and _scan_shader.is_valid() and _merge_scr_buf.is_valid():

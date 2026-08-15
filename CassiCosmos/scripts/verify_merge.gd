@@ -33,6 +33,9 @@ const RM_FRAC := 0.5
 const H0 := 2.0 * EXTENT / float(N_GRID)
 const R_M := RM_FRAC * H0
 const Q_TH: float = PHI_INV2
+const XI := 17.94427190999916       # φ⁶ — Qi coupling (binding + virial G_eff)
+const G_N := 1.0                    # calibrated Newton G (river_calibrate off → bh[1].w = 1.0)
+const DT := 0.001                   # timestep — c_s = H0/DT ≈ 1170, so the planted subsonic pairs pass
 const MAX_CYCLES := 16
 const HIGH_EY: float = PHI
 const HIGH_EI := 1.0
@@ -60,6 +63,9 @@ var _ey_buf: RID
 var _ei_buf: RID
 var _best_buf: RID
 var _sink_buf: RID
+var _spin_buf: RID
+var _fvel_buf: RID
+var _mprev_buf: RID
 var _cc_buf: RID
 var _cs_buf: RID
 var _ch_buf: RID
@@ -67,7 +73,7 @@ var _cl_buf: RID
 var _mc_buf: RID
 
 var _pc := PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-	0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+	0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
 var _input_pos := PackedFloat32Array()
 var _input_vel := PackedFloat32Array()
@@ -125,6 +131,9 @@ func _make_buffers() -> void:
 	_cen_buf = _rd.storage_buffer_create(N * 16)
 	_best_buf = _rd.storage_buffer_create(N * 4)
 	_sink_buf = _rd.storage_buffer_create(N * 4)
+	_spin_buf = _rd.storage_buffer_create(N * 16)
+	_fvel_buf = _rd.storage_buffer_create(CELLS * 16)
+	_mprev_buf = _rd.storage_buffer_create(N * 4)
 	_ey_buf = _rd.storage_buffer_create(CELLS * 4)
 	_ei_buf = _rd.storage_buffer_create(CELLS * 4)
 	_cc_buf = _rd.storage_buffer_create(HASH_TOTAL * 4)
@@ -142,7 +151,8 @@ func _make_buffers() -> void:
 		_u_storage(8, _best_buf), _u_storage(9, _sink_buf),
 		_u_storage(10, _cc_buf), _u_storage(11, _cs_buf),
 		_u_storage(12, _ch_buf), _u_storage(13, _cl_buf),
-		_u_storage(14, _mc_buf),
+		_u_storage(14, _mc_buf), _u_storage(15, _spin_buf),
+		_u_storage(16, _fvel_buf), _u_storage(17, _mprev_buf),
 	], _shader, 0)
 
 
@@ -171,6 +181,13 @@ func _fill_pc(pass_mode: float) -> void:
 	_pc[13] = CELL_W
 	_pc[14] = CELL_W
 	_pc[15] = pass_mode
+	_pc[16] = G_N                   # g_n (bh[1].w)
+	_pc[17] = XI                    # xi (φ⁶)
+	_pc[18] = H0                    # h0 = 2·R_m
+	_pc[19] = DT                    # dt
+	_pc[20] = 1.0                   # f_subsonic (hypothesis criterion on)
+	_pc[21] = 1.0                   # f_virial (hypothesis criterion on)
+	_pc[22] = 1.0                   # f_order (order-selective gate on)
 
 
 func _dispatch(pass_mode: float) -> void:

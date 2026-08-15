@@ -172,6 +172,15 @@ grid path's 0.008.
 
 ## 3. Merge redesign (the R&D core)
 
+> **IMPLEMENTED 2026-08-15** in `compute/cassi_particle_merge.glsl` + both
+> drivers (`cassi_sim.gd`, `cassi_physics_engine.gd`). All four layered
+> criteria are live behind three default-on flags (`merge_sel_gate`,
+> `merge_subsonic`, `merge_virial`); the gravitational-binding criterion is
+> always on (doctrine). **Correction to §3c:** the stopping inequality below
+> is written in the design as `2K < |W|`; that form blocks cold clumps
+> (2K = 0) from ever accreting, so the **implemented criterion is `2K ≥ |W|`**
+> (a virialised / self-supporting object stops accepting infall).
+
 ### 3a. The gate-selectivity problem (proven)
 
 Analytic (immediate from the form):
