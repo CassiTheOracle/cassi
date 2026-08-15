@@ -3959,7 +3959,7 @@ func _step_dispatches(cl: int) -> void:
 		_rd.compute_list_bind_compute_pipeline(cl, _poisson_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_poisson_0, 0)
 		_rd.compute_list_set_push_constant(cl, _poisson_pc_bytes, _poisson_pc_bytes.size())
-		_rd.compute_list_dispatch(cl, grid_N, grid_N, 1)  # 2D cells dispatch
+		_rd.compute_list_dispatch(cl, grid_N, grid_N / 2, 1)  # 2D cells dispatch (2 cells/thread)
 	_barrier(cl)  # clear → deposit
 
 	# ── 1. Mass deposit: scatter particle masses → int64 fixed-point grid ──
@@ -4135,7 +4135,7 @@ func _step_dispatches(cl: int) -> void:
 			_rd.compute_list_bind_compute_pipeline(cl, _poisson_pipe)
 			_rd.compute_list_bind_uniform_set(cl, _us_poisson_0, 0)
 			_rd.compute_list_set_push_constant(cl, _poisson_pc_bytes, _poisson_pc_bytes.size())
-			_rd.compute_list_dispatch(cl, grid_N, grid_N, 1)
+			_rd.compute_list_dispatch(cl, grid_N, grid_N / 2, 1)  # 2D cells dispatch (2 cells/thread)
 		_barrier(cl)  # dual clear → deposit
 		if _mass_deposit_shader.is_valid() and N_particles > 0:
 			_md_pc_bytes.encode_float(20, ext_step.x / float(grid_N))
@@ -4452,43 +4452,54 @@ func _report_poisson_residual() -> void:
 	print("[CassiSim] Poisson residual: L2 |∇²Φ − ρ| / |ρ| = %.6f  (cells=%d, h=(%.4f,%.4f,%.4f))" % [_poisson_residual, N * N * N, hx, hy, hz])
 
 
-# load ρ → FFT(x) → FFT(y) → FFT(z) → Φ̂=−ρ̂/k² (k=0 nulled) → IFFT(z) → IFFT(y) → IFFT(x)
+# load+x → FFT(y) → FFT(z) → Φ̂=−ρ̂/k² (k=0 nulled) → IFFT(z) → IFFT(y) → IFFT(x)
+# FUSED (cassi_poisson.glsl modes 4/5): mode 4 = load ρ + forward-x in one
+# pass; mode 5 = the k-space multiply fused into the inverse-z pass. 6
+# dispatches per solve instead of 8 — 2 fewer global barriers. All FFT
+# passes are multi-row: R = 256/grid_N rows per workgroup → dispatch
+# (grid_N, grid_N²/256, 1) instead of (grid_N, grid_N, 1).
 func _dispatch_poisson(cl: int) -> void:
 	if not _poisson_shader.is_valid(): return
 	_rd.compute_list_bind_compute_pipeline(cl, _poisson_pipe)
 	_rd.compute_list_bind_uniform_set(cl, _us_poisson_0, 0)
-	# mode 0: load ρ → complex buffer. The per-axis extents ride along for
-	# the kspace multiply — the FFT passes only touch floats 4/8/12, so the
-	# extents persist from this encode through the whole chain.
+	# The per-axis extents ride along for the kspace multiply (fused into
+	# mode 5) — the FFT passes only touch floats 4/8/12.
 	var ext_p: Vector3 = _extents()
-	_poisson_pc_bytes.encode_float(0, float(grid_N)); _poisson_pc_bytes.encode_float(4, 0.0)
+	var n := grid_N
+	var fft_groups_y := maxi(n * n / 256, 1)  # R = 256/n rows/workgroup
+	_poisson_pc_bytes.encode_float(0, float(n)); _poisson_pc_bytes.encode_float(4, 0.0)
 	_poisson_pc_bytes.encode_float(8, 0.0); _poisson_pc_bytes.encode_float(12, 0.0)
 	_poisson_pc_bytes.encode_float(16, ext_p.x)
 	_poisson_pc_bytes.encode_float(20, ext_p.y)
 	_poisson_pc_bytes.encode_float(24, ext_p.z)
+	# mode 4: fused load ρ → forward x (reads ρ directly, no load pass)
+	_poisson_pc_bytes.encode_float(12, 4.0)
 	_rd.compute_list_set_push_constant(cl, _poisson_pc_bytes, _poisson_pc_bytes.size())
-	_rd.compute_list_dispatch(cl, grid_N, grid_N, 1)  # 2D cells dispatch
-	_barrier(cl)  # load → fwd x
-	# mode 1: forward FFT passes x, y, z
-	for axis in range(3):
+	_rd.compute_list_dispatch(cl, n, fft_groups_y, 1)  # 2D rows dispatch
+	_barrier(cl)  # load+x → fwd y
+	# mode 1: forward FFT passes y, z
+	for axis in [1, 2]:
 		_poisson_pc_bytes.encode_float(4, float(axis))
 		_poisson_pc_bytes.encode_float(8, 0.0)   # forward
 		_poisson_pc_bytes.encode_float(12, 1.0)
 		_rd.compute_list_set_push_constant(cl, _poisson_pc_bytes, _poisson_pc_bytes.size())
-		_rd.compute_list_dispatch(cl, grid_N, grid_N, 1)  # 2D rows dispatch
+		_rd.compute_list_dispatch(cl, n, fft_groups_y, 1)  # 2D rows dispatch
 		_barrier(cl)  # FFT passes: memory visibility between stages
-	# mode 2: k-space multiply Φ̂ = −ρ̂/k²  (BETWEEN fwd and inv — required)
-	_poisson_pc_bytes.encode_float(12, 2.0)
+	# mode 5: k-space multiply Φ̂ = −ρ̂/k² fused into the inverse-z pass
+	# (BETWEEN fwd and inv — required; the multiply rides the z-row load)
+	_poisson_pc_bytes.encode_float(4, 2.0)
+	_poisson_pc_bytes.encode_float(8, 1.0)   # inverse
+	_poisson_pc_bytes.encode_float(12, 5.0)
 	_rd.compute_list_set_push_constant(cl, _poisson_pc_bytes, _poisson_pc_bytes.size())
-	_rd.compute_list_dispatch(cl, grid_N, grid_N, 1)  # 2D cells dispatch
-	_barrier(cl)  # fwd z → kspace
-	# mode 1: inverse FFT passes z, y, x (scaled 1/N each)
-	for axis in range(2, -1, -1):
+	_rd.compute_list_dispatch(cl, n, fft_groups_y, 1)  # 2D rows dispatch
+	_barrier(cl)  # fwd z → inv-z (kspace applied)
+	# mode 1: inverse FFT passes y, x (scaled 1/N each)
+	for axis in [1, 0]:
 		_poisson_pc_bytes.encode_float(4, float(axis))
 		_poisson_pc_bytes.encode_float(8, 1.0)   # inverse
 		_poisson_pc_bytes.encode_float(12, 1.0)
 		_rd.compute_list_set_push_constant(cl, _poisson_pc_bytes, _poisson_pc_bytes.size())
-		_rd.compute_list_dispatch(cl, grid_N, grid_N, 1)  # 2D rows dispatch
+		_rd.compute_list_dispatch(cl, n, fft_groups_y, 1)  # 2D rows dispatch
 		_barrier(cl)  # inverse FFT passes
 
 func _make_render_textures() -> void:
