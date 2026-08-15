@@ -1,7 +1,7 @@
 {
   "name": "@cassicore/host",
   "version": "0.1.0",
-  "description": "The thin CassiCore host: core/entry + core/daemon.ts + core/daemon/live + core/cli + core/bridge + core/version.ts + scripts/qwen-renew-accounts.ts. Composes every landed package, wires the P7 port seams (setRootResolver / setDataDirRoot / createAdminApi mount / registerCoreTools / resolveWorker), and boots the supervisor/fork + CLI bins. History-preserved import splice of the D: host source, committed at cassicore d63358da.",
+  "description": "Empty-shell placeholder (P5). The standalone host surface + retained brain folded into @cassicore/mind-runtime; nothing imports this package. Prepared for deletion at P7.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -9,56 +9,14 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    },
-    "./daemon": {
-      "types": "./dist/daemon/index.d.ts",
-      "import": "./dist/daemon/index.js"
-    },
-    "./entry": {
-      "types": "./dist/entry/index.d.ts",
-      "import": "./dist/entry/index.js"
-    },
-    "./cli": {
-      "types": "./dist/cli/index.d.ts",
-      "import": "./dist/cli/index.js"
-    },
-    "./version": {
-      "types": "./dist/version.d.ts",
-      "import": "./dist/version.js"
-    },
-    "./vendor/core/intelligence": {
-      "types": "./dist/vendor/core/intelligence/index.d.ts",
-      "import": "./dist/vendor/core/intelligence/index.js"
-    },
-    "./vendor/core/intelligence/unified-loop": {
-      "types": "./dist/vendor/core/intelligence/unified-loop.d.ts",
-      "import": "./dist/vendor/core/intelligence/unified-loop.js"
-    },
-    "./vendor/core/intelligence/synapse": {
-      "types": "./dist/vendor/core/intelligence/synapse/index.d.ts",
-      "import": "./dist/vendor/core/intelligence/synapse/index.js"
-    },
-    "./vendor/core/intelligence/branching-conversation/manager": {
-      "types": "./dist/vendor/core/intelligence/branching-conversation/manager.d.ts",
-      "import": "./dist/vendor/core/intelligence/branching-conversation/manager.js"
-    },
-    "./vendor/core/orchestration-bus": {
-      "types": "./dist/vendor/core/orchestration-bus.d.ts",
-      "import": "./dist/vendor/core/orchestration-bus.js"
     }
   },
   "files": [
     "dist",
-    "src",
-    "bin"
+    "src"
   ],
   "engines": {
     "node": ">=20"
-  },
-  "bin": {
-    "cassicore": "./bin/cassicore",
-    "cassi-acp": "./bin/cassi-acp",
-    "cassi-vindex-loader": "./src/entry/vindex-loader.ts"
   },
   "scripts": {
     "build": "tsc",
@@ -66,38 +24,7 @@
     "test": "vitest run --passWithNoTests",
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
   },
-  "dependencies": {
-    "@cassicore/admin-api": "*",
-    "@cassicore/aurora": "*",
-    "@cassicore/cognitive-feed": "*",
-    "@cassicore/commands": "*",
-    "@cassicore/constellation": "*",
-    "@cassicore/cortex-pineal-dialectic": "*",
-    "@cassicore/dreamer-reverie-subconscious": "*",
-    "@cassicore/embeddings": "*",
-    "@cassicore/events": "*",
-    "@cassicore/flux-team": "*",
-    "@cassicore/foundation": "*",
-    "@cassicore/helix": "*",
-    "@cassicore/jobs": "*",
-    "@cassicore/lamina-locus-bridge": "*",
-    "@cassicore/mcp": "*",
-    "@cassicore/mcp-gateway": "*",
-    "@cassicore/mini-helix": "*",
-    "@cassicore/mnemic-field": "*",
-    "@cassicore/model-pool": "*",
-    "@cassicore/pipeline": "*",
-    "@cassicore/plugins": "*",
-    "@cassicore/thalamus": "*",
-    "@cassicore/tools": "*",
-    "@cassicore/training-trust-ledger": "*",
-    "@cassicore/utils": "*",
-    "@cassicore/workers": "*",
-    "@cassicore/workflow": "*",
-    "@zed-industries/agent-client-protocol": "^0.4.5",
-    "better-sqlite3": "^11.10.0",
-    "yaml": "^2.9.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/node": "^20.0.0",
     "typescript": "^5.4.0",
