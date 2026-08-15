@@ -1463,6 +1463,9 @@ func _decoupled_start_engine() -> bool:
 		"meshless_mode": meshless_mode, "meshless_gravity": meshless_gravity,
 		"mode": mode,
 		"particle_merge": particle_merge,
+		"merge_subsonic": merge_subsonic,
+		"merge_virial": merge_virial,
+		"merge_sel_gate": merge_sel_gate,
 		"bh_accretion": bh_accretion,
 		"bh_accretion_radius": bh_accretion_radius,
 	}
