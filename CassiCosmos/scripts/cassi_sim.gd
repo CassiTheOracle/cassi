@@ -535,6 +535,7 @@ var _qhist_lo: float = 1e-6         # adaptive log range (growth-tolerant)
 var _qhist_hi: float = 1.0
 var _last_align_ms: int = 0
 var _qhist_saturated := false   # top-bin pile-up: a cascade scale-jump is underway
+var _align_ran_this_frame := false   # FIX 2: true when _align_color_band self-stalled this frame
 
 # — pre-allocated push-constant byte buffers (hitch-free: no per-step allocs) —
 var _pc_bytes: PackedByteArray        # shared 11-float PC (all physics shaders)
@@ -4678,6 +4679,7 @@ func _setup_multimesh() -> void:
 
 func _render_frame() -> void:
 	var now_ms := Time.get_ticks_msec()
+	_align_ran_this_frame = false
 
 	# Decoupled producer: poll the freshest publish (mirror refresh) and
 	# record the render list (blend interp + instancer + qhist) — no
@@ -4736,13 +4738,16 @@ func _render_frame() -> void:
 			_pi_sat_lo_frac /= samples
 	# Auto color-align cadence: re-fit the Qi band to the live q histogram
 	# at the particles. Independent of suppress_readbacks (512 B readback,
-	# negligible). Saturated (a scale-jump underway) → re-fit every ~0.2 s
-	# until the window catches the new rung; otherwise the normal ~1.5 s.
+	# negligible). Saturated (a scale-jump underway) → re-fit every ~0.5 s
+	# (FIX 2: raised from 0.2 s to cut the global-RD self-stall readback rate
+	# 2.5× — it is a visual nicety that must not hammer the shared GPU);
+	# otherwise the normal ~1.5 s.
 	if auto_align_colors and particle_color_mode >= 2 \
 			and _qhist_buf.is_valid() and _step_count > 0 \
-			and now_ms - _last_align_ms >= (200 if _qhist_saturated else 1500):
+			and now_ms - _last_align_ms >= (500 if _qhist_saturated else 1500):
 		_last_align_ms = now_ms
 		_align_color_band()
+		_align_ran_this_frame = true
 	# One-time Poisson residual report (FD-Laplacian check of the Φ solve).
 	# River modes only (0, 3 and 4): modes 1/2 skip the solve, so _fft_buf
 	# holds stale data there and the residual would be meaningless.
@@ -4761,7 +4766,12 @@ func _render_frame() -> void:
 	# Every frame; R_m ≈ 0.586 world units is crossed in ~586 dt=0.001 steps
 	# ≫ a frame's step budget, so once-per-frame is far inside the reaction
 	# budget. Decoupled: skipped — it mutates the mirrored pos buffer.
-	if particle_merge and _step_count > 0 and not _decoupled_active:
+	# FIX 2 (perf-decomp): never share a frame between the merge burst and
+	# the auto-align's global-RD self-stall readback (the two device drains
+	# that trip the TDR when concurrent). The merge is cadenced; the auto-
+	# align is a 0.5-1.5 s visual nicety — skip the merge on align frames.
+	if particle_merge and _step_count > 0 and not _decoupled_active \
+			and not _align_ran_this_frame:
 		_run_merge_pass()
 
 	# Throttled occupancy + perf report (~2 Hz; interactive runs only —
