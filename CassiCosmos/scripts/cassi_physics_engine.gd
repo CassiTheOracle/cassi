@@ -55,6 +55,10 @@ const ML_TREE_G_SCALE := 0.03
 # R² = ds² + eps2). ML_TREE_NODE_MAX_MULT sizes the node cap for the job.
 const ML_TREE_EPS2_FRAC := 0.05
 const ML_TREE_NODE_MAX_MULT := 8
+const ML_TREE_LEAF_CAP := 1      # tree-in-list (M0): the worker's tree constants, engine side
+const ML_TREE_MAX_LEVELS := 14
+const ML_TREE_FIELD_FLOOR := 1e-6
+const ML_TREE_THETA := 0.5
 # ── Meshless (moving-Voronoi) arm — MESHLESS_PLAN.md §10 (ported verbatim) ──
 const ML_N1 := 16              # BCC sublattice count → 2·16³ = 8192 sites at N=64
 const ML_REBUILD := 25         # steering + remap + JFA-refresh cadence (steps)
@@ -243,12 +247,19 @@ var _raster_pc_bytes: PackedByteArray # raster PC (8 floats: N, n_sites, hx, hy,
 var _ml_sites_cpu := PackedFloat32Array()
 var _ml_ready := false
 var _ml_tree_nsrc := 0
-# — tree-worker CONSUMER (decoupled mode: the engine worker drives the sim's
-# cassi_tree_worker.gd instance). The sim creates + starts the tree worker on
-# the MAIN thread (start() loads shaders on main) and hands the object via
-# cfg.tree_worker; this worker stages jobs from ITS OWN RD (it owns the
-# meshless/pos buffers now) and feeds the freshest gradient into run_steps.
+# TREE-IN-LIST (M0 commit 2): the tree build+walk runs INSIDE the engine's
+# own compute list on the LIVE buffers (mode-7 gather reads the meshless
+# state directly) — the per-job 130 MB staging round trip and the tree
+# worker's local RD are gone from the engine path. The tree worker
+# (cassi_tree_worker.gd) survives for the verify scenes + the sim's inline
+# arm; the engine no longer uses it.
 var _tree_worker = null          # CassiTreeWorker (owned by the sim — never freed here)
+var _tl_src: RID; var _tl_srcw: RID; var _tl_key: RID; var _tl_order: RID
+var _tl_cf: RID; var _tl_nw: RID; var _tl_nq: RID; var _tl_nr: RID; var _tl_ctr: RID
+var _tl_tic: RID
+var _tree_bld_sh: RID; var _tree_bld_pipe: RID
+var _tree_walk_sh: RID; var _tree_walk_pipe: RID
+var _us_tree_bld: RID; var _us_tree_walk: RID
 var _tree_cadence := 1           # submit a tree job every N physics jobs (sim's cadence semantics)
 var _tree_job_counter := 0
 # MOVABLE HOME-WINDOW (perf-decomp 2026-08-15, overhaul migration): the
@@ -257,8 +268,6 @@ var _tree_job_counter := 0
 # the sim's job dict (the sim's slow-cadence COM tracker owns the value).
 var _window_center := Vector3.ZERO
 var _home_window := false
-var _tree_grad_cache := PackedFloat32Array()   # freshest completed gradient (feeds run_steps)
-var _tree_grad_dirty := true   # cache changed since the last 32 MB _tree_grad upload
 # — shaders and pipelines (physics side only) —
 var _two_fluid_shader: RID;  var _two_fluid_pipe: RID
 var _nbody_shader: RID;      var _nbody_pipe: RID
@@ -452,15 +461,11 @@ func setup(cfg: Dictionary) -> bool:
 	cascade_level = bool(cfg.get("cascade_level", cascade_level))
 	bh_accretion = bool(cfg.get("bh_accretion", bh_accretion))
 	bh_accretion_radius = float(cfg.get("bh_accretion_radius", bh_accretion_radius))
-	# Tree-worker consumer (decoupled mode): the sim creates + starts the
-	# tree worker on the main thread and hands the object here.
-	_tree_worker = cfg.get("tree_worker", null)
+	# Tree cadence (the sim's _tree_local_cadence) — the in-list tree job gate.
 	_tree_cadence = int(cfg.get("tree_cadence", 1))
 	_tree_job_counter = 0
 	_home_window = bool(cfg.get("home_window", false))
 	_window_center = Vector3(cfg.get("window_center", Vector3.ZERO))
-	_tree_grad_cache = PackedFloat32Array()
-	_tree_grad_dirty = true
 	_snapshot_cadence = maxi(int(cfg.get("snapshot_cadence", 2)), 1)
 	_job_counter = 0
 	# ── build the chain ──
@@ -490,7 +495,14 @@ func setup(cfg: Dictionary) -> bool:
 ## a local RD it is submitted, and synced when wait=true. tree_grad, when
 ## non-empty (exactly max(N_particles,1)*4 floats), is uploaded into the
 ## mode-5 nbody tree-gradient buffer first; empty leaves the buffer as-is.
-func run_steps(n: int, wait := true, tree_grad: PackedFloat32Array = PackedFloat32Array()) -> void:
+## Run n steps in one compute list on THIS engine's RD. wait=true →
+## submit+sync (the local-RD contract: readbacks are synchronous here).
+## tree_in_list (M0 commit 2): a tree-cadence job — the tree build+walk
+## dispatches run at the START of the same list, reading the LIVE meshless
+## buffers (mode-7 gather) and writing _tree_grad directly; the steps below
+## then read a fresh gradient (the old bootstrap semantics — no staging
+## readbacks, no 32 MB seam upload, no tree worker on this path).
+func run_steps(n: int, wait := true, tree_in_list := false) -> void:
 	if _rd == null or not _ready:
 		return
 	# BH header (count/G_N/extent/toggle/dual) — constant across the
@@ -513,16 +525,9 @@ func run_steps(n: int, wait := true, tree_grad: PackedFloat32Array = PackedFloat
 	_bh_init_bytes.encode_float(20, off_dual.y)
 	_bh_init_bytes.encode_float(24, off_dual.z)
 	_rd.buffer_update(_bh_buf, 0, _bh_init_bytes.size(), _bh_init_bytes)
-	# Mode-5 tree seam: an external tree arm uploads the per-particle ∇Φ_g
-	# via this argument (the sim's own size-guarded upload contract).
-	# Upload-on-change (perf-decomp): with _tree_cadence > 1 the SAME cache
-	# would otherwise be re-uploaded (32 MB) on every in-between job —
-	# bit-identical content, so the stale buffer is exactly correct; skip
-	# the redundant transfer.
-	if tree_grad.size() > 0 and tree_grad.size() == maxi(N_particles, 1) * 4 and _tree_grad_dirty:
-		_rd.buffer_update(_tree_grad, 0, tree_grad.size() * 4, tree_grad.to_byte_array())
-		_tree_grad_dirty = false
 	var cl := _rd.compute_list_begin()
+	if tree_in_list:
+		_tree_run_in_list(cl)   # M0: the tree build+walk in THIS list (live buffers)
 	for _s in range(n):
 		_step_dispatches(cl)
 	_rd.compute_list_end()
@@ -787,7 +792,9 @@ func start_threaded(cfg: Dictionary) -> bool:
 			"res://compute/cassi_particle_merge.glsl",
 			"res://compute/cassi_bh_accretion.glsl",
 			"res://compute/cassi_pack_f16.glsl",
-			"res://compute/cassi_exclusive_scan.glsl"]:
+			"res://compute/cassi_exclusive_scan.glsl",
+			"res://compute/cassi_tree_build.glsl",
+			"res://compute/cassi_tree_gravity.glsl"]:
 		var sf := load(p) as RDShaderFile
 		if sf == null or sf.get_spirv() == null:
 			push_error("[PhysicsEngine] start_threaded: shader load failed: " + p)
@@ -947,12 +954,12 @@ func _threaded_run_job(job: Dictionary) -> void:
 		# drain THIS engine's RD — cap the job's step budget so the drain
 		# stays short even under a large backlog (perf-decomp 2026-08-15:
 		# the freeze duration must stop growing with the run length).
-		var staged_tree := _tree_refresh_gradient()
-		if staged_tree:
+		var tree_job := _tree_job_due()
+		if tree_job:
 			steps = mini(steps, TREE_JOB_STEP_CAP)
 		else:
 			steps = mini(steps, JOB_STEP_CAP)
-		run_steps(steps, true, _tree_grad_cache)  # wait=true → submit+sync on the local RD
+		run_steps(steps, true, tree_job)  # wait=true → submit+sync; tree dispatches in-list on cadence jobs
 		_executed += steps
 	var cadence := maxi(int(job.get("cadence", _snapshot_cadence)), 1)
 	var publish := (_job_counter % cadence) == 0
@@ -1022,7 +1029,10 @@ func shutdown() -> void:
 			_ml_psi_y, _ml_psi_i, _ml_pi_y, _ml_pi_i,
 			_ml_lap_y, _ml_lap_i, _ml_vol,
 			_ml_cen, _ml_remap, _ml_tmp_y, _ml_tmp_i, _ml_tmp_py, _ml_tmp_pi,
-			_ml_grad_y, _ml_grad_i, _ml_lsm_y, _ml_lsm_i]:
+			_ml_grad_y, _ml_grad_i, _ml_lsm_y, _ml_lsm_i,
+			_tl_src, _tl_srcw, _tl_key, _tl_order, _tl_cf, _tl_nw, _tl_nq, _tl_nr,
+			_tl_ctr, _tl_tic,
+			_tree_bld_sh, _tree_bld_pipe, _tree_walk_sh, _tree_walk_pipe]:
 		if rid.is_valid():
 			_rd.free_rid(rid)
 	if _owns_rd:
@@ -1901,6 +1911,47 @@ func _meshless_init() -> void:
 	_rd.buffer_update(_ml_lap_y, 0, zero.size() * 4, zero.to_byte_array())
 	_rd.buffer_update(_ml_lap_i, 0, zero.size() * 4, zero.to_byte_array())
 	_ml_ready = true
+	# TREE-IN-LIST (M0 commit 2): the tree build+walk resources on THIS
+	# engine RD — pipelines + intermediates + uniform sets over the LIVE
+	# meshless buffers. The mode-7 gather reads ml_sites/psy/psi/vol and
+	# the deposit density directly; the walk reads _pos_buf and writes
+	# _tree_grad (the mode-5 seam buffer) — no staging, no seam upload.
+	var tnm := ML_TREE_NODE_MAX_MULT * ml_ns + 64
+	_tl_src = _rd.storage_buffer_create(2 * ml_ns * 16)
+	_tl_srcw = _rd.storage_buffer_create(ml_ns * 4)
+	_tl_key = _rd.storage_buffer_create(ml_ns * 4)
+	_tl_order = _rd.storage_buffer_create(ml_ns * 4)
+	_tl_cf = _rd.storage_buffer_create(tnm * 16)
+	_tl_nw = _rd.storage_buffer_create(tnm * 16)
+	_tl_nq = _rd.storage_buffer_create(2 * tnm * 16)
+	_tl_nr = _rd.storage_buffer_create(tnm * 16)
+	_tl_ctr = _rd.storage_buffer_create(8 * 4)
+	_tl_tic = _rd.storage_buffer_create(maxi(N_particles, 1) * 4)
+	_tree_bld_sh = _shader_create("res://compute/cassi_tree_build.glsl")
+	if _tree_bld_sh.is_valid():
+		_tree_bld_pipe = _rd.compute_pipeline_create(_tree_bld_sh)
+	_tree_walk_sh = _shader_create("res://compute/cassi_tree_gravity.glsl")
+	if _tree_walk_sh.is_valid():
+		_tree_walk_pipe = _rd.compute_pipeline_create(_tree_walk_sh)
+	if _tree_bld_sh.is_valid():
+		_us_tree_bld = _rd.uniform_set_create([
+			_uniform_storage(0, _tl_src), _uniform_storage(1, _tl_srcw),
+			_uniform_storage(2, _tl_key), _uniform_storage(3, _tl_order),
+			_uniform_storage(4, _tl_cf), _uniform_storage(5, _tl_nw),
+			_uniform_storage(6, _tl_nq), _uniform_storage(7, _tl_nr),
+			_uniform_storage(8, _tl_ctr),
+			_uniform_storage(9, _ml_sites), _uniform_storage(10, _ml_psi_y),
+			_uniform_storage(11, _ml_psi_i), _uniform_storage(12, _ml_vol),
+			_uniform_storage(13, _mass_density_buf),
+		], _tree_bld_sh, 0)
+	if _tree_walk_sh.is_valid():
+		_us_tree_walk = _rd.uniform_set_create([
+			_uniform_storage(0, _tl_src), _uniform_storage(3, _tl_order),
+			_uniform_storage(4, _tl_cf), _uniform_storage(5, _tl_nw),
+			_uniform_storage(6, _tl_nq), _uniform_storage(7, _tl_nr),
+			_uniform_storage(8, _tl_ctr), _uniform_storage(9, _tree_grad),
+			_uniform_storage(10, _tl_tic), _uniform_storage(11, _pos_buf),
+		], _tree_walk_sh, 0)
 	print("[PhysicsEngine] Meshless arm ready: %d Voronoi cells on the %d^3 accelerator grid"
 		% [ml_ns, N])
 
@@ -2078,49 +2129,46 @@ func _mesh_rebuild() -> void:
 	_finish_standalone_list()
 
 
-# ── Tree-worker CONSUMER (decoupled mode) ───────────────────────────────
-# The sim creates + starts cassi_tree_worker.gd on the MAIN thread (its
-# start() loads the tree shaders — not thread-safe off-main) and hands the
-# object via cfg.tree_worker. This ENGINE worker stages the tree job from
-# ITS OWN RD (it owns the meshless/pos buffers now) and calls
-# submit()/poll() from its thread (pure mutex/semaphore — thread-agnostic;
-# the tree worker's RD work stays on its own thread). The freshest
-# completed gradient is cached and fed into run_steps(tree_grad=...), which
-# uploads it to the nbody mode-5 seam buffer.
+# ── TREE-IN-LIST (M0 commit 2) ─────────────────────────────────────────
+# The tree build+walk runs INSIDE the engine's own compute list on the LIVE
+# buffers: the mode-7 gather reads the meshless sites/psy/psi/vol and the
+# deposit density directly (the shader never needed the staged copies), the
+# walk reads _pos_buf and writes _tree_grad (the mode-5 seam buffer) — the
+# per-job 130 MB CPU round trip, the 32 MB seam upload and the tree
+# worker's local RD are gone from the engine path. The tree worker survives
+# for the verify scenes + the sim's inline arm.
 
-## Stage + submit a tree job and refresh the gradient cache (cadence-gated:
-## the sim's _tree_local_cadence semantics — default 1 = every physics job).
-## Returns true when THIS job staged a tree job (the caller caps the step
-## budget on such jobs so the staging readbacks drain a short queue).
-func _tree_refresh_gradient() -> bool:
-	if not meshless_mode or not meshless_gravity or _tree_worker == null or not _ml_ready:
+## Cadence gate (the sim's _tree_local_cadence semantics). True when THIS
+## job is a tree-cadence job (residue 1 mod tree_cadence).
+func _tree_job_due() -> bool:
+	if not meshless_mode or not meshless_gravity or not _ml_ready:
 		return false
 	if _ml_tree_nsrc <= 0:
 		return false
 	_tree_job_counter += 1
-	if _tree_cadence > 1 and _tree_job_counter % _tree_cadence != 1:
-		return false  # skip this job (stale-but-recent gradient is fine for 1/K)
+	return not (_tree_cadence > 1 and _tree_job_counter % _tree_cadence != 1)
+
+
+## Append the tree build+walk dispatches to the CURRENT compute list cl.
+## Reads the live meshless buffers + _pos_buf; writes _tree_grad. The PC
+## values (bmin/bhalf adaptive root, eps2, tnm) come from the host-side
+## site mirror (_ml_sites_cpu — no readback).
+func _tree_run_in_list(cl: int) -> void:
+	if not _us_tree_bld.is_valid() or not _us_tree_walk.is_valid():
+		return
 	var S := _ml_tree_nsrc
-	var N3 := grid_N * grid_N * grid_N
 	var Np: int = N_particles
 	var ext := _extents()
-	# Stage the CURRENT meshless source state from THIS engine's RD (the
-	# worker consumes copies — no shared buffers with the sim).
-	var sites := _rd.buffer_get_data(_ml_sites, 0, S * 16).to_float32_array()
-	# ADAPTIVE TREE ROOT (perf-decomp 2026-08-15, overhaul migration): seed
-	# the root cube from the tracked structure's bounding box (the staged
-	# sites) instead of the fixed box origin — the tree's box anchor goes
-	# away; the walk's resolution follows the structure. bmin = structure
-	# min corner, half = 0.5·max(hi−lo) inflated; a degenerate/empty site
-	# set falls back to the legacy box cube (bmin = −half·ones).
+	# ADAPTIVE TREE ROOT (perf-decomp 2026-08-15, overhaul migration): the
+	# root cube from the tracked structure's bounding box (the CPU site
+	# mirror) instead of the fixed box origin. Gated on the home-window
+	# toggle: OFF (default) = the legacy box cube, bit-identical.
 	var bmin := Vector3.INF
 	var bmax := -Vector3.INF
 	for si in range(S):
-		bmin.x = minf(bmin.x, sites[si * 4]); bmin.y = minf(bmin.y, sites[si * 4 + 1]); bmin.z = minf(bmin.z, sites[si * 4 + 2])
-		bmax.x = maxf(bmax.x, sites[si * 4]); bmax.y = maxf(bmax.y, sites[si * 4 + 1]); bmax.z = maxf(bmax.z, sites[si * 4 + 2])
+		bmin.x = minf(bmin.x, _ml_sites_cpu[si * 4]); bmin.y = minf(bmin.y, _ml_sites_cpu[si * 4 + 1]); bmin.z = minf(bmin.z, _ml_sites_cpu[si * 4 + 2])
+		bmax.x = maxf(bmax.x, _ml_sites_cpu[si * 4]); bmax.y = maxf(bmax.y, _ml_sites_cpu[si * 4 + 1]); bmax.z = maxf(bmax.z, _ml_sites_cpu[si * 4 + 2])
 	var box_half: float = maxf(ext.x, maxf(ext.y, maxf(ext.z, ext.z))) * 1.000001
-	# Gated on the home-window toggle: OFF (default) must stay bit-identical
-	# — the legacy box root (bmin = −half·ones). ON = the structure-rooted cube.
 	if not _home_window:
 		bmin = -Vector3.ONE * box_half
 		bmax = Vector3.ONE * box_half
@@ -2128,32 +2176,81 @@ func _tree_refresh_gradient() -> bool:
 		bmin = -Vector3.ONE * box_half
 		bmax = Vector3.ONE * box_half
 	var bhalf: float = 0.5 * maxf(bmax.x - bmin.x, maxf(bmax.y - bmin.y, bmax.z - bmin.z)) * 1.000001 + 1e-6
-	var job := {
-		"sites": sites,
-		"psy": _rd.buffer_get_data(_ml_psi_y, 0, S * 4).to_float32_array(),
-		"psi": _rd.buffer_get_data(_ml_psi_i, 0, S * 4).to_float32_array(),
-		"vol": _rd.buffer_get_data(_ml_vol, 0, S * 4).to_float32_array(),
-		"rho": _rd.buffer_get_data(_mass_density_buf, 0, N3 * 4).to_float32_array(),
-		"pos": _rd.buffer_get_data(_pos_buf, 0, Np * 16).to_float32_array(),
-		"bmin": bmin,
-		"half": bhalf,
-		"ext": ext,
-		"S": S,
-		"N3": N3,
-		"Np": Np,
-		"grid_N": grid_N,
-		"eps2": ML_TREE_EPS2_FRAC * ML_TREE_EPS2_FRAC * _extent_min() * _extent_min(),
-		"tnm": ML_TREE_NODE_MAX_MULT * S + 64,
-	}
-	var res: Dictionary = _tree_worker.submit(job)   # blocks only on the bootstrap tree job
-	if res.is_empty():
-		res = _tree_worker.poll()
-	if not res.is_empty():
-		var grad: PackedFloat32Array = res.get("grad", PackedFloat32Array())
-		if grad.size() == Np * 4:
-			_tree_grad_cache = grad
-			_tree_grad_dirty = true
-	return true
+	var eps2: float = ML_TREE_EPS2_FRAC * ML_TREE_EPS2_FRAC * _extent_min() * _extent_min()
+	var tnm: int = ML_TREE_NODE_MAX_MULT * S + 64
+	var bpc := PackedFloat32Array()
+	bpc.resize(19)
+	bpc[0] = float(S)
+	bpc[1] = bmin.x; bpc[2] = bmin.y; bpc[3] = bmin.z
+	bpc[4] = bhalf
+	bpc[5] = eps2
+	bpc[6] = PHI
+	bpc[7] = PHI_6
+	bpc[8] = float(ML_TREE_LEAF_CAP)
+	bpc[9] = float(ML_TREE_MAX_LEVELS)
+	bpc[14] = float(grid_N)
+	bpc[15] = ext.x; bpc[16] = ext.y; bpc[17] = ext.z
+	bpc[18] = ML_TREE_FIELD_FLOOR
+	var gpc := PackedFloat32Array()
+	gpc.resize(5)
+	gpc[0] = float(Np)
+	gpc[1] = ML_TREE_THETA
+	gpc[2] = eps2
+	gpc[3] = 1.0
+	gpc[4] = float(tnm)
+	var pg := int(ceil(float(S) / 64.0))
+	var pall := int(ceil(float(tnm) / 64.0))
+	# Mode 9 CTR_RESET + mode 10 ROOT_SEED: the on-GPU counter/root seeding
+	# (replaces the worker's per-job host buffer_update seeds).
+	bpc[10] = 9.0
+	_rd.compute_list_bind_compute_pipeline(cl, _tree_bld_pipe)
+	_rd.compute_list_bind_uniform_set(cl, _us_tree_bld, 0)
+	_rd.compute_list_set_push_constant(cl, bpc.to_byte_array(), bpc.size() * 4)
+	_rd.compute_list_dispatch(cl, 1, 1, 1)
+	_rd.compute_list_add_barrier(cl)
+	bpc[10] = 10.0
+	_rd.compute_list_set_push_constant(cl, bpc.to_byte_array(), bpc.size() * 4)
+	_rd.compute_list_dispatch(cl, 1, 1, 1)
+	_rd.compute_list_add_barrier(cl)
+	# gather (mode 7) + bitonic (1) + BFS split (5/8) + moments (6) — the
+	# worker's verbatim sequence, in this list on the live buffers.
+	bpc[10] = 7.0
+	_rd.compute_list_set_push_constant(cl, bpc.to_byte_array(), bpc.size() * 4)
+	_rd.compute_list_dispatch(cl, pg, 1, 1)
+	_rd.compute_list_add_barrier(cl)
+	var k := 2
+	while k <= S:
+		var j := k >> 1
+		while j >= 1:
+			bpc[10] = 1.0
+			bpc[11] = float(k)
+			bpc[12] = float(j)
+			bpc[13] = 1.0
+			_rd.compute_list_set_push_constant(cl, bpc.to_byte_array(), bpc.size() * 4)
+			_rd.compute_list_dispatch(cl, pg, 1, 1)
+			_rd.compute_list_add_barrier(cl)
+			j = j >> 1
+		k = k << 1
+	_rd.compute_list_add_barrier(cl)
+	for _d in range(ML_TREE_MAX_LEVELS):
+		bpc[10] = 5.0
+		_rd.compute_list_set_push_constant(cl, bpc.to_byte_array(), bpc.size() * 4)
+		_rd.compute_list_dispatch(cl, pall, 1, 1)
+		_rd.compute_list_add_barrier(cl)
+		bpc[10] = 8.0
+		_rd.compute_list_set_push_constant(cl, bpc.to_byte_array(), bpc.size() * 4)
+		_rd.compute_list_dispatch(cl, 1, 1, 1)
+		_rd.compute_list_add_barrier(cl)
+	bpc[10] = 6.0
+	_rd.compute_list_set_push_constant(cl, bpc.to_byte_array(), bpc.size() * 4)
+	_rd.compute_list_dispatch(cl, pall, 1, 1)
+	_rd.compute_list_add_barrier(cl)
+	# walk — one thread per particle (reads _pos_buf live), writes _tree_grad
+	_rd.compute_list_bind_compute_pipeline(cl, _tree_walk_pipe)
+	_rd.compute_list_bind_uniform_set(cl, _us_tree_walk, 0)
+	_rd.compute_list_set_push_constant(cl, gpc.to_byte_array(), gpc.size() * 4)
+	_rd.compute_list_dispatch(cl, int(ceil(float(Np) / 64.0)), 1, 1)
+	_rd.compute_list_add_barrier(cl)   # walk's _tree_grad writes → the step chain's reads
 
 
 # ═══════════════════════════════════════════════════════════════════════
