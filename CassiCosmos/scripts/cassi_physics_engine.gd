@@ -117,6 +117,20 @@ var mode: int = 0                 # display mode (shared PC slot 7; render-side 
 # cycle makes the host CPU prefix-sum readback legal there); on a global-RD
 # engine instance the sim's _render_frame hook runs it instead.
 var particle_merge: bool = false
+# Merge cadence (perf-decomp 2026-08-14): gate the merge pass on
+# accumulated STEPS so it stops running every job. 0 = AUTO = 1/2 of the
+# R_m reaction budget — R_m = extent_min/grid_N world units, closing speed
+# v ≈ 1.0 units/s (the design's number: R_m=0.586 crossed in ~586 dt=0.001
+# steps), so budget = R_m/(v·dt) steps and 1/2 = 0.5·extent_min/grid_N/dt
+# (28 at the owner config: 180/64/0.05·0.5; jobs carry ~16-20 steps, so
+# this lands every ~2 jobs — a quarter budget would be < 1 job and not
+# reduce pass frequency); any positive value = explicit step cadence.
+# Bound pairs linger within R_m for many dials (the virial/binding gate
+# rejects fast fly-bys), so halving the pass rate does not change merge
+# physics. Validated: T1/T2 sweeps showed cadence >= 28 flattens the
+# +109-135% ms/step slope (progressive slowdown) to 0-4%.
+var merge_cadence_steps: int = 0
+var _merge_step_counter := 0
 # Physical-merge redesign (coherence_merge_rnd.md §3, 2026-08-15): when the
 # merge is on, these gate which of the four layer criteria apply. Default on
 # = the realistic merge; off recreates the legacy (distance + q_coh only) for
@@ -231,6 +245,7 @@ var _tree_worker = null          # CassiTreeWorker (owned by the sim — never f
 var _tree_cadence := 1           # submit a tree job every N physics jobs (sim's cadence semantics)
 var _tree_job_counter := 0
 var _tree_grad_cache := PackedFloat32Array()   # freshest completed gradient (feeds run_steps)
+var _tree_grad_dirty := true   # cache changed since the last 32 MB _tree_grad upload
 # — shaders and pipelines (physics side only) —
 var _two_fluid_shader: RID;  var _two_fluid_pipe: RID
 var _nbody_shader: RID;      var _nbody_pipe: RID
@@ -415,6 +430,8 @@ func setup(cfg: Dictionary) -> bool:
 	meshless_gravity = bool(cfg.get("meshless_gravity", meshless_gravity))
 	mode = int(cfg.get("mode", mode))
 	particle_merge = bool(cfg.get("particle_merge", particle_merge))
+	merge_cadence_steps = int(cfg.get("merge_cadence_steps", 0))
+	_merge_step_counter = 0
 	merge_subsonic = bool(cfg.get("merge_subsonic", merge_subsonic))
 	merge_virial = bool(cfg.get("merge_virial", merge_virial))
 	merge_sel_gate = bool(cfg.get("merge_sel_gate", merge_sel_gate))
@@ -427,6 +444,7 @@ func setup(cfg: Dictionary) -> bool:
 	_tree_cadence = int(cfg.get("tree_cadence", 1))
 	_tree_job_counter = 0
 	_tree_grad_cache = PackedFloat32Array()
+	_tree_grad_dirty = true
 	_snapshot_cadence = maxi(int(cfg.get("snapshot_cadence", 2)), 1)
 	_job_counter = 0
 	# ── build the chain ──
@@ -475,8 +493,13 @@ func run_steps(n: int, wait := true, tree_grad: PackedFloat32Array = PackedFloat
 	_rd.buffer_update(_bh_buf, 0, _bh_init_bytes.size(), _bh_init_bytes)
 	# Mode-5 tree seam: an external tree arm uploads the per-particle ∇Φ_g
 	# via this argument (the sim's own size-guarded upload contract).
-	if tree_grad.size() > 0 and tree_grad.size() == maxi(N_particles, 1) * 4:
+	# Upload-on-change (perf-decomp): with _tree_cadence > 1 the SAME cache
+	# would otherwise be re-uploaded (32 MB) on every in-between job —
+	# bit-identical content, so the stale buffer is exactly correct; skip
+	# the redundant transfer.
+	if tree_grad.size() > 0 and tree_grad.size() == maxi(N_particles, 1) * 4 and _tree_grad_dirty:
 		_rd.buffer_update(_tree_grad, 0, tree_grad.size() * 4, tree_grad.to_byte_array())
+		_tree_grad_dirty = false
 	var cl := _rd.compute_list_begin()
 	for _s in range(n):
 		_step_dispatches(cl)
@@ -497,8 +520,11 @@ func run_steps(n: int, wait := true, tree_grad: PackedFloat32Array = PackedFloat
 		# drives it. Cadence: per run_steps batch (R_m ≈ 0.586 world units is
 		# crossed in ~586 dt=0.001 steps ≫ a batch, so per-batch is far inside
 		# the reaction budget).
-		if particle_merge and N_particles > 0:
-			_run_merge_pass()
+		if particle_merge and n > 0 and N_particles > 0:
+			_merge_step_counter += n
+			if _merge_step_counter >= _merge_cadence_eff():
+				_merge_step_counter = 0
+				_run_merge_pass()
 	# Meshless steering: rebuild the mesh every ML_REBUILD steps (the sim's
 	# cadence). The rebuild is a standalone compute list + readbacks — on a
 	# local RD it stalls only THIS engine's physics (the decoupling win);
@@ -985,6 +1011,20 @@ func _extents() -> Vector3:
 func _extent_min() -> float:
 	var e := _extents()
 	return minf(minf(e.x, e.y), e.z)
+
+
+## Effective merge cadence in STEPS: the explicit export, else AUTO = 1/2
+## of the R_m reaction budget (R_m/(v·dt) steps with v = 1.0 units/s — the
+## design's closing speed; see the merge_cadence_steps comment). The
+## measured job size is ~16-20 steps (step_cap = 16, engine coalescing), so
+## a quarter-budget cadence (14) is < 1 job and the pass still runs every
+## job — the cadence MUST exceed the job size to cut pass frequency: 1/2
+## budget (28) lands every ~2 jobs at the owner config. Clamped >= 1.
+## Cheap: a few multiplies, called once per gate check.
+func _merge_cadence_eff() -> int:
+	if merge_cadence_steps > 0:
+		return merge_cadence_steps
+	return maxi(1, int(0.5 * _extent_min() / float(maxi(grid_N, 1)) / maxf(dt, 1e-6)))
 
 
 func _barrier(cl: int) -> void:
@@ -2050,6 +2090,7 @@ func _tree_refresh_gradient() -> void:
 		var grad: PackedFloat32Array = res.get("grad", PackedFloat32Array())
 		if grad.size() == Np * 4:
 			_tree_grad_cache = grad
+			_tree_grad_dirty = true
 
 
 # ═══════════════════════════════════════════════════════════════════════

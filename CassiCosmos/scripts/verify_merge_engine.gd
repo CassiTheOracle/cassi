@@ -65,6 +65,7 @@ func _ready() -> void:
 		"black_holes_enabled": false, "dual_grid": false,
 		"meshless_mode": false, "meshless_gravity": false,
 		"particle_merge": true,
+		"merge_cadence_steps": 1,   # per-batch merge for the test (the AUTO budget is config-scale)
 		"initial_radius_fraction": 0.9,
 	}
 	var ok: bool = _eng.setup(cfg)

@@ -98,6 +98,19 @@ const Q_1: float = 0.001        # Qi-rainbow stage-1 band top = stage-2 entry
 # frame's step budget, so once-per-frame is far inside the reaction budget).
 ## Two-particle merge (SINK-rule, q_coh > φ⁻² gate, R_m = extent/grid_N) grows matter from dust. Default off = particles-only. Init-time — reinit to apply.
 @export var particle_merge: bool = false
+## Merge cadence in accumulated STEPS (live): 0 = AUTO = 1/2 of the R_m
+## reaction budget (R_m/(v·dt) with v = 1.0 world-units/s — the design's
+## closing speed: R_m=0.586 crossed in ~586 dt=0.001 steps; at the owner
+## config 180/64/0.05 → budget 56 → cadence 28, i.e. every ~2 of the
+## ~16-20-step jobs); any positive value = an explicit step cadence. Gates
+## BOTH the decoupled engine merge (passed via cfg) and the inline
+## _render_frame hook. Validated: T1/T2 sweeps (2026-08-14) showed cadence
+## >= 28 flattens the +109-135% ms/step slope (progressive slowdown) to
+## 0-4% at flat fps. Bound pairs linger within R_m for many dials (the
+## virial/binding gate rejects fast fly-bys), so halving the pass rate does
+## not change merge physics.
+@export_range(0, 200, 1) var merge_cadence_steps: int = 0
+var _merge_step_counter := 0
 # Physical-merge redesign (coherence_merge_rnd.md §3, 2026-08-15): which of
 # the four layer criteria apply when the merge is on. Default on = the
 # realistic merge; off recreates the legacy (distance + q_coh only) for the
@@ -707,7 +720,7 @@ var _ml_tree_nnode: int = 0
 # semantics as the cadence skip). See cassi_tree_worker.gd for the contract.
 var _tree_worker: RefCounted = null   # CassiTreeWorker (lazy, recreated on reinit)
 var _tl_frame := 0
-var _tree_local_cadence := 1  # submit a tree job every N frames
+var _tree_local_cadence := 25  # tree refresh every 25th physics job/frame (perf-decomp: de-correlates the tree rebuild+walk+32 MB upload burst from the merge pass burst on the same GPU — aligns with ML_REBUILD's 25-step site-move cadence via the engine's job-counter gate; between refreshes the last gradient stands, the design's blessed freshness semantics — verify scenes drive the tree worker directly and are unaffected)
 
 # True when the tree arm is LIVE (meshless + tree gravity). Gates the
 # _shaders_ready retry: the tree shaders/pipes/sets must be ready before
@@ -1207,6 +1220,12 @@ func _run_physics_steps(n_steps: int) -> void:
 		if _ml_step_count >= ML_REBUILD:
 			_ml_step_count = 0
 			_mesh_rebuild()
+	# Merge cadence: accumulate the inline batch's steps for the merge gate
+	# in _render_frame (the merge itself must run there — the ONLY context
+	# where global-RD lists + buffer_get_data readbacks execute). Reached
+	# only on the inline path (the decoupled branch returns above).
+	if particle_merge:
+		_merge_step_counter += n_steps
 
 
 # No-op on the global RD: readbacks self-stall (kept so verify scripts and
@@ -1287,6 +1306,17 @@ func _run_merge_pass() -> int:
 
 
 const MERGE_MAX_CYCLES := 16
+
+
+## Effective merge cadence in STEPS: the explicit export, else AUTO = 1/2
+## of the R_m reaction budget (see the merge_cadence_steps export comment).
+## The measured job size is ~16-20 steps, so the cadence MUST exceed it to
+## cut pass frequency: 1/2 budget (28 at the owner config) lands every ~2
+## jobs. Cheap: a few multiplies, called once per gate check.
+func _merge_cadence_eff() -> int:
+	if merge_cadence_steps > 0:
+		return merge_cadence_steps
+	return maxi(1, int(0.5 * _extent_min() / float(maxi(grid_N, 1)) / maxf(dt, 1e-6)))
 ## How many merge cycles run per compute-list batch (FIX 1, perf-decomp
 ## 2026-08-14): each cycle's fold→zero-cc→count→scan→fill→best→hop chain is
 ## recorded into ONE list with intra-list barriers, and the batch ends with
@@ -1487,6 +1517,7 @@ func _decoupled_start_engine() -> bool:
 		"meshless_mode": meshless_mode, "meshless_gravity": meshless_gravity,
 		"mode": mode,
 		"particle_merge": particle_merge,
+		"merge_cadence_steps": merge_cadence_steps,
 		"merge_subsonic": merge_subsonic,
 		"merge_virial": merge_virial,
 		"merge_sel_gate": merge_sel_gate,
@@ -1532,6 +1563,7 @@ func _decoupled_start_engine() -> bool:
 	_last_publish_ms = 0
 	_batch_ema_ms = 16.7
 	_step_count = 0
+	_merge_step_counter = 0
 	_time = 0.0
 	_decoupled_boot_wait = true
 	_decoupled_boot_start_ms = Time.get_ticks_msec()
@@ -4770,8 +4802,12 @@ func _render_frame() -> void:
 	# the auto-align's global-RD self-stall readback (the two device drains
 	# that trip the TDR when concurrent). The merge is cadenced; the auto-
 	# align is a 0.5-1.5 s visual nicety — skip the merge on align frames.
+	# FIX 3: the merge also waits for its step-cadence (see the
+	# merge_cadence_steps export) — accumulated by _run_physics_steps.
 	if particle_merge and _step_count > 0 and not _decoupled_active \
-			and not _align_ran_this_frame:
+			and not _align_ran_this_frame \
+			and _merge_step_counter >= _merge_cadence_eff():
+		_merge_step_counter = 0
 		_run_merge_pass()
 
 	# Throttled occupancy + perf report (~2 Hz; interactive runs only —
@@ -5098,6 +5134,7 @@ func reinit() -> void:
 	_apply_gravity_calibration()
 	_grav_warmup = true  # fresh acc cache for the regenerated positions
 	_step_count = 0
+	_merge_step_counter = 0
 	_cond_step_counter = 0
 	_dropped_steps = 0
 	_time = 0.0
@@ -5181,6 +5218,7 @@ func apply_level(dir_path: String) -> bool:
 	_apply_gravity_calibration()
 	_cond_step_counter = 0
 	_step_count = 0
+	_merge_step_counter = 0
 	_dropped_steps = 0
 	_time = 0.0
 	_level = int(lv.get("level", -1))

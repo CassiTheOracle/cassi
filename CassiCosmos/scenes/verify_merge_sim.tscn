@@ -24,3 +24,4 @@ dual_grid = false
 meshless_mode = false
 meshless_gravity = false
 particle_merge = true
+merge_cadence_steps = 1
