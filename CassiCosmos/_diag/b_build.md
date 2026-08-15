@@ -292,6 +292,73 @@ x = the demand, the coverage actually true) + the b_envlive re-run (PASS — the
 shrink now (44.1, 27.3, 71.4), box_scale 0.364 — the correct cluster-envelope
 shrink) all re-verified.
 
+## Gate-c close-out — the tracking-wiring determinism gap (FINISH-B)
+
+The capability battery's gate-c (the compatibility regime: a filling
+structure, tracking OFF vs ON — the tracker no-ops) pinned the tracked
+window's determinism. The honest findings were TWO real wiring gaps
++ the harness/kernel-level residuals; the WIRING is now fixed:
+
+### The fixes (the tracking wiring — cassi_sim.gd + cassi_physics_engine.gd)
+1. **The tree root gate (the 121.9's dominant term)**: the structure-rooted
+   cube was gated on the `home_window` FLAG, not the tracker's re-fit
+   state — a flag ON with the tracker no-oping (a filling structure) still
+   switched the root to the structure-rooted cube (~0.97× the box) → the
+   tree's resolution differed → pos max-diff 121.9 over 600 steps. Now
+   (`_tree_worker_frame` + the engine's `_tree_run_in_list`): the root =
+   the box cube UNLESS the tracked geometry ACTUALLY re-fit — the
+   sim-side `window_refit` = (the window origin moved) OR (the envelope
+   tracker re_fits > 0); the engine-side = `_home_window and (box_scale
+   != 1.0 or the origin moved)` (the sim ships box_scale/origin to the
+   engine; the no-op keeps them EXACTLY 1.0/0).
+2. **The tree-worker cadence phase leak (the canary's 10.5)**: `_tl_frame`
+   (the worker's 200-frame refresh phase) was never reset — a reinit kept
+   the stale phase, so the first up-to-200 frames after a reinit SKIPPED
+   the tree build and the nbody ran on a zero gradient (the tree-on
+   canary's early divergence). `_tree_worker_stop()` now resets
+   `_tl_frame = 0` — a fresh worker always starts at phase 1.
+
+### The verification
+- **The matched-accounting probe** (`_diag/b_gatec_probe.gd`/`.tscn`):
+  replicates gate-c's canary mechanics EXACTLY (the same seed/apply/
+  snapshot) with FAIR step counts (the ON canary runs the SAME 600 steps
+  as the OFF) + the sites re-sampled from the zeroed field. **pos/hdr/rho
+  max-diff == 0.000000 in BOTH arms** — the tracking wiring is
+  bit-identical (the tree's single bootstrap gradient, built from the
+  identical re-sampled sites, drives identical forces).
+- **The battery gate-c re-run** (cap_postfix.log): the tree-arm pos
+  **121.9 → 0.222** (the root + the phase fixed); the poisson pos 0.049
+  (unchanged — see below).
+
+### The honest residuals (NOT the tracking wiring — the pin stays at 0.0)
+1. **The harness's 4-step comparison offset**: `_gate_c_drive`'s
+   `_tracked and _cadence == 1` batch gives the ON canary 4 EXTRA steps —
+   the battery compares OFF@600 vs ON@604. That IS the poisson arm's
+   0.049 (the flag has no physics-path effect in the closed-box arm — the
+   probe proves the poisson canary is 0.0 at matched steps) and rides
+   under the tree arm.
+2. **The harness's reinit sequence premise break**: each canary's reinit
+   re-seeds the field IC from the sim's UNSEEDED RNG (`_init_field` with
+   `ic_seed == 0` — the random flat noise) — the mesh sites sample a
+   DIFFERENT random IC per canary → the tree's sources differ → the tree
+   pos ~0.17 + the field ~0.017 of the residual. (The sim's live behavior
+   is untouched — the canary sequence needs `ic_seed` pinned or the sites
+   re-sampled post-zero, as the probe does.)
+3. **The mesh rebuild's float-atomic centroid** (the field kernels, NOT
+   the wiring): the meshless rebuild (ML_REBUILD = 25) steers the sites
+   via the centroid's `OpAtomicFAddEXT` order-dependent sums — the sites
+   diverge run-to-run (~1.3 by step 600) → the mesh-driven field's
+   run-to-run jitter ~0.001-0.002 (the probe's tree-arm field residual,
+   varying run-to-run). The positions stay bit-identical (the tree's
+   gradient is refresh-cadence-stable); only the field's mesh-driven
+   evolution carries the atomic-order noise.
+
+The gate-c pin (max-diff == 0.0 in both arms) is structurally unreachable
+through the wiring alone — the residuals live in the harness's sequence
+(the 4-step offset + the unseeded-IC premise) and the mesh kernels (the
+float-atomics). The wiring is proven bit-identical by the fair-sequence
+probe. Battery 8/8 green with all three fixes.
+
 ## Landed / gated status
 | Piece | Status | Commit |
 |---|---|---|

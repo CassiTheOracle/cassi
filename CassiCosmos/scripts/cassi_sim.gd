@@ -4650,7 +4650,13 @@ func _dispatch_tree_gravity(cl: int) -> void:
 
 ## Stop the tree worker (reinit / shader retry / exit). Safe with no worker.
 ## The worker is recreated lazily by _tree_worker_frame().
+## Also resets the cadence phase (_tl_frame): the counter is the worker's
+## lifecycle state — a fresh worker must start its refresh at phase 1, or
+## the first up-to-200 frames after a reinit skip the tree build and the
+## nbody runs on a zero/stale gradient (the gate-c tree canary's 10.5
+## divergence — the OFF/ON canaries' workers started at different phases).
 func _tree_worker_stop() -> void:
+	_tl_frame = 0
 	if _tree_worker != null:
 		_tree_worker.stop()
 		_tree_worker = null
@@ -4693,9 +4699,19 @@ func _tree_worker_frame() -> void:
 		bmin.x = minf(bmin.x, sites[si * 4]); bmin.y = minf(bmin.y, sites[si * 4 + 1]); bmin.z = minf(bmin.z, sites[si * 4 + 2])
 		bmax.x = maxf(bmax.x, sites[si * 4]); bmax.y = maxf(bmax.y, sites[si * 4 + 1]); bmax.z = maxf(bmax.z, sites[si * 4 + 2])
 	var half: float = maxf(ext.x, maxf(ext.y, maxf(ext.z, ext.z))) * 1.000001   # box-cube fallback
-	# Gated on home_window_enabled: OFF (default) must stay bit-identical —
-	# the legacy box root (bmin = −half·ones). ON = the structure-rooted cube.
-	if not home_window_enabled:
+	# Gated on the tracked window's ACTUAL RE-FIT state, not the enable
+	# flags: OFF (default) stays bit-identical (the legacy box root), AND a
+	# flag ON with the tracker no-oping (a filling structure — the envelope
+	# == the original box, re_fits == 0, the center unmoved) ALSO keeps the
+	# box root, so the tree force is bit-identical to the closed box in the
+	# compatibility regime (gate-c: the flag-only gate changed the root
+	# half — the structure-rooted cube ≈ 0.97× the box — → pos max-diff
+	# 121.9 over 600 steps). The structure-rooted cube engages ONLY after
+	# the tracked geometry actually re-fits (the envelope re-fit or a moved
+	# window origin).
+	var window_refit: bool = _window_center != Vector3.ZERO \
+			or (_env_tracker != null and _env_tracker.re_fits > 0)
+	if not window_refit:
 		bmin = -Vector3.ONE * half
 		bmax = Vector3.ONE * half
 	elif bmin.x <= -1.0e30 or bmin.x == INF or not (bmin.x == bmin.x):

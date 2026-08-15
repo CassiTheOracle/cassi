@@ -2035,15 +2035,26 @@ func _tree_run_in_list(cl: int) -> void:
 	var ext := _extents()
 	# ADAPTIVE TREE ROOT (perf-decomp 2026-08-15, overhaul migration): the
 	# root cube from the tracked structure's bounding box (the CPU site
-	# mirror) instead of the fixed box origin. Gated on the home-window
-	# toggle: OFF (default) = the legacy box cube, bit-identical.
+	# mirror) instead of the fixed box origin.
+	# Gated on the tracked window's ACTUAL RE-FIT state, not the enable
+	# flag: OFF (default) = the legacy box cube, bit-identical; AND a flag
+	# ON with the tracked geometry no-oping (the sim ships box_scale 1.0 /
+	# a zero window origin for a filling structure) ALSO keeps the box
+	# cube, so the tree force is bit-identical to the closed box in the
+	# compatibility regime (gate-c: the flag-only gate changed the root
+	# half → the tree-arm pos max-diff 121.9 over 600 steps). The
+	# structure-rooted cube engages only after the geometry actually
+	# re-fits (the sim's envelope tracker re-fit — box_scale != 1.0 — or a
+	# moved window origin).
 	var bmin := Vector3.INF
 	var bmax := -Vector3.INF
 	for si in range(S):
 		bmin.x = minf(bmin.x, _ml_sites_cpu[si * 4]); bmin.y = minf(bmin.y, _ml_sites_cpu[si * 4 + 1]); bmin.z = minf(bmin.z, _ml_sites_cpu[si * 4 + 2])
 		bmax.x = maxf(bmax.x, _ml_sites_cpu[si * 4]); bmax.y = maxf(bmax.y, _ml_sites_cpu[si * 4 + 1]); bmax.z = maxf(bmax.z, _ml_sites_cpu[si * 4 + 2])
 	var box_half: float = maxf(ext.x, maxf(ext.y, maxf(ext.z, ext.z))) * 1.000001
-	if not _home_window:
+	var window_refit: bool = _home_window and (box_scale != 1.0 \
+			or _window_center != Vector3.ZERO)
+	if not window_refit:
 		bmin = -Vector3.ONE * box_half
 		bmax = Vector3.ONE * box_half
 	elif bmin.x <= -1.0e30 or bmin.x == INF or not (bmin.x == bmin.x):
