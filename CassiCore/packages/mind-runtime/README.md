@@ -11,12 +11,15 @@ CLI / ACP / admin-api (plan §5 verdicts 22-31).
 
 ## Dependency rule
 
-- **Host-agnostic core.** `@cassicore/mind-runtime` imports **zero** ohmypi and **zero**
-  spine. It depends only on retained mind packages (`mnemic-field`, `helix`,
-  `constellation`, `aurora`, `thalamus`, `flux-team`, `cortex-pineal-dialectic`,
-  `mini-helix`, `workflow`, `foundation`, `events`, `utils`, `tools`, `model-pool`) and
-  on `@cassicore/host` for the **retained brain composition** (`createIntelligence`,
-  `createUnifiedIntelligenceLoop`, `BranchingConversationManager`, `createOrchestrationBus`).
+- **Host-agnostic core.** `@cassicore/mind-runtime` imports **zero** ohmypi, **zero**
+  spine, and **zero** `@cassicore/host` (the host empty shell was deleted at P7; the
+  retained brain composition is vendored locally). It depends only on retained mind
+  packages (`mnemic-field`, `helix`, `constellation`, `aurora`, `thalamus`,
+  `flux-team`, `cortex-pineal-dialectic`, `mini-helix`, `workflow`, `foundation`,
+  `events`, `utils`, `tools`, `model-pool`). The retained brain composition
+  (`createIntelligence`, `createUnifiedIntelligenceLoop`,
+  `BranchingConversationManager`, `createOrchestrationBus`) lives in this package's
+  own `src/vendor/` tree (relocated from the retired host at P5/P7).
 - **Mind-mind boundary.** The runtime *owns* the channel contract (types in
   `src/channel/protocol.ts`, re-exported from the barrel). `@cassicore/spine` imports
   ONLY those types; the runtime never imports the spine.

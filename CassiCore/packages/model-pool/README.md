@@ -1,26 +1,24 @@
 # @cassicore/model-pool
 
-Model pool, model handles, budget/fallback management, billing models and
-capability caching extracted from CassiCore's `core/model-pool/`. History-preserved
-import splice. `core/model-pool/templates.ts` excluded (DEAD).
+The retained `ModelHandle` seam + acquire-shim for the focused mind. After the
+CASSICORE-FOCUS P4 model-access cutover, the delegate `ModelPool` class (fallback
+chains, budget scopes, provider map, capability cache, billing) and its test suite
+are deleted. ohmypi owns provider routing/quota/fallback; this package is the mind's
+**cast over an ohmypi completion** (`mind_complete` transport).
+
+Depends only on `@cassicore/foundation` and `@cassicore/utils`.
 
 ## Surface
 
-- `ModelPool` — the pool (barrel export, `index.ts`)
-- `ModelHandle` / `ModelCapabilities` / `BudgetScope` / `BudgetLimits` / `PoolEvent`
-  etc. (`types.ts`)
-- `FallbackManager`, `BudgetManager`, `ModelHandleImpl`, `BillingModel`,
-  `ModelCapabilitiesFetcher`
+- `ModelHandle`, `ModelCompletionOpts`, `ModelCapabilities` (re-exported from
+  `./ports`) — the retained handle contract helix / constellation / mini-helix inject.
+- `ModelHandleImpl` — the retained completion runtime, `mind_complete`-backed.
+- `ModelPool` (type) — the acquire-shim contract the mind injects via `setModelPool`.
+- `createMindCompleteAcquirer({ logger, transport, defaultModel?, defaultCapabilities? })`
+  — the host-facing factory that builds a `ModelPool`-shaped acquirer over an
+  injected `mind_complete` transport.
+- `MindCompleteTransport` / `ResolvedModel` / `defaultMindCompleteTransport` — the
+  transport seam the spine's `mind_complete` bridge fulfils.
 
-Pulls **no** provider client SDKs (OpenAI/Anthropic/etc.) — it depends only on
-foundation types, `@cassicore/utils` (TTLCache, CircuitBreaker), and a vendored
-`CostClassifier`.
-
-## Vendored
-
-- `src/vendor/core/providers/cost-classifier.ts` — faithful runtime copy of
-  `core/providers/cost-classifier.ts` (`CostClassifier`, self-contained/pure),
-  imported by `billing-models.ts`. Re-pointed to `@cassicore/ai` (or a cost home)
-  at P7/P8.
-
-Depends on `@cassicore/foundation` and `@cassicore/utils`.
+The pre-P4 `billing-models.ts` / vendored `CostClassifier` and the provider-SDK
+"pulls no provider client SDKs" surface were removed with the pool machinery at P4.

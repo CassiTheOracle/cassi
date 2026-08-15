@@ -1,26 +1,37 @@
-# CassiCore P7/P8 Migration Status
+# CassiCore Migration Status — FINAL (focused shape)
 
 **Date:** 2026-08-14
-**Root:** `packages/*` (31 packages under `@cassicore/*`: 29 landed + P3 `mind-runtime`/`spine`)
+**Root:** `packages/*` — **22 retained packages** under `@cassicore/*` (focused mind +
+substrate; all standalone-surface / app / bridge packages deleted).
 **Source (read-only):** `D:\carina\workspaces\cassicore` (committed `d63358da`)
 
-The P0–P8 modular migration of the CassiCore monorepo is **complete**:
-foundation through the thin host, the standalone `@cassicore/ai` provider
-layer, and all 7 remaining entry-surface apps were landed; **P6 (2026-08-14,
-owner-ratified) removed the 4 UI apps + 3 external bridges**; **P4 (2026-08-14)
-executed the model-access cutover** (slimmed `@cassicore/model-pool`, deleted
-`@cassicore/providers` + `@cassicore/ai`); **P5 (2026-08-14) executed the
+The P0–P7 modular migration of the CassiCore monorepo is **complete**, ending in the
+owner-ratified **focused shape**: a thin ohmypi **spine** extension wrapping the
+**mind runtime**, owning the cognitive state while ohmypi owns providers/sessions/tools.
+**P6 (2026-08-14, owner-ratified) removed the 4 UI apps + 3 external bridges**;
+**P4 (2026-08-14) executed the model-access cutover** (slimmed `@cassicore/model-pool`,
+deleted `@cassicore/providers` + `@cassicore/ai`); **P5 (2026-08-14) executed the
 sessions cutover + memory backend** — the retained brain + host composition
 folded into `@cassicore/mind-runtime`, the admin mind-health read slice folded
 into `mind-runtime/src/health`, the mcp-gateway consolidated schemas re-homed
 into `@cassicore/tools/schemas`, and the standalone host/session/tool-surface
 packages (`host` surface, `pipeline`, `commands`, `workers`, `plugins`, `jobs`,
-`mcp`, `admin-api`, `mcp-gateway`) retired. All remaining packages typecheck
-**0 errors** and every retained suite is green.
+`mcp`, `admin-api`, `mcp-gateway`) retired; **P7 (2026-08-14) deleted the `host`
+empty-shell placeholder**, leaving **22 retained packages**. The zero-import
+**focus gate** (`npm run verify:focus`) is the migration's acceptance test and
+PASSES. All 22 retained packages typecheck **0 errors** and every retained suite
+is green (**2336 tests**).
 
 ---
 
-## 1. Packages landed (29 + 2 P3 = 31; P4 deleted providers + ai)
+## 1. Packages landed (29 + 2 P3 = 31; P4 deleted providers + ai) — historical landing record
+
+> **Final focused shape (P7):** 22 packages retained. Deleted along the way:
+> `providers` + `ai` (P4), `commands`/`workers`/`plugins`/`jobs`/`mcp`/`pipeline`/
+> `admin-api`/`mcp-gateway` (P5), `cassi-tui`/`cassi-watch`/`prism`/`webui`/
+> `claude-code-mcp`/`hermes-agent-gateway`/`opencode` (P6), and `host` (P7). The
+> table below is the migration provenance for every package that was landed
+> (including those now deleted); §2 lists the current 22 retained packages.
 
 All migrated with **history-preserving import splices** (two-stage filter-repo
 `--path` → `--path-rename`; per-file flags to avoid the Windows fast-import
@@ -66,6 +77,11 @@ flush `OSError [Errno 22]`). No mailmap; import merges use
 | P8 | `@cassicore/opencode` | `integrations/opencode/` (3) | bare-file opencode plugin (`cassicore.mjs` + install.sh) |
 
 ### 29. `@cassicore/host` — the thin host (turn 4, this phase)
+
+> **DELETED (P7, 2026-08-14).** The host surface migrated here was retired: P5 reduced
+> it to an empty-shell placeholder (retained brain moved to `@cassicore/mind-runtime`),
+> and P7 deleted the shell (`git rm -r packages/host`). The landing/sub-tree record
+> below is kept as provenance.
 
 | source (D:) | dest (host) | note |
 |---|---|---|
@@ -113,8 +129,11 @@ Defines the channel-contract types (spine imports them; runtime imports zero ohm
 | `src/run.ts` | `cassi-mind` bin |
 | tests | 22 vitest (boot + retained-tools runtime + channel contract + bearer auth) |
 
-Depends ONLY on retained mind packages + `@cassicore/host` for the retained brain
-composition. No ohmypi / spine imports.
+The retained brain composition (`createIntelligence` + vendored `core/intelligence/**`)
+was relocated OUT of `@cassicore/host` into this package's own `src/vendor/` at P5
+(P7 deleted the host shell). Depends ONLY on retained mind packages (no `@cassicore/host`,
+no ohmypi, no spine imports); the retained brain composition comes from its local
+`src/vendor/core/intelligence/` tree.
 
 ### 31. `@cassicore/spine` — the ohmypi extension
 
@@ -144,47 +163,50 @@ fidelity; `registerMindTools` is the P3 retained-mind registration seam
 
 ---
 
-## 2. Test counts per package (all green)
+## 2. Test counts per package — the 22 retained packages (all green)
 
-| package | files | tests |
-|---|---|---|
-| admin-api | 2 | 9 |
-| aurora | 36 | 698 |
-| cognitive-feed | 1 | 97 |
-| commands | — | passWithNoTests |
-| constellation | 25 | 568 |
-| cortex-pineal-dialectic | 4 | 143 |
-| dreamer-reverie-subconscious | 8 | 184 |
-| embeddings | — | passWithNoTests |
-| events | — | passWithNoTests |
-| flux-team | 4 | 186 |
-| foundation | 1 | 10 |
-| helix | 9 | 75 |
-| **host** | **2** | **17** (bridge-acp 12 + acp-roundtrip 5; qwen 1 skipped) |
-| jobs | — | passWithNoTests |
-| lamina-locus-bridge | 1 | 8 |
-| mcp | — | passWithNoTests |
-| mcp-gateway | 1 | 40 |
-| **mind-runtime** | **3** | **22** |
-| mini-helix | 1 | 21 |
-| mnemic-field | 6 | 89 |
-| model-pool | 1 | 10 (retained-handle/acquire-shim; pool machinery deleted) |
-| pipeline | 1 | 2 |
-| plugins | — | passWithNoTests |
-| **spine** | **3** | **16** |
-| thalamus | 6 | 97 |
-| tools | 3 | 39 |
-| training-trust-ledger | 2 | 53 |
-| utils | — | passWithNoTests |
-| workers | 2 | 97 |
-| workflow | — | passWithNoTests |
-| workspace | 1 | 17 |
+|| package | files | tests |
+|---|---|---|---|
+|| aurora | 36 | 698 |
+|| cognitive-feed | 1 | 97 |
+|| constellation | 25 | 568 |
+|| cortex-pineal-dialectic | 4 | 143 |
+|| dreamer-reverie-subconscious | 8 | 184 |
+|| embeddings | — | passWithNoTests |
+|| events | — | passWithNoTests |
+|| flux-team | 4 | 186 |
+|| foundation | 1 | 10 |
+|| helix | 9 | 75 |
+|| lamina-locus-bridge | 1 | 8 |
+|| **mind-runtime** | **4** | **25** |
+|| mini-helix | 1 | 21 |
+|| mnemic-field | 6 | 89 |
+|| model-pool | 1 | 10 (retained-handle/acquire-shim; pool machinery deleted) |
+|| **spine** | **3** | **16** |
+|| thalamus | 6 | 97 |
+|| tools | 3 | 39 |
+|| training-trust-ledger | 2 | 53 |
+|| utils | — | passWithNoTests |
+|| workflow | — | passWithNoTests |
+|| workspace | 1 | 17 |
 
-**23 retained packages typecheck 0 errors; all retained suites green (2336 tests).**
+**22 retained packages typecheck 0 errors; all retained suites green (2336 tests).**
 
+> **P7 (2026-08-14) — final focused shape:**
+> deleted the `host` empty-shell placeholder (it exported only `HOST_RETIRED=true`;
+> nothing imported it; zero-import guard verified before deletion). **Packages
+> 23 → 22.** Host was passWithNoTests, so the suite total stays **2336**. The new
+> zero-import **focus gate** (`npm run verify:focus`, [[`scripts/verify-focus-gate.mjs`]])
+> is the migration's acceptance test: it asserts no retained package statically
+> imports `@cassicore/{host,providers,ai,admin-api,mcp-gateway,mcp,pipeline,commands,
+> workers,plugins,jobs,cassi-tui,cassi-watch,prism,webui,claude-code-mcp,
+> hermes-agent-gateway,opencode}`, nor a bare pre-migration `core/intelligence/` or
+> `core/daemon` path, and asserts the mind-runtime/spine dependency contract (mind-runtime
+> has no host/spine dep; spine depends on mind-runtime + tools). **PASSES (exit 0).**
+>
 > **P6 (2026-08-14):** removed the 7 passWithNoTests standalone apps/bridges
 > (`cassi-tui`, `cassi-watch`, `prism`, `webui`, `claude-code-mcp`,
-> `hermes-agent-gateway`, `opencode`) from this table — deleted per owner
+> `hermes-agent-gateway`, `opencode`) from the count — deleted per owner
 > ratification, history-preserved in git.
 >
 > **P4 (2026-08-14) model-access cutover — test-gate relaunch:**
@@ -217,49 +239,49 @@ fidelity; `registerMindTools` is the P3 retained-mind registration seam
 
 ### Quarantined to `tests/host-wired/` (excluded from default runs)
 
-Host-wired suites that import `core/daemon.js` / wrong-host modules (assertions
-kept UNCHANGED; re-pointed imports; house headers):
+Host-wired suites that imported `core/daemon.js` / the deleted host surface. These are
+**permanently excluded** from the default runs (and contributed 0 to the 2336 total):
+the host/daemon modules they wired against were deleted at P5/P7. Surviving quarantined
+host-wired files inside the 22 retained packages (assertions kept UNCHANGED):
 
-| package | files (host-wired) |
+| package | files (host-wired, excluded) |
 |---|---|
-| admin-api | 3 (`admin-model-api`, `admin-plugin-api` — env-blocked by copilot-sdk ESM; `admin-observability-boot` — daemon.js) |
 | aurora | 2 |
 | constellation | 8 |
 | cortex-pineal-dialectic | 2 |
 | helix | 1 |
-| mcp-gateway | 1 |
 | mnemic-field | 2 |
 | thalamus | 2 |
 | tools | 6 |
 
-Plus vendored D:-only test files under `src/vendor/**` excluded from the host
-default run (they test unmigrated D: internals).
+(Former admin-api / mcp-gateway host-wired files vanished with those deleted packages.)
+
+Plus vendored D:-only test files under `src/vendor/**` excluded from the default
+run (they test unmigrated D: internals).
 
 ---
 
-## 3. Remaining work
+## 3. Remaining work (P7 closes the migration)
 
-1. **P6 surface removal DONE (owner-ratified 2026-08-14) — 4 UI apps + 3 bridges
-   deleted** from `packages/`: `cassi-tui`, `cassi-watch`, `prism`, `webui` (the
-   4 standalone operator apps) and `claude-code`, `hermes-agent`, `opencode`
-   (the 3 external-facing bridges, whose external re-pointing was the pending
-   owner-confirmation item — owner ratified full deletion). History-preserved
-   in git; lockfile regenerated; all 31 retained suites green.
-2. **Host-vendor stub re-points (host-turn / P8)** — tools' `vendor/core`
-   `{session-store,turn-pipeline,tool-proxy-middleware,workspace-loader,
-   resource-limits}` + mcp/tools `vendor/core/version` → `@cassicore/host`
-   (host root barrel now exports version/session-store/turn-pipeline so the
-   target is resolvable). **Deferred:** these re-points introduce a
-   `host ↔ tools|mcp` dependency **cycle** (host already depends on tools/mcp);
-   resolve the cycle first (P8 or a dedicated dep-cleaning pass), then re-point
-   and delete the stubs.
+1. **Surface removal & host deletion — DONE.** P6 removed the 4 UI apps + 3 external
+   bridges (`cassi-tui`, `cassi-watch`, `prism`, `webui`, `claude-code`,
+   `hermes-agent`, `opencode`) per owner ratification; **P7 (2026-08-14) deleted the
+   `host` empty-shell placeholder** (22 retained packages). Lockfile regenerated; all
+   22 retained suites green (2336 tests); the focus gate (`npm run verify:focus`)
+   passes. History preserved in git.
+2. **Host-vendor stub re-points — RESOLVED by deletion.** The former tools `vendor/core`
+   `{session-store,turn-pipeline,tool-proxy-middleware,workspace-loader,resource-limits}`
+   + mcp/tools `vendor/core/version` re-points to `@cassicore/host` are moot: the host
+   package is deleted. The retained coding-tool surfaces that referenced those seams
+   keep their local in-package vendored copies (the `@cassicore/host ↔ tools|mcp`
+   cycle died with the host shell). No further action.
 3. **`core/daemon.ts` +87 uncommitted overhaul lines** — reconcile with the D:
    parallel session; re-import if they become canonical.
 4. **D: cleanup decisions** — the source repo's 374+ dirty working-tree files
    (live overhaul session + CRLF) are not mine; the owner decides whether to
    commit/sweep them, and whether the mirror (`D:/carina/.cassi-mirror`) is
    retained.
-5. **Overhaul handoff points** — the daemon's vendored `createIntelligence`
+5. **Overhaul handoff points** — the mind-runtime's vendored `createIntelligence`
    brain closure (`src/vendor/core/intelligence/*`) can be slimmed once the
    overhaul session's field-as-truth transform lands; `mnemic-field`
    `store.onWrite` stays UNOCCUPIED (P4 handshake) until the overhaul encoder.

@@ -30,8 +30,9 @@ Rewiring applied:
    - `core/intelligence/permission-oracle/types.ts` (`resolveToolDomain`) —
      RUNTIME pure function; owned by `@cassicore/training-trust-ledger` (P5).
    - `core/mcp/{client,types}.ts` (`MCPClient`, `MCPServerConfig`) — faithful
-     stub; owned by `@cassicore/mcp` (P6). `vybit.ts` instantiates `MCPClient`
-     only when the vybit tool is invoked.
+     local vendored copy (the `@cassicore/mcp` package was deleted at P5; the
+     coding-tool machinery kept only this in-package copy). `vybit.ts`
+     instantiates `MCPClient` only when the vybit tool is invoked.
    - `core/intelligence/{thought-observer,cognitive-bridge,branching-conversation,
      synapse,thinker}/*` — **type stubs** (Open-6 default: vendor faithful stubs
      when the owning P5 package doesn't yet export the symbol).
@@ -52,10 +53,12 @@ meta-tool.
 
 ## Notes
 
-- `@cassicore/events`, `@cassicore/utils`, `@cassicore/mcp`, `@cassicore/jobs`,
-  `@cassicore/workflow` are landed in later P6 turns; this package vendors the
-  surfaces it consumes and re-points as each publishes (tools is the
-  highest-fanout package, so this re-point is its own commit).
+- `@cassicore/events`, `@cassicore/utils`, `@cassicore/workflow` are retained
+  packages; this package vendors the surfaces it consumes and re-points as each
+  publishes (tools is the highest-fanout package, so this re-point is its own
+  commit). The former `@cassicore/mcp` and `@cassicore/jobs` packages were
+  **deleted** at P5 (coding-tool MCP/job-manager machinery now lives as local
+  vendored `vendor/core/{mcp,jobs}` copies, not as package deps).
 - DEAD (`activity-tools`, `edit-file`, `read-file-benchmark`, `skill`) and
   UNCERTAIN (`lsp-tool`, `peer-coordination-tools`, `think`) implementation
   files are quarantined and do not cross; the `implementations/` `.md` docs are

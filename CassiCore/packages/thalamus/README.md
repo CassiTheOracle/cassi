@@ -40,7 +40,8 @@ packages via the repoint log as they land):
 - `vendor/core/intelligence/{locus-bridge,workspace,embeddings,aurora,cortex,pineal}/` —
   type-only stubs for `LocusBridge`, `CognitiveSignal`, `EmbeddingService`, and the
   turn-2 siblings (`CorticalField`, `FacetManager`, `PinealAssembler`, `Aurora`).
-- `vendor/core/intelligence/embeddings/reranker-service.js` and
-  `vendor/core/pipeline/turn/overflow.js` — **runtime** faithful self-contained copies
-  (`getRerankerService`, `hasQuestionResult`, `buildToolUseMapFromMessages`) re-pointed
-  to `@cassicore/embeddings` / `@cassicore/pipeline` when those packages land.
+- The former `vendor/core/pipeline/turn/overflow.js` runtime copy is gone — the
+  overflow/classification helpers (`hasQuestionResult`,
+  `buildToolUseMapFromMessages`) moved to **`@cassicore/utils`** at P5 (the
+  `@cassicore/pipeline` package was deleted). `getRerankerService` remains a faithful
+  local vendored copy at `vendor/core/intelligence/embeddings/reranker-service.js`.
