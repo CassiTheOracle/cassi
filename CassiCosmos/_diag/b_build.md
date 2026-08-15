@@ -186,6 +186,6 @@ per-patch PCs + the rim/downsample passes.
 | Piece | Status | Commit |
 |---|---|---|
 | 1 — tracking envelope (module + unit battery + probe battery + docs) | LANDED, gated on the battery 8/8 + the probe PASS | ``3bfc96f`` |
-| 2 — gate-vi battery + the interface (the fine-patch family + the ghost-cell coupling) | LANDED, measured PASS (R-R_cal <= 2% on all arms, determinism bit-identical) | `<!-- gvi -->` |
-| 3 — fine patches + coupling | the probe machinery landed with gate-vi; the PATCH LIFECYCLE (spawn/re-tile/die at the pinned cadence around the structure) = the remaining gated piece | `<!-- gvi -->` |
+| 2 — gate-vi battery + the interface (the fine-patch family + the ghost-cell coupling) | LANDED, measured PASS (R-R_cal <= 2% on all arms, determinism bit-identical) | `a762a8a` |
+| 3 — fine patches + coupling | the probe machinery landed with gate-vi; the PATCH LIFECYCLE (spawn/re-tile/die at the pinned cadence around the structure) = the remaining gated piece | `a762a8a` |
 | 4 — expands-past-any-finite-tile probe | folds into piece 1's mechanism + piece 3's patch story | — |
