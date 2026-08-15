@@ -1,5 +1,5 @@
 import type { MessageSlotType } from './types.js'
-import { hasQuestionResult } from '@cassicore/pipeline'
+import { hasQuestionResult } from '@cassicore/utils'
 
 /**
  * Tool class map — classifies tool names into high-level categories.

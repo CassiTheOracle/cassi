@@ -13,5 +13,6 @@ export { CircuitBreaker, CircuitState, CircuitOpenError, createCircuitBreaker } 
 export type { CircuitBreakerOptions } from './circuit-breaker.js'
 export { generateShortId, generateReadableId } from './ids.js'
 export { clamp, lerp, remap } from './math.js'
+export { ContextOverflowError, isOverflowError, reclassifyAsOverflow, contentLength, stripToolFiller, isQuestionBlock, hasQuestionResult, buildToolUseMapFromMessages } from './overflow.js'
 export { TTLCache, createTTLCache } from './ttl-cache.js'
 export type { TTLCacheOptions } from './ttl-cache.js'

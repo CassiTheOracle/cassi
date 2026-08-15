@@ -7,7 +7,7 @@ export default defineConfig({
     // temp homes + open sqlite/lmdb files).
     pool: 'forks',
     include: ['src/**/*.test.ts', 'test/**/*.test.ts'],
-    exclude: ['node_modules/**'],
+    exclude: ['src/vendor/**', 'node_modules/**'],
     testTimeout: 30_000,
   },
 })

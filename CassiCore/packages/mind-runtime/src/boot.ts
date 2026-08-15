@@ -33,11 +33,14 @@ import { bus as busSingleton, EventHistory, getEventHistory, rootLogger } from '
 import { MnemicField } from '@cassicore/mnemic-field'
 import { registerMindTools, ToolRegistry, type CoreToolDeps } from '@cassicore/tools'
 
-// Retained brain composition (host package = the retained host essence, verdict 26).
-import { createIntelligence, type IntelligenceLayer } from '@cassicore/host/vendor/core/intelligence'
-import { createUnifiedIntelligenceLoop } from '@cassicore/host/vendor/core/intelligence/unified-loop'
-import { BranchingConversationManager } from '@cassicore/host/vendor/core/intelligence/branching-conversation/manager'
-import { createOrchestrationBus } from '@cassicore/host/vendor/core/orchestration-bus'
+// Retained brain composition — host-agnostic in @cassicore/mind-runtime:
+// the createIntelligence closure + retained vendored core/intelligence modules
+// relocated from the retired host's vendor tree (P5 verdict 26). mind-runtime is
+// now the sole composition root for the retained mind.
+import { createIntelligence, type IntelligenceLayer } from './vendor/core/intelligence/index.js'
+import { createUnifiedIntelligenceLoop } from './vendor/core/intelligence/unified-loop.js'
+import { BranchingConversationManager } from './vendor/core/intelligence/branching-conversation/manager.js'
+import { createOrchestrationBus } from './vendor/core/orchestration-bus.js'
 
 import { MnemicMemoryAdapter } from './memory/backend.js'
 import { MindSessionMirror } from './session-store.js'
@@ -306,12 +309,9 @@ export async function createMindRuntime(opts: MindRuntimeOptions = {}): Promise<
     registry,
     startedAt,
     close: async () => {
-      try {
-        const uni = (await import('@cassicore/host/vendor/core/intelligence/unified-loop')).default
-        // The unified loop instance is reachable only within boot; call stop via
-        // the singleton shutdown path defined by the retained loop's own `close`.
-        void uni
-      } catch { /* ignore */ }
+      // The unified loop's stop is handled inside boot (wired at creation); here we
+      // release the field DB + log. The unified-loop module is imported at boot, not
+      // re-fetched here.
       try { field.close() } catch { /* ignore */ }
       logger.info('Mind runtime closed', { uptimeMs: Date.now() - startedAt })
     },

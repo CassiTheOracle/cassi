@@ -10,7 +10,7 @@
 
 import type { ScoredMessage, ThalamusAnnotation, RerankerCompressionCache } from './types.js'
 import { isWriteTool, isReadTool, shortenPath } from './classifier.js'
-import { hasQuestionResult, buildToolUseMapFromMessages } from '@cassicore/pipeline'
+import { hasQuestionResult, buildToolUseMapFromMessages } from '@cassicore/utils'
 
 export interface TopicCluster {
   /** Short label derived from content keywords */

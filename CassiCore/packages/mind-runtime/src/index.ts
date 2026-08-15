@@ -26,6 +26,18 @@ export type {
 export { MindSessionMirror } from './session-store.js'
 export type { MindSessionManagerSurface } from './session-store.js'
 
+// ── Retained mind-health read slice (admin-api fold, §5 #27) ─────────────────
+export { collectMindHealth } from './health/index.js'
+export type {
+  CortexHealth,
+  PinealHealth,
+  ThalamusHealth,
+  MemoryHealth,
+  ReplayHealth,
+  ObservabilityHealth,
+  MindHealthSnapshot,
+} from './health/index.js'
+
 // ── Channel contract types (the stable seam spine imports) ──────────────────
 export type {
   SessionMirrorEvent,

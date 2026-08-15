@@ -29,6 +29,7 @@ import { createServer, type Server, type IncomingMessage, type ServerResponse } 
 import type { ILogger } from '@cassicore/foundation'
 
 import type { MindRuntime } from '../boot.js'
+import { collectMindHealth } from '../health/index.js'
 import type {
   ChannelRequest,
   ExecuteToolRequest,
@@ -240,6 +241,7 @@ export class MindChannelServer {
       uptimeMs: Date.now() - this.runtime.startedAt,
       fieldStats: this.safeFieldStats(),
       lightningStatus: this.safeLightningStatus(),
+      retained: collectMindHealth(this.runtime),
     }
   }
 

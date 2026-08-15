@@ -118,6 +118,53 @@ export interface HealthResponse extends ChannelResponse {
   uptimeMs: number
   fieldStats?: Record<string, unknown> | null
   lightningStatus?: Record<string, unknown> | null
+  /** P5 retained mind-health read slice (admin-api fold): cortex/pineal/thalamus/memory/replay/observability. */
+  retained?: MindHealthSnapshot
+}
+
+/**
+ * The retained mind-health read snapshot (host-agnostic, read-only over the field).
+ * Mirrors `packages/mind-runtime/src/health/index.ts`'s `MindHealthSnapshot`.
+ */
+export interface MindHealthSnapshot {
+  cortex: {
+    available: boolean
+    regions?: Array<{ name: string; activation: number }>
+    activeSignals?: number
+    affect?: Record<string, unknown> | null
+    stats?: Record<string, unknown> | null
+    oscillation?: { running: boolean }
+  }
+  pineal: {
+    available: boolean
+    domains?: string[]
+    facets?: number
+    pinned?: number
+  }
+  thalamus: {
+    available: boolean
+    activeSession?: string | null
+    contextStats?: Record<string, unknown> | null
+  }
+  memory: {
+    available: boolean
+    engrams?: number
+    stats?: Record<string, unknown> | null
+    lightning?: Record<string, unknown> | null
+    harmony?: Record<string, unknown> | null
+  }
+  replay: {
+    available: boolean
+    loops?: { unifiedLoop: boolean; cortexOscillation: boolean }
+    sessions?: number
+    uptimeMs?: number
+  }
+  observability: {
+    available: boolean
+    modules?: number
+    busEventsTracked?: number
+    startedAt?: number
+  }
 }
 
 // ── Memory backend endpoints ─────────────────────────────────────────────────
