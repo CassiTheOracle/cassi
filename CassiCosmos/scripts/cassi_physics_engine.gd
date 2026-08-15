@@ -204,16 +204,6 @@ var _mass_density_buf: RID
 var _mass_density_fix: RID  # uvec4 per cell — exact fixed-point digit-sum deposit accumulator (determinism fix, cassi_mass_deposit.glsl)
 # — mode-5 tree seam: nbody SET 1 binding 3 (the buffer the nbody reads) —
 var _tree_grad: RID    # vec4[max(N_particles,1)] — per-particle tree ∇Φ_g (uploaded via run_steps)
-# — fp16 snapshot packing (Part 2 of the transfer optimization): the pack
-# pass runs on THIS engine's local RD (worker thread) and halves the
-# pos/vel readback (N×8 B per array vs N×16). The render side unpacks in
-# cassi_blend_pos.glsl (packed modes). CPU _pack_f16_pairs is the fallback
-# when the pack shader fails to build (same byte layout).
-var _pos_packed_buf: RID   # uvec2[max(N_particles,1)] — packed pos half-pairs
-var _vel_packed_buf: RID   # uvec2[max(N_particles,1)] — packed vel half-pairs
-var _pack_shader: RID; var _pack_pipe: RID
-var _us_pack_pos: RID; var _us_pack_vel: RID
-var _pack_pc_bytes: PackedByteArray  # pack PC (uint count + pad = 8 B)
 # — meshless (moving-Voronoi) arm buffers (allocated always; used when meshless_mode) —
 var _jfa_shader: RID; var _jfa_pipe: RID
 var _cell_shader: RID; var _cell_pipe: RID
@@ -317,6 +307,10 @@ var _cascade_ran := 0      # lifetime coarse-solve count (verify/battery diag)
 var _ready := false
 var _setup_done := false            # M0b-P: the worker's CPU-side setup complete
 var _setup_compute_done := false    # M0b-P: finish_setup ran (the GPU-facing setup)
+var _pipes_done := false            # M0b-P-FX: the shader/pipeline creation ran
+									# (on the worker for the global path — pipeline
+									# creation is NOT render-thread-gated, only
+									# buffer_update + compute lists are)
 # M0b-P: the IC host arrays — the worker generates them (CPU); the main
 # thread uploads them in finish_setup (global-RD buffer_update is
 # render-thread-only).
@@ -361,31 +355,19 @@ var _eps_mean: float = 0.0
 var _hubble: float = 0.0
 var _scale_factor: float = 1.0
 
-# — threaded runner (the cassi_tree_worker.gd pattern: local RD created on
-# the worker, SPIR-V loaded on the main thread, sets left to the device) —
+# — threaded runner (the M0b-P one-RD model: the worker does the CPU-side
+# setup + the pipeline creation, then exits; the chains are recorded by the
+# render thread into the shared global-RD queue) —
 var _thread: Thread = null
 var _thread_started := false
 var _running := false
-var _job_sem: Semaphore = null
-var _done_sem: Semaphore = null
-var _setup_sem: Semaphore = null
-var _job_mutex: Mutex = null
-var _res_mutex: Mutex = null
-var _job: Dictionary = {}
-var _job_pending := false
-var _res_result: Dictionary = {}
-var _res_gen := 0
-var _consumed_gen := 0
-var _wait_next := true      # first submit after start blocks (fresh-bootstrap)
-var _executed := 0          # worker-side cumulative executed step count
-# ── Mirror publish cadence (Part 1 of the transfer optimization): the
-# snapshot+telemetry readbacks run every Kth JOB (cfg key snapshot_cadence,
-# default 2) instead of every job; non-publish jobs carry ONLY
-# {executed, step_count, t} — the sim skips the mirror upload and keeps the
-# backlog/readouts. The sim overrides the cadence per-submit via the job
-# dict ("cadence") — live without reinit.
-var _snapshot_cadence: int = 2
-var _job_counter := 0       # job sequence counter (publish when % cadence == 0)
+var _executed := 0          # render-thread cumulative executed step count
+# ── (M0b-P-FX cleanup: the worker-side job machinery — _job_sem/_done_sem/
+# _setup_sem/_job_mutex/_res_mutex/_job/_job_pending/_res_result/_res_gen/
+# _consumed_gen/_wait_next/_snapshot_cadence/_job_counter — died with the
+# job loop in M0b-P; all were reset-only. tree_cadence gates the in-list
+# tree job (the sim's cfg key); snapshot_cadence is accepted and ignored
+# (the readback cadence is the sim's mirror_publish_cadence).) —
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -476,17 +458,21 @@ func setup(cfg: Dictionary) -> bool:
 	_tree_job_counter = 0
 	_home_window = bool(cfg.get("home_window", false))
 	_window_center = Vector3(cfg.get("window_center", Vector3.ZERO))
-	_snapshot_cadence = maxi(int(cfg.get("snapshot_cadence", 2)), 1)
-	_job_counter = 0
 	# ── build the chain ──
 	if _rd_global:
-		# M0b-P (one-RD): the worker's setup is CPU-only — the global RD's
+		# M0b-P (one-RD): the worker's setup is CPU-side — the global RD's
 		# buffer_update AND compute lists are render-thread-only (empirically
-		# verified 2026-08-15). The GPU-facing setup (_setup_buffers +
-		# _setup_shaders + the IC uploads + the initial compute dispatches)
-		# runs on the main thread via finish_setup(); the expensive CPU-side
-		# IC generation stays on the worker (the FIX A non-blocking boot).
+		# verified 2026-08-15). The GPU-facing setup (_setup_buffers + the IC
+		# uploads + the initial compute dispatches) runs on the main thread
+		# via finish_setup(); the expensive CPU-side IC generation stays on
+		# the worker (the FIX A non-blocking boot).
+		# M0b-P-FX (boot hitch): the PIPELINE creation is NOT among the
+		# render-thread-gated calls — the worker compiles the shaders/pipes
+		# here (the ~600 ms one-time boot hitch returns to the worker); the
+		# uniform sets stay render-thread (they bind the buffers, which need
+		# the render thread for their zero-fill updates).
 		_init_particles_cpu()
+		_create_pipelines()
 		_setup_done = true
 		print("[PhysicsEngine] setup done (worker CPU side) — grid=%d^3 particles=%d xi=%.5f (phi6=%.5f) rd_global=%s" % [
 			grid_N, N_particles, xi, PHI_6, "true" if _rd_global else "false"])
@@ -528,15 +514,22 @@ func finish_setup() -> void:
 	if _setup_compute_done:
 		return
 	_setup_compute_done = true
+	var _t0 := Time.get_ticks_msec()
 	_setup_buffers()
+	var _t1 := Time.get_ticks_msec()
 	_setup_shaders()
+	var _t2 := Time.get_ticks_msec()
 	if not _ready:
 		push_error("[PhysicsEngine] finish_setup: pipes missing (spirv dict size=%d)" % [_cfg_spirv.size()])
 		return
 	_upload_particles()
+	var _t3 := Time.get_ticks_msec()
 	_init_field()
+	var _t4 := Time.get_ticks_msec()
 	_apply_gravity_calibration()
+	var _t5 := Time.get_ticks_msec()
 	_grav_warmup = true  # fill the acc cache with a fresh force before step 1
+	print("[PhysicsEngine] finish_setup ms: buffers=%d shaders=%d upload=%d field=%d calib=%d total=%d" % [_t1 - _t0, _t2 - _t1, _t3 - _t2, _t4 - _t3, _t5 - _t4, _t5 - _t0])
 
 
 ## Record the full per-step chain n times. On a global RD the list is
@@ -664,14 +657,11 @@ func read_com() -> Array:
 	return [com.x / float(cnt), com.y / float(cnt), com.z / float(cnt)]
 
 
-## The mirror state the render side will consume (phase 2): positions,
-## velocities, the Qi field and the solved potential, plus the sim time.
-## packed=true returns pos/vel as fp16 half-pair PackedByteArrays (N×8 B
-## each: word0 = half(x)|half(y)<<16, word1 = half(z)|half(w)<<16) — the
-## transfer optimization. The pack runs ON THE WORKER's local RD (GPU pass)
-## or the CPU reference packer (fallback) — never the main thread. field_q
-## and pot stay fp32 either way. The dict carries "packed" so the consumer
-## can pick its unpacking path.
+## PROBE-ONLY (M0b-P-FX): the snapshot readback survives solely for the
+## _diag/m0b_parity.gd parity probe (fp32 pos/vel + field_q + pot) — the
+## decoupled path's render reads the engine's live buffers directly (P3),
+## so NO production caller reads snapshots. The fp16 pack transport died
+## with the mirrors; packed=true now falls through to the fp32 path.
 func readback_snapshot(packed := false) -> Dictionary:
 	if _rd == null or not _ready:
 		return {}
@@ -680,33 +670,8 @@ func readback_snapshot(packed := false) -> Dictionary:
 		_local_pending = false
 	var nc: int = grid_N * grid_N * grid_N
 	var np1 := maxi(N_particles, 1)
-	var pos; var vel
-	if packed and _pack_pipe.is_valid():
-		# GPU pack pass on the local RD: read the fp32 pos/vel buffers,
-		# write the half-pair buffers, then read back HALF the bytes.
-		_pack_pc_bytes.encode_u32(0, np1)
-		var cl := _rd.compute_list_begin()
-		_rd.compute_list_bind_compute_pipeline(cl, _pack_pipe)
-		_rd.compute_list_bind_uniform_set(cl, _us_pack_pos, 0)
-		_rd.compute_list_set_push_constant(cl, _pack_pc_bytes, _pack_pc_bytes.size())
-		_rd.compute_list_dispatch(cl, ceili(float(np1) / 64.0), 1, 1)
-		_rd.compute_list_bind_uniform_set(cl, _us_pack_vel, 0)
-		_rd.compute_list_dispatch(cl, ceili(float(np1) / 64.0), 1, 1)
-		_rd.compute_list_end()
-		_rd.submit()
-		_local_pending = true
-		_rd.sync()
-		_local_pending = false
-		pos = _rd.buffer_get_data(_pos_packed_buf, 0, np1 * 8)
-		vel = _rd.buffer_get_data(_vel_packed_buf, 0, np1 * 8)
-	elif packed:
-		# CPU fallback (pack shader unavailable): same byte layout, packed
-		# on the worker thread — the main thread never pays the packing.
-		pos = _pack_f16_pairs(_rd.buffer_get_data(_pos_buf, 0, np1 * 16).to_float32_array())
-		vel = _pack_f16_pairs(_rd.buffer_get_data(_vel_buf, 0, np1 * 16).to_float32_array())
-	else:
-		pos = _rd.buffer_get_data(_pos_buf, 0, np1 * 16).to_float32_array()
-		vel = _rd.buffer_get_data(_vel_buf, 0, np1 * 16).to_float32_array()
+	var pos := _rd.buffer_get_data(_pos_buf, 0, np1 * 16).to_float32_array()
+	var vel := _rd.buffer_get_data(_vel_buf, 0, np1 * 16).to_float32_array()
 	var fq := _rd.buffer_get_data(_field_q, 0, nc * 4).to_float32_array()
 	var fft := _rd.buffer_get_data(_fft_buf, 0, nc * 8).to_float32_array()
 	# Potential = the real part of the FFT workspace (vec2 per cell, Φ in .x).
@@ -717,98 +682,8 @@ func readback_snapshot(packed := false) -> Dictionary:
 		pot[i] = fft[i * 2]
 	return {
 		"pos": pos, "vel": vel, "field_q": fq, "pot": pot, "t": _time,
-		"packed": packed,
+		"packed": false,
 	}
-
-
-# ── fp16 (half) conversion — IEEE-754 f32 → f16 with round-to-nearest-even.
-# GDScript has no builtin; the bit twiddle mirrors packHalf2x16's rounding
-# (SPIR-V OpQuantizeToF16). The per-value _f32_to_f16 is the reference the
-# probes verify; the BULK packers use the bits-core directly (no per-value
-# allocations on the hot path). The byte layout is the same everywhere:
-# two halfs per uint32, low half first: (half(a) | half(b) << 16). ──
-static var _f16_scratch := PackedByteArray([0, 0, 0, 0])
-
-
-static func _f32_to_f16(v: float) -> int:
-	_f16_scratch.encode_float(0, v)
-	return _f32_bits_to_f16(_f16_scratch.decode_u32(0))
-
-
-## f32 IEEE-754 bits → f16 bits (round-to-nearest-even on the 13 dropped
-## mantissa bits; ties round to even — the GLSL packHalf2x16 convention).
-static func _f32_bits_to_f16(u: int) -> int:
-	var sign := (u >> 16) & 0x8000
-	var exp := (u >> 23) & 0xFF
-	var mant := u & 0x7FFFFF
-	if exp == 0xFF:
-		if mant == 0:
-			return sign | 0x7C00              # ±inf
-		return sign | 0x7C00 | (mant >> 13)   # NaN (payload truncated)
-	var e: int = exp - 127 + 15
-	if e >= 0x1F:
-		return sign | 0x7C00                  # overflow → ±inf
-	if e <= 0:
-		# |v| < 2^-14: below the f16 normal range → ±0. Subnormal f16
-		# (down to 2^-24) would round here, but the sim's positions/
-		# velocities/masses never live in that band — invisible at box
-		# scale (and the render side shares the exact same quantization).
-		return sign
-	var half := sign | (e << 10) | (mant >> 13)
-	var rem := mant & 0x1FFF
-	if rem > 0x1000 or (rem == 0x1000 and ((half >> 10) & 1) == 1):
-		half += 1
-	return half
-
-
-## f16 bits → f32 (exact — used by the round-trip probe).
-static func _f16_to_f32(h: int) -> float:
-	var sign := -1.0 if (h & 0x8000) != 0 else 1.0
-	var exp := (h >> 10) & 0x1F
-	var mant := h & 0x3FF
-	if exp == 0x1F:
-		return INF if mant == 0 else NAN
-	if exp == 0:
-		return sign * (float(mant) * pow(2.0, -24.0))
-	return sign * (1.0 + float(mant) / 1024.0) * pow(2.0, float(exp - 15))
-
-
-## Bulk pack: PackedFloat32Array → half-pair PackedByteArray (2 floats per
-## uint32). Byte-identical to the GPU pack pass (cassi_pack_f16.glsl).
-static func _pack_f16_pairs(f32: PackedFloat32Array) -> PackedByteArray:
-	var n := f32.size()
-	var out := PackedByteArray()
-	out.resize(ceili(float(n) / 2.0) * 4)
-	var bytes := f32.to_byte_array()
-	var oi := 0
-	var i := 0
-	while i + 1 < n:
-		out.encode_u32(oi, _f32_bits_to_f16(bytes.decode_u32(i * 4))
-				| (_f32_bits_to_f16(bytes.decode_u32((i + 1) * 4)) << 16))
-		oi += 4
-		i += 2
-	if i < n:
-		out.encode_u32(oi, _f32_bits_to_f16(bytes.decode_u32(i * 4)))
-	return out
-
-
-## Bulk unpack: half-pair PackedByteArray → PackedFloat32Array (the mirror
-## of _pack_f16_pairs — the CPU round-trip reference for the probes).
-static func _unpack_f16_pairs(packed: PackedByteArray, n_floats: int) -> PackedFloat32Array:
-	var out := PackedFloat32Array()
-	out.resize(n_floats)
-	var n_pairs := packed.size() / 4
-	var i := 0
-	var oi := 0
-	while i + 1 < n_floats and oi < n_pairs:
-		var w: int = packed.decode_u32(oi * 4)
-		out[i] = _f16_to_f32(w & 0xFFFF)
-		out[i + 1] = _f16_to_f32(w >> 16)
-		i += 2
-		oi += 1
-	if i < n_floats and oi < n_pairs:
-		out[i] = _f16_to_f32(packed.decode_u32(oi * 4) & 0xFFFF)
-	return out
 
 
 ## The sim-UI telemetry (decoupled mode): the gravity telemetry buffer's
@@ -893,7 +768,6 @@ func start_threaded(cfg: Dictionary) -> bool:
 			"res://compute/cassi_voronoi_raster.glsl",
 			"res://compute/cassi_particle_merge.glsl",
 			"res://compute/cassi_bh_accretion.glsl",
-			"res://compute/cassi_pack_f16.glsl",
 			"res://compute/cassi_exclusive_scan.glsl",
 			"res://compute/cassi_tree_build.glsl",
 			"res://compute/cassi_tree_gravity.glsl"]:
@@ -904,18 +778,7 @@ func start_threaded(cfg: Dictionary) -> bool:
 		spirv[p] = sf.get_spirv()
 	var wcfg: Dictionary = cfg.duplicate()
 	wcfg["spirv"] = spirv
-	_job_sem = Semaphore.new()
-	_done_sem = Semaphore.new()
-	_setup_sem = Semaphore.new()
-	_job_mutex = Mutex.new()
-	_res_mutex = Mutex.new()
-	_res_result = {}
-	_res_gen = 0
-	_consumed_gen = 0
-	_job_pending = false
-	_wait_next = true
 	_executed = 0
-	_job_counter = 0
 	_running = true
 	_thread = Thread.new()
 	_thread_started = _thread.start(_threaded_main.bind(wcfg)) == OK
@@ -926,26 +789,15 @@ func start_threaded(cfg: Dictionary) -> bool:
 	return true
 
 
-## Stage a step-count TARGET and fire-and-forget (after the bootstrap).
-## The target is CUMULATIVE: the worker executes target − (its executed so
-## far) steps, so a new job replaces a pending unconsumed one (newest
-## target wins) and steps are never silently lost. block=true waits for
-## this job's completion and returns the fresh publish (the synchronous
-## path the sim's _run_physics_steps uses).
-##
-## FIX A (non-blocking bootstrap): the FIRST submit after start NEVER blocks
-## the main thread on setup (previously it did `_setup_sem.wait()` — a ~3.5 s
-## frozen startup at 2.5M particles with no feedback). Instead it immediately
-## queues the job (the worker runs it right after setup() completes) and
-## returns {}; the caller polls `setup_ready()` / `poll()` for the first
-## publish. block=true on the first-call is IGNORED (still non-blocking) —
-## callers that need the first snapshot must poll. job_meta rides into the
-## job dict: "cadence" (publish every Kth job) and "packed" (fp16 half-pair).
-## FIX A: non-blocking readiness poll — true once the worker's CPU-side
-## setup has finished (the config read + the IC generation into the host
-## arrays). The caller then runs finish_setup() on the render thread (the
-## GPU-facing setup + the initial compute dispatches) before the first
-## frame's chain.
+## FIX A (non-blocking bootstrap): readiness poll — true once the worker's
+## CPU-side setup (the config read + the IC generation into the host
+## arrays + the pipeline creation — M0b-P-FX) has finished. The caller
+## then runs finish_setup() on the render thread (the GPU-facing setup —
+## the buffer zero-fills + the IC uploads + the initial compute dispatches,
+## all render-thread-gated) before the first frame's chain. The old
+## worker-side job loop / submit_steps / poll / _setup_sem.wait() bootstrap
+## died with the M0b-P one-RD migration (global-RD compute lists are
+## render-thread-only — the render thread records the chains directly).
 func setup_ready() -> bool:
 	return _setup_done and _thread_started
 
@@ -966,13 +818,16 @@ func stop_threaded() -> void:
 	_executed = 0
 
 
-## The worker thread: run setup() on THIS thread (IC generation + buffer
-## fills are thread-safe here), then loop on jobs. The RD comes from the
-## cfg when the consumer passes its global device (the M0b-P one-RD
-## migration — the engine records its chains into the consumer's queue and
-## the renderer's frame machinery submits; "Only local devices can submit
-## and sync", so rd_global chains never submit/sync here). Without a passed
-## RD the worker falls back to its own local RenderingDevice.
+## The worker thread: run the CPU-side setup on THIS thread (the config
+## read + the IC generation into the host arrays + the shader/pipeline
+## creation — M0b-P-FX: pipeline creation is NOT render-thread-gated, so
+## the boot's pipeline-compile hitch lives here), then exit. The RD comes
+## from the cfg when the consumer passes its global device (the M0b-P
+## one-RD migration — the engine records its chains into the consumer's
+## queue and the renderer's frame machinery submits; "Only local devices
+## can submit and sync" — the rd_global chains never submit/sync here).
+## Without a passed RD the worker falls back to its own local
+## RenderingDevice (the legacy standalone path).
 func _threaded_main(wcfg: Dictionary) -> void:
 	var rd: RenderingDevice = wcfg.get("rd") as RenderingDevice
 	var own_rd := false
@@ -981,13 +836,11 @@ func _threaded_main(wcfg: Dictionary) -> void:
 		own_rd = true
 	if rd == null:
 		push_error("[PhysicsEngine] worker: RD create/get failed")
-		_setup_sem.post()
 		return
 	wcfg["rd"] = rd
 	wcfg["rd_global"] = not own_rd
 	wcfg["owns_rd"] = own_rd
-	var ok := setup(wcfg)
-	_setup_sem.post()
+	setup(wcfg)
 	# M0b-P (one-RD): the chains are recorded by the RENDER thread — global-RD
 	# compute lists are render-thread-only (empirically verified 2026-08-15).
 	# The worker's job loop is GONE: it exits after the CPU-side setup; the
@@ -1018,16 +871,14 @@ func shutdown() -> void:
 	for rid in [
 			_two_fluid_pipe, _nbody_pipe, _poisson_pipe, _mass_deposit_pipe,
 			_cond_pipe, _bh_int_pipe, _jfa_pipe, _cell_pipe, _raster_pipe,
-			_merge_pipe, _scan_pipe, _bh_acc_pipe, _pack_pipe,
+			_merge_pipe, _scan_pipe, _bh_acc_pipe,
 			_two_fluid_shader, _nbody_shader, _poisson_shader,
 			_mass_deposit_shader, _cond_shader, _bh_int_shader,
 			_jfa_shader, _cell_shader, _raster_shader, _merge_shader, _scan_shader, _bh_acc_shader,
-			_pack_shader,
 			_field_ey, _field_ei, _field_q, _field_vel, _field_scratch,
 			_fft_buf, _tel_buf, _grad_buf, _grad_buf2,
 			_pos_buf, _vel_buf, _acc_buf, _cluster_buf, _bh_buf,
 			_mass_density_buf, _mass_density_fix, _tree_grad,
-			_pos_packed_buf, _vel_packed_buf,
 			_merge_alive_buf, _merge_mass_buf, _merge_mom_buf, _merge_cen_buf,
 			_merge_best_buf, _merge_sink_buf, _merge_spin_buf, _merge_mprev_buf, _merge_cc_buf, _merge_cs_buf,
 			_merge_ch_buf, _merge_cl_buf, _merge_mc_buf, _merge_scr_buf,
@@ -1242,16 +1093,6 @@ func _setup_buffers() -> void:
 	var tz := PackedFloat32Array()
 	tz.resize(maxi(N_particles, 1) * 4)
 	_rd.buffer_update(_tree_grad, 0, tz.size() * 4, tz.to_byte_array())
-	# fp16 half-pair snapshot buffers (uvec2 per particle) — written by the
-	# pack pass before the readback halves the transfer. Always allocated
-	# (the fp32 path never reads them; zero-fill once for allocator hygiene).
-	_pos_packed_buf = _rd.storage_buffer_create(maxi(N_particles, 1) * 8)
-	_vel_packed_buf = _rd.storage_buffer_create(maxi(N_particles, 1) * 8)
-	var pk_zero := PackedByteArray()
-	pk_zero.resize(maxi(N_particles, 1) * 8)
-	_rd.buffer_update(_pos_packed_buf, 0, pk_zero.size(), pk_zero)
-	_rd.buffer_update(_vel_packed_buf, 0, pk_zero.size(), pk_zero)
-	_pack_pc_bytes = PackedByteArray(); _pack_pc_bytes.resize(8)
 	# ── Meshless arm buffers (allocated always; used only when meshless_mode
 	# is on — the sim's precedent). The JFA labels ping-pong; the per-site
 	# state carries the cell averages; the rebuild scratch rides the GPU.
@@ -1339,7 +1180,17 @@ func _setup_buffers() -> void:
 	_tel_reset_bytes = PackedFloat32Array([0.0, 0.0, 0.0, INF, 0.0, INF, 0.0, 0.0]).to_byte_array()
 
 
-func _setup_shaders() -> void:
+## Create the shaders + compute pipelines ONLY (no buffers, no uniform
+## sets) — the M0b-P-FX split: pipeline creation is NOT render-thread-gated
+## (empirically: only global-RD buffer_update + compute lists are), so the
+## global-RD path's worker runs this (the boot's ~600 ms pipeline-compile
+## hitch returns to the worker); the uniform sets need the BUFFERS (which
+## need the render thread for their zero-fill updates), so _cache_uniform_sets
+## stays in finish_setup. Idempotent (_pipes_done).
+func _create_pipelines() -> void:
+	if _pipes_done:
+		return
+	_pipes_done = true
 	# Two-fluid PDE solver
 	_two_fluid_shader = _shader_create("res://compute/cassi_two_fluid.glsl")
 	if _two_fluid_shader.is_valid():
@@ -1364,12 +1215,6 @@ func _setup_shaders() -> void:
 	_bh_int_shader = _shader_create("res://compute/cassi_bh_integrate.glsl")
 	if _bh_int_shader.is_valid():
 		_bh_int_pipe = _rd.compute_pipeline_create(_bh_int_shader)
-	# fp16 snapshot packing (worker-side; cassi_pack_f16.glsl) — always
-	# built so readback_snapshot(packed=true) can halve the pos/vel
-	# readback. Optional: on build failure the CPU packer takes over.
-	_pack_shader = _shader_create("res://compute/cassi_pack_f16.glsl")
-	if _pack_shader.is_valid():
-		_pack_pipe = _rd.compute_pipeline_create(_pack_shader)
 	# Particle merge (only when particle_merge; the pipeline + set are created
 	# on the init-time toggle so the default-off path is bit-identical)
 	if particle_merge:
@@ -1402,6 +1247,11 @@ func _setup_shaders() -> void:
 	_raster_shader = _shader_create("res://compute/cassi_voronoi_raster.glsl")
 	if _raster_shader.is_valid():
 		_raster_pipe = _rd.compute_pipeline_create(_raster_shader)
+
+
+func _setup_shaders() -> void:
+	if not _pipes_done:
+		_create_pipelines()
 	_cache_uniform_sets()
 	_ready = (_two_fluid_shader.is_valid() and _two_fluid_pipe.is_valid()
 		and _nbody_shader.is_valid() and _nbody_pipe.is_valid()
@@ -1440,16 +1290,6 @@ func _cache_uniform_sets() -> void:
 		_uniform_storage(0, _bh_buf),
 		_uniform_storage(1, _cluster_buf),  # Plummer reference arm (mode 2)
 	], _nbody_shader, 2)
-	# fp16 pack pass sets (set 0: fp32 in binding 0 → half-pairs binding 1)
-	if _pack_shader.is_valid():
-		_us_pack_pos = _rd.uniform_set_create([
-			_uniform_storage(0, _pos_buf),
-			_uniform_storage(1, _pos_packed_buf),
-		], _pack_shader, 0)
-		_us_pack_vel = _rd.uniform_set_create([
-			_uniform_storage(0, _vel_buf),
-			_uniform_storage(1, _vel_packed_buf),
-		], _pack_shader, 0)
 	# Poisson solver (set 0: FFT workspace + mass density + telemetry +
 	# the int64 fixed-point accumulator the clear pass zeroes)
 	if _poisson_shader.is_valid():

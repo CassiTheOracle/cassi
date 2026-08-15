@@ -326,7 +326,7 @@ var _vsync_enabled: bool = true
 ## interpolation alpha already spans the MEASURED publish interval, so the
 ## display lag stays ≤ one publish interval at any cadence. Live — passed
 ## per-submit in the job dict, no reinit.
-@export_range(1, 8, 1) var mirror_publish_cadence: int = 4  # perf-decomp 2026-08-15: 2→4 halves the ~0.5-0.8 GB/s sustained publish traffic that amplifies every burst's drain
+@export_range(1, 8, 1) var mirror_publish_cadence: int = 8  # perf-decomp 2026-08-15 FX2: 4→8 — the P3 publish is telemetry-only (32 B); the readback stall now lands half as often (the frame-bounded staging's accepted group). Display lag ≤ 1 interval either way.
 ## MOVABLE HOME-WINDOW (perf-decomp 2026-08-15, overhaul migration): when
 ## ON, the field grid's origin slowly follows the structure's center of
 ## mass instead of the fixed box origin — "expansion hits the wall" becomes
@@ -455,9 +455,7 @@ var _pos_render_buf: RID = RID()   # interpolated render snapshot (the instancer
 var _interp_alpha: float = 1.0     # DORMANT: alpha pinned to 1.0 → pos_render == pos bit-for-bit
 # — blend shader (position snapshot/interpolation; cassi_blend_pos.glsl) —
 var _blend_sh: RID; var _blend_pipe: RID; var _blend_pc: PackedByteArray
-var _us_blend_0: RID            # fp32 set (inline + decoupled fp32 bootstrap)
-var _us_blend_0_packed: RID     # decoupled set: packed pos_prev/pos half-pairs → pos_render
-var _us_blend_0_velpack: RID    # decoupled set: packed vel half-pairs → fp32 _vel_buf
+var _us_blend_0: RID            # fp32 set (inline)
 var _us_blend_0_dc: RID         # P3 one-RD set: the ENGINE's live fp32 pos → pos_render (−c seam)
 var _us_inst_0_render_dc: RID   # P3 one-RD instancer set: pos_render + the ENGINE's vel/fields
 var _us_inst_0_lut_render_dc: RID
@@ -468,26 +466,14 @@ var _physics_engine = null            # CassiPhysicsEngine (untyped: dynamic dis
 var _decoupled_active := false        # decoupled AND meshless off (the grid path)
 var _decoupled_boot_wait := false     # FIX A: true until the first publish lands
 var _decoupled_boot_start_ms := 0     # FIX A: wall clock when boot began (timeout)
+var _decoupled_boot_fs_ms := 0        # M0b-P-FX: wall clock when finish_setup began (hitch measurement)
 var _decoupled_boot_last_progress_ms := 0  # FIX A: wall clock of the last bootstrap progress print
 var _decoupled_target := 0            # cumulative REQUESTED steps (the job target)
 var _pub_counter := 0                 # M0b-P: publish cadence counter (the frame-path jobs)
 var _decoupled_pending := 0           # truthful backlog = target − executed (UI "behind X s")
-var _decoupled_prev_pos := PackedFloat32Array()  # host-side snapshot pair
-var _decoupled_curr_pos := PackedFloat32Array()  #  (prev = the last rendered state)
 var _last_publish_ms := 0             # wall-clock gate for the interp alpha
 var _batch_ema_ms := 16.7             # EMA of publish intervals (ms) — alpha sweep scale
 var _executed_prev := 0               # previous publish's executed count (perf delta)
-# — fp16 packed mirror buffers (decoupled render side, Part 2): the engine
-# publishes pos/vel as half-pair PackedByteArrays (N×8 B per particle:
-# word0 = half(x)|half(y)<<16, word1 = half(z)|half(w)<<16); the blend
-# shader's packed modes unpack them into pos_render/_vel_buf each frame.
-# Host-side pair maintained here exactly like the fp32 pair above.
-var _dc_pos_prev_buf: RID = RID()
-var _dc_pos_buf: RID = RID()
-var _dc_vel_buf: RID = RID()
-var _dc_prev_bytes := PackedByteArray()
-var _dc_curr_bytes := PackedByteArray()
-var _dc_vel_bytes := PackedByteArray()
 
 # — auxiliary buffers (SET 2) —
 var _cluster_buf: RID
@@ -738,7 +724,7 @@ var _ml_tree_nnode: int = 0
 # semantics as the cadence skip). See cassi_tree_worker.gd for the contract.
 var _tree_worker: RefCounted = null   # CassiTreeWorker (lazy, recreated on reinit)
 var _tl_frame := 0
-var _tree_local_cadence := 50  # tree refresh every 50th physics job/frame (perf-decomp 2026-08-15: raised 25→50 — a 1-2-job-old gradient is inside the design's blessed freshness window; the 32 MB drain burst now fires half as often and on residue 1 mod 50, de-correlated from the meshless rebuild's step-residue 13; verify scenes drive the tree worker directly and are unaffected)
+var _tree_local_cadence := 200  # tree refresh every 200th physics job/frame (perf-decomp 2026-08-15 FX2: 50→200 — the in-list tree build is a ~25 ms render-thread burst at 50k; 200 chains ≈ 0.5 s at the 400 fps live rate, still ~6× FRESHER PER STEP than the 500k-era blessed window (200×2.5 steps vs 50×64 steps), so the gravity accuracy is unchanged while the burst duty drops 20%→5% — the one-RD frame-bounded staging's burst cadence knob)
 
 # True when the tree arm is LIVE (meshless + tree gravity). Gates the
 # _shaders_ready retry: the tree shaders/pipes/sets must be ready before
@@ -1625,11 +1611,6 @@ func _decoupled_start_engine() -> bool:
 	# first publish arrives so the sim never renders uninitialized mirrors.
 	_decoupled_target = 0
 	_decoupled_pending = 0
-	_decoupled_prev_pos = PackedFloat32Array()
-	_decoupled_curr_pos = PackedFloat32Array()
-	_dc_prev_bytes = PackedByteArray()
-	_dc_curr_bytes = PackedByteArray()
-	_dc_vel_bytes = PackedByteArray()
 	_last_publish_ms = 0
 	_batch_ema_ms = 16.7
 	_step_count = 0
@@ -1782,9 +1763,10 @@ func _decoupled_poll_and_render() -> void:
 					_mmi.visible = true   # the inline path draws the particles now
 				_init_field(); _init_particles(); _apply_gravity_calibration(); _grav_warmup = true
 			return   # skip the render list until the engine's setup is ready
+		_decoupled_boot_fs_ms = Time.get_ticks_msec()
 		_physics_engine.finish_setup()   # the deferred render-thread compute init
 		_decoupled_boot_wait = false
-		print("[CassiSim] decoupled bootstrap complete (non-blocking)")
+		print("[CassiSim] decoupled bootstrap complete (non-blocking) — finish_setup took %d ms" % [Time.get_ticks_msec() - _decoupled_boot_fs_ms])
 		if _mmi != null:
 			_mmi.visible = true   # the engine's IC state is in its live buffers
 	if not playing or not _shaders_ready:
@@ -2034,14 +2016,6 @@ func _setup_buffers() -> void:
 	# scenes (the tree-grad precedent — a 0-size buffer fails set creation).
 	_pos_prev_buf = _rd.storage_buffer_create(maxi(N_particles, 1) * 16)
 	_pos_render_buf = _rd.storage_buffer_create(maxi(N_particles, 1) * 16)
-	# fp16 packed mirror buffers (DECOUPLED render side): pos_prev/pos/vel
-	# as uvec2 half-pair buffers (N×8 B per particle). The inline path
-	# never dispatches on them — the battery bit-identity contract is
-	# untouched (they're inert mirrors, like _pos_prev_buf). The blend's
-	# packed mode unpacks them into pos_render/_vel_buf each frame.
-	_dc_pos_prev_buf = _rd.storage_buffer_create(maxi(N_particles, 1) * 8)
-	_dc_pos_buf = _rd.storage_buffer_create(maxi(N_particles, 1) * 8)
-	_dc_vel_buf = _rd.storage_buffer_create(maxi(N_particles, 1) * 8)
 
 	# SET 2 — BH data + sim globals
 	# 36 vec4s = 576 bytes: 4-vec4 header (count/G_N/extents/reserved) + 15
@@ -2249,7 +2223,6 @@ func _setup_buffers() -> void:
 func _free_buffers() -> void:
 	for rid in [_field_ey, _field_ei, _field_q, _field_vel, _field_scratch,
 				_pos_buf, _vel_buf, _acc_buf, _pos_prev_buf, _pos_render_buf,
-				_dc_pos_prev_buf, _dc_pos_buf, _dc_vel_buf,
 				_bh_buf, _bh_lens_buf,
 				_mass_density_buf, _mass_density_fix, _cluster_buf, _fft_buf, _tel_buf,
 				_grad_buf, _grad_buf2, _occ_buf, _qhist_buf,
@@ -2291,7 +2264,7 @@ func _free_uniform_sets() -> void:
 				_us_fr_0, _us_fr_2, _us_cond_0, _us_cond_1,
 				_us_bh_int_0, _us_bh_int_1, _us_inst_0, _us_inst_0_render,
 				_us_inst_0_lut, _us_inst_0_lut_render,
-				_us_bh_lens_2, _us_blend_0, _us_blend_0_packed, _us_blend_0_velpack,
+				_us_bh_lens_2, _us_blend_0,
 				_us_blend_0_dc, _us_inst_0_render_dc, _us_inst_0_lut_render_dc,
 				_us_qhist_0_render_dc, _us_occ_0_dc,
 				_us_occ_0, _us_qhist_0, _us_qhist_0_render, _us_jfa_0, _us_cell_0, _us_raster_0,
@@ -2306,7 +2279,7 @@ func _free_uniform_sets() -> void:
 	_us_bh_int_0 = RID(); _us_bh_int_1 = RID()
 	_us_inst_0 = RID(); _us_inst_0_render = RID(); _us_bh_lens_2 = RID()
 	_us_inst_0_lut = RID(); _us_inst_0_lut_render = RID()
-	_us_blend_0 = RID(); _us_blend_0_packed = RID(); _us_blend_0_velpack = RID()
+	_us_blend_0 = RID()
 	_us_blend_0_dc = RID(); _us_inst_0_render_dc = RID(); _us_inst_0_lut_render_dc = RID()
 	_us_qhist_0_render_dc = RID(); _us_occ_0_dc = RID()
 	_us_occ_0 = RID()
@@ -2740,24 +2713,6 @@ func _cache_uniform_sets() -> void:
 		], _blend_sh, 0)
 		if not _us_blend_0.is_valid():
 			push_error("[CassiSim] blend uniform set FAILED to create (bindings 0-2)")
-		# PACKED variants (decoupled render side): bindings 0/1 are the
-		# fp16 half-pair mirrors (uvec2 per particle — the shader's raw
-		# uint views reinterpret them); mode 1 blends them into the fp32
-		# pos_render, mode 2 unpacks the packed vel into the fp32 _vel_buf.
-		_us_blend_0_packed = _rd.uniform_set_create([
-			_uniform_storage(0, _dc_pos_prev_buf),
-			_uniform_storage(1, _dc_pos_buf),
-			_uniform_storage(2, _pos_render_buf),
-		], _blend_sh, 0)
-		if not _us_blend_0_packed.is_valid():
-			push_error("[CassiSim] blend PACKED uniform set FAILED to create (bindings 0-2)")
-		_us_blend_0_velpack = _rd.uniform_set_create([
-			_uniform_storage(0, _dc_vel_buf),
-			_uniform_storage(1, _dc_pos_buf),  # unused in mode 2 (descriptor required)
-			_uniform_storage(2, _vel_buf),
-		], _blend_sh, 0)
-		if not _us_blend_0_velpack.is_valid():
-			push_error("[CassiSim] blend VEL-UNPACK uniform set FAILED to create (bindings 0,1,2)")
 # ═══════════════════════════════════════════════════════════════════════
 # Initial conditions
 # ═══════════════════════════════════════════════════════════════════════
