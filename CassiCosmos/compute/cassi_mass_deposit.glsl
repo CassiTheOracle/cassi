@@ -172,14 +172,25 @@ void deposit_main() {
                 // ≥256 case a deterministic, documented under-deposit.
                 float vf = min(round(mass * wx[a] * wy[b] * wz[c] * 16777216.0), 4294967040.0);
                 uint v = uint(vf);
-                uint d0 = v & 255u;
-                uint d1 = (v >> 8) & 255u;
-                uint d2 = (v >> 16) & 255u;
-                uint d3 = v >> 24;
-                atomicAdd(fix[id].x, d0);
-                atomicAdd(fix[id].y, d1);
-                atomicAdd(fix[id].z, d2);
-                atomicAdd(fix[id].w, d3);
+                // P1 (perf-decomp 2026-08-15): issue atomics ONLY for the
+                // non-zero base-2^8 digits — d_k = (v >> 8k) & 255, top
+                // digit index = findMSB(v)>>3 (0..3; v == 0 → no atomics).
+                // Omitting guaranteed-zero addends leaves every exact digit
+                // sum identical (integer addition), so rho — one rounding
+                // of the exact sums in convert — is BIT-IDENTICAL. The
+                // digit-use distribution: d3 ≠ 0 ⟺ v ≥ 2^24 ⟺ m·w ≥ 1.0;
+                // the max TSC cell weight is 0.4219 (center, f=0), so d3 is
+                // written only for m ≥ ~2.4 (center) / ~7 (side) / ~21
+                // (corner) — ~6% of Salpeter particles touch it in the
+                // center cell alone → ~23% fewer atomics at 2M particles.
+                // (P0 measurement, perf_findings §15: the deposit is
+                // ~≤2 ms/step of the ~50 — the win is small but exact.)
+                if (v != 0u) {
+                    uint nd = (uint(findMSB(v)) >> 3) + 1u;   // 1..4 digits
+                    for (uint k = 0u; k < nd; k++) {
+                        atomicAdd(fix[id][k], (v >> (8u * k)) & 255u);
+                    }
+                }
             }
         }
     }
