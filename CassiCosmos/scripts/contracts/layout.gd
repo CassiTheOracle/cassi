@@ -41,6 +41,7 @@ const PC := {
 	"cassi_occupancy": 10,        # 40 B — lim_xyz, ext_xyz, pads
 	"cassi_tree_build": 19,       # 76 B — S, bmin_xyz, half, eps2, PHI, PHI_6, leaf/maxlevels, modes 10-13, grid_N, ext_xyz, floor
 	"cassi_tree_gravity": 5,      # 20 B — Np, theta, eps2, pad, tnm
+	"cassi_tree_momcon": 3,       # 12 B — N_f, op, pad
 	"cassi_coarse_grad": 8,       # 32 B — the coarse-gradient PC
 	"cassi_voronoi_cells": 17,    # 68 B — the cell/JFA steering PC (modes 0-12)
 	"cassi_jfa": 8,               # 32 B — N, jump, read_a, n_sites, h_xyz, pad
@@ -61,6 +62,7 @@ const HOST_PC_FLOATS := {
 	"_occ_pc_bytes": 10,
 	"_tree_build_pc_bytes": 19,
 	"_tree_grav_pc_bytes": 5,
+	"_tree_mc_pc_bytes": 3,
 	"_cf_grad_pc_bytes": 8,
 	"_cell_pc_bytes": 17,
 	"_jfa_pc_bytes": 8,
@@ -97,6 +99,7 @@ const BINDINGS := {
 	"cassi_occupancy": {0: [0, 1]},
 	"cassi_tree_build": {0: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]},
 	"cassi_tree_gravity": {0: [0, 3, 4, 5, 6, 7, 8, 9, 10, 11]},
+	"cassi_tree_momcon": {0: [0, 1, 2, 3]},
 	"cassi_coarse_grad": {0: [0, 1, 2, 3]},
 	"cassi_voronoi_cells": {0: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]},
 	"cassi_jfa": {0: [0, 1, 2]},
@@ -110,6 +113,6 @@ const COVERED := [
 	"cassi_particle_merge", "cassi_nbody_gravity", "cassi_instancer",
 	"cassi_blend_pos", "cassi_mass_deposit", "cassi_two_fluid",
 	"cassi_poisson", "cassi_qhist", "cassi_occupancy", "cassi_tree_build",
-	"cassi_tree_gravity", "cassi_coarse_grad", "cassi_voronoi_cells",
+	"cassi_tree_gravity", "cassi_tree_momcon", "cassi_coarse_grad", "cassi_voronoi_cells",
 	"cassi_jfa", "cassi_condensation", "cassi_field_render",
 ]

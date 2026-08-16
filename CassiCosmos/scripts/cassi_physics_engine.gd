@@ -250,6 +250,15 @@ var _tl_tic: RID
 var _tree_bld_sh: RID; var _tree_bld_pipe: RID
 var _tree_walk_sh: RID; var _tree_walk_pipe: RID
 var _us_tree_bld: RID; var _us_tree_walk: RID
+# Tree MOMENTUM-CONSERVATION pass (cassi_tree_momcon.glsl, 2026-08-15): the
+# per-particle (π/ρ) prefactor breaks action–reaction (Σm·a ≠ 0) → net
+# self-impulse → the cloud ballistically drifts off the window ("all vanish").
+# Zeroes Σm·a after the nbody step in tree mode — a DERIVED Newton-3rd-law
+# correction, not a fitted constant.
+var _tree_mc_sh: RID; var _tree_mc_pipe: RID
+var _tree_mc_buf: RID     # vec4 reduce accumulator
+var _us_tree_mc: RID
+var _tree_mc_pc_bytes: PackedByteArray   # 3 floats (12 B): N_f, op
 var _tree_cadence := 1           # submit a tree job every N physics jobs (sim's cadence semantics)
 var _tree_job_counter := 0
 # MOVABLE HOME-WINDOW (perf-decomp 2026-08-15, overhaul migration): the
@@ -889,7 +898,8 @@ func shutdown() -> void:
 			_ml_grad_y, _ml_grad_i, _ml_lsm_y, _ml_lsm_i,
 			_tl_src, _tl_srcw, _tl_key, _tl_order, _tl_cf, _tl_nw, _tl_nq, _tl_nr,
 			_tl_ctr, _tl_tic,
-			_tree_bld_sh, _tree_bld_pipe, _tree_walk_sh, _tree_walk_pipe]:
+			_tree_bld_sh, _tree_bld_pipe, _tree_walk_sh, _tree_walk_pipe,
+			_tree_mc_sh, _tree_mc_pipe, _tree_mc_buf]:
 		if rid.is_valid():
 			_rd.free_rid(rid)
 	if _owns_rd:
@@ -1380,6 +1390,22 @@ func _cache_uniform_sets() -> void:
 		], _raster_shader, 0)
 
 
+## (Re)build the tree momentum-conservation uniform set (acc, positions, the
+## 16-B Reduce accumulator). Called from _cache_uniform_sets and once after
+## the pipeline exists at meshless setup.
+func _sync_us_tree_mc() -> void:
+	if not _tree_mc_sh.is_valid() or not _acc_buf.is_valid() or not _pos_buf.is_valid() or not _vel_buf.is_valid() or not _tree_mc_buf.is_valid():
+		return
+	_us_tree_mc = _rd.uniform_set_create([
+		_uniform_storage(0, _acc_buf),
+		_uniform_storage(1, _pos_buf),
+		_uniform_storage(2, _tree_mc_buf),
+		_uniform_storage(3, _vel_buf),
+	], _tree_mc_sh, 0)
+	if not _us_tree_mc.is_valid():
+		push_error("[PhysicsEngine] tree-momcon uniform set FAILED to create (bindings 0-3)")
+
+
 # ═══════════════════════════════════════════════════════════════════════
 # Initial conditions (ported verbatim — the seeded Gaussian/site placement)
 # ═══════════════════════════════════════════════════════════════════════
@@ -1826,6 +1852,15 @@ func _meshless_init() -> void:
 			_uniform_storage(8, _tl_ctr), _uniform_storage(9, _tree_grad),
 			_uniform_storage(10, _tl_tic), _uniform_storage(11, _pos_buf),
 		], _tree_walk_sh, 0)
+	# Tree momentum-conservation pass (cassi_tree_momcon.glsl): Reduce
+	# accumulator + pipeline + uniform set (acc, positions, sum).
+	if _tree_walk_sh.is_valid():
+		_tree_mc_sh = _shader_create("res://compute/cassi_tree_momcon.glsl")
+		if _tree_mc_sh.is_valid():
+			_tree_mc_pipe = _rd.compute_pipeline_create(_tree_mc_sh)
+		_tree_mc_buf = _rd.storage_buffer_create(2 * 16)   # vec4[2] reduce accumulator
+		_tree_mc_pc_bytes = PackedByteArray(); _tree_mc_pc_bytes.resize(3 * 4)
+		_sync_us_tree_mc()
 	print("[PhysicsEngine] Meshless arm ready: %d Voronoi cells on the %d^3 accelerator grid"
 		% [ml_ns, N])
 
@@ -2459,6 +2494,39 @@ func _step_dispatches(cl: int) -> void:
 		_rd.compute_list_set_push_constant(cl, _nbody_pc_bytes, _nbody_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, pg, 1, 1)
 	_barrier(cl)  # end-of-step visibility (nbody writes → next step)
+
+	# ── 3.1. Tree MOMENTUM CONSERVATION (tree mode only) ─────────────
+	# The tree arm's per-particle (π/ρ) prefactor breaks action–reaction
+	# (Σm·a ≠ 0); the cloud gains a net self-impulse and drifts off the
+	# window (the "all vanish" measured at the owner's scale). Clear →
+	# reduce (Σm·a) → barrier → subtract the mass-weighted mean, all in-list
+	# (cassi_tree_momcon.glsl). Newton-3rd-law correction — DERIVED, not
+	# fitted. The momcon shader is local_size 64 (independent of `pg`).
+	if (meshless_mode and meshless_gravity) and _tree_mc_pipe.is_valid() \
+			and N_particles > 0 and _us_tree_mc.is_valid():
+		var pg64 := ceili(float(N_particles) / 64.0)
+		# clear the 16-B accumulator
+		_tree_mc_pc_bytes.encode_float(0, float(N_particles))
+		_tree_mc_pc_bytes.encode_float(4, 2.0)   # op = clear
+		_rd.compute_list_bind_compute_pipeline(cl, _tree_mc_pipe)
+		_rd.compute_list_bind_uniform_set(cl, _us_tree_mc, 0)
+		_rd.compute_list_set_push_constant(cl, _tree_mc_pc_bytes, _tree_mc_pc_bytes.size())
+		_rd.compute_list_dispatch(cl, 1, 1, 1)
+		_rd.compute_list_add_barrier(cl)
+		# reduce Σ(m·a)
+		_tree_mc_pc_bytes.encode_float(4, 0.0)   # op = reduce
+		_rd.compute_list_bind_compute_pipeline(cl, _tree_mc_pipe)
+		_rd.compute_list_bind_uniform_set(cl, _us_tree_mc, 0)
+		_rd.compute_list_set_push_constant(cl, _tree_mc_pc_bytes, _tree_mc_pc_bytes.size())
+		_rd.compute_list_dispatch(cl, pg64, 1, 1)
+		_rd.compute_list_add_barrier(cl)
+		# subtract the mass-weighted mean (Σm·a → 0)
+		_tree_mc_pc_bytes.encode_float(4, 1.0)   # op = subtract
+		_rd.compute_list_bind_compute_pipeline(cl, _tree_mc_pipe)
+		_rd.compute_list_bind_uniform_set(cl, _us_tree_mc, 0)
+		_rd.compute_list_set_push_constant(cl, _tree_mc_pc_bytes, _tree_mc_pc_bytes.size())
+		_rd.compute_list_dispatch(cl, pg64, 1, 1)
+		_rd.compute_list_add_barrier(cl)
 
 
 # load+x → FFT(y) → FFT(z) → Φ̂=−ρ̂/k² (k=0 nulled) → IFFT(z) → IFFT(y) → IFFT(x)

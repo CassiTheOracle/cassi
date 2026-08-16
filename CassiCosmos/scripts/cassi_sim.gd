@@ -736,6 +736,17 @@ var _tree_build_pc_bytes: PackedByteArray  # build PC (19 floats: 14 shared + gr
 var _tree_grav_pc_bytes: PackedByteArray   # walk PC (5 floats: N, theta, eps2, use_tp, node_cnt)
 var _ml_tree_nsrc: int = 0
 var _ml_tree_nnode: int = 0
+# ── Tree momentum-conservation pass (cassi_tree_momcon.glsl, 2026-08-15) ──
+# The tree's per-particle (π/ρ) prefactor breaks action–reaction (Σm·a ≠ 0),
+# so the cloud acquires a net self-impulse and ballistically drifts off the
+# fixed window (the "all particles vanish" measured at the owner's scale).
+# This pass zeroes Σm·a after the nbody gravity step in tree mode — a DERIVED
+# Newton-3rd-law correction, not a fitted constant.
+var _tree_mc_shader: RID
+var _tree_mc_pipe: RID
+var _tree_mc_buf: RID        # vec4 reduce accumulator (Σm·ax, Σm·ay, Σm·az, Σm)
+var _us_tree_mc: RID
+var _tree_mc_pc_bytes: PackedByteArray   # 3 floats (12 B): N_f, op
 # ── Tree-gravity THREADED arm (cassi_tree_worker.gd, 2026-08-13) ─────────
 # The global RD (RenderingServer) does NOT execute the tree shaders from
 # cassi_sim's _process loop on this build (verified extensively: even a raw
@@ -2345,7 +2356,7 @@ func _free_buffers() -> void:
 				_ml_grad_y, _ml_grad_i, _ml_lsm_y, _ml_lsm_i,
 				_ml_tree_src, _ml_tree_srcw, _ml_tree_key, _ml_tree_order,
 				_ml_tree_cf, _ml_tree_w, _ml_tree_q, _ml_tree_r, _ml_tree_ctr,
-				_ml_tree_grad, _ml_tree_icount,
+				_ml_tree_grad, _ml_tree_icount, _tree_mc_buf,
 				_field_render_tex, _bh_lensing_tex,
 				_lut_u_buf_on, _lut_u_buf_off]:
 		if rid.is_valid(): _rd.free_rid(rid)
@@ -2362,6 +2373,7 @@ func _free_buffers() -> void:
 	_bh_lensing_tex = RID()
 	_lut_u_buf_on = RID(); _lut_u_buf_off = RID()
 	_color_lut_tex = null
+	_tree_mc_buf = RID()   # stale freed RID must not survive a set-only rebuild
 	_tree_worker_stop()
 
 
@@ -2380,7 +2392,7 @@ func _free_uniform_sets() -> void:
 				_us_blend_0_dc, _us_inst_0_render_dc, _us_inst_0_lut_render_dc,
 				_us_qhist_0_render_dc, _us_occ_0_dc,
 				_us_occ_0, _us_qhist_0, _us_qhist_0_render, _us_jfa_0, _us_cell_0, _us_raster_0,
-				_us_tree_build, _us_tree_grav, _us_merge_0, _us_bh_acc_0, _us_scan_0]:
+				_us_tree_build, _us_tree_grav, _us_tree_mc, _us_merge_0, _us_bh_acc_0, _us_scan_0]:
 		if rid.is_valid(): _rd.free_rid(rid)
 	_us_two_0 = RID(); _us_two_1 = RID(); _us_two_2 = RID()
 	_us_mass_dep_0 = RID()
@@ -2397,7 +2409,7 @@ func _free_uniform_sets() -> void:
 	_us_occ_0 = RID()
 	_us_qhist_0 = RID(); _us_qhist_0_render = RID()
 	_us_jfa_0 = RID(); _us_cell_0 = RID(); _us_raster_0 = RID()
-	_us_tree_build = RID(); _us_tree_grav = RID()
+	_us_tree_build = RID(); _us_tree_grav = RID(); _us_tree_mc = RID()
 	_us_merge_0 = RID(); _us_bh_acc_0 = RID(); _us_scan_0 = RID()
 
 func _free_shaders() -> void:
@@ -2409,14 +2421,14 @@ func _free_shaders() -> void:
 				_instancer_pipe, _mass_deposit_pipe,
 				_cond_pipe, _bh_int_pipe, _occ_pipe, _qhist_pipe,
 				_jfa_pipe, _cell_pipe, _raster_pipe,
-				_tree_build_pipe, _tree_grav_pipe, _blend_pipe,
+				_tree_build_pipe, _tree_grav_pipe, _tree_mc_pipe, _blend_pipe,
 				_merge_pipe, _scan_pipe, _bh_acc_pipe,
 				_two_fluid_shader, _nbody_shader, _poisson_shader,
 				_field_render_shader, _bh_lensing_shader,
 				_instancer_shader, _mass_deposit_shader,
 				_cond_shader, _bh_int_shader, _occ_shader, _qhist_shader,
 				_jfa_shader, _cell_shader, _raster_shader,
-				_tree_build_shader, _tree_grav_shader, _blend_sh,
+				_tree_build_shader, _tree_grav_shader, _tree_mc_shader, _blend_sh,
 				_merge_shader, _scan_shader, _bh_acc_shader]:
 		if rid.is_valid(): _rd.free_rid(rid)
 
@@ -2536,6 +2548,15 @@ func _setup_shaders() -> void:
 	if _tree_grav_shader.is_valid():
 		_tree_grav_pipe = _rd.compute_pipeline_create(_tree_grav_shader)
 		print("[CassiSim] tree-walk pipeline ready")
+	# Tree momentum-conservation pass (cassi_tree_momcon.glsl): the Reduce
+	# accumulator (16 B) is allocated here; the uniform set binds acc/pos/sum.
+	_tree_mc_shader = _shader_from_file("res://compute/cassi_tree_momcon.glsl")
+	if _tree_mc_shader.is_valid():
+		_tree_mc_pipe = _rd.compute_pipeline_create(_tree_mc_shader)
+		_tree_mc_buf = _rd.storage_buffer_create(2 * 16)   # vec4[2] reduce accumulator
+		_tree_mc_pc_bytes = PackedByteArray(); _tree_mc_pc_bytes.resize(3 * 4)
+		_sync_us_tree_mc()
+		print("[CassiSim] tree-momcon pipeline ready")
 
 	# Position blend (snapshot/interpolation seam — cassi_blend_pos.glsl).
 	# DORMANT: the host pins alpha to 1.0, so pos_render == pos bit-for-bit
@@ -2559,8 +2580,10 @@ func _setup_shaders() -> void:
 		# no-ops a dispatch with an absent set).
 		and (_tree_build_pipe.is_valid() or not _ml_need_tree())
 		and (_tree_grav_pipe.is_valid() or not _ml_need_tree())
+		and (_tree_mc_pipe.is_valid() or not _ml_need_tree())
 		and (_us_tree_build.is_valid() or not _ml_need_tree())
-		and (_us_tree_grav.is_valid() or not _ml_need_tree()))
+		and (_us_tree_grav.is_valid() or not _ml_need_tree())
+		and (_us_tree_mc.is_valid() or not _ml_need_tree()))
 
 
 func _cache_uniform_sets() -> void:
@@ -2648,6 +2671,7 @@ func _cache_uniform_sets() -> void:
 		_uniform_storage(0, _bh_buf),
 		_uniform_storage(1, _cluster_buf),  # Plummer reference arm (mode 2)
 	], _nbody_shader, 2)
+	_sync_us_tree_mc()
 
 	# Field render (cached sets — was rebuilt every frame in _dispatch_compute)
 	# NOTE: the field-render shader declares only set 0 (fields) and set 2
@@ -2829,6 +2853,25 @@ func _cache_uniform_sets() -> void:
 		], _blend_sh, 0)
 		if not _us_blend_0.is_valid():
 			push_error("[CassiSim] blend uniform set FAILED to create (bindings 0-2)")
+
+
+## (Re)build the tree momentum-conservation uniform set (acc, positions, the
+## 16-B Reduce accumulator). Called from _cache_uniform_sets and once after
+## the shader/pipeline exist at setup; the acc/pos buffers are stable across
+## frames (realloc'd only on count change via _cache_uniform_sets).
+func _sync_us_tree_mc() -> void:
+	if not _tree_mc_shader.is_valid() or not _acc_buf.is_valid() or not _pos_buf.is_valid() or not _vel_buf.is_valid() or not _tree_mc_buf.is_valid():
+		return
+	_us_tree_mc = _rd.uniform_set_create([
+		_uniform_storage(0, _acc_buf),
+		_uniform_storage(1, _pos_buf),
+		_uniform_storage(2, _tree_mc_buf),
+		_uniform_storage(3, _vel_buf),
+	], _tree_mc_shader, 0)
+	if not _us_tree_mc.is_valid():
+		push_error("[CassiSim] tree-momcon uniform set FAILED to create (bindings 0-3)")
+
+
 # ═══════════════════════════════════════════════════════════════════════
 # Initial conditions
 # ═══════════════════════════════════════════════════════════════════════
@@ -4525,6 +4568,40 @@ func _step_dispatches(cl: int) -> void:
 		_rd.compute_list_set_push_constant(cl, _nbody_pc_bytes, _nbody_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, pg, 1, 1)
 	_barrier(cl)  # end-of-step visibility (nbody writes → next step / frame-end instancer)
+
+	# ── 3.1. Tree MOMENTUM CONSERVATION (tree mode only) ─────────────
+	# The tree arm's per-particle (π/ρ) prefactor breaks action–reaction
+	# (Σm·a ≠ 0); the cloud gains a net self-impulse and drifts off the
+	# window (the "all vanish" measured at the owner's scale — cassi_tree_momcon.glsl).
+	# Clear → reduce (Σm·a) → barrier → subtract the mass-weighted mean, all
+	# in-list (the global-RD can't host-submit mid-list). Newton-3rd-law
+	# correction, applied to the final _acc_buf of THIS step.
+	if _ml_need_tree() and _tree_mc_pipe.is_valid() and N_particles > 0 and _us_tree_mc.is_valid():
+		# Momcon shader is local_size 64 — dispatches use a 64-based group
+		# count, NOT pg (which is N/256 for the nbody shader) — else 4× undercover.
+		var pg64 := ceili(float(N_particles) / 64.0)
+		# clear the 16-B accumulator
+		_tree_mc_pc_bytes.encode_float(0, float(N_particles))
+		_tree_mc_pc_bytes.encode_float(4, 2.0)   # op = clear
+		_rd.compute_list_bind_compute_pipeline(cl, _tree_mc_pipe)
+		_rd.compute_list_bind_uniform_set(cl, _us_tree_mc, 0)
+		_rd.compute_list_set_push_constant(cl, _tree_mc_pc_bytes, _tree_mc_pc_bytes.size())
+		_rd.compute_list_dispatch(cl, 1, 1, 1)
+		_barrier(cl)
+		# reduce Σ(m·a)
+		_tree_mc_pc_bytes.encode_float(4, 0.0)   # op = reduce
+		_rd.compute_list_bind_compute_pipeline(cl, _tree_mc_pipe)
+		_rd.compute_list_bind_uniform_set(cl, _us_tree_mc, 0)
+		_rd.compute_list_set_push_constant(cl, _tree_mc_pc_bytes, _tree_mc_pc_bytes.size())
+		_rd.compute_list_dispatch(cl, pg64, 1, 1)
+		_barrier(cl)
+		# subtract the mass-weighted mean (Σm·a → 0)
+		_tree_mc_pc_bytes.encode_float(4, 1.0)   # op = subtract
+		_rd.compute_list_bind_compute_pipeline(cl, _tree_mc_pipe)
+		_rd.compute_list_bind_uniform_set(cl, _us_tree_mc, 0)
+		_rd.compute_list_set_push_constant(cl, _tree_mc_pc_bytes, _tree_mc_pc_bytes.size())
+		_rd.compute_list_dispatch(cl, pg64, 1, 1)
+		_barrier(cl)
 
 
 # ── Meshless TREE gravity: build + walk INTO the frame's compute list ──
