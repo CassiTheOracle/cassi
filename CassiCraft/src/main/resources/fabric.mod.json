@@ -1,0 +1,24 @@
+{
+	"schemaVersion": 1,
+	"id": "${mod_id}",
+	"version": "${version}",
+	"name": "CassiCraft",
+	"description": "Minecraft as the observation + interaction surface of a running Cassi universe — the two-fluid field is the substrate.",
+	"authors": [
+		"CassiCraft"
+	],
+	"contact": {},
+	"license": "ARR",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"dev.cassicraft.CassiCraft"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=${loader_version}",
+		"minecraft": "~${minecraft_version}",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}

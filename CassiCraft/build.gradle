@@ -1,0 +1,169 @@
+plugins {
+	id 'net.fabricmc.fabric-loom' version "${loom_version}"
+	id 'java'
+}
+
+group = project.maven_group
+version = project.version.toString()
+base {
+	archivesName = project.archives_base_name
+}
+
+repositories {
+	// Loom adds the essential maven repositories to download Minecraft and
+	// libraries from automatically; only add more for external deps.
+	mavenCentral()
+}
+
+// Java 25 (BUILD-PLAN.md §1 — 26.1+ requires Java 25; template default).
+java {
+	withSourcesJar()
+	sourceCompatibility = JavaVersion.VERSION_25
+	targetCompatibility = JavaVersion.VERSION_25
+}
+
+loom {
+	splitEnvironmentSourceSets()
+	mods {
+		"${project.mod_id}" {
+			// Only the Minecraft host source sets join Loom's mod wiring. The
+			// `domain` / `domainTest` source sets are deliberately NOT listed
+			// here, so they compile as plain Java with no Minecraft on their
+			// classpath — the module seam (BUILD-PLAN.md §2.1) held in Loom.
+			sourceSet sourceSets.main
+		}
+	}
+}
+
+// ============================================================================
+// MODULE 1 — `domain`: pure-Java field domain, sealed from Minecraft.
+//                                                                            //
+// This is the load-bearing enforcement of the four-module seam (§2.1/§2.2): //
+// the `domain` source set compiles with NO minecraft on its classpath, so a //
+// `domain` class literally cannot import a `net.minecraft` symbol.           //
+// ============================================================================
+sourceSets {
+	domain {
+		java {
+			srcDir 'src/domain/java'
+		}
+		resources {
+			srcDir 'src/domain/resources'
+		}
+		// Default compile/runtime classpath only (no Loom, no Minecraft).
+	}
+	// The headless harness: depends on `domain` only, never on minecraft.
+	domainTest {
+		java {
+			srcDir 'src/test/domain'
+		}
+		resources {
+			srcDir 'src/test/domain/resources'
+		}
+		compileClasspath += sourceSets.domain.output + sourceSets.domain.compileClasspath
+		runtimeClasspath += sourceSets.domain.output + sourceSets.domain.runtimeClasspath
+	}
+}
+
+dependencies {
+	// Minecraft + Fabric host (unobfuscated 26.2 — no remap, plain `implementation`
+	// per the canonical template; BUILD-PLAN.md §1).
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+	// Module 1 compiled against nothing Minecraft.
+	implementation sourceSets.domain.output
+
+	// Headless harness (runs under `domainTest`, no Minecraft runtime).
+	domainTestImplementation sourceSets.domain.output
+	domainTestRuntimeOnly sourceSets.domain.output
+}
+
+// ----------------------------------------------------------------------------
+// Hard seam gate: fail the build if any `domain` source names a Minecraft type.
+// ----------------------------------------------------------------------------
+tasks.register('verifyDomainNoNetMinecraft') {
+	group = 'verification'
+	description = 'Fails the build if any domain source imports a net.minecraft symbol (module seam).'
+	def domainSrc = sourceSets.domain.java.srcDirs
+	inputs.files(domainSrc).withPropertyName('domainSources')
+	doLast {
+		def offenders = []
+		domainSrc.each { dir ->
+			if (!dir.exists()) return
+			fileTree(dir).matching { include '**/*.java' }.each { f ->
+				f.eachLine('UTF-8') { line ->
+					if (line =~ /\bnet\.minecraft\b/) {
+						offenders << "${f.relativePath(dir)}: ${line.trim()}"
+					}
+				}
+			}
+		}
+		if (!offenders.isEmpty()) {
+			throw new GradleException("Module seam violated — domain must not reference net.minecraft:\n" +
+				offenders.collect { "  - $it" }.join('\n'))
+		}
+	}
+}
+
+// The compile gate enforces the classpath (the real type-system seam); the
+// grep task above is the belt-and-braces guard.
+tasks.named('compileDomainJava') {
+	dependsOn 'verifyDomainNoNetMinecraft'
+}
+
+// Headless harness execution — no Minecraft runtime required.
+def domainTestRun = tasks.register('domainHarness', JavaExec) {
+	group = 'verification'
+	description = 'Runs the headless domain harness (TwoFluidSolver determinism + SnapshotPublisher tearing) under the domain source set, without a Minecraft runtime.'
+	classpath = sourceSets.domainTest.runtimeClasspath
+	mainClass = 'dev.cassicraft.domain.harness.DomainHarnessMain'
+}
+
+tasks.named('check') {
+	dependsOn 'verifyDomainNoNetMinecraft', domainTestRun
+	dependsOn 'quantizerDeterminism'
+}
+
+// ----------------------------------------------------------------------------
+// Game-source quantizer determinism gate (BUILD-PLAN.md §9.5). Runs the
+// pure Quantizer replay under the game runtime classpath (no live client/server),
+// so CI can assert "same field state → same blocks" headlessly.
+// ----------------------------------------------------------------------------
+def quantizerDeterminismRun = tasks.register('quantizerDeterminism', JavaExec) {
+	group = 'verification'
+	description = 'Runs the Quantizer determinism gate (quantized block-state hash is a pure function of the field replay) without a live client.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'dev.cassicraft.game.sampler.QuantizerDeterminismMain'
+}
+
+build.dependsOn quantizerDeterminism
+
+// Bundle the `domain` output into the single mod jar. This is plain-Java
+// packaging — `domain` still compiles with NO Minecraft on its classpath (the
+// seam is compile-time + threading, not runtime classpath physics), and Fabric
+// loads it from the flat jar classpath alongside the Minecraft host.
+jar {
+	from(sourceSets.domain.output)
+}
+
+processResources {
+	def version = project.version
+	inputs.property 'version', version
+	inputs.property 'loader_version', project.loader_version
+	inputs.property 'minecraft_version', project.minecraft_version
+	inputs.property 'mod_id', project.mod_id
+
+	filesMatching('fabric.mod.json') {
+		expand 'version': version,
+				'loader_version': project.loader_version,
+				'minecraft_version': project.minecraft_version,
+				'mod_id': project.mod_id
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.encoding = 'UTF-8'
+	it.options.release = 25
+}
