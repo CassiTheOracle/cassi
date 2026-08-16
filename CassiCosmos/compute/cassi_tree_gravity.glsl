@@ -34,11 +34,24 @@
 //       own source leaf.
 // These are REQUIRED for a correct self-excluding open-field force.
 //
-// Force formulas (verified in stage5_fmm.py against a 2-mass expansion and
+// Force formulas (verified in stage5_fpm.py against a 2-mass expansion and
 // the direct O(N²) sum; the quadrupole sign is the CORRECT one — the naive
 // swap is the negation and made quadrupole WORSE than monopole):
 //   monop  = −W·d/(d²+eps2)^(3/2)
 //   quad   = ( (d²)·(Q·d) − (5/2)(d·Q·d)·d ) / (d²)^(7/2)
+//
+// DENSITY-AWARE SOFTENING (2026-08-16, Fix 2): the global PC eps2 alone
+// leaves close encounters in a dense/heavy core singular — the per-node
+// force cap (below) truncated them, but the kicked particles still deposit
+// two-body heating energy and the cloud slowly expands (measured: COM-relative
+// rmax grew 267→608 over 1950 frames at the owner's 250k scale after Fix 1
+// killed the drift). Each node is therefore softened to the sphere its own
+// mass would occupy at UNIT reference density, ε_node = (W)^(1/3),
+// ε²_node = pc.eps2 + W^(2/3): a DERIVED adaptive softening (GADGET-style
+// ε ∝ (m/ρ_ref)^(1/3), ρ_ref = 1 mass per unit³) that leaves single/dilute
+// particles (W≈1, W^(2/3)≈1 << pc.eps2≈324) bit-near-identical to the
+// calibrated river while smoothing only heavy/dense nodes (W≫1) that would
+// otherwise singularly kick.
 //
 // Outputs per target: forceOut[i] = a(r) (vec3, attractive; the caller's
 // tree-river arm applies the +G_N(π/ρ)_target prefactor), and interCount[i]
@@ -101,6 +114,13 @@ void force_main() {
         vec3 com = wv.yzw;
         float W = wv.x;
         float hs = cf.w;
+        // Density-aware softening (Fix 2, 2026-08-16): ε²_node = pc.eps2 +
+        // W^(2/3) — soften a node to the sphere its mass occupies at unit
+        // reference density (GADGET-style ε ∝ (m/ρ)^(1/3)). Single/dilute
+        // nodes (W≈1) keep the calibrated global eps2; heavy/dense nodes get
+        // extra smoothing against the singular near-field. Per-node, no
+        // readback. (W^(2/3) = exp(2/3·ln W); GLSL has no direct cbrt-square.)
+        float eps2_node = pc.eps2 + exp((2.0 / 3.0) * log(max(W, 1e-30)));
         vec3 d = target - com;
         float ds2 = dot(d, d);
         float sep = sqrt(ds2);
@@ -122,8 +142,8 @@ void force_main() {
             if (is_leaf && (srcorder[ps] == i)) {
                 // skip the target's own source entirely
             } else {
-                // monopole (R² = ds2 + eps2)
-                float R2 = ds2 + pc.eps2;
+                // monopole (R² = ds2 + eps2_node — density-aware)
+                float R2 = ds2 + eps2_node;
                 float invR3 = 1.0 / (R2 * sqrt(R2));
                 nx -= W * d.x * invR3;
                 ny -= W * d.y * invR3;
@@ -144,7 +164,7 @@ void force_main() {
                                Qxy * d.x + Qyy * d.y + Qyz * d.z,
                                Qxz * d.x + Qyz * d.y + Qzz * d.z);
                 float dqd = dot(d, qd);
-                float R2q = ds2 + pc.eps2;
+                float R2q = ds2 + eps2_node;
                 float invR7 = 1.0 / (R2q * R2q * R2q * sqrt(R2q));
                 vec3 quad = (R2q * qd - 2.5 * dqd * d) * invR7;
                 nx += quad.x; ny += quad.y; nz += quad.z;
