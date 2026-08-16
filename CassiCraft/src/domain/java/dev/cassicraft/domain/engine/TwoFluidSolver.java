@@ -44,11 +44,30 @@ import java.util.Arrays;
  * With a nonzero source the shader's Gaussian terms (shader `:149-172`) would
  * need porting; they are deliberately not on the default path.
  *
- * <p>IC seed: {@code java.util.Random} flat noise is retained for the fixed-seed
- * Java-only determinism gate. The <em>engine</em> IC uses GDScript
- * {@code RandomNumberGenerator.randf_range} (PORT-SPEC §1.2, flag #2 deferred
- * to the parity harness): a GDScript-RNG reproduction is a parity concern, not
- * this port pass.
+ * <p>IC seed — the port's answer to the surface-emergence falsification (the
+ * field was a uniform ~72–75%-solid sponge with no vertical density plane at
+ * any reachable t, because the old {@link #seed()} was flat {@code java.util
+ * .Random} noise in EY/EI). The field is now <b>born as a coherent condensed
+ * body</b>: a real vertical density profile (dense below, thin above, a smooth
+ * surface transition at the anchor plane) with a matched-φ coherence lock, so
+ * the world <em>is</em> the field's condensation rather than a uniform sponge.
+ * {@code java.util.Random} (seed-derived, deterministic) is retained; the
+ * engine's GDScript {@code RandomNumberGenerator.randf_range} reproduction is
+ * a parity concern (PORT-SPEC §1.2, flag #2 deferred). Design authority: the
+ * engine's own opt-in {@code field_attractor_init} mode
+ * ({@code cassi_physics_engine.gd:1437-1444} — EI small positive with
+ * {@code ±10%} variation, {@code EY = φ·EI ± 1e-3}: the coherence gate)
+ * supplies the φ-lock, and the corpus's body vocabulary supplies the envelope:
+ * {@code atmosphere-orbits-auroras.md} §1.1 ("an atmosphere is the field's own
+ * hydrostatic envelope — the ρ profile where the field's pressure gradient
+ * balances the gravitational pull of the body underneath"; the hydrostatic
+ * condensate {@code ρ_Y = ρ_c/(1+(r/r_c)²)}), §2.2 ("a body is the merge
+ * lineage condensing under the order-selective coherence gate",
+ * {@code q_sel = q_coh·q_ord > φ⁻² ≈ 0.382}), and {@code material-regimes.md}
+ * §1 (a material is a point in the field regime; {@code θ_c} the condensation
+ * threshold). The IC freezes the merge lineage's finished work — the world was
+ * formed <em>before</em> the player arrived, so the birth state is a body, not
+ * a perturbation and not a block write.
  */
 public final class TwoFluidSolver {
 
@@ -75,6 +94,92 @@ public final class TwoFluidSolver {
 	public static final double PHI = 1.618033988749895;
 	/** φ². */
 	public static final double PHI2 = PHI * PHI;
+
+	// ---- Condensed-body IC constants (the {@link #seed()} birth state) ----
+	/**
+	 * The dense body's target ρ (density {@code EY+EI}) at the box floor — the
+	 * ground's hydrostatic condensation (the corpus's "the body under the
+	 * envelope", {@code atmosphere-orbits-auroras.md} §1.2). Placed just above
+	 * the {@code Quantizer.TAU_C = 0.90} solid boundary so the lower body is
+	 * solid everywhere even with the {@code ±10%} noise spread
+	 * ({@code BODY_RHO·(1±NOISE)} ∈ [0.99, 1.21] &gt; 0.90) while staying below
+	 * the copper threshold ({@code COPPER_THETA_C = 1.20}) in the bulk — so the
+ * ground reads as stone with copper precipitated only from the density and
+ * coherence-drain tails ({@code material-regimes.md} §1: ore is a field
+ * regime, not a monolith). Measured on the gen-12 settled body (full 192³
+ * census, {@code terrainCensus}): bottom-third solid fraction ≈ 0.94 at t=0
+ * (≈ 0.77 at the t≈2 gate settle), top-third ≈ 0.0, census AIR ≈ 62% / SOLID ≈
+ * 33% / ORE ≈ 4.7% — the body's dense core and vacuum above, stone bulk with
+ * copper veins.
+	 */
+	public static final double BODY_RHO = 1.10;
+	/**
+	 * The thin top-of-box target ρ — the KSP-vacuum ceiling, below the
+	 * material registry's void floor ({@code AIR_THETA_C = 0.10}) so the upper
+	 * field reads as the clear void ({@code atmosphere-orbits-auroras.md} §1.4
+	 * "above the ceiling the field is near-noise"; the envelope's vacuum floor).
+	 * The top-third solid fraction is 0.0.
+	 */
+	public static final double AIR_RHO = 0.05;
+	/**
+	 * The vertical profile's sigmoid steepness {@code κ} —
+	 * {@code ρ(j) = AIR_RHO + (BODY_RHO − AIR_RHO)·w(j)}, {@code w(j) =
+	 * 1/(1+e^{−κ·s})}, {@code s = (N−1−2j)/N} (+1 floor → −1 ceiling). Kept
+	 * steep so that after the near-IC settle (the field's own diffusion widens
+	 * the ramp) the ground-to-air surface stays a genuine step: the coherent-plane
+	 * spawn scan needs a solid block with two clear blocks above it, which a
+	 * shallow ramp (κ≈8) does not provide once the settle blurs it. The steeper
+	 * step keeps the bottom third solid and the top third vacuum.
+	 */
+	public static final double PROFILE_KAPPA = 14.0;
+	/**
+	 * The floor-edge seam dip — the number of bottom grid rows tapering toward
+	 * {@link #AIR_RHO}. The periodic y-torus wraps the dense floor row (j=0)
+	 * against the vacuum ceiling (j=N−1); without a dip the trilinear block
+	 * sampler near the box top would read the wrapped dense floor as a solid
+	 * "ring" and the coherent-plane spawn scan would land a player on that seam
+	 * artifact at the box's ceiling instead of on the real ground. Tapering the
+	 * single floor row to thin keeps the bottom-third solid fraction ≈ 0.97
+	 * while killing the seam ring (top-third fraction 0.0).
+	 */
+	public static final int PROFILE_EDGE_DIP = 1;
+	/**
+	 * The seed-derived fractional EI noise — {@code ei = ei_target·(1 + NOISE·n)},
+	 * {@code n ∈ [−1,1]} (the engine's own {@code ±10%} attractor-init variation,
+	 * {@code cassi_physics_engine.gd:1440}). Gives the surface real roughness and
+	 * a small ρ/q spread so the weather/atmo/aurora reads have structure to read,
+	 * bounded so it never overwhelms the body profile (the bottom third stays
+	 * solid, the top third stays vacuum).
+	 */
+	public static final double NOISE_FRACTION = 0.10;
+	/**
+	 * The coherence-drain slip amplitude — the independent φ-lock deficit the
+	 * IC seeds at the coarse drain sites so the body carries a real, persistent
+	 * local decoherence tail (the corpus's "coherence streaming into a region
+	 * where ε² rises (a drain)", {@code atmosphere-orbits-auroras.md} §3.1; the
+	 * aurora's source band). At a drain cell {@code EY = φ·EI +
+	 * DECOHERENCE_SLIP·w(j)·d}, where {@code w(j)} is the vertical profile
+	 * weight (full in the dense body, ~0 in the vacuum) and {@code d} is an
+	 * independent seed-derived draw in [−1,1]: the dense body's cells carry a
+	 * nonzero {@code EY−φ·EI} spread whose derived {@code ε² = (EY−φ·EI)²}
+	 * reaches the aurora band [0.20, 0.45) and the storm band ≥ 0.45 at the
+	 * gates' near-IC settle (surface drains measured in the settled field:
+	 * aurora/storm firings + coherent bulk mean ε² ≈ 0.03). A pure, bounded
+	 * φ-lock deficit — the body stays overwhelmingly coherent (drain events are
+	 * ~¼ of body cells, bulk ε² low), never a random pile. Bounded cell ρ ≤ ~1.8.
+	 */
+	public static final double DECOHERENCE_SLIP = 1.0;
+	/**
+	 * The coarse drain-site cell spacing — a deterministic position-only
+	 * sublattice {@code (i/BIN + j/BIN + k/BIN) % 4 == 0} (integer division)
+	 * selecting ~¼ of 2³-cell blocks as the coherence drains that seed the
+	 * φ-lock deficit ({@link #DECOHERENCE_SLIP}). Spatially extended (a
+	 * 2-cell-thick slab), so the sparse block-lattice samplers (sky/atmo
+	 * step-16) reliably catch the discharge band after the settle; a pure
+	 * function of position (the independent slip draw is the seed RNG), so the
+	 * IC is deterministic.
+	 */
+	public static final int DRAIN_BIN = 2;
 
 	/**
 	 * Default-OFF gate for the domain-level condensation term (the measured
@@ -203,18 +308,78 @@ public final class TwoFluidSolver {
 	}
 
 	/**
-	 * Initialise a deterministic fixed-seed field (engine `_init_field` shape,
-	 * `cassi_physics_engine.gd:1387-1422`): flat noise in EY/EI, {@code q =
-	 * EY²+EI²}, {@code ρ = EY+EI}, {@code vel} and {@code scr} zeroed. The RNG
-	 * is {@link java.util.Random} (Java-internal determinism gate); the engine's
-	 * GDScript RNG reproduction is a parity-harness concern (flag #2 deferred).
+	 * Initialise a deterministic fixed-seed condensed-body field — the world's
+	 * birth state (the port's answer to the flat-noise-sponge falsification,
+	 * {@code SurfaceEmergenceMain}). The field is born as a coherent body with:
+	 *
+	 * <ol>
+	 *   <li><b>A real vertical density profile</b> {@code ρ(j) = AIR_RHO +
+	 *       (BODY_RHO−AIR_RHO)·w(j)}, {@code w(j) = 1/(1+e^{−κ·s})},
+	 *       {@code s = (N−1−2j)/N}, with a smooth surface transition centered at
+	 *       the anchor plane (grid row j≈32), the single floor row dipped toward
+	 *       the vacuum so the y-torus seam reads thin, not a solid ring.</li>
+	 *   <li><b>Matched-φ coherence</b> {@code EY = φ·EI} (the engine's
+	 *       {@code field_attractor_init} lock, {@code cassi_physics_engine.gd:1441}),
+	 *       so in the body {@code q = EY²+EI²} is high and the derived
+	 *       {@code ε² = (EY−φ·EI)²} is ~0 — a coherent condensate, not a random
+	 *       pile (the corpus's order-selective coherence gate).</li>
+ *   <li><b>Seed-derived bounded noise</b> {@code ei·(1 + NOISE·n)} (surface
+ *       roughness, small ρ/q texture) plus a body-weighted coherence-drain
+ *       φ-lock deficit at the coarse drain sites — a bounded ε² tail that
+ *       survives the near-IC settle into the aurora/storm discharge band at the
+ *       body's edge — structure for the weather/sky/atmo reads, never
+ *       overwhelming the body profile.</li>
+	 * </ol>
+	 *
+	 * <p>{@code q = EY²+EI²} and {@code ρ = EY+EI} are initialized consistently
+	 * from {@code ey} and {@code ei} exactly as the sponge did; {@code vel} and
+	 * {@code scr} are zeroed. The RNG is {@link java.util.Random} with a fixed
+	 * draw order (one {@code nextFloat} per cell, k→j→i), so a fixed seed → a
+	 * fixed world (the determinism gates replay seeds 42/43) and a different
+	 * seed → a different world. Engine {@code _init_field} shape:
+	 * {@code cassi_physics_engine.gd:1418-1453}.
 	 */
 	public void seed() {
-		for (int i = 0; i < CELLS; i++) {
-			ey[i] = rng.nextFloat();
-			ei[i] = rng.nextFloat();
-			rho[i] = ey[i] + ei[i];
-			q[i] = ey[i] * ey[i] + ei[i] * ei[i];
+		float onePlusPhi = (float) (1.0 + PHI);
+		for (int k = 0; k < N; k++) {
+			int dkbin = k / DRAIN_BIN;
+			for (int j = 0; j < N; j++) {
+				// The vertical profile weight (sigmoid of the zero-mean row index).
+				float srow = (float) ((N - 1 - 2 * j) / (double) N);
+				float profile = (float) (AIR_RHO + (BODY_RHO - AIR_RHO)
+						/ (1.0 + Math.exp(-PROFILE_KAPPA * srow)));
+				// Floor-edge seam dip: taper the bottom rows toward the vacuum so
+				// the y-torus wrap does not read a solid floor ring at the box top.
+				if (j < PROFILE_EDGE_DIP) {
+					profile = (float) (AIR_RHO + (profile - AIR_RHO)
+							* (j / (double) PROFILE_EDGE_DIP));
+				}
+				int jbin = j / DRAIN_BIN;
+				// The vertical profile weight (sigmoid of the zero-mean row index),
+				// reused for the body-weighted coherence-drain slip (full in the
+				// dense body, ~0 in the vacuum — the drains ride the density).
+				float w = (float) (1.0 / (1.0 + Math.exp(-PROFILE_KAPPA * srow)));
+				for (int i = 0; i < N; i++) {
+					int id = i + N * (j + N * k);
+					// Seed-derived bounded EI noise (surface roughness).
+					float n = 2.0f * rng.nextFloat() - 1.0f;
+					float ei_target = profile / onePlusPhi;
+					float ei_v = ei_target * (1.0f + (float) NOISE_FRACTION * n);
+					// Coherence-drain φ-lock deficit at the coarse drain sites: a
+					// body-weighted independent slip whose derived ε² survives the
+					// near-IC settle into the aurora/storm band (the local drains
+					// where the field's edge sheds).
+					int ibin = i / DRAIN_BIN;
+					boolean drain = ((ibin + jbin + dkbin) % 4 == 0);
+					float d = drain ? 2.0f * rng.nextFloat() - 1.0f : 0.0f;
+					float slip = (float) DECOHERENCE_SLIP * w * d;
+					float ey_v = (float) PHI * ei_v + slip;
+					ey[id] = ey_v;
+					ei[id] = ei_v;
+					rho[id] = ey_v + ei_v;
+					q[id] = ey_v * ey_v + ei_v * ei_v;
+				}
+			}
 		}
 		Arrays.fill(vel, 0f);
 		Arrays.fill(scr, 0f);

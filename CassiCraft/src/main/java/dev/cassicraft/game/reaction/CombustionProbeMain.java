@@ -213,9 +213,15 @@ public final class CombustionProbeMain {
 	/**
 	 * The baseline arm's pinned seed-42 co-location count (front signature:
 	 * cells with q ≥ p90 AND ε² ≥ p90) measured at settle — the no-source
-	 * baseline this gate asserts stays pinned (the byte-path is unchanged).
+	 * baseline this gate asserts stays pinned. Re-pinned for the condensed-body
+	 * IC (the port's birth-state fix): the field is now a coherent φ-locked
+	 * body with a real density profile, so the ε² high-tail (front signature's
+	 * decoherence arm) is much sparser than the old flat-noise sponge's,
+	 * changing the co-location count (was 3771 on the sponge; 9602 on the body).
+	 * {@code c_s_ref} is analytic (unchanged); the verdict stays
+	 * INCONCLUSIVE (no organized Q4 source exists to measure a front from).
 	 */
-	private static final long PINNED_BASELINE_COLOC = 3771L;
+	private static final long PINNED_BASELINE_COLOC = 9602L;
 
 	/** The grid-cell index of the box-center sample point. */
 	private static int midCell() {
@@ -249,8 +255,9 @@ public final class CombustionProbeMain {
 			System.err.println("[combustion-probe] FAIL — different seeds produced an identical fingerprint (vacuous)");
 			ok = false;
 		}
-		// Baseline pinned: the byte-path is unchanged, so c_s_ref and the seed-42
-		// co-location count must match their recorded numbers.
+		// Baseline pinned: c_s_ref is analytic and the solver's passA/passB math
+		// are unchanged, so c_s_ref must match; the seed-42 co-location count was
+		// re-pinned for the condensed-body IC (the old sponge value no longer holds).
 		boolean baselinePinned = a1.cSRef() == C_S_REF
 				&& a1.coLoc() == PINNED_BASELINE_COLOC;
 		System.out.println("[combustion-probe] baseline pinned (c_s_ref=" + fmt(C_S_REF)
@@ -454,8 +461,7 @@ public final class CombustionProbeMain {
 			}
 			long totalClamps = worker.perturbationClampCount();
 
-			String fp = drivenFingerprint(drive, qeEnd[0], qeEnd[1], qeDecay[0], qeDecay[1],
-					fan, totalClamps);
+			String fp = drivenFingerprint(drive, qeEnd[0], qeEnd[1], qeDecay[0], qeDecay[1], fan);
 			return new Driven(qeEnd[0], qeEnd[1], qeEnd[2], qeDecay[0], qeDecay[1], fan,
 					NDRIVE_WRITES, totalClamps, dumpClamped, fp, drive);
 		} finally {
@@ -580,23 +586,32 @@ public final class CombustionProbeMain {
 	}
 
 	/** The driven arm's deterministic SHA-256 fingerprint — over the ABSOLUTE
-	 * post-window/decay fuel-cell q/ε² (rounded to {@link #FP_ROUND}) plus clamp
-	 * telemetry and the drive flag. The fuel-cell values are deterministic to
-	 * ~6 decimals even under load (a same-seed run matched qEnd=1.297570 for
-	 * both arms); the radial-fan shell means are the async newest-wins drain's
-	 * timing jitter and are EXCLUDED from the hash (they are a printed diagnostic,
-	 * not a load-bearing determinism claim — genesis's own finding). Same seed +
-	 * same write cadence → identical; different seed (different fuel-cell field)
-	 * → differs. */
+	 * post-window/decay fuel-cell q/ε² (rounded to {@link #FP_ROUND}) plus the
+	 * drive flag. The fuel-cell values are deterministic to ~6 decimals even
+	 * under load (a same-seed run matched qEnd=1.297570 for both arms); the
+	 * radial-fan shell means are the async newest-wins drain's timing jitter and
+	 * are EXCLUDED from the hash (they are a printed diagnostic, not a
+	 * load-bearing determinism claim — genesis's own finding). Same seed + same
+	 * write cadence → identical; different seed (different fuel-cell field) →
+	 * differs.
+	 *
+	 * <p>The clamp counter is likewise excluded: it is the Q4-lane's
+	 * side-channel diagnostic and can race by one increment between same-seed
+	 * runs under thread timing. The condensed-body IC puts the box-center fuel
+	 * cell in the surface-transition band where the engaged-clamp count is
+	 * borderline, so a seed-42 driven pair fired 10 and 9 clamps for the same
+	 * byte-identical radial fan (qEnd=0.113628, epsEnd=0.103028 on both).
+	 * Cap-engagement is still measured and asserted separately by
+	 * {@code capsRefuseDump}; the structural fingerprint stays byte-identical for
+	 * the truly identical driven field response. */
 	private static String drivenFingerprint(boolean drive, double qEnd, double epsEnd,
-			double qDecay, double epsDecay, double[][] fan, long totalClamps) {
+			double qDecay, double epsDecay, double[][] fan) {
 		StringBuilder sb = new StringBuilder();
 		sb.append("drive=").append(drive)
 				.append(";qEnd=").append(rnd(qEnd))
 				.append(";epsEnd=").append(rnd(epsEnd))
 				.append(";qDecay=").append(rnd(qDecay))
-				.append(";epsDecay=").append(rnd(epsDecay))
-				.append(";clamps=").append(totalClamps);
+				.append(";epsDecay=").append(rnd(epsDecay));
 		return sha256(sb.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
 	}
 

@@ -86,12 +86,15 @@ public final class RideDeterminismMain {
 	/**
 	 * The ride-downhill probe's SUPPORTS descent-arm horizon speed
 	 * (RideDownhillProbeMain, seed 42 @ 12 generations — measured verbatim on
-	 * this repo: descent speed 3.7100, mean |∇(g·Φ)| 5.5842, mean π/ρ 0.4746,
-	 * flat 0.0000; start (-4,70,-4)). The field's own haul carried the mass-point
-	 * cart to this horizon speed vs 0.00 on the flat control. This is the
-	 * engine-real SUPPORTS value the ride path must match.
+	 * this repo). Re-pinned for the condensed-body IC: the field's descent scan
+	 * now finds the steep hydrostatic-envelope density gradient of a real body
+	 * (mean |∇(g·Φ)| ≈ 253 vs the old flat-noise sponge's ~5.6), so the
+	 * engine-real haul carries the cart to a much higher horizon speed (was
+	 * 3.71 on the sponge; 52.93 on the body — the ride down a real slope is
+	 * genuinely fast; flat control still 0.0000). This is the engine-real
+	 * SUPPORTS value the ride path must match.
 	 */
-	private static final double PROBE_DESCENT_SPEED = 3.71;
+	private static final double PROBE_DESCENT_SPEED = 52.93;
 	/**
 	 * Match-to-probe tolerance — the ride's descent-arm speed must be within this
 	 * relative fraction of the probe's SUPPORTS speed, proving the ride path and
