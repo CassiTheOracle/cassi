@@ -124,6 +124,22 @@ def main():
         print("[%s] %s  %s" % ("PASS" if ok else "FAIL", nm, extra))
     print("RESULT: %s" % ("ALL PASS" if (g16 and g17 and g18)
                           else "FAILURES PRESENT"))
+    # ── documentation note (print-only; no logic, no threshold change) ──
+    # G17/G18 are theta-conditional under the density-aware adaptive
+    # softening law (compute/cassi_tree_gravity.glsl:123,146,167, commit
+    # 4ce2912): each accepted node is softened by eps2 + W^(2/3), so the
+    # tree-vs-direct O(N^2) assertion holds only as theta -> 0. Measured
+    # theta* = 0.01 (floor ~1e-4) per research/meshless/theta_sweep_report.md;
+    # no crossing at any theta >= 0.1. The law itself is certified faithful
+    # by G16 (3.8e-7) and G30 (1.5e-5). This note is documentation only: no
+    # threshold was changed, and a FAILING result is intentional until the
+    # re-scope decision (freeze-G17-at-theta* vs certify-convergence, or a
+    # theta=0.01 GPU dump).
+    print("NOTE: G17/G18 are theta-conditional under the density-aware "
+          "softening law; see research/meshless/theta_sweep_report.md "
+          "(measured theta* = 0.01, floor ~1e-4; no crossing at theta >= 0.1). "
+          "Documentation only - no threshold changed; FAILING is intentional "
+          "until the re-scope decision.")
 
 
 if __name__ == "__main__":
