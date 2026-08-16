@@ -89,3 +89,4 @@ Fixed: one seed, $10^3$ steps, one analysis per arm, deterministic. A CONTRADICT
 - The stencil weights: `cassi_two_fluid.glsl` `lap_ey_at/lap_ei_at` (the anisotropic 19-point FV, φ-aspect per-axis).
 - The doctrine anchors: `bubble-edge-geometry.md` §2.1 (φ ratio, recorded 1.42), §2.2 (1.70 zero-parameter), §2.3 (the B(x,y,z) field, recorded 2.51), §3.1 (ring ladder 0.618/0.786); `bubble-lattice-fabric.md:65` (oblate triaxial); `predictions/falsifiable-predictions.md` Prediction 51.
 - The recorded measurements: `visual-explainers/string_bubble_cascade.py` (σ_x/σ_z = 2.510 vs φ², σ_x/σ_y = 1.422 vs φ at step 1100).
+- **Provenance note (2026-08-16):** the 1.422/2.510 values are single-run outputs of `CassiTheory/visual-explainers/string_bubble_cascade.py`, NOT engine measurements — see `research/helix_solver/oblate_provenance_audit.md` (commit 27ad20f) and `oblate_claim_map.md` (15db3c8).

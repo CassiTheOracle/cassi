@@ -6,6 +6,10 @@ steps on the phi-arm and at key times on the symmetric control, from a
 PHYSICALLY-ROUND seed, and renders the frozen verdict.
 
 Run from the repo root:  python research/helix_solver/triaxial3d_relax_probe.py
+
+Provenance note (2026-08-16): the 1.422/2.510 values are single-run outputs of
+CassiTheory/visual-explainers/string_bubble_cascade.py, NOT engine measurements -- see
+research/helix_solver/oblate_provenance_audit.md (commit 27ad20f) and oblate_claim_map.md (15db3c8).
 """
 
 import numpy as np

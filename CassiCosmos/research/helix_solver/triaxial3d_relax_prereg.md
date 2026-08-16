@@ -22,6 +22,8 @@ gives σ_x/σ_y = 1.422, σ_x/σ_z = 2.510 — **below** the doctrine's φ/φ²,
 our 600-step over-shoot. If the 3D solver's ratios relax toward (or past) those as time
 grows, the over-shoot is a transient and the sim's longer-evolved record is the target.
 
+**Provenance note (2026-08-16):** the 1.422/2.510 values are single-run outputs of `CassiTheory/visual-explainers/string_bubble_cascade.py`, NOT engine measurements — see `research/helix_solver/oblate_provenance_audit.md` (commit 27ad20f) and `oblate_claim_map.md` (15db3c8).
+
 ## 1. Frozen setup (reuses the wave-6 machinery, unchanged)
 
 - Operator: the sim's exact 3D 19-point anisotropic periodic Laplacian, matrix-free

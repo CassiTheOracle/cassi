@@ -18,6 +18,8 @@ over-drive). The refined two-component reading — the actual physics:
 | **σ_x/σ_z** (Yang/string, axial) | 3.251 | 5.501 | **4.442** | φ² = 2.618 | 2.510 |
 | peak/peak0 | 0.35 | 0.30 | **0.19** (falling) | | |
 
+**Provenance note (2026-08-16):** the "sim record" column (1.422 / 2.510) cites single-run outputs of `CassiTheory/visual-explainers/string_bubble_cascade.py`, NOT engine measurements — see `research/helix_solver/oblate_provenance_audit.md` (commit 27ad20f) and `oblate_claim_map.md` (15db3c8).
+
 The symmetric control stays at **1.000 / 1.000** throughout (t=200,1200,2400) — the
 3D operator + round seed remain unbiased; the relaxation signal is real, not a drift
 artifact.
@@ -72,6 +74,9 @@ artifact.
   `research/helix_solver/`).
 - Machinery: `triaxial3d.py` (wave 6) / the GLSL `lap_ey_at` stencil; doctrine
   `bubble-edge-geometry.md` §2.3; sim record `string_bubble_cascade.py` (1.422, 2.510).
+- **Provenance note (2026-08-16):** the "sim record" 1.422/2.510 are single-run outputs of
+  `CassiTheory/visual-explainers/string_bubble_cascade.py`, NOT engine measurements — see
+  `research/helix_solver/oblate_provenance_audit.md` (commit 27ad20f) and `oblate_claim_map.md` (15db3c8).
 - Prior: wave-6 (`triaxial3d_report.md`) over-shoot 2.227/3.251; the round-seed
   correction.
 

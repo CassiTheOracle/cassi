@@ -105,6 +105,9 @@ Negative, as expected** — not claimed.
   §2.2 (the 1.70 edge, exact 1.707); §3.1 + `falsifiable-predictions.md` Prediction 51
   (ring ladder 0.618/0.786); `string_bubble_cascade.py` (σ 1.422, 2.510 record);
   the sim stencil `cassi_two_fluid.glsl` `lap_ey_at` / `lap_ei_at`.
+- **Provenance note (2026-08-16):** the "record" 1.422/2.510 are single-run outputs of
+  `CassiTheory/visual-explainers/string_bubble_cascade.py`, NOT engine measurements — see
+  `research/helix_solver/oblate_provenance_audit.md` (commit 27ad20f) and `oblate_claim_map.md` (15db3c8).
 - Prior waves: wave-5a (σ 1.212, seed-inherited — corrected here); the 5a-followup
   (bias-free edge proxy, the exact 1.707, the grid-limit); wave-5 close-out (φ-shell
   non-conservation); waves 1–4 (axial FV cascade).
@@ -137,3 +140,9 @@ sector**, not the anisotropic Laplacian. The wave-6 Q1/Q2 shape numbers (2.227/3
 edge) describe the (φ,1,φ⁻¹) aspect, not the sim. The matrix-free machinery, free-case
 conservation (7.9e-5), determinism, and the round-seed discipline stand. See
 `triaxial3d_simop_corr_report.md` (wave 8).
+
+**Provenance note (2026-08-16):** the oblate "record" σ_x/σ_z = 2.510 (and 1.422) are
+single-run outputs of `CassiTheory/visual-explainers/string_bubble_cascade.py`, NOT engine
+measurements — see `research/helix_solver/oblate_provenance_audit.md` (commit 27ad20f) and
+`oblate_claim_map.md` (15db3c8). Per that audit the engine has no bubble-shape readout and
+this SUPERSEDED section's PROLATE reading (0.329) is the operator's actual result.
