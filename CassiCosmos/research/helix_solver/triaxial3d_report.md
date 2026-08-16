@@ -119,3 +119,21 @@ linear run, and the 2D planar operator alone does not anisotropize the shape (on
 whether the over-shoot relaxes toward φ/φ² (the recorded 2.510/1.422 at sim step 1100
 may reflect that relax) — and a proper ring-ladder candidate (Prediction 51, currently
 Reported Negative). No registry entry is proposed (these are probe measurements).
+
+---
+
+## Dated correction (2026-08-15, wave 8)
+
+**The "oblate direction confirmed, magnitude over-shoots" headline is SUPERSEDED.** Waves 6–7
+chose the φ-arm operator aspect h=(φ,1,φ⁻¹) (the doctrine's *emergent bubble* shape), which
+bakes the oblate result in. Measured against the **sim's actual operator**, whose cell sizes
+are derived from the box extents (`cassi_two_fluid.glsl`: `h_i = extent_i/(N/2)`, default box
+(φ,1,φ²), i.e. h=(φ,1,φ²), fully periodic via `% N`) — verified bit-identical (my
+`lap_weights((φ,1,φ²))` = the shader's `a=(0.127,0.731,−0.009), b=(0.092,0.035,0.042)`) — the
+pure two-fluid operator yields a **z-STRETCHED (prolate) bubble**: σ_x/σ_z = 0.329,
+σ_x/σ_y = 0.842 at t=2400 (see `triaxial3d_simop_corr_probe.py`). The doctrine's oblate
+record (σ_x/σ_z=2.510) therefore comes from the **source feed / cluster geometry / gravity
+sector**, not the anisotropic Laplacian. The wave-6 Q1/Q2 shape numbers (2.227/3.251 and the
+edge) describe the (φ,1,φ⁻¹) aspect, not the sim. The matrix-free machinery, free-case
+conservation (7.9e-5), determinism, and the round-seed discipline stand. See
+`triaxial3d_simop_corr_report.md` (wave 8).

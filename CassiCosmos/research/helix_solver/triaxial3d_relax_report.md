@@ -74,3 +74,19 @@ artifact.
   `bubble-edge-geometry.md` §2.3; sim record `string_bubble_cascade.py` (1.422, 2.510).
 - Prior: wave-6 (`triaxial3d_report.md`) over-shoot 2.227/3.251; the round-seed
   correction.
+
+---
+
+## Dated correction (2026-08-15, wave 8)
+
+**The "transverse converges to φ, axial over-drives" interpretation is tied to the wrong
+aspect and the boundary-hypothesis was wrong.** (1) The wave-7 φ-arm used the bubble-shaped
+aspect h=(φ,1,φ⁻¹); the **sim's actual operator** is h=(φ,1,φ²) (cell sizes from the box
+extents, `cassi_two_fluid.glsl`), fully periodic. On that operator the bubble is
+**z-STRETCHED**, not z-bounded: σ_x/σ_z = 0.329, σ_x/σ_y = 0.842 at t=2400 — the opposite of
+the wave-7 (φ,1,φ⁻¹) trace (which gave 1.871/4.442). (2) The wave-7 hypothesis that the
+probe was "periodic-z while the sim is bounded-z" is **withdrawn** — the shader wraps every
+axis with `% N`, so the sim is periodic in z too; there is no boundary gap. The relaxation
+trace is a real result but for the (φ,1,φ⁻¹) aspect only, and it does not describe the sim's
+operator. The doctrine's oblate 2.510 must come from the source feed / cluster geometry /
+gravity sector, not the operator. See `triaxial3d_simop_corr_report.md` (wave 8).
