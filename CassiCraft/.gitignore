@@ -17,3 +17,6 @@ runserver_*.log
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Central-file seam wiring requests (owner-only seam; not source)
+wiring-requests/
