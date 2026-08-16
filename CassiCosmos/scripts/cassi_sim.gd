@@ -2146,7 +2146,7 @@ func _setup_buffers() -> void:
 	_bh_buf = _rd.storage_buffer_create(576)
 	var ext_hdr := _extents()
 	var bh_init_f = PackedFloat32Array([
-		0.0, 0.0, 0.0, float(N_particles),
+		0.0, _window_center.x, _window_center.y, _window_center.z,
 		0.0, 0.0, 0.0, 1.0,
 		cluster_radius, ext_hdr.x, ext_hdr.y, ext_hdr.z,
 		0.0, 0.0, 0.0, 0.0,
