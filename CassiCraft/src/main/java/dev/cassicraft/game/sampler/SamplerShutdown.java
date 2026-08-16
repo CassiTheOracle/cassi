@@ -35,31 +35,42 @@ public final class SamplerShutdown {
 	private CassiFieldThread fieldThread;
 	private TickSampler sampler;
 	private WorldWriter writer;
+	private double[] windowCenter = new double[] { 0, 0, 0 };
 	private final Queue<BlockMutation> intent = new ArrayDeque<>();
 
 	/**
 	 * Stand up a fresh session: a world-seed-derived field thread + sampler +
 	 * writer wired to one immutable-snapshot handoff.
 	 *
+	 * @param windowCenter the box's center in world coords — anchored to where the
+	 *        player enters (the corpus's anchor-to-window, async-field-domain §7 Q1);
+	 *        grid (32,32,32) maps to this point, so the player stands in the field's
+	 *        real interior, not a clamped edge
 	 * @return the world-seed-derived field seed actually used (for logging).
 	 */
-	public long beginSession(ServerLevel level, long worldSeed) {
+	public long beginSession(ServerLevel level, long worldSeed, double[] windowCenter) {
 		endSession(); // defensive — never leave a prior session's worker running
 		this.publisher = new SnapshotPublisher();
 		this.fieldThread = new CassiFieldThread(publisher);
+		this.windowCenter = windowCenter.clone();
 		long seed = worldSeed;
 		CassiFieldThread.Cfg cfg = new CassiFieldThread.Cfg(
 				seed,
 				CassiFieldThread.JOB_STEP_CAP,
 				CassiFieldThread.SNAPSHOT_CADENCE,
 				new KernelLoader().load(),
-				new double[] { 0, 0, 0 });   // window-center fixed at the box origin for the demo
+				this.windowCenter);
 		fieldThread.start(cfg);
 
 		this.sampler = new TickSampler(publisher);
 		this.writer = new WorldWriter(intent);
 		this.writer.onServerStart(level.getServer());
 		return seed;
+	}
+
+	/** The anchored box center (world coords) of the live session. */
+	public double[] windowCenter() {
+		return windowCenter.clone();
 	}
 
 	/** Tick hook: sampler reads the freshest publish → intent; writer applies it. */

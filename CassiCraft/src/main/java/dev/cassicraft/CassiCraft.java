@@ -7,6 +7,7 @@ import dev.cassicraft.game.reader.FieldReader;
 import dev.cassicraft.game.reader.WeatherglassItem;
 import dev.cassicraft.game.sampler.SamplerShutdown;
 import dev.cassicraft.game.sampler.Quantizer;
+import dev.cassicraft.game.spawn.SurfaceSpawn;
 import dev.cassicraft.game.walk.MovementCost;
 import dev.cassicraft.game.walk.StrideCostPass;
 import net.fabricmc.api.ModInitializer;
@@ -70,21 +71,36 @@ public class CassiCraft implements ModInitializer {
 	/** The movement-cost pass (stride drag) for the live session (created per-session). */
 	private StrideCostPass strideCost;
 
+	/** Sets the player's respawn on the field surface once the field publishes. */
+	private SurfaceSpawn surfaceSpawn;
+
 	@Override
 	public void onInitialize() {
 		registerWeatherglass();
 
 		// World load → start the domain field thread + sampler + writer for this
-		// world. The overworld is the Phase-1 substrate (its seed is the field seed).
+		// world. The overworld is the Phase-1 substrate (its seed is the field
+		// seed). The box is anchored to where the player enters (the world spawn),
+		// so grid (32,32,32) maps to the spawn block and the player stands in the
+		// field's real interior, not a clamped edge (async-field-domain §7 Q1 —
+		// the movable home-window, anchored-to-window). The full follow-behind
+		// advection (world-seams §4.2's flip policy) is a beyond-Phase-1 item; the
+		// box is 192³ ≈ 12×12 chunks, a long demo walk with the fixed anchor.
 		ServerLevelEvents.LOAD.register((server, level) -> {
 			if (server.overworld() != level || session.isRunning()) {
 				return; // only the overworld hosts the living-terrain seam, once
 			}
 			long seed = level.getSeed();
-			long used = session.beginSession(level, seed);
+			BlockPos spawn = level.getRespawnData() != null && level.getRespawnData().pos() != null
+					? level.getRespawnData().pos()
+					: BlockPos.ZERO;
+			double[] anchor = { spawn.getX(), spawn.getY(), spawn.getZ() };
+			long used = session.beginSession(level, seed, anchor);
 			steering = new RiverSteering(session.publisher());
 			strideCost = new StrideCostPass(session.publisher());
-			LOGGER.info("[cassicraft] field thread started for world (seed {}), sampler + writer armed", used);
+			surfaceSpawn = new SurfaceSpawn(session.publisher(), anchor);
+			LOGGER.info("[cassicraft] field thread started for world (seed {}), window anchored at ({},{},{})",
+					used, (int) anchor[0], (int) anchor[1], (int) anchor[2]);
 		});
 
 		// World unload → join the field worker (explicit close).
@@ -93,6 +109,7 @@ public class CassiCraft implements ModInitializer {
 				session.endSession();
 				steering = null;
 				strideCost = null;
+				surfaceSpawn = null;
 				LOGGER.info("[cassicraft] field thread closed (world unload)");
 			}
 		});
@@ -103,6 +120,7 @@ public class CassiCraft implements ModInitializer {
 				session.endSession();
 				steering = null;
 				strideCost = null;
+				surfaceSpawn = null;
 				LOGGER.info("[cassicraft] field thread closed (server stop)");
 			}
 		});
@@ -110,10 +128,13 @@ public class CassiCraft implements ModInitializer {
 		// The server tick routes sampler → writer once per tick (the only-mutator
 		// rule: sampler reads, writer writes blocks), the life-steering pass veers
 		// passive animals along the river gradient (a read, never a power source),
-		// and the stride-cost pass drags players in dear regions (a cost, never a
-		// boost).
+		// the stride-cost pass drags players in dear regions (a cost, never a
+		// boost), and the surface-spawn sets the player's respawn on the field.
 		ServerTickEvents.END_SERVER_TICK.register(server -> {
 			session.onServerTick(server);
+			if (surfaceSpawn != null) {
+				surfaceSpawn.onServerTick(server.overworld());
+			}
 			if (steering != null) {
 				steering.onServerTick(server.overworld(), server.getTickCount());
 			}

@@ -127,6 +127,7 @@ tasks.named('check') {
 	dependsOn 'readerDeterminism'
 	dependsOn 'lifeDeterminism'
 	dependsOn 'movementDeterminism'
+	dependsOn 'walkabilityDeterminism'
 }
 
 // ----------------------------------------------------------------------------
@@ -184,6 +185,20 @@ def movementDeterminismRun = tasks.register('movementDeterminism', JavaExec) {
 }
 
 build.dependsOn movementDeterminism
+
+// ----------------------------------------------------------------------------
+// Game-source walkability determinism gate (player-anchored-window fix): with a
+// fixed seed the spawn column has a solid floor with air above (the "player can
+// stand" proxy), deterministically, and differs across seeds. Headless.
+// ----------------------------------------------------------------------------
+def walkabilityDeterminismRun = tasks.register('walkabilityDeterminism', JavaExec) {
+	group = 'verification'
+	description = 'Runs the walkability determinism gate (standable surface for the player-anchored window, same field → same column) without a live client.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'dev.cassicraft.game.walk.WalkabilityDeterminismMain'
+}
+
+build.dependsOn walkabilityDeterminism
 
 // Bundle the `domain` output into the single mod jar. This is plain-Java
 // packaging — `domain` still compiles with NO Minecraft on its classpath (the

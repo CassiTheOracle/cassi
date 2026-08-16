@@ -145,21 +145,29 @@ public final class Quantizer {
 	/**
 	 * Sample ρ, q (and derived ε²) at a block center — the fused 8-corner
 	 * traversal the GPU sampler uses, one walk fetching all channels.
+	 *
+	 * <p><b>Box boundary.</b> The field exists only inside the anchored 192³ box
+	 * (grid coords in {@code [0, N]}). A block whose center is <b>outside</b> the
+	 * box reads as empty air — the box's outer face is the world's iso-surface
+	 * (the previous clamp-to-edge made every outside block sample the boundary
+	 * cell, so a player standing above or beyond the box was embedded in a
+	 * degenerate solid slab — the "falls through the ground" bug). Out-of-box →
+	 * air, deterministically.
 	 */
 	public static CellSample sampleAt(FieldSnapshot snap, double[] windowCenter,
 			int blockX, int blockY, int blockZ) {
-		double gx = clamp(gridCoord(blockX, windowCenter[0]));
-		double gy = clamp(gridCoord(blockY, windowCenter[1]));
-		double gz = clamp(gridCoord(blockZ, windowCenter[2]));
+		double gx = gridCoord(blockX, windowCenter[0]);
+		double gy = gridCoord(blockY, windowCenter[1]);
+		double gz = gridCoord(blockZ, windowCenter[2]);
+		if (isOutsideBox(gx, gy, gz)) {
+			return new CellSample(0f, 0f, 0f);
+		}
 		int i0 = floor(gx);
 		int j0 = floor(gy);
 		int k0 = floor(gz);
 		double fx = gx - i0;
 		double fy = gy - j0;
 		double fz = gz - k0;
-		int i1 = i0 + 1;
-		int j1 = j0 + 1;
-		int k1 = k0 + 1;
 		float[] rho = snap.rho();
 		float[] q = snap.q();
 		// 8-corner gather.
@@ -182,6 +190,16 @@ public final class Quantizer {
 	}
 
 	/**
+	 * True when a block center maps to a grid coordinate outside the box
+	 * ({@code [0, N]} inclusive) — such a position has no field, so it reads air.
+	 * A block centered exactly at the boundary ({@code grid == N}) is the box's
+	 * outer surface cell (inside); anything beyond is empty.
+	 */
+	private static boolean isOutsideBox(double gx, double gy, double gz) {
+		return gx < 0 || gx > N || gy < 0 || gy > N || gz < 0 || gz > N;
+	}
+
+	/**
 	 * Sample the Weatherglass's full read at a block center: ρ, q, derived ε²,
 	 * and the published river gradient {@code ∇(g·Φ)} — one fused 8-corner walk
 	 * over the rho/q/grad channels (the same fused traversal the GPU sampler
@@ -191,9 +209,12 @@ public final class Quantizer {
 	 */
 	public static FieldReading sampleReading(FieldSnapshot snap, double[] windowCenter,
 			int blockX, int blockY, int blockZ) {
-		double gx = clamp(gridCoord(blockX, windowCenter[0]));
-		double gy = clamp(gridCoord(blockY, windowCenter[1]));
-		double gz = clamp(gridCoord(blockZ, windowCenter[2]));
+		double gx = gridCoord(blockX, windowCenter[0]);
+		double gy = gridCoord(blockY, windowCenter[1]);
+		double gz = gridCoord(blockZ, windowCenter[2]);
+		if (isOutsideBox(gx, gy, gz)) {
+			return new FieldReading(0f, 0f, 0f, 0f, 0f, 0f);
+		}
 		int i0 = floor(gx);
 		int j0 = floor(gy);
 		int k0 = floor(gz);
@@ -324,10 +345,6 @@ public final class Quantizer {
 
 	private static int mod(int v, int m) {
 		return ((v % m) + m) % m;
-	}
-
-	private static double clamp(double v) {
-		return v < 0 ? 0 : (v > N ? N : v);
 	}
 
 	private static String sha256(byte[] data) {
