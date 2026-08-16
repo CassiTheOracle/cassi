@@ -8,7 +8,7 @@ The chord lattice (`visual-explainers/chord_lattice.py`) derives the geometric s
 
 All bubbles carry the same Wu Xing number $w = 5$ (uniquely derived in `foundations/wu-xing-derivation.md`). The lattice is homogeneous—every bubble is structurally identical. The "neighboring bubble" in the chord lattice is the same $w$, spatially separated by $\varphi$-scaled interference.
 
-**Figure:** `visual-explainers/string_bubble_cascade.png`—6-panel 3D damped-wave two-fluid PDE with sharper c² trap (α=0.15): pentagon at pinch (m=5 24.6%) → **φ-ellipsoid bubble confirmed** (σ_x/σ_z=2.510 vs φ²=2.618, σ_x/σ_y=1.422 vs φ=1.618 at step 1100) → cascade r-field shown via E_Y/E_I ratio. The bubble forms transiently as a coherent φ-shaped structure at early times (`visual-explainers/string_bubble_cascade.py`).
+**Figure:** `visual-explainers/string_bubble_cascade.png`—6-panel 3D damped-wave two-fluid PDE with sharper c² trap (α=0.15): pentagon at pinch (m=5 24.6%) → a transient φ-ellipsoid coherence-shell reading (σ_x/σ_z=2.510, σ_x/σ_y=1.422 at step 1100; the energy distribution is round, σ_x/σ_z=1.000, and the transverse σ_x/σ_y is set by the φ-scaled IC envelope) → cascade r-field shown via E_Y/E_I ratio. The bubble forms transiently as a coherent φ-shaped structure at early times (`visual-explainers/string_bubble_cascade.py`).
 
 ---
 
