@@ -32,13 +32,17 @@ extends RefCounted
 ##   (_job_mutex), and the publish slot (_res_mutex). It never touches the
 ##   sim's global RD (illegal off the main thread).
 
-const ML_TREE_LEAF_CAP := 1
-const ML_TREE_MAX_LEVELS := 14
-const ML_TREE_NODE_MAX_MULT := 8
-const ML_TREE_FIELD_FLOOR := 1e-6   # source-mass recipe field-density floor
-const ML_TREE_THETA := 0.5
-const PHI: float = 1.618033988749895
-const PHI_6: float = 17.94427191
+const ML_TREE_LEAF_CAP := CassiTreeConsts.ML_TREE_LEAF_CAP
+const ML_TREE_MAX_LEVELS := CassiTreeConsts.ML_TREE_MAX_LEVELS
+const ML_TREE_NODE_MAX_MULT := CassiTreeConsts.ML_TREE_NODE_MAX_MULT
+const ML_TREE_FIELD_FLOOR := CassiTreeConsts.ML_TREE_FIELD_FLOOR   # source-mass recipe field-density floor
+const ML_TREE_THETA := CassiTreeConsts.ML_TREE_THETA
+const PHI: float = CassiTreeConsts.PHI
+# PHI_6 here is the ROUNDED literal spelling, kept as the worker's own
+# value so the build PC encodes byte-for-byte what it did before the dedup
+# (it may differ by 1 ULP from the sim/engine's computed PHI_6 depending
+# on const-fold precision — see CassiTreeConsts).
+const PHI_6: float = CassiTreeConsts.PHI_6_ROUNDED
 
 var _thread: Thread
 var _thread_started := false

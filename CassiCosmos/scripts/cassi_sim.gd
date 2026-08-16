@@ -5,12 +5,20 @@ extends Node3D
 ## lensing, and visualization — all running in Godot compute shaders.
 ##
 
-const PHI: float = 1.618033988749895
+const PHI: float = CassiTreeConsts.PHI
 const PHI_INV3: float = (PHI - 1.0) / (PHI + 1.0)   # φ⁻³ = attractor π/ρ ≈ 0.236068
 const PHI_INV2: float = 0.3819660112501051  # φ⁻² — q decoherence threshold
-const PHI_6: float = PHI * PHI * PHI * PHI * PHI * PHI  # φ⁶ ≈ 17.94427191
+const PHI_6: float = CassiTreeConsts.PHI_6  # φ⁶ ≈ 17.94427191 (computed spelling — see CassiTreeConsts)
 const PI_CLAMP_MAX: float = 0.72  # (π/ρ) upper clamp (stability; telemetry counts hits)
 const LN2: float = 0.6931471805599453  # ln 2 — degenerate rainbow v_scale fallback (0.95·ln2)
+# Cadence/timeout consts (hoisted from the bare literals — review_sim.md #10;
+# zero behavior change — same values the literals carried).
+const COM_TRACK_CADENCE_MS := 2000          # window COM tracker cadence (2 s)
+const ENV_TRACK_CADENCE_MS := 2000          # envelope tracker cadence (2 s)
+const BOOT_PROGRESS_INTERVAL_MS := 5000     # decoupled-bootstrap progress print interval (5 s)
+const BOOT_TIMEOUT_MS := 45000              # decoupled-bootstrap setup deadline (45 s)
+const ALIGN_CADENCE_MS := 1500              # qhist color-align cadence (1.5 s)
+const COM_MOVE_CAP_FRAC := 0.25             # window-tracker soft move cap (≤ 0.25·min_extent / tick)
 # Qi-rainbow (color_mode 2) stage-1 band — recalibrated 2026-08-12 from the
 # measured q = EY²+EI² distribution at particle positions (1M-particle diag
 # mirroring the live main.tscn config, 600 steps): typical q sits in
@@ -597,20 +605,21 @@ var _pc_bytes: PackedByteArray        # shared 11-float PC (all physics shaders)
 # mismatch, so the nbody shader gets its OWN pre-allocated 60 B buffer
 # (the dedicated-PC precedent) instead of growing the shared one.
 var _nbody_pc_bytes: PackedByteArray  # nbody PC (15 floats: 11 shared + pass_mode + 3 RealSim)
-# Two-fluid dedicated PC (14 floats: the shared 11 + the 3 per-axis
-# extents) — the dedicated-PC precedent: field_render/instancer/bh_lensing
+# Two-fluid dedicated PC (16 floats: the shared 11 + the 3 per-axis
+# extents + pass_sel + omega2 — layout key `cassi_two_fluid`) — the
+# dedicated-PC precedent: field_render/instancer/bh_lensing
 # share _pc_bytes (11 floats) and Godot hard-errors on push-constant size
 # mismatch, so the two-fluid's anisotropic-stencil extents get their own.
 var _two_fluid_pc_bytes: PackedByteArray  # two-fluid PC (16 floats: 11 shared + extent_x/y/z + pass_sel + omega2)
-var _md_pc_bytes: PackedByteArray     # mass deposit PC (8 floats: N, particle_N, extent_x/y/z, off_x/y/z)
+var _md_pc_bytes: PackedByteArray     # mass deposit PC (9 floats: N, particle_N, extent_x/y/z, off_x/y/z, mode)
 var _bh_int_pc_bytes: PackedByteArray # BH integrate PC (4 floats)
 var _cond_pc_bytes: PackedByteArray   # condensation PC (4 floats)
-var _bh_init_bytes: PackedByteArray   # BH header init (16 floats)
+var _bh_init_bytes: PackedByteArray   # BH header init (the full 36-vec4/576-B header — float 144; the nbody shader reads bh[4..] records, so the whole buffer is seeded)
 var _tel_reset_bytes: PackedByteArray # gravity telemetry reset (8 floats)
 var _poisson_pc_bytes: PackedByteArray  # poisson PC (7 floats: N, axis, dir, mode, extent_x/y/z)
 var _occ_pc_bytes: PackedByteArray    # occupancy PC (10 floats: np, n_sample, stride, lim_x/y/z, ext_x/y/z, pad)
 var _occ_zero_bytes: PackedByteArray  # occupancy counter reset (32 B of zeros)
-var _merge_pc_bytes: PackedByteArray  # merge PC (16 floats: N, phi, phi_inv2, q_th, R_m, ext.xyz, grid_N, hash_nxyz, cell_w.xyz, pass_mode)
+var _merge_pc_bytes: PackedByteArray  # merge PC (24 floats: N, phi, phi_inv2, q_th, R_m, ext.xyz, grid_N, hash_nxyz, cell_w.xyz, pass_mode, cyc_slot)
 # Instancer dedicated PC (32 floats = 128 B — the AMD RDNA3 Vulkan cap;
 # EXACTLY 128, nothing more) — the consolidated gradient engine: the shared
 # 11 + color_mode@11 + prog_mode@12 + ref@13 + the up-to-3 cycle segments
@@ -690,11 +699,11 @@ var _ml_step_count := 0
 # Buffers sized for N_src=ml_ns sites (node cap 8·N_src+64) and N_particles
 # targets. Allocated ALWAYS (the codebase's meshless-buffer precedent), used
 # only when the toggle is on.
-const ML_TREE_LEAF_CAP := 1
-const ML_TREE_MAX_LEVELS := 14
-const ML_TREE_NODE_MAX_MULT := 8
-const ML_TREE_FIELD_FLOOR := 1e-6   # source-mass recipe field-density floor
-const ML_TREE_THETA := 0.5
+const ML_TREE_LEAF_CAP := CassiTreeConsts.ML_TREE_LEAF_CAP
+const ML_TREE_MAX_LEVELS := CassiTreeConsts.ML_TREE_MAX_LEVELS
+const ML_TREE_NODE_MAX_MULT := CassiTreeConsts.ML_TREE_NODE_MAX_MULT
+const ML_TREE_FIELD_FLOOR := CassiTreeConsts.ML_TREE_FIELD_FLOOR   # source-mass recipe field-density floor
+const ML_TREE_THETA := CassiTreeConsts.ML_TREE_THETA
 # Tree-walk softening ε (LENGTH²: the walk's monopole R² = ds² + eps2 and the
 # softened quadrupole R² = ds² + eps2 both scale ∝ 1/R³ / 1/R⁷). Picked as a
 # PHYSICAL scale tied to the box's min half-extent: the effective
@@ -786,8 +795,6 @@ func _ml_need_tree() -> bool:
 # — MultiMesh rendering —
 # NOTE: global RD — no manual submit/sync anywhere (illegal on the main
 # instance); readbacks self-stall via buffer_get_data.
-
-# — MultiMesh rendering —
 # GPU-DIRECT: the instancer compute shader writes straight into the
 # renderer's OWN multimesh instance buffer (RenderingServer
 # .multimesh_get_buffer_rd_rid) — zero per-frame readbacks/CPU uploads.
@@ -1105,20 +1112,6 @@ func _process(delta: float) -> void:
 				if n_steps > 0:
 					_decoupled_target += n_steps
 		else:
-			# ── Paced fixed-dt with a TIME BUDGET (the smooth-run design) ────
-			# The accumulator requests delta × sim_speed / dt steps — the
-			# deterministic contract the verify battery and probes rely on.
-			# The per-frame LIMIT is not a step count but a wall-clock budget:
-			# at most physics_frame_budget × the measured frame time, using the
-			# rolling per-step GPU cost — so a heavy config slows the SIM
-			# (reported truthfully as the backlog) while the frame rate stays
-			# smooth, instead of the old behavior where expensive steps first
-			# collapsed the FPS and then the step-cap silently throttled the
-			# sim with a lying drop counter. max_steps_per_frame remains a
-			# hard safety ceiling (recorder/verify pins); the backlog carries
-			# for graceful catch-up and is capped so a stall can't queue a
-			# minutes-long fast-forward. Backlog = the single truthful number:
-			# how far (sim-seconds) the sim lags its requested rate.
 			var budget_steps := 1_000_000_000 if physics_frame_budget <= 0.0 \
 					else int(maxf(physics_frame_budget * _frame_us_ema / maxf(_phys_us_ema, 10.0), 1.0))
 			var step_cap: int = maxi(max_steps_per_frame, int(ceili(sim_speed)) * max_steps_per_frame)
@@ -1224,7 +1217,7 @@ func _run_physics_steps(n_steps: int) -> void:
 	# pos write.
 	if _blend_sh.is_valid() and N_particles > 0:
 		_blend_pc.encode_float(0, 2.0)  # roll marker (> 1.0)
-		_blend_pc.encode_float(4, 0.0)  # packed mode 0 (fp32 path — bit-identical)
+		_blend_pc.encode_float(4, 0.0)  # mode 0 — blend is the −c window seam only (one-RD; no packed mirrors)
 		_blend_pc.encode_float(8, -_window_center.x)
 		_blend_pc.encode_float(12, -_window_center.y)
 		_blend_pc.encode_float(16, -_window_center.z)
@@ -1272,7 +1265,7 @@ func _run_physics_steps(n_steps: int) -> void:
 	# execution ordering but no implicit memory visibility).
 	if _blend_sh.is_valid() and N_particles > 0:
 		_blend_pc.encode_float(0, _interp_alpha)
-		_blend_pc.encode_float(4, 0.0)  # packed mode 0 (fp32 path — bit-identical)
+		_blend_pc.encode_float(4, 0.0)  # mode 0 — blend is the −c window seam only (one-RD; no packed mirrors)
 		_blend_pc.encode_float(8, -_window_center.x)
 		_blend_pc.encode_float(12, -_window_center.y)
 		_blend_pc.encode_float(16, -_window_center.z)
@@ -1568,19 +1561,18 @@ func _barrier(cl: int) -> void:
 # ═══════════════════════════════════════════════════════════════════════
 # The engine owns a worker-created local RenderingDevice and runs the core
 # chain (deposit → Poisson → two-fluid → BH → gradient → KDK) OFF the main
-# thread; this sim's global-RD buffers become MIRRORS + the render side.
-# Every frame the sim polls the freshest publish and re-uploads the
-# mirrors; the render list then dispatches the blend interpolation
-# (pos_render = mix(pos_prev, pos, alpha), one-batch-late) + instancer +
-# qhist. NO roll dispatch here: the producer maintains pos_prev HOST-SIDE
-# (a roll recorded after the mirror upload would capture the NEW snapshot
-# and break the interpolation).
+# thread. ONE shared RD: the sim's render sets bind the ENGINE's LIVE
+# buffers directly — there are no host-side mirrors and no mirror
+# re-uploads. Every frame the sim records the render list: the blend
+# interpolation (pos_render = mix(pos_prev, pos, alpha); the −c window
+# seam only — no roll, no packed half-pair transport) + instancer + qhist.
+# The publish is BOOKKEEPING + the accepted readback group (telemetry +
+# the tracker COM at cadence); it carries no snapshot.
 
-## Per-submit job meta: the mirror publish cadence (live — no reinit) and
-## the packed-mirror flag. The bootstrap submit passes packed=false so the
-## FIRST snapshot lands as fp32 (seeds _pos_buf/_pos_render_buf for the
-## frame-0 repaint and the pre-packed blend frames); every later job is
-## packed (the fp16 half-pair mirrors).
+## Per-submit job bookkeeping: whether this job's publish reads the
+## accepted readback group (telemetry + the tracker COM). The publish
+## carries NO snapshot — the render reads the engine's live buffers — so
+## there is no packed-mirror flag and no fp32/packed bootstrap distinction.
 ## P3 (M0b-P): build the publish dict at the job boundary — the readbacks
 ## (telemetry + the tracker COM) are the accepted group; the snapshots are
 ## gone (the render reads the engine's live buffers). force_telemetry:
@@ -1590,7 +1582,7 @@ func _engine_read_publish(force_telemetry: bool) -> Dictionary:
 	var pub := {"executed": eng._executed, "step_count": eng._step_count, "t": eng._time}
 	if force_telemetry:
 		pub["telemetry"] = eng.readback_telemetry()
-		if home_window_enabled and Time.get_ticks_msec() - _win_track_last_ms >= 2000:
+		if home_window_enabled and Time.get_ticks_msec() - _win_track_last_ms >= COM_TRACK_CADENCE_MS:
 			var c: Array = eng.read_com()
 			if not c.is_empty():
 				pub["com"] = c
@@ -1599,8 +1591,9 @@ func _engine_read_publish(force_telemetry: bool) -> Dictionary:
 
 ## Build the engine cfg from the live exports (an explicit dict with the
 ## same names the engine's setup() reads — never pass the sim node), start
-## the threaded runner and bootstrap-wait for the first snapshot, then
-## upload the mirrors.
+## the threaded runner and bootstrap-wait until the engine's setup is ready
+## (the render then binds the engine's live buffers directly — no mirror
+## upload).
 func _decoupled_start_engine() -> bool:
 	if _physics_engine == null:
 		_physics_engine = load("res://scripts/cassi_physics_engine.gd").new()
@@ -1684,15 +1677,15 @@ func _decoupled_start_engine() -> bool:
 	return true
 
 
-## Apply a fresh engine publish: shift the host-side snapshot pair, upload
-## the mirrors, refresh time/step/telemetry and the interpolation timing.
-## The publish cadence optimization means SOME publishes carry NO snapshot
-## (the engine readbacks every Kth job only): those still update the
-## backlog bookkeeping + time/step readouts, but skip the mirror upload AND
-## the interpolation timing — the alpha keeps sweeping across the SNAPSHOT
-## interval, so the display lag stays ≤ one publish interval at any cadence.
+## Apply a fresh engine publish: refresh time/step/telemetry bookkeeping
+## and the interpolation timing. The publish carries NO snapshot — the
+## render reads the engine's live buffers directly — so there is no mirror
+## pair to shift and no mirror upload. The accepted readback group
+## (telemetry + the tracker COM, read at the cadence) rides the publish;
+## the interpolation timing (physics ms/step + the alpha sweep) is derived
+## from the publish interval.
 func _apply_decoupled_publish(pub: Dictionary) -> void:
-	# Time / step / truthful backlog on EVERY publish (snapshot or not).
+	# Time / step / truthful backlog on EVERY publish.
 	_time = float(pub.get("t", _time))
 	_step_count = int(pub.get("step_count", _step_count))
 	_decoupled_pending = maxi(_decoupled_target - int(pub.get("executed", 0)), 0)
@@ -1731,27 +1724,6 @@ func _apply_decoupled_publish(pub: Dictionary) -> void:
 	_last_publish_ms = now_ms
 
 
-## The Φ mirror: snapshot.pot is the real part of the FFT workspace (nc
-## floats); the global _fft_buf is vec2 per cell — interleave the real
-## parts with zero imaginary. (No render consumer reads _fft_buf in the
-## decoupled v1; the mirror is maintained for the phase-2 render side.)
-func _upload_pot_mirror(pot: PackedFloat32Array) -> void:
-	var ncell := grid_N * grid_N * grid_N
-	var n := mini(ncell, pot.size())
-	var f32 := PackedFloat32Array()
-	f32.resize(ncell * 2)
-	for i in range(n):
-		f32[i * 2] = pot[i]
-		f32[i * 2 + 1] = 0.0
-	_rd.buffer_update(_fft_buf, 0, f32.size() * 4, f32.to_byte_array())
-
-
-## Decoupled frame path (called from _render_frame): consume the freshest
-## publish (mirror refresh), then record the render list — [vel unpack] →
-## blend interp → barrier → instancer (render variant) → qhist. NO roll
-## dispatch. Once the first PACKED publish has landed the blend binds the
-## packed half-pair mirrors (mode 1) and a vel-unpack dispatch (mode 2)
-## keeps the fp32 _vel_buf fresh for the instancer's |v| rainbow; before
 ## MOVABLE HOME-WINDOW tracker (perf-decomp 2026-08-15): every ~2 s, when
 ## home_window_enabled and decoupled, compute the structure's center of
 ## mass over a subsample of the published position mirror and nudge the
@@ -1765,7 +1737,7 @@ func _track_window_center() -> void:
 	if not home_window_enabled or not _decoupled_active:
 		return
 	var now := Time.get_ticks_msec()
-	if now - _win_track_last_ms < 2000:
+	if now - _win_track_last_ms < COM_TRACK_CADENCE_MS:
 		return
 	_win_track_last_ms = now
 	# P3 (M0b-P one-RD): the host-side position mirror is gone — the ENGINE
@@ -1775,7 +1747,7 @@ func _track_window_center() -> void:
 		return   # no COM published yet (engine still booting)
 	var com := _pub_com
 	var ext := _extents()
-	var max_move: float = 0.25 * minf(minf(ext.x, ext.y), ext.z)
+	var max_move: float = COM_MOVE_CAP_FRAC * minf(minf(ext.x, ext.y), ext.z)
 	var d := com - _window_center
 	var dist := d.length()
 	if dist > max_move:
@@ -1803,7 +1775,7 @@ func _track_envelope_window() -> void:
 	if not tracking_envelope or not _decoupled_active or _physics_engine == null:
 		return
 	var now := Time.get_ticks_msec()
-	if now - _env_track_last_ms < 2000:
+	if now - _env_track_last_ms < ENV_TRACK_CADENCE_MS:
 		return
 	_env_track_last_ms = now
 	if _env_tracker == null:
@@ -1881,11 +1853,11 @@ func _decoupled_poll_and_render() -> void:
 			# generous (45 s); a progress line prints every ~5 s so a
 			# slow-but-healthy boot is visible instead of a silent stall.
 			var boot_elapsed := Time.get_ticks_msec() - _decoupled_boot_start_ms
-			if boot_elapsed - _decoupled_boot_last_progress_ms >= 5000:
+			if boot_elapsed - _decoupled_boot_last_progress_ms >= BOOT_PROGRESS_INTERVAL_MS:
 				_decoupled_boot_last_progress_ms = boot_elapsed
 				print("[CassiSim] decoupled bootstrap: waiting for engine setup... %d s (IC init of %d particles takes ~13.5 s CPU on the worker)"
 						% [int(boot_elapsed / 1000), N_particles])
-			if boot_elapsed > 45000:
+			if boot_elapsed > BOOT_TIMEOUT_MS:
 				push_error("[CassiSim] decoupled bootstrap timeout (engine setup) — falling back to inline")
 				_physics_engine.stop_threaded()
 				_physics_engine = null
@@ -4241,11 +4213,11 @@ func _repaint_instancer() -> void:
 	var pg = ceili(float(N_particles) / 256.0)
 	var cl = _rd.compute_list_begin()
 	_rd.compute_list_bind_compute_pipeline(cl, _instancer_pipe)
-	# Decoupled: the fp32 _pos_buf mirror is NOT maintained (packed mirrors
-	# feed pos_render via the blend), so the repaint reads the interpolated
-	# pos_render like the live path does. Inline: _pos_buf is current.
-	# P3 one-RD: the decoupled repaint binds the DC sets (the engine's
-	# vel/fields); the inline path keeps its physics-buffer sets.
+	# Decoupled (one-RD): the repaint binds the DC render sets — the
+	# ENGINE's live buffers directly (vel/fields/pos); there are no fp32
+	# _pos_buf mirrors or packed half-pair mirrors. The blend (the −c seam)
+	# wrote pos_render from the engine's live pos. Inline: _pos_buf is
+	# current and its own physics-buffer sets are bound.
 	if _decoupled_active:
 		if _lut_active():
 			if _us_inst_0_lut_render_dc.is_valid():
@@ -5113,11 +5085,12 @@ func _render_frame() -> void:
 	# the align's device drain) — set from the DUE state, not after the run.
 	var align_due := auto_align_colors and particle_color_mode >= 2 \
 			and _qhist_buf.is_valid() and _step_count > 0 \
-			and now_ms - _last_align_ms >= 1500
+			and now_ms - _last_align_ms >= ALIGN_CADENCE_MS
 	_align_ran_this_frame = align_due
 
-	# Decoupled producer: poll the freshest publish (mirror refresh) and
-	# record the render list (blend interp + instancer + qhist) — no
+	# Decoupled producer: read the engine's freshest publish (bookkeeping +
+	# the accepted readback group — no snapshot, no mirror refresh) and
+	# record the render list (blend −c seam + instancer + qhist) — no
 	# physics list on the global RD in this mode.
 	if _decoupled_active:
 		if tracking_envelope:
@@ -5496,15 +5469,12 @@ func reinit() -> void:
 	_free_uniform_sets()  # cached sets reference the buffers being freed
 	_free_buffers()
 	# The MultiMesh instance buffer is sized at _setup_multimesh from the
-	# THEN-current N_particles. When N (or particle_size) changed since,
-	# rebuild it before _init_particles: assigning a differently-sized
+	# THEN-current N_particles, and rebuilt when the FORMAT must change:
+	# N/size (legacy) or the color-as-LUT flag flipped (use_colors/
+	# use_custom_data are static per build). Assigning a differently-sized
 	# array to _mm.buffer ERR_FAILs (Godot multimesh.cpp set_buffer size
 	# check) and the instancer dispatch then writes out-of-bounds past the
 	# stale buffer. Rebuild runs BEFORE _cache_uniform_sets because
-	# _us_inst_0 binds the (possibly new) _mm_rd_rid.
-	# Rebuild the multimesh when the FORMAT must change: N/size (legacy) or
-	# the color-as-LUT flag flipped (use_colors/use_custom_data are static
-	# per build). Rebuild runs BEFORE _cache_uniform_sets because
 	# _us_inst_0 binds the (possibly new) _mm_rd_rid.
 	var want_lut: bool = color_lut_mode and _lut_compatible()
 	if _mm == null or _mm.instance_count != max(N_particles, 1) or _mm_particle_size != particle_size or _mm_lut_mode != want_lut:

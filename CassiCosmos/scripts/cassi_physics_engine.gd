@@ -40,10 +40,10 @@ extends RefCounted
 ##   the native method and errors "Can't free a RefCounted object"). The
 ##   cleanup API is therefore `shutdown()`.
 
-const PHI: float = 1.618033988749895
+const PHI: float = CassiTreeConsts.PHI
 const PHI_INV3: float = (PHI - 1.0) / (PHI + 1.0)   # φ⁻³ = attractor π/ρ ≈ 0.236068
 const PHI_INV2: float = 0.3819660112501051  # φ⁻² — q decoherence threshold
-const PHI_6: float = PHI * PHI * PHI * PHI * PHI * PHI  # φ⁶ ≈ 17.94427191
+const PHI_6: float = CassiTreeConsts.PHI_6  # φ⁶ ≈ 17.94427191 (computed spelling — see CassiTreeConsts)
 const PI_CLAMP_MAX: float = 0.72  # (π/ρ) upper clamp (stability; telemetry counts hits)
 const LN2: float = 0.6931471805599453  # ln 2 — degenerate rainbow v_scale fallback (0.95·ln2)
 # Tree-arm force calibration G_tree = G_N·ML_TREE_G_SCALE rides bh[3].w
@@ -58,11 +58,11 @@ const ML_TREE_G_SCALE := 1.0
 # derived per tree job (the sim's recipe — the tree worker's monopole
 # R² = ds² + eps2). ML_TREE_NODE_MAX_MULT sizes the node cap for the job.
 const ML_TREE_EPS2_FRAC := 0.05
-const ML_TREE_NODE_MAX_MULT := 8
-const ML_TREE_LEAF_CAP := 1      # tree-in-list (M0): the worker's tree constants, engine side
-const ML_TREE_MAX_LEVELS := 14
-const ML_TREE_FIELD_FLOOR := 1e-6
-const ML_TREE_THETA := 0.5
+const ML_TREE_NODE_MAX_MULT := CassiTreeConsts.ML_TREE_NODE_MAX_MULT
+const ML_TREE_LEAF_CAP := CassiTreeConsts.ML_TREE_LEAF_CAP      # tree-in-list (M0): the worker's tree constants, engine side
+const ML_TREE_MAX_LEVELS := CassiTreeConsts.ML_TREE_MAX_LEVELS
+const ML_TREE_FIELD_FLOOR := CassiTreeConsts.ML_TREE_FIELD_FLOOR
+const ML_TREE_THETA := CassiTreeConsts.ML_TREE_THETA
 # ── Meshless (moving-Voronoi) arm — MESHLESS_PLAN.md §10 (ported verbatim) ──
 const ML_N1 := 16              # BCC sublattice count → 2·16³ = 8192 sites at N=64
 const ML_REBUILD := 25         # steering + remap + JFA-refresh cadence (steps)

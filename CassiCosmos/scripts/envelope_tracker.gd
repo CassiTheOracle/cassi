@@ -28,6 +28,7 @@ const PAD := 1.05          # the tile = the structure envelope x 1.05
 const GROW_THRESH := 1.10  # re-fit when the padded demand > 1.10 x the current tile
 const SHRINK_THRESH := 0.70
 const MOVE_CAP_FRAC := 0.25
+const DEAD_BAND_FRAC := 0.02  # sub-percent move dead band (cap · 2% — no jitter on percentile noise)
 
 ## The tracked tile state: the grid's world origin and per-axis half-extents.
 var center := Vector3.ZERO
@@ -95,7 +96,7 @@ func compute(samples: PackedFloat32Array, stride := 3, step := 1,
 	var dl := d.length()
 	if cap > 0.0 and dl > cap:
 		d = d.normalized() * cap
-	elif dl < cap * 0.02:
+	elif dl < cap * DEAD_BAND_FRAC:
 		d = Vector3.ZERO
 	center += d
 
