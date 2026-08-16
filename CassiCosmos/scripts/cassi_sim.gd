@@ -377,6 +377,12 @@ var _env_track_last_ms: int = 0       # the same slow cadence as the COM tracker
 ## modes share the white-hot approach band (violet → pink → white at
 ## qi_condensation_threshold). Live — re-encoded into the
 ## instancer PC every physics step (no reinit).
+# high nibble = feature flags (0x10/0x20/0x40). Base 5 = field-phase
+# (hue = atan2(EI,EY) orientation, lightness = q_coh), base 6 =
+# velocity-direction (hue = atan2(vy,vx) compass, lightness = speed) —
+# both contrast-by-construction (direction/phase span the full hue circle
+# even where amplitude and speed are near-uniform). Live — re-encoded
+# into the instancer PC every physics step (no reinit).
 @export_enum("Cassi gradient", "Velocity rainbow", "Qi rainbow", "Qi double rainbow") var particle_color_mode: int = 2
 
 # ── Consolidated gradient engine (live exports — read per instancer PC fill) ──

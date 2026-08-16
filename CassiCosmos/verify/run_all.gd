@@ -78,7 +78,9 @@ const ARMS := [
 	"verify_particle_vanish",
 	"verify_voronoi3d_aniso",
 	"verify_voronoi3d_moving_aniso",
-	"verify_autotrack",
+	# verify_autotrack removed 2026-08-16 — the Auto-Track CPU band tracker
+	# (G49-G53) was removed (owner decision); superseded by the self-adapting
+	# velocity-direction / field-phase color modes.
 	"verify_falsify",
 	"verify_mind_engine",
 	"verify_bh_accretion_engine",

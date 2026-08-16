@@ -303,6 +303,43 @@ float tri_coherence(vec3 wp) {
     return rho2 / (rho2 + PHI_INV2 + eps * eps);
 }
 
+// ── FIELD PHASE θ = atan2(EI, EY) at the particle ──────────────────────
+// The two-fluid order-frame ORIENTATION, trilinear-sampled with the SAME
+// EY/EI stencil as tri_coherence. Unlike q (amplitude) and |v| (speed) —
+// which go nearly uniform on a relaxed/condensed cloud — the phase varies
+// across the FULL circle wherever EY and EI both oscillate (the field's
+// standing/streaming wave pattern), so mapping hue to θ paints the cloud
+// with the field's internal structure instead of one flat tone. Returns θ
+// wrapped to [0,1); callers rotate/scale for the hue wheel.
+float tri_phase(vec3 wp) {
+    int N = int(pc.N_f);
+    float hn = float(N) * 0.5;
+    vec3 ext = vec3(pc.extent_x, pc.extent_y, pc.extent_z);
+    vec3 inv_ext = 1.0 / max(ext, vec3(0.0001));
+    vec3 gc = (wp * inv_ext) * hn + hn;
+    int i0 = int(floor(gc.x));
+    int j0 = int(floor(gc.y));
+    int k0 = int(floor(gc.z));
+    vec3 f = gc - floor(gc);
+    i0 = ((i0 % N) + N) % N;  j0 = ((j0 % N) + N) % N;  k0 = ((k0 % N) + N) % N;
+    int i1 = (i0 + 1) % N;    int j1 = (j0 + 1) % N;    int k1 = (k0 + 1) % N;
+    float ey = tri_field_scalar(
+        ey[idx3(i0, j0, k0)], ey[idx3(i1, j0, k0)],
+        ey[idx3(i0, j1, k0)], ey[idx3(i1, j1, k0)],
+        ey[idx3(i0, j0, k1)], ey[idx3(i1, j0, k1)],
+        ey[idx3(i0, j1, k1)], ey[idx3(i1, j1, k1)], f);
+    float ei = tri_field_scalar(
+        ei[idx3(i0, j0, k0)], ei[idx3(i1, j0, k0)],
+        ei[idx3(i0, j1, k0)], ei[idx3(i1, j1, k0)],
+        ei[idx3(i0, j0, k1)], ei[idx3(i1, j0, k1)],
+        ei[idx3(i0, j1, k1)], ei[idx3(i1, j1, k1)], f);
+    // atan2 in [−π, π] → [0, 2π) · (1/2π) → [0,1): the frame orientation,
+    // continuous across the EY/EI plane. Coherent (ρ large) and even faint
+    // ordered fields both carry phase; only a dead cell (EY=EI=0) is
+    // undefined — the lerp below falls back to the cycle hue there.
+    return atan2(ei, ey) / 6.283185307179586 + 0.5;
+}
+
 // ── Mode/feature decoding ──────────────────────────────────────────────
 // color_mode low nibble = base mode, high nibble = feature flags, packed
 // by sim_ui.gd into the particle_color_mode export (bit-identical for the
@@ -483,7 +520,42 @@ void main() {
         inst[base + 3] = vec4(u, glow_boost, depth_fade, 0.0);  // custom_data: (u, glow, depth, spare)
     } else {
         vec4 color;
-        if (bmode >= 1) {
+        if (bmode == 6) {
+            // ── MODE 6 — VELOCITY-DIRECTION (two-axis, 2026-08-16) ──────
+            // Hue = the FLOW DIRECTION of motion (compass azimuth
+            // atan2(vy,vx) → full hue circle), lightness = speed |v|. A
+            // relaxed/virialized cloud has near-UNIFORM speed (why the old
+            // speed-rainbow washed out) but isotropic velocities — every
+            // direction present at once, so the full hue wheel appears even
+            // where speeds are identical. Rotating/accreting structure reads
+            // as directional swirl (tangential-velocity rainbow); streams
+            // show as coherent hue bands. No band calibration — direction
+            // spans [0,2π) by construction.
+            vec3 vv = vel[i].xyz;
+            float sp = length(vv);
+            float h6 = mod(atan2(vv.y, vv.x) / 6.283185307179586 + 0.5 + pc.hue_offset, 1.0);
+            // lightness from a SOFT speed scale: v_ref (slot 13) is the mean
+            // initial speed, so |v|/v_ref ~ 0.5-2 for the cloud — a gentle
+            // ramp makes slow interiors dimmer and fast streams brighter
+            // without needing a tight band.
+            float vn = sp / max(pc.ref, 1e-6);
+            float l6 = clamp(0.12 + 0.75 * (vn / (vn + 1.0)), 0.0, 1.0);
+            color = vec4(hsl2rgb(vec3(h6, 0.9, l6)), 1.0);
+        } else if (bmode == 5) {
+            // ── MODE 5 — FIELD-PHASE (two-axis, 2026-08-16) ──────────────
+            // Hue = the two-fluid order-frame ORIENTATION θ = atan2(EI,EY),
+            // mapped around the FULL hue circle — contrast-maximal because
+            // phase spans [0,2π) wherever EY/EI oscillate, even where q and
+            // |v| are near-uniform (the "flat colour" complaint). Lightness
+            // = bounded q_coh so coherent regions are bright and the void
+            // dims toward the dark field. No band calibration required —
+            // phase wraps by construction.
+            float q = clamp(tri_coherence(pos[i].xyz), 0.0, 1.0);
+            float ph = tri_phase(pos[i].xyz);
+            float h5 = mod(ph + pc.hue_offset, 1.0);   // phase → hue (rotate start)
+            float l5 = 0.08 + 0.85 * q;                // q → lightness (void dims)
+            color = vec4(hsl2rgb(vec3(h5, 1.0, l5)), 1.0);
+        } else if (bmode >= 1) {
             // ── Consolidated rainbow engine (base modes 1/2/3/4) ─────────
             // One branchless evaluator for both sources; every difference
             // between the sources/modes lives in the host-composed PC.

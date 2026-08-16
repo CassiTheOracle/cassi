@@ -1,6 +1,6 @@
 # Verify battery — one-command runner
 
-Runs the whole Cassi GPU-sim verify battery (30 arms) in sequence, captures each
+Runs the whole Cassi GPU-sim verify battery (32 arms) in sequence, captures each
 arm's exit code, and exits 0 only when every arm passes.
 
 ## How to run
@@ -18,7 +18,7 @@ Godot console exe:
 - The **arms always run windowed** (`--path . res://scenes/<scene>.tscn`):
   never `--headless` an arm — this rig's global RenderingDevice has no headless
   device.
-- Exit code: `0` = all 30 passed; `1` = at least one failed.
+- Exit code: `0` = all 32 passed; `1` = at least one failed.
 - The runner prints a progress line per arm and a summary table; failed arms
   get their last 15 stdout/stderr lines printed.
 - Per-arm logs: `res://_diag/battery_logs/armNN_<name>.log` (gitignored).
@@ -55,7 +55,6 @@ Godot console exe:
 | 22 | verify_particle_vanish | "All particles vanish" diagnostic: direct + `_process` drive paths, full buffer readback timeline |
 | 23 | verify_voronoi3d_aniso | The verify_voronoi3d battery at the φ-aspect box |
 | 24 | verify_voronoi3d_moving_aniso | The verify_voronoi3d_moving battery at the φ-aspect box |
-| 25 | verify_autotrack | Auto-track live-band tracker: robust-percentile match, min-span floor, damped glide (G49–G51) |
 | 26 | verify_falsify | Falsification meter: w₀ estimator port vs falsify_wo.py references, meter wiring (F1–F3) |
 | 27 | verify_mind_engine | Mind-engine no-op gate: attractor-ratio deposit stays at the fp32 floor; off-ratio evolution conserves charge |
 | 28 | verify_bh_accretion_engine | BH accretion in the standalone engine (local RD): exact mass conservation (G55), swallowed-dead/no-deposit (G56), toggle-off bit-identity (G57) |

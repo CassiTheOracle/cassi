@@ -47,7 +47,6 @@ var _rainbow_btn: CheckButton
 var _color_src_opt: OptionButton
 var _fit_btn: Button
 var _auto_align_btn: CheckButton
-var _auto_track_btn: CheckButton
 var _scale_label: Label
 var _falsify_btn: CheckButton
 var _falsify_label: Label
@@ -234,79 +233,6 @@ const TAB_NAMES: Array[String] = ["Setup", "Visuals", "System"]
 #
 # Every constant is documented below with its rationale.
 # ═══════════════════════════════════════════════════════════════════════
-
-## Sampling cadence: re-measure the field at most every 0.4 s (~2.5 Hz —
-## inside the synth's 2–4 Hz low-rate discipline). Subsampled + low-rate so
-## the global-RD readback (which self-stalls) is bounded; NEVER per-frame.
-const AUTO_TRACK_PERIOD_MS: int = 400
-## Readback subsample cap (cells): read at most this many field cells per
-## tick so the stall is bounded (default 64³ = 1 MB→ read ~128 KB for q;
-## two-axis reads EY+EI → 256 KB). A contiguous central slab of the
-## linearized volume (x-fastest), spanning all three axes' middle — the
-## region the active coherence occupies — is a representative subsample.
-const AUTO_TRACK_MAX_CELLS: int = 32768
-## Robust percentiles: 2nd / 98th. Justification — the coherence q is
-## log-multiplicative (spans decades), so the tails are long and noisy:
-## 1st/99th (the sim's GPU aligner) is yanked by a few tail bins, while
-## 5th/95th cuts too deep into the active mass. 2nd/98th trims the extreme
-## tails yet still hugs the central body — high contrast without flicker.
-const AUTO_TRACK_P_LO: float = 0.02
-const AUTO_TRACK_P_HI: float = 0.98
-## Band margin (log, ×): extend each edge this fraction past the robust
-## percentile so the hue ends aren't clipped at the measured extremes
-## (multiplicative margin — 1.3 ≈ ±30% in log). Clamped to the observed
-## field [min, max] so the band never leaves the full range.
-const AUTO_TRACK_MARGIN: float = 1.3
-## EMA ATTACK (fast): when a target moves a band edge OUTWARD (span must
-## grow to avoid saturating as the coherence climbs), reach ~half the way
-## per tick (α = 0.45 ≈ 0.5 s to mostly extend at 2.5 Hz). Keeps the band
-## ahead of fast scale-ups.
-const AUTO_TRACK_ATTACK: float = 0.45
-## EMA RELEASE (slow): when a target moves an edge INWARD (band could
-## tighten), glide with α = 0.08 (~0.6 half-life at 2.5 Hz ≈ a few seconds
-## to converge) so per-tick noise can't collapse the band — resists jitter
-## and lets the tightened range settle smoothly.
-const AUTO_TRACK_RELEASE: float = 0.08
-## Hysteresis deadband (log): if a target is within ±10% of the current
-## edge (|ln(target/edge)| < 0.1), DON'T move that edge that tick — kills
-## per-sample jitter from measurement noise around a stable band.
-const AUTO_TRACK_DEADBAND: float = 0.10
-## ═══ BOUNDED-COHERENCE CHANNEL (2026-08-14) ════════════════════════════
-## The primary hue axis is now the physically BOUNDED coherence
-## q_coh = ρ²/(ρ²+φ⁻²+ε²) ∈ [0,1) (ρ=EY+EI, ε=EY−φ·EI), NOT the unbounded
-## intensity EY²+EI². So the tracked band lives in [0,1) and can never run
-## away behind a growing concentration front. The old ratio-span floor
-## (mid·√10) is UNBOUNDED upward and provably pushed a saturated blob
-## (mid≈0.87) to hi≈2.75 > 1 — so the floor is redesigned for the bounded
-## channel: a LINEAR-width minimum in [0,1) coordinate space, applied
-## around the geometric mid and ALWAYS clamped inside [LO_CAP, HI_CAP],
-## so the band never re-anchors past the [0,1) anchor.
-## The hard upper anchor: a q_coh "1" is pure saturation (white); the band's
-## hi handle must never exceed this (drawn slightly under 1 so the approach
-## white point / φ⁻² pink stays reachable).
-const AUTO_TRACK_HI_CAP: float = 0.999
-## The hard lower clamp (q_coh < 2⁻²³ is numerically void; keep band edges
-## strictly positive so the engine's log mapping stays finite).
-const AUTO_TRACK_LO_CAP: float = 1e-6
-## φ⁻² ≈ 0.382 — the coherence DECOHERENCE landmark (the merge gate). The
-## pink hue landmark: q_coh at φ⁻² is the approach entry (high-coherence
-## saturation point). "Pink stays at φ⁻²" is guaranteed by the shader/engine
-## approach band being anchored at this value; the tracker never moves it.
-const AUTO_TRACK_PHI_INV2: float = 0.3819660112501051
-## Minimum band SPAN (LOG ratio): a static or degenerate field collapses
-## the measured percentiles toward a point — without a floor the band would
-## have zero hue contrast. A ratio of 10 keeps a full decade of log-hue,
-## and — unlike a linear-width floor — does NOT override the natural tight
-## band of a low-amplitude (near-zero) q_coh field (whose linear width is
-## tiny though its log span is large). The floor is applied around the
-## geometric mid and ALWAYS CLAMPED inside [LO_CAP, HI_CAP], so it can never
-## push an edge past the [0,1) anchor (a genuinely saturated blob near HI_CAP
-## keeps a sub-1 band — inherently low-contrast, but anchored).
-const AUTO_TRACK_MIN_SPAN: float = 10.0
-
-# Tracker state.
-var _autotrack_accum: float = 0.0
-
 
 # ═══════════════════════════════════════════════════════════════════════
 # Live falsification meter (w₀) — default-OFF, opt-in.
@@ -955,8 +881,10 @@ func _build_visuals_page() -> void:
 	cm_row.add_child(_rainbow_btn)
 	_color_src_opt = OptionButton.new()
 	_color_src_opt.name = "ColorSrcOpt"
-	_color_src_opt.add_item("Velocity")
-	_color_src_opt.add_item("Qi")
+	_color_src_opt.add_item("Velocity (dir)")    # 0 → mode 6: hue = atan2(vy,vx) compass, lightness = speed
+	_color_src_opt.add_item("Qi")                # 1 → mode 2: hue = q_coh amplitude
+	_color_src_opt.add_item("Field phase")       # 2 → mode 5: hue = atan2(EI,EY) orientation, lightness = q_coh
+	_color_src_opt.add_item("Velocity (speed)")  # 3 → mode 1: legacy speed rainbow
 	_color_src_opt.selected = 1
 	_color_src_opt.tooltip_text = "Choose the quantity mapped to color; drag LOW and HIGH on the legend to fit its scale"
 	_color_src_opt.custom_minimum_size = Vector2(76, 22)
@@ -977,24 +905,19 @@ func _build_visuals_page() -> void:
 	var cm_auto := HBoxContainer.new()
 	cm_auto.add_theme_constant_override("separation", 6)
 	color_sec.add_child(cm_auto)
+	# Auto (GPU q_coh aligner) — KEPT (owner decision 2026-08-16). The broken
+	# CPU Auto-Track tracker was removed; the aligner reads the bounded q_coh
+	# histogram and re-fits the Qi band to the live distribution. Manual
+	# legend drag / Fit releases it so the band stands.
 	_auto_align_btn = CheckButton.new()
 	_auto_align_btn.name = "AutoAlignBtn"
 	_auto_align_btn.text = "Auto"
-	_auto_align_btn.tooltip_text = "Keep the Qi color band aligned to the live coherence distribution (Meshless gravity grows q fast). Dragging a handle or Fit takes over manually."
+	_auto_align_btn.tooltip_text = "Keep the Qi color band aligned to the live bounded coherence q_coh distribution. Dragging a handle or Fit takes over manually."
 	_auto_align_btn.custom_minimum_size = Vector2(56, 22)
 	_auto_align_btn.focus_mode = Control.FOCUS_NONE
 	_auto_align_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	_auto_align_btn.toggled.connect(_on_auto_align_toggled)
 	cm_auto.add_child(_auto_align_btn)
-	_auto_track_btn = CheckButton.new()
-	_auto_track_btn.name = "AutoTrackBtn"
-	_auto_track_btn.text = "Auto-Track"
-	_auto_track_btn.tooltip_text = "LIVE band tracker: subsampled 2-4 Hz readback of the active quantity's field, robust 2nd-98th percentiles, EMA-glided band with a min-span floor — the color band hugs and follows the live coherence scale (high contrast, no fixed anchors). Manual legend drag or Fit takes over. Opt-in; OFF = existing scale untouched."
-	_auto_track_btn.custom_minimum_size = Vector2(90, 22)
-	_auto_track_btn.focus_mode = Control.FOCUS_NONE
-	_auto_track_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	_auto_track_btn.toggled.connect(_on_auto_track_toggled)
-	cm_auto.add_child(_auto_track_btn)
 	_save_colors_btn = Button.new()
 	_save_colors_btn.name = "SaveColorsBtn"
 	_save_colors_btn.text = "Save"
@@ -1283,7 +1206,12 @@ func _sync_color_widgets(sim: Node3D) -> void:
 	var base: int = cm & 0xF
 	var flags: int = (cm >> 4) & 0xF
 	_rainbow_btn.set_pressed_no_signal(base >= 1)
-	_color_src_opt.select(0 if base == 1 else 1)
+	# source dropdown: 0=vel-dir(6), 1=Qi(2), 2=field-phase(5), 3=vel-speed(1)
+	match base:
+		6: _color_src_opt.select(0)
+		2, 4: _color_src_opt.select(1)   # Qi amplitude / two-axis ρ (both Qi source)
+		5: _color_src_opt.select(2)
+		1: _color_src_opt.select(3)
 	_auto_align_btn.set_pressed_no_signal(sim.auto_align_colors)
 	_vfx_twoaxis_btn.set_pressed_no_signal(base == 4)
 	_vfx_size_btn.set_pressed_no_signal((flags & 0x10) != 0)
@@ -1291,7 +1219,7 @@ func _sync_color_widgets(sim: Node3D) -> void:
 	_vfx_depth_btn.set_pressed_no_signal((flags & 0x40) != 0)
 	_sync_color_enabled()
 	if _legend:
-		_legend.set_sim(sim, _color_src_opt.selected == 1)
+		_legend.set_sim(sim, _color_src_opt.selected == 1 or _color_src_opt.selected == 2)
 	_update_scale_label()
 
 
@@ -1311,10 +1239,13 @@ func _update_scale_label() -> void:
 		return
 	var s: String = "%s → %s" % [_fmt_scale(e[2]), _fmt_scale(e[10])]
 	_scale_label.text = s
+	var src_name := "Velocity"
+	match _color_src_opt.selected:
+		1, 2: src_name = "Qi"
 	if e[15] > 0.5:
-		_scale_label.tooltip_text = "%s color scale — drag LOW and HIGH on the legend to change it; WHITE is the fixed %s" % ["Qi" if _color_src_opt.selected == 1 else "Velocity", _fmt_scale(e[13])]
+		_scale_label.tooltip_text = "%s color scale — drag LOW and HIGH on the legend to change it; WHITE is the fixed %s" % [src_name, _fmt_scale(e[13])]
 	else:
-		_scale_label.tooltip_text = "%s color scale — drag LOW and HIGH on the legend to change it" % ("Qi" if _color_src_opt.selected == 1 else "Velocity")
+		_scale_label.tooltip_text = "%s color scale — drag LOW and HIGH on the legend to change it" % src_name
 
 
 func _fmt_scale(v: float) -> String:
@@ -1348,190 +1279,6 @@ func _set_mode_highlight(active: int) -> void:
 
 func _set_grav_highlight(active: int) -> void:
 	_gravity_seg.set_value_no_signal(active)
-
-
-# ═══════════════════════════════════════════════════════════════════════
-# Auto-Track — the live band tracker (see the constant block above)
-# ═══════════════════════════════════════════════════════════════════════
-#
-# The tracker opens the SAME seam the sim's GPU auto-aligner uses: it
-# writes sim.qi_cycle / sim.qi_approach, which _fill_instancer_pc() (the
-# instancer PC) and the legend's pins both consume every frame. So the
-# moving band reaches the shader and the legend with ZERO cassi_sim.gd /
-# shader changes; when Auto-Track is ON we clear sim.auto_align_colors so
-# the GPU aligner doesn't fight over those vectors.
-#
-# Active quantity by color base mode (compute/cassi_instancer.glsl):
-#   base 1 (velocity)  → |v| lives in the velocity buffer, NOT a field
-#                        grid — no field quantity; Auto-Track stands idle
-#                        (the velocity band keeps its init-measured AUTO).
-#   base 2/3 (Qi)      → the BOUNDED coherence q_coh = ρ²/(ρ²+φ⁻²+ε²)
-#                        (reads sim._field_ey + sim._field_ei — the instancer's
-#                        hue axis, NOT the unbounded EY²+EI²)
-#   base 4 (two-axis)  → ρ = EY+EI    (reads sim._field_ey + _field_ei)
-#
-# Measurement: a subsampled, low-rate (2.5 Hz) readback of the active
-# field buffer — a contiguous central slab of the linearized volume — with
-# the CSV histogram percentiles computed CPU-side. Never per-frame or
-# full-resolution (the stutter lesson); the read is capped to a bounded
-# subsample and gated on the sim's suppress_readbacks flag (the same
-# convention that silences the other global-RD readbacks on demand).
-
-## Per-frame cadence driver: accumulate wall time, run the sampler/tracker
-## at ~2.5 Hz while the Auto-Track button is active.
-func _autotrack_tick(delta: float) -> void:
-	var sim = _get_sim()
-	if sim == null or sim._rd == null:
-		return
-	if sim._field_ey == null or sim._field_ei == null:
-		return
-	if not sim._field_ey.is_valid() or not sim._field_ei.is_valid():
-		return
-	if sim.suppress_readbacks:
-		return  # reading the global RD would stall — leave the band frozen
-	_autotrack_accum += delta
-	if _autotrack_accum * 1000.0 < float(AUTO_TRACK_PERIOD_MS):
-		return
-	_autotrack_accum = 0.0
-	var band := _autotrack_measure()
-	if band.x > 0.0:
-		_autotrack_update(band.x, band.y)
-
-
-## Measure the active quantity's distribution and return the target band
-## (lo, hi) for the tracker — or (-1, -1) when nothing is measurable.
-## Exposed for the probe scene (verify_autotrack.gd).
-##
-## The tracked quantity is the BOUNDED coherence q_coh = ρ²/(ρ²+φ⁻²+ε²)
-## (ρ=EY+EI, ε=EY−φ·EI), which the shader now maps to the hue axis — so the
-## band, robust percentiles, EMA glide, and floor all live in [0,1) and can
-## never run away behind a growing concentration front.
-func _autotrack_measure() -> Vector2:
-	var sim = _get_sim()
-	if sim == null or sim._rd == null:
-		return Vector2(-1.0, -1.0)
-	var base: int = sim.particle_color_mode & 0xF
-	if base < 2:
-		return Vector2(-1.0, -1.0)  # velocity/mass modes: no field quantity
-	if not sim._field_ey.is_valid() or not sim._field_ei.is_valid():
-		return Vector2(-1.0, -1.0)
-	var nc: int = sim.grid_N * sim.grid_N * sim.grid_N
-	if nc <= 0:
-		return Vector2(-1.0, -1.0)
-	var sample_cells: int = mini(nc, AUTO_TRACK_MAX_CELLS)
-	# Subsample: a contiguous central slab of the linearized volume
-	# (x-fastest), spanning all three axes' middle — the region the active
-	# coherence occupies. Cheap, low-rate, not full-resolution.
-	var offset: int = maxi((nc - sample_cells) / 2, 0)
-	var ey_d: PackedByteArray = sim._rd.buffer_get_data(sim._field_ey, offset * 4, sample_cells * 4)
-	var ei_d: PackedByteArray = sim._rd.buffer_get_data(sim._field_ei, offset * 4, sample_cells * 4)
-	if ey_d.size() < sample_cells * 4 or ei_d.size() < sample_cells * 4:
-		return Vector2(-1.0, -1.0)
-	var ey := ey_d.to_float32_array()
-	var ei := ei_d.to_float32_array()
-	# Robust percentiles CPU-side: collect q_coh over the subsample. The
-	# coherence is bounded — keep every finite, non-negative sample (q_coh=0
-	# is the incoherent/void floor, a VALID band edge, unlike the old q
-	# which had to be positive).
-	var clean: PackedFloat32Array = PackedFloat32Array()
-	var vin := false
-	for i in range(sample_cells):
-		var eyv := ey[i]
-		var eiv := ei[i]
-		if not is_finite(eyv) or not is_finite(eiv):
-			continue
-		var rho: float = eyv + eiv
-		var eps: float = eyv - PHI * eiv
-		var rho2: float = rho * rho
-		var qc: float = rho2 / (rho2 + AUTO_TRACK_PHI_INV2 + eps * eps)
-		if qc < 0.0 or qc > 1.0 or not is_finite(qc):
-			continue
-		clean.append(qc)
-		vin = true
-	if not vin or clean.size() < 64:
-		return Vector2(-1.0, -1.0)  # too few valid samples this tick
-	clean.sort()
-	var lo_idx: int = clampi(int(round(float(clean.size() - 1) * AUTO_TRACK_P_LO)), 0, clean.size() - 1)
-	var hi_idx: int = clampi(int(round(float(clean.size() - 1) * AUTO_TRACK_P_HI)), 0, clean.size() - 1)
-	var p_lo := clean[lo_idx]
-	var p_hi := clean[hi_idx]
-	# Margins (±AUTO_TRACK_MARGIN in log), clamped STRICTLY into the bounded
-	# [LO_CAP, HI_CAP] channel so the band never re-anchors past the [0,1)
-	# anchor (the unbounded-chasing bug). The margin only yields headroom
-	# when the robust percentiles sit inside the observed span.
-	var band_lo: float = clampf(p_lo / AUTO_TRACK_MARGIN, AUTO_TRACK_LO_CAP, AUTO_TRACK_HI_CAP)
-	var band_hi: float = clampf(p_hi * AUTO_TRACK_MARGIN, AUTO_TRACK_LO_CAP, AUTO_TRACK_HI_CAP)
-	if band_hi <= band_lo:
-		band_hi = band_lo * 1.001
-	return Vector2(band_lo, band_hi)
-
-
-## Glide one band edge toward a target with asymmetric attack/release + a
-## hysteresis deadband. Operates in LOG space (the coherence is
-## multiplicative — a ratio target moves as a ratio step, so the EMA's
-## time constants are ratio-consistent). Returns the new edge value.
-func _autotrack_glide_edge(current: float, target: float, expanding: bool) -> float:
-	if target <= 0.0 or current <= 0.0:
-		return maxf(current, target)
-	var dl := log(target / current)
-	if absf(dl) < AUTO_TRACK_DEADBAND:
-		return current  # hysteresis: ignore sub-deadband jitter
-	var alpha: float = AUTO_TRACK_ATTACK if expanding else AUTO_TRACK_RELEASE
-	return exp(lerp(log(current), log(target), alpha))
-
-
-## Apply a measured (lo, hi) band to the tracked qi_cycle/qi_approach with
-## EMA glide, the hysteresis deadband, and the BOUNDED min-span floor —
-## always clamped inside [LO_CAP, HI_CAP] ⊂ [0,1) so the band can never
-## re-anchor past the coherence channel's [0,1) anchor (the unbounded-chasing
-## fix). Returns the applied (lo, hi) for probes.
-func _autotrack_update(band_lo: float, band_hi: float) -> Vector2:
-	var sim = _get_sim()
-	if sim == null:
-		return Vector2(-1.0, -1.0)
-	var lo := clampf(band_lo, AUTO_TRACK_LO_CAP, AUTO_TRACK_HI_CAP)
-	var hi := clampf(band_hi, AUTO_TRACK_LO_CAP, AUTO_TRACK_HI_CAP)
-	if hi <= lo:
-		hi = lo * 1.001
-	var c_lo := clampf(sim.qi_cycle.x, AUTO_TRACK_LO_CAP, AUTO_TRACK_HI_CAP)
-	var c_hi := clampf(sim.qi_cycle.y, c_lo, AUTO_TRACK_HI_CAP)
-	# Per-edge attack/release: expanding (span grows) uses the fast attack;
-	# contracting (span shrinks) uses the slow release.
-	var n_lo := _autotrack_glide_edge(c_lo, lo, lo < c_lo)
-	var n_hi := _autotrack_glide_edge(c_hi, hi, hi > c_hi)
-	# Re-clamp the glided edges to the bounded channel (the glide keeps them
-	# inside [LO_CAP, HI_CAP] by construction, but be explicit/defensive).
-	n_lo = clampf(n_lo, AUTO_TRACK_LO_CAP, AUTO_TRACK_HI_CAP)
-	n_hi = clampf(n_hi, n_lo, AUTO_TRACK_HI_CAP)
-	# BOUNDED min-span floor (LOG ratio): broaden to ~one decade of hue
-	# around the geometric mid, CLAMPED inside [LO_CAP, HI_CAP] so the band
-	# can never re-anchor past the [0,1) coherence anchor. For a band pinned
-	# near the top (saturated blob, mid→HI_CAP) the clamp reduces the floor
-	# below one decade — the honest, anchored result: it keeps a sub-1 band
-	# and non-zero contrast instead of widening past 1 (the old floor's bug).
-	if log(n_hi / n_lo) < log(AUTO_TRACK_MIN_SPAN):
-		var mid := clampf(sqrt(n_lo * n_hi), AUTO_TRACK_LO_CAP, AUTO_TRACK_HI_CAP)
-		var half := sqrt(AUTO_TRACK_MIN_SPAN)
-		var f_lo := mid / half
-		var f_hi := mid * half
-		if f_hi > AUTO_TRACK_HI_CAP:
-			f_hi = AUTO_TRACK_HI_CAP
-			f_lo = minf(f_lo, AUTO_TRACK_HI_CAP / half)
-		if f_lo < AUTO_TRACK_LO_CAP:
-			f_lo = AUTO_TRACK_LO_CAP
-			f_hi = maxf(f_hi, AUTO_TRACK_LO_CAP * half)
-		n_lo = clampf(f_lo, AUTO_TRACK_LO_CAP, AUTO_TRACK_HI_CAP)
-		n_hi = clampf(maxf(f_hi, n_lo), n_lo, AUTO_TRACK_HI_CAP)
-	# Write the SAME vectors the GPU aligner / legend / instancer consume.
-	sim.qi_cycle = Vector2(n_lo, n_hi)
-	# Pin the APPROACH TOP (pink/white point) at φ⁻² — the decoherence /
-	# merge-gate landmark. The approach spans [cycle_hi, φ⁻²]: normal running
-	# (q_coh ≪ φ⁻²) reads the cycle hue; q_coh reaching φ⁻² reads the PINK /
-	# WHITE landmark ("pink stays at φ⁻²"); q_coh above φ⁻² is saturated
-	# (white → the →1 anchor). When the cycle hi itself exceeds φ⁻² (already
-	# saturated), the engine turns the approach off (a_lo ≥ a_hi).
-	sim.qi_approach = Vector2(n_hi, AUTO_TRACK_PHI_INV2)
-	return Vector2(n_lo, n_hi)
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -1767,8 +1514,6 @@ func _fmt_sign(v: float) -> String:
 
 func _process(delta: float) -> void:
 	_fps_accum += delta; _fps_count += 1
-	if _auto_track_btn != null and _auto_track_btn.button_pressed:
-		_autotrack_tick(delta)
 	if _falsify_btn != null and _falsify_btn.button_pressed:
 		_falsify_tick(delta)
 	if _fps_accum >= 0.5:
@@ -1864,18 +1609,18 @@ func _on_vfx_twoaxis_toggled(on: bool) -> void:
 
 ## Recompute sim.particle_color_mode from the UI state. Encoding (matches
 ## compute/cassi_instancer.glsl header): low nibble = base mode (0 = Cassi
-## mass gradient, 1 = velocity, 2 = Qi, 4 = two-axis q/ρ), high nibble =
-## feature flags (0x10 size-by-mass, 0x20 additive glow, 0x40 depth cue).
-## Defaults (all VFX + rainbow off) → 0, bit-identical to the legacy path.
+## mass gradient, 1 = velocity SPEED, 2 = Qi amplitude, 4 = two-axis q/ρ,
+## 5 = field-phase, 6 = velocity DIRECTION), high nibble = feature flags
+## (0x10 size-by-mass, 0x20 additive glow, 0x40 depth cue). Defaults (all
+## VFX + rainbow off) → 0, bit-identical to the legacy path.
 func _apply_particle_color_mode(sim: Node3D) -> void:
 	var base := 0
 	if _rainbow_btn.button_pressed:
-		if _vfx_twoaxis_btn.button_pressed and _color_src_opt.selected == 1:
-			base = 4          # two-axis hue=q / lightness=ρ (Qi source only)
-		elif _color_src_opt.selected == 0:
-			base = 1          # velocity rainbow
-		else:
-			base = 2          # Qi rainbow
+		match _color_src_opt.selected:
+			0: base = 6   # velocity DIRECTION: hue = atan2(vy,vx) compass, lightness = speed
+			1: base = 2   # Qi amplitude rainbow
+			2: base = 5   # field-PHASE: hue = atan2(EI,EY), lightness = q_coh
+			3: base = 1   # velocity SPEED (legacy speed rainbow)
 	var flags := 0
 	if _vfx_size_btn.button_pressed:  flags |= 0x10  # size-by-mass
 	if _vfx_glow_btn.button_pressed:  flags |= 0x20  # additive glow
@@ -1896,8 +1641,6 @@ func _on_fit_colors() -> void:
 	if sim == null: return
 	sim.auto_align_colors = false
 	_auto_align_btn.set_pressed_no_signal(false)
-	_auto_track_btn.set_pressed_no_signal(false)
-	_autotrack_accum = 0.0
 	var qi_source: bool = _color_src_opt.selected == 1
 	sim.rainbow_count = 1
 	sim.color_shares = Vector3(1.0, 0.0, 0.0)
@@ -1927,38 +1670,6 @@ func _on_fit_colors() -> void:
 	_repaint_if_paused(sim)
 
 
-func _on_auto_align_toggled(on: bool) -> void:
-	var sim = _get_sim()
-	if sim == null: return
-	sim.auto_align_colors = on
-	if on and _auto_track_btn != null and _auto_track_btn.button_pressed:
-		# Auto-Track and the GPU auto-aligner fight over qi_cycle — only one
-		# may drive the band. Re-enabling Auto releases Auto-Track.
-		_auto_track_btn.set_pressed_no_signal(false)
-
-
-func _on_auto_track_toggled(on: bool) -> void:
-	var sim = _get_sim()
-	if sim == null: return
-	if on:
-		# Auto-Track takes over: keep the sim's GPU auto-aligner from
-		# rewriting qi_cycle mid-glide. (Auto re-enables only if the user
-		# toggles it back on; a manual legend drag also releases Auto-Track.)
-		sim.auto_align_colors = false
-		_auto_align_btn.set_pressed_no_signal(false)
-	_autotrack_accum = 0.0
-	if on and sim.has_method("_repaint_instancer"):
-		_repaint_if_paused(sim)
-
-
-## A manual legend handle edit (drag / Fit-adjacent set) takes over from both
-## auto paths. Auto-Track is released so the manually-set band stands.
-func _on_legend_manual() -> void:
-	if _auto_track_btn != null and _auto_track_btn.button_pressed:
-		_auto_track_btn.set_pressed_no_signal(false)
-	_autotrack_accum = 0.0
-
-
 func _on_falsify_toggled(on: bool) -> void:
 	if _falsify_label != null:
 		_falsify_label.visible = on
@@ -1966,6 +1677,20 @@ func _on_falsify_toggled(on: bool) -> void:
 	_falsify_accum = 0.0
 	# The status panel's height changes with the 4-line meter — re-size it.
 	call_deferred("_update_layout")
+
+
+## A manual legend handle edit (drag / Fit) — repaint the visible instances
+## so a paused sim reflects the new fit immediately.
+func _on_legend_manual() -> void:
+	_repaint_if_paused(_get_sim())
+
+
+func _on_auto_align_toggled(on: bool) -> void:
+	var sim = _get_sim()
+	if sim == null: return
+	sim.auto_align_colors = on
+	if sim.has_method("_repaint_instancer"):
+		_repaint_if_paused(sim)
 
 
 func _on_save_colors() -> void:
