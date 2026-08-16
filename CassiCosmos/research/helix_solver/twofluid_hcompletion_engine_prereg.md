@@ -94,3 +94,23 @@ PASS / FAIL / NULL per the house battery contract (`verify/README.md:20-28`). Th
 is the **pre-registered expectation** — it is what the in-engine arms are checked against — and is
 **not** itself the gate; the gate is the in-engine battery measurement under the frozen decision
 tree above.
+
+## Amendment (2026-08-16) — PC-slot decision settled: variant B
+
+The PC-slot choice is settled by evidence. **Variant B** — the 17th PC float
+(`_diag/ham_completion_variantB.patch`) — is the selected form: `ham_completion` is its own field and
+never aliases the nbody gravity selector.
+
+**Variant A is disqualified.** The host writes the live nbody gravity-mode value into the
+`gravity_mode` slot at `cassi_physics_engine.gd:2215` (`encode_float(40, float(gravity_mode))`), so
+repurposing that slot carries the gravity selector (0–5) into `ham_completion`. Under gravity modes
+1–5 the value reads `> 0.5` and the completion enables silently — violating the OFF bit-identity
+contract. The slot is unused by the two-fluid shader body but is not host-zero.
+
+Variant B's change therefore includes the host plumbing, recorded as part of the frozen change: the
+two host resize lines `cassi_physics_engine.gd:1186` and `cassi_sim.gd:2303` (`16 * 4` → `17 * 4`),
+plus the ON/OFF encodes at offset 64 (`encode_float(64, 1.0)` for ON; `encode_float(64, 0.0)` for
+OFF — `resize` zero-fills, so OFF is safe without an explicit write).
+
+No threshold, verdict, or pin changes. The conditional form, the §2 battery protocol, and the §3
+rollback stand as frozen.
