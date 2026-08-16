@@ -24,6 +24,13 @@ weight (G absorbed). The GPU walk writes _ml_tree_grad = the SAME a(r)
 
 Usage: python stage5b_verify.py _diag/meshless_gravity_gpu.json
        (run from the space-sim repo root)
+
+Force-law note (density-aware softening, commit 4ce2912, 2026-08-16): the
+producing GPU shader (scripts/verify_meshless_gravity.gd ->
+cassi_tree_gravity.glsl) softens each accepted node by eps2_node = eps2 +
+W^(2/3). This gate's prototype tree (stage5_fmm.BHOctree) runs with
+density_aware=True so G30 models the CURRENT law; the G30 threshold is
+unchanged. The force law changed in 4ce2912; this gate models it here.
 """
 import base64
 import json
@@ -90,7 +97,7 @@ def main():
 
     # prototype tree on the SAME sources/targets
     tree = BHOctree(sites, mass, g=g, leaf_cap=leaf_cap, eps2=eps2,
-                      max_depth=max_levels)
+                      max_depth=max_levels, density_aware=True)
     a_proto = tree.force(pos, theta=theta, quad=True)
     mag_gpu = np.linalg.norm(grad, axis=1)
     floor30 = 1e-4 * np.median(mag_gpu) if mag_gpu.size else 0.0

@@ -29,6 +29,17 @@ Gates (research/meshless/fmm_design.md):
       over the integration <= a few percent.
 
 Run:  python stage5_fmm.py   (~1-2 min)
+
+Force-law note (density-aware softening, commit 4ce2912, 2026-08-16): the
+producing GPU shader cassi_tree_gravity.glsl softens each ACCEPTED tree node
+by eps2_node = eps2 + W^(2/3) (W = the node's total weighted mass), in both
+the monopole and quadrupole paths (shader lines 123, 146, 167). This
+reference supports the same law via `density_aware=True` (per accepted node
+for BHOctree.force; per source — the θ→0 / fully-resolved limit — for
+direct_force). Default `density_aware=False` keeps the legacy single
+global-eps2 behavior for the other consumers (G13/G14/G15, stage7_phi_fmm.py).
+The G16/G17/G18 and G30 numpy gates (stage5_verify.py, stage5b_verify.py)
+run with density_aware=True so they verify the GPU against the CURRENT law.
 """
 import time
 import numpy as np
@@ -61,7 +72,8 @@ def chord_weight_from_field(ey, ei):
 # contiguous pre-order particle range [ps, pe) = leaves owned by the node.
 # ─────────────────────────────────────────────────────────────────────────
 class BHOctree:
-    def __init__(self, pos, mass, g=None, leaf_cap=1, eps2=0.0, max_depth=None):
+    def __init__(self, pos, mass, g=None, leaf_cap=1, eps2=0.0, max_depth=None,
+                 density_aware=False):
         self.pos = np.asarray(pos, dtype=np.float64)
         self.mass = np.asarray(mass, dtype=np.float64)
         n = self.pos.shape[0]
@@ -69,6 +81,7 @@ class BHOctree:
         self.w = self.mass * (np.asarray(g, dtype=np.float64) if g is not None
                               else np.ones(n))
         self.eps2 = eps2
+        self.density_aware = density_aware
         self.leaf_cap = leaf_cap
         self.max_depth = max_depth
         # bounding box around ALL sources (root = a cube that encloses)
@@ -172,9 +185,17 @@ class BHOctree:
     # it mirrors the "one thread per target, level-by-level" GPU design.
     def force(self, targets, theta=0.6, pot=False, quad=True):
         """F = −∇(Phi_g) with (quad=True) monopole + quadrupole, or
-        (quad=False) monopole only. pot=True also returns Phi_g."""
+        (quad=False) monopole only. pot=True also returns Phi_g.
+
+        Density-aware softening (density_aware=True, matching the producing
+        GPU shader cassi_tree_gravity.glsl): every ACCEPTED node n is softened
+        to eps2_node = self.eps2 + W_n^(2/3) (W_n = the node's total weighted
+        mass), in BOTH the monopole and quadrupole accept paths
+        (shader lines 123, 146, 167). Default False keeps the legacy single
+        global-eps2 behavior for other consumers."""
         targets = np.asarray(targets, dtype=np.float64)
         T = targets.shape[0]
+        da = self.density_aware
         acc = np.zeros((T, 3))
         potv = np.zeros(T) if pot else None
         t_ids = np.arange(T)
@@ -205,7 +226,9 @@ class BHOctree:
                 potv_i = t_ids[acc_idx]
                 # np.add.at: one target can accept several nodes in one wave
                 # (e.g. sibling leaves); plain `+=` drops all but the last.
-                # Φ = −Σ W/R (attractive sign, matches the analytic Plummer)
+                # Φ = −Σ W/R (attractive sign, matches the analytic Plummer).
+                # The potential is only used by legacy (non-density-aware)
+                # callers (G14), so it keeps the global-eps2 R.
                 np.add.at(potv, potv_i,
                           -self.node_W[n_ids[acc_idx]]
                           / np.maximum(R[acc_idx], 1e-12))
@@ -221,8 +244,16 @@ class BHOctree:
                 tt = t_ids[acc_idx]
                 nn = n_ids[acc_idx]
                 dd = d[acc_idx]
-                Rr = R[acc_idx]
                 Wn = self.node_W[nn]
+                # density-aware: per-node softening eps2_node = self.eps2 +
+                # W^(2/3), applied to BOTH the monopole and quadrupole accept
+                # paths (cassi_tree_gravity.glsl:123,146,167). Non-da: the
+                # legacy global self.eps2 (R computed above).
+                if da:
+                    eps2n = self.eps2 + _W23(Wn)
+                    Rr = np.sqrt(ds2[acc_idx] + eps2n)
+                else:
+                    Rr = R[acc_idx]
                 monop = -self.w_scale() * Wn[:, None] * dd / Rr[:, None] ** 3
                 add = monop
                 if quad:
@@ -230,7 +261,12 @@ class BHOctree:
                     ds2a = (dd * dd).sum(1)
                     qd = _qd(Q, dd)                 # d·Q·d (scalar per node)
                     Qd = _qmv(Q, dd)                # Q·d (3-vector per node)
-                    R2 = np.maximum(ds2a, 1e-30)
+                    # density-aware: soften the quadrupole with the SAME
+                    # per-node eps2_node as the monopole (shader line 167).
+                    if da:
+                        R2 = ds2a + eps2n
+                    else:
+                        R2 = np.maximum(ds2a, 1e-30)
                     R7 = R2 ** 3.5
                     # a_quad = [R²(Q·d) − (5/2)(d·Q·d)·d] / R⁷
                     # (verified vs a 2-mass expansion; the naive swap is
@@ -265,6 +301,13 @@ class BHOctree:
 
 
 # ── packed trace-free quadrupole helpers ────────────────────────────────
+def _W23(W):
+    """W^(2/3) — the density-aware softening term (cassi_tree_gravity.glsl:
+    eps2_node = eps2 + W^(2/3); exp((2/3)·ln W) with W floored to prevent
+    log(0)). W may be a scalar or an array."""
+    return np.exp((2.0 / 3.0) * np.log(np.maximum(W, 1e-30)))
+
+
 def _qmv(Q, d):
     """Q·d for packed trace-free quadrupole [xx,xy,xz,yy,yz,zz]."""
     return np.stack([
@@ -289,18 +332,26 @@ def _qd(Q, d):
 # tree approximates:  a = sum_s w_s (r − r_s)/|r − r_s|³  (softened),
 # self-excluding. Returns acc (T,3), pot (T,) when requested.
 # ─────────────────────────────────────────────────────────────────────────
-def direct_force(targets, src_pos, src_w, eps2=1e-8, pot=False):
+def direct_force(targets, src_pos, src_w, eps2=1e-8, pot=False,
+                 density_aware=False):
     targets = np.asarray(targets, dtype=np.float64)
     sp = np.asarray(src_pos, dtype=np.float64)
     sw = np.asarray(src_w, dtype=np.float64)
     T = targets.shape[0]
     acc = np.zeros((T, 3))
     potv = np.zeros(T) if pot else None
+    da = density_aware
+    # density-aware: each source is its own leaf node of weight w_s, softened
+    # as eps2_node = eps2 + w_s^(2/3) (the θ→0 / fully-resolved limit of the
+    # per-node density-aware walk; matches cassi_tree_gravity.glsl:123).
+    sw23 = _W23(sw) if da else 0.0
     chunk = 1024
     for s in range(0, T, chunk):
         t = targets[s:s + chunk]
         d = t[:, None, :] - sp[None, :, :]          # (C, N, 3)
         r2 = (d * d).sum(2) + eps2
+        if da:
+            r2 = r2 + sw23[None, :]                 # eps2_node per source
         r = np.sqrt(r2)
         # exclude self: r == eps2-edge → these are the target's own source
         contrib = sw[None, :] / np.maximum(r2, 1e-30)

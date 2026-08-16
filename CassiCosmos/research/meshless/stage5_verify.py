@@ -12,6 +12,13 @@ Gates (fmm_design.md Q2/Q7; wave-2 acceptance):
       must be absent — report the max residual vs the self-less direct sum.
 
 Run:  python research/meshless/stage5_verify.py [path/to/fmm_gpu.json]
+
+Force-law note (density-aware softening, commit 4ce2912, 2026-08-16): the
+producing GPU shader (scripts/verify_fmm.gd -> cassi_tree_gravity.glsl)
+softens each accepted node by eps2_node = eps2 + W^(2/3). This gate's
+references (direct_force and the stage5_fmm prototype tree) run with
+density_aware=True so they model the CURRENT law; G16/G17/G18 thresholds are
+unchanged. The force law changed in 4ce2912; the numpy gates model it here.
 """
 import base64
 import json
@@ -58,7 +65,7 @@ def main():
           % (N, theta, eps2, d.get("node_count")))
 
     # ── G17: GPU tree force vs the DIRECT O(N^2) sum ─────────────────────
-    a_direct = direct_force(pos, pos, w, eps2=eps2)
+    a_direct = direct_force(pos, pos, w, eps2=eps2, density_aware=True)
     err17, keep17 = _rel(a_gpu, a_direct, 1e-4)
     med17 = float(np.median(err17))
     p9917 = float(np.percentile(err17, 99))
@@ -70,7 +77,8 @@ def main():
     # Replicate the GPU's build policy: max_depth = the GPU's max_levels cap
     # (coincident/degenerate cells are leaves past it), childless=leaf.
     md = int(d.get("max_levels", 14))
-    proto = BHOctree(pos, mass, g=g, eps2=eps2, max_depth=md)
+    proto = BHOctree(pos, mass, g=g, eps2=eps2, max_depth=md,
+                     density_aware=True)
     a_proto = proto.force(pos, theta=theta, quad=True)
     err16, keep16 = _rel(a_gpu, a_proto, 1e-4)
     med16 = float(np.median(err16))
