@@ -60,8 +60,15 @@ public final class TwoFluidSolver {
 	/** CassiCraft box half-extent per axis (unit-aspect cube, PORT-SPEC §5). */
 	public static final float EXTENT = 96.0f;
 
-	/** One field step per Minecraft tick (owner config pin, PORT-SPEC §5). */
-	public static final double DT = 0.05;
+	/**
+	 * One field step per Minecraft tick, at the engine's step default
+	 * {@code dt = 0.001} (`cassi_physics_engine.gd:81`, "far below both CFL
+	 * bounds", `cassi_two_fluid.glsl`). The owner re-pinned this from the Phase-1
+	 * 0.05 placeholder to the sim's own operating point so the field fills
+	 * slowly; the cadence (one step per Minecraft tick) is unchanged — only the
+	 * step size drops 50×, so each tick advances {@code 0.001} field-time units.
+	 */
+	public static final double DT = 0.001;
 	/** ω₀² — two-fluid resonance (default 20.0, `cassi_physics_engine.gd:2180`). */
 	public static final double OMEGA2 = 20.0;
 	/** φ — the golden-ratio coupling (`cassi_physics_engine.gd:43`). */

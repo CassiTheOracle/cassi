@@ -53,11 +53,14 @@ public final class TerrainCensusMain {
 	/** Settle-generation await timeout (ms). */
 	private static final long SETTLE_TIMEOUT_MS = 30_000;
 	/**
-	 * How many published generations to wait before measuring. Each publish ships
-	 * one job of {@code JOB_STEP_CAP=64} domain steps, so 12 generations ≈ 768
-	 * steps ≈ 38 field-time units (DT=0.05) — the settle the ride probe uses,
-	 * enough for the spectral Poisson and gradient pass to organize real structure
-	 * out of the flat-noise IC while keeping the gate short.
+	 * How many published generations to wait before measuring — the same settle
+	 * count the ride probe uses. Each publish ships one job of
+	 * {@code JOB_STEP_CAP=64} domain steps, so 12 generations ≈ 768 steps ≈
+	 * 0.768 field-time units at the engine-default {@code DT=0.001}
+	 * (TwoFluidSolver.DT) — a near-IC field, which is the honest state this gate
+	 * measures (the field-time-evolved line printed at runtime makes the rate
+	 * visible). Enough for the spectral Poisson and gradient pass to organize
+	 * initial structure out of the flat-noise IC while keeping the gate short.
 	 */
 	private static final int SETTLE_GENERATIONS = 12;
 
@@ -302,6 +305,12 @@ public final class TerrainCensusMain {
 		return sorted[i];
 	}
 
+	/** Field-time units the settle advances: {@code generations × steps × DT}. */
+	private static double fieldTimeUnits() {
+		return SETTLE_GENERATIONS * (double) CassiFieldThread.JOB_STEP_CAP
+				* dev.cassicraft.domain.engine.TwoFluidSolver.DT;
+	}
+
 	/**
 	 * Honest threshold sweep over the measured per-block arrays — answers "what
 	 * AIR/ORE/carved fraction does each candidate threshold actually produce",
@@ -356,6 +365,10 @@ public final class TerrainCensusMain {
 	/** Print the raw measured channel distributions + current census + strata. */	private static void printDistributions(long seed, Dist rho, Dist q, Dist eps,
 			BlockCensus kinds, int topSolidY, int solidCol, int boxTop) {
 		System.out.println("\n[terrain-census] seed=" + seed + " full-box 192³ census @ settle (SETTLE_GENERATIONS=" + SETTLE_GENERATIONS + ")");
+		System.out.println("[terrain-census]   field time evolved = " + SETTLE_GENERATIONS + " gen × "
+				+ CassiFieldThread.JOB_STEP_CAP + " steps × DT=" + dev.cassicraft.domain.engine.TwoFluidSolver.DT
+				+ " = " + String.format("%.3f", fieldTimeUnits()) + " field-time units (a Minecraft tick advances "
+				+ String.format("%.4f", dev.cassicraft.domain.engine.TwoFluidSolver.DT) + " units at 20 Hz)");
 		System.out.println("[terrain-census]   ρ       " + rho);
 		System.out.println("[terrain-census]   q       " + q);
 		System.out.println("[terrain-census]   ε²      " + eps);
