@@ -30,7 +30,11 @@ loom {
 			// `domain` / `domainTest` source sets are deliberately NOT listed
 			// here, so they compile as plain Java with no Minecraft on their
 			// classpath — the module seam (BUILD-PLAN.md §2.1) held in Loom.
+			// `splitEnvironmentSourceSets()` creates the `client` source set
+			// (src/client/java — the lume's client entrypoint + tint), which
+			// joins the mod jar so the `client` fabric.mod.json entrypoint loads.
 			sourceSet sourceSets.main
+			sourceSet sourceSets.client
 		}
 	}
 }
@@ -243,3 +247,56 @@ tasks.withType(JavaCompile).configureEach {
 	it.options.encoding = 'UTF-8'
 	it.options.release = 25
 }
+
+// ----------------------------------------------------------------------------
+// Phase-1 ride-downhill probe (coherence-highway.md §6b, open-Q1): answers
+// whether a cart measurably rides a real ∇(g·Φ) descent on the Phase-1
+// living-terrain demo — strong enough to feel as a free downhill ride and
+// distinguishable from flat terrain. Pure consumer of the publish; headless.
+// ----------------------------------------------------------------------------
+def rideProbeRun = tasks.register('rideProbe', JavaExec) {
+	group = 'verification'
+	description = 'Runs the Phase-1 ride-downhill probe (a cart on the field\'s own river-law haul vs a flat control) without a live client.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'dev.cassicraft.game.road.RideDownhillProbeMain'
+}
+
+build.dependsOn rideProbeRun
+check.dependsOn rideProbeRun
+
+// ----------------------------------------------------------------------------
+// Game-source Weatherglass-lume determinism gate (field-instruments.md §1.4):
+// the always-on lume channel is a pure presentation of the published snapshot,
+// so same field → same wire bytes (rho,q,eps2,gradX,gradY,gradZ → sha-256),
+// deterministically, differing across seeds, reading real interior field.
+// Headless — no live client/server.
+// ----------------------------------------------------------------------------
+def lumeDeterminismRun = tasks.register('lumeDeterminism', JavaExec) {
+	group = 'verification'
+	description = 'Runs the Weatherglass lume determinism gate (the lume payload is a pure, deterministic function of the published field) without a live client.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'dev.cassicraft.game.lume.LumeDeterminismMain'
+}
+
+build.dependsOn lumeDeterminismRun
+check.dependsOn lumeDeterminismRun
+
+// ----------------------------------------------------------------------------
+// Game-source living-terrain census + anti-monolith gate (volumetric-terrain.md
+// "the field IS the terrain"; chunk-field-quantization.md §2 ρ≥τ_c/ε²/q). The
+// census measures the real published ρ/q/ε² distribution over the full 192³ box
+// at settle and the resulting AIR/SOLID/ORE census, then asserts the structural
+// contract that replaces the "anyone is a stone monolith" failure: same field →
+// same census, different seed differs, AIR fraction ≥ 0.15, ore precipitates,
+// the spawn column stays standable. Reads the published snapshot only — never
+// writes a block. Headless (the quantizerDeterminism pattern), no live server.
+// ----------------------------------------------------------------------------
+def terrainCensusRun = tasks.register('terrainCensus', JavaExec) {
+	group = 'verification'
+	description = 'Runs the living-terrain census + anti-monolith gate (full-box ρ/q/ε² distributions, AIR/SOLID/ORE census, standable spawn) without a live client.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'dev.cassicraft.game.terrain.TerrainCensusMain'
+}
+
+build.dependsOn terrainCensusRun
+check.dependsOn terrainCensusRun

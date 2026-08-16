@@ -27,17 +27,18 @@ import dev.cassicraft.domain.snapshot.FieldSnapshot;
  * then the 8 surrounding cell corners are gathered in one fused traversal and
  * tri-lerped (the same neighbourhood traversal the GPU sampler uses).
  *
- * <p><b>Block mapping (hypothesis thresholds, all tuneable constants):</b>
+ * <p><b>Block mapping (quantization dials, calibrated from the measured settled
+ * field — see the constant javadocs):</b>
  * <table>
  *   <caption>Block mapping table</caption>
  *   <tr><th>Channel</th><th>Condition</th><th>Block</th></tr>
- *   <tr><td>ρ density</td><td>ρ ≥ τ_c = 0.5 (hysteresis band τ_c−δ..τ_c, δ=0.1)</td>
+ *   <tr><td>ρ density</td><td>ρ ≥ {@link #TAU_C} (hysteresis band, {@link #HYSTERESIS_DELTA})</td>
  *       <td>solid → STONE</td></tr>
- *   <tr><td>q coherence</td><td>solid and q ≥ q_ore = 1.35</td>
+ *   <tr><td>q coherence</td><td>solid and q ≥ {@link #Q_ORE_THRESHOLD}</td>
  *       <td>ore → COPPER_ORE</td></tr>
- *   <tr><td>ε² decoherence</td><td>solid and ε² ≥ ε_floor = 1.0</td>
+ *   <tr><td>ε² decoherence</td><td>solid and ε² ≥ {@link #EPS2_FLOOR}</td>
  *       <td>dissolution → AIR (carved)</td></tr>
- *   <tr><td>otherwise</td><td>ρ &lt; τ_c (below hysteresis band)</td>
+ *   <tr><td>otherwise</td><td>ρ &lt; {@link #TAU_C} (below hysteresis band)</td>
  *       <td>air → AIR</td></tr>
  * </table>
  * ε² is not a published array in the ported {@link FieldSnapshot} (it rides
@@ -48,14 +49,46 @@ import dev.cassicraft.domain.snapshot.FieldSnapshot;
  */
 public final class Quantizer {
 
-	/** Condensation threshold — solid above this ρ (engine's τ_c default). */
-	public static final float TAU_C = 0.5f;
-	/** Hysteresis half-width — a solid block only dissolves below τ_c−δ. */
+	/**
+	 * Condensation threshold — solid above this ρ (a labeled quantization dial;
+	 * material-regimes.md §1 θ_c). Calibrated from the measured settled-box ρ
+	 * distribution (TerrainCensusMain, seed 42 @ 12 generations): the field's
+	 * density body runs p50=1.007, p90=1.197, and 23.3% of the box sits below
+	 * 0.90 — the thinner field reads as air/void, the dense 77% as organized
+	 * condensate. τ_c = 0.90 cuts the actual density continuum so a meaningful
+	 * fraction is air (not a monolith) and a meaningful fraction is stone.
+	 * A labeled statistic, not a free-energy grant — it only classifies the
+	 * published ρ; the physics (src/domain) is untouched.
+	 */
+	public static final float TAU_C = 0.90f;
+	/**
+	 * Hysteresis half-width — a solid block only dissolves below τ_c−δ. Held at
+	 * 0.1 (~11% of the τ_c=0.90 band, the [0.80,0.90] dissolve floor): a field
+	 * jittering around the measured boundary (the ~8% of the box with ρ<0.80) is
+	 * mostly at the thin edge, so the 0.10 band keeps a solid from flickering
+	 * each tick. Small relative to the body (p50=1.007), so re-quantization is
+	 * flicker-free without blurring the structure.
+	 */
 	public static final float HYSTERESIS_DELTA = 0.1f;
-	/** Decoherence floor — at/above this ε² a region dissolves (carves to air). */
-	public static final float EPS2_FLOOR = 1.0f;
-	/** Coherence threshold — solid plus q ≥ this precipitates ore. */
-	public static final float Q_ORE_THRESHOLD = 1.35f;
+	/**
+	 * Decoherence floor — at/above this ε² a solid region dissolves (carves to
+	 * air). Calibrated from the measured settled-box ε² distribution: p90=0.248,
+	 * p99=0.515; 0.35 sits ≈p96, so dissolution opens the genuinely decoherent
+	 * scars/edges (≈1.8% of the condensed field) into voids while the coherent
+	 * bulk (mean ε²=0.109) stays solid. A labeled statistic of the published
+	 * ε²= (EY−φ·EI)² — never a boost.
+	 */
+	public static final float EPS2_FLOOR = 0.35f;
+	/**
+	 * Coherence threshold — solid plus q ≥ this precipitates ore. Calibrated from
+	 * the measured settled-box q distribution: p90=0.856, p99=1.117; 1.25 sits in
+	 * the deep coherent tail, so ore precipitates as veins only in the
+	 * best-locked field (≈0.3–0.4% of the box — present but not everywhere),
+	 * the corpus's "coherence accumulates above a second threshold"
+	 * (volumetric-terrain.md; material-regimes.md §3). A labeled statistic of the
+	 * published q — never mints ore.
+	 */
+	public static final float Q_ORE_THRESHOLD = 1.25f;
 
 	private static final int N = TwoFluidSolver.N;
 	private static final int HN = N / 2;

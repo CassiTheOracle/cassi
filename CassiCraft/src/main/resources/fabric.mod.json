@@ -13,6 +13,9 @@
 	"entrypoints": {
 		"main": [
 			"dev.cassicraft.CassiCraft"
+		],
+		"client": [
+			"dev.cassicraft.client.CassiCraftClient"
 		]
 	},
 	"depends": {

@@ -4,6 +4,8 @@ import com.mojang.brigadier.CommandDispatcher;
 import dev.cassicraft.game.advect.FollowBehind;
 import dev.cassicraft.game.life.LifeSignal;
 import dev.cassicraft.game.life.RiverSteering;
+import dev.cassicraft.game.lume.LumePayload;
+import dev.cassicraft.game.lume.LumePusher;
 import dev.cassicraft.game.reader.FieldReader;
 import dev.cassicraft.game.reader.WeatherglassItem;
 import dev.cassicraft.game.sampler.SamplerShutdown;
@@ -17,6 +19,7 @@ import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLevelEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.core.BlockPos;
@@ -78,9 +81,17 @@ public class CassiCraft implements ModInitializer {
 	/** The follow-behind advection coordinator (created per-session, nulled on teardown). */
 	private FollowBehind followBehind;
 
+	/** The always-on Weatherglass lume push coordinator (created per-session, nulled on teardown). */
+	private LumePusher lumePusher;
+
 	@Override
 	public void onInitialize() {
 		registerWeatherglass();
+
+		// The always-on lume channel (field-instruments §1.4): a bounded S2C
+		// presentation of the published snapshot, registered once. The client
+		// receiver lives in the separate client entrypoint.
+		PayloadTypeRegistry.clientboundPlay().register(LumePayload.TYPE, LumePayload.CODEC);
 
 		// World load → start the domain field thread + sampler + writer for this
 		// world. The overworld is the Phase-1 substrate (its seed is the field
@@ -101,6 +112,7 @@ public class CassiCraft implements ModInitializer {
 			double[] anchor = { spawn.getX(), spawn.getY(), spawn.getZ() };
 			long used = session.beginSession(level, seed, anchor);
 			followBehind = new FollowBehind(session.publisher(), session.fieldThread());
+			lumePusher = new LumePusher(WEATHERGLASS, session.publisher());
 			steering = new RiverSteering(session.publisher());
 			strideCost = new StrideCostPass(session.publisher());
 			surfaceSpawn = new SurfaceSpawn(session.publisher(), anchor);
@@ -113,6 +125,7 @@ public class CassiCraft implements ModInitializer {
 			if (server.overworld() == level || session.isRunning()) {
 				session.endSession();
 				followBehind = null;
+				lumePusher = null;
 				steering = null;
 				strideCost = null;
 				surfaceSpawn = null;
@@ -125,6 +138,7 @@ public class CassiCraft implements ModInitializer {
 			if (session.isRunning()) {
 				session.endSession();
 				followBehind = null;
+				lumePusher = null;
 				steering = null;
 				strideCost = null;
 				surfaceSpawn = null;
@@ -136,11 +150,15 @@ public class CassiCraft implements ModInitializer {
 		// rule: sampler reads, writer writes blocks), the life-steering pass veers
 		// passive animals along the river gradient (a read, never a power source),
 		// the stride-cost pass drags players in dear regions (a cost, never a
-		// boost), and the surface-spawn sets the player's respawn on the field.
+		// the surface-spawn sets the player's respawn on the field, and the
+		// always-on lume pushes the published read to glass-holders (a glance).
 		ServerTickEvents.END_SERVER_TICK.register(server -> {
 			session.onServerTick(server);
 			if (followBehind != null) {
 				followBehind.onServerTick(server.overworld());
+			}
+			if (lumePusher != null) {
+				lumePusher.onServerTick(server);
 			}
 			if (surfaceSpawn != null) {
 				surfaceSpawn.onServerTick(server.overworld());
