@@ -1,4 +1,4 @@
-package dev.cassicraft.game.material;
+package dev.cassicraft.game.sky;
 
 import com.mojang.brigadier.CommandDispatcher;
 import dev.cassicraft.domain.snapshot.FieldSnapshot;
@@ -11,35 +11,32 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 
 /**
- * The {@code /cassicraft material} command — the real-element material read
- * (material-regimes.md §7, closing the "regime dressing is surface" deferral).
- * Prints the regime read at the caller's position (or an explicit block) — the
- * local {@code (ρ, q, ε²)}, the governing material tuple (name, rung {@code n},
- * the special-point distance), and the phase verdict. This is the <b>instrument
- * read</b>: the calibration is legible, never hidden (the owner sees the real
- * element, its rung, and the measuring [design] constants on demand).
+ * The {@code /cassicraft sky} command — the sky's readable-from-the-instruments
+ * gate (atmosphere-orbits-auroras.md §3.3, weather-not-storm §5.4 gate (e): the
+ * sky is readable from the instruments, never hidden-only). Prints the sky read
+ * at the caller's position (or an explicit block) — the same headless-testable
+ * pattern as {@code /cassicraft read}, {@code /cassicraft wind} and
+ * {@code /cassicraft material}: a pure consumer of the session's published
+ * snapshot via the Weatherglass publisher supplier.
  *
- * <p>The command reads {@link MaterialRegimeRead#classify} off the published
- * channels via the Weatherglass publisher supplier (the same seam as
- * {@code /cassicraft read} and {@code /cassicraft wind}). It reports the local
- * {@code (ρ, q, ε²)}, the governing material tuple (name, rung {@code n}, the
- * special-point distance), the phase verdict, <b>and the block kind the regime
- * dresses</b> (which real-element block the world places at this position —
- * STONE or COPPER_ORE by the same dressing the Quantizer uses, material-regimes
- * §1, §3). It is a <b>read</b> only — never a write, never a block mutation,
- * never a free-energy grant (only-mutator rule; no-free-energy cap). No tick
- * hook — on-demand read.
+ * <p>The command reads {@link SkyRead#classify} off the published channels and
+ * prints the glow intensity, the storm's leading-edge darkening (with the
+ * readable-before-it-arrives framing — the front's {@code ε²} approach in the
+ * same units the corpus reads it, weather-not-storm §2.1), the fog thickness,
+ * and the raw measured {@code (ρ, q, ε²)}. It is a <b>read</b> only — never a
+ * write, never a block mutation, never a mint (only-mutator rule; no-free-energy,
+ * atmosphere §5c).
  *
  * <p>The command class compiles standalone against the game runtime (no edit to
  * {@code CassiCraft.java} is needed to build it); the caller wires the
  * registration into the {@code CommandRegistrationCallback} block.
  */
-public final class MaterialCommand {
+public final class SkyCommand {
 
-	/** Register {@code /cassicraft material [x y z]}. */
+	/** Register {@code /cassicraft sky [x y z]}. */
 	public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
 		dispatcher.register(Commands.literal("cassicraft")
-				.then(Commands.literal("material")
+				.then(Commands.literal("sky")
 						.executes(ctx -> run(ctx.getSource(), null))
 						.then(Commands.argument("x", com.mojang.brigadier.arguments.IntegerArgumentType.integer())
 								.then(Commands.argument("y", com.mojang.brigadier.arguments.IntegerArgumentType.integer())
@@ -52,14 +49,14 @@ public final class MaterialCommand {
 	}
 
 	/**
-	 * Run the material read at a position.
+	 * Run the sky read at a position.
 	 *
 	 * @param xyz explicit block coords, or {@code null} for the caller's position
 	 *        (console → the world spawn)
 	 */
 	public static int run(CommandSourceStack source, int[] xyz) {
 		if (dev.cassicraft.CassiCraft.WEATHERGLASS == null) {
-			source.sendFailure(Component.literal("The material reader is not armed (no world loaded)."));
+			source.sendFailure(Component.literal("The sky reader is not armed (no world loaded)."));
 			return 0;
 		}
 		BlockPos pos = xyz != null
@@ -74,25 +71,33 @@ public final class MaterialCommand {
 				? snap.job().windowCenter()
 				: new double[] { 0, 0, 0 };
 		Quantizer.FieldReading r = Quantizer.sampleReading(snap, center, pos.getX(), pos.getY(), pos.getZ());
-		MaterialRegimeRead.RegimeRead m = MaterialRegimeRead.classify(r);
-		String kindText = "\n  Placed block " + placedKind(r.rho(), r.q()) + " (the real-element block the regime dresses)";
-		source.sendSuccess(() -> Component.literal("Material @ (" + pos.getX() + "," + pos.getY() + "," + pos.getZ() + ")\n" + MaterialRegimeRead.text(m) + kindText),
+		SkyRead.Read s = SkyRead.classify(r);
+		source.sendSuccess(() -> Component.literal("Sky @ (" + pos.getX() + "," + pos.getY() + "," + pos.getZ() + ")\n" + text(pos, s)),
 				false);
 		return 1;
 	}
 
-	/**
-	 * The block kind the regime dresses at a solid sample — exactly the Dressing
-	 * the world's Quantizer uses: COPPER_ORE when the regime reaches the copper
-	 * identity (the deep-dense metal tail {@code ρ ≥} the registry's copper θ_c,
-	 * {@link MaterialRegimeRead#isCopperRegime}, OR the coherent-precipitated q
-	 * vein {@code q ≥ Quantizer.Q_ORE_THRESHOLD}), else STONE (the iron/silicate
-	 * rung). A read of the same field position the block writer places — never a
-	 * mint, never a grant.
-	 */
-	private static String placedKind(float rho, float q) {
-		return (MaterialRegimeRead.isCopperRegime(rho) || q >= Quantizer.Q_ORE_THRESHOLD)
-				? "COPPER_ORE" : "STONE";
+	/** The live sky readout text (deterministic pure function of the read). */
+	public static String text(BlockPos pos, SkyRead.Read s) {
+		StringBuilder sb = new StringBuilder()
+				.append("  ").append(s.kind().label());
+		if (s.isStormEdge()) {
+			sb.append(" — the front's approach ").append(fmt(s.frontApproach()))
+				.append(" ε²-units past the darkening threshold ").append(fmt(SkyRead.STORM_EDGE_EPS2))
+				.append(" (readable-before-it-arrives, weather-not-storm §2: the sky darkens ahead of the storm)");
+		} else {
+			sb.append(" — leading-edge darkening ").append(fmt(s.darkening()))
+				.append(" of ").append(fmt(SkyRead.STORM_EDGE_EPS2))
+				.append(" (front approach ").append(fmt(s.frontApproach())).append(" ε²-units)");
+		}
+		sb.append("\n  Glow ").append(fmt(s.glow()))
+			.append(" of a ").append(s.isGlow() ? "GLOW" : "non-glow sky (q-tail " + fmt(SkyRead.GLOW_Q_TAIL) + ")");
+		sb.append("\n  Fog ").append(fmt(s.fog()))
+			.append(" of the density ").append(fmt(SkyRead.FOG_RHO_TAIL));
+		sb.append("\n  raw (ρ ").append(fmt(s.rho()))
+			.append(", q ").append(fmt(s.q()))
+			.append(", ε² ").append(fmt(s.eps2())).append(")");
+		return sb.toString();
 	}
 
 	/** Caller (player) position or the world spawn for console/headless use. */
@@ -107,6 +112,10 @@ public final class MaterialCommand {
 				: BlockPos.ZERO;
 	}
 
-	private MaterialCommand() {
+	private static String fmt(float v) {
+		return String.format("%.3f", v);
+	}
+
+	private SkyCommand() {
 	}
 }

@@ -21,15 +21,23 @@ import java.util.Queue;
  * <p>The writer runs on the server thread. Each server tick
  * {@link #flushIntents} drains the sampler's intent queue and applies the
  * mutations to the overworld, <b>skipping unloaded chunks</b> (no force-load):
- * a mutation in a chunk that is not {@code load()ed} is dropped for this pass —
+ * a mutation in a chunk that is not {@code load()}ed is dropped for this pass —
  * it is never forced into existence. The block mapping {@link Quantizer.BlockKind}
  * → {@link BlockState} is:
  * <ul>
- *   <li>{@code SOLID} → {@link Blocks#STONE}</li>
- *   <li>{@code ORE} → {@link Blocks#COPPER_ORE}</li>
+ *   <li>{@code SOLID} → {@link Blocks#STONE} (the iron/silicate rung)</li>
+ *   <li>{@code ORE} → {@link Blocks#COPPER_ORE} (the registry-dressed copper kind —
+ *       the deep-dense metal regime or the coherence-precipitated q vein,
+ *       material-regimes §1/§3; the Quantizer selects it, the writer places it)</li>
  *   <li>{@code AIR} → {@link Blocks#AIR}</li>
  * </ul>
- * The writer also clears a block's neighbours' light/geometry implicitly through
+ * The writer is the only block mutator and the only place a {@code BlockKind}
+ * becomes a concrete {@code BlockState}; it never reads the domain and never
+ * decides the kind itself — the Quantizer (which has the field sample) chooses
+ * the dressed kind, the writer applies it. This is the material-regimes §7
+ * deferral closed end-to-end: the real-element registry now dresses the world's
+ * placed blocks, not just a printed table.
+ * <p>The writer also clears a block's neighbours' light/geometry implicitly through
  * vanilla {@code setBlock} (flag {@code 3} = block update + send), so the seam
  * stays on-plan machinery.
  */

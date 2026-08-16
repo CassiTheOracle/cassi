@@ -364,3 +364,116 @@ def materialDeterminismRun = tasks.register('materialDeterminism', JavaExec) {
 
 build.dependsOn materialDeterminismRun
 check.dependsOn materialDeterminismRun
+
+// ----------------------------------------------------------------------------
+// Game-source Sky determinism gate (atmosphere-orbits-auroras.md §3.3, §5c —
+// the sky IS the atmosphere's read; gate (c) HARD): the sky's glow (coherent
+// high-q), the storm's leading-edge darkening (the ε² front, weather-not-storm
+// §2), and the density-fog (ρ) are a pure, deterministic function of the
+// published channels — same window, same field state → same sky, never a
+// seeded weather roll. Asserts determinism across same-seed settles, seed
+// sensitivity, positive-count anti-vacuity (the sky separates states: the
+// world has glow/storm/fog AND clear, not a monochrome sky), and classifier
+// purity. Pure consumer of the publish — never writes a block, never grants.
+// Headless — no live client/server.
+// ----------------------------------------------------------------------------
+def skyDeterminismRun = tasks.register('skyDeterminism', JavaExec) {
+	group = 'verification'
+	description = 'Runs the Sky determinism gate (the atmosphere\'s read: glow / storm-edge darkening / density-fog as a pure, deterministic function of the published field, never a weather roll) without a live client.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'dev.cassicraft.game.sky.SkyDeterminismMain'
+}
+
+build.dependsOn skyDeterminismRun
+check.dependsOn skyDeterminismRun
+
+// ----------------------------------------------------------------------------
+// Game-source Material-kinds determinism gate (material-regimes.md §7 — the
+// registry dressing the world's placed blocks, the deferral closed end-to-end;
+// §1 "a material is a point in the field regime", §3 "ore precipitates where q
+// accumulates"): the registry's constant-tuples now drive the kind the world
+// places — within the solid regime a block becomes the COPPER_ORE kind when its
+// regime reaches the copper identity (the deep-dense metal tail ρ ≥ the
+// registry's copper θ_c OR the coherent-precipitated q vein q ≥ Q_ORE_THRESHOLD),
+// else the iron/silicate STONE. The calibrated AIR/SOLID boundaries are
+// untouched. Asserts the dressed-kind census is a pure, deterministic function
+// of the published field (same field → same real-element blocks), differs
+// across seeds, and separates the two placed minerals: at the current field
+// state at least one COPPER-dressed and at least one STONE-dressed block exist
+// (the world places both, not a monolith), plus classifier purity. Pure
+// consumer of the publish — never writes. Headless, no live server.
+// ----------------------------------------------------------------------------
+def materialKindsDeterminismRun = tasks.register('materialKindsDeterminism', JavaExec) {
+	group = 'verification'
+	description = 'Runs the Material-kinds determinism gate (the registry dresses the world\'s placed blocks: deterministic, state-separating COPPER_ORE vs STONE by the field regime) without a live client.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'dev.cassicraft.game.material.MaterialKindsDeterminismMain'
+}
+
+build.dependsOn materialKindsDeterminismRun
+check.dependsOn materialKindsDeterminismRun
+
+// ----------------------------------------------------------------------------
+// Game-source ride determinism + honesty gate (coherence-highway.md §6b —
+// the Phase-1 ride-downhill slice made a real ride; §6c determinism HARD;
+// §6d the no-free-energy cap). The engine-real river-law haul
+// a = −G_N·(π/ρ)·∇(g·Φ) carries a cart down the field's own descent: same seed
+// → identical ride fingerprint, different seed differs, the descent-arm speed
+// matches the ride-downhill probe's SUPPORTS result (2.72) within tolerance
+// (the ride path and the probe path agree — the same engine-real haul, no
+// reimplementation drift), and the flat control arm gains ≤ the honesty
+// epsilon (a cart on flat ground is NOT carried — no mint). Headless, no
+// live client/server.
+// ----------------------------------------------------------------------------
+def rideDeterminismRun = tasks.register('rideDeterminism', JavaExec) {
+	group = 'verification'
+	description = 'Runs the ride determinism + honesty gate (the minecart rides the field\'s own ∇(g·Φ) haul deterministically, matches the probe, gains nothing on flat ground) without a live client.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'dev.cassicraft.game.ride.RideDeterminismMain'
+}
+
+build.dependsOn rideDeterminismRun
+check.dependsOn rideDeterminismRun
+
+// ----------------------------------------------------------------------------
+// Game-source surface + follow-behind diagnostics probe (the owner's priority
+// report — "the world moves through space but the player doesn't move with
+// it" and "the world is mostly stone with no surface"). Measures, headlessly
+// over the real publish seam, the coherent-surface truth (vertical solid
+// structure, topSolidY distribution across columns), the exact SurfaceSpawn
+// scan's spawn reality and the 32³ around it, the follow-behind re-home's
+// world-fixedness (a fixed block before/after a whole-cell re-home + the
+// player-vicinity 32³ flip rate), and the DT=0.001 terrain churn rate. Reads
+// the published snapshot only — never writes a block. Headless (the
+// terrainCensus pattern), no live client/server.
+// ----------------------------------------------------------------------------
+def surfaceDiagnosticsRun = tasks.register('surfaceDiagnostics', JavaExec) {
+	group = 'verification'
+	description = 'Runs the surface + follow-behind diagnostics probe (coherent-surface truth, SurfaceSpawn spawn reality, re-home world-fixedness, DT=0.001 churn) without a live client.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'dev.cassicraft.game.surface.SurfaceDiagnosticsMain'
+}
+
+build.dependsOn surfaceDiagnosticsRun
+check.dependsOn surfaceDiagnosticsRun
+
+// ----------------------------------------------------------------------------
+// Game-source combustion measurement probe (material-regimes.md §3 — "combustion
+// = a self-sustaining organized-perturbation front"; the source_injection seam
+// the design cites is the Q4 write-lane gap). Measures, headlessly over the real
+// publish seam, the no-source baseline: the analytic c_s = h0/dt reference, the
+// field's own epsilon-2/q distributions and front-like co-location (q-high AND
+// eps2-high), the max |∇q|/|∇ε²| cells, and the EY center-line autocorrelation
+// (does the settled field carry an organized spatial mode?). Pure consumer of the
+// publish — never writes a block, never touches the domain. Reads only. Headless
+// (the terrainCensus pattern), no live client/server.
+// ----------------------------------------------------------------------------
+def combustionProbeRun = tasks.register('combustionProbe', JavaExec) {
+	group = 'verification'
+	description = 'Runs the combustion measurement probe (no-source baseline: c_s reference, epsilon-2/q structure, front co-location, spectral organization) without a live client.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'dev.cassicraft.game.reaction.CombustionProbeMain'
+}
+
+build.dependsOn combustionProbeRun
+check.dependsOn combustionProbeRun

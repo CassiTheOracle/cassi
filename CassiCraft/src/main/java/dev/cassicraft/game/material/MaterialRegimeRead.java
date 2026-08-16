@@ -144,6 +144,20 @@ public final class MaterialRegimeRead {
 				MaterialRegistry.distanceToSpecialPoint(tuple.n()));
 	}
 
+	/**
+	 * Whether a sample's regime reaches the COPPER identity by density — the
+	 * deep-dense metal tail ({@code ρ ≥ MaterialRegistry.COPPER_THETA_C}, the
+	 * densest demo material's condensation band, material-regimes.md §1). This
+	 * is the registry's block-kind dressing test the Quantizer consults (it is
+	 * also the copper branch of {@link #classify}). The {@code q}-precipitated
+	 * ore vein is a second copper axis the Quantizer's own {@code q ≥
+	 * Q_ORE_THRESHOLD} dial supplies (material-regimes.md §3 "a vein is where q
+	 * accumulates").
+	 */
+	public static boolean isCopperRegime(float rho) {
+		return rho >= (float) MaterialRegistry.COPPER_THETA_C;
+	}
+
 	/** The material command's printed readout (deterministic pure function of the read). */
 	public static String text(RegimeRead r) {
 		StringBuilder sb = new StringBuilder();

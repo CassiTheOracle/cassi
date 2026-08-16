@@ -33,14 +33,26 @@ import dev.cassicraft.domain.snapshot.FieldSnapshot;
  *   <caption>Block mapping table</caption>
  *   <tr><th>Channel</th><th>Condition</th><th>Block</th></tr>
  *   <tr><td>ρ density</td><td>ρ ≥ {@link #TAU_C} (hysteresis band, {@link #HYSTERESIS_DELTA})</td>
- *       <td>solid → STONE</td></tr>
+ *       <td>solid → STONE or COPPER_ORE (the registry-dressed kind)</td></tr>
  *   <tr><td>q coherence</td><td>solid and q ≥ {@link #Q_ORE_THRESHOLD}</td>
- *       <td>ore → COPPER_ORE</td></tr>
+ *       <td>ore → COPPER_ORE (the q-precipitated vein, material-regimes §3)</td></tr>
+ *   <tr><td>ρ dense-metal regime</td><td>solid and ρ ≥ {@code MaterialRegistry.COPPER_THETA_C} (the
+ *       deep-dense metal tail)</td><td>ore → COPPER_ORE (the density-regime copper dressing, §1)</td></tr>
  *   <tr><td>ε² decoherence</td><td>solid and ε² ≥ {@link #EPS2_FLOOR}</td>
  *       <td>dissolution → AIR (carved)</td></tr>
  *   <tr><td>otherwise</td><td>ρ &lt; {@link #TAU_C} (below hysteresis band)</td>
  *       <td>air → AIR</td></tr>
  * </table>
+ * The COPPER_ORE kind is the registry's honest dressing: a solid block becomes
+ * copper only when its regime reaches the copper identity — the deep-dense
+ * metal tail ({@code ρ ≥ MaterialRegistry.COPPER_THETA_C}, the registry's
+ * density-θ_c — the densest demo material's condensation band) OR the
+ * coherence-precipitated vein ({@code q ≥ Q_ORE_THRESHOLD}, the existing
+ * terrain ore dial). Everything else in the solid regime is the iron/silicate
+ * stone. The AIR/SOLID/ORE boundaries stay the calibrated dials; only the
+ * kind within the solid regime follows the field's own material position
+ * (material-regimes.md §1, §3 — the registry lands, the 'regime dressing' is
+ * no longer surface).
  * ε² is not a published array in the ported {@link FieldSnapshot} (it rides
  * the ρ read per chunk-field-quantization.md §2); it is re-derived from the
  * published ρ and q via the φ-locked branch {@code EY=max, EI=min} →
@@ -325,20 +337,28 @@ public final class Quantizer {
 
 	/**
 	 * Cold-start quantization (no prior state): a block solidifies at exactly
-	 * {@code ρ ≥ τ_c}; dissolution overrides solid; high-q overrides plain solid.
+	 * {@code ρ ≥ τ_c}; dissolution overrides solid; the registry-dressed copper
+	 * kind overrides plain solid. The ORE kind (the demo's COPPER_ORE block) is
+	 * fired when the regime reaches the copper identity — the deep-dense metal
+	 * tail (ρ ≥ the registry's copper θ_c, {@link
+	 * dev.cassicraft.game.material.MaterialRegimeRead#isCopperRegime}) OR the
+	 * coherence-precipitated q vein ({@link #Q_ORE_THRESHOLD}). The AIR/SOLID
+	 * boundary stays the calibrated dial; only the kind within the solid regime
+	 * follows the field's own material position (material-regimes §1, §3).
 	 */
 	public static BlockKind quantizeCold(float rho, float q, float eps2) {
 		if (rho < TAU_C || eps2 >= EPS2_FLOOR) {
 			return BlockKind.AIR;
 		}
-		return q >= Q_ORE_THRESHOLD ? BlockKind.ORE : BlockKind.SOLID;
+		return isCopperDressed(rho, q) ? BlockKind.ORE : BlockKind.SOLID;
 	}
 
 	/**
 	 * Hysteresis-aware quantization for a re-quantized block. A {@code SOLID} or
 	 * {@code ORE} block stays solid while {@code ρ ≥ τ_c − δ} (so a field
 	 * jitter around the boundary does not flicker the block each tick); an
-	 * {@code AIR} block must cross {@code ρ ≥ τ_c} to solidify.
+	 * {@code AIR} block must cross {@code ρ ≥ τ_c} to solidify. Within the solid
+	 * regime the kind follows the registry dressing (see {@link #quantizeCold}).
 	 */
 	public static BlockKind quantize(float rho, float q, float eps2, BlockKind prior) {
 		boolean solid = (prior == BlockKind.SOLID || prior == BlockKind.ORE)
@@ -347,7 +367,20 @@ public final class Quantizer {
 		if (!solid || eps2 >= EPS2_FLOOR) {
 			return BlockKind.AIR;
 		}
-		return q >= Q_ORE_THRESHOLD ? BlockKind.ORE : BlockKind.SOLID;
+		return isCopperDressed(rho, q) ? BlockKind.ORE : BlockKind.SOLID;
+	}
+
+	/**
+	 * The registry-dressed copper test — whether a solid-regime sample is the
+	 * COPPER_ORE kind: the deep-dense metal tail ({@code ρ ≥ COPPER_THETA_C},
+	 * {@link MaterialRegimeRead#isCopperRegime}) OR the coherence-precipitated
+	 * q vein ({@code q ≥ Q_ORE_THRESHOLD}). Both reach the copper identity
+	 * (material-regimes §1 density-θ_c and §3 the q-vein); neither re-tunes the
+	 * calibrated dials — they select the kind within the solid boundary.
+	 */
+	private static boolean isCopperDressed(float rho, float q) {
+		return dev.cassicraft.game.material.MaterialRegimeRead.isCopperRegime(rho)
+				|| q >= Q_ORE_THRESHOLD;
 	}
 
 	/**

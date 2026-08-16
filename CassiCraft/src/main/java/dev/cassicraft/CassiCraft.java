@@ -92,6 +92,13 @@ public class CassiCraft implements ModInitializer {
 	/** The gentle fall's particle presenter (created per-session, nulled on teardown). */
 	private RainPresenter rainPresenter;
 
+	/** The sky's particle presenter (created per-session, nulled on teardown). */
+	private dev.cassicraft.game.sky.SkyPresenter skyPresenter;
+
+	/** The ride coordinator — applies the field's own river-law haul to vanilla
+	 * minecarts on the field (coherence-highway §6b; created per-session, nulled on teardown). */
+	private dev.cassicraft.game.ride.MinecartRideCoordinator rideCoordinator;
+
 	@Override
 	public void onInitialize() {
 		registerWeatherglass();
@@ -126,6 +133,8 @@ public class CassiCraft implements ModInitializer {
 			strideCost = new StrideCostPass(session.publisher());
 			surfaceSpawn = new SurfaceSpawn(session.publisher(), anchor);
 			windDrift = new dev.cassicraft.game.wind.WindDriftParticles(session.publisher());
+			rideCoordinator = new dev.cassicraft.game.ride.MinecartRideCoordinator(session.publisher());
+			skyPresenter = new dev.cassicraft.game.sky.SkyPresenter(session.publisher());
 			LOGGER.info("[cassicraft] field thread started for world (seed {}), window anchored at ({},{},{}), follow coordinator attached",
 					used, (int) anchor[0], (int) anchor[1], (int) anchor[2]);
 		});
@@ -141,6 +150,8 @@ public class CassiCraft implements ModInitializer {
 				surfaceSpawn = null;
 				rainPresenter = null;
 				windDrift = null;
+				skyPresenter = null;
+				rideCoordinator = null;
 				LOGGER.info("[cassicraft] field thread closed (world unload)");
 			}
 		});
@@ -156,6 +167,8 @@ public class CassiCraft implements ModInitializer {
 				surfaceSpawn = null;
 				rainPresenter = null;
 				windDrift = null;
+				skyPresenter = null;
+				rideCoordinator = null;
 				LOGGER.info("[cassicraft] field thread closed (server stop)");
 			}
 		});
@@ -189,6 +202,12 @@ public class CassiCraft implements ModInitializer {
 			if (windDrift != null) {
 				windDrift.onServerTick(server);
 			}
+			if (rideCoordinator != null) {
+				rideCoordinator.onServerTick(server);
+			}
+			if (skyPresenter != null) {
+				skyPresenter.onServerTick(server);
+			}
 		});
 	}
 
@@ -216,6 +235,8 @@ public class CassiCraft implements ModInitializer {
 			registerWindCommand(dispatcher);
 			registerWeatherCommand(dispatcher);
 			registerMaterialCommand(dispatcher);
+			registerRideCommand(dispatcher);
+			registerSkyCommand(dispatcher);
 		});
 	}
 
@@ -239,6 +260,23 @@ public class CassiCraft implements ModInitializer {
 	 * position or an explicit block (a pure consumer of the publish, never a write). */
 	private static void registerMaterialCommand(CommandDispatcher<CommandSourceStack> dispatcher) {
 		dev.cassicraft.game.material.MaterialCommand.register(dispatcher);
+	}
+
+	/** Register {@code /cassicraft sky [x y z]} — the sky's read (the glow /
+	 * storm-edge darkening / density-fog, atmosphere §3.3) at the caller's
+	 * position or an explicit block (a pure consumer of the publish, never a write). */
+	private static void registerSkyCommand(CommandDispatcher<CommandSourceStack> dispatcher) {
+		dev.cassicraft.game.sky.SkyCommand.register(dispatcher);
+	}
+
+	/**
+	 * Register {@code /cassicraft ride} — the ride's readable-from-the-instruments
+	 * read (coherence-highway §6e): the engine-real haul at the caller's position
+	 * or an explicit block (or the nearest minecart), a pure consumer of the
+	 * published ∇(g·Φ), never a write.
+	 */
+	private static void registerRideCommand(CommandDispatcher<CommandSourceStack> dispatcher) {
+		dev.cassicraft.game.ride.RideCommand.register(dispatcher);
 	}
 
 	/**
