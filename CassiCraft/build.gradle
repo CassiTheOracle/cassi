@@ -608,3 +608,44 @@ def genesisDeterminismRun = tasks.register('genesisDeterminism', JavaExec) {
 
 check.dependsOn genesisDeterminismRun
 build.dependsOn genesisDeterminismRun
+
+// ----------------------------------------------------------------------------
+// Game-source condensation-term determinism + honesty gate (energy-harnessing.md
+// §6 no-free-energy; atmosphere-orbits-auroras.md §2.2 the merge-lineage
+// condensation; coherence-magic.md §4.3 the ω₀² re-lock/overdraw boundary): a
+// domain-level, default-OFF (domain/engine/TwoFluidSolver.CONDENSATION_ENABLED)
+// symmetry-breaking term organizes the field into a real vertical density body
+// with a standable surface — deterministically, seed-sensitively, honestly.
+// Asserts the OFF path is byte-identical (stateHash == the pinned reference),
+// the ON term is deterministic (same-seed identical structural fingerprint),
+// seed-sensitive, moved the field vs the OFF control (anti-vacuity), and did
+// not mint (total ρ within the named no-mint bound of the OFF control). Prints
+// the honest verdict (SUPPORTS/CONTRADICTS/INCONCLUSIVE). Headless, no live
+// client/server.
+// ----------------------------------------------------------------------------
+def condensationDeterminismRun = tasks.register('condensationDeterminism', JavaExec) {
+	group = 'verification'
+	description = 'Runs the condensation-term determinism + honesty gate (OFF-path byte-identical, same-seed identical, seed-sensitive, moved the field, no-mint) without a live client.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'dev.cassicraft.game.condensation.CondensationDeterminismMain'
+}
+
+check.dependsOn condensationDeterminism
+build.dependsOn condensationDeterminism
+
+// ----------------------------------------------------------------------------
+// Game-source condensation-term measurement probe (the domain-level answer to
+// the wave's falsification): measures whether the default-OFF domain
+// condensation term organizes the uniformly-solid sponge into a real vertical
+// density body with a standable surface, deterministically, seed-sensitively,
+// and honestly (no mint — total ρ bounded vs the OFF control). A measurement
+// probe — reports the verdict (SUPPORTS/CONTRADICTS/INCONCLUSIVE with the
+// numbers) but is NOT part of the build gate (the gate asserts the contract at
+// build). Headless, no live server.
+// ----------------------------------------------------------------------------
+def condensationProbeRun = tasks.register('condensationProbe', JavaExec) {
+	group = 'verification'
+	description = 'Runs the condensation-term probe (the ON term vs the OFF sponge: does it organize a vertical body?) but is not part of the build gate.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'dev.cassicraft.game.condensation.CondensationProbeMain'
+}

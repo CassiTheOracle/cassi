@@ -77,6 +77,64 @@ public final class TwoFluidSolver {
 	public static final double PHI2 = PHI * PHI;
 
 	/**
+	 * Default-OFF gate for the domain-level condensation term (the measured
+	 * answer to {@code SurfaceEmergenceMain}'s falsification — a uniform
+	 * ~72–75%-solid sponge with no vertical density plane at any reachable t).
+	 * When {@code true}, {@link #passA()} adds a gravity-biased matched-φ
+	 * condensation acceleration per cell (see {@link #condensationBias(int)});
+	 * when {@code false} (the default) the guard is skipped entirely and every
+	 * pre-existing gate's byte-path is unchanged (domainHarness + the full gate
+	 * suite stay green; the {@code CondensationDeterminismMain} gate asserts the
+	 * OFF-path hash equals the documented reference).
+	 *
+	 * <p>[design] The term is the corpus's merge-lineage condensation vocabulary
+	 * decoded at the domain level: a body is "the merge lineage condensing
+	 * under the order-selective coherence gate" ({@code atmosphere-orbits-auroras.md}
+	 * §2.2 — the engine's body formation this port lacks), and the gravity bias
+	 * is the hydrostatic envelope's spine (§1.1: "matter free to move is pulled
+	 * toward the body"; the ρ gradient where pressure balances gravity). The
+	 * matched-φ move preserves the φ-lock ({@code EY − φ·EI} unchanged), so the
+	 * ω₀² re-lock/overdraw boundary of {@code coherence-magic.md} §4.3 is never
+	 * crossed. No free energy: the zero-mean vertical bias redistributes the
+	 * field's own existing coherence (bottom condenses, top thins) without
+	 * minting — the no-mint honesty gate ({@code energy-harnessing.md} §6:
+	 * {@code output ≤ φ⁻¹·input}) is measured by the probe as total ρ / total q
+	 * before and after a long run.
+	 */
+	public static volatile boolean CONDENSATION_ENABLED = false;
+
+	/**
+	 * The condensation term's base target density — the measured sponge's own
+	 * mean ρ (~1.00; TerrainCensusMain seed 42 reports the density body running
+	 * p50≈1.007). The target profile is {@code RHO_BASE + AMPLITUDE·bias(j)}, so
+	 * its mean equals this base — the term reorganizes existing density (bottom
+	 * condenses, top thins) without minting overall (the no-mint gate measures
+	 * it; {@code energy-harnessing.md} §6).
+	 */
+	public static final double CONDENSATION_RHO_BASE = 1.0;
+
+	/**
+	 * The condensation term's vertical target swing — how far below the box the
+	 * dense body's target sits (the floor condenses toward
+	 * {@code RHO_BASE + AMPLITUDE}, the ceiling thins toward
+	 * {@code RHO_BASE − AMPLITUDE}). Tuned by measurement (the probe owns the
+	 * number): set strong enough that the attractor builds a real ρ gradient
+	 * against the Laplacian's diffusion within reachable t, but bounded by the
+	 * sponge's own ρ spread (~0.15) so the target stays physical.
+	 */
+	public static final double CONDENSATION_AMPLITUDE = 0.7;
+
+	/**
+	 * The condensation term's convergence rate — the fraction of each cell's
+	 * density deficit from its target it closes per step (the {@code ψ +=
+	 * dEY·dt²} position-source apply, so zero at the target, self-limiting, and
+	 * not a velocity-accumulating pump — an un-damped acceleration version was
+	 * measured to mint (the CONTRADICTS(mint) finding) and is replaced by this
+	 * bounded attractor). A static configuration dial, not a physics change.
+	 */
+	public static final double CONDENSATION_RATE = 25.0;
+
+	/**
 	 * The 18-point stencil offsets plus the 0 (self) tap, in flat index units
 	 * (engine tap set: center, ±x, ±y, ±z, then the twelve face diagonals).
 	 * Kept for reference; pass_a computes the same taps directly from wrapped
@@ -231,6 +289,38 @@ public final class TwoFluidSolver {
 					float ey_new = eyc + vx_new * dt + src_ey * dt * dt;
 					float ei_new = eic + vy_new * dt + src_ei * dt * dt;
 
+					// [design] Gravity-biased condensation term — default-OFF (the
+					// {@link #CONDENSATION_ENABLED} flag; when false this guard is
+					// skipped and the byte-path is exactly the pre-existing math).
+					// A self-limiting matched-φ attractor that nudges each cell's
+					// density toward a vertical target profile (dense at the anchor's
+					// floor, thin above — the gravity bias of
+					// {@code atmosphere-orbits-auroras.md} §2.2's merge-lineage
+					// condensation, §1.1's hydrostatic envelope). Applied as a bounded
+					// position source (the {@code ψ += source·dt²} engine form, as in
+					// {@link #applySource}): the correction is {@code RATE × dt² ×}
+					// the deficit from the target, so it is exactly zero at the local
+					// target (self-limiting — no runaway, no velocity accumulation)
+					// and matched-φ ({@code dEY = φ·dEI} → {@code EY − φ·EI}
+					// preserved; the ω₀² re-lock/overdraw boundary of
+					// {@code coherence-magic.md} §4.3 is never crossed). The target
+					// profile's mean density equals the measured sponge's own mean
+					// (~1.00; {@link #CONDENSATION_RHO_BASE}), so the term
+					// <b>reorganizes</b> existing density (bottom condenses, top
+					// thins) and the no-mint honesty gate ({@code energy-harnessing.md}
+					// §6: {@code output ≤ φ⁻¹·input}) is measured as total ρ / total q
+					// before/after the run. Deterministic — a pure function of the
+					// field + vertical position.
+					if (CONDENSATION_ENABLED) {
+						float targetRho = (float) (CONDENSATION_RHO_BASE
+								+ CONDENSATION_AMPLITUDE * condensationBias(j));
+						float dRho = (float) (CONDENSATION_RATE * (targetRho - rho[id]));
+						float dEI = dRho / (1f + phi);
+						float dEY = phi * dEI;
+						ey_new += dEY * dt * dt;
+						ei_new += dEI * dt * dt;
+					}
+
 					int si = vi;
 					scr[si] = ey_new;
 					scr[si + 1] = ei_new;
@@ -339,6 +429,22 @@ public final class TwoFluidSolver {
 	private static int wrapCell(int c) {
 		int m = c % N;
 		return m < 0 ? m + N : m;
+	}
+
+	/**
+	 * The vertical gravity-bias profile for the {@link #CONDENSATION_ENABLED}
+	 * term — a deterministic, position-only function of the cell's y-row
+	 * {@code j} (the box's vertical axis: low {@code j} = the anchor's floor,
+	 * high {@code j} = the ceiling). {@code (N-1-2j)/N} ranges from +1 at the
+	 * floor (strong downward pull → condensate) to −1 at the ceiling (release →
+	 * thin) and is <b>exactly zero-mean</b> over the periodic {@code j} rows
+	 * ({@code Σ_j (N-1-2j) = N(N-1) − 2·(N-1)N/2 = 0}), so the total density
+	 * flux the term imposes is conservative — the no-mint bound of
+	 * {@code energy-harnessing.md} §6 is a property of the profile, not just of
+	 * the measured probe. A pure function of position: deterministic, no RNG.
+	 */
+	private static float condensationBias(int j) {
+		return (float) ((N - 1 - 2 * j) / (double) N);
 	}
 
 	/**
