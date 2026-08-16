@@ -715,12 +715,17 @@ const GRAVITY_MODE_TREE := 5.0       # `tree river` — gravity_mode value
 # dispatcher in the verify battery valid). The river G_N is calibrated for the
 # spectral-Poisson ∇(g·Φ) which carries an implicit V_cell/(4πr²) suppression;
 # the tree's ∇Φ_g is a direct Newtonian sum with NO such suppression (and site
-# weights w=m·g already carry g≈ξ). This scalar folds the tree's own mass/g
-# normalization back to the IC convention |a| ≈ M_count/r² (G=1, M=count) the
-# river arm targets. Fit empirically against verify_particle_vanish (matched
-# acc/river range, galaxy binds, no vanish): ML_TREE_G_SCALE = 0.03 with the
-# per-node walk cap + KDK guard confers 100% retention on both drive paths.
-const ML_TREE_G_SCALE := 0.03
+# weights w=m·g already carry g≈ξ). G_SCALE = 1.0: the tree uses the SAME
+# config-calibrated G_N as the river/IC (the G_eff=1 convention), so the tree
+# force reproduces the IC circular-velocity binding at every resolution.
+# DERIVED 2026-08-16 (virial theorem, measured at the owner's 2.5M decoupled
+# config): the legacy fixed 0.03 (fit at N=4000 against verify_particle_vanish)
+# makes G_tree = 0.03·G_N = 0.000285 at the owner's scale (river_calibrate_gn
+# already shrinks G_N with the deposited mass), giving 2KE/|W| ≈ 30-80 — the
+# cloud is violently UNBOUND and inflates, streaming past the camera = the
+# residual "vanish." G_SCALE=1.0 restores Q_vir=2KE/|W| to 0.4-0.6 (bound,
+# relaxing), with tgrad bounded ~12k and 100% retention to 3000 frames.
+const ML_TREE_G_SCALE := 1.0
 var _tree_build_shader: RID
 var _tree_build_pipe: RID
 var _tree_grav_shader: RID

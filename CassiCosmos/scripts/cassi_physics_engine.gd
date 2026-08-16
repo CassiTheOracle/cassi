@@ -49,7 +49,11 @@ const LN2: float = 0.6931471805599453  # ln 2 — degenerate rainbow v_scale fal
 # Tree-arm force calibration G_tree = G_N·ML_TREE_G_SCALE rides bh[3].w
 # (float 60 — a free header slot, NOT the nbody PC). 1.0 off-tree (river
 # bit-identical). Ported verbatim so the header encode matches the sim.
-const ML_TREE_G_SCALE := 0.03
+# G_SCALE=1.0 (2026-08-16): the tree uses the same config-calibrated G_N as
+# the river/IC (G_eff=1). The legacy fixed 0.03, fit at N=4000, under-binds
+# the owner's 2.5M scale ~30× (G_tree=0.03·G_N=0.000285 there) → Q_vir≈30-80
+# → unbound inflation = the residual vanish; 1.0 restores Q_vir≈0.5 (bound).
+const ML_TREE_G_SCALE := 1.0
 # Tree-walk softening (LENGTH²): eps2 = (ML_TREE_EPS2_FRAC · extent_min)²
 # derived per tree job (the sim's recipe — the tree worker's monopole
 # R² = ds² + eps2). ML_TREE_NODE_MAX_MULT sizes the node cap for the job.
