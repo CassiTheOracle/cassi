@@ -300,3 +300,67 @@ def terrainCensusRun = tasks.register('terrainCensus', JavaExec) {
 
 build.dependsOn terrainCensusRun
 check.dependsOn terrainCensusRun
+
+// ----------------------------------------------------------------------------
+// Game-source Rain determinism gate (the-rain.md §7c HARD): the rain's fall,
+// its wet-blur, and its flood-beginning margin are a pure function of the same
+// published window/field state — same window, same field → same rain, never a
+// seeded weather roll. Asserts determinism across same-seed settles, seed
+// sensitivity (the classifier read the field), positive-count anti-vacuity (the
+// classifier separates RAIN from NOT-RAIN), and classifier purity. Headless —
+// no live client/server.
+// ----------------------------------------------------------------------------
+def rainDeterminismRun = tasks.register('rainDeterminism', JavaExec) {
+	group = 'verification'
+	description = 'Runs the Rain determinism gate (the nourishing weather classification is a pure, deterministic function of the published window) without a live client.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'dev.cassicraft.game.rain.RainDeterminismMain'
+}
+
+build.dependsOn rainDeterminismRun
+check.dependsOn rainDeterminismRun
+
+// ----------------------------------------------------------------------------
+// Game-source Wind determinism gate (the-wind.md §7 gate (c) HARD): the wind —
+// the weather stack's flow-face, a directional current of coherence/ε² through
+// the air read from the published ∇(g·Φ) over the sampling seam — is a pure,
+// deterministic function of the published field. Same window, same field state
+// → same direction, strength, carry, and cost-and-aid, never a seeded gust
+// roll. Asserts determinism across same-seed settles, seed sensitivity (the
+// reader read the field), positive-count anti-vacuity (the reader separates
+// states: a non-CALM current exists and directions differ across the grid),
+// and classifier purity. Pure consumer of the publish — never writes. Headless.
+// ----------------------------------------------------------------------------
+def windDeterminismRun = tasks.register('windDeterminism', JavaExec) {
+	group = 'verification'
+	description = 'Runs the Wind determinism gate (the directional weather is a pure, deterministic function of the published field, never a gust roll) without a live client.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'dev.cassicraft.game.wind.WindDeterminismMain'
+}
+
+build.dependsOn windDeterminismRun
+check.dependsOn windDeterminismRun
+
+// ----------------------------------------------------------------------------
+// Game-source Material-regimes determinism gate (material-regimes.md §7 — the
+// named deferral "until per-material constants land, the whole field runs one
+// set of thresholds; the 'regime dressing' is surface"): the real-element-
+// calibrated material registry. Asserts the classification is a pure,
+// deterministic function of the published field (same field → same regimes),
+// differs across seeds, separates states (the world has air and stone — at
+// least one SOLID and one NOT-SOLID on the lattice, not a monolith), the
+// registry's rungs match independently-recomputed log_φ(M_Pl/m) from the cited
+// real masses (the calibration is real, not circular), and the classification
+// is a pure function of the reading. Prints the full registry + the measured
+// distribution percentiles that anchored the [design] scalings on every run.
+// Pure consumer of the publish — never writes. Headless, no live server.
+// ----------------------------------------------------------------------------
+def materialDeterminismRun = tasks.register('materialDeterminism', JavaExec) {
+	group = 'verification'
+	description = 'Runs the Material-regimes determinism gate (the real-element-calibrated material registry: deterministic, state-separating, non-circular rungs) without a live client.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'dev.cassicraft.game.material.MaterialRegimesDeterminismMain'
+}
+
+build.dependsOn materialDeterminismRun
+check.dependsOn materialDeterminismRun

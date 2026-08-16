@@ -8,6 +8,8 @@ import dev.cassicraft.game.lume.LumePayload;
 import dev.cassicraft.game.lume.LumePusher;
 import dev.cassicraft.game.reader.FieldReader;
 import dev.cassicraft.game.reader.WeatherglassItem;
+import dev.cassicraft.game.rain.RainPresenter;
+import dev.cassicraft.game.rain.WeatherReadout;
 import dev.cassicraft.game.sampler.SamplerShutdown;
 import dev.cassicraft.game.sampler.Quantizer;
 import dev.cassicraft.game.spawn.SurfaceSpawn;
@@ -84,6 +86,12 @@ public class CassiCraft implements ModInitializer {
 	/** The always-on Weatherglass lume push coordinator (created per-session, nulled on teardown). */
 	private LumePusher lumePusher;
 
+	/** The wind's particle-drift coordinator (the-wind.md §7 gate (b); created per-session, nulled on teardown). */
+	private dev.cassicraft.game.wind.WindDriftParticles windDrift;
+
+	/** The gentle fall's particle presenter (created per-session, nulled on teardown). */
+	private RainPresenter rainPresenter;
+
 	@Override
 	public void onInitialize() {
 		registerWeatherglass();
@@ -113,9 +121,11 @@ public class CassiCraft implements ModInitializer {
 			long used = session.beginSession(level, seed, anchor);
 			followBehind = new FollowBehind(session.publisher(), session.fieldThread());
 			lumePusher = new LumePusher(WEATHERGLASS, session.publisher());
+			rainPresenter = new RainPresenter(session.publisher());
 			steering = new RiverSteering(session.publisher());
 			strideCost = new StrideCostPass(session.publisher());
 			surfaceSpawn = new SurfaceSpawn(session.publisher(), anchor);
+			windDrift = new dev.cassicraft.game.wind.WindDriftParticles(session.publisher());
 			LOGGER.info("[cassicraft] field thread started for world (seed {}), window anchored at ({},{},{}), follow coordinator attached",
 					used, (int) anchor[0], (int) anchor[1], (int) anchor[2]);
 		});
@@ -129,6 +139,8 @@ public class CassiCraft implements ModInitializer {
 				steering = null;
 				strideCost = null;
 				surfaceSpawn = null;
+				rainPresenter = null;
+				windDrift = null;
 				LOGGER.info("[cassicraft] field thread closed (world unload)");
 			}
 		});
@@ -142,6 +154,8 @@ public class CassiCraft implements ModInitializer {
 				steering = null;
 				strideCost = null;
 				surfaceSpawn = null;
+				rainPresenter = null;
+				windDrift = null;
 				LOGGER.info("[cassicraft] field thread closed (server stop)");
 			}
 		});
@@ -160,6 +174,9 @@ public class CassiCraft implements ModInitializer {
 			if (lumePusher != null) {
 				lumePusher.onServerTick(server);
 			}
+			if (rainPresenter != null) {
+				rainPresenter.onServerTick(server);
+			}
 			if (surfaceSpawn != null) {
 				surfaceSpawn.onServerTick(server.overworld());
 			}
@@ -168,6 +185,9 @@ public class CassiCraft implements ModInitializer {
 			}
 			if (strideCost != null) {
 				strideCost.onServerTick(server.overworld(), server.getTickCount());
+			}
+			if (windDrift != null) {
+				windDrift.onServerTick(server);
 			}
 		});
 	}
@@ -193,6 +213,9 @@ public class CassiCraft implements ModInitializer {
 			registerReadCommand(dispatcher);
 			registerLifeCommand(dispatcher);
 			registerStrideCommand(dispatcher);
+			registerWindCommand(dispatcher);
+			registerWeatherCommand(dispatcher);
+			registerMaterialCommand(dispatcher);
 		});
 	}
 
@@ -200,6 +223,22 @@ public class CassiCraft implements ModInitializer {
 	private static void registerReadCommand(CommandDispatcher<CommandSourceStack> dispatcher) {
 		dispatcher.register(Commands.literal("cassicraft")
 				.then(Commands.literal("read").executes(ctx -> runRead(ctx.getSource()))));
+	}
+
+	/**
+	 * Register {@code /cassicraft wind} — the wind (the directional weather, a
+	 * pure consumer of the published ∇(g·Φ) via the Weatherglass publisher) at
+	 * the caller's position or an explicit block.
+	 */
+	private static void registerWindCommand(CommandDispatcher<CommandSourceStack> dispatcher) {
+		dev.cassicraft.game.wind.WindCommand.register(dispatcher);
+	}
+
+	/** Register {@code /cassicraft material [x y z]} — the real-element material
+	 * read (the governing constant tuple + phase verdict) at the caller's
+	 * position or an explicit block (a pure consumer of the publish, never a write). */
+	private static void registerMaterialCommand(CommandDispatcher<CommandSourceStack> dispatcher) {
+		dev.cassicraft.game.material.MaterialCommand.register(dispatcher);
 	}
 
 	/**
@@ -315,6 +354,25 @@ public class CassiCraft implements ModInitializer {
 			return 0;
 		}
 		source.sendSuccess(() -> Component.literal(r.text()), false);
+		return 1;
+	}
+
+	/** Register {@code /cassicraft weather} — read the local weather at the caller's position. */
+	private static void registerWeatherCommand(CommandDispatcher<CommandSourceStack> dispatcher) {
+		dispatcher.register(Commands.literal("cassicraft")
+				.then(Commands.literal("weather").executes(ctx -> runWeather(ctx.getSource()))));
+	}
+
+	private static int runWeather(CommandSourceStack source) {
+		BlockPos pos = fallbackPos(source);
+		String text = WeatherReadout.readFreshest(
+				CassiCraft.WEATHERGLASS.publisherSupplier().get(),
+				pos.getX(), pos.getY(), pos.getZ());
+		if (text == null) {
+			source.sendFailure(Component.literal("The Weatherglass is dark \u2014 the field is not yet publishing."));
+			return 0;
+		}
+		source.sendSuccess(() -> Component.literal(text), false);
 		return 1;
 	}
 }
