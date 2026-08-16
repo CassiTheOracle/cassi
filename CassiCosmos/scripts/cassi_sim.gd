@@ -19,6 +19,7 @@ const BOOT_PROGRESS_INTERVAL_MS := 5000     # decoupled-bootstrap progress print
 const BOOT_TIMEOUT_MS := 45000              # decoupled-bootstrap setup deadline (45 s)
 const ALIGN_CADENCE_MS := 1500              # qhist color-align cadence (1.5 s)
 const COM_MOVE_CAP_FRAC := 0.25             # window-tracker soft move cap (≤ 0.25·min_extent / tick)
+const COM_DEAD_BAND_FRAC := 0.02            # window-tracker move dead band — skip moves below 2% of the cap (matches envelope_tracker.gd DEAD_BAND_FRAC := 0.02, no jitter on COM percentile noise)
 # Qi-rainbow (color_mode 2) stage-1 band — recalibrated 2026-08-12 from the
 # measured q = EY²+EI² distribution at particle positions (1M-particle diag
 # mirroring the live main.tscn config, 600 steps): typical q sits in
@@ -1215,7 +1216,13 @@ func _run_physics_steps(n_steps: int) -> void:
 	# exactly pos. The first full barrier inside _step_dispatches (clear →
 	# deposit) orders this dispatch's pos reads before the batch's first
 	# pos write.
-	if _blend_sh.is_valid() and N_particles > 0:
+	# The roll is dormant at the pinned _interp_alpha == 1.0 (review_sim.md
+	# #4): its only consumer is the interp blend below, whose mix(prev, curr,
+	# 1.0) == curr ignores pos_prev — so the roll dispatch is gated away on
+	# the default path (one fewer full-N blend dispatch per frame). If a
+	# decoupled producer ever sets alpha < 1.0 the roll runs exactly as
+	# before.
+	if _interp_alpha < 1.0 and _blend_sh.is_valid() and N_particles > 0:
 		_blend_pc.encode_float(0, 2.0)  # roll marker (> 1.0)
 		_blend_pc.encode_float(4, 0.0)  # mode 0 — blend is the −c window seam only (one-RD; no packed mirrors)
 		_blend_pc.encode_float(8, -_window_center.x)
@@ -1750,6 +1757,11 @@ func _track_window_center() -> void:
 	var max_move: float = COM_MOVE_CAP_FRAC * minf(minf(ext.x, ext.y), ext.z)
 	var d := com - _window_center
 	var dist := d.length()
+	# Dead band: skip the move entirely when the COM displacement is below a
+	# small fraction of the cap (2% — the envelope tracker's DEAD_BAND_FRAC
+	# value), so percentile noise never nudges the window.
+	if dist < max_move * COM_DEAD_BAND_FRAC:
+		return
 	if dist > max_move:
 		d = d.normalized() * max_move
 	_window_center += d
