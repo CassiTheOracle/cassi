@@ -128,6 +128,7 @@ tasks.named('check') {
 	dependsOn 'lifeDeterminism'
 	dependsOn 'movementDeterminism'
 	dependsOn 'walkabilityDeterminism'
+	dependsOn 'followBehindDeterminism'
 }
 
 // ----------------------------------------------------------------------------
@@ -199,6 +200,21 @@ def walkabilityDeterminismRun = tasks.register('walkabilityDeterminism', JavaExe
 }
 
 build.dependsOn walkabilityDeterminism
+
+// ----------------------------------------------------------------------------
+// Game-source follow-behind advection determinism gate (corpus-map §4;
+// world-seams §4.2 anchor-to-window; async-field-domain §7 Q1): the box re-homes
+// over a world-fixed field (exact rotation), reversibly, deterministically, with
+// a published center that advances by the exact whole-cell delta. Headless.
+// ----------------------------------------------------------------------------
+def followBehindDeterminismRun = tasks.register('followBehindDeterminism', JavaExec) {
+	group = 'verification'
+	description = 'Runs the follow-behind advection determinism gate (world-fixedness, reversibility, determinism+sensitivity, center continuity) without a live client.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'dev.cassicraft.game.advect.FollowBehindDeterminismMain'
+}
+
+build.dependsOn followBehindDeterminism
 
 // Bundle the `domain` output into the single mod jar. This is plain-Java
 // packaging — `domain` still compiles with NO Minecraft on its classpath (the

@@ -1,6 +1,7 @@
 package dev.cassicraft;
 
 import com.mojang.brigadier.CommandDispatcher;
+import dev.cassicraft.game.advect.FollowBehind;
 import dev.cassicraft.game.life.LifeSignal;
 import dev.cassicraft.game.life.RiverSteering;
 import dev.cassicraft.game.reader.FieldReader;
@@ -74,6 +75,9 @@ public class CassiCraft implements ModInitializer {
 	/** Sets the player's respawn on the field surface once the field publishes. */
 	private SurfaceSpawn surfaceSpawn;
 
+	/** The follow-behind advection coordinator (created per-session, nulled on teardown). */
+	private FollowBehind followBehind;
+
 	@Override
 	public void onInitialize() {
 		registerWeatherglass();
@@ -83,9 +87,9 @@ public class CassiCraft implements ModInitializer {
 		// seed). The box is anchored to where the player enters (the world spawn),
 		// so grid (32,32,32) maps to the spawn block and the player stands in the
 		// field's real interior, not a clamped edge (async-field-domain §7 Q1 —
-		// the movable home-window, anchored-to-window). The full follow-behind
-		// advection (world-seams §4.2's flip policy) is a beyond-Phase-1 item; the
-		// box is 192³ ≈ 12×12 chunks, a long demo walk with the fixed anchor.
+		// the movable home-window, anchored-to-window). The follow-behind
+		// coordinator re-homes that box behind the player as they walk (world-seams
+		// §4.2's anchor-to-window policy); the box is 192³ ≈ 12×12 chunks.
 		ServerLevelEvents.LOAD.register((server, level) -> {
 			if (server.overworld() != level || session.isRunning()) {
 				return; // only the overworld hosts the living-terrain seam, once
@@ -96,10 +100,11 @@ public class CassiCraft implements ModInitializer {
 					: BlockPos.ZERO;
 			double[] anchor = { spawn.getX(), spawn.getY(), spawn.getZ() };
 			long used = session.beginSession(level, seed, anchor);
+			followBehind = new FollowBehind(session.publisher(), session.fieldThread());
 			steering = new RiverSteering(session.publisher());
 			strideCost = new StrideCostPass(session.publisher());
 			surfaceSpawn = new SurfaceSpawn(session.publisher(), anchor);
-			LOGGER.info("[cassicraft] field thread started for world (seed {}), window anchored at ({},{},{})",
+			LOGGER.info("[cassicraft] field thread started for world (seed {}), window anchored at ({},{},{}), follow coordinator attached",
 					used, (int) anchor[0], (int) anchor[1], (int) anchor[2]);
 		});
 
@@ -107,6 +112,7 @@ public class CassiCraft implements ModInitializer {
 		ServerLevelEvents.UNLOAD.register((server, level) -> {
 			if (server.overworld() == level || session.isRunning()) {
 				session.endSession();
+				followBehind = null;
 				steering = null;
 				strideCost = null;
 				surfaceSpawn = null;
@@ -118,6 +124,7 @@ public class CassiCraft implements ModInitializer {
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
 			if (session.isRunning()) {
 				session.endSession();
+				followBehind = null;
 				steering = null;
 				strideCost = null;
 				surfaceSpawn = null;
@@ -132,6 +139,9 @@ public class CassiCraft implements ModInitializer {
 		// boost), and the surface-spawn sets the player's respawn on the field.
 		ServerTickEvents.END_SERVER_TICK.register(server -> {
 			session.onServerTick(server);
+			if (followBehind != null) {
+				followBehind.onServerTick(server.overworld());
+			}
 			if (surfaceSpawn != null) {
 				surfaceSpawn.onServerTick(server.overworld());
 			}

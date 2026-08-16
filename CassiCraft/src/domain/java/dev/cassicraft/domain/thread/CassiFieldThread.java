@@ -8,6 +8,7 @@ import dev.cassicraft.domain.snapshot.FieldSnapshot;
 import dev.cassicraft.domain.snapshot.SnapshotPublisher;
 
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * MODULE 1 — FIELD DOMAIN. NO Minecraft imports (domain source-set gate).
@@ -27,6 +28,12 @@ public final class CassiFieldThread {
 	/** Engine defaults (BUILD-PLAN.md §3.3): coalesced backlog drains in bounded slices. */
 	public static final int JOB_STEP_CAP = 64;
 	public static final int SNAPSHOT_CADENCE = 2;
+
+	/**
+	 * World width of one whole grid cell — {@code 2·EXTENT/N} = 3 m (PORT-SPEC §5).
+	 * The re-home quantizes a center displacement to this cell grid.
+	 */
+	public static final double CELL_WORLD_WIDTH = 2.0 * TwoFluidSolver.EXTENT / TwoFluidSolver.N;
 
 	/** Startup configuration — kernels are pre-loaded on the main thread. */
 	public record Cfg(
@@ -55,6 +62,15 @@ public final class CassiFieldThread {
 	private volatile SpectralPoisson poisson;
 	private volatile GradientPass gradientPass;
 
+	// The follow-behind re-home channel (async-field-domain.md §4.1/§7 Q1, §5.2 —
+	// world-seams.md §4.2's anchor-to-window). The server submits a target center
+	// here; the worker drains the pending request at job boundaries on its own
+	// thread, so worker-owned buffers are only ever touched by the worker.
+	// currentCenter is the live, mutable box center (the publish ships this, not
+	// the fixed Cfg center).
+	private final AtomicReference<double[]> pendingWindowCenter = new AtomicReference<>();
+	private volatile double[] currentCenter;
+
 	public CassiFieldThread(SnapshotPublisher publisher) {
 		this.publisher = publisher;
 	}
@@ -77,9 +93,16 @@ public final class CassiFieldThread {
 		solver.seed();
 		poisson = new SpectralPoisson();
 		gradientPass = new GradientPass();
+		currentCenter = cfg.windowCenter() == null
+				? new double[] { 0, 0, 0 }
+				: cfg.windowCenter();
 		int gen = 0;
 		try {
 			while (running.get()) {
+				// Drain any pending re-home FIRST, before this job's steps, so the
+				// publish that follows carries the moved center and the world-fixed
+				// rolled field (async-field-domain.md §4.1 — the worker owns the touch).
+				drainRehome(solver);
 				int steps = Math.min(cfg.stepsPerJob(), Math.max(1, cfg.stepsPerJob()));
 				for (int i = 0; i < steps; i++) {
 					solver.step();
@@ -97,8 +120,50 @@ public final class CassiFieldThread {
 		}
 	}
 
+	/**
+	 * The follow-behind re-home channel (async-field-domain.md §4.1, §5.2 — the
+	 * movable home-window). Stored as a pending <em>target</em> (world coords,
+	 * snapped to whole cells by the worker) and drained at the next job boundary
+	 * on the worker thread; the server never touches domain buffers. Safe to call
+	 * from any thread.
+	 */
+	public void rehome(double x, double y, double z) {
+		pendingWindowCenter.set(new double[] { x, y, z });
+	}
+
+	/**
+	 * Drain one pending re-home (worker thread): snap the target's displacement
+	 * from the live center to whole cells ({@code CELL_WORLD_WIDTH} = 3 m), roll
+	 * the solver by that delta if nonzero, and advance {@link #currentCenter} by
+	 * the same whole-cell delta so the field stays world-fixed. A no-op with no
+	 * pending request — the default solver path is untouched (domainHarness stays
+	 * identical).
+	 */
+	private void drainRehome(TwoFluidSolver solver) {
+		double[] target = pendingWindowCenter.getAndSet(null);
+		if (target == null) {
+			return;
+		}
+		double[] cur = currentCenter;
+		double w = CELL_WORLD_WIDTH;
+		int di = (int) Math.round((target[0] - cur[0]) / w);
+		int dj = (int) Math.round((target[1] - cur[1]) / w);
+		int dk = (int) Math.round((target[2] - cur[2]) / w);
+		if (di == 0 && dj == 0 && dk == 0) {
+			return;
+		}
+		solver.roll(di, dj, dk);
+		currentCenter = new double[] {
+				cur[0] + di * w,
+				cur[1] + dj * w,
+				cur[2] + dk * w,
+		};
+	}
+
 	private void publishFull(Cfg cfg) {
-		EngineJob job = new EngineJob(executed, executed, executed * TwoFluidSolver.DT, cfg.windowCenter());
+		// Ship the LIVE box center, not the stale Cfg anchor — the sampler reads
+		// the freshest center off each snapshot (async-field-domain.md §7 Q1).
+		EngineJob job = new EngineJob(executed, executed, executed * TwoFluidSolver.DT, currentCenter);
 		int authorityGen = publisher.allocateGeneration();
 		// Wire the canonical ≈ 6 MiB field-only snapshot (PORT-SPEC §6.2,
 		// chunk-field-quantization.md §2): q = EY²+EI², pot = Φ (the Poisson
@@ -132,6 +197,12 @@ public final class CassiFieldThread {
 
 	public int executed() {
 		return executed;
+	}
+
+	/** The worker's live box center (world coords), as last rolled — a defensive copy. */
+	public double[] currentCenter() {
+		double[] c = currentCenter;
+		return c == null ? null : c.clone();
 	}
 
 	public boolean isRunning() {

@@ -97,6 +97,11 @@ public final class SamplerShutdown {
 		return publisher;
 	}
 
+	/** The per-session domain field worker (owned by this session; only the host may close it). */
+	public CassiFieldThread fieldThread() {
+		return fieldThread;
+	}
+
 	public boolean isRunning() {
 		return fieldThread != null && fieldThread.isRunning();
 	}

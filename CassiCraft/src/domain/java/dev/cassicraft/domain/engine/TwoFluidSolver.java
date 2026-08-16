@@ -101,6 +101,9 @@ public final class TwoFluidSolver {
 	private final float[] rho;     // ρ = EY+EI (single channel)
 	private final float[] scr;     // pass_a double-buffer (vec4/cell: ey,ei,vx,vy)
 
+	// One scratch buffer reused across roll channels (never allocated per-cell).
+	private final float[] rollScratch;
+
 	private final java.util.Random rng;
 
 	public TwoFluidSolver(long seed) {
@@ -110,6 +113,7 @@ public final class TwoFluidSolver {
 		this.vel = new float[CELLS * 4];
 		this.rho = new float[CELLS];
 		this.scr = new float[CELLS * 4];
+		this.rollScratch = new float[CELLS * 4];
 		this.rng = new java.util.Random(seed);
 
 		// Per-axis cell sizes and 19-point weights — the engine's exact fp32
@@ -262,6 +266,60 @@ public final class TwoFluidSolver {
 		passB();
 	}
 
+	/**
+	 * Periodic whole-cell rotation of every canonical buffer — {@code ey}, {@code ei},
+	 * {@code q}, {@code vel} (vec4/cell, all four lanes), {@code rho}, and
+	 * {@code scr} (vec4/cell) — by {@code (dx,dy,dz)} whole cells. The follow-behind
+	 * advection re-home (corpus-map.md §4; world-seams.md §4.2's anchor-to-window
+	 * policy; async-field-domain.md §7 Q1's movable home-window). A pure bijective
+	 * permutation: content at destination cell {@code d} takes the value the
+	 * {@code d + (dx,dy,dz)} source cell held, so a fixed world block keeps its field
+	 * content as a window center advancing by the same whole-cell delta slides the
+	 * box over it — the world-fixedness proof, verified by the
+	 * {@code FollowBehindDeterminism} gate (a). Sign confirmed against that gate
+	 * (direction-of-roll truth): a {@code +dx} roll pairs with a {@code +dx}-cell
+	 * center advance.
+	 *
+	 * <p>O(CELLS) with the single reused {@link #rollScratch} buffer (no per-cell
+	 * allocation). Because it permutes every channel by the same delta, the derived
+	 * relationships stay exact: {@code q = EY²+EI²}, {@code ρ = EY+EI}, and the
+	 * {@code ε²} lane of {@code vel} all remain consistent with {@code ey}/{@code ei}
+	 * per cell — no free energy is minted, nothing is created or destroyed.
+	 */
+	public void roll(int dx, int dy, int dz) {
+		rollChannel(ey, 1, dx, dy, dz);
+		rollChannel(ei, 1, dx, dy, dz);
+		rollChannel(q, 1, dx, dy, dz);
+		rollChannel(vel, 4, dx, dy, dz);
+		rollChannel(rho, 1, dx, dy, dz);
+		rollChannel(scr, 4, dx, dy, dz);
+	}
+
+	/**
+	 * Roll one channel by {@code (dx,dy,dz)} whole cells into {@link #rollScratch}
+	 * and copy back. {@code buf} has {@code CELLS·stride} entries; the permutation is
+	 * applied at cell granularity, copying all {@code stride} lanes per cell.
+	 */
+	private void rollChannel(float[] buf, int stride, int dx, int dy, int dz) {
+		for (int id = 0; id < CELLS; id++) {
+			int i = id % N;
+			int t = id / N;
+			int j = t % N;
+			int k = t / N;
+			int di = mod(i - dx, N);
+			int dj = mod(j - dy, N);
+			int dk = mod(k - dz, N);
+			int dest = (di + N * (dj + N * dk)) * stride;
+			int src = id * stride;
+			System.arraycopy(buf, src, rollScratch, dest, stride);
+		}
+		System.arraycopy(rollScratch, 0, buf, 0, buf.length);
+	}
+
+	private static int mod(int v, int m) {
+		return ((v % m) + m) % m;
+	}
+
 	/** Readonly view of the EY field. */
 	public float[] ey() {
 		return ey;
@@ -285,6 +343,11 @@ public final class TwoFluidSolver {
 	/** Readonly view of ρ = EY+EI (single channel). */
 	public float[] rho() {
 		return rho;
+	}
+
+	/** Readonly view of the {@code scr} pass_a double-buffer (vec4/cell). */
+	public float[] scr() {
+		return scr;
 	}
 
 	/** Stable hash of every buffer — the determinism fingerprint the harness replays. */
