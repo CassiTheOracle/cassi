@@ -124,6 +124,9 @@ def domainTestRun = tasks.register('domainHarness', JavaExec) {
 tasks.named('check') {
 	dependsOn 'verifyDomainNoNetMinecraft', domainTestRun
 	dependsOn 'quantizerDeterminism'
+	dependsOn 'readerDeterminism'
+	dependsOn 'lifeDeterminism'
+	dependsOn 'movementDeterminism'
 }
 
 // ----------------------------------------------------------------------------
@@ -139,6 +142,48 @@ def quantizerDeterminismRun = tasks.register('quantizerDeterminism', JavaExec) {
 }
 
 build.dependsOn quantizerDeterminism
+
+// ----------------------------------------------------------------------------
+// Game-source Weatherglass reader determinism gate (corpus-map §4 step 2):
+// the readout is a pure consumer of the snapshot, so same field → same text.
+// Runs headlessly (no live client/server) under the game runtime classpath.
+// ----------------------------------------------------------------------------
+def readerDeterminismRun = tasks.register('readerDeterminism', JavaExec) {
+	group = 'verification'
+	description = 'Runs the Weatherglass reader determinism gate (FieldReader readout is a pure function of the field) without a live client.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'dev.cassicraft.game.reader.FieldReaderDeterminismMain'
+}
+
+build.dependsOn readerDeterminism
+
+// ----------------------------------------------------------------------------
+// Game-source Life-Signal determinism gate (corpus-map §4 step 3; life-signal
+// §6d HARD): same field state → same vitality class. Runs the four-class
+// maintenance classifier headlessly (no live client/server).
+// ----------------------------------------------------------------------------
+def lifeDeterminismRun = tasks.register('lifeDeterminism', JavaExec) {
+	group = 'verification'
+	description = 'Runs the Life-Signal vitality-classifier determinism gate (same field → same class) without a live client.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'dev.cassicraft.game.life.LifeSignalDeterminismMain'
+}
+
+build.dependsOn lifeDeterminism
+
+// ----------------------------------------------------------------------------
+// Game-source movement-cost determinism gate (corpus-map §4 step 4; the-walk
+// §4c HARD): same ground, same field state → same stride's cost. Runs the
+// stride-cost read headlessly (no live client/server).
+// ----------------------------------------------------------------------------
+def movementDeterminismRun = tasks.register('movementDeterminism', JavaExec) {
+	group = 'verification'
+	description = 'Runs the movement-cost (stride) determinism gate (same field → same stride cost) without a live client.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'dev.cassicraft.game.walk.MovementCostDeterminismMain'
+}
+
+build.dependsOn movementDeterminism
 
 // Bundle the `domain` output into the single mod jar. This is plain-Java
 // packaging — `domain` still compiles with NO Minecraft on its classpath (the

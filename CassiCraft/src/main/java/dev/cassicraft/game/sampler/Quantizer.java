@@ -71,6 +71,15 @@ public final class Quantizer {
 	}
 
 	/**
+	 * The full reader sample at one block center — ρ, q, derived ε², and the
+	 * published river gradient {@code ∇(g·Φ)} (the Weatherglass's four channels,
+	 * field-instruments §1.2). Gathered in one fused 8-corner traversal.
+	 */
+	public record FieldReading(float rho, float q, float eps2,
+			float gradX, float gradY, float gradZ) {
+	}
+
+	/**
 	 * A bounded region of quantized blocks — the pure output of a (cold)
 	 * quantization pass. {@code cells} is indexed {@code dx + sizeX·(dy + sizeY·dz)}.
 	 */
@@ -170,6 +179,56 @@ public final class Quantizer {
 		float rhoMix = trilinear(r, fx, fy, fz);
 		float qMix = trilinear(qv, fx, fy, fz);
 		return new CellSample(rhoMix, qMix, eps2(rhoMix, qMix));
+	}
+
+	/**
+	 * Sample the Weatherglass's full read at a block center: ρ, q, derived ε²,
+	 * and the published river gradient {@code ∇(g·Φ)} — one fused 8-corner walk
+	 * over the rho/q/grad channels (the same fused traversal the GPU sampler
+	 * uses). This is the corpus's "one extra sample at the player's position"
+	 * (field-instruments §1.4); it costs the same as {@link #sampleAt} plus one
+	 * vec3 per corner and presents no new channel.
+	 */
+	public static FieldReading sampleReading(FieldSnapshot snap, double[] windowCenter,
+			int blockX, int blockY, int blockZ) {
+		double gx = clamp(gridCoord(blockX, windowCenter[0]));
+		double gy = clamp(gridCoord(blockY, windowCenter[1]));
+		double gz = clamp(gridCoord(blockZ, windowCenter[2]));
+		int i0 = floor(gx);
+		int j0 = floor(gy);
+		int k0 = floor(gz);
+		double fx = gx - i0;
+		double fy = gy - j0;
+		double fz = gz - k0;
+		float[] rho = snap.rho();
+		float[] q = snap.q();
+		float[][] grad = snap.grad();
+		float[] r = new float[8];
+		float[] qv = new float[8];
+		float[] gx8 = new float[8];
+		float[] gy8 = new float[8];
+		float[] gz8 = new float[8];
+		int c = 0;
+		for (int kk = 0; kk < 2; kk++) {
+			for (int jj = 0; jj < 2; jj++) {
+				for (int ii = 0; ii < 2; ii++) {
+					int cell = flat(mod(i0 + ii, N), mod(j0 + jj, N), mod(k0 + kk, N));
+					r[c] = rho[cell];
+					qv[c] = q[cell];
+					float[] g = grad[cell];
+					gx8[c] = g[0];
+					gy8[c] = g[1];
+					gz8[c] = g[2];
+					c++;
+				}
+			}
+		}
+		float rhoMix = trilinear(r, fx, fy, fz);
+		float qMix = trilinear(qv, fx, fy, fz);
+		return new FieldReading(rhoMix, qMix, eps2(rhoMix, qMix),
+				trilinear(gx8, fx, fy, fz),
+				trilinear(gy8, fx, fy, fz),
+				trilinear(gz8, fx, fy, fz));
 	}
 
 	/**

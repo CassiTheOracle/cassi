@@ -81,6 +81,11 @@ public final class SamplerShutdown {
 		return writer;
 	}
 
+	/** The per-session immutable-snapshot handoff (read by sampler + reader). */
+	public SnapshotPublisher publisher() {
+		return publisher;
+	}
+
 	public boolean isRunning() {
 		return fieldThread != null && fieldThread.isRunning();
 	}
