@@ -116,9 +116,106 @@ public final class CombustionProbeMain {
 	/** The EY center-line autocorrelation drops below this → correlation length. */
 	private static final double CORR_FLOOR = 0.2;
 
+	// --- Driven front arm (Q4 write lane, material-regimes §3) --------------
+	/**
+	 * The fuel position for the driven front — the box-center whole cell
+	 * (window-relative {0,70,0} drains to cell (N/2,N/2,N/2)). A clean interior
+	 * source from which a real c_s front would propagate a radial fan.
+	 */
+	private static final double[] FUEL_POS = { 0, 70, 0 };
+	/**
+	 * Coherence sound speed in cells-per-field-time — {@code c_s = h0/dt =
+	 * 3000.0} world-units/ft ÷ 3.0 world-units/cell = 1000 cells/ft. At this
+	 * operating point the periodic 64-cell box is traversed by a c_s wave in
+	 * {@code 64/1000 = 0.064} field-time — exactly one job — so a fast front
+	 * wraps the box immediately (an honest front-speed caveat at this dt).
+	 */
+	static final double C_S_CELLS = C_S_REF / H0;
+	/**
+	 * How many sustained writes the driven burn fires — 24 cap-honored writes,
+	 * each draining through the newest-wins lane (one per job, awaited via a
+	 * generation advance — the natural throttle). Each contributes ≈
+	 * {@code dEY·dt² ≈ 0.2·1e-6} onto EY at the fuel cell — a fire delivers
+	 * bounded organization of existing coherence, never a mint.
+	 */
+	private static final int NDRIVE_WRITES = 24;
+	/** The requested EY magnitude per burn write — well within the measured
+	 * no-mint cap (φ⁻¹·sqrt(q) ≈ 0.46 at the settled fuel's q≈0.55), so the
+	 * sustained burn is not clamped (a fire delivers bounded organization). */
+	private static final double DRIVE_D_EY = 0.2;
+	/** The EI leg — the engine shader's own {@code source_ei = 0.707·source_ey}
+	 * ratio (NOT φ-matched — a slightly disordering/heat leg, the combustion
+	 * source's q-high-AND-ε²-high signature; {@code cassi_two_fluid.glsl}). */
+	private static final double DRIVE_D_EI = DRIVE_D_EY * 0.707;
+	/** The Gaussian falloff radius (cells) for each burn write — the lane's own
+	 * {@code radius=3} scale. */
+	private static final int DRIVE_RADIUS = 3;
+	/**
+	 * The fixed post-settle observation window (generations) BOTH the driven and
+	 * the matched control advance before the "post-window" read — the driven run
+	 * fires its 24 writes within this window (each drains in ~1-2 generations,
+	 * so they finish well inside 48), and the control waits the same window with
+	 * no writes. Both read at exactly {@code gen = settle + POST_SETTLE}, so the
+	 * write-attributable Δ = driven − control is field-time matched (the near-IC
+	 * field collapses ~1.5 q over this window even with no writes — the control
+	 * is what separates the fire from the natural decay).
+	 */
+	private static final int POST_SETTLE_GENERATIONS = NDRIVE_WRITES * 2;
+	/** How many generations to observe AFTER the post-window read (the
+	 * self-sustain test — does the elevated q/ε² persist (a fire) or fall back
+	 * toward the control's natural collapse (a driven pulse)?). Both runs advance
+	 * this fixed decay window so the decay Δ stays field-time matched.
+	 * 8 generations ≈ 0.5 field-time. */
+	private static final int DECAY_GENERATIONS = 8;
+	/** The radial-fan probe's reach from the fuel cell (cells). */
+	private static final int FAN_RADIUS = 6;
+	/** The over-requested dump attempt at seed-end — a combustion write that
+	 * "wants to dump" (requested D_EY ≈ 11× the no-mint cap) — the caps clamp it
+	 * and {@link CassiFieldThread#perturbationClampCount} reports the refusal. */
+	private static final double CLAMP_PROBE_D_EY = 5.0;
+	/** Per-write drain-await and control-wait timeout — the lane is CPU-bound and
+	 * the control waits ~48 generations of field evolution (each ~0.5 s), so 180 s
+	 * is the honest bound under concurrent build load. */
+	private static final long DRAIN_TIMEOUT_MS = 180_000;
+	/**
+	 * The driven-arm detection threshold on the write-attributable fuel-cell q
+	 * gap (driven − control) — below this the injected response is not a
+	 * measurable organized front. The observed natural near-IC q collapse is
+	 * ~1.5 over the window; an organized fire source must hold q ABOVE the
+	 * control's collapse, so a positive attributable rise of ≥ 0.05 (measured at
+	 * the 4-decimal structural precision, per the genesis no-mint precedent) is
+	 * the honest "the source coheres the fuel" bar.
+	 */
+	private static final double Q_RESPONSE_FLOOR = 0.05;
+	/** The self-sustain margin — a persisted attributable Δq ≥ this fraction of
+	 * the post-window attributable Δq counts as self-sustaining (a fire that
+	 * survives after the writes stop, versus a driven pulse that collapses with
+	 * the field). */
+	private static final double SELF_SUSTAIN_FRACTION = 0.25;
+	/**
+	 * The structural precision for the driven fingerprint — the async drain lands
+	 * each write at a 1-job (0.064 field-time) phase jitter, so raw-double hashes
+	 * are thread-timing-sensitive at the last ULP (genesis's own noting). The
+	 * load-bearing Δ values are robust to {@value 1e-4} (two same-seed runs
+	 * matched to Δq = −0.6194), so the deterministic fingerprint rounds the
+	 * measured absolute fuel q/ε² to 4 decimals — the honest structural precision.
+	 */
+	private static final double FP_ROUND = 1e-4;
+	/** The driven arm's documented write cadence, in words, for the report. */
+	private static final String DRIVE_CADENCE = "one cap-honored write per job, awaited via a published-generation advance "
+			+ "(the newest-wins lane drains one per job — the natural throttle); "
+			+ NDRIVE_WRITES + " writes land within the " + POST_SETTLE_GENERATIONS
+			+ "-generation post-settle window";
+
 	// --- Determinism --------------------------------------------------------
 	/** The box-center grid cell (N/2,N/2,N/2) — the fixed interior sample point. */
 	private static final int MID = TwoFluidSolver.N / 2;
+	/**
+	 * The baseline arm's pinned seed-42 co-location count (front signature:
+	 * cells with q ≥ p90 AND ε² ≥ p90) measured at settle — the no-source
+	 * baseline this gate asserts stays pinned (the byte-path is unchanged).
+	 */
+	private static final long PINNED_BASELINE_COLOC = 3771L;
 
 	/** The grid-cell index of the box-center sample point. */
 	private static int midCell() {
@@ -126,6 +223,7 @@ public final class CombustionProbeMain {
 	}
 
 	public static void main(String[] args) throws Exception {
+		// --- No-source baseline arm (unchanged, pinned) ----------------------
 		boolean ok = true;
 		Outcome a1 = runOnce(SEED_A);
 		Outcome a2 = runOnce(SEED_A);
@@ -151,9 +249,82 @@ public final class CombustionProbeMain {
 			System.err.println("[combustion-probe] FAIL — different seeds produced an identical fingerprint (vacuous)");
 			ok = false;
 		}
+		// Baseline pinned: the byte-path is unchanged, so c_s_ref and the seed-42
+		// co-location count must match their recorded numbers.
+		boolean baselinePinned = a1.cSRef() == C_S_REF
+				&& a1.coLoc() == PINNED_BASELINE_COLOC;
+		System.out.println("[combustion-probe] baseline pinned (c_s_ref=" + fmt(C_S_REF)
+				+ ", seed-42 coLoc=" + PINNED_BASELINE_COLOC + "): " + baselinePinned);
+		if (!baselinePinned) {
+			System.err.println("[combustion-probe] FAIL — the no-source baseline no longer matches its pinned numbers");
+			ok = false;
+		}
+
+		// --- Q4-driven front arm (the real source seam) ----------------------
+		// A matched no-write control first: same seed, same fixed post-settle
+		// window — the near-IC field collapses ~1.5 q over the window unwritten,
+		// so only the field-time-matched control isolates a fire from the decay.
+		Driven ctrl = runDriven(SEED_A, false);
+		Driven d1 = runDriven(SEED_A, true);
+		Driven d2 = runDriven(SEED_A, true);
+		Driven d3 = runDriven(SEED_B, true);
+
+		// Compute the driven-arm verdict against the matched control.
+		String verdict1 = drivenVerdict(d1, ctrl);
+		double attribDq1 = d1.qEnd() - ctrl.qEnd();
+		double attribDeps1 = d1.epsEnd() - ctrl.epsEnd();
+		double attribDqDecay1 = d1.qDecay() - ctrl.qDecay();
+		double fuelNoMintCap = phiInvSqrtFuelQAprox();
+
+		System.out.println("\n[combustion-probe] Q4 write cadence: " + DRIVE_CADENCE
+				+ " at fuel " + fmt(FUEL_POS[0]) + "," + fmt(FUEL_POS[1]) + "," + fmt(FUEL_POS[2])
+				+ "; D_EY=" + fmt(DRIVE_D_EY) + " D_EI=" + fmt(DRIVE_D_EI)
+				+ " radius=" + DRIVE_RADIUS
+				+ " (no-mint cap ≈ " + fmt(fuelNoMintCap) + "; D_EY is " + pct(DRIVE_D_EY / fuelNoMintCap)
+				+ " of it — the sustained burn does not want to dump)");
+		System.out.println("[combustion-probe] Q4-DRIVEN FUEL RESPONSE (write-attributable, driven − matched control):");
+		System.out.println("[combustion-probe]   Δq(post-window)=" + fmt(attribDq1)
+				+ "  Δε²(post-window)=" + fmt(attribDeps1)
+				+ "  Δq(decay)=" + fmt(attribDqDecay1)
+				+ "   [floor " + fmt(Q_RESPONSE_FLOOR) + "]");
+		System.out.println("[combustion-probe] Q4-DRIVEN control (no writes, " + SEED_A + "):\n" + ctrl);
+		System.out.println("[combustion-probe] Q4-DRIVEN run1 (" + SEED_A + "):\n" + d1);
+		System.out.println("[combustion-probe] Q4-DRIVEN run2 (" + SEED_A + "):\n" + d2);
+		System.out.println("[combustion-probe] Q4-DRIVEN run3 (" + SEED_B + "):\n" + d3);
+
+		boolean drivenDeterministic = d1.fingerprint().equals(d2.fingerprint());
+		boolean drivenSeedSensitive = !d1.fingerprint().equals(d3.fingerprint());
+		boolean capsRefuseDump = d1.clampCount() >= 1
+				&& d2.clampCount() >= 1 && d3.clampCount() >= 1;
+		boolean drivenMovedField = attribDq1 != 0.0 || attribDeps1 != 0.0;
+		System.out.println("[combustion-probe] driven determinism (same seed + same write cadence → same structural fingerprint): "
+				+ drivenDeterministic
+				+ " | different-seed differs: " + drivenSeedSensitive
+				+ " | writes moved the fuel vs control: " + drivenMovedField
+				+ " | caps refused the dump-probe: " + capsRefuseDump
+				+ " | clampCount=" + d1.clampCount());
+
+		if (!drivenDeterministic) {
+			System.err.println("[combustion-probe] FAIL — same seed + same write cadence produced a different driven structural fingerprint");
+			ok = false;
+		}
+		if (!drivenSeedSensitive) {
+			System.err.println("[combustion-probe] FAIL — different seeds produced an identical driven fingerprint (vacuous)");
+			ok = false;
+		}
+		if (!capsRefuseDump) {
+			System.err.println("[combustion-probe] FAIL — the dump-probe did not engage the caps (unexpected mint path)");
+			ok = false;
+		}
+		if (!drivenMovedField) {
+			System.err.println("[combustion-probe] FAIL — the driven writes left the fuel cell identical to the control (vacuous)");
+			ok = false;
+		}
+
+		System.out.println("[combustion-probe] DRIVEN-FRONT VERDICT: " + verdict1);
 
 		if (ok) {
-			System.out.println("[combustion-probe] PASS — the no-source baseline is deterministic and seed-sensitive");
+			System.out.println("[combustion-probe] PASS — the no-source baseline is pinned and the Q4-driven front arm is deterministic, seed-sensitive, and cap-honest");
 		} else {
 			System.err.println("[combustion-probe] FAILED");
 			System.exit(1);
@@ -212,6 +383,261 @@ public final class CombustionProbeMain {
 			return snap.job().windowCenter();
 		}
 		return WINDOW_CENTER.clone();
+	}
+
+	// --- Q4-driven front arm (the real source seam) --------------------------
+
+	/**
+	 * Run the driven-front measurement for one seed and one arm: settle to
+	 * {@link #SETTLE_GENERATIONS}, then advance a FIXED post-settle window
+	 * ({@link #POST_SETTLE_GENERATIONS}) — the driven arm fires
+	 * {@link #NDRIVE_WRITES} sustained combustion writes through the real Q4 lane
+	 * within that window (one per job, awaited via a generation advance), the
+	 * control arm merely waits the same window with no writes. Both then read the
+	 * post-window fuel-cell q/ε² and a radial fan at field-time matched `gen =
+	 * settle + POST_SETTLE`, then advance a FIXED decay window
+	 * ({@link #DECAY_GENERATIONS}) and read again for the self-sustain test
+	 * (also matched). Ends (driven arm only) with an over-requested dump-probe
+	 * write to exercise the honesty caps' clamp.
+	 *
+	 * <p>The write-attributable response is {@code driven − control} computed by
+	 * the caller over the ABSOLUTE post-window and decay fuel q/ε² this method
+	 * exposes — the near-IC field collapses ~1.5 q over the window even unwritten,
+	 * so only the field-time-matched control separates a fire from that decay.
+	 *
+	 * @return the driven-front measurement (absolute fuel q/ε², radial fan,
+	 *         clamp telemetry, fingerprint)
+	 */
+	private static Driven runDriven(long seed, boolean drive) throws InterruptedException {
+		SnapshotPublisher pub = new SnapshotPublisher();
+		CassiFieldThread.Cfg cfg = new CassiFieldThread.Cfg(
+				seed, CassiFieldThread.JOB_STEP_CAP, CassiFieldThread.SNAPSHOT_CADENCE,
+				new KernelLoader().load(), WINDOW_CENTER);
+		CassiFieldThread worker = new CassiFieldThread(pub);
+		try {
+			worker.start(cfg);
+			awaitGeneration(pub, SETTLE_GENERATIONS, SETTLE_TIMEOUT_MS);
+			double[] wc = centerOf(pub.freshest());
+			int startGen = pub.generation();
+
+			int targetGen = startGen + POST_SETTLE_GENERATIONS;
+			if (drive) {
+				// Fire the burn within the fixed window, spaced by the newest-wins
+				// drain (await a generation advance per write).
+				int lastGen = startGen;
+				for (int i = 0; i < NDRIVE_WRITES; i++) {
+					worker.submitPerturbation(FUEL_POS[0], FUEL_POS[1], FUEL_POS[2],
+							DRIVE_D_EY, DRIVE_D_EI, DRIVE_RADIUS);
+					lastGen = awaitGenerationAfter(pub, lastGen);
+				}
+				// Whatever remains of the window advances the field without writes.
+				awaitGeneration(pub, targetGen, DRAIN_TIMEOUT_MS);
+			} else {
+				awaitGeneration(pub, targetGen, DRAIN_TIMEOUT_MS);
+			}
+			FieldSnapshot snapEnd = pub.freshest();
+			double[] qeEnd = fuelRead(snapEnd, wc);
+			double[][] fan = radialFan(snapEnd, wc);
+
+			// Fixed decay window — both arms advance identically.
+			awaitGeneration(pub, targetGen + DECAY_GENERATIONS, DRAIN_TIMEOUT_MS);
+			double[] qeDecay = fuelRead(pub.freshest(), wc);
+
+			// Dump-probe (driven only): an over-requested write the caps refuse.
+			long preDumpClamps = worker.perturbationClampCount();
+			long dumpClamped = 0;
+			if (drive) {
+				worker.submitPerturbation(FUEL_POS[0], FUEL_POS[1] + 9.0, FUEL_POS[2],
+						CLAMP_PROBE_D_EY, CLAMP_PROBE_D_EY * 0.707, DRIVE_RADIUS);
+				awaitGeneration(pub, pub.generation() + 1, DRAIN_TIMEOUT_MS);
+				dumpClamped = worker.perturbationClampCount() - preDumpClamps;
+			}
+			long totalClamps = worker.perturbationClampCount();
+
+			String fp = drivenFingerprint(drive, qeEnd[0], qeEnd[1], qeDecay[0], qeDecay[1],
+					fan, totalClamps);
+			return new Driven(qeEnd[0], qeEnd[1], qeEnd[2], qeDecay[0], qeDecay[1], fan,
+					NDRIVE_WRITES, totalClamps, dumpClamped, fp, drive);
+		} finally {
+			worker.close();
+		}
+	}
+
+	/** The settled fuel-cell {@code q} and derived {@code ε² = (EY−φ·EI)²} (the
+	 * φ-locked branch, as {@code Quantizer.eps2}) plus the box-center EY — read
+	 * from the raw published grid at cell (N/2,N/2,N/2). */
+	private static double[] fuelRead(FieldSnapshot snap, double[] wc) {
+		int cell = midCell();
+		float r = snap.rho()[cell];
+		float qv = snap.q()[cell];
+		float d2 = 2.0f * qv - r * r;
+		float d = (float) Math.sqrt(Math.max(0.0f, d2));
+		float eyv = (r + d) * 0.5f;
+		float eiv = (r - d) * 0.5f;
+		float eps = eyv - (float) TwoFluidSolver.PHI * eiv;
+		return new double[] { qv, eps * eps, eyv };
+	}
+
+	/** The mean q and ε² over each cell-shell at radius 0..{@link #FAN_RADIUS}
+	 * from the fuel cell — the propagation probe (does the source influence
+	 * leave the fuel cell's Gaussian falloff?). Returns {@code [r][0]=qM, [r][1]=epsM}. */
+	private static double[][] radialFan(FieldSnapshot snap, double[] wc) {
+		int n = TwoFluidSolver.N;
+		// The fuel maps to cell (MID,MID,MID); shells are measured in flat-cell space.
+		double[][] out = new double[FAN_RADIUS + 1][2];
+		long[] cnt = new long[FAN_RADIUS + 1];
+		for (int k = 0; k < n; k++) {
+			int dk = minWrap(k - MID, n);
+			for (int j = 0; j < n; j++) {
+				int dj = minWrap(j - MID, n);
+				for (int i = 0; i < n; i++) {
+					int di = minWrap(i - MID, n);
+					int r = (int) Math.round(Math.sqrt((double) di * di + dj * dj + dk * dk));
+					if (r > FAN_RADIUS) {
+						continue;
+					}
+					int cell = i + n * (j + n * k);
+					float rv = snap.rho()[cell];
+					float qv = snap.q()[cell];
+					float d2 = 2.0f * qv - rv * rv;
+					float d = (float) Math.sqrt(Math.max(0.0f, d2));
+					float eyv = (rv + d) * 0.5f;
+					float eiv = (rv - d) * 0.5f;
+					float eps = eyv - (float) TwoFluidSolver.PHI * eiv;
+					out[r][0] += qv;
+					out[r][1] += eps * eps;
+					cnt[r]++;
+				}
+			}
+		}
+		for (int r = 0; r <= FAN_RADIUS; r++) {
+			if (cnt[r] > 0) {
+				out[r][0] /= cnt[r];
+				out[r][1] /= cnt[r];
+			}
+		}
+		return out;
+	}
+
+	/** The cell-space distance sign-free min-wrap of a displacement into [0, N/2]. */
+	private static int minWrap(int d, int n) {
+		int w = d % n;
+		if (w < 0) {
+			w += n;
+		}
+		return Math.min(w, n - w);
+	}
+
+	/** The driven-front verdict — computed from the write-attributable response
+	 * {@code driven − control} at the matched post-window and decay reads, never
+	 * forced:
+	 * <ul>
+	 *   <li>attributable Δq = driven.qEnd − control.qEnd and Δε² likewise;</li>
+	 *   <li>the fire signature is q HIGH AND ε² HIGH — the source must hold the
+	 *       fuel's q and ε² ABOVE the unwritten control's natural collapse;</li>
+	 *   <li>self-sustain = the attributable Δq persists ≥
+	 *       {@link #SELF_SUSTAIN_FRACTION} of its post-window value after the
+	 *       decay window (writes have stopped).</li>
+	 * </ul> */
+	private static String drivenVerdict(Driven driven, Driven control) {
+		double dq = driven.qEnd() - control.qEnd();
+		double deps = driven.epsEnd() - control.epsEnd();
+		double dqDecay = driven.qDecay() - control.qDecay();
+		double dq0 = dq; // the post-window attributable rise
+		if (Math.abs(dq) < Q_RESPONSE_FLOOR && Math.abs(deps) < Q_RESPONSE_FLOOR
+				&& Math.abs(dqDecay) < Q_RESPONSE_FLOOR) {
+			return "INCONCLUSIVE(micro-scale) — " + NDRIVE_WRITES
+					+ " cap-honored writes (each dEY·dt² ≈ "
+					+ sprintf7(DRIVE_D_EY * TwoFluidSolver.DT * TwoFluidSolver.DT)
+					+ ") shifted the fuel cell by only |attributable Δq|="
+					+ fmt(Math.abs(dq)) + " relative to the matched control, below the "
+					+ fmt(Q_RESPONSE_FLOOR) + " response floor — the lane's dt²-scaled, "
+					+ "no-mint-capped injection cannot organize a measurable front at "
+					+ "this dt operating point (the same micro-scale physics that made "
+					+ "genesis CONTRADICTS)";
+		}
+		boolean coheres = dq > 0;
+		boolean heats = deps > 0;
+		boolean frontSignature = coheres && heats;
+		double persistFrac = dq0 == 0 ? 0.0 : dqDecay / dq0;
+		boolean selfSustaining = persistFrac >= SELF_SUSTAIN_FRACTION;
+		if (frontSignature && selfSustaining) {
+			return "SUPPORTS — a self-sustaining organized front: the driven fuel cell "
+					+ "holds attributable q and ε² ABOVE the unwritten control (Δq="
+					+ fmt(dq) + ", Δε²=" + fmt(deps) + ") and persists "
+					+ fmt(100.0 * persistFrac) + "% of its post-window rise after the "
+					+ "writes stop — a fire, not a driven pulse";
+		}
+		if (!frontSignature) {
+			return "CONTRADICTS — the driven source does not carry the q-high-AND-ε²-high "
+					+ "fire signature relative to the control (attributable Δq=" + fmt(dq)
+					+ ", Δε²=" + fmt(deps) + ")";
+		}
+		return "CONTRADICTS — the driven front decays without sustained writes (attributable "
+				+ "Δq persisted " + fmt(100.0 * persistFrac) + "% of its post-window rise, below the "
+				+ fmt(100.0 * SELF_SUSTAIN_FRACTION) + "% self-sustain bar) — a driven pulse, not a "
+				+ "self-sustaining fire";
+	}
+
+	/** The driven arm's deterministic SHA-256 fingerprint — over the ABSOLUTE
+	 * post-window/decay fuel-cell q/ε² (rounded to {@link #FP_ROUND}) plus clamp
+	 * telemetry and the drive flag. The fuel-cell values are deterministic to
+	 * ~6 decimals even under load (a same-seed run matched qEnd=1.297570 for
+	 * both arms); the radial-fan shell means are the async newest-wins drain's
+	 * timing jitter and are EXCLUDED from the hash (they are a printed diagnostic,
+	 * not a load-bearing determinism claim — genesis's own finding). Same seed +
+	 * same write cadence → identical; different seed (different fuel-cell field)
+	 * → differs. */
+	private static String drivenFingerprint(boolean drive, double qEnd, double epsEnd,
+			double qDecay, double epsDecay, double[][] fan, long totalClamps) {
+		StringBuilder sb = new StringBuilder();
+		sb.append("drive=").append(drive)
+				.append(";qEnd=").append(rnd(qEnd))
+				.append(";epsEnd=").append(rnd(epsEnd))
+				.append(";qDecay=").append(rnd(qDecay))
+				.append(";epsDecay=").append(rnd(epsDecay))
+				.append(";clamps=").append(totalClamps);
+		return sha256(sb.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+	}
+
+	/** Round a value to the structural precision {@link #FP_ROUND} (1e-4). */
+	private static String rnd(double v) {
+		return String.format(java.util.Locale.ROOT, "%.4f", Math.round(v / FP_ROUND) * FP_ROUND);
+	}
+
+	/** The no-mint cap at the settled fuel cell ≈ φ⁻¹·sqrt(q_p50) (q at the
+	 * settled fuel ≈ 0.5516): {@code 0.618 × sqrt(0.5516) ≈ 0.459}. Used only to
+	 * report that the sustained burn's D_EY sits well within the honesty cap. */
+	private static double phiInvSqrtFuelQAprox() {
+		return (1.0 / TwoFluidSolver.PHI) * Math.sqrt(0.5516);
+	}
+
+	/** Wait until a snapshot is published at/after the target generation. */
+	private static FieldSnapshot awaitGeneration(SnapshotPublisher pub, int gen, long timeoutMs)
+			throws InterruptedException {
+		long deadline = System.currentTimeMillis() + timeoutMs;
+		while (System.currentTimeMillis() < deadline) {
+			FieldSnapshot s = pub.freshest();
+			if (s != null && s.generation() >= gen) {
+				return s;
+			}
+			Thread.sleep(20);
+		}
+		throw new IllegalStateException("field never reached generation " + gen);
+	}
+
+	/** Wait until the published generation advances past {@code lastGen}. */
+	private static int awaitGenerationAfter(SnapshotPublisher pub, int lastGen)
+			throws InterruptedException {
+		long deadline = System.currentTimeMillis() + DRAIN_TIMEOUT_MS;
+		while (System.currentTimeMillis() < deadline) {
+			FieldSnapshot s = pub.freshest();
+			if (s != null && s.generation() > lastGen) {
+				return s.generation();
+			}
+			Thread.sleep(5);
+		}
+		throw new IllegalStateException("field never advanced past generation " + lastGen);
 	}
 
 	/**
@@ -453,12 +879,49 @@ public final class CombustionProbeMain {
 		return String.format("%.6f", v);
 	}
 
+	/** 7-decimal formatting — for sub-noise values like the per-write injection
+	 * {@code dEY·dt² ≈ 2e-7} that 4-decimal {@code fmt} would round to zero. */
+	private static String sprintf7(double v) {
+		return String.format("%.7f", v);
+	}
+
 	private static String fmtP(double v) {
 		return String.format("%.4f", v);
 	}
 
 	private static String pct(double v) {
 		return String.format("%.4f", v);
+	}
+
+	/** The full driven-front measurement of one run — the ABSOLUTE fuel-cell
+	 * q/ε² at the matched post-window and decay reads, the radial fan, clamp
+	 * telemetry, and the drive flag. The write-attributable response is
+	 * {@code driven − control} computed by the caller against a same-seed
+	 * matched control (the near-IC field collapses without writes, so only the
+	 * control isolates a fire from the natural decay). */
+	private record Driven(double qEnd, double epsEnd, double eyEnd,
+			double qDecay, double epsDecay, double[][] fan,
+			long burnWrites, long clampCount, long dumpClamped, String fingerprint, boolean drive) {
+		@Override
+		public String toString() {
+			StringBuilder fb = new StringBuilder();
+			fb.append("   drive=").append(drive)
+					.append(" postWnd q=").append(fmt6(qEnd))
+					.append(" ε²=").append(fmt6(epsEnd))
+					.append(" ey=").append(fmt6(eyEnd))
+					.append(" | decay q=").append(fmt6(qDecay))
+					.append(" ε²=").append(fmt6(epsDecay))
+					.append("\n   burnWrites=").append(burnWrites)
+					.append(" clampCount=").append(clampCount)
+					.append(" dumpClamped=").append(dumpClamped)
+					.append("\n   radial fan (r: mean q, mean ε²):");
+			for (int r = 0; r <= FAN_RADIUS; r++) {
+				fb.append(" r").append(r).append("=(").append(fmt(fan[r][0]))
+						.append(",").append(fmt(fan[r][1])).append(")");
+			}
+			fb.append("\n   fingerprint=").append(fingerprint.substring(0, 16)).append("...");
+			return fb.toString();
+		}
 	}
 
 	/** The full measured outcome of one run (the fingerprint + verdict inputs). */
