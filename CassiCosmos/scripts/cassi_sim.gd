@@ -31,8 +31,8 @@ const LN2: float = 0.6931471805599453  # ln 2 — degenerate rainbow v_scale fal
 # PC fill, so changing the threshold re-anchors the white point live (no
 # reinit). The red → violet jump at the Q_1 stage boundary is the
 # intentional 'entering the white-hot stage' marker.
-const Q_FLOOR: float = 0.0002   # Qi-rainbow stage-1 band floor (hue = 0 at/below)
-const Q_1: float = 0.001        # Qi-rainbow stage-1 band top = stage-2 entry
+const Q_FLOOR: float = 0.005   # Qi-rainbow bounded-channel band floor (hue = 0 at/below)
+const Q_1: float = 0.95        # Qi-rainbow bounded-channel band top = the fit-scale band hi
 
 # ═══════════════════════════════════════════════════════════════════════
 # Exports
@@ -367,8 +367,11 @@ var _env_track_last_ms: int = 0       # the same slow cadence as the COM tracker
 ## mass-temperature gradient (Salpeter blue dwarfs → red giants; default,
 ## shader path bit-identical); 1 = velocity rainbow (speed |v|, cycle band
 ## [0, v_max] measured at init, log progress, hue 0 → 0.95 magenta-pink at
-## v_max, held with no wrap beyond); 2 = Qi rainbow (coherence q = EY²+EI²,
-## cycle band [qi_cycle] — the FULL hue circle per pass, one pass),
+## v_max, held with no wrap beyond); 2 = Qi rainbow (BOUNDED coherence
+## q_coh = ρ²/(ρ²+φ⁻²+ε²) ∈ [0,1), ρ=EY+EI, ε=EY−φ·EI — NOT the unbounded
+## intensity EY²+EI², whose growth the old aligner chased and washed the
+## colors to white), cycle band [qi_cycle] — the FULL hue circle per pass,
+## one pass),
 ## 3 = Qi double rainbow (two passes over the cycle band — the old mode-3
 ## doubling, now expressible as mode 2 + rainbow_count = 2). All rainbow
 ## modes share the white-hot approach band (violet → pink → white at
@@ -390,19 +393,24 @@ var _env_track_last_ms: int = 0       # the same slow cadence as the COM tracker
 ## the narrowest log interval, intrinsically steepest; default), 1 = Linear.
 ## Live — no reinit.
 @export_enum("Log", "Linear") var color_progress: int = 0
-## Qi cycle band [lo, hi] — the hue passes' span over the coherence q. Default
-## = the saved working band (3.64e-4 → 0.617); q below lo clamps to red.
-## Live — no reinit.
-@export var qi_cycle: Vector2 = Vector2(0.00036411325, 0.617382)
+## Qi cycle band [lo, hi] — the hue passes' span over the BOUNDED coherence
+## q_coh = ρ²/(ρ²+φ⁻²+ε²) ∈ [0,1). Default = the calibrated full channel
+## (measured live-config span; q_coh below lo clamps to red, above hi holds
+## the span-top hue). The 2026-08-15 diag_qcoh_band measurement (live config,
+## 1M particles): q_coh median 0.0018 at t=0 climbing to ~0.99 by t=4 as the
+## collapse saturates — so a fixed band over the full channel shows the
+## structure while the scale stays STABLE (no per-run re-anchor). Live — no reinit.
+@export var qi_cycle: Vector2 = Vector2(0.005, 0.95)
 ## Qi pinch split — the concentrated-gradient band inside the cycle where most
-## particles sit (measured q band [3.4e-4, 5.7e-4], median ≈ 3.8e-4). OFF iff
-## lo >= hi. Default (0, 0.001) clamps the lo edge to the cycle lo (pinch =
-## [cycle lo, 0.001]). Live — no reinit.
-@export var qi_pinch: Vector2 = Vector2(0.0, 0.001)
+## particles sit. OFF by default. OFF iff lo >= hi. Live — no reinit.
+@export var qi_pinch: Vector2 = Vector2.ZERO
 ## Qi white-hot approach band [entry, white point] — count-invariant: violet
-## (0.8) at the entry → PINK (0.93) exactly at the φ⁻² gate → red (1.0) at the
-## white point, lightness 0.5 → 1.0. Live — no reinit.
-@export var qi_approach: Vector2 = Vector2(0.617382, 0.618)
+## (0.8) at the entry → PINK (0.93) at the white point, lightness 0.5 → 1.0.
+## OFF by default: a fixed full-channel cycle gives the whole cloud hue with
+## no monotone march to white as coherence saturates (the washout the user
+## reported). Re-enable by dragging the legend's WHITE handle if you want
+## condensation cores to glow. Live — no reinit.
+@export var qi_approach: Vector2 = Vector2(1.0, 1.0)
 ## White point = the LIVE qi_condensation_threshold export (re-anchors the
 ## approach's white end live, no reinit).
 @export var qi_approach_tracks_threshold: bool = false
@@ -436,11 +444,15 @@ var _env_track_last_ms: int = 0       # the same slow cadence as the COM tracker
 ## afterwards. Only acts when a sibling Camera3D exists (main/recorder
 ## scenes); the headless verify scenes have none and are untouched.
 @export var auto_frame_camera_on_start: bool = true
-## Camera far limit: the camera is pulled back when it flies farther than
-## this distance from the grid center (world units), so the particle grid
-## can never be lost to the far plane. 0 = AUTO: the camera's far plane
-## minus the grid bounding radius — the grid stays just inside the
-## visibility limit.
+## Camera far plane (world units): the sibling Camera3D's far plane is set
+## to this on startup so very large structures stay visible (the default
+## 4000 culls distant particles). Applied at _ready via
+## _apply_camera_view_range().
+@export_range(100.0, 10000000.0, 100.0) var camera_far_plane: float = 500000.0
+## Legacy (scrapped 2026-08-15): the old automatic far-distance pull-back
+## lock. Retained only so scene files that still pin it load cleanly — its
+## value is IGNORED. The camera now flies freely and the F key returns it
+## to the tracked particle cloud (_frame_camera_on_cloud).
 @export_range(0.0, 1000000.0, 1.0) var camera_max_distance: float = 0.0
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -565,10 +577,9 @@ var _us_qhist_0_render: RID = RID()  # qhist set variant: binding 0 reads _pos_r
 var _qhist_buf: RID                 # 128 log-spaced float bins
 var _qhist_zero_bytes: PackedByteArray
 var _qhist_pc_bytes: PackedByteArray
-var _qhist_lo: float = 1e-6         # adaptive log range (growth-tolerant)
-var _qhist_hi: float = 1.0
+var _qhist_lo: float = 1e-6         # FIXED bounded-channel log range (q_coh ∈ [0,1))
+var _qhist_hi: float = 0.999        # — the old per-run growth adaptation is dead
 var _last_align_ms: int = 0
-var _qhist_saturated := false   # top-bin pile-up: a cascade scale-jump is underway
 var _align_ran_this_frame := false   # FIX 2: true when _align_color_band self-stalled this frame
 
 # — pre-allocated push-constant byte buffers (hitch-free: no per-step allocs) —
@@ -805,11 +816,15 @@ var _step_timer: float = 0.0
 ## no budget, the old cap-only behavior (recorder style). Live — no reinit.
 @export_range(0.0, 1.0, 0.05) var physics_frame_budget: float = 0.6
 ## Auto color-align: every ~1.5 s, re-fit the Qi color band to the live
-## coherence distribution AT the particles (p1/p99 of a GPU q-histogram),
-## so the colors stay spread across the rainbow when the coherence grows
-## fast (e.g. the Meshless gravity mode). Dragging a legend handle or
-## clicking Fit turns it off — manual takes over. Live — no reinit.
-@export var auto_align_colors: bool = true
+## particles (the fixed-band alternative to Fit/legend). Default OFF: the
+## band is stable and the scale never re-anchors on its own (the old
+## default-ON aligner sampled the unbounded EY²+EI², so the band chased a
+## growing quantity every 1.5 s and the colors constantly increased toward
+## white). When ON, the aligner re-fits qi_cycle to the live q_coh spread in
+## the bounded channel [1e-6, 0.999] — the same value the instancer maps to
+## hue. Clicking Fit or dragging a legend handle turns it off — manual takes
+## over. Live — no reinit.
+@export var auto_align_colors: bool = false
 var _phys_us_ema: float = 500.0      # rolling per-step GPU cost (us; budget input)
 var _frame_us_ema: float = 16667.0   # rolling frame time (us; budget input)
 var _dropped_steps: int = 0
@@ -914,6 +929,7 @@ func _ready() -> void:
 		_lut_bake_dirty = false
 	print("[CassiSim] Universe ready — grid=%d³ particles=%d xi=%.5f (φ⁶=%.5f)" % [grid_N, N_particles, xi, PHI_6])
 	_sim_cam = _find_sibling_camera()
+	_apply_camera_view_range()
 	_auto_frame_camera()
 
 
@@ -995,7 +1011,6 @@ func has_color_defaults() -> bool:
 func _process(delta: float) -> void:
 	if not _rd:
 		return
-	_enforce_camera_max_distance()
 
 	# First-run import race: on a fresh cache the .glsl imports may not have
 	# finished when _ready ran — retry until every shader compiles.
@@ -1978,6 +1993,8 @@ func _build_dc_sets() -> void:
 			_uniform_storage(0, _pos_render_buf),
 			_uniform_storage(1, eng._field_q),
 			_uniform_storage(2, _qhist_buf),
+			_uniform_storage(3, eng._field_ey),
+			_uniform_storage(4, eng._field_ei),
 		], _qhist_shader, 0)
 	if _occ_shader.is_valid() and _occ_buf.is_valid():
 		_us_occ_0_dc = _rd.uniform_set_create([
@@ -2730,6 +2747,8 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(0, _pos_buf),
 			_uniform_storage(1, _field_q),
 			_uniform_storage(2, _qhist_buf),
+			_uniform_storage(3, _field_ey),
+			_uniform_storage(4, _field_ei),
 		], _qhist_shader, 0)
 		# RENDER variant (decoupled): binding 0 reads the interpolated
 		# pos_render — the same snapshot the instancer draws. No shader edit.
@@ -2737,6 +2756,8 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(0, _pos_render_buf),
 			_uniform_storage(1, _field_q),
 			_uniform_storage(2, _qhist_buf),
+			_uniform_storage(3, _field_ey),
+			_uniform_storage(4, _field_ei),
 		], _qhist_shader, 0)
 
 	# Meshless arm sets (MESHLESS_PLAN.md §10) — the JFA ping-pong labels
@@ -2948,31 +2969,40 @@ func _find_sibling_camera() -> Camera3D:
 	return null
 
 
-## Far limit: when the camera flies farther from the grid center (the box is
-## origin-centered) than the visibility boundary, pull it back to just inside
-## — the box's farthest corner then sits exactly on the camera's far plane.
-## free_camera.gd's controls are untouched; this only moves the camera BACK,
-## and only when it violates the limit.
-func _enforce_camera_max_distance() -> void:
+## Apply the extended far plane to the sibling camera so very large
+## structures stay visible (Camera3D's default far = 4000 culls them).
+## Called once at _ready. near is untouched.
+func _apply_camera_view_range() -> void:
 	if _sim_cam == null:
 		return
-	var max_d := _camera_max_distance()
-	var d := _sim_cam.global_position.length()
-	if d <= max_d or d < 1e-4:
+	_sim_cam.far = camera_far_plane
+
+
+## Hotkey F (added 2026-08-15): the old auto pull-back limit was scrapped —
+## it locked the camera out of the tracked envelope and lost sight of the
+## cloud as the structure moved/expanded. Instead the camera flies freely
+## and F snaps it back onto the particle cloud: recenter on the tracked
+## envelope/window center (_window_center — the moving field-grid origin;
+## zero when envelope/home-window tracking is off) along the camera's
+## current view direction, at a distance that fits the box in view, and
+## re-aim. Free-fly controls are unaffected afterwards.
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F:
+		_frame_camera_on_cloud()
+		get_viewport().set_input_as_handled()
+
+
+func _frame_camera_on_cloud() -> void:
+	if _sim_cam == null:
 		return
-	_sim_cam.global_position = _sim_cam.global_position.normalized() * max_d
-
-
-## 0 (AUTO) = the camera's far plane minus the grid's bounding-sphere radius
-## (half-diagonal): the whole grid stays inside the far plane — just inside
-## the visibility limit. Manual override via camera_max_distance.
-func _camera_max_distance() -> float:
-	if camera_max_distance > 0.0:
-		return camera_max_distance
-	var far: float = 4000.0
-	if _sim_cam != null:
-		far = _sim_cam.far
-	return maxf(far - _extents().length(), 1.0)
+	var target := _window_center                      # envelope/home-window center; origin when off
+	var r: float = _extents().length() * 1.1          # box half-diagonal × pad
+	var dist: float = maxf(r / sin(deg_to_rad(_sim_cam.fov) * 0.5), 10.0)
+	var fwd: Vector3 = -_sim_cam.global_transform.basis.z   # camera's forward
+	_sim_cam.global_position = target - fwd * dist
+	_sim_cam.look_at(target, Vector3.UP)
+	print("[CassiSim] F: camera centered on cloud (%.1f, %.1f, %.1f) at %.1f u" % [
+		target.x, target.y, target.z, dist])
 
 
 # ── Meshless (Voronoi cell) arm — MESHLESS_PLAN.md §10 ─────────────────
@@ -3984,9 +4014,8 @@ func _fill_instancer_pc() -> void:
 	var a_hi: float = 0.0
 	var approach_on: float = 0.0
 	if is_qi:
-		# Qi: cycle band [qi_cycle] (calibrated default 2e-4 → 1e-3), pinch
-		# [qi_pinch], shares [color_shares]; approach [qi_approach] with the
-		# white point = the LIVE qi_condensation_threshold (tracks_threshold).
+		# Qi: cycle band [qi_cycle] (calibrated full-channel default 0.005 → 0.95),
+		# pinch [qi_pinch], shares [color_shares]; approach [qi_approach].
 		ref = 0.0
 		lo1 = qi_cycle.x
 		hi_c = qi_cycle.y
@@ -3994,7 +4023,8 @@ func _fill_instancer_pc() -> void:
 		if lo1 >= hi_c:
 			if not _warned_qi_cycle:
 				_warned_qi_cycle = true
-				push_warning("[CassiSim] qi_cycle (%g, %g) inverted/empty — using the calibrated band (2e-4, 1e-3)" % [lo1, hi_c])
+				push_warning("[CassiSim] qi_cycle (%s, %s) inverted/empty — using the calibrated band (%s, %s)"
+						% [_sci(lo1), _sci(hi_c), _sci(Q_FLOOR), _sci(Q_1)])
 			lo1 = Q_FLOOR
 			hi_c = Q_1
 		a_lo = qi_approach.x
@@ -5108,12 +5138,14 @@ func _render_frame() -> void:
 
 
 
-## Auto-align: read the particle-q histogram, re-fit the Qi cycle band to
-## the live p1/p99 spread (blended toward the current band so the colors
-## track smoothly as the coherence grows — e.g. the Meshless gravity mode),
-## adapt the histogram range to the growth, and reset the bins for the next
-## window. Manual legend drags and Fit disable auto_align_colors, so the
-## manual band then stands.
+## Auto-align: read the particle q_coh histogram (cassi_qhist.glsl — the
+## BOUNDED coherence q_coh = ρ²/(ρ²+φ⁻²+ε²) ∈ [0,1) the instancer maps to
+## hue, sampled at the particles), re-fit the Qi cycle band to the live
+## p1/p99 spread (blended so the colors track smoothly as coherence grows),
+## and reset the bins for the next window. The histogram range is FIXED to
+## the bounded channel [1e-6, 0.999] — no per-run growth adaptation (dead).
+## Manual legend drags and Fit disable auto_align_colors, so the manual band
+## then stands.
 func _align_color_band() -> void:
 	if _rd == null or not _qhist_buf.is_valid():
 		return
@@ -5138,41 +5170,20 @@ func _align_color_band() -> void:
 			p1 = _qhist_lo * pow(_qhist_hi / _qhist_lo, float(b) / 127.0)
 		if prev < 0.99 * total and cum >= 0.99 * total:
 			p99 = _qhist_lo * pow(_qhist_hi / _qhist_lo, float(b) / 127.0)
-	# Range adaptation: keep the window a few decades wide around the live
-	# spread so the next measurement stays well-resolved under growth. The
-	# coherence climbs the φ cascade in jumps — when the window moves, log
-	# the jump in φ-powers (Δn = ln(ratio)/ln φ; φ⁵ ≈ 11.09 ≈ one decade).
-	var top_frac := bins[127] / total
-	var bot_frac := bins[0] / total
-	var old_hi := _qhist_hi
-	if top_frac > 0.03:
-		_qhist_hi *= 8.0
-		_qhist_saturated = true
-	elif p99 < _qhist_hi * 0.25:
-		_qhist_hi = maxf(p99 * 8.0, _qhist_hi * 0.25)
-		_qhist_saturated = false
-	if bot_frac > 0.1:
-		_qhist_lo = maxf(_qhist_lo * 0.01, 1e-9)
-	elif p1 > _qhist_lo * 4.0:
-		_qhist_lo = maxf(p1 * 0.25, 1e-9)
-	if _qhist_hi > old_hi * 1.5:
-		print("[CassiSim] cascade scale-up: q-band hi %s → %s (×%.2f, Δn=%.2f φ-rungs)"
-			% [_sci(old_hi), _sci(_qhist_hi), _qhist_hi / old_hi, log(_qhist_hi / old_hi) / log(PHI)])
 	# Re-fit: p1/p99 with generous margins, blended; the approach entry
-	# follows the band top (the Fit action's convention). On the BOUNDED
-	# q_coh channel (base ≥ 2 — the Qi hue is now the physically bounded
-	# q_coh ∈ [0,1), not the unbounded EY²+EI²), the aligner's writes are
-	# CLAMPED to [Q_HI_CAP] ⊂ [0,1) so the band can never re-anchor past the
-	# [0,1) anchor (the runaway-concentration fix). Its histogram samples the
-	# q buffer (EY²+EI²) — numerically ~q_coh in the live regime, but the
-	# EXACT bounded tracker is the sim_ui Auto-Track path; the aligner here
-	# is the coarse-default bounded guard.
+	# follows the band top (the Fit action's convention). All writes are
+	# CLAMPED into the bounded q_coh channel [1e-6, 0.999] — q_coh ∈ [0,1)
+	# can never run away behind a growing concentration front (the
+	# runaway-concentration fix), so an auto-aligned band always stays
+	# inside the [0,1) anchor the shader's hue axis lives in.
 	var Q_HI_CAP := 0.999  # the bounded q_coh channel's hard anchor (< 1)
 	if p99 > p1 * 2.0 and p1 > 0.0:
 		var fit_lo: float = clampf(p1 * 0.8, 1e-6, Q_HI_CAP)
 		var fit_hi: float = clampf(p99 * 1.5, fit_lo, Q_HI_CAP)
 		qi_cycle = qi_cycle.lerp(Vector2(fit_lo, fit_hi), 0.5)
-		# Approach top (pink/white) pinned at the φ⁻² decoherence landmark.
+		# Approach entry follows the band top (pinned white point at the
+		# φ⁻² decoherence landmark — the engine turns the approach OFF when
+		# the cycle top already exceeds φ⁻², i.e. the bulk is saturated).
 		qi_approach = Vector2(qi_cycle.y, PHI_INV2)
 	_rd.buffer_update(_qhist_buf, 0, _qhist_zero_bytes.size(), _qhist_zero_bytes)
 

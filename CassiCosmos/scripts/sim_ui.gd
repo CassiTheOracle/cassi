@@ -1365,7 +1365,9 @@ func _set_grav_highlight(active: int) -> void:
 #   base 1 (velocity)  → |v| lives in the velocity buffer, NOT a field
 #                        grid — no field quantity; Auto-Track stands idle
 #                        (the velocity band keeps its init-measured AUTO).
-#   base 2/3 (Qi)      → q = EY²+EI²  (reads sim._field_q)
+#   base 2/3 (Qi)      → the BOUNDED coherence q_coh = ρ²/(ρ²+φ⁻²+ε²)
+#                        (reads sim._field_ey + sim._field_ei — the instancer's
+#                        hue axis, NOT the unbounded EY²+EI²)
 #   base 4 (two-axis)  → ρ = EY+EI    (reads sim._field_ey + _field_ei)
 #
 # Measurement: a subsampled, low-rate (2.5 Hz) readback of the active
@@ -1903,14 +1905,16 @@ func _on_fit_colors() -> void:
 	sim.color_hue_offset = 0.0
 	if qi_source:
 		# A stable, measured starting band on the BOUNDED q_coh channel
-		# q_coh = ρ²/(ρ²+φ⁻²+ε²) ∈ [0,1). Default brackets the live regime's
-		# narrow q_coh (~0.001–0.006, median ≈ 0.0018 — coherence_merge_rnd.md)
-		# in log space. The approach top (pink/white) is pinned at φ⁻² (the
-		# decoherence / merge-gate landmark); the two legend handles then make
-		# the final fit a direct visual operation.
-		sim.qi_cycle = Vector2(0.0008, 0.006)
+		# q_coh = ρ²/(ρ²+φ⁻²+ε²) ∈ [0,1). Calibrated 2026-08-15 by
+		# diag_qcoh_band.gd (live config, 1M particles): q_coh median 0.0018
+		# at t=0 climbing to ~0.99 by t=4 as the collapse saturates — so the
+		# fixed band spans the full channel (0.005 → 0.95) and the white-hot
+		# approach is OFF (no monotone march to white). The two legend
+		# handles then make the final fit a direct visual operation; drag the
+		# WHITE handle to re-enable the condensation glow.
+		sim.qi_cycle = Vector2(0.005, 0.95)
 		sim.qi_pinch = Vector2.ZERO
-		sim.qi_approach = Vector2(sim.qi_cycle.y, AUTO_TRACK_PHI_INV2)
+		sim.qi_approach = Vector2(1.0, 1.0)   # OFF
 		sim.qi_approach_tracks_threshold = false
 	else:
 		sim.velocity_cycle = Vector2.ZERO
