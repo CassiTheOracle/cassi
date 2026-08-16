@@ -1614,6 +1614,7 @@ func _on_vfx_twoaxis_toggled(on: bool) -> void:
 ## (0x10 size-by-mass, 0x20 additive glow, 0x40 depth cue). Defaults (all
 ## VFX + rainbow off) → 0, bit-identical to the legacy path.
 func _apply_particle_color_mode(sim: Node3D) -> void:
+	var old_base: int = sim.particle_color_mode & 0xF
 	var base := 0
 	if _rainbow_btn.button_pressed:
 		match _color_src_opt.selected:
@@ -1626,6 +1627,15 @@ func _apply_particle_color_mode(sim: Node3D) -> void:
 	if _vfx_glow_btn.button_pressed:  flags |= 0x20  # additive glow
 	if _vfx_depth_btn.button_pressed: flags |= 0x40  # depth cue
 	sim.particle_color_mode = base | flags
+	# Modes 5/6 (field-phase / velocity-direction) are per-instance and cannot
+	# ride the band LUT — flip the MultiMesh format (colors vs custom_data)
+	# non-destructively when the base-mode change crosses the LUT-compatible
+	# boundary (base ≤ 3), so the instancer's per-instance colors take effect
+	# instead of being baked onto the Qi LUT curve ("same as Qi").
+	var old_lut: bool = old_base <= 3
+	var new_lut: bool = base <= 3
+	if old_lut != new_lut and sim.has_method("refresh_lut_format"):
+		sim.refresh_lut_format()
 
 
 func _on_legend_changed() -> void:
@@ -1837,7 +1847,7 @@ func _update_info() -> void:
 	var sim = _get_sim()
 	if sim:
 		var mode_name = MODE_NAMES[sim.mode] if sim.mode >= 0 and sim.mode < MODE_NAMES.size() else "?"
-		_info_label.text = "FPS: %.0f  |  Mode: %s" % [_fps_display, mode_name]
+		_info_label.text = "FPS: %.0f  |  Mode: %s  |  Step: %d" % [_fps_display, mode_name, sim._step_count]
 		# Convert particle count to readable format
 		var p_str = str(sim.N_particles)
 		if sim.N_particles >= 1000000:

@@ -3852,7 +3852,42 @@ func _lut_active() -> bool:
 	# The runtime behavior follows the FORMAT the multimesh was BUILT with
 	# (the buffer layout is fixed by use_colors/use_custom_data and cannot
 	# flip per-dispatch). color_lut_mode is read at build (reinit()).
+	#
+	# ADDITION (2026-08-16): the per-instance field-phase (base 5) and
+	# velocity-direction (base 6) modes CANNOT be baked into a 1-D band LUT —
+	# their hue is the two-fluid phase / velocity compass, not a band position
+	# (a LUT bake would collapse them onto the Qi amplitude curve, "same as
+	# Qi"). Force the legacy per-instance path whenever the active base mode
+	# is LUT-incompatible, even if color_lut_mode is true in the scene.
+	if not _lut_compatible():
+		return false
 	return _mm_lut_mode
+
+
+## NON-DESTRUCTIVE MultiMesh format flip (2026-08-16): when the active color
+## base mode becomes LUT-incompatible (field-phase 5 / velocity-direction 6)
+## the MultiMesh must be rebuilt from the LUT (custom_data) format to the
+## legacy (colors) format so the instancer's per-instance color writes land
+## in the color slot — WITHOUT reseeding particles/field (unlike reinit()).
+## Rebuilds the MultiMesh + the instancer uniform sets only; particles and
+## the field buffers are untouched. No-op when the format is already correct.
+## Called by sim_ui._apply_particle_color_mode when the base-mode change
+## flips _lut_compatible().
+func refresh_lut_format() -> void:
+	if _rd == null:
+		return
+	var want_lut: bool = color_lut_mode and _lut_compatible()
+	if _mm_lut_mode == want_lut:
+		return
+	_free_uniform_sets()    # cached sets reference the old multimesh RID
+	_free_multimesh()
+	_setup_multimesh()
+	_cache_uniform_sets()   # rebind the instancer set to the new RID
+	_apply_lut_material()
+	if _mm_lut_mode:
+		_fill_instancer_pc()
+		_bake_color_lut()
+		_lut_bake_dirty = false
 
 
 ## Exposed for probes: the baked LUT texture (256×1 RGBA8) — read via
