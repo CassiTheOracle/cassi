@@ -274,6 +274,74 @@ public final class TwoFluidSolver {
 	}
 
 	/**
+	 * A bounded source injection at a whole-cell center (the Q4 write lane's
+	 * worker-side application — `wiring-requests/q4-write-lane-design.md` §2).
+	 * Adds {@code dEY·dt²} into {@code ey} and {@code dEI·dt²} into {@code ei}
+	 * with the engine shader's Gaussian spatial falloff {@code exp(-r²·4)}
+	 * (`cassi_two_fluid.glsl:149-172, 212-213` — the {@code ψ + v·dt + source·dt²}
+	 * injection form, minus the {@code ρ·0.001} attractor residue which stays on
+	 * the pass_a parity path). The 19-point stencil, the φ coupling, and the
+	 * {@code passB} channel derivations ({@code q = EY²+EI²}, {@code ε²}) are
+	 * untouched — the next {@link #step()} recomputes them from the injected
+	 * buffers exactly as it already does after any evolution.
+	 *
+	 * <p>Coordinates are whole cells in {@code [0, N)}; a request from the Q4
+	 * lane is already cell-snapped. {@code radius} is the falloff scale in cells
+	 * ({@code r² = (Δx²+Δy²+Δz²)/(radius²)}, so the target cell gets the full
+	 * injection and the influence falls to {@code exp(-4) ≈ 0.018} at one
+	 * radius). Cells beyond a {@code r² ≥ 16} cutoff are skipped (the shader
+	 * Gaussian is negligible there). A radius ≤ 0 is treated as a single-cell
+	 * write (all influence on the center). The no-request path — no call to this
+	 * method — is byte-identical, so the domain harness stays green.
+	 *
+	 * @param cx    center cell x ({@code [0, N)})
+	 * @param cy    center cell y
+	 * @param cz    center cell z
+	 * @param dEY   EY injection magnitude (capped upstream by the lane's honesty caps)
+	 * @param dEI   EI injection magnitude
+	 * @param radius falloff scale in cells (Gaussian {@code exp(-r²·4)}), clamped non-negative
+	 */
+	public void applySource(int cx, int cy, int cz, float dEY, float dEI, int radius) {
+		float dt2 = (float) (DT * DT);
+		int r = Math.max(radius, 0);
+		float r2norm = r > 0 ? 1.0f / (float) (r * r) : 0.0f;
+		int reach = r; // r² cutoff at 16 → the [−r, r] cube is fully inside the influence
+		// Full-injection when radius ≤ 0 (single-cell write).
+		if (r <= 0) {
+			int id = cx + N * (cy + N * cz);
+			ey[id] += dEY * dt2;
+			ei[id] += dEI * dt2;
+			return;
+		}
+		for (int dk = -reach; dk <= reach; dk++) {
+			int k = wrapCell(cz + dk);
+			for (int dj = -reach; dj <= reach; dj++) {
+				int j = wrapCell(cy + dj);
+				for (int di = -reach; di <= reach; di++) {
+					int i = wrapCell(cx + di);
+					float dx = di;
+					float dy = dj;
+					float dz = dk;
+					float r2 = (dx * dx + dy * dy + dz * dz) * r2norm;
+					if (r2 >= 16.0f) {
+						continue; // exp(-16·4)=exp(-64) — negligible, matches the shader's short tail
+					}
+					float falloff = (float) Math.exp(-r2 * 4.0);
+					int id = i + N * (j + N * k);
+					ey[id] += dEY * dt2 * falloff;
+					ei[id] += dEI * dt2 * falloff;
+				}
+			}
+		}
+	}
+
+	/** Periodic wrap of a raw cell coordinate into {@code [0, N)}. */
+	private static int wrapCell(int c) {
+		int m = c % N;
+		return m < 0 ? m + N : m;
+	}
+
+	/**
 	 * Periodic whole-cell rotation of every canonical buffer — {@code ey}, {@code ei},
 	 * {@code q}, {@code vel} (vec4/cell, all four lanes), {@code rho}, and
 	 * {@code scr} (vec4/cell) — by {@code (dx,dy,dz)} whole cells. The follow-behind

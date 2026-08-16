@@ -50,9 +50,9 @@ public final class SurfaceDiagnosticsMain {
 	/** Box half-extent per axis (chunk-aligned 192³ m box, chunk-field-quantization §1.2). */
 	private static final int EXTENT = (int) TwoFluidSolver.EXTENT;
 	/** Worker deadlock guard. */
-	private static final long FIRST_TIMEOUT_MS = 12_000;
-	/** Settle-generation await timeout (ms). */
-	private static final long SETTLE_TIMEOUT_MS = 30_000;
+	private static final long FIRST_TIMEOUT_MS = 20_000;
+	/** Settle-generation await timeout (ms) — widened for full-build CPU contention (many heavy solver gates run concurrently). */
+	private static final long SETTLE_TIMEOUT_MS = 120_000;
 	/** The early settle — matches the census gate's 12-generation settle. */
 	private static final int SETTLE_EARLY = 12;
 	/** The late settle — a later generation to see the {@code DT=0.001} evolution/churn. */

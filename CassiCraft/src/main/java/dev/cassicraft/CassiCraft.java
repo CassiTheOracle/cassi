@@ -95,6 +95,10 @@ public class CassiCraft implements ModInitializer {
 	/** The sky's particle presenter (created per-session, nulled on teardown). */
 	private dev.cassicraft.game.sky.SkyPresenter skyPresenter;
 
+	/** The atmosphere field phenomena's aurora presenter — the (1−q) discharge
+	 * over a rising-ε² drain (atmosphere §3.1; created per-session, nulled on teardown). */
+	private dev.cassicraft.game.atmo.AtmoPresenter atmoPresenter;
+
 	/** The ride coordinator — applies the field's own river-law haul to vanilla
 	 * minecarts on the field (coherence-highway §6b; created per-session, nulled on teardown). */
 	private dev.cassicraft.game.ride.MinecartRideCoordinator rideCoordinator;
@@ -135,6 +139,7 @@ public class CassiCraft implements ModInitializer {
 			windDrift = new dev.cassicraft.game.wind.WindDriftParticles(session.publisher());
 			rideCoordinator = new dev.cassicraft.game.ride.MinecartRideCoordinator(session.publisher());
 			skyPresenter = new dev.cassicraft.game.sky.SkyPresenter(session.publisher());
+			atmoPresenter = new dev.cassicraft.game.atmo.AtmoPresenter(session.publisher());
 			LOGGER.info("[cassicraft] field thread started for world (seed {}), window anchored at ({},{},{}), follow coordinator attached",
 					used, (int) anchor[0], (int) anchor[1], (int) anchor[2]);
 		});
@@ -152,6 +157,7 @@ public class CassiCraft implements ModInitializer {
 				windDrift = null;
 				skyPresenter = null;
 				rideCoordinator = null;
+				atmoPresenter = null;
 				LOGGER.info("[cassicraft] field thread closed (world unload)");
 			}
 		});
@@ -169,6 +175,7 @@ public class CassiCraft implements ModInitializer {
 				windDrift = null;
 				skyPresenter = null;
 				rideCoordinator = null;
+				atmoPresenter = null;
 				LOGGER.info("[cassicraft] field thread closed (server stop)");
 			}
 		});
@@ -208,6 +215,9 @@ public class CassiCraft implements ModInitializer {
 			if (skyPresenter != null) {
 				skyPresenter.onServerTick(server);
 			}
+			if (atmoPresenter != null) {
+				atmoPresenter.onServerTick(server);
+			}
 		});
 	}
 
@@ -237,6 +247,8 @@ public class CassiCraft implements ModInitializer {
 			registerMaterialCommand(dispatcher);
 			registerRideCommand(dispatcher);
 			registerSkyCommand(dispatcher);
+			registerAtmoCommand(dispatcher);
+			registerFieldGlassCommand(dispatcher);
 		});
 	}
 
@@ -267,6 +279,23 @@ public class CassiCraft implements ModInitializer {
 	 * position or an explicit block (a pure consumer of the publish, never a write). */
 	private static void registerSkyCommand(CommandDispatcher<CommandSourceStack> dispatcher) {
 		dev.cassicraft.game.sky.SkyCommand.register(dispatcher);
+	}
+
+	/** Register {@code /cassicraft atmo [x y z]} — the atmosphere's field read
+	 * (the aurora's (1−q) discharge, the body-seed orbit well, the envelope's
+	 * gas band, atmosphere §3.1/§3.3) at the caller's position or an explicit
+	 * block (a pure consumer of the publish, never a write). */
+	private static void registerAtmoCommand(CommandDispatcher<CommandSourceStack> dispatcher) {
+		dev.cassicraft.game.atmo.AtmoCommand.register(dispatcher);
+	}
+
+	/** Register {@code /cassicraft fieldglass [x y z]} — the FieldGlass read (the
+	 * five published channels: lume q, depth ρ, strain ε², the river ∇(g·Φ)'s
+	 * lean, the (1−q) waste — plus the governing material regime, the TIER-REAL
+	 * rung and [design] constants, material-regimes §1/§4) at the caller's
+	 * position or an explicit block (a pure consumer of the publish, never a write). */
+	private static void registerFieldGlassCommand(CommandDispatcher<CommandSourceStack> dispatcher) {
+		dev.cassicraft.game.instrument.FieldGlassCommand.register(dispatcher);
 	}
 
 	/**

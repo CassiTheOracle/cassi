@@ -477,3 +477,134 @@ def combustionProbeRun = tasks.register('combustionProbe', JavaExec) {
 
 build.dependsOn combustionProbeRun
 check.dependsOn combustionProbeRun
+
+// ----------------------------------------------------------------------------
+// Game-source Q4 write-lane determinism + honesty gate (async-field-domain.md
+// §7 Q4; wiring-requests/q4-write-lane-design.md): the one-way player->field
+// perturbation channel. Asserts the bounded source injection is deterministic
+// (same request + same field state -> same response), that the real
+// CassiFieldThread seam routes a perturbation and moves the published field,
+// and that the no-mint (energy-harnessing.md §6) and overdraw (coherence-magic
+// §4.3) caps engage at drain. Headless, no live client/server.
+// ----------------------------------------------------------------------------
+def q4DeterminismRun = tasks.register('q4Determinism', JavaExec) {
+	group = 'verification'
+	description = 'Runs the Q4 write-lane determinism + honesty gate (bounded source injection: deterministic, moves the published field, clamps overdraw/no-mint) without a live client.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'dev.cassicraft.game.q4.Q4DeterminismMain'
+}
+
+build.dependsOn q4DeterminismRun
+check.dependsOn q4DeterminismRun
+
+// ----------------------------------------------------------------------------
+// Game-source surface-emergence + pacing gate (the owner-approved middle-
+// cadence fix): after the game-side step-count pacing, the paced field MUST
+// organize a real vertical gradient (top-third mean solid fraction < 0.25 ×
+// bottom-third — a dense body with air above, not a uniform sponge) AND a
+// standable coherent plane (the real SurfaceSpawn scan), deterministically and
+// seed-sensitively, over the real publish seam. Also reports the field-time
+// pacing rate (t reached per wall-clock second). Reads the published snapshot
+// only — never writes a block. Headless (the surfaceDiagnostics pattern), no
+// live client/server.
+// ----------------------------------------------------------------------------
+def surfaceEmergenceRun = tasks.register('surfaceEmergence', JavaExec) {
+	group = 'verification'
+	description = 'Runs the surface-emergence + pacing gate (the paced field organizes a real vertical gradient + a standable coherent plane, deterministically, seed-sensitive) without a live client.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'dev.cassicraft.game.surface.SurfaceEmergenceMain'
+	// The paced field-time target (t) to settle to — hardcoded 20 (the t≈10–50
+	// range, reachable in ~100 s) rather than a gradle -D property, because a
+	// gradle daemon caches stray -D props across invocations and would skew the
+	// gate. A calibration run overrides it by editing the program default.
+	jvmArgs '-Dsurface.emergence.maxTarget=20', '-Dsurface.emergence.skipDeterminism=false'
+}
+
+build.dependsOn surfaceEmergenceRun
+check.dependsOn surfaceEmergenceRun
+
+// ----------------------------------------------------------------------------
+// Game-source FieldGlass determinism gate (field-instruments.md §1, §2.1 — the
+// family rule: every instrument is a consumer of the same publish with a
+// presentation idiom, never a new channel; §5 gates (a)-(d) HARD). The FieldGlass
+// read (the five published channels: lume q, depth ρ, strain ε², the river
+// ∇(g·Φ)'s lean, the (1−q) waste — plus the governing material regime's TIER-REAL
+// rung and [design] constants) is a pure, deterministic function of the published
+// field: same field → identical readout fingerprint, different seed differs,
+// the readout is snapshot-pure (two identical readings → identical text), and
+// every channel genuinely traces into the readout (perturbing q/ρ/ε²/∇(g·Φ)
+// changes the chart; the raw channel values are embedded in the fingerprint).
+// Pure consumer of the publish — never writes. Headless, no live server.
+// ----------------------------------------------------------------------------
+tasks.register('instrumentDeterminism', JavaExec) {
+	group = 'verification'
+	description = 'Runs the FieldGlass determinism + honesty gate (the instrument read is a pure, deterministic, channel-traceable function of the published field, never a new channel) without a live client.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'dev.cassicraft.game.instrument.InstrumentDeterminismMain'
+}
+
+check.dependsOn 'instrumentDeterminism'
+build.dependsOn instrumentDeterminism
+
+// ----------------------------------------------------------------------------
+// Game-source Atmosphere determinism gate (atmosphere-orbits-auroras.md §3.1,
+// §5c — the aurora as the coherence discharge into a drain, the (1−q) waste
+// glow; gate (c) HARD): the atmosphere's field phenomena — the aurora (the
+// (1−q) discharge over a rising-ε² drain), the orbit well (the body-seed
+// condensation candidate over a strong ∇(g·Φ)), and the envelope (the
+// sub-condensation gas band vs the vacuum ceiling) — are a pure, deterministic
+// function of the published channels: same window, same field state → same
+// atmosphere, never a seeded roll. Asserts determinism across same-seed
+// settles, seed sensitivity, positive-count anti-vacuity (a real discharge
+// exists and the sky is not a monochrome discharge), and classifier purity
+// (same reading → same verdict, every presented number a channel/registry
+// constant). Pure consumer of the publish — never writes a block, never
+// perturbs the field. Headless — no live client/server.
+// ----------------------------------------------------------------------------
+def atmosphereDeterminismRun = tasks.register('atmosphereDeterminism', JavaExec) {
+	group = 'verification'
+	description = 'Runs the Atmosphere determinism gate (aurora discharge / orbit well / envelope as a pure, deterministic function of the published field, never a seeded roll) without a live client.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'dev.cassicraft.game.atmo.AtmosphereDeterminismMain'
+}
+
+build.dependsOn atmosphereDeterminismRun
+check.dependsOn atmosphereDeterminismRun
+
+// ----------------------------------------------------------------------------
+// Game-source surface-genesis probe (the wave's falsification answered through
+// the Q4 write lane): measures whether a bounded, cap-governed genesis
+// (SurfaceGenesis — a fixed-count coherence-restoring deposit through
+// CassiFieldThread.submitPerturbation) organizes the uniformly-solid sponge
+// (SurfaceEmergenceMain's falsification) into a real vertical density body with
+// a standable surface, deterministically, seed-sensitively, and honestly (caps
+// in range). A measurement probe — reports the verdict (SUPPORTS/CONTRADICTS/
+// INCONCLUSIVE with the numbers) but is NOT a gate. Headless, no live server.
+// ----------------------------------------------------------------------------
+def genesisProbeRun = tasks.register('genesisProbe', JavaExec) {
+	group = 'verification'
+	description = 'Runs the surface-genesis probe (a bounded Q4-lane deposit vs the no-genesis sponge: does it organize a vertical body?) but is not part of the build gate.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'dev.cassicraft.game.genesis.GenesisProbeMain'
+}
+
+// ----------------------------------------------------------------------------
+// Game-source surface-genesis determinism + honesty gate (async-field-domain §7
+// Q4; wiring-requests/q4-write-lane-design.md): the genesis is a bounded,
+// cap-governed deposit through the REAL Q4 write lane. Asserts it is
+// deterministic (same seed + same genesis -> identical post-genesis fingerprint
+// over measured structure + settled field), seed-sensitive, moved the field vs
+// the no-genesis control (anti-vacuity), and stayed within its own caps (the
+// matched-φ design expects zero clamps — an unexpected clamp is a design bug).
+// Prints the honest verdict (SUPPORTS/CONTRADICTS/INCONCLUSIVE) asserted by the
+// measurement. Headless, no live client/server.
+// ----------------------------------------------------------------------------
+def genesisDeterminismRun = tasks.register('genesisDeterminism', JavaExec) {
+	group = 'verification'
+	description = 'Runs the surface-genesis determinism + honesty gate (same-seed identical, seed-sensitive, moved the field, caps in range) without a live client.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'dev.cassicraft.game.genesis.GenesisDeterminismMain'
+}
+
+check.dependsOn genesisDeterminismRun
+build.dependsOn genesisDeterminismRun

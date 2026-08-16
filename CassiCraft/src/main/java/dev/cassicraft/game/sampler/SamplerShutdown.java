@@ -31,6 +31,30 @@ import java.util.Queue;
  */
 public final class SamplerShutdown {
 
+	/**
+	 * The game-side pacing knob — how many {@code TwoFluidSolver.step()} calls the
+	 * field worker runs per job-burst (the domain worker drains this many steps,
+	 * then sleeps 5 ms, continuously on its own thread — the owner-approved middle
+	 * cadence, the number of steps per unit wall-clock, not the physics rate; the
+	 * engine default {@code DT=0.001} is untouched). Each step is one 64³ leapfrog
+	 * step advancing {@code DT=0.001} field-time units.
+	 *
+	 * <p><b>The pacing bound is the CPU, not this constant.</b> A direct step-cost
+	 * measurement (SurfaceEmergenceMain) is ≈ 4.3 ms/step on this machine → the
+	 * solver is CPU-bound at ≈ 0.23 t/s field-time (≈ 230 domain steps/s), so the
+	 * field reaches t≈10–20 within ~1–1.5 min of live play but t=50 needs ~3.5 min
+	 * — the target "t≈10–50 in 1–2 min" is bounded at the low end by this ceiling.
+	 * 64 steps/job (vs any larger value) is already ≈ 98% of that ceiling (the
+	 * 5 ms sleep is < 2% overhead), so a larger burst only raises per-job CPU
+	 * latency without a meaningful rate gain; 64 keeps the server thread responsive.
+	 * The measured field-state outcome at every reachable t (t=1.5 → 80) is a
+	 * ~72–75%-solid uniform sponge — the surface-emergence acceptance is
+	 * <b>falsified</b> by this pace (see SurfaceEmergenceMain M-diagnostic); this
+	 * knob makes the field reach its (homogeneous, churn-free) mature state faster
+	 * but does not create a vertical density plane.
+	 */
+	private static final int GAME_STEPS_PER_JOB = 64;
+
 	private SnapshotPublisher publisher;
 	private CassiFieldThread fieldThread;
 	private TickSampler sampler;
@@ -56,7 +80,7 @@ public final class SamplerShutdown {
 		long seed = worldSeed;
 		CassiFieldThread.Cfg cfg = new CassiFieldThread.Cfg(
 				seed,
-				CassiFieldThread.JOB_STEP_CAP,
+				GAME_STEPS_PER_JOB,          // the game-side pacing knob (see the constant javadoc)
 				CassiFieldThread.SNAPSHOT_CADENCE,
 				new KernelLoader().load(),
 				this.windowCenter);
