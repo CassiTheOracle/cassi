@@ -3167,10 +3167,17 @@ func _ml_jfa_pass(jp: int, read_a: int) -> void:
 	var N = grid_N
 	var ml_ns = 2 * ML_N1 * ML_N1 * ML_N1
 	var ext := _extents()
-	var pcb := PackedFloat32Array([float(N), float(jp), float(read_a),
-		float(ml_ns), 2.0 * ext.x / float(N), 2.0 * ext.y / float(N),
-		2.0 * ext.z / float(N), 0.0])
-	_jfa_pc_bytes = pcb.to_byte_array()
+	# Pre-sized in-place encode (review_sim.md #5): _jfa_pc_bytes is sized
+	# 8*4 B at init; zero per-call allocations, byte-identical to the old
+	# PackedFloat32Array([...]).to_byte_array() (same values, same order).
+	_jfa_pc_bytes.encode_float(0, float(N))
+	_jfa_pc_bytes.encode_float(4, float(jp))
+	_jfa_pc_bytes.encode_float(8, float(read_a))
+	_jfa_pc_bytes.encode_float(12, float(ml_ns))
+	_jfa_pc_bytes.encode_float(16, 2.0 * ext.x / float(N))
+	_jfa_pc_bytes.encode_float(20, 2.0 * ext.y / float(N))
+	_jfa_pc_bytes.encode_float(24, 2.0 * ext.z / float(N))
+	_jfa_pc_bytes.encode_float(28, 0.0)
 	var cl := _rd.compute_list_begin()
 	_rd.compute_list_bind_compute_pipeline(cl, _jfa_pipe)
 	_rd.compute_list_bind_uniform_set(cl, _us_jfa_0, 0)
@@ -3189,7 +3196,12 @@ func _ml_volume_pass() -> void:
 
 
 func _ml_cell_pc(mode: float) -> PackedByteArray:
-
+	# Pre-sized in-place encode (review_sim.md #5): _cell_pc_bytes is sized
+	# 17*4 B at init; encode every field here so each call does ZERO
+	# allocations. Byte-identical to the old `PackedFloat32Array([...]).
+	# to_byte_array()` — same values, same order (PackedFloat32Array is
+	# float32 LE and to_byte_array copies those bytes verbatim, which is
+	# exactly what encode_float writes).
 	var N = grid_N
 	var ml_ns = 2 * ML_N1 * ML_N1 * ML_N1
 	var ext := _extents()
@@ -3198,11 +3210,24 @@ func _ml_cell_pc(mode: float) -> PackedByteArray:
 	var hz: float = 2.0 * ext.z / float(N)
 	var h_min: float = minf(hx, minf(hy, hz))
 	var c2: float = h_min * h_min  # the grid's 19-point stencil reads h₀²∇² — match it
-	var pcb := PackedFloat32Array([mode, float(N), float(ml_ns), dt,
-		hx, hy, hz, c2, ML_OM2, PHI, source_strength,
-		ML_RHO_FLOOR, ML_MAX_DRIFT, ML_KAPPA, ML_LAM,
-		dt * float(ML_REBUILD), ML_LLOYD_P])
-	return pcb.to_byte_array()
+	_cell_pc_bytes.encode_float(0, mode)
+	_cell_pc_bytes.encode_float(4, float(N))
+	_cell_pc_bytes.encode_float(8, float(ml_ns))
+	_cell_pc_bytes.encode_float(12, dt)
+	_cell_pc_bytes.encode_float(16, hx)
+	_cell_pc_bytes.encode_float(20, hy)
+	_cell_pc_bytes.encode_float(24, hz)
+	_cell_pc_bytes.encode_float(28, c2)
+	_cell_pc_bytes.encode_float(32, ML_OM2)
+	_cell_pc_bytes.encode_float(36, PHI)
+	_cell_pc_bytes.encode_float(40, source_strength)
+	_cell_pc_bytes.encode_float(44, ML_RHO_FLOOR)
+	_cell_pc_bytes.encode_float(48, ML_MAX_DRIFT)
+	_cell_pc_bytes.encode_float(52, ML_KAPPA)
+	_cell_pc_bytes.encode_float(56, ML_LAM)
+	_cell_pc_bytes.encode_float(60, dt * float(ML_REBUILD))
+	_cell_pc_bytes.encode_float(64, ML_LLOYD_P)
+	return _cell_pc_bytes
 
 
 func _ml_cell_dispatch(mode: float, groups: int) -> void:
@@ -3271,14 +3296,26 @@ func _mesh_rebuild() -> void:
 	_rd.compute_list_bind_uniform_set(cl, _us_jfa_0, 0)
 	var read_a := 1
 	for jp in [1, 2, 4, 8, 16, 32, 16, 8, 4, 2, 1, 1, 1]:
-		_jfa_pc_bytes = PackedFloat32Array([float(N), float(jp), float(read_a),
-			float(ml_ns), hx_rb, hy_rb, hz_rb, 0.0]).to_byte_array()
+		_jfa_pc_bytes.encode_float(0, float(N))
+		_jfa_pc_bytes.encode_float(4, float(jp))
+		_jfa_pc_bytes.encode_float(8, float(read_a))
+		_jfa_pc_bytes.encode_float(12, float(ml_ns))
+		_jfa_pc_bytes.encode_float(16, hx_rb)
+		_jfa_pc_bytes.encode_float(20, hy_rb)
+		_jfa_pc_bytes.encode_float(24, hz_rb)
+		_jfa_pc_bytes.encode_float(28, 0.0)
 		_rd.compute_list_set_push_constant(cl, _jfa_pc_bytes, _jfa_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, wg1, 1, 1)
 		_rd.compute_list_add_barrier(cl)
 		read_a = 1 - read_a
-	_jfa_pc_bytes = PackedFloat32Array([float(N), 0.0, 0.0,
-		float(ml_ns), hx_rb, hy_rb, hz_rb, 0.0]).to_byte_array()
+	_jfa_pc_bytes.encode_float(0, float(N))
+	_jfa_pc_bytes.encode_float(4, 0.0)
+	_jfa_pc_bytes.encode_float(8, 0.0)
+	_jfa_pc_bytes.encode_float(12, float(ml_ns))
+	_jfa_pc_bytes.encode_float(16, hx_rb)
+	_jfa_pc_bytes.encode_float(20, hy_rb)
+	_jfa_pc_bytes.encode_float(24, hz_rb)
+	_jfa_pc_bytes.encode_float(28, 0.0)
 	_rd.compute_list_set_push_constant(cl, _jfa_pc_bytes, _jfa_pc_bytes.size())
 	_rd.compute_list_dispatch(cl, wg1, 1, 1)
 	_rd.compute_list_add_barrier(cl)
@@ -4431,8 +4468,17 @@ func _step_dispatches(cl: int) -> void:
 		_barrier(cl)  # solve → raster
 		_rd.compute_list_bind_compute_pipeline(cl, _raster_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_raster_0, 0)
-		_raster_pc_bytes = PackedFloat32Array([float(grid_N), float(ml_ns),
-			hxr, hyr, hzr, 0.0, 0.0, 0.0]).to_byte_array()
+		# Pre-sized in-place encode (review_sim.md #5): _raster_pc_bytes is
+		# sized 8*4 B at init; zero per-step allocations, byte-identical to
+		# the old PackedFloat32Array([...]).to_byte_array().
+		_raster_pc_bytes.encode_float(0, float(grid_N))
+		_raster_pc_bytes.encode_float(4, float(ml_ns))
+		_raster_pc_bytes.encode_float(8, hxr)
+		_raster_pc_bytes.encode_float(12, hyr)
+		_raster_pc_bytes.encode_float(16, hzr)
+		_raster_pc_bytes.encode_float(20, 0.0)
+		_raster_pc_bytes.encode_float(24, 0.0)
+		_raster_pc_bytes.encode_float(28, 0.0)
 		_rd.compute_list_set_push_constant(cl, _raster_pc_bytes, _raster_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, wg1, 1, 1)
 	elif _two_fluid_shader.is_valid() and not freeze_field:
