@@ -1,6 +1,6 @@
 # Verify battery — one-command runner
 
-Runs the whole Cassi GPU-sim verify battery (32 arms) in sequence, captures each
+Runs the whole Cassi GPU-sim verify battery (33 arms) in sequence, captures each
 arm's exit code, and exits 0 only when every arm passes.
 
 ## How to run
@@ -13,12 +13,28 @@ Godot console exe:
 ```
 
 - `--headless` on the **runner** is fine and recommended (the runner itself
-  never touches a RenderingDevice). Dropping it also works — only the runner's
-  own window appears.
-- The **arms always run windowed** (`--path . res://scenes/<scene>.tscn`):
-  never `--headless` an arm — this rig's global RenderingDevice has no headless
-  device.
-- Exit code: `0` = all 32 passed; `1` = at least one failed.
+  never touches a RenderingDevice).
+- The **windows** (global-RD / sim-dependent arms) always run **windowed**
+  (`--path . res://scenes/<scene>.tscn`): never `--headless` them — this rig's
+  global RenderingDevice has no headless device, and arms that run the full sim,
+  need a viewport/draw surface, or read the sim's global RD back (verify_fft,
+  verify_gravity_modes, verify_meshless_sim, verify_meshless_stability,
+  verify_particle_vfx, verify_phi_box, verify_ring, verify_river_law,
+  validate_sim_ui, verify_survey, verify_meshless_gravity, verify_river_isotropy,
+  verify_merge_sim, verify_meshless_sim_aniso, verify_particle_vanish,
+  verify_falsify) require the window.
+- **The local-RD arms** are SELF-CONTAINED on their own
+  `RenderingServer.create_local_rendering_device()` and run **`--headless`**
+  (no window churn): verify_fmm, verify_merge, verify_synth, verify_voronoi3d,
+  verify_voronoi3d_moving, verify_voronoi3d_aniso, verify_voronoi3d_moving_aniso,
+  verify_meshless_reconstruct, verify_mind_engine, verify_bh_accretion_engine,
+  verify_merge_engine, verify_multigrid_engine, verify_rho_front, verify_eps_gap,
+  verify_subsonic_step, verify_omega_invariant. (Classified 2026-08-16 by reading
+  each arm's script; the older claim that verify_synth and verify_meshless_gravity
+  were both windowed-local-RD was corrected — synth is fully self-contained
+  (headless), meshless_gravity reads the sim's global RD back (windowed).) The
+  run_all.gd `HEADLESS_ARMS` dict is authoritative.
+- Exit code: `0` = all 33 passed; `1` = at least one failed.
 - The runner prints a progress line per arm and a summary table; failed arms
   get their last 15 stdout/stderr lines printed.
 - Per-arm logs: `res://_diag/battery_logs/armNN_<name>.log` (gitignored).
@@ -27,7 +43,10 @@ Godot console exe:
   (The console exe is a wrapper that spawns the real Godot process, so the
   process *tree* must be killed, or the orphan keeps the GPU and a window.)
 
-## The 27 arms
+## The arms
+
+The authoritative arm list is the `ARMS` const in `verify/run_all.gd` (33 arms).
+The table below documents the primary arms:
 
 | # | Scene | What it verifies |
 |---|-------|------------------|
@@ -66,7 +85,7 @@ Godot console exe:
 Measured 2026-08-14 on the RX 7900 XTX rig: **≈ 8–9 minutes** for a fully
 passing tree (arms 1–60 s each; the slowest are verify_fft ~35 s,
 verify_meshless_sim_aniso ~25 s, verify_particle_vanish ~60–100 s). The
-same-day full 30-arm run with three arms hitting their 240 s timeout took
+same-day full 33-arm run with three arms hitting their 240 s timeout took
 17 minutes. Arms run strictly serially because they share the GPU. First run
 after a shader change can be slower (SPIR-V recompile).
 
