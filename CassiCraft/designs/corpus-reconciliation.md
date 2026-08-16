@@ -3009,3 +3009,14 @@ separate.
   *stock φ-aspect* min-size cell (4.551×2.8125×7.363 m); the chunk-aligned box
   correctly gives 3×3×3 = 27 blocks per cell. Consistent for each box — not a
   conflict.
+
+**README meshless-section registration (post-program note).** The README's "## Why
+open boundary is not optional — and how it shipped" section now states the meshless
+sites directly: the architectural diagram retains `meshless sites (2·16³, JFA +
+Lloyd relaxation)`, and the section records the meshless promotion (A) as *measured
+and shelved* — gate-iv showed the per-site wave 38% off on coarse dispersion, so the
+N³ lattice stays the field of record; the moving-Voronoi sites remain load-map
+markers ("where the field is most organized", a natural chunk-activity / LOD
+scheduler). This entry registers that README refresh; the meshless/Π frontier
+standing-gate references above are unchanged. No design doc was altered by the
+refresh.
