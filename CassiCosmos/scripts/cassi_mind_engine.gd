@@ -127,7 +127,7 @@ func _u(binding: int, buf: RID) -> RDUniform:
 
 # ── stepping ─────────────────────────────────────────────────────────────
 func _fill_pc() -> void:
-	_pc.resize(16)
+	_pc.resize(17)
 	_pc[0] = float(grid_n)
 	_pc[1] = dt
 	_pc[2] = _t
@@ -144,6 +144,7 @@ func _fill_pc() -> void:
 	_pc[13] = extent.z
 	_pc[14] = 0.0  # pass_sel: 0 = pass A (compute → scratch), 1 = pass B (scratch → field)
 	_pc[15] = 20.0  # omega2 = ω₀² (the two-fluid resonance; default 20.0 — bit-identical to the hardcode)
+	_pc[16] = 0.0  # ham_completion OFF (U1 toggle, offset 64)
 
 
 func _step_pde() -> void:

@@ -1,5 +1,5 @@
 #[compute]
-// canonical layout: scripts/contracts/layout.gd §PC — 16 floats (64 B); set 0: bindings 0-5
+// canonical layout: scripts/contracts/layout.gd §PC — 17 floats (68 B); set 0: bindings 0-5
 #version 450
 // Cassi Two-Fluid PDE Solver — 3D finite-difference leapfrog integration.
 // Evolves EY (Yang) and EI (Yin) fields on a regular grid.
@@ -42,6 +42,7 @@ layout(push_constant, std430) uniform PC {
     float extent_x; float extent_y; float extent_z;  // per-axis box half-extents (GRID_LAYOUT.md §2.5)
     float pass_sel;      // 0 = pass A (compute → scr), 1 = pass B (scr → field)
     float omega2;       // ω₀² — resonance frequency (default 20.0)
+    float ham_completion;  // U1 toggle (appended slot 16, offset 64): 0.0 = engine (OFF, bit-identical); >0.5 = Hamiltonian completion (EI-row x phi). Existing 16 offsets preserved.
 } pc;
 
 // ── Index helpers ─────────────────────────────────────────────────────
@@ -200,7 +201,7 @@ void pass_a() {
     // Leapfrog: ∂²ψ/∂t² = c²·∇²ψ ∓ ω₀²·(EY − φ·EI)
     // Using vel.xyz as time derivative (∂EY/∂t, ∂EI/∂t, ...)
     float acc_ey = lap_ey - omega2 * ey_ei_diff;
-    float acc_ei = lap_ei + omega2 * ey_ei_diff;
+    float acc_ei = lap_ei + (pc.ham_completion > 0.5 ? phi * omega2 : omega2) * ey_ei_diff;
 
     float dt = pc.dt;
 

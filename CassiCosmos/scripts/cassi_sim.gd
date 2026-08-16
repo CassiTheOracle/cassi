@@ -2300,7 +2300,8 @@ func _setup_buffers() -> void:
 	_nbody_pc_bytes = PackedByteArray(); _nbody_pc_bytes.resize(15 * 4)
 	# Two-fluid dedicated PC (14 floats = 56 B): the shared 11 fields + the
 	# 3 per-axis extents for the anisotropic 19-point stencil (GRID_LAYOUT.md).
-	_two_fluid_pc_bytes = PackedByteArray(); _two_fluid_pc_bytes.resize(16 * 4)  # + pass_sel (PDE pass A/B) + omega2 (ω₀²)
+	_two_fluid_pc_bytes = PackedByteArray(); _two_fluid_pc_bytes.resize(17 * 4)  # + pass_sel (PDE pass A/B) + omega2 (ω₀²) + ham_completion (U1, offset 64)
+	_two_fluid_pc_bytes.encode_float(64, 0.0)  # U1 ham_completion OFF (flip to 1.0 for the ON arm)
 	_md_pc_bytes = PackedByteArray(); _md_pc_bytes.resize(9 * 4)  # + mode (deposit 0 / convert 1)
 	_instancer_pc_bytes = PackedByteArray(); _instancer_pc_bytes.resize(32 * 4)  # consolidated gradient engine PC — 128 B (the RDNA3 Vulkan cap)
 	_bh_int_pc_bytes = PackedByteArray(); _bh_int_pc_bytes.resize(4 * 4)

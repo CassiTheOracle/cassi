@@ -144,7 +144,7 @@ func _dispatch(pass_sel: float, omega2: float) -> void:
 
 
 func _fill_pc(pass_sel: float, omega2: float) -> void:
-	_pc.resize(16)
+	_pc.resize(17)
 	_pc[0] = float(GRID_N)
 	_pc[1] = DT
 	_pc[2] = 0.0                    # t
@@ -161,6 +161,7 @@ func _fill_pc(pass_sel: float, omega2: float) -> void:
 	_pc[13] = EXTENT
 	_pc[14] = pass_sel              # 0 = pass A, 1 = pass B
 	_pc[15] = omega2                # ω₀² (the parameter under test)
+	_pc[16] = 0.0                  # ham_completion OFF (U1 toggle, offset 64)
 
 
 ## φ-locked SHELL pulse → ε = 0 exactly → pure ρ wave propagates at the

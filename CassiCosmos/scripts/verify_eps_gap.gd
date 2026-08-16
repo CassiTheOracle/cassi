@@ -128,7 +128,7 @@ func _dispatch(pass_sel: float) -> void:
 
 
 func _fill_pc(pass_sel: float) -> void:
-	_pc.resize(16)
+	_pc.resize(17)
 	_pc[0] = float(GRID_N)
 	_pc[1] = DT
 	_pc[2] = 0.0                    # t
@@ -145,6 +145,7 @@ func _fill_pc(pass_sel: float) -> void:
 	_pc[13] = EXTENT
 	_pc[14] = pass_sel              # 0 = pass A, 1 = pass B
 	_pc[15] = 20.0                  # omega2 = ω₀² (default 20.0)
+	_pc[16] = 0.0                  # ham_completion OFF (U1 toggle, offset 64)
 
 
 func _plant_pure_eps() -> void:

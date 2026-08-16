@@ -263,6 +263,7 @@ func _tf_pc(pass_sel: float, t: float) -> PackedFloat32Array:
 	p.append(EXTENT); p.append(EXTENT); p.append(EXTENT)         # extent xyz
 	p.append(pass_sel)                                           # 0=A 1=B
 	p.append(20.0)                                               # omega2 = ω₀² (default 20.0 — bit-identical)
+	p.append(0.0)                                                # ham_completion OFF (U1 toggle, offset 64)
 	return p
 
 

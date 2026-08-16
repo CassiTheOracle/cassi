@@ -35,7 +35,7 @@ const PC := {
 	"cassi_instancer": 32,        # 128 B — AT the RDNA3 Vulkan push-constant cap; nothing more may be added
 	"cassi_blend_pos": 5,         # 20 B — alpha@0, packed@4, win@8/12/16
 	"cassi_mass_deposit": 9,      # 36 B — N, particle_N, extent_xyz, off_xyz, mode
-	"cassi_two_fluid": 16,        # 64 B — the two-fluid PDE PC (grid-space)
+	"cassi_two_fluid": 17,        # 68 B — the two-fluid PDE PC (grid-space; + ham_completion, U1 toggle)
 	"cassi_poisson": 7,           # 28 B — N, axis, dir, mode, extent_xyz
 	"cassi_qhist": 13,            # 52 B — histogram + extent_xyz + win_xyz (bindings 0-4: pos, q, hist, EY, EI)
 	"cassi_occupancy": 10,        # 40 B — lim_xyz, ext_xyz, pads
@@ -56,7 +56,7 @@ const HOST_PC_FLOATS := {
 	"_nbody_pc_bytes": 15,
 	"_instancer_pc_bytes": 32,
 	"_md_pc_bytes": 9,
-	"_two_fluid_pc_bytes": 16,
+	"_two_fluid_pc_bytes": 17,
 	"_poisson_pc_bytes": 7,
 	"_qhist_pc_bytes": 13,
 	"_occ_pc_bytes": 10,
