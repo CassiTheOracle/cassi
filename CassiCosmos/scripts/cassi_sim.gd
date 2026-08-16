@@ -5601,7 +5601,15 @@ func apply_level(dir_path: String) -> bool:
 	var ext: Vector3 = lv.get("extents", Vector3.ZERO)
 	if ext.x > 0.0:
 		box_aspect = Vector3.ONE
-		box_scale = (ext.x as float) / maxf(_extents().x * 1.0, 1e-30)
+		# Divide by the PRE-mutation extent: _extents() reflects `box_aspect`
+		# which was just set to Vector3.ONE, so post-mutation _extents().x =
+		# 1.5·R·old_box_scale (aspect dropped out) and the adopted box would
+		# land at ext.x/old_scale whenever the pre-swap box_scale != 1.
+		# pre_extent.x already carries the pre-swap aspect × scale, giving
+		# the exact level box. (At the default box_scale == 1.0 and aspect
+		# ONE this divisor is value-identical to the old _extents().x, so the
+		# verify scale-1 path computes the same box_scale as before.)
+		box_scale = (ext.x as float) / maxf(pre_extent.x, 1e-30)
 	# Particles: realloc at the level's count if it differs, then upload.
 	var np := int(lv.get("particle_count", 0))
 	var count_changed: bool = np != N_particles
