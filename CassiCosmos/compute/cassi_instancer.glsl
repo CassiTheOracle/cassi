@@ -303,7 +303,7 @@ float tri_coherence(vec3 wp) {
     return rho2 / (rho2 + PHI_INV2 + eps * eps);
 }
 
-// ── FIELD PHASE θ = atan2(EI, EY) at the particle ──────────────────────
+// ── FIELD PHASE θ = atan(EI, EY) at the particle ───────────────────────
 // The two-fluid order-frame ORIENTATION, trilinear-sampled with the SAME
 // EY/EI stencil as tri_coherence. Unlike q (amplitude) and |v| (speed) —
 // which go nearly uniform on a relaxed/condensed cloud — the phase varies
@@ -333,11 +333,12 @@ float tri_phase(vec3 wp) {
         ei[idx3(i0, j1, k0)], ei[idx3(i1, j1, k0)],
         ei[idx3(i0, j0, k1)], ei[idx3(i1, j0, k1)],
         ei[idx3(i0, j1, k1)], ei[idx3(i1, j1, k1)], f);
-    // atan2 in [−π, π] → [0, 2π) · (1/2π) → [0,1): the frame orientation,
-    // continuous across the EY/EI plane. Coherent (ρ large) and even faint
-    // ordered fields both carry phase; only a dead cell (EY=EI=0) is
-    // undefined — the lerp below falls back to the cycle hue there.
-    return atan2(ei, ey) / 6.283185307179586 + 0.5;
+    // atan(y,x) in [−π, π] → [0, 2π) · (1/2π) → [0,1): the frame orientation,
+    // continuous across the EY/EI plane. (Desktop GLSL 4.50 has no `atan2`
+    // overload — use the four-quadrant atan(y, x).) Coherent (ρ large) and
+    // even faint ordered fields both carry phase; only a dead cell
+    // (EY=EI=0) is undefined.
+    return atan(ei, ey) / 6.283185307179586 + 0.5;
 }
 
 // ── Mode/feature decoding ──────────────────────────────────────────────
@@ -523,7 +524,7 @@ void main() {
         if (bmode == 6) {
             // ── MODE 6 — VELOCITY-DIRECTION (two-axis, 2026-08-16) ──────
             // Hue = the FLOW DIRECTION of motion (compass azimuth
-            // atan2(vy,vx) → full hue circle), lightness = speed |v|. A
+            // atan(vy,vx) → full hue circle), lightness = speed |v|. A
             // relaxed/virialized cloud has near-UNIFORM speed (why the old
             // speed-rainbow washed out) but isotropic velocities — every
             // direction present at once, so the full hue wheel appears even
@@ -533,7 +534,7 @@ void main() {
             // spans [0,2π) by construction.
             vec3 vv = vel[i].xyz;
             float sp = length(vv);
-            float h6 = mod(atan2(vv.y, vv.x) / 6.283185307179586 + 0.5 + pc.hue_offset, 1.0);
+            float h6 = mod(atan(vv.y, vv.x) / 6.283185307179586 + 0.5 + pc.hue_offset, 1.0);
             // lightness from a SOFT speed scale: v_ref (slot 13) is the mean
             // initial speed, so |v|/v_ref ~ 0.5-2 for the cloud — a gentle
             // ramp makes slow interiors dimmer and fast streams brighter
@@ -543,7 +544,7 @@ void main() {
             color = vec4(hsl2rgb(vec3(h6, 0.9, l6)), 1.0);
         } else if (bmode == 5) {
             // ── MODE 5 — FIELD-PHASE (two-axis, 2026-08-16) ──────────────
-            // Hue = the two-fluid order-frame ORIENTATION θ = atan2(EI,EY),
+            // Hue = the two-fluid order-frame ORIENTATION θ = atan(EI,EY),
             // mapped around the FULL hue circle — contrast-maximal because
             // phase spans [0,2π) wherever EY/EI oscillate, even where q and
             // |v| are near-uniform (the "flat colour" complaint). Lightness
