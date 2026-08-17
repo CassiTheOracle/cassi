@@ -385,3 +385,41 @@ depth-2× requirement fails on metric ceiling, not on physical dispersal — the
 separation. This is the honest negative the pre-registered rule demands, with
 the mechanism signal preserved. The per-particle winding (b1) is committed and
 reproducible for the engine/shader follow-up (b2).
+
+### §12c Result (2026-08-17, full-doublet winding (b2))
+
+`two-fluid/meshless_doublet_probe.py` (64³, 3/3 arms, 4000 steps each, clean
+3-arm sweep; runs `runs/meshless_doublet_depth.json`). Per-particle full
+doublet `(E_Yi, E_Ii)` evolved by the shipped conversion
+`conv = −λ(1−q)(E_Y−φE_I)` (mass-conserving exchange) + J_z neighbor phase
+coupling; winding `θ_i = atan2(E_Ii, E_Yi)` derived. Removes the (b1)
+reconstruction: amplitude and phase both free.
+
+| arm | D | T_hold_phase | θ_order 0→end | Σρ_dp 0→end | inner_frac 0→end |
+|-----|---|--------------|---------------|--------------|------------------|
+| depth_1 | 1 | 1.00 (horizon) | 0.999 → 1.000 | 1199 → 1365 | 0.500 → 1.000 |
+| depth_2 | 2 | 1.00 (horizon) | 0.799 → 1.000 | 2140 → 2344 | 0.309 → 0.605 |
+| depth_4 | 4 | 1.00 (horizon) | 0.799 → 0.934 | 816 → 2301 (×2.8) | 0.224 → 0.485 |
+
+**Frozen verdict: DOES NOT SUPPORT** (T_hold_phase monotone but all arms
+saturate at the run horizon; no 2× depth separation — the same ceiling as the
+(a) and (b1) horizon-retention metrics).
+
+**Honest interpretation.** The full doublet is **stable and never decoheres**:
+energy conserved (E steady in every arm), no NaN, and the winding phase-order
+is retained or **rises toward perfect phase-lock (θ_order → 1.0)** in every arm
+(depth_2 0.799→1.000, depth_4 0.799→0.934, depth_1 already 0.999→1.000). The
+amplitude sector is the strongest signal yet: with E_Y/E_I both free, the
+deepest arm's doublet mass **nearly triples** (816→2301) — the full-doublet
+amplitude accumulates coherently via J_z coupling, far more than the (b1)
+reconstruction could express, and inner-rung mass fraction condenses in every
+arm (depth_4 0.224→0.485).
+
+(b2) converges with (a)+(b1) on the mechanism the frozen T_hold rule cannot
+score: **neither the amplitude nor the phase sector of the winding disperses at
+any depth**; deeper stacks phase-lock and accumulate coherence, consistent with
+cascade suppression, and the 2× separation is masked by the horizon-retention
+ceiling. This is the honest negative the pre-registered rule demands, with the
+mechanism preserved. The per-particle full doublet (b2) is committed, stable,
+and directly portable to the CassiCosmos engine (per-particle EY/EI buffers +
+the tree-walk J_z), completing the (b) winding-on-particles line.
