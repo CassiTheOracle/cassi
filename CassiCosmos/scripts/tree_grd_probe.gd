@@ -144,6 +144,7 @@ func _setup() -> void:
 		0.1,   # lam
 		0.05,  # T_steer
 		2.0,   # lloyd_p
+		0.0,   # J_wind (mode 7 doesn't read it; slot 17 append)
 	]).to_byte_array()
 
 	# ---- Sentinel buffers (fresh per rung, zeroed except voronoi vol) ----

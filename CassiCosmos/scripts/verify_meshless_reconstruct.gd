@@ -64,7 +64,7 @@ var _ey: RID
 var _ei: RID
 var _q: RID
 var _cell_pc := PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-	0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+	0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])  # 18 floats: 17 + J_wind slot 17
 var _raster_pc := PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 var _md_zero: RID
 var _sites_cpu := PackedFloat32Array()

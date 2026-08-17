@@ -166,6 +166,13 @@ var merge_sel_gate: bool = true   # doctrine: order-selective q_sel = q_coh·q_o
 # off -> the coarse chain never dispatches and the nbody blend branch never
 # runs -> bit-identical battery.
 var cascade_level: bool = false
+# Meshless J_z winding coupling (cassi-voronoi mode-1 leapfrog, amendment 3c):
+# the (b2) phase-lock term that makes the site doublet wind toward coherent
+# neighbors, gated by the site's openness (1−q). 0.0 (default) = OFF =
+# bit-identical battery; a positive coefficient enables the winding. Rides
+# cell-PC slot 17 (the appended J_wind float, offset 68 — the ham_completion
+# append precedent).
+var winding_coupling: float = 0.0
 # Cassi BH accretion — "object -> BH": particles within a BH's accretion
 # radius (bh_accretion_radius, world units — a small fraction of the BH's
 # σ softening) are marked dead (pos.w = 0, skipped by deposit/nbody/instancer)
@@ -236,7 +243,7 @@ var _us_jfa_0: RID
 var _us_cell_0: RID
 var _us_raster_0: RID
 var _jfa_pc_bytes: PackedByteArray    # JFA PC (8 floats: N, jump, read_a, n_sites, h, pad×3)
-var _cell_pc_bytes: PackedByteArray   # cell PC (17 floats: mode, N, n_sites, dt, hx, hy, hz, C2, OM2, PHI, source_s, rho_floor, drift_cap, kappa, lam, T_steer, lloyd_p)
+var _cell_pc_bytes: PackedByteArray   # cell PC (18 floats: mode, N, n_sites, dt, hx, hy, hz, C2, OM2, PHI, source_s, rho_floor, drift_cap, kappa, lam, T_steer, lloyd_p, J_wind)
 var _raster_pc_bytes: PackedByteArray # raster PC (8 floats: N, n_sites, hx, hy, hz, pad×3)
 var _ml_sites_cpu := PackedFloat32Array()
 var _ml_ready := false
@@ -456,6 +463,7 @@ func setup(cfg: Dictionary) -> bool:
 	multi_rung_base_scale = float(cfg.get("multi_rung_base_scale", multi_rung_base_scale))
 	meshless_mode = bool(cfg.get("meshless_mode", meshless_mode))
 	meshless_gravity = bool(cfg.get("meshless_gravity", meshless_gravity))
+	winding_coupling = float(cfg.get("winding_coupling", winding_coupling))
 	mode = int(cfg.get("mode", mode))
 	particle_merge = bool(cfg.get("particle_merge", particle_merge))
 	merge_cadence_steps = int(cfg.get("merge_cadence_steps", 0))
@@ -1133,7 +1141,7 @@ func _setup_buffers() -> void:
 	_ml_lsm_i = _rd.storage_buffer_create(ml_ns * 3 * 16)
 	_ml_tree_nsrc = ml_ns
 	_jfa_pc_bytes = PackedByteArray(); _jfa_pc_bytes.resize(8 * 4)
-	_cell_pc_bytes = PackedByteArray(); _cell_pc_bytes.resize(17 * 4)
+	_cell_pc_bytes = PackedByteArray(); _cell_pc_bytes.resize(18 * 4)
 	_raster_pc_bytes = PackedByteArray(); _raster_pc_bytes.resize(8 * 4)
 	_ml_ready = false
 
@@ -1951,7 +1959,7 @@ func _ml_cell_pc(mode: float) -> PackedByteArray:
 	var pcb := PackedFloat32Array([mode, float(N), float(ml_ns), dt,
 		hx, hy, hz, c2, ML_OM2, PHI, source_strength,
 		ML_RHO_FLOOR, ML_MAX_DRIFT, ML_KAPPA, ML_LAM,
-		dt * float(ML_REBUILD), ML_LLOYD_P])
+		dt * float(ML_REBUILD), ML_LLOYD_P, winding_coupling])
 	return pcb.to_byte_array()
 
 

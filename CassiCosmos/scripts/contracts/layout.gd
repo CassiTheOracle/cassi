@@ -43,7 +43,7 @@ const PC := {
 	"cassi_tree_gravity": 5,      # 20 B — Np, theta, eps2, pad, tnm
 	"cassi_tree_momcon": 3,       # 12 B — N_f, op, pad
 	"cassi_coarse_grad": 8,       # 32 B — the coarse-gradient PC
-	"cassi_voronoi_cells": 17,    # 68 B — the cell/JFA steering PC (modes 0-12)
+	"cassi_voronoi_cells": 18,    # 72 B — the cell/JFA steering PC (modes 0-12; + J_wind, amendment 3c)
 	"cassi_jfa": 8,               # 32 B — N, jump, read_a, n_sites, h_xyz, pad
 	"cassi_condensation": 4,      # 16 B — N, threshold, pads
 	"cassi_field_render": 11,     # 44 B — the field-render PC
@@ -64,7 +64,7 @@ const HOST_PC_FLOATS := {
 	"_tree_grav_pc_bytes": 5,
 	"_tree_mc_pc_bytes": 3,
 	"_cf_grad_pc_bytes": 8,
-	"_cell_pc_bytes": 17,
+	"_cell_pc_bytes": 18,
 	"_jfa_pc_bytes": 8,
 	"_cond_pc_bytes": 4,
 }

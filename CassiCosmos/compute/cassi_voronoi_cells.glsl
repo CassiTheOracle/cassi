@@ -1,5 +1,5 @@
 #[compute]
-// canonical layout: scripts/contracts/layout.gd §PC — 17 floats (68 B); set 0: bindings 0-19
+// canonical layout: scripts/contracts/layout.gd §PC — 18 floats (72 B); set 0: bindings 0-19
 #version 450
 // Cassi Voronoi Cells — the per-cell two-fluid wave system on the JFA
 // Voronoi mesh (MESHLESS_PLAN.md Stage 1 + the §10 sim integration).
@@ -63,6 +63,9 @@ layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 // A tiny positive floor also keeps the weight from vanishing where the
 // deposited density has holes, so the centroid is never degenerate.
 const float LLOYD_FLOOR = 1e-3;
+// φ⁻² — the q decoherence threshold (the coherence gate's φ⁻² term); matches
+// the engine's PHI_INV2 = 0.3819660112501051 and the grid two-fluid gate.
+const float PHI_INV2 = 0.3819660112501051;
 
 layout(push_constant, std430) uniform PC {
     float mode;             // see the mode list above
@@ -82,6 +85,9 @@ layout(push_constant, std430) uniform PC {
     float lam;              // super-Lagrangian momentum ride
     float T_steer;          // dt × rebuild cadence
     float lloyd_p;          // Qi-gate exponent: κ_eff = κ·(1 − q)^p
+    float J_wind;           // (appended slot 17, offset 68) J_z winding coupling:
+                            // 0.0 = engine (OFF, bit-identical); >0.0 = the
+                            // (b2) phase-lock term. Existing 17 offsets preserved.
 } pc;
 
 layout(set = 0, binding = 0, std430) buffer Labels {
@@ -522,6 +528,19 @@ void main() {
     float src_y = pc.source_strength * exp(-r2 * 4.0) + mr * 0.001;
     float src_i = pc.source_strength * 0.707 * exp(-r2 * 4.0) + mr * 0.000707;
 
+    // J_z winding coupling (b2, amendment 3c): the phase-lock term that makes
+    // the doublet wind toward its coherent neighbors, gated by the site's own
+    // openness (1−q). q = ρ²/(ρ²+φ⁻²+ε²) is the site's coherence (the exact
+    // native gate); the term reinforces the lap transport only where the site
+    // is open (NOT closed/φ-locked). J_wind == 0 (default) → the term is
+    // exactly 0.0 → bit-identical battery.
+    float qloc = 0.0;
+    if (pc.J_wind > 0.0) {
+        float rho = psi_y[s] + psi_i[s];
+        qloc = (rho * rho) / (rho * rho + PHI_INV2 + dev * dev + 1e-30);
+        pi_y[s] += pc.dt * pc.J_wind * (1.0 - qloc) * lap_y[s] / v;
+        pi_i[s] += pc.dt * pc.J_wind * (1.0 - qloc) * lap_i[s] / v;
+    }
     pi_y[s] += pc.dt * (pc.C2 * lap_y[s] / v - pc.OM2 * dev + src_y);
     pi_i[s] += pc.dt * (pc.C2 * lap_i[s] / v + pc.OM2 * dev + src_i);
     psi_y[s] += pc.dt * pi_y[s];

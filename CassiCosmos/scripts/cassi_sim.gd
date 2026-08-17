@@ -321,6 +321,18 @@ var _vsync_enabled: bool = true
 ## grid river arm (that battery stays bit-identical).
 @export var meshless_gravity: bool = true
 
+## Meshless J_z winding coupling (amendment 3c — the (b2) full-doublet
+## winding-on-particles port). A coefficient > 0 enables, in the meshless
+## site leapfrog (cassi_voronoi_cells.glsl mode 1), the phase-lock term
+## J_wind·(1−q)·lap/v that makes each site's doublet wind toward its
+## coherent neighbors, gated by the site's own openness (1−q) — the
+## mechanism the CassiTheory meshless_doublet_probe (b2) showed holds the
+## winding (phase-lock retained/rising, doublet amplitude condensing)
+## rather than decohering. 0.0 (default) = OFF = bit-identical battery.
+## Rides cell-PC slot 17 (the appended J_wind float, offset 68).
+## Init-time; reinit to apply.
+@export var winding_coupling: float = 0.0
+
 ## Run the physics on the standalone engine's worker thread (decoupled
 ## producer: the engine owns a local RenderingDevice on its own thread and
 ## publishes snapshots; this sim's global-RD buffers become mirrors + the
@@ -686,7 +698,7 @@ var _us_jfa_0: RID
 var _us_cell_0: RID
 var _us_raster_0: RID
 var _jfa_pc_bytes: PackedByteArray    # JFA PC (8 floats: N, jump, read_a, n_sites, h, pad×3)
-var _cell_pc_bytes: PackedByteArray   # cell PC (17 floats: mode, N, n_sites, dt, hx, hy, hz, C2, OM2, PHI, source_s, rho_floor, drift_cap, kappa, lam, T_steer, lloyd_p)
+var _cell_pc_bytes: PackedByteArray   # cell PC (18 floats: mode, N, n_sites, dt, hx, hy, hz, C2, OM2, PHI, source_s, rho_floor, drift_cap, kappa, lam, T_steer, lloyd_p, J_wind)
 var _raster_pc_bytes: PackedByteArray # raster PC (8 floats: N, n_sites, hx, hy, hz, pad×3)
 var _ml_sites_cpu := PackedFloat32Array()
 var _ml_ready := false
@@ -1630,6 +1642,7 @@ func _decoupled_start_engine() -> bool:
 		"multi_rung_seed": multi_rung_seed, "multi_rung_count": multi_rung_count,
 		"multi_rung_amp": multi_rung_amp, "multi_rung_base_scale": multi_rung_base_scale,
 		"meshless_mode": meshless_mode, "meshless_gravity": meshless_gravity,
+		"winding_coupling": winding_coupling,
 		"mode": mode,
 		"particle_merge": particle_merge,
 		"merge_cadence_steps": merge_cadence_steps,
@@ -2226,7 +2239,7 @@ func _setup_buffers() -> void:
 	_ml_lsm_y = _rd.storage_buffer_create(ml_ns * 3 * 16)
 	_ml_lsm_i = _rd.storage_buffer_create(ml_ns * 3 * 16)
 	_jfa_pc_bytes = PackedByteArray(); _jfa_pc_bytes.resize(8 * 4)
-	_cell_pc_bytes = PackedByteArray(); _cell_pc_bytes.resize(17 * 4)  # mode,N,n_sites,dt,hx,hy,hz,C2,OM2,PHI,src,rho_floor,drift_cap,kappa,lam,T_steer,lloyd_p
+	_cell_pc_bytes = PackedByteArray(); _cell_pc_bytes.resize(18 * 4)  # mode,N,n_sites,dt,hx,hy,hz,C2,OM2,PHI,src,rho_floor,drift_cap,kappa,lam,T_steer,lloyd_p,J_wind
 	_raster_pc_bytes = PackedByteArray(); _raster_pc_bytes.resize(8 * 4)
 	# ── Particle-merge buffers (INIT-TIME: allocated only when particle_merge)
 	# The merge kernel's persistent per-particle state (alive/mass/mom/cen/
@@ -3210,7 +3223,7 @@ func _ml_volume_pass() -> void:
 
 func _ml_cell_pc(mode: float) -> PackedByteArray:
 	# Pre-sized in-place encode (review_sim.md #5): _cell_pc_bytes is sized
-	# 17*4 B at init; encode every field here so each call does ZERO
+	# 18*4 B at init; encode every field here so each call does ZERO
 	# allocations. Byte-identical to the old `PackedFloat32Array([...]).
 	# to_byte_array()` — same values, same order (PackedFloat32Array is
 	# float32 LE and to_byte_array copies those bytes verbatim, which is
@@ -3240,6 +3253,7 @@ func _ml_cell_pc(mode: float) -> PackedByteArray:
 	_cell_pc_bytes.encode_float(56, ML_LAM)
 	_cell_pc_bytes.encode_float(60, dt * float(ML_REBUILD))
 	_cell_pc_bytes.encode_float(64, ML_LLOYD_P)
+	_cell_pc_bytes.encode_float(68, winding_coupling)  # J_wind (amendment 3c append)
 	return _cell_pc_bytes
 
 
