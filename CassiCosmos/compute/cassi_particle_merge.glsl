@@ -122,6 +122,21 @@ layout(push_constant, std430) uniform PC {
 } pc;
 
 const float PHI_INV2 = 0.3819660112501051;
+// Per-cell neighbor scan ceiling for pass_best (2026-08-16, TDR guard):
+// under a dense confluence (many particles in one hash cell ~ a tight-wisp
+// meeting / central pile-up) the 27-cell brute-force scan is O(cc_cell) per
+// particle -> O(N²) overall, and ONE pass_best dispatch froze the GPU past
+// the Windows TDR window (measured: 100k in a r=1.5 sphere -> "Vulkan device
+// was lost", the owner's silent freeze-close). Bounding the per-cell scan
+// caps pass_best at 27*MAX_CELL_SCAN per particle; the SINK invariant stays
+// safe because a capped dearth only DEFERS a merge (an i whose best isn't a
+// sink hops nowhere) — never corrupts mass/momentum. A dense blob then
+// coalesces progressively across frames instead of one GPU-starving instant.
+// Tune 16..256; 64 keeps the verified small-N gates exact (cells there hold
+// <= 8). Physically the merge radius R_m needs no more than the few nearest
+// braid neighbors, so this does not change the dust->object outcome, only
+// how many coalesce per pass.
+#define MAX_CELL_SCAN 64
 // Size-by-mass law — mirror of cassi_instancer.glsl SIZE_BY_MASS (same
 // constants, "no second convention"): s = clamp(SIZE_K·cbrt(m), MIN, MAX).
 const float SIZE_K = 0.62;
@@ -361,6 +376,7 @@ void pass_best() {
                 int cz = (ck + dz + nz) % nz;
                 int c = cx + nx * (cy + ny * cz);
                 int ncnt = int(cc[c]);
+                if (ncnt > MAX_CELL_SCAN) ncnt = MAX_CELL_SCAN;   // TDR guard
                 int base = int(cs[c]);
                 for (int k = 0; k < ncnt; k++) {
                     int j = int(cl[base + k]);

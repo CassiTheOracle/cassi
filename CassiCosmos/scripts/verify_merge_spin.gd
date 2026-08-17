@@ -4,18 +4,18 @@ extends Node
 ## §3d falsifiable test #4).
 ##
 ## A single gravitationally-bound pair with TANGENTIAL relative motion:
-##   p0 = (5, 0, 0), v0 = (0, +4, 0)   mass 10
-##   p1 = (5.4, 0, 0), v1 = (0, −6, 0) mass 10   (p1 = lower index = survivor)
-## d = (−0.4,0,0), v_rel = (0,10,0) → the pair's internal L about its COM is
-## μ·d×v_rel = 5·(−0.4,0,0)×(0,10,0) = (0,0,−20). The survivor must acquire
-## spin[1] ≈ (0,0,−20), and the TOTAL angular momentum about the origin
+##   p0 = (5, 0, 0), v0 = (0, +3, 0)   mass 10
+##   p1 = (5.4, 0, 0), v1 = (0, −5, 0) mass 10   (p1 = lower index = survivor)
+## d = (−0.4,0,0), v_rel = (0,8,0) → the pair's internal L about its COM is
+## μ·d×v_rel = 5·(−0.4,0,0)×(0,8,0) = (0,0,−16). The survivor must acquire
+## spin[1] ≈ (0,0,−16), and the TOTAL angular momentum about the origin
 ## (Σ m·p×v + Σ spin) must be conserved across the merge. The asymmetric
-## ±velocities give the pair a nonzero COM velocity (p0.y = 10·4+10·(−6) =
+## ±velocities give the pair a nonzero COM velocity (p0.y = 10·3+10·(−5) =
 ## −20 ≠ 0) so G-S4's momentum tolerance is meaningful; the merge physics
 ## (v_rel, internal L, binding) is unchanged.
 ##
-## Checked BEFORE merge: L = m0·p0×v0 + m1·p1×v1 = (0,0,−20) about the origin
-## (the merged body's spin carries the whole pair-internal −20z; the COM now
+## Checked BEFORE merge: L = m0·p0×v0 + m1·p1×v1 = (0,0,−16) about the origin
+## (the merged body's spin carries the whole pair-internal −16z; the COM now
 ## moves, so total L about the origin is the sum of internal spin plus the
 ## orbital term of the moving COM — still exactly conserved).
 ##
@@ -166,7 +166,11 @@ func _fill_pc(pass_mode: float) -> void:
 	_pc[15] = pass_mode
 	_pc[16] = G_N; _pc[17] = XI; _pc[18] = H0; _pc[19] = DT
 	_pc[20] = 1.0   # f_subsonic
-	_pc[21] = 1.0   # f_virial
+	_pc[21] = 0.0   # f_virial (OFF — this test gates SPIN transfer, not the
+	                # virial stopping scale; under Newtonian W the planted
+	                # survivor at |v|>0 is virialised and would block the merge,
+	                # confounding exactly what G-S1..S4 measure. The virial
+	                # criterion has its own dedicated gate, verify_merge_virial.)
 	_pc[22] = 1.0   # f_order
 	_pc[23] = 0.0   # cyc_slot (batched hop slot; the raw-pass test uses slot 0)
 
@@ -184,8 +188,11 @@ func _dispatch(pass_mode: float) -> void:
 
 
 ## One bound pair with tangential orbital motion: L_internal = μ·d×v_rel
-## = 5·(−0.4,0,0)×(0,10,0) = (0,0,−20). Binding: ½μ|v_rel|²·d = 100 < 1800 ✓.
-## Asymmetric v0/v1 (0,±) → nonzero COM velocity; v_rel kept (0,10,0).
+## = 5·(−0.4,0,0)×(0,8,0) = (0,0,−16). Binding (Newtonian G, the merge's gate
+## convention — see cassi_particle_merge.glsl §3b): ½μ|v_rel|²·d = 64 < 100 ✓.
+## Asymmetric v0/v1 (0,±) → nonzero COM velocity; v_rel kept (0,8,0). (Re-poise
+## 2026-08-16: at |v_rel|=10 the pair was only bound under the old φ⁶-amplified
+## G_eff; it must be genuinely Newtonian-bound or G-S1 never fires.)
 func _build_input() -> void:
 	_input_mass = PackedFloat32Array([10.0, 10.0])
 	_input_pos = PackedFloat32Array([
@@ -193,8 +200,8 @@ func _build_input() -> void:
 		5.4, 0.0, 0.0, 0.0,
 	])
 	_input_vel = PackedFloat32Array([
-		0.0, 4.0, 0.0, 0.0,
-		0.0, -6.0, 0.0, 0.0,
+		0.0, 3.0, 0.0, 0.0,
+		0.0, -5.0, 0.0, 0.0,
 	])
 	for i in range(N):
 		_input_pos[i * 4 + 3] = _input_mass[i]

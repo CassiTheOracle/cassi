@@ -5,10 +5,15 @@ extends Node
 ##    saturates), unlike the current unbounded collapse-to-one."
 ##
 ## A single high-q pair. Particle 0 (lower index, the survivor candidate) is
-## planted VIRIALISED: mass 10, |v|=20 → K = ½·10·20² = 2000, R = 0.62·∛10
-## ≈ 1.34, W = G_eff·m²/(2R) ≈ 672 → 2K = 4000 ≥ 672 → virialised. Particle 1
-## (mass 10, v=0) is bound to it (½μ|v_rel|²·d = 400 < 1800), subsonic, and
-## within R_m — WITHOUT the virial gate it would merge.
+## planted VIRIALISED: mass 10, |v|=6 → K = ½·10·36 = 180, R = 0.62·∛10
+## ≈ 1.34, W = G·m²/(2R) = 100/(2·1.34) ≈ 37.3 → 2K = 360 ≥ 37.3 → virialised
+## (Newtonian G — the merge's binding AND stopping scale both use g_n; see
+## compute/cassi_particle_merge.glsl §3b). Particle 1 (mass 10, v=0) is bound
+## to it (½μ|v_rel|²·d = ½·5·36·0.4 = 36 < G·m₁m₂ = 100), subsonic (6 < 1170),
+## and within R_m — WITHOUT the virial gate it would merge. (Re-poised 2026-08-16
+## after the Newtonian binding fix: at |v|=20 the pair was only bound under the
+## old φ⁶-amplified G_eff, so the control arm no longer merged — the pair must
+## be genuinely Newtonian-bound for the virial-flag control to be meaningful.)
 ##
 ## Two sub-runs:
 ##   - f_virial = 1  → particle 0 is virialised → merge BLOCKED → alive stays
@@ -181,9 +186,9 @@ func _dispatch(pass_mode: float) -> void:
 	_rd.sync()
 
 
-## particle 0 (target, lower index): mass 10, |v| = 20 → virialised.
-## particle 1 (incoming, would merge): mass 10, v = 0, d = 0.4 < R_m → bound
-## (½μ·20²·0.4 = 400 < 1800), subsonic (20 < 1170).
+## particle 0 (target, lower index): mass 10, |v| = 6 → virialised (Newtonian W
+## ≈ 37.3, 2K = 360 ≥ W). particle 1 (incoming, would merge): mass 10, v = 0,
+## d = 0.4 < R_m → bound (½μ·6²·0.4 = 36 < G·m₁m₂ = 100), subsonic (6 < 1170).
 func _build_input() -> void:
 	_input_mass = PackedFloat32Array([10.0, 10.0])
 	_input_pos = PackedFloat32Array([
@@ -191,7 +196,7 @@ func _build_input() -> void:
 		5.4, 0.0, 0.0, 0.0,
 	])
 	_input_vel = PackedFloat32Array([
-		20.0, 0.0, 0.0, 0.0,
+		6.0, 0.0, 0.0, 0.0,
 		0.0, 0.0, 0.0, 0.0,
 	])
 	for i in range(N):
