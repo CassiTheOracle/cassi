@@ -59,6 +59,7 @@ var _cen_buf: RID
 var _spin_buf: RID
 var _fvel_buf: RID
 var _mprev_buf: RID
+var _site_dummy_buf: RID   # boxless site-read set (bindings 18-24) — unindexed dummy (boxless off in these tests)
 var _ey_buf: RID
 var _ei_buf: RID
 var _best_buf: RID
@@ -130,6 +131,7 @@ func _make_buffers() -> void:
 	_ch_buf = _rd.storage_buffer_create(HASH_TOTAL * 4)
 	_cl_buf = _rd.storage_buffer_create(N * 4)
 	_mc_buf = _rd.storage_buffer_create(64)   # uint mc[16] per-cycle slots
+	_site_dummy_buf = _rd.storage_buffer_create(8192 * 16)   # boxless site set — unindexed (boxless off); sized like _ml_sites
 	var zero := PackedByteArray(); zero.resize(64); zero.fill(0)
 	_rd.buffer_update(_mc_buf, 0, 64, zero)
 	_us = _rd.uniform_set_create([
@@ -142,6 +144,12 @@ func _make_buffers() -> void:
 		_u_storage(12, _ch_buf), _u_storage(13, _cl_buf),
 		_u_storage(14, _mc_buf), _u_storage(15, _spin_buf),
 		_u_storage(16, _fvel_buf), _u_storage(17, _mprev_buf),
+		# Boxless site-read set (merge_boxless_prereg.md §4) — all 7 bindings
+		# must be present for the shader set to validate; unindexed when off.
+		_u_storage(18, _site_dummy_buf), _u_storage(19, _site_dummy_buf),
+		_u_storage(20, _site_dummy_buf), _u_storage(21, _site_dummy_buf),
+		_u_storage(22, _site_dummy_buf), _u_storage(23, _site_dummy_buf),
+		_u_storage(24, _site_dummy_buf),
 	], _shader, 0)
 
 
@@ -154,7 +162,7 @@ func _u_storage(binding: int, buf: RID) -> RDUniform:
 
 
 func _fill_pc(pass_mode: float) -> void:
-	_pc.resize(24)   # 24 floats: + cyc_slot@23 (batched hop slot; raw-pass test uses slot 0)
+	_pc.resize(26)   # 26 floats: + boxless@24 + n_sites@25 (merge_boxless_prereg.md; both 0 in these tests)
 	_pc[0] = float(N)
 	_pc[1] = PHI
 	_pc[2] = PHI_INV2
@@ -179,6 +187,8 @@ func _fill_pc(pass_mode: float) -> void:
 	_pc[21] = 1.0   # f_virial
 	_pc[22] = 1.0   # f_order
 	_pc[23] = 0.0   # cyc_slot (batched hop slot; the raw-pass test uses slot 0)
+	_pc[24] = 0.0   # boxless (site-direct read) — off in these tests → grid path
+	_pc[25] = 0.0   # n_sites (nearest-site guard) — unused when boxless off
 
 
 func _dispatch(pass_mode: float) -> void:

@@ -9,8 +9,8 @@ class_name CassiMergeCommon
 ## Two helpers:
 ##   hash_geometry(extents, r_m)  — the spatial-hash sizing math (must stay
 ##     fp-identical to the old _setup_buffers inline code).
-##   merge_pc_values(dict)        — the 24-float merge push constant (the
-##     shader PC block ends at cyc_slot@23 — 96 B, NOT 23 floats).
+##   merge_pc_values(dict)        — the 26-float merge push constant (the
+##     shader PC block ends at n_sites@25 — 104 B, NOT 26 floats).
 ##
 ## pass_mode@15 and cyc_slot@23 are left as 0.0 here; each caller fills them
 ## per dispatch (they vary every dispatch).
@@ -34,20 +34,23 @@ static func hash_geometry(extents: Vector3, r_m: float) -> Dictionary:
 	}
 
 
-## The merge push constant as 24 floats, mirroring compute/cassi_particle_merge.glsl
+## The merge push constant as 26 floats, mirroring compute/cassi_particle_merge.glsl
 ## PC block: indices
 ##   0 N, 1 phi, 2 phi_inv2, 3 q_threshold(=phi_inv2), 4 R_m,
 ##   5..7 extent.xyz, 8 grid_N, 9..11 hash_nxyz, 12..14 cell_w.xyz,
 ##   15 pass_mode (0 here; caller fills), 16 g_n, 17 xi, 18 h0(=2·R_m), 19 dt,
-##   20 f_subsonic, 21 f_virial, 22 f_order, 23 cyc_slot (0 here; caller fills).
+##   20 f_subsonic, 21 f_virial, 22 f_order, 23 cyc_slot (0 here; caller fills),
+##   24 boxless (0 = grid trilinear; 1 = site-direct, merge_boxless_prereg.md),
+##   25 n_sites (Voronoi site count for the nearest-site boxless read).
 ##
 ## `d` keys: n_particles(float), phi, phi_inv2, r_m, extent(Vector3),
 ## grid_n(float), hash_nx, hash_ny, hash_nz (ints), cell_wx, cell_wy, cell_wz
-## (floats), g_n, xi, dt (floats), subsonic, virial, order (bools).
+## (floats), g_n, xi, dt (floats), subsonic, virial, order (bools),
+## boxless (bool), n_sites (int).
 static func merge_pc_values(d: Dictionary) -> PackedFloat32Array:
 	var e: Vector3 = d.get("extent", Vector3.ZERO)
 	var f := PackedFloat32Array()
-	f.resize(24)   # 24 floats = 96 B — the shader PC block (cyc_slot@23)
+	f.resize(26)   # 26 floats = 104 B — the shader PC block (n_sites@25)
 	f[0] = float(d.get("n_particles", 0.0))
 	f[1] = float(d.get("phi", 0.0))
 	f[2] = float(d.get("phi_inv2", 0.0))
@@ -72,4 +75,6 @@ static func merge_pc_values(d: Dictionary) -> PackedFloat32Array:
 	f[21] = 1.0 if d.get("virial", false) else 0.0
 	f[22] = 1.0 if d.get("order", false) else 0.0
 	f[23] = 0.0                              # cyc_slot — set per dispatch
+	f[24] = 1.0 if d.get("boxless", false) else 0.0
+	f[25] = float(d.get("n_sites", 0))
 	return f

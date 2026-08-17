@@ -30,7 +30,7 @@
 
 ## Push-constant float counts per shader (from the GLSL layout blocks).
 const PC := {
-	"cassi_particle_merge": 24,   # 96 B — the merge cadence/geometry PC
+	"cassi_particle_merge": 26,   # 104 B — the merge cadence/geometry + boxless site-read PC
 	"cassi_nbody_gravity": 15,    # 60 B — the nbody selector PC (mode 0-4)
 	"cassi_instancer": 32,        # 128 B — AT the RDNA3 Vulkan push-constant cap; nothing more may be added
 	"cassi_blend_pos": 5,         # 20 B — alpha@0, packed@4, win@8/12/16
@@ -54,7 +54,7 @@ const PC := {
 ## Host PackedByteArray allocations (float count per var; BLEND is special —
 ## allocated in BYTES via resize(20), the others via resize(N * 4)).
 const HOST_PC_FLOATS := {
-	"_merge_pc_bytes": 24,
+	"_merge_pc_bytes": 26,
 	"_nbody_pc_bytes": 15,
 	"_instancer_pc_bytes": 32,
 	"_md_pc_bytes": 9,
@@ -90,7 +90,7 @@ const BH_EXTENT_FLOAT := 36         # bh[2].y
 ## Binding maps per shader: set -> [binding, ...]. From the GLSL
 ## `layout(set = S, binding = B, ...)` declarations.
 const BINDINGS := {
-	"cassi_particle_merge": {0: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]},
+	"cassi_particle_merge": {0: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24]},
 	"cassi_nbody_gravity": {0: [0, 1, 2, 3, 4, 5, 6, 7, 8], 1: [0, 1, 2, 3], 2: [0, 1]},
 	"cassi_instancer": {0: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]},
 	"cassi_blend_pos": {0: [0, 1, 2]},

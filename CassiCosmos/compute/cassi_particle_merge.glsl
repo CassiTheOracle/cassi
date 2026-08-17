@@ -1,5 +1,5 @@
 #[compute]
-// canonical layout: scripts/contracts/layout.gd §PC — 24 floats (96 B); set 0: bindings 0-17
+// canonical layout: scripts/contracts/layout.gd §PC — 26 floats (104 B); set 0: bindings 0-24
 #version 450
 // Cassi Particle Merge — "dust -> object": two particles within a merge
 // radius R_m coalesce (mass + total momentum conserved, survivor = mass-
@@ -91,6 +91,16 @@ layout(set = 0, binding = 14, std430) coherent buffer MergeCount { uint mc[16]; 
 layout(set = 0, binding = 15, std430) coherent buffer SpinBuf { vec4 spin[]; };   // xyz = accumulated spin (angular momentum), w spare
 layout(set = 0, binding = 16, std430) readonly buffer FieldVel { vec4 fvel[]; }; // xyz = flow velocity (two-fluid per-cell vec4), w = eps2
 layout(set = 0, binding = 17, std430) buffer MassPrev { float mprev[]; }; // pre-hop canonical mass (stashed by pass_fold, read by hop)
+// ── Boxless site read set (boxless_field AND particle_merge; merge_boxless_prereg.md) ──
+// The move-Voronoi site's cell-averaged field + AREPO gradient + momentum density,
+// for a window-independent merge coherence gate. Immutable; zero-cost when unread.
+layout(set = 0, binding = 18, std430) readonly buffer ML_Sites { vec4 ml_sites[]; };   // xyz = site position
+layout(set = 0, binding = 19, std430) readonly buffer ML_PsiY { float ml_psy[]; };     // cell-averaged EY
+layout(set = 0, binding = 20, std430) readonly buffer ML_PsiI { float ml_psi[]; };     // cell-averaged EI
+layout(set = 0, binding = 21, std430) readonly buffer ML_GradY { vec4 ml_grad_y[]; };  // AREPO ∇EY (mode-12 solve), .w=1
+layout(set = 0, binding = 22, std430) readonly buffer ML_GradI { vec4 ml_grad_i[]; };  // AREPO ∇EI (mode-12 solve), .w=1
+layout(set = 0, binding = 23, std430) readonly buffer ML_PiY { float ml_piy[]; };      // site EY momentum
+layout(set = 0, binding = 24, std430) readonly buffer ML_PiI { float ml_pii[]; };      // site EI momentum
 
 layout(push_constant, std430) uniform PC {
     float N;             // particle count
@@ -119,6 +129,9 @@ layout(push_constant, std430) uniform PC {
     float f_virial;      // flag: virial stopping scale on (>= 1)
     float f_order;       // flag: order-selective gate q_sel = q_coh·q_ord on (>= 1)
     float cyc_slot;      // batched passes: which mc[] slot this cycle's hop increments (0..15)
+    float boxless;       // (appended slot 24) 1.0 = site-direct boxless merge read (>= 0.5)
+                         // (merge_boxless_prereg.md); 0.0 (default) = grid trilinear.
+    float n_sites;       // (appended slot 25) Voronoi site count (nearest-site loop guard).
 } pc;
 
 const float PHI_INV2 = 0.3819660112501051;
@@ -177,8 +190,38 @@ void corners_at(vec3 wp, out int c000, out int c100, out int c010, out int c110,
     c001 = c001_; c101 = c101_; c011 = c011_; c111 = c111_;
 }
 
+// ── Boxless site-direct read (merge_boxless_prereg.md §4) ───────────────
+// The moving-Voronoi site whose cell contains `wp` (nearest site over the live
+// _ml_sites). Coordinate-independent — no window, no extent, no %N. Brute-force
+// 8192-site scan is fine here: the merge is CADENCED (1/2 · R_m reaction
+// budget), not per-frame, so O(N_pairs × 8192) is nowhere near the instancer's
+// per-particle hot path. The site partition is one steer-cadence stale (like the
+// shortlist/hash); merges are cadenced within that budget.
+int nearest_site(vec3 wp) {
+    int ns = int(pc.n_sites);
+    if (ns <= 0) return -1;
+    int best = 0;
+    float bd = 1e30;
+    for (int s = 0; s < ns; s++) {
+        vec3 d = ml_sites[s].xyz - wp;
+        float d2 = dot(d, d);
+        if (d2 < bd) { bd = d2; best = s; }
+    }
+    return best;
+}
+bool boxless_on() { return pc.boxless >= 0.5; }
+
 // ── q_coh at a world point (nbody's fused trilinear EY/EI map) ──────────
 float qcoh_at(vec3 wp) {
+    if (boxless_on()) {
+        int s = nearest_site(wp);
+        if (s < 0) return 0.0;
+        float e0 = ml_psy[s];
+        float ei0 = ml_psi[s];
+        float rho = e0 + ei0;
+        float eps = e0 - pc.phi * ei0;
+        return (rho * rho) / (rho * rho + PHI_INV2 + eps * eps);
+    }
     int c000, c100, c010, c110, c001, c101, c011, c111;
     float fx, fy, fz;
     corners_at(wp, c000, c100, c010, c110, c001, c101, c011, c111, fx, fy, fz);
@@ -193,6 +236,11 @@ float qcoh_at(vec3 wp) {
 
 // ── Σ = EY + φ·EI at a world point (the coherent φ-locked combination) ───
 float sigma_at(vec3 wp) {
+    if (boxless_on()) {
+        int s = nearest_site(wp);
+        if (s < 0) return 0.0;
+        return ml_psy[s] + pc.phi * ml_psi[s];
+    }
     int c000, c100, c010, c110, c001, c101, c011, c111;
     float fx, fy, fz;
     corners_at(wp, c000, c100, c010, c110, c001, c101, c011, c111, fx, fy, fz);
@@ -205,6 +253,15 @@ float sigma_at(vec3 wp) {
 
 // ── two-fluid flow velocity (vec4 xyz) at a world point ─────────────────
 vec3 flow_at(vec3 wp) {
+    if (boxless_on()) {
+        // Site-resident flow: the site's own velocity implied by its momentum
+        // density, v = (pi_y + pi_i)/ρ — the exact quantity the site leapfrog's
+        // steering uses (cassi_voronoi_cells.glsl mode 4 `vv = lam·(pi+pi)/rho`).
+        int s = nearest_site(wp);
+        if (s < 0) return vec3(0.0);
+        float rho = max(ml_psy[s] + ml_psi[s], 1e-9);
+        return (ml_piy[s] + ml_pii[s]) / rho * vec3(1.0);
+    }
     int c000, c100, c010, c110, c001, c101, c011, c111;
     float fx, fy, fz;
     corners_at(wp, c000, c100, c010, c110, c001, c101, c011, c111, fx, fy, fz);
@@ -215,6 +272,17 @@ vec3 flow_at(vec3 wp) {
 // ── q_ord: order selectivity (§3a) — scale-invariant gradient ratio ─────
 // 1 for a locally smooth Σ (standing wave / condensate), →0 for rough noise.
 float qord_at(vec3 wp) {
+    if (boxless_on()) {
+        // Site-resident order: the AREPO face-normal gradient (the mode-12
+        // least-squares solve, exact for linear fields) at the containing site.
+        // ∇Σ = ∇EY + φ·∇EI; Σ = EY + φ·EI — the identical ratio, site-resident.
+        int s = nearest_site(wp);
+        if (s < 0) return 0.0;
+        float sigma = ml_psy[s] + pc.phi * ml_psi[s];
+        vec3 g = ml_grad_y[s].xyz + pc.phi * ml_grad_i[s].xyz;
+        float grad2 = dot(g, g);
+        return 1.0 / (1.0 + pc.phi * pc.phi * grad2 / (sigma * sigma + PHI_INV2));
+    }
     int N = int(pc.grid_N);
     float hn = float(N) * 0.5;
     vec3 ext = vec3(pc.extent_x, pc.extent_y, pc.extent_z);

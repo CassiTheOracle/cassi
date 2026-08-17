@@ -690,7 +690,7 @@ var _tel_reset_bytes: PackedByteArray # gravity telemetry reset (8 floats)
 var _poisson_pc_bytes: PackedByteArray  # poisson PC (7 floats: N, axis, dir, mode, extent_x/y/z)
 var _occ_pc_bytes: PackedByteArray    # occupancy PC (10 floats: np, n_sample, stride, lim_x/y/z, ext_x/y/z, pad)
 var _occ_zero_bytes: PackedByteArray  # occupancy counter reset (32 B of zeros)
-var _merge_pc_bytes: PackedByteArray  # merge PC (24 floats: N, phi, phi_inv2, q_th, R_m, ext.xyz, grid_N, hash_nxyz, cell_w.xyz, pass_mode, cyc_slot)
+var _merge_pc_bytes: PackedByteArray  # merge PC (26 floats: N, phi, phi_inv2, q_th, R_m, ext.xyz, grid_N, hash_nxyz, cell_w.xyz, pass_mode, cyc_slot, boxless, n_sites)
 # Instancer dedicated PC (32 floats = 128 B — the AMD RDNA3 Vulkan cap;
 # EXACTLY 128, nothing more) — the consolidated gradient engine: the shared
 # 11 + color_mode@11 + prog_mode@12 + ref@13 + the up-to-3 cycle segments
@@ -1557,19 +1557,21 @@ func _merge_pc_dict() -> Dictionary:
 		"g_n": _bh_init_bytes.decode_float(28),   # G_N (bh[1].w) — single source of truth
 		"xi": xi, "dt": dt,
 		"subsonic": merge_subsonic, "virial": merge_virial, "order": merge_sel_gate,
+		"boxless": _ml_boxless_on() and particle_merge,   # gated: boxless mesh live AND merge on → site-direct read (merge_boxless_prereg.md)
+		"n_sites": _ml_sites_cpu.size() / 4,               # Voronoi site count (nearest-site read guard)
 	}
 
 
 ## Bind the merge pipeline/set/PC and dispatch one pass mode into the open
 ## compute list `cl` (N_particles threads). F8: the PC is ENCODED INTO the
-## pre-sized `_merge_pc_bytes` member (24 floats = 96 B) — never reassigned —
+## pre-sized `_merge_pc_bytes` member (26 floats = 104 B) — never reassigned —
 ## so the dispatches stay hitch-free. The caller adds barriers between
 ## consecutive in-list passes and readbacks to sync across lists.
 func _merge_bind_dispatch(cl: int, pass_mode: float, cyc_slot := 0) -> void:
 	var f := _merge_pc_values()
 	f[15] = pass_mode
 	f[23] = float(cyc_slot)
-	for i in range(24):
+	for i in range(26):
 		_merge_pc_bytes.encode_float(i * 4, f[i])
 	_rd.compute_list_bind_compute_pipeline(cl, _merge_pipe)
 	_rd.compute_list_bind_uniform_set(cl, _us_merge_0, 0)
@@ -2442,7 +2444,7 @@ func _setup_buffers() -> void:
 		_merge_cell_wx = geom["cell_wx"]
 		_merge_cell_wy = geom["cell_wy"]
 		_merge_cell_wz = geom["cell_wz"]
-		_merge_pc_bytes = PackedByteArray(); _merge_pc_bytes.resize(24 * 4)   # 24 floats = 96 B (cyc_slot@23) — F8: pre-sized, never reassigned
+		_merge_pc_bytes = PackedByteArray(); _merge_pc_bytes.resize(26 * 4)   # 26 floats = 104 B (n_sites@25) — F8: pre-sized, never reassigned
 	# ── Tree-gravity buffers (allocated always; used when meshless_gravity) ──
 	# Sources = the Voronoi sites (ml_ns); targets = the N-body particles.
 	# Node cap NODE_MAX = ML_TREE_NODE_MAX_MULT·nsrc + slack — the octree of
@@ -2873,6 +2875,13 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(12, _merge_ch_buf), _uniform_storage(13, _merge_cl_buf),
 			_uniform_storage(14, _merge_mc_buf), _uniform_storage(15, _merge_spin_buf),
 			_uniform_storage(16, _field_vel), _uniform_storage(17, _merge_mprev_buf),
+			# ── Boxless site read set (merge_boxless_prereg.md §4) ──
+			# The moving-Voronoi site's cell-averaged field + AREPO gradient +
+			# momentum density. Immutable — zero-cost when the boxless flag is 0.
+			_uniform_storage(18, _ml_sites), _uniform_storage(19, _ml_psi_y),
+			_uniform_storage(20, _ml_psi_i), _uniform_storage(21, _ml_grad_y),
+			_uniform_storage(22, _ml_grad_i), _uniform_storage(23, _ml_pi_y),
+			_uniform_storage(24, _ml_pi_i),
 		], _merge_shader, 0)
 	# On-GPU scan set (FIX B): cc(15) → cs(16) + scr(17) two-level + ch(18).
 	if particle_merge and _scan_shader.is_valid() and _merge_scr_buf.is_valid():
@@ -6109,10 +6118,10 @@ func _realloc_particle_buffers(n: int) -> void:
 		_merge_spin_buf = _rd.storage_buffer_create(np1 * 16)
 		_merge_mprev_buf = _rd.storage_buffer_create(np1 * 4)
 		_merge_cl_buf = _rd.storage_buffer_create(np1 * 4)
-		# F8: the PC byte buffer must stay sized (24 floats) so _merge_bind_dispatch's
+		# F8: the PC byte buffer must stay sized (26 floats) so _merge_bind_dispatch's
 		# encode-in-place never targets an empty buffer (covers init N=0 → swap N>0).
-		if _merge_pc_bytes.size() != 24 * 4:
-			_merge_pc_bytes = PackedByteArray(); _merge_pc_bytes.resize(24 * 4)
+		if _merge_pc_bytes.size() != 26 * 4:
+			_merge_pc_bytes = PackedByteArray(); _merge_pc_bytes.resize(26 * 4)
 
 
 ## Recompute the merge spatial-hash geometry from the CURRENT extents/R_m and

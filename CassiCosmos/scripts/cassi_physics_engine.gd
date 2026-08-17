@@ -154,6 +154,11 @@ var _merge_step_counter := 0
 var merge_subsonic: bool = true   # hypothesis: |v_t| < c_s (no fly-by merges)
 var merge_virial: bool = true     # hypothesis: virialised targets stop accreting
 var merge_sel_gate: bool = true   # doctrine: order-selective q_sel = q_coh·q_ord
+# Boxless field read (boxless_field_prereg.md): when ON (with particle_merge),
+# the merge coherence gate reads the moving-Voronoi site's cell-averaged field +
+# AREPO gradient + momentum density instead of the periodic grid (merge_boxless_prereg.md).
+# Default OFF = grid trilinear, byte-identical. Mirrors the sim's export.
+var boxless_field: bool = false
 # Cascade-multigrid arm (research/cascade_multigrid/multigrid_design.md): a
 # coarse long-range Poisson level at N_c = grid_N/2 (the radix-2 Stockham
 # constraint — the φ-ideal N_c = round(N_f/φ)=40 is NOT radix-2; see the
@@ -337,7 +342,7 @@ var _merge_hash_nx: int = 1; var _merge_hash_ny: int = 1; var _merge_hash_nz: in
 var _merge_hash_total: int = 1
 var _merge_cell_wx: float = 0.0; var _merge_cell_wy: float = 0.0; var _merge_cell_wz: float = 0.0
 var _merge_cycles_run := 0
-var _merge_pc_bytes: PackedByteArray  # merge PC (24 floats = 96 B; F8: pre-sized, encoded in place per dispatch)
+var _merge_pc_bytes: PackedByteArray  # merge PC (26 floats = 104 B; F8: pre-sized, encoded in place per dispatch)
 # ── On-GPU exclusive scan (compute/cassi_exclusive_scan.glsl; FIX B): replaces
 # the host CPU prefix-sum (cc readback + cs/ch uploads) with 4 GPU passes. The
 # scratch buffer holds L1 block totals + L2 (two-level carry) regions. ──
@@ -508,6 +513,7 @@ func setup(cfg: Dictionary) -> bool:
 	merge_subsonic = bool(cfg.get("merge_subsonic", merge_subsonic))
 	merge_virial = bool(cfg.get("merge_virial", merge_virial))
 	merge_sel_gate = bool(cfg.get("merge_sel_gate", merge_sel_gate))
+	boxless_field = bool(cfg.get("boxless_field", boxless_field))
 	cascade_level = bool(cfg.get("cascade_level", cascade_level))
 	bh_accretion = bool(cfg.get("bh_accretion", bh_accretion))
 	bh_accretion_radius = float(cfg.get("bh_accretion_radius", bh_accretion_radius))
@@ -1271,7 +1277,7 @@ func _setup_buffers() -> void:
 		_merge_cell_wx = geom["cell_wx"]
 		_merge_cell_wy = geom["cell_wy"]
 		_merge_cell_wz = geom["cell_wz"]
-		_merge_pc_bytes = PackedByteArray(); _merge_pc_bytes.resize(24 * 4)   # 24 floats = 96 B (cyc_slot@23) — F8: pre-sized, never reassigned
+		_merge_pc_bytes = PackedByteArray(); _merge_pc_bytes.resize(26 * 4)   # 26 floats = 104 B (n_sites@25) — F8: pre-sized, never reassigned
 
 	# Pre-allocate push-constant byte buffers (hitch-free pattern)
 	_pc_bytes = PackedByteArray(); _pc_bytes.resize(11 * 4)
@@ -1452,6 +1458,13 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(12, _merge_ch_buf), _uniform_storage(13, _merge_cl_buf),
 			_uniform_storage(14, _merge_mc_buf), _uniform_storage(15, _merge_spin_buf),
 			_uniform_storage(16, _field_vel), _uniform_storage(17, _merge_mprev_buf),
+			# ── Boxless site read set (merge_boxless_prereg.md §4) ──
+			# The moving-Voronoi site's cell-averaged field + AREPO gradient +
+			# momentum density. Immutable — zero-cost when the boxless flag is 0.
+			_uniform_storage(18, _ml_sites), _uniform_storage(19, _ml_psi_y),
+			_uniform_storage(20, _ml_psi_i), _uniform_storage(21, _ml_grad_y),
+			_uniform_storage(22, _ml_grad_i), _uniform_storage(23, _ml_pi_y),
+			_uniform_storage(24, _ml_pi_i),
 		], _merge_shader, 0)
 	# On-GPU scan set (FIX B): cc(15) → cs(16) + scr(17) two-level + ch(18).
 	if particle_merge and _scan_shader.is_valid() and _merge_scr_buf.is_valid():
@@ -2895,19 +2908,21 @@ func _merge_pc_dict() -> Dictionary:
 		"g_n": _bh_init_bytes.decode_float(28),   # G_N (bh[1].w) — single source of truth
 		"xi": xi, "dt": dt,
 		"subsonic": merge_subsonic, "virial": merge_virial, "order": merge_sel_gate,
+		"boxless": _ml_ready and boxless_field and particle_merge,   # gated: boxless mesh live AND merge on → site-direct read (merge_boxless_prereg.md)
+		"n_sites": _ml_sites_cpu.size() / 4,                         # Voronoi site count (nearest-site read guard)
 	}
 
 
 ## Bind the merge pipeline/set/PC and dispatch one pass mode into the open
 ## list `cl`. F8: the PC is ENCODED INTO the pre-sized `_merge_pc_bytes` member
-## (24 floats = 96 B) — never reassigned — so dispatches stay hitch-free.
+## (26 floats = 104 B) — never reassigned — so dispatches stay hitch-free.
 ## The caller adds barriers between consecutive in-list passes and
 ## submit+sync across lists.
 func _merge_bind_dispatch(cl: int, pass_mode: float, cyc_slot := 0) -> void:
 	var pf := _merge_pc_values()
 	pf[15] = pass_mode
 	pf[23] = float(cyc_slot)
-	for i in range(24):
+	for i in range(26):
 		_merge_pc_bytes.encode_float(i * 4, pf[i])
 	_rd.compute_list_bind_compute_pipeline(cl, _merge_pipe)
 	_rd.compute_list_bind_uniform_set(cl, _us_merge_0, 0)

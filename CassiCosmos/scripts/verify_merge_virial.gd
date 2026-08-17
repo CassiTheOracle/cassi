@@ -60,6 +60,7 @@ var _cen_buf: RID
 var _spin_buf: RID
 var _fvel_buf: RID
 var _mprev_buf: RID
+var _site_dummy_buf: RID   # boxless site-read set (bindings 18-24) — unindexed dummy (boxless off)
 var _ey_buf: RID
 var _ei_buf: RID
 var _best_buf: RID
@@ -128,6 +129,7 @@ func _make_buffers() -> void:
 	_spin_buf = _rd.storage_buffer_create(N * 16)
 	_fvel_buf = _rd.storage_buffer_create(CELLS * 16)
 	_mprev_buf = _rd.storage_buffer_create(N * 4)
+	_site_dummy_buf = _rd.storage_buffer_create(8192 * 16)   # boxless site set — unindexed (boxless off); sized like _ml_sites
 	_ey_buf = _rd.storage_buffer_create(CELLS * 4)
 	_ei_buf = _rd.storage_buffer_create(CELLS * 4)
 	_best_buf = _rd.storage_buffer_create(N * 4)
@@ -149,6 +151,12 @@ func _make_buffers() -> void:
 		_u_storage(12, _ch_buf), _u_storage(13, _cl_buf),
 		_u_storage(14, _mc_buf), _u_storage(15, _spin_buf),
 		_u_storage(16, _fvel_buf), _u_storage(17, _mprev_buf),
+		# Boxless site-read set (merge_boxless_prereg.md §4) — all 7 bindings
+		# present for set validation; unindexed when the boxless flag is off.
+		_u_storage(18, _site_dummy_buf), _u_storage(19, _site_dummy_buf),
+		_u_storage(20, _site_dummy_buf), _u_storage(21, _site_dummy_buf),
+		_u_storage(22, _site_dummy_buf), _u_storage(23, _site_dummy_buf),
+		_u_storage(24, _site_dummy_buf),
 	], _shader, 0)
 
 
@@ -161,7 +169,7 @@ func _u_storage(binding: int, buf: RID) -> RDUniform:
 
 
 func _fill_pc(pass_mode: float) -> void:
-	_pc.resize(24)   # 24 floats: + cyc_slot@23 (batched hop slot; raw-pass test uses slot 0)
+	_pc.resize(26)   # 26 floats: + boxless@24 + n_sites@25 (merge_boxless_prereg.md; both 0 here)
 	_pc[0] = float(N); _pc[1] = PHI; _pc[2] = PHI_INV2; _pc[3] = Q_TH
 	_pc[4] = R_M; _pc[5] = EXTENT; _pc[6] = EXTENT; _pc[7] = EXTENT
 	_pc[8] = float(N_GRID); _pc[9] = float(HASH_NX); _pc[10] = float(HASH_NY); _pc[11] = float(HASH_NZ)
@@ -172,6 +180,8 @@ func _fill_pc(pass_mode: float) -> void:
 	_pc[21] = _fvirial_last   # f_virial (the criterion under test)
 	_pc[22] = 1.0   # f_order
 	_pc[23] = 0.0   # cyc_slot (batched hop slot; the raw-pass test uses slot 0)
+	_pc[24] = 0.0   # boxless (site-direct read) — off in these tests → grid path
+	_pc[25] = 0.0   # n_sites (nearest-site guard) — unused when boxless off
 
 
 func _dispatch(pass_mode: float) -> void:
