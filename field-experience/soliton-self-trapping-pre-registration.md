@@ -1,0 +1,181 @@
+# Soliton Self-Trapping (Wave-0) — PRE-REGISTRATION
+
+**Probe:** `field-experience/soliton_self_trapping_probe.py` (NEW, to be written)
+**Pre-registered:** written BEFORE any run. This file FREEZES the protocol.
+**Date:** 2026-08-16. New files only; no existing file modified; no commits.
+**Tier:** T2 theory-equation test of the CORRECTED within-scale search space (the
+owner's "balance" reframe), upgrading the T3 projection/circulation probes.
+**Status:** Pre-registered—not yet run.
+
+> **Load-bearing choice, stated explicitly (per theory audit):** this probe
+> integrates the **theory-specified RHS from `cassi-theory-reference.md` §4.1
+> `ℒ_TF`** — kinetic/dispersion `+ hyperdiffusion + φ⁴ self-interaction +
+> φ-attractor + Bohm quantum potential + breathe`, with φ⁴ and the Bohm QP
+> **included** (they are missing from BOTH shipped integrators). It does **NOT**
+> run the sim's linear-wave shader (`compute/cassi_two_fluid.glsl`), which is
+> dispersive and cannot hold a soliton by superposition, nor the diffusive
+> Python solver. A null here means "the theory-declared equation does not
+> self-trap a lump in this regime" — **NOT** "the Cassi field has no soliton
+> regime" — and the term-ablation (§6) attributes which term failed.
+
+---
+
+## 0. Problem statement
+
+The unification program ("matter as wound Qi", `qi-flow-double-helix.md:275`)
+claims a particle is a standing wave of the doublet plus its winding, i.e. a
+**soliton condensate of the two-fluid field**; `cassi-theory-reference.md` §8.4
+calls dark matter *high-`q` two-fluid condensates*. The simulator still runs a
+ball-of-atoms particle system with heuristic merge/BH gates (the current crash
+ceiling at large N is that architecture, not the field). The path to a
+field-native reality simulator is: **demonstrate the field itself holds a
+self-trapped, non-dispersing, non-radiating localized lump (a soliton) — whose
+mass lands on the φ-cascade ladder — and that merge/BH become emergent.**
+
+The search has failed to find such a stable structure because the prior
+projection/circulation probes (`multiscale`, `taijitu-spatial`, `crown-swirl`,
+`swirl-dynamics`) sought it at the **φ-ratio** `E_Y = φE_I` (the between-scale
+attractor). The owner's reframe + the verified element dynamics correct this:
+
+> **Between scales** φ is the de-resonant scale-separation attractor (the rung
+> spacing). **Within a scale** the attractor is **balance** — where the mutual
+> coupling of Yin and Yang can no longer attract or repel.
+
+This pre-registration tests: **does a localized coherent seed self-trap to a
+lump whose interior sits at the within-scale balance fixed point `ε*(ρ)`
+(conversion = wake), under the theory-specified `ℒ_TF` RHS?**
+
+---
+
+## 1. Inherited verified record (why this is the next step)
+
+- **Reaction balance fixed point (verified here, 2026-08-16, analytic + numeric;**
+  reproducible via `soliton_epsstar_fixedpoint.py`):
+  the per-cell two-fluid element dynamics from `field_experience.py`,
+  `conv = λ(1−q)ε`, `wake = κ·tanh(ε/σ)`, `dε ∝ wake − conv`, have a **stable
+  within-scale fixed point ε\*(ρ)** where `λ(1−q)ε = κ·tanh(ε/σ)`, and the
+  **φ-line ε=0 is a REPELLER** (pushed off by the wake). Measured ε\*:
+  ρ=1.00→0.848, 1.25→0.995, φ→1.186, 2.00→1.363; `q(ε*)≈0.48–0.64`.
+  This generalizes the `coherence-stability` ledger entry (`ε*≈0.91` on-attractor
+  repeller) to density-dependence and gives the interior target the seed relaxes to.
+- **The theory declares the soliton-capable equation** (line 170 `ℒ_TF`), and
+  **neither integrator implements it** (confirmed by grep: no φ⁴, no Bohm QP in
+  `field_experience.py` / the sim shader).
+- **Euler-Lagrange of `ℒ_TF` (derived + numerically verified here, 2026-08-16;** reproducible
+  via `soliton_el_verify.py`):
+  each term's EL contribution pinned against the discrete coordinate functional
+  derivative (roundoff-exact for 5/6 local terms; Bohm QP verified as exact
+  discrete functional derivative). The governing PDE is in §3.
+
+## 2. Hypothesis statements (pre-registered)
+
+- **H (self-trapping):** under the `ℒ_TF` RHS with φ⁴ + Bohm QP, a localized
+  coherent seed relaxes to a **self-trapped, non-dispersing lump** whose interior
+  approaches the within-scale balance `ε*(ρ)` (conversion = wake), and whose
+  **mass/charge sits on the φ-cascade rung ladder**.
+- **H-partition (decision tree):**
+  - **H-DISPERSES** — the seed spreads/radiates to flat (no lump). Attribute via §6.
+  - **H-COLLAPSES** — the lump contracts to a point / singular (field collapse).
+    Attribute via §6.
+  - **H-HOLDS** — a bounded lump persists for T cascade periods with mass/charge
+    conserved (the soliton regime).
+- **Term-ablation (§6) attributes every verdict to a term**, so a null is
+  *which term failed* (φ⁴ too weak vs hyperdiffusion over-damping vs λ over-driving
+  vs attractor mis-sign), never a bare negative.
+
+## 3. Governing PDE (frozen — the theory-specified RHS)
+
+From the `ℒ_TF` action (§1) via the Euler–Lagrange equation, the real-doublet
+reduction (`Ψ₀ = E_Y, Ψ₁ = E_I`, `M = Ψ₀²+Ψ₁²`, `β = φ⁻¹/2`):
+
+```
+d_t Ψ0 =  a lap(Ψ0) + nu lap^2(Ψ0) + b |Ψ|^2 Ψ0
+        + 2 λ (Ψ0^2 − φ Ψ1^2) Ψ0  −  Q_B0  +  c B(x) Ψ0
+d_t Ψ1 =  a lap(Ψ1) + nu lap^2(Ψ1) + b |Ψ|^2 Ψ1
+        − 2 λ φ (Ψ0^2 − φ Ψ1^2) Ψ1  −  Q_B1  +  c B(x) Ψ1
+```
+
+where `Q_Bα = (ħ²/2m²)·δ/δΨα[∫ (∇²M^β/M^β)·M]` is the (nonlocal) Bohm-QP
+functional derivative — implemented discretely and validated numerically
+(coordinate-FD roundtrip, §1). `nu`, `b`, `λ`, `c` = `A_B`, the coefficient
+placeholders from §4.1, are **declared in the probe run config** (see §5
+parameter table) and defaulted to the values below. Kinetic `a` is the
+wave-speed/dispersion coefficient.
+
+## 4. Seed (the theory's standing wave — frozen)
+
+Use the standing-wave form exactly as `qi-flow-double-helix.md:275`:
+- amplitude `ρ(r) = E_Y + E_I` = a localized bump (e.g. Gaussian of width σ₀),
+  normalized so `∫ρ = 1` (mass/charge unit);
+- phase `θ(r) = atan2(E_I, E_Y)` = a single winding around the bump center
+  (`E_I/ E_Y = tan(θ)` with θ advancing over the lump), carrying the conserved
+  winding number = 1 (the charge/mass of the seed);
+- `q_coh = ρ²/(ρ² + φ⁻² + ε²)` ≥ φ⁻² across the bump core (the coherence gate),
+  so the seed is coherent where it must self-trap.
+
+## 5. Frozen protocol
+
+- **Frozen coefficients (§3 PDE):** `a` (dispersion) = 1.0, `nu` (hyperdiffusion) = 0.01,
+  `b` (φ⁴) = 1.0, `λ` (φ-attractor) = 0.1, `c` (breathe clamp) = 0.0 (off for the
+  baseline self-trap; active in the full-couple follow-up), `β = φ⁻¹/2`, `ħ²/2m² = 1.0`
+  (Bohm-QP scale). These default values make every term O(1)-comparable so the
+  §6 ablation isolates single axes.
+- **Grid:** N³ = 128³ (phase I; grid-robustness re-run at 96³/192³ if H-HOLDS).
+- **Domain:** unit cube (h = 1/N); periodic wrap (same as the sim's Poisson).
+- **Integrator:** spectral/leapfrog-style with a **conservative** (symplectic)
+  base for the dispersive terms + implicit for the reaction/φ-attractor, so
+  mass/charge/energy drift is ≤ 1e-6 over the run. (Soliton stability demands it.)
+- **Statistic (frozen):** for each run (t = 0 … T), measure:
+  - `R(t)` — lump localization width (2nd radial moment of ρ), normalized by R(0);
+  - `Q(t)` — winding/charge (integral of the phase gradient circulation);
+  - `M(t)` — rest mass `∫ρ`;
+  - `eps_mid(t)` — interior ε at the lump center;
+  - `rad_frac(t)` — radiated amplitude outside 2σ₀ (radiation loss).
+- **Verdict thresholds (frozen):**
+  - **H-HOLDS** iff `R(t_max) ≤ 2·R(0)` AND `ΔM < 1e-3` AND `Q(t_max) ≈ Q(0)` (±1%)
+    AND `rad_frac → 0`, over **T ≥ 8 cascade periods** (T = 8·τ where τ = cascade-unit
+    time under the rung spacing).
+  - **H-DISPERSES** iff `R(t_max) > 4·R(0)` (seed spreads) OR `rad_frac → 1`.
+  - **H-COLLAPSES** iff `R(t_max) < 0.1·R(0)` (runaway contraction) or field blows up.
+- **Stopping rule:** run to `t_max`; early-term ONLY on numerical blow-up (finite
+  check), which is classified per §6.
+- **Decision tree:** H-HOLDS ⇒ soliton regime exists; parenthesize with §6 terms.
+  H-DISPERSES / H-COLLAPSES ⇒ classify the dominant missing/over-strong term.
+
+## 6. Term-ablation (null attribution — frozen)
+
+Run H-HOLDS/H-DISPERSES/H-COLLAPSES five times over a single-axis toggle:
+| arm | RHS | purpose |
+|---|---|---|
+| A0 | full `ℒ_TF` (baseline) | does the declared equation alone self-trap? |
+| A1 | drop φ⁴ (`b=0`) | is the self-focusing nonlinearity the trap? |
+| A2 | drop Bohm QP (`Q_B=0`) | is the quantum potential the trap's curvature source? |
+| A3 | hyperdiffusion `nu` ×10 | does 4th-order damping over-erode the lump? |
+| A4 | φ-attractor `λ` ×10 | does the attractor over-drive toward the φ-line (fighting the wake)? |
+
+Each arm reports the same §5 statistics. The attribute is the arm whose toggle
+most changes the verdict (e.g. A1→DISPERSE implicates the φ⁴ term).
+
+## 7. Explicit interpretation guard (per theory audit)
+
+This probe does **NOT** test the shipped sim shader or the diffusive Python
+solver. It tests the **theory-declared `ℒ_TF`**. A null is an attribution to a
+specific term (via §6), meaning "the theory's equation, as specified here, does
+not self-trap in this regime" — it is **not** a global "no-soliton" negative,
+and under no circumstance should a null be read as "the Cassi field has no
+soliton regime."
+
+## 8. Deliverables
+
+1. `soliton_self_trapping_probe.py` (the frozen protocol above, runnable),
+   writing `_diag/soliton_self_trapping.json` with per-arm statistics + verdict.
+2. Report `soliton-self-trapping-report.md` with the verdict, §6 attribution,
+   and the mass-ladder placement of the lump if H-HOLDS.
+3. Ledger row appended to `probe-outcome-ledger.md`.
+
+## 9. Registry note
+
+If H-HOLDS, the lump's mass landing on the φ-cascade ladder is a **numeric
+prediction** and must be synced to `predictions/falsifiable-predictions.md`
+(after the report confirms it), per the registry-first rule. Until then this is
+a T2 model test, not a registered prediction.
