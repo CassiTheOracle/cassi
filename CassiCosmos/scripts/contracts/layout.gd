@@ -47,6 +47,7 @@ const PC := {
 	"cassi_jfa": 8,               # 32 B — N, jump, read_a, n_sites, h_xyz, pad
 	"cassi_condensation": 4,      # 16 B — N, threshold, pads
 	"cassi_field_render": 11,     # 44 B — the field-render PC
+	"cassi_site_shortlist": 3,    # 12 B — n_sites, q_floor, mode (Arm 1 coherence-filtered site shortlist)
 }
 
 ## Host PackedByteArray allocations (float count per var; BLEND is special —
@@ -90,7 +91,7 @@ const BH_EXTENT_FLOAT := 36         # bh[2].y
 const BINDINGS := {
 	"cassi_particle_merge": {0: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]},
 	"cassi_nbody_gravity": {0: [0, 1, 2, 3, 4, 5, 6, 7, 8], 1: [0, 1, 2, 3], 2: [0, 1]},
-	"cassi_instancer": {0: [0, 1, 2, 3, 4, 5, 6]},
+	"cassi_instancer": {0: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]},
 	"cassi_blend_pos": {0: [0, 1, 2]},
 	"cassi_mass_deposit": {0: [0, 1, 2]},
 	"cassi_two_fluid": {0: [0, 1, 2, 3, 4, 5]},
@@ -105,6 +106,7 @@ const BINDINGS := {
 	"cassi_jfa": {0: [0, 1, 2]},
 	"cassi_condensation": {0: [0], 1: [0]},
 	"cassi_field_render": {0: [0, 1, 2, 3], 2: [0]},
+	"cassi_site_shortlist": {0: [0, 1, 2, 3, 4]},
 }
 
 ## The covered shader set (name -> GLSL file), all of which must carry the
@@ -114,5 +116,5 @@ const COVERED := [
 	"cassi_blend_pos", "cassi_mass_deposit", "cassi_two_fluid",
 	"cassi_poisson", "cassi_qhist", "cassi_occupancy", "cassi_tree_build",
 	"cassi_tree_gravity", "cassi_tree_momcon", "cassi_coarse_grad", "cassi_voronoi_cells",
-	"cassi_jfa", "cassi_condensation", "cassi_field_render",
+	"cassi_jfa", "cassi_condensation", "cassi_field_render", "cassi_site_shortlist",
 ]

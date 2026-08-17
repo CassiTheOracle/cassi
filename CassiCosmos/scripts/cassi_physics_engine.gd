@@ -66,6 +66,7 @@ const ML_TREE_THETA := CassiTreeConsts.ML_TREE_THETA
 # ── Meshless (moving-Voronoi) arm — MESHLESS_PLAN.md §10 (ported verbatim) ──
 const ML_N1 := 16              # BCC sublattice count → 2·16³ = 8192 sites at N=64
 const ML_REBUILD := 25         # steering + remap + JFA-refresh cadence (steps)
+const SS_Q_FLOOR := 0.3819660112501051   # Arm 1 shortlist q threshold — φ⁻² (coherent-site floor)
 const TREE_JOB_STEP_CAP := 8   # perf-decomp 2026-08-15: cap a tree-cadence job's step budget so the tree staging readbacks drain a SHORT engine queue (freeze duration stops growing with the backlog)
 const JOB_STEP_CAP := 64       # perf-decomp 2026-08-15: GENERAL per-job cap — a coalesced backlog drains over many short jobs instead of ONE monster chain (measured 500k live: jobs 203→662→2381→6540→14004→28481 steps, ~85 s GPU chains freezing the render flush; 64 steps ≈ ≤0.25 s chain — a hitch, not a freeze; throughput is unchanged, the backlog just drains in bounded slices)
 const ML_KAPPA := 0.5          # Lloyd-style centroid relaxation fraction
@@ -259,6 +260,15 @@ var _raster_pc_bytes: PackedByteArray # raster PC (8 floats: N, n_sites, hx, hy,
 var _ml_sites_cpu := PackedFloat32Array()
 var _ml_ready := false
 var _ml_tree_nsrc := 0
+# ── Arm 1 (coherence_adaptive_prereg.md): the coherence-filtered site
+# shortlist the per-frame boxless INSTANCER samples. Built on the steer
+# cadence (this rebuild list); the sim's render-dc instancer sets read these
+# engine buffers directly (the engine owns the mesh in decoupled mode).
+var _shortlist_shader: RID; var _shortlist_pipe: RID
+var _shortlist_sites: RID      # vec4[max_sites] — (pos.xyz, float(site_idx)) for q ≥ q_floor
+var _shortlist_count: RID      # uint[1] — atomic compaction cursor / result
+var _us_shortlist: RID
+var _shortlist_pc_bytes: PackedByteArray   # 3 floats (12 B): n_sites, q_floor, mode
 # TREE-IN-LIST (M0 commit 2): the tree build+walk runs INSIDE the engine's
 # own compute list on the LIVE buffers (mode-7 gather reads the meshless
 # state directly) — the per-job 130 MB staging round trip and the tree
@@ -939,9 +949,11 @@ func shutdown() -> void:
 	for rid in [
 			_two_fluid_pipe, _nbody_pipe, _poisson_pipe, _mass_deposit_pipe,
 			_cond_pipe, _bh_int_pipe, _jfa_pipe, _cell_pipe, _raster_pipe,
+			_shortlist_pipe,
 			_merge_pipe, _scan_pipe, _bh_acc_pipe,
 			_two_fluid_shader, _nbody_shader, _poisson_shader,
 			_mass_deposit_shader, _cond_shader, _bh_int_shader,
+			_shortlist_shader,
 			_jfa_shader, _cell_shader, _raster_shader, _merge_shader, _scan_shader, _bh_acc_shader,
 			_field_ey, _field_ei, _field_q, _field_vel, _field_scratch,
 			_fft_buf, _tel_buf, _grad_buf, _grad_buf2,
@@ -955,6 +967,7 @@ func shutdown() -> void:
 			_ml_lap_y, _ml_lap_i, _ml_vol,
 			_ml_cen, _ml_remap, _ml_tmp_y, _ml_tmp_i, _ml_tmp_py, _ml_tmp_pi,
 			_ml_grad_y, _ml_grad_i, _ml_lsm_y, _ml_lsm_i,
+			_shortlist_sites, _shortlist_count,
 			_tl_src, _tl_srcw, _tl_key, _tl_order, _tl_cf, _tl_nw, _tl_nq, _tl_nr,
 			_tl_nqq, _tl_ctr, _tl_tic,
 			_tree_bld_sh, _tree_bld_pipe, _tree_walk_sh, _tree_walk_pipe,
@@ -1171,6 +1184,10 @@ func _setup_buffers() -> void:
 	_ml_sites = _rd.storage_buffer_create(ml_ns * 16)
 	_ml_psi_y = _rd.storage_buffer_create(ml_ns * 4)
 	_ml_psi_i = _rd.storage_buffer_create(ml_ns * 4)
+	# Arm 1 shortlist: sized for the worst case (every site coherent). The
+	# instancer scans only the dense subset actually written by the pass.
+	_shortlist_sites = _rd.storage_buffer_create(ml_ns * 16)
+	_shortlist_count = _rd.storage_buffer_create(4)
 	_ml_pi_y = _rd.storage_buffer_create(ml_ns * 4)
 	_ml_pi_i = _rd.storage_buffer_create(ml_ns * 4)
 	_ml_lap_y = _rd.storage_buffer_create(ml_ns * 4)
@@ -1314,6 +1331,10 @@ func _create_pipelines() -> void:
 	_cell_shader = _shader_create("res://compute/cassi_voronoi_cells.glsl")
 	if _cell_shader.is_valid():
 		_cell_pipe = _rd.compute_pipeline_create(_cell_shader)
+	# Arm 1 shortlist (coherence-filtered site subset — see cassi_site_shortlist.glsl)
+	_shortlist_shader = _shader_create("res://compute/cassi_site_shortlist.glsl")
+	if _shortlist_shader.is_valid():
+		_shortlist_pipe = _rd.compute_pipeline_create(_shortlist_shader)
 	_raster_shader = _shader_create("res://compute/cassi_voronoi_raster.glsl")
 	if _raster_shader.is_valid():
 		_raster_pipe = _rd.compute_pipeline_create(_raster_shader)
@@ -1440,6 +1461,14 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(16, _ml_grad_y), _uniform_storage(17, _ml_grad_i),
 			_uniform_storage(18, _ml_lsm_y), _uniform_storage(19, _ml_lsm_i),
 		], _cell_shader, 0)
+	if _shortlist_shader.is_valid():
+		_us_shortlist = _rd.uniform_set_create([
+			_uniform_storage(0, _ml_sites),
+			_uniform_storage(1, _ml_psi_y),
+			_uniform_storage(2, _ml_psi_i),
+			_uniform_storage(3, _shortlist_sites),
+			_uniform_storage(4, _shortlist_count),
+		], _shortlist_shader, 0)
 	if _raster_shader.is_valid():
 		_us_raster_0 = _rd.uniform_set_create([
 			_uniform_storage(0, _ml_labels_a), _uniform_storage(1, _ml_psi_y),
@@ -2097,6 +2126,22 @@ func _mesh_rebuild() -> void:
 	_cell_pc_bytes = _ml_cell_pc(2.0)
 	_rd.compute_list_set_push_constant(cl, _cell_pc_bytes, _cell_pc_bytes.size())
 	_rd.compute_list_dispatch(cl, wg1, 1, 1)
+	_rd.compute_list_add_barrier(cl)
+	# 8. Arm 1: coherence-filtered site shortlist (on the steer cadence). Reset
+	# the atomic count, then compact sites with q_coh ≥ q_floor into the dense
+	# list the per-frame boxless instancer scans (qhist-style site read on a
+	# subset). Off by construction when the instancer's flag.y = 0.
+	if _shortlist_pipe.is_valid() and _us_shortlist.is_valid():
+		_rd.compute_list_bind_compute_pipeline(cl, _shortlist_pipe)
+		_rd.compute_list_bind_uniform_set(cl, _us_shortlist, 0)
+		_shortlist_pc_bytes = PackedFloat32Array([float(ml_ns), SS_Q_FLOOR, 0.0]).to_byte_array()
+		_rd.compute_list_set_push_constant(cl, _shortlist_pc_bytes, _shortlist_pc_bytes.size())
+		_rd.compute_list_dispatch(cl, 1, 1, 1)
+		_rd.compute_list_add_barrier(cl)
+		_shortlist_pc_bytes = PackedFloat32Array([float(ml_ns), SS_Q_FLOOR, 1.0]).to_byte_array()
+		_rd.compute_list_set_push_constant(cl, _shortlist_pc_bytes, _shortlist_pc_bytes.size())
+		_rd.compute_list_dispatch(cl, wgs, 1, 1)
+		_rd.compute_list_add_barrier(cl)
 	_rd.compute_list_end()
 	_finish_standalone_list()
 

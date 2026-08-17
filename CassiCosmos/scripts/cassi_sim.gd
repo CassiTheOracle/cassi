@@ -363,8 +363,7 @@ func _ml_rebuild_threshold() -> int:
 	var q_scaled: float = minf(_q_mean / PHI_INV2, 1.0) if PHI_INV2 > 0.0 else 0.0
 	return maxi(ML_REBUILD, int(round(ML_REBUILD * (1.0 + coherence_rebuild_beta * q_scaled))))
 
-## Boxless field reader (true-boxless arm, boxless_field_design.md): when ON,
-## the q-histogram color-aligner samples the coherence AT PARTICLES from the
+## Boxless field reader (true-boxless arm, boxless_field_design.md): when ON,## the q-histogram color-aligner samples the coherence AT PARTICLES from the
 ## moving-Voronoi sites directly (nearest site's cell-averaged EY/EI) instead
 ## of the periodic rasterized grid's trilinear + %N wrap. Coordinate-independent
 ## — no window, no extent, no wrap — so the color band stays correct even when
@@ -373,6 +372,12 @@ func _ml_rebuild_threshold() -> int:
 ## the grid path). Default OFF = bit-identical battery (the site sample is a
 ## guarded branch, not a zero-multiply — dead when off).
 @export var boxless_field: bool = false
+
+# Arm 1 latch: boxless instancer active when the toggle, meshless mode, and a
+# ready mesh all hold. Session-stable (meshless init gates _ml_ready); the
+# instancer sets re-select boxless variants when this flips at reinit.
+func _ml_boxless_on() -> bool:
+	return boxless_field and meshless_mode and _ml_ready
 
 ## Run the physics on the standalone engine's worker thread (decoupled
 ## producer: the engine owns a local RenderingDevice on its own thread and
@@ -632,6 +637,18 @@ var _lut_u_buf_on: RID = RID()   # 16 B {1,0,0,0} — bound by the LUT set varia
 var _lut_u_buf_off: RID = RID()  # 16 B {0,0,0,0} — bound by the legacy set variants
 var _lut_u_on_bytes: PackedByteArray = PackedByteArray()
 var _lut_u_off_bytes: PackedByteArray = PackedByteArray()
+# Arm 1 boxless instancer set variants: .y in the flag buffer = 1 → the
+# instancer's tri_coherence/tri_phase read the moving-Voronoi sites via the
+# coherence-filtered shortlist. Selected only when _ml_boxless_on(); the
+# legacy sets (flag.y=0) stay the default, bit-identical.
+var _us_inst_0_boxless: RID = RID()
+var _us_inst_0_render_boxless: RID = RID()
+var _us_inst_0_lut_boxless: RID = RID()
+var _us_inst_0_lut_render_boxless: RID = RID()
+var _us_inst_0_boxless_render_dc: RID = RID()
+var _us_inst_0_lut_boxless_render_dc: RID = RID()
+var _shortlist_flag_off: RID = RID()   # 16 B {0,1,0,0}
+var _shortlist_flag_on: RID = RID()    # 16 B {1,1,0,0}
 var _color_lut_tex: ImageTexture = null  # 256×1 RGBA8 — re-baked on band change
 var _lut_sig: PackedFloat32Array = PackedFloat32Array()  # 18 floats: 17 engine + base mode (empty = never baked)
 var _lut_bake_dirty: bool = false
@@ -708,6 +725,7 @@ const ML_LLOYD_P := 4.0
 # keeps the weight nonzero where the deposit has holes. 1e-3 << the deposit
 # densities (O(1)) yet >> fp noise, so it is inert in the rho=0 regression.
 const ML_LLOYD_FLOOR := 1e-3
+const SS_Q_FLOOR := 0.3819660112501051   # Arm 1 shortlist q threshold — φ⁻² (coherent-site floor)
 const ML_INT_MAX := 2147483647
 var _jfa_shader: RID
 var _jfa_pipe: RID
@@ -735,6 +753,13 @@ var _ml_grad_y: RID  # vec4[n_sites] — solved least-squares ∇ψ_y (.xyz), .w
 var _ml_grad_i: RID  # vec4[n_sites] — solved least-squares ∇ψ_i (.xyz), .w = 1
 var _ml_lsm_y: RID   # vec4[3·n_sites] — least-squares M rows + rhs (ψ_y)
 var _ml_lsm_i: RID   # vec4[3·n_sites] — least-squares M rows + rhs (ψ_i)
+# ── Arm 1 shortlist (coherence_adaptive_prereg.md) — the coherent-site subset
+# the per-frame boxless INSTANCER samples (built on the steer cadence) ──
+var _shortlist_shader: RID; var _shortlist_pipe: RID
+var _shortlist_sites: RID      # vec4[max_sites] — (pos.xyz, float(site_idx)) for q ≥ q_floor
+var _shortlist_count: RID      # uint[1] — atomic compaction cursor / result
+var _us_shortlist: RID
+var _shortlist_pc_bytes: PackedByteArray   # 3 floats (12 B): n_sites, q_floor, mode
 var _us_jfa_0: RID
 var _us_cell_0: RID
 var _us_raster_0: RID
@@ -1357,7 +1382,10 @@ func _run_physics_steps(n_steps: int) -> void:
 		# RENDER variant: binding 0 reads _pos_render_buf (the post-batch
 		# interpolation snapshot) — == _pos_buf while _interp_alpha == 1.0,
 		# so the rendered frame is bit-identical today.
-		_rd.compute_list_bind_uniform_set(cl, _us_inst_0_lut_render if _lut_active() else _us_inst_0_render, 0)
+		if _ml_boxless_on():
+			_rd.compute_list_bind_uniform_set(cl, _us_inst_0_lut_render_boxless if _lut_active() else _us_inst_0_render_boxless, 0)
+		else:
+			_rd.compute_list_bind_uniform_set(cl, _us_inst_0_lut_render if _lut_active() else _us_inst_0_render, 0)
 		_rd.compute_list_set_push_constant(cl, _instancer_pc_bytes, _instancer_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, ipg, 1, 1)
 	_rd.compute_list_end()
@@ -1981,7 +2009,10 @@ func _decoupled_poll_and_render() -> void:
 		_fill_instancer_pc()
 		var ipg := ceili(float(N_particles) / 256.0)
 		_rd.compute_list_bind_compute_pipeline(cl, _instancer_pipe)
-		_rd.compute_list_bind_uniform_set(cl, _us_inst_0_lut_render_dc if _lut_active() else _us_inst_0_render_dc, 0)
+		if _ml_boxless_on():
+			_rd.compute_list_bind_uniform_set(cl, _us_inst_0_lut_boxless_render_dc if _lut_active() else _us_inst_0_boxless_render_dc, 0)
+		else:
+			_rd.compute_list_bind_uniform_set(cl, _us_inst_0_lut_render_dc if _lut_active() else _us_inst_0_render_dc, 0)
 		_rd.compute_list_set_push_constant(cl, _instancer_pc_bytes, _instancer_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, ipg, 1, 1)
 	# ── q-histogram (auto color-align; RENDER variant reads pos_render —
@@ -2054,6 +2085,10 @@ func _build_dc_sets() -> void:
 			_uniform_storage(4, eng._field_ey),
 			_uniform_storage(5, eng._field_ei),
 			_uniform_storage(6, _lut_u_buf_off),
+			_uniform_storage(7, eng._shortlist_sites),
+			_uniform_storage(8, eng._ml_psi_y),
+			_uniform_storage(9, eng._ml_psi_i),
+			_uniform_storage(10, eng._shortlist_count),
 		], _instancer_shader, 0)
 		_us_inst_0_lut_render_dc = _rd.uniform_set_create([
 			_uniform_storage(0, _pos_render_buf),
@@ -2063,6 +2098,38 @@ func _build_dc_sets() -> void:
 			_uniform_storage(4, eng._field_ey),
 			_uniform_storage(5, eng._field_ei),
 			_uniform_storage(6, _lut_u_buf_on),
+			_uniform_storage(7, eng._shortlist_sites),
+			_uniform_storage(8, eng._ml_psi_y),
+			_uniform_storage(9, eng._ml_psi_i),
+			_uniform_storage(10, eng._shortlist_count),
+		], _instancer_shader, 0)
+		# ── Arm 1 BOXLESS dc variants (engine builds the shortlist in decoupled
+		# mode → bind eng._shortlist_*). Selected only when _ml_boxless_on().
+		_us_inst_0_boxless_render_dc = _rd.uniform_set_create([
+			_uniform_storage(0, _pos_render_buf),
+			_uniform_storage(1, _mm_rd_rid),
+			_uniform_storage(2, eng._vel_buf),
+			_uniform_storage(3, eng._field_q),
+			_uniform_storage(4, eng._field_ey),
+			_uniform_storage(5, eng._field_ei),
+			_uniform_storage(6, _shortlist_flag_off),
+			_uniform_storage(7, eng._shortlist_sites),
+			_uniform_storage(8, eng._ml_psi_y),
+			_uniform_storage(9, eng._ml_psi_i),
+			_uniform_storage(10, eng._shortlist_count),
+		], _instancer_shader, 0)
+		_us_inst_0_lut_boxless_render_dc = _rd.uniform_set_create([
+			_uniform_storage(0, _pos_render_buf),
+			_uniform_storage(1, _mm_rd_rid),
+			_uniform_storage(2, eng._vel_buf),
+			_uniform_storage(3, eng._field_q),
+			_uniform_storage(4, eng._field_ey),
+			_uniform_storage(5, eng._field_ei),
+			_uniform_storage(6, _shortlist_flag_on),
+			_uniform_storage(7, eng._shortlist_sites),
+			_uniform_storage(8, eng._ml_psi_y),
+			_uniform_storage(9, eng._ml_psi_i),
+			_uniform_storage(10, eng._shortlist_count),
 		], _instancer_shader, 0)
 	if _qhist_shader.is_valid() and _pos_render_buf.is_valid():
 		_us_qhist_0_render_dc = _rd.uniform_set_create([
@@ -2285,6 +2352,10 @@ func _setup_buffers() -> void:
 	_ml_psi_i = _rd.storage_buffer_create(ml_ns * 4)
 	_ml_pi_y = _rd.storage_buffer_create(ml_ns * 4)
 	_ml_pi_i = _rd.storage_buffer_create(ml_ns * 4)
+	# Arm 1 shortlist: sized for the worst case (every site coherent). The
+	# instancer scans only the dense subset actually written.
+	_shortlist_sites = _rd.storage_buffer_create(ml_ns * 16)
+	_shortlist_count = _rd.storage_buffer_create(4)
 	_ml_lap_y = _rd.storage_buffer_create(ml_ns * 4)
 	_ml_lap_i = _rd.storage_buffer_create(ml_ns * 4)
 	_ml_vol = _rd.storage_buffer_create(ml_ns * 4)
@@ -2407,6 +2478,15 @@ func _setup_buffers() -> void:
 	_lut_u_buf_off = _rd.storage_buffer_create(16)
 	_rd.buffer_update(_lut_u_buf_on, 0, 16, _lut_u_on_bytes)
 	_rd.buffer_update(_lut_u_buf_off, 0, 16, _lut_u_off_bytes)
+	# Arm 1 boxless flag buffers: same layout as the LUT on/off (vec4) but with
+	# .y = 1 → the instancer shader's boxless branch reads the moving-Voronoi
+	# shortlist instead of the periodic grid. .x still carries the LUT bit.
+	var _bx_off := PackedFloat32Array([0.0, 1.0, 0.0, 0.0]).to_byte_array()
+	var _bx_on := PackedFloat32Array([1.0, 1.0, 0.0, 0.0]).to_byte_array()
+	_shortlist_flag_off = _rd.storage_buffer_create(16)
+	_shortlist_flag_on = _rd.storage_buffer_create(16)
+	_rd.buffer_update(_shortlist_flag_off, 0, 16, _bx_off)
+	_rd.buffer_update(_shortlist_flag_on, 0, 16, _bx_on)
 	var lut_img := Image.create_empty(LUT_SIZE, 1, false, Image.FORMAT_RGBA8)
 	lut_img.fill(Color(0.4, 0.4, 0.5, 1.0))  # placeholder; the real bake runs in _ready
 	_color_lut_tex = ImageTexture.create_from_image(lut_img)
@@ -2424,6 +2504,7 @@ func _free_buffers() -> void:
 				_ml_lap_y, _ml_lap_i, _ml_vol,
 				_ml_cen, _ml_remap, _ml_tmp_y, _ml_tmp_i, _ml_tmp_py, _ml_tmp_pi,
 				_ml_grad_y, _ml_grad_i, _ml_lsm_y, _ml_lsm_i,
+				_shortlist_sites, _shortlist_count, _shortlist_flag_off, _shortlist_flag_on,
 				_ml_tree_src, _ml_tree_srcw, _ml_tree_key, _ml_tree_order,
 				_ml_tree_cf, _ml_tree_w, _ml_tree_q, _ml_tree_r, _ml_tree_ctr,
 				_ml_tree_nqq, _ml_tree_grad, _ml_tree_icount, _tree_mc_buf,
@@ -2442,6 +2523,8 @@ func _free_buffers() -> void:
 	_field_render_tex = RID()
 	_bh_lensing_tex = RID()
 	_lut_u_buf_on = RID(); _lut_u_buf_off = RID()
+	_shortlist_sites = RID(); _shortlist_count = RID()
+	_shortlist_flag_off = RID(); _shortlist_flag_on = RID()
 	_color_lut_tex = null
 	_tree_mc_buf = RID()   # stale freed RID must not survive a set-only rebuild
 	_tree_worker_stop()
@@ -2458,11 +2541,15 @@ func _free_uniform_sets() -> void:
 				_us_fr_0, _us_fr_2, _us_cond_0, _us_cond_1,
 				_us_bh_int_0, _us_bh_int_1, _us_inst_0, _us_inst_0_render,
 				_us_inst_0_lut, _us_inst_0_lut_render,
+				_us_inst_0_boxless, _us_inst_0_render_boxless,
+				_us_inst_0_lut_boxless, _us_inst_0_lut_render_boxless,
+				_us_inst_0_boxless_render_dc, _us_inst_0_lut_boxless_render_dc,
 				_us_bh_lens_2, _us_blend_0,
 				_us_blend_0_dc, _us_inst_0_render_dc, _us_inst_0_lut_render_dc,
 				_us_qhist_0_render_dc, _us_occ_0_dc,
 				_us_occ_0, _us_qhist_0, _us_qhist_0_render, _us_jfa_0, _us_cell_0, _us_raster_0,
-				_us_tree_build, _us_tree_grav, _us_tree_mc, _us_merge_0, _us_bh_acc_0, _us_scan_0]:
+				_us_tree_build, _us_tree_grav, _us_tree_mc, _us_merge_0, _us_bh_acc_0, _us_scan_0,
+				_us_shortlist]:
 		if rid.is_valid(): _rd.free_rid(rid)
 	_us_two_0 = RID(); _us_two_1 = RID(); _us_two_2 = RID()
 	_us_mass_dep_0 = RID()
@@ -2473,6 +2560,9 @@ func _free_uniform_sets() -> void:
 	_us_bh_int_0 = RID(); _us_bh_int_1 = RID()
 	_us_inst_0 = RID(); _us_inst_0_render = RID(); _us_bh_lens_2 = RID()
 	_us_inst_0_lut = RID(); _us_inst_0_lut_render = RID()
+	_us_inst_0_boxless = RID(); _us_inst_0_render_boxless = RID()
+	_us_inst_0_lut_boxless = RID(); _us_inst_0_lut_render_boxless = RID()
+	_us_inst_0_boxless_render_dc = RID(); _us_inst_0_lut_boxless_render_dc = RID()
 	_us_blend_0 = RID()
 	_us_blend_0_dc = RID(); _us_inst_0_render_dc = RID(); _us_inst_0_lut_render_dc = RID()
 	_us_qhist_0_render_dc = RID(); _us_occ_0_dc = RID()
@@ -2481,6 +2571,7 @@ func _free_uniform_sets() -> void:
 	_us_jfa_0 = RID(); _us_cell_0 = RID(); _us_raster_0 = RID()
 	_us_tree_build = RID(); _us_tree_grav = RID(); _us_tree_mc = RID()
 	_us_merge_0 = RID(); _us_bh_acc_0 = RID(); _us_scan_0 = RID()
+	_us_shortlist = RID()
 
 func _free_shaders() -> void:
 	_free_uniform_sets()  # sets hold shader references; release before the shaders
@@ -2491,6 +2582,7 @@ func _free_shaders() -> void:
 				_instancer_pipe, _mass_deposit_pipe,
 				_cond_pipe, _bh_int_pipe, _occ_pipe, _qhist_pipe,
 				_jfa_pipe, _cell_pipe, _raster_pipe,
+				_shortlist_pipe,
 				_tree_build_pipe, _tree_grav_pipe, _tree_mc_pipe, _blend_pipe,
 				_merge_pipe, _scan_pipe, _bh_acc_pipe,
 				_two_fluid_shader, _nbody_shader, _poisson_shader,
@@ -2498,6 +2590,7 @@ func _free_shaders() -> void:
 				_instancer_shader, _mass_deposit_shader,
 				_cond_shader, _bh_int_shader, _occ_shader, _qhist_shader,
 				_jfa_shader, _cell_shader, _raster_shader,
+				_shortlist_shader,
 				_tree_build_shader, _tree_grav_shader, _tree_mc_shader, _blend_sh,
 				_merge_shader, _scan_shader, _bh_acc_shader]:
 		if rid.is_valid(): _rd.free_rid(rid)
@@ -2539,6 +2632,22 @@ func _setup_shaders() -> void:
 	if _instancer_shader.is_valid():
 		_instancer_pipe = _rd.compute_pipeline_create(_instancer_shader)
 		print("[CassiSim] Instancer pipeline ready")
+
+	# Arm 1 coherence-filtered site shortlist (cassi_site_shortlist.glsl):
+	# reduces the moving-Voronoi sites to the coherent subset the boxless
+	# instancer samples. Pipeline created when the shader imported; the
+	# uniform set binds the site psi buffers + the shortlist outputs.
+	_shortlist_shader = _shader_from_file("res://compute/cassi_site_shortlist.glsl")
+	if _shortlist_shader.is_valid():
+		_shortlist_pipe = _rd.compute_pipeline_create(_shortlist_shader)
+		_us_shortlist = _rd.uniform_set_create([
+			_uniform_storage(0, _ml_sites),
+			_uniform_storage(1, _ml_psi_y),
+			_uniform_storage(2, _ml_psi_i),
+			_uniform_storage(3, _shortlist_sites),
+			_uniform_storage(4, _shortlist_count),
+		], _shortlist_shader, 0)
+		print("[CassiSim] shortlist pipeline ready (set valid=", _us_shortlist.is_valid(), ")")
 
 	# Mass deposit (PIC) — scatters particle masses into field grid
 	_mass_deposit_shader = _shader_from_file("res://compute/cassi_mass_deposit.glsl")
@@ -2777,6 +2886,10 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(4, _field_ey),  # two-axis (color_mode 4): ρ = EY+EI lightness axis
 			_uniform_storage(5, _field_ei),  # two-axis (color_mode 4): ρ = EY+EI
 			_uniform_storage(6, _lut_u_buf_off),  # LUT-mode flag: OFF → legacy color writes, byte-identical
+			_uniform_storage(7, _shortlist_sites),  # Arm 1 boxless shortlist (flag.y=0 → unused)
+			_uniform_storage(8, _ml_psi_y),
+			_uniform_storage(9, _ml_psi_i),
+			_uniform_storage(10, _shortlist_count),
 		], _instancer_shader, 0)
 		# RENDER variant — identical except binding 0 (Positions) reads the
 		# interpolated snapshot _pos_render_buf. Bound for the per-frame
@@ -2791,6 +2904,10 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(4, _field_ey),
 			_uniform_storage(5, _field_ei),
 			_uniform_storage(6, _lut_u_buf_off),
+			_uniform_storage(7, _shortlist_sites),
+			_uniform_storage(8, _ml_psi_y),
+			_uniform_storage(9, _ml_psi_i),
+			_uniform_storage(10, _shortlist_count),
 		], _instancer_shader, 0)
 		# COLOR-AS-LUT variants (Tier-2): identical bindings except binding 6
 		# reads the ON flag buffer — the set selection IS the LUT-mode switch
@@ -2805,6 +2922,10 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(4, _field_ey),
 			_uniform_storage(5, _field_ei),
 			_uniform_storage(6, _lut_u_buf_on),
+			_uniform_storage(7, _shortlist_sites),
+			_uniform_storage(8, _ml_psi_y),
+			_uniform_storage(9, _ml_psi_i),
+			_uniform_storage(10, _shortlist_count),
 		], _instancer_shader, 0)
 		_us_inst_0_lut_render = _rd.uniform_set_create([
 			_uniform_storage(0, _pos_render_buf),
@@ -2814,6 +2935,65 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(4, _field_ey),
 			_uniform_storage(5, _field_ei),
 			_uniform_storage(6, _lut_u_buf_on),
+			_uniform_storage(7, _shortlist_sites),
+			_uniform_storage(8, _ml_psi_y),
+			_uniform_storage(9, _ml_psi_i),
+			_uniform_storage(10, _shortlist_count),
+		], _instancer_shader, 0)
+		# ── Arm 1 BOXLESS variants: flag.y = 1 → the instancer reads the
+		# moving-Voronoi sites via the coherence-filtered shortlist. Selected
+		# only when _ml_boxless_on(); otherwise dead (never dispatched).
+		_us_inst_0_boxless = _rd.uniform_set_create([
+			_uniform_storage(0, _pos_buf),
+			_uniform_storage(1, _mm_rd_rid),
+			_uniform_storage(2, _vel_buf),
+			_uniform_storage(3, _field_q),
+			_uniform_storage(4, _field_ey),
+			_uniform_storage(5, _field_ei),
+			_uniform_storage(6, _shortlist_flag_off),  # .y=1 boxless, .x=0 (legacy flags)
+			_uniform_storage(7, _shortlist_sites),
+			_uniform_storage(8, _ml_psi_y),
+			_uniform_storage(9, _ml_psi_i),
+			_uniform_storage(10, _shortlist_count),
+		], _instancer_shader, 0)
+		_us_inst_0_render_boxless = _rd.uniform_set_create([
+			_uniform_storage(0, _pos_render_buf),
+			_uniform_storage(1, _mm_rd_rid),
+			_uniform_storage(2, _vel_buf),
+			_uniform_storage(3, _field_q),
+			_uniform_storage(4, _field_ey),
+			_uniform_storage(5, _field_ei),
+			_uniform_storage(6, _shortlist_flag_off),
+			_uniform_storage(7, _shortlist_sites),
+			_uniform_storage(8, _ml_psi_y),
+			_uniform_storage(9, _ml_psi_i),
+			_uniform_storage(10, _shortlist_count),
+		], _instancer_shader, 0)
+		_us_inst_0_lut_boxless = _rd.uniform_set_create([
+			_uniform_storage(0, _pos_buf),
+			_uniform_storage(1, _mm_rd_rid),
+			_uniform_storage(2, _vel_buf),
+			_uniform_storage(3, _field_q),
+			_uniform_storage(4, _field_ey),
+			_uniform_storage(5, _field_ei),
+			_uniform_storage(6, _shortlist_flag_on),   # .y=1 boxless, .x=1 (LUT flags)
+			_uniform_storage(7, _shortlist_sites),
+			_uniform_storage(8, _ml_psi_y),
+			_uniform_storage(9, _ml_psi_i),
+			_uniform_storage(10, _shortlist_count),
+		], _instancer_shader, 0)
+		_us_inst_0_lut_render_boxless = _rd.uniform_set_create([
+			_uniform_storage(0, _pos_render_buf),
+			_uniform_storage(1, _mm_rd_rid),
+			_uniform_storage(2, _vel_buf),
+			_uniform_storage(3, _field_q),
+			_uniform_storage(4, _field_ey),
+			_uniform_storage(5, _field_ei),
+			_uniform_storage(6, _shortlist_flag_on),
+			_uniform_storage(7, _shortlist_sites),
+			_uniform_storage(8, _ml_psi_y),
+			_uniform_storage(9, _ml_psi_i),
+			_uniform_storage(10, _shortlist_count),
 		], _instancer_shader, 0)
 		print("[CassiSim] Instancer uniform sets cached (GPU-direct multimesh buffer; LUT variants %s)" % ("ready" if _lut_u_buf_on.is_valid() else "SKIPPED"))
 
@@ -3421,6 +3601,22 @@ func _mesh_rebuild() -> void:
 	_cell_pc_bytes = _ml_cell_pc(2.0)
 	_rd.compute_list_set_push_constant(cl, _cell_pc_bytes, _cell_pc_bytes.size())
 	_rd.compute_list_dispatch(cl, wg1, 1, 1)
+	_rd.compute_list_add_barrier(cl)
+	# 8. Arm 1: coherence-filtered site shortlist (on the steer cadence). Reset
+	# the atomic count, then compact sites with q_coh ≥ q_floor into the dense
+	# list the per-frame boxless instancer scans (off by construction when the
+	# instancer's flag.y = 0).
+	if _shortlist_pipe.is_valid() and _us_shortlist.is_valid():
+		_rd.compute_list_bind_compute_pipeline(cl, _shortlist_pipe)
+		_rd.compute_list_bind_uniform_set(cl, _us_shortlist, 0)
+		_shortlist_pc_bytes = PackedFloat32Array([float(ml_ns), SS_Q_FLOOR, 0.0]).to_byte_array()
+		_rd.compute_list_set_push_constant(cl, _shortlist_pc_bytes, _shortlist_pc_bytes.size())
+		_rd.compute_list_dispatch(cl, 1, 1, 1)
+		_rd.compute_list_add_barrier(cl)
+		_shortlist_pc_bytes = PackedFloat32Array([float(ml_ns), SS_Q_FLOOR, 1.0]).to_byte_array()
+		_rd.compute_list_set_push_constant(cl, _shortlist_pc_bytes, _shortlist_pc_bytes.size())
+		_rd.compute_list_dispatch(cl, wgs, 1, 1)
+		_rd.compute_list_add_barrier(cl)
 	_rd.compute_list_end()
 
 
@@ -4352,11 +4548,18 @@ func _repaint_instancer() -> void:
 	# wrote pos_render from the engine's live pos. Inline: _pos_buf is
 	# current and its own physics-buffer sets are bound.
 	if _decoupled_active:
-		if _lut_active():
+		if _ml_boxless_on():
+			if _lut_active() and _us_inst_0_lut_boxless_render_dc.is_valid():
+				_rd.compute_list_bind_uniform_set(cl, _us_inst_0_lut_boxless_render_dc, 0)
+			elif _us_inst_0_boxless_render_dc.is_valid():
+				_rd.compute_list_bind_uniform_set(cl, _us_inst_0_boxless_render_dc, 0)
+		elif _lut_active():
 			if _us_inst_0_lut_render_dc.is_valid():
 				_rd.compute_list_bind_uniform_set(cl, _us_inst_0_lut_render_dc, 0)
 		elif _us_inst_0_render_dc.is_valid():
 			_rd.compute_list_bind_uniform_set(cl, _us_inst_0_render_dc, 0)
+	elif _ml_boxless_on():
+		_rd.compute_list_bind_uniform_set(cl, _us_inst_0_lut_boxless if _lut_active() else _us_inst_0_boxless, 0)
 	elif _lut_active():
 		_rd.compute_list_bind_uniform_set(cl, _us_inst_0_lut, 0)
 	else:

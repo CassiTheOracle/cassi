@@ -78,6 +78,18 @@ layout(set = 0, binding = 3, std430) readonly buffer FieldQ { float qv[]; };
 // factors through the SHARED helpers vfx_glow_boost/vfx_depth_fade — one
 // formula source for both paths, no drift.
 layout(set = 0, binding = 6, std430) readonly buffer LutFlag { vec4 flag; };
+// ── Arm 1 (coherence_adaptive_prereg.md): boxless instancer source ────────
+// When flag.y > 0.5 (the sim binds a boxless-mode flag buffer), the instancer's
+// coherence/phase at a particle come from the moving-Voronoi sites via the
+// COHERENCE-FILTERED shortlist (built by cassi_site_shortlist.glsl on the steer
+// cadence) — NOT the periodic grid. tri_coherence/tri_phase scan only the
+// shortlist (the structured subset, q ≥ φ⁻²), so the per-particle cost tracks
+// coherent content, not the 8192-site mesh count. flag.y = 0 (default, any
+// non-boxless set) → the grid trilinear path is used, bit-identical to today.
+layout(set = 0, binding = 7, std430) readonly buffer Shortlist { vec4 sl[]; };
+layout(set = 0, binding = 8, std430) readonly buffer SitePsiY { float psy[]; };
+layout(set = 0, binding = 9, std430) readonly buffer SitePsiI { float psi[]; };
+layout(set = 0, binding = 10, std430) readonly buffer ShortlistCount { uint cnt; };
 
 // ── Consolidated gradient engine PC (32 floats = 128 B — the AMD RDNA3
 // Vulkan push-constant cap; EXACTLY 128, nothing more) ──────────────────
@@ -275,7 +287,14 @@ float tri_rho(vec3 wp) {
 // (|ε| large) fields map to DIFFERENT q_coh at equal ρ amplitude — the hue
 // channel is order-sensitive, never just amplitude. Uses the EY/EI field
 // buffers bound at 4/5 (same convention as tri_rho).
+// (Arm 1 boxless helpers are defined after tri_phase; forward-declare here —
+// GLSL requires declaration before use.)
+bool boxless_active(void);
+int nearest_shortlist_site(vec3 wp, out bool found);
+float site_q_at(vec3 wp);
+float site_phase_at(vec3 wp);
 float tri_coherence(vec3 wp) {
+    if (boxless_active()) { return site_q_at(wp); }
     int N = int(pc.N_f);
     float hn = float(N) * 0.5;
     vec3 ext = vec3(pc.extent_x, pc.extent_y, pc.extent_z);
@@ -312,6 +331,7 @@ float tri_coherence(vec3 wp) {
 // with the field's internal structure instead of one flat tone. Returns θ
 // wrapped to [0,1); callers rotate/scale for the hue wheel.
 float tri_phase(vec3 wp) {
+    if (boxless_active()) { return site_phase_at(wp); }
     int N = int(pc.N_f);
     float hn = float(N) * 0.5;
     vec3 ext = vec3(pc.extent_x, pc.extent_y, pc.extent_z);
@@ -339,6 +359,47 @@ float tri_phase(vec3 wp) {
     // even faint ordered fields both carry phase; only a dead cell
     // (EY=EI=0) is undefined.
     return atan(ei, ey) / 6.283185307179586 + 0.5;
+}
+
+// ── Arm 1 (coherence_adaptive_prereg.md): boxless site sampling ─────────
+// The nearest coherent site's cell-averaged (EY, EI) at a world point,
+// scanned over the DENSE shortlist (indices+positions, q ≥ q_floor). Uses the
+// shortlist's .w as the site index into the psi buffers — so the per-particle
+// cost is O(shortlist) not O(8192). Active only when flag.y > 0.5 (boxless
+// instancer set bound); otherwise the grid trilinear paths above are used.
+bool boxless_active(void) { return flag.y > 0.5; }
+// Returns the site index of the nearest shortlisted site; -1 if the shortlist
+// is empty. (GLSL has no int -1 from a 0-min scan failure — use a flag.)
+int nearest_shortlist_site(vec3 wp, out bool found) {
+    found = false;
+    uint n = cnt;
+    if (n == 0u) return 0;
+    int best = -1;
+    float bd = 1e30;
+    for (uint k = 0u; k < n; k++) {
+        vec3 d = sl[k].xyz - wp;
+        float dd = dot(d, d);
+        if (dd < bd) { bd = dd; best = int(sl[k].w); }
+    }
+    found = best >= 0;
+    return best;
+}
+float site_q_at(vec3 wp) {
+    bool found;
+    int si = nearest_shortlist_site(wp, found);
+    if (!found) return 0.0;
+    float ey = psy[si];
+    float ei = psi[si];
+    float rho = ey + ei;
+    float eps = ey - pc.phi * ei;
+    float rho2 = rho * rho;
+    return rho2 / (rho2 + PHI_INV2 + eps * eps);
+}
+float site_phase_at(vec3 wp) {
+    bool found;
+    int si = nearest_shortlist_site(wp, found);
+    if (!found) return 0.0;
+    return atan(psi[si], psy[si]) / 6.283185307179586 + 0.5;
 }
 
 // ── Mode/feature decoding ──────────────────────────────────────────────
