@@ -206,6 +206,115 @@ twist-mediated and multi-scale → re-open the §9 registry path.
 the QP term stays regularized (field-relative floor + clipped inverse) so a
 null is a physics claim about the tight-twist regime, not a NaN artifact.
 
+## 11. Amendment 2 (2026-08-16): multi-scale axial probe — the twist is cross-rung flow
+
+**Owner correction (confirmed).** Amendment 1 tested the twist as a *spatial*
+winding on a single-scale Gaussian. The theory places the winding in
+**(scale, doublet-plane) space**, not as spatial filaments
+(`foundations/qi-flow-double-helix.md` §3.5): the helix is the **axial phase
+winding along the cascade**, and it is **emergent from coherence flowing up the
+rungs** — `J_z = R²∂_zθ` (£3.2), φ⁻¹ per rung, the doublet phase advancing π
+per rung (P_∥ = 2, §3.3), winding born from a relaxation excess ε₀ (§3, the
+relaxation winding Δϑ(ε₀)). The single-scale probe had no cascade extent and no
+inflow, so it removed the mechanism by construction. Owner: *"the trap needs
+both the per-rung phase advance AND the axial multi-rung extent; the twist must
+close tightly from the coherence flow of the lower scales."*
+
+**Amendment.** The probe moves onto the shipped **lattice-stack machinery**
+(`run_lattice_stack_probe.py`, read-only): M two-lobe coherence layers along z
+(the string axis) with per-layer phase `θ_i = i·Δθ`. Three changes realize the
+multi-scale flow:
+
+1. **φ-spaced shells** (cascade extent): layer positions `z_i` spaced by the
+   cascade ladder `ℓ_n ∝ φ^n` around the lump, with the **fine (small-spacing)
+   end = lower rungs** — replacing the base's uniform `s = N/M` spacing. The
+   lump spans rungs, not a single scale.
+2. **Per-rung phase advance**: `θ_i = i·Δθ` with `Δθ` at the natural closure
+   steps — pentagon `2π/5` (R = φ), decagon `π/5`, and the **P_∥ = 2 anti-phase
+   `π`** (double-helix closure).
+3. **Seeded coherence excess at the fine end**: the low-φ shells carry a
+   stronger `ε` perturbation (`ε₀`), the coherence excess the lower scales feed
+   up, so the relaxation winding `Δϑ(ε₀)` can emerge as an axial current.
+
+**Base = shipped solver** (`cassi_two_fluid_3d_gpu.py`, gate 'five') with its
+native `(1−q)` gate and `dθ/dt = λ(1−q)·ρε/(E_Y²+E_I²)` winding — the real
+machinery, not the stripped ℒ_TF form.
+
+**Arms (fresh solver per arm, N = 48, dt = 0.001, t = 40 = 2/λ, zero new
+terms — identical discipline to the lattice-stack family):**
+
+| arm | geometry | asks |
+|-----|----------|------|
+| A_phi_en | φ-spaced + phase + fine-excess | does the multi-scale flow lock a persistent two-hump envelope? |
+| A_phi_ne | φ-spaced + phase, no excess | is the fine-end excess load-bearing? |
+| A_uni_en | uniform spacing + phase + excess | is φ-spacing load-bearing? |
+| A_uni_ne | uniform + phase, no excess | base control |
+| m1       | single layer (M=1) | the known TS1 escape control |
+
+**Frozen statistic/verdict (extend §5):** envelope persistence — `C_abs`
+(two-hump contrast) and `A_peak` retention at t = 4 and t = 40; axial current
+`|J_z|` growth; `winding`; mass drift. **H-HOLDS** iff the arm with
+φ-spacing+phase+fine-excess keeps `C_abs(40) ≥ 0.5` and `A_peak(40)/A_peak(0)
+≥ 0.5` while the A_uni_ne / m1 controls escape (C_abs → ~0), and mass/charge
+drift ≤ 1e-6. **H-DISPERSES** iff all arms escape alike. **H-COLLAPSES** on
+blow-up. Attribution: which element (φ-spacing, phase, fine-excess) is
+necessary by pairwise contrast.
+
+**Relation to Amendment 1 / Wave-0:** this uses the shipped winding solver so a
+null here is a real "the axial flow through a multi-rung stack does not
+self-lock" claim on the actual theory machinery — not an artifact of a stripped
+equation.
+
+## 12. Amendment 3 (2026-08-16): meshless coherence-cluster depth probe — cascade suppression
+
+**Owner steering (priority).** The grid PDE runs hit the resolution wall it
+exists to remove: at M ≥ 11 the φ-spaced shells overlap below the layer width
+on a fixed N³ grid, so deeper cascade structure needs a bigger box (8× per
+octave). The owner: *"these are the kinds of limitations the simulator's
+meshless mode was made for — use the simulation's solver instead of doing these
+PDE tests. Start with (a) coherence-as-order-parameter; (b) two-fluid winding on
+particles later. The goal is for the simulator to simulate reality."*
+
+**Amendment.** Move the cascade-depth question onto the **meshless Qi-gated
+particle solver** (`two-fluid/cassi_nbody.py` — leapfrog KDK, FFT-Poisson +
+Gaussian softening, Qi-gated adaptive softening `q = ρ²/(ρ²+φ⁻²+ε²)`, Qi-gated
+r_cut linking). The order parameter is the solver's own particle coherence
+(the "φ-organized multi-scale cluster" tests whether more cascade rungs →
+more stable, i.e. the cascade-suppression mechanism).
+
+**Seed (φ-organized multi-scale coherent cluster):** N bodies in nested shells
+at φ-spaced radii `r_k = r_min·φ^k` (k = 0..D−1, D = rung depth). The inner
+(fine, lower-rung) shells carry the density/coherence excess ("lower scales
+feed up") — realized natively by the Qi gate: the dense inner shells have high
+`q = ρ²/(ρ²+φ⁻²+ε²)` → adaptive softening collapses → stronger core binding.
+
+**Mechanism under test:** a multi-rung coherent cluster should self-persist
+(retain its φ-spaced radial + coherence structure) longer than a single-scale
+blob — more rungs → more stable. That depth scaling IS cascade suppression
+(φ⁻¹ per rung coupling, `qi-flow-double-helix.md` §3.2).
+
+**Arms (fresh solver per arm, L=20, G=1, sigma=0.4, dt=0.001, KDK):**
+
+| arm | depth D (rungs) | asks |
+|-----|-----------------|------|
+| depth_1 | 1 (single shell, control) | does a single-scale blob just spread? |
+| depth_2 | 2 (φ-nested) | is a second rung more stable? |
+| depth_4 | 4 (φ-nested) | does deeper hold longer? |
+
+Total mass/outer-size matched across arms; only rung depth (and inner fine
+resolution) differ. Measure: radial shell-spacing retention vs t (φ-spacing
+preserved), coherence profile q(r) retention, core radius vs t, mass drift.
+
+**Frozen statistic/verdict:** let `T_hold(D)` = time the φ-spaced radial
+structure (shell spacing within ±20% of φ) and the interior q ≥ 0.5·q(0) are
+both retained. **SUPPORTS cascade suppression** iff `T_hold` is monotone
+increasing in D (depth_4 > depth_2 > depth_1) and depth_4 ≥ 2× depth_1;
+DOES NOT SUPPORT otherwise. Mass drift ≤ 1e-6 per arm (solver conservation).
+
+**Relation:** uses the shipped Qi-gated meshless solver as-is (coherence is
+already the order parameter for softening/binding) — no bespoke equation, and
+the depth result transfers directly to the simulator.
+
 If H-HOLDS, the lump's mass landing on the φ-cascade ladder is a **numeric
 prediction** and must be synced to `predictions/falsifiable-predictions.md`
 (after the report confirms it), per the registry-first rule. Until then this is
