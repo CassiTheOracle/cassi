@@ -1,5 +1,5 @@
 #[compute]
-// canonical layout: scripts/contracts/layout.gd §PC — 32 floats (128 B — the RDNA3 Vulkan cap); set 0: bindings 0-6
+// canonical layout: scripts/contracts/layout.gd §PC — 32 floats (128 B — the RDNA3 Vulkan cap); set 0: bindings 0-13
 #version 450
 // Cassi Particle Instancer — writes to MultiMesh buffer (16 floats/instance):
 //   3x4 row-major transform + 4 color (as confirmed by Godot issue #76884):
@@ -90,6 +90,15 @@ layout(set = 0, binding = 7, std430) readonly buffer Shortlist { vec4 sl[]; };
 layout(set = 0, binding = 8, std430) readonly buffer SitePsiY { float psy[]; };
 layout(set = 0, binding = 9, std430) readonly buffer SitePsiI { float psi[]; };
 layout(set = 0, binding = 10, std430) readonly buffer ShortlistCount { uint cnt; };
+// ── Boxless site hash (boxless_site_hash_prereg.md): the spatial hash over the
+// shortlist. The boxless instancer set binds 11/12/13; the query uses them (with
+// extent_x from the PC) to do a bounded growing-ring nearest-coherent-site lookup
+// instead of the linear O(shortlist) scan. Default (flag.y ≤ 0.5) never reads them.
+layout(set = 0, binding = 11, std430) readonly buffer HashCellStart { uint hcs[]; };
+layout(set = 0, binding = 12, std430) readonly buffer HashCellSites { uint hsite[]; };
+layout(set = 0, binding = 13, std430) readonly buffer HashCfg {
+    vec4 cfg;   // (box_min.x, box_min.y, box_min.z, cell_side)
+};
 
 // ── Consolidated gradient engine PC (32 floats = 128 B — the AMD RDNA3
 // Vulkan push-constant cap; EXACTLY 128, nothing more) ──────────────────
@@ -370,16 +379,57 @@ float tri_phase(vec3 wp) {
 bool boxless_active(void) { return flag.y > 0.5; }
 // Returns the site index of the nearest shortlisted site; -1 if the shortlist
 // is empty. (GLSL has no int -1 from a 0-min scan failure — use a flag.)
+// BOXLESS HASH (boxless_site_hash_prereg.md): a growing-Chebyshev-ring query
+// over the spatial hash built by cassi_site_hash.glsl. Scans all cells in rings
+// ≤ r (the full r-cube) and breaks on a DISTANCE bound: an unscanned cell has
+// Chebyshev ≥ r+1, so its nearest point is ≥ r·cs away (the cells at offsets
+// 1..r fill the r·cs gap). When the best site found is strictly closer than
+// (r·cs)², no unscanned cell can hold a closer site → the result IS the
+// brute-force nearest. Exact by construction (a closer site lives in ≤ r) — the
+// probe confirms equivalence rather than tuning it. Cost: 27 cells at r=1 (the
+// dense-blob case), rising only in sparse voids where there are few sites.
 int nearest_shortlist_site(vec3 wp, out bool found) {
     found = false;
     uint n = cnt;
     if (n == 0u) return 0;
+    vec3 mn = cfg.xyz;
+    float cs = cfg.w;
+    int H = int(round(2.0 * pc.extent_x / max(cs, 1e-9)));
+    int cx = clamp(int(floor((wp.x - mn.x) / cs)), 0, H - 1);
+    int cy = clamp(int(floor((wp.y - mn.y) / cs)), 0, H - 1);
+    int cz = clamp(int(floor((wp.z - mn.z) / cs)), 0, H - 1);
     int best = -1;
     float bd = 1e30;
-    for (uint k = 0u; k < n; k++) {
-        vec3 d = sl[k].xyz - wp;
-        float dd = dot(d, d);
-        if (dd < bd) { bd = dd; best = int(sl[k].w); }
+    // Scan the full r-cube (all cells Chebyshev ≤ r). Break only on the DISTANCE
+    // bound: an unscanned cell has Chebyshev ≥ r+1, whose nearest point is at
+    // distance ≥ r·cs (the cells at offsets 1..r fill the r·cs gap). When the best
+    // site so far is strictly closer than (r·cs)², no unscanned site can beat it →
+    // exact nearest is known, for ANY distance. Hard cap r <= H (the grid span):
+    // at r = H the ring covers every cell (equivalent to brute force, still exact)
+    // and the bound is always satisfiable — this guards against degenerate (NaN /
+    // zero-cell) inputs hanging the GPU. A fixed "any site found" break would be
+    // WRONG: a site in the query cell can be farther than one in a neighbor ring.
+    for (int r = 0; r <= H; r++) {
+        int lo = -r, hi = r;
+        int x0 = max(cx + lo, 0), x1 = min(cx + hi, H - 1);
+        int y0 = max(cy + lo, 0), y1 = min(cy + hi, H - 1);
+        int z0 = max(cz + lo, 0), z1 = min(cz + hi, H - 1);
+        for (int dz = z0; dz <= z1; dz++) {
+            for (int dy = y0; dy <= y1; dy++) {
+                for (int dx = x0; dx <= x1; dx++) {
+                    uint cell = uint(dx + H * (dy + H * dz));
+                    uint a = hcs[cell], b = hcs[cell + 1u];
+                    for (uint k = a; k < b; k++) {
+                        uint s = hsite[k];
+                        vec3 d = sl[s].xyz - wp;
+                        float dd = dot(d, d);
+                        if (dd < bd) { bd = dd; best = int(sl[s].w); }
+                    }
+                }
+            }
+        }
+        float next_min2 = (float(r) * cs) * (float(r) * cs);
+        if (bd < next_min2) break;   // exact: no cell beyond ring r can hold a closer site
     }
     found = best >= 0;
     return best;

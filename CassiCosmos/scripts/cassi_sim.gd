@@ -726,6 +726,7 @@ const ML_LLOYD_P := 4.0
 # densities (O(1)) yet >> fp noise, so it is inert in the rho=0 regression.
 const ML_LLOYD_FLOOR := 1e-3
 const SS_Q_FLOOR := 0.3819660112501051   # Arm 1 shortlist q threshold — φ⁻² (coherent-site floor)
+const HASH_H := 32                        # boxless site hash cells per axis (32768 cells)
 const ML_INT_MAX := 2147483647
 var _jfa_shader: RID
 var _jfa_pipe: RID
@@ -760,6 +761,13 @@ var _shortlist_sites: RID      # vec4[max_sites] — (pos.xyz, float(site_idx)) 
 var _shortlist_count: RID      # uint[1] — atomic compaction cursor / result
 var _us_shortlist: RID
 var _shortlist_pc_bytes: PackedByteArray   # 3 floats (12 B): n_sites, q_floor, mode
+# ── Boxless site hash (boxless_site_hash_prereg.md): the spatial hash over the
+# shortlist (sim's own inline build; the decoupled arm reads the engine's).
+var _hash_shader: RID; var _hash_pipe: RID
+var _hash_cell_start: RID; var _hash_cell_sites: RID; var _hash_cell_count: RID
+var _hash_cfg: RID
+var _us_hash: RID
+var _hash_pc_bytes: PackedByteArray   # 6 floats (24 B): ext_xyz, h, n_shortlist, mode
 var _us_jfa_0: RID
 var _us_cell_0: RID
 var _us_raster_0: RID
@@ -2089,6 +2097,9 @@ func _build_dc_sets() -> void:
 			_uniform_storage(8, eng._ml_psi_y),
 			_uniform_storage(9, eng._ml_psi_i),
 			_uniform_storage(10, eng._shortlist_count),
+			_uniform_storage(11, eng._hash_cell_start),
+			_uniform_storage(12, eng._hash_cell_sites),
+			_uniform_storage(13, eng._hash_cfg),
 		], _instancer_shader, 0)
 		_us_inst_0_lut_render_dc = _rd.uniform_set_create([
 			_uniform_storage(0, _pos_render_buf),
@@ -2102,6 +2113,9 @@ func _build_dc_sets() -> void:
 			_uniform_storage(8, eng._ml_psi_y),
 			_uniform_storage(9, eng._ml_psi_i),
 			_uniform_storage(10, eng._shortlist_count),
+			_uniform_storage(11, eng._hash_cell_start),
+			_uniform_storage(12, eng._hash_cell_sites),
+			_uniform_storage(13, eng._hash_cfg),
 		], _instancer_shader, 0)
 		# ── Arm 1 BOXLESS dc variants (engine builds the shortlist in decoupled
 		# mode → bind eng._shortlist_*). Selected only when _ml_boxless_on().
@@ -2117,6 +2131,9 @@ func _build_dc_sets() -> void:
 			_uniform_storage(8, eng._ml_psi_y),
 			_uniform_storage(9, eng._ml_psi_i),
 			_uniform_storage(10, eng._shortlist_count),
+			_uniform_storage(11, eng._hash_cell_start),
+			_uniform_storage(12, eng._hash_cell_sites),
+			_uniform_storage(13, eng._hash_cfg),
 		], _instancer_shader, 0)
 		_us_inst_0_lut_boxless_render_dc = _rd.uniform_set_create([
 			_uniform_storage(0, _pos_render_buf),
@@ -2130,6 +2147,9 @@ func _build_dc_sets() -> void:
 			_uniform_storage(8, eng._ml_psi_y),
 			_uniform_storage(9, eng._ml_psi_i),
 			_uniform_storage(10, eng._shortlist_count),
+			_uniform_storage(11, eng._hash_cell_start),
+			_uniform_storage(12, eng._hash_cell_sites),
+			_uniform_storage(13, eng._hash_cfg),
 		], _instancer_shader, 0)
 	if _qhist_shader.is_valid() and _pos_render_buf.is_valid():
 		_us_qhist_0_render_dc = _rd.uniform_set_create([
@@ -2356,6 +2376,13 @@ func _setup_buffers() -> void:
 	# instancer scans only the dense subset actually written.
 	_shortlist_sites = _rd.storage_buffer_create(ml_ns * 16)
 	_shortlist_count = _rd.storage_buffer_create(4)
+	# Boxless site hash (boxless_site_hash_prereg.md): n_cells = HASH_H³, cell_sites
+	# worst-case sized, cfg vec4 for the box_min/cell_side the query reads.
+	var hcells_s: int = HASH_H * HASH_H * HASH_H
+	_hash_cell_start = _rd.storage_buffer_create((hcells_s + 1) * 4)
+	_hash_cell_sites = _rd.storage_buffer_create(maxi(ml_ns, 1) * 4)
+	_hash_cell_count = _rd.storage_buffer_create(hcells_s * 4)
+	_hash_cfg = _rd.storage_buffer_create(16)
 	_ml_lap_y = _rd.storage_buffer_create(ml_ns * 4)
 	_ml_lap_i = _rd.storage_buffer_create(ml_ns * 4)
 	_ml_vol = _rd.storage_buffer_create(ml_ns * 4)
@@ -2505,6 +2532,7 @@ func _free_buffers() -> void:
 				_ml_cen, _ml_remap, _ml_tmp_y, _ml_tmp_i, _ml_tmp_py, _ml_tmp_pi,
 				_ml_grad_y, _ml_grad_i, _ml_lsm_y, _ml_lsm_i,
 				_shortlist_sites, _shortlist_count, _shortlist_flag_off, _shortlist_flag_on,
+				_hash_cell_start, _hash_cell_sites, _hash_cell_count, _hash_cfg,
 				_ml_tree_src, _ml_tree_srcw, _ml_tree_key, _ml_tree_order,
 				_ml_tree_cf, _ml_tree_w, _ml_tree_q, _ml_tree_r, _ml_tree_ctr,
 				_ml_tree_nqq, _ml_tree_grad, _ml_tree_icount, _tree_mc_buf,
@@ -2524,6 +2552,7 @@ func _free_buffers() -> void:
 	_bh_lensing_tex = RID()
 	_lut_u_buf_on = RID(); _lut_u_buf_off = RID()
 	_shortlist_sites = RID(); _shortlist_count = RID()
+	_hash_cell_start = RID(); _hash_cell_sites = RID(); _hash_cell_count = RID(); _hash_cfg = RID()
 	_shortlist_flag_off = RID(); _shortlist_flag_on = RID()
 	_color_lut_tex = null
 	_tree_mc_buf = RID()   # stale freed RID must not survive a set-only rebuild
@@ -2549,7 +2578,7 @@ func _free_uniform_sets() -> void:
 				_us_qhist_0_render_dc, _us_occ_0_dc,
 				_us_occ_0, _us_qhist_0, _us_qhist_0_render, _us_jfa_0, _us_cell_0, _us_raster_0,
 				_us_tree_build, _us_tree_grav, _us_tree_mc, _us_merge_0, _us_bh_acc_0, _us_scan_0,
-				_us_shortlist]:
+				_us_shortlist, _us_hash]:
 		if rid.is_valid(): _rd.free_rid(rid)
 	_us_two_0 = RID(); _us_two_1 = RID(); _us_two_2 = RID()
 	_us_mass_dep_0 = RID()
@@ -2571,7 +2600,7 @@ func _free_uniform_sets() -> void:
 	_us_jfa_0 = RID(); _us_cell_0 = RID(); _us_raster_0 = RID()
 	_us_tree_build = RID(); _us_tree_grav = RID(); _us_tree_mc = RID()
 	_us_merge_0 = RID(); _us_bh_acc_0 = RID(); _us_scan_0 = RID()
-	_us_shortlist = RID()
+	_us_shortlist = RID(); _us_hash = RID()
 
 func _free_shaders() -> void:
 	_free_uniform_sets()  # sets hold shader references; release before the shaders
@@ -2582,7 +2611,7 @@ func _free_shaders() -> void:
 				_instancer_pipe, _mass_deposit_pipe,
 				_cond_pipe, _bh_int_pipe, _occ_pipe, _qhist_pipe,
 				_jfa_pipe, _cell_pipe, _raster_pipe,
-				_shortlist_pipe,
+				_shortlist_pipe, _hash_pipe,
 				_tree_build_pipe, _tree_grav_pipe, _tree_mc_pipe, _blend_pipe,
 				_merge_pipe, _scan_pipe, _bh_acc_pipe,
 				_two_fluid_shader, _nbody_shader, _poisson_shader,
@@ -2590,7 +2619,7 @@ func _free_shaders() -> void:
 				_instancer_shader, _mass_deposit_shader,
 				_cond_shader, _bh_int_shader, _occ_shader, _qhist_shader,
 				_jfa_shader, _cell_shader, _raster_shader,
-				_shortlist_shader,
+				_shortlist_shader, _hash_shader,
 				_tree_build_shader, _tree_grav_shader, _tree_mc_shader, _blend_sh,
 				_merge_shader, _scan_shader, _bh_acc_shader]:
 		if rid.is_valid(): _rd.free_rid(rid)
@@ -2648,6 +2677,19 @@ func _setup_shaders() -> void:
 			_uniform_storage(4, _shortlist_count),
 		], _shortlist_shader, 0)
 		print("[CassiSim] shortlist pipeline ready (set valid=", _us_shortlist.is_valid(), ")")
+	# Boxless site hash (cassi_site_hash.glsl): buckets the shortlist into the
+	# uniform grid for the boxless instancer's bounded-ring nearest-site query.
+	_hash_shader = _shader_from_file("res://compute/cassi_site_hash.glsl")
+	if _hash_shader.is_valid():
+		_hash_pipe = _rd.compute_pipeline_create(_hash_shader)
+		_us_hash = _rd.uniform_set_create([
+			_uniform_storage(0, _shortlist_sites),
+			_uniform_storage(1, _hash_cell_start),
+			_uniform_storage(2, _hash_cell_sites),
+			_uniform_storage(3, _hash_cell_count),
+			_uniform_storage(4, _shortlist_count),
+		], _hash_shader, 0)
+		print("[CassiSim] boxless site-hash pipeline ready (set valid=", _us_hash.is_valid(), ")")
 
 	# Mass deposit (PIC) — scatters particle masses into field grid
 	_mass_deposit_shader = _shader_from_file("res://compute/cassi_mass_deposit.glsl")
@@ -2890,6 +2932,9 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(8, _ml_psi_y),
 			_uniform_storage(9, _ml_psi_i),
 			_uniform_storage(10, _shortlist_count),
+			_uniform_storage(11, _hash_cell_start),
+			_uniform_storage(12, _hash_cell_sites),
+			_uniform_storage(13, _hash_cfg),
 		], _instancer_shader, 0)
 		# RENDER variant — identical except binding 0 (Positions) reads the
 		# interpolated snapshot _pos_render_buf. Bound for the per-frame
@@ -2908,6 +2953,9 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(8, _ml_psi_y),
 			_uniform_storage(9, _ml_psi_i),
 			_uniform_storage(10, _shortlist_count),
+			_uniform_storage(11, _hash_cell_start),
+			_uniform_storage(12, _hash_cell_sites),
+			_uniform_storage(13, _hash_cfg),
 		], _instancer_shader, 0)
 		# COLOR-AS-LUT variants (Tier-2): identical bindings except binding 6
 		# reads the ON flag buffer — the set selection IS the LUT-mode switch
@@ -2926,6 +2974,9 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(8, _ml_psi_y),
 			_uniform_storage(9, _ml_psi_i),
 			_uniform_storage(10, _shortlist_count),
+			_uniform_storage(11, _hash_cell_start),
+			_uniform_storage(12, _hash_cell_sites),
+			_uniform_storage(13, _hash_cfg),
 		], _instancer_shader, 0)
 		_us_inst_0_lut_render = _rd.uniform_set_create([
 			_uniform_storage(0, _pos_render_buf),
@@ -2939,6 +2990,9 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(8, _ml_psi_y),
 			_uniform_storage(9, _ml_psi_i),
 			_uniform_storage(10, _shortlist_count),
+			_uniform_storage(11, _hash_cell_start),
+			_uniform_storage(12, _hash_cell_sites),
+			_uniform_storage(13, _hash_cfg),
 		], _instancer_shader, 0)
 		# ── Arm 1 BOXLESS variants: flag.y = 1 → the instancer reads the
 		# moving-Voronoi sites via the coherence-filtered shortlist. Selected
@@ -2955,6 +3009,9 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(8, _ml_psi_y),
 			_uniform_storage(9, _ml_psi_i),
 			_uniform_storage(10, _shortlist_count),
+			_uniform_storage(11, _hash_cell_start),
+			_uniform_storage(12, _hash_cell_sites),
+			_uniform_storage(13, _hash_cfg),
 		], _instancer_shader, 0)
 		_us_inst_0_render_boxless = _rd.uniform_set_create([
 			_uniform_storage(0, _pos_render_buf),
@@ -2968,6 +3025,9 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(8, _ml_psi_y),
 			_uniform_storage(9, _ml_psi_i),
 			_uniform_storage(10, _shortlist_count),
+			_uniform_storage(11, _hash_cell_start),
+			_uniform_storage(12, _hash_cell_sites),
+			_uniform_storage(13, _hash_cfg),
 		], _instancer_shader, 0)
 		_us_inst_0_lut_boxless = _rd.uniform_set_create([
 			_uniform_storage(0, _pos_buf),
@@ -2981,6 +3041,9 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(8, _ml_psi_y),
 			_uniform_storage(9, _ml_psi_i),
 			_uniform_storage(10, _shortlist_count),
+			_uniform_storage(11, _hash_cell_start),
+			_uniform_storage(12, _hash_cell_sites),
+			_uniform_storage(13, _hash_cfg),
 		], _instancer_shader, 0)
 		_us_inst_0_lut_render_boxless = _rd.uniform_set_create([
 			_uniform_storage(0, _pos_render_buf),
@@ -2994,6 +3057,9 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(8, _ml_psi_y),
 			_uniform_storage(9, _ml_psi_i),
 			_uniform_storage(10, _shortlist_count),
+			_uniform_storage(11, _hash_cell_start),
+			_uniform_storage(12, _hash_cell_sites),
+			_uniform_storage(13, _hash_cfg),
 		], _instancer_shader, 0)
 		print("[CassiSim] Instancer uniform sets cached (GPU-direct multimesh buffer; LUT variants %s)" % ("ready" if _lut_u_buf_on.is_valid() else "SKIPPED"))
 
@@ -3615,6 +3681,34 @@ func _mesh_rebuild() -> void:
 		_rd.compute_list_add_barrier(cl)
 		_shortlist_pc_bytes = PackedFloat32Array([float(ml_ns), SS_Q_FLOOR, 1.0]).to_byte_array()
 		_rd.compute_list_set_push_constant(cl, _shortlist_pc_bytes, _shortlist_pc_bytes.size())
+		_rd.compute_list_dispatch(cl, wgs, 1, 1)
+		_rd.compute_list_add_barrier(cl)
+	# Boxless site hash (boxless_site_hash_prereg.md): bucket the just-built
+	# shortlist into the uniform grid (in-chain — the shader reads the LIVE count
+	# via binding 4 after the barrier, so no host readback / extra sync). The
+	# boxless instancer sets read these; off by construction when flag.y = 0.
+	if _hash_pipe.is_valid() and _us_hash.is_valid():
+		var hext_s: Vector3 = _extents()
+		var hcs_s := (2.0 * hext_s.x) / float(HASH_H)
+		_rd.buffer_update(_hash_cfg, 0, 16,
+			PackedFloat32Array([(_window_center - hext_s).x, (_window_center - hext_s).y, (_window_center - hext_s).z, hcs_s]).to_byte_array())
+		var hcells_s := HASH_H * HASH_H * HASH_H
+		_rd.compute_list_bind_compute_pipeline(cl, _hash_pipe)
+		_rd.compute_list_bind_uniform_set(cl, _us_hash, 0)
+		_hash_pc_bytes = PackedFloat32Array([hext_s.x, hext_s.y, hext_s.z, float(HASH_H), float(ml_ns), 0.0]).to_byte_array()
+		_rd.compute_list_set_push_constant(cl, _hash_pc_bytes, _hash_pc_bytes.size())
+		_rd.compute_list_dispatch(cl, ceili(float(hcells_s) / 64.0), 1, 1)
+		_rd.compute_list_add_barrier(cl)
+		_hash_pc_bytes.encode_float(20, 1.0)
+		_rd.compute_list_set_push_constant(cl, _hash_pc_bytes, _hash_pc_bytes.size())
+		_rd.compute_list_dispatch(cl, wgs, 1, 1)
+		_rd.compute_list_add_barrier(cl)
+		_hash_pc_bytes.encode_float(20, 2.0)
+		_rd.compute_list_set_push_constant(cl, _hash_pc_bytes, _hash_pc_bytes.size())
+		_rd.compute_list_dispatch(cl, 1, 1, 1)
+		_rd.compute_list_add_barrier(cl)
+		_hash_pc_bytes.encode_float(20, 3.0)
+		_rd.compute_list_set_push_constant(cl, _hash_pc_bytes, _hash_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, wgs, 1, 1)
 		_rd.compute_list_add_barrier(cl)
 	_rd.compute_list_end()

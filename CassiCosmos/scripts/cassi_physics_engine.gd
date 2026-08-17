@@ -269,6 +269,18 @@ var _shortlist_sites: RID      # vec4[max_sites] — (pos.xyz, float(site_idx)) 
 var _shortlist_count: RID      # uint[1] — atomic compaction cursor / result
 var _us_shortlist: RID
 var _shortlist_pc_bytes: PackedByteArray   # 3 floats (12 B): n_sites, q_floor, mode
+# ── Boxless site hash (boxless_site_hash_prereg.md): the spatial hash over the
+# shortlist (built immediately after it in _mesh_rebuild). The sim's boxless
+# instancer sets bind these; the query does a bounded growing-ring nearest-site
+# lookup instead of the linear O(shortlist) scan.
+var _hash_shader: RID; var _hash_pipe: RID
+var _hash_cell_start: RID   # uint[n_cells+1] — exclusive prefix (cell site runs)
+var _hash_cell_sites: RID   # uint[max_sites] — per-cell compacted shortlist slots
+var _hash_cell_count: RID   # uint[n_cells] — histogram / scatter cursor
+var _hash_cfg: RID          # vec4 — (box_min.x, box_min.y, box_min.z, cell_side)
+var _us_hash: RID
+var _hash_pc_bytes: PackedByteArray   # 6 floats (24 B): ext_xyz, h, n_shortlist, mode
+const HASH_H := 32          # cells per axis (32768 cells at base extents)
 # TREE-IN-LIST (M0 commit 2): the tree build+walk runs INSIDE the engine's
 # own compute list on the LIVE buffers (mode-7 gather reads the meshless
 # state directly) — the per-job 130 MB staging round trip and the tree
@@ -949,11 +961,11 @@ func shutdown() -> void:
 	for rid in [
 			_two_fluid_pipe, _nbody_pipe, _poisson_pipe, _mass_deposit_pipe,
 			_cond_pipe, _bh_int_pipe, _jfa_pipe, _cell_pipe, _raster_pipe,
-			_shortlist_pipe,
+			_shortlist_pipe, _hash_pipe,
 			_merge_pipe, _scan_pipe, _bh_acc_pipe,
 			_two_fluid_shader, _nbody_shader, _poisson_shader,
 			_mass_deposit_shader, _cond_shader, _bh_int_shader,
-			_shortlist_shader,
+			_shortlist_shader, _hash_shader,
 			_jfa_shader, _cell_shader, _raster_shader, _merge_shader, _scan_shader, _bh_acc_shader,
 			_field_ey, _field_ei, _field_q, _field_vel, _field_scratch,
 			_fft_buf, _tel_buf, _grad_buf, _grad_buf2,
@@ -968,6 +980,7 @@ func shutdown() -> void:
 			_ml_cen, _ml_remap, _ml_tmp_y, _ml_tmp_i, _ml_tmp_py, _ml_tmp_pi,
 			_ml_grad_y, _ml_grad_i, _ml_lsm_y, _ml_lsm_i,
 			_shortlist_sites, _shortlist_count,
+			_hash_cell_start, _hash_cell_sites, _hash_cell_count, _hash_cfg,
 			_tl_src, _tl_srcw, _tl_key, _tl_order, _tl_cf, _tl_nw, _tl_nq, _tl_nr,
 			_tl_nqq, _tl_ctr, _tl_tic,
 			_tree_bld_sh, _tree_bld_pipe, _tree_walk_sh, _tree_walk_pipe,
@@ -1188,6 +1201,14 @@ func _setup_buffers() -> void:
 	# instancer scans only the dense subset actually written by the pass.
 	_shortlist_sites = _rd.storage_buffer_create(ml_ns * 16)
 	_shortlist_count = _rd.storage_buffer_create(4)
+	# Boxless site hash (boxless_site_hash_prereg.md): n_cells = HASH_H³ (+1 for
+	# the prefix sentinel), cell_sites sized for the worst case (every site in
+	# one cell), a cfg vec4 for the query's box_min.xyz + cell_side.
+	var hcells := HASH_H * HASH_H * HASH_H
+	_hash_cell_start = _rd.storage_buffer_create((hcells + 1) * 4)
+	_hash_cell_sites = _rd.storage_buffer_create(maxi(ml_ns, 1) * 4)
+	_hash_cell_count = _rd.storage_buffer_create(hcells * 4)
+	_hash_cfg = _rd.storage_buffer_create(16)
 	_ml_pi_y = _rd.storage_buffer_create(ml_ns * 4)
 	_ml_pi_i = _rd.storage_buffer_create(ml_ns * 4)
 	_ml_lap_y = _rd.storage_buffer_create(ml_ns * 4)
@@ -1335,6 +1356,10 @@ func _create_pipelines() -> void:
 	_shortlist_shader = _shader_create("res://compute/cassi_site_shortlist.glsl")
 	if _shortlist_shader.is_valid():
 		_shortlist_pipe = _rd.compute_pipeline_create(_shortlist_shader)
+	# Boxless site hash (boxless_site_hash_prereg.md) — buckets the shortlist.
+	_hash_shader = _shader_create("res://compute/cassi_site_hash.glsl")
+	if _hash_shader.is_valid():
+		_hash_pipe = _rd.compute_pipeline_create(_hash_shader)
 	_raster_shader = _shader_create("res://compute/cassi_voronoi_raster.glsl")
 	if _raster_shader.is_valid():
 		_raster_pipe = _rd.compute_pipeline_create(_raster_shader)
@@ -1469,6 +1494,14 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(3, _shortlist_sites),
 			_uniform_storage(4, _shortlist_count),
 		], _shortlist_shader, 0)
+	if _hash_shader.is_valid():
+		_us_hash = _rd.uniform_set_create([
+			_uniform_storage(0, _shortlist_sites),
+			_uniform_storage(1, _hash_cell_start),
+			_uniform_storage(2, _hash_cell_sites),
+			_uniform_storage(3, _hash_cell_count),
+			_uniform_storage(4, _shortlist_count),
+		], _hash_shader, 0)
 	if _raster_shader.is_valid():
 		_us_raster_0 = _rd.uniform_set_create([
 			_uniform_storage(0, _ml_labels_a), _uniform_storage(1, _ml_psi_y),
@@ -2140,6 +2173,41 @@ func _mesh_rebuild() -> void:
 		_rd.compute_list_add_barrier(cl)
 		_shortlist_pc_bytes = PackedFloat32Array([float(ml_ns), SS_Q_FLOOR, 1.0]).to_byte_array()
 		_rd.compute_list_set_push_constant(cl, _shortlist_pc_bytes, _shortlist_pc_bytes.size())
+		_rd.compute_list_dispatch(cl, wgs, 1, 1)
+		_rd.compute_list_add_barrier(cl)
+	# 9. Boxless site hash (boxless_site_hash_prereg.md): bucket the just-built
+	# shortlist into the uniform grid. One list, in-chain after the shortlist —
+	# the shader reads the LIVE shortlist count (binding 4, after the barrier)
+	# so stale slots are never bucketed and no host readback / extra sync is
+	# needed (works on the local AND global RD paths). The boxless instancer
+	# sets read these buffers; off by construction when flag.y = 0.
+	if _hash_pipe.is_valid() and _us_hash.is_valid():
+		var hext: Vector3 = _extents()
+		var hcs := (2.0 * hext.x) / float(HASH_H)
+		var bmin := _window_center - hext
+		_rd.buffer_update(_hash_cfg, 0, 16,
+			PackedFloat32Array([bmin.x, bmin.y, bmin.z, hcs]).to_byte_array())
+		var hcells := HASH_H * HASH_H * HASH_H
+		_rd.compute_list_bind_compute_pipeline(cl, _hash_pipe)
+		_rd.compute_list_bind_uniform_set(cl, _us_hash, 0)
+		# reset (mode 0)
+		_hash_pc_bytes = PackedFloat32Array([hext.x, hext.y, hext.z, float(HASH_H), float(ml_ns), 0.0]).to_byte_array()
+		_rd.compute_list_set_push_constant(cl, _hash_pc_bytes, _hash_pc_bytes.size())
+		_rd.compute_list_dispatch(cl, ceili(float(hcells) / 64.0), 1, 1)
+		_rd.compute_list_add_barrier(cl)
+		# histogram (mode 1)
+		_hash_pc_bytes.encode_float(20, 1.0)
+		_rd.compute_list_set_push_constant(cl, _hash_pc_bytes, _hash_pc_bytes.size())
+		_rd.compute_list_dispatch(cl, wgs, 1, 1)
+		_rd.compute_list_add_barrier(cl)
+		# prefix (mode 2)
+		_hash_pc_bytes.encode_float(20, 2.0)
+		_rd.compute_list_set_push_constant(cl, _hash_pc_bytes, _hash_pc_bytes.size())
+		_rd.compute_list_dispatch(cl, 1, 1, 1)
+		_rd.compute_list_add_barrier(cl)
+		# scatter (mode 3)
+		_hash_pc_bytes.encode_float(20, 3.0)
+		_rd.compute_list_set_push_constant(cl, _hash_pc_bytes, _hash_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, wgs, 1, 1)
 		_rd.compute_list_add_barrier(cl)
 	_rd.compute_list_end()
