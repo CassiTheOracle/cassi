@@ -333,6 +333,17 @@ var _vsync_enabled: bool = true
 ## Init-time; reinit to apply.
 @export var winding_coupling: float = 0.0
 
+## Boxless field reader (true-boxless arm, boxless_field_design.md): when ON,
+## the q-histogram color-aligner samples the coherence AT PARTICLES from the
+## moving-Voronoi sites directly (nearest site's cell-averaged EY/EI) instead
+## of the periodic rasterized grid's trilinear + %N wrap. Coordinate-independent
+## — no window, no extent, no wrap — so the color band stays correct even when
+## the tracking envelope has not caught up with the structure. Live (no reinit);
+## requires meshless_mode ON and the mesh live (otherwise it's a no-op back to
+## the grid path). Default OFF = bit-identical battery (the site sample is a
+## guarded branch, not a zero-multiply — dead when off).
+@export var boxless_field: bool = false
+
 ## Run the physics on the standalone engine's worker thread (decoupled
 ## producer: the engine owns a local RenderingDevice on its own thread and
 ## publishes snapshots; this sim's global-RD buffers become mirrors + the
@@ -1268,6 +1279,12 @@ func _run_physics_steps(n_steps: int) -> void:
 		_qhist_pc_bytes.encode_float(40, -_window_center.x)
 		_qhist_pc_bytes.encode_float(44, -_window_center.y)
 		_qhist_pc_bytes.encode_float(48, -_window_center.z)
+		# True-boxless arm (boxless_field_design.md): when the moving-Voronoi mesh
+		# is live and the toggle is on, the sampler reads coherence from the sites
+		# (coordinate-independent, no window/extent/%N). Off (default) = dead branch.
+		var _boxless_on: float = 1.0 if (boxless_field and meshless_mode and _ml_ready) else 0.0
+		_qhist_pc_bytes.encode_float(52, _boxless_on)
+		_qhist_pc_bytes.encode_float(56, float(2 * ML_N1 * ML_N1 * ML_N1))
 		_rd.compute_list_bind_compute_pipeline(cl, _qhist_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_qhist_0, 0)
 		_rd.compute_list_set_push_constant(cl, _qhist_pc_bytes, _qhist_pc_bytes.size())
@@ -1951,6 +1968,12 @@ func _decoupled_poll_and_render() -> void:
 		_qhist_pc_bytes.encode_float(40, -_window_center.x)
 		_qhist_pc_bytes.encode_float(44, -_window_center.y)
 		_qhist_pc_bytes.encode_float(48, -_window_center.z)
+		# True-boxless arm (boxless_field_design.md): when the moving-Voronoi mesh
+		# is live and the toggle is on, the sampler reads coherence from the sites
+		# (coordinate-independent, no window/extent/%N). Off (default) = dead branch.
+		var _boxless_on: float = 1.0 if (boxless_field and meshless_mode and _ml_ready) else 0.0
+		_qhist_pc_bytes.encode_float(52, _boxless_on)
+		_qhist_pc_bytes.encode_float(56, float(2 * ML_N1 * ML_N1 * ML_N1))
 		_rd.compute_list_bind_compute_pipeline(cl, _qhist_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_qhist_0_render_dc, 0)
 		_rd.compute_list_set_push_constant(cl, _qhist_pc_bytes, _qhist_pc_bytes.size())
@@ -2014,6 +2037,9 @@ func _build_dc_sets() -> void:
 			_uniform_storage(2, _qhist_buf),
 			_uniform_storage(3, eng._field_ey),
 			_uniform_storage(4, eng._field_ei),
+			_uniform_storage(5, eng._ml_sites),
+			_uniform_storage(6, eng._ml_psi_y),
+			_uniform_storage(7, eng._ml_psi_i),
 		], _qhist_shader, 0)
 	if _occ_shader.is_valid() and _occ_buf.is_valid():
 		_us_occ_0_dc = _rd.uniform_set_create([
@@ -2213,7 +2239,7 @@ func _setup_buffers() -> void:
 	# q-histogram for auto color-align (cassi_qhist.glsl): 128 log-spaced bins
 	_qhist_buf = _rd.storage_buffer_create(128 * 4)
 	_qhist_zero_bytes = PackedByteArray(); _qhist_zero_bytes.resize(128 * 4)
-	_qhist_pc_bytes = PackedByteArray(); _qhist_pc_bytes.resize(13 * 4)  # + win@10-12 (movable home-window)
+	_qhist_pc_bytes = PackedByteArray(); _qhist_pc_bytes.resize(15 * 4)  # + win@10-12 (movable home-window) + boxless@13 + n_sites@14 (true-boxless arm)
 	# Meshless arm buffers (allocated always; used only when meshless_mode
 	# is on). The JFA labels ping-pong; the per-site state carries the cell
 	# averages; the rebuild scratch (centroids/remap/temps) rides the GPU.
@@ -2782,6 +2808,9 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(2, _qhist_buf),
 			_uniform_storage(3, _field_ey),
 			_uniform_storage(4, _field_ei),
+			_uniform_storage(5, _ml_sites),
+			_uniform_storage(6, _ml_psi_y),
+			_uniform_storage(7, _ml_psi_i),
 		], _qhist_shader, 0)
 		# RENDER variant (decoupled): binding 0 reads the interpolated
 		# pos_render — the same snapshot the instancer draws. No shader edit.
@@ -2791,6 +2820,9 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(2, _qhist_buf),
 			_uniform_storage(3, _field_ey),
 			_uniform_storage(4, _field_ei),
+			_uniform_storage(5, _ml_sites),
+			_uniform_storage(6, _ml_psi_y),
+			_uniform_storage(7, _ml_psi_i),
 		], _qhist_shader, 0)
 
 	# Meshless arm sets (MESHLESS_PLAN.md §10) — the JFA ping-pong labels

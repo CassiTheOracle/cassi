@@ -25,9 +25,13 @@
 // (grid_N³ floats — EY²+EI², RETAINED for layout compatibility, unused),
 // 2 = histogram (BINS floats, float-atomic counts —
 // GL_EXT_shader_atomic_float, verified on this rig in cassi_mass_deposit.glsl),
-// 3 = EY field (grid_N³ floats), 4 = EI field (grid_N³ floats).
+// 3 = EY field (grid_N³ floats), 4 = EI field (grid_N³ floats),
+// 5 = Voronoi sites (vec4/site: xyz position), 6 = site psi_y, 7 = site psi_i
+// (bindings 5-7 are the BOXLESS reader source; read only when pc.boxless ≥ 0.5).
 // PC: N_f (grid), N_p (particles), stride, lo, hi, BINS_f, enabled, extent_x/y/z,
-// win_x/y/z (movable home-window origin subtracted in the world→grid map).
+// win_x/y/z (movable home-window origin subtracted in the world→grid map),
+// boxless (0/1 — 1 = sample coherence from the nearest Voronoi site instead of
+// the periodic grid trilinear), n_sites (Voronoi site count; guard the loop).
 #extension GL_EXT_shader_atomic_float : require
 
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
@@ -37,6 +41,11 @@ layout(set = 0, binding = 1, std430) readonly buffer FieldQ { float qv[]; };
 layout(set = 0, binding = 2, std430) coherent buffer Hist { float bins[]; };
 layout(set = 0, binding = 3, std430) readonly buffer FieldEY { float eyv[]; };
 layout(set = 0, binding = 4, std430) readonly buffer FieldEI { float eiv[]; };
+// Boxless reader source — the moving-Voronoi sites (coordinate-independent,
+// no window/extent/%N): the cell-averaged field the site leapfrog evolves.
+layout(set = 0, binding = 5, std430) readonly buffer Sites { vec4 site[]; };
+layout(set = 0, binding = 6, std430) readonly buffer SitePsiY { float psy[]; };
+layout(set = 0, binding = 7, std430) readonly buffer SitePsiI { float psi[]; };
 
 layout(push_constant, std430) uniform PC {
     float N_f;      // grid_N (the field resolution)
@@ -52,6 +61,8 @@ layout(push_constant, std430) uniform PC {
     float win_x;    // movable home-window origin (perf-decomp 2026-08-15):
     float win_y;    // subtracted in the world→grid map; zero = legacy box
     float win_z;
+    float boxless;  // 0/1 — 1 = boxless site-direct coherence sample (no wrap)
+    float n_sites;  // Voronoi site count (2·16³ = 8192 at N=64)
 } pc;
 
 const float LOG_GUARD = 1e-9;
@@ -107,6 +118,30 @@ float tri_ei(vec3 gc, vec3 f) {
     return mix(q0, q1, f.z);
 }
 
+// BOXLESS coherence at a world point: the nearest Voronoi site's cell-averaged
+// (EY, EI). Coordinate-independent — no window, no extent, no %N wrap — so the
+// read stays correct even when the tracking envelope has not caught up with the
+// structure. Brute-force nearest-site over the live mesh (the qhist pass is
+// strided, so 8192 sites per sampled particle is cheap). Returns the bounded
+// coherence q_coh ∈ [0,1) (same formula as the grid path).
+float site_coherence(vec3 wp) {
+    int ns = int(pc.n_sites);
+    if (ns <= 0) return 0.0;
+    int best = 0;
+    float bd = 1e30;
+    for (int s = 0; s < ns; s++) {
+        vec3 d = site[s].xyz - wp;
+        float dd = dot(d, d);
+        if (dd < bd) { bd = dd; best = s; }
+    }
+    float ey = psy[best];
+    float ei = psi[best];
+    float rho = ey + ei;
+    float eps = ey - PHI * ei;
+    float rho2 = rho * rho;
+    return rho2 / (rho2 + PHI_INV2 + eps * eps);
+}
+
 void main() {
     if (pc.enabled < 0.5) return;
     int n = int(pc.N_p);
@@ -116,20 +151,27 @@ void main() {
     int i = int(gl_GlobalInvocationID.x) * s;
     if (i >= n) return;
 
-    int N = int(pc.N_f);
-    float hn = float(N) * 0.5;
-    vec3 ext = vec3(pc.extent_x, pc.extent_y, pc.extent_z);
-    vec3 inv_ext = 1.0 / max(ext, vec3(0.0001));
-    vec3 win = vec3(pc.win_x, pc.win_y, pc.win_z);
-    vec3 gc = ((pos[i].xyz - win) * inv_ext) * hn + hn;
-    vec3 f = gc - floor(gc);
-
-    float ey = tri_ey(gc, f);
-    float ei = tri_ei(gc, f);
-    float rho = ey + ei;
-    float eps = ey - PHI * ei;
-    float rho2 = rho * rho;
-    float q = rho2 / (rho2 + PHI_INV2 + eps * eps);   // ∈ [0,1)
+    float q;
+    if (pc.boxless >= 0.5) {
+        // Boxless: the coherence at the particle comes from the nearest
+        // Voronoi site (its own cell-averaged field) — no window/extent/%N,
+        // so the read is correct even if the tracking envelope lags.
+        q = site_coherence(pos[i].xyz);
+    } else {
+        int N = int(pc.N_f);
+        float hn = float(N) * 0.5;
+        vec3 ext = vec3(pc.extent_x, pc.extent_y, pc.extent_z);
+        vec3 inv_ext = 1.0 / max(ext, vec3(0.0001));
+        vec3 win = vec3(pc.win_x, pc.win_y, pc.win_z);
+        vec3 gc = ((pos[i].xyz - win) * inv_ext) * hn + hn;
+        vec3 f = gc - floor(gc);
+        float ey = tri_ey(gc, f);
+        float ei = tri_ei(gc, f);
+        float rho = ey + ei;
+        float eps = ey - PHI * ei;
+        float rho2 = rho * rho;
+        q = rho2 / (rho2 + PHI_INV2 + eps * eps);   // ∈ [0,1)
+    }
     if (q <= 0.0) {
         atomicAdd(bins[0], 1.0);   // incoherent/void floor → the lowest bin
         return;

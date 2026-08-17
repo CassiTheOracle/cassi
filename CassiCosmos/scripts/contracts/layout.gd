@@ -37,7 +37,7 @@ const PC := {
 	"cassi_mass_deposit": 9,      # 36 B — N, particle_N, extent_xyz, off_xyz, mode
 	"cassi_two_fluid": 17,        # 68 B — the two-fluid PDE PC (grid-space; + ham_completion, U1 toggle)
 	"cassi_poisson": 7,           # 28 B — N, axis, dir, mode, extent_xyz
-	"cassi_qhist": 13,            # 52 B — histogram + extent_xyz + win_xyz (bindings 0-4: pos, q, hist, EY, EI)
+	"cassi_qhist": 15,            # 60 B — histogram + extent_xyz + win_xyz + boxless + n_sites (bindings 0-7: pos, q, hist, EY, EI, sites, psy, psi)
 	"cassi_occupancy": 10,        # 40 B — lim_xyz, ext_xyz, pads
 	"cassi_tree_build": 19,       # 76 B — S, bmin_xyz, half, eps2, PHI, PHI_6, leaf/maxlevels, modes 10-13, grid_N, ext_xyz, floor
 	"cassi_tree_gravity": 5,      # 20 B — Np, theta, eps2, pad, tnm
@@ -58,7 +58,7 @@ const HOST_PC_FLOATS := {
 	"_md_pc_bytes": 9,
 	"_two_fluid_pc_bytes": 17,
 	"_poisson_pc_bytes": 7,
-	"_qhist_pc_bytes": 13,
+	"_qhist_pc_bytes": 15,
 	"_occ_pc_bytes": 10,
 	"_tree_build_pc_bytes": 19,
 	"_tree_grav_pc_bytes": 5,
@@ -95,7 +95,7 @@ const BINDINGS := {
 	"cassi_mass_deposit": {0: [0, 1, 2]},
 	"cassi_two_fluid": {0: [0, 1, 2, 3, 4, 5]},
 	"cassi_poisson": {0: [0, 1, 2, 3]},
-	"cassi_qhist": {0: [0, 1, 2, 3, 4]},
+	"cassi_qhist": {0: [0, 1, 2, 3, 4, 5, 6, 7]},
 	"cassi_occupancy": {0: [0, 1]},
 	"cassi_tree_build": {0: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]},
 	"cassi_tree_gravity": {0: [0, 3, 4, 5, 6, 7, 8, 9, 10, 11]},
