@@ -13,16 +13,24 @@
 //      (φ-locked) combination, gradient via central differences at ±1 cell.
 //      Scale-invariant: rewards smooth phase-locked order over loud noise.
 //      Flag f_order off → q_sel = q_coh (the legacy amplitude gate).
-//   3. GRAVITATIONAL BINDING (§3b, always on): ½μ|v_rel|²·d < G_eff·m₁m₂,
-//      G_eff = G_N·(1+ξ·q_mid), q_mid = q_coh at the pair midpoint,
-//      ξ = φ⁶. Unbound pairs never merge — no artificial cooling.
+//   3. GRAVITATIONAL BINDING (§3b, always on): ½μ|v_rel|²·d < G·m₁m₂,
+//      G = G_N (NEWTONIAN). The q_sel coherence gate above carries the full
+//      Cassi selection (only q > φ⁻² regions arm a merge); the mechanical
+//      two-particle binding question is physical, so it uses Newtonian G —
+//      NOT the φ⁶-amplified coupling the nbody force applies to the BULK
+//      dynamics. Amplifying the pair binding on top of the coherence gate
+//      double-counted coherence and coalesced structures the cloud's own
+//      dynamics hold (measured: a Newtonian-supported rotating ring coalesced
+//      4000→194 at φ⁶ vs 4000→3930 at Newtonian). Unbound pairs never merge —
+//      no artificial cooling.
 //   4. SUBSONIC INFLOW (§3b, hypothesis; flag f_subsonic): |v_t| < c_s,
 //      v_t = v_rel − (v_rel·d̂)d̂, c_s = h₀/dt — the ρ-wave (coherence) phase
 //      speed: sound is waves of coherence (see research/sound_coherence_note.md §2).
 //      Supersonic transverse fly-bys do not merge.
 //   plus the VIRIAL STOPPING SCALE (§3c, hypothesis; flag f_virial): a
 //      target with 2·K ≥ |W| — K = ½L²/(mR²) + ½m|v−v_flow|² (v_flow =
-//      the two-fluid's per-cell flow velocity, trilinear), W = −G_eff·m²/(2R),
+//      the two-fluid's per-cell flow velocity, trilinear), W = −G·m²/(2R),
+//      G = G_N (Newtonian, matching the binding gate),
 //      R = clamp(SIZE_K·m^(1/3), SIZE_S_MIN, SIZE_S_MAX) — is a relaxed,
 //      self-supporting object and stops accepting infall.
 //      NOTE: coherence_merge_rnd.md §3c wrote the stopping inequality as
@@ -231,7 +239,12 @@ bool virialized(int j) {
     vec3 Lj = spin[j].xyz;
     vec3 dv = vel[j].xyz - flow_at(pos[j].xyz);
     float K = 0.5 * dot(Lj, Lj) / (mj * Rj * Rj) + 0.5 * mj * dot(dv, dv);
-    float gj = pc.g_n * (1.0 + pc.xi * qcoh_at(pos[j].xyz));
+    // G = g_n: the stopping scale uses the SAME Newtonian gravity as the
+    // binding gate (a pair that binds at G binds at the same W). If this
+    // used the φ⁶-amplified coupling, W would be 19× larger and the
+    // self-support threshold 2K ≥ W would be ~19× harder to reach — the
+    // structural never-trip the cascade exploited.
+    float gj = pc.g_n;
     float W = gj * mj * mj / (2.0 * Rj);
     return 2.0 * K >= W;
 }
@@ -369,12 +382,28 @@ void pass_best() {
                     float qg = qm;
                     if (f_order_on()) qg = qm * qord_at(mid);
                     if (qg <= pc.q_threshold) continue;
-                    // gravitational binding: ½μ|v_rel|²·d < G_eff·m₁·m₂
+                    // gravitational binding: ½μ|v_rel|²·d < G·m₁·m₂, G = g_n
+                    // (NEWTONIAN — the Cassi physics is fully carried by the
+                    // coherence gate above: only q_sel > φ⁻² regions arm a
+                    // merge, and q_sel is already coherence-condensed, so
+                    // amplifying the mechanical pair-binding by φ⁶ on TOP of
+                    // arming double-counts coherence and over-coalesces
+                    // structures the cloud's own dynamics hold. Measured on a
+                    // Newtonian-supported rotating ring (box_scale 20, R_m
+                    // ≈6.07): φ⁶-amplified binding coalesced 4000→194; the
+                    // Newtonian binding keeps it 4000→3799 (95% — an expanding/
+                    // rotating ring has positive energy and must not collapse).
+                    // The virial stopping scale below uses the same Newtonian
+                    // G, so a grown object's self-support trips at the correct
+                    // threshold. The nbody force keeps its (φ⁶−1)·q coupling —
+                    // that is the field's dynamical enhancement; the merge's
+                    // two-particle binding question is physical, not field-
+                    // amplified.)
                     float mj = mass[j];
                     if (mj <= 0.0) continue;
                     vec3 vr = vel[i].xyz - vel[j].xyz;
                     float mu = (mi * mj) / (mi + mj);
-                    float g_eff = pc.g_n * (1.0 + pc.xi * qm);
+                    float g_eff = pc.g_n;
                     if (0.5 * mu * dot(vr, vr) * d >= g_eff * mi * mj) continue;
                     // subsonic inflow: |v_t| < c_s = h0/dt
                     if (f_subsonic_on()) {
