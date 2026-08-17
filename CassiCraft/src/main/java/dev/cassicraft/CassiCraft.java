@@ -109,6 +109,12 @@ public class CassiCraft implements ModInitializer {
 	 * created per-session, nulled on teardown). */
 	private dev.cassicraft.game.practice.StillingShoutPresenter stillingShoutPresenter;
 
+	/** The energy-harnessing practice's particle presenter — the spendable
+	 * coherence (READY) / the exhausted budget (SPENT) read at each player
+	 * position, and the draw's bounded burst at the draw point (energy-harnessing
+	 * §0/§6; created per-session, nulled on teardown). */
+	private dev.cassicraft.game.energy.HarnessPresenter harnessPresenter;
+
 	/** The signature-predator tick coordinator — attaches the live publish handoff
 	 * to every loaded predicate so its tick reads the field's signature gradient
 	 * (signature-predator.md §8; created per-session, nulled on teardown). */
@@ -167,6 +173,7 @@ public class CassiCraft implements ModInitializer {
 			skyPresenter = new dev.cassicraft.game.sky.SkyPresenter(session.publisher());
 			atmoPresenter = new dev.cassicraft.game.atmo.AtmoPresenter(session.publisher());
 			stillingShoutPresenter = new dev.cassicraft.game.practice.StillingShoutPresenter(session.publisher());
+			harnessPresenter = new dev.cassicraft.game.energy.HarnessPresenter(session.publisher());
 			predatorCoordinator = new dev.cassicraft.game.predator.PredatorTickCoordinator(session.publisher());
 			LOGGER.info("[cassicraft] field thread started for world (seed {}), window anchored at ({},{},{}), follow coordinator attached",
 					used, (int) anchor[0], (int) anchor[1], (int) anchor[2]);
@@ -189,6 +196,7 @@ public class CassiCraft implements ModInitializer {
 				strideCoordinator = null;
 				atmoPresenter = null;
 				stillingShoutPresenter = null;
+				harnessPresenter = null;
 				predatorCoordinator = null;
 				LOGGER.info("[cassicraft] field thread closed (world unload)");
 			}
@@ -211,6 +219,7 @@ public class CassiCraft implements ModInitializer {
 				strideCoordinator = null;
 				atmoPresenter = null;
 				stillingShoutPresenter = null;
+				harnessPresenter = null;
 				predatorCoordinator = null;
 				LOGGER.info("[cassicraft] field thread closed (server stop)");
 			}
@@ -263,6 +272,9 @@ public class CassiCraft implements ModInitializer {
 			if (stillingShoutPresenter != null) {
 				stillingShoutPresenter.onServerTick(server);
 			}
+			if (harnessPresenter != null) {
+				harnessPresenter.onServerTick(server);
+			}
 		});
 	}
 
@@ -296,6 +308,8 @@ public class CassiCraft implements ModInitializer {
 			registerFieldGlassCommand(dispatcher);
 			registerStillingShoutCommand(dispatcher);
 			registerPredatorCommand(dispatcher);
+			registerHarnessCommand(dispatcher);
+			registerSeamCommand(dispatcher);
 		});
 	}
 
@@ -353,6 +367,56 @@ public class CassiCraft implements ModInitializer {
 	 */
 	private static void registerPredatorCommand(CommandDispatcher<CommandSourceStack> dispatcher) {
 		dev.cassicraft.game.predator.PredatorCommand.register(dispatcher);
+	}
+
+	/** Register {@code /cassicraft harness [x y z]}
+	 * — the energy-harnessing practice's bounded, cap-governed coherence draw
+	 * through the REAL Q4 player-return lane (energy-harnessing §0/§2.5/§6;
+	 * q4-write-lane-design §3): the matched-φ withdrawal spends a bounded budget
+	 * of the local field's coherence on a real use (a mining burst), never a mint. */
+	private static void registerHarnessCommand(CommandDispatcher<CommandSourceStack> dispatcher) {
+		dev.cassicraft.game.energy.HarnessCommand.register(dispatcher);
+	}
+
+	/**
+	 * Register {@code /cassicraft seam [x y z]} — the world-seam read (world-seams.md
+	 * §1.3/§4.2; the {@code SeamProbeMain} verdict SUPPORTS, so the read is honest): the
+	 * player's local window position (offset + grid cell from the live window center) and
+	 * the seam state (INTERIOR / EDGE_BAND within {@code SeamRead.EDGE_BAND_BLOCKS} m of
+	 * the window boundary) at the caller's position or an explicit block — a pure consumer
+	 * of the publish, never a write, never a phantom "edge of the world".
+	 */
+	private static void registerSeamCommand(CommandDispatcher<CommandSourceStack> dispatcher) {
+		dispatcher.register(Commands.literal("cassicraft")
+				.then(Commands.literal("seam")
+						.executes(ctx -> runSeam(ctx.getSource(), null))
+						.then(Commands.argument("x", com.mojang.brigadier.arguments.IntegerArgumentType.integer())
+								.then(Commands.argument("y", com.mojang.brigadier.arguments.IntegerArgumentType.integer())
+										.then(Commands.argument("z", com.mojang.brigadier.arguments.IntegerArgumentType.integer())
+												.executes(ctx -> runSeam(ctx.getSource(), new int[] {
+														com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "x"),
+														com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "y"),
+														com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "z"),
+												})))))));
+	}
+
+	private static int runSeam(CommandSourceStack source, int[] xyz) {
+		if (CassiCraft.WEATHERGLASS == null) {
+			source.sendFailure(Component.literal("The seam reader is not armed (no world loaded)."));
+			return 0;
+		}
+		BlockPos pos = xyz != null
+				? new BlockPos(xyz[0], xyz[1], xyz[2])
+				: fallbackPos(source);
+		dev.cassicraft.game.seams.SeamRead.SeamReadout r = dev.cassicraft.game.seams.SeamRead.readFreshest(
+				CassiCraft.WEATHERGLASS.publisherSupplier().get(),
+				pos.getX(), pos.getY(), pos.getZ());
+		if (r == null) {
+			source.sendFailure(Component.literal("The world is not yet publishing \u2014 the field has not shipped its first window."));
+			return 0;
+		}
+		source.sendSuccess(() -> Component.literal(r.text()), false);
+		return 1;
 	}
 
 	/** Register {@code /cassicraft still [x y z]} and {@code /cassicraft shout [x y z]}

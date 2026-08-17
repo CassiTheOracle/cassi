@@ -750,3 +750,82 @@ def predatorDeterminismRun = tasks.register('predatorDeterminism', JavaExec) {
 
 check.dependsOn predatorDeterminism
 build.dependsOn predatorDeterminism
+
+// ----------------------------------------------------------------------------
+// Game-source world-seams determinism + honesty gate (designs/world-seams.md
+// §1.3, §4.2 — the anchor-to-window seam at the publish level; §6 the honest
+// gates). The field is a periodic torus; the block world is the quantized
+// publish of the anchored 192³ box. Asserts, over the real publish seam and the
+// committed re-home/roll path: same seed + same roll sequence → identical seam
+// content fingerprint (determinism HARD), a different seed differs (the
+// measurement reads the field, not a constant), and the block world stays
+// world-fixed — crossing blocks (fixed world coordinates the moving window edge
+// sweeps past) read byte-exact identical (kind + ρ/q/ε²) across every roll while
+// covered, and a swept block reads out-of-box AIR at exactly the geometric roll
+// (a clean iso-surface, no phantom boundary). The gate prints the asserted
+// verdict line. Headless, no live client/server.
+// ----------------------------------------------------------------------------
+def seamDeterminismRun = tasks.register('seamDeterminism', JavaExec) {
+	group = 'verification'
+	description = 'Runs the world-seams determinism + honesty gate (the block world stays world-fixed and deterministic across re-home rolls, no phantom seam artifact) without a live client.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'dev.cassicraft.game.seams.SeamDeterminismMain'
+}
+
+check.dependsOn seamDeterminismRun
+build.dependsOn seamDeterminismRun
+
+// ----------------------------------------------------------------------------
+// Game-source energy-harnessing determinism + honesty gate (energy-harnessing.md
+// §0 the core stance — energy is a field withdrawal; §2.5 the deep-rung reaper;
+// §6 the no-free-energy cap output ≤ φ⁻¹·input; async-field-domain.md §7 Q4 the
+// player-return channel). The corpus's first CONSUMING mechanic: the draw is a
+// bounded, matched-φ (dEY=φ·dEI → the overdraw component is 0), cap-governed
+// coherence withdrawal through the REAL CassiFieldThread lane that powers an
+// honest use (a bounded mining burst, HarnessUse). Asserts the bare-solver draw
+// is byte-identical (same seed → identical full-buffer fingerprint, differs
+// across seeds, moved the field vs the no-draw control) AND the field-payment
+// is exact (draw-cell q drops immediately on applySource — a real spend, never
+// a no-op), the seam routes the draw and moves the published field vs the
+// same-seed control at the same executed step (readout deterministic), the
+// honest draw never clamps (clampCount == 0, asserted) and the observed field
+// cost ≤ φ⁻¹·√q (the no-mint bound), and the use fired AND the field paid (the
+// burst is bounded by the draw — output ≤ input, and q dropped at the draw
+// point). Headless, no live client/server.
+// ----------------------------------------------------------------------------
+def harnessDeterminismRun = tasks.register('harnessDeterminism', JavaExec) {
+	group = 'verification'
+	description = 'Runs the energy-harnessing determinism + honesty gate (a bounded matched-φ cap-governed coherence draw through the real Q4 lane: deterministic, seed-sensitive, the field pays, never clamps, the burst is bounded by the draw) without a live client.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'dev.cassicraft.game.energy.HarnessDeterminismMain'
+}
+
+check.dependsOn harnessDeterminism
+build.dependsOn harnessDeterminism
+
+// ----------------------------------------------------------------------------
+// Game-source wake determinism + honesty gate (signature-predator.md §8 — the
+// readable-trail slice; async-field-domain.md §7 Q4 the player-return channel the
+// practice's write rides). Measures whether a player's practice — ONE shout, the
+// committed practice's exact matched-φ cap-governed write through the REAL Q4
+// lane at a named point — leaves a measurable, persistent wake in the published
+// ε²/q channels ABOVE the coherent condensed body's own floor, and whether that
+// wake is a local perturbation that relaxes (a wake) or a propagating disturbance
+// (a front). Asserts: (bare-solver) the one-shout injection is byte-identical
+// (same seed → identical fingerprint, differs across seeds, moved the field vs
+// the no-injection control — the practice genuinely perturbs the field,
+// anti-vacuity), (seam) the wake profile through the real publish is deterministic
+// (same seed + same shout → identical SHA-256 fingerprint, a different seed
+// differs), the wake-vs-control ΔS is measured honestly with the caps telemetry
+// reported, and the verdict (SUPPORTS/CONTRADICTS/INCONCLUSIVE) is computed by
+// the measurement and printed — never forced. Headless, no live client/server.
+// ----------------------------------------------------------------------------
+def wakeDeterminismRun = tasks.register('wakeDeterminism', JavaExec) {
+	group = 'verification'
+	description = 'Runs the wake determinism + honesty gate (the practice\'s one-shout wake vs the coherent body\'s floor: deterministic, seed-sensitive, the practice moves the field, honest verdict) without a live client.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'dev.cassicraft.game.wake.WakeDeterminismMain'
+}
+
+check.dependsOn 'wakeDeterminism'
+build.dependsOn wakeDeterminism
