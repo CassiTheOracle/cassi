@@ -349,3 +349,39 @@ where the winding phase (b) is the missing degree of freedom. The frozen rule
 is honored (DOES NOT SUPPORT as written); the negative is a **metric
 saturation**, not a dispersal, and motivates the (b) winding-phase extension
 (`CassiCosmos/research/meshless/two_fluid_particle_winding_design.md`).
+
+### §12b Result (2026-08-17, winding-on-particles (b1))
+
+`two-fluid/meshless_winding_probe.py` (64³, 3/3 arms, 4000 steps each; runs
+`runs/meshless_winding_depth.json`). depth_1/depth_2 from the 3-arm sweep;
+depth_4 from an isolated rerun after a quiet mid-run background kill (GPU
+contention, same as the (a) sweep — no physics difference, identical IC).
+
+| arm | D | T_hold_phase | θ_order 0→end | inner_frac 0→end |
+|-----|---|--------------|---------------|------------------|
+| depth_1 | 1 | 1.00 (horizon) | 0.999 → 0.999 | 0.500 → 1.000 |
+| depth_2 | 2 | 1.00 (horizon) | 0.799 → 0.993 | 0.309 → 0.605 |
+| depth_4 | 4 | 1.00 (horizon) | 0.799 → 0.837 | 0.224 → 0.485 |
+
+**Frozen verdict: DOES NOT SUPPORT** (T_hold_phase monotone in D but not
+2× — all arms saturate at the run horizon, exactly the (a) saturation).
+
+**Honest interpretation.** The (b1) phase sector **never decoheres**, for any
+depth: the per-particle winding phase-lock `θ_order` stays ≥ its t=0 value in
+every arm, and *rises* toward perfect phase-lock in the deeper arms (depth_2
+0.799→0.993) while the already-locked single-rung control has no room (0.999).
+Energy is conserved (E steady ≈ −9.3e5), no NaN. The scalar-q (a) metric
+saturated because the amplitude sector condenses, not disperses; the winding
+(b1) shows the phase sector is equally stable — the winding is a **real, stable
+per-particle degree of freedom that moves toward phase-lock** (the coherence
+"sound") rather than decohering, an outcome the (a) probe structurally could
+not measure.
+
+So the combined (a)+(b1) result supports the mechanism-consistent reading the
+frozen T_hold rule cannot score: **neither the amplitude nor the phase sector
+disperses, at any depth**, and both saturate the horizon-retention metrics. The
+depth-2× requirement fails on metric ceiling, not on physical dispersal — the
+(2×) test needs a longer horizon or a finer resolution to reveal depth
+separation. This is the honest negative the pre-registered rule demands, with
+the mechanism signal preserved. The per-particle winding (b1) is committed and
+reproducible for the engine/shader follow-up (b2).
