@@ -40,6 +40,14 @@ public class CassiCraftClient implements ClientModInitializer {
 		});
 
 		registerLumeTintSource();
+
+		// The signature predator renders with the reused vanilla zombie model +
+		// texture (no custom renderer, no custom texture — signature-predator.md §8).
+		if (dev.cassicraft.game.predator.PredatorRegistration.TYPE != null) {
+			net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(
+					dev.cassicraft.game.predator.PredatorRegistration.TYPE,
+					dev.cassicraft.client.predator.SignaturePredatorRenderer::new);
+		}
 	}
 
 	/**

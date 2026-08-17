@@ -13,7 +13,6 @@ import dev.cassicraft.game.rain.WeatherReadout;
 import dev.cassicraft.game.sampler.SamplerShutdown;
 import dev.cassicraft.game.sampler.Quantizer;
 import dev.cassicraft.game.spawn.SurfaceSpawn;
-import dev.cassicraft.game.walk.MovementCost;
 import dev.cassicraft.game.walk.StrideCostPass;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -69,6 +68,12 @@ public class CassiCraft implements ModInitializer {
 	/** The single Weatherglass item (registered once at mod init). */
 	public static WeatherglassItem WEATHERGLASS;
 
+	/** The single Q4 write-path handle — the session's field worker, set at world
+	 * load and nulled on teardown (the practice commands submit bounded matched-φ
+	 * writes through {@code CassiFieldThread.submitPerturbation}; the lane is the
+	 * only write path — this is never the solver, never a block write). */
+	public static dev.cassicraft.domain.thread.CassiFieldThread FIELD_THREAD;
+
 	private final SamplerShutdown session = new SamplerShutdown();
 
 	/** The life response (river-law steering) for the live session (created per-session). */
@@ -99,12 +104,31 @@ public class CassiCraft implements ModInitializer {
 	 * over a rising-ε² drain (atmosphere §3.1; created per-session, nulled on teardown). */
 	private dev.cassicraft.game.atmo.AtmoPresenter atmoPresenter;
 
+	/** The stilling/shout practice's particle presenter — the body's rest / the
+	 * vented wake read at each player position (the-stilling §4.2, the-shout §5e;
+	 * created per-session, nulled on teardown). */
+	private dev.cassicraft.game.practice.StillingShoutPresenter stillingShoutPresenter;
+
+	/** The signature-predator tick coordinator — attaches the live publish handoff
+	 * to every loaded predicate so its tick reads the field's signature gradient
+	 * (signature-predator.md §8; created per-session, nulled on teardown). */
+	private dev.cassicraft.game.predator.PredatorTickCoordinator predatorCoordinator;
+
 	/** The ride coordinator — applies the field's own river-law haul to vanilla
 	 * minecarts on the field (coherence-highway §6b; created per-session, nulled on teardown). */
 	private dev.cassicraft.game.ride.MinecartRideCoordinator rideCoordinator;
 
+	/** The stride coordinator — a bounded nudge of each player's walk along the
+	 * field's own horizontal ∇(g·Φ) current, only on solid ground (the-walk.md §2a;
+	 * the ride's player-analog; created per-session, nulled on teardown). */
+	private dev.cassicraft.game.stride.StrideCoordinator strideCoordinator;
+
 	@Override
 	public void onInitialize() {
+		dev.cassicraft.game.predator.PredatorRegistration.register();
+		net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry.register(
+				dev.cassicraft.game.predator.PredatorRegistration.TYPE,
+				dev.cassicraft.game.predator.SignaturePredatorEntity.createAttributes());
 		registerWeatherglass();
 
 		// The always-on lume channel (field-instruments §1.4): a bounded S2C
@@ -130,6 +154,7 @@ public class CassiCraft implements ModInitializer {
 					: BlockPos.ZERO;
 			double[] anchor = { spawn.getX(), spawn.getY(), spawn.getZ() };
 			long used = session.beginSession(level, seed, anchor);
+			dev.cassicraft.CassiCraft.FIELD_THREAD = session.fieldThread();
 			followBehind = new FollowBehind(session.publisher(), session.fieldThread());
 			lumePusher = new LumePusher(WEATHERGLASS, session.publisher());
 			rainPresenter = new RainPresenter(session.publisher());
@@ -138,8 +163,11 @@ public class CassiCraft implements ModInitializer {
 			surfaceSpawn = new SurfaceSpawn(session.publisher(), anchor);
 			windDrift = new dev.cassicraft.game.wind.WindDriftParticles(session.publisher());
 			rideCoordinator = new dev.cassicraft.game.ride.MinecartRideCoordinator(session.publisher());
+			strideCoordinator = new dev.cassicraft.game.stride.StrideCoordinator(session.publisher());
 			skyPresenter = new dev.cassicraft.game.sky.SkyPresenter(session.publisher());
 			atmoPresenter = new dev.cassicraft.game.atmo.AtmoPresenter(session.publisher());
+			stillingShoutPresenter = new dev.cassicraft.game.practice.StillingShoutPresenter(session.publisher());
+			predatorCoordinator = new dev.cassicraft.game.predator.PredatorTickCoordinator(session.publisher());
 			LOGGER.info("[cassicraft] field thread started for world (seed {}), window anchored at ({},{},{}), follow coordinator attached",
 					used, (int) anchor[0], (int) anchor[1], (int) anchor[2]);
 		});
@@ -149,6 +177,7 @@ public class CassiCraft implements ModInitializer {
 			if (server.overworld() == level || session.isRunning()) {
 				session.endSession();
 				followBehind = null;
+				dev.cassicraft.CassiCraft.FIELD_THREAD = null;
 				lumePusher = null;
 				steering = null;
 				strideCost = null;
@@ -157,7 +186,10 @@ public class CassiCraft implements ModInitializer {
 				windDrift = null;
 				skyPresenter = null;
 				rideCoordinator = null;
+				strideCoordinator = null;
 				atmoPresenter = null;
+				stillingShoutPresenter = null;
+				predatorCoordinator = null;
 				LOGGER.info("[cassicraft] field thread closed (world unload)");
 			}
 		});
@@ -167,6 +199,7 @@ public class CassiCraft implements ModInitializer {
 			if (session.isRunning()) {
 				session.endSession();
 				followBehind = null;
+				dev.cassicraft.CassiCraft.FIELD_THREAD = null;
 				lumePusher = null;
 				steering = null;
 				strideCost = null;
@@ -175,7 +208,10 @@ public class CassiCraft implements ModInitializer {
 				windDrift = null;
 				skyPresenter = null;
 				rideCoordinator = null;
+				strideCoordinator = null;
 				atmoPresenter = null;
+				stillingShoutPresenter = null;
+				predatorCoordinator = null;
 				LOGGER.info("[cassicraft] field thread closed (server stop)");
 			}
 		});
@@ -212,11 +248,20 @@ public class CassiCraft implements ModInitializer {
 			if (rideCoordinator != null) {
 				rideCoordinator.onServerTick(server);
 			}
+			if (strideCoordinator != null) {
+				strideCoordinator.onServerTick(server.overworld(), server.getTickCount());
+			}
 			if (skyPresenter != null) {
 				skyPresenter.onServerTick(server);
 			}
 			if (atmoPresenter != null) {
 				atmoPresenter.onServerTick(server);
+			}
+			if (predatorCoordinator != null) {
+				predatorCoordinator.onServerTick(server);
+			}
+			if (stillingShoutPresenter != null) {
+				stillingShoutPresenter.onServerTick(server);
 			}
 		});
 	}
@@ -249,6 +294,8 @@ public class CassiCraft implements ModInitializer {
 			registerSkyCommand(dispatcher);
 			registerAtmoCommand(dispatcher);
 			registerFieldGlassCommand(dispatcher);
+			registerStillingShoutCommand(dispatcher);
+			registerPredatorCommand(dispatcher);
 		});
 	}
 
@@ -296,6 +343,25 @@ public class CassiCraft implements ModInitializer {
 	 * position or an explicit block (a pure consumer of the publish, never a write). */
 	private static void registerFieldGlassCommand(CommandDispatcher<CommandSourceStack> dispatcher) {
 		dev.cassicraft.game.instrument.FieldGlassCommand.register(dispatcher);
+	}
+
+	/**
+	 * Register {@code /cassicraft predator} — spawn a signature predator at the
+	 * caller's position, or toggle the live predator population (the field-as-AI,
+	 * embodied; signature-predator.md §8 — it hunts the field's signature
+	 * gradient, a pure read of the published q/ε², never the player's coordinates).
+	 */
+	private static void registerPredatorCommand(CommandDispatcher<CommandSourceStack> dispatcher) {
+		dev.cassicraft.game.predator.PredatorCommand.register(dispatcher);
+	}
+
+	/** Register {@code /cassicraft still [x y z]} and {@code /cassicraft shout [x y z]}
+	 * — the practice's bounded matched-φ writes through the REAL Q4 player-return
+	 * lane (async-field-domain §7 Q4; q4-write-lane-design §3): still = the
+	 * coherence-restoring hold, shout = the coherence-delivering wake. The lane is
+	 * the only write path — a pure Q4 consumer, never a block write, never a mint. */
+	private static void registerStillingShoutCommand(CommandDispatcher<CommandSourceStack> dispatcher) {
+		dev.cassicraft.game.practice.StillingShoutCommand.register(dispatcher);
 	}
 
 	/**
@@ -355,48 +421,11 @@ public class CassiCraft implements ModInitializer {
 		}
 	}
 
-	/**
-	 * Register {@code /cassicraft stride [x y z]} — read the stride-cost at a
-	 * position (default caller / spawn). Headless-testable.
-	 */
+	/** Register {@code /cassicraft stride [x y z]} — the stride's read of the
+	 * field's river + stride state at the caller's position or an explicit block,
+	 * a pure consumer of the published ∇(g·Φ) (never a write, never a movement pass). */
 	private static void registerStrideCommand(CommandDispatcher<CommandSourceStack> dispatcher) {
-		dispatcher.register(Commands.literal("cassicraft")
-				.then(Commands.literal("stride")
-						.executes(ctx -> runStride(ctx.getSource(), null))
-						.then(Commands.argument("x", com.mojang.brigadier.arguments.IntegerArgumentType.integer())
-								.then(Commands.argument("y", com.mojang.brigadier.arguments.IntegerArgumentType.integer())
-										.then(Commands.argument("z", com.mojang.brigadier.arguments.IntegerArgumentType.integer())
-												.executes(ctx -> runStride(ctx.getSource(), new int[] {
-														com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "x"),
-														com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "y"),
-														com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "z"),
-												})))))));
-	}
-
-	private static int runStride(CommandSourceStack source, int[] xyz) {
-		if (CassiCraft.WEATHERGLASS == null) {
-			source.sendFailure(Component.literal("The stride reader is not armed (no world loaded)."));
-			return 0;
-		}
-		BlockPos pos = xyz != null
-				? new BlockPos(xyz[0], xyz[1], xyz[2])
-				: fallbackPos(source);
-		dev.cassicraft.domain.snapshot.FieldSnapshot snap =
-				CassiCraft.WEATHERGLASS.publisherSupplier().get().freshest();
-		if (snap == null) {
-			source.sendFailure(Component.literal("The field is not yet publishing."));
-			return 0;
-		}
-		double[] center = snap.job() != null && !snap.job().isWindowless()
-				? snap.job().windowCenter()
-				: new double[] { 0, 0, 0 };
-		// Standing (zero-step, zero-load) read so the command is a deterministic
-		// headless probe; the live pass applies per-player motion + carried load.
-		Quantizer.FieldReading r = Quantizer.sampleReading(snap, center, pos.getX(), pos.getY(), pos.getZ());
-		MovementCost.StrideCost c = MovementCost.strideCost(r, 0, 0, 0, 0f);
-		source.sendSuccess(() -> Component.literal("Stride @ (" + pos.getX() + "," + pos.getY() + "," + pos.getZ() + ")\n" + c.text()),
-				false);
-		return 1;
+		dev.cassicraft.game.stride.StrideCommand.register(dispatcher);
 	}
 
 	/** Caller (player) position or the world spawn for console/headless use. */

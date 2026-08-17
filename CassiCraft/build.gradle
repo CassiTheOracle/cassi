@@ -649,3 +649,104 @@ def condensationProbeRun = tasks.register('condensationProbe', JavaExec) {
 	classpath = sourceSets.main.runtimeClasspath
 	mainClass = 'dev.cassicraft.game.condensation.CondensationProbeMain'
 }
+
+// ----------------------------------------------------------------------------
+// Game-source combustion re-measure gate on the structured body world
+// (material-regimes.md §3 — "combustion = a self-sustaining organized-
+// perturbation front"). Sibling of the {@code combustionProbe} baseline: the
+// prior probe measured the driven-front question on the old flat-noise SPONGE
+// and returned INCONCLUSIVE(micro-scale) — each cap-honored write's dEY·dt² ≈
+// 2e-7 was dwarfed by the sponge field's own ~1.5 q collapse. This gate
+// re-measures the SAME question on the new condensed-body IC (a coherent
+// φ-locked body whose dense ground is near-equilibrium, so a bounded write's
+// relative effect is larger): a sustained organized-perturbation source through
+// the real Q4 write lane at a fuel cell INSIDE the dense body (not the box-
+// center surface band). Asserts determinism (same seed + same write cadence →
+// identical structural SHA-256 fingerprint), seed-sensitivity, the honest
+// body-vs-sponge comparison printed (the write-attributable Δ over the matched
+// no-write control), caps telemetry (a clamp is an honest report of the bounded-
+// organization boundary, never a mint), and the measured verdict
+// (SUPPORTS/CONTRADICTS/INCONCLUSIVE, computed never forced). Headless, no live
+// client/server.
+// ----------------------------------------------------------------------------
+def combustionBodyProbeRun = tasks.register('combustionBodyProbe', JavaExec) {
+	group = 'verification'
+	description = 'Runs the combustion re-measure gate on the structured body world (driven organized burn vs matched control: determinism, seed-sensitivity, body-vs-sponge, caps telemetry, verdict) without a live client.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'dev.cassicraft.game.reaction.CombustionBodyProbeMain'
+}
+
+check.dependsOn combustionBodyProbeRun
+build.dependsOn combustionBodyProbeRun
+
+// ----------------------------------------------------------------------------
+// Game-source stride determinism + honesty gate (designs/the-walk.md §4c/§4d —
+// the un-roaded crossing: the player's walk reading the published river). The
+// stride — the player-analog of the ride, a bounded read of the horizontal
+// ∇(g·Φ) at the feet (a READ, never a new movement pass, never a teleport) —
+// asserts: (a) same seed → identical stride fingerprint (determinism HARD),
+// (b) different seed differs, (c) no-mint — the max observed stride |Δv| ≤ the
+// named per-tick clamp AND ≤ the max river magnitude × the stride factor (a
+// stride never grants more than the river's own aid), (d) directionality — a
+// step WITH the current gets a positive aid, AGAINST a negative (the river
+// direction determines the sign), (e) pure function — the readout depends on
+// the snapshot only. Headless, no live client/server.
+// ----------------------------------------------------------------------------
+def strideDeterminismRun = tasks.register('strideDeterminism', JavaExec) {
+	group = 'verification'
+	description = 'Runs the stride determinism + honesty gate (bounded read of the published river: deterministic, no-mint vs the current, directional) without a live client.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'dev.cassicraft.game.stride.StrideDeterminismMain'
+}
+
+check.dependsOn strideDeterminism
+build.dependsOn strideDeterminism
+
+// ----------------------------------------------------------------------------
+// Game-source stilling/shout practice determinism + honesty gate
+// (async-field-domain.md §7 Q4 — the player-return channel; q4-write-lane-design.md
+// §3 the stilling/shout; the-stilling.md §5c / the-shout.md §5c the determinism
+// gates HARD): the practice's first real use of the Q4 lane. Both writes are
+// bounded, matched-φ (dEY=φ·dEI → the overdraw component is 0) source injections
+// through the REAL CassiFieldThread lane. Asserts the bare-solver injection is
+// byte-identical (same seed → identical full-buffer fingerprint, differs across
+// seeds, moved the field vs the no-injection control), the seam routes the
+// still+shout and moves the published field vs the same-seed control at the same
+// executed step (readout deterministic), the matched-φ still never clamps
+// (clampCount == 0, asserted) while the shout's clamp count is reported, and a
+// settled still point reads STILL (the practice states classify). Headless, no
+// live client/server.
+// ----------------------------------------------------------------------------
+def stillingShoutDeterminismRun = tasks.register('stillingShoutDeterminism', JavaExec) {
+	group = 'verification'
+	description = 'Runs the stilling/shout practice determinism + honesty gate (bounded matched-φ writes through the real Q4 lane: byte-identical injection, moves the published field, still never clamps, states classify) without a live client.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'dev.cassicraft.game.practice.StillingShoutDeterminismMain'
+}
+
+check.dependsOn stillingShoutDeterminism
+build.dependsOn stillingShoutDeterminism
+
+// ----------------------------------------------------------------------------
+// Game-source signature-predator determinism + honesty gate (signature-predator.md
+// §7d/§8 — the Phase-1 embodied slice: the field as AI, read-only this wave). The
+// predator hunts the published field's signature gradient (q/ε²) headlessly via
+// the same hunt decision law the live entity's tick runs. Asserts: same-seed
+// identical trajectory fingerprint (SHA-256 over the hunt's positions), a
+// different seed differs (the hunt read the field), directionality (the final
+// position is nearer the box's maximum-signature region than the start, by a
+// named margin), boundedness (max per-tick step ≤ the named clamp — no teleport),
+// and honesty (the hunted region carries a measurably higher signature than the
+// start — it hunts the field, not the player's hidden coordinates). Pure consumer
+// of the publish — never writes, never perturbs (the Q4 write lane is this wave's
+// documented Phase-1 boundary). Headless, no live client/server.
+// ----------------------------------------------------------------------------
+def predatorDeterminismRun = tasks.register('predatorDeterminism', JavaExec) {
+	group = 'verification'
+	description = 'Runs the signature-predator determinism + honesty gate (the predator hunts the field\'s q/ε² signature gradient deterministically, boundedly, and honestly — never the player\'s coordinates) without a live client.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'dev.cassicraft.game.predator.PredatorDeterminismMain'
+}
+
+check.dependsOn predatorDeterminism
+build.dependsOn predatorDeterminism
