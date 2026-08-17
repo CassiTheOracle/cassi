@@ -319,3 +319,33 @@ If H-HOLDS, the lump's mass landing on the φ-cascade ladder is a **numeric
 prediction** and must be synced to `predictions/falsifiable-predictions.md`
 (after the report confirms it), per the registry-first rule. Until then this is
 a T2 model test, not a registered prediction.
+
+### §12 Result (2026-08-17, 64³, 3/3 arms, full run)
+
+`runs/20260817_013351_meshless_deep/results.json` (4000 steps/arm, dt=0.001,
+L=20, G=1, sigma=0.4, Qi-gated nbody, TSC deposition):
+
+| arm | D | T_hold | inner_frac 0→end | q_last |
+|-----|---|--------|------------------|--------|
+| depth_1 | 1 | 4.00 (horizon) | 1.000 → 0.965 | 0.0032 |
+| depth_2 | 2 | 4.00 (horizon) | 0.816 → 0.867 | 0.0110 |
+| depth_4 | 4 | 4.00 (horizon) | 0.591 → 0.692 | 0.0362 |
+
+**Frozen verdict: DOES NOT SUPPORT** — `T_hold` is not monotone in D (it is
+**saturated at the run horizon for all three arms**), so the required
+`depth_4 ≥ 2× depth_1` separation is not exhibited.
+
+**Honest interpretation (saturation + trajectory signal).** `T_hold` is a
+cap-limited metric: every arm retained its φ-spaced radial structure and
+interior coherence to the full horizon, so the metric saturates before it can
+discriminate depth. The trajectory-level signal is **opposite to dispersal and
+consistent with cascade suppression**: the inner-φ-rung mass fraction **rises**
+with depth (depth_2 0.816→0.867; depth_4 0.591→0.692) while the single-rung
+control *drops* (depth_1 1.000→0.965) — the outer (higher-rung) coherence
+**condenses into the dense core** rather than radiating away, more strongly the
+deeper the stack. This is the scalar-q order parameter (a) seeing the
+amplitude-sector side of cascade suppression — which is exactly the sector
+where the winding phase (b) is the missing degree of freedom. The frozen rule
+is honored (DOES NOT SUPPORT as written); the negative is a **metric
+saturation**, not a dispersal, and motivates the (b) winding-phase extension
+(`CassiCosmos/research/meshless/two_fluid_particle_winding_design.md`).

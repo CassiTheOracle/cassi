@@ -205,13 +205,13 @@ def main():
         pos, vel, masses = to_device(pos, vel, masses, device)
         N = pos.shape[0]
         config = NB.NBodyConfig(
-            n_grid=128, L=L, G=G, sigma=sigma, dt=dt,
+            n_grid=64, L=L, G=G, sigma=sigma, dt=dt,
             n_steps=args.steps, qi_gate=True, qi_memory=False,
             deposition_kernel='TSC', report_every=500, track_every=100,
             device=device)
         # solver-consistent virialization: build the solver, set velocities from
         # its own softened acceleration so Q(0) ~ 1 (no cold collapse).
-        vir_sol = NB.NBodySolver3D(n_grid=128, L=L, G=G, sigma=sigma,
+        vir_sol = NB.NBodySolver3D(n_grid=64, L=L, G=G, sigma=sigma,
                                    device=device, qi_gate=True,
                                    deposition_kernel='TSC')
         vel = virialize(vir_sol, pos, masses)
