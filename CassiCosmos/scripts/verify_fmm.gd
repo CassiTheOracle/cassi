@@ -53,6 +53,7 @@ var _node_cf: RID
 var _node_w: RID
 var _node_q: RID
 var _node_r: RID
+var _node_qq: RID  # Arm 2: per-node mean q (nodeQq binding 14)
 var _ctr: RID
 var _force_out: RID
 var _inter: RID
@@ -123,6 +124,7 @@ func _make_buffers() -> void:
 	_node_w = _rd.storage_buffer_create(NODE_MAX * 16)
 	_node_q = _rd.storage_buffer_create(2 * NODE_MAX * 16)
 	_node_r = _rd.storage_buffer_create(NODE_MAX * 16)
+	_node_qq = _rd.storage_buffer_create(NODE_MAX * 4)  # Arm 2: per-node mean q
 	_ctr = _rd.storage_buffer_create(8 * 4)
 	_force_out = _rd.storage_buffer_create(N * 16)
 	_inter = _rd.storage_buffer_create(N * 4)
@@ -143,19 +145,22 @@ func _make_buffers() -> void:
 		_u_storage(8, _ctr),
 		_u_storage(9, _g5), _u_storage(10, _g6),
 		_u_storage(11, _g7), _u_storage(12, _g8), _u_storage(13, _g9),
+		_u_storage(14, _node_qq),
 	], _build_shader, 0)
 	# The gravity shader reads subsets of the same buffers; it uses binding
-	# 0/3/4/5/6/7/8 + 9/10/11 — one uniform set bound to the gravity shader too.
+	# 0/3/4/5/6/7/8 + 9/10/11.
 	_tree_us_g = _rd.uniform_set_create([
 		_u_storage(0, _src_table), _u_storage(3, _src_order),
 		_u_storage(4, _node_cf), _u_storage(5, _node_w),
 		_u_storage(6, _node_q), _u_storage(7, _node_r),
 		_u_storage(8, _ctr), _u_storage(9, _force_out),
 		_u_storage(10, _inter), _u_storage(11, _tp_dummy),
+		_u_storage(14, _node_qq),
 	], _grav_shader, 0)
-	# build PC (19 floats) + gravity PC (5 floats)
+	# build PC (19 floats) + gravity PC (8 floats: 0-4 θ/eps/etc + Arm 2 q_cent/α/toggle)
 	_build_pc.resize(19)
-	_grav_pc.resize(5)
+	_grav_pc.resize(8)
+	_grav_pc[5] = 0.0; _grav_pc[6] = 0.0; _grav_pc[7] = 0.0  # Arm 2 OFF in verify
 
 
 func _u_storage(binding: int, buf: RID) -> RDUniform:

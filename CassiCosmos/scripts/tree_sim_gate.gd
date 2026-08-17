@@ -88,6 +88,7 @@ var _walk_pc: PackedByteArray   # 5 floats (N, theta, eps2, use_tp, node_cnt)
 var _tree_grad: RID             # vec4[Np] walk output
 var _tree_icount: RID           # uint[Np]
 var _tree_pos: RID              # vec4[Np] target positions
+var _node_qq: RID               # float[node cap] — Arm 2 per-node mean q (binding 14)
 
 # Extras.
 var _vor_shader: RID; var _vor_pipe: RID; var _vor_pc: PackedByteArray
@@ -415,7 +416,7 @@ func _setup_tree(fresh: bool = false) -> void:
 	_bh_buf = _rd.storage_buffer_create(64 * 4)
 	_b_tree.clear()
 	var sizes := [2048, 256, 256, 256, 4096, 4096, 8192, 4096, 256,
-		1024, 256, 256, 256, 256]
+		1024, 256, 256, 256, 256, 4096]   # [14] = nodeQq (Arm 2 per-node mean q)
 	for s in sizes:
 		_b_tree.append(_rd.storage_buffer_create(s))
 	_b_tree[8] = _ctr   # binding 8 = counters (sentinel)
@@ -428,6 +429,7 @@ func _setup_tree(fresh: bool = false) -> void:
 		_us_storage(9, _b_tree[9]), _us_storage(10, _b_tree[10]),
 		_us_storage(11, _b_tree[11]), _us_storage(12, _b_tree[12]),
 		_us_storage(13, _b_tree[13]),
+		_us_storage(14, _b_tree[14]),
 	], _build_shader, 0)
 	print("[TreeGate] tree set valid=", _us_tree.is_valid())
 
@@ -517,14 +519,15 @@ func _setup_walk() -> void:
 	_walk_shader = _load_shader_rd("res://compute/cassi_tree_gravity.glsl")
 	if _walk_shader.is_valid():
 		_walk_pipe = _rd.compute_pipeline_create(_walk_shader)
-	_walk_pc = PackedByteArray(); _walk_pc.resize(5 * 4)
+	_walk_pc = PackedByteArray(); _walk_pc.resize(8 * 4)
 	_tree_build_pc_bytes = _pc.duplicate()   # 19-float build PC (persistent, in-place)
-	_tree_grav_pc_bytes = PackedByteArray(); _tree_grav_pc_bytes.resize(5 * 4)
+	_tree_grav_pc_bytes = PackedByteArray(); _tree_grav_pc_bytes.resize(8 * 4)
 	_tree_grad = _rd.storage_buffer_create(64 * 16)   # Np = 64
 	_tree_icount = _rd.storage_buffer_create(64 * 4)
 	_tree_pos = _rd.storage_buffer_create(64 * 16)
+	_node_qq = _rd.storage_buffer_create(8 * 64 * 4)   # nodeQq binding 14 (node cap 8·Nsrc+64)
 	# Walk set: 0=src, 3=order, 4=cf, 5=w, 6=q, 7=r, 8=ctr, 9=grad, 10=icount,
-	# 11=pos. (Uses the build set's _b_tree slots + walk-only buffers.)
+	# 11=pos, 14=nodeQq. (Uses the build set's _b_tree slots + walk-only buffers.)
 	if _walk_shader.is_valid():
 		_us_walk = _rd.uniform_set_create([
 			_us_storage(0, _b_tree[0]), _us_storage(3, _b_tree[3]),
@@ -533,6 +536,7 @@ func _setup_walk() -> void:
 			_us_storage(8, _b_tree[8]),
 			_us_storage(9, _tree_grad), _us_storage(10, _tree_icount),
 			_us_storage(11, _tree_pos),
+			_us_storage(14, _node_qq),
 		], _walk_shader, 0)
 	print("[TreeGate] rung w: walk pipe=", _walk_pipe.is_valid(),
 		" walk set=", _us_walk.is_valid())
@@ -565,6 +569,10 @@ func _dispatch_full_tree_chain(cl: int) -> void:
 	wp.encode_float(2, 1.0e-6)
 	wp.encode_float(3, 1.0)   # use_tp
 	wp.encode_float(4, float(8 * N_src + 64))
+	# Arm 2 OFF here (probe): q_cent/α default, toggle = 0 → shader dead.
+	wp.encode_float(5, 0.0)
+	wp.encode_float(6, 1.0)
+	wp.encode_float(7, 0.0)
 
 	# 0a. root seed (mode 10) + counter reset (mode 9) — the sentinel.
 	_rd.compute_list_bind_compute_pipeline(cl, _build_pipe)

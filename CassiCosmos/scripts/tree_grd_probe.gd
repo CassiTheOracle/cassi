@@ -164,9 +164,9 @@ func _setup() -> void:
 
 	# ---- Full build set: dummy buffers for bindings 0-13 (task sizes) ----
 	# 0=64xvec4x2 (2048B) | 1,2,3,8=64x4 | 4=256xvec4 | 5=256xvec4
-	# 6=512xvec4 | 7=256xivec4 | 9=64xvec4 | 10,11,12,13=64x4
+	# 6=512xvec4 | 7=256xivec4 | 9=64xvec4 | 10,11,12,13=64x4 | 14=nodeQq
 	var sizes := [2048, 256, 256, 256, 4096, 4096, 8192, 4096, 256,
-		1024, 256, 256, 256, 256]
+		1024, 256, 256, 256, 256, 4096]
 	for s in sizes:
 		_b_tree.append(_rd.storage_buffer_create(s))
 	_us_min = _rd.uniform_set_create(
@@ -181,6 +181,7 @@ func _setup() -> void:
 		_us_storage(9, _b_tree[8]),
 		_us_storage(10, _b_tree[9]), _us_storage(11, _b_tree[10]),
 		_us_storage(12, _b_tree[11]), _us_storage(13, _b_tree[12]),
+		_us_storage(14, _b_tree[14]),
 	], _build_shader, 0)
 	# Rung E full set: identical but binding 8 -> _ctr_E (separate sentinel).
 	_us_full_E = _rd.uniform_set_create([
@@ -192,6 +193,7 @@ func _setup() -> void:
 		_us_storage(9, _b_tree[8]),
 		_us_storage(10, _b_tree[9]), _us_storage(11, _b_tree[10]),
 		_us_storage(12, _b_tree[11]), _us_storage(13, _b_tree[12]),
+		_us_storage(14, _b_tree[14]),
 	], _build_shader, 0)
 	# Rung G full set (supp. sim-opening repro): binding 8 -> _ctr_G.
 	_us_full_G = _rd.uniform_set_create([
@@ -203,6 +205,7 @@ func _setup() -> void:
 		_us_storage(9, _b_tree[8]),
 		_us_storage(10, _b_tree[9]), _us_storage(11, _b_tree[10]),
 		_us_storage(12, _b_tree[11]), _us_storage(13, _b_tree[12]),
+		_us_storage(14, _b_tree[14]),
 	], _build_shader, 0)
 
 	# ---- Full voronoi set (16 buffers 0-15) ----

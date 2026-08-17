@@ -40,7 +40,7 @@ const PC := {
 	"cassi_qhist": 15,            # 60 B — histogram + extent_xyz + win_xyz + boxless + n_sites (bindings 0-7: pos, q, hist, EY, EI, sites, psy, psi)
 	"cassi_occupancy": 10,        # 40 B — lim_xyz, ext_xyz, pads
 	"cassi_tree_build": 19,       # 76 B — S, bmin_xyz, half, eps2, PHI, PHI_6, leaf/maxlevels, modes 10-13, grid_N, ext_xyz, floor
-	"cassi_tree_gravity": 5,      # 20 B — Np, theta, eps2, pad, tnm
+	"cassi_tree_gravity": 8,      # 32 B — Np, theta, eps2, pad, tnm + Arm 2 q_cent, alpha, coherence_theta
 	"cassi_tree_momcon": 3,       # 12 B — N_f, op, pad
 	"cassi_coarse_grad": 8,       # 32 B — the coarse-gradient PC
 	"cassi_voronoi_cells": 18,    # 72 B — the cell/JFA steering PC (modes 0-12; + J_wind, amendment 3c)
@@ -61,7 +61,7 @@ const HOST_PC_FLOATS := {
 	"_qhist_pc_bytes": 15,
 	"_occ_pc_bytes": 10,
 	"_tree_build_pc_bytes": 19,
-	"_tree_grav_pc_bytes": 5,
+	"_tree_grav_pc_bytes": 8,   # Arm 2: + q_cent, alpha, coherence_theta
 	"_tree_mc_pc_bytes": 3,
 	"_cf_grad_pc_bytes": 8,
 	"_cell_pc_bytes": 18,
@@ -97,8 +97,8 @@ const BINDINGS := {
 	"cassi_poisson": {0: [0, 1, 2, 3]},
 	"cassi_qhist": {0: [0, 1, 2, 3, 4, 5, 6, 7]},
 	"cassi_occupancy": {0: [0, 1]},
-	"cassi_tree_build": {0: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]},
-	"cassi_tree_gravity": {0: [0, 3, 4, 5, 6, 7, 8, 9, 10, 11]},
+	"cassi_tree_build": {0: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]},
+	"cassi_tree_gravity": {0: [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 14]},
 	"cassi_tree_momcon": {0: [0, 1, 2, 3]},
 	"cassi_coarse_grad": {0: [0, 1, 2, 3]},
 	"cassi_voronoi_cells": {0: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]},

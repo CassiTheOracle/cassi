@@ -333,6 +333,36 @@ var _vsync_enabled: bool = true
 ## Init-time; reinit to apply.
 @export var winding_coupling: float = 0.0
 
+## Coherence-gated adaptive compute (coherence_adaptive_prereg.md Arm 3a): when
+## ON, the job-boundary COM the window tracker follows is weighted by each
+## particle's FIELD coherence q (the coherent core dominates; stray void
+## particles contribute ~nothing) — the tracking envelope follows the field,
+## not the raw cloud. Live (no reinit). Default OFF = plain mass COM, bit-identical.
+@export var q_weighted_com: bool = false
+
+## Coherence-gated adaptive compute (coherence_adaptive_prereg.md Arm 3b): when
+## ON, the moving-Voronoi mesh rebuilds LESS often when the field's mean
+## coherence q is high (coherent cells move rigidly / phase-lock and stay valid
+## longer) and reverts toward the fixed ML_REBUILD base when q is low. β scales
+## the q-driven lengthening: threshold = ML_REBUILD·(1 + β·min(q/φ⁻²,1)).
+## Default OFF (β has no effect) = fixed ML_REBUILD, bit-identical.
+@export var adaptive_rebuild: bool = false
+@export var coherence_rebuild_beta: float = 1.0
+
+## Coherence-adaptive Barnes-Hut (Arm 2): when ON, the tree-walk θ is
+## modulated by per-node coherence — θ_eff = θ·(1 − α·(q_n − q_cent)) for
+## nodes with q_n > q_cent (high-coherence regions resolve MORE opens, since
+## they hold ordered structure worth resolving). Default OFF = plain θ,
+## bit-identical. Forwards to the engine (decoupled) + the sim's global tree walk.
+@export var coherence_theta: bool = false
+@export var coherence_theta_alpha: float = 1.0
+
+func _ml_rebuild_threshold() -> int:
+	if not adaptive_rebuild:
+		return ML_REBUILD
+	var q_scaled: float = minf(_q_mean / PHI_INV2, 1.0) if PHI_INV2 > 0.0 else 0.0
+	return maxi(ML_REBUILD, int(round(ML_REBUILD * (1.0 + coherence_rebuild_beta * q_scaled))))
+
 ## Boxless field reader (true-boxless arm, boxless_field_design.md): when ON,
 ## the q-histogram color-aligner samples the coherence AT PARTICLES from the
 ## moving-Voronoi sites directly (nearest site's cell-averaged EY/EI) instead
@@ -771,6 +801,7 @@ var _ml_tree_cf: RID        # vec4[M]
 var _ml_tree_w: RID         # vec4[M]
 var _ml_tree_q: RID         # vec4[2M]
 var _ml_tree_r: RID         # ivec4[M]
+var _ml_tree_nqq: RID       # float[M] — Arm 2 per-node mean coherence q (nodeQq binding 14)
 var _ml_tree_ctr: RID       # uint[8]
 var _ml_tree_grad: RID      # vec4[N_particles] — per-particle tree ∇Φ_g·(−) (nbody set 1 binding 3)
 var _ml_tree_icount: RID    # uint[N_particles] — walk interaction counts (walk binding 10)
@@ -1337,7 +1368,7 @@ func _run_physics_steps(n_steps: int) -> void:
 	# standalone compute lists, legal outside the frame list.
 	if meshless_mode and _ml_ready and not freeze_field:
 		_ml_step_count += n_steps
-		if _ml_step_count >= ML_REBUILD:
+		if _ml_step_count >= _ml_rebuild_threshold():
 			_ml_step_count = 0
 			_mesh_rebuild()
 	# Merge cadence: accumulate the inline batch's steps for the merge gate
@@ -1660,6 +1691,9 @@ func _decoupled_start_engine() -> bool:
 		"multi_rung_amp": multi_rung_amp, "multi_rung_base_scale": multi_rung_base_scale,
 		"meshless_mode": meshless_mode, "meshless_gravity": meshless_gravity,
 		"winding_coupling": winding_coupling,
+		"q_weighted_com": q_weighted_com,
+		"coherence_theta": coherence_theta,
+		"coherence_theta_alpha": coherence_theta_alpha,
 		"mode": mode,
 		"particle_merge": particle_merge,
 		"merge_cadence_steps": merge_cadence_steps,
@@ -2325,6 +2359,7 @@ func _setup_buffers() -> void:
 	_ml_tree_w = _rd.storage_buffer_create(tnm * 16)
 	_ml_tree_q = _rd.storage_buffer_create(2 * tnm * 16)
 	_ml_tree_r = _rd.storage_buffer_create(tnm * 16)
+	_ml_tree_nqq = _rd.storage_buffer_create(tnm * 4)  # Arm 2: per-node mean q
 	_ml_tree_ctr = _rd.storage_buffer_create(8 * 4)
 	# per-particle tree gradient + walk counts (N_particles targets;
 	# a minimum of 1 keeps the buffers non-zero-sized even for N_particles=0
@@ -2332,7 +2367,7 @@ func _setup_buffers() -> void:
 	_ml_tree_grad = _rd.storage_buffer_create(maxi(N_particles, 1) * 16)
 	_ml_tree_icount = _rd.storage_buffer_create(maxi(N_particles, 1) * 4)
 	_tree_build_pc_bytes = PackedByteArray(); _tree_build_pc_bytes.resize(19 * 4)
-	_tree_grav_pc_bytes = PackedByteArray(); _tree_grav_pc_bytes.resize(5 * 4)
+	_tree_grav_pc_bytes = PackedByteArray(); _tree_grav_pc_bytes.resize(8 * 4)
 
 	# Pre-allocate push-constant byte buffers (hitch-free pattern)
 	_pc_bytes = PackedByteArray(); _pc_bytes.resize(11 * 4)
@@ -2391,7 +2426,7 @@ func _free_buffers() -> void:
 				_ml_grad_y, _ml_grad_i, _ml_lsm_y, _ml_lsm_i,
 				_ml_tree_src, _ml_tree_srcw, _ml_tree_key, _ml_tree_order,
 				_ml_tree_cf, _ml_tree_w, _ml_tree_q, _ml_tree_r, _ml_tree_ctr,
-				_ml_tree_grad, _ml_tree_icount, _tree_mc_buf,
+				_ml_tree_nqq, _ml_tree_grad, _ml_tree_icount, _tree_mc_buf,
 				_field_render_tex, _bh_lensing_tex,
 				_lut_u_buf_on, _lut_u_buf_off]:
 		if rid.is_valid(): _rd.free_rid(rid)
@@ -2869,9 +2904,10 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(9, _ml_sites),
 			_uniform_storage(10, _ml_psi_y), _uniform_storage(11, _ml_psi_i),
 			_uniform_storage(12, _ml_vol), _uniform_storage(13, _mass_density_buf),
+			_uniform_storage(14, _ml_tree_nqq),
 		], _tree_build_shader, 0)
 		if not _us_tree_build.is_valid():
-			push_error("[CassiSim] tree-build uniform set FAILED to create (bindings 0-13)")
+			push_error("[CassiSim] tree-build uniform set FAILED to create (bindings 0-14)")
 	if _tree_grav_shader.is_valid() and _ml_need_tree():
 		_us_tree_grav = _rd.uniform_set_create([
 			_uniform_storage(0, _ml_tree_src), _uniform_storage(3, _ml_tree_order),
@@ -2880,9 +2916,10 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(8, _ml_tree_ctr),
 			_uniform_storage(9, _ml_tree_grad), _uniform_storage(10, _ml_tree_icount),
 			_uniform_storage(11, _pos_buf),  # walk TargetPos — targets = N-body particles (use_tp=1)
+			_uniform_storage(14, _ml_tree_nqq),
 		], _tree_grav_shader, 0)
 		if not _us_tree_grav.is_valid():
-			push_error("[CassiSim] tree-walk uniform set FAILED to create (bindings 0,3-11)")
+			push_error("[CassiSim] tree-walk uniform set FAILED to create (bindings 0,3-11,14)")
 	# Position blend (cassi_blend_pos.glsl, set 0): pos_prev, pos,
 	# pos_render — bindings 0, 1, 2. Created whenever the shader compiled;
 	# the buffers are always allocated (maxi(N_particles, 1) sizing).
@@ -3283,7 +3320,7 @@ func _ml_cell_pc(mode: float) -> PackedByteArray:
 	_cell_pc_bytes.encode_float(48, ML_MAX_DRIFT)
 	_cell_pc_bytes.encode_float(52, ML_KAPPA)
 	_cell_pc_bytes.encode_float(56, ML_LAM)
-	_cell_pc_bytes.encode_float(60, dt * float(ML_REBUILD))
+	_cell_pc_bytes.encode_float(60, dt * float(_ml_rebuild_threshold()))
 	_cell_pc_bytes.encode_float(64, ML_LLOYD_P)
 	_cell_pc_bytes.encode_float(68, winding_coupling)  # J_wind (amendment 3c append)
 	return _cell_pc_bytes
@@ -4799,6 +4836,10 @@ func _dispatch_tree_gravity(cl: int) -> void:
 	wp.encode_float(2, eps2)
 	wp.encode_float(3, 1.0)  # use_tp — read particle positions (_pos_buf)
 	wp.encode_float(4, float(ML_TREE_NODE_MAX_MULT * N_src + 64))  # bound (unused by walk)
+	# Arm 2 (coherence-adaptive θ): q_cent, alpha, toggle (default-off → shader dead)
+	wp.encode_float(5, _q_mean)
+	wp.encode_float(6, coherence_theta_alpha)
+	wp.encode_float(7, 1.0 if coherence_theta else 0.0)
 
 	_rd.compute_list_bind_compute_pipeline(cl, _tree_build_pipe)
 	_rd.compute_list_bind_uniform_set(cl, _us_tree_build, 0)
@@ -4964,6 +5005,9 @@ func _tree_worker_frame() -> void:
 		"grid_N": grid_N,
 		"eps2": ML_TREE_EPS2_FRAC * ML_TREE_EPS2_FRAC * _extent_min() * _extent_min(),
 		"tnm": ML_TREE_NODE_MAX_MULT * S + 64,
+		"coherence_theta": coherence_theta,
+		"coherence_theta_alpha": coherence_theta_alpha,
+		"q_cent": _q_mean,
 	}
 	var res: Dictionary = _tree_worker.submit(job)   # blocks only on the bootstrap frame
 	if res.is_empty():

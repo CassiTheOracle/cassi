@@ -61,6 +61,7 @@ var _tl_grv_sh: RID; var _tl_grv_pipe: RID
 var _tl_us_b: RID; var _tl_us_g: RID
 var _tl_src: RID; var _tl_srcw: RID; var _tl_key: RID; var _tl_order: RID
 var _tl_cf: RID; var _tl_nw: RID; var _tl_nq: RID; var _tl_nr: RID; var _tl_ctr: RID
+var _tl_nqq: RID   # Arm 2: per-node mean coherence q_n (nodeQq binding 14)
 var _tl_sites: RID; var _tl_psy: RID; var _tl_psi: RID; var _tl_vol: RID; var _tl_rho: RID
 var _tl_tgrad: RID; var _tl_tic: RID; var _tl_tpos: RID
 var _ready := false
@@ -209,6 +210,7 @@ func _setup(bspirv: RDShaderSPIRV, gspirv: RDShaderSPIRV) -> void:
 	_tl_nq = _tlrd.storage_buffer_create(2 * tnm * 16)
 	_tl_nr = _tlrd.storage_buffer_create(tnm * 16)
 	_tl_ctr = _tlrd.storage_buffer_create(8 * 4)
+	_tl_nqq = _tlrd.storage_buffer_create(tnm * 4)  # Arm 2: per-node mean coherence q (binding 14)
 	_tl_sites = _tlrd.storage_buffer_create(S * 16)
 	_tl_psy = _tlrd.storage_buffer_create(S * 4)
 	_tl_psi = _tlrd.storage_buffer_create(S * 4)
@@ -225,11 +227,13 @@ func _setup(bspirv: RDShaderSPIRV, gspirv: RDShaderSPIRV) -> void:
 		_stor_tl(0, _tl_src), _stor_tl(1, _tl_srcw), _stor_tl(2, _tl_key), _stor_tl(3, _tl_order),
 		_stor_tl(4, _tl_cf), _stor_tl(5, _tl_nw), _stor_tl(6, _tl_nq), _stor_tl(7, _tl_nr), _stor_tl(8, _tl_ctr),
 		_stor_tl(9, _tl_sites), _stor_tl(10, _tl_psy), _stor_tl(11, _tl_psi), _stor_tl(12, _tl_vol), _stor_tl(13, _tl_rho),
+		_stor_tl(14, _tl_nqq),
 	], _tl_bld_sh, 0)
 	_tl_us_g = _tlrd.uniform_set_create([
 		_stor_tl(0, _tl_src), _stor_tl(3, _tl_order), _stor_tl(4, _tl_cf), _stor_tl(5, _tl_nw),
 		_stor_tl(6, _tl_nq), _stor_tl(7, _tl_nr), _stor_tl(8, _tl_ctr), _stor_tl(9, _tl_tgrad),
 		_stor_tl(10, _tl_tic), _stor_tl(11, _tl_tpos),
+		_stor_tl(14, _tl_nqq),
 	], _tl_grv_sh, 0)
 	_ready = _tl_bld_pipe.is_valid() and _tl_grv_pipe.is_valid() \
 		and _tl_us_b.is_valid() and _tl_us_g.is_valid()
@@ -241,7 +245,7 @@ func _free_resources() -> void:
 	if _tlrd == null:
 		return
 	for rid in [_tl_src, _tl_srcw, _tl_key, _tl_order, _tl_cf, _tl_nw, _tl_nq,
-			_tl_nr, _tl_ctr, _tl_sites, _tl_psy, _tl_psi, _tl_vol, _tl_rho,
+			_tl_nr, _tl_ctr, _tl_nqq, _tl_sites, _tl_psy, _tl_psi, _tl_vol, _tl_rho,
 			_tl_tgrad, _tl_tic, _tl_tpos,
 			_tl_bld_pipe, _tl_bld_sh, _tl_grv_pipe, _tl_grv_sh]:
 		if rid.is_valid():
@@ -305,12 +309,16 @@ func _run_job(job: Dictionary) -> void:
 	bpc[17] = ext.z
 	bpc[18] = ML_TREE_FIELD_FLOOR
 	var gpc := PackedFloat32Array()
-	gpc.resize(5)
+	gpc.resize(8)
 	gpc[0] = float(Np)
 	gpc[1] = ML_TREE_THETA
 	gpc[2] = eps2
 	gpc[3] = 1.0
 	gpc[4] = float(tnm)
+	# Arm 2 (coherence-adaptive θ): q_cent, α, toggle (from the sim's job).
+	gpc[5] = float(job.get("q_cent", 0.0))
+	gpc[6] = float(job.get("coherence_theta_alpha", 1.0))
+	gpc[7] = 1.0 if (job.get("coherence_theta", false) as bool) else 0.0
 	var pg := int(ceil(float(S) / 64.0))
 	var pall := int(ceil(float(tnm) / 64.0))
 	var cl := _tlrd.compute_list_begin()

@@ -76,6 +76,9 @@ layout(set = 0, binding = 10, std430) buffer InterCount { uint inter[]; };
 // (binding 11) instead of src[2i].xyz. verify_fmm leaves the flag off and
 // binds a dummy to 11 — its targets ARE the sources.
 layout(set = 0, binding = 11, std430) restrict readonly buffer TargetPos { vec4 tpos[]; };
+// Per-node mean coherence q_n (Arm 2, coherence_adaptive_prereg.md): written
+// by the build's mode-6 MOMENTS; read here for the coherence-adaptive θ.
+layout(set = 0, binding = 14, std430) readonly buffer NodeQQ { float nodeqq[]; };
 
 layout(push_constant, std430) uniform PC {
     float N_f;        // #0 target count
@@ -85,6 +88,11 @@ layout(push_constant, std430) uniform PC {
                       //     (was an unused `phi` slot; 0 = src[2i], the
                       //     verify/official path — unchanged)
     float node_cnt;   // #4 total octree node count
+    float q_cent;     // #5 field mean coherence q (the running _q_mean) —
+                      //     the θ-adjustment pivot; 0 when coherence_theta off
+    float alpha;      // #6 θ slope: theta_eff = theta·(1 − alpha·(q_n − q_cent))
+    float coherence_theta; // #7 0/1 — coherence-adaptive θ toggle (default off
+                      //     → theta_eff ≡ theta, bit-identical)
 } pc;
 
 const int STACK_MAX = 64;
@@ -135,7 +143,19 @@ void force_main() {
         // center, for both the θ test and the containment hardening rule)
         bool contains = (abs(d.x) <= hs) && (abs(d.y) <= hs)
                      && (abs(d.z) <= hs);
-        bool open = (!is_leaf) && ((hs / max(sep, 1e-30) > pc.theta) || contains);
+        // Coherence-adaptive θ (Arm 2, coherence_adaptive_prereg.md): when the
+        // toggle is on, nodes whose mean coherence q_n is HIGH (organized
+        // condensate) get a SMALLER effective θ → more opens → tighter force;
+        // low-q voids get a LARGER θ_eff → fewer opens → coarser multipole is
+        // fine. theta_eff = theta·(1 − alpha·(q_n − q_cent)), clamped to
+        // [0.3θ, 2θ]. Default (coherence_theta off) → theta_eff ≡ theta.
+        float theta_eff = pc.theta;
+        if (pc.coherence_theta >= 0.5) {
+            float qn = nodeqq[n];
+            theta_eff = pc.theta * (1.0 - pc.alpha * (qn - pc.q_cent));
+            theta_eff = clamp(theta_eff, 0.3 * pc.theta, 2.0 * pc.theta);
+        }
+        bool open = (!is_leaf) && ((hs / max(sep, 1e-30) > theta_eff) || contains);
 
         if (!open) {
             // self-exclusion: a leaf whose single source IS this target

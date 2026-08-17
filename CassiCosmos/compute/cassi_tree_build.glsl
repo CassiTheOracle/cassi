@@ -89,6 +89,10 @@ layout(set = 0, binding = 10, std430) restrict readonly buffer MlPsiY { float ps
 layout(set = 0, binding = 11, std430) restrict readonly buffer MlPsiI { float psi[]; };
 layout(set = 0, binding = 12, std430) restrict readonly buffer MlVol { float mvol[]; };
 layout(set = 0, binding = 13, std430) restrict readonly buffer MlRhoMass { float mrho[]; };
+// Per-node mean coherence q_n (coherence_adaptive_prereg.md Arm 2): written by
+// the mode-6 MOMENTS pass from the source (EY,EI), mass-weighted over the
+// node's source range. Consumed by the WALK shader's coherence-adaptive θ.
+layout(set = 0, binding = 14, std430) buffer NodeQQ { float nodeqq[]; };
 
 layout(push_constant, std430) uniform PC {
     float N_f;          // #0 source count (sites, 8192)
@@ -356,14 +360,23 @@ void moments_main() {
     int pe = rng.y;
     float W = 0.0;
     vec3 s = vec3(0.0);
+    float qsum = 0.0;   // Arm 2: mass-weighted Σ(w·q_i) for the node's mean q
     for (int s2 = ps; s2 < pe; s2++) {
         uint si = srcorder[s2];
         vec4 p = src[2 * si];
         float wv = srcw[si];
         W += wv;
         s += wv * p.xyz;
+        // q_i from the source's own (EY,EI): ρ=EY+EI, ε=EY−φ·EI
+        vec4 f = src[2 * si + 1];
+        float rho = f.x + f.y;
+        float eps = f.x - pc.phi * f.y;
+        float r2 = rho * rho;
+        float qi = r2 / (r2 + PHI_INV2 + eps * eps);
+        qsum += wv * qi;
     }
     vec3 com = (W > 1e-30) ? s / W : vec3(0.0);
+    nodeqq[gid] = (W > 1e-30) ? qsum / W : 0.0;
     float qxx = 0.0, qxy = 0.0, qxz = 0.0, qyy = 0.0, qyz = 0.0, qzz = 0.0;
     for (int s2 = ps; s2 < pe; s2++) {
         uint si = srcorder[s2];

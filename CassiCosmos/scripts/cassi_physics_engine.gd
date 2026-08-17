@@ -173,6 +173,17 @@ var cascade_level: bool = false
 # cell-PC slot 17 (the appended J_wind float, offset 68 — the ham_completion
 # append precedent).
 var winding_coupling: float = 0.0
+# Coherence-gated adaptive compute (coherence_adaptive_prereg.md Arm 3a): when
+# ON, the job-boundary COM (read_com → the sim's window tracker) is weighted by
+# each subsampled particle's FIELD coherence q (coherent core dominates; stray
+# void particles contribute ~nothing). Default OFF = plain mass COM, bit-identical.
+var q_weighted_com: bool = false
+# Coherence-adaptive Barnes-Hut θ (coherence_adaptive_prereg.md Arm 2): when ON,
+# the tree walk opens a node by theta_eff = θ·(1 − α·(q_n − q_mean)) — tighter
+# (more opens) in high-q condensate, looser (fewer opens) in low-q voids.
+# Default OFF = θ fixed, bit-identical tree.
+var coherence_theta: bool = false
+var coherence_theta_alpha: float = 1.0
 # Cassi BH accretion — "object -> BH": particles within a BH's accretion
 # radius (bh_accretion_radius, world units — a small fraction of the BH's
 # σ softening) are marked dead (pos.w = 0, skipped by deposit/nbody/instancer)
@@ -257,6 +268,7 @@ var _ml_tree_nsrc := 0
 var _tree_worker = null          # CassiTreeWorker (owned by the sim — never freed here)
 var _tl_src: RID; var _tl_srcw: RID; var _tl_key: RID; var _tl_order: RID
 var _tl_cf: RID; var _tl_nw: RID; var _tl_nq: RID; var _tl_nr: RID; var _tl_ctr: RID
+var _tl_nqq: RID   # Arm 2: per-node mean coherence q_n (nodeQq binding 14)
 var _tl_tic: RID
 var _tree_bld_sh: RID; var _tree_bld_pipe: RID
 var _tree_walk_sh: RID; var _tree_walk_pipe: RID
@@ -464,6 +476,9 @@ func setup(cfg: Dictionary) -> bool:
 	meshless_mode = bool(cfg.get("meshless_mode", meshless_mode))
 	meshless_gravity = bool(cfg.get("meshless_gravity", meshless_gravity))
 	winding_coupling = float(cfg.get("winding_coupling", winding_coupling))
+	q_weighted_com = bool(cfg.get("q_weighted_com", q_weighted_com))
+	coherence_theta = bool(cfg.get("coherence_theta", coherence_theta))
+	coherence_theta_alpha = float(cfg.get("coherence_theta_alpha", coherence_theta_alpha))
 	mode = int(cfg.get("mode", mode))
 	particle_merge = bool(cfg.get("particle_merge", particle_merge))
 	merge_cadence_steps = int(cfg.get("merge_cadence_steps", 0))
@@ -659,6 +674,11 @@ func mesh_rebuild_due() -> bool:
 ## M0b-P: the subsampled center of mass of the live pos buffer — the window
 ## tracker's source (the host-side mirror is gone with the snapshots).
 ## Main-thread readback; the accepted job-boundary group.
+## When q_weighted_com (coherence_adaptive_prereg.md Arm 3a), the COM is
+## WEIGHTED BY each subsampled particle's FIELD coherence q (map its position →
+## grid cell → _field_q), so the coherent core dominates and stray void
+## particles contribute ~nothing — the envelope follows the field, not the
+## cloud. Default (OFF) = plain mass COM, bit-identical.
 func read_com() -> Array:
 	if _rd == null or not _ready:
 		return []
@@ -666,6 +686,33 @@ func read_com() -> Array:
 	var posf: PackedFloat32Array = _rd.buffer_get_data(_pos_buf, 0, np1 * 16).to_float32_array()
 	var com := Vector3.ZERO
 	var cnt := 0
+	if q_weighted_com:
+		var nc: int = grid_N * grid_N * grid_N
+		var qf: PackedFloat32Array = _rd.buffer_get_data(_field_q, 0, nc * 4).to_float32_array()
+		var ext := _extents()
+		var N := grid_N
+		var hn := float(N) * 0.5
+		var inv_ext := Vector3(
+			1.0 / maxf(ext.x, 1e-4), 1.0 / maxf(ext.y, 1e-4), 1.0 / maxf(ext.z, 1e-4))
+		var wsum := 0.0
+		var i := 0
+		while i + 2 < posf.size():
+			var px := posf[i]; var py := posf[i + 1]; var pz := posf[i + 2]
+			# world → grid cell (same map as qhist; the window is the domain)
+			var gx := floorf((px - _window_center.x) * inv_ext.x * hn + hn)
+			var gy := floorf((py - _window_center.y) * inv_ext.y * hn + hn)
+			var gz := floorf((pz - _window_center.z) * inv_ext.z * hn + hn)
+			var ii := clampi(int(gx), 0, N - 1)
+			var jj := clampi(int(gy), 0, N - 1)
+			var kk := clampi(int(gz), 0, N - 1)
+			var q := qf[ii + N * (jj + N * kk)]
+			com.x += px * q; com.y += py * q; com.z += pz * q
+			wsum += q
+			cnt += 1
+			i += 32 * 4
+		if cnt <= 0 or wsum <= 0.0:
+			return []
+		return [com.x / wsum, com.y / wsum, com.z / wsum]
 	var i := 0
 	while i < posf.size():
 		com.x += posf[i]
@@ -909,7 +956,7 @@ func shutdown() -> void:
 			_ml_cen, _ml_remap, _ml_tmp_y, _ml_tmp_i, _ml_tmp_py, _ml_tmp_pi,
 			_ml_grad_y, _ml_grad_i, _ml_lsm_y, _ml_lsm_i,
 			_tl_src, _tl_srcw, _tl_key, _tl_order, _tl_cf, _tl_nw, _tl_nq, _tl_nr,
-			_tl_ctr, _tl_tic,
+			_tl_nqq, _tl_ctr, _tl_tic,
 			_tree_bld_sh, _tree_bld_pipe, _tree_walk_sh, _tree_walk_pipe,
 			_tree_mc_sh, _tree_mc_pipe, _tree_mc_buf]:
 		if rid.is_valid():
@@ -1838,6 +1885,7 @@ func _meshless_init() -> void:
 	_tl_nw = _rd.storage_buffer_create(tnm * 16)
 	_tl_nq = _rd.storage_buffer_create(2 * tnm * 16)
 	_tl_nr = _rd.storage_buffer_create(tnm * 16)
+	_tl_nqq = _rd.storage_buffer_create(tnm * 4)  # Arm 2: per-node mean coherence q
 	_tl_ctr = _rd.storage_buffer_create(8 * 4)
 	_tl_tic = _rd.storage_buffer_create(maxi(N_particles, 1) * 4)
 	_tree_bld_sh = _shader_create("res://compute/cassi_tree_build.glsl")
@@ -1856,6 +1904,7 @@ func _meshless_init() -> void:
 			_uniform_storage(9, _ml_sites), _uniform_storage(10, _ml_psi_y),
 			_uniform_storage(11, _ml_psi_i), _uniform_storage(12, _ml_vol),
 			_uniform_storage(13, _mass_density_buf),
+			_uniform_storage(14, _tl_nqq),
 		], _tree_bld_sh, 0)
 	if _tree_walk_sh.is_valid():
 		_us_tree_walk = _rd.uniform_set_create([
@@ -1864,6 +1913,7 @@ func _meshless_init() -> void:
 			_uniform_storage(6, _tl_nq), _uniform_storage(7, _tl_nr),
 			_uniform_storage(8, _tl_ctr), _uniform_storage(9, _tree_grad),
 			_uniform_storage(10, _tl_tic), _uniform_storage(11, _pos_buf),
+			_uniform_storage(14, _tl_nqq),
 		], _tree_walk_sh, 0)
 	# Tree momentum-conservation pass (cassi_tree_momcon.glsl): Reduce
 	# accumulator + pipeline + uniform set (acc, positions, sum).
@@ -2125,12 +2175,16 @@ func _tree_run_in_list(cl: int) -> void:
 	bpc[15] = ext.x; bpc[16] = ext.y; bpc[17] = ext.z
 	bpc[18] = ML_TREE_FIELD_FLOOR
 	var gpc := PackedFloat32Array()
-	gpc.resize(5)
+	gpc.resize(8)
 	gpc[0] = float(Np)
 	gpc[1] = ML_TREE_THETA
 	gpc[2] = eps2
 	gpc[3] = 1.0
 	gpc[4] = float(tnm)
+	# Arm 2 (coherence-adaptive θ): q_cent (running field mean q), α, toggle.
+	gpc[5] = _q_mean
+	gpc[6] = coherence_theta_alpha
+	gpc[7] = 1.0 if coherence_theta else 0.0
 	var pg := int(ceil(float(S) / 64.0))
 	var pall := int(ceil(float(tnm) / 64.0))
 	# Mode 9 CTR_RESET + mode 10 ROOT_SEED: the on-GPU counter/root seeding

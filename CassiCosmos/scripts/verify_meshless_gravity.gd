@@ -48,6 +48,7 @@ var _grv_sh: RID; var _grv_pipe: RID
 var _us_b: RID; var _us_g: RID
 var _src: RID; var _srcw: RID; var _key: RID; var _order: RID
 var _cf: RID; var _nw: RID; var _nq: RID; var _nr: RID; var _ctr: RID
+var _node_qq: RID   # Arm 2: per-node mean coherence q_n (nodeQq binding 14)
 var _sites: RID; var _psy: RID; var _psi: RID; var _vol: RID; var _rho: RID
 var _tgrad: RID; var _tic: RID; var _tpos: RID
 var _bpc := PackedFloat32Array()
@@ -171,6 +172,7 @@ func _build_local_tree() -> void:
 	_nq = _lrd.storage_buffer_create(2 * tnm * 16)
 	_nr = _lrd.storage_buffer_create(tnm * 16)
 	_ctr = _lrd.storage_buffer_create(8 * 4)
+	_node_qq = _lrd.storage_buffer_create(tnm * 4)
 	_sites = _lrd.storage_buffer_create(_nl_sites * 16)
 	_psy = _lrd.storage_buffer_create(_nl_sites * 4)
 	_psi = _lrd.storage_buffer_create(_nl_sites * 4)
@@ -198,11 +200,13 @@ func _build_local_tree() -> void:
 		_stor(0, _src), _stor(1, _srcw), _stor(2, _key), _stor(3, _order),
 		_stor(4, _cf), _stor(5, _nw), _stor(6, _nq), _stor(7, _nr), _stor(8, _ctr),
 		_stor(9, _sites), _stor(10, _psy), _stor(11, _psi), _stor(12, _vol), _stor(13, _rho),
+		_stor(14, _node_qq),
 	], _bld_sh, 0)
 	_us_g = _lrd.uniform_set_create([
 		_stor(0, _src), _stor(3, _order), _stor(4, _cf), _stor(5, _nw),
 		_stor(6, _nq), _stor(7, _nr), _stor(8, _ctr), _stor(9, _tgrad),
 		_stor(10, _tic), _stor(11, _tpos),
+		_stor(14, _node_qq),
 	], _grv_sh, 0)
 	_bpc.resize(19)
 	_bpc[0] = float(_nl_sites)
@@ -213,9 +217,11 @@ func _build_local_tree() -> void:
 	_bpc[14] = float(_sim.grid_N)
 	_bpc[15] = ext.x; _bpc[16] = ext.y; _bpc[17] = ext.z
 	_bpc[18] = FIELD_FLOOR
-	_gpc.resize(5)
+	_gpc.resize(8)
 	_gpc[0] = float(Np); _gpc[1] = THETA; _gpc[2] = EPS2; _gpc[3] = 1.0  # use_tp
 	_gpc[4] = float(tnm)
+	# Arm 2 OFF here (bit-identical verify): q_cent/α default, toggle = 0 → shader dead.
+	_gpc[5] = 0.0; _gpc[6] = 1.0; _gpc[7] = 0.0
 	# gather (mode 7) + bitonic (91) in one list
 	var pg := int(ceil(float(_nl_sites) / 64.0))
 	var cl := _lrd.compute_list_begin()
