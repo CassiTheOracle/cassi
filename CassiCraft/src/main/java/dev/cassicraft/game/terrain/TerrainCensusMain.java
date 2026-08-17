@@ -19,9 +19,15 @@ import java.util.Arrays;
  * contract</b> that replaces the "anyone is a stone monolith" failure:
  *
  * <ol>
- *   <li><b>Determinism:</b> two fixed-seed settles produce identical census
- *       hashes (same field → same world); a different seed differs (the field
- *       actually seeds the terrain).</li>
+ *   <li><b>Measurement determinism:</b> two census passes over the <b>same</b>
+ *       settled field produce identical census hashes — the census is a pure read
+ *       of the published snapshot ({@link Quantizer#sampleAt}, never a write). The
+ *       two same-seed arms share <b>one</b> settle: boot+settle seed 42 once, run
+ *       the full-box census twice from the same frozen settled snapshot, and
+ *       assert the two signatures match. Settle determinism is not re-proved here —
+ *       it is hard-pinned byte-identically by the domainHarness gate (and by every
+ *       mutating gate that still boots fresh); a different seed still boots a fresh
+ *       settle and differs (the field actually seeds the terrain).</li>
  *   <li><b>Anti-monolith:</b> the AIR fraction over the box ≥ {@link #MIN_AIR_FRACTION}
  *       — the world has dissolving thin regions, it is not a solid slab.</li>
  *   <li><b>Ore precipitates:</b> the ORE count ≥ {@link #MIN_ORE_BLOCKS} — the
@@ -73,9 +79,16 @@ public final class TerrainCensusMain {
 	private static final int MIN_ORE_BLOCKS = 1;
 
 	public static void main(String[] args) throws Exception {
-		// Measure the settled field once and print the full distributions.
-		Census a1 = runOnce(SEED_A);
-		Census a2 = runOnce(SEED_A);
+		boolean ok = true;
+		// The two same-seed arms share ONE settle: boot+settle SEED_A once, run
+		// the pure-read census twice from the same frozen snapshot, and assert the
+		// signatures match (measurement determinism). The seed-B arm boots a fresh
+		// settle for seed sensitivity. The a2 census is re-measured quietly (its
+		// distributions are identical to a1's — the same frozen field), so the
+		// report prints once; the assertion is over the two full census passes.
+		Settled sa = bootAndSettle(SEED_A);
+		Census a1 = measureOn(sa);
+		Census a2 = measureOnQuiet(sa);
 		Census b = runOnce(SEED_B);
 
 		// Determinism + structural contract.
@@ -95,7 +108,6 @@ public final class TerrainCensusMain {
 				+ " | ore≥" + MIN_ORE_BLOCKS + "=" + oreContract
 				+ " | standable(A)=" + standableA + " standable(B)=" + b.standable());
 
-		boolean ok = true;
 		if (!sameSeedIdentical) {
 			System.err.println("[terrain-census] FAIL — same seed produced a different census (non-deterministic world)");
 			ok = false;
@@ -127,6 +139,13 @@ public final class TerrainCensusMain {
 
 	/** Boot a settled field, census the full box, and return the structural signature. */
 	private static Census runOnce(long seed) throws InterruptedException {
+		return measureOn(bootAndSettle(seed));
+	}
+
+	/** Boot the field thread, await the settled snapshot, capture the frozen
+	 * (snapshot + window-center) state, and close the worker. The returned
+	 * {@link Settled} is a pure immutable datum — safe to re-read. */
+	private static Settled bootAndSettle(long seed) throws InterruptedException {
 		double[] anchor = { ANCHOR_X, ANCHOR_Y, ANCHOR_Z };
 		SnapshotPublisher pub = new SnapshotPublisher();
 		CassiFieldThread.Cfg cfg = new CassiFieldThread.Cfg(
@@ -137,10 +156,21 @@ public final class TerrainCensusMain {
 			worker.start(cfg);
 			FieldSnapshot snap = awaitSettled(pub);
 			double[] window = centerOf(snap, anchor);
-			return census(snap, window, seed);
+			return new Settled(snap, window, seed);
 		} finally {
 			worker.close();
 		}
+	}
+
+	/** A full, printing census pass over a settled snapshot (the first arm + seed-B). */
+	private static Census measureOn(Settled s) {
+		return census(s.snap(), s.windowCenter(), s.seed(), false);
+	}
+
+	/** A quiet second census pass over the same frozen snapshot (identical result,
+	 * no duplicate distribution print — the report is printed once from arm a1). */
+	private static Census measureOnQuiet(Settled s) {
+		return census(s.snap(), s.windowCenter(), s.seed(), true);
 	}
 
 	/** Wait until a snapshot is published and the field has settled past {@link #SETTLE_GENERATIONS}. */
@@ -170,7 +200,7 @@ public final class TerrainCensusMain {
 	 * channel distributions, the block-kind census (AIR/SOLID/ORE), and the
 	 * anchor-column strata. Reads only; never writes a block.
 	 */
-	private static Census census(FieldSnapshot snap, double[] window, long seed) {
+	private static Census census(FieldSnapshot snap, double[] window, long seed, boolean quiet) {
 		int n = EXTENT * 2; // 192 blocks per axis
 		long total = (long) n * n * n;
 		float[] rho = new float[n * n * n];
@@ -234,13 +264,17 @@ public final class TerrainCensusMain {
 		// Calibration sweep over the measured arrays — the honest threshold choice
 		// comes from the actual channel distributions, not a guess (only on seed A's
 		// first pass; a pure function of the already-measured arrays, no re-settle).
-		if (seed == SEED_A) {
+		if (seed == SEED_A && !quiet) {
 			printCalibration(rho, q, eps2);
 		}
 
 		// Eager printed report — the measurement-first discipline demands the raw
-		// channel distributions on every run, not just the gate's boolean.
-		printDistributions(seed, rhoDist, qDist, epsDist, kinds, topSolidY, solidCol, boxTop);
+		// channel distributions on every run, not just the gate's boolean. The
+		// shared second arm (same snapshot) is quiet — its report would be
+		// byte-identical to a1's.
+		if (!quiet) {
+			printDistributions(seed, rhoDist, qDist, epsDist, kinds, topSolidY, solidCol, boxTop);
+		}
 
 		// Standable logic (walkability gate): a solid floor with 2 air blocks above.
 		boolean standable = topSolidY != Integer.MIN_VALUE;
@@ -409,6 +443,11 @@ public final class TerrainCensusMain {
 					+ " topSolidY=" + topSolidY + " standable=" + standable
 					+ " hash=" + signature.substring(0, 8);
 		}
+	}
+
+	/** The frozen settled field (immutable snapshot + its window center) shared
+	 * by the two same-seed measurement arms. */
+	private record Settled(FieldSnapshot snap, double[] windowCenter, long seed) {
 	}
 
 	private TerrainCensusMain() {

@@ -2,6 +2,7 @@ package dev.cassicraft.game.reader;
 
 import dev.cassicraft.domain.thread.CassiFieldThread;
 import dev.cassicraft.domain.thread.KernelLoader;
+import dev.cassicraft.domain.snapshot.FieldSnapshot;
 import dev.cassicraft.domain.snapshot.SnapshotPublisher;
 
 /**
@@ -15,10 +16,16 @@ import dev.cassicraft.domain.snapshot.SnapshotPublisher;
  *
  * <p>Exit code 0 = green. Assertions:
  * <ol>
- *   <li>Two independent runs from the same seed produce an <b>identical</b>
- *       readout text (determinism across publish → sample → render).</li>
+ *   <li>Two measurements of the <b>same</b> settled field produce an
+ *       <b>identical</b> readout text (measurement determinism across
+ *       read → render). The two same-seed arms share <b>one</b> settle — the
+ *       readout path only reads the frozen snapshot
+ *       ({@link FieldReader#read}, never a mutation) — so the run-2 arm replays
+ *       the same captured snapshot and must equal run-1. Settle determinism is
+ *       not re-proved here; it is hard-pinned byte-identically by the
+ *       domainHarness gate (and by every mutating gate that still boots fresh).</li>
  *   <li>A different seed produces a <b>different</b> readout (the gate is not
- *       vacuously green).</li>
+ *       vacuously green — the seed-B arm boots a fresh settle).</li>
  * </ol>
  */
 public final class FieldReaderDeterminismMain {
@@ -33,8 +40,13 @@ public final class FieldReaderDeterminismMain {
 	public static void main(String[] args) throws Exception {
 		boolean ok = true;
 
-		String a1 = runOnce(SEED_A);
-		String a2 = runOnce(SEED_A);
+		// The two same-seed arms share ONE settle: boot+settle SEED_A once, run
+		// the pure readout twice from the same frozen snapshot, and assert the
+		// readouts match (measurement determinism). The seed-B arm boots a fresh
+		// settle for seed sensitivity.
+		Settled sa = bootAndSettle(SEED_A);
+		String a1 = measureOn(sa);
+		String a2 = measureOn(sa);
 		String b = runOnce(SEED_B);
 
 		boolean sameSeedIdentical = a1.equals(a2);
@@ -64,6 +76,13 @@ public final class FieldReaderDeterminismMain {
 	}
 
 	private static String runOnce(long seed) throws InterruptedException {
+		return measureOn(bootAndSettle(seed));
+	}
+
+	/** Boot the field thread, await a settled snapshot, capture the frozen
+	 * (snapshot + window-center) state, and close the worker. The returned
+	 * {@link Settled} is a pure immutable datum — safe to re-read. */
+	private static Settled bootAndSettle(long seed) throws InterruptedException {
 		SnapshotPublisher pub = new SnapshotPublisher();
 		CassiFieldThread.Cfg cfg = new CassiFieldThread.Cfg(
 				seed, CassiFieldThread.JOB_STEP_CAP, CassiFieldThread.SNAPSHOT_CADENCE,
@@ -75,21 +94,35 @@ public final class FieldReaderDeterminismMain {
 			while (pub.freshest() == null && System.currentTimeMillis() < deadline) {
 				Thread.sleep(20);
 			}
-			FieldReader.FieldReadout r = FieldReader.readFreshest(pub, SX, SY, SZ);
-			if (r == null) {
+			FieldSnapshot snap = pub.freshest();
+			if (snap == null) {
 				throw new IllegalStateException("field never published");
 			}
-			// The rendered text is the readout contract; the raw channels back it.
-			return r.text() + " [raw] rho=" + fmt(r.rho())
-					+ " q=" + fmt(r.q())
-					+ " eps2=" + fmt(r.eps2());
+			double[] wc = snap.job() != null && !snap.job().isWindowless()
+					? snap.job().windowCenter()
+					: new double[] { 0, 0, 0 };
+			return new Settled(snap, wc);
 		} finally {
 			worker.close();
 		}
 	}
 
+	/** The pure-read readout over a settled snapshot — never mutates the field. */
+	private static String measureOn(Settled settled) {
+		FieldReader.FieldReadout r = FieldReader.read(settled.snap(), settled.windowCenter(), SX, SY, SZ);
+		// The rendered text is the readout contract; the raw channels back it.
+		return r.text() + " [raw] rho=" + fmt(r.rho())
+				+ " q=" + fmt(r.q())
+				+ " eps2=" + fmt(r.eps2());
+	}
+
 	private static String fmt(float v) {
 		return String.format("%.3f", v);
+	}
+
+	/** The frozen settled field (immutable snapshot + its window center) shared
+	 * by the two same-seed measurement arms. */
+	private record Settled(FieldSnapshot snap, double[] windowCenter) {
 	}
 
 	private FieldReaderDeterminismMain() {

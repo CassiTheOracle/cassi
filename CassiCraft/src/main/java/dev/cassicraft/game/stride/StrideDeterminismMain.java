@@ -17,9 +17,16 @@ import dev.cassicraft.game.sampler.Quantizer;
  * {@link StrideRead} path. It asserts:
  *
  * <ol>
- *   <li><b>(a) Determinism</b> — same seed → identical SHA-256 fingerprint over
- *       the stride readout + deltas (the-walk.md §4c HARD: same ground, same
- *       field state → same stride's cost).</li>
+ *   <li><b>(a) Measurement determinism</b> — two stride reads over the <b>same</b>
+ *       settled field → identical SHA-256 fingerprint (the-walk.md §4c HARD:
+ *       same ground, same field state → same stride's cost). The two same-seed
+ *       arms share <b>one</b> settle: the stride is a pure read of the settled
+ *       snapshot (sampling {@code ∇(g·Φ)}, never a field mutation — the-walk's
+ *       "a stride is a READ, never a new movement pass"), so the run-2 arm
+ *       replays the same frozen snapshot and must equal run-1. Settle
+ *       determinism is not re-proved here; it is hard-pinned byte-identically by
+ *       the domainHarness gate (and by every mutating gate that still boots
+ *       fresh).</li>
  *   <li><b>(b) Seed sensitivity</b> — a different seed → a different fingerprint
  *       (the stride genuinely read the field; not vacuous).</li>
  *   <li><b>(c) Honesty — no mint</b> — over a full interior-grid scan, the max
@@ -67,8 +74,13 @@ public final class StrideDeterminismMain {
 	private static final int SCAN_STRIDE = 4;
 
 	public static void main(String[] args) throws Exception {
-		Run a1 = runOnce(SEED);
-		Run a2 = runOnce(SEED);
+		// The two same-seed arms share ONE settle: boot+settle SEED once, run the
+		// pure stride read twice from the same frozen snapshot, and assert the
+		// fingerprints match (measurement determinism). The seed-B arm boots a
+		// fresh settle for seed sensitivity.
+		Settled sa = bootAndSettle(SEED);
+		Run a1 = measureOn(sa);
+		Run a2 = measureOn(sa);
 		Run b = runOnce(SEED_B);
 
 		System.out.println("\n[stride-determinism] SEED_A run1:\n" + a1);
@@ -149,6 +161,13 @@ public final class StrideDeterminismMain {
 
 	/** Run the stride end-to-end on one seed and return the measured outcome. */
 	private static Run runOnce(long seed) throws InterruptedException {
+		return measureOn(bootAndSettle(seed));
+	}
+
+	/** Boot the field thread, await the settled snapshot, capture the frozen
+	 * (snapshot + window-center) state, and close the worker. The returned
+	 * {@link Settled} is a pure immutable datum — safe to re-read. */
+	private static Settled bootAndSettle(long seed) throws InterruptedException {
 		SnapshotPublisher pub = new SnapshotPublisher();
 		CassiFieldThread.Cfg cfg = new CassiFieldThread.Cfg(
 				seed, CassiFieldThread.JOB_STEP_CAP, CassiFieldThread.SNAPSHOT_CADENCE,
@@ -158,16 +177,23 @@ public final class StrideDeterminismMain {
 		try {
 			FieldSnapshot snap = awaitSettled(pub);
 			double[] window = centerOf(snap);
-			Measure m = measure(snap, window);
-			String hash = fingerprint(m);
-			return new Run(m.posX(), m.posY(), m.posZ(),
-					m.riverGrad(), m.riverState(), m.awayAid(), m.againstState(), m.againstAid(),
-					m.easyWalk(),
-					m.maxDelta(), m.maxRiverMag(),
-					m.p50(), m.p90(), m.p95(), m.q50(), m.q90(), m.q95(), hash);
+			return new Settled(snap, window);
 		} finally {
 			worker.close();
 		}
+	}
+
+	/** The pure stride read over a settled snapshot — never mutates the field. */
+	private static Run measureOn(Settled s) {
+		FieldSnapshot snap = s.snap();
+		double[] window = s.windowCenter();
+		Measure m = measure(snap, window);
+		String hash = fingerprint(m);
+		return new Run(m.posX(), m.posY(), m.posZ(),
+				m.riverGrad(), m.riverState(), m.awayAid(), m.againstState(), m.againstAid(),
+				m.easyWalk(),
+				m.maxDelta(), m.maxRiverMag(),
+				m.p50(), m.p90(), m.p95(), m.q50(), m.q90(), m.q95(), hash);
 	}
 
 	/** Wait until a snapshot is published and the field has settled past {@link #SETTLE_GENERATIONS}. */
@@ -344,6 +370,11 @@ public final class StrideDeterminismMain {
 					+ " q50/q90/q95=" + fmt(q50) + "/" + fmt(q90) + "/" + fmt(q95)
 					+ " fingerprint=" + fingerprint.substring(0, 16) + "...";
 		}
+	}
+
+	/** The frozen settled field (immutable snapshot + its window center) shared
+	 * by the two same-seed measurement arms. */
+	private record Settled(FieldSnapshot snap, double[] windowCenter) {
 	}
 
 	private StrideDeterminismMain() {

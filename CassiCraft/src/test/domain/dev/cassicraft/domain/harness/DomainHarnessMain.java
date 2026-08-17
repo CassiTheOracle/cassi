@@ -112,8 +112,8 @@ public final class DomainHarnessMain {
 		return pass;
 	}
 
-	private static float[][] emptyGrad() {
-		return new float[TwoFluidSolver.CELLS][3];
+	private static float[] emptyGrad() {
+		return new float[TwoFluidSolver.CELLS * 3];
 	}
 
 	// --- Gate 3: no torn handoff --------------------------------------------
@@ -136,16 +136,17 @@ public final class DomainHarnessMain {
 				// can safely rewrite them each publish — the snapshot freezes a copy.
 				float[] q = new float[TwoFluidSolver.CELLS];
 				float[] rho = new float[TwoFluidSolver.CELLS];
-				float[][] grad = new float[TwoFluidSolver.CELLS][3];
+				float[] grad = new float[TwoFluidSolver.CELLS * 3];
 				for (int p = 0; !stop.get(); p++) {
 					for (int i = 0; i < q.length; i++) {
 						q[i] = i * 0.5f + p;
 						rho[i] = i * 0.25f + p * 2;
 					}
-					for (float[] g : grad) {
-						g[0] = p;
-						g[1] = p + 1;
-						g[2] = p + 2;
+					for (int gi = 0; gi < grad.length; ) {
+						grad[gi] = p;
+						grad[gi + 1] = p + 1;
+						grad[gi + 2] = p + 2;
+						gi += 3;
 					}
 					EngineJob job = new EngineJob(p, p, p * TwoFluidSolver.DT, new double[] { 0, 0, 0 });
 					int g = pub.allocateGeneration();

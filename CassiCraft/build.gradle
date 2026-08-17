@@ -852,3 +852,22 @@ def skyStoneDeterminismRun = tasks.register('skyStoneDeterminism', JavaExec) {
 
 check.dependsOn skyStoneDeterminismRun
 build.dependsOn skyStoneDeterminismRun
+
+// ----------------------------------------------------------------------------
+// Domain-performance byte-identity gate (FIX 2 — the parallel solver hot loops).
+// Settles the same fixed-seed field once serial (threads=1) and once parallel
+// (the default path), asserts the full-buffer fingerprints are byte-identical,
+// and prints a per-step timing report. Because every existing gate's pinned
+// fingerprints derive from the identical solve arithmetic, this is the standing
+// proof that parallel execution cannot drift the committed physics. Headless,
+// no Minecraft runtime (the domainTest pattern).
+// ----------------------------------------------------------------------------
+def perfByteIdentityRun = tasks.register('perfByteIdentity', JavaExec) {
+	group = 'verification'
+	description = 'Runs the domain-perf byte-identity gate (serial vs parallel settle: identical fingerprints + timing report) without a Minecraft runtime.'
+	classpath = sourceSets.domainTest.runtimeClasspath
+	mainClass = 'dev.cassicraft.domain.perf.PerfByteIdentityMain'
+}
+
+check.dependsOn perfByteIdentityRun
+build.dependsOn perfByteIdentityRun

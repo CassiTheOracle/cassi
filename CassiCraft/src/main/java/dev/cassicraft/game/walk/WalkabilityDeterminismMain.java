@@ -19,6 +19,15 @@ import dev.cassicraft.game.sampler.Quantizer;
  * no live client. The gate replays the real publish seam (CassiFieldThread →
  * SnapshotPublisher) with the player-anchored window, then samples the vertical
  * column at the anchor (box center horizontally).
+ *
+ * <p>Determinism honesty: the measurement (the {@code sampleAt} column scan) is a
+ * pure read of the settled snapshot — it never mutates the field. So the two
+ * same-seed arms share <b>one</b> settle: boot+settle seed 42 once, run the
+ * column scan twice from the same frozen settled snapshot, and assert the two
+ * signatures are identical (measurement determinism). Settle determinism itself
+ * is not re-proved here — it is hard-pinned byte-identically by the domainHarness
+ * gate (and by every mutating gate that still boots fresh); the seed-B arm keeps a
+ * fresh settle for seed sensitivity.
  */
 public final class WalkabilityDeterminismMain {
 
@@ -34,8 +43,13 @@ public final class WalkabilityDeterminismMain {
 	public static void main(String[] args) throws Exception {
 		boolean ok = true;
 
-		Profile a1 = runOnce(SEED_A);
-		Profile a2 = runOnce(SEED_A);
+		// The two same-seed arms share ONE settle: boot+settle SEED_A once, run
+		// the pure column-scan measurement twice from the same frozen snapshot,
+		// and assert the signatures match (measurement determinism). The seed-B
+		// arm boots a fresh settle for seed sensitivity.
+		Settled sa = bootAndSettle(SEED_A);
+		Profile a1 = measureOn(sa);
+		Profile a2 = measureOn(sa);
 		Profile b = runOnce(SEED_B);
 
 		boolean sameSeedIdentical = a1.signature().equals(a2.signature());
@@ -79,7 +93,19 @@ public final class WalkabilityDeterminismMain {
 		}
 	}
 
+	/** The frozen settled field (immutable snapshot + its window center) shared
+	 * by the two same-seed measurement arms. */
+	private record Settled(FieldSnapshot snap, double[] windowCenter) {
+	}
+
 	private static Profile runOnce(long seed) throws InterruptedException {
+		return measureOn(bootAndSettle(seed));
+	}
+
+	/** Boot the field thread, await a settled snapshot, capture the frozen
+	 * (snapshot + window-center) state, and close the worker. The returned
+	 * {@link Settled} is a pure immutable datum — safe to re-read. */
+	private static Settled bootAndSettle(long seed) throws InterruptedException {
 		double[] anchor = { ANCHOR_X, ANCHOR_Y, ANCHOR_Z };
 		SnapshotPublisher pub = new SnapshotPublisher();
 		CassiFieldThread.Cfg cfg = new CassiFieldThread.Cfg(
@@ -92,41 +118,49 @@ public final class WalkabilityDeterminismMain {
 			double[] wc = snap.job() != null && !snap.job().isWindowless()
 					? snap.job().windowCenter()
 					: anchor;
-			int ax = (int) Math.round(anchor[0]);
-			int az = (int) Math.round(anchor[2]);
-			int boxTop = (int) Math.round(anchor[1] + TwoFluidSolver.EXTENT);
-
-			// Scan the anchor column from the box top downward.
-			int topSolidY = Integer.MIN_VALUE;
-			int solidCount = 0;
-			StringBuilder sig = new StringBuilder();
-			for (int y = boxTop; y >= boxTop - (int) TwoFluidSolver.EXTENT * 2; y--) {
-				Quantizer.CellSample s = Quantizer.sampleAt(snap, wc, ax, y, az);
-				boolean solid = s.rho() >= Quantizer.TAU_C;
-				if (solid) {
-					solidCount++;
-					if (topSolidY == Integer.MIN_VALUE) {
-						topSolidY = y;
-					}
-				}
-				sig.append(solid ? 'S' : 'A');
-			}
-			// Standable: a solid floor exists and the two blocks above it are air
-			// (headroom for a standing player).
-			boolean standable = topSolidY != Integer.MIN_VALUE;
-			if (standable) {
-				for (int above = 1; above <= HEADROOM; above++) {
-					Quantizer.CellSample s = Quantizer.sampleAt(snap, wc, ax, topSolidY + above, az);
-					if (s.rho() >= Quantizer.TAU_C) {
-						standable = false;
-						break;
-					}
-				}
-			}
-			return new Profile(sha256(sig.toString()), standable, topSolidY, solidCount);
+			return new Settled(snap, wc);
 		} finally {
 			worker.close();
 		}
+	}
+
+	/** The pure-read column scan over a settled snapshot — never mutates the field. */
+	private static Profile measureOn(Settled settled) {
+		FieldSnapshot snap = settled.snap();
+		double[] wc = settled.windowCenter();
+		double[] anchor = { ANCHOR_X, ANCHOR_Y, ANCHOR_Z };
+		int ax = (int) Math.round(anchor[0]);
+		int az = (int) Math.round(anchor[2]);
+		int boxTop = (int) Math.round(anchor[1] + TwoFluidSolver.EXTENT);
+
+		// Scan the anchor column from the box top downward.
+		int topSolidY = Integer.MIN_VALUE;
+		int solidCount = 0;
+		StringBuilder sig = new StringBuilder();
+		for (int y = boxTop; y >= boxTop - (int) TwoFluidSolver.EXTENT * 2; y--) {
+			Quantizer.CellSample s = Quantizer.sampleAt(snap, wc, ax, y, az);
+			boolean solid = s.rho() >= Quantizer.TAU_C;
+			if (solid) {
+				solidCount++;
+				if (topSolidY == Integer.MIN_VALUE) {
+					topSolidY = y;
+				}
+			}
+			sig.append(solid ? 'S' : 'A');
+		}
+		// Standable: a solid floor exists and the two blocks above it are air
+		// (headroom for a standing player).
+		boolean standable = topSolidY != Integer.MIN_VALUE;
+		if (standable) {
+			for (int above = 1; above <= HEADROOM; above++) {
+				Quantizer.CellSample s = Quantizer.sampleAt(snap, wc, ax, topSolidY + above, az);
+				if (s.rho() >= Quantizer.TAU_C) {
+					standable = false;
+					break;
+				}
+			}
+		}
+		return new Profile(sha256(sig.toString()), standable, topSolidY, solidCount);
 	}
 
 	private static FieldSnapshot awaitFirst(SnapshotPublisher pub) throws InterruptedException {

@@ -79,11 +79,18 @@ public final class SurfaceEmergenceMain {
 		System.out.println("\n[emergence] seed A pacing/emergence report:\n" + a.text());
 
 		// Determinism + seed-sensitivity fingerprints, cheap (t=2 ~17 s each): the
-		// domain worker must reproduce the SAME structural fingerprint for a fixed
-		// seed (two independent seed-A settles) and DIFFER for a different seed.
+		// structural measurement is a pure read of the settled snapshot (sampleAt +
+		// the coherent-surface spawn scan — no field mutation), so the two same-seed
+		// arms share ONE settle: boot+settle seed A to the t=2 generation once, run
+		// the structural measurement twice from the same frozen snapshot, and assert
+		// the two fingerprints are identical (measurement determinism). Settle
+		// determinism is not re-proved here — it is hard-pinned byte-identically by
+		// the domainHarness gate (and by every mutating gate that still boots
+		// fresh). The seed-B arm boots a fresh settle for seed sensitivity.
 		boolean ok = true;
-		Emergence a2a = measureEmergence(SEED_A, 2.0);
-		Emergence a2b = measureEmergence(SEED_A, 2.0);
+		Settled sa = bootAndSettle(SEED_A, 2.0);
+		Emergence a2a = measureOnStructure(sa);
+		Emergence a2b = measureOnStructure(sa);
 		Emergence b2 = measureEmergence(SEED_B, 2.0);
 		boolean sameSeedIdentical = a2a.identicalTo(a2b);
 		boolean seedSensitive = !a2a.identicalTo(b2);
@@ -236,17 +243,34 @@ public final class SurfaceEmergenceMain {
 				seed, CassiFieldThread.JOB_STEP_CAP, CassiFieldThread.SNAPSHOT_CADENCE,
 				new KernelLoader().load(), anchor);
 		CassiFieldThread worker = new CassiFieldThread(pub);
+		Settled settled = bootWorker(worker, cfg, pub, seed, maxTarget);
+		Emergence e = measureOnStructure(settled);
+		return e;
+	}
+
+	/** Boot the field thread, await the settled generation, capture the frozen
+	 * (snapshot + window-center + seed) state, and close the worker. The returned
+	 * {@link Settled} is a pure immutable datum — safe to re-read. */
+	private static Settled bootAndSettle(long seed, double maxTarget) throws InterruptedException {
+		double[] anchor = { ANCHOR_X, ANCHOR_Y, ANCHOR_Z };
+		SnapshotPublisher pub = new SnapshotPublisher();
+		CassiFieldThread.Cfg cfg = new CassiFieldThread.Cfg(
+				seed, CassiFieldThread.JOB_STEP_CAP, CassiFieldThread.SNAPSHOT_CADENCE,
+				new KernelLoader().load(), anchor);
+		CassiFieldThread worker = new CassiFieldThread(pub);
+		return bootWorker(worker, cfg, pub, seed, maxTarget);
+	}
+
+	/** Start the worker, await the target generation, capture the frozen snapshot
+	 * (+ its window center + seed), close the worker, and return the settled datum. */
+	private static Settled bootWorker(CassiFieldThread worker, CassiFieldThread.Cfg cfg,
+			SnapshotPublisher pub, long seed, double maxTarget) throws InterruptedException {
+		double[] anchor = { ANCHOR_X, ANCHOR_Y, ANCHOR_Z };
 		long t0 = System.nanoTime();
 		worker.start(cfg);
-		double topThird = 0, bottomThird = 0;
-		int finalY = Integer.MIN_VALUE;
-		boolean standable = false;
-		int patchSolid = 0;
-		FieldSnapshot snap;
 		try {
-			// target t → generation: t / (stepsPerJob × DT); each publish ships one job.
 			int gen = (int) Math.ceil(maxTarget / (CassiFieldThread.JOB_STEP_CAP * TwoFluidSolver.DT));
-			snap = awaitGen(pub, gen, SETTLE_TIMEOUT_MS);
+			FieldSnapshot snap = awaitGen(pub, gen, SETTLE_TIMEOUT_MS);
 			double wall = (System.nanoTime() - t0) / 1e9;
 			System.out.println("[emergence] seed=" + seed + " t=" + String.format("%.1f", snap.job().t())
 					+ " wall=" + String.format("%.1f", wall) + "s"
@@ -254,28 +278,33 @@ public final class SurfaceEmergenceMain {
 					+ " | anchor topSolidY="
 					+ SurfaceSpawn.topSolidAnchorColumn(snap, centerOf(snap, anchor), 0, 0,
 							(int) Math.round(anchor[1] + EXTENT)));
-
-			// Full vertical-emergence measurement at THIS settle (not a fresher drift).
-			double[] vert = verticalThirdProfile(snap, centerOf(snap, anchor));
-			topThird = vert[0];
-			bottomThird = vert[1];
-			finalY = SurfaceSpawn.findCoherentSurface(snap, centerOf(snap, anchor), 0, 0,
-					(int) Math.round(anchor[1] + EXTENT));
-			standable = finalY != Integer.MIN_VALUE;
-			if (standable) {
-				patchSolid = patchSolidFraction(snap, centerOf(snap, anchor), 0, 0, finalY);
-			}
-			double settleWall = (System.nanoTime() - t0) / 1e9;
-			System.out.println("[emergence] seed=" + seed + " FINAL t=" + String.format("%.1f", snap.job().t())
-					+ " wall=" + String.format("%.1f", settleWall) + "s"
-					+ " | topThirdFrac=" + String.format("%.3f", topThird)
-					+ " bottomThirdFrac=" + String.format("%.3f", bottomThird)
-					+ " | coherentY=" + finalY + " standable=" + standable + " patch=" + patchSolid + "/25");
-			return new Emergence(seed, snap.job().t(), snap.job().t() / settleWall, settleWall,
-					topThird, bottomThird, finalY, standable, patchSolid);
+			return new Settled(snap, centerOf(snap, anchor), seed, wall);
 		} finally {
 			worker.close();
 		}
+	}
+
+	/** The pure-read structural measurement over a frozen settled snapshot —
+	 * computes the vertical gradient + the coherent-surface plane. Never mutates. */
+	private static Emergence measureOnStructure(Settled s) {
+		FieldSnapshot snap = s.snap();
+		double[] wc = s.windowCenter();
+		double[] vert = verticalThirdProfile(snap, wc);
+		double topThird = vert[0];
+		double bottomThird = vert[1];
+		int finalY = SurfaceSpawn.findCoherentSurface(snap, wc, 0, 0,
+				(int) Math.round(ANCHOR_Y + EXTENT));
+		boolean standable = finalY != Integer.MIN_VALUE;
+		int patchSolid = standable ? patchSolidFraction(snap, wc, 0, 0, finalY) : 0;
+		double settleWall = s.wallS();
+		System.out.println("[emergence] seed=" + s.seed() + " FINAL t=" + String.format("%.1f", snap.job().t())
+				+ " wall=" + String.format("%.1f", settleWall) + "s"
+				+ " (shared settle — structural re-measure)"
+				+ " | topThirdFrac=" + String.format("%.3f", topThird)
+				+ " bottomThirdFrac=" + String.format("%.3f", bottomThird)
+				+ " | coherentY=" + finalY + " standable=" + standable + " patch=" + patchSolid + "/25");
+		return new Emergence(s.seed(), snap.job().t(), snap.job().t() / settleWall, settleWall,
+				topThird, bottomThird, finalY, standable, patchSolid);
 	}
 
 	/**
@@ -348,6 +377,11 @@ public final class SurfaceEmergenceMain {
 			Thread.sleep(20);
 		}
 		throw new IllegalStateException("field never reached generation " + gen + " within " + timeoutMs + " ms");
+	}
+
+	/** The frozen settled field (immutable snapshot + its window center + seed +
+	 * the settle's wall-clock time) shared by the two same-seed structural arms. */
+	private record Settled(FieldSnapshot snap, double[] windowCenter, long seed, double wallS) {
 	}
 
 	private SurfaceEmergenceMain() {

@@ -1,6 +1,14 @@
 package dev.cassicraft.domain.engine;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadFactory;
 
 /**
  * MODULE 1 — FIELD DOMAIN. NO Minecraft imports — enforced by the `domain`
@@ -276,7 +284,55 @@ public final class TwoFluidSolver {
 
 	private final java.util.Random rng;
 
+	// ---- Parallel hot-loop execution (FIX 2: byte-identical, race-free) ----
+	// The per-cell solver math is embarrassingly parallel: pass_a reads the
+	// canonical ey/ei/vel/rho (written only by the previous pass) and writes the
+	// disjoint scr double-buffer; pass_b reads scr and writes the disjoint
+	// ey/ei/q/vel/rho. Partitioning the cell index space into disjoint contiguous
+	// blocks, each computed by exactly one thread with the identical per-cell
+	// expression order, yields bit-identical results to the serial sweep (pure
+	// IEEE float ops — no cross-cell reductions, no reassociation, no
+	// vectorization across the wrap-dependent stencil taps). A fixed daemon pool
+	// is shared JVM-wide (the gates run one solve at a time per JVM); a
+	// threads = 1 solver bypasses the pool entirely and runs the verbatim serial
+	// sweep (the committed fingerprint path used by the {@code perfByteIdentity}
+	// gate's serial arm).
+
+	/**
+	 * Default worker count for the parallel solver hot loops — the smaller of
+	 * the host's logical processors and 8 (the 7800X3D's 8 physical cores; the
+	 * per-cell float loops are compute-bound, so 8 threads saturate the FPUs
+	 * without oversubscribing SMT).
+	 */
+	public static final int DEFAULT_THREADS = Math.max(1, Math.min(Runtime.getRuntime().availableProcessors(), 8));
+
+	private static volatile ExecutorService PARALLEL_POOL;
+
+	/** The configured solver parallelism — {@code 1} forces the verbatim serial sweep. */
+	private final int threads;
+
+	// Pre-built, immutable-per-solver partitioning job lists (built once in the
+	// constructor so the per-step dispatch allocates nothing heavy — a tiny
+	// fresh future list per invokeAll, dwarfed by the removed publish churn).
+	private final List<Callable<Integer>> passAJobs;
+	private final List<Callable<Integer>> passBJobs;
+
+	/**
+	 * A solver with the default parallelism ({@link #DEFAULT_THREADS}) — the
+	 * committed path (byte-identical to serial, verified by the
+	 * {@code perfByteIdentity} gate).
+	 */
 	public TwoFluidSolver(long seed) {
+		this(seed, DEFAULT_THREADS);
+	}
+
+	/**
+	 * A solver with an explicit thread count. {@code threads = 1} runs the
+	 * verbatim serial sweep (the pre-FIX behavior); {@code threads > 1} runs the
+	 * identical per-cell arithmetic partitioned across the shared pool.
+	 */
+	public TwoFluidSolver(long seed, int threads) {
+		this.threads = Math.max(1, threads);
 		this.ey = new float[CELLS];
 		this.ei = new float[CELLS];
 		this.q = new float[CELLS];
@@ -285,6 +341,8 @@ public final class TwoFluidSolver {
 		this.scr = new float[CELLS * 4];
 		this.rollScratch = new float[CELLS * 4];
 		this.rng = new java.util.Random(seed);
+		this.passAJobs = buildPassAJobs();
+		this.passBJobs = buildPassBJobs();
 
 		// Per-axis cell sizes and 19-point weights — the engine's exact fp32
 		// expression order (cassi_two_fluid.glsl:91-102). At the cube these
@@ -305,6 +363,96 @@ public final class TwoFluidSolver {
 		this.ax = h02 / hx2 - 2.0f * (bxy + bxz);
 		this.ay = h02 / hy2 - 2.0f * (bxy + byz);
 		this.az = h02 / hz2 - 2.0f * (bxz + byz);
+	}
+
+	/**
+	 * The shared daemon executor for the parallel solver passes — sized at
+	 * {@link #DEFAULT_THREADS}, created lazily and shared JVM-wide (the gates run
+	 * one solve per JVM at a time, so no cross-solve contention). Daemon threads
+	 * never block JVM exit.
+	 */
+	private static ExecutorService pool() {
+		ExecutorService p = PARALLEL_POOL;
+		if (p == null) {
+			synchronized (TwoFluidSolver.class) {
+				p = PARALLEL_POOL;
+				if (p == null) {
+					int n = DEFAULT_THREADS;
+					p = Executors.newFixedThreadPool(n, new ThreadFactory() {
+						@Override
+						public Thread newThread(Runnable r) {
+							Thread t = new Thread(r, "cassicraft-solver-pool");
+							t.setDaemon(true);
+							return t;
+						}
+					});
+					PARALLEL_POOL = p;
+				}
+			}
+		}
+		return p;
+	}
+
+	/** Submit a partition to the shared pool and await every task, re-raising an interrupt. */
+	private static void runParallel(List<Callable<Integer>> jobs) {
+		final List<Future<Integer>> futures;
+		try {
+			futures = pool().invokeAll(jobs);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new IllegalStateException("interrupted submitting solver pass", e);
+		}
+		try {
+			for (Future<Integer> f : futures) {
+				f.get();
+			}
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new IllegalStateException("interrupted awaiting solver pass", e);
+		} catch (ExecutionException e) {
+			throw new IllegalStateException("solver pass task failed", e.getCause());
+		}
+	}
+
+	/**
+	 * The pass_a k-axis partition — disjoint contiguous k-blocks covering
+	 * {@code [0, N)}, one {@link Callable} per block running the verbatim serial
+	 * sweep over its rows. Built once so the per-step dispatch allocates only the
+	 * small future list {@code invokeAll} returns.
+	 */
+	private List<Callable<Integer>> buildPassAJobs() {
+		int blocks = Math.min(threads, N);
+		int chunk = (N + blocks - 1) / blocks;
+		List<Callable<Integer>> jobs = new ArrayList<>(blocks);
+		for (int s = 0; s < N; s += chunk) {
+			final int kStart = s;
+			final int kEnd = Math.min(N, s + chunk);
+			jobs.add(() -> {
+				passARange(kStart, kEnd);
+				return Integer.valueOf(0);
+			});
+		}
+		return jobs;
+	}
+
+	/**
+	 * The pass_b flat-cell partition — disjoint contiguous id-blocks covering
+	 * {@code [0, CELLS)}, built once. Each block's sweep reads only the read-only
+	 * {@code scr} and writes only its own ey/ei/q/vel/rho cells.
+	 */
+	private List<Callable<Integer>> buildPassBJobs() {
+		int blocks = Math.min(threads, CELLS);
+		int chunk = (CELLS + blocks - 1) / blocks;
+		List<Callable<Integer>> jobs = new ArrayList<>(blocks);
+		for (int s = 0; s < CELLS; s += chunk) {
+			final int idStart = s;
+			final int idEnd = Math.min(CELLS, s + chunk);
+			jobs.add(() -> {
+				passBIdRange(idStart, idEnd);
+				return Integer.valueOf(0);
+			});
+		}
+		return jobs;
 	}
 
 	/**
@@ -391,12 +539,32 @@ public final class TwoFluidSolver {
 	 * {@code acc = lap ∓ ω₀²·(EY−φ·EI)}, {@code v ← v + acc·dt},
 	 * {@code ψ ← ψ + v·dt + source·dt²}. The 19-point Laplacian uses the
 	 * precomputed anisotropic weights and periodic wraps.
+	 *
+	 * <p>Parallel when {@link #threads} &gt; 1: the k-axis is split into disjoint
+	 * contiguous blocks, each computed by one worker with the identical per-cell
+	 * expression order as the serial sweep (the shared {@code ey}/{@code ei}/
+	 * {@code vel}/{@code rho} are read-only during the pass; each worker writes
+	 * only its own {@code scr} cells) — bit-identical to serial, race-free.
 	 */
 	public void passA() {
+		if (threads <= 1 || passAJobs.size() <= 1) {
+			passARange(0, N);
+			return;
+		}
+		runParallel(passAJobs);
+	}
+
+	/**
+	 * The pass_a sweep over the k-rows {@code [kStart, kEnd)} — the verbatim
+	 * serial inner loop pulled out so the parallel workers and the serial path
+	 * execute the identical per-cell arithmetic (each output cell computed by
+	 * exactly one caller, in k→j→i order, reading only previous-pass inputs).
+	 */
+	private void passARange(int kStart, int kEnd) {
 		float dt = (float) DT;
 		float omega2 = (float) OMEGA2;
 		float phi = (float) PHI;
-		for (int k = 0; k < N; k++) {
+		for (int k = kStart; k < kEnd; k++) {
 			int dkzp = N * N * ((k + 1) % N - k);
 			int dkzm = N * N * ((k - 1 + N) % N - k);
 			for (int j = 0; j < N; j++) {
@@ -501,10 +669,24 @@ public final class TwoFluidSolver {
 	 * {@code ey/ei/q/vel} buffers and recompute {@code q = EY²+EI²} and
 	 * {@code ε² = (EY−φ·EI)²} into {@code vel[].w}. Also refreshes
 	 * {@code ρ = EY+EI} (the published single channel, corpus canonical form).
+	 *
+	 * <p>Parallel when {@link #threads} &gt; 1: the flat cell-id space is split
+	 * into disjoint contiguous blocks, each computed by one worker (reads the
+	 * read-only {@code scr}; writes only its own ey/ei/q/vel/rho cells) —
+	 * bit-identical to serial, race-free.
 	 */
 	public void passB() {
+		if (threads <= 1 || passBJobs.size() <= 1) {
+			passBIdRange(0, CELLS);
+			return;
+		}
+		runParallel(passBJobs);
+	}
+
+	/** The pass_b sweep over the flat cell ids {@code [idStart, idEnd)}. */
+	private void passBIdRange(int idStart, int idEnd) {
 		float phi = (float) PHI;
-		for (int id = 0; id < CELLS; id++) {
+		for (int id = idStart; id < idEnd; id++) {
 			int si = id * 4;
 			float ey_new = scr[si];
 			float ei_new = scr[si + 1];

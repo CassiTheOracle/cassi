@@ -16,9 +16,18 @@ import dev.cassicraft.game.sampler.Quantizer;
  *
  * <p>Exit code 0 = green. Assertions:
  * <ol>
- *   <li>Two independent runs from the same seed produce the <b>identical</b>
- *       stride cost (determinism across publish → sample → cost).</li>
- *   <li>A different seed produces a <b>different</b> cost (not vacuous).</li>
+ *   <li>Two measurements of the <b>same</b> settled field produce the
+ *       <b>identical</b> stride cost (measurement determinism across
+ *       sample → cost). The two same-seed arms share <b>one</b> settle (the
+ *       measurement is a pure read of the settled snapshot — it only calls
+ *       {@link Quantizer#sampleReading} + {@link MovementCost#strideCost}, never
+ *       a mutation), so the shared settle has nothing to re-settle: the run-2
+ *       arm replays the same frozen field and must equal run-1. Settle
+ *       determinism itself is not asserted here — it is hard-pinned
+ *       byte-identically by the domain-harness gate (and by every mutating gate
+ *       that still boots fresh).</li>
+ *   <li>A different seed produces a <b>different</b> cost (not vacuous — the
+ *       seed-B arm still boots a fresh settle).</li>
  * </ol>
  */
 public final class MovementCostDeterminismMain {
@@ -34,11 +43,14 @@ public final class MovementCostDeterminismMain {
 
 	public static void main(String[] args) throws Exception {
 		boolean ok = true;
-
-		String a1 = runOnce(SEED_A);
-		String a2 = runOnce(SEED_A);
+		// The two same-seed arms share ONE settle: boot+settle SEED_A once, then
+		// run the (pure-read) measurement twice from the same frozen settled
+		// snapshot. The identity assert below proves measurement determinism; the
+		// seed-B arm boots a fresh settle for seed sensitivity.
+		Settled sa = bootAndSettle(SEED_A);
+		String a1 = measureOn(sa);
+		String a2 = measureOn(sa);
 		String b = runOnce(SEED_B);
-
 		boolean sameSeedIdentical = a1.equals(a2);
 		boolean seedSensitive = !a1.equals(b);
 
@@ -66,6 +78,14 @@ public final class MovementCostDeterminismMain {
 	}
 
 	private static String runOnce(long seed) throws InterruptedException {
+		return measureOn(bootAndSettle(seed));
+	}
+
+	/** Boot the field thread, await a settled snapshot, capture the frozen
+	 * (snapshot + window-center) state, and close the worker. The returned
+	 * {@link Settled} is a pure immutable datum — safe to re-read any number of
+	 * times. */
+	private static Settled bootAndSettle(long seed) throws InterruptedException {
 		SnapshotPublisher pub = new SnapshotPublisher();
 		CassiFieldThread.Cfg cfg = new CassiFieldThread.Cfg(
 				seed, CassiFieldThread.JOB_STEP_CAP, CassiFieldThread.SNAPSHOT_CADENCE,
@@ -87,21 +107,31 @@ public final class MovementCostDeterminismMain {
 			double[] windowCenter = snap.job() != null && !snap.job().isWindowless()
 					? snap.job().windowCenter()
 					: new double[] { 0, 0, 0 };
-			Quantizer.FieldReading r = Quantizer.sampleReading(snap, windowCenter, X, Y, Z);
-			MovementCost.StrideCost c = MovementCost.strideCost(r, STEP_X, STEP_Y, STEP_Z, LOAD);
-			return "drag=" + fmt(c.drag())
-					+ " waste=" + fmt(c.wasteTerm())
-					+ " eps2=" + fmt(c.eps2Term())
-					+ " easement=" + fmt(c.descentEasement())
-					+ " climb=" + fmt(c.verticalPenalty())
-					+ " loadMul=" + fmt(c.loadMult());
+			return new Settled(snap, windowCenter);
 		} finally {
 			worker.close();
 		}
 	}
 
+	/** The pure-read measurement over a settled snapshot — never mutates the field. */
+	private static String measureOn(Settled settled) {
+		Quantizer.FieldReading r = Quantizer.sampleReading(settled.snap(), settled.windowCenter(), X, Y, Z);
+		MovementCost.StrideCost c = MovementCost.strideCost(r, STEP_X, STEP_Y, STEP_Z, LOAD);
+		return "drag=" + fmt(c.drag())
+				+ " waste=" + fmt(c.wasteTerm())
+				+ " eps2=" + fmt(c.eps2Term())
+				+ " easement=" + fmt(c.descentEasement())
+				+ " climb=" + fmt(c.verticalPenalty())
+				+ " loadMul=" + fmt(c.loadMult());
+	}
+
 	private static String fmt(float v) {
 		return String.format("%.3f", v);
+	}
+
+	/** The frozen settled field (immutable snapshot + its window center) shared
+	 * by the two same-seed measurement arms. */
+	private record Settled(FieldSnapshot snap, double[] windowCenter) {
 	}
 
 	private MovementCostDeterminismMain() {

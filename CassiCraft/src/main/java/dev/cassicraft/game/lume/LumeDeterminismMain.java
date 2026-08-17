@@ -17,11 +17,18 @@ import dev.cassicraft.game.sampler.Quantizer;
  * SHA-256. Asserts:
  *
  * <ol>
- *   <li><b>Determinism:</b> two independent same-seed boots yield byte-identical
- *       hashes — the wire presentation is a pure function of the published field.</li>
- *   <li><b>Anti-vacuous sensitivity + interiority:</b> a different seed yields a
- *       different hash, and the sampled position reads real interior field (not
- *       out-of-box air), so the gate actually exercised the mapping.</li>
+ *   <li><b>Measurement determinism:</b> two measurements of the <b>same</b>
+ *       settled field yield byte-identical hashes — the wire presentation is a
+ *       pure function of the published snapshot. The two same-seed arms share
+ *       <b>one</b> settle (the sample/encode path is pure {@code sampleReading} +
+ *       SHA-256, never a mutation), so the run-2 arm replays the same frozen
+ *       settled snapshot and must equal run-1. Settle determinism is not
+ *       re-proved here — it is hard-pinned byte-identically by the domainHarness
+ *       gate (and by every mutating gate that still boots fresh).</li>
+ *   <li><b>Anti-vacuous sensitivity + interiority:</b> a different seed (fresh
+ *       settle) yields a different hash, and the sampled position reads real
+ *       interior field (not out-of-box air), so the gate actually exercised the
+ *       mapping.</li>
  * </ol>
  *
  * <p>Exit 0 = green. Runs headlessly under the game runtime classpath (the
@@ -42,18 +49,23 @@ public final class LumeDeterminismMain {
 
 	public static void main(String[] args) {
 		boolean ok = true;
-		String hA1 = fingerprint(SEED_A);
-		String hA2 = fingerprint(SEED_A);
+		// The two same-seed arms share ONE settle: boot+settle SEED_A once, run
+		// the pure sample/encode path twice from the same frozen snapshot, and
+		// assert the hashes match (measurement determinism). The seed-B arm boots
+		// a fresh settle for seed sensitivity.
+		Settled sa = bootAndSettle(SEED_A);
+		Fingerprint hA1 = measureOn(sa);
+		Fingerprint hA2 = measureOn(sa);
 		Fingerprint hB = fingerprintWithCount(SEED_B);
 
-		boolean sameSeedIdentical = hA1.equals(hA2);
-		boolean differentSeedDiffers = !hA1.equals(hB.hash());
+		boolean sameSeedIdentical = hA1.hash().equals(hA2.hash());
+		boolean differentSeedDiffers = !hA1.hash().equals(hB.hash());
 		boolean interiorField = hB.rho() != 0f || hB.q() != 0f; // the sampled block read real field, not out-of-box air
 		ok = sameSeedIdentical && differentSeedDiffers && interiorField;
 
 		System.out.println("\n[gate] lume payload determinism at fixed position (" + PX + "," + PY + "," + PZ + ")");
-		System.out.println("  same-seed run1 " + hA1.substring(0, 16) + "...");
-		System.out.println("  same-seed run2 " + hA2.substring(0, 16) + "...");
+		System.out.println("  same-seed run1 " + hA1.hash().substring(0, 16) + "...");
+		System.out.println("  same-seed run2 " + hA2.hash().substring(0, 16) + "...");
 		System.out.println("  different-seed " + hB.hash().substring(0, 16) + "... (rho=" + hB.rho() + ", q=" + hB.q() + ")");
 		System.out.println("  same-seed identical=" + sameSeedIdentical
 				+ " | different-seed differs=" + differentSeedDiffers
@@ -67,13 +79,15 @@ public final class LumeDeterminismMain {
 		}
 	}
 
-	/** Fingerprint (hash only) of the 6-float sample at the fixed position for a seed. */
-	private static String fingerprint(long seed) {
-		return fingerprintWithCount(seed).hash();
-	}
-
 	/** Boot a fixed-seed worker, await its first publish, sample P, encode → hash. */
 	private static Fingerprint fingerprintWithCount(long seed) {
+		return measureOn(bootAndSettle(seed));
+	}
+
+	/** Boot the field thread, await a settled snapshot, capture the frozen
+	 * (snapshot + window-center) state, and close the worker. The returned
+	 * {@link Settled} is a pure immutable datum — safe to re-read. */
+	private static Settled bootAndSettle(long seed) {
 		SnapshotPublisher pub = new SnapshotPublisher();
 		CassiFieldThread.Cfg cfg = new CassiFieldThread.Cfg(
 				seed, CassiFieldThread.JOB_STEP_CAP, CassiFieldThread.SNAPSHOT_CADENCE,
@@ -85,14 +99,19 @@ public final class LumeDeterminismMain {
 			double[] center = snap.job() != null && !snap.job().isWindowless()
 					? snap.job().windowCenter()
 					: ANCHOR;
-			Quantizer.FieldReading r = Quantizer.sampleReading(snap, center, PX, PY, PZ);
-			return new Fingerprint(sha256(r.rho(), r.q(), r.eps2(), r.gradX(), r.gradY(), r.gradZ()), r.rho(), r.q());
+			return new Settled(snap, center);
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
 			throw new IllegalStateException("interrupted waiting for first publish", e);
 		} finally {
 			worker.close();
 		}
+	}
+
+	/** The pure-read sample+encode over a settled snapshot — never mutates the field. */
+	private static Fingerprint measureOn(Settled settled) {
+		Quantizer.FieldReading r = Quantizer.sampleReading(settled.snap(), settled.windowCenter(), PX, PY, PZ);
+		return new Fingerprint(sha256(r.rho(), r.q(), r.eps2(), r.gradX(), r.gradY(), r.gradZ()), r.rho(), r.q());
 	}
 
 	private static FieldSnapshot awaitFirst(SnapshotPublisher pub) throws InterruptedException {
@@ -131,6 +150,11 @@ public final class LumeDeterminismMain {
 
 	/** The sampled value + its hash (carries rho/q for the interior-field assert). */
 	private record Fingerprint(String hash, float rho, float q) {
+	}
+
+	/** The frozen settled field (immutable snapshot + its window center) shared
+	 * by the two same-seed measurement arms. */
+	private record Settled(FieldSnapshot snap, double[] windowCenter) {
 	}
 
 	private LumeDeterminismMain() {

@@ -22,8 +22,14 @@ import java.util.Arrays;
  *
  * <p>The gate asserts:
  * <ol>
- *   <li><b>Determinism (a):</b> two same-seed settles → identical FieldGlass
- *       fingerprint (same field → same readout, never a seeded read roll).</li>
+ *   <li><b>Measurement determinism (a):</b> two readout passes over the
+ *       <b>same</b> settled field → identical FieldGlass fingerprint. The two
+ *       same-seed arms share <b>one</b> settle — the readout path is a pure read
+ *       of the published snapshot (never a seeded read roll, never a mutation) —
+ *       so the run-2 arm re-measures the same frozen snapshot and must equal
+ *       run-1. Settle determinism is not re-proved here; it is hard-pinned
+ *       byte-identically by the domainHarness gate (and by every mutating gate
+ *       that still boots fresh).</li>
  *   <li><b>Anti-vacuity (b):</b> a different seed → a different fingerprint (the
  *       instrument genuinely read the field — not constant).</li>
  *   <li><b>Purity (c):</b> the readout is a pure function of the snapshot — two
@@ -69,9 +75,14 @@ public final class InstrumentDeterminismMain {
 	private static final int SX = 3, SY = 64, SZ = -7;
 
 	public static void main(String[] args) throws Exception {
-		// Measure the settled field once per seed and print the full readouts.
-		Census a1 = runOnce(SEED_A);
-		Census a2 = runOnce(SEED_A);
+		// The two same-seed arms share ONE settle: boot+settle SEED_A once, run
+		// the pure-read measurement twice from the same frozen snapshot, and
+		// assert the fingerprints match (measurement determinism). The seed-B arm
+		// boots a fresh settle for seed sensitivity. The a2 pass is quiet (its
+		// readout + distributions are identical — the same frozen field).
+		Settled sa = bootAndSettle(SEED_A);
+		Census a1 = measureOn(sa);
+		Census a2 = measureOnQuiet(sa);
 		Census b = runOnce(SEED_B);
 
 		// Determinism + structural contract.
@@ -116,6 +127,13 @@ public final class InstrumentDeterminismMain {
 
 	/** Boot a settled field, sample the FieldGlass lattice, and return the structural signature. */
 	private static Census runOnce(long seed) throws InterruptedException {
+		return measureOn(bootAndSettle(seed));
+	}
+
+	/** Boot the field thread, await the settled snapshot, capture the frozen
+	 * (snapshot + window-center) state, and close the worker. The returned
+	 * {@link Settled} is a pure immutable datum — safe to re-read. */
+	private static Settled bootAndSettle(long seed) throws InterruptedException {
 		double[] anchor = { ANCHOR_X, ANCHOR_Y, ANCHOR_Z };
 		SnapshotPublisher pub = new SnapshotPublisher();
 		CassiFieldThread.Cfg cfg = new CassiFieldThread.Cfg(
@@ -126,16 +144,36 @@ public final class InstrumentDeterminismMain {
 			worker.start(cfg);
 			FieldSnapshot snap = awaitSettled(pub);
 			double[] window = centerOf(snap, anchor);
-
-			// Print the named point's full readout (the deterministic chart).
-			Quantizer.FieldReading named = Quantizer.sampleReading(snap, window, SX, SY, SZ);
-			System.out.println("\n[instrument-determinism] named point (" + SX + "," + SY + "," + SZ
-					+ ") window-relative readout:\n" + FieldGlassRead.read(named).text());
-
-			return census(snap, window);
+			return new Settled(snap, window);
 		} finally {
 			worker.close();
 		}
+	}
+
+	/** A full, printing measurement pass over a settled snapshot (first arm + seed-B):
+	 * the named-point readout chart + the FieldGlass lattice census. */
+	private static Census measureOn(Settled s) {
+		return measure(s, false);
+	}
+
+	/** A quiet second pass over the same frozen snapshot (identical result, no
+	 * duplicate readout/distribution print — the report is printed once). */
+	private static Census measureOnQuiet(Settled s) {
+		return measure(s, true);
+	}
+
+	/** The pure-read measurement (named readout + lattice census) over a settled
+	 * snapshot — never mutates the field. */
+	private static Census measure(Settled s, boolean quiet) {
+		FieldSnapshot snap = s.snap();
+		double[] window = s.windowCenter();
+		// Print the named point's full readout (the deterministic chart).
+		Quantizer.FieldReading named = Quantizer.sampleReading(snap, window, SX, SY, SZ);
+		if (!quiet) {
+			System.out.println("\n[instrument-determinism] named point (" + SX + "," + SY + "," + SZ
+					+ ") window-relative readout:\n" + FieldGlassRead.read(named).text());
+		}
+		return census(snap, window, quiet);
 	}
 
 	/** Wait until a snapshot is published and the field has settled past {@link #SETTLE_GENERATIONS}. */
@@ -167,7 +205,7 @@ public final class InstrumentDeterminismMain {
 	 * per point — the honest embedding of every channel the instrument reads).
 	 * Reads only; never writes a block.
 	 */
-	private static Census census(FieldSnapshot snap, double[] window) {
+	private static Census census(FieldSnapshot snap, double[] window, boolean quiet) {
 		int minX = (int) (ANCHOR_X - EXTENT);
 		int minY = (int) (ANCHOR_Y - EXTENT);
 		int minZ = (int) (ANCHOR_Z - EXTENT);
@@ -216,7 +254,11 @@ public final class InstrumentDeterminismMain {
 		Dist qDist = dist(qAll, size);
 		Dist epsDist = dist(epsAll, size);
 
-		printDistributions(rhoDist, qDist, epsDist);
+		// The shared second arm (same snapshot) is quiet — its report would be
+		// byte-identical to the first, so it prints once only.
+		if (!quiet) {
+			printDistributions(rhoDist, qDist, epsDist);
+		}
 
 		String fingerprint = sha256(Arrays.copyOf(fp.array(), hashPoints * 36));
 		return new Census(fingerprint, rhoDist, qDist, epsDist, hashPoints);
@@ -363,6 +405,11 @@ public final class InstrumentDeterminismMain {
 					+ " | q " + (qDist == null ? "?" : pct(qDist.mean))
 					+ " | hash=" + fingerprint.substring(0, 8);
 		}
+	}
+
+	/** The frozen settled field (immutable snapshot + its window center) shared
+	 * by the two same-seed measurement arms. */
+	private record Settled(FieldSnapshot snap, double[] windowCenter) {
 	}
 
 	private InstrumentDeterminismMain() {

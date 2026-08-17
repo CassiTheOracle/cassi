@@ -18,9 +18,15 @@ import dev.cassicraft.game.sampler.Quantizer;
  * over a named number of ticks. It asserts:
  *
  * <ol>
- *   <li><b>(a) Determinism</b> — same seed → identical SHA-256 fingerprint over the
- *       hunt's position trajectory (the signature signature-predator is
- *       deterministic; open-Q5's stance).</li>
+ *   <li><b>(a) Measurement determinism</b> — two hunts over the <b>same</b>
+ *       settled field → identical SHA-256 fingerprint over the hunt's position
+ *       trajectory. The two same-seed arms share <b>one</b> settle — the hunt is
+ *       a pure read of the published snapshot ({@link SignatureSense#read}, a
+ *       mass-point over the frozen field; it never mutates the field), so the
+ *       run-2 arm replays the same frozen snapshot and must equal run-1. Settle
+ *       determinism is not re-proved here; it is hard-pinned byte-identically by
+ *       the domainHarness gate (and by every mutating gate that still boots
+ *       fresh).</li>
  *   <li><b>(b) Anti-vacuous</b> — a different seed → a different fingerprint (the
  *       hunt genuinely exercised the field).</li>
  *   <li><b>(c) Directionality</b> — the predator moves toward the signature
@@ -92,8 +98,13 @@ public final class PredatorDeterminismMain {
 	private static final double HONESTY_SIGNATURE_MARGIN = 0.05;
 
 	public static void main(String[] args) throws Exception {
-		Run a1 = runOnce(SEED);
-		Run a2 = runOnce(SEED);
+		// The two same-seed arms share ONE settle: boot+settle SEED once, run the
+		// pure hunt twice from the same frozen snapshot, and assert the
+		// fingerprints match (measurement determinism). The seed-B arm boots a
+		// fresh settle for seed sensitivity.
+		Settled sa = bootAndSettle(SEED);
+		Run a1 = measureOn(sa);
+		Run a2 = measureOnQuiet(sa);
 		Run b = runOnce(SEED_B);
 
 		System.out.println("\n[predator-determinism] SEED_A run1:\n" + a1);
@@ -152,6 +163,13 @@ public final class PredatorDeterminismMain {
 
 	/** Run the predator's hunt end-to-end on one seed and return the measured outcome. */
 	private static Run runOnce(long seed) throws InterruptedException {
+		return measureOn(bootAndSettle(seed));
+	}
+
+	/** Boot the field thread, await the settled snapshot, capture the frozen
+	 * (snapshot + window-center) state, and close the worker. The returned
+	 * {@link Settled} is a pure immutable datum — safe to re-read. */
+	private static Settled bootAndSettle(long seed) throws InterruptedException {
 		SnapshotPublisher pub = new SnapshotPublisher();
 		CassiFieldThread.Cfg cfg = new CassiFieldThread.Cfg(
 				seed, CassiFieldThread.JOB_STEP_CAP, CassiFieldThread.SNAPSHOT_CADENCE,
@@ -161,15 +179,33 @@ public final class PredatorDeterminismMain {
 		try {
 			FieldSnapshot snap = awaitSettled(pub);
 			double[] window = centerOf(snap);
-			HuntOutcome out = hunt(snap, window);
-			String hash = fingerprint(out);
-			return new Run(out.startX(), out.startY(), out.startZ(),
-					out.finalX(), out.finalY(), out.finalZ(),
-					out.startSignature(), out.finalSignature(), out.signatureGain(),
-					out.distToMaxGain(), out.maxStepPerTick(), hash);
+			return new Settled(snap, window);
 		} finally {
 			worker.close();
 		}
+	}
+
+	/** The pure hunt measurement over a settled snapshot (prints the trajectory). */
+	private static Run measureOn(Settled s) {
+		return measure(s, false);
+	}
+
+	/** A quiet second hunt over the same frozen snapshot (identical trajectory, no
+	 * duplicate print — the trajectory is printed once from arm a1). */
+	private static Run measureOnQuiet(Settled s) {
+		return measure(s, true);
+	}
+
+	/** The pure-read hunt over a settled snapshot — never mutates the field. */
+	private static Run measure(Settled s, boolean quiet) {
+		FieldSnapshot snap = s.snap();
+		double[] window = s.windowCenter();
+		HuntOutcome out = hunt(snap, window, quiet);
+		String hash = fingerprint(out);
+		return new Run(out.startX(), out.startY(), out.startZ(),
+				out.finalX(), out.finalY(), out.finalZ(),
+				out.startSignature(), out.finalSignature(), out.signatureGain(),
+				out.distToMaxGain(), out.maxStepPerTick(), hash);
 	}
 
 	/** Wait until a snapshot is published and the field has settled past {@link #SETTLE_GENERATIONS}. */
@@ -200,7 +236,7 @@ public final class PredatorDeterminismMain {
 	 * along the normalized signature gradient each tick, and record the trajectory.
 	 * This is the <b>same decision law</b> the live entity's {@code tick()} runs.
 	 */
-	private static HuntOutcome hunt(FieldSnapshot snap, double[] window) {
+	private static HuntOutcome hunt(FieldSnapshot snap, double[] window, boolean quiet) {
 		// Deterministic start: the box interior just above the body's coherent
 		// edge (window y=70 is the body's dense floor; y=84 is 14 above it, still
 		// interior). The body's high-q coherent condensate + its ε² drains sit
@@ -269,13 +305,15 @@ public final class PredatorDeterminismMain {
 		double distStartMax = dist(startX, startY, startZ, maxPos[0], maxPos[1], maxPos[2]);
 		double distFinalMax = dist(finalX, finalY, finalZ, maxPos[0], maxPos[1], maxPos[2]);
 
-		System.out.println("  hunt start=(" + startX + "," + startY + "," + startZ + ")"
-				+ " final=(" + finalX + "," + finalY + "," + finalZ + ")"
-				+ " | S(start)=" + fmt(startSignature) + " S(final)=" + fmt(finalSignature)
-				+ " | max-sig region=(" + (int) Math.round(maxPos[0]) + "," + (int) Math.round(maxPos[1])
-				+ "," + (int) Math.round(maxPos[2]) + ") maxS=" + fmt(maxSig)
-				+ " | distToMax start=" + fmt(distStartMax) + " final=" + fmt(distFinalMax)
-				+ " | max step/tick=" + fmt(maxStep));
+		if (!quiet) {
+			System.out.println("  hunt start=(" + startX + "," + startY + "," + startZ + ")"
+					+ " final=(" + finalX + "," + finalY + "," + finalZ + ")"
+					+ " | S(start)=" + fmt(startSignature) + " S(final)=" + fmt(finalSignature)
+					+ " | max-sig region=(" + (int) Math.round(maxPos[0]) + "," + (int) Math.round(maxPos[1])
+					+ "," + (int) Math.round(maxPos[2]) + ") maxS=" + fmt(maxSig)
+					+ " | distToMax start=" + fmt(distStartMax) + " final=" + fmt(distFinalMax)
+					+ " | max step/tick=" + fmt(maxStep));
+		}
 
 		return new HuntOutcome(startX, startY, startZ, finalX, finalY, finalZ,
 				startSignature, finalSignature, finalSignature - startSignature,
@@ -357,6 +395,11 @@ public final class PredatorDeterminismMain {
 					+ " maxStep=" + fmt(maxStepPerTick)
 					+ " fingerprint=" + fingerprint;
 		}
+	}
+
+	/** The frozen settled field (immutable snapshot + its window center) shared
+	 * by the two same-seed measurement arms. */
+	private record Settled(FieldSnapshot snap, double[] windowCenter) {
 	}
 
 	private PredatorDeterminismMain() {

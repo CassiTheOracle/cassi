@@ -286,7 +286,7 @@ public final class Quantizer {
 		double fz = gz - k0;
 		float[] rho = snap.rho();
 		float[] q = snap.q();
-		float[][] grad = snap.grad();
+		float[] grad = snap.grad();
 		float[] r = new float[8];
 		float[] qv = new float[8];
 		float[] gx8 = new float[8];
@@ -299,10 +299,10 @@ public final class Quantizer {
 					int cell = flat(clamp(i0 + ii), clamp(j0 + jj), clamp(k0 + kk));
 					r[c] = rho[cell];
 					qv[c] = q[cell];
-					float[] g = grad[cell];
-					gx8[c] = g[0];
-					gy8[c] = g[1];
-					gz8[c] = g[2];
+					int gi = cell * 3;
+					gx8[c] = grad[gi];
+					gy8[c] = grad[gi + 1];
+					gz8[c] = grad[gi + 2];
 					c++;
 				}
 			}

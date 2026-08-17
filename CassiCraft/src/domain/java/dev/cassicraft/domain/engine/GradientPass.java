@@ -42,11 +42,17 @@ public final class GradientPass {
 	private static final float XI = 17.94427191f;                 // ξ = φ⁶ (config :82)
 	private static final float EXTENT = TwoFluidSolver.EXTENT;
 
-	/** Gradient trim buffer: {@code CELLS × 3} floats (vec3 per cell). */
-	private final float[][] grad;
+	/**
+	 * Gradient trim buffer: {@code CELLS × 3} floats, one flat contiguous array
+	 * {@code grad[cell*3 + comp]} (comp {@code 0=x,1=y,2=z}) — the vec3 trim.
+	 * Contiguous per publish so the snapshot's defensive copy is a single
+	 * {@code System.arraycopy} (the FIX 1 bulk-storage pattern — no 262,144
+	 * small float[3] objects).
+	 */
+	private final float[] grad;
 
 	public GradientPass() {
-		this.grad = new float[CELLS][3];
+		this.grad = new float[CELLS * 3];
 	}
 
 	/**
@@ -82,10 +88,10 @@ public final class GradientPass {
 					float smy = sCell(id + djym, phi, ey, ei);
 					float spz = sCell(id + dkzp, phi, ey, ei);
 					float smz = sCell(id + dkzm, phi, ey, ei);
-					float[] g = grad[id];
-					g[0] = (spx - smx) / denomX;
-					g[1] = (spy - smy) / denomY;
-					g[2] = (spz - smz) / denomZ;
+					int gi = id * 3;
+					grad[gi] = (spx - smx) / denomX;
+					grad[gi + 1] = (spy - smy) / denomY;
+					grad[gi + 2] = (spz - smz) / denomZ;
 				}
 			}
 		}
@@ -102,8 +108,8 @@ public final class GradientPass {
 		return g * phi[id];
 	}
 
-	/** Readonly view of the vec3-trim gradient buffer ({@code [cells][3]}). */
-	public float[][] grad() {
+	/** Readonly view of the vec3-trim gradient buffer ({@code [cells*3]} flat, component-major). */
+	public float[] grad() {
 		return grad;
 	}
 }

@@ -335,7 +335,7 @@ public final class SeamProbeMain {
 	/** Wrap a solver's live arrays in a minimal immutable snapshot (rho/q only — enough for {@link Quantizer#sampleAt}). */
 	private static FieldSnapshot wrap(TwoFluidSolver solver, double[] center, int gen) {
 		return new FieldSnapshot(
-				solver.q(), new float[0], new float[0][0], solver.rho(),
+				solver.q(), new float[0], new float[0], solver.rho(),
 				gen, new dev.cassicraft.domain.engine.EngineJob(gen, 1, gen * TwoFluidSolver.DT, center));
 	}
 

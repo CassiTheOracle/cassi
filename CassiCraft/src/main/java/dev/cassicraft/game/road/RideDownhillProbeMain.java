@@ -43,6 +43,13 @@ import dev.cassicraft.game.sampler.Quantizer;
  * <p>Determinism: a SHA-256 fingerprint over the recorded values (start, both-arm
  * speeds and distances, mean grad, mean π/ρ, verdict) — same seed → identical
  * hash; a different seed → different hash (the probe actually exercised the field).
+ * The ride is a <b>pure consumer of the publish</b> — it only reads the published
+ * channels (no field mutation) — so the two same-seed determinism arms share
+ * <b>one</b> settle: boot+settle seed 42 once, run the ride twice from the same
+ * frozen snapshot, and assert the two fingerprints are identical (measurement
+ * determinism). Settle determinism is not re-proved here; it is hard-pinned
+ * byte-identically by the domainHarness gate (and by every mutating gate that
+ * still boots fresh); the seed-B arm keeps a fresh settle for seed sensitivity.
  *
  * <p>Exit 0 = green. Any failure prints and exits non-zero. Runs headlessly under
  * the game runtime classpath (the {@code followBehindDeterminism} pattern), no
@@ -101,8 +108,13 @@ public final class RideDownhillProbeMain {
 
 	public static void main(String[] args) throws Exception {
 		boolean ok = true;
-		Run a1 = runOnce(SEED);
-		Run a2 = runOnce(SEED);
+		// The two same-seed arms share ONE settle: boot+settle SEED once, run the
+		// pure ride twice from the same frozen snapshot, and assert the
+		// fingerprints match (measurement determinism). The seed-B arm boots a
+		// fresh settle for seed sensitivity.
+		Settled sa = bootAndSettle(SEED);
+		Run a1 = measureOn(sa);
+		Run a2 = measureOnQuiet(sa);
 		Run b = runOnce(SEED_B);
 
 		System.out.println("\n[ride-downhill] SEED_A run1:\n" + a1);
@@ -137,6 +149,13 @@ public final class RideDownhillProbeMain {
 
 	/** Run the probe end-to-end on one seed and return the measured outcome. */
 	private static Run runOnce(long seed) throws InterruptedException {
+		return measureOn(bootAndSettle(seed));
+	}
+
+	/** Boot the field thread, await the settled snapshot, capture the frozen
+	 * (snapshot + window-center) state, and close the worker. The returned
+	 * {@link Settled} is a pure immutable datum — safe to re-read. */
+	private static Settled bootAndSettle(long seed) throws InterruptedException {
 		SnapshotPublisher pub = new SnapshotPublisher();
 		CassiFieldThread.Cfg cfg = new CassiFieldThread.Cfg(
 				seed, CassiFieldThread.JOB_STEP_CAP, CassiFieldThread.SNAPSHOT_CADENCE,
@@ -146,18 +165,36 @@ public final class RideDownhillProbeMain {
 		try {
 			FieldSnapshot snap = awaitSettled(pub);
 			double[] window = centerOf(snap);
-			RideOutcome out = measure(snap, window);
-			String hash = fingerprint(out);
-			boolean green = out.verdict().startsWith("SUPPORTS")
-					|| out.verdict().startsWith("CONTRADICTS");
-			// INCONCLUSIVE is an honest report (field degenerate / start out of the
-			// box), not a mechanism failure — it still exits green with the raw data.
-			return new Run(out.verdict(), out.startX(), out.startY(), out.startZ(),
-					out.descentSpeed(), out.flatSpeed(), out.descentDistance(), out.flatDistance(),
-					out.meanGrad(), out.meanPiOverRho(), hash, green);
+			return new Settled(snap, window);
 		} finally {
 			worker.close();
 		}
+	}
+
+	/** The pure ride measurement over a settled snapshot (prints the route chart). */
+	private static Run measureOn(Settled s) {
+		return measure(s, false);
+	}
+
+	/** A quiet second ride over the same frozen snapshot (identical route, no
+	 * duplicate chart print — the chart is printed once from arm a1). */
+	private static Run measureOnQuiet(Settled s) {
+		return measure(s, true);
+	}
+
+	/** The pure-read ride over a settled snapshot — never mutates the field. */
+	private static Run measure(Settled s, boolean quiet) {
+		FieldSnapshot snap = s.snap();
+		double[] window = s.windowCenter();
+		RideOutcome out = measure(snap, window, quiet);
+		String hash = fingerprint(out);
+		boolean green = out.verdict().startsWith("SUPPORTS")
+				|| out.verdict().startsWith("CONTRADICTS");
+		// INCONCLUSIVE is an honest report (field degenerate / start out of the
+		// box), not a mechanism failure — it still exits green with the raw data.
+		return new Run(out.verdict(), out.startX(), out.startY(), out.startZ(),
+				out.descentSpeed(), out.flatSpeed(), out.descentDistance(), out.flatDistance(),
+				out.meanGrad(), out.meanPiOverRho(), hash, green);
 	}
 
 	/** Wait until a snapshot is published and the field has settled past {@link #SETTLE_GENERATIONS}. */
@@ -182,7 +219,7 @@ public final class RideDownhillProbeMain {
 	}
 
 	/** Find the strongest-{@code |∇(g·Φ)|} interior position and ride it down both arms. */
-	private static RideOutcome measure(FieldSnapshot snap, double[] window) {
+	private static RideOutcome measure(FieldSnapshot snap, double[] window, boolean quiet) {
 		// Deterministic coarse scan: x/z grid at the center's y, plus a y sweep of
 		// the center column; the argmax over both is the descent start.
 		double[] start = { WINDOW_CENTER[0], WINDOW_CENTER[1], WINDOW_CENTER[2] };
@@ -222,15 +259,17 @@ public final class RideDownhillProbeMain {
 			verdict = marginMet ? "SUPPORTS" : "CONTRADICTS";
 		}
 
-		System.out.println("  descent start = (" + start[0] + "," + start[1] + "," + start[2] + ")"
-				+ " | start |grad|=" + fmt(startGrad) + " | in-box=" + inBox);
-		System.out.println("  descent arm  speed=" + fmt(descent.speed())
-				+ " dist=" + fmt(descent.distance())
-				+ " mean|grad|=" + fmt(descent.meanGrad())
-				+ " mean(pi/rho)=" + fmt(descent.meanPiOverRho()));
-		System.out.println("  flat control arm speed=" + fmt(flat.speed()) + " dist=" + fmt(flat.distance()));
-		System.out.println("  margin met (descent > " + fmt(RIDE_MARGIN) + " over flat): " + marginMet);
-		System.out.println("  verdict: " + verdict);
+		if (!quiet) {
+			System.out.println("  descent start = (" + start[0] + "," + start[1] + "," + start[2] + ")"
+					+ " | start |grad|=" + fmt(startGrad) + " | in-box=" + inBox);
+			System.out.println("  descent arm  speed=" + fmt(descent.speed())
+					+ " dist=" + fmt(descent.distance())
+					+ " mean|grad|=" + fmt(descent.meanGrad())
+					+ " mean(pi/rho)=" + fmt(descent.meanPiOverRho()));
+			System.out.println("  flat control arm speed=" + fmt(flat.speed()) + " dist=" + fmt(flat.distance()));
+			System.out.println("  margin met (descent > " + fmt(RIDE_MARGIN) + " over flat): " + marginMet);
+			System.out.println("  verdict: " + verdict);
+		}
 
 		return new RideOutcome(verdict, (int) Math.round(start[0]), (int) Math.round(start[1]),
 				(int) Math.round(start[2]), descent.speed(), flat.speed(),
@@ -388,6 +427,11 @@ public final class RideDownhillProbeMain {
 					+ " fingerprint=" + fingerprint.substring(0, 16) + "..."
 					+ " verdict=" + verdict;
 		}
+	}
+
+	/** The frozen settled field (immutable snapshot + its window center) shared
+	 * by the two same-seed measurement arms. */
+	private record Settled(FieldSnapshot snap, double[] windowCenter) {
 	}
 
 	private RideDownhillProbeMain() {

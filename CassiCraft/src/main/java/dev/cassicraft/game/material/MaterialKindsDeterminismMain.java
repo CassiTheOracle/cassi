@@ -24,12 +24,17 @@ import dev.cassicraft.game.sampler.Quantizer;
  * settle to a named generation, quantize the full 192³ box, census the dressed
  * kinds. The gate asserts:
  * <ol>
- *   <li><b>Determinism (a):</b> two same-seed settles → identical dressed-kind
- *       fingerprint (same field → same real-element blocks).</li>
+ *   <li><b>Measurement determinism (a):</b> two box censuses of the <b>same</b>
+ *       settled field → identical dressed-kind fingerprint. The two same-seed
+ *       arms share <b>one</b> settle — the full-box quantize is a pure read of
+ *       the published snapshot (no mutation) — so the run-2 arm re-measures the
+ *       same frozen snapshot and must equal run-1. Settle determinism is not
+ *       re-proved here; it is hard-pinned byte-identically by the domainHarness
+ *       gate (and by every mutating gate that still boots fresh).</li>
  *   <li><b>Anti-vacuity (b):</b> a different seed → a different fingerprint (the
  *       dressing genuinely read the field — not constant).</li>
  *   <li><b>Positive-count anti-vacuity (c):</b> at the current field state at
- *       least one block is COPPER-dressed (the {code ORE} kind — the real-element
+ *       least one block is COPPER-dressed (the {@code ORE} kind — the real-element
  *       dressing fires, the world places copper by regime) AND at least one is
  *       STONE-dressed ({@code SOLID} — the world is not all-copper).</li>
  *   <li><b>Purity (d):</b> the same reading always yields the same dressed kind
@@ -70,8 +75,13 @@ public final class MaterialKindsDeterminismMain {
 	public static void main(String[] args) throws Exception {
 		selfCheck();
 		System.out.println("[material-kinds] self-check: the selector separates COPPER_ORE from STONE over a synthetic solid band (not a monolith)");
-		Census a1 = runOnce(SEED_A);
-		Census a2 = runOnce(SEED_A);
+		// The two same-seed arms share ONE settle: boot+settle SEED_A once, run
+		// the pure-read census twice from the same frozen snapshot, and assert the
+		// fingerprints match (measurement determinism). The seed-B arm boots a
+		// fresh settle for seed sensitivity.
+		Settled sa = bootAndSettle(SEED_A);
+		Census a1 = measureOn(sa);
+		Census a2 = measureOn(sa);
 		Census b = runOnce(SEED_B);
 
 		boolean sameSeedIdentical = a1.fingerprint().equals(a2.fingerprint());
@@ -121,6 +131,13 @@ public final class MaterialKindsDeterminismMain {
 
 	/** Boot a settled field, quantize the full box, and return the dressed-kind census. */
 	private static Census runOnce(long seed) throws InterruptedException {
+		return measureOn(bootAndSettle(seed));
+	}
+
+	/** Boot the field thread, await the settled snapshot, capture the frozen
+	 * (snapshot + window-center) state, and close the worker. The returned
+	 * {@link Settled} is a pure immutable datum — safe to re-read. */
+	private static Settled bootAndSettle(long seed) throws InterruptedException {
 		double[] anchor = { ANCHOR_X, ANCHOR_Y, ANCHOR_Z };
 		SnapshotPublisher pub = new SnapshotPublisher();
 		CassiFieldThread.Cfg cfg = new CassiFieldThread.Cfg(
@@ -131,10 +148,15 @@ public final class MaterialKindsDeterminismMain {
 			worker.start(cfg);
 			FieldSnapshot snap = awaitSettled(pub);
 			double[] window = centerOf(snap, anchor);
-			return census(snap, window);
+			return new Settled(snap, window);
 		} finally {
 			worker.close();
 		}
+	}
+
+	/** The pure-read box cipher over a settled snapshot — never mutates the field. */
+	private static Census measureOn(Settled s) {
+		return census(s.snap(), s.windowCenter());
 	}
 
 	/** Wait until a snapshot is published and the field has settled past {@link #SETTLE_GENERATIONS}. */
@@ -247,6 +269,11 @@ public final class MaterialKindsDeterminismMain {
 					+ " air=" + airCount + " (" + pct(airCount, total) + ")"
 					+ " | hash=" + fingerprint.substring(0, 8);
 		}
+	}
+
+	/** The frozen settled field (immutable snapshot + its window center) shared
+	 * by the two same-seed measurement arms. */
+	private record Settled(FieldSnapshot snap, double[] windowCenter) {
 	}
 
 	private MaterialKindsDeterminismMain() {

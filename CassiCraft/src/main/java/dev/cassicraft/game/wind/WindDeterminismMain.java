@@ -16,9 +16,14 @@ import java.util.List;
  * sample grid of positions from a settled field and asserts:
  *
  * <ol>
- *   <li><b>Determinism:</b> two same-seed settles give an identical fingerprint
- *       (the current is a pure function of the published field — never a seeded
- *       gust roll).</li>
+ *   <li><b>Measurement determinism:</b> two grid reads of the <b>same</b>
+ *       settled field give an identical fingerprint. The two same-seed arms share
+ *       <b>one</b> settle — the grid read is a pure read of the published
+ *       snapshot (the current is never a seeded gust roll, no mutation) — so the
+ *       run-2 arm replays the same frozen settled snapshot and must equal run-1.
+ *       Settle determinism is not re-proved here; it is hard-pinned
+ *       byte-identically by the domainHarness gate (and by every mutating gate
+ *       that still boots fresh).</li>
  *   <li><b>Seed sensitivity (anti-vacuous):</b> a different seed differs — the
  *       reader actually read the field, not a constant.</li>
  *   <li><b>Positive-count anti-vacuity:</b> across the grid at least one
@@ -49,8 +54,13 @@ public final class WindDeterminismMain {
 	private static final int GRID_STRIDE = 16;
 
 	public static void main(String[] args) throws Exception {
-		Fingerprint a1 = runOnce(SEED_A);
-		Fingerprint a2 = runOnce(SEED_A);
+		// The two same-seed arms share ONE settle: boot+settle SEED_A once, run
+		// the pure grid read twice from the same frozen snapshot, and assert the
+		// fingerprints match (measurement determinism). The seed-B arm boots a
+		// fresh settle for seed sensitivity.
+		Settled sa = bootAndSettle(SEED_A);
+		Fingerprint a1 = measureOn(sa);
+		Fingerprint a2 = measureOn(sa);
 		Fingerprint b = runOnce(SEED_B);
 
 		boolean sameSeedIdentical = a1.hash().equals(a2.hash());
@@ -103,6 +113,13 @@ public final class WindDeterminismMain {
 
 	/** Boot a settled field, read the wind over the fixed grid, return its fingerprint. */
 	private static Fingerprint runOnce(long seed) throws InterruptedException {
+		return measureOn(bootAndSettle(seed));
+	}
+
+	/** Boot the field thread, await the settled snapshot, capture the frozen
+	 * (snapshot + window-center) state, and close the worker. The returned
+	 * {@link Settled} is a pure immutable datum — safe to re-read. */
+	private static Settled bootAndSettle(long seed) throws InterruptedException {
 		double[] anchor = { ANCHOR_X, ANCHOR_Y, ANCHOR_Z };
 		SnapshotPublisher pub = new SnapshotPublisher();
 		CassiFieldThread.Cfg cfg = new CassiFieldThread.Cfg(
@@ -113,10 +130,15 @@ public final class WindDeterminismMain {
 			worker.start(cfg);
 			FieldSnapshot snap = awaitSettled(pub);
 			double[] window = centerOf(snap, anchor);
-			return fingerprint(snap, window);
+			return new Settled(snap, window);
 		} finally {
 			worker.close();
 		}
+	}
+
+	/** The pure grid-read measurement over a settled snapshot — never mutates. */
+	private static Fingerprint measureOn(Settled s) {
+		return fingerprint(s.snap(), s.windowCenter());
 	}
 
 	private static FieldSnapshot awaitSettled(SnapshotPublisher pub) throws InterruptedException {
@@ -217,6 +239,11 @@ public final class WindDeterminismMain {
 			return "nonCalm=" + nonCalmCount + " dirs=" + directionSet
 					+ " hash=" + hash.substring(0, 8);
 		}
+	}
+
+	/** The frozen settled field (immutable snapshot + its window center) shared
+	 * by the two same-seed measurement arms. */
+	private record Settled(FieldSnapshot snap, double[] windowCenter) {
 	}
 
 	private WindDeterminismMain() {

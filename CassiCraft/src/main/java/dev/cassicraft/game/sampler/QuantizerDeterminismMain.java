@@ -20,10 +20,17 @@ import dev.cassicraft.domain.thread.KernelLoader;
  *
  * <p>The gate asserts:
  * <ol>
- *   <li>Two independent runs from the same seed produce the <b>identical</b>
- *       block-state hash (determinism across the whole publish→quantize path).</li>
+ *   <li>Two quantize passes over the <b>same</b> settled field produce the
+ *       <b>identical</b> block-state hash. The two same-seed arms share <b>one</b>
+ *       settle — {@link Quantizer#quantizeRegion} is a pure read of the frozen
+ *       snapshot (never a field mutation) — so the run-2 arm replays the same
+ *       captured snapshot and must equal run-1 (publish→quantize-path
+ *       measurement determinism). Settle determinism is not re-proved here; it is
+ *       hard-pinned byte-identically by the domainHarness gate (and by every
+ *       mutating gate that still boots fresh).</li>
  *   <li>A different seed produces a <b>different</b> block-state hash (the gate
- *       is not vacuously green — the field actually seeds the terrain).</li>
+ *       is not vacuously green — the field actually seeds the terrain; the
+ *       seed-B arm boots a fresh settle).</li>
  * </ol>
  */
 public final class QuantizerDeterminismMain {
@@ -41,8 +48,13 @@ public final class QuantizerDeterminismMain {
 	public static void main(String[] args) throws Exception {
 		boolean ok = true;
 
-		String hashA1 = runOnce(SEED_A);
-		String hashA2 = runOnce(SEED_A);
+		// The two same-seed arms share ONE settle: boot+settle SEED_A once, run
+		// the pure quantize twice from the same frozen snapshot, and assert the
+		// hashes match (measurement determinism). The seed-B arm boots a fresh
+		// settle for seed sensitivity.
+		Settled sa = bootAndSettle(SEED_A);
+		String hashA1 = measureOn(sa);
+		String hashA2 = measureOn(sa);
 		String hashB = runOnce(SEED_B);
 
 		boolean sameSeedIdentical = hashA1.equals(hashA2);
@@ -73,6 +85,13 @@ public final class QuantizerDeterminismMain {
 
 	/** Start a field thread from {@code seed}, take the first cadence snapshot, quantize, hash. */
 	private static String runOnce(long seed) throws InterruptedException {
+		return measureOn(bootAndSettle(seed));
+	}
+
+	/** Boot the field thread, await the first settled snapshot, capture the frozen
+	 * (snapshot + window-center) state, and close the worker. The returned
+	 * {@link Settled} is a pure immutable datum — safe to re-read. */
+	private static Settled bootAndSettle(long seed) throws InterruptedException {
 		SnapshotPublisher pub = new SnapshotPublisher();
 		CassiFieldThread.Cfg cfg = new CassiFieldThread.Cfg(
 				seed,
@@ -87,18 +106,24 @@ public final class QuantizerDeterminismMain {
 			double[] window = snap.job() != null && !snap.job().isWindowless()
 					? snap.job().windowCenter()
 					: new double[] { 0, 0, 0 };
-			Quantizer.QuantizedRegion region = Quantizer.quantizeRegion(
-					snap, window, REGION_MIN, REGION_MIN, REGION_MIN,
-					REGION_SIZE, REGION_SIZE, REGION_SIZE);
-			String hash = region.contentHash();
-			System.out.println("[quantizer-determinism] seed=" + seed
-					+ " gen=" + snap.generation()
-					+ " executed=" + (snap.job() == null ? "?" : snap.job().executed())
-					+ " non-air blocks=" + region.quantizedCount());
-			return hash;
+			return new Settled(snap, window, seed);
 		} finally {
 			worker.close();
 		}
+	}
+
+	/** The pure-read quantize over a settled snapshot — never mutates the field. */
+	private static String measureOn(Settled s) {
+		FieldSnapshot snap = s.snap();
+		double[] window = s.windowCenter();
+		Quantizer.QuantizedRegion region = Quantizer.quantizeRegion(
+				snap, window, REGION_MIN, REGION_MIN, REGION_MIN,
+				REGION_SIZE, REGION_SIZE, REGION_SIZE);
+		System.out.println("[quantizer-determinism] seed=" + s.seed()
+				+ " gen=" + snap.generation()
+				+ " executed=" + (snap.job() == null ? "?" : snap.job().executed())
+				+ " non-air blocks=" + region.quantizedCount());
+		return region.contentHash();
 	}
 
 	private static FieldSnapshot awaitFirstSnapshot(SnapshotPublisher pub) throws InterruptedException {
@@ -111,6 +136,11 @@ public final class QuantizerDeterminismMain {
 			Thread.sleep(20);
 		}
 		throw new IllegalStateException("field thread never published a snapshot within " + SNAPSHOT_TIMEOUT_MS + " ms");
+	}
+
+	/** The frozen settled field (immutable snapshot + its window center + seed)
+	 * shared by the two same-seed quantize arms. */
+	private record Settled(FieldSnapshot snap, double[] windowCenter, long seed) {
 	}
 
 	private QuantizerDeterminismMain() {
