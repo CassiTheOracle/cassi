@@ -104,13 +104,41 @@ untracked file lost in the earlier `rm -rf` deletion; it is **not** on the
 remote and **not** restored. This report supersedes its role for the Wave-0
 soliton question.
 
+## Section 6 — Amendment 1 (2026-08-16): twist-tightness seed axis — H-DISPERSES
+
+Per the pre-reg §10 amendment, the seed was re-run with winding number `m`
+(self-turns inside the lump; `θ = m·atan2(Y_c,X_c)`, A0 base, EL-verified signs,
+N=48, T≈0.3). Tests the owner hypothesis that trapping requires the Qi spiral
+to close its twist tightly (a multi-scale effect).
+
+| m | seed Q | R/R(0) | ΔQ | rad_frac | q_mid(t_max) | verdict |
+|---|--------|--------|-----|----------|--------------|---------|
+| 1 | 0.77 | 1.19 | 1.0000 | 0.966 | 0.0005 | H-DISPERSES |
+| 2 | 1.29 | 1.13 | 1.0000 | 0.966 | 0.0004 | H-DISPERSES |
+| 4 | 2.41 | 1.15 | 1.0000 | 0.966 | 0.0004 | H-DISPERSES |
+| 8 | 4.02 | 1.13 | 1.0000 | 0.966 | 0.0004 | H-DISPERSES |
+
+**Attribution.** Closing the twist (seed Q 0.77→4.02) does **not** trap the
+dispersion: ΔQ→1, rad_frac→0.966 in every case. The steepened phase gradient
+strengthens the Bohm-QP term in the seed, but the frozen equation has **no
+conservative/dispersive mechanism to convert that phase energy into a stable
+barrier** — the real `a∇²` + `−ν∇⁴` + defocusing φ⁴ is purely dissipative, so
+the twist energy radiates regardless of m. The trap needs **both** the
+multi-scale twist (the owner's localizing structure) **and** a dispersive
+(Schrödinger `i∂t` / two-fluid sign-symmetric KE) base to carry it — the base
+is what §3 omits. This converts the next step from a seed tweak into the
+amendment that adds the dispersive term (§ next steps).
+
 ## Next steps
 
 1. **Add a dispersive/conservative base** (the theory's Schrödinger+QP reduction
-   — `i∂t`, or the two-fluid sign-symmetric KE) and re-probe: the frozen
-   equation's null is structural, so the unification question moves to whether
-   the *dispersive* form self-traps. Pre-registration amendment required.
+   — `i∂t`, or the two-fluid sign-symmetric KE) and re-probe. The §6 twist test
+   confirms this is the load-bearing amendment: neither the loose (m=1) nor the
+   tightly-closed twist (m=4,8) traps, because the frozen real-dissipative
+   equation has no conservative term to carry twist (phase) energy. The next
+   probe adds the dispersive base AND the multi-scale twist together, per the
+   owner's hypothesis, rather than tuning the seed alone.
 2. **Regularize the QP nonlocal term** before any 128³ run (field-relative
-   floor / clipped ratio).
+   floor / clipped ratio) — §3.
 3. Grid-robust re-run at 96³/192³ **only** once (1)+(2) land; the current
    equation is not resolution-stable as posed.

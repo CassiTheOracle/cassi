@@ -100,13 +100,21 @@ def stats(P0, P1, dx, box):
     qm = M[im]/(M[im]+PI_**2+eps_mid*eps_mid)
     return R, Q, Mtot, eps_mid, rad, qm
 
-def seed(N, box, sigma0=0.1, Qtarget=1.0):
+def seed(N, box, sigma0=0.1, m=1, Qtarget=1.0):
+    """Standing-wave seed with m self-turn winding inside the lump.
+
+    m=1 is the frozen single-turn baseline (theta=atan2(Y,X), Q~1 over the box).
+    m>1 closes the Qi twist m times *within* sigma0 (tight twist): the phase
+    gradient scales ~ m/r, steepening the Bohm-QP term that can oppose
+    dispersion (owner hypothesis 2026-08-16, Amendment 1). cos^2/sin^2 keeps
+    both components nonnegative.
+    """
     x = np.arange(N)*box/N
     X, Y, Z = np.meshgrid(x, x, x, indexing='ij')
     Xc, Yc, Zc = X-box/2, Y-box/2, Z-box/2
     r2 = Xc*Xc+Yc*Yc+Zc*Zc
     g = np.exp(-r2/(2*sigma0*sigma0))     # peak = 1 at core (O(1) amplitude)
-    theta = np.arctan2(Yc, Xc)
+    theta = m*np.arctan2(Yc, Xc)          # m self-turns in the lump
     EY = 0.5*g*np.cos(theta)**2     # rho = EY+EI ~ g ~ 1 in core (no bg floor)
     EI = 0.5*g*np.sin(theta)**2
     return EY, EI
