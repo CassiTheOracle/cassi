@@ -173,7 +173,38 @@ soliton regime."
    and the mass-ladder placement of the lump if H-HOLDS.
 3. Ledger row appended to `probe-outcome-ledger.md`.
 
-## 9. Registry note
+## 10. Amendment 1 (2026-08-16): twist-tightness seed axis
+
+**Motivation (owner hypothesis).** The phase-I pilot (frozen seed m=1, single
+Q=1 winding spread over the whole box) found H-DISPERSES: the loose twist has
+nearly flat `∇θ` in the core, so the Bohm-QP term (gradient-driven) is too weak
+to oppose the `a∇²` dissipation. The owner proposed that **trapping requires
+the Qi spiral to close its twist tightly — a multi-scale effect** (the twist
+closes m times within the lump, `∇θ ~ m/r` steep, QP becomes localizing).
+
+**Amendment.** The frozen seed axis is extended with winding number `m` (new
+parameter; `m=1` preserves the frozen baseline exactly):
+`θ = m·atan2(Y_c,X_c)` inside a fixed σ₀ lump. This is a **new regime** added
+to the ablation, not a re-run of the rejected baseline.
+
+**New ablations (twist-tightness arm, A0 base = f4+qp+attr, EL-verified signs):**
+
+| arm | m | asks |
+|-----|---|------|
+| T1 | 1 | frozen baseline (control) |
+| T2 | 2 | 2 self-turns in the lump |
+| T3 | 4 | 4 self-turns |
+| T4 | 8 | tightly-closed twist |
+
+**Frozen statistic/verdict/thresholds:** identical to §5 (R(t)/R(0), Q, M,
+eps_mid, rad_frac; H-HOLDS iff R(t_max)≤2·R(0) ∧ ΔM<1e-3 ∧ Q(t_max)≈Q(0) ±1%
+∧ rad_frac→0). Same grid/domain/integrator as phase I (Strang-split spectral
+exponential). **If H-HOLDS** for any m≥2 while T1 disperses, the trap is
+twist-mediated and multi-scale → re-open the §9 registry path.
+
+**Stopping rule / honesty:** unchanged — early-term only on numerical blow-up;
+the QP term stays regularized (field-relative floor + clipped inverse) so a
+null is a physics claim about the tight-twist regime, not a NaN artifact.
 
 If H-HOLDS, the lump's mass landing on the φ-cascade ladder is a **numeric
 prediction** and must be synced to `predictions/falsifiable-predictions.md`
