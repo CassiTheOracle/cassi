@@ -197,7 +197,13 @@ public final class Quantizer {
 	 * (the previous clamp-to-edge made every outside block sample the boundary
 	 * cell, so a player standing above or beyond the box was embedded in a
 	 * degenerate solid slab — the "falls through the ground" bug). Out-of-box →
-	 * air, deterministically.
+	 * air, deterministically. The 8-corner gather <b>clamps</b> a corner that
+	 * would fall one cell beyond a face back into the boundary cell — it never
+	 * wraps to the far side (world-seams.md §2.4: the zenith is the window's
+	 * boundary, not its door). A block in the topmost cell therefore reads the
+	 * top vacuum, not the dense floor row wrapped around a periodic torus (the
+	 * altitude-seam artifact: "full chunks of stone in the sky", measured by
+	 * SkyStoneProbeMain); the SOLVER torus is periodic, the publish is not.
 	 */
 	public static CellSample sampleAt(FieldSnapshot snap, double[] windowCenter,
 			int blockX, int blockY, int blockZ) {
@@ -215,14 +221,15 @@ public final class Quantizer {
 		double fz = gz - k0;
 		float[] rho = snap.rho();
 		float[] q = snap.q();
-		// 8-corner gather.
+		// 8-corner gather — boundary corners CLAMP to the boundary cell (the box's
+		// outer face is the iso-surface; no far-side periodic wrap at the publish).
 		float[] r = new float[8];
 		float[] qv = new float[8];
 		int c = 0;
 		for (int kk = 0; kk < 2; kk++) {
 			for (int jj = 0; jj < 2; jj++) {
 				for (int ii = 0; ii < 2; ii++) {
-					int cell = flat(mod(i0 + ii, N), mod(j0 + jj, N), mod(k0 + kk, N));
+					int cell = flat(clamp(i0 + ii), clamp(j0 + jj), clamp(k0 + kk));
 					r[c] = rho[cell];
 					qv[c] = q[cell];
 					c++;
@@ -232,6 +239,15 @@ public final class Quantizer {
 		float rhoMix = trilinear(r, fx, fy, fz);
 		float qMix = trilinear(qv, fx, fy, fz);
 		return new CellSample(rhoMix, qMix, eps2(rhoMix, qMix));
+	}
+
+	/**
+	 * Clamp a grid-corner index to the box's in-bound interior {@code [0, N−1]} —
+	 * a corner one cell beyond a face (index {@code N}) reverts to the boundary
+	 * cell, so the outer faces are the iso-surface and never the periodic far side.
+	 */
+	private static int clamp(int grid) {
+		return grid < 0 ? 0 : Math.min(grid, N - 1);
 	}
 
 	/**
@@ -250,7 +266,9 @@ public final class Quantizer {
 	 * over the rho/q/grad channels (the same fused traversal the GPU sampler
 	 * uses). This is the corpus's "one extra sample at the player's position"
 	 * (field-instruments §1.4); it costs the same as {@link #sampleAt} plus one
-	 * vec3 per corner and presents no new channel.
+	 * vec3 per corner and presents no new channel. Boundary corners clamp to the
+	 * boundary cell exactly as {@link #sampleAt} (the box's outer face is the
+	 * iso-surface, not a periodic far side).
 	 */
 	public static FieldReading sampleReading(FieldSnapshot snap, double[] windowCenter,
 			int blockX, int blockY, int blockZ) {
@@ -278,7 +296,7 @@ public final class Quantizer {
 		for (int kk = 0; kk < 2; kk++) {
 			for (int jj = 0; jj < 2; jj++) {
 				for (int ii = 0; ii < 2; ii++) {
-					int cell = flat(mod(i0 + ii, N), mod(j0 + jj, N), mod(k0 + kk, N));
+					int cell = flat(clamp(i0 + ii), clamp(j0 + jj), clamp(k0 + kk));
 					r[c] = rho[cell];
 					qv[c] = q[cell];
 					float[] g = grad[cell];
@@ -407,10 +425,6 @@ public final class Quantizer {
 
 	private static int floor(double v) {
 		return (int) Math.floor(v);
-	}
-
-	private static int mod(int v, int m) {
-		return ((v % m) + m) % m;
 	}
 
 	private static String sha256(byte[] data) {

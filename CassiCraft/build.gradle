@@ -829,3 +829,26 @@ def wakeDeterminismRun = tasks.register('wakeDeterminism', JavaExec) {
 
 check.dependsOn 'wakeDeterminism'
 build.dependsOn wakeDeterminism
+
+// ----------------------------------------------------------------------------
+// Game-source altitude-seam determinism + honesty gate (world-seams.md §2.4 —
+// the zenith is the window's boundary, not its door; the owner's "full chunks
+// of stone in the sky while flying in creative"). Fixes and asserts the vertical
+// path at the publish level: Quantizer's 8-corner gather now CLAMPS a corner one
+// cell beyond a face back into the boundary cell (the box's outer face is the
+// iso-surface — it never wraps to the periodic far side, which surfaced the dense
+// floor row as stone at the box's top). Asserts (headless): the topmost in-box
+// band and the sky above the window top read AIR (no stone in the sky), the
+// altitude read is deterministic same-seed, and seed-sensitive over the body.
+// Reads the published snapshot only — never writes a block, never touches the
+// domain. Headless, no live client/server.
+// ----------------------------------------------------------------------------
+def skyStoneDeterminismRun = tasks.register('skyStoneDeterminism', JavaExec) {
+	group = 'verification'
+	description = 'Runs the altitude-seam determinism + honesty gate (the sky above the window top reads AIR, deterministic, seed-sensitive — no stone-in-the-sky altitude seam) without a live client.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'dev.cassicraft.game.seams.SkyStoneDeterminismMain'
+}
+
+check.dependsOn skyStoneDeterminismRun
+build.dependsOn skyStoneDeterminismRun
