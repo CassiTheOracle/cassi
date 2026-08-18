@@ -926,3 +926,15 @@ def progressionPersistenceDeterminismRun = tasks.register('progressionPersistenc
 
 check.dependsOn progressionPersistenceDeterminismRun
 build.dependsOn progressionPersistenceDeterminismRun
+
+
+// Coherence route cue determinism gate (wiring-requests/coherence-route-prereg.md).
+def coherenceRouteDeterminismRun = tasks.register('coherenceRouteDeterminism', JavaExec) {
+	group = 'verification'
+	description = 'Runs the maintained coherence-route cue gate: local, coordinate-free, cadence-bounded field presentation only.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'dev.cassicraft.game.route.CoherenceRouteDeterminismMain'
+}
+
+check.dependsOn coherenceRouteDeterminismRun
+build.dependsOn coherenceRouteDeterminismRun

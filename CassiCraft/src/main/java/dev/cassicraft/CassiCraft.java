@@ -87,6 +87,8 @@ public class CassiCraft implements ModInitializer {
 	private dev.cassicraft.game.progression.ExpeditionKnowledgeSavedData expeditionKnowledge;
 	/** One-shot local warning when the existing sky read enters storm edge. */
 	private dev.cassicraft.game.storm.StormWarningPresenter stormWarningPresenter;
+	/** Live read-only current cue; recomputes from each published field state. */
+	private dev.cassicraft.game.route.CoherenceRoutePresenter coherenceRoutePresenter;
 
 	/** The life response (river-law steering) for the live session (created per-session). */
 	private RiverSteering steering;
@@ -177,6 +179,7 @@ public class CassiCraft implements ModInitializer {
 			onboardingCoordinator = new OnboardingCoordinator();
 			onboardingCoordinator.setDurableReceiptLookup(playerId -> expeditionKnowledge != null && expeditionKnowledge.contains(playerId));
 			expeditionBeacon = new dev.cassicraft.game.beacon.ExpeditionBeaconCoordinator(expeditionCoordinator);
+			coherenceRoutePresenter = new dev.cassicraft.game.route.CoherenceRoutePresenter(session.publisher());
 			stormWarningPresenter = new dev.cassicraft.game.storm.StormWarningPresenter(session.publisher());
 			expeditionCoordinator.setCompletionObserver(player -> {
 				if (expeditionKnowledge != null) {
@@ -212,6 +215,7 @@ public class CassiCraft implements ModInitializer {
 					onboardingCoordinator.clearSession();
 					onboardingCoordinator = null;
 				}
+				coherenceRoutePresenter = null;
 				if (stormWarningPresenter != null) {
 					stormWarningPresenter.teardown();
 					stormWarningPresenter = null;
@@ -250,6 +254,7 @@ public class CassiCraft implements ModInitializer {
 					onboardingCoordinator.clearSession();
 					onboardingCoordinator = null;
 				}
+				coherenceRoutePresenter = null;
 				if (stormWarningPresenter != null) {
 					stormWarningPresenter.teardown();
 					stormWarningPresenter = null;
@@ -299,6 +304,9 @@ public class CassiCraft implements ModInitializer {
 			}
 			if (stormWarningPresenter != null) {
 				stormWarningPresenter.onServerTick(server);
+			}
+			if (coherenceRoutePresenter != null) {
+				coherenceRoutePresenter.onServerTick(server);
 			}
 			if (followBehind != null) {
 				followBehind.onServerTick(server.overworld());
