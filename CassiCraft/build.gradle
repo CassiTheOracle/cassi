@@ -871,3 +871,14 @@ def perfByteIdentityRun = tasks.register('perfByteIdentity', JavaExec) {
 
 check.dependsOn perfByteIdentityRun
 build.dependsOn perfByteIdentityRun
+
+// Expedition vertical-slice determinism gate (wiring-requests/expedition-prereg.md).
+def expeditionDeterminismRun = tasks.register('expeditionDeterminism', JavaExec) {
+	group = 'verification'
+	description = 'Runs the pre-registered Field Expedition determinism, reachability, conservation, and return-gate checks.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'dev.cassicraft.game.expedition.ExpeditionDeterminismMain'
+}
+
+check.dependsOn expeditionDeterminismRun
+build.dependsOn expeditionDeterminismRun

@@ -1,6 +1,7 @@
 package dev.cassicraft;
 
 import com.mojang.brigadier.CommandDispatcher;
+import dev.cassicraft.domain.snapshot.SnapshotPublisher;
 import dev.cassicraft.game.advect.FollowBehind;
 import dev.cassicraft.game.life.LifeSignal;
 import dev.cassicraft.game.life.RiverSteering;
@@ -8,6 +9,7 @@ import dev.cassicraft.game.lume.LumePayload;
 import dev.cassicraft.game.lume.LumePusher;
 import dev.cassicraft.game.reader.FieldReader;
 import dev.cassicraft.game.reader.WeatherglassItem;
+import dev.cassicraft.game.expedition.ExpeditionCoordinator;
 import dev.cassicraft.game.rain.RainPresenter;
 import dev.cassicraft.game.rain.WeatherReadout;
 import dev.cassicraft.game.sampler.SamplerShutdown;
@@ -75,6 +77,7 @@ public class CassiCraft implements ModInitializer {
 	public static dev.cassicraft.domain.thread.CassiFieldThread FIELD_THREAD;
 
 	private final SamplerShutdown session = new SamplerShutdown();
+	private ExpeditionCoordinator expeditionCoordinator;
 
 	/** The life response (river-law steering) for the live session (created per-session). */
 	private RiverSteering steering;
@@ -160,6 +163,7 @@ public class CassiCraft implements ModInitializer {
 					: BlockPos.ZERO;
 			double[] anchor = { spawn.getX(), spawn.getY(), spawn.getZ() };
 			long used = session.beginSession(level, seed, anchor);
+			expeditionCoordinator = new ExpeditionCoordinator(session.publisher());
 			dev.cassicraft.CassiCraft.FIELD_THREAD = session.fieldThread();
 			followBehind = new FollowBehind(session.publisher(), session.fieldThread());
 			lumePusher = new LumePusher(WEATHERGLASS, session.publisher());
@@ -179,9 +183,12 @@ public class CassiCraft implements ModInitializer {
 					used, (int) anchor[0], (int) anchor[1], (int) anchor[2]);
 		});
 
-		// World unload → join the field worker (explicit close).
 		ServerLevelEvents.UNLOAD.register((server, level) -> {
 			if (server.overworld() == level || session.isRunning()) {
+				if (expeditionCoordinator != null) {
+					expeditionCoordinator.teardown();
+					expeditionCoordinator = null;
+				}
 				session.endSession();
 				followBehind = null;
 				dev.cassicraft.CassiCraft.FIELD_THREAD = null;
@@ -202,9 +209,12 @@ public class CassiCraft implements ModInitializer {
 			}
 		});
 
-		// Server stop → release the session if a world never unloaded cleanly.
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
 			if (session.isRunning()) {
+				if (expeditionCoordinator != null) {
+					expeditionCoordinator.teardown();
+					expeditionCoordinator = null;
+				}
 				session.endSession();
 				followBehind = null;
 				dev.cassicraft.CassiCraft.FIELD_THREAD = null;
@@ -233,6 +243,9 @@ public class CassiCraft implements ModInitializer {
 		// always-on lume pushes the published read to glass-holders (a glance).
 		ServerTickEvents.END_SERVER_TICK.register(server -> {
 			session.onServerTick(server);
+			if (expeditionCoordinator != null) {
+				expeditionCoordinator.tick(server);
+			}
 			if (followBehind != null) {
 				followBehind.onServerTick(server.overworld());
 			}
@@ -289,7 +302,7 @@ public class CassiCraft implements ModInitializer {
 		// runs (effectiveDescriptionId reads it at construction).
 		net.minecraft.world.item.Item.Properties props = new net.minecraft.world.item.Item.Properties()
 				.setId(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.ITEM, id));
-		WEATHERGLASS = new WeatherglassItem(() -> session.publisher(), props);
+		WEATHERGLASS = new WeatherglassItem(() -> session.publisher(), () -> expeditionCoordinator, props);
 		Registry.register(BuiltInRegistries.ITEM, id, WEATHERGLASS);
 
 		CreativeModeTabEvents.MODIFY_OUTPUT_ALL.register((tab, output) ->
