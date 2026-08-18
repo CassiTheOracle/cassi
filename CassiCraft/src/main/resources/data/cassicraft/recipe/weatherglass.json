@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "GCG",
+    "AGA",
+    " C "
+  ],
+  "key": {
+    "G": "minecraft:glass",
+    "C": "minecraft:copper_ingot",
+    "A": "minecraft:amethyst_shard"
+  },
+  "result": {
+    "id": "cassicraft:weatherglass",
+    "count": 1
+  }
+}

@@ -10,6 +10,8 @@ import dev.cassicraft.game.lume.LumePusher;
 import dev.cassicraft.game.reader.FieldReader;
 import dev.cassicraft.game.reader.WeatherglassItem;
 import dev.cassicraft.game.expedition.ExpeditionCoordinator;
+import dev.cassicraft.game.onboarding.OnboardingCoordinator;
+import dev.cassicraft.game.onboarding.OnboardingPresenter;
 import dev.cassicraft.game.rain.RainPresenter;
 import dev.cassicraft.game.rain.WeatherReadout;
 import dev.cassicraft.game.sampler.SamplerShutdown;
@@ -77,6 +79,7 @@ public class CassiCraft implements ModInitializer {
 	public static dev.cassicraft.domain.thread.CassiFieldThread FIELD_THREAD;
 
 	private final SamplerShutdown session = new SamplerShutdown();
+	private OnboardingCoordinator onboardingCoordinator;
 	private ExpeditionCoordinator expeditionCoordinator;
 
 	/** The life response (river-law steering) for the live session (created per-session). */
@@ -164,6 +167,13 @@ public class CassiCraft implements ModInitializer {
 			double[] anchor = { spawn.getX(), spawn.getY(), spawn.getZ() };
 			long used = session.beginSession(level, seed, anchor);
 			expeditionCoordinator = new ExpeditionCoordinator(session.publisher());
+			onboardingCoordinator = new OnboardingCoordinator();
+			expeditionCoordinator.setCompletionObserver(player -> {
+				OnboardingCoordinator onboarding = onboardingCoordinator;
+				if (onboarding != null) {
+					OnboardingPresenter.presentCompletion(player, onboarding);
+				}
+			});
 			dev.cassicraft.CassiCraft.FIELD_THREAD = session.fieldThread();
 			followBehind = new FollowBehind(session.publisher(), session.fieldThread());
 			lumePusher = new LumePusher(WEATHERGLASS, session.publisher());
@@ -185,6 +195,10 @@ public class CassiCraft implements ModInitializer {
 
 		ServerLevelEvents.UNLOAD.register((server, level) -> {
 			if (server.overworld() == level || session.isRunning()) {
+				if (onboardingCoordinator != null) {
+					onboardingCoordinator.clearSession();
+					onboardingCoordinator = null;
+				}
 				if (expeditionCoordinator != null) {
 					expeditionCoordinator.teardown();
 					expeditionCoordinator = null;
@@ -208,9 +222,12 @@ public class CassiCraft implements ModInitializer {
 				LOGGER.info("[cassicraft] field thread closed (world unload)");
 			}
 		});
-
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
 			if (session.isRunning()) {
+				if (onboardingCoordinator != null) {
+					onboardingCoordinator.clearSession();
+					onboardingCoordinator = null;
+				}
 				if (expeditionCoordinator != null) {
 					expeditionCoordinator.teardown();
 					expeditionCoordinator = null;

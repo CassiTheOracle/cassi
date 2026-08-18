@@ -882,3 +882,11 @@ def expeditionDeterminismRun = tasks.register('expeditionDeterminism', JavaExec)
 
 check.dependsOn expeditionDeterminismRun
 build.dependsOn expeditionDeterminismRun
+ 
+// Ordinary-player Weatherglass onboarding gate (wiring-requests/onboarding-prereg.md).
+def onboardingDeterminismRun = tasks.register('onboardingDeterminism', JavaExec) {
+	group = 'verification'
+	description = 'Runs the frozen Weatherglass acquisition, action-separation, and one-shot session-receipt gate.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'dev.cassicraft.game.onboarding.OnboardingDeterminismMain'
+}
