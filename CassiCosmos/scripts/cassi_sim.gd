@@ -421,6 +421,11 @@ var _pub_com: Vector3 = Vector3.INF       # P3: engine-published COM (window tra
 var _env_tracker = null               # EnvelopeTracker (lazy: EnvelopeTracker.new())
 var _env_orig_box := Vector3.ONE      # the fixed box at box_scale = 1.0 (the tracker's start extent)
 var _env_track_last_ms: int = 0       # the same slow cadence as the COM tracker (2 s)
+var _env_target_center := Vector3.ZERO
+var _env_target_scale: float = 1.0
+var _env_applied_center := Vector3.ZERO
+var _env_applied_scale: float = 1.0
+const ENV_APPLY_TAU_SEC: float = 0.75
 ## Fixed seed for the initial conditions (0 = the legacy random init).
 ## Applied to BOTH the inline IC generators and the decoupled engine's ICs.
 @export var ic_seed: int = 0
@@ -1896,6 +1901,10 @@ func _track_envelope_window() -> void:
 		_env_tracker = EnvelopeTracker.new()
 		_env_orig_box = Vector3(box_aspect.x, box_aspect.y, box_aspect.z) * (cluster_radius * 1.5)
 		_env_tracker.extent = _env_orig_box
+		_env_applied_center = _window_center
+		_env_target_center = _window_center
+		_env_applied_scale = maxf(box_scale, 1e-3)
+		_env_target_scale = _env_applied_scale
 	var eng: Object = _physics_engine
 	if not eng._pos_buf.is_valid():
 		return
@@ -1917,36 +1926,39 @@ func _track_envelope_window() -> void:
 	if cnt == 0:
 		return
 	s.resize(cnt * 4)
-	_env_tracker.compute(s, 4, 1)
-	# Slot 1: the window origin (the per-frame header refresh carries it
-	# into bh[0].yzw + the deposit/blend/qhist/md offsets).
-	_window_center = _env_tracker.center
-	# Slot 2: the uniform envelope scale vs the ORIGINAL box (the sim's
-	# and the engine's _extents() = original * box_scale — never cumulative).
+	_env_target_center = _env_tracker.center
 	var scl: float = _env_tracker.extent.x / maxf(_env_orig_box.x, 1e-30)
-	box_scale = maxf(scl, 1e-3)
-	# Slot 3: the per-axis half-extents in the header byte array (the
-	# single source of the per-frame 576 B refresh — the 36/40/44 persist
-	# from here; the refresh re-encodes only 4/8/12, 16/20/24, 48-60).
+	_env_target_scale = maxf(scl, 1e-3)
+	print("[CassiSim] envelope target -> center (%.1f, %.1f, %.1f)  extent (%.1f, %.1f, %.1f)  box_scale %.3f  re_fits=%d"
+			% [_env_target_center.x, _env_target_center.y, _env_target_center.z,
+			_env_tracker.extent.x, _env_tracker.extent.y, _env_tracker.extent.z,
+			_env_target_scale, _env_tracker.re_fits])
+
+func _apply_envelope_state() -> void:
+	if not tracking_envelope or not _decoupled_active or _physics_engine == null:
+		return
+	if _env_tracker == null:
+		return
+	var dt_sec: float = clampf(get_process_delta_time(), 0.0, 0.1)
+	var alpha: float = 1.0 - exp(-dt_sec / maxf(ENV_APPLY_TAU_SEC, 1e-3))
+	_env_applied_center = _env_applied_center.lerp(_env_target_center, alpha)
+	_env_applied_scale = lerpf(_env_applied_scale, _env_target_scale, alpha)
+	_window_center = _env_applied_center
+	box_scale = maxf(_env_applied_scale, 1e-3)
+	var ext := _extents()
 	var hb: PackedByteArray = _bh_init_bytes
-	hb.encode_float(36, _env_tracker.extent.x)
-	hb.encode_float(40, _env_tracker.extent.y)
-	hb.encode_float(44, _env_tracker.extent.z)
-	_bh_init_bytes = hb   # PackedByteArray is COW — reassign the member
-	# The ENGINE's state (the decoupled physics box): its own members +
-	# its own header bytes — the engine's update_bh_header + the per-step
-	# PC fills read them before the frame's list.
+	hb.encode_float(36, ext.x)
+	hb.encode_float(40, ext.y)
+	hb.encode_float(44, ext.z)
+	_bh_init_bytes = hb
+	var eng: Object = _physics_engine
 	eng._window_center = _window_center
 	eng.box_scale = box_scale
 	var ehb: PackedByteArray = eng._bh_init_bytes
-	ehb.encode_float(36, _env_tracker.extent.x)
-	ehb.encode_float(40, _env_tracker.extent.y)
-	ehb.encode_float(44, _env_tracker.extent.z)
+	ehb.encode_float(36, ext.x)
+	ehb.encode_float(40, ext.y)
+	ehb.encode_float(44, ext.z)
 	eng._bh_init_bytes = ehb
-	print("[CassiSim] envelope -> center (%.1f, %.1f, %.1f)  extent (%.1f, %.1f, %.1f)  box_scale %.3f  re_fits=%d"
-			% [_window_center.x, _window_center.y, _window_center.z,
-			_env_tracker.extent.x, _env_tracker.extent.y, _env_tracker.extent.z,
-			box_scale, _env_tracker.re_fits])
 
 
 ## One decoupled frame: consume the freshest engine publish, then record
@@ -5549,7 +5561,8 @@ func _render_frame() -> void:
 	# physics list on the global RD in this mode.
 	if _decoupled_active:
 		if tracking_envelope:
-			_track_envelope_window()   # the tracked box: envelope re-fit (center + extent)
+			_track_envelope_window()   # percentile measurement updates the target
+			_apply_envelope_state()    # continuous applied physics window; never camera
 		else:
 			_track_window_center()     # movable home-window: slow-cadence COM follow
 		_decoupled_poll_and_render()
