@@ -139,6 +139,9 @@ public final class SamplerShutdown {
 			fieldThread.close();
 			fieldThread = null;
 		}
+		if (sampler != null) {
+			sampler.close();
+		}
 		if (writer != null) {
 			writer.close();
 			writer = null;
