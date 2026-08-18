@@ -53,25 +53,25 @@ const Q_1: float = 0.95        # Qi-rainbow bounded-channel band top = the fit-s
 ## N-body particle count (rendered as a starfield/cluster; raises GPU cost).
 @export var N_particles: int = 2500000      # N-body particle count
 ## Physics timestep in sim seconds per step; a rendered frame runs up to max_steps_per_frame steps.
-@export var dt: float = 0.001             # simulation timestep
+@export var dt: float = 0.03             # simulation timestep
 ## Cassi coupling constant, xi = φ⁶ = 17.94427191; the river law's chord coefficient is xi − 1.
 @export var xi: float = 17.94427191  # φ⁶ — Cassi Qi coupling (exact: φ⁶ = φ⁵ + φ⁴)
 ## Gravity softening length; used as epsilon² = softening² in the force kernels.
 @export var softening: float = 0.1        # gravity softening length
 ## Rendered quad size of each particle (world units); keep ≤ 0.5 for the star-cloud look.
-@export var particle_size: float = 0.3   # rendered particle size
+@export var particle_size: float = 1.5   # rendered particle size
 ## Scale radius of the initial cluster (Plummer scale a / Gaussian sigma / uniform sphere radius, per the IC profile).
-@export var cluster_radius: float = 50.0   # initial cluster size
+@export var cluster_radius: float = 120  # initial cluster size
 ## Number of initial clusters (placed on a ring/Fibonacci sphere).
 @export var num_clusters: int = 1           # number of galaxy clusters
 ## Distance of cluster centers from the origin; a single cluster centers at (separation, 0, 0).
-@export var cluster_separation: float = 60.0 # separation between cluster centers
+@export var cluster_separation: float = 150 # separation between cluster centers
 ## Bulk velocity added toward the origin (cluster-merger demo).
-@export var merger_speed: float = 2.0       # bulk velocity toward merger point
+@export var merger_speed: float = 0.0       # bulk velocity toward merger point
 ## Extra field injection from the deposited mass (0 = off).
 @export var source_strength: float = 0.0  # PIC mass deposit drives field (set >0 for extra injection)
 ## Qi level above which the condensation scan nucleates a black hole record (only when black_holes_enabled).
-@export var qi_condensation_threshold: float = 0.5  # Qi density above this → BH nucleation
+@export var qi_condensation_threshold: float = 0.9  # Qi density above this → BH nucleation
 ## Black hole mass growth per step from the field.
 @export var bh_acc_rate: float = 0.01                # mass growth per step from field
 ## Black hole record lifetime in steps (0 = immortal).
@@ -80,7 +80,7 @@ const Q_1: float = 0.95        # Qi-rainbow bounded-channel band top = the fit-s
 # that stall the global RD every ~0.5 s — the stutter source; useful
 # interactively AND for recording. Physics and rendering are untouched.
 ## Off the throttled CPU readbacks (occupancy/perf/q diagnostics) that stall the GPU every ~0.5 s — removes the stutter; physics and rendering unchanged.
-@export var suppress_readbacks: bool = false
+@export var suppress_readbacks: bool = true
 # Enables the σ-regularized BH point-source sector in EVERY gravity mode:
 # the softened Newtonian point-source force (gravity_at), the condensation
 # scan (every 100 steps), and the BH-integrate pass (every step). Default
@@ -106,7 +106,7 @@ const Q_1: float = 0.95        # Qi-rainbow bounded-channel band top = the fit-s
 # units at the default 64³ / extent 37.5, crossed in ~586 dt=0.001 steps ≫ a
 # frame's step budget, so once-per-frame is far inside the reaction budget).
 ## Two-particle merge (SINK-rule, q_coh > φ⁻² gate, R_m = extent/grid_N) grows matter from dust. Default off = particles-only. Init-time — reinit to apply.
-@export var particle_merge: bool = false
+@export var particle_merge: bool = true
 ## Merge cadence in accumulated STEPS (live): 0 = AUTO = 1/2 of the R_m
 ## reaction budget (R_m/(v·dt) with v = 1.0 world-units/s — the design's
 ## closing speed: R_m=0.586 crossed in ~586 dt=0.001 steps; at the owner
@@ -134,14 +134,14 @@ var _merge_step_counter := 0
 # hot-swap the box/extents/field/particle ICs from a cascade-tree level dir
 # instead of a full restart. Default OFF → apply_level is a no-op and the
 # default live path is bit-identical (the battery regression contract).
-@export var level_swap: bool = false
+@export var level_swap: bool = true
 
 # Object -> BH accretion: particles within a BH's accretion radius
 # (bh_accretion_radius, world units, ~1× the default softening σ) are marked
 # dead (pos.w = 0) and their mass is added atomically to the BH record — exactly
 # conserved. Default off. Wired into both the decoupled engine and the
 # non-decoupled _render_frame path.
-@export var bh_accretion: bool = false
+@export var bh_accretion: bool = true
 @export var bh_accretion_radius: float = 0.1
 
 # Window VSync (frame pacing to the display refresh). On by default;
@@ -181,7 +181,7 @@ var _vsync_enabled: bool = true
 # (neither consumes Φ/∇(g·Φ)); modes 3/4 keep them. Mass deposit + the
 # two-fluid PDE always run.
 ## 0 = River (the law), 1 = Heuristic (legacy A/B arm), 2 = Plummer (grid-free analytic reference), 3 = River self (river law only; BH follows the global toggle), 4 = RealSim (river law + BH per toggle + drag/viscosity/friction).
-@export_enum("River", "Heuristic", "Plummer reference", "River self", "RealSim") var gravity_mode: int = 0
+@export_enum("River", "Heuristic", "Plummer reference", "River self", "RealSim") var gravity_mode: int = 4
 
 # ── RealSim dissipation coefficients (gravity_mode == 4 only) ──────────
 # Units: γ and ν are rates (1/time) — at reference density γ's e-folding
@@ -230,7 +230,7 @@ var _vsync_enabled: bool = true
 # inverse-CDF draw u ∈ (0.001, u_max], u_max = (x²/(1+x²))^(3/2) with
 # x = r_max/a — no coordinate clamping, no shell artifacts.
 ## Fraction of the box half-extent used as the per-cluster safe radius r_max = fr·extent − |center|_∞.
-@export var initial_radius_fraction: float = 0.9
+@export var initial_radius_fraction: float = 1
 # ── Initial-condition profile selector ──
 #   0 = BOUNDED PLUMMER (default) — the truncated inverse-CDF draw below.
 #   1 = GAUSSIAN BALL — positions ~ N(0, σ) with σ = cluster_radius,
@@ -250,7 +250,7 @@ var _vsync_enabled: bool = true
 ## cluster center (z-axis). 0.85 = legacy sub-Keplerian default (bit-preserving);
 ## 1.0 = full circular support for the IC convention (G = 1, M = per-cluster
 ## count). Init-time: reinit() to apply.
-@export var initial_v_circ_factor: float = 0.85
+@export var initial_v_circ_factor: float = 1
 
 # ── Box geometry (theory-accurate grid layout — GRID_LAYOUT.md) ────────
 # Per-axis box half-extents: extent_i = box_scale · aspect_i · 1.5 ·
@@ -271,7 +271,7 @@ var _vsync_enabled: bool = true
 ## Uniform box rescale — separates the cluster from its periodic images while
 ## keeping the aspect (de-resonance, stencil weights). Default 1.0 = the legacy
 ## geometry, bit-identical (×1.0 is exact in fp32). See GRID_LAYOUT.md §2.8.
-@export var box_scale: float = 1.0
+@export var box_scale: float = 5
 
 # ── Cascade grid (CASCADE_GRID.md) ─────────────────────────────────────
 # Gradient order for the ∇(g·Φ) build pass (bh[3].z, live — no reinit):
@@ -279,7 +279,7 @@ var _vsync_enabled: bool = true
 #   4 = 5-point central differences — measured ring anisotropy
 #       1.246→1.200 @2h, 1.090→1.045 @4h (CASCADE_GRID.md §2).
 ## Gradient order for the ∇(g·Φ) pass: 2 = 3-point (legacy), 4 = 5-point (O4).
-@export var gradient_order: int = 2
+@export var gradient_order: int = 4
 # Yin/Yang dual (BCC) grid (bh[3].y, live — no reinit): the deposit → Poisson
 # → gradient chain runs on the base lattice AND the half-cell-shifted partner
 # lattice; the river arm averages the two ∇(g·Φ) samples (the interleaved pair
@@ -294,9 +294,9 @@ var _vsync_enabled: bool = true
 # density power at several cascade rungs so bubbles condense at multiple
 # scales simultaneously (CASCADE_GRID.md §3.3).
 ## Multi-rung IC seeding: φ-spaced density modes so bubbles form at several cascade scales. Init-time (reinit to apply).
-@export var multi_rung_seed: bool = false
+@export var multi_rung_seed: bool = true
 ## Number of cascade rungs seeded (φ-spaced wavenumbers).
-@export_range(1, 6, 1) var multi_rung_count: int = 3
+@export_range(1, 6, 1) var multi_rung_count: int = 6
 ## Displacement amplitude per rung (world units at the base rung; δx = A/k_m).
 @export var multi_rung_amp: float = 0.2
 ## Base rung wavelength in units of cluster_radius (k_0 = 2π/(base·R)).
@@ -331,14 +331,14 @@ var _vsync_enabled: bool = true
 ## rather than decohering. 0.0 (default) = OFF = bit-identical battery.
 ## Rides cell-PC slot 17 (the appended J_wind float, offset 68).
 ## Init-time; reinit to apply.
-@export var winding_coupling: float = 0.0
+@export var winding_coupling: float = 1.0
 
 ## Coherence-gated adaptive compute (coherence_adaptive_prereg.md Arm 3a): when
 ## ON, the job-boundary COM the window tracker follows is weighted by each
 ## particle's FIELD coherence q (the coherent core dominates; stray void
 ## particles contribute ~nothing) — the tracking envelope follows the field,
 ## not the raw cloud. Live (no reinit). Default OFF = plain mass COM, bit-identical.
-@export var q_weighted_com: bool = false
+@export var q_weighted_com: bool = true
 
 ## Coherence-gated adaptive compute (coherence_adaptive_prereg.md Arm 3b): when
 ## ON, the moving-Voronoi mesh rebuilds LESS often when the field's mean
@@ -346,7 +346,7 @@ var _vsync_enabled: bool = true
 ## longer) and reverts toward the fixed ML_REBUILD base when q is low. β scales
 ## the q-driven lengthening: threshold = ML_REBUILD·(1 + β·min(q/φ⁻²,1)).
 ## Default OFF (β has no effect) = fixed ML_REBUILD, bit-identical.
-@export var adaptive_rebuild: bool = false
+@export var adaptive_rebuild: bool = true
 @export var coherence_rebuild_beta: float = 1.0
 
 ## Coherence-adaptive Barnes-Hut (Arm 2): when ON, the tree-walk θ is
@@ -354,7 +354,7 @@ var _vsync_enabled: bool = true
 ## nodes with q_n > q_cent (high-coherence regions resolve MORE opens, since
 ## they hold ordered structure worth resolving). Default OFF = plain θ,
 ## bit-identical. Forwards to the engine (decoupled) + the sim's global tree walk.
-@export var coherence_theta: bool = false
+@export var coherence_theta: bool = true
 @export var coherence_theta_alpha: float = 1.0
 
 func _ml_rebuild_threshold() -> int:
@@ -371,7 +371,7 @@ func _ml_rebuild_threshold() -> int:
 ## requires meshless_mode ON and the mesh live (otherwise it's a no-op back to
 ## the grid path). Default OFF = bit-identical battery (the site sample is a
 ## guarded branch, not a zero-multiply — dead when off).
-@export var boxless_field: bool = false
+@export var boxless_field: bool = true
 
 # Arm 1 latch: boxless instancer active when the toggle, meshless mode, and a
 # ready mesh all hold. Session-stable (meshless init gates _ml_ready); the
@@ -386,7 +386,7 @@ func _ml_boxless_on() -> bool:
 ## GRID path only — requires meshless_mode OFF (falls back to the inline
 ## path with a warning otherwise). Default OFF = the legacy inline path,
 ## bit-identical.
-@export var physics_decoupled: bool = false
+@export var physics_decoupled: bool = true
 ## Mirror publish cadence (decoupled mode): publish the full snapshot
 ## (positions/velocities/field_q/potential readbacks) every Kth physics job
 ## instead of every job — the cheap 2× on the readback-bound transfer. The
@@ -417,7 +417,7 @@ var _pub_com: Vector3 = Vector3.INF       # P3: engine-published COM (window tra
 ## sim's mirrors stay aligned (the render seam). Live: a toggle arms it
 ## at the next 2 s tick — no reinit. OFF (default) = the fixed box,
 ## bit-identical (every offset term exactly 0.0, box_scale 1.0).
-@export var tracking_envelope: bool = false
+@export var tracking_envelope: bool = true
 var _env_tracker = null               # EnvelopeTracker (lazy: EnvelopeTracker.new())
 var _env_orig_box := Vector3.ONE      # the fixed box at box_scale = 1.0 (the tracker's start extent)
 var _env_track_last_ms: int = 0       # the same slow cadence as the COM tracker (2 s)
@@ -512,7 +512,7 @@ const ENV_APPLY_TAU_SEC: float = 0.75
 ## channels — see cassi_instancer.glsl). ONLY base mode 4 (two-axis ρ)
 ## stays gated: its per-instance lightness axis still cannot ride the
 ## static band LUT (see _lut_compatible).
-@export var color_lut_mode: bool = false
+@export var color_lut_mode: bool = true
 
 # ── Camera startup framing (camera-only; no physics) ──────────────────
 ## On startup, frame a sibling Camera3D on the spawn region: the camera is
@@ -983,7 +983,9 @@ var _perf_last_ms: int = 0
 var _last_occ_ms: int = 0
 
 
-# — Display textures for visualization modes —
+## GPU-native display textures for visualization modes. Field mode receives a
+## Texture2DRD wrapper around the shared global-RD render target; no CPU image
+## is created or uploaded on that presentation path.
 var field_display_texture: Texture2D = null
 signal field_texture_updated(tex: Texture2D)
 var bh_display_texture: Texture2D = null
@@ -4159,8 +4161,11 @@ func _make_render_texture(width: int, height: int) -> RID:
 	fmt.width = width
 	fmt.height = height
 	fmt.format = RenderingDevice.DATA_FORMAT_R32G32B32A32_SFLOAT
+	# The compute pass writes this image and Texture2DRD samples it directly
+	# through the main renderer. COPY_FROM is intentionally omitted: field
+	# presentation never reads the texture back to the CPU.
 	fmt.usage_bits = RenderingDevice.TEXTURE_USAGE_STORAGE_BIT \
-				   | RenderingDevice.TEXTURE_USAGE_CAN_COPY_FROM_BIT
+				   | RenderingDevice.TEXTURE_USAGE_SAMPLING_BIT
 	var view = RDTextureView.new()
 	return _rd.texture_create(fmt, view, [])
 
@@ -4189,6 +4194,12 @@ func _render_field_slice() -> void:
 	if not _field_render_tex.is_valid():
 		_make_render_textures()
 		_cache_render_texture_sets()  # sets referencing the new texture
+	# The shared global-RD texture is renderer-visible through Texture2DRD.
+	# Construct the wrapper once per target allocation and keep it on the
+	# signal/TextureRect path; no texture_get_data/Image path is needed.
+	if field_display_texture == null \
+			or not (field_display_texture is Texture2DRD):
+		field_display_texture = CassiGpuTextureBridge.wrap(_field_render_tex)
 
 	# Shared PC (11 floats) — reuse the pre-allocated buffer
 	_pc_bytes.encode_float(0, float(grid_N))
@@ -4211,23 +4222,9 @@ func _render_field_slice() -> void:
 	_rd.compute_list_set_push_constant(cl, _pc_bytes, _pc_bytes.size())
 	_rd.compute_list_dispatch(cl, wg.x, wg.y, wg.z)
 	_rd.compute_list_end()
-	# Global RD: no submit/sync; texture_get_data self-stalls (executes the
-	# recorded list, then reads back).
-
-	# Readback for UI display (15 Hz — one 512² RGBAF readback per gate)
-	var fdata = _rd.texture_get_data(_field_render_tex, 0)
-	if fdata.size() > 100:
-		var img = Image.create_from_data(_rt_size.x, _rt_size.y, false, Image.FORMAT_RGBAF, fdata)
-		if img:
-			# Reuse the ImageTexture via update() when the size matches —
-			# avoids allocating a new GPU texture every readback.
-			if field_display_texture is ImageTexture \
-					and field_display_texture.get_width() == _rt_size.x \
-					and field_display_texture.get_height() == _rt_size.y:
-				field_display_texture.update(img)
-			else:
-				field_display_texture = ImageTexture.create_from_image(img)
-			field_texture_updated.emit(field_display_texture)
+	# The renderer consumes the shared RD image asynchronously. Signal the
+	# same existing presentation seam after recording the producer dispatch.
+	field_texture_updated.emit(field_display_texture)
 
 
 func _physics_step() -> void:
@@ -5451,6 +5448,7 @@ func _make_render_textures() -> void:
 func _cache_render_texture_sets() -> void:
 	# Rebuild ONLY the image uniform sets after _make_render_textures()
 	# recreates the textures (the old sets were freed there). The full
+	field_display_texture = null
 	# _cache_uniform_sets() must not be used here — it would overwrite the
 	# live sets of untouched buffers and leak their RIDs.
 	if _field_render_shader.is_valid() and _field_render_tex.is_valid():
@@ -5690,7 +5688,8 @@ func _render_frame() -> void:
 	match realtime_mode:
 		0:  # Particles mode (default N-body)
 			_render_particles()
-		1:  # Field mode
+		1:  # Field mode — transparent GPU volume behind the same particles
+			_render_particles()
 			_render_field_slice()
 		2:  # Black hole mode — particles + BH formation, lensing only when BHs exist
 			_render_particles()

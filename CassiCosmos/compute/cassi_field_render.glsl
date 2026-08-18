@@ -84,25 +84,22 @@ void main() {
     float q01 = q[i01]; float q11 = q[i11];
     float q_val = mix(mix(q00, q10, tx), mix(q01, q11, tx), ty);
 
-    // ── Background ───────────────────────────────────────────────────
-    vec3 color = vec3(0.01, 0.01, 0.02);
-
-    // ── Qi density → warm brightness ─────────────────────────────────
-    // sqrt gives a perceptually smooth falloff; max guards against
-    // any negative q that might arise from numerical drift.
+    // ── Transparent background + volumetric field contribution ──────────
+    // Empty cells contribute no overlay, while field energy contributes a
+    // soft alpha so the GPU particle MultiMesh remains visible underneath.
+    vec3 color = vec3(0.0);
     float q_brightness = sqrt(max(q_val, 0.0));
     color += vec3(1.0, 0.8, 0.3) * q_brightness;
 
-    // ── Disequilibrium |EY − φ·EI| → blue/green imbalance ────────────
-    // Positive imbalance (EY > φ·EI) → blue; negative → green.
     float diseq = ey_val - pc.phi * ei_val;
     float diseq_strength = 0.5 * sqrt(abs(diseq));
     if (diseq >= 0.0) {
-        color += vec3(0.1, 0.3, 0.9) * diseq_strength; // blue-dominant
+        color += vec3(0.1, 0.3, 0.9) * diseq_strength;
     } else {
-        color += vec3(0.1, 0.8, 0.4) * diseq_strength; // green-dominant
+        color += vec3(0.1, 0.8, 0.4) * diseq_strength;
     }
 
     color = clamp(color, 0.0, 1.0);
-    imageStore(RenderTarget, pixel, vec4(color, 1.0));
+    float alpha = clamp(max(q_brightness, diseq_strength) * 1.35, 0.0, 0.82);
+    imageStore(RenderTarget, pixel, vec4(color, alpha));
 }
