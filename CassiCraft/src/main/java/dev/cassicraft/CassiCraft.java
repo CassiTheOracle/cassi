@@ -83,6 +83,8 @@ public class CassiCraft implements ModInitializer {
 	private ExpeditionCoordinator expeditionCoordinator;
 	/** Temporary read-only local wayfinding for active expeditions. */
 	private dev.cassicraft.game.beacon.ExpeditionBeaconCoordinator expeditionBeacon;
+	/** One-shot local warning when the existing sky read enters storm edge. */
+	private dev.cassicraft.game.storm.StormWarningPresenter stormWarningPresenter;
 
 	/** The life response (river-law steering) for the live session (created per-session). */
 	private RiverSteering steering;
@@ -170,6 +172,7 @@ public class CassiCraft implements ModInitializer {
 			long used = session.beginSession(level, seed, anchor);
 			expeditionCoordinator = new ExpeditionCoordinator(session.publisher());
 			expeditionBeacon = new dev.cassicraft.game.beacon.ExpeditionBeaconCoordinator(expeditionCoordinator);
+			stormWarningPresenter = new dev.cassicraft.game.storm.StormWarningPresenter(session.publisher());
 			onboardingCoordinator = new OnboardingCoordinator();
 			expeditionCoordinator.setCompletionObserver(player -> {
 				OnboardingCoordinator onboarding = onboardingCoordinator;
@@ -201,6 +204,10 @@ public class CassiCraft implements ModInitializer {
 				if (onboardingCoordinator != null) {
 					onboardingCoordinator.clearSession();
 					onboardingCoordinator = null;
+				}
+				if (stormWarningPresenter != null) {
+					stormWarningPresenter.teardown();
+					stormWarningPresenter = null;
 				}
 				if (expeditionBeacon != null) {
 					expeditionBeacon.teardown();
@@ -234,6 +241,10 @@ public class CassiCraft implements ModInitializer {
 				if (onboardingCoordinator != null) {
 					onboardingCoordinator.clearSession();
 					onboardingCoordinator = null;
+				}
+				if (stormWarningPresenter != null) {
+					stormWarningPresenter.teardown();
+					stormWarningPresenter = null;
 				}
 				if (expeditionBeacon != null) {
 					expeditionBeacon.teardown();
@@ -276,6 +287,9 @@ public class CassiCraft implements ModInitializer {
 			}
 			if (expeditionBeacon != null) {
 				expeditionBeacon.onServerTick(server);
+			}
+			if (stormWarningPresenter != null) {
+				stormWarningPresenter.onServerTick(server);
 			}
 			if (followBehind != null) {
 				followBehind.onServerTick(server.overworld());

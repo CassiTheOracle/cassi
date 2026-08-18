@@ -902,3 +902,15 @@ def beaconDeterminismRun = tasks.register('beaconDeterminism', JavaExec) {
 
 check.dependsOn beaconDeterminismRun
 build.dependsOn beaconDeterminismRun
+
+
+// Storm-edge instrument warning determinism gate (wiring-requests/storm-warning-prereg.md).
+def stormWarningDeterminismRun = tasks.register('stormWarningDeterminism', JavaExec) {
+	group = 'verification'
+	description = 'Runs the session-local storm-edge warning gate: existing classifier, transition-only, UUID-isolated, read-only.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'dev.cassicraft.game.storm.StormWarningDeterminismMain'
+}
+
+check.dependsOn stormWarningDeterminismRun
+build.dependsOn stormWarningDeterminismRun
