@@ -1,21 +1,21 @@
-# Sampled-JFA versus continuous faces — gate report
+# Sampled-JFA versus continuous faces — corrected fixture report
 
 Date: 2026-08-17
 Domain: open tile
-Verdict: **SUPPORTS first open-tile traversal prototype.**
+Verdict: **CONTROLLED FIXTURE PASS — live production ensemble remains open.**
 
-The sampled-JFA adjacency is exact only on accelerator-grid labels. `_diag/continuous_face_oracle.gd` therefore compares its retained edges against a full all-site continuous next-face calculation on deterministic controls.
+The original regular/anisotropic fixture accidentally used a complete graph and was tautological. The corrected probe reconstructs a sampled open graph from N=32 nearest-site labels for every arm, then compares all-site continuous next faces against that sampled graph.
 
 ```
-PASS regular next-face coverage misses=0
+PASS regular sampled next-face coverage misses=0
 PASS sliver oracle witness next=1 t=2.00000000
-PASS sliver sampled contains witness
-PASS degenerate classified
+PASS sliver sampled graph contains witness
+PASS degenerate control classified
 PASS open seam edge omitted
-PASS anisotropic next-face coverage misses=0
+PASS anisotropic sampled next-face coverage misses=0
 RESULT: PASS (6 checks, 0 failures)
 ```
 
-The mandatory sliver uses δ=1/64 at N=32; the continuous p0→p1 face at x=4 is retained by the sampled graph. The δ=0 four-way event is classified degenerate rather than used as an ordinary-face gate. The open seam arm drops p0↔p1 across x=0/L. The anisotropic replay scales physical coordinates by diag(φ,1,φ²).
+The mandatory sliver uses δ=1/64. The open seam arm suppresses the opposite-side periodic contact. The anisotropic replay scales sites and physical cell dimensions by diag(φ,1,φ²).
 
-This supports a first traversal prototype that enumerates sampled-JFA neighbors and uses continuous bisector planes. It does not establish complete continuous Delaunay equivalence for arbitrary site configurations. Production adoption still requires live BCC/perturb/shear ensembles, progress/repeat gates, topology-generation wiring, and explicit periodic-image validation if periodic rendering is enabled.
+This corrects the earlier evidence but remains a controlled fixture—not full adoption. Production still requires live GPU JFA labels, live 8,192-site BCC/perturb/shear ensembles, frozen Fibonacci directions, false-positive certification, deterministic topology bytes, topology-generation wiring, and periodic image tests if periodic rendering is enabled.
