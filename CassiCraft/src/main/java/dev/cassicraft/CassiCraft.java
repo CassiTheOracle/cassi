@@ -9,9 +9,12 @@ import dev.cassicraft.game.lume.LumePayload;
 import dev.cassicraft.game.lume.LumePusher;
 import dev.cassicraft.game.reader.FieldReader;
 import dev.cassicraft.game.reader.WeatherglassItem;
-import dev.cassicraft.game.expedition.ExpeditionCoordinator;
+import dev.cassicraft.game.chart.FieldChartCommand;
+import dev.cassicraft.game.chart.FieldChartCoordinator;
+import dev.cassicraft.game.chart.FieldChartItem;
 import dev.cassicraft.game.clock.ClockCommand;
 import dev.cassicraft.game.clock.ClockItem;
+import dev.cassicraft.game.expedition.ExpeditionCoordinator;
 import dev.cassicraft.game.onboarding.OnboardingCoordinator;
 import dev.cassicraft.game.onboarding.OnboardingPresenter;
 import dev.cassicraft.game.rain.RainPresenter;
@@ -75,16 +78,16 @@ public class CassiCraft implements ModInitializer {
 	public static WeatherglassItem WEATHERGLASS;
 	/** The read-only local tempo instrument (design presentation over q/(1−q)). */
 	public static ClockItem CLOCK;
+	/** The session-local Field Chart item. */
+	public static FieldChartItem FIELD_CHART;
 
-	/** The single Q4 write-path handle — the session's field worker, set at world
-	 * load and nulled on teardown (the practice commands submit bounded matched-φ
-	 * writes through {@code CassiFieldThread.submitPerturbation}; the lane is the
-	 * only write path — this is never the solver, never a block write). */
+	/** The single Q4 write-path handle — the session's field worker. */
 	public static dev.cassicraft.domain.thread.CassiFieldThread FIELD_THREAD;
 
 	private final SamplerShutdown session = new SamplerShutdown();
 	private OnboardingCoordinator onboardingCoordinator;
 	private ExpeditionCoordinator expeditionCoordinator;
+	private FieldChartCoordinator fieldChartCoordinator;
 	/** Temporary read-only local wayfinding for active expeditions. */
 	private dev.cassicraft.game.beacon.ExpeditionBeaconCoordinator expeditionBeacon;
 	/** World-saved knowledge receipts; active expedition state remains session-only. */
@@ -155,12 +158,11 @@ public class CassiCraft implements ModInitializer {
 				dev.cassicraft.game.predator.SignaturePredatorEntity.createAttributes());
 		registerWeatherglass();
 		registerClock();
-
+		registerFieldChart();
 		// The always-on lume channel (field-instruments §1.4): a bounded S2C
 		// presentation of the published snapshot, registered once. The client
 		// receiver lives in the separate client entrypoint.
 		PayloadTypeRegistry.clientboundPlay().register(LumePayload.TYPE, LumePayload.CODEC);
-
 		// World load → start the domain field thread + sampler + writer for this
 		// world. The overworld is the Phase-1 substrate (its seed is the field
 		// seed). The box is anchored to where the player enters (the world spawn),
@@ -179,7 +181,7 @@ public class CassiCraft implements ModInitializer {
 					: BlockPos.ZERO;
 			double[] anchor = { spawn.getX(), spawn.getY(), spawn.getZ() };
 			long used = session.beginSession(level, seed, anchor);
-			expeditionCoordinator = new ExpeditionCoordinator(session.publisher());
+			fieldChartCoordinator = new FieldChartCoordinator(() -> session.publisher());
 			expeditionKnowledge = level.getDataStorage().computeIfAbsent(dev.cassicraft.game.progression.ExpeditionKnowledgeSavedData.TYPE);
 			onboardingCoordinator = new OnboardingCoordinator();
 			onboardingCoordinator.setDurableReceiptLookup(playerId -> expeditionKnowledge != null && expeditionKnowledge.contains(playerId));
@@ -249,6 +251,10 @@ public class CassiCraft implements ModInitializer {
 				atmoPresenter = null;
 				stillingShoutPresenter = null;
 				harnessPresenter = null;
+				if (fieldChartCoordinator != null) {
+					fieldChartCoordinator.clearSession();
+					fieldChartCoordinator = null;
+				}
 				predatorCoordinator = null;
 				LOGGER.info("[cassicraft] field thread closed (world unload)");
 			}
@@ -290,6 +296,10 @@ public class CassiCraft implements ModInitializer {
 				harnessPresenter = null;
 				predatorCoordinator = null;
 				LOGGER.info("[cassicraft] field thread closed (server stop)");
+			}
+			if (fieldChartCoordinator != null) {
+				fieldChartCoordinator.clearSession();
+				fieldChartCoordinator = null;
 			}
 		});
 
@@ -378,6 +388,7 @@ public class CassiCraft implements ModInitializer {
 		CommandRegistrationCallback.EVENT.register((dispatcher, buildContext, selection) -> {
 			registerReadCommand(dispatcher);
 			ClockCommand.register(dispatcher);
+			FieldChartCommand.register(dispatcher, () -> fieldChartCoordinator);
 			registerLifeCommand(dispatcher);
 			registerStrideCommand(dispatcher);
 			registerWindCommand(dispatcher);
@@ -393,7 +404,16 @@ public class CassiCraft implements ModInitializer {
 			registerSeamCommand(dispatcher);
 		});
 	}
-	/** Register the separate read-only Clock item in the normal creative/search surface. */
+	/** Register the session-local Field Chart item in the normal creative/search surface. */
+	private void registerFieldChart() {
+		Identifier id = Identifier.fromNamespaceAndPath(MOD_ID, "field_chart");
+		net.minecraft.world.item.Item.Properties props = new net.minecraft.world.item.Item.Properties()
+				.setId(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.ITEM, id));
+		FIELD_CHART = new FieldChartItem(() -> fieldChartCoordinator, props);
+		Registry.register(BuiltInRegistries.ITEM, id, FIELD_CHART);
+		CreativeModeTabEvents.MODIFY_OUTPUT_ALL.register((tab, output) ->
+				output.accept(new ItemStack(FIELD_CHART), CreativeModeTab.TabVisibility.PARENT_AND_SEARCH_TABS));
+	}
 	private void registerClock() {
 		Identifier id = Identifier.fromNamespaceAndPath(MOD_ID, "clock");
 		net.minecraft.world.item.Item.Properties props = new net.minecraft.world.item.Item.Properties()
