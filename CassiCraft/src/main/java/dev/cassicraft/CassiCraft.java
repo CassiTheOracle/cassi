@@ -83,6 +83,8 @@ public class CassiCraft implements ModInitializer {
 	private ExpeditionCoordinator expeditionCoordinator;
 	/** Temporary read-only local wayfinding for active expeditions. */
 	private dev.cassicraft.game.beacon.ExpeditionBeaconCoordinator expeditionBeacon;
+	/** World-saved knowledge receipts; active expedition state remains session-only. */
+	private dev.cassicraft.game.progression.ExpeditionKnowledgeSavedData expeditionKnowledge;
 	/** One-shot local warning when the existing sky read enters storm edge. */
 	private dev.cassicraft.game.storm.StormWarningPresenter stormWarningPresenter;
 
@@ -171,10 +173,15 @@ public class CassiCraft implements ModInitializer {
 			double[] anchor = { spawn.getX(), spawn.getY(), spawn.getZ() };
 			long used = session.beginSession(level, seed, anchor);
 			expeditionCoordinator = new ExpeditionCoordinator(session.publisher());
+			expeditionKnowledge = level.getDataStorage().computeIfAbsent(dev.cassicraft.game.progression.ExpeditionKnowledgeSavedData.TYPE);
+			onboardingCoordinator = new OnboardingCoordinator();
+			onboardingCoordinator.setDurableReceiptLookup(playerId -> expeditionKnowledge != null && expeditionKnowledge.contains(playerId));
 			expeditionBeacon = new dev.cassicraft.game.beacon.ExpeditionBeaconCoordinator(expeditionCoordinator);
 			stormWarningPresenter = new dev.cassicraft.game.storm.StormWarningPresenter(session.publisher());
-			onboardingCoordinator = new OnboardingCoordinator();
 			expeditionCoordinator.setCompletionObserver(player -> {
+				if (expeditionKnowledge != null) {
+					expeditionKnowledge.record(player.getUUID());
+				}
 				OnboardingCoordinator onboarding = onboardingCoordinator;
 				if (onboarding != null) {
 					OnboardingPresenter.presentCompletion(player, onboarding);
@@ -217,6 +224,7 @@ public class CassiCraft implements ModInitializer {
 					expeditionCoordinator.teardown();
 					expeditionCoordinator = null;
 				}
+				expeditionKnowledge = null;
 				session.endSession();
 				followBehind = null;
 				dev.cassicraft.CassiCraft.FIELD_THREAD = null;
@@ -254,6 +262,7 @@ public class CassiCraft implements ModInitializer {
 					expeditionCoordinator.teardown();
 					expeditionCoordinator = null;
 				}
+				expeditionKnowledge = null;
 				session.endSession();
 				followBehind = null;
 				dev.cassicraft.CassiCraft.FIELD_THREAD = null;

@@ -14,6 +14,12 @@ public final class OnboardingCoordinator {
                     + "Plain use reads the field; sneak-use starts another expedition when available.";
 
     private final Set<UUID> completionReceipts = new HashSet<>();
+    private java.util.function.Predicate<UUID> durableReceipt = ignored -> false;
+
+    /** Host supplies world-saved receipts; this coordinator retains only per-session presentation state. */
+    public void setDurableReceiptLookup(java.util.function.Predicate<UUID> lookup) {
+        durableReceipt = java.util.Objects.requireNonNull(lookup, "lookup");
+    }
 
     public String discoveryText() {
         return DISCOVERY_TEXT;
@@ -29,7 +35,7 @@ public final class OnboardingCoordinator {
     }
 
     public boolean hasCompletionReceipt(UUID playerId) {
-        return completionReceipts.contains(playerId);
+        return completionReceipts.contains(playerId) || durableReceipt.test(playerId);
     }
 
     /** Called by the host lifecycle seam at session/world teardown. */

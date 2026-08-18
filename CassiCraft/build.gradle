@@ -914,3 +914,15 @@ def stormWarningDeterminismRun = tasks.register('stormWarningDeterminism', JavaE
 
 check.dependsOn stormWarningDeterminismRun
 build.dependsOn stormWarningDeterminismRun
+
+
+// Replay-safe completed-expedition knowledge receipt gate (wiring-requests/progression-persistence-prereg.md).
+def progressionPersistenceDeterminismRun = tasks.register('progressionPersistenceDeterminism', JavaExec) {
+	group = 'verification'
+	description = 'Runs the replay-safe completed-expedition knowledge receipt gate: idempotent, UUID-isolated, non-economic persistence only.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'dev.cassicraft.game.progression.ProgressionPersistenceDeterminismMain'
+}
+
+check.dependsOn progressionPersistenceDeterminismRun
+build.dependsOn progressionPersistenceDeterminismRun
