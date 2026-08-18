@@ -10,6 +10,8 @@ import dev.cassicraft.game.lume.LumePusher;
 import dev.cassicraft.game.reader.FieldReader;
 import dev.cassicraft.game.reader.WeatherglassItem;
 import dev.cassicraft.game.expedition.ExpeditionCoordinator;
+import dev.cassicraft.game.clock.ClockCommand;
+import dev.cassicraft.game.clock.ClockItem;
 import dev.cassicraft.game.onboarding.OnboardingCoordinator;
 import dev.cassicraft.game.onboarding.OnboardingPresenter;
 import dev.cassicraft.game.rain.RainPresenter;
@@ -71,6 +73,8 @@ public class CassiCraft implements ModInitializer {
 
 	/** The single Weatherglass item (registered once at mod init). */
 	public static WeatherglassItem WEATHERGLASS;
+	/** The read-only local tempo instrument (design presentation over q/(1−q)). */
+	public static ClockItem CLOCK;
 
 	/** The single Q4 write-path handle — the session's field worker, set at world
 	 * load and nulled on teardown (the practice commands submit bounded matched-φ
@@ -150,6 +154,7 @@ public class CassiCraft implements ModInitializer {
 				dev.cassicraft.game.predator.PredatorRegistration.TYPE,
 				dev.cassicraft.game.predator.SignaturePredatorEntity.createAttributes());
 		registerWeatherglass();
+		registerClock();
 
 		// The always-on lume channel (field-instruments §1.4): a bounded S2C
 		// presentation of the published snapshot, registered once. The client
@@ -372,6 +377,7 @@ public class CassiCraft implements ModInitializer {
 
 		CommandRegistrationCallback.EVENT.register((dispatcher, buildContext, selection) -> {
 			registerReadCommand(dispatcher);
+			ClockCommand.register(dispatcher);
 			registerLifeCommand(dispatcher);
 			registerStrideCommand(dispatcher);
 			registerWindCommand(dispatcher);
@@ -386,6 +392,16 @@ public class CassiCraft implements ModInitializer {
 			registerHarnessCommand(dispatcher);
 			registerSeamCommand(dispatcher);
 		});
+	}
+	/** Register the separate read-only Clock item in the normal creative/search surface. */
+	private void registerClock() {
+		Identifier id = Identifier.fromNamespaceAndPath(MOD_ID, "clock");
+		net.minecraft.world.item.Item.Properties props = new net.minecraft.world.item.Item.Properties()
+				.setId(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.ITEM, id));
+		CLOCK = new ClockItem(() -> session.publisher(), props);
+		Registry.register(BuiltInRegistries.ITEM, id, CLOCK);
+		CreativeModeTabEvents.MODIFY_OUTPUT_ALL.register((tab, output) ->
+				output.accept(new ItemStack(CLOCK), CreativeModeTab.TabVisibility.PARENT_AND_SEARCH_TABS));
 	}
 
 	/** Register {@code /cassicraft read} — sample the field at the caller's position. */

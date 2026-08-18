@@ -219,6 +219,16 @@ def followBehindDeterminismRun = tasks.register('followBehindDeterminism', JavaE
 }
 
 build.dependsOn followBehindDeterminism
+// Clock read-only tempo presentation gate: q/(1−q) mapping only, no timing or writes.
+def clockDeterminismRun = tasks.register('clockDeterminism', JavaExec) {
+	group = 'verification'
+	description = 'Runs the Clock deterministic bounded read-only tempo presentation gate.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'dev.cassicraft.game.clock.ClockDeterminismMain'
+}
+
+build.dependsOn clockDeterminismRun
+check.dependsOn clockDeterminismRun
 
 // Bundle the `domain` output into the single mod jar. This is plain-Java
 // packaging — `domain` still compiles with NO Minecraft on its classpath (the
