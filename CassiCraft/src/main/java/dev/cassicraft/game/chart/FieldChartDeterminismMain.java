@@ -97,8 +97,98 @@ public final class FieldChartDeterminismMain {
         check(chart.selected(A) == 0 && chart.filled(A) == 0 && chart.selected(B) == 0 && chart.filled(B) == 0, "clearSession resets both users");
         System.out.println("[field-chart] threshold evidence: LIVE<=0.05 [design], STALE<0.20 [design], FALLEN>=0.20 [design]");
         System.out.println("[field-chart] gate invokes the shared runtime action-policy seam used by item/command adapters");
+        runBearingContract(chart, publisher);
+    }
+    private static void runBearingContract(FieldChartCoordinator chart, SnapshotPublisher publisher) {
+        FieldChartActions.draw(chart, A, new BlockPos(9, 70, 0));
+        int readySelected = chart.selected(A);
+        int readyFilled = chart.filled(A);
+        var readyRecords = chart.records(A);
+        FieldChartBearing.Result east = FieldChartActions.bearing(chart, A, 0, 70, 0);
+        check(east.ready() && east.bearing() == FieldChartBearing.Bearing.EAST, "bearing cardinal east");
+        check(chart.selected(A) == readySelected && chart.filled(A) == readyFilled && chart.records(A).equals(readyRecords),
+                "bearing ready immutable");
+        check(FieldChartBearing.class.getPackageName().equals("dev.cassicraft.game.chart"), "bearing package");
+        check(java.util.Arrays.stream(FieldChartBearing.class.getDeclaredFields())
+                .noneMatch(field -> field.getType().getName().contains("FieldChartCoordinator")
+                        || field.getType().getName().contains("net.minecraft")
+                        || field.getType().getName().contains("dev.cassicraft.domain")
+                        || field.getType().getName().contains("Session")), "bearing pure forbidden dependency surface");
+
+        FieldChartBearing.Result west = FieldChartBearing.compute(A, 0, 9, 70, 0, 0, 70, 0);
+        FieldChartBearing.Result north = FieldChartBearing.compute(A, 0, 0, 70, 0, 0, 70, -9);
+        FieldChartBearing.Result south = FieldChartBearing.compute(A, 0, 0, 70, 0, 0, 70, 9);
+        check(west.bearing() == FieldChartBearing.Bearing.WEST && north.bearing() == FieldChartBearing.Bearing.NORTH
+                && south.bearing() == FieldChartBearing.Bearing.SOUTH, "bearing signed cardinal compute arms");
+
+        FieldChartBearing.Result ne = FieldChartBearing.compute(A, 0, 0, 70, 0, 4, 70, -4);
+        FieldChartBearing.Result se = FieldChartBearing.compute(A, 0, 0, 70, 0, 4, 70, 4);
+        FieldChartBearing.Result sw = FieldChartBearing.compute(A, 0, 0, 70, 0, -4, 70, 4);
+        FieldChartBearing.Result nw = FieldChartBearing.compute(A, 0, 0, 70, 0, -4, 70, -4);
+        check(ne.bearing() == FieldChartBearing.Bearing.NORTH_EAST && se.bearing() == FieldChartBearing.Bearing.SOUTH_EAST
+                && sw.bearing() == FieldChartBearing.Bearing.SOUTH_WEST && nw.bearing() == FieldChartBearing.Bearing.NORTH_WEST,
+                "bearing all signed diagonal compute arms");
+        FieldChartBearing.Result eastDominant = FieldChartBearing.compute(A, 0, 0, 70, 0, 5, 70, 3);
+        FieldChartBearing.Result westDominant = FieldChartBearing.compute(A, 0, 0, 70, 0, -5, 70, -3);
+        FieldChartBearing.Result southDominant = FieldChartBearing.compute(A, 0, 0, 70, 0, 3, 70, 5);
+        FieldChartBearing.Result northDominant = FieldChartBearing.compute(A, 0, 0, 70, 0, -3, 70, -5);
+        check(eastDominant.bearing() == FieldChartBearing.Bearing.EAST && westDominant.bearing() == FieldChartBearing.Bearing.WEST
+                && southDominant.bearing() == FieldChartBearing.Bearing.SOUTH && northDominant.bearing() == FieldChartBearing.Bearing.NORTH,
+                "bearing all signed dominant compute arms");
+        FieldChartBearing.Result verticalHere = FieldChartBearing.compute(A, 0, 4, 70, -2, 4, 73, -2);
+        check(verticalHere.bearing() == FieldChartBearing.Bearing.HERE && verticalHere.dx() == 0
+                && verticalHere.dy() == 3 && verticalHere.dz() == 0
+                && verticalHere.message().contains("delta=(dx=0,dy=3,dz=0) horizontal=HERE"),
+                "bearing vertical-only HERE compute arm");
+
+        check(east.message().equals("Field Chart bearing slot 0 target=(9,70,0) delta=(dx=9,dy=0,dz=0) horizontal=EAST distance2=81"),
+                "bearing deterministic formatting");
+        FieldChartBearing.Result same = FieldChartActions.bearing(chart, A, 0, 70, 0);
+        check(east.equals(same) && east.message().equals(same.message()), "bearing deterministic equality");
+
+        int beforeBlankSelected = chart.selected(A);
+        int beforeBlankFilled = chart.filled(A);
+        var beforeBlankRecords = chart.records(A);
+        check(FieldChartActions.slot(chart, A, 7).accepted(), "bearing blank setup slot");
+        FieldChartBearing.Result blank = FieldChartActions.bearing(chart, A, 0, 70, 0);
+        check(blank.status() == FieldChartBearing.Status.BLANK && blank.message().equals("Field Chart bearing slot 7 is blank."), "bearing blank exact result");
+        check(chart.selected(A) == 7 && chart.filled(A) == beforeBlankFilled && chart.records(A).equals(beforeBlankRecords),
+                "bearing blank immutable");
+
+        FieldChartCoordinator unseenDark = new FieldChartCoordinator(null);
+        check(FieldChartActions.bearing(unseenDark, B, 0, 0, 0).status() == FieldChartBearing.Status.DARK
+                && unseenDark.filled(B) == 0 && unseenDark.selected(B) == 0, "bearing no-publish before session");
+        FieldChartCoordinator other = new FieldChartCoordinator(() -> new SnapshotPublisher());
+        check(FieldChartActions.bearing(other, B, 0, 0, 0).status() == FieldChartBearing.Status.DARK
+                && other.filled(B) == 0, "bearing UUID isolation no-publish");
+
+        check(FieldChartActions.slot(chart, A, readySelected).accepted(), "bearing restore selected slot");
+        check(chart.selected(A) == readySelected && chart.filled(A) == readyFilled && chart.records(A).equals(readyRecords),
+                "bearing final session invariants");
+        java.util.concurrent.atomic.AtomicReference<SnapshotPublisher> dynamicPublisher = new java.util.concurrent.atomic.AtomicReference<>(publisher);
+        FieldChartCoordinator populatedNullFreshest = new FieldChartCoordinator(dynamicPublisher::get);
+        FieldChartActions.draw(populatedNullFreshest, A, new BlockPos(2, 70, 2));
+        int nullSelected = populatedNullFreshest.selected(A), nullFilled = populatedNullFreshest.filled(A);
+        var nullRecords = populatedNullFreshest.records(A);
+        dynamicPublisher.set(new SnapshotPublisher());
+        FieldChartCoordinator nullFreshest = new FieldChartCoordinator(() -> new SnapshotPublisher());
+        check(FieldChartActions.bearing(nullFreshest, A, 0, 70, 0).status() == FieldChartBearing.Status.DARK
+                && nullFreshest.filled(A) == 0 && nullFreshest.selected(A) == 0, "bearing freshest-null unseen UUID");
+        check(FieldChartActions.bearing(populatedNullFreshest, A, 0, 70, 0).status() == FieldChartBearing.Status.DARK
+                && populatedNullFreshest.selected(A) == nullSelected && populatedNullFreshest.filled(A) == nullFilled
+                && populatedNullFreshest.records(A).equals(nullRecords), "bearing freshest-null preserves populated session");
+        FieldChartBearing.WideResult endpointOverflow = FieldChartBearing.computeWide(A, 0,
+                java.math.BigInteger.valueOf(Long.MIN_VALUE), java.math.BigInteger.ZERO, java.math.BigInteger.ZERO,
+                java.math.BigInteger.valueOf(Long.MAX_VALUE), java.math.BigInteger.ZERO, java.math.BigInteger.ZERO);
+        check(endpointOverflow.dx().equals(java.math.BigInteger.ONE.shiftLeft(64).subtract(java.math.BigInteger.ONE))
+                && endpointOverflow.distance2().equals(FieldChartBearing.OVERFLOW), "bearing widened endpoint overflow sentinel");
     }
 
+    private static SnapshotPublisher publisherForBearing() {
+        SnapshotPublisher publisher = new SnapshotPublisher();
+        publisher.publish(new FieldSnapshot(new float[] { 0 }, new float[] { 0 }, new float[] { 0, 0, 0 }, new float[] { 0 }, 1, null));
+        return publisher;
+    }
     private static FieldReader.FieldReadout readout(float q, float eps2) {
         return new FieldReader.FieldReadout(0, q, eps2, 0, 0, 0, "");
     }

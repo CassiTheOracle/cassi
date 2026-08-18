@@ -8,6 +8,9 @@ public final class FieldChartPresenter {
     public static void present(ServerPlayer player, FieldChartCoordinator.Result result) {
         player.sendSystemMessage(Component.literal(result.message()));
     }
+    public static void present(ServerPlayer player, FieldChartBearing.Result result) {
+        player.sendSystemMessage(Component.literal(result.message()));
+    }
 
     private FieldChartPresenter() {}
 }

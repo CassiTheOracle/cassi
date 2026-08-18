@@ -19,6 +19,17 @@ public final class FieldChartCoordinator {
             FieldChartRecord record, FieldChartRead.Comparison comparison, String message) {
         public boolean changed() { return accepted && (kind == Kind.DRAW || kind == Kind.REDRAW || kind == Kind.SLOT); }
     }
+    public synchronized FieldChartBearing.Result bearing(UUID owner, int callerX, int callerY, int callerZ) {
+        Context context = context();
+        if (context == null) return FieldChartBearing.dark(0);
+        Session session = session(owner);
+        int slot = session.selected;
+        FieldChartRecord record = session.records[slot];
+        if (record == null) return FieldChartBearing.blank(slot);
+        BlockPos target = record.position();
+        return FieldChartBearing.compute(owner, slot, callerX, callerY, callerZ,
+                target.getX(), target.getY(), target.getZ());
+    }
     private record Context(FieldSnapshot snapshot, double[] window, int generation) {
         Context {
             window = window.clone();
@@ -113,6 +124,7 @@ public final class FieldChartCoordinator {
     }
 
     private Context context() {
+        if (publisher == null) return null;
         SnapshotPublisher current = publisher.get();
         if (current == null) return null;
         FieldSnapshot snapshot = current.freshest();

@@ -946,12 +946,17 @@ def coherenceRouteDeterminismRun = tasks.register('coherenceRouteDeterminism', J
 
 check.dependsOn coherenceRouteDeterminismRun
 build.dependsOn coherenceRouteDeterminismRun
-// Field Chart focused session-local determinism gate (wiring-requests/field-chart-prereg.md).
+// Field Chart focused session-local + bearing determinism gate (existing task name retained).
 def fieldChartDeterminismRun = tasks.register('fieldChartDeterminism', JavaExec) {
 	group = 'verification'
-	description = 'Runs the bounded Field Chart session-local, no-publish, status, capacity, and UUID-isolation gate.'
+	description = 'Runs the bounded Field Chart session-local and bearing contract gate.'
 	classpath = sourceSets.main.runtimeClasspath
 	mainClass = 'dev.cassicraft.game.chart.FieldChartDeterminismMain'
 }
 check.dependsOn fieldChartDeterminismRun
 build.dependsOn fieldChartDeterminismRun
+def fieldChartBearingDeterminismRun = tasks.register('fieldChartBearingDeterminism') {
+	group = 'verification'
+	description = 'Alias for fieldChartDeterminism bearing coverage.'
+	dependsOn fieldChartDeterminismRun
+}

@@ -13,6 +13,7 @@ public final class FieldChartCommand {
         var chart = Commands.literal("chart").executes(ctx -> inspect(ctx.getSource(), coordinator))
                 .then(Commands.literal("draw").executes(ctx -> capture(ctx.getSource(), coordinator, false)))
                 .then(Commands.literal("redraw").executes(ctx -> capture(ctx.getSource(), coordinator, true)))
+                .then(Commands.literal("bearing").executes(ctx -> bearing(ctx.getSource(), coordinator)))
                 .then(Commands.literal("slot").then(Commands.argument("slot", IntegerArgumentType.integer(0, FieldChartCoordinator.SLOT_COUNT - 1))
                         .executes(ctx -> slot(ctx.getSource(), coordinator, IntegerArgumentType.getInteger(ctx, "slot")))))
                 .then(Commands.literal("summary").executes(ctx -> summary(ctx.getSource(), coordinator)));
@@ -33,6 +34,12 @@ public final class FieldChartCommand {
         ServerPlayer player = source.getPlayer(); FieldChartCoordinator chart = ready(source, supplier);
         if (player == null || chart == null) return 0;
         FieldChartPresenter.present(player, FieldChartActions.slot(chart, player.getUUID(), slot)); return 1;
+    }
+    private static int bearing(CommandSourceStack source, java.util.function.Supplier<FieldChartCoordinator> supplier) {
+        ServerPlayer player = source.getPlayer(); FieldChartCoordinator chart = ready(source, supplier);
+        if (player == null || chart == null) return 0;
+        FieldChartPresenter.present(player, FieldChartActions.bearing(chart, player.getUUID(),
+                player.blockPosition().getX(), player.blockPosition().getY(), player.blockPosition().getZ())); return 1;
     }
     private static int summary(CommandSourceStack source, java.util.function.Supplier<FieldChartCoordinator> supplier) {
         ServerPlayer player = source.getPlayer(); FieldChartCoordinator chart = ready(source, supplier);
