@@ -81,6 +81,8 @@ public class CassiCraft implements ModInitializer {
 	private final SamplerShutdown session = new SamplerShutdown();
 	private OnboardingCoordinator onboardingCoordinator;
 	private ExpeditionCoordinator expeditionCoordinator;
+	/** Temporary read-only local wayfinding for active expeditions. */
+	private dev.cassicraft.game.beacon.ExpeditionBeaconCoordinator expeditionBeacon;
 
 	/** The life response (river-law steering) for the live session (created per-session). */
 	private RiverSteering steering;
@@ -167,6 +169,7 @@ public class CassiCraft implements ModInitializer {
 			double[] anchor = { spawn.getX(), spawn.getY(), spawn.getZ() };
 			long used = session.beginSession(level, seed, anchor);
 			expeditionCoordinator = new ExpeditionCoordinator(session.publisher());
+			expeditionBeacon = new dev.cassicraft.game.beacon.ExpeditionBeaconCoordinator(expeditionCoordinator);
 			onboardingCoordinator = new OnboardingCoordinator();
 			expeditionCoordinator.setCompletionObserver(player -> {
 				OnboardingCoordinator onboarding = onboardingCoordinator;
@@ -199,6 +202,10 @@ public class CassiCraft implements ModInitializer {
 					onboardingCoordinator.clearSession();
 					onboardingCoordinator = null;
 				}
+				if (expeditionBeacon != null) {
+					expeditionBeacon.teardown();
+					expeditionBeacon = null;
+				}
 				if (expeditionCoordinator != null) {
 					expeditionCoordinator.teardown();
 					expeditionCoordinator = null;
@@ -227,6 +234,10 @@ public class CassiCraft implements ModInitializer {
 				if (onboardingCoordinator != null) {
 					onboardingCoordinator.clearSession();
 					onboardingCoordinator = null;
+				}
+				if (expeditionBeacon != null) {
+					expeditionBeacon.teardown();
+					expeditionBeacon = null;
 				}
 				if (expeditionCoordinator != null) {
 					expeditionCoordinator.teardown();
@@ -262,6 +273,9 @@ public class CassiCraft implements ModInitializer {
 			session.onServerTick(server);
 			if (expeditionCoordinator != null) {
 				expeditionCoordinator.tick(server);
+			}
+			if (expeditionBeacon != null) {
+				expeditionBeacon.onServerTick(server);
 			}
 			if (followBehind != null) {
 				followBehind.onServerTick(server.overworld());

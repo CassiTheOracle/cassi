@@ -890,3 +890,15 @@ def onboardingDeterminismRun = tasks.register('onboardingDeterminism', JavaExec)
 	classpath = sourceSets.main.runtimeClasspath
 	mainClass = 'dev.cassicraft.game.onboarding.OnboardingDeterminismMain'
 }
+
+
+// Temporary expedition beacon determinism gate (wiring-requests/beacon-prereg.md).
+def beaconDeterminismRun = tasks.register('beaconDeterminism', JavaExec) {
+	group = 'verification'
+	description = 'Runs the temporary expedition beacon gate: coordinate-free, UUID-isolated, cadence-bounded presentation only.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'dev.cassicraft.game.beacon.BeaconDeterminismMain'
+}
+
+check.dependsOn beaconDeterminismRun
+build.dependsOn beaconDeterminismRun
