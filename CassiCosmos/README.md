@@ -1,7 +1,36 @@
 # Cassi Space Sim (Godot)
 
-RealSim N-body + two-fluid visualization and verification, running the
-river-law gravity in Godot compute shaders (global RenderingDevice).
+RealSim N-body + two-fluid visualization and verification. The production
+scene runs the site-native field/force engine on a worker-thread local RD;
+legacy raster verification scenes retain the global-RD compatibility path.
+
+## Run the production site-native universe
+
+From the CassiCosmos directory, launch the tuned production scene with the
+Godot 4.7.1 Mono console executable:
+
+```powershell
+& "C:/Users/Carina/AppData/Local/Microsoft/WinGet/Packages/GodotEngine.GodotEngine.Mono_Microsoft.Winget.Source_8wekyb3d8bbwe/Godot_v4.7.1-stable_mono_win64/Godot_v4.7.1-stable_mono_win64_console.exe" `
+  --path . res://scenes/main.tscn
+```
+
+For editor use, open the project in Godot and press **F6** with
+`scenes/main.tscn` selected (or **F5** for the project main scene). Runtime
+scenes must be windowed on this machine; `--headless` is for the battery runner
+only. The production scene uses the site-native field/force path
+(`gridless_physics=true`, `physics_decoupled=true`, `boxless_field=true`) and
+starts with a 500,000-particle interactive preset.
+The interactive preset also keeps the tracking envelope enabled: the finite
+site window follows the compact particle envelope instead of becoming a fixed
+wall that the cloud can pile into.
+
+The site window is a finite open-boundary computation domain, not a periodic
+render box: particles that leave it remain in world coordinates and stop
+contributing to the local site field instead of reappearing on the opposite
+wall. If you raise
+`N_particles`, keep `particle_size` small and make sure the initial cluster
+separation fits the site window; startup now auto-fits an invalid Gaussian or
+Plummer support before GPU setup.
 
 ## Box geometry: the φ-aspect box
 
@@ -20,16 +49,23 @@ k-space/samplers/deposit, expected effects and honest limits).
 
 ## Verification battery
 
-Run each scene headless; exit code 0 = all checks passed:
+Run the full runner headless only for orchestration; every GPU scene arm is
+windowed on this machine because the headless renderer has no usable
+RenderingDevice:
 
+```powershell
+& "C:/Users/Carina/AppData/Local/Microsoft/WinGet/Packages/GodotEngine.GodotEngine.Mono_Microsoft.Winget.Source_8wekyb3d8bbwe/Godot_v4.7.1-stable_mono_win64/Godot_v4.7.1-stable_mono_win64_console.exe" `
+  --path . --headless -s res://verify/run_all.gd
 ```
-godot --path . res://scenes/verify_fft.tscn            # FFT roundtrip + Poisson solves
-godot --path . res://scenes/verify_ring.tscn           # 19-point dispersion isotropy
-godot --path . res://scenes/verify_river_law.tscn      # river/heuristic force laws
-godot --path . res://scenes/verify_river_isotropy.tscn # ring anisotropy anchors (r/h)
-godot --path . res://scenes/verify_gravity_modes.tscn  # 5-mode gravity selector battery
-godot --path . res://scenes/verify_phi_box.tscn        # φ-aspect battery (a–e, GRID_LAYOUT.md §5)
+
+For a single arm, launch it windowed:
+
+```powershell
+& "C:/Users/Carina/AppData/Local/Microsoft/WinGet/Packages/GodotEngine.GodotEngine.Mono_Microsoft.Winget.Source_8wekyb3d8bbwe/Godot_v4.7.1-stable_mono_win64/Godot_v4.7.1-stable_mono_win64_console.exe" `
+  --path . res://scenes/verify_gridless_physics.tscn
 ```
+
+Exit code 0 means the selected scene passed.
 
 The first five run at the cube aspect (bit-untouched); the φ battery
 validates the anisotropic physics against the analytic per-axis k-sum Green

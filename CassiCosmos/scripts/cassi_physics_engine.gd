@@ -3315,7 +3315,7 @@ func _site_mass_dispatches(cl: int) -> void:
 	_site_mass_pc_bytes.encode_float(32, _window_center.y)
 	_site_mass_pc_bytes.encode_float(36, _window_center.z)
 	_site_mass_pc_bytes.encode_float(40, float(HASH_H))
-	_site_mass_pc_bytes.encode_float(44, 0.0)
+	_site_mass_pc_bytes.encode_float(44, 1.0) # open-world: reject, never wrap, out-of-window particles
 	_site_mass_pc_bytes.encode_float(0, 0.0)
 	_rd.compute_list_bind_compute_pipeline(cl, _site_mass_pipe)
 	_rd.compute_list_bind_uniform_set(cl, _us_site_mass, 0)

@@ -83,10 +83,11 @@ layout(set = 0, binding = 6, std430) readonly buffer LutFlag { vec4 flag; };
 // When flag.y > 0.5 (the sim binds a boxless-mode flag buffer), the instancer's
 // coherence/phase at a particle come from the moving-Voronoi sites via the
 // COHERENCE-FILTERED shortlist (built by cassi_site_shortlist.glsl on the steer
-// cadence) — NOT the periodic grid. tri_coherence/tri_phase scan only the
-// shortlist (the structured subset, q ≥ φ⁻²), so the per-particle cost tracks
-// coherent content, not the 8192-site mesh count. flag.y = 0 (default, any
-// non-boxless set) → the grid trilinear path is used, bit-identical to today.
+// cadence) — NOT the periodic grid. flag.z > 0.5 additionally selects the
+// open-world position path: escaped particles keep their world coordinate and
+// site queries reject outside-window samples instead of clamping to a seam.
+// flag.y = 0 (default, any non-boxless set) → the grid trilinear path is used,
+// bit-identical to today.
 layout(set = 0, binding = 7, std430) readonly buffer Shortlist { vec4 sl[]; };
 layout(set = 0, binding = 8, std430) readonly buffer SitePsiY { float psy[]; };
 layout(set = 0, binding = 9, std430) readonly buffer SitePsiI { float psi[]; };
@@ -377,6 +378,8 @@ float tri_phase(vec3 wp) {
 // cost is O(shortlist) not O(8192). Active only when flag.y > 0.5 (boxless
 // instancer set bound); otherwise the grid trilinear paths above are used.
 bool boxless_active(void) { return flag.y > 0.5; }
+
+bool open_world_active(void) { return flag.z > 0.5; }
 // Returns the site index of the nearest shortlisted site; -1 if the shortlist
 // is empty. (GLSL has no int -1 from a 0-min scan failure — use a flag.)
 // BOXLESS HASH (boxless_site_hash_prereg.md): a growing-Chebyshev-ring query
@@ -390,9 +393,13 @@ bool boxless_active(void) { return flag.y > 0.5; }
 // dense-blob case), rising only in sparse voids where there are few sites.
 int nearest_shortlist_site(vec3 wp, out bool found) {
     found = false;
-    uint n = cnt;
-    if (n == 0u) return 0;
     vec3 ext = vec3(pc.extent_x, pc.extent_y, pc.extent_z);
+    uint n = cnt;
+    if (open_world_active()
+            && (any(lessThan(wp, -ext)) || any(greaterThanEqual(wp, ext)))) {
+        return 0;
+    }
+    if (n == 0u) return 0;
     vec3 tile_wp = wp + ext;
     int H = max(int(round(2.0 * pc.extent_x / max(cfg.w, 1e-9))), 1);
     vec3 cs = 2.0 * ext / max(float(H), 1.0);
@@ -558,30 +565,17 @@ void main() {
     int bmode = cm_base();
     int flags = cm_flags();
 
-    // ── Periodic fold (perf-decomp 2026-08-15): the nbody KDK integrator
-    // NEVER wraps stored positions, so escaped particles can hold
-    // |pos| ≫ extent while their physics stays periodic-correct (the mass
-    // deposit and the nbody field samplers wrap the GRID INDEX instead —
-    // cassi_mass_deposit.glsl L128-134, cassi_nbody_gravity.glsl L279). The
-    // RENDERED transform must fold into the box too: otherwise a crossed
-    // particle draws thousands of units offscreen and "leaves the box and
-    // disappears" while its physics re-enters unseen from the far side.
-    //   pf = p − 2·ext·round(p/(2·ext)) — the periodic identity: maps ANY
-    //   finite p into [−ext, ext] (round of a fraction in (−0.5, 0.5) is 0
-    //   → pf = p for every in-box particle — byte-identical battery); at
-    //   exactly |p| = ext the fold lands on the periodic seam image
-    //   (±ext ↔ ∓ext — the same image the deposit's index wrap produces
-    //   for gc == N). A NaN/inf position (force blow-up) folds to NaN →
-    //   the isfinite guard snaps it to 0.0 (in-box): a NaN transform
-    //   would render an invisible quad.
+    // Legacy compatibility scenes fold escaped particles into their
+    // periodic tile. The site-native path is open-world: preserve the actual
+    // world position so crossing a site-window edge cannot repaint a wall
+    // seam or pile all particles onto the opposite boundary.
     vec3 ext3 = vec3(pc.extent_x, pc.extent_y, pc.extent_z);
     vec3 span = max(2.0 * ext3, vec3(1e-9));
-    vec3 pf = p.xyz - span * round(p.xyz / span);
-    // Guard: NaN (an inf round folds to NaN) or an absurd magnitude (a
-    // force blow-up) → harmless in-box origin 0.0 (a NaN transform would
-    // render an invisible quad). equal(x,x) is false iff x is NaN;
-    // |pf| > 1e20 cannot be a real box coordinate. (No bvec bitwise-or in
-    // GLSL 450 — the two guards chain.)
+    vec3 pf = open_world_active()
+            ? p.xyz
+            : p.xyz - span * round(p.xyz / span);
+    // Guard: NaN/inf or an absurd force blow-up becomes an invisible origin
+    // transform rather than poisoning the renderer.
     pf = mix(pf, vec3(0.0), vec3(not(equal(pf, pf))));
     pf = mix(pf, vec3(0.0), vec3(greaterThan(abs(pf), vec3(1e20))));
 

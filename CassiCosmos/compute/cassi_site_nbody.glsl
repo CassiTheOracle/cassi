@@ -4,17 +4,15 @@
 // Site-native N-body force/integrator.
 //
 // Sites are tile coordinates in [0, 2*extent); particles and BH records are
-// world coordinates.  The current window center is bh[0].yzw.  A particle is
-// first mapped with the periodic tile rule
+// world coordinates. The current window center is bh[0].yzw. This is the
+// open-boundary site path: a particle is mapped into the live window without
+// periodic wrapping, and particles outside that window receive no site force.
+// That keeps an escaped cloud in world space instead of turning the site
+// window into a hidden torus with a force/render seam at the borders.
 //
-//   tile = mod((particle - window_center) + extent, 2 * extent)
-//
-// and the bounded hash query then returns the nearest site using the same
-// minimum-image metric.  This shader has no raster-field dependency.
-// HashStart is an H^3+1 exclusive prefix and HashSites contains
-// site indices (not shortlist slots); the host publishes a valid hash together
-// with the topology generation before dispatching this pass.
-
+// HashStart is an H^3+1 exclusive prefix and HashSites contains site indices
+// (not shortlist slots); the host publishes a valid hash together with the
+// topology generation before dispatching this pass.
 layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
 // ── Site-native state (set 0) ───────────────────────────────────────────
@@ -145,43 +143,6 @@ bool finite_vec3(vec3 value) {
     return !(any(isnan(value)) || any(isinf(value)));
 }
 
-float wrap_scalar(float value, float period) {
-    float wrapped = mod(value, period);
-    if (wrapped < 0.0) {
-        wrapped += period;
-    }
-    if (wrapped >= period) {
-        wrapped = 0.0;
-    }
-    return wrapped;
-}
-
-vec3 wrap_tile(vec3 value, vec3 period) {
-    return vec3(
-        wrap_scalar(value.x, period.x),
-        wrap_scalar(value.y, period.y),
-        wrap_scalar(value.z, period.z));
-}
-
-float periodic_delta(float delta, float period) {
-    float wrapped = mod(delta + 0.5 * period, period);
-    if (wrapped < 0.0) {
-        wrapped += period;
-    }
-    return wrapped - 0.5 * period;
-}
-
-vec3 periodic_delta_vec(vec3 delta, vec3 period) {
-    return vec3(
-        periodic_delta(delta.x, period.x),
-        periodic_delta(delta.y, period.y),
-        periodic_delta(delta.z, period.z));
-}
-
-int wrap_cell(int value, int h) {
-    int wrapped = value % h;
-    return wrapped < 0 ? wrapped + h : wrapped;
-}
 
 int hash_resolution(vec3 extent) {
     vec4 cfg = hash_cfg[0];
@@ -252,10 +213,9 @@ void tele_emit(uint local_index) {
     }
 }
 
-// Query only hash cells in periodic Chebyshev shells.  H/2 shells cover the
-// complete periodic cell domain; HASH_RING_MAX is the hard upper bound for a
-// malformed/oversized configuration.  The hash itself is the only indexed
-// 3-D structure touched by this shader.
+// Query hash cells in non-wrapping Chebyshev shells. The live site window is
+// finite and open: outside particles are deliberately force-free rather than
+// sampling the opposite border through a periodic image.
 int nearest_site(vec3 particle_world, vec3 extent, out bool found) {
     found = false;
     vec3 span = 2.0 * extent;
@@ -264,7 +224,13 @@ int nearest_site(vec3 particle_world, vec3 extent, out bool found) {
     }
 
     vec3 window_center = bh[0].yzw;
-    vec3 tile = wrap_tile((particle_world - window_center) + extent, span);
+    vec3 local = particle_world - window_center;
+    if (!finite_vec3(local)
+            || any(lessThan(local, -extent))
+            || any(greaterThanEqual(local, extent))) {
+        return 0;
+    }
+    vec3 tile = local + extent;
     int h = hash_resolution(extent);
     vec3 cell_size = hash_cell_size(span, h);
     if (!finite_vec3(cell_size) || any(lessThanEqual(cell_size, vec3(0.0)))) {
@@ -273,7 +239,7 @@ int nearest_site(vec3 particle_world, vec3 extent, out bool found) {
 
     ivec3 base = ivec3(floor(tile / cell_size));
     base = clamp(base, ivec3(0), ivec3(h - 1));
-    int max_ring = min(h / 2, HASH_RING_MAX);
+    int max_ring = min(h - 1, HASH_RING_MAX);
     int nearest = -1;
     float nearest_d2 = 1.0e30;
 
@@ -284,11 +250,16 @@ int nearest_site(vec3 particle_world, vec3 extent, out bool found) {
                     if (max(abs(ox), max(abs(oy), abs(oz))) != ring) {
                         continue;
                     }
-                    int cx = wrap_cell(base.x + ox, h);
-                    int cy = wrap_cell(base.y + oy, h);
-                    int cz = wrap_cell(base.z + oz, h);
-                    uint cell = uint(cx) + uint(h) *
-                            (uint(cy) + uint(h) * uint(cz));
+                    int raw_cx = base.x + ox;
+                    int raw_cy = base.y + oy;
+                    int raw_cz = base.z + oz;
+                    if (raw_cx < 0 || raw_cx >= h
+                            || raw_cy < 0 || raw_cy >= h
+                            || raw_cz < 0 || raw_cz >= h) {
+                        continue;
+                    }
+                    uint cell = uint(raw_cx) + uint(h) *
+                            (uint(raw_cy) + uint(h) * uint(raw_cz));
                     uint raw_start = hash_start[cell];
                     uint raw_end = hash_start[cell + 1u];
                     if (raw_end < raw_start) {
@@ -302,7 +273,7 @@ int nearest_site(vec3 particle_world, vec3 extent, out bool found) {
                         if (!finite_vec3(site_tile)) {
                             continue;
                         }
-                        vec3 delta = periodic_delta_vec(site_tile - tile, span);
+                        vec3 delta = site_tile - tile;
                         float d2 = dot(delta, delta);
                         if (!(d2 >= 0.0) || !finite_float(d2)) {
                             continue;
@@ -318,8 +289,7 @@ int nearest_site(vec3 particle_world, vec3 extent, out bool found) {
             }
         }
         // After shell r, every not-yet-scanned cell is at least r cell
-        // widths away along one axis (the r=0 bound is intentionally zero).
-        // This is conservative for arbitrary site positions and preserves
+        // widths away along one axis. This conservative bound preserves
         // nearest-site correctness while sparse regions still terminate.
         float min_cell = min(cell_size.x, min(cell_size.y, cell_size.z));
         float unscanned_bound2 = float(ring) * min_cell;

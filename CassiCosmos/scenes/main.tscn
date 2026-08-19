@@ -22,21 +22,24 @@ script = ExtResource("1_cam")
 
 [node name="CassiSim" type="Node3D" parent="." unique_id=822736192]
 script = ExtResource("2_sim")
-N_particles = 5000000
-particle_size = 5.0
+N_particles = 500000
+particle_size = 1.5
 cluster_radius = 50.0
 num_clusters = 5
-cluster_separation = 400.0
+cluster_separation = 200.0
 bh_accretion = false
 vsync_enabled = true
 initial_condition = 1
-box_scale = 1.0
+box_scale = 5.0
 gridless_physics = true
-tracking_envelope = false
+physics_decoupled = true
+boxless_field = true
+meshless_mode = true
+tracking_envelope = true
 qi_cycle = Vector2(0.005, 1)
 qi_approach = Vector2(0.8, 1)
 volume_dynamic_resolution = true
-auto_frame_camera_on_start = false
+auto_frame_camera_on_start = true
 
 [node name="UILayer" type="CanvasLayer" parent="." unique_id=1258460337]
 

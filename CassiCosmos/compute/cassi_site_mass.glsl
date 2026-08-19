@@ -4,10 +4,12 @@
 // Site-native particle mass deposition.
 //
 // Sites are stored in tile coordinates [0, 2*extent) and particles are in
-// world coordinates.  A particle is translated by the current window center,
-// wrapped into the tile, and assigned to the nearest candidate in the 3x3x3
-// periodic hash-cell neighborhood.  HashSites contains site indices (not
-// shortlist slots); malformed starts and candidate indices are ignored.
+// world coordinates. In open-world mode a particle is translated by the
+// current window center and rejected when it is outside the live site window;
+// it is never wrapped onto the opposite seam. The legacy periodic branch is
+// retained only for explicit compatibility callers.
+// HashSites contains site indices (not shortlist slots); malformed starts and
+// candidate indices are ignored.
 //
 // MassFix is a deterministic carry-safe fixed-point accumulator. Each site
 // stores four base-2^8 digit sums (uvec4), matching the legacy mass-deposit
@@ -57,7 +59,7 @@ layout(push_constant, std430) uniform PC {
     float window_y;
     float window_z;
     float hash_H;
-    float pad;
+    float pad;       // 1 = open-world reject/no-wrap; 0 = compatibility periodic
 } pc;
 
 const float FIXED_SCALE = 16777216.0;    // 2^24, base-2^8 x 4 digits
@@ -122,6 +124,10 @@ vec3 periodic_delta_vec(vec3 delta, vec3 period) {
 int wrap_cell(int value, int h) {
     int wrapped = value % h;
     return wrapped < 0 ? wrapped + h : wrapped;
+}
+
+int neighbor_cell(int value, int h, bool open_world) {
+    return open_world ? clamp(value, 0, h - 1) : wrap_cell(value, h);
 }
 
 // The published cfg keeps the historical (origin.xyz, x-cell-width) record.
@@ -208,7 +214,15 @@ void deposit_particle(uint gid, uint particle_count, uint site_count) {
     }
 
     vec3 span = 2.0 * ext;
-    vec3 tile = wrap_tile(particle.xyz - window + ext, span);
+    bool open_world = pc.pad >= 0.5;
+    vec3 local_tile = particle.xyz - window + ext;
+    if (open_world) {
+        if (any(lessThan(local_tile, vec3(0.0)))
+                || any(greaterThanEqual(local_tile, span))) {
+            return;
+        }
+    }
+    vec3 tile = open_world ? local_tile : wrap_tile(local_tile, span);
     vec3 cell_size = hash_cell_size(span, h);
     if (!finite_vec3(cell_size) || any(lessThanEqual(cell_size, vec3(0.0)))) {
         return;
@@ -221,11 +235,11 @@ void deposit_particle(uint gid, uint particle_count, uint site_count) {
     uint best_site = UINT_MAX_VALUE;
     float best_d2 = 1.0e30;
     for (int oz = -1; oz <= 1; oz++) {
-        int cz = wrap_cell(base.z + oz, hi);
+        int cz = neighbor_cell(base.z + oz, hi, open_world);
         for (int oy = -1; oy <= 1; oy++) {
-            int cy = wrap_cell(base.y + oy, hi);
+            int cy = neighbor_cell(base.y + oy, hi, open_world);
             for (int ox = -1; ox <= 1; ox++) {
-                int cx = wrap_cell(base.x + ox, hi);
+                int cx = neighbor_cell(base.x + ox, hi, open_world);
                 uint cell = uint(cx) + h * (uint(cy) + h * uint(cz));
 
                 uint raw_start = hash_start[cell];
@@ -251,7 +265,8 @@ void deposit_particle(uint gid, uint particle_count, uint site_count) {
                     if (!finite_vec3(site_tile)) {
                         continue;
                     }
-                    vec3 delta = periodic_delta_vec(site_tile - tile, span);
+                    vec3 delta = open_world ? site_tile - tile
+                            : periodic_delta_vec(site_tile - tile, span);
                     float d2 = dot(delta, delta);
                     if (!(d2 >= 0.0) || !finite_float(d2)) {
                         continue;

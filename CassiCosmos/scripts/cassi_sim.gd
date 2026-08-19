@@ -1030,6 +1030,7 @@ func _apply_vsync() -> void:
 
 func _ready() -> void:
 	_apply_vsync()  # mirror the export (scene load may have set it before ready)
+	_fit_initial_condition_to_domain()
 	if not _setup_rendering_device():
 		push_error("[CassiSim] Aborting startup: no RenderingDevice (headless/dummy renderer?)")
 		return
@@ -1942,7 +1943,8 @@ func _track_window_center() -> void:
 ## list); the sim's mirrors stay aligned for the render seam. OFF: the
 ## whole path is gated — the fixed box, bit-identical.
 func _track_envelope_window() -> void:
-	if not tracking_envelope or not _decoupled_active or _physics_engine == null:
+	if not tracking_envelope or not _decoupled_active or _physics_engine == null \
+			or not _physics_engine.setup_ready():
 		return
 	var now := Time.get_ticks_msec()
 	if now - _env_track_last_ms < ENV_TRACK_CADENCE_MS:
@@ -1984,9 +1986,9 @@ func _track_envelope_window() -> void:
 			% [_env_target_center.x, _env_target_center.y, _env_target_center.z,
 			_env_tracker.extent.x, _env_tracker.extent.y, _env_tracker.extent.z,
 			_env_target_scale, _env_tracker.re_fits])
-
 func _apply_envelope_state() -> void:
-	if not tracking_envelope or not _decoupled_active or _physics_engine == null:
+	if not tracking_envelope or not _decoupled_active or _physics_engine == null \
+			or not _physics_engine.setup_ready():
 		return
 	if _env_tracker == null:
 		return
@@ -2343,6 +2345,28 @@ func _extent_min() -> float:
 	var e := _extents()
 	return minf(minf(e.x, e.y), e.z)
 
+func _fit_initial_condition_to_domain() -> void:
+	# A site-native run is open-boundary, but its live site mesh still needs a
+	# finite initial support. Never silently seed a Gaussian/Plummer cloud
+	# beyond that support: the old periodic mapper folded the whole cloud onto
+	# the box seam, producing the visible wall pile-up and enormous overdraw.
+	if not gridless_physics or initial_condition < 0 or initial_condition > 2:
+		return
+	var center_radius := maxf(cluster_separation, 0.0)
+	var support_radius := maxf(cluster_radius * 1.25, 1.0)
+	var frac := maxf(initial_radius_fraction, 0.1)
+	var required_extent := (center_radius + support_radius) / frac * 1.05
+	var current_extent := _extent_min()
+	if required_extent <= current_extent:
+		return
+	var base_extent := maxf(minf(minf(box_aspect.x, box_aspect.y), box_aspect.z)
+			* cluster_radius * 1.5, 1e-3)
+	var fitted_scale := required_extent / base_extent
+	if fitted_scale > box_scale:
+		var old_scale := box_scale
+		box_scale = fitted_scale
+		push_warning("[CassiSim] IC support exceeded the site window; fitting box_scale %.3f → %.3f before startup" % [old_scale, box_scale])
+
 
 func _setup_buffers() -> void:
 	# The spectral Poisson FFT (cassi_poisson.glsl) is a radix-2 Stockham
@@ -2607,11 +2631,11 @@ func _setup_buffers() -> void:
 	_lut_u_buf_off = _rd.storage_buffer_create(16)
 	_rd.buffer_update(_lut_u_buf_on, 0, 16, _lut_u_on_bytes)
 	_rd.buffer_update(_lut_u_buf_off, 0, 16, _lut_u_off_bytes)
-	# Arm 1 boxless flag buffers: same layout as the LUT on/off (vec4) but with
-	# .y = 1 → the instancer shader's boxless branch reads the moving-Voronoi
-	# shortlist instead of the periodic grid. .x still carries the LUT bit.
-	var _bx_off := PackedFloat32Array([0.0, 1.0, 0.0, 0.0]).to_byte_array()
-	var _bx_on := PackedFloat32Array([1.0, 1.0, 0.0, 0.0]).to_byte_array()
+	# Arm 1 boxless flags: .y selects site coherence; .z selects open-world
+	# rendering/deposition (no periodic fold or seam re-entry for escaped
+	# particles). .x still carries the LUT bit.
+	var _bx_off := PackedFloat32Array([0.0, 1.0, 1.0, 0.0]).to_byte_array()
+	var _bx_on := PackedFloat32Array([1.0, 1.0, 1.0, 0.0]).to_byte_array()
 	_shortlist_flag_off = _rd.storage_buffer_create(16)
 	_shortlist_flag_on = _rd.storage_buffer_create(16)
 	_rd.buffer_update(_shortlist_flag_off, 0, 16, _bx_off)
