@@ -1979,6 +1979,11 @@ func _track_envelope_window() -> void:
 	if cnt == 0:
 		return
 	s.resize(cnt * 4)
+	# Feed the sampled live positions into the tracker before publishing its
+	# target. Without this call, tracking_envelope only re-published the
+	# initial fixed tile, so escaped particles were forced onto the readout
+	# fallback instead of bringing the site window with them.
+	_env_tracker.compute(s, 4, 1)
 	_env_target_center = _env_tracker.center
 	var scl: float = _env_tracker.extent.x / maxf(_env_orig_box.x, 1e-30)
 	_env_target_scale = maxf(scl, 1e-3)

@@ -124,7 +124,15 @@ float tri_ei(vec3 gc, vec3 f) {
 float site_coherence(vec3 wp) {
     int ns = int(pc.n_sites);
     if (ns <= 0) return 0.0;
-    vec3 tile_wp = wp + vec3(pc.extent_x, pc.extent_y, pc.extent_z);
+    vec3 ext = max(vec3(pc.extent_x, pc.extent_y, pc.extent_z),
+            vec3(1e-4));
+    // The open tile has no physical field outside this window. For the
+    // particle readout, hold the nearest boundary cell instead of encoding
+    // escaped particles as artificial q=0/red; forces still use the
+    // open-world out-of-window policy in the physics shader.
+    vec3 edge = max(ext - vec3(1e-4), vec3(0.0));
+    vec3 query_wp = clamp(wp, -edge, edge);
+    vec3 tile_wp = query_wp + ext;
     int best = 0;
     float bd = 1e30;
     for (int s = 0; s < ns; s++) {

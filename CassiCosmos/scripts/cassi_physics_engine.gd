@@ -745,8 +745,9 @@ func record_pending_steps(cl: int, target: int) -> int:
 	var steps := target - _executed
 	if steps <= 0:
 		return 0
-	if gridless_physics and not _topology_ready:
-		return 0
+	# Render topology is an asynchronous visualization payload. It may be
+	# invalid while the worker rebuilds labels/CSR, but the site-native physics
+	# chain owns its live Voronoi buffers and must continue stepping.
 	var tree_job := _tree_job_due()
 	if tree_job:
 		steps = mini(steps, TREE_JOB_STEP_CAP)

@@ -121,24 +121,16 @@ func start(grid_n: int, site_count: int, neighbor_capacity: int, extents: Vector
 	return true
 
 
-## MAIN thread. The first submit waits for worker setup and one completed job;
-## subsequent submits coalesce the newest snapshot without waiting.
+## MAIN thread. Submit is deliberately non-blocking: topology is a render
+## payload, not a prerequisite for particle physics. The first topology job
+## may take seconds on the local RD, so waiting for _done_sem here would stall
+## the entire renderer and make the physics HUD appear frozen.
 func submit(job: Dictionary) -> Dictionary:
-	if not _thread_started:
+	if not _thread_started or not _ready:
 		return {}
-	if _wait_next:
-		_setup_sem.wait()
-		_wait_next = false
-		if not _ready:
-			return {}
-		_enqueue(job)
-		_done_sem.wait()
-		return _consume_latest()
-	if not _ready:
-		return {}
+	_wait_next = false
 	_enqueue(job)
 	return {}
-
 
 func poll() -> Dictionary:
 	return _consume_latest()

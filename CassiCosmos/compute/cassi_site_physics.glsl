@@ -287,13 +287,18 @@ void reset_site_outputs(uint s) {
     grad_i[s] = vec4(0.0);
     lap_y[s] = 0.0;
     lap_i[s] = 0.0;
-    site_q[s] = 0.0;
-    site_eps[s] = 0.0;
+    // A topology rebuild can leave modes 1/2 intentionally idle for a few
+    // frames. Preserve the authoritative field and expose its coherence
+    // instead of turning the render/telemetry buffers into a zero field.
+    float y = psi_y[s];
+    float i = psi_i[s];
+    site_eps[s] = y - pc.phi * i;
+    site_q[s] = coherence_q(y, i);
     uint next = site_count() + s;
-    psi_y[next] = 0.0;
-    psi_i[next] = 0.0;
-    pi_y[next] = 0.0;
-    pi_i[next] = 0.0;
+    psi_y[next] = y;
+    psi_i[next] = i;
+    pi_y[next] = pi_y[s];
+    pi_i[next] = pi_i[s];
 }
 
 void reset_telemetry() {
