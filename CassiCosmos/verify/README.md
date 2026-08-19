@@ -14,26 +14,10 @@ Godot console exe:
 
 - `--headless` on the **runner** is fine and recommended (the runner itself
   never touches a RenderingDevice).
-- The **windows** (global-RD / sim-dependent arms) always run **windowed**
-  (`--path . res://scenes/<scene>.tscn`): never `--headless` them — this rig's
-  global RenderingDevice has no headless device, and arms that run the full sim,
-  need a viewport/draw surface, or read the sim's global RD back (verify_fft,
-  verify_gravity_modes, verify_meshless_sim, verify_meshless_stability,
-  verify_particle_vfx, verify_phi_box, verify_ring, verify_river_law,
-  validate_sim_ui, verify_survey, verify_meshless_gravity, verify_river_isotropy,
-  verify_merge_sim, verify_meshless_sim_aniso, verify_particle_vanish,
-  verify_falsify) require the window.
-- **The local-RD arms** are SELF-CONTAINED on their own
-  `RenderingServer.create_local_rendering_device()` and run **`--headless`**
-  (no window churn): verify_fmm, verify_merge, verify_synth, verify_voronoi3d,
-  verify_voronoi3d_moving, verify_voronoi3d_aniso, verify_voronoi3d_moving_aniso,
-  verify_meshless_reconstruct, verify_mind_engine, verify_bh_accretion_engine,
-  verify_merge_engine, verify_multigrid_engine, verify_rho_front, verify_eps_gap,
-  verify_subsonic_step, verify_omega_invariant. (Classified 2026-08-16 by reading
-  each arm's script; the older claim that verify_synth and verify_meshless_gravity
-  were both windowed-local-RD was corrected — synth is fully self-contained
-  (headless), meshless_gravity reads the sim's global RD back (windowed).) The
-  run_all.gd `HEADLESS_ARMS` dict is authoritative.
+- Every child scene arm runs **windowed**, sequentially, as
+  `--path . res://scenes/<scene>.tscn`; child commands never receive
+  `--headless`. Both the sim's global RenderingDevice and the arms' local
+  RenderingDevices require a real window on this rig.
 - Exit code: `0` = all 33 passed; `1` = at least one failed.
 - The runner prints a progress line per arm and a summary table; failed arms
   get their last 15 stdout/stderr lines printed.
@@ -91,15 +75,10 @@ after a shader change can be slower (SPIR-V recompile).
 
 ## Special launch conventions (read before touching the battery)
 
-- **All arms windowed, never headless.** The sim's global RD has no headless
-  device on this rig. The local-RD arms (verify_fmm, verify_merge,
-  verify_synth, verify_voronoi3d, verify_voronoi3d_moving,
-  verify_meshless_reconstruct, verify_meshless_gravity, verify_mind_engine,
-  verify_bh_accretion_engine, verify_merge_engine, verify_multigrid_engine —
-  the last three instantiate the standalone physics engine on their own RD)
-  create their own RenderingDevice and are display-independent
-  (verify_voronoi3d's header even documents headless as acceptable), but the
-  battery runs them windowed uniformly.
+- **All arms windowed, never headless.** `run_all.gd` launches every child
+  scene arm sequentially with `--path . res://scenes/<scene>.tscn`; both the
+  sim's global RenderingDevice and the arms' local RenderingDevices require a
+  real window on this rig.
 - **verify_particle_vanish is a diagnostic, not a gate**: it accepts an
   optional `-- --river` control arg (tree off, gravity_mode=0) and by design
   always exits 0. PASS means "the timeline completed"; failure findings

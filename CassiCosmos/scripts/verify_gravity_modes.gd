@@ -622,16 +622,19 @@ func _test_occupancy_modes() -> void:
 		sim.reinit()
 		sim.playing = false
 		_write_pos_vel(pos0, vel0)
-		# 50 warmup steps (pipeline compile + one-time reports), then 100
-		# timed steps with no readbacks, then 50 steps with NaN checks.
+		# 50 warmup steps (pipeline compile + one-time reports), then 1000
+		# timed steps with no readbacks, then a final 200-step stability
+		# window with NaN checks. The longer timing window suppresses the
+		# sub-0.1 ms global-RD scheduling jitter in the mode-3 comparison.
 		for s in range(50):
 			sim._physics_step()
+		var timing_steps := 1000
 		var t0 := Time.get_ticks_usec()
-		for s in range(100):
+		for s in range(timing_steps):
 			sim._physics_step()
-		var ms_per: float = float(Time.get_ticks_usec() - t0) / 1e3 / 100.0
+		var ms_per: float = float(Time.get_ticks_usec() - t0) / 1e3 / float(timing_steps)
 		var bad := false
-		for s in range(50):
+		for s in range(200):
 			sim._physics_step()
 			if s % 25 == 0:
 				if not _positions_finite():

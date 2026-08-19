@@ -17,11 +17,11 @@ extends Node
 ## scripts/verify_survey.gd) — that path ignores `enabled`.
 ##
 ## Output: <output_root>/survey_<YYYYMMDD_HHMMSS>/
-##   meta.json     — grid_N, extents, particle_count, step/time, arm mode
-##   field_ey.raw  — float32 little-endian, grid_N³ values (EY field)
-##   field_ei.raw  — float32 little-endian, grid_N³ values (EI field)
-##   field_q.raw   — float32 little-endian, grid_N³ values (Qi coherence,
-##                   written only when the buffer exists)
+##   meta.json     — common run metadata plus `gridless_physics`/`site_count`
+##                   for the site-native path
+##   site-native: sites.raw, site_psi_y.raw, site_psi_i.raw, site_q.raw,
+##                site_eps.raw, site_vol.raw (float32 per live site)
+##   compatibility: field_ey.raw, field_ei.raw, optional field_q.raw
 ##   particles.raw — float32 little-endian, xyz per particle (positions
 ##                   only; the pos buffer's per-particle vec4 is x,y,z,mass)
 
@@ -49,14 +49,16 @@ func _ready() -> void:
 	# Resolve the sim: a child-of-sim placement, else the sim_path (default
 	# "../CassiSim" works for a sibling of the CassiSim node under a common
 	# parent).
-	if get_parent() != null and get_parent().get("_field_ey") != null:
+	if get_parent() != null and (
+			get_parent().get("_field_ey") != null
+			or get_parent().get("gridless_physics")):
 		_sim = get_parent()
 	elif not sim_path.is_empty():
 		_sim = get_node_or_null(sim_path)
 	if _sim == null:
 		push_warning("[CassiSurvey] sim not found (path '%s') — survey idle" % [sim_path])
-	elif _sim.get("_field_ey") == null:
-		push_warning("[CassiSurvey] sim has no _field_ey — survey idle")
+	elif not _sim.get("gridless_physics") and _sim.get("_field_ey") == null:
+		push_warning("[CassiSurvey] sim has no field carrier — survey idle")
 
 
 func _process(delta: float) -> void:
@@ -83,11 +85,17 @@ func take_snapshot() -> Dictionary:
 	if _sim == null:
 		push_warning("[CassiSurvey] no sim — skipping snapshot")
 		return {}
-	var ey_rid = _sim.get("_field_ey")
-	if ey_rid == null or not ey_rid.is_valid():
-		push_warning("[CassiSurvey] sim field buffers not ready — skipping snapshot")
-		return {}
-
+	if _sim.get("gridless_physics"):
+		var site_eng = _sim.get("_physics_engine")
+		if site_eng == null or int(site_eng.get("_ml_tree_nsrc")) <= 0 \
+				or not site_eng.get("_ml_sites").is_valid():
+			push_warning("[CassiSurvey] site field buffers not ready — skipping snapshot")
+			return {}
+	else:
+		var ey_rid = _sim.get("_field_ey")
+		if ey_rid == null or not ey_rid.is_valid():
+			push_warning("[CassiSurvey] sim field buffers not ready — skipping snapshot")
+			return {}
 	var N: int = int(_sim.grid_N)
 	var nc: int = N * N * N
 	var dir_path := "%s/survey_%s" % [output_root, _timestamp()]
@@ -96,22 +104,39 @@ func take_snapshot() -> Dictionary:
 	var meta := _collect_meta(N)
 	meta["dir_path"] = dir_path
 
-	# Field buffers: ey/ei always; q when valid.
-	var ey: PackedFloat32Array = _read_float_buffer(_sim._field_ey, nc)
-	var ei: PackedFloat32Array = _read_float_buffer(_sim._field_ei, nc)
-	_write_raw("%s/field_ey.raw" % dir_path, ey.to_byte_array())
-	_write_raw("%s/field_ei.raw" % dir_path, ei.to_byte_array())
-	meta["field_ey_bytes"] = ey.size() * 4
-	meta["field_ei_bytes"] = ei.size() * 4
-	meta["field_q"] = false
-
-	var q_rid = _sim.get("_field_q")
-	if q_rid != null and q_rid.is_valid():
-		var q: PackedFloat32Array = _read_float_buffer(_sim._field_q, nc)
-		_write_raw("%s/field_q.raw" % dir_path, q.to_byte_array())
-		meta["field_q"] = true
-		meta["field_q_bytes"] = q.size() * 4
-
+	if _sim.get("gridless_physics") and _sim.get("_physics_engine") != null:
+		var eng: Object = _sim.get("_physics_engine")
+		var ns: int = int(eng.get("_ml_tree_nsrc"))
+		var sites := _read_float_buffer(eng.get("_ml_sites"), ns * 4)
+		var psy := _read_float_buffer(eng.get("_ml_psi_y"), ns)
+		var psi := _read_float_buffer(eng.get("_ml_psi_i"), ns)
+		var q := _read_float_buffer(eng.get("_ml_q"), ns)
+		var eps := _read_float_buffer(eng.get("_ml_eps"), ns)
+		var vol := _read_float_buffer(eng.get("_ml_vol"), ns)
+		_write_raw("%s/sites.raw" % dir_path, sites.to_byte_array())
+		_write_raw("%s/site_psi_y.raw" % dir_path, psy.to_byte_array())
+		_write_raw("%s/site_psi_i.raw" % dir_path, psi.to_byte_array())
+		_write_raw("%s/site_q.raw" % dir_path, q.to_byte_array())
+		_write_raw("%s/site_eps.raw" % dir_path, eps.to_byte_array())
+		_write_raw("%s/site_vol.raw" % dir_path, vol.to_byte_array())
+		meta["gridless_physics"] = true
+		meta["site_count"] = ns
+		meta["site_q_bytes"] = q.size() * 4
+	else:
+		# Legacy compatibility export: full raster field payload.
+		var ey: PackedFloat32Array = _read_float_buffer(_sim._field_ey, nc)
+		var ei: PackedFloat32Array = _read_float_buffer(_sim._field_ei, nc)
+		_write_raw("%s/field_ey.raw" % dir_path, ey.to_byte_array())
+		_write_raw("%s/field_ei.raw" % dir_path, ei.to_byte_array())
+		meta["field_ey_bytes"] = ey.size() * 4
+		meta["field_ei_bytes"] = ei.size() * 4
+		meta["field_q"] = false
+		var q_rid = _sim.get("_field_q")
+		if q_rid != null and q_rid.is_valid():
+			var q: PackedFloat32Array = _read_float_buffer(_sim._field_q, nc)
+			_write_raw("%s/field_q.raw" % dir_path, q.to_byte_array())
+			meta["field_q"] = true
+			meta["field_q_bytes"] = q.size() * 4
 	# Particles: positions only (x,y,z per particle; skip the mass w).
 	if dump_particles and _sim.get("_pos_buf") != null and _sim._pos_buf.is_valid():
 		var np: int = int(_sim.N_particles)
@@ -134,17 +159,10 @@ func take_snapshot() -> Dictionary:
 	_last_dir = dir_path
 
 	var gm: Variant = meta.get("gravity_mode_name", "?")
-	print("[CassiSurvey] snapshot -> %s (grid=%d³ particles=%d step=%d t=%.3f arm=%s)" % [
-		dir_path, N, meta.get("particle_count", 0), meta.get("step", 0),
-		meta.get("time", 0.0), gm])
+	print("[CassiSurvey] snapshot -> %s (gridless=%s particles=%d step=%d t=%.3f arm=%s)" % [
+		dir_path, str(meta.get("gridless_physics", false)), meta.get("particle_count", 0),
+		meta.get("step", 0), meta.get("time", 0.0), gm])
 	return meta
-
-
-func get_last_dir() -> String:
-	return _last_dir
-
-
-# ═══════════════════════════════════════════════════════════════════════
 # Internals
 # ═══════════════════════════════════════════════════════════════════════
 
@@ -159,15 +177,14 @@ func _collect_meta(N: int) -> Dictionary:
 		"step": int(_sim._step_count),
 		"time": float(_sim._time),
 		"dt": float(_sim.dt),
-		"meshless_mode": bool(_sim.meshless_mode),
+		"meshless_mode": _sim.meshless_mode,
+		"gridless_physics": _sim.get("gridless_physics"),
 		"timestamp": _timestamp(),
 	}
 	var gm: int = int(_sim.gravity_mode)
 	meta["gravity_mode"] = gm
 	var names := ["River", "Heuristic", "Plummer reference", "River self", "RealSim"]
 	meta["gravity_mode_name"] = names[gm] if gm >= 0 and gm < names.size() else "?"
-	var e: Vector3 = _sim._extents()
-	meta["extents"] = {"x": e.x, "y": e.y, "z": e.z}
 	return meta
 
 

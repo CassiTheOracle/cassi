@@ -53,25 +53,25 @@ const Q_1: float = 0.95        # Qi-rainbow bounded-channel band top = the fit-s
 ## N-body particle count (rendered as a starfield/cluster; raises GPU cost).
 @export var N_particles: int = 2500000      # N-body particle count
 ## Physics timestep in sim seconds per step; a rendered frame runs up to max_steps_per_frame steps.
-@export var dt: float = 0.03             # simulation timestep
+@export var dt: float = 0.03
 ## Cassi coupling constant, xi = φ⁶ = 17.94427191; the river law's chord coefficient is xi − 1.
 @export var xi: float = 17.94427191  # φ⁶ — Cassi Qi coupling (exact: φ⁶ = φ⁵ + φ⁴)
 ## Gravity softening length; used as epsilon² = softening² in the force kernels.
 @export var softening: float = 0.1        # gravity softening length
 ## Rendered quad size of each particle (world units); keep ≤ 0.5 for the star-cloud look.
-@export var particle_size: float = 1.5   # rendered particle size
+@export var particle_size: float = 1.5
 ## Scale radius of the initial cluster (Plummer scale a / Gaussian sigma / uniform sphere radius, per the IC profile).
-@export var cluster_radius: float = 120  # initial cluster size
+@export var cluster_radius: float = 120
 ## Number of initial clusters (placed on a ring/Fibonacci sphere).
 @export var num_clusters: int = 1           # number of galaxy clusters
 ## Distance of cluster centers from the origin; a single cluster centers at (separation, 0, 0).
-@export var cluster_separation: float = 150 # separation between cluster centers
+@export var cluster_separation: float = 150
 ## Bulk velocity added toward the origin (cluster-merger demo).
-@export var merger_speed: float = 0.0       # bulk velocity toward merger point
+@export var merger_speed: float = 0.0
 ## Extra field injection from the deposited mass (0 = off).
 @export var source_strength: float = 0.0  # PIC mass deposit drives field (set >0 for extra injection)
 ## Qi level above which the condensation scan nucleates a black hole record (only when black_holes_enabled).
-@export var qi_condensation_threshold: float = 0.9  # Qi density above this → BH nucleation
+@export var qi_condensation_threshold: float = 0.9
 ## Black hole mass growth per step from the field.
 @export var bh_acc_rate: float = 0.01                # mass growth per step from field
 ## Black hole record lifetime in steps (0 = immortal).
@@ -106,7 +106,7 @@ const Q_1: float = 0.95        # Qi-rainbow bounded-channel band top = the fit-s
 # units at the default 64³ / extent 37.5, crossed in ~586 dt=0.001 steps ≫ a
 # frame's step budget, so once-per-frame is far inside the reaction budget).
 ## Two-particle merge (SINK-rule, q_coh > φ⁻² gate, R_m = extent/grid_N) grows matter from dust. Default off = particles-only. Init-time — reinit to apply.
-@export var particle_merge: bool = true
+@export var particle_merge: bool = false
 ## Merge cadence in accumulated STEPS (live): 0 = AUTO = 1/2 of the R_m
 ## reaction budget (R_m/(v·dt) with v = 1.0 world-units/s — the design's
 ## closing speed: R_m=0.586 crossed in ~586 dt=0.001 steps; at the owner
@@ -303,13 +303,16 @@ var _vsync_enabled: bool = true
 
 @export var multi_rung_base_scale: float = 1.0
 
-## Meshless (moving-Voronoi) field arm — the two-fluid PDE runs on the
-## JFA Voronoi cell mesh (MESHLESS_PLAN.md §10) and rasterizes back to
-## the grid buffers for the render/condensation/river chain. Init-time
-## (reinit to apply); default ON = the meshless (moving-Voronoi) solver
-## (the grid PDE is the opt-in/specimen path).
+## Meshless (moving-Voronoi) field arm. In the explicit legacy compatibility
+## path (`gridless_physics=false`) it runs the two-fluid PDE on the JFA cell
+## mesh and rasterizes back to grid buffers for render/condensation/river
+## consumers. In the production site-native path (`gridless_physics=true`),
+## the standalone engine owns field, mass, force, condensation, and telemetry
+## on the live sites; this flag selects its topology/render integration.
+## The legacy raster path remains available only for verification/compatibility
+## scenes and is never selected by the production scenes.
 @export var meshless_mode: bool = true
-
+@export var gridless_physics: bool = false
 ## Tree gravity (init-time; default ON = the open-boundary meshless tree
 ## arm, first-class with meshless_mode — additive like dual_grid/
 ## gradient_order). Takes effect ONLY when meshless_mode is ALSO on — the
@@ -363,33 +366,31 @@ func _ml_rebuild_threshold() -> int:
 	var q_scaled: float = minf(_q_mean / PHI_INV2, 1.0) if PHI_INV2 > 0.0 else 0.0
 	return maxi(ML_REBUILD, int(round(ML_REBUILD * (1.0 + coherence_rebuild_beta * q_scaled))))
 
-## Boxless field reader (true-boxless arm, boxless_field_design.md): when ON,## the q-histogram color-aligner samples the coherence AT PARTICLES from the
-## moving-Voronoi sites directly (nearest site's cell-averaged EY/EI) instead
-## of the periodic rasterized grid's trilinear + %N wrap. Coordinate-independent
-## — no window, no extent, no wrap — so the color band stays correct even when
-## the tracking envelope has not caught up with the structure. Live (no reinit);
-## requires meshless_mode ON and the mesh live (otherwise it's a no-op back to
-## the grid path). Default OFF = bit-identical battery (the site sample is a
-## guarded branch, not a zero-multiply — dead when off).
+## Boxless field reader (true-boxless arm, boxless_field_design.md): when ON,
+## the q-histogram color-aligner samples coherence at particles from the
+## moving-Voronoi sites directly instead of the periodic rasterized grid.
+## Coordinate-independent and live; requires meshless_mode and a ready mesh.
+## Current shipped default is ON; disabling it restores the grid sampler.
 @export var boxless_field: bool = true
 
-# Arm 1 latch: boxless instancer active when the toggle, meshless mode, and a
-# ready mesh all hold. Session-stable (meshless init gates _ml_ready); the
-# instancer sets re-select boxless variants when this flips at reinit.
+## Arm 1 latch: the live decoupled renderer is boxless only after the
+## topology + shortlist + spatial-hash chain has been recorded. This avoids
+## selecting site bindings while they still contain initialization zeros.
 func _ml_boxless_on() -> bool:
-	return boxless_field and meshless_mode and _ml_ready
+	var ready_mesh := _ml_ready
+	if _decoupled_active and _physics_engine != null:
+		ready_mesh = bool(_physics_engine.get("_ml_ready"))
+		var query_ready := bool(_physics_engine.get("_meshless_query_ready"))
+		return boxless_field and meshless_mode and ready_mesh and query_ready
+	return boxless_field and meshless_mode and ready_mesh
 
 ## Run the physics on the standalone engine's worker thread (decoupled
 ## producer: the engine owns a local RenderingDevice on its own thread and
-## publishes snapshots; this sim's global-RD buffers become mirrors + the
-## render side, with one-batch-late position interpolation). Init-time;
-## GRID path only — requires meshless_mode OFF (falls back to the inline
-## path with a warning otherwise). Default OFF = the legacy inline path,
-## bit-identical.
+## publishes snapshots; this sim's global-RD buffers become mirrors + render
+## side, with one-batch-late position interpolation). Init-time; requires
+## meshless_mode OFF for the documented grid producer path. Current shipped
+## default is ON; when incompatible it falls back to the inline path.
 @export var physics_decoupled: bool = true
-## Mirror publish cadence (decoupled mode): publish the full snapshot
-## (positions/velocities/field_q/potential readbacks) every Kth physics job
-## instead of every job — the cheap 2× on the readback-bound transfer. The
 ## interpolation alpha already spans the MEASURED publish interval, so the
 ## display lag stays ≤ one publish interval at any cadence. Live — passed
 ## per-submit in the job dict, no reinit.
@@ -433,29 +434,14 @@ const ENV_APPLY_TAU_SEC: float = 0.75
 ## Display mode: 0 = Particles, 1 = Field, 2 = Black Hole, 3 = Cosmology.
 @export_enum("Particles", "Field", "Black Hole", "Cosmology") var mode: int = 0
 
-# ── Particle color scheme ──────────────────────────────────────────────
-## Legacy master selector for the particle colors (the consolidated gradient
-## engine's source/count exports below configure it): 0 = the Cassi
-## mass-temperature gradient (Salpeter blue dwarfs → red giants; default,
-## shader path bit-identical); 1 = velocity rainbow (speed |v|, cycle band
-## [0, v_max] measured at init, log progress, hue 0 → 0.95 magenta-pink at
-## v_max, held with no wrap beyond); 2 = Qi rainbow (BOUNDED coherence
-## q_coh = ρ²/(ρ²+φ⁻²+ε²) ∈ [0,1), ρ=EY+EI, ε=EY−φ·EI — NOT the unbounded
-## intensity EY²+EI², whose growth the old aligner chased and washed the
-## colors to white), cycle band [qi_cycle] — the FULL hue circle per pass,
-## one pass),
-## 3 = Qi double rainbow (two passes over the cycle band — the old mode-3
-## doubling, now expressible as mode 2 + rainbow_count = 2). All rainbow
-## modes share the white-hot approach band (violet → pink → white at
-## qi_condensation_threshold). Live — re-encoded into the
-## instancer PC every physics step (no reinit).
-# high nibble = feature flags (0x10/0x20/0x40). Base 5 = field-phase
-# (hue = atan2(EI,EY) orientation, lightness = q_coh), base 6 =
-# velocity-direction (hue = atan2(vy,vx) compass, lightness = speed) —
-# both contrast-by-construction (direction/phase span the full hue circle
-# even where amplitude and speed are near-uniform). Live — re-encoded
-# into the instancer PC every physics step (no reinit).
-@export_enum("Cassi gradient", "Velocity rainbow", "Qi rainbow", "Qi double rainbow") var particle_color_mode: int = 2
+ # ── Particle color scheme ──────────────────────────────────────────────
+## Particle base mode (low nibble) plus VFX flags (high nibble):
+## 0 = Cassi mass gradient (legacy, bit-identical); 1 = velocity speed
+## rainbow; 2 = Qi rainbow; 3 = Qi double rainbow; 4 = two-axis q/ρ;
+## 5 = field phase; 6 = velocity direction. Modes 5/6 use direct phase/
+## direction mappings and ignore band fitting. Live — no reinit.
+## High flags: 0x10 size-by-mass, 0x20 additive glow, 0x40 depth cue.
+@export_range(0, 118, 1) var particle_color_mode: int = 2
 
 # ── Consolidated gradient engine (live exports — read per instancer PC fill) ──
 ## Rainbow pass count: 0 = AUTO (mode 3 → 2 passes, modes 1/2 → 1); explicit 1-8
@@ -502,27 +488,23 @@ const ENV_APPLY_TAU_SEC: float = 0.75
 ## Rotate the cycle start hue (adds to the cycle hue before the pass-set wrap).
 ## Live — no reinit.
 @export_range(0.0, 1.0, 0.01) var color_hue_offset: float = 0.0
-## Color-as-LUT (Tier-2, default OFF = byte-identical legacy): bake the
-## active color curve into a 256×1 RGBA8 LUT and drop the MultiMesh instance
-## color channel (use_colors=false; custom_data carries the band position u
-## + the per-instance VFX factors, the billboard material samples the LUT
-## and applies them on top). INIT-TIME — toggling requires reinit().
-## Supports base modes 0-3 with the size-by-mass/glow/depth VFX flags
-## (0x10/0x20/0x40) together since 2026-08-14 (the factors ride custom_data
-## channels — see cassi_instancer.glsl). ONLY base mode 4 (two-axis ρ)
-## stays gated: its per-instance lightness axis still cannot ride the
-## static band LUT (see _lut_compatible).
+## Dynamic fused-volume resolution controller. Default OFF preserves 512² output.
+@export var volume_dynamic_resolution: bool = false
+@export var volume_resolution_target: int = 512
+@export var volume_resolution_min: int = 256
+## Maximum fused-volume render tier. The controller rounds this bound to 256, 512, or 1024.
+@export var volume_resolution_max: int = 1024
+## Target wall-clock budget for the fused-volume dispatch controller, in milliseconds.
+@export var volume_frame_budget_ms: float = 16.7
+## Color-as-LUT (Tier-2, default ON in the current shipped configuration):
+## bake the active color curve into a 256×1 RGBA8 LUT and drop the
+## MultiMesh instance color channel (use_colors=false; custom_data carries
+## the band position u + per-instance VFX factors). The LUT path is valid
+## ONLY for base modes 0–3; modes 4/5/6 require vertex colors. A base-mode
+## boundary crossing rebuilds the MultiMesh format without reseeding.
 @export var color_lut_mode: bool = true
-
-# ── Camera startup framing (camera-only; no physics) ──────────────────
-## On startup, frame a sibling Camera3D on the spawn region: the camera is
-## moved to an oblique view of the cluster-centroid and aimed at it, so the
-## first frame shows the particles up close instead of the far scene
-## default. The free-fly camera controls (free_camera.gd) work normally
-## afterwards. Only acts when a sibling Camera3D exists (main/recorder
-## scenes); the headless verify scenes have none and are untouched.
+## On startup, frame a sibling Camera3D on the spawn region; headless scenes are unaffected.
 @export var auto_frame_camera_on_start: bool = true
-## Camera far plane (world units): the sibling Camera3D's far plane is set
 ## to this on startup so very large structures stay visible (the default
 ## 4000 culls distant particles). Applied at _ready via
 ## _apply_camera_view_range().
@@ -582,6 +564,9 @@ var _last_publish_ms := 0             # wall-clock gate for the interp alpha
 var _batch_ema_ms := 16.7             # EMA of publish intervals (ms) — alpha sweep scale
 var _executed_prev := 0               # previous publish's executed count (perf delta)
 
+var _decoupled_initial_render_pending := false
+var _gridless_failure := false  # fail closed; never re-enter inline grid physics
+var _decoupled_initial_blend_id := 0
 # — auxiliary buffers (SET 2) —
 var _cluster_buf: RID
 var _bh_buf: RID
@@ -589,22 +574,68 @@ var _bh_lens_buf: RID  # BH lensing params (4 vec4s, visual only — NOT the 36-
 var _mass_density_buf: RID
 var _mass_density_fix: RID  # uvec4 per cell — exact fixed-point digit-sum deposit accumulator (determinism fix, cassi_mass_deposit.glsl)
 
-# — shaders and pipelines —
 var _two_fluid_shader: RID;  var _two_fluid_pipe: RID
 var _nbody_shader: RID;      var _nbody_pipe: RID
 var _poisson_shader: RID;    var _poisson_pipe: RID
 var _field_render_shader: RID; var _field_render_pipe: RID
+var _volume_shader: RID; var _volume_pipe: RID
 var _bh_lensing_shader: RID;  var _bh_lensing_pipe: RID
 var _mass_deposit_shader: RID; var _mass_deposit_pipe: RID
 var _shaders_ready: bool = false
 var _setup_retry_counter: int = 0
+var _volume_pc_bytes: PackedByteArray
+var _volume_stats_zero: PackedByteArray
+var _volume_stats: RID
+var _volume_history_neutral: RID
+var _volume_cache_valid: bool = false
+var _volume_last_generation: int = -1
+var _volume_last_site_count: int = -1
+var _volume_last_cam_transform := Transform3D()
+var _volume_last_fov := -1.0
+var _volume_last_window_center := Vector3.INF
+var _volume_last_extents := Vector3(-INF, -INF, -INF)
+var _volume_last_rt_size := Vector2i(-1, -1)
+var _volume_dispatch_frame_prev: int = 0
+var _volume_dispatch_frame_delta := 0.0
+var _volume_dispatch_frame_ema := 0.0
+var _volume_eval_counter: int = 0
+var _volume_overload_streak: int = 0
+var _volume_underload_streak: int = 0
+var _volume_current_tier: int = 512
+var _volume_last_tier_change_frame: int = -1
+var _volume_tier_change_count: int = 0
+var _volume_last_tier_change_reason := ""
+var _volume_downshift_latency: int = 0
+var _volume_last_requested_tier: int = 512
+var _volume_pending_tier: int = 0
+var _volume_last_max_steps := -1.0
+var _volume_last_cutoff := -1.0
+var _volume_last_history_weight := -1.0
+var _volume_last_scheduling := -1.0
+var _volume_last_boxless_active := false
+var _volume_last_record_us := 0
+var _volume_max_record_us := 0
+var _us_poisson_0: RID
+var _us_fr_0: RID; var _us_fr_2: RID
+var _us_bh_lens_2: RID
+var _us_volume_0: RID = RID()
+var _volume_dispatch_id: int = 0
+var _volume_skip_count: int = 0
+var _volume_uniform_set_create_count: int = 0
+var _volume_set_dirty: bool = true
+var _volume_us_sig_shader: RID
+var _volume_us_sig_0: RID; var _volume_us_sig_1: RID; var _volume_us_sig_2: RID
+var _volume_us_sig_3: RID; var _volume_us_sig_4: RID; var _volume_us_sig_5: RID
+var _volume_us_sig_6: RID; var _volume_us_sig_7: RID; var _volume_us_sig_8: RID
+var _volume_us_sig_9: RID
 var _us_two_0: RID; var _us_two_1: RID; var _us_two_2: RID
 var _us_mass_dep_0: RID
 var _us_nbody_0: RID; var _us_nbody_1: RID; var _us_nbody_2: RID
-var _us_poisson_0: RID
-var _us_fr_0: RID; var _us_fr_2: RID  # field-render sets (cached, no per-frame alloc)
-var _us_bh_lens_2: RID  # BH-lensing set (cached; was created per frame)
-# — Instancer pipeline —
+signal workbench_cursor_changed(world_position: Vector3, source: String)
+var field_workbench: FieldWorkbench = null
+var _workbench_cursor_world := Vector3.ZERO
+var _workbench_cursor_armed := false
+var _workbench_cursor_marker: MeshInstance3D = null
 var _instancer_shader: RID; var _instancer_pipe: RID
 var _cond_shader: RID; var _cond_pipe: RID; var _us_cond_0: RID; var _us_cond_1: RID
 var _bh_int_shader: RID; var _bh_int_pipe: RID; var _us_bh_int_0: RID; var _us_bh_int_1: RID
@@ -904,7 +935,6 @@ var _last_field_rb_ms: int = 0
 var _last_bh_rb_ms: int = 0
 var _last_diag_ms: int = 0
 var _last_p0_rb_ms: int = 0              # wall-time gate for the p[0] debug print
-var _inst_debug_done: bool = false       # one-time inst[0..2] print
 var _mmi: MultiMeshInstance3D; var _mm: MultiMesh
 var _mm_particle_size: float = -1.0  # particle_size the multimesh was built with (reinit rebuild check)
 var _rainbow_vref: float = 1.0  # rainbow speed reference: mean initial |v| (set in _init_particles; fallback 1.0)
@@ -983,13 +1013,11 @@ var _perf_last_ms: int = 0
 var _last_occ_ms: int = 0
 
 
-## GPU-native display textures for visualization modes. Field mode receives a
-## Texture2DRD wrapper around the shared global-RD render target; no CPU image
-## is created or uploaded on that presentation path.
 var field_display_texture: Texture2D = null
 signal field_texture_updated(tex: Texture2D)
-var bh_display_texture: Texture2D = null
 signal bh_texture_updated(tex: Texture2D)
+var _render_texture_rebuild_count: int = 0
+var bh_display_texture: Texture2D = null
 # ═══════════════════════════════════════════════════════════════════════
 # Lifecycle
 # ═══════════════════════════════════════════════════════════════════════
@@ -1007,7 +1035,12 @@ func _ready() -> void:
 		return
 	_setup_buffers()
 	_setup_multimesh()  # BEFORE _setup_shaders: the instancer uniform set
+	field_workbench = FieldWorkbench.new(self)
+	_setup_workbench_cursor()
 	_setup_shaders()    # binds the multimesh's RD buffer, which must exist
+	if gridless_physics and not physics_decoupled:
+		_fail_gridless_physics("site-native physics requires physics_decoupled=true")
+		return
 	# ── Decoupled physics producer (phase A+B+C): the standalone engine runs
 	# the core chain on its own worker thread/local RD — grid AND meshless
 	# (the Voronoi arm is ported; the tree worker is handed to the engine
@@ -1018,6 +1051,9 @@ func _ready() -> void:
 		if _decoupled_start_engine():
 			print("[CassiSim] Decoupled physics producer started (worker local RD)")
 		else:
+			if gridless_physics:
+				_fail_gridless_physics("engine start failed")
+				return
 			push_error("[CassiSim] decoupled engine failed to start — falling back to the inline path")
 			_decoupled_active = false
 			_init_field()
@@ -1053,6 +1089,8 @@ func _ready() -> void:
 		_lut_bake_dirty = false
 	print("[CassiSim] Universe ready — grid=%d³ particles=%d xi=%.5f (φ⁶=%.5f)" % [grid_N, N_particles, xi, PHI_6])
 	_sim_cam = _find_sibling_camera()
+	if _sim_cam != null:
+		_sim_cam.make_current()
 	_apply_camera_view_range()
 	_auto_frame_camera()
 
@@ -1135,6 +1173,8 @@ func has_color_defaults() -> bool:
 func _process(delta: float) -> void:
 	if not _rd:
 		return
+	if _gridless_failure:
+		return
 
 	# First-run import race: on a fresh cache the .glsl imports may not have
 	# finished when _ready ran — retry until every shader compiles.
@@ -1168,15 +1208,6 @@ func _process(delta: float) -> void:
 		# The per-frame LIMIT is not a step count but a wall-clock budget:
 		# at most physics_frame_budget × the measured frame time, using the
 		# rolling per-step GPU cost — so a heavy config slows the SIM
-		# (reported truthfully as the backlog) while the frame rate stays
-		# smooth, instead of the old behavior where expensive steps first
-		# collapsed the FPS and then the step-cap silently throttled the
-		# sim with a lying drop counter. max_steps_per_frame remains a
-		# hard safety ceiling (recorder/verify pins); the backlog carries
-		# for graceful catch-up and is capped so a stall can't queue a
-		# minutes-long fast-forward. Backlog = the single truthful number:
-		# how far (sim-seconds) the sim lags its requested rate.
-		_frame_us_ema = lerp(_frame_us_ema, delta * 1_000_000.0, 0.05)
 		_step_timer += delta * sim_speed
 		var n_steps := 0   # shared with the post-batch merge gate below
 		if _decoupled_active:
@@ -1246,12 +1277,16 @@ func _run_physics_steps(n_steps: int) -> void:
 		if not _physics_engine.setup_ready():
 			return
 		_physics_engine.update_bh_header()
+		var rebuild_requested: bool = bool(_physics_engine.mesh_rebuild_due())
+		if rebuild_requested and not _physics_engine.prepare_mesh_rebuild():
+			rebuild_requested = false
 		var cl := _rd.compute_list_begin()
 		var executed: int = _physics_engine.record_pending_steps(cl, _decoupled_target)
+		if rebuild_requested:
+			_physics_engine._mesh_rebuild(cl)
+			_barrier(cl)
 		_rd.compute_list_end()
 		if executed > 0:
-			if _physics_engine.mesh_rebuild_due():
-				_physics_engine._mesh_rebuild()
 			_apply_decoupled_publish(_engine_read_publish(true))
 		return
 	# BH header (count/G_N/extent/toggle/dual) — constant across the frame's
@@ -1318,10 +1353,10 @@ func _run_physics_steps(n_steps: int) -> void:
 	# before.
 	if _interp_alpha < 1.0 and _blend_sh.is_valid() and N_particles > 0:
 		_blend_pc.encode_float(0, 2.0)  # roll marker (> 1.0)
-		_blend_pc.encode_float(4, 0.0)  # mode 0 — blend is the −c window seam only (one-RD; no packed mirrors)
-		_blend_pc.encode_float(8, -_window_center.x)
-		_blend_pc.encode_float(12, -_window_center.y)
-		_blend_pc.encode_float(16, -_window_center.z)
+		_blend_pc.encode_float(4, 0.0)  # shader subtracts the supplied window origin
+		_blend_pc.encode_float(8, _window_center.x)
+		_blend_pc.encode_float(12, _window_center.y)
+		_blend_pc.encode_float(16, _window_center.z)
 		_rd.compute_list_bind_compute_pipeline(cl, _blend_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_blend_0, 0)
 		_rd.compute_list_set_push_constant(cl, _blend_pc, _blend_pc.size())
@@ -1334,8 +1369,9 @@ func _run_physics_steps(n_steps: int) -> void:
 	# field's barrier from the last step gives the q reads visibility.
 	# Runs even under suppress_readbacks: its 512 B readback every 1.5 s is
 	# negligible next to the multi-MB diagnostics that toggle suppresses. ──
+	var color_base: int = int(particle_color_mode) & 0xF
 	if _qhist_pipe.is_valid() and _us_qhist_0.is_valid() and auto_align_colors \
-			and particle_color_mode >= 2 and N_particles > 0:
+			and color_base >= 2 and color_base <= 4 and N_particles > 0:
 		var qext := _extents()
 		_qhist_pc_bytes.encode_float(0, float(grid_N))
 		_qhist_pc_bytes.encode_float(4, float(N_particles))
@@ -1372,10 +1408,10 @@ func _run_physics_steps(n_steps: int) -> void:
 	# execution ordering but no implicit memory visibility).
 	if _blend_sh.is_valid() and N_particles > 0:
 		_blend_pc.encode_float(0, _interp_alpha)
-		_blend_pc.encode_float(4, 0.0)  # mode 0 — blend is the −c window seam only (one-RD; no packed mirrors)
-		_blend_pc.encode_float(8, -_window_center.x)
-		_blend_pc.encode_float(12, -_window_center.y)
-		_blend_pc.encode_float(16, -_window_center.z)
+		_blend_pc.encode_float(4, 0.0)  # shader subtracts the supplied window origin
+		_blend_pc.encode_float(8, _window_center.x)
+		_blend_pc.encode_float(12, _window_center.y)
+		_blend_pc.encode_float(16, _window_center.z)
 		_rd.compute_list_bind_compute_pipeline(cl, _blend_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_blend_0, 0)
 		_rd.compute_list_set_push_constant(cl, _blend_pc, _blend_pc.size())
@@ -1405,15 +1441,10 @@ func _run_physics_steps(n_steps: int) -> void:
 		_rd.compute_list_dispatch(cl, ipg, 1, 1)
 	_rd.compute_list_end()
 
-	# Meshless steering: rebuild the mesh every ML_REBUILD steps, BETWEEN
-	# frames (the CPU-side site bookkeeping — the Stage 2b division of
-	# labor). The readbacks self-stall; the JFA/volume re-dispatches are
-	# standalone compute lists, legal outside the frame list.
-	if meshless_mode and _ml_ready and not freeze_field:
-		_ml_step_count += n_steps
-		if _ml_step_count >= _ml_rebuild_threshold():
-			_ml_step_count = 0
-			_mesh_rebuild()
+	# Inline simulation owns the global RenderingDevice and keeps the
+	# renderer's command ordering intact. Meshless topology rebuilds are
+	# therefore confined to the decoupled engine's private local RD path;
+	# no standalone rebuild is issued from this global-RD branch.
 	# Merge cadence: accumulate the inline batch's steps for the merge gate
 	# in _render_frame (the merge itself must run there — the ONLY context
 	# where global-RD lists + buffer_get_data readbacks execute). Reached
@@ -1684,7 +1715,6 @@ func _barrier(cl: int) -> void:
 ## Per-submit job bookkeeping: whether this job's publish reads the
 ## accepted readback group (telemetry + the tracker COM). The publish
 ## carries NO snapshot — the render reads the engine's live buffers — so
-## there is no packed-mirror flag and no fp32/packed bootstrap distinction.
 ## P3 (M0b-P): build the publish dict at the job boundary — the readbacks
 ## (telemetry + the tracker COM) are the accepted group; the snapshots are
 ## gone (the render reads the engine's live buffers). force_telemetry:
@@ -1699,6 +1729,18 @@ func _engine_read_publish(force_telemetry: bool) -> Dictionary:
 			if not c.is_empty():
 				pub["com"] = c
 	return pub
+func _fail_gridless_physics(reason: String) -> void:
+	push_error("[CassiSim] gridless physics unavailable — refusing raster fallback: %s" % reason)
+	_gridless_failure = true
+	playing = false
+	_decoupled_boot_wait = false
+	if _physics_engine != null:
+		_physics_engine.stop_threaded()
+		_physics_engine = null
+	_decoupled_active = false
+	if _mmi != null:
+		_mmi.visible = false
+
 
 
 ## Build the engine cfg from the live exports (an explicit dict with the
@@ -1735,6 +1777,7 @@ func _decoupled_start_engine() -> bool:
 		"multi_rung_seed": multi_rung_seed, "multi_rung_count": multi_rung_count,
 		"multi_rung_amp": multi_rung_amp, "multi_rung_base_scale": multi_rung_base_scale,
 		"meshless_mode": meshless_mode, "meshless_gravity": meshless_gravity,
+		"gridless_physics": gridless_physics,
 		"winding_coupling": winding_coupling,
 		"q_weighted_com": q_weighted_com,
 		"coherence_theta": coherence_theta,
@@ -1779,6 +1822,7 @@ func _decoupled_start_engine() -> bool:
 	_step_count = 0
 	_merge_step_counter = 0
 	_time = 0.0
+	_decoupled_initial_render_pending = true
 	_decoupled_boot_wait = true
 	_decoupled_boot_start_ms = Time.get_ticks_msec()
 	_decoupled_boot_last_progress_ms = 0
@@ -1874,6 +1918,11 @@ func _track_window_center() -> void:
 	if dist > max_move:
 		d = d.normalized() * max_move
 	_window_center += d
+	if _physics_engine != null:
+		_physics_engine._window_center = _window_center
+		if boxless_field and meshless_mode:
+			_physics_engine.publish_render_query(d)
+		_physics_engine._mesh_rebuild_pending = true
 	print("[CassiSim] window -> (%.1f, %.1f, %.1f)  COM (%.1f, %.1f, %.1f)  t=%.1f s"
 			% [_window_center.x, _window_center.y, _window_center.z, com.x, com.y, com.z, float(now) / 1000.0])
 
@@ -1949,18 +1998,27 @@ func _apply_envelope_state() -> void:
 	box_scale = maxf(_env_applied_scale, 1e-3)
 	var ext := _extents()
 	var hb: PackedByteArray = _bh_init_bytes
-	hb.encode_float(36, ext.x)
-	hb.encode_float(40, ext.y)
-	hb.encode_float(44, ext.z)
-	_bh_init_bytes = hb
+	if hb.size() >= 48:
+		hb.encode_float(36, ext.x)
+		hb.encode_float(40, ext.y)
+		hb.encode_float(44, ext.z)
+		_bh_init_bytes = hb
 	var eng: Object = _physics_engine
+	var geometry_changed: bool = eng._window_center.distance_to(_window_center) > 1e-4 \
+			or absf(float(eng.box_scale) - box_scale) > 1e-4
+	var center_delta: Vector3 = _window_center - eng._window_center
 	eng._window_center = _window_center
 	eng.box_scale = box_scale
+	if geometry_changed:
+		if boxless_field and meshless_mode:
+			eng.publish_render_query(center_delta)
+		eng._mesh_rebuild_pending = true
 	var ehb: PackedByteArray = eng._bh_init_bytes
-	ehb.encode_float(36, ext.x)
-	ehb.encode_float(40, ext.y)
-	ehb.encode_float(44, ext.z)
-	eng._bh_init_bytes = ehb
+	if ehb.size() >= 48:
+		ehb.encode_float(36, ext.x)
+		ehb.encode_float(40, ext.y)
+		ehb.encode_float(44, ext.z)
+		eng._bh_init_bytes = ehb
 
 
 ## One decoupled frame: consume the freshest engine publish, then record
@@ -1986,7 +2044,10 @@ func _decoupled_poll_and_render() -> void:
 				print("[CassiSim] decoupled bootstrap: waiting for engine setup... %d s (IC init of %d particles takes ~13.5 s CPU on the worker)"
 						% [int(boot_elapsed / 1000), N_particles])
 			if boot_elapsed > BOOT_TIMEOUT_MS:
-				push_error("[CassiSim] decoupled bootstrap timeout (engine setup) — falling back to inline")
+				if gridless_physics:
+					_fail_gridless_physics("bootstrap timeout")
+					return
+				push_error("[CassiSim] decoupled bootstrap timeout — falling back to inline")
 				_physics_engine.stop_threaded()
 				_physics_engine = null
 				_decoupled_active = false
@@ -1994,39 +2055,55 @@ func _decoupled_poll_and_render() -> void:
 				if _mmi != null:
 					_mmi.visible = true   # the inline path draws the particles now
 				_init_field(); _init_particles(); _apply_gravity_calibration(); _grav_warmup = true
-			return   # skip the render list until the engine's setup is ready
-		_decoupled_boot_fs_ms = Time.get_ticks_msec()
-		_physics_engine.finish_setup()   # the deferred render-thread compute init
+		if not _physics_engine.finish_setup():
+			if gridless_physics:
+				_fail_gridless_physics("finish_setup failed")
+				return
+			push_error("[CassiSim] decoupled bootstrap finish_setup failed — falling back to inline")
+			_physics_engine.stop_threaded()
+			_physics_engine = null
+			_decoupled_active = false
+			_decoupled_boot_wait = false
+			if _mmi != null:
+				_mmi.visible = true   # the inline path draws the particles now
+			_init_field(); _init_particles(); _apply_gravity_calibration(); _grav_warmup = true
+			return
 		_decoupled_boot_wait = false
 		print("[CassiSim] decoupled bootstrap complete (non-blocking) — finish_setup took %d ms" % [Time.get_ticks_msec() - _decoupled_boot_fs_ms])
-		if _mmi != null:
-			_mmi.visible = true   # the engine's IC state is in its live buffers
-	if not playing or not _shaders_ready:
+	var initial_blend_ready := _decoupled_initial_render_pending and _us_blend_0_dc.is_valid() and _blend_pipe.is_valid() and _physics_engine != null and bool(_physics_engine.get("_ml_ready"))
+	if ((not playing and not initial_blend_ready) or (not _shaders_ready and not initial_blend_ready)):
 		return
-	_physics_engine.update_bh_header()   # BEFORE the list (the header contract)
+	if _physics_engine != null and boxless_field and meshless_mode \
+			and not bool(_physics_engine.get("_meshless_query_ready")):
+		_physics_engine.publish_render_query()
+	if _physics_engine != null and boxless_field and meshless_mode:
+		_physics_engine.service_render_topology()
+	_physics_engine.update_bh_header()   # BEFORE the list
 	var cl := _rd.compute_list_begin()
 	var executed: int = _physics_engine.record_pending_steps(cl, _decoupled_target)
+	# M0b-P decoupled merge: record the engine-owned GPU merge cycle in this
+	# same global list, before blend/instancer consume positions. This keeps
+	# dead slots (pos.w=0) hidden without a CPU mirror or copy.
+	if executed > 0:
+		_physics_engine.record_merge_if_due(cl)
+		_barrier(cl)
 	# P3 (M0b-P one-RD): the decoupled render sets bind the ENGINE's live
-	# buffers — build them on the first frame the engine's setup is ready.
 	if not _us_blend_0_dc.is_valid():
 		_build_dc_sets()
-	# ── Window-seam blend (the ONLY staging — the instancer's PC has no
-	# room for the window center): the engine's live fp32 pos → pos_render
-	# − c. Alpha pinned at 1.0 — the render list executes AFTER the chain
-	# in the shared queue, so the render IS the live engine state (no
-	# interp lag to smooth, no prev/curr pair). No vel-unpack — the
-	# instancer's DC set reads the engine's fp32 vel directly. ──
-	if _blend_sh.is_valid() and N_particles > 0 and _us_blend_0_dc.is_valid():
-		_blend_pc.encode_float(0, 1.0)   # alpha — the live state
-		_blend_pc.encode_float(4, 0.0)   # mode 0 — raw copy + the −c seam
-		_blend_pc.encode_float(8, -_window_center.x)
-		_blend_pc.encode_float(12, -_window_center.y)
-		_blend_pc.encode_float(16, -_window_center.z)
-		_rd.compute_list_bind_compute_pipeline(cl, _blend_pipe)
-		_rd.compute_list_bind_uniform_set(cl, _us_blend_0_dc, 0)
-		_rd.compute_list_set_push_constant(cl, _blend_pc, _blend_pc.size())
-		_rd.compute_list_dispatch(cl, ceili(float(N_particles) / 64.0), 1, 1)
-	_barrier(cl)  # blend pos_render writes → instancer read
+	# Decoupled fp32 blend: set every PC field explicitly; never inherit
+	# inline-path state. Shader layout = alpha, mode, win_x, win_y, win_z.
+	_blend_pc.encode_float(0, 1.0)
+	_blend_pc.encode_float(4, 0.0)
+	_blend_pc.encode_float(8, _window_center.x)
+	_blend_pc.encode_float(12, _window_center.y)
+	_blend_pc.encode_float(16, _window_center.z)
+	_rd.compute_list_bind_compute_pipeline(cl, _blend_pipe)
+	_rd.compute_list_bind_uniform_set(cl, _us_blend_0_dc, 0)
+	_rd.compute_list_set_push_constant(cl, _blend_pc, _blend_pc.size())
+	_rd.compute_list_dispatch(cl, ceili(float(N_particles) / 64.0), 1, 1)
+	_barrier(cl)
+	var initial_instancer_recorded := false
+
 	# ── Instancer (render variant — binding 0 reads pos_render; the DC
 	# set reads the ENGINE's vel + field buffers directly) ──
 	if _instancer_shader.is_valid() and N_particles > 0 and _us_inst_0_render_dc.is_valid():
@@ -2039,10 +2116,14 @@ func _decoupled_poll_and_render() -> void:
 			_rd.compute_list_bind_uniform_set(cl, _us_inst_0_lut_render_dc if _lut_active() else _us_inst_0_render_dc, 0)
 		_rd.compute_list_set_push_constant(cl, _instancer_pc_bytes, _instancer_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, ipg, 1, 1)
+		_rd.compute_list_add_barrier(cl)
+		if _decoupled_initial_render_pending:
+			initial_instancer_recorded = true
+
 	# ── q-histogram (auto color-align; RENDER variant reads pos_render —
-	# the same snapshot the instancer draws — + the ENGINE's field_q) ──
+	var color_base_dc: int = int(particle_color_mode) & 0xF
 	if _qhist_pipe.is_valid() and _us_qhist_0_render_dc.is_valid() and auto_align_colors \
-			and particle_color_mode >= 2 and N_particles > 0:
+			and color_base_dc >= 2 and color_base_dc <= 4 and N_particles > 0:
 		var qext := _extents()
 		_qhist_pc_bytes.encode_float(0, float(grid_N))
 		_qhist_pc_bytes.encode_float(4, float(N_particles))
@@ -2057,22 +2138,28 @@ func _decoupled_poll_and_render() -> void:
 		_qhist_pc_bytes.encode_float(40, -_window_center.x)
 		_qhist_pc_bytes.encode_float(44, -_window_center.y)
 		_qhist_pc_bytes.encode_float(48, -_window_center.z)
-		# True-boxless arm (boxless_field_design.md): when the moving-Voronoi mesh
-		# is live and the toggle is on, the sampler reads coherence from the sites
-		# (coordinate-independent, no window/extent/%N). Off (default) = dead branch.
-		var _boxless_on: float = 1.0 if (boxless_field and meshless_mode and _ml_ready) else 0.0
+		# True-boxless arm: require a published topology chain in decoupled
+		# mode so the site buffers are live and spatially indexed.
+		var _boxless_on: float = 1.0 if _ml_boxless_on() else 0.0
+		var _qhist_site_count := 2 * ML_N1 * ML_N1 * ML_N1
+		if _decoupled_active and _physics_engine != null:
+			_qhist_site_count = int(_physics_engine.get("_topology_site_count"))
 		_qhist_pc_bytes.encode_float(52, _boxless_on)
-		_qhist_pc_bytes.encode_float(56, float(2 * ML_N1 * ML_N1 * ML_N1))
+		_qhist_pc_bytes.encode_float(56, float(_qhist_site_count))
 		_rd.compute_list_bind_compute_pipeline(cl, _qhist_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_qhist_0_render_dc, 0)
 		_rd.compute_list_set_push_constant(cl, _qhist_pc_bytes, _qhist_pc_bytes.size())
 		var qh_threads := ceili(float(N_particles) / 16.0)
 		_rd.compute_list_dispatch(cl, ceili(qh_threads / 64.0), 1, 1)
+	if initial_instancer_recorded:
+		_decoupled_initial_blend_id += 1
+		_decoupled_initial_render_pending = false
 	_rd.compute_list_end()
-	# M0b-P: the meshless rebuild cadence runs its OWN list AFTER the frame
-	# list (its readbacks are illegal inside the open list).
-	if executed > 0 and _physics_engine.mesh_rebuild_due():
-		_physics_engine._mesh_rebuild()
+	# The first populated instancer list is now recorded against the engine's
+	# live buffers. Keeping this hidden beyond that point leaves an otherwise
+	# healthy decoupled scene permanently black.
+	if initial_instancer_recorded and _mmi != null and not _mmi.visible:
+		_mmi.visible = true
 	# Publish at the cadence — the readbacks (telemetry + the tracker COM)
 	# are the accepted job-boundary group; the bookkeeping rides every frame.
 	_pub_counter += 1 if executed > 0 else 0
@@ -2178,27 +2265,22 @@ func _build_dc_sets() -> void:
 			_uniform_storage(6, eng._ml_psi_y),
 			_uniform_storage(7, eng._ml_psi_i),
 		], _qhist_shader, 0)
-	if _occ_shader.is_valid() and _occ_buf.is_valid():
+	if _occ_shader.is_valid() and _occ_buf.is_valid() and eng._pos_buf.is_valid():
 		_us_occ_0_dc = _rd.uniform_set_create([
 			_uniform_storage(0, eng._pos_buf),
 			_uniform_storage(1, _occ_buf),
 		], _occ_shader, 0)
 	print("[CassiSim] P3 one-RD render sets bound to the engine's live buffers")
+	if _us_blend_0_dc.is_valid():
+		_decoupled_initial_render_pending = true
 
 
 func _exit_tree() -> void:
-	# Decoupled producer: join the worker FIRST (its exit path shuts the
-	# engine down on the worker — worker-side RID frees, no invalid frees).
-	if _decoupled_active:
-		if _physics_engine != null:
-			_physics_engine.stop_threaded()
-			_physics_engine = null
-	# Children (incl. the MultiMeshInstance3D holding the renderer's
-	# multimesh buffer) exit BEFORE this node, so the multimesh buffer RID
-	# referenced by _us_inst_0 is already gone when the sets are freed —
-	# releasing a set that referenced a freed buffer is safe on the global
-	# RD (sets are opaque). Order: sets → buffers → shaders.
-	_free_uniform_sets()  # sets reference buffers/shaders — release first
+	if _decoupled_active and _physics_engine != null:
+		_physics_engine.stop_threaded()
+		_physics_engine = null
+	_decoupled_active = false
+	_free_uniform_sets()
 	_free_buffers()
 	_free_shaders()
 
@@ -2501,6 +2583,10 @@ func _setup_buffers() -> void:
 	# Godot reflects the 2-float push-constant block as exactly 8 bytes
 	# (verified empirically — 4.7 hard-errors on any size mismatch).
 	_blend_pc = PackedByteArray(); _blend_pc.resize(20)  # alpha@0, packed@4, win@8/12/16 (movable home-window)
+	_volume_pc_bytes = PackedByteArray(); _volume_pc_bytes.resize(128); _volume_pc_bytes.fill(0)
+	_volume_stats_zero = PackedByteArray(); _volume_stats_zero.resize(32); _volume_stats_zero.fill(0)
+	_volume_stats = _rd.storage_buffer_create(32)
+	_rd.buffer_update(_volume_stats, 0, 32, _volume_stats_zero)
 	# NOTE: all poisson dispatches (clear/load/kspace/FFT) are 2D (N, N, 1) —
 
 	# uses row = workgroup.x + workgroup.y·N. A 1D (N³/256, 1, 1) dispatch
@@ -2552,8 +2638,8 @@ func _free_buffers() -> void:
 				_ml_tree_src, _ml_tree_srcw, _ml_tree_key, _ml_tree_order,
 				_ml_tree_cf, _ml_tree_w, _ml_tree_q, _ml_tree_r, _ml_tree_ctr,
 				_ml_tree_nqq, _ml_tree_grad, _ml_tree_icount, _tree_mc_buf,
-				_field_render_tex, _bh_lensing_tex,
-				_lut_u_buf_on, _lut_u_buf_off]:
+				_field_render_tex, _bh_lensing_tex, _volume_history_neutral,
+				_lut_u_buf_on, _lut_u_buf_off, _volume_stats]:
 		if rid.is_valid(): _rd.free_rid(rid)
 	for rid in [_merge_alive_buf, _merge_mass_buf, _merge_mom_buf, _merge_cen_buf,
 				_merge_best_buf, _merge_sink_buf, _merge_spin_buf, _merge_mprev_buf, _merge_cc_buf, _merge_cs_buf,
@@ -2566,6 +2652,7 @@ func _free_buffers() -> void:
 	_merge_spin_buf = RID(); _merge_mprev_buf = RID()
 	_field_render_tex = RID()
 	_bh_lensing_tex = RID()
+	_volume_history_neutral = RID(); _volume_stats = RID()
 	_lut_u_buf_on = RID(); _lut_u_buf_off = RID()
 	_shortlist_sites = RID(); _shortlist_count = RID()
 	_hash_cell_start = RID(); _hash_cell_sites = RID(); _hash_cell_count = RID(); _hash_cfg = RID()
@@ -2581,6 +2668,7 @@ func _free_uniform_sets() -> void:
 	# any of those are freed (reinit, shader retry, exit). Overwriting a
 	# live set RID without freeing it leaks the set on the local RD.
 	if _rd == null: return
+	var seen := {}
 	for rid in [_us_two_0, _us_two_1, _us_two_2, _us_mass_dep_0,
 				_us_nbody_0, _us_nbody_1, _us_nbody_2, _us_poisson_0,
 				_us_fr_0, _us_fr_2, _us_cond_0, _us_cond_1,
@@ -2589,13 +2677,14 @@ func _free_uniform_sets() -> void:
 				_us_inst_0_boxless, _us_inst_0_render_boxless,
 				_us_inst_0_lut_boxless, _us_inst_0_lut_render_boxless,
 				_us_inst_0_boxless_render_dc, _us_inst_0_lut_boxless_render_dc,
-				_us_bh_lens_2, _us_blend_0,
-				_us_blend_0_dc, _us_inst_0_render_dc, _us_inst_0_lut_render_dc,
-				_us_qhist_0_render_dc, _us_occ_0_dc,
-				_us_occ_0, _us_qhist_0, _us_qhist_0_render, _us_jfa_0, _us_cell_0, _us_raster_0,
-				_us_tree_build, _us_tree_grav, _us_tree_mc, _us_merge_0, _us_bh_acc_0, _us_scan_0,
-				_us_shortlist, _us_hash]:
-		if rid.is_valid(): _rd.free_rid(rid)
+				_us_bh_lens_2, _us_blend_0, _us_blend_0_dc,
+				_us_inst_0_render_dc, _us_inst_0_lut_render_dc,
+				_us_qhist_0_render_dc, _us_occ_0_dc, _us_occ_0,
+				_us_qhist_0, _us_qhist_0_render, _us_jfa_0, _us_cell_0,
+				_us_raster_0, _us_shortlist, _us_hash, _us_volume_0]:
+		if rid.is_valid() and _rd.uniform_set_is_valid(rid) and not seen.has(rid):
+			seen[rid] = true
+			_rd.free_rid(rid)
 	_us_two_0 = RID(); _us_two_1 = RID(); _us_two_2 = RID()
 	_us_mass_dep_0 = RID()
 	_us_nbody_0 = RID(); _us_nbody_1 = RID(); _us_nbody_2 = RID()
@@ -2616,30 +2705,156 @@ func _free_uniform_sets() -> void:
 	_us_jfa_0 = RID(); _us_cell_0 = RID(); _us_raster_0 = RID()
 	_us_tree_build = RID(); _us_tree_grav = RID(); _us_tree_mc = RID()
 	_us_merge_0 = RID(); _us_bh_acc_0 = RID(); _us_scan_0 = RID()
-	_us_shortlist = RID(); _us_hash = RID()
+	_us_shortlist = RID(); _us_hash = RID(); _us_volume_0 = RID()
+	_volume_clear_signature()
 
 func _free_shaders() -> void:
-	_free_uniform_sets()  # sets hold shader references; release before the shaders
-	# Pipelines before their shaders (freeing a pipeline after its shader
-	# reports "Attempted to free invalid ID" on the local RD at exit).
-	for rid in [_two_fluid_pipe, _nbody_pipe, _poisson_pipe,
-				_field_render_pipe, _bh_lensing_pipe,
-				_instancer_pipe, _mass_deposit_pipe,
-				_cond_pipe, _bh_int_pipe, _occ_pipe, _qhist_pipe,
-				_jfa_pipe, _cell_pipe, _raster_pipe,
-				_shortlist_pipe, _hash_pipe,
-				_tree_build_pipe, _tree_grav_pipe, _tree_mc_pipe, _blend_pipe,
-				_merge_pipe, _scan_pipe, _bh_acc_pipe,
-				_two_fluid_shader, _nbody_shader, _poisson_shader,
-				_field_render_shader, _bh_lensing_shader,
-				_instancer_shader, _mass_deposit_shader,
-				_cond_shader, _bh_int_shader, _occ_shader, _qhist_shader,
-				_jfa_shader, _cell_shader, _raster_shader,
-				_shortlist_shader, _hash_shader,
-				_tree_build_shader, _tree_grav_shader, _tree_mc_shader, _blend_sh,
-				_merge_shader, _scan_shader, _bh_acc_shader]:
-		if rid.is_valid(): _rd.free_rid(rid)
+	_free_uniform_sets()
+	var seen := {}
+	for rid in [_two_fluid_pipe, _nbody_pipe, _poisson_pipe, _field_render_pipe, _volume_pipe, _bh_lensing_pipe, _instancer_pipe, _mass_deposit_pipe, _cond_pipe, _bh_int_pipe, _occ_pipe, _qhist_pipe, _jfa_pipe, _cell_pipe, _raster_pipe, _shortlist_pipe, _hash_pipe, _tree_build_pipe, _tree_grav_pipe, _tree_mc_pipe, _blend_pipe, _merge_pipe, _scan_pipe, _bh_acc_pipe, _two_fluid_shader, _nbody_shader, _poisson_shader, _field_render_shader, _volume_shader, _bh_lensing_shader, _instancer_shader, _mass_deposit_shader, _cond_shader, _bh_int_shader, _occ_shader, _qhist_shader, _jfa_shader, _cell_shader, _raster_shader, _shortlist_shader, _hash_shader, _tree_build_shader, _tree_grav_shader, _tree_mc_shader, _blend_sh, _merge_shader, _scan_shader, _bh_acc_shader]:
+		if rid.is_valid() and not seen.has(rid):
+			seen[rid] = true
+			_rd.free_rid(rid)
+	_two_fluid_shader = RID(); _nbody_shader = RID(); _poisson_shader = RID(); _field_render_shader = RID(); _volume_shader = RID(); _bh_lensing_shader = RID(); _instancer_shader = RID(); _mass_deposit_shader = RID(); _cond_shader = RID(); _bh_int_shader = RID(); _occ_shader = RID(); _qhist_shader = RID(); _jfa_shader = RID(); _cell_shader = RID(); _raster_shader = RID(); _shortlist_shader = RID(); _hash_shader = RID(); _tree_build_shader = RID(); _tree_grav_shader = RID(); _tree_mc_shader = RID(); _blend_sh = RID(); _merge_shader = RID(); _scan_shader = RID(); _bh_acc_shader = RID()
+	_two_fluid_pipe = RID(); _nbody_pipe = RID(); _poisson_pipe = RID(); _field_render_pipe = RID(); _volume_pipe = RID(); _bh_lensing_pipe = RID(); _instancer_pipe = RID(); _mass_deposit_pipe = RID(); _cond_pipe = RID(); _bh_int_pipe = RID(); _occ_pipe = RID(); _qhist_pipe = RID(); _jfa_pipe = RID(); _cell_pipe = RID(); _raster_pipe = RID(); _shortlist_pipe = RID(); _hash_pipe = RID(); _tree_build_pipe = RID(); _tree_grav_pipe = RID(); _tree_mc_pipe = RID(); _blend_pipe = RID(); _merge_pipe = RID(); _scan_pipe = RID(); _bh_acc_pipe = RID()
+func _invalidate_volume_render_cache() -> void:
+	_volume_cache_valid = false
+	_volume_last_generation = -1
+	_volume_last_site_count = -1
+	_volume_last_cam_transform = Transform3D()
+	_volume_last_fov = -1.0
+	_volume_last_window_center = Vector3.INF
+	_volume_last_extents = Vector3(-INF, -INF, -INF)
+	_volume_last_rt_size = Vector2i(-1, -1)
+	_volume_last_max_steps = -1.0
+	_volume_last_cutoff = -1.0
+	_volume_last_history_weight = -1.0
+	_volume_last_scheduling = -1.0
+	_volume_last_boxless_active = false
+	_volume_overload_streak = 0
+	_volume_underload_streak = 0
 
+
+func _volume_clear_signature() -> void:
+	_volume_us_sig_shader = RID()
+	_volume_us_sig_0 = RID(); _volume_us_sig_1 = RID(); _volume_us_sig_2 = RID()
+	_volume_us_sig_3 = RID(); _volume_us_sig_4 = RID(); _volume_us_sig_5 = RID()
+	_volume_us_sig_6 = RID(); _volume_us_sig_7 = RID(); _volume_us_sig_8 = RID()
+	_volume_us_sig_9 = RID()
+	_volume_cache_valid = false
+	_volume_set_dirty = true
+
+func _volume_sanitize_tier(v: int) -> int:
+	var t := 256 if v <= 384 else (512 if v <= 768 else 1024)
+	var lo := 256 if volume_resolution_min <= 384 else (512 if volume_resolution_min <= 768 else 1024)
+	var hi := 256 if volume_resolution_max <= 384 else (512 if volume_resolution_max <= 768 else 1024)
+	if lo > hi: var swap := lo; lo = hi; hi = swap
+	return clampi(t, lo, hi)
+
+func _volume_tier_down(t: int) -> int:
+	return 512 if t >= 1024 else 256
+
+func _volume_tier_up(t: int) -> int:
+	return 512 if t <= 256 else 1024
+
+func _prepare_volume_resolution() -> bool:
+	if mode != 1 or not _ml_boxless_on(): return false
+	var manual := _volume_sanitize_tier(volume_resolution_target)
+	var manual_changed := manual != _volume_last_requested_tier
+	if manual_changed:
+		_volume_last_requested_tier = manual
+		_volume_pending_tier = 0
+		_volume_overload_streak = 0
+		_volume_underload_streak = 0
+	var target := manual
+	var automatic := false
+	if volume_dynamic_resolution:
+		if _volume_pending_tier != 0:
+			target = _volume_sanitize_tier(_volume_pending_tier)
+			automatic = true
+		else:
+			target = _volume_current_tier
+	if target == _volume_current_tier and _rt_size.x == target \
+			and _field_render_tex.is_valid() and _volume_history_neutral.is_valid():
+		_volume_pending_tier = 0
+		return false
+	_rt_size = Vector2i(target, target)
+	_volume_current_tier = target
+	_volume_tier_change_count += 1
+	_volume_last_tier_change_frame = Engine.get_process_frames()
+	_volume_last_tier_change_reason = "auto" if automatic else "manual"
+	_volume_pending_tier = 0
+	_make_render_textures()
+	_invalidate_volume_render_cache()
+	return true
+
+func _note_volume_dispatch_frame(frame_ms: float) -> void:
+	if not volume_dynamic_resolution:
+		_volume_overload_streak = 0
+		_volume_underload_streak = 0
+		return
+	_volume_dispatch_frame_delta = frame_ms
+	_volume_dispatch_frame_ema = frame_ms if _volume_dispatch_frame_ema <= 0.0 else (_volume_dispatch_frame_ema * 0.9 + frame_ms * 0.1)
+	_volume_eval_counter += 1
+	if frame_ms > volume_frame_budget_ms * 1.10:
+		_volume_overload_streak += 1
+		_volume_underload_streak = 0
+	else:
+		_volume_overload_streak = 0
+	if _volume_overload_streak >= 2:
+		_volume_pending_tier = _volume_tier_down(_volume_current_tier)
+		_volume_last_tier_change_reason = "overload"
+		_volume_downshift_latency = _volume_eval_counter
+		_volume_overload_streak = 0
+		_volume_underload_streak = 0
+	if _volume_dispatch_frame_ema < volume_frame_budget_ms * 0.72:
+		_volume_underload_streak += 1
+	else:
+		_volume_underload_streak = 0
+	if _volume_underload_streak >= 120:
+		_volume_pending_tier = _volume_tier_up(_volume_current_tier)
+		_volume_last_tier_change_reason = "underload"
+		_volume_overload_streak = 0
+		_volume_underload_streak = 0
+func _volume_needs_dispatch(generation: int, site_count: int, cam_transform: Transform3D, fov: float, center: Vector3, ext: Vector3) -> bool:
+	if not _volume_cache_valid: return true
+	return generation != _volume_last_generation or site_count != _volume_last_site_count or cam_transform != _volume_last_cam_transform or fov != _volume_last_fov or center != _volume_last_window_center or ext != _volume_last_extents or _rt_size != _volume_last_rt_size or _volume_last_max_steps != 128.0 or _volume_last_cutoff != 1e-3
+func _sync_volume_uniform_set() -> bool:
+	if not _field_render_tex.is_valid() or not _volume_history_neutral.is_valid():
+		_volume_set_dirty = true
+		return false
+	if not _volume_set_dirty and _volume_cache_valid and _us_volume_0.is_valid():
+		return true
+	var topo: Dictionary = _physics_engine.topology_resources() if _physics_engine != null and _physics_engine.has_method("topology_resources") else {}
+	var r0: RID = topo.get("topology_open_label_rid", RID())
+	var r1: RID = topo.get("topology_adjacency_rid", RID())
+	var r2: RID = topo.get("topology_degree_rid", RID())
+	var r3: RID = topo.get("topology_offset_rid", RID())
+	var r4: RID = topo.get("topology_neighbor_rid", RID())
+	var r5: RID = topo.get("topology_optical_rid", RID())
+	var r6: RID = topo.get("topology_status_rid", RID())
+	if not r0.is_valid() or not r1.is_valid() or not r2.is_valid() or not r3.is_valid() or not r4.is_valid() or not r5.is_valid() or not r6.is_valid():
+		_volume_set_dirty = true
+		return false
+	if _us_volume_0.is_valid():
+		_rd.free_rid(_us_volume_0)
+	_us_volume_0 = _rd.uniform_set_create([
+		_uniform_storage(0, r0), _uniform_storage(1, r1), _uniform_storage(2, r2), _uniform_storage(3, r3),
+		_uniform_storage(4, r4), _uniform_storage(5, r5), _uniform_storage(6, r6),
+		_get_set2_image_uniform(_volume_shader, 7, _field_render_tex),
+		_get_set2_image_uniform(_volume_shader, 8, _volume_history_neutral),
+		_uniform_storage(9, _volume_stats),
+	], _volume_shader, 0)
+	if not _us_volume_0.is_valid():
+		_volume_clear_signature()
+		_volume_set_dirty = true
+	_volume_uniform_set_create_count += 1
+	_volume_us_sig_7 = _field_render_tex
+	_volume_us_sig_8 = _volume_history_neutral
+	_volume_us_sig_9 = _volume_stats
+	_volume_cache_valid = true
+	_volume_set_dirty = false
+	return true
 
 func _setup_shaders() -> void:
 	# Two-fluid PDE solver
@@ -2664,6 +2879,13 @@ func _setup_shaders() -> void:
 	_field_render_shader = _shader_from_file("res://compute/cassi_field_render.glsl")
 	if _field_render_shader.is_valid():
 		_field_render_pipe = _rd.compute_pipeline_create(_field_render_shader)
+		print("[CassiSim] Field render pipeline ready")
+
+	# Fused site-volume producer (cassi_voronoi_fused_volume.glsl).
+	_volume_shader = _shader_from_file("res://compute/cassi_voronoi_fused_volume.glsl")
+	if _volume_shader.is_valid():
+		_volume_pipe = _rd.compute_pipeline_create(_volume_shader)
+		print("[CassiSim] fused volume pipeline ready")
 		print("[CassiSim] Field render pipeline ready")
 
 	# BH lensing
@@ -2844,6 +3066,7 @@ func _cache_uniform_sets() -> void:
 		_uniform_storage(6, _tel_buf),
 		_uniform_storage(7, _grad_buf),
 		_uniform_storage(8, _grad_buf2),  # dual-lattice ∇(g·Φ) (CASCADE_GRID.md)
+		_uniform_storage(9, _grad_buf),   # cascade placeholder; bh[0].x gates the blend
 	], _nbody_shader, 0)
 	_us_nbody_1 = _rd.uniform_set_create([
 		_uniform_storage(0, _pos_buf), _uniform_storage(1, _vel_buf),
@@ -3621,6 +3844,14 @@ func _mesh_rebuild() -> void:
 	var wg1 = N * N * N / 64
 	var wgs = int(ceil(float(ml_ns) / 64.0))
 	_cell_pc_bytes = _ml_cell_pc(7.0)
+	# The hash config is a host-written buffer and must be updated before
+	# opening the command list; RenderingDevice forbids buffer_update while
+	# any compute list is being recorded.
+	var hext_s: Vector3 = _extents()
+	var hcells_s := HASH_H * HASH_H * HASH_H
+	_rd.buffer_update(_hash_cfg, 0, 16,
+		PackedFloat32Array([0.0, 0.0, 0.0, 0.0]).to_byte_array())
+	
 	var cl := _rd.compute_list_begin()
 	_rd.compute_list_bind_compute_pipeline(cl, _cell_pipe)
 	_rd.compute_list_bind_uniform_set(cl, _us_cell_0, 0)
@@ -3711,26 +3942,24 @@ func _mesh_rebuild() -> void:
 	# via binding 4 after the barrier, so no host readback / extra sync). The
 	# boxless instancer sets read these; off by construction when flag.y = 0.
 	if _hash_pipe.is_valid() and _us_hash.is_valid():
-		var hext_s: Vector3 = _extents()
-		var hcs_s := (2.0 * hext_s.x) / float(HASH_H)
-		_rd.buffer_update(_hash_cfg, 0, 16,
-			PackedFloat32Array([(_window_center - hext_s).x, (_window_center - hext_s).y, (_window_center - hext_s).z, hcs_s]).to_byte_array())
-		var hcells_s := HASH_H * HASH_H * HASH_H
+		# _hash_cfg was reset before compute_list_begin() above.
 		_rd.compute_list_bind_compute_pipeline(cl, _hash_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_hash, 0)
-		_hash_pc_bytes = PackedFloat32Array([hext_s.x, hext_s.y, hext_s.z, float(HASH_H), float(ml_ns), 0.0]).to_byte_array()
+		_hash_pc_bytes = PackedFloat32Array([
+			hext_s.x, hext_s.y, hext_s.z, float(HASH_H), float(ml_ns),
+			0.0, 0.0, 0.0, 0.0]).to_byte_array()
 		_rd.compute_list_set_push_constant(cl, _hash_pc_bytes, _hash_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, ceili(float(hcells_s) / 64.0), 1, 1)
 		_rd.compute_list_add_barrier(cl)
-		_hash_pc_bytes.encode_float(20, 1.0)
+		_hash_pc_bytes.encode_float(32, 1.0)
 		_rd.compute_list_set_push_constant(cl, _hash_pc_bytes, _hash_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, wgs, 1, 1)
 		_rd.compute_list_add_barrier(cl)
-		_hash_pc_bytes.encode_float(20, 2.0)
+		_hash_pc_bytes.encode_float(32, 2.0)
 		_rd.compute_list_set_push_constant(cl, _hash_pc_bytes, _hash_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, 1, 1, 1)
 		_rd.compute_list_add_barrier(cl)
-		_hash_pc_bytes.encode_float(20, 3.0)
+		_hash_pc_bytes.encode_float(32, 3.0)
 		_rd.compute_list_set_push_constant(cl, _hash_pc_bytes, _hash_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, wgs, 1, 1)
 		_rd.compute_list_add_barrier(cl)
@@ -3938,9 +4167,10 @@ func _init_particles() -> void:
 		# Zel'dovich displacement δx = Σ_m (A/k_m)·sin(k_m·(d_m·x) + φ_m)·d_m
 		# with φ-spaced wavenumbers k_m = 2π·φ^m/(base·R) and Fibonacci-sphere
 		# directions — linear-order density power δρ/ρ = −∇·δx at several
-		# cascade rungs, so bubbles condense at multiple scales at once.
-		# Applied in WORLD space (the modes span the whole box); the
-		# out-of-box check below uses the displaced positions.
+		# Applied in WORLD space (the modes span the whole box). The
+		# displacement is projected back into the cluster's safe sphere
+		# afterward so the cascade seed cannot violate the IC containment
+		# contract at the edge of the truncated support.
 		if multi_rung_seed and multi_rung_count > 0:
 			var wx: float = pos[i4]
 			var wy: float = pos[i4 + 1]
@@ -3955,11 +4185,18 @@ func _init_particles() -> void:
 				wx += amp * s * d.x
 				wy += amp * s * d.y
 				wz += amp * s * d.z
-			pos[i4] = wx
-			pos[i4 + 1] = wy
-			pos[i4 + 2] = wz
+			var displaced := Vector3(wx - center.x, wy - center.y, wz - center.z)
+			var displaced_r: float = displaced.length()
+			if displaced_r > r_max_eff and displaced_r > 0.0:
+				displaced *= r_max_eff / displaced_r
+			pos[i4] = center.x + displaced.x
+			pos[i4 + 1] = center.y + displaced.y
+			pos[i4 + 2] = center.z + displaced.z
 
-		var rr: float = sqrt(lx * lx + ly * ly + lz * lz)
+		var local_x: float = pos[i4] - center.x
+		var local_y: float = pos[i4 + 1] - center.y
+		var local_z: float = pos[i4 + 2] - center.z
+		var rr: float = sqrt(local_x * local_x + local_y * local_y + local_z * local_z)
 		max_r = maxf(max_r, rr)
 		var mc: float = maxf(absf(pos[i4]), maxf(absf(pos[i4 + 1]), absf(pos[i4 + 2])))
 		max_comp = maxf(max_comp, mc)
@@ -4022,9 +4259,8 @@ func _init_particles() -> void:
 		# Color: replicate the instancer shader for the SELECTED mode so the
 		# paused (playing=false) view equals the first played frame. Modes 1-3
 		# (the consolidated gradient engine) render frame-0 via the one-shot
-		# GPU _repaint_instancer() at the end of _ready — the CPU path cannot
-		# sample the field cheaply — so only mode 0 keeps a CPU color pass.
-		if particle_color_mode == 0:
+		var color_base_init: int = int(particle_color_mode) & 0xF
+		if color_base_init == 0:
 			# Shader-exact Cassi mass gradient: log_m = clamp((log2(m)+2)·0.25)
 			var m: float = pos[i4 + 3]
 			var log_m: float = clampf((log(m) / log(2.0) + 2.0) * 0.25, 0.0, 1.0)
@@ -4152,6 +4388,7 @@ func _apply_gravity_calibration() -> void:
 
 # — Render target textures for compute shader output —
 var _field_render_tex: RID = RID()
+var _volume_texture_2d: Texture2D = null
 var _bh_lensing_tex: RID = RID()
 var _rt_size: Vector2i = Vector2i(512, 512)
 
@@ -4164,9 +4401,13 @@ func _make_render_texture(width: int, height: int) -> RID:
 	# The compute pass writes this image and Texture2DRD samples it directly
 	# through the main renderer. COPY_FROM is intentionally omitted: field
 	# presentation never reads the texture back to the CPU.
+	# The compute pass writes this image and Texture2DRD samples it directly.
+	# COPY_FROM is included for the volume history lifecycle.
 	fmt.usage_bits = RenderingDevice.TEXTURE_USAGE_STORAGE_BIT \
-				   | RenderingDevice.TEXTURE_USAGE_SAMPLING_BIT
-	var view = RDTextureView.new()
+				   | RenderingDevice.TEXTURE_USAGE_SAMPLING_BIT \
+				   | RenderingDevice.TEXTURE_USAGE_CAN_COPY_FROM_BIT \
+				   | RenderingDevice.TEXTURE_USAGE_CAN_UPDATE_BIT
+	var view := RDTextureView.new()
 	return _rd.texture_create(fmt, view, [])
 
 
@@ -4254,16 +4495,6 @@ const LUT_APPROACH_TOP := 0.998046875    # (255.5)/256 — the white point lands
 const LUT_APPROACH_SPAN := LUT_APPROACH_TOP - LUT_APPROACH_ENTRY  # 63 texel-intervals for the white-hot stage
 
 
-func _lut_compatible() -> bool:
-	# A band LUT cannot carry the TWO-AXIS per-instance lightness: base mode
-	# 4 modulates lightness with ρ = EY+EI per instance (no band curve can
-	# hold it) — the ONLY remaining gate. The VFX flags are LUT-compatible
-	# since 2026-08-14: size-by-mass (0x10) is transform-side (pos.w), and
-	# glow (0x20) / depth (0x40) ride the custom_data channels
-	# (u, glow_boost, depth_fade), applied by the billboard material on top
-	# of the LUT fetch — see cassi_instancer.glsl + particle_billboard.gdshader.
-	var base := particle_color_mode & 0xF
-	return base <= 3
 
 
 func _lut_active() -> bool:
@@ -4271,16 +4502,19 @@ func _lut_active() -> bool:
 	# (the buffer layout is fixed by use_colors/use_custom_data and cannot
 	# flip per-dispatch). color_lut_mode is read at build (reinit()).
 	#
-	# ADDITION (2026-08-16): the per-instance field-phase (base 5) and
-	# velocity-direction (base 6) modes CANNOT be baked into a 1-D band LUT —
-	# their hue is the two-fluid phase / velocity compass, not a band position
-	# (a LUT bake would collapse them onto the Qi amplitude curve, "same as
-	# Qi"). Force the legacy per-instance path whenever the active base mode
-	# is LUT-incompatible, even if color_lut_mode is true in the scene.
+	# Intrinsic phase/direction modes are always vertex-color formats.
 	if not _lut_compatible():
 		return false
 	return _mm_lut_mode
 
+
+func _lut_compatible() -> bool:
+	# The LUT contains only a scalar band curve. Base modes 4/5/6 have
+	# per-instance axes (density, phase, or direction) that cannot be
+	# represented by that static curve. High-nibble VFX flags remain valid:
+	# size is transform-side and glow/depth ride custom_data.
+	var base := int(particle_color_mode) & 0xF
+	return base >= 0 and base <= 3
 
 ## NON-DESTRUCTIVE MultiMesh format flip (2026-08-16): when the active color
 ## base mode becomes LUT-incompatible (field-phase 5 / velocity-direction 6)
@@ -4487,17 +4721,37 @@ func _fill_instancer_pc() -> void:
 	_instancer_pc_bytes.encode_float(36, _cam_p.y)
 	_instancer_pc_bytes.encode_float(40, _cam_p.z)
 	_instancer_pc_bytes.encode_float(44, float(particle_color_mode))  # slot 11
-	if particle_color_mode == 0:
-		# Mode 0 = Cassi mass gradient — the shader branch is untouched; the
-		# whole engine block (slots 12-31) is zeroed (nothing reads it).
-		for slot in range(48, 128, 4):
+	var packed_mode := int(particle_color_mode)
+	var base_mode := packed_mode & 0xF
+	if base_mode > 6:
+		push_warning("[CassiSim] particle_color_mode base %d is invalid; using base 0 while preserving flags" % base_mode)
+		base_mode = 0
+		packed_mode &= 0xF0
+		particle_color_mode = packed_mode
+	_instancer_pc_bytes.encode_float(44, float(packed_mode))
+	_instancer_pc_bytes.encode_float(112, ext_pc.x)
+	_instancer_pc_bytes.encode_float(116, ext_pc.y)
+	_instancer_pc_bytes.encode_float(120, ext_pc.z)
+	if base_mode == 0:
+		for slot in range(48, 112, 4):
 			_instancer_pc_bytes.encode_float(slot, 0.0)
-		_engine_c.fill(0.0)   # keep the shared engine cache consistent
+		_instancer_pc_bytes.encode_float(124, 0.0)
+		_engine_c.fill(0.0)
 		_update_lut_bake_sig()
 		return
-	# ── engine derivation (modes 1/2/3) ──────────────────────────────
-	var is_qi: bool = particle_color_mode >= 2
-	# pass count: rainbow_count 0 = AUTO (mode 3 → 2, else 1); explicit 1-8
+	if base_mode >= 5:
+		for slot in range(48, 112, 4):
+			_instancer_pc_bytes.encode_float(slot, 0.0)
+		_instancer_pc_bytes.encode_float(112, ext_pc.x)
+		_instancer_pc_bytes.encode_float(116, ext_pc.y)
+		_instancer_pc_bytes.encode_float(120, ext_pc.z)
+		_instancer_pc_bytes.encode_float(124, color_hue_offset)
+		if base_mode == 6:
+			_instancer_pc_bytes.encode_float(52, maxf(_rainbow_vref, 1e-6))
+		_engine_c.fill(0.0)
+		_update_lut_bake_sig()
+		return
+	var is_qi: bool = base_mode >= 2
 	var count: int = rainbow_count
 	if count > 8:
 		if not _warned_rainbow_count:
@@ -4505,9 +4759,9 @@ func _fill_instancer_pc() -> void:
 			push_warning("[CassiSim] rainbow_count=%d > 8 — clamped to 8" % count)
 		count = 8
 	if count <= 0:
-		count = 2 if particle_color_mode == 3 else 1
-	var h_cycle: float = 1.0 if is_qi else 0.95   # H_CYCLE (Qi full circle / velocity 0.95 top)
-	var prog: float = float(color_progress)       # 0 = log (default), 1 = linear
+		count = 2 if base_mode == 3 else 1
+	var h_cycle: float = 1.0 if is_qi else 0.95
+	var prog: float = float(color_progress)
 	var ref: float = 0.0
 	var lo1: float = 0.0
 	var hi_c: float = 0.0
@@ -4516,10 +4770,6 @@ func _fill_instancer_pc() -> void:
 	var a_hi: float = 0.0
 	var approach_on: float = 0.0
 	if is_qi:
-		# Qi: cycle band [qi_cycle] (calibrated full-channel default 0.005 → 0.95),
-		# pinch [qi_pinch], shares [color_shares]; approach [qi_approach].
-		ref = 0.0
-		lo1 = qi_cycle.x
 		hi_c = qi_cycle.y
 		pinch = qi_pinch
 		if lo1 >= hi_c:
@@ -4532,8 +4782,6 @@ func _fill_instancer_pc() -> void:
 		a_lo = qi_approach.x
 		a_hi = qi_approach.y
 		if qi_approach_tracks_threshold:
-			a_hi = qi_condensation_threshold
-		if a_lo < a_hi:
 			approach_on = 1.0
 			a_hi = maxf(a_hi, a_lo * 1.001)   # verbatim guard (white point above the entry)
 	else:
@@ -4660,21 +4908,28 @@ func _repaint_instancer() -> void:
 	# wrote pos_render from the engine's live pos. Inline: _pos_buf is
 	# current and its own physics-buffer sets are bound.
 	if _decoupled_active:
+		var selected: RID = RID()
 		if _ml_boxless_on():
-			if _lut_active() and _us_inst_0_lut_boxless_render_dc.is_valid():
-				_rd.compute_list_bind_uniform_set(cl, _us_inst_0_lut_boxless_render_dc, 0)
-			elif _us_inst_0_boxless_render_dc.is_valid():
-				_rd.compute_list_bind_uniform_set(cl, _us_inst_0_boxless_render_dc, 0)
+			selected = _us_inst_0_lut_boxless_render_dc if _lut_active() else _us_inst_0_boxless_render_dc
 		elif _lut_active():
-			if _us_inst_0_lut_render_dc.is_valid():
-				_rd.compute_list_bind_uniform_set(cl, _us_inst_0_lut_render_dc, 0)
-		elif _us_inst_0_render_dc.is_valid():
-			_rd.compute_list_bind_uniform_set(cl, _us_inst_0_render_dc, 0)
+			selected = _us_inst_0_lut_render_dc
+		else:
+			selected = _us_inst_0_render_dc
+		if not selected.is_valid():
+			_rd.compute_list_end()
+			return
+		_rd.compute_list_bind_uniform_set(cl, selected, 0)
 	elif _ml_boxless_on():
-		_rd.compute_list_bind_uniform_set(cl, _us_inst_0_lut_boxless if _lut_active() else _us_inst_0_boxless, 0)
+		var selected_inline: RID = _us_inst_0_lut_boxless if _lut_active() else _us_inst_0_boxless
+		if not selected_inline.is_valid():
+			_rd.compute_list_end()
+			return
+		_rd.compute_list_bind_uniform_set(cl, selected_inline, 0)
 	elif _lut_active():
+		if not _us_inst_0_lut.is_valid(): _rd.compute_list_end(); return
 		_rd.compute_list_bind_uniform_set(cl, _us_inst_0_lut, 0)
 	else:
+		if not _us_inst_0.is_valid(): _rd.compute_list_end(); return
 		_rd.compute_list_bind_uniform_set(cl, _us_inst_0, 0)
 	_rd.compute_list_set_push_constant(cl, _instancer_pc_bytes, _instancer_pc_bytes.size())
 	_rd.compute_list_dispatch(cl, pg, 1, 1)
@@ -5431,20 +5686,68 @@ func _dispatch_poisson(cl: int) -> void:
 		_barrier(cl)  # inverse FFT passes
 
 func _make_render_textures() -> void:
-	_rt_size = Vector2i(512, 512)
+	_render_texture_rebuild_count += 1
+	if _rt_size.x <= 0 or _rt_size.y <= 0:
+		_rt_size = Vector2i(512, 512)
 	# Image uniform sets reference the old textures — release them before
 	# the textures they point to.
 	if _us_fr_2.is_valid(): _rd.free_rid(_us_fr_2)
 	if _us_bh_lens_2.is_valid(): _rd.free_rid(_us_bh_lens_2)
-	_us_fr_2 = RID(); _us_bh_lens_2 = RID()
+	if _us_volume_0.is_valid(): _rd.free_rid(_us_volume_0)
 	if _field_render_tex.is_valid(): _rd.free_rid(_field_render_tex)
-	if _bh_lensing_tex.is_valid(): _rd.free_rid(_bh_lensing_tex)
+	if _volume_history_neutral.is_valid(): _rd.free_rid(_volume_history_neutral)
 	_field_render_tex = _make_render_texture(_rt_size.x, _rt_size.y)
-	_bh_lensing_tex = _make_render_texture(_rt_size.x, _rt_size.y)
+	_volume_history_neutral = _make_render_texture(_rt_size.x, _rt_size.y)
 	_update_bh_lens_params()
-	print("[CassiSim] Render textures: %dx%d" % [_rt_size.x, _rt_size.y])
-
-
+	var clear := PackedByteArray(); clear.resize(_rt_size.x * _rt_size.y * 16); clear.fill(0)
+	_rd.texture_update(_volume_history_neutral, 0, clear)
+func _render_site_volume() -> void:
+	var cam := _sim_cam
+	if cam == null: return
+	if _physics_engine == null or not bool(_physics_engine.get("_topology_ready")):
+		return
+	# The site-native producer writes the same shared render target consumed by
+	# the existing Texture2DRD → field_texture_updated → SimUI TextureRect
+	# seam. Keep the wrapper stable across frames; no CPU texture copy.
+	if field_display_texture == null or not (field_display_texture is Texture2DRD):
+		field_display_texture = CassiGpuTextureBridge.wrap(_field_render_tex)
+	var ext := _extents()
+	var transform: Transform3D = cam.global_transform
+	var fov := cam.fov * PI / 180.0
+	var generation := int(_physics_engine.topology_generation_value()) if _physics_engine != null else 0
+	var site_count := int(_physics_engine.topology_site_count_value()) if _physics_engine != null else 0
+	if not _volume_needs_dispatch(generation, site_count, transform, fov, _window_center, ext):
+		_volume_skip_count += 1
+		return
+	var started := Time.get_ticks_usec()
+	var origin := cam.global_position - _window_center
+	var forward := -transform.basis.z
+	# Keep the full 32-float fused-volume contract in one local packed array.
+	# The local serialization avoids relying on class-member PackedByteArray
+	# encode_float mutation, while preserving the existing first 12 slots.
+	var volume_pc: PackedFloat32Array = PackedFloat32Array([
+		origin.x, origin.y, origin.z, fov,
+		transform.basis.x.x, transform.basis.x.y, transform.basis.x.z, float(_rt_size.x),
+		transform.basis.y.x, transform.basis.y.y, transform.basis.y.z, float(_rt_size.y),
+		forward.x, forward.y, forward.z, float(site_count),
+		ext.x, ext.y, ext.z, float(grid_N),
+		float(generation), float(generation),
+		0.0, 0.0,
+		0.0, 128.0,
+		1e-3, float(generation),
+		0.0, 0.0,
+		0.0, 1.0,
+	])
+	_volume_pc_bytes = volume_pc.to_byte_array()
+	var cl := _rd.compute_list_begin()
+	_rd.compute_list_bind_compute_pipeline(cl, _volume_pipe); _rd.compute_list_bind_uniform_set(cl, _us_volume_0, 0)
+	_rd.compute_list_set_push_constant(cl, _volume_pc_bytes, 128); _rd.compute_list_dispatch(cl, ceili(_rt_size.x / 8.0), ceili(_rt_size.y / 8.0), 1); _rd.compute_list_end()
+	_volume_dispatch_id += 1
+	_volume_last_record_us = Time.get_ticks_usec() - started; _volume_max_record_us = maxi(_volume_max_record_us, _volume_last_record_us)
+	_note_volume_dispatch_frame(get_process_delta_time() * 1000.0)
+	_volume_last_generation = generation; _volume_last_site_count = site_count; _volume_last_cam_transform = transform; _volume_last_fov = fov; _volume_last_window_center = _window_center; _volume_last_extents = ext; _volume_last_rt_size = _rt_size; _volume_last_max_steps = 128.0; _volume_last_cutoff = 1e-3; _volume_cache_valid = true
+	# Publish the same Texture2DRD object through the existing SimUI seam.
+	field_texture_updated.emit(field_display_texture)
 func _cache_render_texture_sets() -> void:
 	# Rebuild ONLY the image uniform sets after _make_render_textures()
 	# recreates the textures (the old sets were freed there). The full
@@ -5517,6 +5820,22 @@ func _setup_multimesh() -> void:
 	_mm.use_custom_data = _mm_lut_mode
 	_mm.mesh = qm
 	_mm.instance_count = max(N_particles, 1)
+	if physics_decoupled:
+		# Godot's renderer-owned buffer needs one ordinary MultiMesh upload
+		# before a global-RD compute writer can hand it live records to the
+		# rasterizer. The decoupled engine owns the initial positions, so it
+		# cannot use _init_particles' full CPU upload; seed valid identity
+		# records here, while the first render list replaces them GPU-direct.
+		var seed_inst := PackedFloat32Array()
+		seed_inst.resize(max(N_particles, 1) * 16)
+		for i in range(max(N_particles, 1)):
+			var b := i * 16
+			seed_inst[b] = 1.0
+			seed_inst[b + 5] = 1.0
+			seed_inst[b + 10] = 1.0
+			seed_inst[b + 12] = 0.5
+			seed_inst[b + 14] = 1.0
+		_mm.buffer = seed_inst
 	_mm_particle_size = particle_size
 	_mm.custom_aabb = AABB(Vector3(-5000, -5000, -5000), Vector3(10000, 10000, 10000))
 
@@ -5547,8 +5866,8 @@ func _render_frame() -> void:
 	# qhist readback adds no separate global-RD self-stall between the render
 	# list recording and its submission. The flag gates the merge off on
 	# align frames (FIX 2: never share a frame between the merge burst and
-	# the align's device drain) — set from the DUE state, not after the run.
-	var align_due := auto_align_colors and particle_color_mode >= 2 \
+	var render_base: int = int(particle_color_mode) & 0xF
+	var align_due := auto_align_colors and render_base >= 2 and render_base <= 4 \
 			and _qhist_buf.is_valid() and _step_count > 0 \
 			and now_ms - _last_align_ms >= ALIGN_CADENCE_MS
 	_align_ran_this_frame = align_due
@@ -5564,20 +5883,6 @@ func _render_frame() -> void:
 		else:
 			_track_window_center()     # movable home-window: slow-cadence COM follow
 		_decoupled_poll_and_render()
-
-	# GPU-direct MultiMesh: NO per-frame readback/upload — the instancer
-	# shader wrote the renderer's buffer this frame. One-time debug print
-	# of the first instances (single small readback, cheap).
-	if not suppress_readbacks and not _inst_debug_done and _mm_rd_rid.is_valid() and _step_count >= 1:
-		_inst_debug_done = true
-		var inst_data = _rd.buffer_get_data(_mm_rd_rid, 0, min(3, N_particles) * 64)
-		if inst_data.size() >= 48:
-			var mm_f32 := inst_data.to_float32_array()
-			for inst_idx in range(min(3, N_particles)):
-				var b = inst_idx * 16
-				print("[CassiSim] inst[%d] origin=(%.2f,%.2f,%.2f) color=(%.2f,%.2f,%.2f,%.2f)" % [
-					inst_idx, mm_f32[b+3], mm_f32[b+7], mm_f32[b+11],
-					mm_f32[b+12], mm_f32[b+13], mm_f32[b+14], mm_f32[b+15]])
 
 	# Throttled diagnostics readback (wall-time ~3 Hz; the step-count gate
 	# fired 60×/s at high FPS and drained the local device each time).
@@ -5684,18 +5989,28 @@ func _render_frame() -> void:
 		_perf_last_ms = now_ms
 
 	var realtime_mode = int(mode)
-
 	match realtime_mode:
-		0:  # Particles mode (default N-body)
+		0:
 			_render_particles()
-		1:  # Field mode — transparent GPU volume behind the same particles
+		1:
 			_render_particles()
-			_render_field_slice()
-		2:  # Black hole mode — particles + BH formation, lensing only when BHs exist
+			if _ml_boxless_on():
+				_prepare_volume_resolution()
+				if _field_render_tex.is_valid() and _volume_history_neutral.is_valid():
+					if _volume_set_dirty or not _us_volume_0.is_valid():
+						_sync_volume_uniform_set()
+					if _volume_pipe.is_valid() and _us_volume_0.is_valid():
+						_render_site_volume()
+			elif not _decoupled_active:
+				# Legacy raster field rendering remains only for explicit
+				# inline compatibility arms. The live decoupled renderer
+				# retains its last site-volume image until topology is ready.
+				_render_field_slice()
+		2:
 			_render_particles()
 			if _q_mean > 0.0:
 				_render_bh_lensing()
-		3:  # Cosmology mode (particles + expanding field)
+		3:
 			_render_particles()
 
 
@@ -5816,8 +6131,13 @@ func _sample_occupancy() -> void:
 	if gpu_done:
 		return
 	# CPU fallback (legacy full-buffer readback + classification).
+	# Decoupled engines own the live particle positions; the sim mirror may
+	# remain intentionally stale between accepted publishes.
+	var live_pos_rid: RID = _pos_buf
+	if _decoupled_active and _physics_engine != null and _physics_engine._pos_buf.is_valid():
+		live_pos_rid = _physics_engine._pos_buf
 	_ensure_synced()
-	var pd = _rd.buffer_get_data(_pos_buf, 0, N_particles * 16)
+	var pd = _rd.buffer_get_data(live_pos_rid, 0, N_particles * 16)
 	if pd.size() < N_particles * 16:
 		return
 	var pf = pd.to_float32_array()
@@ -5864,7 +6184,10 @@ func _render_particles() -> void:
 	var now_ms := Time.get_ticks_msec()
 	if not suppress_readbacks and _step_count > 0 and now_ms - _last_p0_rb_ms >= 10000:
 		_last_p0_rb_ms = now_ms
-		var pos_data = _rd.buffer_get_data(_pos_buf, 0, 16)
+		var pos_rid: RID = _pos_buf
+		if _decoupled_active and _physics_engine != null and _physics_engine._pos_buf.is_valid():
+			pos_rid = _physics_engine._pos_buf
+		var pos_data = _rd.buffer_get_data(pos_rid, 0, 16)
 		if pos_data.size() >= 16:
 			var pos = pos_data.to_float32_array()
 			print("[CassiSim] p[0] = (%.3f, %.3f, %.3f)  steps=%d" % [
@@ -5921,12 +6244,148 @@ func _render_bh_lensing() -> void:
 			else:
 				bh_display_texture = ImageTexture.create_from_image(img)
 			bh_texture_updated.emit(bh_display_texture)
+func _setup_workbench_cursor() -> void:
+	_workbench_cursor_world = _window_center
+	if _workbench_cursor_marker != null:
+		return
+	_workbench_cursor_marker = MeshInstance3D.new()
+	_workbench_cursor_marker.name = "WorkbenchCursor"
+	var sphere := SphereMesh.new()
+	sphere.radius = 0.65
+	sphere.height = 1.3
+	_workbench_cursor_marker.mesh = sphere
+	var material := StandardMaterial3D.new()
+	material.albedo_color = Color(1.0, 0.72, 0.18, 0.92)
+	material.emission_enabled = true
+	material.emission = Color(1.0, 0.42, 0.08)
+	material.emission_energy_multiplier = 2.0
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_workbench_cursor_marker.material_override = material
+	_workbench_cursor_marker.visible = false
+	add_child(_workbench_cursor_marker)
+
+func _refresh_workbench_cursor_marker() -> void:
+	if _workbench_cursor_marker != null:
+		_workbench_cursor_marker.position = _workbench_cursor_world - _window_center
+		_workbench_cursor_marker.visible = _workbench_cursor_armed
+
+func workbench_set_cursor(world_position: Vector3, source := "numeric") -> Dictionary:
+	if not world_position.is_finite():
+		return {"ok": false, "error": "invalid_cursor"}
+	var ext := _extents()
+	var local := world_position - _window_center
+	_workbench_cursor_world = _window_center + Vector3(clampf(local.x,-ext.x,ext.x), clampf(local.y,-ext.y,ext.y), clampf(local.z,-ext.z,ext.z))
+	_refresh_workbench_cursor_marker()
+	workbench_cursor_changed.emit(_workbench_cursor_world, source)
+	return {"ok": true, "cursor": _workbench_cursor_world}
+func workbench_arm_cursor(armed: bool) -> Dictionary:
+	_workbench_cursor_armed = armed
+	_refresh_workbench_cursor_marker()
+	return {"ok": true, "armed": armed}
+
+func workbench_place_from_screen(screen_position: Vector2) -> Dictionary:
+	if not _workbench_cursor_armed:
+		return {"ok": false, "error": "cursor_not_armed"}
+	if _sim_cam == null:
+		return {"ok": false, "error": "camera_unavailable"}
+	var origin := _sim_cam.project_ray_origin(screen_position)
+	var direction := _sim_cam.project_ray_normal(screen_position).normalized()
+	var ext := _extents()
+	var relative := origin - _window_center
+	var denom := direction.dot(direction)
+	var t := direction.dot(_window_center - origin) / maxf(denom, 1e-12)
+	var point := origin + direction * maxf(t, _sim_cam.near * 4.0)
+	var local := point - _window_center
+	point = _window_center + Vector3(clampf(local.x,-ext.x,ext.x), clampf(local.y,-ext.y,ext.y), clampf(local.z,-ext.z,ext.z))
+	return workbench_set_cursor(point, "viewport")
+
+func workbench_status() -> Dictionary:
+	return field_workbench.status() if field_workbench != null else {"ok": false, "error": "workbench_unavailable"}
+
+func workbench_pause() -> Dictionary:
+	return field_workbench.pause()
+
+func workbench_resume() -> Dictionary:
+	return field_workbench.resume()
+
+func workbench_step(count := 1) -> Dictionary:
+	return field_workbench.step(count)
+
+func workbench_apply(command: Dictionary) -> Dictionary:
+	var queued: Dictionary = field_workbench.queue_command(command)
+	return field_workbench.apply_queued() if queued.ok else queued
+
+func workbench_measure(center: Vector3, radius: float) -> Dictionary:
+	return field_workbench.selected_readout(center, radius)
+
+func workbench_log() -> Array[Dictionary]:
+	return field_workbench.command_log()
+
+func workbench_capture_checkpoint() -> Dictionary:
+	return field_workbench.capture_checkpoint()
+
+func workbench_restore_checkpoint(checkpoint: Dictionary = {}) -> Dictionary:
+	return field_workbench.restore_checkpoint(checkpoint)
+
+func workbench_run_branch(name: String, commands: Array, steps := 0) -> Dictionary:
+	return field_workbench.run_branch(name, commands, steps)
+
+func workbench_compile_recipe(recipe: Array) -> Dictionary:
+	return WorkbenchInitialConditions.compile(recipe, {"extents": _extents(), "window_center": _window_center})
+
+func workbench_signature() -> Dictionary:
+	return WorkbenchSignatureScenario.verify_fixture()
+
+func workbench_save(path: String) -> Dictionary:
+	var saved: Dictionary = field_workbench.save_scenario()
+	if not saved.ok: return saved
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	if file == null: return {"ok": false, "error": "scenario_open_failed"}
+	file.store_string(JSON.stringify(saved.scenario))
+	return {"ok": true, "version": saved.version, "digest": saved.digest}
+
+func workbench_replay(path: String) -> Dictionary:
+	if not FileAccess.file_exists(path): return {"ok": false, "error": "scenario_missing"}
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null: return {"ok": false, "error": "scenario_open_failed"}
+	var parsed = JSON.parse_string(file.get_as_text())
+	return field_workbench.replay_scenario(parsed) if parsed is Dictionary else {"ok": false, "error": "scenario_parse_failed"}
+
+func _workbench_state() -> Dictionary:
+	return {"playing":playing, "decoupled_active":_decoupled_active, "boxless_active":meshless_mode and boxless_field, "meshless_mode":meshless_mode,
+		"particle_merge":particle_merge, "black_holes_enabled":black_holes_enabled, "tracking_envelope":tracking_envelope,
+		"home_window_enabled":home_window_enabled, "grid_N":grid_N, "extents":_extents(), "window_center":_window_center,
+		"step":_step_count, "time":_time}
+
+func _workbench_pause() -> void: playing = false
+func _workbench_resume() -> void: playing = true
+func _workbench_step(count: int) -> void: _run_physics_steps(count)
+func _workbench_step_count() -> int: return _step_count
+func _workbench_restore_clock(step: int, time_value: float) -> void:
+	_step_count = step
+	_time = time_value
+
+func _workbench_read_buffers() -> Dictionary:
+	if _rd == null or _decoupled_active: return {}
+	return {"grid_N":grid_N, "extents":_extents(), "window_center":_window_center,
+		"ey":_rd.buffer_get_data(_field_ey).to_float32_array(), "ei":_rd.buffer_get_data(_field_ei).to_float32_array(),
+		"q":_rd.buffer_get_data(_field_q).to_float32_array(), "vel":_rd.buffer_get_data(_field_vel).to_float32_array(),
+		"pos":_rd.buffer_get_data(_pos_buf).to_float32_array(), "pvel":_rd.buffer_get_data(_vel_buf).to_float32_array()}
+
+func _workbench_write_buffers(buffers: Dictionary) -> void:
+	for pair in [[_field_ey,buffers.ey],[_field_ei,buffers.ei],[_field_q,buffers.q],[_field_vel,buffers.vel],[_pos_buf,buffers.pos],[_vel_buf,buffers.pvel]]:
+		var values: PackedFloat32Array = pair[1]
+		_rd.buffer_update(pair[0], 0, values.size()*4, values.to_byte_array())
 
 # ═══════════════════════════════════════════════════════════════════════
 # Public API (for UI to call)
 # ═══════════════════════════════════════════════════════════════════════
 
 func reinit() -> void:
+	if field_workbench != null:
+		field_workbench.invalidate_state()
+	_workbench_cursor_world = _window_center
+	_refresh_workbench_cursor_marker()
 	# STOP ORDER (decoupled): stop the ENGINE worker FIRST (it may be
 	# blocked inside a tree-worker submit), THEN the tree worker (via
 	# _free_buffers → _tree_worker_stop below). The engine worker must
@@ -5963,6 +6422,9 @@ func reinit() -> void:
 			_dropped_steps = 0
 			print("[CassiSim] Reinitialized (decoupled)")
 			return
+		if gridless_physics:
+			_fail_gridless_physics("reinit engine start failed")
+			return
 		push_error("[CassiSim] decoupled reinit failed — falling back to the inline path")
 		_decoupled_active = false
 	_init_field()          # without this, every dispatch after reinit is stale
@@ -5992,6 +6454,9 @@ func reinit() -> void:
 ## swap is recorded into `_level_swap_r_delta`/`_level_prev_r` for the
 ## acceptance check (measured, not assumed).
 func apply_level(dir_path: String) -> bool:
+	if gridless_physics:
+		push_warning("[CassiSim] apply_level is unavailable for site-native physics; use reinit with site ICs")
+		return false
 	if not level_swap or dir_path.is_empty():
 		if level_swap:
 			push_warning("[CassiSim] apply_level: empty dir — no swap")

@@ -118,27 +118,22 @@ float tri_ei(vec3 gc, vec3 f) {
     return mix(q0, q1, f.z);
 }
 
-// BOXLESS coherence at a world point: the nearest Voronoi site's cell-averaged
-// (EY, EI). Coordinate-independent — no window, no extent, no %N wrap — so the
-// read stays correct even when the tracking envelope has not caught up with the
-// structure. Brute-force nearest-site over the live mesh (the qhist pass is
-// strided, so 8192 sites per sampled particle is cheap). Returns the bounded
-// coherence q_coh ∈ [0,1) (same formula as the grid path).
+// Boxless reference: sites and particles are compared in the same render-local
+// tile space. The host uploads site positions with the window translation
+// already removed, so no stale world/window offset can bias the brute-force arm.
 float site_coherence(vec3 wp) {
     int ns = int(pc.n_sites);
     if (ns <= 0) return 0.0;
+    vec3 tile_wp = wp + vec3(pc.extent_x, pc.extent_y, pc.extent_z);
     int best = 0;
     float bd = 1e30;
     for (int s = 0; s < ns; s++) {
-        vec3 d = site[s].xyz - wp;
+        vec3 d = site[s].xyz - tile_wp;
         float dd = dot(d, d);
         if (dd < bd) { bd = dd; best = s; }
     }
-    float ey = psy[best];
-    float ei = psi[best];
-    float rho = ey + ei;
-    float eps = ey - PHI * ei;
-    float rho2 = rho * rho;
+    float ey = psy[best], ei = psi[best];
+    float rho = ey + ei, eps = ey - PHI * ei, rho2 = rho * rho;
     return rho2 / (rho2 + PHI_INV2 + eps * eps);
 }
 

@@ -82,11 +82,11 @@ func _ready() -> void:
 		"river_q_ref", "field_attractor_init", "freeze_field", "initial_radius_fraction",
 		"initial_condition", "initial_v_circ_factor", "box_aspect", "box_scale", "mode",
 		"gradient_order", "dual_grid", "multi_rung_seed", "multi_rung_count",
-		"multi_rung_amp", "multi_rung_base_scale",
+		"multi_rung_amp", "multi_rung_base_scale", "meshless_mode", "meshless_gravity",
+		"gridless_physics", "boxless_field", "physics_decoupled", "color_lut_mode",
 		"particle_color_mode", "rainbow_count", "color_shares", "color_progress",
 		"qi_cycle", "qi_pinch", "qi_approach", "qi_approach_tracks_threshold",
-		"velocity_cycle", "velocity_pinch", "velocity_approach",
-		"color_hue_offset",
+		"velocity_cycle", "velocity_pinch", "velocity_approach", "color_hue_offset",
 		"auto_frame_camera_on_start",
 	]
 	var main_scene := load("res://scenes/main.tscn")
@@ -161,10 +161,16 @@ func _ready() -> void:
 				# re-encodes bh[3].x next frame).
 				_sim.set("black_holes_enabled", int(kv[1]) != 0)
 			"--color":
-				# Particle color scheme: 0 = Cassi gradient (default), 1 =
-				# velocity rainbow, 2 = Qi rainbow, 3 = Qi double rainbow.
-				# Live export read per physics step — no reinit needed.
-				_sim.set("particle_color_mode", int(kv[1]))
+				# Particle color packed mode: low nibble base 0..6, high
+				# nibble VFX flags 0x10/0x20/0x40. Live; --color 5/6
+				# use vertex colors and are not band-fit/LUT modes.
+				var cm := int(kv[1])
+				if cm >= 0 and cm <= 118:
+					_sim.set("particle_color_mode", cm)
+					if _sim.has_method("refresh_lut_format"):
+						_sim.call("refresh_lut_format")
+				else:
+					push_warning("[Recorder] --color needs packed mode 0..6 + flags 0x10/0x20/0x40")
 			"--rainbow-count":
 				# Rainbow passes over the cycle band: 0 = AUTO (mode 3 → 2,
 				# else 1), explicit 1-8. Live — no reinit.
@@ -244,7 +250,11 @@ func _apply_grad_pair(flag: String, value: String, kind: String) -> void:
 	if not (is_finite(lo) and is_finite(hi)) or not (lo > 0.0 and lo < hi):
 		push_warning("[Recorder] %s needs 0 < lo < hi (got %s)" % [flag, value])
 		return
-	if int(_sim.get("particle_color_mode")) >= 2:
+	var base := int(_sim.get("particle_color_mode")) & 0xF
+	if base < 1 or base > 4:
+		push_warning("[Recorder] %s ignored for packed color base %d (only bases 1-4 use band fitting)" % [flag, base])
+		return
+	if base >= 2:
 		if kind == "cycle":
 			_sim.set("qi_cycle", Vector2(lo, hi))
 		else:

@@ -115,15 +115,21 @@ box_scale·aspect_i·1.5·cluster_radius) — it separates the cluster from its
 periodic images (image forces drop like 1/(3·box_scale−1)²; scale ≈ 3 is
 the tested isolation regime) while preserving the aspect; `--bhs=0/1` sets
 the BH toggle live (no reinit);
-`--color=0/1/2/3` sets the particle color scheme via the legacy master
-selector, mapped onto the consolidated gradient engine:
+`--color=0..6` sets the packed particle color mode (low nibble base,
+high-nibble VFX flags `0x10` size-by-mass, `0x20` glow, `0x40` depth):
 
-| `--color` | Mode |
-|---|---|
-| 0 | Cassi mass gradient (default) |
-| 1 | Velocity rainbow — single pass, magenta-pink top at 0.95, held with no wrap beyond |
-| 2 | Qi rainbow — single pass over the cycle band + white-hot approach |
-| 3 | Qi double rainbow — two passes over the cycle band (≡ mode 2 with `--rainbow-count=2`) |
+| base | Mode |
+|---:|---|
+| 0 | Cassi mass gradient (legacy/default) |
+| 1 | Velocity speed rainbow |
+| 2 | Qi rainbow |
+| 3 | Qi double rainbow |
+| 4 | Two-axis q/ρ (vertex-color path) |
+| 5 | Field phase (vertex-color path; no band fit) |
+| 6 | Velocity direction (vertex-color path; no band fit) |
+
+The recorder inherits `color_lut_mode`, `boxless_field`, and
+`physics_decoupled` from `main.tscn`; LUT format is used only for bases 0–3.
 
 All rainbow modes share one engine: the CYCLE band (velocity: [0, v_max]
 measured at init, or `--grad-ranges`; Qi: the calibrated band [2e-4, 1e-3],

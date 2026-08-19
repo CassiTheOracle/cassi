@@ -1,5 +1,5 @@
 #[compute]
-// canonical layout: scripts/contracts/layout.gd §PC — 15 floats (60 B); sets 0 (0-8), 1 (0-3), 2 (0-1)
+// canonical layout: scripts/contracts/layout.gd §PC — 15 floats (60 B); sets 0 (0-9), 1 (0-3), 2 (0-1)
 #version 450
 // Cassi N-body Gravity — river-law chord-gradient force (DEFAULT) +
 // legacy coherence-gradient heuristic (A/B toggle) + BH point sources.
@@ -180,6 +180,9 @@ layout(set = 0, binding = 7, std430) buffer GradBuf { vec4 grad[]; };
 // g sampled at the shifted cell centers); sampled trilinearly by the river
 // arm and averaged with binding 7 when bh[3].y (the dual flag) is on.
 layout(set = 0, binding = 8, std430) buffer GradBuf2 { vec4 g2[]; };
+// Coarse long-range ∇(g·Φ), N_c = N_f/2. Legacy callers bind the fine
+// gradient here; bh[0].x keeps the read path disabled for cascade OFF.
+layout(set = 0, binding = 9, std430) readonly buffer CoarseGradBuf { vec4 cgrad[]; };
 layout(set = 1, binding = 0, std430) buffer Positions { vec4 pos[]; };
 layout(set = 1, binding = 1, std430) restrict buffer Velocities { vec4 vel[]; };
 layout(set = 1, binding = 2, std430) restrict buffer Accelerations { vec4 acc[]; };
@@ -188,7 +191,8 @@ layout(set = 1, binding = 2, std430) restrict buffer Accelerations { vec4 acc[];
 // Written by cassi_tree_gravity.glsl; read ONLY when gravity_mode == 5.
 layout(set = 1, binding = 3, std430) restrict readonly buffer TreeGrad { vec4 tgrad[]; };
 
-// BHData: bh[0].x = count (unused), bh[1].w = G_N, bh[2].x = cluster radius
+// BHData: bh[0].x = cascade multigrid toggle (legacy callers leave it 0),
+// bh[1].w = G_N, bh[2].x = cluster radius
 // (the Plummer softening scale), bh[2].yzw = per-axis box half-extents
 // (extent_x, extent_y, extent_z — the φ-aspect box, GRID_LAYOUT.md; the
 // samplers and the gradient pass map world → grid with each axis's own
@@ -242,6 +246,41 @@ const float PHI_INV3 = 0.2360679774997898;  // φ⁻³ — attractor density sca
                                             // (RealSim drag reference ρ_ref)
 
 // ── Index helpers ──────────────────────────────────────────────────────
+int idx3_coarse(int i, int j, int k, int N) {
+    return i + N * (j + N * k);
+}
+
+vec3 sample_coarse_grad(vec3 wp) {
+    int N = max(int(pc.N_f * 0.5), 1);
+    float hn = float(N) * 0.5;
+    vec3 ext = max(bh[2].yzw, vec3(0.0001));
+    vec3 gc = ((wp - bh[0].yzw) / ext) * hn + hn;
+    int i0 = int(floor(gc.x));
+    int j0 = int(floor(gc.y));
+    int k0 = int(floor(gc.z));
+    float fx = gc.x - float(i0);
+    float fy = gc.y - float(j0);
+    float fz = gc.z - float(k0);
+    i0 = ((i0 % N) + N) % N;
+    j0 = ((j0 % N) + N) % N;
+    k0 = ((k0 % N) + N) % N;
+    int i1 = (i0 + 1) % N;
+    int j1 = (j0 + 1) % N;
+    int k1 = (k0 + 1) % N;
+    int c000 = idx3_coarse(i0, j0, k0, N);
+    int c100 = idx3_coarse(i1, j0, k0, N);
+    int c010 = idx3_coarse(i0, j1, k0, N);
+    int c110 = idx3_coarse(i1, j1, k0, N);
+    int c001 = idx3_coarse(i0, j0, k1, N);
+    int c101 = idx3_coarse(i1, j0, k1, N);
+    int c011 = idx3_coarse(i0, j1, k1, N);
+    int c111 = idx3_coarse(i1, j1, k1, N);
+    return mix(mix(mix(cgrad[c000].xyz, cgrad[c100].xyz, fx),
+                   mix(cgrad[c010].xyz, cgrad[c110].xyz, fx), fy),
+               mix(mix(cgrad[c001].xyz, cgrad[c101].xyz, fx),
+                   mix(cgrad[c011].xyz, cgrad[c111].xyz, fx), fy), fz);
+}
+
 int idx3(int i, int j, int k) {
     int N = int(pc.N_f);
     return i + N * (j + N * k);
@@ -263,6 +302,8 @@ struct FieldSmp {
     float ei;      // EI trilinear at wp
     vec3 gradS;    // ∇(g·Φ) trilinear at wp (base lattice)
     vec3 gradS2;   // ∇(g·Φ) trilinear at wp (dual lattice; zeros when dual off)
+    vec3 gradSC;   // ∇(g·Φ) trilinear at wp (coarse; zeros when cascade off)
+    float cascade_w; // fine-force weight in the protected handoff window
     vec4 fvel;     // FieldVel trilinear at wp (RealSim only; zeros otherwise)
 };
 FieldSmp sample_fields(vec3 wp) {
@@ -330,6 +371,14 @@ FieldSmp sample_fields(vec3 wp) {
         int d111 = idx3(d1, e1, f1);
         s.gradS2 = mix(mix(mix(g2[d000].xyz, g2[d100].xyz, fx2), mix(g2[d010].xyz, g2[d110].xyz, fx2), fy2),
                        mix(mix(g2[d001].xyz, g2[d101].xyz, fx2), mix(g2[d011].xyz, g2[d111].xyz, fx2), fy2), fz2);
+    }
+    if (bh[0].x > 0.5) {
+        s.gradSC = sample_coarse_grad(wp);
+        int Nc = max(N / 2, 1);
+        vec3 hc_vec = 2.0 * ext / float(Nc);
+        float hc = length(hc_vec) / sqrt(3.0);
+        float r = length(wp - bh[0].yzw);
+        s.cascade_w = 1.0 - smoothstep(4.0 * hc, 7.0 * hc, r);
     }
     s.fvel = vec4(0.0);
     if (pc.gravity_mode > 3.5) {
@@ -528,6 +577,12 @@ vec3 river_field_acc_smp(FieldSmp fs, inout TeleStats st) {
     chord_g_from(fs.ey, fs.ei, q_unused, pi_over_rho, st);
     float G_N = bh[1].w;
     vec3 gv = (bh[3].y > 0.5) ? 0.5 * (fs.gradS + fs.gradS2) : fs.gradS;
+    if (bh[0].x > 0.5) {
+        float N_f = max(pc.N_f, 1.0);
+        float N_c = max(floor(0.5 * pc.N_f), 1.0);
+        float coarse_volume = pow(N_c / N_f, 3.0);
+        gv = fs.cascade_w * gv + (1.0 - fs.cascade_w) * coarse_volume * fs.gradSC;
+    }
     return -G_N * pi_over_rho * gv;
 }
 

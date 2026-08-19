@@ -102,7 +102,7 @@ func _set_particle(pos3: Vector3, mass: float) -> void:
 	var v = PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 	sim._rd.buffer_update(sim._pos_buf, 0, 32, p.to_byte_array())
 	sim._rd.buffer_update(sim._vel_buf, 0, 32, v.to_byte_array())
-
+	sim._rd.buffer_update(sim._acc_buf, 0, 32, v.to_byte_array())
 
 # Two-particle setup: particle 0 = the MASS (deposited into ρ), particle 1 =
 # the PROBE (tiny mass 1e-4 — its own well is negligible). A single particle
@@ -114,6 +114,7 @@ func _set_two(mass_pos: Vector3, probe_pos: Vector3) -> void:
 	var v = PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 	sim._rd.buffer_update(sim._pos_buf, 0, 32, p.to_byte_array())
 	sim._rd.buffer_update(sim._vel_buf, 0, 32, v.to_byte_array())
+	sim._rd.buffer_update(sim._acc_buf, 0, 32, v.to_byte_array())
 
 
 func _read_phi() -> PackedFloat32Array:
@@ -206,19 +207,15 @@ func _clamp_pi(pi_raw: float, rho_f: float) -> float:
 # cell fields + ~7× fewer per-particle evaluations), NOT a tolerance
 # change — every threshold below is untouched.
 
-# Cell-centered central-difference gradient of a scalar field (periodic
-# wraps), sampled trilinearly at wp — exactly the shader's grad_main +
-# tri_grad (2h normalization, same wrap).
-# NOTE (2026-08-09, gated experiment): a separable Catmull-Rom tricubic
-# sampler was measured as the anisotropy lever and REVERTED — it did not
-# reduce the ring bias (1.0482/1.1445 vs the trilinear 1.0441/1.1293 at
-# r=8h/4h): the anisotropy is the discrete torus-Green field's cubic
-# structure, not the sampler.
+# Cell-centered central-difference gradient of a scalar field (periodic),
+# sampled trilinearly at wp — exactly the shader's grad_pass + tri_grad
+# (3-point when gradient_order=2; 5-point O4 when gradient_order=4).
 func _cell_grad_tri(field: PackedFloat32Array, wp: Vector3) -> Vector3:
 	var gx = PackedFloat32Array(); gx.resize(nc)
 	var gy = PackedFloat32Array(); gy.resize(nc)
 	var gz = PackedFloat32Array(); gz.resize(nc)
 	var inv2h := 1.0 / (2.0 * h)
+	var use_o4: bool = sim.gradient_order > 3
 	for k in range(N):
 		for j in range(N):
 			for i in range(N):
@@ -229,9 +226,20 @@ func _cell_grad_tri(field: PackedFloat32Array, wp: Vector3) -> Vector3:
 				var jm := i + N * (((j - 1 + N) % N) + N * k)
 				var kp := i + N * (j + N * ((k + 1) % N))
 				var km := i + N * (j + N * ((k - 1 + N) % N))
-				gx[id] = (field[ip] - field[im]) * inv2h
-				gy[id] = (field[jp] - field[jm]) * inv2h
-				gz[id] = (field[kp] - field[km]) * inv2h
+				if use_o4:
+					var i2p := ((i + 2) % N) + N * (j + N * k)
+					var i2m := ((i - 2 + N) % N) + N * (j + N * k)
+					var j2p := i + N * (((j + 2) % N) + N * k)
+					var j2m := i + N * (((j - 2 + N) % N) + N * k)
+					var k2p := i + N * (j + N * ((k + 2) % N))
+					var k2m := i + N * (j + N * ((k - 2 + N) % N))
+					gx[id] = (-field[i2p] + 8.0 * field[ip] - 8.0 * field[im] + field[i2m]) / (12.0 * h)
+					gy[id] = (-field[j2p] + 8.0 * field[jp] - 8.0 * field[jm] + field[j2m]) / (12.0 * h)
+					gz[id] = (-field[k2p] + 8.0 * field[kp] - 8.0 * field[km] + field[k2m]) / (12.0 * h)
+				else:
+					gx[id] = (field[ip] - field[im]) * inv2h
+					gy[id] = (field[jp] - field[jm]) * inv2h
+					gz[id] = (field[kp] - field[km]) * inv2h
 	return Vector3(_tri(gx, wp), _tri(gy, wp), _tri(gz, wp))
 
 

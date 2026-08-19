@@ -177,21 +177,30 @@ void gather_main() {
     uint s = gl_GlobalInvocationID.x;
     if (int(s) >= int(pc.N_f)) return;
     vec4 sp = site[s];
-    // site's grid cell (leapfrog convention: gi = floor(sp.x / hx) % N)
-    int N = int(pc.grid_N);
-    float hx = (pc.extent_x > 0.0) ? 2.0 * pc.extent_x / float(N) : 1.0;
-    float hy = (pc.extent_y > 0.0) ? 2.0 * pc.extent_y / float(N) : 1.0;
-    float hz = (pc.extent_z > 0.0) ? 2.0 * pc.extent_z / float(N) : 1.0;
-    int gi = int(floor(sp.x / hx)) % N;
-    int gj = int(floor(sp.y / hy)) % N;
-    int gk = int(floor(sp.z / hz)) % N;
-    float rho_mass = mrho[gi * N * N + gj * N + gk];
     float ey = psy[s];
     float ei = psi[s];
     float V = max(mvol[s], 1e-12);
     float rho_field = ey + ei;
-    float mfield = max(rho_field * V, pc.field_floor * V);
-    float mass = rho_mass * V + mfield;
+    float rho_mass;
+    float mass;
+    if (pc.field_floor < 0.0) {
+        // Site-native source path: mlrho is already the particle mass
+        // accumulated at this site. No lattice-cell projection is allowed.
+        rho_mass = max(mrho[s], 0.0);
+        mass = rho_mass + max(rho_field * V, 0.0);
+    } else {
+        // Legacy compatibility path: sample the initialized field grid.
+        int N = int(pc.grid_N);
+        float hx = (pc.extent_x > 0.0) ? 2.0 * pc.extent_x / float(N) : 1.0;
+        float hy = (pc.extent_y > 0.0) ? 2.0 * pc.extent_y / float(N) : 1.0;
+        float hz = (pc.extent_z > 0.0) ? 2.0 * pc.extent_z / float(N) : 1.0;
+        int gi = int(floor(sp.x / hx)) % N;
+        int gj = int(floor(sp.y / hy)) % N;
+        int gk = int(floor(sp.z / hz)) % N;
+        rho_mass = mrho[gi * N * N + gj * N + gk];
+        float mfield = max(rho_field * V, pc.field_floor * V);
+        mass = rho_mass * V + mfield;
+    }
     src[2 * s] = vec4(sp.xyz, mass);
     src[2 * s + 1] = vec4(ey, ei, 0.0, 0.0);
     // chord + Morton key (identical to mode 0 prepare)

@@ -9,20 +9,13 @@ extends SceneTree
 ## Godot process, so the process TREE must be killed), and quits with exit
 ## code 0 only when all 33 pass.
 ##
-## WINDOW SPLIT: the arms that create their OWN local RenderingDevice
-## (RenderingServer.create_local_rendering_device) and never touch the sim's
-## global RD are self-contained and run --headless (verify_fmm, verify_merge,
-## verify_synth, verify_voronoi3d*, verify_meshless_reconstruct,
-## verify_mind_engine, verify_bh_accretion_engine, verify_merge_engine,
-## verify_multigrid_engine, verify_rho_front, verify_eps_gap,
-## verify_subsonic_step, verify_omega_invariant). The arms that run the full
-## sim (cassi_sim.gd — the global RD has no headless device on this rig), or
-## need a real viewport/draw surface (verify_volumetric, validate_sim_ui), or
-## read the sim's global RD back (verify_meshless_gravity) stay windowed.
+## LAUNCH MODE: every child scene arm runs windowed, sequentially. Both the
+## sim's global RenderingDevice and the arms' local RenderingDevices require a
+## real window on this rig.
 ##
 ## The runner itself never touches a RenderingDevice, so IT may run headless
-## (--headless on the runner is fine and recommended); ONLY the local-RD arms
-## are launched headless, the rest run windowed.
+## (--headless on the runner is fine and recommended). Child scene arms are
+## separate processes and are always launched windowed.
 ##
 ## Run (from the space-sim project dir, i.e. where project.godot lives):
 ##   "C:/Users/Carina/AppData/Local/Microsoft/WinGet/Packages/GodotEngine.GodotEngine.Mono_Microsoft.Winget.Source_8wekyb3d8bbwe/Godot_v4.7.1-stable_mono_win64/Godot_v4.7.1-stable_mono_win64_console.exe" \
@@ -69,7 +62,7 @@ const ARMS := [
 	"verify_merge",
 	"verify_meshless_sim",
 	"verify_meshless_stability",
-	"verify_particle_vfx",
+	"verify_gridless_physics",
 	"verify_phi_box",
 	"verify_ring",
 	"verify_river_law",
@@ -101,34 +94,6 @@ const ARMS := [
 	"verify_omega_invariant",
 ]
 
-## Arms that run --headless: each is SELF-CONTAINED on its OWN local
-## RenderingDevice (RenderingServer.create_local_rendering_device) and never
-## touches the sim's global RD, a viewport, or a draw surface — so it does not
-## need a window on this rig. Classified 2026-08-16 by reading each arm's
-## script (NOT the README's older, partly-wrong "local-RD" claim): verify_synth
-## and verify_meshless_gravity were in that list; synth is truly self-contained
-## (headless), but meshless_gravity reads the planted state back from the sim's
-## global RD and stays windowed. The voronoi3d_aniso / _moving_aniso scenes use
-## the base verify_voronoi3d / _moving scripts (local RD), so they inherit
-## headless. verify_mind_engine gets its RD from cassi_mind_engine.gd.
-const HEADLESS_ARMS := {
-	"verify_fmm": true,
-	"verify_merge": true,
-	"verify_synth": true,
-	"verify_voronoi3d": true,
-	"verify_voronoi3d_moving": true,
-	"verify_voronoi3d_aniso": true,
-	"verify_voronoi3d_moving_aniso": true,
-	"verify_meshless_reconstruct": true,
-	"verify_mind_engine": true,
-	"verify_bh_accretion_engine": true,
-	"verify_merge_engine": true,
-	"verify_multigrid_engine": true,
-	"verify_rho_front": true,
-	"verify_eps_gap": true,
-	"verify_subsonic_step": true,
-	"verify_omega_invariant": true,
-}
 
 var _idx := 0            # index of the arm being run (or next to launch)
 var _state := 0          # 0 = launch next, 1 = polling arm, 2 = waiting after kill
@@ -181,9 +146,8 @@ func _launch(i: int) -> void:
 	var log_file := "%s/battery_logs/arm%02d_%s.log" % [
 		ProjectSettings.globalize_path("res://_diag"), i + 1, name]
 	_log_path = log_file.replace("/", "\\")
-	var headless := "--headless " if HEADLESS_ARMS.has(name) else ""
-	var cmd_line := "\"%s\" --path . %s%s > \"%s\" 2>&1" % [GODOT_EXE.replace("/", "\\"), headless, scene, _log_path]
-	print("[Battery] arm %d/%d %s — %s%s" % [i + 1, ARMS.size(), name, scene, " [headless]" if headless != "" else ""])
+	var cmd_line := "\"%s\" --path . %s > \"%s\" 2>&1" % [GODOT_EXE.replace("/", "\\"), scene, _log_path]
+	print("[Battery] arm %d/%d %s — %s" % [i + 1, ARMS.size(), name, scene])
 	_pid = OS.create_process("cmd.exe", PackedStringArray(["/c", cmd_line]))
 	if _pid == 0:
 		_record(name, false, 0.0, "launch failed")

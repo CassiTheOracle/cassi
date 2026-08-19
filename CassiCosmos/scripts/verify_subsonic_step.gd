@@ -17,13 +17,14 @@ extends Node
 ##   along y (→ |v_t| = |v_rel| exactly).
 ##   To isolate the subsonic gate, the pair must be GRAVITATIONALLY BOUND at
 ##   BOTH speeds (so the ONLY blocker at the high speed is the subsonic gate).
-##   Binding test ½μ|v_rel|²·d < G_eff·m², with μ = m/2, requires at the UPPER
-##   speed (v = 1.05·c_s = 1230.47): m > v²d/(4·G_eff).
-##   G_eff = G_N·(1 + ξ·q_mid), q_mid ≈ 0.947 (uniform HIGH-q field EY=φ,EI=1),
-##   ξ = φ⁶ = 17.944 → g_eff ≈ 18.0. v²·d = 1230.47²·0.4 ≈ 605,623;
-##   /(4·18.0) ≈ 8,413 → choose m = 20,000 (≈2.4× margin, comfortably bound
-##   at both speeds). f_virial = 0 (the big mass would trigger the virial
-##   stop); f_order = 1, f_subsonic = 1.
+##   Binding test ½μ|v_rel|²·d < g_n·m², with μ = m/2, uses the actual
+##   pass_best push constant g_n = G_N = 1 (not the φ⁶-amplified bulk-force
+##   coupling). At the UPPER speed (v = 1.05·c_s = 1230.47), this requires
+##   m > v²d/(4·g_n).
+##   v²·d = 1230.47²·0.4 ≈ 605,621; /(4·1.0) ≈ 151,405 → choose
+##   m = 400,000 (≈2.64× margin, comfortably bound at both speeds).
+##   f_virial = 0 (disabled to isolate the binding/subsonic gates);
+##   f_order = 1, f_subsonic = 1.
 ##
 ## Gates:
 ##   G-S1  subsonic run: |v_t| = 0.95·c_s = 1113.28 < c_s → pair MERGES
@@ -49,7 +50,7 @@ const G_N := 1.0
 const DT := 0.001                              # c_s = H0/DT = 1171.875
 const C_S := H0 / DT
 const D_PAIR := 0.4                            # separation (< R_m)
-const MASS := 20000.0                          # binds at both speeds
+const MASS := 400000.0                         # binds at both speeds for g_n=G_N=1
 const MAX_CYCLES := 16
 const HIGH_EY: float = PHI
 const HIGH_EI := 1.0                           # q_coh ≈ 0.947
@@ -107,19 +108,19 @@ func _ready() -> void:
 	_make_buffers()
 	_upload_field()
 
-	# print the derived threshold + binding numbers up front
+	# print the derived threshold + actual Newtonian binding numbers up front
 	print("[SubsonicStep] h0=%.6f  c_s=h0/dt=%.3f  R_m=%.4f" % [H0, C_S, R_M])
 	print("[SubsonicStep] subsonic run v_t=%.2f (0.95·c_s); supersonic run v_t=%.2f (1.05·c_s)"
 		% [0.95 * C_S, 1.05 * C_S])
-	var qm := 0.0  # recompute g_eff from the planted field value
+	var qm := 0.0  # q_coh from the planted field; the binding gate uses pc.g_n
 	var rho := HIGH_EY + HIGH_EI
 	var eps := HIGH_EY - PHI * HIGH_EI
 	qm = (rho * rho) / (rho * rho + PHI_INV2 + eps * eps)
-	var g_eff := G_N * (1.0 + XI * qm)
+	var g_n := G_N  # _fill_pc slot 16: the shader's actual pair-binding constant
 	var v_up := 1.05 * C_S
-	var req_m := v_up * v_up * D_PAIR / (4.0 * g_eff)
-	print("[SubsonicStep] q_mid=%.6f  g_eff=%.4f  required m at v_up=%.1f → %.1f (chose %.0f, ×%.2f)"
-		% [qm, g_eff, v_up, req_m, MASS, MASS / req_m])
+	var req_m := v_up * v_up * D_PAIR / (4.0 * g_n)
+	print("[SubsonicStep] q_mid=%.6f  g_n=%.4f  required m at v_up=%.1f → %.1f (chose %.0f, ×%.2f)"
+		% [qm, g_n, v_up, req_m, MASS, MASS / req_m])
 
 	# subsonic run: |v_t| = 0.95·c_s
 	_build_input(0.95 * C_S)
@@ -128,8 +129,8 @@ func _ready() -> void:
 	var alive_a := _alive_count()
 	print("[SubsonicStep] subsonic run: v_t=%.2f → merges=%d alive=%d" % [0.95 * C_S, merges_a, alive_a])
 	_check("G-S1: subsonic pair (|v_t|=0.95·c_s) merges (alive==1)",
-		alive_a == 1, "alive=%d ½μv²d=%s g_eff·m²=%s"
-			% [alive_a, str(0.5 * (MASS / 2.0) * (0.95 * C_S) * (0.95 * C_S) * D_PAIR), str(g_eff * MASS * MASS)])
+		alive_a == 1, "alive=%d ½μv²d=%s g_n·m²=%s"
+			% [alive_a, str(0.5 * (MASS / 2.0) * (0.95 * C_S) * (0.95 * C_S) * D_PAIR), str(g_n * MASS * MASS)])
 
 	# supersonic run: |v_t| = 1.05·c_s
 	_build_input(1.05 * C_S)
@@ -205,7 +206,7 @@ func _u(binding: int, buf: RID) -> RDUniform:
 
 
 ## Uniform HIGH-q field everywhere → q_coh ≈ 0.947, q_ord = 1; isolates the
-## subsonic gate (binding passes at both speeds by the mass choice).
+## subsonic gate (binding passes at both speeds by the Newtonian mass choice).
 func _upload_field() -> void:
 	var ey := PackedFloat32Array(); ey.resize(CELLS)
 	var ei := PackedFloat32Array(); ei.resize(CELLS)
@@ -260,12 +261,12 @@ func _fill_pc(pass_mode: float) -> void:
 	_pc[13] = CELL_W
 	_pc[14] = CELL_W
 	_pc[15] = pass_mode
-	_pc[16] = G_N
+	_pc[16] = G_N      # g_n: pass_best's Newtonian pair-binding/virial constant
 	_pc[17] = XI
 	_pc[18] = H0
 	_pc[19] = DT
 	_pc[20] = 1.0   # f_subsonic (the gate under test)
-	_pc[21] = 0.0   # f_virial OFF (the big mass would trigger the virial stop)
+	_pc[21] = 0.0   # f_virial OFF (this fixture isolates binding + subsonic gates)
 	_pc[22] = 1.0   # f_order
 	_pc[23] = 0.0   # cyc_slot
 	_pc[24] = 0.0   # boxless (site-direct read) — off in these tests → grid path

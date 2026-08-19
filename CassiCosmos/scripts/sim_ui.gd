@@ -69,7 +69,24 @@ var _vfx_glow_btn: CheckButton
 var _vfx_depth_btn: CheckButton
 var _vfx_twoaxis_btn: CheckButton
 
-var _server_ip_edit: LineEdit
+var _workbench_page: VBoxContainer
+var _wb_status_label: Label
+var _wb_pause_btn: CButton
+var _wb_step_btn: CButton
+var _wb_apply_btn: CButton
+var _wb_tool_opt: COptionParam
+var _wb_lens_opt: COptionParam
+var _wb_center_spins: Array[CSpinParam] = []
+var _wb_radius_spin: CSpinParam
+var _wb_strength_spin: CSpinParam
+var _wb_vector_spins: Array[CSpinParam] = []
+var _wb_ratio_spin: CSpinParam
+var _wb_save_btn: CButton
+var _wb_replay_btn: CButton
+var _wb_cursor_arm: CheckButton
+var _wb_checkpoint_btn: CButton
+var _wb_branch_btn: CButton
+var _wb_signature_btn: CButton
 var _server_port_edit: LineEdit
 
 var _fps_accum: float = 0.0
@@ -85,10 +102,9 @@ var _viz_texture_rect: TextureRect
 ## interactive GradientLegend (outside the scroll body so its MOUSE_FILTER_STOP
 ## can never swallow scroll events).
 var _control_panel: CPanel
-## The rail's root VBox (header + tabs + run + scroll + footer).
-var _control_root: VBoxContainer
-## Horizontal tab bar: Setup | Visuals | System.
-var _tab_bar: CSegmented
+var _setup_page: VBoxContainer
+var _visuals_page: VBoxContainer
+var _system_page: VBoxContainer
 ## Rail collapse button (hides the rail), + the small reopen button that
 ## reappears at the left edge when the rail is collapsed. Session-local;
 ## no persistence.
@@ -97,13 +113,12 @@ var _rail_reopen_btn: CButton
 var _rail_collapsed: bool = false
 ## Scroll container for the active tab's content.
 var _scroll: ScrollContainer
-## The tab pages (one VBoxContainer each, visibility-switched by tab).
-var _setup_page: VBoxContainer
-var _visuals_page: VBoxContainer
-var _system_page: VBoxContainer
 ## Content VBoxes holding the already-built page roots (fed by the rail
 ## build helpers). `_rail_root_vbox` fills the scroll body width.
 var _tab_stack: VBoxContainer
+var _control_root: VBoxContainer
+var _tab_bar: CSegmented
+var _server_ip_edit: LineEdit
 ## Falsify lives in System/Diagnostics (it stays status-visible on the info
 ## panel only while its toggle is on — see _on_falsify_toggled).
 ## Rail width (px): 320 at and above 960-wide viewports, else the panel
@@ -199,9 +214,11 @@ const EXTRA_PARAMS: Array[Dictionary] = [
 	{"id": "bh_accretion_radius",      "prop": "bh_accretion_radius",      "caption": "Accretion radius:", "token": "mint",    "min": 0.001, "max": 10.0,   "step": 0.001,  "reinit": false, "tooltip": "World-unit radius at which falling matter is marked for accretion (≈1× default softening). Live."},
 	{"id": "box_scale",                "prop": "box_scale",                "caption": "Box scale:",        "token": "gold",    "min": 0.25,  "max": 5.0,    "step": 0.05,   "reinit": true,  "tooltip": "Uniform rescale of all three box extents (aspect preserved). Reinit applies the new box extents."},
 	{"id": "realsim_drag",             "prop": "realsim_drag",             "caption": "RealSim γ:",        "token": "sep",     "min": 0.0,   "max": 5.0,    "step": 0.05,   "reinit": false, "tooltip": "RealSim background drag rate a=−γ·(ρ/ρ_ref)·v (γ=0.5 default). Live."},
-	{"id": "realsim_viscosity",        "prop": "realsim_viscosity",        "caption": "RealSim ν:",        "token": "sep",     "min": 0.0,   "max": 5.0,    "step": 0.05,   "reinit": false, "tooltip": "RealSim shear-coupling rate to the medium a=−ν·(v−v_field) (ν=0.3 default). Live."},
-	{"id": "realsim_friction",         "prop": "realsim_friction",         "caption": "RealSim μ:",        "token": "sep",     "min": 0.0,   "max": 1.0,    "step": 0.01,   "reinit": false, "tooltip": "RealSim Coulomb floor a=−min(μ·|a_g|,|v|/dt)·v̂, never reverses (μ=0.01 default). Live."},
+	{"id": "realsim_viscosity",        "prop": "realsim_viscosity",        "caption": "RealSim ν:",        "token": "sep",     "min": 0.0,   "max": 5.0,    "step": 0.05,   "reinit": false, "tooltip": "RealSim shear-coupling rate to the medium. Live."},
+	{"id": "realsim_friction",         "prop": "realsim_friction",         "caption": "RealSim μ:",        "token": "sep",     "min": 0.0,   "max": 1.0,    "step": 0.01,   "reinit": false, "tooltip": "RealSim Coulomb friction floor. Live."},
 ]
+## Horizontal tab-bar labels in order (0=Setup, 1=Visuals, 2=System, 3=Workbench).
+const TAB_NAMES: Array[String] = ["Setup", "Visuals", "System", "Workbench"]
 ## Generic backed TOGGLES — existing CassiSim boolean exports the UI now
 ## exposes. reinit=true ones call sim.reinit() after setting; live ones
 ## apply next frame (the sim re-encodes its PC/bh header from the property).
@@ -213,8 +230,6 @@ const EXTRA_TOGGLES: Array[Dictionary] = [
 	{"id": "field_attractor_init",  "prop": "field_attractor_init",  "reinit": true,  "caption": "Field attractor", "tooltip": "Seed the initial field near the φ-attractor (init-time — applies on reinit)."},
 	{"id": "freeze_field",          "prop": "freeze_field",          "reinit": false, "caption": "Freeze field",    "tooltip": "Diagnostic: initialize the two-fluid field once and leave it frozen (live tick)."},
 ]
-## Horizontal tab-bar labels in order (0=Setup, 1=Visuals, 2=System).
-const TAB_NAMES: Array[String] = ["Setup", "Visuals", "System"]
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -330,6 +345,8 @@ func _ready() -> void:
 			sim.field_texture_updated.connect(_on_field_texture_updated)
 		if sim.has_signal("bh_texture_updated"):
 			sim.bh_texture_updated.connect(_on_field_texture_updated)
+		if sim.has_signal("workbench_cursor_changed"):
+			sim.workbench_cursor_changed.connect(_on_wb_cursor_changed)
 
 	# ── Floating status panel (top-left / right of the rail) ────
 	# Compact: FPS/Mode line, connection line, and the (hidden-until-on)
@@ -370,13 +387,11 @@ func _ready() -> void:
 	# rail is built from helper methods below so the tab pages are compact.
 	_build_rail()
 
-	# Build the three tab pages (Setup / Visuals / System) and their
-	# sections. These place the existing control-object construction
-	# (PARAMS rows, color controls, VFX, toggles, server fields) into the
-	# new per-tab section containers.
+	# Build the four tab pages (Setup / Visuals / System / Workbench).
 	_build_setup_page()
 	_build_visuals_page()
 	_build_system_page()
+	_build_workbench_page()
 	_sync_extra_params()
 	_tab_bar.set_selected_no_signal(0)
 	_show_tab(0)
@@ -390,8 +405,6 @@ func _ready() -> void:
 	call_deferred("_update_layout")
 
 
-	# Init from sim if available — all no-signal setters so syncing the
-	# sim's live values never fires a spurious callback/reinit on startup.
 	sim = _get_sim()
 	if sim:
 		_nclusters_spin.set_value_no_signal(sim.num_clusters)
@@ -431,6 +444,18 @@ func _ready() -> void:
 	# All interactive controls (CButton/CToggle/CParam slider/CSegmented +
 	# CSpinParam/COptionParam) bake FOCUS_NONE in at the component level, so
 	# the WASD camera keys are never stolen — no per-control focus lines here.
+	call_deferred("_update_info")
+
+
+func _process(delta: float) -> void:
+	_fps_accum += delta
+	_fps_count += 1
+	if _fps_accum < 0.25:
+		return
+	_fps_display = float(_fps_count) / _fps_accum
+	_fps_accum = 0.0
+	_fps_count = 0
+	_update_info()
 
 
 ## Recompute the layout after build, on viewport resize, on rail toggle, on
@@ -480,20 +505,18 @@ func _update_layout() -> void:
 ## the status panel to top-left (session-local only; no persistence).
 func _on_rail_collapse_toggled() -> void:
 	_rail_collapsed = not _rail_collapsed
+	if _wb_cursor_arm != null and _wb_cursor_arm.button_pressed:
+		_wb_cursor_arm.set_pressed_no_signal(false)
+		_wb_call("workbench_arm_cursor", [false])
 	_update_layout()
-
-
-## Reopen the rail from the collapsed left-edge button.
-func _on_rail_reopen_pressed() -> void:
-	_rail_collapsed = false
-	_update_layout()
-
-
 ## View switching is visibility-only — never calls simulation callbacks.
 ## The active page's ScrollContainer scroll is reset to the top so each tab
 ## opens at its section start.
 func _on_tab_selected(index: int) -> void:
 	_show_tab(index)
+	if index != 3 and _wb_cursor_arm != null and _wb_cursor_arm.button_pressed:
+		_wb_cursor_arm.set_pressed_no_signal(false)
+		_wb_call("workbench_arm_cursor", [false])
 	call_deferred("_update_layout")
 
 
@@ -504,21 +527,20 @@ func _show_tab(index: int) -> void:
 		_visuals_page.visible = (index == 1)
 	if _system_page:
 		_system_page.visible = (index == 2)
+	if _workbench_page:
+		_workbench_page.visible = (index == 3)
 	if _scroll != null:
 		_scroll.scroll_vertical = 0
-
-
-## Re-fit the panel when a group collapses/expands — the active page's
-## height changes, so the status panel re-sizes to its children.
-func _on_group_toggled(_is_collapsed: bool) -> void:
-	call_deferred("_update_layout")
-
-
-# ═══════════════════════════════════════════════════════════════════════
 # Rail construction — the fixed full-height left operator rail
 # ═══════════════════════════════════════════════════════════════════════
 
 ## Build the rail's chrome shell: header (CASSI + collapse), horizontal
+func _on_rail_reopen_pressed() -> void:
+	_rail_collapsed = false
+	_update_layout()
+
+func _on_group_toggled(_is_collapsed: bool) -> void:
+	call_deferred("_update_layout")
 ## tab bar, always-visible Run card, the scroll body holding the tab pages,
 ## and the fixed footer (scale label + GradientLegend).
 func _build_rail() -> void:
@@ -596,7 +618,7 @@ func _build_rail() -> void:
 	_gravity_seg.tooltip_text = "Select the gravity law used by the particle solver."
 	run_content.add_child(_gravity_seg)
 
-	# ── Scroll body — holds the three tab pages (one visible) ──
+	# ── Scroll body — holds the four tab pages (one visible) ──
 	_scroll = ScrollContainer.new()
 	_scroll.custom_minimum_size = Vector2(0, 0)
 	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -625,6 +647,10 @@ func _build_rail() -> void:
 	_system_page.add_theme_constant_override("separation", 8)
 	_system_page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_tab_stack.add_child(_system_page)
+	_workbench_page = VBoxContainer.new()
+	_workbench_page.add_theme_constant_override("separation", 8)
+	_workbench_page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_tab_stack.add_child(_workbench_page)
 
 	# ── Fixed footer (outside the scroll body): scale + legend ─
 	# The GradientLegend is MOUSE_FILTER_STOP, so it lives here — its
@@ -895,8 +921,7 @@ func _build_visuals_page() -> void:
 	_fit_btn = Button.new()
 	_fit_btn.name = "FitColorsBtn"
 	_fit_btn.text = "Fit scale"
-	_fit_btn.tooltip_text = "Reset the active source to a simple one-pass scale; then drag LOW and HIGH on the legend"
-	_fit_btn.custom_minimum_size = Vector2(78, 22)
+	_fit_btn.tooltip_text = "Fit LOW/HIGH for band modes 1–4; phase/direction modes 5/6 ignore band fitting"
 	_fit_btn.focus_mode = Control.FOCUS_NONE
 	_fit_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	_fit_btn.pressed.connect(_on_fit_colors)
@@ -912,9 +937,7 @@ func _build_visuals_page() -> void:
 	_auto_align_btn = CheckButton.new()
 	_auto_align_btn.name = "AutoAlignBtn"
 	_auto_align_btn.text = "Auto"
-	_auto_align_btn.tooltip_text = "Keep the Qi color band aligned to the live bounded coherence q_coh distribution. Dragging a handle or Fit takes over manually."
-	_auto_align_btn.custom_minimum_size = Vector2(56, 22)
-	_auto_align_btn.focus_mode = Control.FOCUS_NONE
+	_auto_align_btn.tooltip_text = "Auto-fit bounded Qi bands for modes 2–4; phase/direction modes 5/6 ignore band fitting"
 	_auto_align_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	_auto_align_btn.toggled.connect(_on_auto_align_toggled)
 	cm_auto.add_child(_auto_align_btn)
@@ -1089,7 +1112,188 @@ func _build_system_page() -> void:
 	_server_port_edit.editable = false
 	_server_port_edit.modulate = _tok_color("disabled")
 	srv_row.add_child(_server_port_edit)
+func _build_workbench_page() -> void:
+	var intro := _make_label("Paused, explicit Apply only. Lens/readout is view-only.", "text_hint", "param")
+	intro.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_workbench_page.add_child(intro)
+	var transport := _add_section(_workbench_page, "Workbench transport", "")
+	var tr := HBoxContainer.new()
+	transport.add_child(tr)
+	_wb_pause_btn = CButton.make("Pause / Resume", _on_wb_pause)
+	_wb_pause_btn.tooltip_text = "Toggle the simulation pause state; workbench mutations require paused."
+	tr.add_child(_wb_pause_btn)
+	_wb_step_btn = CButton.make("Step 1", _on_wb_step)
+	_wb_step_btn.tooltip_text = "Advance exactly one deterministic physics step while paused."
+	tr.add_child(_wb_step_btn)
+	_wb_status_label = _make_label("Workbench ready (view-only)", "text_dim", "param")
+	_wb_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	transport.add_child(_wb_status_label)
 
+	var tool_sec := _add_section(_workbench_page, "Field operation", "")
+	_wb_tool_opt = COptionParam.new()
+	_wb_tool_opt.box_min_width = ROW_WIDTH
+	_wb_tool_opt.setup("Tool", "gold", ["Deposit", "Align", "Impulse"], 0, Callable(self, "_on_wb_tool"))
+	_wb_tool_opt.tooltip_text = "Choose an operation; selection alone never mutates physics."
+	tool_sec.add_child(_wb_tool_opt)
+	var grid := GridContainer.new()
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 5)
+	tool_sec.add_child(grid)
+	for axis in ["X", "Y", "Z"]:
+		var s := CSpinParam.new()
+		s.box_min_width = ROW_WIDTH
+		s.setup("Center %s" % axis, "gold_soft", -10000.0, 10000.0, 0.1, 0.0, Callable())
+		s.spin.tooltip_text = "World-space center coordinate (%s)." % axis
+		grid.add_child(s)
+		_wb_center_spins.append(s)
+	_wb_cursor_arm = CheckButton.new()
+	_wb_cursor_arm.text = "Place in viewport"
+	_wb_cursor_arm.tooltip_text = "Arm left-click placement in the 3D viewport. Leaving Workbench or collapsing the rail disarms it."
+	_wb_cursor_arm.focus_mode = Control.FOCUS_NONE
+	_wb_cursor_arm.toggled.connect(_on_wb_cursor_armed)
+	tool_sec.add_child(_wb_cursor_arm)
+	_wb_radius_spin = _wb_make_spin("Radius", 1.0, 0.1, 10000.0, "Selection radius in world units.")
+	grid.add_child(_wb_radius_spin)
+	_wb_strength_spin = _wb_make_spin("Strength", 1.0, -10000.0, 10000.0, "Operation strength; staged until Apply.")
+	grid.add_child(_wb_strength_spin)
+	_wb_vector_spins.clear()
+	for axis in ["X", "Y", "Z"]:
+		var v := _wb_make_spin("Vector %s" % axis, 0.0, -10000.0, 10000.0, "Impulse/alignment vector component.")
+		grid.add_child(v)
+		_wb_vector_spins.append(v)
+	_wb_ratio_spin = _wb_make_spin("Ratio", 1.0, -10000.0, 10000.0, "Optional alignment ratio.")
+	grid.add_child(_wb_ratio_spin)
+	_wb_apply_btn = CButton.make("Apply", _on_wb_apply)
+	_wb_apply_btn.tooltip_text = "Apply the staged operation. Requires an available API and a paused simulation."
+	tool_sec.add_child(_wb_apply_btn)
+
+	var view_sec := _add_section(_workbench_page, "Measure / scenario", "")
+	_wb_lens_opt = COptionParam.new()
+	_wb_lens_opt.box_min_width = ROW_WIDTH
+	_wb_lens_opt.setup("Lens", "mint", ["Qi", "Density", "Phase", "Velocity"], 0, Callable(self, "_on_wb_lens"))
+	_wb_lens_opt.tooltip_text = "Choose a readout lens; this never changes simulation physics."
+	view_sec.add_child(_wb_lens_opt)
+	var vr := HBoxContainer.new()
+	view_sec.add_child(vr)
+	var measure := CButton.make("Measure region", _on_wb_measure)
+	measure.tooltip_text = "Read the selected region using the active lens."
+	vr.add_child(measure)
+	_wb_save_btn = CButton.make("Save scenario", _on_wb_save)
+	_wb_save_btn.tooltip_text = "Save deterministic workbench state to user://workbench_scenario.json."
+	vr.add_child(_wb_save_btn)
+	_wb_replay_btn = CButton.make("Replay scenario", _on_wb_replay)
+	_wb_replay_btn.tooltip_text = "Replay user://workbench_scenario.json."
+	vr.add_child(_wb_replay_btn)
+	var branch_row := HBoxContainer.new()
+	view_sec.add_child(branch_row)
+	_wb_checkpoint_btn = CButton.make("Checkpoint", _on_wb_checkpoint)
+	_wb_checkpoint_btn.tooltip_text = "Capture the exact supported inline/grid state."
+	branch_row.add_child(_wb_checkpoint_btn)
+	_wb_branch_btn = CButton.make("Compare branch", _on_wb_branch)
+	_wb_branch_btn.tooltip_text = "Restore the checkpoint, apply the staged operation, and show fixed-scale differences."
+	branch_row.add_child(_wb_branch_btn)
+	_wb_signature_btn = CButton.make("Energy ≠ coherence", _on_wb_signature)
+	_wb_signature_btn.tooltip_text = "Run the equal-field-intensity, different-coherence guided fixture."
+	view_sec.add_child(_wb_signature_btn)
+
+func _wb_make_spin(caption: String, value: float, min_v: float, max_v: float, tip: String) -> CSpinParam:
+	var s := CSpinParam.new()
+	s.box_min_width = ROW_WIDTH
+	s.setup(caption, "gold_soft", min_v, max_v, 0.1, value, Callable())
+	s.spin.tooltip_text = tip
+	return s
+
+func _wb_status(text: String) -> void:
+	if _wb_status_label != null:
+		_wb_status_label.text = text
+
+func _wb_call(method: String, args: Array = []) -> Variant:
+	var sim = _get_sim()
+	if sim == null:
+		_wb_status("Workbench: CassiSim unavailable")
+		return null
+	if not sim.has_method(method):
+		_wb_status("Workbench: API missing %s" % method)
+		return null
+	return sim.callv(method, args)
+func _on_wb_cursor_armed(armed: bool) -> void:
+	var result = _wb_call("workbench_arm_cursor", [armed])
+	if result is Dictionary and bool(result.get("ok", false)):
+		_wb_status("Workbench: viewport placement %s" % ("armed" if armed else "disarmed"))
+
+func _on_wb_cursor_changed(world_position: Vector3, _source: String) -> void:
+	if _wb_center_spins.size() != 3:
+		return
+	_wb_center_spins[0].set_value_no_signal(world_position.x)
+	_wb_center_spins[1].set_value_no_signal(world_position.y)
+	_wb_center_spins[2].set_value_no_signal(world_position.z)
+
+func _on_wb_pause() -> void:
+	var sim = _get_sim()
+	if sim == null: return
+	if sim.has_method("workbench_pause") and not sim.playing:
+		sim.call("workbench_resume")
+	elif sim.has_method("workbench_pause"):
+		sim.call("workbench_pause")
+	else:
+		sim.playing = not sim.playing
+	_wb_status("Workbench: %s" % ("running" if sim.playing else "paused"))
+
+func _on_wb_step() -> void:
+	var sim = _get_sim()
+	if sim == null: return
+	if sim.playing:
+		_wb_status("Pause before stepping (no mutation performed)")
+		return
+	if _wb_call("workbench_step", [1]) != null:
+		_wb_status("Workbench: stepped 1")
+
+func _on_wb_tool(_idx: int) -> void:
+	_wb_status("Workbench: tool staged; click Apply while paused")
+
+func _on_wb_lens(_idx: int) -> void:
+	_wb_status("Workbench: lens changed (view-only)")
+
+func _wb_dict() -> Dictionary:
+	return {"tool": _wb_tool_opt.get_value(), "center": Vector3(_wb_center_spins[0].get_value(), _wb_center_spins[1].get_value(), _wb_center_spins[2].get_value()), "radius": _wb_radius_spin.get_value(), "strength": _wb_strength_spin.get_value(), "vector": Vector3(_wb_vector_spins[0].get_value(), _wb_vector_spins[1].get_value(), _wb_vector_spins[2].get_value()), "ratio": _wb_ratio_spin.get_value()}
+
+func _on_wb_apply() -> void:
+	var sim = _get_sim()
+	if sim == null: return
+	if sim.playing:
+		_wb_status("Workbench: pause before Apply")
+		return
+	if _wb_call("workbench_apply", [_wb_dict()]) != null:
+		_wb_status("Workbench: operation applied")
+
+func _on_wb_measure() -> void:
+	var d := _wb_dict()
+	var result = _wb_call("workbench_measure", [d.center, d.radius])
+	if result != null:
+		_wb_status("Workbench measurement: %s" % str(result))
+
+func _on_wb_save() -> void:
+	if _wb_call("workbench_save", ["user://workbench_scenario.json"]) != null:
+		_wb_status("Workbench: saved user://workbench_scenario.json")
+func _on_wb_checkpoint() -> void:
+	var result = _wb_call("workbench_capture_checkpoint")
+	if result is Dictionary:
+		_wb_status("Checkpoint: %s" % str(result.get("digest", result.get("error", "unavailable"))))
+
+func _on_wb_branch() -> void:
+	var result = _wb_call("workbench_run_branch", ["staged", [_wb_dict()], 0])
+	if result is Dictionary:
+		_wb_status("Branch difference: %s" % str(result.get("difference", result.get("error", "unavailable"))))
+
+func _on_wb_signature() -> void:
+	var result = _wb_call("workbench_signature")
+	if result is Dictionary:
+		_wb_status("Equal E², different coherence: %s" % str(result))
+
+func _on_wb_replay() -> void:
+	if _wb_call("workbench_replay", ["user://workbench_scenario.json"]) != null:
+		_wb_status("Workbench: replayed user://workbench_scenario.json")
 
 ## Build one System-page CheckButton with the house interaction defaults.
 ## NOTE: the callback is NOT connected here — these toggles are
@@ -1202,35 +1406,36 @@ func _build_param_row(p: Dictionary) -> Control:
 
 
 func _sync_color_widgets(sim: Node3D) -> void:
-	var cm: int = sim.particle_color_mode
+	var cm: int = int(sim.particle_color_mode)
 	var base: int = cm & 0xF
 	var flags: int = (cm >> 4) & 0xF
 	_rainbow_btn.set_pressed_no_signal(base >= 1)
-	# source dropdown: 0=vel-dir(6), 1=Qi(2), 2=field-phase(5), 3=vel-speed(1)
+	# source dropdown: 0=vel-dir(6), 1=Qi(2/4), 2=field-phase(5), 3=vel-speed(1)
 	match base:
 		6: _color_src_opt.select(0)
-		2, 4: _color_src_opt.select(1)   # Qi amplitude / two-axis ρ (both Qi source)
+		2, 4: _color_src_opt.select(1)
 		5: _color_src_opt.select(2)
 		1: _color_src_opt.select(3)
 	_auto_align_btn.set_pressed_no_signal(sim.auto_align_colors)
 	_vfx_twoaxis_btn.set_pressed_no_signal(base == 4)
-	_vfx_size_btn.set_pressed_no_signal((flags & 0x10) != 0)
-	_vfx_glow_btn.set_pressed_no_signal((flags & 0x20) != 0)
-	_vfx_depth_btn.set_pressed_no_signal((flags & 0x40) != 0)
+	_vfx_size_btn.set_pressed_no_signal((flags & 0x1) != 0)
+	_vfx_glow_btn.set_pressed_no_signal((flags & 0x2) != 0)
+	_vfx_depth_btn.set_pressed_no_signal((flags & 0x4) != 0)
 	_sync_color_enabled()
 	if _legend:
-		_legend.set_sim(sim, _color_src_opt.selected == 1 or _color_src_opt.selected == 2)
+		var band_fit := base >= 1 and base <= 4
+		_legend.set_sim(sim, band_fit and (_color_src_opt.selected == 1 or _color_src_opt.selected == 2))
 	_update_scale_label()
 
 
 ## Live numeric readout of the active color scale (the values the LOW/HIGH
 ## legend handles set). Engine slots: 2 = lo1, 10 = hiC, 13 = a_hi (white
-## point), 15 = approach_on. Empty when the rainbow is off.
 func _update_scale_label() -> void:
 	var sim = _get_sim()
 	if sim == null or _scale_label == null:
 		return
-	if sim.particle_color_mode == 0 or not sim.has_method("gradient_engine"):
+	var base := int(sim.particle_color_mode) & 0xF
+	if base == 0 or base >= 5 or not sim.has_method("gradient_engine"):
 		_scale_label.text = ""
 		return
 	var e: PackedFloat32Array = sim.gradient_engine()
@@ -1263,8 +1468,13 @@ func _fmt_scale(v: float) -> String:
 
 func _sync_color_enabled() -> void:
 	var on: bool = _rainbow_btn.button_pressed
+	var base := int(_get_sim().particle_color_mode) & 0xF if _get_sim() != null else 0
+	var band_fit := base >= 1 and base <= 4
 	_color_src_opt.disabled = not on
-	_fit_btn.disabled = not on
+	_fit_btn.disabled = not on or not band_fit
+	_auto_align_btn.disabled = not on or not band_fit
+	if not band_fit and _auto_align_btn.button_pressed:
+		_auto_align_btn.set_pressed_no_signal(false)
 
 
 func _on_field_texture_updated(tex: Texture2D) -> void:
@@ -1298,12 +1508,18 @@ func _falsify_tick(delta: float) -> void:
 	var sim = _get_sim()
 	if sim == null or sim._rd == null:
 		return
-	if sim._field_ey == null or sim._field_ei == null:
-		return
-	if not sim._field_ey.is_valid() or not sim._field_ei.is_valid():
-		return
+	if bool(sim.gridless_physics):
+		var site_eng = sim._physics_engine
+		if site_eng == null or not site_eng._ml_psi_y.is_valid() \
+				or not site_eng._ml_psi_i.is_valid() or not site_eng._ml_vol.is_valid():
+			return
+	else:
+		if sim._field_ey == null or sim._field_ei == null:
+			return
+		if not sim._field_ey.is_valid() or not sim._field_ei.is_valid():
+			return
 	if sim.suppress_readbacks:
-		return  # reading the global RD would stall — leave the last estimate
+		return  # reading the live RD would stall — leave the last estimate
 	_falsify_accum += delta
 	if _falsify_accum * 1000.0 < float(FALSIFY_PERIOD_MS):
 		return
@@ -1324,6 +1540,48 @@ func _falsify_measure_r() -> float:
 	var sim = _get_sim()
 	if sim == null or sim._rd == null:
 		return -1.0
+	# Gridless production uses the authoritative moving-site field. The
+	# volume weighting preserves the survey observable while avoiding any
+	# raster buffer read.
+	if bool(sim.gridless_physics):
+		var site_eng = sim._physics_engine
+		if site_eng == null or site_eng._rd == null:
+			return -1.0
+		if not site_eng._ml_psi_y.is_valid() or not site_eng._ml_psi_i.is_valid() \
+				or not site_eng._ml_vol.is_valid():
+			return -1.0
+		var ns: int = int(site_eng._ml_tree_nsrc)
+		if ns <= 0:
+			return -1.0
+		var sample_sites: int = mini(ns, FALSIFY_MAX_CELLS)
+		var offset_sites: int = maxi((ns - sample_sites) / 2, 0)
+		var ey_d: PackedByteArray = site_eng._rd.buffer_get_data(
+			site_eng._ml_psi_y, offset_sites * 4, sample_sites * 4)
+		var ei_d: PackedByteArray = site_eng._rd.buffer_get_data(
+			site_eng._ml_psi_i, offset_sites * 4, sample_sites * 4)
+		var vol_d: PackedByteArray = site_eng._rd.buffer_get_data(
+			site_eng._ml_vol, offset_sites * 4, sample_sites * 4)
+		if ey_d.size() < sample_sites * 4 or ei_d.size() < sample_sites * 4 \
+				or vol_d.size() < sample_sites * 4:
+			return -1.0
+		var ey_site := ey_d.to_float32_array()
+		var ei_site := ei_d.to_float32_array()
+		var vol_site := vol_d.to_float32_array()
+		var ey_sum := 0.0
+		var ei_sum := 0.0
+		var n_ok := 0
+		for i in range(sample_sites):
+			var eyv: float = ey_site[i]
+			var eiv: float = ei_site[i]
+			var vv: float = vol_site[i]
+			if is_finite(eyv) and is_finite(eiv) and is_finite(vv) \
+					and eyv > 0.0 and eiv > 0.0 and vv > 0.0:
+				ey_sum += eyv * vv
+				ei_sum += eiv * vv
+				n_ok += 1
+		if n_ok < 64 or ei_sum <= 0.0:
+			return -1.0
+		return ey_sum / ei_sum
 	if not sim._field_ey.is_valid() or not sim._field_ei.is_valid():
 		return -1.0
 	var nc: int = sim.grid_N * sim.grid_N * sim.grid_N
@@ -1511,26 +1769,21 @@ func _fmt_sign(v: float) -> String:
 # ═══════════════════════════════════════════════════════════════════════
 # Process & input
 # ═══════════════════════════════════════════════════════════════════════
-
-func _process(delta: float) -> void:
-	_fps_accum += delta; _fps_count += 1
-	if _falsify_btn != null and _falsify_btn.button_pressed:
-		_falsify_tick(delta)
-	if _fps_accum >= 0.5:
-		_fps_display = _fps_count / _fps_accum
-		_fps_accum = 0.0; _fps_count = 0
-		_update_info()  # status strings change at ~2 Hz; no per-frame rebuilds
-
-
 func _input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed:
-		match event.keycode:
-			KEY_SPACE:
-				_on_play_toggled()
-				get_viewport().set_input_as_handled()
-			KEY_R:
-				_on_reinit()
-				get_viewport().set_input_as_handled()
+	if not event is InputEventKey or not event.pressed:
+		return
+	var focus := get_viewport().gui_get_focus_owner()
+	if focus is LineEdit or focus is TextEdit or focus is SpinBox:
+		return
+	match event.keycode:
+		KEY_SPACE:
+			_on_play_toggled()
+			get_viewport().set_input_as_handled()
+		KEY_R:
+			_on_reinit()
+			get_viewport().set_input_as_handled()
+
+
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -1612,30 +1865,24 @@ func _on_vfx_twoaxis_toggled(on: bool) -> void:
 ## mass gradient, 1 = velocity SPEED, 2 = Qi amplitude, 4 = two-axis q/ρ,
 ## 5 = field-phase, 6 = velocity DIRECTION), high nibble = feature flags
 ## (0x10 size-by-mass, 0x20 additive glow, 0x40 depth cue). Defaults (all
-## VFX + rainbow off) → 0, bit-identical to the legacy path.
 func _apply_particle_color_mode(sim: Node3D) -> void:
-	var old_base: int = sim.particle_color_mode & 0xF
+	var old_base: int = int(sim.particle_color_mode) & 0xF
 	var base := 0
 	if _rainbow_btn.button_pressed:
 		match _color_src_opt.selected:
-			0: base = 6   # velocity DIRECTION: hue = atan2(vy,vx) compass, lightness = speed
-			1: base = 2   # Qi amplitude rainbow
-			2: base = 5   # field-PHASE: hue = atan2(EI,EY), lightness = q_coh
-			3: base = 1   # velocity SPEED (legacy speed rainbow)
+			0: base = 6
+			1: base = 2
+			2: base = 5
+			3: base = 1
 	var flags := 0
-	if _vfx_size_btn.button_pressed:  flags |= 0x10  # size-by-mass
-	if _vfx_glow_btn.button_pressed:  flags |= 0x20  # additive glow
-	if _vfx_depth_btn.button_pressed: flags |= 0x40  # depth cue
+	if _vfx_size_btn.button_pressed: flags |= 0x10
+	if _vfx_glow_btn.button_pressed: flags |= 0x20
+	if _vfx_depth_btn.button_pressed: flags |= 0x40
 	sim.particle_color_mode = base | flags
-	# Modes 5/6 (field-phase / velocity-direction) are per-instance and cannot
-	# ride the band LUT — flip the MultiMesh format (colors vs custom_data)
-	# non-destructively when the base-mode change crosses the LUT-compatible
-	# boundary (base ≤ 3), so the instancer's per-instance colors take effect
-	# instead of being baked onto the Qi LUT curve ("same as Qi").
-	var old_lut: bool = old_base <= 3
-	var new_lut: bool = base <= 3
-	if old_lut != new_lut and sim.has_method("refresh_lut_format"):
-		sim.refresh_lut_format()
+	var new_base: int = base & 0xF
+	if old_base <= 3 and new_base > 3 or old_base > 3 and new_base <= 3:
+		if sim.has_method("refresh_lut_format"):
+			sim.refresh_lut_format()
 
 
 func _on_legend_changed() -> void:
@@ -1649,13 +1896,19 @@ func _on_legend_changed() -> void:
 func _on_fit_colors() -> void:
 	var sim = _get_sim()
 	if sim == null: return
+	var base := int(sim.particle_color_mode) & 0xF
+	if base >= 5:
+		sim.auto_align_colors = false
+		_auto_align_btn.set_pressed_no_signal(false)
+		_scale_label.text = ""
+		_repaint_if_paused(sim)
+		return
 	sim.auto_align_colors = false
-	_auto_align_btn.set_pressed_no_signal(false)
-	var qi_source: bool = _color_src_opt.selected == 1
 	sim.rainbow_count = 1
 	sim.color_shares = Vector3(1.0, 0.0, 0.0)
 	sim.color_progress = 0
 	sim.color_hue_offset = 0.0
+	var qi_source: bool = _color_src_opt.selected == 1 or _color_src_opt.selected == 2
 	if qi_source:
 		# A stable, measured starting band on the BOUNDED q_coh channel
 		# q_coh = ρ²/(ρ²+φ⁻²+ε²) ∈ [0,1). Calibrated 2026-08-15 by
@@ -1766,6 +2019,11 @@ func _on_multirung_toggled(on: bool) -> void:
 func _on_meshless_toggled(on: bool) -> void:
 	var sim = _get_sim()
 	if sim == null: return
+	if bool(sim.gridless_physics) and not on:
+		push_warning("[SimUI] meshless mode is mandatory for site-native physics")
+		if _meshless_btn != null:
+			_meshless_btn.set_pressed_no_signal(true)
+		return
 	sim.meshless_mode = on
 	sim.reinit()  # IC seeding is init-time (particle draw) — reinit applies
 

@@ -13,12 +13,13 @@
 // default-off; the legacy color path (color_mode 0..3, flags = 0) is
 // bit-for-bit preserved. New features are selected by EXTENDING the
 // color_mode value read from the host PC: the low nibble is the base mode
-// (0..3 legacy, 4 = two-axis hue=q/lightness=ρ), and the high nibble is a
-// FEATURE-FLAG bitfield that any base mode can carry:
-//   bit0 (0x10) = SIZE_BY_MASS (basis scale ∝ cbrt(pos.w))
+// (0..6), and the high nibble is a FEATURE-FLAG bitfield:
+//   bit0 (0x10) = SIZE_BY_MASS (basis scale ∝ cbrt(pos.w)
 //   bit1 (0x20) = ADDITIVE_GLOW (bright-core additive look + halo ramp)
 //   bit2 (0x40) = DEPTH_CUE (per-instance fade with camera distance)
-// Example: particle_color_mode = 2 + 0x10 = 18 → Qi rainbow + size-by-mass.
+// Base modes 0–4 use the calibrated band engine; modes 5/6 use phase and
+// direction directly and never consume band fitting. Flags compose with all
+// base modes. Example: particle_color_mode = 5 + 0x10 = 21.
 //
 // MASS IS PER-PARTICLE: the Positions buffer's vec4.w carries the Salpeter
 // mass (m ∈ [0.3, 30] M☉) — written by _init_particles, preserved verbatim
@@ -90,24 +91,21 @@ layout(set = 0, binding = 7, std430) readonly buffer Shortlist { vec4 sl[]; };
 layout(set = 0, binding = 8, std430) readonly buffer SitePsiY { float psy[]; };
 layout(set = 0, binding = 9, std430) readonly buffer SitePsiI { float psi[]; };
 layout(set = 0, binding = 10, std430) readonly buffer ShortlistCount { uint cnt; };
-// ── Boxless site hash (boxless_site_hash_prereg.md): the spatial hash over the
-// shortlist. The boxless instancer set binds 11/12/13; the query uses them (with
-// extent_x from the PC) to do a bounded growing-ring nearest-coherent-site lookup
-// instead of the linear O(shortlist) scan. Default (flag.y ≤ 0.5) never reads them.
+// Hash buffers use the same stable tile-space coordinates as the shortlist.
+// binding 13 cfg = (origin_x, origin_y, origin_z, cell_side_x); the query
+// derives per-axis cell widths from the PC extents and H. Site positions and
+// query positions are both tile-space, so moving-window translation cancels.
 layout(set = 0, binding = 11, std430) readonly buffer HashCellStart { uint hcs[]; };
 layout(set = 0, binding = 12, std430) readonly buffer HashCellSites { uint hsite[]; };
-layout(set = 0, binding = 13, std430) readonly buffer HashCfg {
-    vec4 cfg;   // (box_min.x, box_min.y, box_min.z, cell_side)
-};
+layout(set = 0, binding = 13, std430) readonly buffer HashCfg { vec4 cfg; };
 
 // ── Consolidated gradient engine PC (32 floats = 128 B — the AMD RDNA3
 // Vulkan push-constant cap; EXACTLY 128, nothing more) ──────────────────
-//   slots 0-10   = the shared 11 fields (verbatim, all physics shaders)
 //   slot 11      = color_mode (0 = Cassi mass gradient, 1 = velocity,
-//                  2/3 = Qi coherence; the pass count lives in span_total)
-//                  EXTENDED (2026-08-13): low nibble = base mode (0-4),
-//                  high nibble = VFX feature flags (0x10/0x20/0x40). Base
-//                  modes + flags decode below. Bit-identical for 0..3,0.
+//                  2/3 = Qi coherence; low nibble = base mode 0–6,
+//                  high nibble = VFX feature flags (0x10/0x20/0x40).
+//                  Base 5/6 are direct phase/direction modes and do not
+//                  consume the band-fit constants below.
 //   slot 12      = prog_mode (0 = log cycle progress, 1 = linear)
 //   slot 13      = ref (velocity: v_ref, mean init |v|; Qi: 0)
 //   slots 14-21  = the up-to-3 CYCLE segments [lo1,lo2],[lo2,lo3],[lo3,hiC]:
@@ -253,6 +251,8 @@ float tri_q(vec3 wp) {
 // `_field_ey` / `_field_ei` at 4/5 of `_us_inst_0` (see the header); the
 // same periodic trilinear convention as tri_q, summing the two fluid
 // fields so ρ = EY+EI drives the lightness axis.
+bool boxless_active(void);
+float site_rho_at(vec3 wp);
 layout(set = 0, binding = 4, std430) readonly buffer FieldEY { float ey[]; };
 layout(set = 0, binding = 5, std430) readonly buffer FieldEI { float ei[]; };
 float tri_field_scalar(float v000, float v100, float v010, float v110,
@@ -264,6 +264,7 @@ float tri_field_scalar(float v000, float v100, float v010, float v110,
 }
 // ρ = EY+EI at the particle (world → grid cell, periodic wrap, trilinear).
 float tri_rho(vec3 wp) {
+    if (boxless_active()) { return site_rho_at(wp); }
     int N = int(pc.N_f);
     float hn = float(N) * 0.5;
     vec3 ext = vec3(pc.extent_x, pc.extent_y, pc.extent_z);
@@ -298,7 +299,6 @@ float tri_rho(vec3 wp) {
 // buffers bound at 4/5 (same convention as tri_rho).
 // (Arm 1 boxless helpers are defined after tri_phase; forward-declare here —
 // GLSL requires declaration before use.)
-bool boxless_active(void);
 int nearest_shortlist_site(vec3 wp, out bool found);
 float site_q_at(vec3 wp);
 float site_phase_at(vec3 wp);
@@ -392,44 +392,39 @@ int nearest_shortlist_site(vec3 wp, out bool found) {
     found = false;
     uint n = cnt;
     if (n == 0u) return 0;
-    vec3 mn = cfg.xyz;
-    float cs = cfg.w;
-    int H = int(round(2.0 * pc.extent_x / max(cs, 1e-9)));
-    int cx = clamp(int(floor((wp.x - mn.x) / cs)), 0, H - 1);
-    int cy = clamp(int(floor((wp.y - mn.y) / cs)), 0, H - 1);
-    int cz = clamp(int(floor((wp.z - mn.z) / cs)), 0, H - 1);
+    vec3 ext = vec3(pc.extent_x, pc.extent_y, pc.extent_z);
+    vec3 tile_wp = wp + ext;
+    int H = max(int(round(2.0 * pc.extent_x / max(cfg.w, 1e-9))), 1);
+    vec3 cs = 2.0 * ext / max(float(H), 1.0);
+    ivec3 cc = clamp(ivec3(floor(tile_wp / cs)), ivec3(0), ivec3(H - 1));
     int best = -1;
     float bd = 1e30;
-    // Scan the full r-cube (all cells Chebyshev ≤ r). Break only on the DISTANCE
-    // bound: an unscanned cell has Chebyshev ≥ r+1, whose nearest point is at
-    // distance ≥ r·cs (the cells at offsets 1..r fill the r·cs gap). When the best
-    // site so far is strictly closer than (r·cs)², no unscanned site can beat it →
-    // exact nearest is known, for ANY distance. Hard cap r <= H (the grid span):
-    // at r = H the ring covers every cell (equivalent to brute force, still exact)
-    // and the bound is always satisfiable — this guards against degenerate (NaN /
-    // zero-cell) inputs hanging the GPU. A fixed "any site found" break would be
-    // WRONG: a site in the query cell can be farther than one in a neighbor ring.
     for (int r = 0; r <= H; r++) {
-        int lo = -r, hi = r;
-        int x0 = max(cx + lo, 0), x1 = min(cx + hi, H - 1);
-        int y0 = max(cy + lo, 0), y1 = min(cy + hi, H - 1);
-        int z0 = max(cz + lo, 0), z1 = min(cz + hi, H - 1);
-        for (int dz = z0; dz <= z1; dz++) {
-            for (int dy = y0; dy <= y1; dy++) {
-                for (int dx = x0; dx <= x1; dx++) {
-                    uint cell = uint(dx + H * (dy + H * dz));
-                    uint a = hcs[cell], b = hcs[cell + 1u];
-                    for (uint k = a; k < b; k++) {
+        int x0 = max(cc.x-r, 0), x1 = min(cc.x+r, H-1);
+        int y0 = max(cc.y-r, 0), y1 = min(cc.y+r, H-1);
+        int z0 = max(cc.z-r, 0), z1 = min(cc.z+r, H-1);
+        for (int z = z0; z <= z1; z++)
+            for (int y = y0; y <= y1; y++)
+                for (int x = x0; x <= x1; x++) {
+                    uint cell = uint(x + H * (y + H * z));
+                    for (uint k = hcs[cell]; k < hcs[cell + 1u]; k++) {
                         uint s = hsite[k];
-                        vec3 d = sl[s].xyz - wp;
+                        if (s >= n) continue;
+                        vec3 d = sl[s].xyz - tile_wp;
                         float dd = dot(d, d);
-                        if (dd < bd) { bd = dd; best = int(sl[s].w); }
+                        if (dd < bd) {
+                            bd = dd;
+                            best = int(s);
+                        }
                     }
                 }
-            }
-        }
-        float next_min2 = (float(r) * cs) * (float(r) * cs);
-        if (bd < next_min2) break;   // exact: no cell beyond ring r can hold a closer site
+        // Cells outside the scanned Chebyshev cube are at least one full
+        // cell farther away. Once the current best beats that conservative
+        // axis bound, the nearest eligible shortlist site is proven.
+        vec3 reach = float(r + 1) * cs;
+        float bound2 = min(dot(reach, reach),
+                min(reach.x*reach.x, min(reach.y*reach.y, reach.z*reach.z)));
+        if (best >= 0 && bd < bound2) break;
     }
     found = best >= 0;
     return best;
@@ -444,6 +439,12 @@ float site_q_at(vec3 wp) {
     float eps = ey - pc.phi * ei;
     float rho2 = rho * rho;
     return rho2 / (rho2 + PHI_INV2 + eps * eps);
+}
+float site_rho_at(vec3 wp) {
+    bool found;
+    int si = nearest_shortlist_site(wp, found);
+    if (!found) return 0.0;
+    return max(psy[si] + psi[si], 0.0);
 }
 float site_phase_at(vec3 wp) {
     bool found;
@@ -543,7 +544,17 @@ void main() {
     if (i >= N) return;
 
     vec4 p = pos[i];
+    // Merge/BH-dead slots carry the canonical mass sentinel pos.w = 0.
+    // Write a zero transform and payload so the renderer cannot draw a
+    // stale/zero-mass quad; live particles take the unchanged path below.
     int base = i * 4;
+    if (p.w <= 0.0) {
+        inst[base]     = vec4(0.0);
+        inst[base + 1] = vec4(0.0);
+        inst[base + 2] = vec4(0.0);
+        inst[base + 3] = vec4(0.0);
+        return;
+    }
     int bmode = cm_base();
     int flags = cm_flags();
 

@@ -15,10 +15,11 @@ for the full map:
 | base mode | meaning                                          |
 |-----------|--------------------------------------------------|
 | 0         | Cassi mass gradient (legacy, bit-identical)      |
-| 1         | Velocity rainbow                                 |
-| 2 / 3     | Qi rainbow / Qi double                           |
-| 4         | TWO-AXIS: hue = q (engine), lightness = ρ        |
-
+| 1         | Velocity speed rainbow                           |
+| 2 / 3     | Qi rainbow / Qi double rainbow                   |
+| 4         | TWO-AXIS: hue = q, lightness = ρ                 |
+| 5         | FIELD-PHASE: hue = atan(EI,EY), lightness = q    |
+| 6         | VELOCITY-DIRECTION: hue = atan(vy,vx), lightness = speed |
 | flag | meaning                     |
 |------|-----------------------------|
 | 0x10 | SIZE_BY_MASS (scale ∝ cbrt(m)) |
@@ -34,21 +35,19 @@ preserved verbatim by the nbody KDK kick, `cassi_nbody_gravity.glsl`:
 `Positions` binding — **no new MASS/COUNT buffer is needed**. When a future
 merge pass writes varied masses into `pos.w`, the size mode lights up for
 free.
-
 ## UI controls (scripts/sim_ui.gd)
 
-A new "VFX:" row in the bottom control bar (after the cluster/color row)
-exposes four default-off CheckButtons:
+The Color mapping controls expose all six non-default shader mappings:
+velocity speed (1), Qi (2), field phase (5), and velocity direction (6);
+the two-axis q/ρ mode (4) remains available through its VFX toggle. Modes
+5 and 6 intentionally ignore LOW/HIGH band fitting: the legend is cleared,
+Fit is disabled, and Auto is disabled/cleared because phase and direction
+already span their domains by construction. Modes 0–4 retain the existing
+legend, Fit, and Auto behavior.
 
-- **Size∝m¹ᐟ³** — sets the 0x10 flag (size ∝ cbrt(particle mass)).
-- **Glow** — sets the 0x20 flag (additive bright-core + large-object halo).
-- **Depth fade** — sets the 0x40 flag (alpha fades with camera distance).
-- **2-axis q/ρ** — switches the base color mode to 4 (hue = q, lightness = ρ);
-  requires the Rainbow toggle on.
-
-All compose onto `particle_color_mode` via `_apply_particle_color_mode()` and
-are live (no reinit). With every VFX toggle + Rainbow off, the composed value
-is 0 — the legacy path, bit-identical.
+The packed value is `base | flags`, where flags are `0x10` size-by-mass,
+`0x20` additive glow, and `0x40` depth cue. With Rainbow and all VFX toggles
+off the value is 0, preserving the legacy path bit-for-bit.
 
 ## Depth cue camera source (landed)
 

@@ -6,6 +6,7 @@
 
 [node name="CassiSim" type="Node3D" parent="."]
 script = ExtResource("1_sim")
+gridless_physics = true
 playing = true
 grid_N = 64
 N_particles = 1000000

@@ -9,6 +9,8 @@ script = ExtResource("2_ver")
 [node name="CassiSim" type="Node3D" parent="."]
 script = ExtResource("1_sim")
 playing = false
+physics_decoupled = false
+box_scale = 1.0
 N_particles = 8
 suppress_readbacks = true
 auto_frame_camera_on_start = false

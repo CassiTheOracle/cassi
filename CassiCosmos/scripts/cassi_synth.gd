@@ -1,11 +1,11 @@
 extends Node
 ## Cassi Synth — the two-fluid universe as a living instrument.
 ##
-## A Node you add UNDER the CassiSim in your scene. It reads the sim's
-## field buffers (grid OR meshless arm — both write _field_ey/_field_ei),
-## runs the cheap no-FFT cascade meter (compute/cassi_audio_reduce.glsl),
-## and drives a φ-tempered harmonic bank of sine oscillators through a
-## Godot AudioStreamGeneratorPlayback. The field → sound mapping:
+## A Node you add UNDER the CassiSim in your scene. It reads the
+## authoritative site-native field in gridless scenes, or the legacy raster
+## field in compatibility scenes, and drives a φ-tempered harmonic bank of
+## sine oscillators through a Godot AudioStreamGeneratorPlayback. The field
+## → sound mapping:
 ##
 ##   • R=4 cascade rungs, box b_m = round(φ^m) → freq f_r = f0·φ^r (f0=55).
 ##   • each rung's amplitude = the L2 box-difference energy of q=EY²+EI²
@@ -23,9 +23,9 @@ extends Node
 ##
 ## Activation: put this node under the sim root, e.g.
 ##   var s := CassiSynth.new(); sim.add_child(s)
-## It needs a live sim node exposing _rd/_field_ey/_field_ei/_bh_buf/grid_N
-## and _shaders_ready. It degrades to a silent (but still polling) no-op if
-## audio cannot start.
+## It needs a live sim node exposing `_rd`, the site field or legacy field
+## buffers, `_bh_buf`, and `_shaders_ready`. It degrades to a silent (but
+## still polling) no-op if audio cannot start.
 
 const PHI := 1.618033988749895
 const R := 4                       # resolvable cascade rungs on N=64 (design doc §2)
@@ -112,9 +112,16 @@ func parent_sim() -> Node:
 # ── wiring ────────────────────────────────────────────────────────────
 func _try_wire() -> void:
 	if not bool(_sim.get("_shaders_ready")):
-		return                                  # sim still booting
+		return
 	_rd = _sim.get("_rd")
 	if _rd == null:
+		return
+	var site_mode := bool(_sim.get("gridless_physics")) and _sim.get("_physics_engine") != null
+	if site_mode:
+		_start_audio()
+		_last_n_bh = _count_bh()
+		_ready_ok = true
+		print("[CassiSynth] wired to site-native meter @ %d ms cadence, R=%d" % [POLL_MS, R])
 		return
 	if not (_sim.get("_field_ey").is_valid() and _sim.get("_field_ei").is_valid()):
 		return
@@ -172,9 +179,40 @@ func _start_audio() -> void:
 			+ "meter still runs, silent until audio is available")
 
 
+func _poll_site_meter() -> void:
+	var eng: Object = _sim.get("_physics_engine")
+	if eng == null or not eng.get("_ml_q").is_valid():
+		return
+	var ns := int(eng.get("_ml_tree_nsrc"))
+	if ns <= 0:
+		return
+	var q := _rd.buffer_get_data(eng.get("_ml_q"), 0, ns * 4).to_float32_array()
+	var sites := _rd.buffer_get_data(eng.get("_ml_sites"), 0, ns * 16).to_float32_array()
+	var vol := _rd.buffer_get_data(eng.get("_ml_vol"), 0, ns * 4).to_float32_array()
+	var ext: Vector3 = _sim.call("_extents")
+	var total := 0.0
+	var rungs := PackedFloat32Array()
+	rungs.resize(R)
+	rungs.fill(0.0)
+	var site_volume := 8.0 * ext.x * ext.y * ext.z / maxf(float(ns), 1.0)
+	var r0 := maxf(pow(maxf(site_volume, 1.0e-12), 1.0 / 3.0), 1.0e-4)
+	for i in range(mini(ns, q.size())):
+		var o := i * 4
+		if o + 2 >= sites.size():
+			break
+		var p := Vector3(sites[o] - ext.x, sites[o + 1] - ext.y, sites[o + 2] - ext.z)
+		var w := maxf(vol[i] if i < vol.size() else 1.0, 0.0)
+		var e := maxf(q[i], 0.0) * w
+		total += e
+		var rung := clampi(int(floor(log(maxf(p.length() / r0, 1.0)) / log(PHI))), 0, R - 1)
+		rungs[rung] += e
+	_set_targets(rungs, total)
+
+
 # ── meter poll ────────────────────────────────────────────────────────
 func _poll_meter() -> void:
-	if not _pipe_rid.is_valid():
+	if bool(_sim.get("gridless_physics")):
+		_poll_site_meter()
 		return
 	var grid_n: int = int(_sim.get("grid_N"))
 	var rows := int(ceili(float(grid_n * grid_n) / 64.0))

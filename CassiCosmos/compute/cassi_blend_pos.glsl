@@ -69,6 +69,12 @@ layout(set = 0, binding = 2, std430) buffer RenderBuf { vec4 out_data[]; };
 
 void main() {
     uint i = gl_GlobalInvocationID.x;
+    uint count = (params.packed == 1.0 || params.packed == 2.0)
+        ? uint(prev_raw.length() / 2)
+        : uint(prev_raw.length() / 4);
+    if (i >= count) {
+        return;
+    }
     float a = params.alpha;
     float mode = params.packed;
 

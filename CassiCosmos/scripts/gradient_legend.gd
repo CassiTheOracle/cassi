@@ -93,9 +93,13 @@ var _swatch_box: StyleBoxFlat = null
 
 
 func _process(_delta: float) -> void:
-	# Follow external band changes (auto-align, inspector edits): redraw and
-	# refresh the readout when the Qi band moves under us.
-	if sim == null or int(sim.particle_color_mode) == 0:
+	# Only fitted scalar-band modes 1–4 have editable legend state. Intrinsic
+	# phase/direction modes 5/6 must not retain stale markers/readouts.
+	var base := int(sim.particle_color_mode) & 0xF if sim != null else 0
+	if sim == null or base < 1 or base > 4:
+		if base >= 5:
+			_clear_markers()
+			queue_redraw()
 		return
 	var sig := Vector4(sim.qi_cycle.x, sim.qi_cycle.y, sim.qi_approach.x, sim.qi_approach.y)
 	if sig != _last_band_sig:
@@ -246,6 +250,11 @@ func _x_from_q(q: float) -> float:
 		t = clampf((q - qmin) / maxf(qmax - qmin, 1e-9), 0.0, 1.0)
 	return t * w
 
+func _clear_markers() -> void:
+	_markers = []
+	_engine = PackedFloat32Array()
+	_drag_idx = -1
+	_drag_kind = -1
 
 func _build_markers() -> void:
 	_markers = []
@@ -383,8 +392,13 @@ func _draw() -> void:
 	if sim == null:
 		_draw_placeholder("No simulation")
 		return
-	if int(sim.particle_color_mode) == 0:
+	var base := int(sim.particle_color_mode) & 0xF
+	if base == 0:
 		_draw_placeholder("Rainbow off — enable Rainbow to show the scale")
+		return
+	if base >= 5:
+		_clear_markers()
+		_draw_placeholder("Intrinsic color mode — no fitted scalar band")
 		return
 	_refresh_engine()
 	_build_markers()

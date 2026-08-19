@@ -37,7 +37,7 @@ const PC := {
 	"cassi_mass_deposit": 9,      # 36 B — N, particle_N, extent_xyz, off_xyz, mode
 	"cassi_two_fluid": 17,        # 68 B — the two-fluid PDE PC (grid-space; + ham_completion, U1 toggle)
 	"cassi_poisson": 7,           # 28 B — N, axis, dir, mode, extent_xyz
-	"cassi_qhist": 15,            # 60 B — histogram + extent_xyz + win_xyz + boxless + n_sites (bindings 0-7: pos, q, hist, EY, EI, sites, psy, psi)
+	"cassi_qhist": 15,            # 60 B — histogram + extent_xyz + win_xyz + boxless + n_sites
 	"cassi_occupancy": 10,        # 40 B — lim_xyz, ext_xyz, pads
 	"cassi_tree_build": 19,       # 76 B — S, bmin_xyz, half, eps2, PHI, PHI_6, leaf/maxlevels, modes 10-13, grid_N, ext_xyz, floor
 	"cassi_tree_gravity": 8,      # 32 B — Np, theta, eps2, pad, tnm + Arm 2 q_cent, alpha, coherence_theta
@@ -48,8 +48,15 @@ const PC := {
 	"cassi_condensation": 4,      # 16 B — N, threshold, pads
 	"cassi_field_render": 11,     # 44 B — the field-render PC
 	"cassi_site_shortlist": 3,    # 12 B — n_sites, q_floor, mode (Arm 1 coherence-filtered site shortlist)
-	"cassi_site_hash": 6,         # 24 B — ext_xyz, h, n_shortlist, mode (boxless spatial hash over the shortlist; boxless_site_hash_prereg.md)
+	"cassi_site_hash": 9,         # 36 B — ext_xyz, H, shortlist bound, tile origin xyz, mode
+	"cassi_open_render_topology": 8, # 32 B — N, site count, mode/read, jump, tile extents
+	"cassi_voronoi_adjacency_csr": 8, # 32 B — site count, words, mode, capacity, generation, pads
+	"cassi_voronoi_optical_payload": 8, # 32 B — site count, extents, opacity, pads
+	"cassi_voronoi_fused_volume": 32, # 128 B — camera/ray, topology, traversal, reserved controls
+	"cassi_workbench_field": 14, # 56 B — bounded align selection
+	"cassi_workbench_particle": 14, # 56 B — bounded particle impulse
 }
+
 
 ## Host PackedByteArray allocations (float count per var; BLEND is special —
 ## allocated in BYTES via resize(20), the others via resize(N * 4)).
@@ -58,14 +65,11 @@ const HOST_PC_FLOATS := {
 	"_nbody_pc_bytes": 15,
 	"_instancer_pc_bytes": 32,
 	"_md_pc_bytes": 9,
-	"_two_fluid_pc_bytes": 17,
-	"_poisson_pc_bytes": 7,
-	"_qhist_pc_bytes": 15,
-	"_occ_pc_bytes": 10,
-	"_tree_build_pc_bytes": 19,
-	"_tree_grav_pc_bytes": 8,   # Arm 2: + q_cent, alpha, coherence_theta
-	"_tree_mc_pc_bytes": 3,
-	"_cf_grad_pc_bytes": 8,
+	"_topology_pc_bytes": 8,
+	"_volume_pc_bytes": 32,
+	"_topology_optical_pc_bytes": 8,
+	"_workbench_field_pc": 14,
+	"_workbench_particle_pc": 14,
 	"_cell_pc_bytes": 18,
 	"_jfa_pc_bytes": 8,
 	"_cond_pc_bytes": 4,
@@ -75,7 +79,7 @@ const HOST_PC_BYTES := {
 }
 
 ## The BH header: vec4 bh[36] = 576 B.
-##   bh[0].x     = count (unused)
+##   bh[0].x     = cascade multigrid enable (0.0 = off; legacy callers keep it 0)
 ##   bh[0].yzw   = the field-grid world-origin offset (window center; floats 4/8/12)
 ##   bh[1].xyz   = the dual-grid offset h_i/2 = extent_i/N (floats 16/20/24)
 ##   bh[1].w     = G_N (float 28)
@@ -91,7 +95,7 @@ const BH_EXTENT_FLOAT := 36         # bh[2].y
 ## `layout(set = S, binding = B, ...)` declarations.
 const BINDINGS := {
 	"cassi_particle_merge": {0: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24]},
-	"cassi_nbody_gravity": {0: [0, 1, 2, 3, 4, 5, 6, 7, 8], 1: [0, 1, 2, 3], 2: [0, 1]},
+	"cassi_nbody_gravity": {0: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], 1: [0, 1, 2, 3], 2: [0, 1]},
 	"cassi_instancer": {0: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]},
 	"cassi_blend_pos": {0: [0, 1, 2]},
 	"cassi_mass_deposit": {0: [0, 1, 2]},
@@ -101,12 +105,12 @@ const BINDINGS := {
 	"cassi_occupancy": {0: [0, 1]},
 	"cassi_tree_build": {0: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]},
 	"cassi_tree_gravity": {0: [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 14]},
-	"cassi_tree_momcon": {0: [0, 1, 2, 3]},
-	"cassi_coarse_grad": {0: [0, 1, 2, 3]},
-	"cassi_voronoi_cells": {0: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]},
-	"cassi_jfa": {0: [0, 1, 2]},
-	"cassi_condensation": {0: [0], 1: [0]},
-	"cassi_field_render": {0: [0, 1, 2, 3], 2: [0]},
+	"cassi_open_render_topology": {0: [0, 1, 2, 3]},
+	"cassi_voronoi_adjacency_csr": {0: [0, 1, 2, 3, 4]},
+	"cassi_voronoi_optical_payload": {0: [0, 1, 2, 3, 4, 5]},
+	"cassi_voronoi_fused_volume": {0: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]},
+	"cassi_workbench_field": {0: [0, 1, 2]},
+	"cassi_workbench_particle": {0: [0, 1]},
 	"cassi_site_shortlist": {0: [0, 1, 2, 3, 4]},
 	"cassi_site_hash": {0: [0, 1, 2, 3, 4]},
 }
@@ -119,5 +123,6 @@ const COVERED := [
 	"cassi_poisson", "cassi_qhist", "cassi_occupancy", "cassi_tree_build",
 	"cassi_tree_gravity", "cassi_tree_momcon", "cassi_coarse_grad", "cassi_voronoi_cells",
 	"cassi_jfa", "cassi_condensation", "cassi_field_render", "cassi_site_shortlist",
-	"cassi_site_hash",
-]
+	"cassi_site_hash", "cassi_open_render_topology", "cassi_voronoi_adjacency_csr",
+	"cassi_voronoi_optical_payload", "cassi_voronoi_fused_volume",
+	"cassi_workbench_field", "cassi_workbench_particle",

@@ -16,6 +16,9 @@ meshless_mode = false
 meshless_gravity = false
 box_aspect = Vector3(1, 1, 1)
 dual_grid = false
+physics_decoupled = false
+box_scale = 1.0
+particle_merge = false
 
 [node name="Verify" type="Node" parent="."]
 script = ExtResource("2_ver")
