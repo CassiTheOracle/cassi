@@ -563,6 +563,7 @@ var _decoupled_target := 0            # cumulative REQUESTED steps (the job targ
 var _pub_counter := 0                 # M0b-P: publish cadence counter (the frame-path jobs)
 var _decoupled_pending := 0           # truthful backlog = target − executed (UI "behind X s")
 var _last_publish_ms := 0             # wall-clock gate for the interp alpha
+const DECOUPLED_LEAD_CAP: int = 8
 var _batch_ema_ms := 16.7             # EMA of publish intervals (ms) — alpha sweep scale
 var _executed_prev := 0               # previous publish's executed count (perf delta)
 
@@ -1239,7 +1240,13 @@ func _process(delta: float) -> void:
 					_dropped_steps += int((_step_timer - backlog_cap) / dt)
 					_step_timer = backlog_cap
 				if n_steps > 0:
-					_decoupled_target += n_steps
+					var requested_target := _decoupled_target + n_steps
+					var target_limit := requested_target
+					if _physics_engine != null and _physics_engine.setup_ready():
+						target_limit = int(_physics_engine._executed) + DECOUPLED_LEAD_CAP
+					if requested_target > target_limit:
+						_dropped_steps += requested_target - target_limit
+					_decoupled_target = mini(requested_target, target_limit)
 		else:
 			var budget_steps := 1_000_000_000 if physics_frame_budget <= 0.0 \
 					else int(maxf(physics_frame_budget * _frame_us_ema / maxf(_phys_us_ema, 10.0), 1.0))
@@ -1972,7 +1979,21 @@ func _track_envelope_window() -> void:
 	# particle) — the accepted job-boundary readback group.
 	var s := PackedFloat32Array()
 	s.resize((np1 / 32) * 4)
-	var track_ext := _extents() * 1.5
+	var ext := _extents()
+	var track_ext := ext * 1.5
+	var qf := PackedFloat32Array()
+	var qsites := PackedFloat32Array()
+	var qstarts := PackedInt32Array()
+	var qhs := PackedInt32Array()
+	var q_gate := 0.0
+	if q_weighted_com and eng._ml_q.is_valid() and eng._ml_sites.is_valid():
+		var qns := maxi(int(eng._ml_tree_nsrc), 1)
+		qf = _rd.buffer_get_data(eng._ml_q, 0, qns * 4).to_float32_array()
+		qsites = _rd.buffer_get_data(eng._ml_sites, 0, qns * 16).to_float32_array()
+		qstarts = _rd.buffer_get_data(eng._hash_cell_start, 0, (HASH_H * HASH_H * HASH_H + 1) * 4).to_int32_array()
+		qhs = _rd.buffer_get_data(eng._hash_cell_sites, 0, qns * 4).to_int32_array()
+		if qf.size() >= qns and qsites.size() >= qns * 4:
+			q_gate = maxf(float(eng._q_mean) * 0.5, 1e-4)
 	var cnt := 0
 	var i := 0
 	while i + 2 < posf.size() and cnt < s.size() / 4:
@@ -1980,6 +2001,9 @@ func _track_envelope_window() -> void:
 		var near_window := absf(p.x - _window_center.x) <= track_ext.x \
 				and absf(p.y - _window_center.y) <= track_ext.y \
 				and absf(p.z - _window_center.z) <= track_ext.z
+		if near_window and q_gate > 0.0:
+			var q: float = eng._site_q_cpu_lookup(p, qsites, qf, qstarts, qhs, ext)
+			near_window = q >= q_gate
 		if near_window:
 			s[cnt * 4] = p.x
 			s[cnt * 4 + 1] = p.y
@@ -2111,7 +2135,11 @@ func _decoupled_poll_and_render() -> void:
 		_physics_engine.service_render_topology()
 	_physics_engine.update_bh_header()   # BEFORE the list
 	var cl := _rd.compute_list_begin()
-	var executed: int = _physics_engine.record_pending_steps(cl, _decoupled_target)
+	var frame_target := _decoupled_target
+	if _physics_engine.setup_ready():
+		frame_target = mini(frame_target, int(_physics_engine._executed) + DECOUPLED_LEAD_CAP)
+		_decoupled_target = frame_target
+	var executed: int = _physics_engine.record_pending_steps(cl, frame_target)
 	# M0b-P decoupled merge: record the engine-owned GPU merge cycle in this
 	# same global list, before blend/instancer consume positions. This keeps
 	# dead slots (pos.w=0) hidden without a CPU mirror or copy.
