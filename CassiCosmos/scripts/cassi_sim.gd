@@ -427,6 +427,8 @@ var _env_target_scale: float = 1.0
 var _env_applied_center := Vector3.ZERO
 var _env_applied_scale: float = 1.0
 const ENV_APPLY_TAU_SEC: float = 0.75
+const ENV_APPLY_CADENCE_MS: int = 500
+var _env_apply_last_ms: int = 0
 ## Fixed seed for the initial conditions (0 = the legacy random init).
 ## Applied to BOTH the inline IC generators and the decoupled engine's ICs.
 @export var ic_seed: int = 0
@@ -1953,10 +1955,13 @@ func _track_envelope_window() -> void:
 	if _env_tracker == null:
 		_env_tracker = EnvelopeTracker.new()
 		_env_orig_box = Vector3(box_aspect.x, box_aspect.y, box_aspect.z) * (cluster_radius * 1.5)
-		_env_tracker.extent = _env_orig_box
+		# The live engine starts at the exported box_scale. Seed the tracker
+		# with that same physical extent; starting at scale-1 would make the
+		# first fit shrink a scale-5 IC out of its own force window.
+		_env_applied_scale = maxf(box_scale, 1e-3)
+		_env_tracker.extent = _env_orig_box * _env_applied_scale
 		_env_applied_center = _window_center
 		_env_target_center = _window_center
-		_env_applied_scale = maxf(box_scale, 1e-3)
 		_env_target_scale = _env_applied_scale
 	var eng: Object = _physics_engine
 	if not eng._pos_buf.is_valid():
@@ -1967,14 +1972,20 @@ func _track_envelope_window() -> void:
 	# particle) — the accepted job-boundary readback group.
 	var s := PackedFloat32Array()
 	s.resize((np1 / 32) * 4)
+	var track_ext := _extents() * 1.5
 	var cnt := 0
 	var i := 0
 	while i + 2 < posf.size() and cnt < s.size() / 4:
-		s[cnt * 4] = posf[i]
-		s[cnt * 4 + 1] = posf[i + 1]
-		s[cnt * 4 + 2] = posf[i + 2]
-		s[cnt * 4 + 3] = 0.0
-		cnt += 1
+		var p := Vector3(posf[i], posf[i + 1], posf[i + 2])
+		var near_window := absf(p.x - _window_center.x) <= track_ext.x \
+				and absf(p.y - _window_center.y) <= track_ext.y \
+				and absf(p.z - _window_center.z) <= track_ext.z
+		if near_window:
+			s[cnt * 4] = p.x
+			s[cnt * 4 + 1] = p.y
+			s[cnt * 4 + 2] = p.z
+			s[cnt * 4 + 3] = 0.0
+			cnt += 1
 		i += 32 * 4
 	if cnt == 0:
 		return
@@ -1997,12 +2008,21 @@ func _apply_envelope_state() -> void:
 		return
 	if _env_tracker == null:
 		return
-	var dt_sec: float = clampf(get_process_delta_time(), 0.0, 0.1)
+	var now := Time.get_ticks_msec()
+	if now - _env_apply_last_ms < ENV_APPLY_CADENCE_MS:
+		return
+	_env_apply_last_ms = now
+	# Geometry publication is deliberately cadence-limited. The target is
+	# sampled every two seconds; republishing the global site hash on every
+	# smoothing frame creates a full CPU rebuild and several RD uploads per
+	# frame while the envelope is moving.
+	var dt_sec: float = clampf(float(ENV_APPLY_CADENCE_MS) / 1000.0, 0.0, 1.0)
 	var alpha: float = 1.0 - exp(-dt_sec / maxf(ENV_APPLY_TAU_SEC, 1e-3))
 	_env_applied_center = _env_applied_center.lerp(_env_target_center, alpha)
 	_env_applied_scale = lerpf(_env_applied_scale, _env_target_scale, alpha)
 	_window_center = _env_applied_center
 	box_scale = maxf(_env_applied_scale, 1e-3)
+	_update_particle_cull_bounds()
 	var ext := _extents()
 	var hb: PackedByteArray = _bh_init_bytes
 	if hb.size() >= 48:
@@ -5829,6 +5849,18 @@ func _free_multimesh() -> void:
 	_mm_rd_rid = RID()
 
 
+func _update_particle_cull_bounds() -> void:
+	if _mm == null:
+		return
+	var ext := _extents()
+	var margin := maxf(_mm_particle_size * 4.0, 1.0)
+	var bound := ext + Vector3.ONE * margin
+	# The instancer writes positions relative to the current window origin.
+	# Keep the renderer's whole-MultiMesh AABB aligned to that finite window;
+	# the old hard-coded ±5000 box became a false world wall after envelope
+	# refits grew beyond it.
+	_mm.custom_aabb = AABB(-bound, bound * 2.0)
+
 func _setup_multimesh() -> void:
 	# Color-as-LUT (Tier-2): the MultiMesh FORMAT is static per build —
 	# legacy keeps the instance color channel (16 floats/instance),
@@ -5870,7 +5902,7 @@ func _setup_multimesh() -> void:
 			seed_inst[b + 14] = 1.0
 		_mm.buffer = seed_inst
 	_mm_particle_size = particle_size
-	_mm.custom_aabb = AABB(Vector3(-5000, -5000, -5000), Vector3(10000, 10000, 10000))
+	_update_particle_cull_bounds()
 
 	_mmi = MultiMeshInstance3D.new()
 	_mmi.multimesh = _mm

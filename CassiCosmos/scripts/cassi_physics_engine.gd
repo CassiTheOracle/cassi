@@ -326,6 +326,7 @@ var _meshless_query_ready: bool = false
 var _mesh_rebuild_pending: bool = false
 var _render_query_sites_cpu := PackedFloat32Array()
 var _render_query_center := Vector3.ZERO
+var _render_query_extents := Vector3.ZERO
 var _render_topology_worker = null
 var _render_topology_last_step := -1
 var _render_topology_inflight := false
@@ -888,8 +889,9 @@ func mesh_rebuild_due() -> bool:
 ## the renderer frame context, so this boundary-frame host publication keeps
 ## the renderer site-direct while the private local-RD chain remains intact.
 ## The initial global mesh has fixed site coordinates until a safe local worker
-## publishes a moving rebuild; a window translation is applied as a tile-space
-## shift before rebuilding the compact hash.
+## publishes a moving rebuild; a window translation shifts the cached tile
+## coordinates, and an envelope scale change rescales them before rebuilding
+## the compact hash.
 func publish_render_query(shift_delta: Vector3 = Vector3.ZERO) -> bool:
 	if not _rd_global or _rd == null or not _ready or not _ml_ready:
 		return false
@@ -903,16 +905,30 @@ func publish_render_query(shift_delta: Vector3 = Vector3.ZERO) -> bool:
 		if _render_query_sites_cpu.size() != needed:
 			return false
 		_render_query_center = _window_center
-	elif shift_delta.length_squared() > 1e-12:
-		var lx := 2.0 * ext.x
-		var ly := 2.0 * ext.y
-		var lz := 2.0 * ext.z
-		for i in range(ns):
-			var o := i * 4
-			_render_query_sites_cpu[o] = fposmod(_render_query_sites_cpu[o] - shift_delta.x, lx)
-			_render_query_sites_cpu[o + 1] = fposmod(_render_query_sites_cpu[o + 1] - shift_delta.y, ly)
-			_render_query_sites_cpu[o + 2] = fposmod(_render_query_sites_cpu[o + 2] - shift_delta.z, lz)
-		_render_query_center += shift_delta
+		_render_query_extents = ext
+	else:
+		var old_ext := _render_query_extents
+		var scale_changed := old_ext.x > 1e-6 and old_ext.y > 1e-6 and old_ext.z > 1e-6 \
+				and (old_ext - ext).length_squared() > 1e-12
+		var center_changed := shift_delta.length_squared() > 1e-12
+		if scale_changed or center_changed:
+			var lx := 2.0 * ext.x
+			var ly := 2.0 * ext.y
+			var lz := 2.0 * ext.z
+			var sx := ext.x / old_ext.x if scale_changed else 1.0
+			var sy := ext.y / old_ext.y if scale_changed else 1.0
+			var sz := ext.z / old_ext.z if scale_changed else 1.0
+			for i in range(ns):
+				var o := i * 4
+				var px := _render_query_sites_cpu[o] * sx - shift_delta.x
+				var py := _render_query_sites_cpu[o + 1] * sy - shift_delta.y
+				var pz := _render_query_sites_cpu[o + 2] * sz - shift_delta.z
+				_render_query_sites_cpu[o] = fposmod(px, lx)
+				_render_query_sites_cpu[o + 1] = fposmod(py, ly)
+				_render_query_sites_cpu[o + 2] = fposmod(pz, lz)
+			if center_changed:
+				_render_query_center += shift_delta
+			_render_query_extents = ext
 	var sl := PackedFloat32Array()
 	sl.resize(needed)
 	var H := HASH_H # one hash contract for render, mass deposition, and diagnostics
@@ -1096,11 +1112,11 @@ func stop_render_topology_worker() -> void:
 func _site_q_cpu_lookup(world: Vector3, sites: PackedFloat32Array,
 		qf: PackedFloat32Array, starts: PackedInt32Array, hs: PackedInt32Array,
 		ext: Vector3) -> float:
+	var local := world - _window_center
+	if absf(local.x) >= ext.x or absf(local.y) >= ext.y or absf(local.z) >= ext.z:
+		return 0.0
 	var span := ext * 2.0
-	var tile := Vector3(
-		fposmod(world.x - _window_center.x + ext.x, span.x),
-		fposmod(world.y - _window_center.y + ext.y, span.y),
-		fposmod(world.z - _window_center.z + ext.z, span.z))
+	var tile := local + ext
 	var cell := Vector3i(
 		clampi(int(floor(tile.x / maxf(span.x / float(HASH_H), 1e-6))), 0, HASH_H - 1),
 		clampi(int(floor(tile.y / maxf(span.y / float(HASH_H), 1e-6))), 0, HASH_H - 1),
@@ -1110,9 +1126,9 @@ func _site_q_cpu_lookup(world: Vector3, sites: PackedFloat32Array,
 	for dz in range(-1, 2):
 		for dy in range(-1, 2):
 			for dx in range(-1, 2):
-				var cx := posmod(cell.x + dx, HASH_H)
-				var cy := posmod(cell.y + dy, HASH_H)
-				var cz := posmod(cell.z + dz, HASH_H)
+				var cx := clampi(cell.x + dx, 0, HASH_H - 1)
+				var cy := clampi(cell.y + dy, 0, HASH_H - 1)
+				var cz := clampi(cell.z + dz, 0, HASH_H - 1)
 				var ci := cx + HASH_H * (cy + HASH_H * cz)
 				if ci < 0 or ci + 1 >= starts.size():
 					continue
@@ -1123,9 +1139,6 @@ func _site_q_cpu_lookup(world: Vector3, sites: PackedFloat32Array,
 					var so := si * 4
 					var dd := Vector3(
 						sites[so] - tile.x, sites[so + 1] - tile.y, sites[so + 2] - tile.z)
-					dd.x -= span.x * roundf(dd.x / span.x)
-					dd.y -= span.y * roundf(dd.y / span.y)
-					dd.z -= span.z * roundf(dd.z / span.z)
 					var d2 := dd.length_squared()
 					if d2 < best:
 						best = d2
@@ -1489,6 +1502,7 @@ func _clear_gpu_handles() -> void:
 	_meshless_query_ready = false
 	_render_query_sites_cpu = PackedFloat32Array()
 	_render_query_center = Vector3.ZERO
+	_render_query_extents = Vector3.ZERO
 	_render_topology_worker = null
 	_render_topology_last_step = -1
 	_render_topology_inflight = false

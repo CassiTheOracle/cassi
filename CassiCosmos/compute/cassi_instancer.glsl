@@ -397,28 +397,21 @@ int nearest_shortlist_site(vec3 wp, out bool found) {
             vec3(1e-4));
     uint n = cnt;
     if (n == 0u) return 0;
-    // The open tile has no physical field outside this window. For particle
-    // color/phase readout, hold the nearest boundary cell instead of encoding
-    // escaped particles as artificial q=0/red; forces still use the
-    // open-world out-of-window policy in the physics shader.
-    vec3 query_wp = wp;
-    if (open_world_active()) {
-        vec3 edge = max(ext - vec3(1e-4), vec3(0.0));
-        query_wp = clamp(wp, -edge, edge);
+    // Escaped particles keep their world position, but have no site field
+    // value in the open-window policy. Return immediately instead of
+    // clamping to the edge cell, which made a visible shell and charged
+    // every escaped particle with boundary-site lookup work.
+    if (open_world_active()
+            && (any(lessThan(wp, -ext)) || any(greaterThanEqual(wp, ext)))) {
+        return 0;
     }
-    vec3 tile_wp = query_wp + ext;
+    vec3 tile_wp = wp + ext;
     int H = max(int(round(2.0 * pc.extent_x / max(cfg.w, 1e-9))), 1);
     vec3 cs = 2.0 * ext / max(float(H), 1.0);
     ivec3 cc = clamp(ivec3(floor(tile_wp / cs)), ivec3(0), ivec3(H - 1));
     int best = -1;
     float bd = 1e30;
-    bool outside_window = open_world_active()
-        && (any(lessThan(wp, -ext)) || any(greaterThanEqual(wp, ext)));
-    // Escaped particles are a render-only boundary hold. A one-ring lookup
-    // avoids making 500k out-of-window particles scan the entire sparse hash;
-    // in-window queries retain the exact growing-ring proof below.
-    int ring_limit = outside_window ? min(H, 1) : H;
-    for (int r = 0; r <= ring_limit; r++) {
+    for (int r = 0; r <= H; r++) {
         int x0 = max(cc.x-r, 0), x1 = min(cc.x+r, H-1);
         int y0 = max(cc.y-r, 0), y1 = min(cc.y+r, H-1);
         int z0 = max(cc.z-r, 0), z1 = min(cc.z+r, H-1);
@@ -437,16 +430,13 @@ int nearest_shortlist_site(vec3 wp, out bool found) {
                         }
                     }
                 }
-        if (outside_window && best >= 0) break;
-        if (!outside_window) {
-            // Cells outside the scanned Chebyshev cube are at least one full
-            // cell farther away. Once the current best beats that conservative
-            // axis bound, the nearest eligible shortlist site is proven.
-            vec3 reach = float(r + 1) * cs;
-            float bound2 = min(dot(reach, reach),
-                    min(reach.x*reach.x, min(reach.y*reach.y, reach.z*reach.z)));
-            if (best >= 0 && bd < bound2) break;
-        }
+        // Cells outside the scanned Chebyshev cube are at least one full
+        // cell farther away. Once the current best beats that conservative
+        // axis bound, the nearest eligible shortlist site is proven.
+        vec3 reach = float(r + 1) * cs;
+        float bound2 = min(dot(reach, reach),
+                min(reach.x*reach.x, min(reach.y*reach.y, reach.z*reach.z)));
+        if (best >= 0 && bd < bound2) break;
     }
     found = best >= 0;
     return best;
@@ -604,9 +594,9 @@ void main() {
         s = clamp(SIZE_K * pow(m, 0.3333333), SIZE_S_MIN, SIZE_S_MAX);
     }
 
-    // Row-major 3x4: scale basis by mass-derived size. Origin = the FOLDED
-    // (periodic-image) position — the transform must never carry a raw
-    // escaped coordinate (see the fold note above).
+    // Row-major 3x4: scale basis by mass-derived size. Origin = the
+    // window-relative open-world position (or the folded legacy position).
+    // The transform must never discard a raw escaped coordinate.
     inst[base]     = vec4(s, 0.0, 0.0, pf.x);
     inst[base + 1] = vec4(0.0, s, 0.0, pf.y);
     inst[base + 2] = vec4(0.0, 0.0, s, pf.z);
