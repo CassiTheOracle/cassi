@@ -429,6 +429,7 @@ var _env_applied_scale: float = 1.0
 const ENV_APPLY_TAU_SEC: float = 0.75
 const ENV_APPLY_CADENCE_MS: int = 500
 var _env_apply_last_ms: int = 0
+const ENVELOPE_SAMPLE_MAX: int = 8192
 ## Fixed seed for the initial conditions (0 = the legacy random init).
 ## Applied to BOTH the inline IC generators and the decoupled engine's ICs.
 @export var ic_seed: int = 0
@@ -537,7 +538,9 @@ var _tel_buf: RID      # gravity telemetry: [pi_hi, pi_lo, rho_guard, q_min, q_m
 var _grad_buf: RID     # vec4 per cell — gradient pass output, river-arm input
 var _grad_buf2: RID    # dual-lattice ∇(g·Φ) (SET 0 binding 8 — CASCADE_GRID.md);
 					   # always allocated so dual_grid stays a LIVE toggle
-var _occ_buf: RID      # occupancy counters (5 uints — cassi_occupancy.glsl)
+var _occ_buf: RID      # 32-byte occupancy counters (cassi_occupancy.glsl)
+var _occ_sample_buf: RID   # compact vec4 samples for envelope tracking
+var _envelope_sample_positions := PackedFloat32Array()
 # — particle buffers (SET 1) —
 var _pos_buf: RID; var _vel_buf: RID; var _acc_buf: RID
 # — snapshot/interpolation buffers (decoupled physics producer seam) —
@@ -1364,9 +1367,9 @@ func _run_physics_steps(n_steps: int) -> void:
 	if _interp_alpha < 1.0 and _blend_sh.is_valid() and N_particles > 0:
 		_blend_pc.encode_float(0, 2.0)  # roll marker (> 1.0)
 		_blend_pc.encode_float(4, 0.0)  # shader subtracts the supplied window origin
-		_blend_pc.encode_float(8, _window_center.x)
-		_blend_pc.encode_float(12, _window_center.y)
-		_blend_pc.encode_float(16, _window_center.z)
+		_blend_pc.encode_float(8, _render_window_origin().x)
+		_blend_pc.encode_float(12, _render_window_origin().y)
+		_blend_pc.encode_float(16, _render_window_origin().z)
 		_rd.compute_list_bind_compute_pipeline(cl, _blend_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_blend_0, 0)
 		_rd.compute_list_set_push_constant(cl, _blend_pc, _blend_pc.size())
@@ -1419,9 +1422,9 @@ func _run_physics_steps(n_steps: int) -> void:
 	if _blend_sh.is_valid() and N_particles > 0:
 		_blend_pc.encode_float(0, _interp_alpha)
 		_blend_pc.encode_float(4, 0.0)  # shader subtracts the supplied window origin
-		_blend_pc.encode_float(8, _window_center.x)
-		_blend_pc.encode_float(12, _window_center.y)
-		_blend_pc.encode_float(16, _window_center.z)
+		_blend_pc.encode_float(8, _render_window_origin().x)
+		_blend_pc.encode_float(12, _render_window_origin().y)
+		_blend_pc.encode_float(16, _render_window_origin().z)
 		_rd.compute_list_bind_compute_pipeline(cl, _blend_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_blend_0, 0)
 		_rd.compute_list_set_push_constant(cl, _blend_pc, _blend_pc.size())
@@ -1939,18 +1942,55 @@ func _track_window_center() -> void:
 
 ## TRACKING-ENVELOPE tracker (B-build piece 3 — the "box stops being
 ## fixed" for the LIVE sim): every ~2 s, when tracking_envelope and
-## decoupled, run the EnvelopeTracker on a subsample of the ENGINE's live
-## position buffer (the P3 published-mirror source — the same readback
-## group as the engine's read_com) and write the THREE state slots the
-## b_track probe proved: the window origin, the uniform box_scale (=
-## tracker.extent.x / the ORIGINAL box x — TOTAL vs original, never
-## cumulative), and the bh header's per-axis half-extents (bytes 36/40/44
-## — the per-frame 576 B refresh persists them). The ENGINE's state is
-## written too (the decoupled engine owns the physics box: its own
-## box_scale/_window_center/_bh_init_bytes — the engine's update_bh_header
-## + its per-step PC fills pick the new values up before the frame's
-## list); the sim's mirrors stay aligned for the render seam. OFF: the
-## whole path is gated — the fixed box, bit-identical.
+## decoupled, run the EnvelopeTracker on a deterministic compact GPU sample
+## of the ENGINE's live position buffer. The occupancy pass reads only the
+## selected positions back (at most 8192 vec4s), then the existing CPU
+## percentile/q-gate path publishes the window state.
+## The fit publishes the THREE state slots the b_track probe proved: the
+## window origin, the uniform box_scale (= tracker.extent.x / the ORIGINAL
+## box x — TOTAL vs original, never cumulative), and the bh header's per-axis
+## half-extents (bytes 36/40/44 — the per-frame 576 B refresh persists them).
+## The ENGINE's state is written too (the decoupled engine owns the physics
+## box: its own box_scale/_window_center/_bh_init_bytes — the engine's
+## update_bh_header + its per-step PC fills pick the new values up before the
+## frame's list); the sim's mirrors stay aligned for the render seam. OFF:
+## the whole path is gated — the fixed box, bit-identical.
+func _capture_envelope_sample() -> bool:
+	if N_particles <= 0 or not _occ_shader.is_valid() or not _occ_pipe.is_valid() \
+			or not _occ_buf.is_valid() or not _occ_sample_buf.is_valid() \
+			or _occ_pc_bytes.size() < 40:
+		return false
+	var n_sample := mini((N_particles + 31) / 32, ENVELOPE_SAMPLE_MAX)
+	var stride := maxi(32, int(N_particles / maxi(n_sample, 1)))
+	var ext := _extents()
+	var lim := ext * 0.85
+	var occ_set: RID = _us_occ_0_dc if (_decoupled_active and _us_occ_0_dc.is_valid()) else _us_occ_0
+	if not occ_set.is_valid():
+		return false
+	_occ_pc_bytes.encode_float(0, float(N_particles))
+	_occ_pc_bytes.encode_float(4, float(n_sample))
+	_occ_pc_bytes.encode_float(8, float(stride))
+	_occ_pc_bytes.encode_float(12, lim.x)
+	_occ_pc_bytes.encode_float(16, lim.y)
+	_occ_pc_bytes.encode_float(20, lim.z)
+	_occ_pc_bytes.encode_float(24, ext.x)
+	_occ_pc_bytes.encode_float(28, ext.y)
+	_occ_pc_bytes.encode_float(32, ext.z)
+	_occ_pc_bytes.encode_float(36, float(n_sample))
+	_rd.buffer_update(_occ_buf, 0, _occ_zero_bytes.size(), _occ_zero_bytes)
+	var ocl = _rd.compute_list_begin()
+	_rd.compute_list_bind_compute_pipeline(ocl, _occ_pipe)
+	_rd.compute_list_bind_uniform_set(ocl, occ_set, 0)
+	_rd.compute_list_set_push_constant(ocl, _occ_pc_bytes, _occ_pc_bytes.size())
+	_rd.compute_list_dispatch(ocl, ceili(float(n_sample) / 256.0), 1, 1)
+	_rd.compute_list_end()
+	var sample_bytes := n_sample * 16
+	var raw := _rd.buffer_get_data(_occ_sample_buf, 0, sample_bytes)
+	if raw.size() < sample_bytes:
+		return false
+	_envelope_sample_positions = raw.to_float32_array()
+	return _envelope_sample_positions.size() >= n_sample * 4
+
 func _track_envelope_window() -> void:
 	if not tracking_envelope or not _decoupled_active or _physics_engine == null \
 			or not _physics_engine.setup_ready():
@@ -1971,14 +2011,13 @@ func _track_envelope_window() -> void:
 		_env_target_center = _window_center
 		_env_target_scale = _env_applied_scale
 	var eng: Object = _physics_engine
-	if not eng._pos_buf.is_valid():
+	if not _capture_envelope_sample():
 		return
-	var np1 := maxi(int(eng.N_particles), 1)
-	var posf: PackedFloat32Array = _rd.buffer_get_data(eng._pos_buf, 0, np1 * 16).to_float32_array()
-	# The same subsample stride as the engine's read_com (every 32nd
-	# particle) — the accepted job-boundary readback group.
+	var posf: PackedFloat32Array = _envelope_sample_positions
+	if posf.size() < 12:
+		return
 	var s := PackedFloat32Array()
-	s.resize((np1 / 32) * 4)
+	s.resize(posf.size())
 	var ext := _extents()
 	var track_ext := ext * 1.5
 	var qf := PackedFloat32Array()
@@ -2010,7 +2049,7 @@ func _track_envelope_window() -> void:
 			s[cnt * 4 + 2] = p.z
 			s[cnt * 4 + 3] = 0.0
 			cnt += 1
-		i += 32 * 4
+		i += 4
 	if cnt == 0:
 		return
 	s.resize(cnt * 4)
@@ -2153,9 +2192,9 @@ func _decoupled_poll_and_render() -> void:
 	# inline-path state. Shader layout = alpha, mode, win_x, win_y, win_z.
 	_blend_pc.encode_float(0, 1.0)
 	_blend_pc.encode_float(4, 0.0)
-	_blend_pc.encode_float(8, _window_center.x)
-	_blend_pc.encode_float(12, _window_center.y)
-	_blend_pc.encode_float(16, _window_center.z)
+	_blend_pc.encode_float(8, _render_window_origin().x)
+	_blend_pc.encode_float(12, _render_window_origin().y)
+	_blend_pc.encode_float(16, _render_window_origin().z)
 	_rd.compute_list_bind_compute_pipeline(cl, _blend_pipe)
 	_rd.compute_list_bind_uniform_set(cl, _us_blend_0_dc, 0)
 	_rd.compute_list_set_push_constant(cl, _blend_pc, _blend_pc.size())
@@ -2324,10 +2363,11 @@ func _build_dc_sets() -> void:
 			_uniform_storage(6, eng._ml_psi_y),
 			_uniform_storage(7, eng._ml_psi_i),
 		], _qhist_shader, 0)
-	if _occ_shader.is_valid() and _occ_buf.is_valid() and eng._pos_buf.is_valid():
+	if _occ_shader.is_valid() and _occ_buf.is_valid() and _occ_sample_buf.is_valid() and eng._pos_buf.is_valid():
 		_us_occ_0_dc = _rd.uniform_set_create([
 			_uniform_storage(0, eng._pos_buf),
 			_uniform_storage(1, _occ_buf),
+			_uniform_storage(2, _occ_sample_buf),
 		], _occ_shader, 0)
 	print("[CassiSim] P3 one-RD render sets bound to the engine's live buffers")
 	if _us_blend_0_dc.is_valid():
@@ -2397,6 +2437,12 @@ func _uniform_storage(binding: int, buf: RID) -> RDUniform:
 # never produce zero/negative extents (h_i = 2·extent_i/N → NaN).
 func _extents() -> Vector3:
 	return Vector3(box_aspect.x, box_aspect.y, box_aspect.z) * (cluster_radius * 1.5) * maxf(box_scale, 1e-3)
+
+func _render_window_origin() -> Vector3:
+	# Physics and envelope tracking may move the field window while the
+	# operator has home-window following disabled. Keep that motion out of
+	# the render-space translation so the camera remains user-controlled.
+	return _window_center if home_window_enabled else Vector3.ZERO
 
 func _extent_min() -> float:
 	var e := _extents()
@@ -2538,7 +2584,11 @@ func _setup_buffers() -> void:
 	_grad_buf2 = _rd.storage_buffer_create(nc * 16)
 	# q-histogram for auto color-align (cassi_qhist.glsl): 128 log-spaced bins
 	_qhist_buf = _rd.storage_buffer_create(128 * 4)
-	_qhist_zero_bytes = PackedByteArray(); _qhist_zero_bytes.resize(128 * 4)
+	# Occupancy counters plus a separate compact envelope sample. The sample
+	# is written by the same strided GPU pass so envelope tracking never
+	# reads back the full N-particle position buffer.
+	_occ_buf = _rd.storage_buffer_create(32)
+	_occ_sample_buf = _rd.storage_buffer_create(ENVELOPE_SAMPLE_MAX * 16)
 	_qhist_pc_bytes = PackedByteArray(); _qhist_pc_bytes.resize(15 * 4)  # + win@10-12 (movable home-window) + boxless@13 + n_sites@14 (true-boxless arm)
 	# Meshless arm buffers (allocated always; used only when meshless_mode
 	# is on). The JFA labels ping-pong; the per-site state carries the cell
@@ -2707,8 +2757,7 @@ func _free_buffers() -> void:
 	for rid in [_field_ey, _field_ei, _field_q, _field_vel, _field_scratch,
 				_pos_buf, _vel_buf, _acc_buf, _pos_prev_buf, _pos_render_buf,
 				_bh_buf, _bh_lens_buf,
-				_mass_density_buf, _mass_density_fix, _cluster_buf, _fft_buf, _tel_buf,
-				_grad_buf, _grad_buf2, _occ_buf, _qhist_buf,
+				_grad_buf, _grad_buf2, _occ_buf, _occ_sample_buf, _qhist_buf,
 				_ml_labels_a, _ml_labels_b, _ml_sites,
 				_ml_psi_y, _ml_psi_i, _ml_pi_y, _ml_pi_i,
 				_ml_lap_y, _ml_lap_i, _ml_vol,
@@ -3401,11 +3450,12 @@ func _cache_uniform_sets() -> void:
 
 
 	# Occupancy sampler (diagnostic; CPU fallback if invalid — the shader
-	# is optional and excluded from _shaders_ready)
-	if _occ_shader.is_valid() and _pos_buf.is_valid() and _occ_buf.is_valid():
+	# is optional and excluded from _shaders_ready).
+	if _occ_shader.is_valid() and _pos_buf.is_valid() and _occ_buf.is_valid() and _occ_sample_buf.is_valid():
 		_us_occ_0 = _rd.uniform_set_create([
 			_uniform_storage(0, _pos_buf),
 			_uniform_storage(1, _occ_buf),
+			_uniform_storage(2, _occ_sample_buf),
 		], _occ_shader, 0)
 
 	# q-histogram sampler (auto color-align; optional like occupancy)
@@ -5883,11 +5933,11 @@ func _update_particle_cull_bounds() -> void:
 	var ext := _extents()
 	var margin := maxf(_mm_particle_size * 4.0, 1.0)
 	var bound := ext + Vector3.ONE * margin
-	# The instancer writes positions relative to the current window origin.
-	# Keep the renderer's whole-MultiMesh AABB aligned to that finite window;
-	# the old hard-coded ±5000 box became a false world wall after envelope
-	# refits grew beyond it.
-	_mm.custom_aabb = AABB(-bound, bound * 2.0)
+	# The instancer writes positions relative to the render window origin.
+	# When tracking moves physics only, the rendered cloud is offset by the
+	# physical center in that local space; keep the MultiMesh AABB with it.
+	var local_center := _window_center - _render_window_origin()
+	_mm.custom_aabb = AABB(local_center - bound, bound * 2.0)
 
 func _setup_multimesh() -> void:
 	# Color-as-LUT (Tier-2): the MultiMesh FORMAT is static per build —
@@ -6200,6 +6250,7 @@ func _sample_occupancy() -> void:
 		_occ_pc_bytes.encode_float(24, ext_box.x)
 		_occ_pc_bytes.encode_float(28, ext_box.y)
 		_occ_pc_bytes.encode_float(32, ext_box.z)
+		_occ_pc_bytes.encode_float(36, 0.0)  # diagnostics only need counters
 		# Zero the counters BEFORE the dispatch (buffer_update outside a
 		# compute list — the BH-header contract).
 		_rd.buffer_update(_occ_buf, 0, _occ_zero_bytes.size(), _occ_zero_bytes)
