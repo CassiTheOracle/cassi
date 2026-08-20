@@ -2062,6 +2062,10 @@ func _decoupled_poll_and_render() -> void:
 				if _mmi != null:
 					_mmi.visible = true   # the inline path draws the particles now
 				_init_field(); _init_particles(); _apply_gravity_calibration(); _grav_warmup = true
+			# Never call finish_setup while the worker is still mutating the
+			# engine's setup state. This was a race in the non-blocking boot
+			# path and could wedge the debug renderer before the first frame.
+			return
 		if not _physics_engine.finish_setup():
 			if gridless_physics:
 				_fail_gridless_physics("finish_setup failed")
