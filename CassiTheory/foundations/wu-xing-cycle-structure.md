@@ -1,12 +1,12 @@
 # Wu Xing Cycle Structure: The Two 5-Cycles, the Control Ring, and the 5↔13 Partition
 
-## Status: Derived (cycle geometry, coupling, ring algebra) / Tested (ke ring PDE 2026-07-31, WX1 gate level 2026-08-01) / Hypothesized (affinity gradient, clinical profile)—July 2026
+## Status: Derived (conditional five-cycle graph, pentagon geometry, ring algebra under the control-release rule) / Tested (optional `five_ke` gate PDE 2026-07-31, WX1 gate level 2026-08-01) / Hypothesized (five-channel gate realization, affinity gradient, primary mapping, clinical profile)—July 2026
 
 ## Abstract
 
-The Wu Xing derivation (`foundations/wu-xing-derivation.md`) establishes *that* the gate has five channels; this document derives *how those five channels are wired*. The pentagon admits exactly two coherent 5-cycles: the pentagon itself (sides, step +1—the generating/sheng cycle) and the pentagram (diagonals, step +2—the control/ke cycle). The control cycle's transmission coefficient is the framework's existing constant $\kappa = \varphi^{-1} = K_{fw}$ ("Water damps Fire"), which this document derives geometrically from the pentagram's golden-section crossings. The control ring then makes quantitative predictions: a locked channel drives a strictly alternating elevation/suppression pattern around the ring, the ring damps the locked channel by $\kappa^3 = \varphi^{-3}$ (23.6%) per cycle, and the ring gain $\kappa^3 < 1$ means the ring is sub-critical—it can redistribute and damp, but cannot sustain a lock without a driver (consistent with the trauma PDE tests, §10.4–10.7 of `consciousness/trauma-as-frozen-gate.md`).
+The canonical Cassi solver carries two densities $E_Y,E_I$, total density $\rho$, $\epsilon$, and gated rank-one conversion. A five-channel state and the `gate_model='five_ke'` control ring are optional/default-off conditional kinetic/geometric extensions. Conditional on selecting a five-vertex graph, this document gives its two coherent 5-cycles: the pentagon itself (sides, step +1—the generating/sheng cycle) and the pentagram (diagonals, step +2—the control/ke cycle). The control cycle's transmission coefficient uses the existing constant $\kappa = \varphi^{-1} = K_{fw}$ ("Water damps Fire") and follows geometrically from the pentagram's golden-section crossings; its gate interpretation is conditional on the five-ke extension. Under the conditional control-release rule, the ring algebra gives a locked channel's strictly alternating elevation/suppression pattern, damps the locked channel by $\kappa^3 = \varphi^{-3}$ (23.6%) per cycle, and has gain $\kappa^3 < 1$, so it is sub-critical and requires a driver for persistence (consistent with the trauma PDE tests, §10.4–10.7 of `consciousness/trauma-as-frozen-gate.md`).
 
-The second part derives the 5↔13 relationship between the channels and the chakra ladder: the chakra affinities of `consciousness/emotions-as-gate-configurations.md` §3.4 instantiate a uniform body-axis phase gradient of 18° per rung—one pentagon vertex per 4 rungs (two SO(2) doublet cycles)—so the 7 primary nodes sample the sheng cycle in ascending rung order, and the 6 secondary nodes sit at half-channel (36°) positions. The 13-node window partitions as $13 = F_7 = F_5 + F_6$: five channel-bearing primaries (one complete sheng winding) plus an eight-node complement (six half-channel secondaries, the wrap node, and the integration node), with $8{:}13$ the $\varphi^{-1}$ convergent (error $\varphi^{-6}$).
+The second part formulates a conditional 5↔13 relationship between a selected five-cycle and the chakra ladder. The chakra affinities of `consciousness/emotions-as-gate-configurations.md` §3.4 provide a candidate uniform body-axis phase gradient of 18° per rung—one pentagon vertex per 4 rungs (two SO(2) doublet cycles); under this hypothesis, the 7 primary nodes sample the sheng cycle in ascending rung order and the 6 secondary nodes sit at half-channel (36°) positions. The combinatorial 13-node window partitions as $13 = F_7 = F_5 + F_6$; its reading as five channel-bearing primaries (one complete sheng winding) plus an eight-node complement (six half-channel secondaries, the wrap node, and the integration node) is conditional on the same mapping, with $8{:}13$ the $\varphi^{-1}$ convergent (error $\varphi^{-6}$).
 
 ---
 
@@ -14,12 +14,12 @@ The second part derives the 5↔13 relationship between the channels and the cha
 
 ### 1.1 Cycle completeness
 
-A 5-cycle through five vertices is a cyclic permutation of step $s$ modulo 5. The steps coprime to 5 are $s = 1$ and $s = 2$ (steps 3 and 4 are their reversals), so the pentagon admits **exactly two undirected 5-cycles**:
+Conditional on selecting a five-vertex graph, a 5-cycle through its vertices is a cyclic permutation of step $s$ modulo 5. The steps coprime to 5 are $s = 1$ and $s = 2$ (steps 3 and 4 are their reversals), so the selected pentagon admits **exactly two undirected 5-cycles**:
 
 - **Sheng (generating) cycle**, step +1: Wood → Fire → Earth → Metal → Water → Wood. In the pentagon this is the set of *sides*—adjacent vertices.
 - **Ke (control) cycle**, step +2: Wood → Earth → Water → Fire → Metal → Wood. This is the set of *diagonals*—the pentagram {5/2}.
 
-Both cycles pass the Fibonacci coherence condition that selected $w = 5$ in the first place (`foundations/wu-xing-derivation.md` §2): the coherence argument counts cycle *length*, and both cycles have length 5. The traditional "generation and control" pair is therefore not an arbitrary cultural doubling—it is the complete set of coherent 5-cycles on five vertices.
+For the selected graph, both cycles satisfy the Fibonacci coherence condition associated with $w = 5$ (`foundations/wu-xing-derivation.md` §2): the coherence argument counts cycle *length*, and both cycles have length 5. They exhaust the two coherent step classes on five vertices.
 
 $$\boxed{\text{sheng} = \text{pentagon sides (step } +1\text{)}, \qquad \text{ke} = \text{pentagram diagonals (step } +2\text{)}}$$
 
@@ -30,15 +30,15 @@ The two cycles carry different chord lengths. In a regular pentagon with side $s
 - diagonal: $d = 2s\cos(\pi/5) = \varphi s$ (the standard golden-triangle identity);
 - the pentagram's crossings divide each diagonal into three segments in the ratios $\varphi^{-2} : \varphi^{-3} : \varphi^{-2}$ (outer segments $d/\varphi^2$, central segment $d/\varphi^3$)—each crossing golden-sections the chord (long:short $= \varphi$).
 
-The gate model already uses the diagonal/side distinction as a coupling ratio: the primary channel couples through the pentagon's direct diagonal ($\eta_1 = 1$), the secondary channels through the sides ($\eta_{2..5} = \text{side}/\text{diagonal} = \varphi^{-1}$) (`foundations/wa-pentagon-gate.md` §2.4). The diagonal is the *strong* coupling of the model.
+Within a conditional five-channel gate extension, the diagonal/side distinction supplies a coupling ratio: the primary channel couples through the pentagon's direct diagonal ($\eta_1 = 1$), the four secondary channels through the sides ($\eta_{2..5} = \text{side}/\text{diagonal} = \varphi^{-1}$) (`foundations/wa-pentagon-gate.md` §2.4). The diagonal is the *strong* coupling in this extension.
 
 ### 1.3 The control transmission coefficient
 
-The parameter inventory already registers a Wu Xing control coefficient ($\varphi^{-1}$, "Water damps Fire", `parameter-inventory.md` §2.2). This document notes the two geometric readings that fix it:
+The registered Wu Xing control coefficient is $\varphi^{-1}$ ("Water damps Fire", `parameter-inventory.md` §2.2). In the selected pentagon, the two geometric readings are:
 
 $$\boxed{\kappa = \frac{\text{side}}{\text{diagonal}} = \varphi^{-1} = K_{fw}}$$
 
-A control signal crossing the pentagram's golden-section point transmits the golden fraction $\varphi^{-1}$ of its amplitude (equivalently, the control chord is $\varphi$ times the generating chord, so the per-chord transmission is $\varphi^{-1}$). No new parameter: $\kappa$ is the existing $K_{fw}$.
+Within the conditional control-ring interpretation, a control signal crossing the pentagram's golden-section point transmits the golden fraction $\varphi^{-1}$ of its amplitude (equivalently, the control chord is $\varphi$ times the generating chord, so the per-chord transmission is $\varphi^{-1}$). Here $\kappa$ is the registered $K_{fw}$.
 
 ---
 
@@ -46,7 +46,7 @@ A control signal crossing the pentagram's golden-section point transmits the gol
 
 ### 2.1 The control-release rule
 
-The Wu Xing control logic, stated as gate dynamics: a channel's excess *restrains* its ke-controlled partner; a channel's deficit *releases* its ke-controlled partner (the insulting/overacting direction). With $\kappa = \varphi^{-1}$ as the transmission:
+For the conditional five-channel gate extension, state the Wu Xing control logic as gate dynamics: a channel's excess *restrains* its ke-controlled partner; a channel's deficit *releases* its ke-controlled partner (the insulting/overacting direction). With $\kappa = \varphi^{-1}$ as the transmission:
 
 - channel $i$ with excess $\Delta_i > 0$ restrains channel $i+2$ by $\kappa \Delta_i$;
 - channel $i$ with deficit below its restraining capacity releases channel $i+2$ by the same amount.
@@ -59,11 +59,11 @@ $$\Delta_1 = \Delta(1 - \kappa^3), \quad \Delta_2 = -\kappa^2 \Delta, \quad \Del
 
 $$\boxed{\Delta = [+0.764,\; -0.382,\; -0.618,\; +0.382,\; +0.618]\,\Delta}$$
 
-**Implementation note (PDE-accurate, verified 2026-08-01, WX1 gate test):** the gate in the solver (`gate_model='five_ke'`) applies *one simultaneous round per evaluation*, which caps every restraint at the target's current openness—over-starvation transmits only the target's baseline, not the full $\kappa\Delta$—and lets the ring's circulation back-flow into the starved target (the released partner's own release deposits there). The sign pattern and the ke-order alternation survive exactly; the magnitudes are capped. Measured one-lap response for a Wood lock at $\Delta = \varphi^{-3}$ (channel order Wood..Water): deviations $[+0.202, -0.112, -0.056, +0.112, +0.090]$ vs the sequential $[+0.180, -0.090, -0.146, +0.090, +0.146]$ (capped): Earth starves in round one but is partially restored to 0.034 by the ring's back-flow; the locked channel retains 0.85 of its excess after one lap (the caps dilute the $\kappa^3$ attenuation). The sequential fractions remain the ideal one-pass propagation; the implementation-accurate magnitudes are the WX1-test numbers (`two-fluid/run_trauma_c1_ring.py`).
+**Implementation note (PDE-accurate, verified 2026-08-01, WX1 gate test):** the optional solver variant (`gate_model='five_ke'`) applies *one simultaneous round per evaluation*, which caps every restraint at the target's current openness—over-starvation transmits only the target's baseline, not the full $\kappa\Delta$—and lets the ring's circulation back-flow into the starved target (the released partner's own release deposits there). The sign pattern and the ke-order alternation survive exactly; the magnitudes are capped. Measured one-lap response for a Wood lock at $\Delta = \varphi^{-3}$ (channel order Wood..Water): deviations $[+0.202, -0.112, -0.056, +0.112, +0.090]$ vs the sequential $[+0.180, -0.090, -0.146, +0.090, +0.146]$ (capped): Earth starves in round one but is partially restored to 0.034 by the ring's back-flow; the locked channel retains 0.85 of its excess after one lap (the caps dilute the $\kappa^3$ attenuation). The sequential fractions remain the ideal one-pass propagation; the implementation-accurate magnitudes are the WX1-test numbers (`two-fluid/run_trauma_c1_ring.py`).
 
 ### 2.2 The alternating lock pattern
 
-For a Wood lock with the closure-scale excess $\Delta = \varphi^{-3} = 0.236$ (the natural magnitude: closing channel 1 releases exactly $\varphi^{-3}$), the effective openness $\mathbf{b}_{\text{eff}} = \mathbf{b} + \Delta$ becomes:
+Within this conditional five-channel ring, for a Wood lock with the closure-scale excess $\Delta = \varphi^{-3} = 0.236$ (the natural magnitude: closing channel 1 releases exactly $\varphi^{-3}$), the effective openness $\mathbf{b}_{\text{eff}} = \mathbf{b} + \Delta$ becomes:
 
 | Channel | Baseline $b_i$ | Ring deviation | $b_{\text{eff}}$ |
 |---|---:|---:|---:|
@@ -77,36 +77,36 @@ In ke order (1, 3, 5, 2, 4) the effective openness is strictly alternating: 0.41
 
 $$\boxed{\text{ke order: } +, -, +, -, + \text{—a locked channel drives an alternating ring, not uniform starvation}}$$
 
-This refines the trauma prediction TR1 (`consciousness/trauma-as-frozen-gate.md` §11): the four non-locked channels are not starved equally. The ke-controlled partner (Earth, for a Wood lock) starves completely; the partner's partner (Water) is *elevated* by 62% of the lock's excess; Fire is partially starved (−38%); Metal is elevated (+38%).
+Within the conditional gate extension, this refines the trauma prediction TR1 (`consciousness/trauma-as-frozen-gate.md` §11): the four non-locked channels are not starved equally. The ke-controlled partner (Earth, for a Wood lock) starves completely; the partner's partner (Water) is *elevated* by 62% of the lock's excess; Fire is partially starved (−38%); Metal is elevated (+38%).
 
 ### 2.3 The ring gain: sub-critical by design
 
-The feedback path around the ring (locked channel → its ke target → release → its ke target → ... → back to the locked channel) crosses three control transmissions, so the one-cycle ring gain is:
+For the selected five-cycle and conditional control-release rule, the feedback path around the ring (locked channel → its ke target → release → its ke target → ... → back to the locked channel) crosses three control transmissions, so the one-cycle ring gain is:
 
 $$\kappa^3 = \varphi^{-3} = 0.236$$
 
 Two consequences:
 
-1. **The ring damps the locked channel.** The lock's own excess is reduced by $\kappa^3$ (23.6%) per cycle—the control cycle is the gate's built-in dissipation channel.
-2. **The ring cannot self-sustain.** $\kappa^3 < 1$ means a ring perturbation decays by 76% per cycle without a driver. The ke mechanism redistributes and damps, but never creates persistence. This is the gate-level restatement of the trauma PDE result: nothing self-sustains; the frozen wake requires its driver (`consciousness/trauma-as-frozen-gate.md` §10.5). A measured *self-sustained* lock (persistence with the stimulus removed) would require $\kappa \geq 1$—excluded by the established $K_{fw} = \varphi^{-1}$.
+1. **Within the conditional gate extension, the ring damps the locked channel.** The lock's own excess is reduced by $\kappa^3$ (23.6%) per cycle—the control cycle is the gate's built-in dissipation channel.
+2. **The ring is sub-critical.** $\kappa^3 < 1$ means a ring perturbation decays by 76% per cycle without a driver. Within the conditional gate interpretation, the ke mechanism redistributes and damps, with persistence requiring a driver (`consciousness/trauma-as-frozen-gate.md` §10.5). A measured *self-sustained* lock (persistence with the stimulus removed) would require $\kappa \geq 1$—the registered $K_{fw} = \varphi^{-1}$ fixes the control coefficient below that threshold.
 
 **A structural identity:** the ring gain equals the pentagram's central segment fraction ($\varphi^{-3}$ of the diagonal, §1.2)—the one-cycle attenuation of the control ring is exactly the golden-section core of its own geometry.
 
-**No-driver behavior of the simultaneous implementation (WX1 gate test, 2026-08-01):** iterated without a driver, the ke round conserves total openness exactly (deposits equal actual restraints) and converges to a jammed attractor—for all five lock channels the same state $\approx [0.07, 0.16, 0.57, 0, 0]$: the excess collects in Earth, whose ke target (Water) is starved, so the ring can neither transmit nor restore—Metal and Water stay starved, the locked channel is drained below baseline. The gate alone neither relaxes nor self-sustains; relaxation comes from the conversion coupling in the PDE (which is why the driver test and the §10 nulls of the trauma document say what they say).
+**No-driver behavior of the optional simultaneous implementation (WX1 gate test, 2026-08-01):** iterated without a driver, the ke round conserves total openness exactly (deposits equal actual restraints) and converges to a jammed attractor—for all five lock channels the same state $\approx [0.07, 0.16, 0.57, 0, 0]$: the excess collects in Earth, whose ke target (Water) is starved, so the ring can neither transmit nor restore—Metal and Water stay starved, the locked channel is drained below baseline. The gate alone neither relaxes nor self-sustains; relaxation comes from the conversion coupling in the PDE (which is why the driver test and the §10 nulls of the trauma document say what they say).
 
 ### 2.4 The threshold
 
-Earth (the ke target of the strongest baseline channel) is fully starved when $\kappa \Delta \geq b_3$:
+Within the conditional five-channel ring, Earth (the ke target of the strongest baseline channel) is fully starved when $\kappa \Delta \geq b_3$:
 
 $$\Delta_c = \varphi \cdot b_3 = \varphi \cdot \varphi^{-5} = \varphi^{-4} = 0.146$$
 
-Strong locks ($\Delta \gtrsim 0.146$) engage the full alternating ring; mild over-activity (everyday emotions) stays below threshold and shows ordinary $R$-matrix behavior. The ring is a *lock-regime* phenomenon, not an everyday one.
+Within this conditional five-channel ring, strong locks ($\Delta \gtrsim 0.146$) engage the full alternating ring; mild over-activity (everyday emotions) stays below threshold and shows ordinary $R$-matrix behavior. The ring is a *lock-regime* phenomenon, not an everyday one.
 
-The implementation-accurate statement (verified 2026-08-01): the ke target of a locked channel fully starves iff $\kappa\Delta \geq b_{j+2}$—the cap mechanism makes the threshold per-target. For a Wood lock ($b_3 = \varphi^{-5}$) this reproduces $\Delta_c = \varphi \cdot b_3 = \varphi^{-4} = 0.146$ exactly: at $\Delta = \varphi^{-4}$ Earth reaches 0; at $\Delta = \varphi^{-5}$ it keeps $\varphi^{-7}$ of openness. The Metal lock never starves Wood at $\Delta = \varphi^{-3}$ ($\kappa\Delta = 0.146 < b_1 = 0.236$); the Fire lock's mild case is marginal ($\kappa\varphi^{-5} = \varphi^{-6} = b_4$ exactly).
+The implementation-accurate statement for the optional variant (verified 2026-08-01) is: the ke target of a locked channel fully starves iff $\kappa\Delta \geq b_{j+2}$—the cap mechanism makes the threshold per-target. For a Wood lock ($b_3 = \varphi^{-5}$) this reproduces $\Delta_c = \varphi \cdot b_3 = \varphi^{-4} = 0.146$ exactly: at $\Delta = \varphi^{-4}$ Earth reaches 0; at $\Delta = \varphi^{-5}$ it keeps $\varphi^{-7}$ of openness. The Metal lock never starves Wood at $\Delta = \varphi^{-3}$ ($\kappa\Delta = 0.146 < b_1 = 0.236$); the Fire lock's mild case is marginal ($\kappa\varphi^{-5} = \varphi^{-6} = b_4$ exactly).
 
 ### 2.5 The cosmological sibling
 
-The same control-release dynamics was explored for the late-time dark-energy running $w_a$ (`foundations/wa-pentagon-gate.md` §3), where the baseline asymmetry (Metal at $\varphi^{-6}$ vs Wood at $\varphi^{-3}$) makes the mechanism "structurally sound but quantitatively marginal" for flipping the sign. The emotional-lock application here is in the opposite regime—a *strong* excess (above $\Delta_c$) rather than the cosmological near-baseline case—so the alternating pattern is robust even where the $w_a$ effect is marginal.
+The conditional control-release construction also applies to the late-time dark-energy running $w_a$ (`foundations/wa-pentagon-gate.md` §3), where the baseline asymmetry (Metal at $\varphi^{-6}$ vs Wood at $\varphi^{-3}$) makes the mechanism "structurally sound but quantitatively marginal" for flipping the sign. The emotional-lock application uses a strong excess above $\Delta_c$, while the cosmological case remains near baseline; the alternating pattern is robust in this regime even where the $w_a$ effect is marginal.
 
 ---
 
@@ -114,7 +114,7 @@ The same control-release dynamics was explored for the late-time dark-energy run
 
 ### 3.1 The affinity phase gradient
 
-The chakra-channel affinities (`consciousness/emotions-as-gate-configurations.md` §3.4) are: Root Water, Sacral Wood, Solar plexus Fire, Heart Earth, Throat Metal, Third eye Water (+Wood), Crown all. The first five are exactly one pass through the **sheng cycle in ascending rung order** (Water → Wood → Fire → Earth → Metal), one channel per 4 rungs. This is a single uniform rule: the body-axis phase advances one pentagon vertex per 4 rungs—i.e., 18° per rung, 36° per SO(2) doublet cycle (half a vertex):
+A conditional affinity hypothesis based on the chakra-channel table (`consciousness/emotions-as-gate-configurations.md` §3.4) assigns Root Water, Sacral Wood, Solar plexus Fire, Heart Earth, Throat Metal, Third eye Water (+Wood), Crown all. Under this hypothesis, the first five entries follow one pass through the **sheng cycle in ascending rung order** (Water → Wood → Fire → Earth → Metal), one channel per 4 rungs. The candidate body-axis rule advances one pentagon vertex per 4 rungs—i.e., 18° per rung, 36° per SO(2) doublet cycle (half a vertex):
 
 $$\theta(n) = 288^\circ + 18^\circ \cdot (n - 142) \pmod{360^\circ}$$
 
@@ -128,58 +128,59 @@ $$\theta(n) = 288^\circ + 18^\circ \cdot (n - 142) \pmod{360^\circ}$$
 | Third eye | 162 | 288° | Water (+Wood: wrap blend) ~ |
 | Crown | 166 | 0° | All (boundary/integration node) |
 
-Five of seven primary entries match exactly; the third eye matches on its primary channel (the "+Wood" is the wrap blend—the second winding starts here); the crown is the terminal node, where the 26-rung window closes (the chakra doc's "missing 14th node" at the body boundary, `consciousness/chakras-as-cascade-bubbles.md` §6.1) and the phase sampling gives way to integration.
+Under this conditional mapping, five of seven primary entries match exactly; the third eye matches on its primary channel (the "+Wood" is the wrap blend—the second winding starts here); the crown is the terminal node, where the 26-rung window closes (the chakra doc's "missing 14th node" at the body boundary, `consciousness/chakras-as-cascade-bubbles.md` §6.1) and the phase sampling gives way to integration.
 
-The six secondary nodes sit at the odd doublet cycles (2 rungs = 36° = half a vertex from their neighbors; the 2nd, 4th, ..., 12th nodes of the 13-node list—"even-indexed" in the emotions document's convention): 144°-node at 324° (Water/Wood blend), 148 at 36° (Wood/Fire), 152 at 108° (Fire/Earth), 156 at 180° (Earth/Metal), 160 at 252° (Metal/Water), 164 at 324° (Water/Wood). The secondaries are the **half-channel positions**—which is exactly why the emotions document calls them "intermediate localization sites—more granular emotional texture" (§3.4).
+Under the same conditional mapping, the six secondary nodes sit at the odd doublet cycles (2 rungs = 36° = half a vertex from their neighbors; the 2nd, 4th, ..., 12th nodes of the 13-node list—"even-indexed" in the emotions document's convention): 144°-node at 324° (Water/Wood blend), 148 at 36° (Wood/Fire), 152 at 108° (Fire/Earth), 156 at 180° (Earth/Metal), 160 at 252° (Metal/Water), 164 at 324° (Water/Wood). The secondaries are the **half-channel positions**—which is exactly why the emotions document calls them "intermediate localization sites—more granular emotional texture" (§3.4).
 
+The conditional candidate rule is:
 $$\boxed{\text{affinity rule: } \theta(n) = 288^\circ + 18^\circ(n - 142) \pmod{360^\circ} \text{—primaries sample the sheng cycle, secondaries sample the half-channels}}$$
 
-The mechanism that fixes 18°/rung (the body-axis phase gradient) is the open dynamical quantity; the rule is the structural content of the phenomenological table.
+The mechanism that fixes 18°/rung remains an open dynamical quantity. Within this conditional interpretation, the rule summarizes the phenomenological table.
 
 ### 3.2 The Fibonacci partition
 
-The 13-node window partitions against the channel cycle. One complete sheng winding takes 5 primaries × 4 rungs = 20 rungs, and the 13 nodes split as:
+Conditional on this affinity mapping, the 13-node window partitions against the selected channel cycle. One complete sheng winding takes 5 primaries × 4 rungs = 20 rungs, and the associated node count splits as:
 
 $$13 = F_7 = \underbrace{5}_{F_5} + \underbrace{8}_{F_6}$$
 
-- **The 5 channel-bearing primaries** (Root–Throat, rungs 142–158): one channel each, one complete sheng winding.
-- **The 8-node complement** (six half-channel secondaries + the wrap node at 162 + the integration node at 166): the return structure.
+- **Conditional channel-bearing-primary assignment:** Root–Throat, rungs 142–158, carry one channel each and span one complete sheng winding.
+- **Conditional complement assignment:** the 8-node complement consists of six half-channel secondaries plus the wrap node at 162 and the integration node at 166, forming the return structure.
 
-The ratio of the two parts is the golden-ratio convergent $8{:}13 = F_6{:}F_7$, which approximates $\varphi^{-1}$. The error $\varphi^{-6}$ is exact in the linear form $|8\varphi - 13| = \varphi^{-6} \approx 0.0557$ (the framework's strongest convergent within the window; `foundations/wu-xing-derivation.md` §2.1); in ratio form, $|8/13 - \varphi^{-1}| = \varphi^{-7}/13 \approx 2.65\times10^{-3}$, equivalently $|13/8 - \varphi|/(13/8) = \varphi^{-6}/13 \approx 4.29\times10^{-3}$. The window is golden-sectioned by its own channel structure.
+The ratio of the two parts is the golden-ratio convergent $8{:}13 = F_6{:}F_7$, which approximates $\varphi^{-1}$. The error $\varphi^{-6}$ is exact in the linear form $|8\varphi - 13| = \varphi^{-6} \approx 0.0557$ (the framework's strongest convergent within the window; `foundations/wu-xing-derivation.md` §2.1); in ratio form, $|8/13 - \varphi^{-1}| = \varphi^{-7}/13 \approx 2.65\times10^{-3}$, equivalently $|13/8 - \varphi|/(13/8) = \varphi^{-6}/13 \approx 4.29\times10^{-3}$. The arithmetic gives the golden-ratio convergent; under the conditional channel reading, the window is golden-sectioned by its own channel structure.
 
 ### 3.3 The channel step identity
 
-The per-channel rung spacing is 4. This equals the golden difference exactly:
+Under the conditional primary assignment, the per-channel rung spacing is 4. This equals the golden difference exactly:
 
 $$\varphi^3 - \varphi^{-3} = 4$$
 
-The channel step is the span between $\varphi^3$ and its reciprocal—an exact identity, noted here as a consistency remark (its dynamical mechanism is open).
+Under the same conditional assignment, the channel step is the span between $\varphi^3$ and its reciprocal—an exact identity, noted here as a consistency remark (its dynamical mechanism is open).
 
 ### 3.4 Answer to the open question
 
-`consciousness/emotions-as-gate-configurations.md` §8 Q4 asks whether $5 \times 13 = 65$ (channel × node pairs) has a structured relationship, given $5 = F_5$ and $13 = F_7$. The answer: the distribution is the phase gradient of §3.1—the 65-pair grid collapses to 13 natural assignments (one per node), and the counts relate as $13 = 5 + 8$, not $5 \times 13$. The 5-channel cycle and the 13-node ladder are the same pentagon sampled at two granularities: the cycle at one vertex per 4 rungs, the ladder at one node per 2 rungs.
+Under the conditional phase-gradient mapping, `consciousness/emotions-as-gate-configurations.md` §8 Q4 asks whether $5 \times 13 = 65$ (channel × node pairs) has a structured relationship, given $5 = F_5$ and $13 = F_7$. The conditional answer represents the 65-pair grid by 13 natural assignments (one per node), with the counts organized as $13 = 5 + 8$. Under the same mapping, the five-cycle and the 13-node ladder are one pentagon sampled at two granularities: the cycle at one vertex per 4 rungs, the ladder at one node per 2 rungs.
 
 ---
 
 ## 4. Predictions
 
-### WX1: The alternating trauma profile—**tested at the gate level (2026-08-01, `two-fluid/run_trauma_c1_ring.py`)**
+### WX1: The alternating trauma profile—**tested for the optional `five_ke` gate variant at gate level (2026-08-01, `two-fluid/run_trauma_c1_ring.py`)**
 
-A locked channel produces the ke-alternating pattern, not uniform starvation: for a Wood lock, Earth fully starved, Fire partially starved (−38% of the excess), Metal and Water *elevated* (+38%, +62%). **Gate-level result (2026-08-01):** with the solver's own ke round on synthetic single-lock states, all five lock channels pass—(i) the one-round response equals the capped ke algebra exactly; (ii) the one-lap response alternates strictly in ke order read from the locked channel, with the sign pattern of the fractions $[-0.382, -0.618, +0.382, +0.618]$; (iii) the ke target starves iff $\kappa\Delta \geq b_{j+2}$ (Wood-lock threshold $\Delta_c = \varphi^{-4}$ exact); (iv) the uniform-starvation counterfactual is rejected—the ring elevates two non-locked channels; (v) the ke round reproduces the WX3 PDE state to its own prediction error ($5.5\times10^{-4}$). Magnitudes follow the implementation caps (§2.1 note). **Test (clinical):** the P3 multi-dimensional affect instrument of the emotions document, on trauma-exposed populations (§11 TR1 of `consciousness/trauma-as-frozen-gate.md`): profile the four non-locked channels against the $\varphi^{-i}$ baseline and check the ring fractions $[-0.382, -0.618, +0.382, +0.618]$, not four equal deficits.
+Within the conditional five-channel gate extension, a locked channel produces the ke-alternating pattern, not uniform starvation: for a Wood lock, Earth fully starved, Fire partially starved (−38% of the excess), Metal and Water *elevated* (+38%, +62%). **Gate-level result (2026-08-01):** with the optional variant's solver ke round on synthetic single-lock states, all five lock channels pass—(i) the one-round response equals the capped ke algebra exactly; (ii) the one-lap response alternates strictly in ke order read from the locked channel, with the sign pattern of the fractions $[-0.382, -0.618, +0.382, +0.618]$; (iii) the ke target starves iff $\kappa\Delta \geq b_{j+2}$ (Wood-lock threshold $\Delta_c = \varphi^{-4}$ exact); (iv) the uniform-starvation counterfactual is rejected—the ring elevates two non-locked channels; (v) the ke round reproduces the WX3 PDE state to its own prediction error ($5.5\times10^{-4}$). Magnitudes follow the implementation caps (§2.1 note). **Test (clinical):** the P3 multi-dimensional affect instrument of the emotions document, on trauma-exposed populations (§11 TR1 of `consciousness/trauma-as-frozen-gate.md`): profile the four non-locked channels against the $\varphi^{-i}$ baseline and check the ring fractions $[-0.382, -0.618, +0.382, +0.618]$, not four equal deficits.
 
 ### WX2: The damping signature—**tested, not matched (2026-08-06, `two-fluid/run_trigger_wx2_tests.py`)**
 
-The ring reduces the locked channel's own excess by $\kappa^3 = 23.6\%$. **Tested result:** the magnitude is not reproduced in the solver—per-$P_0$ retention is 0.944 vs the predicted 0.764, and the gate-level mean is 0.389 vs 0.764; the ke ring adds no locked-channel damping beyond baseline ($\Delta\gamma < 0.001$). The sub-critical direction holds (the lock decays, no self-sustain). The $\kappa^3$ magnitude remains Derived algebra (`§5`); its realization in the two-fluid gate is not demonstrated. Run: `runs/20260806_001658_trigger_wx2/`.
+Within the conditional ring algebra, the ring reduces the locked channel's own excess by $\kappa^3 = 23.6\%$. **Tested result:** the magnitude is not reproduced in the solver—per-$P_0$ retention is 0.944 vs the predicted 0.764, and the gate-level mean is 0.389 vs 0.764; the ke ring adds no locked-channel damping beyond baseline ($\Delta\gamma < 0.001$). The sub-critical direction holds (the lock decays, no self-sustain). The $\kappa^3$ magnitude remains Derived algebra (`§5`); its realization in the two-fluid gate is not demonstrated. Run: `runs/20260806_001658_trigger_wx2/`.
 
 ### WX3: No driverless persistence—**tested (2026-07-31, `two-fluid/run_trauma_ke_ring.py`)**
 
-$\kappa^3 < 1$ predicts that a lock without a stimulus decays through the gate itself (on top of the conversion timescale). **Result:** the ke-extended gate (`gate_model='five_ke'` in `two-fluid/cassi_two_fluid_3d_gpu.py`, one simultaneous ke round per evaluation) reproduces the ring algebra exactly—the one-round ke prediction against the PDE state agrees to ≤ 6×10⁻⁴. With the standing event at amp 1.6, the site's excess channels (Fire, Earth, Water) restrain their ke targets (Metal −0.027, Water −0.021) and release the ke-released partners (Wood +0.034, Fire +0.013): the alternating ring, driven by the measured excesses. The frozen-field fixed point fully starves Metal and Water while pumping Wood and Fire. Decay with no driver is unchanged (0.350 vs 0.349 retained at $t=10$—no self-sustenance, the sub-critical ring confirmed), and the $\varphi$-phased drive still dissolves the site at the held configuration at short times (t ≲ 4 ≈ 0.2/λ, `consciousness/gender-as-qi-configuration.md` §8.3; 0.149 retained vs 0.349 undriven). The gate-level prediction is confirmed: the ke ring redistributes and damps but never creates persistence. A *self-sustained* lock would falsify $\kappa = \varphi^{-1}$ and require $\kappa \geq 1$.
+The optional ke-extended gate (`gate_model='five_ke'` in `two-fluid/cassi_two_fluid_3d_gpu.py`, one simultaneous ke round per evaluation) is the tested implementation of the conditional ring algebra. With $\kappa^3 < 1$, the conditional prediction is that a lock without a stimulus decays through the gate itself (on top of the conversion timescale). **Result:** the optional ke-extended gate reproduces the ring algebra exactly—the one-round ke prediction against the PDE state agrees to ≤ 6×10⁻⁴. With the standing event at amp 1.6, the site's excess channels (Fire, Earth, Water) restrain their ke targets (Metal −0.027, Water −0.021) and release the ke-released partners (Wood +0.034, Fire +0.013): the alternating ring, driven by the measured excesses. The frozen-field fixed point fully starves Metal and Water while pumping Wood and Fire. Decay with no driver is unchanged (0.350 vs 0.349 retained at $t=10$—no self-sustenance, the sub-critical ring confirmed), and the $\varphi$-phased drive still dissolves the site at the held configuration at short times (t ≲ 4 ≈ 0.2/λ, `consciousness/gender-as-qi-configuration.md` §8.3; 0.149 retained vs 0.349 undriven). The gate-level prediction is confirmed: the ke ring redistributes and damps but never creates persistence. A *self-sustained* lock would falsify $\kappa = \varphi^{-1}$ and require $\kappa \geq 1$.
 
 **Figure:** `visual-explainers/trauma_test_arc.png`—the ke-ring result as panel P6 (openness bars, ring deviation, retained fractions), inside the full trauma test arc. Script: `visual-explainers/trauma_test_arc.py` (renders from the saved runs and re-verifies every number against `runs/*/results.json`).
 
 ### WX4: Secondary-chakra blends
 
-The half-channel positions predict that affect profiles anchored at the secondary nodes (the "granular texture" of `consciousness/emotions-as-gate-configurations.md` §3.4) show two-channel blends at the 36° offsets, never single-channel purity.
+Conditional prediction: the half-channel positions predict that affect profiles anchored at the secondary nodes (the "granular texture" of `consciousness/emotions-as-gate-configurations.md` §3.4) show two-channel blends at the 36° offsets, never single-channel purity.
 
 ---
 
@@ -187,39 +188,40 @@ The half-channel positions predict that affect profiles anchored at the secondar
 
 ### Derived
 
-- The two-cycle structure: exactly two coherent 5-cycles on five vertices, pentagon sides (sheng) and pentagram diagonals (ke) (§1.1)
-- The geometry: diagonal $= \varphi \times$ side; pentagram crossings divide each diagonal as $\varphi^{-2}:\varphi^{-3}:\varphi^{-2}$ (§1.2)
-- The transmission $\kappa = \varphi^{-1} = K_{fw}$ (existing derived constant, two geometric readings) (§1.3)
-- The ring algebra given the control-release rule: the alternating state, the ring gain $\kappa^3 = \varphi^{-3}$ (equal to the pentagram's central segment), the threshold $\Delta_c = \varphi^{-4}$, the sub-criticality (§2)
+- The two-cycle structure, conditional on selecting a five-vertex graph: exactly two coherent 5-cycles on five vertices, pentagon sides (sheng) and pentagram diagonals (ke) (§1.1)
+- The geometry of that selected pentagon: diagonal $= \varphi \times$ side; pentagram crossings divide each diagonal as $\varphi^{-2}:\varphi^{-3}:\varphi^{-2}$ (§1.2)
+- The transmission $\kappa = \varphi^{-1} = K_{fw}$ as the selected pentagon's side/diagonal ratio (two geometric readings) (§1.3)
+- The ring algebra conditional on the selected five-cycle and control-release rule: the alternating state, the ring gain $\kappa^3 = \varphi^{-3}$ (equal to the pentagram's central segment), the threshold $\Delta_c = \varphi^{-4}$, the sub-criticality (§2)
 - The Fibonacci partition $13 = 5 + 8 = F_5 + F_6$ and the $8{:}13$ convergent (§3.2), the identity $\varphi^3 - \varphi^{-3} = 4$ (§3.3)
 
 ### Tested (PDE 2026-07-31; gate level 2026-08-01)
 
-- The control-release rule as the gate's ke coupling: `gate_model='five_ke'` reproduces the derived ring algebra to ≤ 6×10⁻⁴; excess channels restrain ke targets and release ke partners; the ring is sub-critical (no driverless self-sustenance); the φ-phased drive still dissolves the displaced site at the held configuration at short times (t ≲ 4 ≈ 0.2/λ, `consciousness/gender-as-qi-configuration.md` §8.3; §4 WX3, `two-fluid/run_trauma_ke_ring.py`)
-- The WX1 ke-alternating profile at the gate level: all five lock channels produce strict ke-order alternation (read from the locked channel) with the predicted sign pattern; the threshold $\Delta_c = \varphi^{-4}$ is exact; the no-driver ring jams rather than relaxes; uniform starvation rejected (§4 WX1, `two-fluid/run_trauma_c1_ring.py`, 2026-08-01)
+- The control-release rule in the optional `gate_model='five_ke'` variant: it reproduces the conditional ring algebra to ≤ 6×10⁻⁴; excess channels restrain ke targets and release ke partners; the ring is sub-critical (no driverless self-sustenance); the φ-phased drive still dissolves the displaced site at the held configuration at short times (t ≲ 4 ≈ 0.2/λ, `consciousness/gender-as-qi-configuration.md` §8.3; §4 WX3, `two-fluid/run_trauma_ke_ring.py`)
+- The WX1 ke-alternating profile in the optional variant: all five lock channels produce strict ke-order alternation (read from the locked channel) with the predicted sign pattern; the threshold $\Delta_c = \varphi^{-4}$ is exact; the no-driver ring jams rather than relaxes; uniform starvation rejected (§4 WX1, `two-fluid/run_trauma_c1_ring.py`, 2026-08-01)
 
 ### Hypothesized (mechanism supplied, test designed)
 
-- The affinity phase gradient 18°/rung as the structure of the chakra-channel table (reproduces 5/7 primaries exactly; the mechanism fixing the gradient is open) (§3.1)
-- The alternating-profile predictions WX3–WX4 and the clinical leg of WX1 in affect data (the gate-level pattern is verified; the P3 instrument test remains); WX2's $\kappa^3$ magnitude is tested and not matched (2026-08-06, `two-fluid/run_trigger_wx2_tests.py`)
+- The conditional affinity phase-gradient interpretation at 18°/rung as a candidate structure of the chakra-channel table (reproduces 5/7 primaries exactly; the mechanism fixing the gradient is open) (§3.1)
+- The conditional five-channel gate and primary/secondary mapping, including the channel-bearing-primary reading of the 13-node window and the 5↔13 phase-gradient interpretation (§§1–3)
+- The conditional alternating-profile predictions WX3–WX4 and the clinical leg of WX1 in affect data (the gate-level pattern is verified; the P3 instrument test remains); WX2's $\kappa^3$ magnitude is tested and not matched (2026-08-06, `two-fluid/run_trigger_wx2_tests.py`)
 
-### Not claimed
+### Scope boundaries
 
-- That the traditional Wu Xing *names* (wood, fire, earth, metal, water) carry their cultural semantics into the formalism—only the cycle structure is used
-- That the ke ring replaces the driver requirement—it is sub-critical by construction (§2.3) and consistent with the PDE null
-- That the crown's "all" affinity is derived—it is the terminal/boundary node where the phase sampling fails (§3.1)
+- The Wu Xing names serve as cycle labels in this formalism; their cultural semantics remain outside its scope
+- The ke ring remains sub-critical and retains the driver requirement (§2.3), consistent with the PDE null
+- The crown's "all" affinity remains a terminal/boundary-node interpretation where phase sampling gives way to integration (§3.1)
 
 ---
 
 ## References
 
-- `foundations/wu-xing-derivation.md`—the $w = 5$ derivation (Fibonacci coherence, pentagon minimality) that this document's cycle structure builds on
-- `foundations/wa-pentagon-gate.md`—the 5-channel gate model: baseline openness, $\eta$ coupling ratios (diagonal vs side), adiabatic redistribution, the $w_a$ control-release analysis
-- `parameter-inventory.md`—$K_{fw} = \varphi^{-1}$ (control coefficient), channel baselines $b_i = \varphi^{-(2+i)}$
+- `foundations/wu-xing-derivation.md`—the $w = 5$ derivation (Fibonacci coherence, pentagon minimality) used when selecting a five-cycle
+- `foundations/wa-pentagon-gate.md`—the conditional 5-channel gate model: baseline openness, $\eta$ coupling ratios (diagonal vs side), adiabatic redistribution, the $w_a$ control-release analysis
+- `parameter-inventory.md`—$K_{fw} = \varphi^{-1}$ (control coefficient), conditional channel baselines $b_i = \varphi^{-(2+i)}$
 - `consciousness/emotions-as-gate-configurations.md`—the emotional manifold, the chakra affinity table (§3.4), the P3 instrument, open question 4
 - `consciousness/chakras-as-cascade-bubbles.md`—the 13-node derivation (26 = 2 × F7 rungs, doublet spacing), the crown boundary
 - `consciousness/trauma-as-frozen-gate.md`—TR1 (channel-specific deficits), §10.4–10.7 (PDE tests: nothing self-sustains; driver required; φ-phased drain), WX3's test design context
 - `foundations/dimensionful-cascade.md`—the rung ladder, steps 142–168
-- `two-fluid/cassi_two_fluid_3d_gpu.py`—the PDE solver; `gate_model='five_ke'` implements the ke control ring
+- `two-fluid/cassi_two_fluid_3d_gpu.py`—the PDE solver; optional `gate_model='five_ke'` implements the conditional ke control ring
 - `two-fluid/run_trauma_ke_ring.py`—the WX3 test (five vs five_ke vs five_ke+φ-drive, 2026-07-31)
 - `two-fluid/run_trauma_c1_ring.py`—the WX1 gate test (single-lock ke-alternating response, threshold, no-driver jam, 2026-08-01)
