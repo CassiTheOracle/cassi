@@ -1,19 +1,25 @@
-# The Kolmogorov −5/3 Spectrum in Cassi: Derivation and Novel Predictions
+# The Kolmogorov −5/3 Spectrum in Cassi: Derivation and Conditional Tests
 
-## Status: Derived—August 2026
+## Status: Derived/Hypothesized—August 2026
 
 ---
 
 ## Abstract
 
-**The Kolmogorov −5/3 spectrum is not derived from φ.** It emerges from the standard Navier-Stokes advection term $(\mathbf{u}\cdot\nabla)\mathbf{u}$ embedded in the two-fluid velocity equation. Cassi *inherits* the −5/3 in the inertial range where the Yang-Yin conversion is slow compared to eddy turnover.
+The Kolmogorov $-5/3$ law is not derived from $\varphi$. Under the usual
+incompressible Navier–Stokes assumptions, a kinetic-energy spectrum
+$E_u(k)$ may be inherited by a solver whose velocity field has the required
+advection, forcing, and dissipation. A density spectrum is a separate
+observable and does not equal $E_u(k)$ without an additional closure.
 
-**Cassi's novel contributions to turbulence are:**
-
-1. **The φ-break scale** $k_\varphi = \varphi^3\sqrt{\lambda^3/\varepsilon}$—the wavenumber where conversion and eddy turnover timescales cross
-2. **The ε-spectrum** $E_\varepsilon(k) \propto k^{-5/3} \cdot f(k/k_\varphi)$—the deviation from φ-equilibrium has its own inertial-range scaling with a φ-determined break
-3. **Scale-dependent gravitational enhancement**—$G_{\text{eff}}(k)$ varies by up to a factor $\varphi^6 \approx 17.94$ between the α-free full-coherence ceiling and the unamplified limit across the φ-break (halo-regime contrasts are ~$9\times$: $\alpha_{\text{halo}}(1+(\varphi^{6}-1)q) \approx 9.0$ at $q \approx 0.7$)
-4. **The Qi-quality spectrum** $q(k)$—a direct observable of the conversion dynamics
+The $\varphi$-break scale $k_\varphi$, a deviation spectrum
+$E_\varepsilon(k)$, a scale-dependent gravity factor, and a quality spectrum
+are optional turbulence closures and diagnostics. Their proposed forms require
+additional assumptions about the gate, flux, shell averaging, and gravity
+coupling. The break, slopes, and amplitudes are Hypothesized closure forms or
+conditional test targets rather than established predictions. The real-space
+ring construction in §6 is likewise a conditional reading of the spectral
+cascade.
 
 ---
 
@@ -21,46 +27,66 @@
 
 ### 1.1 Governing Equations
 
-The two-fluid PDE in Cassi (`cassi-physics.md`) evolves the substrate triad—Yang and Yin, the doublet's two components, and Qi, the flow of coherence between them and along the string axis between cascade scales (`foundations/qi-flow-double-helix.md`):
+The canonical state uses two nonnegative real densities $E_Y,E_I$, their
+advection-diffusion equations, and the velocity equation with force
+$\pi\nabla\Phi$, where $\rho=E_Y+E_I$ and $\pi=E_Y-E_I$. The default solver
+does not apply a $q$ gate. The equations below are an **optional
+q-gated turbulence closure**, not the canonical/default PDE; they are shown
+to make the assumptions behind the proposed spectral tests explicit. No
+independent Metal multiplier is part of the canonical equations.
 
-$$\partial_t E_Y = -\nabla\cdot(\mathbf{u}E_Y) + D\nabla^2 E_Y - \lambda(1-q)(E_Y - \varphi E_I) M - \chi_Y\nabla\cdot(E_Y\nabla\Phi)$$
+$$\partial_t E_Y = -\nabla\cdot(\mathbf{u}E_Y) + D\nabla^2 E_Y - \lambda(1-q)(E_Y - \varphi E_I) - \chi_Y\nabla\cdot(E_Y\nabla\Phi)$$
 
-$$\partial_t E_I = -\nabla\cdot(\mathbf{u}E_I) + D\nabla^2 E_I + \lambda(1-q)(E_Y - \varphi E_I) M + \chi\nabla\cdot(E_I\nabla\Phi)$$
+$$\partial_t E_I = -\nabla\cdot(\mathbf{u}E_I) + D\nabla^2 E_I + \lambda(1-q)(E_Y - \varphi E_I) + \chi\nabla\cdot(E_I\nabla\Phi)$$
 
-$$\partial_t\mathbf{u} = -(\mathbf{u}\cdot\nabla)\mathbf{u} + \pi(1+(\varphi^{6}-1)q)\nabla\Phi - \nu\nabla^2\mathbf{u}$$
+$$\partial_t\mathbf{u} = -(\mathbf{u}\cdot\nabla)\mathbf{u} + \pi(1+(\varphi^{6}-1)q)\nabla\Phi + \nu\nabla^2\mathbf{u}$$
 
 where:
 - $\rho = E_Y + E_I$ (total density)
 - $\pi = E_Y - E_I$ (Yang excess)
-- $\varepsilon = E_Y - \varphi E_I$ (deviation from φ-equilibrium)
-- $q = \frac{\rho^2}{\rho^2 + \varphi^{-2} + \varepsilon^2}$ (Qi quality)
-- $\xi = \varphi^6 \approx 17.944$ (Qi-gravity coupling, derived in `foundations/xi-derivation.md`)
-- $M$ = Metal element ($\lambda_{\text{eff}}/\lambda$, ≈ 1 in turbulence)
-
+- $\varepsilon = E_Y - \varphi E_I$ (deviation from $\varphi$-equilibrium)
+- $q = \frac{\rho^2}{\rho^2 + \varphi^{-2} + \varepsilon^2}$ (Qi quality diagnostic when the optional gate is enabled). Here $E_Y,E_I$ are dimensionless solver densities, or densities divided by a declared reference density $\rho_\star$; the displayed form is not a physical-units expression until that normalization is fixed.
+- $\xi = \varphi^6 \approx 17.944$ (a proposed Qi-gravity coupling; its use here is conditional)
+- $\chi_Y,\chi$ are optional chemotactic mobilities
 ### 1.2 Evolution of the Deviation
 
-Adding the two scalar equations with weights $(1, -\varphi)$:
+Within the selected optional q-gated closure, adding the two scalar equations
+with weights $(1,-\varphi)$ gives the conservative equation
 
-$$\partial_t \varepsilon + \mathbf{u}\cdot\nabla\varepsilon = -\lambda(1+\varphi)(1-q)M\varepsilon + D\nabla^2\varepsilon + \text{(chemotaxis terms)}$$
+$$\partial_t\varepsilon+\nabla\cdot(\mathbf{u}\varepsilon)
+=-\lambda(1+\varphi)(1-q)\varepsilon+D\nabla^2\varepsilon
++\text{(chemotaxis terms)}.$$
 
-Define the **effective damping rate** for ε:
+If $\nabla\cdot\mathbf{u}=0$, this is equivalent to the advective form
+$\partial_t\varepsilon+\mathbf{u}\cdot\nabla\varepsilon$. The corresponding
+local damping rate is
 
-$$\gamma_\varepsilon = \lambda(1+\varphi)(1-q)M$$
+$$\gamma_\varepsilon=\lambda(1+\varphi)(1-q).$$
 
-The deviation from φ-equilibrium is damped at rate $\gamma_\varepsilon$, but constantly regenerated by turbulent advection (the $\mathbf{u}\cdot\nabla\varepsilon$ term).
+This rate belongs to the selected closure: it reaches
+$\lambda(1+\varphi)$ only when the gate is open with $q=0$. The default
+ungated solver uses its separate conversion equation. Turbulent advection can
+regenerate $\varepsilon$.
 
 ### 1.3 Spectral Decomposition
 
-Define the isotropic energy spectra:
-- $E(k)$: spectrum of total density $\rho$
+Define the isotropic spectra separately:
+- $E_\rho(k)$: spectrum of total density $\rho$
 - $E_\pi(k)$: spectrum of Yang excess $\pi$
 - $E_\varepsilon(k)$: spectrum of deviation $\varepsilon$
+- $E_u(k)$: kinetic-energy spectrum of the velocity field $\mathbf{u}$
 
-In homogeneous isotropic turbulence, the spectral energy budget at scale $k$:
+The scalar spectral budget at scale $k$ is
 
-$$\frac{\partial E_\varepsilon(k)}{\partial t} = T_\varepsilon(k) - \gamma_\varepsilon^{\text{eff}}(k) \cdot E_\varepsilon(k) - 2Dk^2 E_\varepsilon(k)$$
+$$\frac{\partial E_\varepsilon(k)}{\partial t}
+= T_\varepsilon(k) - \gamma_\varepsilon^{\text{eff}}(k)E_\varepsilon(k)
+- 2Dk^2E_\varepsilon(k).$$
 
-where $T_\varepsilon(k)$ is the nonlinear transfer from advection, and $\gamma_\varepsilon^{\text{eff}}(k)$ is the **scale-dependent effective damping** accounting for the Qi gate.
+Here $T_\varepsilon(k)$ is nonlinear transfer from advection and
+$\gamma_\varepsilon^{\text{eff}}(k)$ is the scale-dependent effective damping.
+The canonical PDE does not identify $E_\rho$ with the kinetic spectrum
+$E_u$; doing so would require a separately specified density–velocity
+closure.
 
 ---
 
@@ -68,25 +94,33 @@ where $T_\varepsilon(k)$ is the nonlinear transfer from advection, and $\gamma_\
 
 ### 2.1 Eddy Turnover Time (Kolmogorov 1941)
 
-At scale $k$, the characteristic velocity is $u_k \sim (kE(k))^{1/2}$. In Kolmogorov scaling with $E(k) = C_K \varepsilon_{\text{flux}}^{2/3} k^{-5/3}$:
+At scale $k$, the characteristic velocity is
+$u_k\sim(kE_u(k))^{1/2}$ under the conventional one-dimensional kinetic
+energy-spectrum normalization. If the velocity sector satisfies the standard
+Kolmogorov assumptions,
 
-$$u_k \sim \varepsilon_{\text{flux}}^{1/3} k^{-1/3}$$
+$$E_u(k)=C_K\varepsilon_{\text{flux}}^{2/3}k^{-5/3},\qquad
+u_k\sim\varepsilon_{\text{flux}}^{1/3}k^{-1/3}.$$
 
-The eddy turnover time:
+The eddy turnover time is then
 
-$$\tau_{\text{eddy}}(k) = \frac{1}{k u_k} = \varepsilon_{\text{flux}}^{-1/3} k^{-2/3}$$
+$$\tau_{\text{eddy}}(k)=\frac{1}{ku_k}
+=\varepsilon_{\text{flux}}^{-1/3}k^{-2/3}.$$
 
 ### 2.2 Conversion Time
 
-The conversion damps ε at rate $\lambda(1+\varphi)$ (when $q \to 0$, i.e., conversion fully active). The characteristic time:
+For the selected closure at an open gate ($q=0$), conversion damps
+$\varepsilon$ at rate $\lambda(1+\varphi)$. The characteristic time is
 
-$$\tau_{\text{conv}} = \frac{1}{\lambda(1+\varphi)} \approx \frac{1}{\lambda \cdot 2.618}$$
+$$\tau_{\text{conv}}=\frac{1}{\lambda(1+\varphi)}
+\approx\frac{1}{\lambda\cdot2.618}.$$
 
-For $\lambda = 0.1$: $\tau_{\text{conv}} \approx 3.82$ (in simulation time units).
+For $\lambda=0.1$, $\tau_{\text{conv}}\approx3.82$ in simulation time units.
 
-### 2.3 The φ-Break Scale
+### 2.3 The $\varphi$-Break Scale
 
-The **crossover wavenumber** $k_\varphi$ where the two timescales are equal:
+The **crossover wavenumber** $k_\varphi$ where the two timescales are equal is
+defined within this optional closure by
 
 $$\tau_{\text{eddy}}(k_\varphi) = \tau_{\text{conv}}$$
 
@@ -94,250 +128,312 @@ $$\varepsilon_{\text{flux}}^{-1/3} k_\varphi^{-2/3} = \frac{1}{\lambda(1+\varphi
 
 $$\boxed{k_\varphi = \sqrt{\frac{\lambda^3(1+\varphi)^3}{\varepsilon_{\text{flux}}}}}$$
 
-For standard parameters ($\lambda = 0.1$, $\varepsilon_{\text{flux}} \approx 1$):
+For the illustrative values $\lambda=0.1$ and
+$\varepsilon_{\text{flux}}=1$ this gives
+$k_\varphi\approx\sqrt{0.01794}\approx0.134$. If $L=2\pi$, the fundamental
+mode is $k_{\min}=1$; this illustrative choice therefore places the proposed
+break outside the resolved box. It is an algebraic scale estimate, not a
+recorded spectrum receipt.
 
-$$k_\varphi \approx \sqrt{0.001 \times 17.94} \approx \sqrt{0.01794} \approx 0.134$$
+### 2.4 Conditional Regimes
 
-The box fundamental mode is $k_{\text{min}} = 2\pi/L \approx 1.0$ (for $L=2\pi$). So $k_\varphi \ll k_{\text{min}}$—the φ-break is at scales **much larger than the simulation box**.
+The following table states assumptions used by the selected closure. The
+$q$ and $G_{\text{eff}}$ columns are not outputs of the canonical solver:
 
-### 2.4 Physical Regimes
+| Regime | Condition | $\tau_{\text{eddy}}$ vs $\tau_{\text{conv}}$ | $E_\varepsilon$ behavior | assumed $q$ | conditional $G_{\text{eff}}$ |
+|--------|-----------|---------------------------------------------|--------------------------|------------|-------------------------------|
+| **Qi-active** | $k \ll k_\varphi$ | $\tau_{\text{eddy}} \gg \tau_{\text{conv}}$ | $E_\varepsilon$ strongly damped | $q$ near 0 | closure-dependent |
+| **Inertial** | $k \gg k_\varphi$ | $\tau_{\text{eddy}} \ll \tau_{\text{conv}}$ | $E_\varepsilon$ weakly damped by conversion | not fixed by $k$ alone | closure-dependent |
 
-| Regime | Condition | $\tau_{\text{eddy}}$ vs $\tau_{\text{conv}}$ | ε behavior | $q$ | $G_{\text{eff}}$ |
-|--------|-----------|---------------------------------------------|------------|-----|------------------|
-| **Qi-active** | $k \ll k_\varphi$ | $\tau_{\text{eddy}} \gg \tau_{\text{conv}}$ | ε strongly damped | $q \approx 1$ | $\approx \varphi^3 G$ |
-| **Inertial** | $k \gg k_\varphi$ | $\tau_{\text{eddy}} \ll \tau_{\text{conv}}$ | ε free to grow | $q \approx 0$ | $\approx \varphi^{-3} G$ |
-
-For standard simulation parameters: **the entire resolved range is in the Inertial regime**. This is why the solver recovers Kolmogorov −5/3 without any φ-modification—the conversion term is negligible in the inertial range.
-
-The $\varphi$-break corresponds to the transition from lattice-coherent (large scales, discrete bubbles intact) to lattice-incoherent (small scales, bubbles dissolved by diffusion)—the same condensation-vs-diffusion balance that sets $\theta_{\text{cond}}$ (`foundations/bubble-edge-geometry.md` §1.2).
+The regime labels are conditional timescale interpretations. A high-$q$
+state suppresses the $(1-q)$ conversion channel and cannot simultaneously be
+described as strongly conversion-damped. No retained spectrum receipt
+establishes a resolved break or the associated $q$ values. The proposed
+$\varphi$-break may be compared with the condensation-vs-diffusion balance in
+`foundations/bubble-edge-geometry.md` §1.2, but that analogy does not derive a
+spatial ring structure.
 
 ---
+## 3. The $E_\varepsilon$ Spectrum: An Optional Passive-Scalar Closure
 
-## 3. The ε Spectrum: A New Cassi Observable
+### 3.1 Inertial Range ($k \gg k_\varphi$)
 
-### 3.1 Inertial Range (k ≫ k_φ)
-
-When $\tau_{\text{eddy}} \ll \tau_{\text{conv}}$, the conversion term is negligible. The deviation ε is stirred by the turbulent velocity field like a passive scalar. By the Obukhov-Corrsin theory:
+If the optional closure makes $\varepsilon$ a passive scalar and if the
+Obukhov–Corrsin assumptions hold, then
 
 $$E_\varepsilon(k) = C_{\text{OC}} \cdot \chi_\varepsilon \cdot \varepsilon_{\text{flux}}^{-1/3} \cdot k^{-5/3}$$
 
-where $\chi_\varepsilon$ is the "scalar dissipation rate"—the rate at which ε-variance is produced by turbulent stretching. Same $-5/3$ slope as the energy spectrum.
+where $\chi_\varepsilon$ is a scalar-variance production rate. This is a
+conditional application of standard passive-scalar theory, not a consequence
+of the Cassi PDE. A proportionality $E_\varepsilon(k)\propto E_u(k)$ is a
+candidate diagnostic whose normalization, density–velocity closure, and
+forcing protocol must be fixed before testing.
 
-**Prediction 1:** In the inertial range, $E_\varepsilon(k) \propto E(k)$. The ratio $E_\varepsilon/E$ is a constant determined by the stirring efficiency.
+### 3.2 Qi-Active Range ($k \ll k_\varphi$)
 
-### 3.2 Qi-Active Range (k ≪ k_φ)
-
-When conversion dominates, the spectral budget simplifies:
+Within the same optional closure, a stationary shell budget could be written
 
 $$0 \approx -\gamma_\varepsilon^{\text{eff}}(k) \cdot E_\varepsilon(k) + T_\varepsilon(k)$$
 
-The effective damping at scale $k$ depends on the local Qi quality:
+If a shell-average substitution is additionally made, one obtains the
+illustrative form
 
 $$\gamma_\varepsilon^{\text{eff}}(k) = \lambda(1+\varphi) \cdot \frac{\varphi^{-2} + E_\varepsilon(k)}{\bar{\rho}^2 + \varphi^{-2} + E_\varepsilon(k)}$$
 
-where $\bar{\rho}^2$ is the mean squared density.
-
-For small $E_\varepsilon$ (near equilibrium): $\gamma_\varepsilon^{\text{eff}} \approx \lambda(1+\varphi) \cdot \frac{\varphi^{-2}}{\bar{\rho}^2 + \varphi^{-2}}$, a constant.
-
-The transfer term in this regime is suppressed because the buoyancy force $\pi\nabla\Phi$ is weaker (π is closer to its equilibrium value). The resulting spectrum steepens:
-
-$$E_\varepsilon(k) \propto k^{-5/3 - \delta}, \quad \delta > 0$$
-
-where $\delta$ depends on the ratio $\lambda/\varepsilon_{\text{flux}}^{1/3}$.
-
-**Prediction 2:** The ε-spectrum has a **φ-determined break** at $k_\varphi$ with a steeper slope below the break.
+where $\bar{\rho}^2$ is a chosen mean-square density. This substitution is not
+derived from the local nonlinear $q$ field and has unresolved normalization
+and window dependence. A steeper form
+$E_\varepsilon(k)\propto k^{-5/3-\delta}$ with $\delta>0$ is therefore an
+unregistered conditional test target; its sign and value require a closure
+model and a retained spectrum receipt.
 
 ---
 
-## 4. Scale-Dependent Gravity
+## 4. Optional Scale-Dependent Gravity Closure
 
 ### 4.1 Effective Gravitational Constant
 
-The buoyancy force in the velocity equation is:
+The canonical velocity equation uses the force $\pi\nabla\Phi$. An optional
+q-gated closure inserts a multiplicative factor:
 
-$$\mathbf{F} = \pi(1 + (\varphi^{6}-1)q)\nabla\Phi$$
+$$\mathbf{F}_{\mathrm{opt}} = \pi(1 + (\varphi^{6}-1)q)\nabla\Phi.$$
 
-The effective gravitational constant at scale $k$:
+If a scale-dependent coarse-grained $q_{\mathrm{proxy}}(k)$ and the ratio
+$r_\pi(k)=\pi(k)/\rho(k)$ are supplied, the corresponding diagnostic can be
+written
 
-$$G_{\text{eff}}(k) = \frac{\pi}{\rho} \cdot (1 + (\varphi^{6}-1)q(k)) \cdot G$$
+$$G_{\mathrm{eff,opt}}(k) = r_\pi(k)\left[1+(\varphi^{6}-1)q_{\mathrm{proxy}}(k)\right]G.$$
 
-where $q(k)$ is the mean Qi quality at scale $k$.
+Neither $r_\pi(k)=\varphi^{-3}$ nor a scale law for
+$q_{\mathrm{proxy}}(k)$ follows from the canonical equations. A constitutive
+map, coarse-graining window, and calibration are required.
 
-### 4.2 Limiting Values
+### 4.2 Conditional Endpoint Illustration
 
-**Inertial range** ($k \gg k_\varphi$, $q \to 0$: the dilute $\varphi$-line, low density at the attractor ratio):
-$$G_{\text{eff}} \to \frac{\pi}{\rho} \cdot G \approx \varphi^{-3} G \approx 0.236 G$$
-
-Gravity is **weakened** by factor ~4.2 relative to Newton.
-
-**Qi-active range** ($k \ll k_\varphi$, $q \to 1$):
-$$G_{\text{eff}} \to \frac{\pi}{\rho} \cdot (1 + (\varphi^{6}-1)) \cdot G = \varphi^{-3}\varphi^6 G = \varphi^3 G \approx 4.2361 G$$
-
-Gravity is **enhanced** by the exact factor $\varphi^3 = 4.2361$ relative to Newton.
-
-**Ratio across the break:**
-$$\frac{G_{\text{eff}}(k \ll k_\varphi)}{G_{\text{eff}}(k \gg k_\varphi)} \approx \frac{\varphi^3}{\varphi^{-3}} = \varphi^6 \approx 17.94$$
-
-Gravity is up to ≈ 17.9× stronger at large scales than at small scales (the α-free ceiling ratio; halo-regime contrasts are ~$9\times$ via $\alpha_{\text{halo}}(1+(\varphi^{6}-1)q)$).
+For illustration only, imposing $r_\pi=\varphi^{-3}$ and endpoint values
+$q_{\mathrm{proxy}}=0,1$ gives $\varphi^{-3}G\approx0.236G$ and
+$\varphi^3G\approx4.236G$, with ratio $\varphi^6\approx17.94$. These values
+are a conditional ansatz, not a derived gravitational limit or an observed
+scale dependence. Halo contrasts likewise require a separately specified
+matter map and calibration.
 
 ### 4.3 Impact on the Energy Spectrum
 
-The energy injection rate at scale $k$ is proportional to $G_{\text{eff}}(k)$:
+An injection relation such as
 
-$$P(k) \propto G_{\text{eff}}(k) \cdot \langle\pi \nabla\Phi \cdot \mathbf{u}\rangle_k$$
+$$P(k) \propto G_{\mathrm{eff,opt}}(k)\cdot
+\langle\pi\nabla\Phi\cdot\mathbf{u}\rangle_k$$
 
-In the inertial range ($G_{\text{eff}} = \varphi^{-3}G$), this gives the standard Kolmogorov flux $\varepsilon_{\text{flux}}$. The spectrum is:
+requires a forcing and transfer closure. The inertial-range
+$E_u(k)=C_K\varepsilon_{\text{flux}}^{2/3}k^{-5/3}$ is the standard kinetic
+Kolmogorov form under its usual assumptions. It must not be relabeled as the
+total-density spectrum $E_\rho(k)$. The proposed enhanced-flux
+relation
 
-$$E(k) = C_K \cdot \varepsilon_{\text{flux}}^{2/3} \cdot k^{-5/3} \quad (k \gg k_\varphi)$$
+$$\widetilde{\varepsilon}=\varphi^6\varepsilon_{\text{flux}}$$
 
-In the Qi-active range ($G_{\text{eff}} \approx \varphi^3 G$), the injection is enhanced. Assuming the enhanced injection leads to a modified flux $\tilde{\varepsilon} = \varphi^6 \cdot \varepsilon_{\text{flux}}$:
-
-$$E(k) = C_K \cdot \tilde{\varepsilon}^{2/3} \cdot k^{-p} = C_K \cdot \varphi^4 \cdot \varepsilon_{\text{flux}}^{2/3} \cdot k^{-p}$$
-
-The spectral slope $p$ in this regime depends on how the enhanced gravity modifies the energy transfer. **This is the key open question**—the slope below $k_\varphi$ is not determined by dimensional analysis alone and requires a closure model.
-
-**Prediction 3:** The energy spectrum has a break at $k_\varphi$ where the amplitude jumps by factor $\varphi^4 \approx 6.85$. The slope below the break is steeper than −5/3 (energy piles up at large scales due to enhanced gravity).
-
----
-
-## 5. The Qi-Quality Spectrum q(k)
-
-The Qi quality is a direct function of ε²:
-
-$$q(k) = \frac{\bar{\rho}^2}{\bar{\rho}^2 + \varphi^{-2} + E_\varepsilon(k)}$$
-
-For $\bar{\rho}^2 \gg \varphi^{-2}$ (dense regions):
-
-$$q(k) \approx \frac{1}{1 + E_\varepsilon(k)/\bar{\rho}^2}$$
-
-In the inertial range where $E_\varepsilon \propto k^{-5/3}$:
-
-$$q(k) \approx 1 - \frac{E_\varepsilon(k)}{\bar{\rho}^2} + \mathcal{O}(k^{-10/3}) \quad \text{for large } k$$
-
-**Prediction 4:** $1 - q(k) \propto k^{-5/3}$ in the inertial range. The Qi quality approaches 1 as $k \to 0$ (large scales are coherent) and decreases toward 0 as $k \to \infty$ (small scales are incoherent).
+and its resulting $\varphi^4$ amplitude factor are unproved choices, not
+consequences of the force equation. The low-$k$ slope and any amplitude jump
+remain unresolved until a closure and a retained spectrum receipt are
+specified; no registered prediction is asserted here.
 
 ---
 
-## 6. The Real-Space Geometry of the φ-Cascade
+## 5. A Scale-Resolved $q$ Diagnostic Requires a Closure
 
-The inertial-range cascade of §2–§4 is a statement about the spectral energy budget at wavenumber $k$. The φ-cascade also has a **spatial** counterpart: the same rung structure that organizes the energy spectrum reads radially through an individual bubble shell as a nested ladder of matter and void rings—the real-space geometry of "eddies within eddies."
+The canonical $q$ is a local nonlinear diagnostic,
 
-### 6.1 The ring ladder as the cascade read radially
+$$q(\mathbf{x}) = \frac{\rho(\mathbf{x})^2}{\rho(\mathbf{x})^2 + \varphi^{-2} + \varepsilon(\mathbf{x})^2}.$$
 
-`foundations/bubble-edge-geometry.md` §3 derives the interior structure of a rung-$n$ bubble from the doublet phase $\alpha = \pi u$, $u = \log_\varphi(r/\ell_n)$—the radial reading of the same $\pi$-per-rung internal advance that drives the spectral cascade. Matter condenses at the integer-rung radii and voids open at the half-rungs:
+A Fourier-shell spectrum $E_\varepsilon(k)$ does not define a unique
+scale-resolved $q(k)$ because the ratio must be coarse-grained before the
+nonlinear operation. One possible mean-field proxy is
+
+$$q_{\mathrm{proxy}}(k) = \frac{\bar{\rho}^2}{\bar{\rho}^2 + \varphi^{-2} + E_\varepsilon(k)},$$
+
+with a declared window and normalization. For
+$\bar{\rho}^2\gg\varphi^{-2}$ this becomes
+$q_{\mathrm{proxy}}\approx[1+E_\varepsilon/\bar{\rho}^2]^{-1}$.
+
+If $E_\varepsilon\propto k^{-5/3}$, this proxy increases with $k$ in the
+inertial range and approaches $\bar{\rho}^2/(\bar{\rho}^2+\varphi^{-2})$ at
+large $k$; it does not establish the opposite endpoint ordering assumed in
+§2.4. The $q$ limits and any relation such as
+$1-q_{\mathrm{proxy}}\propto k^{-5/3}$ therefore remain closure-dependent.
+A preregistered coarse-graining rule, normalization, null model, and retained
+spectrum receipt are required before this becomes a test.
+
+---
+
+## 6. The Real-Space Geometry of the $\varphi$-Cascade
+
+The spectral budget in §§2–5 combines the canonical two-fluid variables with
+a selected optional q-gated closure and inherited Navier–Stokes assumptions.
+Its density, velocity, and proxy spectra therefore have mixed conditional
+status. A separate optional Hypothesized coordinate construction supplies a
+spatial reading through an individual bubble shell as a nested ladder of matter
+and void rings; its use is conditional on the pitch, internal-advance, parity,
+and radial-reading inputs stated in §6.3.
+
+### 6.1 Optional Hypothesized coordinate: the ring ladder as a radial cascade reading
+
+The optional Hypothesized coordinate construction uses
+`foundations/bubble-edge-geometry.md` §3 to specify the interior structure of a
+rung-$n$ bubble from the doublet phase $\alpha = \pi u$,
+$u = \log_\varphi(r/\ell_n)$—a radial coordinate reading of the
+$\pi$-per-rung internal advance. Under this coordinate, matter is assigned to
+integer-rung radii and voids to half-rungs:
 
 $$\boxed{r_k^{\text{matter}} = R\,\varphi^{-k}, \qquad r_k^{\text{void}} = R\,\varphi^{-(k+\frac12)}, \qquad k = 0,1,2,\ldots}$$
 
-for a bubble shell of outer radius $R = \ell_n$. The successive matter-ring ratio is fixed:
+for a bubble shell of outer radius $R = \ell_n$. Within this coordinate
+construction, the successive matter-ring ratio is fixed:
 
 $$\frac{r_{k+1}^{\text{matter}}}{r_k^{\text{matter}}} = \varphi^{-1} \approx 0.6180$$
 
-—so **eddies nest within eddies at a spacing factor $\varphi \approx 1.618$**, the spatial reading of the same cascade step the spectral derivation splits at $k_\varphi$. This is the sharp contrast with textbook (Kolmogorov) turbulence, where self-similar eddies nest at a factor ~2 (the Richardson–Kolmogorov step): in Cassi the real-space nesting ratio is the golden ratio, not a power of two. The bubble shell is the physical object on which this real-space ladder is imprinted.
+—so **eddies nest within eddies at a spacing factor $\varphi \approx 1.618$** under
+this optional Hypothesized radial reading. It supplies a spatial reading
+alongside the spectral cascade's split at $k_\varphi$. Classical
+Richardson-style cascade sketches often use an order-two scale ratio, but the
+exact factor depends on the chosen cascade convention; this coordinate uses
+the golden ratio. No universal factor-two law is asserted here. The bubble
+shell is the coordinate object on which this optional ladder is imprinted.
 
 ### 6.2 Rings as nested condensates; the ~10-rung floor
 
-Because $\ell_{n-k} = \ell_n\,\varphi^{-k}$, matter ring $k$ is exactly a rung-$(n-k)$ condensate—the radial picture of bubbles-within-bubbles (`foundations/bubble-edge-geometry.md` §3.3). The cascade suppression floor of ~1% (`foundations/bubble-lattice-fabric.md` §3.3) bounds the physically meaningful inward descent to $\Delta n \approx 10$ rungs; the refined count is
+Within the same conditional coordinate, because $\ell_{n-k} = \ell_n\,\varphi^{-k}$,
+matter ring $k$ is assigned to a rung-$(n-k)$ condensate—the radial picture of
+bubbles-within-bubbles (`foundations/bubble-edge-geometry.md` §3.3). The cascade
+suppression floor of ~1% (`foundations/bubble-lattice-fabric.md` §3.3) bounds the
+coordinate's physically meaningful inward descent to $\Delta n \approx 10$ rungs;
+the refined count is:
 
 $$N = \frac{\ln 100}{\ln\varphi} = 9.570$$
 
-so a bubble shell carries **~10 matter rings** (interleaved with 9 void troughs) at the 1% coherence floor. The count is $n$-independent (scale-covariant): $N(R) = -\log_\varphi R$ over a radial span $[R\ell_n,\,\ell_n]$ depends only on the fraction $R$, not on the bubble scale $\ell_n$. In the turbulence context this is the central scale-covariance statement: the same ~10-rung real-space ladder is imprinted at every rung of the cascade, independent of which bubble scale one sits in.
+Under this conditional radial reading, a bubble shell carries **~10 matter
+rings** (interleaved with 9 void troughs) at the 1% coherence floor. Let
+$r_{\mathrm{out}}=\ell_n$ and let $f\in(0,1]$ be a dimensionless radial
+fraction. The span $[f\ell_n,\ell_n]$ contains
 
-### 6.3 Tier: the ring law is Derived conditional; the application inherits the doc's tier
+$$N(f)=-\log_\varphi f$$
 
-The ring law is **Derived conditional** per `foundations/bubble-edge-geometry.md` §3.1—conditional on (i) the asserted pitch convention $\Theta = 2\pi n$ per rung (`foundations/spiral-dynamics.md` §1.1), (ii) the doublet's $\pi$-per-rung internal advance (`foundations/spin-fibonacci-spiral.md` §2.1), (iii) the pool-cell parities (`foundations/rung-offset-mechanism.md` §4.1), and (iv) the radial-reading inference, the identification of interior rings with nested condensates being an **inference** resting on the nested-sub-lattice structure of `foundations/bubble-lattice-fabric.md` §3.2, not an established identity. The turbulence application here adds no new physics: it reads the existing spectral cascade of §2–§4 together with the ring law, so it inherits the doc's own tier (Derived) only in the sense that it asserts nothing beyond what the spectral derivation and the ring law jointly establish—no independent load-bearing claim is added, and the ring law's conditional status is **not** upgraded.
+successive rung intervals, independent of the dimensional outer scale
+$\ell_n$. Thus the scale-covariance statement concerns the fraction $f$, not a
+dimensioned radius inserted into a logarithm.
 
-### 6.4 Honest caveat: the canonical solver does not dynamically realize the ladder
+### 6.3 Tier: mixed conditional spectral budget and optional ring law
 
-The ring ladder is **not** currently dynamically realized by the canonical first-order two-fluid solver. The pre-registered dynamic probe `two-fluid/run_bubble_ring_dynamic_probe.py` runs four spatial-coupling arms—A baseline (conversion-only, $D = \mathbf{u} = \chi = c_s^2 = 0$), B diffusion ($D = 0.0002$), C gravity-buoyancy ($\nu = 0.0005$, $\chi = 0$), W wave-verify ($c_s^2 = 0.5$)—and finds **no rings on every arm at every epoch to $t = 40$** (0 matter maxima outside the 4-cell core; $u_{\text{rms}} \sim 10^{-4}$ even on C/W). None of the canonical coupling channels in this solver realizes the ladder. The wave-mode verification confirms `ExpandingTwoFluid3DGPU` is first-order in time (no $d^2E/dt^2$ wave operator; $c_s^2$ enters only as a velocity pressure force), so the full second-order ring-ladder wave form ($d^2E = c^2\nabla^2 E - \omega_0^2(E_Y - \varphi E_I)$) is not present in this solver—it belongs to the space-sim GLSL PDE. **Whether real-space realization requires that second-order wave form remains the open question**; the honest four-arm null is recorded, and the real-space ladder of this section is the radial target those future probes (φ-spacing ~0.618, ~10 rings, $n$-independent count) would test.
+The spectral budget in §§2–5 is conditional on the selected closure,
+coarse-graining choices, and inherited kinetic-spectrum assumptions. The ring
+law is **Derived conditional** per `foundations/bubble-edge-geometry.md` §3.1,
+subject to (i) the asserted pitch convention $\Theta=2\pi n$ per rung
+(`foundations/spiral-dynamics.md` §1.2), (ii) the doublet's $\pi$-per-rung
+internal advance (`foundations/spin-fibonacci-spiral.md` §2.1), (iii) the
+pool-cell parities (`foundations/rung-offset-mechanism.md` §4.1), and (iv) the
+radial-reading inference. Identifying interior rings with nested condensates
+is an inference from `foundations/bubble-lattice-fabric.md` §3.2, not an
+established identity.
+
+### 6.4 Scope caveat: the canonical solver does not dynamically realize the ladder
+
+The pre-registered dynamic probe `two-fluid/run_bubble_ring_dynamic_probe.py`
+specifies four spatial-coupling arms—A baseline (conversion-only, $D =
+\mathbf{u} = \chi = c_s^2 = 0$), B diffusion ($D = 0.0002$), C
+gravity-buoyancy ($\nu = 0.0005$, $\chi = 0$), and W wave-verify
+($c_s^2 = 0.5$)—but this document retains no JSON receipt or hash label for a
+run. Its dynamic ring verdict is therefore **unverified** here; no four-arm
+null result is claimed. The solver implementation is first-order in time (no
+$d^2E/dt^2$ wave operator; $c_s^2$ enters only as a velocity pressure force),
+so the full second-order ring-ladder wave form
+($d^2E = c^2\nabla^2 E - \omega_0^2(E_Y - \varphi E_I)$) is not present in this
+solver—it belongs to the space-sim GLSL PDE. Whether real-space realization
+requires that second-order wave form remains an open question for a retained
+probe receipt.
 
 ---
 
-## 7. What CAN Be Derived from φ vs What CANNOT
+## 7. Conditional Inputs and Unresolved Results
 
-### Derivable:
+The following rows are conditional algebra or model inputs, not results derived
+by the canonical PDE:
 
-| Result | Derivation | φ-role |
-|--------|-----------|--------|
-| $k_\varphi$ (break scale) | $\tau_{\text{eddy}} = \tau_{\text{conv}}$ | φ enters via $1+\varphi$ factor in conversion rate |
-| $G_{\text{eff}}$ ratio across break | $= \varphi^6$ | Pure φ-power |
-| $q(k)$ functional form | From $E_\varepsilon(k)$ and φ⁻² | φ⁻² sets minimum energy scale |
-| ε-spectrum slope change at $k_\varphi$ | Conversion damping | φ enters via $\gamma_\varepsilon = \lambda(1+\varphi)(1-q)$ |
-| Energy amplitude jump at break | Factor $\varphi^4$ | From $\tilde{\varepsilon}^{2/3}$ with $\tilde{\varepsilon} = \varphi^6\varepsilon$ |
+| Quantity | Conditional basis | Status |
+|---|---|---|
+| $k_\varphi$ | Timescale equality in the selected closure | Hypothesized scale estimate |
+| $G_{\mathrm{eff,opt}}$ relation and any endpoint ratio | q-gated force ansatz plus supplied $r_\pi$ and $q_{\mathrm{proxy}}$ maps | Hypothesized |
+| $q_{\mathrm{proxy}}(k)$ | Chosen coarse-graining and shell normalization | Hypothesized diagnostic |
+| $E_\varepsilon$ slope or amplitude change | Passive-scalar and transfer closure | Hypothesized test target |
+| $\varphi^6$ flux and $\varphi^4$ amplitude factors | Explicit enhanced-flux ansatz | Hypothesized |
 
-### Not Derivable (Requires External Physics):
+The standard kinetic $-5/3$ slope and $C_K$ remain inherited empirical
+Navier–Stokes inputs. Exact low-$k$ slopes, intermittency, and any resolved
+break require a closure and retained spectrum receipt.
 
-| Result | Why not | What's needed |
-|--------|---------|---------------|
-| Kolmogorov −5/3 slope | Comes from Navier-Stokes dimensional analysis | NS is external to Cassi (but inherited) |
-| Kolmogorov constant $C_K \approx 1.5$ | Empirical | Not derivable from any theory |
-| Exact slope below $k_\varphi$ | Requires turbulence closure model | EDQNM or DIA closure for φ-modified dynamics |
-| Intermittency corrections | Require multifractal formalism | Beyond scope of this derivation |
-
----
 
 ## 8. Conclusion
 
-**The Kolmogorov −5/3 spectrum is not a φ-prediction.** It is a Navier-Stokes prediction that Cassi recovers in the inertial range where the conversion term is negligible ($k \gg k_\varphi$). Cassi's contribution is:
+The Kolmogorov $-5/3$ law remains an inherited kinetic-spectrum result under
+the usual Navier–Stokes assumptions. The selected Cassi closure supplies
+conditional diagnostics for $k_\varphi$, $E_\varepsilon$, and a chosen
+$q_{\mathrm{proxy}}$; it does not establish a density spectrum, gravity
+amplitude jump, or low-$k$ slope. No retained spectrum receipt in this
+document establishes a measured turbulence exponent or resolved break.
 
-1. **Explaining why −5/3 is recovered**—because for standard parameters, $k_\varphi \ll k_{\text{min}}$ and the entire simulation is in the inertial range
-2. **Predicting where −5/3 breaks down**—at $k \approx k_\varphi$, with a calculable transition
-3. **Providing new observables**—$E_\varepsilon(k)$, $q(k)$, $G_{\text{eff}}(k)$—that are uniquely Cassi and falsifiable
+### Candidate test design
 
-The empirical result from the solver (slope = −1.600 at $\alpha = 1.0$, within 4% of −1.667) is consistent with this framework: the scale-dependent conversion/Qi-gravity operates at scales too large to be resolved in a 128³ box with standard parameters, so the resolved range recovers unmodified Kolmogorov scaling.
+Run a turbulence simulation with parameters that place the conditional
+$k_\varphi$ estimate in the resolved kinetic inertial range. Using
+$k_\varphi=\varphi^3\sqrt{\lambda^3/\varepsilon_{\text{flux}}}$:
 
-### Falsifiable Prediction
+| $N$ | $\lambda$ | $\varepsilon_{\text{flux}}$ | $k_\varphi$ | $k_{\max}$ | $k_\varphi/k_{\min}$ | $k_{\max}/k_\varphi$ | Integer modes below / above break |
+|---|-----|--------|------|--------|----------------------|----------------------|-----------------------------------|
+| 64 | 0.17 | 0.01 | 2.97 | 21.4 | 2.97 | 7.22 | 2 / 7 |
+| 64 | 0.37 | 0.10 | 3.01 | 21.4 | 3.01 | 7.11 | 3 / 7 |
+| 128 | 0.20 | 0.01 | 3.79 | 42.9 | 3.79 | 11.32 | 3 / 11 |
+| 128 | 0.30 | 0.01 | 6.96 | 42.9 | 6.96 | 6.16 | 6 / 6 |
 
-Run a turbulence simulation with parameters that place $k_\varphi$ in the resolved inertial range. Using $k_\varphi = \varphi^3\sqrt{\lambda^3/\varepsilon_{\text{flux}}}$:
-
-| N | λ | ε_flux | k_φ | k_max | Regime |
-|---|-----|--------|------|--------|--------|
-| 64 | 0.17 | 0.01 | 2.97 | 21.4 | ~3 wavenumbers below break |
-| 64 | 0.37 | 0.10 | 3.01 | 21.4 | ~3 wavenumbers below break |
-| 128 | 0.20 | 0.01 | 3.79 | 42.9 | ~4 wavenumbers below break |
-| 128 | 0.30 | 0.01 | 6.96 | 42.9 | ~7 wavenumbers below break |
-
-The prediction for $k \ll k_\varphi$ vs $k \gg k_\varphi$:
-- $k \gg k_\varphi$: standard Kolmogorov $E(k) \propto k^{-5/3}$ recovered
-- $k \approx k_\varphi$: break in $E(k)$, $E_\varepsilon(k)$, and $q(k)$
-- $k \ll k_\varphi$: amplitude enhanced by factor $\varphi^4 \approx 6.85$; slope may steepen
+Candidate observables are the kinetic spectrum $E_u(k)$, the deviation
+spectrum $E_\varepsilon(k)$, and a preregistered coarse-grained
+$q_{\mathrm{proxy}}(k)$. A low-$k$ amplitude factor $\varphi^4$ or slope
+change is a conditional hypothesis to be tested, not a current result.
 
 ---
-## Appendix: Numerical Verification
+## Appendix: Algebraic Break-Scale and Mode-Count Check
 
 ```python
-# φ-break scale as function of λ and ε
+# phi-break scale as a function of lambda and eps
 import numpy as np
 phi = (1 + np.sqrt(5))/2
 
-# For N=64: λ=0.17, ε=0.01 puts k_φ ≈ 3 in the inertial range
+# For N=64: lambda=0.17, eps=0.01 puts k_phi ~ 3 in the inertial range
 lam, eps = 0.17, 0.01
 k_phi = phi**3 * np.sqrt(lam**3 / eps)
-k_min = 2*np.pi / (2*np.pi)  # = 1.0 for L=2π
+k_min = 2*np.pi / (2*np.pi)  # = 1.0 for L=2pi
 N, dealias = 64, 0.67
 k_max = N/2 * dealias * k_min
 
-print(f"λ={lam}, ε={eps}")
-print(f"k_φ = {k_phi:.3f}  ({k_phi/k_min:.1f}× k_min)")
+print(f"lambda={lam}, eps={eps}")
+print(f"k_phi = {k_phi:.3f}  ({k_phi/k_min:.1f}x k_min)")
 print(f"Resolved range: [{k_min:.1f}, {k_max:.1f}]")
-print(f"Below break: {int(k_phi/k_min)} wavenumbers")
-print(f"Above break: {int(k_max/k_phi)} wavenumbers")
+print(f"Integer modes below break: {int(k_phi/k_min)}")
+print(f"Integer modes above break: {int(k_max/k_phi)}")
 # Output:
-# k_φ = 2.969  (3.0× k_min)
-# Below break: 2 wavenumbers, Above break: 7 wavenumbers
+# k_phi = 2.969  (3.0x k_min)
+# Integer modes below break: 2; above break: 7
 
-# For N=128: λ=0.2, ε=0.01 gives deeper inertial range
+# For N=128: lambda=0.2, eps=0.01 gives deeper inertial range
 N2 = 128
 k_max2 = N2/2 * 0.67
 lam2, eps2 = 0.20, 0.01
 k_phi2 = phi**3 * np.sqrt(lam2**3 / eps2)
-print(f"\nN=128: λ={lam2}, ε={eps2}")
-print(f"k_φ = {k_phi2:.3f}  ({k_phi2/k_min:.1f}× k_min)")
+print(f"\nN=128: lambda={lam2}, eps={eps2}")
+print(f"k_phi = {k_phi2:.3f}  ({k_phi2/k_min:.1f}x k_min)")
 print(f"Resolved range: [{k_min:.1f}, {k_max2:.1f}]")
-print(f"Below break: {int(k_phi2/k_min)} wavenumbers")
-print(f"Above break: {int(k_max2/k_phi2)} wavenumbers")
+print(f"Integer modes below break: {int(k_phi2/k_min)}")
+print(f"Integer modes above break: {int(k_max2/k_phi2)}")
 # Output:
-# k_φ = 3.788  (3.8× k_min)
-# Below break: 3 wavenumbers, Above break: 11 wavenumbers
+# k_phi = 3.788  (3.8x k_min)
+# Integer modes below break: 3; above break: 11
 ```
 
 For N=64 with $\lambda=0.17$, $\varepsilon=0.01$: $k_\varphi \approx 3.0$, with ~2 wavenumbers below the break and ~7 above. For N=128 with $\lambda=0.2$, $\varepsilon=0.01$: $k_\varphi \approx 3.8$, with ~3 below and ~11 above—a clean inertial range on both sides of the break.
@@ -348,4 +444,9 @@ For N=64 with $\lambda=0.17$, $\varepsilon=0.01$: $k_\varphi \approx 3.0$, with 
 
 - `cassi-physics.md`—two-fluid PDE, Qi gate, and $G_{\text{eff}} = (\pi/\rho)(1+(\varphi^{6}-1)q)G$
 - `foundations/xi-derivation.md`—derivation of the Qi-gravity coupling $\xi = \varphi^6$
-- `foundations/bubble-edge-geometry.md` §1.2—condensation threshold $\theta_{\text{cond}}$ from the conversion-diffusion balance
+- `foundations/bubble-edge-geometry.md` §§1.2, 3—conditional condensation threshold and radial ring construction
+- `foundations/bubble-lattice-fabric.md` §§3.2–3.3—nested-condensate inference and the 1% suppression floor
+- `foundations/spiral-dynamics.md` §1.2—conditional pitch convention used by the radial coordinate
+- `foundations/spin-fibonacci-spiral.md` §2.1—doublet's $\pi$-per-rung internal advance
+- `foundations/rung-offset-mechanism.md` §4.1—pool-cell parity assumptions
+- `two-fluid/run_bubble_ring_dynamic_probe.py`—four-arm dynamic ring protocol; this document retains no JSON receipt or hash label for a run

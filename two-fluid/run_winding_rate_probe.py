@@ -1,25 +1,29 @@
 #!/usr/bin/env python3
-"""Winding-rate probe: does the canonical two-fluid solver's measured phase
-winding rate d(theta)/dt match the state-dependent formula?
+"""Winding-rate probe: does the canonical two-fluid solver's measured
+density-plane relaxation winding dtheta/dt match the state-dependent formula?
 
 Run:  python two-fluid/run_winding_rate_probe.py
 
-Question ("Can the spiral change? Can the winding rate?"): under the canonical
-Qi doublet conversion dynamics, theta = atan2(E_I, E_Y) rotates at a rate set
-by the instantaneous field state,
+Question ("Can relaxation winding change with the field state?"): under the
+canonical two-fluid conversion dynamics, theta = atan2(E_I, E_Y) is the
+derived angle in the (E_Y, E_I) density plane.  Its signed rate is set by the
+instantaneous field state:
 
     dtheta/dt = lam * (1-q) * rho * eps / (E_Y^2 + E_I^2),
     rho = E_Y + E_I,   eps = E_Y - phi*E_I,
     q = M_qi / (M_qi + phi_inv2 + eps^2),   M_qi = (E_Y + E_I)^2,
 
 with q the solver's own single gate (qi_gate=True, gate_model='single').
-Arms start homogeneous (spatially constant fields), so with D = 0, chi = 0,
-u = 0 the only dynamics is conversion: every gradient vanishes, the k=0 mode
-is the whole field, and the homogeneous state evolves exactly by the doublet
-rotation identity above.  Fresh solver per arm; the measured dtheta/dt is the
-finite-difference slope of the tracked mean theta = atan2(<E_I>, <E_Y>); the
-predicted rate is evaluated from the instantaneous mean fields with the
-solver's own q (compute_q_field, the same code path the dynamics use).
+Theta is a derived density-plane coordinate, not an independently evolved
+compact U(1)/SO(2) phase or a fixed periodic phase clock.  Arms start
+homogeneous (spatially constant fields), so with D = 0, chi = 0, u = 0 the
+only dynamics is conversion: every gradient vanishes, the k=0 mode is the
+whole field, and the homogeneous state evolves exactly according to the
+density-plane relaxation identity above.  Fresh solver per arm; the measured
+dtheta/dt is the finite-difference slope of the tracked mean density-plane
+angle theta = atan2(<E_I>, <E_Y>); the predicted rate is evaluated from the
+instantaneous mean fields with the solver's own q (compute_q_field, the same
+code path the dynamics use).
 
 Arms (N=32, L=2pi, dt=0.001, t=4, lam=0.05):
   eq          E_Y=1,     E_I=phi^-1   eps = 0          (equilibrium)
@@ -29,10 +33,11 @@ Arms (N=32, L=2pi, dt=0.001, t=4, lam=0.05):
 
 Audit: the canonical form with the reference state E_Y=1, E_I=phi^-1
 (rho = phi) gives q_eq = phi^2/(phi^2+phi^-2) ~ 0.8727; the gate OPENNESS
-(1-q_eq) = phi^-2/(phi^2+phi^-2) = phi^-2/3 ~ 0.1273 is the closure value
-spiral-dynamics.md sec 2.2/2.3 and wu-xing-derivation.md sec 7.1 use as
-(1-q_0).  This probe records what the solver itself reads on the equilibrium
-arm.
+(1-q_eq) = phi^-2/(phi^2+phi^-2) = phi^-2/3 ~ 0.1273 is the reference
+closure value cited by spiral-dynamics.md sec 2.2/2.3 and
+wu-xing-derivation.md sec 7.1.  This probe records what the solver itself
+reads on the equilibrium arm; it does not establish a compact phase or a
+physical spiral.
 
 Output (runs/ is gitignored -- commit the script only):
   runs/<YYYYmmdd_HHMMSS>_winding_rate.json   full per-checkpoint record
@@ -77,7 +82,11 @@ ARMS = [
 
 
 def build_solver(device):
-    """Fresh canonical solver per arm; single gate (constructor default)."""
+    """Fresh canonical solver per arm; single gate (constructor default).
+
+    The probe measures relaxation winding of the derived density-plane angle,
+    not an independent compact phase.
+    """
     solver = ExpandingTwoFluid3DGPU(
         N=N, L=L, nu=NU, D=D, lam=LAM, chi=CHI,
         hubble_mode='conversion', cs2=0.0, qi_gate=True,
@@ -128,6 +137,8 @@ def run_arm(device, tag, ey0, ei0, desc):
     elapsed = time.time() - t0
 
     ts = np.array([c['t'] for c in cps])
+    # Unwrap only removes numerical atan2 branch jumps; theta remains the
+    # derived density-plane angle, not a compact phase variable.
     th = np.unwrap(np.array([c['theta'] for c in cps]))
     n = len(cps)
     meas = np.empty(n)
@@ -219,7 +230,7 @@ def main():
         s = r['summary']
         wi, wm = s['windows']['initial'], s['windows']['mid']
         ri = f"{wi['rel_err']:.2e}" if wi['rel_err'] is not None else 'n/a'
-        print(f"  [{tag}] {s['elapsed_s']:.1f}s | dtheta total "
+        print(f"  [{tag}] {s['elapsed_s']:.1f}s | density-plane dtheta total "
               f"{s['dtheta_total']:+.5f} rad | meas[0,0.5] "
               f"{wi['measured_slope']:+.6f} vs window-pred "
               f"{wi['predicted_mean']:+.6f} (rel {ri}) | q(0)={s['q_t0']:.6f} "
@@ -229,7 +240,7 @@ def main():
         arms[tag] = r
     total = time.time() - t_start
 
-    print("\n=== WINDING-RATE PROBE RESULTS (t=4, N=32, dt=0.001, "
+    print("\n=== DENSITY-PLANE RELAXATION-WINDING PROBE RESULTS (t=4, N=32, dt=0.001, "
           "lam=0.05, gate='single') ===")
     print(f"{'arm':10s} {'meas init [0,0.5]':>18s} {'meas mid':>18s} "
           f"{'pred t=0':>14s} {'rel init':>10s} {'rel mid':>10s} "
@@ -266,9 +277,10 @@ def main():
           f"{q_eq_solver:.9f}")
     print(f"  canonical: q_eq = phi^2/(phi^2+phi^-2) = 0.8727; the gate "
           f"openness (1-q_eq) = phi^-2/(phi^2+phi^-2) = phi^-2/3 = 0.1273 "
-          f"is the closure value spiral-dynamics.md sec 2.2/2.3 and "
-          f"wu-xing-derivation.md sec 7.1 use as (1-q_0).  Measured q(0) "
-          f"confirms q_eq = {q_meas:.6f}.")
+          f"is the reference closure value cited by spiral-dynamics.md sec "
+          f"2.2/2.3 and wu-xing-derivation.md sec 7.1 as (1-q_0).  Measured "
+          f"q(0) confirms q_eq = {q_meas:.6f}; this audit does not establish "
+          f"a compact phase or physical spiral.")
 
     # ── Conclusion ────────────────────────────────────────────────────────
     non_eq = ['eps_neg', 'eps_pos', 'strong_neg']
@@ -276,10 +288,10 @@ def main():
            for t in non_eq}
     all_pass = all(arms[t]['summary']['verdict'] == 'PASS' for t in arms)
     print("\n=== CONCLUSION ===")
-    print(f"  The canonical solver's measured winding rate matches the "
-          f"state-dependent formula: max per-checkpoint relative error "
-          f"{max(mxs.values()):.2e} across the non-equilibrium arms "
-          f"({', '.join(f'{t}: {v:.1e}' for t, v in mxs.items())}), 100% "
+    print(f"  The canonical solver's measured density-plane relaxation winding "
+          f"rate matches the state-dependent formula: max per-checkpoint "
+          f"relative error {max(mxs.values()):.2e} across the non-equilibrium "
+          f"arms ({', '.join(f'{t}: {v:.1e}' for t, v in mxs.items())}), 100% "
           f"sign agreement, window fits within {REL_TOL * 100:.0f}% on all "
           f"arms.  The rate DOES change with the field state: dtheta/dt goes "
           f"~0 at equilibrium (eps=0, q={arms['eq']['summary']['q_t0']:.6f}) "
@@ -294,7 +306,8 @@ def main():
     print(f"  q0 check: equilibrium arm reads q = {q_meas:.6f}, "
           f"so (1-q0) = {1.0 - q_meas:.6f} = phi^-2/3 -- the gate "
           f"openness at the attractor, confirming the canonical "
-          f"q = M_qi/(M_qi+phi^-2+eps^2) with q_eq = 0.8727.")
+          f"q = M_qi/(M_qi+phi^-2+eps^2) with q_eq = 0.8727; this is a "
+          f"normalization audit, not a spiral or phase derivation.")
     arm_times = ', '.join(f"{t}: {arms[t]['summary']['elapsed_s']:.1f}s"
                           for t in arms)
     print(f"  Total wall time: {total:.1f}s ({arm_times})")
@@ -315,6 +328,8 @@ def main():
             'floor': FLOOR, 'rel_tol': REL_TOL,
             'windows': {'initial': W_INIT, 'mid': W_MID},
             'prediction_formula': 'dtheta/dt = lam*(1-q)*rho*eps/(EY^2+EI^2); '
+                                  'theta = atan2(EI,EY) is the derived '
+                                  'density-plane angle; '
                                   'q = M_qi/(M_qi+phi_inv2+eps^2), '
                                   'M_qi = (EY+EI)^2',
         },
@@ -323,13 +338,15 @@ def main():
             'canonical_one_minus_q_eq': omq_exact,
             'one_minus_q_eq_is_phi_inv2_over_3': omq_exact / (phi_inv2_exact / 3.0),
             'closure_value_used_as_one_minus_q0': 'phi^-2/3 ~ 0.1273 '
-                '(spiral-dynamics.md sec 2.2/2.3; wu-xing-derivation.md sec 7.1)',
+                '(reference closure convention; '
+                'spiral-dynamics.md sec 2.2/2.3; wu-xing-derivation.md sec 7.1)',
             'solver_measured_q_t0_equilibrium': q_meas,
             'solver_measured_one_minus_q_t0': 1.0 - q_meas,
             'solver_phi_inv2_convention': piv2,
             'analytic_q_eq_solver_convention': q_eq_solver,
             'verdict': 'solver normalization rho=phi: canonical q_eq = '
-                       '0.8727; gate openness (1-q_eq) = phi^-2/3 = 0.1273.',
+                       '0.8727; gate openness (1-q_eq) = phi^-2/3 = 0.1273; '
+                       'this is a normalization audit, not a spiral derivation.',
         },
         'arms': {t: {'ey0': float(arms[t]['ey0']), 'ei0': float(arms[t]['ei0']),
                      'summary': arms[t]['summary'],

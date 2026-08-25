@@ -21,6 +21,9 @@ import glob, os, time
 
 PHI = (1 + np.sqrt(5)) / 2
 LN_PHI = np.log(PHI)  # 0.4812
+EXPECTED_MOCKS = 1000
+_HERE = os.path.dirname(os.path.abspath(__file__))
+
 
 def load_pk(path, col=2):
     """Load k and P0. Handles 2-column clean files or 7-column raw files."""
@@ -67,30 +70,40 @@ print("=" * 62)
 periods = np.linspace(0.25, 1.0, 300)
 
 # --- Data ---
-k_data, pk_data = load_pk('dr16_lrg_pk_clean.txt')
+k_data, pk_data = load_pk(os.path.join(_HERE, 'dr16_lrg_pk_clean.txt'))
+if k_data is None or len(k_data) < 20:
+    raise RuntimeError("DR16 data file has fewer than 20 valid positive bins")
 T_data, P_data, res_data, lnk_data = best_period_power(k_data, pk_data, periods)
+if not np.isfinite(P_data):
+    raise RuntimeError("DR16 best-period power is non-finite")
 print(f"\nData (DR16 LRG NGCSGC, {len(k_data)} bins):")
 print(f"  Best period: {T_data:.4f}  (ln φ = {LN_PHI:.4f}, Δ = {T_data - LN_PHI:+.4f})")
 print(f"  Best power:  {P_data:.6f}")
 
 # --- Mocks ---
-mock_files = sorted(glob.glob('ezmock_pk/Power_Spectrum_comb_NGCSGC_ezmocks_*.txt'))
+mock_files = sorted(glob.glob(os.path.join(
+    _HERE, 'ezmock_pk', 'Power_Spectrum_comb_NGCSGC_ezmocks_*.txt')))
 print(f"\nEZmocks found: {len(mock_files)}")
 
 mock_T = np.zeros(len(mock_files))
 mock_P = np.zeros(len(mock_files))
 for i, f in enumerate(mock_files):
     k, pk = load_pk(f)
-    if len(k) < 20:
+    if k is None or len(k) < 20:
         continue
     T, P, _, _ = best_period_power(k, pk, periods)
     mock_T[i], mock_P[i] = T, P
     if (i + 1) % 200 == 0:
         print(f"  processed {i+1}/{len(mock_files)}")
 
-valid = mock_P > 0
+valid = (mock_P > 0) & np.isfinite(mock_P) & np.isfinite(mock_T)
+valid_files = [f for f, keep in zip(mock_files, valid) if keep]
 mock_T, mock_P = mock_T[valid], mock_P[valid]
 print(f"Valid mocks: {len(mock_P)}")
+if len(mock_P) != EXPECTED_MOCKS:
+    raise RuntimeError(
+        f"Null calibration unavailable: expected {EXPECTED_MOCKS} valid EZmocks, "
+        f"found {len(mock_P)}")
 
 # --- Significance ---
 # 1. Percentile of data power in null power distribution
@@ -122,18 +135,22 @@ def power_at(lnk, residual, T):
     return A**2 + B**2
 
 P_data_phi = power_at(lnk_data, res_data, LN_PHI)
+if not np.isfinite(P_data_phi):
+    raise RuntimeError("DR16 power at ln(phi) is non-finite")
 print(f"\nPower specifically at ln φ = {P_data_phi:.6f} (vs best {P_data:.6f})")
 ratio = P_data_phi / P_data if P_data > 0 else 0
 print(f"Ratio P(ln φ)/P(best) = {ratio:.2f}")
 
 mock_P_phi = np.zeros(len(mock_P))
 for i in range(len(mock_P)):
-    k, pk = load_pk(mock_files[i])
-    if len(k) < 20:
-        continue
+    k, pk = load_pk(valid_files[i])
+    if k is None or len(k) < 20:
+        raise RuntimeError(f"Validated mock became unreadable: {valid_files[i]}")
     lnk = np.log(k)
     res = subtract_smooth(lnk, np.log(pk))
     mock_P_phi[i] = power_at(lnk, res, LN_PHI)
+if not np.all(np.isfinite(mock_P_phi)):
+    raise RuntimeError("At least one validated mock produced non-finite power at ln(phi)")
 
 pct_phi = 100 * (mock_P_phi < P_data_phi).mean()
 print(f"Power at ln φ exceeds {pct_phi:.1f}% of mocks (one-sided p = {1 - pct_phi/100:.3f})")
@@ -143,10 +160,10 @@ print("\n" + "=" * 62)
 print("VERDICT")
 print("=" * 62)
 print(f"Best-fit period: {T_data:.4f} vs prediction {LN_PHI:.4f} (Δ={T_data-LN_PHI:+.4f})")
-if pct >= 95:
-    print(f"Data power is at {pct:.1f}th percentile → marginal hint")
-elif pct >= 99:
+if pct >= 99:
     print(f"Data power is at {pct:.1f}th percentile → suggestive")
+elif pct >= 95:
+    print(f"Data power is at {pct:.1f}th percentile → marginal hint")
 else:
     print(f"Data power is at {pct:.1f}th percentile → consistent with noise")
 print(f"Note: 32 bins span ~8.6 log-periods; {len(mock_P)} mocks for the null")

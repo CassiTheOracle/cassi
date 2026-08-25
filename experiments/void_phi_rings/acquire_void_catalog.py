@@ -42,12 +42,12 @@ not downloadable for either preferred source:
     mirrored on CDS (the 4 cat_files/* entries are absent from the CDS
     table set) and lives on the paywalled journal site.
 
-Therefore the per-void-galaxy coordinate field needed for a genuinely
-real stacking test is BLOCKED at the data layer (see
+Therefore the per-void-galaxy coordinate field needed for a real stacking
+test is BLOCKED at the data layer (see
 `analyses/void-ring-profiles.md` §Real-data step for the exact failures).
-This script acquires and verifies the real void geometry (centers + radii)
-that the pipeline stacks in anyway; the galaxy field for the stacking is
-the synthetic phi-ladder pivot documented in stack_void_rings.py.
+This script acquires and hash-records the real void summaries for a future
+data-ready stack. The current synthetic calibration in stack_void_rings.py
+does not consume their sky positions or radii.
 
 AUTHENTICITY
 ------------
@@ -61,7 +61,6 @@ AUTHENTICITY
 import hashlib
 import os
 import re
-import ssl
 import sys
 import urllib.request
 from datetime import datetime
@@ -108,11 +107,8 @@ os.makedirs(PARSED, exist_ok=True)
 def fetch(table):
     """Download one table's raw text, returning bytes. Raises on failure."""
     url = BASE_URL + table
-    ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-    with urllib.request.urlopen(req, timeout=60, context=ctx) as r:
+    with urllib.request.urlopen(req, timeout=60) as r:
         return r.read()
 
 

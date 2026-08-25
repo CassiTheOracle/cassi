@@ -1,17 +1,18 @@
 """
-DESI DR1 LRG_N monopole P(k) via FFT-based FKP estimator (numpy only).
+DESI DR1 LRG_N unnormalized monopole-shape proxy from a CIC FFT.
 
-Paints data and randoms with CIC onto a 3D mesh, FFTs, and computes
-the FKP power spectrum using pypower's exact normalization conventions:
+The script paints data and randoms onto a mesh and evaluates
 
     F(k) = FFT(data_mesh) - alpha * FFT(rand_mesh)
-    shot = sum_d w_d^2 + alpha^2 * sum_r w_r^2      (sum of squares)
-    I2   = alpha * sum_r w_r^2
-    P(k) = (|F(k)|^2 - shot) / I2   averaged over spherical shells
+    shot = sum_d w_d^2 + alpha^2 * sum_r w_r^2
+    S(k) = (|F(k)|^2 - shot) / sum_d w_d^2
 
-All modes are used (no Monte Carlo) -> cosmic-variance-limited errors.
-For the log-periodic search only the relative shape matters; the smooth
-polynomial fit absorbs any constant normalization.
+after CIC compensation and spherical averaging. This is useful only as a
+dimensionless shape diagnostic. It is not an FKP-normalized physical power
+spectrum: the catalog does not retain the number-density normalization needed
+for pypower-equivalent amplitudes or survey-window covariance. Any
+log-periodic search on S(k) is descriptive until calibrated against a frozen
+same-pipeline null ensemble with its period scan and look-elsewhere effect.
 """
 import numpy as np
 from astropy.io import fits
@@ -43,7 +44,7 @@ def load_catalog(fname):
 
 
 def to_xyz(ra, dec, z):
-    r = COSMO.comoving_distance(z).value / 0.6777  # Mpc/h
+    r = COSMO.comoving_distance(z).value * COSMO.h  # Mpc/h
     ra_r, dec_r = np.radians(ra), np.radians(dec)
     return np.column_stack([
         r * np.cos(dec_r) * np.cos(ra_r),
@@ -78,15 +79,13 @@ def paint_cic(pos, w, boxsize, nmesh):
 
 
 def fkp_power(pos_d, w_d, pos_r, w_r, boxsize, nmesh, kmin, kmax, nkbins):
-    """FFT-based FKP monopole power spectrum (numpy, float32 meshes).
+    """Return an unnormalized FFT monopole-shape proxy.
 
-    Painting: weight per cell (no density factor). FFT: raw numpy (no 1/N).
-    The painted-field FFT equals the continuous sum F(k)=Σ w_i e^{ik·r_i}
-    up to CIC assignment smoothing, so:
-      I2   = Σ_d w_d²          (standard FKP normalization)
-      shot = Σ_d w_d² + α² Σ_r w_r²
-      P(k) = ⟨|F|²/W2⟩/I2 − shot/I2   (W2 = CIC kernel squared)
-    α = Σw_d/Σw_r (measured ratio) so the window cancels exactly.
+    Painting uses one weight sum per cell and NumPy's raw FFT. The discrete
+    weighted shot term is subtracted after CIC compensation, then the result
+    is divided by ``sum(w_d**2)`` to set a stable arbitrary scale. No
+    number-density integral or survey-window covariance is available here, so
+    the returned values are dimensionless and are not a physical FKP P(k).
     """
     t0 = time.time()
     print(f"  Painting data mesh ({nmesh}³, box {boxsize:.0f} Mpc/h)...")
@@ -94,11 +93,12 @@ def fkp_power(pos_d, w_d, pos_r, w_r, boxsize, nmesh, kmin, kmax, nkbins):
     mesh_r = paint_cic(pos_r, w_r, boxsize, nmesh)
     print(f"  Painting done ({time.time()-t0:.1f}s)")
 
-    # FKP normalization (MEASURED units—no ×18)
+    # Discrete weighted scaling only; this is not the dimensional FKP I2.
     alpha = w_d.sum() / w_r.sum()
-    I2 = (w_d**2).sum()
-    shot = I2 + alpha**2 * (w_r**2).sum()
-    print(f"  alpha = {alpha:.6f}, I2 = {I2:.0f}, shot = {shot:.0f}, shot/I2 = {shot/I2:.4f}")
+    scale = (w_d**2).sum()
+    shot = scale + alpha**2 * (w_r**2).sum()
+    print(f"  alpha = {alpha:.6f}, scale = {scale:.0f}, "
+          f"shot = {shot:.0f}, shot/scale = {shot/scale:.4f}")
 
     # FFTs—one at a time, cast to complex64 to save memory
     print(f"  FFT data...")
@@ -160,7 +160,7 @@ def fkp_power(pos_d, w_d, pos_r, w_r, boxsize, nmesh, kmin, kmax, nkbins):
             cum_P += (P_raw[:, :, zs][mask_c] / w2_c[mask_c]).sum()
         if cum_num > 0:
             N_modes[i] = cum_num
-            P_bins[i] = (cum_P / cum_num - shot) / I2
+            P_bins[i] = (cum_P / cum_num - shot) / scale
 
     print(f"  Binning done ({time.time()-t0:.1f}s), total modes: {N_modes.sum():.0f}")
     return k_centers, P_bins, N_modes
@@ -169,7 +169,7 @@ def fkp_power(pos_d, w_d, pos_r, w_r, boxsize, nmesh, kmin, kmax, nkbins):
 def main():
     t0 = time.time()
     print("=" * 62)
-    print("DESI DR1 LRG_N P(k): FFT-based FKP estimator (numpy)")
+    print("DESI DR1 LRG_N: unnormalized CIC-FFT shape proxy")
     print("=" * 62)
 
     print(f"\nLoading {DATA_FILE}...")
@@ -221,28 +221,23 @@ def main():
     good = nmodes > 50
     k, P0, nmodes = k[good], P0[good], nmodes[good]
     np.savetxt(OUT_PK, np.column_stack([k, P0]),
-               header='k[h/Mpc] P0[(Mpc/h)^3] FKP monopole (FFT)', comments='#')
+               header='k[h/Mpc] S_shape[dimensionless] unnormalized CIC-FFT proxy', comments='#')
 
     print(f"\nSaved {OUT_PK}: {len(k)} bins")
-    print(f"P0 range: [{P0.min():.1f}, {P0.max():.1f}]")
+    print(f"Shape-proxy range: [{P0.min():.3g}, {P0.max():.3g}]")
     print(f"Modes/bin: [{nmodes.min():.0f}, {nmodes.max():.0f}]")
 
-    # Sanity: low-k amplitude
-    P_low = np.interp(0.01, k, P0) if k.min() < 0.01 else P0[0]
-    print(f"P0(k=0.01) ≈ {P_low:.0f} (expect ~10^3-10^4 for LRG)")
 
-    # Run φ-periodic search
+    # Descriptive period scan; no calibrated null or look-elsewhere correction.
     print("\n" + "=" * 62)
-    print("Running φ-periodic search on measured P0(k)...")
+    print("Running descriptive φ-periodic scan on the shape proxy...")
     print("=" * 62)
     from phi_periodic_pk_search import run_search
     best_T, best_power, periods, powers = run_search(k, P0)
-    print(f"\n  Best log-period: {best_T:.4f}")
-    print(f"  Cassi prediction: ln φ = {np.log(PHI):.4f} (Δ = {best_T - np.log(PHI):+.4f})")
-    if abs(best_T - np.log(PHI)) < 0.03:
-        print("  ✓ Consistent with ln-φ prediction—investigate further!")
-    else:
-        print("  No ln-φ signal at the predicted period.")
+    print(f"\n  Best scanned log-period: {best_T:.4f}")
+    print(f"  ln φ = {np.log(PHI):.4f} (offset {best_T - np.log(PHI):+.4f})")
+    print("  Descriptive result only: significance and the scan "
+          "look-elsewhere effect are uncalibrated.")
     print(f"\nTotal elapsed: {time.time()-t0:.1f}s")
 
 

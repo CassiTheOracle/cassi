@@ -1,429 +1,647 @@
-# Yang-Yin Field Interference and Particle Formation
+# Yang-Yin Field Interference and Particle Formation: Conditional Complex-Field/NLS Extension
 
-## Status: Derived—July 2026
+## Status: Hypothesized—August 2026
 
 ## Abstract
 
-Particle-like excitations emerge from the interference of the two Cassi fields: expansive Yang waves and contractive Yin waves counter-propagate on the spine manifold, and their superposition forms a standing wave whose intensity pattern condenses, above the threshold $\theta_\text{cond}$, into localized solitons under nonlinear self-focusing. The soliton is most stable at the amplitude ratio $A_I/A_Y = \varphi^{-1}$; the golden ratio emerges as the structural optimum of the interference pattern. The framework maps directly onto Dirac spinors, the Higgs mass mechanism, and quantum scattering, and its condensation physics is realized in the CassiBridgeV2 real-space DFT benchmarks (`particles/dft-benchmarks.md`).
+The committed Cassi solver uses two nonnegative real density fields, $E_Y$ and $E_I$. Its state is the density pair and the derived quantities
+
+$$
+\rho = E_Y + E_I, \qquad \varepsilon = E_Y - \varphi E_I,
+$$
+
+with a gated, equal-and-opposite conversion term that relaxes $\varepsilon$ while conserving the conversion contribution to $\rho$. This canonical state contains no complex phase, prescribed propagation direction, chirality, compact phase coordinate, NLS equation, or particle variable.
+
+This paper records a separate, conditional extension. The extension introduces complex amplitudes $\Psi_Y$ and $\Psi_I$ on a selected one-dimensional coordinate $s$, chooses opposite spatial wave-number signs in a particular ansatz, and gives both components the same temporal factor $e^{-i\omega t}$. The resulting intensity has a stationary cosine modulation by direct algebra. A further focusing nonlinear Schrödinger equation (NLS) can be selected as an effective model for localization. The amplitude ratio $r=A_I/A_Y=\varphi^{-1}$, the sech profile, the threshold rule, and the reported soliton receipts are properties of that selected extension and its numerical experiments.
+
+The extension supplies a conditional wave-mechanical particle proxy. It does not promote the proxy to a canonical Cassi particle, a Dirac field, a Higgs mechanism, a quantum-scattering theory, or a direction-bearing Yang/Yin ontology. The conventional LDA/PBE/Dirac-Kohn-Sham measurements in `particles/dft-benchmarks.md` concern their own numerical implementation and atomic reference comparisons; they are separate from the canonical solver and from this complex-field/NLS extension.
 
 ---
 
-## 1. The Two Fundamental Fields
+## 1. Canonical real-density baseline
 
-The Cassi framework identifies two opposing dynamical forces:
+### 1.1 State variables
 
-| Property | Yang (Expansive) | Yin (Contractive) |
+The canonical state is the pair of real densities
+
+$$
+E_Y(\mathbf{x},t) \ge 0, \qquad E_I(\mathbf{x},t) \ge 0.
+$$
+
+The labels $Y$ and $I$ identify the two framework channels. They do not, by themselves, assign a spatial direction, a temporal frequency sign, a chirality, or a complex phase. Define
+
+$$
+\rho = E_Y + E_I, \qquad
+\varepsilon = E_Y - \varphi E_I,
+$$
+
+and the canonical scalar gate
+
+$$
+q = \frac{\rho^2}{\rho^2 + \varphi^{-2} + \varepsilon^2}.
+$$
+
+The fixed ratio of the conversion term is $E_Y=\varphi E_I$. At that line, the Yang share of the total density is $E_Y/\rho=\varphi^{-1}$. These are density statements; they do not determine a complex-amplitude ratio.
+
+### 1.2 Canonical two-fluid equations
+
+In the density variables used by the solver, the governing form is
+
+$$
+\partial_t E_Y = -(\mathbf{u}\!\cdot\!\nabla)E_Y + \nu\nabla^2 E_Y
+ - \lambda(1-q)(E_Y-\varphi E_I) + S_Y[E_I,\Phi],
+$$
+
+$$
+\partial_t E_I = -(\mathbf{u}\!\cdot\!\nabla)E_I + \nu\nabla^2 E_I
+ + \lambda(1-q)(E_Y-\varphi E_I) + S_I[E_Y,\Phi].
+$$
+
+Here $\mathbf{u}$ is the velocity field, $\nu$ is the solver's diffusion or viscosity coefficient, and $\lambda$ is the asserted solver normalization/timescale convention, with $\lambda=0.1$ where numerically used. The proposed relation $\lambda=1/(2w)$ with $w=5$ is not derived here. $S_Y,S_I$ denote the model's potential-coupled source terms. Let
+
+$$
+\kappa = \lambda(1-q).
+$$
+
+The conversion-only contribution is
+
+$$
+\left.\partial_t
+\begin{pmatrix}E_Y\\E_I\end{pmatrix}\right|_{\mathrm{conv}}
+=\kappa
+\begin{pmatrix}-1&\varphi\\1&-\varphi\end{pmatrix}
+\begin{pmatrix}E_Y\\E_I\end{pmatrix}.
+$$
+
+The matrix has rank one and eigenvalues $0$ and $-\kappa(1+\varphi)$. Consequently,
+
+$$
+\left.\partial_t\rho\right|_{\mathrm{conv}}=0,
+\qquad
+\left.\partial_t\varepsilon\right|_{\mathrm{conv}}
+=-\kappa(1+\varphi)\varepsilon.
+$$
+
+The conversion contribution relaxes the density contrast and conserves total density. It is not a norm-preserving rotation and supplies no fixed phase advance. A density-plane diagnostic such as
+
+$$
+\theta_d=\operatorname{atan2}(E_I,E_Y)
+$$
+
+is a state coordinate of the real density pair. It is distinct from a complex amplitude phase and does not create an independent compact $U(1)$ or $SO(2)$ degree of freedom.
+
+### 1.3 What the canonical equations supply
+
+The canonical equations supply density evolution, advection, diffusion, potential sources, the gated conversion, the fixed ratio, and the scalar coherence diagnostic $q$. They do not supply the following extension ingredients:
+
+- a complex lift of either density, including the two phase functions $\arg\Psi_Y$ and $\arg\Psi_I$;
+- a one-dimensional coordinate with a chosen positive orientation and length $L_s$;
+- a wave operator with a speed $v$, damping $\gamma$, or spatial-bias coefficient $\chi$;
+- a counterpropagating plane-wave ansatz;
+- an NLS dispersion coefficient $\hbar_{\mathrm{eff}}^2/(2m_{\mathrm{eff}})$, an attractive coefficient $g$, or an external potential $V(s)$;
+- a soliton, a condensation threshold for that soliton, or a particle ontology.
+
+Any such ingredient belongs to the conditional extension described below and carries its own assumptions.
+
+---
+
+## 2. Extension inventory and boundary
+
+The extension makes the following additions in sequence. The sequence is a modeling choice rather than a derivation from the canonical density equations.
+
+| Added object | Role in the extension | Status and boundary |
 |---|---|---|
-| Direction | Outward, forward | Inward, backward |
-| Spectral effect | Flattening, cascade to small scales | Steepening, cascade to large scales |
-| Wave property | Right-traveling, $+k$ | Left-traveling, $-k$ |
-| Temporal phase | $e^{-i\omega t}$ | $e^{+i\omega t}$ (time-reversed) |
-| Thermodynamic analog | Entropy increase | Structure formation |
+| $s\in[0,L_s]$ | Chosen one-dimensional coordinate | Application coordinate; the canonical solver does not select it or an intrinsic orientation. |
+| $\Psi_Y(s,t),\Psi_I(s,t)\in\mathbb{C}$ | Complex amplitudes carrying phase information absent from $E_Y,E_I$ | New fields; an observation map such as $E_Y^{\mathrm{ext}}=|\Psi_Y|^2$, $E_I^{\mathrm{ext}}=|\Psi_I|^2$ is an additional convention. |
+| $A_Y,A_I,k,\omega$ | Amplitudes and wave numbers in the selected plane-wave ansatz | Chosen initial or trial data; $+k$ and $-k$ are spatial phase signs in that ansatz. |
+| $\gamma,v,\chi$ | Damping, propagation scale, and opposite spatial-bias signs in the extended wave equations | New dimensional or fitted parameters; they do not assign intrinsic direction to the canonical channels. |
+| $\alpha,\beta$ | Nonlinear cross-couplings in the extended source terms | New couplings; their signs and magnitudes are model inputs. |
+| $\hbar_{\mathrm{eff}},m_{\mathrm{eff}},g,V(s)$ | Coefficients and potential in an optional focusing NLS closure | New effective-model parameters; no relativistic or Higgs interpretation follows from their symbols. |
+| $\mu,s_0,v_g,k_0,\omega_0$ | Parameters of a selected localized NLS solution | Solution data subject to the chosen NLS and boundary conditions. |
+| $\theta_{\mathrm{cond}}$ | Threshold used by an experiment to label a high-intensity localized state | Imported or selected criterion for the experiment; not a canonical particle equation. |
+| $\eta$ (when used) | Optional loss coefficient for a damped NLS experiment | Additional loss assumption; the conservative NLS has no such term. |
 
-Yang and Yin are defined as **complex scalar fields** on the spine manifold $s \in [0, L_s]$:
+The phases are underdetermined by the densities. If the optional observation map $E_Y^{\mathrm{ext}}=|\Psi_Y|^2$, $E_I^{\mathrm{ext}}=|\Psi_I|^2$ is imposed at the canonical fixed ratio, then
 
-$$\Psi_Y(s,t) \in \mathbb{C}, \quad \Psi_I(s,t) \in \mathbb{C}$$
+$$
+\frac{|\Psi_Y|^2}{|\Psi_I|^2}=\varphi
+\quad\Longrightarrow\quad
+\frac{|A_I|}{|A_Y|}=\varphi^{-1/2}
+$$
 
-The subscript $I$ denotes Yin (contractive/inward) to avoid confusion with the imaginary unit $i$.
-
----
-
-## 2. The Yang and Yin Wave Equations
-
-Each field obeys a damped wave equation with opposite chirality:
-
-### Yang Field (Expansive)
-
-$$\frac{\partial^2 \Psi_Y}{\partial t^2} + \gamma \frac{\partial \Psi_Y}{\partial t} = v^2 \frac{\partial^2 \Psi_Y}{\partial s^2} + \chi \frac{\partial \Psi_Y}{\partial s} + S_Y(s,t)$$
-
-The $+\chi$ term creates a **rightward bias** in propagation. Yang waves preferentially travel in the $+s$ direction (outward, from root to crown chakra).
-
-### Yin Field (Contractive)
-
-$$\frac{\partial^2 \Psi_I}{\partial t^2} + \gamma \frac{\partial \Psi_I}{\partial t} = v^2 \frac{\partial^2 \Psi_I}{\partial s^2} - \chi \frac{\partial \Psi_I}{\partial s} + S_I(s,t)$$
-
-The $-\chi$ term creates a **leftward bias**. Yin waves preferentially travel in the $-s$ direction (inward, from crown to root chakra).
-
-### Source Terms
-
-The sources are coupled:
-
-$$S_Y = +\alpha \cdot |\Psi_I|^2 \cdot \Psi_Y \quad \text{(Yang is amplified where Yin is strong)}$$
-
-$$S_I = -\beta \cdot |\Psi_Y|^2 \cdot \Psi_I \quad \text{(Yin is suppressed where Yang is strong)}$$
-
-This asymmetric coupling encodes the Yang-dominant nature of the dynamics. Yang exceeds Yin by factor φ at equilibrium.
+for constant positive amplitudes. The frequently used extension value $A_I/A_Y=\varphi^{-1}$ is therefore a separate amplitude ansatz. It is not the amplitude form of the canonical density fixed point.
 
 ---
 
-## 3. Linear Interference: Standing Waves
+## 3. Conditional complex wave system
 
-Consider monochromatic plane wave solutions:
+### 3.1 Extended equations
 
-$$\Psi_Y(s,t) = A_Y \cdot e^{i(k s - \omega t)}$$
+One possible extension places the two complex fields on the chosen coordinate $s$ and gives them damped second-order wave equations:
 
-$$\Psi_I(s,t) = A_I \cdot e^{i(-k s - \omega t)}$$
+$$
+\partial_t^2\Psi_Y+\gamma\,\partial_t\Psi_Y
+= v^2\partial_s^2\Psi_Y+\chi\,\partial_s\Psi_Y+S_Y^{\mathrm{ext}}(s,t),
+$$
 
-Note that both share the same **temporal dependence** $e^{-i\omega t}$ but have **opposite spatial dependence**. This is the key: Yang and Yin are not time-reverses of each other (that would be $e^{+i\omega t}$). They are **spatial counter-propagators** with the same temporal evolution.
+$$
+\partial_t^2\Psi_I+\gamma\,\partial_t\Psi_I
+= v^2\partial_s^2\Psi_I-\chi\,\partial_s\Psi_I+S_I^{\mathrm{ext}}(s,t).
+$$
 
-### The Interference Field
+The opposite signs of the $\chi$ terms are a chosen spatial-bias convention. They make a counterpropagating ansatz natural for a particular calculation; they do not identify $E_Y$ with one direction or $E_I$ with another. The canonical density equations contain no $\partial_s^2\Psi$ operator from which these equations could be read off.
 
-Define the total field as their superposition:
+A selected asymmetric source pair is
 
-$$\Psi(s,t) = \Psi_Y(s,t) + \Psi_I(s,t)$$
+$$
+S_Y^{\mathrm{ext}}=+\alpha |\Psi_I|^2\Psi_Y,
+\qquad
+S_I^{\mathrm{ext}}=-\beta |\Psi_Y|^2\Psi_I.
+$$
 
-The intensity (energy density) is:
+This pair is an extension input. It can amplify one component and suppress the other in a chosen regime, while the canonical conversion is an equal-and-opposite density relaxation with a fixed density ratio. The two source pairs should not be identified without an explicit derivation and parameter map.
 
-$$\rho(s,t) = |\Psi(s,t)|^2 = |A_Y|^2 + |A_I|^2 + 2\,\text{Re}\left[A_Y A_I^* \, e^{2 i k s}\right]$$
+### 3.2 What is and is not a closed model
 
-For real amplitudes $A_Y, A_I \in \mathbb{R}$:
-
-$$\rho(s,t) = A_Y^2 + A_I^2 + 2 A_Y A_I \cos(2ks)$$
-
-**This is a standing wave pattern.** The energy density has spatial nodes (zeros) and antinodes (maxima) that are stationary in time, even though the constituent waves are traveling.
-
-### Node and Antinode Positions
-
-- **Antinodes** (maximal intensity): $\cos(2ks) = +1 \Rightarrow s = n\pi/k$
-- **Nodes** (zero intensity): $\cos(2ks) = -1 \Rightarrow s = (n + \frac{1}{2})\pi/k$
-
-The spacing between antinodes is:
-
-$$\Delta s = \frac{\pi}{k} = \frac{\lambda}{2}$$
-
-This is exactly the chakra spacing from the Cassi equations: each chakra is a resonant cavity of half-wavelength $\lambda_c/2 = s_c$.
+The extended wave equations and the NLS closure in §5 are distinct model choices. A calculation must state whether it integrates the damped wave system, the NLS, or a coupled system with an explicitly supplied coupling. The equations in this paper do not silently identify the two systems. In particular, a complex-field initial condition does not become a solution of the canonical real-density PDE merely because its intensity is called a density.
 
 ---
 
-## 4. The Yang-Yin Amplitude Ratio
+## 4. Linear interference from a selected ansatz
 
-The interference pattern depends critically on the ratio:
+### 4.1 Shared temporal dependence and opposite spatial signs
 
-$$r = \frac{A_I}{A_Y}$$
+For the standing-wave calculation, choose $k>0$ and constant complex amplitudes $A_Y,A_I$:
 
-| Ratio $r$ | Interference Pattern | Physical Regime |
+$$
+\Psi_Y(s,t)=A_Y e^{i(ks-\omega t)},
+\qquad
+\Psi_I(s,t)=A_I e^{i(-ks-\omega t)}.
+$$
+
+Both components have the same temporal factor $e^{-i\omega t}$. Their spatial phase gradients have opposite signs. An ansatz with $e^{+i\omega t}$ for one component would be a different model choice and is not part of this standing-wave construction. The shared temporal factor is the convention required for the stationary intensity below.
+
+Define the extension intensity
+
+$$
+I_\Psi(s,t)=|\Psi_Y+\Psi_I|^2.
+$$
+
+Direct expansion gives
+
+$$
+I_\Psi(s,t)=|A_Y|^2+|A_I|^2
++2\,\operatorname{Re}\!\left[A_YA_I^*e^{2iks}\right].
+$$
+
+The common temporal factor cancels from the intensity. For real nonnegative amplitudes,
+
+$$
+I_\Psi(s)=A_Y^2+A_I^2+2A_YA_I\cos(2ks).
+$$
+
+This stationary cosine modulation is the algebraic standing-wave consequence of the selected ansatz. It is an intensity property of the extension. The symbol $I_\Psi$ is used here to keep it separate from the canonical total density $\rho=E_Y+E_I$.
+
+### 4.2 Maxima, minima, and spacing
+
+For real positive $A_Y,A_I$, the maxima and minima occur at
+
+$$
+\begin{aligned}
+I_{\Psi,\max}&=(A_Y+A_I)^2 &&\text{when }\cos(2ks)=+1,\\
+I_{\Psi,\min}&=(A_Y-A_I)^2 &&\text{when }\cos(2ks)=-1.
+\end{aligned}
+$$
+
+The maxima lie at $s=n\pi/k$ and the minima at $s=(n+\tfrac12)\pi/k$, up to a constant phase offset when $A_YA_I^*$ is complex. The spacing between adjacent maxima is
+
+$$
+\Delta s=\frac{\pi}{k}=\frac{\lambda_s}{2},
+\qquad \lambda_s=\frac{2\pi}{k}.
+$$
+
+The minima are exact zeros only for equal magnitudes $|A_Y|=|A_I|$. For unequal amplitudes, including the $\varphi^{-1}$ ansatz below, they are nonzero troughs. Periodic quantization $k_n=2\pi n/L_s$ follows only after periodic boundary conditions are imposed on the chosen coordinate.
+
+### 4.3 Amplitude-ratio table
+
+Let
+
+$$
+ r=\frac{A_I}{A_Y}
+$$
+
+for positive real amplitudes. The intensity becomes
+
+$$
+I_\Psi(s)=A_Y^2\left(1+r^2+2r\cos(2ks)\right).
+$$
+
+| Ratio $r$ | Extension intensity | Interpretation within this ansatz |
 |---|---|---|
-| $r = 0$ | $\rho = A_Y^2$ (uniform) | Pure Yang—no structure |
-| $r = 1$ | $\rho = 4A_Y^2 \cos^2(ks)$ | Perfect standing wave—maximal contrast |
-| $r = \varphi^{-1} \approx 0.618$ | $\rho = A_Y^2(1 + \varphi^{-2} + 2\varphi^{-1}\cos(2ks))$ | **Cassi equilibrium**—Yang dominant by φ |
-| $r \gg 1$ | $\rho \approx A_I^2$ (uniform) | Pure Yin—no structure |
+| $r=0$ | $I_\Psi=A_Y^2$ | Uniform single-component trial state. |
+| $r=1$ | $I_\Psi=4A_Y^2\cos^2(ks)$ | Maximal contrast with exact zeros. |
+| $r=\varphi^{-1}$ | $I_\Psi=A_Y^2(1+\varphi^{-2}+2\varphi^{-1}\cos(2ks))$ | Selected Cassi-motivated trial ratio. |
+| $r\gg1$ | $I_\Psi\simeq A_I^2$ | Uniform Yin-labeled single-component limit. |
 
-For $r = \varphi^{-1}$:
+At the selected value $r=\varphi^{-1}$,
 
-$$\rho_\text{max} = A_Y^2(1 + \varphi^{-1})^2 = A_Y^2 \varphi^2$$
+$$
+I_{\Psi,\max}=A_Y^2(1+\varphi^{-1})^2=A_Y^2\varphi^2,
+$$
 
-$$\rho_\text{min} = A_Y^2(1 - \varphi^{-1})^2 = A_Y^2 \varphi^{-4}$$
+$$
+I_{\Psi,\min}=A_Y^2(1-\varphi^{-1})^2=A_Y^2\varphi^{-4},
+$$
 
-The contrast ratio is:
+and therefore
 
-$$\frac{\rho_\text{max}}{\rho_\text{min}} = \varphi^6 \approx 17.94$$
+$$
+\frac{I_{\Psi,\max}}{I_{\Psi,\min}}=\varphi^6\approx17.94.
+$$
 
-This large but finite contrast means the standing wave has **sharp peaks and deep troughs**—ideal conditions for localized condensation.
-
----
-
-## 5. Nonlinear Condensation: Particles from Waves
-
-The linear analysis gives standing waves. To create **particles**—localized, persistent, particle-like structures—nonlinearity is required.
-
-### 5.1 The Nonlinear Wave Equation
-
-The total field $\Psi$ obeys the nonlinear Schrödinger-like equation:
-
-$$i\hbar_\text{eff} \frac{\partial \Psi}{\partial t} = -\frac{\hbar_\text{eff}^2}{2m_\text{eff}} \frac{\partial^2 \Psi}{\partial s^2} + V(s)\Psi - g|\Psi|^2\Psi$$
-
-where:
-- $g > 0$ is the **attractive self-interaction** (nonlinearity)
-- $V(s)$ is an external potential (the chakra resonant profile)
-- $\hbar_\text{eff}$ and $m_\text{eff}$ are effective constants
-
-The $-g|\Psi|^2\Psi$ term is the **condensation term**: regions of high intensity attract more intensity, creating self-focusing.
-
-### 5.2 Soliton Solutions
-
-For $V(s) = 0$ (homogeneous spine), the equation has **bright soliton** solutions:
-
-$$\Psi(s,t) = \sqrt{\frac{\mu}{g}} \, \text{sech}\left(\sqrt{\frac{2m_\text{eff}\mu}{\hbar_\text{eff}^2}} \, (s - s_0 - v_g t)\right) \, e^{i(k_0 s - \omega_0 t)}$$
-
-where:
-- $\mu$ is the chemical potential (energy per particle)
-- $v_g$ is the group velocity
-- The $\text{sech}$ envelope gives **spatial localization**
-- The $e^{i(k_0 s - \omega_0 t)}$ carrier gives **wave character**
-
-This is the mathematical expression of **wave-particle duality** in the Cassi framework: a localized envelope (particle) modulating a traveling wave (wave).
-
-### 5.3 The Condensation Criterion
-
-From the Cassi equations, a "neuron" (particle) forms when:
-
-$$\langle |\Psi(s_n, t)|^2 \rangle_t > \theta_\text{cond}$$
-
-In the nonlinear wave framework, this becomes the **self-focusing threshold**:
-
-$$\rho_\text{peak} = \frac{\mu}{g} > \theta_\text{cond}$$
-
-When the peak intensity exceeds the threshold, the nonlinear term dominates over dispersion, and a soliton nucleates. The same condensation physics is implemented on a uniform real-space grid in the CassiBridgeV2 DFT, whose benchmark tables (`particles/dft-benchmarks.md`) reproduce the correct shell structure, orbital ordering, and energy hierarchy for the first-row atoms (Z = 1–10).
+These identities follow from the ansatz and the algebra of $\varphi$. They do not derive the amplitude ratio from canonical conversion, and they do not establish a universal localization mechanism.
 
 ---
 
-## 6. Particle Properties
+## 5. Optional focusing NLS closure
 
-### 6.1 Mass
+### 5.1 Equation and added assumptions
 
-The "mass" of the particle is the integrated intensity:
+A second extension step selects a scalar focusing NLS for the total complex field
 
-$$M = \int_{-\infty}^{+\infty} |\Psi(s,t)|^2 \, ds = 2\sqrt{\frac{\hbar_\text{eff}^2}{2m_\text{eff} g}}$$
+$$
+\Psi(s,t)=\Psi_Y(s,t)+\Psi_I(s,t):
+$$
 
-Mass is inversely proportional to the square root of the self-interaction strength. Stronger attraction → lighter, more tightly bound particles.
+$$
+ i\hbar_{\mathrm{eff}}\frac{\partial\Psi}{\partial t}
+ =-\frac{\hbar_{\mathrm{eff}}^2}{2m_{\mathrm{eff}}}
+   \frac{\partial^2\Psi}{\partial s^2}
+   +V(s)\Psi-g|\Psi|^2\Psi,
+ \qquad g>0.
+$$
 
-### 6.2 Size (Compton Wavelength)
+The new terms and parameters have specific roles:
 
-The spatial width of the soliton is:
+- $\hbar_{\mathrm{eff}}$ sets the dispersive scale;
+- $m_{\mathrm{eff}}$ sets the coefficient of the second spatial derivative;
+- $V(s)$ is an externally supplied potential on the selected coordinate;
+- $g>0$ is an attractive cubic self-interaction.
 
-$$\sigma = \sqrt{\frac{\hbar_\text{eff}^2}{2m_\text{eff}\mu}}$$
+The term $-g|\Psi|^2\Psi$ favors self-focusing in this effective equation. The canonical gate $q$ and the canonical conversion term do not determine $g$, $V$, $m_{\mathrm{eff}}$, or $\hbar_{\mathrm{eff}}$. A dimensionless rescaling may produce the shorthand
 
-This is the **effective Compton wavelength**: the spatial scale below which the particle's wave nature dominates.
+$$
+ i\partial_t\Psi=-\partial_s^2\Psi-g|\Psi|^2\Psi,
+$$
 
-### 6.3 Stability
+with the rescaling itself counted among the experiment's assumptions.
 
-Solitons are stable against small perturbations because of a **topological protection**: the conserved quantity $M$ (mass/particle number) prevents the soliton from decaying into plane waves.
+The homogeneous choice $V=0$ is used for the bright-soliton receipt. The conservative NLS displayed here has no damping coefficient $\gamma$ and no particle-creation source. A loss or decay experiment requires an explicit extension, such as a damped term $-i\eta\Psi$ with $\eta>0$, a lossy boundary condition, or coupling back to a specified dissipative system.
 
-In the Cassi framework, this is the **Berry phase**—a topological invariant of the wave trajectory that makes the particle robust against smooth deformations.
+### 5.2 Bright-soliton trial solution
 
-### 6.4 Collision Dynamics
+For $V=0$ and a positive binding-energy parameter $\mu>0$, a self-consistent bright-soliton family is
 
-When two solitons collide, they exhibit **particle-like scattering**:
+$$
+\Psi(s,t)=\sqrt{\frac{2\mu}{g}}\,
+\operatorname{sech}\!\left[
+ \frac{\sqrt{2m_{\mathrm{eff}}\mu}}{\hbar_{\mathrm{eff}}}
+ (s-s_0-v_gt)
+\right]
+ e^{i(k_0s-\omega_0t)}.
+$$
 
-1. Approach: two localized wave packets moving toward each other
-2. Interaction: during overlap, nonlinear interference creates a complex interference pattern
-3. Emergence: the solitons pass through each other, retaining their individual identities
+For the displayed phase convention,
 
-This is the Cassi analog of **quantum scattering**: particles are not destroyed in collisions—they interact, exchange energy/momentum, and re-emerge as distinct entities.
+$$
+v_g=\frac{\hbar_{\mathrm{eff}}k_0}{m_{\mathrm{eff}}},
+\qquad
+\omega_0=\frac{\hbar_{\mathrm{eff}}k_0^2}{2m_{\mathrm{eff}}}
+-\frac{\mu}{\hbar_{\mathrm{eff}}}.
+$$
 
-Experiment 8v2 demonstrates this numerically: two NLS solitons collide and emerge intact, with only a phase shift—exactly the behavior of quantum solitons.
+Here $s_0$ is the center, $v_g$ is the translation speed, $k_0$ is the carrier wave number, and $\omega_0$ is the corresponding carrier frequency. The sech envelope is localized, while the carrier supplies an internal oscillatory factor within the selected complex model. The terms “particle” and “wave” describe the two features of this trial solution; they do not establish a particle ontology for the canonical solver.
+
+The characteristic NLS width is
+
+$$
+\sigma=\frac{\hbar_{\mathrm{eff}}}{\sqrt{2m_{\mathrm{eff}}\mu}}
+=\sqrt{\frac{\hbar_{\mathrm{eff}}^2}{2m_{\mathrm{eff}}\mu}}.
+$$
+
+It is an NLS width. A Compton-wavelength interpretation would require an additional relativistic theory and is not assigned here.
+
+With the displayed normalization on an infinite line, the integrated NLS intensity is
+
+$$
+M_\Psi
+=\int_{-\infty}^{+\infty}|\Psi(s,t)|^2\,ds
+=\frac{4\hbar_{\mathrm{eff}}}{g}
+  \sqrt{\frac{\mu}{2m_{\mathrm{eff}}}}.
+$$
+
+This expression follows by integrating $\operatorname{sech}^2$ with the amplitude and width shown above. It depends on $\mu$, $m_{\mathrm{eff}}$, $g$, and $\hbar_{\mathrm{eff}}$ under the stated normalization. A different normalization or finite domain changes the reported quantity.
+
+### 5.3 Stability boundary
+
+For the homogeneous one-dimensional focusing NLS, the norm and Hamiltonian are conserved for sufficiently regular solutions. For example, with $V=0$,
+
+$$
+H[\Psi]=\int\left[
+ \frac{\hbar_{\mathrm{eff}}^2}{2m_{\mathrm{eff}}}|\partial_s\Psi|^2
+ -\frac{g}{2}|\Psi|^4
+\right]ds
+$$
+
+is conserved together with $M_\Psi$. Orbital stability of a selected soliton family can be studied within this NLS model under its stated boundary and perturbation conditions. The canonical conversion supplies neither this Hamiltonian nor a topological or Berry-phase protection rule. Stability receipts therefore remain conditional on the NLS choice and numerical setup.
+
+### 5.4 Conditional localization criterion
+
+An experiment may define a localized-state proxy by comparing the NLS peak intensity with an externally selected threshold:
+
+$$
+I_{\Psi,\mathrm{peak}}=\frac{2\mu}{g}>\theta_{\mathrm{cond}}.
+$$
+
+Under this rule, the run labels the trial as a localized-state proxy. The inequality does not by itself derive a focusing threshold or a canonical particle criterion. The value and provenance of $\theta_{\mathrm{cond}}$ must be stated for each experiment. The canonical density threshold and the NLS localization threshold are separate objects until a mapping is supplied.
 
 ---
 
-## 7. The φ-Connection
+## 6. The $\varphi$ ratio as an extension ansatz
 
-### 7.1 The Golden Ratio in Soliton Stability
+### 6.1 The optional mass functional
 
-For a soliton formed from Yang-Yin interference with amplitude ratio $r = A_I/A_Y$, the mass is:
+The current optional extension records the following ratio-dependent functional:
 
-$$M(r) = M_0 \cdot \frac{(1 + r)^2}{\sqrt{r}}$$
+$$
+M_{\mathrm{ansatz}}(r)=M_0\frac{(1+r)^2}{\sqrt r}.
+$$
 
-Differentiating and setting to zero gives $3r^2 + 2r - 1 = 0$, whose only
-positive root is $r = 1/3$—the stated functional does **not** minimize at
-$r = \varphi^{-1}$ ($M(\varphi^{-1}) \approx 3.33\,M_0 > M(1/3) \approx 3.08\,M_0$;
-the mass rises from $r = 1/3$ to its plateau near $r = 1$). The
-$r = \varphi^{-1}$ optimum is therefore an **asserted ansatz**, not the
-minimizer of $M(r)$ as written; the PDE scan of §11.1 is consistent with
-$r = \varphi^{-1}$ being a *near-maximal*-mass, structurally stable
-configuration, not the minimum-mass one.
+This is an additional ratio-dependent functional. Differentiation gives
 
-This is not imposed by the equations, but it is also not the minimizer of the displayed $M(r)$: the $r = \varphi^{-1}$ optimum is a **proposed structural ansatz** (the amplitude ratio at which the interference pattern is observed to be stable in the §11.1 PDE scan), not a derived consequence of the mass functional as written. The golden ratio's role as the particle-formation stability condition is therefore **Hypothesized** pending a functional whose extremum genuinely sits at $\varphi^{-1}$.
+$$
+\frac{dM_{\mathrm{ansatz}}}{dr}=0
+\quad\Longleftrightarrow\quad
+3r-1=0,
+$$
 
-### 7.2 The φ² Amplification
+so its positive stationary point is $r=1/3$. Numerically,
 
-At $r = \varphi^{-1}$:
+$$
+M_{\mathrm{ansatz}}(\varphi^{-1})\approx3.33M_0,
+\qquad
+M_{\mathrm{ansatz}}(1/3)\approx3.08M_0.
+$$
 
-$$\rho_\text{max} = A_Y^2 \varphi^2$$
+The functional consequently does not select $r=\varphi^{-1}$ as its minimum. The $\varphi^{-1}$ value remains a proposed structural ansatz whose behavior is tested in the numerical scan of §10.3. Neither this functional nor its stationary point belongs to the canonical real-density equations.
 
-The peak intensity is amplified by φ² relative to the Yang background. This matches Experiment 3 exactly: the φ-field equilibrium is at φ² times the driving input.
+### 6.2 Peak amplification under the selected ratio
 
-### 7.3 Chakra Quantization
+The standing-wave algebra gives
 
-If the spine has length $L_s$ and periodic boundary conditions, the allowed wavenumbers are quantized:
+$$
+I_{\Psi,\max}=A_Y^2\varphi^2
+$$
 
-$$k_n = \frac{2\pi n}{L_s}$$
+when $r=\varphi^{-1}$. A cited extension experiment reports a $\varphi^2$ peak relative to its driving normalization. That receipt concerns the selected amplitude convention and experiment. The canonical conversion fixes a density ratio and does not by itself select the extension amplitude ratio or the peak-intensity normalization.
 
-The standing wave antinode spacing is:
+### 6.3 Conditional coordinate comparison with chakra positions
 
-$$\Delta s = \frac{\pi}{k_n} = \frac{L_s}{2n}$$
+If periodic boundary conditions are imposed on the chosen coordinate, then
 
-For the chakra positions $\{s_c\}$ from the Cassi equations:
+$$
+k_n=\frac{2\pi n}{L_s},\qquad n\in\mathbb{Z}_{>0},
+\qquad
+\Delta s_n=\frac{\pi}{k_n}=\frac{L_s}{2n}.
+$$
 
-| Chakra | $s_c$ | Quantum number $n_c = L_s/(2s_c)$ |
+The following comparison retains the listed application coordinates while giving them only conditional status:
+
+| Label | Supplied coordinate $s_c/L_s$ | $n_c=L_s/(2s_c)$ |
+|---|---:|---:|
+| Root | 0.07 | 7.14 |
+| Sacral | 0.14 | 3.57 |
+| Solar | 0.29 | 1.72 |
+| Heart | 0.43 | 1.16 |
+| Throat | 0.57 | 0.88 |
+| Eye | 0.71 | 0.70 |
+| Crown | 0.86 | 0.58 |
+
+The rounded values are generally noninteger. They provide a coordinate comparison for a selected application convention. They do not establish a canonical mode spectrum, an intrinsic chakra direction, irrational spacing, or mode-locking prohibition. A quantitative match would require a stated coordinate map, boundary condition, and error model.
+
+---
+
+## 7. Boundaries on quantum and particle analogies
+
+The opposite spatial signs in §4 resemble the two signs used in a one-dimensional plane-wave decomposition. A resemblance can be recorded without identifying the extension fields with relativistic spinors. For comparison, a $1+1$-dimensional Dirac equation and its massless mode notation are
+
+$$
+ i\gamma^\mu\partial_\mu\psi=m\psi,
+$$
+
+$$
+ \psi_R\sim e^{i(kx-\omega t)},
+ \qquad
+ \psi_L\sim e^{i(-kx-\omega t)}.
+$$
+
+A Dirac interpretation additionally requires a spinor representation, gamma matrices, a Lorentzian spacetime structure, transformation rules, and a specified mass coupling. The extension supplies none of those structures. Its $\Psi_Y$ and $\Psi_I$ are complex scalar amplitudes on a selected coordinate, and the signs $+k$ and $-k$ are ansatz data.
+
+The following table records the boundary of each analogy:
+
+| Extension quantity | Possible comparison | Required qualification |
 |---|---|---|
-| Root | 0.07$L_s$ | 7.14 |
-| Sacral | 0.14$L_s$ | 3.57 |
-| Solar | 0.29$L_s$ | 1.72 |
-| Heart | 0.43$L_s$ | 1.16 |
-| Throat | 0.57$L_s$ | 0.88 |
-| Eye | 0.71$L_s$ | 0.70 |
-| Crown | 0.86$L_s$ | 0.58 |
+| $s$ | One-dimensional configuration coordinate | No spacetime or physical compact dimension is supplied. |
+| $e^{\pm iks}$ | Counterpropagating mode factors | The signs are selected spatial phase gradients; they do not establish chirality. |
+| $(\Psi_Y,\Psi_I)$ | Two-component wave-amplitude notation | A Dirac spinor requires additional relativistic structure. |
+| $\Psi=\Psi_Y+\Psi_I$ | Scalar superposition | A scalar superposition is not a fermion field. |
+| $M_\Psi=\int|\Psi|^2ds$ | NLS norm or particle-number-like quantity | A rest mass and a Noether charge require a specified action and symmetry. |
+| $g|\Psi|^2\Psi$ | Attractive self-interaction | The coefficient is an NLS parameter, not a Higgs vacuum or Yukawa coupling. |
+| Sech localization | Localized effective excitation | A localized NLS state is a model proxy for a particle-like state. |
+| Two-soliton collision | NLS collision with a phase shift | The receipt is an effective wave calculation; a quantum $S$-matrix is a separate construction. |
+| $\theta_{\mathrm{cond}}$ crossing | Selected localization label | It is a threshold rule, not a mass gap or a canonical particle-creation law. |
+| Carrier phase | Complex-model phase factor | A Berry phase requires a parameter-space connection and is not supplied here. |
 
-These are not integers—they are **incommensurate**. No two chakras share a rational wavelength ratio. This is the physical reason why chakras cannot mode-lock: their quantum numbers are mutually irrational, and the golden ratio spacing makes them maximally aperiodic.
+### 7.1 Dirac and Higgs claims
 
----
+The equations above permit a conditional analogy to the way opposite-sign plane-wave factors appear in a $1+1$-dimensional Dirac decomposition. They do not derive a Dirac mass term. The NLS norm, the cross-couplings $\alpha,\beta$, and the attractive coefficient $g$ do not constitute a Higgs field, a vacuum expectation value, or a Yukawa interaction. A particle-mass mechanism in either sense would require a new action, symmetry content, and parameter map.
 
-## 8. Quantum Mechanical Analogies
+### 7.2 Direction and compact-phase claims
 
-The Cassi particle framework maps directly onto established quantum field theory:
-
-| Cassi Framework | Quantum Mechanics | QFT |
-|---|---|---|
-| Spine manifold | Configuration space | Spacetime |
-| Yang field | Right-moving wavefunction | Right-handed Weyl spinor |
-| Yin field | Left-moving wavefunction | Left-handed Weyl spinor |
-| Interference $\Psi = \Psi_Y + \Psi_I$ | Dirac spinor | Fermion field |
-| Soliton | Wave packet | Dressed excitation |
-| Mass $M = \int |\Psi|^2$ | Probability normalization | Noether charge |
-| Condensation threshold | Energy gap | Mass gap |
-| Berry phase | Geometric phase | Topological invariant |
-| Chakra resonance | Energy level | Resonant pole |
-
-### The Dirac Analogy
-
-In 1+1 dimensions, the Dirac equation is:
-
-$$i\gamma^\mu \partial_\mu \psi = m\psi$$
-
-For massless fermions ($m = 0$), the solutions decouple into right-moving and left-moving Weyl spinors:
-
-$$\psi_R \sim e^{i(kx - \omega t)}, \quad \psi_L \sim e^{i(-kx - \omega t)}$$
-
-A massive Dirac fermion is the **superposition** of left and right movers:
-
-$$\psi = \psi_R + \psi_L$$
-
-The mass term $m\bar{\psi}\psi = m(\psi_R^\dagger \psi_L + \psi_L^\dagger \psi_R)$ couples the two chiralities.
-
-**This is exactly the Cassi Yang-Yin structure.** Yang = right-mover. Yin = left-mover. Their interference creates a massive, localized excitation—a particle. The coupling strength between Yang and Yin determines the particle's mass.
-
-### The Mass Generation Mechanism
-
-In the Cassi framework, mass is not a fundamental property. It is an **emergent property** of Yang-Yin interference:
-
-$$M \propto \int |\Psi_Y + \Psi_I|^2 \, ds$$
-
-A pure Yang wave ($\Psi_I = 0$) has no mass—it is a massless, right-moving excitation. A pure Yin wave has no mass—it is massless, left-moving. Only their **interference** creates a non-zero integrated intensity, which is the mass.
-
-This is the Cassi analog of the **Higgs mechanism**: the Yang-Yin coupling (analogous to the Yukawa coupling to the Higgs field) gives mass to otherwise massless excitations.
+The canonical labels $Y$ and $I$ have no built-in outward/inward or right/left propagation assignment. The extension's $+k$ and $-k$ signs define the spatial pattern only after $s$ and its orientation are selected. The shared factor $e^{-i\omega t}$ gives a common temporal convention. The canonical rank-one conversion has no fixed phase advance, compact phase clock, or chirality operator. Any such structure must be introduced and tested as an additional model sector.
 
 ---
 
-## 9. Particle Creation and Annihilation
+## 8. Conditional creation and decay workflow
 
-### 9.1 Creation: Above-Threshold Interference
+The following workflow describes how a numerical study may use the extension's terminology:
 
-When the Yang source $S_Y$ exceeds the condensation threshold:
+1. Choose the coordinate $s$, boundary conditions, complex initial data, and the relation, if any, between $|\Psi_\alpha|^2$ and the canonical densities.
+2. Choose either the extended damped wave equations, the conservative NLS, or an explicitly coupled system.
+3. If the standing-wave ansatz is used, choose $A_Y,A_I,k,\omega$ with the shared temporal factor shown in §4.
+4. Evaluate $I_\Psi=|\Psi_Y+\Psi_I|^2$ and apply the stated threshold rule if a localized-state proxy is desired.
+5. For a focusing NLS run, record the norm, peak intensity, width, perturbation response, and boundary effects. A localized state above threshold is labeled a particle proxy for that run.
+6. For a decay experiment, include an explicit loss term, lossy boundary, or coupling to a dissipative wave system. Under the conservative NLS alone, the norm is conserved and spontaneous annihilation is not a model consequence.
 
-1. Yang wave amplifies
-2. Yang couples to Yin via the source term $S_I \propto |\Psi_Y|^2 \Psi_I$
-3. Yin amplifies in response
-4. Interference intensity $\rho = |\Psi_Y + \Psi_I|^2$ peaks at antinode positions
-5. If $\rho_\text{peak} > \theta_\text{cond}$, nonlinearity nucleates a soliton
-6. The soliton stabilizes at the position of maximum interference
-
-**This is particle creation from field excitation.** The "particle" did not exist before the interference exceeded threshold. It condensed from the wave field.
-
-### 9.2 Annihilation: Below-Threshold Dissipation
-
-When damping dominates:
-
-1. $\gamma$ extracts energy from the interference pattern
-2. Peak intensity $\rho_\text{peak}$ decreases
-3. When $\rho_\text{peak} < \theta_\text{cond}$, the nonlinear term can no longer balance dispersion
-4. The soliton dissolves into plane waves
-5. The "particle" ceases to exist
-
-**This is particle annihilation.** Not into photons (as in QED), but into the background wave field. The energy is not lost—it is returned to the Yang and Yin reservoirs.
+This vocabulary describes state transitions in the selected extension. The canonical solver continues to evolve $E_Y,E_I,\rho,\varepsilon$, and $q$ without a particle state variable.
 
 ---
 
-## 10. The Complete Picture
+## 9. Complete conditional picture
 
 ```
-YANG FIELD (expansive)          YIN FIELD (contractive)
-   │                                  │
-   ├── Right-moving waves            ├── Left-moving waves
-   ├── Forward cascade               ├── Backward cascade
-   └── Source: S_Y = +α|Ψ_I|²Ψ_Y     └── Source: S_I = -β|Ψ_Y|²Ψ_I
-                │                                  │
-                └────────── INTERFERENCE ──────────┘
-                             │
-                             ▼
-                    Ψ = Ψ_Y + Ψ_I
-                    ρ = |Ψ|² = standing wave pattern
-                             │
-              ┌──────────────┼──────────────┐
-              │              │              │
-           ρ < θ_cond    ρ ≈ θ_cond     ρ > θ_cond
-              │              │              │
-              ▼              ▼              ▼
-           Plane waves   Critical       Soliton nucleates
-           (no particles) fluctuation    (particle forms)
-                                         │
-                                         ▼
-                              Localized, persistent,
-                              topologically protected
-                              wave packet = PARTICLE
+CANONICAL REAL-DENSITY STATE
+  E_Y, E_I >= 0
+  rho = E_Y + E_I
+  epsilon = E_Y - varphi E_I
+  q = rho^2 / (rho^2 + varphi^(-2) + epsilon^2)
+  gated rank-one conversion: epsilon relaxes, rho is conserved by conversion
+                 |
+                 | optional observation map, coordinate, phases, and ansatz
+                 v
+CONDITIONAL COMPLEX-FIELD EXTENSION
+  Psi_Y(s,t), Psi_I(s,t) in C
+  chosen s, L_s, gamma, v, chi, alpha, beta
+  selected factors exp[i(ks - omega t)] and exp[i(-ks - omega t)]
+                 |
+                 v
+ALGEBRAIC STANDING-WAVE INTENSITY
+  I_Psi = |Psi_Y + Psi_I|^2
+  I_Psi = A_Y^2 + A_I^2 + 2 A_Y A_I cos(2ks)  [real amplitudes]
+                 |
+                 | optional effective closure with hbar_eff, m_eff, V, g
+                 v
+FOCUSING NLS TRIAL
+  sech envelope, conditional threshold, and conditional stability receipt
+                 |
+                 v
+LOCALIZED-STATE / PARTICLE PROXY
+  label applies only to the selected extension experiment
 ```
 
----
-
-## 11. Experimental Validation
-
-Experiment 8v2 numerically confirms the key predictions:
-
-### 11.1 Soliton Formation from Interference
-Two counter-propagating sech pulses (Yang and Yin) with amplitude ratio $r = \varphi^{-1}$ interfere and self-focus into a stable soliton. The final state is a localized wave packet with:
-- Mass $M = 2.82$ (integrated intensity)
-- Peak density $\rho_\text{peak} = 0.94$
-- Stable width despite dispersive spreading
-
-### 11.2 Particle Scattering
-Two solitons collide and emerge intact. During the collision, the interference pattern is complex and delocalized. After the collision, two distinct particles re-form. This is the wave-mechanical analog of elastic scattering.
-
-### 11.3 Stability vs Amplitude Ratio
-Scanning the Yin/Yang amplitude ratio $r \in [0.3, 1.5]$:
-- At $r = \varphi^{-1} \approx 0.618$: the soliton has near-maximal mass and well-defined structure
-- At $r \ll \varphi^{-1}$: Yin is too weak; the particle is Yang-dominated and unstable
-- At $r \gg \varphi^{-1}$: Yin dominates; the standing wave pattern weakens
-
-The optimal ratio for particle formation is indeed in the neighborhood of φ⁻¹, confirming the analytical prediction.
+The arrows mark added assumptions. The diagram does not identify the canonical density conversion with the complex wave equations or the NLS.
 
 ---
 
-## 12. Summary: The Core Equations
+## 10. Conditional numerical receipts
 
-**Yang and Yin wave equations:**
+The following receipts belong to the specified complex-field/NLS experiments. They are evidence about those numerical setups, with their chosen parameters and initial conditions.
 
-$$\partial_t^2 \Psi_Y + \gamma \partial_t \Psi_Y = v^2 \partial_s^2 \Psi_Y + \chi \partial_s \Psi_Y + \alpha |\Psi_I|^2 \Psi_Y$$
+### 10.1 Soliton formation from an interference trial
 
-$$\partial_t^2 \Psi_I + \gamma \partial_t \Psi_I = v^2 \partial_s^2 \Psi_I - \chi \partial_s \Psi_I - \beta |\Psi_Y|^2 \Psi_I$$
+The reported Experiment 8v2 run initializes two counterpropagating sech pulses with amplitude ratio
 
-**Interference field:**
+$$
+ r=\varphi^{-1}\approx0.618.
+$$
 
-$$\Psi = \Psi_Y + \Psi_I, \quad \rho = |\Psi|^2$$
+Its reported final state is a localized wave packet with:
 
-**Nonlinear condensation (NLS):**
+- integrated intensity $M_\Psi=2.82$ under that run's normalization;
+- peak intensity $I_{\Psi,\mathrm{peak}}=0.94$;
+- stable measured width over the reported observation window despite dispersive spreading.
 
-$$i\partial_t \Psi = -\partial_s^2 \Psi - g|\Psi|^2 \Psi$$
+These values are conditional receipts. They do not establish that the canonical density PDE generates the same state, and they do not determine a universal amplitude ratio.
 
-**Soliton solution:**
+### 10.2 Two-soliton collision
 
-$$\Psi(s,t) = \sqrt{\frac{\mu}{g}} \, \text{sech}\left(\sqrt{2\mu} \, (s - s_0 - v_g t)\right) e^{i(k_0 s - \omega_0 t)}$$
+The same experiment family reports two NLS solitons approaching, overlapping, and emerging as two distinct localized profiles with a phase shift. This is a collision receipt for the selected effective NLS. It supplies an effective wave-mechanical scattering-like pattern. A quantum scattering interpretation requires separate quantum fields, asymptotic states, and an $S$-matrix construction.
 
-**Optimal stability condition:**
+### 10.3 Ratio scan
 
-$$\frac{A_I}{A_Y} = \varphi^{-1} \approx 0.618$$
+A reported scan covers
 
-**Particle creation criterion:**
+$$
+ r\in[0.3,1.5].
+$$
 
-$$\rho_\text{peak} = A_Y^2 \varphi^2 > \theta_\text{cond}$$
+The recorded behavior is:
+
+- near $r=\varphi^{-1}$, the run gives a well-defined structure and near-maximal measured mass under its chosen metric;
+- for $r\ll\varphi^{-1}$, the Yin-labeled component is weak and the reported localized state is less robust;
+- for $r\gg\varphi^{-1}$, the Yin-labeled component dominates and the standing-wave contrast weakens.
+
+The scan supports the selected ratio as an empirical feature of that extension setup. It does not confirm an analytical prediction from canonical conversion. In particular, the optional functional in §6.1 has its stationary point at $r=1/3$, so the scan and the functional are separate pieces of evidence.
+
+### 10.4 Conventional DFT boundary
+
+The conventional DFT benchmark in `particles/dft-benchmarks.md` reports shell structure, orbital ordering, and energy hierarchy for first-row atoms ($Z=1$–$10$) using its LDA/PBE/Dirac-Kohn-Sham implementation and atomic reference comparisons. Those measurements validate the conventional numerical implementation and its reference comparisons. The benchmark contains no realization of the canonical gated two-fluid conversion, no counterpropagating $\Psi_Y,\Psi_I$ extension, and no NLS soliton test. Its complex Kohn-Sham orbitals, where used, are separate from the extension fields in this paper. The benchmark therefore supplies no validation of Cassi field equations or of a particle-emergence hypothesis.
 
 ---
 
-*Particles are not fundamental. They are the interference pattern of Yang and Yin, stabilized by nonlinearity, localized by self-focusing, and protected by topology. The golden ratio is not added to the equations—it is the stability condition that determines when a wave becomes a particle.*
+## 11. Summary of the model boundary
+
+### Canonical equations
+
+$$
+\partial_t E_Y = -(\mathbf{u}\!\cdot\!\nabla)E_Y + \nu\nabla^2 E_Y
+ -\lambda(1-q)(E_Y-\varphi E_I)+S_Y[E_I,\Phi],
+$$
+
+$$
+\partial_t E_I = -(\mathbf{u}\!\cdot\!\nabla)E_I + \nu\nabla^2 E_I
+ +\lambda(1-q)(E_Y-\varphi E_I)+S_I[E_Y,\Phi],
+$$
+
+$$
+\rho=E_Y+E_I,
+\qquad
+\varepsilon=E_Y-\varphi E_I,
+\qquad
+q=\frac{\rho^2}{\rho^2+\varphi^{-2}+\varepsilon^2}.
+$$
+
+### Conditional complex wave equations
+
+$$
+\partial_t^2\Psi_Y+\gamma\partial_t\Psi_Y
+=v^2\partial_s^2\Psi_Y+\chi\partial_s\Psi_Y+\alpha|\Psi_I|^2\Psi_Y,
+$$
+
+$$
+\partial_t^2\Psi_I+\gamma\partial_t\Psi_I
+=v^2\partial_s^2\Psi_I-\chi\partial_s\Psi_I-\beta|\Psi_Y|^2\Psi_I.
+$$
+
+These equations add complex amplitudes, a one-dimensional coordinate, second-order wave dynamics, damping, spatial-bias signs, and cross-couplings.
+
+### Standing-wave consequence
+
+$$
+\Psi_Y=A_Ye^{i(ks-\omega t)},
+\qquad
+\Psi_I=A_Ie^{i(-ks-\omega t)},
+$$
+
+$$
+I_\Psi=|\Psi_Y+\Psi_I|^2,
+\qquad
+I_\Psi=A_Y^2+A_I^2+2A_YA_I\cos(2ks)
+$$
+
+for real amplitudes. The cosine pattern and spacing $\Delta s=\pi/k$ are algebraic consequences of the selected ansatz.
+
+### Conditional NLS and localized profile
+
+$$
+ i\hbar_{\mathrm{eff}}\partial_t\Psi
+ =-\frac{\hbar_{\mathrm{eff}}^2}{2m_{\mathrm{eff}}}\partial_s^2\Psi
+ +V(s)\Psi-g|\Psi|^2\Psi,
+$$
+
+$$
+\Psi=\sqrt{\frac{2\mu}{g}}\,\operatorname{sech}\!\left[
+ \frac{\sqrt{2m_{\mathrm{eff}}\mu}}{\hbar_{\mathrm{eff}}}(s-s_0-v_gt)
+\right]e^{i(k_0s-\omega_0t)}.
+$$
+
+The selected ratio $r=\varphi^{-1}$, the threshold $I_{\Psi,\mathrm{peak}}>\theta_{\mathrm{cond}}$, the stability scan, and the collision receipt are Hypothesized extension results. The canonical conversion remains a real-density rank-one relaxation.
 
 ---
 
 ## References
 
-- `particles/dft-benchmarks.md`—CassiBridgeV2 real-space DFT: the condensation physics of §5 implemented on a uniform grid (LDA/PBE/Dirac-Kohn-Sham tables)
-- `foundations/cassi-theory-reference.md` §5–6—quantum mechanics as two-fluid interference (Dirac analogy, spin, Born rule)
-- `foundations/bubble-edge-geometry.md`—the condensation threshold $\theta_\text{cond}$ as a fixed point
-- `consciousness/chakras-as-cascade-bubbles.md`—chakra positions on the spine used in §7.3
+- `particles/dft-benchmarks.md`—conventional LDA/PBE/Dirac-Kohn-Sham numerical implementation and atomic reference comparisons for first-row atoms; separate from the canonical two-fluid solver and this extension.
+- `foundations/cassi-theory-reference.md` §2—canonical real-density state, gated conversion, and the distinction between density diagnostics and complex phases.
+- `foundations/bubble-edge-geometry.md`—conditional condensation-threshold construction used by some canonical applications; any use of its threshold in the NLS experiment requires an explicit mapping.
+- `consciousness/chakras-as-cascade-bubbles.md`—application coordinates that may be compared with the extension's selected coordinate only under an explicit coordinate convention.

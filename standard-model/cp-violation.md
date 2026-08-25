@@ -1,18 +1,28 @@
 # CP Violation from the Golden Ratio
 
-## Status: Derived (δ_CKM Mapped—ledger; Jarlskog invariant not reproduced)—August 2026
+## Status: Hypothesized particle-sector CP/chiral map; Mapped $\delta_{\text{CKM}}$ and strong-CP span; Yukawa-determinant $J_{\text{CP}}$ candidate dimensionally incomplete—August 2026
 
 ## Abstract
 
-The Yang/Yin asymmetry $E_Y/E_I = \varphi$ is the CP-violating order parameter
-of the framework. Its chiral asymmetry $\eta = (E_Y - E_I)/(E_Y + E_I) =
-\varphi^{-3}$ seeds the CKM phase, which closes through the unitarity triangle
-to $\delta_{\text{CKM}} = \pi\varphi^{-2} \approx 68.8^\circ$—within $<1\%$ of
-the measured value. The Jarlskog invariant is not reproduced by the
-$\varphi$-scaled Yukawa determinant formula: it evaluates $\approx 10^{-25}$,
-~20 orders below the SM $J_{\text{CP}} \approx 3.2\times10^{-5}$ (§4.2). Strong CP is resolved by cascade de-resonance,
-$\bar\theta = \pi\varphi^{-83.4} \approx 1.2\times10^{-17}$ (span ~81 rungs from the corrected GUT anchor; `foundations/strong-cp-derivation.md`),
-without an axion.
+The canonical Cassi state contains two real, nonnegative density components,
+$E_Y$ and $E_I$. Their fixed-point ratio $E_Y/E_I=\varphi$ and density
+imbalance $\eta_{\mathrm{dens}}=(E_Y-E_I)/(E_Y+E_I)=\varphi^{-3}$ are scalar
+density diagnostics, not an intrinsic CP-violating order parameter. A
+**Hypothesized** particle-sector extension may supply additional
+complex/spinor structure and an explicit observation map in which this
+imbalance is represented by a chiral bookkeeping parameter; only within that
+extension does the conditional CKM candidate
+$\delta_{\text{CKM}}=\pi\varphi^{-2}\approx68.8^\circ$ have a chiral
+interpretation. It remains **Mapped** against the measured value. The
+Jarlskog invariant is not reproduced by the current $\varphi$-scaled
+Yukawa-determinant candidate: its displayed normalization is dimensionally
+incomplete, so no numerical $J_{\text{CP}}$ prediction is retained (§4.2).
+The Standard Model fit is $J_{\text{CP}}\approx3.2\times10^{-5}$. Strong CP
+retains a conditional cascade estimate only under a separately specified
+**Hypothesized constitutive transport extension**:
+$\bar\theta=\pi\varphi^{-83.4}\approx1.2\times10^{-17}$ (span ~81 rungs from
+the GUT anchor; `foundations/strong-cp-derivation.md`). The conditional
+construction introduces no axion field.
 
 ---
 
@@ -25,87 +35,135 @@ matrix. Its measured value is:
 $$\delta_{\text{CKM}} \approx 68^\circ \quad (\text{SM fit, PDG 2024})$$
 
 No symmetry or first-principles argument within the SM predicts this value. It
-is an input parameter. The question: does the golden ratio $\phi$ determine
+is an input parameter. The question: does the golden ratio $\varphi$ determine
 $\delta_{\text{CKM}}$, and if so, through what mechanism?
 
 ---
 
 ## 2. Cassi Mechanism for CP Violation
 
-### 2.1 Yang/Yin Asymmetry as the Source of CP
+### 2.1 Yang/Yin Density Imbalance and a Conditional CP Map
 
-The fundamental Cassi postulate is that the Yang/Yin ratio
-
-$$\frac{E_Y}{E_I} = \phi > 1$$
-
-breaks CP spontaneously. In the chiral basis, the projection operators are:
+The canonical Cassi state contains two real, nonnegative density components,
+$E_Y$ and $E_I$. Writing
 
 $$
-P_+ = \frac{1+\gamma^5}{2} \quad \text{(projects onto Yang, right-handed)}
-$$
-$$
-P_- = \frac{1-\gamma^5}{2} \quad \text{(projects onto Yin, left-handed)}
+\rho = E_Y + E_I, \qquad \varepsilon = E_Y - \varphi E_I,
 $$
 
-Under CP transformation, a chiral field transforms as:
+the gated rank-one conversion relaxes the local density deviation
+$\varepsilon$ while conserving $\rho$. The fixed-point ratio
 
-$$\psi_L \xrightarrow{CP} i\gamma^0 \gamma^2 \psi_R^*$$
+$$\frac{E_Y}{E_I} = \varphi > 1$$
 
-If $E_Y \neq E_I$, the CP-transformed state does not map back to the original —
-the asymmetry is a bona-fide CP-violating order parameter.
+is therefore a real density relation. It does not by itself define a CP
+transformation, a chiral representation, or a CP-violating order parameter.
+The positive-root lift $\Psi_0=\sqrt{E_Y}$, $\Psi_1=\sqrt{E_I}$ and its
+density-plane angle/current can be useful local diagnostics, but they do not
+add an independent compact phase, chirality, or inter-rung transport law.
 
-### 2.2 The Chiral Asymmetry Parameter
+A **Hypothesized** particle-sector extension may supply an additional
+complex/spinor doublet $\Psi_{\mathrm p}=(\psi_Y,\psi_I)^T$, a
+constitutive map $E_a\leftrightarrow\psi_a^\dagger\psi_a$, and chiral
+projectors
 
-Define the chiral asymmetry at the $\phi$-fixed point:
+$$
+P_Y \equiv P_R = \frac{1+\gamma^5}{2}, \qquad
+P_I \equiv P_L = \frac{1-\gamma^5}{2}.
+$$
 
-$$\eta = \frac{E_Y - E_I}{E_Y + E_I} = \frac{\phi - 1}{\phi + 1} = \phi^{-3} \approx 0.236$$
+Identifying Yang with right-handed and Yin with left-handed is part of that
+**Hypothesized** extension only; it is not a property of the canonical
+densities. Within the extension, the standard chiral CP relation may be used:
+
+$$\psi_L \xrightarrow{CP} i\gamma^0\gamma^2\psi_R^*.$$
+
+The relation supplies the particle-sector transformation once the extra
+spinor/complex structure and observation map have been specified. It does not
+turn $E_Y\neq E_I$ into an intrinsic CP order parameter.
+
+### 2.2 Conditional Chiral Observation Parameter
+
+The fixed-point densities still define the scalar imbalance
+
+$$
+\eta_{\mathrm{dens}}\equiv\eta =
+\frac{E_Y - E_I}{E_Y + E_I}
+= \frac{\varphi - 1}{\varphi + 1}
+= \varphi^{-3} \approx 0.236.
+$$
+
+This identity is a density-plane diagnostic. If the **Hypothesized**
+particle-sector map in §2.1 additionally sets
+$\eta_{\mathrm{chiral}}\equiv\eta_{\mathrm{dens}}$, the same number can be
+used as a chiral observation parameter; that identification is not derived
+from the canonical two-fluid state.
 
 The same value appears as the Weinberg angle only through the asserted
 boundary condition $\sin^2\theta_W = 1/(1+2\varphi) = \varphi^{-3}$—the
 coupling-ratio identity $(g/g')^2 = 2\varphi$, realized at $\mu_* = 233$ GeV
-(Calibrated, ledger row 490). The shared value $\phi^{-3}$ is a boundary
-assignment, not a derived identity between CP violation and electroweak
-mixing (`standard-model/su2-gauge-extension.md` §3.2).
+(Calibrated, ledger row 490). The shared value $\varphi^{-3}$ is a boundary
+assignment, not a derived identity between the conditional particle-sector CP
+map and electroweak mixing (`standard-model/su2-gauge-extension.md` §3.2).
 
 ---
 
-## 3. CKM Phase from $\phi$
+## 3. Conditional CKM Phase from $\varphi$
 
-The central question: does $\delta_{\text{CKM}}$ follow directly from $\phi$?
+The central question is whether the Mapped particle-sector candidate
+$\delta_{\text{CKM}}$ can be organized from $\varphi$-scaled sector inputs.
 
-### 3.1 Direct $\phi$-power attempts
+### 3.1 Direct $\varphi$-Power Candidates
 
 Several naive mappings suggest themselves:
 
 | Formula | Value | Matches $\sim 68^\circ$? |
 |---------|-------|--------------------------|
-| $\pi - \arccos(\phi^{-1}) \approx 180^\circ - 51.8^\circ$ | $128^\circ$ | No |
-| $\pi \cdot \phi^{-3} \approx 180^\circ \times 0.236$ | $42.5^\circ$ | No |
-| $2\pi \cdot \phi^{-3} \approx 360^\circ \times 0.236$ | $85^\circ$ | Close ($\sim 25\%$ off) |
-| $\pi \cdot \phi^{-2} \approx 180^\circ \times 0.382$ | $68.8^\circ$ | **Yes** |
-The last entry, $\delta_{\text{CKM}} = \pi\phi^{-2} \approx 68.8^\circ$, matches
-the measured value within $<1\%$. This is the Cassi prediction—the CKM phase
-emerges from the unitarity triangle constraint using the $\phi$-scaled CKM
-elements ($|V_{us}| \approx \varphi^{-3} \approx 0.236$, $5\%$ off from $0.225$;
-$|V_{cb}| \approx 0.041$ and $|V_{ub}| \approx 0.004$ follow the Wolfenstein
-hierarchy $|V_{cb}| \sim \lambda^2$, $|V_{ub}| \sim \lambda^3$ with
-$\lambda \approx \varphi^{-3}$), which close to $\delta = \pi\phi^{-2}$
-through the standard Wolfenstein parameterization.
+| $\pi - \arccos(\varphi^{-1}) \approx 180^\circ - 51.8^\circ$ | $128^\circ$ | No |
+| $\pi \cdot \varphi^{-3} \approx 180^\circ \times 0.236$ | $42.5^\circ$ | No |
+| $2\pi \cdot \varphi^{-3} \approx 360^\circ \times 0.236$ | $85^\circ$ | Close ($\sim 25\%$ off) |
+| $\pi \cdot \varphi^{-2} \approx 180^\circ \times 0.382$ | $68.8^\circ$ | **Yes** |
+The last entry, $\delta_{\text{CKM}} = \pi\varphi^{-2} \approx 68.8^\circ$,
+matches the repository's $\sim69.2^\circ$ anchor at the percent level. The
+PDG 2024 fit quoted in §3.2 is $65.55^\circ\pm1.55^\circ$, so the comparison
+depends on which experimental anchor is used. Under the Hypothesized
+particle-sector map, this is the cataloged Cassi candidate. The CKM magnitudes
+enter through the standard Wolfenstein parameterization; the conditional
+$\varphi$ comparison below concerns only its Cabibbo-scale parameter $\lambda$,
+while $A$, $\bar\rho$, and $\bar\eta$ remain separate inputs. Its Mapped status
+is detailed in §3.2.
 
-### 3.2 Mechanism: Yukawa hierarchy closes the phase
+### 3.2 Conditional Yukawa-hierarchy context for the phase
+Direct $\varphi$-powers fail for $\delta_{\text{CKM}}$ because the CKM phase is a
+sector-level quantity associated with the unitary rotation that diagonalises
+the $\varphi$-scaled Yukawa matrices. This document does not derive that
+rotation or an exact $\varphi$-to-Yukawa map. The conditional candidate uses the
+standard Wolfenstein hierarchy
 
-Direct $\phi$-powers fail for $\delta_{\text{CKM}}$ because the CKM phase is not
-a fundamental $\phi$-exponent—it is a **derived** quantity from the unitary
-rotation that diagonalises the $\phi$-scaled Yukawa matrices. Cassi predicts the
-CKM element magnitudes via:
-The CKM element magnitudes follow the Wolfenstein hierarchy
-($|V_{us}| \sim |V_{cb}| \sim \lambda^2 \sim |V_{ub}| \sim \lambda^3$ with
-$\lambda \approx 0.225$), but the exact $\varphi$-power for $\lambda$ is not
-cleanly fixed. The nearest integer candidate is $\lambda \approx \varphi^{-3}
-\approx 0.236$ ($5\%$ off from $0.225$), suggesting additional running or mixing
-corrections shift the value.
+$$
+|V_{us}| \simeq \lambda,\qquad
+|V_{cb}| \simeq A\lambda^2,\qquad
+|V_{ub}| \simeq A\lambda^3\sqrt{\bar\rho^2+\bar\eta^2},
+\qquad \lambda \approx 0.225.
+$$
 
-The value $\delta_{\text{CKM}} = \pi\varphi^{-2} \approx 68.8^\circ$ is **Mapped** (Fit-Status Ledger row 482): it was selected from a four-candidate $\varphi$-search ($\pi-\arccos(\varphi^{-1}) = 128^\circ$; $\pi\varphi^{-3} = 42.5^\circ$; $2\pi\varphi^{-3} = 85^\circ$; $\pi\varphi^{-2} = 68.8^\circ$) against the measured CKM phase (repo anchor $\sim 69.2^\circ \pm 3.0^\circ$; PDG 2024 $65.55^\circ \pm 1.55^\circ$). No unitarity-triangle closure calculation is shown in this document, and the triangle's closure depends on the side magnitudes (it cannot determine the phase "independently" of them); the Yukawa-diagonalization origin is not derived here. See the Jarlskog invariant analysis in Section 4.
+The nearest integer $\varphi$-ladder candidate for this Cabibbo-scale
+parameter is $\lambda \approx \varphi^{-3} \approx 0.236$, which is
+$\approx 4.9\%$ high relative to $0.225$. This comparison applies to
+$\lambda$ itself; $A$, $\bar\rho$, and $\bar\eta$ are separate Wolfenstein
+inputs, and the comparison is not a derivation of any of them.
+
+The value $\delta_{\text{CKM}} = \pi\varphi^{-2} \approx 68.8^\circ$ is
+**Mapped** (Fit-Status Ledger row 482): it was selected from a four-candidate
+$\varphi$-search ($\pi-\arccos(\varphi^{-1}) = 128^\circ$;
+$\pi\varphi^{-3} = 42.5^\circ$; $2\pi\varphi^{-3} = 85^\circ$;
+$\pi\varphi^{-2} = 68.8^\circ$) against the measured CKM phase (repo anchor
+$\sim 69.2^\circ \pm 3.0^\circ$; PDG 2024 $65.55^\circ \pm 1.55^\circ$).
+No unitarity-triangle closure calculation is shown in this document, and the
+triangle's closure depends on the side magnitudes (it cannot determine the
+phase "independently" of them); the Yukawa-diagonalization origin is not
+derived here. See the Jarlskog invariant analysis in Section 4.
+
 ## 4. The Jarlskog Invariant
 
 The Jarlskog invariant $J_{\text{CP}}$ measures the intrinsic CP violation in
@@ -113,45 +171,41 @@ the CKM matrix, independent of phase conventions:
 
 $$J_{\text{CP}} = \operatorname{Im}(V_{us} V_{cb} V_{ub}^* V_{cs}^*)$$
 
-### 4.1 Naive $\phi$-scaling
+### 4.1 Naive $\varphi$-scaling
 
-The simplest Cassi guess would be a single $\phi$-power:
+The simplest Cassi guess would be a single $\varphi$-power:
 
-$$J_{\text{CP}} \stackrel{?}{\approx} \phi^{-6} \approx \frac{1}{17.944} \approx 0.056$$
+$$J_{\text{CP}} \stackrel{?}{\approx} \varphi^{-6} \approx \frac{1}{17.944} \approx 0.056$$
 
-This is wrong. The Standard Model value is:
+This value exceeds the Standard Model fit by roughly three orders of
+magnitude. A nearby ladder value is $\varphi^{-21}\approx4.1\times10^{-5}$,
+within 28% of the fit, but that numerical proximity is only a selected
+comparison. No $J_{\text{CP}}$ candidate is retained without a dimensionless
+normalization and a particle-sector derivation.
 
-$$J_{\text{CP}}^{\text{SM}} \approx 3.0 \times 10^{-5}$$
+### 4.2 Yukawa-determinant candidate: dimensionally incomplete
 
-The discrepancy is **three orders of magnitude** from the naive $\phi^{-6}$. The smallest Cassi constants are $\phi^{-13} \approx 1.9\times10^{-3}$ and $\phi^{-21} \approx 4.1\times10^{-5}$—the latter is the **same order of magnitude** as $J_{\text{CP}}^{\text{SM}} \approx 3.2\times10^{-5}$ (within 28%), so the statement "no single $\phi$-power can produce $10^{-5}$" does not hold as written: $\phi^{-21}$ is a $J_{\text{CP}}$-adjacent $\varphi$-ladder candidate, requiring the same Mapped-candidate treatment as $\delta_{\text{CKM}}$ (Fit-Status Ledger row 482) rather than exclusion.
+The Jarlskog invariant is not a $\varphi$-power. A candidate Cassi expression
+based on Yukawa mass differences is
 
-### 4.2 Yukawa-determinant formula: evaluated
+$$J_{\text{CP}} \approx \varphi^{-3} \cdot \frac{(m_c - m_u)(m_t - m_c)(m_t - m_u)}{v^6}
+                      \cdot \frac{(m_s - m_d)(m_b - m_s)(m_b - m_d)}{v^6}.$$
 
-The Jarlskog invariant is not a $\phi$-power. A candidate Cassi expression for
-$J_{\text{CP}}$ is the Jarlskog determinant of the Yukawa matrices:
-
-$$J_{\text{CP}} \approx \phi^{-3} \cdot \frac{(m_c - m_u)(m_t - m_c)(m_t - m_u)}{v^6}
-                      \cdot \frac{(m_s - m_d)(m_b - m_s)(m_b - m_d)}{v^6}$$
-
-where $v \approx 246$ GeV is the Higgs VEV, and the quark masses are:
+Here $v \approx 246$ GeV and the quark masses are
 
 $$\begin{aligned}
 m_u &\approx 2.2\ \text{MeV}, & m_c &\approx 1.27\ \text{GeV}, & m_t &\approx 173\ \text{GeV} \\
-m_d &\approx 4.7\ \text{MeV}, & m_s &\approx 93\ \text{MeV}, & m_b &\approx 4.18\ \text{GeV}
+m_d &\approx 4.7\ \text{MeV}, & m_s &\approx 93\ \text{MeV}, & m_b &\approx 4.18\ \text{GeV}.
 \end{aligned}$$
 
-With these inputs the expression evaluates to
-
-$$
-J_{\text{CP}} \approx 2.7 \times 10^{-25}
-$$
-
-—about **20 orders of magnitude below** the SM value $J_{\text{CP}}^{\text{SM}} \approx 3.2 \times 10^{-5}$
-(measured CKM fit). The formula therefore does **not** reproduce the
-Jarlskog invariant: the six Yukawa mass insertions divided by $v^6$ suppress
-the result far below the $\mathcal{O}(10^{-5})$ SM value, and no $\phi$-power
-prefactor repairs the gap. The framework's CP content is the CKM phase
-$\delta_{\text{CKM}}$ (its status is set by the fit-ledger worker).
+The six mass differences in the numerator have dimension $[M]^6$, whereas
+the two displayed $v^6$ denominators have dimension $[M]^{12}$. The right
+hand side therefore has dimension $[M]^{-6}$, while $J_{\text{CP}}$ is
+dimensionless. No additional normalization is specified here to convert this
+Yukawa determinant into the CKM invariant, so the expression is dimensionally
+incomplete and does not supply a $J_{\text{CP}}$ prediction. The Standard Model
+fit remains $J_{\text{CP}}^{\text{SM}}\approx3.2\times10^{-5}$; the CP content
+discussed in this paper is the CKM phase $\delta_{\text{CKM}}$.
 
 ---
 
@@ -171,80 +225,97 @@ Why is $\theta$ so small? This is the strong CP problem.
 
 ### 5.2 Cassi Resolution: Cascade De-Resonance
 
-In Cassi, the $\varphi$-fixed point is CP-conserving: $\varphi$ is maximally
-de-resonant, and the two-fluid attractor carries no CP-violating phase. The
-only CP-violating seed is the CKM phase $\delta_{\text{CP}} = \pi\varphi^{-2}$
-at the GUT scale; propagating over the ~81 rungs to the QCD scale
-(n ≈ 94.7; GUT seed n ≈ 13.3 for $M_{\text{GUT}} \approx 2\times10^{16}$ GeV),
-each rung attenuates the phase by $\varphi^{-1}$, so
+In the canonical density sector, the $\varphi$-fixed point is a real-density
+baseline: $\varphi$ is maximally de-resonant, and the two-fluid attractor
+supplies no complex CP phase or CP transformation law. Within the
+**Hypothesized** particle-sector map described in §2.1, the only CP-violating
+seed is the CKM phase $\delta_{\text{CP}} = \pi\varphi^{-2}$ at the GUT scale.
+A numerical transfer estimate from the GUT scale to the QCD scale requires a
+separately specified **Hypothesized constitutive extension**: the canonical
+two-density PDE and bubble-lattice geometry provide no derived inter-rung
+signal-transport law or per-rung attenuation factor.
+
+If that extension postulates transport over the ~81-rung span (n ≈ 94.7; GUT
+seed n ≈ 13.3 for $M_{\text{GUT}} \approx 2\times10^{16}$ GeV), with a
+per-rung transmission factor $\varphi^{-1}$, then the conditional estimate is
 
 $$\bar\theta \approx \varphi^{-81.4}\,\delta_{\text{CP}} = \pi\varphi^{-83.4} \approx 1.2\times10^{-17}$$
 
-~7 orders of magnitude below the nEDM bound $10^{-10}$. The full derivation
-is in `foundations/strong-cp-derivation.md`; the span is Mapped (its GUT-seed
-anchor and $\delta_{\text{CP}}$ are ledgered fits, `parameter-inventory.md` §10).
+~7 orders of magnitude below the nEDM bound $10^{-10}$. The numerical span
+calculation is in `foundations/strong-cp-derivation.md`; the transport premise
+and resulting estimate are conditional on the extension. The span inherits
+Mapped status from its GUT-seed anchor and $\delta_{\text{CP}}$ ledgered fits,
+`parameter-inventory.md` §10.
 
-**No axion is required.** The QCD vacuum angle is not a free parameter—it is
-determined by the $\varphi$-equilibrium and the cascade span.
+**The conditional construction introduces no axion field.** Its falsifiable
+implication is a null axion search only if the additional particle-sector and
+transport assumptions are adopted. An axion discovery would disfavor this
+specific strong-CP construction; a null search together with
+$|\bar\theta|<10^{-10}$ would remain compatible with it but would not establish
+the construction.
 
 ### 5.3 Falsifiability
 
-This is a testable prediction: **no axion exists**. Current and future axion
-detection experiments (ADMX, CAST, IAXO, MADMAX) will find null results.
+The conditional strong-CP scenario can be tested by combining neutron
+electric-dipole-moment bounds with axion searches (ADMX, CAST, IAXO, MADMAX).
+The scenario is disfavored by an axion discovery, while a null search does not
+by itself distinguish it from other axion-free explanations.
 
-- If an axion is discovered, Cassi's strong CP resolution is ruled out.
-- If no axion is found and $\theta < 10^{-10}$ is confirmed, Cassi's
-  de-resonance resolution becomes the leading candidate.
-
-The ~81-rung signal propagation occurs through the bubble lattice medium—cascade suppression IS lattice attenuation (`foundations/bubble-lattice-fabric.md` §3.3).
+Any ~81-rung signal-transport interpretation is conditional on the separately
+specified constitutive extension in §5.2. The canonical bubble-lattice
+description does not identify cascade suppression with lattice attenuation or
+supply an inter-rung transport law (`foundations/bubble-lattice-fabric.md` §3.3).
 
 ---
 
 ## 6. Summary of Predictions
 
-| Observable | Naive $\phi$-Power | Yukawa-Diagonalised Cassi | SM / Experiment |
-|-----------|-------------------|--------------------------|-----------------|
-| $\delta_{\text{CKM}}$ | $\pi\phi^{-2} \approx 68.8^\circ$ | $\pi\phi^{-2} \approx 68.8^\circ$ (from Yukawa triangle) | $\sim 68^\circ$ |
-| $|V_{us}|$ | $\phi^{-1} \approx 0.618$ | $\varphi^{-3} \approx 0.236$ ($5\%$ off) | $0.225$ |
-| $|V_{cb}|$ | $\phi^{-2} \approx 0.382$ | Wolfenstein $A\lambda^2$ with $\lambda \approx \varphi^{-3}$ | $0.041$ |
-| $|V_{ub}|$ | $\phi^{-3} \approx 0.236$ | Wolfenstein $A\lambda^3(\rho-i\eta)$ with $\lambda \approx \varphi^{-3}$ | $0.004$ |
-| $J_{\text{CP}}$ | $\phi^{-6} \approx 0.056$ | $\phi^{-3} \cdot \frac{\Delta m_u \Delta m_d}{v^6} \approx 2.7\times 10^{-25}$ (does not reproduce $J_{\text{CP}}$—§4.2) | $3.0 \times 10^{-5}$ |
-| Strong CP $\bar\theta$ |—| $\pi\varphi^{-83.4} \approx 1.2\times10^{-17}$ (cascade de-resonance) | $< 10^{-10}$ |
-| Axion |—| **Does not exist** | Undiscovered |
+| Observable | Naive $\varphi$-Power | Yukawa-Diagonalised Cassi | SM / Experiment |
+|-----------|----------------------|--------------------------|-----------------|
+| $\delta_{\text{CKM}}$ | $\pi\varphi^{-2} \approx 68.8^\circ$ | $\pi\varphi^{-2} \approx 68.8^\circ$ (conditional particle-sector map; side magnitudes Mapped) | $\sim 68^\circ$ |
+| $|V_{us}|$ | $\varphi^{-1} \approx 0.618$ | Wolfenstein $\lambda \approx \varphi^{-3} \approx 0.236$ ($\approx 4.9\%$ high; candidate for $\lambda$ only) | $0.225$ |
+| $|V_{cb}|$ | $\varphi^{-2} \approx 0.382$ | Wolfenstein $A\lambda^2$ with $\lambda \approx \varphi^{-3}$ ($A$ separate input) | $0.041$ |
+| $|V_{ub}|$ | $\varphi^{-3} \approx 0.236$ | Wolfenstein $A\lambda^3\sqrt{\bar\rho^2+\bar\eta^2}$ with $\lambda \approx \varphi^{-3}$ ($A,\bar\rho,\bar\eta$ separate inputs) | $0.004$ |
+| $J_{\text{CP}}$ | $\varphi^{-6} \approx 0.056$ | Yukawa-determinant candidate dimensionally incomplete (§4.2); no numerical $J_{\text{CP}}$ prediction | $3.2 \times 10^{-5}$ |
+| Strong CP $\bar\theta$ |—| $\pi\varphi^{-83.4} \approx 1.2\times10^{-17}$ (conditional transport extension; Mapped) | $< 10^{-10}$ |
+| Axion |—| No axion field in this conditional construction | Undiscovered |
 
 ### Key Takeaways
 
-1. **$\delta_{\text{CKM}} = \pi\phi^{-2}$ is the cataloged Cassi value**, a
+1. **$\delta_{\text{CKM}} = \pi\varphi^{-2}$ is the cataloged Cassi value**, a
    Mapped selection from a four-candidate $\varphi$-search (ledger §10 row 482),
-   accurate to $<1\%$ against the repo's CKM anchor. The claim that it "emerges
-   via standard unitarity triangle closure from the Yukawa diagonalisation"
-   is not shown as a derivation and is not used here: the $\phi$-scaled CKM
-   element hierarchy ($|V_{us}| \approx \varphi^{-3} \approx 0.236$, $5\%$ off from $0.225$;
-   $|V_{cb}| \approx 0.041$, $|V_{ub}| \approx 0.004$ following
-   Wolfenstein $|V_{cb}| \sim \lambda^2$, $|V_{ub}| \sim \lambda^3$ with
-   $\lambda \approx \varphi^{-3}$) is itself an empirical ladder.
+   accurate to $<1\%$ against the repo's CKM anchor. The particle-sector map
+   supplies this conditional phase candidate; the remaining CKM magnitudes use
+   the standard Wolfenstein hierarchy with separate inputs $A$, $\bar\rho$, and
+   $\bar\eta$. The $\varphi^{-3}$ comparison applies only to the Cabibbo-scale
+   parameter $\lambda\approx0.236$, $\approx4.9\%$ high relative to $0.225$.
 
-2. **The Jarlskog invariant is not reproduced by the current
-   Yukawa-determinant formula**: it evaluates $\approx 2.7\times10^{-25}$,
-   ~20 orders below $J_{\text{CP}}^{\text{SM}} \approx 3.2\times10^{-5}$
-   (§4.2). The framework's CP content is the CKM phase $\delta_{\text{CKM}}$
-   (status set by the fit-ledger worker).
+2. **The current Yukawa-determinant candidate for the Jarlskog invariant is
+   dimensionally incomplete**: its six mass differences have dimension
+   $[M]^6$, while the displayed denominators contribute $[M]^{12}$, so no
+   dimensionless $J_{\text{CP}}$ prediction follows (§4.2). The Standard Model
+   fit is $J_{\text{CP}}^{\text{SM}}\approx3.2\times10^{-5}$; the framework's
+   CP content discussed here is the CKM phase $\delta_{\text{CKM}}$.
 
-3. **The strong CP problem is resolved by cascade de-resonance** without an
-   axion—a falsifiable prediction.
+3. **The conditional strong CP construction gives the cascade de-resonance
+   estimate without an axion field**—a falsifiable scenario only after the
+   particle-sector CKM seed and the additional transport postulate are accepted.
 
-4. The CKM magnitudes $|V_{us}|, |V_{cb}|, |V_{ub}|$ are reproduced with
-   $\alpha_s$-suppressed $\phi$-powers, confirming the pattern established in
-   `standard-model/sm-from-phi.md`.
+4. The CKM magnitudes are organized by the standard Wolfenstein hierarchy;
+   the $\varphi^{-3}$ comparison in this paper applies only to the
+   Cabibbo-scale $\lambda$. The canonical two-density/bubble-lattice sector
+   supplies no derived inter-rung propagation or lattice-attenuation identity.
 
-The overall picture is consistent: CP violation in the quark sector traces back
-to the Yang/Yin asymmetry $\phi$, but manifests through the **operator structure**
-of the SM—the Yukawa matrices and their diagonalisation—not through direct
-$\phi$-power assignment to the observable phase.
+The overall picture is conditional. The canonical fixed-point imbalance
+$\eta_{\mathrm{dens}}=\varphi^{-3}$ can enter the particle-sector CP map only
+after additional complex/spinor structure and an explicit observation map are
+specified. The observable quark-sector structure is then carried by the SM
+Yukawa matrices and their diagonalisation; the CKM candidate and strong-CP
+estimate retain the Mapped statuses stated above.
 
 ## References
 
 - `standard-model/sm-from-phi.md`—φ-powered Yukawa and CKM pattern
 - `standard-model/su2-gauge-extension.md`—Weinberg angle and gauge structure
 - `foundations/strong-cp-derivation.md`—cascade de-resonance, $\bar\theta = \pi\varphi^{-83.4} \approx 1.2\times10^{-17}$
-- `foundations/bubble-lattice-fabric.md`—lattice attenuation of the 81-rung signal
+- `foundations/bubble-lattice-fabric.md`—bubble-lattice geometry; the canonical sector supplies no derived inter-rung transport law

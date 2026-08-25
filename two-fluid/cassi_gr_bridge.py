@@ -123,12 +123,10 @@ class CassGRBridge:
     # ─────────────────────────────────────────────────────────────────────
 
     def get_geff(self, q=0.0):
-        """G_eff(q)/G_N = 1 + (φ⁶−1)·q  [corrected 2026-08-03].
+        """G_eff(q)/G_N = 1 + (φ⁶−1)·q.
 
         Max boost φ⁶ ≈ 17.94 at q → 1 (the derived Qi-gravity coupling,
-        `foundations/xi-derivation.md`); Newtonian at q = 0. The withdrawn
-        approximate coupling 1+(φ−1)q (max boost φ ≈ 1.62) and the earlier
-        empirical π/ρ-scaled fit with ξ = 18 are removed.
+        `foundations/xi-derivation.md`); Newtonian at q = 0.
 
         Parameters
         ----------

@@ -1,92 +1,48 @@
 #!/usr/bin/env python3
-"""Stack void radial galaxy-density profiles and search for the bubble-shell
-ring ladder (Prediction 51 real-space cousin).
+"""Calibrate a void-ring ridge detector on synthetic radial count profiles.
 
 Run from the repo root:
     python experiments/void_phi_rings/stack_void_rings.py
 
-PHYSICS / PRE-REGISTRATION
---------------------------
-The bubble-shell ring ladder (`foundations/bubble-edge-geometry.md` §3.1;
-`predictions/falsifiable-predictions.md` Prediction 51) predicts that inside
-a bubble shell of effective radius R the matter density carries rings at
+The target from `foundations/bubble-edge-geometry.md` §3.1 and Prediction 51
+is a matter-ring ladder
 
-    r_k = R * phi^{-k}        (k = 0,1,2,...; phi = 1.618)
+    r_k / R = phi^-k,          r_(k+1) / r_k = phi^-1 = 0.6180,
 
-with void troughs at R * phi^{-(k+1/2)}. Successive-matter-ring ratio:
+with the interleaved comparison ratio phi^-1/2 = 0.7862.
 
-    r_{k+1} / r_k = phi^{-1} = 0.6180        (the signal)
+SCOPE
+-----
+This script is a synthetic detector and power calibration, not a real-data
+stack. It parses the Nadathur & Hotchkiss (2014) SDSS DR7 void-summary tables
+to cross-check published Type1 counts and uses that count as the number of
+independent synthetic profiles. The simulation does not consume catalog sky
+positions, effective radii, survey-mask geometry, or member-galaxy positions.
+The downloadable catalog has no per-void member-galaxy coordinates, so the
+real stacking test remains blocked at the data layer.
 
-against the null interleaved-ridge ratio:
+The planted model is
 
-    phi^{-1/2} = 0.7862                      (interleaved null)
+    ln n(u) = ln n0 + c cos(2 pi log_phi(u)),       u = r / R,
 
-This is the real-space cousin of the phi-periodic P(k) wake-wave prediction.
-In real void radial profiles only the first few interior ridges are
-resolvable; the pre-registered question is whether stacked void radial
-profiles show a matter ridge at r ~ 0.618 R (and possibly 0.382 R), versus
-the 0.786 null.
+sampled with independent Poisson shell counts. The null sets c=0 with the
+same profile count, binning, and mean count. The resulting power curve tests
+this detector under that toy model only.
 
-REAL-DATA STATUS (this run)
----------------------------
-The void geometry is REAL: Nadathur & Hotchkiss (2014) SDSS DR7 void catalog
-(VizieR J/MNRAS/440/1248), hash-verified and count-cross-checked by
-`experiments/void_phi_rings/acquire_void_catalog.py`. Only per-void
-summaries (center, radius, density) are bundled in the downloadable CDS
-tables; per-void GALAXY-member positions are not published in a downloadable
-form for either preferred source (Pan et al. 2012 not on VizieR / Drexel
-hosting defunct; Nadathur postproc.py only on the paywalled journal site).
-See `analyses/void-ring-profiles.md` for the exact acquisition failures.
+DECISION TREE
+-------------
+Candidate ridges are maxima of contiguous bins whose stacked density exceeds
+the per-bin null median by at least two robust null sigmas, restricted to
+0.2 < r/R <= 1.0. At least three ridges are required. With ascending radii,
+the two outer-normalized successive ratios are compared against:
 
-The GALAXY field used for stacking is therefore the pre-registered SYNTHETIC
-phi-ladder pivot: a survey tracer field built on the real void centers and
-radii (so the geometry and footprint are real), seeded with a phi-ladder
-ring signal at controllable contrast. The pipeline (stacking, ridges, the
-same-density null, and the planted-signal detection-power calibration) runs
-against this field. If a real per-void galaxy catalog becomes available, the
-same stacking routine processes it unchanged (it reads per-void (r3d, R)
-lists).
+  * SUPPORTS: both in [0.538, 0.698] and outside [0.736, 0.836];
+  * SUPPORTS NULL: both in [0.736, 0.836] and outside [0.538, 0.698];
+  * INDETERMINATE: otherwise;
+  * NO RIDGES: fewer than three significant ridges.
 
-DECISION TREE (pre-registered, written before any analysis run)
----------------------------------------------------------------
-Step 1 - RIDGE SELECTION. Run the ridge detector on the stacked profile:
-local maxima of the stacked density in the SHELL INTERIOR, r/R in
-(0.2, 1.0] (added 2026-08-13 pre-registration refinement: the reliable
-core exclusion is 0.2 R, not the nominal 0.1 R - the ring ladder's
-resolvable rungs 0.618, 0.382 sit well above 0.2 R, and the deep interior
-below 0.2 R has the smallest shell volume and worst signal-to-noise; the
-ring ladder r_k = R*phi^-k lives inside the shell, and the void wall at
-r~R and the exterior are not part of the interior ring ladder). A local
-maximum is a candidate matter ridge only if it clears the SAME-DENSITY
-NULL band at that bin by >= 2 sigma (ridge significance test).
-
-Step 2 - COUNT. Candidate ridges must number >= 3 to run the ratio test.
-
-Step 3 - RATIO TEST. From the >= 3 candidate ridge radii r_(1) < r_(2) <
-r_(3) (innermost first), compute the two successive ratios
-q_1 = r_(2)/r_(3) and q_2 = r_(1)/r_(2) (outer-normalized, equal to
-phi^{-1} if the ladder holds):
-  * SUPPORTS: each q_i in [0.6180 - 0.08, 0.6180 + 0.08] = [0.538, 0.698]
-              AND each q_i outside [0.7862 - 0.05, 0.7862 + 0.05].
-  * SUPPORTS NULL: each q_i in [0.7862 - 0.05, 0.7862 + 0.05]
-                   AND each q_i outside [0.6180 - 0.08, 0.6180 + 0.08].
-  * INDETERMINATE: otherwise.
-Step 4 - VERDICT. If Step 2 fails (< 3 significant ridges) the verdict is
-NO RIDGES (the honest outcome; not a null-support). Otherwise the verdict
-is Step 3 run on the surviving ridges. ALL outcomes are reported.
-
-A ridge is ">= 2 sigma above the null" when its density exceeds the median
-null density at that bin by >= 2 * (1.4826 * IQR) of the null distribution
-at that bin (robust sigma), and also exceeds the local mean by that margin.
-
-HONESTY
--------
-Every verdict is reported. NO RIDGES is a fully acceptable outcome. The
-same-density null is a distribution (per-bin and of maxima-ratios), never a
-single number. Detection power (the fraction of planted-signal realizations
-in which the decision tree returns SUPPORTS at a given contrast) is the
-reported sensitivity; the 1% contrast floor is the framework's expected
-signal scale.
+Every simulated outcome is retained. None is observational evidence for or
+against Prediction 51.
 """
 
 import json
@@ -115,8 +71,8 @@ H0 = 67.36          # km/s/Mpc  (physical)
 H100 = H0 / 100.0   # h = 0.6736
 CLIGHT = 299792.458  # km/s
 # Comoving distance in PHYSICAL Mpc: dc(z) = (c/H0) * int_0^z dz'/E(z')
-# c/H0 = 299792.458 / 67.36 = 4450.7 Mpc. The DR7 Reff is in Mpc/h; we
-# convert it to physical Mpc (x h) so radii and distances share one system.
+# c/H0 = 299792.458 / 67.36 = 4450.7 Mpc. The DR7 Reff is in h^-1 Mpc;
+# divide by h to convert it to physical Mpc so radii and distances share one system.
 C_OVER_H0 = CLIGHT / H0
 
 
@@ -203,7 +159,7 @@ def build_catalog(vtypes=("Type1", "Type2", "Basic")):
                     "sample": sample, "vtype": vtype,
                     "Zone": int(r["Zone"]),
                     "ra": float(r["RAJ2000"]), "dec": float(r["DEJ2000"]),
-                    "z": float(r["z"]), "Reff": float(r["Reff"]) * H100,
+                    "z": float(r["z"]), "Reff": float(r["Reff"]) / H100,
                     "AvgDens": float(r["AvgDens"]),
                     "MDens": float(r["MDens"]),
                     "Flag": int(r["Flag"]), "VDR": float(r["VDR"]),
@@ -230,40 +186,35 @@ PAPER_TABLE2 = {
 
 
 # ---------------------------------------------------------------------------
-# Per-void stacking is done in stack_voids (exact per-bin Poisson). The
-# synthetic phi-ladder pivot: a uniform-density tracer field on the real
-# void centers/radii with a log-periodic matter modulation of amplitude c
-# (ridges at r/R = phi^-k, troughs at phi^-(k+1/2)).
+# Synthetic catalog-sized count profiles. Only n_profiles enters: catalog
+# centers, radii, and footprint are deliberately not used.
 # ---------------------------------------------------------------------------
-def stack_voids(voids, rng, bins, contrast=0.0, n_mean=50000.0, ladder=True,
-                seed=None):
-    """Stack radial profiles over voids. Returns (r_centers, density, nvoid).
+def simulate_count_stack(n_profiles, rng, bins, contrast=0.0,
+                         n_mean=50000.0, ladder=True, seed=None):
+    """Simulate and stack independent radial count profiles.
 
-    Exact per-bin Poisson stacking of a density field with mean n0 everywhere
-    and a linear log-periodic modulation 1 + c*cos(2 pi log_phi(u)) (ladder)
-    or 1 (ladder=False, the pre-registered UNIFORM radial-density null). The
-    mean density n0 is set by n_mean galaxies per void over the whole sphere.
-    With ladder=True the ridge tops sit +c above the null level (first-order
-    identical to the pre-registered exp(c*cos) ln-density amplitude, since
-    ln(1+c*cos) = c*cos for small c).
+    The planted log-density modulation is
+    exp(c*cos(2*pi*log_phi(u))); the null uses unity. ``n_mean`` is the mean
+    count per profile over the simulated sphere.
     """
     if seed is not None:
         rng = np.random.default_rng(seed)
     nbin = len(bins) - 1
     vol = (4.0 / 3.0) * np.pi * (bins[1:] ** 3 - bins[:-1] ** 3)
-    nvoid = len(voids)
-    if nvoid == 0:
+    if n_profiles <= 0:
         return (bins[:-1] + bins[1:]) / 2.0, np.zeros(nbin), 0
-    # per-bin mean galaxy count across all voids
-    frac_per_void = vol / vol.sum()          # fraction of total sphere volume
-    lam = nvoid * n_mean * frac_per_void      # total counts per shell, mean
+    frac_per_profile = vol / vol.sum()
+    lam = n_profiles * n_mean * frac_per_profile
     u_center = (bins[:-1] + bins[1:]) / 2.0
     if ladder:
-        mod = 1.0 + contrast * np.cos(2 * np.pi * np.log(u_center) / LN_PHI)
+        mod = np.exp(
+            contrast * np.cos(2 * np.pi * np.log(u_center) / LN_PHI)
+        )
+        mod /= np.sum(frac_per_profile * mod)
         lam = lam * mod
     counts = rng.poisson(lam)
-    dens = counts / vol / nvoid
-    return (bins[:-1] + bins[1:]) / 2.0, dens, nvoid
+    dens = counts / vol / n_profiles
+    return u_center, dens, n_profiles
 
 
 # ---------------------------------------------------------------------------
@@ -361,68 +312,21 @@ def ridge_analysis(r_c, dens, null_med, null_sig, r_max=RMAX):
     return radii, qs
 
 
-# ---------------------------------------------------------------------------
-# Null: random centers in the same survey mask, same n, same binning.
-# The null centers are drawn uniformly in the footprint volume (the DR7 NGC
-# RA/Dec/z slab with the |b|>20 deg Galactic cut) with the Reff distribution
-# of the real sample, so the shell volumes and number of stacks match the
-# data. Around each random center we place a UNIFORM (no-ladder) background
-# cloud at the same mean density and binning as the data stacking. This is
-# the pre-registered same-density null: it answers "what profile-maxima-ratio
-# distribution does all the real geometry produce when there is no phi-ladder?"
-# ---------------------------------------------------------------------------
-GALCEN = (192.25, 27.4)
 
 
-def galactic_latitude(ra, dec):
-    ra = np.radians(ra)
-    dec = np.radians(dec)
-    ra_gc, dec_gc = np.radians(GALCEN[0]), np.radians(GALCEN[1])
-    b = np.arcsin(np.sin(dec) * np.sin(dec_gc)
-                  + np.cos(dec) * np.cos(dec_gc) * np.cos(ra - ra_gc))
-    return np.degrees(b)
-
-
-def random_centers_in_footprint(voids, rng, n=None):
-    """Draw n random centers from the real sample's masked footprint volume.
-
-    Mirrors the per-sample Reff distribution and the sample's RA/Dec/z slab
-    with the |b|>20 deg Galactic-plane cut, but the centers are uniform in
-    the masked volume (uncorrelated with the ladder positions).
-    """
-    n = n or len(voids)
-    ra_a = np.array([v["ra"] for v in voids])
-    dec_a = np.array([v["dec"] for v in voids])
-    z_a = np.array([v["z"] for v in voids])
-    reff_a = np.array([v["Reff"] for v in voids])
-    ra_lo, ra_hi = ra_a.min(), ra_a.max()
-    dec_lo, dec_hi = dec_a.min(), dec_a.max()
-    z_lo, z_hi = z_a.min(), z_a.max()
-    picks = []
-    while len(picks) < n:
-        ra = rng.uniform(ra_lo, ra_hi, n)
-        dec = rng.uniform(dec_lo, dec_hi, n)
-        z = rng.uniform(z_lo, z_hi, n)
-        keep = (np.abs(galactic_latitude(ra, dec)) > 20.0) & (z > 0.01)
-        reff = reff_a[rng.integers(0, len(reff_a), n)]
-        for raa, dee, zz, re in zip(ra[keep], dec[keep], z[keep], reff[keep]):
-            picks.append({"ra": float(raa), "dec": float(dee),
-                          "z": float(zz), "Reff": float(re)})
-    return picks[:n]
-
-
-def null_stacks(voids, bins, nreal, n_mean, seed0):
-    """Random masked centers + uniform no-ladder clouds, same n and binning."""
+def null_stacks(n_profiles, bins, nreal, n_mean, seed0):
+    """Uniform synthetic nulls with the same profile count and binning."""
     null_all = np.zeros((nreal, len(bins) - 1))
     for k in range(nreal):
         rng = np.random.default_rng(seed0 + 1000 + k)
-        nc = random_centers_in_footprint(voids, rng)
-        _, nd, _ = stack_voids(nc, rng, bins, contrast=0.0,
-                               n_mean=n_mean, ladder=False)
+        _, nd, _ = simulate_count_stack(
+            n_profiles, rng, bins, contrast=0.0, n_mean=n_mean, ladder=False
+        )
         null_all[k] = nd
     null_med = np.median(null_all, axis=0)
-    null_sig = np.array([robust_sigma(null_all[:, i]) for i in
-                         range(null_all.shape[1])])
+    null_sig = np.array([
+        robust_sigma(null_all[:, i]) for i in range(null_all.shape[1])
+    ])
     null_lo = np.percentile(null_all, 16, axis=0)
     null_hi = np.percentile(null_all, 84, axis=0)
     return null_all, null_med, null_sig, null_lo, null_hi
@@ -431,16 +335,18 @@ def null_stacks(voids, bins, nreal, n_mean, seed0):
 # ---------------------------------------------------------------------------
 # Detection power
 # ---------------------------------------------------------------------------
-def run_one(voids, bins, seed, contrast, n_mean, nnull=16):
+def run_one(n_profiles, bins, seed, contrast, n_mean, nnull=16):
     rng = np.random.default_rng(seed)
-    r_c, dens, nv = stack_voids(voids, rng, bins, contrast=contrast,
-                                n_mean=n_mean, ladder=True)
+    r_c, dens, nv = simulate_count_stack(
+        n_profiles, rng, bins, contrast=contrast, n_mean=n_mean, ladder=True
+    )
     _, null_med, null_sig, null_lo, null_hi = null_stacks(
-        voids, bins, nnull, n_mean, seed)
+        n_profiles, bins, nnull, n_mean, seed
+    )
     radii, qs = ridge_analysis(r_c, dens, null_med, null_sig)
     verdict = decide(qs)
     return {
-        "seed": seed, "contrast": contrast, "nvoids_stacked": nv,
+        "seed": seed, "contrast": contrast, "n_profiles": nv,
         "r_c": r_c.tolist(), "dens": dens.tolist(),
         "null_med": null_med.tolist(), "null_lo": null_lo.tolist(),
         "null_hi": null_hi.tolist(), "null_sig": null_sig.tolist(),
@@ -449,16 +355,19 @@ def run_one(voids, bins, seed, contrast, n_mean, nnull=16):
     }
 
 
-def detection_power(voids, bins, contrasts, nreal, n_mean, seed0):
+def detection_power(n_profiles, bins, contrasts, nreal, n_mean, seed0):
     power = {}
     for c in contrasts:
         succ = 0
         for k in range(nreal):
-            r = run_one(voids, bins, seed0 + 7 * k, c, n_mean)
+            r = run_one(n_profiles, bins, seed0 + 7 * k, c, n_mean)
             if r["verdict"] == "SUPPORTS":
                 succ += 1
-        power[f"{c:.3f}"] = {"n_realizations": nreal, "n_supports": succ,
-                             "power": succ / nreal}
+        power[f"{c:.3f}"] = {
+            "n_realizations": nreal,
+            "n_supports": succ,
+            "power": succ / nreal,
+        }
     return power
 
 
@@ -488,51 +397,47 @@ def main():
               f"NB={nb:4d} NT1={nt1:4d} NT2={nt2:4d}  "
               f"{'OK' if ok else 'MISMATCH'}")
     if not all_ok:
-        print("    WARNING: Type1 counts do not match Table 2; catalog "
-              "integrity suspect.")
+        raise RuntimeError(
+            "Catalog integrity check failed; synthetic calibration requires "
+            "the complete 808-entry Type1 count receipt")
 
     bins = np.linspace(0.12, 3.0, 29)  # r/R in (0.12, 3.0), ~0.1-R bins
     r_c = (bins[:-1] + bins[1:]) / 2.0
-    # 50k galaxies per void: interior-rung stacked Poisson noise ~0.4%,
-    # putting the 1% floor at ~1.5-2 sigma (the honest marginal regime) and
-    # making the power curve discriminating across contrasts.
+    # This count scale belongs only to the synthetic Poisson model.
     N_MEAN = 50000.0
 
-    # Fiducial run: 1% phi-ladder contrast (expected floor), real centers
-    print("\n  FIDUCIAL RUN: 1% ladder contrast, real Type1 void centers/radii")
-    res = run_one(voids, bins, 20260813, 0.01, N_MEAN)
-    print(f"    stacked voids: {res['nvoids_stacked']}")
+    # Catalog count sizes the simulation; no center or radius enters it.
+    n_profiles = len(voids)
+    print("\n  SYNTHETIC FIDUCIAL: 1% log-density ladder contrast")
+    print(f"    independent synthetic profiles: {n_profiles}")
+    res = run_one(n_profiles, bins, 20260813, 0.01, N_MEAN)
     print(f"    significant ridge radii (r/R): "
           f"{[round(x,3) for x in res['sig_ridge_radii']]}")
     print(f"    successive ratios: {[round(q,3) for q in res['successive_ratios']]}"
           f"  (signal 0.618, null 0.786)")
     print(f"    verdict: {res['verdict']}")
 
-    print("\n  DETECTION-POWER CALIBRATION (planted-signal power check)")
+    print("\n  SYNTHETIC DETECTION-POWER CALIBRATION")
     contrasts = [0.003, 0.005, 0.01, 0.02, 0.05]
-    power = detection_power(voids, bins, contrasts, nreal=8, n_mean=N_MEAN,
-                            seed0=20260813)
+    power = detection_power(n_profiles, bins, contrasts, nreal=8,
+                            n_mean=N_MEAN, seed0=20260813)
     for c, p in power.items():
-        flag = "CONFIRMED" if p["power"] >= 0.95 else (
-            "detectable" if p["power"] >= 0.68 else (
-                "hinted" if p["power"] >= 0.30 else "not detectable"))
+        flag = "high toy power" if p["power"] >= 0.95 else (
+            "moderate toy power" if p["power"] >= 0.68 else (
+                "low toy power" if p["power"] >= 0.30 else "minimal toy power"))
         print(f"    contrast {c:>5}: power = {p['power']:.2f} "
               f"({p['n_supports']}/{p['n_realizations']})  {flag}")
 
-    # Null maxima-ratio distribution (folded-window discipline): the null is
-    # a DISTRIBUTION of successive-profile-maxima ratios. Generate many
-    # no-ladder stacks at random masked centers and record every successive
-    # ratio among the local maxima that survive a modest prominence cut;
-    # the data's successive ratio (0.618 if the ladder holds) is judged
-    # against this null distribution, not a single number.
-    print("\n  NULL MAXIMA-RATIO DISTRIBUTION (no ladder, random masked centers)")
+    # Maxima ratios under the same catalog-sized toy with no planted ladder.
+    # No survey mask or random sky center enters this synthetic null.
+    print("\n  SYNTHETIC NULL MAXIMA-RATIO DISTRIBUTION (no ladder)")
     null_ratios = []
     null_nridge = []
     for k in range(40):
         rng = np.random.default_rng(5000 + k)
-        nc = random_centers_in_footprint(voids, rng)
-        _, nd, _ = stack_voids(nc, rng, bins, contrast=0.0, n_mean=N_MEAN,
-                               ladder=False)
+        _, nd, _ = simulate_count_stack(
+            n_profiles, rng, bins, contrast=0.0, n_mean=N_MEAN, ladder=False
+        )
         # local maxima of this null profile; prominence gate 1.5 median
         nmed = np.median(nd)
         nsig = np.full_like(nd, robust_sigma(nd - nmed))
@@ -567,9 +472,13 @@ def main():
 
     out = {
         "run_id": rid,
-        "catalog": "J/MNRAS/440/1248 (Nadathur & Hotchkiss 2014, DR7)",
+        "scope": "synthetic catalog-sized count-profile calibration",
+        "catalog_count_source": (
+            "J/MNRAS/440/1248 (Nadathur & Hotchkiss 2014, DR7)"
+        ),
+        "catalog_fields_consumed_by_simulation": ["Type1 count"],
         "vtypes": "Type1",
-        "nvoids": len(voids),
+        "n_profiles": n_profiles,
         "sanity": {"dc_z0p1_Mpc": dc(0.1)},
         "bins": bins.tolist(),
         "fiducial": res,

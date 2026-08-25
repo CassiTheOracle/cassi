@@ -185,14 +185,14 @@ The ODE (`two-fluid/calibrate_initial_ratio_xi_v2.py`) integrates the Yang-fract
 
 ### 5.3 Combined mechanism: three contributions to $w_a$
 
-The full $w_a$ prediction combines three independent effects, all fixed by the framework:
+The full $w_a$ prediction combines three independent effects; numerical entries below retain their declared solver inputs and epistemic statuses:
 
 | # | Mechanism | Effect on $w_a$ | Parameter |
 |---|-----------|:---:|---|
-| 1 | Bare conversion dynamics | $+0.457$ (structural) | $\lambda = 0.02$, $r_0$ (both derived) |
-| 2 | 5-channel adiabatic gate | pushes toward $0^+$ from the Calibrated $+0.012$ baseline (magnitude Hypothesized—ODE pending) | $w=5$ (derived) |
+| 1 | Bare conversion dynamics | $+0.457$ (structural) | declared solver input $\lambda = 0.02$ (normalization), gap-derived $r_0$ |
+| 2 | 5-channel adiabatic gate | pushes toward $0^+$ from the Calibrated $+0.012$ baseline (magnitude Hypothesized—ODE pending) | $w=5$ (Derived conditional under the selected construction); physical five-channel gate Hypothesized |
 | 3 | **Qi-gravity $\xi = \varphi^6$ in $H_{\text{eff}}$** | **$-0.445$ (verified, Yang-fraction-weighted form)** | **$\xi = \varphi^6$ (derived, verified)** |
-| 4 | **Ratified conversion→expansion coupling** (08 §A.2; exact two-field dynamics, B2—unstable; stable realization: C1 friction closure—10/12) | **$-0.393$ (Hypothesized—August 2026, zero free constants)**; stable realization: pure-Λ window $(-1, 0)$ | **$\lambda$, $\varphi$ only** |
+| 4 | **Ratified conversion→expansion coupling** (08 §A.2; exact two-field dynamics, B2—unstable; stable realization: C1 friction closure—10/12) | **$-0.393$ (Hypothesized—August 2026, one solver-normalization input and zero additional physical dimensionless parameters)**; stable realization: pure-Λ window $(-1, 0)$ | **declared solver normalization $\lambda$, $\varphi$ only** |
 
 With the Yang-fraction-weighted coupling (verified) plus the ratified
 conversion→expansion coupling (Hypothesized, B2):
@@ -209,7 +209,7 @@ the stable realization (10/12) gives the pure-Λ window fit $(-1, 0)$ at $2.61\s
 
 The Qi-gravity enhancement is present in the force law (rotation curves) and must propagate to the cosmological $H(a)$. The Yang-fraction-weighted form $H_{\text{eff}}^2 = H_{\text{bare}}^2[1 + (\varphi^{6}-1)q \cdot r/(1+r)]$ shifts $w_a$ from $+0.46$ to $+0.012$ ($\Delta -0.45$).
 
-**Status: Derived.** $\xi = \varphi^6$ is derived (cascade activation at step 6). The Yang-fraction-weighted coupling is parameter-free and verified against the ODE (`two-fluid/calibrate_initial_ratio_xi_v2.py`), giving $w_a = +0.012$; it is consistent with the rotation-curve prediction ($v_C/v_B = 2.8$–$3.0$, ~0.4σ). The ratified conversion→expansion coupling (Hypothesized—August 2026, zero free constants) shifts the prediction to $w_a \approx -0.38$ in its unstable B2 realization ($1.25\sigma$ from DESI $w_a \approx -0.73 \pm 0.28$ [INFERENCE], 08 §C.6); its stable realization (the C1 friction closure—10/12) gives the pure-Λ DESI-window fit $(w_0, w_a) = (-1, 0)$—4.17σ/2.61σ from DESI (12 §4.1). The 5-channel gate and Wu Xing control-release provide secondary shifts—Hypothesized, ODE pending.
+**Status: Derived for $\xi$ sector / Hypothesized for conversion→expansion coupling.** $\xi = \varphi^6$ is derived (cascade activation at step 6). The Yang-fraction-weighted coupling has one solver-normalization input and zero additional fitted dimensionless coefficients, and is verified against the ODE (`two-fluid/calibrate_initial_ratio_xi_v2.py`), giving $w_a = +0.012$; it is consistent with the rotation-curve prediction ($v_C/v_B = 2.8$–$3.0$, ~0.4σ). The ratified conversion→expansion coupling (Hypothesized—August 2026, one solver-normalization input and zero additional physical dimensionless parameters) shifts the prediction to $w_a \approx -0.38$ in its unstable B2 realization ($1.25\sigma$ from DESI $w_a \approx -0.73 \pm 0.28$ [INFERENCE], 08 §C.6); its stable realization (the C1 friction closure—10/12) gives the pure-Λ DESI-window fit $(w_0, w_a) = (-1, 0)$—4.17σ/2.61σ from DESI (12 §4.1). The 5-channel gate and Wu Xing control-release provide secondary shifts—Hypothesized, ODE pending.
 
 ---
 
@@ -221,4 +221,4 @@ The Qi-gravity enhancement is present in the force law (rotation curves) and mus
 - `foundations/wu-xing-derivation.md`—$w = 5$, gap $g$, primordial ratio $r_0$
 - `principles/de-resonance-principle.md`—pentagram resonance ruled out
 - `foundations/refined-numeric-predictions.md` §2.8—Hubble-tension pipeline results
-- `foundations/dimensionful-constants-status.md` §2.1—$\lambda = 1/(2w)$ derived
+- `foundations/dimensionful-constants-status.md` §2.1—canonical $\lambda = 0.1$ solver normalization; $\lambda = 1/(2w)$ is a Hypothesized Wu Xing linkage requiring independent cycle-time/dynamical closure

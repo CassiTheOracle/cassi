@@ -1,200 +1,285 @@
 # The De-Resonance Principle in Cassi
 
-## Status: Derived—July 2026
+## Status: Derived number-theory identity / Hypothesized physical de-resonance mapping—August 2026
 
 ## Abstract
 
-The golden ratio $\varphi$ is the maximally irrational number: its continued fraction is all ones, so it resists rational approximation better than any other irrational. A rational frequency ratio between the Yang and Yin fields would concentrate energy at a single scale and collapse multi-scale structure; $\varphi$ is the unique configuration that forbids such resonance lock-in. Couplings therefore flow toward $\varphi$-powers, with deviations set by dynamics. This document states the de-resonance principle and tabulates the empirical pattern of corrections to the leading-order $\varphi$-power baseline.
+The continued fraction $\varphi=[1;1,1,\ldots]$ and its sharp Hurwitz/Lagrange approximation constant are established number-theory facts. In the standard integer fractional-linear equivalence class, $\varphi$ is the conventional positive representative of the worst-approximable class. Cassi uses that arithmetic property to motivate a physical proposal. Its canonical density-conversion target
 
-## 0. Why φ is the Attractor (and Why Most Things Are Near φ-Powers)
+$$\boxed{r_\star \equiv \frac{E_Y}{E_I}=\varphi}$$
 
----
+is a declared model postulate and solver input. A physical attractor, suppression of phase locking, a coupling flow, or survival of multi-scale structure requires specified dynamics and observables; arithmetic extremality alone does not establish those outcomes. The correction table records the $\varphi$-power baselines used in the proposal, their measured offsets, and candidate mechanisms. The de-resonance mapping remains a concrete, testable Cassi hypothesis.
 
-## 1. The Resonance Avoidance Principle
+## 0. Scope: arithmetic datum and physical proposal
 
-In a system of coupled oscillators, a **rational frequency ratio** (e.g., $2:1$, $3:2$)
-leads to **resonance**—energy concentrates at a single scale, and the multi-scale
-structure collapses. An **irrational frequency ratio** prevents this, allowing
-multi-scale structure to persist.
+The arithmetic statement and the physical interpretation have separate epistemic status.
 
-The golden ratio $\varphi$ is the **most irrational** of all irrationals: its
-continued fraction is $[1; 1, 1, 1, \ldots]$ forever, and the convergents
-$1, 2, 3, 5, 8, 13, 21, 34, 55, 89$ are Fibonacci numbers. No other irrational
-number resists rational approximation as well as $\varphi$.
+| Layer | Statement | Status in this paper |
+|-------|-----------|----------------------|
+| Number theory | $\varphi=(1+\sqrt{5})/2=[1;1,1,\ldots]$ and the sharp Hurwitz/Lagrange approximation result | **Derived number-theory identity / standard theorem** |
+| Cassi target | The canonical density-conversion target is $r_\star=E_Y/E_I=\varphi$ | **Hypothesized model postulate / solver input** |
+| Physical mapping | The two-fluid dynamics may select $r_\star$, reduce phase locking, and organize scales near $\varphi$-powers | **Hypothesized** |
+| Correction catalogue | Measured anchors and calculated comparisons, with quantity provenance and mechanism tiers stated below | Mixed; see the row-level labels |
 
-**Consequence:** $\varphi$ is the *maximally de-resonant* value—the one that
-most strongly forbids single-scale dominance and most strongly favors multi-scale
-structure formation. In the two-fluid PDE, the Yang/Yin ratio $r = E_Y/E_I$
-evolves toward $\varphi$ because that's the configuration that keeps the
-system dynamically rich.
+The target $r_\star$ is therefore an input against which the equations can be tested. It is not a number-theory consequence. A candidate attractor claim has a definite form: for a declared parameter region and an open set of initial conditions, the computed ratio $r(t)$ approaches $r_\star$ and remains there within a stated tolerance. The same experiment must measure phase locking and spectral energy transfer, so that resonance behavior and scale retention are outcomes of the equations rather than assumptions.
 
-The $\varphi$-attractor is not an axiom—it is an **emergent consequence** of
-the wave-physics principle that multi-scale structure requires de-resonance.
-Its field-theoretic formulation as a discrete renormalization group with scale
-factor $\varphi$ is developed in `foundations/phi-rg-formalism.md`.
+## 1. The arithmetic statement and resonance scope
 
----
+### 1.1 Continued fraction and extremal approximation—**Derived number theory**
+
+The golden ratio is the positive solution of the fixed-point equation for the all-one continued fraction:
+
+$$
+x=1+\frac{1}{x}
+\quad\Longrightarrow\quad
+x^2-x-1=0
+\quad\Longrightarrow\quad
+x=\varphi=\frac{1+\sqrt{5}}{2}.
+$$
+
+With $F_0=0$, $F_1=1$, and $F_{k+1}=F_k+F_{k-1}$, the convergents of $[1;1,1,\ldots]$ follow the Fibonacci ratios (after the initial convention):
+
+$$
+\frac{1}{1},\ \frac{2}{1},\ \frac{3}{2},\ \frac{5}{3},\ \frac{8}{5},\ \frac{13}{8},\ldots
+$$
+
+For an irrational $x$, let $\|qx\|$ denote the distance from $qx$ to the nearest integer and define the approximation constant
+
+$$
+\mu(x)\equiv\liminf_{q\to\infty}q\|qx\|.
+$$
+
+The standard Hurwitz theorem and the sharp equality case give
+
+$$
+\mu(x)\leq\frac{1}{\sqrt{5}}
+\quad\text{for every irrational }x,
+\qquad
+\mu(\varphi)=\frac{1}{\sqrt{5}}.
+$$
+
+Larger $\mu$ means poorer asymptotic rational approximation in this convention, so $\varphi$ is extremal or worst approximable in the standard Hurwitz/Lagrange sense. The extremal status belongs to an equivalence class: for
+
+$$
+T(x)=\frac{a x+b}{c x+d},
+\qquad
+a,b,c,d\in\mathbb{Z},
+\qquad
+ad-bc=\pm1,
+$$
+
+the integer fractional-linear equivalents of $\varphi$ have the same standard asymptotic class. This paper uses the positive $\varphi$ representative as a convention. A uniqueness statement requires that equivalence convention and a specified domain; the arithmetic result supplies no preferred physical coordinate by itself.
+
+The phrase “maximally irrational” is used here only for this approximation metric. It carries an arithmetic meaning and no automatic dynamical meaning.
+
+### 1.2 What the arithmetic result says about resonance
+
+In a coupled-oscillator model, a rational frequency ratio supplies exact commensurability and can enable resonant terms. Energy concentration, phase locking, or transfer to a particular scale then depends on forcing, detuning, nonlinear couplings, damping, geometry, and initial conditions. A rational ratio alone does not determine collapse of a multi-scale state.
+
+An irrational ratio removes exact commensurability for that scalar pair, while near-rational approximants can still produce long finite-time interactions. Nonlinear combination frequencies and parametric resonances require their own analysis. The extremal approximation property of $\varphi$ limits one arithmetic route to close rational approximation; it does not universally prevent resonance locking or guarantee persistent multi-scale structure.
+
+### 1.3 The physical claim that remains to be tested
+
+The Cassi proposal is that the two-fluid equations, with the declared target $r_\star=\varphi$, may possess a robust de-resonant regime. The hypothesis can be tested by varying $r(0)$ around $r_\star$, scanning damping and coupling parameters, and comparing the basin and long-time behavior with rational and other irrational controls. Evidence for the proposed mapping would include reproducible convergence to $r_\star$, a measured reduction in phase-locking intervals under predeclared conditions, and a quantified spectrum that retains energy across the selected scales. Each result needs a constitutive and observation map from field variables to the measured ratio, phase, and spectrum.
+
+## 2. Cassi framework posture
+
+The $\varphi$-power expressions below are working baselines for selected quantities. They are model ansätze whose physical scope must be stated for each sector.
+
+| Quantity or sector | Cassi working expression | Status |
+|--------------------|-------------------------|--------|
+| Canonical density-conversion target | $r_\star=E_Y/E_I=\varphi$ | **Hypothesized postulate / solver input** |
+| Selected dimensionless quantities | near a $\varphi$-power, with deviations determined by dynamics | **Hypothesized ansatz** |
+| $v_0$ | $M_{\rm Pl}\cdot\varphi^{-80}\cdot(1+\text{correction})$ | **Hypothesized baseline** |
+| $m_e$ | $v_0\cdot\varphi^{-26}/\sqrt{2}\cdot(1+\text{correction})$ | **Hypothesized baseline** |
+| $\sin^2\theta_W$ | $\varphi^{-3}\cdot(1+\text{correction})$ | **Hypothesized baseline; running calculation below** |
+
+The phrase “near a $\varphi$-power” is a selection rule for the declared Cassi set, with a tolerance and a null model still required. It is not a universal assertion about every dimensionless observable.
+
+## 3. Empirical pattern of corrections
+
+The table is a catalogue of offsets from the chosen baselines. Let $B$ be the baseline and $M$ the measured value, and define
+
+$$
+\delta\equiv\frac{M-B}{B},
+\qquad
+M=B(1+\delta).
+$$
+
+| Quantity | Nearest $\varphi$-power baseline $B$ | Measured $M$ | Relative offset $\delta=(M-B)/B$ | Quantity provenance | Mechanism tier |
+|----------|--------------------------------------|--------------|-----------------------------------|---------------------|----------------|
+| $\sin^2\theta_W$ | $\varphi^{-3}=0.236$ | $0.23122$ | $-2.1\%$ (the baseline is $+2.1\%$ above measured) | Calibrated observation anchor; Mapped running comparison | Mapped conditional; physical interpretation Hypothesized |
+| $v_0/M_{\rm Pl}$ | $\varphi^{-80}=1.91\times10^{-17}$ | $2.02\times10^{-17}$ | $+5.6\%$ from direct/raw anchors; catalog rounded comparison $+5.3\%$ | Calibrated observation anchor; Mapped baseline exponent | Hypothesized mechanism |
+| $m_e$ | $v_0\varphi^{-26}/\sqrt{2}=0.64$ MeV | $0.511$ MeV | $-20\%$ | Calibrated observation anchor; Mapped baseline exponent | Speculative |
+| $\alpha_s(M_Z)$ | $0.058$ (SM RGE) | $0.118$ | $+103\%$ (approximately $\times2.0$) | Calibrated observation anchor (`standard-model/sm-radiative-corrections.md` §2); Mapped $\Delta b=1.70$ input (ongoing) | Speculative |
+
+The scalar logarithmic rung offset associated with a multiplicative correction is
+
+$$
+\boxed{\delta n\equiv\frac{\ln(1+\delta)}{\ln\varphi}
+=\log_\varphi\!\left(\frac{M}{B}\right).}
+$$
+
+This $\delta n$ measures a scalar displacement in logarithmic $\varphi$-rung units. It has no phase units. An identification such as $\delta n=\Delta\theta/(2\pi)$, or any other two-fluid phase-lag interpretation, is **Hypothesized** and requires a separately defined observation/constitutive map connecting the scalar observable to local field phases. The rung-offset program (`foundations/rung-offset-mechanism.md`) proposes such a correspondence; the table itself uses only the logarithmic definition.
+
+The quantity-provenance labels have the following scope:
+
+- **External**—a source value or constant is taken from outside the Cassi
+  derivation.
+- **Calibrated**—an observation anchors the comparison.
+- **Mapped**—a fitted or selected relation, exponent, or bookkeeping input is
+  recorded; an ongoing mapping is marked explicitly.
+- Mechanism tiers remain **Derived**, **Hypothesized**, or **Speculative** as
+  stated in each row; provenance is not itself a mechanism tier.
+
+The offsets in this sample range from about $2\%$ to about $20\%$, with the QCD comparison near a factor of two. This is a descriptive grouping of the listed rows. It does not establish a monotonic relation between offset size and attractor strength, scale, or de-resonance. Such a relation requires a declared observable set, tolerance, and null comparison.
+## 4. Physical origin of each correction
+
+### 4.1 $\sin^2\theta_W$ ($2.1\%$ baseline offset at $m_Z$)—**Mapped conditional running; Hypothesized Cassi interpretation**
+
+The chosen baseline gives $\sin^2\theta_W=\varphi^{-3}=0.23607$. The measured
+MS-bar value at $m_Z$ is $0.23122$, so the baseline is $+2.1\%$ above the
+measurement. The quoted running calculation reaches $\varphi^{-3}$ at
+$\mu_*\approx233$ GeV. The angle runs upward with energy ($0.43$ at
+$2\times10^{16}$ GeV in the SM and $0.38$ in the MSSM variant), so this is an
+IR matching statement rather than a GUT-scale boundary condition
+(`standard-model/sm-radiative-corrections.md` §3.3). Interpreting the
+matching value as a physical de-resonance target remains Hypothesized.
+
+### 4.2 $v_0/M_{\rm Pl}$ ($5.3\%$ correction)—**Hypothesized; mechanism unidentified**
+
+If the Cassi potential is evaluated at its declared $\varphi$ target, its
+equilibrium relation is
+
+$$
+v_0^2=-\frac{\mu^2}{g}.
+$$
+
+Within that stationary-point algebra, $v_0$ is independent of $\lambda$.
+The residual is convention-dependent. Using the displayed direct/raw anchors
+$M_{\rm Pl}=1.22\times10^{19}\,\mathrm{GeV}$ and $v_0=246\,\mathrm{GeV}$
+gives $N_{\rm raw}=\log_\varphi(M_{\rm Pl}/v_0)\approx79.89$ and a
+nearest-integer comparison of approximately $5.6\%$ to $\varphi^{-80}$.
+The table's displayed ratios are rounded; the catalog's rounded $5.3\%$
+entry uses its declared rounded ratio. The gap-adjusted cascade convention
+is a separate quantity,
+$N_g=\log_\varphi(gM_{\rm Pl}/v_0)\approx79.7$ with
+$g=1-\varphi^{-5}$ (`foundations/dimensionful-cascade.md` §2.1). Neither
+convention supplies a computed physical correction.
+
+Plausible candidate mechanisms remain:
+
+- **Threshold corrections at the matching scale** from heavy-particle finite
+  shifts.
+- **RGE running of $v_0$** in the Cassi SU(2) framework, with the sign still
+  requiring analysis.
+- **The exact target value** versus the nearest integer power is a
+  convention-dependent baseline comparison, not a correction mechanism.
+
+See `principles/v0-hierarchy-problem.md` for the full analysis. None of these
+candidates has a completed calculation in the Cassi framework, so the physical
+correction remains Hypothesized.
+
+### 4.3 $m_e$ (observed $-20\%$ baseline offset; candidate mixing scale $\sim25\%$)—**Speculative**
+
+The $\varphi$-power expression is the no-mixing baseline. A flavor-mixing
+interpretation assigns the measured offset to mixing among the three lepton
+families. A specified CKM-like ansatz could produce a correction of order
+$25\%$, while the actual magnitude and sign require a specified lepton mixing
+matrix and calculation. The current row supports a test proposal rather than a
+completed mechanism.
 
 
-## 2. The Framework Posture
+### 4.4 $\alpha_s(M_Z)$ (approximately $\times2.0$ correction)—**Speculative**
 
-| Quantity | Cassi value |
-|----------------|--------------|
-| Every quantity | **near** a $\varphi$-power, with deviations determined by dynamics |
-| $v_0$ | $M_{\rm Pl} \cdot \varphi^{-80} \cdot (1 + \text{correction})$ |
-| $m_e$ | $v_0 \cdot \varphi^{-26}/\sqrt{2} \cdot (1 + \text{correction})$ |
-| $\sin^2\theta_W$ | $\varphi^{-3} \cdot (1 + \text{correction})$ |
-## 3. The Empirical Pattern of Corrections
+The one-loop $\alpha_s$ estimate from the chosen boundary
 
-| Quantity | Nearest $\varphi$-power | Measured | Correction | Mechanism | Evidence |
-|----------|------------------------|----------|------------|-----------|----------|
-| $\sin^2\theta_W$ | $\varphi^{-3} = 0.236$ | $0.23122$ | $+2.1\%$ (φ⁻³ above measured) | Exact at $\mu_* = 233$ GeV; running is upward (`standard-model/sm-radiative-corrections.md`) | **Computed** |
-| $v_0/M_{\rm Pl}$ | $\varphi^{-80} = 1.91\times10^{-17}$ | $2.02\times10^{-17}$ | $+5.6\%$ | **Unidentified**—see `principles/v0-hierarchy-problem.md` (v₀ is λ-independent at equilibrium; mechanism may be threshold corrections, exact φ-attractor value, or RGE) | **Hypothesized** |
-| $m_e$ | $v_0\varphi^{-26}/\sqrt{2} = 0.64$ MeV | $0.511$ MeV | $-20\%$ | Flavor mixing from $\mu,\tau$ sector | **Speculative** |
-| $\alpha_s(M_Z)$ | $0.058$ (SM RGE) | $0.118$ | $\times 2.0$ | Needs $\Delta b = 1.70$ from ~1 vector-like colored fermion pair + 2 colored scalars, or ~3 KK levels | **Speculative** |
+$$
+\alpha_{\rm GUT}=\frac{\varphi^{-3}}{4\pi}
+$$
 
-The rung-offset program (`foundations/rung-offset-mechanism.md`) develops the mechanism behind these corrections: the offset $\delta n = \ln(1+\delta)/\ln\varphi$ is the two-fluid phase lag at that scale, and exact alignment would mean perfect coherence.
+depends on the particle content between $M_{\rm GUT}$ and $m_Z$. With the
+Standard Model coefficient $b_0=7$ for $n_f=6$, the quoted running gives
+$\alpha_s(M_Z)\approx0.058$, compared with the measured $0.118$.
 
-**Evidence levels:**
-- **Computed** = explicit calculation done in Cassi or SM RGE
-- **Hypothesized** = plausible mechanism identified but not yet calculated in detail
-- **Speculative** = a possible explanation with no specific calculation
+Closing this numerical gap would require $\Delta b=1.70$, with candidate
+spectra such as a vector-like colored fermion pair, two colored scalars, or
+about three KK levels of a gluon. The $\alpha_s$ RGE depends on the full
+particle spectrum; this candidate spectrum is a particle-content hypothesis
+and receives no direct derivation from the irrationality of $\varphi$.
 
-**Pattern:** the correction magnitude correlates with how "de-resonant" the
-quantity's natural scale is. Strongly-attractor quantities (couplings set at
-the $\varphi$-equilibrium) have small corrections ($\sim 2{-}5\%$). Weakly-attractor
-quantities (masses that require mixing to set their scale) have larger
-corrections ($\sim 20{-}30\%$). Non-attractor quantities (those determined by
-particle content rather than the $\varphi$-attractor) have large deviations
-($\times 10$).
-## 4. Physical Origin of Each Correction
+## 5. Testable consequences of the Hypothesized mapping
 
-### 4.1 $\sin^2\theta_W$ ($+2.1\%$ correction at $m_Z$)—**Computed**
-
-The $\varphi$-attractor gives $\sin^2\theta_W = \varphi^{-3} = 0.23607$. The
-measured MS-bar value at $m_Z$ is 0.23122 (+2.1%), and the running angle
-equals $\varphi^{-3}$ at $\mu_* \approx 233$ GeV. The angle runs **upward**
-with energy (0.43 at $2\times10^{16}$ GeV in the SM, 0.38 in the MSSM
-variant), so the correction is not closed by running from the GUT scale:
-starting from 0.236 at $2\times10^{16}$ GeV and running down gives
-$\sin^2\theta_W(m_Z) \approx 0.15$ (SM) / 0.20 (MSSM)
-(`standard-model/sm-radiative-corrections.md` §3.3).
-
-**Mechanism:** running of the gauge couplings between the matching scale
-and the $Z$-pole; the φ-point value is an IR statement at $m_Z$–233 GeV,
-not a GUT-scale boundary condition.
-
-### 4.2 $v_0/M_{\rm Pl}$ ($5.6\%$ correction)—**Hypothesized, mechanism unidentified**
-
-The equilibrium $v_0$ from the Cassi potential is **independent of $\lambda$** at
-the $\varphi$-fixed point ($v_0^2 = -\mu^2/g$). The $5.6\%$ correction therefore
-cannot come from $g/\lambda$ mixing. The actual mechanism remains unidentified;
-plausible candidates are:
-
-- **Threshold corrections at the matching scale** (heavy-particle finite shifts)
-- **The exact $\varphi$-attractor value** vs. the nearest integer power
-  $\varphi^{-80}$ (true exponent is $79.89$, introducing $\sim 0.5\%$ baseline)
-- **RGE running of $v_0$** in the Cassi SU(2) framework (sign analysis needed)
-
-See `principles/v0-hierarchy-problem.md` for the full analysis. None of the candidates
-has been computed in the Cassi framework; this is the framework hierarchy
-problem in disguise.
-
-### 4.3 $m_e$ ($20{-}25\%$ correction)—**Speculative**
-
-The electron Yukawa coupling is set by the $\varphi$-power hierarchy, but the
-*actual* coupling is renormalized by mixing with the $\mu$ and $\tau$ Yukawa
-sectors. In the CKM-like structure, the off-diagonal mixing terms contribute
-$\sim 25\%$ corrections to the diagonal electron coupling.
-
-**Mechanism:** flavor-mixing among the three lepton families. The
-$\varphi$-attractor prediction is the "no-mixing" limit.
-
-### 4.4 $\alpha_s(M_Z)$ ($\times 2.0$ correction)—**Speculative**
-The $\alpha_s$ running from $\alpha_{\rm GUT} = \varphi^{-3}/(4\pi)$ depends on
-the **number and content of particles** between $M_{\rm GUT}$ and $m_Z$. The
-Standard Model $\beta$-function coefficient $b_0 = 7$ (for $n_f = 6$) gives
-$\alpha_s(M_Z) \approx 0.058$—a factor of $2.0\times$ below the measured
-$0.118$.
-
-Closing this gap requires $\Delta b = 1.70$ in the QCD $\beta$-function,
-achievable through:
-- **~1 vector-like colored fermion pair** (e.g., a $\mathbf{3} + \bar{\mathbf{3}}$ pair)
-- **+ 2 colored scalars** (e.g., squark-like states)
-- **Or ~3 KK levels** of a gluon in an extra-dimensional scenario
-
-**Mechanism:** the $\alpha_s$ RGE depends on the full particle spectrum, not
-just on $\varphi$.
-
----
-
-## 5. Forward-Looking Testable Predictions
-
-The de-resonance principle makes *prospective* claims—predictions about
-future measurements, not descriptions of the existing pattern.
+These are conditional proposals. Their tolerances are working specifications,
+not consequences of the number-theory theorem.
 
 ### 5.1 Precision electroweak
 
-The next generation of electroweak measurements (FCC-ee, ILC, CEPC) will
-measure $\sin^2\theta_W$ to $\pm 10^{-6}$ precision. The de-resonance principle
-predicts the Z-pole value sits $+2.1\%$ above $\varphi^{-3}$ (the running
-angle equals $\varphi^{-3}$ at $\mu_* \approx 233$ GeV), with the residual
-shift determined by the standard RGE running and threshold corrections—no
-additional thresholds are needed, and any unexplained shift beyond the
-computed running would stress the framework.
+Future precision electroweak measurements can compare the Z-pole value with
+the $\varphi^{-3}$ baseline: the baseline is currently $+2.1\%$ above the
+measured value, and the running angle reaches the baseline at
+$\mu_*\approx233$ GeV. A specified RGE and threshold model can be confronted
+with the residual shift. A discrepancy beyond the computed running would
+challenge that model instance and motivate threshold tests.
 
-### 5.2 New scalar discoveries
+### 5.2 New scalar discoveries (unregistered proposal)
 
-If a new scalar is discovered at mass $M_X$ with coupling $y_X$ to the
-Standard Model Higgs, the de-resonance principle predicts:
+For a newly discovered scalar with mass $M_X$ and coupling $y_X$ to the
+Standard Model Higgs, a proposed ansatz is
 
-$$y_X \approx \varphi^{-n} \cdot (1 + \delta), \quad |\delta| < 0.3$$
+$$
+y_X\approx\varphi^{-n}(1+\delta),\qquad |\delta|<0.3,
+$$
 
-for some integer $n$ determined by the field's role. A scalar with $y_X$
-deviating from the nearest $\varphi$-power by more than $30\%$ would
-indicate a non-$\varphi$-attractor sector.
+for an integer $n$ assigned from the field's declared role. The role-to-$n$
+map, tolerance, and comparison set must be fixed before using a measurement.
+No such role-to-$n$ map is registered here.
 
-### 5.3 Future lepton mass measurements
+### 5.3 Future precision lepton-sector observables (unregistered proposal)
 
-Currently $m_e$ deviates from $v_0\varphi^{-26}/\sqrt{2}$ by $-20\%$. If
-flavor-mixing is the source, the deviation should be **calculable** from
-the CKM-like lepton mixing matrix once the full flavor structure is
-specified. A measured $m_e$ shift of more than $30\%$ from this prediction
-would rule out flavor-mixing as the dominant correction.
+The flavor-mixing hypothesis becomes calculable once the full lepton mixing
+matrix and the relevant renormalization prescription are specified. A residual
+larger than $30\%$ could challenge flavor mixing as the dominant correction
+under that stated model and tolerance. Other mechanisms remain separate
+hypotheses.
 
-### 5.4 GUT-scale $\alpha_s$
+### 5.4 GUT-scale $\alpha_s$ (unregistered proposal)
 
-If a new GUT-scale measurement of $\alpha_s$ (e.g., from proton decay bounds
-or collider GUT signals) gives a value within $10\%$ of $\varphi^{-3}/(4\pi)$,
-the SUSY/KK-explanation for the $\alpha_s$ RGE would be confirmed. A
-significantly different GUT-scale $\alpha_s$ would force re-evaluation of
-the $\varphi$-attractor scale.
-
----
+If a future GUT-scale determination of $\alpha_s$ lies within $10\%$ of
+$\varphi^{-3}/(4\pi)$, it could support the particular boundary relation
+together with the associated SUSY/KK running explanation. A significantly
+different value would disfavor that boundary/spectrum combination and require
+a new scale assignment.
 
 ## 6. Implications for the TOE
 
-The Cassi framework is not a "everything is $\varphi$" theory. It is a
-**de-resonance principle** theory: the $\varphi$-attractor sets the
-**leading-order baseline** for all couplings, and the dynamics provide
-**subleading corrections**.
+The Cassi proposal has a clear division between an arithmetic input and a physical hypothesis.
 
-This is the same conceptual structure as the Standard Model, where the
-electroweak VEV sets the leading-order scale for all masses, and the Yukawa
-couplings (with their non-trivial flavor structure) provide the corrections.
-The Cassi framework's innovation is to identify $\varphi$ as the relevant
-leading-order baseline—the *most irrational*, *most de-resonant* value
-that nature could pick.
+1. The arithmetic input is the extremal rational-approximation property of the golden-ratio equivalence class.
+2. The model postulate is the canonical target $r_\star=E_Y/E_I=\varphi$ used in the density conversion and solver.
+3. The physical hypothesis is that specified two-fluid dynamics can make this target a robust regime, with measurable effects on phase locking, coupling offsets, and scale transfer.
 
-The framework's predictive power is:
+Within that posture, selected dimensionless couplings may be organized near $\varphi$-power baselines, while RGE running, thresholds, flavor mixing, and particle content supply corrections. The empirical table supplies a starting catalogue for those tests. It does not establish that every quantity has a $\varphi$-power baseline, that deviations are monotonic in scale, or that the same mechanism controls every sector.
 
-1. **All dimensionless couplings are near $\varphi$-powers** (within a factor
-   of $\sim 2$, set by the dynamics).
-2. **The deviation pattern is monotonic in the natural scale** (smallest
-   at the $\varphi$-attractor scale, largest at far-IR scales).
-3. **The mechanism for each correction is identifiable** (RGE running,
-   threshold effects, flavor mixing, particle content).
+The framework's predictive content therefore lies in declaring the target, the selected observable set, the tolerance, and the dynamics before a comparison. A successful de-resonance result would show convergence and spectral behavior in the equations under controls; a successful coupling result would reproduce the listed offsets with a specified mechanism; a failed comparison would delimit the proposal's domain.
 
-This is a weaker but more accurate framework than "every quantity is exactly a
-$\varphi$-power"—and a much stronger framework than "we have a thousand free
-parameters."
+## 7. Conclusion
+
+The mathematical content of this paper is the continued-fraction identity for $\varphi$, its Fibonacci convergents, and the standard sharp rational-approximation result under an explicit equivalence convention. The Cassi physical content is a Hypothesized mapping that uses $\varphi$ as the declared density-conversion target and asks whether two-fluid dynamics select a de-resonant regime.
+The proposal remains concrete: vary the initial ratio around $r_\star$, measure locking and spectral transfer, and compare with rational and irrational controls. Use $\delta n=\ln(1+\delta)/\ln\varphi$ as a scalar logarithmic rung offset. A phase interpretation requires its own observation/constitutive map. These tests determine whether the proposed attractor and correction mechanisms describe the dynamics; the arithmetic extremality alone sets their motivation.
+
+## References
+
+- `foundations/phi-rg-formalism.md`—Hypothesized discrete-$\varphi$ renormalization-group construction and proposed physical flow.
+- `foundations/rung-offset-mechanism.md`—Hypothesized correspondence between fractional rung offsets and two-fluid phase variables.
+- `principles/v0-hierarchy-problem.md`—Analysis of the $v_0$ hierarchy offset and candidate mechanisms.
+- `standard-model/sm-radiative-corrections.md` §§2–3.2—PDG 2024 input $\alpha_s(m_Z)=0.1180(9)$ and the one-/two-loop $\varphi$-boundary running comparison; numerical provenance `computations/sm_radiative_corrections.py`.
+- J. W. S. Cassels, *An Introduction to Diophantine Approximation*,
+  Cambridge Tracts in Mathematics and Mathematical Physics 45, Cambridge
+  University Press (1957), Chapter I, §§5–6 (Hurwitz theorem and the
+  golden-ratio equality case); Cambridge excerpt:
+  https://assets.cambridge.org/97805210/45872/excerpt/9780521045872_excerpt.pdf
+- The equality $\mu(\varphi)=1/\sqrt{5}$ is used in the standard
+  Hurwitz/Lagrange form stated by Cassels, Chapter I, §§5–6, under the
+  explicit equivalence convention in §1.1; no Cassi dynamical consequence is
+  inferred from the arithmetic identity.

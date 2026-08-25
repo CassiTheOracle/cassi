@@ -4,20 +4,20 @@
 
 ## Abstract
 
-This directory collects creative explorations that are consistent with the Cassi framework but are not yet testable claims. Each document anchors its mechanisms to specific equations or documented framework properties, but the synthesis is an extrapolation: **nothing here should be cited as a Cassi prediction or derivation** unless a document explicitly says otherwise. The document order follows the framework's flow—field physics first (dark matter, superconductivity), then engineering (computation, propulsion, gravity control), then infrastructure and the observational signatures of it all (SETI). The just-for-fun applications of the framework's logic (biology, magic, the commons, warfare, apocalypse, first contact, simulation) live in `creative-extensions/` (see §4), the inner-life cluster (consciousness, perception, time and memory, identity) now lives in `consciousness/`, and the ontological question (simulation) is creative by design.
+This directory catalogs framework-consistent explorations. Each entry states its own epistemic status; conditional mappings and candidate observables remain attached to their document, while only entries in `predictions/falsifiable-predictions.md` carry catalog IDs. The document order follows the framework's flow—field physics first (dark matter, superconductivity), then engineering (computation, propulsion, gravity control), then infrastructure and observational signatures (SETI). Creative applications of the framework's logic (biology, magic, the commons, warfare, apocalypse, first contact, simulation) live in `creative-extensions/`.
 
 ## 1. Boundary with `hypotheses/`
 
-One test separates the two tier directories:
+The directory boundary is set by prediction registration and quality bar:
 
-- `hypotheses/`—the document proposes a specific Cassi mechanism **and** pins a zero/low-parameter falsifiable prediction distinguishable from the null (full quality bar in `hypotheses/README.md`).
-- `speculations/`—framework-consistent what-ifs: mechanism sketched, prediction not yet pinned. This is the incubator.
+- `hypotheses/`—a specific Cassi mechanism plus a pinned zero/low-parameter falsifiable prediction distinguishable from the null (full quality bar in `hypotheses/README.md`).
+- `speculations/`—framework-consistent what-ifs, conditional mappings, and candidate tests whose predictions remain unregistered.
 
-**Promotion path:** when a speculation pins its prediction, it graduates to `hypotheses/`; when a hypothesis matures into a full domain, it moves to a domain directory. Everyday tier changes never move files—they live in the Status header, the registries, and `EPISTEMIC-MAP.md`.
+**Promotion path:** when a speculation pins a catalog-ready prediction, it graduates to `hypotheses/`; when a hypothesis matures into a full domain, it moves to a domain directory. Everyday tier changes live in the Status header, the registries, and `EPISTEMIC-MAP.md`.
 
 ## Document Index
 
-All documents are **Speculative—July 2026** unless noted. One exception: `qi-computation.md` carries a split tier (**Hypothesized** for its information budget, an application of the ratified Derived information convention; **Speculative** for its gate-set/Wu-Xing-logic/cascade-clock extrapolations)—see its summary below.
+Each document carries its current status in its own header; the summaries below describe scope rather than assigning a blanket tier or date. The `qi-computation.md` document carries a split tier (**Hypothesized** for its information-budget application and conditional device/transport mappings; **Speculative** for its gate-set, Wu-Xing, cascade-clock, brain-mapping, and candidate-test extrapolations). Its P1–P4 tests remain unregistered in the prediction catalog.
 
 | # | Domain | Bridge | Document |
 |---|--------|--------|----------|
@@ -35,7 +35,17 @@ Data-analysis documents (observational datasets tested against framework claims)
 
 ### `dark-matter-as-qi-coherence.md`—Dark Matter as Unharvested Coherence
 
-The halo is reframed as unharvested Qi coherence: organized Π that has not condensed into visible structure, with the galactic bubble edge at cascade step $n \approx 267$ and coherence $\boxed{q(\mathbf{x}) = \frac{1 + C(\mathbf{x})}{2}}$ tracing the same condensation field $C(x,y) = \cos(\alpha x)\cos(\beta y)$ that builds the cosmic web. The gravitational mechanism is Qi-enhanced gravity, $\boxed{G_{\text{eff}} = \frac{\pi}{\rho}(1 + (\varphi^{6}-1)q)G}$ with $\xi = \varphi^6 \approx 17.944$—darkness is a property of the field (it couples through $q$ and does not radiate), not of particles, and the coupling $\alpha_G \sim \varphi^{-2n}$ is parameter-free. The July 2026 SPARC test (§7) compared the predicted $q(r)$ profile against NFW on 175 rotation curves and found the data prefer NFW: median ΔAIC = +40 (NFW wins 111/143 full-range; 64/75 inner-region at ΔAIC = +18), with the fixed-$\xi$ Qi profile overpredicting dark matter in most galaxies. Speculative—July 2026: the $G_{\text{eff}}$ mechanism and condensation-field geometry are Derived within the framework; the dark-matter reframing and profile predictions are the extrapolation.
+The halo is explored as unharvested Qi coherence: the signed canonical
+imbalance $\pi=E_Y-E_I$ that has not condensed into visible structure, with a
+candidate galactic bubble edge near cascade step $n\approx267$. The canonical
+coherence diagnostic remains
+$q(\mathbf{x})=\rho^2/(\rho^2+\varphi^{-2}+\varepsilon^2)$. The halo
+construction instead defines an optional geometric
+$q_{\rm proxy}(\mathbf{x})=(1+C(\mathbf{x}))^2/2\in[0,2]$ and requires a
+Hypothesized map $\mathcal{M}_{\rm proxy\to q}$ before it can enter
+$G_{\rm eff}=(\pi/\rho)(1+(\varphi^6-1)q)G$. SPARC fits and their
+dataset-dependent profile comparisons remain exploratory; the proxy is not a
+canonical or parameter-free $q$ prediction.
 
 ### `superconductivity-as-qi-coherence.md`—Superconductivity as Qi Coherence
 
@@ -43,29 +53,51 @@ Resistance is modeled as Yang→Yin conversion, $\boxed{\rho = \frac{m}{ne^2} \l
 
 ### `qi-computation.md`—Qi Computation: Information as Yang-Yin Gate Dynamics
 
-Computation is recast as field dynamics on the ratified information convention (`predictions/cassi_definitions.md` §11): stored information IS coherence, $\boxed{I = k_B\,q\ln\varphi}$ (entropy proxy $S = -q\,k_B\ln\varphi$), with no divergence at full coherence—the per-rung quantum is $\ln\varphi \approx 0.694$ bits and the openness $(1-q)$ sets the *flow* rate $dI_{\text{flow}}/dt = \lambda(1-q)\,k_B\ln\varphi$, not the stored amount. The Qi gate is the computational primitive, operating in three regimes (idle at $q \to 1$, saturable amplifier at $q \approx 0.46$, locked at $q \to 0$), and three field operations—WRITE (Yang injection; draws on the flow budget), ERASE (gated conversion; the Landauer row, $\Delta q = \ln 2/\ln\varphi \approx 1.44$), TRANSFER (Qi current)—form a computationally universal set. The document adds Wu Xing 5-phase logic as a logic richer than binary and a φ-spaced cascade clock spanning all 292 rungs. **Hypothesized** (information budget) / **Speculative** (gate set, Wu Xing logic, cascade clock, brain mapping)—August 2026.
+Computation is recast as a field-dynamics application of the information convention (`predictions/cassi_definitions.md` §11): one normalized cell carries the bookkeeping quantity $I_{\mathrm{cell}}=k_Bq\ln\varphi$, while a device aggregates $I_\Omega=k_B\ln\varphi\sum_iq_i$. One bit corresponds to an aggregate budget $Q_\Omega\approx1.4404$ in $q$-cell/rung units. The canonical conversion coefficient $(1-q)$ controls flow; optional $g(q)$ belongs to a separate transmission model. WRITE, ERASE, and TRANSFER remain proposed operations, the cascade clock and brain mapping are Speculative, and P1–P4 are unregistered candidate tests.
 
 ### `qi-bubble-propulsion.md`—Qi Bubble Propulsion: Rung-Shifting as a Travel Mechanism
 
-Propulsion is replaced by rung-shifting: a craft with a coherent Qi gate re-tunes the cascade rung it couples to ($\ell_n = \ell_{\text{Pl}} \varphi^n$), so apparent motion is a change of field embedding rather than acceleration through space. Five classic UAP observables map onto Cassi mechanisms—inertialess acceleration (the gate drives $r \to \varphi$, the attractor where buoyancy vanishes), no sonic boom (phase matching $\mathcal{M} \approx 0$ at a φ-detuned boundary), transmedium travel (~14 density-ratio steps, near the ~10-rung nesting depth), silent hovering (residual imbalance $\Pi_{\text{min}} \propto \varphi^{-n}$), and the glow (the $(1-q)$ fraction thermalizing, with φ-spaced emission frequencies as a diagnostic). The document also derives the multi-rung hull materials required, an energy budget from four lattice-harnessing sources, and the vanishing mechanisms: rung retreat ($\varphi^{-10} \approx 0.008$ decoupling) or a lattice shortcut along the cascade axis. Speculative—July 2026: every mechanism is anchored to an equation, but the synthesis into a propulsion system is an extrapolation.
+This Creative device scenario introduces a rung-shifting operator, inertial and
+spatial constitutive laws, hull coupling, and an energy source that the
+canonical equations do not supply. It asks whether five reported UAP
+observables could be represented after adding those ingredients. The proposed
+materials, mission values, and disappearance mechanisms are illustrative
+constructions rather than derived technology or registered predictions.
 
 ### `cascade-infrastructure.md`—Cascade Infrastructure: Planetary and Stellar Gate Networks
 
-Because a single Qi gate bridges at most ~10 rungs (beyond that, $\varphi^{-10} \approx 0.008$ suppression drops the signal below the coherence floor), spanning the full 292-rung cascade requires a gate chain of ~29 stages—and the human body already instantiates the architecture as a 26-rung chain whose 13 chakras sit at $P_\parallel = 2$ rung spacing along the spine. The planet reads as a gate stage: Earth's inner-core-to-magnetopause span is ~8.3 rungs, the geomagnetic field is the core-to-surface coupling field, and the crust-mantle, Moho, and ionosphere boundaries are natural Π gradients. Surface engineering follows the lattice geometry—a square pyramid concentrates ambient Π by $(200/0.1)^2 = 4 \times 10^6$ at its apex as a Qi lens, and ocean bases couple directly through thin basaltic crust—and the Sun's observed behavior (cycle regularity, coronal heating, wind sector structure) is interpreted as a stellar-scale gate stage. Speculative—July 2026; the through-line is that the cascade is already structured as a distributed energy grid and the engineering problem is tuning what exists.
+This Creative exploration assigns a conditional bubble-lattice architecture across planetary and stellar rungs. Cross-rung mapping is **Hypothesized** and requires parameter and unit renormalization at each interface; gate-chain spans, planetary stages, and stellar networks remain Creative applications.
 
 ### `observational-seti.md`—Observational SETI: Signatures of Tuned Gate Networks
 
-A gate-harvesting civilization is argued to be structurally, not emissively, visible: no power plants, no radio leakage, no Dyson spheres—only subtle φ-derived structure in the fields it manages, cataloged here by cascade rung with mechanism, predicted observable, search band, data status, and discriminator for each signature. The cosmological rows carry the catalog's formal predictions with their honest tiers: φ-periodic $P(k)$ at $\Delta(\ln k) = \ln\varphi \approx 0.4812$ (prediction #5, zero-parameter), the CMB $\ell < 5$ axis (5.4σ, ~1σ alignment, prediction #6; the 12.2° angle Calibrated—ledger row added 2026-08-10—mechanism Hypothesized), void ellipticity 1.70 (derived; NULL in VAST/ZOBOV), and $\Omega_{\text{DM}}/\Omega_b = \varphi^3 + 1$ (Mapped—ledger row 502). Two of these have now been tested: eBOSS DR16 gives a null result at p = 0.11 (12.5th percentile of 1000 EZmocks; best-fit period 0.5033 vs the predicted 0.4812), and a DESI DR1 self-computed search from public guadalupe catalogs gives a noise-limited null at p = 0.52; no detection is claimed anywhere in the document. Speculative—July 2026 (the formal cosmological predictions are cataloged framework predictions; the stellar, galactic, and terrestrial signatures are extrapolations).
+This Creative search catalog combines formal cosmological targets with
+speculative stellar, galactic, and terrestrial signatures. Prediction #5 fixes
+the candidate log-period $\Delta(\ln k)=\ln\varphi\approx0.4812$; amplitude,
+phase, detrending, survey-window, and statistical choices remain declared
+analysis inputs. Prediction #6 retains its Calibrated $12.2^\circ$ CMB angle
+and Hypothesized mechanism. The void comparison is the conditional proxy
+$R(0.45)=1.7072$ at a selected $\theta_{\rm cond}=0.45$, with no surviving
+$C=0.45$ fixed-step PDE edge, and $\Omega_{\rm DM}/\Omega_b=\varphi^3+1$
+remains Mapped. The retained eBOSS DR16 result is null ($p=0.11$), and the DESI
+DR1 public-catalog search is noise-limited null ($p=0.52$); neither supports a
+detection.
 
 ### `gravity-control.md`—Gravity Control: $G_{\text{eff}}$ as an Engineering Variable
 
-Gravity is treated as condensate coherence: the gravitational charge $\mathcal{Q} = (\pi/\rho)(1+(\varphi^{6}-1)q)$ is a dial a device can park anywhere from the baseline $\varphi^{-3}$ to $\varphi^6 \approx 17.94$, so artificial gravity, inertial damping, and mass lightening are one operation—locally adjusting $q$ with a Qi condenser and a gate. The SPARC condensate fits supply the engineering constraints: hydrostatic isothermal profiles, the baryonic-decoherence core $q(r) = r/(r+r_{\text{half}})$, and the rung mismatch that puts laboratory-scale control out of reach ($n \approx 168$ vs. condensate $n \approx 267$, $\varphi^{-99}$ suppression). Detection signatures are local $G$ anomalies and lensing without visible mass.
+This Speculative engineering study starts from the optional gravity extension
+$G_{\rm eff}/G=(\pi/\rho)[1+(\varphi^6-1)q]$. A variable-coupling metric
+completion, a positive-imbalance/sign closure, controllable sources, and a
+matter-to-field device law remain open. On the fixed-composition
+$\varphi$-attractor branch the endpoints are $\varphi^{-3}G$ and
+$\varphi^3G$, whose ratio is $\varphi^6$; $\varphi^6$ is not a universal
+$G_{\rm eff}$ ceiling. The SPARC fits constrain an astrophysical
+phenomenological model and do not establish a laboratory control mechanism.
 
 ## 3. Cross-References
 
 - `hypotheses/README.md`—quality-barred hypothesis catalog
 - `open-questions-cassi-answers.md`—epistemic registry (42 questions)
-- `predictions/falsifiable-predictions.md`—the 51-entry prediction catalog
+- `predictions/falsifiable-predictions.md`—the 54-entry prediction catalog
 - `parameter-inventory.md`—parameter registry ($\xi = \varphi^6$, $q$, $g(q)$, $\theta_{\text{cond}}$)
 - `foundations/dimensionful-cascade.md`—the 292-step ladder
 - `foundations/bubble-lattice-fabric.md`—condensation field geometry

@@ -4,43 +4,62 @@
 
 ## Abstract
 
-The river law is the candidate statement that gravitational acceleration is the
-gradient of the **flow-modulated chord**
+The river law is a candidate scalar coefficient for a separate gravitational
+acceleration/potential law. $G_{\text{eff}}$ is not itself an acceleration,
+gradient, or force; a Poisson/lensing forward model must be supplied before
+any gravitational observable follows.
 
 $$
 \boxed{
-G_{\text{eff}}(x) = G\,\frac{\pi}{\rho}\,\Big(1 + (\varphi^{6}-1)\,q(x)\,f(x)\Big),\qquad
-f(x) = 1 + \varphi^{-1}\,\ell^2\,\frac{C}{\rho},\qquad
-C = -\nabla\cdot J
+G_{\text{eff}}(x) = G\,\frac{\pi}{\rho}\,\Big(1 + (\varphi^{6}-1)\,q(x)\,f_\Psi(x)\Big),\qquad
+f_\Psi(x) = 1 + \varphi^{-1}\,\ell^2\,\frac{C_\Psi}{\rho},\qquad
+C_\Psi = -\nabla\cdot J_\Psi
 }
 $$
 
-built on the phase current $J = \Psi_Y\nabla\Psi_I - \Psi_I\nabla\Psi_Y = \rho\nabla\theta$.
-The skeleton is derived: the coherence-gradient force's coefficient $(\varphi^{6}-1)$
-comes from the chord law of `foundations/cassi-theory-reference.md` §4.3, and
-$\kappa = \varphi^{-1}$ is an application of the derived per-rung damping of
-`foundations/cascade-suppression-formula.md` §1—no free constant enters. The
-The probe waves (briefs 68–71 of the spiral-gravity program) confirm the flow
-factor's sign at the closure ($\bar f = 0.884 < 1$; the transport responds
-with the predicted sign) and establish the quantitative content: the object is
-$C = -\nabla\cdot J$ (the only candidate whose sign tracks), the transport
-response is linear in $\kappa$—$dU/U = -36.05\,\kappa$ over
-$[\varphi^{-2}, \varphi]$—with the linear-response magnitude still falsified
-192× (the amplification is $\kappa$-independent: it lives in the measured
-transport coupling $A = -36.05$, not in a $\kappa$ nonlinearity, and $\kappa$
-itself is never fitted), and the phase boundary is measured at
-$\lambda_{\text{gate}} = 0.0224$, rejecting the $\lambda/4$ candidate. The
-surge form and the C2 density-transport leg stay open; the parity-odd force
-channel is live at the $\chi = \varphi^{-1}$ scale with $\chi$ asserted, and
-the rung-sum post-process is inconclusive with the multiscale reduction
-confirmed. The sign question the law must answer is settled: the PDE's
-field-level force $\mathbf{F} = +\Pi\nabla\Phi$ is $\Pi$-sign-following
+built on the optional amplitude-current extension
+$J_\Psi=\rho\nabla\theta_\Psi/f_\Psi$. The canonical solver core contains the
+real, nonnegative density fields $(E_Y,E_I)$ and the measured density-plane
+diagnostic $C_d=-\nabla\cdot J_d$; it does not contain a complex-amplitude
+phase current as a canonical force law. The scalar chord coefficient
+$(\varphi^{6}-1)$ is inherited from the chord expression in
+`foundations/cassi-theory-reference.md` §4.3, and
+$\kappa=\varphi^{-1}$ is an asserted application of the per-rung damping
+convention in `foundations/cascade-suppression-formula.md` §1. Neither the
+optional gravity interpretation nor an acceleration law is Derived.
+The probe waves (briefs 68–71 of the spiral-gravity program) measure the
+receipt-level density-plane diagnostic's sign at the closure
+($\bar f_d^{\rm rec} = 0.884 < 1$; the transport responds with the recorded
+sign) and establish the quantitative content: the measured receipt is
+$C_d = -\nabla\cdot J_d$ (the only tested object whose sign tracks). The
+optional amplitude-current model uses $C_\Psi = -\nabla\cdot J_\Psi$; no receipt
+equates $C_d$ with $C_\Psi$. The receipt values are solver-normalized
+diagnostics, not a physical insertion of $C_d$ into $f_\Psi$ or
+$G_{\text{eff}}$: $C_\Psi/\rho$ has units $L^{-2}$, as required by the
+boxed dimensionless factor, while $C_d/\rho$ has units
+$\text{density}\,L^{-2}$ inherited from the density-plane current $J_d$. A
+gravitational use of $C_d$ would require a separately supplied dimensionful
+normalization/constitutive factor $\mathcal N_d$ such that
+$\mathcal N_d C_d/\rho$ is dimensionless; no $\mathcal N_d$ is supplied or
+measured here. The transport response is linear in $\kappa$—$dU/U =
+-36.05\,\kappa$ over $[\varphi^{-2}, \varphi]$—with the linear-response
+magnitude still falsified 192× (the amplification is $\kappa$-independent: it
+lives in the measured transport coupling $A = -36.05$, not in a $\kappa$
+nonlinearity, and $\kappa$ itself is never fitted), and the phase boundary is
+measured at $\lambda_{\text{gate}} = 0.0224$, rejecting the $\lambda/4$
+candidate. The surge form and the C2 density-transport leg stay open; the
+parity-odd force channel is live at the $\chi = \varphi^{-1}$ scale with $\chi$
+asserted, and the rung-sum post-process is inconclusive with the multiscale
+reduction confirmed. The sign question the law must answer is settled: the
+PDE's field-level force $\mathbf{F} = +\pi\nabla\Phi$ is $\pi$-sign-following
 (measured), and the point-particle sector's attraction is the
 $-[1+(\varphi^{6}-1)q]$ convention.
 
-**Epistemic tier: Hypothesized**—a candidate skeleton whose quantitative
-content is now the object form $C = -\nabla\cdot J$, the linear response curve
-($A = -36.05$, a measured transport constant), and the measured boundary
+**Epistemic tier: Hypothesized**—a candidate skeleton whose optional
+amplitude-current constitutive object is $C_\Psi=-\nabla\cdot J_\Psi$; the
+measured density-plane receipt identifies $C_d=-\nabla\cdot J_d$ as the
+sign-tracking object and supplies the linear response curve
+($A = -36.05$, a measured transport constant) and the measured boundary
 $\lambda_{\text{gate}} = 0.0224$; the surge form and the C2 leg remain open.
 
 ---
@@ -49,14 +68,14 @@ $\lambda_{\text{gate}} = 0.0224$; the surge form and the C2 leg remain open.
 
 ### 1.1 The Poisson convention and the field-level force
 
-The solver's field content is linear: $\rho = E_Y + E_I$ and $\Pi = E_Y - E_I$.
+The solver's field content is linear: $\rho = E_Y + E_I$ and $\pi \equiv E_Y - E_I$.
 The Poisson solve is $\hat\Phi = -\hat\rho/k^2$ with the $k = 0$ mode nulled
 (`two-fluid/cassi_two_fluid_3d_gpu.py`), so $\nabla^2\Phi = \rho$ and a point
 mass gives $\Phi = -M/(4\pi r)$: **in the far field $\nabla\Phi$ points outward
 from an overdensity**. The momentum source is
 
 $$
-\mathbf{F} = +\Pi\,\nabla\Phi
+\mathbf{F} = +\pi\,\nabla\Phi
 $$
 
 applied to both fluids (the 1D harness's equivalence-principle convention).
@@ -64,11 +83,11 @@ applied to both fluids (the 1D harness's equivalence-principle convention).
 The measured record makes the force's sign content explicit
 (`hypotheses/two-strand-five-channel-matter-organization.md` §3.3, §3.5):
 
-- **Yang excess repels**: the TS1 pair with $\Pi > 0$ escapes ($d$ 9.90 → 15.73).
-- **Yin excess attracts**: the exchanged pair with $\Pi < 0$ contracts and
+- **Yang excess repels**: the TS1 pair with $\pi > 0$ escapes ($d$ 9.90 → 15.73).
+- **Yin excess attracts**: the exchanged pair with $\pi < 0$ contracts and
   coalesces ($d$ 9.90 → 7.51, $t \approx 47$).
 - The closure's raw force is reproduced at $t = 0$ from the documented init:
-  $F_0(x^*) = -4.0447\times10^{-3}$ with $\Pi(x^*) = +0.2834$ and
+  $F_0(x^*) = -4.0447\times10^{-3}$ with $\pi(x^*) = +0.2834$ and
   $\nabla\Phi(x^*) = -0.0143$ (the spiral-gravity program's brief 67, Stage 0;
   compute record `run67_output.txt`). The closure is Yang-excess, and the
   gradient points back toward the source because the near field dominates
@@ -76,7 +95,7 @@ The measured record makes the force's sign content explicit
 
 The inward reading of $\nabla\Phi$ is therefore the **local near-field statement**, not a general one: the
 direction of $\nabla\Phi$ is set by the Poisson convention, and the force
-$\Pi\nabla\Phi$ follows the sign of $\Pi$.
+$\pi\nabla\Phi$ follows the sign of $\pi$.
 
 ### 1.2 The point-particle sector's convention
 
@@ -95,27 +114,28 @@ $$
 \ddot{\mathbf{X}}_j = -\alpha_j\,(1+(\varphi^{6}-1)q_j)\,\nabla\Phi(\mathbf{X}_j)
 }
 \qquad
-\alpha_j = \Pi_j/M_j,
+\alpha_j = \pi_j/M_j,
 $$
 
 whose own leading minus inverts the outward gradient and produces the boxed
-attractive law of that document. With $\alpha_j = \Pi_j/M_j$, the sector's
-implied field force is the **negative** of the solver's $+\Pi\nabla\Phi$ for
-$\Pi > 0$ blobs—the attraction is a sector convention, not a consequence of the
+attractive law of that document. With $\alpha_j = \pi_j/M_j$, the sector's
+implied field force is the **negative** of the solver's $+\pi\nabla\Phi$ for
+$\pi > 0$ blobs—the attraction is a sector convention, not a consequence of the
 PDE force.
 
 ### 1.3 The sign-definiteness requirement
 
 The two sectors cannot both be the field-level physics for a
-$\varphi$-equilibrium blob ($\Pi/\rho = \varphi^{-3} > 0$ at the fixed point):
+$\varphi$-equilibrium blob ($\pi/\rho = \varphi^{-3} > 0$ at the fixed point):
 the PDE force repels it, the point-particle law attracts it. The measured
-record supports $+\Pi\nabla\Phi$ as the field-level force, and the point-particle
+record supports $+\pi\nabla\Phi$ as the field-level force, and the point-particle
 attraction as the sector convention. A river law that is attractive for all
 matter must therefore be built from a **positive-definite** flow object with a
-definite sign—not a $\Pi$-sign-ambiguous one. The flow factor $f$ keeps the
-modulated chord positive under the bound $|\kappa\ell^2 C/\rho| < 1$ (§2), and
-the coherence-gradient force (§2.2) is unconditionally attractive toward high
-$q$.
+definite sign—not a $\pi$-sign-ambiguous one. The optional flow factor
+$f_\Psi$ keeps the modulated chord positive under the optional-model bound
+$|\kappa\ell^2 C_\Psi/\rho| < 1$ (§2), and at the positive
+$\pi/\rho$ fixed point the full product-rule $\nabla q$ contribution is
+toward higher $q$.
 
 ---
 
@@ -128,46 +148,47 @@ Stage D) is the flow-modulated chord of the Abstract:
 
 $$
 \boxed{
-G_{\text{eff}}(x) = G\,\frac{\pi}{\rho}\,\Big(1 + (\varphi^{6}-1)\,q(x)\,f(x)\Big),\qquad
-f(x) = 1 + \varphi^{-1}\,\ell^2\,\frac{C}{\rho},\qquad
-C = -\nabla\cdot J
+G_{\text{eff}}(x) = G\,\frac{\pi}{\rho}\,\Big(1 + (\varphi^{6}-1)\,q(x)\,f_\Psi(x)\Big),\qquad
+f_\Psi(x) = 1 + \varphi^{-1}\,\ell^2\,\frac{C_\Psi}{\rho},\qquad
+C_\Psi = -\nabla\cdot J_\Psi
 }
 $$
 
-with $J = \Psi_Y\nabla\Psi_I - \Psi_I\nabla\Psi_Y = \rho\nabla\theta$,
-$\theta = \operatorname{atan2}(\Psi_I, \Psi_Y)$, and $\ell$ the local rung
-scale (the probe's own geometry: $\ell = x^*$, the closure rung's distance; in
-the 3D solver, the resolved-window scale).
+with the real-root diagnostic identity
+$J_{\Psi,\mathrm{real}}=\Psi_Y\nabla\Psi_I-\Psi_I\nabla\Psi_Y
+=\rho\nabla\theta_\Psi$ when a phase coordinate is introduced. In the
+optional complex-amplitude extension $\Psi=\sqrt{\rho}\,e^{i\theta_\Psi}$,
+one may instead define the constitutive current
+$J_\Psi\equiv J_{\Psi,\mathrm{cx}}=\rho\nabla\theta_\Psi/f_\Psi$ and
+$C_\Psi=-\nabla\cdot J_\Psi$. This extension is not part of the canonical
+real-density core and is not identified with the measured density-plane
+current $J_d$. The boxed factor $f_\Psi$ is therefore conditional. The two
+divergence objects have different units: $C_\Psi/\rho$ supplies the
+inverse-length-squared factor used by $f_\Psi$, whereas $C_d/\rho$ retains the
+density-plane units of the measured receipt. A proposed insertion of the
+receipt into a gravitational factor would require
+$f_d=1+\varphi^{-1}\ell^2\mathcal N_d C_d/\rho$ with a separately supplied
+dimensionful normalization/constitutive factor $\mathcal N_d$; no such map
+is supplied or instantiated by the measurements.
 
-**The river is the gradient of the flow-modulated chord.** Under the
-static-potential sector convention $\Phi_{\text{eff}} = -G_{\text{eff}}(x)M/r$,
-$\mathbf{a} = -\nabla\Phi_{\text{eff}} = (M/r)\nabla G_{\text{eff}} -
-G_{\text{eff}}M\,\hat r/r^2$, and the coherence part of $\nabla G_{\text{eff}}$
-splits into two terms:
+**Scalar status and forward-model requirement.** $G_{\text{eff}}$ is a scalar
+coefficient, not a gradient, acceleration, or force. A gravitational
+interpretation requires a separate forward model specifying how this
+coefficient enters the source equation or metric, the Poisson boundary
+conditions, and the lensing observable. No such Poisson/lensing model has
+been specified or tested here, so no acceleration or lensing prediction
+follows from the boxed scalar alone. A static-potential expression such as
+$\Phi_{\text{eff}}=-G_{\text{eff}}(x)M/r$ and its product-rule gradients
+would be a conditional ansatz for that missing model, not a derivation or
+measured consequence.
 
-$$
-\boxed{
-\mathbf{a}_q = \frac{GM}{r}\,\frac{\pi}{\rho}\,(\varphi^{6}-1)\,\nabla q
-}
-$$
+- **Optional complex-amplitude current:** the extension
+  $J_\Psi=\rho\nabla\theta_\Psi/f_\Psi$ and its
+  $C_\Psi=-\nabla\cdot J_\Psi$ are conditional constitutive choices. At the
+  $\varphi$-attractor, the real-root diagnostic phase is constant and the
+  corresponding current vanishes; the measured $C_d=-\nabla\cdot J_d$ receipt
+  remains a separate object.
 
-— the coherence-gradient force, unconditionally toward higher $q$—plus the
-flow term
-
-$$
-\frac{GM}{r}\,\frac{\pi}{\rho}\,(\varphi^{6}-1)\,q\,\nabla f,
-$$
-
-the flow factor's gradient acting on the coherence itself.
-
-### 2.2 Derivation status of each piece
-
-- **$J = \rho\nabla\theta$**: the phase-current identity, verified symbolically
-  in the program. At the $\varphi$-attractor ($E_Y = \varphi E_I$, any spatial
-  variation) $\theta = \operatorname{atan2}(1,\varphi) = \text{const}$, so
-  $J \equiv 0$ there—every candidate built on $J$ or its derivatives vanishes
-  at the attractor with no extra assumption. The off-attractor content is the
-  object $C/\rho$.
 - **$\kappa = \varphi^{-1}$**: an application of the derived per-rung signal
   damping $d_i \approx \varphi^{-1}$ (`foundations/cascade-suppression-formula.md`
   §1.2) as a one-rung coupling—**not a new constant**.
@@ -176,14 +197,23 @@ the flow factor's gradient acting on the coherence itself.
   derived rung identity whose empirical pin is Calibrated on the Milky Way
   rotation curve (`parameter-inventory.md` §10, row 498). Under the
   static-potential sector convention the coefficient is **not free**.
-- **C1 (the force-side member)**: $\mathbf{F}_{C1} = \Pi\nabla\Phi\,(1 +
-  \kappa\ell^2 C/\rho)$, sign-definite iff $|\kappa\ell^2 C/\rho| < 1$; in the
-  limit $J \to 0$ the base force is restored.
-- **C2 (the continuity-side member)**: $\partial_t\rho \supset
-  -\lambda\nabla\cdot(qJ/\rho)$—a pure divergence on the mirror-Neumann domain,
-  so total mass is conserved exactly; density piles up where the gated phase
-  current converges. C2 is a redistribution, not a source: the conversion term
-  of `foundations/cassi-first-principles.md` remains the density source.
+- **C1 (the force-side member, optional amplitude-current model)**:
+  $\mathbf{F}_{C1} = \pi\nabla\Phi\,(1 + \kappa\ell^2 C_\Psi/\rho)$,
+  sign-definite iff $|\kappa\ell^2 C_\Psi/\rho| < 1$; in the limit
+  $J_\Psi \to 0$ the base force is restored.
+- **C2 (the continuity-side candidate, with a measured density-plane
+  diagnostic)**: the receipt runner evaluates
+  $\partial_t\rho \supset -\lambda\nabla\cdot(qJ_d/\rho)$—a pure divergence
+  on the mirror-Neumann domain, so total mass is conserved exactly; density
+  piles up where the gated density-plane current converges. C2 uses
+  $C_d=-\nabla\cdot J_d$ as its local convergence diagnostic. The solver form
+  is a Hypothesized constitutive channel in state-built units; a physical
+  continuity law would require a separately calibrated normalization
+  $\mathcal N_{d,\mathrm{cont}}$ (and coefficient units), which is not supplied.
+  The measured content is the local $C_d$ diagnostic and its receipt response.
+  The channel redistributes density rather than supplying the density source;
+  the conversion term of `foundations/cassi-first-principles.md` remains that
+  source.
 - **The excluded alternatives**: the vorticity-modulated force (C3) fails
   closure—its coupling $\chi$ has no derived value (a free scratch constant,
   `parameter-inventory.md` §10, row 521) and a parity-odd linear form is not
@@ -195,10 +225,15 @@ the flow factor's gradient acting on the coherence itself.
   scale are the multiscale law's resolved reading (the reduction confirmed by
   P4, §3.10).
 
-The law is a **candidate skeleton**. The wave-2 probes (§3) close the object
-form—the flow factor's object is $C = -\nabla\cdot J$, with the response
-linear in $\kappa$ and the transport coupling $A = -36.05$ measured—and the
-phase boundary; the surge form and the C2 density-transport leg remain open.
+The law is a **candidate skeleton**. The optional amplitude-current model uses
+$C_\Psi=-\nabla\cdot J_\Psi$; the wave-2 probes identify the measured
+density-plane receipt $C_d=-\nabla\cdot J_d$ as the sign-tracking diagnostic
+and close its solver-normalized response in $\kappa$, with the transport
+coupling $A=-36.05$ measured. No receipt equates $C_\Psi$ with $C_d$, and the
+normalization maps $\mathcal N_d$ and $\mathcal N_{d,\mathrm{cont}}$ required
+for physical gravitational or continuity substitutions remain unspecified.
+The phase boundary is also measured; the surge form and the C2 density-
+transport leg remain open.
 
 ---
 
@@ -211,35 +246,46 @@ probe arms are the closure configuration: $\lambda = 0.02$, $\gamma = 0.01$,
 $\sigma = 3\times10^{-5}$, $u = 0$, $\psi = \psi^*$, $N = 1440$, $t = 3.0$.
 Sections 3.5–3.10 carry the wave-2 content (briefs 69–71, runs 2026-08-08/09).
 
-### 3.1 P1—the closure arm (C1): the flow factor's sign is confirmed
+### 3.1 P1—the closure arm: measured $C_d$ diagnostic and solver response
 
-The weighted object is the $|F\cdot dE/dx|$-weighted time-mean of the flow
-factor's argument at $x^*$:
+The weighted receipt diagnostic coordinate is the $|F\cdot dE/dx|$-weighted
+time-mean of the density-plane object's argument at $x^*$:
 
-$$\langle \ell^2 \partial_z J_z/\rho\rangle_{Fw} = +0.18770,
+$$\langle \ell^2 \partial_z J_{d,z}/\rho\rangle_{Fw} = +0.18770,
 \qquad \kappa = \varphi^{-1} = 0.618034,\qquad \ell = x^* = 0.786151.$$
 
-- The flow factor's time-mean: $\bar f = 1 - \varphi^{-1}\langle\ell^2\partial_z
-  J_z/\rho\rangle_{Fw} = 0.884 < 1$—the chord's factor **reduces** the force at
-  the closure, on average.
-- The prediction: $dU/U \approx -\kappa\langle\ell^2\partial_z J_z/\rho\rangle_{Fw}
+Here the receipt-level closure diagnostic is $C_d=-\partial_zJ_{d,z}$, the
+measured density-plane object; it is distinct from the optional $C_\Psi$ model.
+The ratio in this receipt is a solver-normalized diagnostic coordinate. It does
+not supply the dimensional normalization required to place $C_d$ in $f_\Psi$ or
+$G_{\text{eff}}$; that constitutive factor remains unspecified.
+
+- The receipt analogue's time-mean:
+  $\bar f_d^{\rm rec} = 1 - \varphi^{-1}\langle\ell^2\partial_z
+  J_{d,z}/\rho\rangle_{Fw} = 0.884 < 1$; the diagnostic coordinate decreases
+  at the closure, on average.
+- The first-order solver analogue gives
+  $dU/U \approx -\kappa\langle\ell^2\partial_z J_{d,z}/\rho\rangle_{Fw}
   = -0.1160$.
 - The measurement: $dU/U = (u_{\text{flux}}^{\text{mod}} - u_{\text{flux}}^{\text{base}})
   /u_{\text{flux}}^{\text{base}} = -22.22$, with $u_{\text{flux}}$ going
   $+2.2369\times10^{-4} \to -4.7464\times10^{-3}$.
-- The sign-definiteness bound holds on the weighted mean:
-  $|\kappa\langle\ell^2\partial_z J_z/\rho\rangle_{Fw}| = 0.116 < 1$ (the
+- The sign-definiteness bound holds on the weighted diagnostic mean:
+  $|\kappa\langle\ell^2\partial_z J_{d,z}/\rho\rangle_{Fw}| = 0.116 < 1$ (the
   instantaneous values at $x^*$ exceed it—the momentary-reversal structure).
 - The $\kappa = 0$ arm is bit-exact, and the runner's acceptance passes.
 
-**Verdict: sign confirmed, magnitude falsified.** The pre-registered tree
-(sign, presence, no-op, acceptance) fires on this run; the same data falsify
-the linear-response magnitude—the response is **192×** the first-order
-prediction. The implied coupling under the falsified linear ansatz would be
-$\kappa_{\text{eff}} \approx 118$, which is **not** a derived value and is not
-claimed. The robust content: the flow factor's sign structure at $x^*$, and the
-presence of the transport response with the predicted sign. **$\kappa$'s value
-is undetermined.**
+**Verdict: measured $C_d$ sign confirmed, solver-analogue magnitude falsified.**
+The pre-registered tree (sign, presence, no-op, acceptance) fires on this run;
+the same data falsify the first-order solver analogue—the response is **192×**
+the first-order prediction. The implied coupling under the falsified linear
+ansatz would be $\kappa_{\text{eff}} \approx 118$, which is not a derived value
+and is not claimed. The robust content is the measured $C_d$ sign structure at
+$x^*$ and the transport response with its recorded sign. This receipt supplies
+no constitutive map into the optional amplitude-current object $C_\Psi$ or into
+$G_{\text{eff}}$.
+**The physical response normalization/calibration remains undetermined;
+$\kappa=\varphi^{-1}$ remains the asserted one-rung convention.**
 
 ### 3.2 P5—the surge form: undetermined
 
@@ -282,45 +328,53 @@ window—so the $\lambda/4$ reading is rejected at tolerance.
 
 ### 3.4 P2—the density-transport leg (C2): inconclusive
 
-The transport arm $-\lambda_t\partial_x(qJ_z/\rho)$ produces NaN at step 118
+The transport arm $-\lambda_t\partial_x(qJ_{d,z}/\rho)$ produces NaN at step 118
 ($t = 0.177$) at the left wall. The mechanism is the harness's
 mirror-Neumann spectral derivative: its documented wall layer on the composite
-flux $qJ_z/\rho$ (measured $\max|\partial_x(qJ_z/\rho)| \sim 20$–$570$ from
+flux $qJ_{d,z}/\rho$ (measured $\max|\partial_x(qJ_{d,z}/\rho)| \sim 20$–$570$ from
 $t = 0$ onward, orders above the $O(0.05)$ smooth-region estimate) drives $\rho$
-through zero. The $\lambda_t = 0$ no-op arm is bit-exact. **C2 stays open**;
+through zero.
+The $\lambda_t = 0$ no-op arm is bit-exact. **C2 stays open**;
 the Pearson and drift statistics are undefined. The re-test with the
 pre-registered wall-layer handling is the subject of §3.8.
 
-### 3.5 P1b—the object form and the response curve (C1, brief 69): confirmed-object, linear response
+### 3.5 P1b—the $C_d$ diagnostic object and solver response curve (brief 69):
+measured receipt; constitutive map open
 
 The wave-2 object-form arms put the three candidate objects through 68's
-pre-registered tree on the canonical arm ($\lambda = 0.02$, $\gamma = 0.01$,
+pre-registered tree on the reference arm ($\lambda = 0.02$, $\gamma = 0.01$,
 $\sigma = 3\times10^{-5}$, $\kappa = \varphi^{-1} = 0.618034$, $\ell = x^* =
 0.786151$; $\langle o\rangle_{Fw} = \langle\ell^2 O/\rho\rangle_{Fw}$, the
-$|F\cdot dE/dx|$-weighted time-mean at $x^*$):
+$|F\cdot dE/dx|$-weighted time-mean at $x^*$). These are solver-normalized
+receipt responses; they do not instantiate the dimensional normalization
+required for a gravitational $C_d$ constitutive map.
 
 | $O$ | $\langle\ell^2 O/\rho\rangle_{Fw}$ | $dU/U$ | sign test | $\|\kappa\langle o\rangle_{Fw}\| < 1$ |
 |---|---|---|---|---|
-| $C = -\partial_z J_z$ | $-1.876952\times10^{-1}$ | $-22.218$ | **True** | 0.116 ✓ |
-| $\|C\|$ | $+4.481817\times10^{0}$ | $-6.50\times10^{-2}$ | False | 2.77 ✗ violated |
-| $(1-q)C$ | $+2.356657\times10^{-1}$ | $-6.92$ | False | 0.146 ✓ |
+| $C_d = -\partial_z J_{d,z}$ | $-1.876952\times10^{-1}$ | $-22.218$ | **True** | 0.116 ✓ |
+| $\|C_d\|$ | $+4.481817\times10^{0}$ | $-6.50\times10^{-2}$ | False | 2.77 ✗ violated |
+| $(1-q)C_d$ | $+2.356657\times10^{-1}$ | $-6.92$ | False | 0.146 ✓ |
 
-- **Only $C$'s sign tracks** (under 68's verbatim sign test—the tree the
-  canonical arm's CONFIRMED content rests on): $|C|$ amplifies the force by a
-  factor $\ge 1$ everywhere (mean factor 3.77) yet slightly *reduces* the flux
-  ($-6.5\%$), and the gated object—whose weighted mean is positive
+- **Only $C_d$'s sign tracks** (under 68's verbatim sign test—the tree the
+  canonical arm's CONFIRMED content rests on): $\|C_d\|$ amplifies the force by
+  a factor $\ge 1$ everywhere (mean factor 3.77) yet slightly *reduces* the
+  flux ($-6.5\%$), and the gated object—whose weighted mean is positive
   ($+0.236$)—responds $-6.9$; neither tracks.
-- **$|C|$ violates the sign-definiteness bound on its weighted mean**
+- **$\|C_d\|$ violates the sign-definiteness bound on its weighted mean**
   ($\|\kappa\langle o\rangle\| = 2.77 \ge 1$) and cannot be the object of a
-  sign-definite river law. $C$'s and $(1-q)C$'s weighted means are inside the
-  bound (0.116, 0.146).
+  sign-definite river law. $C_d$'s and $(1-q)C_d$'s weighted means are inside
+  the bound (0.116, 0.146).
 - The $\kappa = 0$ no-op is bit-exact, and the provenance is bit-exact:
-  mod-$C$ $u_{\text{flux}} = -4.7463675821\times10^{-3}$ reproduces 68's
+  mod-$C_d$ $u_{\text{flux}} = -4.7463675821\times10^{-3}$ reproduces 68's
   mod-ON receipt at $10^{-9}$—the canonical arm is 68's arm.
 
-**CONFIRMED-object: the flow factor's object is $\boxed{C = -\nabla\cdot J}$.**
+**Measured-diagnostic result: the receipt-level solver response uses
+$\boxed{C_d=-\nabla\cdot J_d}$.** This result does not identify it with the
+optional amplitude-current object $C_\Psi$ or supply the normalization
+$\mathcal N_d$ required by $f_d$.
 
-The response curve on $C$, full window, same weighting:
+The response curve recorded for the $C_d$-modulated solver receipt, with the
+same weighting, is:
 
 | $\kappa$ | $dU/U$ | bound-violation fraction (weighted steps at $x^*$) |
 |---|---|---|
@@ -417,16 +471,21 @@ ON-side crossing.
 
 The re-test applied the pre-registered half-cosine window (width $W = 16$
 cells at each wall—the wave brief's $W = 4$ was disclosed as a deviation, with
-the measured rationale: $\max|\partial_x(qJ_z/\rho)|$ at $t = 0$ falls 22.76
+the measured rationale: $\max|\partial_x(qJ_{d,z}/\rho)|$ at $t = 0$ falls 22.76
 (unwindowed) → 11.55 ($W = 4$) → 7.84 ($W = 16$), the last equal to the
 interior physical feature). The wall layer is removed—**and is not the limiting
 factor**. The transport arm at the pre-registered rate $\lambda_t = 0.1$ is
 unstable on the harness's interior field content:
 
-- The interior composite flux has intrinsic $|\partial_x(qJ_z/\rho)| \sim O(8)$
-  from $t = 0$ (the product-wavenumber structure of $J_z = E_Y\partial_zE_I -
-  E_I\partial_zE_Y$, not the $O(0.05)$ smooth-region estimate of the wave-1
-  record).
+- The interior composite flux has intrinsic $|\partial_x(qJ_{d,z}/\rho)| \sim O(8)$
+  from $t = 0$ (the product-wavenumber structure of
+  $J_{d,z} = E_Y\partial_zE_I - E_I\partial_zE_Y$, not the $O(0.05)$ smooth-region
+  estimate of the wave-1 record).
+Here $J_{d,z}$ is the $z$ component of the density-plane diagnostic
+$J_d$, with units of density$^2$/length. It is distinct from the amplitude
+current $J_\Psi=\rho\nabla\theta_\Psi$, whose units are density/length. Using
+$qJ_{d,z}/\rho$ as a transport flux requires the file's Hypothesized
+constitutive map.
 - The transport's own feedback grows it: 7.75 ($t = 0$) → 9.0 ($t = 0.075$) →
   106.9 ($t = 0.15$, interior, $x = -0.89$), driving $\rho$ through zero.
 - First NaN at step 141 ($t = 0.211$), EY, cell 1, $x = -3.192$—the left-wall
@@ -446,7 +505,7 @@ statistics can be defined on this harness.
 ### 3.9 P3—the parity-odd force channel (brief 70): live
 
 The 3D probe tested the C3 linear form
-$F_{\text{mod}} = \Pi\nabla\Phi(1 - \chi G/J_{\text{scale}})$ on the TS6 helix
+$F_{\text{mod}} = \pi\nabla\Phi(1 - \chi G/J_{\text{scale}})$ on the TS6 helix
 geometry ($\pm\Omega_0$, $N = 48$, $\lambda = 0.05$, $t = 40 = 2/\lambda$, gate
 `five`), with $G = (\nabla\times J)_z$ in box labels (the axial component; the
 sign convention recorded and verified bit-exact) and $\chi = \varphi^{-1}$
@@ -496,9 +555,7 @@ force-side probe. **$\chi$ remains asserted; the coupling is not derived.**
 
 ### 3.10 P4—the rung-sum post-process (brief 71): inconclusive; the reduction confirmed
 
-From the canonical lattice-stack records (`runs/20260807_152844_lattice_stack/`;
-baseline reproduced bit-for-bit: Pearson $+0.5132$ / Spearman $+0.7714$,
-$n = 6$, $R > 0$ arms), the rung-summed force reading
+The canonical lattice-stack result is not retained in this checkout; regenerate it with `two-fluid/run_lattice_stack_probe.py`. The reported baseline reproduced bit-for-bit: Pearson $+0.5132$ / Spearman $+0.7714$, $n = 6$, $R > 0$ arms. The rung-summed force reading
 $F_{\text{tot}}(W) = \sum_j \varphi^{-j}F_j$ (double-suppression reading,
 matching the cell-mean refinement) does not meet its pre-registered bar:
 
@@ -509,12 +566,12 @@ matching the cell-mean refinement) does not meet its pre-registered bar:
   m8_pi5. Bootstrap 95% CI $[-0.800, +1.000]$ overlaps zero. The $W$
   sensitivity is flat (4/8/16 all $+0.600$).
 - **The C2 direction is not visible in the stack-mean object**:
-  Spearman$(\langle C\rangle_{\text{stack}}, r) = -0.0286$ (Pearson
-  $+0.264$); the unweighted coverage-mean of $-\partial_zJ_z$ vanishes
+  Spearman$(\langle C_d\rangle_{\text{stack}}, r) = -0.0286$ (Pearson
+  $+0.264$); the unweighted coverage-mean of $-\partial_zJ_{d,z}$ vanishes
   identically on the periodic box (a boundary term—the documented trap), and
-  the per-layer $C_j$ alternate convergence and divergence within every stack,
-  so the C2 statement is genuinely local; a stack-mean reduction may be the
-  wrong object—a future probe's question.
+  the per-layer $C_{d,j}$ alternate convergence and divergence within every
+  stack, so the C2 statement is genuinely local; a stack-mean reduction may be
+  the wrong object—a future probe's question.
 - **The multiscale sum adds no rank information over the resolved window**:
   Spearman$(F_0, r) = +0.6571$, slightly above $F_{\text{tot}}$'s $+0.6000$,
   with the per-stack fractional difference $|F_{\text{tot}}(8) - F_0|/F_{\text{tot}}(8)
@@ -532,10 +589,11 @@ sub-bar).
 
 ## 4. Consequences
 
-### 4.1 The Godot formula
+### 4.1 The Godot fixed-prefactor partial diagnostic
 
-The one-line point-mass formula for the Godot simulation (the static-potential
-sector reading of the chord law):
+The one-line point-mass expression used by the Godot simulation is a named
+fixed-prefactor, no-flow-factor **conditional acceleration ansatz**, not a
+consequence of the scalar $G_{\text{eff}}$ alone:
 
 $$
 \boxed{
@@ -547,42 +605,46 @@ G\,\frac{\pi}{\rho}\,(\varphi^{6}-1)\,
 }
 $$
 
-with $(\pi/\rho)$ the sim's clamped Yang fraction. The formula is conditional
-on the Calibrated chord pin (row 498 of `parameter-inventory.md` §10) and the
-static-potential sector convention of §1.2; $(\varphi^{6}-1)$ is the chord's
-coefficient, not a tuning dial.
+It holds $\pi/\rho$ fixed, sets $f_\Psi=1$, and sets
+$\nabla(\pi/\rho)=\nabla f_\Psi=0$. Interpreting this expression as gravity
+still requires the missing Poisson/lensing forward model; it is conditional
+on the Calibrated chord pin (row 498 of `parameter-inventory.md` §10) and
+the static-potential sector convention of §1.2. The coefficient
+$(\varphi^{6}-1)$ is not a tuning dial.
 
 ### 4.2 Black holes
 
-A horizon exists for any positive $G_{\text{eff}}$: $r_s =
-2G_{\text{eff}}M/c^2$. The collapse threshold scales as
-$G_{\text{eff}}^{-3/2}$, so the chord's range
-$G_{\text{eff}}/G \in [0.236,\,4.24]$ at the fixed-point imbalance
-$\alpha = \pi/\rho = \varphi^{-3}$ (Mapped relabel—ledger row 500: the true
-Yang fraction at equilibrium is $\varphi^{-1} \approx 0.618$; up to $\approx
-12.6$ with a halo's $\alpha \approx 0.7$, which is a hardcoded nominal, not a
-SPARC fit—ledger row 484) shifts stellar black-hole masses by roughly an
-order of magnitude. The
-framework's black-hole sector itself is $\sigma$-regularized harmonic cores
-with the GR exterior (registry G3, Derived; `gravity/quantum-gravity.md` §7.1),
-so the river law's consequences act on the collapse threshold and the horizon
-radius, not on the core structure. The $\nabla q$ force is unconditionally
-attractive toward high-$q$ sites, so coherence-convergence regions
-($C > 0$) are black-hole-favorable.
+If an external metric or potential model identifies the scalar $G_{\text{eff}}$
+with a Newtonian coupling, then one may conditionally write
+$r_s=2G_{\text{eff}}M/c^2$ and examine how a chosen collapse model scales.
+That identification and the resulting range
+$G_{\text{eff}}/G\in[0.236,4.24]$ at
+$\alpha=\pi/\rho=\varphi^{-3}$ are not predictions of this document without
+the forward model. The nominal halo value $\alpha\approx0.7$ is hardcoded,
+not a SPARC fit (ledger row 484). The framework's separate black-hole sector
+is $\sigma$-regularized harmonic cores with the GR exterior (registry G3,
+Derived; `gravity/quantum-gravity.md` §7.1). Any high-$q$ attraction or
+$C_\Psi>0$ preference belongs to the optional force/complex-current model and
+is likewise conditional.
 
 ### 4.3 The two-strand and lattice-stack reading
 
-C2's prediction for the lattice-stack retention record (the envelope-retention
-correlation with $|J_z|(0)$: Pearson $+0.51$, Spearman $+0.77$, $n = 6$;
-`hypotheses/two-strand-five-channel-matter-organization.md` §3.8) is
+C2's lattice-stack retention expression is a **Hypothesized constitutive
+ansatz**. The raw density-plane diagnostic $C_d$ carries the units inherited
+from $J_d$, so a retention law requires a separately supplied normalization
+$\mathcal N_{d,\mathrm{ret}}$:
 
-$$\text{retention} \sim \frac{1 + c_2\langle C\rangle_{\text{stack}}\,t}{1 + c_2\langle C\rangle_{\text{base}}\,t},$$
+$$\text{retention} \sim
+\frac{1 + c_2\mathcal N_{d,\mathrm{ret}}\langle C_d\rangle_{\text{stack}}\,t}
+{1 + c_2\mathcal N_{d,\mathrm{ret}}\langle C_d\rangle_{\text{base}}\,t},$$
 
-with convergence ($C > 0$) piling density at the accumulating sites. The
+with $\mathcal N_{d,\mathrm{ret}}$ chosen by an independently measured
+constitutive map; no value is supplied here. The solver receipt records
+convergence ($C_d > 0$) piling density at the accumulating sites. The
 measured test (P4, §3.10) is inconclusive at the stack-mean level: the C2
 direction is not visible in the stack-mean object (Spearman $-0.03$), the
-unweighted coverage-mean of $-\partial_zJ_z$ vanishes identically on the
-periodic box, and the per-layer $C_j$ alternate convergence and divergence
+unweighted coverage-mean of $-\partial_zJ_{d,z}$ vanishes identically on the
+periodic box, and the per-layer $C_{d,j}$ alternate convergence and divergence
 within every stack—so the C2 statement is genuinely local, and a stack-mean
 reduction may be the wrong object. The rung-summed force reading adds no rank
 information over the resolved window ($F_{\text{tot}}(8)$ ranks $+0.60$ vs
@@ -596,11 +658,18 @@ and lattice-stack nulls).
 
 ## 5. Open Items
 
-1. **The object form and the response curve—closed, measured.** The flow
-   factor's object is $C = -\nabla\cdot J$ (CONFIRMED-object, §3.5: only $C$'s
-   sign tracks under 68's tree; $|C|$ violates the sign-definiteness bound on
-   its weighted mean, 2.77 ≥ 1, and responds with the wrong sign; the gated
-   $(1-q)C$ responds −6.9 with a positive mean). The response curve is linear:
+1. **The measured density-plane receipt and solver response curve—closed,
+   measured.** The receipt-level diagnostic object is
+   $C_d=-\nabla\cdot J_d$ (the confirmed sign-tracking object in §3.5); the
+   optional amplitude-current object $C_\Psi=-\nabla\cdot J_\Psi$ remains a
+   separate constitutive model and is not confirmed by this receipt. The
+   receipt response is solver-normalized. A physical flow-factor or
+   $G_{\text{eff}}$ interpretation requires the separately supplied
+   dimensionful normalization/constitutive factor $\mathcal N_d$ in
+   $f_d=1+\varphi^{-1}\ell^2\mathcal N_d C_d/\rho$; that map remains
+   unspecified. The $\|C_d\|$ candidate violates the sign-definiteness bound
+   on its weighted mean, 2.77 ≥ 1, and responds with the wrong sign; the gated
+   $(1-q)C_d$ responds −6.9 with a positive mean. The response curve is linear:
    $dU/U = -36.05\,\kappa$ over $[\varphi^{-2}, \varphi]$ ($m = 1.005 \pm
    0.001$, $A = -36.05 \pm 0.02$, max rel res 0.15%, no saturation), with
    $\kappa = \varphi^{-1}$ landing at $dU/U = -22.22$ (68's datum, reproduced
@@ -628,7 +697,7 @@ and lattice-stack nulls).
    corrected (§3.8): the wall layer was not the limiting factor (the W = 16
    half-cosine window removes it: 22.76 → 7.84 at $t = 0$); the C2 term at
    $\lambda_t = 0.1$ is unstable on the interior field content
-   ($|\partial_x(qJ_z/\rho)| \sim O(8)$ intrinsic, grown 14× by $t = 0.15$;
+  ($|\partial_x(qJ_{d,z}/\rho)| \sim O(8)$ intrinsic, grown 14× by $t = 0.15$;
    first NaN at step 141, $t = 0.211$, EY, cell 1, $x = -3.192$; the force-OFF
    variant crashes at step 140—the force is not the driver; $\lambda_t = 0.05$
    and 0.01 survive $t = 0.3$—the instability scales with $\lambda_t$). A
@@ -647,10 +716,13 @@ and lattice-stack nulls).
    multiscale-law reduction itself is confirmed (deep-rung correction 4.99e-5
    vs the arm scatter 0.462 at $W = 8$; share 0.98684; $T_{\text{inc}}/S =
    0.65\%$).
-6. The law remains a candidate skeleton: the quantitative content is now the
-   object form, the linear response curve, and the measured boundary, with the
-   surge form and the C2 leg open. $\kappa$ is never fitted; $A = -36.05$ is a
-   measured transport constant, not a parameter and not a derived value.
+6. The law remains a candidate scalar skeleton: the quantitative content is
+   the measured density-plane receipt, the solver response curve, and the
+   measured boundary. A physical $G_{\text{eff}}$ or acceleration claim
+   remains conditional on a Poisson/lensing forward model; the optional
+   $C_\Psi$ current is not canonical and is never equated to $C_d$. The
+   surge form and C2 leg stay open. $\kappa$ is never fitted; $A=-36.05$ is
+   a measured transport constant, not a parameter and not a derived value.
 
 ---
 
@@ -658,7 +730,7 @@ and lattice-stack nulls).
 
 - `foundations/cassi-first-principles.md`—two-fluid PDE, the conversion term, the $\varphi$-attractor
 - `foundations/cassi-theory-reference.md` §4.3—the chord law $G_{\text{eff}} = G(\pi/\rho)(1+(\varphi^{6}-1)q)$
-- `foundations/spiral-dynamics.md` §3—gravity as $\Pi\nabla\Phi$ gradient descent; the field force and its sign
+- `foundations/spiral-dynamics.md` §3—gravity as $\pi\nabla\Phi$ gradient descent; the field force and its sign
 - `foundations/cascade-suppression-formula.md` §1—the derived per-rung damping $d_i \approx \varphi^{-1}$ ($\kappa$'s receipt)
 - `gravity/three-body-analytical.md` §2—the point-particle reduction; the attractive convention
 - `hypotheses/two-strand-five-channel-matter-organization.md` §3—the sign-following measurements (TS1, Yin-excess) and the lattice-stack records

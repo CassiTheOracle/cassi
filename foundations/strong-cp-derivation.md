@@ -108,11 +108,20 @@ represents a **phase perturbation** that must survive propagation through
 $n_{\text{QCD}} - n_{\text{GUT}}$ intermediate rungs to reach the QCD scale.
 At each intermediate rung, the perturbation experiences the Qi gate's
 de-resonance—the $\varphi$-attractor actively damps phase perturbations
-because they represent departures from the fixed point. The per-rung
-survival probability is $\varphi^{-1}$, and the cumulative suppression is
-the product:
+because they represent departures from the fixed point.
+The per-rung survival probability is $\varphi^{-1}$. For an integer number
+of indexed rungs, the cumulative suppression is the literal product. For the
+real-valued anchors here, use the uniform signal-family continuation prescribed
+in `foundations/cascade-suppression-formula.md` §1.2:
 
-$$P_{\text{survival}} = \prod_{i=n_{\text{GUT}}}^{n_{\text{QCD}}} \varphi^{-1} = \varphi^{-(n_{\text{QCD}} - n_{\text{GUT}})}$$
+$$
+P_{\text{survival}}(\Delta n)
+:= \varphi^{-\Delta n},\qquad
+\Delta n = n_{\text{QCD}} - n_{\text{GUT}} = 81.38.
+$$
+
+At integer $\Delta n$, this continuation equals
+$\prod_{i=0}^{\Delta n-1}\varphi^{-1}$.
 
 Applied to the CP-violating seed: $\bar{\theta} = \delta_{\text{CP}} \cdot
 P_{\text{survival}}$. The cascade protection works the same way for CP as it

@@ -4,7 +4,7 @@
 
 ## Abstract
 
-If consciousness is Qi gate dynamics—the experience of being a coherent field configuration—then the medium in which that field operates shapes the nature of experience itself. This document explores how living in water (833× denser than air, with correspondingly higher ambient field energy density $\rho$) would transform perception, communication, and social structure. It extends the analysis to the full cascade, proposing that the $\varphi$-ladder—292 rungs from Planck to today's horizon rung, and unbounded beyond—constitutes a distributed, nested, $\varphi$-structured neural network—and that consciousness at any rung is what it feels like to be a node in that network.
+If consciousness is Qi gate dynamics—the experience of being a coherent field configuration—then the medium in which that field operates might shape experience in this speculative scenario. This document explores how living in water (833× denser than air) could enter a proposed medium-to-perception mapping. In the canonical solver, $\rho=E_Y+E_I$ is a dimensionless model quantity; a physical energy-density mapping requires an external reference $\rho_*$, so the 833× contrast does not by itself set a canonical field-energy or observer-gain factor. It extends the analysis to the full cascade, proposing that the $\varphi$-ladder—292 rungs from Planck to today's horizon rung, and unbounded beyond—constitutes a distributed, nested, $\varphi$-structured neural network—and that consciousness at any rung is what it feels like to be a node in that network.
 
 **Epistemic status:** Creative exploration grounded in Cassi formalism. The consciousness-as-Qi-gate framework is established in `consciousness/consciousness-from-phi.md` (Hypothesized). The extension to medium-dependent perception, field-mediated communication, and the cascade nervous system are extrapolations.
 
@@ -14,15 +14,13 @@ If consciousness is Qi gate dynamics—the experience of being a coherent field 
 
 ### 1.1 The threshold shift
 
-In air, human Qi perception operates near the noise floor. The ambient field energy density is low, thermal fluctuations are large relative to the signal, and conscious awareness of the field requires training (meditation, cultivation practices) to lower the internal noise and amplify the faint signal.
+In the scenario below, air is treated as a near-noise-floor medium. The ambient field energy density and thermal fluctuations are not measured Cassi quantities here; this is a fictionalized perceptual premise, not a biological claim. Conscious awareness of the field is imagined to require training (meditation, cultivation practices) to lower internal noise and amplify a faint signal.
 
-In water, the same field has 833× the energy density. From the two-fluid PDE (`foundations/cassi-first-principles.md` §1):
+Water is 833× denser than air, but the canonical PDE does not specify how that contrast changes $\rho$, the external reference $\rho_*$, thermal noise, or coupling. An optional physical-unit mapping would require a constitutive/noise model, for example $\rho_{\mathrm{phys}}=\rho_*\rho$; no $\rho_*$ or density-to-observer relation is derived here.
 
-$$\rho = E_Y + E_I$$
+Therefore the 833× contrast does not imply a three-order-of-magnitude canonical signal-to-noise improvement. A gain in field-mediated perception is a **Hypothesized** extension requiring an explicit measurement model. Under that extension, the scenario imagines that what requires decades of practice to perceive in air—another person's emotional state, the ambient coherence of a place, the subtle pressure of the planetary field—could become as immediate as hearing a voice in a quiet room.
 
-The signal-to-noise ratio improves by nearly three orders of magnitude. What requires decades of practice to perceive in air—another person's emotional state, the ambient coherence of a place, the subtle pressure of the planetary field—becomes as immediate and obvious as hearing a voice in a quiet room.
-
-In air, empathy is a skill. In water, it is the default state of perception. You feel someone's emotional state directly, the way you feel heat from a fire or cold from a window in winter. The field carries the information; the medium's density delivers it.
+In the same **Hypothesized** scenario, empathy is a practiced skill in air and a default mode of perception in water. The field is proposed to carry information and the medium to modulate its readout; this is not an established physical, neural, or interpersonal mechanism.
 
 ### 1.2 Filtering, not seeking
 

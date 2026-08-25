@@ -1,12 +1,12 @@
 # Qi Bubble Propulsion: Rung-Shifting as a Travel Mechanism
 
-## Status: Speculative—July 2026
+## Status: Creative—August 2026
 
 ## Abstract
 
-The Cassi framework's cascade ladder ($\ell_n = \ell_{\text{Pl}} \times \varphi^n$) and bubble-lattice fabric suggest a propulsion concept that is not "acceleration through space" but **rung-shifting along the cascade axis**. A craft with a coherent Qi gate re-tunes its effective cascade rung, changing which ambient field it couples to. This document maps five classic UAP observables (instantaneous acceleration, no sonic boom, transmedium travel, silent hovering, luminous glow) to specific Cassi mechanisms, derives the hull materials required to sustain a rung-shifting Qi bubble, constructs the energy budget from four lattice-harnessing sources, and walks through a representative mission profile.
+The Cassi framework's cascade ladder ($\ell_n = \ell_{\text{Pl}}\varphi^n$) and bubble-lattice geometry motivate a Creative propulsion scenario based on a proposed rung-shifting operation. This document asks whether five reported UAP observables could be represented by additional field-to-device couplings, sketches a hypothetical material architecture, and gives an illustrative mission narrative. The canonical equations do not supply a rung-shift operator, an inertial-decoupling law, a hull coupling, or an energy source.
 
-**Epistemic status:** This is creative exploration grounded in Cassi formalism. Every mechanism is anchored to a specific equation or documented framework property, but the synthesis into a propulsion system, the specific material architectures, and the energy-budget estimates are extrapolations beyond what the framework currently claims. Nothing in this document should be cited as a Cassi prediction or derivation.
+**Epistemic status:** This is Creative exploration using selected Cassi variables and geometric analogies. The propulsion mechanism, material architecture, energy budget, and mission values require constitutive laws absent from the canonical framework. Nothing in this document is a registered Cassi prediction or a derived technology.
 
 ---
 
@@ -14,17 +14,17 @@ The Cassi framework's cascade ladder ($\ell_n = \ell_{\text{Pl}} \times \varphi^
 
 ### 1.1 What "propulsion" means in a cascade framework
 
-Conventional propulsion pushes against a medium (air, water, exhaust). The Cassi cascade suggests a different approach: **don't push. Shift rungs.**
+Conventional propulsion transfers momentum through a medium or exhaust. The Creative scenario considered here instead assumes a device operation called rung-shifting.
 
-At every cascade rung $n$, the local field has a characteristic length scale $\ell_n = \ell_{\text{Pl}} \times \varphi^n$, an energy density, and a Yang-Yin ratio $r = E_Y/E_I$. The Qi gate modulates $r$ through the conversion term (from `foundations/cassi-first-principles.md` §2):
+At every cascade rung $n$, the ladder assigns a characteristic length scale $\ell_n=\ell_{\text{Pl}}\varphi^n$. The canonical two-density state has ratio $r=E_Y/E_I$, and the selected framework conversion writes
 
-$$\partial_t E_Y \supset -\lambda(1-q)(E_Y - \varphi E_I)$$
+$$\partial_t E_Y\supset-\lambda(1-q)(E_Y-\varphi E_I).$$
 
-A craft with an internal Qi gate can adjust its own effective $r$, changing the cascade rung at which it couples to the ambient field. From the outside, this looks like impossible acceleration. From the inside, the craft isn't moving—it's retuning its field embedding.
+This term relaxes $r$ toward $\varphi$ when the gate is open; it does not let the gate choose a new equilibrium ratio or move a body between rungs. A propulsion model therefore needs an added controller/source and a constitutive map from the local density state to inertial or spatial motion. The proposed craft below assumes those missing ingredients.
 
 ### 1.2 The spiral trajectory
 
-From `foundations/spiral-dynamics.md` §1.1, the doublet angle $\Theta(n) = 2\pi n / \ln\varphi$ rotates through $2\pi$ per cascade rung. Shifting one rung is a full rotation in the internal SO(2) plane. The apparent "instantaneous 90° turn" is a transverse maneuver in the Yang-Yin plane, projected into our 3D slice of the bubble lattice.
+The optional compact-coordinate convention in `foundations/spiral-dynamics.md` §1.1 is $\chi(n)=\chi_0+2\pi n/P$. Choosing $P=1$ gives one coordinate turn per rung; neither $P=1$ nor a projection of that internal coordinate into a physical turn is selected by the canonical density conversion. Interpreting an apparent transverse maneuver as such a projection is part of the Creative device ansatz.
 
 ---
 
@@ -32,33 +32,31 @@ From `foundations/spiral-dynamics.md` §1.1, the doublet angle $\Theta(n) = 2\pi
 
 ### 2.1 Inertialess acceleration
 
-Newtonian inertia is the field's resistance to changing the local $r$. A craft that modulates its own $r$ through the Qi gate isn't pushing against the field—it's re-tuning what "equilibrium" means locally. At $q \to 1$, the conversion term drives $r \to \varphi$, the attractor where the net buoyancy force vanishes. The craft isn't accelerating in the Newtonian sense; it's sliding along the cascade axis.
+Newtonian inertia has no derived expression in terms of the local ratio $r$. Moreover, $q\to1$ suppresses the conversion coefficient rather than driving $r$ rapidly toward $\varphi$. A device model could posit an external source that changes $r$ while a high-$q$ state slows relaxation, but converting that internal change into inertialess spatial motion requires a new constitutive law.
 
 ### 2.2 No sonic boom
 
-The phase-matching factor $\mathcal{M}$ (from `foundations/quantum-measurement-derivation.md` §3.1) determines whether energy can transfer between a perturbation and a Qi-structured system. At a $\varphi$-detuned boundary, $\mathcal{M} \approx 0$—energy cannot couple across the interface.
+The phase-matching factor $\mathcal M$ in `foundations/quantum-measurement-derivation.md` §3.1 is a conditional overlap diagnostic. Applying it to a macroscopic hull–air interface requires a material scattering model.
 
-A Qi bubble's boundary presents a $\varphi$-detuned interface to ambient air molecules. Their organized kinetic energy (Yang) encounters a surface it cannot phase-match to. Instead of forming a shock front, the Qi gate at the boundary converts organized kinetic energy smoothly into diffuse thermal energy (Yin). No pressure discontinuity forms because no momentum is transferred. The air flows around the coherence bubble like light around a gravitational lens.
+The scenario assumes that such a boundary can reduce shock-producing momentum transfer while redirecting the surrounding medium. No Cassi equation currently shows that a $\varphi$-structured boundary has $\mathcal M\approx0$ for air molecules, prevents a pressure discontinuity, or disposes of the required momentum and heat. These are prospective device constraints.
 
 ### 2.3 Transmedium travel
 
-Air and water differ by a density factor of ~833. This is not a cascade-rung difference (both are at $n \approx 199.03$)—it is a **field-energy-density** difference: $\rho = E_Y + E_I$ is 833× higher in water. The gate must adjust its effective acoustic impedance to match the new medium, stepping through intermediate density regimes.
+Air and water differ in mass density by a factor of roughly $833$. This is not, by itself, a cascade-rung displacement: the ladder indexes length scales, while $\rho=E_Y+E_I$ is a model density that still needs a calibrated map to physical mass density. The scenario treats the logarithmic factor only as a controller schedule.
 
-A direct density jump of 833× is about $\Delta n_{\text{density}} = \ln(833)/\ln\varphi \approx 14$ density-ratio steps. This is near the ~10-rung effective nesting depth (`foundations/bubble-lattice-fabric.md` §3.3), making the transition marginal. The craft steps through intermediate density regimes, re-locking at each one. The familiar "pacing" behavior before water entry is the gate stepping through these regimes. The luminous plume at the interface is the cumulative $(1-q)$ fraction thermalizing across 14 density transitions—for $q \approx 0.9$, roughly 77% of the transition energy becomes visible light.
-
-Water-to-air (ascent) is energetically cheaper than air-to-water (descent) because the ascent rides the Hubble flow (see §4.4). This predicts that UAP should be more readily observed exiting water than entering it.
+The bookkeeping value $\ln(833)/\ln\varphi\approx14$ divides the density ratio into $\varphi$-spaced increments. Calling these increments physical transitions, or combining their losses independently to obtain a luminous fraction, is a Creative engineering assumption. The framework supplies neither a fourteen-stage medium coupling nor an ascent/descent energy asymmetry; both would require a dynamical interface model.
 
 ### 2.4 Silent hovering
 
-Gravity in the Cassi framework is the gradient of the Yang-Yin imbalance (`foundations/spiral-dynamics.md` §3):
+The optional gravity coupling uses the signed density imbalance $\pi=E_Y-E_I$ together with a separately chosen force-sign convention. At the conversion fixed ratio $E_Y=\varphi E_I$,
 
-$$\mathbf{F} = \Pi \nabla\Phi, \qquad \Pi = E_Y - E_I$$
+$$\frac{\pi}{\rho}=\frac{\varphi-1}{\varphi+1}=\varphi^{-3},$$
 
-At $\varphi$-equilibrium, $\Pi$ is minimized but never zero (because $\varphi$ is irrational). However, a Qi gate at $q \to 1$ drives $\Pi$ toward its minimum, $\Pi_{\text{min}} \propto \varphi^{-n}$. At the human scale ($n \approx 150$), this residual is attenuated to $\varphi^{-150} \approx 10^{-31}$. The Qi-gravity coupling $\xi = \varphi^6$ (`foundations/xi-derivation.md` §2) amplifies whatever imbalance remains, but with the gate actively maintaining near-equilibrium, the net gravitational force is negligible.
+which is nonzero. Canonical relaxation therefore does not cancel gravitational coupling, and $q\to1$ suppresses relaxation rather than actively maintaining a force-free state. Silent hovering in this scenario requires an additional, unprovided sign-changing or force-cancellation mechanism.
 
 ### 2.5 The glow
 
-No gate is perfect. The fraction $(1-q)$ of the conversion throughput thermalizes as photons. At $q \approx 0.9$, roughly 10% becomes light—the characteristic "plasma sheath" reported around UAP. Color changes correspond to gate tuning: as $q$ increases, the effective boundary temperature shifts upward. The observed sequence (red → orange → white → blue-white) as craft "power up" maps to increasing $q$ → higher gate throughput → higher thermalization temperature.
+The canonical factor $(1-q)$ is a conversion-rate multiplier, not a fraction of throughput guaranteed to become photons. The scenario may posit a radiative loss channel, but its efficiency, spectrum, color, and dependence on $q$ require a thermodynamic and electromagnetic closure. In particular, increasing $q$ suppresses canonical conversion, so it does not by itself imply higher throughput or temperature.
 
 The asserted single-channel gate input has denominator $\varphi^2$ (`foundations/cassi-first-principles.md` §2.5; `computations/gate_origin_audit.py`). Any claim that this produces $\varphi$-spaced characteristic emission frequencies is **Speculative** and conditional on that denominator.
 
@@ -70,58 +68,58 @@ Two Cassi-native mechanisms produce the "vanishing" behavior:
 
 ### 3.1 Rung retreat
 
-The craft shifts its effective rung by $\Delta n \approx 10$. Cascade suppression (`foundations/cascade-suppression-formula.md` §1.2): $\varphi^{-10} \approx 0.008$. The craft is still at the same spatial location, but 99.2% decoupled from visible-light interactions. It hasn't left—it's no longer playing on our rung.
+The numerical factor $\varphi^{-10}\approx0.008$ is the cascade-suppression law evaluated across ten declared rungs. Applying it to electromagnetic visibility would require a derived matter–photon coupling and a physical rung-shift operator; the attenuation identity alone does not make a craft optically disappear.
 
 ### 3.2 Lattice shortcut
 
-The bubble-lattice fabric (`foundations/bubble-lattice-fabric.md` §3.2) establishes that two bubbles spatially distant in 3-space can be directly adjacent along the cascade axis ($z$, the string direction). A coherent Qi bridge connects them through the lattice topology. From our 3D perspective: instant teleportation. From the lattice's perspective: one step along $z$.
+The nested-bubble geometry in `foundations/bubble-lattice-fabric.md` is a conditional coordinate construction. It does not establish that spatially distant physical regions are adjacent or that a bridge transmits matter between them. A lattice shortcut is therefore a Creative topology and transport postulate.
 
 ---
 
 ## 4. Hull Materials
 
-A conventional material fails because it is a **single-rung structure**—its characteristic length scale (lattice constant, bond length, grain size) corresponds to exactly one cascade rung. A Qi bubble that shifts rungs needs the hull to maintain coherence across multiple rungs simultaneously.
+The hull section is an illustrative materials concept. Real materials contain several characteristic scales, and the cascade ladder does not assign them a unique device rung or provide a cross-rung coherence criterion.
 
 ### 4.1 The Fibonacci layer stack
 
-From `foundations/bubble-lattice-fabric.md` §1.1, the condensation field has three orthogonal periods: $\Lambda_Y = \ell_n$, $\Lambda_I = \ell_n/\varphi$, $P_\parallel$. A material layer engineered at rung $n$ has its own internal bubble lattice. Stack layers at $\varphi$-spaced intervals and you get a cascade of coherence anchors:
+Choose a geometric layer schedule
 
-$$d_k = d_0 \cdot \varphi^k, \qquad k = 0, 1, 2, 3, 4$$
+$$d_k=d_0\varphi^k,\qquad k=0,1,2,3,4.$$
 
-A 5-layer group spans $\varphi^4 \approx 6.85\times$ in thickness—about 4 rungs of internal coherence depth. For a 14-step density transition, multiple 5-layer groups are staggered:
+Five entries span a thickness ratio $\varphi^4\approx6.85$. Three staggered groups could be labeled
 
 ```
-Group A: rungs 119-123
-Group B: rungs 124-128
-Group C: rungs 129-133
+Group A: controller labels 119–123
+Group B: controller labels 124–128
+Group C: controller labels 129–133
 ```
 
-Three groups × 5 layers = 15 layers total, spanning the range needed for air-to-water entry.
+These labels and the resulting fifteen-layer stack are design inputs. Bubble-lattice geometry neither maps a layer thickness to a working control channel nor shows that this stack spans an air–water transition.
 
 ### 4.2 Why quasicrystals
 
-The Wu Xing cycle is $w = 5$ (`foundations/wu-xing-derivation.md` §4). The Qi gate requires all five rotational phases of the Yang-Yin doublet. A conventional crystal with 2-, 3-, 4-, or 6-fold symmetry has "dead angles" where the gate stutters. Quasicrystals exhibit 5-fold rotational symmetry forbidden in periodic crystals, with $\varphi$ baked into their geometry (the Penrose tiling's rhombus ratio is exactly $\varphi$, and the diffraction pattern shows $\varphi$-spaced peaks). The material is a condensed phase of the bubble lattice itself.
+Fivefold quasicrystal geometry supplies a possible material motif because Penrose-type tilings contain $\varphi$-related lengths. The Hypothesized Wu Xing linkage uses $w=5$, but the canonical field does not require five material species, assign a gate phase to each species, or predict “dead angles” for ordinary crystals. Those assignments belong to the proposed device architecture.
 
 ### 4.3 The full stack
 
-| Layer position | Function | Requirement |
+| Layer position | Assumed role | Proposed property |
 |---|---|---|
-| Innermost core | Anchor the Qi bubble | Monoisotopic, vacancy-free, defect-free |
-| Gradient zone | Step through rungs | 15 $\varphi$-spaced quasicrystalline layers |
-| Boundary layer | Present $\varphi$-detuned interface | Amorphous metallic glass—no characteristic length scale |
-| Outer skin | Thermalize gate spill | High thermal conductivity, refractory |
+| Innermost core | Anchor the device state | Low isotope and defect disorder |
+| Gradient zone | Address controller labels | Fifteen $\varphi$-spaced layers |
+| Boundary layer | Supply a detuned interface | Characterized amorphous metallic glass |
+| Outer skin | Remove ordinary heat | High thermal conductivity and refractory behavior |
 
 ### 4.4 Wu Xing doping
 
-Five element types, each coupling to a different Wu Xing phase: low-$Z$ metals for Yang-donor sites, transition metals for gate-active sites, noble metals for inert buffer sites, heavy metals for Yin-donor sites, and rare earths (with partially filled $f$-orbitals and high magnetic anisotropy) for phase-memory sites. A ~5% doping of each type, arranged in the pentagon pattern across the quasicrystal, gives full 5-phase gate functionality.
+The Wu Xing material assignment is Creative: five element classes are associated with five controller phases, and a pentagonal doping pattern is proposed. The framework supplies no electron–field coupling that selects these classes, no $5\%$ concentration, and no phase-memory role for partially filled $f$ orbitals.
 
 ### 4.5 Superconductivity
 
-Electrical resistance is phase noise—electron scattering thermalizes organized current (Yang) into lattice vibrations (Yin), degrading $q$. The hull must be superconducting under operating conditions. In this architecture, superconductivity is a **consequence** of $q \to 1$: the Qi field provides an effective attractive interaction between charge carriers. The hull is superconducting because it's Qi-coherent, not Qi-coherent because it's superconducting.
+The proposal assumes that a high-$q$ material also supports superconductivity and an effective attractive carrier interaction. Canonical $q\to1$ only suppresses the selected conversion channel; it does not derive electron pairing or zero electrical resistance. The direction of causation between material coherence and superconductivity remains an added hypothesis.
 
 ### 4.6 Manufacturing
 
-You don't cast this material. You deposit it layer by layer: monoisotopic separation ($>99.99\%$ purity via laser isotope separation), molecular beam epitaxy with $\varphi$-graded flux rates, quasicrystalline templating on a 5-fold seed crystal, and stress annealing in a $\varphi$-modulated temperature profile. The infrastructure implies isotope-level nuclear control and theory-driven $\varphi$-scale materials design.
+A laboratory investigation would begin with ordinary fabrication and characterization constraints: isotope composition, deposition tolerances, layer thicknesses, phase purity, strain, defects, electronic transport, and thermal cycling. No manufacturing sequence currently creates or measures the proposed field state.
 
 ---
 
@@ -129,91 +127,83 @@ You don't cast this material. You deposit it layer by layer: monoisotopic separa
 
 ### 5.1 The accounting problem
 
-A 14-step density transition requires the gate to sustain a non-equilibrium $r$ at each step while the internal field reorganizes. The attractor potential resists this:
-
-$$V_{\text{attr}} = \frac{\lambda}{2}(\Psi_0^2 - \varphi\Psi_1^2)^2$$
-
-from `foundations/cassi-first-principles.md` §1.2. The deeper the gate pushes $r$ from equilibrium, the harder the attractor pulls back. The gate must draw power from the ambient field to sustain the maneuver.
+The canonical conversion term supplies a relaxation rate for the density imbalance; it is not an electronic or mechanical potential-energy functional. Therefore the work required to hold a selected $r$, shift a controller label, or move a craft cannot be calculated from $\lambda$ alone. An energy budget needs a Hamiltonian or stress-energy law, a source, and a closed conservation equation.
 
 ### 5.2 Source 1: Ambient $\Pi$ gradients
 
-At any interface between media of different density, $E_Y - \varphi E_I$ is elevated. The gate harvests this directly. The air-water interface provides "free" gate power simply by existing.
+The canonical equations contain no harvesting term that converts an ambient density imbalance into usable work. Treating a material interface as a power source requires an explicit source, flux, and conservation law.
 
 ### 5.3 Source 2: Bubble-void coherence gradient
 
-The condensation field $C(x,y) = \cos(\alpha x)\cos(\beta y)$ creates a checkerboard of bubble centers ($q \to 1$) and voids ($q \to 0$). The $G_{\text{eff}}$ gradient between them (`foundations/bubble-edge-geometry.md` §5.2) is a stored coherence potential. The craft descends from bubble center toward void in the $x$-$y$ plane, harvesting:
+The condensation field supplies a geometric proxy with bubble and void regions. Its map to canonical $q$, $G_{\text{eff}}$, physical mass density, and extractable work is conditional (`foundations/bubble-edge-geometry.md` §§1–5). Consequently,
 
-$$E_{\text{harvest}} \approx (\varphi^{6}-1) q_{\text{center}} \cdot \frac{GM}{R}$$
+$$E_{\text{harvest}}\approx(\varphi^6-1)q_{\text{center}}\frac{GM}{R}$$
 
-where $\varphi^6 \approx 17.944$ is the coupling's saturation maximum. This is the **lattice as coherence battery**: the organized, $\varphi$-structured gradient has $\mathcal{M} \approx 1$ and can be tapped at near-unit efficiency.
+is an illustrative device ansatz, not an energy derived from the field equations. No near-unit extraction efficiency follows from phase matching.
 
 ### 5.4 Source 3: Nested cascade harvesting
 
-The bubble lattice is self-similar across all rungs. Each bubble contains the full sub-lattice below it. A gate bridging ~10 rungs downward taps the nested coherence:
+The bubble-lattice source permits a conditional scale-coordinate assignment after parameter and unit renormalization. It does not show that a physical gate accesses lower-rung energy or that Planck-scale energy is stored in every macroscopic bubble. The displayed nested sum is therefore a proposed accounting model whose source and conservation law remain unspecified.
 
-$$E_{\text{nested}}(n) \approx \sum_{i=0}^{10} E_{\text{harvest}}(n-i) \cdot \varphi^{-i}$$
+### 5.5 Expansion analogy
 
-Lower rungs contribute with cascade attenuation but exponentially higher field energy density. The Planck-scale core of any bubble stores enormous coherence, accessible through the gate chain.
+The optional spiral model contains an expansion-rate analogy proportional to $(1-q)$. It does not provide a local propulsion flow, a preferred direction for water–air transit, or free work. Using that analogy as an energy source is a Creative assumption.
 
-### 5.5 Source 4: Hubble flow
+### 5.6 Illustrative controller sequence
 
-From `foundations/spiral-dynamics.md` §2, the natural expansion is outward: $H \propto (1-q)$. Moving outward (toward larger $n$, lower density) is with the flow and costs nothing beyond maintaining coherence. The flow is strongest where $q$ is lowest (voids), creating synergy with Source 2.
+The scenario assigns four operations:
 
-### 5.6 The spiral trajectory
+1. select a transverse geometric coordinate;
+2. change the proposed rung controller;
+3. traverse the material interface;
+4. restore the initial device state.
 
-The craft weaves between bubble centers and voids in the $x$-$y$ plane while shifting rungs along $z$:
-
-1. **Bubble descent** (transverse): Harvest $G_{\text{eff}}$ gradient (Sources 2 + 3)
-2. **Rung shift** (axial): Spend harvested energy against the attractor
-3. **Interface arrival**: Boost from ambient $\Pi$ gradient (Source 1)
-4. **Re-coherence** (transverse): Climb to new bubble center, spend residual energy
-
-For an outward (water→air) transit, the Hubble flow assists; the maneuver is energetically cheap. For an inward (air→water) transit, the flow opposes; the maneuver is expensive and produces a brighter luminous signature.
+No current equation assigns work, direction, or efficiency to these operations. Any water–air asymmetry must be calculated from a future medium-coupled model.
 
 ---
 
 ## 6. Mission Profile: Reconnaissance Flight
 
-A representative surface-observation mission from a deep-ocean base.
+The following is an illustrative scenario built from assumed device behavior. Its times, $q$ values, speeds, optical signatures, and energy costs are inputs, not calculations or predictions.
 
 ### 6.1 Charge the bubble
 
-The craft is docked at a mid-ocean ridge base, where mantle upwelling provides maximal $\Pi$. The gate charges over several minutes, raising internal $q$ from ambient (~0.3) to operational (~0.85). A faint bioluminescent shimmer appears as the gate starts up.
+The storyboard begins at an ocean location and assigns a device-state proxy to rise from $0.3$ to $0.85$. Those values are not canonical $q$ measurements, and the location supplies no demonstrated power source.
 
 ### 6.2 Ascent (water column)
 
-The 4 km rise through water is with the Hubble flow—energetically favorable. The craft spirals in the horizontal plane, weaving between local bubble centers and voids to maintain energy balance. Transit time: ~30 seconds. No cavitation, no turbulence—the $\varphi$-detuned boundary has $\mathcal{M} \approx 0$ at the molecular scale.
+The storyboard assigns a 4 km ascent in 30 seconds without cavitation or turbulence. These are target behaviors that a medium-coupled momentum and heat calculation would have to test.
 
 ### 6.3 Interface transition
 
-Water-to-air. The gate cycles through ~14 density-ratio steps, each releasing a fraction of unconverted energy as light. From above: a patch of ocean glows, cycling from deep red through blue-white over ~2 seconds. The craft emerges without a splash—the surface dimples slightly as the Qi bubble passes through.
+The storyboard represents the interface as fourteen controller increments and adds a brief optical emission. Neither the increment count nor the emission follows from a radiative closure.
 
 ### 6.4 Surface flight
 
-In air (833× lower $\rho$), the gate works harder to maintain $q$. Hovering requires minimal energy—the craft maintains $r \approx \varphi$, canceling gravitational coupling. Gentle drift by introducing slight Qi imbalance. Near-invisible to radar (no coherent reflection) and barely visible optically (faint corona in IR). Observation proceeds for as long as needed.
+The surface-flight segment assumes hovering, steering, reduced radar return, and a faint infrared corona. The fixed ratio $r=\varphi$ does not cancel gravity, and the electromagnetic signatures require a scattering and emission model.
 
 ### 6.5 Return (air-to-water)
 
-The expensive leg—against the Hubble flow, against the density gradient. The re-entry is brighter than the exit as the gate works harder. A descending blue-white ellipsoid fades as it sinks. Once submerged, the dense medium rapidly recharges the bubble. The corkscrew descent to the ridge base is straightforward.
+The return segment assigns a brighter emission and a slower re-entry. The field equations provide no preferred water–air direction or recharge process.
 
-**Total mission time:** ~20 minutes. **Net energy expenditure:** negligible—the lattice pays for the transit, with a small net cost on the return leg. **Most visible signature:** two brief luminous events at the ocean surface, each lasting seconds.
+The twenty-minute duration and all energy and visibility statements are storyboard inputs. The source and net work remain undefined.
 
 ---
 
 ## 7. Epistemic Boundaries
 
-### Grounded in Cassi formalism (mechanisms are real; application to propulsion is extrapolation)
+### Source ingredients and their present tiers
 
-- The Qi gate and conversion term from the two-fluid PDE (`foundations/cassi-first-principles.md`)
-- The bubble lattice condensation field and checkerboard geometry (`foundations/bubble-lattice-fabric.md`, `foundations/bubble-edge-geometry.md`)
-- The cascade suppression formula and per-rung attenuation (`foundations/cascade-suppression-formula.md`)
-- The phase-matching factor $\mathcal{M}$ distinguishing organized from random perturbation (`foundations/quantum-measurement-derivation.md` §3.1)
-- Spiral dynamics: Hubble as unwinding, gravity as gradient descent, $c$ as scale-invariant product (`foundations/spiral-dynamics.md`)
-- The Wu Xing cycle $w=5$ and pentagon gate structure (`foundations/wu-xing-derivation.md`)
-- Qi-gravity coupling $\xi = \varphi^6$ (`foundations/xi-derivation.md`)
-- Scale covariance of the PDE (`foundations/bubble-lattice-fabric.md` §2.1)
+- The selected rank-one density conversion and its optional $q$ gate (`foundations/cassi-first-principles.md`)
+- The conditional bubble-lattice and condensation-proxy geometry (`foundations/bubble-lattice-fabric.md`, `foundations/bubble-edge-geometry.md`)
+- The cascade suppression identity when an applicability span has independently been established (`foundations/cascade-suppression-formula.md`)
+- The conditional phase-matching diagnostic $\mathcal M$ (`foundations/quantum-measurement-derivation.md` §3.1)
+- Optional spiral-coordinate and gravity constructions whose physical force and transport maps remain open (`foundations/spiral-dynamics.md`)
+- The Hypothesized Wu Xing linkage at $w=5$ (`foundations/wu-xing-derivation.md`)
+- The identity $\xi=\varphi^6$ and its Hypothesized use as a cross-sector coupling (`foundations/xi-derivation.md`)
+- Conditional scale-coordinate covariance requiring parameter and unit renormalization (`foundations/bubble-lattice-fabric.md` §2.1)
 
-### Creative extrapolation (not claimed by the framework)
+### Creative device assumptions
 
 - That a macroscopic Qi bubble can be deliberately generated and sustained
 - That rung-shifting is physically achievable by modulating $r$
@@ -223,26 +213,25 @@ The expensive leg—against the Hubble flow, against the density gradient. The r
 - The specific mission profile parameters
 - The existence of ocean-dwelling operators or engineered planetary infrastructure
 
-### Not claimed
+### Scope exclusions
 
-- That UAP are Cassi-propulsion craft
-- That any observed phenomenon confirms the framework
-- That the framework predicts or requires extraterrestrial or non-human intelligence
-- That any technology described here is achievable with current or near-future engineering
+- UAP observations do not identify a Cassi propulsion mechanism.
+- The framework supplies no evidence for an extraterrestrial or non-human operator.
+- The proposed technology has no demonstrated implementation path.
 
 ---
 
 ## References
 
-- `foundations/cassi-first-principles.md`—Qi gate $g(q) = q/(\varphi^2 + q^2)$, two-fluid PDE, $\varphi$-attractor
-- `foundations/spiral-dynamics.md`—Hubble, gravity, and $c$ as three projections of Fibonacci spiral
-- `foundations/bubble-lattice-fabric.md`—universal checkerboard lattice, scale covariance, 10-rung nesting depth
-- `foundations/bubble-edge-geometry.md`—condensation field, $G_{\text{eff}}$ profile, edge steepness anisotropy
-- `foundations/cascade-suppression-formula.md`—signal attenuation $\varphi^{-N}$, coherence maintenance $\varphi^{-n(n+1)/2}$
-- `foundations/wu-xing-derivation.md`—$w=5$ uniqueness, pentagon gate
-- `foundations/xi-derivation.md`—$\xi = \varphi^6$ derivation and Qi-gravity coupling
+- `foundations/cassi-first-principles.md`—canonical density state, selected rank-one conversion, and asserted optional transmission input
+- `foundations/spiral-dynamics.md`—optional compact-coordinate, expansion, and gravity constructions
+- `foundations/bubble-lattice-fabric.md`—conditional checkerboard geometry, scale assignment, and nesting
+- `foundations/bubble-edge-geometry.md`—condensation proxy, conditional proxy maps, and edge geometry
+- `foundations/cascade-suppression-formula.md`—signal attenuation after an independently justified cascade span
+- `foundations/wu-xing-derivation.md`—Hypothesized $w=5$ linkage and pentagon construction
+- `foundations/xi-derivation.md`—$\xi=\varphi^6$ identity and conditional Qi-gravity coupling
 - `foundations/quantum-measurement-derivation.md`—phase-matching factor $\mathcal{M}$
 - `foundations/proton-coherence-budget.md`—organized vs random perturbation, cascade coherence architecture
 - `foundations/dimensionful-cascade.md`—cascade table (292 = today's horizon rung), $\ell_n = \ell_{\text{Pl}}\varphi^n$
 - `principles/de-resonance-principle.md`—$\varphi$ as maximally irrational, per-rung decoupling
-- `consciousness/chakras-as-cascade-bubbles.md`—human gate chain, $P_\parallel = 2$, 13-node derivation
+- `consciousness/chakras-as-cascade-bubbles.md`—Hypothesized human gate-chain and $P_\parallel=2$ coordinate mappings

@@ -5,9 +5,10 @@ Accurate 3D N-body solver using spectral Poisson gravity on GPU.
 - Bodies deposited onto grid via Cloud-in-Cell (CIC)
 - Poisson equation solved via FFT with Gaussian softening
 - Leapfrog (kick-drift-kick) symplectic integration
-- Qi-gated adaptive softening: coherence q = rho^2 / (rho^2 + phi^-2 + eps^2)
-  where eps^2 = (rho - qi_field)^2 measures deviation from temporal equilibrium.
-  Mirrors the two-fluid cosmology Qi gate (Cassian: coherence suppresses interaction).
+- Optional legacy adaptive-softening heuristic: the occupied-cell density proxy
+  c = rho / (rho + phi^-2) and normalized density-memory residual are reduced
+  to global means that adjust sigma. This is not the canonical two-fluid q gate
+  and does not suppress gravity locally.
 
 Usage:
   python cassi_nbody.py --N 1000 --mode plummer --steps 5000
@@ -51,12 +52,12 @@ class NBodyConfig:
     dt: float = 0.001
     n_steps: int = 10000
     vel_damp: float = 1.0
-    qi_damp: float = PHI_INV
-    qi_gate: bool = False
-    qi_memory: bool = False
-    qi_beta: float = 0.5     # deprecated: replaced by PHI_INV + qi_gamma in five-element model
-    qi_gamma: float = 1.0    # turbulence contribution to softening (five-element Kmd analog)
-    alpha_yin: float = 0.0   # Yin relative-entropy nonlinear source (0 = off, 0.5 typical)
+    qi_damp: float = PHI_INV   # Legacy density-memory EMA damping
+    qi_gate: bool = False      # Retained CLI/API name for legacy density-memory softening
+    qi_memory: bool = False    # Retained CLI/API name for legacy residual memory
+    qi_beta: float = 0.5       # deprecated: replaced by PHI_INV + qi_gamma in legacy softening
+    qi_gamma: float = 1.0      # legacy density-memory residual contribution to softening
+    alpha_yin: float = 0.0    # Yin relative-entropy nonlinear source (0 = off, 0.5 typical)
     holographic_bound: bool = False  # enable holographic I_max smoothing
     holographic_eta: float = 1.0     # holographic bound coefficient
     report_every: int = 250
@@ -357,8 +358,10 @@ class NBodySolver3D:
         """
         raise NotImplementedError(
             "P^3M close-pair search not yet implemented. "
-            "Design: cell-list with r_cut linking length, Qi-gated: "
-            f"r_cut = r_base * (1 + {PHI_INV:.4f} * (1 - q_mean))."
+            "Design: cell-list with r_cut linking length, legacy "
+            "density-memory adaptive softening: "
+            f"r_cut = r_base * (1 + {PHI_INV:.4f} * "
+            "(1 - legacy_density_proxy_mean))."
         )
 
     def pm_force_at_separation(self, dr: torch.Tensor) -> torch.Tensor:
@@ -394,7 +397,9 @@ class NBodySolver3D:
         Args:
             positions: (N, 3) tensor
             masses: (N,) tensor
-            r_cut: PP linking length (Qi-gated: r_cut = r_base * (1 + phi^-1 * (1-q)))
+            r_cut: PP linking length (legacy density-memory adaptive
+            softening: r_cut = r_base * (1 + phi^-1 *
+            (1 - legacy_density_proxy_mean)))
 
         Returns:
             (N, 3) tensor of corrected accelerations.
@@ -403,7 +408,8 @@ class NBodySolver3D:
         raise NotImplementedError(
             "P^3M not yet implemented. "
             "Architecture: PM solve + cell-list close pairs + "
-            "PP correction with Qi-gated r_cut."
+            "PP correction with legacy density-memory adaptive-softening "
+            "r_cut."
         )
 
     # --- Yin relative-entropy nonlinear source (Bridge Sec 3.2) ---
@@ -574,56 +580,79 @@ class NBodySolver3D:
                 result += weight * field[iz, iy, ix]
         return result
 
-    def compute_acceleration_qi(self, positions: torch.Tensor,
-                                 masses: torch.Tensor
-                                 ) -> Tuple[torch.Tensor, float]:
-        """Qi-gated acceleration: adaptive softening via density memory.
+    def compute_acceleration_density_memory(
+            self, positions: torch.Tensor, masses: torch.Tensor
+            ) -> Tuple[torch.Tensor, float, float]:
+        """Legacy density-memory adaptive-softening diagnostic.
 
-        Mirrors the two-fluid Qi gate: coherence q = rho^2 / (rho^2 + phi^-2 + eps^2)
-        where eps^2 = (rho - qi_field)^2 measures deviation from temporal equilibrium.
+        The occupied-cell density proxy is
 
-        - qi_field is a phi-damped EMA of past density (set by runner).
-        - When rho ~ qi_field (steady state): q -> 1, gravity passes through.
-        - When rho deviates from memory (collapse/merger): q -> low, gravity suppressed.
-        - In vacuum: q -> 1 (no spurious gate).
+            c = rho / (rho + phi^-2),
+
+        while ``density_memory_residual`` records normalized density change.
+        Their occupied-cell means adjust the global Gaussian softening length
+        in the runner. Neither quantity is the canonical two-fluid
+        coherence ``q(E_Y, E_I)``, and the force is not gated locally.
+        Vacuum cells are assigned ``c = 1`` and excluded from the reported
+        occupied-cell mean.
         """
+
         rho = self.deposit_density(positions, masses)
 
-        # Equilibrium deviation
+        # Density-memory residual relative to the retained EMA field.
         if self.qi_field is not None:
-            eps_sq = (rho - self.qi_field) ** 2
+            density_memory_residual_sq = (rho - self.qi_field) ** 2
         else:
-            eps_sq = torch.zeros_like(rho)
+            density_memory_residual_sq = torch.zeros_like(rho)
 
-        # Qi memory EMA (temporal inertia, optional)
         if self.qi_memory:
             if self.eps_sq_memory is None:
-                self.eps_sq_memory = torch.zeros_like(eps_sq)
-            self.eps_sq_memory = (1.0 - PHI_INV) * self.eps_sq_memory + PHI_INV * eps_sq
-            eps_sq_eff = self.eps_sq_memory
+                self.eps_sq_memory = torch.zeros_like(density_memory_residual_sq)
+            self.eps_sq_memory = (
+                (1.0 - PHI_INV) * self.eps_sq_memory
+                + PHI_INV * density_memory_residual_sq
+            )
+            density_memory_residual_sq_eff = self.eps_sq_memory
         else:
-            eps_sq_eff = eps_sq
+            density_memory_residual_sq_eff = density_memory_residual_sq
 
-        # Qi coherence gate (pure field power, no eps^2 in denominator)
+        # Legacy occupied-cell density proxy; not canonical two-fluid q.
         rho_sq = rho ** 2
         phi_inv2 = PHI_INV ** 2
-        q_coherence = rho / (rho + phi_inv2 + 1e-12)
-        eps_norm = eps_sq_eff / (rho_sq + 1e-12)
+        legacy_density_proxy = rho / (rho + phi_inv2 + 1e-12)
+        density_memory_residual = (
+            density_memory_residual_sq_eff / (rho_sq + 1e-12)
+        )
 
-        # Vacuum: where rho ~ 0, force q -> 1
+        # Vacuum: the legacy proxy is closed by convention.
         rho_max = rho.max()
         if rho_max > 1e-10:
-            q_coherence = torch.where(rho < 0.01 * rho_max, torch.ones_like(q_coherence), q_coherence)
+            legacy_density_proxy = torch.where(
+                rho < 0.01 * rho_max,
+                torch.ones_like(legacy_density_proxy),
+                legacy_density_proxy,
+            )
 
-        non_vac = rho > 0.01 * rho.max() if rho_max > 1e-10 else torch.ones_like(rho, dtype=torch.bool)
-        q_mean = q_coherence[non_vac].mean().item() if non_vac.any() else 1.0
-        eps_mean = eps_norm[non_vac].mean().item() if non_vac.any() else 0.0
+        non_vac = (
+            rho > 0.01 * rho.max()
+            if rho_max > 1e-10
+            else torch.ones_like(rho, dtype=torch.bool)
+        )
+        legacy_density_proxy_mean = (
+            legacy_density_proxy[non_vac].mean().item()
+            if non_vac.any() else 1.0
+        )
+        density_memory_residual_mean = (
+            density_memory_residual[non_vac].mean().item()
+            if non_vac.any() else 0.0
+        )
 
-        # Standard softened gravity (no force suppression)
+        # Standard softened gravity (no force suppression).
         ax, ay, az = self.solve_gravity(rho)
         accel = self.interpolate_accel(ax, ay, az, positions)
 
-        return accel, q_mean, eps_mean
+        return (accel, legacy_density_proxy_mean,
+                density_memory_residual_mean)
 
     # --- Leapfrog integrator ---
     def leapfrog_step(self, pos: torch.Tensor, vel: torch.Tensor,
@@ -632,13 +661,22 @@ class NBodySolver3D:
                       vel_damp: float = 1.0,
                       qi_gate: bool = False
                       ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, float, float]:
-        """Kick-drift-kick (velocity Verlet). Uses self.qi_field if qi_gate=True."""
-        q_mean = 1.0
-        eps_mean = 0.0
+        """Kick-drift-kick (velocity Verlet).
+
+        ``qi_gate`` is the retained API switch for the legacy density-memory
+        adaptive-softening heuristic; it is not the canonical two-fluid q
+        gate.
+        """
+        legacy_density_proxy_mean = 1.0
+        density_memory_residual_mean = 0.0
 
         if accel is None:
             if qi_gate:
-                accel, q_mean, eps_mean = self.compute_acceleration_qi(pos, masses)
+                (
+                    accel,
+                    legacy_density_proxy_mean,
+                    density_memory_residual_mean,
+                ) = self.compute_acceleration_density_memory(pos, masses)
             else:
                 accel = self.compute_acceleration(pos, masses)
 
@@ -650,7 +688,11 @@ class NBodySolver3D:
         new_pos = ((new_pos + self.L / 2.0) % self.L) - self.L / 2.0
 
         if qi_gate:
-            new_accel, q_mean, eps_mean = self.compute_acceleration_qi(new_pos, masses)
+            (
+                new_accel,
+                legacy_density_proxy_mean,
+                density_memory_residual_mean,
+            ) = self.compute_acceleration_density_memory(new_pos, masses)
         else:
             new_accel = self.compute_acceleration(new_pos, masses)
 
@@ -660,7 +702,13 @@ class NBodySolver3D:
 
         new_vel = vel_half + 0.5 * dt * new_accel
 
-        return new_pos, new_vel, new_accel, q_mean, eps_mean
+        return (
+            new_pos,
+            new_vel,
+            new_accel,
+            legacy_density_proxy_mean,
+            density_memory_residual_mean,
+        )
 
     # --- Diagnostics ---
     def compute_energy(self, pos: torch.Tensor, vel: torch.Tensor,
@@ -721,7 +769,8 @@ class NBodySolver3D:
         return result
     def compute_diagnostics(self, pos: torch.Tensor, vel: torch.Tensor,
                             masses: torch.Tensor, config=None,
-                            q_mean: float = 1.0, eps_mean: float = 0.0) -> dict:
+                            legacy_density_proxy_mean: float = 1.0,
+                            density_memory_residual_mean: float = 0.0) -> dict:
         """Full diagnostic suite."""
         KE, PE, E_tot = self.compute_energy(pos, vel, masses)
         Q = 2.0 * KE / (abs(PE) + 1e-10)
@@ -744,7 +793,8 @@ class NBodySolver3D:
             'r10': lagr.get(0.1, 0.0),
             'r90': lagr.get(0.9, 0.0),
             'max_r': r.max().item(), 'min_r': r.min().item(),
-            'q_mean': q_mean, 'eps_mean': eps_mean,
+            'legacy_density_proxy_mean': legacy_density_proxy_mean,
+            'density_memory_residual_mean': density_memory_residual_mean,
         }
         return result
 
@@ -900,14 +950,14 @@ def keplerian_disk(N: int, radius: float, config: NBodyConfig,
 def run_simulation(config: NBodyConfig, pos: torch.Tensor, vel: torch.Tensor,
                    masses: torch.Tensor, track: bool = True
                    ) -> Tuple[List[dict], Optional[torch.Tensor], NBodySolver3D]:
-    """Main simulation loop."""
+    """Run the particle-mesh trajectory with optional legacy diagnostics."""
     solver = NBodySolver3D(n_grid=config.n_grid, L=config.L, G=config.G,
-                            sigma=config.sigma, device=config.device,
-                            qi_gate=config.qi_gate, qi_memory=config.qi_memory,
-                            deposition_kernel=config.deposition_kernel,
-                            alpha_yin=config.alpha_yin,
-                            holographic_bound=config.holographic_bound,
-                            holographic_eta=config.holographic_eta)
+                           sigma=config.sigma, device=config.device,
+                           qi_gate=config.qi_gate, qi_memory=config.qi_memory,
+                           deposition_kernel=config.deposition_kernel,
+                           alpha_yin=config.alpha_yin,
+                           holographic_bound=config.holographic_bound,
+                           holographic_eta=config.holographic_eta)
     N = pos.shape[0]
     total_mass = masses.sum().item()
 
@@ -919,41 +969,55 @@ def run_simulation(config: NBodyConfig, pos: torch.Tensor, vel: torch.Tensor,
     phys_t = 0.0
     accel = None
 
-    mode_str = 'Qi-gate ON' if config.qi_gate else 'Standard fixed-sigma'
+    mode_str = (
+        'Legacy density-memory adaptive softening ON'
+        if config.qi_gate else 'Standard fixed-sigma'
+    )
     if config.qi_gate and config.qi_memory:
-        mode_str += ' + memory'
+        mode_str += ' + residual memory'
 
     print(f"\n{'='*64}")
     print(f"  Cassi N-Body 3D GPU - Particle-Mesh Gravity")
     print(f"  {'-'*56}")
     print(f"  N = {N} bodies  |  m = 1.0 each  |  total M = {total_mass:.0f}")
-    print(f"  Grid: {config.n_grid}^3  |  L = {config.L}  |  dx = {config.L/config.n_grid:.3f}")
-    print(f"  G = {config.G}  |  sigma = {config.sigma}  |  sigma/dx = {config.sigma * config.n_grid / config.L:.2f}")
+    print(f"  Grid: {config.n_grid}^3  |  L = {config.L}  |  "
+          f"dx = {config.L/config.n_grid:.3f}")
+    print(f"  G = {config.G}  |  sigma = {config.sigma}  |  "
+          f"sigma/dx = {config.sigma * config.n_grid / config.L:.2f}")
     print(f"  dt = {config.dt}  |  Steps = {config.n_steps}")
-    print(f"  phi = {PHI:.4f}  |  Qi damp = 1/phi = {PHI_INV:.4f}  |  {mode_str}")
+    print(f"  phi = {PHI:.4f}  | density-memory damp = 1/phi = "
+          f"{PHI_INV:.4f}  |  {mode_str}")
     print(f"{'='*64}\n")
 
+    steps_run = 0
     t_start = time.time()
-
     for step in range(config.n_steps):
-        pos, vel, accel, q_mean, eps_mean = solver.leapfrog_step(
+        steps_run += 1
+        (
+            pos,
+            vel,
+            accel,
+            legacy_density_proxy_mean,
+            density_memory_residual_mean,
+        ) = solver.leapfrog_step(
             pos, vel, masses, config.dt, accel=accel,
             vel_damp=config.vel_damp, qi_gate=config.qi_gate
         )
 
-        # Qi memory field update
+        # Legacy density-memory field update.
         rho = solver.deposit_density(pos, masses)
         qi = config.qi_damp * qi + (1.0 - config.qi_damp) * rho
         if config.qi_gate:
             solver.qi_field = qi
-            # Five-element adaptive softening:
-            #   Kfw = phi^-1 damps lack of coherence (Water damps Fire)
-            #   gamma = turbulence increases softening (Metal cuts Wood)
-            if step > 0:  # skip step 0 (q_mean from empty memory)
-                sigma_eff = config.sigma * (1.0
-                    + PHI_INV * (1.0 - q_mean)           # Kfw = phi^-1
-                    + config.qi_gamma * eps_mean)        # turbulence
-                sigma_eff = max(sigma_eff, config.sigma * 0.5)  # floor
+            # Legacy density-memory adaptive softening:
+            # phi^-1 damps the occupied-cell proxy and the residual
+            # contribution increases softening.
+            if step > 0:  # skip step 0 (empty density-memory field)
+                sigma_eff = config.sigma * (
+                    1.0 + PHI_INV * (1.0 - legacy_density_proxy_mean)
+                    + config.qi_gamma * density_memory_residual_mean
+                )
+                sigma_eff = max(sigma_eff, config.sigma * 0.5)
                 if abs(sigma_eff - solver.sigma) > 0.01 * config.sigma:
                     solver.set_softening(sigma_eff)
         phys_t += config.dt
@@ -962,22 +1026,31 @@ def run_simulation(config: NBodyConfig, pos: torch.Tensor, vel: torch.Tensor,
             trail_frames.append(pos.cpu().clone())
 
         if step % config.report_every == 0:
-            d = solver.compute_diagnostics(pos, vel, masses, config,
-                                            q_mean=q_mean, eps_mean=eps_mean)
+            d = solver.compute_diagnostics(
+                pos, vel, masses, config,
+                legacy_density_proxy_mean=legacy_density_proxy_mean,
+                density_memory_residual_mean=density_memory_residual_mean,
+            )
             diag_history.append(d)
-            qi_info = f" q_avg={q_mean:.4f}" if config.qi_gate else ""
+            density_memory_info = (
+                f" legacy_density_proxy_mean="
+                f"{legacy_density_proxy_mean:.4f}"
+                f" density_memory_residual_mean="
+                f"{density_memory_residual_mean:.4f}"
+                if config.qi_gate else ""
+            )
             print(f"  t={phys_t:.3f} | E={d['E_tot']:+.4f} | "
                   f"KE={d['KE']:.4f} PE={d['PE']:+.4f} | "
                   f"Q={d['Q']:.4f} | "
                   f"R_half={d['half_mass_r']:.4f} | "
-                  f"|L|={d['L_mag']:.4f}{qi_info}")
+                  f"|L|={d['L_mag']:.4f}{density_memory_info}")
 
-            if math.isnan(d['E_tot']):
-                print(f"\n  ERROR: NaN detected at step {step}. Aborting.")
+            if not math.isfinite(d['E_tot']):
+                print(f"\n  ERROR: non-finite energy at step {step}. Aborting.")
                 break
 
     elapsed = time.time() - t_start
-    ms_per_step = elapsed / (step + 1) * 1000
+    ms_per_step = elapsed / max(steps_run, 1) * 1000
     print(f"\n  Wall time: {elapsed:.1f}s  |  {ms_per_step:.1f} ms/step")
     print(f"  Field method: {config.n_grid}^3 log {config.n_grid} ~ "
           f"{config.n_grid**3 * math.log2(config.n_grid):.0f} op/step")
@@ -1015,7 +1088,10 @@ def plot_results(pos: torch.Tensor, vel: torch.Tensor, masses: torch.Tensor,
 
     # Panel 2: Energy evolution
     ax = axes[0, 1]
-    times = [i * config.report_every * config.dt for i in range(len(diag_history))]
+    times = [
+        (i * config.report_every + 1) * config.dt
+        for i in range(len(diag_history))
+    ]
     KE = [d['KE'] for d in diag_history]
     PE = [d['PE'] for d in diag_history]
     E_tot = [d['E_tot'] for d in diag_history]
@@ -1032,10 +1108,24 @@ def plot_results(pos: torch.Tensor, vel: torch.Tensor, masses: torch.Tensor,
     ax.plot(times, Q_vals, 'g-', lw=1.5)
     ax.axhline(y=1.0, color='gray', ls='--', lw=1, label='Q=1')
     if config.qi_gate:
-        q_vals = [d.get('q_mean', 1.0) for d in diag_history]
+        proxy_vals = [
+            d.get('legacy_density_proxy_mean', 1.0)
+            for d in diag_history
+        ]
+        residual_vals = [
+            d.get('density_memory_residual_mean', 0.0)
+            for d in diag_history
+        ]
         ax2 = ax.twinx()
-        ax2.plot(times, q_vals, 'orange', lw=1, ls=':', label='q_avg coherence')
-        ax2.set_ylabel('q_avg', color='orange')
+        ax2.plot(
+            times, proxy_vals, 'orange', lw=1, ls=':',
+            label='legacy density proxy mean'
+        )
+        ax2.plot(
+            times, residual_vals, 'brown', lw=1, ls='--',
+            label='density-memory residual mean'
+        )
+        ax2.set_ylabel('legacy proxy / memory residual', color='orange')
         ax2.legend(fontsize=7, loc='lower right')
     ax.set(xlabel='Time', ylabel='Q = 2KE/|PE|', title='Virial Ratio')
     ax.legend(fontsize=8, loc='upper right')
@@ -1084,7 +1174,8 @@ def plot_results(pos: torch.Tensor, vel: torch.Tensor, masses: torch.Tensor,
     suptitle = (
         f'Cassi N-Body 3D GPU: N={N}, Grid={config.n_grid}^3\n'
         f'G={config.G} | sigma={config.sigma} | dt={config.dt} | '
-        f'Steps={config.n_steps} | {"Qi-gated" if config.qi_gate else "Standard"}'
+        f'Steps={config.n_steps} | '
+        f'{"legacy density-memory" if config.qi_gate else "Standard"}'
     )
     fig.suptitle(suptitle, fontsize=9, fontweight='bold', family='monospace')
     plt.tight_layout()
@@ -1099,7 +1190,14 @@ def plot_results(pos: torch.Tensor, vel: torch.Tensor, masses: torch.Tensor,
         print(f"  R_half:      {final_d['half_mass_r']:.4f}")
         print(f"  |L|:         {final_d['L_mag']:.4f}")
         if config.qi_gate:
-            print(f"  q_avg:       {final_d.get('q_mean', 1.0):.4f}")
+            print(
+                f"  legacy_density_proxy_mean: "
+                f"{final_d.get('legacy_density_proxy_mean', 1.0):.4f}"
+            )
+            print(
+                f"  density_memory_residual_mean: "
+                f"{final_d.get('density_memory_residual_mean', 0.0):.4f}"
+            )
 
     return fig
 
@@ -1144,13 +1242,15 @@ def main():
     parser.add_argument('--no-track', action='store_true',
                         help='Disable trajectory tracking (saves memory)')
     parser.add_argument('--qi-gate', action='store_true',
-                        help='Qi-gated adaptive softening (density memory coherence)')
+                        help='Legacy density-memory adaptive softening')
     parser.add_argument('--qi-memory', action='store_true',
-                        help='Qi memory: per-cell EMA of eps^2 (temporal inertia)')
+                        help='Legacy density-memory residual EMA')
     parser.add_argument('--qi-beta', type=float, default=0.5,
-                        help='Qi softening modulation strength (deprecated, use --qi-gamma)')
+                        help='Legacy softening modulation strength '
+                             '(deprecated, use --qi-gamma)')
     parser.add_argument('--qi-gamma', type=float, default=1.0,
-                        help='Qi turbulence contribution to softening (five-element gamma)')
+                        help='Legacy density-memory residual contribution '
+                             'to softening')
     parser.add_argument('--alpha-yin', type=float, default=0.0,
                         help='Yin relative-entropy nonlinear source (0=off, 0.5 typical)')
     parser.add_argument('--holographic', action='store_true',

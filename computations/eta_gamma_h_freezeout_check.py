@@ -3,49 +3,48 @@
 Dynamical Freeze-Out (Γ/H = 1) Check for the 44-Rung Dilution Span
 ==================================================================
 
-Sixth closure attempt for the baryon-asymmetry exponent η ≈ φ⁻⁴⁴
-(`foundations/baryon-asymmetry.md` §4.7; the first five are §4.5(a)–(e),
-`computations/eta_span_closure_check.py`). This one is rate-based: the
-standard dynamical freeze-out condition Γ = H, using only framework-derived
-rates.
+Tests the standard dynamical condition Γ = H within the document's separate
+unit-density normalized gate ansatz for the 44-rung dilution span
+(`foundations/baryon-asymmetry.md` §4.7 and
+`computations/eta_span_closure_check.py`).  This is a conditional diagnostic;
+it does not promote the ansatz to the canonical density-dependent gate.
 
-Framework inputs (all derived, no free parameters):
+Inputs and conventions:
 
-    conversion rate   Γ = λ(1−q),      (1−q) = (φ⁻²+ε²)/(1+φ⁻²+ε²),
-                                      ε = (φ−r)/(1+r)           (two-fluid PDE,
-                                      cosmology-from-phi.md §1; baryon-
-                                      asymmetry.md §4.2)
-    Hubble rate       H = (λ/3)[φ⁻² + (φ−r)(1+r)/r]             (homogeneous
-                                      two-fluid H, same source)
-    λ = 1/(2w) = 0.1 (derived, w = 5)  — cancels out of Γ = H exactly
-    r_0 = φ⁻⁵/(2−φ⁻⁵) ≈ 0.0472        (Wu Xing gap, derived)
+    normalized gate  Γ = λ(1−q̄),      (1−q̄) = (φ⁻²+ε̄²)/(1+φ⁻²+ε̄²),
+                                      ε̄ = (φ−r)/(1+r)
+                                      (conditional unit-density ansatz;
+                                      baryon-asymmetry.md §4.2)
+    Hubble rate      H = (λ/3)[φ⁻² + (φ−r)(1+r)/r]             (homogeneous
+                                      two-fluid H)
+    λ = 0.1 (solver convention); λ cancels out of Γ = H exactly
+    w = 5 (conditional Wu Xing reference); 1/(2w) = λ is a Hypothesized linkage
     r_GUT ≈ 0.3–0.5                   (baryon-asymmetry.md §1.2, loose estimate)
-    N_GUT = 13.33                      (corrected GUT-seed rung, M_GUT = 2×10¹⁶ GeV)
+    N_GUT = 13.33                      (declared GUT-seed rung, M_GUT = 2×10¹⁶ GeV)
 
 Candidate equation (Γ = H, λ cancels):
 
-    (φ⁻²+ε²)/(1+φ⁻²+ε²) = (1/3)[φ⁻² + (φ−r)(1+r)/r],   ε = (φ−r)/(1+r)
+    (φ⁻²+ε̄²)/(1+φ⁻²+ε̄²) = (1/3)[φ⁻² + (φ−r)(1+r)/r],
+    ε̄ = (φ−r)/(1+r)
 
 Result: the equation has a unique root r_f ≈ 1.34949 (quartic over ℚ(√5);
 no φ-power: log_φ(r_f) = 0.6229), but Γ/H is monotonically increasing along
-the trajectory — the crossing is a THAW (Γ/H rising through 1), not a freeze
-(Γ/H falling through 1). Γ/H < 1 throughout the seeded epoch (0.29–0.39 at
-r_GUT ≈ 0.3–0.5) and > 1 from r_f to the attractor: no Γ = H freeze-out
-exists for the dilution of the seeded asymmetry. Reading the crossing as the
-dilution endpoint anyway, the homogeneous rung span from the seed is
-N = 2.5–3.2 (η ≈ 0.2–0.3, ~4–5×10⁸× observed) vs the required 44.09–44.13.
+the trajectory. The crossing is a THAW (Γ/H rising through 1), not a freeze
+(Γ/H falling through 1). Reading it as a dilution endpoint gives a
+homogeneous rung span N = 2.5–3.2 from r_GUT ≈ 0.3–0.5, versus the required
+44.09–44.13.
 
-Radiation-era cross-check (Γ = λ(1−q) vs H_rad(n) = 1.66√g* · E(n)²/M_Pl,
-E(n) = M_Pl φ⁻ⁿ, g* = 106.75, λ normalized via c = λ·ℓ_Pl):
-the Γ = H crossing sits at n ≈ 3.3–6.7 — BEFORE the GUT seed (13.33);
-Γ/H at the seed ≈ 9×10² and at the would-be 44-span endpoint (n = 57.33)
-≈ 2×10²¹. No normalization of λ moves the crossing past the seed.
+The radiation-era cross-check makes the additional dimensional identification
+λ_phys = λ_solver M_Pl and compares λ_phys(1−q̄) with
+H_rad(n) = 1.66√g* · E(n)²/M_Pl. For the two tested solver values,
+λ_solver = 0.1 and 1.0, its crossing sits at n ≈ 3.3–6.7, before the
+GUT seed at n = 13.33. This is a conditional normalization check, not a
+normalization-independent physical prediction.
 
-Verdict: no closure. The 44-rung span remains the ledgered fit
-(`parameter-inventory.md` §10 row 481). Blocking step: the framework's own
-two-fluid rates produce no Γ = H freeze after the seed (the crossing is a
-thaw, homogeneous reading; pre-seed, radiation-era reading), and no derived
-map assigns a rung to the homogeneous crossing.
+Verdict: no closure within this ansatz. The 44-rung span remains the ledgered
+fit (`parameter-inventory.md` §10 row 481). The calculation does not test the
+canonical q(E_Y,E_I,ε_raw) at arbitrary density and therefore cannot establish
+a general two-fluid freeze-out result.
 
 Usage: python computations/eta_gamma_h_freezeout_check.py
 """
@@ -57,29 +56,29 @@ LN_PHI = math.log(PHI)
 M_PL   = 1.2209e19     # GeV — Planck mass (mass-ladder convention)
 ETA_DOC  = 6.0e-10     # doc convention
 ETA_PDG  = 6.104e-10   # PDG 2024 baryon-to-photon ratio
-N_GUT  = 13.33         # corrected GUT-seed rung (M_GUT = 2×10¹⁶ GeV)
-R0     = PHI**-5 / (2 - PHI**-5)   # 0.047214…, Wu Xing gap derived
+N_GUT  = 13.33         # declared GUT-seed rung (M_GUT = 2×10¹⁶ GeV)
+R0     = PHI**-5 / (2 - PHI**-5)   # 0.047214…, selected conditional Wu Xing reference
 C_RAD  = 1.66 * math.sqrt(106.75)  # 1.66√g* for H_rad, g* = SM d.o.f.
 
 def lg(x):
     return math.log(x) / LN_PHI
 
-def one_minus_q(r):
-    """Qi gate openness (1−q) at ratio r (baryon-asymmetry.md §4.2)."""
-    eps = (PHI - r) / (1 + r)
-    return (PHI**-2 + eps**2) / (1 + PHI**-2 + eps**2)
+def one_minus_qbar(r):
+    """Normalized gate openness (1−q̄) at ratio r (document §4.2)."""
+    eps_bar = (PHI - r) / (1 + r)
+    return (PHI**-2 + eps_bar**2) / (1 + PHI**-2 + eps_bar**2)
 
 def h_over_lambda(r):
     """H/λ = (1/3)[φ⁻² + (φ−r)(1+r)/r] — homogeneous two-fluid H."""
     return (1.0 / 3.0) * (PHI**-2 + (PHI - r) * (1 + r) / r)
 
 def gamma_over_h(r):
-    """Γ/H = (1−q) / (H/λ) — λ cancels."""
-    return one_minus_q(r) / h_over_lambda(r)
+    """Γ/H = (1−q̄) / (H/λ) inside the normalized ansatz."""
+    return one_minus_qbar(r) / h_over_lambda(r)
 
 def f_cross(r):
-    """Γ = H  <=>  (1−q)(r) − H(r)/λ = 0."""
-    return one_minus_q(r) - h_over_lambda(r)
+    """Γ = H iff (1−q̄)(r) − H(r)/λ = 0."""
+    return one_minus_qbar(r) - h_over_lambda(r)
 
 def r_of_gamma_equals_h(a, b):
     """Bisect f_cross on [a, b] (f monotone there)."""
@@ -95,8 +94,8 @@ def r_of_gamma_equals_h(a, b):
 def n_rungs(r_lo, r_hi, n_pts=4000):
     """Homogeneous rung count N = ∫ H/(|dr/dt|·lnφ) dr, λ cancels.
 
-    |dr/dt|/λ = (1−q)(φ−r)(1+r)  (homogeneous ratio ODE with the (1+r)
-    quotient factor, cascade_depth_integral.py convention).
+    |dr/dt|/λ = (1−q̄)(φ−r)(1+r)  (homogeneous ratio ODE using the
+    unit-density normalized gate).
     """
     h = (r_hi - r_lo) / n_pts
     s = 0.0
@@ -117,31 +116,32 @@ def n_rungs(r_lo, r_hi, n_pts=4000):
     return s * h
 
 def n_freeze_rad(lam_frac, omq):
-    """Radiation-era crossing: λ(1−q) = C_RAD·M_Pl·φ^(−2n)."""
+    """Conditional crossing: λ_solver(1−q̄) = C_RAD·φ^(−2n)."""
     return 0.5 * lg(C_RAD / (lam_frac * omq))
 
 print("=" * 76)
 print("  DYNAMICAL FREEZE-OUT (Γ/H = 1) CHECK — 44-RUNG DILUTION SPAN")
-print("  (baryon-asymmetry.md §4.7; sixth closure attempt, rate-based)")
+print("  (baryon-asymmetry.md §4.7; rate-based conditional diagnostic)")
 print("=" * 76)
 
 print()
-print("─ ANCHORS (all framework-derived) ─")
-print(f"  λ = 1/(2w) = 0.1 (w=5 derived)   — cancels out of Γ = H")
-print(f"  r_0 = φ⁻⁵/(2−φ⁻⁵) = {R0:.6f}")
+print("─ ANCHORS (selected gap and solver convention) ─")
+print("  λ = 0.1 (solver convention)   — cancels out of Γ = H")
+print("  w = 5 (conditional Wu Xing reference); 1/(2w) = λ is a Hypothesized linkage")
+print(f"  r_0 = φ⁻⁵/(2−φ⁻⁵) = {R0:.6f} (selected conditional Wu Xing reference)")
 print(f"  r_GUT ≈ 0.3–0.5 (doc §1.2, loose)   N_GUT = {N_GUT}")
 print(f"  required log_φ(1/η): {lg(1/ETA_PDG):.4f} (PDG) / {lg(1/ETA_DOC):.4f} (doc)")
 
 print()
-print("─ CANDIDATE EQUATION (Γ = H, λ cancels exactly) ─")
-print("  (φ⁻²+ε²)/(1+φ⁻²+ε²) = (1/3)[φ⁻² + (φ−r)(1+r)/r],   ε = (φ−r)/(1+r)")
+print("─ CONDITIONAL CANDIDATE EQUATION (Γ = H, λ cancels exactly) ─")
+print("  (φ⁻²+ε̄²)/(1+φ⁻²+ε̄²) = (1/3)[φ⁻² + (φ−r)(1+r)/r],   ε̄ = (φ−r)/(1+r)")
 
 rf = r_of_gamma_equals_h(1.0, 1.5)
 eps_f = (PHI - rf) / (1 + rf)
 print()
 print(f"  Unique root: r_f = {rf:.12f}")
 print(f"    ε_f = {eps_f:.12f}")
-print(f"    (1−q)(r_f) = {one_minus_q(rf):.12f} = H/λ(r_f)  (Γ/H = 1 ✓)")
+print(f"    (1−q̄)(r_f) = {one_minus_qbar(rf):.12f} = H/λ(r_f)  (Γ/H = 1 ✓)")
 print(f"    log_φ(r_f) = {lg(rf):.6f}   — NOT a φ-power")
 print(f"    r_f = {rf/PHI**-1:.3f}× the pinch ratio φ⁻¹ = 0.618;  r_f > 1 (Yang-majority)")
 print(f"    quartic over ℚ(√5) with irrational coefficients — no φ-algebra identity")
@@ -160,7 +160,7 @@ print()
 print("─ HOMOGENEOUS RUNG SPAN seed → r_f (reading the crossing as the endpoint) ─")
 print(f"  {'seed r':>8} {'N (rungs)':>11} {'η = φ^−N':>11} {'η/η_obs':>10}")
 n_total = n_rungs(R0, PHI - 1e-4)
-print(f"  {'r0→φ':>8} {n_total:>11.3f} {'—':>11}")
+print(f"  {'r0→φ−10⁻⁴':>8} {n_total:>11.3f} {'—':>11} {'—':>10}")
 for rs in (0.3, 0.4, 0.5):
     Ns = n_rungs(rs, rf)
     eta = PHI**-Ns
@@ -170,27 +170,26 @@ print("  → 15–18× short; η would be ~5×10⁸× too large (homogeneous map
 print("    consistent with the known N_total ≈ 9 homogeneous-depth deficit).")
 
 print()
-print("─ RADIATION-ERA CROSS-CHECK (Γ = λ(1−q) vs H_rad = 1.66√g*·E²/M_Pl) ─")
+print("─ CONDITIONAL RADIATION-ERA CHECK ─")
+print("  Identification: λ_phys = λ_solver·M_Pl")
+print("  Compare λ_phys(1−q̄) with H_rad = 1.66√g*·E²/M_Pl")
 print(f"  H_rad coefficient 1.66√g* (g*=106.75) = {C_RAD:.2f}")
-print(f"  {'λ normalization':>18} {'(1−q)=0.72':>12} {'(1−q)=0.276':>12} {'vs N_GUT':>9}")
+print(f"  {'λ_solver':>18} {'(1−q̄)=0.72':>12} {'(1−q̄)=0.276':>12} {'vs N_GUT':>9}")
 for lam in (0.1, 1.0):
     nlo, nhi = n_freeze_rad(lam, 0.72), n_freeze_rad(lam, 0.276)
-    print(f"  {f'{lam}·M_Pl (c=λℓ_Pl)':>18} {nlo:>12.2f} {nhi:>12.2f} {N_GUT:>9.2f}")
-print(f"  Γ/H at seed n={N_GUT} ((1−q)=0.4, λ=0.1·M_Pl): {0.1*0.4*PHI**(2*N_GUT)/C_RAD:.2e}")
-print(f"  Γ/H at would-be endpoint n=57.33:            {0.1*0.4*PHI**(2*57.33)/C_RAD:.2e}")
-print("  → crossing sits BEFORE the GUT seed for every normalization;")
-print("    conversion stays super-critical through the whole post-seed epoch.")
+    print(f"  {lam:>18.1f} {nlo:>12.2f} {nhi:>12.2f} {N_GUT:>9.2f}")
+print(f"  Γ/H at seed n={N_GUT} ((1−q̄)=0.4, λ_solver=0.1): {0.1*0.4*PHI**(2*N_GUT)/C_RAD:.2e}")
+print(f"  Γ/H at proposed endpoint n=57.33:                  {0.1*0.4*PHI**(2*57.33)/C_RAD:.2e}")
+print("  → both tested normalizations cross before the GUT seed.")
 
 print()
 print("─ VERDICT ─")
-print("  The Γ/H = 1 dynamical freeze-out does not close the exponent:")
-print("  the framework's own two-fluid rates produce no Γ = H FREEZE after")
-print("  the seed (the unique crossing at r_f = 1.3495 is a thaw, Γ/H")
-print("  rising monotonically through 1; the radiation-era crossing is")
-print("  pre-seed at n ≈ 3.3–6.7). The 44-rung span remains the ledgered")
-print("  fit (parameter-inventory.md §10 row 481). Blocking step: no rate-")
-print("  based freeze-out selects a dilution endpoint after the GUT seed,")
-print("  and the homogeneous r→step map (N_total ≈ 9) cannot stretch any")
-print("  seeded epoch to 44 rungs — the spatial wake-wave extension of the")
-print("  cascade remains the unclosed requirement (baryon-asymmetry.md §6.2).")
+print("  The Γ/H = 1 condition does not close the exponent within the")
+print("  declared unit-density normalized gate ansatz. Its homogeneous")
+print("  crossing at r_f = 1.3495 is a thaw, and the conditional")
+print("  radiation-era crossings for λ_solver = 0.1 and 1.0 are pre-seed.")
+print("  The 44-rung span remains the ledgered fit")
+print("  (parameter-inventory.md §10 row 481). This calculation does not")
+print("  test canonical q at arbitrary density; that requires evolved")
+print("  E_Y, E_I, and ε_raw plus a derived ratio-to-step map.")
 print("=" * 76)

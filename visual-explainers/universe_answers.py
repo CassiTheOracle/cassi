@@ -40,6 +40,10 @@ from matplotlib.colors import LinearSegmentedColormap, to_rgb
 PHI = (1 + np.sqrt(5)) / 2
 L_PL = 1.616255e-35
 N_HUBBLE = 292
+THETA_COND = 0.45
+EDGE_RATIO = np.sqrt(1.0 + PHI**2) / 2.0 * np.sqrt(
+    (1.0 + THETA_COND) / THETA_COND
+)
 DELTA = 3
 
 def ell(n):
@@ -628,7 +632,8 @@ ax10.annotate("diagonal saddle\n$C = 0$\nweaker, but still no merger", xy=(PHI/2
               xytext=(1.8, 1.0), fontsize=8.5, color=YANG_MID,
               arrowprops=dict(arrowstyle="->", color=YANG_MID, lw=1.0),
               bbox=dict(facecolor=BG, edgecolor="none", alpha=0.85, pad=3))
-ax10.annotate("edge 1.70× steeper\ntoward void", xy=(-0.8, -0.7),
+ax10.annotate(f"edge {EDGE_RATIO:.2f}× at selected θ=0.45\n"
+              "conditional geometric proxy", xy=(-0.8, -0.7),
               xytext=(-1.5, -1.2), fontsize=7.5, color=TEXT_SUB,
               arrowprops=dict(arrowstyle="->", color=TEXT_SUB, lw=0.8))
 
@@ -638,8 +643,10 @@ for s in ax10.spines.values(): s.set_visible(False)
 eq_text(ax10, 0.02, 0.05,
         r"$C(x,y) = \cos(2\pi x/\Lambda_Y)\,\cos(2\pi y/\Lambda_I)$     "
         r"$C_{\rm axial} = -1\;(q=0)$     $C_{\rm diag} = 0$     "
-        r"$\nabla C_{\rm void}/\nabla C_{\rm neighbor} = \sqrt{4\varphi^2/(1+\varphi^2)} \approx 1.70$")
-panel_title(ax10, "10 · VOIDS AND BARRIERS—the space between bubbles. $C=-1$ is absolute void ($q=0$). Nothing crosses. Bubbles never merge.")
+        r"$R(\theta) = \frac{\sqrt{1+\varphi^2}}{2}"
+        r"\sqrt{\frac{1+\theta}{\theta}}$     "
+        fr"$R(\theta_{{\rm cond}}=0.45) \approx {EDGE_RATIO:.2f}$"
+        "  conditional geometric proxy; no $C=0.45$ PDE edge")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # PANEL 11—THE CMB AXIS

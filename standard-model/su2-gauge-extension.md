@@ -1,44 +1,96 @@
 # SU(2) × U(1) Gauge Extension of the Cassi Two-Fluid
 
-## Status: Derived gauge algebra and mass matrix; Hypothesized coupling-normalization candidate with asserted Weinberg boundary—August 2026
+## Status: Derived SU(2) gauge algebra and mass matrix; Hypothesized density-to-isospinor, chiral/flavor observation map and coupling-normalization candidate with asserted Weinberg boundary; Mapped conditional CKM phase—August 2026
 
 ## Abstract
 
-The two-fluid's U(1) ≅ SO(2) internal rotation is promoted to an SU(2)
-isospinor doublet whose $\varphi$-equilibrium VEV ($E_Y/E_I = \varphi$) supplies the
-fixed-point imbalance $\alpha_0 = \varphi^{-3}$. The exact identity
-$\sin^2\theta_W = 1/(1+2\varphi) = \varphi^{-3} \iff (g/g')^2 = 2\varphi$ is an
-asserted boundary condition; §3.2.1 tests the strongest curvature-orbit
-normalization candidate and identifies the missing action-level bridge. The
-mass ratio $m_W/m_Z = \sqrt{1-\varphi^{-3}} \approx 0.874$—2.1% and 0.82% from the
-Z-pole values, testable at FCC-ee at $>100\sigma$. The document derives the
-neutral-boson mass matrix, the SU(3) color extension, and the
-$\varphi$-scaled fermion hierarchy. The RG running from the GUT scale is
+The canonical two-fluid state is the pair of real nonnegative densities
+$E_Y$ and $E_I$, with $\rho=E_Y+E_I$ and
+$\varepsilon=E_Y-\varphi E_I$, evolving under a gated rank-one relaxation.
+The SU(2) gauge algebra and mass matrix below are Derived for an additional
+complex isospinor sector. Mapping $(E_Y,E_I)$ into that sector, assigning a
+compact U(1) or SO(2) representation, a conserved electromagnetic current,
+chiral or handed matter, or inter-rung transport is **Hypothesized** additional
+structure. The exact identity
+$\sin^2\theta_W = 1/(1+2\varphi) = \varphi^{-3}
+\iff (g/g')^2 = 2\varphi$ is an asserted boundary condition; §3.2.1 tests the
+strongest curvature-orbit normalization candidate and identifies the missing
+action-level bridge. The mass ratio $m_W/m_Z = \sqrt{1-\varphi^{-3}} \approx
+0.874$—2.1% and 0.82% from the Z-pole values, testable at FCC-ee at
+$>100\sigma$ under the quoted projected precision. The document sets out the
+neutral-boson mass matrix and a conditional SU(3) color extension. Its
+$\varphi$-scaled fermion hierarchy and CKM phase are conditional
+particle-sector claims requiring a **Hypothesized** complex/chiral/flavor
+observation map; the phase candidate is **Mapped** against the SM value and is
+not a canonical density derivation. The RG running from the GUT scale is
 derived in `standard-model/sm-radiative-corrections.md`: the measured
 running angle crosses $\varphi^{-3}$ at $\mu_* \approx 233$ GeV, the
-φ-boundary $\alpha_{\text{GUT}} = \varphi^{-3}/(4\pi) \approx 1/53$ does not
-unify the SM couplings (no common intersection exists in the SM), and
-$\alpha_s$ runs to 0.058–0.061 at $m_Z$, $2.0\times$ below the measured
+$\varphi$-boundary $\alpha_{\text{GUT}} = \varphi^{-3}/(4\pi) \approx 1/53$
+does not unify the SM couplings (no common intersection exists in the SM),
+and $\alpha_s$ runs to 0.058–0.061 at $m_Z$, $2.0\times$ below the measured
 value.
 
 ## 1. The SU(2) Isospinor Doublet
 
-The two-fluid has a U(1) ≅ SO(2) internal symmetry: a rotation between Yang (E_Y) and Yin (E_I). The Cassi first-principles formalism identifies this as the electromagnetic gauge symmetry—the conserved current associated with the rotation is the electromagnetic current $j^\mu_{\text{EM}}$. In the substrate triad, Yang and Yin are the doublet's two components and Qi is the flow of coherence between them and along the string axis between cascade scales (`foundations/qi-flow-double-helix.md`).
+The canonical two-fluid state is a pair of real nonnegative densities
+$(E_Y,E_I)$. Its conversion sector conserves
+$\rho=E_Y+E_I$ and relaxes
+$\varepsilon=E_Y-\varphi E_I$ through the gated rank-one law
+$\partial_tE_Y|_{\mathrm{conv}}=-\lambda(1-q)\varepsilon$,
+$\partial_tE_I|_{\mathrm{conv}}=+\lambda(1-q)\varepsilon$. The local
+density-plane diagnostics
+$$
+\theta_d=\operatorname{atan2}(E_I,E_Y),\qquad
+J_{d,z}=E_Y\,\partial_zE_I-E_I\,\partial_zE_Y
+       =\rho_{\mathrm{plane}}^2\partial_z\theta_d,\qquad
+\rho_{\mathrm{plane}}^2=E_Y^2+E_I^2
+$$
+A positive-root real lift
+$\Psi_0^{(+)}=\sqrt{E_Y}$, $\Psi_1^{(+)}=\sqrt{E_I}$ can be used for the
+local amplitude-plane diagnostic
+$$
+\theta_\Psi^{(+)}=\operatorname{atan2}(\Psi_1^{(+)},\Psi_0^{(+)}),\qquad
+\mathbf J_\Psi^{(+)}
+=\Psi_0^{(+)}\nabla\Psi_1^{(+)}
+ -\Psi_1^{(+)}\nabla\Psi_0^{(+)}
+=\rho\,\nabla\theta_\Psi^{(+)}.
+$$
+These density-plane and amplitude-plane quantities are local diagnostics
+with a chosen spatial projection. They do not add a compact phase, chirality,
+handedness, or inter-rung current. Transport between
+$\ell_n$ and $\ell_{n+1}$ requires a separate **Hypothesized** constitutive
+law with an added flux or boundary term
+(`foundations/qi-flow-double-helix.md` §2).
 
-To extend to the full electroweak sector, promote the U(1) doublet to an **SU(2) isospinor doublet**:
+**Derived gauge algebra.** The electroweak construction below uses an
+additional complex SU(2) isospinor on which the standard
+SU(2)$_L \times$ U(1)$_Y$ algebra acts:
 
 $$
-\Psi = \begin{pmatrix} \psi_1 \\ \psi_2 \end{pmatrix}, \quad
+\Psi = \begin{pmatrix} \psi_1 \\ \psi_2 \end{pmatrix}
+$$
+
+**Hypothesized density-to-isospinor map:** if this additional field sector is
+introduced, impose the conditional constitutive identification
+
+$$
 |\psi_1|^2 = E_Y,\; |\psi_2|^2 = E_I
 $$
 
-The two-fluid fields are the norm-squared components of a complex SU(2) doublet. This is the Cassi version of the Higgs doublet—the vacuum expectation value at the $\varphi$-equilibrium:
+Under this **Hypothesized** map, the complex field is the candidate Higgs
+doublet. The canonical density pair supplies component magnitudes only; it
+does not supply a compact phase, a chiral matter representation, a handed
+direction, or an electromagnetic current. The candidate vacuum expectation
+value at the $\varphi$-equilibrium is:
 
 $$
 \langle \Psi \rangle = \frac{1}{\sqrt{\varphi+1}} \begin{pmatrix} \sqrt{\varphi} \\ 1 \end{pmatrix} v_0
 $$
 
-where $v_0$ is the electroweak scale (246 GeV in the Standard Model) and the $\varphi$-equilibrium ratio $E_Y/E_I = \varphi$ gives the $\sqrt{\varphi} : 1$ splitting.
+where $v_0$ is the electroweak scale (246 GeV in the Standard Model). Within
+this extension, the $\varphi$-equilibrium ratio $E_Y/E_I = \varphi$ is the
+VEV input that fixes the $\sqrt{\varphi}:1$ splitting; it is not a compact-group
+or chirality property of the canonical densities.
 
 ## 2. Covariant Derivative and Gauge Fields
 
@@ -65,9 +117,9 @@ and the neutral bosons mix.
 
 ---
 
-## 3. First-Principles Derivation of the Weinberg Angle
+## 3. Weinberg-angle identity and neutral mass matrix
 
-### 3.1 The φ-VEV and the Neutral Boson Mass Matrix
+### 3.1 The $\varphi$-VEV and the Neutral Boson Mass Matrix
 
 At the $\varphi$-equilibrium, the isospinor VEV is:
 
@@ -162,7 +214,7 @@ curvature–orbit candidate in §3.2.1 supplies a conditional route only after
 adding a field-space metric and an orbit-matching rule. The relative coupling
 normalization remains open.
 
-### 3.2.1 A Curvature–Orbit Closure Attempt
+### 3.2.1 Conditional Curvature–Orbit Closure Attempt
 
 The strongest two-fluid candidate uses the attractor's local restoring stiffness to normalize gauge orbits. Write
 $\Delta = \Psi_Y^2 - \varphi\Psi_I^2$ and
@@ -216,13 +268,14 @@ $$
 | $m_W/m_Z = \cos\theta_W$ | $0.874$ | $0.881$ | $-0.82\%$ |
 
 The weak mixing angle runs **upward** with energy, so the 2.1% gap at the
-Z-pole is *not* closed by running to lower energies—the φ-point value is
-realized at $\mu_* \approx 233$ GeV, one and a half e-folds above $m_Z$
+Z-pole is not closed by running to lower energies—the $\varphi$-point value is
+realized at $\mu_* \approx 233$ GeV, about one e-fold above $m_Z$
 (`standard-model/sm-radiative-corrections.md` §3.3). The mass-ratio gap is
 partially closed by the $\rho$ radiative correction (0.874 → 0.878, −0.36%).
-Neither gap is absorbable: both are FCC-ee tests at $>100\sigma$.
+Neither discrepancy is absorbed by the displayed tree-level or $\rho$-corrected
+relations; both are testable under the quoted FCC-ee precision.
 
-### 3.4 RG Running: The Correct Direction
+### 3.4 RG Running
 
 The Weinberg angle runs with energy. With the measured MS-bar inputs at
 $m_Z$, the one-loop running (GUT-normalized couplings,
@@ -242,7 +295,7 @@ not run downward from 0.236 to 0.231. Consequently:
 
 - $\sin^2\theta_W = \varphi^{-3} = 0.236$ **at $m_Z$** is 2.1% above the
   measured 0.23122, and the running angle equals $\varphi^{-3}$ exactly at
-  $\mu_* \approx 233$ GeV—the correct statement of the φ-anchoring.
+  $\mu_* \approx 233$ GeV—the correct statement of the $\varphi$-anchoring.
 - Starting from $\varphi^{-3}$ at $2\times10^{16}$ GeV and running *down*
   gives $\sin^2\theta_W(m_Z) \approx 0.15$ (SM) or $\approx 0.20$ (MSSM)—
   a 0.236 → 0.231 closure by RG running does not occur in either framework.
@@ -278,79 +331,95 @@ This is testable at future colliders:
 - If Cassi is correct, FCC-ee would see $m_W/m_Z = 0.878$ instead of 0.881
 
 ---
+## 5. Conditional SU(3) color extension
 
-## 5. SU(3) Color Extension
+### 5.1 Conditional tripled field
 
-### 5.1 Tripled Field
-
-Following the same embedding pattern as SU(2), color is a tripled field:
+Within the additional particle-sector extension, color is represented by a
+tripled field:
 
 $$
 \Psi_{\text{color}} = \begin{pmatrix} \psi_r \\ \psi_g \\ \psi_b \end{pmatrix}
 $$
 
-where each component is an SU(2) doublet (carrying electroweak quantum numbers). The SU(3) gauge covariant derivative:
+where each component is an SU(2) doublet carrying electroweak quantum
+numbers. The SU(3) gauge covariant derivative is
 
 $$
-D_\mu \Psi = \left(\partial_\mu - i g_s \mathbf{G}_\mu \cdot \frac{\boldsymbol{\lambda}}{2}\right) \Psi
+D_\mu \Psi_{\text{color}} =
+\left(\partial_\mu - i g_s \mathbf{G}_\mu \cdot
+\frac{\boldsymbol{\lambda}}{2}\right)\Psi_{\text{color}},
 $$
 
-where $\mathbf{G}_\mu^a$ ($a = 1, \dots, 8$) are the gluon fields and $\boldsymbol{\lambda}$ are the Gell-Mann matrices.
+where $\mathbf{G}_\mu^a$ ($a = 1, \dots, 8$) are the gluon fields and
+$\boldsymbol{\lambda}$ are the Gell-Mann matrices. This color sector is not
+part of the canonical real-density state.
 
-### 5.2 φ-Confinement
+### 5.2 Conditional QCD running and confinement
 
-The SU(3) coupling at the GUT scale follows the same Cassi principle:
-
-$$
-\alpha_s(M_{\text{GUT}}) = \alpha_{\text{GUT}} = \frac{\varphi^{-3}}{4\pi} \approx \frac{1}{53}
-$$
-
-Running to low energies gives confinement. The Landau pole (where $\alpha_s$ diverges) occurs at:
+The optional SU(3) coupling boundary is
 
 $$
-\Lambda_{\text{QCD}} = M_{\text{GUT}} \cdot \exp\!\left(-\frac{2\pi}{b_0 \alpha_s(M_{\text{GUT}})}\right)
+\alpha_s(M_{\text{GUT}}) = \alpha_{\text{GUT}} =
+\frac{\varphi^{-3}}{4\pi} \approx \frac{1}{53}.
 $$
 
-With $b_0 = 7$ (6 active flavors, SM running) and $\alpha_s(M_{\text{GUT}}) = 1/53$:
+Running to low energies gives a perturbative scale estimate. The corresponding
+pole condition is
 
 $$
-\Lambda_{\text{QCD}} \approx 2 \times 10^{16} \cdot \exp\!\left(-\frac{2\pi}{7 \cdot 1/53}\right)
-= 2 \times 10^{16} \cdot \exp(-47.6) \approx 0.3\ \text{MeV}
+\Lambda_{\text{QCD}} = M_{\text{GUT}} \cdot
+\exp\!\left(-\frac{2\pi}{b_0\alpha_s(M_{\text{GUT}})}\right).
 $$
 
-The $\Lambda_{\text{QCD}}$ estimate here uses the $\alpha_s$-at-$M_{\text{GUT}}$
-form of the pole condition; the equivalent Z-pole statement is the running
-coupling itself (`standard-model/sm-radiative-corrections.md` §3.2):
+With $b_0 = 7$ (6 active flavors, SM running) and
+$\alpha_s(M_{\text{GUT}})=1/53$:
 
-| Running scheme | $\alpha_s(m_Z)$ predicted | vs measured 0.1180 |
-|:--------------|:--------------------------|:-------------------|
+$$
+\Lambda_{\text{QCD}} \approx 2\times10^{16}\cdot
+\exp\!\left(-\frac{2\pi}{7\cdot1/53}\right)
+:=2\times10^{16}\cdot\exp(-47.6)\approx0.044\ \text{MeV}.
+$$
+
+The estimate uses the $\alpha_s$-at-$M_{\text{GUT}}$ pole form; the equivalent
+Z-pole running comparison is
+(`standard-model/sm-radiative-corrections.md` §3.2):
+
+| Running scheme | $\alpha_s(m_Z)$ from boundary | vs measured 0.1180 |
+|:--------------|:------------------------------|:-------------------|
 | 1-loop SM ($n_f=6$, thresholds) | 0.058 | $2.0\times$ low |
 | 2-loop QCD + thresholds | 0.061 | $1.9\times$ low |
 
-**Cassi prediction for $\alpha_s(m_Z)$:** the φ-boundary coupling
-$\alpha_s = \varphi^{-3}/(4\pi)$ runs to $\alpha_s(m_Z) \approx 0.058$–$0.061$,
-$2.0\times$ below the measured 0.118. Closing the gap requires
-$\Delta b = 1.70$ of beyond-SM colored content between $m_Z$ and
-$M_{\text{GUT}}$ (vector-like quark doublet at the cascade Fibonacci
-precursor; `computations/cascade_gut_ew_rge.py`). Two-loop running and
-threshold corrections shift the prediction by a few percent—they do not
-close a factor of two.
+**Boundary comparison for $\alpha_s(m_Z)$:** the $\varphi$-boundary coupling
+runs to $\alpha_s(m_Z)\approx0.058$–$0.061$, $2.0\times$ below the measured
+0.118. Closing the gap requires $\Delta b=1.70$ of beyond-SM colored content
+between $m_Z$ and $M_{\text{GUT}}$; the fit-status ledger records several
+incompatible realizations and selects none. Two-loop running and threshold
+corrections shift the boundary comparison by a few percent; they do not close
+the factor-of-two deficit.
 
-### 5.3 Proton Mass from φ
+### 5.3 Proton mass scale comparison
 
-The QCD scale $\Lambda_{\text{QCD}}$ determines the proton mass via dimensional transmutation:
+The QCD scale enters the proton mass through dimensional transmutation, but
+the canonical framework does not derive the nonperturbative mass. The
+conventional scale relation
 
 $$
-m_p \approx 3 \Lambda_{\text{QCD}} \quad \text{(up to chiral corrections)}
+m_p \approx 3\Lambda_{\text{QCD}}\quad\text{(up to chiral corrections)}
 $$
 
-The φ-boundary running ($\alpha_s(m_Z) = 0.058$–$0.061$, §5.2) gives a
-$\Lambda_{\text{QCD}}$ two orders of magnitude below 200 MeV—the same
-$2.0\times$ $\alpha_s$ deficit expressed in the scale. The standard
-derivation $m_p \approx 938$ MeV uses the *measured* $\Lambda_{\text{QCD}}
-\approx 200$ MeV as input (E-class, `parameter-inventory.md` §4); the
-φ-scaled estimate $m_p \approx \varphi^3\Lambda_{\text{QCD}} \approx 847$ MeV
-follows from that input, not from the GUT boundary.
+uses $\Lambda_{\text{QCD}}\approx200$ MeV as an external scale. The displayed
+boundary pole estimate is $\sim0.044$ MeV, roughly four orders of magnitude
+below that scale, reflecting the boundary-coupling deficit. A numerical
+$\varphi$ comparison,
+
+$$
+m_p \stackrel{\text{comparison}}{\approx}
+\varphi^3\Lambda_{\text{QCD}}\approx847\ \text{MeV},
+$$
+
+uses the measured $\Lambda_{\text{QCD}}$ and is not a proton-mass derivation.
+The proton mass remains class **E** in `parameter-inventory.md` §4.
 
 ---
 
@@ -362,29 +431,31 @@ In the Standard Model the three couplings do **not** meet at a single point
 (`computations/sm_radiative_corrections.py` §2): running the measured Z-pole
 values up gives $\alpha_1 = \alpha_2$ at $\mu \approx 10^{13}$ GeV
 ($\alpha^{-1} = 42.4$) and $\alpha_2 = \alpha_3$ at $\mu \approx 10^{17}$ GeV
-($\alpha^{-1} = 47.1$). The φ-boundary value $\alpha_{\text{GUT}} =
-\varphi^{-3}/4\pi \approx 1/53$ is not realized by any SM coupling at any
-scale below $M_{\text{Pl}}$, and the common value 1/53 at $2\times10^{16}$ GeV
-claimed in earlier sections is not a property of the SM running. Unification
-in Cassi therefore requires beyond-SM content—the same $\Delta b = 1.70$
-deficit that rescues $\alpha_s$—or a non-minimal embedding
-(`standard-model/gut-embedding.md`).
+($\alpha^{-1} = 47.1$). The $\varphi$-boundary value
+$\alpha_{\text{GUT}}=\varphi^{-3}/4\pi\approx1/53$ is not realized
+simultaneously by all three SM couplings at any sub-Planck scale. Individual
+couplings can cross $1/53$ at other scales, but a common value $1/53$ at
+$2\times10^{16}$ GeV is not an SM-running result. Unification in Cassi
+requires beyond-SM content—the same $\Delta b=1.70$ deficit that rescues
+$\alpha_s$—or a non-minimal embedding (`standard-model/gut-embedding.md`).
 
 ### 6.2 One-Loop RGEs
 
-The one-loop running for the three gauge couplings:
+The one-loop running for the three gauge couplings is
 
 $$
-\frac{d\alpha_i^{-1}}{d\ln\mu} = -\frac{b_i}{2\pi}
+\frac{d\alpha_i^{-1}}{d\ln\mu}=-\frac{b_i}{2\pi}.
 $$
 
-where for the Standard Model (including the Higgs doublet):
-- U(1)$_Y$: $b_Y = -41/10$ (non-SUSY) or $b_Y = -11$ (MSSM)
-- SU(2)$_L$: $b_2 = 19/6$ (non-SUSY) or $b_2 = 1$ (MSSM)
-- SU(3)$_c$: $b_3 = 7$ (non-SUSY, $n_f=6$) or $b_3 = -3$ (MSSM)
+For the GUT-normalized $\alpha_1=(5/3)\alpha_Y$, the Standard Model
+(including one Higgs doublet) and MSSM coefficients are
 
-The running from $M_{\text{GUT}}$ to $m_Z$ at one loop (φ-boundary
-$\alpha_i(M_{\text{GUT}}) = \varphi^{-3}/4\pi$ at $10^{16}$ GeV, top-decoupling
+- U(1)$_1$: $b_1=41/10$ (SM) or $b_1=33/5$ (MSSM)
+- SU(2)$_L$: $b_2=-19/6$ (SM) or $b_2=1$ (MSSM)
+- SU(3)$_c$: $b_3=-7$ (SM, $n_f=6$) or $b_3=-3$ (MSSM)
+
+The running from $M_{\text{GUT}}$ to $m_Z$ at one loop ($\varphi$-boundary
+$\alpha_i(M_{\text{GUT}})=\varphi^{-3}/4\pi$ at $10^{16}$ GeV, top-decoupling
 threshold):
 
 | Coupling | $M_{\text{GUT}}$ (Cassi) | $m_Z$ (1-loop SM) | Measured |
@@ -393,16 +464,25 @@ threshold):
 | $\alpha_2^{-1}$ | 53.2 | 36.9 | 29.6 |
 | $\alpha_3^{-1}$ | 53.2 | 17.3 | 8.47 |
 
-The φ-boundary does **not** unify at $m_Z$: $\alpha_1$ and $\alpha_2$ come
-out ~25% weak and $\alpha_3$ $2.0\times$ weak (the documented $\Delta b =
-1.70$ deficit).
+The $\varphi$-boundary does **not** unify at $m_Z$: $\alpha_1$ and
+$\alpha_2$ come out ~25% weak and $\alpha_3$ $2.0\times$ weak (the
+documented $\Delta b=1.70$ deficit).
 
-### 6.3 Cassi RGE Prediction for $M_{\text{GUT}}$
+### 6.3 Conditional RGE scale comparison
 
-Running $\alpha_2$ from $m_Z$ up to the value $\alpha_2^{-1} = 53$ requires
-$\ln(M_{\text{GUT}}/m_Z) = (2\pi/b_2)(53 - \alpha_2^{-1}(m_Z)) \approx 45.7$,
-i.e. $\mu \approx 1.3\times10^{21}$ GeV—**above the Planck scale**. The
-φ-boundary weak coupling is not realized at any sub-Planck scale in the SM.
+
+Running $\alpha_2$ from $m_Z$ up to the $\varphi$-boundary value
+$\alpha_{\text{GUT}}^{-1}\approx53.2$ uses the SM coefficient
+$b_2=-19/6$:
+
+$$
+\ln(M_{\text{GUT}}/m_Z)
+=-\frac{2\pi}{b_2}\left(53.2-\alpha_2^{-1}(m_Z)\right)
+\approx46.8.
+$$
+i.e. $\mu\approx2.0\times10^{22}$ GeV—well above the Planck scale. The
+$\varphi$-boundary weak coupling is not realized at any sub-Planck scale in
+the SM.
 
 The intersections that do exist (from the measured inputs) are:
 
@@ -414,22 +494,24 @@ $$
 \alpha_2 = \alpha_3: \mu = 1.0\times10^{17}\ \text{GeV} \quad (\alpha^{-1} = 47.1),
 $$
 
-with $\alpha_1$ missing the $\alpha_2 = \alpha_3$ crossing by ~23%. This is
-the classic SM non-unification pattern, and it is the quantitative statement
-that replaces the earlier "one-loop estimates" paragraph: GUT-scale
-thresholds cannot move a 23% gap.
+with $\alpha_1$ missing the $\alpha_2=\alpha_3$ crossing by ~23%. This is
+the quantitative SM non-unification result; GUT-scale thresholds cannot move
+a 23% gap without additional content.
 
 ---
 
 ## 7. Fermion Mass Hierarchy
 
-In the Standard Model, fermion masses come from Yukawa couplings to the Higgs. In Cassi, the Yukawa couplings are $\varphi$-scaled:
+In the Standard Model, fermion masses come from Yukawa couplings to the
+Higgs. In the Cassi particle-sector extension, the following $\varphi$-scaled
+Yukawa ansatz is **Hypothesized** and is **Mapped** only after an explicit
+flavor observation map:
 
 $$
 y_f = y_0 \cdot \varphi^{-n_f}
 $$
 
-where $n_f$ is a "generation number" ($n=1,2,3$ for the three generations). This gives the mass hierarchy:
+where $n_f$ is a "generation number" ($n=1,2,3$ for the three generations).
 
 | Generation | $n_f$ | $m_f \propto \varphi^{-n}$ | Ratio | Example |
 |-----------|-------|---------------------------|-------|--------|
@@ -437,7 +519,9 @@ where $n_f$ is a "generation number" ($n=1,2,3$ for the three generations). This
 | 2 (charm/strange) | 2 | $\varphi^{-2} \approx 0.382$ | $\times 1.6$ | $m_c \sim 1.3$ GeV |
 | 3 (top/bottom) | 1 | $\varphi^{-1} \approx 0.618$ | $\times 2.6$ | $m_t \sim 173$ GeV |
 
-The top quark mass (173 GeV) $\approx \varphi^{-1} \cdot v_0 \approx 0.618 \times 246 \approx 152$ GeV—within 14% of the experimental value.
+The top quark mass (173 GeV) $\approx \varphi^{-1} \cdot v_0 \approx 0.618
+\times 246 \approx 152$ GeV is a Mapped conditional comparison within this
+particle-sector map; it is not a canonical density derivation.
 
 ---
 
@@ -461,19 +545,23 @@ The top quark mass (173 GeV) $\approx \varphi^{-1} \cdot v_0 \approx 0.618 \time
 
 ### Strong Coupling (LHC testable)
 
-| Observable | Measured | Cassi Prediction | Status |
+| Observable | Measured | Boundary or conditional value | Status |
 |-----------|---------|-----------------|--------|
 | $\alpha_s(m_Z)$ | 0.118 | **0.058–0.061** (1-/2-loop) | $2.0\times$ low; $\Delta b = 1.70$ required |
-| $\Lambda_{\text{QCD}}$ | 200 MeV | order-of-magnitude low from φ-boundary | Same deficit |
-| $m_p$ | 938 MeV | $\varphi^3 \cdot \Lambda_{\text{QCD}} = 847$ MeV (measured $\Lambda$ input) | Within 10% |
+| $\Lambda_{\text{QCD}}$ | 200 MeV | $\sim0.044$ MeV from the displayed $\varphi$-boundary pole estimate | Roughly four orders low |
+| $m_p$ | 938 MeV | $\varphi^3 \cdot \Lambda_{\text{QCD}} = 847$ MeV (measured $\Lambda$ input) | Numerical comparison; mass class E, not derived |
 
 ### Hadron Spectrum (Lattice testable)
 
-| Observable | Measured | Cassi ($\varphi$-scaled) | Deviation |
+| Observable | Measured | Cassi conditional particle-sector map | Deviation |
 |-----------|---------|-------------------------|-----------|
 | $m_t / v_0$ | 0.703 | **0.618** ($\varphi^{-1}$) | $-12\%$ |
 | $m_b / m_t$ | 0.025 | **0.031** ($\varphi^{-2}/\varphi^{-1} = \varphi^{-1}$) | $+24\%$ |
 | $m_c / m_t$ | 0.0075 | **0.0088** ($\varphi^{-3}/\varphi^{-1} = \varphi^{-2}$) | $+17\%$ |
+
+The hadron-spectrum entries are **Mapped** conditional values from the
+Hypothesized particle-sector/flavor observation map; they are not derived from
+the canonical density pair.
 
 ---
 
@@ -495,18 +583,30 @@ with the right-handed neutrino at cascade step 20, $M_R \approx 10^{14}\ \text{G
 
 ### 9.3 CP Violation
 
-The CKM phase $\delta_{\text{CKM}} \approx 68^\circ$ in the SM. In the Cassi
-framework, the $\phi$-scaled CKM element hierarchy ($|V_{us}| \approx
-\varphi^{-3} \approx 0.236$, $5\%$ off from the observed $0.225$;
-$|V_{cb}| \approx 0.041$ and $|V_{ub}| \approx 0.004$ follow the Wolfenstein
-hierarchy $|V_{cb}| \sim \lambda^2$, $|V_{ub}| \sim \lambda^3$ with
-$\lambda \approx \varphi^{-3}$) closes via the unitarity triangle to give:
+The Standard Model CKM phase is $\delta_{\text{CKM}}\approx68^\circ$. The
+canonical density pair and its positive-root diagnostics do not supply an
+intrinsic CP phase or chiral representation. A **Hypothesized** complex/chiral
+particle-sector extension with an explicit flavor observation map may use the
+$\varphi$-scaled CKM element hierarchy:
 
-$$\delta_{\text{CKM}} = \pi\phi^{-2} \approx 68.7^\circ$$
+$$
+|V_{us}| \approx \varphi^{-3} \approx 0.236
+\quad (5\%\ \text{above the observed }0.225),\qquad
+|V_{cb}| \approx 0.041,\qquad |V_{ub}| \approx 0.004,
+$$
 
-This matches the SM value within $<1\%$ and is the Cassi prediction for the CP
-phase. The CKM hierarchy likely requires additional flavor structure beyond a
-single $\phi$-power. See `standard-model/cp-violation.md` for the full derivation.
+with $|V_{cb}|\sim\lambda^2$, $|V_{ub}|\sim\lambda^3$, and
+$\lambda\approx\varphi^{-3}$. Within that explicit map, the **Mapped**
+conditional phase candidate is
+
+$$
+\delta_{\text{CKM}}=\pi\varphi^{-2}\approx68.7^\circ.
+$$
+
+It matches the SM value within $<1\%$ as a conditional comparison. The
+candidate requires additional flavor structure beyond a single
+$\varphi$-power and is not a phase derived from the canonical density pair.
+See `standard-model/cp-violation.md` for the full conditional analysis.
 
 ## References
 

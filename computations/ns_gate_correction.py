@@ -10,9 +10,8 @@ count is n_s^0 = 1 - 2/N_e = 0.950 (N_e = 40). The canonical closed form is
     n_s = 1 - 2φ⁻¹/N_e = 0.9691
 
 with the correction δn_s = 2φ⁻²/N_e = 0.0191 expressed entirely in φ-powers
-(cf. observed n_s = 0.9649 ± 0.0042, +1.0σ). The 0.967 figure was the legacy
-1 - 2/N_e form with N_e = 60 (0.9667), superseded by the canonical closed
-form n_s = 1 - 2φ⁻¹/N_e = 0.9691.
+and the observed n_s = 0.9649 ± 0.0042 (+1.0σ). The closed form is
+n_s = 1 - 2φ⁻¹/N_e = 0.9691 for N_e = 40.
 
 Theory:
   - cosmology/inflation-from-cascade.md §3—n_s formula
@@ -371,7 +370,6 @@ print(f"  With N_e = 40:   n_s = {ns_derived:.4f}")
 print(f"  Observed:        n_s = {NS_OBS:.4f} ± {NS_OBS_ERR:.4f}")
 print(f"  Deviation:       {ns_sigma:+.1f}σ")
 print()
-print(f"  Legacy N_e = 60 form: n_s = 1 - 2/N_e = 0.9667 ≈ 0.967 (superseded)")
 print(f"  Canonical:            n_s = 1 - 2φ⁻¹/N_e = 0.9691 (N_e = 40,")
 print(f"                        δn_s = 2φ⁻²/N_e = 0.0191; Planck 0.9649 ± 0.0042 → +1.0σ)")
 print()

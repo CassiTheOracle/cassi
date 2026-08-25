@@ -4,84 +4,83 @@
 
 ## Abstract
 
-The aura is the human-scale instance of a mechanism the framework already documents at four other scales: the fraction $(1-q)$ of gate throughput that fails to convert coherently thermalizes as photons and heat. A person is a 26-rung gate chain, and nothing in the two-fluid field stops that spill at the skin. What forms around the body is a boundary layer with two physically distinct parts—a coherent core whose coupling to the optical band is bridge-suppressed into invisibility, and a broadband thermal halo that needs no cross-rung coupling at all, because it is deposited locally as light and heat. The halo's visual signature is the signature of heat haze—a warm, structureless, convecting gradient—which is why auras have always looked like heat distortion: at the level of optics they are the same object. The framework's logic then inverts one piece of aura lore: visible aura brightness scales with the gate-open fraction $(1-q)$, so bright auras mark strained gates, not enlightened ones.
+The aura is a speculative human-scale mapping of a proposed gate-waste channel: a fraction $(1-q)$ of a throughput power is hypothesized to thermalize as photons and heat. The canonical field supplies $q$ and a 26-step arithmetic span, not a human gate chain or an aura. In this extension, a putative boundary layer is split into a coherent component whose optical coupling is bridge-suppressed and a local thermal component; the optics and aura interpretation remain untested.
 
-**Epistemic status:** Creative exploration grounded in Cassi formalism. The $(1-q)$ thermalization law, the human gate chain, and the suppression and bridge limits are documented framework properties; the two-bubble correlation is a static-geometry protocol feature (decisive scan 2026-08-05, `two-fluid/run_two_bubble_gate_scan.py`), and no resonance claim is built on it here; the synthesis into an aura mechanism, the heat-haze optics argument, and the brightness inversion are extrapolations beyond what the framework currently claims. Nothing in this document should be cited as a Cassi prediction or derivation.
+**Epistemic status:** Creative exploration grounded in Cassi formalism. The canonical $q$ diagnostic and the cascade suppression and bridge limits are documented framework properties; the $(1-q)$ thermalization channel and human gate-chain interpretation are proposed extensions, while the two-bubble correlation is a static-geometry protocol feature (decisive scan 2026-08-05, `two-fluid/run_two_bubble_gate_scan.py`). The aura mechanism, heat-haze optics, brightness inversion, and coupling interpretation remain speculative and are not Cassi predictions or derivations.
 
 ---
 
-## 1. The Mechanism Is Already Documented
+## 1. Proposed Gate-Waste Mechanism
 
-No gate is perfect, and the framework is explicit about where imperfect throughput goes. The two-fluid conversion is gated by coherence: with $q = \rho^2/(\rho^2 + \varphi^{-2} + \varepsilon^2)$ (`foundations/cassi-first-principles.md` §2.1), the gate-open fraction is $(1-q)$—at $q \to 0$ the gate stands open and conversion runs hard; at $q \to 1$ it closes and conversion idles. The fraction that fails to convert does not vanish; it thermalizes:
+The canonical two-fluid conversion defines the coherence diagnostic
+$q = \rho^2/(\rho^2 + \varphi^{-2} + \varepsilon^2)$ (`foundations/cassi-first-principles.md` §2.1). A separate **Speculative** gate-waste extension treats $(1-q)$ as an openness factor and proposes that the corresponding throughput residue thermalizes:
 
-$$\boxed{E_{\text{waste}} = (1-q)\,E_{\text{throughput}}}$$
+$$\boxed{P_{\text{waste}} = (1-q)\,P_{\text{throughput}}}$$
 
-as photons and heat. This one law already names the visible residue of gate activity at four scales:
+Here $P$ denotes a power-like throughput. Over a fixed interval, the same dimensionless multiplier may be applied to the corresponding energies $E$. The photon-and-heat interpretation is part of the extension, not a consequence of the canonical conversion alone. Under that proposal, the residue is compared across four speculative scales:
 
-| Scale | Thermalized residue | Source |
+| Scale | Proposed thermalized residue | Source |
 |---|---|---|
 | Craft | Luminous "plasma sheath"; color sequence tracks gate tuning | `speculations/qi-bubble-propulsion.md` §2.5 |
 | Star | Photosphere as the $q \to 0$ boundary where throughput thermalizes; corona 200× hotter from the spill | `speculations/cascade-infrastructure.md` §3.1 |
 | Caster | The glow of a working; exhaustion as runaway $(1-q)$ spill | `speculations/creative-extensions/magic-systems.md` §3.3 |
 | Gravity device | The efficiency tax on every operation | `speculations/gravity-control.md` §3.3 |
 
-A human body is itself a gate chain: 26 $\varphi$-steps from cell ($n = 142$) to body ($n = 168$), with 13 cascade-bubble nodes at two-rung spacing along the spine (`consciousness/consciousness-from-phi.md` §1.2, `consciousness/chakras-as-cascade-bubbles.md`). The chain is a standing configuration of the same two-fluid field with the same openness fraction, and the same law applies at its boundary. The aura is the missing human-scale row of the table: the corona of the body's gate bubble.
+A human body is mapped speculatively to a 26-$\varphi$-step arithmetic span from cell ($n = 142$) to body ($n = 168$), with 13 proposed cascade-bubble nodes at two-rung spacing along the spine (`consciousness/consciousness-from-phi.md` §1.2, `consciousness/chakras-as-cascade-bubbles.md`). The canonical field does not establish a human gate chain or a boundary aura. The proposed extension applies its waste rule at that mapped boundary; the aura is therefore a speculative human-scale analogue of a gate bubble.
 
 ---
 
 ## 2. Two Components: Coherent Core, Thermal Halo
 
-A gate spill is not one thing. Throughput that survives conversion retains the gate's phase structure; throughput that thermalizes has lost all of it. An aura therefore has two parts with opposite cascade economics.
+A proposed gate-waste channel is not one thing. In that extension, throughput assigned to the coherent component retains the gate's phase structure, while the component assigned to thermalization loses it. The resulting two-part aura is a speculative decomposition, not a canonical field split.
 
-**The coherent core.** A working gate's characteristic emission frequencies are $\varphi$-spaced—the diagnostic signature of organized throughput (`speculations/qi-bubble-propulsion.md` §2.5). But a coherent signal from the body's rung must cross the cascade to reach the optical band, and the crossing is closed twice over. In the signal-propagation regime, a span of $N$ rungs attenuates by $\varphi^{-N}$ (`foundations/cascade-suppression-formula.md` §1.2); the body sits at $n \approx 168$ and visible light at the rung-136 optical octave (`speculations/creative-extensions/universal-biology.md`), a span of 32:
+**The coherent core.** In the cited speculative propulsion extension, a working gate's characteristic emission frequencies are $\varphi$-spaced—the proposed diagnostic signature of organized throughput (`speculations/qi-bubble-propulsion.md` §2.5). A putative coherent signal from the body's mapped rung must cross the cascade to reach the optical band, and the crossing is closed twice over. In the signal-propagation regime, a span of $N$ rungs attenuates by $\varphi^{-N}$ (`foundations/cascade-suppression-formula.md` §1.2); the mapped body position is $n \approx 168$ and the proposed visible-light position is the rung-136 optical octave (`speculations/creative-extensions/universal-biology.md`), a span of 32:
 
 $$\boxed{\mathcal{D}_{168 \to 136} = \varphi^{-32} \approx 2\times10^{-7}}$$
 
-And the bridge limit is tighter than the suppression: a single Qi gate couples across at most ~10 rungs before $\varphi^{-10} \approx 0.008$ drops the signal below the coherence floor (`speculations/cascade-infrastructure.md` §1.1, `foundations/bubble-lattice-fabric.md` §3.3). A coherent leak from body rung to optical rung spans 32 rungs—more than three times the bridge limit—so the coherent core cannot couple to the optical band through any single gate. The core is real but optically unreachable; at most it hugs the gate nodes as a faint, structured residue that only a field-perception channel could read directly (`consciousness/cascade-consciousness.md`).
+And the bridge limit is tighter than the suppression: a single Qi gate couples across at most ~10 rungs before $\varphi^{-10} \approx 0.008$ drops the signal below the coherence floor (`speculations/cascade-infrastructure.md` §1.1, `foundations/bubble-lattice-fabric.md` §3.3). A coherent leak from the mapped body rung to the proposed optical rung spans 32 rungs—more than three times the bridge limit—so the modeled coherent component would not couple to the optical band through any single gate. Its existence and any field-perception readout remain speculative (`consciousness/cascade-consciousness.md`).
 
-**The thermal halo.** The waste fraction needs no rung crossing, because the framework describes it as a decay channel, not a coupling: the $(1-q)$ throughput thermalizes *as photons and heat at the local scale*—it is deposited, not transmitted. Broadband and structureless by construction (thermalization is the destruction of the organized fraction), the halo is the field's entropy dump at the body's own rung. This is the part an eye can actually see.
+**The thermal halo.** In the same speculative extension, the waste fraction is assigned to a local decay channel rather than a cross-rung coupling: the $(1-q)$ throughput is proposed to thermalize *as photons and heat at the local scale*. It is therefore modeled as broadband and structureless, but neither the local deposition nor the optical visibility follows from the canonical field. This is the component the extension proposes an eye could see.
 
-The two parts answer the two halves of aura lore: reports of colored, structured auras describe the coherent core (which optics cannot deliver, and which field perception may); reports of shimmering, colorless, dancing auras describe the halo, and that is what most aura seeing is.
+The two parts are a phenomenological reading of aura reports: colored, structured reports are assigned to the speculative coherent component, while shimmering, colorless reports are assigned to the speculative thermal component. No observational attribution is established.
 
 ---
 
-## 3. Why the Heat-Distortion Look Is Exact
+## 3. Proposed Heat-Distortion Analogy
 
-The resemblance between auras and heat haze is the strongest phenomenological clue in the whole subject, and the framework says it is structural rather than coincidental.
+First, within this speculative mapping, structurelessness is the halo's proposed character. The organized fraction is called "Yang" and the thermalized fraction "Yin" only as optional phenomenological labels; the canonical $E_Y,E_I$ are nonnegative density components, not intrinsically organized/random, narrow-band/broadband, or directional. The proposed thermal gradient would be optically similar to air heated by a surface, but that similarity is not evidence for an aura.
 
-First, structurelessness is the halo's entire character. The organized fraction is Yang—φ-structured, narrow-band; the thermalized fraction is Yin—random, broadband, convective. A viewer watching a structureless, dancing gradient cannot distinguish it from air heated by a surface, because in the relevant optics the two are the same field configuration: a warm boundary layer with a refractive-index gradient.
+Second, this mapping posits a boundary layer. The body's proposed field is assigned a location above the Qi-gate pinch at $r = \varphi^{-1} \approx 0.618$ (`consciousness/consciousness-from-phi.md` §1.1), but neither a human-scale $r$ nor a self-modeling boundary is measured. The interface between a coherent condensate and an unstructured medium is likewise a speculative analogue of organized $\Pi$ gradients; the stellar tachocline comparison remains a cross-domain analogy, not a human mechanism.
 
-Second, the boundary layer is real. The body's field sits above the Qi-gate pinch at $r = \varphi^{-1} \approx 0.618$ (`consciousness/consciousness-from-phi.md` §1.1)—gate-dominated, self-modeling—while the ambient field sits near the attractor baseline. The interface between a coherent condensate and an unstructured medium concentrates organized $\Pi$ gradients, and such interfaces are where conversion runs continuously: the stellar tachocline, the strongest organized $\Pi$ gradient in the solar system, is a site of continuous Qi conversion (`speculations/cascade-infrastructure.md` §3). The aura is that interface at human scale—the body's corona, and the corona is the one solar structure whose defining visual character is shimmer.
-
-The stellar cross-check makes the mapping concrete: the photosphere is the $q \to 0$ boundary where gate throughput thermalizes, and the corona above it is the visible thermalization zone, 200× hotter than the surface from the $(1-q)$ spill of the stellar gate chain (`speculations/cascade-infrastructure.md` §3.1). The human analogue is smaller by many orders of magnitude, but it is the same architecture: a gate chain, a boundary, a thermalized spill. The aura looks like heat distortion because the halo is a heat layer.
+Within the same proposed extension, the stellar photosphere/corona analogy supplies a template: the photosphere is modeled as a $q \to 0$ thermalization boundary and the corona as a visible thermalization zone, 200× hotter than the surface (`speculations/cascade-infrastructure.md` §3.1). A human analogue would still require independent evidence for a gate chain, a boundary, and a thermalized spill. The aura's heat-distortion interpretation is therefore speculative.
 
 ---
 
 ## 4. The Brightness Inversion: Auras Are Strain Markers
 
-The framework's logic presses hard on one piece of aura lore. If the visible component is the halo, its brightness is set by the gate-open fraction:
+Within this proposed extension, if the visible component were the thermal component, its modeled brightness would scale with the gate-open fraction:
 
-$$\boxed{\text{visible aura brightness} \propto (1-q)}$$
+$$\boxed{P_{\text{visible}} \propto P_{\text{waste}} = (1-q)\,P_{\text{throughput}}}$$
 
-and $(1-q)$ is a distress variable. The wake-lock runs show the signature: under sustained drive the site's q-gap widens 4.5×, the gates stand open, and the $(1-q)$ fraction churns and thermalizes (`speculations/creative-extensions/coherence-collapse.md` §4.1, `consciousness/trauma-as-frozen-gate.md`). The trauma state is a gate configuration held open, and coherence death looks busy before it looks dead (`speculations/creative-extensions/coherence-collapse.md` §3.1). A deeply coherent person runs at high $q$: the gate idles nearly closed and leaks least.
+In this model, $(1-q)$ is then treated as a distress proxy. The wake-lock runs report a q-gap widening under sustained drive, but interpreting that result as $(1-q)$ thermalization remains part of the proposed extension (`speculations/creative-extensions/coherence-collapse.md` §4.1, `consciousness/trauma-as-frozen-gate.md`). The corresponding claim that a deeply coherent person leaks least is likewise conditional on this model.
 
-The inversion: the brightest auras should surround the strained, the traumatized, and the actively driven—the same populations the wake-lock observables target—and the faintest should surround the meditatively coherent, whose spill approaches zero. Aura lore assigns the brightest auras to the enlightened; the framework assigns them to the embattled. If auras are ever measured, brightness and coherence markers (HRV coherence, inter-hemispheric phase synchrony, the wake-lock physiological proxies of `speculations/creative-extensions/coherence-collapse.md` §4.1) should anticorrelate.
+The conditional inversion is that the brightest modeled auras would surround strained or actively driven configurations, while the faintest would surround high-$q$ configurations. This is a speculative prediction for a future measurement, not an assignment of aura brightness to any human population. If auras are measured, brightness and coherence markers (HRV coherence and inter-hemispheric phase synchrony) can be tested for anticorrelation; the result is not established.
 
 ---
 
-## 5. What the Two-Bubble Runs Imply for Aura Interaction
+## 5. What the Two-Bubble Runs Could Mean for Aura Interaction
 
-The two-bubble correlation runs measured how two regions of the field couple through their wakes as a function of separation and pinch status (`consciousness/consciousness-from-phi.md` §3.3). Two results bear on aura reading.
+The two-bubble protocol measured a static correlation between two field regions as a function of separation and initialization status (`consciousness/consciousness-from-phi.md` §3.3). Two results bear on this speculative aura reading.
 
-First, the aggregate $\varphi$/control correlation is strongest when at least one bubble sits below the pinch (3.83×/3.44× below-pinch and mixed vs 2.97× above-pinch), and two above-pinch (self-aware) bubbles go negative at $d = 37$. Second, the decisive gate-parameter scan (2026-08-05) shows the correlation is a static-geometry protocol feature—gate-independent and frozen from initialization—so the coupling reading below is not dynamically supported.
+First, the aggregate $\varphi$/control correlation is strongest when at least one bubble sits below the pinch (3.83×/3.44× below-pinch and mixed vs 2.97× above-pinch), and two above-pinch bubbles (called "self-aware" only in the proposed readout) go negative at $d = 37$. Second, the decisive gate-parameter scan (2026-08-05) shows the correlation is a static-geometry protocol feature—gate-independent and frozen from initialization—so the coupling reading below is not dynamically supported.
 
-The implication for two people: aura-aura coupling should be strongest when at least one party sits below the pinch—relaxed, receptive, pre-reflective—and weakest between two strongly self-aware individuals, whose boundary layers decouple (Hypothesized, on the aggregate correlation; the dynamical interpretation is not supported by the decisive scan). This separates two things aura lore conflates. The glow is waste: bright when gates are open, structurally uninteresting. The field is structure: the coherent wake lattice, φ-resonant, subtle, and strongest exactly when the glow is faintest. Resonance and glow are different observables of the same boundary.
+Within this optional psychological readout, aura-aura coupling is hypothesized to be strongest when at least one mapped region sits below the pinch—described here as relaxed, receptive, and pre-reflective—and weakest between two mapped above-pinch regions. The decisive scan does not support a dynamical interpretation. The proposed glow is a waste signal, while the static correlation is a separate simulation observable; neither establishes a human wake lattice or $\varphi$-resonant aura coupling.
 
 ---
 
 ## 6. A Test Sketch
 
-The framework already names the observable. The wake-lock experiments track thermal excess at network nodes "on the corona mechanism" as the physiological proxy for $(1-q)$ churn (`speculations/creative-extensions/coherence-collapse.md` §4.1). The aura hypothesis points the same observable at the 13 node positions along the spine (`consciousness/chakras-as-cascade-bubbles.md`):
+The companion speculative model names a possible solver-side observable. Wake-lock experiments track thermal excess at network nodes "on the corona mechanism" as a simulation proxy for the proposed $(1-q)$ churn; no physiological measurement establishes this signal (`speculations/creative-extensions/coherence-collapse.md` §4.1). The aura hypothesis extends that unvalidated solver proxy to the 13 proposed node positions along the spine (`consciousness/chakras-as-cascade-bubbles.md`):
 
 - **Drive versus rest.** Infrared imaging of the node positions under sustained emotional or attentional drive versus resting baseline, mirroring the trauma protocol's drive/rest design.
 - **Prediction.** Node-localized thermal excess that tracks the drive, scales with the q-gap (the runs' 4.5× widening), and fades as coherence recovers.
@@ -92,9 +91,9 @@ The framework already names the observable. The wake-lock experiments track ther
 
 ## 7. Boundaries
 
-**Documented framework properties (Derived or verified):** the $(1-q)$ thermalization law as the universal gate-waste channel; the human 26-rung gate chain with 13 nodes; the signal-regime suppression $\varphi^{-N}$ and the ~10-rung bridge limit; the two-bubble wake results; the wake-lock thermal-excess observable.
+**Canonical or protocol inputs:** the $q$ diagnostic; the signal-regime suppression $\varphi^{-N}$ and the ~10-rung bridge limit; the two-bubble static-geometry result; and the wake-lock thermal-excess observable as defined by its protocol.
 
-**Extrapolations (Speculative):** the aura as the human instance of the waste channel; the core/halo decomposition; the heat-haze optics argument; the brightness inversion; the aura-aura coupling claims.
+**Speculative extensions:** the $(1-q)$ gate-waste channel; the human gate-chain and aura mappings; the coherent-core/thermal-halo decomposition; the heat-haze optics argument; the brightness inversion; and aura-aura coupling claims.
 
 **Explicitly not claimed:** any amplitude or color prediction; Kirlian photography (a corona discharge is a separate electrical phenomenon); any New Age sense of auras as beneficial energy fields—the framework's aura is a waste signature, which is why it is dim and why it brightens in distress.
 

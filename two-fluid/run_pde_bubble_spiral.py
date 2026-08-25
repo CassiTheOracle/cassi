@@ -1,21 +1,34 @@
 #!/usr/bin/env python3
-"""Bubble PDE: Fibonacci spiral mode + angular rotation detection at poles.
+"""Bubble PDE: Fibonacci spatial-mode analysis + pole-orientation diagnostic.
 
 Initializes a triaxial ellipsoid bubble in the 3D two-fluid PDE with the
 two-pole (east/west) Wu Xing 5-channel gate, evolves it, and analyzes:
 
 1. Angular power spectrum—static mode decomposition at each pole
-2. Angular phase velocity—tracks the complex phase of key Fibonacci modes
-   over time to detect spiral rotation of the chord string
+2. Angular coefficient orientation—tracks the argument of key Fibonacci-mode
+   Fourier coefficients over time as a pole-pattern rotation diagnostic
 
-Theory: the conversion term continuously rotates the (E_Y, E_I) doublet in its
-internal SO(2) plane. Along the chord string (z-axis), this traces a 3D helix.
-At each pole, the helix endpoint traces a rotating pattern—a pentagon if the
-Wu Xing gate modulates at 5 phases. The rotation rate dθ/dt ≈ λ (conversion rate).
+The canonical state contains two real density fields, E_Y and E_I.  Their
+derived density-plane angle is theta = atan2(E_I, E_Y); conversion changes
+this angle by relaxation toward equilibrium.  It is not an independently
+evolved compact phase or a fixed periodic phase clock.  This script does not
+compute theta or dtheta/dt: its tracked phi_m = arg(a_m) is the argument of a
+spatial Fourier coefficient of the E_Y pole pattern, not the density-plane
+angle.
 
-Static mode power (FFT averaged over time) is blind to rotation—a rotating
-pentagon has near-zero static m=5 power. We detect rotation by tracking the
-complex phase φ_m(t) = arg(a_m(t)) of each angular Fourier coefficient.
+The triaxial-helix interpretation, rotating pentagon, and five-phase Wu Xing
+modulation are tested model hypotheses—not consequences of the canonical
+two-fluid equations.  In particular, a pattern along the chord string
+(z-axis) is not by itself a physical 3D helix, and coefficient-angle drift
+does not derive one.  Comparing that drift with lambda is likewise a
+model-hypothesis diagnostic, not a conversion-ODE phase clock.
+The supplied lambda is a solver normalization/timescale convention here; this
+script does not derive its value from w = 5 or from a one-event-per-cycle
+interpretation.
+
+Static mode power (FFT averaged over time) can be insensitive to a changing
+pole-pattern orientation.  We therefore track the coefficient argument
+phi_m(t) = arg(a_m(t)) of each angular Fourier coefficient.
 
 Usage:
     python run_pde_bubble_spiral.py                # N=48, 8000 steps
@@ -24,17 +37,17 @@ Usage:
 Results (July 2026):
 - Static modes: m=2 (ellipsoid cross-section) dominates at both poles.
   No m=5 Fibonacci mode emergence—the pentagon is geometric, not dynamic.
-- Angular rotation: phase drift dphi/dt ~ 1.5e-4 rad/step vs expected
-  0.1 rad/step for m=5 at lambda=0.02. The spiral lives in internal SO(2)
-  doublet space, not in the spatial EY pattern.
+- Angular coefficient-argument drift: d(arg a_m)/dt ~ 1.5e-4 rad/step
+  versus the tested model-hypothesis scale 0.1 rad/step for m=5 at
+  lambda=0.02.  This spatial-pattern diagnostic does not measure theta,
+  establish a compact phase, or prove a physical 3D helix.
 - Gate analysis: the two-pole gate modulates spatial pattern (5-channel
-  structure at poles), not convergence rate. Irreducible (1-q)_min ~ 0.24.
+  structure at poles), not convergence rate.  Irreducible (1-q)_min ~ 0.24.
   Gate never saturates—N=292 is not determined by gate closure.
-- Key finding: the pentagon/spiral is a geometric property of the
-  phi-ellipsoid (golden angle phyllotaxis), not a PDE emergent phenomenon.
-  The cascade depth N follows from Hubble dynamics; the primordial Yang-Yin
-  ratio r_0 is now derived from cascade coherence + φ-geometry
-  (foundations/wu-xing-derivation.md). λ = 1/(2w) = 0.1 is also derived.
+- The pentagon/spiral remains a tested geometric hypothesis for the
+  phi-ellipsoid (golden-angle phyllotaxis), not a PDE-emergent result.
+  Claims about cascade depth, primordial Yang-Yin ratio, or lambda derivation
+  belong to separate model hypotheses (foundations/wu-xing-derivation.md).
 """
 
 import torch, numpy as np, sys, os, argparse, glob, re
@@ -142,14 +155,15 @@ def pole_angular_modes(field_3d, pole_sign=1, n_slices=4):
     dom = max(mid, key=mid.get)
     return mode_powers, dom, mid[dom] * 100
 
-# ── Angular phase tracking (rotation detection) ──────────────────────────────
+# ── Angular Fourier-coefficient argument tracking ────────────────────────────
 def pole_angular_phases(field_3d, pole_sign=1, track_modes=None, n_slices=4):
     """Return complex Fourier coefficient a_m for each tracked mode.
 
-    a_m = Σ f(θ)·e^{-imθ}—a complex number whose phase φ_m = arg(a_m)
-    tracks the angular orientation of mode m at this timestep.
-
-    If the pattern rotates by Δθ per timestep, arg(a_m) advances by m·Δθ.
+    a_m = Σ f(θ)·e^{-imθ}—a complex number whose argument
+    phi_m = arg(a_m) tracks the angular orientation of mode m at this
+    timestep.  If the pole pattern rotates by Δθ per timestep, arg(a_m)
+    advances by m·Δθ.  This coefficient argument is a spatial-pattern
+    diagnostic, not the density-plane angle theta = atan2(E_I, E_Y).
 
     Returns: dict m -> complex (real, imag) for each tracked mode.
     """
@@ -179,7 +193,9 @@ def pole_angular_phases(field_3d, pole_sign=1, track_modes=None, n_slices=4):
 
 # ── Main run ─────────────────────────────────────────────────────────────────
 def run_bubble_spiral(args):
-    """Run PDE with two-pole gate + bubble IC, analyze modes and rotation."""
+    """Run PDE with two-pole gate + bubble IC; test spatial-mode and
+    pole-pattern orientation hypotheses.
+    """
 
     # ── Setup: fresh or resume ───────────────────────────────────────────
     if args.resume:
@@ -254,14 +270,13 @@ def run_bubble_spiral(args):
             f.write(header + '\n')
 
         with open(phases_file, 'w', encoding='utf-8') as f:
-            f.write(f'# N={args.N} gate=two_pole—angular phases (radians) for rotation detection\n')
-            f.write(f'# Rotation rate dtheta/dt ~ lambda = {args.lam} rad/step expected if spiral active\n')
+            f.write(f'# N={args.N} gate=two_pole—angular Fourier-coefficient arguments (radians) for spatial-pattern orientation diagnostics\n')
+            f.write(f'# Tested hypothesis only: coefficient-argument drift scale d(arg a_m)/dt ~ lambda = {args.lam} rad/step; this is not dtheta/dt\n')
             header = '# step'
             for pole in ['N', 'S']:
                 for m in [5, 8, 13]:
                     header += f' phi{pole}{m}_re phi{pole}{m}_im'
             f.write(header + '\n')
-
         start_step = 0
         print(f'[bubble_spiral] N={args.N}, steps={args.steps}, gate=two_pole')
         print(f'  bubble: rx={args.brx:.3f} ry={args.bry:.3f} rz={args.brz:.3f} amp={args.bamp}')
@@ -272,11 +287,18 @@ def run_bubble_spiral(args):
     for step in range(start_step, args.steps + 1):
         u_hat, ey_hat, ei_hat = solver.rk2_step(u_hat, ey_hat, ei_hat, args.dt)
 
+        report = step % LOG_INTERVAL == 0 or step == args.steps
+        mode_sample = step % args.mode_int == 0 or step == args.steps
+        progress = step % 1000 == 0 or step == args.steps
+        # Materialize the current E_Y field once for whichever diagnostics
+        # need it.  In particular, progress cadence need not equal mode_int.
+        ey = (torch.fft.ifftn(ey_hat).real
+              if (report or mode_sample or progress) else None)
+
         # Periodic logging
-        if step % LOG_INTERVAL == 0 or step == args.steps:
+        if report:
             a = solver.a.item()
             H = solver._H_smooth.item()
-            ey = torch.fft.ifftn(ey_hat).real
             ei = torch.fft.ifftn(ei_hat).real
             r = (ey.mean() / (ei.mean() + 1e-12)).item()
             qm = solver.q_mean
@@ -290,10 +312,8 @@ def run_bubble_spiral(args):
             with open(logfile, 'a', encoding='utf-8') as f:
                 f.write(f'{step:7d} {a:10.6e} {H:10.6e} {r:8.4f} {qm:8.4f}\n')
 
-        # Mode analysis + phase tracking
-        if step % args.mode_int == 0 or step == args.steps:
-            ey = torch.fft.ifftn(ey_hat).real
-
+        # Mode analysis + spatial coefficient-argument tracking
+        if mode_sample:
             # Static mode powers
             modes_n, dom_n, frac_n = pole_angular_modes(ey, pole_sign=1)
             modes_s, dom_s, frac_s = pole_angular_modes(ey, pole_sign=-1)
@@ -307,8 +327,7 @@ def run_bubble_spiral(args):
             with open(modes_file, 'a', encoding='utf-8') as f:
                 f.write(f'{step:7d} {dom_n:5d} {frac_n:6.1f} {dom_s:5d} {frac_s:6.1f}'
                         + ''.join(fib_powers) + '\n')
-
-            # Angular phases for rotation detection
+            # Angular Fourier-coefficient arguments for spatial-pattern orientation
             ph_n = pole_angular_phases(ey, pole_sign=1, track_modes=track_modes)
             ph_s = pole_angular_phases(ey, pole_sign=-1, track_modes=track_modes)
 
@@ -324,14 +343,22 @@ def run_bubble_spiral(args):
         if step > 0 and step % CKPT_INTERVAL == 0:
             save_checkpoint(step, solver, u_hat, ey_hat, ei_hat, run_dir)
 
-        # Console progress
-        if step % 1000 == 0 or step == args.steps:
-            # Compute instantaneous phase of m=5 for rotation detection
+        if progress:
+            # The report cadence need not align with mode analysis.  Refresh all
+            # diagnostics from this report's field when no mode sample ran at
+            # this step, so the console always shows current, meaningful values.
+            if not mode_sample:
+                modes_n, _, _ = pole_angular_modes(ey, pole_sign=1)
+                modes_s, _, _ = pole_angular_modes(ey, pole_sign=-1)
+                ph_n = pole_angular_phases(ey, pole_sign=1, track_modes=track_modes)
+                ph_s = pole_angular_phases(ey, pole_sign=-1, track_modes=track_modes)
+
+            # Compute instantaneous coefficient argument of m=5 for orientation diagnostics
             m5_phase_n = np.angle(ph_n.get(5, 0j)) if ph_n else 0
             m5_phase_s = np.angle(ph_s.get(5, 0j)) if ph_s else 0
             fib_str = ' '.join([f'm={fib}:{modes_n.get(fib,0)*100:4.1f}%' for fib in [5, 8, 13]])
             print(f'  step={step:5d} a={a:.4f} H={H:.4f} r={r:.4f} q={qm:.4f} '
-                  f'N:m5φ={np.degrees(m5_phase_n):6.1f}° S:m5φ={np.degrees(m5_phase_s):6.1f}° [{fib_str}]')
+                  f'N:m5arg={np.degrees(m5_phase_n):6.1f}° S:m5arg={np.degrees(m5_phase_s):6.1f}° [{fib_str}]')
 
     # Final checkpoint
     if step > 0:
@@ -340,13 +367,13 @@ def run_bubble_spiral(args):
     print(f'\n[bubble_spiral] Done -> {run_dir}')
     print(f'  Log:       {logfile}')
     print(f'  Modes:     {modes_file}')
-    print(f'  Phases:    {phases_file}')
+    print(f'  Coefficient arguments: {phases_file}')
     return run_dir
 
 # ── CLI ──────────────────────────────────────────────────────────────────────
 if __name__ == '__main__':
     p = argparse.ArgumentParser(
-        description='Bubble PDE: Fibonacci spiral mode + rotation detection (two-pole gate)')
+        description='Bubble PDE: Fibonacci spatial modes + pole-pattern orientation diagnostics (two-pole gate)')
     p.add_argument('--resume', type=str, default=None,
                    help='Resume from run directory')
     p.add_argument('--steps', type=int, default=8000,
@@ -390,14 +417,12 @@ if __name__ == '__main__':
         args.bry = args.brx / PHI
     if args.brz is None:
         args.brz = args.brx / PHI**2
-
-    print('=== Bubble PDE: Fibonacci Spiral + Rotation Detection ===')
+    print('=== Bubble PDE: Fibonacci Spatial Modes + Orientation Diagnostics ===')
     print(f'  Gate: two-pole  |  N={args.N}  |  Steps: {args.steps}')
     print(f'  Bubble axes: ({args.brx:.3f}, {args.bry:.3f}, {args.brz:.3f}) '
           f'ratio = ({args.brx/args.brz:.3f} : {args.bry/args.brz:.3f} : 1)')
-    print(f'  Pole-to-pole L = 2*rz = {2*args.brz:.3f}')
-    print(f'  lambda_5 = L/5 = {2*args.brz/5:.3f}')
-    print(f'  Expected rotation rate: dtheta/dt ~ lambda = {args.lam} rad/step')
+    print(f'  lambda_5 (tested geometry scale) = L/5 = {2*args.brz/5:.3f}')
+    print(f'  Tested coefficient-argument drift scale: d(arg a_m)/dt ~ lambda = {args.lam} rad/step')
     print()
 
     run_bubble_spiral(args)

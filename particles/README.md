@@ -1,36 +1,44 @@
-# Particles—Yang-Yin Interference and DFT Benchmarks
+# Particles—Conditional Interference and DFT Benchmarks
 
-## Status: Index—July 2026
+## Status: Index—August 2026
 
 ## Abstract
 
-This directory pairs the Cassi account of how particles emerge from field interference with a computational benchmark of the framework's density-functional engine. `cassi-yang-yin-particles.md` derives particle formation from counter-propagating Yang and Yin waves condensing into solitons at a $\varphi$-determined amplitude ratio; `dft-benchmarks.md` validates the real-space DFT solver in CassiBridgeV2 against exact atomic ground-state energies for the first row of the periodic table. Read in alphabetical order: the mechanism doc first, then the benchmarks as evidence that the computational core reproduces chemistry.
+This directory separates the canonical real-density two-fluid solver from two downstream records. The canonical state uses the real densities $E_Y,E_I\ge 0$, with $\rho=E_Y+E_I$, $\varepsilon=E_Y-\varphi E_I$, the gated coherence $q$, and rank-one conversion. Its equations contain no built-in complex phase, chirality, right/left propagation, compact coordinate, or nonlinear Schrödinger (NLS) sector. `cassi-yang-yin-particles.md` records a **Hypothesized** conditional extension that adds complex counterpropagating fields and NLS self-focusing as a particle-interference model. `dft-benchmarks.md` records conventional LDA/PBE/Dirac-Kohn-Sham reference-energy benchmarks; those measurements validate the numerical implementation and atomic comparisons only. `matter-organization.md` keeps the independent cascade bookkeeping alongside explicit boundaries for the conditional particle extension.
 
 ## Document Index
 
 | # | Document | Domain | Epistemic |
 |---|----------|--------|-----------|
-| 1 | `cassi-yang-yin-particles.md` | Particle emergence | Derived |
-| 2 | `dft-benchmarks.md` | Computational chemistry | Derived |
-| 3 | `matter-organization.md` | Matter organization | Synthesis |
+| 1 | `cassi-yang-yin-particles.md` | Conditional particle-interference extension | Hypothesized |
+| 2 | `dft-benchmarks.md` | Conventional computational chemistry benchmark | Calibrated |
+| 3 | `matter-organization.md` | Matter organization and cascade bookkeeping | Synthesis |
 
 ## Document Summaries
 
-### `cassi-yang-yin-particles.md`—Yang-Yin Field Interference and Particle Formation
+### `cassi-yang-yin-particles.md`—Conditional Yang-Yin Interference Extension
 
-Derives particle emergence from two complex scalar fields with opposite chiral bias—Yang right-moving (expansive), Yin left-moving (contractive)—each obeying a damped wave equation with a $\pm\chi$ advection term and mutually coupled sources. Their superposition creates a standing-wave intensity pattern with contrast $\rho_{\text{max}}/\rho_{\text{min}} = \varphi^6 \approx 17.94$, and adding the attractive nonlinear Schrödinger self-interaction nucleates bright solitons above the condensation threshold $\rho_{\text{peak}} = A_Y^2\varphi^2 > \theta_{\text{cond}}$. Minimizing the soliton mass $M(r) = M_0\,(1+r)^2/\sqrt{r}$ pins the Yin/Yang amplitude ratio at $A_I/A_Y = \varphi^{-1} \approx 0.618$—the golden ratio emerges as the stability condition for particle formation rather than an input. The framework maps onto the Dirac equation (a massive fermion is the superposition of right- and left-moving Weyl chiralities) and is confirmed numerically by Experiment 8v2: soliton formation from interference, elastic soliton scattering, and an amplitude-ratio scan peaking at $\varphi^{-1}$. Epistemic tier: Derived—analytic derivation plus numerical validation.
+States a conditional complex-field/NLS construction in which Yang and Yin
+components carry opposite spatial phase signs in a selected ansatz, form an
+interference pattern, and self-focus into soliton-like structures. The
+construction adds complex phase, a chosen one-dimensional coordinate,
+counterpropagating trial modes, NLS dynamics, and the selected amplitude ratio
+$A_I/A_Y=\varphi^{-1}$ beyond the canonical $E_Y,E_I$ density equations. It
+supplies no chirality operator; a chiral interpretation remains an optional
+additional sector. These statements carry **Hypothesized** status and do not
+describe supplied canonical dynamics.
 
 ### `matter-organization.md`—Matter Organization: Forces, Lattice Pools, and the Neutron–Proton–Electron Trio
 
-Synthesis (August 2026) of how matter organizes in Cassi terms: each force as a binding channel at its cascade rung (gravity at every rung, GUT at ~13–15, sector coupling at 77, electroweak at 80, QCD at 95), energy pooling on the lattice from interference to soliton to the 38-state ladder and the lattice sub-multiple law $m = m_j/k$, and the neutron–proton–electron trio—the baryon pair at rung 91.5 with the proton's coherence budget, the electron's three placements (Compton near-miss, Yukawa half-rung fit, sharpest lattice void at $e = m_{102}/11.5$)—plus an explicit inventory of what the framework does not yet say. Every claim keeps the epistemic tier of its source; the doc adds no new claims.
+Synthesis (August 2026) of force-channel and cascade bookkeeping, including gravity, GUT, sector, electroweak, and QCD rung assignments; the 38-state mass catalog; lattice node/void bookkeeping; and the proton, neutron, and electron placements. The particle-pooling, standing-wave, wake-phase, propagation, and soliton readings are identified as conditional **Hypothesized** extension content, while independent empirical and mapped cascade results retain their stated tiers.
 
 ### `dft-benchmarks.md`—DFT Benchmarks: CassiBridgeV2 Real-Space Performance
 
-Benchmarks the real-space pseudospectral DFT engine in CassiBridgeV2 against exact atomic ground-state energies for Z = 1–10. LDA is accurate for light atoms (He at 0.8% error, 64³ grid), but the uniform Cartesian grid cannot resolve compact 1s cores for Z ≥ 4; pseudopotentials remove that bottleneck (Ne 4.8% vs 47.6% all-electron at 64³), and the PBE functional's correctness is verified by systematic grid refinement (He 3.2% → 1.4% from 64³ to 96³). The Dirac-Kohn-Sham extension is also validated: the Foldy-Wouthuysen propagator converges without variational collapse, giving He binding −2.996 $E_h$ (3.2% error) and a correctly resolved Ne 1s² core. The recommendation is N=96 + pseudopotentials for Z > 2, with the direct conclusion that the uniform grid demonstrates functional equivalence but is not competitive with specialized quantum-chemistry codes for heavy atoms. Epistemic tier: Derived—measured results against known exact energies.
+Benchmarks conventional real-space LDA/PBE and Dirac-Kohn-Sham implementations against exact atomic reference energies for $Z=1$–$10$. The measured errors, grid-refinement behavior, pseudopotential comparison, and DiracBridge values establish the behavior of those numerical implementations and their atomic reference comparisons. They do not establish the canonical two-fluid equations or the particle-emergence hypothesis.
 
 ## Cross-References
 
-- `foundations/cassi-first-principles.md`—first-principles foundation for the two-fluid fields whose interference builds particles
-- `foundations/dimensionful-cascade.md`—the cascade ladder that sets the scales of the quantized standing waves
-- `foundations/cascade-suppression-formula.md`—the coherence budget behind the soliton stability condition
-- `predictions/falsifiable-predictions.md`—the 51-entry prediction catalog (particle predictions inherit the framework's falsifiability)
+- `foundations/cassi-first-principles.md`—canonical two-fluid densities, Qi coherence, and gated rank-one conversion
+- `foundations/dimensionful-cascade.md`—the cascade ladder used for scale bookkeeping
+- `foundations/cascade-suppression-formula.md`—the coherence budget used in stability bookkeeping
+- `predictions/falsifiable-predictions.md`—the prediction catalog and its epistemic boundaries

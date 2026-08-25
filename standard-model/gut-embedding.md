@@ -1,19 +1,21 @@
 # SU(5) / SO(10) GUT Embedding
 
-## Status: Hypothesized—July 2026
+## Status: Hypothesized—August 2026
 
 ## Abstract
 
-The Cassi symmetry-breaking chain SU(4) → SU(3)$_C$ × U(1)$_{B-L}$ →
-SU(3)$_C$ × SU(2)$_L$ × U(1)$_Y$ → U(1)$_{EM}$ is embedded at the φ-fixed
-point in the two minimal grand-unified groups. SU(5) (Georgi–Glashow) unifies
-one generation in $\mathbf{\bar{5}} \oplus \mathbf{10}$ with $\alpha_{\text{GUT}}
-= \varphi^{-3}/(4\pi) \approx 1/53$ and $M_{\text{GUT}} \approx 2\times10^{16}\ \text{GeV}$,
-predicting $\tau(p \to e^+\pi^0) \approx 1.3\times10^{37}\ \text{yr}$ (corrected
-arithmetic, 2026-08-05, `computations/proton_budget_closure.py`)—above
-Hyper-Kamiokande reach ($\sim 10^{35}$ yr). SO(10) adds the right-handed neutrino in the
-$\mathbf{16}$, giving a natural seesaw and a longer proton lifetime
-($10^{35}$–$10^{36}\ \text{yr}$).
+The Cassi symmetry-breaking chain
+SU(4) → SU(3)$_C$ × U(1)$_{B-L}$ → SU(3)$_C$ × SU(2)$_L$ × U(1)$_Y$
+→ U(1)$_{EM}$ is considered within a conditional embedding in the two
+minimal grand-unified groups. SU(5) (Georgi–Glashow) places one generation in
+$\mathbf{\bar{5}}\oplus\mathbf{10}$ with the conditional coupling assignment
+$\alpha_{\text{GUT}}=\varphi^{-3}/(4\pi)\approx1/53$ and
+$M_{\text{GUT}}\approx2\times10^{16}\ \text{GeV}$. The resulting dimensional
+estimate is $\tau(p\to e^+\pi^0)\approx1.3\times10^{37}\ \text{yr}$, above
+Hyper-Kamiokande reach ($\sim10^{35}\ \text{yr}$). SO(10) adds the
+right-handed neutrino in the $\mathbf{16}$ and changes the breaking,
+flavor, and proton-decay assumptions; its lifetime scale remains
+$10^{35}$–$10^{36}\ \text{yr}$ in the conditional comparison.
 
 ---
 
@@ -27,24 +29,24 @@ group $G_{\text{GUT}}$, providing three profound consequences:
 1. **Charge quantization**—the U(1)$_Y$ hypercharge assignment ceases to be
    arbitrary and follows from the representation theory of $G_{\text{GUT}}$.
 2. **Proton decay**—baryon number is violated by the same gauge bosons that
-   unify the interactions, giving a definite (and testable) lifetime.
+   unify the interactions, yielding a conditional lifetime estimate.
 3. **GUT-scale Higgs sector**—the symmetry-breaking sector that reduces
-   $G_{\text{GUT}} \to \text{SM}$ is inexorably linked to the Cassi
-   φ-fixed-point dynamics of the isospinor field.
+   $G_{\text{GUT}}\to\text{SM}$ is a Hypothesized extension of the Cassi
+   $\varphi$-fixed-point dynamics.
 
-### 1.1 The φ-Breaking Chain
+### 1.1 The $\varphi$-Breaking Chain
 
-The Cassi symmetry breaking cascade derived in [sm-from-phi.md](sm-from-phi.md)
-follows a specific pattern rooted in φ-truncations:
+The conditional symmetry-breaking cascade described in
+`standard-model/sm-from-phi.md` follows a pattern organized by
+$\varphi$-truncations:
 
 ```
 SU(4) ──→ SU(3)_C × U(1)_{B-L} ──→ SU(3)_C × SU(2)_L × U(1)_Y ──→ U(1)_{EM}
 ```
 
-The rank of each gauge group is determined by truncating the continued
-fraction expansion of $\phi$ at successive depths. The Cassi GUT extends this
-chain by placing the SU(4) parent into a unified group at an even higher
-scale.
+Within this hypothesis, the rank labels are organized by truncating the
+continued fraction expansion of $\varphi$ at successive depths. The Cassi GUT
+places the SU(4) parent into a unified group at an even higher scale.
 
 ---
 
@@ -66,13 +68,16 @@ SO(10) naturally provides.
 
 ### 2.1 The GUT Scale from φ
 
-The Cassi unification condition fixes the GUT coupling to the φ-point value:
+The Cassi boundary assignment is
 
-$$\alpha_{\text{GUT}} = \frac{\phi^{-3}}{4\pi} \approx \frac{0.236}{4\pi}
-   \approx 0.0188 \approx \frac{1}{53}$$
+$$\alpha_{\text{GUT}}=\frac{\varphi^{-3}}{4\pi}
+\approx\frac{0.236}{4\pi}\approx0.0188\approx\frac{1}{53}.$$
 
-Running the three SM gauge couplings to the scale where they meet determines
-$M_{\text{GUT}}$. From the one-loop RGEs:
+It is a conditional input to the GUT extension. The SM running intersections
+listed below do not realize this value at a common scale.
+
+Running the three SM gauge couplings locates pairwise intersections; a common
+$M_{\text{GUT}}$ requires additional beyond-SM content. From the one-loop RGEs:
 
 $$\frac{1}{\alpha_i(M_Z)} - \frac{1}{\alpha_{\text{GUT}}} =
    \frac{b_i}{2\pi} \ln\frac{M_{\text{GUT}}}{M_Z}$$
@@ -97,24 +102,26 @@ conditions: forcing $\alpha_3$ through the $\alpha_1 = \alpha_2$ point
 predicts $\alpha_s(m_Z) \approx 0.07$ (0.071 at one loop,
 `computations/sm_radiative_corrections.py` §2)—a $1.7\times$ deficit in the
 *same* direction as the $\varphi$-boundary's $2.0\times$. The value
-$\alpha_{\text{GUT}} = \varphi^{-3}/4\pi = 1/53$ is not realized by any SM
-coupling at any scale below $M_{\text{Pl}}$ (`standard-model/
-sm-radiative-corrections.md` §3.3). A common intersection near
-$2 \times 10^{16}$ GeV requires beyond-SM content between $m_Z$ and
-$M_{\text{GUT}}$—the same $\Delta b = 1.70$ deficit that rescues
-$\alpha_s(m_Z)$ (`parameter-inventory.md` §4.4).
+$\alpha_{\text{GUT}} = \varphi^{-3}/4\pi = 1/53$ is not realized
+simultaneously by all three SM couplings at any scale below $M_{\text{Pl}}$
+(`standard-model/sm-radiative-corrections.md` §3.3); an individual coupling can
+cross that value, but there is no common intersection.
+A common intersection near $2 \times10^{16}$ GeV requires beyond-SM content
+between $m_Z$ and $M_{\text{GUT}}$—the same $\Delta b=1.70$ deficit that
+rescues $\alpha_s(m_Z)$ (`parameter-inventory.md` §4.4).
 
 ### 2.2 SU(5) Breaking and the Weinberg Angle
 
 The SU(5) $\to$ SM breaking Higgs transforms in the **24** (adjoint)
-representation. Its VEV at the φ-point gives:
+representation. Its VEV in the conditional $\varphi$-point construction is:
 
 $$\langle \mathbf{24} \rangle = v_{24} \cdot \operatorname{diag}
    \left(2, 2, 2, -3, -3\right)$$
 
 breaking SU(5) $\to$ SU(3)$_C \times$ SU(2)$_L \times$ U(1)$_Y$.
 
-The gauge coupling matching at $M_{\text{GUT}}$ determines the Weinberg angle:
+The gauge coupling matching at $M_{\text{GUT}}$ gives the minimal-SU(5)
+boundary value for the Weinberg angle:
 
 $$\sin^2\theta_W(M_{\text{GUT}}) = \frac{3}{8}$$
 
@@ -133,7 +140,7 @@ $\sin^2\theta_W \approx 0.42$ at $2 \times 10^{16}$ GeV under SM running
 the measured-scale realization; it is distinct from a GUT-scale coupling
 assignment.
 
-### 2.3 The SU(5) φ-Lagrangian
+### 2.3 The SU(5) $\varphi$-Lagrangian
 
 The full SU(5) gauge Lagrangian at the unification scale:
 
@@ -147,8 +154,12 @@ $\mathbf{\bar{5}} \oplus \mathbf{10}$. The covariant derivative is:
 
 $$D_\mu = \partial_\mu - i g_5 A_\mu^A T^A$$
 
-with $g_5^2 = 4\pi \alpha_{\text{GUT}} = 4\pi \cdot \phi^{-3}/(4\pi) = \phi^{-3}$,
-so $g_5 = \sqrt{\phi^{-3}} \approx 0.486$.
+with
+
+$$g_5^2=4\pi\alpha_{\text{GUT}}
+=4\pi\cdot\frac{\varphi^{-3}}{4\pi}
+=\varphi^{-3},\qquad
+g_5=\sqrt{\varphi^{-3}}\approx0.486.$$
 
 The Higgs sector contains the **24** (adjoint) for GUT breaking and a
 **5** (fundamental) for electroweak breaking:
@@ -156,9 +167,10 @@ The Higgs sector contains the **24** (adjoint) for GUT breaking and a
 $$\mathcal{L}_{\text{Higgs}} = |D_\mu \mathbf{24}|^2 + |D_\mu \mathbf{5}|^2
    - V(\mathbf{24}) - V(\mathbf{5}) - V_{\text{mix}}(\mathbf{24}, \mathbf{5})$$
 
-At the φ-fixed point, the adjoint VEV takes the Cassi-normalised form:
+At the conditional $\varphi$-fixed point, the adjoint VEV is assigned the
+Cassi-normalised form:
 
-$$v_{24} \sim \phi \cdot M_{\text{GUT}}$$
+$$v_{24}\sim\varphi\cdot M_{\text{GUT}}$$
 
 consistent with the hierarchy $v_{24} \gg v_5 \approx 246\ \text{GeV}$.
 
@@ -190,40 +202,42 @@ with the amplitude:
 $$|\mathcal{A}|^2 \propto
    \frac{g_5^4}{M_X^4} \cdot |\text{hadronic matrix element}|^2$$
 
-The standard estimate gives:
+The standard dimensional estimate gives:
 
 $$\tau(p \to e^+ \pi^0) \approx
-   \frac{1}{\alpha_{\text{GUT}}^2} \cdot \frac{M_{\text{GUT}}^4}{m_p^5}$$
+   \frac{1}{\alpha_{\text{GUT}}^2}\cdot\frac{M_{\text{GUT}}^4}{m_p^5}.$$
 
-Inserting the Cassi φ-values:
+Inserting the conditional $\varphi$-values:
 
 $$\boxed{\tau(p \to e^+ \pi^0) \approx
-   \frac{1}{(1/53)^2} \cdot \frac{(2 \times 10^{16}\ \text{GeV})^4}
-   {(0.938\ \text{GeV})^5} \approx 1.3 \times 10^{37}\ \text{years}}$$
+   \frac{1}{(1/53)^2}\cdot
+   \frac{(2\times10^{16}\ \text{GeV})^4}{(0.938\ \text{GeV})^5}
+   \approx1.3\times10^{37}\ \text{years}}$$
 
-(Arithmetic closure 2026-08-05, `computations/proton_budget_closure.py`:
-with these stated inputs the formula evaluates to $1.3\times10^{37}$ yr;
-reproducing a $4\times10^{34}$-yr result would require
-$M_{\text{GUT}} \approx 4.7\times10^{15}$ GeV—a 4.2× slip in $M^4/m^5$.)
+The numerical value uses natural-unit conversion to years and omits
+renormalization and hadronic matrix-element factors from this dimensional
+estimate. Its scale inherits the conditional $M_{\text{GUT}}$ and
+$\alpha_{\text{GUT}}$ assignments.
 
-For the conservative lower end of the GUT scale range, $M_{\text{GUT}} \approx
-10^{15}\ \text{GeV}$, the lifetime decreases by $(10^{15}/2\times10^{16})^4
-\approx 6.25 \times 10^{-6}$, giving $\tau \sim 8 \times 10^{31}\ \text{years}$ —
-already excluded by the Super-K bound ($> 2.4\times10^{34}$ yr). This tension between the α_s-running estimate and the
-full unification scale is **the central quantitative uncertainty** of the
-Cassi SU(5) embedding. The corrected running analysis
-(`standard-model/sm-radiative-corrections.md` §3.3) sharpens it: the SM
-couplings have no common intersection, so the $2 \times 10^{16}$ GeV anchor
-of the boxed lifetime is not a property of SM running—it requires the same
-beyond-SM content ($\Delta b = 1.70$) that rescues $\alpha_s(m_Z)$, placed so
-that $\alpha_1 = \alpha_2 = \alpha_3$ near $10^{16}$ GeV. If that content
-exists, the lifetime prediction stands; if the unification scale instead
-tracks the SM $\alpha_1 = \alpha_2$ intersection ($10^{13}$ GeV), the
-lifetime is excluded by many orders of magnitude.
+For the conservative lower end of the GUT scale range, $M_{\text{GUT}}\approx
+10^{15}\ \text{GeV}$, the lifetime decreases by
+$(10^{15}/2\times10^{16})^4\approx6.25\times10^{-6}$, giving
+$\tau\sim8\times10^{31}\ \text{years}$—already excluded by the Super-K bound
+($>2.4\times10^{34}$ yr). This tension between the $\alpha_s$-running estimate
+and the full unification scale is **the central quantitative uncertainty** of
+the Cassi SU(5) embedding. The running analysis in
+`standard-model/sm-radiative-corrections.md` §3.3 shows that the SM couplings
+have no common intersection, so the $2\times10^{16}$ GeV anchor of the boxed
+lifetime is not a property of SM running—it requires the same beyond-SM
+content ($\Delta b=1.70$) that rescues $\alpha_s(m_Z)$, placed so that
+$\alpha_1=\alpha_2=\alpha_3$ near $10^{16}$ GeV. With that content, the
+conditional lifetime estimate applies; if the unification scale instead tracks
+the SM $\alpha_1=\alpha_2$ intersection ($10^{13}$ GeV), the lifetime is
+excluded by many orders of magnitude.
 
 ### 3.2 Decay Modes
 
-The SU(5) prediction for the dominant branching ratios:
+In the conditional SU(5) setup, the dominant operator channels are:
 
 | Mode | Operator type | Relative branching | Notes |
 |------|--------------|-------------------|-------|
@@ -244,11 +258,11 @@ on the flavour structure of the GUT-scale Yukawas. In SUSY SU(5), $p \to
 |-----------|--------------------------------|--------|
 | Super-Kamiokande (2024) | $> 2.4 \times 10^{34}$ years | Current best limit |
 | Hyper-Kamiokande | $> 1 \times 10^{35}$ years | Projected (2030s) |
-| **Cassi SU(5) prediction** | $\mathbf{1.3 \times 10^{37}}$ **years** (corrected arithmetic, 2026-08-05, `computations/proton_budget_closure.py`) | **Above Hyper-K reach** |
+| **Conditional SU(5) estimate** | $\mathbf{1.3\times10^{37}}$ **years** | **Above Hyper-K reach** |
 
-The Cassi prediction of $1.3 \times 10^{37}$ years sits about two orders of
-magnitude above the projected Hyper-K sensitivity—a null prediction for the
-2030s, not a discovery target.
+The conditional SU(5) estimate of $1.3\times10^{37}$ years sits about two
+orders of magnitude above the projected Hyper-K sensitivity, so this setup
+gives a null expectation for the 2030s rather than a discovery target.
 
 ---
 
@@ -275,17 +289,18 @@ where the $\mathbf{1}$ is the right-handed neutrino $\nu_R$.
 
 ### 5.2 Breaking Chain in Cassi
 
-The Cassi φ-scaling of VEVs determines the SO(10) breaking chain:
+Within this conditional construction, $\varphi$-scaling of VEVs organizes the
+SO(10) breaking chain:
 
 $$\text{SO(10)} \xrightarrow{M_{\text{GUT}}}
    \text{SU(5)} \times \text{U}(1)_\chi \xrightarrow{M_{24}}
    \text{SU(3)}_C \times \text{SU}(2)_L \times \text{U}(1)_Y
    \xrightarrow{M_{\text{EW}}} \text{U}(1)_{\text{EM}}$$
 
-Each symmetry-breaking step occurs at a φ-scaled energy. The intermediate
-scale $M_{24}$ (where the SU(5) **24**-plet gets a VEV) satisfies:
+Each symmetry-breaking step is assigned a $\varphi$-scaled energy. The
+intermediate scale $M_{24}$ (where the SU(5) **24**-plet gets a VEV) satisfies:
 
-$$\frac{M_{24}}{M_{\text{GUT}}} \sim \phi^{-1} \approx 0.618$$
+$$\frac{M_{24}}{M_{\text{GUT}}}\sim\varphi^{-1}\approx0.618$$
 
 giving $M_{24} \sim 10^{16}\ \text{GeV}$ for $M_{\text{GUT}} \sim 2 \times
 10^{16}\ \text{GeV}$.
@@ -297,12 +312,14 @@ The Higgs representations needed:
   to $\nu_R$
 - **10**—electroweak Higgs doublet
 
-The **126** VEV at the φ-point determines the right-handed neutrino mass scale:
+Within the conditional construction, the **126** VEV sets the right-handed
+neutrino mass scale:
 
-$$M_R \sim \phi^2 \cdot \langle \overline{\mathbf{126}} \rangle
-   \sim \phi^2 \cdot M_{24} \sim 10^{15}{-}10^{16}\ \text{GeV}$$
+$$M_R\sim\varphi^2\cdot\langle\overline{\mathbf{126}}\rangle
+   \sim\varphi^2\cdot M_{24}\sim10^{15}{-}10^{16}\ \text{GeV}$$
 
-consistent with the seesaw explanation of small neutrino masses.
+This scale is compatible with a seesaw explanation of small neutrino masses,
+subject to the Yukawa and threshold inputs.
 
 ### 5.3 Proton Decay in SO(10)
 
@@ -312,7 +329,7 @@ higher:
 
 $$M_{\text{GUT}}^{\text{SO(10)}} \gtrsim M_{\text{GUT}}^{\text{SU(5)}}$$
 
-The predicted proton lifetime is correspondingly longer:
+The conditional proton-lifetime scale is correspondingly longer:
 
 $$\boxed{\tau(p \to e^+ \pi^0)_{\text{SO(10)}} \approx
    1 \times 10^{35}{-}1 \times 10^{36}\ \text{years}}$$
@@ -328,43 +345,42 @@ be accessible to next-generation experiments such as DUNE and THEIA.
 | $\nu_R$ included? | No (singlet needed) | Yes (in $\mathbf{16}$) |
 | Seesaw mechanism | External $\nu_R$ | Natural via $\overline{\mathbf{126}}$ |
 | Breaking Higgs | $\mathbf{24} + \mathbf{5}$ | $\mathbf{45} + \overline{\mathbf{126}} + \mathbf{10}$ |
-| $\tau(p \to e^+ \pi^0)$ | $1.3 \times 10^{37}$ years (corrected arithmetic, 2026-08-05) | $10^{35}{-}10^{36}$ years |
+| $\tau(p \to e^+ \pi^0)$ | $1.3 \times 10^{37}$ years | $10^{35}{-}10^{36}$ years |
 | Hyper-K reach? | **No** (above reach) | Marginal |
-| Minimal φ-scaling | **Yes** | Needs extended Higgs sector |
+| Minimal $\varphi$-scaling | **Yes** | Needs extended Higgs sector |
 
 ---
 
 ## 6. Conclusion
 
-SU(5) is the minimal GUT consistent with Cassi φ-fixed-point couplings. Its
-predicted proton lifetime of $1.3 \times 10^{37}$ years ($p \to e^+ \pi^0$,
-corrected arithmetic 2026-08-05, `computations/proton_budget_closure.py`) is
-**above** Hyper-Kamiokande reach: the expected sensitivity of $> 10^{35}$
-years in the 2030s cannot probe it.
+SU(5) is the minimal GUT considered in this conditional Cassi embedding. Its
+conditional dimensional estimate for the proton lifetime is
+$1.3\times10^{37}$ years ($p\to e^+\pi^0$), above Hyper-Kamiokande reach:
+the expected sensitivity of $>10^{35}$ years in the 2030s cannot probe it.
 
-The central uncertainty is the precise GUT scale: the SM running has no
-common coupling intersection ($\alpha_1 = \alpha_2$ at $10^{13}$ GeV,
-$\alpha_2 = \alpha_3$ at $10^{17}$ GeV), so the $2 \times 10^{16}$ GeV anchor
-of the proton-lifetime prediction requires the cascade's beyond-SM content
-($\Delta b = 1.70$) to complete the unification. If it does, the predicted
-lifetime $1.3 \times 10^{37}$ yr is beyond Hyper-Kamiokande reach; a proton
-discovery at Hyper-K would instead disfavor the SU(5) embedding at the
-$\varphi$-anchored scale.
+The central uncertainty is the precise GUT scale: SM running has no common
+coupling intersection ($\alpha_1=\alpha_2$ at $10^{13}$ GeV,
+$\alpha_2=\alpha_3$ at $10^{17}$ GeV), so the $2\times10^{16}$ GeV anchor
+of the lifetime estimate requires the cascade's beyond-SM content
+($\Delta b=1.70$) to complete the unification. If that content is present,
+the estimate remains $1.3\times10^{37}$ yr and is beyond Hyper-Kamiokande
+reach; a proton discovery at Hyper-K would disfavor the SU(5) embedding at
+the $\varphi$-anchored scale.
 
-SO(10) remains viable as a larger embedding that naturally accommodates the
-right-handed neutrino and the seesaw mechanism, but it requires Higgs
-representations beyond the minimal φ-scaling framework. Its proton lifetime
-prediction of $10^{35}{-}10^{36}$ years is more challenging to test but not
-beyond the reach of future experiments.
+SO(10) remains a conditional larger embedding that accommodates the
+right-handed neutrino and seesaw mechanism, with Higgs representations beyond
+the minimal $\varphi$-scaling framework. Its lifetime estimate of
+$10^{35}{-}10^{36}$ years is more challenging to test but remains within
+the reach of future experiments.
 
-### Summary of Cassi GUT Predictions
+### Summary of Conditional GUT Quantities
 
-| Observable | SU(5) Prediction | SO(10) Prediction | Experimental Prospect |
-|-----------|-----------------|-------------------|---------------------|
-| $\alpha_{\text{GUT}}$ | $\phi^{-3}/(4\pi) \approx 1/53$ | Same | Requires $\Delta b = 1.70$ beyond-SM content; no SM intersection |
-| $M_{\text{GUT}}$ | $2 \times 10^{16}$ GeV (with beyond-SM content) | $\gtrsim 2 \times 10^{16}$ GeV | SM running alone: $\alpha_1=\alpha_2$ at $10^{13}$ GeV |
-| $\sin^2\theta_W$ | $\phi^{-3} \approx 0.236$ at $\mu_* = 233$ GeV | Same | 2.1% above Z-pole value |
-| $\tau(p \to e^+ \pi^0)$ | $\mathbf{1.3 \times 10^{37}}\ \text{y}$ (corrected arithmetic, 2026-08-05) | $10^{35}{-}10^{36}\ \text{y}$ | Hyper-K: $\mathbf{>10^{35}}\ \text{y}$ (above reach) |
+| Observable | SU(5) conditional estimate | SO(10) conditional estimate | Experimental Prospect |
+|-----------|---------------------------|-----------------------------|-----------------------|
+| $\alpha_{\text{GUT}}$ | $\varphi^{-3}/(4\pi)\approx1/53$ | Same | Requires $\Delta b=1.70$ beyond-SM content; no SM intersection |
+| $M_{\text{GUT}}$ | $2\times10^{16}$ GeV (with beyond-SM content) | $\gtrsim2\times10^{16}$ GeV | SM running alone: $\alpha_1=\alpha_2$ at $10^{13}$ GeV |
+| $\sin^2\theta_W$ | $\varphi^{-3}\approx0.236$ at $\mu_*=233$ GeV | Same | 2.1% above Z-pole value |
+| $\tau(p\to e^+\pi^0)$ | $\mathbf{1.3\times10^{37}}\ \text{y}$ | $10^{35}{-}10^{36}\ \text{y}$ | Hyper-K: $\mathbf{>10^{35}}\ \text{y}$ (above reach) |
 | $\nu$ masses | External seesaw | Natural seesaw | Oscillation experiments |
 
 ## References

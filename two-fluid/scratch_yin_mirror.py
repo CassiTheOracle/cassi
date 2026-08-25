@@ -8,12 +8,12 @@ records in an existing run dir):
 
 Audit outcome (theory lead, 2026-08-07): the canonical conversion pair
 dt(eps) = -lam (1+phi) (1-q) eps drives eps = EY - phi*EI to 0, whose
-Yang fraction is Pi/rho = phi^-3 > 0; a steady Pi < 0 state does not
+fractional Yang–Yin imbalance is Pi/rho = phi^-3 > 0; a steady Pi < 0 state does not
 exist under the canonical dynamics (every Pi < 0 state has eps < 0 and
 dt(Pi) = -2 lam g eps > 0).  The only constant-free steady negative-
-attractor state is the MIRROR manifold EY = phi^-1 EI (Pi/rho =
--phi^-3): the canonical attractor with field labels exchanged and the
-linearized conversion rate scaled by phi^-1 (the conjugate branch).
+attractor state is the MIRROR manifold EY = phi^-1 EI (fractional Yang–Yin
+imbalance Pi/rho = -phi^-3): the canonical attractor with field labels exchanged
+and the linearized conversion rate scaled by phi^-1 (the conjugate branch).
 The half-space sign-opposite conversion, conv = -lam (1-q) |EY - phi EI|,
 has no interior fixed point: its steady state is a numerical-floor
 artifact.  This suite measures all three claims with the smallest
@@ -41,10 +41,12 @@ comparisons need canonical records only to t = 80/phi = 49.4):
 Verdicts (results.json):
   T0 no-op       bit-exact: none_ysep12 == canon_ysep12 record-by-record
                  (every numeric leaf incl. per-strand telemetry)
-  T1 mirror fp   interior fixed point near Pi/rho = -phi^-3 = -0.2361:
+  T1 mirror fp   interior fixed point near fractional Yang–Yin imbalance
+                 Pi/rho = -phi^-3 = -0.2361:
                  epsA = EY - phi^-1 EI -> 0 (|epsA| < 0.10 at t = 80),
                  canonical eps -> -rho/phi (rel residual < 1%),
-                 Pi/rho in [-0.29, -0.19], min fields > 0.3, q_mid in
+                 fractional Yang–Yin imbalance Pi/rho in [-0.29, -0.19],
+                 min fields > 0.3, q_mid in
                  [0.62, 0.68] (five-gate at eps_norm ~ 1/4), H_end in
                  [0.04, 0.06] (the mirror is a conversion rest state but
                  not a Hubble rest state: H -> lambda(phi^-2 + phi^2)/3
@@ -60,7 +62,8 @@ Verdicts (results.json):
                  [25, 50]) within 30%; (c) the gravity/H residual
                  budget reported (H, a, u_max, Rc drift)
   T3 abs drive   no interior fixed point: EY hits the 1e-3 floor by
-                 t <= 25 and Pi/rho_glob < -0.95 at t_end (or NaN-abort
+                 t <= 25 and fractional Yang–Yin imbalance Pi/rho_glob
+                 < -0.95 at t_end (or NaN-abort
                  after floor contact) -- the clamp-sustained artifact
   T4 E1          mirror pair d(t): contraction early (attraction
                  sustained), diluted by the conversion-mode expansion
@@ -127,7 +130,7 @@ T2_EARLY = 10.0              # early-rate window
 T2_A_WIN = (40.0, 80.0)      # mirror late window
 T2_C_WIN = (25.0, 50.0)      # canon late window (t <= 50 arm)
 T3_FLOOR_T = 25.0            # first floor touch must occur by t = 25
-T3_PIRHO = -0.95             # Pi/rho_glob at t_end (floor-saturated)
+T3_PIRHO = -0.95             # fractional Yang–Yin imbalance Pi/rho_glob at t_end
 T4_RATE_CONTRACT = 0.015     # |rate| above this is contraction
 T5_MASS_DRIFT = 1.0e-11      # total-mass drift tolerance
 

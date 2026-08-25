@@ -1,39 +1,43 @@
 # Why Three Dimensions: The Spiral's Three Directions
 
-## Status: Derived (d = 3 overdetermined by five framework-internal routes—Lucas, attractor, noise–signal, rung-clock, Frenet–Serret; verified 2026-08-11) with Hypothesized morphology (W1: anti-phase confirmed)—August 2026
+## Status: Hypothesized dimensional identification (conditional consistency map; W1 anti-phase morphology supported)—August 2026
 
 ## Abstract
 
-The Cassi framework derives every structural integer from the two-fluid PDE and
-$\varphi$. The spatial count $d = 3$ is now closed by **overdetermination**
-(§2.6): five framework-internal routes—the Lucas identity $\varphi^2+\varphi^{-2}=3$,
-the attractor imbalance exponent ($(\pi/\rho)_{\text{eq}} = \varphi^{-3}$),
-the noise–signal exponent ($\varphi^{-\delta} = \varphi^{-3}$, $\delta = 3$),
-the rung-clock ($d = \varphi^{-2}/(1-q_0) = 3$), and the Frenet–Serret frame
-(three orthogonal vectors of the non-degenerate space curve)—share no input
-beyond the doublet and cascade postulates and all close on the same integer.
-This document's contribution is the geometric route: the string's trajectory
-through field space traces a logarithmic spiral—the Fibonacci spiral. At every
-point along this spiral, the **Frenet-Serret frame** provides three orthogonal
-directions: tangent (forward along the cascade), normal (inward, the Yang direction),
-and binormal (sideways, the Yin direction). These three vectors ARE the three
-spatial dimensions—not $3 = 2 + 1$ by accounting, but three because a space curve's
-Frenet-Serret frame has exactly three vectors. The spiral's $\varphi$-determined
-geometry gives the universe-bubble a **shape** (a triaxial spheroid) and its
-**internal morphology** (paired sheets flanking a central void, confirmed by
-W1 anti-phase experiment). A sign analysis of the conversion term forks the prediction
-into two observationally distinguishable branches—single central sheet vs. paired
-sheets flanking a central void—making the idea testable both numerically (existing
-two-bubble PDE scripts) and observationally (large-scale structure morphology, CMB
-axis alignment).
+This paper presents a **Hypothesized dimensional identification** as a
+conditional consistency map for identifying the framework's spatial count with
+$d = 3$. The Lucas identity $\varphi^2+\varphi^{-2}=3$, the attractor
+imbalance exponent, the noise–signal exponent, and the selected rung-clock
+normalization are valid mathematical statements or model relations. Their
+shared integer becomes an ambient dimension only through a framework mapping.
+The Frenet–Serret route is
+explicitly conditional: a non-degenerate curve embedded in $\mathbb{R}^3$ has
+the triad $\{\mathbf T,\mathbf N,\mathbf B\}$, while a generalized Frenet
+frame in $\mathbb{R}^d$ can contain up to $d$ vectors. The triad therefore
+checks a proposed three-dimensional embedding; it does not select the
+dimension of space.
 
-**Figure:** `visual-explainers/cascade_cosmos.png`—panel A shows the bubble chain
-on the string; panel B (zoom) shows the triaxial cross-section with the anti-phase
-paired-sheet interference pattern (`visual-explainers/cascade_cosmos.py`).
+The geometric construction studies a prescribed logarithmic spiral and its
+loxodrome lift on a cone. Its $\varphi$-scaled curvature and frame alignment
+are numerically consistent with the proposed string, Yang, and Yin axis map
+inside that embedding. The canonical two-fluid state remains two real density
+fields. Its conversion ODE conserves total density and moves the derived
+density-plane angle $\theta_d=\operatorname{atan2}(E_I,E_Y)$ monotonically
+toward equilibrium; it does not provide a periodic $2\pi$ phase clock. The
+logarithmic spiral is parameterized by a separate added geometric coordinate
+$\chi$; compact phase interpretations and per-rung pitch are additional
+geometric postulates unless separately implemented and tested. The W1
+opposite-sign wake result remains a measured morphology branch, with the
+paired-sheet consequences recorded as conditional predictions.
+
+**Figure:** `visual-explainers/cascade_cosmos.png`—panel A shows the bubble
+chain on the string; panel B (zoom) shows the conditional $\mathbb{R}^3$
+triaxial morphology ansatz with the opposite-sign paired-sheet interference
+pattern (`visual-explainers/cascade_cosmos.py`).
 
 ---
 
-## 1. The Problem: The Last Imported Integer
+## 1. The Problem: Connecting an Integer to Ambient Dimension
 
 The Qi-gravity coupling is derived as the inverse square of the fixed-point
 imbalance,
@@ -42,201 +46,202 @@ $$\xi = \varphi^6 = (\pi/\rho)^{-2}, \qquad \pi/\rho = (\varphi-1)/(\varphi+1) =
 
 (`xi-derivation.md` §2): the exponent 6 = 3 × 2 with the 3 from the attractor's
 imbalance exponent and the 2 from the quadratic degree of the gravitational
-coupling. The spatial count $d = 3$ is a separate structural integer: it is
-not restated observation but is now **overdetermined** within the framework
-(§2.6)—five independent routes close on 3 using only the doublet and cascade
-postulates. The claim of "zero free parameters beyond $\varphi$" therefore
-carries no silent asterisk.
+coupling. That exponent 3 is a fixed-point algebraic integer. The ambient
+spatial count $d$ is a separate model label. Section 2.6 places five
+mathematical routes beside one another and records the framework's proposed
+identification of their shared integer with $d=3$; the identification remains
+Hypothesized and conditional.
 
-This document develops the geometric route: the string DOES NOT move in a
-straight line. It spirals.
+This document develops the geometric consistency route. It specifies a
+logarithmic spiral and tests a three-dimensional lift, while keeping the
+dynamical and dimensional assumptions visible.
 
 ---
 
-## 2. The Spiral's Three Directions
+## 2. A Conditional Three-Direction Construction
 
-### 2.1 The String Does Not Move in a Straight Line
+### 2.1 Field-plane dynamics and the prescribed spiral
+The canonical state consists of two real density fields, $E_Y$ and $E_I$.
+Write their ratio as $r=E_Y/E_I$ and their derived density-plane angle as
+$\theta_d=\operatorname{atan2}(E_I,E_Y)$. The equal-and-opposite conversion
+source conserves the total density $\rho=E_Y+E_I$ and drives $r$ monotonically
+toward $\varphi$; equivalently, $\theta_d$ relaxes monotonically toward its
+equilibrium value. This ODE has no periodic $2\pi$ phase clock.
 
-The string is the trajectory of the ratio $r(t) = E_Y/E_I$ through field space, from
-$r_0 \approx 0.047$ to the $\varphi$-attractor at $r = \varphi$. If the string
-moved in a straight line, it would produce only ONE spatial direction—the line
-itself. But the string does not move in a straight line. The conversion term couples
-$E_Y$ and $E_I$ with a phase rotation: as the string advances forward (rung to rung
-along the cascade), it simultaneously **rotates** in the Yang-Yin plane. Advance
-plus rotation = a spiral.
+The geometric test instead prescribes a logarithmic curve using the separate
+geometric coordinate $\chi$,
 
-The spiral is logarithmic—the Fibonacci spiral—with polar equation:
+$$R(\chi)=R_0e^{b\chi}, \qquad b=\frac{\ln\varphi}{2\pi}.$$
 
-$$\Theta(r) = \frac{2\pi}{\ln\varphi}\ln\left(\frac{r}{\ell_n}\right)$$
+The factor $\varphi$ per $2\pi$ turn and the association of one turn with one
+cascade rung are coordinate conventions for this construction. They make the
+curve self-similar and provide the $\varphi$-scaled length used by the
+loxodrome calculation. They are not outputs of the conversion ODE. A compact
+$U(1)$ or $SO(2)$ phase, a half-angle spinor, and any periodic inter-rung clock
+would be additional model postulates requiring their own implementation and
+test.
 
-Each full turn of the spiral corresponds to one cascade rung. The expansion factor
-per turn is $\varphi$. The spiral is not an aesthetic choice; it is the unique
-trajectory that satisfies: (a) forward advance along the cascade (the string must
-evolve from $r_0$ to $\varphi$), and (b) rotation in the Yang-Yin plane (the
-conversion term couples the two field components with a fixed phase relation).
+### 2.2 The Frenet–Serret frame in a chosen embedding
 
-### 2.2 The Frenet-Serret Frame: Three Directions from One Curve
+For a regular curve with nonzero curvature embedded in $\mathbb{R}^3$, the
+Frenet–Serret construction provides three mutually orthogonal unit vectors:
 
-At every point along any smooth space curve, the **Frenet-Serret frame** provides
-three mutually orthogonal unit vectors:
+- **Tangent** $\mathbf T$: points along the direction of motion. In the
+  conditional map this is the string or cascade axis.
+- **Normal** $\mathbf N$: points toward the center of curvature. The proposed
+  morphology map assigns the inward direction to Yang when $E_Y>E_I$.
+- **Binormal** $\mathbf B=\mathbf T\times\mathbf N$: completes the
+  right-handed triad. The proposed map assigns the in-plane transverse
+  direction to Yin.
 
-- **Tangent** $\mathbf{T}$: points along the direction of motion—forward along
-  the cascade. This is the **string axis**, the direction of cosmic expansion.
-- **Normal** $\mathbf{N}$: points toward the center of curvature—inward toward
-  the spiral's core. Because Yang dominates the conversion dynamics ($E_Y > E_I$
-  throughout most of cosmic history), the normal direction aligns with the
-  **Yang axis**—the extended, expansive direction.
-- **Binormal** $\mathbf{B} = \mathbf{T} \times \mathbf{N}$: completes the
-  right-handed triad, orthogonal to both. This is the **Yin axis**—the
-  contracted, receptive direction.
+$$\boxed{\text{Conditional }\mathbb{R}^3\text{ map}:\
+\{\mathbf T,\mathbf N,\mathbf B\}\longmapsto
+\{\text{string},\text{Yang},\text{Yin}\}}$$
 
-$$\boxed{\text{Three spatial dimensions} = \{\mathbf{T}, \mathbf{N}, \mathbf{B}\} = \text{the spiral's Frenet-Serret frame}}$$
+Differential geometry supplies this frame after the ambient embedding has been
+chosen. In $\mathbb{R}^d$, the generalized Frenet frame can have up to $d$
+vectors, subject to the rank of the successive derivatives. Thus the triad
+cannot determine the ambient dimension. The script verifies identities of the
+chosen $\mathbb{R}^3$ loxodrome and its frame; its output is a consistency
+check for that embedding.
 
-The two transverse axes are not passive: the Yang and Yin coherence currents
-wind about the tangent, forming the double helix of inter-scale flow—the
-phase advances $\pi$ per cascade rung, so the two strand-currents exchange
-dominance at every scale (`foundations/qi-flow-double-helix.md` §4).
+The local density-plane diagnostic
 
-These are not three unrelated axes counted up from independent ingredients.
-They are three orthogonal directions generated by ONE thing—the spiral traced
-by the string. The Frenet-Serret theorem guarantees exactly three vectors for
-any non-degenerate space curve. Three dimensions is not $2 + 1$; it is the
-signature of a space curve.
+$$J_{d,z}=E_Y\partial_zE_I-E_I\partial_zE_Y
+          =\rho_\perp^2\partial_z\theta_d,\qquad
+\rho_\perp^2=E_Y^2+E_I^2$$
 
-### 2.3 Why a Spiral—and Why $\varphi$
+measures a spatial density-plane-angle gradient along grid $z$. It is a local
+diagnostic, not automatically a cascade or inter-scale current. An
+inter-rung flux, a compact phase, or a periodic phase advance requires a
+separate postulate and test.
 
-Two ingredients produce the spiral:
+### 2.3 Why this curve and why $\varphi$
 
-1. **Forward advance.** The ratio must evolve from $r_0$ to $\varphi$. This is
-   the cascade: the string must traverse ~292 rungs to today's horizon
-   (epoch-dependent; the cascade is unbounded). Without
-   forward advance, there is no cascade, no scale hierarchy, no universe.
+The conditional construction has two geometric ingredients:
 
-2. **Rotation.** The conversion term couples $E_Y$ and $E_I$ antisymmetrically:
-   $\partial_t E_Y \supset -\lambda(1-q)(E_Y - \varphi E_I)$ and
-   $\partial_t E_I \supset +\lambda(1-q)(E_Y - \varphi E_I)$. This is
-   an SO(2) rotation generator—the two fields continuously convert into one
-   another with a phase shift. Without rotation, the fields would simply
-   equilibrate and stop; with rotation, they spiral.
+1. **Forward scale advance.** The ratio evolves from $r_0\approx0.047$ toward
+   $\varphi$ while the cascade supplies the scale hierarchy and the
+   approximately 292-rung horizon interval.
+2. **Prescribed turn and pitch.** The curve uses $R(\chi)=R_0e^{b\chi}$
+   with $b=\ln\varphi/(2\pi)$. A cone lift supplies the third coordinate used
+   by the numerical Frenet calculation.
 
-Forward advance plus rotation produces a helix. A helix whose radius changes
-with forward position is a spiral. A spiral whose radius changes by the most
-irrational factor possible—$\varphi$, the maximally de-resonant number—is
-the Fibonacci spiral. The de-resonance principle selects $\varphi$ as the
-expansion factor because any rational or less-irrational ratio would produce
-resonant locking between rungs, collapsing the cascade.
+The de-resonance principle motivates $\varphi$ as the scale factor in this
+ansatz. It does not turn the canonical conversion ODE into a periodic angular
+generator. The two-fluid state supplies a density plane and a monotone
+relaxation path; it does not by itself determine how many ambient axes the
+path occupies. The loxodrome is therefore a selected $\mathbb{R}^3$ model
+embedding, with higher-dimensional generalizations left open.
 
-Two fluids is the minimal structure that can produce a spiral: one field alone
-has no rotation (no coupling partner to rotate against); three fields would
-produce a more complex trajectory requiring more than three Frenet-Serret
-dimensions. Two fields produce exactly one spiral, and one spiral produces
-exactly three orthogonal directions. Nature occupies the minimal de-resonant
-configuration.
+### 2.4 The axes are unequal within the morphology ansatz
 
-### 2.4 The Axes Are Not Symmetric
+Within the chosen embedding, the $\varphi$-scaled curve assigns different
+geometric roles to the three frame directions:
 
-The Frenet-Serret vectors give three orthogonal directions, but the spiral's
-$\varphi$-determined geometry makes them unequal:
+- **Tangent (string axis):** bounded by the interval between adjacent
+  cascade-step coordinates. The one-turn-per-rung reading is part of the
+  coordinate convention.
+- **Normal (Yang axis):** extended in the proposed morphology because Yang is
+  the dominant expansive component, $E_Y>E_I$, over most of the trajectory.
+- **Binormal (Yin axis):** contracted in the proposed morphology because Yin is
+  subdominant and contractive; the illustrative ratio at freeze-out is
+  $r\approx\varphi$.
 
-- **Tangent (string axis)**: bounded. The spiral advances one cascade rung per
-  full turn. The distance between rungs is $\Delta\ell = (\varphi-1)\ell_n$,
-  finite at every $n$. The string axis has a hard cap—the bubble is bounded
-  between adjacent cascade steps.
-- **Normal (Yang axis)**: extended. Yang is the dominant, expansive fluid
-  component ($E_Y > E_I$), so the spiral's radius—set by the Yang-Yin
-  imbalance—is biased outward. The bubble extends furthest along Yang.
-- **Binormal (Yin axis)**: contracted. Yin is subdominant and contractive.
-  The bubble's extent along Yin is shorter than along Yang by the factor
-  $r \approx \varphi$ at freeze-out.
+The resulting triaxial spheroid is a conditional morphology built on the
+$\mathbb{R}^3$ map. Its unequal axes are a geometric interpretation of the
+selected curve, not an independent derivation of spatial dimensionality.
 
-The result is a **triaxial spheroid**—three unequal axes generated by a
-single spiral. No separate ingredients, no $2+1$ accounting. The shape
-falls out of the spiral's geometry.
+### 2.5 What the construction identifies
 
-### 2.5 Consequence: The Dimension Count Is Internal
+The curve calculation supports a concrete statement: the prescribed
+$\varphi$-spiral has a self-similar curvature structure, and its
+$\mathbb{R}^3$ cone lift has a well-defined Frenet triad with the proposed
+axis alignment. The calculation does not establish that physical space must
+have three dimensions. The same distinction applies to the exponent 3 in
+$\xi=(\pi/\rho)^{-2}$: its attractor origin is algebraic, while the
+identification of that integer with $d$ is a framework hypothesis.
 
-With the three dimensions identified as the spiral's Frenet-Serret frame, the
-spatial count is a theorem of differential geometry—a non-degenerate space
-curve carries exactly three frame vectors, $\{\mathbf{T}, \mathbf{N}, \mathbf{B}\}$—not an
-observation. The 3 no longer enters $\xi$'s exponent directly ($\xi = (\pi/\rho)^{-2}$
-uses the imbalance exponent 3; `xi-derivation.md` §2), but it is the same
-integer: the spatial count is now overdetermined within the framework (§2.6).
+### 2.6 Five routes to $d=3$: conditional consistency map
 
-### 2.6 The Five Routes to $d = 3$: Overdetermination
+The five routes collect mathematical coincidences and model normalizations
+that all evaluate to the integer 3:
 
-The integer 3 is not imported once—it is produced by five framework-internal
-routes that share no input beyond the doublet and cascade postulates
-(verified 2026-08-11, `computations/why_three_dimensions_frenet.py`):
-
-| Route | Identity | Origin |
+| Route | Mathematical statement | Role in the map |
 |---|---|---|
-| (a) Lucas | $\varphi^2 + \varphi^{-2} = 3$ | $\varphi$-algebra (Lucas number $L_2$) |
-| (b) Attractor imbalance | $(\pi/\rho)_{\text{eq}} = (\varphi-1)/(\varphi+1) = \varphi^{-3}$ | the exponent 3 of the fixed-point imbalance ($\xi = \varphi^6 = (\pi/\rho)^{-2}$) |
-| (c) Noise–signal | $\varphi^{-\delta} = \varphi^{-3} \Rightarrow \delta = 3$ | the Planck-core dephasing floor equals the equilibrium excess (`gravity/quantum-gravity.md` §2.1) |
-| (d) Rung-clock | $d = \varphi^{-2}/(1-q_0) = 3$ | the gate normalization at the attractor ($1-q_0 = \varphi^{-2}/3$; the pitch convention and spiral-clock normalization cancel) |
-| (e) Frenet–Serret | 3 frame vectors of the non-degenerate space curve | differential geometry of the spiral trajectory |
+| (a) Lucas | $\varphi^2+\varphi^{-2}=3$ | Exact $\varphi$-algebra identity |
+| (b) Attractor imbalance | $(\pi/\rho)_{\rm eq}=(\varphi-1)/(\varphi+1)=\varphi^{-3}$ | Fixed-point exponent used in $\xi=\varphi^6$ |
+| (c) Noise–signal | $\varphi^{-\delta}=\varphi^{-3}\Rightarrow\delta=3$ | Equality of the stated dephasing profile and equilibrium excess (`gravity/quantum-gravity.md` §2.1) |
+| (d) Rung-clock normalization | $d=\varphi^{-2}/(1-q_0)=3$ | Conditional relation after choosing the gate and continuity normalization |
+| (e) Frenet–Serret | $\mathbf T,\mathbf N,\mathbf B$ in an $\mathbb{R}^3$ embedding | Geometric consistency check whose ambient dimension is assumed |
 
-The Frenet–Serret route is verified numerically: the 3D trajectory is a
-generalized helix on the cascade cone (loxodrome; the physically correct lift
-multiplies both radius and height by $\varphi$ per turn), with the invariant
-$\tau/\kappa = (b/\sqrt{1+b^2})\cot\alpha$ constant along the whole curve
-(machine precision), $\kappa R$ and $\tau R$ $\theta$-invariant, and the true
-Frenet normal pointing toward the spiral core (Yang), tangent along the string
-axis, binormal in-plane transverse (Yin). The planar invariant is the
-self-similar curvature radius $\rho_c = R\sqrt{1+b^2} = 1/\kappa$ (the often-quoted
-$\kappa^2 = \tau^2 + \text{const}$ does **not** hold along the golden spiral;
-the correct structure is the $\theta$-invariance of $\kappa R$ and the constant
-$\tau/\kappa$ on the cone).
+Route (d) is a normalization relation, not a rate derivation. In particular,
+$\lambda=0.1$ is an asserted solver normalization/timescale convention.
+The value $w=5$ does not fix $\lambda$: equal-and-opposite conversion, a
+potential coefficient, and a one-event-per-cycle reading do not determine a
+rate or its units. Route (e) likewise begins with an $\mathbb{R}^3$
+embedding; in $\mathbb{R}^d$ a generalized frame can have up to $d$ vectors.
 
-Five routes, one integer, no free input: **$d = 3$ is overdetermined within the
-framework.** The dimensionality remains conditional on the doublet and cascade
-postulates (the shared foundation of all five routes), but no route imports the
-answer it produces.
+The numerical calculation verifies the prescribed three-dimensional
+loxodrome: $\tau/\kappa =
+(b/\sqrt{1+b^2})\cot\alpha$ is constant along the curve, while $\kappa R$
+and $\tau R$ are invariant under the self-similar scaling. The planar
+curvature radius is $\rho_c=R\sqrt{1+b^2}=1/\kappa$; the often-quoted
+$\kappa^2=\tau^2+\text{const}$ does not hold along the golden spiral and is
+valid only in the constant-radius circular-helix limit. The frame alignment
+is reported as a property of the selected embedding.
+
+Taken together, the routes motivate a Hypothesized mapping of the shared
+integer to $d=3$. They do not provide five independent determinations of
+ambient dimension: the algebraic routes use framework quantities, route (d)
+uses a chosen normalization, and route (e) assumes the ambient space in which
+its triad is defined. This is the circularity boundary for the dimensional
+claim.
 
 ---
 
 ## 3. The Spheroid Bubble
 
-### 3.1 Wake interference of perpendicular fields
+### 3.1 Wake interference in the conditional transverse map
 
 Both fluids leave wakes in the medium—the verified wake-wave mechanism
 (`consciousness/consciousness-from-phi.md` §1.3): perturbations in
 $\varepsilon = E_Y - \varphi E_I$ propagate at the local wave speed $c(r)$ with
-$\varphi$-scaled spacing, reflect, and feed back on their source. Because the
-two fluids are perpendicular axes of the doublet (the spiral's normal and
-binormal directions), their wake systems form **two mutually perpendicular
-interference patterns** filling the bubble.
+$\varphi$-scaled spacing, reflect, and feed back on their source. Within the
+conditional $\mathbb{R}^3$ morphology map, the two density-plane coordinates
+are assigned to transverse directions. Their wake systems then form two
+mutually perpendicular interference patterns filling the bubble.
 
-### 3.2 The bounded envelope is a triaxial spheroid
+### 3.2 The bounded envelope is a conditional triaxial spheroid
 
 A bubble occupies the interval between two adjacent cascade steps. Wake energy
 emitted while the string traverses that interval propagates a finite distance
 before the bubble's initial conditions freeze (the Qi gate engages at
-$r = \varphi^{-1}$, $a \approx 0.051$). The reachable region is bounded along
-the three spiral-defined axes:
+$r=\varphi^{-1}$, $a\approx0.051$). Within the selected $\mathbb{R}^3$
+ansatz, the reachable region is bounded along the three curve-defined axes:
 
-- **Normal (Yang) axis**: extended—the spiral's normal vector points toward the
-  center of curvature. Yang dominance ($E_Y > E_I$) biases the spiral's radius
+- **Normal (Yang) axis**: extended—the curve's normal points toward the
+  center of curvature. Yang dominance ($E_Y>E_I$) biases the prescribed radius
   outward, making this the bubble's longest axis.
-- **Binormal (Yin) axis**: contracted—the spiral's binormal is orthogonal to
-  both tangent and normal. Yin is subdominant; the bubble's reach along Yin is
-  shorter than along Yang by the factor $r \approx \varphi$ at freeze-out.
-- **Tangent (string) axis**: bounded—the spiral's tangent points forward
-  along the cascade. The cascade-step separation provides a hard cap; the
-  bubble is bounded between adjacent rungs.
+- **Binormal (Yin) axis**: contracted—the binormal is orthogonal to both
+  tangent and normal. Yin is subdominant; the illustrative reach along Yin is
+  shorter than along Yang by the factor $r\approx\varphi$ at freeze-out.
+- **Tangent (string) axis**: bounded—the tangent points forward along the
+  cascade. The cascade-step separation provides a hard cap; the bubble is
+  bounded between adjacent rungs.
 
-The result is a **triaxial spheroid**: three unequal axes, each with a distinct
-physical origin in the spiral's geometry. The Yang-Yin cross-section is elliptical
-with axis ratio $\varphi$. Combined with the short string axis, the bubble is
-flattened—but the flattening is not a single midplane: it is the asymmetric
-extension in the doublet plane (Yang-dominated) against the cascade confinement
-(string). The universe on the string is a lens whose two diameters are unequal,
-with the longer one marked by Yang.
+The model therefore assigns a **triaxial spheroid**: three unequal axes with
+distinct roles in the selected curve. The Yang–Yin cross-section is elliptical
+with illustrative axis ratio $\varphi$. Combined with the short string axis,
+the bubble is flattened by the asymmetric extension in the doublet plane
+against cascade confinement. This is a conditional morphology statement
+inside the chosen embedding.
 
-The Cassi bubble (step 285, $\sim 191$ Mpc comoving, 97.8% of today's observable
-ladder; volume fraction $\sim 10^{-5}$) thereby acquires a *shape* for the first time: three axes, and with them
-**two preferred geometric directions**: the short axis (string/tangent) and the
-long in-plane axis (Yang/normal).
+For the Cassi bubble (step 285, $\sim191$ Mpc comoving, 97.8% of today's
+observable ladder; volume fraction $\sim10^{-5}$), the ansatz assigns the
+short string/tangent axis and the long in-plane Yang/normal axis. These
+preferred directions are part of the morphology map; they do not independently
+establish the ambient dimension.
 
 ### 3.3 Flattened in-universe structure
 
@@ -244,138 +249,154 @@ The superposition of two coherent perpendicular wake systems has a
 distinguished symmetry plane—the midplane—where path lengths from the two
 systems match. For in-phase components this is the central antinode:
 
-$$I(\Delta r) = 4 I_0 \cos^2\!\left(\tfrac{k\,\Delta r}{2}\right), \qquad \Delta r = 0 \;\Rightarrow\; I = 4 I_0$$
+$$I(\Delta r)=4I_0\cos^2\!\left(\tfrac{k\,\Delta r}{2}\right),\qquad
+\Delta r=0\;\Rightarrow\;I=4I_0$$
 
 Structure condenses where interference is constructive—the condensation
 threshold $\theta_{\text{cond}}$ is crossed there first (catalytic template
-mechanism). Matter therefore forms preferentially on a **plane**, not
-uniformly through the spheroid: flattened in-universe structure is the
-interference pattern of the two fluids, frozen in by condensation.
+mechanism). Matter therefore forms preferentially on a plane within the
+conditional spheroid; the flattened structure is the interference pattern of
+the two wake signals, frozen in by condensation.
 
-> **Forward reference.** §4 establishes that the two-fluid conversion coupling
-> is **anti-phase** (confirmed by PDE structure and W1 experiment). Under
-> anti-phase coupling the midplane is a *node* (destructive interference),
-> with the first antinodes displaced symmetrically to either side as paired
-> sheets. The flattened-structure argument transfers to those antinodal planes;
-> the paired-sheet morphology (§4.2, §4.4) is the anti-phase analogue of the
-> structure described here.
+> **Forward reference.** §4 records the opposite-sign wake branch confirmed by
+> the PDE structure and W1 experiment. In that branch the midplane is a node
+> (destructive interference), with the first antinodes displaced symmetrically
+> to either side as paired sheets. The paired-sheet morphology (§4.2, §4.4)
+> is the opposite-sign analogue of the in-phase structure described here.
 
 ### 3.4 Yang dominance as the flattening mechanism
 
-A complementary mechanism operates at the level of the doublet axes themselves,
-independent of wake interference. The two fluids are not symmetric: Yang is the
-expansive, driving component. In the PDE's velocity equation the force is
-$\pi \nabla \Phi$ where $\pi = E_Y - E_I$—the *Yang excess* drives the flow.
-Throughout most of cosmic history conversion feeds Yang (while $r < \varphi$),
-and at freeze-out ($r \to \varphi$, post-pinch) the bubble's doublet-plane
+A complementary mechanism operates at the level of the doublet axes,
+independent of wake interference. The two fluids are not symmetric: Yang is
+the expansive, driving component. In the PDE's velocity equation the force is
+$\pi\nabla\Phi$ where $\pi=E_Y-E_I$—the Yang excess drives the flow.
+Throughout most of cosmic history conversion feeds Yang while $r<\varphi$,
+and at freeze-out ($r\to\varphi$, post-pinch) the selected doublet-plane
 cross-section is Yang-dominated.
 
-If the two axes carry different energies—$E_Y > E_I$—the field extends
-further along the stronger axis. The bubble's cross-section in the doublet
-plane is elliptical, not circular, with the Yang axis longer than the Yin
-axis by the factor set by their local ratio at freeze-out ($r \approx \varphi$).
-Combined with the string-axis bound (§3.2), the bubble is a triaxial spheroid
-flattened by Yang dominance: the Yin axis is contracted, the string axis is
-bounded, and the Yang axis carries the longest extent.
+If the two axes carry different energies, $E_Y>E_I$, the field extends farther
+along the stronger axis. The cross-section is elliptical, with the Yang axis
+longer than the Yin axis by the factor set by the local ratio at freeze-out
+($r\approx\varphi$). Combined with the string-axis bound (§3.2), the
+conditional morphology is a triaxial spheroid flattened by Yang dominance.
 
-This makes a **parameter-free prediction**: the Yang/Yin axis ratio in the
-bubble's doublet-plane cross-section should track $r$ at freeze-out. With
-$r \to \varphi$ as the cosmological attractor, the ellipticity is set by the
-same constant that governs every other scale in the framework. The predicted
-anisotropy amplitude feeds directly into the W2 large-scale structure
-measurement (§5).
+This gives a **conditional geometric prediction**: the Yang/Yin axis ratio in
+the bubble's doublet-plane cross-section should track $r$ at freeze-out. With
+$r\to\varphi$ as the cosmological attractor, the ellipticity uses the same
+constant that governs the framework's scale ansatz. The predicted anisotropy
+amplitude feeds directly into the W2 large-scale structure measurement (§5).
 
-**Relation to §6.1.** The Yang-dominance mechanism resolves the
-"internal→physical axis map": the spiral's Frenet-Serret frame (§2.2) provides
-the map directly. The SO(2) doublet's rotational symmetry generates the
-spiral's curvature; the Frenet-Serret vectors project that internal rotation
-into three physical directions. The degeneracy-breaking follows from
-$E_Y > E_I$—Yang dominance distinguishes the normal axis as the long
-physical axis. Combined with the tangent (string) axis, all three axes
-acquire distinct physical identities: tangent = bounded, normal = extended,
-binormal = contracted.
+**Relation to §2.2.** The internal-to-physical axis map is a declared part of
+the conditional $\mathbb{R}^3$ construction. The Frenet vectors provide the
+local map after the embedding and curve have been selected; the conversion ODE
+does not supply a compact $SO(2)$ phase or generate the spiral. Yang dominance
+distinguishes the normal direction as the long axis in this morphology. The
+tangent, normal, and binormal consequently receive the conditional identities
+bounded, extended, and contracted.
 
-The Yang-dominance mechanism and the interference mechanism (§3.3, §4) are
-complementary: Yang dominance sets the **global triaxial shape** of the bubble;
-anti-phase conversion sets the **internal paired-sheet morphology** of
-structure within it. The bubble is flat—not by cancellation at a midplane,
-but because one fluid wins.
+Yang dominance and wake interference (§3.3, §4) remain complementary:
+dominance sets the global triaxial shape in the ansatz, while opposite-sign
+conversion sets the internal paired-sheet morphology.
 
 ---
 
-## 4. The Phase Fork: One Sheet or Two?
+## 4. The Sign Fork: One Sheet or Two?
 
-The character of the central plane depends on the **relative phase of the two
-wake systems**, which is set by the conversion coupling. This is the idea's
-first derivation problem—and it forks the prediction.
+The central-plane morphology depends on the relative phase of the two wake
+signals. Here the phase label describes wave interference; it is not the
+canonical density-plane angle and does not introduce a periodic field clock.
+The conversion coupling supplies the opposite-sign branch used by the
+observable morphology test.
 
-### 4.1 The naive sign: anti-phase
+### 4.1 The opposite-sign response
 
-Mass-conserving conversion drives the two fields in opposite directions:
+The canonical mass-conserving conversion drives the two density fields in
+opposite directions:
 
-$$\partial_t E_Y \supset +\,\omega_0\, g(q)\,\varepsilon, \qquad \partial_t E_I \supset -\,\omega_0\, g(q)\,\varepsilon$$
+$$
+\partial_t E_Y\supset-\lambda(1-q)\varepsilon,\qquad
+\partial_t E_I\supset+\lambda(1-q)\varepsilon.
+$$
 
-A positive $\varepsilon$ fluctuation feeds $E_Y$ and drains $E_I$: the two
-wakes are emitted **anti-phase** ($\Delta\phi = \pi$). Two anti-phase sources
-have a **node on the midplane** and first antinodes displaced symmetrically:
+For $\lambda\geq0$ and $0\leq q\leq1$, a positive $\varepsilon$ fluctuation
+drains $E_Y$ and feeds $E_I$. The wake-interference ansatz represents these
+opposite signs as $\Delta\phi=\pi$; this phase assignment is a separate
+Hypothesized morphology map. Define the wake wavelength
+$\Lambda_{\mathrm{wake}}=2\pi/k$, distinct from the conversion rate
+$\lambda$. Two opposite-sign sources have a node on the midplane and first
+antinodes displaced symmetrically:
 
-$$I(\Delta r) = 2 I_0 \left[1 - \cos(k\,\Delta r)\right] \;\Rightarrow\; \text{antinodes at } \Delta r = \pm \lambda/2$$
+$$I(\Delta r)=2I_0[1-\cos(k\,\Delta r)]
+\;\Rightarrow\;\text{antinodes at }\Delta r=\pm\frac{\pi}{k}
+=\pm\frac{\Lambda_{\mathrm{wake}}}{2}.$$
 
 ### 4.2 The two branches
 
 | Branch | Interference geometry | Structure morphology | Observational reading |
 |--------|----------------------|----------------------|----------------------|
-| **In-phase** ($\Delta\phi = 0$) | Central antinode | **One** dominant midplane sheet | The Local Sheet *is* the bubble midplane |
-| **Anti-phase** ($\Delta\phi = \pi$) | Central node, flanking antinodes | **Paired sheets** separated by $\lambda/2$, central void | The Local Sheet has a symmetric counterpart across a void—searchable in LSS catalogs |
-| Quadrature ($\Delta\phi = \pi/2$) | Displaced antinode | Single sheet displaced from midplane by $\lambda/8$ | Intermediate case; off-center observers |
+| **In-phase** ($\Delta\phi=0$) | Central antinode | **One** dominant midplane sheet | The Local Sheet *is* the bubble midplane |
+| **Opposite-sign** ($\Delta\phi=\pi$) | Central node, flanking antinodes | **Paired sheets** separated by $\Lambda_{\mathrm{wake}}$, central void | The Local Sheet has a symmetric counterpart across a void—searchable in LSS catalogs |
+| Quadrature ($\Delta\phi=\pi/2$) | Displaced antinode | Single sheet displaced from the midplane by $\Lambda_{\mathrm{wake}}/4$ in the equal-amplitude phase-shift ansatz | Intermediate case; off-center observers |
 
-Because wake spacing follows $\varphi$-ratios, the paired-sheet separation in
-the anti-phase branch is itself $\varphi$-scaled—successive sheet pairs at
-$\varphi$ multiples of the fundamental wake wavelength, a signature
-distinguishable from generic filamentary structure.
+Because wake spacing follows the asserted $\varphi$ ratios, the paired-sheet
+separation in the opposite-sign branch is itself $\varphi$-scaled—successive
+sheet pairs at $\varphi$ multiples of the fundamental wake wavelength, a
+signature distinguishable from generic filamentary structure.
 
-### 4.3 The conversion term: anti-phase by construction
+### 4.3 The conversion term: opposite signs by construction
 
-Examination of the PDE's `rhs()` kernel in `cassi_two_fluid_3d_gpu.py` (lines
-177–184) confirms the sign structure directly. The conversion source is
+Examination of the PDE's `rhs()` kernel in `cassi_two_fluid_3d_gpu.py`
+confirms the sign structure directly. The canonical conversion source is
 
-$$\text{conv} = -\lambda \cdot (E_Y - \varphi E_I) = -\lambda \cdot \varepsilon$$
+$$
+\text{conv}=-\lambda(1-q)(E_Y-\varphi E_I)
+=-\lambda(1-q)\varepsilon,
+$$
 
-and the RHS couples it with **opposite signs** into the two fields:
+and the right-hand side couples it with opposite signs into the two fields:
 
-$$\partial_t E_Y \supset +\text{conv}, \qquad \partial_t E_I \supset -\text{conv}$$
+$$
+\partial_tE_Y\supset+\text{conv},\qquad
+\partial_tE_I\supset-\text{conv}.
+$$
 
 A positive $\varepsilon$ fluctuation produces opposite-sign forcing on $E_Y$
-and $E_I$: anti-phase coupling is the PDE's **structural property**, not a
-parameter-dependent behavior.
+and $E_I$. This is the PDE's structural sign property. Along the canonical
+conversion trajectory, total density is conserved and the derived
+$\theta_d=\operatorname{atan2}(E_I,E_Y)$ relaxes monotonically toward
+equilibrium. The sign property supplies the wake-interference branch; it does
+not make the conversion term a periodic $SO(2)$ rotation.
 
 ### 4.4 W1 experimental result (2026-07-20)
 
-The prediction was tested via a dedicated experiment (`run_w1_phase_correlation.py`,
-`run_w1_clean.py`, `run_w1_definitive.py`). Three classes of PDE runs were
-performed ($N = 48$, $\lambda = 0.02$, $\chi = 0$, 1000 RK2 steps, 3 seeds):
+The prediction was tested via a dedicated experiment
+(`run_w1_phase_correlation.py`, `run_w1_clean.py`, `run_w1_definitive.py`).
+Three classes of PDE runs were performed ($N=48$, $\lambda=0.02$, $\chi=0$,
+1000 RK2 steps, 3 seeds):
 
-1. **Single-bubble** ($r_{\text{local}} \in \{0.4, 0.5, 1.2\}$, 3 seeds each):
-   the Pearson correlation $\text{corr}(\delta E_Y, \delta E_I)$ within the
-   bubble region was $-1.0000 \pm 0.0000$ at steady state—maintained at the
-   anti-correlation limit across all 9 runs.
+1. **Single-bubble** ($r_{\text{local}}\in\{0.4,0.5,1.2\}$, 3 seeds each):
+   the Pearson correlation $\operatorname{corr}(\delta E_Y,\delta E_I)$
+   within the bubble region was $-1.0000\pm0.0000$ at steady state—maintained
+   at the anti-correlation limit across all 9 runs.
 
-2. **Two-bubble** (3 r-pairs $\times$ 12 separations $\times$ 3 seeds = 108 runs,
-   partial completion): all completed measurements (27 runs across the
+2. **Two-bubble** (3 r-pairs $\times$ 12 separations $\times$ 3 seeds = 108
+   runs, partial completion): all completed measurements (27 runs across the
    below\_below r-pair) maintained anti-correlation at $-1.0000$ for both
-   bubbles independently, across all separations $d \in \{2,4,7,12,15,19,31,34,37\}$.
+   bubbles independently, across all separations
+   $d\in\{2,4,7,12,15,19,31,34,37\}$.
 
 3. **Clean initialization** ($N=16$, random independent fields): no organized
    spatial structure for conversion to act on; correlation stayed near zero as
    expected for uniform-$r$ conditions.
 
-**Verdict.** The PDE conversion coupling is anti-phase. The phase fork of §4.2
-is decided: the framework selects the **anti-phase branch** ($\Delta\phi = \pi$):
-paired sheets flanking a central void, with sheet-pair separation at
-$\varphi$-scaled intervals set by the wake wavelength.
+**Verdict.** The PDE conversion coupling supplies the opposite-sign wake
+branch. The interference fork of §4.2 is therefore evaluated on the
+opposite-sign branch ($\Delta\phi=\pi$): paired sheets flank a central void,
+with sheet-pair separation at the asserted $\varphi$-scaled intervals set by
+the wake wavelength.
 
 The Local Sheet—if it is the dominant sheet in the local bubble—should have
-a symmetric counterpart across a void. The prediction (W4) is now active: search
+a symmetric counterpart across a void. The prediction (W4) is active: search
 large-scale structure catalogs for a parallel sheet at the predicted
 $\varphi$-scaled separation.
 
@@ -385,39 +406,50 @@ $\varphi$-scaled separation.
 
 | # | Prediction | Method | Expected result | Status |
 |---|-----------|--------|-----------------|--------|
-| **W1** | The $E_Y$–$E_I$ wake cross-correlation has definite sign at small lag | Two-bubble PDE runs; cross-correlate wake perturbations vs. separation | Sign selects the §4.2 branch (negative: paired-sheet) | **DECIDED: anti-phase (negative)**—confirmed by PDE structure (§4.3) and runtime maintenance of $r=-1.0000$ across 36 bubble-configuration runs |
-| **W2** | Large-scale structure is weakly anisotropic at scales approaching the bubble diameter | Tomographic $P(k)$ / void statistics vs. angle from a candidate axis | The $\ln\varphi$ wake period modulates with polar angle; anisotropy axis = bubble short axis | Testable with DESI/Euclid (test statistic undefined—must be pinned before data work) |
-| **W3** | The W2 anisotropy axis coincides with the CMB $\ell < 5$ preferred axis | Cross-probe: LSS anisotropy axis vs. quadrupole–octopole alignment axis | Two independent probes, one direction | Testable with existing data (test statistic undefined—must be pinned before data work) |
-| **W4** | (Anti-phase branch now selected) A paired-sheet counterpart to the Local Sheet exists across a void | LSS catalog morphology search at $\varphi$-scaled separations | Parallel sheet at predicted separation; central void between | **Active**—search in progress |
+| **W1** | The $E_Y$–$E_I$ wake cross-correlation has a definite sign at small lag | Two-bubble PDE runs; cross-correlate wake perturbations versus separation | Sign selects the §4.2 branch (negative: paired-sheet) | **DECIDED: opposite-sign (negative)**—confirmed by PDE structure (§4.3) and runtime maintenance of $r=-1.0000$ across 36 bubble-configuration runs |
+| **W2** | Large-scale structure is weakly anisotropic at scales approaching the bubble diameter | Tomographic $P(k)$ / void statistics versus angle from a candidate axis | The asserted $\ln\varphi$ wake spacing modulates with polar angle; anisotropy axis = bubble short axis | Testable with DESI/Euclid (test statistic undefined—must be pinned before data work) |
+| **W3** | The W2 anisotropy axis coincides with the CMB $\ell<5$ preferred axis | Cross-probe: LSS anisotropy axis versus quadrupole–octopole alignment axis | Two independent probes, one direction | Testable with existing data (test statistic undefined—must be pinned before data work) |
+| **W4** | (Opposite-sign branch selected) A paired-sheet counterpart to the Local Sheet exists across a void | LSS catalog morphology search at asserted $\varphi$-scaled separations | Parallel sheet at predicted separation; central void between | **Active**—search in progress |
 
-The anti-phase branch is selected by the PDE. Predictions W2–W4 are
-consequences of the spheroid geometry; W4 upgrades from conditional to active.
+The opposite-sign wake branch is selected by the PDE sign structure and W1
+measurements. Predictions W2–W4 remain consequences of the conditional
+spheroid geometry; W4 is active as an observational search.
 
 ---
 
 ## 6. Open Derivations
 
-1. **The two-fluid phase relation.** §4 derives the fork from the sign
-   structure of the conversion term, but the full SO(2) coupling (including
-   reactive/quadrature components) must be computed from the dual-real PDE to
-   fix $\Delta\phi$ from first principles rather than by fork.
+1. **The density-plane angle and wake-sign relation.** The canonical
+   two-fluid conversion conserves total density and moves
+   $\theta_d=\operatorname{atan2}(E_I,E_Y)$ monotonically toward equilibrium.
+   The opposite-sign wake result fixes the sign branch of the interference
+   model. A compact $SO(2)$ phase, reactive/quadrature coupling, or periodic
+   phase clock would be an additional model sector requiring an explicit
+   implementation and test.
 2. **The spheroid ellipticity.** Set by the emission history: the residence
-   time $\tau(r)$ diverges as $r \to \varphi$, so late wakes dominate; the
-   resulting eccentricity of the bubble is computable from $c(r)$ and the
-   string trajectory and feeds directly into W2's predicted anisotropy
+   time $\tau(r)$ diverges as $r\to\varphi$, so late wakes dominate; the
+   resulting eccentricity of the conditional bubble is computable from $c(r)$
+   and the selected curve and feeds directly into W2's predicted anisotropy
    amplitude.
-3. **Fluid-count uniqueness.** §2.3 grounds two fluids as the minimal
-   de-resonant structure; whether three-fluid sectors are forbidden (ratio
-   incompatibility) or merely unobserved remains open.
-4. **Exact spiral pitch from PDE.** Computed (2026-08): the
-   $\lambda, g(q) \to$ rotation mapping is exchange-only ($\omega = 0$) for
-   the solver as written (no $\Omega$ term—spiral-program 04/05); with the
-   ratified conversion→expansion coupling the rotation is genuine,
-   $\omega_{\text{rot}}/\gamma = 5.07945$ (dressed), and the spiral clock
-   turns $\varphi^{-2} = 0.382$ turns per Hubble rung (pitch angle $\approx
-   11.34°$; discriminator $|a_\theta/a_r| = 0.19880$)—08 §C.3, [COMPUTED].
-   The radial pitch convention $\Theta = 2\pi n$ remains the Asserted
-   coordinate postulate.
+3. **Fluid-count uniqueness.** Whether three-fluid sectors are forbidden by
+   ratio incompatibility or merely unobserved remains open. The two-fluid
+   state is the canonical starting point, while the $\mathbb{R}^3$ embedding
+   is a separate geometric choice.
+4. **Exact spiral pitch from the canonical dynamics.** The canonical
+   conversion ODE does not derive $\chi=2\pi n$ or a periodic $2\pi$ clock.
+   The radial pitch and one-turn-per-rung reading remain asserted coordinate
+   postulates. The solver value $\lambda=0.1$ remains an asserted
+   normalization/timescale convention; $w=5$ does not derive its rate or
+   units.
+
+   A separate conversion-to-expansion implementation reports the retained
+   diagnostics $\omega_{\rm rot}/\gamma=5.07945$ (dressed), $0.389$
+   turns/rung realized, $0.3868\pm0.0001$ measured, pitch angle
+   $\approx11.34^\circ$, and discriminator
+   $|a_\chi/a_r|=0.19880$ (08 §C.3, [COMPUTED]). These values are
+   conditional measurements of that added implementation. They do not turn
+   the canonical density-plane angle into a compact phase and do not
+   determine the ambient dimension.
 
 ---
 
@@ -425,72 +457,65 @@ consequences of the spheroid geometry; W4 upgrades from conditional to active.
 
 ### Supported by Verified Physics
 
-- SO(2) doublet structure of the two fluids; perpendicularity of the field
-  axes (dual-real formulation)
-- Wake-wave mechanism with $\varphi$-scaled spacing; string-wake feedback loop
-- The Cassi bubble at step 285; neighboring $w$-bubbles at $\ell_{286}$–$\ell_{287}$
-  (inside the horizon)
-- The imported status of the 3 in $\xi = \varphi^6$ (this is a gap in the
-  existing text, not new physics—addressed by this document)
-- **Anti-phase conversion coupling** confirmed by PDE structure (§4.3) and
-  runtime maintenance of $\text{corr}(E_Y,E_I) = -1.0$ across 36 runs (§4.4)
+- Two real density fields with equal-and-opposite conversion, conserved total
+  density, and derived density-plane angle
+  $\theta_d=\operatorname{atan2}(E_I,E_Y)$ that relaxes monotonically toward
+  equilibrium
+- Wake-wave mechanism with $\varphi$-scaled spacing and string-wake feedback
+  loop
+- The Cassi bubble at step 285; neighboring $w$-bubbles at
+  $\ell_{286}$–$\ell_{287}$ (inside the horizon)
+- The attractor exponent $(\pi/\rho)_{\rm eq}=\varphi^{-3}$ and the resulting
+  algebraic exponent in $\xi=\varphi^6$
+- **Opposite-sign conversion coupling** confirmed by PDE structure (§4.3) and
+  runtime maintenance of $\operatorname{corr}(E_Y,E_I)=-1.0$ across 36 runs
+  (§4.4)
 
 ### Plausible Hypothesis (test exists)
 
-- Three dimensions emerge from the spiral's Frenet-Serret frame; $\xi = \varphi^{2\times 3}$ fully internal
-- The bubble as triaxial spheroid bounded between cascade steps
-- Flattened structure as frozen wake-interference plane, now understood as
-  **paired sheets flanking a central void** (anti-phase branch selected)
+- Identification of the shared integer in the five-route map with $d=3$,
+  conditional on the stated framework normalizations and the chosen
+  $\mathbb{R}^3$ embedding
+- The bubble as a triaxial spheroid within that conditional morphology map
+- Flattened structure as frozen wake interference, with paired sheets flanking
+  a central void on the opposite-sign branch
 
 ### Speculative (no current test design)
 
 - Fluid-count minimality as a selection principle (§6.3)
 - Quadrature-branch displaced-plane morphology
-- Exact Frenet-Serret torsion from the PDE conversion rate
+- Exact Frenet–Serret torsion as a consequence of the canonical conversion
+  rate
 
-### Supported Conditionally on the Doublet and Cascade Postulates
+### Hypothesized Dimensional Identification
 
-- Dimensionality $d = 3$, overdetermined by five framework-internal routes
-  (Lucas identity; attractor imbalance exponent; noise–signal $\delta = 3$;
-  rung-clock $d = \varphi^{-2}/(1-q_0)$; Frenet–Serret frame; §2.6,
-  verified 2026-08-11)—conditional only on the shared doublet and cascade
-  postulates, not on the morphology machinery. The rung-clock route's older
-  form required the three postulates ((1) the conversion→expansion coupling
-  term $V_{\text{new}} = \lambda\tilde{h}(E_Y,E_I) + \lambda\varphi^{-2}/d$
-  (Hypothesized, zero free constants—08 §A.2; the conditional support rests
-  on the term's **r-level content**, which stands—the PDE winding test of
-  2026-08-04 verified the rotation half (dressed 0.389 turns/rung realized,
-  measured 0.3868 ± 0.0001) while the source half's field-level realization
-  is unstable (saddle, density blow-up, log-domain exit—09-winding-test.md);
-  the stable realization is the C1 Hubble-friction closure
-  (10-source-stabilization.md), which realizes the source at the
-  $r_* \approx 0.9503$ attractor (12 §1); the identity is evaluated at the
-  golden equilibrium $r = \varphi$—now known to be a transient-era repeller
-  in the stabilized realization: at the stable attractor $r_*$ the clock
-  ratio is 36.61 rather than 13.06 (factor 2.804—12 §1.5), so the rung-clock
-  route is a statement about the golden configuration, whose physical status
-  is flagged (12)); (2) the spiral clock $dn/dt = (\lambda/2\pi)(1-q)$
-  (Hypothesized); (3) the pitch convention $\Theta = 2\pi n$ (Asserted))—but
-  the four other routes (§2.6 (a)–(c), (e)) do not require those three.
+The five-route argument is a conditional consistency map. Lucas algebra,
+attractor and noise–signal exponents, the selected rung-clock normalization,
+and the Frenet calculation all supply values or identities involving 3. The
+map from that shared integer to ambient $d=3$ is a framework hypothesis. The
+rung-clock relation uses a chosen gate and continuity normalization, and the
+Frenet route assumes $\mathbb{R}^3$ before constructing its triad. In
+$\mathbb{R}^d$, a generalized Frenet frame can contain up to $d$ vectors.
 
 ### Not Supported
 
-- Any claim that dimensionality has been *derived* from nothing: the five
-  routes share the doublet and cascade postulates (the framework's foundation);
-  within the framework, $d = 3$ is overdetermined, not imported.
-- Any claim that the Local Sheet is established as one of a paired-sheet set —
-  it is the natural observational reading of the selected anti-phase branch,
-  but W4 remains to be tested
+- A derivation that fixes the ambient dimension at $d=3$ from the two-fluid
+  equations and $\varphi$ alone
+- A claim that a Frenet–Serret triad selects the dimension of space
+- A claim that the five routes are independent determinations or require no
+  model input
+- A claim that the Local Sheet is established as one of a paired-sheet set;
+  W4 remains an observational search
 
 ---
 
 ## References
 
-- `xi-derivation.md`: the $\xi = \varphi^6 = (\pi/\rho)^{-2}$ derivation (exponent 3 from the attractor's imbalance)
-- `computations/why_three_dimensions_frenet.py`: numeric verification of the Frenet–Serret route (loxodrome invariants, frame alignment) and the five-route overdetermination
-- `dimensionful-cascade.md`: the φ-cascade (292 = today's horizon rung); Cassi bubble at step 285
+- `xi-derivation.md`: the $\xi=\varphi^6=(\pi/\rho)^{-2}$ relation (attractor exponent)
+- `computations/why_three_dimensions_frenet.py`: numerical verification of the prescribed $\mathbb{R}^3$ loxodrome invariants and Frenet-frame alignment; it does not determine ambient dimension
+- `dimensionful-cascade.md`: the $\varphi$-cascade (292 = today's horizon rung); Cassi bubble at step 285
 - `consciousness/consciousness-from-phi.md` §1: pinch point, wake waves, string-wake loop
 - `principles/de-resonance-principle.md`: $\varphi$ as maximal de-resonance
-- `foundations/spin-fibonacci-spiral.md`: Fibonacci spiral geometry, SO(2) winding
+- `foundations/spin-fibonacci-spiral.md`: Fibonacci spiral geometry and asserted internal-coordinate conventions
 - `two-fluid/run_two_bubble_fast.py`, `two-fluid/run_two_bubble_verification.py`: W1 test infrastructure
-- `cosmology/observational_constraints.md` §4: CMB $\ell < 5$ preferred-axis analysis (W3)
+- `cosmology/observational_constraints.md` §4: CMB $\ell<5$ preferred-axis analysis (W3)
